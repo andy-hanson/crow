@@ -48,6 +48,7 @@ Exports of `wasm.d`:
 	| "spec"
 	| "struct"
 	| "type-param"
+	| "var-decl"
 } TokenKind
 */
 crow.TokenKind = {}

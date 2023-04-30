@@ -614,9 +614,10 @@ void parseSpecOrStructOrFun(
 				StructDeclAst.Body.Flags(typeArg, small(parseEnumOrFlagsMembers(lexer)))));
 			break;
 		case Token.global:
+			Pos pos = curPos(lexer);
 			nextToken(lexer);
 			add(lexer.alloc, varDecls, parseVarDecl(
-				lexer, start, docComment, visibility, name, typeParams, VarKind.global));
+				lexer, start, docComment, visibility, name, typeParams, pos, VarKind.global));
 			break;
 		case Token.record:
 			nextToken(lexer);
@@ -630,9 +631,10 @@ void parseSpecOrStructOrFun(
 				range(lexer, start), docComment, visibility, name, small(typeParams), small(parents), body_));
 			break;
 		case Token.thread_local:
+			Pos pos = curPos(lexer);
 			nextToken(lexer);
 			add(lexer.alloc, varDecls, parseVarDecl(
-				lexer, start, docComment, visibility, name, typeParams, VarKind.threadLocal));
+				lexer, start, docComment, visibility, name, typeParams, pos, VarKind.threadLocal));
 			break;
 		case Token.union_:
 			nextToken(lexer);
@@ -667,11 +669,12 @@ VarDeclAst parseVarDecl(
 	Visibility visibility,
 	Sym name,
 	NameAndRange[] typeParams,
+	Pos kindPos,
 	VarKind kind,
 ) {
 	TypeAst type = parseTypeArgForVarDecl(lexer);
 	FunModifierAst[] modifiers = parseFunModifiers(lexer);
-	return VarDeclAst(range(lexer, start), docComment, visibility, name, typeParams, kind, type, modifiers);
+	return VarDeclAst(range(lexer, start), docComment, visibility, name, typeParams, kindPos, kind, type, modifiers);
 }
 
 StructDeclAst.Body.Union.Member[] parseUnionMembersOrDiag(ref Lexer lexer) {
@@ -719,16 +722,17 @@ Opt!(ModifierAst.Kind) tryParseModifierKind(ref Lexer lexer) {
 					return some(ModifierAst.Kind.mut);
 				case Token.name:
 					Opt!(ModifierAst.Kind) kind = modifierKindFromSym(getCurSym(lexer));
-					if (!has(kind))
-						todo!void("diagnostic: invalid modifier");
+					if (!has(kind)) {
+						addDiagExpected(lexer, ParseDiag.Expected.Kind.modifier);
+						nextToken(lexer);
+					}
 					return kind;
 				default:
 					return none!(ModifierAst.Kind);
 			}
 		}();
-		if (has(res)) {
+		if (has(res))
 			nextToken(lexer);
-		}
 		return res;
 	}
 }

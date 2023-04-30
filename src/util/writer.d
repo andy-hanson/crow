@@ -179,7 +179,7 @@ private void writeWithSeparator(T)(
 	in void delegate(in T) @safe @nogc pure nothrow cb,
 ) {
 	bool first = true;
-	foreach (size_t i, ref T x; a)
+	foreach (size_t i, ref const T x; a)
 		if (filter(x)) {
 			if (first)
 				first = false;

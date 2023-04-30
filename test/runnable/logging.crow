@@ -4,8 +4,8 @@ main nat^(_ string[]) summon
 	doubler log-handler = logged =>
 		lh[logged]
 		lh[logged]
-	doubler with-log-handler () =>
+	with : doubler temp-log-handler
 		warn log "Logged twice"
-	(_ => ()) with-log-handler () =>
+	with : (_ => ()) temp-log-handler
 		warn log "Logged never"
 	()

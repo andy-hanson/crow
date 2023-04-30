@@ -49,7 +49,7 @@ end-pointer[t] t mut*(a t mut[]) bare, unsafe
 is-at-capacity[t] bool(a t mut[]) bare, unsafe
 	a.capacity == a.size
 
--capacity[t] nat64(a t mut[]) bare, unsafe
+capacity[t] nat64(a t mut[]) bare, unsafe
 	a.backing size
 
 ###

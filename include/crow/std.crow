@@ -11,6 +11,7 @@ export
 	./col/mut-map
 	./col/mut-set
 	./col/set
+	./col/sort
 	./compare
 	./enum-util
 	./exception

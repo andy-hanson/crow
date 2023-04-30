@@ -33,6 +33,8 @@ ulong fnFloat64FromInt64(ulong a) =>
 	bitsOfFloat64(cast(double) (cast(long) a));
 ulong fnFloat64FromNat64(ulong a) =>
 	bitsOfFloat64(cast(double) a);
+ulong fnInt64FromInt8(ulong a) =>
+	cast(ulong) (cast(long) (cast(byte) a));
 ulong fnInt64FromInt16(ulong a) =>
 	cast(ulong) (cast(long) (cast(short) a));
 ulong fnInt64FromInt32(ulong a) =>

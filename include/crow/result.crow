@@ -5,7 +5,7 @@ import
 	./exception: exception, rethrow
 	./fun-util: subscript
 export
-	./private/bootstrap: err, ok, result
+	./private/bootstrap: error, ok, result
 
 +==[t, u] bool(a (t, u) result, b (t, u) result) t equal, u equal
 	match a
@@ -13,32 +13,32 @@ export
 		match b
 		as ok ob
 			oa == ob
-		as err _
+		as error _
 			false
-	as err ea
+	as error ea
 		match b
 		as ok _
 			false
-		as err eb
+		as error eb
 			ea == eb
 
 +then[out, in, err] (out, err) result(a (in, err) result, f act (out, err) result(in))
 	match a
 	as ok v
 		f[v]
-	as err e
-		e err
+	as error e
+		e error
 
 +force[t] t(a (t, exception) result)
 	match a
 	as ok v
 		v
-	as err e
+	as error e
 		e rethrow
 
 +is-ok[t, u] bool(a (t, u) result)
 	match a
 	as ok _
 		true
-	as err _
+	as error _
 		false

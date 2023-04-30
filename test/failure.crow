@@ -59,17 +59,17 @@ first-failures test-result^(a test-result, b fun test-result^())
 		match b-res
 		as ok ok-b
 			"{ok-a}\n{ok-b}".ok,
-		as err e
-			e.err,
-	as err e
-		e.err,
+		as error e
+			e.error,
+	as error e
+		e.error,
 
 print-failures nat(failures test-result, options test-options) summon
 	match failures
 	as ok o
 		out print o
 		0
-	as err e
+	as error e
 		for failure : e
 			failure print-failure
 		n-failures = e size

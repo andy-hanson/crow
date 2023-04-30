@@ -21,7 +21,7 @@ main nat^(_ string[]) summon
 		cookie = match db login "alice", "swordfish"
 		as ok o
 			o
-		as err _
+		as error _
 			throw "TODO"
 		first-post = db add-post cookie, "hello world"
 		pi = db get-post-info first-post

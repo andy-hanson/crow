@@ -200,7 +200,7 @@ This is amortized O(log n).
 		as plan-did-compact compacted
 			(node.min, node.pairs, (compacted,)) plan-did-compact
 		as plan-will-compact n-elements-to-compact
-			node-size-here = 1 + node.pairs.size
+			node-size-here = node.pairs.size + 1
 			if node-size-here <= n-elements-to-compact
 				n-elements-to-compact + node-size-here plan-will-compact
 			else

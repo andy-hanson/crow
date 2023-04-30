@@ -25,7 +25,7 @@ Calls `f` and asserts that it throws an exception with the specified `message`.
 	match f catch
 	as ok _
 		throw "Expected to throw an exception"
-	as err e
+	as error e
 		e.message.literal is message
 
 test

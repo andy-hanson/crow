@@ -1,0 +1,180 @@
+<section>
+	<p>
+		Crow supports <code class="keyword">enum</code> and <code class="keyword">flags</code> types
+		mostly for compatibility with C, but you might find them useful in other contexts.
+	</p>
+
+	<h2>Enum types</h2>
+
+	<p>
+		An enum type is a type that has only a specified set of possible values.
+		<br />
+		It's like a <code class="keyword">union</code>, except that choices can't have any associated value.
+		<br />
+		This restriction brings with it easy conversion to/from a number or string.
+	</p>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			info log "{left.opposite}"
+			()
+
+		direction enum
+			left
+			right
+		
+		opposite direction(a direction)
+			match a
+			as left
+				right
+			as right
+				left
+	</crow-runnable>
+
+	<p>
+		<code class="keyword">match</code> expressions work the same for enums as they do for unions.
+		<br />
+		Also as with a union, declaring the enum generates functions <code class="fun">left</code>
+		and <code class="fun">right</code> returning enum values.
+		<br />
+		The similarity makes it easy to change an enum to union (or vice versa) without breaking too much code.
+	</p>
+</section>
+<section>
+	<h2>Conversion</h2>
+	<p>
+		Enums automatically support conversion to <code class="struct">nat32</code>,
+		<code class="struct">symbol</code>, or <code class="struct">string</code>.
+		<br />
+		You can also convert from a <code class="struct">symbol</code> or <code class="struct">string</code>,
+		which returns an option of the enum.
+	</p>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			info log "{left::direction2.to::nat32}"
+			info log "{left::direction2.to::direction4}"
+			info log "{up::direction4.to::direction2? ?? right}"
+			()
+
+		direction2 enum
+			left
+			right
+
+		direction4 enum
+			down
+			up
+			left
+			right
+		
+		to direction4(a direction2)
+			a.to::symbol.to::(direction4?)!
+
+		to direction2?(a direction4)
+			a.to::symbol.to
+	</crow-runnable>
+</section>
+<section>
+	<h2>Custom integer representation</h2>
+	<p>
+		By default, enums are stored as a <code class="struct">nat32</code>,
+		but you can make it a different size of <code class="struct">nat</code>,
+		or even an <code class="struct">int</code>.
+	</p>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			info log "{left.to::nat8}"
+			()
+
+		direction enum(nat8)
+			left
+			right
+	</crow-runnable>
+
+	<aside class="small">
+		The generated <code class="fun">to</code> function's return type is the specified representation type.
+	</aside>
+
+	<p>
+		You can also choose what integer values are associated with each value.
+		(The default is 0, 1, 2, ... like in C.)
+	</p>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			info log "{left.to::int16}"
+			()
+
+		direction enum(int16)
+			left = -10
+			right = 10
+	</crow-runnable>
+
+	<aside>
+		<h4>Differences with C</h4>
+		<p>
+			In C, "enums" don't really declare types; they just declare names of integers.
+			A variable in C declared with an enum type might have any integer value,
+			including those not declared in the enum.
+		</p>
+		<p>
+			In Crow, the declared enum values are the only valid values.
+			If that doesn't match how a C enum is used, declare it as <code class="keyword">flags</code> instead.
+		</p>
+	</aside>
+</section>
+<section>
+	<h2>Flags types</h2>
+	
+	<p>
+		While enum types store <em>one</em> of the choices, flags types store any number of the choices.
+	</p>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			naked clothing = ()
+			info log "{naked}"
+			fully-dressed clothing = shirt | pants | shoes
+			info log "{fully-dressed}"
+			info log "{fully-dressed.to::json}"
+			info log "{naked.can-serve}"
+			info log "{shirt.can-serve}"
+			info log "{fully-dressed.can-serve}"
+			()
+
+		clothing flags
+			shirt
+			pants
+			shoes
+		
+		can-serve bool(a clothing)
+			(shirt | shoes) is-in a
+	</crow-runnable>
+
+	<aside class="small">
+		This calls <code class="fun">is-in</code> from {{doc/flags-util}}.
+	</aside>
+
+	<p>
+		Declaring a <code class="keyword">flags</code> type declares a function <code class="fun">|</code>
+		that gets the union of flags and <code class="fun">&</code> that gets the intersection.
+	</p>
+
+	<p>
+		As with enums, you can specify the backing type and exactly what value each flag has.
+		<br />
+		Make sure they are powers of 2.
+	</p>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			info log (shirt | shoes).to::nat16.to-binary
+			()
+
+		clothing flags(nat16)
+			shirt = 0b00100
+			pants = 0b01000
+			shoes = 0b10000
+	</crow-runnable>
+</section>

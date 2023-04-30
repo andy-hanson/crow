@@ -10,15 +10,18 @@ pages path-and-content[]^() summon
 	(index, download) ~~ tutorial-pages,
 
 tutorial-pages path-and-content[]() summon
-	metas = tutorial-metas
-	for index : 0 .. metas.size
-		meta = metas[index]
-		next tutorial-meta? = unless index + 1 == metas.size
-			metas[index + 1],
-		meta.path tutorial-template meta.title, "site-src/tutorial/{meta key}.html".read-file, next
+	() join for tutorial-dir : ("tutorial-old", "tutorial")::string[]
+		metas = tutorial-dir == "tutorial-old" ? old-tutorial-metas : new-tutorial-metas
+		title-lookup string[symbol] = for x : metas; x.key, x.title
+		for index : 0 .. metas.size
+			meta = metas[index]
+			next tutorial-meta? = unless index + 1 == metas.size
+				metas[index + 1],
+			content string = "site-src/{tutorial-dir}/{meta key}.html" read-file
+			tutorial-dir tutorial-template meta, metas, title-lookup, content, next
 
--tutorial-metas tutorial-meta[]()
-	input = """index: hello, world!
+-old-tutorial-metas tutorial-meta[]()
+	"""index: hello, world!
 	if: functions, 'if', and locals
 	types: basic types
 	infer: type inference
@@ -33,8 +36,37 @@ tutorial-pages path-and-content[]() summon
 	spec: specs
 	module: modules
 	extern: extern functions
-	next: where from here?"""
-	name symbol grammar = word map x => x to
+	next: where from here?""" parse-tutorial-metas
+
+-new-tutorial-metas tutorial-meta[]()
+	"""index: Running crow programs
+	functions: Functions
+	local-variables: Local variables
+	conditionals: Conditional expressions
+	loops: Loop expressions
+	types: Basic types
+	type-inference: Type inference
+	special-call-syntax: Special call syntax
+	options: Option types
+	records: Records
+	unions: Unions
+	collections: Collections
+	lambdas: Lambdas
+	for-and-with: "For" and "with" expressions
+	exceptions: Exceptions
+	purity: Purity
+	futures: Futures
+	io: I/O
+	modules: Modules
+	templates: Templates
+	specs: Specs
+	enums: Enums and flags
+	low-level: Low-level code
+	extern: External libraries
+	misc: Miscellaneous""" parse-tutorial-metas
+
+-parse-tutorial-metas tutorial-meta[](input string)
+	name symbol grammar = ":".text-not-containing map x => x to
 	line tutorial-meta grammar = (name ~~ ": " ~~ "\n".text-not-containing) map pair =>
 		pair.a, pair.b
 	lines tutorial-meta[] grammar = line separated-by "\n\t"
@@ -44,27 +76,52 @@ tutorial-pages path-and-content[]() summon
 	key symbol
 	title string
 
-path string(a tutorial-meta)
-	"tutorial/{a key}.html"
+-path string(tutorial-dir string, a tutorial-meta)
+	"{tutorial-dir}/{a key}.html"
 
-tutorial-nav string(cur-path string)
+-tutorial-nav string(tutorial-dir string, cur-path string, tutorial-metas tutorial-meta[])
 	lines = "" join for x : tutorial-metas
-		key = x key
-		path = x path
-		name symbol = key == "index" ? "syntax" : key
+		path = tutorial-dir path x
 		cur = path == cur-path ? " class=\"current\""
-		"""<li><a href="/{path}"{cur}>{name}</a></li>"""
+		"""<li><a href="/{path}"{cur}>{x title}</a></li>"""
 	"<nav><ul>{lines}</ul></nav>"
 
--tutorial-template path-and-content(page-path string, title string, content string, next tutorial-meta?)
+-tutorial-template path-and-content(
+	tutorial-dir string,
+	meta tutorial-meta,
+	tutorial-metas tutorial-meta[],
+	tutorial-title-lookup string[symbol],
+	content string,
+	next tutorial-meta?,
+)
 	next-link = if n ?= next
-		"""<a id="next" href="/{n path}">next: {n title}</a>"""
-	page-path page-template title, """
+		"""<a id="next" href="/{tutorial-dir path n}">next: {n title}</a>"""
+	page-path = tutorial-dir path meta
+	content-with-links = content create-links link =>
+		if kind, name ?= link try-split-once "/"
+			if kind == "doc"
+				# TODO: validate the name
+				"<a href=\"/doc/crow/{name}.html\">{name}</a>"
+			elif kind == "tutorial"
+				title = tutorial-title-lookup[name to] ?? throw "Linked to '{name}' but no tutorial page has that name."
+				"<a href=\"/tutorial/{name}.html\">{title}</a>"
+			else
+				throw "Unexpected link kind {kind}"
+		else
+			throw """Link "{link}" needs to begin with "doc/" or "tutorial/"."""
+	page-path page-template meta.title, """
 	<div id="side-nav-wrapper">
-		{page-path tutorial-nav}
+		{tutorial-dir tutorial-nav page-path, tutorial-metas}
 		<main>
-			<h1>{title}</h1>
-			{content}
+			<h1>{meta title}</h1>
+			{content-with-links}
 			{next-link}
 		</main>
 	</div>"""
+
+create-links string(content string, fill-link fun string(string))
+	if left, rest ?= content try-split-once "\{\{"
+		if link, right ?= rest try-split-once "}}"
+			left ~~ fill-link[link] ~~ (right create-links fill-link)
+	else
+		content

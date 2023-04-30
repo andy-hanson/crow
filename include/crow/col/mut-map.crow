@@ -139,6 +139,9 @@ If the key is already in the map, this overwrites the previous value.
 +set-subscript[k, v] void(a v mut[k], key k, value v) k key
 	_ = a update key, (value,)
 
++TODOKILLME[k, v] void(a v mut[k], key k, value v) k key
+	_ = a update key, (value,)
+
 # Remove all keys, leaving the map empty.
 +clear[k, v] void(a v mut[k]) k key
 	a.entries fill none

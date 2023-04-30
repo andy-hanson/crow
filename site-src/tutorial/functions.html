@@ -1,0 +1,184 @@
+<section>
+	<h2>Identifiers</h2>
+	<p>
+		Most identifiers use <code>kebab-case</code>, meaning lower-case letters with words separated by hyphens.
+	</p>
+	<p>
+		The formal rule is that an identifier (name of a variable or function) must start with a letter
+		(A through Z, lower or upper case), followed by letters, numbers, <code>_</code> and <code>-</code>.
+		<br />
+		In other words, legal identifiers in Crow are like those in C, Java, etc.; plus <code>-</code> is also allowed.
+		<br />
+		These rules are the same for all kinds of identifiers: functions, variables, types, etc.	
+	</p>
+	<p>
+		Crow also supports operators like <code>+</code>.
+		These are actually function names, but the parser treats them a bit differently.
+		Those will be described in {{tutorial/special-call-syntax}}.
+	</p>
+	<p>
+		Example allowed identifiers:
+		<ul class="bullets">
+			<li><code>a</code></li>
+			<li><code>hello-world</code></li>
+			<li><code>float32</code></li>
+			<li><code>BIG_WORDS</code></li>
+		</ul>
+		Some disallowed identifiers:
+		<ul class="bullets">
+			<li><code>if</code> (and other keywords)</li>
+			<li><code>x+y</code></li>
+			<li><code>2much</code></li>
+		</ul>
+	</p>
+	<aside>
+		<h4>Naming conventions</h4>
+		<p>
+			You can write names in any style you want,
+			but the standard library uses <code>kebab-case</code> for everything.
+			<br />
+			This doesn't vary between functions and type names. The syntax makes it unambiguous which is which.
+			<br />
+			There is also no naming convention for private members since that is enforced at the language level.
+			(See {{tutorial/modules}}.)
+		</p>
+		<p>
+			The exception is that when calling C code, the original C names are used.
+			<br />
+			For example, you would still call <code>SDL_Init</code> not <code>sdl-init</code>.
+		</p>
+	</aside>
+</section>
+
+<section>
+	<h2>Function call syntax</h2>
+	<p>
+		In crow, a function name always comes after its first argument (if any).
+		To call a function <code class="fun">f</code>:
+		<ul class="bullets">
+			<li>
+				With 0 arguments: <code>f</code>.
+				Just writing the function name calls it.
+			</li>
+			<li>
+				With 1 argument: <code>x f</code>.
+				You can also write <code>x.f</code> which makes it bind more tightly, to avoid needing parentheses.
+			</li>
+			<li>
+				With 2 arguments: <code>x f y</code>.
+			</li>
+			<li>
+				With 3 arguments: <code>x f y, z</code>.
+				For more than 3 arguments, just keep adding commas before each argument.
+			</li>
+		</ul>
+	</p>
+
+	<h3>Chaining function calls</h3>
+	<p>
+		So what does <code>a b c d e</code> mean?
+		<br />
+		A function name comes after its first argument. So the first function name is <code class="fun">b</code>.
+		<br />
+		Then <code>c</code> provides the second argument to that function.
+		There is no comma after <code>c</code>, so <code>d</code> is another function name
+		and <code>a b c</code> is its first argument.
+		Then <code>e</code> is the second argument to <code>d</code>.
+		<br />
+		So this is equivalent to <code>(a <span class="fun">b</span> c) <span class="fun">d</span> e</code>.
+	</p>
+	<p>
+		If you instead wrote <code>a <span class="fun">b</span> c, d <span class="fun">e</span></code>,
+		then the call to <code class="fun">b</code> gets <code>d</code> as a third argument.
+		<br />
+		Then the whole expression is passed into <code class="fun">e</code>,
+		making this equivalent to <code>(a b c, d) e</code>.
+	</p>
+	<p>
+		The call syntax may be unintuitive at first, but it handles most cases without needing parentheses.
+	</p>
+</section>
+
+<section>
+	<h2>Function definition syntax</h2>
+	<p>Now we're ready to define a function and call it:</p>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			info log hello-world
+			()
+
+		hello-world string()
+			"Hello, world!"
+	</crow-runnable>
+	
+	<p>
+		<code>info log hello-world</code> calls the function <code>log</code> with 2 arguments
+		<code>info</code> and <code>world</code>, which are 0-argument function calls.
+	</p>
+	<p>
+		<code>hello-world string()</code> is the function <em>signature</em>.
+		It takes no arguments and returns a <code>string</code>.
+		The function <em>body</em> always goes beneath the signature and indented.
+	</p>
+	<aside class="small">
+		The <code>()</code> is special syntax for a call to <code>new</code>.
+		This will be explained in {{tutorial/special-call-syntax}}.
+	</aside>
+
+	<h3>Parameters</h3>
+
+	<p>Here's a modified version that takes a single parameter.</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			info log 3.hello-world
+			()
+
+		hello-world string(times nat)
+			"Hello, world! " repeat times
+	</crow-runnable>
+
+	<p>
+		This defines a function <code>hello-world</code> that takes a <code>nat</code> (natural number)
+		and returns a <code>string</code>.
+		<br />
+		The argument <code>3</code> becomes the value of the parameter
+		<code>times</code>, causing the string to repeat 3 times.
+	</p>
+	<aside class="small">
+		We wrote <code>3.hello-world</code> to avoid needing to parenthesize <code>(3 hello-world).</code>
+	</aside>
+
+	<p>
+		Additional parameters should each be preceded by a comma.
+		The below takes 2 parameters <code>name</code> and <code>times</code>
+		and passes arguments <code>"crow"</code> and <code>3</code>, respectively.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			info log ("crow" hello 3)
+			()
+
+		hello string(name string, times nat)
+			"hello, {name}! " repeat times
+	</crow-runnable>
+
+	<p>
+		<code>"hello, {name}! "</code> is string interpolation.
+		This will be explained in {{tutorial/types}}.
+	</p>
+
+	<aside class="danger">
+		<h4>Type placement</h4>
+		<p>Types always come after the name of the entity with that type.</p>
+		<ul class="bullets">
+			<li>
+				<code>hello-world string</code> defines a function <code>hello-world</code>
+				with a return type of <code>string</code>.
+			</li>
+			<li>
+				<code>times nat</code> defines a parameter <code>times</code> with a type of <code>nat</code>.
+			</li>
+		</ul>
+	</aside>
+</section>

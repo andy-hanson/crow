@@ -1,0 +1,136 @@
+<section>
+	<h2>Levels of purity</h2>
+	<p>
+		Crow prevents sharing mutable data between different threads.
+		The precise details will be explained in {{tutorial/futures}}.
+		<br />
+		Doing that requires knowing the <em>purity</em> of every type.
+		The 3 purity levels are:
+	</p>
+	<table>
+		<tbody>
+			<tr>
+				<td><code class="keyword">data</code></td>
+				<td>Immutable values only.</td>
+			</tr>
+			<tr>
+				<td><code class="keyword">shared</code></td>
+				<td>
+					Immutable values, <code class="keyword">fun</code> types,
+					and thread-safe mutable values (such as <code class="struct">future</code>s).
+				</td>
+			</tr>
+			<tr>
+				<td><code class="keyword">mut</code></td>
+				<td>Allows all values, including ordinary mutable values.</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<aside>
+		<h4>Data is forever</h4>
+		<p>
+			This doesn't work like <code class="keyword">const</code> in other languages.
+			<br />
+			If a type is <code class="keyword">mut</code>, you can't cast it to <code class="keyword">data</code>.
+			(You <em>can</em> call <code class="function">to</code>
+			to convert a mutable collection to an immutable one.)
+			<br />
+			This is because we need <code class="keyword">data</code> to be truly immutable,
+			not just a read-only reference to something mutable.
+		</p>
+	</aside>
+</section>
+<section>
+	<h2>Declaring purity</h2>
+
+	<p>
+		If a type is not <code class="keyword">data</code>,
+		it must be marked <code class="keyword">shared</code> or <code class="keyword">mut</code> at the declaration.
+	</p>
+	<crow-runnable>
+		has-data record
+			x string
+
+		has-shared record shared
+			x string^
+
+		has-mutable record mut
+			x string-builder
+	</crow-runnable>
+
+	<aside class="small">
+		Try removing the <code class="keyword">shared</code> or <code class="keyword">mut</code> keywords
+		to see the compile error.
+		<br />
+		In contrast, it's not a compile error if you mark <code class="struct">has-data</code>
+		as <code class="keyword">mut</code>.
+	</aside>
+
+	<h3>Purity and "fun"/"act"</h3>
+
+	<p>
+		An <code class="keyword">act</code> can have anything in its closure,
+		but <code class="keyword">fun</code> can only have <code class="keyword">shared</code> data.
+	</p>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			xs nat mut[] = ()
+			f act void() = () =>
+				xs ~= 1
+			f[]
+			()
+	</crow-runnable>
+
+	<aside class="small">
+		Try changing <code class="keyword">act</code> to <code class="keyword">fun</code> to see the compile error.
+	</aside>
+	<p>
+		As a result, a <code class="keyword">fun</code> type is <code class="keyword">shared</code> 
+		while an <code class="keyword">act</code> type is <code class="keyword">mut</code>.
+	</p>
+</section>
+<section>
+	<h2>Benefits of purity</h2>
+
+	<p>
+		Purity is deep: If a record has a <code class="keyword">mut</code> field,
+		it must be <code class="keyword">mut</code> itself.
+		<br />
+		To put it in reverse, if a record is <code class="keyword">data</code>,
+		then everything it references, and everything they reference, is <code class="keyword">data</code> too.
+	</p>
+
+	<p>Two other Crow features also enforce kinds of purity:</p>
+	<ul class="bullets">
+		<li>Global state is considered unsafe. (Code should behave as if there is no global state.)</li>
+		<li>I/O is controlled. For details, see {{tutorial/io}}.</li>
+	</ul>
+
+	<aside>
+		<h4>Logging and I/O</h4>
+		<p>
+			Logging is treated differently from other I/O, which is what has allowed
+			all of these tutorial examples to be written in pure code.
+			<br />
+			Logging is not inherently I/O,
+			since the log handler is like an implicitly passed <code class="keyword">act</code>.
+			This fits into Crow's model of side effects, explained in {{tutorial/io}}.
+		</p>
+	</aside>
+	
+	<p>
+		With all these combine, purity creates a "jail" that an ordinary function can't escape from.
+		Its parameters form the (only) roots of the graph of data it can access.
+		<br />
+		If those parameters are <code class="keyword">data</code>, then the entire graph of objects accessible
+		to that function is <code class="keyword">data</code>.
+		<br />
+		It can't modify any state visible to the outside, or do any I/O.
+		It's limited to reading data and producing a return value.
+		The only thing that matters about such a function is its return value.
+		<br />
+		It can still create mutable objects of its own, but this is fine since they won't affect anything elsewhere.
+	</p>
+</section>

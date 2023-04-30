@@ -83,7 +83,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 		response = match handler-response
 		as ok o
 			o
-		as err e
+		as error e
 			error log "{e}"
 			http-internal-server-error
 		<- sock write-until-finished response.response-to-array
@@ -148,7 +148,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 					match nat parse value
 					as ok content-length
 						state.content-length := content-length
-					as err _
+					as error _
 						# invalid content-length
 						todo
 				continue

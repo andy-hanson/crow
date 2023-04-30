@@ -1,0 +1,149 @@
+<section>
+	<h2>Using local variables</h2>
+	<p>
+		Defining a local variable is as simple as writing an <code class="keyword">=</code> after the name.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			x = "Hello, world!"
+			info log x
+			()
+	</crow-runnable>
+
+	<aside class="small">There is no syntax to declare an uninitialized local variable.</aside>
+
+	<h3>Adding a type annotation</h3>
+	<p>
+		Local variables can optionally have an explicit type.
+		As usual, this is written after the name.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			x string = "Hello, world!"
+			info log x
+			()
+	</crow-runnable>
+</section>
+<section>
+	<h2>Mutable locals</h2>
+	<p>
+		By default, locals are read-only.
+		Use the <code class="keyword">mut</code> keyword to make it mutable.
+		Then use <code class="keyword">:=</code> to change the value.
+	</p>
+	<p>
+		The type annotation remains optional.
+		If present, it should go after <code class="keyword">mut</code>.
+	</p>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			x mut string = "Hello, world!"
+			info log x
+			x := "goodbye"
+			info log x
+			()
+	</crow-runnable>
+
+	<aside>
+		<h4>Variable vs type mutability</h4>
+		<p>
+			Whether a local <em>variable</em> is mutable is unrelated to whether the <em>type</em> is mutable.
+		</p>
+		<ul class="bullets">
+			<li>
+				<code>x mut string</code> is a mutable reference to an immutable string.
+				<br />
+				You could change it to refer to a different string, but that wouldn't affect the original string.
+			</li>
+			<li>
+				<code>x string-builder</code> is an immutable reference to a <code>string-builder</code>
+				(which is a mutable type).
+				It always refers to the same <code>string-builder</code> and can't be reassigned to a different one.
+			</li>
+			<li>
+				<code>x mut string-builder</code> would be a rebindable <code>string-builder</code>.
+			</li>
+		</ul>
+		<p>
+			One way to remember this is that <code class="keyword">mut</code> modifies the variable, not the type.
+		</p>
+	</aside>
+
+	<h3>Short syntax for updates</h3>
+	<p>
+			Any function name can be placed in front of the <code class="keyword">:=</code>.
+		<br />
+		<code>x foo:= y</code> is shorthand for <code>x := x foo y</code>.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			x mut nat = 0
+			x +:= 1
+			info log "{x}"
+			()
+	</crow-runnable>
+</section>
+
+<section>
+	<h2>Destructuring</h2>
+	<p>When a value is a tuple, you can declare a variable for each component of the tuple instead of for the whole.</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			tuple (string, string) = "hello", "world"
+			greeting, target = tuple
+			info log "Tell {target} I said {greeting}"
+			()
+	</crow-runnable>
+
+	<aside class="small">
+		<code>(string, string)</code> is the syntax for a tuple type.
+		<br />
+		<code>"hello", "world"</code> creates the tuple.
+	</aside>
+
+	<h3>Ignored values</h3>
+	<p>
+		Use <code class="keyword">_</code> acts like a local name,
+		but you can't use it to get the value of the local, marking it as intentionally unused.
+		<br />
+		Normally, crow requires an expression to be <code class="struct">void</code> if its value is unused,
+		so <code>_ =</code> is useful to explicitly drop a value.
+		<br />
+		It's also useful in destructuring if you some of the members of a tuple are unused.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			# Just calling this for the side effect
+			_ = func
+			()
+		func string()
+			info log "side effect"
+			"return value"
+	</crow-runnable>
+
+	<p>
+		The syntax for a local declaration applies recursively,
+		so each component of a destructuring could be mutable,
+		have a type annotation, be ignored, or even be another destructuring.
+	</p>
+	<p>
+		Parameters are local variables and support all of the same features.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			tuple (string, string) = "hello", "world"
+			info log tuple.greet
+			()
+		
+		greet string((greeting mut string, target string))
+			# This mutates the local 'greeting', not the original tuple.
+			greeting := "aloha"
+			"Tell {target} I said {greeting}"
+	</crow-runnable>
+
+	<aside class="small">
+		Since both halves of the destructuring had type annotations,
+		there's no need for a redundant <code>(string, string)</code> type annotation for the parameter.
+	</aside>
+</section>

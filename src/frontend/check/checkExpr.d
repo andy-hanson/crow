@@ -14,7 +14,7 @@ import frontend.check.inferringType :
 	ClosureFieldBuilder,
 	Expected,
 	ExprCtx,
-	findExpectedStruct,
+	findExpectedStructForLiteral,
 	FunOrLambdaInfo,
 	FunType,
 	getExpectedForDiag,
@@ -729,13 +729,14 @@ Expr toExpr(ref Alloc alloc, FileAndRange range, VariableRef a) =>
 
 Expr checkLiteralFloat(ref ExprCtx ctx, FileAndRange range, in LiteralFloatAst ast, ref Expected expected) {
 	immutable StructInst*[2] allowedTypes = [ctx.commonTypes.float32, ctx.commonTypes.float64];
-	Opt!size_t opTypeIndex = findExpectedStruct(expected, allowedTypes);
-	// default to float64
-	size_t typeIndex = has(opTypeIndex) ? force(opTypeIndex) : 1;
-	StructInst* numberType = allowedTypes[typeIndex];
-	if (ast.overflow)
-		addDiag2(ctx, range, Diag(Diag.LiteralOverflow(numberType)));
-	return asFloat(ctx, range, numberType, ast.value, expected);
+	Opt!size_t opTypeIndex = findExpectedStructForLiteral(ctx, range, expected, allowedTypes, 1);
+	if (has(opTypeIndex)) {
+		StructInst* numberType = allowedTypes[force(opTypeIndex)];
+		if (ast.overflow)
+			addDiag2(ctx, range, Diag(Diag.LiteralOverflow(numberType)));
+		return asFloat(ctx, range, numberType, ast.value, expected);
+	} else
+		return bogus(expected, range);
 }
 
 bool isFloatType(in CommonTypes commonTypes, StructInst* numberType) =>
@@ -765,19 +766,21 @@ Expr checkLiteralInt(ref ExprCtx ctx, FileAndRange range, in LiteralIntAst ast, 
 		IntRange(int.min, int.max),
 		IntRange(long.min, long.max),
 	];
-	Opt!size_t opTypeIndex = findExpectedStruct(expected, allowedTypes);
-	// default to int64
-	size_t typeIndex = has(opTypeIndex) ? force(opTypeIndex) : 3;
-	StructInst* numberType = allowedTypes[typeIndex];
-	if (isFloatType(ctx.commonTypes, numberType))
-		return asFloat(ctx, range, numberType, cast(double) ast.value, expected);
-	else {
-		Constant constant = Constant(Constant.Integral(ast.value));
-		if (ast.overflow || !contains(ranges[typeIndex], ast.value))
-			addDiag2(ctx, range, Diag(Diag.LiteralOverflow(numberType)));
-		return check(ctx, expected, Type(numberType), Expr(range, ExprKind(
-			allocate(ctx.alloc, ExprKind.Literal(constant)))));
-	}
+	Opt!size_t opTypeIndex = findExpectedStructForLiteral(ctx, range, expected, allowedTypes, 3);
+	if (has(opTypeIndex)) {
+		size_t typeIndex = force(opTypeIndex);
+		StructInst* numberType = allowedTypes[typeIndex];
+		if (isFloatType(ctx.commonTypes, numberType))
+			return asFloat(ctx, range, numberType, cast(double) ast.value, expected);
+		else {
+			Constant constant = Constant(Constant.Integral(ast.value));
+			if (ast.overflow || !contains(ranges[typeIndex], ast.value))
+				addDiag2(ctx, range, Diag(Diag.LiteralOverflow(numberType)));
+			return check(ctx, expected, Type(numberType), Expr(range, ExprKind(
+				allocate(ctx.alloc, ExprKind.Literal(constant)))));
+		}
+	} else
+		return bogus(expected, range);
 }
 immutable struct IntRange {
 	long min;
@@ -797,19 +800,21 @@ Expr checkLiteralNat(ref ExprCtx ctx, FileAndRange range, in LiteralNatAst ast, 
 		ubyte.max, ushort.max, uint.max, ulong.max,
 		byte.max, short.max, int.max, long.max,
 	];
-	Opt!size_t opTypeIndex = findExpectedStruct(expected, allowedTypes);
-	// default to nat64
-	size_t typeIndex = has(opTypeIndex) ? force(opTypeIndex) : 3;
-	StructInst* numberType = allowedTypes[typeIndex];
-	if (isFloatType(ctx.commonTypes, numberType))
-		return asFloat(ctx, range, numberType, cast(double) ast.value, expected);
-	else {
-		Constant constant = Constant(Constant.Integral(ast.value));
-		if (ast.overflow || ast.value > maximums[typeIndex])
-			addDiag2(ctx, range, Diag(Diag.LiteralOverflow(numberType)));
-		return check(ctx, expected, Type(numberType), Expr(range, ExprKind(
-			allocate(ctx.alloc, ExprKind.Literal(constant)))));
-	}
+	Opt!size_t opTypeIndex = findExpectedStructForLiteral(ctx, range, expected, allowedTypes, 3);
+	if (has(opTypeIndex)) {
+		size_t typeIndex = force(opTypeIndex);
+		StructInst* numberType = allowedTypes[typeIndex];
+		if (isFloatType(ctx.commonTypes, numberType))
+			return asFloat(ctx, range, numberType, cast(double) ast.value, expected);
+		else {
+			Constant constant = Constant(Constant.Integral(ast.value));
+			if (ast.overflow || ast.value > maximums[typeIndex])
+				addDiag2(ctx, range, Diag(Diag.LiteralOverflow(numberType)));
+			return check(ctx, expected, Type(numberType), Expr(range, ExprKind(
+				allocate(ctx.alloc, ExprKind.Literal(constant)))));
+		}
+	} else
+		return bogus(expected, range);
 }
 
 Expr checkLiteralString(

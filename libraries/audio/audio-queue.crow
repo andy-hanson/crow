@@ -24,7 +24,7 @@ new audio-queue(format sound-format)
 	looping bool
 
 -reset-position void(a entry)
-	a.cur := a.samples begin-pointer
+	a.cur := trusted a.samples begin-pointer
 
 -is-over bool(a entry) bare
 	!a.looping && trusted a.cur == a.samples.end-pointer

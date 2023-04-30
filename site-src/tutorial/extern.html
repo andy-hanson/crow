@@ -1,10 +1,24 @@
 <section>
-	<h2>calling external libraries</h2>
+	<h2>"Extern" functions</h2>
 	<p>
-		Crow code can call functions defined in external libraries.
+		Crow functions can call C functions directly.
 		<br />
-		In this example, we use the <code>regex.h</code> library.
+		To declare an external function, write the function header normally,
+		then write <code>c extern</code> in spec position.
+		<br />
+		Simply omit the function body.
 	</p>
+	<p>
+		<code class="keyword">extern</code> functions are <code class="keyword">bare</code> and <code class="keyword">unsafe</code> by default.
+		<br />
+		You can mark the function <code class="keyword">trusted</code>
+		if you don't want it to be <code class="keyword">unsafe</code>.
+		That indicates an external function that never does bad things no matter how you call it.
+	</p>
+	<aside class="danger small">
+		<code class="keyword">extern</code> functions are <em>not</em> implicitly <code class="keyword">summon</code>,
+		so add that if appropriate.
+	</aside>
 
 	<crow-runnable no-run name="regex.crow">
 		import
@@ -21,7 +35,7 @@
 				for x : candidates
 					info log "{source} matches {x}? {regex matches x}"
 				regex free
-			as err e
+			as error e
 				error log "bad regex {source}: {e}"
 
 		regex record mut by-ref
@@ -37,7 +51,7 @@
 				buf char8 mut[] = 1000 n-of "\0"
 				_ = err regerror &res.wrapped, buf.begin-pointer, buf.size
 				res free
-				"{buf.begin-pointer.as-const}" err
+				"{buf.begin-pointer.as-const}" error
 
 		free void(a regex) unsafe
 			&a.wrapped regfree
@@ -49,8 +63,8 @@
 			elif err == REG_NOMATCH
 				false
 			else
+				buf char8 mut[] = 1000 n-of "\0"
 				trusted
-					buf char8 mut[] = 1000 n-of "\0"
 					_ = err regerror &a.wrapped, buf.begin-pointer, buf.size
 					throw buf.begin-pointer.as-const
 
@@ -91,7 +105,11 @@
 			_REG_ESPACE
 			_REG_BADRPT
 
-		regcomp reg_errcode_t(regex regex_t mut*, pattern c-string, cflags c-int) c extern
+		regcomp reg_errcode_t(
+			regex regex_t mut*,
+			pattern c-string,
+			cflags c-int,
+		) c extern
 
 		regfree void(preg regex_t mut*) c extern
 
@@ -112,190 +130,89 @@
 	</crow-runnable>
 
 	<p>
-		Since this needs to link to libraries on your system,
-		you need to download and run <code>crow run regex.crow</code>.
+		This example can't be run on the web;
+		you'll have to download and run it with <code>crow run ~/Downloads/regex.crow</code>.
+		<br />
+		This uses the <code>regex.h</code> library available on Linux. For an example on Windows, see <code>libraries/SDL2/SDL.crow</code>
+		from where you downloaded Crow.
 	</p>
 </section>
 <section>
-	<h3>extern functions</h3>
-
+	<h2>Extern types</h2>
 	<p>
-		<code>regfree void(preg regex_t mut*) unsafe noctx extern</code> declares an
-		<code class="keyword">extern</code> function,
-		based on the function of the same name in <code>/usr/include/regex.h</code>.
+		Notice that <code class="struct">regmatch_t</code> is marked
+		<code class="keyword">extern</code>.
+		This is required to use the type in an <code class="keyword">extern</code> function.
 		<br />
-		<br />
-		All <code class="keyword">extern</code> functions must be <code class="keyword">noctx</code>.
-		<code class="keyword">noctx</code> means that it does not use crow's facilities
-		for allocating memory, launching tasks, or throwing exceptions.
-		<br />
-		Since this function takes a pointer but has no way to validate it, it is <code class="keyword">unsafe</code>.
+		Otherwise, Crow would be free to layout the type any way it wants.
 	</p>
 	<p>
-		The other <code class="keyword">extern</code> functions
-		<code class="fun">regcomp</code>, <code class="fun">regexec</code>, and <code class="fun">regerror</code>
-		are spread out over multiple lines for readability; this is a different syntax for the same thing.
+		Basic types like <code class="struct">nat64</code> with C equivalents are all <code class="keyword">extern</code>.
+		<br />
+		<code class="struct">string</code> is not.
 	</p>
 
-	<h3>extern types</h3>
+	<aside class="small">
+		<code class="keyword">extern</code> types are always <code class="keyword">by-val</code>,
+		just like C <code class="keyword">struct</code>s.
+	</aside>
 
-	<p>
-		Any type, such as <code class="struct">regex_t</code>,
-		referenced by an <code class="keyword">extern</code> function
-		must be marked <code class="keyword">extern</code> too.
-		<br />
-		Similarly, <code class="keyword">extern</code> types can only reference other
-		<code class="keyword">extern</code> types.
-		<br />
-		(Non-<code class="keyword">extern</code> types can reference anything.)
-	</p>
-
-	<p>
-		<code class="keyword">extern</code> ensures that the type has a layout like it would in C.
-		<br />
-		Types like <code class="keyword">nat64</code> with C analogs are <code class="keyword">extern</code>,
-		but not crow-specific types like <code class="keyword">str</code>.
-	</p>
-
-	<p>
-		A <code class="keyword">union</code> in crow is different from one in C,
-		so those can't be <code class="keyword">extern</code>.
-		<br />
-		(Crow unions are discriminated; they know which member they store.
-		C unions are undiscriminated, meaning they store some member but can't tell you which one.)
-		<br />
-		There is currently no way to declare a C <code class="keyword">union</code>
-		in crow; most libraries don't expose these directly.
-	</p>
-
-	<h3>by-ref and by-val</h3>
-	<p>
-		An <code class="keyword">extern</code> type must be explicitly
-		<code class="keyword">by-ref</code> (<em>by reference</em>) or
-		<code class="keyword">by-val</code> (<em>by value</em>).
-		<br />
-		If a type <code class="struct">foo</code> is <code class="keyword">by-ref</code>,
-		a <code class="struct">foo</code> value is equivalent to a <code>struct foo*</code> in C,
-		meaning it is passed using a pointer.
-		<br />
-		If it is <code class="keyword">by-val</code>, it is equivalent to a <code>struct foo</code> in C,
-		meaning it is be passed by value.
-		<br />
-		Since a <code class="keyword">by-val</code> type is copied every time it's passed, it can't have mutable fields.
-	</p>
-	<p>
-		<code class="keyword">by-ref</code> and <code class="keyword">by-val</code> apply everywhere the type is used:
-		parameters, return values, fields in a record, etc.
-	</p>
-	<p>
-		A non-<code class="keyword">extern</code> type will have a default choice of
-		<code class="keyword">by-ref</code> or <code class="keyword">by-val</code> based on heuristics.
-		<br />
-		You might improve performance by choosing one explicitly.
-		<br />
-		Currently, the compiler chooses <code class="keyword">by-ref</code> most of the time but
-		<code class="keyword">by-val</code> for small, immutable types.
-	</p>
-	<p>
-		For an <code class="keyword">extern</code> type, choose
-		<code class="keyword">by-ref</code> or <code class="keyworD">by-val</code>
-		based on how the type is typically used in the library.
-		<br />
-		You can override the default:
-	</p>
-
-	<ul class="bullets">
-		<li>
-			For a <code class="keyword">by-ref</code> type:
-			<br />
-			In the <a href="/doc/crow/ptr.html"><code class="module">crow/ptr</code></a> module,
-			there is a special <code class="struct">by-val</code> template
-			that lets you pass any type by value, even if it would normally be by reference.
-		</li>
-		<li>
-			For a <code class="keyword">by-val</code> type:
-			<br />
-			Use a pointer to pass it by reference.
-		</li>
-	</ul>
-</section>
-<section>
-	<h3>pointers</h3>
-
-	<p>
-		<code>regex_t mut*</code> declares a mutable pointer type, equivalent to <code>regex_t*</code> in C.
-		<br />
-		<code>regex_t*</code> is an immutable pointer type, equivalent to <code>const regex_t*</code> in C.
-		<br />
-		Unlike in C, a const pointer isn't a subtype of a mutable one,
-		so you must call <code class="fun">as-const</code>.
-	</p>
-	<p>
-		Accessing a pointer works like with <code class="struct">cell</code>;
-		<code>*x</code> gets the value and <code>*x := v</code> sets it.
-	</p>
-	<p>
-		The function <code>as-ptr</code> converts a cell to a pointer.
-		<br />
-		Be sure to maintain a reference to the <code class="struct">cell</code>,
-		since the garbage collector traces that, but not pointers.
-	</p>
-</section>
-<section>
-	<h3>C types</h3>
-
-	<p>
-		A C <code class="keyword">int</code> is not the same as a crow <code class="struct">int</code>.
-		<br />
-		A crow <code class="struct">int</code> is always 64 bits,
-		but a C <code class="keyword">int</code> is usually shorter.
-		<br />
-		Always use <code class="struct">c-int</code> when translating cooe from C.
-	</p>
-	<p>
-		The <code>crow/c-types</code> module has other useful types from C like <code class="struct">size_t</code>.
-	</p>
-	<p>
-		<code class="struct">c-str</code> is equivalent to <code>char*</code>,
-		and implies (but does not enforce) that it should end in a <code>"\0"</code> character.
-	</p>
-</section>
-<section>
-	<h2>patterns for using C libraries</h2>
-
-	<section>
-		<h3>pointer to one: cell</h3>
+	<aside class="danger">
+		<h4>C equivalent types</h4>
 		<p>
-			Many C libraries expect to receive a pointer to data to fill in.
+			In Crow, <code class="struct">int</code> always means <code class="struct">int64</code> on all systems.
 			<br />
-			C examples will often declare an uninitialized variable and
-			get a pointer to it with <code>&x</code>; that's not supported in crow.
-			<br />
-			Instead, create a <code class="struct">cell</code> and use <code class="fun">as-ptr</code>.
-			That's what <code>new regex(source str)</code> does.
-			<br />
-			This function can be marked <code class="keyword">trusted</code> despite calling the unsafe function
-			<code class="fun">regcomp</code> because it knows that the pointer will be valid.
+			This is not the case in C, so when declaring a C function,
+			use an alias from {{doc/c-types}} like <code class="struct">c-int</code>.
 		</p>
-		<p>
-			Unlike a variable in C, a <code class="struct">cell</code> needs an initial value;
-			since it doesn't really matter, <code>new regex_t() unsafe</code> just uses an empty value for every field.
-		</p>
-	</section>
-
-	<section>
-		<h3>pointer to many: mut[]</h3>
-		<p>
-			In the <code class="keyword">else</code> branch of <code class="fun">matches</code>,
-			we need to call <code class="fun">regerror</code>, which takes a buffer to write its output.
-			<br />
-			Such a buffer would typically be allocated on the stack, which is not allowed in crow.
-			<br />
-			Instead, create a <code class="keyword">mut[]</code> and use its <code class="fun">begin-pointer</code>.
-			<br />
-			<code>to-str</code> here converts a C string to a crow string.
-		</p>
-	</section>
+	</aside>
 </section>
+<section>
+	<h2>Version differences</h2>
+	<p>
+		Sometimes you need to do different things on different platforms.
+		{{doc/version}} has functions to help with that.
+	</p>
+	<crow-runnable>
+		import
+			crow/version: is-windows
+			stdio: stdout
+			unistd: write
+			win32: DWORD, GetStdHandle, STD_OUTPUT_HANDLE, WriteFile
+		
+		main nat^(_ string[]) summon
+			text nat8 array = "hello\n" to-bytes
+			trusted if is-windows
+				out = STD_OUTPUT_HANDLE.GetStdHandle
+				written mut DWORD = 0
+				_ = out WriteFile text.begin-pointer, text.size.to, &written, null
+			else
+				_ = stdout write text.begin-pointer, text.size
+			()
+	</crow-runnable>
 
+	<p>
+		Both branches of <code>if is-windows</code> are type-checked on all systems.
+		But after that, the compiler keeps only the branch that matches your system.
+		<br />
+		On Windows, the <code>false</code> branch won't be compiled.
+		On Linux, the <code>true</code> branch won't be compiled.
+	</p>
+	<p>
+		Notice how all functions are imported unconditionally.
+		Importing a function does <em>not</em> cause it to be included in the compilation.
+		<br />
+		Crow chooses what functions to include by starting with <code class="fun">main</code>,
+		then repeatedly adding any function called by an included function.
+		<br />
+		If a function call is in the unused branch of a version check like <code>if is-windows</code>,
+		it won't be included in that process.
+	</p>
 
+	<aside class="small">
+		There's currently no way to make the contents of a type conditional on the system.
+		<br />
+		You can use a <code class="keyword">union</code> and use different parts of the union
+		depending on the system.
+	</aside>
+</section>

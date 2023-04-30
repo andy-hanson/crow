@@ -1,0 +1,139 @@
+<section>
+	<h2>Lambdas</h2>
+	<p>
+		A <code>fun bool(nat)</code> is a value wrapping a function and its closure.
+		<br />
+		This is useful to be able to customize a function.
+		For example, <code class="fun">filter</code> can filter a collection by any arbitrary predicate.
+		<br />
+		A lambda value is created using the <code class="keyword">=></code> syntax.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			xs nat[] = 1, 2, 3
+			ys nat[] = xs filter x => x is-even
+			info log ys.to::json.to
+			()
+	</crow-runnable>
+
+	<p>
+		There is a <code class="fun">subscript</code> function for calling lambdas.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			(x => info log "{x}") foo
+			()
+
+		foo void(a fun void(nat))
+			a[1]
+			a[2]
+	</crow-runnable>
+</section>
+<section>
+	<h2>Parameter destructuring</h2>
+	<p>
+		All lambdas take one parameter.
+		The parameter can be a tuple, though.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			((x, y) => info log "{x} {y}") foo
+			()
+
+		foo void(a fun void(nat, nat))
+			# Constructs a tuple (1, 2) to pass to 'subscript'
+			a[1, 2]
+			a[3, 4]
+	</crow-runnable>
+
+	<aside class="small">
+		This makes it easy to write functions that work on any kind of lambda regardless of
+		the (apparent) parameter count.
+	</aside>
+
+	<p>
+		The syntax makes it look like there are multiple parameters.
+		To show that it's really only one parameter:
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			(tuple => info log "{tuple.a} {tuple.b}") foo
+			()
+
+		foo void(a fun void(nat, nat))
+			tuple (nat, nat) = 1, 2
+			a[tuple]
+	</crow-runnable>
+
+	<p>
+		Similarly, a tuple can appear to take no parameter, but actually takes <code class="struct">void</code>.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			(() => info log "hello") foo
+			()
+
+		foo void(a fun void())
+			# This is the same as 'a[()]'.
+			a[]
+	</crow-runnable>
+</section>
+<section>
+	<h2>Closures</h2>
+	<p>
+		The code inside the lambda body (after the <code class="keyword">=></code>)
+		can access variables outside.
+		Those variables are called its <em>closure</em>.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			factor = 2
+			f fun nat(nat) = x => x * factor
+			info log "{f[3]}"
+			()
+	</crow-runnable>
+</section>
+<section>
+	<h2>"Action" lambdas</h2>
+	<p>
+		A <code class="keyword">fun</code> isn't allowed to have anything mutable in its closure.
+		To fix that, you just need to change the keyword to <code class="act">act</code> instead.
+		Other than that, they work the same.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			factor mut = 2
+			f fun nat(nat) = x => x * factor
+			factor := 4
+			info log "{f[3]}"
+			()
+	</crow-runnable>
+	<aside class="small">
+		Change <code class="keyword">fun</code> to <code class="keyword">act</code> to fix the example.
+	</aside>
+
+	<p>
+		The reason to have two separate types will be explained in {{tutorial/purity}}.
+		<br />
+		There is also a third <code class="keyword">far</code> lambda explained in {{tutorial/futures}}.
+	</aside>
+</section>
+<section>
+	<h2>Multi-line lambdas</h2>
+	<p>If a lambda's body is long, you can put it in an indented block.</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			xs nat[] = 1, 2, 3, 4, 5, 6
+			ys nat[] = xs filter x =>
+				if x > 3
+					x is-even
+				else
+					x is-odd
+			info log ys.to::json.to
+			()
+	</crow-runnable>
+	<p>
+		Since this is only possible for the last argument to a funciton,
+		most functions make sure a lambda argument comes last.
+	</p>
+</section>

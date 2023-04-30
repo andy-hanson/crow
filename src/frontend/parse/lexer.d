@@ -231,6 +231,7 @@ void takeNewline_topLevel(ref Lexer lexer) {
 }
 
 private @trusted IndentDelta takeNewlineAndReturnIndentDelta(ref Lexer lexer, uint curIndent) {
+	skipSpacesAndComments(lexer);
 	if (!tryTakeNewline(lexer)) {
 		//TODO: not always expecting indent..
 		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
@@ -293,7 +294,7 @@ NameAndRange takeNameAndRange(ref Lexer lexer) {
 		return NameAndRange(start, getCurSym(lexer));
 	else {
 		addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.name)));
-		return NameAndRange(start, sym!"bogus");
+		return NameAndRange(start, sym!"");
 	}
 }
 
@@ -475,6 +476,21 @@ public enum Token {
 	with_, // 'with'
 }
 
+void skipSpacesAndComments(ref Lexer lexer) {
+	while (true) {
+		switch (*lexer.ptr) {
+			case ' ':
+			case '\t':
+				continue;
+			case '#':
+				skipUntilNewlineNoDiag(lexer);
+				return;
+			default:
+				return;
+		}
+	}
+}
+
 @trusted public Token nextToken(ref Lexer lexer) {
 	char c = takeChar(lexer);
 	switch (c) {
@@ -484,6 +500,9 @@ public enum Token {
 		case ' ':
 		case '\t':
 			return nextToken(lexer);
+		case '#':
+			skipRestOfLineAndNewline(lexer);
+			return Token.newline;
 		case '\r':
 		case '\n':
 			return Token.newline;

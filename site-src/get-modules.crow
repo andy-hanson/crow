@@ -27,14 +27,14 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 
 -to-module module(a json, remove-prefix string)
 	path = a["path"]! to-path remove-prefix
-	path, a.get-comment, for x : a["exports"]!.as-list!
+	path, a.get-doc, for x : a["exports"]!.as-list!
 		x to-export
 
 -to-path symbol(a json, remove-prefix string)
 	(a.as-string! try-remove-start remove-prefix)! to
 
--get-comment string(a json)
-	if c ?= a["comment"]
+-get-doc string(a json)
+	if c ?= a["doc"]
 		c.as-string!
 
 -to-export module-export(a json)
@@ -42,7 +42,7 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 		for x : t.as-list!
 			x to-type-param
 	value = a["value"]! to-export-value
-	a.get-name, a.get-comment, type-params, value
+	a.get-name, a.get-doc, type-params, value
 
 -to-export-value module-export-value(a json)
 	kind = a["kind"]!.as-symbol!
@@ -149,7 +149,7 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 	parents, body_
 
 -to-sig spec-sig(a json)
-	a.get-comment, a.get-name, a.get-return-type, a.get-params
+	a.get-doc, a.get-name, a.get-return-type, a.get-params
 
 -get-return-type type-ref(a json)
 	a["return-type"]! to-type-ref

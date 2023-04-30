@@ -1,13 +1,10 @@
 <main>
 	<crow-runnable>
-		import
-			crow/io/print: out, print
-
-		main nat^(_ string[]) summon
+		main nat^(_ string[])
 			for x : 1 .. 20
 				m3 = x is-multiple-of 3
 				m5 = x is-multiple-of 5
-				out print if m3 && m5
+				info log if m3 && m5
 					"FizzBuzz"
 				elif m3
 					"Fizz"
@@ -18,46 +15,62 @@
 			()
 	</crow-runnable>
 	<p>
-		Crow is an upcoming programming language for high-quality code.
-		<br />
-		A "luxury" language, it prioritizes your code's readability and correctness
-		over the ease of implementing the language.
+		Crow is an upcoming programming language.
+		It's currently in alpha state, meaning breaking changes are likely.
 	</p>
 	<p>Some interesting features:</p>
 	<ul class="bullets">
 		<li>
-			Crow is garbage collected and statically typed.
+			Crow programs can be <strong>run directly from source</strong>.
 			<br />
-			It does not rely on an external runtime and can call into C libraries.
+			You can also build your program to a standalone executable.
+			In either case, you don't need a build system.
 		</li>
 		<li>
-			Crow is expression-oriented instead of statement-oriented.
-			<br />
-			There is no <code class="keyword">return</code> keyword,
-			and <code class="keyword">if</code> is an expression rather than a statement.
+			You can <strong>directly call C</strong> functions.
 		</li>
 		<li>
-			Crow runs code directly and doesn't need a build system.
-			<br />
-			Ahead-of-time optimized compilation is also supported.
+			Data is <strong>garbage collected</strong>. Don't worry about what's by-reference or by-value.
 		</li>
 		<li>
-			Crow detects nesting based on indentation, so it doesn't need braces.
+			Crow is <strong>statically typed</strong>. There's no subtyping or implicit conversion.
+			There are no null references.
+			Overload resolution is unambiguous.
 		</li>
 		<li>
-			Functions cannot perform I/O except by invoking a callback from a parameter.
-			<br />
-			If a function's parameters are all immutable data (not mutable objects or callbacks), it is a pure function.
-			<br />
-			(<code class="keyword">summon</code> functions are the exception.)
+			<strong>I/O is controlled.</strong>
+			Normal functions can't do I/O except by invoking a lambda from a parameter.
 		</li>
 		<li>
-			Crow has a strong type system, with no subtyping, implicit conversions or <code class="keyword">null</code>.
+			You can launch <strong>parallel tasks</strong> and get the result as a <code>future</code>.
 		</li>
 		<li>
-			Launching tasks and getting the result back as a future is easy.
+			<strong>Mutability is controlled.</strong>
+			The type system tracks whether a type allows access to mutable data.
+			This ensures that mutable data is not shared across threads.
+		<li>
+			Syntax is <strong>expression-based</strong>.
+			Function bodies are expressions with no <code class="keyword">return</code> needed.
 			<br />
-			The type system ensures that mutable data will only be accessed by one thread at a time.
+			Even <code class="keyword">if</code> and <code class="keyword">for</code> are expressions.
+		</li>
+		<li>
+			Code is <strong>flat</strong>. Most declarations are not nested inside of anything.
+		</li>
+		<li>
+			Expressions are type-checked with an <strong>expected type</strong>.
+			The same syntax like <code class="keyword">(1, 2)</code>
+			could be a list, tuple, vector, etc.
+			This saves you from having to write <code>new Foo()</code>.
+		</li>
+		<li>
+			There are <strong>discriminated unions</strong>, including option types.
+		</li>
+		<li>
+			There are <strong>templates</strong>; these are type-checked abstractly, not at each instantiation.
+		</li>
+		<li>
+			All crow code goes in <strong>modules</strong>. There are no global declarations.
 		</li>
 	</ul>
 	<p>

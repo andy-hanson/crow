@@ -475,6 +475,7 @@ immutable struct LowExprKind {
 			toFloat64FromFloat32,
 			toFloat64FromInt64,
 			toFloat64FromNat64,
+			toInt64FromInt8,
 			toInt64FromInt16,
 			toInt64FromInt32,
 			toNat8FromChar8,

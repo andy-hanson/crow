@@ -67,8 +67,8 @@ test
 	bytes = n to-bytes
 	bytes is (0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef)
 	bytes.from-bytes :: nat64 is n
-	0x500.to-8-bytes is (0, 0, 0, 0, 0, 0, 5, 0)
-	0x500.to-bytes is (5, 0)
+	0x500::nat64.to-8-bytes is (0, 0, 0, 0, 0, 0, 5, 0)
+	0x500::nat64.to-bytes is (5, 0)
 
 # TODO:MOVE
 -wrap-to nat8(a nat64) bare

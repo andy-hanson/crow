@@ -1,0 +1,70 @@
+<section>
+	<h2>Declaring unions</h2>
+	<p>
+		While a record stores all of the values declared in it,
+		a union will store only one of the choices available.
+		<br />
+		This is useful for a value that can have one of several non-overlapping states.
+	</p>
+
+	<aside class="small">Union members can't be mutable.</aside>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			info log "{15.verified-id is-adult}"
+			info log "{60.verified-id is-adult}"
+			info log "{no-id is-adult}"
+			()
+		
+		age union
+			verified-id nat
+			no-id
+
+		is-adult bool(a age)
+			match a
+			as verified-id x
+				x >= 18
+			as no-id
+				false
+
+	</crow-runnable>
+
+	<aside>
+		<h4>Why unions?</h4>
+		<p>
+			If a special value such as 99 were used to indicate <code>no-id</code>,
+			then it would have been easy to accidentally implement <code class="fun">is-adult</code>
+			as just <code>a >= 18</code>, which would have wrongly accepted an unknown age.
+		</p>
+		<p>
+			Similarly, if it were a record with two fields <code>age</code> and <code>missing-id</code>,
+			it would be easy to forget to check <code>missing-id</code>.
+		</p>
+	</aside>
+
+	<h3>Creating union values</h3>
+	<p>
+		Declaring the union generates functions <code>verified-id age(a nat)</code> and <code>no-id age()</code>.
+	</p>
+
+	<h3>Matching on union values</h3>
+	<p>
+		The <code class="keyword">match</code> expression handles each possibility of a union.
+		<br />
+		Like an <code class="keyword">if</code> expression, each branch is an expression
+		with the same type as the whole <code class="keyword">match</code>.
+	</p>
+	<p>
+		The branches need to come in the same order as the union members.
+		<br />
+		It's a compile error to be missing branches (no implicit <code>()</code>).
+		<br />
+		If a member has a value, it must be declared after the name.
+		This uses the same destructuring syntax as for locals.
+		(So to ignore a value, use <code>_</code>.)
+	</p>
+
+	<aside class="small">
+		<code class="keyword">match</code> is a language primitive and isn't downleveled to a function call.
+	</aside>
+</section>

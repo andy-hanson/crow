@@ -1,0 +1,138 @@
+<section>
+	<h2>Lists</h2>
+
+	<p>
+		<code class="struct">string[]</code> declares a list type.
+		This is an immutable ordered collection of elements.
+		<br />
+		It acts like an array, but concatenation (<code class="fun">~~</code>) is efficient.
+		<br />
+		Some common list operations are:
+	</p>
+	<table>
+		<tbody>
+			<tr>
+				<td><code>x ~ xs</code></td>
+				<td>Prepends an element <code>x</code> on the left of to the list <code>xs</code>.</td>
+			</tr>
+			<tr>
+				<td><code>xs ~ x</code></td>
+				<td>Appends an element <code>x</code> on the right of the list <code>xs</code>.</td>
+			</tr>
+			<tr>
+				<td><code>xs ~~ ys</code></td>
+				<td>Concatenates two lists. This is efficient (logarithmic in the size of the lists).</td>
+			</tr>
+			<tr>
+				<td><code>xs[3]</code></td>
+				<td>Accesses an element at a 0-based index.</td>
+			</tr>
+			<tr>
+				<td><code>xs[3 .. 5]</code></td>
+				<td>Slices the list. This example returns a list <code>xs[3], xs[4]</code>.</td>
+			</tr>
+			<tr>
+				<td><code>for x : xs; x + 1</code></td>
+				<td>Loops over the list. Explained in {{tutorial/for-and-with}}.</td>
+			</tr>
+		</tbody>
+	</table>
+	<crow-runnable>
+		main nat^(_ string[])
+			xs string[] = "a", "b"
+			info log xs.to::json.to
+			ys = xs ~ "c"
+			info log ys.to::json.to
+			zs = xs ~~ ys
+			info log zs.to::json.to
+			()
+	</crow-runnable>
+
+	<p>
+		Creating a list uses the same syntax as creating a record,
+		meaning it is calling a function called <code class="fun">new</code>.
+		This function is variadic, meaning it can take any number of arguments.
+	</p>
+
+	<aside>
+		<h4>Immutable operations</h4>
+		Since the list is immutable, <code>xs ~ "c"</code> creates a new list without modifying <code>xs</code>.
+		So <code>zs</code> is <code>a b a b c</code> instead of <code>a b c a b c</code>
+		because the original <code>xs</code> didn't change.
+	</aside>
+
+	<aside class="small">Documentation: {{doc/col/list}}</aside>
+</section>
+<section>
+	<h2>Mutable lists</h2>
+	<p>
+		<code class="struct">string mut[]</code> declares a mutable list.
+		<br />
+		Use <code class="fun">~=</code> and <code class="fun">~~=</code> to append elements or lists.
+		(There is no efficient prepend; there is {{doc/col/mut-dequeue}} for that.)
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			xs string mut[] = "a", "b"
+			info log xs.to::string[].to::json.to
+			xs ~= "c"
+			info log xs.to::string[].to::json.to
+			xs ~~= xs
+			xs[4] := "B"
+			info log xs.to::string[].to::json.to
+			()
+	</crow-runnable>
+	
+	<aside class="small">Documentation: {{doc/col/mut-list}}</aside>
+</section>
+<section>
+	<h2>Maps</h2>
+	<p>
+		<code class="struct">string[nat]</code> declares a map from
+		<code class="struct">nat</code>s to <code class="struct">string</code>s.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			m string[nat] = (1, "one"), (2, "two")
+			info log m[1]!
+			m2 = m ~ (1, "uno")
+			info log m2[1]!
+			()
+	</crow-runnable>
+	<aside class="small">
+		<code>m[1]</code> returns an option, so this used <code class="fun">!</code> to force it.
+		<br />
+		Recall from {{tutorial/options}} that this could have used <code>m[1] ?? "not found"</code> instead if
+		we're not sure that the key will exist in the map.
+	</aside>
+
+	<aside class="small">Documentation: {{doc/col/map}}</aside>
+</section>
+<section>
+	<h2>Mutable maps</h2>
+	<p>
+		<code class="struct">string mut[nat]</code> declares a mutable map.
+	</p>
+	<aside class="small">
+		Map keys must be immutable, for both mutable and immutable maps.
+		You can't use a <code class="string">string mut[]</code> as a key, for example.
+	</aside>
+	<crow-runnable>
+		main nat^(_ string[])
+			m string mut[nat] = (1, "one"), (2, "two")
+			info log m[1]!
+			m[1] := "uno"
+			info log m[1]!
+			()
+	</crow-runnable>
+
+	<aside class="small">Documentation: {{doc/col/mut-map}}</aside>
+</section>
+<section>
+	<h2>Other collections</h2>
+	<p>
+		There are other collections like {{doc/col/set}} and {{doc/col/mut-set}} in the <code>col</code> directory.
+		<br />
+		There is also a {{doc/col/collection}} module for containing functions that work on many kinds of collection.
+	</p>
+</section>

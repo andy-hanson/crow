@@ -32,7 +32,8 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : only, only2;
-import util.col.arrUtil : arrLiteral, exists, indexOf, map, zip, zipEvery;
+import util.col.arrBuilder : add, ArrBuilder, arrBuilderIsEmpty, arrBuilderTempAsArr, finishArr;
+import util.col.arrUtil : arrLiteral, contains, exists, indexOf, map, zip, zipEvery;
 import util.col.enumMap : enumMapFindKey;
 import util.col.mutMaxArr : MutMaxArr, push, tempAsArr;
 import util.opt : has, force, MutOpt, none, noneMut, Opt, someMut, some;
@@ -246,32 +247,54 @@ MutOpt!(LoopInfo*) tryGetLoop(ref Expected expected) =>
 		(const LoopInfo*) =>
 			none!Type);
 
-// Returns an index into choices if it is the only allowed choice
-Opt!size_t findExpectedStruct(ref const Expected expected, immutable StructInst*[] choices) =>
+/**
+Returns an index into 'choices' if it is the only allowed choice.
+If we are inferring a type, returns defaultChoice.
+If there are multiple allowed choices, adds a diagnostic and returns none.
+*/
+Opt!size_t findExpectedStructForLiteral(
+	ref ExprCtx ctx,
+	FileAndRange range,
+	ref const Expected expected,
+	in immutable StructInst*[] choices,
+	size_t defaultChoice,
+) =>
 	expected.matchConst!(Opt!size_t)(
 		(Expected.Infer) =>
-			none!size_t,
+			some(defaultChoice),
 		(Type x) =>
 			x.isA!(StructInst*)
 				? indexOf(choices, x.as!(StructInst*))
-				: none!size_t,
+				: some(defaultChoice),
 		(const TypeAndInferring[] xs) {
 			// This function will only be used with types like nat8 with no type arguments, so don't worry about those
 			Cell!(Opt!size_t) rslt;
+			ArrBuilder!(immutable StructInst*) multiple; // for diag
 			foreach (ref const TypeAndInferring x; xs)
 				if (x.type.isA!(StructInst*)) {
-					Opt!size_t here = indexOf(choices, x.type.as!(StructInst*));
+					StructInst* struct_ = x.type.as!(StructInst*);
+					Opt!size_t here = indexOf(choices, struct_);
 					if (has(here)) {
-						if (has(cellGet(rslt)))
-							return none!size_t;
-						else
+						if (has(cellGet(rslt))) {
+							StructInst* rsltStruct = choices[force(cellGet(rslt))];
+							if (struct_ != rsltStruct) {
+								if (arrBuilderIsEmpty(multiple))
+									add(ctx.alloc, multiple, rsltStruct);
+								if (!contains(arrBuilderTempAsArr(multiple), struct_))
+									add(ctx.alloc, multiple, struct_);
+							}
+						} else
 							cellSet(rslt, here);
 					}
 				}
-			return cellGet(rslt);
+			if (!arrBuilderIsEmpty(multiple)) {
+				addDiag2(ctx, range, Diag(Diag.LiteralAmbiguous(finishArr(ctx.alloc, multiple))));
+				return none!size_t;
+			} else
+				return has(cellGet(rslt)) ? cellGet(rslt) : some(defaultChoice);
 		},
 		(const LoopInfo*) =>
-			none!size_t);
+			some(defaultChoice));
 
 private @trusted void setToType(scope ref Expected expected, Type type) {
 	expected = type;

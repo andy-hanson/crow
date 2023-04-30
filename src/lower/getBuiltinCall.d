@@ -5,9 +5,10 @@ module lower.getBuiltinCall;
 import model.constant : Constant, constantBool, constantZero;
 import model.lowModel : isPrimitiveType, isPtrRawConstOrMut, LowExprKind, LowType, PrimitiveType;
 import util.alloc.alloc : Alloc;
-import util.sym : Sym, sym;
+import util.sym : AllSymbols, Sym, sym, writeSym;
 import util.union_ : Union;
 import util.util : todo;
+import util.writer : debugLogWithWriter, Writer;
 
 immutable struct BuiltinKind {
 	immutable struct CallFunPointer {}
@@ -32,7 +33,7 @@ immutable struct BuiltinKind {
 		StaticSymbols);
 }
 
-BuiltinKind getBuiltinKind(ref Alloc alloc, Sym name, LowType rt, LowType p0, LowType p1) {
+BuiltinKind getBuiltinKind(ref Alloc alloc, in AllSymbols allSymbols, Sym name, LowType rt, LowType p0, LowType p1) {
 	BuiltinKind unary(LowExprKind.SpecialUnary.Kind kind) {
 		return BuiltinKind(kind);
 	}
@@ -40,6 +41,10 @@ BuiltinKind getBuiltinKind(ref Alloc alloc, Sym name, LowType rt, LowType p0, Lo
 		return BuiltinKind(kind);
 	}
 	T failT(T)() {
+		debugLogWithWriter((ref Writer writer) {
+			writer ~= "not a builtin fun: ";
+			writeSym(writer, allSymbols, name);
+		});
 		return todo!T("not a builtin fun");
 	}
 	BuiltinKind fail() {
@@ -225,7 +230,9 @@ BuiltinKind getBuiltinKind(ref Alloc alloc, Sym name, LowType rt, LowType p0, Lo
 					? LowExprKind.SpecialUnary.Kind.toFloat64FromFloat32
 					: failUnary()
 			: isInt64(rt)
-				? isInt16(p0)
+				? isInt8(p0)
+					? LowExprKind.SpecialUnary.Kind.toInt64FromInt8
+					: isInt16(p0)
 					? LowExprKind.SpecialUnary.Kind.toInt64FromInt16
 					: isInt32(p0)
 					? LowExprKind.SpecialUnary.Kind.toInt64FromInt32

@@ -13,7 +13,7 @@ lint test-result^(path string, options test-options) summon
 	if failures is-empty
 		"linted {files size} files".ok,
 	else
-		failures.err,
+		failures.error,
 
 -list-lintable-files string[](path string) summon
 	res string mut[] = ()
@@ -29,7 +29,9 @@ lint test-result^(path string, options test-options) summon
 		ext in exclude-extensions
 
 -exclude-extensions string set()
-	"bmp", "dll", "err", "exe", "ilk", "lib", "mdb", "obj", "ogg", "pdb", "png", "svg", "wasm", "wav", "woff2"
+	a string set = "bmp", "dll", "err", "exe", "ilk", "lib", "mdb", "obj"
+	b string set = "ogg", "otf", "pdb", "png", "svg", "ttf", "wasm", "wav", "woff2"
+	a | b
 -exclude-names string set()
 	# TODO: gl.crow needs a multi-line call syntax
 	"bin", "COPYING.txt", "crow.sublime-syntax", "dyncall", "gl.crow", "node_modules", "package-lock.json", "site"

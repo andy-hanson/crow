@@ -43,7 +43,7 @@ rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) bare, summo
 			1
 		else
 			v to
-	as err _
+	as error _
 		# 'handle-exceptions' should have logged the error
 		1
 

@@ -8,7 +8,7 @@ import
 	../version: is-interpreted, is-windows
 	./alloc: try-get-cur-gc-ctx
 	./backtrace: get-backtrace
-	./bootstrap: abort, array, c-string, err, hard-assert, new, ok, result
+	./bootstrap: abort, array, c-string, error, hard-assert, new, ok, result
 export
 	./bootstrap: exception, message
 
@@ -59,7 +59,7 @@ Run `try` and return `ok` containing its return value,
 or `err` containing an exception if it threw one.
 ###
 +catch[t] (t, exception) result(try act t())
-	(() => try[] ok) catch e => e err
+	(() => try[] ok) catch e => e error
 
 # This is called by the compiler on 'throw'
 throw-impl void(message c-string) bare

@@ -49,14 +49,14 @@ You never need to `match` on this union; use the `if x ?= y` syntax instead.
 region result.crow
 
 ###
-A `result` is either a success (`ok`) or failure (`err`) value.
+A `result` is either a success (`ok`) or failure (`error`) value.
 
 This provides a more explicit alternative to throwing an exception.
 Prefer this over throwing an exception if failure is likely.
 ###
-+result[ok, err] union
++result[ok, error] union
 	ok ok
-	err err
+	error error
 
 region pointer.crow
 
@@ -130,7 +130,7 @@ but appending (or removing) from the beginning is always O(N).
 region string
 
 # Single character in a string.
-# This could be any UTF-8 code point.
+# This could be any byte in a UTF-8 string.
 +char8 builtin extern
 ###
 C-style string. Always const.

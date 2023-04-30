@@ -1,0 +1,253 @@
+<section>
+	<h2>Imports</h2>
+
+	<p>
+		Every <code>.crow</code> file is its own module.
+		All of the declarations in that file are in the scope of the module.
+		<br />
+		For another module to see a declaration, it must import it.
+	</p>
+
+	<h3>Named imports</h3>
+	<crow-runnable no-run name="greetings.crow">
+		# greetings.crow
+		hello string()
+			"hello, world"
+	</crow-runnable>
+	<br />
+	<crow-runnable>
+		import
+			./greetings: hello
+
+		main nat^(_ string[])
+			info log hello
+			()
+	</crow-runnable>
+
+	<aside class="small">
+		Don't pass multiple files to <code>crow run</code>.
+		<br />
+		Just pass the path of the <code>main</code> function, and it will find other files based on imports.
+	</aside>
+
+	<h3>Whole-module imports</h3>
+	<p>
+		You can also omit the list of particular names to import to import all names from the module.
+	</p>
+	<crow-runnable>
+		import
+			./greetings
+
+		main nat^(_ string[])
+			info log hello
+			()
+	</crow-runnable>
+
+	<aside class="small">
+		Operators like <code>==</code> are just functions and need to be imported too.
+		If it's annoying to write them all out, just import the whole module.
+	</aside>
+</section>
+<section>
+	<h2>Module import paths</h2>
+
+	<h3>Relative imports</h3>
+	<p>
+		For importing your own code, the import syntax is designed to look like Unix-style relative paths
+		(minus the <code>.crow</code> extension).
+		<br />
+		E.g., to import from <code>../foo/bar.crow</code>, you would write <code>../foo/bar</code>.
+	</p>
+	<aside class="small">Always use <code>/</code> instead of <code>\</code>, even on Windows.</aside>
+
+	<h3>Global imports</h3>
+	<p>
+		Importing from the crow standard library looks like <code>crow/crypto/random</code>.
+		Note that there is no <code>./</code> in front.
+	</p>
+	<aside class="small">
+		Some parts of the standard library are imported by default.
+		See if it works without the import first.
+	</aside>
+</section>
+<section>
+	<h2>crow-config.json</h2>
+	<p>
+		Take a look at the <code>demo/sdl</code> directory from when you downloaded crow.
+		This has a file <code>crow-config.json</code>.
+		This has two parts:
+	</p>
+	<ul>
+		<li><code>"include"</code> tells crow where to find the crow code that declares SDL2 bindings.</li>
+		<li>
+			<code>"extern"</code> tells crow where to find the machine code for the library on Windows.
+			<br />
+			(On Linux, it's should be in the library search path. It should be if you installed SDL normally.)
+		</li>
+	</ul>
+
+	<p>
+		Since it specifies <code>"SDL2": "../../libraries/SDL2"</code> in the <code>"include"</code> section,
+		that library can be imported using e.g. <code>SDL2/SDL_rect:</code> in <code>main.crow</code>
+		instead of having to write <code>../../libraries/SDL2/SDL_rect:</code>.
+	</p>
+</section>
+<section>
+	<h2>File imports</h2>
+
+	<p>
+		Another interesting import in <code>demo/sdl/main.crow</code> is <code>./crow.bmp as crow-bmp nat8 array</code>.
+		<br />
+		This creates a constant <code>crow-bmp</code> of type <code>nat8 array</code>,
+		containing the contents of the file.
+	</p>
+
+	<crow-runnable>
+		import
+			./greetings.crow as greetings string
+
+		main nat^(_ string[])
+			info log "The content of greetings.crow is:\n{greetings}"
+			()
+	</crow-runnable>
+
+	<p>
+		An advantage of having the file contents available as a constant without having to read the file at runtime
+		is that it can be used in functions that aren't <code>summon</code>.
+	</p>
+
+	<aside class="small">
+		Currently, the only supported file import types are <code>nat8 array</code> and <code>string</code>.
+	</aside>
+</section>
+<section>
+	<h2>Modules are linear</h2>
+
+	<p>
+		Dependencies can only work in one direction.
+		Two modules can't import each other; only one may depend on the other.
+		<br />
+		If you have two modules that you need to depend on each other, the solution is usually to declare
+		types in a common module that can be imported by both.
+		<br />
+		Specs, explained in {{tutorial/specs}}, can also help by replacing direct function dependencies.
+	</p>
+</section>
+<section>
+	<h2>Visibility</h2>
+
+	<p>
+		"Visibility" controls whether declarations (functions, types, etc.) can be imported.
+		<br />
+		If you don't care for this kind of feature and you aren't writing a library,
+		you can ignore this section; the default visibility doesn't restrict anything within your own code.
+	</p>
+
+	<p>
+		The three kinds of visibility a declaration are:
+	</p>
+	<table class="operators">
+		<thead>
+			<tr>
+				<th>Symbol</th>
+				<th>Description</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td><code>+</code></td>
+				<td>Public visibility; anything can import it.</td>
+			</tr>
+			<tr>
+				<td><code>~</code></td>
+				<td>Internal visibility; intended for use within the same library.</td>
+			</tr>
+			<tr>
+				<td><code>-</code></td>
+				<td>Private visibility; it can't be imported. It's only visible within its module.</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<p>
+		By default, declarations (like functions, types, etc.) have "internal" visibility.
+		Currently, "internal" declarations are exactly like "public" ones, except they are hidden from documentation.
+		(In the future there may be more enforcement.)
+		<br />
+		This is the default because it prevents accidentally adding public functions,
+		but doesn't add friction to calling functions you wrote.
+	</p>
+	<p>
+		To make a declaration public, put a <code>+</code> in front of it.
+		<br />
+		To make it private, put a <code>+</code> in front of it.
+		<br />
+		Although it is the default, it can be made explicitly internal with a <code>~</code> in front of the name.
+	</p>
+
+	<crow-runnable no-run name="dimensions.crow">
+		# dimensions.crow
+		+dimensions record
+			-width float
+			-height float
+
+		~new dimensions(side float)
+			side, side
+		
+		+area float(a dimensions)
+			a.width * a.height
+
+		-debug string(a dimensions)
+			"{a.width}, {a.height}"
+	</crow-runnable>
+	<br />
+	<crow-runnable>
+		import
+			./dimensions
+
+		main nat^(_ string[])
+			a dimensions = 4,
+			info log "{a.area}"
+			info log a.debug # compile error
+			()
+	</crow-runnable>
+
+	<p>
+		In this example, you can't call <code class="fun">width</code>, <code class="fun">height</code>,
+		or <code class="fun">debug</code> from outside <code>dimensions.crow</code>.
+		<br />
+		You also can't call the default <code class="fun">new</code> function for <code class="struct">dimensions</code>
+		that takes arguments for <code class="fun">width</code> and <code class="fun">height</code>,
+		since those are private.
+		<br />
+		You <em>can</em> call the other <code>new</code> function which is declared internal.
+		(Functions with the same name don't have to have the same visibility.)
+	</p>
+	<p>
+		A record itself can be public while its fields are private. This allows you to define abstract data types.
+	</p>
+
+	<aside>
+		<h4>Unused code</h4>
+		<p>
+			If you comment out <code>info log a.debug</code> to fix the compile error,
+			you'll see a warning that <code class="fun">debug</code> as unused,
+			since it isn't used in <code>dimensions.crow</code> and can't be used anywhere else.
+		</p>
+	</aside>
+
+	<aside>
+		<h4>Visibility for operators</h4>
+		<p>
+			When defining a function named <code class="fun">+</code>, <code class="fun">~</code>,
+			or <code class="fun">-</code>, it must have an explicit visibility,
+			as in <code>+ + nat(a nat, b nat)</code>.
+			<br />
+			The first <code>+</code> is the visibility, and the second is the function name.
+		</p>
+		<p>
+			<code>+ nat(a nat, b nat)</code> won't parse since the <code>+</code> is read as the visibility,
+			<code>nat</code> becomes the function name, and then it then fails to parse the type.
+		</p>
+	</aside>
+</section>

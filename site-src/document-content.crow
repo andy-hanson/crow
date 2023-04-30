@@ -3,7 +3,7 @@ import
 		/, ~~, and-return, exact, grammar, grammar-skip, many, map, parse, text-delimited,
 		text-not-containing-any, to
 	./module:
-		body_, doc-comment, exports, fields, has-non-public-fields, is-mut, members, module,
+		body_, doc, exports, fields, has-non-public-fields, is-mut, members, module,
 		module-export, module-export-value, module-path, name, param, params, parents, path, purity,
 		record-field, return-type, spec-ref, spec-sig, specs, target, type-param, type-params, type,
 		type-args, type-ref, union-member, value, variadic
@@ -62,8 +62,8 @@ module-content string(a module, all-exports all-exports)
 	exports = "" join for x : a exports
 		ctx ctx = all-exports, a.path, x.name, for p : x.type-params; p name
 		x export-content ctx
-	doc = unless a.doc-comment is-empty
-		"""\n<section class="module-doc">{a.doc-comment format-comment}</section>"""
+	doc = unless a.doc is-empty
+		"""\n<section class="module-doc">{a.doc format-comment}</section>"""
 	"{a.path module-top}{doc}\n{exports}"
 
 -ctx record
@@ -99,7 +99,7 @@ module-content string(a module, all-exports all-exports)
 	section = """<section class="doc {a.value section-class}">
 		<h4><code class="{a.value name-class}">{a name}</code>{type-params} {header-extra}</h4>
 		{a.value export-body ctx}
-		{a.doc-comment format-comment}
+		{a.doc format-comment}
 	</section>
 	"""
 	if a.value.export-kind != export-fun
@@ -329,7 +329,7 @@ format-comment string(a string)
 	match comment-part.many parse a.strip
 	as ok parts
 		parts format-comment-parts
-	as err e
+	as error e
 		throw "Could not parse doc comment:\n{a}\n\nReason: {e}"
 
 -format-comment-parts string(parts comment-part[])

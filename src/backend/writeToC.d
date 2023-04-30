@@ -1347,6 +1347,7 @@ WriteExprResult writeSpecialUnary(
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromFloat32:
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromInt64:
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromNat64:
+		case LowExprKind.SpecialUnary.Kind.toInt64FromInt8:
 		case LowExprKind.SpecialUnary.Kind.toInt64FromInt16:
 		case LowExprKind.SpecialUnary.Kind.toInt64FromInt32:
 		case LowExprKind.SpecialUnary.Kind.toNat8FromChar8:

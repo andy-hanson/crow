@@ -1,0 +1,369 @@
+<section>
+	<h2>a first crow program</h2>
+
+	<p>Here is a basic program that prints <code class="lit-str">"hello, world!"</code>:</p>
+
+	<crow-runnable>
+		import
+			crow/io/print: out, print
+
+		main nat^(_ string[]) summon
+			out print "hello, world!"
+			()
+	</crow-runnable>
+
+	<p>
+		To run the example: click <crow-icon icon="play"></crow-icon>,
+		or <a href='download.html'>download</a> crow,
+		click the <crow-icon icon="download"></crow-icon> to download,
+		and run <code>crow run hello.crow</code>.
+	</p>
+
+	<p>
+		Crow detects nesting based on indentation.
+		<br />
+		<code>crow/io/print: print</code> is part of the <code class="keyword">import</code>.
+		<br />
+		<code>out print "Hello, world!"</code> and <code>()</code> are nested under <code>main</code>.
+		<br />
+		Indents may be one tab, two spaces, or four spaces, but must be consistent.
+	</p>
+
+	Here's what each part does:
+	<ul class="bullets">
+		<li>
+			<code class="keyword">import</code> imports the functions
+			<code class="fun">out</code> and <code class="fun">print</code>
+			from the module <a href="doc/crow/io/print.html"><code class="import">crow/io/print</code></a>.
+			<br />
+			Other names like <code class="struct">fut</code> are imported due to
+			an implicit import of the module <a href="doc/crow/std.html"><code class="import">crow/std</code></a>.
+			No other module is ever implicitly imported.
+		</li>
+		<li>
+			<code class="fun">main</code> defines a function.
+			In crow, the name of a declaration always comes first.
+		</li>
+		<li>
+			<code class="struct">fut nat</code> is the return type of <code class="fun">main</code>.
+			<br />
+			We'll describe <a href="./fut.html"><code>fut</code></a> much later in this tutorial.
+			For now, just treat this like C's <code>int main</code>; the main function returns the program's exit code.
+		</li>
+		<li>
+			<code class="param">_</code> is a parameter. The name indicates we won't use it.
+			Its type is <code class="struct">str[]</code>, an array of strings.
+		</li>
+		<li>
+			<code class="keyword">summon</code> indicates that this function will do I/O.
+		</li>
+		<li>
+			<code>"Hello, world!"</code> is a string literal.
+			<br />
+			<code>out print "Hello, world!"</code> is a function call.
+			<br />
+			Since this is not the last line of the function, it must be of type <code class="struct">void</code>.
+		</li>
+		<li>
+			<code>()</code> is also a function call, but with special syntax.
+			This is equivalent to writing <code>new</code>.
+			<br />
+			Since this is the last line of the function, it must be of type <code class="struct">fut nat</code>.
+		</li>
+	</ul>
+</section>
+<section>
+	<h2>Names</h2>
+	<p>
+		A name must start with a letter, and can be followed by letters, numbers, <code>_</code> and <code>-</code>.
+		<br />
+		Most crow names are "kebab-cased", like <code class="fun">ends-with</code>.
+		<br />
+		External functions use the same name as in C, like <code class="fun">SDL_Init</code>.
+	</p>
+	<p>
+		Functions can also use an operator as their name.
+		The allowed operators are:
+	</p>
+
+	<h3>Unary operators</h3>
+	<table class="operators">
+		<tr>
+			<th>operator</th>
+			<th>meaning</th>
+		</tr>
+		<tr>
+			<td><code class="fun">!x</code></td>
+			<td>Logical "not"</td>
+		</tr>
+		<tr>
+			<td><code class="fun">x!</code></td>
+			<td>Gets the value from an option, or throws an exception if it is empty.</td>
+		</tr>
+		<tr>
+			<td><code class="fun">-x</code></td>
+			<td>Numeric negation</td>
+		</tr>
+		<tr>
+			<td><code class="fun">~x</code></td>
+			<td>Bitwise negation</td>
+		</tr>
+		<tr>
+			<td><code class="fun">*x</code></td>
+			<td>Dereference a cell or pointer.</td>
+		</tr>
+	</table>
+
+	<h3>Binary operators</h3>
+	<table class="operators">
+		<tr>
+			<th>operator</th>
+			<th>meaning</th>
+		</tr>
+		<tr>
+			<td><code class="fun">~=</code>, <code class="fun">~~=</code></td>
+			<td>
+				Mutating concatenation; adds one (<code class="fun">~=</code>) or many (<code class="fun">~~=</code>)
+				elements to a collection.
+			</td>
+		</tr>
+		<tr>
+			<td><code class="fun">||</code></td>
+			<td>Logical "or"; or for option types, chooses the first non-empty option.</td>
+		</tr>
+		<tr>
+			<td><code class="fun">&&</code></td>
+			<td>Logical "and"</td>
+		</tr>
+		<tr>
+			<td><code class="fun">??</code></td>
+			<td>Provides a default value for an option</td>
+		</tr>
+		<tr>
+			<td><code class="fun">foo</code></td>
+			<td>Ordinary named functions</td>
+		</tr>
+		<tr>
+			<td><code class="fun">..</code></td>
+			<td>Numerical range, e.g. <code>0 .. 10</code></td>
+		</tr>
+		<tr>
+			<td><code class="fun">~</code>, <code class="fun">~~</code></td>
+			<td>
+				Adds one (<code class="fun">~</code>) or many (<code class="fun">~~</code>) elements to a collection.
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<code class="fun">==</code>,
+				<code class="fun">!=</code>,
+				<code class="fun">&lt;</code>,
+				<code class="fun">></code>,
+				<code class="fun">&lt;=</code>,
+				<code class="fun">>=</code>,
+				<code class="fun">&lt;=></code>
+			</td>
+			<td>
+				Comparison; <code class="fun">&lt;=></code> is 3-way comparison.
+			</td>
+		</tr>
+		<tr>
+			<td><code class="fun">|</code></td>
+			<td>Union of sets; or bitwise "or".</td>
+		</tr>
+		<tr>
+			<td><code class="fun">&amp;</code></td>
+			<td>Intersection of sets; or bitwise "and".</td>
+		</tr>
+		<tr>
+			<td><code class="fun">&lt;&lt;</code>, <code class="fun">>></code></td>
+			<td>Bitshift left and right.</td>
+		</tr>
+		<tr>
+			<td><code class="fun">+</code>, <code class="fun">-</code></td>
+			<td>
+				Addition and subtraction. For math only; to "add" collections, use <code class="fun">~~</code>.
+			</td>
+		</tr>
+		<tr>
+			<td><code class="fun">*</code>, <code class="fun">/</code>, <code class="fun">%</code></td>
+			<td>Multiply, divide, and modulo.</td>
+		</tr>
+		<tr>
+			<td><code class="fun">**</code></td>
+			<td>
+				Exponentiation; <code>2 ** 3</code> is <code>8</code>.
+			</td>
+		</tr>
+	</table>
+
+	<p>
+		These are in order of operator precedence.
+		<br />
+		For example, <code>a / b ** c</code> parses as <code>a / (b ** c)</code> because
+		<code class="fun">**</code> appears later in the table.
+		<br />
+	</p>
+	<p>
+		Wioth a few exceptions, an operator is just a special syntax for an ordinary function,
+		so you can define your own function with an operator name.
+		<br />
+		The exceptions are <code class="fun">||</code>, <code class="fun">&&</code>,
+		and <code class="fun">??</code>, which are lazily evaluated.
+	</p>
+	<ul>
+		<li>
+			In <code>a || b</code>,
+			<code>b</code> will only be evaluated if <code>a</code> is false (or an empty option).
+		</li>
+		<li>
+			In <code>a && b</code>,
+			<code>b</code> will only be evaluated if <code>a</code> is true.
+		</li>
+		<li>
+			In <code>a ?? b</code>,
+			<code>b</code> will only be evaluated if <code>a</code> is an empty option.
+		</li>
+	</ul>
+</section>
+<section>
+	<h2>Normal function call syntax</h2>
+	Crow provides several syntaxes for calling function, with infix syntax as the most common.
+	Below are some example function calls with their C equivalent in a comment.
+
+	<crow-runnable>
+		import
+			crow/io/print: out, print
+
+		main nat^(_ string[]) summon
+			# print(out, "crow")
+			out print "crow"
+
+			# print(out, upper_case("worc"))
+			out print "crow".upper-case
+
+			# print(out, concat("cr", "ow"))
+			out print "cr" ~~ "ow"
+
+			# print(out, replace("craw", "a", "o"))
+			out print ("craw" replace "a", "o")
+
+			# print(out, to_str(max(4, 2 * 3)))
+			out print "{4 max 2 * 3}"
+
+			# print(out, or_default(try_remove_start("escrow", "crow"), upper_case("dove")))
+			out print ("escrow" try-remove-start "es" ?? "dove" upper-case)
+
+			# print(lower_case(replace(replace("SNOW", "S", "C"), "N", "R")))
+			out print ("SNOW" replace "S", "C" replace "N", "R" lower-case)
+
+			# new()
+			()
+	</crow-runnable>
+
+	The ways to call a function with a non-operator name like <code class="fun">f</code> are:
+	<ul class="bullets">
+		<li>
+			<code>f</code> calls a 0-argument function.
+		</li>
+		<li>
+			<code>a f</code>, <code>a f b</code>, or <code>a f b, c</code> is the preferred way to call most functions.
+		</li>
+		<li>
+			<code>a.f</code> only works for functions of a single argument.
+			<br />
+			This is preferred if it avoids parentheses. Prefer <code>a.f g b.h</code> over <code>(a f) g (b h)</code>.
+		</li>
+		<li>
+			<code>f: a</code> is rarer,
+			but is useful for functions that are more intuitive in prefix syntax like <code>print</code>.
+		</li>
+	</ul>
+
+	<p>
+		Most operators, like <code class="fun">~</code> and <code class="fun">%</code>,
+		have higher precedence than words like <code class="fun">print</code> and <code class="fun">max</code>.
+		<br />
+		That means that crow parses <code>1 % 2</code> before <code class="fun">max</code>.
+	</p>
+	<p>
+		The <code class="fun">??</code> operator
+		(like <code class="fun">&&</code>, <code class="fun">||</code>, and <code class="fun">~=</code>)
+		has lower precedence than words.
+		<br />
+		That means that crow doesn't parse <code>"es" ?? "dove"</code> first like it would for most operators;
+		<code>"escrow" try-remove-start "es"</code> and <code>"dove" reverse</code> are parsed as a whole first.
+	</p>
+</section>
+
+<section>
+	<h2>Special function call syntax</h2>
+
+	There are a few special ways of calling functions without writing their name.
+	<br />
+	Here, the comments show equivalent crow syntax.
+
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			# "crow" new "duck"
+			xs string[] = "crow", "duck"
+			# xs subscript 0
+			info log xs[0]
+
+			# "crow" new
+			xs2 string[] = "goose",
+			info log xs2[0]
+
+			# new
+			ys string mut[] = ()
+			ys ~= "duck"
+			ys ~= "goose"
+			# ys set-deref 0, "crow"
+			ys[0] := "crow"
+			# info log (ys subscript 1)
+			info log ys[1]
+
+			()
+	</crow-runnable>
+
+	This is also the first example of local variables, which will be explained in the next section.
+	<br />
+	<code>x t = v</code> creates a local variable <code>x</code> of type <code>t</code> whose value is <code>v</code>.
+
+	<ul class="bullets">
+		<li>
+			A comma-separated list like <code>"crow", "duck"</code> calls a function <code class="fun">new</code>.
+			<br />
+			(<code class="fun">new</code> is not a keyword like in other languages.)
+			<p>
+				If there is only one element, a trailing comma is required as in <code>"duck",</code>.
+				<br />
+				If there are none, use <code>()</code>.
+			</p>
+			<p>
+				Since commas also separate function arguments, this often requires parentheses.
+				<br />
+				<code>a b c, d</code> calls <code class="fun">b</code> with 3 arguments,
+				while <code>a b (c, d)</code> calls <code>a b (c new d)</code>,
+			</p>
+		</li>
+		<li>
+			<code>x[i]</code> is the same as <code>x subscript i</code>.
+		</li>
+		<li>
+			<code class="keyword">:=</code> is a setter syntax that supports a few left hand sides.
+			<ul>
+				<li>
+					<code>*a := v</code> is the same as <code>a set-deref v</code>.
+				</li>
+				<li>
+					<code>a[i] := v</code> is the same as <code>a set-subscript i, v</code>.
+				</li>
+				<li>
+					<code>a.x := v</code> is the same as <code>a set-x v</code>.
+				</li>
+			</ul>
+		</li>
+	</ul>
+
+</section>

@@ -8,11 +8,11 @@ So, the number 5 has bits 0 and 2 set, since 5 is `2**0 + 2**2`.
 no-std
 import
 	./bool: &&, bool, false, true
-	./compare: !=, <, >
+	./compare: !=, <
 	./fun-util: subscript
 	./number: ==, <=>, +, int8, int16, int32, int64, nat8, nat16, nat32, nat64, new, to
 	./private/bootstrap: todo
-	./private/number-low-level: unsafe-mul, unsafe-to, wrap-sub
+	./private/number-low-level: unsafe-to, wrap-sub
 
 ###
 Negates every bit.
@@ -75,14 +75,6 @@ Does not rotate.
 +<< nat64(a nat64, b nat64) bare
 	if b < 64
 		trusted a unsafe-bit-shift-left b
-+<< nat64(a nat64, b int64) bare
-	if b < 0
-		if b > -64
-			a >> trusted b unsafe-mul -1 unsafe-to
-		else
-			0
-	else
-		a << trusted b unsafe-to
 
 ###
 Shifts the bits of 'a' right by 'b' bits.
@@ -95,14 +87,6 @@ Does not rotate.
 +>> nat64(a nat64, b nat64) bare
 	if b < 64
 		trusted a unsafe-bit-shift-right b
-+>> nat64(a nat64, b int64) bare
-	if b < 0
-		if b > -64
-			a << trusted b unsafe-mul -1 unsafe-to
-		else
-			0
-	else
-		a >> trusted b unsafe-to
 +>> int32(a int32, b int32) bare
 	if a < 0
 		todo

@@ -278,6 +278,8 @@ ExpectUnary unaryExpected(
 			return expect(float64Type, int64Type);
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromNat64:
 			return expect(float64Type, nat64Type);
+		case LowExprKind.SpecialUnary.Kind.toInt64FromInt8:
+			return expect(int64Type, int8Type);
 		case LowExprKind.SpecialUnary.Kind.toInt64FromInt16:
 			return expect(int64Type, int16Type);
 		case LowExprKind.SpecialUnary.Kind.toInt64FromInt32:

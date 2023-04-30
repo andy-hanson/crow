@@ -1,29 +1,21 @@
 <section>
-	<h2>bool</h2>
-	<p>
-		There isn't much to say about <code class="struct">bool</code>;
-		<br />
-		you can create one with <code class="fun">true</code> or <code class="fun">false</code>
-		and use it with <code class="keyword">if</code>.
-	</p>
-	<p>
-		<code class="fun">false</code> can also be written as <code>()</code>,
-		so it can be an implicit <code class="keyword">else</code>.
-	</p>
-	<p>
-		Unlike in other languages, <code class="struct">bool</code> is not a number type,
-		and numbers aren't treated like booleans.
-	</p>
-	<p>
-		Common functions on <code class="struct">bool</code>
-		are in the <a href="/doc/crow/bool.html">crow/bool</a> module.
-	</p>
-</section>
+	<h2>Primitive types</h2>
 
-<section>
-	<h2>number types</h2>
-	Types of numbers are:
-	<table class="no-header">
+	<p>The primitive types are:</p>
+	<table><tbody>
+		<tr>
+			<td><code class="struct">bool</code></td>
+			<td>
+				Boolean type; <code class="fun">false</code> or <code class="fun">true</code>.
+			</td>
+		</tr>
+		<tr>
+			<td><code class="struct">char8</code></td>
+			<td>
+				Single byte in a UTF-8 string.
+				This is not a numeric type.
+			</td>
+		</tr>
 		<tr>
 			<td>
 				<code class="struct">nat8</code>,
@@ -31,7 +23,10 @@
 				<code class="struct">nat32</code>,
 				<code class="struct">nat64</code>
 			</td>
-			<td>Natural numbers, in the range 0 to 2<sup>n</sup> - 1.</td>
+			<td>
+				Natural numbers, in the range 0 to 2<sup>n</sup> - 1.
+				<code class="struct">nat</code> is short for <code class="struct">nat64</code>.
+			</td>
 		</tr>
 		<tr>
 			<td>
@@ -40,117 +35,182 @@
 				<code class="struct">int32</code>,
 				<code class="struct">int64</code>
 			</td>
-			<td>Integers, in the range -2<sup>n - 1</sup> to 2<sup>n - 1</sup> - 1.</td>
+			<td>
+				Integers, in the range -2<sup>n - 1</sup> to 2<sup>n - 1</sup> - 1.
+				<code class="struct">int</code> is short for <code class="struct">int64</code>.
+			</td>
+			<tr>
+				<td><code class="struct">float32</code>, <code class="struct">float64</code></td>
+				<td>
+					Floating-point values.
+					<code class="struct">float</code> is short for <code class="struct">float64</code>.
+				</td>
+			</tr>
 		</tr>
-		<tr>
-			<td><code class="struct">float32</code>, <code class="struct">float64</code></td>
-			<td>Floating-point values.</td>
-		</tr>
-	</table>
+	</tbody></table>
 
+	<h3>Arithmetic</h3>
 	<p>
-		There are aliases <code class="struct">nat</code> for <code class="struct">nat64</code>,
-		<code class="struct">int</code> for <code class="struct">int64</code>,
-		and <code class="struct">float</code> for <code class="struct">float64</code>.
-	</p>
-
-	<crow-runnable>
-		main nat^(_ string[]) summon
-			a nat = 3
-			info log "{a / 2}"
-			b int = 3
-			info log "{b / -2}"
-			c float = 3
-			info log "{c / 2}"
-
-			info log "{a.to::int64 + b}"
-			()
-	</crow-runnable>
-
-	<p>
-		Arithmetic functions work on values of the same type only,
-		so you can add <code>nat + nat</code> or <code>int + int</code>, but not <code>nat + int</code>.
-		To add a <code class="struct">nat</code> and <code class="struct">int</code>,
-		you must convert one to the other's type.
-	</p>
-
-	<p>
-		Arithmetic functions throw exceptions on overflow (or underflow).
+		<code class="struct">nat</code> and <code class="struct">int</code> arithmetic
+		always returns an exactly correct result or throws an exception.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[]) summon
+		main nat^(_ string[])
 			a nat8 = 255
-			info log "{a + 1}"
+			_ = a + 1
+			()
+	</crow-runnable>
+	<p>
+		<code class="struct">float</code> arithmetic doesn't have such checks,
+		since floats are usually expected to be inexact.
+	</p>
+
+	<aside>
+		<h4>Use nats!</h4>
+		<p>
+			Unsigned integers are often avoided in other languages due to the risk of underflow:
+			operations that would have returned a negative value would return a very large value instead.
+			<br />
+			In crow, this will cause an exception instead.
+		</p>
+		<p>
+			If a variable doesn't make sense with a negative value (for example, a count of anything),
+			make it a <code class="struct">nat</code> instead of <code class="int">int</code>
+			to protect it from negative values.
+		</p>
+	</aside>
+
+	<h3>Conversion</h3>
+	<p>
+		There is no dedicated syntax for conversion,
+		but a function should be named <code class="fun">to</code> if it does an obvious conversion.
+		<br />
+		This relies on type inference which will be explained more in {{tutorial/type-inference}}.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			n nat = 3
+			i int = n to
+			f float = i to
+			s string = f to
+			info log s
 			()
 	</crow-runnable>
 
 	<p>
-		Common functions on numbers are in the <a href="/doc/crow/number.html">crow/number</a> module.
+		As with arithmetic, conversions between nat/int types will throw if they can't return an exact result.
 	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			i int = -3
+			_ nat = i to
+			()
+	</crow-runnable>
 </section>
-
 <section>
-	<h2>string and char</h2>
-
+	<h2>Strings</h2>
 	<p>
-		We've been using <code class="struct">string</code> for most of this tuturial so far.
+		Strings are technically a library type and not a primitive type.
 		<br />
-		A <code class="struct">string</code> is sequence of <code class="struct">char</code>s.
+		<code class="struct">string</code> wraps a <code class="struct">char8[]</code>;
+		an immutable list of UTF-8 bytes.
 		<br />
-		A <code class="struct">char</code> is an 8-bit value, so a Unicode character might use multiple.
+		Lists are explained more in {{tutorial/collections}}.
+		What's relevant is that they are efficient to concatenate.
 	</p>
-	<p>
-		Unlike in other languages, <code class="struct">char</code> is not a number type, and
-		<code class="struct">string</code> is not just a <code>char[]</code>;
-		though conversion functions are available.
-	</p>
-	<p>
-		<code class="fun">""</code> can also be written as <code>()</code>,
-		so it can be an implicit <code class="keyword">else</code>.
-	</p>
-	<p>
-		Functions for <code class="struct">string</code> and <code class="struct">char</code> are in the
-		<a href="/doc/crow/string.html">crow/string</a> module.
-	</p>
-</section>
 
-<section>
-	<h2>symbol</h2>
-
-	<code class="struct">symbol</code>s are unique values identified by a string.
-	<br />
-	(Other languages may call these interned strings.)
+	<h3>String syntax</h3>
+	<p>
+		Basic string syntax is very similar to C: <code>"hello"</code>.
+		<br />
+		They support the same escape sequences, like <code>"hello\nworld"</code>.
+	</p>
+	<p>
+		There are also triple-quoted strings that allow newlines in the string.
+	</p>
 
 	<crow-runnable>
-		main nat^(_ string[]) summon
-			x symbol = "flabbergast"
-			info log "{x}"
-			info log "{x == "glabberfast"}"
-			info log "{x == ("flabber" ~~ "gast").to}"
+		main nat^(_ string[])
+			info log "hello\nworld"
+			info log """
+I wrote a haiku
+about programming in crow
+but I forgot it
+"""
 			()
 	</crow-runnable>
 
+	<h3>String interpolation</h3>
 	<p>
-		The syntax for a <code class="struct">symbol</code> is the same as for a <code class="struct">string</code>.
+		You've seen this a lot already.
+		<br />
+		<code>"One plus one is {1 + 1}!"</code> is shorthand for
+		<code>"One plus one is " ~~ (1 + 1).to ~~ "!"</code>.
+		<br />
+		<code>~~</code> is the concatenation operator.
+		The <code>.to</code> is to convert whatever is interpolated to <code>string</code>.
 	</p>
 
+	<h3>String functions</h3>
 	<p>
-		Unlike a <code class="struct">string</code>,
-		you can't manipulate the contents of a symbol or use string interpolation
-		(except by converting to/from <code class="struct">string</code>).
+		Strings act like a collection, so if a function is missing from {{doc/string}},
+		look for it in {{doc/col/collection}} instead.
 	</p>
+</section>
+<section>
+	<h2>Symbols</h2>
+	<p>
+		Strings are often used simply as identifiers or like ad-hoc enums.
+		In crow, you should instead use <code class="struct">symbol</code>s for those use cases.
+		<br />
+		A <code class="struct">symbol</code> is a unique identifier that comes from a string.
+		<br />
+		The string is interned,
+		meaning that two separately-allocated strings that are equal will only result in a single allocated symbol.
+		<br />
+		So, two symbols are equal if their pointers are equal.
+		That means <code class="fun">==</code> on symbols is fast, making them good as a key in a map.
+	</p>
+	<p>The literal syntax for a symbol is the same as for a string.</p>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			info log "{"left".opposite}"
+			()
+
+		opposite symbol(a symbol)
+			# This will be fast since it compares symbols by identity.
+			if a == "left"
+				"right"
+			elif a == "right"
+				"left"
+			else
+				"nowhere"
+	</crow-runnable>
 
 	<p>
-		When a variable is a <code class="struct">symbol</code>,
-		that indicates that it should belong to a small set of possible values,
-		and will be compared against other values in the set.
+		As usual, to convert between strings and symbols, call the <code class="fun">to</code> function.
 	</p>
-
-	<code class="fun">==</code> is O(1) for <code class="struct">symbol</code>
-	and O(n) for <code class="struct">string</code>.
-
+</section>
+<section>
+	<h2>Tuples</h2>
 	<p>
-		Functions for <code class="struct">symbol</code> are in the
-		<a href="/doc/crow/symbol.html">crow/symbol</a> module.
+		You've already seen tuples in the section on destructuring in {{tutorial/local-variables}}.
+		<br />
+		The syntax for a tuple type is like <code>(nat, string)</code> or <code>(nat, string, float)</code>.
+		It can have up to 9 members. It can't have less than 2.
 	</p>
+	<p>
+		A tuple type is often created implicitly by a destructuring,
+		as in <code>n nat, s string</code> declaring a <code>(nat, string)</code> tuple.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			tuple (nat, string) = 0, "a"
+			# equivalent
+			n nat, s string = 0, "a"
+			# '==' is defined based on the members
+			info log "{tuple == (n, s)}"
+			()
+	</crow-runnable>
 </section>

@@ -1,0 +1,301 @@
+<section>
+	<h2>Futures</h2>
+	<p>
+		A <em>future</em> is a placeholder for a value that won't be available until later.
+		<br />
+		For example, the value could be computed in parallel, or the result of a network request.
+		<br />
+		Appending <code class="keyword">^</code> to a type wraps it in a future.
+		For example, <code class="struct">nat^</code> is future type that resolves to a <code class="struct">nat</code>.
+	</p>
+
+	<p>
+		An example of a future is the result of <code class="fun">parallel</code>. This launches a parallel task.
+		<br />
+		A <em>task</em> is a piece of code that can run independently.
+		The runtime is responsible for assigning tasks to threads.
+		Almost all code, including the <code class="fun">main</code> function, runs as part of a task.
+	</p>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			fut nat^ = with : parallel
+				info log "inside the task"
+				()
+			info log "after creating fut"
+			fut
+	</crow-runnable>
+
+	<aside class="small">
+		<p>
+			If you run this from the command line, it might log "inside the task" before "after creating fut".
+			<br />
+			In the browser, there's only one thread, so the "parallel" task will always run after the main task.
+		</p>
+	</aside>
+
+	<p>
+		In this example, <code>with : parallel</code> causes the code in the block to run in a parallel task.
+		<br />
+		The expression <em>immediately</em> returns a <code class="struct">nat^</code>,
+		likely before the parallel task has finished.
+	</p>
+	<p>
+		Notice how the <code class="fun">main</code> function doesn't return <code class="keyword">()</code>
+		like all the previous examples have. Instead it returns <code class="local">fut</code>.
+		The <code>()</code> on line 4 becomes the value ultimately returned by <code class="fun">main</code>.
+	</p>
+	
+	<aside>
+		<h4>Constructing a future</h4>
+		<p>
+			You can convert any value to a future resolved with that value using <code class="fun">new</code>.
+			For example, <code>(1,)</code> is a future resolved to <code>1</code>.
+			<br />
+			<code>()</code> is a future resolved to <code>()</code> of its resolved type.
+			For a <code class="struct">nat</code>, it's equivalent to <code>(0,)</code>.
+			In the context of <code class="fun">main</code> that means the program will have an exit code of 0.
+		</p>
+	</aside>
+</section>
+<section>
+	<h2>Chaining futures with "then"</h2>
+
+	<p>
+		There's no way to "block" waiting for the value inside a future.
+		(Meaning, there's no conversion from <code class="struct">nat^</code> to <code class="struct">nat</code>.)
+		<br />
+		But you can schedule a task to run when the future resolves. That's what <code class="fun">then</code> does.
+	</p>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			fut string^ = with : parallel
+				info log "inside fut"
+				"world",
+			info log "after creating fut"
+			fut then x =>
+				info log "hello, {x}"
+				()
+	</crow-runnable>
+
+	<aside>
+		As the name implies, <code class="fun">then</code> imposes an ordering:
+		The lambda starting at <code>x =></code> won't be called until after <code>fut</code> resolves.
+		Otherwise we wouldn't have a value for <code>x</code>.
+	</aside>
+
+	<p>
+		The lambda passed to <code class="fun">then</code> is expected to return another future.
+		When that future resolves,
+		the future returned by <code class="fun">then</code> will also resolve with the same value.
+		<br />
+		To demonstrate:
+	</p>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			a string^ = "hello",
+			b string^ = a then x => "{x}, world",
+			b then x =>
+				info log x
+				()
+	</crow-runnable>
+</section>
+<section>
+	<h2>Task exclusion and "far" lambdas</h2>
+
+	<p>The lambda passed to <code class="fun">then</code> can have a mutable closure.</p>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			xs string mut[] = ()
+			f0 void^ = ("hello",) then x =>
+				xs ~= x
+				()
+			f1 void^ = ("world",) then x =>
+				xs ~= x
+				()
+			f0 | f1 then ((), ()) =>
+				info log xs.to::string[].to::json.to
+				()
+	</crow-runnable>
+
+	<aside class="small">
+		<code>f0 | f1</code> returns a future that resolves to a tuple
+		of the values returned by <code>f0</code> and <code>f1</code>.
+		<br />
+		In this case, those would be two <code class="struct">void</code> values, destructured by <code>((), ())</code>.
+	</aside>
+
+	<p>
+		How is this possible?
+		The lambda can't be an <code class="keyword">act</code>
+		because a <code class="struct">future</code>, being a <code class="keyword">shared</code> type,
+		can only reference <code class="keyword">shared</code> things.
+		It can't be a <code class="keyword">fun</code> because it needs a mutable closure.
+		<br />
+		Instead, there is a third kind of lambda, <code class="keyword">far</code>.
+		Though you should treat it as an opaque value,
+		internally it wraps an <code class="keyword">act</code> and an <em>exclusion</em>.
+	</p>
+	<p>
+		An exclusion identifies an isolated space of mutable objects.
+		Only one task with the same exclusion can run at a time.
+		(You could think of it as like a lock or mutex, although it isn't implemented that way.)
+	</p>
+	<p>
+		The benefit of a <code class="keyword">far</code> lambda
+		is that it is considered <code class="keyword">shared</code>, and yet it can have mutable data in its closure.
+		<br />
+		Hence the name: <code class="keyword">far</code> enable communication between different mutable exclusions.
+		These exclusions act like they are "far" from each other, since they communicate asynchronously.
+	</p>
+
+	<p>
+		When a <code class="keyword">far</code> lambda is created,
+		it gets the same exclusion as the task that created it.
+		<br />
+		So in the example, the three <code class="fun">then</code> lambdas
+		have the same exclusion as <code class="fun">main</code>.
+	</p>
+
+	<h3>"Fun" means parallel</h3>
+	<p>
+		Unlike <code class="fun">then</code> which takes a <code class="keyword">far</code> lambda,
+		<code>with : parallel</code> takes a <code class="keyword">fun</code>,
+		indicating that it expects parallel-safe code.
+		<br />
+		(Recall that the body of a <code class="keyword">with</code> is really a lambda.)
+	</p>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			x string mut[] = ()
+			with : parallel
+				x ~= "hello" # compile error
+				()
+	</crow-runnable>
+</section>
+<section>
+	<h2>Arrow syntax for "then"</h2>
+
+	<p>
+		The lambda passed to <code class="fun">then</code> should return a future.
+		Often this is another call to <code class="fun">then</code>.
+	</p>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			("hello",) then x =>
+				("{x}, world",)::string^ then y =>
+					info log y
+					()
+	</crow-runnable>
+
+	<p>
+		There is a syntax for using <code class="fun">then</code> without writing out the lambda.
+		<br />
+		<code>x &lt;- y</code> is like writing <code>y then x =></code>.
+		<br />
+		The previous example could be written like the below:
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			x string &lt;- "hello",
+			y string &lt;- "{a}, world",
+			info log "{y}"
+			()
+	</crow-runnable>
+
+	<p>
+		Since this is equivalent to using a lambda, the parameter to the left of the <code class="keyword">&lt;-</code>
+		supports destructuring.
+	</p>
+
+	<p>
+		The code below the <code class="keyword">&lt;-</code> becomes the body of the lambda.
+		The effect is restricted to the block it's contained in.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			if true # Compile error
+				x &lt- "foo",
+				info log x
+				()
+				# '&lt;-' expression ends here
+			# This is *not* part of the '&lt;-' expression
+			()
+	</crow-runnable>
+
+	<p>
+		The <code class="keyword">if</code> expression above has a type of <code class="struct">void^</code>
+		(because its body is a call to <code class="fun">then</code>),
+		so we need another <code class="keyword">&lt;-</code> to wait on it.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			&lt;- if true
+				x &lt- "foo",
+				info log x
+				()
+			()
+	</crow-runnable>
+
+	<aside class="small">
+		Having nothing to the left of <code class="keyword">&lt;-</code> is like having
+		<code class="keyword">()</code> as a lambda parameter;
+		it's a destructuring expecting <code class="struct">void</code>.
+		<br />
+		Also note the implicit <code>else ()</code> which produces a future resolved to a void value.
+	</aside>
+</section>
+<section>
+	<h2>Futures and exceptions</h2>
+
+	<p>
+		When an exception is thrown in code that would have resolved a future,
+		the future is instead <em>rejected</em>.
+		<br />
+		Calling <code class="fun">then</code> on a rejected future results in another rejected future.
+	</p>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			xs string[] = "hello",
+			fut string^ = with : parallel
+				xs[1],
+			info log "this is reached"
+			x &lt;- fut
+			info log "{x} is not reached"
+			()
+	</crow-runnable>
+
+	<p>
+		The exception in the lambda doesn't affect other tasks directly, but causes the
+		lambda passed to <code class="fun">then</code> to never be called.
+		<br />
+		To handle the exception, there is <code class="fun">future-catch</code>.
+	</p>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			xs string[] = "hello",
+			fut string^ = with : parallel
+				xs[1],
+			fut-caught (string, exception) result^ = fut future-catch
+			x <- fut-caught
+			match x
+			as ok v
+				info log "ok: {v}"
+				()
+			as error e
+				error log trusted "err: {e}"
+				1,
+	</crow-runnable>
+
+	<aside class="small">
+		<code class="keyword">trusted</code> will be explained in {{tutorial/low-level}}.
+		See {{doc/result}} for more about <code class="struct">result</code>s.
+	</aside>
+</section>

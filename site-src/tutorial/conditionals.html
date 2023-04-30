@@ -1,0 +1,119 @@
+<section>
+	<h2>"If" expressions</h2>
+
+	<h3>"If" syntax</h3>
+
+	The syntax for an <code class="keyword">if</code> expression is simple:
+	just put the true and false branches in indented blocks.
+
+	<crow-runnable>
+		main nat^(_ string[])
+			if 2 &lt; 3
+				info log "True branch"
+			else
+				info log "False branch"
+			()
+	</crow-runnable>
+
+	<aside class="small">
+		There is no "truthiness" in crow; the type of the condition must be <code class="struct">bool</code> exactly.
+	</aside>
+
+	<h3>Using "if" as an expression</h3>
+	<p>
+		Crow's syntax technically does not have any statements; only expressions.
+		Any line of code not at the end of a block is a <code class="struct">void</code> expression.
+	</p>
+	<p>
+		When an <code class="keyword">if</code> appears in a <code class="struct">void</code> context,
+		the true and false branches must also be <code class="struct">void</code> expressions.
+		<br />
+		A call to <code class="fun">log</code> works because
+		it is a function returning <code class="struct">void</code>.
+	</p>
+
+	<aside>
+		<h4>The "void" type</h4>
+		<p>
+			<code class="struct">void</code> is a type and works anywhere a type does.
+			<br />
+			It has no content and takes up no space.
+		</p>
+		<p>
+			<code class="keyword">()</code> can construct an empty value of most types.
+			(More on this in {{tutorial/special-call-syntax}}.)
+		</p>
+	</aside>
+
+	<p>
+		Since <code class="keyword">if</code> is an expression,
+		it can have a non-void type like <code class="struct">string</code>.
+		So the first example can be rewritten as:
+	</p>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			info log if 2 &lt; 3
+				"True branch"
+			else
+				"False branch"
+			()
+	</crow-runnable>
+
+	<h3>"Elif"</h3>
+	<p>
+		You can add additional conditions to the chain using <code class="keyword">elif</code>.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			info log if 3 &lt; 2
+				"First condition is true (second condition not checked)"
+			elif 2 &lt; 3
+				"First condition was false, second condition is true"
+			else
+				"Neither condition is true"
+			()
+	</crow-runnable>
+
+	<h3>"If" without "else"</h3>
+	<p>
+		If no <code class="keyword">else</code> branch is written, it will default to <code class="keyword">()</code>.
+		This can create an empty value of most types; for example, it can be an empty string.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			info log "for 2: '{2 f}'"
+			info log "for 4: '{4 f}'"
+			()
+
+		f string(a nat)
+			if a &lt; 3
+				"True branch"
+	</crow-runnable>
+
+	<h3>"Unless" expressions</h3>
+	<p>
+		<code class="keyword">unless</code> works the same as <code class="keyword">if</code>
+		except the condition is negated.
+		This doesn't support an <code class="keyword">else</code> branch, since the double negation would be confusing.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			unless 2 &lt; 3
+				info log "This won't log, because 2 &lt; 3"
+			()
+	</crow-runnable>
+
+	<h3>Ternary expressions</h3>
+
+	<p>There is an alternative syntax for short <code class="keyword">if</code> expressions.</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			x = true ? "crow" : "duck"
+			info log "x is '{x}'"
+			# The false branch is still optional
+			y = false ? "crow"
+			info log "y is '{y}'"
+			()
+	</crow-runnable>
+</section>

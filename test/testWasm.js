@@ -17,7 +17,7 @@ const main = async () => {
 	const content = fs.readFileSync(path, "utf-8")
 	comp.addOrChangeFile(path, content)
 	const result = comp.run(path)
-	if (result.stdout !== "hello, world!\n" || result.err != 0 || result.stderr != '') {
+	if (result.stdout !== "Hello, world!\n" || result.err != 0 || result.stderr != '') {
 		console.error(result)
 		throw new Error("Bad result")
 	}

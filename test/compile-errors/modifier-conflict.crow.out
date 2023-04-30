@@ -1,6 +1,6 @@
 exit code: 0
 stdout:
-hello, world!
+Hello, world!
 stderr:
 test/compile-errors/modifier-conflict.crow 8:16-8:19 'mut' conflicts with 'data'
 

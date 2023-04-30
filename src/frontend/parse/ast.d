@@ -671,6 +671,7 @@ immutable struct VarDeclAst {
 	Visibility visibility;
 	Sym name;
 	NameAndRange[] typeParams; // This will be a compile error
+	Pos kindPos;
 	VarKind kind;
 	TypeAst type;
 	FunModifierAst[] modifiers; // Any but 'extern' will be a compile error

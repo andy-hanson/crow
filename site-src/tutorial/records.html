@@ -1,0 +1,68 @@
+<section>
+	<h2>Declaring records</h2>
+
+	<p>
+		A record is like a <code>struct</code> or <code>class</code> in other languages:
+		it combines several values in named fields.
+		<br />
+		In this example, the <code class="struct">dimensions</code> record combines two floats
+		<code>width</code> and <code>height</code>.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			a dimensions = 4, 2
+			area = a.width * a.height
+			info log "area is {area}"
+			()
+		
+		dimensions record
+			width float
+			height float
+	</crow-runnable>
+
+	<h3>Generated functions</h3>
+	<p>
+		Declaring the record generates a function <code class="fun">new dimensions(width float, height float)</code>
+		used in <code>a dimensions = 4, 2</code>.
+		<br />
+		It also generates functions <code class="fun">width float(a dimensions)</code> and
+		<code class="fun">height float(a dimensions)</code> for accessing the fields.
+	</p>
+	<aside>
+		<h4>It's just functions</h4>
+		<p>
+			There is no specific syntax for using a record; it's all function calls.
+			This makes it possible to refactor a record into some other kind of type later,
+			so long as you define the same functions.
+		</p>
+	</aside>
+</section>
+<section>
+	<h2>Mutable records</h2>
+	<p>
+		Like for a local variable, <code class="keyword">mut</code>
+		goes after a field name (but before the type) to make that field mutable.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			a dimensions = 4, 2
+			a.width := 5
+			info log "{a width}"
+			()
+		
+		dimensions record mut
+			width mut float
+			height mut float
+	</crow-runnable>
+
+	<p>
+		When you define a <code class="keyword">mut</code> field, it generates a setter function.
+		<br />
+		In this example, it generates <code>set-width void(a record, width float)</code> and
+		<code>set-height void(a record, height float)</code>.
+	</p>
+	<aside class="small">
+		The reason for the <code class="keyword">mut</code> after the <code class="keyword">record</code> keyword
+		will be explained in {{tutorial/purity}}.
+	</aside>
+</section>

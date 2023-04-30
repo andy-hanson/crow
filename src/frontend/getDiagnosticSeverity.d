@@ -73,6 +73,8 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagSeverity.checkError,
 		(in Diag.LinkageWorseThanContainingType) =>
 			DiagSeverity.checkError,
+		(in Diag.LiteralAmbiguous) =>
+			DiagSeverity.checkError,
 		(in Diag.LiteralOverflow) =>
 			DiagSeverity.checkError,
 		(in Diag.LocalIgnoredButMutable) =>

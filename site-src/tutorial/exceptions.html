@@ -1,0 +1,129 @@
+<section>
+	<h2>Throwing exceptions</h2>
+
+	Sometimes a function has no correct return value given its inputs and should throw an exception instead.
+	For example, <code class="fun">+</code> on <code class="struct">nat</code>s will throw an exception if
+	the result is too big to represent.
+
+	There are 3 keywords for throwing exceptions, each having basically the same effect.
+
+	<h3>Assertions</h3>
+	<p>
+		<code class="keyword">assert</code> is the most common way to conditionally throw an exception.
+		It throws an exception if the condition is false.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			assert 3 &lt; 2
+			()
+	</crow-runnable>
+
+	<aside class="small">There is no difference between assertion failures and exceptions.</aside>
+
+	<p>
+		A custom error message can be written after a <code class="keyword">:</code>.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			assert 3 &lt; 2 : "custom message"
+			()
+	</crow-runnable>
+
+	<p>
+		<code class="keyword">forbid</code> is like <code class="keyword">assert</code> but the condition is negated,
+		meaning it throws if the condition is true.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			forbid 2 &lt; 3
+			()
+	</crow-runnable>
+
+	<p>
+		<code class="keyword">throw</code> throws an exception unconditionally.
+		It takes the error message. This can be any expression of type <code class="struct">string</code>.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			throw "error message"
+			()
+	</crow-runnable>
+
+	<p>
+		<code class="keyword">throw</code> is an expression.
+		It can be any type, since the result will never be used due to the exception.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			xs string[nat] = (1, "one"), (2, "two")
+			info log (xs[1] ?? throw "nothing for 'one'")
+			info log (xs[3] ?? throw "nothing for 'three'")
+			()
+	</crow-runnable>
+
+	<p>
+		There is also a helpful function <code class="fun">is</code> for asserting equality.
+		<br />
+		This acts like <code>assert x == y</code>, but converts arguments to JSON for the error message.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			x (nat, string) = (1, "a")
+			x is (1, "b")
+			()
+	</crow-runnable>
+</section>
+<section>
+	<h2>Catching exceptions</h2>
+	<p>
+		There is no dedicated <code class="keyword">try-catch</code> syntax,
+		but there is a <code class="keyword">catch</code> function.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			match (() => try-me) catch
+			as ok value
+				info log "succeeded with {value}"
+			as error _
+				info log "failed"
+			()
+		try-me nat()
+			throw "not today"
+	</crow-runnable>
+
+	<aside>
+		<h4>Exceptions in crow</h4>
+		<p>
+			Crow deliberately has only one type of exception.
+			<br />
+			You can't define exception "subclasses" as in Java.
+			Those are often used for functions that can return in multiple different ways.
+			<br />
+			Instead of using exceptions, return a <code class="keyword">union</code> with all the possible results.
+			<br />
+			In other words, <code class="keyword">match</code> instead of <code class="keyword">catch</code>.
+			<br />
+			For example, <code>map[key]</code> returns an option
+			instead of throwing a <code>KeyNotFoundException</code>.
+		</p>
+		<p>
+			You should usually not have to catch exceptions.
+			Exceptions in crow indicate a bug in the caller, so you should fix the caller instead.
+			<br />
+			For example, if indexing into a list <code>xs[i]</code> caused an exception,
+			fix the code to test <code>i</code> first.
+		</p>
+	</aside>
+
+	<h3>Ensuring code is run</h3>
+	<p>
+		There is also <code class="fun">finally</code>
+		to ensure that cleanup code is run even when there is an exception.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			with : (() => info log "cleanup") finally
+				throw "error"
+			()
+	</crow-runnable>
+</section>

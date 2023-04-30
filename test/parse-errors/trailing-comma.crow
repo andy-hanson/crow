@@ -2,5 +2,5 @@ import
 	crow/io/print: out, print,
 
 main nat^(_ string[]) summon
-	out print "hello, world!"
+	out print "Hello, world!"
 	()

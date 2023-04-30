@@ -9,7 +9,7 @@ import
 	./misc: loop-break, new, void
 	./number: ==, <=>, +, -, *, **, float64, int64, nat8, nat64, to
 	./option: is-empty, new, option
-	./result: err, ok, result
+	./result: error, ok, result
 	./string:
 		==, <=>, ~~, ~=, as-string, begin, build, char8, hash-mix, is-empty, iterate, literal, new,
 		next, string, string-iterator, to
@@ -36,16 +36,16 @@ If the string has leading or trailing spaces you must use a grammar that include
 		if iter is-at-end
 			v ok
 		else
-			(text, iter, "string continues past end of parse") err
-	as err e
-		(text, iter, e.expected) err
+			(text, iter, "string continues past end of parse") error
+	as error e
+		(text, iter, e.expected) error
 
 # Return a parse result or throw on error.
 +force[t] t(a (t, parse-error) result)
 	match a
 	as ok v
 		v
-	as err e
+	as error e
 		throw "{e}"
 
 +parse-error record
@@ -63,14 +63,14 @@ If the string has leading or trailing spaces you must use a grammar that include
 
 -inner-parse-result[t] union
 	ok t
-	err inner-parse-error
+	error inner-parse-error
 
 -then[out, in] out inner-parse-result(a in inner-parse-result, f act out(in))
 	match a
 	as ok v
 		f[v] ok
-	as err e
-		e err
+	as error e
+		e error
 -then[out, in] (string-iterator, out inner-parse-result)(a (string-iterator, in inner-parse-result), f act out(in))
 	a.a, a.b then f
 
@@ -129,7 +129,7 @@ text-not-containing-any string grammar(possible-endings string[])
 					break
 		if res is-empty
 			desc = ", " join for x : possible-endings; "'{x}'"
-			iter, ("expected text ending in one of {desc}",).err
+			iter, ("expected text ending in one of {desc}",).error
 		else
 			iter, res.ok
 
@@ -140,9 +140,9 @@ text-not-containing-any string grammar(possible-endings string[])
 			if predicate[x]
 				rest, x.ok
 			else
-				rest, (description,) err
+				rest, (description,) error
 		else
-			start, (description,) err
+			start, (description,) error
 
 -try-take-exact string-iterator?(iter string-iterator, expect string)
 	cur mut = iter
@@ -171,10 +171,10 @@ By default this does not allow spaces in between. For that, use `a ~~ spaces ~~ 
 			iter2, match res2
 			as ok y
 				(x, y) ok
-			as err e
-				e err
-		as err e
-			iter, e.err
+			as error e
+				e error
+		as error e
+			iter, e.error
 +~~[t] t grammar(a t grammar, b grammar-skip)
 	with start : make-grammar
 		iter, res = a.fn[start]
@@ -184,10 +184,10 @@ By default this does not allow spaces in between. For that, use `a ~~ spaces ~~ 
 			iter2, match res2
 			as ok _
 				x ok
-			as err e
-				e err
-		as err e
-			iter, e.err
+			as error e
+				e error
+		as error e
+			iter, e.error
 +~~[t] t grammar(a grammar-skip, b t grammar)
 	with start : make-grammar
 		iter, res = a.inner.fn[start]
@@ -197,10 +197,10 @@ By default this does not allow spaces in between. For that, use `a ~~ spaces ~~ 
 			iter2, match res2
 			as ok x
 				x ok
-			as err e
-				e err
-		as err e
-			iter, e.err
+			as error e
+				e error
+		as error e
+			iter, e.error
 +~~ grammar-skip(a grammar-skip, b grammar-skip)
 	a.inner ~~ b,
 # Skips an exact string, then parses 'b'
@@ -221,7 +221,7 @@ By default this does not allow spaces in between. For that, use `a ~~ spaces ~~ 
 		match res
 		as ok v
 			iter, v.ok
-		as err _
+		as error _
 			b.fn[start]
 
 # TODO: use 'fun' not 'act'
@@ -237,7 +237,7 @@ By default this does not allow spaces in between. For that, use `a ~~ spaces ~~ 
 		iter, match res
 		as ok v
 			(v,) ok
-		as err _
+		as error _
 			() ok
 # Optionally skips an exact string.
 +optional grammar-skip(a string)
@@ -255,7 +255,7 @@ By default this does not allow spaces in between. For that, use `a ~~ spaces ~~ 
 					iter := iter2
 					out ~= v
 					continue
-				as err _
+				as error _
 					break
 		iter, res.ok
 
@@ -301,16 +301,16 @@ it is a parse error to have a separator not followed by another 'a'.
 						as ok v
 							out ~= v
 							continue
-						as err e
+						as error e
 							error := e,
 							break
-					as err _
+					as error _
 						break
 			iter, if e ?= error
-				e err
+				e error
 			else
 				res ok
-		as err _
+		as error _
 			start, () ok
 
 # Use this to allow recursive grammars.
@@ -331,7 +331,7 @@ region basic elements
 		if next ?= start try-take-exact a
 			next, ().ok
 		else
-			start, ("expected '{a}'",).err
+			start, ("expected '{a}'",).error
 	res,
 
 # Equivalent to `a.exact map _ => value`
@@ -353,7 +353,7 @@ region basic elements
 		if after-quote ?= start try-take "\""
 			after-quote take-quoted-string-rest
 		else
-			start, ("quoted string",).err
+			start, ("quoted string",).error
 -take-quoted-string-rest (string-iterator, string inner-parse-result)(start string-iterator)
 	iter mut = start
 	error mut bool = false
@@ -381,7 +381,7 @@ region basic elements
 				error := true
 				break
 	iter, if error
-		("quoted string",) err
+		("quoted string",) error
 	else
 		res ok
 -escape char8?(a char8)
@@ -423,7 +423,7 @@ This allows leading 0s which have no effect.
 		if x ?= start take-nat-and-count-digits
 			x.end, x.value.ok
 		else
-			start, ("natural number",).err
+			start, ("natural number",).error
 
 ###
 Parses a signed integer in decimal format.
@@ -486,7 +486,7 @@ This allows e.g. "+1.23".
 			else
 				iter, sign * whole-part ok
 		else
-			start, ("float",) err
+			start, ("float",) error
 
 -try-take string-iterator?(a string-iterator, c char8)
 	if x, rest ?= a next

@@ -3,12 +3,12 @@ module-path alias
 
 module record
 	path module-path
-	doc-comment string
+	doc string
 	exports module-export[]
 
 module-export record
 	name symbol
-	doc-comment string
+	doc string
 	type-params type-param[]
 	value module-export-value
 
@@ -64,7 +64,7 @@ spec-body union
 	spec-sigs spec-sig[]
 
 spec-sig record
-	comment string
+	doc string
 	name symbol
 	return-type type-ref
 	params param[]

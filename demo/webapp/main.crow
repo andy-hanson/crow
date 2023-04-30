@@ -36,7 +36,7 @@ main nat^(_ string[]) summon
 			match nat parse user
 			as ok user-id
 				db user-name user-id http-ok
-			as err e
+			as error e
 				"{e}" http-bad-query
 		elif path == "/users"
 			(("users", db.list-users.to),)::json.to http-ok
@@ -59,7 +59,7 @@ main nat^(_ string[]) summon
 			match db login user-name, (args["password"] ?? "")
 			as ok cookie
 				"Logged in as {user-name}" http-ok (("Set-Cookie", "login={cookie}; Max-Age={cookie-expire-seconds}"),)
-			as err e
+			as error e
 				match e
 				as empty-name-or-password
 					"Invalid user or password" http-bad-query
@@ -73,7 +73,7 @@ main nat^(_ string[]) summon
 				as ok user-cookie
 					post = db add-post user-cookie, req.request-body-string
 					(("postId", post.to),)::json.to http-ok
-				as err e
+				as error e
 					"Error parsing 'login' cookie: {e}" http-forbidden
 			else
 				"Missing login cookie" http-forbidden
@@ -106,7 +106,7 @@ main nat^(_ string[]) summon
 	match query parse s
 	as ok pairs
 		pairs to
-	as err err
+	as error err
 		error log "failed to parse query {s} with error {err}"
 		()
 

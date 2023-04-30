@@ -88,6 +88,10 @@ bin/crow: $(app_deps_no_test)
 	ldc2 -ofbin/crow $(ldc_flags_assert) $(ldc_fast_flags) $(app_src_no_test) $(app_link)
 	rm bin/crow.o
 
+bin/crow.exe: $(app_deps_no_test)
+	ldc2 -ofbin/crow $(ldc_flags_assert) $(ldc_fast_flags) $(app_src_no_test) -mtriple x86_64-windows-msvc $(app_link)
+	rm bin/crow.o
+
 # 'fast' builds not currently used for anything.
 # Not much faster than with asserts.
 bin/crow-fast: $(app_deps_no_test)

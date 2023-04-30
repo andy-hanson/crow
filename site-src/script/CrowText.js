@@ -87,6 +87,7 @@ textarea {
 .spec { color: #a9dc76; }
 .param { color: #ffebbd; }
 .local { bold; color: #ffebbd; }
+.var-decl { color: #ffebbd; }
 .lit-num { color: #ffd866; }
 .lit-str { color: #ffd866; }
 .member { color: #fc9867; }
@@ -173,7 +174,8 @@ export class CrowText extends HTMLElement {
 			mouseIsIn = false
 			removeTooltip()
 		})
-		ta.addEventListener("mousemove", e => {
+		// Turned off hover because it's too slow
+		if (false) ta.addEventListener("mousemove", e => {
 			mouseIsIn = true
 			removeTooltip()
 			const offsetX = e.offsetX

@@ -315,6 +315,8 @@ string strOfSpecialUnaryKind(LowExprKind.SpecialUnary.Kind a) {
 			return "to float64(int64)";
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromNat64:
 			return "to float64(nat64)";
+		case LowExprKind.SpecialUnary.Kind.toInt64FromInt8:
+			return "to int64(int8)";
 		case LowExprKind.SpecialUnary.Kind.toInt64FromInt16:
 			return "to int64(int16)";
 		case LowExprKind.SpecialUnary.Kind.toInt64FromInt32:

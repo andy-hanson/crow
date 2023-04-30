@@ -13,6 +13,7 @@ import interpret.applyFn :
 	fnEqBits,
 	fnEqFloat32,
 	fnEqFloat64,
+	fnInt64FromInt8,
 	fnInt64FromInt16,
 	fnInt64FromInt32,
 	fnFloat32FromFloat64,
@@ -865,6 +866,9 @@ void generateSpecialUnary(
 		case LowExprKind.SpecialUnary.Kind.drop:
 			generateExprAndContinue(writer, ctx, locals, a.arg);
 			handleAfter(writer, ctx, source, after);
+			break;
+		case LowExprKind.SpecialUnary.Kind.toInt64FromInt8:
+			fn!fnInt64FromInt8();
 			break;
 		case LowExprKind.SpecialUnary.Kind.toInt64FromInt16:
 			fn!fnInt64FromInt16();

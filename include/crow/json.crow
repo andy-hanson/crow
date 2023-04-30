@@ -84,7 +84,7 @@ to json(a index-set)
 	match a
 	as ok v
 		("ok", v to),
-	as err e
+	as error e
 		("err", e to),
 
 +== bool(a json, b json)

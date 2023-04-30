@@ -1,0 +1,413 @@
+<section>
+	<h2>Unsafe code</h2>
+	<p>
+		Crow is normally safe; normal Crow functions can't do bad things like:
+	</p>
+	<ul class="bullets">
+		<li>Allocate memory and never free it.</li>
+		<li>Free memory, then access it anyway.</li>
+		<li>Access global state.</li>
+		<li>Access information about the system (like endianness).</li>
+		<li>Access other information not explicitly passed through parameters, like a stack trace.</li>
+		<li>Access private information about data structures.</li>
+	</ul>
+	<p>
+		However, Crow is also intended to be able to do anything C can.
+		<br />
+		Although most code should do things the safe way,
+		unsafe functionality is in functions marked <code class="keyword">unsafe</code>.
+		<br />
+		An <code class="keyword">unsafe</code> function can call other <code class="keyword">unsafe</code> functions.
+	</p>
+
+	<crow-runnable>
+		main nat^(_ string[]) unsafe
+			xs string mut[] = ()
+			xs ~= "a"
+			xs ~= "b"
+			xs ~= "c"
+			info log "{xs.capacity}"
+			()
+	</crow-runnable>
+
+	<aside class="small">
+		Remove <code class="keyword">unsafe</code> from the declaration of <code class="fun">main</code>
+		to see a compile error.
+	</aside>
+
+	<p>
+		The reason <code class="fun">capacity</code> is unsafe is that it returns information
+		that normally should not be accessed.
+		Future versions of Crow may return a different result,
+		if the details of how a <code class="struct">mut[]</code> allocates change.
+	</p>
+
+	<aside class="small">
+		The <code class="keyword">unsafe</code> keyword is parsed like a spec and can go anywhere in the list of specs.
+	</aside>
+</section>
+<section>
+	<h2>"Trusted" expressions</h2>
+	<p>
+		When a function is <code class="keyword">unsafe</code>,
+		it doesn't mean that every time you use it, it will do something bad.
+		<br />
+		It just means that it <em>could</em>, and the compiler can't verify that it won't.
+	</p>
+	<p>
+		If you're calling an unsafe function in a way that won't do something bad, you can mark the use as
+		<code class="keyword">trusted</code>.
+	</p>
+	<p>
+		A common example of this is <code class="fun">+</code> functions on integer types,
+		which check for overflow/underflow before calling a primitive unchecked add function.
+	</p>
+
+	<crow-runnable>
+		import
+			stdio: stdout
+			unistd: write
+
+		main nat^(_ string[])
+			message = "hello\n"
+			_ = trusted stdout write message.to-bytes.begin-pointer, message.size
+			()
+	</crow-runnable>
+
+	<aside class="small">
+		<code class="keyword">trusted</code> parses as a prefix, just like <code class="keyword">throw</code>.
+	</aside>
+	<p>
+		The above example calls the Posix <code class="fun">write</code> function,
+		which is dangerous in general; it takes a pointer and length separately and does bad things
+		if length is wrong.
+		<br />
+		(Anything involving pointers is unsafe; so <code class="fun">begin-pointer</code> is also unsafe.)
+		<br />
+		But in this example, we know that the length is correct, making the call to <code class="fun">write</code> safe.
+	</p>
+
+	<p>
+		The entire argument expression to <code class="keyword">trusted</code> may contain unsafe functions.
+	</p>
+
+	<p>
+		When deciding whether to mark a function as <code class="keyword">unsafe</code> or to use
+		<code class="keyword">trusted</code> in its body,
+		ask whether a malicious caller could cause the function to bad things.
+		(A good example is by passing <code class="fun">null</code>.)
+		<br />
+		If so, always mark it as <code class="keyword">unsafe</code>.
+	</p>
+
+</section>
+<section>
+	<h2>Pointers</h2>
+
+	<p>
+		Crow supports pointers like in C.
+		You can manually allocate memory, and mark the code <code class="keyword">trusted</code>
+		if you've ensured it will be freed.
+	</p>
+	<p>
+		Unlike in C, pointers are "const" by default.
+		<code class="struct">nat*</code> is a readable pointer;
+		<code class="struct">nat mut*</code> is readable and writable.
+	</p>
+
+	<crow-runnable>
+		import
+			stdlib: free, malloc
+		
+		main nat^(_ string[])
+			trusted
+				ptr mut nat mut* = null
+				with : (() => ptr free-nat) finally
+					ptr := new-nat
+					*ptr := 3
+					info log "{*ptr}"
+			()
+		
+		new-nat nat mut*() unsafe
+			(size-of@nat).malloc pointer-cast
+		free-nat void(a nat mut*) unsafe
+			a.pointer-cast free	
+	</crow-runnable>
+
+	<aside class="small">
+		It's important to set up a <code class="fun">finally</code> handler to free the pointer
+		<em>before</em> allocating it.
+	</aside>
+
+	<p>
+		As in C, you can use <code>&x</code> to point to something on the stack.
+		<br />
+		As in C, this is dangerous if the pointer outlives the stack.
+		(Keep in mind that closures often outlive the stack that created them.)
+	</p>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			trusted
+				x mut nat = 1
+				ptr nat mut* = &x
+				*ptr := 2
+				info log "{x}"
+			()
+	</crow-runnable>
+
+	<p>
+		The above can be <code class="keyword">trusted</code>
+		because the pointer doesn't outlive <code class="local">x</code>.
+	</p>
+
+	<aside class="small">
+		We need the <code class="keyword">mut</code> in <code>x mut nat</code>
+		so the pointer can be a <code>nat mut*</code> and not a <code>nat*</code>.
+	</aside>
+
+	<h3>Converting mutable and read-only pointers</h3>
+
+	<p>
+		Crow doesn't have any implicit conversions.
+		To convert a constant to a mutable pointer, use <code class="fun">as-mut</code>.
+		To convert back, use <code class="fun">as-const</code>.
+	</p>
+
+	<aside class="small">These functions are defined in {{doc/pointer}}.</aside>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			trusted
+				x mut nat = 1
+				mut-ptr nat mut* = &x
+				const-ptr nat* = mut-ptr as-const
+				*mut-ptr := 2
+				assert const-ptr.as-mut == mut-ptr
+				info log "{*const-ptr}"
+			()
+	</crow-runnable>
+
+	<h3>Accessing data from pointers</h3>
+
+	<p>
+		Reading through a pointer is slightly different from in C.
+		<br />
+		If <code>a</code> is a pointer to a record with a field <code>x</code>,
+		<code>a->x</code> reads (or writes) the field.
+		<br />
+		<code>a.x</code> will also be defined,
+		and return an inner pointer of <code>a</code> at the <code>x</code> field.
+		<br />
+		In C that would be written as <code>&a->x</code>, which is not supported in Crow. 
+	</p>
+
+	<aside class="small">
+		These operations are only defined for <code class="keyword">by-val</code> records.
+	</aside>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			trusted
+				foo mut foo = 1,
+				foo-ptr foo mut* = &foo
+				x-ptr nat mut* = foo-ptr.x
+				foo-ptr->x := 2
+				info log "{foo.x} == {foo-ptr->x} == {*x-ptr}"
+				*x-ptr := 3
+				info log "{foo.x} == {foo-ptr->x} == {*x-ptr}"
+			()
+
+		foo record by-val mut
+			x mut nat
+	</crow-runnable>
+</section>
+<section>
+	<h2>Global variables</h2>
+
+	<p>
+		Globals are declared using the <code class="keyword">global</code> keyword.
+		<br />
+		The below example declares a global <code class="var-decl">x</code>, writes to it, then reads it.
+	</p>
+
+	<aside class="small">
+		It's important to initialize a global variable before using it.
+	</aside>
+
+	<crow-runnable>
+		main nat^(_ string[]) unsafe
+			x := 1
+			info log "{x}"
+			()
+
+		x global(nat)
+	</crow-runnable>
+
+	<p>
+		Declaring the global generates a getter function <code class="fun">x</code>
+		and a setter function <code class="fun">set-x</code> (called by <code>x := 1</code>).
+		<br />
+		Both of these are <code class="keyword">unsafe</code>.
+	</p>
+	<p>
+		It's hard to use a global variable in a safe way. You would have to be sure:
+	</p>
+	<ul class="bullets">
+		<li>The global is only accessed by one thread at a time.</li>
+		<li>Global state does not leak across unrelated calls. (Basically, it must "act local".)</li>
+	</ul>
+
+	<p>
+		Basically, you should never use globals.
+		But they are needed to support C libraries that use them.
+	</p>
+</section>
+<section>
+	<h2>Thread-local variables</h2>
+
+	<p>
+		A thread-local variable works just like a global,
+		but it can have a different value for each thread.
+		<br />
+		This means a real thread, not a crow task.
+		Which task gets assigned to which thread is unpredictable, so don't rely on it.
+	</p>
+	<p>
+		Again, these are included for compatibility with C.
+		<br />
+		They are also used in a few places in the standard library behind the scenes.
+	</p>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			trusted
+				x := 1
+				info log "{x}"
+			()
+
+		-x thread-local(nat)
+	</crow-runnable>
+
+	<p>
+		The above example can be <code class="keyword">trusted</code>
+		because the variable is always written before it is read,
+		so state won't leak across unrelated calls.
+		<br />
+		(We also need to know that <code class="var-decl">x</code> isn't used anywhere else;
+		we do know this, since it's private.)
+	</p>
+</section>
+<section>
+	<h2>Function pointers</h2>
+
+	<p>
+		There are also function pointer types like in C.
+		<br />
+		They are included for compatibility with C libraries that use them.
+		Otherwise you should use a <code class="keyword">fun</code> or <code class="keyword">act</code>.
+	</p>
+	<p>
+		A function pointer type is written just like a <code class="keyword">fun</code> type,
+		but using <code class="keyword">fun*</code> instead of <code class="keyword">fun</code>.
+		<br />
+		To get a function pointer, write <code class="keyword">&</code> followed by the function name.
+	</p>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			f fun* nat(nat) = &double
+			info log "{f[5]}"
+			()
+
+		double nat(a nat) bare
+			a * 2
+	</crow-runnable>
+</section>
+<section>
+	<h2>"By-val" and "by-ref"</h2>
+	<p>
+		Normally, Crow will choose for you whether a record type is a reference type or a value type.
+		<br />
+		(Unions, enums, and flags are always value types.)
+		<br />
+		Crow guesses what will have the best performance; it passes small records by value and large records reference.
+		If a record has a mutable field, it is always passed by reference
+		(to ensure a mutation isn't lost by a copy).
+	</p>
+	<p>
+		You can override the default by explicitly marking a record <code class="keyword">by-val</code> or
+		<code class="keyword">by-ref</code>.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[]) unsafe
+			# Value type, so its size is the sum of its fields' sizes. 
+			info log "r1: {size-of@r1}"
+			# Reference type, so its size is the size of a pointer.
+			info log "r2: {size-of@r2}"
+			()
+		
+		r1 record by-val
+			x nat
+			y nat
+		r2 record by-ref
+			x nat
+			y nat
+	</crow-runnable>
+
+	<p>
+		In the above example, the records would behave the same for safe code; the only difference is performance.
+	</p>
+</section>
+<section>
+	<h2>"Bare" functions</h2>
+
+	<p>
+		A function may be marked <code class="keyword">bare</code> if it does not use the Crow runtime.
+		<br />
+		Basically, this means it should not allocate any garbage-collected data.
+		That means it can only create records explicitly marked <code class="keyword">by-val</code>.
+		It also can't do anything involving tasks,
+		such as using <code class="fun">then</code> or <code>with : parallel</code>.
+	</p>
+	<p>
+		The main reason to make a function <code class="keyword">bare</code>
+		is if C code might call it in an asynchronous callback.
+		Crow code may only allocate if it's part of a Crow task, which wouldn't be the case then.
+	</p>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			# non-'bare' can call 'bare'
+			foo
+			()
+
+		foo void() bare
+			# Can't allocate
+			_ nat[] = 1,
+			# Can't use the runtime
+			_ = with : parallel
+				1,
+			()
+	</crow-runnable>
+
+	<p>
+		A <code class="keyword">bare</code> function can only call other <code class="keyword">bare</code> functions,
+		but <em>any</em> function can call a <code class="keyword">bare</code> function.
+		<br />
+		(E.g., <code class="fun">+</code> is <code class="keyword">bare</code> and anything can call it.)
+		<br />
+		Recall that <code class="keyword">unsafe</code> works in the opposite way.
+	</p>
+
+	<aside class="danger">
+		<h4>Throwing from "bare" functions</h4>
+		<p>
+			<code class="keyword">bare</code> functions are allowed to throw exceptions.
+			(E.g., <code class="fun">+</code> throws on overflow.)
+			<br />
+			If an exception is thrown and it's not part of a Crow task, it might not be caught.
+			In that case, the program will abort.
+		</p>
+	</aside>
+</section>

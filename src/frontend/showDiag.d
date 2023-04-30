@@ -214,6 +214,9 @@ void writeParseDiag(
 				case ParseDiag.Expected.Kind.literalNat:
 					writer ~= "expected a natural number";
 					break;
+				case ParseDiag.Expected.Kind.modifier:
+					writer ~= "expected a valid modifier";
+					break;
 				case ParseDiag.Expected.Kind.name:
 					writer ~= "expected a name (non-operator)";
 					break;
@@ -900,6 +903,12 @@ void writeDiag(
 			writeName(writer, allSymbols, d.containingType.name);
 			writer ~= " can't reference non-extern type ";
 			writeTypeQuoted(writer, allSymbols, program, d.referencedType);
+		},
+		(in Diag.LiteralAmbiguous d) {
+			writer ~= "multiple possible types for literal expression: ";
+			writeWithCommas!(StructInst*)(writer, d.types, (in StructInst* type) {
+				writeStructInst(writer, allSymbols, program, *type);
+			});
 		},
 		(in Diag.LiteralOverflow d) {
 			writer ~= "literal exceeds the range of a ";

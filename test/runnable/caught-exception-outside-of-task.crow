@@ -12,6 +12,6 @@ main nat^(_ string[]) summon
 
 -thread-fun any-mut-pointer(a any-mut-pointer) bare, summon, unsafe
 	_ = "will assert" puts
-	assert 1 + 1 == 3
+	assert 1::nat64 + 1 == 3
 	_ = "did assert" puts
 	a

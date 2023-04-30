@@ -58,7 +58,7 @@ import frontend.parse.ast :
 	UnlessAst,
 	VarDeclAst,
 	WithAst;
-import model.model : Visibility;
+import model.model : symOfVarKind, Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
@@ -86,6 +86,7 @@ immutable struct Token {
 		spec,
 		struct_,
 		typeParam,
+		varDecl,
 	}
 	Kind kind;
 	RangeWithinFile range;
@@ -119,7 +120,7 @@ Token[] tokensOfAst(ref Alloc alloc, ref AllSymbols allSymbols, in FileAst ast) 
 			addFunTokens(alloc, tokens, allSymbols, it);
 		},
 		ast.vars, (in VarDeclAst x) => x.range, (in VarDeclAst x) {
-			todo!void("addVarDeclTokens");
+			addVarDeclTokens(alloc, tokens, allSymbols, x);
 		});
 	Token[] res = finishArr(alloc, tokens);
 	assertTokensSorted(res);
@@ -279,6 +280,28 @@ void addModifierTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols 
 	foreach (ref ModifierAst modifier; a.modifiers)
 		add(alloc, tokens, Token(Token.Kind.modifier, rangeOfModifierAst(modifier, allSymbols)));
 }
+void addFunModifierTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in FunModifierAst[] a) {
+	foreach (ref FunModifierAst modifier; a) {
+		modifier.matchIn!void(
+			(in FunModifierAst.Special x) {
+				add(alloc, tokens, Token(Token.Kind.modifier, x.range(allSymbols)));
+			},
+			(in FunModifierAst.Extern x) {
+				addTypeTokens(alloc, tokens, allSymbols, *x.left);
+				add(alloc, tokens, Token(Token.Kind.modifier, x.suffixRange(allSymbols)));
+			},
+			(in TypeAst x) {
+				if (x.isA!NameAndRange)
+					add(alloc, tokens, Token(Token.Kind.spec, x.range(allSymbols)));
+				else if (x.isA!(TypeAst.SuffixName*)) {
+					TypeAst.SuffixName* n = x.as!(TypeAst.SuffixName*);
+					addTypeTokens(alloc, tokens, allSymbols, n.left);
+					add(alloc, tokens, Token(Token.Kind.spec, rangeOfNameAndRange(n.name, allSymbols)));
+				}
+				// else parse error, so ignore
+			});
+	}
+}
 
 void addEnumOrFlagsTokens(
 	ref Alloc alloc,
@@ -301,32 +324,25 @@ void addEnumOrFlagsTokens(
 	}
 }
 
+void addVarDeclTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in VarDeclAst a) {
+	add(alloc, tokens, Token(
+		Token.Kind.varDecl,
+		rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
+	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
+	add(alloc, tokens, Token(
+		Token.Kind.keyword,
+		rangeOfStartAndLength(a.kindPos, symSize(allSymbols, symOfVarKind(a.kind)))));
+	addTypeTokens(alloc, tokens, allSymbols, a.type);
+	addFunModifierTokens(alloc, tokens, allSymbols, a.modifiers);
+}
+
 void addFunTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols allSymbols, in FunDeclAst a) {
 	add(alloc, tokens, Token(
 		Token.Kind.fun,
 		rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
 	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
 	addSigReturnTypeAndParamsTokens(alloc, tokens, allSymbols, a.returnType, a.params);
-	foreach (ref FunModifierAst modifier; a.modifiers) {
-		modifier.matchIn!void(
-			(in FunModifierAst.Special x) {
-				add(alloc, tokens, Token(Token.Kind.modifier, x.range(allSymbols)));
-			},
-			(in FunModifierAst.Extern x) {
-				addTypeTokens(alloc, tokens, allSymbols, *x.left);
-				add(alloc, tokens, Token(Token.Kind.modifier, x.suffixRange(allSymbols)));
-			},
-			(in TypeAst x) {
-				if (x.isA!NameAndRange)
-					add(alloc, tokens, Token(Token.Kind.spec, x.range(allSymbols)));
-				else if (x.isA!(TypeAst.SuffixName*)) {
-					TypeAst.SuffixName* n = x.as!(TypeAst.SuffixName*);
-					addTypeTokens(alloc, tokens, allSymbols, n.left);
-					add(alloc, tokens, Token(Token.Kind.spec, rangeOfNameAndRange(n.name, allSymbols)));
-				}
-				// else parse error, so ignore
-			});
-	}
+	addFunModifierTokens(alloc, tokens, allSymbols, a.modifiers);
 	if (has(a.body_))
 		addExprTokens(alloc, tokens, allSymbols, force(a.body_));
 }
@@ -337,11 +353,14 @@ void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols all
 			addExprTokens(alloc, tokens, allSymbols, *it.left);
 			add(alloc, tokens, Token(Token.Kind.fun, rangeOfNameAndRange(it.name, allSymbols)));
 		},
-		(in AssertOrForbidAst it) {
+		(in AssertOrForbidAst x) {
 			add(alloc, tokens, Token(
 				Token.Kind.keyword,
 				// Only the length matters, and "assert" is same length as "forbid"
 				rangeOfNameAndRange(NameAndRange(a.range.start, sym!"assert"), allSymbols)));
+			addExprTokens(alloc, tokens, allSymbols, x.condition);
+			if (has(x.thrown))
+				addExprTokens(alloc, tokens, allSymbols, force(x.thrown));
 		},
 		(in AssignmentAst x) {
 			addExprTokens(alloc, tokens, allSymbols, x.left);
@@ -596,6 +615,8 @@ Sym symOfTokenKind(Token.Kind kind) {
 			return sym!"struct";
 		case Token.Kind.typeParam:
 			return sym!"type-param";
+		case Token.Kind.varDecl:
+			return sym!"var-decl";
 	}
 }
 

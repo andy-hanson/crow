@@ -31,6 +31,7 @@ immutable struct ParseDiag {
 			less,
 			literalIntOrNat,
 			literalNat,
+			modifier,
 			name,
 			nameOrOperator,
 			openParen,

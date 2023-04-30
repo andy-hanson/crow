@@ -3,8 +3,7 @@ import
 	crow/io/print: out, print
 	crow/io/time: for-break, get-monotime-msec, interval
 	crow/c-types: c-int
-	SDL2/SDL:
-		SDL_GetError, SDL_Init, SDL_INIT_VIDEO, SDL_Quit
+	SDL2/SDL: SDL_GetError, SDL_Init, SDL_INIT_VIDEO, SDL_Quit
 	SDL2/SDL_events:
 		==, new, SDL_Event, SDL_PollEvent, SDL_PumpEvents, SDL_Quit, type
 	SDL2/SDL_keyboard:

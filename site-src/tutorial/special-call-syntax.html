@@ -1,0 +1,366 @@
+<section>
+	<h2>Operators</h2>
+	<p>
+		Operators are functions, but they are parsed differently.
+		Here is a complete list:
+	</p>
+
+	<h3>Unary operators</h3>
+	<table class="operators">
+		<thead>
+			<tr>
+				<th>Operator</th>
+				<th>Use</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td><code class="fun">!x</code></td>
+				<td>Logical "not".</td>
+			</tr>
+			<tr>
+				<td><code class="fun">x!</code></td>
+				<td>Gets the value from an option, or throws an exception if it is empty.</td>
+			</tr>
+			<tr>
+				<td><code class="fun">-x</code></td>
+				<td>Negates a number.</td>
+			</tr>
+			<tr>
+				<td><code class="fun">~x</code></td>
+				<td>Bitwise negation.</td>
+			</tr>
+			<tr>
+				<td><code class="fun">*x</code></td>
+				<td>Dereferences a pointer.</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<h3>Binary operators</h3>
+	<p>
+		These are in order of operator precedence.
+		<br />
+		For example, <code class="fun">*</code> binds more tightly than <code class="fun">+</code>,
+		so <code>1 + 2 * 3</code> parses as <code>1 + (2 * 3)</code>.
+	</p>
+	<aside class="small">
+		The "ternary operator" was discussed in the section on {{tutorial/conditionals}}.
+	</aside>
+	<table class="operators">
+		<thead>
+			<tr>
+				<th>Operator</th>
+				<th>Use</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td><code class="fun">~=</code>, <code class="fun">~~=</code></td>
+				<td>
+					Mutating concatenation; adds one (<code class="fun">~=</code>)
+					or many (<code class="fun">~~=</code>) elements to a collection.
+				</td>
+			</tr>
+			<tr>
+				<td><code class="fun">||</code></td>
+				<td>
+					Logical "or"; or for option types, chooses the first non-empty option.
+					<br />
+					This is lazily evaluated, so in <code>a || b</code>,
+					if <code>a</code> is true (or a non-empty option), <code>b</code> won't be evaluated.
+				</td>
+			</tr>
+			<tr>
+				<td><code class="fun">&&</code></td>
+				<td>
+					Logical "and".
+					<br />
+					This is lazily evaluated, so in <code>a && b</code>, if <code>a</code> is false,
+					<code>b</code> won't be evaluated.
+				</td>
+			</tr>
+			<tr>
+				<td><code class="fun">??</code></td>
+				<td>
+					Provides a default value for an option.
+					<br />
+					This is lazily evaluated, so in <code>a ?? b</code>,
+					if <code>a</code> is non-empty, <code>b</code> won't be evaluated.
+				</td>
+			</tr>
+			<tr>
+				<td><code class="fun">foo</code></td>
+				<td>Ordinary named functions; included here to show precedence.</td>
+			</tr>
+			<tr>
+				<td><code class="fun">..</code></td>
+				<td>Numerical range, e.g. <code>0 .. 10</code></td>
+			</tr>
+			<tr>
+				<td><code class="fun">~</code>, <code class="fun">~~</code></td>
+				<td>
+					<code class="fun">~</code> adds one element to a collection.
+					<br />
+					For ordered collections, <code>x ~ xs</code> adds to <code>x</code> to the left
+					and <code>xs ~ x</code> adds <code>x</code> to the right.
+					<br />
+					For unordered collections, only <code>xs ~ x</code> should be implemented.
+					<br />
+					<code class="fun">~~</code> concatenates two collections (or combines unordered collections).
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<code class="fun">==</code>,
+					<code class="fun">!=</code>,
+					<code class="fun">&lt;</code>,
+					<code class="fun">></code>,
+					<code class="fun">&lt;=</code>,
+					<code class="fun">>=</code>,
+					<code class="fun">&lt;=></code>
+				</td>
+				<td>
+					Comparison; <code class="fun">&lt;=></code> is 3-way comparison.
+				</td>
+			</tr>
+			<tr>
+				<td><code class="fun">|</code></td>
+				<td>Union of sets; or bitwise "or".</td>
+			</tr>
+			<tr>
+				<td><code class="fun">&amp;</code></td>
+				<td>Intersection of sets; or bitwise "and".</td>
+			</tr>
+			<tr>
+				<td><code class="fun">&lt;&lt;</code>, <code class="fun">>></code></td>
+				<td>Bitshift left and right.</td>
+			</tr>
+			<tr>
+				<td><code class="fun">+</code>, <code class="fun">-</code></td>
+				<td>
+					Addition and subtraction.
+					<br />
+					For math only; to "add" collections (including strings), use <code class="fun">~~</code>.
+				</td>
+			</tr>
+			<tr>
+				<td><code class="fun">*</code>, <code class="fun">/</code>, <code class="fun">%</code></td>
+				<td>Multiply, divide, and modulo.</td>
+			</tr>
+			<tr>
+				<td><code class="fun">**</code></td>
+				<td>
+					Exponentiation; <code>2 ** 3</code> is <code>8</code>.
+				</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<aside>
+		<h4>Named function precedence</h4>
+		<p>
+			Notice that named functions are included in the precedence table (see <code class="fun">foo</code>).
+			<br />
+			This alows you to mix them with operators without using parentheses.
+		</p>
+		<crow-runnable>
+			main nat^(_ string[])
+				# This parses (1 + 1) tightly
+				x = 8 is-multiple-of 1 + 1
+				info log "{x}"
+				# This parses the '||' loosely
+				y = 7 is-multiple-of 1 + 1 || 9 is-multiple-of 1 + 1
+				# Equivalent to:
+				z = (7 is-multiple-of (1 + 1)) || (9 is-multiple-of (1 + 1))
+				info log "{y} {z}"
+				()
+		</crow-runnable>
+	</aside>
+
+	<h3>Defining operator functions</h3>
+	<p>
+		Defining an operator looks just like defining a function.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			info log "a" / "b"
+			()
+
+		/ string(a string, b string)
+			"{a}/{b}"
+	</crow-runnable>
+
+	<p>
+		The exception is that <code class="fun">!</code> would be ambiguous,
+		so you must define a name functions <code class="fun">not</code> or <code class="fun">force</code>.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			a = "crow"
+			info log !a
+			info log a!
+			info log !a!
+			()
+
+		not string(a string)
+			"not {a}"
+		force string(a string)
+			"force {a}"
+	</crow-runnable>
+
+	<aside class="small">
+		You can't define new operators.
+		<br />
+		There's also currently no way to define your own lazily-evaluated functions like <code class="fun">||</code>.
+	</aside>
+</section>
+<section>
+	<h2>"new" calls</h2>
+	<p>
+		We've seen <code>()</code> a lot in this tutorial.
+		<br />
+		This is syntax for calling a function <code class="fun">new</code> with no arguments.
+		<br />
+		To call it with arguments, separate them with commas.
+		If there is only one argument, leave a trailing comma.
+	</p>
+	<p>
+		The following example constructs lists, which will be described in more detail in {{tutorial/collections}}.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			info log ().foo
+			info log ("crow",).foo
+			info log ("crow", "bar").foo
+			()
+		foo string(xs string[])
+			", " join xs
+	</crow-runnable>
+	
+	<p>The parentheses can often be ommitted.</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			xs string[] = "crow",
+			info log (", " join xs)
+			()
+	</crow-runnable>
+</section>
+<section>
+	<h2>Subscript</h2>
+	<p>
+		<code>x[y]</code> is shorthand for <code>x subscript y</code> and
+		<code>x[y] := z</code> is shorthand for <code>x set-subscript y, z</code>.
+	</p>
+	<p>This example uses mutable lists, explained more in {{tutorial/collections}}.</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			xs string mut[] = "crow", "bar"
+			info log xs[0]
+			xs[0] := "duck"
+			info log xs[0]
+			()
+	</crow-runnable>
+
+	<p>You can define these by defining named functions <code>subscript</code> and <code>set-subscript</code>.</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			info log "a"["k"]
+			"a"["k"] := "v"
+			()
+		subscript string(a string, key string)
+			"{a}[{key}]"
+		set-subscript void(a string, key string, value string)
+			info log "{a}[{key}] = {value}"
+	</crow-runnable>
+</section>
+<section>
+	<h2>Setters</h2>
+	<p>
+		Recall that <code>x := y</code> is used to set a local variable.
+		The <code class="keyword">:=</code> can accept other kinds of expression on the left.
+	</p>
+	<table class="setters">
+		<thead>
+			<tr>
+				<th>Syntax</th>
+				<th>Translation</th>
+				<th>Use</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td><code>x := y</code></td>
+				<td><code>y set-x</code></td>
+				<td>
+					If <code>x</code> is a local variable, this writes to that.
+					<br />
+					Otherwise this may set a global or thread-local variable.
+				</td>
+			</tr>
+			<tr>
+				<td><code>x.y := z</code></td>
+				<td><code>x set-y z</code></td>
+				<td>
+					Used to set a field in a record.
+					<br />
+					(These functions are generated when defining a record.
+					This will be explained in {{tutorial/records}}.)
+				</td>
+			</tr>
+			<tr>
+				<td><code>x[y] := z</code></td>
+				<td><code>x set-subscript y, z</code></td>
+				<td>Used to set the value in a list at an index, or in a map at a key.</td>
+			</tr>
+			<tr>
+				<td><code>*x := y</code></td>
+				<td><code>x set-deref y</code></td>
+				<td>Used to write to a pointer.</td>
+			</tr>
+			<tr>
+				<td><code>x->y := z</code></td>
+				<td><code>x set-deref-y z</code></td>
+				<td>Used to write to a field of a record when 'x' is a pointer to the record.</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<crow-runnable>
+		main nat^(_ string[])
+			"crow".foo := "bar"
+			"a"["k"] := "v"
+			()
+		set-foo void(a string, value string)
+			info log "{a}.foo := {value}"
+		set-subscript void(a string, key string, value string)
+			info log "{a}[{key}] := {value}"
+	</crow-runnable>
+
+	<p>
+		Relatedly, a function name may end with <code>=</code>.
+		The idea is that <code>x foo= y</code> should behave the same as <code>x := x foo y</code>.
+		<br />
+		This example uses a lambda, described more in {{tutorial/lambdas}}.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			xs string mut[] = "a", "b", "c"
+			xs filter= x => x != "b"
+			info log xs.to::string[].to::json.to
+			()
+	</crow-runnable>
+
+	<p>
+		There's no desugaring for this; you just define the function name with an <code>=</code> on the end.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			"a" foo= "b"
+			()
+
+		# Normally you wouldn't define this for an immutable type like 'string'
+		foo= void(a string, b string)
+			info log "{a} foo= {b}"
+	</crow-runnable>
+</section>

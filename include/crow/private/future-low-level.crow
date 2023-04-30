@@ -3,7 +3,7 @@ import
 	../col/mut-list: ~=, ~~=, iterate, new, move-to, mut-list, prepend=
 	../misc: new, void
 	../pointer: mut-pointer
-	../result: err, ok, result
+	../result: error, ok, result
 	./bootstrap:
 		empty, exception, forwarded, future, future-state, hard-unreachable, lk, new, one-task,
 		rejected, resolved, set-state, state, tasks
@@ -22,8 +22,8 @@ unresolved[t] t^() unsafe
 resolve[t] void(a t^, value t) unsafe
 	a resolve-or-reject value.resolved
 
-reject[t] void(a t^, err exception) unsafe
-	a resolve-or-reject err.rejected
+reject[t] void(a t^, error exception) unsafe
+	a resolve-or-reject error.rejected
 
 -resolve-or-reject[t] void(a t^, new-state t future-state) unsafe
 	a.lock acquire
@@ -152,7 +152,7 @@ get-result[t] (t, exception) result(a t^) bare, unsafe
 	as resolved v
 		v.ok direct
 	as rejected e
-		e.err direct
+		e.error direct
 	a.lock release
 
 	match res

@@ -132,7 +132,7 @@ Else, returns an empty option.
 ###
 try-remove[t] t sorted-set?(a t sorted-set, value t) t key
 	if r ?= a.add find-in-add-for-remove value, 0
-		removals-here-and-right = 1 + (a.remove count-greater-or-equal r.size-left)
+		removals-here-and-right = (a.remove count-greater-or-equal r.size-left) + 1
 		if r.size-here should-compact r.size-right, removals-here-and-right
 			compacted-size = r.size-here + r.size-right - 1
 			(a remove-and-compact (r.size-left, compacted-size), r.value-index),

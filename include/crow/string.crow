@@ -190,12 +190,22 @@ Result is only digits, no punctuation.
 	else
 		"?"
 
++to-binary string(a nat8)
+	a.to::nat64 to-binary
++to-binary string(a nat16)
+	a.to::nat64 to-binary
++to-binary string(a nat32)
+	a.to::nat64 to-binary
 +to-binary string(a nat64)
 	a to-base 2
 
-+to-hex string(a nat64)
-	a to-base 16
 +to-hex string(a nat8)
+	a.to::nat64 to-hex
++to-hex string(a nat16)
+	a.to::nat64 to-hex
++to-hex string(a nat32)
+	a.to::nat64 to-hex
++to-hex string(a nat64)
 	a to-base 16
 
 -to-base string(a nat64, base nat64)
@@ -203,8 +213,6 @@ Result is only digits, no punctuation.
 		a digit-to-string
 	else
 		(a / base to-base base) ~~ (a % base).digit-to-string
--to-base string(a nat8, base nat64)
-	a.to::nat64 to-base base
 
 +to string(a string)
 	a

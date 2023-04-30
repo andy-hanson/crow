@@ -113,9 +113,9 @@ Future resolved to `ok` if `a` succeeds and `err` if `a` fails with an exception
 				match cleanup-fut get-result
 				as ok _
 					res resolve value
-				as err e
+				as error e
 					res reject e
-			as err e
+			as error e
 				res reject e
 	res
 
@@ -135,9 +135,9 @@ and the result of `then` will have the same exception as `a`.
 			match (() => action[value]) catch
 			as ok fut
 				res forward-to fut
-			as err e
+			as error e
 				res reject e
-		as err e
+		as error e
 			res reject e
 	res
 
@@ -165,7 +165,7 @@ and returns a future for the result of that task.
 		match (() => action[params]) catch
 		as ok fut
 			res forward-to fut
-		as err e
+		as error e
 			res reject e
 	res
 
@@ -178,7 +178,7 @@ handle-exceptions[t] void(a t^)
 		match a get-result
 		as ok _
 			()
-		as err e
+		as error e
 			get-global-ctx->exception-handler[e]
 
 +loop-break[t] t break-or-continue^(a t)
@@ -202,7 +202,7 @@ which allows it to run in parallel.
 		match (() => f[]) catch
 		as ok fut
 			res forward-to fut
-		as err e
+		as error e
 			res reject e
 	res
 

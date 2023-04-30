@@ -16,7 +16,7 @@ run-crow-tests test-result^(paths string[], path-to-crow string, options test-op
 	if failures is-empty
 		"ran {tests size} crow tests".ok,
 	else
-		failures.err,
+		failures.error,
 
 -list-tests string[](path string, match-test string) summon
 	res string mut[] = ()
