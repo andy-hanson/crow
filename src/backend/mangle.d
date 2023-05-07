@@ -339,6 +339,7 @@ bool conflictsWithCName(Sym a) {
 		case sym!"float".value:
 		case sym!"for".value:
 		case sym!"int".value:
+		case sym!"log".value: // defined by tgmath.h
 		case sym!"void".value:
 		case sym!"while".value:
 			return true;

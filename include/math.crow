@@ -1,0 +1,12 @@
+no-std
+import
+	crow/number: float64
+
+M_PI float64()
+	3.14159265358979323846
+M_PI_2 float64()
+	# TODO: add '23' to the end
+	1.5707963267948996619
+M_PI_4 float64()
+	# TODO: add '62' to the end
+	0.785398163397448309

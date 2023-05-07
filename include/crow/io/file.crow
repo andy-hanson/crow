@@ -2,8 +2,8 @@ no-std
 import
 	dirent: closedir, DIR, dirent, d_name, new, opendir, readdir_r
 	errno: EEXIST, ENOENT, errno
-	stat: mkdir, new, S_IFDIR, S_IFMT, S_IFREG, stat, st_mode
 	stdio: fclose, ferror, FILE, fopen, fread, fseek, ftell, fwrite, SEEK_SET, SEEK_END
+	sys/stat: mkdir, new, S_IFDIR, S_IFMT, S_IFREG, stat, st_mode
 	sys/types: mode_t
 	unistd: getcwd, readlink, rmdir, symlink, unlink
 	win32:

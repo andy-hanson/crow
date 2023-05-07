@@ -78,6 +78,7 @@ SafeCStr writeToC(
 ) {
 	Writer writer = Writer(ptrTrustMe(alloc));
 
+	writer ~= "#include <tgmath.h>\n"; // Implements functions in 'tgmath.crow'
 	writer ~= "#include <stddef.h>\n"; // for NULL
 	writer ~= "#include <stdint.h>\n";
 	version (Windows) {
@@ -1306,6 +1307,8 @@ WriteExprResult writeRecordFieldGet(
 		}
 	});
 
+
+
 WriteExprResult writeSpecialUnary(
 	scope ref Writer writer,
 	size_t indent,
@@ -1338,10 +1341,34 @@ WriteExprResult writeSpecialUnary(
 	}
 
 	final switch (a.kind) {
+		case LowExprKind.SpecialUnary.Kind.acosFloat64:
+			return specialCall("acos");
+		case LowExprKind.SpecialUnary.Kind.acoshFloat64:
+			return specialCall("acosh");
+		case LowExprKind.SpecialUnary.Kind.asinFloat64:
+			return specialCall("asin");
+		case LowExprKind.SpecialUnary.Kind.asinhFloat64:
+			return specialCall("asinh");
+		case LowExprKind.SpecialUnary.Kind.atanFloat64:
+			return specialCall("atan");
+		case LowExprKind.SpecialUnary.Kind.atanhFloat64:
+			return specialCall("atanh");
 		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
 			return prefix("(uint8_t*) ");
+		case LowExprKind.SpecialUnary.Kind.cosFloat64:
+			return specialCall("cos");
+		case LowExprKind.SpecialUnary.Kind.coshFloat64:
+			return specialCall("cosh");
 		case LowExprKind.SpecialUnary.Kind.drop:
 		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
+		case LowExprKind.SpecialUnary.Kind.sinFloat64:
+			return specialCall("sin");
+		case LowExprKind.SpecialUnary.Kind.sinhFloat64:
+			return specialCall("sinh");
+		case LowExprKind.SpecialUnary.Kind.tanFloat64:
+			return specialCall("tan");
+		case LowExprKind.SpecialUnary.Kind.tanhFloat64:
+			return specialCall("tanh");
 		case LowExprKind.SpecialUnary.Kind.toChar8FromNat8:
 		case LowExprKind.SpecialUnary.Kind.toFloat32FromFloat64:
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromFloat32:
@@ -1387,6 +1414,10 @@ WriteExprResult writeSpecialUnary(
 			}
 		case LowExprKind.SpecialUnary.Kind.deref:
 			return prefix("*");
+		case LowExprKind.SpecialUnary.Kind.roundFloat64:
+			return specialCall("round");
+		case LowExprKind.SpecialUnary.Kind.sqrtFloat64:
+			return specialCall("sqrt");
 	}
 }
 
@@ -1462,7 +1493,20 @@ WriteExprResult writeSpecialBinary(
 			});
 	}
 
+	WriteExprResult specialCall(string name) {
+		return writeInlineable(
+			writer, indent, ctx, locals, writeKind, type, castNonScope_ref(a).args,
+			(in WriteExprResult[] temps) {
+				writer ~= name;
+				writer ~= '(';
+				writeTempOrInlines(writer, ctx, locals, castNonScope_ref(a).args, temps);
+				writer ~= ')';
+			});
+	}
+
 	final switch (a.kind) {
+		case LowExprKind.SpecialBinary.Kind.atan2Float64:
+			return specialCall("atan2");
 		case LowExprKind.SpecialBinary.Kind.addFloat32:
 		case LowExprKind.SpecialBinary.Kind.addFloat64:
 		case LowExprKind.SpecialBinary.Kind.addPtrAndNat64:
@@ -1790,7 +1834,8 @@ WriteExprResult writeLoop(
 		writeNewline(writer, indent);
 		writer ~= "__break";
 		writer ~= index;
-		writer ~= ":";
+		// Semicolon to avoid error "a label can only be part of a statement and a declaration is not a statement"
+		writer ~= ":;";
 	}
 
 	return nested.result;

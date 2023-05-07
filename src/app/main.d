@@ -21,7 +21,7 @@ version (Windows) {
 } else {
 	import core.sys.posix.time : clock_gettime, CLOCK_MONOTONIC, timespec;
 }
-version (Windows) { } else {
+version (GccJitAvailable) {
 	import backend.jit : jitAndRun;
 }
 import frontend.lang : cExtension, JitOptions, OptimizationLevel;
@@ -166,10 +166,7 @@ ExitCode go(ref Alloc alloc, ref Perf perf, ref AllSymbols allSymbols, ref AllPa
 							run.mainPath,
 							getAllArgs(alloc, allPaths, storage, run.mainPath, run.programArgs))),
 					(in RunOptions.Jit it) {
-						version (Windows) {
-							printErr(safeCStr!"'--jit' is not supported on Windows");
-							return ExitCode.error;
-						} else {
+						version (GccJitAvailable) {
 							return buildAndJit(
 								alloc,
 								perf,
@@ -181,6 +178,9 @@ ExitCode go(ref Alloc alloc, ref Perf perf, ref AllSymbols allSymbols, ref AllPa
 								storage,
 								run.mainPath,
 								getAllArgs(alloc, allPaths, storage, run.mainPath, run.programArgs));
+						} else { 
+							printErr(safeCStr!"'--jit' is not supported on Windows");
+							return ExitCode.error;
 						}
 					})),
 		(in Command.Test it) {
@@ -285,7 +285,7 @@ ExitCode buildToCAndCompile(
 		});
 	});
 
-version (Windows) { } else { ExitCode buildAndJit(
+version (GccJitAvailable) { ExitCode buildAndJit(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
@@ -438,6 +438,7 @@ SafeCStr[] cCompileArgs(
 		writePathPlain(writer, allPaths, exePath);
 		add(alloc, args, finishWriterToSafeCStr(writer));
 	} else {
+		add(alloc, args, safeCStr!"-lm");
 		addAll(alloc, args, [
 			safeCStr!"-o",
 			pathToSafeCStr(alloc, allPaths, exePath),

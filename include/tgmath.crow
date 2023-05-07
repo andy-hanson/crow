@@ -1,16 +1,19 @@
 no-std
 import
-	crow/number: float64
+	crow/private/number-low-level: float64
 
-acos float64(a float64) trusted, m extern
-atan float64(a float64) trusted, m extern
-atan2 float64(y float64, x float64) trusted, m extern
-cos float64(a float64) trusted, m extern
-sin float64(a float64) trusted, m extern
-tan float64(a float64) trusted, m extern
-acosh float64(a float64) trusted, m extern
-asinh float64(a float64) trusted, m extern
-atanh float64(a float64) trusted, m extern
-cosh float64(a float64) trusted, m extern
-sinh float64(a float64) trusted, m extern
-tanh float64(a float64) trusted, m extern
+sqrt float64(a float64) bare, builtin
+round float64(a float64) bare, builtin
+acos float64(a float64) bare, builtin
+asin float64(a float64) bare, builtin
+atan float64(a float64) bare, builtin
+atan2 float64(y float64, x float64) bare, builtin
+cos float64(a float64) bare, builtin
+sin float64(a float64) bare, builtin
+tan float64(a float64) bare, builtin
+acosh float64(a float64) bare, builtin
+asinh float64(a float64) bare, builtin
+atanh float64(a float64) bare, builtin
+cosh float64(a float64) bare, builtin
+sinh float64(a float64) bare, builtin
+tanh float64(a float64) bare, builtin

@@ -2,6 +2,8 @@ module backend.jit;
 
 @safe @nogc nothrow: // not pure
 
+version (GccJitAvailable) {
+
 import backend.gccTypes :
 	assertFieldOffsetsFunctionName,
 	AssertFieldOffsetsType,
@@ -1308,6 +1310,21 @@ ExprResult constantToGcc(ref ExprCtx ctx, ref ExprEmit emit, in LowType type, in
 	in LowExprKind.SpecialUnary a,
 ) {
 	final switch (a.kind) {
+		case LowExprKind.SpecialUnary.Kind.acosFloat64:
+		case LowExprKind.SpecialUnary.Kind.acoshFloat64:
+		case LowExprKind.SpecialUnary.Kind.asinFloat64:
+		case LowExprKind.SpecialUnary.Kind.asinhFloat64:
+		case LowExprKind.SpecialUnary.Kind.atanFloat64:
+		case LowExprKind.SpecialUnary.Kind.atanhFloat64:
+		case LowExprKind.SpecialUnary.Kind.cosFloat64:
+		case LowExprKind.SpecialUnary.Kind.coshFloat64:
+		case LowExprKind.SpecialUnary.Kind.sinFloat64:
+		case LowExprKind.SpecialUnary.Kind.sinhFloat64:
+		case LowExprKind.SpecialUnary.Kind.tanFloat64:
+		case LowExprKind.SpecialUnary.Kind.tanhFloat64:
+		case LowExprKind.SpecialUnary.Kind.roundFloat64:
+		case LowExprKind.SpecialUnary.Kind.sqrtFloat64:
+			return todo!ExprResult("!!!");
 		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat8:
 		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat16:
 		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat32:
@@ -1401,6 +1418,8 @@ ExprResult binaryToGcc(
 	}
 
 	final switch (a.kind) {
+		case LowExprKind.SpecialBinary.Kind.atan2Float64:
+			return todo!ExprResult("!!!");
 		case LowExprKind.SpecialBinary.Kind.addFloat32:
 		case LowExprKind.SpecialBinary.Kind.addFloat64:
 		case LowExprKind.SpecialBinary.Kind.unsafeAddInt8:
@@ -1810,3 +1829,5 @@ ExprResult initConstantsToGcc(ref ExprCtx ctx, ref ExprEmit emit) {
 		});
 	return emitVoid(ctx, emit);
 }
+
+} // GccJitAvailable

@@ -2,6 +2,8 @@ module backend.gccTypes;
 
 @safe @nogc pure nothrow:
 
+version (GccJitAvailable) {
+
 import backend.libgccjit :
 	gcc_jit_binary_op,
 	gcc_jit_block,
@@ -453,3 +455,5 @@ gcc_jit_struct* structStub(
 	writeStructMangledName(writer, mangledNames, source);
 	return gcc_jit_context_new_opaque_struct(ctx, null, finishWriterToCStr(writer));
 }
+
+} // GccJitAvailable

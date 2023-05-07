@@ -1,7 +1,7 @@
 no-std
 import
-	crow/c-types: err-t, u-long, u-long-long
-	crow/number: int32, nat32
+	crow/c-types: c-int, err-t, u-long, u-long-long
+	crow/number: nat32
 	crow/pointer: mut-pointer
 	crow/string: c-string
 	sys/types: blkcnt_t, blksize_t, dev_t, gid_t, ino_t, mode_t, nlink_t, off_t, time_t, uid_t
@@ -31,7 +31,9 @@ stat record extern
 new stat()
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
-stat int32(path c-string, buf stat mut*) summon, c extern
+-__xstat c-int(ver c-int, path c-string, buf stat mut*) summon, c extern
+stat c-int(path c-string, buf stat mut*) summon, unsafe
+	0 __xstat path, buf
 
 S_IFMT nat32() bare
 	# TODO: "octal170000"

@@ -287,6 +287,18 @@ Json jsonOfMatchUnion(ref Alloc alloc, in LowExprKind.MatchUnion a) =>
 
 string strOfSpecialUnaryKind(LowExprKind.SpecialUnary.Kind a) {
 	final switch (a) {
+		case LowExprKind.SpecialUnary.Kind.acosFloat64:
+			return "acos (float64)";
+		case LowExprKind.SpecialUnary.Kind.acoshFloat64:
+			return "acosh (float64)";
+		case LowExprKind.SpecialUnary.Kind.asinFloat64:
+			return "asin (float64)";
+		case LowExprKind.SpecialUnary.Kind.asinhFloat64:
+			return "asinh (float64)";
+		case LowExprKind.SpecialUnary.Kind.atanFloat64:
+			return "atan (float64)";
+		case LowExprKind.SpecialUnary.Kind.atanhFloat64:
+			return "atanh (float64)";
 		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
 			return "as-any-ptr";
 		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat8:
@@ -297,6 +309,10 @@ string strOfSpecialUnaryKind(LowExprKind.SpecialUnary.Kind a) {
 			return "bitwise-not (nat32)";
 		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat64:
 			return "bitwise-not (nat64)";
+		case LowExprKind.SpecialUnary.Kind.cosFloat64:
+			return "cos (float64)";
+		case LowExprKind.SpecialUnary.Kind.coshFloat64:
+			return "cosh (float64)";
 		case LowExprKind.SpecialUnary.Kind.countOnesNat64:
 			return "count-ones (nat64)";
 		case LowExprKind.SpecialUnary.Kind.deref:
@@ -305,6 +321,18 @@ string strOfSpecialUnaryKind(LowExprKind.SpecialUnary.Kind a) {
 			return "drop";
 		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
 			return "to integral (from enum)";
+		case LowExprKind.SpecialUnary.Kind.roundFloat64:
+			return "round (float64)";
+		case LowExprKind.SpecialUnary.Kind.sinFloat64:
+			return "sin (float64)";
+		case LowExprKind.SpecialUnary.Kind.sinhFloat64:
+			return "sinh (float64)";
+		case LowExprKind.SpecialUnary.Kind.sqrtFloat64:
+			return "sqrt (float64)";
+		case LowExprKind.SpecialUnary.Kind.tanFloat64:
+			return "tan (float64)";
+		case LowExprKind.SpecialUnary.Kind.tanhFloat64:
+			return "tanh (float64)";
 		case LowExprKind.SpecialUnary.Kind.toChar8FromNat8:
 			return "to char8(nat8)";
 		case LowExprKind.SpecialUnary.Kind.toFloat32FromFloat64:
@@ -366,6 +394,8 @@ string strOfSpecialBinaryKind(LowExprKind.SpecialBinary.Kind a) {
 			return "+ (ptr + nat64)";
 		case LowExprKind.SpecialBinary.Kind.and:
 			return "and";
+		case LowExprKind.SpecialBinary.Kind.atan2Float64:
+			return "atan2 (float64)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt8:
 			return "bitwise-and (int8)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt16:

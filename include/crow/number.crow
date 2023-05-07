@@ -1,5 +1,6 @@
 no-std
 import
+	tgmath: round, sqrt
 	./bool: &&, bool, false, new, true
 	./compare: !=, <, <=, >, >=
 	./private/number-low-level:
@@ -251,8 +252,6 @@ unsafe-div float64(a float64, b float64) builtin, bare, unsafe
 	a.to.sqrt to
 +square-root float64(a float64) bare
 	a sqrt
--sqrt float64(a float64) trusted, m extern
--round float64(a float64) trusted, m extern
 
 # `true` iff `a` is "Not A Number".
 +is-nan bool(a float32) bare

@@ -3,13 +3,22 @@ module interpret.generateExpr;
 @safe @nogc pure nothrow:
 
 import interpret.applyFn :
+	fnAcosFloat64,
+	fnAcoshFloat64,
 	fnAddFloat32,
 	fnAddFloat64,
+	fnAsinFloat64,
+	fnAsinhFloat64,
+	fnAtanFloat64,
+	fnAtanhFloat64,
+	fnAtan2Float64,
 	fnBitwiseAnd,
 	fnBitwiseNot,
 	fnBitwiseOr,
 	fnBitwiseXor,
 	fnCountOnesNat64,
+	fnCosFloat64,
+	fnCoshFloat64,
 	fnEqBits,
 	fnEqFloat32,
 	fnEqFloat64,
@@ -32,8 +41,14 @@ import interpret.applyFn :
 	fnLessNat64,
 	fnMulFloat32,
 	fnMulFloat64,
+	fnRoundFloat64,
+	fnSinFloat64,
+	fnSinhFloat64,
 	fnSubFloat32,
 	fnSubFloat64,
+	fnSqrtFloat64,
+	fnTanFloat64,
+	fnTanhFloat64,
 	fnTruncateToInt64FromFloat64,
 	fnUnsafeBitShiftLeftNat64,
 	fnUnsafeBitShiftRightNat64,
@@ -834,6 +849,12 @@ void generateSpecialUnary(
 	}
 
 	final switch (a.kind) {
+		case LowExprKind.SpecialUnary.Kind.acosFloat64:
+			fn!fnAcosFloat64();
+			break;
+		case LowExprKind.SpecialUnary.Kind.acoshFloat64:
+			fn!fnAcoshFloat64();
+			break;
 		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
 		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
 		case LowExprKind.SpecialUnary.Kind.toChar8FromNat8:
@@ -854,6 +875,18 @@ void generateSpecialUnary(
 			// NOTE: we treat the upper bits of <64-bit types as arbitrary, so those are no-ops too
 			generateExpr(writer, ctx, locals, after, a.arg);
 			break;
+		case LowExprKind.SpecialUnary.Kind.asinFloat64:
+			fn!fnAsinFloat64();
+			break;
+		case LowExprKind.SpecialUnary.Kind.asinhFloat64:
+			fn!fnAsinhFloat64();
+			break;
+		case LowExprKind.SpecialUnary.Kind.atanFloat64:
+			fn!fnAtanFloat64();
+			break;
+		case LowExprKind.SpecialUnary.Kind.atanhFloat64:
+			fn!fnAtanhFloat64();
+			break;
 		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat8:
 		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat16:
 		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat32:
@@ -863,9 +896,33 @@ void generateSpecialUnary(
 		case LowExprKind.SpecialUnary.Kind.countOnesNat64:
 			fn!fnCountOnesNat64();
 			break;
+		case LowExprKind.SpecialUnary.Kind.cosFloat64:
+			fn!fnCosFloat64();
+			break;
+		case LowExprKind.SpecialUnary.Kind.coshFloat64:
+			fn!fnCoshFloat64();
+			break;
 		case LowExprKind.SpecialUnary.Kind.drop:
 			generateExprAndContinue(writer, ctx, locals, a.arg);
 			handleAfter(writer, ctx, source, after);
+			break;
+		case LowExprKind.SpecialUnary.Kind.roundFloat64:
+			fn!fnRoundFloat64();
+			break;
+		case LowExprKind.SpecialUnary.Kind.sinFloat64:
+			fn!fnSinFloat64();
+			break;
+		case LowExprKind.SpecialUnary.Kind.sinhFloat64:
+			fn!fnSinhFloat64();
+			break;
+		case LowExprKind.SpecialUnary.Kind.sqrtFloat64:
+			fn!fnSqrtFloat64();
+			break;
+		case LowExprKind.SpecialUnary.Kind.tanFloat64:
+			fn!fnTanFloat64();
+			break;
+		case LowExprKind.SpecialUnary.Kind.tanhFloat64:
+			fn!fnTanhFloat64();
 			break;
 		case LowExprKind.SpecialUnary.Kind.toInt64FromInt8:
 			fn!fnInt64FromInt8();
@@ -1035,6 +1092,9 @@ void generateSpecialBinary(
 	}
 
 	final switch (a.kind) {
+		case LowExprKind.SpecialBinary.Kind.atan2Float64:
+			fn!fnAtan2Float64();
+			break;
 		case LowExprKind.SpecialBinary.Kind.addPtrAndNat64:
 		case LowExprKind.SpecialBinary.Kind.subPtrAndNat64:
 			LowType pointee = asPtrRawPointee(left.type);

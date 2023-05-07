@@ -138,6 +138,11 @@ class Allocator {
 	}
 }
 
+const mathFunctions = Object.fromEntries(
+	["acos", "acosh", "asin", "asinh", "atan", "atanh", "atan2",
+		"cos", "cosh", "round", "sin", "sinh", "sqrt", "tan", "tanh",
+	].map(name => [name, Math[name]]))
+
 class Compiler {
 	/** @return {Promise<Compiler>} */
 	static async make() {
@@ -163,6 +168,7 @@ class Compiler {
 				verifyFail: () => {
 					throw new Error("Called verifyFail!")
 				},
+				...mathFunctions
 			}
 		})
 		const { exports } = result.instance

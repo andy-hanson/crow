@@ -81,7 +81,7 @@ bin/d-imports/commit-hash.txt:
 	git rev-parse --short HEAD > bin/d-imports/commit-hash.txt
 
 bin/crow-debug: $(app_deps_with_test)
-	dmd -ofbin/crow-debug -m64 $(dmd_flags_assert) $(dmd_flags_debug) $(app_src_with_test) $(app_link)
+	dmd -ofbin/crow-debug -m64  $(dmd_flags_assert) $(dmd_flags_debug) $(app_src_with_test) $(app_link)
 	rm -f bin/crow-debug.o
 
 bin/crow: $(app_deps_no_test)

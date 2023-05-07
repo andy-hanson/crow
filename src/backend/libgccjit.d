@@ -2,6 +2,8 @@ module backend.libgccjit;
 
 @safe @nogc pure nothrow:
 
+version (GccJitAvailable) {
+
 // based on /usr/include/libgccjit.h
 // 'scope', 'immutable' and 'const' annotations are my own guesses
 // I've used 'ref' or 'T*' instead of T* where the pointer must point to exactly one thing
@@ -389,3 +391,5 @@ extern(C) {
 		const gcc_jit_function* fn,
 		gcc_jit_location* loc);
 }
+
+} // GccJitAvailable

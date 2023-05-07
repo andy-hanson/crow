@@ -1306,7 +1306,7 @@ LowExprKind getCallBuiltinExpr(
 	}
 	LowType p0 = paramType(0);
 	LowType p1 = paramType(1);
-	BuiltinKind builtinKind = getBuiltinKind(ctx.alloc, ctx.allSymbols, name, type, p0, p1);
+	BuiltinKind builtinKind = getBuiltinKind(ctx.alloc, ctx.allSymbols, name, type, a.args.length, p0, p1);
 	return builtinKind.match!LowExprKind(
 		(BuiltinKind.CallFunPointer) =>
 			callFunPtr(ctx, locals, range, type, only2(a.args)),
