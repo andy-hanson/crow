@@ -24,6 +24,7 @@ import model.lowModel :
 	asPtrGcPointee,
 	debugName,
 	isChar8,
+	isGeneratedMain,
 	isVoid,
 	LowExpr,
 	LowExprKind,
@@ -468,6 +469,8 @@ void writeFunReturnTypeNameAndParams(scope ref Writer writer, in Ctx ctx, LowFun
 void writeFunDeclaration(scope ref Writer writer, in Ctx ctx, LowFunIndex funIndex, in LowFun fun) {
 	if (fun.body_.isA!(LowFunBody.Extern))
 		writer ~= "extern ";
+	else if (!isGeneratedMain(fun))
+		writer ~= "static ";
 	writeFunReturnTypeNameAndParams(writer, ctx, funIndex, fun);
 	writer ~= ";\n";
 }
@@ -503,6 +506,7 @@ void writeFunDefinition(
 	in LowFun fun,
 	in LowFunExprBody body_,
 ) {
+	if (!isGeneratedMain(fun)) writer ~= "static ";
 	writeFunReturnTypeNameAndParams(writer, ctx, funIndex, fun);
 	writer ~= " {";
 	if (body_.hasTailRecur)
@@ -1361,14 +1365,6 @@ WriteExprResult writeSpecialUnary(
 			return specialCall("cosh");
 		case LowExprKind.SpecialUnary.Kind.drop:
 		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
-		case LowExprKind.SpecialUnary.Kind.sinFloat64:
-			return specialCall("sin");
-		case LowExprKind.SpecialUnary.Kind.sinhFloat64:
-			return specialCall("sinh");
-		case LowExprKind.SpecialUnary.Kind.tanFloat64:
-			return specialCall("tan");
-		case LowExprKind.SpecialUnary.Kind.tanhFloat64:
-			return specialCall("tanh");
 		case LowExprKind.SpecialUnary.Kind.toChar8FromNat8:
 		case LowExprKind.SpecialUnary.Kind.toFloat32FromFloat64:
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromFloat32:
@@ -1401,6 +1397,14 @@ WriteExprResult writeSpecialUnary(
 					writeTempOrInline(writer, ctx, locals, a.arg, temp);
 					writer ~= ')';
 				});
+		case LowExprKind.SpecialUnary.Kind.sinFloat64:
+			return specialCall("sin");
+		case LowExprKind.SpecialUnary.Kind.sinhFloat64:
+			return specialCall("sinh");
+		case LowExprKind.SpecialUnary.Kind.tanFloat64:
+			return specialCall("tan");
+		case LowExprKind.SpecialUnary.Kind.tanhFloat64:
+			return specialCall("tanh");
 		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat8:
 		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat16:
 		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat32:

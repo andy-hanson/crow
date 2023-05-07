@@ -21,7 +21,7 @@ import util.col.map : Map;
 import util.col.fullIndexMap : FullIndexMap;
 import util.col.str : SafeCStr;
 import util.hash : Hasher, hashSizeT, hashUint;
-import util.opt : has, none, Opt;
+import util.opt : has, none, Opt, some;
 import util.path : Path;
 import util.sourceRange : FileAndRange;
 import util.sym : Sym, sym;
@@ -327,6 +327,13 @@ immutable struct LowFun {
 	LowLocal[] params;
 	LowFunBody body_;
 }
+
+bool isGeneratedMain(in LowFun a) =>
+	a.source.matchIn!bool(
+		(in ConcreteFun _) =>
+			false,
+		(in LowFunSource.Generated x) =>
+			x.name == sym!"main");
 
 Opt!Sym name(in LowFun a) =>
 	a.source.matchIn!(Opt!Sym)(

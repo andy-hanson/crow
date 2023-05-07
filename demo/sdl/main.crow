@@ -3,6 +3,7 @@ import
 	crow/io/print: out, print
 	crow/io/time: for-break, get-monotime-msec, interval
 	crow/c-types: c-int
+	crow/private/runtime: cur-thread-id
 	SDL2/SDL: SDL_GetError, SDL_Init, SDL_INIT_VIDEO, SDL_Quit
 	SDL2/SDL_events:
 		==, new, SDL_Event, SDL_PollEvent, SDL_PumpEvents, SDL_Quit, type
@@ -21,6 +22,7 @@ import
 
 main nat^(_ string[]) summon
 	trusted
+		render-thread-id = cur-thread-id
 		SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
 		window = "SDL demo" SDL_CreateWindow 100, 100, window-width, window-height, SDL_WINDOW_SHOWN
 		if window == null
@@ -32,14 +34,16 @@ main nat^(_ string[]) summon
 			if look-for-quit-event
 				break
 			else
-				<- renderer main-loop-body texture
+				<- renderer main-loop-body texture, render-thread-id
 				continue
-		# TODO: use 'finally'
-		texture SDL_DestroyTexture
-		renderer SDL_DestroyRenderer
-		window SDL_DestroyWindow
-		SDL_Quit
-		()
+
+		render-thread-id run-with-thread-id () =>
+			# TODO: use 'finally'
+			texture SDL_DestroyTexture
+			renderer SDL_DestroyRenderer
+			window SDL_DestroyWindow
+			SDL_Quit
+			()
 
 -window-width int32()
 	640
@@ -50,7 +54,7 @@ main nat^(_ string[]) summon
 -image-height int32()
 	200
 
--main-loop-body void^(renderer SDL_Renderer mut*, texture SDL_Texture mut*) summon
+-main-loop-body void^(renderer SDL_Renderer mut*, texture SDL_Texture mut*, render-thread-id nat) summon
 	trusted
 		key-states-pointer = null SDL_GetKeyboardState
 		# TODO: use a mut-enum-lookup type
@@ -58,17 +62,28 @@ main nat^(_ string[]) summon
 		if key-states[SDL_SCANCODE_RETURN.to::nat32.to] != 0
 			out print "return is pressed"
 
-		renderer.SDL_RenderClear handle-sdl-error "SDL_RenderClear"
-		x int32 = ((get-monotime-msec / 10) % window-width.to).to
-		renderer draw-image texture, x
-		if x + image-width > window-width
-			renderer draw-image texture, x - window-width
-		renderer SDL_RenderPresent
-		()
+		render-thread-id run-with-thread-id () =>
+			renderer render texture
+
+-render void(renderer SDL_Renderer mut*, texture SDL_Texture mut*) summon, unsafe
+	renderer.SDL_RenderClear handle-sdl-error "SDL_RenderClear"
+	x int32 = ((get-monotime-msec / 10) % window-width.to).to
+	renderer draw-image texture, x
+	if x + image-width > window-width
+		renderer draw-image texture, x - window-width
+	renderer SDL_RenderPresent
+	()
 
 -draw-image void(renderer SDL_Renderer mut*, texture SDL_Texture mut*, x int32) summon, unsafe
 	dest SDL_Rect = x, (window-height - image-height) / 2, image-width, image-height
 	renderer SDL_RenderCopy texture, null, &dest handle-sdl-error "SDL_RenderCopy"
+
+-run-with-thread-id[t] t^(thread-id nat, cb act t()) unsafe, t shared
+	if cur-thread-id == thread-id
+		cb[],
+	else
+		<- delay
+		thread-id run-with-thread-id cb
 
 -look-for-quit-event bool() summon
 	trusted loop

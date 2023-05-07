@@ -33,7 +33,15 @@ immutable struct BuiltinKind {
 		StaticSymbols);
 }
 
-BuiltinKind getBuiltinKind(ref Alloc alloc, in AllSymbols allSymbols, Sym name, LowType rt, size_t arity, LowType p0, LowType p1) {
+BuiltinKind getBuiltinKind(
+	ref Alloc alloc,
+	in AllSymbols allSymbols,
+	Sym name,
+	LowType rt,
+	size_t arity,
+	LowType p0,
+	LowType p1,
+) {
 	BuiltinKind unary(LowExprKind.SpecialUnary.Kind kind) {
 		verify(arity == 1);
 		return BuiltinKind(kind);
