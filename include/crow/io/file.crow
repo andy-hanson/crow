@@ -373,6 +373,13 @@ It should be empty.
 +remove-directory void(path string) summon
 	trusted path.to.rmdir check-posix-error
 
+# "/dev/null" or "NUL" on windows
++null-path string() unsafe
+	if is-windows
+		"NUL"
+	else
+		"/dev/null"
+
 remove-directory-and-contents-non-recursive void(path string) summon
 	path remove-directory-contents-non-recursive
 	path remove-directory

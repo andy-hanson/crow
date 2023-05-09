@@ -16,7 +16,7 @@ import backend.mangle :
 import backend.writeTypes : ElementAndCount, TypeWriters, writeTypes;
 import interpret.debugging : writeFunName, writeFunSig;
 import lower.lowExprHelpers : boolType;
-import model.concreteModel : body_, BuiltinStructKind, ConcreteStruct, ConcreteStructBody, TypeSize;
+import model.concreteModel : body_, BuiltinStructKind, ConcreteStruct, ConcreteStructBody, TypeSize, typeSize;
 import model.constant : Constant;
 import model.lowModel :
 	AllConstantsLow,
@@ -25,7 +25,6 @@ import model.lowModel :
 	debugName,
 	isChar8,
 	isGeneratedMain,
-	isVoid,
 	LowExpr,
 	LowExprKind,
 	LowField,
@@ -162,7 +161,7 @@ void writeConstants(scope ref Writer writer, in Ctx ctx, in AllConstantsLow allC
 	}
 }
 
-void writeVars(scope ref Writer writer, in Ctx ctx, in FullIndexMap!(LowVarIndex, LowVar) vars) {
+void writeVars(scope ref Writer writer, in Ctx ctx, in immutable FullIndexMap!(LowVarIndex, LowVar) vars) {
 	fullIndexMapEach!(LowVarIndex, LowVar)(vars, (LowVarIndex varIndex, ref LowVar var) {
 		writer ~= () {
 			final switch (var.kind) {
@@ -171,7 +170,11 @@ void writeVars(scope ref Writer writer, in Ctx ctx, in FullIndexMap!(LowVarIndex
 				case LowVar.Kind.global:
 					return "static ";
 				case LowVar.Kind.threadLocal:
-					return "static _Thread_local ";
+					version (Windows) {
+						return "static __declspec(thread) ";
+					} else {
+						return "static _Thread_local ";
+					}
 			}
 		}();
 		writeType(writer, ctx, var.type);
@@ -310,6 +313,13 @@ void writeStructEnd(scope ref Writer writer) {
 	writer ~= "\n};\n";
 }
 
+bool isEmptyType(in ConcreteStruct a) =>
+	typeSize(a).sizeBytes == 0;
+bool isEmptyType(in Ctx ctx, in LowType a) =>
+	sizeOfType(ctx.program, a).sizeBytes == 0;
+bool isEmptyType(in FunBodyCtx ctx, in LowType a) =>
+	isEmptyType(ctx.ctx, a);
+
 void writeRecord(scope ref Writer writer, in Ctx ctx, in LowRecord a) {
 	if (a.packed) {
 		version (Windows) {
@@ -318,7 +328,7 @@ void writeRecord(scope ref Writer writer, in Ctx ctx, in LowRecord a) {
 	}
 	writeStructHead(writer, ctx, a.source);
 	foreach (ref LowField field; a.fields) {
-		if (!isVoid(field.type)) {
+		if (!isEmptyType(ctx, field.type)) {
 			writer ~= "\n\t";
 			writeType(writer, ctx, field.type);
 			writer ~= ' ';
@@ -342,10 +352,10 @@ void writeUnion(scope ref Writer writer, in Ctx ctx, in LowUnion a) {
 	writer ~= "\n\tuint64_t kind;";
 	bool isBuiltin = body_(*a.source).isA!(ConcreteStructBody.Builtin);
 	if (isBuiltin) verify(body_(*a.source).as!(ConcreteStructBody.Builtin).kind == BuiltinStructKind.fun);
-	if (isBuiltin || exists!LowType(a.members, (in LowType member) => !isVoid(member))) {
+	if (isBuiltin || exists!LowType(a.members, (in LowType member) => !isEmptyType(ctx, member))) {
 		writer ~= "\n\tunion {";
 		foreach (size_t memberIndex, LowType member; a.members) {
-			if (!isVoid(member)) {
+			if (!isEmptyType(ctx, member)) {
 				writer ~= "\n\t\t";
 				writeType(writer, ctx, member);
 				writer ~= " as";
@@ -384,8 +394,9 @@ void staticAssertStructSize(scope ref Writer writer, in Ctx ctx, in LowType type
 
 void writeStructs(ref Alloc alloc, scope ref Writer writer, in Ctx ctx) {
 	scope TypeWriters writers = TypeWriters(
-		(ConcreteStruct* it) {
-			declareStruct(writer, ctx, it);
+		(ConcreteStruct* x) {
+			if (!isEmptyType(*x))
+				declareStruct(writer, ctx, x);
 		},
 		(ConcreteStruct* source, in Opt!ElementAndCount ec) {
 			writer ~= "struct ";
@@ -401,7 +412,7 @@ void writeStructs(ref Alloc alloc, scope ref Writer writer, in Ctx ctx) {
 		},
 		(LowType.FunPtr, in LowFunPtrType funPtr) {
 			writer ~= "typedef ";
-			if (isVoid(funPtr.returnType))
+			if (isEmptyType(ctx, funPtr.returnType))
 				writer ~= "void";
 			else
 				writeType(writer, ctx, funPtr.returnType);
@@ -415,14 +426,15 @@ void writeStructs(ref Alloc alloc, scope ref Writer writer, in Ctx ctx) {
 					writer,
 					funPtr.paramTypes,
 					(in LowType paramType) =>
-						!isVoid(paramType),
+						!isEmptyType(ctx, paramType),
 					(in LowType paramType) {
 						writeType(writer, ctx, paramType);
 					});
 			writer ~= ");\n";
 		},
-		(LowType.Record, in LowRecord record) {
-			writeRecord(writer, ctx, record);
+		(LowType.Record x, in LowRecord record) {
+			if (!isEmptyType(ctx, LowType(x)))
+				writeRecord(writer, ctx, record);
 		},
 		(LowType.Union, in LowUnion union_) {
 			writeUnion(writer, ctx, union_);
@@ -436,30 +448,31 @@ void writeStructs(ref Alloc alloc, scope ref Writer writer, in Ctx ctx) {
 	}
 
 	//TODO: use a temp alloc
-	fullIndexMapEachKey!(LowType.Record, LowRecord)(ctx.program.allRecords, (LowType.Record it) {
-		assertSize(LowType(it));
+	fullIndexMapEachKey!(LowType.Record, LowRecord)(ctx.program.allRecords, (LowType.Record x) {
+		if (!isEmptyType(ctx, LowType(x)))
+			assertSize(LowType(x));
 	});
-	fullIndexMapEachKey!(LowType.Union, LowUnion)(ctx.program.allUnions, (LowType.Union it) {
-		assertSize(LowType(it));
+	fullIndexMapEachKey!(LowType.Union, LowUnion)(ctx.program.allUnions, (LowType.Union x) {
+		assertSize(LowType(x));
 	});
 }
 
 void writeFunReturnTypeNameAndParams(scope ref Writer writer, in Ctx ctx, LowFunIndex funIndex, in LowFun fun) {
-	if (isVoid(fun.returnType))
+	if (isEmptyType(ctx,fun.returnType))
 		writer ~= "void";
 	else
 		writeType(writer, ctx, fun.returnType);
 	writer ~= ' ';
 	writeLowFunMangledName(writer, ctx.mangledNames, funIndex, fun);
 	writer ~= '(';
-	if (every!LowLocal(fun.params, (in LowLocal x) => isVoid(x.type)))
+	if (every!LowLocal(fun.params, (in LowLocal x) => isEmptyType(ctx, x.type)))
 		writer ~= "void";
 	else
 		writeWithCommas!LowLocal(
 			writer,
 			fun.params,
 			(in LowLocal x) =>
-				!isVoid(x.type),
+				!isEmptyType(ctx, x.type),
 			(in LowLocal x) {
 				writeParamDecl(writer, ctx, x);
 			});
@@ -584,7 +597,7 @@ void writeTempOrInlines(
 		exprs,
 		args,
 		(in LowExpr expr, in WriteExprResult) =>
-			!isVoid(expr.type),
+			!isEmptyType(ctx, expr.type),
 		(in expr, in WriteExprResult arg) {
 			writeTempOrInline(writer, ctx, locals, expr, arg);
 		});
@@ -731,11 +744,9 @@ WriteExprResult writeExpr(
 			writeLoop(writer, indent, ctx, locals, writeKind, type, it),
 		(in LowExprKind.LoopBreak it) =>
 			writeLoopBreak(writer, indent, ctx, locals, writeKind, it),
-		(in LowExprKind.LoopContinue it) {
+		(in LowExprKind.LoopContinue it) =>
 			// Do nothing, continuing the loop is implicit in C
-			verify(writeKind.isA!(WriteKind.Void));
-			return WriteExprResult(WriteExprResult.Done());
-		},
+			writeVoid(writeKind),
 		(in LowExprKind.MatchUnion it) =>
 			writeMatchUnion(writer, indent, ctx, locals, writeKind, type, it),
 		(in LowExprKind.PtrCast it) =>
@@ -816,7 +827,7 @@ WriteExprResult writeNonInlineable(
 		writeNewline(writer, indent);
 	WriteExprResult makeTemp() {
 		Temp temp = getNextTemp(ctx);
-		if (!isVoid(type)) {
+		if (!isEmptyType(ctx, type)) {
 			writeTempDeclare(writer, ctx, type, temp);
 			writer ~= " = ";
 		}
@@ -854,6 +865,11 @@ WriteExprResult writeNonInlineable(
 	if (!writeKind.isA!(WriteKind.Inline))
 		writer ~= ';';
 	return res;
+}
+
+WriteExprResult writeVoid(in WriteKind writeKind) {
+	verify(writeKind.isA!(WriteKind.Void));
+	return WriteExprResult(WriteExprResult.Done());
 }
 
 WriteExprResult writeInlineable(
@@ -905,7 +921,7 @@ WriteExprResult writeInlineableSimple(
 	in void delegate() @safe @nogc pure nothrow inline,
 ) =>
 	writeInlineable(writer, indent, ctx, locals, writeKind, type, [], (in WriteExprResult[]) {
-		if (!isVoid(type))
+		if (!isEmptyType(ctx, type))
 			inline();
 	});
 
@@ -988,7 +1004,7 @@ void writeTailRecur(
 		a.updateParams,
 		newValues,
 		(ref UpdateParam updateParam, ref WriteExprResult newValue) {
-			if (!isVoid(updateParam.param.type)) {
+			if (!isEmptyType(ctx, updateParam.param.type)) {
 				writeNewline(writer, indent);
 				writeLowLocalName(writer, ctx.mangledNames, *updateParam.param);
 				writer ~= " = ";
@@ -1012,7 +1028,7 @@ void writeCreateUnion(
 	writer ~= '{';
 	writer ~= memberIndex;
 	LowType memberType = ctx.program.allUnions[type.as!(LowType.Union)].members[memberIndex];
-	if (!isVoid(memberType)) {
+	if (!isEmptyType(ctx, memberType)) {
 		writer ~= ", .as";
 		writer ~= memberIndex;
 		writer ~= " = ";
@@ -1045,7 +1061,7 @@ WriteExprResult writeMatchUnion(
 		writer ~= "case ";
 		writer ~= caseIndex;
 		writer ~= ": {";
-		if (has(case_.local) && !isVoid(force(case_.local).type)) {
+		if (has(case_.local) && !isEmptyType(ctx, force(case_.local).type)) {
 			writeDeclareLocal(writer, indent + 2, ctx, *force(case_.local));
 			writer ~= " = ";
 			writeTempRef(writer, matchedValue);
@@ -1081,7 +1097,7 @@ void writeDefaultAbort(
 	writeNewline(writer, indent + 2);
 	writer ~= "abort();";
 	version (Windows) {
-		if (!isVoid(type)) {
+		if (!isEmptyType(ctx, type)) {
 			drop(writeInlineableSimple(writer, indent, ctx, locals, writeKind, type, () {
 				writeZeroedValue(writer, ctx.ctx, type);
 			}));
@@ -1178,6 +1194,7 @@ void writeConstantRef(
 	in LowType type,
 	in Constant a,
 ) {
+	verify(!isEmptyType(ctx, type));
 	a.matchIn!void(
 		(in Constant.ArrConstant it) {
 			if (pos == ConstantRefPos.outer) writeCastToType(writer, ctx, type);
@@ -1191,12 +1208,8 @@ void writeConstantRef(
 				writeConstantArrStorageName(writer, ctx.mangledNames, ctx.program, type.as!(LowType.Record), it.index);
 			writer ~= '}';
 		},
-		(in Constant.CString it) {
-			writer ~= '"';
-			eachChar(ctx.program.allConstants.cStrings[it.index], (char c) {
-				writeEscapedChar_inner(writer, c);
-			});
-			writer ~= '"';
+		(in Constant.CString x) {
+			writeStringLiteral(writer, ctx.program.allConstants.cStrings[x.index]);
 		},
 		(in Constant.Float it) {
 			switch (type.as!PrimitiveType) {
@@ -1262,7 +1275,7 @@ void writeConstantRef(
 				fields,
 				it.args,
 				(in LowField field, in Constant arg) =>
-					!isVoid(field.type),
+					!isEmptyType(ctx, field.type),
 				(in LowField field, in Constant arg) {
 					writeConstantRef(writer, ctx, ConstantRefPos.inner, field.type, arg);
 				});
@@ -1277,6 +1290,22 @@ void writeConstantRef(
 		(in Constant.Zero) {
 			writeZeroedValue(writer, ctx, type);
 		});
+}
+
+void writeStringLiteral(scope ref Writer writer, SafeCStr a) {
+	writer ~= '"';
+	size_t chunk = 0;
+	eachChar(a, (char c) {
+		writeEscapedChar_inner(writer, c);
+		chunk++;
+		// Avoid error on Windows: "error C2026: string too big, trailing characters truncated"
+		if (chunk == 2048) {
+			writer ~= '"';
+			writer ~= '"';
+			chunk = 0;
+		}
+	});
+	writer ~= '"';
 }
 
 WriteExprResult writePtrToField(
@@ -1305,7 +1334,7 @@ WriteExprResult writeRecordFieldGet(
 	in LowExprKind.RecordFieldGet a,
 ) =>
 	writeInlineableSingleArg(writer, indent, ctx, locals, writeKind, type, a.target, (in WriteExprResult recordValue) {
-		if (!isVoid(type)) {
+		if (!isEmptyType(ctx, type)) {
 			writeTempOrInline(writer, ctx, locals, a.target, recordValue);
 			writeRecordFieldRef(writer, ctx, targetIsPointer(a), targetRecordType(a), a.fieldIndex);
 		}
@@ -1328,6 +1357,17 @@ WriteExprResult writeSpecialUnary(
 			(in WriteExprResult temp) {
 				writer ~= '(';
 				writer ~= prefix;
+				writeTempOrInline(writer, ctx, locals, a.arg, temp);
+				writer ~= ')';
+			});
+	}
+
+	WriteExprResult writeCast() {
+		return writeInlineableSingleArg(
+			writer, indent, ctx, locals, writeKind, type, a.arg,
+			(in WriteExprResult temp) {
+				writer ~= '(';
+				writeCastToType(writer, ctx.ctx, type);
 				writeTempOrInline(writer, ctx, locals, a.arg, temp);
 				writer ~= ')';
 			});
@@ -1364,6 +1404,7 @@ WriteExprResult writeSpecialUnary(
 		case LowExprKind.SpecialUnary.Kind.coshFloat64:
 			return specialCall("cosh");
 		case LowExprKind.SpecialUnary.Kind.drop:
+			return a.arg.kind.isA!(Constant) ? writeVoid(writeKind) : writeCast();
 		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
 		case LowExprKind.SpecialUnary.Kind.toChar8FromNat8:
 		case LowExprKind.SpecialUnary.Kind.toFloat32FromFloat64:
@@ -1389,14 +1430,7 @@ WriteExprResult writeSpecialUnary(
 		case LowExprKind.SpecialUnary.Kind.unsafeToNat32FromInt32:
 		case LowExprKind.SpecialUnary.Kind.unsafeToNat32FromNat64:
 		case LowExprKind.SpecialUnary.Kind.unsafeToNat64FromInt64:
-			return writeInlineableSingleArg(
-				writer, indent, ctx, locals, writeKind, type, a.arg,
-				(in WriteExprResult temp) {
-					writer ~= '(';
-					writeCastToType(writer, ctx.ctx, type);
-					writeTempOrInline(writer, ctx, locals, a.arg, temp);
-					writer ~= ')';
-				});
+			return writeCast();
 		case LowExprKind.SpecialUnary.Kind.sinFloat64:
 			return specialCall("sin");
 		case LowExprKind.SpecialUnary.Kind.sinhFloat64:
@@ -1448,7 +1482,7 @@ void writeZeroedValue(scope ref Writer writer, in Ctx ctx, in LowType type) {
 				writer,
 				fields,
 				(in LowField field) =>
-					!isVoid(field.type),
+					!isEmptyType(ctx, field.type),
 				(in LowField field) {
 					writeZeroedValue(writer, ctx, field.type);
 				});
@@ -1643,7 +1677,7 @@ WriteExprResult writeSpecialBinary(
 			WriteExprResult temp0 = arg0();
 			WriteExprResult temp1 = arg1();
 			return writeReturnVoid(writer, indent, ctx, writeKind, () {
-				if (!isVoid(right.type)) {
+				if (!isEmptyType(ctx, right.type)) {
 					writer ~= "*";
 					writeTempOrInline(writer, ctx, locals, left, temp0);
 					writer ~= " = ";
@@ -1668,7 +1702,7 @@ WriteExprResultAndNested getNestedWriteKind(
 	in LowType type,
 	return scope ref WriteKind writeKind,
 ) {
-	if (isVoid(type)) {
+	if (isEmptyType(ctx, type)) {
 		verify(writeKind.isA!(WriteKind.Void) || writeKind.isA!(WriteKind.Return));
 		return WriteExprResultAndNested(writeExprDone(), writeKind);
 	} if (writeKind.isA!(WriteKind.MakeTemp) || writeKind.isA!(WriteKind.InlineOrTemp)) {
@@ -1781,7 +1815,7 @@ WriteExprResult writeLet(
 	in LowExprKind.Let a,
 ) {
 	if (!writeKind.isA!(WriteKind.Inline)) {
-		if (isVoid(a.local.type))
+		if (isEmptyType(ctx, a.local.type))
 			writeExprVoid(writer, indent, ctx, locals, a.value);
 		else {
 			writeDeclareLocal(writer, indent, ctx, *a.local);
@@ -1802,7 +1836,7 @@ WriteExprResult writeLocalSet(
 	in WriteKind writeKind,
 	in LowExprKind.LocalSet a,
 ) {
-	if (isVoid(a.local.type))
+	if (isEmptyType(ctx, a.local.type))
 		writeExprVoid(writer, indent, ctx, locals, a.value);
 	else {
 		WriteKind localWriteKind = WriteKind(a.local);

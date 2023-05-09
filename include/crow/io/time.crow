@@ -9,6 +9,7 @@ import
 	../future: new
 	../private/future-low-level: forward-to, resolve, unresolved
 	../private/runtime: enqueue-timed-task-no-exclusion, get-global-ctx
+	../version: is-windows
 	./duration: duration, nsec
 export
 	./private/time-low-level: get-monotime-nsec
@@ -21,7 +22,10 @@ export
 
 # Get the current Unix timestamp.
 +get-unix-time unix-time() summon
-	trusted null.time,
+	if trusted is-windows
+		throw "TODO: Windows support"
+	else
+		trusted null.time,
 
 # Returns a future that will resolve after `duration` has passed.
 +delay void^(duration duration) summon

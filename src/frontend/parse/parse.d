@@ -786,8 +786,10 @@ Opt!ImportsOrExportsAst parseImportsOrExports(ref AllPaths allPaths, ref Lexer l
 FileAst parseFileInner(ref AllPaths allPaths, ref Lexer lexer) {
 	SafeCStr moduleDocComment = skipBlankLinesAndGetDocComment(lexer);
 	bool noStd = tryTakeToken(lexer, Token.noStd);
-	if (noStd)
+	if (noStd) {
 		takeOrAddDiagExpectedToken(lexer, Token.newline, ParseDiag.Expected.Kind.endOfLine);
+		skipBlankLinesAndGetDocComment(lexer);
+	}
 	Opt!ImportsOrExportsAst imports = parseImportsOrExports(allPaths, lexer, Token.import_);
 	Opt!ImportsOrExportsAst exports = parseImportsOrExports(allPaths, lexer, Token.export_);
 

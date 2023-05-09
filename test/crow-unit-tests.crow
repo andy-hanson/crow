@@ -49,10 +49,10 @@ import
 	crow/private/tgmath-tests: dummy-tgmath-tests
 	crow/serialize: from-bytes
 	crow/test-util/test-runner: run-all-tests
+	crow/version: is-windows
 
 main nat^(_ string[]) summon
 	_ = ().from-bytes :: nat8[]
-	_ = quality-moderate
 	_ = bold
 	_ = () :: ((nat, nat) compact-map)
 	_ = () :: ((nat, nat) compact-sorted-map)
@@ -76,8 +76,11 @@ main nat^(_ string[]) summon
 	_ = () :: nat[nat]
 	_ = () :: ((nat, nat) frozen-map)
 	_ = () :: (nat frozen-set)
-	_ = generate-login-cookie
-	_ = get-environ
+	# TODO: Windows support
+	if trusted !is-windows
+		_ = generate-login-cookie
+		_ = quality-moderate
+		_ = get-environ
 	_ = () :: grammar-skip
 	_ = () :: http-server
 	_ = () :: (nat hamt-set)

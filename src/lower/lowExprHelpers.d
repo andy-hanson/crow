@@ -54,6 +54,11 @@ LowExpr genDrop(ref Alloc alloc, FileAndRange range, LowExpr a) =>
 	LowExpr(voidType, range, LowExprKind(allocate(alloc,
 		LowExprKind.SpecialUnary(LowExprKind.SpecialUnary.Kind.drop, a))));
 
+// Ensures that the side-effect order is still 'a' before 'b'
+LowExprKind genDropSecond(ref Alloc alloc, FileAndRange range, size_t localIndex, LowExpr a, LowExpr b) =>
+	genLetTemp(alloc, range, localIndex, a, (LowExpr getA) =>
+		genSeq(alloc, range, genDrop(alloc, range, b), getA)).kind;
+
 private LowExpr genDerefGcOrRawPtr(ref Alloc alloc, FileAndRange range, LowExpr ptr) =>
 	genUnary(alloc, range, asGcOrRawPointee(ptr.type), LowExprKind.SpecialUnary.Kind.deref, ptr);
 

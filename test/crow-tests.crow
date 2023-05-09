@@ -63,11 +63,12 @@ run-kind enum
 
 -format-output string(a process-result)
 	if a has-error
-		match a exit
-		as exited exit-code
-			"exit code: {exit-code}\n{a format-stdout-stderr}"
-		as signaled signal
-			"aborted with signal: {signal}\n{a format-stdout-stderr}"
+		exit-code = match a exit
+		as exited x
+			x
+		as signaled x
+			x
+		"exit code: {exit-code != 0 && exit-code != 1 ? "big" : "{exit-code}"}\n{a format-stdout-stderr}"
 	else
 		a.stdout remove-colors
 
@@ -106,4 +107,3 @@ run-kind enum
 -is-letter bool(a char8)
 	# TODO: support other alphabets
 	"a"::char8.to::nat8 <= a.to && a.to::nat8 <= "z"::char8.to
-

@@ -9,18 +9,22 @@ import
 	../range: ..
 	../string: ==, <=>, as-string, c-string, hash-mix, string
 	../tuple: new
+	../version: is-windows
 
 get-environ-raw c-string*() summon, unsafe
 	__environ
 
 # Get all environment variables for this process.
 +get-environ string[string]() summon
-	with out : build
-		trusted
-			env mut = get-environ-raw
-			until *env == null
-				out ~= env->parse-environ-entry
-				env +:= 1
+	if trusted is-windows
+		throw "TODO: Windows support"
+	else
+		with out : build
+			trusted
+				env mut = get-environ-raw
+				until *env == null
+					out ~= env->parse-environ-entry
+					env +:= 1
 
 -parse-environ-entry (string, string)(entry c-string) unsafe
 	if key-end ?= entry find-char-in-c-string "="

@@ -13,21 +13,20 @@ handle-output failure[](
 	actual string,
 	overwrite-output bool,
 ) summon
-	actual-normalized = actual normalize-newlines
 	if text ?= output-path.try-read-file :: string?
-		if text == actual-normalized
+		if actual.normalize-newlines == text.normalize-newlines
 			()
 		elif overwrite-output
-			output-path write-file actual-normalized
+			output-path write-file actual
 			()
 		else
-			message = "{output-path base-name} was not as expected. actual:\n{actual-normalized}"
+			message = "{output-path base-name} was not as expected. actual:\n{actual}"
 			(original-path, message),
 	elif overwrite-output
-		output-path write-file actual-normalized
+		output-path write-file actual
 		()
 	else
-		(original-path, "{output-path base-name} does not exist. actual was:\n{actual-normalized}"),
+		(original-path, "{output-path base-name} does not exist. actual was:\n{actual}"),
 
 flat-map-with-max-size[in] failure[]^(a in[], max-size nat, mapper far failure[](in)) in shared
 	res failure mut[] = ()

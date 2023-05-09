@@ -80,7 +80,7 @@ private @trusted void removeFile(in AllPaths allPaths, Path path) {
 	TempStrForPath buf = void;
 	CStr cStr = pathToTempStr(buf, allPaths, path).ptr;
 	version (Windows) {
-		bool res = DeleteFileA(cStr);
+		int res = DeleteFileA(cStr);
 		if (!res) todo!void("error removing file");
 	} else {
 		final switch (unlink(cStr)) {
@@ -112,9 +112,14 @@ ExitCode withPathOrTemp(Sym extension)(
 	}
 }
 
+extern(C) int rand_s(uint* randomValue);
+
 private @trusted ubyte[8] getRandomBytes() {
 	version (Windows) {
-		todo!string("use rand_s");
+		uint v0, v1;
+		int err = rand_s(&v0) || rand_s(&v1);
+		if (err != 0) todo!void("Error getting random bytes");
+		return concat(bytesOfUint(v0), bytesOfUint(v1));
 	} else {
 		ubyte[8] out_;
 		FILE* fd = fopen("/dev/urandom", "rb");
@@ -124,6 +129,18 @@ private @trusted ubyte[8] getRandomBytes() {
 		fread(out_.ptr, ubyte.sizeof, out_.length, fd);
 		return out_;
 	}
+}
+
+ubyte[4] bytesOfUint(uint a) =>
+	[cast(ubyte) (a >> 24), cast(ubyte) (a >> 16), cast(ubyte) (a >> 8), cast(ubyte) a];
+
+T[size0 + size1] concat(T, size_t size0, size_t size1)(in T[size0] a, in T[size1] b) {
+	T[size0 + size1] res;
+	foreach (size_t i; 0 .. size0)
+		res[i] = a[i];
+	foreach (size_t i; 0 .. size1)
+		res[size0 + i] = b[i];
+	return res;
 }
 
 version (Windows) {
@@ -324,7 +341,7 @@ private @system FILE* tryOpenFileForWrite(in AllPaths allPaths, in Path path) {
 			&processInfo);
 		if (!ok) {
 			printLastError(GetLastError(), "Spawning cl");
-			return 1;
+			return ExitCode.error;
 		}
 
 		verifyOk(CloseHandle(stdoutWrite));

@@ -42,17 +42,3 @@ test/compile-errors/data-spec-with-type-args.crow 59:5-59:17 a spec was not sati
 	takes-data@(t mt) (from test/compile-errors/data-spec-with-type-args.crow line 61)
 uncaught exception: reached compile error
 	at main
-	at add
-	at call
-	at then
-	at call
-	at catch
-	at call
-	at catch
-	at catch
-	at then
-	at call
-	at invoke
-	at do
-	at thread
-	at thread

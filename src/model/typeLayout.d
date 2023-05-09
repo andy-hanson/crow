@@ -4,18 +4,25 @@ module model.typeLayout;
 
 import interpret.bytecode : stackEntrySize;
 import model.concreteModel : TypeSize;
-import model.lowModel : LowField, LowProgram, LowPtrCombine, LowRecord, LowType, PrimitiveType, typeSize;
+import model.lowModel : AllLowTypes, LowField, LowProgram, LowPtrCombine, LowRecord, LowType, PrimitiveType, typeSize;
 import util.col.arrUtil : every, map;
 import util.opt : none, Opt, some;
 import util.util : divRoundUp, isMultipleOf;
 
+bool isEmptyType(in AllLowTypes types, in LowType a) =>
+	typeSizeBytes(types, a) == 0;
+
 size_t typeSizeBytes(in LowProgram program, in LowType a) =>
-	sizeOfType(program, a).sizeBytes;
+	typeSizeBytes(program.allTypes, a);
+size_t typeSizeBytes(in AllLowTypes types, in LowType a) =>
+	sizeOfType(types, a).sizeBytes;
 
 TypeSize sizeOfType(in LowProgram program, in LowType a) =>
+	sizeOfType(program.allTypes, a);
+TypeSize sizeOfType(in AllLowTypes types, in LowType a) =>
 	a.combinePointer.match!TypeSize(
 		(LowType.Extern x) =>
-			typeSize(program.allExternTypes[x]),
+			typeSize(types.allExternTypes[x]),
 		(LowType.FunPtr) =>
 			funPtrSize,
 		(PrimitiveType it) =>
@@ -23,9 +30,9 @@ TypeSize sizeOfType(in LowProgram program, in LowType a) =>
 		(LowPtrCombine) =>
 			ptrSize,
 		(LowType.Record index) =>
-			typeSize(program.allRecords[index]),
+			typeSize(types.allRecords[index]),
 		(LowType.Union index) =>
-			typeSize(program.allUnions[index]));
+			typeSize(types.allUnions[index]));
 
 size_t nStackEntriesForType(in LowProgram program, in LowType a) =>
 	nStackEntriesForBytes(typeSizeBytes(program, a));

@@ -26,7 +26,7 @@ import
 # Print to stdout or stderr, without appending a newline.
 +print-no-newline void(pipe pipe, message string) summon
 	if trusted is-windows
-		handle = match out
+		handle = match pipe
 		as out
 			STD_OUTPUT_HANDLE
 		as err

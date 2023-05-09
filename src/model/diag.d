@@ -28,7 +28,7 @@ import util.col.arr : empty;
 import util.col.arrUtil : arrLiteral;
 import util.col.map : mapLiteral;
 import util.col.fullIndexMap : fullIndexMapOfArr;
-import util.lineAndColumnGetter : LineAndColumnGetter;
+import util.lineAndColumnGetter : LineAndColumnGetter, PosKind;
 import util.opt : Opt;
 import util.path : AllPaths, Path, PathsInfo, writePath;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, FilePaths, PathToFile, RangeWithinFile;
@@ -528,7 +528,7 @@ void writeFileAndPos(
 ) {
 	writeFileNoResetWriter(writer, allPaths, pathsInfo, options, fi, where.fileIndex);
 	if (where.fileIndex != FileIndex.none)
-		writePos(writer, fi.lineAndColumnGetters[where.fileIndex], where.pos);
+		writePos(writer, fi.lineAndColumnGetters[where.fileIndex], where.pos, PosKind.startOfRange);
 	if (options.color)
 		writeReset(writer);
 }

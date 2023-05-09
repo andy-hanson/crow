@@ -7,17 +7,3 @@ actual:
 	'nat64'
 uncaught exception: reached compile error
 	at main
-	at add
-	at call
-	at then
-	at call
-	at catch
-	at call
-	at catch
-	at catch
-	at then
-	at call
-	at invoke
-	at do
-	at thread
-	at thread

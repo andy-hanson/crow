@@ -70,7 +70,7 @@ private char curChar(in Lexer lexer) =>
 
 @trusted Pos curPos(scope ref Lexer lexer) {
 	// Ensure start is after any whitespace
-	while (tryTakeChar(lexer, ' ') || tryTakeChar(lexer, '\t')) {}
+	while (tryTakeChar(lexer, ' ') || tryTakeChar(lexer, '\t') || tryTakeChar(lexer, '\r')) {}
 	return posOfPtr(lexer, lexer.ptr);
 }
 
@@ -87,7 +87,18 @@ void addDiagAtChar(ref Lexer lexer, ParseDiag diag) {
 
 RangeWithinFile rangeAtChar(scope ref Lexer lexer) {
 	Pos pos = curPos(lexer);
-	return RangeWithinFile(pos, curChar(lexer) == '\0' ? pos : pos + 1);
+	Pos nextPos = () @trusted {
+		switch (curChar(lexer)) {
+			case '\0':
+				return pos;
+			case '\r':
+				// Treat "\r\n" as one character
+				return *(lexer.ptr + 1) == '\n' ? pos + 2 : pos + 1;
+			default:
+				return pos + 1;
+		}
+	}();
+	return RangeWithinFile(pos, nextPos);
 }
 
 private void addDiagAtCurToken(ref Lexer lexer, Pos start, ParseDiag diag) {

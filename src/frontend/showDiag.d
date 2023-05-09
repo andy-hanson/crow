@@ -42,7 +42,7 @@ import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : empty, only;
 import util.col.arrUtil : exists;
 import util.col.str : SafeCStr;
-import util.lineAndColumnGetter : lineAndColumnAtPos;
+import util.lineAndColumnGetter : lineAndColumnAtPos, PosKind;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, baseName, Path, PathsInfo, writePath, writeRelPath;
 import util.ptr : ptrTrustMe;
@@ -149,7 +149,7 @@ void writeLineNumber(
 	if (options.color)
 		writeReset(writer);
 	writer ~= " line ";
-	size_t line = lineAndColumnAtPos(fi.lineAndColumnGetters[pos.fileIndex], pos.pos).line;
+	size_t line = lineAndColumnAtPos(fi.lineAndColumnGetters[pos.fileIndex], pos.pos, PosKind.startOfRange).line;
 	writer ~= line + 1;
 }
 
@@ -266,7 +266,7 @@ void writeParseDiag(
 			writer ~= "function type missing parentheses";
 		},
 		(in ParseDiag.ImportFileTypeNotSupported) {
-			writer ~= "import file type not allowed; the only supported types are 'nat8 array' and 'str'";
+			writer ~= "import file type not allowed; the only supported types are 'nat8 array' and 'string'";
 		},
 		(in ParseDiag.IndentNotDivisible d) {
 			writer ~= "expected indentation by ";
@@ -1059,7 +1059,7 @@ void writeDiag(
 					writer ~= "can't infer type arguments";
 				},
 				(in Diag.SpecNoMatch.Reason.SpecImplNotFound y) {
-					writer ~= "no implementation was found for spec signature";
+					writer ~= "no implementation was found for spec signature ";
 					SpecDeclSig* sig = y.sigDecl;
 					writeSig(
 						writer, allSymbols, program, sig.name, sig.returnType, Params(sig.params), some(y.sigType));

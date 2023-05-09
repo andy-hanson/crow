@@ -13,7 +13,6 @@ import
 main nat^(_ string[]) summon
 	run-all-tests
 	all-content <- documentation ~~ pages ~~ include-all
-	info log "got all content"
 	<- for content : all-content parallel
 		content ensure-up-to-date
 	cwd = current-directory

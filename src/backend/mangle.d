@@ -103,7 +103,7 @@ MangledNames buildMangledNames(
 
 private immutable(FullIndexMap!(LowVarIndex, size_t)) makeVarToNameIndex(
 	ref Alloc alloc,
-	in FullIndexMap!(LowVarIndex, LowVar) vars,
+	in immutable FullIndexMap!(LowVarIndex, LowVar) vars,
 ) {
 	MutMap!(Sym, size_t) counts;
 	return mapFullIndexMap!(LowVarIndex, size_t, LowVar)(alloc, vars, (LowVarIndex _, in LowVar x) {

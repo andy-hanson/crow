@@ -32,7 +32,7 @@ immutable struct LowExternType {
 	ConcreteStruct* source;
 }
 
-TypeSize typeSize(LowExternType a) =>
+TypeSize typeSize(in LowExternType a) =>
 	typeSize(*a.source);
 
 immutable struct LowRecord {

@@ -15,6 +15,7 @@ import
 	../pointer: as-const
 	../range: ..
 	../string: as-string, char8, literal, string, to
+	../version: is-windows
 	./time: seconds-since-epoch, unix-time
 
 +time-locale record
@@ -121,12 +122,15 @@ Second from 00 to 60 inclusive.
 	locale format time, "%S", 2
 
 -format string(locale time-locale, time unix-time, format string, max-size nat64) summon
-	seconds = time seconds-since-epoch
-	trusted
-		tm = if locale is-local-time
-			&seconds localtime
-		else
-			&seconds gmtime
-		res char8 mut-array = max-size + 1 uninitialized-mut-array
-		len = res.begin-pointer strftime res.size, format.to, tm.as-const
-		res.cast-immutable[0 .. len] as-string
+	if trusted is-windows
+		throw "TODO: Windows support"
+	else
+		seconds = time seconds-since-epoch
+		trusted
+			tm = if locale is-local-time
+				&seconds localtime
+			else
+				&seconds gmtime
+			res char8 mut-array = max-size + 1 uninitialized-mut-array
+			len = res.begin-pointer strftime res.size, format.to, tm.as-const
+			res.cast-immutable[0 .. len] as-string

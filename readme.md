@@ -3,26 +3,29 @@
 
 # Crow
 
-This readme describes how to contribute to crow.
+This readme describes how to contribute to Crow.
 
 For information about the language itself, visit the [website](https://crow-lang.org/).
 
 
 # Setup
 
-Install these tools (potentially from your operating system's package manager):
+To work on Crow, you'll need these tools:
 
-* [`dmd`](https://dlang.org/download.html#dmd) (used to compile `bin/crow-debug` due to much faster compiles)
-	- Skip this on Windows (not used due to https://issues.dlang.org/show_bug.cgi?id=23024)
-* [`git`](https://git-scm.com/) (used to get this repository)
-* [`hg`](https://mercurial-scm.org) (used to clone the `dyncall` library)
-* [`ldc`](https://github.com/ldc-developers/ldc#installation) (used to compile `bin/crow`).
-	- `wasm-ld` may need to be installed separately (used to compile `bin/crow.wasm`)
+* [`git`](https://git-scm.com): Used to get this repository
+* [`hg`](https://mercurial-scm.org): Used to clone the `dyncall` library
+* [`ldc`](https://github.com/ldc-developers/ldc#installation): Used to compile `bin/crow`.
+	- Don't use the Visual D installer as it uses an older compiler.
+	  Download the latest [release](https://github.com/ldc-developers/ldc/releases) instead.
+* [`node.js`](https://nodejs.org/): Used for tests of the WASM module
+
+Linux only:
+
 * [`libgccjit`](https://gcc.gnu.org/onlinedocs/jit) (`bin/crow` links to this)
-	- Skip this on Windows
 * [`libunwind`](https://www.nongnu.org/libunwind)
-	- Skip this on Windows
-* [`node.js](https://nodejs.org/) (used for tests of WASM module)
+
+Windows only:
+
 
 Then run:
 
@@ -76,6 +79,8 @@ run
 
 # Testing compiler/interpreter performance
 
+## Linux
+
 ```sh
 make bin/crow-fast-debug
 mkdir perf && cd perf
@@ -83,18 +88,15 @@ valgrind --tool=callgrind -v --dump-every-bb=10000000 ../bin/crow-fast-debug run
 kcachegrind .
 ```
 
+## Windows
+
+Haven't tested this yet.
+
 # Editing
-
-## VSCode
-
-The VSCode extension supports syntax highlighting, compiler errors, and information on hover.
-
-See instructions in `editor/crow-vscode/readme.md`.
 
 ## Sublime Text
 
-Sublime Text has syntax support but no other support.
-To install the plugin, run the following from the directory containing this readme:
+To get syntax highlighting in Sublime Text, run the following from the directory containing this readme:
 
 ```sh
 bash -llc 'ln -s `pwd`/editor/sublime/crow.sublime-syntax ~/.config/sublime-text/Packages/User/crow.sublime-syntax'
@@ -102,10 +104,12 @@ bash -llc 'ln -s `pwd`/editor/sublime/crow.sublime-syntax ~/.config/sublime-text
 
 Or on Windows:
 
+```sh
+copy %CD%\editor\sublime\crow.sublime-syntax ^
+	"%USERPROFILE%\AppData\Roaming\Sublime Text\Packages\User\crow.sublime-syntax"
+```
 
-mklink "%USERPROFILE%\AppData\Roaming\Sublime Text\Packages\User\crow.sublime-syntax" ^
-	%CD%\editor\sublime\crow.sublime-syntax
-
+Then open a Crow file. In the lower-right corner, click "Plain text" and change it to "Crow".
 
 # Viewing documentation locally
 

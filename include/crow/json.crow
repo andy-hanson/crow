@@ -214,6 +214,8 @@ Else, returns an empty option.
 		o[key]
 
 +json json grammar()
+	spaces ~~ json-inner ~~ spaces
+-json-inner json grammar()
 	with : lazy
 		(json-object map x => x.json-object) / (json-list map x => x.json-list) / json-primitive
 -json-object json[symbol] grammar()

@@ -17,10 +17,12 @@ immutable struct LineAndColumn {
 
 immutable struct LineAndColumnGetter {
 	@safe @nogc pure nothrow:
+	bool usesCRLF;
 	Pos[] lineToPos;
 	ubyte[] lineToNTabs;
 
-	this(immutable Pos[] lp, immutable ubyte[] lnt) {
+	this(bool ucr, immutable Pos[] lp, immutable ubyte[] lnt) {
+		usesCRLF = ucr;
 		lineToPos = lp;
 		lineToNTabs = lnt;
 		verify(lineToPos.length == lineToNTabs.length);
@@ -36,7 +38,9 @@ immutable struct LineAndColumnGetter {
 	add(alloc, lineToPos, 0);
 	add(alloc, lineToNTabs, advanceAndGetNTabs(ptr));
 
+	bool usesCRLF = false;
 	while (*ptr != '\0') {
+		if (*ptr == '\r' && *(ptr + 1) == '\n') usesCRLF = true;
 		bool nl = *ptr == '\n' || (*ptr == '\r' && *(ptr + 1) != '\n');
 		ptr++;
 		if (nl) {
@@ -45,34 +49,23 @@ immutable struct LineAndColumnGetter {
 		}
 	}
 
-	return LineAndColumnGetter(finishArr(alloc, lineToPos), finishArr(alloc, lineToNTabs));
+	return LineAndColumnGetter(usesCRLF, finishArr(alloc, lineToPos), finishArr(alloc, lineToNTabs));
 }
 
 LineAndColumnGetter lineAndColumnGetterForEmptyFile(ref Alloc alloc) =>
 	lineAndColumnGetterForText(alloc, safeCStr!"");
 
-LineAndColumn lineAndColumnAtPos(in LineAndColumnGetter lc, Pos pos) {
-	ushort lowLine = 0; // inclusive
-	ushort highLine = safeToUshort(lc.lineToPos.length);
+enum PosKind { startOfRange, endOfRange }
 
-	while (lowLine < highLine - 1) {
-		ushort middleLine = mid(lowLine, highLine);
-		Pos middlePos = lc.lineToPos[middleLine];
-		if (pos == middlePos)
-			return LineAndColumn(middleLine, 0);
-		else if (pos < middlePos)
-			// Exclusive -- must be on a previous line
-			highLine = middleLine;
-		else
-			// Inclusive -- may be on a later character of the same line
-			lowLine = middleLine;
-	}
-
-	ushort line = lowLine;
+LineAndColumn lineAndColumnAtPos(in LineAndColumnGetter lc, Pos pos, PosKind kind) {
+	ushort line = lineAtPos(lc, pos);
+	if (kind == PosKind.endOfRange && lc.lineToPos[line] == pos && line != 0)
+		line--;
 	Pos lineStart = lc.lineToPos[line];
 	verify((pos >= lineStart && line == lc.lineToPos.length - 1) || pos <= lc.lineToPos[line + 1]);
-
 	uint nCharsIntoLine = pos - lineStart;
+	if (lc.usesCRLF && line + 1 < lc.lineToPos.length && pos + 1 == lc.lineToPos[line + 1])
+		nCharsIntoLine--;
 	ubyte nTabs = lc.lineToNTabs[line];
 	uint column = nCharsIntoLine <= nTabs
 		? nCharsIntoLine * TAB_SIZE
@@ -81,6 +74,24 @@ LineAndColumn lineAndColumnAtPos(in LineAndColumnGetter lc, Pos pos) {
 }
 
 private:
+
+ushort lineAtPos(in LineAndColumnGetter lc, Pos pos) {
+	ushort lowLine = 0; // inclusive
+	ushort highLine = safeToUshort(lc.lineToPos.length);
+	while (lowLine < highLine - 1) {
+		ushort middleLine = mid(lowLine, highLine);
+		Pos middlePos = lc.lineToPos[middleLine];
+		if (pos == middlePos)
+			return middleLine;
+		else if (pos < middlePos)
+			// Exclusive -- must be on a previous line
+			highLine = middleLine;
+		else
+			// Inclusive -- may be on a later character of the same line
+			lowLine = middleLine;
+	}
+	return lowLine;
+}
 
 uint TAB_SIZE() => 4; // TODO: configurable
 

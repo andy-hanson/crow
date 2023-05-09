@@ -11,17 +11,3 @@ expected one of these types:
 	'act void(string)'consider explicitly typing the lambda's parameter.
 uncaught exception: reached compile error
 	at main
-	at add
-	at call
-	at then
-	at call
-	at catch
-	at call
-	at catch
-	at catch
-	at then
-	at call
-	at invoke
-	at do
-	at thread
-	at thread

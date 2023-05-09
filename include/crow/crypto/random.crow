@@ -8,11 +8,15 @@ import
 	../bits: bits-cat
 	../bool: bool
 	../number: ==, %, nat32, nat64
+	../version: is-windows
 	./private/sodium: ensure-sodium-initialized
 
 +random nat32() summon
-	ensure-sodium-initialized
-	trusted randombytes_random
+	if trusted is-windows
+		throw "TODO: Windows support"
+	else
+		ensure-sodium-initialized
+		trusted randombytes_random
 
 +random bool() summon
 	random::nat32 % 2 == 0

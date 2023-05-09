@@ -4,7 +4,7 @@ module util.col.str;
 
 import util.alloc.alloc : Alloc, allocateT;
 import util.col.arr : empty, freeArr;
-import util.col.arrUtil : map;
+import util.col.arrUtil : arrEqual, map;
 import util.hash : Hasher, hashUbyte;
 import util.memory : memcpy;
 
@@ -52,7 +52,7 @@ immutable struct SafeCStr {
 }
 
 bool strEq(string a, string b) =>
-	a.length == b.length && (a.length == 0 || (a[0] == b[0] && strEq(a[1 .. $], b[1 .. $])));
+	arrEqual(a, b);
 
 @trusted SafeCStr safeCStr(immutable char* content)() =>
 	SafeCStr(content);

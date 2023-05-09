@@ -2,9 +2,10 @@ no-std
 import
 	./bool: ||, bool
 	./compare: <, comparison
-	./col/array: array, as-array, begin, begin-pointer, end, new, next, slice
+	./col/array: array, as-array, begin, begin-pointer, end, new, next, prev, slice
 	./col/collection:
-		build-options, drop-right-while, drop-while, for-loop, join, split, strip-right, try-split-once
+		build-options, drop-right-while, drop-while, for-loop, join, split, strip-right,
+		try-remove-end, try-split-once
 	./col/list:
 		==, <=>, ~=, ~, ~~, ~~=, +, -, begin, build, collection, end, is-empty, iterate,
 		list, list-builder, list-cast, list-iterator, new, next, next-index, prev, size, slice, to
@@ -15,7 +16,7 @@ import
 	./number:
 		==, <=>, +, *, /, %, abs, float64, float32, int8, int16, int32, int64, is-nan, min-value,
 		nat8, nat16, nat32, nat64, to, truncate-to
-	./option: new, option
+	./option: ??, new, option
 	./pointer: ==, <=>, const-pointer
 	./private/number-low-level: wrap-sub
 	./range: .., range
@@ -331,7 +332,7 @@ region utilities
 	# TODO:PERF should be better (or at least just as good) with just `a split "\n"`
 	arr char8 array = a to
 	for x : arr split ("\n",)
-		x as-string
+		((x try-remove-end "\r".to) ?? x) as-string
 
 # Lower cases every character in `a`.
 +lower-case string(a string)
@@ -356,10 +357,10 @@ region utilities
 		a
 
 # Replaces every instance of the substring `find` with `replace-with`.
-+replace string(a string, find string, replace-with string)
++replace-all string(a string, find string, replace-with string)
 	# TODO:PERF
 	if l, r ?= a try-split-once find
-		l ~~ replace-with ~~ (r replace find, replace-with)
+		l ~~ replace-with ~~ (r replace-all find, replace-with)
 	else
 		a
 
@@ -379,7 +380,7 @@ region utilities
 	a == " " || a == "\r" || a == "\n" || a == "\t"
 
 +normalize-newlines string(a string)
-	a replace "\r\n", "\n" replace "\r", "\n"
+	a replace-all "\r\n", "\n" replace-all "\r", "\n"
 
 # Enclose a string in quotes and escape special characters.
 +quote string(a string)
@@ -400,4 +401,4 @@ region utilities
 	"\"" ~~ ("" join inner) ~~ "\""
 
 +unindent string(a string)
-	a replace "\t", ""
+	a replace-all "\t", ""

@@ -255,7 +255,7 @@ LowFunExprBody visitUnionBody(
 			if (has(visitMember)) {
 				LowLocal* local = genLocal(
 					alloc,
-					sym!"value",
+					sym!"x",
 					memberIndex,
 					memberType);
 				LowExpr getLocal = genLocalGet(range, local);

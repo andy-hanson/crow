@@ -105,6 +105,8 @@ unsafe-to int64(a nat64) builtin, bare, unsafe
 
 wrap-to nat32(a nat64) bare
 	trusted a unsafe-to
+wrap-to int32(a nat32) bare
+	trusted a.to.unsafe-to::int64 unsafe-to
 
 to nat16(a nat8) bare
 	trusted a.to unsafe-to

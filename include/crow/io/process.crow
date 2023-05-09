@@ -29,6 +29,7 @@ import
 	../number: ==, <=>, +, int32, int64, nat8, nat32, nat64, to
 	../private/bootstrap: todo
 	../private/c-string-util: find-c-string-end
+	../private/number-low-level: wrap-to
 	../pointer: ==, +, -, mut-pointer, new, null, pointer-cast
 	../string: ~~, as-string, char8, c-string, is-empty, literal, move-to, new, string, to
 	../version: is-windows
@@ -157,7 +158,7 @@ The child process shares stdout and stderr with the parent process.
 	unless process-info.hProcess.CloseHandle && process-info.hThread.CloseHandle
 		todo
 
-	exit-code.to.exited, stdout, stderr
+	exit-code.wrap-to.exited, stdout, stderr
 
 -read-from-pipe-windows string(pipe HANDLE) summon, unsafe
 	res nat8 mut[] = ()

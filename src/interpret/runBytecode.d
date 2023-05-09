@@ -194,7 +194,7 @@ private void operation(alias cb)(
 	}
 	cb(stacks, cur);
 	version(TailRecursionAvailable) {
-		cur.fn(stacks.dataPtr, stacks.returnPtr, cur + 1);
+		return cur.fn(stacks.dataPtr, stacks.returnPtr, cur + 1);
 	} else {
 		setNext(stacks, cur);
 	}

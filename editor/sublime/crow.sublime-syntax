@@ -15,7 +15,7 @@ variables:
   unindented_line: '(?=^\S)'
   spec_use_keyword: 'bare|builtin|extern|global|no-doc|summon|trusted|unsafe'
 
-name: crow
+name: Crow
 file_extensions:
   - crow
 scope: source.crow

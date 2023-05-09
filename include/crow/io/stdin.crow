@@ -11,9 +11,10 @@ import
 	../misc: shared
 	../number: ==, <=>, nat8, nat64, to
 	../option: option
+	../private/bootstrap: todo
 	../range: ..
 	../string: as-string, string, strip
-	../private/bootstrap: todo
+	../version: is-windows
 	./print: out, print
 
 ###
@@ -22,17 +23,20 @@ If that comes from the user typing at the terminal, this will block until they h
 Result will not have leading or trailing whitespace.
 ###
 +read-stdin string^() summon
-	with : parallel
-		trusted
-			buffer nat8 mut-array = 0x2000 uninitialized-mut-array
-			# TODO: use a non-blocking API
-			bytes-read-or-err = stdin read buffer.begin-pointer, buffer.size
-			assert bytes-read-or-err >= 0
-			bytes-read nat64 = bytes-read-or-err to
-			if bytes-read >= buffer.size
-				todo
-			else
-				buffer[0 .. bytes-read].cast-immutable.as-string.strip,
+	if trusted is-windows
+		throw "TODO: Windows support"
+	else
+		with : parallel
+			trusted
+				buffer nat8 mut-array = 0x2000 uninitialized-mut-array
+				# TODO: use a non-blocking API
+				bytes-read-or-err = stdin read buffer.begin-pointer, buffer.size
+				assert bytes-read-or-err >= 0
+				bytes-read nat64 = bytes-read-or-err to
+				if bytes-read >= buffer.size
+					todo
+				else
+					buffer[0 .. bytes-read].cast-immutable.as-string.strip,
 
 ###
 Keep reading from stdin until `parse` returns a non-empty option.

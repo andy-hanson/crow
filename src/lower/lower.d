@@ -14,6 +14,7 @@ import lower.lowExprHelpers :
 	genConstantNat64,
 	genDerefGcPtr,
 	genDrop,
+	genDropSecond,
 	genEnumEq,
 	genEnumIntersect,
 	genEnumToIntegral,
@@ -68,6 +69,7 @@ import model.lowModel :
 	AllLowTypes,
 	ArrTypeAndConstantsLow,
 	asPtrGcPointee,
+	asPtrRawPointee,
 	ConcreteFunToLowFunIndex,
 	ExternLibraries,
 	ExternLibrary,
@@ -108,6 +110,7 @@ import model.model :
 	Program,
 	range,
 	VarKind;
+import model.typeLayout : isEmptyType;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only, only2;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
@@ -159,7 +162,7 @@ private LowProgram lowerInner(
 	ref ConcreteProgram a,
 ) {
 	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, allSymbols, a);
-	FullIndexMap!(LowVarIndex, LowVar) vars = getAllLowVars(alloc, allTypes.getLowTypeCtx, a.allVars);
+	immutable FullIndexMap!(LowVarIndex, LowVar) vars = getAllLowVars(alloc, allTypes.getLowTypeCtx, a.allVars);
 	AllLowFuns allFuns = getAllLowFuns(allTypes.allTypes, allTypes.getLowTypeCtx, configExtern, a, vars);
 	AllConstantsLow allConstants = convertAllConstants(allTypes.getLowTypeCtx, a.allConstants);
 	LowProgram res = LowProgram(
@@ -532,7 +535,7 @@ AllLowFuns getAllLowFuns(
 	ref GetLowTypeCtx getLowTypeCtx,
 	in ConfigExternPaths configExtern,
 	ref ConcreteProgram program,
-	in FullIndexMap!(LowVarIndex, LowVar) allVars,
+	in immutable FullIndexMap!(LowVarIndex, LowVar) allVars,
 ) {
 	MapBuilder!(ConcreteFun*, LowFunIndex) concreteFunToLowFunIndexBuilder;
 	ArrBuilder!LowFunCause lowFunCausesBuilder;
@@ -1158,13 +1161,17 @@ LowExprKind getCallSpecial(
 		(Constant x) =>
 			LowExprKind(x),
 		(ConcreteFunBody.CreateRecord) {
-			LowExpr[] args = getArgs(ctx, locals, a.args);
-			LowExprKind create = LowExprKind(LowExprKind.CreateRecord(args));
-			if (type.isA!(LowType.PtrGc)) {
-				LowExpr inner = LowExpr(asPtrGcPointee(type), range, create);
-				return getAllocExpr2(ctx, range, inner, type);
-			} else
-				return create;
+			if (isEmptyType(*ctx.allTypes, type))
+				return LowExprKind(constantZero);
+			else {
+				LowExpr[] args = getArgs(ctx, locals, a.args);
+				LowExprKind create = LowExprKind(LowExprKind.CreateRecord(args));
+				if (type.isA!(LowType.PtrGc)) {
+					LowExpr inner = LowExpr(asPtrGcPointee(type), range, create);
+					return getAllocExpr2(ctx, range, inner, type);
+				} else
+					return create;
+			}
 		},
 		(ConcreteFunBody.CreateUnion x) {
 			LowExpr arg = empty(a.args)
@@ -1329,9 +1336,15 @@ LowExprKind getCallBuiltinExpr(
 						return ExprPos.nonTail;
 				}
 			}();
-			return LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialBinary(kind, [
-				getArg(a.args[0], ExprPos.nonTail),
-				getArg(a.args[1], arg1Pos)])));
+			// Adding to pointer to empty type has no effect. (And some C compilers don't like it.)
+			return kind == LowExprKind.SpecialBinary.Kind.addPtrAndNat64
+				&& isEmptyType(*ctx.allTypes, asPtrRawPointee(p0))
+				? genDropSecond(
+					ctx.alloc, range, nextTempLocalIndex(ctx),
+					getArg(a.args[0], ExprPos.nonTail), getArg(a.args[1], ExprPos.nonTail))
+				: LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialBinary(kind, [
+					getArg(a.args[0], ExprPos.nonTail),
+					getArg(a.args[1], arg1Pos)])));
 		},
 		(LowExprKind.SpecialTernary.Kind kind) {
 			verify(a.args.length == 3);

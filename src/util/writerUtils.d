@@ -2,7 +2,7 @@ module util.writerUtils;
 
 @safe @nogc pure nothrow:
 
-import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, LineAndColumnGetter;
+import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, LineAndColumnGetter, PosKind;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : AllSymbols, Sym, writeSym, writeSymAndGetSize;
 import util.util : todo;
@@ -14,14 +14,14 @@ private void writeLineAndColumn(ref Writer writer, LineAndColumn lc) {
 	writer ~= lc.column + 1;
 }
 
-void writePos(ref Writer writer, in LineAndColumnGetter lc, Pos pos) {
-	writeLineAndColumn(writer, lineAndColumnAtPos(lc, pos));
+void writePos(ref Writer writer, in LineAndColumnGetter lc, Pos pos, PosKind kind) {
+	writeLineAndColumn(writer, lineAndColumnAtPos(lc, pos, kind));
 }
 
 void writeRangeWithinFile(scope ref Writer writer, in LineAndColumnGetter lc, RangeWithinFile range) {
-	writePos(writer, lc, range.start);
+	writePos(writer, lc, range.start, PosKind.startOfRange);
 	writer ~= '-';
-	writePos(writer, lc, range.end);
+	writePos(writer, lc, range.end, PosKind.endOfRange);
 }
 
 void showChar(scope ref Writer writer, char c) {

@@ -358,7 +358,7 @@ test
 	actual is "<p>It is:</p><div class=\"code-block\">foo</div><p>Got it?</p>"
 
 -html-escape string(a string)
-	a replace "<", "&lt;"
+	a replace-all "<", "&lt;"
 
 -comment-part union
 	text string

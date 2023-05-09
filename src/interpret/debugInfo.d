@@ -12,7 +12,7 @@ import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.lowModel : LowFunIndex, LowFunSource, LowProgram;
 import model.model : Program;
 import util.alloc.alloc : Alloc;
-import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos;
+import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, PosKind;
 import util.col.str : CStr;
 import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
@@ -119,7 +119,8 @@ private @trusted BacktraceEntry backtraceEntryFromSource(
 		FileIndex fileIndex = force(opFileIndex);
 		Path path = info.filesInfo.filePaths[fileIndex];
 		CStr filePath = pathToSafeCStrPreferRelative(alloc, info.allPaths, info.pathsInfo, path).ptr;
-		LineAndColumn lc = lineAndColumnAtPos(info.filesInfo.lineAndColumnGetters[fileIndex], source.pos);
+		LineAndColumn lc =
+			lineAndColumnAtPos(info.filesInfo.lineAndColumnGetters[fileIndex], source.pos, PosKind.startOfRange);
 		return BacktraceEntry(funName, filePath, lc.line + 1, 0);
 	} else
 		return BacktraceEntry(funName, "", 0, 0);

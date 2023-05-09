@@ -231,6 +231,8 @@ ref ConcreteStructBody body_(return scope ref ConcreteStruct a) =>
 
 TypeSize typeSize(in ConcreteStruct a) =>
 	lateGet(a.typeSize_);
+bool typeIsEmpty(in ConcreteType a) =>
+	a.reference == ReferenceKind.byVal && typeSize(*a.struct_).sizeBytes == 0;
 
 immutable(size_t[]) fieldOffsets(return ref ConcreteStruct a) =>
 	lateGet(a.fieldOffsets_);
