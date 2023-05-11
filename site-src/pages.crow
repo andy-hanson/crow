@@ -10,35 +10,16 @@ pages path-and-content[]^() summon
 	(index, download) ~~ tutorial-pages,
 
 tutorial-pages path-and-content[]() summon
-	() join for tutorial-dir : ("tutorial-old", "tutorial")::string[]
-		metas = tutorial-dir == "tutorial-old" ? old-tutorial-metas : new-tutorial-metas
-		title-lookup string[symbol] = for x : metas; x.key, x.title
-		for index : 0 .. metas.size
-			meta = metas[index]
-			next tutorial-meta? = unless index + 1 == metas.size
-				metas[index + 1],
-			content string = "site-src/{tutorial-dir}/{meta key}.html" read-file
-			tutorial-dir tutorial-template meta, metas, title-lookup, content, next
+	metas = tutorial-metas
+	title-lookup string[symbol] = for x : metas; x.key, x.title
+	for index : 0 .. metas.size
+		meta = metas[index]
+		next tutorial-meta? = unless index + 1 == metas.size
+			metas[index + 1],
+		content string = "site-src/tutorial/{meta key}.html" read-file
+		"tutorial" tutorial-template meta, metas, title-lookup, content, next
 
--old-tutorial-metas tutorial-meta[]()
-	"""index: hello, world!
-	if: functions, 'if', and locals
-	types: basic types
-	infer: type inference
-	option: optional values
-	collection: collections
-	record: records
-	enum: enums and flags
-	union: unions
-	fun: function values
-	future: futures and function references
-	template: templates
-	spec: specs
-	module: modules
-	extern: extern functions
-	next: where from here?""" parse-tutorial-metas
-
--new-tutorial-metas tutorial-meta[]()
+-tutorial-metas tutorial-meta[]()
 	"""index: Running crow programs
 	functions: Functions
 	local-variables: Local variables

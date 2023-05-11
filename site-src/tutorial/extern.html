@@ -135,8 +135,24 @@
 		you'll have to download and run it with <code>crow run ~/Downloads/regex.crow</code>.
 		<br />
 		This uses the <code>regex.h</code> library available on Linux.
-		For an example on Windows, see <code>libraries/SDL2/SDL.crow</code>from where you downloaded Crow.
+		For an example on Windows, see <code>libraries/SDL2/SDL.crow</code> from where you downloaded Crow.
 	</p>
+
+	<aside>
+		<h4>Specifying the library</h4>
+		<p>
+			<code>crow build</code> and <code>crow run</code> don't take linker options;
+			these are inferred from your code.
+			<br />
+			If the library needs to be linked to with <code>-lfoo</code>,
+			you could write <code>foo extern</code> instead of <code>c extern</code>.
+			<br />
+			For example, SDL functions are declared with <code>SDL2 extern</code>.
+			<br />
+			If that function is included in the compile, the library name gets added to the linker options.
+		</p>
+	</aside>
+
 </section>
 <section>
 	<h2>Extern types</h2>

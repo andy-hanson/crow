@@ -21,3 +21,34 @@
 			()
 	</crow-runnable>
 </section>
+<section>
+	<h2>Tests</h2>
+
+	<p>
+		You can write unit tests for code in <code class="keyword">test</code> blocks.
+		<br />
+		The block is expected to be of type <code>void</code>.
+		That means you'll need some other way to test functions returning futures.
+	</p>
+	<p>
+		All <code class="keyword">test</code> blocks in all imported files are included.
+		(The below example runs more than 1 test, becuase it picked up some tests in the standard library.)
+	</p>
+
+	<crow-runnable>
+		import
+			crow/test-util/test-runner: run-all-tests
+
+		main nat^(_ string[]) summon
+			run-all-tests
+			()
+
+		test
+			1::nat + 1 is 2
+			2::nat + 2 is 7
+	</crow-runnable>
+
+	<aside class="small">
+		This uses the <code class="fun">is</code> function from {{doc/test-util}}.
+	</aside>
+</section>
