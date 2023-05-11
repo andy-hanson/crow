@@ -5,6 +5,7 @@ import
 	crow/io/path: child-path, parent-path
 	crow/io/print: out, print
 	crow/test-util/test-runner: run-all-tests
+	crow/version: is-windows
 	./document: documentation
 	./pages: pages
 	./path-and-content: content, out-path, new, path-and-content
@@ -59,7 +60,11 @@ link record
 
 	font-paths <- "site-src/font" search-dir-recursive
 	font = font-paths to-links "site-src/"
-	other link[] = for x : ("bin/crow.wasm", "bin/crow.tar.xz", "crow-js/crow.js")::string[]
+	bundle = if trusted is-windows
+		"bin/crow.zip"
+	else
+		"bin/crow.tar.xz"
+	other link[] = for x : ("bin/crow.wasm", bundle, "crow-js/crow.js")::string[]
 		x, x
 	in-src-paths ~~ script ~~ font ~~ other,
 

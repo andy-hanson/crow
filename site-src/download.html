@@ -50,9 +50,11 @@
 	</p>
 
 	<div class="code-block">
-		cd %HOME%\Downloads
+		cd Downloads
 		<br />
-		unzip crow.zip
+		mkdir crow
+		<br />
+		tar --extract --file crow.zip --directory crow
 		<br />
 		.\crow\bin\crow.exe run crow\demo\hello
 	</div>

@@ -223,7 +223,7 @@ bin\crow.wasm: $(wasm_deps)
 bin\crow.zip: bin\crow.exe demo\* include\* libraries\*
 	mkdir bin\bin
 	copy bin\crow.exe bin\bin\crow.exe
-	powershell Compress-Archive -DestinationPath bin\crow.zip -Path bin\bin,demo,include,libraries -Force
+	powershell Compress-Archive -DestinationPath bin\crow.zip -Path bin\bin,demo,editor,include,libraries -Force
 	del bin\bin\crow.exe
 	rmdir bin\bin
 
@@ -245,3 +245,18 @@ prepare-site: bin\crow.exe bin\crow.wasm bin\crow.zip
 # TODO: This should be `bin\crow run site-src\serve.crow`, but currently Crow doesn't have a Windows server implementation
 serve: prepare-site
 	python -m http.server -d site
+
+# Only upload `crow.zip`. Everything else uploaded by 'GNUmakefile'.
+aws_upload_command = aws s3 sync site s3://crow-lang.org --exclude "*" --include "bin/crow.zip"
+
+confirm-upload-site:
+	$(aws_upload_command) --dryrun
+	@call <<CONFIRM.bat
+@set /p yesno="Make these changes to crow-lang.org? [y/n]"
+@if "%yesno%"=="y" goto end
+@exit 1
+:end
+<<
+
+upload-site: prepare-site confirm-upload-site
+	$(aws_upload_command)

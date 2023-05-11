@@ -1,7 +1,7 @@
 # This file is for Linux.
 # WARN: If editing this file, you might need to change NMakefile too.
 
-.PHONY: debug end-to-end-test end-to-end-test-overwrite serve prepare-site test unit-test
+.PHONY: confirm-upload-site debug end-to-end-test end-to-end-test-overwrite serve prepare-site test unit-test
 
 # WARN: Does not clean `dyncall` as that takes too long to restore
 # Also does not clean `node_modules` for the VSCode plugin
@@ -129,11 +129,12 @@ prepare-site: bin/crow bin/crow.wasm bin/crow.tar.xz
 serve: prepare-site
 	bin/crow run site-src/serve.crow
 
+# `crow.zip` uploaded by NMakefile
 aws_upload_command = aws s3 sync site s3://crow-lang.org --delete --exclude "crow.zip"
 
 confirm-upload-site:
 	$(aws_upload_command) --dryrun
-	@echo -n "Make these changes to crow-lang.org? [y/N] " && read ans && [ $${ans:-N} = y ]
+	@echo -n "Make these changes to crow-lang.org? [y/n] " && read ans && [ $${ans:-n} = y ]
 
 upload-site: prepare-site confirm-upload-site
 	$(aws_upload_command)
