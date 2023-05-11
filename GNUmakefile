@@ -129,8 +129,11 @@ prepare-site: bin/crow bin/crow.wasm bin/crow.tar.xz
 serve: prepare-site
 	bin/crow run site-src/serve.crow
 
-upload-site: prepare-site
-	aws s3 sync site s3://crow-lang.org --delete --exclude "crow.zip" --dryrun
-	@if [[ "$$(read -e -p 'Make these changes to crow-lang.org? [y/N]> '; echo $$REPLY)" == [Yy]* ]]; then\
-		aws s3 sync site s3://crow-lang.org --delete;\
-	fi
+aws_upload_command = aws s3 sync site s3://crow-lang.org --delete --exclude "crow.zip"
+
+confirm-upload-site:
+	$(aws_upload_command) --dryrun
+	@echo -n "Make these changes to crow-lang.org? [y/N] " && read ans && [ $${ans:-N} = y ]
+
+upload-site: prepare-site confirm-upload-site
+	$(aws_upload_command)
