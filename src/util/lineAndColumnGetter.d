@@ -59,11 +59,15 @@ enum PosKind { startOfRange, endOfRange }
 
 LineAndColumn lineAndColumnAtPos(in LineAndColumnGetter lc, Pos pos, PosKind kind) {
 	ushort line = lineAtPos(lc, pos);
-	if (kind == PosKind.endOfRange && lc.lineToPos[line] == pos && line != 0)
+	if (kind == PosKind.endOfRange && lc.lineToPos[line] == pos && line != 0) {
+		// Show end of range at the end of the previous line
 		line--;
+		pos--;
+	}
 	Pos lineStart = lc.lineToPos[line];
 	verify((pos >= lineStart && line == lc.lineToPos.length - 1) || pos <= lc.lineToPos[line + 1]);
 	uint nCharsIntoLine = pos - lineStart;
+	// Don't include a column for the '\r' in '\r\n'
 	if (lc.usesCRLF && line + 1 < lc.lineToPos.length && pos + 1 == lc.lineToPos[line + 1])
 		nCharsIntoLine--;
 	ubyte nTabs = lc.lineToNTabs[line];

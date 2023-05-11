@@ -34,7 +34,6 @@ import model.concreteModel :
 	purity,
 	ReferenceKind,
 	sizeOrPointerSizeBytes,
-	typeIsEmpty,
 	TypeSize;
 import model.constant : Constant, constantZero;
 import model.model :

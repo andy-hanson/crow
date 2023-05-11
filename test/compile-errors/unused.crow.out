@@ -18,14 +18,14 @@ test/compile-errors/unused.crow 19:5-19:6 local y is unused
 
 test/compile-errors/unused.crow 22:1-22:2 bar is unused
 
-test/compile-errors/unused.crow 25:1-27:3 r is unused
+test/compile-errors/unused.crow 25:1-27:1 r is unused
 
-test/compile-errors/unused.crow 28:1-30:3 u is unused
+test/compile-errors/unused.crow 28:1-30:1 u is unused
 
-test/compile-errors/unused.crow 31:1-33:3 a is unused
+test/compile-errors/unused.crow 31:1-33:1 a is unused
 
-test/compile-errors/unused.crow 34:1-36:3 e is unused
+test/compile-errors/unused.crow 34:1-36:1 e is unused
 
-test/compile-errors/unused.crow 37:1-39:3 f is unused
+test/compile-errors/unused.crow 37:1-39:1 f is unused
 
-test/compile-errors/unused.crow 40:1-41:17 s is unused
+test/compile-errors/unused.crow 40:1-41:15 s is unused

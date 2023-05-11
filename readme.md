@@ -12,20 +12,14 @@ For information about the language itself, visit the [website](https://crow-lang
 
 To work on Crow, you'll need these tools:
 
-* [`git`](https://git-scm.com): Used to get this repository
-* [`hg`](https://mercurial-scm.org): Used to clone the `dyncall` library
+* [`git`](https://git-scm.com): Used to get this repository.
+* [`hg`](https://mercurial-scm.org): Used to clone the `dyncall` library.
 * [`ldc`](https://github.com/ldc-developers/ldc#installation): Used to compile `bin/crow`.
 	- Don't use the Visual D installer as it uses an older compiler.
-	  Download the latest [release](https://github.com/ldc-developers/ldc/releases) instead.
+	Download the latest [release](https://github.com/ldc-developers/ldc/releases) instead.
 * [`node.js`](https://nodejs.org/): Used for tests of the WASM module
-
-Linux only:
-
-* [`libgccjit`](https://gcc.gnu.org/onlinedocs/jit) (`bin/crow` links to this)
-* [`libunwind`](https://www.nongnu.org/libunwind)
-
-Windows only:
-
+* Also install dependencies listed on the [download](https://crow-lang.org/download.html) page.
+* On Windows, use the "x64 Native Tools Command Prompt for VS 20__" (fill in the year) when running build commands.
 
 Then run:
 
@@ -35,7 +29,7 @@ cd crow
 make all
 ```
 
-This will build `bin/crow` (or `bin\crow.exe` on Windows), test, then serve the website on localhost.
+This will build `bin/crow` (or `bin\crow.exe` on Windows), test, then serve the website on `localhost`.
 
 
 # Testing
@@ -46,30 +40,23 @@ There are 2 kinds of tests:
 
 * Unit tests in `src/test`. `make unit-test` runs these.
 * End-to-end tests in the `test` directory. `make end-to-end-test` runs these.
-
-Most tests are end-to-end.
-These use the test runner `test/test.crow`, written in crow,
-which runs the comipler on the files in `test/compile-errors`, `test/parse-errors`, and `test/runnable`.
-Each test consists of a source file (ending in `.crow`) and output files that add various extensions,
-so a file `a.crow.stdout` would be an output of `a.crow`.
-The test runner will fail if the output is not exactly as in the file;
-if adding or changing tests, run `make end-to-end-test-overwrite`.
+	- If adding or changing tests, run `make end-to-end-test-overwrite`.
 
 
 # Debugging
 
-### Debugging the compiler
+### Debugging `crow` itself (compiler or interpreter)
 
 Use `make debug`.
 
-### Debugging crow code
+### Debugging Crow code
 
-Currently crow has no debugger of its own, so you'll have to compile to C.
+Currently, Crow has no debugger of its own, so you'll have to compile to C and debug that.
 By default, crow compiles the C code with debug symbols.
 
 For example:
 
-```
+```sh
 crow build a.crow
 gdb a
 rbreak throw
@@ -91,26 +78,3 @@ kcachegrind .
 ## Windows
 
 Haven't tested this yet.
-
-# Editing
-
-## Sublime Text
-
-To get syntax highlighting in Sublime Text, run the following from the directory containing this readme:
-
-```sh
-bash -llc 'ln -s `pwd`/editor/sublime/crow.sublime-syntax ~/.config/sublime-text/Packages/User/crow.sublime-syntax'
-```
-
-Or on Windows:
-
-```sh
-copy %CD%\editor\sublime\crow.sublime-syntax ^
-	"%USERPROFILE%\AppData\Roaming\Sublime Text\Packages\User\crow.sublime-syntax"
-```
-
-Then open a Crow file. In the lower-right corner, click "Plain text" and change it to "Crow".
-
-# Viewing documentation locally
-
-Run `make doc-server` and visit `http://localhost:8080/doc/index.html` in a browser.

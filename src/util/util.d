@@ -50,14 +50,14 @@ bool isMultipleOf(T)(T a, T b) {
 }
 
 void verify(immutable char* reason = null)(bool condition) {
-	version(assert) {
+	version (assert) {
 		if (!condition) {
 			static if (reason != null)
 				debugLog(reason, 0);
 			verifyFail();
 		}
 	}
-	version(WebAssembly) {
+	version (WebAssembly) {
 		if (!condition) {
 			static if (reason != null)
 				debugLog(reason, 0);
@@ -66,7 +66,7 @@ void verify(immutable char* reason = null)(bool condition) {
 	}
 }
 
-version(WebAssembly) {
+version (WebAssembly) {
 	extern(C) void verifyFail();
 }
 
@@ -82,7 +82,7 @@ void verifyEq(T)(T a, T b) {
 	verify(a == b);
 }
 
-version(WebAssembly) {
+version (WebAssembly) {
 	extern(C) void verifyFail();
 }
 else {

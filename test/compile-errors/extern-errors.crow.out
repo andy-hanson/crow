@@ -4,11 +4,11 @@ test/compile-errors/extern-errors.crow 5:5-5:13 extern type 'r' can't reference 
 
 test/compile-errors/extern-errors.crow 6:5-6:17 extern type 'r' can't reference non-extern type 'nat64[]'
 
-test/compile-errors/extern-errors.crow 8:1-10:3 'extern' record 'r2' is implicitly 'by-val'
+test/compile-errors/extern-errors.crow 8:1-10:1 'extern' record 'r2' is implicitly 'by-val'
 
-test/compile-errors/extern-errors.crow 11:1-13:3 'extern' record 'r3' is implicitly 'by-val'
+test/compile-errors/extern-errors.crow 11:1-13:1 'extern' record 'r3' is implicitly 'by-val'
 
-test/compile-errors/extern-errors.crow 14:1-16:3 a union can't be 'extern'
+test/compile-errors/extern-errors.crow 14:1-16:1 a union can't be 'extern'
 
 test/compile-errors/extern-errors.crow 17:1-17:2 expected 'extern' to be preceded by the library name
 
@@ -24,4 +24,4 @@ test/compile-errors/extern-errors.crow 27:1-27:2 'extern' function 'f' can't be 
 
 test/compile-errors/extern-errors.crow 32:1-32:2 'extern' function 'f' can't have specs
 
-test/compile-errors/extern-errors.crow 42:1-42:28 'extern' conflicts with 'builtin'
+test/compile-errors/extern-errors.crow 42:1-42:26 'extern' conflicts with 'builtin'

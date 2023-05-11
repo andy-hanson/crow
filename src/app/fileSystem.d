@@ -112,8 +112,6 @@ ExitCode withPathOrTemp(Sym extension)(
 	}
 }
 
-extern(C) int rand_s(uint* randomValue);
-
 private @trusted ubyte[8] getRandomBytes() {
 	version (Windows) {
 		uint v0, v1;
@@ -131,10 +129,14 @@ private @trusted ubyte[8] getRandomBytes() {
 	}
 }
 
-ubyte[4] bytesOfUint(uint a) =>
+version (Windows) {
+	private extern(C) int rand_s(uint* randomValue);
+}
+
+private ubyte[4] bytesOfUint(uint a) =>
 	[cast(ubyte) (a >> 24), cast(ubyte) (a >> 16), cast(ubyte) (a >> 8), cast(ubyte) a];
 
-T[size0 + size1] concat(T, size_t size0, size_t size1)(in T[size0] a, in T[size1] b) {
+private T[size0 + size1] concat(T, size_t size0, size_t size1)(in T[size0] a, in T[size1] b) {
 	T[size0 + size1] res;
 	foreach (size_t i; 0 .. size0)
 		res[i] = a[i];
@@ -277,7 +279,7 @@ private @system FILE* tryOpenFileForWrite(in AllPaths allPaths, in Path path) {
 
 @trusted Path getPathToThisExecutable(ref AllPaths allPaths) {
 	TempStrForPath res = void;
-	version(Windows) {
+	version (Windows) {
 		HMODULE mod = GetModuleHandle(null);
 		verify(mod != null);
 		DWORD size = GetModuleFileNameA(mod, res.ptr, res.length);

@@ -1,5 +1,5 @@
 exit code: 0
 stderr:
-test/compile-errors/extern-warnings.crow 4:1-5:3 'bare' is redundant given 'extern'
+test/compile-errors/extern-warnings.crow 4:1-5:1 'bare' is redundant given 'extern'
 
-test/compile-errors/extern-warnings.crow 6:1-6:28 'unsafe' is redundant given 'extern'
+test/compile-errors/extern-warnings.crow 6:1-6:26 'unsafe' is redundant given 'extern'

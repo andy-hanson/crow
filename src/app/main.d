@@ -42,7 +42,7 @@ import lib.compiler :
 	justTypeCheck;
 import model.diag : isEmpty, isFatal;
 import model.lowModel : ExternLibrary;
-version(Test) {
+version (Test) {
 	import test.test : test;
 }
 import util.alloc.alloc : Alloc;
@@ -105,7 +105,7 @@ static assert(divRound(15, 10) == 2);
 static assert(divRound(14, 10) == 1);
 
 @trusted ulong getTimeNanos() {
-	version(Windows) {
+	version (Windows) {
 		return (cast(ulong) GetTickCount()) * 1_000_000;
 	} else {
 		timespec time;
@@ -184,7 +184,7 @@ ExitCode go(ref Alloc alloc, ref Perf perf, ref AllSymbols allSymbols, ref AllPa
 						}
 					})),
 		(in Command.Test it) {
-			version(Test) {
+			version (Test) {
 				return test(alloc, it.name);
 			} else
 				return printErr(safeCStr!"Did not compile with tests");
@@ -209,17 +209,32 @@ SafeCStr[] getAllArgs(
 	static immutable string date = import("date.txt")[0 .. "2020-02-02".length];
 	static immutable string commitHash = import("commit-hash.txt")[0 .. 8];
 	printf("%.*s (%.*s)", cast(int) date.length, date.ptr, cast(int) commitHash.length, commitHash.ptr);
-	version(Debug) {
+	version (Debug) {
 		printf(", debug build");
 	}
-	version(assert) {} else {
+	version (assert) {} else {
 		printf(", assertions disabled");
 	}
-	version(TailRecursionAvailable) {} else {
+	version (TailRecursionAvailable) {} else {
 		printf(", no tail calls");
 	}
-	printf("\n");
+	version (GccJitEnabled) {} else {
+		printf(", does not support '--jit'");
+	}
+	printf(", built with %s\n", dCompilerName);
 	return ExitCode.ok;
+}
+
+immutable(char*) dCompilerName() {
+	version (DigitalMars) {
+		return "DMD";
+	} else version (GNU) {
+		return "GDC";
+	} else version (LDC) {
+		return "LDC";
+	} else {
+		static assert(false);
+	}
 }
 
 ExitCode runDocument(

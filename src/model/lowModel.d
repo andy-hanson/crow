@@ -21,7 +21,7 @@ import util.col.map : Map;
 import util.col.fullIndexMap : FullIndexMap;
 import util.col.str : SafeCStr;
 import util.hash : Hasher, hashSizeT, hashUint;
-import util.opt : has, none, Opt, some;
+import util.opt : has, none, Opt;
 import util.path : Path;
 import util.sourceRange : FileAndRange;
 import util.sym : Sym, sym;

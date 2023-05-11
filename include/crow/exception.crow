@@ -1,6 +1,6 @@
 no-std
 import
-	./bool: ||, bool
+	./bool: ||, bool, new, true
 	./col/array: +, begin, iterate, next, size, slice
 	./col/collection: find-index, for-loop, join, starts-with, subscript
 	./col/list: ~=, build, iterate
@@ -61,11 +61,22 @@ This is like `finally`, but does not run in the successful case.
 	"" join for x : kept-entries
 		"\n\tat {x}"
 
+-translate-name string(a string)
+	if a == "main_0"
+		"main"
+	else
+		a
+
 -is-runtime-function-name bool(a string)
-	(a starts-with "then@") || a == "invoke-action" || a == "add-first-task.lambda0"
+	if a starts-with "then@"
+		true
+	elif a == "invoke-action" || a == "invoke__saction"
+		true
+	elif a == "add-first-task.lambda0" || a == "add__sfirst__stask__lambda0"
+		true
 
 -to string(a backtrace-entry)
-	name string = trusted a.function-name to
+	name string = trusted a.function-name.to translate-name
 	path string = trusted a.file-path to
 	if name is-empty
 		"<<unknown>>"

@@ -1,33 +1,108 @@
 <main>
 	<h1>download</h1>
 
-	<ul class="bullets">
-		<li>
-			<a href="./bin/crow.tar.xz">
-				<crow-icon icon="download"></crow-icon> Linux x64
-			</a>
-		</li>
-	</ul>
+	<h2>Linux</h2>
 
-	If you want it ported to a different system, just <a href="https://github.com/andy-hanson/crow/issues">ask</a>.
-
-	<p>After downloading, test it out with:</p>
+	<a href="./bin/crow.tar.xz">
+		<crow-icon icon="download"></crow-icon> <code>crow.tar.xz</code>
+	</a>
+	<p>
+		Crow needs <code>libgccjit</code> version 12+ and <code>libunwind</code>.
+		On Ubuntu based systems: <code>apt install libgccjit-12-dev libunwind-dev</code>
+		<br />
+		Then download the above and run the below in a terminal:
+	</p>
 
 	<div class="code-block">
-		tar --extract --xz --file ~/Downloads/crow.tar.xz
+		cd ~/Downloads
 		<br />
-		./crow/bin/crow run crow/demo/hello
+		tar --extract --xz --file crow.tar.xz
+		<br />
+		./crow/bin/crow run ./crow/demo/hello
 	</div>
 
 	<p>This should print <code>Hello, world!</code>.</p>
 
-	<p>If there was an error, make sure <code>libgccjit</code> is installed on your system.</p>
+	<p>
+		To avoid having to type out the full path to <code>crow</code>:
+		<br />
+		<code>sudo ln --force --symbolic ~/Downloads/crow/bin/crow /usr/local/bin/crow</code>
+	</p>
 
-	<p>To install <code>crow</code> globally:</p>
+	<aside>
+		<h4>Additional dependencies</h4>
+		<p>
+			Some of the programs in <code>crow/demo</code> require additional dependencies.
+			<br />
+			On Ubuntu based systems:
+			<code>apt install libsdl2-dev libsndfile1-dev libsodium-dev libsqlite3-dev</code>
+		</p>
+	</aside>
+
+	<h2>Windows</h2>
+
+	<a href="./bin/crow.zip">
+		<crow-icon icon="download"></crow-icon> <code>crow.zip</code>
+	</a>
+
+	<p>
+		Download the above and run the below in a terminal:
+	</p>
 
 	<div class="code-block">
-		sudo ln --force --symbolic $PWD/crow/bin/crow /usr/local/bin/crow
+		cd %HOME%\Downloads
 		<br />
-		crow run crow/demo/hello
+		unzip crow.zip
+		<br />
+		.\crow\bin\crow.exe run crow\demo\hello
 	</div>
+
+	<p>
+		This should print <code>Hello, world!</code>.
+	</p>
+
+	<p>
+		To avoid having to type out the full path to <code>crow</code>:
+		edit the <code>PATH</code> environment variable to include the <code>crow</code> directory.
+	</p>
+
+	<aside class="danger">
+		<h4>Builds require native tools</h4>
+		<p>
+			To use <code>crow build</code>, you need to run it in the
+			"x64 Native Tools Command Prompt for VS 20__" (fill in the year).
+			<br />
+			<code>crow run</code> should work in any terminal.
+		</p>
+	</aside>
+
+	<h2>Other systems</h2>
+	<p>
+		If you want it ported to a different system, just <a href="https://github.com/andy-hanson/crow/issues">ask</a>.
+	</p>
+
+	<h2>Sublime Text</h2>
+	<p>
+		Crow comes with a syntax definition for Sublime Text. To install it:
+	</p>
+	<ul class="bullets">
+		<li>
+			Linux:
+			<code>
+				bash -llc 'ln -s `pwd`/crow/editor/sublime/crow.sublime-syntax
+				~/.config/sublime-text/Packages/User/crow.sublime-syntax'
+			</code>
+		</li>
+		<li>
+			Windows:
+			<code>
+				copy %CD%\crow\editor\sublime\crow.sublime-syntax
+				"%USERPROFILE%\AppData\Roaming\Sublime Text\Packages\User\crow.sublime-syntax"
+			</code>
+		</li>
+	</ul>
+	<p>
+		Then restart Sublime Text and open a Crow file.
+		In the lower-right corner, click "Plain text" and change it to "Crow".
+	</p>
 </main>

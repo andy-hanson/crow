@@ -193,7 +193,7 @@ private void operation(alias cb)(
 		debugLog(__traits(identifier, cb));
 	}
 	cb(stacks, cur);
-	version(TailRecursionAvailable) {
+	version (TailRecursionAvailable) {
 		return cur.fn(stacks.dataPtr, stacks.returnPtr, cur + 1);
 	} else {
 		setNext(stacks, cur);
