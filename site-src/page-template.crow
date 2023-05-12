@@ -37,8 +37,13 @@ page-template path-and-content(path string, title string, content string)
 					</a>
 				</li>
 				<li>
+					<a href="https://github.com/andy-hanson/crow/issues">
+						bugs<crow-icon icon="external-link"></crow-icon>
+					</a>
+				</li>
+				<li>
 					<a href="https://github.com/andy-hanson/crow">
-						repository<crow-icon icon="external-link"></crow-icon>
+						source<crow-icon icon="external-link"></crow-icon>
 					</a>
 				</li>
 			</ul>

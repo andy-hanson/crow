@@ -105,6 +105,19 @@
 		<br />
 		If there were multiple type arguments, this would look like <code>(nat, bool) by-name</code>.
 	</p>
+	<p>
+		Type templates can be chained without parentheses. Each suffix applies from left to right.
+		<code class="struct">nat?[]</code> is a <code class="struct">list</code> of
+		<code class="struct">option</code>al <code class="struct">nat</code>s,
+		while <code class="struct">nat[]?</code> is an <code class="struct">option</code>al
+		<code class="struct">list</code> of <code class="struct">nat</code>s.
+	</p>
+	<p>
+		The purity of type arguments affects the purity of the type.
+		So even though <code class="struct">list</code> is <code class="keyword">data</code>,
+		<code class="struct">string-builder[]</code> is <code class="keyword">mut</code> because
+		<code class="struct">string-builder</code> is.
+	</p>
 
 	<aside>
 		<h4>Special types</h4>
@@ -162,14 +175,6 @@
 			</tbody>
 		</table>
 	</aside>
-
-	<p>
-		Type templates can be chained without parentheses. Each suffix applies from left to right.
-		<code class="struct">nat?[]</code> is a <code class="struct">list</code> of
-		<code class="struct">option</code>al <code class="struct">nat</code>s,
-		while <code class="struct">nat[]?</code> is an <code class="struct">option</code>al
-		<code class="struct">list</code> of <code class="struct">nat</code>s.
-	</p>
 </section>
 <section>
 	<h2>Templates are safe</h2>

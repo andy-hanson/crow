@@ -1,5 +1,0 @@
--r record mut
-	-r0 .mut nat
-
-f void()
-	()

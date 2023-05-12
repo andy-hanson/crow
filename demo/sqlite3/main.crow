@@ -16,7 +16,7 @@ main nat^(_ string[]) summon
 			quantity = (nat parse row["quantity"]!)!
 			name, quantity
 
-		out print ("\n" join for row : rows; "{row a} × {row b}")
+		out print ("\n" join for row : rows; "{row a}: {row b}")
 		db run "drop table foo"
 	file-name remove-file
 	()
