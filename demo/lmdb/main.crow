@@ -49,17 +49,17 @@ main nat^(args string[]) summon
 		1,
 
 -usage string()
-	# TODO: Use a """ string
-	a = "Usage: crow run db <get | set | stat> --db-path <db file path> --db-name <db name> --key <key> --value <value>"
+	"""
+Usage: crow run demo/lmdb/main <get | set | stat> --db-path <file> --db-name <name> --key <key> --value <value>
 
-	b = "Creates the DB file if it does not yet exist."
-	c = "The file contains multiple named sub-dbs."
-	d = "Each sub-db is a map from keys to values."
+Creates the DB file if it does not yet exist.
+The file contains multiple named sub-dbs.
+Each sub-db is a map from keys to values.
 
-	e = "Example:"
-	f = "	crow run db -- set --db-path foo.db --db-name capitals --key indiana --value indianapolis"
-	g = "	crow run db -- get --db-path foo.db --db-name capitals --key indiana"
-	"{a}\n{b}\n{c}\n{d}\n{e}\n{f}\n{g}\n"
+Example:
+	crow run demo/lmdb/main -- set --db-path foo.db --db-name capitals --key indiana --value indianapolis
+	crow run demo/lmdb/main -- get --db-path foo.db --db-name capitals --key indiana
+"""
 
 -parse-command_name command?(a string)
 	if a == "get"

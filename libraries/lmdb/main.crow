@@ -5,20 +5,10 @@ For the raw library, import from `lmdb/headers` instead of `lmdb`.
 ###
 
 import
-	crow/c-types: err-t, u-int
+	crow/c-types: err-t
 	crow/io/file: make-directory, path-exists
 	crow/serialize: from-bytes, serialize, to-4-bytes, to-8-bytes
-	./headers:
-		MDB_BAD_DBI, MDB_BAD_RSLOT, MDB_BAD_TXN, MDB_BAD_VALSIZE, MDB_CORRUPTED, MDB_CREATE,
-		MDB_cursor, mdb_cursor_close, MDB_CURSOR_FULL, mdb_cursor_get, mdb_cursor_open, MDB_dbi,
-		mdb_dbi_close, mdb_dbi_open, MDB_DBS_FULL, MDB_env, mdb_env_close, mdb_env_create,
-		mdb_env_open, mdb_env_set_mapsize, mdb_env_set_maxdbs, MDB_FIRST, mdb_get, MDB_GET_CURRENT,
-		MDB_INCOMPATIBLE, MDB_INTEGERKEY, MDB_INVALID, MDB_KEYEXIST, MDB_MAP_FULL, MDB_MAP_RESIZED,
-		MDB_NEXT, MDB_NOOVERWRITE, MDB_NOTFOUND, MDB_PAGE_FULL, MDB_PAGE_NOTFOUND, MDB_PANIC,
-		mdb_put, MDB_RDONLY, MDB_READERS_FULL, mdb_stat, MDB_SUCCESS, MDB_TLS_FULL, MDB_txn,
-		mdb_txn_abort, mdb_txn_begin, mdb_txn_commit, MDB_TXN_FULL, MDB_val, MDB_VERSION_MISMATCH,
-		ms_branch_pages, ms_depth, ms_entries, ms_leaf_pages, ms_overflow_pages, ms_psize, mv_data,
-		mv_size, new
+	./headers
 
 region env
 
@@ -42,7 +32,7 @@ with-block[t] t^(options open-lmdb-env, f act t^(lmdb-env)) summon, t shared
 	env mut MDB_env mut* = null
 	(&env).mdb_env_create check-lmdb-error
 	env mdb_env_set_maxdbs 50 check-lmdb-error
-	mapsize = 1024 * 1024 * 100000
+	mapsize nat64 = 1024 * 1024 * 100000
 	env mdb_env_set_mapsize mapsize check-lmdb-error
 
 	db-dir = options db-dir
@@ -51,7 +41,7 @@ with-block[t] t^(options open-lmdb-env, f act t^(lmdb-env)) summon, t shared
 		db-dir make-directory
 
 	err = env mdb_env_open db-dir.to, 0, 0o666
-	unless err == 0
+	unless err == MDB_SUCCESS
 		env mdb_env_close
 		err check-lmdb-error
 	env,
@@ -68,17 +58,17 @@ Don't implement this spec for other types, since LMDB really only supports a few
 ###
 lmdb-key[k] spec k key
 	# NOTE: Parameter is a dummy, don't actually use it
-	lmdb-key-flags u-int(_ k)
+	lmdb-key-flags mdb-database-flags(_ k)
 	# Don't use `serialize`, because lmdb expects integers to be fixed size
 	to-lmdb-key nat8[](key k)
 	from-lmdb-key k(a nat8[])
 
-lmdb-key-flags u-int(_ nat64)
+lmdb-key-flags mdb-database-flags(_ nat64)
 	MDB_INTEGERKEY
-lmdb-key-flags u-int(_ nat32)
+lmdb-key-flags mdb-database-flags(_ nat32)
 	MDB_INTEGERKEY
-lmdb-key-flags u-int(_ string)
-	0
+lmdb-key-flags mdb-database-flags(_ string)
+	()
 
 to-lmdb-key nat8[](key nat64)
 	key to-8-bytes
@@ -117,7 +107,7 @@ with-block[t, k, v] t^(
 
 -open-db[k, v] (k, v) lmdb-db(a (k, v) database) summon, unsafe, k lmdb-key, v serialize
 	transaction mut MDB_txn mut* = null
-	a.env.env mdb_txn_begin null, 0, &transaction check-lmdb-error
+	a.env.env mdb_txn_begin null, (), &transaction check-lmdb-error
 
 	dbi mut MDB_dbi = zeroed
 	mdb-flags = MDB_CREATE | zeroed::k.lmdb-key-flags
@@ -167,9 +157,9 @@ abortable-write-transaction record mut
 abortable-write-transaction abortable-write-transaction(env lmdb-env)
 	env,
 with-block[t] t(a abortable-write-transaction, f act (t, transaction-result)(lmdb-txn)) summon
-	a.env with-transaction 0, f
+	a.env with-transaction (), f
 
--with-transaction[t] t(env lmdb-env, mdb-flags u-int, f act (t, transaction-result)(lmdb-txn)) summon
+-with-transaction[t] t(env lmdb-env, mdb-flags mdb-environment-flags, f act (t, transaction-result)(lmdb-txn)) summon
 	trusted
 		transaction mut MDB_txn mut* = null
 		env.env mdb_txn_begin null, mdb-flags, &transaction check-lmdb-error
@@ -207,7 +197,7 @@ Associates the value with the key.
 This may add the key or overwrite the value if the key is already in the database.
 ###
 set[k, v] void(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lmdb-key, v serialize
-	txn put-inner db, key, value, 0 check-lmdb-error
+	txn put-inner db, key, value, () check-lmdb-error
 
 # Like `set`, but throws if `key` is already in the `db`.
 add[k, v] void(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lmdb-key, v serialize
@@ -224,12 +214,12 @@ try-add[k, v] bool(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lm
 		err check-lmdb-error
 		true
 
--put-inner[k, v] err-t(
+-put-inner[k, v] mdb-error(
 	txn lmdb-txn,
 	db (k, v) lmdb-db,
 	key k,
 	value v,
-	mdb-flags u-int,
+	mdb-flags mdb-write-flags,
 ) summon, k lmdb-key, v serialize
 	trusted
 		key-val = key.to-lmdb-key val-of-bytes
@@ -376,50 +366,5 @@ zip[out, k, v0, v1] out[](
 -bytes-of-val nat8[](a MDB_val) unsafe
 	a.mv_data .. a.mv_data + a.mv_size as-list
 
--check-lmdb-error void(a err-t)
-	assert a == MDB_SUCCESS : "LMDB error code: {a} ({a error-name})"
-
--error-name string(a err-t)
-	# TODO: convert to enum then enum to string
-	if a == MDB_KEYEXIST
-		"MDB_KEYEXIST"
-	elif a == MDB_NOTFOUND
-		"MDB_NOTFOUND"
-	elif a == MDB_PAGE_NOTFOUND
-		"MDB_PAGE_NOTFOUND"
-	elif a == MDB_CORRUPTED
-		"MDB_CORRUPTED"
-	elif a == MDB_PANIC
-		"MDB_PANIC"
-	elif a == MDB_VERSION_MISMATCH
-		"MDB_VERSION_MISMATCH"
-	elif a == MDB_INVALID
-		"MDB_INVALID"
-	elif a == MDB_MAP_FULL
-		"MDB_MAP_FULL"
-	elif a == MDB_DBS_FULL
-		"MDB_DBS_FULL"
-	elif a == MDB_READERS_FULL
-		"MDB_READERS_FULL"
-	elif a == MDB_TLS_FULL
-		"MDB_TLS_FULL"
-	elif a == MDB_TXN_FULL
-		"MDB_txn-full"
-	elif a == MDB_CURSOR_FULL
-		"MDB_CURSOR_FULL"
-	elif a == MDB_PAGE_FULL
-		"MDB_PAGE_FULL"
-	elif a == MDB_MAP_RESIZED
-		"MDB_MAP_RESIZED"
-	elif a == MDB_INCOMPATIBLE
-		"MDB_INCOMPATIBLE"
-	elif a == MDB_BAD_RSLOT
-		"MDB_BAD_RSLOT"
-	elif a == MDB_BAD_TXN
-		"MDB_BAD_TXN"
-	elif a == MDB_BAD_VALSIZE
-		"MDB_BAD_VALSIZE"
-	elif a == MDB_BAD_DBI
-		"MDB_BAD_DBI"
-	else
-		"{a}"
+-check-lmdb-error void(a mdb-error)
+	assert a == MDB_SUCCESS : "LMDB error code: {a} ({a.to::err-t})"

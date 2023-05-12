@@ -10,36 +10,41 @@ MDB_val record mut extern
 	mv_size size_t
 	mv_data any-mut-pointer
 
-mdb_env_create err-t(env MDB_env mut* mut*) summon, lmdb extern
-mdb_env_open err-t(
+mdb_env_create mdb-error(env MDB_env mut* mut*) summon, lmdb extern
+mdb_env_open mdb-error(
 	env MDB_env mut*,
 	path c-string,
 	flats c-int,
 	mode mode_t,
 ) summon, lmdb extern
 mdb_env_close void(env MDB_env mut*) summon, lmdb extern
-mdb_env_set_mapsize err-t(env MDB_env mut*, size size_t) summon, lmdb extern
-mdb_env_set_maxdbs err-t(env MDB_env mut*, dbs u-int) summon, lmdb extern
+mdb_env_set_mapsize mdb-error(env MDB_env mut*, size size_t) summon, lmdb extern
+mdb_env_set_maxdbs mdb-error(env MDB_env mut*, dbs u-int) summon, lmdb extern
 
 MDB_txn extern
-mdb_txn_begin err-t(
+mdb_txn_begin mdb-error(
 	env MDB_env mut*,
 	parent MDB_txn mut*,
-	mdb-flags u-int,
+	mdb-flags mdb-environment-flags,
 	txn MDB_txn mut* mut*,
 ) summon, lmdb extern
 mdb_txn_abort void(txn MDB_txn mut*) summon, lmdb extern
-mdb_txn_commit err-t(txn MDB_txn mut*) summon, lmdb extern
-mdb_dbi_open err-t(txn MDB_txn mut*, name c-string, mdb-flags u-int, dbi MDB_dbi mut*) summon, lmdb extern
+mdb_txn_commit mdb-error(txn MDB_txn mut*) summon, lmdb extern
+mdb_dbi_open mdb-error(
+	txn MDB_txn mut*,
+	name c-string,
+	mdb-flags mdb-database-flags,
+	dbi MDB_dbi mut*,
+) summon, lmdb extern
 mdb_dbi_close void(env MDB_env mut*, dbi MDB_dbi) summon, lmdb extern
 
-mdb_get err-t(txn MDB_txn mut*, dbi MDB_dbi, key MDB_val*, value MDB_val mut*) summon, lmdb extern
-mdb_put err-t(
+mdb_get mdb-error(txn MDB_txn mut*, dbi MDB_dbi, key MDB_val*, value MDB_val mut*) summon, lmdb extern
+mdb_put mdb-error(
 	txn MDB_txn mut*,
 	dbi MDB_dbi,
 	key MDB_val*,
 	value MDB_val*,
-	mdb-flags u-int,
+	mdb-flags mdb-write-flags,
 ) summon, lmdb extern
 
 mdb_stat record extern
@@ -51,171 +56,98 @@ mdb_stat record extern
 	ms_entries size_t
 new mdb_stat()
 	0, 0, 0, 0, 0, 0
-mdb_stat err-t(txn MDB_txn mut*, dbi MDB_dbi, stat mdb_stat mut*) summon, lmdb extern
+mdb_stat mdb-error(txn MDB_txn mut*, dbi MDB_dbi, stat mdb_stat mut*) summon, lmdb extern
 
 MDB_cursor extern
-mdb_cursor_open err-t(txn MDB_txn mut*, dbi MDB_dbi, cursor MDB_cursor mut* mut*) summon, lmdb extern
+mdb_cursor_open mdb-error(txn MDB_txn mut*, dbi MDB_dbi, cursor MDB_cursor mut* mut*) summon, lmdb extern
 mdb_cursor_close void(cursor MDB_cursor mut*) summon, lmdb extern
-mdb_cursor_get err-t(
+mdb_cursor_get mdb-error(
 	cursor MDB_cursor mut*,
 	key MDB_val mut*,
 	value MDB_val mut*,
 	op MDB_cursor_op,
 ) summon, lmdb extern
-mdb_cursor_put err-t(
+mdb_cursor_put mdb-error(
 	cursor MDB_cursor mut*,
 	key MDB_val*,
 	value MDB_val*,
 	mdb-flags u-int,
 ) summon, lmdb extern
 
-region MDB_cursor_op
+MDB_cursor_op enum(c-int) extern
+	MDB_FIRST
+	MDB_FIRST_DUP
+	MDB_GET_BOTH
+	MDB_GET_BOTH_RANGE
+	MDB_GET_CURRENT
+	MDB_GET_MULTIPLE
+	MDB_LAST
+	MDB_LAST_DUP
+	MDB_NEXT
+	MDB_NEXT_DUP
+	MDB_NEXT_MULTIPLE
+	MDB_NEXT_NODUP
+	MDB_PREV
+	MDB_PREV_DUP
+	MDB_PREV_NODUP
+	MDB_SET
+	MDB_SET_KEY
+	MDB_SET_RANGE
+	MDB_PREV_MULTIPLE
 
-MDB_cursor_op alias
-	c-int
+mdb-environment-flags flags(u-int) extern
+	MDB_FIXEDMAP = 0x01
+	MDB_NOSUBDIR = 0x4000
+	MDB_NOSYNC = 0x10000
+	MDB_RDONLY = 0x20000
+	MDB_NOMETASYNC = 0x40000
+	MDB_WRITEMAP = 0x80000
+	MDB_MAPASYNC = 0x100000
+	MDB_NOTLS = 0x200000
+	MDB_NOLOCK = 0x400000
+	MDB_NORDAHEAD = 0x800000
+	MDB_NOMEMINIT = 0x1000000
 
-MDB_FIRST MDB_cursor_op()
-	0
-MDB_FIRST_DUP MDB_cursor_op()
-	1
-MDB_GET_BOTH MDB_cursor_op()
-	2
-MDB_GET_BOTH_RANGE MDB_cursor_op()
-	3
-MDB_GET_CURRENT MDB_cursor_op()
-	4
-MDB_GET_MULTIPLE MDB_cursor_op()
-	5
-MDB_LAST MDB_cursor_op()
-	6
-MDB_LAST_DUP MDB_cursor_op()
-	7
-MDB_NEXT MDB_cursor_op()
-	8
-MDB_NEXT_DUP MDB_cursor_op()
-	9
-MDB_NEXT_MULTIPLE MDB_cursor_op()
-	10
-MDB_NEXT_NODUP MDB_cursor_op()
-	11
-MDB_PREV MDB_cursor_op()
-	12
-MDB_PREV_DUP MDB_cursor_op()
-	13
-MDB_PREV_NODUP MDB_cursor_op()
-	14
-MDB_SET MDB_cursor_op()
-	15
-MDB_SET_KEY MDB_cursor_op()
-	16
-MDB_SET_RANGE MDB_cursor_op()
-	17
-MDB_PREV_MULTIPLE MDB_cursor_op()
-	18
+mdb-database-flags flags(u-int) extern
+	MDB_REVERSEKEY = 0x02
+	MDB_DUPSORT = 0x04
+	MDB_INTEGERKEY = 0x08
+	MDB_DUPFIXED = 0x10
+	MDB_INTEGERDUP = 0x20
+	MDB_REVERSEDUP = 0x40
+	MDB_CREATE = 0x40000
 
+mdb-error enum(err-t) extern
+	MDB_SUCCESS = 0
+	MDB_KEYEXIST = -30799
+	MDB_NOTFOUND = -30798
+	MDB_PAGE_NOTFOUND = -30797
+	MDB_CORRUPTED = -30796
+	MDB_PANIC = -30795
+	MDB_VERSION_MISMATCH = -30794
+	MDB_INVALID = -30793
+	MDB_MAP_FULL = -30792
+	MDB_DBS_FULL = -30791
+	MDB_READERS_FULL = -30790
+	MDB_TLS_FULL = -30789
+	MDB_TXN_FULL = -30788
+	MDB_CURSOR_FULL = -30787
+	MDB_PAGE_FULL = -30786
+	MDB_MAP_RESIZED = -30785
+	MDB_INCOMPATIBLE = -30784
+	MDB_BAD_RSLOT = -30783
+	MDB_BAD_TXN = -30782
+	MDB_BAD_VALSIZE = -30781
+	MDB_BAD_DBI = -30780
 
-region environment flags
-
-MDB_FIXEDMAP u-int()
-	0x01
-MDB_NOSUBDIR u-int()
-	0x4000
-MDB_NOSYNC u-int()
-	0x10000
-MDB_RDONLY u-int()
-	0x20000
-MDB_NOMETASYNC u-int()
-	0x40000
-MDB_WRITEMAP u-int()
-	0x80000
-MDB_MAPASYNC u-int()
-	0x100000
-MDB_NOTLS u-int()
-	0x200000
-MDB_NOLOCK u-int()
-	0x400000
-MDB_NORDAHEAD u-int()
-	0x800000
-MDB_NOMEMINIT u-int()
-	0x1000000
-
-region database flags
-
-MDB_REVERSEKEY u-int()
-	0x02
-MDB_DUPSORT u-int()
-	0x04
-MDB_INTEGERKEY u-int()
-	0x08
-MDB_DUPFIXED u-int()
-	0x10
-MDB_INTEGERDUP u-int()
-	0x20
-MDB_REVERSEDUP u-int()
-	0x40
-MDB_CREATE u-int()
-	0x40000
-
-region errors
-
-MDB_SUCCESS err-t()
-	0
-MDB_KEYEXIST err-t()
-	-30799
-MDB_NOTFOUND err-t()
-	-30798
-MDB_PAGE_NOTFOUND err-t()
-	-30797
-MDB_CORRUPTED err-t()
-	-30796
-MDB_PANIC err-t()
-	-30795
-MDB_VERSION_MISMATCH err-t()
-	-30794
-MDB_INVALID err-t()
-	-30793
-MDB_MAP_FULL err-t()
-	-30792
-MDB_DBS_FULL err-t()
-	-30791
-MDB_READERS_FULL err-t()
-	-30790
-MDB_TLS_FULL err-t()
-	-30789
-MDB_TXN_FULL err-t()
-	-30788
-MDB_CURSOR_FULL err-t()
-	-30787
-MDB_PAGE_FULL err-t()
-	-30786
-MDB_MAP_RESIZED err-t()
-	-30785
-MDB_INCOMPATIBLE err-t()
-	-30784
-MDB_BAD_RSLOT err-t()
-	-30783
-MDB_BAD_TXN err-t()
-	-30782
-MDB_BAD_VALSIZE err-t()
-	-30781
-MDB_BAD_DBI err-t()
-	-30780
-MDB_LAST_ERRCODE err-t()
+MDB_LAST_ERRCODE mdb-error()
 	MDB_BAD_DBI
 
-region write flags
-
-MDB_NOOVERWRITE u-int()
-	0x10
-MDB_NODUPDATA u-int()
-	0x20
-MDB_CURRENT u-int()
-	0x40
-MDB_RESERVE u-int()
-	0x10000
-MDB_APPEND u-int()
-	0x20000
-MDB_APPENDDUP u-int()
-	0x40000
-MDB_MULTIPLE u-int()
-	0x80000
+mdb-write-flags flags(u-int) extern
+	MDB_NOOVERWRITE = 0x10
+	MDB_NODUPDATA = 0x20
+	MDB_CURRENT = 0x40
+	MDB_RESERVE = 0x10000
+	MDB_APPEND = 0x20000
+	MDB_APPENDDUP = 0x40000
+	MDB_MULTIPLE = 0x80000
