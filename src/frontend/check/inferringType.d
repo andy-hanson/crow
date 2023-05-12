@@ -262,10 +262,13 @@ Opt!size_t findExpectedStructForLiteral(
 	expected.matchConst!(Opt!size_t)(
 		(Expected.Infer) =>
 			some(defaultChoice),
-		(Type x) =>
-			x.isA!(StructInst*)
-				? indexOf(choices, x.as!(StructInst*))
-				: some(defaultChoice),
+		(Type x) {
+			if (x.isA!(StructInst*)) {
+				Opt!size_t res = indexOf(choices, x.as!(StructInst*));
+				return has(res) ? res : some(defaultChoice);
+			} else
+				return some(defaultChoice);
+		},
 		(const TypeAndInferring[] xs) {
 			// This function will only be used with types like nat8 with no type arguments, so don't worry about those
 			Cell!(Opt!size_t) rslt;

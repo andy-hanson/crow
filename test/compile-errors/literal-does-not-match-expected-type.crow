@@ -1,0 +1,3 @@
+main nat^(_ string[]) summon
+	_ string = 0
+	()

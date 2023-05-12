@@ -13,6 +13,9 @@ all: clean bin/crow-debug test lint serve
 debug: bin/crow-debug
 	gdb ./bin/crow-debug
 
+debug-dmd: bin/crow-dmd
+	gdb ./bin/crow-dmd
+
 ### test ###
 
 test: unit-test wasm-test crow-unit-tests end-to-end-test

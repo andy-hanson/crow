@@ -241,6 +241,9 @@ immutable struct Diag {
 	immutable struct LiteralAmbiguous {
 		StructInst*[] types;
 	}
+	immutable struct LiteralNotAcceptable {
+		StructInst* expectedType;
+	}
 	immutable struct LiteralOverflow {
 		StructInst* type;
 	}
