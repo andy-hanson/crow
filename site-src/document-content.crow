@@ -90,7 +90,7 @@ module-content string(a module, all-exports all-exports)
 		throw "could not find {kind} {name} in {ctx current-module}.{ctx current-export}"
 
 -module-top string(path module-path)
-	url = "https://github.com/andy-hanson/crow/blob/master/include/{path}.crow"
+	url = "https://github.com/andy-hanson/crow/blob/master/include/{path}"
 	"""<h1><code class="module">{path}</code> <a class="source-link" href="{url}">(source)</a></h1>"""
 
 -export-content string(a module-export, ctx ctx)
