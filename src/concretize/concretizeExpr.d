@@ -632,6 +632,22 @@ ConcreteExpr concretizeWithDestructurePartsRecur(
 	}
 }
 
+ConcreteExpr concretizeIf(
+	ref ConcretizeExprCtx ctx,
+	ConcreteType type,
+	FileAndRange range,
+	in Locals locals,
+	ref ExprKind.If a,
+) {
+	ConcreteExpr cond = concretizeExpr(ctx, boolType(ctx), locals, a.cond);
+	return cond.kind.isA!Constant
+		? concretizeExpr(ctx, type, locals, asBool(cond.kind.as!Constant) ? a.then : a.else_)
+		: ConcreteExpr(type, range, ConcreteExprKind(allocate(ctx.alloc, ConcreteExprKind.If(
+			cond,
+			concretizeExpr(ctx, type, locals, a.then),
+			concretizeExpr(ctx, type, locals, a.else_)))));
+}
+
 ConcreteExpr concretizeIfOption(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
@@ -665,7 +681,9 @@ ConcreteExpr concretizeLocalGet(
 	LocalOrConstant concrete = castNonScope_ref(getLocal(locals, local));
 	return concrete.matchWithPointers!ConcreteExpr(
 		(ConcreteLocal* local) =>
-			ConcreteExpr(type, range, ConcreteExprKind(ConcreteExprKind.LocalGet(local))),
+			isBogus(local.type)
+				? concretizeBogus(ctx.concretizeCtx, type, range)
+				: ConcreteExpr(type, range, ConcreteExprKind(ConcreteExprKind.LocalGet(local))),
 		(TypedConstant x) =>
 			ConcreteExpr(type, range, ConcreteExprKind(x.value)));
 }
@@ -912,15 +930,8 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 			concretizeDrop(ctx, type, range, locals, x),
 		(ExprKind.FunPtr x) =>
 			concretizeFunPtr(ctx, type, range, x),
-		(ref ExprKind.If x) {
-			ConcreteExpr cond = concretizeExpr(ctx, boolType(ctx), locals, x.cond);
-			return cond.kind.isA!Constant
-				? concretizeExpr(ctx, type, locals, asBool(cond.kind.as!Constant) ? x.then : x.else_)
-				: ConcreteExpr(type, range, ConcreteExprKind(allocate(ctx.alloc, ConcreteExprKind.If(
-					cond,
-					concretizeExpr(ctx, type, locals, x.then),
-					concretizeExpr(ctx, type, locals, x.else_)))));
-		},
+		(ref ExprKind.If x) =>
+			concretizeIf(ctx, type, range, locals, x),
 		(ref ExprKind.IfOption x) =>
 			concretizeIfOption(ctx, type, range, locals, x),
 		(ref ExprKind.Lambda x) =>

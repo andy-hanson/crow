@@ -1,0 +1,4 @@
+main nat^(_ string[]) summon
+	x = z
+	_ = x ? 1 : 2
+	()
