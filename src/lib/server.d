@@ -75,12 +75,9 @@ pure SafeCStr getFile(ref Server server, in SafeCStr path) {
 	return has(text) ? force(text) : safeCStr!"";
 }
 
-pure Token[] getTokens(ref Alloc alloc, scope ref Perf perf, ref Server server, in Path path) {
-	SafeCStr text = mustGetAt_mut(server.files, path);
-	// diagnostics not used
-	ArrBuilder!DiagnosticWithinFile diagnosticsBuilder;
-	FileAst ast = parseFile(alloc, perf, server.allPaths, server.allSymbols, diagnosticsBuilder, text);
-	return tokensOfAst(alloc, server.allSymbols, ast);
+immutable struct TokensAndParseDiagnostics {
+	Token[] tokens;
+	StrParseDiagnostic[] parseDiagnostics;
 }
 
 immutable struct StrParseDiagnostic {
@@ -88,16 +85,15 @@ immutable struct StrParseDiagnostic {
 	string message;
 }
 
-pure StrParseDiagnostic[] getParseDiagnostics(
+pure TokensAndParseDiagnostics getTokensAndParseDiagnostics(
 	ref Alloc alloc,
 	scope ref Perf perf,
 	ref Server server,
 	in Path path,
 ) {
 	SafeCStr text = mustGetAt_mut(server.files, path);
-	ArrBuilder!DiagnosticWithinFile diagsBuilder;
-	// AST not used
-	parseFile(alloc, perf, server.allPaths, server.allSymbols, diagsBuilder, text);
+	ArrBuilder!DiagnosticWithinFile diagnosticsBuilder;
+	FileAst ast = parseFile(alloc, perf, server.allPaths, server.allSymbols, diagnosticsBuilder, text);
 	//TODO: use 'scope' to avoid allocating things here
 	FilesInfo filesInfo = FilesInfo(
 		fullIndexMapOfArr!(FileIndex, Path)(arrLiteral!Path(alloc, [path])),
@@ -106,11 +102,14 @@ pure StrParseDiagnostic[] getParseDiagnostics(
 			arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetterForText(alloc, text)])));
 	Program program = fakeProgramForDiagnostics(filesInfo, Diagnostics(
 		DiagSeverity.parseError,
-		diagnosticsForFile(alloc, FileIndex(0), diagsBuilder, filesInfo.filePaths).diags));
-	return map(alloc, program.diagnostics.diags, (ref Diagnostic x) =>
-		StrParseDiagnostic(
-			x.where.range,
-			strOfDiagnostic(alloc, server.allSymbols, server.allPaths, server.pathsInfo, showDiagOptions, program, x)));
+		diagnosticsForFile(alloc, FileIndex(0), diagnosticsBuilder, filesInfo.filePaths).diags));
+	return TokensAndParseDiagnostics(
+		tokensOfAst(alloc, server.allSymbols, ast),
+		map(alloc, program.diagnostics.diags, (ref Diagnostic x) =>
+			StrParseDiagnostic(
+				x.where.range,
+				strOfDiagnostic(
+					alloc, server.allSymbols, server.allPaths, server.pathsInfo, showDiagOptions, program, x))));
 }
 
 SafeCStr getHover(ref Perf perf, ref Alloc alloc, ref Server server, in Path path, Pos pos) {

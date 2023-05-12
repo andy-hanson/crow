@@ -1,17 +1,17 @@
 @safe @nogc nothrow: // not pure
 
-import frontend.ide.getTokens : jsonOfTokens, Token;
+import frontend.ide.getTokens : jsonOfTokens;
 import interpret.fakeExtern : FakeExternResult;
 import lib.server :
 	addOrChangeFile,
 	deleteFile,
 	getFile,
 	getHover,
-	getParseDiagnostics,
-	getTokens,
+	getTokensAndParseDiagnostics,
 	run,
 	Server,
 	StrParseDiagnostic,
+	TokensAndParseDiagnostics,
 	toPath;
 import util.alloc.alloc : Alloc, allocateT;
 import util.col.str : CStr, SafeCStr;
@@ -78,20 +78,14 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 @system extern(C) CStr getFile(Server* server, scope CStr path) =>
 	getFile(*server, SafeCStr(path)).ptr;
 
-@system extern(C) CStr getTokens(Server* server, scope CStr pathPtr) {
+@system extern(C) CStr getTokensAndParseDiagnostics(Server* server, scope CStr pathPtr) {
 	Path path = toPath(*server, SafeCStr(pathPtr));
 	Alloc resultAlloc = Alloc(resultBuffer);
-	Token[] tokens = withNullPerf!(Token[], (ref Perf perf) =>
-		getTokens(resultAlloc, perf, *server, path));
-	return jsonToString(resultAlloc, server.allSymbols, jsonOfTokens(resultAlloc, tokens)).ptr;
-}
-
-@system extern(C) CStr getParseDiagnostics(Server* server, scope CStr pathPtr) {
-	Path path = toPath(*server, SafeCStr(pathPtr));
-	Alloc resultAlloc = Alloc(resultBuffer);
-	StrParseDiagnostic[] diags = withNullPerf!(StrParseDiagnostic[], (ref Perf perf) =>
-		getParseDiagnostics(resultAlloc, perf, *server, path));
-	return jsonToString(resultAlloc, server.allSymbols, jsonOfParseDiagnostics(resultAlloc, diags)).ptr;
+	TokensAndParseDiagnostics res = withNullPerf!(TokensAndParseDiagnostics, (ref Perf perf) =>
+		getTokensAndParseDiagnostics(resultAlloc, perf, *server, path));
+	return jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
+		field!"tokens"(jsonOfTokens(resultAlloc, res.tokens)),
+		field!"parse-diagnostics"(jsonOfParseDiagnostics(resultAlloc, res.parseDiagnostics))])).ptr;
 }
 
 @system extern(C) CStr getHover(Server* server, scope CStr pathPtr, Pos pos) {

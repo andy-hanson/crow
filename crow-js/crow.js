@@ -20,8 +20,7 @@ Exports of `wasm.d`:
 @property {function(Server, CStr, CStr): void} addOrChangeFile
 @property {function(Server, CStr): void} deleteFile
 @property {function(Server, CStr): CStr} getFile
-@property {function(Server, CStr): CStr} getTokens
-@property {function(Server, CStr): CStr} getParseDiagnostics
+@property {function(Server, CStr): CStr} getTokensAndParseDiagnostics
 @property {functionServer, CStr, number): CStr} getHover
 @property {function(Ptr, number, Ptr, number, Server, CStr): number} run
 */
@@ -66,6 +65,13 @@ crow.Token = {}
  * @property {DiagRange} range
  */
 crow.Diagnostic = {}
+
+/**
+ * @typedef TokensAndParseDiagnostics
+ * @property {ReadonlyArray<Token>} tokens
+ * @property {ReadonlyArray<Diagnostic>} parseDiagnostics
+ */
+crow.TokensAndParseDiagnostics = {}
 
 /** @type {Promise<Compiler> | null} */
 let globalCompiler = null
@@ -235,24 +241,12 @@ class Compiler {
 
 	/**
 	@param {string} path
-	@return {ReadonlyArray<Token>}
+	@return {TokensAndParseDiagnostics}
 	*/
-	getTokens(path) {
+	getTokensAndParseDiagnostics(path) {
 		try {
-			return JSON.parse(this._readCStr(this._exports.getTokens(this._server, this._paramAlloc.writeCStr(path))))
-		} finally {
-			this._paramAlloc.clear()
-		}
-	}
-
-	/**
-	@param {string} path
-	@return {ReadonlyArray<Diagnostic>}
-	*/
-	getParseDiagnostics(path) {
-		try {
-			return JSON.parse(this._readCStr(
-				this._exports.getParseDiagnostics(this._server, this._paramAlloc.writeCStr(path))))
+			const res = JSON.parse(this._readCStr(this._exports.getTokensAndParseDiagnostics(this._server, this._paramAlloc.writeCStr(path))))
+			return {tokens:res.tokens, parseDiagnostics:res["parse-diagnostics"]}
 		} finally {
 			this._paramAlloc.clear()
 		}

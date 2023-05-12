@@ -7,7 +7,7 @@ const tab_size = 4
 /**
  * @typedef CrowTextProps
  * @property {function(number): string} getHover
- * @property {Observable<ReadonlyArray<Token>>} tokens
+ * @property {Observable<TokensAndParseDiagnostics>} tokenAndParseDiagnostics
  * @property {MutableObservable<string>} text
  */
 
@@ -135,7 +135,7 @@ export class CrowText extends HTMLElement {
 	}
 
 	connectedCallback() {
-		const {getHover, tokens, text} = this.props
+		const {getHover, tokensAndParseDiagnostics, text} = this.props
 		const highlightDiv = createDiv({className:"highlight"})
 		const ta = createNode("textarea")
 		const initialText = text.get()
@@ -208,7 +208,7 @@ export class CrowText extends HTMLElement {
 
 		const lineNumbers = createDiv({className:"line-numbers"})
 
-		tokens.nowAndSubscribe(value => {
+		tokensAndParseDiagnostics.nowAndSubscribe(value => {
 			highlight(value, highlightDiv, ta.value)
 			lineNumbers.textContent = ta.value.split("\n").map((_, i) => String(i + 1)).join("\n")
 		})
@@ -267,12 +267,10 @@ const countLeadingTabs = s => {
 }
 
 
-/** @type {function(ReadonlyArray<Token>, Node, string): void} */
-const highlight = (tokens, highlightDiv, v) => {
-	/** @type {ReadonlyArray<Diagnostic>} */
-	const diags = [] //TODO: compiler.getParseDiagnostics(v)
+/** @type {function(TokensAndParseDiagnostics, Node, string): void} */
+const highlight = ({tokens, parseDiagnostics}, highlightDiv, v) => {
 	// Only use at most 1 diag
-	const nodes = tokensAndDiagsToNodes(tokens, diags.slice(0, 1), v)
+	const nodes = tokensAndDiagsToNodes(tokens, parseDiagnostics.slice(0, 1), v)
 	removeAllChildren(highlightDiv)
 	for (const node of nodes)
 		highlightDiv.appendChild(node)
@@ -372,12 +370,12 @@ const tokensAndDiagsToNodes = (tokens, diags, text) => {
 	/** @type {function(number): boolean} */
 	const maybeStartDiag = nextPos => {
 		if (diagIndex < diags.length) {
-			const diag = diags[diagIndex]
-			if (diag.range.args[0] < nextPos) {
+			const {message, range:{start, end}} = diags[diagIndex]
+			if (start < nextPos) {
 				// Ignore nested diags
 				if (last(containerStack).type !== "diag") {
 					finishText()
-					containerStack.push({type:"diag", children:[], end:diag.range.args[1], message:diag.message})
+					containerStack.push({type:"diag", children:[], end, message})
 				}
 				diagIndex++
 				return true
@@ -434,7 +432,12 @@ const tokensAndDiagsToNodes = (tokens, diags, text) => {
 		assert(pos <= end)
 		// Ignore empty spans, they can happen when there are parse errors
 		if (pos != end) {
-			last(containerStack).children.push(createSpan({ className, children: [text.slice(pos, end)] }))
+			const parts = text.slice(pos, end).split('\n')
+			last(containerStack).children.push(createSpan({ className, children: [parts[0]] }))
+			for (const part of parts.slice(1)) {
+				nextLine()
+				last(containerStack).children.push(createSpan({ className, children:[part] }))
+			}
 			pos = end
 		}
 	}

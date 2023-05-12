@@ -107,18 +107,18 @@ const connected = (shadowRoot, name, noRun, comp, initialText) => {
 	/** @type {MutableObservable<string>} */
 	const text = new MutableObservable(initialText)
 	/** @type {MutableObservable<ReadonlyArray<Token>>} */
-	const tokens = new MutableObservable(/** @type {ReadonlyArray<Token>} */ ([]))
+	const tokensAndParseDiagnostics = new MutableObservable(/** @type {TokensAndParseDiagnostics} */ ({tokens:[], parseDiagnostics:[]}))
 	/** @type {function(number): string} */
 	const getHover = pos =>
 		comp.getHover(MAIN, pos)
-	const crowText = CrowText.create({getHover, tokens, text})
+	const crowText = CrowText.create({getHover, tokensAndParseDiagnostics, text})
 
 	for (const [path, content] of Object.entries(includeAll))
 		comp.addOrChangeFile(`${crow.includeDir}/${path}`, content)
 
 	text.nowAndSubscribe(value => {
 		comp.addOrChangeFile(MAIN, value)
-		tokens.set(comp.getTokens(MAIN))
+		tokensAndParseDiagnostics.set(comp.getTokensAndParseDiagnostics(MAIN))
 	})
 
 	const output = createDiv({className:"output"})
