@@ -39,7 +39,7 @@ dummy-bare-map-tests nat()
 	a.to::nat64 to
 
 test
-	with a : bm
+	trusted with a : bm
 		ptr, f = a find-or-insert-and-inserted 0
 		f is inserted
 		ptr.value->id is "default"
@@ -55,7 +55,7 @@ test
 		a.as-const.slow-is-empty is true
 
 test
-	with a : bm
+	trusted with a : bm
 		p3 = a find-or-insert 3
 		p7 = a find-or-insert 7
 		assert (a must-find 3) == p3
@@ -68,7 +68,7 @@ test
 		()
 
 test
-	with a : bm
+	trusted with a : bm
 		for i : 0 .. 10
 			p = a find-or-insert i * 4
 			p.value->id := "{i}"
@@ -76,7 +76,7 @@ test
 			(a.as-const must-find i * 4).value->id is "{i}"
 
 test
-	with a : bm
+	trusted with a : bm
 		for i : 0 .. 10
 			p = a find-or-insert i
 			p.value->id := "{i}"

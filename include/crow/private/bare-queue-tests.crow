@@ -14,7 +14,7 @@ dummy-bare-queue-tests nat()
 		cb[a]
 
 test
-	with a : queue
+	trusted with a : queue
 		assert a.as-const is-empty
 		for i : 0 .. 3
 			a enqueue i

@@ -168,7 +168,7 @@ test
 	"{a a}"
 
 test
-	assert size-of@big-nat == 24
+	trusted size-of@big-nat is 24
 	a big-nat[] = 5.big, 6.big
 	b big-nat[] = 4.big ~ a
 	b verify "([4] [] [5 6])"

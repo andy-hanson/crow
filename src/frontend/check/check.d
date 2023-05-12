@@ -650,7 +650,7 @@ FunsAndMap checkFuns(
 			[],
 			[],
 			[],
-			FunFlags.unsafeSummon,
+			FunFlags.none.withSummon,
 			force(ast.body_)));
 	});
 

@@ -628,6 +628,8 @@ immutable struct FunFlags {
 
 	FunFlags withOkIfUnused() =>
 		FunFlags(bare, summon, safety, preferred, true, specialBody, forceCtx);
+	FunFlags withSummon() =>
+		FunFlags(bare, true, safety, preferred, okIfUnused, specialBody, forceCtx);
 
 	static FunFlags regular(bool bare, bool summon, Safety safety, SpecialBody specialBody, bool forceCtx) =>
 		FunFlags(bare, summon, safety, false, false, specialBody, forceCtx);
@@ -640,8 +642,6 @@ immutable struct FunFlags {
 		FunFlags(true, false, Safety.unsafe, false, true, SpecialBody.generated);
 	static FunFlags generated() =>
 		FunFlags(false, false, Safety.safe, false, true, SpecialBody.generated);
-	static FunFlags unsafeSummon() =>
-		FunFlags(false, true, Safety.unsafe, false, false, SpecialBody.none);
 }
 static assert(FunFlags.sizeof == 7);
 
