@@ -311,9 +311,6 @@ immutable struct Diag {
 	immutable struct RecordNewVisibilityIsRedundant {
 		Visibility visibility;
 	}
-	immutable struct SendFunDoesNotReturnFut {
-		Type actualReturnType;
-	}
 	// spec did have a match, but there was an error
 	immutable struct SpecMatchError {
 		immutable struct Reason {
@@ -468,7 +465,6 @@ immutable struct Diag {
 		PtrUnsupported,
 		PurityWorseThanParent,
 		RecordNewVisibilityIsRedundant,
-		SendFunDoesNotReturnFut,
 		SpecMatchError,
 		SpecNoMatch,
 		SpecNameMissing,

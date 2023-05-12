@@ -107,7 +107,8 @@ const connected = (shadowRoot, name, noRun, comp, initialText) => {
 	/** @type {MutableObservable<string>} */
 	const text = new MutableObservable(initialText)
 	/** @type {MutableObservable<ReadonlyArray<Token>>} */
-	const tokensAndParseDiagnostics = new MutableObservable(/** @type {TokensAndParseDiagnostics} */ ({tokens:[], parseDiagnostics:[]}))
+	const tokensAndParseDiagnostics = new MutableObservable(
+		/** @type {TokensAndParseDiagnostics} */ ({tokens:[], parseDiagnostics:[]}))
 	/** @type {function(number): string} */
 	const getHover = pos =>
 		comp.getHover(MAIN, pos)

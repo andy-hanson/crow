@@ -245,7 +245,8 @@ class Compiler {
 	*/
 	getTokensAndParseDiagnostics(path) {
 		try {
-			const res = JSON.parse(this._readCStr(this._exports.getTokensAndParseDiagnostics(this._server, this._paramAlloc.writeCStr(path))))
+			const res = JSON.parse(this._readCStr(
+				this._exports.getTokensAndParseDiagnostics(this._server, this._paramAlloc.writeCStr(path))))
 			return {tokens:res.tokens, parseDiagnostics:res["parse-diagnostics"]}
 		} finally {
 			this._paramAlloc.clear()

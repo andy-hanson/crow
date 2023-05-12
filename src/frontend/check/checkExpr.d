@@ -1127,32 +1127,24 @@ Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in 
 
 	VariableRef[] closureFields = checkClosure(ctx, range, kind, tempAsArr(lambdaInfo.closureFields));
 
-	Opt!Type actualNonFutReturnType = kind == FunKind.far
-		? actualPossiblyFutReturnType.match!(Opt!Type)(
-			(Type.Bogus _) =>
-				some(Type(Type.Bogus())),
-			(ref TypeParam _) =>
-				none!Type,
-			(ref StructInst x) =>
-				decl(x) == ctx.commonTypes.future
-					? some(only(typeArgs(x)))
-					: none!Type)
-		: some(actualPossiblyFutReturnType);
-	if (!has(actualNonFutReturnType)) {
-		addDiag2(ctx, range, Diag(Diag.SendFunDoesNotReturnFut(actualPossiblyFutReturnType)));
-		return bogus(expected, range);
-	} else {
-		StructInst* instFunStruct = instantiateStructNeverDelay(
-			ctx.alloc, ctx.programState, et.funStruct, [force(actualNonFutReturnType), param.type]);
-		initMemory(lambda, ExprKind.Lambda(
-			param,
-			body_,
-			closureFields,
-			kind,
-			actualPossiblyFutReturnType));
-		//TODO: this check should never fail, so could just set inferred directly with no check
-		return check(ctx, expected, Type(instFunStruct), Expr(range, ExprKind(castImmutable(lambda))));
-	}
+	Type actualNonFutReturnType = kind == FunKind.far
+		? unwrapFutureType(actualPossiblyFutReturnType, ctx)
+		: actualPossiblyFutReturnType;
+	StructInst* instFunStruct = instantiateStructNeverDelay(
+		ctx.alloc, ctx.programState, et.funStruct, [actualNonFutReturnType, param.type]);
+	initMemory(lambda, ExprKind.Lambda(
+		param,
+		body_,
+		closureFields,
+		kind,
+		actualPossiblyFutReturnType));
+	//TODO: this check should never fail, so could just set inferred directly with no check
+	return check(ctx, expected, Type(instFunStruct), Expr(range, ExprKind(castImmutable(lambda))));
+}
+
+Type unwrapFutureType(Type a, in ExprCtx ctx) {
+	verify(decl(*a.as!(StructInst*)) == ctx.commonTypes.future);
+	return only(typeArgs(*a.as!(StructInst*)));
 }
 
 VariableRef[] checkClosure(ref ExprCtx ctx, FileAndRange range, FunKind kind, ClosureFieldBuilder[] closureFields) {

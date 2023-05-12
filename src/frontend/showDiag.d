@@ -1031,10 +1031,6 @@ void writeDiag(
 			writeName(writer, allSymbols, symOfVisibility(d.visibility));
 			writer ~= " by default";
 		},
-		(in Diag.SendFunDoesNotReturnFut d) {
-			writer ~= "a 'ref' should return a 'future', but this returns ";
-			writeTypeQuoted(writer, allSymbols, program, d.actualReturnType);
-		},
 		(in Diag.SpecMatchError x) {
 			x.reason.matchIn!void(
 				(in Diag.SpecMatchError.Reason.MultipleMatches y) {

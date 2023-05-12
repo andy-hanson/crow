@@ -121,8 +121,6 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagSeverity.checkError,
 		(in Diag.RecordNewVisibilityIsRedundant) =>
 			DiagSeverity.checkWarning,
-		(in Diag.SendFunDoesNotReturnFut) =>
-			DiagSeverity.checkError,
 		(in Diag.SpecMatchError) =>
 			DiagSeverity.checkError,
 		(in Diag.SpecNoMatch) =>
