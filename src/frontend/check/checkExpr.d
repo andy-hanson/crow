@@ -1143,8 +1143,12 @@ Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in 
 }
 
 Type unwrapFutureType(Type a, in ExprCtx ctx) {
-	verify(decl(*a.as!(StructInst*)) == ctx.commonTypes.future);
-	return only(typeArgs(*a.as!(StructInst*)));
+	if (a.isA!(Type.Bogus))
+		return Type(Type.Bogus());
+	else {
+		verify(decl(*a.as!(StructInst*)) == ctx.commonTypes.future);
+		return only(typeArgs(*a.as!(StructInst*)));
+	}
 }
 
 VariableRef[] checkClosure(ref ExprCtx ctx, FileAndRange range, FunKind kind, ClosureFieldBuilder[] closureFields) {

@@ -1723,9 +1723,14 @@ ExprResult zeroedToGcc(ref ExprCtx ctx, ref ExprEmit emit, in LowType type) {
 			return emitRecordCb(ctx, emit, type, (size_t argIndex, ref ExprEmit emitArg) =>
 				zeroedToGcc(ctx, emitArg, fields[argIndex].type));
 		},
-		(in LowType.Union union_) =>
-			emitUnion(ctx, emit, type, 0, (ref ExprEmit emitArg) =>
-				zeroedToGcc(ctx, emitArg, ctx.program.allUnions[union_].members[0])));
+		(in LowType.Union union_) {
+			LowType[] members = ctx.program.allUnions[union_].members;
+			return empty(members)
+				// No legal value of this type, so leave uninitialized.
+				? emitWriteToLValue(ctx, emit, type, (gcc_jit_lvalue* lvalue) {})
+				: emitUnion(ctx, emit, type, 0, (ref ExprEmit emitArg) =>
+					zeroedToGcc(ctx, emitArg, members[0]));
+		});
 }
 
 ExprResult externZeroedToGcc(ref ExprCtx ctx, ref ExprEmit emit, LowType.Extern type) =>
