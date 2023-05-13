@@ -2,8 +2,9 @@ no-std
 import
 	./bool: bool
 	./col/collection:
-		begin, build, concatenate, for-loop, iterate, next, size, subscript, with-block, with-index
-	./col/list: +, ~=, begin, build, iterate, list, next, size
+		begin, build, concatenate, for-loop, iterate, join, next, size, subscript, with-block,
+		with-index
+	./col/list: +, ~=, ~~, begin, build, iterate, list, new, next, size
 	./col/mut-list: ~=, hint-size, move-to, mut-list, new
 	./exception: catch, exception
 	./fun-util: subscript
@@ -206,18 +207,18 @@ which allows it to run in parallel.
 			res reject e
 	res
 
-sequential-collection[col] record
++sequential-collection[col] record
 	-inner col
-sequential[col] col sequential-collection(a col)
++sequential[col] col sequential-collection(a col)
 	a,
 
-for-break[in-col, in-iter, in-elem] void^(
++for-break[in-col, in-iter, in-elem] void^(
 	a in-col sequential-collection,
 	f far void break-or-continue(in-elem),
 ) (in-iter, in-col) begin, (in-elem, in-iter) next, in-elem shared
 	_ void? <- a for-break f
 
-for-break[out, in-col, in-iter, in-elem] out?^(
++for-break[out, in-col, in-iter, in-elem] out?^(
 	a in-col sequential-collection,
 	f far out break-or-continue(in-elem),
 ) (in-iter, in-col) begin, (in-elem, in-iter) next, out shared, in-elem shared
@@ -234,7 +235,7 @@ for-break[out, in-col, in-iter, in-elem] out?^(
 		as loop-continue
 			next for-break-recur@(out, in-col, in-iter, in-elem) f
 
-for-loop[in-col, in-iter, in-elem] void^(
++for-loop[in-col, in-iter, in-elem] void^(
 	a in-col sequential-collection,
 	f far void(in-elem),
 ) (in-iter, in-col) begin, (in-elem, in-iter) next, in-elem shared
@@ -242,7 +243,7 @@ for-loop[in-col, in-iter, in-elem] void^(
 		<- f[x]
 		continue
 
-for-loop[out-elem, in-col, in-iter, in-elem] out-elem[]^(
++for-loop[out-elem, in-col, in-iter, in-elem] out-elem[]^(
 	a in-col sequential-collection,
 	f far out-elem(in-elem),
 ) (in-iter, in-col) begin, (in-elem, in-iter) next, in-col size, out-elem shared, in-elem shared
@@ -254,11 +255,11 @@ for-loop[out-elem, in-col, in-iter, in-elem] out-elem[]^(
 		()
 	res.move-to,
 
-parallel-collection[col] record
++parallel-collection[col] record
 	-inner col
-parallel[col] col parallel-collection(a col)
++parallel[col] col parallel-collection(a col)
 	a,
-for-loop[in-col, in-elem] void^(
++for-loop[in-col, in-elem] void^(
 	a in-col parallel-collection,
 	f fun void^(in-elem),
 ) (in-col, in-elem) iterate, in-col size, in-elem shared
@@ -266,7 +267,7 @@ for-loop[in-col, in-elem] void^(
 		with : parallel
 			f[x]
 	tasks wait-all
-for-loop[out-elem, in-col, in-elem] out-elem[]^(
++for-loop[out-elem, in-col, in-elem] out-elem[]^(
 	a in-col parallel-collection,
 	f fun out-elem^(in-elem),
 ) (in-col, in-elem) iterate, in-col size, out-elem shared, in-elem shared
@@ -275,7 +276,7 @@ for-loop[out-elem, in-col, in-elem] out-elem[]^(
 			f[x]
 	tasks wait-all
 
-filter[out-col, in-col, elem, builder] out-col^(
++filter[out-col, in-col, elem, builder] out-col^(
 	a in-col parallel-collection,
 	f fun bool^(elem),
 ) (in-col, elem) iterate, in-col size, (out-col, elem, builder) build, elem shared, out-col shared
@@ -286,3 +287,7 @@ filter[out-col, in-col, elem, builder] out-col^(
 			if bools[i]
 				out ~= x
 	res,
+
++join[elem] elem[]^(joiner elem[], parts elem[][]^) elem shared
+	x <- parts
+	(joiner join x),

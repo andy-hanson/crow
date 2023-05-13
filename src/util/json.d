@@ -72,7 +72,7 @@ Json.ObjectField optionalField(string name)(bool isPresent, in Json delegate() @
 	field!name(isPresent ? cb() : jsonNull);
 
 Json.ObjectField optionalField(string name, T)(in Opt!T a, in Json delegate(in T) @safe @nogc pure nothrow cb) =>
-	field!name(has(a) ? cb(force(a)) : jsonNull); 
+	field!name(has(a) ? cb(force(a)) : jsonNull);
 
 Json.ObjectField optionalFlagField(string name)(bool value) =>
 	field!name(value ? Json(true) : jsonNull);

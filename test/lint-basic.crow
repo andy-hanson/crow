@@ -2,22 +2,21 @@ import
 	crow/io/file: each-child-recursive, read-file
 	crow/io/path: base-name, get-extension
 	crow/io/print: out, print
-	./failure: failure, flat-map-with-max-size, max-failures, new, print-tests, test-options, test-result
+	./failure: failure, new, print-failures
 
-lint test-result^(path string, options test-options) summon
-	files = path list-lintable-files
-	failures <- files flat-map-with-max-size options.max-failures, file =>
-		if options print-tests
-			out print "lint {file}"
+main nat^(_ string[]) summon
+	files = list-lintable-files
+	failures failure[] <- ()::failure[] join for file : files parallel
 		file.lint-file,
 	if failures is-empty
-		"linted {files size} files".ok,
+		out print "linted {files size} files"
+		()
 	else
-		failures.error,
+		failures.print-failures,
 
--list-lintable-files string[](path string) summon
+-list-lintable-files string[]() summon
 	res string mut[] = ()
-	path each-child-recursive (child => !child.excluded-from-lint), child =>
+	"." each-child-recursive (child => !child.excluded-from-lint), child =>
 		unless child.base-name should-ignore-extension-of-name
 			res ~= child
 	res move-to
@@ -36,7 +35,6 @@ lint test-result^(path string, options test-options) summon
 	# TODO: gl.crow needs a multi-line call syntax
 	"bin", "COPYING.txt", "crow.sublime-syntax", "dyncall", "gl.crow", "node_modules", "package-lock.json", "site"
 
-# Returns number of errors
 -lint-file failure[](path string) summon
 	text string = path read-file
 	res failure mut[] = ()
@@ -52,6 +50,8 @@ lint test-result^(path string, options test-options) summon
 		if width > max-line-length
 			message = "line {ln} is {width} columns long, should be <= {max-line-length}"
 			res ~= (path, message)
+		if (line ends-with " " || line ends-with "\t") && path != "./test/runnable/tabs.crow"
+			res ~= (path, "line {ln} has trailing whitespace")
 	res move-to
 
 -ignored-extensions string set()

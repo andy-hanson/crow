@@ -87,7 +87,7 @@ Throwing an exception does not modify its backtrace.
 		if jmp-buf == null
 			abort
 		else
-			cur-thrown := e 
+			cur-thrown := e
 			jmp-buf longjmp number-to-throw
 		# unreachable
 		zeroed

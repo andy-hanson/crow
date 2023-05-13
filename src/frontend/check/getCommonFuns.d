@@ -261,7 +261,7 @@ bool signatureMatchesTemplate(
 		return false;
 	if (actual.params.isA!(Params.Varargs*))
 		return false;
-	
+
 	if (actual.typeParams.length != expectedTypeParams.length)
 		return false;
 	bool typesMatch(in Type actualType, in Type expectedType) {

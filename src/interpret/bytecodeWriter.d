@@ -322,7 +322,7 @@ void writeStackRef(
 
 void writeThreadLocalPtr(scope ref ByteCodeWriter writer, ByteCodeSource source, size_t offsetWords) {
 	pushOperationFn(writer, source, &opThreadLocalPtr);
-	pushSizeT(writer, source, offsetWords);	
+	pushSizeT(writer, source, offsetWords);
 	writer.nextStackEntry += 1;
 }
 

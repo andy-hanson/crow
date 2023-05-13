@@ -30,7 +30,7 @@ exclusion-queue[v] record mut by-val
 	###
 	The queue is a circular linked list, where this sentinel is always present.
 	The sentinel exists just to have 'prev' and 'next'; its 'exclusion' and 'values' is unused.
-	
+
 	When the map calls 'move-from', that will update the sentinel
 	(if it is the 'prev' or 'next' of the moved node).
 	###
@@ -39,7 +39,6 @@ exclusion-queue[v] record mut by-val
 -entry[v] record mut by-val
 	###
 	This is always validly allocated, even for an unused entry.
-	For an queued entry this will 
 	###
 	values mut v bare-queue
 	###

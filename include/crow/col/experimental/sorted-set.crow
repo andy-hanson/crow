@@ -26,7 +26,7 @@ import
 	./index-set:
 		~, count-greater-or-equal, count-range, filter-less, in, index-set, is-empty, iterate, new,
 		size, try-remove
-	
+
 # This is like `set`, but keeps elements in sorted order.
 sorted-set[t] record
 	-add t add-node
@@ -166,7 +166,7 @@ size-here-and-left + size-right is the current size + 1.
 We compact a node if:
 * The combined size of all nodes to the right is >= this node's size
 * Half of the values of this node have been removed
-Or a combination of the two.	
+Or a combination of the two.
 ###
 -add-and-compact-plan[t] compact-plan(size-here-and-left nat64, a t add-node, remove index-set, size-right nat64)
 	size-here = a.values size

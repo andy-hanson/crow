@@ -105,7 +105,7 @@ mut-array-to-frozen-map-promise-no-duplicates[k, v] (k, v) frozen-map(
 -remove-duplicates[k, v] (k, v) frozen-map(a (k, v) frozen-map) unsafe, k key
 	if a has-duplicates
 		# Write out pairs from each bucket to a mut-array, omitting a pair if its key appears later in the same bucket.
-		# Then call mut-array-to-frozen-map-promise-no-duplicates 
+		# Then call mut-array-to-frozen-map-promise-no-duplicates
 		xs (k, v) mut-array = with out : a.size build
 			out write-without-duplicates a
 		xs mut-array-to-frozen-map-promise-no-duplicates

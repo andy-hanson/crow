@@ -22,7 +22,7 @@
 		direction enum
 			left
 			right
-		
+
 		opposite direction(a direction)
 			match a
 			as left
@@ -66,7 +66,7 @@
 			up
 			left
 			right
-		
+
 		to direction4(a direction2)
 			a.to::symbol.to::(direction4?)!
 
@@ -126,7 +126,7 @@
 </section>
 <section>
 	<h2>Flags types</h2>
-	
+
 	<p>
 		While enum types store <em>one</em> of the choices, flags types store any number of the choices.
 	</p>
@@ -147,7 +147,7 @@
 			shirt
 			pants
 			shoes
-		
+
 		can-serve bool(a clothing)
 			(shirt | shoes) is-in a
 	</crow-runnable>

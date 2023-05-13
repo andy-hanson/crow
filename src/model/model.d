@@ -489,7 +489,7 @@ immutable struct SpecInst {
 	// Corresponds to the signatures in decl.body_
 	SmallArray!ReturnAndParamTypes sigTypes_;
 	private Late!(SmallArray!(immutable SpecInst*)) parents_;
-	
+
 	ReturnAndParamTypes[] sigTypes() return scope =>
 		sigTypes_;
 
@@ -807,7 +807,7 @@ immutable struct ReturnAndParamTypes {
 
 	Type returnType() scope =>
 		returnAndParamTypes[0];
-	
+
 	Type[] paramTypes() scope =>
 		returnAndParamTypes[1 .. $];
 }
@@ -940,7 +940,7 @@ Arity arity(in Called a) =>
 
 immutable struct StructOrAlias {
 	@safe @nogc pure nothrow:
-	
+
 	mixin Union!(StructAlias*, StructDecl*);
 
 	immutable(void*) asVoidPointer() =>
@@ -1055,7 +1055,7 @@ immutable struct ImportOrExportKind {
 
 	private:
 	Module* modulePtr;
-	SmallArray!Sym names;	
+	SmallArray!Sym names;
 }
 static assert(ImportOrExportKind.sizeof == ulong.sizeof * 2);
 
@@ -1133,7 +1133,7 @@ immutable struct CommonTypes {
 	StructDecl*[8] tuples2Through9;
 	// Indexed by FunKind, then by arity. (arity = typeArgs.length - 1)
 	EnumMap!(FunKind, StructDecl*) funStructs;
-	
+
 	StructDecl* funPtrStruct() =>
 		funStructs[FunKind.pointer];
 
@@ -1318,7 +1318,7 @@ immutable struct Destructure {
 				x.range.range,
 			(in Split x) =>
 				combineRanges(x.parts[0].range, x.parts[$ - 1].range));
-	
+
 	Type type() scope =>
 		matchIn!Type(
 			(in Ignore x) =>
@@ -1545,7 +1545,7 @@ void writeStructInst(scope ref Writer writer, in AllSymbols allSymbols, in Progr
 	}
 	void suffix(string suffix) {
 		writeTypeUnquoted(writer, allSymbols, program, only(s.typeArgs));
-		writer ~= suffix;	
+		writer ~= suffix;
 	}
 
 	Sym name = decl(s).name;

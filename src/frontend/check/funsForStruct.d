@@ -449,7 +449,7 @@ void addFunsForRecordField(
 		FunFlags.generatedBare,
 		[],
 		FunBody(FunBody.RecordFieldGet(fieldIndex))));
-	
+
 	void addRecordFieldPointer(Visibility visibility, Type recordPointer, Type fieldPointer) {
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 			safeCStr!"",

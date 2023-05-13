@@ -112,7 +112,7 @@ immutable struct Ctx {
 }
 
 Json jsonOfStructDecl(ref Alloc alloc, in Ctx ctx, in StructDecl a) =>
-	jsonObject(alloc, 
+	jsonObject(alloc,
 		commonDeclFields(alloc, toFileAndPos(a.range), a.docComment, a.visibility, a.name, a.typeParams),
 		[
 			optionalField!"purity"(a.purity != Purity.data, () => jsonString(symOfPurity(a.purity))),

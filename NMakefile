@@ -23,10 +23,10 @@ crow-unit-tests: bin\crow.exe
 	.\bin\crow.exe run test\crow-unit-tests.crow
 
 end-to-end-test: bin\crow.exe
-	.\bin\crow.exe run test\test.crow
+	.\bin\crow.exe run test\test-end-to-end.crow
 
 end-to-end-test-overwrite: bin\crow.exe
-	.\bin\crow.exe run test\test.crow -- --overwrite-output
+	.\bin\crow.exe run test\test-end-to-end.crow -- --overwrite-output
 
 wasm-test: prepare-site
 	node .\test\testWasm.js
@@ -229,7 +229,10 @@ bin\crow.zip: bin\crow.exe demo\* include\* libraries\*
 
 ### lint ###
 
-lint: lint-dscanner lint-d-imports-exports
+lint: lint-basic lint-dscanner lint-d-imports-exports
+
+lint-basic: bin\crow.exe
+	.\bin\crow.exe run test\lint-basic.crow
 
 lint-dscanner:
 	dub run dscanner -- --styleCheck $(app_src_with_test)

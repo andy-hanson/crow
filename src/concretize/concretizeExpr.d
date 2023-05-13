@@ -294,7 +294,7 @@ ConcreteExpr concretizeClosureSet(
 
 immutable struct ClosureFieldInfo {
 	ConcreteClosureRef closureRef;
-	ConcreteType type; //If 'referenceKind' is 'allocated', this is the pointee type 
+	ConcreteType type; // If 'referenceKind' is 'allocated', this is the pointee type
 	ClosureReferenceKind referenceKind;
 }
 ClosureFieldInfo getClosureFieldInfo(ref ConcretizeExprCtx ctx, FileAndRange range, ClosureRef a) {
@@ -911,7 +911,7 @@ SafeCStr defaultAssertOrForbidMessage(AssertOrForbidKind a) {
 ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, in Locals locals, ref ExprAndType a) =>
 	concretizeExpr(ctx, getConcreteType(ctx, a.type), locals, a.expr);
 
-ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Locals locals, ref Expr a) {	
+ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Locals locals, ref Expr a) {
 	FileAndRange range = a.range;
 	if (isBogus(type))
 		return concretizeBogus(ctx.concretizeCtx, type, range);

@@ -197,7 +197,7 @@
 			stdio: stdout
 			unistd: write
 			win32: DWORD, GetStdHandle, STD_OUTPUT_HANDLE, WriteFile
-		
+
 		main nat^(_ string[]) summon
 			text nat8 array = "hello\n" to-bytes
 			trusted if is-windows

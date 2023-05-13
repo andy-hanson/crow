@@ -93,7 +93,7 @@ Opt!ExprAst parseFunExprBody(ref Lexer lexer) {
 	final switch (takeNewlineOrIndent_topLevel(lexer)) {
 		case NewlineOrIndent.newline:
 			return none!ExprAst;
-		case NewlineOrIndent.indent:			
+		case NewlineOrIndent.indent:
 			ExprAndDedent ed = parseStatementsAndExtraDedents(lexer, 1);
 			verify(ed.dedents == 0); // Since we started at the root, can't dedent more
 			return some(ed.expr);
@@ -660,7 +660,7 @@ ExprAndMaybeDedent parseForOrWith(
 	) @safe @nogc pure nothrow cbMakeExprKind,
 ) {
 	DestructureAst param = parseParameterForForOrWith(lexer);
-	ExprAst rhs = parseExprNoBlock(lexer);	
+	ExprAst rhs = parseExprNoBlock(lexer);
 	bool semi = tryTakeToken(lexer, Token.semicolon);
 	if (semi) {
 		ExprAst body_ = parseExprNoBlock(lexer);

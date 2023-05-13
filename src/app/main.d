@@ -178,7 +178,7 @@ ExitCode go(ref Alloc alloc, ref Perf perf, ref AllSymbols allSymbols, ref AllPa
 								storage,
 								run.mainPath,
 								getAllArgs(alloc, allPaths, storage, run.mainPath, run.programArgs));
-						} else { 
+						} else {
 							printErr(safeCStr!"'--jit' is not supported on Windows");
 							return ExitCode.error;
 						}

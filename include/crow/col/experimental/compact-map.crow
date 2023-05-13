@@ -162,7 +162,7 @@ iterate[k, v] bool(a (k, v) compact-map, f act bool(k, v)) k key
 	loop
 		match cur
 		as overlay o
-			broke = o.pairs iterate (k, v-opt) => 
+			broke = o.pairs iterate (k, v-opt) =>
 				if seen try-add k
 					if v ?= v-opt
 						f[k, v]

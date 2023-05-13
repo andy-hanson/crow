@@ -1,93 +1,26 @@
 import
-	crow/io/file: try-read-file, write-file
-	crow/io/path: base-name
-	crow/io/print: out, print, print-no-newline
+	crow/io/print: err, pipe, print, print-no-newline
 
 failure record
 	path string
 	message string
 
-handle-output failure[](
-	original-path string,
-	output-path string,
-	actual string,
-	overwrite-output bool,
-) summon
-	if text ?= output-path.try-read-file :: string?
-		if actual.normalize-newlines == text.normalize-newlines
-			()
-		elif overwrite-output
-			output-path write-file actual
-			()
-		else
-			message = "{output-path base-name} was not as expected. actual:\n{actual}"
-			(original-path, message),
-	elif overwrite-output
-		output-path write-file actual
-		()
-	else
-		(original-path, "{output-path base-name} does not exist. actual was:\n{actual}"),
-
-flat-map-with-max-size[in] failure[]^(a in[], max-size nat, mapper far failure[](in)) in shared
-	res failure mut[] = ()
-	<- for x : a sequential
-		out <- mapper[x]
-		res ~~= out
-		if res.size >= max-size
-			break
-		else
-			continue
-	res.move-to,
-
-test-options record
-	print-tests bool
-	overwrite-output bool
-	max-failures nat
-	match-test string
-
-test-result alias
-	(string, failure[]) result
-
-first-failures test-result^(a test-result^, b fun test-result^())
-	a-res <- a
-	a-res first-failures b
-first-failures test-result^(a test-result, b fun test-result^())
-	match a
-	as ok ok-a
-		b-res <- b[]
-		match b-res
-		as ok ok-b
-			"{ok-a}\n{ok-b}".ok,
-		as error e
-			e.error,
-	as error e
-		e.error,
-
-print-failures nat(failures test-result, options test-options) summon
-	match failures
-	as ok o
-		out print o
-		0
-	as error e
-		for failure : e
-			failure print-failure
-		n-failures = e size
-		out print if n-failures == options.max-failures
-			"hit maximum of {options max-failures} failures"
-		else
-			"{n-failures} failures"
-		n-failures
+print-failures nat(failures failure[]) summon
+	for failure : failures
+		failure print-failure
+	err print "{failures.size} failures"
+	failures.size
 
 -print-failure void(failure failure) summon
-	print-bold
-	out print-no-newline failure.path
-	print-reset
-	out print-no-newline " "
-	out print failure.message
+	err print-bold
+	err print-no-newline failure.path
+	err print-reset
+	err print-no-newline " "
+	err print failure.message
 
 # TODO:MOVE
--print-bold void() summon
-	out print-no-newline "\x1b[1m"
+-print-bold void(pipe pipe) summon
+	pipe print-no-newline "\x1b[1m"
 
--print-reset void() summon
-	out print-no-newline "\x1b[m"
+-print-reset void(pipe pipe) summon
+	pipe print-no-newline "\x1b[m"

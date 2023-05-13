@@ -88,7 +88,7 @@ pull void(a audio-queue, out float32 mut-array) bare, unsafe
 		a.playing ~= entry
 		a.lock release
 		reset fun void() = () =>
-			entry reset-position 
+			entry reset-position
 		set-playing fun void(bool) = desired =>
 			a set-playing entry, desired
 		reset, set-playing

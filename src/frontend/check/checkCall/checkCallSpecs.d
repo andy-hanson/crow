@@ -85,7 +85,7 @@ struct CheckSpecsCtx {
 	Alloc* allocPtr;
 	ProgramState* programStatePtr;
 	immutable FunsInScope funsInScope;
-	ArrBuilder!(Diag.SpecMatchError) matchDiags; 
+	ArrBuilder!(Diag.SpecMatchError) matchDiags;
 
 	ref Alloc alloc() =>
 		*allocPtr;

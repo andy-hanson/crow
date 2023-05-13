@@ -118,7 +118,7 @@
 	<crow-runnable>
 		import
 			stdlib: free, malloc
-		
+
 		main nat^(_ string[])
 			trusted
 				ptr mut nat mut* = null
@@ -127,11 +127,11 @@
 					*ptr := 3
 					info log "{*ptr}"
 			()
-		
+
 		new-nat nat mut*() unsafe
 			(size-of@nat).malloc pointer-cast
 		free-nat void(a nat mut*) unsafe
-			a.pointer-cast free	
+			a.pointer-cast free
 	</crow-runnable>
 
 	<aside class="small">
@@ -199,7 +199,7 @@
 		<code>a.x</code> will also be defined,
 		and return an inner pointer of <code>a</code> at the <code>x</code> field.
 		<br />
-		In C that would be written as <code>&a->x</code>, which is not supported in Crow. 
+		In C that would be written as <code>&a->x</code>, which is not supported in Crow.
 	</p>
 
 	<aside class="small">
@@ -341,12 +341,12 @@
 	</p>
 	<crow-runnable>
 		main nat^(_ string[]) unsafe
-			# Value type, so its size is the sum of its fields' sizes. 
+			# Value type, so its size is the sum of its fields' sizes.
 			info log "r1: {size-of@r1}"
 			# Reference type, so its size is the size of a pointer.
 			info log "r2: {size-of@r2}"
 			()
-		
+
 		r1 record by-val
 			x nat
 			y nat

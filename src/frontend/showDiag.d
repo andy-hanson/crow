@@ -16,6 +16,7 @@ import model.model :
 	EnumBackingType,
 	FunDecl,
 	FunDeclAndTypeArgs,
+	FunInst,
 	Local,
 	LocalMutability,
 	name,
@@ -33,13 +34,14 @@ import model.model :
 	symOfVisibility,
 	Type,
 	typeArgs,
+	TypeParam,
 	writeStructInst,
 	writeTypeArgs,
 	writeTypeQuoted,
 	writeTypeUnquoted;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.col.arr : empty, only;
+import util.col.arr : empty, only, sizeEq;
 import util.col.arrUtil : exists;
 import util.col.str : SafeCStr;
 import util.lineAndColumnGetter : lineAndColumnAtPos, PosKind;
@@ -48,7 +50,7 @@ import util.path : AllPaths, baseName, Path, PathsInfo, writePath, writeRelPath;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : FileAndPos;
 import util.sym : AllSymbols, Sym, writeSym;
-import util.util : todo, unreachable;
+import util.util : unreachable, verify;
 import util.writer :
 	finishWriter,
 	finishWriterToSafeCStr,
@@ -474,7 +476,58 @@ void writeCalled(
 	in Program program,
 	in Called a,
 ) {
-	todo!void("writeCalled");
+	a.matchIn!void(
+		(in FunInst x) {
+			writeFunInst(writer, allSymbols, allPaths, pathsInfo, options, program, x);
+		},
+		(in CalledSpecSig x) {
+			writeCalledSpecSig(writer, allSymbols, program, x);
+		});
+}
+
+void writeFunInst(
+	scope ref Writer writer,
+	in AllSymbols allSymbols,
+	in AllPaths allPaths,
+	in PathsInfo pathsInfo,
+	in ShowDiagOptions options,
+	in Program program,
+	in FunInst a,
+) {
+	writeFunDecl(writer, allSymbols, allPaths, pathsInfo, options, program, *decl(a));
+	writeTypeParamsAndArgs(writer, allSymbols, program, decl(a).typeParams, typeArgs(a));
+}
+
+void writeCalledSpecSig(
+	scope ref Writer writer,
+	in AllSymbols allSymbols,
+	in Program program,
+	in CalledSpecSig x,
+) {
+	writeSig(
+		writer, allSymbols, program, x.name, x.returnType,
+		Params(x.nonInstantiatedSig.params), some(x.instantiatedSig));
+	writer ~= " (from spec ";
+	writeName(writer, allSymbols, name(*x.specInst));
+	writer ~= ')';
+}
+
+void writeTypeParamsAndArgs(
+	scope ref Writer writer,
+	in AllSymbols allSymbols,
+	in Program program,
+	in TypeParam[] typeParams,
+	in Type[] typeArgs,
+) {
+	verify(sizeEq(typeParams, typeArgs));
+	if (!empty(typeParams)) {
+		writer ~= " with ";
+		writeWithCommasZip!(TypeParam, Type)(writer, typeParams, typeArgs, (in TypeParam param, in Type arg) {
+			writeSym(writer, allSymbols, param.name);
+			writer ~= '=';
+			writeTypeUnquoted(writer, allSymbols, program, arg);
+		});
+	}
 }
 
 void writeCalledDecl(
@@ -491,12 +544,7 @@ void writeCalledDecl(
 			writeFunDecl(writer, allSymbols, allPaths, pathsInfo, options, program, x);
 		},
 		(in CalledSpecSig x) {
-			writeSig(
-				writer, allSymbols, program, x.name, x.returnType,
-				Params(x.nonInstantiatedSig.params), some(x.instantiatedSig));
-			writer ~= " (from spec ";
-			writeName(writer, allSymbols, name(*x.specInst));
-			writer ~= ')';
+			writeCalledSpecSig(writer, allSymbols, program, x);
 		});
 }
 

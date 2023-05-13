@@ -132,7 +132,7 @@ destroy-condition void(a condition mut*) bare, unsafe
 		a.posix-mutex.pthread_mutex_destroy hard-assert-posix-error
 		a.posix-cond-attr.pthread_condattr_destroy hard-assert-posix-error
 		a.posix-cond.pthread_cond_destroy hard-assert-posix-error
-	
+
 -hard-assert-posix-error void(err err-t) bare, unsafe
 	err == 0 hard-assert
 

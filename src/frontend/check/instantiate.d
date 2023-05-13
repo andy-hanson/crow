@@ -281,7 +281,7 @@ SpecInst* instantiateSpec(
 void instantiateSpecParents(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	SpecInst* a, 
+	SpecInst* a,
 	scope DelaySpecInsts delaySpecInsts,
 ) {
 	TypeParamsAndArgs typeParamsAndArgs = TypeParamsAndArgs(decl(*a).typeParams, typeArgs(*a));

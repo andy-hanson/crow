@@ -370,7 +370,7 @@ bool inferCandidateTypeArgsFromSpecs(ref ExprCtx ctx, scope ref Candidate candid
 			(CalledSpecSig _) => true);
 	} else
 		// figure this out at the end
-		return true; 
+		return true;
 }
 
 bool inferCandidateTypeArgsFromSpecInst(

@@ -16,7 +16,7 @@ start-sdl-audio audio() summon
 
 		samples nat16 = 4096
 		format sound-format = 2, 48000
-		queue audio-queue = format, 
+		queue audio-queue = format,
 		write-ctx write-ctx mut* = (queue,) unmanaged-alloc
 
 		sr int32 = format.sample-rate to

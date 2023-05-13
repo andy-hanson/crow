@@ -484,7 +484,7 @@ GccVars generateGccVars(
 				case LowVar.Kind.global:
 					break;
 				case LowVar.Kind.threadLocal:
-					gcc_jit_lvalue_set_tls_model(res, gcc_jit_tls_model.GCC_JIT_TLS_MODEL_LOCAL_DYNAMIC);	
+					gcc_jit_lvalue_set_tls_model(res, gcc_jit_tls_model.GCC_JIT_TLS_MODEL_LOCAL_DYNAMIC);
 					break;
 			}
 			return castNonScope(res);
@@ -626,7 +626,7 @@ ExprResult emitWriteToLValue(
 		(ExprEmit.Value) =>
 			ExprResult(getRValueUsingLocal(ctx, type, cb)),
 		(ExprEmit.Void) {
-			// This can happen for a LowExprKind.SpecialUnary.Kind.drop 
+			// This can happen for a LowExprKind.SpecialUnary.Kind.drop
 			getRValueUsingLocal(ctx, type, cb);
 			return ExprResult(ExprResult.Void());
 		},

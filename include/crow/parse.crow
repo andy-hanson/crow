@@ -120,7 +120,7 @@ text-not-containing-any string grammar(possible-endings string[])
 		res string = with out : build
 			loop
 				if possible-endings exists x => !(iter try-take-exact x).is-empty
-					break 
+					break
 				elif x, rest ?= iter next
 					out ~= x
 					iter := rest

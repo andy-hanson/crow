@@ -202,7 +202,7 @@ immutable struct ConcreteStruct {
 	enum SpecialKind {
 		none,
 		array,
-		tuple,	
+		tuple,
 	}
 
 	Purity purity;

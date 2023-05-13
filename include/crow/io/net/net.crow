@@ -45,7 +45,7 @@ connect-to-uri SOCKET(u uri) summon, unsafe
 	op-sock!
 
 -wsa-init void() summon, unsafe
-	wsa-data mut WSADATA = () 
+	wsa-data mut WSADATA = ()
 	err = 2 MAKEWORD 2 WSAStartup &wsa-data
 	out print "initialized WSA, err is {err}"
 	if err != 0

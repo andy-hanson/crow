@@ -172,7 +172,7 @@ test
 	a big-nat[] = 5.big, 6.big
 	b big-nat[] = 4.big ~ a
 	b verify "([4] [] [5 6])"
-	
+
 	b-split = (b try-split-once (5.big,))!
 	b-split.a verify "[4]"
 	b-split.b verify "[6]"

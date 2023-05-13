@@ -42,7 +42,7 @@ Else, returns `b`.
 +||[t] t?(a t?, b t?) builtin, bare
 
 ###
-Lazily-evaluated. 
+Lazily-evaluated.
 If `a` is non-empty, returns its value and does not evaluate `b`.
 Else, returns `b`.
 ###

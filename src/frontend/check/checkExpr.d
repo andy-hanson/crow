@@ -536,7 +536,7 @@ MutOpt!ExpectedLambdaType getExpectedLambdaType(
 				OkSkipOrAbort!Type actualParamType = () {
 					if (has(optExpectedParamType)) {
 						Type expectedParamType = force(optExpectedParamType);
-						return !has(declaredParamType) 
+						return !has(declaredParamType)
 							? OkSkipOrAbort!Type.ok(expectedParamType)
 							: expectedParamType == force(declaredParamType)
 							? OkSkipOrAbort!Type.ok(expectedParamType)

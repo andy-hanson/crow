@@ -260,7 +260,7 @@ bool canUseTaggedPointers(Types...)() {
 		return false;
 }
 private bool canUseTaggedPointer(T)() =>
-	isEmptyStruct!T || is(T == U*, U) || __traits(compiles, T.fromTagged(0)); 
+	isEmptyStruct!T || is(T == U*, U) || __traits(compiles, T.fromTagged(0));
 
 ulong getAsTaggable(T)(toMemberType!T a) {
 	static if (isEmptyStruct!T)

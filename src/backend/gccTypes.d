@@ -124,7 +124,7 @@ GccTypes getGccTypes(
 		mapFullIndexMap_mut!(LowType.Record, immutable gcc_jit_field*[], LowRecord)(
 			alloc,
 			program.allRecords,
-			(LowType.Record, in LowRecord record) => 
+			(LowType.Record, in LowRecord record) =>
 				typeAs!(immutable gcc_jit_field*[])([])),
 		mapFullIndexMap_mut!(LowType.Union, gcc_jit_struct*, LowUnion)(
 			alloc,

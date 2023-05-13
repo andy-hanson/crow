@@ -62,7 +62,7 @@ user-cookie record
 	inner login-cookie
 
 user-cookie user-cookie grammar()
-	nat ~~ "|" ~~ login-cookie map (user, cookie) => 
+	nat ~~ "|" ~~ login-cookie map (user, cookie) =>
 		user, cookie
 
 to string(a user-cookie)

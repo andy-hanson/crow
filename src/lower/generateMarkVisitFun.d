@@ -194,7 +194,7 @@ LowFun generateMarkVisitArr(
 			LowExpr ifBody = genLet(alloc, range, cur, getData,
 				genLet(alloc, range, end, genAddPtr(alloc, elementPointerType, range, getData, getSize),
 					theLoop));
-			return genIf(alloc, range, callMark, ifBody, voidValue);			
+			return genIf(alloc, range, callMark, ifBody, voidValue);
 		} else
 			return genDrop(alloc, range, callMark);
 	}();

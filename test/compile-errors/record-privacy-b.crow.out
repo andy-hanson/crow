@@ -14,7 +14,7 @@ candidates (with 1 arguments):
 	new k mut[v](...(k, v) array) (from include/crow/col/mut-map.crow line 42)
 	new t mut-set(...t array) (from include/crow/col/mut-set.crow line 21)
 	new t set(...t array) (from include/crow/col/set.crow line 31)
-	new t^(value t) (from include/crow/future.crow line 39)
+	new t^(value t) (from include/crow/future.crow line 40)
 	new json(...(symbol, json) array) (from include/crow/json.crow line 34)
 	new t?(a t) (from include/crow/option.crow line 15)
 	new t mut-array(inner t array) (from include/crow/private/bootstrap.crow line 115)

@@ -27,10 +27,10 @@ crow-unit-tests: bin/crow
 	./bin/crow run test/crow-unit-tests.crow
 
 end-to-end-test: bin/crow
-	./bin/crow run test/test.crow
+	./bin/crow run test/test-end-to-end.crow
 
 end-to-end-test-overwrite: bin/crow
-	./bin/crow run test/test.crow -- --overwrite-output
+	./bin/crow run test/test-end-to-end.crow -- --overwrite-output
 
 wasm-test: prepare-site
 	./test/testWasm.js
@@ -116,7 +116,10 @@ bin/crow.tar.xz: bin/crow demo/* demo/*/* editor/sublime/* $(ALL_INCLUDE) librar
 
 ### lint ###
 
-lint: lint-dscanner lint-d-imports-exports
+lint: lint-basic lint-dscanner lint-d-imports-exports
+
+lint-basic: bin/crow
+	./bin/crow run test/lint-basic.crow
 
 lint-dscanner:
 	dub run dscanner -- --styleCheck src/*.d src/*/*.d src/*/*/*.d

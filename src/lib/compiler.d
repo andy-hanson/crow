@@ -150,7 +150,7 @@ void writeDiagnostics(
 }
 
 struct DiagsAndResultJson {
-	Program programForDiags;	
+	Program programForDiags;
 	Json result;
 }
 

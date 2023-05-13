@@ -27,7 +27,7 @@ test
 	a.size is 0
 	a verify (), ()
 	a[0] is ()
-	
+
 	b (nat64, string) frozen-map = (3, "3"), (1, "1"), (5, "5"), (2, "2")
 	b verify (3, 1, 5, 2), ()
 	b[0] is ()

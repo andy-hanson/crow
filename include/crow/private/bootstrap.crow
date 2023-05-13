@@ -40,7 +40,7 @@ region option.crow
 ###
 Optional type. Read the tutorial to learn more.
 
-You never need to `match` on this union; use the `if x ?= y` syntax instead. 
+You never need to `match` on this union; use the `if x ?= y` syntax instead.
 ###
 +option[t] union
 	none
