@@ -5,22 +5,17 @@ import
 	./col/collection: for-loop, join
 	./col/experimental/index-set: iterate, index-set, size
 	./col/map: ==, ~=, build, iterate, map, size, subscript, to
-	./hash: hasher
 	./col/list: ==, ~=, build, iterate, list, new, size
 	./parse:
 		/, ~~, bool, exact, float, grammar, lazy, map, quoted-string, separated-by, spaces,
 		with-block
-	./private/symbol-low-level: ==, <=>, symbol, to
-	./misc: to, void
+	./misc: to
 	./number: ==, float32, float64, int8, int16, int32, int64, nat8, nat16, nat32, nat64, to
 	./option: new, option
 	./result: result
-	./string: ==, ~~, hash-mix, literal, new, quote, string, to
+	./string: ==, ~~, literal, new, quote, string, to
+	./symbol: ==, <=>, hash-mix, symbol, to
 	./tuple: a, b, new
-
-#TODO: get from 'symbol'
--hash-mix void(hasher hasher, a symbol)
-	hasher hash-mix a.to::string
 
 ###
 JSON data.

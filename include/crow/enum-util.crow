@@ -7,8 +7,8 @@ import
 	./json: json, to
 	./misc: loop-break, new
 	./option: ??, option
-	./private/symbol-low-level: ==, symbol, to
 	./string: ==, ~~, literal, string, to
+	./symbol: ==, symbol, to
 
 ###
 Spec that will be satisfied by generated functions for any `enum` type.

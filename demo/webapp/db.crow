@@ -164,7 +164,7 @@ login-error enum
 
 login (user-cookie, login-error) result(db db, user-name string, password string) summon
 	if user-name.is-empty || password.is-empty
-		empty-name-or-password err
+		empty-name-or-password error
 	else
 		with txn : db.env write-transaction
 			if user ?= db get-user txn, user-name
@@ -174,9 +174,9 @@ login (user-cookie, login-error) result(db db, user-name string, password string
 					txn set db.user-login-cookie, user, cookie
 					(user, cookie) ok
 				else
-					wrong-password err
+					wrong-password error
 			else
-				user-does-not-exist err
+				user-does-not-exist error
 
 -get-post-info post-info(db db, post post) summon
 	with txn : db.env read-transaction

@@ -161,13 +161,7 @@ This can also be written as `()`.
 region symbol.crow
 
 +symbol record by-val
-	-symbol-to-c-string c-string
-
-new-symbol symbol(a c-string) bare, unsafe
-	a,
-
-to c-string(a symbol) bare, unsafe
-	a symbol-to-c-string
+	~symbol-to-c-string c-string
 
 region bootstrap arithmetic
 
