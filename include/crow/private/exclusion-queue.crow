@@ -21,7 +21,7 @@ It prevents multiple values with the same exclusion from being dequeued before '
 This is not thread-safe.
 This is not traceable, so you must call `add-gc-roots`.
 ###
-exclusion-queue[v] record mut by-val
+exclusion-queue[v] record by-val, mut
 	###
 	Lets you quickly look up a queue entry by exclusion.
 	Queue nodes are stored directly in the map, which is why they must implement 'move-from'.
@@ -36,7 +36,7 @@ exclusion-queue[v] record mut by-val
 	###
 	-queue mut (exclusion, v entry) map-pair
 
--entry[v] record mut by-val
+-entry[v] record by-val, mut
 	###
 	This is always validly allocated, even for an unused entry.
 	###

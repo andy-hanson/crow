@@ -75,7 +75,7 @@ it could be modified if there are other references to it.
 ###
 This is like `const-pointer` but supports writing to the contents.
 ###
-+mut-pointer[t] builtin mut extern
++mut-pointer[t] builtin extern, mut
 
 +any-const-pointer alias
 	nat8*
@@ -112,7 +112,7 @@ You can't change what range of addresses a `mut-array` points to, though you can
 Like an immutable array, and unlike a `mut[]`, it's cheap to take a slice of a `mut-array`.
 Taking a slice aliases the elements, so writing to the slice writes to the original.
 ###
-+mut-array[t] record mut by-val
++mut-array[t] record by-val, mut
 	~inner t array
 
 ###
@@ -259,7 +259,7 @@ hard-forbid void(condition bool) bare, unsafe
 
 region bootstrap runtime
 
-task record mut by-val
+task record by-val, mut
 	exclusion exclusion
 	action act void()
 
@@ -361,7 +361,7 @@ This wraps an `act` combined with the exclusion it came from.
 This is shared since the `act` can't be called directly;
 instead a task is added that will call the `act` when its exclusion is available.
 ###
-+fun-far[r, p] record force-shared by-val
++fun-far[r, p] record by-val, force-shared
 	exclusion exclusion
 	action act r^(p)
 
@@ -395,7 +395,7 @@ There is no exception subtyping in crow, so all exceptions have this type.
 	###
 	backtrace backtrace
 
-+future[t] record force-shared by-ref
++future[t] record by-ref, force-shared
 	lk mut lock
 	state mut t future-state
 
@@ -415,7 +415,7 @@ future-state[t] union mut
 
 region lock
 
-lock record shared by-val
+lock record by-val, shared
 	n0 nat64
 	n1 nat64
 	n2 nat64

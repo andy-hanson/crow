@@ -10,7 +10,7 @@ import
 	./alloc: gc, gc-add-root, mem-copy, mem-move, unmanaged-alloc-elements, unmanaged-free-elements
 
 # TODO: actual heap implementation
-bare-priority-queue[k, v] record mut by-val
+bare-priority-queue[k, v] record by-val, mut
 	# This is also alloc-begin
 	-begin mut (k, v) mut*
 	-end mut (k, v) mut*

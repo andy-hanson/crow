@@ -35,6 +35,7 @@ import frontend.parse.lexer :
 	curPos,
 	getCurLiteralInt,
 	getCurLiteralNat,
+	getCurOperator,
 	getCurSym,
 	getPeekToken,
 	Lexer,
@@ -689,51 +690,47 @@ StructDeclAst.Body.Union.Member[] parseUnionMembersOrDiag(ref Lexer lexer) {
 }
 
 ModifierAst[] parseModifiers(ref Lexer lexer) {
+	if (peekNewline(lexer)) return [];
 	ArrBuilder!ModifierAst res;
-	parseModifiersRecur(lexer, res);
+	while (true) {
+		Pos start = curPos(lexer);
+		ModifierAst.Kind kind = parseModifierKind(lexer);
+		add(lexer.alloc, res, ModifierAst(start, kind));
+		if (peekNewline(lexer))
+			break;
+		else
+			takeOrAddDiagExpectedToken(lexer, Token.comma, ParseDiag.Expected.Kind.comma);
+	}
 	return finishArr(lexer.alloc, res);
 }
-void parseModifiersRecur(ref Lexer lexer, ref ArrBuilder!ModifierAst res) {
-	Pos start = curPos(lexer);
-	Opt!(ModifierAst.Kind) kind = tryParseModifierKind(lexer);
-	if (has(kind)) {
-		add(lexer.alloc, res, ModifierAst(start, force(kind)));
-		return parseModifiersRecur(lexer, res);
-	}
-}
 
-Opt!(ModifierAst.Kind) tryParseModifierKind(ref Lexer lexer) {
-	if (tryTakeOperator(lexer, sym!"-")) {
-		Opt!Sym name = tryTakeName(lexer);
-		if (!(has(name) && force(name) == sym!"new"))
-			todo!void("diagnostic: expected 'new' after '-'");
-		return some(ModifierAst.Kind.newPrivate);
-	} else if (tryTakeOperator(lexer, sym!"+")) {
-		Opt!Sym name = tryTakeName(lexer);
-		if (!(has(name) && force(name) == sym!"new"))
-			todo!void("diagnostic: expected 'new' after '+'");
-		return some(ModifierAst.Kind.newPublic);
-	} else {
-		Opt!(ModifierAst.Kind) res = () {
-			switch (getPeekToken(lexer)) {
-				case Token.extern_:
-					return some(ModifierAst.Kind.extern_);
-				case Token.mut:
-					return some(ModifierAst.Kind.mut);
-				case Token.name:
-					Opt!(ModifierAst.Kind) kind = modifierKindFromSym(getCurSym(lexer));
-					if (!has(kind)) {
-						addDiagExpected(lexer, ParseDiag.Expected.Kind.modifier);
-						nextToken(lexer);
-					}
-					return kind;
+ModifierAst.Kind parseModifierKind(ref Lexer lexer) {
+	ModifierAst.Kind fail() {
+		addDiagExpected(lexer, ParseDiag.Expected.Kind.modifier);
+		return ModifierAst.Kind.data;
+	}
+
+	switch (nextToken(lexer)) {
+		case Token.extern_:
+			return ModifierAst.Kind.extern_;
+		case Token.mut:
+			return ModifierAst.Kind.mut;
+		case Token.name:
+			Opt!(ModifierAst.Kind) kind = modifierKindFromSym(getCurSym(lexer));
+			return has(kind) ? force(kind) : fail();
+		case Token.operator:
+			switch (getCurOperator(lexer).value) {
+				case sym!"-".value:
+					Opt!Sym name = tryTakeName(lexer);
+					return has(name) && force(name) == sym!"new" ? ModifierAst.Kind.newPrivate : fail();
+				case sym!"+".value:
+					Opt!Sym name = tryTakeName(lexer);
+					return has(name) && force(name) == sym!"new" ? ModifierAst.Kind.newPublic : fail();
 				default:
-					return none!(ModifierAst.Kind);
+					return fail();
 			}
-		}();
-		if (has(res))
-			nextToken(lexer);
-		return res;
+		default:
+			return fail();
 	}
 }
 

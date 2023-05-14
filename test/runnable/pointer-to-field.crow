@@ -14,5 +14,5 @@ main void() unsafe, summon
 	assert *xc == r.x
 	out print "{*xc}"
 
-r record mut by-val
+r record by-val, mut
 	x mut nat

@@ -6,7 +6,7 @@ MDB_env extern
 MDB_dbi alias
 	u-int
 
-MDB_val record mut extern
+MDB_val record extern, mut
 	mv_size size_t
 	mv_data any-mut-pointer
 

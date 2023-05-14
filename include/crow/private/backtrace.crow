@@ -97,7 +97,7 @@ Result entries are temporary, must copy!
 	ok1 hard-assert
 	(entries .. end).as-array,
 
--windows-backtrace-vars record by-val mut
+-windows-backtrace-vars record by-val, mut
 	offset nat64 mut*
 	displacement nat32 mut*
 	symbol IMAGEHLP_SYMBOL64 mut*

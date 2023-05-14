@@ -13,7 +13,7 @@ SDL_AudioDeviceID alias
 SDL_AudioCallback alias
 	fun* void(any-mut-pointer, nat8 mut*, c-int)
 
-SDL_AudioSpec record extern mut
+SDL_AudioSpec record extern, mut
 	freq c-int
 	format SDL_AudioFormat
 	channels nat8

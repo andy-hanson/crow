@@ -19,12 +19,12 @@ u union data
 uv union by-val
 	r
 
-dd extern data data
+dd extern data, data
 
-mm record mut mut
+mm record mut, mut
 
-ss record shared shared
+ss record shared, shared
 
-rr record by-ref by-ref
+rr record by-ref, by-ref
 
-vv record by-val by-val
+vv record by-val, by-val

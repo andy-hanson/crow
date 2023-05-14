@@ -7,5 +7,5 @@ main void() unsafe, summon
 	rp->x := 3
 	out print "{r x}"
 
-r record mut by-val
+r record by-val, mut
 	x mut nat

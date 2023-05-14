@@ -37,7 +37,7 @@ cur-exclusion exclusion() unsafe
 
 -cur-exclusion-var thread-local(exclusion)
 
-global-ctx record mut by-val
+global-ctx record by-val, mut
 	global-lock mut lock
 	may-be-work-to-do mut condition
 	# Set to true the first time the default exception handler is invoked.

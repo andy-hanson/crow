@@ -20,7 +20,7 @@ export
 
 # WARN: `task-queue` is not thread-safe; acquire `tasks-lock` on `global-ctx` first.
 
-task-queue record mut by-val
+task-queue record by-val, mut
 	-non-timed mut act void() exclusion-queue
 	-timed mut (nat64, task) bare-priority-queue
 

@@ -222,7 +222,7 @@ region spec impls (see collection.crow)
 
 subregion iterator
 
-+mut-array-iterator[t] record mut by-val
++mut-array-iterator[t] record by-val, mut
 	collection t mut-array
 	next-index nat64
 

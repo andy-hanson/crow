@@ -64,6 +64,6 @@ sound-from-file-content sound(content nat8 array)
 	a user-data mut* = user-data-pointer pointer-cast
 	a->cur - a->content.begin-pointer
 
--user-data record mut by-val
+-user-data record by-val, mut
 	content nat8 array
 	cur nat8*

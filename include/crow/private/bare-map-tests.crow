@@ -16,7 +16,7 @@ dummy-bare-map-tests nat()
 -invalid nat()
 	max-value
 
--value record mut by-val
+-value record by-val, mut
 	id mut string
 	moved mut nat
 	destroyed mut bool

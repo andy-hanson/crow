@@ -8,7 +8,7 @@ import
 	sys/socket: sockaddr
 	sys/types: socklen_t
 
-addrinfo record mut extern
+addrinfo record extern, mut
 	ai_flags int32
 	ai_family int32
 	ai_socktype int32
@@ -34,7 +34,7 @@ getaddrinfo c-int(
 freeaddrinfo void(ai addrinfo mut*) c extern
 gai_strerror c-string(ecode int32) c extern
 
-hostent record mut extern
+hostent record extern, mut
 	h_name c-string
 	h_aliases c-string mut*
 	h_addrtype c-int
@@ -43,7 +43,7 @@ hostent record mut extern
 
 gethostbyname hostent mut*(name c-string) c extern
 
-protoent record mut extern
+protoent record extern, mut
 	p_name c-string
 	p_aliases c-string mut*
 	p_proto c-int

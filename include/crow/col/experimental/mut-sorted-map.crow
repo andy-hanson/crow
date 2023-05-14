@@ -26,7 +26,7 @@ Mutable sorted map.
 
 This works like `mut-map`, but iterates in sorted order.
 ###
-mut-sorted-map[k, v] record mut by-ref
+mut-sorted-map[k, v] record by-ref, mut
 	# TODO: by-val
 	# Values are none if they have been deleted.
 	-pairs (k, v?) mut[]

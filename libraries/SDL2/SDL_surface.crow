@@ -6,7 +6,7 @@ import
 
 SDL_FreeSurface void(surface SDL_Surface mut*) summon, SDL2 extern
 
-SDL_Surface record mut extern
+SDL_Surface record extern, mut
 	surface-flags nat32
 	format SDL_PixelFormat mut*
 	w c-int

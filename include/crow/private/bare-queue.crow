@@ -8,7 +8,7 @@ import
 	../pointer: ==, <=>, +, -, *, as-const, const-pointer, mut-pointer, null, set-deref
 	./alloc: gc, gc-add-root, mem-copy, unmanaged-alloc-elements, unmanaged-free-elements
 
-bare-queue[t] record mut by-val
+bare-queue[t] record by-val, mut
 	-alloc-begin mut t mut*
 	-alloc-end mut t mut*
 	# For an empty queue, begin == end == null.

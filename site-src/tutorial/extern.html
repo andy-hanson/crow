@@ -38,7 +38,7 @@
 			as error e
 				error log "bad regex {source}: {e}"
 
-		regex record mut by-ref
+		regex record by-ref, mut
 			wrapped mut regex_t
 
 		# Unsafe because the caller must 'free' the regex
@@ -68,7 +68,7 @@
 					_ = err regerror &a.wrapped, buf.begin-pointer, buf.size
 					throw buf.begin-pointer.as-const
 
-		regex_t record mut extern
+		regex_t record extern, mut
 			buffer void mut*
 			allocated size_t
 			used size_t

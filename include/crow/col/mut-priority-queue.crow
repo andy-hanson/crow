@@ -29,7 +29,7 @@ Popping removes the pair with the lowest key.
 
 If two pairs have the same key, the second pair added will be popped second.
 ###
-+mut-priority-queue[k, v] record mut by-ref
++mut-priority-queue[k, v] record by-ref, mut
 	# TODO: Use by-val
 	# The smallest value goes on the right
 	-mins (k, v) mut[]

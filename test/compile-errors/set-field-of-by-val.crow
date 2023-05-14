@@ -2,5 +2,5 @@ main void()
 	r mut r = 0,
 	r.x := 3
 
-r record mut by-val
+r record by-val, mut
 	x mut nat

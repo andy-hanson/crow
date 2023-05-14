@@ -349,7 +349,7 @@ Throws if `index >= a.size`.
 
 subregion iterator
 
-+mut-list-iterator[t] record mut by-val
++mut-list-iterator[t] record by-val, mut
 	collection t mut[]
 	next-index nat64
 

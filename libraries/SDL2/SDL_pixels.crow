@@ -8,13 +8,13 @@ SDL_Color record extern
 	b nat8
 	a nat8
 
-SDL_Palette record mut extern
+SDL_Palette record extern, mut
 	ncolors c-int
 	colors SDL_Color mut*
 	version nat32
 	refcount c-int
 
-SDL_PixelFormat record mut extern
+SDL_PixelFormat record extern, mut
 	format nat32
 	palette SDL_Palette mut*
 	BitsPerPixel nat8

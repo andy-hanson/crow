@@ -212,7 +212,7 @@
 				*x-ptr := 3
 				info log "{foo.x} == {foo-ptr->x} == {*x-ptr}"
 
-		foo record by-val mut
+		foo record by-val, mut
 			x mut nat
 	</crow-runnable>
 </section>

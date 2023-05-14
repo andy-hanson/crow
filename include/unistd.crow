@@ -19,7 +19,7 @@ write ssize_t(fd fd-t, buf any-const-pointer, n-bytes size_t) c extern
 pipe err-t(pipes pipes mut*) summon, c extern
 
 # The headers just use int[2], but this is easier to use from crow
-pipes record mut extern
+pipes record extern, mut
 	write-pipe fd-t
 	read-pipe fd-t
 

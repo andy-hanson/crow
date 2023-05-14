@@ -87,7 +87,7 @@ with-lock[t] t(a lock mut*, f act t())
 		a release
 		res
 
-condition record mut by-val
+condition record by-val, mut
 	# TODO: use union to save space instead of storing posix/windows side-by-side
 	-posix-mutex-attr mut pthread_mutexattr_t
 	-posix-mutex mut pthread_mutex_t
@@ -214,7 +214,7 @@ wait-on void(a condition mut*, until-time timestamp?, last-sequence sequence-id)
 				a.posix-cond pthread_cond_wait a.posix-mutex hard-assert-posix-error
 		a.posix-mutex.pthread_mutex_unlock hard-assert-posix-error
 
-barrier record mut by-val
+barrier record by-val, mut
 	# TODO: use union to save space instead of storing posix/windows side-by-side
 	-posix mut pthread_barrier_t
 	-windows mut SYNCHRONIZATION_BARRIER
@@ -253,7 +253,7 @@ wait-barrier bool(a barrier mut*) bare, unsafe
 			false
 
 # TODO: use atomic operations for this
-thread-safe-counter record mut by-val
+thread-safe-counter record by-val, mut
 	lk mut lock
 	value mut nat64
 
@@ -286,7 +286,7 @@ get-and-decrement nat64(t thread-safe-counter mut*) bare, unsafe
 	t.lk release
 	old
 
-thread-handle record mut by-val
+thread-handle record by-val, mut
 	-storage any-mut-pointer
 -as-windows-handle HANDLE(a thread-handle) bare, unsafe
 	a.storage

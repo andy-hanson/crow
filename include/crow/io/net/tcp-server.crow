@@ -91,7 +91,7 @@ close-client void(client SOCKET) summon, unsafe
 	assert sd-err == 0
 	client close-socket
 
--tcp-server-state record mut by-ref
+-tcp-server-state record by-ref, mut
 	should-stop mut bool
 	# TODO: my code wrongly thinks this should be packed!
 	pad-0 bool

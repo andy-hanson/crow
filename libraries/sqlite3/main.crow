@@ -50,7 +50,7 @@ import
 			error-message.as-mut.pointer-cast sqlite3_free
 			throw "ERROR {err}: {error-string}"
 
--callback-ctx record by-val mut
+-callback-ctx record by-val, mut
 	cb-row act bool(string[symbol])
 
 -callback c-int(ctx-pointer any-mut-pointer, argc c-int, argv c-string*, col-name c-string*) summon, unsafe

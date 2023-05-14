@@ -27,7 +27,7 @@ LeaveCriticalSection void(a CRITICAL_SECTION mut*) kernel32 extern
 
 DeleteCriticalSection void(a CRITICAL_SECTION mut*) kernel32 extern
 
-CONDITION_VARIABLE record mut extern
+CONDITION_VARIABLE record extern, mut
 	n nat64
 
 InitializeConditionVariable void(a CONDITION_VARIABLE mut*) kernel32 extern
@@ -43,7 +43,7 @@ WakeAllConditionVariable void(a CONDITION_VARIABLE mut*) kernel32 extern
 INFINITE DWORD() bare
 	0xffffffff
 
-SYNCHRONIZATION_BARRIER record mut extern
+SYNCHRONIZATION_BARRIER record extern, mut
 	Reserved1 DWORD
 	Reserved2 DWORD
 	Reserved3_0 ULONG_PTR
@@ -124,7 +124,7 @@ WriteFile bool(
 	lpOverlapped any-mut-pointer,
 ) kernel32 extern, summon
 
-WIN32_FIND_DATAA record extern mut
+WIN32_FIND_DATAA record extern, mut
 	dwFileAttributes DWORD
 	ftCreationTime FILETIME
 	ftLastAccessTime FILETIME
@@ -227,7 +227,7 @@ SUBLANG_NEUTRAL WORD()
 MAKELANGID DWORD(p WORD, s WORD) bare
 	(s.to << 10) | p.to
 
-STARTUPINFOA record mut extern
+STARTUPINFOA record extern, mut
 	cb DWORD
 	lpReserved c-char mut*
 	lpDesktop c-char mut*
@@ -262,7 +262,7 @@ new STARTUPINFOA(dwFlags startup-flags, hStdInput HANDLE, hStdOutput HANDLE, hSt
 	size DWORD = size-of@STARTUPINFOA to
 	size, (), (), (), (), (), (), (), (), (), (), dwFlags, (), (), (), hStdInput, hStdOutput, hStdError
 
-SECURITY_ATTRIBUTES record mut extern
+SECURITY_ATTRIBUTES record extern, mut
 	nLength DWORD
 	lpSecurityDescriptor any-mut-pointer
 	bInheritHandle c-int
@@ -271,7 +271,7 @@ new SECURITY_ATTRIBUTES(lpSecurityDescriptor any-mut-pointer, bInheritHandle boo
 	# TODO: shouldn't need parens
 	(size-of@SECURITY_ATTRIBUTES).to, lpSecurityDescriptor, bInheritHandle ? 1 : 0
 
-PROCESS_INFORMATION record mut extern
+PROCESS_INFORMATION record extern, mut
 	hProcess HANDLE
 	hThread HANDLE
 	dwProcessId DWORD
@@ -333,7 +333,7 @@ MAKEWORD WORD(a nat8, b nat8)
 
 WSAStartup c-int(wVersionRequested WORD, lpWSAData WSADATA mut*) kernel32 extern, summon
 
-WSADATA record mut extern
+WSADATA record extern, mut
 	wVersion WORD
 	wHighVersion WORD
 	iMaxSockets u-short
@@ -351,7 +351,7 @@ new WSADATA() bare, unsafe
 
 GetSystemInfo void(lpSystemInfo SYSTEM_INFO mut*) summon, kernel32 extern
 
-SYSTEM_INFO record mut extern
+SYSTEM_INFO record extern, mut
 	DUMMYUNIONNAME DWORD
 	dwPageSize DWORD
 	lpMinimumApplicationAddress any-mut-pointer
@@ -371,7 +371,7 @@ GetTickCount DWORD() kernel32 extern
 
 Sleep void(dwMilliseconds DWORD) summon, kernel32 extern
 
-CONTEXT record extern mut
+CONTEXT record extern, mut
 	P1Home DWORD64
 	P2Home DWORD64
 	P3Home DWORD64

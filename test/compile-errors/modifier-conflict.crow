@@ -1,10 +1,10 @@
 main void()
 	()
 
-dm extern data mut
+dm extern data, mut
 
-ms record mut shared
+ms record mut, shared
 
-sfs record shared force-shared
+sfs record force-shared, shared
 
-bvbr record by-val by-ref
+bvbr record by-ref, by-val

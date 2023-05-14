@@ -15,7 +15,7 @@ import
 Note: All values in the map will be kept valid, including unused entries.
 So 'new' initializes all values, and 'destroy' and 'add-gc-roots' ignore keys entirely.
 ###
-bare-map[k, v] record mut by-val
+bare-map[k, v] record by-val, mut
 	###
 	There are logically 2 different maps, each of size 'half-capacity'.
 	Keys prefer to be in the left map; if that is empty the key won't be in the right map.
@@ -48,7 +48,7 @@ bare-map[k, v] record mut by-val
 -entry-right[k, v] (k, v) map-pair mut*(a (k, v) bare-map mut*, hash nat64) bare, unsafe
 	a->begin-right + (hash.hash-right % a->half-capacity)
 
-map-pair[k, v] record mut by-val
+map-pair[k, v] record by-val, mut
 	key mut k
 	value mut v
 

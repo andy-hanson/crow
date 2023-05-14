@@ -7,7 +7,7 @@ private-ctor record -new
 redundant-private-ctor record -new
 	-y nat
 
-private-mut record mut +new
+private-mut record mut, +new
 	-j mut nat
 	k .mut nat
 	-l .mut nat

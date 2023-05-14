@@ -37,7 +37,7 @@ start-sdl-audio audio() summon
 			_ = queue
 		format, (() => queue clear), (x => queue play x), (x => queue play-loop x), shut-down
 
--write-ctx record mut by-val
+-write-ctx record by-val, mut
 	queue audio-queue
 
 -audio-cb void(userdata any-mut-pointer, stream nat8 mut*, len c-int) bare, unsafe
