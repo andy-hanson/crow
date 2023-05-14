@@ -1,4 +1,4 @@
-main nat64^(_ string[]) bare
+main void() bare
 	()::string foo
 	()::string[] foo
 	()::string[][] foo
@@ -12,8 +12,6 @@ main nat64^(_ string[]) bare
 	()::nat[][] foo
 
 	_ nat[] = 1,
-
-	()
 
 # testing indirect call flags
 foo[t] spec

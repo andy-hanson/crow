@@ -41,7 +41,7 @@ import frontend.parse.lexer :
 	NewlineOrDedent,
 	NewlineOrIndent,
 	nextToken,
-	peekToken,
+	peekNewline,
 	range,
 	skipBlankLinesAndGetDocComment,
 	skipNewlinesIgnoreIndentation,
@@ -281,7 +281,7 @@ enum TrailingComma { no, yes }
 TrailingComma takeCommaSeparatedNames(ref Lexer lexer, ref ArrBuilder!Sym names) {
 	add(lexer.alloc, names, takeNameOrOperator(lexer));
 	return tryTakeToken(lexer, Token.comma)
-		? peekToken(lexer, Token.newline)
+		? peekNewline(lexer)
 			? TrailingComma.yes
 			: takeCommaSeparatedNames(lexer, names)
 		: TrailingComma.no;
@@ -428,7 +428,7 @@ StructDeclAst.Body.Union.Member[] parseUnionMembers(ref Lexer lexer) {
 	do {
 		Pos start = curPos(lexer);
 		Sym name = takeName(lexer);
-		Opt!TypeAst type = peekToken(lexer, Token.newline) ? none!TypeAst : some(parseType(lexer));
+		Opt!TypeAst type = peekNewline(lexer) ? none!TypeAst : some(parseType(lexer));
 		add(lexer.alloc, res, StructDeclAst.Body.Union.Member(range(lexer, start), name, type));
 	} while (takeNewlineOrSingleDedent(lexer) == NewlineOrDedent.newline);
 	return finishArr(lexer.alloc, res);
@@ -459,7 +459,7 @@ FunDeclAst parseFun(
 }
 
 FunModifierAst[] parseFunModifiers(ref Lexer lexer) {
-	if (peekToken(lexer, Token.newline) || peekToken(lexer, Token.EOF))
+	if (peekNewline(lexer))
 		return [];
 	else {
 		ArrBuilder!FunModifierAst res;
@@ -486,7 +486,7 @@ FunModifierAst parseFunModifier(ref Lexer lexer) {
 }
 
 TypeAst[] parseSpecModifiers(ref Lexer lexer) {
-	if (peekToken(lexer, Token.newline) || peekToken(lexer, Token.EOF))
+	if (peekNewline(lexer))
 		return [];
 	else {
 		ArrBuilder!TypeAst res;

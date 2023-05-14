@@ -9,11 +9,10 @@
 		<code>width</code> and <code>height</code>.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			a dimensions = 4, 2
 			area = a.width * a.height
 			info log "area is {area}"
-			()
 
 		dimensions record
 			width float
@@ -44,11 +43,10 @@
 		goes after a field name (but before the type) to make that field mutable.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			a dimensions = 4, 2
 			a.width := 5
 			info log "{a width}"
-			()
 
 		dimensions record mut
 			width mut float

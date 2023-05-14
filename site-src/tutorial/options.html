@@ -13,10 +13,9 @@
 		Explicitly making the value optional means that you won't have to remember that.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log ().describe
 			info log (1,).describe
-			()
 
 		describe string(a nat?)
 			if x ?= a
@@ -36,11 +35,10 @@
 		These can integrate with other <code class="keyword">if</code> chains.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log (() describe "fizz")
 			info log ((1,) describe "fizz")
 			info log ((1,) describe "buzz")
-			()
 
 		describe string(a nat?, b string)
 			if b == "buzz"
@@ -58,21 +56,19 @@
 		The <code class="fun">??</code> operator provides a default value for an option if it's empty.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log (() ?? "bar")
 			info log (("crow",) ?? "bar")
-			()
 	</crow-runnable>
 
 	<p>
 		The <code class="fun">||</code> operator is similar, but it takes two options and returns another option.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log (() || ()).describe
 			info log (() || (1,)).describe
 			info log ((2,) || (3,)).describe
-			()
 
 		describe string(a nat?)
 			if x ?= a
@@ -89,11 +85,10 @@
 		(Exceptions will be explained in {{tutorial/exceptions}}.)
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			empty string? = ()
 			non-empty string? = "foo",
 			info log non-empty!
 			info log empty!
-			()
 	</crow-runnable>
 </section>

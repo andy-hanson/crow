@@ -22,6 +22,7 @@ import model.model :
 	name,
 	nTypeParams,
 	Params,
+	ParamShort,
 	Program,
 	Purity,
 	range,
@@ -35,6 +36,7 @@ import model.model :
 	Type,
 	typeArgs,
 	TypeParam,
+	TypeParamsAndSig,
 	writeStructInst,
 	writeTypeArgs,
 	writeTypeQuoted,
@@ -61,6 +63,7 @@ import util.writer :
 	writeWithCommas,
 	writeWithCommasZip,
 	writeWithNewlines,
+	writeWithSeparator,
 	Writer;
 import util.writerUtils : showChar, writeName, writeNl;
 
@@ -407,6 +410,32 @@ void writeSig(
 				? only(force(instantiated).paramTypes)
 				: varargs.param.type);
 		});
+	writer ~= ')';
+}
+
+void writeSigSimple(
+	scope ref Writer writer,
+	in AllSymbols allSymbols,
+	in Program program,
+	Sym name,
+	in TypeParamsAndSig sig,
+) {
+	writeSym(writer, allSymbols, name);
+	if (!empty(sig.typeParams)) {
+		writer ~= '[';
+		writeWithCommas!TypeParam(writer, sig.typeParams, (in TypeParam x) {
+			writeSym(writer, allSymbols, x.name);
+		});
+		writer ~= ']';
+	}
+	writer ~= ' ';
+	writeTypeUnquoted(writer, allSymbols, program, sig.returnType);
+	writer ~= '(';
+	writeWithCommas!ParamShort(writer, sig.params, (in ParamShort x) {
+		writeSym(writer, allSymbols, x.name);
+		writer ~= ' ';
+		writeTypeUnquoted(writer, allSymbols, program, x.type);
+	});
 	writer ~= ')';
 }
 
@@ -769,10 +798,9 @@ void writeDiag(
 		},
 		(in Diag.CommonFunMissing x) {
 			writer ~= "module should have a function:\n\t";
-			writeSig(
-				writer, allSymbols, program,
-				x.expectedSig.name, x.expectedSig.returnType,
-				Params(x.expectedSig.params), none!ReturnAndParamTypes);
+			writeWithSeparator!TypeParamsAndSig(writer, x.sigChoices, "\nor:\n\t", (in TypeParamsAndSig sig) {
+				writeSigSimple(writer, allSymbols, program, x.name, sig);
+			});
 		},
 		(in Diag.CommonTypeMissing d) {
 			writer ~= "expected to find a type named ";

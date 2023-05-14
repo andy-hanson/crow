@@ -363,7 +363,11 @@ immutable struct ConcreteFunSource {
 		size_t testIndex;
 	}
 
-	mixin Union!(FunInst*, Lambda*, Test*);
+	immutable struct WrapMain {
+		FileAndRange range;
+	}
+
+	mixin Union!(FunInst*, Lambda*, Test*, WrapMain*);
 }
 static assert(ConcreteFunSource.sizeof == ulong.sizeof);
 
@@ -384,25 +388,23 @@ bool isVariadic(in ConcreteFun a) =>
 		(in ConcreteFunSource.Lambda) =>
 			false,
 		(in ConcreteFunSource.Test) =>
+			false,
+		(in ConcreteFunSource.WrapMain) =>
 			false);
 
 Opt!Sym name(ref ConcreteFun a) =>
-	a.source.match!(Opt!Sym)(
-		(ref FunInst it) =>
-			some(it.name),
-		(ref ConcreteFunSource.Lambda) =>
-			none!Sym,
-		(ref ConcreteFunSource.Test) =>
-			none!Sym);
+	a.source.isA!(FunInst*) ? some(a.source.as!(FunInst*).name) : none!Sym;
 
 bool isSummon(ref ConcreteFun a) =>
-	a.source.match!bool(
-		(ref FunInst it) =>
+	a.source.matchIn!bool(
+		(in FunInst it) =>
 			isSummon(*decl(it)),
-		(ref ConcreteFunSource.Lambda it) =>
+		(in ConcreteFunSource.Lambda it) =>
 			isSummon(*it.containingFun),
-		(ref ConcreteFunSource.Test) =>
+		(in ConcreteFunSource.Test) =>
 			// 'isSummon' is called for direct calls, but tests are never called directly
+			unreachable!bool(),
+		(in ConcreteFunSource.WrapMain) =>
 			unreachable!bool());
 
 FileAndRange concreteFunRange(in ConcreteFun a) =>
@@ -412,6 +414,8 @@ FileAndRange concreteFunRange(in ConcreteFun a) =>
 		(in ConcreteFunSource.Lambda x) =>
 			x.range,
 		(in ConcreteFunSource.Test x) =>
+			x.range,
+		(in ConcreteFunSource.WrapMain x) =>
 			x.range);
 
 bool isFunOrActSubscript(ref ConcreteProgram program, ref ConcreteFun a) =>

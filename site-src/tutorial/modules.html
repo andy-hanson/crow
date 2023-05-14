@@ -19,9 +19,8 @@
 		import
 			./greetings: hello
 
-		main nat^(_ string[])
+		main void()
 			info log hello
-			()
 	</crow-runnable>
 
 	<aside class="small">
@@ -38,9 +37,8 @@
 		import
 			./greetings
 
-		main nat^(_ string[])
+		main void()
 			info log hello
-			()
 	</crow-runnable>
 
 	<aside class="small">
@@ -106,9 +104,8 @@
 		import
 			./greetings.crow as greetings string
 
-		main nat^(_ string[])
+		main void()
 			info log "The content of greetings.crow is:\n{greetings}"
-			()
 	</crow-runnable>
 
 	<p>
@@ -205,11 +202,10 @@
 		import
 			./dimensions
 
-		main nat^(_ string[])
+		main void()
 			a dimensions = 4,
 			info log "{a.area}"
 			info log a.debug # compile error
-			()
 	</crow-runnable>
 
 	<p>

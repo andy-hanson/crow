@@ -2,6 +2,7 @@ module frontend.check.getCommonFuns;
 
 @safe @nogc pure nothrow:
 
+import frontend.check.inferringType : typesAreCorrespondingStructInsts;
 import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay;
 import frontend.diagnosticsBuilder : addDiagnostic, DiagnosticsBuilder;
 import frontend.programState : ProgramState;
@@ -21,27 +22,30 @@ import model.model :
 	Linkage,
 	Local,
 	LocalMutability,
+	MainFun,
 	Module,
 	NameReferents,
 	Params,
+	ParamShort,
 	Purity,
-	SpecDeclSig,
 	StructBody,
 	StructInst,
 	StructOrAlias,
 	StructDecl,
 	Type,
 	TypeParam,
+	TypeParamsAndSig,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, small;
-import util.col.arrUtil : arrsCorrespond, filter, makeArr, map;
+import util.col.arr : empty, sizeEq, small;
+import util.col.arrUtil : arrLiteral, arrsCorrespond, filter, findIndex, makeArr, map;
 import util.col.enumMap : EnumMap;
 import util.col.str : safeCStr;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
-import util.sourceRange : FileAndPos, FileAndRange, FileIndex, RangeWithinFile;
+import util.ptr : castNonScope_ref;
+import util.sourceRange : FileAndPos, FileAndRange, RangeWithinFile;
 import util.sym : Sym, sym;
 import util.util : todo, unreachable, verify;
 
@@ -52,6 +56,7 @@ private enum CommonPath_ {
 	alloc,
 	exceptionLowLevel,
 	funUtil,
+	future,
 	list,
 	std,
 	string_,
@@ -76,8 +81,13 @@ CommonFuns getCommonFuns(
 	Type instantiateType(StructDecl* decl, in Type[] typeArgs) {
 		return Type(instantiateStructNeverDelay(alloc, programState, decl, typeArgs));
 	}
+	FunDecl* getFunDeclInner(
+		ref Module module_, Sym name, TypeParam[] typeParams, Type returnType, in ParamShort[] params,
+	) {
+		return getFunDecl(alloc, diagsBuilder, module_, name, TypeParamsAndSig(typeParams, returnType, params));
+	}
 	FunInst* getFunInner(ref Module module_, Sym name, Type returnType, in ParamShort[] params) {
-		return getCommonFunInst(alloc, programState, diagsBuilder, module_, name, returnType, params);
+		return instantiateNonTemplateFun(alloc, programState, getFunDeclInner(module_, name, [], returnType, params));
 	}
 	FunInst* getFun(CommonPath module_, Sym name, Type returnType, in ParamShort[] params) {
 		return getFunInner(getModule(module_), name, returnType, params);
@@ -108,30 +118,27 @@ CommonFuns getCommonFuns(
 		getFunOrActSubscriptFuns(alloc, commonTypes, getFuns(getModule(CommonPath.funUtil), sym!"subscript"));
 	FunInst* curExclusion =
 		getFun(CommonPath.runtime, sym!"cur-exclusion", nat64Type, []);
-	Opt!(FunInst*) main = has(mainModule)
-		? some(getFunInner(*force(mainModule), sym!"main", nat64FutureType, [param!"args"(stringListType)]))
-		: none!(FunInst*);
+	Opt!MainFun main = has(mainModule)
+		? some(getMainFun(
+			alloc, programState, diagsBuilder, *force(mainModule), nat64FutureType, stringListType, voidType))
+		: none!MainFun;
 	FunInst* mark = getFun(
 		CommonPath.alloc,
 		sym!"mark",
 		Type(commonTypes.bool_),
 		[param!"ctx"(markCtxType), param!"pointer"(nat8ConstPointerType), param!"size-bytes"(nat64Type)]);
 
-	TypeParam[1] markVisitTypeParams = [
-		TypeParam(FileAndRange(getModule(CommonPath.alloc).fileIndex, RangeWithinFile.empty), sym!"a", 0),
+	scope ParamShort[] markVisitParams = [
+		param!"mark-ctx"(markCtxType),
+		param!"value"(singleTypeParamType),
 	];
-	FunDecl* markVisit = getCommonFunDecl(
-		alloc,
-		programState,
-		diagsBuilder,
-		getModule(CommonPath.alloc),
-		sym!"mark-visit",
-		markVisitTypeParams,
-		voidType,
-		[
-			param!"mark-ctx"(markCtxType),
-			param!"value"(Type(&markVisitTypeParams[0])),
-		]);
+	FunDecl* markVisit = getFunDeclInner(
+		getModule(CommonPath.alloc), sym!"mark-visit", singleTypeParam, voidType, castNonScope_ref(markVisitParams));
+	scope ParamShort[] newTFutureParams = [param!"value"(singleTypeParamType)];
+	Type tFuture = instantiateType(commonTypes.future, [singleTypeParamType]);
+	FunDecl* newTFuture = getFunDeclInner(
+		getModule(CommonPath.future), sym!"new", singleTypeParam, tFuture, castNonScope_ref(newTFutureParams));
+	FunInst* newNat64Future = instantiateFun(alloc, programState, newTFuture, [nat64Type], []);
 	FunInst* rtMain = getFun(
 		CommonPath.runtimeMain,
 		sym!"rt-main",
@@ -149,7 +156,8 @@ CommonFuns getCommonFuns(
 		voidType,
 		[param!"message"(cStringType)]);
 	return CommonFuns(
-		allocFun, funOrActSubscriptFunDecls, curExclusion, main, mark, markVisit, rtMain, staticSymbols, throwImpl);
+		allocFun, funOrActSubscriptFunDecls, curExclusion, main, mark,
+		markVisit, newNat64Future, rtMain, staticSymbols, throwImpl);
 }
 
 Destructure makeParam(ref Alloc alloc, FileAndRange range, Sym name, Type type) =>
@@ -162,14 +170,16 @@ private Destructure[] makeParamDestructures(ref Alloc alloc, FileAndRange range,
 	map(alloc, params, (ref ParamShort x) =>
 		makeParam(alloc, range, x.name, x.type));
 
-immutable struct ParamShort {
-	Sym name;
-	Type type;
-}
 ParamShort param(string name)(Type type) =>
 	ParamShort(sym!name, type);
 
 private:
+
+immutable TypeParam[1] singleTypeParam = [
+	TypeParam(FileAndRange.empty, sym!"t", 0),
+];
+Type singleTypeParamType() =>
+	Type(&singleTypeParam[0]);
 
 immutable(FunDecl*[]) getFunOrActSubscriptFuns(
 	ref Alloc alloc,
@@ -252,90 +262,80 @@ Opt!(StructDecl*) getStructDecl(in Module a, Sym name) {
 		return none!(StructDecl*);
 }
 
-bool signatureMatchesTemplate(
-	in FunDecl actual,
-	in TypeParam[] expectedTypeParams,
-	in SpecDeclSig expected,
-) {
+bool signatureMatchesTemplate(in FunDecl actual, in TypeParamsAndSig expected) {
 	if (!empty(actual.specs))
 		return false;
 	if (actual.params.isA!(Params.Varargs*))
 		return false;
 
-	if (actual.typeParams.length != expectedTypeParams.length)
+	if (!sizeEq(actual.typeParams, expected.typeParams))
 		return false;
-	bool typesMatch(in Type actualType, in Type expectedType) {
-		if (actualType.isA!(TypeParam*) && expectedType.isA!(TypeParam*)) {
-			TypeParam* actualTypeParam = actualType.as!(TypeParam*);
-			TypeParam* expectedTypeParam = expectedType.as!(TypeParam*);
-			verify(&actual.typeParams[actualTypeParam.index] == actualTypeParam);
-			verify(&expectedTypeParams[expectedTypeParam.index] == expectedTypeParam);
-			return actualTypeParam.index == expectedTypeParam.index;
-		} else
-			return actualType == expectedType;
-	}
-	return typesMatch(actual.returnType, expected.returnType) &&
-		arrsCorrespond!(Destructure, Destructure)(
+	return typesMatch(actual.returnType, actual.typeParams, expected.returnType, expected.typeParams) &&
+		arrsCorrespond!(Destructure, ParamShort)(
 			assertNonVariadic(actual.params),
 			expected.params,
-			(in Destructure x, in Destructure y) =>
-				typesMatch(x.type, y.type));
+			(in Destructure x, in ParamShort y) =>
+				typesMatch(x.type, actual.typeParams, y.type, expected.typeParams));
 }
 
-bool signatureMatchesNonTemplate(ref FunDecl actual, ref SpecDeclSig expected) =>
-	!isTemplate(actual) &&
-		actual.returnType == expected.returnType &&
-		actual.params.isA!(Destructure[]) &&
-		arrsCorrespond!(Destructure, Destructure)(
-			assertNonVariadic(actual.params),
-			expected.params,
-			(in Destructure x, in Destructure y) =>
-				x.type == y.type);
-
-FunDecl* getCommonFunDecl(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	scope ref DiagnosticsBuilder diagsBuilder,
-	ref Module module_,
-	Sym name,
-	in TypeParam[] typeParams,
-	Type returnType,
-	in ParamShort[] params,
-) {
-	SpecDeclSig expectedSig = toSig(alloc, name, returnType, params);
-	return getFunDecl(alloc, diagsBuilder, module_, expectedSig, (ref FunDecl x) =>
-		signatureMatchesTemplate(x, typeParams, expectedSig));
-}
-
-FunInst* getCommonFunInst(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	scope ref DiagnosticsBuilder diagsBuilder,
-	ref Module module_,
-	Sym name,
-	Type returnType,
-	in ParamShort[] params,
-) {
-	SpecDeclSig expectedSig = toSig(alloc, name, returnType, params);
-	FunDecl* decl = getFunDecl(alloc, diagsBuilder, module_, expectedSig, (ref FunDecl x) =>
-		signatureMatchesNonTemplate(x, expectedSig));
-	return instantiateNonTemplateFun(alloc, programState, decl);
-}
+bool typesMatch(in Type a, in TypeParam[] typeParamsA, in Type b, in TypeParam[] typeParamsB) =>
+	a == b
+	|| a.isA!(TypeParam*) && b.isA!(TypeParam*) && a.as!(TypeParam*).index == b.as!(TypeParam*).index
+	|| typesAreCorrespondingStructInsts(a, b, (in Type x, in Type y) =>
+		typesMatch(x, typeParamsA, y, typeParamsB));
 
 FunDecl* getFunDecl(
 	ref Alloc alloc,
 	scope ref DiagnosticsBuilder diagsBuilder,
 	ref Module module_,
-	SpecDeclSig expectedSig,
-	in bool delegate(ref FunDecl) @safe @nogc pure nothrow isMatch,
+	Sym name,
+	in TypeParamsAndSig expectedSig,
+) =>
+	getFunDeclMulti(alloc, diagsBuilder, module_, name, [castNonScope_ref(expectedSig)]).decl;
+
+MainFun getMainFun(
+	ref Alloc alloc,
+	ref ProgramState programState,
+	scope ref DiagnosticsBuilder diagsBuilder,
+	ref Module mainModule,
+	Type nat64FutureType,
+	Type stringListType,
+	Type voidType,
 ) {
-	Late!(FunDecl*) res = late!(FunDecl*)();
-	foreach (FunDecl* x; getFuns(module_, expectedSig.name)) {
-		if (isMatch(*x)) {
+	scope ParamShort[] params = [param!"args"(stringListType)];
+	FunDeclAndSigIndex decl = getFunDeclMulti(alloc, diagsBuilder, mainModule, sym!"main", [
+		TypeParamsAndSig([], voidType, []),
+		TypeParamsAndSig([], nat64FutureType, castNonScope_ref(params))]);
+	FunInst* inst = instantiateNonTemplateFun(alloc, programState, decl.decl);
+	final switch (decl.sigIndex) {
+		case 0:
+			return MainFun(MainFun.Void(stringListType.as!(StructInst*), inst));
+		case 1:
+			return MainFun(MainFun.Nat64Future(inst));
+	}
+}
+
+immutable struct FunDeclAndSigIndex {
+	FunDecl* decl;
+	size_t sigIndex;
+}
+
+FunDeclAndSigIndex getFunDeclMulti(
+	ref Alloc alloc,
+	scope ref DiagnosticsBuilder diagsBuilder,
+	ref Module module_,
+	Sym name,
+	in TypeParamsAndSig[] expectedSigs,
+) {
+	Late!FunDeclAndSigIndex res = late!FunDeclAndSigIndex();
+	foreach (FunDecl* x; getFuns(module_, name)) {
+		Opt!size_t index = findIndex!TypeParamsAndSig(expectedSigs, (in TypeParamsAndSig sig) =>
+			signatureMatchesTemplate(*x, sig));
+		if (has(index)) {
 			if (lateIsSet(res))
-				addDiagnostic(alloc, diagsBuilder, x.range, Diag(Diag.CommonFunDuplicate(expectedSig.name)));
+				addDiagnostic(alloc, diagsBuilder, x.range, Diag(Diag.CommonFunDuplicate(name)));
 			else
-				lateSet(res, x);
+				lateSet(res, FunDeclAndSigIndex(x, force(index)));
 		}
 	}
 	if (lateIsSet(res))
@@ -345,29 +345,25 @@ FunDecl* getFunDecl(
 			alloc,
 			diagsBuilder,
 			FileAndRange(module_.fileIndex, RangeWithinFile.empty),
-			Diag(Diag.CommonFunMissing(expectedSig)));
-		return allocate(alloc, FunDecl(
+			Diag(Diag.CommonFunMissing(name, map(alloc, expectedSigs, (ref TypeParamsAndSig sig) =>
+				TypeParamsAndSig(
+					arrLiteral(alloc, sig.typeParams),
+					sig.returnType,
+					arrLiteral(alloc, sig.params))))));
+		FunDecl* decl = allocate(alloc, FunDecl(
 			safeCStr!"",
 			Visibility.public_,
 			FileAndPos.empty,
-			expectedSig.name,
-			[],
-			expectedSig.returnType,
-			Params(expectedSig.params),
+			name,
+			expectedSigs[0].typeParams,
+			expectedSigs[0].returnType,
+			makeParams(alloc, FileAndRange.empty, expectedSigs[0].params),
 			FunFlags.generatedBare,
 			[],
 			FunBody(FunBody.Bogus())));
+		return FunDeclAndSigIndex(decl, 0);
 	}
 }
-
-SpecDeclSig toSig(ref Alloc alloc, Sym name, Type returnType, in ParamShort[] params) =>
-	SpecDeclSig(
-		safeCStr!"",
-		FileAndPos(FileIndex.none, 0),
-		name,
-		returnType,
-		// TODO: avoid alloc since this is temporary
-		small(makeParamDestructures(alloc, FileAndRange.empty, params)));
 
 immutable(FunDecl*[]) getFuns(ref Module a, Sym name) {
 	Opt!NameReferents optReferents = a.allExportedNames[name];

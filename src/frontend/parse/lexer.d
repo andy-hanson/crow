@@ -770,6 +770,11 @@ public Token getPeekToken(ref Lexer lexer) {
 public bool peekToken(ref Lexer lexer, Token expected) =>
 	getPeekToken(lexer) == expected;
 
+public bool peekNewline(ref Lexer lexer) {
+	Token token = getPeekToken(lexer);
+	return token == Token.newline || token == Token.EOF;
+}
+
 public bool peekTokenExpression(ref Lexer lexer) =>
 	isExpressionStartToken(getPeekToken(lexer));
 

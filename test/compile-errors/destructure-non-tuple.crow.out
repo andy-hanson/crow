@@ -1,5 +1,26 @@
 exit code: 1
 stderr:
 test/compile-errors/destructure-non-tuple.crow 2:6-2:10 expected a tuple with 2 elements, but got 'nat64'
+
+test/compile-errors/destructure-non-tuple.crow 3:5-3:7 there are functions named 'new', but they do not match the expected return type and actual argument types.
+expected return type: 'void'
+actual argument types:  (other arguments not checked, gave up early)
+candidates (with 1 arguments):
+	new t array(...t array) (from include/crow/col/array.crow line 18)
+	new build-options(size-hint nat64) (from include/crow/col/private/build.crow line 9)
+	new index-relative-to-end(subtract nat64) (from include/crow/col/collection.crow line 58)
+	new t[](...t array) (from include/crow/col/list.crow line 155)
+	new k[v](...(k, v) array) (from include/crow/col/map.crow line 67)
+	new t mut-array(...t array) (from include/crow/col/mut-array.crow line 37)
+	new t mut[](...t array) (from include/crow/col/mut-list.crow line 58)
+	new k mut[v](...(k, v) array) (from include/crow/col/mut-map.crow line 42)
+	new t mut-set(...t array) (from include/crow/col/mut-set.crow line 21)
+	new t set(...t array) (from include/crow/col/set.crow line 31)
+	new t^(value t) (from include/crow/future.crow line 40)
+	new json(...(symbol, json) array) (from include/crow/json.crow line 34)
+	new t?(a t) (from include/crow/option.crow line 15)
+	new t mut-array(inner t array) (from include/crow/private/bootstrap.crow line 115)
+	new symbol(symbol-to-c-string char8*) (from include/crow/private/bootstrap.crow line 163)
+	new backtrace(entries backtrace-entry array) (from include/crow/private/bootstrap.crow line 370)
 uncaught exception: reached compile error
 	at main

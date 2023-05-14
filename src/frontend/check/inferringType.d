@@ -759,15 +759,21 @@ bool isTypeMatchPossible(in Type a, in InferringTypeArgs aInferring, in Type b, 
 			return !has(t) || isTypeMatchPossible(a, aInferring, force(t), InferringTypeArgs());
 		}
 	}
+	return typesAreCorrespondingStructInsts(a, b, (in Type x, in Type y) =>
+		isTypeMatchPossible(x, aInferring, y, bInferring));
+}
+
+public bool typesAreCorrespondingStructInsts(
+	in Type a,
+	in Type b,
+	in bool delegate(in Type x, in Type y) @safe @nogc pure nothrow typesCorrespond,
+) {
 	if (a.isA!(StructInst*) && b.isA!(StructInst*)) {
 		StructInst* sa = a.as!(StructInst*);
 		StructInst* sb = b.as!(StructInst*);
 		if (decl(*sa) != decl(*sb))
 			return false;
-		foreach (size_t i; 0 .. typeArgs(*sa).length)
-			if (!isTypeMatchPossible(typeArgs(*sa)[i], aInferring, typeArgs(*sb)[i], bInferring))
-				return false;
-		return true;
-	}
-	return false;
+		return zipEvery!(Type, Type)(typeArgs(*sa), typeArgs(*sb), typesCorrespond);
+	} else
+		return false;
 }

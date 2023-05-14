@@ -140,7 +140,9 @@ Json jsonOfConcreteFunSource(ref Alloc alloc, in ConcreteFunSource a) =>
 				field!"containing"(jsonOfConcreteFunRef(alloc, *x.containingFun)),
 				field!"index"(x.index)]),
 		(in ConcreteFunSource.Test) =>
-			jsonString!"test");
+			jsonString!"test",
+		(in ConcreteFunSource.WrapMain) =>
+			jsonString!"wrap-main");
 
 public Json jsonOfConcreteFunRef(ref Alloc alloc, in ConcreteFun a) =>
 	jsonOfConcreteFunSource(alloc, a.source);

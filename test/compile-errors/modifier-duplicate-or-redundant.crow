@@ -1,4 +1,4 @@
-main nat^(_ string[]) summon
+main void()
 	()
 
 b builtin data

@@ -33,6 +33,7 @@ import model.concreteModel :
 	mustBeByVal,
 	purity,
 	ReferenceKind,
+	setBody,
 	sizeOrPointerSizeBytes,
 	TypeSize;
 import model.constant : Constant, constantZero;
@@ -214,6 +215,7 @@ struct ConcretizeCtx {
 	Late!ConcreteType _bogusType;
 	Late!ConcreteType _boolType;
 	Late!ConcreteType _voidType;
+	Late!ConcreteType nat64Type;
 	Late!ConcreteType _ctxType;
 	Late!ConcreteType _cStrType;
 
@@ -456,6 +458,40 @@ ConcreteFun* concreteFunForTest(ref ConcretizeCtx ctx, ref Test test, size_t tes
 	return res;
 }
 
+public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* modelStringList, FunInst* modelMain) {
+	ConcreteType stringListType = getConcreteType_forStructInst(ctx, modelStringList, TypeArgsScope.empty);
+	ConcreteFun* innerMain = getOrAddNonTemplateConcreteFunAndFillBody(ctx, modelMain);
+	/*
+	This is like:
+		wrapped-main nat^(_ string[])
+			real-main
+			0,
+	*/
+	ConcreteType nat64Type = getConcreteType_forStructInst(ctx, ctx.commonTypes.integrals.nat64, TypeArgsScope.empty);
+	FileAndRange range = decl(*modelMain).range;
+	ConcreteExpr callMain = ConcreteExpr(voidType(ctx), range, ConcreteExprKind(ConcreteExprKind.Call(innerMain, [])));
+	ConcreteExpr zero = ConcreteExpr(nat64Type, range, ConcreteExprKind(constantZero));
+	ConcreteFun* newNat64Future = getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
+		ctx.program.commonFuns.newNat64Future,
+		//TODO:avoid alloc
+		arrLiteral(ctx.alloc, [nat64Type]),
+		[]));
+	ConcreteExpr callNewNatFuture = ConcreteExpr(newNat64Future.returnType, range, ConcreteExprKind(
+		ConcreteExprKind.Call(newNat64Future, arrLiteral(ctx.alloc, [zero]))));
+	ConcreteExpr body_ = ConcreteExpr(newNat64Future.returnType, range, ConcreteExprKind(
+		allocate(ctx.alloc, ConcreteExprKind.Seq(callMain, callNewNatFuture))));
+
+	ConcreteFun* res = allocate(ctx.alloc, ConcreteFun(
+		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.WrapMain(range))),
+		getConcreteType(ctx, ctx.program.commonFuns.newNat64Future.returnType, TypeArgsScope.empty),
+		arrLiteral(ctx.alloc, [
+			ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Generated(sym!"args")), stringListType),
+		])));
+	setBody(*res, ConcreteFunBody(body_));
+	addConcreteFun(ctx, res);
+	return res;
+}
+
 bool canGetUnionSize(in ConcreteType[] members) =>
 	every!(ConcreteType)(members, (in ConcreteType type) =>
 		hasSizeOrPointerSizeBytes(type));
@@ -668,7 +704,7 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 	// TODO: just assert it's not already set?
 	if (!lateIsSet(cf._body_)) {
 		// set to arbitrary temporarily
-		lateSet(cf._body_, ConcreteFunBody(ConcreteFunBody.Builtin([])));
+		setBody(*cf, ConcreteFunBody(ConcreteFunBody.Builtin([])));
 		ConcreteFunBodyInputs inputs = mustDelete(ctx.concreteFunToBodyInputs, cf);
 		ConcreteFunBody body_ = inputs.body_.match!ConcreteFunBody(
 			(FunBody.Bogus) =>

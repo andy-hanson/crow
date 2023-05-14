@@ -55,10 +55,9 @@
 		always returns an exactly correct result or throws an exception.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			a nat8 = 255
 			_ = a + 1
-			()
 	</crow-runnable>
 	<p>
 		<code class="struct">float</code> arithmetic doesn't have such checks,
@@ -88,23 +87,21 @@
 		This relies on type inference which will be explained more in {{tutorial/type-inference}}.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			n nat = 3
 			i int = n to
 			f float = i to
 			s string = f to
 			info log s
-			()
 	</crow-runnable>
 
 	<p>
 		As with arithmetic, conversions between nat/int types will throw if they can't return an exact result.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			i int = -3
 			_ nat = i to
-			()
 	</crow-runnable>
 </section>
 <section>
@@ -130,14 +127,13 @@
 	</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log "hello\nworld"
 			info log """
 I wrote a haiku
 about programming in crow
 but I forgot it
 """
-			()
 	</crow-runnable>
 
 	<h3>String interpolation</h3>
@@ -174,9 +170,8 @@ but I forgot it
 	<p>The literal syntax for a symbol is the same as for a string.</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log "{"left".opposite}"
-			()
 
 		opposite symbol(a symbol)
 			# This will be fast since it compares symbols by identity.
@@ -205,12 +200,11 @@ but I forgot it
 		as in <code>n nat, s string</code> declaring a <code>(nat, string)</code> tuple.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			tuple (nat, string) = 0, "a"
 			# equivalent
 			n nat, s string = 0, "a"
 			# '==' is defined based on the members
 			info log "{tuple == (n, s)}"
-			()
 	</crow-runnable>
 </section>

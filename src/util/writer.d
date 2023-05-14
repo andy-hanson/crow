@@ -162,7 +162,7 @@ void writeWithNewlines(T)(scope ref Writer writer, in T[] a, in void delegate(in
 	writeWithSeparator!T(writer, a, "\n", cb);
 }
 
-private void writeWithSeparator(T)(
+void writeWithSeparator(T)(
 	scope ref Writer writer,
 	in T[] a,
 	in string separator,

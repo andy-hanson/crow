@@ -150,6 +150,9 @@ void writeConcreteFunName(ref Writer writer, in AllSymbols allSymbols, in Progra
 		(in ConcreteFunSource.Test) {
 			//TODO: more unique name for each test
 			writer ~= "test";
+		},
+		(in ConcreteFunSource.WrapMain) {
+			writer ~= "wrap-main";
 		});
 }
 

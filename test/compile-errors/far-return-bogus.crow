@@ -1,6 +1,5 @@
-main nat^(_ string[])
+main void()
 	(() => x) foo
-	()
 
 foo void(_ far string())
 	()

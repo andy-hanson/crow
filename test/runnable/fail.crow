@@ -1,6 +1,5 @@
-main nat^(_ string[])
+main void()
 	foo
-	()
 
 foo void()
 	bar

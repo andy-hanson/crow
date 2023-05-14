@@ -3,7 +3,7 @@ module frontend.check.funsForStruct;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCtx : CheckCtx;
-import frontend.check.getCommonFuns : makeParam, makeParams, param, ParamShort;
+import frontend.check.getCommonFuns : makeParam, makeParams, param;
 import frontend.check.instantiate :
 	instantiateStructNeverDelay, makeArrayType, makeConstPointerType, makeMutPointerType, TypeArgsArray, typeArgsArray;
 import frontend.check.typeFromAst : makeTupleType;
@@ -23,6 +23,7 @@ import model.model :
 	leastVisibility,
 	name,
 	Params,
+	ParamShort,
 	range,
 	RecordField,
 	StructBody,

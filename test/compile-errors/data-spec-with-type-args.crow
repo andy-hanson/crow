@@ -1,4 +1,4 @@
-main nat^(_ string[]) summon
+main void()
 	# type is data
 	d d = 0,
 	d takes-data
@@ -34,8 +34,6 @@ main nat^(_ string[]) summon
 
 	d indirect
 	m indirect
-
-	()
 
 d record
 	value nat64

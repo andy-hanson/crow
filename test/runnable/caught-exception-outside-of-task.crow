@@ -2,11 +2,10 @@ import
 	crow/private/thread-utils: create-one-thread, join-one-thread
 	stdio: puts
 
-main nat^(_ string[]) summon, unsafe
+main void() summon, unsafe
 	thread = null create-one-thread &thread-fun
 	thread join-one-thread
 	info log "did join"
-	()
 
 -thread-fun any-mut-pointer(a any-mut-pointer) bare, summon, unsafe
 	_ = "will assert" puts

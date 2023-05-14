@@ -70,6 +70,8 @@ This is like `finally`, but does not run in the successful case.
 -is-runtime-function-name bool(a string)
 	if a starts-with "then@"
 		true
+	elif a == "wrap-main"
+		true
 	elif a == "invoke-action" || a == "invoke__saction"
 		true
 	elif a == "add-first-task.lambda0" || a == "add__sfirst__stask__lambda0"

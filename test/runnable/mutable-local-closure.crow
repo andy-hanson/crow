@@ -5,7 +5,7 @@ import
 foo record by-ref
 	x nat
 
-main nat^(_ string[]) summon
+main void() summon
 	x mut foo = 0,
 	get act foo() = () =>
 		x

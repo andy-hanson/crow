@@ -4,10 +4,9 @@
 		Defining a local variable is as simple as writing an <code class="keyword">=</code> after the name.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			x = "Hello, world!"
 			info log x
-			()
 	</crow-runnable>
 
 	<aside class="small">There is no syntax to declare an uninitialized local variable.</aside>
@@ -18,10 +17,9 @@
 		As usual, this is written after the name.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			x string = "Hello, world!"
 			info log x
-			()
 	</crow-runnable>
 </section>
 <section>
@@ -37,12 +35,11 @@
 	</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			x mut string = "Hello, world!"
 			info log x
 			x := "goodbye"
 			info log x
-			()
 	</crow-runnable>
 
 	<aside>
@@ -77,11 +74,10 @@
 		<code>x foo:= y</code> is shorthand for <code>x := x foo y</code>.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			x mut nat = 0
 			x +:= 1
 			info log "{x}"
-			()
 	</crow-runnable>
 </section>
 
@@ -89,11 +85,10 @@
 	<h2>Destructuring</h2>
 	<p>When a value is a tuple, you can declare a variable for each component of the tuple instead of for the whole.</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			tuple (string, string) = "hello", "world"
 			greeting, target = tuple
 			info log "Tell {target} I said {greeting}"
-			()
 	</crow-runnable>
 
 	<aside class="small">
@@ -113,10 +108,10 @@
 		It's also useful in destructuring if you some of the members of a tuple are unused.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			# Just calling this for the side effect
 			_ = func
-			()
+
 		func string()
 			info log "side effect"
 			"return value"
@@ -131,10 +126,9 @@
 		Parameters are local variables and support all of the same features.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			tuple (string, string) = "hello", "world"
 			info log tuple.greet
-			()
 
 		greet string((greeting mut string, target string))
 			# This mutates the local 'greeting', not the original tuple.

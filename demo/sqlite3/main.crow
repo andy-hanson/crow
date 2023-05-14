@@ -4,7 +4,7 @@ import
 	crow/parse
 	sqlite3/main: iterate, open-sqlite3, query, run, size, with-block
 
-main nat^(_ string[]) summon
+main void() summon
 	file-name = "test.db"
 	with db : file-name open-sqlite3
 		db run "drop table if exists foo"

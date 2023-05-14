@@ -104,9 +104,8 @@
 	<p>Now we're ready to define a function and call it:</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log hello-world
-			()
 
 		hello-world string()
 			"Hello, world!"
@@ -130,9 +129,8 @@
 
 	<p>Here's a modified version that takes a single parameter.</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log 3.hello-world
-			()
 
 		hello-world string(times nat)
 			"Hello, world! " repeat times
@@ -155,9 +153,8 @@
 		and passes arguments <code>"crow"</code> and <code>3</code>, respectively.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log ("crow" hello 3)
-			()
 
 		hello string(name string, times nat)
 			"hello, {name}! " repeat times

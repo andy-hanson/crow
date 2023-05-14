@@ -25,12 +25,11 @@
 		import
 			crow/c-types: c-int, size_t, u-long
 
-		main nat^(_ string[]) summon
+		main void()
 			"cro\\+w" test-regex ("crow", "crooow", "duck")
 			"[0-9" test-regex ("42",)
-			()
 
-		test-regex void(source string, candidates string[]) summon
+		test-regex void(source string, candidates string[])
 			trusted match source parse
 			as ok regex
 				for x : candidates
@@ -198,7 +197,7 @@
 			unistd: write
 			win32: DWORD, GetStdHandle, STD_OUTPUT_HANDLE, WriteFile
 
-		main nat^(_ string[]) summon
+		main void() summon
 			text nat8 array = "hello\n" to-bytes
 			trusted if is-windows
 				out = STD_OUTPUT_HANDLE.GetStdHandle

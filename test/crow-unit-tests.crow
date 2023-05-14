@@ -51,7 +51,7 @@ import
 	crow/test-util/test-runner: run-all-tests
 	crow/version: is-windows
 
-main nat^(_ string[]) summon
+main void() summon
 	_ = ().from-bytes :: nat8[]
 	_ = bold
 	_ = () :: ((nat, nat) compact-map)

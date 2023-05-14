@@ -1,6 +1,5 @@
 import
 	crow/io/print: out, print
 
-main nat^(_ string[]) summon, unsafe
+main void() summon, unsafe
 	out print "{0x0d15ea5e0d15ea5e::nat64 & ~7 to-hex}"
-	()

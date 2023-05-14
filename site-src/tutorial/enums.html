@@ -15,9 +15,8 @@
 	</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log "{left.opposite}"
-			()
 
 		direction enum
 			left
@@ -51,11 +50,10 @@
 	</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log "{left::direction2.to::nat32}"
 			info log "{left::direction2.to::direction4}"
 			info log "{up::direction4.to::direction2? ?? right}"
-			()
 
 		direction2 enum
 			left
@@ -83,9 +81,8 @@
 	</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log "{left.to::nat8}"
-			()
 
 		direction enum(nat8)
 			left
@@ -102,9 +99,8 @@
 	</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log "{left.to::int16}"
-			()
 
 		direction enum(int16)
 			left = -10
@@ -132,7 +128,7 @@
 	</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			naked clothing = ()
 			info log "{naked}"
 			fully-dressed clothing = shirt | pants | shoes
@@ -141,7 +137,6 @@
 			info log "{naked.can-serve}"
 			info log "{shirt.can-serve}"
 			info log "{fully-dressed.can-serve}"
-			()
 
 		clothing flags
 			shirt
@@ -168,9 +163,8 @@
 	</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log (shirt | shoes).to::nat16.to-binary
-			()
 
 		clothing flags(nat16)
 			shirt = 0b00100

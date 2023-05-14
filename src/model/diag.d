@@ -20,6 +20,7 @@ import model.model :
 	StructDecl,
 	StructInst,
 	Type,
+	TypeParamsAndSig,
 	VariableRef,
 	Visibility;
 import model.parseDiag : ParseDiag;
@@ -140,7 +141,8 @@ immutable struct Diag {
 		Sym name;
 	}
 	immutable struct CommonFunMissing {
-		SpecDeclSig expectedSig;
+		Sym name;
+		TypeParamsAndSig[] sigChoices;
 	}
 	immutable struct CommonTypeMissing {
 		Sym name;

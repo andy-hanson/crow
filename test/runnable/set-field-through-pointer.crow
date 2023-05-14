@@ -1,12 +1,11 @@
 import
 	crow/io/print: out, print
 
-main nat^(_ string[]) unsafe, summon
+main void() unsafe, summon
 	r mut r = 0,
 	rp r mut* = &r
 	rp->x := 3
 	out print "{r x}"
-	()
 
 r record mut by-val
 	x mut nat

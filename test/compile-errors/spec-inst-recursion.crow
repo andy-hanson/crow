@@ -1,6 +1,5 @@
-main nat64^(a string[]) summon
-	a[0] foo
-	()
+main void()
+	"" foo
 
 foo[t] spec
 	foo void(a t)

@@ -6,19 +6,15 @@ import concretize.allConstantsBuilder : finishAllConstants;
 import concretize.checkConcreteModel : checkConcreteProgram, ConcreteCommonTypes;
 import concretize.concretizeCtx :
 	boolType,
+	concreteFunForWrapMain,
 	ConcretizeCtx,
 	cStrType,
 	deferredFillRecordAndUnionBodies,
 	getOrAddNonTemplateConcreteFunAndFillBody,
 	voidType;
 import model.concreteModel :
-	ConcreteCommonFuns,
-	ConcreteFun,
-	ConcreteLambdaImpl,
-	ConcreteProgram,
-	ConcreteStruct,
-	mustBeByVal;
-import model.model : CommonFuns, Program;
+	ConcreteCommonFuns, ConcreteFun, ConcreteLambdaImpl, ConcreteProgram, ConcreteStruct, mustBeByVal;
+import model.model : CommonFuns, MainFun, Program;
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : finishArr;
 import util.col.mutArr : moveToArr, MutArr;
@@ -64,7 +60,7 @@ ConcreteProgram concretizeInner(
 	ConcreteFun* rtMainConcreteFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.rtMain);
 	// We remove items from these maps when we process them.
 	verify(mutMapIsEmpty(ctx.concreteFunToBodyInputs));
-	ConcreteFun* userMainConcreteFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, force(commonFuns.main));
+	ConcreteFun* userMainConcreteFun = concretizeMainFun(ctx, force(commonFuns.main));
 	ConcreteFun* allocFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.alloc);
 	ConcreteFun* throwImplFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.throwImpl);
 	ConcreteFun* staticSymbolsFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.staticSymbols);
@@ -96,3 +92,10 @@ ConcreteProgram concretizeInner(
 	checkConcreteProgram(allSymbols, program, ConcreteCommonTypes(boolType(ctx), cStrType(ctx), voidType(ctx)), res);
 	return res;
 }
+
+ConcreteFun* concretizeMainFun(ref ConcretizeCtx ctx, ref MainFun main) =>
+	main.match!(ConcreteFun*)(
+		(MainFun.Nat64Future x) =>
+			getOrAddNonTemplateConcreteFunAndFillBody(ctx, x.fun),
+		(MainFun.Void x) =>
+			concreteFunForWrapMain(ctx, x.stringList, x.fun));

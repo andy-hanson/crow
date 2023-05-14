@@ -5,5 +5,5 @@ import
 main nat^(_ string[]) summon
 	out print "What's your name?"
 	name <- read-stdin
-	out print "hello, {name}"
+	out print "Hello, {name}"
 	()

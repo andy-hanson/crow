@@ -28,7 +28,7 @@ tutorial-pages path-and-content[]() summon
 	types: Basic types
 	type-inference: Type inference
 	special-call-syntax: Special call syntax
-	options: Option types
+	options: Options
 	records: Records
 	unions: Unions
 	collections: Collections

@@ -26,7 +26,8 @@
 			fut
 	</crow-runnable>
 
-	<aside class="small">
+	<aside>
+		<h4>The browser is not parallel</h4>
 		<p>
 			If you run this from the command line, it might log "inside the task" before "after creating fut".
 			<br />
@@ -41,8 +42,12 @@
 		likely before the parallel task has finished.
 	</p>
 	<p>
-		Notice how the <code class="fun">main</code> function doesn't return <code class="keyword">()</code>
-		like all the previous examples have. Instead it returns <code class="local">fut</code>.
+		Now we see the <code class="fun">main</code> signature that most real programs will use.
+		It returns a <code class="struct">nat^</code> future for the program's exit code,
+		and takes command-line arguments in a <code class="struct">string[]</code>.
+		<br />
+		When <code class="fun">main</code> returns <code class="local">fut</code>,
+		the program waits for it to resolve instead of exiting immediately.
 		The <code>()</code> on line 4 becomes the value ultimately returned by <code class="fun">main</code>.
 	</p>
 
@@ -54,7 +59,7 @@
 			<br />
 			<code>()</code> is a future resolved to <code>()</code> of its resolved type.
 			For a <code class="struct">nat</code>, it's equivalent to <code>(0,)</code>.
-			In the context of <code class="fun">main</code> that means the program will have an exit code of 0.
+			In the context of <code class="fun">main</code>, that means the program will have an exit code of 0.
 		</p>
 	</aside>
 </section>

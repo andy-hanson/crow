@@ -21,13 +21,12 @@
 	</p>
 
 	<crow-runnable>
-		main nat^(_ string[]) unsafe
+		main void() unsafe
 			xs string mut[] = ()
 			xs ~= "a"
 			xs ~= "b"
 			xs ~= "c"
 			info log "{xs.capacity}"
-			()
 	</crow-runnable>
 
 	<aside class="small">
@@ -68,10 +67,9 @@
 			stdio: stdout
 			unistd: write
 
-		main nat^(_ string[])
+		main void()
 			message = "hello\n"
 			_ = trusted stdout write message.to-bytes.begin-pointer, message.size
-			()
 	</crow-runnable>
 
 	<aside class="small">
@@ -119,14 +117,13 @@
 		import
 			stdlib: free, malloc
 
-		main nat^(_ string[])
+		main void()
 			trusted
 				ptr mut nat mut* = null
 				with : (() => ptr free-nat) finally
 					ptr := new-nat
 					*ptr := 3
 					info log "{*ptr}"
-			()
 
 		new-nat nat mut*() unsafe
 			(size-of@nat).malloc pointer-cast
@@ -147,13 +144,12 @@
 	</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			trusted
 				x mut nat = 1
 				ptr nat mut* = &x
 				*ptr := 2
 				info log "{x}"
-			()
 	</crow-runnable>
 
 	<p>
@@ -177,7 +173,7 @@
 	<aside class="small">These functions are defined in {{doc/pointer}}.</aside>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			trusted
 				x mut nat = 1
 				mut-ptr nat mut* = &x
@@ -185,7 +181,6 @@
 				*mut-ptr := 2
 				assert const-ptr.as-mut == mut-ptr
 				info log "{*const-ptr}"
-			()
 	</crow-runnable>
 
 	<h3>Accessing data from pointers</h3>
@@ -207,7 +202,7 @@
 	</aside>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			trusted
 				foo mut foo = 1,
 				foo-ptr foo mut* = &foo
@@ -216,7 +211,6 @@
 				info log "{foo.x} == {foo-ptr->x} == {*x-ptr}"
 				*x-ptr := 3
 				info log "{foo.x} == {foo-ptr->x} == {*x-ptr}"
-			()
 
 		foo record by-val mut
 			x mut nat
@@ -236,10 +230,9 @@
 	</aside>
 
 	<crow-runnable>
-		main nat^(_ string[]) unsafe
+		main void() unsafe
 			x := 1
 			info log "{x}"
-			()
 
 		x global(nat)
 	</crow-runnable>
@@ -280,11 +273,10 @@
 	</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			trusted
 				x := 1
 				info log "{x}"
-			()
 
 		-x thread-local(nat)
 	</crow-runnable>
@@ -315,10 +307,9 @@
 	</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			f fun* nat(nat) = &double
 			info log "{f[5]}"
-			()
 
 		double nat(a nat) bare
 			a * 2
@@ -340,12 +331,11 @@
 		<code class="keyword">by-ref</code>.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[]) unsafe
+		main void() unsafe
 			# Value type, so its size is the sum of its fields' sizes.
 			info log "r1: {size-of@r1}"
 			# Reference type, so its size is the size of a pointer.
 			info log "r2: {size-of@r2}"
-			()
 
 		r1 record by-val
 			x nat
@@ -377,10 +367,9 @@
 	</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			# non-'bare' can call 'bare'
 			foo
-			()
 
 		foo void() bare
 			# Can't allocate

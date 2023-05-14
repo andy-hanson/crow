@@ -13,9 +13,8 @@
 		It throws an exception if the condition is false.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			assert 3 &lt; 2
-			()
 	</crow-runnable>
 
 	<aside class="small">There is no difference between assertion failures and exceptions.</aside>
@@ -24,9 +23,8 @@
 		A custom error message can be written after a <code class="keyword">:</code>.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			assert 3 &lt; 2 : "custom message"
-			()
 	</crow-runnable>
 
 	<p>
@@ -34,9 +32,8 @@
 		meaning it throws if the condition is true.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			forbid 2 &lt; 3
-			()
 	</crow-runnable>
 
 	<p>
@@ -44,9 +41,8 @@
 		It takes the error message. This can be any expression of type <code class="struct">string</code>.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			throw "error message"
-			()
 	</crow-runnable>
 
 	<p>
@@ -54,11 +50,10 @@
 		It can be any type, since the result will never be used due to the exception.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			xs string[nat] = (1, "one"), (2, "two")
 			info log (xs[1] ?? throw "nothing for 'one'")
 			info log (xs[3] ?? throw "nothing for 'three'")
-			()
 	</crow-runnable>
 
 	<p>
@@ -67,10 +62,9 @@
 		This acts like <code>assert x == y</code>, but converts arguments to JSON for the error message.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			x (nat, string) = (1, "a")
 			x is (1, "b")
-			()
 	</crow-runnable>
 </section>
 <section>
@@ -80,13 +74,13 @@
 		but there is a <code class="keyword">catch</code> function.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			match (() => try-me) catch
 			as ok value
 				info log "succeeded with {value}"
 			as error _
-				info log "failed"
-			()
+				error log "failed"
+
 		try-me nat()
 			throw "not today"
 	</crow-runnable>
@@ -121,9 +115,8 @@
 		to ensure that cleanup code is run even when there is an exception.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			with : (() => info log "cleanup") finally
 				throw "error"
-			()
 	</crow-runnable>
 </section>

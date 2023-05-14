@@ -58,6 +58,7 @@ import frontend.parse.lexer :
 	lookaheadWillTakeQuestionEquals,
 	NewlineOrIndent,
 	nextToken,
+	peekNewline,
 	peekToken,
 	peekTokenExpression,
 	QuoteKind,
@@ -518,7 +519,7 @@ uint parseMatchCases(ref Lexer lexer, ref ArrBuilder!(MatchAst.CaseAst) cases, u
 	Pos startCase = curPos(lexer);
 	if (tryTakeToken(lexer, Token.as)) {
 		Sym memberName = takeName(lexer);
-		Opt!DestructureAst destructure = peekToken(lexer, Token.newline)
+		Opt!DestructureAst destructure = peekNewline(lexer)
 			? none!DestructureAst
 			: some(parseDestructureNoRequireParens(lexer));
 		ExprAndDedent ed = takeIndentOrFail_ExprAndDedent(lexer, curIndent, () =>
@@ -693,7 +694,7 @@ ExprAndDedent parseLoop(ref Lexer lexer, Pos start, uint curIndent) {
 }
 
 ExprAndDedent parseLoopBreak(ref Lexer lexer, Pos start, uint curIndent) {
-	ExprAndDedent valueAndDedent = peekToken(lexer, Token.newline)
+	ExprAndDedent valueAndDedent = peekNewline(lexer)
 		? ExprAndDedent(emptyAst(lexer), takeNewlineOrDedentAmount(lexer, curIndent))
 		: parseExprNoLet(lexer, curIndent);
 	return ExprAndDedent(

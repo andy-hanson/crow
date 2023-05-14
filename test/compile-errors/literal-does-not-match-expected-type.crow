@@ -1,3 +1,2 @@
-main nat^(_ string[]) summon
+main void()
 	_ string = 0
-	()

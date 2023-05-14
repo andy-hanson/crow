@@ -165,7 +165,7 @@
 			This alows you to mix them with operators without using parentheses.
 		</p>
 		<crow-runnable>
-			main nat^(_ string[])
+			main void()
 				# This parses (1 + 1) tightly
 				x = 8 is-multiple-of 1 + 1
 				info log "{x}"
@@ -174,7 +174,6 @@
 				# Equivalent to:
 				z = (7 is-multiple-of (1 + 1)) || (9 is-multiple-of (1 + 1))
 				info log "{y} {z}"
-				()
 		</crow-runnable>
 	</aside>
 
@@ -183,9 +182,8 @@
 		Defining an operator looks just like defining a function.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log "a" / "b"
-			()
 
 		/ string(a string, b string)
 			"{a}/{b}"
@@ -196,12 +194,11 @@
 		so you must define a name functions <code class="fun">not</code> or <code class="fun">force</code>.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			a = "crow"
 			info log !a
 			info log a!
 			info log !a!
-			()
 
 		not string(a string)
 			"not {a}"
@@ -229,21 +226,20 @@
 		The following example constructs lists, which will be described in more detail in {{tutorial/collections}}.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log ().foo
 			info log ("crow",).foo
 			info log ("crow", "bar").foo
-			()
+
 		foo string(xs string[])
 			", " join xs
 	</crow-runnable>
 
 	<p>The parentheses can often be ommitted.</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			xs string[] = "crow",
 			info log (", " join xs)
-			()
 	</crow-runnable>
 </section>
 <section>
@@ -254,22 +250,22 @@
 	</p>
 	<p>This example uses mutable lists, explained more in {{tutorial/collections}}.</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			xs string mut[] = "crow", "bar"
 			info log xs[0]
 			xs[0] := "duck"
 			info log xs[0]
-			()
 	</crow-runnable>
 
 	<p>You can define these by defining named functions <code>subscript</code> and <code>set-subscript</code>.</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log "a"["k"]
 			"a"["k"] := "v"
-			()
+
 		subscript string(a string, key string)
 			"{a}[{key}]"
+
 		set-subscript void(a string, key string, value string)
 			info log "{a}[{key}] = {value}"
 	</crow-runnable>
@@ -327,12 +323,13 @@
 	</table>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			"crow".foo := "bar"
 			"a"["k"] := "v"
-			()
+
 		set-foo void(a string, value string)
 			info log "{a}.foo := {value}"
+
 		set-subscript void(a string, key string, value string)
 			info log "{a}[{key}] := {value}"
 	</crow-runnable>
@@ -344,20 +341,18 @@
 		This example uses a lambda, described more in {{tutorial/lambdas}}.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			xs string mut[] = "a", "b", "c"
 			xs filter= x => x != "b"
 			info log xs.to::string[].to::json.to
-			()
 	</crow-runnable>
 
 	<p>
 		There's no desugaring for this; you just define the function name with an <code>=</code> on the end.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			"a" foo= "b"
-			()
 
 		# Normally you wouldn't define this for an immutable type like 'string'
 		foo= void(a string, b string)

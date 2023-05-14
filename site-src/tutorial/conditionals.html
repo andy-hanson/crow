@@ -7,12 +7,11 @@
 	just put the true and false branches in indented blocks.
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			if 2 &lt; 3
 				info log "True branch"
 			else
 				info log "False branch"
-			()
 	</crow-runnable>
 
 	<aside class="small">
@@ -52,12 +51,11 @@
 	</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log if 2 &lt; 3
 				"True branch"
 			else
 				"False branch"
-			()
 	</crow-runnable>
 
 	<h3>"Elif"</h3>
@@ -65,14 +63,13 @@
 		You can add additional conditions to the chain using <code class="keyword">elif</code>.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log if 3 &lt; 2
 				"First condition is true (second condition not checked)"
 			elif 2 &lt; 3
 				"First condition was false, second condition is true"
 			else
 				"Neither condition is true"
-			()
 	</crow-runnable>
 
 	<h3>"If" without "else"</h3>
@@ -81,10 +78,9 @@
 		This can create an empty value of most types; for example, it can be an empty string.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log "for 2: '{2 f}'"
 			info log "for 4: '{4 f}'"
-			()
 
 		f string(a nat)
 			if a &lt; 3
@@ -98,22 +94,20 @@
 		This doesn't support an <code class="keyword">else</code> branch, since the double negation would be confusing.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			unless 2 &lt; 3
 				info log "This won't log, because 2 &lt; 3"
-			()
 	</crow-runnable>
 
 	<h3>Ternary expressions</h3>
 
 	<p>There is an alternative syntax for short <code class="keyword">if</code> expressions.</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			x = true ? "crow" : "duck"
 			info log "x is '{x}'"
 			# The false branch is still optional
 			y = false ? "crow"
 			info log "y is '{y}'"
-			()
 	</crow-runnable>
 </section>

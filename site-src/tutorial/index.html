@@ -2,43 +2,9 @@
 	<p>In this section, we'll run this "hello world" program using different methods.</p>
 
 	<crow-runnable name="hello.crow">
-		main nat^(_ string[])
+		main void()
 			info log "Hello, world!"
-			()
 	</crow-runnable>
-
-	<aside>
-		<h4>Looking ahead</h4>
-		<p>
-			A basic "Hello world" program still showcases some things that won't be explained until later.
-			A brief explanation of each feature here:
-			<ul class="bullets">
-				<li>
-					<code class="fun">main</code> is a function declaration.
-					These are explained in the next section, {{tutorial/functions}}.
-				</li>
-				<li>
-					<code class="struct">nat^</code> is a future type.
-					These are explained in {{tutorial/futures}}.
-				</li>
-				<li>
-					<code class="keyword">_</code> means that the parameter to <code class="fun">main</code> is unused.
-					This is explained in {{tutorial/local-variables}}.
-				</li>
-				<li>
-					<code class="struct">string[]</code> is a list type.
-					These are explained in {{tutorial/collections}}.
-				</li>
-				<li>
-					<code>info log "hello, world"</code> is a function call.
-					This is also explained in {{tutorial/functions}}.
-				</li>
-				<li>
-					<code class="keyword">()</code> is a future that makes the program return 0 (indicating no error).
-				</li>
-			</ul>
-		</p>
-	</aside>
 
 	<h2>Run in the browser</h3>
 	<p>
@@ -108,7 +74,7 @@
 		to just print compile errors without building or running the code.
 	</p>
 
-	<h3>A note on compile errors</h3>
+	<h3>Compile errors don't stop the program</h3>
 	<p>
 		<code>crow run hello.crow</code> (even with <code>--jit</code>)
 		will usually try to run code even if there were compile errors.
@@ -118,11 +84,11 @@
 	<p>
 		Try running the below code (through any method except <code>crow build</code>).
 		<br />
-		It will run the program normally up until the compile error, then throw an exception.
+		It will run the program normally until it reaches the compile error, then throw an exception.
 	</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log "hello, world"
 			call-a-function-that-does-not-exist
 			info log "goodbye, world"

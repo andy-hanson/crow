@@ -1,5 +1,5 @@
 exit code: 1
 stderr:
-test/compile-errors/set-field-of-by-val.crow 6:5-7:5 there is no function named 'set-x'
+test/compile-errors/set-field-of-by-val.crow 3:5-4:1 there is no function named 'set-x'
 uncaught exception: reached compile error
 	at main

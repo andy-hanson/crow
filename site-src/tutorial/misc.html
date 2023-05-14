@@ -10,15 +10,12 @@
 	<crow-runnable>
 		no-std
 		import
-			crow/col/list: list
-			crow/future: future, new
 			crow/log: info, log
-			crow/number: nat, new
-			crow/string: literal, string
+			crow/misc: void
+			crow/string: literal
 
-		main nat^(_ string[])
+		main void()
 			info log "Hello, world!"
-			()
 	</crow-runnable>
 </section>
 <section>
@@ -39,9 +36,8 @@
 		import
 			crow/test-util/test-runner: run-all-tests
 
-		main nat^(_ string[]) summon
+		main void() summon
 			run-all-tests
-			()
 
 		test
 			1::nat + 1 is 2

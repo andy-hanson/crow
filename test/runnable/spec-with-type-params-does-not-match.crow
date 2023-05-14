@@ -1,4 +1,4 @@
-main nat^(_ string[]) summon
+main void()
 	()
 
 loop-it[t1, b1] t1() (t1, b1) build2

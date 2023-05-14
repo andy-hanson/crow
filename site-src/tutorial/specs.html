@@ -10,10 +10,9 @@
 	</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log "{(1, 2)::nat[] sum}"
 			info log "{(1.5, 3.6)::float[] sum}"
-			()
 
 		summable[t] spec
 			new t()
@@ -101,9 +100,8 @@
 			if a != 0
 				a - 1 ping
 
-		main nat64^(_ string[])
+		main void()
 			10 ping
-			()
 	</crow-runnable>
 </section>
 <section>
@@ -117,10 +115,9 @@
 	</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log "{(1, 2)::nat[] sum}"
 			info log "{(1.5, 3.6)::float[] sum}"
-			()
 
 		add[t] spec
 			+ t(a t, b t)
@@ -153,11 +150,10 @@
 	</p>
 
 	<crow-runnable>
-		main nat64^(_ string[])
+		main void()
 			info log "{(1, 2, 3)::nat[] count-unique}"
 			# Compile error
-			info log "{((),)::string-builder[] count-unique}"
-			()
+			info log "{()::string-builder[] count-unique}"
 
 		count-unique[t] nat(a t[]) t key
 			a.to::(t set) size

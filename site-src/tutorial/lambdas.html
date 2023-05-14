@@ -9,20 +9,18 @@
 		A lambda value is created using the <code class="keyword">=></code> syntax.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			xs nat[] = 1, 2, 3
 			ys nat[] = xs filter x => x is-even
 			info log ys.to::json.to
-			()
 	</crow-runnable>
 
 	<p>
 		There is a <code class="fun">subscript</code> function for calling lambdas.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			(x => info log "{x}") foo
-			()
 
 		foo void(a fun void(nat))
 			a[1]
@@ -36,7 +34,7 @@
 		The parameter can be a tuple, though.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			((x, y) => info log "{x} {y}") foo
 			()
 
@@ -56,9 +54,8 @@
 		To show that it's really only one parameter:
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			(tuple => info log "{tuple.a} {tuple.b}") foo
-			()
 
 		foo void(a fun void(nat, nat))
 			tuple (nat, nat) = 1, 2
@@ -69,9 +66,8 @@
 		Similarly, a tuple can appear to take no parameter, but actually takes <code class="struct">void</code>.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			(() => info log "hello") foo
-			()
 
 		foo void(a fun void())
 			# This is the same as 'a[()]'.
@@ -86,11 +82,10 @@
 		Those variables are called its <em>closure</em>.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			factor = 2
 			f fun nat(nat) = x => x * factor
 			info log "{f[3]}"
-			()
 	</crow-runnable>
 </section>
 <section>
@@ -101,12 +96,11 @@
 		Other than that, they work the same.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			factor mut = 2
 			f fun nat(nat) = x => x * factor
 			factor := 4
 			info log "{f[3]}"
-			()
 	</crow-runnable>
 	<aside class="small">
 		Change <code class="keyword">fun</code> to <code class="keyword">act</code> to fix the example.
@@ -122,7 +116,7 @@
 	<h2>Multi-line lambdas</h2>
 	<p>If a lambda's body is long, you can put it in an indented block.</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			xs nat[] = 1, 2, 3, 4, 5, 6
 			ys nat[] = xs filter x =>
 				if x > 3
@@ -130,7 +124,6 @@
 				else
 					x is-odd
 			info log ys.to::json.to
-			()
 	</crow-runnable>
 	<p>
 		Since this is only possible for the last argument to a funciton,

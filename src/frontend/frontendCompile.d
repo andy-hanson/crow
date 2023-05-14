@@ -247,6 +247,7 @@ immutable(EnumMap!(CommonPath, Path)) commonPaths(ref AllPaths allPaths, Path in
 		childPath(allPaths, private_, sym!"alloc"),
 		childPath(allPaths, private_, sym!"exception-low-level"),
 		childPath(allPaths, includeCrow, sym!"fun-util"),
+		childPath(allPaths, includeCrow, sym!"future"),
 		childPath(allPaths, col, sym!"list"),
 		childPath(allPaths, includeCrow, sym!"std"),
 		childPath(allPaths, includeCrow, sym!"string"),

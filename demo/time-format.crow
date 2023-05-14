@@ -5,7 +5,7 @@ import
 		date, day-of-week-long, gmt, iso-date, iso-timestamp, local-time, time-of-day,
 		timezone-name, timezone-offset, year
 
-main nat^(_ string[]) summon
+main void() summon
 	t = get-unix-time
 	out print """
 ISO time: {t iso-timestamp}
@@ -20,4 +20,3 @@ time (local): {local-time time-of-day t}
 day of week (UTC): {gmt day-of-week-long t}
 day of week (local): {local-time day-of-week-long t}
 """
-	0,

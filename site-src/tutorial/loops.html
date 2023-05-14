@@ -17,7 +17,7 @@
 	</aside>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			x mut = 0
 			loop
 				if x &lt; 10
@@ -26,7 +26,6 @@
 					continue
 				else
 					break
-			()
 	</crow-runnable>
 
 	<h2>Loops as expressions</h2>
@@ -38,7 +37,7 @@
 		This avoids using an unnecessarily mutable variable for the loop result.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			n = 50
 			# Find the smallest square number greater than 'n'
 			x mut = 0
@@ -50,7 +49,6 @@
 				else
 					break x
 			info log "{result}"
-			()
 	</crow-runnable>
 
 	<h2>"While" expressions</h2>
@@ -62,12 +60,11 @@
 		So the first example could be rewritten as:
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			x mut = 0
 			while x &lt; 10
 				info log "{x}"
 				x +:= 1
-			()
 	</crow-runnable>
 
 	<aside class="small">
@@ -81,21 +78,19 @@
 		but the condition is negated.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			x mut = 0
 			until x >= 10
 				info log "{x}"
 				x +:= 1
-			()
 	</crow-runnable>
 </section>
 <section>
 	<h2>Tail recursion</h2>
 	<p>When a function ends by calling itself, crow replaces the function body with a loop for efficiency.</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			0 f
-			()
 
 		f void(x nat)
 			if x &lt; 10

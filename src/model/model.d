@@ -176,6 +176,16 @@ immutable struct SpecDeclSig {
 	SmallArray!Destructure params;
 }
 
+immutable struct TypeParamsAndSig {
+	TypeParam[] typeParams;
+	Type returnType;
+	ParamShort[] params;
+}
+immutable struct ParamShort {
+	Sym name;
+	Type type;
+}
+
 enum FieldMutability {
 	const_,
 	private_,
@@ -1100,14 +1110,29 @@ Sym symOfFunKind(FunKind a) {
 	}
 }
 
+immutable struct MainFun {
+	immutable struct Nat64Future {
+		FunInst* fun;
+	}
+
+	immutable struct Void {
+		// Needed to wrap it to the natFuture signature
+		StructInst* stringList;
+		FunInst* fun;
+	}
+
+	mixin Union!(Nat64Future, Void);
+}
+
 immutable struct CommonFuns {
 	FunInst* alloc;
 	FunDecl*[] funOrActSubscriptFunDecls;
 	FunInst* curExclusion;
 	// Missing for the 'doc' command which has no 'main' module
-	Opt!(FunInst*) main;
+	Opt!MainFun main;
 	FunInst* mark;
 	FunDecl* markVisitFunDecl;
+	FunInst* newNat64Future;
 	FunInst* rtMain;
 	FunInst* staticSymbols;
 	FunInst* throwImpl;

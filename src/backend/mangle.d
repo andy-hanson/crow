@@ -64,7 +64,8 @@ MangledNames buildMangledNames(
 						addToPrevOrIndex!ConcreteFun(alloc, funNameToIndex, funToNameIndex, cf, i.name);
 					},
 					(in ConcreteFunSource.Lambda) {},
-					(in ConcreteFunSource.Test) {});
+					(in ConcreteFunSource.Test) {},
+					(in ConcreteFunSource.WrapMain) {});
 			},
 			(LowFunSource.Generated*) {});
 	});
@@ -188,6 +189,9 @@ private void writeConcreteFunMangledName(
 		(in ConcreteFunSource.Test it) {
 			writer ~= "__test";
 			writer ~= it.testIndex;
+		},
+		(in ConcreteFunSource.WrapMain x) {
+			writer ~= "__wrap_main";
 		});
 }
 

@@ -7,14 +7,11 @@
 		This is useful for a value that can have one of several non-overlapping states.
 	</p>
 
-	<aside class="small">Union members can't be mutable.</aside>
-
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log "{15.verified-id is-adult}"
 			info log "{60.verified-id is-adult}"
 			info log "{no-id is-adult}"
-			()
 
 		age union
 			verified-id nat
@@ -26,7 +23,6 @@
 				x >= 18
 			as no-id
 				false
-
 	</crow-runnable>
 
 	<aside>

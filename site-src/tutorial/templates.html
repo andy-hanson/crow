@@ -11,12 +11,11 @@
 	</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			nats nat[] = 1, 2, 3
 			strings string[] = "one", "two", "three"
 			info log "{nats any x => x is-even}"
 			info log "{strings any x => x == "pi"}"
-			()
 
 		# This is called 'exists' in the the standard library
 		any[t] bool(a t[], cb fun bool(t))
@@ -53,13 +52,12 @@
 	</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			nats nat[] = 1, 2, 3
 			strings string[] = "one", "two", "three"
 			info log "{nats any@nat x => x is-even}"
 			for x, y : nats combinations@(nat, string) strings
 				info log "{x} {y}"
-			()
 
 		# This is like 'exists' from the standard library
 		any[t] bool(a t[], cb fun bool(t))
@@ -83,13 +81,12 @@
 	</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			a nat by-name = (("one", 1), ("two", 2)), 99
 			b string by-name = (("one", "uno"), ("two", "dos")), "varias"
 			info log "{a["one"]}"
 			info log "{a["three"]}"
 			info log b["three"]
-			()
 
 		by-name[t] record
 			values t[symbol]
@@ -190,8 +187,8 @@
 	</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
-			()
+		main void()
+			info log "{()::nat[].sum}"
 
 		# This will *not* compile
 		sum[t] t(a t[])

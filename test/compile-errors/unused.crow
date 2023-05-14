@@ -10,7 +10,7 @@ import
 	# unused module
 	crow/io/process
 
-main nat64^(_ string[])
+main void()
 	()
 
 foo[t] void(p nat, _ string)

@@ -30,12 +30,11 @@
 	</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			b bool = ()
 			n nat = ()
 			s string = ()
 			info log "b is {b}, n is {n}, s is '{s}'"
-			()
 	</crow-runnable>
 
 	<p>
@@ -55,8 +54,8 @@
 			<strong>From a return type:</strong>
 			The expression returned from a function has the type the function was declared to return.
 			<crow-runnable>
-				main nat^(_ string[])
-					() # nat^
+				main void()
+					() # void
 			</crow-runnable>
 		</li>
 		<li>
@@ -64,18 +63,16 @@
 			When a function has only one remaining overload possible,
 			an argument to it has the type of the corresponding parameter.
 			<crow-runnable>
-				main nat^(_ string[])
+				main void()
 					() call-me # () is nat
-					() # nat^
 				call-me void(_ nat)
 					() # void
 			</crow-runnable>
 
 			<p>Overloads are filtered by the expected return type.</p>
 			<crow-runnable>
-				main nat^(_ string[])
+				main void()
 					() call-me # () is nat
-					() # nat^
 				call-me void(_ nat)
 					() # void
 				# This overload can be ignored because it returns 'bool'
@@ -93,11 +90,10 @@
 			or <code class="keyword">until</code> must be a <code class="struct">bool</code>.
 
 			<crow-runnable>
-				main nat^(_ string[])
+				main void()
 					() # void
 					if () # bool
 						() # void (since the 'if' must be void, so must the branch)
-					() # nat^
 			</crow-runnable>
 		</li>
 		<li>
@@ -106,11 +102,10 @@
 			for the expression to its left.
 			<br />
 			<crow-runnable>
-				main nat^(_ string[])
+				main void()
 					x = () :: nat
-					# Converting string to json to string cause it to be quoted
+					# Converting string to json to string causes it to be quoted
 					info log x.to::string.to::json.to
-					()
 			</crow-runnable>
 		</li>
 	</ul>
@@ -125,10 +120,9 @@
 			<br />
 			(The type-checker doesn't try to infer based on where the variable is used later.)
 			<crow-runnable>
-				main nat^(_ string[])
+				main void()
 					x = () # This will fail to compile
 					info log "{x}"
-					()
 			</crow-runnable>
 		</li>
 		<li>
@@ -136,9 +130,8 @@
 			If there are multiple functions with the same name that can't yet be disambiguated,
 			an argument won't have an expected type.
 			<crow-runnable>
-				main nat^(_ string[])
+				main void()
 					() foo # This will fail to compile
-					()
 				foo void(_ nat)
 					()
 				foo void(_ string)
@@ -169,13 +162,12 @@
 		</li>
 	</ul>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			n = 0 # nat
 			i = +0 # int
 			f = 0.0 # float
 			s = "" # string
 			info log "{n} {i} {f} {s}"
-			()
 	</crow-runnable>
 </section>
 <section>
@@ -188,9 +180,8 @@
 		Instead, it will always be a compile error if multiple overloads match.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			info log 7.foo
-			()
 		foo string(_ nat)
 			"nat"
 		foo string(_ int)
@@ -216,12 +207,11 @@
 		while the last argument usually will.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			x nat = 0
 			a = 0::nat == x
 			b = x == 0
 			info log "{a} {b}"
-			()
 	</crow-runnable>
 	<p>
 		In <code>0::nat == x</code>, the annotation <code>0::nat</code> is needed

@@ -1,4 +1,4 @@
-main nat64^(_ string[])
+main void()
 	()
 
 a extern

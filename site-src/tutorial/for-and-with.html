@@ -3,11 +3,10 @@
 
 	<p>The <code class="keyword">for</code> syntax is designed for iterating over collections.</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			xs nat[] = 1, 2, 3
 			for x : xs
 				info log "{x}"
-			()
 	</crow-runnable>
 
 	<p>
@@ -15,32 +14,29 @@
 		or it can be used to map over a collection.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			xs nat[] = 1, 2, 3
 			ys nat[] = for x : xs
 				x * 2
 			for y : ys
 				info log "{y}"
-			()
 	</crow-runnable>
 
 	<p>It can even produce a different type of collection.</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			xs nat[] = 1, 2, 3
 			ys nat[string] = for x : xs
 				"{x}", x * 2
 			info log "{ys["2"]!}"
-			()
 	</crow-runnable>
 
 	<p>It can be written on one line by using a <code class="keyword">;</code>.</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			xs nat[] = 1, 2, 3
 			ys nat[] = for x : xs; x + 1
 			info log ys.to::json.to
-			()
 	</crow-runnable>
 </section>
 <section>
@@ -53,12 +49,11 @@
 		or by delegating to another <code class="keyword">for-loop</code> function.)
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			("a", 3)::repeated for-loop x =>
 				info log x
 			for x : ("b", 2)::repeated
 				info log x
-			()
 
 		repeated record
 			value string
@@ -83,13 +78,12 @@
 	</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			xs nat[] = 1, 2, 3
 			for x : xs
 				info log "{x}"
 				if x is-even
 					break
-			()
 	</crow-runnable>
 
 	<p>
@@ -112,13 +106,12 @@
 		Like in a <code class="keyword">loop</code>, <code class="keyword">break</code> can take a value.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			xs nat[] = 1, 2, 3
 			result nat? = for x : xs
 				if x is-even
 					break x
 			info log "{result!}"
-			()
 	</crow-runnable>
 
 	<p>
@@ -129,7 +122,7 @@
 		if <code class="keyword">break</code> isn't reached.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			xs nat[] = 1, 2, 3
 			result nat = for x : xs
 				if x > 5
@@ -137,7 +130,6 @@
 			else
 				10
 			info log "{result}"
-			()
 	</crow-runnable>
 
 	<p>
@@ -167,11 +159,10 @@
 		The signature works like <code>with-block string(a build-options, f act void(string-builder))</code>.
 	</p>
 	<crow-runnable>
-		main nat^(_ string[]) summon
+		main void()
 			x string = with out : build
 				out ~~= "crow"
 				out ~~= "bar"
 			info log x
-			()
 	</crow-runnable>
 </section>

@@ -71,16 +71,16 @@
 
 	<p>
 		An <code class="keyword">act</code> can have anything in its closure,
-		but <code class="keyword">fun</code> can only have <code class="keyword">shared</code> data.
+		but <code class="keyword">fun</code> can only have <code class="keyword">shared</code>
+		(including <code class="keyword">data</code>) values in its closure.
 	</p>
 
 	<crow-runnable>
-		main nat^(_ string[])
+		main void()
 			xs nat mut[] = ()
 			f act void() = () =>
 				xs ~= 1
 			f[]
-			()
 	</crow-runnable>
 
 	<aside class="small">
