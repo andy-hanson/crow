@@ -16,10 +16,9 @@ const css = `
 	color: #fdf9f3;
 	background: #161517;
 	font-family: "hack";
-	white-space: pre;
+	white-space: pre-wrap;
 	tab-size: 4;
 	overflow: hidden;
-	transition: height 0.25s ease;
 }
 .output.running { transition: none; }
 button {
@@ -102,7 +101,7 @@ const reduceIndent = a => {
 
 /** @type {function(ShadowRoot, string, boolean, crow.Compiler, string): void} */
 const connected = (shadowRoot, name, noRun, comp, initialText) => {
-	const MAIN = `/code/${name}`
+	const MAIN = `/${name}`
 
 	/** @type {MutableObservable<string>} */
 	const text = new MutableObservable(initialText)
@@ -145,8 +144,7 @@ const connected = (shadowRoot, name, noRun, comp, initialText) => {
 				? result.stdout + result.stderr
 				: `stderr:\n${result.stderr}\nstdout:\n${result.stdout}`).trim()
 				output.textContent = text
-				const lines = text.split("\n").length
-				output.style.height = `${lines * 1.19}em`
+				output.style.height = null
 				output.classList.add(result.err === 0 ? "ok" : "err")
 			}, 0)
 		} catch (e) {
