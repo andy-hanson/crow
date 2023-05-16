@@ -19,42 +19,33 @@ import model.lowModel : ExternLibraries, ExternLibrary;
 import util.alloc.alloc : Alloc, allocateBytes;
 import util.col.arrUtil : map;
 import util.col.map : KeyValuePair, makeMap;
-import util.col.mutArr : moveToArr, MutArr, mutArrIsEmpty, push, pushAll, tempAsArr;
+import util.col.mutArr : MutArr, mutArrIsEmpty, push, tempAsArr;
 import util.col.str : safeCStr;
 import util.memory : memmove, memset;
 import util.opt : force, has, none, Opt, some;
 import util.sym : AllSymbols, Sym, sym;
 import util.util : debugLog, todo, unreachable, verify, verifyFail;
 
-immutable struct FakeExternResult {
-	ExitCode err;
-	string stdout;
-	string stderr;
-}
+enum Pipe { stdout, stderr }
+alias WriteCb = void delegate(Pipe, in string);
 
-struct FakeStdOutput {
-	MutArr!(immutable char) stdout;
-	MutArr!(immutable char) stderr;
-}
+WriteCb unreachableWriteCb() =>
+	(Pipe _, in string _1) => unreachable!void;
 
-FakeExternResult withFakeExtern(
+ExitCode withFakeExtern(
 	ref Alloc alloc,
 	ref const AllSymbols allSymbols,
-	in ExitCode delegate(
-		scope ref Extern,
-		scope ref FakeStdOutput,
-	) @safe @nogc nothrow cb,
+	in WriteCb write,
+	in ExitCode delegate(scope ref Extern) @safe @nogc nothrow cb,
 ) {
-	scope FakeStdOutput std;
 	scope Extern extern_ = Extern(
 		(in ExternLibraries libraries, scope WriteError writeError) =>
 			getAllFakeExternFuns(alloc, allSymbols, libraries, writeError),
 		(in FunPtrInputs[] inputs) =>
 			fakeSyntheticFunPtrs(alloc, inputs),
 		(FunPtr ptr, in DynCallSig sig, in ulong[] args) =>
-			callFakeExternFun(alloc, std, ptr.fn, sig, args));
-	ExitCode err = cb(extern_, std);
-	return FakeExternResult(err, moveToArr(alloc, std.stdout), moveToArr(alloc, std.stderr));
+			callFakeExternFun(alloc, write, ptr.fn, sig, args));
+	return cb(extern_);
 }
 
 pure FunPtr[] fakeSyntheticFunPtrs(ref Alloc alloc, in FunPtrInputs[] inputs) =>
@@ -87,7 +78,7 @@ Opt!ExternFunPtrsForAllLibraries getAllFakeExternFuns(
 
 @system ulong callFakeExternFun(
 	ref Alloc alloc,
-	scope ref FakeStdOutput std,
+	in WriteCb writeCb,
 	immutable void* ptr,
 	in DynCallSig sig,
 	in ulong[] args,
@@ -110,7 +101,8 @@ Opt!ExternFunPtrsForAllLibraries getAllFakeExternFuns(
 		immutable char* buf = cast(immutable char*) args[1];
 		size_t nBytes = cast(size_t) args[2];
 		verify(fd == 1 || fd == 2);
-		pushAll!(immutable char)(alloc, fd == 1 ? std.stdout : std.stderr, buf[0 .. nBytes]);
+		Pipe pipe = fd == 1 ? Pipe.stdout : Pipe.stderr;
+		writeCb(pipe, buf[0 .. nBytes]);
 		return nBytes;
 	} else
 		return syntheticCall(sig, cast(Operation*) ptr, (ref Stacks stacks) {

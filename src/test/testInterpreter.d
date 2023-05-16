@@ -46,7 +46,7 @@ import interpret.bytecodeWriter :
 	writeSwitch0ToNDelay,
 	writeWrite;
 import interpret.extern_ : DynCallType, DynCallSig, Extern, FunPtr, FunPtrInputs;
-import interpret.fakeExtern : FakeStdOutput, fakeSyntheticFunPtrs, withFakeExtern;
+import interpret.fakeExtern : fakeSyntheticFunPtrs, unreachableWriteCb, withFakeExtern;
 import interpret.funToReferences :
 	FunPtrTypeToDynCallSig, FunToReferences, initFunToReferences, registerFunPtrReference;
 import interpret.runBytecode : opCall, stepUntilBreak, stepUntilExit, withInterpreter;
@@ -151,7 +151,7 @@ void doInterpret(
 		fullIndexMapOfArr!(LowFunIndex, LowFun)(lowFun),
 		LowFunIndex(0),
 		[]);
-	withFakeExtern(test.alloc, test.allSymbols, (scope ref Extern extern_, scope ref FakeStdOutput _) @trusted {
+	withFakeExtern(test.alloc, test.allSymbols, unreachableWriteCb, (scope ref Extern extern_) {
 		PathsInfo pathsInfo = emptyPathsInfo;
 		withInterpreter!void(
 			test.alloc, extern_.doDynCall, fakeProgramForTest(filesInfo), lowProgram,

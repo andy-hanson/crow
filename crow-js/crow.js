@@ -21,8 +21,8 @@ Exports of `wasm.d`:
 @property {function(Server, CStr): void} deleteFile
 @property {function(Server, CStr): CStr} getFile
 @property {function(Server, CStr): CStr} getTokensAndParseDiagnostics
-@property {functionServer, CStr, number): CStr} getHover
-@property {function(Ptr, number, Ptr, number, Server, CStr): number} run
+@property {function(Server, CStr, number): CStr} getHover
+@property {function(Server, CStr): number} run
 */
 
 /** @typedef {ExportFunctions & {memory:WebAssembly.Memory}} Exports */
@@ -31,6 +31,14 @@ Exports of `wasm.d`:
 @typedef DiagRange
 @property {[number, number]} args
 */
+crow.DiagRange = {}
+
+/**
+@typedef Write
+@property {"stdout" | "stderr"} pipe
+@property {string} text
+*/
+crow.Write = {}
 
 /**
 @typedef {
@@ -149,6 +157,9 @@ const mathFunctions = Object.fromEntries(
 		"cos", "cosh", "round", "sin", "sinh", "sqrt", "tan", "tanh",
 	].map(name => [name, Math[name]]))
 
+/** @type {ReadonlyArray<{crow.Write}>} */
+let globalWrites = []
+
 class Compiler {
 	/** @return {Promise<Compiler>} */
 	static async make() {
@@ -174,7 +185,10 @@ class Compiler {
 				verifyFail: () => {
 					throw new Error("Called verifyFail!")
 				},
-				...mathFunctions
+				...mathFunctions,
+				write: (pipe, begin, length) => {
+					globalWrites.push({pipe:pipe == 0 ? "stdout" : "stderr", text:res._readString(begin, length)})
+				},
 			}
 		})
 		const { exports } = result.instance
@@ -196,6 +210,14 @@ class Compiler {
 	/** @param {number} begin */
 	_readCStr(begin) {
 		return readCString(this._view, begin, this._exports.memory.buffer.byteLength)
+	}
+
+	/**
+	@param {number} begin
+	@param {number} length
+	*/
+	_readString(begin, length) {
+		return readString(this._view, begin, length)
 	}
 
 	/**
@@ -270,12 +292,15 @@ class Compiler {
 
 	/**
 	@param {string} path
-	@return {RunResult}
+	@return {{exitCode:number, writes:ReadonlyArray<{crow.Write}>} The exit code
 	*/
 	run(path) {
 		try {
-			return JSON.parse(this._readCStr(this._exports.run(this._server, this._paramAlloc.writeCStr(path))))
+			globalWrites = []
+			const exitCode = this._exports.run(this._server, this._paramAlloc.writeCStr(path))
+			return {exitCode, writes:[...globalWrites]}
 		} finally {
+			globalWrites = []
 			this._paramAlloc.clear()
 		}
 	}
@@ -287,14 +312,6 @@ Currently `includeDir` is hardcoded in the constructor in `server.d`.
 TODO someday: Make this configurable.
 */
 crow.includeDir = '/include'
-
-/**
-@typedef RunResult
-@property {number} err
-@property {string} stdout
-@property {string} stderr
-*/
-crow.RunResult = {}
 
 /** @type {function(DataView, number, number): string} */
 const readCString = (view, begin, maxPointer) => {

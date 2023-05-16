@@ -1,5 +1,7 @@
 import { MutableObservable, Observable } from "./util/MutableObservable.js"
-import { assert, createDiv, createNode, createSpan, nonNull, removeAllChildren, setStyleSheet } from "./util/util.js"
+import {
+	assert, createDiv, createNode, createSpan, makeDebouncer, nonNull, removeAllChildren, setStyleSheet,
+} from "./util/util.js"
 
 const lineHeightPx = 20
 const tab_size = 4
@@ -208,9 +210,14 @@ export class CrowText extends HTMLElement {
 
 		const lineNumbers = createDiv({className:"line-numbers"})
 
-		tokensAndParseDiagnostics.nowAndSubscribe(value => {
-			highlight(value, highlightDiv, ta.value)
+		const diagDebounce = makeDebouncer(1000)
+
+		tokensAndParseDiagnostics.nowAndSubscribe(({tokens, parseDiagnostics}) => {
+			highlight({tokens, parseDiagnostics:[]}, highlightDiv, ta.value)
 			lineNumbers.textContent = ta.value.split("\n").map((_, i) => String(i + 1)).join("\n")
+			diagDebounce(() => {
+				highlight({tokens, parseDiagnostics}, highlightDiv, ta.value)
+			})
 		})
 
 		const measurerSpan = createSpan({children:["a"]})

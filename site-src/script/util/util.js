@@ -68,3 +68,16 @@ export const setStyleSheet = (shadowRoot, css) => {
 		.then(() => { shadowRoot.adoptedStyleSheets = [styleSheet] })
 		.catch(console.error)
 }
+
+/**
+@param {number} msec
+@return {function(() => void): void}
+*/
+export const makeDebouncer = msec => {
+	let cur = null
+	return action => {
+		if (cur)
+			clearTimeout(cur)
+		cur = setTimeout(action, msec)
+	}
+}

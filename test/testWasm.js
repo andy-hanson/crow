@@ -17,11 +17,25 @@ const main = async () => {
 	const content = fs.readFileSync(path, "utf-8")
 	comp.addOrChangeFile(path, content)
 	const result = comp.run(path)
-	if (result.stdout !== "Hello, world!\n" || result.err != 0 || result.stderr != '') {
+	if (result.exitCode !== 0 || !writesEqual(result.writes, [{pipe:'stdout', text:"Hello, world!\n"}])) {
 		console.error(result)
 		throw new Error("Bad result")
 	}
 }
+
+/** @type {function(ReadonlyArray<crow.Write>, ReadonlyArray<crow.Write>): boolean} */
+const writesEqual = (a, b) => {
+	if (a.length !== b.length)
+		return false
+	for (let i = 0; i < a.length; i++)
+		if (!writeEqual(a[i], b[i]))
+			return false
+	return true
+}
+
+/** @type {function(crow.Write, crow.Write): boolean} */
+const writeEqual = (a, b) =>
+	a.pipe === b.pipe && a.text === b.text
 
 main().catch(e => {
 	console.error("ERROR", e)

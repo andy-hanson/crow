@@ -9,5 +9,5 @@ actual:
 test/compile-errors/destructure-errors.crow 8:5-8:15 expected a tuple with 3 elements, but got '(nat64, string)'
 
 test/compile-errors/destructure-errors.crow 9:5-9:11 expected a tuple with 2 elements, but got 'nat64'
-uncaught exception: reached compile error
+Uncaught exception: Reached compile error
 	at main

@@ -1,6 +1,6 @@
 exit code: 1
 stderr:
-uncaught exception: FOO
+Uncaught exception: FOO
 	at bar
 	at foo
 	at main

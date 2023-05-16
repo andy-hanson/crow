@@ -10,5 +10,5 @@ test/compile-errors/spec-inst-recursion.crow 2:5-2:11 a spec was not satisfied.
 	bar@string (from test/compile-errors/spec-inst-recursion.crow line 13)
 	foo@string (from test/compile-errors/spec-inst-recursion.crow line 10)
 	bar@string (from test/compile-errors/spec-inst-recursion.crow line 13)
-uncaught exception: reached compile error
+Uncaught exception: Reached compile error
 	at main

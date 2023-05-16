@@ -2,7 +2,7 @@ no-std
 import
 	./exception: finally, with-block
 	./fun-util: subscript
-	./io/print: out, print
+	./io/print: err, out, print
 	./misc: new, void
 	./string: ~~, literal, string, to
 
@@ -78,7 +78,7 @@ For example, this might write it to the console.
 	fun void(logged)
 
 default-log-handler void(a logged) summon
-	out print "{a level}: {a message}"
+	(a.level == error ? err : out) print "{a level}: {a message}"
 
 # GC doesn't trace thread-locals, but won't outlive a task anyway.
 -cur-log-handler thread-local(log-handler)

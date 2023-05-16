@@ -108,7 +108,7 @@ ConcreteExpr concretizeFunBody(
 }
 
 ConcreteExpr concretizeBogus(ref ConcretizeCtx ctx, ConcreteType type, FileAndRange range) =>
-	makeThrow(ctx.alloc, range, type, cStrConcreteExpr(ctx, range, safeCStr!"reached compile error"));
+	makeThrow(ctx.alloc, range, type, cStrConcreteExpr(ctx, range, safeCStr!"Reached compile error"));
 
 private:
 

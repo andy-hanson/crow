@@ -2,7 +2,7 @@ module lib.server;
 
 @safe @nogc nothrow: // not pure
 
-import lib.compiler : buildAndInterpret;
+import lib.compiler : buildAndInterpret, ExitCode;
 import frontend.diagnosticsBuilder : diagnosticsForFile;
 import frontend.frontendCompile : frontendCompile;
 import frontend.ide.getHover : getHoverStr;
@@ -12,7 +12,7 @@ import frontend.parse.ast : FileAst;
 import frontend.parse.parse : parseFile;
 import frontend.showDiag : ShowDiagOptions, strOfDiagnostic;
 import interpret.extern_ : Extern;
-import interpret.fakeExtern : FakeExternResult, FakeStdOutput, withFakeExtern;
+import interpret.fakeExtern : Pipe, withFakeExtern, WriteCb;
 import model.diag : Diagnostic, Diagnostics, DiagnosticWithinFile, DiagSeverity, FilesInfo;
 import model.model : fakeProgramForDiagnostics, Program;
 import util.alloc.alloc : Alloc;
@@ -20,7 +20,6 @@ import util.col.arrBuilder : ArrBuilder;
 import util.col.arrUtil : arrLiteral, map;
 import util.col.map : mapLiteral;
 import util.col.fullIndexMap : fullIndexMapOfArr;
-import util.col.mutArr : pushAll;
 import util.col.mutMap : getAt_mut, insertOrUpdate, mustDelete, mustGetAt_mut;
 import util.col.str : copySafeCStr, freeSafeCStr, SafeCStr, safeCStr, strOfSafeCStr;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForText;
@@ -129,16 +128,22 @@ private SafeCStr getHoverFromProgram(ref Alloc alloc, ref Server server, Path pa
 		return safeCStr!"";
 }
 
-FakeExternResult run(ref Perf perf, ref Alloc alloc, ref Server server, in Path main) {
+ExitCode run(
+	ref Perf perf,
+	ref Alloc alloc,
+	ref Server server,
+	in Path main,
+	in WriteCb writeCb,
+) {
 	// TODO: use an arena so anything allocated during interpretation is cleaned up.
 	// Or just have interpreter free things.
 	SafeCStr[1] allArgs = [safeCStr!"/usr/bin/fakeExecutable"];
-	return withMemoryReadOnlyStorage!FakeExternResult(server.includeDir, server.files, (in ReadOnlyStorage storage) =>
-		withFakeExtern(alloc, server.allSymbols, (scope ref Extern extern_, scope ref FakeStdOutput std) =>
+	return withMemoryReadOnlyStorage!ExitCode(server.includeDir, server.files, (in ReadOnlyStorage storage) =>
+		withFakeExtern(alloc, server.allSymbols, writeCb, (scope ref Extern extern_) =>
 			buildAndInterpret(
 				alloc, perf, server.allSymbols, server.allPaths, server.pathsInfo, storage, extern_,
 				(in SafeCStr x) {
-					pushAll(alloc, std.stderr, strOfSafeCStr(x));
+					writeCb(Pipe.stderr, strOfSafeCStr(x));
 				},
 				showDiagOptions, main, allArgs)));
 }

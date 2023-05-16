@@ -97,7 +97,7 @@ new-exclusion exclusion(a global-ctx mut*) bare
 	trusted a.next-exclusion get-and-increment
 
 default-exception-handler void(e exception) summon, unsafe
-	err print-no-newline "uncaught exception: "
+	err print-no-newline "Uncaught exception: "
 	err print "{e}"
 	get-global-ctx->any-unhandled-exceptions := true
 

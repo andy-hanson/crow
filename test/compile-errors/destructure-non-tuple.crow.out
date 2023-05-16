@@ -22,5 +22,5 @@ candidates (with 1 arguments):
 	new t mut-array(inner t array) (from include/crow/private/bootstrap.crow line 115)
 	new symbol(symbol-to-c-string char8*) (from include/crow/private/bootstrap.crow line 163)
 	new backtrace(entries backtrace-entry array) (from include/crow/private/bootstrap.crow line 370)
-uncaught exception: reached compile error
+Uncaught exception: Reached compile error
 	at main

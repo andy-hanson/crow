@@ -1,7 +1,8 @@
 @safe @nogc nothrow: // not pure
 
 import frontend.ide.getTokens : jsonOfTokens;
-import interpret.fakeExtern : FakeExternResult;
+import interpret.fakeExtern : Pipe;
+import lib.compiler : ExitCode;
 import lib.server :
 	addOrChangeFile,
 	deleteFile,
@@ -19,9 +20,7 @@ import util.json : field, jsonObject, Json, jsonToString, jsonList, jsonString;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
 import util.path : Path;
 import util.perf : eachMeasure, Perf, PerfMeasureResult, withNullPerf;
-import util.ptr : ptrTrustMe;
 import util.sourceRange : Pos, jsonOfRangeWithinFile;
-import util.writer : finishWriterToCStr, writeQuotedStr, Writer;
 
 // seems to be the required entry point
 extern(C) void _start() {}
@@ -97,13 +96,16 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 		])).ptr);
 }
 
-@system extern(C) CStr run(Server* server, scope CStr pathPtr) {
+@system extern(C) int run(Server* server, scope CStr pathPtr) {
 	Path path = toPath(*server, SafeCStr(pathPtr));
 	Alloc resultAlloc = Alloc(resultBuffer);
-	FakeExternResult result = withWebPerf!FakeExternResult((scope ref Perf perf) =>
-		run(perf, resultAlloc, *server, path));
-	return writeRunResult(server.alloc, result);
+	return withWebPerf!ExitCode((scope ref Perf perf) =>
+		run(perf, resultAlloc, *server, path, (Pipe pipe, in string x) @trusted {
+			write(pipe, x.ptr, x.length);
+		})).value;
 }
+
+extern(C) void write(Pipe pipe, scope immutable char* begin, size_t length);
 
 // Not really pure, but JS doesn't know that
 extern(C) pure ulong getTimeNanos();
@@ -125,15 +127,3 @@ Json jsonOfParseDiagnostics(ref Alloc alloc, scope StrParseDiagnostic[] a) =>
 		jsonObject(alloc, [
 			field!"range"(jsonOfRangeWithinFile(alloc, it.range)),
 			field!"message"(jsonString(alloc, it.message))]));
-
-CStr writeRunResult(ref Alloc alloc, in FakeExternResult result) {
-	Writer writer = Writer(ptrTrustMe(alloc));
-	writer ~= "{\"err\":";
-	writer ~= result.err.value;
-	writer ~= ",\"stdout\":";
-	writeQuotedStr(writer, result.stdout);
-	writer ~= ",\"stderr\":";
-	writeQuotedStr(writer, result.stderr);
-	writer ~= '}';
-	return finishWriterToCStr(writer);
-}

@@ -2,8 +2,8 @@ import { copyIcon, downloadIcon, playIcon, upIcon } from "./CrowIcon.js"
 import { CrowText } from "./CrowText.js"
 import { LoadingIcon } from "./LoadingIcon.js"
 import { MutableObservable } from "./util/MutableObservable.js"
-import { assert, createButton, createDiv, nonNull, removeAllChildren, setStyleSheet } from "./util/util.js"
-import includeAll from '/include-all.json' assert { type: "json" }
+import { assert, createButton, createDiv, createSpan, nonNull, removeAllChildren, setStyleSheet } from "./util/util.js"
+import includeAll from "/include-all.json" assert { type: "json" }
 
 const css = `
 .outer-container {
@@ -21,6 +21,8 @@ const css = `
 	overflow: hidden;
 }
 .output.running { transition: none; }
+.output > .stderr { color: #ff6622; }
+.output > .exit-code { color: #ff4444; }
 button {
 	border: none;
 	outline: none;
@@ -121,31 +123,15 @@ const connected = (shadowRoot, name, noRun, comp, initialText) => {
 		tokensAndParseDiagnostics.set(comp.getTokensAndParseDiagnostics(MAIN))
 	})
 
-	const output = createDiv({className:"output"})
-	output.style.height = "0"
+	const output = makeOutput()
 
 	const runButton = noRun ? null : createButton({className:"run", children:[playIcon()]})
 	if (runButton) runButton.onclick = () => {
 		try {
-			output.className = "output"
-			output.classList.add("running")
-			output.style.height = "2em"
-			removeAllChildren(output)
-			output.append(new LoadingIcon())
-			output.append(createDiv(), createDiv(), createDiv(), createDiv())
 			// Put behind a timeout so loading will show
 			setTimeout(() => {
 				collapseButton.classList.remove("collapsed")
-				output.classList.remove("running")
-				const result = comp.run(MAIN)
-				const text = (result.stdout === "" && result.stderr === ""
-				? "no output"
-				: result.stdout === "" || result.stderr === ""
-				? result.stdout + result.stderr
-				: `stderr:\n${result.stderr}\nstdout:\n${result.stdout}`).trim()
-				output.textContent = text
-				output.style.height = null
-				output.classList.add(result.err === 0 ? "ok" : "err")
+				output.finishRunning(comp.run(MAIN))
 			}, 0)
 		} catch (e) {
 			console.error("ERROR WHILE RUNNING", e)
@@ -173,7 +159,7 @@ const connected = (shadowRoot, name, noRun, comp, initialText) => {
 	collapseButton.classList.add("collapsed")
 	collapseButton.style.float = "right"
 	collapseButton.onclick = () => {
-		output.style.height = "0"
+		output.hide()
 		collapseButton.classList.add("collapsed")
 	}
 
@@ -181,5 +167,65 @@ const connected = (shadowRoot, name, noRun, comp, initialText) => {
 		className: "bottom",
 		children: [...(runButton ? [runButton] : []), copyButton, downloadButton, collapseButton],
 	})
-	shadowRoot.append(createDiv({className:"outer-container", children:[crowText, output, bottom]}))
+	shadowRoot.append(createDiv({className:"outer-container", children:[crowText, output.container, bottom]}))
+}
+
+const makeOutput = () => {
+	const container = createDiv({className:"output"})
+	container.style.height = "0"
+
+	return {
+		container,
+		hide: () => {
+			container.style.height = "0"
+		},
+		startRunning: () => {
+			container.className = "output"
+			container.classList.add("running")
+			container.style.height = "2em"
+			removeAllChildren(container)
+			container.append(new LoadingIcon())
+			container.append(createDiv(), createDiv(), createDiv(), createDiv())
+		},
+		finishRunning: ({writes, exitCode}) => {
+			container.classList.remove("running")
+			container.style.height = null
+			removeAllChildren(container)
+			addSpansForWrites(container, writes, exitCode)
+		},
+	}
+}
+
+const addSpansForWrites = (container, writes, exitCode) => {
+	let curPipe = null
+	let curLine = ""
+
+	const finishLine = () => {
+		if (container.textContent)
+			container.append(document.createElement("br"))
+		container.append(createSpan({children:[curLine], className:curPipe}))
+		curLine = ""
+	}
+
+	for (const {pipe, text} of writes) {
+		if (curPipe !== null && pipe !== curPipe) {
+			if (curLine) finishLine()
+		}
+
+		curPipe = pipe
+		const parts = text.split("\n")
+		curLine += parts[0]
+		for (const part of parts.slice(1)) {
+			finishLine()
+			curLine += part
+		}
+	}
+	if (curLine !== "")
+		finishLine()
+
+	if (exitCode !== 0) {
+		curPipe = "exit-code"
+		curLine = `Exit code: ${exitCode}`
+		finishLine()
+	}
 }

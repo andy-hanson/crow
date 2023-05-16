@@ -40,5 +40,5 @@ test/compile-errors/data-spec-with-type-args.crow 51:5-51:22 a spec was not sati
 test/compile-errors/data-spec-with-type-args.crow 57:5-57:17 a spec was not satisfied.
 	't mt' is not 'data' calling:
 	takes-data@(t mt) (from test/compile-errors/data-spec-with-type-args.crow line 59)
-uncaught exception: reached compile error
+Uncaught exception: Reached compile error
 	at main

@@ -5,5 +5,5 @@ test/compile-errors/pointer-expression-failed-inference.crow 3:16-3:18 can't get
 test/compile-errors/pointer-expression-failed-inference.crow 3:17-3:18 expected type: 'in'
 actual:
 	'nat64'
-uncaught exception: reached compile error
+Uncaught exception: Reached compile error
 	at main

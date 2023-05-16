@@ -4,11 +4,12 @@ module test.testFakeExtern;
 
 import interpret.extern_ :
 	DynCallType, DynCallSig, Extern, ExternFunPtrsForAllLibraries, ExternFunPtrsForLibrary, FunPtr;
-import interpret.fakeExtern : FakeExternResult, FakeStdOutput, withFakeExtern;
+import interpret.fakeExtern : Pipe, unreachableWriteCb, withFakeExtern, WriteCb;
 import lib.compiler : ExitCode;
 import model.lowModel : ExternLibrary;
 import test.testUtil : Test;
 import util.col.map : mustGetAt;
+import util.col.mutArr : moveToArr, MutArr, pushAll;
 import util.col.str : CStr, SafeCStr, strEq;
 import util.opt : force, none, Opt;
 import util.path : Path;
@@ -23,7 +24,7 @@ void testFakeExtern(ref Test test) {
 private:
 
 @trusted void testMallocAndFree(ref Test test) {
-	withFakeExtern(test.alloc, test.allSymbols, (scope ref Extern extern_, scope ref FakeStdOutput _) @trusted {
+	withFakeExtern(test.alloc, test.allSymbols, unreachableWriteCb, (scope ref Extern extern_) @trusted {
 		Sym[2] exportNames = [sym!"free", sym!"malloc"];
 		ExternLibrary[1] externLibraries = [ExternLibrary(sym!"c", none!Path, exportNames)];
 		Opt!ExternFunPtrsForAllLibraries funPtrsOpt =
@@ -54,8 +55,20 @@ private:
 }
 
 void testWrite(ref Test test) {
-	FakeExternResult result =
-		withFakeExtern(test.alloc, test.allSymbols, (scope ref Extern extern_, scope ref FakeStdOutput _) @trusted {
+	MutArr!(immutable char) stdout;
+	MutArr!(immutable char) stderr;
+	scope WriteCb fakeWrite = (Pipe pipe, in string x) {
+		final switch (pipe) {
+			case Pipe.stdout:
+				pushAll(test.alloc, stdout, x);
+				break;
+			case Pipe.stderr:
+				pushAll(test.alloc, stderr, x);
+				break;
+		}
+	};
+	ExitCode result =
+		withFakeExtern(test.alloc, test.allSymbols, fakeWrite, (scope ref Extern extern_) @trusted {
 			Sym[1] exportNames = [sym!"write"];
 			ExternLibrary[1] externLibraries = [ExternLibrary(sym!"c", none!Path, exportNames)];
 			Opt!ExternFunPtrsForAllLibraries funPtrsOpt =
@@ -75,7 +88,7 @@ void testWrite(ref Test test) {
 			extern_.doDynCall(write, sig, args3);
 			return ExitCode(42);
 		});
-	verify(result.err.value == 42);
-	verify(strEq(result.stdout, "gnarway c"));
-	verify(strEq(result.stderr, "tu"));
+	verify(result.value == 42);
+	verify(strEq(moveToArr(test.alloc, stdout), "gnarway c"));
+	verify(strEq(moveToArr(test.alloc, stderr), "tu"));
 }

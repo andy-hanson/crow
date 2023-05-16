@@ -1,5 +1,5 @@
 exit code: 1
 stderr:
 test/compile-errors/bogus-local.crow 2:9-2:10 there is no function or variable named 'z'
-uncaught exception: reached compile error
+Uncaught exception: Reached compile error
 	at main
