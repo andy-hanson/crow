@@ -29,9 +29,13 @@ struct Lexer {
 	Alloc* allocPtr;
 	AllSymbols* allSymbolsPtr;
 	ArrBuilder!DiagnosticWithinFile* diagnosticsBuilderPtr;
-	CStr sourceBegin;
-	immutable(char)* ptr;
+	immutable CStr sourceBegin;
 	immutable IndentKind indentKind;
+
+	// Lexer state:
+	uint curIndent;
+	immutable(char)* ptr;
+
 	union {
 		bool ignore;
 		Cell!Sym curSym; // For Token.name
@@ -59,8 +63,9 @@ ref AllSymbols allSymbols(return ref Lexer lexer) =>
 		allSymbols,
 		diagnosticsBuilder,
 		source.ptr,
-		source.ptr,
-		detectIndentKind(source));
+		detectIndentKind(source),
+		0,
+		source.ptr);
 
 private @trusted char prevChar(in Lexer lexer) =>
 	*(lexer.ptr - 1);
@@ -180,7 +185,7 @@ NewlineOrIndent takeNewlineOrIndent_topLevel(ref Lexer lexer) {
 }
 
 private NewlineOrIndent takeNewlineOrIndentAfterEOL(ref Lexer lexer) {
-	IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer, 0);
+	IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer);
 	return delta.match!NewlineOrIndent(
 		(IndentDelta.DedentOrSame dedent) {
 			verify(dedent.nDedents == 0);
@@ -191,16 +196,16 @@ private NewlineOrIndent takeNewlineOrIndentAfterEOL(ref Lexer lexer) {
 }
 
 bool takeIndentOrDiagTopLevel(ref Lexer lexer) =>
-	takeIndentOrFailGeneric(lexer, 0, () => true, (RangeWithinFile, uint dedent) {
+	takeIndentOrFailGeneric(lexer, () => true, (RangeWithinFile, uint dedent) {
 		verify(dedent == 0);
 		return false;
 	});
 
-bool tryTakeIndent(ref Lexer lexer, uint curIndent) {
+bool tryTakeIndent(ref Lexer lexer) {
 	//TODO: always have cur token handy, no need to back up
 	immutable char* begin = lexer.ptr;
 	if (nextToken(lexer) == Token.newline) {
-		IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer, curIndent);
+		IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer);
 		return delta.match!bool(
 			(IndentDelta.DedentOrSame) {
 				addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
@@ -217,12 +222,11 @@ bool tryTakeIndent(ref Lexer lexer, uint curIndent) {
 
 T takeIndentOrFailGeneric(T)(
 	ref Lexer lexer,
-	uint curIndent,
 	in T delegate() @safe @nogc pure nothrow cbIndent,
 	in T delegate(RangeWithinFile, uint) @safe @nogc pure nothrow cbFail,
 ) {
 	Pos start = curPos(lexer);
-	IndentDelta delta = takeNewlineAndReturnIndentDelta(lexer, curIndent);
+	IndentDelta delta = takeNewlineAndReturnIndentDelta(lexer);
 	return delta.match!T(
 		(IndentDelta.DedentOrSame dedent) {
 			addDiag(lexer, RangeWithinFile(start, start + 1), ParseDiag(
@@ -241,18 +245,18 @@ void takeNewline_topLevel(ref Lexer lexer) {
 	takeNewlineBeforeIndent(lexer);
 }
 
-private @trusted IndentDelta takeNewlineAndReturnIndentDelta(ref Lexer lexer, uint curIndent) {
+private @trusted IndentDelta takeNewlineAndReturnIndentDelta(ref Lexer lexer) {
 	skipSpacesAndComments(lexer);
 	if (!tryTakeNewline(lexer)) {
 		//TODO: not always expecting indent..
 		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
 		skipRestOfLineAndNewline(lexer);
 	}
-	return skipBlankLinesAndGetIndentDelta(lexer, curIndent);
+	return skipBlankLinesAndGetIndentDelta(lexer);
 }
 
 void takeDedentFromIndent1(ref Lexer lexer) {
-	IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer, 1);
+	IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer);
 	bool success = delta.match!bool(
 		(IndentDelta.DedentOrSame dedent) =>
 			dedent.nDedents == 1,
@@ -265,16 +269,16 @@ void takeDedentFromIndent1(ref Lexer lexer) {
 	}
 }
 
-uint takeNewlineOrDedentAmount(ref Lexer lexer, uint curIndent) {
+uint takeNewlineOrDedentAmount(ref Lexer lexer) {
 	takeNewlineBeforeIndent(lexer);
-	IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer, curIndent);
+	IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer);
 	return delta.match!uint(
 		(IndentDelta.DedentOrSame dedent) =>
 			dedent.nDedents,
 		(IndentDelta.Indent) {
 			addDiagAtChar(lexer, ParseDiag(ParseDiag.Unexpected(ParseDiag.Unexpected.Kind.indent)));
 			skipUntilNewlineNoDiag(lexer);
-			return takeNewlineOrDedentAmount(lexer, curIndent);
+			return takeNewlineOrDedentAmount(lexer);
 		});
 }
 
@@ -284,7 +288,7 @@ enum NewlineOrDedent {
 }
 
 NewlineOrDedent takeNewlineOrSingleDedent(ref Lexer lexer) {
-	switch (takeNewlineOrDedentAmount(lexer, 1)) {
+	switch (takeNewlineOrDedentAmount(lexer)) {
 		case 0:
 			return NewlineOrDedent.newline;
 		case 1:
@@ -366,7 +370,7 @@ Sym takeNameOrOperator(ref Lexer lexer) {
 
 void skipNewlinesIgnoreIndentation(ref Lexer lexer) {
 	while (tryTakeToken(lexer, Token.newline))
-		drop(skipBlankLinesAndGetIndentDelta(lexer, 0));
+		drop(skipBlankLinesAndGetIndentDelta(lexer));
 }
 
 private:
@@ -386,24 +390,26 @@ void skipRestOfLineAndNewline(ref Lexer lexer) {
 // Note: Not issuing any diagnostics here. We'll fail later if we detect the wrong indent kind.
 @trusted IndentKind detectIndentKind(SafeCStr a) {
 	immutable(char)* ptr = a.ptr;
-	switch (*ptr) {
-		case '\0':
-			// No indented lines, so it's irrelevant
-			return IndentKind.tabs;
-		case '\t':
-			return IndentKind.tabs;
-		case ' ':
-			// Count spaces
-			do { ptr++; } while (*ptr == ' ');
-			size_t n = ptr - a.ptr;
-			// Only allowed amounts are 2 and 4.
-			return n == 2 ? IndentKind.spaces2 : IndentKind.spaces4;
-		default:
-			while (*ptr != '\0' && !isNewlineChar(*ptr))
-				ptr++;
-			if (isNewlineChar(*ptr))
-				ptr++;
-			return detectIndentKind(SafeCStr(ptr));
+	while (true) {
+		switch (*ptr) {
+			case '\0':
+				// No indented lines, so it's irrelevant
+				return IndentKind.tabs;
+			case '\t':
+				return IndentKind.tabs;
+			case ' ':
+				// Count spaces
+				do { ptr++; } while (*ptr == ' ');
+				size_t n = ptr - a.ptr;
+				// Only allowed amounts are 2 and 4.
+				return n == 2 ? IndentKind.spaces2 : IndentKind.spaces4;
+			default:
+				while (*ptr != '\0' && !isNewlineChar(*ptr))
+					ptr++;
+				if (isNewlineChar(*ptr))
+					ptr++;
+				continue;
+		}
 	}
 }
 
@@ -1114,35 +1120,39 @@ SafeCStr skipBlankLinesAndGetDocCommentRecur(ref Lexer lexer, SafeCStr comment) 
 // Returns the change in indent (and updates the indent)
 // Note: does nothing if not looking at a newline!
 // NOTE: never returns a value > 1 as double-indent is always illegal.
-IndentDelta skipBlankLinesAndGetIndentDelta(ref Lexer lexer, uint curIndent) {
-	// comment / region counts as a blank line no matter its indent level.
-	uint newIndent = takeIndentAmount(lexer);
-	if (tryTakeNewline(lexer))
-		// Ignore lines that are just whitespace
-		return skipBlankLinesAndGetIndentDelta(lexer, curIndent);
+IndentDelta skipBlankLinesAndGetIndentDelta(ref Lexer lexer) {
+	while (true) {
+		// comment / region counts as a blank line no matter its indent level.
+		uint newIndent = takeIndentAmount(lexer);
+		if (tryTakeNewline(lexer))
+			// Ignore lines that are just whitespace
+			continue;
 
-	// For indent == 0, we'll try taking any comments as doc comments
-	if (newIndent != 0) {
-		// Comments can mean a dedent
-		if (tryTakeTripleHashThenNewline(lexer)) {
-			drop(skipRestOfBlockComment(lexer));
-			return skipBlankLinesAndGetIndentDelta(lexer, curIndent);
-		} else if (tryTakeChar(lexer, '#')) {
+		// For indent == 0, we'll try taking any comments as doc comments
+		if (newIndent != 0) {
+			// Comments can mean a dedent
+			if (tryTakeTripleHashThenNewline(lexer)) {
+				drop(skipRestOfBlockComment(lexer));
+				continue;
+			} else if (tryTakeChar(lexer, '#')) {
+				skipRestOfLineAndNewline(lexer);
+				continue;
+			}
+		}
+
+		// If we got here, we're looking at a non-empty line (or EOF)
+		int delta = safeIntFromUint(newIndent) - safeIntFromUint(lexer.curIndent);
+		if (delta > 1) {
+			addDiagAtChar(lexer, ParseDiag(ParseDiag.IndentTooMuch()));
 			skipRestOfLineAndNewline(lexer);
-			return skipBlankLinesAndGetIndentDelta(lexer, curIndent);
+			continue;
+		} else {
+			lexer.curIndent = newIndent;
+			return delta == 1
+				? IndentDelta(IndentDelta.Indent())
+				: IndentDelta(IndentDelta.DedentOrSame(-delta));
 		}
 	}
-
-	// If we got here, we're looking at a non-empty line (or EOF)
-	int delta = safeIntFromUint(newIndent) - safeIntFromUint(curIndent);
-	if (delta > 1) {
-		addDiagAtChar(lexer, ParseDiag(ParseDiag.IndentTooMuch()));
-		skipRestOfLineAndNewline(lexer);
-		return skipBlankLinesAndGetIndentDelta(lexer, curIndent);
-	} else
-		return delta == 1
-			? IndentDelta(IndentDelta.Indent())
-			: IndentDelta(IndentDelta.DedentOrSame(-delta));
 }
 
 bool isNewlineChar(char c) =>

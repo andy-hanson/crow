@@ -81,7 +81,7 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
-import util.util : todo, unreachable;
+import util.util : debugLog, todo, unreachable;
 
 FileAst parseFile(
 	ref Alloc alloc,
@@ -163,7 +163,7 @@ ImportAndDedent parseSingleModuleImportOnOwnLine(ref AllPaths allPaths, ref Lexe
 
 ImportOrExportKindAndDedent parseImportOrExportKind(ref Lexer lexer, Pos start) {
 	if (tryTakeToken(lexer, Token.colon)) {
-		if (tryTakeIndent(lexer, 1))
+		if (tryTakeIndent(lexer))
 			return parseIndentedImportNames(lexer, start);
 		else {
 			Sym[] names = parseSingleImportNamesOnSingleLine(lexer);
@@ -225,7 +225,7 @@ ImportOrExportKindAndDedent parseIndentedImportNames(ref Lexer lexer, Pos start)
 	NewlineOrDedentAndRange recur() {
 		TrailingComma trailingComma = takeCommaSeparatedNames(lexer, names);
 		RangeWithinFile range0 = range(lexer, start);
-		switch (takeNewlineOrDedentAmount(lexer, 2)) {
+		switch (takeNewlineOrDedentAmount(lexer)) {
 			case 0:
 				final switch (trailingComma) {
 					case TrailingComma.no:

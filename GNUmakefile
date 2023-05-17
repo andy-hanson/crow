@@ -67,7 +67,7 @@ dmd_flags_assert = $(dmd_flags_common) -check=on -boundscheck=on
 dmd_flags_debug = -debug -g -version=Debug -version=Test
 ldc_flags_common = $(d_flags_common) --d-version=GccJitAvailable
 ldc_flags_no_assert = $(ldc_flags_common) --enable-asserts=false --boundscheck=off
-ldc_flags_assert = $(ldc_flags_no_assert) --enable-asserts=true --boundscheck=on
+ldc_flags_assert = $(ldc_flags_common) --enable-asserts=true --boundscheck=on
 ldc_wasm_flags = -mtriple=wasm32-unknown-unknown-wasm -L-allow-undefined
 ldc_fast_flags_no_tail_call = -O2 -L=--strip-all
 ldc_fast_flags = $(ldc_fast_flags_no_tail_call) --d-version=TailRecursionAvailable

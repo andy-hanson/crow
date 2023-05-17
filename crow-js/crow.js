@@ -189,6 +189,9 @@ class Compiler {
 				write: (pipe, begin, length) => {
 					globalWrites.push({pipe:pipe == 0 ? "stdout" : "stderr", text:res._readString(begin, length)})
 				},
+				__assert: (...args) => {
+					console.log("ASSERT", args)
+				},
 			}
 		})
 		const { exports } = result.instance
