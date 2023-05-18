@@ -71,9 +71,13 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\frontend\parse\ast.d \
 	src\frontend\parse\jsonOfAst.d \
 	src\frontend\parse\lexer.d \
+	src\frontend\parse\lexToken.d \
+	src\frontend\parse\lexWhitespace.d \
 	src\frontend\parse\parse.d \
 	src\frontend\parse\parseExpr.d \
+	src\frontend\parse\parseImport.d \
 	src\frontend\parse\parseType.d \
+	src\frontend\parse\parseUtil.d \
 	src\frontend\config.d \
 	src\frontend\diagnosticsBuilder.d \
 	src\frontend\frontendCompile.d \

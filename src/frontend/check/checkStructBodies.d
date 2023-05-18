@@ -110,7 +110,7 @@ StructBody.Extern checkExtern(ref CheckCtx ctx, in StructDeclAst declAst, in Str
 		if (has(value)) {
 			LiteralNatAst n = *force(value);
 			if (n.overflow || n.value > size_t.max) {
-				todo!void("diagnostic");
+				todo!void("checkExtern diagnostic");
 				return none!size_t;
 			} else
 				return some(safeToSizeT(n.value));
@@ -132,7 +132,7 @@ Opt!TypeSize toTypeSize(ref CheckCtx ctx, Opt!size_t optSize, Opt!size_t optAlig
 					case 8:
 						return force(optAlignment);
 					default:
-						todo!void("diagnostic");
+						todo!void("toTypeSize diagnostic");
 						return defAlign;
 				}
 			} else

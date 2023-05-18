@@ -49,23 +49,26 @@ import frontend.parse.lexer :
 	getCurLiteralFloat,
 	getCurLiteralInt,
 	getCurLiteralNat,
-	getCurOperator,
 	getCurSym,
 	getPeekToken,
 	Lexer,
 	lookaheadWillTakeArrowAfterParenLeft,
 	lookaheadWillTakeEqualsOrThen,
 	lookaheadWillTakeQuestionEquals,
-	NewlineOrIndent,
 	nextToken,
-	peekNewline,
 	peekToken,
-	peekTokenExpression,
 	QuoteKind,
 	range,
 	rangeAtChar,
 	skipUntilNewlineNoDiag,
 	StringPart,
+	takeStringPart,
+	Token,
+	tryTakeToken;
+import frontend.parse.parseType : parseType, parseTypeForTypedExpr, tryParseTypeArgForExpr;
+import frontend.parse.parseUtil :
+	NewlineOrIndent,
+	peekNewline,
 	takeIndentOrFailGeneric,
 	takeName,
 	takeNameAndRange,
@@ -73,11 +76,7 @@ import frontend.parse.lexer :
 	takeNewlineOrIndent_topLevel,
 	takeNewlineOrDedentAmount,
 	takeOrAddDiagExpectedToken,
-	takeStringPart,
-	Token,
-	tryTakeNameOrOperatorAndRangeNoAssignment,
-	tryTakeToken;
-import frontend.parse.parseType : parseType, parseTypeForTypedExpr, tryParseTypeArgForExpr;
+	tryTakeNameOrOperatorAndRangeNoAssignment;
 import model.model : AssertOrForbidKind;
 import model.parseDiag : ParseDiag;
 import util.col.arr : empty, only;
@@ -193,6 +192,88 @@ ArgsAndMaybeNameOrDedent parseArgs(ref Lexer lexer, ArgCtx ctx) {
 		return parseArgsRecur(lexer, ctx, builder);
 	} else
 		return ArgsAndMaybeNameOrDedent([], noNameOrDedent());
+}
+
+bool peekTokenExpression(ref Lexer lexer) =>
+	isExpressionStartToken(getPeekToken(lexer));
+
+bool isExpressionStartToken(Token a) {
+	final switch (a) {
+		case Token.act:
+		case Token.alias_:
+		case Token.arrowAccess:
+		case Token.arrowLambda:
+		case Token.arrowThen:
+		case Token.as:
+		case Token.at:
+		case Token.bare:
+		case Token.builtin:
+		case Token.builtinSpec:
+		case Token.braceLeft:
+		case Token.braceRight:
+		case Token.bracketRight:
+		case Token.colon:
+		case Token.colon2:
+		case Token.colonEqual:
+		case Token.comma:
+		case Token.dot:
+		case Token.dot3:
+		case Token.elif:
+		case Token.else_:
+		case Token.enum_:
+		case Token.equal:
+		case Token.export_:
+		case Token.extern_:
+		case Token.EOF:
+		case Token.far:
+		case Token.flags:
+		case Token.forceCtx:
+		case Token.fun:
+		case Token.global:
+		case Token.import_:
+		case Token.invalid:
+		case Token.mut:
+		case Token.newline:
+		case Token.noStd:
+		case Token.parenRight:
+		case Token.question:
+		case Token.questionEqual:
+		case Token.record:
+		case Token.semicolon:
+		case Token.spec:
+		case Token.summon:
+		case Token.test:
+		case Token.thread_local:
+		case Token.union_:
+		case Token.unsafe:
+			return false;
+		case Token.assert_:
+		case Token.bang:
+		case Token.bracketLeft:
+		case Token.break_:
+		case Token.continue_:
+		case Token.forbid:
+		case Token.if_:
+		case Token.for_:
+		case Token.literalFloat:
+		case Token.literalInt:
+		case Token.literalNat:
+		case Token.loop:
+		case Token.match:
+		case Token.name:
+		case Token.operator:
+		case Token.parenLeft:
+		case Token.quoteDouble:
+		case Token.quoteDouble3:
+		case Token.throw_:
+		case Token.trusted:
+		case Token.underscore:
+		case Token.unless:
+		case Token.until:
+		case Token.with_:
+		case Token.while_:
+			return true;
+	}
 }
 
 ArgsAndMaybeNameOrDedent parseArgsRecur(ref Lexer lexer, ArgCtx ctx, ref ArrBuilder!ExprAst args) {
@@ -862,7 +943,7 @@ ExprAndMaybeDedent parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBloc
 				? parseLambdaAfterNameAndArrow(lexer, start, allowedBlock, name)
 				: handleName(lexer, start, NameAndRange(start, name));
 		case Token.operator:
-			Sym operator = getCurOperator(lexer);
+			Sym operator = getCurSym(lexer);
 			if (operator == sym!"&") {
 				ExprAndMaybeDedent inner = parseExprBeforeCall(lexer, AllowedBlock.no);
 				return ExprAndMaybeDedent(

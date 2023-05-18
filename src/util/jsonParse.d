@@ -2,7 +2,7 @@ module util.jsonParse;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.lexer : isWhitespace;
+import frontend.parse.lexWhitespace : isWhitespace;
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.str : copyStr, CStr, SafeCStr;

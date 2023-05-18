@@ -5,7 +5,6 @@ module frontend.parse.parseType;
 import frontend.parse.ast : range, TypeAst;
 import frontend.parse.lexer :
 	addDiag,
-	addDiagExpected,
 	addDiagUnexpectedCurToken,
 	alloc,
 	curPos,
@@ -14,10 +13,10 @@ import frontend.parse.lexer :
 	nextToken,
 	range,
 	rangeAtChar,
-	takeOrAddDiagExpectedToken,
 	Token,
 	tryTakeOperator,
 	tryTakeToken;
+import frontend.parse.parseUtil : addDiagExpected, takeOrAddDiagExpectedToken;
 import model.model : FunKind;
 import model.parseDiag : ParseDiag;
 import util.col.arr : only;

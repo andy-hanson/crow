@@ -32,7 +32,8 @@ main nat^(_ string[]) summon
 	() join for file : files; file imports
 
 -allow-exports symbol set()
-	"diffSymbols", "main"
+	# Allow members of TokenData; dscanner doesn't realize these aren't directly exports
+	"diffSymbols", "main", "ignore", "operator", "literalFloat", "literalInt", "literalNat"
 -allow-paths string set()
 	# Ignore debugging.d because unused functions may be useful for debugging.
 	# Ignore union.d because ddscanner gets confused by the mixin.
@@ -87,7 +88,7 @@ all-files file[]^() summon
 
 # for some reason, dscanner doesn't give non-nested unions like Converter64 access:private
 -excluded-unknown-access symbol set()
-	"Converter32", "Converter64", "DCValue", "DoubleToUlong", "StackMap2Key", "StackMap2Value"
+	"Converter32", "Converter64", "DCValue", "DoubleToUlong", "StackMap2Key", "StackMap2Value", "TokenData"
 
 -imports-and-rest record
 	imports symbol set
