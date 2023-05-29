@@ -2,19 +2,11 @@ module frontend.parse.parseType;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast : range, TypeAst;
+import frontend.parse.ast : NameAndRange, range, TypeAst;
 import frontend.parse.lexer :
-	addDiag,
-	addDiagUnexpectedCurToken,
-	alloc,
-	curPos,
-	getCurNameAndRange,
-	Lexer,
-	range,
-	rangeAtChar,
-	takeNextToken,
-	Token;
-import frontend.parse.parseUtil : addDiagExpected, takeOrAddDiagExpectedToken, tryTakeOperator, tryTakeToken;
+	addDiag, addDiagUnexpectedCurToken, alloc, curPos, Lexer, range, rangeAtChar, takeNextToken, Token, TokenAndData;
+import frontend.parse.parseUtil :
+	addDiagExpected, takeOrAddDiagExpectedToken, tryTakeNameAndRange, tryTakeOperator, tryTakeToken;
 import model.model : FunKind;
 import model.parseDiag : ParseDiag;
 import util.col.arr : only;
@@ -70,10 +62,10 @@ private:
 
 TypeAst parseTypeBeforeSuffixes(ref Lexer lexer) {
 	Pos start = curPos(lexer);
-	Token token = takeNextToken(lexer);
-	switch (token) {
+	TokenAndData token = takeNextToken(lexer);
+	switch (token.token) {
 		case Token.name:
-			return TypeAst(getCurNameAndRange(lexer, start));
+			return TypeAst(NameAndRange(start, token.asSym()));
 		case Token.parenLeft:
 			return parseTupleType(lexer, start);
 		case Token.act:
@@ -128,10 +120,14 @@ TypeAst parseTypeSuffixesNonName(ref Lexer lexer, TypeAst left) {
 
 Opt!TypeAst parseTypeSuffix(ref Lexer lexer, TypeAst left) {
 	Opt!TypeAst res = parseTypeSuffixNonName(lexer, left);
-	Pos namePos = curPos(lexer);
-	return !has(res) && tryTakeToken(lexer, Token.name)
-		? some(TypeAst(allocate(lexer.alloc, TypeAst.SuffixName(left, getCurNameAndRange(lexer, namePos)))))
-		: res;
+	if (has(res))
+		return res;
+	else {
+		Opt!NameAndRange name = tryTakeNameAndRange(lexer);
+		return has(name)
+			? some(TypeAst(allocate(lexer.alloc, TypeAst.SuffixName(left, force(name)))))
+			: none!TypeAst;
+	}
 }
 
 Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, TypeAst left) {

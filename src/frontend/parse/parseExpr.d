@@ -46,10 +46,6 @@ import frontend.parse.lexer :
 	allSymbols,
 	curPos,
 	EqualsOrThen,
-	getCurLiteralFloat,
-	getCurLiteralInt,
-	getCurLiteralNat,
-	getCurSym,
 	getPeekToken,
 	Lexer,
 	lookaheadWillTakeEqualsOrThen,
@@ -63,7 +59,8 @@ import frontend.parse.lexer :
 	takeClosingBraceThenStringPart,
 	takeInitialStringPart,
 	takeNextToken,
-	Token;
+	Token,
+	TokenAndData;
 import frontend.parse.parseType : parseType, parseTypeForTypedExpr, tryParseTypeArgForExpr;
 import frontend.parse.parseUtil :
 	NewlineOrIndent,
@@ -885,8 +882,8 @@ ExprAndMaybeDedent parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBloc
 		return .ifAllowBlock(lexer, start, allowedBlock, kind, cbAllowBlock);
 	}
 
-	Token token = takeNextToken(lexer);
-	switch (token) {
+	TokenAndData token = takeNextToken(lexer);
+	switch (token.token) {
 		case Token.parenLeft:
 			if (tryTakeToken(lexer, Token.parenRight)) {
 				ExprAst expr = ExprAst(
@@ -904,7 +901,7 @@ ExprAndMaybeDedent parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBloc
 			}
 		case Token.quoteDouble:
 		case Token.quoteDouble3:
-			QuoteKind quoteKind = token == Token.quoteDouble ? QuoteKind.double_ : QuoteKind.double3;
+			QuoteKind quoteKind = token.token == Token.quoteDouble ? QuoteKind.double_ : QuoteKind.double3;
 			StringPart part = takeInitialStringPart(lexer, quoteKind);
 			ExprAst quoted = () {
 				final switch (part.after) {
@@ -940,12 +937,12 @@ ExprAndMaybeDedent parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBloc
 		case Token.match:
 			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.match, () => parseMatch(lexer, start));
 		case Token.name:
-			Sym name = getCurSym(lexer);
+			Sym name = token.asSym();
 			return tryTakeToken(lexer, Token.arrowLambda)
 				? parseLambdaAfterNameAndArrow(lexer, start, allowedBlock, name)
 				: handleName(lexer, start, NameAndRange(start, name));
 		case Token.operator:
-			Sym operator = getCurSym(lexer);
+			Sym operator = token.asSym();
 			if (operator == sym!"&") {
 				ExprAndMaybeDedent inner = parseExprBeforeCall(lexer, AllowedBlock.no);
 				return ExprAndMaybeDedent(
@@ -956,15 +953,15 @@ ExprAndMaybeDedent parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBloc
 		case Token.literalFloat:
 			return noDedent(tryParseDotsAndSubscripts(
 				lexer,
-				ExprAst(range(lexer, start), ExprAstKind(getCurLiteralFloat(lexer)))));
+				ExprAst(range(lexer, start), ExprAstKind(token.asLiteralFloat()))));
 		case Token.literalInt:
 			return noDedent(tryParseDotsAndSubscripts(
 				lexer,
-				ExprAst(range(lexer, start), ExprAstKind(getCurLiteralInt(lexer)))));
+				ExprAst(range(lexer, start), ExprAstKind(token.asLiteralInt()))));
 		case Token.literalNat:
 			return noDedent(tryParseDotsAndSubscripts(
 				lexer,
-				ExprAst(range(lexer, start), ExprAstKind(getCurLiteralNat(lexer)))));
+				ExprAst(range(lexer, start), ExprAstKind(token.asLiteralNat()))));
 		case Token.loop:
 			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.loop, () => parseLoop(lexer, start));
 		case Token.throw_:
@@ -988,7 +985,7 @@ ExprAndMaybeDedent parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBloc
 	}
 }
 
-ExprAndMaybeDedent badToken(ref Lexer lexer, Pos start, Token token) {
+ExprAndMaybeDedent badToken(ref Lexer lexer, Pos start, TokenAndData token) {
 	addDiagUnexpectedCurToken(lexer, start, token);
 	return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
 }

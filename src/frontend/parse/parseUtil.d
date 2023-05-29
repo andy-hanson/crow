@@ -8,17 +8,16 @@ import frontend.parse.lexer :
 	addDiagAtChar,
 	allSymbols,
 	curPos,
-	getCurIndentDelta,
-	getCurSym,
-	getPeekSym,
 	getPeekToken,
+	getPeekTokenAndData,
+	IndentDelta,
 	Lexer,
 	range,
-	skipRestOfLineAndNewline,
 	skipUntilNewlineNoDiag,
 	takeNextToken,
-	Token;
-import frontend.parse.lexWhitespace : IndentDelta;
+	Token,
+	TokenAndData;
+import frontend.parse.lexToken : isNewlineToken, isSymToken;
 import model.parseDiag : ParseDiag;
 import util.col.arrUtil : contains;
 import util.opt : force, has, none, Opt, some;
@@ -26,10 +25,12 @@ import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : appendEquals, Sym, sym;
 import util.util : unreachable, verify;
 
-public bool peekToken(ref Lexer lexer, Token expected) =>
+bool peekToken(ref Lexer lexer, Token expected) =>
 	getPeekToken(lexer) == expected;
+bool peekToken(ref Lexer lexer, in Token[] expected) =>
+	contains(expected, getPeekToken(lexer));
 
-public bool tryTakeToken(ref Lexer lexer, Token expected) =>
+bool tryTakeToken(ref Lexer lexer, Token expected) =>
 	tryTakeToken(lexer, [expected]);
 bool tryTakeToken(ref Lexer lexer, in Token[] expected) {
 	if (contains(expected, getPeekToken(lexer))) {
@@ -39,12 +40,21 @@ bool tryTakeToken(ref Lexer lexer, in Token[] expected) {
 		return false;
 }
 
-public bool tryTakeOperator(ref Lexer lexer, Sym expected) {
-	if (peekToken(lexer, Token.operator) && getPeekSym(lexer) == expected) {
+bool tryTakeOperator(ref Lexer lexer, Sym expected) =>
+	tryTakeTokenIf(lexer, (TokenAndData x) =>
+		x.token == Token.operator && x.asSym() == expected);
+
+private bool tryTakeTokenIf(ref Lexer lexer, in bool delegate(TokenAndData) @safe @nogc pure nothrow cb) {
+	Opt!bool res = tryTakeToken!bool(lexer, (TokenAndData x) => cb(x) ? some(true) : none!bool);
+	return has(res);
+}
+
+Opt!T tryTakeToken(T)(ref Lexer lexer, in Opt!T delegate(TokenAndData) @safe @nogc pure nothrow cb) {
+	TokenAndData peek = getPeekTokenAndData(lexer);
+	Opt!T res = cb(peek);
+	if (has(res))
 		takeNextToken(lexer);
-		return true;
-	} else
-		return false;
+	return res;
 }
 
 bool takeOrAddDiagExpectedToken(ref Lexer lexer, Token token, ParseDiag.Expected.Kind kind) {
@@ -56,6 +66,16 @@ bool takeOrAddDiagExpectedToken(ref Lexer lexer, Token token, ParseDiag.Expected
 bool takeOrAddDiagExpectedToken(ref Lexer lexer, in Token[] tokens, ParseDiag.Expected.Kind kind) {
 	bool res = tryTakeToken(lexer, tokens);
 	if (!res)
+		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(kind)));
+	return res;
+}
+Opt!T takeOrAddDiagExpectedToken(T)(
+	ref Lexer lexer,
+	ParseDiag.Expected.Kind kind,
+	in Opt!T delegate(TokenAndData) @safe @nogc pure nothrow cb,
+) {
+	Opt!T res = tryTakeToken!T(lexer, cb);
+	if (!has(res))
 		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(kind)));
 	return res;
 }
@@ -71,10 +91,19 @@ bool takeOrAddDiagExpectedOperator(ref Lexer lexer, Sym operator, ParseDiag.Expe
 	return res;
 }
 
+Opt!NameAndRange tryTakeNameAndRange(ref Lexer lexer) {
+	Pos start = curPos(lexer);
+	Opt!Sym name = tryTakeName(lexer);
+	return has(name)
+		? some(NameAndRange(start, force(name)))
+		: none!NameAndRange;
+}
+
 NameAndRange takeNameAndRange(ref Lexer lexer) {
 	Pos start = curPos(lexer);
-	if (tryTakeToken(lexer, Token.name))
-		return NameAndRange(start, getCurSym(lexer));
+	Opt!NameAndRange name = tryTakeNameAndRange(lexer);
+	if (has(name))
+		return force(name);
 	else {
 		addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.name)));
 		return NameAndRange(start, sym!"");
@@ -89,9 +118,8 @@ NameAndRange takeNameAndRangeAllowUnderscore(ref Lexer lexer) {
 }
 
 Opt!Sym tryTakeName(ref Lexer lexer) =>
-	tryTakeToken(lexer, Token.name)
-		? some(getCurSym(lexer))
-		: none!Sym;
+	tryTakeToken!Sym(lexer, (TokenAndData x) =>
+		x.token == Token.name ? some(x.asSym()) : none!Sym);
 
 Sym takeName(ref Lexer lexer) =>
 	takeNameAndRange(lexer).name;
@@ -99,9 +127,8 @@ Sym takeName(ref Lexer lexer) =>
 // Does not take the '=' in 'x='
 Opt!NameAndRange tryTakeNameOrOperatorAndRangeNoAssignment(ref Lexer lexer) {
 	Pos start = curPos(lexer);
-	return tryTakeToken(lexer, Token.name) || tryTakeToken(lexer, Token.operator)
-		? some(NameAndRange(start, getCurSym(lexer)))
-		: none!NameAndRange;
+	return tryTakeToken!NameAndRange(lexer, (TokenAndData x) =>
+		isSymToken(x.token) ? some(NameAndRange(start, x.asSym())) : none!NameAndRange);
 }
 
 // This can take names like 'x='
@@ -119,10 +146,8 @@ Sym takeNameOrOperator(ref Lexer lexer) {
 	}
 }
 
-bool peekNewline(ref Lexer lexer) {
-	Token token = getPeekToken(lexer);
-	return token == Token.newline || token == Token.EOF;
-}
+bool peekNewline(ref Lexer lexer) =>
+	peekToken(lexer, [Token.newline, Token.EOF]);
 
 enum NewlineOrDedent {
 	newline,
@@ -169,11 +194,15 @@ bool takeIndentOrDiagTopLevel(ref Lexer lexer) =>
 	});
 
 private IndentDelta mustTakeNewline(ref Lexer lexer, ParseDiag.Expected.Kind kind) {
-	if (!takeOrAddDiagExpectedToken(lexer, [Token.newline, Token.EOF], kind)) {
+	Opt!IndentDelta res = tryTakeToken!IndentDelta(lexer, (TokenAndData x) =>
+		isNewlineToken(x.token) ? some(x.asIndentDelta()) : none!IndentDelta);
+	if (has(res))
+		return force(res);
+	else {
 		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(kind)));
-		skipRestOfLineAndNewline(lexer);
+		skipUntilNewlineNoDiag(lexer);
+		return takeNextToken(lexer).asIndentDelta();
 	}
-	return getCurIndentDelta(lexer);
 }
 
 void takeDedentFromIndent1(ref Lexer lexer) {
@@ -184,7 +213,7 @@ void takeDedentFromIndent1(ref Lexer lexer) {
 			false);
 	if (!success) {
 		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.dedent)));
-		skipRestOfLineAndNewline(lexer);
+		skipUntilNewlineNoDiag(lexer);
 		takeDedentFromIndent1(lexer);
 	}
 }

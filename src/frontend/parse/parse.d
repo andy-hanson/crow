@@ -29,16 +29,14 @@ import frontend.parse.lexer :
 	allSymbols,
 	createLexer,
 	curPos,
-	getCurDocComment,
-	getCurLiteralInt,
-	getCurLiteralNat,
-	getCurSym,
 	getPeekToken,
 	Lexer,
 	range,
 	skipUntilNewlineNoDiag,
 	takeNextToken,
-	Token;
+	Token,
+	TokenAndData;
+import frontend.parse.lexToken : plainToken;
 import frontend.parse.parseExpr : parseDestructureRequireParens, parseFunExprBody;
 import frontend.parse.parseImport : parseImportsOrExports;
 import frontend.parse.parseType : parseType, parseTypeArgForVarDecl, tryParseTypeArgForEnumOrFlags;
@@ -65,7 +63,7 @@ import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.col.arr : emptySmallArray, only, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.str : SafeCStr, safeCStr;
+import util.col.str : copyToSafeCStr, SafeCStr, safeCStr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths;
@@ -175,13 +173,14 @@ StructDeclAst.Body.Enum.Member[] parseEnumOrFlagsMembers(ref Lexer lexer) {
 				Sym name = takeName(lexer);
 				Opt!LiteralIntOrNat value = () {
 					if (tryTakeToken(lexer, Token.equal)) {
-						if (tryTakeToken(lexer, Token.literalInt))
-							return some(LiteralIntOrNat(getCurLiteralInt(lexer)));
-						else if (tryTakeToken(lexer, Token.literalNat))
-							return some(LiteralIntOrNat(getCurLiteralNat(lexer)));
-						else {
-							addDiagExpected(lexer, ParseDiag.Expected.Kind.literalIntOrNat);
-							return none!LiteralIntOrNat;
+						switch (getPeekToken(lexer)) {
+							case Token.literalInt:
+								return some(LiteralIntOrNat(takeNextToken(lexer).asLiteralInt()));
+							case Token.literalNat:
+								return some(LiteralIntOrNat(takeNextToken(lexer).asLiteralNat()));
+							default:
+								addDiagExpected(lexer, ParseDiag.Expected.Kind.literalIntOrNat);
+								return none!LiteralIntOrNat;
 						}
 					} else
 						return none!LiteralIntOrNat;
@@ -232,7 +231,7 @@ FieldMutability parseFieldMutability(ref Lexer lexer) {
 		if (tryTakeToken(lexer, Token.mut))
 			return FieldMutability.private_;
 		else {
-			addDiagUnexpectedCurToken(lexer, curPos(lexer) - 1, Token.dot);
+			addDiagUnexpectedCurToken(lexer, curPos(lexer) - 1, plainToken(Token.dot));
 			return FieldMutability.const_;
 		}
 	} else
@@ -476,9 +475,8 @@ StructDeclAst.Body.Extern parseExternType(ref Lexer lexer) {
 		return StructDeclAst.Body.Extern(none!(LiteralNatAst*), none!(LiteralNatAst*));
 }
 Opt!(LiteralNatAst*) parseNat(ref Lexer lexer) =>
-	takeOrAddDiagExpectedToken(lexer, Token.literalNat, ParseDiag.Expected.Kind.literalNat)
-		? some(allocate(lexer.alloc, getCurLiteralNat(lexer)))
-		: none!(LiteralNatAst*);
+	takeOrAddDiagExpectedToken!(LiteralNatAst*)(lexer, ParseDiag.Expected.Kind.literalNat, (TokenAndData x) =>
+		x.token == Token.literalNat ? some(allocate(lexer.alloc, x.asLiteralNat())) : none!(LiteralNatAst*));
 
 VarDeclAst parseVarDecl(
 	ref Lexer lexer,
@@ -527,16 +525,17 @@ ModifierAst.Kind parseModifierKind(ref Lexer lexer) {
 		return ModifierAst.Kind.data;
 	}
 
-	switch (takeNextToken(lexer)) {
+	TokenAndData token = takeNextToken(lexer);
+	switch (token.token) {
 		case Token.extern_:
 			return ModifierAst.Kind.extern_;
 		case Token.mut:
 			return ModifierAst.Kind.mut;
 		case Token.name:
-			Opt!(ModifierAst.Kind) kind = modifierKindFromSym(getCurSym(lexer));
+			Opt!(ModifierAst.Kind) kind = modifierKindFromSym(token.asSym());
 			return has(kind) ? force(kind) : fail();
 		case Token.operator:
-			switch (getCurSym(lexer).value) {
+			switch (token.asSym().value) {
 				case sym!"-".value:
 					Opt!Sym name = tryTakeName(lexer);
 					return has(name) && force(name) == sym!"new" ? ModifierAst.Kind.newPrivate : fail();
@@ -617,6 +616,10 @@ FileAst parseFileInner(ref AllPaths allPaths, ref Lexer lexer) {
 }
 
 SafeCStr takeDocComment(ref Lexer lexer) {
-	tryTakeToken(lexer, Token.newline);
-	return getCurDocComment(lexer);
+	//TODO:*must* take newline
+	//TODO: this is ignoring indentation...
+	Opt!string res = tryTakeToken!string(lexer, (TokenAndData x) {
+		return x.token == Token.newline ? some(x.asDocComment()) : none!string;
+	});
+	return has(res) ? copyToSafeCStr(lexer.alloc, force(res)) : safeCStr!"";
 }

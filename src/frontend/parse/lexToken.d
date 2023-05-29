@@ -4,15 +4,94 @@ module frontend.parse.lexToken;
 
 import frontend.parse.ast : LiteralFloatAst, LiteralIntAst, LiteralNatAst;
 import frontend.parse.lexUtil : tryTakeChar, tryTakeChars;
-import frontend.parse.lexWhitespace : DocCommentAndIndentDelta, IndentKind, skipBlankLinesAndGetIndentDelta;
+import frontend.parse.lexWhitespace :
+	DocCommentAndIndentDelta, IndentDelta, IndentKind, skipBlankLinesAndGetIndentDelta;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
-import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : arrOfRange;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.opt : force, has, none, Opt, some;
 import util.sym : AllSymbols, Sym, sym, symOfStr;
-import util.util : drop, todo, unreachable;
+import util.util : drop, todo, unreachable, verify;
+
+immutable struct TokenAndData {
+	@safe @nogc pure nothrow:
+
+	Token token;
+	private:
+	union {
+		Sym sym = void; // For Token.name or Token.operator
+		// For Token.newline or Token.EOF. WARN: The doc comment is temporary.
+		DocCommentAndIndentDelta indentDelta = void;
+		LiteralFloatAst literalFloat = void; // for Token.literalFloat
+		LiteralIntAst literalInt = void; // for Token.literalInt
+		LiteralNatAst literalNat = void; // for Token.literalNat
+	}
+
+	public:
+	this(Token t, bool) {
+		verify(!isSymToken(t) &&
+			!isNewlineToken(t) &&
+			t != Token.literalFloat &&
+			t != Token.literalInt &&
+			t != Token.literalNat);
+		token = t;
+	}
+	this(Token t, Sym s) {
+		verify(isSymToken(t));
+		token = t;
+		sym = s;
+	}
+	this(Token t, DocCommentAndIndentDelta d) {
+		verify(isNewlineToken(t));
+		token = t;
+		indentDelta = d;
+	}
+	this(Token t, LiteralFloatAst l) {
+		verify(t == Token.literalFloat);
+		token = t;
+		literalFloat = l;
+	}
+	this(Token t, LiteralIntAst l) {
+		verify(t == Token.literalInt);
+		token = t;
+		literalInt = l;
+	}
+	this(Token t, LiteralNatAst l) {
+		verify(t == Token.literalNat);
+		token = t;
+		literalNat = l;
+	}
+
+	Sym asSym() {
+		verify(isSymToken(token));
+		return sym;
+	}
+	// WARN: this is temporary
+	@trusted string asDocComment() {
+		verify(isNewlineToken(token));
+		return indentDelta.docComment;
+	}
+	@trusted IndentDelta asIndentDelta() {
+		verify(isNewlineToken(token));
+		return indentDelta.indentDelta;
+	}
+	LiteralFloatAst asLiteralFloat() {
+		verify(token == Token.literalFloat);
+		return literalFloat;
+	}
+	LiteralIntAst asLiteralInt() {
+		verify(token == Token.literalInt);
+		return literalInt;
+	}
+	LiteralNatAst asLiteralNat() {
+		verify(token == Token.literalNat);
+		return literalNat;
+	}
+}
+
+TokenAndData plainToken(Token a) =>
+	TokenAndData(a, true);
 
 enum Token {
 	act, // 'act'
@@ -90,56 +169,28 @@ enum Token {
 	with_, // 'with'
 }
 
-union TokenData {
-	bool ignore;
-	Cell!Sym sym; // For Token.name or Token.operator
-	Cell!DocCommentAndIndentDelta indentDelta; // For Token.newline or Token.EOF. WARN: The doc comment is temporary.
-	Cell!LiteralFloatAst literalFloat; // for Token.literalFloat
-	Cell!LiteralIntAst literalInt; // for Token.literalInt
-	Cell!LiteralNatAst literalNat; // for Token.literalNat
-}
+bool isNewlineToken(Token a) =>
+	a == Token.newline || a == Token.EOF;
+bool isQuoteToken(Token a) =>
+	a == Token.quoteDouble || a == Token.quoteDouble3;
+bool isSymToken(Token a) =>
+	a == Token.name || a == Token.operator;
 
-@trusted void moveTokenData(Token token, ref TokenData to, in TokenData from) {
-	switch (token) {
-		case Token.name:
-		case Token.operator:
-			cellSet(to.sym, cellGet(from.sym));
-			break;
-		case Token.newline:
-		case Token.EOF:
-			cellSet(to.indentDelta, cellGet(from.indentDelta));
-			break;
-		case Token.literalFloat:
-			cellSet(to.literalFloat, cellGet(from.literalFloat));
-			break;
-		case Token.literalInt:
-			cellSet(to.literalInt, cellGet(from.literalInt));
-			break;
-		case Token.literalNat:
-			cellSet(to.literalNat, cellGet(from.literalNat));
-			break;
-		default:
-			break;
-	}
-}
-
-Token lexInitialToken(
+TokenAndData lexInitialToken(
 	ref immutable(char)* ptr,
-	ref TokenData data,
 	ref AllSymbols allSymbols,
 	IndentKind indentKind,
 	ref uint curIndent,
 	in AddDiag addDiag,
 ) =>
-	newlineToken(ptr, Token.newline, data, indentKind, curIndent, addDiag);
+	newlineToken(ptr, Token.newline, indentKind, curIndent, addDiag);
 
 /*
 Advances 'ptr' to lex a single token.
 Possibly writes to 'data' depending on the kind of token returned.
 */
-@trusted Token lexToken(
+@trusted TokenAndData lexToken(
 	ref immutable(char)* ptr,
-	ref TokenData data,
 	ref AllSymbols allSymbols,
 	IndentKind indentKind,
 	ref uint curIndent,
@@ -154,107 +205,109 @@ Possibly writes to 'data' depending on the kind of token returned.
 			case '\r':
 			case '#':
 				// handled by skipSpacesAndComments
-				return unreachable!Token();
+				return unreachable!TokenAndData();
 			case '\0':
 				ptr--;
-				return newlineToken(ptr, Token.EOF, data, indentKind, curIndent, addDiag);
+				return newlineToken(ptr, Token.EOF, indentKind, curIndent, addDiag);
 			case '\n':
-				return newlineToken(ptr, Token.newline, data, indentKind, curIndent, addDiag);
+				return newlineToken(ptr, Token.newline, indentKind, curIndent, addDiag);
 			case '~':
-				return operatorToken(data, tryTakeChar(ptr, '~') ? sym!"~~" : sym!"~");
+				return operatorToken(tryTakeChar(ptr, '~') ? sym!"~~" : sym!"~");
 			case '@':
-				return Token.at;
+				return plainToken(Token.at);
 			case '!':
 				return ptr[0 .. 2] != "==" && tryTakeChar(ptr, '=')
-					? operatorToken(data, sym!"!=")
-					: Token.bang;
+					? operatorToken(sym!"!=")
+					: plainToken(Token.bang);
 			case '%':
-				return operatorToken(data, sym!"%");
+				return operatorToken(sym!"%");
 			case '^':
-				return operatorToken(data, sym!"^");
+				return operatorToken(sym!"^");
 			case '&':
-				return operatorToken(data, tryTakeChar(ptr, '&') ? sym!"&&" : sym!"&");
+				return operatorToken(tryTakeChar(ptr, '&') ? sym!"&&" : sym!"&");
 			case '*':
-				return operatorToken(data, tryTakeChar(ptr, '*') ? sym!"**" : sym!"*");
+				return operatorToken(tryTakeChar(ptr, '*') ? sym!"**" : sym!"*");
 			case '(':
-				return Token.parenLeft;
+				return plainToken(Token.parenLeft);
 			case ')':
-				return Token.parenRight;
+				return plainToken(Token.parenRight);
 			case '[':
-				return Token.bracketLeft;
+				return plainToken(Token.bracketLeft);
 			case '{':
-				return Token.braceLeft;
+				return plainToken(Token.braceLeft);
 			case '}':
-				return Token.braceRight;
+				return plainToken(Token.braceRight);
 			case ']':
-				return Token.bracketRight;
+				return plainToken(Token.bracketRight);
 			case '-':
 				return isDigit(*ptr)
-					? takeNumberAfterSign(ptr, data, some(Sign.minus))
+					? takeNumberAfterSign(ptr, some(Sign.minus))
 					: tryTakeChar(ptr, '>')
-					? Token.arrowAccess
-					: operatorToken(data, sym!"-");
+					? plainToken(Token.arrowAccess)
+					: operatorToken(sym!"-");
 			case '=':
 				return tryTakeChar(ptr, '>')
-					? Token.arrowLambda
+					? plainToken(Token.arrowLambda)
 					: tryTakeChar(ptr, '=')
-					? operatorToken(data, sym!"==")
-					: Token.equal;
+					? operatorToken(sym!"==")
+					: plainToken(Token.equal);
 			case '+':
 				return isDigit(*ptr)
-					? takeNumberAfterSign(ptr, data, some(Sign.plus))
-					: operatorToken(data, sym!"+");
+					? takeNumberAfterSign(ptr, some(Sign.plus))
+					: operatorToken(sym!"+");
 			case '|':
-				return operatorToken(data, tryTakeChar(ptr, '|') ? sym!"||" : sym!"|");
+				return operatorToken(tryTakeChar(ptr, '|') ? sym!"||" : sym!"|");
 			case ':':
 				return tryTakeChar(ptr, '=')
-					? Token.colonEqual
+					? plainToken(Token.colonEqual)
 					: tryTakeChar(ptr, ':')
-					? Token.colon2
-					: Token.colon;
+					? plainToken(Token.colon2)
+					: plainToken(Token.colon);
 			case ';':
-				return Token.semicolon;
+				return plainToken(Token.semicolon);
 			case '"':
 				return tryTakeChars(ptr, "\"\"")
-					? Token.quoteDouble3
-					: Token.quoteDouble;
+					? plainToken(Token.quoteDouble3)
+					: plainToken(Token.quoteDouble);
 			case ',':
-				return Token.comma;
+				return plainToken(Token.comma);
 			case '<':
 				return tryTakeChar(ptr, '-')
-					? Token.arrowThen
-					: operatorToken(data, tryTakeChar(ptr, '=')
+					? plainToken(Token.arrowThen)
+					: operatorToken(tryTakeChar(ptr, '=')
 						? tryTakeChar(ptr, '>') ? sym!"<=>" : sym!"<="
 						: tryTakeChar(ptr, '<')
 						? sym!"<<"
 						: sym!"<");
 			case '>':
-				return operatorToken(data, tryTakeChar(ptr, '=')
+				return operatorToken(tryTakeChar(ptr, '=')
 					? sym!">="
 					: tryTakeChar(ptr, '>')
 					? sym!">>"
 					: sym!">");
 			case '.':
 				return tryTakeChar(ptr, '.')
-					? tryTakeChar(ptr, '.') ? Token.dot3 : operatorToken(data, sym!"..")
-					: Token.dot;
+					? tryTakeChar(ptr, '.') ? plainToken(Token.dot3) : operatorToken(sym!"..")
+					: plainToken(Token.dot);
 			case '/':
-				return operatorToken(data, sym!"/");
+				return operatorToken(sym!"/");
 			case '?':
 				return tryTakeChar(ptr, '=')
-					? Token.questionEqual
+					? plainToken(Token.questionEqual)
 					: tryTakeChar(ptr, '?')
-					? operatorToken(data, sym!"??")
-					: Token.question;
+					? operatorToken(sym!"??")
+					: plainToken(Token.question);
 			default:
 				if (isAlphaIdentifierStart(c)) {
 					string nameStr = takeNameRest(ptr, ptr - 1);
-					return tokenForSym(symOfStr(allSymbols, nameStr), data);
+					Sym sym = symOfStr(allSymbols, nameStr);
+					Token token = tokenForSym(sym);
+					return token == Token.name ? TokenAndData(Token.name, sym) : plainToken(token);
 				} else if (isDigit(c)) {
 					ptr--;
-					return takeNumberAfterSign(ptr, data, none!Sign);
+					return takeNumberAfterSign(ptr, none!Sign);
 				} else
-					return Token.invalid;
+					return plainToken(Token.invalid);
 		}
 	}
 }
@@ -421,18 +474,14 @@ StringPart takeStringPart(
 
 private:
 
-@trusted Token newlineToken(
+@trusted TokenAndData newlineToken(
 	ref immutable(char)* ptr,
 	Token token,
-	ref TokenData data,
 	IndentKind indentKind,
 	ref uint curIndent,
 	in AddDiag addDiag,
-) {
-	DocCommentAndIndentDelta delta = skipBlankLinesAndGetIndentDelta(ptr, indentKind, curIndent, addDiag);
-	cellSet(data.indentDelta, delta);
-	return token;
-}
+) =>
+	TokenAndData(token, skipBlankLinesAndGetIndentDelta(ptr, indentKind, curIndent, addDiag));
 
 @trusted char takeChar(ref immutable(char)* ptr) {
 	char res = *ptr;
@@ -440,12 +489,10 @@ private:
 	return res;
 }
 
-Token operatorToken(ref TokenData data, Sym a) {
-	cellSet(data.sym, a);
-	return Token.operator;
-}
+TokenAndData operatorToken(Sym a) =>
+	TokenAndData(Token.operator, a);
 
-Token tokenForSym(Sym a, ref TokenData data) {
+Token tokenForSym(Sym a) {
 	switch (a.value) {
 		case sym!"act".value:
 			return Token.act;
@@ -530,7 +577,6 @@ Token tokenForSym(Sym a, ref TokenData data) {
 		case sym!"_".value:
 			return Token.underscore;
 		default:
-			cellSet(data.sym, a);
 			return Token.name;
 	}
 }
@@ -540,7 +586,7 @@ enum Sign {
 	minus,
 }
 
-@trusted Token takeNumberAfterSign(ref immutable(char)* ptr, ref TokenData data, Opt!Sign sign) {
+@trusted TokenAndData takeNumberAfterSign(ref immutable(char)* ptr, Opt!Sign sign) {
 	ulong base = tryTakeChars(ptr, "0x")
 		? 16
 		: tryTakeChars(ptr, "0o")
@@ -551,25 +597,21 @@ enum Sign {
 	LiteralNatAst n = takeNat(ptr, base);
 	if (*ptr == '.' && isDigit(*(ptr + 1))) {
 		ptr++;
-		return takeFloat(ptr, data, has(sign) ? force(sign) : Sign.plus, n, base);
-	} else if (has(sign)) {
-		LiteralIntAst intAst = () {
+		return takeFloat(ptr, has(sign) ? force(sign) : Sign.plus, n, base);
+	} else if (has(sign))
+		return TokenAndData(Token.literalInt, () {
 			final switch (force(sign)) {
 				case Sign.plus:
 					return LiteralIntAst(n.value, n.value > long.max);
 				case Sign.minus:
 					return LiteralIntAst(-n.value, n.value > (cast(ulong) long.max) + 1);
 			}
-		}();
-		cellSet(data.literalInt, intAst);
-		return Token.literalInt;
-	} else {
-		cellSet(data.literalNat, n);
-		return Token.literalNat;
-	}
+		}());
+	else
+		return TokenAndData(Token.literalNat, n);
 }
 
-@system Token takeFloat(ref immutable(char)* ptr, ref TokenData data, Sign sign, LiteralNatAst natPart, ulong base) {
+@system TokenAndData takeFloat(ref immutable(char)* ptr, Sign sign, LiteralNatAst natPart, ulong base) {
 	// TODO: improve accuracy
 	const char *cur = ptr;
 	LiteralNatAst rest = takeNat(ptr, base);
@@ -585,8 +627,7 @@ enum Sign {
 		}
 	}();
 	double f = floatSign * (natPart.value + (rest.value * multiplier));
-	cellSet(data.literalFloat, LiteralFloatAst(f, overflow));
-	return Token.literalFloat;
+	return TokenAndData(Token.literalFloat, LiteralFloatAst(f, overflow));
 }
 
 double pow(double acc, double base, ulong power) =>
