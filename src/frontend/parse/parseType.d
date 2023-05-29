@@ -10,13 +10,11 @@ import frontend.parse.lexer :
 	curPos,
 	getCurNameAndRange,
 	Lexer,
-	nextToken,
 	range,
 	rangeAtChar,
-	Token,
-	tryTakeOperator,
-	tryTakeToken;
-import frontend.parse.parseUtil : addDiagExpected, takeOrAddDiagExpectedToken;
+	takeNextToken,
+	Token;
+import frontend.parse.parseUtil : addDiagExpected, takeOrAddDiagExpectedToken, tryTakeOperator, tryTakeToken;
 import model.model : FunKind;
 import model.parseDiag : ParseDiag;
 import util.col.arr : only;
@@ -72,7 +70,7 @@ private:
 
 TypeAst parseTypeBeforeSuffixes(ref Lexer lexer) {
 	Pos start = curPos(lexer);
-	Token token = nextToken(lexer);
+	Token token = takeNextToken(lexer);
 	switch (token) {
 		case Token.name:
 			return TypeAst(getCurNameAndRange(lexer, start));

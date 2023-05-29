@@ -8,23 +8,44 @@ import frontend.parse.lexer :
 	addDiagAtChar,
 	allSymbols,
 	curPos,
+	getCurIndentDelta,
 	getCurSym,
+	getPeekSym,
 	getPeekToken,
 	Lexer,
 	range,
-	skipBlankLinesAndGetIndentDelta,
 	skipRestOfLineAndNewline,
 	skipUntilNewlineNoDiag,
-	takeNewlineAndReturnIndentDelta,
-	Token,
-	tryTakeOperator,
-	tryTakeToken;
+	takeNextToken,
+	Token;
 import frontend.parse.lexWhitespace : IndentDelta;
 import model.parseDiag : ParseDiag;
+import util.col.arrUtil : contains;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : appendEquals, Sym, sym;
-import util.util : drop, unreachable, verify;
+import util.util : unreachable, verify;
+
+public bool peekToken(ref Lexer lexer, Token expected) =>
+	getPeekToken(lexer) == expected;
+
+public bool tryTakeToken(ref Lexer lexer, Token expected) =>
+	tryTakeToken(lexer, [expected]);
+bool tryTakeToken(ref Lexer lexer, in Token[] expected) {
+	if (contains(expected, getPeekToken(lexer))) {
+		takeNextToken(lexer);
+		return true;
+	} else
+		return false;
+}
+
+public bool tryTakeOperator(ref Lexer lexer, Sym expected) {
+	if (peekToken(lexer, Token.operator) && getPeekSym(lexer) == expected) {
+		takeNextToken(lexer);
+		return true;
+	} else
+		return false;
+}
 
 bool takeOrAddDiagExpectedToken(ref Lexer lexer, Token token, ParseDiag.Expected.Kind kind) {
 	bool res = tryTakeToken(lexer, token);
@@ -128,8 +149,7 @@ enum NewlineOrIndent {
 }
 
 NewlineOrIndent takeNewlineOrIndent_topLevel(ref Lexer lexer) {
-	takeNewlineBeforeIndent(lexer);
-	return skipBlankLinesAndGetIndentDelta(lexer).match!NewlineOrIndent(
+	return mustTakeNewline(lexer, ParseDiag.Expected.Kind.endOfLine).match!NewlineOrIndent(
 		(IndentDelta.DedentOrSame dedent) {
 			verify(dedent.nDedents == 0);
 			return NewlineOrIndent.newline;
@@ -138,12 +158,8 @@ NewlineOrIndent takeNewlineOrIndent_topLevel(ref Lexer lexer) {
 			NewlineOrIndent.indent);
 }
 
-private void takeNewlineBeforeIndent(ref Lexer lexer) {
-	if (!takeOrAddDiagExpectedToken(lexer, [Token.newline, Token.EOF], ParseDiag.Expected.Kind.endOfLine))
-		skipRestOfLineAndNewline(lexer);
-}
 void takeNewline_topLevel(ref Lexer lexer) {
-	takeNewlineBeforeIndent(lexer);
+	mustTakeNewline(lexer, ParseDiag.Expected.Kind.endOfLine);
 }
 
 bool takeIndentOrDiagTopLevel(ref Lexer lexer) =>
@@ -152,8 +168,16 @@ bool takeIndentOrDiagTopLevel(ref Lexer lexer) =>
 		return false;
 	});
 
+private IndentDelta mustTakeNewline(ref Lexer lexer, ParseDiag.Expected.Kind kind) {
+	if (!takeOrAddDiagExpectedToken(lexer, [Token.newline, Token.EOF], kind)) {
+		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(kind)));
+		skipRestOfLineAndNewline(lexer);
+	}
+	return getCurIndentDelta(lexer);
+}
+
 void takeDedentFromIndent1(ref Lexer lexer) {
-	bool success = skipBlankLinesAndGetIndentDelta(lexer).match!bool(
+	bool success = mustTakeNewline(lexer, ParseDiag.Expected.Kind.dedent).match!bool(
 		(IndentDelta.DedentOrSame dedent) =>
 			dedent.nDedents == 1,
 		(IndentDelta.Indent) =>
@@ -166,8 +190,7 @@ void takeDedentFromIndent1(ref Lexer lexer) {
 }
 
 uint takeNewlineOrDedentAmount(ref Lexer lexer) {
-	takeNewlineBeforeIndent(lexer);
-	return skipBlankLinesAndGetIndentDelta(lexer).match!uint(
+	return mustTakeNewline(lexer, ParseDiag.Expected.Kind.newlineOrDedent).match!uint(
 		(IndentDelta.DedentOrSame dedent) =>
 			dedent.nDedents,
 		(IndentDelta.Indent) {
@@ -183,8 +206,7 @@ T takeIndentOrFailGeneric(T)(
 	in T delegate(RangeWithinFile, uint) @safe @nogc pure nothrow cbFail,
 ) {
 	Pos start = curPos(lexer);
-	IndentDelta delta = takeNewlineAndReturnIndentDelta(lexer);
-	return delta.match!T(
+	return mustTakeNewline(lexer, ParseDiag.Expected.Kind.indent).match!T(
 		(IndentDelta.DedentOrSame dedent) {
 			addDiag(lexer, RangeWithinFile(start, start + 1), ParseDiag(
 				ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
@@ -195,6 +217,5 @@ T takeIndentOrFailGeneric(T)(
 }
 
 void skipNewlinesIgnoreIndentation(ref Lexer lexer) {
-	while (tryTakeToken(lexer, Token.newline))
-		drop(skipBlankLinesAndGetIndentDelta(lexer));
+	while (tryTakeToken(lexer, Token.newline)) {}
 }

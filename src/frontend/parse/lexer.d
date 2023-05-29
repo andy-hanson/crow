@@ -4,31 +4,24 @@ module frontend.parse.lexer;
 
 import frontend.parse.ast : LiteralFloatAst, LiteralIntAst, LiteralNatAst, NameAndRange;
 import frontend.parse.lexToken :
+	lexInitialToken,
 	lexToken,
 	lookaheadWillTakeEqualsOrThen,
 	lookaheadWillTakeQuestionEquals,
 	lookaheadWillTakeArrowAfterParenLeft,
+	moveTokenData,
 	takeStringPart,
 	TokenData;
 import frontend.parse.lexWhitespace :
-	detectIndentKind,
-	IndentDelta,
-	IndentKind,
-	skipBlankLinesAndGetDocComment,
-	skipBlankLinesAndGetIndentDelta,
-	skipRestOfLineAndNewline,
-	skipUntilNewline,
-	skipWhitespaceWithinLine,
-	takeNewlineAndReturnIndentDelta;
+	detectIndentKind, IndentDelta, IndentKind, skipSpacesAndComments, skipUntilNewline;
 import model.diag : Diag, DiagnosticWithinFile;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.cell : cellGet;
 import util.col.arrBuilder : add, ArrBuilder;
-import util.col.arrUtil : contains;
 import util.col.str : copyToSafeCStr, CStr, SafeCStr;
 import util.conv : safeToUint;
-import util.opt : Opt;
+import util.opt : Opt, some;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
 import util.util : verify;
@@ -44,9 +37,15 @@ struct Lexer {
 	immutable IndentKind indentKind;
 
 	// Lexer state:
-	uint curIndent;
-	immutable(char)* ptr;
-	TokenData curTokenData = void;
+	// Indent at 'ptr'
+	uint curIndent; // This is the indent after 'nextToken'.
+	immutable(char)* ptr; // This is after 'nextToken'.
+	// This is the 'peek'
+	Token prevToken = void;
+	TokenData prevTokenData = void;
+	Pos nextTokenPos = void; // Position at start of 'nextToken'
+	Token nextToken = void;
+	TokenData nextTokenData = void;
 }
 
 ref Alloc alloc(return ref Lexer lexer) =>
@@ -60,13 +59,16 @@ ref AllSymbols allSymbols(return ref Lexer lexer) =>
 	AllSymbols* allSymbols,
 	ArrBuilder!DiagnosticWithinFile* diagnosticsBuilder,
 	SafeCStr source,
-) =>
-	Lexer(alloc, allSymbols, diagnosticsBuilder, source.ptr, detectIndentKind(source), 0, source.ptr);
-
-@trusted Pos curPos(scope ref Lexer lexer) {
-	skipWhitespaceWithinLine(lexer.ptr);
-	return safeToUint(lexer.ptr - lexer.sourceBegin);
+) {
+	Lexer lexer = Lexer(alloc, allSymbols, diagnosticsBuilder, source.ptr, detectIndentKind(source), 0, source.ptr);
+	lexer.nextToken = lexInitialToken(
+		lexer.ptr, lexer.nextTokenData, lexer.allSymbols, lexer.indentKind, lexer.curIndent, (ParseDiag x) =>
+			addDiagAtChar(lexer, x));
+	return lexer;
 }
+
+Pos curPos(scope ref Lexer lexer) =>
+	lexer.nextTokenPos;
 
 void addDiag(ref Lexer lexer, RangeWithinFile range, ParseDiag diag) {
 	add(lexer.alloc, *lexer.diagnosticsBuilderPtr, DiagnosticWithinFile(range, Diag(diag)));
@@ -111,98 +113,121 @@ RangeWithinFile range(ref Lexer lexer, Pos begin) {
 	return RangeWithinFile(begin, curPos(lexer));
 }
 
-public void skipRestOfLineAndNewline(ref Lexer lexer) =>
-	.skipRestOfLineAndNewline(lexer.ptr);
-
-void skipUntilNewlineNoDiag(ref Lexer lexer) {
-	skipUntilNewline(lexer.ptr);
+public void skipRestOfLineAndNewline(ref Lexer lexer) {
+	skipUntilNewlineNoDiag(lexer);
+	Token token = takeNextToken(lexer); // This prepares the next token and returns the newline
+	verify(isNewline(token));
 }
 
-Token nextToken(ref Lexer lexer) =>
-	lexToken(lexer.ptr, lexer.curTokenData, lexer.allSymbols);
+void skipUntilNewlineNoDiag(ref Lexer lexer) {
+	if (!isNewline(lexer.nextToken)) {
+		skipUntilNewline(lexer.ptr);
+		takeNextToken(lexer);
+		verify(isNewline(lexer.nextToken));
+	}
+}
+
+Token takeNextToken(ref Lexer lexer) {
+	lexer.prevToken = lexer.nextToken;
+	moveTokenData(lexer.nextToken, lexer.prevTokenData, lexer.nextTokenData);
+	if (isQuote(lexer.prevToken)) {
+		lexer.nextToken = Token.quotedText;
+	} else {
+		skipSpacesAndComments(lexer.ptr);
+		lexer.nextTokenPos = safeToUint(lexer.ptr - lexer.sourceBegin);
+		lexer.nextToken = lexToken(
+			lexer.ptr, lexer.nextTokenData, lexer.allSymbols, lexer.indentKind, lexer.curIndent, (ParseDiag x) =>
+				addDiagAtChar(lexer, x));
+	}
+	return lexer.prevToken;
+}
 
 private:
 
-public Sym getCurSym(ref Lexer lexer) =>
-	//TODO: assert that cur token is Token.name or Token.operator
-	cellGet(lexer.curTokenData.sym);
+bool isNewline(Token a) =>
+	a == Token.newline || a == Token.EOF;
+bool isQuote(Token a) =>
+	a == Token.quoteDouble || a == Token.quoteDouble3;
+
+public Sym getCurSym(ref Lexer lexer) {
+	verify(isSymToken(lexer.prevToken));
+	return cellGet(lexer.prevTokenData.sym);
+}
+
+public Sym getPeekSym(ref Lexer lexer) {
+	verify(isSymToken(lexer.nextToken));
+	return cellGet(lexer.nextTokenData.sym);
+}
+
+bool isSymToken(Token a) =>
+	a == Token.name || a == Token.operator;
+
+public @trusted SafeCStr getCurDocComment(ref Lexer lexer) {
+	verify(isNewline(lexer.prevToken));
+	return copyToSafeCStr(lexer.alloc, cellGet(lexer.prevTokenData.indentDelta).docComment);
+}
+
+public @trusted IndentDelta getCurIndentDelta(ref Lexer lexer) {
+	verify(isNewline(lexer.prevToken));
+	return cellGet(lexer.prevTokenData.indentDelta).indentDelta;
+}
 
 public NameAndRange getCurNameAndRange(ref Lexer lexer, Pos start) =>
 	immutable NameAndRange(start, getCurSym(lexer));
 
-public LiteralFloatAst getCurLiteralFloat(ref Lexer lexer) =>
-	cellGet(lexer.curTokenData.literalFloat);
-
-public LiteralIntAst getCurLiteralInt(ref Lexer lexer) =>
-	cellGet(lexer.curTokenData.literalInt);
-
-public LiteralNatAst getCurLiteralNat(ref Lexer lexer) =>
-	cellGet(lexer.curTokenData.literalNat);
-
-public bool tryTakeToken(ref Lexer lexer, Token expected) =>
-	tryTakeToken(lexer, [expected]);
-bool tryTakeToken(ref Lexer lexer, in Token[] expected) {
-	//TODO: always have the next token ready, so we don't need to repeatedly lex the same token
-	immutable char* before = lexer.ptr;
-	Token actual = nextToken(lexer);
-	if (contains(expected, actual))
-		return true;
-	else {
-		lexer.ptr = before;
-		return false;
-	}
+public LiteralFloatAst getCurLiteralFloat(ref Lexer lexer) {
+	verify(lexer.prevToken == Token.literalFloat);
+	return cellGet(lexer.prevTokenData.literalFloat);
 }
 
-public bool tryTakeOperator(ref Lexer lexer, Sym expected) {
-	//TODO: always have the next token ready, so we don't need to repeatedly lex the same token
-	immutable char* before = lexer.ptr;
-	Token actual = nextToken(lexer);
-	if (actual == Token.operator && getCurSym(lexer) == expected)
-		return true;
-	else {
-		lexer.ptr = before;
-		return false;
-	}
+public LiteralIntAst getCurLiteralInt(ref Lexer lexer) {
+	verify(lexer.prevToken == Token.literalInt);
+	return cellGet(lexer.prevTokenData.literalInt);
 }
 
-public Token getPeekToken(ref Lexer lexer) {
-	//TODO: always have the next token ready, so we don't need to repeatedly lex the same token
-	immutable char* before = lexer.ptr;
-	Token res = nextToken(lexer);
-	lexer.ptr = before;
-	return res;
+public LiteralNatAst getCurLiteralNat(ref Lexer lexer) {
+	verify(lexer.prevToken == Token.literalNat);
+	return cellGet(lexer.prevTokenData.literalNat);
 }
 
-public bool peekToken(ref Lexer lexer, Token expected) =>
-	getPeekToken(lexer) == expected;
+public Token getPeekToken(ref Lexer lexer) =>
+	lexer.nextToken;
 
 RangeWithinFile range(ref Lexer lexer, CStr begin) {
 	verify(begin >= lexer.sourceBegin);
 	return range(lexer, safeToUint(begin - lexer.sourceBegin));
 }
 
-public @trusted StringPart takeStringPart(ref Lexer lexer, QuoteKind quoteKind) =>
-	.takeStringPart(lexer.alloc, lexer.ptr, quoteKind, (ParseDiag x) => addDiagAtChar(lexer, x));
+public StringPart takeClosingBraceThenStringPart(ref Lexer lexer, QuoteKind quoteKind) {
+	if (lexer.nextToken != Token.braceRight)
+		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.closeInterpolated)));
+	return takeStringPartCommon(lexer, quoteKind);
+}
 
-public SafeCStr skipBlankLinesAndGetDocComment(ref Lexer lexer) =>
-	copyToSafeCStr(lexer.alloc, .skipBlankLinesAndGetDocComment(lexer.ptr, (ParseDiag x) => addDiagAtChar(lexer, x)));
+public StringPart takeInitialStringPart(ref Lexer lexer, QuoteKind quoteKind) {
+	verify(lexer.nextToken == Token.quotedText);
+	return takeStringPartCommon(lexer, quoteKind);
+}
 
-// Returns the change in indent (and updates the indent)
-// Note: does nothing if not looking at a newline!
-// NOTE: never returns a value > 1 as double-indent is always illegal.
-public IndentDelta skipBlankLinesAndGetIndentDelta(ref Lexer lexer) =>
-	.skipBlankLinesAndGetIndentDelta(lexer.ptr, lexer.indentKind, lexer.curIndent, (ParseDiag x) =>
-		addDiagAtChar(lexer, x));
+StringPart takeStringPartCommon(ref Lexer lexer, QuoteKind quoteKind) {
+	StringPart res = takeStringPart(lexer.alloc, lexer.ptr, quoteKind, (ParseDiag x) => addDiagAtChar(lexer, x));
+	takeNextToken(lexer);
+	return res;
+}
 
-public IndentDelta takeNewlineAndReturnIndentDelta(ref Lexer lexer) =>
-	.takeNewlineAndReturnIndentDelta(lexer.ptr, lexer.indentKind, lexer.curIndent, (ParseDiag x) =>
-		addDiagAtChar(lexer, x));
-
-public @trusted Opt!EqualsOrThen lookaheadWillTakeEqualsOrThen(ref Lexer lexer) =>
-	.lookaheadWillTakeEqualsOrThen(lexer.ptr);
+public @trusted Opt!EqualsOrThen lookaheadWillTakeEqualsOrThen(ref Lexer lexer) {
+	switch (lexer.nextToken) {
+		case Token.equal:
+			return some(EqualsOrThen.equals);
+		case Token.arrowThen:
+			return some(EqualsOrThen.then);
+		default:
+			return .lookaheadWillTakeEqualsOrThen(lexer.ptr);
+	}
+}
 
 public @trusted bool lookaheadWillTakeQuestionEquals(ref Lexer lexer) =>
-	.lookaheadWillTakeQuestionEquals(lexer.ptr);
+	lexer.nextToken == Token.questionEqual || .lookaheadWillTakeQuestionEquals(lexer.ptr);
 
-public bool lookaheadWillTakeArrowAfterParenLeft(in Lexer lexer) =>
-	.lookaheadWillTakeArrowAfterParenLeft(lexer.ptr);
+public bool lookaheadWillTakeLambda(in Lexer lexer) =>
+	lexer.nextToken == Token.parenLeft && .lookaheadWillTakeArrowAfterParenLeft(lexer.ptr);

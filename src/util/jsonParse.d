@@ -2,7 +2,7 @@ module util.jsonParse;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.lexWhitespace : isWhitespace;
+import frontend.parse.lexUtil : isWhitespace, tryTakeChar, tryTakeChars;
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.str : copyStr, CStr, SafeCStr;
@@ -23,11 +23,11 @@ Opt!Json parseValue(ref Alloc alloc, ref AllSymbols allSymbols, scope ref immuta
 	skipWhitespace(ptr);
 	switch (next(ptr)) {
 		case 'f':
-			return tryTake(ptr, 'a') && tryTake(ptr, 'l') && tryTake(ptr, 's') && tryTake(ptr, 'e')
+			return tryTakeChars(ptr, "alse")
 				? some(Json(false))
 				: none!Json;
 		case 't':
-			return tryTake(ptr, 'r') && tryTake(ptr, 'u') && tryTake(ptr, 'e')
+			return tryTakeChars(ptr, "rue")
 				? some(Json(true))
 				: none!Json;
 		case '"':
@@ -127,17 +127,9 @@ Opt!Json parseObjectRecur(
 	return res;
 }
 
-@trusted bool tryTake(scope ref immutable(char)* ptr, char expected) {
-	if (*ptr == expected) {
-		ptr++;
-		return true;
-	} else
-		return false;
-}
-
 bool tryTakePunctuation(scope ref immutable(char)* ptr, char expected) {
 	skipWhitespace(ptr);
-	return tryTake(ptr, expected);
+	return tryTakeChar(ptr, expected);
 }
 
 @trusted void skipWhitespace(scope ref immutable(char)* ptr) {

@@ -29,18 +29,16 @@ import frontend.parse.lexer :
 	allSymbols,
 	createLexer,
 	curPos,
+	getCurDocComment,
 	getCurLiteralInt,
 	getCurLiteralNat,
 	getCurSym,
 	getPeekToken,
 	Lexer,
-	nextToken,
 	range,
-	skipBlankLinesAndGetDocComment,
 	skipUntilNewlineNoDiag,
-	Token,
-	tryTakeOperator,
-	tryTakeToken;
+	takeNextToken,
+	Token;
 import frontend.parse.parseExpr : parseDestructureRequireParens, parseFunExprBody;
 import frontend.parse.parseImport : parseImportsOrExports;
 import frontend.parse.parseType : parseType, parseTypeArgForVarDecl, tryParseTypeArgForEnumOrFlags;
@@ -58,14 +56,16 @@ import frontend.parse.parseUtil :
 	takeNewlineOrSingleDedent,
 	takeNewline_topLevel,
 	takeOrAddDiagExpectedToken,
-	tryTakeName;
+	tryTakeName,
+	tryTakeOperator,
+	tryTakeToken;
 import model.diag : DiagnosticWithinFile;
 import model.model : FieldMutability, VarKind, Visibility;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.col.arr : emptySmallArray, only, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.str : SafeCStr;
+import util.col.str : SafeCStr, safeCStr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths;
@@ -136,8 +136,8 @@ ParamsAst parseParams(ref Lexer lexer) {
 }
 
 SpecSigAst parseSpecSig(ref Lexer lexer) {
-	// TODO: this doesn't work because the lexer already skipped comments
-	SafeCStr comment = skipBlankLinesAndGetDocComment(lexer);
+	// TODO: get doc comment
+	SafeCStr comment = safeCStr!"";
 	Pos start = curPos(lexer);
 	Sym name = takeNameOrOperator(lexer);
 	TypeAst returnType = parseType(lexer);
@@ -292,7 +292,7 @@ FunModifierAst parseFunModifier(ref Lexer lexer) {
 	Pos start = curPos(lexer);
 	Opt!(FunModifierAst.Special.Flags) special = tryGetSpecialFunModifier(getPeekToken(lexer));
 	if (has(special)) {
-		nextToken(lexer);
+		takeNextToken(lexer);
 		return FunModifierAst(FunModifierAst.Special(start, force(special)));
 	} else {
 		TypeAst type = parseType(lexer);
@@ -382,7 +382,7 @@ void parseSpecOrStructOrFun(
 
 	switch (getPeekToken(lexer)) {
 		case Token.alias_:
-			nextToken(lexer);
+			takeNextToken(lexer);
 			TypeAst target = () {
 				final switch (takeNewlineOrIndent_topLevel(lexer)) {
 					case NewlineOrIndent.newline:
@@ -397,12 +397,12 @@ void parseSpecOrStructOrFun(
 				range(lexer, start), docComment, visibility, name, small(typeParams), target));
 			break;
 		case Token.builtin:
-			nextToken(lexer);
+			takeNextToken(lexer);
 			addStruct(() => StructDeclAst.Body(StructDeclAst.Body.Builtin()));
 			takeNewline_topLevel(lexer);
 			break;
 		case Token.builtinSpec:
-			nextToken(lexer);
+			takeNextToken(lexer);
 			add(lexer.alloc, specs, SpecDeclAst(
 				range(lexer, start),
 				docComment,
@@ -414,35 +414,35 @@ void parseSpecOrStructOrFun(
 			takeNewline_topLevel(lexer);
 			break;
 		case Token.enum_:
-			nextToken(lexer);
+			takeNextToken(lexer);
 			Opt!(TypeAst*) typeArg = tryParseTypeArgForEnumOrFlags(lexer);
 			addStruct(() => StructDeclAst.Body(
 				StructDeclAst.Body.Enum(typeArg, small(parseEnumOrFlagsMembers(lexer)))));
 			break;
 		case Token.extern_:
-			nextToken(lexer);
+			takeNextToken(lexer);
 			StructDeclAst.Body.Extern body_ = parseExternType(lexer);
 			addStruct(() => StructDeclAst.Body(body_));
 			takeNewline_topLevel(lexer);
 			break;
 		case Token.flags:
-			nextToken(lexer);
+			takeNextToken(lexer);
 			Opt!(TypeAst*) typeArg = tryParseTypeArgForEnumOrFlags(lexer);
 			addStruct(() => StructDeclAst.Body(
 				StructDeclAst.Body.Flags(typeArg, small(parseEnumOrFlagsMembers(lexer)))));
 			break;
 		case Token.global:
 			Pos pos = curPos(lexer);
-			nextToken(lexer);
+			takeNextToken(lexer);
 			add(lexer.alloc, varDecls, parseVarDecl(
 				lexer, start, docComment, visibility, name, typeParams, pos, VarKind.global));
 			break;
 		case Token.record:
-			nextToken(lexer);
+			takeNextToken(lexer);
 			addStruct(() => StructDeclAst.Body(parseRecordBody(lexer)));
 			break;
 		case Token.spec:
-			nextToken(lexer);
+			takeNextToken(lexer);
 			TypeAst[] parents = parseSpecModifiers(lexer);
 			SpecBodyAst body_ = SpecBodyAst(parseIndentedSigs(lexer));
 			add(lexer.alloc, specs, SpecDeclAst(
@@ -450,12 +450,12 @@ void parseSpecOrStructOrFun(
 			break;
 		case Token.thread_local:
 			Pos pos = curPos(lexer);
-			nextToken(lexer);
+			takeNextToken(lexer);
 			add(lexer.alloc, varDecls, parseVarDecl(
 				lexer, start, docComment, visibility, name, typeParams, pos, VarKind.threadLocal));
 			break;
 		case Token.union_:
-			nextToken(lexer);
+			takeNextToken(lexer);
 			addStruct(() => StructDeclAst.Body(StructDeclAst.Body.Union(parseUnionMembersOrDiag(lexer))));
 			break;
 		default:
@@ -527,7 +527,7 @@ ModifierAst.Kind parseModifierKind(ref Lexer lexer) {
 		return ModifierAst.Kind.data;
 	}
 
-	switch (nextToken(lexer)) {
+	switch (takeNextToken(lexer)) {
 		case Token.extern_:
 			return ModifierAst.Kind.extern_;
 		case Token.mut:
@@ -580,12 +580,11 @@ Visibility tryTakeVisibility(ref Lexer lexer) =>
 		: Visibility.internal;
 
 FileAst parseFileInner(ref AllPaths allPaths, ref Lexer lexer) {
-	SafeCStr moduleDocComment = skipBlankLinesAndGetDocComment(lexer);
+	SafeCStr moduleDocComment = takeDocComment(lexer);
 	bool noStd = tryTakeToken(lexer, Token.noStd);
-	if (noStd) {
+	if (noStd)
+		// TODO: make sure no indent
 		takeOrAddDiagExpectedToken(lexer, Token.newline, ParseDiag.Expected.Kind.endOfLine);
-		skipBlankLinesAndGetDocComment(lexer);
-	}
 	Opt!ImportsOrExportsAst imports = parseImportsOrExports(allPaths, lexer, Token.import_);
 	Opt!ImportsOrExportsAst exports = parseImportsOrExports(allPaths, lexer, Token.export_);
 
@@ -597,7 +596,7 @@ FileAst parseFileInner(ref AllPaths allPaths, ref Lexer lexer) {
 	ArrBuilder!VarDeclAst vars;
 
 	while (true) {
-		SafeCStr docComment = skipBlankLinesAndGetDocComment(lexer);
+		SafeCStr docComment = takeDocComment(lexer);
 		if (tryTakeToken(lexer, Token.EOF))
 			break;
 		else
@@ -615,4 +614,9 @@ FileAst parseFileInner(ref AllPaths allPaths, ref Lexer lexer) {
 		finishArr(lexer.alloc, funs),
 		finishArr(lexer.alloc, tests),
 		finishArr(lexer.alloc, vars));
+}
+
+SafeCStr takeDocComment(ref Lexer lexer) {
+	tryTakeToken(lexer, Token.newline);
+	return getCurDocComment(lexer);
 }

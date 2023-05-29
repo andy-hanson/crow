@@ -2,6 +2,7 @@ module frontend.parse.lexWhitespace;
 
 @safe @nogc pure nothrow:
 
+import frontend.parse.lexUtil : isWhitespace, tryTakeChar, tryTakeChars;
 import model.parseDiag : ParseDiag;
 import util.col.arr : arrOfRange, empty;
 import util.col.str : SafeCStr;
@@ -43,25 +44,18 @@ enum IndentKind {
 	}
 }
 
-void skipWhitespaceWithinLine(ref immutable(char)* ptr) {
-	while (tryTakeChar(ptr, ' ') || tryTakeChar(ptr, '\t') || tryTakeChar(ptr, '\r')) {}
-}
-
-public @trusted void skipUntilNewline(ref immutable(char)* ptr) {
+@trusted void skipUntilNewline(ref immutable(char)* ptr) {
 	while (!isNewlineChar(*ptr) && *ptr != '\0')
 		ptr++;
 }
 
-private:
-
-bool isNewlineChar(char c) =>
-	c == '\r' || c == '\n';
-
-void skipSpacesAndComments(ref immutable(char)* ptr) {
+@trusted void skipSpacesAndComments(ref immutable(char)* ptr) {
 	while (true) {
 		switch (*ptr) {
 			case ' ':
 			case '\t':
+			case '\r':
+				ptr++;
 				continue;
 			case '#':
 				skipUntilNewline(ptr);
@@ -72,26 +66,64 @@ void skipSpacesAndComments(ref immutable(char)* ptr) {
 	}
 }
 
-public @trusted bool tryTakeChar(ref immutable(char)* ptr, char c) {
-	if (*ptr == c) {
-		ptr++;
-		return true;
-	} else
-		return false;
-}
-
-public @trusted bool tryTakeChars(ref immutable(char)* ptr, in string chars) {
-	immutable(char)* ptr2 = ptr;
-	foreach (immutable char expected; chars) {
-		if (*ptr2 != expected)
-			return false;
-		ptr2++;
+immutable struct IndentDelta {
+	immutable struct DedentOrSame {
+		uint nDedents;
 	}
-	ptr = ptr2;
-	return true;
+	immutable struct Indent {}
+
+	mixin Union!(DedentOrSame, Indent);
 }
 
-public void skipRestOfLineAndNewline(ref immutable(char)* ptr) {
+immutable struct DocCommentAndIndentDelta {
+	string docComment;
+	IndentDelta indentDelta;
+}
+
+DocCommentAndIndentDelta skipBlankLinesAndGetIndentDelta(
+	ref immutable(char)* ptr,
+	IndentKind indentKind,
+	ref uint curIndent,
+	in AddDiag addDiag,
+) {
+	string docComment = "";
+	while (true) {
+		uint newIndent = takeIndentAmountAfterNewline(ptr, indentKind, addDiag);
+		if (tryTakeNewline(ptr))
+			continue;
+		else if (tryTakeTripleHashThenNewline(ptr)) {
+			docComment = takeRestOfBlockComment(ptr, addDiag);
+			continue;
+		} else if (tryTakeChar(ptr, '#')) {
+			docComment = takeRestOfLineAndNewline(ptr);
+			continue;
+		} else if (tryTakeChars(ptr, "region ") || tryTakeChars(ptr, "subregion ")) {
+			skipRestOfLineAndNewline(ptr);
+			docComment = "";
+			continue;
+		}
+
+		// If we got here, we're looking at a non-empty line (or EOF)
+		int delta = safeIntFromUint(newIndent) - safeIntFromUint(curIndent);
+		if (delta > 1) {
+			addDiag(ParseDiag(ParseDiag.IndentTooMuch()));
+			skipRestOfLineAndNewline(ptr);
+			continue;
+		} else {
+			curIndent = newIndent;
+			return DocCommentAndIndentDelta(docComment, delta == 1
+				? IndentDelta(IndentDelta.Indent())
+				: IndentDelta(IndentDelta.DedentOrSame(-delta)));
+		}
+	}
+}
+
+private:
+
+bool isNewlineChar(char c) =>
+	c == '\r' || c == '\n';
+
+void skipRestOfLineAndNewline(ref immutable(char)* ptr) {
 	skipUntilNewline(ptr);
 	drop(tryTakeNewline(ptr));
 }
@@ -126,71 +158,6 @@ uint takeIndentAmountAfterNewlineSpaces(ref immutable(char)* ptr, uint nSpacesPe
 	return res;
 }
 
-public immutable struct IndentDelta {
-	immutable struct DedentOrSame {
-		uint nDedents;
-	}
-	immutable struct Indent {}
-
-	mixin Union!(DedentOrSame, Indent);
-}
-
-public IndentDelta skipBlankLinesAndGetIndentDelta(
-	ref immutable(char)* ptr,
-	IndentKind indentKind,
-	ref uint curIndent,
-	in AddDiag addDiag,
-) {
-	while (true) {
-		// comment / region counts as a blank line no matter its indent level.
-		uint newIndent = takeIndentAmountAfterNewline(ptr, indentKind, addDiag);
-		if (tryTakeNewline(ptr))
-			// Ignore lines that are just whitespace
-			continue;
-
-		// For indent == 0, we'll try taking any comments as doc comments
-		if (newIndent != 0) {
-			// Comments can mean a dedent
-			if (tryTakeTripleHashThenNewline(ptr)) {
-				drop(skipRestOfBlockComment(ptr, addDiag));
-				continue;
-			} else if (tryTakeChar(ptr, '#')) {
-				skipRestOfLineAndNewline(ptr);
-				continue;
-			}
-		}
-
-		// If we got here, we're looking at a non-empty line (or EOF)
-		int delta = safeIntFromUint(newIndent) - safeIntFromUint(curIndent);
-		if (delta > 1) {
-			addDiag(ParseDiag(ParseDiag.IndentTooMuch()));
-			skipRestOfLineAndNewline(ptr);
-			continue;
-		} else {
-			curIndent = newIndent;
-			return delta == 1
-				? IndentDelta(IndentDelta.Indent())
-				: IndentDelta(IndentDelta.DedentOrSame(-delta));
-		}
-	}
-}
-
-public string skipBlankLinesAndGetDocComment(ref immutable(char)* ptr, in AddDiag addDiag) {
-	string comment = "";
-	while (true) {
-		if (tryTakeNewline(ptr)) {
-		} else if (tryTakeTripleHashThenNewline(ptr)) {
-			comment = takeRestOfBlockComment(ptr, addDiag);
-		} else if (tryTakeChar(ptr, '#')) {
-			comment = takeRestOfLineAndNewline(ptr);
-		} else if (tryTakeChars(ptr, "region ") || tryTakeChars(ptr, "subregion ")) {
-			skipRestOfLineAndNewline(ptr);
-			comment = "";
-		} else
-			return comment;
-	}
-}
-
 @trusted string takeRestOfBlockComment(return scope ref immutable(char)* ptr, in AddDiag addDiag) {
 	immutable char* begin = ptr;
 	immutable char* end = skipRestOfBlockComment(ptr, addDiag);
@@ -212,18 +179,6 @@ string stripWhitespace(string a) {
 	return a;
 }
 
-public bool isWhitespace(char a) {
-	switch (a) {
-		case ' ':
-		case '\t':
-		case '\r':
-		case '\n':
-			return true;
-		default:
-			return false;
-	}
-}
-
 bool tryTakeTripleHashThenNewline(ref immutable(char)* ptr) =>
 	tryTakeChars(ptr, "###\r") || tryTakeChars(ptr, "###\n");
 
@@ -240,19 +195,4 @@ bool tryTakeTripleHashThenNewline(ref immutable(char)* ptr) =>
 			return end;
 		}
 	}
-}
-
-public @trusted IndentDelta takeNewlineAndReturnIndentDelta(
-	ref immutable(char)* ptr,
-	IndentKind indentKind,
-	ref uint curIndent,
-	in AddDiag addDiag,
-) {
-	skipSpacesAndComments(ptr);
-	if (!tryTakeNewline(ptr)) {
-		//TODO: not always expecting indent..
-		addDiag(ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
-		skipRestOfLineAndNewline(ptr);
-	}
-	return skipBlankLinesAndGetIndentDelta(ptr, indentKind, curIndent, addDiag);
 }

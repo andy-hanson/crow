@@ -33,7 +33,7 @@ main nat^(_ string[]) summon
 
 -allow-exports symbol set()
 	# Allow members of TokenData; dscanner doesn't realize these aren't directly exports
-	"diffSymbols", "main", "ignore", "operator", "literalFloat", "literalInt", "literalNat"
+	"diffSymbols", "main", "ignore", "indentDelta", "literalFloat", "literalInt", "literalNat"
 -allow-paths string set()
 	# Ignore debugging.d because unused functions may be useful for debugging.
 	# Ignore union.d because ddscanner gets confused by the mixin.

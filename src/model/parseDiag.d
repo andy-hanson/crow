@@ -34,6 +34,7 @@ immutable struct ParseDiag {
 			modifier,
 			name,
 			nameOrOperator,
+			newlineOrDedent,
 			openParen,
 			questionEqual,
 			quoteDouble,

@@ -3,15 +3,16 @@ module frontend.parse.lexToken;
 @safe @nogc pure nothrow:
 
 import frontend.parse.ast : LiteralFloatAst, LiteralIntAst, LiteralNatAst;
-import frontend.parse.lexWhitespace : skipRestOfLineAndNewline, tryTakeChar, tryTakeChars;
+import frontend.parse.lexUtil : tryTakeChar, tryTakeChars;
+import frontend.parse.lexWhitespace : DocCommentAndIndentDelta, IndentKind, skipBlankLinesAndGetIndentDelta;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
-import util.cell : Cell, cellSet;
+import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : arrOfRange;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.opt : force, has, none, Opt, some;
 import util.sym : AllSymbols, Sym, sym, symOfStr;
-import util.util : drop, todo;
+import util.util : drop, todo, unreachable;
 
 enum Token {
 	act, // 'act'
@@ -36,8 +37,7 @@ enum Token {
 	colonEqual, // ':='
 	comma, // ','
 	continue_, // 'continue'
-	dot, // '.'
-	// '..' is Operator.range
+	dot, // '.'. // '..' is Operator.range
 	dot3, // '...'
 	elif, // 'elif'
 	else_, // 'else'
@@ -72,6 +72,7 @@ enum Token {
 	questionEqual, // '?='
 	quoteDouble, // '"'
 	quoteDouble3, // '"""'
+	quotedText, // Fake token to be the peek after the '"'
 	record, // 'record'
 	semicolon, // ';'
 	spec, // 'spec'
@@ -92,32 +93,73 @@ enum Token {
 union TokenData {
 	bool ignore;
 	Cell!Sym sym; // For Token.name or Token.operator
+	Cell!DocCommentAndIndentDelta indentDelta; // For Token.newline or Token.EOF. WARN: The doc comment is temporary.
 	Cell!LiteralFloatAst literalFloat; // for Token.literalFloat
 	Cell!LiteralIntAst literalInt; // for Token.literalInt
 	Cell!LiteralNatAst literalNat; // for Token.literalNat
 }
 
+@trusted void moveTokenData(Token token, ref TokenData to, in TokenData from) {
+	switch (token) {
+		case Token.name:
+		case Token.operator:
+			cellSet(to.sym, cellGet(from.sym));
+			break;
+		case Token.newline:
+		case Token.EOF:
+			cellSet(to.indentDelta, cellGet(from.indentDelta));
+			break;
+		case Token.literalFloat:
+			cellSet(to.literalFloat, cellGet(from.literalFloat));
+			break;
+		case Token.literalInt:
+			cellSet(to.literalInt, cellGet(from.literalInt));
+			break;
+		case Token.literalNat:
+			cellSet(to.literalNat, cellGet(from.literalNat));
+			break;
+		default:
+			break;
+	}
+}
+
+Token lexInitialToken(
+	ref immutable(char)* ptr,
+	ref TokenData data,
+	ref AllSymbols allSymbols,
+	IndentKind indentKind,
+	ref uint curIndent,
+	in AddDiag addDiag,
+) =>
+	newlineToken(ptr, Token.newline, data, indentKind, curIndent, addDiag);
+
 /*
 Advances 'ptr' to lex a single token.
 Possibly writes to 'data' depending on the kind of token returned.
 */
-@trusted public Token lexToken(ref immutable(char)* ptr, ref TokenData data, ref AllSymbols allSymbols) {
+@trusted Token lexToken(
+	ref immutable(char)* ptr,
+	ref TokenData data,
+	ref AllSymbols allSymbols,
+	IndentKind indentKind,
+	ref uint curIndent,
+	in AddDiag addDiag,
+) {
 	while (true) {
 		char c = *ptr;
 		ptr++;
 		switch (c) {
-			case '\0':
-				ptr--;
-				return Token.EOF;
 			case ' ':
 			case '\t':
-				continue;
-			case '#':
-				skipRestOfLineAndNewline(ptr);
-				return Token.newline;
 			case '\r':
+			case '#':
+				// handled by skipSpacesAndComments
+				return unreachable!Token();
+			case '\0':
+				ptr--;
+				return newlineToken(ptr, Token.EOF, data, indentKind, curIndent, addDiag);
 			case '\n':
-				return Token.newline;
+				return newlineToken(ptr, Token.newline, data, indentKind, curIndent, addDiag);
 			case '~':
 				return operatorToken(data, tryTakeChar(ptr, '~') ? sym!"~~" : sym!"~");
 			case '@':
@@ -217,7 +259,180 @@ Possibly writes to 'data' depending on the kind of token returned.
 	}
 }
 
+private alias AddDiag = void delegate(ParseDiag) @safe @nogc pure nothrow;
+
+enum EqualsOrThen { equals, then }
+@trusted Opt!EqualsOrThen lookaheadWillTakeEqualsOrThen(immutable(char)* ptr) {
+	if (ptr[0] == '<' && ptr[1] == '-' && ptr[2] == ' ')
+		return some(EqualsOrThen.then);
+	while (true) {
+		switch (*ptr) {
+			case ' ':
+				if (ptr[1] == '=' && ptr[2] == ' ')
+					return some(EqualsOrThen.equals);
+				else if (ptr[1] == '<' && ptr[2] == '-' && ptr[3] == ' ')
+					return some(EqualsOrThen.then);
+				break;
+			// characters that appear in types
+			default:
+				if (!isTypeChar(*ptr))
+					return none!EqualsOrThen;
+				break;
+		}
+		ptr++;
+	}
+}
+
+@trusted bool lookaheadWillTakeQuestionEquals(immutable(char)* ptr) {
+	while (true) {
+		switch (*ptr) {
+			case ' ':
+				if (ptr[1] == '?' && ptr[2] == '=' && ptr[3] == ' ')
+					return true;
+				break;
+			default:
+				// Destructure chars are same as type chars
+				if (!isTypeChar(*ptr))
+					return false;
+				break;
+		}
+		ptr++;
+	}
+}
+
+@trusted bool lookaheadWillTakeArrowAfterParenLeft(immutable(char)* ptr) {
+	size_t openParens = 1;
+	while (true) {
+		switch (*ptr) {
+			case '(':
+				openParens++;
+				break;
+			case ')':
+				openParens--;
+				//TODO: allow more or less whitespace
+				if (openParens == 0)
+					return ptr[1] == ' ' && ptr[2] == '=' && ptr[3] == '>';
+				break;
+			default:
+				if (!isTypeChar(*ptr))
+					return false;
+		}
+		ptr++;
+	}
+}
+
+immutable struct StringPart {
+	string text;
+	After after;
+
+	enum After {
+		quote,
+		lbrace,
+	}
+}
+
+enum QuoteKind {
+	double_,
+	double3,
+}
+
+StringPart takeStringPart(
+	ref Alloc alloc,
+	return scope ref immutable(char)* ptr,
+	QuoteKind quoteKind,
+	in AddDiag addDiag,
+) {
+	ArrBuilder!char res;
+	StringPart.After after = () {
+		while (true) {
+			char x = takeChar(ptr);
+			switch(x) {
+				case '"':
+					final switch (quoteKind) {
+						case QuoteKind.double_:
+							return StringPart.After.quote;
+						case QuoteKind.double3:
+							if (tryTakeChars(ptr, "\"\""))
+								return StringPart.After.quote;
+							else
+								add(alloc, res, '"');
+							break;
+					}
+					break;
+				case '\r':
+				case '\n':
+					final switch (quoteKind) {
+						case QuoteKind.double_:
+							addDiag(ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.quoteDouble)));
+							return StringPart.After.quote;
+						case QuoteKind.double3:
+							add(alloc, res, x);
+							break;
+					}
+					break;
+				case '\0':
+					addDiag(ParseDiag(ParseDiag.Expected(() {
+						final switch (quoteKind) {
+							case QuoteKind.double_:
+								return ParseDiag.Expected.Kind.quoteDouble;
+							case QuoteKind.double3:
+								return ParseDiag.Expected.Kind.quoteDouble3;
+						}
+					}())));
+					return StringPart.After.quote;
+				case '{':
+					return StringPart.After.lbrace;
+				case '\\':
+					char escapeCode = takeChar(ptr);
+					char escaped = () {
+						switch (escapeCode) {
+							case 'x':
+								size_t digit0 = toHexDigit(takeChar(ptr));
+								size_t digit1 = toHexDigit(takeChar(ptr));
+								return cast(char) (digit0 * 16 + digit1);
+							case 'n':
+								return '\n';
+							case 'r':
+								return '\r';
+							case 't':
+								return '\t';
+							case '\\':
+								return '\\';
+							case '{':
+								return '{';
+							case '0':
+								return '\0';
+							case '"':
+								return '"';
+							default:
+								addDiag(ParseDiag(ParseDiag.InvalidStringEscape(escapeCode)));
+								return 'a';
+						}
+					}();
+					add(alloc, res, escaped);
+					break;
+				default:
+					add(alloc, res, x);
+			}
+		}
+	}();
+	return StringPart(finishArr(alloc, res), after);
+}
+
 private:
+
+@trusted Token newlineToken(
+	ref immutable(char)* ptr,
+	Token token,
+	ref TokenData data,
+	IndentKind indentKind,
+	ref uint curIndent,
+	in AddDiag addDiag,
+) {
+	DocCommentAndIndentDelta delta = skipBlankLinesAndGetIndentDelta(ptr, indentKind, curIndent, addDiag);
+	cellSet(data.indentDelta, delta);
+	return token;
+}
 
 @trusted char takeChar(ref immutable(char)* ptr) {
 	char res = *ptr;
@@ -448,164 +663,4 @@ bool isTypeChar(char c) {
 		default:
 			return isAlphaIdentifierContinue(c);
 	}
-}
-
-alias AddDiag = void delegate(ParseDiag) @safe @nogc pure nothrow;
-
-public enum EqualsOrThen { equals, then }
-public @trusted Opt!EqualsOrThen lookaheadWillTakeEqualsOrThen(immutable(char)* ptr) {
-	if (ptr[0] == '<' && ptr[1] == '-' && ptr[2] == ' ')
-		return some(EqualsOrThen.then);
-	while (true) {
-		switch (*ptr) {
-			case ' ':
-				if (ptr[1] == '=' && ptr[2] == ' ')
-					return some(EqualsOrThen.equals);
-				else if (ptr[1] == '<' && ptr[2] == '-' && ptr[3] == ' ')
-					return some(EqualsOrThen.then);
-				break;
-			// characters that appear in types
-			default:
-				if (!isTypeChar(*ptr))
-					return none!EqualsOrThen;
-				break;
-		}
-		ptr++;
-	}
-}
-
-public @trusted bool lookaheadWillTakeQuestionEquals(immutable(char)* ptr) {
-	while (true) {
-		switch (*ptr) {
-			case ' ':
-				if (ptr[1] == '?' && ptr[2] == '=' && ptr[3] == ' ')
-					return true;
-				break;
-			default:
-				// Destructure chars are same as type chars
-				if (!isTypeChar(*ptr))
-					return false;
-				break;
-		}
-		ptr++;
-	}
-}
-
-public @trusted bool lookaheadWillTakeArrowAfterParenLeft(immutable(char)* ptr) {
-	size_t openParens = 0;
-	while (true) {
-		switch (*ptr) {
-			case '(':
-				openParens++;
-				break;
-			case ')':
-				openParens--;
-				//TODO: allow more or less whitespace
-				if (openParens == 0)
-					return ptr[1] == ' ' && ptr[2] == '=' && ptr[3] == '>';
-				break;
-			default:
-				if (!isTypeChar(*ptr))
-					return false;
-		}
-		ptr++;
-	}
-}
-
-public immutable struct StringPart {
-	string text;
-	After after;
-
-	enum After {
-		quote,
-		lbrace,
-	}
-}
-
-public enum QuoteKind {
-	double_,
-	double3,
-}
-
-public StringPart takeStringPart(
-	ref Alloc alloc,
-	return scope ref immutable(char)* ptr,
-	QuoteKind quoteKind,
-	in AddDiag addDiag,
-) {
-	ArrBuilder!char res;
-	StringPart.After after = () {
-		while (true) {
-			char x = takeChar(ptr);
-			switch(x) {
-				case '"':
-					final switch (quoteKind) {
-						case QuoteKind.double_:
-							return StringPart.After.quote;
-						case QuoteKind.double3:
-							if (tryTakeChars(ptr, "\"\""))
-								return StringPart.After.quote;
-							else
-								add(alloc, res, '"');
-							break;
-					}
-					break;
-				case '\r':
-				case '\n':
-					final switch (quoteKind) {
-						case QuoteKind.double_:
-							addDiag(ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.quoteDouble)));
-							return StringPart.After.quote;
-						case QuoteKind.double3:
-							add(alloc, res, x);
-							break;
-					}
-					break;
-				case '\0':
-					addDiag(ParseDiag(ParseDiag.Expected(() {
-						final switch (quoteKind) {
-							case QuoteKind.double_:
-								return ParseDiag.Expected.Kind.quoteDouble;
-							case QuoteKind.double3:
-								return ParseDiag.Expected.Kind.quoteDouble3;
-						}
-					}())));
-					return StringPart.After.quote;
-				case '{':
-					return StringPart.After.lbrace;
-				case '\\':
-					char escapeCode = takeChar(ptr);
-					char escaped = () {
-						switch (escapeCode) {
-							case 'x':
-								size_t digit0 = toHexDigit(takeChar(ptr));
-								size_t digit1 = toHexDigit(takeChar(ptr));
-								return cast(char) (digit0 * 16 + digit1);
-							case 'n':
-								return '\n';
-							case 'r':
-								return '\r';
-							case 't':
-								return '\t';
-							case '\\':
-								return '\\';
-							case '{':
-								return '{';
-							case '0':
-								return '\0';
-							case '"':
-								return '"';
-							default:
-								addDiag(ParseDiag(ParseDiag.InvalidStringEscape(escapeCode)));
-								return 'a';
-						}
-					}();
-					add(alloc, res, escaped);
-					break;
-				default:
-					add(alloc, res, x);
-			}
-		}
-	}();
-	return StringPart(finishArr(alloc, res), after);
 }

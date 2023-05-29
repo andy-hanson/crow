@@ -228,6 +228,9 @@ void writeParseDiag(
 				case ParseDiag.Expected.Kind.nameOrOperator:
 					writer ~= "expected a name or operator";
 					break;
+				case ParseDiag.Expected.Kind.newlineOrDedent:
+					writer ~= "expected a newline";
+					break;
 				case ParseDiag.Expected.Kind.openParen:
 					writer ~= "expected '('";
 					break;
@@ -1447,6 +1450,8 @@ string describeTokenForUnexpected(Token token) {
 			return "unexpected '\"'";
 		case Token.quoteDouble3:
 			return "unexpected '\"\"\"'";
+		case Token.quotedText:
+			return unreachable!string;
 		case Token.record:
 			return "unexpected keyword 'record'";
 		case Token.semicolon:

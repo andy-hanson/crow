@@ -52,23 +52,23 @@ import frontend.parse.lexer :
 	getCurSym,
 	getPeekToken,
 	Lexer,
-	lookaheadWillTakeArrowAfterParenLeft,
 	lookaheadWillTakeEqualsOrThen,
+	lookaheadWillTakeLambda,
 	lookaheadWillTakeQuestionEquals,
-	nextToken,
-	peekToken,
 	QuoteKind,
 	range,
 	rangeAtChar,
 	skipUntilNewlineNoDiag,
 	StringPart,
-	takeStringPart,
-	Token,
-	tryTakeToken;
+	takeClosingBraceThenStringPart,
+	takeInitialStringPart,
+	takeNextToken,
+	Token;
 import frontend.parse.parseType : parseType, parseTypeForTypedExpr, tryParseTypeArgForExpr;
 import frontend.parse.parseUtil :
 	NewlineOrIndent,
 	peekNewline,
+	peekToken,
 	takeIndentOrFailGeneric,
 	takeName,
 	takeNameAndRange,
@@ -76,7 +76,8 @@ import frontend.parse.parseUtil :
 	takeNewlineOrIndent_topLevel,
 	takeNewlineOrDedentAmount,
 	takeOrAddDiagExpectedToken,
-	tryTakeNameOrOperatorAndRangeNoAssignment;
+	tryTakeNameOrOperatorAndRangeNoAssignment,
+	tryTakeToken;
 import model.model : AssertOrForbidKind;
 import model.parseDiag : ParseDiag;
 import util.col.arr : empty, only;
@@ -238,6 +239,7 @@ bool isExpressionStartToken(Token a) {
 		case Token.parenRight:
 		case Token.question:
 		case Token.questionEqual:
+		case Token.quotedText:
 		case Token.record:
 		case Token.semicolon:
 		case Token.spec:
@@ -872,7 +874,7 @@ ExprAndMaybeDedent ifAllowBlock(
 
 ExprAndMaybeDedent parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBlock) {
 	Pos start = curPos(lexer);
-	if (peekToken(lexer, Token.parenLeft) && lookaheadWillTakeArrowAfterParenLeft(lexer)) {
+	if (lookaheadWillTakeLambda(lexer)) {
 		return parseLambdaWithParenthesizedParameters(lexer, start, allowedBlock);
 	}
 
@@ -883,7 +885,7 @@ ExprAndMaybeDedent parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBloc
 		return .ifAllowBlock(lexer, start, allowedBlock, kind, cbAllowBlock);
 	}
 
-	Token token = nextToken(lexer);
+	Token token = takeNextToken(lexer);
 	switch (token) {
 		case Token.parenLeft:
 			if (tryTakeToken(lexer, Token.parenRight)) {
@@ -903,7 +905,7 @@ ExprAndMaybeDedent parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBloc
 		case Token.quoteDouble:
 		case Token.quoteDouble3:
 			QuoteKind quoteKind = token == Token.quoteDouble ? QuoteKind.double_ : QuoteKind.double3;
-			StringPart part = takeStringPart(lexer, quoteKind);
+			StringPart part = takeInitialStringPart(lexer, quoteKind);
 			ExprAst quoted = () {
 				final switch (part.after) {
 					case StringPart.After.quote:
@@ -1025,8 +1027,7 @@ ExprAst takeInterpolated(ref Lexer lexer, Pos start, string firstText, QuoteKind
 ExprAst takeInterpolatedRecur(ref Lexer lexer, Pos start, ref ArrBuilder!InterpolatedPart parts, QuoteKind quoteKind) {
 	ExprAst e = parseExprNoBlock(lexer);
 	add(lexer.alloc, parts, InterpolatedPart(e));
-	takeOrAddDiagExpectedToken(lexer, Token.braceRight, ParseDiag.Expected.Kind.closeInterpolated);
-	StringPart part = takeStringPart(lexer, quoteKind);
+	StringPart part = takeClosingBraceThenStringPart(lexer, quoteKind);
 	if (!empty(part.text))
 		add(lexer.alloc, parts, InterpolatedPart(part.text));
 	final switch (part.after) {

@@ -82,6 +82,7 @@ import util.union_ : Union;
 
 Json jsonOfAst(ref Alloc alloc, in AllPaths allPaths, in FileAst ast) =>
 	jsonObject(alloc, [
+		optionalStringField!"doc"(alloc, ast.docComment),
 		optionalField!("imports", ImportsOrExportsAst)(ast.imports, (in ImportsOrExportsAst x) =>
 			jsonOfImportsOrExports(alloc, allPaths, x)),
 		optionalField!("exports", ImportsOrExportsAst)(ast.exports, (in ImportsOrExportsAst x) =>
