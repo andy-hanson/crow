@@ -34,6 +34,7 @@ immutable struct ParseDiag {
 			modifier,
 			name,
 			nameOrOperator,
+			newline,
 			newlineOrDedent,
 			openParen,
 			questionEqual,
@@ -88,14 +89,6 @@ immutable struct ParseDiag {
 		RelPath imported;
 	}
 	immutable struct TrailingComma {}
-	//TODO:KILL, always use UnexpectedToken
-	immutable struct Unexpected {
-		enum Kind {
-			dedent,
-			indent,
-		}
-		Kind kind;
-	}
 	immutable struct UnexpectedCharacter {
 		char ch;
 	}
@@ -105,7 +98,6 @@ immutable struct ParseDiag {
 	immutable struct UnexpectedToken {
 		Token token;
 	}
-	immutable struct UnionCantBeEmpty {}
 	immutable struct WhenMustHaveElse {}
 
 	mixin Union!(
@@ -123,11 +115,9 @@ immutable struct ParseDiag {
 		NeedsBlockCtx,
 		RelativeImportReachesPastRoot,
 		TrailingComma,
-		Unexpected,
 		UnexpectedCharacter,
 		UnexpectedOperator,
 		UnexpectedToken,
-		UnionCantBeEmpty,
 		WhenMustHaveElse);
 }
 static assert(ParseDiag.sizeof <= 32);

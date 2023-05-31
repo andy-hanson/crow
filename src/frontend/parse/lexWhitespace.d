@@ -7,7 +7,6 @@ import model.parseDiag : ParseDiag;
 import util.col.arr : arrOfRange, empty;
 import util.col.str : SafeCStr;
 import util.conv : safeIntFromUint, safeToUint;
-import util.union_ : Union;
 import util.util : drop;
 
 private alias AddDiag = void delegate(ParseDiag) @safe @nogc pure nothrow;
@@ -66,18 +65,9 @@ enum IndentKind {
 	}
 }
 
-immutable struct IndentDelta {
-	immutable struct DedentOrSame {
-		uint nDedents;
-	}
-	immutable struct Indent {}
-
-	mixin Union!(DedentOrSame, Indent);
-}
-
 immutable struct DocCommentAndIndentDelta {
 	string docComment;
-	IndentDelta indentDelta;
+	int indentDelta;
 }
 
 DocCommentAndIndentDelta skipBlankLinesAndGetIndentDelta(
@@ -111,9 +101,7 @@ DocCommentAndIndentDelta skipBlankLinesAndGetIndentDelta(
 			continue;
 		} else {
 			curIndent = newIndent;
-			return DocCommentAndIndentDelta(docComment, delta == 1
-				? IndentDelta(IndentDelta.Indent())
-				: IndentDelta(IndentDelta.DedentOrSame(-delta)));
+			return DocCommentAndIndentDelta(docComment, delta);
 		}
 	}
 }

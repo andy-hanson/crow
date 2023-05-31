@@ -22,13 +22,19 @@ bool isWhitespace(char a) {
 		return false;
 }
 
-@trusted bool tryTakeChars(ref immutable(char)* ptr, in string chars) {
-	immutable(char)* ptr2 = ptr;
+@trusted bool startsWith(immutable(char)* ptr, in string chars) {
 	foreach (immutable char expected; chars) {
-		if (*ptr2 != expected)
+		if (*ptr != expected)
 			return false;
-		ptr2++;
+		ptr++;
 	}
-	ptr = ptr2;
 	return true;
+}
+
+@trusted bool tryTakeChars(ref immutable(char)* ptr, in string chars) {
+	if (startsWith(ptr, chars)) {
+		ptr += chars.length;
+		return true;
+	} else
+		return false;
 }

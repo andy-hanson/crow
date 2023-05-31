@@ -3,13 +3,16 @@ module frontend.parse.lexer;
 @safe @nogc pure nothrow:
 
 import frontend.parse.lexToken :
+	DocCommentAndExtraDedents,
 	isNewlineToken,
-	isQuoteToken,
 	lexInitialToken,
 	lexToken,
-	lookaheadWillTakeEqualsOrThen,
-	lookaheadWillTakeQuestionEquals,
-	lookaheadWillTakeArrowAfterParenLeft,
+	lookaheadAs,
+	lookaheadElifOrElse,
+	lookaheadElse,
+	lookaheadEqualsOrThen,
+	lookaheadLambdaAfterParenLeft,
+	lookaheadQuestionEquals,
 	plainToken,
 	takeStringPart;
 import frontend.parse.lexWhitespace : detectIndentKind, IndentKind, skipSpacesAndComments, skipUntilNewline;
@@ -20,13 +23,12 @@ import util.cell : Cell, cellGet, cellSet;
 import util.col.arrBuilder : add, ArrBuilder;
 import util.col.str : CStr, SafeCStr;
 import util.conv : safeToUint;
-import util.opt : Opt, some;
+import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : AllSymbols;
 import util.util : verify;
 
-public import frontend.parse.lexToken : EqualsOrThen, QuoteKind, StringPart, Token, TokenAndData;
-public import frontend.parse.lexWhitespace : IndentDelta;
+public import frontend.parse.lexToken : ElifOrElse, EqualsOrThen, QuoteKind, StringPart, Token, TokenAndData;
 
 struct Lexer {
 	private:
@@ -121,10 +123,21 @@ void skipUntilNewlineNoDiag(ref Lexer lexer) {
 
 TokenAndData takeNextToken(ref Lexer lexer) {
 	TokenAndData res = cellGet(lexer.nextToken);
-	if (isQuoteToken(res.token))
-		cellSet(lexer.nextToken, plainToken(Token.quotedText));
-	else
-		readNextToken(lexer);
+	switch (res.token) {
+		case Token.newlineDedent:
+			DocCommentAndExtraDedents dc = res.asDocComment();
+			cellSet(lexer.nextToken, TokenAndData(
+				dc.extraDedents == 0 ? Token.newlineSameIndent : Token.newlineDedent,
+				DocCommentAndExtraDedents(dc.docComment, dc.extraDedents == 0 ? 0 : dc.extraDedents - 1)));
+			break;
+		case Token.quoteDouble:
+		case Token.quoteDouble3:
+			cellSet(lexer.nextToken, plainToken(Token.quotedText));
+			break;
+		default:
+			readNextToken(lexer);
+			break;
+	}
 	return res;
 }
 
@@ -132,7 +145,7 @@ private void readNextToken(ref Lexer lexer) {
 	skipSpacesAndComments(lexer.ptr);
 	lexer.nextTokenPos = safeToUint(lexer.ptr - lexer.sourceBegin);
 	cellSet(lexer.nextToken, lexToken(lexer.ptr, lexer.allSymbols, lexer.indentKind, lexer.curIndent, (ParseDiag x) =>
-			addDiagAtChar(lexer, x)));
+		addDiagAtChar(lexer, x)));
 }
 
 TokenAndData getPeekTokenAndData(return scope ref const Lexer lexer) =>
@@ -162,19 +175,64 @@ private StringPart takeStringPartCommon(ref Lexer lexer, QuoteKind quoteKind) {
 	return res;
 }
 
-@trusted Opt!EqualsOrThen lookaheadWillTakeEqualsOrThen(in Lexer lexer) {
+@trusted Opt!EqualsOrThen lookaheadEqualsOrThen(in Lexer lexer) {
 	switch (getPeekToken(lexer)) {
 		case Token.equal:
 			return some(EqualsOrThen.equals);
 		case Token.arrowThen:
 			return some(EqualsOrThen.then);
 		default:
-			return .lookaheadWillTakeEqualsOrThen(lexer.ptr);
+			return .lookaheadEqualsOrThen(lexer.ptr);
 	}
 }
 
-@trusted bool lookaheadWillTakeQuestionEquals(in Lexer lexer) =>
-	getPeekToken(lexer) == Token.questionEqual || .lookaheadWillTakeQuestionEquals(lexer.ptr);
+@trusted bool lookaheadQuestionEquals(in Lexer lexer) =>
+	getPeekToken(lexer) == Token.questionEqual || .lookaheadQuestionEquals(lexer.ptr);
 
-bool lookaheadWillTakeLambda(in Lexer lexer) =>
-	getPeekToken(lexer) == Token.parenLeft && .lookaheadWillTakeArrowAfterParenLeft(lexer.ptr);
+bool lookaheadLambda(in Lexer lexer) =>
+	getPeekToken(lexer) == Token.parenLeft && .lookaheadLambdaAfterParenLeft(lexer.ptr);
+
+bool tryTakeNewlineThenAs(ref Lexer lexer) {
+	if (getPeekToken(lexer) == Token.newlineSameIndent && .lookaheadAs(lexer.ptr)) {
+		TokenAndData a = takeNextToken(lexer);
+		verify(a.token == Token.newlineSameIndent);
+		TokenAndData b = takeNextToken(lexer);
+		verify(b.token == Token.as);
+		return true;
+	} else
+		return false;
+}
+
+bool tryTakeNewlineThenElse(ref Lexer lexer) {
+	if (getPeekToken(lexer) == Token.newlineSameIndent && lookaheadElse(lexer.ptr)) {
+		TokenAndData a = takeNextToken(lexer);
+		verify(a.token == Token.newlineSameIndent);
+		TokenAndData b = takeNextToken(lexer);
+		verify(b.token == Token.else_);
+		return true;
+	} else
+		return false;
+}
+
+Opt!ElifOrElse tryTakeNewlineThenElifOrElse(ref Lexer lexer) {
+	if (getPeekToken(lexer) == Token.newlineSameIndent) {
+		Opt!ElifOrElse res = lookaheadElifOrElse(lexer.ptr);
+		if (has(res)) {
+			TokenAndData a = takeNextToken(lexer);
+			verify(a.token == Token.newlineSameIndent);
+			TokenAndData b = takeNextToken(lexer);
+			verify(b.token == elifOrElseToken(force(res)));
+		}
+		return res;
+	} else
+		return none!ElifOrElse;
+}
+
+private Token elifOrElseToken(ElifOrElse a) {
+	final switch (a) {
+		case ElifOrElse.elif:
+			return Token.elif;
+		case ElifOrElse.else_:
+			return Token.else_;
+	}
+}

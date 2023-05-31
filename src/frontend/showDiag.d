@@ -228,8 +228,11 @@ void writeParseDiag(
 				case ParseDiag.Expected.Kind.nameOrOperator:
 					writer ~= "expected a name or operator";
 					break;
-				case ParseDiag.Expected.Kind.newlineOrDedent:
+				case ParseDiag.Expected.Kind.newline:
 					writer ~= "expected a newline";
+					break;
+				case ParseDiag.Expected.Kind.newlineOrDedent:
+					writer ~= "expected a newline or dedent";
 					break;
 				case ParseDiag.Expected.Kind.openParen:
 					writer ~= "expected '('";
@@ -344,16 +347,6 @@ void writeParseDiag(
 		(in ParseDiag.TrailingComma) {
 			writer ~= "trailing comma";
 		},
-		(in ParseDiag.Unexpected it) {
-			final switch (it.kind) {
-				case ParseDiag.Unexpected.Kind.dedent:
-					writer ~= "unexpected dedent";
-					break;
-				case ParseDiag.Unexpected.Kind.indent:
-					writer ~= "unexpected indent";
-					break;
-			}
-		},
 		(in ParseDiag.UnexpectedCharacter u) {
 			writer ~= "unexpected character '";
 			showChar(writer, u.ch);
@@ -366,9 +359,6 @@ void writeParseDiag(
 		},
 		(in ParseDiag.UnexpectedToken u) {
 			writer ~= describeTokenForUnexpected(u.token);
-		},
-		(in ParseDiag.UnionCantBeEmpty) {
-			writer ~= "union type can't be empty";
 		},
 		(in ParseDiag.WhenMustHaveElse) {
 			writer ~= "'if' expression must end in 'else'";
@@ -1431,7 +1421,9 @@ string describeTokenForUnexpected(Token token) {
 			return "unexpected keyword 'mut'";
 		case Token.name:
 			return "did not expect a name here";
-		case Token.newline:
+		case Token.newlineDedent:
+		case Token.newlineIndent:
+		case Token.newlineSameIndent:
 			return "unexpected newline";
 		case Token.noStd:
 			return "unexpected keyword 'no-std'";

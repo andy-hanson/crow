@@ -23,7 +23,6 @@ import frontend.parse.ast :
 	TypeAst,
 	VarDeclAst;
 import frontend.parse.lexer :
-	addDiagAtChar,
 	addDiagUnexpectedCurToken,
 	alloc,
 	allSymbols,
@@ -43,15 +42,14 @@ import frontend.parse.parseType : parseType, parseTypeArgForVarDecl, tryParseTyp
 import frontend.parse.parseUtil :
 	addDiagExpected,
 	NewlineOrDedent,
-	NewlineOrIndent,
-	peekNewline,
+	peekEndOfLine,
 	skipNewlinesIgnoreIndentation,
-	takeDedentFromIndent1,
+	takeDedent,
+	takeIndentOrFailGeneric,
 	takeName,
 	takeNameAndRange,
 	takeNameOrOperator,
-	takeNewlineOrIndent_topLevel,
-	takeNewlineOrSingleDedent,
+	takeNewlineOrDedent,
 	takeNewline_topLevel,
 	takeOrAddDiagExpectedToken,
 	tryTakeName,
@@ -61,16 +59,18 @@ import model.diag : DiagnosticWithinFile;
 import model.model : FieldMutability, VarKind, Visibility;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
+import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : emptySmallArray, only, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.str : copyToSafeCStr, SafeCStr, safeCStr;
+import util.col.str : SafeCStr, safeCStr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : ptrTrustMe;
-import util.sourceRange : Pos;
+import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
+import util.util : typeAs;
 
 FileAst parseFile(
 	ref Alloc alloc,
@@ -144,84 +144,74 @@ SpecSigAst parseSpecSig(ref Lexer lexer) {
 }
 
 SpecSigAst[] parseIndentedSigs(ref Lexer lexer) {
-	final switch (takeNewlineOrIndent_topLevel(lexer)) {
-		case NewlineOrIndent.newline:
-			return [];
-		case NewlineOrIndent.indent:
-			ArrBuilder!SpecSigAst res;
-			for (;;) {
-				SpecSigAst sig = parseSpecSig(lexer);
-				add(lexer.alloc, res, sig);
-				final switch (takeNewlineOrSingleDedent(lexer)) {
-					case NewlineOrDedent.newline:
-						break;
-					case NewlineOrDedent.dedent:
-						return finishArr(lexer.alloc, res);
-				}
+	if (tryTakeToken(lexer, Token.newlineIndent)) {
+		ArrBuilder!SpecSigAst res;
+		while (true) {
+			SpecSigAst sig = parseSpecSig(lexer);
+			add(lexer.alloc, res, sig);
+			final switch (takeNewlineOrDedent(lexer)) {
+				case NewlineOrDedent.newline:
+					continue;
+				case NewlineOrDedent.dedent:
+					return finishArr(lexer.alloc, res);
 			}
-	}
+		}
+	} else
+		return [];
 }
 
 StructDeclAst.Body.Enum.Member[] parseEnumOrFlagsMembers(ref Lexer lexer) {
-	final switch (takeNewlineOrIndent_topLevel(lexer)) {
-		case NewlineOrIndent.newline:
-			return [];
-		case NewlineOrIndent.indent:
-			ArrBuilder!(StructDeclAst.Body.Enum.Member) res;
-			StructDeclAst.Body.Enum.Member[] recur() {
-				Pos start = curPos(lexer);
-				Sym name = takeName(lexer);
-				Opt!LiteralIntOrNat value = () {
-					if (tryTakeToken(lexer, Token.equal)) {
-						switch (getPeekToken(lexer)) {
-							case Token.literalInt:
-								return some(LiteralIntOrNat(takeNextToken(lexer).asLiteralInt()));
-							case Token.literalNat:
-								return some(LiteralIntOrNat(takeNextToken(lexer).asLiteralNat()));
-							default:
-								addDiagExpected(lexer, ParseDiag.Expected.Kind.literalIntOrNat);
-								return none!LiteralIntOrNat;
-						}
-					} else
-						return none!LiteralIntOrNat;
-				}();
-				add(lexer.alloc, res, StructDeclAst.Body.Enum.Member(range(lexer, start), name, value));
-				final switch (takeNewlineOrSingleDedent(lexer)) {
-					case NewlineOrDedent.newline:
-						return recur();
-					case NewlineOrDedent.dedent:
-						return finishArr(lexer.alloc, res);
-				}
+	if (tryTakeToken(lexer, Token.newlineIndent)) {
+		ArrBuilder!(StructDeclAst.Body.Enum.Member) res;
+		StructDeclAst.Body.Enum.Member[] recur() {
+			Pos start = curPos(lexer);
+			Sym name = takeName(lexer);
+			Opt!LiteralIntOrNat value = () {
+				if (tryTakeToken(lexer, Token.equal)) {
+					switch (getPeekToken(lexer)) {
+						case Token.literalInt:
+							return some(LiteralIntOrNat(takeNextToken(lexer).asLiteralInt()));
+						case Token.literalNat:
+							return some(LiteralIntOrNat(takeNextToken(lexer).asLiteralNat()));
+						default:
+							addDiagExpected(lexer, ParseDiag.Expected.Kind.literalIntOrNat);
+							return none!LiteralIntOrNat;
+					}
+				} else
+					return none!LiteralIntOrNat;
+			}();
+			add(lexer.alloc, res, StructDeclAst.Body.Enum.Member(range(lexer, start), name, value));
+			final switch (takeNewlineOrDedent(lexer)) {
+				case NewlineOrDedent.newline:
+					return recur();
+				case NewlineOrDedent.dedent:
+					return finishArr(lexer.alloc, res);
 			}
-			return recur();
-	}
+		}
+		return recur();
+	} else
+		return [];
 }
 
-StructDeclAst.Body.Record parseRecordBody(ref Lexer lexer) {
+StructDeclAst.Body.Record parseRecordBody(ref Lexer lexer) =>
+	StructDeclAst.Body.Record(small(tryTakeToken(lexer, Token.newlineIndent) ? parseRecordFields(lexer) : []));
+
+StructDeclAst.Body.Record.Field[] parseRecordFields(ref Lexer lexer) {
 	ArrBuilder!(StructDeclAst.Body.Record.Field) fields;
-	final switch (takeNewlineOrIndent_topLevel(lexer)) {
-		case NewlineOrIndent.newline:
-			break;
-		case NewlineOrIndent.indent:
-			parseRecordFields(lexer, fields);
-			break;
-	}
-	return StructDeclAst.Body.Record(small(finishArr(lexer.alloc, fields)));
-}
-
-void parseRecordFields(ref Lexer lexer, ref ArrBuilder!(StructDeclAst.Body.Record.Field) res) {
-	Pos start = curPos(lexer);
-	Visibility visibility = tryTakeVisibility(lexer);
-	Sym name = takeName(lexer);
-	FieldMutability mutability = parseFieldMutability(lexer);
-	TypeAst type = parseType(lexer);
-	add(lexer.alloc, res, StructDeclAst.Body.Record.Field(range(lexer, start), visibility, name, mutability, type));
-	final switch (takeNewlineOrSingleDedent(lexer)) {
-		case NewlineOrDedent.newline:
-			parseRecordFields(lexer, res);
-			break;
-		case NewlineOrDedent.dedent:
-			break;
+	while (true) {
+		Pos start = curPos(lexer);
+		Visibility visibility = tryTakeVisibility(lexer);
+		Sym name = takeName(lexer);
+		FieldMutability mutability = parseFieldMutability(lexer);
+		TypeAst type = parseType(lexer);
+		add(lexer.alloc, fields, StructDeclAst.Body.Record.Field(
+			range(lexer, start), visibility, name, mutability, type));
+		final switch (takeNewlineOrDedent(lexer)) {
+			case NewlineOrDedent.newline:
+				continue;
+			case NewlineOrDedent.dedent:
+				return finishArr(lexer.alloc, fields);
+		}
 	}
 }
 
@@ -245,9 +235,9 @@ StructDeclAst.Body.Union.Member[] parseUnionMembers(ref Lexer lexer) {
 	do {
 		Pos start = curPos(lexer);
 		Sym name = takeName(lexer);
-		Opt!TypeAst type = peekNewline(lexer) ? none!TypeAst : some(parseType(lexer));
+		Opt!TypeAst type = peekEndOfLine(lexer) ? none!TypeAst : some(parseType(lexer));
 		add(lexer.alloc, res, StructDeclAst.Body.Union.Member(range(lexer, start), name, type));
-	} while (takeNewlineOrSingleDedent(lexer) == NewlineOrDedent.newline);
+	} while (takeNewlineOrDedent(lexer) == NewlineOrDedent.newline);
 	return finishArr(lexer.alloc, res);
 }
 
@@ -276,7 +266,7 @@ FunDeclAst parseFun(
 }
 
 FunModifierAst[] parseFunModifiers(ref Lexer lexer) {
-	if (peekNewline(lexer))
+	if (peekEndOfLine(lexer))
 		return [];
 	else {
 		ArrBuilder!FunModifierAst res;
@@ -303,7 +293,7 @@ FunModifierAst parseFunModifier(ref Lexer lexer) {
 }
 
 TypeAst[] parseSpecModifiers(ref Lexer lexer) {
-	if (peekNewline(lexer))
+	if (peekEndOfLine(lexer))
 		return [];
 	else {
 		ArrBuilder!TypeAst res;
@@ -382,23 +372,19 @@ void parseSpecOrStructOrFun(
 	switch (getPeekToken(lexer)) {
 		case Token.alias_:
 			takeNextToken(lexer);
-			TypeAst target = () {
-				final switch (takeNewlineOrIndent_topLevel(lexer)) {
-					case NewlineOrIndent.newline:
-						return TypeAst(TypeAst.Bogus(range(lexer, start)));
-					case NewlineOrIndent.indent:
-						TypeAst res = parseType(lexer);
-						takeDedentFromIndent1(lexer);
-						return res;
-				}
-			}();
+			TypeAst target = takeIndentOrFailGeneric!TypeAst(lexer,
+				() {
+					TypeAst res = parseType(lexer);
+					takeDedent(lexer);
+					return res;
+				},
+				(RangeWithinFile range) => TypeAst(TypeAst.Bogus(range)));
 			add(lexer.alloc, structAliases, StructAliasAst(
 				range(lexer, start), docComment, visibility, name, small(typeParams), target));
 			break;
 		case Token.builtin:
 			takeNextToken(lexer);
 			addStruct(() => StructDeclAst.Body(StructDeclAst.Body.Builtin()));
-			takeNewline_topLevel(lexer);
 			break;
 		case Token.builtinSpec:
 			takeNextToken(lexer);
@@ -410,7 +396,6 @@ void parseSpecOrStructOrFun(
 				small(typeParams),
 				emptySmallArray!TypeAst,
 				SpecBodyAst(SpecBodyAst.Builtin())));
-			takeNewline_topLevel(lexer);
 			break;
 		case Token.enum_:
 			takeNextToken(lexer);
@@ -422,7 +407,6 @@ void parseSpecOrStructOrFun(
 			takeNextToken(lexer);
 			StructDeclAst.Body.Extern body_ = parseExternType(lexer);
 			addStruct(() => StructDeclAst.Body(body_));
-			takeNewline_topLevel(lexer);
 			break;
 		case Token.flags:
 			takeNextToken(lexer);
@@ -493,25 +477,21 @@ VarDeclAst parseVarDecl(
 	return VarDeclAst(range(lexer, start), docComment, visibility, name, typeParams, kindPos, kind, type, modifiers);
 }
 
-StructDeclAst.Body.Union.Member[] parseUnionMembersOrDiag(ref Lexer lexer) {
-	final switch (takeNewlineOrIndent_topLevel(lexer)) {
-		case NewlineOrIndent.newline:
-			//TODO: this should be a checker error, not parse error
-			addDiagAtChar(lexer, ParseDiag(ParseDiag.UnionCantBeEmpty()));
-			return [];
-		case NewlineOrIndent.indent:
-			return parseUnionMembers(lexer);
-	}
-}
+StructDeclAst.Body.Union.Member[] parseUnionMembersOrDiag(ref Lexer lexer) =>
+	// TODO: This should be a checker error, not a parse error
+	takeIndentOrFailGeneric!(StructDeclAst.Body.Union.Member[])(
+		lexer,
+		() => parseUnionMembers(lexer),
+		(RangeWithinFile _) => typeAs!(StructDeclAst.Body.Union.Member[])([]));
 
 ModifierAst[] parseModifiers(ref Lexer lexer) {
-	if (peekNewline(lexer)) return [];
+	if (peekEndOfLine(lexer)) return [];
 	ArrBuilder!ModifierAst res;
 	while (true) {
 		Pos start = curPos(lexer);
 		ModifierAst.Kind kind = parseModifierKind(lexer);
 		add(lexer.alloc, res, ModifierAst(start, kind));
-		if (peekNewline(lexer))
+		if (peekEndOfLine(lexer))
 			break;
 		else
 			takeOrAddDiagExpectedToken(lexer, Token.comma, ParseDiag.Expected.Kind.comma);
@@ -579,13 +559,17 @@ Visibility tryTakeVisibility(ref Lexer lexer) =>
 		: Visibility.internal;
 
 FileAst parseFileInner(ref AllPaths allPaths, ref Lexer lexer) {
-	SafeCStr moduleDocComment = takeDocComment(lexer);
+	SafeCStr moduleDocComment = takeNewline_topLevel(lexer);
+	Cell!(Opt!SafeCStr) firstDocComment = Cell!(Opt!SafeCStr)(some(safeCStr!""));
 	bool noStd = tryTakeToken(lexer, Token.noStd);
 	if (noStd)
-		// TODO: make sure no indent
-		takeOrAddDiagExpectedToken(lexer, Token.newline, ParseDiag.Expected.Kind.endOfLine);
+		cellSet(firstDocComment, some(takeNewline_topLevel(lexer)));
 	Opt!ImportsOrExportsAst imports = parseImportsOrExports(allPaths, lexer, Token.import_);
+	if (has(imports))
+		cellSet(firstDocComment, some(takeNewline_topLevel(lexer)));
 	Opt!ImportsOrExportsAst exports = parseImportsOrExports(allPaths, lexer, Token.export_);
+	if (has(exports))
+		cellSet(firstDocComment, some(takeNewline_topLevel(lexer)));
 
 	ArrBuilder!SpecDeclAst specs;
 	ArrBuilder!StructAliasAst structAliases;
@@ -594,12 +578,18 @@ FileAst parseFileInner(ref AllPaths allPaths, ref Lexer lexer) {
 	ArrBuilder!TestAst tests;
 	ArrBuilder!VarDeclAst vars;
 
-	while (true) {
-		SafeCStr docComment = takeDocComment(lexer);
+	while (!tryTakeToken(lexer, Token.EOF)) {
+		SafeCStr docComment = () {
+			if (has(cellGet(firstDocComment))) {
+				SafeCStr res = force(cellGet(firstDocComment));
+				cellSet(firstDocComment, none!SafeCStr);
+				return res;
+			} else
+				return takeNewline_topLevel(lexer);
+		}();
 		if (tryTakeToken(lexer, Token.EOF))
 			break;
-		else
-			parseSpecOrStructOrFunOrTest(lexer, specs, structAliases, structs, funs, tests, vars, docComment);
+		parseSpecOrStructOrFunOrTest(lexer, specs, structAliases, structs, funs, tests, vars, docComment);
 	}
 
 	return FileAst(
@@ -613,13 +603,4 @@ FileAst parseFileInner(ref AllPaths allPaths, ref Lexer lexer) {
 		finishArr(lexer.alloc, funs),
 		finishArr(lexer.alloc, tests),
 		finishArr(lexer.alloc, vars));
-}
-
-SafeCStr takeDocComment(ref Lexer lexer) {
-	//TODO:*must* take newline
-	//TODO: this is ignoring indentation...
-	Opt!string res = tryTakeToken!string(lexer, (TokenAndData x) {
-		return x.token == Token.newline ? some(x.asDocComment()) : none!string;
-	});
-	return has(res) ? copyToSafeCStr(lexer.alloc, force(res)) : safeCStr!"";
 }

@@ -7,16 +7,13 @@ import frontend.parse.lexer : addDiag, addDiagAtChar, alloc, allSymbols, curPos,
 import frontend.parse.parseType : parseType;
 import frontend.parse.parseUtil :
 	NewlineOrDedent,
-	peekNewline,
+	peekEndOfLine,
 	peekToken,
-	takeIndentOrDiagTopLevel,
 	takeIndentOrFailGeneric,
 	takeName,
 	takeNameOrOperator,
-	takeNewlineOrDedentAmount,
-	takeNewlineOrSingleDedent,
+	takeNewlineOrDedent,
 	takeOrAddDiagExpectedOperator,
-	toNewlineOrDedent,
 	tryTakeOperator,
 	tryTakeToken;
 import model.model : ImportFileType;
@@ -28,37 +25,33 @@ import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, childPath, Path, PathOrRelPath, rootPath;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : concatSymsWithDot, Sym, sym;
-import util.util : todo, unreachable;
+import util.util : todo, typeAs;
 
 Opt!ImportsOrExportsAst parseImportsOrExports(ref AllPaths allPaths, ref Lexer lexer, Token keyword) {
 	Pos start = curPos(lexer);
 	if (tryTakeToken(lexer, keyword)) {
-		ArrBuilder!ImportOrExportAst res;
-		if (takeIndentOrDiagTopLevel(lexer)) {
-			void recur() {
-				ImportAndDedent id = parseSingleModuleImportOnOwnLine(allPaths, lexer);
-				add(lexer.alloc, res, id.import_);
-				if (id.dedented == NewlineOrDedent.newline)
-					recur();
-			}
-			recur();
-		}
-		return some(ImportsOrExportsAst(range(lexer, start), finishArr(lexer.alloc, res)));
+		ImportOrExportAst[] imports = takeIndentOrFailGeneric!(ImportOrExportAst[])(
+			lexer,
+			() => parseImportLines(allPaths, lexer),
+			(RangeWithinFile _) => typeAs!(ImportOrExportAst[])([]));
+		return some(ImportsOrExportsAst(range(lexer, start), imports));
 	} else
 		return none!ImportsOrExportsAst;
 }
 
 private:
 
-immutable struct ImportAndDedent {
-	ImportOrExportAst import_;
-	NewlineOrDedent dedented;
-}
-
-immutable struct ImportOrExportKindAndDedent {
-	ImportOrExportAstKind kind;
-	RangeWithinFile range;
-	NewlineOrDedent dedented;
+ImportOrExportAst[] parseImportLines(ref AllPaths allPaths, ref Lexer lexer) {
+	ArrBuilder!ImportOrExportAst res;
+	while (true) {
+		add(lexer.alloc, res, parseSingleModuleImportOnOwnLine(allPaths, lexer));
+		final switch (takeNewlineOrDedent(lexer)) {
+			case NewlineOrDedent.newline:
+				continue;
+			case NewlineOrDedent.dedent:
+				return finishArr(lexer.alloc, res);
+		}
+	}
 }
 
 PathOrRelPath parseImportPath(ref AllPaths allPaths, ref Lexer lexer) {
@@ -90,43 +83,28 @@ Path addPathComponents(ref AllPaths allPaths, ref Lexer lexer, Path acc) =>
 		? addPathComponents(allPaths, lexer, childPath(allPaths, acc, takePathComponent(lexer)))
 		: acc;
 
-ImportAndDedent parseSingleModuleImportOnOwnLine(ref AllPaths allPaths, ref Lexer lexer) {
+ImportOrExportAst parseSingleModuleImportOnOwnLine(ref AllPaths allPaths, ref Lexer lexer) {
 	Pos start = curPos(lexer);
 	PathOrRelPath path = parseImportPath(allPaths, lexer);
-	ImportOrExportKindAndDedent kind = parseImportOrExportKind(lexer, start);
-	return ImportAndDedent(ImportOrExportAst(kind.range, path, kind.kind), kind.dedented);
+	ImportOrExportAstKind kind = parseImportOrExportKind(lexer, start);
+	return ImportOrExportAst(range(lexer, start), path, kind);
 }
 
-ImportOrExportKindAndDedent parseImportOrExportKind(ref Lexer lexer, Pos start) {
+ImportOrExportAstKind parseImportOrExportKind(ref Lexer lexer, Pos start) {
 	if (tryTakeToken(lexer, Token.colon)) {
-		if (peekToken(lexer, Token.newline))
-			return takeIndentOrFailGeneric(
+		return peekToken(lexer, [Token.name, Token.operator])
+			? ImportOrExportAstKind(parseSingleImportNamesOnSingleLine(lexer))
+			: takeIndentOrFailGeneric(
 				lexer,
 				() => parseIndentedImportNames(lexer, start),
-				(RangeWithinFile range, uint dedents) =>
-					ImportOrExportKindAndDedent(
-						ImportOrExportAstKind(ImportOrExportAstKind.ModuleWhole()),
-						range,
-						toNewlineOrDedent(dedents)));
-		else {
-			Sym[] names = parseSingleImportNamesOnSingleLine(lexer);
-			return ImportOrExportKindAndDedent(
-				ImportOrExportAstKind(names),
-				range(lexer, start),
-				takeNewlineOrSingleDedent(lexer));
-		}
+				(RangeWithinFile _) =>
+					ImportOrExportAstKind(ImportOrExportAstKind.ModuleWhole()));
 	} else if (tryTakeToken(lexer, Token.as)) {
 		Sym name = takeName(lexer);
 		ImportFileType type = parseImportFileType(lexer);
-		return ImportOrExportKindAndDedent(
-			ImportOrExportAstKind(allocate(lexer.alloc, ImportOrExportAstKind.File(name, type))),
-			range(lexer, start),
-			takeNewlineOrSingleDedent(lexer));
-	}
-	return ImportOrExportKindAndDedent(
-		ImportOrExportAstKind(ImportOrExportAstKind.ModuleWhole()),
-		range(lexer, start),
-		takeNewlineOrSingleDedent(lexer));
+		return ImportOrExportAstKind(allocate(lexer.alloc, ImportOrExportAstKind.File(name, type)));
+	} else
+		return ImportOrExportAstKind(ImportOrExportAstKind.ModuleWhole());
 }
 
 ImportFileType parseImportFileType(ref Lexer lexer) {
@@ -159,17 +137,12 @@ bool isInstStructOneArg(TypeAst a, Sym typeArgName, Sym name) {
 		return false;
 }
 
-ImportOrExportKindAndDedent parseIndentedImportNames(ref Lexer lexer, Pos start) {
+ImportOrExportAstKind parseIndentedImportNames(ref Lexer lexer, Pos start) {
 	ArrBuilder!Sym names;
-	immutable struct NewlineOrDedentAndRange {
-		NewlineOrDedent newlineOrDedent;
-		RangeWithinFile range;
-	}
-	NewlineOrDedentAndRange recur() {
+	while (true) {
 		TrailingComma trailingComma = takeCommaSeparatedNames(lexer, names);
-		RangeWithinFile range0 = range(lexer, start);
-		switch (takeNewlineOrDedentAmount(lexer)) {
-			case 0:
+		final switch (takeNewlineOrDedent(lexer)) {
+			case NewlineOrDedent.newline:
 				final switch (trailingComma) {
 					case TrailingComma.no:
 						addDiag(lexer, range(lexer, start), ParseDiag(
@@ -178,8 +151,8 @@ ImportOrExportKindAndDedent parseIndentedImportNames(ref Lexer lexer, Pos start)
 					case TrailingComma.yes:
 						break;
 				}
-				return recur();
-			case 1:
+				continue;
+			case NewlineOrDedent.dedent:
 				final switch (trailingComma) {
 					case TrailingComma.no:
 						break;
@@ -187,25 +160,9 @@ ImportOrExportKindAndDedent parseIndentedImportNames(ref Lexer lexer, Pos start)
 						todo!void("!");
 						break;
 				}
-				return NewlineOrDedentAndRange(NewlineOrDedent.newline, range0);
-			case 2:
-				final switch (trailingComma) {
-					case TrailingComma.no:
-						break;
-					case TrailingComma.yes:
-						todo!void("!");
-						break;
-				}
-				return NewlineOrDedentAndRange(NewlineOrDedent.dedent, range0);
-			default:
-				return unreachable!NewlineOrDedentAndRange();
+				return ImportOrExportAstKind(finishArr(lexer.alloc, names));
 		}
 	}
-	NewlineOrDedentAndRange res = recur();
-	return ImportOrExportKindAndDedent(
-		ImportOrExportAstKind(finishArr(lexer.alloc, names)),
-		res.range,
-		res.newlineOrDedent);
 }
 
 Sym[] parseSingleImportNamesOnSingleLine(ref Lexer lexer) {
@@ -225,7 +182,7 @@ enum TrailingComma { no, yes }
 TrailingComma takeCommaSeparatedNames(ref Lexer lexer, ref ArrBuilder!Sym names) {
 	add(lexer.alloc, names, takeNameOrOperator(lexer));
 	return tryTakeToken(lexer, Token.comma)
-		? peekNewline(lexer)
+		? peekEndOfLine(lexer)
 			? TrailingComma.yes
 			: takeCommaSeparatedNames(lexer, names)
 		: TrailingComma.no;

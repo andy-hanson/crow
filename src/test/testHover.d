@@ -82,7 +82,7 @@ r record
 	verify(content.ptr[fldStart] == 'f');
 	checkHoverRange(test, a, fldStart, fldStart + 3, safeCStr!"field r.fld (nat)");
 	checkHoverRange(test, a, fldStart + 3, fldStart + 7, safeCStr!"builtin type nat");
-	checkHoverRange(test, a, fldStart + 7, fldStart + 8, safeCStr!"record r");
+	checkHoverRange(test, a, fldStart + 7, fldStart + 8, safeCStr!"");
 	verify(content.ptr + fldStart + 8 == end(content.ptr));
 
 	// TODO: TEST:

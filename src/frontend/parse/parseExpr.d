@@ -45,12 +45,13 @@ import frontend.parse.lexer :
 	alloc,
 	allSymbols,
 	curPos,
+	ElifOrElse,
 	EqualsOrThen,
 	getPeekToken,
 	Lexer,
-	lookaheadWillTakeEqualsOrThen,
-	lookaheadWillTakeLambda,
-	lookaheadWillTakeQuestionEquals,
+	lookaheadEqualsOrThen,
+	lookaheadLambda,
+	lookaheadQuestionEquals,
 	QuoteKind,
 	range,
 	rangeAtChar,
@@ -60,23 +61,25 @@ import frontend.parse.lexer :
 	takeInitialStringPart,
 	takeNextToken,
 	Token,
-	TokenAndData;
+	TokenAndData,
+	tryTakeNewlineThenAs,
+	tryTakeNewlineThenElifOrElse,
+	tryTakeNewlineThenElse;
 import frontend.parse.parseType : parseType, parseTypeForTypedExpr, tryParseTypeArgForExpr;
 import frontend.parse.parseUtil :
-	NewlineOrIndent,
-	peekNewline,
+	peekEndOfLine,
 	peekToken,
+	takeDedent,
 	takeIndentOrFailGeneric,
 	takeName,
 	takeNameAndRange,
 	takeNameAndRangeAllowUnderscore,
-	takeNewlineOrIndent_topLevel,
-	takeNewlineOrDedentAmount,
 	takeOrAddDiagExpectedToken,
 	tryTakeNameOrOperatorAndRangeNoAssignment,
 	tryTakeToken;
 import model.model : AssertOrForbidKind;
 import model.parseDiag : ParseDiag;
+import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : empty, only;
 import util.col.arrUtil : arrLiteral, prepend;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
@@ -87,16 +90,10 @@ import util.sym : AllSymbols, appendEquals, Sym, sym;
 import util.union_ : Union;
 import util.util : max, todo, unreachable, verify;
 
-Opt!ExprAst parseFunExprBody(ref Lexer lexer) {
-	final switch (takeNewlineOrIndent_topLevel(lexer)) {
-		case NewlineOrIndent.newline:
-			return none!ExprAst;
-		case NewlineOrIndent.indent:
-			ExprAndDedent ed = parseStatementsAndExtraDedents(lexer);
-			verify(ed.dedents == 0); // Since we started at the root, can't dedent more
-			return some(ed.expr);
-	}
-}
+Opt!ExprAst parseFunExprBody(ref Lexer lexer) =>
+	tryTakeToken(lexer, Token.newlineIndent)
+		? some(parseStatementsAndDedent(lexer))
+		: none!ExprAst;
 
 private:
 
@@ -126,70 +123,51 @@ ArgCtx requirePrecedenceGt(ArgCtx a, int precedence) =>
 ArgCtx requirePrecedenceGtComma(ArgCtx a) =>
 	requirePrecedenceGt(a, commaPrecedence);
 
-immutable struct ExprAndDedent {
-	ExprAst expr;
-	uint dedents;
-}
-
-// dedent=none means we didn't see a newline.
-// dedent=0 means a newline was parsed and is on the same indent level.
-immutable struct ExprAndMaybeDedent {
-	ExprAst expr;
-	Opt!uint dedents;
-}
-
-immutable struct OptNameOrDedent {
+immutable struct OptName {
 	immutable struct None {}
 	immutable struct Colon {}
 	immutable struct Comma {}
-	immutable struct Dedent { uint dedents; }
 	immutable struct Question {}
-	mixin Union!(None, Colon, Comma, NameAndRange, Dedent, Question);
+	mixin Union!(None, Colon, Comma, NameAndRange, Question);
 }
 
-OptNameOrDedent noNameOrDedent() =>
-	OptNameOrDedent(OptNameOrDedent.None());
+OptName noName() =>
+	OptName(OptName.None());
 
-immutable struct ExprAndMaybeNameOrDedent {
+immutable struct ExprAndMaybeName {
 	ExprAst expr;
-	OptNameOrDedent nameOrDedent;
+	OptName name;
 }
 
-ExprAst assertNoNameOrDedent(ExprAndMaybeNameOrDedent a) {
-	verify(a.nameOrDedent.isA!(OptNameOrDedent.None));
+ExprAst assertNoName(ExprAndMaybeName a) {
+	verify(a.name.isA!(OptName.None));
 	return a.expr;
 }
-ExprAst[] assertNoNameOrDedent(ArgsAndMaybeNameOrDedent a) {
-	verify(a.nameOrDedent.isA!(OptNameOrDedent.None));
+ExprAst[] assertNoName(ArgsAndMaybeName a) {
+	verify(a.name.isA!(OptName.None));
 	return a.args;
 }
 
-immutable struct ArgsAndMaybeNameOrDedent {
+immutable struct ArgsAndMaybeName {
 	ExprAst[] args;
-	OptNameOrDedent nameOrDedent;
+	OptName name;
 }
 
-ExprAndMaybeDedent noDedent(ExprAst e) =>
-	ExprAndMaybeDedent(e, none!uint);
-
-ExprAndMaybeDedent toMaybeDedent(ExprAndDedent a) =>
-	ExprAndMaybeDedent(a.expr, some(a.dedents));
-
-ArgsAndMaybeNameOrDedent parseArgsForOperator(ref Lexer lexer, ArgCtx ctx) {
-	ExprAndMaybeNameOrDedent ad = parseExprAndCalls(lexer, ctx);
-	return ArgsAndMaybeNameOrDedent(arrLiteral!ExprAst(lexer.alloc, [ad.expr]), ad.nameOrDedent);
+ArgsAndMaybeName parseArgsForOperator(ref Lexer lexer, ArgCtx ctx) {
+	ExprAndMaybeName ad = parseExprAndCalls(lexer, ctx);
+	return ArgsAndMaybeName(arrLiteral!ExprAst(lexer.alloc, [ad.expr]), ad.name);
 }
 
-ArgsAndMaybeNameOrDedent parseArgs(ref Lexer lexer, ArgCtx ctx) {
+ArgsAndMaybeName parseArgs(ref Lexer lexer, ArgCtx ctx) {
 	if (tryTakeToken(lexer, Token.comma))
-		return ArgsAndMaybeNameOrDedent([], OptNameOrDedent(OptNameOrDedent.Comma()));
+		return ArgsAndMaybeName([], OptName(OptName.Comma()));
 	else if (tryTakeToken(lexer, Token.colon))
-		return ArgsAndMaybeNameOrDedent([], OptNameOrDedent(OptNameOrDedent.Colon()));
+		return ArgsAndMaybeName([], OptName(OptName.Colon()));
 	else if (peekTokenExpression(lexer)) {
 		ArrBuilder!ExprAst builder;
 		return parseArgsRecur(lexer, ctx, builder);
 	} else
-		return ArgsAndMaybeNameOrDedent([], noNameOrDedent());
+		return ArgsAndMaybeName([], noName());
 }
 
 bool peekTokenExpression(ref Lexer lexer) =>
@@ -231,7 +209,9 @@ bool isExpressionStartToken(Token a) {
 		case Token.import_:
 		case Token.invalid:
 		case Token.mut:
-		case Token.newline:
+		case Token.newlineDedent:
+		case Token.newlineIndent:
+		case Token.newlineSameIndent:
 		case Token.noStd:
 		case Token.parenRight:
 		case Token.question:
@@ -275,96 +255,95 @@ bool isExpressionStartToken(Token a) {
 	}
 }
 
-ArgsAndMaybeNameOrDedent parseArgsRecur(ref Lexer lexer, ArgCtx ctx, ref ArrBuilder!ExprAst args) {
+ArgsAndMaybeName parseArgsRecur(ref Lexer lexer, ArgCtx ctx, ref ArrBuilder!ExprAst args) {
 	verify(ctx.allowedCalls.minPrecedenceExclusive >= commaPrecedence);
-	ExprAndMaybeNameOrDedent ad = parseExprAndCalls(lexer, ctx);
+	ExprAndMaybeName ad = parseExprAndCalls(lexer, ctx);
 	add(lexer.alloc, args, ad.expr);
-	return ad.nameOrDedent.isA!(OptNameOrDedent.Comma)
+	return ad.name.isA!(OptName.Comma)
 		? parseArgsRecur(lexer, ctx, args)
-		: ArgsAndMaybeNameOrDedent(finishArr(lexer.alloc, args), ad.nameOrDedent);
+		: ArgsAndMaybeName(finishArr(lexer.alloc, args), ad.name);
 }
 
-ExprAndDedent parseAssignment(ref Lexer lexer, Pos start, ref ExprAst left, Pos assignmentPos) {
-	ExprAndDedent right = parseExprNoLet(lexer);
-	return ExprAndDedent(
-		ExprAst(
-			range(lexer, start),
-			ExprAstKind(allocate(lexer.alloc, AssignmentAst(left, assignmentPos, right.expr)))),
-		right.dedents);
+ExprAst parseAssignment(ref Lexer lexer, Pos start, ref ExprAst left, Pos assignmentPos) {
+	ExprAst right = parseExprNoLet(lexer);
+	return ExprAst(
+		range(lexer, start),
+		ExprAstKind(allocate(lexer.alloc, AssignmentAst(left, assignmentPos, right))));
 }
 
-ExprAndDedent parseNextLinesOrEmpty(ref Lexer lexer, Pos start, uint dedentsBefore) =>
-	dedentsBefore != 0
-		? ExprAndDedent(emptyAst(lexer), dedentsBefore)
-		: parseStatementsAndDedents(lexer);
+ExprAst parseArgOrEmpty(ref Lexer lexer) =>
+	peekEndOfLine(lexer)
+		? emptyAst(lexer)
+		: parseExprNoLet(lexer);
+
+ExprAst parseNextLinesOrEmpty(ref Lexer lexer, Pos start) =>
+	tryTakeToken(lexer, Token.newlineSameIndent)
+		? parseStatements(lexer)
+		: emptyAst(lexer);
 
 ExprAst emptyAst(ref Lexer lexer) =>
 	ExprAst(rangeAtChar(lexer), ExprAstKind(EmptyAst()));
 
-ExprAndMaybeNameOrDedent parseCalls(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) {
+ExprAndMaybeName parseCalls(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) {
 	if (tryTakeToken(lexer, Token.comma)) {
 		return canParseCommaExpr(argCtx)
 			? parseCallsAfterComma(lexer, start, lhs, argCtx)
-			: ExprAndMaybeNameOrDedent(lhs, OptNameOrDedent(OptNameOrDedent.Comma()));
+			: ExprAndMaybeName(lhs, OptName(OptName.Comma()));
 	} else if (tryTakeToken(lexer, Token.question))
 		return parseCallsAfterQuestion(lexer, start, lhs, argCtx);
 	else if (tryTakeToken(lexer, Token.colon))
-		return ExprAndMaybeNameOrDedent(lhs, OptNameOrDedent(OptNameOrDedent.Colon()));
+		return ExprAndMaybeName(lhs, OptName(OptName.Colon()));
 	else {
 		Opt!NameAndRange funName = tryTakeNameOrOperatorAndRangeNoAssignment(lexer);
 		return has(funName)
 			? parseCallsAfterName(lexer, start, lhs, force(funName), argCtx)
-			: ExprAndMaybeNameOrDedent(lhs, noNameOrDedent());
+			: ExprAndMaybeName(lhs, noName());
 	}
 }
 
-ExprAndMaybeNameOrDedent parseCallsAfterQuestion(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) {
+ExprAndMaybeName parseCallsAfterQuestion(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) {
 	if (canParseTernaryExpr(argCtx)) {
-		ExprAndMaybeNameOrDedent then = parseExprAndCalls(lexer, argCtx);
-		ExprAndMaybeNameOrDedent stopHere() {
-			return ExprAndMaybeNameOrDedent(
+		ExprAndMaybeName then = parseExprAndCalls(lexer, argCtx);
+		ExprAndMaybeName stopHere() {
+			return ExprAndMaybeName(
 				ExprAst(
 					range(lexer, start),
 					ExprAstKind(allocate(lexer.alloc, IfAst(lhs, then.expr, emptyAst(lexer))))),
-				then.nameOrDedent);
+				then.name);
 		}
-		return then.nameOrDedent.match!ExprAndMaybeNameOrDedent(
-			(OptNameOrDedent.None) =>
+		return then.name.match!ExprAndMaybeName(
+			(OptName.None) =>
 				stopHere(),
-			(OptNameOrDedent.Colon) {
+			(OptName.Colon) {
 				ExprAst else_ = parseAfterColon(lexer, argCtx);
-				return ExprAndMaybeNameOrDedent(
+				return ExprAndMaybeName(
 					ExprAst(
 						range(lexer, start),
 						ExprAstKind(allocate(lexer.alloc, IfAst(lhs, then.expr, else_)))),
-					OptNameOrDedent(OptNameOrDedent.None()));
+					OptName(OptName.None()));
 			},
-			(OptNameOrDedent.Comma) =>
-				unreachable!ExprAndMaybeNameOrDedent,
+			(OptName.Comma) =>
+				unreachable!ExprAndMaybeName,
 			(NameAndRange _) =>
-				unreachable!ExprAndMaybeNameOrDedent,
-			(OptNameOrDedent.Dedent) =>
-				stopHere(),
-			(OptNameOrDedent.Question) =>
-				todo!ExprAndMaybeNameOrDedent("!"));
+				unreachable!ExprAndMaybeName,
+			(OptName.Question) =>
+				todo!ExprAndMaybeName("!"));
 	} else
-		return ExprAndMaybeNameOrDedent(lhs, OptNameOrDedent(OptNameOrDedent.Question()));
+		return ExprAndMaybeName(lhs, OptName(OptName.Question()));
 }
 
 ExprAst parseAfterColon(ref Lexer lexer, ArgCtx argCtx) {
-	ExprAndMaybeNameOrDedent else_ = parseExprAndCalls(lexer, argCtx);
-	return else_.nameOrDedent.match!ExprAst(
-		(OptNameOrDedent.None) =>
+	ExprAndMaybeName else_ = parseExprAndCalls(lexer, argCtx);
+	return else_.name.match!ExprAst(
+		(OptName.None) =>
 			else_.expr,
-		(OptNameOrDedent.Colon) =>
+		(OptName.Colon) =>
 			todo!ExprAst("!"),
-		(OptNameOrDedent.Comma) =>
+		(OptName.Comma) =>
 			unreachable!ExprAst,
 		(NameAndRange _) =>
 			unreachable!ExprAst,
-		(OptNameOrDedent.Dedent) =>
-			unreachable!ExprAst,
-		(OptNameOrDedent.Question) =>
+		(OptName.Question) =>
 			todo!ExprAst("!"));
 }
 
@@ -374,21 +353,21 @@ bool canParseTernaryExpr(in ArgCtx argCtx) =>
 bool canParseCommaExpr(in ArgCtx argCtx) =>
 	commaPrecedence > argCtx.allowedCalls.minPrecedenceExclusive;
 
-ExprAndMaybeNameOrDedent parseCallsAfterComma(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) {
+ExprAndMaybeName parseCallsAfterComma(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) {
 	ArrBuilder!ExprAst builder;
 	add(lexer.alloc, builder, lhs);
-	ArgsAndMaybeNameOrDedent args = peekTokenExpression(lexer)
+	ArgsAndMaybeName args = peekTokenExpression(lexer)
 		? parseArgsRecur(lexer, requirePrecedenceGtComma(argCtx), builder)
-		: ArgsAndMaybeNameOrDedent(finishArr(lexer.alloc, builder), OptNameOrDedent(OptNameOrDedent.None()));
+		: ArgsAndMaybeName(finishArr(lexer.alloc, builder), OptName(OptName.None()));
 	RangeWithinFile range = range(lexer, start);
-	return ExprAndMaybeNameOrDedent(
+	return ExprAndMaybeName(
 		ExprAst(range, ExprAstKind(
 			//TODO: range is wrong..
 			CallAst(CallAst.Style.comma, NameAndRange(range.start, sym!"new"), args.args))),
-		args.nameOrDedent);
+		args.name);
 }
 
-ExprAndMaybeNameOrDedent parseCallsAfterName(
+ExprAndMaybeName parseCallsAfterName(
 	ref Lexer lexer,
 	Pos start,
 	ref ExprAst lhs,
@@ -406,7 +385,7 @@ ExprAndMaybeNameOrDedent parseCallsAfterName(
 		//TODO: don't do this for operators
 		Opt!(TypeAst*) typeArg = tryParseTypeArgForExpr(lexer);
 		ArgCtx innerCtx = requirePrecedenceGt(argCtx, precedence);
-		ArgsAndMaybeNameOrDedent args = isOperator
+		ArgsAndMaybeName args = isOperator
 			? parseArgsForOperator(lexer, innerCtx)
 			: parseArgs(lexer, innerCtx);
 		ExprAstKind exprKind = () {
@@ -425,24 +404,22 @@ ExprAndMaybeNameOrDedent parseCallsAfterName(
 					CallAst(CallAst.Style.infix, funName, prepend!ExprAst(lexer.alloc, lhs, args.args), typeArg));
 		}();
 		ExprAst expr = ExprAst(range(lexer, start), exprKind);
-		ExprAndMaybeNameOrDedent stopHere = ExprAndMaybeNameOrDedent(expr, args.nameOrDedent);
-		return args.nameOrDedent.match!ExprAndMaybeNameOrDedent(
-			(OptNameOrDedent.None) =>
+		ExprAndMaybeName stopHere = ExprAndMaybeName(expr, args.name);
+		return args.name.match!ExprAndMaybeName(
+			(OptName.None) =>
 				stopHere,
-			(OptNameOrDedent.Colon) =>
+			(OptName.Colon) =>
 				stopHere,
-			(OptNameOrDedent.Comma) =>
+			(OptName.Comma) =>
 				canParseCommaExpr(argCtx)
 					? parseCallsAfterComma(lexer, start, expr, argCtx)
 					: stopHere,
 			(NameAndRange name) =>
 				parseCallsAfterName(lexer, start, expr, name, argCtx),
-			(OptNameOrDedent.Dedent) =>
-				stopHere,
-			(OptNameOrDedent.Question) =>
+			(OptName.Question) =>
 				parseCallsAfterQuestion(lexer, start, expr, argCtx));
 	} else
-		return ExprAndMaybeNameOrDedent(lhs, OptNameOrDedent(funName));
+		return ExprAndMaybeName(lhs, OptName(funName));
 }
 
 enum AssignmentKind {
@@ -506,11 +483,6 @@ int symPrecedence(Sym a, bool isAssignment) {
 	}
 }
 
-OptNameOrDedent nameOrDedentFromOptDedents(Opt!uint dedents) =>
-	has(dedents)
-		? OptNameOrDedent(OptNameOrDedent.Dedent(force(dedents)))
-		: noNameOrDedent();
-
 ExprAst tryParseDotsAndSubscripts(ref Lexer lexer, ExprAst initial) {
 	Pos start = curPos(lexer);
 	if (tryTakeToken(lexer, Token.dot)) {
@@ -560,40 +532,31 @@ ExprAst parseSubscript(ref Lexer lexer, ExprAst initial, Pos start) {
 			arrLiteral!ExprAst(lexer.alloc, [initial, arg])))));
 }
 
-ExprAndDedent parseMatch(ref Lexer lexer, Pos start) {
+ExprAst parseMatch(ref Lexer lexer, Pos start) {
 	ExprAst matched = parseExprNoBlock(lexer);
-	uint dedentsAfterMatched = takeNewlineOrDedentAmount(lexer);
 	ArrBuilder!(MatchAst.CaseAst) cases;
-	uint dedents = dedentsAfterMatched != 0
-		? dedentsAfterMatched
-		: parseMatchCases(lexer, cases);
-	return ExprAndDedent(
-		ExprAst(
-			range(lexer, start),
-			ExprAstKind(allocate(lexer.alloc, MatchAst(matched, finishArr(lexer.alloc, cases))))),
-		dedents);
+	while (true) {
+		Pos startCase = curPos(lexer);
+		if (tryTakeNewlineThenAs(lexer)) {
+			Sym memberName = takeName(lexer);
+			Opt!DestructureAst destructure = peekEndOfLine(lexer)
+				? none!DestructureAst
+				: some(parseDestructureNoRequireParens(lexer));
+			ExprAst then = parseIndentedStatements(lexer);
+			add(lexer.alloc, cases, MatchAst.CaseAst(range(lexer, startCase), memberName, destructure, then));
+		} else
+			break;
+	}
+	return ExprAst(
+		range(lexer, start),
+		ExprAstKind(allocate(lexer.alloc, MatchAst(matched, finishArr(lexer.alloc, cases)))));
 }
 
-uint parseMatchCases(ref Lexer lexer, ref ArrBuilder!(MatchAst.CaseAst) cases) {
-	Pos startCase = curPos(lexer);
-	if (tryTakeToken(lexer, Token.as)) {
-		Sym memberName = takeName(lexer);
-		Opt!DestructureAst destructure = peekNewline(lexer)
-			? none!DestructureAst
-			: some(parseDestructureNoRequireParens(lexer));
-		ExprAndDedent ed = takeIndentOrFail_ExprAndDedent(lexer, () =>
-			parseStatementsAndExtraDedents(lexer));
-		add(lexer.alloc, cases, MatchAst.CaseAst(range(lexer, startCase), memberName, destructure, ed.expr));
-		return ed.dedents == 0 ? parseMatchCases(lexer, cases) : ed.dedents;
-	} else
-		return 0;
-}
-
-ExprAndDedent parseIf(ref Lexer lexer, Pos start) =>
+ExprAst parseIf(ref Lexer lexer, Pos start) =>
 	parseIfRecur(lexer, start);
 
-ExprAndDedent parseIfRecur(ref Lexer lexer, Pos start) {
-	if (lookaheadWillTakeQuestionEquals(lexer)) {
+ExprAst parseIfRecur(ref Lexer lexer, Pos start) {
+	if (lookaheadQuestionEquals(lexer)) {
 		DestructureAst lhs = parseDestructureNoRequireParens(lexer);
 		takeOrAddDiagExpectedToken(lexer, Token.questionEqual, ParseDiag.Expected.Kind.questionEqual);
 		ConditionThenAndElse cte = parseConditionThenAndElse(lexer);
@@ -602,11 +565,11 @@ ExprAndDedent parseIfRecur(ref Lexer lexer, Pos start) {
 			cte.condition,
 			cte.then,
 			cte.else_)));
-		return ExprAndDedent(ExprAst(range(lexer, start), kind), cte.dedents);
+		return ExprAst(range(lexer, start), kind);
 	} else {
 		ConditionThenAndElse cte = parseConditionThenAndElse(lexer);
 		ExprAstKind kind = ExprAstKind(allocate(lexer.alloc, IfAst(cte.condition, cte.then, cte.else_)));
-		return ExprAndDedent(ExprAst(range(lexer, start), kind), cte.dedents);
+		return ExprAst(range(lexer, start), kind);
 	}
 }
 
@@ -614,102 +577,94 @@ struct ConditionThenAndElse {
 	ExprAst condition;
 	ExprAst then;
 	ExprAst else_;
-	uint dedents;
 }
 
 ConditionThenAndElse parseConditionThenAndElse(ref Lexer lexer) {
 	ExprAst condition = parseExprNoBlock(lexer);
-	ExprAndDedent thenAndDedent = takeIndentOrFail_ExprAndDedent(lexer, () =>
-		parseStatementsAndExtraDedents(lexer));
+	ExprAst then = parseIndentedStatements(lexer);
 	Pos elifStart = curPos(lexer);
-	ExprAndDedent else_ = thenAndDedent.dedents != 0
-		? ExprAndDedent(emptyAst(lexer), thenAndDedent.dedents)
-		: tryTakeToken(lexer, Token.elif)
-		? parseIfRecur(lexer, elifStart)
-		: tryTakeToken(lexer, Token.else_)
-		? takeIndentOrFail_ExprAndDedent(lexer, () => parseStatementsAndExtraDedents(lexer))
-		: ExprAndDedent(emptyAst(lexer), 0);
-	return ConditionThenAndElse(condition, thenAndDedent.expr, else_.expr, else_.dedents);
+	Opt!ElifOrElse elifOrElse = tryTakeNewlineThenElifOrElse(lexer);
+	ExprAst else_ = () {
+		if (has(elifOrElse)) {
+			final switch (force(elifOrElse)) {
+				case ElifOrElse.elif:
+					return parseIfRecur(lexer, elifStart);
+				case ElifOrElse.else_:
+					return parseIndentedStatements(lexer);
+			}
+		} else
+			return emptyAst(lexer);
+	}();
+	return ConditionThenAndElse(condition, then, else_);
 }
 
 immutable struct ConditionAndBody {
 	ExprAst condition;
 	ExprAst body_;
-	uint dedents;
 }
 
 ConditionAndBody parseConditionAndBody(ref Lexer lexer) {
 	ExprAst cond = parseExprNoBlock(lexer);
-	ExprAndDedent bodyAndDedent = takeIndentOrFail_ExprAndDedent(lexer, () =>
-		parseStatementsAndExtraDedents(lexer));
-	return ConditionAndBody(cond, bodyAndDedent.expr, bodyAndDedent.dedents);
+	ExprAst body_ = parseIndentedStatements(lexer);
+	return ConditionAndBody(cond, body_);
 }
 
-ExprAndDedent parseUnless(ref Lexer lexer, Pos start) {
+ExprAst parseUnless(ref Lexer lexer, Pos start) {
 	ConditionAndBody cb = parseConditionAndBody(lexer);
-	return ExprAndDedent(
-		ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, UnlessAst(cb.condition, cb.body_)))),
-		cb.dedents);
+	return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, UnlessAst(cb.condition, cb.body_))));
 }
 
-ExprAndMaybeDedent parseThrow(ref Lexer lexer, Pos start, AllowedBlock allowedBlock) =>
+ExprAst parseThrow(ref Lexer lexer, Pos start, AllowedBlock allowedBlock) =>
 	parseThrowOrTrusted(lexer, start, allowedBlock, ParseDiag.NeedsBlockCtx.Kind.throw_, (ExprAst inner) =>
 		ExprAstKind(allocate(lexer.alloc, ThrowAst(inner))));
 
-ExprAndMaybeDedent parseTrusted(ref Lexer lexer, Pos start, AllowedBlock allowedBlock) =>
+ExprAst parseTrusted(ref Lexer lexer, Pos start, AllowedBlock allowedBlock) =>
 	parseThrowOrTrusted(lexer, start, allowedBlock, ParseDiag.NeedsBlockCtx.Kind.trusted, (ExprAst inner) =>
 		ExprAstKind(allocate(lexer.alloc, TrustedAst(inner))));
 
-ExprAndMaybeDedent parseThrowOrTrusted(
+ExprAst parseThrowOrTrusted(
 	ref Lexer lexer,
 	Pos start,
 	AllowedBlock allowedBlock,
 	ParseDiag.NeedsBlockCtx.Kind needsBlockKind,
-	in ExprAstKind delegate(ExprAst inner) @safe @nogc pure nothrow cbMakeExpr,
+	in ExprAstKind delegate(ExprAst) @safe @nogc pure nothrow cbMakeExpr,
 ) {
-	ExprAndMaybeDedent inner = parseExprInlineOrBlock(lexer, start, allowedBlock, needsBlockKind);
-	return ExprAndMaybeDedent(ExprAst(range(lexer, start), cbMakeExpr(inner.expr)), inner.dedents);
+	ExprAst inner = parseExprInlineOrBlock(lexer, start, allowedBlock, needsBlockKind);
+	return ExprAst(range(lexer, start), cbMakeExpr(inner));
 }
 
-ExprAndMaybeDedent parseAssertOrForbid(ref Lexer lexer, Pos start, AllowedBlock allowedBlock, AssertOrForbidKind kind) {
-	ExprAndMaybeNameOrDedent condition = parseExprAndCalls(lexer, ArgCtx(allowedBlock, allowAllCalls));
-	ExprAndMaybeDedent noThrown(Opt!uint dedents) {
-		return ExprAndMaybeDedent(
+ExprAst parseAssertOrForbid(ref Lexer lexer, Pos start, AllowedBlock allowedBlock, AssertOrForbidKind kind) {
+	ExprAndMaybeName condition = parseExprAndCalls(lexer, ArgCtx(allowedBlock, allowAllCalls));
+	return condition.name.match!ExprAst(
+		(OptName.None) =>
 			ExprAst(range(lexer, start), ExprAstKind(
 				allocate(lexer.alloc, AssertOrForbidAst(kind, condition.expr, none!ExprAst)))),
-			dedents);
-	}
-	return condition.nameOrDedent.match!ExprAndMaybeDedent(
-		(OptNameOrDedent.None) =>
-			noThrown(none!uint),
-		(OptNameOrDedent.Colon) {
+		(OptName.Colon) {
 			ExprAst thrown = parseAfterColon(lexer, ArgCtx(allowedBlock, allowAllCalls));
-			return noDedent(ExprAst(range(lexer, start), ExprAstKind(
-				allocate(lexer.alloc, AssertOrForbidAst(kind, condition.expr, some(thrown))))));
+			return ExprAst(range(lexer, start), ExprAstKind(
+				allocate(lexer.alloc, AssertOrForbidAst(kind, condition.expr, some(thrown)))));
 		},
-		(OptNameOrDedent.Comma) =>
-			unreachable!ExprAndMaybeDedent,
+		(OptName.Comma) =>
+			unreachable!ExprAst,
 		(NameAndRange _) =>
-			unreachable!ExprAndMaybeDedent,
-		(OptNameOrDedent.Dedent x) =>
-			noThrown(some(x.dedents)),
-		(OptNameOrDedent.Question) =>
-			todo!ExprAndMaybeDedent("!"));
+			unreachable!ExprAst,
+		(OptName.Question) =>
+			todo!ExprAst("!"));
 }
 
-ExprAndMaybeDedent parseFor(ref Lexer lexer, Pos start, AllowedBlock allowedBlock) =>
+ExprAst parseFor(ref Lexer lexer, Pos start, AllowedBlock allowedBlock) =>
 	parseForOrWith(
 		lexer, start, allowedBlock, ParseDiag.NeedsBlockCtx.Kind.for_,
 		(DestructureAst param, ExprAst col, ExprAst body_, ExprAst else_) =>
 			ExprAstKind(allocate(lexer.alloc, ForAst(param, col, body_, else_))));
 
-ExprAndMaybeDedent parseWith(ref Lexer lexer, Pos start, AllowedBlock allowedBlock) =>
+ExprAst parseWith(ref Lexer lexer, Pos start, AllowedBlock allowedBlock) =>
 	parseForOrWith(
 		lexer, start, allowedBlock, ParseDiag.NeedsBlockCtx.Kind.with_,
 		(DestructureAst param, ExprAst col, ExprAst body_, ExprAst else_) =>
 			ExprAstKind(allocate(lexer.alloc, WithAst(param, col, body_, else_))));
 
-ExprAndMaybeDedent parseForOrWith(
+ExprAst parseForOrWith(
 	ref Lexer lexer,
 	Pos start,
 	AllowedBlock allowedBlock,
@@ -723,67 +678,44 @@ ExprAndMaybeDedent parseForOrWith(
 	bool semi = tryTakeToken(lexer, Token.semicolon);
 	if (semi) {
 		ExprAst body_ = parseExprNoBlock(lexer);
-		return noDedent(ExprAst(range(lexer, start), cbMakeExprKind(param, rhs, body_, emptyAst(lexer))));
+		return ExprAst(range(lexer, start), cbMakeExprKind(param, rhs, body_, emptyAst(lexer)));
 	} else
 		final switch (allowedBlock) {
 			case AllowedBlock.no:
 				return exprBlockNotAllowed(lexer, start, blockKind);
 			case AllowedBlock.yes:
-				return toMaybeDedent(takeIndentOrFail_ExprAndDedent(lexer, () {
-					ExprAndDedent body_ = parseStatementsAndExtraDedents(lexer);
-					ExprAndDedent else_ = () {
-						if (body_.dedents == 0 && tryTakeToken(lexer, Token.else_)) {
-							return takeIndentOrFail_ExprAndDedent(lexer, () =>
-								parseStatementsAndExtraDedents(lexer));
-						} else
-							return ExprAndDedent(emptyAst(lexer), body_.dedents);
-					}();
-					return ExprAndDedent(
-						ExprAst(range(lexer, start), cbMakeExprKind(param, rhs, body_.expr, else_.expr)),
-						else_.dedents);
-				}));
+				return takeIndentOrFail_Expr(lexer, () {
+					ExprAst body_ = parseStatementsAndDedent(lexer);
+					ExprAst else_ = tryTakeNewlineThenElse(lexer) ? parseIndentedStatements(lexer) : emptyAst(lexer);
+					return ExprAst(range(lexer, start), cbMakeExprKind(param, rhs, body_, else_));
+				});
 		}
 }
 
-ExprAndDedent parseLoop(ref Lexer lexer, Pos start) {
-	ExprAndDedent bodyAndDedent = takeIndentOrFail_ExprAndDedent(lexer, () =>
-		parseStatementsAndExtraDedents(lexer));
-	return ExprAndDedent(
-		ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, LoopAst(bodyAndDedent.expr)))),
-		bodyAndDedent.dedents);
+ExprAst parseLoop(ref Lexer lexer, Pos start) {
+	ExprAst body_ = parseIndentedStatements(lexer);
+	return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, LoopAst(body_))));
 }
 
-ExprAndDedent parseLoopBreak(ref Lexer lexer, Pos start) {
-	ExprAndDedent valueAndDedent = peekNewline(lexer)
-		? ExprAndDedent(emptyAst(lexer), takeNewlineOrDedentAmount(lexer))
-		: parseExprNoLet(lexer);
-	return ExprAndDedent(
-		ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, LoopBreakAst(valueAndDedent.expr)))),
-		valueAndDedent.dedents);
+ExprAst parseLoopBreak(ref Lexer lexer, Pos start) {
+	ExprAst value = parseArgOrEmpty(lexer);
+	return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, LoopBreakAst(value))));
 }
 
-ExprAndDedent parseLoopUntil(ref Lexer lexer, Pos start) {
+ExprAst parseLoopUntil(ref Lexer lexer, Pos start) {
 	ConditionAndBody cb = parseConditionAndBody(lexer);
-	return ExprAndDedent(
-		ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, LoopUntilAst(cb.condition, cb.body_)))),
-		cb.dedents);
+	return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, LoopUntilAst(cb.condition, cb.body_))));
 }
 
-ExprAndDedent parseLoopWhile(ref Lexer lexer, Pos start) {
+ExprAst parseLoopWhile(ref Lexer lexer, Pos start) {
 	ConditionAndBody cb = parseConditionAndBody(lexer);
-	return ExprAndDedent(
-		ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, LoopWhileAst(cb.condition, cb.body_)))),
-		cb.dedents);
+	return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, LoopWhileAst(cb.condition, cb.body_))));
 }
 
-ExprAndDedent takeIndentOrFail_ExprAndDedent(
-	ref Lexer lexer,
-	in ExprAndDedent delegate() @safe @nogc pure nothrow cbIndent,
-) =>
-	takeIndentOrFailGeneric(lexer, cbIndent, (RangeWithinFile range, uint nDedents) =>
-		ExprAndDedent(bogusExpr(range), nDedents));
+ExprAst takeIndentOrFail_Expr(ref Lexer lexer, in ExprAst delegate() @safe @nogc pure nothrow cbIndent) =>
+	takeIndentOrFailGeneric(lexer, cbIndent, (RangeWithinFile range) => bogusExpr(range));
 
-ExprAndMaybeDedent parseLambdaWithParenthesizedParameters(ref Lexer lexer, Pos start, AllowedBlock allowedBlock) {
+ExprAst parseLambdaWithParenthesizedParameters(ref Lexer lexer, Pos start, AllowedBlock allowedBlock) {
 	DestructureAst parameter = parseDestructureRequireParens(lexer);
 	takeOrAddDiagExpectedToken(lexer, Token.arrowLambda, ParseDiag.Expected.Kind.lambdaArrow);
 	return parseLambdaAfterArrow(lexer, start, allowedBlock, parameter);
@@ -807,28 +739,16 @@ DestructureAst parseForThenOrWithParameter(
 	}
 }
 
-ExprAndMaybeDedent parseLambdaAfterNameAndArrow(
-	ref Lexer lexer,
-	Pos start,
-	AllowedBlock allowedBlock,
-	Sym paramName,
-) =>
+ExprAst parseLambdaAfterNameAndArrow(ref Lexer lexer, Pos start, AllowedBlock allowedBlock, Sym paramName) =>
 	parseLambdaAfterArrow(lexer, start, allowedBlock, DestructureAst(
 		DestructureAst.Single(NameAndRange(start, paramName), false, none!(TypeAst*))));
 
-ExprAndMaybeDedent parseLambdaAfterArrow(
-	ref Lexer lexer,
-	Pos start,
-	AllowedBlock allowedBlock,
-	DestructureAst parameter,
-) {
-	ExprAndMaybeDedent body_ = parseExprInlineOrBlock(lexer, start, allowedBlock, ParseDiag.NeedsBlockCtx.Kind.lambda);
-	return ExprAndMaybeDedent(
-		ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, LambdaAst(parameter, body_.expr)))),
-		body_.dedents);
+ExprAst parseLambdaAfterArrow(ref Lexer lexer, Pos start, AllowedBlock allowedBlock, DestructureAst parameter) {
+	ExprAst body_ = parseExprInlineOrBlock(lexer, start, allowedBlock, ParseDiag.NeedsBlockCtx.Kind.lambda);
+	return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, LambdaAst(parameter, body_))));
 }
 
-ExprAndMaybeDedent parseExprInlineOrBlock(
+ExprAst parseExprInlineOrBlock(
 	ref Lexer lexer,
 	Pos start,
 	AllowedBlock allowedBlock,
@@ -837,47 +757,45 @@ ExprAndMaybeDedent parseExprInlineOrBlock(
 	bool inLine = peekTokenExpression(lexer);
 	return inLine
 		? parseExprAndAllCalls(lexer, allowedBlock)
-		: ifAllowBlock(lexer, start, allowedBlock, needsBlockKind, () => takeIndentOrFail_ExprAndDedent(lexer, () =>
-			parseStatementsAndExtraDedents(lexer)));
+		: ifAllowBlock(lexer, start, allowedBlock, needsBlockKind, () => parseIndentedStatements(lexer));
 }
 
-ExprAndMaybeDedent skipRestOfLineAndReturnBogusNoDiag(ref Lexer lexer, Pos start) {
+ExprAst skipRestOfLineAndReturnBogusNoDiag(ref Lexer lexer, Pos start) {
 	skipUntilNewlineNoDiag(lexer);
-	return noDedent(bogusExpr(range(lexer, start)));
+	return bogusExpr(range(lexer, start));
 }
 
-ExprAndMaybeDedent skipRestOfLineAndReturnBogus(ref Lexer lexer, Pos start, ParseDiag diag) {
+ExprAst skipRestOfLineAndReturnBogus(ref Lexer lexer, Pos start, ParseDiag diag) {
 	addDiag(lexer, range(lexer, start), diag);
 	return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
 }
 
-ExprAndMaybeDedent exprBlockNotAllowed(ref Lexer lexer, Pos start, ParseDiag.NeedsBlockCtx.Kind kind) =>
+ExprAst exprBlockNotAllowed(ref Lexer lexer, Pos start, ParseDiag.NeedsBlockCtx.Kind kind) =>
 	skipRestOfLineAndReturnBogus(lexer, start, ParseDiag(ParseDiag.NeedsBlockCtx(kind)));
 
-ExprAndMaybeDedent ifAllowBlock(
+ExprAst ifAllowBlock(
 	ref Lexer lexer,
 	Pos start,
 	AllowedBlock allowedBlock,
 	ParseDiag.NeedsBlockCtx.Kind kind,
-	in ExprAndDedent delegate() @safe @nogc pure nothrow cbAllowBlock,
+	in ExprAst delegate() @safe @nogc pure nothrow cbAllowBlock,
 ) {
 	final switch (allowedBlock) {
 		case AllowedBlock.no:
 			return exprBlockNotAllowed(lexer, start, kind);
 		case AllowedBlock.yes:
-			return toMaybeDedent(cbAllowBlock());
+			return cbAllowBlock();
 	}
 }
 
-ExprAndMaybeDedent parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBlock) {
+ExprAst parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBlock) {
 	Pos start = curPos(lexer);
-	if (lookaheadWillTakeLambda(lexer)) {
+	if (lookaheadLambda(lexer))
 		return parseLambdaWithParenthesizedParameters(lexer, start, allowedBlock);
-	}
 
-	ExprAndMaybeDedent ifAllowBlock(
+	ExprAst ifAllowBlock(
 		ParseDiag.NeedsBlockCtx.Kind kind,
-		in ExprAndDedent delegate() @safe @nogc pure nothrow cbAllowBlock,
+		in ExprAst delegate() @safe @nogc pure nothrow cbAllowBlock,
 	) {
 		return .ifAllowBlock(lexer, start, allowedBlock, kind, cbAllowBlock);
 	}
@@ -890,14 +808,14 @@ ExprAndMaybeDedent parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBloc
 					range(lexer, start),
 					//TODO: range is wrong..
 					ExprAstKind(CallAst(CallAst.Style.emptyParens, NameAndRange(start, sym!"new"), [])));
-				return noDedent(tryParseDotsAndSubscripts(lexer, expr));
+				return tryParseDotsAndSubscripts(lexer, expr);
 			} else {
 				ExprAst inner = parseExprNoBlock(lexer);
 				takeOrAddDiagExpectedToken(lexer, Token.parenRight, ParseDiag.Expected.Kind.closingParen);
 				ExprAst expr = ExprAst(
 					range(lexer, start),
 					ExprAstKind(allocate(lexer.alloc, ParenthesizedAst(inner))));
-				return noDedent(tryParseDotsAndSubscripts(lexer, expr));
+				return tryParseDotsAndSubscripts(lexer, expr);
 			}
 		case Token.quoteDouble:
 		case Token.quoteDouble3:
@@ -911,23 +829,21 @@ ExprAndMaybeDedent parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBloc
 						return takeInterpolated(lexer, start, part.text, quoteKind);
 				}
 			}();
-			return noDedent(tryParseDotsAndSubscripts(lexer, quoted));
+			return tryParseDotsAndSubscripts(lexer, quoted);
 		case Token.assert_:
 			return parseAssertOrForbid(lexer, start, allowedBlock, AssertOrForbidKind.assert_);
 		case Token.bang:
-			ExprAndMaybeDedent inner = parseExprBeforeCall(lexer, AllowedBlock.no);
-			return ExprAndMaybeDedent(
-				ExprAst(
-					range(lexer, start),
-					ExprAstKind(CallAst(
-						CallAst.Style.prefixBang,
-						NameAndRange(start, sym!"not"),
-						arrLiteral(lexer.alloc, [inner.expr])))),
-				inner.dedents);
+			ExprAst inner = parseExprBeforeCall(lexer, AllowedBlock.no);
+			return ExprAst(
+				range(lexer, start),
+				ExprAstKind(CallAst(
+					CallAst.Style.prefixBang,
+					NameAndRange(start, sym!"not"),
+					arrLiteral(lexer.alloc, [inner]))));
 		case Token.break_:
 			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.break_, () => parseLoopBreak(lexer, start));
 		case Token.continue_:
-			return noDedent(ExprAst(range(lexer, start), ExprAstKind(LoopContinueAst())));
+			return ExprAst(range(lexer, start), ExprAstKind(LoopContinueAst()));
 		case Token.if_:
 			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.if_, () => parseIf(lexer, start));
 		case Token.for_:
@@ -944,24 +860,16 @@ ExprAndMaybeDedent parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBloc
 		case Token.operator:
 			Sym operator = token.asSym();
 			if (operator == sym!"&") {
-				ExprAndMaybeDedent inner = parseExprBeforeCall(lexer, AllowedBlock.no);
-				return ExprAndMaybeDedent(
-					ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, PtrAst(inner.expr)))),
-					inner.dedents);
+				ExprAst inner = parseExprBeforeCall(lexer, AllowedBlock.no);
+				return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, PtrAst(inner))));
 			} else
 				return handlePrefixOperator(lexer, allowedBlock, start, operator);
 		case Token.literalFloat:
-			return noDedent(tryParseDotsAndSubscripts(
-				lexer,
-				ExprAst(range(lexer, start), ExprAstKind(token.asLiteralFloat()))));
+			return tryParseDotsAndSubscripts(lexer, ExprAst(range(lexer, start), ExprAstKind(token.asLiteralFloat())));
 		case Token.literalInt:
-			return noDedent(tryParseDotsAndSubscripts(
-				lexer,
-				ExprAst(range(lexer, start), ExprAstKind(token.asLiteralInt()))));
+			return tryParseDotsAndSubscripts(lexer, ExprAst(range(lexer, start), ExprAstKind(token.asLiteralInt())));
 		case Token.literalNat:
-			return noDedent(tryParseDotsAndSubscripts(
-				lexer,
-				ExprAst(range(lexer, start), ExprAstKind(token.asLiteralNat()))));
+			return tryParseDotsAndSubscripts(lexer, ExprAst(range(lexer, start), ExprAstKind(token.asLiteralNat())));
 		case Token.loop:
 			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.loop, () => parseLoop(lexer, start));
 		case Token.throw_:
@@ -985,33 +893,22 @@ ExprAndMaybeDedent parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBloc
 	}
 }
 
-ExprAndMaybeDedent badToken(ref Lexer lexer, Pos start, TokenAndData token) {
+ExprAst badToken(ref Lexer lexer, Pos start, TokenAndData token) {
 	addDiagUnexpectedCurToken(lexer, start, token);
 	return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
 }
 
-ExprAndMaybeDedent handlePrefixOperator(
-	ref Lexer lexer,
-	AllowedBlock allowedBlock,
-	Pos start,
-	Sym operator,
-) {
-	ExprAndMaybeDedent arg = parseExprBeforeCall(lexer, allowedBlock);
-	ExprAst expr = ExprAst(range(lexer, start), ExprAstKind(
-		CallAst(CallAst.Style.prefixOperator, NameAndRange(start, operator), arrLiteral(lexer.alloc, [arg.expr]))));
-	return ExprAndMaybeDedent(expr, arg.dedents);
+ExprAst handlePrefixOperator(ref Lexer lexer, AllowedBlock allowedBlock, Pos start, Sym operator) {
+	ExprAst arg = parseExprBeforeCall(lexer, allowedBlock);
+	return ExprAst(range(lexer, start), ExprAstKind(
+		CallAst(CallAst.Style.prefixOperator, NameAndRange(start, operator), arrLiteral(lexer.alloc, [arg]))));
 }
 
-ExprAndMaybeDedent handleName(ref Lexer lexer, Pos start, NameAndRange name) {
+ExprAst handleName(ref Lexer lexer, Pos start, NameAndRange name) {
 	Opt!(TypeAst*) typeArg = tryParseTypeArgForExpr(lexer);
-	if (has(typeArg))
-		return noDedent(ExprAst(
-			range(lexer, start),
-			ExprAstKind(CallAst(CallAst.Style.single, name, [], typeArg))));
-	else {
-		ExprAst expr = ExprAst(range(lexer, start), ExprAstKind(IdentifierAst(name.name)));
-		return noDedent(tryParseDotsAndSubscripts(lexer, expr));
-	}
+	return has(typeArg)
+		? ExprAst(range(lexer, start), ExprAstKind(CallAst(CallAst.Style.single, name, [], typeArg)))
+		: tryParseDotsAndSubscripts(lexer, ExprAst(range(lexer, start), ExprAstKind(IdentifierAst(name.name))));
 }
 
 ExprAst takeInterpolated(ref Lexer lexer, Pos start, string firstText, QuoteKind quoteKind) {
@@ -1035,63 +932,37 @@ ExprAst takeInterpolatedRecur(ref Lexer lexer, Pos start, ref ArrBuilder!Interpo
 	}
 }
 
-ExprAndMaybeDedent assertNoNameAfter(ExprAndMaybeNameOrDedent a) =>
-	ExprAndMaybeDedent(a.expr, assertNoName(a.nameOrDedent));
-
-Opt!uint assertNoName(OptNameOrDedent a) =>
-	a.match!(Opt!uint)(
-		(OptNameOrDedent.None) =>
-			none!uint,
-		(OptNameOrDedent.Colon) =>
-			unreachable!(Opt!uint),
-		(OptNameOrDedent.Comma) =>
-			unreachable!(Opt!uint),
-		(NameAndRange _) =>
-			// We allowed all calls, so should be no dangling names
-			unreachable!(Opt!uint),
-		(OptNameOrDedent.Dedent it) =>
-			some(it.dedents),
-		(OptNameOrDedent.Question) =>
-			unreachable!(Opt!uint));
-
-ExprAst parseExprNoBlock(ref Lexer lexer) {
-	ExprAndMaybeDedent ed = parseExprAndAllCalls(lexer, AllowedBlock.no);
-	verify(!has(ed.dedents));
-	return ed.expr;
+ExprAst assertNoNameAfter(ExprAndMaybeName a) {
+	verify(a.name.isA!(OptName.None));
+	return a.expr;
 }
 
-ExprAndMaybeDedent parseExprAndAllCalls(ref Lexer lexer, AllowedBlock allowedBlock) {
-	ArgCtx argCtx = ArgCtx(allowedBlock, allowAllCalls());
-	return assertNoNameAfter(parseExprAndCalls(lexer, argCtx));
-}
+ExprAst parseExprNoBlock(ref Lexer lexer) =>
+	parseExprAndAllCalls(lexer, AllowedBlock.no);
 
-ExprAndMaybeNameOrDedent parseExprAndCalls(ref Lexer lexer, ArgCtx argCtx) {
+ExprAst parseExprAndAllCalls(ref Lexer lexer, AllowedBlock allowedBlock) =>
+	assertNoNameAfter(parseExprAndCalls(lexer, ArgCtx(allowedBlock, allowAllCalls())));
+
+ExprAndMaybeName parseExprAndCalls(ref Lexer lexer, ArgCtx argCtx) {
 	Pos start = curPos(lexer);
-	ExprAndMaybeDedent ed = parseExprBeforeCall(lexer, argCtx.allowedBlock);
-	return has(ed.dedents)
-		? ExprAndMaybeNameOrDedent(ed.expr, nameOrDedentFromOptDedents(ed.dedents))
-		: parseCalls(lexer, start, ed.expr, argCtx);
+	ExprAst left = parseExprBeforeCall(lexer, argCtx.allowedBlock);
+	return parseCalls(lexer, start, left, argCtx);
 }
 
-ExprAndDedent parseExprNoLet(ref Lexer lexer) =>
-	addDedent(lexer, parseExprAndAllCalls(lexer, AllowedBlock.yes));
+ExprAst parseExprNoLet(ref Lexer lexer) =>
+	parseExprAndAllCalls(lexer, AllowedBlock.yes);
 
-ExprAndDedent parseSingleStatementLine(ref Lexer lexer) {
+ExprAst parseSingleStatementLine(ref Lexer lexer) {
 	Pos start = curPos(lexer);
-	Opt!EqualsOrThen et = lookaheadWillTakeEqualsOrThen(lexer);
+	Opt!EqualsOrThen et = lookaheadEqualsOrThen(lexer);
 	if (has(et))
 		return parseEqualsOrThen(lexer, force(et));
 	else {
-		ExprAndMaybeDedent expr = parseExprBeforeCall(lexer, AllowedBlock.yes);
+		ExprAst expr = parseExprBeforeCall(lexer, AllowedBlock.yes);
 		Pos assignmentPos = curPos(lexer);
-		if (!has(expr.dedents) && tryTakeToken(lexer, Token.colonEqual))
-			return parseAssignment(lexer, start, expr.expr, assignmentPos);
-		else {
-			ExprAndMaybeDedent fullExpr = has(expr.dedents)
-				? expr
-				: assertNoNameAfter(parseCalls(lexer, start, expr.expr, ArgCtx(AllowedBlock.yes, allowAllCalls())));
-			return addDedent(lexer, fullExpr);
-		}
+		return tryTakeToken(lexer, Token.colonEqual)
+			? parseAssignment(lexer, start, expr, assignmentPos)
+			: assertNoNameAfter(parseCalls(lexer, start, expr, ArgCtx(AllowedBlock.yes, allowAllCalls())));
 	}
 }
 
@@ -1114,7 +985,9 @@ public DestructureAst parseDestructureRequireParens(ref Lexer lexer) {
 				case Token.colon:
 				case Token.comma:
 				case Token.equal:
-				case Token.newline:
+				case Token.newlineDedent:
+				case Token.newlineIndent:
+				case Token.newlineSameIndent:
 				case Token.parenRight:
 				case Token.questionEqual:
 					return none!(TypeAst*);
@@ -1139,60 +1012,42 @@ DestructureAst parseDestructureNoRequireParens(ref Lexer lexer) {
 		return first;
 }
 
-ExprAndDedent parseEqualsOrThen(ref Lexer lexer, EqualsOrThen kind) {
+ExprAst parseEqualsOrThen(ref Lexer lexer, EqualsOrThen kind) {
 	Pos start = curPos(lexer);
 	final switch (kind) {
 		case EqualsOrThen.equals:
 			DestructureAst left = parseDestructureNoRequireParens(lexer);
 			takeOrAddDiagExpectedToken(lexer, Token.equal, ParseDiag.Expected.Kind.equals);
-			ExprAndDedent initAndDedent = parseExprNoLet(lexer);
-			ExprAndDedent thenAndDedent = parseNextLinesOrEmpty(lexer, start, initAndDedent.dedents);
-			return ExprAndDedent(
-				ExprAst(range(lexer, start), ExprAstKind(
-					allocate(lexer.alloc, LetAst(left, initAndDedent.expr, thenAndDedent.expr)))),
-				thenAndDedent.dedents);
+			ExprAst init = parseExprNoLet(lexer);
+			ExprAst then = parseNextLinesOrEmpty(lexer, start);
+			return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, LetAst(left, init, then))));
 		case EqualsOrThen.then:
 			DestructureAst param =
 				parseForThenOrWithParameter(lexer, Token.arrowThen, ParseDiag.Expected.Kind.then);
-			ExprAndDedent futureAndDedent = parseExprNoLet(lexer);
-			ExprAndDedent thenAndDedent = parseNextLinesOrEmpty(lexer, start, futureAndDedent.dedents);
-			ExprAstKind exprKind = ExprAstKind(
-				allocate(lexer.alloc, ThenAst(param, futureAndDedent.expr, thenAndDedent.expr)));
-			return ExprAndDedent(ExprAst(range(lexer, start), exprKind), thenAndDedent.dedents);
+			ExprAst future = parseExprNoLet(lexer);
+			ExprAst then = parseNextLinesOrEmpty(lexer, start);
+			return ExprAst(range(lexer, start), ExprAstKind(
+				allocate(lexer.alloc, ThenAst(param, future, then))));
 	}
 }
 
-ExprAndDedent addDedent(ref Lexer lexer, ExprAndMaybeDedent e) =>
-	ExprAndDedent(e.expr, has(e.dedents) ? force(e.dedents) : takeNewlineOrDedentAmount(lexer));
-
-ExprAndDedent parseStatementsAndDedents(ref Lexer lexer) {
-	ExprAndDedent res = parseStatementsAndExtraDedents(lexer);
-	// Since we don't always expect a dedent here,
-	// the dedent isn't *extra*, so increment to get the correct number of dedents.
-	return ExprAndDedent(res.expr, res.dedents + 1);
-}
-
-// Return value is number of dedents - 1; the number of *extra* dedents
-ExprAndDedent parseStatementsAndExtraDedents(ref Lexer lexer) {
+ExprAst parseStatements(ref Lexer lexer) {
 	Pos start = curPos(lexer);
-	ExprAndDedent ed = parseSingleStatementLine(lexer);
-	return parseStatementsAndExtraDedentsRecur(lexer, start, ed.expr, ed.dedents);
+	Cell!ExprAst res = Cell!ExprAst(parseSingleStatementLine(lexer));
+	while (tryTakeToken(lexer, Token.newlineSameIndent)) {
+		ExprAst nextLine = parseSingleStatementLine(lexer);
+		cellSet(res, ExprAst(
+			range(lexer, start),
+			ExprAstKind(allocate(lexer.alloc, SeqAst(cellGet(res), nextLine)))));
+	}
+	return cellGet(res);
 }
 
-ExprAndDedent parseStatementsAndExtraDedentsRecur(
-	ref Lexer lexer,
-	Pos start,
-	ExprAst expr,
-	uint dedents,
-) {
-	if (dedents == 0) {
-		ExprAndDedent ed = parseSingleStatementLine(lexer);
-		SeqAst seq = SeqAst(expr, ed.expr);
-		return parseStatementsAndExtraDedentsRecur(
-			lexer,
-			start,
-			ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, seq))),
-			ed.dedents);
-	} else
-		return ExprAndDedent(expr, dedents - 1);
+ExprAst parseIndentedStatements(ref Lexer lexer) =>
+	takeIndentOrFail_Expr(lexer, () => parseStatementsAndDedent(lexer));
+
+ExprAst parseStatementsAndDedent(ref Lexer lexer) {
+	ExprAst res = parseStatements(lexer);
+	takeDedent(lexer);
+	return res;
 }

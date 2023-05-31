@@ -6,20 +6,21 @@ import frontend.parse.ast : NameAndRange;
 import frontend.parse.lexer :
 	addDiag,
 	addDiagAtChar,
+	alloc,
 	allSymbols,
 	curPos,
 	getPeekToken,
 	getPeekTokenAndData,
-	IndentDelta,
 	Lexer,
 	range,
 	skipUntilNewlineNoDiag,
 	takeNextToken,
 	Token,
 	TokenAndData;
-import frontend.parse.lexToken : isNewlineToken, isSymToken;
+import frontend.parse.lexToken : isSymToken;
 import model.parseDiag : ParseDiag;
 import util.col.arrUtil : contains;
+import util.col.str : copyToSafeCStr, SafeCStr, safeCStr;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : appendEquals, Sym, sym;
@@ -146,105 +147,88 @@ Sym takeNameOrOperator(ref Lexer lexer) {
 	}
 }
 
-bool peekNewline(ref Lexer lexer) =>
-	peekToken(lexer, [Token.newline, Token.EOF]);
+private immutable Token[] endOfLineTokensNotEOF =
+	[Token.newlineDedent, Token.newlineIndent, Token.newlineSameIndent];
+private immutable Token[] endOfLineTokens =
+	[Token.newlineDedent, Token.newlineIndent, Token.newlineSameIndent, Token.EOF];
+
+bool peekEndOfLine(ref Lexer lexer) =>
+	peekToken(lexer, endOfLineTokens);
+
+SafeCStr takeNewline_topLevel(ref Lexer lexer) {
+	TokenAndData token = takeNextToken(lexer);
+	if (token.token == Token.newlineSameIndent)
+		return copyToSafeCStr(lexer.alloc, token.asDocComment().docComment);
+	else {
+		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.newline)));
+		NewlineOrDedent nl = skipToNextNewlineOrDedent(lexer);
+		verify(nl == NewlineOrDedent.newline);
+		return safeCStr!"";
+	}
+}
+
+void takeDedent(ref Lexer lexer) {
+	if (!tryTakeToken(lexer, Token.newlineDedent)) {
+		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.dedent)));
+		while (skipToNextNewlineOrDedent(lexer) != NewlineOrDedent.dedent) {}
+	}
+}
 
 enum NewlineOrDedent {
 	newline,
 	dedent,
 }
 
-NewlineOrDedent takeNewlineOrSingleDedent(ref Lexer lexer) =>
-	toNewlineOrDedent(takeNewlineOrDedentAmount(lexer));
-
-NewlineOrDedent toNewlineOrDedent(uint dedents) {
-	switch (dedents) {
-		case 0:
-			return NewlineOrDedent.newline;
-		case 1:
-			return NewlineOrDedent.dedent;
-		default:
-			return unreachable!NewlineOrDedent;
-	}
-}
-
-enum NewlineOrIndent {
-	newline,
-	indent,
-}
-
-NewlineOrIndent takeNewlineOrIndent_topLevel(ref Lexer lexer) {
-	return mustTakeNewline(lexer, ParseDiag.Expected.Kind.endOfLine).match!NewlineOrIndent(
-		(IndentDelta.DedentOrSame dedent) {
-			verify(dedent.nDedents == 0);
-			return NewlineOrIndent.newline;
-		},
-		(IndentDelta.Indent) =>
-			NewlineOrIndent.indent);
-}
-
-void takeNewline_topLevel(ref Lexer lexer) {
-	mustTakeNewline(lexer, ParseDiag.Expected.Kind.endOfLine);
-}
-
-bool takeIndentOrDiagTopLevel(ref Lexer lexer) =>
-	takeIndentOrFailGeneric(lexer, () => true, (RangeWithinFile, uint dedent) {
-		verify(dedent == 0);
-		return false;
-	});
-
-private IndentDelta mustTakeNewline(ref Lexer lexer, ParseDiag.Expected.Kind kind) {
-	Opt!IndentDelta res = tryTakeToken!IndentDelta(lexer, (TokenAndData x) =>
-		isNewlineToken(x.token) ? some(x.asIndentDelta()) : none!IndentDelta);
-	if (has(res))
-		return force(res);
+NewlineOrDedent takeNewlineOrDedent(ref Lexer lexer) {
+	if (tryTakeToken(lexer, Token.newlineSameIndent))
+		return NewlineOrDedent.newline;
+	else if (tryTakeToken(lexer, Token.newlineDedent))
+		return NewlineOrDedent.dedent;
 	else {
-		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(kind)));
-		skipUntilNewlineNoDiag(lexer);
-		return takeNextToken(lexer).asIndentDelta();
+		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.newlineOrDedent)));
+		return skipToNextNewlineOrDedent(lexer);
 	}
 }
 
-void takeDedentFromIndent1(ref Lexer lexer) {
-	bool success = mustTakeNewline(lexer, ParseDiag.Expected.Kind.dedent).match!bool(
-		(IndentDelta.DedentOrSame dedent) =>
-			dedent.nDedents == 1,
-		(IndentDelta.Indent) =>
-			false);
-	if (!success) {
-		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.dedent)));
+private NewlineOrDedent skipToNextNewlineOrDedent(ref Lexer lexer) {
+	uint dedentsNeeded = 0;
+	while (true) {
 		skipUntilNewlineNoDiag(lexer);
-		takeDedentFromIndent1(lexer);
+		switch (takeNextToken(lexer).token) {
+			case Token.newlineDedent:
+				if (dedentsNeeded == 0)
+					return NewlineOrDedent.dedent;
+				else
+					dedentsNeeded -= 1;
+				break;
+			case Token.newlineSameIndent:
+				if (dedentsNeeded == 0)
+					return NewlineOrDedent.newline;
+				break;
+			case Token.newlineIndent:
+				dedentsNeeded += 1;
+				break;
+			default:
+				return unreachable!NewlineOrDedent;
+		}
 	}
-}
-
-uint takeNewlineOrDedentAmount(ref Lexer lexer) {
-	return mustTakeNewline(lexer, ParseDiag.Expected.Kind.newlineOrDedent).match!uint(
-		(IndentDelta.DedentOrSame dedent) =>
-			dedent.nDedents,
-		(IndentDelta.Indent) {
-			addDiagAtChar(lexer, ParseDiag(ParseDiag.Unexpected(ParseDiag.Unexpected.Kind.indent)));
-			skipUntilNewlineNoDiag(lexer);
-			return takeNewlineOrDedentAmount(lexer);
-		});
 }
 
 T takeIndentOrFailGeneric(T)(
 	ref Lexer lexer,
 	in T delegate() @safe @nogc pure nothrow cbIndent,
-	in T delegate(RangeWithinFile, uint) @safe @nogc pure nothrow cbFail,
+	in T delegate(RangeWithinFile) @safe @nogc pure nothrow cbFail,
 ) {
 	Pos start = curPos(lexer);
-	return mustTakeNewline(lexer, ParseDiag.Expected.Kind.indent).match!T(
-		(IndentDelta.DedentOrSame dedent) {
-			addDiag(lexer, RangeWithinFile(start, start + 1), ParseDiag(
-				ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
-			return cbFail(range(lexer, start), dedent.nDedents);
-		},
-		(IndentDelta.Indent) =>
-			cbIndent());
+	if (tryTakeToken(lexer, Token.newlineIndent))
+		return cbIndent();
+	else {
+		addDiag(lexer, RangeWithinFile(start, start + 1), ParseDiag(
+			ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
+		return cbFail(range(lexer, start)); //TODO: the range is always empty!
+	}
 }
 
 void skipNewlinesIgnoreIndentation(ref Lexer lexer) {
-	while (tryTakeToken(lexer, Token.newline)) {}
+	while (tryTakeToken(lexer, endOfLineTokensNotEOF)) {}
 }

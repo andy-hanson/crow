@@ -3,9 +3,8 @@ module frontend.parse.lexToken;
 @safe @nogc pure nothrow:
 
 import frontend.parse.ast : LiteralFloatAst, LiteralIntAst, LiteralNatAst;
-import frontend.parse.lexUtil : tryTakeChar, tryTakeChars;
-import frontend.parse.lexWhitespace :
-	DocCommentAndIndentDelta, IndentDelta, IndentKind, skipBlankLinesAndGetIndentDelta;
+import frontend.parse.lexUtil : startsWith, tryTakeChar, tryTakeChars;
+import frontend.parse.lexWhitespace : DocCommentAndIndentDelta, IndentKind, skipBlankLinesAndGetIndentDelta;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.col.arr : arrOfRange;
@@ -14,6 +13,11 @@ import util.opt : force, has, none, Opt, some;
 import util.sym : AllSymbols, Sym, sym, symOfStr;
 import util.util : drop, todo, unreachable, verify;
 
+immutable struct DocCommentAndExtraDedents {
+	string docComment;
+	uint extraDedents;
+}
+
 immutable struct TokenAndData {
 	@safe @nogc pure nothrow:
 
@@ -21,8 +25,8 @@ immutable struct TokenAndData {
 	private:
 	union {
 		Sym sym = void; // For Token.name or Token.operator
-		// For Token.newline or Token.EOF. WARN: The doc comment is temporary.
-		DocCommentAndIndentDelta indentDelta = void;
+		// For Token.newline or Token.EOF. WARN: The string is temporary.
+		DocCommentAndExtraDedents docComment = void;
 		LiteralFloatAst literalFloat = void; // for Token.literalFloat
 		LiteralIntAst literalInt = void; // for Token.literalInt
 		LiteralNatAst literalNat = void; // for Token.literalNat
@@ -42,10 +46,10 @@ immutable struct TokenAndData {
 		token = t;
 		sym = s;
 	}
-	this(Token t, DocCommentAndIndentDelta d) {
+	this(Token t, DocCommentAndExtraDedents d) {
 		verify(isNewlineToken(t));
 		token = t;
-		indentDelta = d;
+		docComment = d;
 	}
 	this(Token t, LiteralFloatAst l) {
 		verify(t == Token.literalFloat);
@@ -67,14 +71,10 @@ immutable struct TokenAndData {
 		verify(isSymToken(token));
 		return sym;
 	}
-	// WARN: this is temporary
-	@trusted string asDocComment() {
+	// WARN: The docComment string is temporary.
+	@trusted DocCommentAndExtraDedents asDocComment() {
 		verify(isNewlineToken(token));
-		return indentDelta.docComment;
-	}
-	@trusted IndentDelta asIndentDelta() {
-		verify(isNewlineToken(token));
-		return indentDelta.indentDelta;
+		return docComment;
 	}
 	LiteralFloatAst asLiteralFloat() {
 		verify(token == Token.literalFloat);
@@ -142,7 +142,14 @@ enum Token {
 	match, // 'match'
 	mut, // 'mut'
 	name, // Any non-keyword, non-operator name; use getCurSym with this
-	newline, // end of line
+	// End of line followed by another line at lesser indentation.
+	// There will be one of these tokens for each reduced indent level, followed by a 'newline' token.
+	newlineDedent,
+	// End of line followed by another line at 1 greater indent level.
+	// Unlike 'newlineDedent', this is not followed by a 'newlineSameIndent' token.
+	newlineIndent,
+	// end of line followed by another line at the same indent level.
+	newlineSameIndent,
 	noStd, // 'no-std'
 	operator, // Any operator; use getCurOperator with this
 	parenLeft, // '('
@@ -169,10 +176,17 @@ enum Token {
 	with_, // 'with'
 }
 
-bool isNewlineToken(Token a) =>
-	a == Token.newline || a == Token.EOF;
-bool isQuoteToken(Token a) =>
-	a == Token.quoteDouble || a == Token.quoteDouble3;
+bool isNewlineToken(Token a) {
+	switch (a) {
+		case Token.EOF:
+		case Token.newlineDedent:
+		case Token.newlineIndent:
+		case Token.newlineSameIndent:
+			return true;
+		default:
+			return false;
+	}
+}
 bool isSymToken(Token a) =>
 	a == Token.name || a == Token.operator;
 
@@ -183,7 +197,7 @@ TokenAndData lexInitialToken(
 	ref uint curIndent,
 	in AddDiag addDiag,
 ) =>
-	newlineToken(ptr, Token.newline, indentKind, curIndent, addDiag);
+	newlineToken(ptr, Token.newlineSameIndent, indentKind, curIndent, addDiag);
 
 /*
 Advances 'ptr' to lex a single token.
@@ -210,7 +224,7 @@ Possibly writes to 'data' depending on the kind of token returned.
 				ptr--;
 				return newlineToken(ptr, Token.EOF, indentKind, curIndent, addDiag);
 			case '\n':
-				return newlineToken(ptr, Token.newline, indentKind, curIndent, addDiag);
+				return newlineToken(ptr, Token.newlineSameIndent, indentKind, curIndent, addDiag);
 			case '~':
 				return operatorToken(tryTakeChar(ptr, '~') ? sym!"~~" : sym!"~");
 			case '@':
@@ -315,7 +329,7 @@ Possibly writes to 'data' depending on the kind of token returned.
 private alias AddDiag = void delegate(ParseDiag) @safe @nogc pure nothrow;
 
 enum EqualsOrThen { equals, then }
-@trusted Opt!EqualsOrThen lookaheadWillTakeEqualsOrThen(immutable(char)* ptr) {
+@trusted Opt!EqualsOrThen lookaheadEqualsOrThen(immutable(char)* ptr) {
 	if (ptr[0] == '<' && ptr[1] == '-' && ptr[2] == ' ')
 		return some(EqualsOrThen.then);
 	while (true) {
@@ -336,7 +350,7 @@ enum EqualsOrThen { equals, then }
 	}
 }
 
-@trusted bool lookaheadWillTakeQuestionEquals(immutable(char)* ptr) {
+@trusted bool lookaheadQuestionEquals(immutable(char)* ptr) {
 	while (true) {
 		switch (*ptr) {
 			case ' ':
@@ -353,7 +367,7 @@ enum EqualsOrThen { equals, then }
 	}
 }
 
-@trusted bool lookaheadWillTakeArrowAfterParenLeft(immutable(char)* ptr) {
+@trusted bool lookaheadLambdaAfterParenLeft(immutable(char)* ptr) {
 	size_t openParens = 1;
 	while (true) {
 		switch (*ptr) {
@@ -373,6 +387,22 @@ enum EqualsOrThen { equals, then }
 		ptr++;
 	}
 }
+
+private @trusted bool startsWithIdentifier(immutable char* ptr, in string expected) =>
+	startsWith(ptr, expected) && !isAlphaIdentifierContinue(ptr[expected.length]);
+
+bool lookaheadAs(immutable(char)* ptr) =>
+	startsWithIdentifier(ptr, "as");
+bool lookaheadElse(immutable(char)* ptr) =>
+	startsWithIdentifier(ptr, "else");
+
+enum ElifOrElse { elif, else_ }
+Opt!ElifOrElse lookaheadElifOrElse(immutable(char)* ptr) =>
+	startsWithIdentifier(ptr, "elif")
+		? some(ElifOrElse.elif)
+		: startsWithIdentifier(ptr, "else")
+		? some(ElifOrElse.else_)
+		: none!ElifOrElse;
 
 immutable struct StringPart {
 	string text;
@@ -476,12 +506,16 @@ private:
 
 @trusted TokenAndData newlineToken(
 	ref immutable(char)* ptr,
-	Token token,
+	Token newlineOrEOF,
 	IndentKind indentKind,
 	ref uint curIndent,
 	in AddDiag addDiag,
-) =>
-	TokenAndData(token, skipBlankLinesAndGetIndentDelta(ptr, indentKind, curIndent, addDiag));
+) {
+	DocCommentAndIndentDelta x = skipBlankLinesAndGetIndentDelta(ptr, indentKind, curIndent, addDiag);
+	Token token = x.indentDelta == 0 ? newlineOrEOF : x.indentDelta < 0 ? Token.newlineDedent : Token.newlineIndent;
+	uint extraDedents = token == Token.newlineDedent ? -x.indentDelta - 1 : 0;
+	return TokenAndData(token, DocCommentAndExtraDedents(x.docComment, extraDedents));
+}
 
 @trusted char takeChar(ref immutable(char)* ptr) {
 	char res = *ptr;
