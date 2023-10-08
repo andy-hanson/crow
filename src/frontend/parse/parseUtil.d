@@ -126,10 +126,17 @@ Sym takeName(ref Lexer lexer) =>
 	takeNameAndRange(lexer).name;
 
 // Does not take the '=' in 'x='
-Opt!NameAndRange tryTakeNameOrOperatorAndRangeNoAssignment(ref Lexer lexer) {
+private Opt!NameAndRange tryTakeNameOrOperatorAndRangeNoAssignment(ref Lexer lexer) {
 	Pos start = curPos(lexer);
 	return tryTakeToken!NameAndRange(lexer, (TokenAndData x) =>
 		isSymToken(x.token) ? some(NameAndRange(start, x.asSym())) : none!NameAndRange);
+}
+
+// Does not take the '=' in 'x='
+Opt!NameAndRange tryTakeNameOrOperatorIf(ref Lexer lexer, in bool delegate(Sym) @safe @nogc pure nothrow cb) {
+	Pos start = curPos(lexer);
+	return tryTakeToken!NameAndRange(lexer, (TokenAndData x) =>
+		isSymToken(x.token) && cb(x.asSym()) ? some(NameAndRange(start, x.asSym())) : none!NameAndRange);
 }
 
 // This can take names like 'x='

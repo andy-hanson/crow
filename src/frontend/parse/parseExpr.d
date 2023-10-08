@@ -75,7 +75,7 @@ import frontend.parse.parseUtil :
 	takeNameAndRange,
 	takeNameAndRangeAllowUnderscore,
 	takeOrAddDiagExpectedToken,
-	tryTakeNameOrOperatorAndRangeNoAssignment,
+	tryTakeNameOrOperatorIf,
 	tryTakeToken;
 import model.model : AssertOrForbidKind;
 import model.parseDiag : ParseDiag;
@@ -87,8 +87,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, some, some;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : AllSymbols, appendEquals, Sym, sym;
-import util.union_ : Union;
-import util.util : max, todo, unreachable, verify;
+import util.util : max, verify;
 
 Opt!ExprAst parseFunExprBody(ref Lexer lexer) =>
 	tryTakeToken(lexer, Token.newlineIndent)
@@ -123,51 +122,15 @@ ArgCtx requirePrecedenceGt(ArgCtx a, int precedence) =>
 ArgCtx requirePrecedenceGtComma(ArgCtx a) =>
 	requirePrecedenceGt(a, commaPrecedence);
 
-immutable struct OptName {
-	immutable struct None {}
-	immutable struct Colon {}
-	immutable struct Comma {}
-	immutable struct Question {}
-	mixin Union!(None, Colon, Comma, NameAndRange, Question);
-}
+ExprAst[] parseArgsForOperator(ref Lexer lexer, ArgCtx ctx) =>
+	arrLiteral!ExprAst(lexer.alloc, [parseExprAndCalls(lexer, ctx)]);
 
-OptName noName() =>
-	OptName(OptName.None());
-
-immutable struct ExprAndMaybeName {
-	ExprAst expr;
-	OptName name;
-}
-
-ExprAst assertNoName(ExprAndMaybeName a) {
-	verify(a.name.isA!(OptName.None));
-	return a.expr;
-}
-ExprAst[] assertNoName(ArgsAndMaybeName a) {
-	verify(a.name.isA!(OptName.None));
-	return a.args;
-}
-
-immutable struct ArgsAndMaybeName {
-	ExprAst[] args;
-	OptName name;
-}
-
-ArgsAndMaybeName parseArgsForOperator(ref Lexer lexer, ArgCtx ctx) {
-	ExprAndMaybeName ad = parseExprAndCalls(lexer, ctx);
-	return ArgsAndMaybeName(arrLiteral!ExprAst(lexer.alloc, [ad.expr]), ad.name);
-}
-
-ArgsAndMaybeName parseArgs(ref Lexer lexer, ArgCtx ctx) {
-	if (tryTakeToken(lexer, Token.comma))
-		return ArgsAndMaybeName([], OptName(OptName.Comma()));
-	else if (tryTakeToken(lexer, Token.colon))
-		return ArgsAndMaybeName([], OptName(OptName.Colon()));
-	else if (peekTokenExpression(lexer)) {
+ExprAst[] parseArgs(ref Lexer lexer, ArgCtx ctx) {
+	if (peekTokenExpression(lexer)) {
 		ArrBuilder!ExprAst builder;
 		return parseArgsRecur(lexer, ctx, builder);
 	} else
-		return ArgsAndMaybeName([], noName());
+		return [];
 }
 
 bool peekTokenExpression(ref Lexer lexer) =>
@@ -255,13 +218,12 @@ bool isExpressionStartToken(Token a) {
 	}
 }
 
-ArgsAndMaybeName parseArgsRecur(ref Lexer lexer, ArgCtx ctx, ref ArrBuilder!ExprAst args) {
+ExprAst[] parseArgsRecur(ref Lexer lexer, ArgCtx ctx, ref ArrBuilder!ExprAst args) {
 	verify(ctx.allowedCalls.minPrecedenceExclusive >= commaPrecedence);
-	ExprAndMaybeName ad = parseExprAndCalls(lexer, ctx);
-	add(lexer.alloc, args, ad.expr);
-	return ad.name.isA!(OptName.Comma)
+	add(lexer.alloc, args, parseExprAndCalls(lexer, ctx));
+	return tryTakeToken(lexer, Token.comma)
 		? parseArgsRecur(lexer, ctx, args)
-		: ArgsAndMaybeName(finishArr(lexer.alloc, args), ad.name);
+		: finishArr(lexer.alloc, args);
 }
 
 ExprAst parseAssignment(ref Lexer lexer, Pos start, ref ExprAst left, Pos assignmentPos) {
@@ -284,67 +246,28 @@ ExprAst parseNextLinesOrEmpty(ref Lexer lexer, Pos start) =>
 ExprAst emptyAst(ref Lexer lexer) =>
 	ExprAst(rangeAtChar(lexer), ExprAstKind(EmptyAst()));
 
-ExprAndMaybeName parseCalls(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) {
-	if (tryTakeToken(lexer, Token.comma)) {
-		return canParseCommaExpr(argCtx)
-			? parseCallsAfterComma(lexer, start, lhs, argCtx)
-			: ExprAndMaybeName(lhs, OptName(OptName.Comma()));
-	} else if (tryTakeToken(lexer, Token.question))
-		return parseCallsAfterQuestion(lexer, start, lhs, argCtx);
-	else if (tryTakeToken(lexer, Token.colon))
-		return ExprAndMaybeName(lhs, OptName(OptName.Colon()));
-	else {
-		Opt!NameAndRange funName = tryTakeNameOrOperatorAndRangeNoAssignment(lexer);
-		return has(funName)
-			? parseCallsAfterName(lexer, start, lhs, force(funName), argCtx)
-			: ExprAndMaybeName(lhs, noName());
-	}
-}
+ExprAst parseCalls(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) =>
+	canParseCommaExpr(argCtx) && tryTakeToken(lexer, Token.comma)
+		? parseCallsAfterComma(lexer, start, lhs, argCtx)
+		: canParseTernaryExpr(argCtx) && tryTakeToken(lexer, Token.question)
+		? parseCallsAfterQuestion(lexer, start, lhs, argCtx)
+		: parseNamedCalls(lexer, start, lhs, argCtx);
 
-ExprAndMaybeName parseCallsAfterQuestion(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) {
-	if (canParseTernaryExpr(argCtx)) {
-		ExprAndMaybeName then = parseExprAndCalls(lexer, argCtx);
-		ExprAndMaybeName stopHere() {
-			return ExprAndMaybeName(
-				ExprAst(
-					range(lexer, start),
-					ExprAstKind(allocate(lexer.alloc, IfAst(lhs, then.expr, emptyAst(lexer))))),
-				then.name);
-		}
-		return then.name.match!ExprAndMaybeName(
-			(OptName.None) =>
-				stopHere(),
-			(OptName.Colon) {
-				ExprAst else_ = parseAfterColon(lexer, argCtx);
-				return ExprAndMaybeName(
-					ExprAst(
-						range(lexer, start),
-						ExprAstKind(allocate(lexer.alloc, IfAst(lhs, then.expr, else_)))),
-					OptName(OptName.None()));
-			},
-			(OptName.Comma) =>
-				unreachable!ExprAndMaybeName,
-			(NameAndRange _) =>
-				unreachable!ExprAndMaybeName,
-			(OptName.Question) =>
-				todo!ExprAndMaybeName("!"));
+ExprAst parseCallsAfterQuestion(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) {
+	ExprAst then = parseExprAndCalls(lexer, argCtx);
+	if (tryTakeToken(lexer, Token.colon)) {
+		ExprAst else_ = parseAfterColon(lexer, argCtx);
+		return ExprAst(
+				range(lexer, start),
+				ExprAstKind(allocate(lexer.alloc, IfAst(lhs, then, else_))));
 	} else
-		return ExprAndMaybeName(lhs, OptName(OptName.Question()));
+		return ExprAst(
+			range(lexer, start),
+			ExprAstKind(allocate(lexer.alloc, IfAst(lhs, then, emptyAst(lexer)))));
 }
 
 ExprAst parseAfterColon(ref Lexer lexer, ArgCtx argCtx) {
-	ExprAndMaybeName else_ = parseExprAndCalls(lexer, argCtx);
-	return else_.name.match!ExprAst(
-		(OptName.None) =>
-			else_.expr,
-		(OptName.Colon) =>
-			todo!ExprAst("!"),
-		(OptName.Comma) =>
-			unreachable!ExprAst,
-		(NameAndRange _) =>
-			unreachable!ExprAst,
-		(OptName.Question) =>
-			todo!ExprAst("!"));
+	return parseExprAndCalls(lexer, argCtx);
 }
 
 bool canParseTernaryExpr(in ArgCtx argCtx) =>
@@ -353,73 +276,57 @@ bool canParseTernaryExpr(in ArgCtx argCtx) =>
 bool canParseCommaExpr(in ArgCtx argCtx) =>
 	commaPrecedence > argCtx.allowedCalls.minPrecedenceExclusive;
 
-ExprAndMaybeName parseCallsAfterComma(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) {
+ExprAst parseCallsAfterComma(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) {
 	ArrBuilder!ExprAst builder;
 	add(lexer.alloc, builder, lhs);
-	ArgsAndMaybeName args = peekTokenExpression(lexer)
+	ExprAst[] args = peekTokenExpression(lexer)
 		? parseArgsRecur(lexer, requirePrecedenceGtComma(argCtx), builder)
-		: ArgsAndMaybeName(finishArr(lexer.alloc, builder), OptName(OptName.None()));
+		: finishArr(lexer.alloc, builder);
 	RangeWithinFile range = range(lexer, start);
-	return ExprAndMaybeName(
-		ExprAst(range, ExprAstKind(
-			//TODO: range is wrong..
-			CallAst(CallAst.Style.comma, NameAndRange(range.start, sym!"new"), args.args))),
-		args.name);
+	return ExprAst(range, ExprAstKind(
+		//TODO: range is wrong..
+		CallAst(CallAst.Style.comma, NameAndRange(range.start, sym!"new"), args)));
 }
 
-ExprAndMaybeName parseCallsAfterName(
-	ref Lexer lexer,
-	Pos start,
-	ref ExprAst lhs,
-	NameAndRange funName,
-	ArgCtx argCtx,
-) {
-	int precedence = symPrecedence(funName.name, peekToken(lexer, Token.equal) || peekToken(lexer, Token.colonEqual));
-	if (precedence > argCtx.allowedCalls.minPrecedenceExclusive) {
-		Opt!AssignmentKind assignment = tryTakeToken(lexer, Token.colonEqual)
-			? some(AssignmentKind.replace)
-			: tryTakeToken(lexer, Token.equal)
-			? some(AssignmentKind.inPlace)
-			: none!AssignmentKind;
-		bool isOperator = precedence != 0;
-		//TODO: don't do this for operators
-		Opt!(TypeAst*) typeArg = tryParseTypeArgForExpr(lexer);
-		ArgCtx innerCtx = requirePrecedenceGt(argCtx, precedence);
-		ArgsAndMaybeName args = isOperator
-			? parseArgsForOperator(lexer, innerCtx)
-			: parseArgs(lexer, innerCtx);
-		ExprAstKind exprKind = () {
-			if (has(assignment)) {
-				final switch (force(assignment)) {
-					case AssignmentKind.inPlace:
-						return ExprAstKind(CallAst(
-							CallAst.Style.infix,
-							appendEquals(funName, allSymbols(lexer)),
-							prepend!ExprAst(lexer.alloc, lhs, args.args)));
-					case AssignmentKind.replace:
-						return ExprAstKind(allocate(lexer.alloc, AssignmentCallAst(lhs, funName, only(args.args))));
-				}
-			} else
-				return ExprAstKind(
-					CallAst(CallAst.Style.infix, funName, prepend!ExprAst(lexer.alloc, lhs, args.args), typeArg));
-		}();
-		ExprAst expr = ExprAst(range(lexer, start), exprKind);
-		ExprAndMaybeName stopHere = ExprAndMaybeName(expr, args.name);
-		return args.name.match!ExprAndMaybeName(
-			(OptName.None) =>
-				stopHere,
-			(OptName.Colon) =>
-				stopHere,
-			(OptName.Comma) =>
-				canParseCommaExpr(argCtx)
-					? parseCallsAfterComma(lexer, start, expr, argCtx)
-					: stopHere,
-			(NameAndRange name) =>
-				parseCallsAfterName(lexer, start, expr, name, argCtx),
-			(OptName.Question) =>
-				parseCallsAfterQuestion(lexer, start, expr, argCtx));
-	} else
-		return ExprAndMaybeName(lhs, OptName(funName));
+ExprAst parseNamedCalls(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) {
+	int getPrecedence(Sym x) =>
+		symPrecedence(x, peekToken(lexer, Token.equal) || peekToken(lexer, Token.colonEqual));
+	Opt!NameAndRange optName = tryTakeNameOrOperatorIf(lexer, (Sym x) =>
+		getPrecedence(x) > argCtx.allowedCalls.minPrecedenceExclusive);
+	if (!has(optName))
+		return lhs;
+	NameAndRange funName = force(optName);
+	int precedence = getPrecedence(funName.name);
+	assert(precedence > argCtx.allowedCalls.minPrecedenceExclusive);
+	Opt!AssignmentKind assignment = tryTakeToken(lexer, Token.colonEqual)
+		? some(AssignmentKind.replace)
+		: tryTakeToken(lexer, Token.equal)
+		? some(AssignmentKind.inPlace)
+		: none!AssignmentKind;
+	bool isOperator = precedence != 0;
+	//TODO: don't do this for operators
+	Opt!(TypeAst*) typeArg = tryParseTypeArgForExpr(lexer);
+	ArgCtx innerCtx = requirePrecedenceGt(argCtx, precedence);
+	ExprAst[] args = isOperator
+		? parseArgsForOperator(lexer, innerCtx)
+		: parseArgs(lexer, innerCtx);
+	ExprAstKind exprKind = () {
+		if (has(assignment)) {
+			final switch (force(assignment)) {
+				case AssignmentKind.inPlace:
+					return ExprAstKind(CallAst(
+						CallAst.Style.infix,
+						appendEquals(funName, allSymbols(lexer)),
+						prepend!ExprAst(lexer.alloc, lhs, args)));
+				case AssignmentKind.replace:
+					return ExprAstKind(allocate(lexer.alloc, AssignmentCallAst(lhs, funName, only(args))));
+			}
+		} else
+			return ExprAstKind(
+				CallAst(CallAst.Style.infix, funName, prepend!ExprAst(lexer.alloc, lhs, args), typeArg));
+	}();
+	ExprAst expr = ExprAst(range(lexer, start), exprKind);
+	return parseCalls(lexer, start, expr, argCtx);
 }
 
 enum AssignmentKind {
@@ -634,22 +541,14 @@ ExprAst parseThrowOrTrusted(
 }
 
 ExprAst parseAssertOrForbid(ref Lexer lexer, Pos start, AllowedBlock allowedBlock, AssertOrForbidKind kind) {
-	ExprAndMaybeName condition = parseExprAndCalls(lexer, ArgCtx(allowedBlock, allowAllCalls));
-	return condition.name.match!ExprAst(
-		(OptName.None) =>
-			ExprAst(range(lexer, start), ExprAstKind(
-				allocate(lexer.alloc, AssertOrForbidAst(kind, condition.expr, none!ExprAst)))),
-		(OptName.Colon) {
-			ExprAst thrown = parseAfterColon(lexer, ArgCtx(allowedBlock, allowAllCalls));
-			return ExprAst(range(lexer, start), ExprAstKind(
-				allocate(lexer.alloc, AssertOrForbidAst(kind, condition.expr, some(thrown)))));
-		},
-		(OptName.Comma) =>
-			unreachable!ExprAst,
-		(NameAndRange _) =>
-			unreachable!ExprAst,
-		(OptName.Question) =>
-			todo!ExprAst("!"));
+	ExprAst condition = parseExprAndCalls(lexer, ArgCtx(allowedBlock, allowAllCalls));
+	if (tryTakeToken(lexer, Token.colon)) {
+		ExprAst thrown = parseAfterColon(lexer, ArgCtx(allowedBlock, allowAllCalls));
+		return ExprAst(range(lexer, start), ExprAstKind(
+			allocate(lexer.alloc, AssertOrForbidAst(kind, condition, some(thrown)))));
+	} else
+		return ExprAst(range(lexer, start), ExprAstKind(
+			allocate(lexer.alloc, AssertOrForbidAst(kind, condition, none!ExprAst))));
 }
 
 ExprAst parseFor(ref Lexer lexer, Pos start, AllowedBlock allowedBlock) =>
@@ -932,18 +831,13 @@ ExprAst takeInterpolatedRecur(ref Lexer lexer, Pos start, ref ArrBuilder!Interpo
 	}
 }
 
-ExprAst assertNoNameAfter(ExprAndMaybeName a) {
-	verify(a.name.isA!(OptName.None));
-	return a.expr;
-}
-
 ExprAst parseExprNoBlock(ref Lexer lexer) =>
 	parseExprAndAllCalls(lexer, AllowedBlock.no);
 
 ExprAst parseExprAndAllCalls(ref Lexer lexer, AllowedBlock allowedBlock) =>
-	assertNoNameAfter(parseExprAndCalls(lexer, ArgCtx(allowedBlock, allowAllCalls())));
+	parseExprAndCalls(lexer, ArgCtx(allowedBlock, allowAllCalls()));
 
-ExprAndMaybeName parseExprAndCalls(ref Lexer lexer, ArgCtx argCtx) {
+ExprAst parseExprAndCalls(ref Lexer lexer, ArgCtx argCtx) {
 	Pos start = curPos(lexer);
 	ExprAst left = parseExprBeforeCall(lexer, argCtx.allowedBlock);
 	return parseCalls(lexer, start, left, argCtx);
@@ -962,7 +856,7 @@ ExprAst parseSingleStatementLine(ref Lexer lexer) {
 		Pos assignmentPos = curPos(lexer);
 		return tryTakeToken(lexer, Token.colonEqual)
 			? parseAssignment(lexer, start, expr, assignmentPos)
-			: assertNoNameAfter(parseCalls(lexer, start, expr, ArgCtx(AllowedBlock.yes, allowAllCalls())));
+			: parseCalls(lexer, start, expr, ArgCtx(AllowedBlock.yes, allowAllCalls()));
 	}
 }
 
