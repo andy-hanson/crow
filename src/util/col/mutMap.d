@@ -186,16 +186,16 @@ immutable(V) mustDelete(K, V)(ref MutMap!(K, V) a, in K key) {
 private void fillHole(K, V)(
 	ref MutMap!(K, V) a,
 	immutable size_t holeI,
-	immutable size_t i,
+	immutable size_t fromI,
 ) {
-	if (has(a.pairs[i])) {
-		immutable K key = force(a.pairs[i]).key;
+	if (has(a.pairs[fromI])) {
+		immutable K key = force(a.pairs[fromI]).key;
 		immutable size_t desiredI = getHash(key) % a.pairs.length;
-		if (walkDistance(a, desiredI, holeI) < walkDistance(a, desiredI, i)) {
-			overwriteMemory(&a.pairs[holeI], a.pairs[i]);
-			fillHole(a, i, nextI(a, i));
+		if (walkDistance(a, desiredI, holeI) < walkDistance(a, desiredI, fromI)) {
+			overwriteMemory(&a.pairs[holeI], a.pairs[fromI]);
+			fillHole(a, fromI, nextI(a, fromI));
 		} else
-			fillHole(a, holeI, nextI(a, i));
+			fillHole(a, holeI, nextI(a, fromI));
 	} else {
 		overwriteMemory(&a.pairs[holeI], noneMut!(KeyValuePair!(K, V)));
 	}
