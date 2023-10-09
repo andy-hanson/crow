@@ -7,7 +7,6 @@ import frontend.parse.lexer :
 	addDiag,
 	addDiagAtChar,
 	alloc,
-	allSymbols,
 	curPos,
 	getPeekToken,
 	getPeekTokenAndData,
@@ -23,7 +22,7 @@ import util.col.arrUtil : contains;
 import util.col.str : copyToSafeCStr, SafeCStr, safeCStr;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym : appendEquals, Sym, sym;
+import util.sym : Sym, sym;
 import util.util : unreachable, verify;
 
 bool peekToken(ref Lexer lexer, Token expected) =>
@@ -125,29 +124,14 @@ Opt!Sym tryTakeName(ref Lexer lexer) =>
 Sym takeName(ref Lexer lexer) =>
 	takeNameAndRange(lexer).name;
 
-// Does not take the '=' in 'x='
-private Opt!NameAndRange tryTakeNameOrOperatorAndRangeNoAssignment(ref Lexer lexer) {
-	Pos start = curPos(lexer);
-	return tryTakeToken!NameAndRange(lexer, (TokenAndData x) =>
-		isSymToken(x.token) ? some(NameAndRange(start, x.asSym())) : none!NameAndRange);
-}
-
-// Does not take the '=' in 'x='
-Opt!NameAndRange tryTakeNameOrOperatorIf(ref Lexer lexer, in bool delegate(Sym) @safe @nogc pure nothrow cb) {
-	Pos start = curPos(lexer);
-	return tryTakeToken!NameAndRange(lexer, (TokenAndData x) =>
-		isSymToken(x.token) && cb(x.asSym()) ? some(NameAndRange(start, x.asSym())) : none!NameAndRange);
-}
-
-// This can take names like 'x='
 Sym takeNameOrOperator(ref Lexer lexer) {
 	Pos start = curPos(lexer);
-	Opt!NameAndRange res = tryTakeNameOrOperatorAndRangeNoAssignment(lexer);
+	Opt!Sym res = tryTakeToken!Sym(lexer, (TokenAndData x) =>
+		isSymToken(x.token) && x.token != Token.nameOrOperatorColonEquals
+			? some(x.asSym())
+			: none!Sym);
 	if (has(res)) {
-		Sym name = force(res).name;
-		return tryTakeToken(lexer, Token.equal)
-			? appendEquals(lexer.allSymbols, name)
-			: name;
+		return force(res);
 	} else {
 		addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.nameOrOperator)));
 		return sym!"bogus";

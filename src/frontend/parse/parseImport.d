@@ -92,7 +92,7 @@ ImportOrExportAst parseSingleModuleImportOnOwnLine(ref AllPaths allPaths, ref Le
 
 ImportOrExportAstKind parseImportOrExportKind(ref Lexer lexer, Pos start) {
 	if (tryTakeToken(lexer, Token.colon)) {
-		return peekToken(lexer, [Token.name, Token.operator])
+		return peekToken(lexer, [Token.name, Token.nameOrOperatorEquals, Token.operator])
 			? ImportOrExportAstKind(parseSingleImportNamesOnSingleLine(lexer))
 			: takeIndentOrFailGeneric(
 				lexer,

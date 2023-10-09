@@ -7,10 +7,10 @@ import frontend.parse.lexUtil : startsWith, tryTakeChar, tryTakeChars;
 import frontend.parse.lexWhitespace : DocCommentAndIndentDelta, IndentKind, skipBlankLinesAndGetIndentDelta;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
-import util.col.arr : arrOfRange;
+import util.col.arr : arrOfRange, empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.opt : force, has, none, Opt, some;
-import util.sym : AllSymbols, Sym, sym, symOfStr;
+import util.sym : AllSymbols, appendEquals, Sym, sym, symOfStr;
 import util.util : drop, todo, unreachable, verify;
 
 immutable struct DocCommentAndExtraDedents {
@@ -67,8 +67,11 @@ immutable struct TokenAndData {
 		literalNat = l;
 	}
 
+	bool isSym() =>
+		isSymToken(token);
+
 	Sym asSym() {
-		verify(isSymToken(token));
+		verify(isSym());
 		return sym;
 	}
 	// WARN: The docComment string is temporary.
@@ -142,6 +145,9 @@ enum Token {
 	match, // 'match'
 	mut, // 'mut'
 	name, // Any non-keyword, non-operator name; use getCurSym with this
+	// Tokens for a name with '=' or ':=' on the end.
+	nameOrOperatorColonEquals, // 'getCurSym' does NOT include the ':='
+	nameOrOperatorEquals, // 'getcurSym' DOES include the '='
 	// End of line followed by another line at lesser indentation.
 	// There will be one of these tokens for each reduced indent level, followed by a 'newline' token.
 	newlineDedent,
@@ -187,8 +193,17 @@ bool isNewlineToken(Token a) {
 			return false;
 	}
 }
-bool isSymToken(Token a) =>
-	a == Token.name || a == Token.operator;
+bool isSymToken(Token a) {
+	switch (a) {
+		case Token.name:
+		case Token.operator:
+		case Token.nameOrOperatorEquals:
+		case Token.nameOrOperatorColonEquals:
+			return true;
+		default:
+			return false;
+	}
+}
 
 TokenAndData lexInitialToken(
 	ref immutable(char)* ptr,
@@ -226,21 +241,21 @@ Possibly writes to 'data' depending on the kind of token returned.
 			case '\n':
 				return newlineToken(ptr, Token.newlineSameIndent, indentKind, curIndent, addDiag);
 			case '~':
-				return operatorToken(tryTakeChar(ptr, '~') ? sym!"~~" : sym!"~");
+				return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '~') ? sym!"~~" : sym!"~");
 			case '@':
 				return plainToken(Token.at);
 			case '!':
-				return ptr[0 .. 2] != "==" && tryTakeChar(ptr, '=')
-					? operatorToken(sym!"!=")
+				return !peekChars(ptr, "==") && tryTakeChar(ptr, '=')
+					? operatorToken(ptr, allSymbols, sym!"!=")
 					: plainToken(Token.bang);
 			case '%':
-				return operatorToken(sym!"%");
+				return operatorToken(ptr, allSymbols, sym!"%");
 			case '^':
-				return operatorToken(sym!"^");
+				return operatorToken(ptr, allSymbols, sym!"^");
 			case '&':
-				return operatorToken(tryTakeChar(ptr, '&') ? sym!"&&" : sym!"&");
+				return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '&') ? sym!"&&" : sym!"&");
 			case '*':
-				return operatorToken(tryTakeChar(ptr, '*') ? sym!"**" : sym!"*");
+				return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '*') ? sym!"**" : sym!"*");
 			case '(':
 				return plainToken(Token.parenLeft);
 			case ')':
@@ -258,19 +273,19 @@ Possibly writes to 'data' depending on the kind of token returned.
 					? takeNumberAfterSign(ptr, some(Sign.minus))
 					: tryTakeChar(ptr, '>')
 					? plainToken(Token.arrowAccess)
-					: operatorToken(sym!"-");
+					: operatorToken(ptr, allSymbols, sym!"-");
 			case '=':
 				return tryTakeChar(ptr, '>')
 					? plainToken(Token.arrowLambda)
 					: tryTakeChar(ptr, '=')
-					? operatorToken(sym!"==")
+					? operatorToken(ptr, allSymbols, sym!"==")
 					: plainToken(Token.equal);
 			case '+':
 				return isDigit(*ptr)
 					? takeNumberAfterSign(ptr, some(Sign.plus))
-					: operatorToken(sym!"+");
+					: operatorToken(ptr, allSymbols, sym!"+");
 			case '|':
-				return operatorToken(tryTakeChar(ptr, '|') ? sym!"||" : sym!"|");
+				return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '|') ? sym!"||" : sym!"|");
 			case ':':
 				return tryTakeChar(ptr, '=')
 					? plainToken(Token.colonEqual)
@@ -288,35 +303,37 @@ Possibly writes to 'data' depending on the kind of token returned.
 			case '<':
 				return tryTakeChar(ptr, '-')
 					? plainToken(Token.arrowThen)
-					: operatorToken(tryTakeChar(ptr, '=')
+					: operatorToken(ptr, allSymbols, tryTakeChar(ptr, '=')
 						? tryTakeChar(ptr, '>') ? sym!"<=>" : sym!"<="
 						: tryTakeChar(ptr, '<')
 						? sym!"<<"
 						: sym!"<");
 			case '>':
-				return operatorToken(tryTakeChar(ptr, '=')
+				return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '=')
 					? sym!">="
 					: tryTakeChar(ptr, '>')
 					? sym!">>"
 					: sym!">");
 			case '.':
 				return tryTakeChar(ptr, '.')
-					? tryTakeChar(ptr, '.') ? plainToken(Token.dot3) : operatorToken(sym!"..")
+					? tryTakeChar(ptr, '.') ? plainToken(Token.dot3) : operatorToken(ptr, allSymbols, sym!"..")
 					: plainToken(Token.dot);
 			case '/':
-				return operatorToken(sym!"/");
+				return operatorToken(ptr, allSymbols, sym!"/");
 			case '?':
 				return tryTakeChar(ptr, '=')
 					? plainToken(Token.questionEqual)
 					: tryTakeChar(ptr, '?')
-					? operatorToken(sym!"??")
+					? operatorToken(ptr, allSymbols, sym!"??")
 					: plainToken(Token.question);
 			default:
 				if (isAlphaIdentifierStart(c)) {
 					string nameStr = takeNameRest(ptr, ptr - 1);
 					Sym sym = symOfStr(allSymbols, nameStr);
 					Token token = tokenForSym(sym);
-					return token == Token.name ? TokenAndData(Token.name, sym) : plainToken(token);
+					return token == Token.name
+						? nameLikeToken(ptr, allSymbols, sym, Token.name)
+						: plainToken(token);
 				} else if (isDigit(c)) {
 					ptr--;
 					return takeNumberAfterSign(ptr, none!Sign);
@@ -523,8 +540,16 @@ private:
 	return res;
 }
 
-TokenAndData operatorToken(Sym a) =>
-	TokenAndData(Token.operator, a);
+@trusted bool peekChars(immutable(char*) ptr, in string chars) =>
+	empty(chars) || (*ptr == chars[0] && peekChars(ptr + 1, chars[1 .. $]));
+
+TokenAndData operatorToken(ref immutable(char)* ptr, ref AllSymbols allSymbols, Sym a) =>
+	nameLikeToken(ptr, allSymbols, a, Token.operator);
+
+TokenAndData nameLikeToken(ref immutable(char)* ptr, ref AllSymbols allSymbols, Sym a, Token regularToken) =>
+	!peekChars(ptr, "==") && tryTakeChar(ptr, '=')
+		? TokenAndData(Token.nameOrOperatorEquals, appendEquals(allSymbols, a))
+		: TokenAndData(tryTakeChars(ptr, ":=") ? Token.nameOrOperatorColonEquals : regularToken, a);
 
 Token tokenForSym(Sym a) {
 	switch (a.value) {

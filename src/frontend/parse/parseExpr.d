@@ -68,14 +68,12 @@ import frontend.parse.lexer :
 import frontend.parse.parseType : parseType, parseTypeForTypedExpr, tryParseTypeArgForExpr;
 import frontend.parse.parseUtil :
 	peekEndOfLine,
-	peekToken,
 	takeDedent,
 	takeIndentOrFailGeneric,
 	takeName,
 	takeNameAndRange,
 	takeNameAndRangeAllowUnderscore,
 	takeOrAddDiagExpectedToken,
-	tryTakeNameOrOperatorIf,
 	tryTakeToken;
 import model.model : AssertOrForbidKind;
 import model.parseDiag : ParseDiag;
@@ -172,6 +170,8 @@ bool isExpressionStartToken(Token a) {
 		case Token.import_:
 		case Token.invalid:
 		case Token.mut:
+		case Token.nameOrOperatorColonEquals:
+		case Token.nameOrOperatorEquals:
 		case Token.newlineDedent:
 		case Token.newlineIndent:
 		case Token.newlineSameIndent:
@@ -256,7 +256,7 @@ ExprAst parseCalls(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) =
 ExprAst parseCallsAfterQuestion(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) {
 	ExprAst then = parseExprAndCalls(lexer, argCtx);
 	if (tryTakeToken(lexer, Token.colon)) {
-		ExprAst else_ = parseAfterColon(lexer, argCtx);
+		ExprAst else_ = parseExprAndCalls(lexer, argCtx);
 		return ExprAst(
 				range(lexer, start),
 				ExprAstKind(allocate(lexer.alloc, IfAst(lhs, then, else_))));
@@ -264,10 +264,6 @@ ExprAst parseCallsAfterQuestion(ref Lexer lexer, Pos start, ref ExprAst lhs, Arg
 		return ExprAst(
 			range(lexer, start),
 			ExprAstKind(allocate(lexer.alloc, IfAst(lhs, then, emptyAst(lexer)))));
-}
-
-ExprAst parseAfterColon(ref Lexer lexer, ArgCtx argCtx) {
-	return parseExprAndCalls(lexer, argCtx);
 }
 
 bool canParseTernaryExpr(in ArgCtx argCtx) =>
@@ -288,21 +284,41 @@ ExprAst parseCallsAfterComma(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx
 		CallAst(CallAst.Style.comma, NameAndRange(range.start, sym!"new"), args)));
 }
 
+struct NameAndPrecedence {
+	Token token;
+	Sym name;
+	int precedence;
+}
+
 ExprAst parseNamedCalls(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) {
-	int getPrecedence(Sym x) =>
-		symPrecedence(x, peekToken(lexer, Token.equal) || peekToken(lexer, Token.colonEqual));
-	Opt!NameAndRange optName = tryTakeNameOrOperatorIf(lexer, (Sym x) =>
-		getPrecedence(x) > argCtx.allowedCalls.minPrecedenceExclusive);
+	Pos pos = curPos(lexer);
+	Opt!NameAndPrecedence optName = tryTakeToken!NameAndPrecedence(lexer, (TokenAndData x) {
+		if (x.isSym()) {
+			int precedence = symPrecedence(
+				x.asSym(),
+				x.token == Token.nameOrOperatorEquals || x.token == Token.nameOrOperatorColonEquals);
+			return precedence > argCtx.allowedCalls.minPrecedenceExclusive
+				? some(NameAndPrecedence(x.token, x.asSym(), precedence))
+				: none!NameAndPrecedence;
+		} else
+			return none!NameAndPrecedence;
+	});
 	if (!has(optName))
 		return lhs;
-	NameAndRange funName = force(optName);
-	int precedence = getPrecedence(funName.name);
-	assert(precedence > argCtx.allowedCalls.minPrecedenceExclusive);
-	Opt!AssignmentKind assignment = tryTakeToken(lexer, Token.colonEqual)
-		? some(AssignmentKind.replace)
-		: tryTakeToken(lexer, Token.equal)
-		? some(AssignmentKind.inPlace)
-		: none!AssignmentKind;
+
+	Token funToken = force(optName).token;
+	NameAndRange funName = NameAndRange(pos, force(optName).name);
+	int precedence = force(optName).precedence;
+	Opt!AssignmentKind assignment = () {
+		switch (funToken) {
+			case Token.nameOrOperatorColonEquals:
+				return some(AssignmentKind.replace);
+			case Token.nameOrOperatorEquals:
+				return some(AssignmentKind.inPlace);
+			default:
+				return none!AssignmentKind;
+		}
+	}();
 	bool isOperator = precedence != 0;
 	//TODO: don't do this for operators
 	Opt!(TypeAst*) typeArg = tryParseTypeArgForExpr(lexer);
@@ -316,7 +332,7 @@ ExprAst parseNamedCalls(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argC
 				case AssignmentKind.inPlace:
 					return ExprAstKind(CallAst(
 						CallAst.Style.infix,
-						appendEquals(funName, allSymbols(lexer)),
+						funName,
 						prepend!ExprAst(lexer.alloc, lhs, args)));
 				case AssignmentKind.replace:
 					return ExprAstKind(allocate(lexer.alloc, AssignmentCallAst(lhs, funName, only(args))));
@@ -543,7 +559,7 @@ ExprAst parseThrowOrTrusted(
 ExprAst parseAssertOrForbid(ref Lexer lexer, Pos start, AllowedBlock allowedBlock, AssertOrForbidKind kind) {
 	ExprAst condition = parseExprAndCalls(lexer, ArgCtx(allowedBlock, allowAllCalls));
 	if (tryTakeToken(lexer, Token.colon)) {
-		ExprAst thrown = parseAfterColon(lexer, ArgCtx(allowedBlock, allowAllCalls));
+		ExprAst thrown = parseExprAndCalls(lexer, ArgCtx(allowedBlock, allowAllCalls));
 		return ExprAst(range(lexer, start), ExprAstKind(
 			allocate(lexer.alloc, AssertOrForbidAst(kind, condition, some(thrown)))));
 	} else
