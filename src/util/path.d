@@ -209,7 +209,7 @@ alias TempStrForPath = char[0x1000];
 	return SafeCStr(cast(immutable) temp.ptr);
 }
 
-private string pathToStrWorker(ref Alloc alloc, in AllPaths allPaths, Path path,) =>
+private string pathToStrWorker(ref Alloc alloc, in AllPaths allPaths, Path path) =>
 	pathToStrWorker(alloc, allPaths, "", 0, path);
 
 private @trusted string pathToStrWorker(
