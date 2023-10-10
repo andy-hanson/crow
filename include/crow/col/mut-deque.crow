@@ -19,12 +19,12 @@ import
 
 # Mutable double-ended queue.
 +mut-deque[t] record mut
-	-inner .mut t mut-array
+	-inner -mut t mut-array
 	# Index of the first element. 'nil' for an empty queue.
-	-left .mut nat64
+	-left -mut nat64
 	# Index of the element after the last. 'nil' for an empty queue.
 	# This should never be inner.size; it wraps around to 0.
-	-right .mut nat64
+	-right -mut nat64
 
 -nil nat64()
 	max-value

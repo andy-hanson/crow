@@ -29,13 +29,13 @@ import frontend.parse.lexer :
 	createLexer,
 	curPos,
 	getPeekToken,
+	getPeekTokenAndData,
 	Lexer,
 	range,
 	skipUntilNewlineNoDiag,
 	takeNextToken,
 	Token,
 	TokenAndData;
-import frontend.parse.lexToken : plainToken;
 import frontend.parse.parseExpr : parseDestructureRequireParens, parseFunExprBody;
 import frontend.parse.parseImport : parseImportsOrExports;
 import frontend.parse.parseType : parseType, parseTypeArgForVarDecl, tryParseTypeArgForEnumOrFlags;
@@ -60,7 +60,7 @@ import model.model : FieldMutability, VarKind, Visibility;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : emptySmallArray, only, small;
+import util.col.arr : emptySmallArray, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.str : SafeCStr, safeCStr;
 import util.memory : allocate;
@@ -216,12 +216,12 @@ StructDeclAst.Body.Record.Field[] parseRecordFields(ref Lexer lexer) {
 }
 
 FieldMutability parseFieldMutability(ref Lexer lexer) {
-	if (tryTakeToken(lexer, Token.dot)) {
-		// '.' isn't valid at start of a type, so can only be '.mut'
+	TokenAndData peek = getPeekTokenAndData(lexer);
+	if (tryTakeOperator(lexer, sym!"-")) {
 		if (tryTakeToken(lexer, Token.mut))
 			return FieldMutability.private_;
 		else {
-			addDiagUnexpectedCurToken(lexer, curPos(lexer) - 1, plainToken(Token.dot));
+			addDiagUnexpectedCurToken(lexer, curPos(lexer) - 1, peek);
 			return FieldMutability.const_;
 		}
 	} else

@@ -144,10 +144,10 @@ enum Token {
 	loop, // 'loop'
 	match, // 'match'
 	mut, // 'mut'
-	name, // Any non-keyword, non-operator name; use getCurSym with this
+	name, // Any non-keyword, non-operator name; use TokenAndData.asSym with this
 	// Tokens for a name with '=' or ':=' on the end.
-	nameOrOperatorColonEquals, // 'getCurSym' does NOT include the ':='
-	nameOrOperatorEquals, // 'getcurSym' DOES include the '='
+	nameOrOperatorColonEquals, // 'TokenAndData.asSym' does NOT include the ':='
+	nameOrOperatorEquals, // 'TokenAndData.asSym' DOES include the '='
 	// End of line followed by another line at lesser indentation.
 	// There will be one of these tokens for each reduced indent level, followed by a 'newline' token.
 	newlineDedent,
@@ -157,7 +157,7 @@ enum Token {
 	// end of line followed by another line at the same indent level.
 	newlineSameIndent,
 	noStd, // 'no-std'
-	operator, // Any operator; use getCurOperator with this
+	operator, // Any operator; use TokenAndData.asSym with this
 	parenLeft, // '('
 	parenRight, // ')'
 	question, // '?'

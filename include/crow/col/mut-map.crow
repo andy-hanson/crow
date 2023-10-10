@@ -26,8 +26,8 @@ Mutable unordered map.
 Unordered means that iteration functions like `each` reach each entry in arbitrary order.
 ###
 +mut-map[k, v] record mut
-	-entries .mut (k, v) entry mut-array
-	-total-size .mut nat64
+	-entries -mut (k, v) entry mut-array
+	-total-size -mut nat64
 
 -entry[k, v] union mut
 	none

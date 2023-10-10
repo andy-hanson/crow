@@ -23,7 +23,7 @@ foo[t] void(p nat, _ string)
 	()
 
 -r record mut
-	-r0 .mut nat
+	-r0 -mut nat
 
 -u union
 	u0 nat

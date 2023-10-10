@@ -79,7 +79,7 @@ gc record by-val, mut
 	-barrier mut barrier
 	-gc-count mut nat64
 	-context-head mut gc-ctx?
-	needs-gc .mut bool
+	needs-gc -mut bool
 	-size-words mut nat64
 	# 'mark-cur' and 'data-cur' run in parallel
 	# mark-end must be `mark-begin + size-words` and similar for data-end
