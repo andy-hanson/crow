@@ -273,8 +273,8 @@ SafeCStr pathOrRelPathToStr(ref Alloc alloc, in AllPaths allPaths, PathOrRelPath
 
 private @trusted SafeCStr relPathToSafeCStr(ref Alloc alloc, in AllPaths allPaths, RelPath a) =>
 	SafeCStr(a.nParents == 0
-		? pathToStrWorker(alloc, allPaths, "./", 1, a.path).ptr
-		: pathToStrWorker(alloc, allPaths, "../", a.nParents, a.path).ptr);
+		? pathToStrWorker(alloc, allPaths, ".", 1, a.path).ptr
+		: pathToStrWorker(alloc, allPaths, "..", a.nParents, a.path).ptr);
 
 @trusted SafeCStr pathToSafeCStr(ref Alloc alloc, in AllPaths allPaths, Path path) =>
 	immutable SafeCStr(pathToStrWorker(alloc, allPaths, path).ptr);
