@@ -123,7 +123,6 @@ header nav {
 	justify-content: space-between;
 	font-family: 'hack', monospace;
 	border-bottom: 1px solid black;
-	box-shadow: 0 2px 2px 2px #80808080;
 	position: relative;
 	z-index: 999;
 }
@@ -153,7 +152,7 @@ header nav ul li {
 	padding-left: 1em;
 	padding-right: 1em;
 	padding-bottom: 1em;
-	box-shadow: 2px 2px 2px 2px #80808080;
+	border: 2px solid #80808080;
 	min-width: 8em;
 }
 
@@ -197,6 +196,7 @@ main {
 	background: white;
 
 	width: 52em;
+	margin-top: 1em;
 	margin-left: auto;
 	margin-right: auto;
 	margin-bottom: 1em;
@@ -205,11 +205,7 @@ main {
 	padding-left: 2em;
 	padding-right: 2em;
 	border-radius: 2em;
-	border-top-left-radius: 0;
-	border-top-right-radius: 0;
-
-	border-top: none;
-	box-shadow: 0px 3px 3px 3px #80808080;
+	border: 2px solid #80808080;
 }
 
 main h1, main h2, main h3 {
@@ -221,7 +217,7 @@ main h1, main h2, main h3 {
 main h1 {
 	font-size: 2rem;
 	margin-top: 0.25em;
-	box-shadow: 0 3px 1px -1px #000000c0;
+	border-bottom: 2px solid #000;
 }
 
 main h2 {
@@ -229,7 +225,7 @@ main h2 {
 	margin-top: 1.5em;
 	margin-left: 0.5em;
 	margin-right: 0.5em;
-	box-shadow: 0 2px 1px -1px gray;
+	border-bottom: 1.5px solid #888;
 }
 
 main h3 {
@@ -237,7 +233,7 @@ main h3 {
 	margin-top: 1.5em;
 	margin-left: 1em;
 	margin-right: 3em;
-	box-shadow: 0 2px 1px -1px #ddd;
+	border-bottom: 1px solid #ddd;
 }
 
 aside {
