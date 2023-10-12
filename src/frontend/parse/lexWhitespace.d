@@ -56,6 +56,15 @@ enum IndentKind {
 			case '\r':
 				ptr++;
 				continue;
+			case '\\':
+				immutable(char)* ptr2 = ptr + 1;
+				while (tryTakeChar(ptr2, ' ')) {}
+				if (tryTakeNewline(ptr2)) {
+					while (tryTakeNewline(ptr2) || tryTakeChar(ptr2, ' ')) {}
+					ptr = ptr2;
+					continue;
+				} else
+					return;
 			case '#':
 				skipUntilNewline(ptr);
 				return;

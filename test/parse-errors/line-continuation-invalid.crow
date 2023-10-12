@@ -1,0 +1,3 @@
+main void()
+	info \ log
+		"hello, world!"

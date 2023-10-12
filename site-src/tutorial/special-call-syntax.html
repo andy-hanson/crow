@@ -359,3 +359,18 @@
 			info log "{a} foo= {b}"
 	</crow-runnable>
 </section>
+<section>
+	<h2>Line continuation</h2>
+	<p>
+		Normally a newline indicates the end of an expression.
+		<br />
+		To add a newline within an expression (to break up a long line),
+		add a <code>\</code> before the newline.
+	</p>
+
+	<crow-runnable>
+		main void()
+			info log \
+				"hello, world!"
+	</crow-runnable>
+</section>
