@@ -225,121 +225,119 @@ Possibly writes to 'data' depending on the kind of token returned.
 	ref uint curIndent,
 	in AddDiag addDiag,
 ) {
-	while (true) {
-		char c = *ptr;
-		ptr++;
-		switch (c) {
-			case ' ':
-			case '\t':
-			case '\r':
-			case '#':
-				// handled by skipSpacesAndComments
-				return unreachable!TokenAndData();
-			case '\0':
+	char c = *ptr;
+	ptr++;
+	switch (c) {
+		case ' ':
+		case '\t':
+		case '\r':
+		case '#':
+			// handled by skipSpacesAndComments
+			return unreachable!TokenAndData();
+		case '\0':
+			ptr--;
+			return newlineToken(ptr, Token.EOF, indentKind, curIndent, addDiag);
+		case '\n':
+			return newlineToken(ptr, Token.newlineSameIndent, indentKind, curIndent, addDiag);
+		case '~':
+			return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '~') ? sym!"~~" : sym!"~");
+		case '@':
+			return plainToken(Token.at);
+		case '!':
+			return !peekChars(ptr, "==") && tryTakeChar(ptr, '=')
+				? operatorToken(ptr, allSymbols, sym!"!=")
+				: plainToken(Token.bang);
+		case '%':
+			return operatorToken(ptr, allSymbols, sym!"%");
+		case '^':
+			return operatorToken(ptr, allSymbols, sym!"^");
+		case '&':
+			return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '&') ? sym!"&&" : sym!"&");
+		case '*':
+			return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '*') ? sym!"**" : sym!"*");
+		case '(':
+			return plainToken(Token.parenLeft);
+		case ')':
+			return plainToken(Token.parenRight);
+		case '[':
+			return plainToken(Token.bracketLeft);
+		case '{':
+			return plainToken(Token.braceLeft);
+		case '}':
+			return plainToken(Token.braceRight);
+		case ']':
+			return plainToken(Token.bracketRight);
+		case '-':
+			return isDigit(*ptr)
+				? takeNumberAfterSign(ptr, some(Sign.minus))
+				: tryTakeChar(ptr, '>')
+				? plainToken(Token.arrowAccess)
+				: operatorToken(ptr, allSymbols, sym!"-");
+		case '=':
+			return tryTakeChar(ptr, '>')
+				? plainToken(Token.arrowLambda)
+				: tryTakeChar(ptr, '=')
+				? operatorToken(ptr, allSymbols, sym!"==")
+				: plainToken(Token.equal);
+		case '+':
+			return isDigit(*ptr)
+				? takeNumberAfterSign(ptr, some(Sign.plus))
+				: operatorToken(ptr, allSymbols, sym!"+");
+		case '|':
+			return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '|') ? sym!"||" : sym!"|");
+		case ':':
+			return tryTakeChar(ptr, '=')
+				? plainToken(Token.colonEqual)
+				: tryTakeChar(ptr, ':')
+				? plainToken(Token.colon2)
+				: plainToken(Token.colon);
+		case ';':
+			return plainToken(Token.semicolon);
+		case '"':
+			return tryTakeChars(ptr, "\"\"")
+				? plainToken(Token.quoteDouble3)
+				: plainToken(Token.quoteDouble);
+		case ',':
+			return plainToken(Token.comma);
+		case '<':
+			return tryTakeChar(ptr, '-')
+				? plainToken(Token.arrowThen)
+				: operatorToken(ptr, allSymbols, tryTakeChar(ptr, '=')
+					? tryTakeChar(ptr, '>') ? sym!"<=>" : sym!"<="
+					: tryTakeChar(ptr, '<')
+					? sym!"<<"
+					: sym!"<");
+		case '>':
+			return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '=')
+				? sym!">="
+				: tryTakeChar(ptr, '>')
+				? sym!">>"
+				: sym!">");
+		case '.':
+			return tryTakeChar(ptr, '.')
+				? tryTakeChar(ptr, '.') ? plainToken(Token.dot3) : operatorToken(ptr, allSymbols, sym!"..")
+				: plainToken(Token.dot);
+		case '/':
+			return operatorToken(ptr, allSymbols, sym!"/");
+		case '?':
+			return tryTakeChar(ptr, '=')
+				? plainToken(Token.questionEqual)
+				: tryTakeChar(ptr, '?')
+				? operatorToken(ptr, allSymbols, sym!"??")
+				: plainToken(Token.question);
+		default:
+			if (isAlphaIdentifierStart(c)) {
+				string nameStr = takeNameRest(ptr, ptr - 1);
+				Sym sym = symOfStr(allSymbols, nameStr);
+				Token token = tokenForSym(sym);
+				return token == Token.name
+					? nameLikeToken(ptr, allSymbols, sym, Token.name)
+					: plainToken(token);
+			} else if (isDigit(c)) {
 				ptr--;
-				return newlineToken(ptr, Token.EOF, indentKind, curIndent, addDiag);
-			case '\n':
-				return newlineToken(ptr, Token.newlineSameIndent, indentKind, curIndent, addDiag);
-			case '~':
-				return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '~') ? sym!"~~" : sym!"~");
-			case '@':
-				return plainToken(Token.at);
-			case '!':
-				return !peekChars(ptr, "==") && tryTakeChar(ptr, '=')
-					? operatorToken(ptr, allSymbols, sym!"!=")
-					: plainToken(Token.bang);
-			case '%':
-				return operatorToken(ptr, allSymbols, sym!"%");
-			case '^':
-				return operatorToken(ptr, allSymbols, sym!"^");
-			case '&':
-				return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '&') ? sym!"&&" : sym!"&");
-			case '*':
-				return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '*') ? sym!"**" : sym!"*");
-			case '(':
-				return plainToken(Token.parenLeft);
-			case ')':
-				return plainToken(Token.parenRight);
-			case '[':
-				return plainToken(Token.bracketLeft);
-			case '{':
-				return plainToken(Token.braceLeft);
-			case '}':
-				return plainToken(Token.braceRight);
-			case ']':
-				return plainToken(Token.bracketRight);
-			case '-':
-				return isDigit(*ptr)
-					? takeNumberAfterSign(ptr, some(Sign.minus))
-					: tryTakeChar(ptr, '>')
-					? plainToken(Token.arrowAccess)
-					: operatorToken(ptr, allSymbols, sym!"-");
-			case '=':
-				return tryTakeChar(ptr, '>')
-					? plainToken(Token.arrowLambda)
-					: tryTakeChar(ptr, '=')
-					? operatorToken(ptr, allSymbols, sym!"==")
-					: plainToken(Token.equal);
-			case '+':
-				return isDigit(*ptr)
-					? takeNumberAfterSign(ptr, some(Sign.plus))
-					: operatorToken(ptr, allSymbols, sym!"+");
-			case '|':
-				return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '|') ? sym!"||" : sym!"|");
-			case ':':
-				return tryTakeChar(ptr, '=')
-					? plainToken(Token.colonEqual)
-					: tryTakeChar(ptr, ':')
-					? plainToken(Token.colon2)
-					: plainToken(Token.colon);
-			case ';':
-				return plainToken(Token.semicolon);
-			case '"':
-				return tryTakeChars(ptr, "\"\"")
-					? plainToken(Token.quoteDouble3)
-					: plainToken(Token.quoteDouble);
-			case ',':
-				return plainToken(Token.comma);
-			case '<':
-				return tryTakeChar(ptr, '-')
-					? plainToken(Token.arrowThen)
-					: operatorToken(ptr, allSymbols, tryTakeChar(ptr, '=')
-						? tryTakeChar(ptr, '>') ? sym!"<=>" : sym!"<="
-						: tryTakeChar(ptr, '<')
-						? sym!"<<"
-						: sym!"<");
-			case '>':
-				return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '=')
-					? sym!">="
-					: tryTakeChar(ptr, '>')
-					? sym!">>"
-					: sym!">");
-			case '.':
-				return tryTakeChar(ptr, '.')
-					? tryTakeChar(ptr, '.') ? plainToken(Token.dot3) : operatorToken(ptr, allSymbols, sym!"..")
-					: plainToken(Token.dot);
-			case '/':
-				return operatorToken(ptr, allSymbols, sym!"/");
-			case '?':
-				return tryTakeChar(ptr, '=')
-					? plainToken(Token.questionEqual)
-					: tryTakeChar(ptr, '?')
-					? operatorToken(ptr, allSymbols, sym!"??")
-					: plainToken(Token.question);
-			default:
-				if (isAlphaIdentifierStart(c)) {
-					string nameStr = takeNameRest(ptr, ptr - 1);
-					Sym sym = symOfStr(allSymbols, nameStr);
-					Token token = tokenForSym(sym);
-					return token == Token.name
-						? nameLikeToken(ptr, allSymbols, sym, Token.name)
-						: plainToken(token);
-				} else if (isDigit(c)) {
-					ptr--;
-					return takeNumberAfterSign(ptr, none!Sign);
-				} else
-					return plainToken(Token.invalid);
-		}
+				return takeNumberAfterSign(ptr, none!Sign);
+			} else
+				return plainToken(Token.invalid);
 	}
 }
 
