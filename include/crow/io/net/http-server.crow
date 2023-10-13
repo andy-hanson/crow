@@ -69,7 +69,12 @@ Starts running an HTTP server. Stops it when `cb` returns.
 			cb[]
 
 # Returns true when closed client
--handle-chunk bool^(sock SOCKET, state http-parse-state, chunk nat8 array, handler http-handler) summon, unsafe
+-handle-chunk bool^(
+	sock SOCKET,
+	state http-parse-state,
+	chunk nat8 array,
+	handler http-handler,
+) summon, unsafe
 	state.unparsed ~~= chunk
 	finished-request = if state.content-length == 0
 		state handle-http-initial
@@ -111,7 +116,8 @@ Starts running an HTTP server. Stops it when `cb` returns.
 
 -response-to-array nat8 array(a http-response)
 	forbid a.status-desc contains "\n"
-	# TODO: headers are case insensitive, maybe forbid any upper-case letters in headers to be consistent
+	# TODO: headers are case insensitive,
+	# maybe forbid any upper-case letters in headers to be consistent
 	forbid "Content-Length" in a.headers
 	headers = "" join for k, v : a headers
 		forbid k contains "\n"

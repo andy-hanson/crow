@@ -5,7 +5,8 @@ import
 	./option: new, option
 	./private/bootstrap: new
 export
-	./private/range-low-level: .., forward-rangeable, iterate, low, high, range, rangeable, size, subtract-to-nat
+	./private/range-low-level:
+		.., forward-rangeable, iterate, low, high, range, rangeable, size, subtract-to-nat
 
 region iteration
 

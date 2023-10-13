@@ -16,7 +16,8 @@ import
 
 ###
 Queue that stores values by exclusions.
-It prevents multiple values with the same exclusion from being dequeued before 'release-exclusion' is called.
+It prevents multiple values with the same exclusion from being dequeued
+before 'release-exclusion' is called.
 
 This is not thread-safe.
 This is not traceable, so you must call `add-gc-roots`.
@@ -87,7 +88,10 @@ enqueue[v] void(a v exclusion-queue mut*, key exclusion, value v) bare, unsafe
 		a add-to-queue entry
 	entry.value.values enqueue value
 
--add-to-queue[v] void(a v exclusion-queue mut*, entry (exclusion, v entry) map-pair mut*) bare, unsafe
+-add-to-queue[v] void(
+	a v exclusion-queue mut*,
+	entry (exclusion, v entry) map-pair mut*,
+) bare, unsafe
 	forbid entry.value.as-const is-in-queue
 	last = a.queue.value->prev
 	last.value->next := entry
@@ -119,7 +123,10 @@ release-exclusion[v] void(a v exclusion-queue mut*, key exclusion) bare, unsafe
 	else
 		a add-to-queue entry
 
--move-from[v] void(dest (exclusion, v entry) map-pair mut*, src (exclusion, v entry) map-pair*) bare, unsafe
+-move-from[v] void(
+	dest (exclusion, v entry) map-pair mut*,
+	src (exclusion, v entry) map-pair*,
+) bare, unsafe
 	*dest := *src
 	if src.value->prev == null
 		assert src.value->next == null

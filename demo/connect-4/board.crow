@@ -26,7 +26,8 @@ board-cache[t] record mut
 
 new[t] t board-cache() t new
 	size = 0xccce9
-	# Per the Chinese Remainder Theorem, if we know the key mod 2^32 and mod size, we know the key mod their product.
+	# Per the Chinese Remainder Theorem, if we know the key mod 2^32 and mod size,
+	# we know the key mod their product.
 	# If their product is > the max key, then we know the key.
 	assert size * 2 ** 32 > max-key
 	# Use max-nat as an impossible key

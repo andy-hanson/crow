@@ -71,7 +71,10 @@ If the string has leading or trailing spaces you must use a grammar that include
 		f[v] ok
 	as error e
 		e error
--then[out, in] (string-iterator, out inner-parse-result)(a (string-iterator, in inner-parse-result), f act out(in))
+-then[out, in] (string-iterator, out inner-parse-result)(
+	a (string-iterator, in inner-parse-result),
+	f act out(in),
+)
 	a.a, a.b then f
 
 -inner-parse-error record
@@ -96,7 +99,10 @@ If the string has leading or trailing spaces you must use a grammar that include
 -make-grammar record
 -make-grammar make-grammar()
 	()
--with-block[t] t grammar(_ make-grammar, f act (string-iterator, t inner-parse-result)(string-iterator))
+-with-block[t] t grammar(
+	_ make-grammar,
+	f act (string-iterator, t inner-parse-result)(string-iterator),
+)
 	f,
 
 region basic building blocks

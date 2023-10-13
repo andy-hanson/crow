@@ -155,7 +155,9 @@ find-or-insert-and-inserted[k, v] ((k, v) map-pair mut*, found-or-inserted)(
 			evict-right-to-left move-from right.as-const
 			right,
 
--increase-capacity[k, v] void(a (k, v) bare-map mut*) bare, unsafe, k key, v new, (k, v) map-pair move
+-increase-capacity[k, v] void(
+	a (k, v) bare-map mut*,
+) bare, unsafe, k key, v new, (k, v) map-pair move
 	forbid a->half-capacity == 0
 	new-half-capacity mut = a->half-capacity
 	out mut (k, v) bare-map = zeroed
@@ -194,7 +196,10 @@ find-or-insert-and-inserted[k, v] ((k, v) map-pair mut*, found-or-inserted)(
 	a free-table-not-values
 	*a := out
 
--try-add-key[k, v] bool(a (k, v) bare-map mut*, key k) bare, unsafe, k key, v new, (k, v) map-pair move
+-try-add-key[k, v] bool(
+	a (k, v) bare-map mut*,
+	key k,
+) bare, unsafe, k key, v new, (k, v) map-pair move
 	hash = key hash
 	left = a entry-left hash
 	right = a entry-right hash

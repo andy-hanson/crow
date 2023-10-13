@@ -37,7 +37,8 @@ If two pairs have the same key, the second pair added will be popped second.
 
 ###
 Priority queue consists of a linked list of nodes with two parts.
-First part is recently inserted values. These all have a single pair in 'min' and nothing in 'pairs'.
+First part is recently inserted values.
+These all have a single pair in 'min' and nothing in 'pairs'.
 Next part is compacted arrays of pairs. These are sorted biggest to smallest.
 They grow exponentially from right to left, so total # of these nodes is logarithmic in queue size.
 
@@ -209,7 +210,11 @@ This is amortized O(log n).
 	else
 		n-singles plan-will-compact
 
--do-compact[k, v] (k, v) node(root (k, v) node, n-to-compact nat64, nodes-to-compact (k, v) node?) k compare
+-do-compact[k, v] (k, v) node(
+	root (k, v) node,
+	n-to-compact nat64,
+	nodes-to-compact (k, v) node?,
+) k compare
 	compacted (k, v) mut-array = with out : n-to-compact build
 		out compact-non-singles nodes-to-compact
 		out compact-singles root
@@ -304,7 +309,10 @@ region spec impls (see collection.crow)
 
 +priority-queue-builder[k, v] record mut
 	-inner (k, v) array-builder
-+build[k, v] (k, v) priority-queue(a build-options, f act void((k, v) priority-queue-builder)) k priority
++build[k, v] (k, v) priority-queue(
+	a build-options,
+	f act void((k, v) priority-queue-builder),
+) k priority
 	(a build out => f[out,])::((k, v) array) to
 +~=[k, v] void(a (k, v) priority-queue-builder, value (k, v)) k priority
 	a.inner ~= value

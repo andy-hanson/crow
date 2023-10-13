@@ -4,10 +4,14 @@ import
 		glDeleteShader, gl-ext, glGetProgramInfoLog, glGetProgramiv, glGetShaderInfoLog,
 		glGetShaderiv, glLinkProgram, glShaderSource
 	OpenGL/headers:
-		GLchar, GL_COMPILE_STATUS, GLenum, GL_FALSE, GL_FRAGMENT_SHADER, GL_INFO_LOG_LENGTH, GLint, GL_LINK_STATUS,
-		GL_TRUE, GLuint, GL_VERTEX_SHADER
+		GLchar, GL_COMPILE_STATUS, GLenum, GL_FALSE, GL_FRAGMENT_SHADER, GL_INFO_LOG_LENGTH, GLint,
+		GL_LINK_STATUS, GL_TRUE, GLuint, GL_VERTEX_SHADER
 
-shader-prog-load GLuint(gl gl-ext, vert-shader-source string, frag-shader-source string) summon, unsafe
+shader-prog-load GLuint(
+	gl gl-ext,
+	vert-shader-source string,
+	frag-shader-source string,
+) summon, unsafe
 	vert-shader = gl shader-load "vertex shader", vert-shader-source, GL_VERTEX_SHADER
 	frag-shader = gl shader-load "fragment shader", frag-shader-source, GL_FRAGMENT_SHADER
 	shader-prog = gl glCreateProgram

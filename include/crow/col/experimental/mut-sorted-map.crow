@@ -351,22 +351,23 @@ test
 
 	# Adding some more values so removals can't fully remove
 	a ~~= ((13, "13"), (15, "15"), (17, "17"))
-	a verify "[5 -> 5, 7 -> 7, 8 -> 8, 10 -> 10, 11 -> 11, 13 -> 13, 15 -> 15, 17 -> 17], [0 -> 0, 2 -> 2, 6 -> 6]"
+	node2 = "[0 -> 0, 2 -> 2, 6 -> 6]"
+	a verify "[5 -> 5, 7 -> 7, 8 -> 8, 10 -> 10, 11 -> 11, 13 -> 13, 15 -> 15, 17 -> 17], {node2}"
 
 	a remove-key 5 is ("5",)
-	a verify "[5 -> _, 7 -> 7, 8 -> 8, 10 -> 10, 11 -> 11, 13 -> 13, 15 -> 15, 17 -> 17], [0 -> 0, 2 -> 2, 6 -> 6]"
+	a verify "[5 -> _, 7 -> 7, 8 -> 8, 10 -> 10, 11 -> 11, 13 -> 13, 15 -> 15, 17 -> 17], {node2}"
 	a remove-key 5 is ()
 
 	a remove-key 8 is ("8",)
-	a verify "[5 -> _, 7 -> 7, 8 -> _, 10 -> 10, 11 -> 11, 13 -> 13, 15 -> 15, 17 -> 17], [0 -> 0, 2 -> 2, 6 -> 6]"
+	a verify "[5 -> _, 7 -> 7, 8 -> _, 10 -> 10, 11 -> 11, 13 -> 13, 15 -> 15, 17 -> 17], {node2}"
 
 	# Setting near a deleted value re-uses the slot
 	a[9] := "9"
-	a verify "[5 -> _, 7 -> 7, 9 -> 9, 10 -> 10, 11 -> 11, 13 -> 13, 15 -> 15, 17 -> 17], [0 -> 0, 2 -> 2, 6 -> 6]"
+	a verify "[5 -> _, 7 -> 7, 9 -> 9, 10 -> 10, 11 -> 11, 13 -> 13, 15 -> 15, 17 -> 17], {node2}"
 
 	# Removing enough values makes us compact
 	a remove-key 9 is ("9",)
-	a verify "[5 -> _, 7 -> 7, 9 -> _, 10 -> 10, 11 -> 11, 13 -> 13, 15 -> 15, 17 -> 17], [0 -> 0, 2 -> 2, 6 -> 6]"
+	a verify "[5 -> _, 7 -> 7, 9 -> _, 10 -> 10, 11 -> 11, 13 -> 13, 15 -> 15, 17 -> 17], {node2}"
 
 	# Before, physical sizes are 8 and 3, and first logical size size is 6.
 	# After the removal, first node size is 5 and total physical size is 10, so we compact.

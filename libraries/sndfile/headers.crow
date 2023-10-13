@@ -45,7 +45,11 @@ SndFileMode enum(c-int) extern
 sf_read_short sf_count_t(sndfile SNDFILE mut*, pointer short mut*, items sf_count_t) sndfile extern
 sf_write_short sf_count_t(sndfile SNDFILE mut*, pointer short*, items sf_count_t) sndfile extern
 
-sf_read_float sf_count_t(sndfile SNDFILE mut*, pointer float32 mut*, items sf_count_t) sndfile extern
+sf_read_float sf_count_t(
+	sndfile SNDFILE mut*,
+	pointer float32 mut*,
+	items sf_count_t,
+) sndfile extern
 sf_write_float sf_count_t(sndfile SNDFILE mut*, pointer float32*, items sf_count_t) sndfile extern
 
 # WARN: This is not a true flags type; can only be mixed in certain ways

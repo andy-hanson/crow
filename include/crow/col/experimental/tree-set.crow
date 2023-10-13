@@ -321,7 +321,12 @@ try-remove[t] t tree-set?(a t tree-set, b t) t key
 	else
 		a break-up-arr value, insert, max-height
 
--break-up-arr[t] t add-result(a t array, value t, insert-iter t array-iterator, max-height nat64) t key
+-break-up-arr[t] t add-result(
+	a t array,
+	value t,
+	insert-iter t array-iterator,
+	max-height nat64,
+) t key
 	# Break it up into nodes, adding to height
 	mid-index = a.size / 2
 	if insert-iter.next-index == mid-index
@@ -350,7 +355,12 @@ try-remove[t] t tree-set?(a t tree-set, b t) t key
 			as find-scapegoat f
 				(a.size + 1, f.height + 1) find-scapegoat
 
--handle-scapegoat[t] t add-result(a t inner-node, value t, other-subtree t node, f find-scapegoat) t key
+-handle-scapegoat[t] t add-result(
+	a t inner-node,
+	value t,
+	other-subtree t node,
+	f find-scapegoat,
+) t key
 	size-here = f.size + 1 + other-subtree.walk-size
 	height-here = f.height + 1
 	if height-here > size-here.get-max-height

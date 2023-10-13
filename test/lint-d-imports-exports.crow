@@ -18,7 +18,9 @@ main nat^(_ string[]) summon
 	for file : files
 		for public-export : file.members public
 			# Ignore union.d because it gets confused by the mixin
-			unless public-export in all-imports || public-export in allow-exports || file.path in allow-paths
+			unless public-export in all-imports || \
+					public-export in allow-exports || \
+					file.path in allow-paths
 				failures ~= "{file path} export not used: {public-export}"
 	for file : files
 		for private-member : file.members private
@@ -88,7 +90,8 @@ all-files file[]^() summon
 
 # for some reason, dscanner doesn't give non-nested unions like Converter64 access:private
 -excluded-unknown-access symbol set()
-	"Converter32", "Converter64", "DCValue", "DoubleToUlong", "StackMap2Key", "StackMap2Value", "TokenData"
+	"Converter32", "Converter64", "DCValue", "DoubleToUlong", "StackMap2Key", "StackMap2Value", \
+		"TokenData"
 
 -imports-and-rest record
 	imports symbol set
@@ -129,7 +132,10 @@ all-files file[]^() summon
 			out ~= word.move-to::string to
 
 -is-identifier-char bool(a char8)
-	"a"::char8 <= a && a <= "z" || "A"::char8 <= a && a <= "Z" || "0"::char8 <= a && a <= "9" || a == "_"
+	"a"::char8 <= a && a <= "z" || \
+		"A"::char8 <= a && a <= "Z" || \
+		"0"::char8 <= a && a <= "9" || \
+		a == "_"
 
 -lint-imports-in-file void(failures string mut[], a file)
 	not-used symbol mut-set = a.imports to

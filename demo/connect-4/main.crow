@@ -104,10 +104,6 @@ CPU: CPU vs CPU
 	x nat
 	score int32
 
--score-and-best record by-val
-	score int32
-	best strategy
-
 score-cache alias
 	int32 board-cache
 
@@ -126,11 +122,18 @@ score-cache alias
 		cache[board] := res
 		res
 
--strategy-recur strategy(cache score-cache, board board, ai-depth nat, best strategy, sum-score int, x nat)
+-strategy-recur strategy(
+	cache score-cache,
+	board board,
+	ai-depth nat,
+	best strategy,
+	sum-score int,
+	x nat,
+)
 	if x == width
 		best.x, sum-score.clamp-to
 	else
-		score-and-best score-and-best = if board can-place x
+		score int32, new-best strategy = if board can-place x
 			new-board = board place x
 			score int32 = if new-board just-won
 				width ** ai-depth clamp-to
@@ -142,7 +145,7 @@ score-cache alias
 			score, new-strategy
 		else
 			0, best
-		cache strategy-recur board, ai-depth, score-and-best.best, (sum-score + score-and-best.score.to), x + 1
+		cache strategy-recur board, ai-depth, new-best, (sum-score + score.to), x + 1
 
 indent string(depth nat)
 	" " repeat 2 * (9 - depth)

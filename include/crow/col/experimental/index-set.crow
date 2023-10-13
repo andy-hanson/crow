@@ -26,7 +26,8 @@ index-set record by-ref
 	inner inner-node
 	leaf leaf-node
 	empty
-# TODO: could save space by having separate types for inner node of inner nodes and inner node of leaf-node?
+# TODO: could save space by having separate types for inner node of inner nodes
+# and inner node of leaf-node?
 -inner-node record by-ref
 	a node
 	b node
@@ -322,7 +323,8 @@ count-range nat64(a index-set, low nat64, high nat64)
 			half = n / 2
 			quarter = half / 2
 			three-quarters = quarter + half
-			# If low < quarter, wrap-sub will give an impossibly high value and the recursive call will return 0.
+			# If low < quarter, wrap-sub will give an impossibly high value
+			# and the recursive call will return 0.
 			ca = i.a count-range quarter, low, len
 			cb = i.b count-range quarter, (low wrap-sub quarter), len
 			cc = i.c count-range quarter, (low wrap-sub half), len

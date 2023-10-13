@@ -34,7 +34,9 @@ sorted-set[t] record
 
 ###
 We store add/remove separately.
-Add nodes are a linked list where links point to the left. Largest node is on the left. Nodes are added to the right.
+Add nodes are a linked list where links point to the left.
+Largest node is on the left.
+Nodes are added to the right.
 ###
 
 -add-node[t] record
@@ -89,7 +91,11 @@ in[t] bool(value t, a t sorted-set) t key
 	size-here nat64
 	size-right nat64
 
--find-in-add-for-remove[t] find-in-add-for-remove-result?(a t add-node, value t, size-right nat64) t key
+-find-in-add-for-remove[t] find-in-add-for-remove-result?(
+	a t add-node,
+	value t,
+	size-right nat64,
+) t key
 	if iter ?= a.values binary-search-exact value
 		sl = a add-size-left
 		(sl + iter.next-index, sl, a.values.size, size-right),
@@ -168,7 +174,12 @@ We compact a node if:
 * Half of the values of this node have been removed
 Or a combination of the two.
 ###
--add-and-compact-plan[t] compact-plan(size-here-and-left nat64, a t add-node, remove index-set, size-right nat64)
+-add-and-compact-plan[t] compact-plan(
+	size-here-and-left nat64,
+	a t add-node,
+	remove index-set,
+	size-right nat64,
+)
 	size-here = a.values size
 	size-left = size-here-and-left - size-here
 	removals-here-and-right = remove count-greater-or-equal size-left
@@ -231,7 +242,12 @@ Or a combination of the two.
 			cur := cur.left!
 			continue
 
--merge[t] void(a t compactor, values t array, add-size-here-and-left nat64, remove index-set) unsafe, t key
+-merge[t] void(
+	a t compactor,
+	values t array,
+	add-size-here-and-left nat64,
+	remove index-set,
+) unsafe, t key
 	n-remove = remove count-range (add-size-here-and-left - values.size), add-size-here-and-left
 	n-added = values.size - n-remove
 	unless n-added == 0

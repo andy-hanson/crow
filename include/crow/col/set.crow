@@ -207,7 +207,12 @@ Else, adds it and returns the new set.
 			add-size-here-and-left -:= cur.here size
 			continue
 
--push[t] void(out t frozen-set-builder, here t frozen-set, add-size-here-and-left nat64, remove index-set)
+-push[t] void(
+	out t frozen-set-builder,
+	here t frozen-set,
+	add-size-here-and-left nat64,
+	remove index-set,
+)
 	for i, x : here with-index
 		unless add-size-here-and-left + i in remove
 			out ~= x

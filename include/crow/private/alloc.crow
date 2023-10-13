@@ -101,7 +101,8 @@ words-free nat64(a gc-stats) bare
 	a.total-words wrap-sub a.words-used
 
 # Super unsafe
-# WARN: Unfortunately this doesn't prevent the original allocation in new-gc, just forbids us to use it
+# WARN: Unfortunately this doesn't prevent the original allocation in new-gc,
+# just forbids us to use it
 set-hard-limit void(gc gc mut*, size-words nat64) bare, unsafe
 	# TODO: get a lock
 	gc.as-const validate-gc
@@ -189,11 +190,15 @@ gc-complete void(gc gc mut*) bare, unsafe
 gc-end void(gc gc mut*) bare, unsafe
 	_ = gc.barrier wait-barrier
 
--clear-free-mem void(mark-pointer bool mut*, mark-end bool mut*, data-pointer nat64 mut*) bare, unsafe
-	unless mark-pointer == mark-end
+-clear-free-mem void(
+	mark-pointer mut bool mut*,
+	mark-end bool mut*,
+	data-pointer nat64 mut*,
+) bare, unsafe
+	until mark-pointer == mark-end
 		unless *mark-pointer
 			*data-pointer := 0xfadefadefadefade
-		mark-pointer + 1 clear-free-mem mark-end, data-pointer
+		mark-pointer := mark-pointer + 1
 
 ###
 GC info specific to a ctx.

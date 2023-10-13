@@ -2,9 +2,11 @@
 Results of functions in this module are known at compile-time.
 
 For example, given a conditional `if is-windows`, functions in the unused branch
-(the `false` branch on Windows, and the `true` branch on other OSes) will not be included in the compiled executable.
+(the `false` branch on Windows, and the `true` branch on other OSes)
+will not be included in the compiled executable.
 
-This is important to avoid the compiler attempting to link to functions that don't exist on a machine.
+This is important to avoid the compiler attempting to link to functions
+that don't exist on a machine.
 
 Code is always typechecked regardless of whether it will be used.
 ###

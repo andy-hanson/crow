@@ -20,7 +20,9 @@ posix_spawn err-t(
 ) summon, c extern
 
 posix_spawn_file_actions_init err-t(file-actions posix_spawn_file_actions_t mut*) summon, c extern
-posix_spawn_file_actions_destroy err-t(file-actions posix_spawn_file_actions_t mut*) summon, c extern
+posix_spawn_file_actions_destroy err-t(
+	file-actions posix_spawn_file_actions_t mut*,
+) summon, c extern
 posix_spawn_file_actions_addopen err-t(
 	file-actions posix_spawn_file_actions_t mut*,
 	fd fd-t,

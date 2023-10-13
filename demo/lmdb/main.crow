@@ -14,32 +14,32 @@ main nat^(args string[]) summon
 	if command ?= command-name parse-command_name
 		match command
 		as get
-			named-args = (rest-args parse-named-args ("db-path", "db-name", "key"))!
-			db-path = named-args[0] single-string-or-throw "db-path"
+			named-args = (rest-args parse-named-args ("path", "db-name", "key"))!
+			path = named-args[0] single-string-or-throw "path"
 			db-name = named-args[1] single-string-or-throw "db-name"
 			key = named-args[2] single-string-or-throw "key"
-			with env : db-path open-lmdb-env true
+			with env : path open-lmdb-env true
 				with db : env database@(string, string) db-name
 					value = with txn : env read-transaction
 						txn get db, key ?? "none"
 					out print value
 					()
 		as set
-			named-args = (rest-args parse-named-args ("db-path", "db-name", "key", "value"))!
-			db-path = named-args[0] single-string-or-throw "db-path"
+			named-args = (rest-args parse-named-args ("path", "db-name", "key", "value"))!
+			path = named-args[0] single-string-or-throw "path"
 			db-name = named-args[1] single-string-or-throw "db-name"
 			key = named-args[2] single-string-or-throw "key"
 			value = named-args[3] single-string-or-throw "value"
-			with env : db-path open-lmdb-env true
+			with env : path open-lmdb-env true
 				with db : env database@(string, string) db-name
 					with txn : env write-transaction
 						txn set db, key, value
 					()
 		as stat
-			named-args = (rest-args parse-named-args ("db-path", "db-name"))!
-			db-path = named-args[0] single-string-or-throw "db-path"
+			named-args = (rest-args parse-named-args ("path", "db-name"))!
+			path = named-args[0] single-string-or-throw "path"
 			db-name = named-args[1] single-string-or-throw "db-name"
-			with env : db-path open-lmdb-env true
+			with env : path open-lmdb-env true
 				with db : env database@(string, string) db-name
 					out print with txn : env read-transaction
 						txn stat db to
@@ -50,15 +50,18 @@ main nat^(args string[]) summon
 
 -usage string()
 	"""
-Usage: crow run demo/lmdb/main <get | set | stat> --db-path <file> --db-name <name> --key <key> --value <value>
+Usage:
+crow run demo/lmdb/main -- get --path <file> --db-name <name> --key <key>
+crow run demo/lmdb/main -- set --path <file> --db-name <name> --key <key> --value <value>
+crow run demo/lmdb/main -- stat --path <file> --db-name <name>
 
 Creates the DB file if it does not yet exist.
 The file contains multiple named sub-dbs.
 Each sub-db is a map from keys to values.
 
 Example:
-	crow run demo/lmdb/main -- set --db-path foo.db --db-name capitals --key indiana --value indianapolis
-	crow run demo/lmdb/main -- get --db-path foo.db --db-name capitals --key indiana
+crow run demo/lmdb/main -- set --path foo.db --db-name capitals --key indiana --value indianapolis
+crow run demo/lmdb/main -- get --path foo.db --db-name capitals --key indiana
 """
 
 -parse-command_name command?(a string)

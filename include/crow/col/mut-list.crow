@@ -233,7 +233,9 @@ This has no observable effect.
 ###
 Ensure that the mut-list can grow to a size of `reserved` without reallocating.
 Does nothing if the capacity is already sufficient.
-This may reserve more space than requested, so calling `reserve` repeatedly for slowly increasing sizes
+
+This may reserve more space than requested,
+so calling `reserve` repeatedly for slowly increasing sizes
 doesn't reallocate every time, and is no worse than pushing repeatedly.
 ###
 -reserve[t] void(a t mut[], reserved nat64) unsafe
@@ -263,14 +265,16 @@ uninitialized-mut-list[t] t mut[](size nat64) unsafe
 ###
 Directly sets the `size` without touching the data.
 Unsafe because if this increases the size, it exposes uninitialized data.
-If this decreases the size, it doesn't zero out the rest of the data, so the garbage collector will keep it alive.
+If this decreases the size, it doesn't zero out the rest of the data,
+so the garbage collector will keep it alive.
 ###
 unsafe-set-size[t] void(a t mut[], new-size nat64) unsafe
 	a reserve new-size
 	a.size := new-size
 
 ###
-Sets `a[index] := value`, but first shifts all elements from `index` onwards to the right to make room.
+Sets `a[index] := value`,
+but first shifts all elements from `index` onwards to the right to make room.
 Increases the size by 1.
 This is O(a.size - index) due to having to move other elements.
 Throws if `index > a.size`.

@@ -2,7 +2,6 @@ import
 	./path-and-content: new, path-and-content
 
 page-template path-and-content(path string, title string, content string)
-	current = " class=\"current\""
 	full-content = """
 <!DOCTYPE html>
 <html lang="en">
@@ -26,9 +25,7 @@ page-template path-and-content(path string, title string, content string)
 				</a>
 			</div>
 			<ul class="grow">
-				<li><a href="/download.html"{path starts-with "download" ? current}>download</a></li>
-				<li><a href="/tutorial"{path starts-with "tutorial" ? current}>tutorial</a></li>
-				<li><a href="/doc"{path starts-with "doc" ? current}>documentation</a></li>
+				{path nav-links}
 			</ul>
 			<ul>
 				<li>
@@ -54,3 +51,12 @@ page-template path-and-content(path string, title string, content string)
 </html>
 """
 	path, full-content
+
+nav-links string(path string)
+	current = " class=\"current\""
+	"""
+	<li><a href="/download.html"{path starts-with "download" ? current}>download</a></li>
+	<li><a href="/tutorial"{path starts-with "tutorial" ? current}>tutorial</a></li>
+	<li><a href="/doc"{path starts-with "doc" ? current}>documentation</a></li>
+	"""
+

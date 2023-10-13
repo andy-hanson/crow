@@ -15,8 +15,8 @@ import
 	./alloc: unmanaged-alloc-elements, unmanaged-free
 	./future-low-level: get-result
 	./runtime:
-		after-task, any-unhandled-exceptions, before-task, destroy, get-global-ctx, global-ctx, init,
-		thread-function, uninit
+		after-task, any-unhandled-exceptions, before-task, destroy, get-global-ctx, global-ctx,
+		init, thread-function, uninit
 	./symbol-low-level: init-symbol-table
 	./thread-utils: count-processors, create-one-thread, join-one-thread, thread-handle
 

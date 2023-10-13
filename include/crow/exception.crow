@@ -48,7 +48,7 @@ This is like `finally`, but does not run in the successful case.
 
 -to string(a backtrace)
 	# Don't include entries from runtime, only at start of function
-	kept-entries = if idx ?= a.entries find-index x => (trusted x.function-name.to) is-runtime-function-name
+	kept-entries = if idx ?= a.entries find-index x => x is-runtime-function-entry
 		if idx > 0
 			if trusted a.entries[idx - 1].function-name.to::string == "call"
 				a.entries[0 .. idx - 1]
@@ -66,6 +66,9 @@ This is like `finally`, but does not run in the successful case.
 		"main"
 	else
 		a
+
+-is-runtime-function-entry bool(a backtrace-entry)
+	(trusted a.function-name.to) is-runtime-function-name
 
 -is-runtime-function-name bool(a string)
 	if a starts-with "then@"

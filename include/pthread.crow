@@ -53,12 +53,20 @@ pthread_cond_destroy err-t(cond pthread_cond_t mut*) pthread extern
 pthread_cond_signal err-t(cond pthread_cond_t mut*) pthread extern
 pthread_cond_broadcast err-t(cond pthread_cond_t mut*) pthread extern
 pthread_cond_wait err-t(cond pthread_cond_t mut*, mutex pthread_mutex_t mut*) pthread extern
-pthread_cond_timedwait err-t(cond pthread_cond_t mut*, mutex pthread_mutex_t mut*, abstime timespec*) pthread extern
+pthread_cond_timedwait err-t(
+	cond pthread_cond_t mut*,
+	mutex pthread_mutex_t mut*,
+	abstime timespec*,
+) pthread extern
 
 pthread_barrier_t extern(32) shared
 pthread_barrierattr_t extern(4) shared
 
-pthread_barrier_init err-t(barrier pthread_barrier_t mut*, attr pthread_barrierattr_t*, count u-int) pthread extern
+pthread_barrier_init err-t(
+	barrier pthread_barrier_t mut*,
+	attr pthread_barrierattr_t*,
+	count u-int,
+) pthread extern
 pthread_barrier_destroy err-t(barrier pthread_barrier_t mut*) pthread extern
 pthread_barrier_wait err-t(barrier pthread_barrier_t mut*) pthread extern
 

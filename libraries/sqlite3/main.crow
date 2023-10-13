@@ -53,7 +53,12 @@ import
 -callback-ctx record by-val, mut
 	cb-row act bool(string[symbol])
 
--callback c-int(ctx-pointer any-mut-pointer, argc c-int, argv c-string*, col-name c-string*) summon, unsafe
+-callback c-int(
+	ctx-pointer any-mut-pointer,
+	argc c-int,
+	argv c-string*,
+	col-name c-string*,
+) summon, unsafe
 	row string[symbol] = for i : 0 .. argc.to::nat64
 		col-name[i].to::string.to, argv[i].to
 	(ctx-pointer.as-const.pointer-cast::callback-ctx*)->cb-row[row] ? 1 : 0

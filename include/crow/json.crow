@@ -214,7 +214,8 @@ Else, returns an empty option.
 	with : lazy
 		(json-object map x => x.json-object) / (json-list map x => x.json-list) / json-primitive
 -json-object json[symbol] grammar()
-	pair (symbol, json) grammar = (quoted-string map s => s.to::symbol) ~~ spaces ~~ ":" ~~ spaces ~~ json
+	quoted-symbol symbol grammar = quoted-string map s => s.to
+	pair (symbol, json) grammar = quoted-symbol ~~ spaces ~~ ":" ~~ spaces ~~ json
 	pairs (symbol, json)[] grammar = pair separated-by "," ~~ spaces
 	pairs2 json[symbol] grammar = pairs map x => x to
 	"\{" ~~ spaces ~~ pairs2 ~~ spaces ~~ "}"

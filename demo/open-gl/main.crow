@@ -38,20 +38,21 @@ main nat^(_ string[]) summon
 		SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
 
 		# TODO: is this redundant?
-		# This should be done after initializing the video driver, but before creating any OpenGL windows.
+		# This should be done after initializing the video driver,
+		# but before creating any OpenGL windows.
 		if false
-			"C:\\Windows\\System32\\opengl32.dll" .SDL_GL_LoadLibrary handle-sdl-error "SDL_GL_LoadLibrary"
-		# Same bad results as the builtin driver..
-		#if false
-		#	"C:\\Users\\User\\code\\crow\\opengl32.dll".SDL_GL_LoadLibrary handle-sdl-error "SDL_GL_LoadLibrary"
+			"C:\\Windows\\System32\\opengl32.dll".SDL_GL_LoadLibrary handle-sdl-error \
+				"SDL_GL_LoadLibrary"
 
-		SDL_GL_CONTEXT_PROFILE_MASK SDL_GL_SetAttribute SDL_GL_CONTEXT_PROFILE_ES.to handle-sdl-error "set GL ES"
+		SDL_GL_CONTEXT_PROFILE_MASK SDL_GL_SetAttribute SDL_GL_CONTEXT_PROFILE_ES.to \
+			handle-sdl-error "set GL ES"
 		SDL_GL_CONTEXT_MAJOR_VERSION SDL_GL_SetAttribute 3 handle-sdl-error "set major version"
 		SDL_GL_CONTEXT_MINOR_VERSION SDL_GL_SetAttribute 0 handle-sdl-error "set minor version"
 		SDL_GL_DOUBLEBUFFER SDL_GL_SetAttribute 1 handle-sdl-error "set double buffer"
 
 		wflags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN
-		window = "crube" SDL_CreateWindow SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 960, 720, wflags
+		window = "crube" SDL_CreateWindow SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, \
+			960, 720, wflags
 		if window == null
 			"SDL_CreateWindow" fail-sdl-error
 
@@ -85,7 +86,8 @@ main nat^(_ string[]) summon
 		triangle-vbo = gl vbo-create vertices
 		forbid triangle-vbo == 0
 
-		renderer renderer = gl, cur-thread-id, window, shader-prog, vertices, triangle-vbo, texture, rotation-loc
+		renderer renderer = gl, cur-thread-id, window, shader-prog, vertices, triangle-vbo, \
+			texture, rotation-loc
 		renderer set-up-renderer
 
 		<- for : 25.msec interval
@@ -232,7 +234,8 @@ main nat^(_ string[]) summon
 	n-buffers int32 = 1
 	gl glGenBuffers n-buffers, &vbo
 	gl glBindBuffer GL_ARRAY_BUFFER, vbo
-	gl glBufferData GL_ARRAY_BUFFER, vertices.size-bytes.to, vertices.begin-pointer.pointer-cast, GL_STATIC_DRAW
+	gl glBufferData GL_ARRAY_BUFFER, vertices.size-bytes.to, vertices.begin-pointer.pointer-cast, \
+		GL_STATIC_DRAW
 	gl glBindBuffer GL_ARRAY_BUFFER, 0
 	err = gl glGetError
 	unless err == GL_NO_ERROR

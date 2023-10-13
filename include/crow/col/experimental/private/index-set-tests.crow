@@ -11,8 +11,8 @@ import
 	../../collection: for-loop
 	../../list: ==, list, new, size
 	../index-set:
-		==, ~=, ~, ~~, -, build, dbg, count-greater-or-equal, count-less, count-range, filter-less, in,
-		index-set, iterate, new, size, to, try-add, try-remove
+		==, ~=, ~, ~~, -, build, dbg, count-greater-or-equal, count-less, count-range, filter-less,
+		in, index-set, iterate, new, size, to, try-add, try-remove
 
 dummy-index-set-tests nat64()
 	0

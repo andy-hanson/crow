@@ -38,7 +38,12 @@ mdb_dbi_open mdb-error(
 ) summon, lmdb extern
 mdb_dbi_close void(env MDB_env mut*, dbi MDB_dbi) summon, lmdb extern
 
-mdb_get mdb-error(txn MDB_txn mut*, dbi MDB_dbi, key MDB_val*, value MDB_val mut*) summon, lmdb extern
+mdb_get mdb-error(
+	txn MDB_txn mut*,
+	dbi MDB_dbi,
+	key MDB_val*,
+	value MDB_val mut*,
+) summon, lmdb extern
 mdb_put mdb-error(
 	txn MDB_txn mut*,
 	dbi MDB_dbi,
@@ -59,7 +64,11 @@ new mdb_stat()
 mdb_stat mdb-error(txn MDB_txn mut*, dbi MDB_dbi, stat mdb_stat mut*) summon, lmdb extern
 
 MDB_cursor extern
-mdb_cursor_open mdb-error(txn MDB_txn mut*, dbi MDB_dbi, cursor MDB_cursor mut* mut*) summon, lmdb extern
+mdb_cursor_open mdb-error(
+	txn MDB_txn mut*,
+	dbi MDB_dbi,
+	cursor MDB_cursor mut* mut*,
+) summon, lmdb extern
 mdb_cursor_close void(cursor MDB_cursor mut*) summon, lmdb extern
 mdb_cursor_get mdb-error(
 	cursor MDB_cursor mut*,

@@ -256,10 +256,8 @@ If the key is not in the map, returns an empty option.
 			as remove
 				(), (), ()
 			as insert ins
-				# TODO: type annotation should not be necessary
-				new-leaf (k, v) node = ((key, ins),) leaf-node
-				# TODO: type annotation should not be necessary
-				new-node (k, v) node = i update-at-with-default which, new-leaf, empty-leaf-node inner-node
+				new-leaf = ((key, ins),) leaf-node
+				new-node = i update-at-with-default which, new-leaf, empty-leaf-node inner-node
 				(new-node,), (), (ins,)
 	as leaf-node l
 		l get-or-update-leaf key, remaining-hash, hash-shift, f

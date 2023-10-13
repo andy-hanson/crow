@@ -120,7 +120,11 @@ Be less than the least possible value or greater than the greatest possible valu
 + + int32(a int32, b int32) bare
 	trusted a.to unsafe-add b.to to
 + + int64(a int64, b int64) bare
-	forbid (b > 0 ? a > (trusted max-value unsafe-sub b) : a < (trusted min-value unsafe-sub b)) : "integer overflow"
+	overflow = if b > 0
+		a > (trusted max-value unsafe-sub b)
+	else
+		a < (trusted min-value unsafe-sub b)
+	forbid overflow : "integer overflow"
 	trusted a unsafe-add b
 
 +- int32(a int32, b int32) bare

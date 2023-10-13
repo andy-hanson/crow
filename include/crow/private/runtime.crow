@@ -75,9 +75,8 @@ cur-thread-id nat64() unsafe
 	thread-id-var
 
 uninit global-ctx(n-threads nat64) bare, summon, unsafe
-	exn fun void(exception) = exn => exn default-exception-handler
-	lh log-handler = log => log default-log-handler
-	uninit, uninit, false, uninit, uninit, empty-map, exn, lh, uninit, uninit, n-threads, uninit, uninit, false
+	uninit, uninit, false, uninit, uninit, empty-map, (exn => exn default-exception-handler), \
+		(log => log default-log-handler), uninit, uninit, n-threads, uninit, uninit, false
 
 init void(a global-ctx mut*) bare, unsafe
 	a.global-lock init
@@ -204,7 +203,8 @@ after-task void() bare, unsafe
 		as no-task first-task-time
 			n-waiting = gctx.n-waiting-threads increment-and-get
 			if (n-waiting == gctx->n-threads && first-task-time.is-empty) || gctx->is-shut-down
-				# Can't possibly be any more tasks: No timed tasks, no threads doing work to add tasks.
+				# Can't possibly be any more tasks:
+				# No timed tasks, no threads doing work to add tasks.
 				gctx->is-shut-down := true
 				shut-down
 			else

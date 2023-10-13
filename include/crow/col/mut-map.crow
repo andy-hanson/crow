@@ -46,7 +46,8 @@ Later pairs overwrite earlier pairs with the same key.
 New empty map with space for about `capacity` entries.
 This can have a small performance benefit if you know that much space will be needed.
 
-Since hash conflicts are possible, this makes no guarantees about whether more allocations will be needed.
+Since hash conflicts are possible,
+this makes no guarantees about whether more allocations will be needed.
 ###
 -mut-map-with-capacity[k, v] v mut[k](capacity nat64) k key
 	# TODO: should not need type annotation

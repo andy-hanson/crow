@@ -40,7 +40,8 @@ This is O(n).
 Concatenates two arrays.
 This is O(n).
 
-If you need concatenate many arrays, use a `mut[]` to accumulate elements, then call `move-to-array`.
+If you need concatenate many arrays, use a `mut[]` to accumulate elements,
+then call `move-to-array`.
 ###
 +~~[t] t array(a t array, b t array)
 	if a is-empty

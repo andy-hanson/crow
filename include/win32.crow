@@ -182,7 +182,10 @@ FileAttributes flags(nat32) extern
 	FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS = 0x400000
 	INVALID_FILE_ATTRIBUTES = 0xffffffff
 
-FindFirstFileA HANDLE(lpFileName c-string, lpFindFileData WIN32_FIND_DATAA mut*) kernel32 extern, summon
+FindFirstFileA HANDLE(
+	lpFileName c-string,
+	lpFindFileData WIN32_FIND_DATAA mut*,
+) kernel32 extern, summon
 FindNextFileA bool(hFindFile HANDLE, lpFindFileData WIN32_FIND_DATAA mut*) kernel32 extern, summon
 FindClose bool(hFindFile HANDLE) kernel32 extern, summon
 
@@ -258,9 +261,15 @@ startup-flags enum(DWORD) extern
 	STARTF_FORCEOFFFEEDBACK = 0x80
 	STARTF_USESTDHANDLES = 0x100
 
-new STARTUPINFOA(dwFlags startup-flags, hStdInput HANDLE, hStdOutput HANDLE, hStdError HANDLE) bare, unsafe
+new STARTUPINFOA(
+	dwFlags startup-flags,
+	hStdInput HANDLE,
+	hStdOutput HANDLE,
+	hStdError HANDLE,
+) bare, unsafe
 	size DWORD = size-of@STARTUPINFOA to
-	size, (), (), (), (), (), (), (), (), (), (), dwFlags, (), (), (), hStdInput, hStdOutput, hStdError
+	size, (), (), (), (), (), (), (), (), (), (), dwFlags, (), (), (), \
+		hStdInput, hStdOutput, hStdError
 
 SECURITY_ATTRIBUTES record extern, mut
 	nLength DWORD
@@ -419,7 +428,8 @@ CONTEXT record extern, mut
 
 new CONTEXT(ContextFlags DWORD) bare, unsafe
 	cf = ContextFlags
-	0, 0, 0, 0, 0, 0, cf, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ()
+	0, 0, 0, 0, 0, 0, cf, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
+		0, 0, 0, 0, 0, 0, ()
 
 RtlCaptureContext void(context CONTEXT mut*) kernel32 extern
 
@@ -439,7 +449,8 @@ CONTEXT_DEBUG_REGISTERS DWORD() bare
 CONTEXT_FULL DWORD() bare
 	CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_FLOATING_POINT
 CONTEXT_ALL DWORD() bare
-	CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS | CONTEXT_FLOATING_POINT | CONTEXT_DEBUG_REGISTERS
+	CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS | CONTEXT_FLOATING_POINT | \
+		CONTEXT_DEBUG_REGISTERS
 CONTEXT_XSTATE DWORD() bare
 	CONTEXT_AMD64 | 0x00000040
 

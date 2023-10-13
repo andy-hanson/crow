@@ -172,7 +172,11 @@ WARN: May wake up early. Use only to be avoid consuming CPU.
 `until-time`, if set, should be from `get-monotime-nsec`.
 'last-sequence' is to ensure that we don't wait at all if the condition has already triggered.
 ###
-wait-on void(a condition mut*, until-time timestamp?, last-sequence sequence-id) bare, summon, unsafe
+wait-on void(
+	a condition mut*,
+	until-time timestamp?,
+	last-sequence sequence-id,
+) bare, summon, unsafe
 	if is-single-threaded
 		if t ?= until-time
 			now = get-monotime-nsec
@@ -308,7 +312,8 @@ create-one-thread thread-handle(
 		err = (&res)::thread-handle mut*.pointer-cast pthread_create null, thread-fun, thread-arg
 		unless err == 0
 			if err == EAGAIN
-				# TODO: warn and make do with the threads it does let us create (so long as there's at least one)
+				# TODO: warn and make do with the threads it does let us create
+				# (so long as there's at least one)
 				todo
 			else
 				# Fatal error

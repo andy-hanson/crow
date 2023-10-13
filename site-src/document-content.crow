@@ -91,7 +91,8 @@ module-content string(a module, all-exports all-exports)
 
 -module-top string(path module-path)
 	url = "https://github.com/andy-hanson/crow/blob/master/include/{path}"
-	"""<h1><code class="module">{path}</code> <a class="source-link" href="{url}">(source)</a></h1>"""
+	source = """<a class="source-link" href="{url}">(source)</a>"""
+	"""<h1><code class="module">{path}</code> {source}</h1>"""
 
 -export-content string(a module-export, ctx ctx)
 	type-params = a.type-params type-params-content
@@ -257,7 +258,8 @@ module-content string(a module, all-exports all-exports)
 
 -param-content string(a param, variadic bool, ctx ctx)
 	var = variadic ? """<code class="keyword">...</code>"""
-	"""<span class="param">{var}<code class="param">{a name}</code> {a.type type-ref-content ctx}</span>"""
+	type = a.type type-ref-content ctx
+	"""<span class="param">{var}<code class="param">{a name}</code> {type}</span>"""
 
 -type-ref-content string(a type-ref, ctx ctx)
 	name = a name

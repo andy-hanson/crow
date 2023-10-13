@@ -168,7 +168,13 @@ Every pair `a[i]` and `b[i]`, will move to `res.a[j]` and `res.b[j]` for some `j
 		a[0 .. new-pivot-index] set-sort-by-first b[0 .. new-pivot-index]
 		a[new-pivot-index + 1 .. end] set-sort-by-first b[new-pivot-index + 1 .. end]
 
--set-partition-by-first[t, u] nat64(a t mut-array, b u mut-array, pivot t, l nat64, r nat64) t compare
+-set-partition-by-first[t, u] nat64(
+	a t mut-array,
+	b u mut-array,
+	pivot t,
+	l nat64,
+	r nat64,
+) t compare
 	assert l <= a.size
 	assert r < a.size
 	if l <= r

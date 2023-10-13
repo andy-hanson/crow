@@ -54,7 +54,11 @@ main nat^(_ string[]) summon
 -image-height int32()
 	200
 
--main-loop-body void^(renderer SDL_Renderer mut*, texture SDL_Texture mut*, render-thread-id nat) summon
+-main-loop-body void^(
+	renderer SDL_Renderer mut*,
+	texture SDL_Texture mut*,
+	render-thread-id nat,
+) summon
 	trusted
 		key-states-pointer = null SDL_GetKeyboardState
 		# TODO: use a mut-enum-lookup type

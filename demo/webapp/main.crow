@@ -58,7 +58,8 @@ main nat^(_ string[]) summon
 			user-name = args["user-name"] ?? ""
 			match db login user-name, (args["password"] ?? "")
 			as ok cookie
-				"Logged in as {user-name}" http-ok (("Set-Cookie", "login={cookie}; Max-Age={cookie-expire-seconds}"),)
+				"Logged in as {user-name}" http-ok \
+					(("Set-Cookie", "login={cookie}; Max-Age={cookie-expire-seconds}"),)
 			as error e
 				match e
 				as empty-name-or-password
@@ -120,4 +121,7 @@ main nat^(_ string[]) summon
 	("user", a.user.to), ("userName", a.user-name.to)
 
 -to json(a post-info)
-	("post", a.post.to), ("user", a.user.to), ("userName", a.user-name.to), ("content", a.content.to)
+	("post", a.post.to), \
+		("user", a.user.to), \
+		("userName", a.user-name.to), \
+		("content", a.content.to)

@@ -242,7 +242,10 @@ iterate[k, v] bool(a (k, v) compact-sorted-map, f act bool(k, v)) k key
 			f[k, v]
 	res || end-node iterate f
 
--iterate-overlays[k, v] bool(overlays ((k, nat64), (k, v?) array) mut-priority-queue, f act bool(k, v?)) k key
+-iterate-overlays[k, v] bool(
+	overlays ((k, nat64), (k, v?) array) mut-priority-queue,
+	f act bool(k, v?),
+) k key
 	loop
 		if popped ?= overlays pop
 			(key, _), rest = popped
@@ -266,7 +269,10 @@ iterate[k, v] bool(a (k, v) compact-sorted-map, f act bool(k, v)) k key
 	if rest.size > 1
 		overlays ~= ((rest[1].a, order), rest[1 .. end])
 
--drop-overlays-with-key[k, v] void(overlays ((k, nat64), (k, v?) array) mut-priority-queue, key k) k key
+-drop-overlays-with-key[k, v] void(
+	overlays ((k, nat64), (k, v?) array) mut-priority-queue,
+	key k,
+) k key
 	loop
 		# TODO: use 'drop-while'
 		if popped2 ?= overlays pop-if pair => pair.a.a == key
@@ -286,7 +292,10 @@ region build
 
 compact-sorted-map-builder[k, v] record mut
 	-inner (k, v) list-builder
-build[k, v] (k, v) compact-sorted-map(a build-options, f act void((k, v) compact-sorted-map-builder)) k key
+build[k, v] (k, v) compact-sorted-map(
+	a build-options,
+	f act void((k, v) compact-sorted-map-builder),
+) k key
 	a build (out => f[out,]) to
 + ~=[k, v] void(a (k, v) compact-sorted-map-builder, value (k, v)) k key
 	a.inner ~= value
@@ -344,7 +353,8 @@ test
 
 	h = g - 11 - 12
 	# Unfortunately we leave an unnecessary '11 -> _',
-	# because we don't keep track of what a removal removes from, and it might be removing from the leftmost node.
+	# because we don't keep track of what a removal removes from,
+	# and it might be removing from the leftmost node.
 	h verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [10 -> 10b, 11 -> _, 15 -> _]"
 
 	i = h ~~ ((11, "11"), (25, "25"))

@@ -153,13 +153,18 @@ transaction-result enum
 
 abortable-write-transaction record mut
 	env lmdb-env
-# Like `with-write-transaction`, but `f` returns a pair of the result and whether to commit the transaction.
+# Like `with-write-transaction`,
+# but `f` returns a pair of the result and whether to commit the transaction.
 abortable-write-transaction abortable-write-transaction(env lmdb-env)
 	env,
 with-block[t] t(a abortable-write-transaction, f act (t, transaction-result)(lmdb-txn)) summon
 	a.env with-transaction (), f
 
--with-transaction[t] t(env lmdb-env, mdb-flags mdb-environment-flags, f act (t, transaction-result)(lmdb-txn)) summon
+-with-transaction[t] t(
+	env lmdb-env,
+	mdb-flags mdb-environment-flags,
+	f act (t, transaction-result)(lmdb-txn),
+) summon
 	trusted
 		transaction mut MDB_txn mut* = null
 		env.env mdb_txn_begin null, mdb-flags, &transaction check-lmdb-error

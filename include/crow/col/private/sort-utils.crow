@@ -75,7 +75,11 @@ binary-search-exact[t] t array-iterator?(a t array, value t) t compare
 			as greater
 				left := mid + 1
 				continue
--linear-search-exact[t] t array-iterator?(left t array-iterator, right t array-iterator, value t) t equal
+-linear-search-exact[t] t array-iterator?(
+	left t array-iterator,
+	right t array-iterator,
+	value t,
+) t equal
 	cur mut = left
 	loop
 		if cur < right
@@ -191,7 +195,8 @@ merge-no-duplicates[t] void(a t mut[], b t mut[], compare act unique-comparison(
 			as greater
 				*a-write := *a-read
 				if a-read == a.begin-pointer.as-const
-					(a.begin-pointer .. a-write).as-mut-array copy-from (b-begin .. b-read + 1).as-array
+					(a.begin-pointer .. a-write).as-mut-array copy-from \
+						(b-begin .. b-read + 1).as-array
 					break
 				else
 					a-read -:= 1

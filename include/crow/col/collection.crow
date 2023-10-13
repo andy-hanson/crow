@@ -95,7 +95,10 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, bare
 ) (iter, col) end, iter skip-prev, (iter, elem) set-next, bare
 	a.end - index.subtract set-next value
 
-+fill[col, iter, elem] void(a col, value elem) (iter, col) begin, (elem, iter) next, (iter, elem) set-next, bare
++fill[col, iter, elem] void(
+	a col,
+	value elem,
+) (iter, col) begin, (elem, iter) next, (iter, elem) set-next, bare
 	iter mut = a begin
 	loop
 		if _, next ?= iter next
@@ -104,7 +107,11 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, bare
 			continue
 		else
 			break
-+map=[col, iter, elem] void(a col, f act elem(elem)) (iter, col) begin, (elem, iter) next, (iter, elem) set-next
+
++map=[col, iter, elem] void(
+	a col,
+	f act elem(elem),
+) (iter, col) begin, (elem, iter) next, (iter, elem) set-next
 	iter mut = a begin
 	loop
 		if x, next ?= iter next
@@ -173,7 +180,8 @@ region 'for' loops
 		false
 	forbid res
 
-# Call 'f' for each element in the input collection and return an output collection of the results of 'f'.
+# Call 'f' for each element in the input collection
+# and return an output collection of the results of 'f'.
 +for-loop[out-col, out-e, out-builder, in-col, in-e] out-col(
 	in in-col,
 	f act out-e(in-e),
@@ -186,7 +194,11 @@ region 'for' loops
 Call `f` for each element in the collection, but stop and return the result of the first `break`.
 If there is no `break`, return `f-else` instead.
 ###
-+for-break[out, col, elem] out(a col, f-loop act out break-or-continue(elem), f-else act out()) (col, elem) iterate
++for-break[out, col, elem] out(
+	a col,
+	f-loop act out break-or-continue(elem),
+	f-else act out(),
+) (col, elem) iterate
 	a for-break f-loop ?? f-else[]
 
 +for-break[col, elem] void(a col, f-loop act void break-or-continue(elem)) (col, elem) iterate
@@ -221,7 +233,10 @@ and return an output collection of the elements for which `f` was `true`.
 			if f[x]
 				out ~= x
 
-sequence-equal[col, iter, elem] bool(a col, b col) col size, (iter, col) begin, (elem, iter) next, elem equal, bare
+sequence-equal[col, iter, elem] bool(
+	a col,
+	b col,
+) col size, (iter, col) begin, (elem, iter) next, elem equal, bare
 	if a.size == b.size
 		ai mut = a begin
 		bi mut = b begin
@@ -238,7 +253,10 @@ sequence-equal[col, iter, elem] bool(a col, b col) col size, (iter, col) begin, 
 				assert bi is-at-end
 				break true
 
-sequence-compare[col, iter, elem] comparison(a col, b col) (iter, col) begin, (elem, iter) next, elem compare, bare
+sequence-compare[col, iter, elem] comparison(
+	a col,
+	b col,
+) (iter, col) begin, (elem, iter) next, elem compare, bare
 	ai mut = a begin
 	bi mut = b begin
 	loop
@@ -414,7 +432,10 @@ try-split-once-right[col, iter, elem] (col, col)?(
 		else
 			break
 
-# Returns the first element for which `f` returns true, or an empty option if `f` was always `false`.
+###
+Returns the first element for which `f` returns true,
+or an empty option if `f` was always `false`.
+###
 +find[col, elem] elem?(a col, f act bool(elem)) (col, elem) iterate
 	for x : a
 		if f[x]
@@ -433,7 +454,10 @@ Returns an empty option iff `f` returns `false` for every elem of `a`.
 			i +:= 1
 			continue
 
-+last-iter-of[col, iter, elem] iter?(a col, value elem) (iter, col) end, (elem, iter) prev, elem equal
++last-iter-of[col, iter, elem] iter?(
+	a col,
+	value elem,
+) (iter, col) end, (elem, iter) prev, elem equal
 	iter mut = a end
 	loop
 		if prev, x ?= iter prev
@@ -613,7 +637,8 @@ flatten[col, col-col] col(a col-col) (col-col, col) iterate, col concatenate, co
 +for-loop[out-col, out-elem, out-builder, in-col, in-iter, in-elem] out-col(
 	a in-col reverse,
 	f act out-elem(in-elem),
-) (out-col, out-elem, out-builder) build, (in-iter, in-col) end, (in-elem, in-iter) prev, in-col size
+) (out-col, out-elem, out-builder) build, \
+	(in-iter, in-col) end, (in-elem, in-iter) prev, in-col size
 	with out : a.size build
 		iter mut = a.inner end
 		loop

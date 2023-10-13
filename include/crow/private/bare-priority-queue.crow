@@ -29,7 +29,10 @@ peek-key[k, v] k?(a (k, v) bare-priority-queue*) bare, unsafe
 	unless a is-empty
 		a->begin->a,
 
-dequeue-if-less-or-equal[k, v] v?(a (k, v) bare-priority-queue mut*, max-key k) bare, unsafe, k compare
+dequeue-if-less-or-equal[k, v] v?(
+	a (k, v) bare-priority-queue mut*,
+	max-key k,
+) bare, unsafe, k compare
 	if k ?= a.as-const peek-key
 		if k <= max-key
 			a.dequeue!.b,

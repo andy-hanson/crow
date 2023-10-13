@@ -13,8 +13,7 @@ import
 	../misc: new, void
 	../option: new, option
 	../private/number-low-level: ==, <=>, nat8, nat32, nat64, unsafe-to, wrap-add, wrap-sub
-	../pointer:
-		==, <=>, +, *, any-const-pointer, as-const, mut-pointer, null, pointer-cast, set-deref, size-of
+	../pointer: ==, <=>, +, *, as-const, mut-pointer, null, pointer-cast, set-deref, size-of
 	../version: is-interpreted, is-windows
 	./alloc: copy-data-from, gc-ctx, try-alloc-uninitialized
 	./bootstrap: char8, c-string, hard-assert
@@ -24,7 +23,9 @@ import
 		unw_step, unw_word_t
 	./range-low-level: ..
 export
-	./bootstrap: backtrace, backtrace-entry, column-number, entries, file-path, function-name, line-number, new
+	./bootstrap:
+		backtrace, backtrace-entry, column-number, entries, file-path, function-name, line-number,
+		new
 
 -new backtrace() bare
 	(),
@@ -61,7 +62,8 @@ Result entries are temporary, must copy!
 		cur +:= 1
 
 -copy-c-strings backtrace-entry(gc gc-ctx, a backtrace-entry) bare, unsafe
-	(gc copy-c-string-or-empty a.function-name), (gc copy-c-string-or-empty a.file-path), a.line-number, a.column-number
+	(gc copy-c-string-or-empty a.function-name), (gc copy-c-string-or-empty a.file-path), \
+		a.line-number, a.column-number
 
 -get-native-backtrace-windows backtrace(
 	gc gc-ctx,
@@ -126,24 +128,33 @@ Result entries are temporary, must copy!
 	frame STACKFRAME64 mut*,
 	vars windows-backtrace-vars,
 ) bare, unsafe
-	ctx any-const-pointer = context.as-const pointer-cast
 	if out == out-end
 		out
-	elif IMAGE_FILE_MACHINE_AMD64 StackWalk64 process, thread, frame, ctx, null, &SymFunctionTableAccess64, null, null
+	elif IMAGE_FILE_MACHINE_AMD64 StackWalk64 process, thread, frame, \
+			context.as-const.pointer-cast, null, &SymFunctionTableAccess64, null, null
 		if skip == 0
-			name c-string = if process SymGetSymFromAddr64 frame->AddrPC.Offset, vars.offset, vars.symbol
-				gc copy-c-string-or-empty &vars.symbol->Name
-			else
-				""
-			*out := if process SymGetLineFromAddr64 frame->AddrPC.Offset, vars.displacement, vars.line
-				name, (gc copy-c-string-or-empty vars.line->FileName), vars.line->LineNumber, 0
-			else
-				name, "", 0, 0
+			*out := gc windows-backtrace-entry process, frame, vars
 			gc windows-walk-backtrace out + 1, out-end, 0, process, thread, context, frame, vars
 		else
-			gc windows-walk-backtrace out, out-end, (skip wrap-sub 1), process, thread, context, frame, vars
+			gc windows-walk-backtrace out, out-end, (skip wrap-sub 1), \
+				process, thread, context, frame, vars
 	else
 		out
+
+-windows-backtrace-entry backtrace-entry(
+	gc gc-ctx,
+	process HANDLE,
+	frame STACKFRAME64 mut*,
+	vars windows-backtrace-vars,
+) bare, unsafe
+	name c-string = if process SymGetSymFromAddr64 frame->AddrPC.Offset, vars.offset, vars.symbol
+		gc copy-c-string-or-empty &vars.symbol->Name
+	else
+		""
+	if process SymGetLineFromAddr64 frame->AddrPC.Offset, vars.displacement, vars.line
+		name, (gc copy-c-string-or-empty vars.line->FileName), vars.line->LineNumber, 0
+	else
+		name, "", 0, 0
 
 -copy-c-string-or-empty c-string(gc gc-ctx, a c-string) bare, unsafe
 	size = a c-string-size-incl-nul

@@ -8,7 +8,11 @@ search-dir-recursive string[]^(path string) summon
 search-dir-recursive string[]^(path string, file-filter fun bool(string)) summon
 	path search-dir-recursive (_ => true), file-filter
 
-search-dir-recursive string[]^(path string, dir-filter fun bool(string), file-filter fun bool(string)) summon
+search-dir-recursive string[]^(
+	path string,
+	dir-filter fun bool(string),
+	file-filter fun bool(string),
+) summon
 	parts string[][] <- for name : path.names-in-dir parallel
 		child = path child-path name
 		if child is-dir

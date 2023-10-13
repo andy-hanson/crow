@@ -161,7 +161,10 @@ region build
 
 +mut-priority-queue-builder[k, v] record mut
 	-inner (k, v) list-builder
-+build[k, v] (k, v) mut-priority-queue(a build-options, f act void((k, v) mut-priority-queue-builder)) k priority
++build[k, v] (k, v) mut-priority-queue(
+	a build-options,
+	f act void((k, v) mut-priority-queue-builder),
+) k priority
 	a build (out => f[out,]) to
 +~=[k, v] void(a (k, v) mut-priority-queue-builder, value (k, v)) k priority
 	a.inner ~= value

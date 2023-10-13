@@ -321,13 +321,15 @@ This is O(log n), amortized O(1).
 			(br.left, cat-right-lower[br.down, br.right], r) branch
 
 -cat-left-node-l1[t] t l1(l t l1, r t l1)
-	node = l.node cat-left-node-level r.node, ((xs, lower) => (xs,) cat-left-array-l2 lower), (x, y) =>
-		x cat-left-node-l2 y
+	node = l.node cat-left-node-level r.node, \
+		((xs, lower) => (xs,) cat-left-array-l2 lower), \
+		(x, y) => x cat-left-node-l2 y
 	node,
 
 -cat-right-node-l1[t] t l1(l t l1, r t l1)
-	node = l.node cat-right-node-level r.node, ((lower, xs) => lower cat-right-array-l2 (xs,)), (x, y) =>
-		x cat-right-node-l2 y
+	node = l.node cat-right-node-level r.node, \
+		((lower, xs) => lower cat-right-array-l2 (xs,)), \
+		((x, y) => x cat-right-node-l2 y)
 	node,
 
 -cat-left-array-l1[t] t l1(l t array, r t l1)
@@ -337,13 +339,15 @@ This is O(log n), amortized O(1).
 	(l.node cat-right-array-level r, (lower, xs) => lower cat-right-array-l2 (xs,)),
 
 -cat-left-node-l2[t] t l2(l t l2, r t l2)
-	node = l.node cat-left-node-level r.node, ((xs, lower) => (xs,) cat-left-array-l3 lower), (x, y) =>
-		x cat-left-node-l3 y
+	node = l.node cat-left-node-level r.node, \
+		((xs, lower) => (xs,) cat-left-array-l3 lower), \
+		((x, y) => x cat-left-node-l3 y)
 	node,
 
 -cat-right-node-l2[t] t l2(l t l2, r t l2)
-	node = l.node cat-right-node-level r.node, ((lower, xs) => lower cat-right-array-l3 (xs,)), (x, y) =>
-		x cat-right-node-l3 y
+	node = l.node cat-right-node-level r.node, \
+		((lower, xs) => lower cat-right-array-l3 (xs,)), \
+		((x, y) => x cat-right-node-l3 y)
 	node,
 
 -cat-left-array-l2[t] t l2(l t array2d, r t l2)
@@ -364,13 +368,15 @@ This is O(log n), amortized O(1).
 -cat-right-array-l3[t] t l3(l t l3, r t array3d)
 	l.nodes ~~ r,
 
-# Leaves are allowed to be arbitrarily long, this is just the limit when we would normally make a branch
+# Leaves are allowed to be arbitrarily long,
+# this is just the limit when we would normally make a branch
 -max-leaf-bytes nat64()
 	64
 
 -size-bytes[t] spec
 	size-bytes nat64(a t)
-# 'trusted' since we are just using it to guide branch sizes (which should have no observable effect)
+# 'trusted' since we are just using it to guide branch sizes
+# (which should have no observable effect)
 -size-bytes[t] nat64(a t array)
 	trusted a.size * size-of@t
 -size-bytes[t] nat64(a t array2d)
@@ -714,7 +720,8 @@ This is O(n).
 					l2 = ai.slice-right make-l2 branch.down, branch.right
 					(a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk),
 				else
-					(a.slice-right-cur-chunk make-l1 (ai.slice-right.leaf,), b.slice-left-cur-chunk),
+					down t l2 = ai.slice-right.leaf,
+					(a.slice-right-cur-chunk make-l1 down, b.slice-left-cur-chunk),
 		as l2 bi
 			match a-side <=> b-side
 			as less
@@ -756,7 +763,12 @@ This is O(n).
 	if a.next-index-in-chunk <= b.next-index-in-chunk
 		a.cur-chunk[a.next-index-in-chunk .. b.next-index-in-chunk].to,
 
--slice-same-array2d[t] t[]?(a t list-iterator, ai t array-2d-iterator, b t list-iterator, bi t array-2d-iterator)
+-slice-same-array2d[t] t[]?(
+	a t list-iterator,
+	ai t array-2d-iterator,
+	b t list-iterator,
+	bi t array-2d-iterator,
+)
 	arrays = ai arrays
 	assert trusted bi.arrays.arrays array-reference-equal arrays.arrays
 	match ai.index-2d <=> bi.index-2d
@@ -768,7 +780,12 @@ This is O(n).
 	as greater
 		()
 
--slice-both-l3[t] t[]?(a t list-iterator, ai t array-3d-iterator, b t list-iterator, bi t array-3d-iterator)
+-slice-both-l3[t] t[]?(
+	a t list-iterator,
+	ai t array-3d-iterator,
+	b t list-iterator,
+	bi t array-3d-iterator,
+)
 	arrays = ai arrays
 	assert trusted bi.arrays.arrays array-reference-equal arrays.arrays
 	match ai.index-3d <=> bi.index-3d

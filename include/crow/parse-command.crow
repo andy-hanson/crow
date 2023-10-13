@@ -65,7 +65,8 @@ test
 
 ###
 This is stricter than `parse-command`.
-It expects only named arguments with no `before` or `after`, and only the names in `arg-names` are allowed.
+It expects only named arguments with no `before` or `after`,
+and only the names in `arg-names` are allowed.
 
 Returns an array with an entry for each name in `arg-names`.
 Values in the array will be a list of the argument values,

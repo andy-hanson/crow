@@ -103,11 +103,13 @@ elements not reachable by any slice will be garbage collected.
 `mut-array` is a low-level type mostly useful for implementing other collections.
 For normal code, a `mut[]` is preferable.
 
-A `mut-array` is like a `mut[]`, but while a `mut[]` has capacity for pushing elements, `mut-array` is fixed-size.
+A `mut-array` is like a `mut[]`,
+but while a `mut[]` has capacity for pushing elements, `mut-array` is fixed-size.
 This has a small performance benefit, since (like an immutable array)
 a `mut-array` is just a pointer and size which can be stored by value.
 
-You can't change what range of addresses a `mut-array` points to, though you can write to its elements.
+You can't change what range of addresses a `mut-array` points to,
+though you can write to its elements.
 
 Like an immutable array, and unlike a `mut[]`, it's cheap to take a slice of a `mut-array`.
 Taking a slice aliases the elements, so writing to the slice writes to the original.
@@ -204,7 +206,8 @@ In the range -2_147_483_648 through 2_147_483_647 (-2 billion through 2 billion)
 +int32 builtin extern
 ###
 64-bit signed integer,
-In the range 9_223_372_036_854_775_808 through 9_223_372_036_854_775_807 (-9 quintillion through 9 quintillion).
+In the range 9_223_372_036_854_775_808 through 9_223_372_036_854_775_807
+(-9 quintillion through 9 quintillion).
 ###
 +int64 builtin extern
 # 32-bit IEEE floating point number.
