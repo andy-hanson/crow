@@ -1,4 +1,8 @@
-/** @type {function(boolean, () => string): void} */
+/**
+ * @param {boolean} b
+ * @param {() => string} msg?
+ * @return {asserts b}
+*/
 export function assert(b, msg = () => "Assertion failed") {
 	if (!b)
 		throw new Error(msg())
@@ -32,7 +36,7 @@ export const createNode = (tagName, options = {}) => {
 	const node = document.createElement(tagName)
 	if (options.attr)
 		for (const key in options.attr)
-			node.setAttribute(key, options.attr[key])
+			node.setAttribute(key, nonNull(options.attr[key]))
 	if (options.className)
 		node.className = options.className
 	if (options.children)
@@ -44,7 +48,10 @@ export const createNode = (tagName, options = {}) => {
 export const createButton = options =>
 	createNode("button", options)
 
-/** @type {function(CreateNodeOptions): HTMLDivElement} */
+/**
+ * @param {CreateNodeOptions=} options
+ * @return {HTMLDivElement}
+ */
 export const createDiv = options =>
 	createNode("div", options)
 
@@ -62,6 +69,7 @@ export function removeAllChildren(em) {
 	}
 }
 
+/** @type {function(ShadowRoot, string): void} */
 export const setStyleSheet = (shadowRoot, css) => {
 	const styleSheet = new CSSStyleSheet()
 	styleSheet.replace(css)
@@ -74,6 +82,7 @@ export const setStyleSheet = (shadowRoot, css) => {
 @return {function(() => void): void}
 */
 export const makeDebouncer = msec => {
+	/** @type {ReturnType<setTimeout> | null} */
 	let cur = null
 	return action => {
 		if (cur)

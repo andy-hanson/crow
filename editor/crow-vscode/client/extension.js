@@ -1,4 +1,6 @@
 /// <reference path="../../../crow-js/crow.js" />
+// @ts-ignore
+require("../../../crow-js/crow.js")
 
 const fs = require("fs")
 /** @typedef {import("vscode").CancellationToken} CancellationToken */
@@ -7,12 +9,8 @@ const fs = require("fs")
 /** @typedef {import("vscode").TextDocument} TextDocument */
 const {languages, SemanticTokens, SemanticTokensBuilder, SemanticTokensLegend} = require("vscode")
 /** @typedef {import("vscode-languageclient").LanguageClientOptions} LanguageClientOptions */
-/** @typedef {import("vscode-languageclient").ServerOptions} ServerOptions */
-const {LanguageClient, TransportKind} = require("vscode-languageclient")
-
-// Avoiding TypeScript "is not a module" error
-const require2 = require
-require2("../../../crow-js/crow.js")
+/** @typedef {import("vscode-languageclient/lib/node/main.js").ServerOptions} ServerOptions */
+const {LanguageClient, TransportKind} = require("vscode-languageclient/lib/node/main.js")
 
 /** @type {LanguageClient | undefined} */
 let client
@@ -37,8 +35,11 @@ exports.activate = context => {
 	}
 
 	/** @type {LanguageClientOptions} */
-	const clientOptions = {documentSelector: [{scheme:"file", language:"crow"}]}
-	client = new LanguageClient("crow", "crow", serverOptions, clientOptions)
+	const clientOptions = {
+		documentSelector: [{scheme:"file", language:"crow"}],
+		outputChannelName: 'Crow language server',
+	}
+	client = new LanguageClient("crow", "Crow language server", serverOptions, clientOptions)
 	client.start()
 
 	context.subscriptions.push(
@@ -139,13 +140,12 @@ const legend = new SemanticTokensLegend(
 	/** @type {string[]} */ (tokenTypesLegend),
 	/** @type {string[]} */ (tokenModifiersLegend))
 
-/** @type {Promise<Compiler> | null} */
+/** @type {Promise<crow.Compiler> | null} */
 let myCompiler = null
-/** @type {function(): Promise<Compiler>} */
+/** @type {function(): Promise<crow.Compiler>} */
 const getCompiler = () => {
 	if (myCompiler == null) {
-		const bytes = fs.readFileSync(__dirname + "/../../../bin/crow.wasm")
-		myCompiler = compiler.Compiler.makeFromBytes(bytes)
+		myCompiler = crow.makeCompiler(fs.readFileSync(__dirname + "/../../../bin/crow.wasm"))
 	}
 	return myCompiler
 }
@@ -170,18 +170,18 @@ const provideDocumentSemanticTokens = async (document, _cancellationToken) => {
 	} catch (e) {
 		// VSCode just swallows exceptions, at least log them
 		console.log("Caught error in provideDocumentSemanticTokens")
-		console.error(e.stack)
+		console.error(/** @type {Error} */ (e).stack)
 		throw e
 	}
 }
 
 /**
- * @param {TokenKind} kind
+ * @param {crow.TokenKind} kind
  * @return {TokenType}
  */
 const convertToken = kind => {
 	switch (kind) {
-		case "field":
+		case "member":
 			return "property"
 		case "fun":
 			return "function"
@@ -205,8 +205,9 @@ const convertToken = kind => {
 			return "label"
 		case "struct":
 			return "type"
-		case "tparam-def":
-		case "tparam-ref":
+		case "var-decl":
+			return "variable"
+		case "type-param":
 			return "typeParameter"
 		default:
 			return assertNever(kind)

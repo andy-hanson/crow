@@ -9,7 +9,7 @@ const tab_size = 4
 /**
  * @typedef CrowTextProps
  * @property {function(number): string} getHover
- * @property {Observable<TokensAndParseDiagnostics>} tokenAndParseDiagnostics
+ * @property {Observable<crow.TokensAndParseDiagnostics>} tokensAndParseDiagnostics
  * @property {MutableObservable<string>} text
  */
 
@@ -120,13 +120,18 @@ textarea {
 }
 `
 
+// Turned off hover because it's too slow
+const hoverEnabled = false
+
 export class CrowText extends HTMLElement {
+	props = /** @type {CrowTextProps} */ (/** @type {any} */ (null))
+
 	/**
 	 * @param {CrowTextProps} props
-	 * @return {CrowText}
+	 * @return {HTMLElement}
 	 */
 	static create(props) {
-		const em = document.createElement("crow-text")
+		const em = /** @type {HTMLElement & CrowText} */ (document.createElement("crow-text"))
 		em.props = props
 		return em
 	}
@@ -150,9 +155,11 @@ export class CrowText extends HTMLElement {
 						return "\n" + indentationAt(ta.value, ta.selectionStart)
 					case "Tab":
 						return "\t"
+					default:
+							return null
 				}
 			})()
-			if (insert !== undefined) {
+			if (insert !== null) {
 				e.preventDefault()
 				text.set(insertTextAreaText(ta, insert))
 			}
@@ -176,8 +183,7 @@ export class CrowText extends HTMLElement {
 			mouseIsIn = false
 			removeTooltip()
 		})
-		// Turned off hover because it's too slow
-		if (false) ta.addEventListener("mousemove", e => {
+		if (hoverEnabled) ta.addEventListener("mousemove", e => {
 			mouseIsIn = true
 			removeTooltip()
 			const offsetX = e.offsetX
@@ -223,7 +229,7 @@ export class CrowText extends HTMLElement {
 		const measurerSpan = createSpan({children:["a"]})
 		const measurer = createDiv({className:"measurer", children:[measurerSpan]})
 		const textContainer = createDiv({className:"code", children:[measurer, highlightDiv, ta]})
-		this.shadowRoot.append(createDiv({className:"root", children:[lineNumbers, textContainer]}))
+		nonNull(this.shadowRoot).append(createDiv({className:"root", children:[lineNumbers, textContainer]}))
 	}
 }
 customElements.define("crow-text", CrowText)
@@ -274,7 +280,7 @@ const countLeadingTabs = s => {
 }
 
 
-/** @type {function(TokensAndParseDiagnostics, Node, string): void} */
+/** @type {function(crow.TokensAndParseDiagnostics, Node, string): void} */
 const highlight = ({tokens, parseDiagnostics}, highlightDiv, v) => {
 	// Only use at most 1 diag
 	const nodes = tokensAndDiagsToNodes(tokens, parseDiagnostics.slice(0, 1), v)
@@ -326,7 +332,7 @@ const createDiagSpan = (message, children) =>
  * @typedef {Container | TextContainer} SomeContainer
  */
 
-/** @type {function(ReadonlyArray<compiler.Token>, ReadonlyArray<compiler.Diagnostic>, string): ReadonlyArray<Node>} */
+/** @type {function(ReadonlyArray<crow.Token>, ReadonlyArray<crow.Diagnostic>, string): ReadonlyArray<Node>} */
 const tokensAndDiagsToNodes = (tokens, diags, text) => {
 	let pos = 0
 	// Last entry is the most nested container
@@ -377,7 +383,7 @@ const tokensAndDiagsToNodes = (tokens, diags, text) => {
 	/** @type {function(number): boolean} */
 	const maybeStartDiag = nextPos => {
 		if (diagIndex < diags.length) {
-			const {message, range:{start, end}} = diags[diagIndex]
+			const {message, range:{start, end}} = nonNull(diags[diagIndex])
 			if (start < nextPos) {
 				// Ignore nested diags
 				if (last(containerStack).type !== "diag") {
@@ -440,7 +446,7 @@ const tokensAndDiagsToNodes = (tokens, diags, text) => {
 		// Ignore empty spans, they can happen when there are parse errors
 		if (pos != end) {
 			const parts = text.slice(pos, end).split('\n')
-			last(containerStack).children.push(createSpan({ className, children: [parts[0]] }))
+			last(containerStack).children.push(createSpan({ className, children: [nonNull(parts[0])] }))
 			for (const part of parts.slice(1)) {
 				nextLine()
 				last(containerStack).children.push(createSpan({ className, children:[part] }))
@@ -461,8 +467,8 @@ const tokensAndDiagsToNodes = (tokens, diags, text) => {
 
 	walkTo(text.length)
 	endLine()
-	assert(containerStack.length === 1 && containerStack[0].type === "all")
-	return containerStack[0].children
+	assert(containerStack.length === 1 && nonNull(containerStack[0]).type === "all")
+	return nonNull(containerStack[0]).children
 }
 
 /**
@@ -472,7 +478,7 @@ const tokensAndDiagsToNodes = (tokens, diags, text) => {
 */
 const last = xs => {
 	if (xs.length === 0) throw new Error()
-	return xs[xs.length - 1]
+	return nonNull(xs[xs.length - 1])
 }
 
 /**
@@ -482,7 +488,7 @@ const last = xs => {
  */
 const secondLast = xs => {
 	if (xs.length < 2) throw new Error()
-	return xs[xs.length - 2]
+	return nonNull(xs[xs.length - 2])
 }
 
 /**

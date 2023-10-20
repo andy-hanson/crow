@@ -1,10 +1,11 @@
 #! /usr/bin/env node
 
+// @ts-ignore
 require("../crow-js/crow.js")
 const fs = require("fs")
 
 const main = async () => {
-	const comp = await crow.Compiler.makeFromBytes(fs.readFileSync('bin/crow.wasm'))
+	const comp = await crow.makeCompiler(fs.readFileSync('bin/crow.wasm'))
 	const include = JSON.parse(fs.readFileSync("site/include-all.json", "utf-8"))
 	for (const [path, content] of Object.entries(include)) {
 		const fullPath = `${crow.includeDir}/${path}`
@@ -28,7 +29,7 @@ const writesEqual = (a, b) => {
 	if (a.length !== b.length)
 		return false
 	for (let i = 0; i < a.length; i++)
-		if (!writeEqual(a[i], b[i]))
+		if (!writeEqual(nonNull(a[i]), nonNull(b[i])))
 			return false
 	return true
 }
@@ -36,6 +37,17 @@ const writesEqual = (a, b) => {
 /** @type {function(crow.Write, crow.Write): boolean} */
 const writeEqual = (a, b) =>
 	a.pipe === b.pipe && a.text === b.text
+
+/**
+ * @template T
+ * @param {T | null | undefined} x
+ * @return {T}
+ */
+const nonNull = x => {
+	if (x == null)
+		throw new Error("Null value")
+	return x
+}
 
 main().catch(e => {
 	console.error("ERROR", e)

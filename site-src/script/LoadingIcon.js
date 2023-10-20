@@ -1,4 +1,4 @@
-import { createDiv, setStyleSheet } from "./util/util.js"
+import { createDiv, nonNull, setStyleSheet } from "./util/util.js"
 
 const css = `
 .root {
@@ -39,7 +39,7 @@ export class LoadingIcon extends HTMLElement {
 	}
 
 	connectedCallback() {
-		this.shadowRoot.append(createDiv({
+		nonNull(this.shadowRoot).append(createDiv({
 			className:"root",
 			children: ["child-0", "child-1", "child-2", "child-3"].map(className => createDiv({className})),
 		}))

@@ -1,11 +1,15 @@
-/// <reference path="../../../crow-js/crow.js" />
+/// <reference types="crow" />
+// @ts-ignore
+require("../../../crow-js/crow.js")
 
 const fs = require("fs")
 const {createConnection, TextDocuments, ProposedFeatures} = require("vscode-languageserver")
-const {DidChangeConfigurationNotification, HoverRequest} = require("vscode-languageserver-protocol")
+/** @typedef {import("vscode-languageserver-protocol").TextDocumentPositionParams} TextDocumentPositionParams */
+const {
+	DidChangeConfigurationNotification, DefinitionRequest, HoverRequest, TextDocumentIdentifier,
+} = require("vscode-languageserver-protocol")
 /** @typedef {import("vscode-languageserver-types").CompletionItem} CompletionItem */
-const {CompletionItemKind, DiagnosticSeverity} = require("vscode-languageserver-types")
-/** @typedef {import("vscode-languageserver-types").Diagnostic} Diagnostic */
+const {CompletionItemKind, Diagnostic, Position, Range} = require("vscode-languageserver-types")
 const {TextDocumentSyncKind} = require("vscode-languageserver-protocol")
 /** @typedef {import("vscode-languageserver-protocol").InitializeParams} InitializeParams */
 /** @typedef {import("vscode-languageserver-protocol").InitializeResult<unknown>} InitializeResult */
@@ -16,6 +20,7 @@ const {TextDocument} = require("vscode-languageserver-textdocument")
 const require2 = require
 require2("../../../crow-js/crow.js")
 
+// @ts-ignore
 const connection = createConnection(ProposedFeatures.all)
 
 /** @type {TextDocuments<TextDocument>} */
@@ -38,49 +43,50 @@ connection.onInitialize(({capabilities}) => {
 })
 
 connection.onInitialized(() => {
-	connection.client.register(HoverRequest.type)
+	connection.console.log("ONINITIALIZED")
+	for (const request of [DefinitionRequest, HoverRequest]) {
+		connection.client.register(request.type)
+	}
 	if (hasConfigurationCapability) {
 		connection.client.register(DidChangeConfigurationNotification.type, undefined)
 	}
 })
 
-documents.onDidChangeContent(change => {
-	getSyntaxDiagnostics(change.document)
-		.then(diags => {
-			connection.sendDiagnostics(diags)
-		}).catch(e => {
-			console.error("CAUGHT ERROR", e)
-			throw e
-		})
+documents.onDidChangeContent(async ({document}) => {
+	try {
+		compiler.addOrChangeFile(pathForDocument(document), document.getText())
+		const diags = getSyntaxDiagnostics(document)
+		connection.sendDiagnostics(diags)
+	} catch (e) {
+		console.error("CAUGHT ERROR", e)
+		throw e
+	}
 })
 
-/** @type {Promise<Compiler> | null} */
-let _compiler = null
-/** @type {function(): Promise<Compiler>} */
-const getCompiler = () => {
-	if (_compiler === null)
-		_compiler = compiler.Compiler.makeFromBytes(fs.readFileSync(__dirname + "/../../../bin/crow.wasm"))
-	return _compiler
+/** @type {crow.Compiler} */
+let compiler
+
+/** @type {function(TextDocument): PublishDiagnosticsParams} */
+const getSyntaxDiagnostics = (document) => {
+	const {parseDiagnostics} = compiler.getTokensAndParseDiagnostics(pathForDocument(document))
+	const diags = parseDiagnostics.map(({message, range}) =>
+		Diagnostic.create(toRange(document, range), message))
+	return {uri: document.uri, diagnostics: diags}
 }
 
-/** @type {function(TextDocument): Promise<PublishDiagnosticsParams>} */
-const getSyntaxDiagnostics = async document => {
-	const comp = await getCompiler()
-	comp.addOrChangeFile("main", document.getText())
-	const diags = comp.getParseDiagnostics("main").map(diag => {
-		/** @type {Diagnostic} */
-		const res = {
-			severity: DiagnosticSeverity.Error,
-			range: {
-				start: document.positionAt(diag.range.args[0]),
-				end: document.positionAt(diag.range.args[1]),
-			},
-			message: diag.message,
-			source: "ex", // TODO: WHAT IS THIS?
-		}
-		return res
-	})
-	return {uri: document.uri, diagnostics: diags}
+/** @type {function(TextDocumentIdentifier): string} */
+const pathForDocument = document =>
+	document.uri.startsWith("file://") ? document.uri.slice("file://".length) : document.uri
+
+/** @type {function(TextDocument, crow.DiagRange): Range} */
+const toRange = (document, {start, end}) =>
+	Range.create(toPosition(document, start), toPosition(document, end))
+
+/** @type {function(TextDocument, number): Position} */
+const toPosition = (document, x) => {
+	const res = document.positionAt(x)
+	// It will sometimes give NaN positions at the end of the file, which breaks the protocol
+	return Number.isNaN(res.character) ? Position.create(res.line, 0) : res
 }
 
 connection.onDidChangeWatchedFiles(_change => {
@@ -88,11 +94,24 @@ connection.onDidChangeWatchedFiles(_change => {
 	connection.console.log('We received an file change event')
 })
 
-connection.onHover(({position, textDocument}) => {
+connection.onHover(params => {
+	const {path, offset} = getPathAndOffset(params)
+	const hover = compiler.getHover(path, offset)
+	return hover ? {contents:hover} : null
+})
+
+connection.onDefinition(params => {
+	const {path, offset} = getPathAndOffset(params)
+	connection.console.log("IN ONDEFINITION " + JSON.stringify({path, offset}))
+	return null
+})
+
+/** @type {function(TextDocumentPositionParams): {path:string, offset:number}} */
+const getPathAndOffset = ({position, textDocument}) => {
 	const document = nonUndefined(documents.get(textDocument.uri))
 	const offset = document.offsetAt(position)
-	return {contents: `your offset is: ${offset}`}
-})
+	return {path:pathForDocument(textDocument), offset}
+}
 
 // This handler provides the initial list of the completion items.
 connection.onCompletion(_textDocumentPosition => {
@@ -119,8 +138,16 @@ connection.onCompletionResolve(item => {
 // for open, change and close text document events
 documents.listen(connection)
 
-// Listen on the connection
-connection.listen()
+const setUpCompiler = async () => {
+	try {
+		compiler = await crow.makeCompiler(fs.readFileSync(__dirname + "/../../../bin/crow.wasm"))
+		connection.listen()
+	} catch (error) {
+		connection.console.log("Failed to initialize: " + error)
+		throw error
+	}
+}
+setUpCompiler()
 
 /**
  * @template T

@@ -116,7 +116,7 @@ bin/crow.tar.xz: bin/crow demo/* demo/*/* editor/sublime/* $(ALL_INCLUDE) librar
 
 ### lint ###
 
-lint: lint-basic lint-dscanner lint-d-imports-exports
+lint: lint-basic lint-dscanner lint-d-imports-exports typescript
 
 lint-basic: bin/crow
 	./bin/crow run test/lint-basic.crow
@@ -126,6 +126,13 @@ lint-dscanner:
 
 lint-d-imports-exports: bin/crow
 	./bin/crow run test/lint-d-imports-exports.crow
+
+typescript: editor/crow-vscode/server/node_modules
+	./editor/crow-vscode/server/node_modules/typescript/bin/tsc
+
+editor/crow-vscode/server/node_modules:
+	cd editor/crow-vscode/server
+	npm install
 
 ### site ###
 

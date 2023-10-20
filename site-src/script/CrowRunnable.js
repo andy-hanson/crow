@@ -1,8 +1,11 @@
+/// <reference path="../../crow-js/crow.js" />
+
 import { copyIcon, downloadIcon, playIcon, upIcon } from "./CrowIcon.js"
 import { CrowText } from "./CrowText.js"
 import { LoadingIcon } from "./LoadingIcon.js"
 import { MutableObservable } from "./util/MutableObservable.js"
 import { assert, createButton, createDiv, createSpan, nonNull, removeAllChildren, setStyleSheet } from "./util/util.js"
+// @ts-ignore
 import includeAll from "/include-all.json" assert { type: "json" }
 
 const css = `
@@ -43,6 +46,18 @@ div.icon svg { height: 1.5em; }
 button.collapsed { display: none; }
 `
 
+/** @type {Promise<crow.Compiler> | null} */
+let _compiler = null
+/** @type {function(): Promise<crow.Compiler>} */
+const getCompiler = () => {
+	if (_compiler === null) {
+		_compiler = makeCompiler()
+	}
+	return _compiler
+}
+const makeCompiler = async () =>
+	crow.makeCompiler(await (await fetch("../bin/crow.wasm")).arrayBuffer())
+
 export class CrowRunnable extends HTMLElement {
 	constructor() {
 		super()
@@ -50,7 +65,7 @@ export class CrowRunnable extends HTMLElement {
 	}
 
 	connectedCallback() {
-		crow.getGlobalCompiler()
+		getCompiler()
 			.then(comp =>
 				connected(
 					nonNull(this.shadowRoot),
@@ -83,7 +98,7 @@ const getDefaultName = () => {
 	return res
 }
 
-/** @type {function(ReadonlyArray<ChildNode>): string} */
+/** @type {function(NodeListOf<ChildNode>): string} */
 const getChildText = childNodes => {
 	assert(childNodes.length === 1)
 	const child = childNodes[0]
@@ -107,9 +122,9 @@ const connected = (shadowRoot, name, noRun, comp, initialText) => {
 
 	/** @type {MutableObservable<string>} */
 	const text = new MutableObservable(initialText)
-	/** @type {MutableObservable<ReadonlyArray<Token>>} */
+	/** @type {MutableObservable<crow.TokensAndParseDiagnostics>} */
 	const tokensAndParseDiagnostics = new MutableObservable(
-		/** @type {TokensAndParseDiagnostics} */ ({tokens:[], parseDiagnostics:[]}))
+		/** @type {crow.TokensAndParseDiagnostics} */ ({tokens:[], parseDiagnostics:[]}))
 	/** @type {function(number): string} */
 	const getHover = pos =>
 		comp.getHover(MAIN, pos)
@@ -187,23 +202,26 @@ const makeOutput = () => {
 			container.append(new LoadingIcon())
 			container.append(createDiv(), createDiv(), createDiv(), createDiv())
 		},
+		/** @type {function(crow.RunOutput): void} */
 		finishRunning: ({writes, exitCode}) => {
 			container.classList.remove("running")
-			container.style.height = null
+			container.style.height = ''
 			removeAllChildren(container)
 			addSpansForWrites(container, writes, exitCode)
 		},
 	}
 }
 
+/** @type {function(ParentNode, ReadonlyArray<crow.Write>, number): void} */
 const addSpansForWrites = (container, writes, exitCode) => {
+	/** @type {crow.Write.Pipe | "exit-code" | null} */
 	let curPipe = null
 	let curLine = ""
 
 	const finishLine = () => {
 		if (container.textContent)
 			container.append(document.createElement("br"))
-		container.append(createSpan({children:[curLine], className:curPipe}))
+		container.append(createSpan({children:[curLine], className:nonNull(curPipe)}))
 		curLine = ""
 	}
 

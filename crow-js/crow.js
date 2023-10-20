@@ -1,9 +1,11 @@
-const crow = {}
+const globalCrow = {}
 
 if (typeof window !== "undefined")
-	Object.assign(window, {crow})
+	Object.assign(window, {crow:globalCrow})
+// @ts-ignore
 if (typeof global !== "undefined")
-	Object.assign(global, {crow})
+	// @ts-ignore
+	Object.assign(global, {crow:globalCrow})
 
 /** @typedef {number & {_isServer:true}} Server */
 
@@ -26,70 +28,6 @@ Exports of `wasm.d`:
 */
 
 /** @typedef {ExportFunctions & {memory:WebAssembly.Memory}} Exports */
-
-/**
-@typedef DiagRange
-@property {[number, number]} args
-*/
-crow.DiagRange = {}
-
-/**
-@typedef Write
-@property {"stdout" | "stderr"} pipe
-@property {string} text
-*/
-crow.Write = {}
-
-/**
-@typedef {
-	| "fun"
-	| "identifier"
-	| "import"
-	| "keyword"
-	| "lit-num"
-	| "lit-str"
-	| "local"
-	| "member"
-	| "modifier"
-	| "param"
-	| "spec"
-	| "struct"
-	| "type-param"
-	| "var-decl"
-} TokenKind
-*/
-crow.TokenKind = {}
-
-/**
- * @typedef Token
- * @property {TokenKind} token
- * @property {DiagRange} range
- */
-crow.Token = {}
-
-/**
- * @typedef Diagnostic
- * @property {string} message
- * @property {DiagRange} range
- */
-crow.Diagnostic = {}
-
-/**
- * @typedef TokensAndParseDiagnostics
- * @property {ReadonlyArray<Token>} tokens
- * @property {ReadonlyArray<Diagnostic>} parseDiagnostics
- */
-crow.TokensAndParseDiagnostics = {}
-
-/** @type {Promise<Compiler> | null} */
-let globalCompiler = null
-
-/** @type {function(): Promise<Compiler>} */
-crow.getGlobalCompiler = async () => {
-	if (globalCompiler === null)
-		globalCompiler = crow.Compiler.make()
-	return globalCompiler
-}
 
 /**
  * @typedef BufferSpace
@@ -155,50 +93,53 @@ class Allocator {
 const mathFunctions = Object.fromEntries(
 	["acos", "acosh", "asin", "asinh", "atan", "atanh", "atan2",
 		"cos", "cosh", "round", "sin", "sinh", "sqrt", "tan", "tanh",
-	].map(name => [name, Math[name]]))
+	].map(name => [name, /** @type {any} */ (Math)[name]]))
 
-/** @type {ReadonlyArray<{crow.Write}>} */
+/** @type {crow.Write[]} */
 let globalWrites = []
 
-class Compiler {
-	/** @return {Promise<Compiler>} */
-	static async make() {
-		return Compiler.makeFromBytes(await (await fetch("../bin/crow.wasm")).arrayBuffer())
-	}
 
-	/**
-	@param {ArrayBuffer} bytes
-	@return {Promise<Compiler>}
-	*/
-	static async makeFromBytes(bytes) {
-		const result = await WebAssembly.instantiate(bytes, {
-			env: {
-				getTimeNanos: () =>
-					BigInt(Math.round(performance.now() * 1_000_000)),
-				perfLog: (namePtr, count, nanoseconds, bytesAllocated) => {
-					const name = res._readCStr(namePtr)
-					console.log(`${name} x ${count} took ${nanoseconds / 1_000_000n}ms and ${bytesAllocated} bytes`)
-				},
-				debugLog: (str, value) => {
-					console.log(res._readCStr(str), value)
-				},
-				verifyFail: () => {
-					throw new Error("Called verifyFail!")
-				},
-				...mathFunctions,
-				write: (pipe, begin, length) => {
-					globalWrites.push({pipe:pipe == 0 ? "stdout" : "stderr", text:res._readString(begin, length)})
-				},
-				__assert: (...args) => {
-					console.log("ASSERT", args)
-				},
-			}
-		})
-		const { exports } = result.instance
-		const res = new Compiler(/** @type {Exports} */ (exports))
-		return res
-	}
+/**
+@param {ArrayBuffer} bytes This is the content of 'crow.wasm'
+@return {Promise<crow.Compiler>}
+*/
+globalCrow.makeCompiler = async bytes => {
+	const result = await WebAssembly.instantiate(bytes, {
+		env: {
+			/** @type {function(): bigint} */
+			getTimeNanos: () =>
+				BigInt(Math.round(performance.now() * 1_000_000)),
+			/** @type {function(number, number, bigint, number): void} */
+			perfLog: (namePtr, count, nanoseconds, bytesAllocated) => {
+				const name = res._readCStr(namePtr)
+				console.log(`${name} x ${count} took ${nanoseconds / 1_000_000n}ms and ${bytesAllocated} bytes`)
+			},
+			/** @type {function(number, number): void} */
+			debugLog: (str, value) => {
+				console.log(res._readCStr(str), value)
+			},
+			/** @type {function(): void} */
+			verifyFail: () => {
+				throw new Error("Called verifyFail!")
+			},
+			...mathFunctions,
+			/** @type {function(number, number, number): void} */
+			write: (pipe, begin, length) => {
+				globalWrites.push({pipe:pipe == 0 ? "stdout" : "stderr", text:res._readString(begin, length)})
+			},
+			/** @type {function(...unknown[]): void} */
+			__assert: (...args) => {
+				console.log("ASSERT", args)
+			},
+		}
+	})
+	const { exports } = result.instance
+	const res = new CompilerImpl(/** @type {Exports} */ (exports))
+	return res
+}
 
+/** @implements {crow.Compiler} */
+class CompilerImpl {
 	/**
 	@param {Exports} exports
 	*/
@@ -266,7 +207,7 @@ class Compiler {
 
 	/**
 	@param {string} path
-	@return {TokensAndParseDiagnostics}
+	@return {crow.TokensAndParseDiagnostics}
 	*/
 	getTokensAndParseDiagnostics(path) {
 		try {
@@ -295,7 +236,7 @@ class Compiler {
 
 	/**
 	@param {string} path
-	@return {{exitCode:number, writes:ReadonlyArray<{crow.Write}>} The exit code
+	@return {crow.RunOutput}
 	*/
 	run(path) {
 		try {
@@ -308,13 +249,12 @@ class Compiler {
 		}
 	}
 }
-crow.Compiler = Compiler
 
 /**
 Currently `includeDir` is hardcoded in the constructor in `server.d`.
 TODO someday: Make this configurable.
 */
-crow.includeDir = '/include'
+globalCrow.includeDir = '/include'
 
 /** @type {function(DataView, number, number): string} */
 const readCString = (view, begin, maxPointer) => {
@@ -328,7 +268,7 @@ const readCString = (view, begin, maxPointer) => {
 	}
 	if (ptr == maxPointer) {
 		console.log("Trying to read a string, but it's too long", {
-			bufferSize,
+			begin,
 		})
 		throw new Error("TOO LONG")
 	}
@@ -343,6 +283,7 @@ const readString = (view, buffer, bufferSize) => {
 	return s
 }
 
+/** @type {function(number): number} */
 const roundUpToWord = n => {
 	const diff = n % 8
 	return diff === 0 ? n : n + 8 - diff

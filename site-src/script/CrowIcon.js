@@ -68,7 +68,7 @@ customElements.define("crow-icon", class CrowIcon extends HTMLElement {
 			download: downloadIcon,
 			play: playIcon,
 			"external-link": externalLinkIcon,
-		}[this.getAttribute("icon")])
-		this.shadowRoot.appendChild(fn())
+		}[nonNull(this.getAttribute("icon"))])
+		nonNull(this.shadowRoot).appendChild(fn())
 	}
 })
