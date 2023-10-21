@@ -5,6 +5,7 @@ module lib.server;
 import lib.compiler : buildAndInterpret, ExitCode;
 import frontend.diagnosticsBuilder : diagnosticsForFile;
 import frontend.frontendCompile : frontendCompile;
+import frontend.ide.getDefinition : Definition, getDefinitionForPosition;
 import frontend.ide.getHover : getHoverStr;
 import frontend.ide.getPosition : getPosition, Position;
 import frontend.ide.getTokens : Token, tokensOfAst;
@@ -25,11 +26,11 @@ import util.col.str : copySafeCStr, freeSafeCStr, SafeCStr, safeCStr, strOfSafeC
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForText;
 import util.memoryReadOnlyStorage : withMemoryReadOnlyStorage, MutFiles;
 import util.opt : force, has, none, Opt;
-import util.path : AllPaths, childPath, emptyPathsInfo, emptyRootPath, parsePath, Path, PathsInfo;
+import util.path : AllPaths, emptyPathsInfo, parsePath, Path, PathsInfo;
 import util.perf : Perf;
 import util.readOnlyStorage : ReadOnlyStorage;
 import util.sourceRange : FileIndex, Pos, RangeWithinFile;
-import util.sym : AllSymbols, sym;
+import util.sym : AllSymbols;
 
 struct Server {
 	@safe @nogc pure nothrow:
@@ -41,11 +42,11 @@ struct Server {
 	immutable PathsInfo pathsInfo;
 	MutFiles files;
 
-	@trusted this(Alloc a) {
+	@trusted this(Alloc a, in SafeCStr include) {
 		alloc = a.move();
 		allSymbols = AllSymbols(&alloc);
 		allPaths = AllPaths(&alloc, &allSymbols);
-		includeDir = childPath(allPaths, emptyRootPath(allPaths), sym!"include");
+		includeDir = parsePath(allPaths, include);
 		pathsInfo = emptyPathsInfo;
 		files = MutFiles.init;
 	}
@@ -111,21 +112,31 @@ pure TokensAndParseDiagnostics getTokensAndParseDiagnostics(
 					alloc, server.allSymbols, server.allPaths, server.pathsInfo, showDiagOptions, program, x))));
 }
 
-SafeCStr getHover(ref Perf perf, ref Alloc alloc, ref Server server, in Path path, Pos pos) {
-	Program program = withMemoryReadOnlyStorage!Program(server.includeDir, server.files, (in ReadOnlyStorage storage) =>
-		frontendCompile(alloc, perf, alloc, server.allPaths, server.allSymbols, storage, [path], none!Path));
-	return getHoverFromProgram(alloc, server, path, program, pos);
+Opt!Definition getDefinition(ref Perf perf, ref Alloc alloc, ref Server server, in Path path, Pos pos) {
+	Program program = getProgram(perf, alloc, server, path);
+	Opt!Position position = getPosition(server, program, path, pos);
+	return has(position)
+		? getDefinitionForPosition(program, force(position))
+		: none!Definition;
 }
 
-private SafeCStr getHoverFromProgram(ref Alloc alloc, ref Server server, Path path, in Program program, Pos pos) {
+SafeCStr getHover(ref Perf perf, ref Alloc alloc, ref Server server, in Path path, Pos pos) {
+	Program program = getProgram(perf, alloc, server, path);
+	Opt!Position position = getPosition(server, program, path, pos);
+	return has(position)
+		? getHoverStr(alloc, alloc, server.allSymbols, server.allPaths, server.pathsInfo, program, force(position))
+		: safeCStr!"";
+}
+
+private Program getProgram(ref Perf perf, ref Alloc alloc, ref Server server, Path rootPath) =>
+	withMemoryReadOnlyStorage!Program(server.includeDir, server.files, (in ReadOnlyStorage storage) =>
+		frontendCompile(alloc, perf, alloc, server.allPaths, server.allSymbols, storage, [rootPath], none!Path));
+
+private Opt!Position getPosition(in Server server, in Program program, Path path, Pos pos) {
 	Opt!FileIndex fileIndex = program.filesInfo.pathToFile[path];
-	if (has(fileIndex)) {
-		Opt!Position position = getPosition(server.allSymbols, program.allModules[force(fileIndex).index], pos);
-		return has(position)
-			? getHoverStr(alloc, alloc, server.allSymbols, server.allPaths, server.pathsInfo, program, force(position))
-			: safeCStr!"";
-	} else
-		return safeCStr!"";
+	return has(fileIndex)
+		? getPosition(server.allSymbols, program.allModules[force(fileIndex).index], pos)
+		: none!Position;
 }
 
 ExitCode run(

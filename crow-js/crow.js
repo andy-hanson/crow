@@ -18,7 +18,7 @@ Exports of `wasm.d`:
 @typedef ExportFunctions
 @property {function(): number} getParameterBufferPointer
 @property {function(): number} getParameterBufferSizeBytes
-@property {function(): Server} newServer
+@property {function(CStr): Server} newServer
 @property {function(Server, CStr, CStr): void} addOrChangeFile
 @property {function(Server, CStr): void} deleteFile
 @property {function(Server, CStr): CStr} getFile
@@ -101,9 +101,10 @@ let globalWrites = []
 
 /**
 @param {ArrayBuffer} bytes This is the content of 'crow.wasm'
+@param {string} includeDir
 @return {Promise<crow.Compiler>}
 */
-globalCrow.makeCompiler = async bytes => {
+globalCrow.makeCompiler = async (bytes, includeDir) => {
 	const result = await WebAssembly.instantiate(bytes, {
 		env: {
 			/** @type {function(): bigint} */
@@ -134,7 +135,7 @@ globalCrow.makeCompiler = async bytes => {
 		}
 	})
 	const { exports } = result.instance
-	const res = new CompilerImpl(/** @type {Exports} */ (exports))
+	const res = new CompilerImpl(/** @type {Exports} */ (exports), includeDir)
 	return res
 }
 
@@ -142,13 +143,15 @@ globalCrow.makeCompiler = async bytes => {
 class CompilerImpl {
 	/**
 	@param {Exports} exports
+	@param {string} includeDir
 	*/
-	constructor(exports) {
+	constructor(exports, includeDir) {
 		this._exports = exports
 		const { getParameterBufferPointer, getParameterBufferSizeBytes, memory, newServer } = exports
 		this._view = new DataView(memory.buffer)
 		this._paramAlloc = new Allocator(this._view, getParameterBufferPointer(), getParameterBufferSizeBytes())
-		this._server = newServer()
+		this._server = newServer(this._paramAlloc.writeCStr(includeDir))
+		this._paramAlloc.clear()
 	}
 
 	/** @param {number} begin */
@@ -249,12 +252,6 @@ class CompilerImpl {
 		}
 	}
 }
-
-/**
-Currently `includeDir` is hardcoded in the constructor in `server.d`.
-TODO someday: Make this configurable.
-*/
-globalCrow.includeDir = '/include'
 
 /** @type {function(DataView, number, number): string} */
 const readCString = (view, begin, maxPointer) => {

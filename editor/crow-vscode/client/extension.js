@@ -1,8 +1,3 @@
-/// <reference path="../../../crow-js/crow.js" />
-// @ts-ignore
-require("../../../crow-js/crow.js")
-
-const fs = require("fs")
 /** @typedef {import("vscode").CancellationToken} CancellationToken */
 /** @typedef {import("vscode").DocumentSemanticTokensProvider} DocumentSemanticTokensProvider */
 /** @typedef {import("vscode").ExtensionContext} ExtensionContext */
@@ -11,6 +6,8 @@ const {languages, SemanticTokens, SemanticTokensBuilder, SemanticTokensLegend} =
 /** @typedef {import("vscode-languageclient").LanguageClientOptions} LanguageClientOptions */
 /** @typedef {import("vscode-languageclient/lib/node/main.js").ServerOptions} ServerOptions */
 const {LanguageClient, TransportKind} = require("vscode-languageclient/lib/node/main.js")
+
+const {makeCompiler} = require("../server/util.js")
 
 /** @type {LanguageClient | undefined} */
 let client
@@ -144,9 +141,7 @@ const legend = new SemanticTokensLegend(
 let myCompiler = null
 /** @type {function(): Promise<crow.Compiler>} */
 const getCompiler = () => {
-	if (myCompiler == null) {
-		myCompiler = crow.makeCompiler(fs.readFileSync(__dirname + "/../../../bin/crow.wasm"))
-	}
+	if (myCompiler == null) myCompiler = makeCompiler()
 	return myCompiler
 }
 

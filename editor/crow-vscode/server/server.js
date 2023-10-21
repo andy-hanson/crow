@@ -1,8 +1,3 @@
-/// <reference types="crow" />
-// @ts-ignore
-require("../../../crow-js/crow.js")
-
-const fs = require("fs")
 const {createConnection, TextDocuments, ProposedFeatures} = require("vscode-languageserver")
 /** @typedef {import("vscode-languageserver-protocol").TextDocumentPositionParams} TextDocumentPositionParams */
 const {
@@ -16,9 +11,7 @@ const {TextDocumentSyncKind} = require("vscode-languageserver-protocol")
 /** @typedef {import("vscode-languageserver-protocol").PublishDiagnosticsParams} PublishDiagnosticsParams */
 const {TextDocument} = require("vscode-languageserver-textdocument")
 
-// Avoiding TypeScript "is not a module" error
-const require2 = require
-require2("../../../crow-js/crow.js")
+const {makeCompiler} = require("./util.js")
 
 // @ts-ignore
 const connection = createConnection(ProposedFeatures.all)
@@ -138,9 +131,10 @@ connection.onCompletionResolve(item => {
 // for open, change and close text document events
 documents.listen(connection)
 
+
 const setUpCompiler = async () => {
 	try {
-		compiler = await crow.makeCompiler(fs.readFileSync(__dirname + "/../../../bin/crow.wasm"))
+		compiler = await makeCompiler()
 		connection.listen()
 	} catch (error) {
 		connection.console.log("Failed to initialize: " + error)

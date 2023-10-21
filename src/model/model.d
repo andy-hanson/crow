@@ -1010,6 +1010,9 @@ immutable struct Module {
 	Test[] tests;
 	// Includes re-exports
 	Map!(Sym, NameReferents) allExportedNames;
+
+	FileAndRange range() =>
+		FileAndRange.topOfFile(fileIndex);
 }
 
 immutable struct ImportOrExport {
@@ -1219,6 +1222,9 @@ immutable struct Local {
 	Sym name;
 	LocalMutability mutability;
 	Type type;
+
+	RangeWithinFile nameRange(in AllSymbols allSymbols) =>
+		rangeOfNameAndRange(NameAndRange(range.range.start, name), allSymbols);
 
 	bool isAllocated() {
 		final switch (mutability) {

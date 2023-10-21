@@ -55,8 +55,9 @@ const getCompiler = () => {
 	}
 	return _compiler
 }
+const includeDir = "/include"
 const makeCompiler = async () =>
-	crow.makeCompiler(await (await fetch("../bin/crow.wasm")).arrayBuffer())
+	crow.makeCompiler(await (await fetch("../bin/crow.wasm")).arrayBuffer(), includeDir)
 
 export class CrowRunnable extends HTMLElement {
 	constructor() {
@@ -131,7 +132,7 @@ const connected = (shadowRoot, name, noRun, comp, initialText) => {
 	const crowText = CrowText.create({getHover, tokensAndParseDiagnostics, text})
 
 	for (const [path, content] of Object.entries(includeAll))
-		comp.addOrChangeFile(`${crow.includeDir}/${path}`, content)
+		comp.addOrChangeFile(`${includeDir}/${path}`, content)
 
 	text.nowAndSubscribe(value => {
 		comp.addOrChangeFile(MAIN, value)

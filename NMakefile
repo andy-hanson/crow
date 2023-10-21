@@ -65,6 +65,7 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\frontend\check\instantiate.d \
 	src\frontend\check\maps.d \
 	src\frontend\check\typeFromAst.d \
+	src\frontend\ide\getDefinition.d \
 	src\frontend\ide\getHover.d \
 	src\frontend\ide\getPosition.d \
 	src\frontend\ide\getTokens.d \

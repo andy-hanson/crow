@@ -13,6 +13,7 @@ import model.model :
 	FunDecl,
 	ImportOrExport,
 	ImportOrExportKind,
+	Local,
 	Module,
 	paramsArray,
 	range,
@@ -24,6 +25,7 @@ import model.model :
 	Type,
 	TypeParam;
 import util.col.arr : empty, ptrsRange;
+import util.col.arrUtil : first;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : hasPos, Pos, RangeWithinFile;
 import util.sym : AllSymbols, Sym, symSize;
@@ -39,7 +41,7 @@ immutable struct Position {
 		Sym name;
 	}
 	immutable struct Parameter {
-		Destructure destructure;
+		Local* local;
 	}
 	immutable struct RecordFieldPosition {
 		StructDecl* struct_;
@@ -98,11 +100,11 @@ Opt!Position positionInFun(FunDecl* a, Pos pos, in AllSymbols allSymbols) {
 	//TODO: have a way to get return type range if there are no parameters
 	if (!empty(params) && betweenRanges(nameRange, pos, params[0].range))
 		return some(Position(a.returnType));
-	foreach (Destructure x; params)
-		if (hasPos(x.range, pos))
-			return some(optHasPos(x.nameRange(allSymbols), pos)
-				? Position(Position.Parameter(x))
-				: Position(x.type));
+	foreach (Destructure x; params) {
+		Opt!Position res = positionInParameterDestructure(allSymbols, pos, x);
+		if (has(res))
+			return res;
+	}
 	// TODO: specs
 	return a.body_.match!(Opt!Position)(
 		(FunBody.Bogus) =>
@@ -141,6 +143,21 @@ Opt!Position positionInFun(FunDecl* a, Pos pos, in AllSymbols allSymbols) {
 		(FunBody.VarSet) =>
 			none!Position);
 }
+
+Opt!Position positionInParameterDestructure(in AllSymbols allSymbols, Pos pos, in Destructure a) =>
+	a.matchWithPointers!(Opt!Position)(
+		(Destructure.Ignore*) =>
+			none!Position,
+		(Local* x) =>
+			hasPos(x.range.range, pos)
+				? hasPos(x.nameRange(allSymbols), pos)
+					? some(Position(Position.Parameter(x)))
+					: some(Position(x.type))
+				: none!Position,
+		(Destructure.Split* x) =>
+			//TODO: handle x.destructuredType
+			first!(Position, Destructure)(x.parts, (Destructure part) =>
+				positionInParameterDestructure(allSymbols, pos, part)));
 
 Opt!Position positionInImportsOrExports(in AllSymbols allSymbols, ImportOrExport[] importsOrExports, Pos pos) {
 	foreach (ImportOrExport* im; ptrsRange(importsOrExports))
@@ -194,9 +211,6 @@ Opt!Position positionOfType(Type a) =>
 		(Type.Bogus) => none!Position,
 		(TypeParam* it) => some(Position(it)),
 		(StructInst* it) => some(Position(decl(*it))));
-
-bool optHasPos(Opt!RangeWithinFile range, Pos pos) =>
-	has(range) && hasPos(force(range), pos);
 
 bool nameHasPos(in AllSymbols allSymbols, Pos start, Sym name, Pos pos) =>
 	start <= pos && pos < start + symSize(allSymbols, name);

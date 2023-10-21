@@ -1,11 +1,13 @@
 @safe @nogc nothrow: // not pure
 
+import frontend.ide.getDefinition : Definition, jsonOfDefinition;
 import frontend.ide.getTokens : jsonOfTokens;
 import interpret.fakeExtern : Pipe;
 import lib.compiler : ExitCode;
 import lib.server :
 	addOrChangeFile,
 	deleteFile,
+	getDefinition,
 	getFile,
 	getHover,
 	getTokensAndParseDiagnostics,
@@ -15,9 +17,10 @@ import lib.server :
 	TokensAndParseDiagnostics,
 	toPath;
 import util.alloc.alloc : Alloc, allocateT;
-import util.col.str : CStr, SafeCStr;
+import util.col.str : CStr, SafeCStr, safeCStr;
 import util.json : field, jsonObject, Json, jsonToString, jsonList, jsonString;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
+import util.opt : force, has, Opt;
 import util.path : Path;
 import util.perf : eachMeasure, Perf, PerfMeasureResult, withNullPerf;
 import util.sourceRange : Pos, jsonOfRangeWithinFile;
@@ -59,10 +62,10 @@ private ulong[1000 * 1024 * 1024 / ulong.sizeof] resultBuffer;
 extern(C) size_t getParameterBufferSizeBytes() =>
 	parameterBuffer.length * ulong.sizeof;
 
-@system extern(C) Server* newServer() {
+@system extern(C) Server* newServer(scope CStr includeDir) {
 	Alloc alloc = Alloc(serverBuffer);
 	Server* ptr = allocateT!Server(alloc, 1);
-	ptr.__ctor(alloc.move());
+	ptr.__ctor(alloc.move(), SafeCStr(includeDir));
 	return ptr;
 }
 
@@ -85,6 +88,19 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 	return jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
 		field!"tokens"(jsonOfTokens(resultAlloc, res.tokens)),
 		field!"parse-diagnostics"(jsonOfParseDiagnostics(resultAlloc, res.parseDiagnostics))])).ptr;
+}
+
+@system extern(C) CStr getDefinition(Server* server, scope CStr pathPtr, Pos pos) {
+	Path path = toPath(*server, SafeCStr(pathPtr));
+	Alloc resultAlloc = Alloc(resultBuffer);
+	return withNullPerf!(SafeCStr, (ref Perf perf) {
+		Opt!Definition res = getDefinition(perf, resultAlloc, *server, path, pos);
+		return has(res)
+			? jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
+				field!"definition"(jsonOfDefinition(resultAlloc, server.allPaths, force(res))),
+			]))
+			: safeCStr!"";
+	}).ptr;
 }
 
 @system extern(C) CStr getHover(Server* server, scope CStr pathPtr, Pos pos) {

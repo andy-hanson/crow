@@ -33,9 +33,7 @@ declare namespace crow {
 
 	type RunOutput = {exitCode:number, writes:ReadonlyArray<Write>}
 
-	const includeDir: string
-
-	function makeCompiler(bytes: ArrayBuffer): Promise<Compiler>
+	function makeCompiler(bytes: ArrayBuffer, includeDir: string): Promise<Compiler>
 	interface Compiler {
 		addOrChangeFile(path: string, content: string): void
 		deleteFile(path: string): void

@@ -19,10 +19,9 @@ import model.model :
 	writeTypeUnquoted;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.str : SafeCStr;
-import util.opt : force, Opt;
 import util.path : AllPaths, PathsInfo;
 import util.ptr : ptrTrustMe;
-import util.sym : AllSymbols, Sym, writeSym;
+import util.sym : AllSymbols, writeSym;
 import util.writer : finishWriterToSafeCStr, Writer;
 
 SafeCStr getHoverStr(
@@ -65,8 +64,7 @@ void getHover(
 		},
 		(in Position.Parameter x) {
 			writer ~= "parameter ";
-			Opt!Sym name = x.destructure.name;
-			writeSym(writer, allSymbols, force(name));
+			writeSym(writer, allSymbols, x.local.name);
 		},
 		(in Position.RecordFieldPosition it) {
 			writer ~= "field ";

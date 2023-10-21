@@ -84,6 +84,9 @@ immutable struct FileAndRange {
 	RangeWithinFile range() =>
 		RangeWithinFile(start, start + size);
 
+	static FileAndRange topOfFile(FileIndex file) =>
+		FileAndRange(file, RangeWithinFile.empty);
+
 	static FileAndRange empty() =>
 		FileAndRange(FileIndex.none, RangeWithinFile.empty);
 }

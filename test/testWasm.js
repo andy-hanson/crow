@@ -5,10 +5,10 @@ require("../crow-js/crow.js")
 const fs = require("fs")
 
 const main = async () => {
-	const comp = await crow.makeCompiler(fs.readFileSync('bin/crow.wasm'))
+	const comp = await crow.makeCompiler(fs.readFileSync('bin/crow.wasm'), "/include")
 	const include = JSON.parse(fs.readFileSync("site/include-all.json", "utf-8"))
 	for (const [path, content] of Object.entries(include)) {
-		const fullPath = `${crow.includeDir}/${path}`
+		const fullPath = `/include/${path}`
 		comp.addOrChangeFile(fullPath, content)
 		if (comp.getFile(fullPath) !== content)
 			throw new Error(`Can't read back ${path}`)

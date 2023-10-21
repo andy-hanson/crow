@@ -10,7 +10,7 @@ import util.util : verify;
 
 @trusted void testServer(ref Test test) {
 	withStackAlloc!0x1000((ref Alloc alloc) {
-		Server server = Server(alloc.move());
+		Server server = Server(alloc.move(), safeCStr!"/include");
 		SafeCStr path = safeCStr!"main";
 		SafeCStr content = safeCStr!"content";
 		addOrChangeFile(server, path, content);
