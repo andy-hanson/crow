@@ -1,4 +1,9 @@
 {
+	"include": [
+		"crow-js",
+		"editor/crow-vscode",
+		"site-src/script"
+	],
 	"compilerOptions": {
 		// Use @types/node from here
 		"baseUrl": ".",

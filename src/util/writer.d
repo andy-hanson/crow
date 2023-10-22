@@ -28,7 +28,7 @@ struct Writer {
 			if (a < 0)
 				this ~= '-';
 			this ~= abs(a);
-		} else static if (is(T == uint) || is(T == ulong))
+		} else static if (is(T == ushort) || is(T == uint) || is(T == ulong))
 			writeNat(this, a);
 		else
 			static assert(false, "not writeable");

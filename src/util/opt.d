@@ -54,3 +54,8 @@ T optOr(T)(Opt!T a, in T delegate() @safe @nogc pure nothrow cb) =>
 	has(a)
 		? force(a)
 		: cb();
+
+bool optEqual(T)(in Opt!T a, in Opt!T b) =>
+	has(a)
+		? has(b) && force(a) == force(b)
+		: !has(b);

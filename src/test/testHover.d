@@ -3,35 +3,58 @@ module test.testHover;
 @safe @nogc nothrow: // not pure
 
 import frontend.frontendCompile : frontendCompile;
+import frontend.ide.getDefinition : Definition, getDefinitionForPosition, jsonOfDefinition;
 import frontend.ide.getHover : getHoverStr;
 import frontend.ide.getPosition : getPosition, Position;
 import model.model : Module, Program;
 import test.testUtil : Test;
+import util.alloc.alloc : Alloc;
+import util.cell : Cell, cellGet, cellSet;
+import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.mutMap : addToMutMap;
-import util.col.str : end, SafeCStr, safeCStr, safeCStrEq;
+import util.col.str : end, SafeCStr, safeCStr, safeCStrEq, safeCStrIsEmpty, safeCStrSize, strOfSafeCStr;
+import util.conv : safeToUint;
+import util.json : field, Json, jsonList, jsonObject, jsonToStringPretty, optionalField;
+import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, PosKind;
 import util.memoryReadOnlyStorage : withMemoryReadOnlyStorage, MutFiles;
-import util.opt : force, has, none, Opt;
-import util.path : emptyPathsInfo, Path, rootPath;
+import util.opt : force, has, none, Opt, optEqual, some;
+import util.path : AllPaths, emptyPathsInfo, Path, rootPath;
 import util.perf : Perf, withNullPerf;
 import util.readOnlyStorage : ReadOnlyStorage;
 import util.sourceRange : Pos;
-import util.sym : sym;
-import util.util : verify, verifyFail;
-import util.writer : debugLogWithWriter, Writer;
+import util.sym : AllSymbols, sym;
+import util.util : debugLog, verify, verifyFail;
 
 @trusted void testHover(ref Test test) {
-	testBasic(test);
-	testFunction(test);
+	hoverTest!("hover/basic.crow", "hover/basic.json")(test);
+	hoverTest!("hover/function.crow", "hover/function.json")(test);
 }
 
 private:
+
+void hoverTest(string inputName, string fileName)(ref Test test) {
+	SafeCStr content = safeCStr!(import(inputName));
+	string expected = import(fileName);
+	HoverTest hoverTest = initHoverTest(test, content);
+	SafeCStr actual = jsonToStringPretty(
+		test.alloc,
+		test.allSymbols,
+		hoverResult(test.alloc, test.allSymbols, test.allPaths, content, hoverTest));
+	if (strOfSafeCStr(actual) != expected) {
+		debugLog("Test output was not as expected. File is:");
+		debugLog(fileName);
+		debugLog("Actual is:");
+		debugLog(actual.ptr);
+		verifyFail();
+	}
+}
 
 immutable struct HoverTest {
 	Program program;
 	Module* mainModule;
 }
 
-HoverTest initHoverTest(ref Test test, SafeCStr content) {
+HoverTest initHoverTest(ref Test test, in SafeCStr content) {
 	Path path = rootPath(test.allPaths, sym!"main");
 	MutFiles files;
 	addToMutMap(test.alloc, files, path, content);
@@ -46,78 +69,68 @@ HoverTest initHoverTest(ref Test test, SafeCStr content) {
 	return HoverTest(program, mainModule);
 }
 
-SafeCStr hover(ref Test test, in HoverTest a, Pos pos) {
-	Opt!Position position = getPosition(test.allSymbols, *a.mainModule, pos);
-	return has(position)
-		? getHoverStr(
-			test.alloc, test.alloc, test.allSymbols, test.allPaths, emptyPathsInfo, a.program, force(position))
-		: safeCStr!"";
+immutable struct InfoAtPos {
+	@safe @nogc pure nothrow:
+
+	SafeCStr hover;
+	Opt!Definition definition;
+
+	bool isEmpty() =>
+		safeCStrIsEmpty(hover) && !has(definition);
+
+	bool opEquals(in InfoAtPos b) scope =>
+		safeCStrEq(hover, b.hover) &&
+			optEqual!Definition(definition, b.definition);
 }
 
-void checkHover(ref Test test, ref HoverTest hoverTest, Pos pos, in SafeCStr expected) {
-	verifyStrEq(pos, hover(test, hoverTest, pos), expected);
-}
+Json hoverResult(
+	ref Alloc alloc,
+	ref AllSymbols allSymbols,
+	in AllPaths allPaths,
+	in SafeCStr content,
+	in HoverTest a,
+) {
+	ArrBuilder!Json parts;
 
-void checkHoverRange(ref Test test, ref HoverTest hoverTest, Pos start, Pos end, in SafeCStr expected) {
-	foreach (Pos pos; start .. end)
-		checkHover(test, hoverTest, pos, expected);
-}
+	// We combine ranges that have the same info.
+	Pos curRangeStart = 0;
+	Cell!(InfoAtPos) curInfo = Cell!(InfoAtPos)(InfoAtPos(safeCStr!"", none!Definition));
 
-@trusted void testBasic(ref Test test) {
-	SafeCStr content = safeCStr!`
-nat builtin
-
-r record
-	fld nat
-`;
-	HoverTest a = initHoverTest(test, content);
-
-	checkHover(test, a, 0, safeCStr!"");
-	checkHoverRange(test, a, 1, 11, safeCStr!"builtin type nat");
-	checkHoverRange(test, a, 12, 13, safeCStr!"");
-	Pos rStart = 14;
-	verify(content.ptr[rStart] == 'r');
-	Pos fldStart = rStart + 10;
-	checkHoverRange(test, a, rStart, fldStart, safeCStr!"record r");
-	verify(content.ptr[fldStart] == 'f');
-	checkHoverRange(test, a, fldStart, fldStart + 3, safeCStr!"field r.fld (nat)");
-	checkHoverRange(test, a, fldStart + 3, fldStart + 7, safeCStr!"builtin type nat");
-	checkHoverRange(test, a, fldStart + 7, fldStart + 8, safeCStr!"");
-	verify(content.ptr + fldStart + 8 == end(content.ptr));
-
-	// TODO: TEST:
-	// * imports (have these be actually working!)
-	// * unions
-	// * specs
-	// * every expression
-}
-
-void testFunction(ref Test test) {
-	HoverTest a = initHoverTest(test, safeCStr!`f nat(a str, b nat)
-	a[b]
-`);
-
-	checkHover(test, a, 0, safeCStr!"function f");
-	checkHoverRange(test, a, 1, 5, safeCStr!"TODO: hover for type");
-	checkHover(test, a, 6, safeCStr!"parameter a");
-	checkHoverRange(test, a, 7, 10, safeCStr!"TODO: hover for type");
-	checkHoverRange(test, a, 11, 13, safeCStr!"");
-	checkHover(test, a, 13, safeCStr!"parameter b");
-	checkHoverRange(test, a, 15, 18, safeCStr!"TODO: hover for type");
-
-	//TODO: hover in function body
-}
-
-void verifyStrEq(Pos pos, in SafeCStr actual, in SafeCStr expected) {
-	if (!safeCStrEq(actual, expected)) {
-		debugLogWithWriter((ref Writer writer) {
-			writer ~= "at position ";
-			writer ~= pos;
-			writer ~= "\nactual: ";
-			writer ~= actual;
-			writer ~= "\nexpected: ";
-			writer ~= expected;
-		});
-		verifyFail();
+	LineAndColumn lineAndColumnInFile(Pos pos, PosKind kind) {
+		return lineAndColumnAtPos(a.program.filesInfo.lineAndColumnGetters[a.mainModule.fileIndex], pos, kind);
 	}
+
+	void endRange(Pos end) {
+		InfoAtPos info = cellGet(curInfo);
+		if (!info.isEmpty()) {
+			add(alloc, parts, jsonObject(alloc, [
+				field!"start"(jsonOfLineAndColumn(alloc, lineAndColumnInFile(curRangeStart, PosKind.startOfRange))),
+				field!"end"(jsonOfLineAndColumn(alloc, lineAndColumnInFile(end, PosKind.endOfRange))),
+				field!"hover"(info.hover),
+				optionalField!("definition", Definition)(info.definition, (in Definition x) =>
+					jsonOfDefinition(alloc, allPaths, x)),
+			]));
+		}
+	}
+
+	Pos endOfFile = safeToUint(safeCStrSize(content));
+	foreach (Pos pos; 0 .. endOfFile + 1) {
+		Position position = getPosition(allSymbols, a.mainModule, pos);
+		InfoAtPos here = InfoAtPos(
+			getHoverStr(alloc, alloc, allSymbols, allPaths, emptyPathsInfo, a.program, position),
+			getDefinitionForPosition(a.program, position));
+		if (here != cellGet(curInfo)) {
+			endRange(pos);
+			curRangeStart = pos;
+			cellSet(curInfo, here);
+		}
+	}
+	endRange(endOfFile);
+
+	return jsonList(finishArr(alloc, parts));
 }
+
+Json jsonOfLineAndColumn(ref Alloc alloc, in LineAndColumn a) =>
+	jsonObject(alloc, [
+		field!"line"(a.line + 1),
+		field!"column"(a.column + 1)]);

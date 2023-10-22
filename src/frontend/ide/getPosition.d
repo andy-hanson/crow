@@ -32,6 +32,13 @@ import util.sym : AllSymbols, Sym, symSize;
 import util.union_ : Union;
 
 immutable struct Position {
+	Module* module_;
+	PositionKind kind;
+}
+
+immutable struct PositionKind {
+	immutable struct None {}
+
 	immutable struct ImportedModule {
 		ImportOrExport* import_;
 		Module* module_;
@@ -49,6 +56,7 @@ immutable struct Position {
 	}
 
 	mixin Union!(
+		None,
 		Expr,
 		FunDecl*,
 		ImportedModule,
@@ -61,11 +69,18 @@ immutable struct Position {
 		TypeParam*);
 }
 
-Opt!Position getPosition(in AllSymbols allSymbols, ref Module module_, Pos pos) {
-	Opt!Position fromImports = positionInImportsOrExports(allSymbols, module_.imports, pos);
+Position getPosition(in AllSymbols allSymbols, Module* module_, Pos pos) {
+	Opt!PositionKind kind = getPositionKind(allSymbols, *module_, pos);
+	return Position(module_, has(kind) ? force(kind) : PositionKind(PositionKind.None()));
+}
+
+private:
+
+Opt!PositionKind getPositionKind(in AllSymbols allSymbols, ref Module module_, Pos pos) {
+	Opt!PositionKind fromImports = positionInImportsOrExports(allSymbols, module_.imports, pos);
 	if (has(fromImports))
 		return fromImports;
-	Opt!Position fromExports = positionInImportsOrExports(allSymbols, module_.reExports, pos);
+	Opt!PositionKind fromExports = positionInImportsOrExports(allSymbols, module_.reExports, pos);
 	if (has(fromExports))
 		return fromExports;
 
@@ -76,141 +91,150 @@ Opt!Position getPosition(in AllSymbols allSymbols, ref Module module_, Pos pos) 
 	foreach (SpecDecl* s; ptrsRange(module_.specs))
 		if (hasPos(s.range.range, pos))
 			//TODO: delve inside!
-			return some(Position(s));
+			return some(PositionKind(s));
 
 	foreach (FunDecl* f; ptrsRange(module_.funs)) {
-		Opt!Position fromFun = positionInFun(f, pos, allSymbols);
+		Opt!PositionKind fromFun = positionInFun(f, pos, allSymbols);
 		if (has(fromFun))
 			return fromFun;
 	}
 
-	return none!Position;
+	return none!PositionKind;
 
 	//TODO: check for aliases too
 }
 
-private:
-
-Opt!Position positionInFun(FunDecl* a, Pos pos, in AllSymbols allSymbols) {
+Opt!PositionKind positionInFun(FunDecl* a, Pos pos, in AllSymbols allSymbols) {
 	RangeWithinFile nameRange = a.nameRange(allSymbols);
 	if (hasPos(nameRange, pos))
-		return some(Position(a));
+		return some(PositionKind(a));
 
 	Destructure[] params = paramsArray(a.params);
 	//TODO: have a way to get return type range if there are no parameters
 	if (!empty(params) && betweenRanges(nameRange, pos, params[0].range))
-		return some(Position(a.returnType));
+		return some(PositionKind(a.returnType));
 	foreach (Destructure x; params) {
-		Opt!Position res = positionInParameterDestructure(allSymbols, pos, x);
+		Opt!PositionKind res = positionInParameterDestructure(allSymbols, pos, x);
 		if (has(res))
 			return res;
 	}
 	// TODO: specs
-	return a.body_.match!(Opt!Position)(
+	return a.body_.match!(Opt!PositionKind)(
 		(FunBody.Bogus) =>
-			none!Position,
+			none!PositionKind,
 		(FunBody.Builtin) =>
-			none!Position,
+			none!PositionKind,
 		(FunBody.CreateEnum) =>
-			none!Position,
+			none!PositionKind,
 		(FunBody.CreateExtern) =>
-			none!Position,
+			none!PositionKind,
 		(FunBody.CreateRecord) =>
-			none!Position,
+			none!PositionKind,
 		(FunBody.CreateUnion) =>
-			none!Position,
+			none!PositionKind,
 		(EnumFunction _) =>
-			none!Position,
+			none!PositionKind,
 		(FunBody.Extern) =>
-			none!Position,
+			none!PositionKind,
 		(FunBody.ExpressionBody x) =>
-			hasPos(x.expr.range.range, pos)
-				//TODO: delve inside!
-				? some(Position(x.expr))
-				: none!Position,
+			positionInExpr(x.expr),
 		(FunBody.FileBytes) =>
-			none!Position,
+			none!PositionKind,
 		(FlagsFunction _) =>
-			none!Position,
+			none!PositionKind,
 		(FunBody.RecordFieldGet) =>
-			none!Position,
+			none!PositionKind,
 		(FunBody.RecordFieldPointer) =>
-			none!Position,
+			none!PositionKind,
 		(FunBody.RecordFieldSet) =>
-			none!Position,
+			none!PositionKind,
 		(FunBody.VarGet) =>
-			none!Position,
+			none!PositionKind,
 		(FunBody.VarSet) =>
-			none!Position);
+			none!PositionKind);
 }
 
-Opt!Position positionInParameterDestructure(in AllSymbols allSymbols, Pos pos, in Destructure a) =>
-	a.matchWithPointers!(Opt!Position)(
+Opt!PositionKind positionInParameterDestructure(in AllSymbols allSymbols, Pos pos, in Destructure a) =>
+	a.matchWithPointers!(Opt!PositionKind)(
 		(Destructure.Ignore*) =>
-			none!Position,
+			none!PositionKind,
 		(Local* x) =>
 			hasPos(x.range.range, pos)
 				? hasPos(x.nameRange(allSymbols), pos)
-					? some(Position(Position.Parameter(x)))
-					: some(Position(x.type))
-				: none!Position,
+					? some(PositionKind(PositionKind.Parameter(x)))
+					: some(PositionKind(x.type))
+				: none!PositionKind,
 		(Destructure.Split* x) =>
 			//TODO: handle x.destructuredType
-			first!(Position, Destructure)(x.parts, (Destructure part) =>
+			first!(PositionKind, Destructure)(x.parts, (Destructure part) =>
 				positionInParameterDestructure(allSymbols, pos, part)));
 
-Opt!Position positionInImportsOrExports(in AllSymbols allSymbols, ImportOrExport[] importsOrExports, Pos pos) {
+Opt!PositionKind positionInImportsOrExports(in AllSymbols allSymbols, ImportOrExport[] importsOrExports, Pos pos) {
 	foreach (ImportOrExport* im; ptrsRange(importsOrExports))
 		if (has(im.importSource) && hasPos(force(im.importSource), pos))
-			return im.kind.match!(Opt!Position)(
+			return im.kind.match!(Opt!PositionKind)(
 				(ImportOrExportKind.ModuleWhole m) =>
-					some(Position(Position.ImportedModule(im, m.modulePtr))),
+					some(PositionKind(PositionKind.ImportedModule(im, m.modulePtr))),
 				(ImportOrExportKind.ModuleNamed m) {
 					Pos namePos = force(im.importSource).start;
 					foreach (Sym name; m.names) {
 						Pos nameEnd = namePos + symSize(allSymbols, name);
 						if (pos < nameEnd)
-							return some(Position(Position.ImportedName(im, name)));
+							return some(PositionKind(PositionKind.ImportedName(im, name)));
 						namePos = nameEnd + 1;
 					}
-					return some(Position(Position.ImportedModule(im, m.modulePtr)));
+					return some(PositionKind(PositionKind.ImportedModule(im, m.modulePtr)));
 				});
-	return none!Position;
+	return none!PositionKind;
 }
 
-Position positionInStruct(in AllSymbols allSymbols, StructDecl* a, Pos pos) {
+PositionKind positionInStruct(in AllSymbols allSymbols, StructDecl* a, Pos pos) {
 	//TODO: look through type params!
 
-	Opt!Position specific = body_(*a).match!(Opt!Position)(
+	Opt!PositionKind specific = body_(*a).match!(Opt!PositionKind)(
 		(StructBody.Bogus) =>
-			none!Position,
+			none!PositionKind,
 		(StructBody.Builtin) =>
-			none!Position,
+			none!PositionKind,
 		(StructBody.Enum) =>
-			none!Position, // TODO
+			none!PositionKind, // TODO
 		(StructBody.Extern) =>
-			none!Position,
+			none!PositionKind,
 		(StructBody.Flags) =>
-			none!Position, // TODO
+			none!PositionKind, // TODO
 		(StructBody.Record it) {
 			foreach (RecordField* field; ptrsRange(it.fields))
 				if (hasPos(field.range.range, pos))
 					return nameHasPos(allSymbols, field.range.start, field.name, pos)
-						? some(Position(Position.RecordFieldPosition(a, field)))
+						? some(PositionKind(PositionKind.RecordFieldPosition(a, field)))
 						: positionOfType(field.type);
-			return none!Position;
+			return none!PositionKind;
 		},
 		(StructBody.Union) =>
 			//TODO
-			none!Position);
-	return has(specific) ? force(specific) : Position(a);
+			none!PositionKind);
+	return has(specific) ? force(specific) : PositionKind(a);
 }
 
-Opt!Position positionOfType(Type a) =>
-	a.matchWithPointers!(Opt!Position)(
-		(Type.Bogus) => none!Position,
-		(TypeParam* it) => some(Position(it)),
-		(StructInst* it) => some(Position(decl(*it))));
+Opt!PositionKind positionOfType(Type a) =>
+	a.matchWithPointers!(Opt!PositionKind)(
+		(Type.Bogus) =>
+			none!PositionKind,
+		(TypeParam* x) =>
+			some(PositionKind(x)),
+		(StructInst* x) =>
+			some(PositionKind(decl(*x))));
+
+Opt!PositionKind positionInExpr(in Expr a) {
+	if (!hasPos(x.expr.range.range, pos))
+		return none!PositionKind;
+	else {
+		a.matchIn!(Opt!PositionKind)(
+			
+		)
+		some(PositionKind(x.expr));
+	}
+}
 
 bool nameHasPos(in AllSymbols allSymbols, Pos start, Sym name, Pos pos) =>
 	start <= pos && pos < start + symSize(allSymbols, name);

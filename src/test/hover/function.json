@@ -1,0 +1,72 @@
+[
+	{
+		"start": {"line":1, "column":1}, 
+		"end": {"line":1, "column":2}, 
+		"hover": "function f", 
+		"definition": {
+			"path": "main", 
+			"range": {"start":0, "end":1}
+		}
+	}, 
+	{
+		"start": {"line":1, "column":2}, 
+		"end": {"line":1, "column":7}, 
+		"hover": "TODO: hover for type"
+	}, 
+	{
+		"start": {"line":1, "column":7}, 
+		"end": {"line":1, "column":8}, 
+		"hover": "parameter a", 
+		"definition": {
+			"path": "main", 
+			"range": {"start":6, "end":11}
+		}
+	}, 
+	{
+		"start": {"line":1, "column":8}, 
+		"end": {"line":1, "column":12}, 
+		"hover": "TODO: hover for type"
+	}, 
+	{
+		"start": {"line":1, "column":14}, 
+		"end": {"line":1, "column":15}, 
+		"hover": "parameter b", 
+		"definition": {
+			"path": "main", 
+			"range": {"start":13, "end":18}
+		}
+	}, 
+	{
+		"start": {"line":1, "column":15}, 
+		"end": {"line":1, "column":19}, 
+		"hover": "TODO: hover for type"
+	}, 
+	{
+		"start": {"line":4, "column":1}, 
+		"end": {"line":4, "column":2}, 
+		"hover": "function g", 
+		"definition": {
+			"path": "main", 
+			"range": {"start":29, "end":30}
+		}
+	}, 
+	{
+		"start": {"line":4, "column":2}, 
+		"end": {"line":4, "column":7}, 
+		"hover": "TODO: hover for type"
+	}, 
+	{
+		"start": {"line":4, "column":7}, 
+		"end": {"line":4, "column":8}, 
+		"hover": "parameter a", 
+		"definition": {
+			"path": "main", 
+			"range": {"start":35, "end":41}
+		}
+	}, 
+	{
+		"start": {"line":4, "column":8}, 
+		"end": {"line":4, "column":13}, 
+		"hover": "TODO: hover for type"
+	}
+]

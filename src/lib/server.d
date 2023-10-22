@@ -25,7 +25,7 @@ import util.col.mutMap : getAt_mut, insertOrUpdate, mustDelete, mustGetAt_mut;
 import util.col.str : copySafeCStr, freeSafeCStr, SafeCStr, safeCStr, strOfSafeCStr;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForText;
 import util.memoryReadOnlyStorage : withMemoryReadOnlyStorage, MutFiles;
-import util.opt : force, has, none, Opt;
+import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, emptyPathsInfo, parsePath, Path, PathsInfo;
 import util.perf : Perf;
 import util.readOnlyStorage : ReadOnlyStorage;
@@ -132,10 +132,10 @@ private Program getProgram(ref Perf perf, ref Alloc alloc, ref Server server, Pa
 	withMemoryReadOnlyStorage!Program(server.includeDir, server.files, (in ReadOnlyStorage storage) =>
 		frontendCompile(alloc, perf, alloc, server.allPaths, server.allSymbols, storage, [rootPath], none!Path));
 
-private Opt!Position getPosition(in Server server, in Program program, Path path, Pos pos) {
+private Opt!Position getPosition(in Server server, ref Program program, Path path, Pos pos) {
 	Opt!FileIndex fileIndex = program.filesInfo.pathToFile[path];
 	return has(fileIndex)
-		? getPosition(server.allSymbols, program.allModules[force(fileIndex).index], pos)
+		? some(getPosition(server.allSymbols, &program.allModules[force(fileIndex).index], pos))
 		: none!Position;
 }
 

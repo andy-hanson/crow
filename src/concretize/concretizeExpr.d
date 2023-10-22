@@ -369,21 +369,6 @@ ReferenceKind removeIndirection(ReferenceKind a) {
 	}
 }
 
-ConcreteExpr concretizeDrop(
-	ref ConcretizeExprCtx ctx,
-	ConcreteType type,
-	FileAndRange range,
-	in Locals locals,
-	ref ExprKind.Drop e,
-) {
-	verify(isVoid(type));
-	ConcreteExpr arg = concretizeExpr(ctx, locals, e.arg);
-	ConcreteExprKind kind = arg.kind.isA!Constant
-		? constantVoidKind()
-		: ConcreteExprKind(allocate(ctx.alloc, ConcreteExprKind.Drop(arg)));
-	return ConcreteExpr(type, range, kind);
-}
-
 ConcreteExpr constantVoid(ref ConcretizeCtx ctx, FileAndRange range) =>
 	ConcreteExpr(voidType(ctx), range, constantVoidKind());
 
@@ -926,8 +911,6 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 			concretizeClosureGet(ctx, type, range, x),
 		(ExprKind.ClosureSet x) =>
 			concretizeClosureSet(ctx, type, range, locals, x),
-		(ref ExprKind.Drop x) =>
-			concretizeDrop(ctx, type, range, locals, x),
 		(ExprKind.FunPtr x) =>
 			concretizeFunPtr(ctx, type, range, x),
 		(ref ExprKind.If x) =>

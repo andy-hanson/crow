@@ -489,7 +489,7 @@ void writeFunDeclAndTypeArgs(
 	writeFunDeclLocation(writer, allSymbols, allPaths, pathsInfo, options, program.filesInfo, *a.decl);
 }
 
-void writeCalled(
+public void writeCalled(
 	scope ref Writer writer,
 	in AllSymbols allSymbols,
 	in AllPaths allPaths,
@@ -507,7 +507,7 @@ void writeCalled(
 		});
 }
 
-void writeFunInst(
+public void writeFunInst(
 	scope ref Writer writer,
 	in AllSymbols allSymbols,
 	in AllPaths allPaths,
@@ -570,7 +570,7 @@ void writeCalledDecl(
 		});
 }
 
-void writeFunDecl(
+public void writeFunDecl(
 	scope ref Writer writer,
 	in AllSymbols allSymbols,
 	in AllPaths allPaths,

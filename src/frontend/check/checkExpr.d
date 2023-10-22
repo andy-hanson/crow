@@ -1196,7 +1196,9 @@ Expr checkLoop(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in Lo
 	Opt!Type expectedType = tryGetInferred(expected);
 	if (has(expectedType)) {
 		Type type = force(expectedType);
-		ExprKind.Loop* loop = allocate(ctx.alloc, ExprKind.Loop(Expr(FileAndRange.empty, ExprKind(ExprKind.Bogus()))));
+		ExprKind.Loop* loop = allocate(ctx.alloc, ExprKind.Loop(
+			range.range,
+			Expr(FileAndRange.empty, ExprKind(ExprKind.Bogus()))));
 		LoopInfo info = LoopInfo(voidType(ctx), castImmutable(loop), type, false);
 		scope Expected bodyExpected = Expected(&info);
 		Expr body_ = checkExpr(ctx, locals, ast.body_, castNonScope_ref(bodyExpected));

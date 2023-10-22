@@ -52,7 +52,7 @@ main nat^(_ string[]) summon
 	private symbol set
 
 all-files file[]^() summon
-	paths <- "src" search-dir-recursive
+	paths <- "src" search-dir-recursive x => x ends-with ".d"
 	members = paths get-members-per-path
 	for path : paths parallel
 		imports-and-rest = path.read-file find-imports

@@ -2,13 +2,32 @@ module frontend.ide.getDefinition;
 
 @safe @nogc pure nothrow:
 
-import frontend.ide.getPosition : Position;
-import model.model : decl, Expr, FunDecl, Program, SpecDecl, StructDecl, StructInst, Type, TypeParam;
+import frontend.ide.getPosition : Position, PositionKind;
+import model.model :
+	Called,
+	CalledSpecSig,
+	decl,
+	Expr,
+	ExprKind,
+	FunDecl,
+	FunInst,
+	Local,
+	Module,
+	Program,
+	RecordField,
+	SpecDecl,
+	SpecDeclSig,
+	StructDecl,
+	StructInst,
+	toLocal,
+	Type,
+	TypeParam;
 import util.alloc.alloc : Alloc;
-import util.opt : none, Opt, some;
+import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, Path, pathToSafeCStr;
 import util.json : field, Json, jsonObject;
-import util.sourceRange : FileAndRange, jsonOfRangeWithinFile, RangeWithinFile;
+import util.sourceRange : FileAndRange, FileIndex, jsonOfRangeWithinFile, RangeWithinFile;
+import util.union_ : Union;
 
 immutable struct Definition {
 	Path path;
@@ -20,41 +39,146 @@ Json jsonOfDefinition(ref Alloc alloc, in AllPaths allPaths, in Definition a) =>
 		field!"path"(pathToSafeCStr(alloc, allPaths, a.path)),
 		field!"range"(jsonOfRangeWithinFile(alloc, a.range))]);
 
-Opt!Definition getDefinitionForPosition(in Program program, in Position pos) =>
-	pos.matchIn!(Opt!Definition)(
-		(in Expr x) =>
-			getExprDefinition(program, x),
-		(in FunDecl x) =>
-			toDefinition(program, x.range),
-		(in Position.ImportedModule x) =>
-			toDefinition(program, x.module_.range),
-		(in Position.ImportedName x) =>
-			// TODO: get the declaration
-			none!Definition,
-		(in Position.Parameter x) =>
-			toDefinition(program, x.local.range),
-		(in Position.RecordFieldPosition x) =>
-			toDefinition(program, x.field.range),
-		(in SpecDecl x) =>
-			toDefinition(program, x.range),
-		(in StructDecl x) =>
-			toDefinition(program, x.range),
-		(in Type x) =>
-			x.matchIn!(Opt!Definition)(
-				(in Bogus) =>
-					none!Definition,
-				(in TypeParam x) =>
-					toDefinition(program, x.range),
-				(in StructInst x) =>
-					toDefinition(program, decl(x).range)),
-		(in TypeParam x) =>
-			toDefinition(program, x.range));
+Opt!Definition getDefinitionForPosition(in Program program, in Position pos) {
+	Opt!Target target = targetForPosition(program, pos.kind);
+	return has(target)
+		? some(definitionForTarget(program, pos.module_.fileIndex, force(target)))
+		: none!Definition;
+}
 
 private:
 
-Opt!Definition toDefinition(in Program program, FileAndRange range) =>
-	some(Definition(program.filesInfo.filePaths[range.fileIndex], range.range));
+immutable struct Target {
+	mixin Union!(
+		FunDecl*,
+		Local*,
+		ExprKind.Loop*,
+		Module*,
+		RecordField*,
+		SpecDecl*,
+		SpecDeclSig*,
+		StructDecl*,
+		TypeParam*,
+	);
+}
 
-Opt!Definition getExprDefinition(in Program program, in Expr x) =>
-	// TODO
-	none!Definition;
+Definition definitionForTarget(in Program program, FileIndex curFile, in Target a) {
+	FileAndRange range = rangeForTarget(curFile, a);
+	return Definition(program.filesInfo.filePaths[range.fileIndex], range.range);
+}
+
+FileAndRange rangeForTarget(in FileIndex curFile, in Target a) =>
+	a.matchIn!FileAndRange(
+		(in FunDecl x) =>
+			x.range,
+		(in Local x) =>
+			x.range,
+		(in ExprKind.Loop x) =>
+			FileAndRange(curFile, x.range),
+		(in Module x) =>
+			x.range,
+		(in RecordField x) =>
+			x.range,
+		(in SpecDecl x) =>
+			x.range,
+		(in SpecDeclSig x) =>
+			x.range,
+		(in StructDecl x) =>
+			x.range,
+		(in TypeParam x) =>
+			x.range);
+
+Opt!Target targetForPosition(in Program program, PositionKind pos) =>
+	pos.matchWithPointers!(Opt!Target)(
+		(PositionKind.None) =>
+			none!Target,
+		(Expr x) =>
+			exprTarget(program, x),
+		(FunDecl* x) =>
+			some(Target(x)),
+		(PositionKind.ImportedModule x) =>
+			some(Target(x.module_)),
+		(PositionKind.ImportedName x) =>
+			// TODO: get the declaration
+			none!Target,
+		(PositionKind.Parameter x) =>
+			some(Target(x.local)),
+		(PositionKind.RecordFieldPosition x) =>
+			some(Target(x.field)),
+		(SpecDecl* x) =>
+			some(Target(x)),
+		(StructDecl* x) =>
+			some(Target(x)),
+		(Type x) =>
+			x.matchWithPointers!(Opt!Target)(
+				(Bogus) =>
+					none!Target,
+				(TypeParam* x) =>
+					some(Target(x)),
+				(StructInst* x) =>
+					some(Target(decl(*x)))),
+		(TypeParam* x) =>
+			some(Target(x)));
+
+Opt!Target exprTarget(in Program program, ref Expr a) =>
+	a.kind.match!(Opt!Target)(
+		(ExprKind.AssertOrForbid) =>
+			none!Target,
+		(ExprKind.Bogus) =>
+			none!Target,
+		(ExprKind.Call x) =>
+			calledTarget(x.called),
+		(ExprKind.ClosureGet x) =>
+			some(Target(toLocal(*x.closureRef))),
+		(ExprKind.ClosureSet x) =>
+			some(Target(toLocal(*x.closureRef))),
+		(ExprKind.FunPtr x) =>
+			some(Target(decl(*x.funInst))),
+		(ref ExprKind.If) =>
+			none!Target,
+		(ref ExprKind.IfOption) =>
+			none!Target,
+		(ref ExprKind.Lambda) =>
+			none!Target,
+		(ref ExprKind.Let) =>
+			none!Target,
+		(ref ExprKind.Literal) =>
+			none!Target,
+		(ExprKind.LiteralCString) =>
+			none!Target,
+		(ExprKind.LiteralSymbol) =>
+			none!Target,
+		(ExprKind.LocalGet x) =>
+			some(Target(x.local)),
+		(ref ExprKind.LocalSet x) =>
+			some(Target(x.local)),
+		(ref ExprKind.Loop) =>
+			none!Target,
+		(ref ExprKind.LoopBreak x) =>
+			some(Target(x.loop)),
+		(ExprKind.LoopContinue x) =>
+			some(Target(x.loop)),
+		(ref ExprKind.LoopUntil) =>
+			none!Target,
+		(ref ExprKind.LoopWhile) =>
+			none!Target,
+		(ref ExprKind.MatchEnum) =>
+			none!Target,
+		(ref ExprKind.MatchUnion) =>
+			none!Target,
+		(ref ExprKind.PtrToField x) =>
+			// TODO: target the field
+			none!Target,
+		(ExprKind.PtrToLocal x) =>
+			some(Target(x.local)),
+		(ref ExprKind.Seq) =>
+			none!Target,
+		(ref ExprKind.Throw) =>
+			none!Target);
+
+Opt!Target calledTarget(ref Called a) =>
+	a.match!(Opt!Target)(
+		(ref FunInst x) =>
+			some(Target(decl(x))),
+		(ref CalledSpecSig x) =>
+			some(Target(x.nonInstantiatedSig)));

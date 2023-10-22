@@ -1,9 +1,27 @@
 declare namespace crow {
-	type DiagRange = {start:number, end:number}
+	type DiagRange = {
+		start: number
+		end: number
+	}
 
-	type Diagnostic = {message:string, range:DiagRange}
+	type Diagnostic = {
+		message: string
+		range: DiagRange
+	}
 
-	type Token = {token:TokenKind, range:DiagRange}
+	type PathAndRange = {
+		path: string
+		range: DiagRange
+	}
+
+	type Definition = {
+		definition: PathAndRange | null
+	}
+
+	type Token = {
+		token: TokenKind
+		range: DiagRange
+	}
 
 	type TokenKind =
 		| "fun"
@@ -37,8 +55,10 @@ declare namespace crow {
 	interface Compiler {
 		addOrChangeFile(path: string, content: string): void
 		deleteFile(path: string): void
+		// For debug/test
 		getFile(path: string): string
 		getTokensAndParseDiagnostics(path: string): TokensAndParseDiagnostics
+		getDefinition(path: string, pos: number): Definition
 		getHover(path: string, pos: number): string
 		run(path: string): RunOutput
 	}

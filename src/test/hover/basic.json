@@ -1,0 +1,38 @@
+[
+	{
+		"start": {"line":1, "column":1}, 
+		"end": {"line":1, "column":12}, 
+		"hover": "builtin type nat", 
+		"definition": {
+			"path": "main", 
+			"range": {"start":0, "end":11}
+		}
+	}, 
+	{
+		"start": {"line":3, "column":1}, 
+		"end": {"line":4, "column":5}, 
+		"hover": "record r", 
+		"definition": {
+			"path": "main", 
+			"range": {"start":13, "end":30}
+		}
+	}, 
+	{
+		"start": {"line":4, "column":5}, 
+		"end": {"line":4, "column":8}, 
+		"hover": "field r.fld (nat)", 
+		"definition": {
+			"path": "main", 
+			"range": {"start":23, "end":30}
+		}
+	}, 
+	{
+		"start": {"line":4, "column":8}, 
+		"end": {"line":4, "column":12}, 
+		"hover": "builtin type nat", 
+		"definition": {
+			"path": "main", 
+			"range": {"start":0, "end":11}
+		}
+	}
+]

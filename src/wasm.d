@@ -17,8 +17,8 @@ import lib.server :
 	TokensAndParseDiagnostics,
 	toPath;
 import util.alloc.alloc : Alloc, allocateT;
-import util.col.str : CStr, SafeCStr, safeCStr;
-import util.json : field, jsonObject, Json, jsonToString, jsonList, jsonString;
+import util.col.str : CStr, SafeCStr;
+import util.json : field, jsonObject, Json, jsonToString, jsonList, jsonString, optionalField;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
 import util.opt : force, has, Opt;
 import util.path : Path;
@@ -95,11 +95,10 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 	Alloc resultAlloc = Alloc(resultBuffer);
 	return withNullPerf!(SafeCStr, (ref Perf perf) {
 		Opt!Definition res = getDefinition(perf, resultAlloc, *server, path, pos);
-		return has(res)
-			? jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
-				field!"definition"(jsonOfDefinition(resultAlloc, server.allPaths, force(res))),
-			]))
-			: safeCStr!"";
+		return jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
+			optionalField!"definition"(has(res), () =>
+				jsonOfDefinition(resultAlloc, server.allPaths, force(res)))
+		]));
 	}).ptr;
 }
 

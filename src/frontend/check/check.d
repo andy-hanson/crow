@@ -250,7 +250,7 @@ SpecDeclBody checkSpecDeclBody(
 						x,
 					(ref Params.Varargs _) =>
 						todo!(Destructure[])("diag: no varargs in spec"));
-				return SpecDeclSig(x.docComment, posInFile(ctx, x.range.start), x.name, rp.returnType, small(params));
+				return SpecDeclSig(x.docComment, rangeInFile(ctx, x.range), x.name, rp.returnType, small(params));
 			})));
 
 SpecDecl[] checkSpecDeclsInitial(

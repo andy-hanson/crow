@@ -120,9 +120,6 @@ textarea {
 }
 `
 
-// Turned off hover because it's too slow
-const hoverEnabled = false
-
 export class CrowText extends HTMLElement {
 	props = /** @type {CrowTextProps} */ (/** @type {any} */ (null))
 
@@ -183,7 +180,7 @@ export class CrowText extends HTMLElement {
 			mouseIsIn = false
 			removeTooltip()
 		})
-		if (hoverEnabled) ta.addEventListener("mousemove", e => {
+		ta.addEventListener("mousemove", e => {
 			mouseIsIn = true
 			removeTooltip()
 			const offsetX = e.offsetX

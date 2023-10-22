@@ -170,7 +170,7 @@ immutable struct SpecDeclSig {
 	@safe @nogc pure nothrow:
 
 	SafeCStr docComment;
-	FileAndPos fileAndPos;
+	FileAndRange range;
 	Sym name;
 	Type returnType;
 	SmallArray!Destructure params;
@@ -1011,7 +1011,7 @@ immutable struct Module {
 	// Includes re-exports
 	Map!(Sym, NameReferents) allExportedNames;
 
-	FileAndRange range() =>
+	FileAndRange range() scope =>
 		FileAndRange.topOfFile(fileIndex);
 }
 
@@ -1271,7 +1271,16 @@ immutable struct ClosureRef {
 
 	VariableRef variableRef() =>
 		lambda.closure[index];
+
+	Sym name() =>
+		toLocal(this).name;
+
+	Type type() =>
+		toLocal(this).type;
 }
+
+Local* toLocal(in ClosureRef a) =>
+	toLocal(a.variableRef);
 
 enum ClosureReferenceKind { direct, allocated }
 Sym symOfClosureReferenceKind(ClosureReferenceKind a) {
@@ -1397,10 +1406,6 @@ immutable struct ExprKind {
 		Expr* value;
 	}
 
-	immutable struct Drop {
-		ExprAndType arg;
-	}
-
 	immutable struct FunPtr {
 		FunInst* funInst;
 	}
@@ -1455,6 +1460,7 @@ immutable struct ExprKind {
 	}
 
 	immutable struct Loop {
+		RangeWithinFile range;
 		Expr body_;
 	}
 
@@ -1516,7 +1522,6 @@ immutable struct ExprKind {
 		Call,
 		ClosureGet,
 		ClosureSet,
-		Drop*,
 		FunPtr,
 		If*,
 		IfOption*,

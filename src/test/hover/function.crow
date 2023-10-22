@@ -1,0 +1,5 @@
+f nat(a str, b nat)
+	a[b] g
+
+g nat(a char)
+	0

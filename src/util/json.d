@@ -4,7 +4,7 @@ module util.json;
 
 import util.alloc.alloc : Alloc, allocateT;
 import util.col.arr : empty;
-import util.col.arrUtil : arrEqual, filter, map;
+import util.col.arrUtil : arrEqual, every, filter, map;
 import util.col.fullIndexMap : FullIndexMap;
 import util.col.map : KeyValuePair;
 import util.col.str : copyStr, SafeCStr, safeCStrIsEmpty, strEq, strOfSafeCStr;
@@ -146,6 +146,12 @@ SafeCStr jsonToString(ref Alloc alloc, in AllSymbols allSymbols, in Json a) {
 	return finishWriterToSafeCStr(writer);
 }
 
+SafeCStr jsonToStringPretty(ref Alloc alloc, in AllSymbols allSymbols, in Json a) {
+	Writer writer = Writer(ptrTrustMe(alloc));
+	writeJsonPretty(writer, allSymbols, a, 0);
+	return finishWriterToSafeCStr(writer);
+}
+
 void writeJson(ref Writer writer, in AllSymbols allSymbols, in Json a) =>
 	a.matchIn!void(
 		(in Json.Null _) {
@@ -179,3 +185,38 @@ void writeJson(ref Writer writer, in AllSymbols allSymbols, in Json a) =>
 			});
 			writer ~= '}';
 		});
+
+private:
+
+void writeJsonPretty(ref Writer writer, in AllSymbols allSymbols, in Json a, in uint indent) {
+	if (a.isA!(Json[]) && !every!Json(a.as!(Json[]), (in Json x) => isPrimitive(x))) {
+		writer ~= '[';
+		writeWithCommas!Json(writer, a.as!(Json[]), (in Json x) {
+			writeNewlineAndIndent(writer, indent + 1);
+			writeJsonPretty(writer, allSymbols, x, indent + 1);
+		});
+		writeNewlineAndIndent(writer, indent);
+		writer ~= ']';
+	} else if (a.isA!(Json.Object) && !every!(Json.ObjectField)(a.as!(Json.Object), (in Json.ObjectField x) =>
+			isPrimitive(x.value))) {
+		writer ~= '{';
+		writeWithCommas!(Json.ObjectField)(writer, a.as!(Json.Object), (in Json.ObjectField pair) {
+			writeNewlineAndIndent(writer, indent + 1);
+			writeQuotedSym(writer, allSymbols, pair.key);
+			writer ~= ": ";
+			writeJsonPretty(writer, allSymbols, pair.value, indent + 1);
+		});
+		writeNewlineAndIndent(writer, indent);
+		writer ~= '}';
+	} else
+		writeJson(writer, allSymbols, a);
+}
+
+void writeNewlineAndIndent(ref Writer writer, in uint indent) {
+	writer ~= '\n';
+	foreach (uint i; 0 .. indent)
+		writer ~= '\t';
+}
+
+bool isPrimitive(in Json a) =>
+	!a.isA!(Json[]) && !a.isA!(Json.Object);

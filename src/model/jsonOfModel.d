@@ -148,7 +148,7 @@ Json jsonOfSpecDeclBody(ref Alloc alloc, in Ctx ctx, in SpecDeclBody a) =>
 Json jsonOfSpecDeclSig(ref Alloc alloc, in Ctx ctx, in SpecDeclSig a) =>
 	jsonObject(alloc, [
 		optionalStringField!"doc"(alloc, a.docComment),
-		field!"where"(jsonOfFileAndPos(alloc, a.fileAndPos)),
+		field!"where"(jsonOfFileAndRange(alloc, a.range)),
 		field!"name"(a.name),
 		field!"return-type"(jsonOfType(alloc, ctx, a.returnType)),
 		field!"params"(jsonOfDestructures(alloc, ctx, a.params))]);
@@ -340,10 +340,6 @@ Json jsonOfExpr(ref Alloc alloc, in Ctx ctx, in Expr a) =>
 			jsonObject(alloc, [
 				kindField!"closure-set",
 				field!"index"(x.closureRef.index)]),
-		(in ExprKind.Drop x) =>
-			jsonObject(alloc, [
-				kindField!"drop",
-				field!"arg"(jsonOfExprAndType(alloc, ctx, x.arg))]),
 		(in ExprKind.FunPtr x) =>
 			jsonObject(alloc, [
 				kindField!"fun-pointer",
