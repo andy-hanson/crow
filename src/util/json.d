@@ -13,7 +13,8 @@ import util.opt : force, has, Opt;
 import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols, Sym, sym, writeQuotedSym;
 import util.union_ : Union;
-import util.writer : finishWriterToSafeCStr, writeFloatLiteral, Writer, writeQuotedStr, writeWithCommas;
+import util.writer :
+	finishWriterToSafeCStr, writeFloatLiteral, Writer, writeQuotedStr, writeWithCommasCompact, writeWithSeparator;
 
 immutable struct Json {
 	@safe @nogc pure nothrow:
@@ -171,14 +172,14 @@ void writeJson(ref Writer writer, in AllSymbols allSymbols, in Json a) =>
 		},
 		(in Json[] x) {
 			writer ~= '[';
-			writeWithCommas!Json(writer, x, (in Json y) {
+			writeWithCommasCompact!Json(writer, x, (in Json y) {
 				writeJson(writer, allSymbols, y);
 			});
 			writer ~= ']';
 		},
 		(in Json.Object x) {
 			writer ~= '{';
-			writeWithCommas!(Json.ObjectField)(writer, x, (in Json.ObjectField pair) {
+			writeWithCommasCompact!(Json.ObjectField)(writer, x, (in Json.ObjectField pair) {
 				writeQuotedSym(writer, allSymbols, pair.key);
 				writer ~= ':';
 				writeJson(writer, allSymbols, pair.value);
@@ -189,24 +190,27 @@ void writeJson(ref Writer writer, in AllSymbols allSymbols, in Json a) =>
 private:
 
 void writeJsonPretty(ref Writer writer, in AllSymbols allSymbols, in Json a, in uint indent) {
-	if (a.isA!(Json[]) && !every!Json(a.as!(Json[]), (in Json x) => isPrimitive(x))) {
+	if (a.isA!(Json[])) {
+		bool singleLine = every!Json(a.as!(Json[]), (in Json x) => isPrimitive(x));
 		writer ~= '[';
-		writeWithCommas!Json(writer, a.as!(Json[]), (in Json x) {
-			writeNewlineAndIndent(writer, indent + 1);
+		writeWithSeparator!Json(writer, a.as!(Json[]), singleLine ? ", " : ",", (in Json x) {
+			if (!singleLine) writeNewlineAndIndent(writer, indent + 1);
 			writeJsonPretty(writer, allSymbols, x, indent + 1);
 		});
-		writeNewlineAndIndent(writer, indent);
+		if (!singleLine) writeNewlineAndIndent(writer, indent);
 		writer ~= ']';
-	} else if (a.isA!(Json.Object) && !every!(Json.ObjectField)(a.as!(Json.Object), (in Json.ObjectField x) =>
-			isPrimitive(x.value))) {
+	} else if (a.isA!(Json.Object)) {
+		bool singleLine = every!(Json.ObjectField)(a.as!(Json.Object), (in Json.ObjectField x) =>
+			isPrimitive(x.value));
 		writer ~= '{';
-		writeWithCommas!(Json.ObjectField)(writer, a.as!(Json.Object), (in Json.ObjectField pair) {
-			writeNewlineAndIndent(writer, indent + 1);
+		string comma = singleLine ? ", " : ",";
+		writeWithSeparator!(Json.ObjectField)(writer, a.as!(Json.Object), comma, (in Json.ObjectField pair) {
+			if (!singleLine) writeNewlineAndIndent(writer, indent + 1);
 			writeQuotedSym(writer, allSymbols, pair.key);
 			writer ~= ": ";
 			writeJsonPretty(writer, allSymbols, pair.value, indent + 1);
 		});
-		writeNewlineAndIndent(writer, indent);
+		if (!singleLine) writeNewlineAndIndent(writer, indent);
 		writer ~= '}';
 	} else
 		writeJson(writer, allSymbols, a);

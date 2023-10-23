@@ -21,6 +21,7 @@ import model.model :
 	Program,
 	SpecDecl,
 	StructBody,
+	StructInst,
 	Type,
 	TypeParam,
 	writeStructDecl,
@@ -72,9 +73,13 @@ void getHover(
 		(in PositionKind.ImportedName x) {
 			getImportedNameHover(writer, x);
 		},
-		(in PositionKind.Parameter x) {
+		(in PositionKind.LocalNonParameter x) {
+			writer ~= "local ";
+			localHover(writer, allSymbols, program, *x.local);
+		},
+		(in PositionKind.LocalParameter x) {
 			writer ~= "parameter ";
-			writeSym(writer, allSymbols, x.local.name);
+			localHover(writer, allSymbols, program, *x.local);
 		},
 		(in PositionKind.RecordFieldPosition x) {
 			writer ~= "field ";
@@ -90,34 +95,50 @@ void getHover(
 			writeSym(writer, allSymbols, x.name);
 		},
 		(in StructDecl x) {
-			writer ~= body_(x).matchIn!string(
-				(in StructBody.Bogus) =>
-					"type ",
-				(in StructBody.Builtin) =>
-					"builtin type ",
-				(in StructBody.Enum) =>
-					"enum type ",
-				(in StructBody.Extern) =>
-					"extern type ",
-				(in StructBody.Flags) =>
-					"flags type ",
-				(in StructBody.Record) =>
-					"record ",
-				(in StructBody.Union) =>
-					"union ");
-			writeSym(writer, allSymbols, x.name);
+			writeStructDecl(writer, allSymbols, x);
 		},
-		(in Type a) {
-			writer ~= "TODO: hover for type";
+		(in Type x) {
+			x.matchIn!void(
+				(in Type.Bogus) {},
+				(in TypeParam p) {
+					hoverTypeParam(writer, allSymbols, p);
+				},
+				(in StructInst i) {
+					writeStructDecl(writer, allSymbols, *decl(i));
+				});
 		},
-		(in TypeParam _) {
-			writer ~= "TODO: hover for type param";
+		(in TypeParam x) {
+			hoverTypeParam(writer, allSymbols, x);
 		});
 
 private:
 
+void writeStructDecl(ref Writer writer, in AllSymbols allSymbols, in StructDecl a) {
+	writer ~= body_(a).matchIn!string(
+		(in StructBody.Bogus) =>
+			"type ",
+		(in StructBody.Builtin) =>
+			"builtin type ",
+		(in StructBody.Enum) =>
+			"enum type ",
+		(in StructBody.Extern) =>
+			"extern type ",
+		(in StructBody.Flags) =>
+			"flags type ",
+		(in StructBody.Record) =>
+			"record ",
+		(in StructBody.Union) =>
+			"union ");
+	writeSym(writer, allSymbols, a.name);
+}
+
 void getImportedNameHover(ref Writer writer, in PositionKind.ImportedName) {
 	writer ~= "TODO: getImportedNameHover";
+}
+
+void hoverTypeParam(ref Writer writer, in AllSymbols allSymbols, in TypeParam a) {
+	writer ~= "type parameter ";
+	writeSym(writer, allSymbols, a.name);
 }
 
 void getExprHover(
@@ -230,9 +251,8 @@ void closureRefHover(ref Writer writer, in AllSymbols allSymbols, in Program pro
 }
 
 void localHover(ref Writer writer, in AllSymbols allSymbols, in Program program, in Local a) {
-	writer ~= "local ";
 	writeSym(writer, allSymbols, a.name);
-	writer ~= " of type ";
+	writer ~= ' ';
 	writeTypeUnquoted(writer, allSymbols, program, a.type);
 }
 

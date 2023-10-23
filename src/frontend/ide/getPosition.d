@@ -8,6 +8,7 @@ import model.model :
 	Destructure,
 	EnumFunction,
 	Expr,
+	ExprKind,
 	FlagsFunction,
 	FunBody,
 	FunDecl,
@@ -26,7 +27,7 @@ import model.model :
 	TypeParam;
 import util.col.arr : empty, ptrsRange;
 import util.col.arrUtil : first;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, Opt, optOr, some;
 import util.sourceRange : hasPos, Pos, RangeWithinFile;
 import util.sym : AllSymbols, Sym, symSize;
 import util.union_ : Union;
@@ -47,7 +48,10 @@ immutable struct PositionKind {
 		ImportOrExport* import_;
 		Sym name;
 	}
-	immutable struct Parameter {
+	immutable struct LocalNonParameter {
+		Local* local;
+	}
+	immutable struct LocalParameter {
 		Local* local;
 	}
 	immutable struct RecordFieldPosition {
@@ -61,7 +65,8 @@ immutable struct PositionKind {
 		FunDecl*,
 		ImportedModule,
 		ImportedName,
-		Parameter,
+		LocalNonParameter,
+		LocalParameter,
 		RecordFieldPosition,
 		SpecDecl*,
 		StructDecl*,
@@ -137,7 +142,7 @@ Opt!PositionKind positionInFun(FunDecl* a, Pos pos, in AllSymbols allSymbols) {
 		(FunBody.Extern) =>
 			none!PositionKind,
 		(FunBody.ExpressionBody x) =>
-			positionInExpr(x.expr),
+			positionInExpr(allSymbols, x.expr, pos),
 		(FunBody.FileBytes) =>
 			none!PositionKind,
 		(FlagsFunction _) =>
@@ -155,19 +160,27 @@ Opt!PositionKind positionInFun(FunDecl* a, Pos pos, in AllSymbols allSymbols) {
 }
 
 Opt!PositionKind positionInParameterDestructure(in AllSymbols allSymbols, Pos pos, in Destructure a) =>
+	positionInDestructure(allSymbols, pos, a, (Local* x) => PositionKind(PositionKind.LocalParameter(x)));
+
+Opt!PositionKind positionInDestructure(
+	in AllSymbols allSymbols,
+	Pos pos,
+	in Destructure a,
+	in PositionKind delegate(Local*) @safe @nogc pure nothrow cb,
+) =>
 	a.matchWithPointers!(Opt!PositionKind)(
 		(Destructure.Ignore*) =>
 			none!PositionKind,
 		(Local* x) =>
 			hasPos(x.range.range, pos)
 				? hasPos(x.nameRange(allSymbols), pos)
-					? some(PositionKind(PositionKind.Parameter(x)))
+					? some(cb(x))
 					: some(PositionKind(x.type))
 				: none!PositionKind,
 		(Destructure.Split* x) =>
 			//TODO: handle x.destructuredType
 			first!(PositionKind, Destructure)(x.parts, (Destructure part) =>
-				positionInParameterDestructure(allSymbols, pos, part)));
+				positionInDestructure(allSymbols, pos, part, cb)));
 
 Opt!PositionKind positionInImportsOrExports(in AllSymbols allSymbols, ImportOrExport[] importsOrExports, Pos pos) {
 	foreach (ImportOrExport* im; ptrsRange(importsOrExports))
@@ -225,14 +238,112 @@ Opt!PositionKind positionOfType(Type a) =>
 		(StructInst* x) =>
 			some(PositionKind(decl(*x))));
 
-Opt!PositionKind positionInExpr(in Expr a) {
-	if (!hasPos(x.expr.range.range, pos))
+Opt!PositionKind positionInExpr(in AllSymbols allSymbols, ref Expr a, Pos pos) {
+	if (!hasPos(a.range.range, pos))
 		return none!PositionKind;
 	else {
-		a.matchIn!(Opt!PositionKind)(
-			
-		)
-		some(PositionKind(x.expr));
+		Opt!PositionKind here() {
+			return some(PositionKind(a));
+		}
+		Opt!PositionKind inDestructure(in Destructure x) {
+			return positionInDestructure(allSymbols, pos, x, (Local* x) =>
+				PositionKind(PositionKind.LocalNonParameter(x)));
+		}
+		Opt!PositionKind recur(in Expr inner) {
+			return positionInExpr(allSymbols, inner, pos);
+		}
+		Opt!PositionKind recurOpt(in Opt!(Expr*) inner) {
+			return has(inner)
+				? recur(*force(inner))
+				: none!PositionKind;
+		}
+
+		return a.kind.match!(Opt!PositionKind)(
+			(ExprKind.AssertOrForbid x) =>
+				optOr!PositionKind(
+					recur(*x.condition),
+					() => recurOpt(x.thrown),
+					() => here()),
+			(ExprKind.Bogus) =>
+				none!PositionKind,
+			(ExprKind.Call x) =>
+				optOr!PositionKind(
+					first!(PositionKind, Expr)(x.args, (Expr y) => recur(y)),
+					() => here()),
+			(ExprKind.ClosureGet) =>
+				here(),
+			(ExprKind.ClosureSet x) =>
+				optOr!PositionKind(
+					recur(*x.value),
+					() => here()),
+			(ExprKind.FunPtr) =>
+				here(),
+			(ref ExprKind.If x) =>
+				optOr!PositionKind(
+					recur(x.cond),
+					() => recur(x.then),
+					() => recur(x.else_),
+					() => here()),
+			(ref ExprKind.IfOption x) =>
+				optOr!PositionKind(
+					inDestructure(x.destructure),
+					() => recur(x.option.expr),
+					() => recur(x.then),
+					() => recur(x.else_),
+					() => here()),
+			(ref ExprKind.Lambda x) =>
+				optOr!PositionKind(
+					inDestructure(x.param),
+					() => recur(x.body_),
+					() => here()),
+			(ref ExprKind.Let x) =>
+				optOr!PositionKind(
+					inDestructure(x.destructure),
+					() => recur(x.value),
+					() => recur(x.then),
+					() => here()),
+			(ref ExprKind.Literal) =>
+				here(),
+			(ExprKind.LiteralCString) =>
+				here(),
+			(ExprKind.LiteralSymbol) =>
+				here(),
+			(ExprKind.LocalGet) =>
+				here(),
+			(ref ExprKind.LocalSet) =>
+				here(),
+			(ref ExprKind.Loop x) =>
+				optOr!PositionKind(recur(x.body_), () => here()),
+			(ref ExprKind.LoopBreak x) =>
+				optOr!PositionKind(recur(x.value), () => here()),
+			(ExprKind.LoopContinue) =>
+				here(),
+			(ref ExprKind.LoopUntil x) =>
+				optOr!PositionKind(recur(x.condition), () => recur(x.body_), () => here()),
+			(ref ExprKind.LoopWhile x) =>
+				optOr!PositionKind(recur(x.condition), () => recur(x.body_), () => here()),
+			(ref ExprKind.MatchEnum x) =>
+				optOr!PositionKind(
+					recur(x.matched.expr),
+					() => first!(PositionKind, Expr)(x.cases, (Expr y) => recur(y)),
+					() => here()),
+			(ref ExprKind.MatchUnion x) =>
+				optOr!PositionKind(
+					recur(x.matched.expr),
+					() => first!(PositionKind, ExprKind.MatchUnion.Case)(x.cases, (ExprKind.MatchUnion.Case case_) =>
+						optOr!PositionKind(
+							inDestructure(case_.destructure),
+							() => recur(case_.then)))),
+			(ref ExprKind.PtrToField x) =>
+				optOr!PositionKind(
+					recur(x.target.expr),
+					() => here()),
+			(ExprKind.PtrToLocal) =>
+				here(),
+			(ref ExprKind.Seq x) =>
+				optOr!PositionKind(recur(x.first), () => recur(x.then)),
+			(ref ExprKind.Throw x) =>
+				optOr!PositionKind(recur(x.thrown), () => here()));
 	}
 }
 

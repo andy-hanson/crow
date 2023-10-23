@@ -101,7 +101,9 @@ Opt!Target targetForPosition(in Program program, PositionKind pos) =>
 		(PositionKind.ImportedName x) =>
 			// TODO: get the declaration
 			none!Target,
-		(PositionKind.Parameter x) =>
+		(PositionKind.LocalNonParameter x) =>
+			some(Target(x.local)),
+		(PositionKind.LocalParameter x) =>
 			some(Target(x.local)),
 		(PositionKind.RecordFieldPosition x) =>
 			some(Target(x.field)),

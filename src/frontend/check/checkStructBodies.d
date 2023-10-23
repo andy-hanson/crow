@@ -46,7 +46,7 @@ import util.col.arrUtil : eachPair, fold, map, mapAndFold, MapAndFold, mapToMut,
 import util.col.mutArr : MutArr;
 import util.col.str : copySafeCStr;
 import util.conv : safeToSizeT;
-import util.opt : force, has, none, Opt, optOr, some, someMut;
+import util.opt : force, has, none, Opt, optOrDefault, some, someMut;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : RangeWithinFile;
 import util.sym : Sym, sym;
@@ -203,8 +203,8 @@ LinkageAndPurity getStructModifiers(ref CheckCtx ctx, TypeKind typeKind, in Modi
 			}
 		});
 	return LinkageAndPurity(
-		optOr!Linkage(opts.linkage, () => defaultLinkage),
-		optOr!PurityAndForced(opts.purityAndForced, () => defaultPurity));
+		optOrDefault!Linkage(opts.linkage, () => defaultLinkage),
+		optOrDefault!PurityAndForced(opts.purityAndForced, () => defaultPurity));
 }
 
 Diag modifierConflictOrDuplicate(Sym a, Sym b) =>

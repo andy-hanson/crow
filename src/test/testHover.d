@@ -17,32 +17,32 @@ import util.conv : safeToUint;
 import util.json : field, Json, jsonList, jsonObject, jsonToStringPretty, optionalField;
 import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, PosKind;
 import util.memoryReadOnlyStorage : withMemoryReadOnlyStorage, MutFiles;
-import util.opt : force, has, none, Opt, optEqual, some;
+import util.opt : has, none, Opt, optEqual;
 import util.path : AllPaths, emptyPathsInfo, Path, rootPath;
 import util.perf : Perf, withNullPerf;
 import util.readOnlyStorage : ReadOnlyStorage;
 import util.sourceRange : Pos;
-import util.sym : AllSymbols, sym;
-import util.util : debugLog, verify, verifyFail;
+import util.sym : AllSymbols, sym, symOfStr;
+import util.util : debugLog, verifyFail;
 
 @trusted void testHover(ref Test test) {
-	hoverTest!("hover/basic.crow", "hover/basic.json")(test);
-	hoverTest!("hover/function.crow", "hover/function.json")(test);
+	hoverTest!("basic.crow", "hover/basic.json")(test);
+	hoverTest!("function.crow", "hover/function.json")(test);
 }
 
 private:
 
-void hoverTest(string inputName, string fileName)(ref Test test) {
-	SafeCStr content = safeCStr!(import(inputName));
-	string expected = import(fileName);
-	HoverTest hoverTest = initHoverTest(test, content);
+void hoverTest(string crowFileName, string outputFileName)(ref Test test) {
+	SafeCStr content = safeCStr!(import("hover/" ~ crowFileName));
+	string expected = import(outputFileName);
+	HoverTest hoverTest = initHoverTest(test, crowFileName, content);
 	SafeCStr actual = jsonToStringPretty(
 		test.alloc,
 		test.allSymbols,
 		hoverResult(test.alloc, test.allSymbols, test.allPaths, content, hoverTest));
 	if (strOfSafeCStr(actual) != expected) {
 		debugLog("Test output was not as expected. File is:");
-		debugLog(fileName);
+		debugLog(outputFileName);
 		debugLog("Actual is:");
 		debugLog(actual.ptr);
 		verifyFail();
@@ -54,8 +54,8 @@ immutable struct HoverTest {
 	Module* mainModule;
 }
 
-HoverTest initHoverTest(ref Test test, in SafeCStr content) {
-	Path path = rootPath(test.allPaths, sym!"main");
+HoverTest initHoverTest(ref Test test, string fileName, in SafeCStr content) {
+	Path path = rootPath(test.allPaths, symOfStr(test.allSymbols, fileName));
 	MutFiles files;
 	addToMutMap(test.alloc, files, path, content);
 	Program program = withMemoryReadOnlyStorage!Program(

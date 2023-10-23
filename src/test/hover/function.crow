@@ -1,5 +1,7 @@
-f nat(a str, b nat)
-	a[b] g
+nat builtin
 
-g nat(a char)
+f nat(a nat)
+	a g
+
+g nat(a nat)
 	0

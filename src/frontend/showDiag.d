@@ -570,7 +570,7 @@ void writeCalledDecl(
 		});
 }
 
-public void writeFunDecl(
+void writeFunDecl(
 	scope ref Writer writer,
 	in AllSymbols allSymbols,
 	in AllPaths allPaths,

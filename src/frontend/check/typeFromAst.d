@@ -45,7 +45,7 @@ import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : arrayOfSingle, empty, only, small;
 import util.col.arrUtil : eachPair, findPtr, map, mapOrNone, mapWithIndex, mapZip;
 import util.memory : allocate;
-import util.opt : force, has, none, Opt, optOr, some;
+import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.sourceRange : RangeWithinFile;
 import util.sym : Sym, sym;
@@ -121,7 +121,7 @@ private Opt!(Type[]) getTypeArgsIfNumberMatches(
 Type[] unpackTupleIfNeeded(in CommonTypes commonTypes, size_t nExpectedTypeArgs, Type* type) =>
 	nExpectedTypeArgs == 1
 		? arrayOfSingle(type)
-		: optOr!(Type[])(asTuple(commonTypes, *type), () => arrayOfSingle(type));
+		: optOrDefault!(Type[])(asTuple(commonTypes, *type), () => arrayOfSingle(type));
 
 size_t getNTypeArgsForDiagnostic(in CommonTypes commonTypes, in Opt!Type explicitTypeArg) {
 	if (has(explicitTypeArg)) {

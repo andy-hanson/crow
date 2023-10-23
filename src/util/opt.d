@@ -50,7 +50,34 @@ ref inout(T) force(T)(ref inout Option!T a) {
 	return a.value_;
 }
 
-T optOr(T)(Opt!T a, in T delegate() @safe @nogc pure nothrow cb) =>
+Opt!T optOr(T)(Opt!T a, in Opt!T delegate() @safe @nogc pure nothrow cb) =>
+	has(a) ? a : cb();
+
+Opt!T optOr(T)(
+	Opt!T a,
+	in Opt!T delegate() @safe @nogc pure nothrow b,
+	in Opt!T delegate() @safe @nogc pure nothrow c,
+) =>
+	optOr!T(optOr!T(a, b), c);
+
+Opt!T optOr(T)(
+	Opt!T a,
+	in Opt!T delegate() @safe @nogc pure nothrow b,
+	in Opt!T delegate() @safe @nogc pure nothrow c,
+	in Opt!T delegate() @safe @nogc pure nothrow d,
+) =>
+	optOr!T(optOr!T(a, b), c, d);
+
+Opt!T optOr(T)(
+	Opt!T a,
+	in Opt!T delegate() @safe @nogc pure nothrow b,
+	in Opt!T delegate() @safe @nogc pure nothrow c,
+	in Opt!T delegate() @safe @nogc pure nothrow d,
+	in Opt!T delegate() @safe @nogc pure nothrow e,
+) =>
+	optOr!T(optOr!T(a, b), c, d, e);
+
+T optOrDefault(T)(Opt!T a, in T delegate() @safe @nogc pure nothrow cb) =>
 	has(a)
 		? force(a)
 		: cb();

@@ -134,7 +134,7 @@ import util.col.mutMap : getAt_mut, getOrAdd, mapToArr_mut, MutMap, MutMap, Valu
 import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2MustGet0, stackMap2MustGet1, withStackMap2;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate, overwriteMemory;
-import util.opt : force, has, none, Opt, optOr, some;
+import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.sourceRange : FileAndRange;
@@ -426,7 +426,7 @@ LowUnion getLowUnion(ref Alloc alloc, in ConcreteProgram program, ref GetLowType
 	LowUnion(s, body_(*s).matchIn!(LowType[])(
 		(in ConcreteStructBody.Builtin it) {
 			verify(it.kind == BuiltinStructKind.fun);
-			ConcreteLambdaImpl[] impls = optOr!(ConcreteLambdaImpl[])(program.funStructToImpls[s], () =>
+			ConcreteLambdaImpl[] impls = optOrDefault!(ConcreteLambdaImpl[])(program.funStructToImpls[s], () =>
 				typeAs!(ConcreteLambdaImpl[])([]));
 			return map(getLowTypeCtx.alloc, impls, (ref ConcreteLambdaImpl impl) =>
 				lowTypeFromConcreteType(getLowTypeCtx, impl.closureType));
@@ -634,7 +634,7 @@ AllLowFuns getAllLowFuns(
 						lowTypeFromConcreteType(getLowTypeCtx, params[0].type),
 						lowTypeFromConcreteType(getLowTypeCtx, fun.returnType),
 						lowTypeFromConcreteType(getLowTypeCtx, params[1].type),
-						optOr!(ConcreteLambdaImpl[])(program.funStructToImpls[mustBeByVal(params[0].type)], () =>
+						optOrDefault!(ConcreteLambdaImpl[])(program.funStructToImpls[mustBeByVal(params[0].type)], () =>
 							typeAs!(ConcreteLambdaImpl[])([]))))));
 				} else if (isMarkVisitFun(program, *fun)) {
 					if (!lateIsSet(markCtxTypeLate))
