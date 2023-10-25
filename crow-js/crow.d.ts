@@ -9,13 +9,13 @@ declare namespace crow {
 		range: DiagRange
 	}
 
-	type PathAndRange = {
-		path: string
+	type UriAndRange = {
+		uri: string
 		range: DiagRange
 	}
 
 	type Definition = {
-		definition: PathAndRange | null
+		definition: UriAndRange | null
 	}
 
 	type Token = {
@@ -53,13 +53,13 @@ declare namespace crow {
 
 	function makeCompiler(bytes: ArrayBuffer, includeDir: string): Promise<Compiler>
 	interface Compiler {
-		addOrChangeFile(path: string, content: string): void
-		deleteFile(path: string): void
+		addOrChangeFile(uri: string, content: string): void
+		deleteFile(uri: string): void
 		// For debug/test
-		getFile(path: string): string
-		getTokensAndParseDiagnostics(path: string): TokensAndParseDiagnostics
-		getDefinition(path: string, pos: number): Definition
-		getHover(path: string, pos: number): string
-		run(path: string): RunOutput
+		getFile(uri: string): string
+		getTokensAndParseDiagnostics(uri: string): TokensAndParseDiagnostics
+		getDefinition(uri: string, pos: number): Definition
+		getHover(uri: string, pos: number): string
+		run(uri: string): RunOutput
 	}
 }

@@ -148,13 +148,13 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\memory.d \
 	src\util\memoryReadOnlyStorage.d \
 	src\util\opt.d \
-	src\util\path.d \
 	src\util\perf.d \
 	src\util\ptr.d \
 	src\util\readOnlyStorage.d \
 	src\util\sourceRange.d \
 	src\util\union.d \
 	src\util\sym.d \
+	src\util\uri.d \
 	src\util\util.d \
 	src\util\writer.d \
 	src\util\writerUtils.d \
@@ -176,7 +176,7 @@ app_src_with_test = $(app_src_no_test) \
 	src\test\testLineAndColumnGetter.d \
 	src\test\testMap.d \
 	src\test\testMemory.d \
-	src\test\testPath.d \
+	src\test\testUri.d \
 	src\test\testServer.d \
 	src\test\testSortUtil.d \
 	src\test\testStack.d \

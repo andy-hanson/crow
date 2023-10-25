@@ -31,10 +31,10 @@ import util.col.map : mapLiteral;
 import util.col.fullIndexMap : fullIndexMapOfArr;
 import util.lineAndColumnGetter : LineAndColumnGetter, PosKind;
 import util.opt : Opt;
-import util.path : AllPaths, Path, PathsInfo, writePath;
-import util.sourceRange : FileAndPos, FileAndRange, FileIndex, FilePaths, PathToFile, RangeWithinFile;
+import util.sourceRange : FileAndPos, FileAndRange, FileIndex, FileUris, RangeWithinFile, UriToFile;
 import util.sym : Sym;
 import util.union_ : Union;
+import util.uri : AllUris, Uri, UrisInfo, writeUri;
 import util.writer : Writer, writeBold, writeHyperlink, writeRed, writeReset;
 import util.writerUtils : writePos, writeRangeWithinFile;
 
@@ -492,27 +492,27 @@ immutable struct ExpectedForDiag {
 }
 
 immutable struct FilesInfo {
-	FilePaths filePaths;
-	PathToFile pathToFile;
+	FileUris fileUris;
+	UriToFile uriToFile;
 	LineAndColumnGetters lineAndColumnGetters;
 }
 
-FilesInfo filesInfoForSingle(ref Alloc alloc, Path path, LineAndColumnGetter lineAndColumnGetter) =>
+FilesInfo filesInfoForSingle(ref Alloc alloc, Uri uri, LineAndColumnGetter lineAndColumnGetter) =>
 	FilesInfo(
-		fullIndexMapOfArr!(FileIndex, Path)(arrLiteral!Path(alloc, [path])),
-		mapLiteral!(Path, FileIndex)(alloc, path, FileIndex(0)),
+		fullIndexMapOfArr!(FileIndex, Uri)(arrLiteral!Uri(alloc, [uri])),
+		mapLiteral!(Uri, FileIndex)(alloc, uri, FileIndex(0)),
 		fullIndexMapOfArr!(FileIndex, LineAndColumnGetter)(
 			arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetter])));
 
 void writeFileAndRange(
 	ref Writer writer,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in ShowDiagOptions options,
 	in FilesInfo fi,
 	in FileAndRange where,
 ) {
-	writeFileNoResetWriter(writer, allPaths, pathsInfo, options, fi, where.fileIndex);
+	writeFileNoResetWriter(writer, allUris, urisInfo, options, fi, where.fileIndex);
 	if (where.fileIndex != FileIndex.none)
 		writeRangeWithinFile(writer, fi.lineAndColumnGetters[where.fileIndex], where.range);
 	if (options.color)
@@ -521,29 +521,29 @@ void writeFileAndRange(
 
 void writeFileAndPos(
 	ref Writer writer,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in ShowDiagOptions options,
 	in FilesInfo fi,
 	in FileAndPos where,
 ) {
-	writeFileNoResetWriter(writer, allPaths, pathsInfo, options, fi, where.fileIndex);
+	writeFileNoResetWriter(writer, allUris, urisInfo, options, fi, where.fileIndex);
 	if (where.fileIndex != FileIndex.none)
 		writePos(writer, fi.lineAndColumnGetters[where.fileIndex], where.pos, PosKind.startOfRange);
 	if (options.color)
 		writeReset(writer);
 }
 
-void writeFile(ref Writer writer, in AllPaths allPaths, in PathsInfo pathsInfo, in FilesInfo fi, FileIndex fileIndex) {
+void writeFile(ref Writer writer, in AllUris allUris, in UrisInfo urisInfo, in FilesInfo fi, FileIndex fileIndex) {
 	ShowDiagOptions noColor = ShowDiagOptions(false);
-	writeFileNoResetWriter(writer, allPaths, pathsInfo, noColor, fi, fileIndex);
+	writeFileNoResetWriter(writer, allUris, urisInfo, noColor, fi, fileIndex);
 	// No need to reset writer since we didn't use color
 }
 
 private void writeFileNoResetWriter(
 	ref Writer writer,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in ShowDiagOptions options,
 	in FilesInfo fi,
 	FileIndex fileIndex,
@@ -553,15 +553,15 @@ private void writeFileNoResetWriter(
 	if (fileIndex == FileIndex.none) {
 		writer ~= "<generated code> ";
 	} else {
-		Path path = fi.filePaths[fileIndex];
+		Uri uri = fi.fileUris[fileIndex];
 		if (options.color) {
 			writeHyperlink(
 				writer,
-				() { writePath(writer, allPaths, pathsInfo, path); },
-				() { writePath(writer, allPaths, pathsInfo, path); });
+				() { writeUri(writer, allUris, urisInfo, uri); },
+				() { writeUri(writer, allUris, urisInfo, uri); });
 			writeRed(writer);
 		} else
-			writePath(writer, allPaths, pathsInfo, path);
+			writeUri(writer, allUris, urisInfo, uri);
 		writer ~= ' ';
 	}
 }

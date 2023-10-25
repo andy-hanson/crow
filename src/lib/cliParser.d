@@ -10,19 +10,19 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : findIndex, foldOrStop, mapOrNone;
 import util.col.str : SafeCStr, safeCStr, safeCStrEq, strOfSafeCStr;
 import util.opt : force, has, none, Opt, some;
-import util.path : addExtension, alterExtension, AllPaths, getExtension, parseAbsoluteOrRelPath, Path;
 import util.ptr : castNonScope;
 import util.sym : AllSymbols, Sym, sym, symOfSafeCStr, symOfStr;
 import util.union_ : Union;
+import util.uri : addExtension, alterExtension, AllUris, FileUri, getExtension, parseUriWithCwd, Uri;
 import util.util : todo, verify;
 
 immutable struct Command {
 	immutable struct Build {
-		Path mainPath;
+		Uri mainUri;
 		BuildOptions options;
 	}
 	immutable struct Document {
-		Path[] rootPaths;
+		Uri[] rootUris;
 	}
 	immutable struct Help {
 		enum Kind {
@@ -34,10 +34,10 @@ immutable struct Command {
 	}
 	immutable struct Print {
 		PrintKind kind;
-		Path mainPath;
+		Uri mainUri;
 	}
 	immutable struct Run {
-		Path mainPath;
+		Uri mainUri;
 		RunOptions options;
 		// Does not include executable path
 		SafeCStr[] programArgs;
@@ -74,8 +74,8 @@ immutable struct CCompileOptions {
 }
 
 private immutable struct BuildOut {
-	Opt!Path outC;
-	Opt!Path outExecutable;
+	Opt!Uri outC;
+	Opt!Uri outExecutable;
 }
 
 bool hasAnyOut(in BuildOut a) =>
@@ -84,8 +84,8 @@ bool hasAnyOut(in BuildOut a) =>
 Command parseCommand(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
-	Path cwd,
+	ref AllUris allUris,
+	Uri cwd,
 	return scope SafeCStr[] args,
 ) {
 	if (empty(args))
@@ -95,13 +95,13 @@ Command parseCommand(
 		SafeCStr[] cmdArgs = args[1 .. $];
 		switch (arg0.value) {
 			case sym!"build".value:
-				return parseBuildCommand(alloc, allSymbols, allPaths, cwd, cmdArgs);
+				return parseBuildCommand(alloc, allSymbols, allUris, cwd, cmdArgs);
 			case sym!"doc".value:
-				return parseDocumentCommand(alloc, allSymbols, allPaths, cwd, cmdArgs);
+				return parseDocumentCommand(alloc, allSymbols, allUris, cwd, cmdArgs);
 			case sym!"print".value:
-				return parsePrintCommand(alloc, allSymbols, allPaths, cwd, cmdArgs);
+				return parsePrintCommand(alloc, allSymbols, allUris, cwd, cmdArgs);
 			case sym!"run".value:
-				return parseRunCommand(alloc, allSymbols, allPaths, cwd, cmdArgs);
+				return parseRunCommand(alloc, allSymbols, allUris, cwd, cmdArgs);
 			case sym!"test".value:
 				return parseTestCommand(alloc, allSymbols, cmdArgs);
 			case sym!"version".value:
@@ -125,7 +125,7 @@ Sym defaultExeExtension() {
 }
 
 BuildOut emptyBuildOut() =>
-	BuildOut(none!Path, none!Path);
+	BuildOut(none!Uri, none!Uri);
 
 bool isHelp(Sym a) {
 	switch (a.value) {
@@ -138,63 +138,63 @@ bool isHelp(Sym a) {
 	}
 }
 
-Command withMainPath(
+Command withMainUri(
 	ref Alloc alloc,
-	ref AllPaths allPaths,
-	Path cwd,
+	ref AllUris allUris,
+	Uri cwd,
 	in SafeCStr arg,
-	in Command delegate(Path) @safe pure @nogc nothrow cb,
+	in Command delegate(Uri) @safe pure @nogc nothrow cb,
 ) {
-	Opt!Path p = tryParseCrowPath(alloc, allPaths, cwd, arg);
+	Opt!Uri p = tryParseCrowUri(alloc, allUris, cwd, arg);
 	return has(p)
 		? cb(force(p))
 		: Command(Command.Help(safeCStr!"Invalid path", Command.Help.Kind.error));
 }
 
-Command withRootPaths(
+Command withRootUris(
 	ref Alloc alloc,
-	ref AllPaths allPaths,
-	Path cwd,
+	ref AllUris allUris,
+	Uri cwd,
 	in SafeCStr[] args,
-	in Command delegate(Path[]) @safe pure @nogc nothrow cb,
+	in Command delegate(Uri[]) @safe pure @nogc nothrow cb,
 ) {
-	Opt!(Path[]) p = tryParseRootPaths(alloc, allPaths, cwd, args);
+	Opt!(Uri[]) p = tryParseRootUris(alloc, allUris, cwd, args);
 	return has(p)
 		? cb(force(p))
 		: Command(Command.Help(safeCStr!"Invalid path", Command.Help.Kind.error));
 }
 
-Opt!Path tryParseCrowPath(ref Alloc alloc, ref AllPaths allPaths, Path cwd, in SafeCStr arg) {
-	Path path = parseAbsoluteOrRelPath(allPaths, cwd, arg);
-	switch (getExtension(allPaths, path).value) {
+Opt!Uri tryParseCrowUri(ref Alloc alloc, ref AllUris allUris, Uri cwd, in SafeCStr arg) {
+	Uri uri = parseUriWithCwd(allUris, cwd, arg);
+	switch (getExtension(allUris, uri).value) {
 		case sym!"".value:
-			return some(addExtension!crowExtension(allPaths, path));
+			return some(addExtension!crowExtension(allUris, uri));
 		case crowExtension.value:
-			return some(path);
+			return some(uri);
 		default:
-			return none!Path;
+			return none!Uri;
 	}
 }
 
-Opt!(Path[]) tryParseRootPaths(ref Alloc alloc, ref AllPaths allPaths, Path cwd, in SafeCStr[] args) {
+Opt!(Uri[]) tryParseRootUris(ref Alloc alloc, ref AllUris allUris, Uri cwd, in SafeCStr[] args) {
 	verify(!empty(args));
-	return mapOrNone!(Path, SafeCStr)(alloc, args, (ref SafeCStr arg) =>
-		tryParseCrowPath(alloc, allPaths, cwd, arg));
+	return mapOrNone!(Uri, SafeCStr)(alloc, args, (ref SafeCStr arg) =>
+		tryParseCrowUri(alloc, allUris, cwd, arg));
 }
 
 Command parsePrintCommand(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
-	Path cwd,
+	ref AllUris allUris,
+	Uri cwd,
 	in SafeCStr[] args,
 ) {
 	Opt!PrintKind kind = args.length == 2
 		? parsePrintKind(symOfSafeCStr(allSymbols, args[0]))
 		: none!PrintKind;
 	return has(kind)
-		? withMainPath(alloc, allPaths, cwd, args[1], (Path path) =>
-			Command(Command.Print(force(kind), path)))
+		? withMainUri(alloc, allUris, cwd, args[1], (Uri uri) =>
+			Command(Command.Print(force(kind), uri)))
 		: todo!Command("Command.HelpPrint");
 }
 
@@ -218,43 +218,43 @@ Opt!PrintKind parsePrintKind(Sym a) {
 Command parseDocumentCommand(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
-	Path cwd,
+	ref AllUris allUris,
+	Uri cwd,
 	in SafeCStr[] args,
 ) {
 	Command helpDocument = Command(Command.Help(helpDocumentText, Command.Help.Kind.error));
 	scope SplitArgs split = splitArgs(alloc, allSymbols, args);
-	return withRootPaths(
+	return withRootUris(
 		alloc,
-		allPaths,
+		allUris,
 		cwd,
 		split.beforeFirstPart,
-		(Path[] it) =>
+		(Uri[] x) =>
 			empty(split.parts) && empty(split.afterDashDash)
-				? Command(Command.Document(it))
+				? Command(Command.Document(x))
 				: helpDocument);
 }
 
 Command parseBuildCommand(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
-	Path cwd,
+	ref AllUris allUris,
+	Uri cwd,
 	in SafeCStr[] args,
 ) {
 	Command helpBuild = Command(Command.Help(helpBuildText, Command.Help.Kind.error));
 	SplitArgs split = splitArgs(alloc, allSymbols, args);
 	return split.beforeFirstPart.length != 1
 		? helpBuild
-		: withMainPath(
+		: withMainUri(
 			alloc,
-			allPaths,
+			allUris,
 			cwd,
 			only(split.beforeFirstPart),
-			(Path it) {
-				Opt!BuildOptions options = parseBuildOptions(alloc, allPaths, cwd, split.parts, it);
+			(Uri main) {
+				Opt!BuildOptions options = parseBuildOptions(alloc, allUris, cwd, split.parts, main);
 				return has(options) && empty(split.afterDashDash)
-					? Command(Command.Build(it, force(options)))
+					? Command(Command.Build(main, force(options)))
 					: helpBuild;
 			});
 }
@@ -262,28 +262,28 @@ Command parseBuildCommand(
 Command parseRunCommand(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
-	Path cwd,
+	ref AllUris allUris,
+	Uri cwd,
 	return scope SafeCStr[] args,
 ) {
 	if (args.length == 1 && isHelp(symOfSafeCStr(allSymbols, only(args))))
 		return Command(Command.Help(helpRunText, Command.Help.Kind.requested));
 	else {
 		SplitArgs split = splitArgs(alloc, allSymbols, args);
-		Opt!RunOptions options = parseRunOptions(alloc, allPaths, split.parts);
+		Opt!RunOptions options = parseRunOptions(alloc, allUris, split.parts);
 		return split.beforeFirstPart.length == 1 && has(options)
-			? withMainPath(
+			? withMainUri(
 				alloc,
-				allPaths,
+				allUris,
 				cwd,
 				only(split.beforeFirstPart),
-				(Path it) =>
-					Command(Command.Run(it, force(options), castNonScope(split.afterDashDash))))
+				(Uri x) =>
+					Command(Command.Run(x, force(options), castNonScope(split.afterDashDash))))
 			: Command(Command.Help(helpRunText, Command.Help.Kind.error));
 	}
 }
 
-Opt!RunOptions parseRunOptions(ref Alloc alloc, ref AllPaths allPaths, in ArgsPart[] argParts) {
+Opt!RunOptions parseRunOptions(ref Alloc alloc, ref AllUris allUris, in ArgsPart[] argParts) {
 	bool jit = false;
 	bool optimize = false;
 	foreach (ArgsPart part; argParts) {
@@ -307,25 +307,25 @@ Opt!RunOptions parseRunOptions(ref Alloc alloc, ref AllPaths allPaths, in ArgsPa
 
 Opt!BuildOptions parseBuildOptions(
 	ref Alloc alloc,
-	ref AllPaths allPaths,
-	Path cwd,
+	ref AllUris allUris,
+	Uri cwd,
 	in ArgsPart[] argParts,
-	Path mainPath,
+	Uri mainUri,
 ) =>
 	foldOrStop!(BuildOptions, ArgsPart)(
 		// Default: unoptimized, compiled next to the source file
 		BuildOptions(
-			BuildOut(none!Path, some(alterExtension!defaultExeExtension(allPaths, mainPath))),
+			BuildOut(none!Uri, some(alterExtension!defaultExeExtension(allUris, mainUri))),
 			CCompileOptions(OptimizationLevel.none)),
 		argParts,
 		(BuildOptions cur, ref ArgsPart part) {
 			switch (part.tag.value) {
 				case sym!"--out".value:
-					Opt!BuildOut buildOut = parseBuildOut(alloc, allPaths, cwd, part.args);
+					Opt!BuildOut buildOut = parseBuildOut(alloc, allUris, cwd, part.args);
 					return has(buildOut) ? some(withBuildOut(cur, force(buildOut))) : none!BuildOptions;
 				case sym!"--no-out".value:
 					return empty(part.args)
-						? some(withBuildOut(cur, BuildOut(none!Path, none!Path)))
+						? some(withBuildOut(cur, BuildOut(none!Uri, none!Uri)))
 						: none!BuildOptions;
 				case sym!"--optimize".value:
 					return empty(part.args)
@@ -338,24 +338,24 @@ Opt!BuildOptions parseBuildOptions(
 
 Opt!BuildOut parseBuildOut(
 	ref Alloc alloc,
-	ref AllPaths allPaths,
-	Path cwd,
+	ref AllUris allUris,
+	Uri cwd,
 	SafeCStr[] args,
 ) =>
 	foldOrStop!(BuildOut, SafeCStr)(
 		emptyBuildOut(),
 		args,
 		(BuildOut o, ref SafeCStr arg) {
-			Path path = parseAbsoluteOrRelPath(allPaths, cwd, arg);
-			switch (getExtension(allPaths, path).value) {
+			Uri uri = parseUriWithCwd(allUris, cwd, arg);
+			switch (getExtension(allUris, uri).value) {
 				case sym!"".value:
 					return has(o.outExecutable)
 						? none!BuildOut
-						: some(BuildOut(o.outC, some(path)));
+						: some(BuildOut(o.outC, some(uri)));
 				case cExtension.value:
 					return has(o.outC)
 						? none!BuildOut
-						: some(BuildOut(some(path), o.outExecutable));
+						: some(BuildOut(some(uri), o.outExecutable));
 				default:
 					return none!BuildOut;
 			}

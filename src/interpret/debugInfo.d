@@ -16,10 +16,10 @@ import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, PosKind;
 import util.col.str : CStr;
 import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
-import util.path : AllPaths, Path, PathsInfo, pathToSafeCStrPreferRelative;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : FileAndPos, FileIndex;
 import util.sym : AllSymbols;
+import util.uri : AllUris, FileUri, Uri, UrisInfo, uriToSafeCStrPreferRelative;
 import util.util : min, verify;
 import util.writer : debugLogWithWriter, finishWriterToSafeCStr, writeHex, Writer;
 
@@ -29,8 +29,8 @@ const struct InterpreterDebugInfo {
 	LowProgram* lowProgramPtr;
 	ByteCode* byteCodePtr;
 	AllSymbols* allSymbolsPtr;
-	AllPaths* allPathsPtr;
-	PathsInfo* pathsInfoPtr;
+	AllUris* allUrisPtr;
+	UrisInfo* urisInfoPtr;
 
 	ref ByteCode byteCode() return scope =>
 		*byteCodePtr;
@@ -40,10 +40,10 @@ const struct InterpreterDebugInfo {
 		*lowProgramPtr;
 	ref const(AllSymbols) allSymbols() return scope =>
 		*allSymbolsPtr;
-	ref const(AllPaths) allPaths() return scope =>
-		*allPathsPtr;
-	ref PathsInfo pathsInfo() return scope =>
-		*pathsInfoPtr;
+	ref const(AllUris) allUris() return scope =>
+		*allUrisPtr;
+	ref UrisInfo urisInfo() return scope =>
+		*urisInfoPtr;
 	ref FilesInfo filesInfo() return scope =>
 		program.filesInfo;
 }
@@ -54,14 +54,14 @@ immutable struct BacktraceEntry {
 
 	this(CStr fn, CStr fp, uint ln, uint cn) {
 		functionName = fn;
-		filePath = fp;
+		fileUri = fp;
 		lineNumber = ln;
 		columnNumber = cn;
 	}
 
 	// Making sure pointers look like 64-bit even for a 32-bit WASM build
 	Ptr64!(immutable char) functionName;
-	Ptr64!(immutable char) filePath;
+	Ptr64!(immutable char) fileUri;
 	uint lineNumber;
 	uint columnNumber;
 }
@@ -117,11 +117,10 @@ private @trusted BacktraceEntry backtraceEntryFromSource(
 	Opt!FileIndex opFileIndex = getFileIndex(info.lowProgram, source.fun);
 	if (has(opFileIndex)) {
 		FileIndex fileIndex = force(opFileIndex);
-		Path path = info.filesInfo.filePaths[fileIndex];
-		CStr filePath = pathToSafeCStrPreferRelative(alloc, info.allPaths, info.pathsInfo, path).ptr;
+		CStr fileUri = uriToSafeCStrPreferRelative(alloc, info.allUris, info.urisInfo, info.filesInfo.fileUris[fileIndex]).ptr;
 		LineAndColumn lc =
 			lineAndColumnAtPos(info.filesInfo.lineAndColumnGetters[fileIndex], source.pos, PosKind.startOfRange);
-		return BacktraceEntry(funName, filePath, lc.line + 1, 0);
+		return BacktraceEntry(funName, fileUri, lc.line + 1, 0);
 	} else
 		return BacktraceEntry(funName, "", 0, 0);
 }
@@ -145,7 +144,7 @@ void printDebugInfo(
 			ShowDiagOptions showDiagOptions = ShowDiagOptions(false);
 			if (has(source)) {
 				writeByteCodeSource(
-					writer, a.allSymbols, a.allPaths, a.pathsInfo, showDiagOptions,
+					writer, a.allSymbols, a.allUris, a.urisInfo, showDiagOptions,
 					a.program, a.lowProgram, a.filesInfo, force(source));
 			} else
 				writer ~= "opStopInterpretation";
@@ -186,8 +185,8 @@ void showReturnStack(
 void writeByteCodeSource(
 	scope ref Writer writer,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in ShowDiagOptions showDiagOptions,
 	in Program program,
 	in LowProgram lowProgram,
@@ -198,7 +197,7 @@ void writeByteCodeSource(
 	writer ~= ' ';
 	Opt!FileIndex where = getFileIndex(lowProgram, source.fun);
 	if (has(where))
-		writeFileAndPos(writer, allPaths, pathsInfo, showDiagOptions, filesInfo, FileAndPos(force(where), source.pos));
+		writeFileAndPos(writer, allUris, urisInfo, showDiagOptions, filesInfo, FileAndPos(force(where), source.pos));
 }
 
 Opt!FileIndex getFileIndex(in LowProgram lowProgram, LowFunIndex fun) =>

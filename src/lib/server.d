@@ -26,38 +26,38 @@ import util.col.str : copySafeCStr, freeSafeCStr, SafeCStr, safeCStr, strOfSafeC
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForText;
 import util.memoryReadOnlyStorage : withMemoryReadOnlyStorage, MutFiles;
 import util.opt : force, has, none, Opt, some;
-import util.path : AllPaths, emptyPathsInfo, parsePath, Path, PathsInfo;
 import util.perf : Perf;
 import util.readOnlyStorage : ReadOnlyStorage;
 import util.sourceRange : FileIndex, Pos, RangeWithinFile;
 import util.sym : AllSymbols;
+import util.uri : AllUris, emptyUrisInfo, parseUri, Uri, UrisInfo;
 
 struct Server {
 	@safe @nogc pure nothrow:
 
 	Alloc alloc;
 	AllSymbols allSymbols;
-	AllPaths allPaths;
-	immutable Path includeDir;
-	immutable PathsInfo pathsInfo;
+	AllUris allUris;
+	immutable Uri includeDir;
+	immutable UrisInfo urisInfo;
 	MutFiles files;
 
 	@trusted this(Alloc a, in SafeCStr include) {
 		alloc = a.move();
 		allSymbols = AllSymbols(&alloc);
-		allPaths = AllPaths(&alloc, &allSymbols);
-		includeDir = parsePath(allPaths, include);
-		pathsInfo = emptyPathsInfo;
+		allUris = AllUris(&alloc, &allSymbols);
+		includeDir = parseUri(allUris, include);
+		urisInfo = emptyUrisInfo;
 		files = MutFiles.init;
 	}
 }
 
-pure void addOrChangeFile(ref Server server, in SafeCStr path, in SafeCStr content) {
+pure void addOrChangeFile(ref Server server, Uri uri, in SafeCStr content) {
 	SafeCStr contentCopy = copySafeCStr(server.alloc, content);
-	insertOrUpdate!(Path, SafeCStr)(
+	insertOrUpdate!(Uri, SafeCStr)(
 		server.alloc,
 		server.files,
-		toPath(server, path),
+		uri,
 		() => contentCopy,
 		(ref SafeCStr old) @trusted {
 			freeSafeCStr(server.alloc, old);
@@ -65,13 +65,13 @@ pure void addOrChangeFile(ref Server server, in SafeCStr path, in SafeCStr conte
 		});
 }
 
-@trusted pure void deleteFile(ref Server server, in SafeCStr path) {
-	SafeCStr deleted = mustDelete(server.files, toPath(server, path));
+@trusted pure void deleteFile(ref Server server, Uri uri) {
+	SafeCStr deleted = mustDelete(server.files, uri);
 	freeSafeCStr(server.alloc, deleted);
 }
 
-pure SafeCStr getFile(ref Server server, in SafeCStr path) {
-	Opt!SafeCStr text = getAt_mut(server.files, toPath(server, path));
+pure SafeCStr getFile(ref Server server, Uri uri) {
+	Opt!SafeCStr text = getAt_mut(server.files, uri);
 	return has(text) ? force(text) : safeCStr!"";
 }
 
@@ -89,51 +89,51 @@ pure TokensAndParseDiagnostics getTokensAndParseDiagnostics(
 	ref Alloc alloc,
 	scope ref Perf perf,
 	ref Server server,
-	in Path path,
+	in Uri uri,
 ) {
-	SafeCStr text = mustGetAt_mut(server.files, path);
+	SafeCStr text = mustGetAt_mut(server.files, uri);
 	ArrBuilder!DiagnosticWithinFile diagnosticsBuilder;
-	FileAst ast = parseFile(alloc, perf, server.allPaths, server.allSymbols, diagnosticsBuilder, text);
+	FileAst ast = parseFile(alloc, perf, server.allUris, server.allSymbols, diagnosticsBuilder, text);
 	//TODO: use 'scope' to avoid allocating things here
 	FilesInfo filesInfo = FilesInfo(
-		fullIndexMapOfArr!(FileIndex, Path)(arrLiteral!Path(alloc, [path])),
-		mapLiteral!(Path, FileIndex)(alloc, path, FileIndex(0)),
+		fullIndexMapOfArr!(FileIndex, Uri)(arrLiteral!Uri(alloc, [uri])),
+		mapLiteral!(Uri, FileIndex)(alloc, uri, FileIndex(0)),
 		fullIndexMapOfArr!(FileIndex, LineAndColumnGetter)(
 			arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetterForText(alloc, text)])));
 	Program program = fakeProgramForDiagnostics(filesInfo, Diagnostics(
 		DiagSeverity.parseError,
-		diagnosticsForFile(alloc, FileIndex(0), diagnosticsBuilder, filesInfo.filePaths).diags));
+		diagnosticsForFile(alloc, FileIndex(0), diagnosticsBuilder, server.allUris, filesInfo.fileUris).diags));
 	return TokensAndParseDiagnostics(
 		tokensOfAst(alloc, server.allSymbols, ast),
 		map(alloc, program.diagnostics.diags, (ref Diagnostic x) =>
 			StrParseDiagnostic(
 				x.where.range,
 				strOfDiagnostic(
-					alloc, server.allSymbols, server.allPaths, server.pathsInfo, showDiagOptions, program, x))));
+					alloc, server.allSymbols, server.allUris, server.urisInfo, showDiagOptions, program, x))));
 }
 
-Opt!Definition getDefinition(ref Perf perf, ref Alloc alloc, ref Server server, in Path path, Pos pos) {
-	Program program = getProgram(perf, alloc, server, path);
-	Opt!Position position = getPosition(server, program, path, pos);
+Opt!Definition getDefinition(ref Perf perf, ref Alloc alloc, ref Server server, in Uri uri, Pos pos) {
+	Program program = getProgram(perf, alloc, server, uri);
+	Opt!Position position = getPosition(server, program, uri, pos);
 	return has(position)
 		? getDefinitionForPosition(program, force(position))
 		: none!Definition;
 }
 
-SafeCStr getHover(ref Perf perf, ref Alloc alloc, ref Server server, in Path path, Pos pos) {
-	Program program = getProgram(perf, alloc, server, path);
-	Opt!Position position = getPosition(server, program, path, pos);
+SafeCStr getHover(ref Perf perf, ref Alloc alloc, ref Server server, in Uri uri, Pos pos) {
+	Program program = getProgram(perf, alloc, server, uri);
+	Opt!Position position = getPosition(server, program, uri, pos);
 	return has(position)
-		? getHoverStr(alloc, alloc, server.allSymbols, server.allPaths, server.pathsInfo, program, force(position))
+		? getHoverStr(alloc, alloc, server.allSymbols, server.allUris, server.urisInfo, program, force(position))
 		: safeCStr!"";
 }
 
-private Program getProgram(ref Perf perf, ref Alloc alloc, ref Server server, Path rootPath) =>
+private Program getProgram(ref Perf perf, ref Alloc alloc, ref Server server, Uri root) =>
 	withMemoryReadOnlyStorage!Program(server.includeDir, server.files, (in ReadOnlyStorage storage) =>
-		frontendCompile(alloc, perf, alloc, server.allPaths, server.allSymbols, storage, [rootPath], none!Path));
+		frontendCompile(alloc, perf, alloc, server.allSymbols, server.allUris, storage, [root], none!Uri));
 
-private Opt!Position getPosition(in Server server, ref Program program, Path path, Pos pos) {
-	Opt!FileIndex fileIndex = program.filesInfo.pathToFile[path];
+private Opt!Position getPosition(in Server server, ref Program program, Uri uri, Pos pos) {
+	Opt!FileIndex fileIndex = program.filesInfo.uriToFile[uri];
 	return has(fileIndex)
 		? some(getPosition(server.allSymbols, &program.allModules[force(fileIndex).index], pos))
 		: none!Position;
@@ -143,7 +143,7 @@ ExitCode run(
 	ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
-	in Path main,
+	in Uri main,
 	in WriteCb writeCb,
 ) {
 	// TODO: use an arena so anything allocated during interpretation is cleaned up.
@@ -152,15 +152,15 @@ ExitCode run(
 	return withMemoryReadOnlyStorage!ExitCode(server.includeDir, server.files, (in ReadOnlyStorage storage) =>
 		withFakeExtern(alloc, server.allSymbols, writeCb, (scope ref Extern extern_) =>
 			buildAndInterpret(
-				alloc, perf, server.allSymbols, server.allPaths, server.pathsInfo, storage, extern_,
+				alloc, perf, server.allSymbols, server.allUris, server.urisInfo, storage, extern_,
 				(in SafeCStr x) {
 					writeCb(Pipe.stderr, strOfSafeCStr(x));
 				},
 				showDiagOptions, main, allArgs)));
 }
 
-pure Path toPath(ref Server server, in SafeCStr path) =>
-	parsePath(server.allPaths, path);
+pure Uri toUri(ref Server server, in SafeCStr uri) =>
+	parseUri(server.allUris, uri);
 
 private pure ShowDiagOptions showDiagOptions() =>
 	ShowDiagOptions(false);

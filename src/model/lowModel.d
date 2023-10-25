@@ -22,10 +22,10 @@ import util.col.fullIndexMap : FullIndexMap;
 import util.col.str : SafeCStr;
 import util.hash : Hasher, hashSizeT, hashUint;
 import util.opt : has, none, Opt;
-import util.path : Path;
 import util.sourceRange : FileAndRange;
 import util.sym : Sym, sym;
 import util.union_ : Union;
+import util.uri : Uri;
 import util.util : verify;
 
 immutable struct LowExternType {
@@ -800,7 +800,7 @@ alias ExternLibraries = immutable ExternLibrary[];
 
 immutable struct ExternLibrary {
 	Sym libraryName;
-	Opt!Path configuredPath;
+	Opt!Uri configuredDir;
 	Sym[] importNames;
 }
 

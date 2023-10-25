@@ -75,18 +75,18 @@ import util.json :
 	jsonString,
 	kindField;
 import util.opt : Opt;
-import util.path : pathOrRelPathToStr, AllPaths;
 import util.sourceRange : jsonOfRangeWithinFile;
 import util.sym : Sym, sym;
 import util.union_ : Union;
+import util.uri : pathOrRelPathToStr, AllUris;
 
-Json jsonOfAst(ref Alloc alloc, in AllPaths allPaths, in FileAst ast) =>
+Json jsonOfAst(ref Alloc alloc, in AllUris allUris, in FileAst ast) =>
 	jsonObject(alloc, [
 		optionalStringField!"doc"(alloc, ast.docComment),
 		optionalField!("imports", ImportsOrExportsAst)(ast.imports, (in ImportsOrExportsAst x) =>
-			jsonOfImportsOrExports(alloc, allPaths, x)),
+			jsonOfImportsOrExports(alloc, allUris, x)),
 		optionalField!("exports", ImportsOrExportsAst)(ast.exports, (in ImportsOrExportsAst x) =>
-			jsonOfImportsOrExports(alloc, allPaths, x)),
+			jsonOfImportsOrExports(alloc, allUris, x)),
 		optionalArrayField!("specs", SpecDeclAst)(alloc, ast.specs, (in SpecDeclAst a) =>
 			jsonOfSpecDeclAst(alloc, a)),
 		optionalArrayField!("aliases", StructAliasAst)(alloc, ast.structAliases, (in StructAliasAst a) =>
@@ -98,15 +98,15 @@ Json jsonOfAst(ref Alloc alloc, in AllPaths allPaths, in FileAst ast) =>
 
 private:
 
-Json jsonOfImportsOrExports(ref Alloc alloc, in AllPaths allPaths, in ImportsOrExportsAst a) =>
+Json jsonOfImportsOrExports(ref Alloc alloc, in AllUris allUris, in ImportsOrExportsAst a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRangeWithinFile(alloc, a.range)),
 		field!"imports"(jsonList!ImportOrExportAst(alloc, a.paths, (in ImportOrExportAst a) =>
-			jsonOfImportOrExportAst(alloc, allPaths, a)))]);
+			jsonOfImportOrExportAst(alloc, allUris, a)))]);
 
-Json jsonOfImportOrExportAst(ref Alloc alloc, in AllPaths allPaths, in ImportOrExportAst a) =>
+Json jsonOfImportOrExportAst(ref Alloc alloc, in AllUris allUris, in ImportOrExportAst a) =>
 	jsonObject(alloc, [
-		field!"path"(pathOrRelPathToStr(alloc, allPaths, a.path)),
+		field!"path"(pathOrRelPathToStr(alloc, allUris, a.path)),
 		field!"import-kind"(a.kind.matchIn!Json(
 			(in ImportOrExportAstKind.ModuleWhole) =>
 				jsonString!"whole",

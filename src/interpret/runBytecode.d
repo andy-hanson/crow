@@ -37,18 +37,18 @@ import util.col.str : SafeCStr;
 import util.conv : safeToSizeT;
 import util.memory : memcpy, memmove, overwriteMemory;
 import util.opt : force, has, Opt;
-import util.path : AllPaths, PathsInfo;
 import util.perf : Perf, PerfMeasure, withMeasureNoAlloc;
 import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.sym : AllSymbols;
+import util.uri : AllUris, UrisInfo;
 import util.util : debugLog, divRoundUp, drop, unreachable, verify;
 
 @safe int runBytecode(
 	scope ref Perf perf,
 	ref Alloc alloc, // for thread locals
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in DoDynCall doDynCall,
 	in Program program,
 	in LowProgram lowProgram,
@@ -56,7 +56,7 @@ import util.util : debugLog, divRoundUp, drop, unreachable, verify;
 	in SafeCStr[] allArgs,
 ) =>
 	withInterpreter!int(
-		alloc, doDynCall, program, lowProgram, byteCode, allSymbols, allPaths, pathsInfo,
+		alloc, doDynCall, program, lowProgram, byteCode, allSymbols, allUris, urisInfo,
 		(ref Stacks stacks) {
 			dataPush(stacks, allArgs.length);
 			dataPush(stacks, cast(ulong) allArgs.ptr);
@@ -120,8 +120,8 @@ void stepUntilBreak(ref Stacks stacks, ref Operation* operation) {
 	in LowProgram lowProgram,
 	in ByteCode byteCode,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in T delegate(ref Stacks) @nogc nothrow cb,
 ) {
 	InterpreterDebugInfo debugInfo = InterpreterDebugInfo(
@@ -129,8 +129,8 @@ void stepUntilBreak(ref Stacks stacks, ref Operation* operation) {
 		ptrTrustMe(lowProgram),
 		ptrTrustMe(byteCode),
 		ptrTrustMe(allSymbols),
-		ptrTrustMe(allPaths),
-		ptrTrustMe(pathsInfo));
+		ptrTrustMe(allUris),
+		ptrTrustMe(urisInfo));
 	setGlobals(InterpreterGlobals(
 		ptrTrustMe(debugInfo),
 		castNonScope_ref(byteCode).funPtrToOperationPtr,

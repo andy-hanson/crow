@@ -3,6 +3,7 @@ module util.col.str;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateT;
+import util.comparison : Comparison;
 import util.col.arr : empty, freeArr;
 import util.col.arrUtil : arrEqual, map;
 import util.hash : Hasher, hashUbyte;
@@ -87,3 +88,14 @@ bool safeCStrEq(SafeCStr a, SafeCStr b) =>
 	for (immutable(char)* p = a.ptr; *p != '\0'; p++)
 		cb(*p);
 }
+
+@trusted Comparison compareSafeCStrAlphabetically(in SafeCStr a, in SafeCStr b) =>
+	safeCStrIsEmpty(a)
+		? (safeCStrIsEmpty(b) ? Comparison.equal : Comparison.less)
+		: safeCStrIsEmpty(b)
+		? Comparison.greater
+		: a.ptr[0] < b.ptr[0]
+		? Comparison.less
+		: a.ptr[0] > b.ptr[0]
+		? Comparison.greater
+		: compareSafeCStrAlphabetically(SafeCStr(a.ptr + 1), SafeCStr(b.ptr + 1));

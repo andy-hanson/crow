@@ -12,8 +12,8 @@ import util.col.map : mustGetAt;
 import util.col.mutArr : moveToArr, MutArr, pushAll;
 import util.col.str : CStr, SafeCStr, strEq;
 import util.opt : force, none, Opt;
-import util.path : Path;
 import util.sym : Sym, sym;
+import util.uri : Uri;
 import util.util : typeAs, unreachable, verify;
 
 void testFakeExtern(ref Test test) {
@@ -26,7 +26,7 @@ private:
 @trusted void testMallocAndFree(ref Test test) {
 	withFakeExtern(test.alloc, test.allSymbols, unreachableWriteCb, (scope ref Extern extern_) @trusted {
 		Sym[2] exportNames = [sym!"free", sym!"malloc"];
-		ExternLibrary[1] externLibraries = [ExternLibrary(sym!"c", none!Path, exportNames)];
+		ExternLibrary[1] externLibraries = [ExternLibrary(sym!"c", none!Uri, exportNames)];
 		Opt!ExternFunPtrsForAllLibraries funPtrsOpt =
 			extern_.loadExternFunPtrs(externLibraries, (in SafeCStr _) =>
 				unreachable!void());
@@ -70,7 +70,7 @@ void testWrite(ref Test test) {
 	ExitCode result =
 		withFakeExtern(test.alloc, test.allSymbols, fakeWrite, (scope ref Extern extern_) @trusted {
 			Sym[1] exportNames = [sym!"write"];
-			ExternLibrary[1] externLibraries = [ExternLibrary(sym!"c", none!Path, exportNames)];
+			ExternLibrary[1] externLibraries = [ExternLibrary(sym!"c", none!Uri, exportNames)];
 			Opt!ExternFunPtrsForAllLibraries funPtrsOpt =
 				extern_.loadExternFunPtrs(externLibraries, (in SafeCStr _) =>
 					unreachable!void());

@@ -22,17 +22,17 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.conv : safeToUshort;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
-import util.path : AllPaths, childPath, Path, PathOrRelPath, rootPath;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : concatSymsWithDot, Sym, sym;
+import util.uri : AllUris, childPath, Path, PathOrRelPath, rootPath;
 import util.util : todo, typeAs;
 
-Opt!ImportsOrExportsAst parseImportsOrExports(ref AllPaths allPaths, ref Lexer lexer, Token keyword) {
+Opt!ImportsOrExportsAst parseImportsOrExports(ref AllUris allUris, ref Lexer lexer, Token keyword) {
 	Pos start = curPos(lexer);
 	if (tryTakeToken(lexer, keyword)) {
 		ImportOrExportAst[] imports = takeIndentOrFailGeneric!(ImportOrExportAst[])(
 			lexer,
-			() => parseImportLines(allPaths, lexer),
+			() => parseImportLines(allUris, lexer),
 			(RangeWithinFile _) => typeAs!(ImportOrExportAst[])([]));
 		return some(ImportsOrExportsAst(range(lexer, start), imports));
 	} else
@@ -41,10 +41,10 @@ Opt!ImportsOrExportsAst parseImportsOrExports(ref AllPaths allPaths, ref Lexer l
 
 private:
 
-ImportOrExportAst[] parseImportLines(ref AllPaths allPaths, ref Lexer lexer) {
+ImportOrExportAst[] parseImportLines(ref AllUris allUris, ref Lexer lexer) {
 	ArrBuilder!ImportOrExportAst res;
 	while (true) {
-		add(lexer.alloc, res, parseSingleModuleImportOnOwnLine(allPaths, lexer));
+		add(lexer.alloc, res, parseSingleModuleImportOnOwnLine(allUris, lexer));
 		final switch (takeNewlineOrDedent(lexer)) {
 			case NewlineOrDedent.newline:
 				continue;
@@ -54,7 +54,7 @@ ImportOrExportAst[] parseImportLines(ref AllPaths allPaths, ref Lexer lexer) {
 	}
 }
 
-PathOrRelPath parseImportPath(ref AllPaths allPaths, ref Lexer lexer) {
+PathOrRelPath parseImportPath(ref AllUris allUris, ref Lexer lexer) {
 	Opt!ushort nParents = () {
 		if (tryTakeToken(lexer, Token.dot)) {
 			takeOrAddDiagExpectedOperator(lexer, sym!"/", ParseDiag.Expected.Kind.slash);
@@ -67,7 +67,7 @@ PathOrRelPath parseImportPath(ref AllPaths allPaths, ref Lexer lexer) {
 	}();
 	return PathOrRelPath(
 		nParents,
-		addPathComponents(allPaths, lexer, rootPath(allPaths, takePathComponent(lexer))));
+		addPathComponents(allUris, lexer, rootPath(allUris, takePathComponent(lexer))));
 }
 
 size_t takeDotDotSlashes(ref Lexer lexer, size_t acc) {
@@ -78,14 +78,14 @@ size_t takeDotDotSlashes(ref Lexer lexer, size_t acc) {
 		return acc;
 }
 
-Path addPathComponents(ref AllPaths allPaths, ref Lexer lexer, Path acc) =>
+Path addPathComponents(ref AllUris allUris, ref Lexer lexer, Path acc) =>
 	tryTakeOperator(lexer, sym!"/")
-		? addPathComponents(allPaths, lexer, childPath(allPaths, acc, takePathComponent(lexer)))
+		? addPathComponents(allUris, lexer, childPath(allUris, acc, takePathComponent(lexer)))
 		: acc;
 
-ImportOrExportAst parseSingleModuleImportOnOwnLine(ref AllPaths allPaths, ref Lexer lexer) {
+ImportOrExportAst parseSingleModuleImportOnOwnLine(ref AllUris allUris, ref Lexer lexer) {
 	Pos start = curPos(lexer);
-	PathOrRelPath path = parseImportPath(allPaths, lexer);
+	PathOrRelPath path = parseImportPath(allUris, lexer);
 	ImportOrExportAstKind kind = parseImportOrExportKind(lexer, start);
 	return ImportOrExportAst(range(lexer, start), path, kind);
 }

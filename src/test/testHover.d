@@ -18,7 +18,7 @@ import util.json : field, Json, jsonList, jsonObject, jsonToStringPretty, option
 import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, PosKind;
 import util.memoryReadOnlyStorage : withMemoryReadOnlyStorage, MutFiles;
 import util.opt : has, none, Opt, optEqual;
-import util.path : AllPaths, emptyPathsInfo, Path, rootPath;
+import util.uri : AllUris, emptyUrisInfo, parseUri, Uri, rootPath;
 import util.perf : Perf, withNullPerf;
 import util.readOnlyStorage : ReadOnlyStorage;
 import util.sourceRange : Pos;
@@ -35,11 +35,11 @@ private:
 void hoverTest(string crowFileName, string outputFileName)(ref Test test) {
 	SafeCStr content = safeCStr!(import("hover/" ~ crowFileName));
 	string expected = import(outputFileName);
-	HoverTest hoverTest = initHoverTest(test, crowFileName, content);
+	HoverTest hoverTest = initHoverTest!crowFileName(test, content);
 	SafeCStr actual = jsonToStringPretty(
 		test.alloc,
 		test.allSymbols,
-		hoverResult(test.alloc, test.allSymbols, test.allPaths, content, hoverTest));
+		hoverResult(test.alloc, test.allSymbols, test.allUris, content, hoverTest));
 	if (strOfSafeCStr(actual) != expected) {
 		debugLog("Test output was not as expected. File is:");
 		debugLog(outputFileName);
@@ -54,17 +54,17 @@ immutable struct HoverTest {
 	Module* mainModule;
 }
 
-HoverTest initHoverTest(ref Test test, string fileName, in SafeCStr content) {
-	Path path = rootPath(test.allPaths, symOfStr(test.allSymbols, fileName));
+HoverTest initHoverTest(string fileName)(ref Test test, in SafeCStr content) {
+	Uri uri = parseUri(test.allUris, "magic:" ~ fileName);
 	MutFiles files;
-	addToMutMap(test.alloc, files, path, content);
+	addToMutMap(test.alloc, files, uri, content);
 	Program program = withMemoryReadOnlyStorage!Program(
-		rootPath(test.allPaths, sym!"include"),
+		parseUri(test.allUris, "magic:include"),
 		files,
 		(in ReadOnlyStorage storage) =>
 			withNullPerf!(Program, (ref Perf perf) =>
 				frontendCompile(
-					test.alloc, perf, test.alloc, test.allPaths, test.allSymbols, storage, [path], none!Path)));
+					test.alloc, perf, test.alloc, test.allSymbols, test.allUris, storage, [uri], none!Uri)));
 	Module* mainModule = &program.allModules[$ - 1];
 	return HoverTest(program, mainModule);
 }
@@ -86,7 +86,7 @@ immutable struct InfoAtPos {
 Json hoverResult(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
-	in AllPaths allPaths,
+	in AllUris allUris,
 	in SafeCStr content,
 	in HoverTest a,
 ) {
@@ -108,7 +108,7 @@ Json hoverResult(
 				field!"end"(jsonOfLineAndColumn(alloc, lineAndColumnInFile(end, PosKind.endOfRange))),
 				field!"hover"(info.hover),
 				optionalField!("definition", Definition)(info.definition, (in Definition x) =>
-					jsonOfDefinition(alloc, allPaths, x)),
+					jsonOfDefinition(alloc, allUris, x)),
 			]));
 		}
 	}
@@ -117,7 +117,7 @@ Json hoverResult(
 	foreach (Pos pos; 0 .. endOfFile + 1) {
 		Position position = getPosition(allSymbols, a.mainModule, pos);
 		InfoAtPos here = InfoAtPos(
-			getHoverStr(alloc, alloc, allSymbols, allPaths, emptyPathsInfo, a.program, position),
+			getHoverStr(alloc, alloc, allSymbols, allUris, emptyUrisInfo, a.program, position),
 			getDefinitionForPosition(a.program, position));
 		if (here != cellGet(curInfo)) {
 			endRange(pos);

@@ -48,7 +48,6 @@ import util.col.arrUtil : exists;
 import util.col.str : SafeCStr;
 import util.lineAndColumnGetter : lineAndColumnAtPos, PosKind;
 import util.opt : force, has, none, Opt, some;
-import util.path : AllPaths, baseName, Path, PathsInfo, writePath, writeRelPath;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : FileAndPos;
 import util.sym : AllSymbols, Sym, writeSym;
@@ -65,6 +64,7 @@ import util.writer :
 	writeWithNewlines,
 	writeWithSeparator,
 	Writer;
+import util.uri : AllUris, baseName, Uri, UrisInfo, writeUri, writeRelPath;
 import util.writerUtils : showChar, writeName, writeNl;
 
 immutable struct ShowDiagOptions {
@@ -74,14 +74,14 @@ immutable struct ShowDiagOptions {
 SafeCStr strOfDiagnostics(
 	ref Alloc alloc,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in ShowDiagOptions options,
 	in Program program,
 ) {
 	Writer writer = Writer(ptrTrustMe(alloc));
 	writeWithNewlines!Diagnostic(writer, program.diagnostics.diags, (in Diagnostic x) {
-		showDiagnostic(alloc, writer, allSymbols, allPaths, pathsInfo, options, program, x);
+		showDiagnostic(alloc, writer, allSymbols, allUris, urisInfo, options, program, x);
 	});
 	return finishWriterToSafeCStr(writer);
 }
@@ -89,14 +89,14 @@ SafeCStr strOfDiagnostics(
 string strOfDiagnostic(
 	ref Alloc alloc,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in ShowDiagOptions options,
 	in Program program,
 	in Diagnostic diagnostic,
 ) {
 	Writer writer = Writer(ptrTrustMe(alloc));
-	showDiagnostic(alloc, writer, allSymbols, allPaths, pathsInfo, options, program, diagnostic);
+	showDiagnostic(alloc, writer, allSymbols, allUris, urisInfo, options, program, diagnostic);
 	return finishWriter(writer);
 }
 
@@ -105,7 +105,7 @@ private:
 void writeUnusedDiag(
 	scope ref Writer writer,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
+	in AllUris allUris,
 	in Program program,
 	in Diag.Unused a,
 ) {
@@ -117,7 +117,7 @@ void writeUnusedDiag(
 			} else {
 				writer ~= "imported module ";
 				// TODO: helper fn
-				Sym moduleName = baseName(allPaths, program.filesInfo.filePaths[x.importedModule.fileIndex]);
+				Sym moduleName = baseName(allUris, program.filesInfo.fileUris[x.importedModule.fileIndex]);
 				writeSym(writer, allSymbols, moduleName);
 			}
 			writer ~= " is unused";
@@ -141,16 +141,16 @@ void writeUnusedDiag(
 
 void writeLineNumber(
 	scope ref Writer writer,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in ShowDiagOptions options,
 	in FilesInfo fi,
 	FileAndPos pos,
 ) {
-	Path where = fi.filePaths[pos.fileIndex];
+	Uri where = fi.fileUris[pos.fileIndex];
 	if (options.color)
 		writeBold(writer);
-	writePath(writer, allPaths, pathsInfo, where);
+	writeUri(writer, allUris, urisInfo, where);
 	if (options.color)
 		writeReset(writer);
 	writer ~= " line ";
@@ -161,16 +161,16 @@ void writeLineNumber(
 void writeParseDiag(
 	scope ref Writer writer,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in ParseDiag d,
 ) {
 	d.matchIn!void(
-		(in ParseDiag.CircularImport it) {
+		(in ParseDiag.CircularImport x) {
 			writer ~= "circular import from ";
-			writePath(writer, allPaths, pathsInfo, it.from);
+			writeUri(writer, allUris, urisInfo, x.from);
 			writer ~= " to ";
-			writePath(writer, allPaths, pathsInfo, it.to);
+			writeUri(writer, allUris, urisInfo, x.to);
 		},
 		(in ParseDiag.Expected it) {
 			final switch (it.kind) {
@@ -261,7 +261,7 @@ void writeParseDiag(
 			writer ~= "file does not exist";
 			if (has(d.importedFrom)) {
 				writer ~= " (imported from ";
-				writePath(writer, allPaths, pathsInfo, force(d.importedFrom).path);
+				writeUri(writer, allUris, urisInfo, force(d.importedFrom).uri);
 				writer ~= ')';
 			}
 		},
@@ -269,7 +269,7 @@ void writeParseDiag(
 			writer ~= "unable to read file";
 			if (has(d.importedFrom)) {
 				writer ~= " (imported from ";
-				writePath(writer, allPaths, pathsInfo, force(d.importedFrom).path);
+				writeUri(writer, allUris, urisInfo, force(d.importedFrom).uri);
 				writer ~= ')';
 			}
 		},
@@ -340,7 +340,7 @@ void writeParseDiag(
 		},
 		(in ParseDiag.RelativeImportReachesPastRoot d) {
 			writer ~= "importing ";
-			writeRelPath(writer, allPaths, d.imported);
+			writeRelPath(writer, allUris, d.imported);
 			writer ~= " reaches above the source directory";
 			//TODO: recommend a compiler option to fix this
 		},
@@ -463,44 +463,44 @@ void writeDestructure(
 void writeSpecTrace(
 	scope ref Writer writer,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in ShowDiagOptions options,
 	in Program program,
 	in FunDeclAndTypeArgs[] trace,
 ) {
 	foreach (FunDeclAndTypeArgs x; trace) {
 		writer ~= "\n\t";
-		writeFunDeclAndTypeArgs(writer, allSymbols, allPaths, pathsInfo, options, program, x);
+		writeFunDeclAndTypeArgs(writer, allSymbols, allUris, urisInfo, options, program, x);
 	}
 }
 
 void writeFunDeclAndTypeArgs(
 	scope ref Writer writer,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in ShowDiagOptions options,
 	in Program program,
 	in FunDeclAndTypeArgs a,
 ) {
 	writeSym(writer, allSymbols, a.decl.name);
 	writeTypeArgs(writer, allSymbols, program, a.typeArgs);
-	writeFunDeclLocation(writer, allSymbols, allPaths, pathsInfo, options, program.filesInfo, *a.decl);
+	writeFunDeclLocation(writer, allSymbols, allUris, urisInfo, options, program.filesInfo, *a.decl);
 }
 
 public void writeCalled(
 	scope ref Writer writer,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in ShowDiagOptions options,
 	in Program program,
 	in Called a,
 ) {
 	a.matchIn!void(
 		(in FunInst x) {
-			writeFunInst(writer, allSymbols, allPaths, pathsInfo, options, program, x);
+			writeFunInst(writer, allSymbols, allUris, urisInfo, options, program, x);
 		},
 		(in CalledSpecSig x) {
 			writeCalledSpecSig(writer, allSymbols, program, x);
@@ -510,13 +510,13 @@ public void writeCalled(
 public void writeFunInst(
 	scope ref Writer writer,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in ShowDiagOptions options,
 	in Program program,
 	in FunInst a,
 ) {
-	writeFunDecl(writer, allSymbols, allPaths, pathsInfo, options, program, *decl(a));
+	writeFunDecl(writer, allSymbols, allUris, urisInfo, options, program, *decl(a));
 	writeTypeParamsAndArgs(writer, allSymbols, program, decl(a).typeParams, typeArgs(a));
 }
 
@@ -555,15 +555,15 @@ void writeTypeParamsAndArgs(
 void writeCalledDecl(
 	scope ref Writer writer,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in ShowDiagOptions options,
 	in Program program,
 	in CalledDecl a,
 ) {
 	a.matchIn!void(
 		(in FunDecl x) {
-			writeFunDecl(writer, allSymbols, allPaths, pathsInfo, options, program, x);
+			writeFunDecl(writer, allSymbols, allUris, urisInfo, options, program, x);
 		},
 		(in CalledSpecSig x) {
 			writeCalledSpecSig(writer, allSymbols, program, x);
@@ -573,35 +573,35 @@ void writeCalledDecl(
 void writeFunDecl(
 	scope ref Writer writer,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in ShowDiagOptions options,
 	in Program program,
 	in FunDecl a,
 ) {
 	writeSig(writer, allSymbols, program, a.name, a.returnType, a.params, none!ReturnAndParamTypes);
-	writeFunDeclLocation(writer, allSymbols, allPaths, pathsInfo, options, program.filesInfo, a);
+	writeFunDeclLocation(writer, allSymbols, allUris, urisInfo, options, program.filesInfo, a);
 }
 
 void writeFunDeclLocation(
 	scope ref Writer writer,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in ShowDiagOptions options,
 	in FilesInfo fi,
 	in FunDecl funDecl,
 ) {
 	writer ~= " (from ";
-	writeLineNumber(writer, allPaths, pathsInfo, options, fi, funDecl.fileAndPos);
+	writeLineNumber(writer, allUris, urisInfo, options, fi, funDecl.fileAndPos);
 	writer ~= ')';
 }
 
 void writeCalleds(
 	scope ref Writer writer,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in ShowDiagOptions options,
 	in Program program,
 	in Called[] cs,
@@ -609,15 +609,15 @@ void writeCalleds(
 	foreach (ref Called x; cs) {
 		writeNl(writer);
 		writer ~= '\t';
-		writeCalled(writer, allSymbols, allPaths, pathsInfo, options, program, x);
+		writeCalled(writer, allSymbols, allUris, urisInfo, options, program, x);
 	}
 }
 
 void writeCalledDecls(
 	scope ref Writer writer,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in ShowDiagOptions options,
 	in Program program,
 	in CalledDecl[] cs,
@@ -627,15 +627,15 @@ void writeCalledDecls(
 		if (filter(c)) {
 			writeNl(writer);
 			writer ~= '\t';
-			writeCalledDecl(writer, allSymbols, allPaths, pathsInfo, options, program, c);
+			writeCalledDecl(writer, allSymbols, allUris, urisInfo, options, program, c);
 		}
 }
 
 void writeCallNoMatch(
 	scope ref Writer writer,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in ShowDiagOptions options,
 	in Program program,
 	in Diag.CallNoMatch d,
@@ -673,7 +673,7 @@ void writeCallNoMatch(
 			writer ~= " type";
 		}
 		writer ~= " arguments. candidates:";
-		writeCalledDecls(writer, allSymbols, allPaths, pathsInfo, options, program, d.allCandidates);
+		writeCalledDecls(writer, allSymbols, allUris, urisInfo, options, program, d.allCandidates);
 	} else {
 		writer ~= "there are functions named ";
 		writeName(writer, allSymbols, d.funName);
@@ -701,7 +701,7 @@ void writeCallNoMatch(
 		writer ~= d.actualArity;
 		writer ~= " arguments):";
 		writeCalledDecls(
-			writer, allSymbols, allPaths, pathsInfo, options, program, d.allCandidates,
+			writer, allSymbols, allUris, urisInfo, options, program, d.allCandidates,
 			(in CalledDecl c) =>
 				arityMatches(arity(c), d.actualArity));
 	}
@@ -711,8 +711,8 @@ void writeDiag(
 	ref TempAlloc tempAlloc,
 	scope ref Writer writer,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in ShowDiagOptions options,
 	in Program program,
 	in Diag d,
@@ -729,10 +729,10 @@ void writeDiag(
 			writer ~= "cannot choose an overload of ";
 			writeName(writer, allSymbols, d.funName);
 			writer ~= ". multiple functions match:";
-			writeCalledDecls(writer, allSymbols, allPaths, pathsInfo, options, program, d.matches);
+			writeCalledDecls(writer, allSymbols, allUris, urisInfo, options, program, d.matches);
 		},
 		(in Diag.CallNoMatch d) {
-			writeCallNoMatch(writer, allSymbols, allPaths, pathsInfo, options, program, d);
+			writeCallNoMatch(writer, allSymbols, allUris, urisInfo, options, program, d);
 		},
 		(in Diag.CallShouldUseSyntax x) {
 			writer ~= () {
@@ -777,7 +777,7 @@ void writeDiag(
 				}
 			}();
 			writer ~= ' ';
-			writeFunDecl(writer, allSymbols, allPaths, pathsInfo, options, program, *x.callee);
+			writeFunDecl(writer, allSymbols, allUris, urisInfo, options, program, *x.callee);
 			if (x.reason == Diag.CantCall.Reason.unsafe)
 				writer ~= "\n(consider putting the call in a 'trusted' expression)";
 		},
@@ -1067,7 +1067,7 @@ void writeDiag(
 			writer ~= "can't change the value of a parameter; consider introducing a mutable local instead";
 		},
 		(in ParseDiag pd) {
-			writeParseDiag(writer, allSymbols, allPaths, pathsInfo, pd);
+			writeParseDiag(writer, allSymbols, allUris, urisInfo, pd);
 		},
 		(in Diag.PtrIsUnsafe) {
 			writer ~= "getting a pointer is unsafe";
@@ -1106,10 +1106,10 @@ void writeDiag(
 					writer ~= "multiple implementations found for spec signature ";
 					writeName(writer, allSymbols, y.sigName);
 					writer ~= ':';
-					writeCalleds(writer, allSymbols, allPaths, pathsInfo, options, program, y.matches);
+					writeCalleds(writer, allSymbols, allUris, urisInfo, options, program, y.matches);
 				});
 			writer ~= "\n\tcalling:";
-			writeSpecTrace(writer, allSymbols, allPaths, pathsInfo, options, program, x.trace);
+			writeSpecTrace(writer, allSymbols, allUris, urisInfo, options, program, x.trace);
 		},
 		(in Diag.SpecNoMatch x) {
 			writer ~= "a spec was not satisfied.\n\t";
@@ -1133,7 +1133,7 @@ void writeDiag(
 					writer ~= "spec instantiation is too deep";
 				});
 			writer ~= " calling:";
-			writeSpecTrace(writer, allSymbols, allPaths, pathsInfo, options, program, x.trace);
+			writeSpecTrace(writer, allSymbols, allUris, urisInfo, options, program, x.trace);
 		},
 		(in Diag.SpecNameMissing) {
 			writer ~= "spec name is missing";
@@ -1216,7 +1216,7 @@ void writeDiag(
 			}();
 		},
 		(in Diag.Unused x) {
-			writeUnusedDiag(writer, allSymbols, allPaths, program, x);
+			writeUnusedDiag(writer, allSymbols, allUris, program, x);
 		},
 		(in Diag.VarargsParamMustBeArray _) {
 			writer ~= "variadic parameter must be an 'array'";
@@ -1234,15 +1234,15 @@ void showDiagnostic(
 	ref TempAlloc tempAlloc,
 	scope ref Writer writer,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in ShowDiagOptions options,
 	in Program program,
 	in Diagnostic d,
 ) {
-	writeFileAndRange(writer, allPaths, pathsInfo, options, program.filesInfo, d.where);
+	writeFileAndRange(writer, allUris, urisInfo, options, program.filesInfo, d.where);
 	writer ~= ' ';
-	writeDiag(tempAlloc, writer, allSymbols, allPaths, pathsInfo, options, program, d.diag);
+	writeDiag(tempAlloc, writer, allSymbols, allUris, urisInfo, options, program, d.diag);
 	writeNl(writer);
 }
 

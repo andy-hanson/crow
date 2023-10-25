@@ -99,7 +99,7 @@ import model.lowModel :
 	UpdateParam;
 import model.model :
 	ClosureReferenceKind,
-	ConfigExternPaths,
+	ConfigExternUris,
 	EnumBackingType,
 	EnumFunction,
 	EnumValue,
@@ -146,7 +146,7 @@ LowProgram lower(
 	ref Alloc alloc,
 	scope ref Perf perf,
 	in AllSymbols allSymbols,
-	in ConfigExternPaths configExtern,
+	in ConfigExternUris configExtern,
 	ref Program program,
 	ref ConcreteProgram a,
 ) =>
@@ -157,7 +157,7 @@ LowProgram lower(
 private LowProgram lowerInner(
 	ref Alloc alloc,
 	in AllSymbols allSymbols,
-	in ConfigExternPaths configExtern,
+	in ConfigExternUris configExtern,
 	ref Program program,
 	ref ConcreteProgram a,
 ) {
@@ -533,7 +533,7 @@ bool needsMarkVisitFun(in AllLowTypes allTypes, in LowType a) =>
 AllLowFuns getAllLowFuns(
 	ref AllLowTypes allTypes,
 	ref GetLowTypeCtx getLowTypeCtx,
-	in ConfigExternPaths configExtern,
+	in ConfigExternUris configExtern,
 	ref ConcreteProgram program,
 	in immutable FullIndexMap!(LowVarIndex, LowVar) allVars,
 ) {

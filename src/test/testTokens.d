@@ -48,7 +48,7 @@ void testOne(ref Test test, SafeCStr source, Token[] expectedTokens) {
 	AllSymbols allSymbols = AllSymbols(test.allocPtr);
 	ArrBuilder!DiagnosticWithinFile diags;
 	FileAst ast = withNullPerf!(FileAst, (scope ref Perf perf) =>
-		parseFile(test.alloc, perf, test.allPaths, allSymbols, diags, source));
+		parseFile(test.alloc, perf, test.allUris, allSymbols, diags, source));
 	Token[] tokens = tokensOfAst(test.alloc, allSymbols, ast);
 	if (!arrEqual(tokens, expectedTokens)) {
 		debugLogWithWriter((ref Writer writer) {
@@ -58,7 +58,7 @@ void testOne(ref Test test, SafeCStr source, Token[] expectedTokens) {
 			writeJson(writer, allSymbols, jsonOfTokens(test.alloc, tokens));
 
 			writer ~= "\n\n(hint: ast is:)\n";
-			writeJson(writer, allSymbols, jsonOfAst(test.alloc, test.allPaths, ast));
+			writeJson(writer, allSymbols, jsonOfAst(test.alloc, test.allUris, ast));
 		});
 		verifyFail();
 	}

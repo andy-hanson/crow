@@ -15,15 +15,15 @@ import lib.server :
 	Server,
 	StrParseDiagnostic,
 	TokensAndParseDiagnostics,
-	toPath;
+	toUri;
 import util.alloc.alloc : Alloc, allocateT;
 import util.col.str : CStr, SafeCStr;
 import util.json : field, jsonObject, Json, jsonToString, jsonList, jsonString, optionalField;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
 import util.opt : force, has, Opt;
-import util.path : Path;
 import util.perf : eachMeasure, Perf, PerfMeasureResult, withNullPerf;
 import util.sourceRange : Pos, jsonOfRangeWithinFile;
+import util.uri : Uri;
 
 // seems to be the required entry point
 extern(C) void _start() {}
@@ -69,53 +69,53 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 	return ptr;
 }
 
-@system extern(C) void addOrChangeFile(Server* server, scope CStr path, scope CStr content) {
-	addOrChangeFile(*server, SafeCStr(path), SafeCStr(content));
+@system extern(C) void addOrChangeFile(Server* server, scope CStr uri, scope CStr content) {
+	addOrChangeFile(*server, toUri(*server, uri), SafeCStr(content));
 }
 
-@system extern(C) void deleteFile(Server* server, scope CStr path) {
-	deleteFile(*server, SafeCStr(path));
+@system extern(C) void deleteFile(Server* server, scope CStr uri) {
+	deleteFile(*server, toUri(*server, uri));
 }
 
-@system extern(C) CStr getFile(Server* server, scope CStr path) =>
-	getFile(*server, SafeCStr(path)).ptr;
+@system extern(C) CStr getFile(Server* server, scope CStr uri) =>
+	getFile(*server, toUri(*server, uri)).ptr;
 
-@system extern(C) CStr getTokensAndParseDiagnostics(Server* server, scope CStr pathPtr) {
-	Path path = toPath(*server, SafeCStr(pathPtr));
+@system extern(C) CStr getTokensAndParseDiagnostics(Server* server, scope CStr uriPtr) {
+	Uri uri = toUri(*server, SafeCStr(uriPtr));
 	Alloc resultAlloc = Alloc(resultBuffer);
 	TokensAndParseDiagnostics res = withNullPerf!(TokensAndParseDiagnostics, (ref Perf perf) =>
-		getTokensAndParseDiagnostics(resultAlloc, perf, *server, path));
+		getTokensAndParseDiagnostics(resultAlloc, perf, *server, uri));
 	return jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
 		field!"tokens"(jsonOfTokens(resultAlloc, res.tokens)),
 		field!"parse-diagnostics"(jsonOfParseDiagnostics(resultAlloc, res.parseDiagnostics))])).ptr;
 }
 
-@system extern(C) CStr getDefinition(Server* server, scope CStr pathPtr, Pos pos) {
-	Path path = toPath(*server, SafeCStr(pathPtr));
+@system extern(C) CStr getDefinition(Server* server, scope CStr uriPtr, Pos pos) {
+	Uri uri = toUri(*server, SafeCStr(uriPtr));
 	Alloc resultAlloc = Alloc(resultBuffer);
 	return withNullPerf!(SafeCStr, (ref Perf perf) {
-		Opt!Definition res = getDefinition(perf, resultAlloc, *server, path, pos);
+		Opt!Definition res = getDefinition(perf, resultAlloc, *server, uri, pos);
 		return jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
 			optionalField!"definition"(has(res), () =>
-				jsonOfDefinition(resultAlloc, server.allPaths, force(res)))
+				jsonOfDefinition(resultAlloc, server.allUris, force(res)))
 		]));
 	}).ptr;
 }
 
-@system extern(C) CStr getHover(Server* server, scope CStr pathPtr, Pos pos) {
-	Path path = toPath(*server, SafeCStr(pathPtr));
+@system extern(C) CStr getHover(Server* server, scope CStr uriPtr, Pos pos) {
+	Uri uri = toUri(*server, SafeCStr(uriPtr));
 	Alloc resultAlloc = Alloc(resultBuffer);
 	return withNullPerf!(CStr, (ref Perf perf) =>
 		jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
-			field!"hover"(getHover(perf, resultAlloc, *server, path, pos)),
+			field!"hover"(getHover(perf, resultAlloc, *server, uri, pos)),
 		])).ptr);
 }
 
-@system extern(C) int run(Server* server, scope CStr pathPtr) {
-	Path path = toPath(*server, SafeCStr(pathPtr));
+@system extern(C) int run(Server* server, scope CStr uriPtr) {
+	Uri uri = toUri(*server, SafeCStr(uriPtr));
 	Alloc resultAlloc = Alloc(resultBuffer);
 	return withWebPerf!ExitCode((scope ref Perf perf) =>
-		run(perf, resultAlloc, *server, path, (Pipe pipe, in string x) @trusted {
+		run(perf, resultAlloc, *server, uri, (Pipe pipe, in string x) @trusted {
 			write(pipe, x.ptr, x.length);
 		})).value;
 }

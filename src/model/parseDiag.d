@@ -4,15 +4,15 @@ module model.parseDiag;
 
 import frontend.parse.lexer : Token;
 import util.opt : Opt;
-import util.path : Path, PathAndRange, RelPath;
 import util.sym : Sym;
 import util.union_ : Union;
+import util.uri : Uri, UriAndRange, RelPath;
 
 immutable struct ParseDiag {
 	@safe @nogc pure nothrow:
 	immutable struct CircularImport {
-		Path from;
-		Path to;
+		Uri from;
+		Uri to;
 	}
 	immutable struct Expected {
 		enum Kind {
@@ -47,10 +47,10 @@ immutable struct ParseDiag {
 		Kind kind;
 	}
 	immutable struct FileDoesNotExist {
-		Opt!PathAndRange importedFrom;
+		Opt!UriAndRange importedFrom;
 	}
 	immutable struct FileReadError {
-		Opt!PathAndRange importedFrom;
+		Opt!UriAndRange importedFrom;
 	}
 	immutable struct FunctionTypeMissingParens {}
 	immutable struct ImportFileTypeNotSupported {}

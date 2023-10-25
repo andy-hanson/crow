@@ -8,10 +8,10 @@ import util.col.arrUtil : exists;
 import util.col.str : SafeCStr, safeCStr;
 import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, some;
-import util.path : PathOrRelPath;
 import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
+import util.uri : PathOrRelPath;
 import util.util : unreachable, verify;
 
 immutable struct NameAndRange {

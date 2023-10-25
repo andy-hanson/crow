@@ -24,19 +24,19 @@ import model.model :
 	TypeParam;
 import util.alloc.alloc : Alloc;
 import util.opt : force, has, none, Opt, some;
-import util.path : AllPaths, Path, pathToSafeCStr;
 import util.json : field, Json, jsonObject;
 import util.sourceRange : FileAndRange, FileIndex, jsonOfRangeWithinFile, RangeWithinFile;
 import util.union_ : Union;
+import util.uri : AllUris, Uri, uriToSafeCStr;
 
 immutable struct Definition {
-	Path path;
+	Uri uri;
 	RangeWithinFile range;
 }
 
-Json jsonOfDefinition(ref Alloc alloc, in AllPaths allPaths, in Definition a) =>
+Json jsonOfDefinition(ref Alloc alloc, in AllUris allUris, in Definition a) =>
 	jsonObject(alloc, [
-		field!"path"(pathToSafeCStr(alloc, allPaths, a.path)),
+		field!"uri"(uriToSafeCStr(alloc, allUris, a.uri)),
 		field!"range"(jsonOfRangeWithinFile(alloc, a.range))]);
 
 Opt!Definition getDefinitionForPosition(in Program program, in Position pos) {
@@ -64,7 +64,7 @@ immutable struct Target {
 
 Definition definitionForTarget(in Program program, FileIndex curFile, in Target a) {
 	FileAndRange range = rangeForTarget(curFile, a);
-	return Definition(program.filesInfo.filePaths[range.fileIndex], range.range);
+	return Definition(program.filesInfo.fileUris[range.fileIndex], range.range);
 }
 
 FileAndRange rangeForTarget(in FileIndex curFile, in Target a) =>

@@ -7,8 +7,8 @@ import interpret.debugInfo : showDataArr;
 import interpret.stacks : dataTempAsArr, returnTempAsArrReverse, Stacks;
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : arrEqual, arrsCorrespond, makeArr;
-import util.path : AllPaths;
 import util.sym : AllSymbols;
+import util.uri : AllUris;
 import util.util : verifyFail;
 import util.writer : debugLogWithWriter, Writer;
 
@@ -17,12 +17,12 @@ struct Test {
 
 	Alloc* allocPtr;
 	AllSymbols allSymbols;
-	AllPaths allPaths;
+	AllUris allUris;
 
 	@trusted this(Alloc* ap) {
 		allocPtr = ap;
 		allSymbols = AllSymbols(ap);
-		allPaths = AllPaths(ap, &allSymbols);
+		allUris = AllUris(ap, &allSymbols);
 	}
 
 	ref Alloc alloc() return scope =>

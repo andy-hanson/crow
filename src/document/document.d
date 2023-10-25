@@ -59,38 +59,38 @@ import util.json :
 	jsonString,
 	kindField;
 import util.opt : force, has, none, Opt, some;
-import util.path : AllPaths, PathsInfo, pathToSafeCStrPreferRelative;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, Sym, sym;
+import util.uri : AllUris, UrisInfo, uriToSafeCStrPreferRelative;
 import util.util : unreachable;
 
 SafeCStr documentJSON(
 	ref Alloc alloc,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in Program program,
 ) =>
-	jsonToString(alloc, allSymbols, documentRootModules(alloc, allSymbols, allPaths, pathsInfo, program));
+	jsonToString(alloc, allSymbols, documentRootModules(alloc, allSymbols, allUris, urisInfo, program));
 
 private:
 
 Json documentRootModules(
 	ref Alloc alloc,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in Program program,
 ) =>
 	jsonObject(alloc, [
 		field!"modules"(jsonList!(Module*)(alloc, program.rootModules, (in Module* x) =>
-			documentModule(alloc, allSymbols, allPaths, pathsInfo, program, *x)))]);
+			documentModule(alloc, allSymbols, allUris, urisInfo, program, *x)))]);
 
 Json documentModule(
 	ref Alloc alloc,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in Program program,
 	in Module a,
 ) {
@@ -109,8 +109,8 @@ Json documentModule(
 	arrBuilderSort!DocExport(exports, (in DocExport x, in DocExport y) =>
 		compareRanges(x.range, y.range));
 	return jsonObject(alloc, [
-		field!"path"(
-			pathToSafeCStrPreferRelative(alloc, allPaths, pathsInfo, program.filesInfo.filePaths[a.fileIndex])),
+		field!"uri"(
+			uriToSafeCStrPreferRelative(alloc, allUris, urisInfo, program.filesInfo.fileUris[a.fileIndex])),
 		optionalStringField!"doc"(alloc, a.docComment),
 		field!"exports"(jsonList!DocExport(alloc, finishArr(alloc, exports), (in DocExport x) => x.json))]);
 }

@@ -152,55 +152,55 @@ globalCrow.makeCompiler = async (bytes, includeDir) => {
 		readStringFromView(view, begin, end)
 
 	return {
-		addOrChangeFile: (path, content) =>{
+		addOrChangeFile: (uri, content) =>{
 			try {
-				exports.addOrChangeFile(server, paramAlloc.writeCStr(path), paramAlloc.writeCStr(content))
+				exports.addOrChangeFile(server, paramAlloc.writeCStr(uri), paramAlloc.writeCStr(content))
 			} finally {
 				paramAlloc.clear()
 			}
 		},
-		deleteFile: path => {
+		deleteFile: uri => {
 			try {
-				exports.deleteFile(server, paramAlloc.writeCStr(path))
+				exports.deleteFile(server, paramAlloc.writeCStr(uri))
 			} finally {
 				paramAlloc.clear()
 			}
 		},
-		getFile: path => {
+		getFile: uri => {
 			try {
-				return readCStr(exports.getFile(server, paramAlloc.writeCStr(path)))
+				return readCStr(exports.getFile(server, paramAlloc.writeCStr(uri)))
 			} finally {
 				paramAlloc.clear()
 			}
 		},
-		getTokensAndParseDiagnostics: path => {
+		getTokensAndParseDiagnostics: uri => {
 			try {
 				const res = JSON.parse(
-					readCStr(exports.getTokensAndParseDiagnostics(server, paramAlloc.writeCStr(path)))
+					readCStr(exports.getTokensAndParseDiagnostics(server, paramAlloc.writeCStr(uri)))
 				)
 				return {tokens:res.tokens, parseDiagnostics:res["parse-diagnostics"]}
 			} finally {
 				paramAlloc.clear()
 			}
 		},
-		getDefinition: (path, pos) => {
+		getDefinition: (uri, pos) => {
 			try {
-				return JSON.parse(readCStr(exports.getDefinition(server, paramAlloc.writeCStr(path), pos)))
+				return JSON.parse(readCStr(exports.getDefinition(server, paramAlloc.writeCStr(uri), pos)))
 			} finally {
 				paramAlloc.clear()
 			}
 		},
-		getHover: (path, pos) => {
+		getHover: (uri, pos) => {
 			try {
-				return JSON.parse(readCStr(exports.getHover(server, paramAlloc.writeCStr(path), pos))).hover
+				return JSON.parse(readCStr(exports.getHover(server, paramAlloc.writeCStr(uri), pos))).hover
 			} finally {
 				paramAlloc.clear()
 			}
 		},
-		run: path => {
+		run: uri => {
 			try {
 				globalWrites = []
-				const exitCode = exports.run(server, paramAlloc.writeCStr(path))
+				const exitCode = exports.run(server, paramAlloc.writeCStr(uri))
 				return {exitCode, writes:[...globalWrites]}
 			} finally {
 				globalWrites = []

@@ -26,10 +26,10 @@ import util.col.arr : only;
 import util.col.str : SafeCStr, safeCStr;
 import util.json : Json, jsonToString;
 import util.opt : force, has, none, Opt, some;
-import util.path : AllPaths, Path, PathsInfo;
 import util.perf : Perf;
 import util.readOnlyStorage : ReadOnlyStorage;
 import util.sym : AllSymbols;
+import util.uri : AllUris, Uri, UrisInfo;
 import versionInfo : VersionInfo, versionInfoForInterpret;
 version (WebAssembly) {} else {
 	import versionInfo : versionInfoForBuildToC;
@@ -53,31 +53,31 @@ DiagsAndResultStrs print(
 	ref Perf perf,
 	in VersionInfo versionInfo,
 	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	ref AllUris allUris,
+	in UrisInfo urisInfo,
 	in ReadOnlyStorage storage,
 	in ShowDiagOptions showDiagOptions,
 	PrintKind kind,
-	Path main,
+	Uri main,
 ) {
 	DiagsAndResultJson json = () {
 		final switch (kind) {
 			case PrintKind.tokens:
-				return printTokens(alloc, perf, allSymbols, allPaths, storage, main);
+				return printTokens(alloc, perf, allSymbols, allUris, storage, main);
 			case PrintKind.ast:
-				return printAst(alloc, perf, allSymbols, allPaths, storage, main);
+				return printAst(alloc, perf, allSymbols, allUris, storage, main);
 			case PrintKind.model:
-				return printModel(alloc, perf, allSymbols, allPaths, storage, main);
+				return printModel(alloc, perf, allSymbols, allUris, storage, main);
 			case PrintKind.concreteModel:
 				return printConcreteModel(
-					alloc, perf, versionInfo, allSymbols, allPaths, storage, main);
+					alloc, perf, versionInfo, allSymbols, allUris, storage, main);
 			case PrintKind.lowModel:
 				return printLowModel(
-					alloc, perf, versionInfo, allSymbols, allPaths, storage, main);
+					alloc, perf, versionInfo, allSymbols, allUris, storage, main);
 		}
 	}();
 	return DiagsAndResultStrs(
-		strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, json.programForDiags),
+		strOfDiagnostics(alloc, allSymbols, allUris, urisInfo, showDiagOptions, json.programForDiags),
 		jsonToString(alloc, allSymbols, json.result));
 }
 
@@ -95,18 +95,18 @@ ExitCode buildAndInterpret(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	ref AllUris allUris,
+	in UrisInfo urisInfo,
 	in ReadOnlyStorage storage,
 	in Extern extern_,
 	in WriteError writeError,
 	in ShowDiagOptions showDiagOptions,
-	Path main,
+	Uri main,
 	in SafeCStr[] allArgs,
 ) {
 	ProgramsAndFilesInfo programs =
-		buildToLowProgram(alloc, perf, versionInfoForInterpret(), allSymbols, allPaths, storage, main);
-	writeDiagnostics(writeError, alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, programs.program);
+		buildToLowProgram(alloc, perf, versionInfoForInterpret(), allSymbols, allUris, storage, main);
+	writeDiagnostics(writeError, alloc, allSymbols, allUris, urisInfo, showDiagOptions, programs.program);
 	if (isFatal(programs.program.diagnostics))
 		return ExitCode.error;
 	else {
@@ -120,8 +120,8 @@ ExitCode buildAndInterpret(
 				perf,
 				alloc,
 				allSymbols,
-				allPaths,
-				pathsInfo,
+				allUris,
+				urisInfo,
 				extern_.doDynCall,
 				programs.program,
 				programs.lowProgram,
@@ -140,13 +140,13 @@ void writeDiagnostics(
 	in WriteError writeError,
 	ref Alloc alloc,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in ShowDiagOptions showDiagOptions,
 	in Program program,
 ) {
 	if (!isEmpty(program.diagnostics))
-		writeError(strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program));
+		writeError(strOfDiagnostics(alloc, allSymbols, allUris, urisInfo, showDiagOptions, program));
 }
 
 struct DiagsAndResultJson {
@@ -158,11 +158,11 @@ DiagsAndResultJson printTokens(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
+	ref AllUris allUris,
 	in ReadOnlyStorage storage,
-	Path main,
+	Uri main,
 ) {
-	FileAstAndDiagnostics astResult = parseSingleAst(alloc, perf, allSymbols, allPaths, storage, main);
+	FileAstAndDiagnostics astResult = parseSingleAst(alloc, perf, allSymbols, allUris, storage, main);
 	return DiagsAndResultJson(
 		fakeProgram(astResult),
 		jsonOfTokens(alloc, tokensOfAst(alloc, allSymbols, astResult.ast)));
@@ -175,23 +175,23 @@ DiagsAndResultJson printAst(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
+	ref AllUris allUris,
 	in ReadOnlyStorage storage,
-	Path main,
+	Uri main,
 ) {
-	FileAstAndDiagnostics astResult = parseSingleAst(alloc, perf, allSymbols, allPaths, storage, main);
-	return DiagsAndResultJson(fakeProgram(astResult), jsonOfAst(alloc, allPaths, astResult.ast));
+	FileAstAndDiagnostics astResult = parseSingleAst(alloc, perf, allSymbols, allUris, storage, main);
+	return DiagsAndResultJson(fakeProgram(astResult), jsonOfAst(alloc, allUris, astResult.ast));
 }
 
 DiagsAndResultJson printModel(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
+	ref AllUris allUris,
 	in ReadOnlyStorage storage,
-	Path main,
+	Uri main,
 ) {
-	Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main], none!Path);
+	Program program = frontendCompile(alloc, perf, alloc, allSymbols, allUris, storage, [main], none!Uri);
 	return DiagsAndResultJson(program, jsonOfModule(alloc, *only(program.rootModules)));
 }
 
@@ -200,11 +200,11 @@ DiagsAndResultJson printConcreteModel(
 	ref Perf perf,
 	in VersionInfo versionInfo,
 	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
+	ref AllUris allUris,
 	in ReadOnlyStorage storage,
-	Path main,
+	Uri main,
 ) {
-	Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main], none!Path);
+	Program program = frontendCompile(alloc, perf, alloc, allSymbols, allUris, storage, [main], none!Uri);
 	return DiagsAndResultJson(
 		program,
 		jsonOfConcreteProgram(alloc, concretize(alloc, perf, versionInfo, allSymbols, program)));
@@ -215,11 +215,11 @@ DiagsAndResultJson printLowModel(
 	ref Perf perf,
 	in VersionInfo versionInfo,
 	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
+	ref AllUris allUris,
 	in ReadOnlyStorage storage,
-	Path main,
+	Uri main,
 ) {
-	Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main], none!Path);
+	Program program = frontendCompile(alloc, perf, alloc, allSymbols, allUris, storage, [main], none!Uri);
 	ConcreteProgram concreteProgram = concretize(alloc, perf, versionInfo, allSymbols, program);
 	LowProgram lowProgram = lower(alloc, perf, allSymbols, program.config.extern_, program, concreteProgram);
 	return DiagsAndResultJson(program, jsonOfLowProgram(alloc, lowProgram));
@@ -229,16 +229,16 @@ public Opt!SafeCStr justTypeCheck(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	ref AllUris allUris,
+	in UrisInfo urisInfo,
 	in ReadOnlyStorage storage,
 	in ShowDiagOptions showDiagOptions,
-	Path main,
+	Uri main,
 ) {
-	Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main], none!Path);
+	Program program = frontendCompile(alloc, perf, alloc, allSymbols, allUris, storage, [main], none!Uri);
 	return isEmpty(program.diagnostics)
 		? none!SafeCStr
-		: some(strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program));
+		: some(strOfDiagnostics(alloc, allSymbols, allUris, urisInfo, showDiagOptions, program));
 }
 
 version (WebAssembly) {} else {
@@ -251,19 +251,19 @@ version (WebAssembly) {} else {
 		ref Alloc alloc,
 		ref Perf perf,
 		ref AllSymbols allSymbols,
-		ref AllPaths allPaths,
-		in PathsInfo pathsInfo,
+		ref AllUris allUris,
+		in UrisInfo urisInfo,
 		in ReadOnlyStorage storage,
 		in ShowDiagOptions showDiagOptions,
-		Path main,
+		Uri main,
 	) {
 		ProgramsAndFilesInfo programs =
-			buildToLowProgram(alloc, perf, versionInfoForBuildToC(), allSymbols, allPaths, storage, main);
+			buildToLowProgram(alloc, perf, versionInfoForBuildToC(), allSymbols, allUris, storage, main);
 		return BuildToCResult(
 			isFatal(programs.program.diagnostics)
 				? safeCStr!""
 				: writeToC(alloc, alloc, allSymbols, programs.program, programs.lowProgram),
-			strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, programs.program),
+			strOfDiagnostics(alloc, allSymbols, allUris, urisInfo, showDiagOptions, programs.program),
 			programs.lowProgram.externLibraries);
 	}
 }
@@ -277,17 +277,16 @@ public DocumentResult compileAndDocument(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	ref AllUris allUris,
+	in UrisInfo urisInfo,
 	in ReadOnlyStorage storage,
 	in ShowDiagOptions showDiagOptions,
-	in Path[] rootPaths,
+	in Uri[] rootUris,
 ) {
-	Program program =
-		frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, rootPaths, none!Path);
+	Program program = frontendCompile(alloc, perf, alloc, allSymbols, allUris, storage, rootUris, none!Uri);
 	return DocumentResult(
-		documentJSON(alloc, allSymbols, allPaths, pathsInfo, program),
-		strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program));
+		documentJSON(alloc, allSymbols, allUris, urisInfo, program),
+		strOfDiagnostics(alloc, allSymbols, allUris, urisInfo, showDiagOptions, program));
 }
 
 //TODO:RENAME
@@ -302,11 +301,11 @@ public ProgramsAndFilesInfo buildToLowProgram(
 	ref Perf perf,
 	in VersionInfo versionInfo,
 	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
+	ref AllUris allUris,
 	in ReadOnlyStorage storage,
-	Path main,
+	Uri main,
 ) {
-	Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main], some(main));
+	Program program = frontendCompile(alloc, perf, alloc, allSymbols, allUris, storage, [main], some(main));
 	ConcreteProgram concreteProgram = concretize(alloc, perf, versionInfo, allSymbols, program);
 	LowProgram lowProgram = lower(alloc, perf, allSymbols, program.config.extern_, program, concreteProgram);
 	return ProgramsAndFilesInfo(program, concreteProgram, lowProgram);

@@ -7,8 +7,8 @@ import model.diag : Diag, Diagnostic, Diagnostics, DiagnosticWithinFile, DiagSev
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderClear, arrBuilderSort, arrBuilderTempAsArr, finishArr;
 import util.comparison : compareNat32, Comparison;
-import util.path : comparePath;
-import util.sourceRange : FileAndRange, FileIndex, FilePaths;
+import util.sourceRange : FileAndRange, FileIndex, FileUris;
+import util.uri : AllUris, compareUriAlphabetically;
 
 /// Stores only diags at the highest severity seen.
 struct DiagnosticsBuilder {
@@ -29,9 +29,9 @@ void addDiagnostic(ref Alloc alloc, scope ref DiagnosticsBuilder a, FileAndRange
 	}
 }
 
-Diagnostics finishDiagnostics(ref Alloc alloc, ref DiagnosticsBuilder a, FilePaths filePaths) {
+Diagnostics finishDiagnostics(ref Alloc alloc, ref DiagnosticsBuilder a, in AllUris allUris, in FileUris fileUris) {
 	arrBuilderSort!Diagnostic(a.diags, (in Diagnostic a, in Diagnostic b) =>
-		compareDiagnostic(a, b, filePaths));
+		compareDiagnostic(a, b, allUris, fileUris));
 	return Diagnostics(a.severity, finishArr(alloc, a.diags));
 }
 
@@ -39,11 +39,12 @@ Diagnostics diagnosticsForFile(
 	ref Alloc alloc,
 	FileIndex fileIndex,
 	ref ArrBuilder!DiagnosticWithinFile diagnostics,
-	FilePaths filePaths,
+	in AllUris allUris,
+	in FileUris fileUris,
 ) {
 	DiagnosticsBuilder builder;
 	addDiagnosticsForFile(alloc, builder, fileIndex, diagnostics);
-	return finishDiagnostics(alloc, builder, filePaths);
+	return finishDiagnostics(alloc, builder, allUris, fileUris);
 }
 
 void addDiagnosticsForFile(
@@ -58,7 +59,7 @@ void addDiagnosticsForFile(
 
 private:
 
-Comparison compareDiagnostic(in Diagnostic a, in Diagnostic b, in FilePaths filePaths) {
-	Comparison cmpPath = comparePath(filePaths[a.where.fileIndex], filePaths[b.where.fileIndex]);
-	return cmpPath != Comparison.equal ? cmpPath : compareNat32(a.where.start, b.where.start);
+Comparison compareDiagnostic(in Diagnostic a, in Diagnostic b, in AllUris allUris, in FileUris fileUris) {
+	Comparison cmpUri = compareUriAlphabetically(allUris, fileUris[a.where.fileIndex], fileUris[b.where.fileIndex]);
+	return cmpUri != Comparison.equal ? cmpUri : compareNat32(a.where.start, b.where.start);
 }

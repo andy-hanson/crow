@@ -11,12 +11,12 @@ import test.testInterpreter : testInterpreter;
 import test.testJson : testJson;
 import test.testLineAndColumnGetter : testLineAndColumnGetter;
 import test.testMemory : testMemory;
-import test.testPath : testPath;
 import test.testServer : testServer;
 import test.testSortUtil : testSortUtil;
 import test.testStack : testStack;
 import test.testSym : testSym;
 import test.testTokens : testTokens;
+import test.testUri : testUri;
 import test.testUtil : Test;
 import test.testWriter : testWriter;
 import util.alloc.alloc : Alloc;
@@ -43,12 +43,12 @@ NameAndTest[] allTests = [
 	NameAndTest(sym!"line-and-column-getter", &testLineAndColumnGetter),
 	NameAndTest(sym!"map", &testMap),
 	NameAndTest(sym!"memory", &testMemory),
-	NameAndTest(sym!"path", &testPath),
 	NameAndTest(sym!"server", &testServer),
 	NameAndTest(sym!"sort-util", &testSortUtil),
 	NameAndTest(sym!"stack", &testStack),
 	NameAndTest(sym!"sym", &testSym),
 	NameAndTest(sym!"tokens", &testTokens),
+	NameAndTest(sym!"path", &testUri),
 	NameAndTest(sym!"writer", &testWriter),
 ];
 

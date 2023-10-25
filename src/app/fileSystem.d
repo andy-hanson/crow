@@ -47,11 +47,21 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.str : CStr, SafeCStr, safeCStrSize;
 import util.memory : memset;
 import util.opt : force, has, Opt, some;
-import util.path :
-	AllPaths, alterExtensionWithHex, Path, parent, parsePath, pathToTempStr, TempStrForPath;
 import util.ptr : ptrTrustMe;
 import util.readOnlyStorage : ReadFileResult, ReadOnlyStorage;
 import util.sym : Sym;
+import util.uri :
+	AllUris,
+	alterExtensionWithHex,
+	asFileUri,
+	FileUri,
+	isFileUri,
+	parent,
+	parseAbsoluteFilePathAsUri,
+	fileUriToTempStr,
+	TempStrForPath,
+	toUri,
+	Uri;
 import util.util : todo, verify;
 import util.writer : finishWriterToSafeCStr, Writer;
 
@@ -76,9 +86,9 @@ FILE* stderr() {
 	}
 }
 
-private @trusted void removeFile(in AllPaths allPaths, Path path) {
+private @trusted void removeFile(in AllUris allUris, FileUri uri) {
 	TempStrForPath buf = void;
-	CStr cStr = pathToTempStr(buf, allPaths, path).ptr;
+	CStr cStr = fileUriToTempStr(buf, allUris, uri).ptr;
 	version (Windows) {
 		int res = DeleteFileA(cStr);
 		if (!res) todo!void("error removing file");
@@ -96,19 +106,26 @@ private @trusted void removeFile(in AllPaths allPaths, Path path) {
 This doesn't create the path, 'cb' should do that.
 But if it is a temp path, this deletes it after the callback finishes.
 */
-ExitCode withPathOrTemp(Sym extension)(
-	ref AllPaths allPaths,
-	Opt!Path path,
-	Path tempBasePath,
-	in ExitCode delegate(Path) @safe @nogc nothrow cb,
+ExitCode withUriOrTemp(Sym extension)(
+	ref AllUris allUris,
+	Opt!Uri uri,
+	Uri tempBasePath,
+	in ExitCode delegate(FileUri) @safe @nogc nothrow cb,
 ) {
-	if (has(path))
-		return cb(force(path));
-	else {
-		ubyte[8] bytes = getRandomBytes();
-		Path tempPath = alterExtensionWithHex!extension(allPaths, tempBasePath, bytes);
-		scope(exit) removeFile(allPaths, tempPath);
-		return cb(tempPath);
+	if (has(uri)) {
+		if (!isFileUri(allUris, force(uri))) {
+			todo!void("message: can't use non-file URI");
+			return ExitCode.error;
+		} else
+			return cb(asFileUri(allUris, force(uri)));
+	} else {
+		if (isFileUri(allUris, tempBasePath)) {
+			ubyte[8] bytes = getRandomBytes();
+			FileUri tempUri = alterExtensionWithHex!extension(allUris, asFileUri(allUris, tempBasePath), bytes);
+			scope(exit) removeFile(allUris, tempUri);
+			return cb(tempUri);
+		} else
+			return todo!ExitCode("need another place to put temps");
 	}
 }
 
@@ -157,22 +174,22 @@ version (Windows) {
 }
 
 T withReadOnlyStorage(T)(
-	in AllPaths allPaths,
-	Path includeDir,
+	in AllUris allUris,
+	Uri includeDir,
 	T delegate(in ReadOnlyStorage) @safe @nogc nothrow cb,
 ) {
 	scope ReadOnlyStorage storage = ReadOnlyStorage(
 		includeDir,
 		(
-			Path path,
+			Uri uri,
 			in void delegate(in ReadFileResult!(ubyte[])) @safe @nogc pure nothrow cb,
 		) =>
-			tryReadFile(allPaths, path, NulTerminate.no, cb),
+			tryReadFile(allUris, uri, NulTerminate.no, cb),
 		(
-			Path path,
+			Uri uri,
 			in void delegate(in ReadFileResult!SafeCStr) @safe @nogc pure nothrow cb,
 		) =>
-			tryReadFile(allPaths, path, NulTerminate.yes, (in ReadFileResult!(ubyte[]) x) =>
+			tryReadFile(allUris, uri, NulTerminate.yes, (in ReadFileResult!(ubyte[]) x) =>
 				x.matchIn!void(
 					(in immutable ubyte[] bytes) @trusted =>
 						cb(ReadFileResult!SafeCStr(SafeCStr(cast(immutable char*) bytes.ptr))),
@@ -186,13 +203,16 @@ T withReadOnlyStorage(T)(
 private enum NulTerminate { no, yes }
 
 private @trusted void tryReadFile(
-	in AllPaths allPaths,
-	Path path,
+	in AllUris allUris,
+	Uri uri,
 	NulTerminate nulTerminate,
 	in void delegate(in ReadFileResult!(ubyte[])) @safe @nogc pure nothrow cb,
 ) {
+	if (!isFileUri(allUris, uri))
+		return cb(ReadFileResult!(ubyte[])(ReadFileResult!(ubyte[]).NotFound()));
+
 	TempStrForPath pathBuf = void;
-	CStr pathCStr = pathToTempStr(pathBuf, allPaths, path).ptr;
+	CStr pathCStr = fileUriToTempStr(pathBuf, allUris, asFileUri(allUris, uri)).ptr;
 
 	FILE* fd = fopen(pathCStr, "rb");
 	if (fd == null)
@@ -231,8 +251,8 @@ private @trusted void tryReadFile(
 	}
 }
 
-@trusted ExitCode writeFile(in AllPaths allPaths, in Path path, in SafeCStr content) {
-	FILE* fd = tryOpenFileForWrite(allPaths, path);
+@trusted ExitCode writeFile(in AllUris allUris, FileUri uri, in SafeCStr content) {
+	FILE* fd = tryOpenFileForWrite(allUris, uri);
 	if (fd == null)
 		return ExitCode.error;
 	else {
@@ -250,15 +270,15 @@ private @trusted void tryReadFile(
 	}
 }
 
-private @system FILE* tryOpenFileForWrite(in AllPaths allPaths, in Path path) {
+private @system FILE* tryOpenFileForWrite(in AllUris allUris, FileUri uri) {
 	TempStrForPath buf = void;
-	CStr pathCStr = pathToTempStr(buf, allPaths, path).ptr;
+	CStr pathCStr = fileUriToTempStr(buf, allUris, uri).ptr;
 	FILE* fd = fopen(pathCStr, "w");
 	if (fd == null) {
 		if (errno == ENOENT) {
-			Opt!Path par = parent(allPaths, path);
+			Opt!FileUri par = parent(allUris, uri);
 			if (has(par)) {
-				ExitCode res = mkdirRecur(allPaths, force(par));
+				ExitCode res = mkdirRecur(allUris, force(par));
 				if (res == ExitCode.ok)
 					return fopen(pathCStr, "w");
 			}
@@ -269,15 +289,15 @@ private @system FILE* tryOpenFileForWrite(in AllPaths allPaths, in Path path) {
 	return fd;
 }
 
-@trusted Path getCwd(ref AllPaths allPaths) {
+@trusted FileUri getCwd(ref AllUris allUris) {
 	TempStrForPath res = void;
 	const char* cwd = getcwd(res.ptr, res.length);
 	return cwd == null
-		? todo!Path("getcwd failed")
-		: parsePath(allPaths, SafeCStr(cast(immutable) cwd));
+		? todo!FileUri("getcwd failed")
+		: parseAbsoluteFilePathAsUri(allUris, SafeCStr(cast(immutable) cwd));
 }
 
-@trusted Path getPathToThisExecutable(ref AllPaths allPaths) {
+@trusted FileUri getPathToThisExecutable(ref AllUris allUris) {
 	TempStrForPath res = void;
 	version (Windows) {
 		HMODULE mod = GetModuleHandle(null);
@@ -288,14 +308,14 @@ private @system FILE* tryOpenFileForWrite(in AllPaths allPaths, in Path path) {
 	}
 	verify(size > 0 && size < res.length);
 	res[size] = '\0';
-	return parsePath(allPaths, SafeCStr(cast(immutable) res.ptr));
+	return parseAbsoluteFilePathAsUri(allUris, SafeCStr(cast(immutable) res.ptr));
 }
 
 // Returns the child process' error code.
 // WARN: A first arg will be prepended that is the executable path.
 @trusted ExitCode spawnAndWait(
 	ref TempAlloc tempAlloc,
-	in AllPaths allPaths,
+	in AllUris allUris,
 	in SafeCStr executablePath,
 	in SafeCStr[] args,
 ) {
@@ -411,17 +431,17 @@ version (Windows) {
 	alias mkdir = _mkdir;
 }
 
-@system ExitCode mkdirRecur(in AllPaths allPaths, Path dir) {
+@system ExitCode mkdirRecur(in AllUris allUris, FileUri dir) {
 	version (Windows) {
 		return todo!ExitCode("!");
 	} else {
 		TempStrForPath buf = void;
-		CStr dirCStr = pathToTempStr(buf, allPaths, dir).ptr;
+		CStr dirCStr = fileUriToTempStr(buf, allUris, dir).ptr;
 		int err = mkdir(dirCStr, S_IRWXU);
 		if (err == ENOENT) {
-			Opt!Path par = parent(allPaths, dir);
+			Opt!FileUri par = parent(allUris, dir);
 			if (has(par)) {
-				ExitCode res = mkdirRecur(allPaths, force(par));
+				ExitCode res = mkdirRecur(allUris, force(par));
 				return res == ExitCode.ok
 					? handleMkdirErr(mkdir(dirCStr, S_IRWXU), dirCStr)
 					: res;

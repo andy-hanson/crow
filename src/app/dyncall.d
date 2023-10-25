@@ -28,20 +28,20 @@ import util.conv : bitsOfFloat32, bitsOfFloat64, float32OfBits, float64OfBits, s
 import util.late : Late, late, lateGet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
-import util.path : AllPaths, childPath, Path, pathToTempStr, TempStrForPath;
 import util.sym : AllSymbols, concatSyms, Sym, sym, symAsTempBuffer;
+import util.uri : AllUris, asFileUri, childUri, FileUri, fileUriToTempStr, isFileUri, TempStrForPath, Uri;
 import util.util : todo, unreachable, verify;
 
 @trusted ExitCode withRealExtern(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
+	ref AllUris allUris,
 	in ExitCode delegate(in Extern) @safe @nogc nothrow cb,
 ) {
 	Late!DebugNames debugNames = late!DebugNames;
 	scope Extern extern_ = Extern(
 		(in ExternLibraries libraries, scope WriteError writeError) {
-			LoadedLibraries res = loadLibraries(alloc, allSymbols, allPaths, libraries, writeError);
+			LoadedLibraries res = loadLibraries(alloc, allSymbols, allUris, libraries, writeError);
 			lateSet(debugNames, res.debugNames);
 			return res.funPtrs;
 		},
@@ -64,13 +64,13 @@ immutable struct LoadedLibraries {
 LoadedLibraries loadLibraries(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
+	ref AllUris allUris,
 	in ExternLibraries libraries,
 	in WriteError writeError,
 ) {
 	bool success = true;
 	immutable DLLib*[] libs = mapImpure!(immutable DLLib*, ExternLibrary)(alloc, libraries, (in ExternLibrary x) {
-		LibraryAndError lib = getLibrary(allSymbols, allPaths, x.libraryName, x.configuredPath, writeError);
+		LibraryAndError lib = getLibrary(allSymbols, allUris, x.libraryName, x.configuredDir, writeError);
 		if (lib.error) success = false;
 		return lib.library;
 	});
@@ -87,17 +87,17 @@ immutable struct LibraryAndError {
 
 LibraryAndError getLibrary(
 	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
+	ref AllUris allUris,
 	Sym libraryName,
-	Opt!Path configuredPath,
+	Opt!Uri configuredDir,
 	in WriteError writeError,
 ) {
 	Sym fileName = dllOrSoName(allSymbols, libraryName);
-	Opt!(DLLib*) fromPath = has(configuredPath)
-		? tryLoadLibraryFromPath(allPaths, childPath(allPaths, force(configuredPath), fileName))
+	Opt!(DLLib*) fromUri = has(configuredDir)
+		? tryLoadLibraryFromUri(allUris, childUri(allUris, force(configuredDir), fileName))
 		: none!(DLLib*);
-	if (has(fromPath))
-		return LibraryAndError(force(fromPath), false);
+	if (has(fromUri))
+		return LibraryAndError(force(fromUri), false);
 	else {
 		switch (libraryName.value) {
 			case sym!"c".value:
@@ -124,11 +124,14 @@ Sym dllOrSoName(ref AllSymbols allSymbols, immutable Sym libraryName) {
 	}
 }
 
-@trusted Opt!(DLLib*) tryLoadLibraryFromPath(in AllPaths allPaths, Path path) {
-	TempStrForPath buf = void;
-	SafeCStr pathStr = pathToTempStr(buf, allPaths, path);
-	DLLib* res = dlLoadLibrary(pathStr.ptr);
-	return res == null ? none!(DLLib*) : some(res);
+@trusted Opt!(DLLib*) tryLoadLibraryFromUri(in AllUris allUris, Uri uri) {
+	if (isFileUri(allUris, uri)) {
+		TempStrForPath buf = void;
+		SafeCStr file = fileUriToTempStr(buf, allUris, asFileUri(allUris, uri));
+		DLLib* res = dlLoadLibrary(file.ptr);
+		return res == null ? none!(DLLib*) : some(res);
+	} else
+		return none!(DLLib*);
 }
 
 @trusted LibraryAndError loadLibraryFromName(in AllSymbols allSymbols, Sym name, in WriteError writeError) {

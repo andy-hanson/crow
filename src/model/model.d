@@ -17,7 +17,6 @@ import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : force, has, none, Opt, some;
-import util.path : Path;
 import util.ptr : hashPtr;
 import util.sourceRange :
 	combineRanges,
@@ -30,6 +29,7 @@ import util.sourceRange :
 	RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym, writeSym;
 import util.union_ : Union;
+import util.uri : Uri;
 import util.util : max, min, typeAs, unreachable, verify;
 import util.writer : Writer, writeWithCommas;
 
@@ -1207,12 +1207,12 @@ Program fakeProgramForDiagnostics(FilesInfo filesInfo, Diagnostics diagnostics) 
 	Program(filesInfo, Config(), [], [], CommonFuns(), CommonTypes(), diagnostics);
 
 immutable struct Config {
-	ConfigImportPaths include;
-	ConfigExternPaths extern_;
+	ConfigImportUris include;
+	ConfigExternUris extern_;
 }
 
-alias ConfigImportPaths = Map!(Sym, Path);
-alias ConfigExternPaths = Map!(Sym, Path);
+alias ConfigImportUris = Map!(Sym, Uri);
+alias ConfigExternUris = Map!(Sym, Uri);
 
 immutable struct Local {
 	@safe @nogc pure nothrow:

@@ -78,10 +78,10 @@ import util.col.enumMap : EnumMap;
 import util.col.fullIndexMap : emptyFullIndexMap, fullIndexMapOfArr;
 import util.lineAndColumnGetter : lineAndColumnGetterForEmptyFile;
 import util.memory : allocate;
-import util.path : emptyPathsInfo, Path, PathsInfo, rootPath;
 import util.ptr : castNonScope, ptrTrustMe;
 import util.sourceRange : FileIndex, Pos;
 import util.sym : sym;
+import util.uri : emptyUrisInfo, Uri, UrisInfo, parseUri, rootPath;
 import util.util : verify;
 
 void testInterpreter(ref Test test) {
@@ -130,9 +130,8 @@ void doInterpret(
 	in ByteCode byteCode,
 	in void delegate(ref Stacks stacks, Operation*) @system @nogc nothrow runInterpreter,
 ) {
-	Path emptyPath = rootPath(test.allPaths, sym!"test");
 	FilesInfo filesInfo = filesInfoForSingle(test.alloc,
-		emptyPath,
+		parseUri(test.allUris, "magic:test.crow"),
 		lineAndColumnGetterForEmptyFile(test.alloc));
 	LowFun[1] lowFun = [LowFun(
 		LowFunSource(allocate(test.alloc, LowFunSource.Generated(sym!"test", []))),
@@ -152,10 +151,9 @@ void doInterpret(
 		LowFunIndex(0),
 		[]);
 	withFakeExtern(test.alloc, test.allSymbols, unreachableWriteCb, (scope ref Extern extern_) {
-		PathsInfo pathsInfo = emptyPathsInfo;
 		withInterpreter!void(
 			test.alloc, extern_.doDynCall, fakeProgramForTest(filesInfo), lowProgram,
-			byteCode, test.allSymbols, test.allPaths, pathsInfo,
+			byteCode, test.allSymbols, test.allUris, emptyUrisInfo,
 			(ref Stacks stacks) {
 				runInterpreter(stacks, initialOperationPointer(byteCode));
 			});

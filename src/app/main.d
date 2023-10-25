@@ -9,7 +9,7 @@ import app.fileSystem :
 	spawnAndWait,
 	stderr,
 	withBuffer,
-	withPathOrTemp,
+	withUriOrTemp,
 	withReadOnlyStorage,
 	writeFile;
 import core.stdc.stdio : fprintf, printf;
@@ -50,19 +50,26 @@ import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil : prepend;
 import util.col.str : CStr, SafeCStr, safeCStr, safeCStrIsEmpty;
 import util.opt : force, has, none, Opt, some;
-import util.path :
-	AllPaths,
-	childPath,
-	Path,
-	parentOrEmpty,
-	PathsInfo,
-	pathToSafeCStr,
-	TempStrForPath,
-	writePathPlain;
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasure, PerfMeasureResult, withMeasure;
 import util.ptr : ptrTrustMe;
 import util.readOnlyStorage : ReadOnlyStorage;
 import util.sym : AllSymbols, concatSyms, safeCStrOfSym, Sym, sym, writeSym;
+import util.uri :
+	AllUris,
+	asFileUri,
+	childFileUri,
+	childUri,
+	FileUri,
+	fileUriToSafeCStr,
+	isFileUri,
+	Uri,
+	parentOrEmpty,
+	UrisInfo,
+	uriToSafeCStr,
+	TempStrForPath,
+	toUri,
+	writeFileUri;
+import util.util : todo;
 import util.writer : finishWriterToSafeCStr, Writer;
 import versionInfo : versionInfoForJIT;
 
@@ -72,11 +79,11 @@ import versionInfo : versionInfoForJIT;
 	return withBuffer!(int, ulong)(memorySizeWords, (scope ulong[] mem) {
 		Alloc alloc = Alloc(mem);
 		AllSymbols allSymbols = AllSymbols(ptrTrustMe(alloc));
-		AllPaths allPaths = AllPaths(ptrTrustMe(alloc), ptrTrustMe(allSymbols));
+		AllUris allUris = AllUris(ptrTrustMe(alloc), ptrTrustMe(allSymbols));
 		ulong function() @safe @nogc pure nothrow getTimeNanosPure =
 			cast(ulong function() @safe @nogc pure nothrow) &getTimeNanos;
 		scope Perf perf = Perf(() => getTimeNanosPure());
-		int res = go(alloc, perf, allSymbols, allPaths, cast(SafeCStr[]) argv[1 .. argc]).value;
+		int res = go(alloc, perf, allSymbols, allUris, cast(SafeCStr[]) argv[1 .. argc]).value;
 		if (perfEnabled)
 			logPerf(perf);
 		return res;
@@ -114,70 +121,70 @@ static assert(divRound(14, 10) == 1);
 	}
 }
 
-ExitCode go(ref Alloc alloc, ref Perf perf, ref AllSymbols allSymbols, ref AllPaths allPaths, in SafeCStr[] args) {
-	Path crowDir = getCrowDir(allPaths);
-	Path includeDir = childPath(allPaths, crowDir, sym!"include");
-	Path cwd = getCwd(allPaths);
-	PathsInfo pathsInfo = PathsInfo(some(cwd));
-	Command command = parseCommand(alloc, allSymbols, allPaths, cwd, args);
+ExitCode go(ref Alloc alloc, ref Perf perf, ref AllSymbols allSymbols, ref AllUris allUris, in SafeCStr[] args) {
+	Uri crowDir = getCrowDir(allUris);
+	Uri includeDir = childUri(allUris, crowDir, sym!"include");
+	Uri cwd = toUri(allUris, getCwd(allUris));
+	UrisInfo urisInfo = UrisInfo(some(cwd));
+	Command command = parseCommand(alloc, allSymbols, allUris, cwd, args);
 	ShowDiagOptions showDiagOptions = ShowDiagOptions(true);
 
 	return command.matchImpure!ExitCode(
-		(in Command.Build it) =>
-			runBuild(alloc, perf, allSymbols, allPaths, pathsInfo, includeDir, it.mainPath, it.options),
-		(in Command.Document it) =>
-			runDocument(alloc, perf, allSymbols, allPaths, pathsInfo, includeDir, it.rootPaths),
-		(in Command.Help it) =>
-			help(it),
-		(in Command.Print it) =>
-			withReadOnlyStorage!ExitCode(allPaths, includeDir, (in ReadOnlyStorage storage) {
+		(in Command.Build x) =>
+			runBuild(alloc, perf, allSymbols, allUris, urisInfo, includeDir, x.mainUri, x.options),
+		(in Command.Document x) =>
+			runDocument(alloc, perf, allSymbols, allUris, urisInfo, includeDir, x.rootUris),
+		(in Command.Help x) =>
+			help(x),
+		(in Command.Print x) =>
+			withReadOnlyStorage!ExitCode(allUris, includeDir, (in ReadOnlyStorage storage) {
 				DiagsAndResultStrs printed = print(
 					alloc,
 					perf,
 					// Just going with this arbitrarily. Only affects concrete-model priting.
 					versionInfoForJIT(),
 					allSymbols,
-					allPaths,
-					pathsInfo,
+					allUris,
+					urisInfo,
 					storage,
 					showDiagOptions,
-					it.kind,
-					it.mainPath);
+					x.kind,
+					x.mainUri);
 				if (!safeCStrIsEmpty(printed.diagnostics)) printErr(printed.diagnostics);
 				if (!safeCStrIsEmpty(printed.result)) print(printed.result);
 				return safeCStrIsEmpty(printed.diagnostics) ? ExitCode.ok : ExitCode.error;
 			}),
 		(in Command.Run run) =>
-			withReadOnlyStorage!ExitCode(allPaths, includeDir, (in ReadOnlyStorage storage) =>
+			withReadOnlyStorage!ExitCode(allUris, includeDir, (in ReadOnlyStorage storage) =>
 				run.options.matchImpure!ExitCode(
 					(in RunOptions.Interpret) =>
-						withRealExtern(alloc, allSymbols, allPaths, (in Extern extern_) => buildAndInterpret(
+						withRealExtern(alloc, allSymbols, allUris, (in Extern extern_) => buildAndInterpret(
 							alloc,
 							perf,
 							allSymbols,
-							allPaths,
-							pathsInfo,
+							allUris,
+							urisInfo,
 							storage,
 							extern_,
 							(in SafeCStr x) {
 								printErr(x);
 							},
 							showDiagOptions,
-							run.mainPath,
-							getAllArgs(alloc, allPaths, storage, run.mainPath, run.programArgs))),
+							run.mainUri,
+							getAllArgs(alloc, allUris, storage, run.mainUri, run.programArgs))),
 					(in RunOptions.Jit it) {
 						version (GccJitAvailable) {
 							return buildAndJit(
 								alloc,
 								perf,
 								allSymbols,
-								allPaths,
-								pathsInfo,
+								allUris,
+								urisInfo,
 								it.options,
 								showDiagOptions,
 								storage,
-								run.mainPath,
-								getAllArgs(alloc, allPaths, storage, run.mainPath, run.programArgs));
+								run.mainUri,
+								getAllArgs(alloc, allUris, storage, run.mainUri, run.programArgs));
 						} else {
 							printErr(safeCStr!"'--jit' is not supported on Windows");
 							return ExitCode.error;
@@ -193,17 +200,17 @@ ExitCode go(ref Alloc alloc, ref Perf perf, ref AllSymbols allSymbols, ref AllPa
 			printVersion());
 }
 
-Path getCrowDir(ref AllPaths allPaths) =>
-	parentOrEmpty(allPaths, parentOrEmpty(allPaths, getPathToThisExecutable(allPaths)));
+Uri getCrowDir(ref AllUris allUris) =>
+	parentOrEmpty(allUris, parentOrEmpty(allUris, toUri(allUris,getPathToThisExecutable(allUris))));
 
 SafeCStr[] getAllArgs(
 	ref Alloc alloc,
-	in AllPaths allPaths,
+	in AllUris allUris,
 	in ReadOnlyStorage storage,
-	Path main,
+	Uri main,
 	in SafeCStr[] programArgs,
 ) =>
-	prepend(alloc, pathToSafeCStr(alloc, allPaths, main), programArgs);
+	prepend(alloc, uriToSafeCStr(alloc, allUris, main), programArgs);
 
 @trusted ExitCode printVersion() {
 	static immutable string date = import("date.txt")[0 .. "2020-02-02".length];
@@ -241,14 +248,14 @@ ExitCode runDocument(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
-	in PathsInfo pathsInfo,
-	Path includeDir,
-	in Path[] rootPaths,
+	ref AllUris allUris,
+	in UrisInfo urisInfo,
+	Uri includeDir,
+	in Uri[] rootUris,
 ) =>
-	withReadOnlyStorage!ExitCode(allPaths, includeDir, (in ReadOnlyStorage storage) {
+	withReadOnlyStorage!ExitCode(allUris, includeDir, (in ReadOnlyStorage storage) {
 		DocumentResult result =
-			compileAndDocument(alloc, perf, allSymbols, allPaths, pathsInfo, storage, showDiagOptions, rootPaths);
+			compileAndDocument(alloc, perf, allSymbols, allUris, urisInfo, storage, showDiagOptions, rootUris);
 		return safeCStrIsEmpty(result.diagnostics) ? println(result.document) : printErr(result.diagnostics);
 	});
 
@@ -256,18 +263,18 @@ ExitCode runBuild(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
-	in PathsInfo pathsInfo,
-	Path includeDir,
-	Path mainPath,
+	ref AllUris allUris,
+	in UrisInfo urisInfo,
+	Uri includeDir,
+	Uri mainUri,
 	in BuildOptions options,
 ) =>
 	hasAnyOut(options.out_)
 		? buildToCAndCompile(
-			alloc, perf, allSymbols, allPaths, pathsInfo, showDiagOptions, includeDir, mainPath, options)
-		: withReadOnlyStorage!ExitCode(allPaths, includeDir, (in ReadOnlyStorage storage) {
+			alloc, perf, allSymbols, allUris, urisInfo, showDiagOptions, includeDir, mainUri, options)
+		: withReadOnlyStorage!ExitCode(allUris, includeDir, (in ReadOnlyStorage storage) {
 			Opt!SafeCStr error = justTypeCheck(
-				alloc, perf, allSymbols, allPaths, pathsInfo, storage, showDiagOptions, mainPath);
+				alloc, perf, allSymbols, allUris, urisInfo, storage, showDiagOptions, mainUri);
 			return has(error) ? printErr(force(error)) : println(safeCStr!"OK");
 		});
 
@@ -278,24 +285,24 @@ ExitCode buildToCAndCompile(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	ref AllUris allUris,
+	in UrisInfo urisInfo,
 	in ShowDiagOptions showDiagOptions,
-	Path includeDir,
-	Path mainPath,
+	Uri includeDir,
+	Uri mainUri,
 	BuildOptions options,
 ) =>
-	withReadOnlyStorage!ExitCode(allPaths, includeDir, (in ReadOnlyStorage storage) {
+	withReadOnlyStorage!ExitCode(allUris, includeDir, (in ReadOnlyStorage storage) {
 		BuildToCResult result =
-			buildToC(alloc, perf, allSymbols, allPaths, pathsInfo, storage, showDiagOptions, mainPath);
+			buildToC(alloc, perf, allSymbols, allUris, urisInfo, storage, showDiagOptions, mainUri);
 		if (!safeCStrIsEmpty(result.diagnostics))
 			printErr(result.diagnostics);
-		return withPathOrTemp!cExtension(allPaths, options.out_.outC, mainPath, (Path cPath) {
-			ExitCode res = writeFile(allPaths, cPath, result.cSource);
+		return withUriOrTemp!cExtension(allUris, options.out_.outC, mainUri, (FileUri cUri) {
+			ExitCode res = writeFile(allUris, cUri, result.cSource);
 			return res == ExitCode.ok && has(options.out_.outExecutable)
 				? compileC(
-					alloc, perf, allSymbols, allPaths,
-					cPath, force(options.out_.outExecutable), result.externLibraries, options.cCompileOptions)
+					alloc, perf, allSymbols, allUris,
+					cUri, force(options.out_.outExecutable), result.externLibraries, options.cCompileOptions)
 				: res;
 		});
 	});
@@ -304,22 +311,22 @@ version (GccJitAvailable) { ExitCode buildAndJit(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	ref AllUris allUris,
+	in UrisInfo urisInfo,
 	in JitOptions jitOptions,
 	in ShowDiagOptions showDiagOptions,
 	in ReadOnlyStorage storage,
-	Path main,
+	Uri main,
 	in SafeCStr[] programArgs,
 ) {
 	ProgramsAndFilesInfo programs =
-		buildToLowProgram(alloc, perf, versionInfoForJIT(), allSymbols, allPaths, storage, main);
+		buildToLowProgram(alloc, perf, versionInfoForJIT(), allSymbols, allUris, storage, main);
 	if (!isEmpty(programs.program.diagnostics))
 		printErr(strOfDiagnostics(
 			alloc,
 			allSymbols,
-			allPaths,
-			pathsInfo,
+			allUris,
+			urisInfo,
 			showDiagOptions,
 			programs.program));
 	return isFatal(programs.program.diagnostics)
@@ -383,13 +390,18 @@ SafeCStr[] cCompilerArgs(in CCompileOptions options) {
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
-	in Path cPath,
-	in Path exePath,
+	ref AllUris allUris,
+	in FileUri cPath,
+	in Uri exePath,
 	in ExternLibrary[] externLibraries,
 	in CCompileOptions options,
 ) {
-	SafeCStr[] args = cCompileArgs(alloc, allSymbols, allPaths, cPath, exePath, externLibraries, options);
+	if (!isFileUri(allUris, exePath)) {
+		fprintf(stderr, "Can't compile to non-file path\n");
+		return ExitCode.error;
+	}
+
+	SafeCStr[] args = cCompileArgs(alloc, allSymbols, allUris, cPath, asFileUri(allUris, exePath), externLibraries, options);
 	version (Windows) {
 		TempStrForPath clPath = void;
 		ExitCode clErr = findPathToCl(clPath);
@@ -400,31 +412,31 @@ SafeCStr[] cCompilerArgs(in CCompileOptions options) {
 		scope SafeCStr executable = safeCStr!"/usr/bin/cc";
 	}
 	return withMeasure!(ExitCode, () =>
-		spawnAndWait(alloc, allPaths, executable, args)
+		spawnAndWait(alloc, allUris, executable, args)
 	)(alloc, perf, PerfMeasure.cCompile);
 }
 
 SafeCStr[] cCompileArgs(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
-	in Path cPath,
-	in Path exePath,
+	ref AllUris allUris,
+	in FileUri cPath,
+	in FileUri exePath,
 	in ExternLibrary[] externLibraries,
 	in CCompileOptions options,
 ) {
 	ArrBuilder!SafeCStr args;
 	addAll(alloc, args, cCompilerArgs(options));
-	add(alloc, args, pathToSafeCStr(alloc, allPaths, cPath));
+	add(alloc, args, fileUriToSafeCStr(alloc, allUris, cPath));
 	version (Windows) {
 		add(alloc, args, safeCStr!"/link");
 	}
 	foreach (ExternLibrary x; externLibraries) {
 		version (Windows) {
 			Sym xDotLib = concatSyms(allSymbols, [x.libraryName, sym!".lib"]);
-			if (has(x.configuredPath)) {
-				Path path = childPath(allPaths, force(x.configuredPath), xDotLib);
-				add(alloc, args, pathToSafeCStr(alloc, allPaths, path));
+			if (has(x.configuredDir)) {
+				FileUri path = childFileUri(allUris, force(x.configuredDir), xDotLib);
+				add(alloc, args, fileUriToSafeCStr(alloc, allUris, path));
 			} else
 				switch (x.libraryName.value) {
 					case sym!"c".value:
@@ -435,10 +447,12 @@ SafeCStr[] cCompileArgs(
 						break;
 				}
 		} else {
-			if (has(x.configuredPath)) {
+			if (has(x.configuredDir)) {
 				Writer writer = Writer(ptrTrustMe(alloc));
 				writer ~= "-L";
-				writePathPlain(writer, allPaths, force(x.configuredPath));
+				if (!isFileUri(allUris, force(x.configuredDir)))
+					todo!void("diagnostic: can't link to non-file");
+				writeFileUri(writer, allUris, asFileUri(allUris, force(x.configuredDir)));
 				add(alloc, args, finishWriterToSafeCStr(writer));
 			}
 
@@ -452,13 +466,13 @@ SafeCStr[] cCompileArgs(
 		add(alloc, args, safeCStr!"/DEBUG");
 		Writer writer = Writer(ptrTrustMe(alloc));
 		writer ~= "/out:";
-		writePathPlain(writer, allPaths, exePath);
+		writeFileUri(writer, allUris, exePath);
 		add(alloc, args, finishWriterToSafeCStr(writer));
 	} else {
 		add(alloc, args, safeCStr!"-lm");
 		addAll(alloc, args, [
 			safeCStr!"-o",
-			pathToSafeCStr(alloc, allPaths, exePath),
+			fileUriToSafeCStr(alloc, allUris, exePath),
 		]);
 	}
 	return finishArr(alloc, args);

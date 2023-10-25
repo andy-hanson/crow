@@ -7,14 +7,14 @@ import util.col.fullIndexMap : FullIndexMap;
 import util.col.map : Map;
 import util.conv : safeToUint, safeToUshort;
 import util.json : field, Json, jsonObject;
-import util.path : Path;
 import util.sym : AllSymbols, Sym, symSize;
+import util.uri : Uri;
 import util.util : verify;
 
 alias Pos = uint;
 
-alias FilePaths = FullIndexMap!(FileIndex, Path);
-alias PathToFile = Map!(Path, FileIndex);
+alias FileUris = FullIndexMap!(FileIndex, Uri);
+alias UriToFile = Map!(Uri, FileIndex);
 
 immutable struct FileIndex {
 	@safe @nogc pure nothrow:

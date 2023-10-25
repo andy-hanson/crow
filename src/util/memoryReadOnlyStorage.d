@@ -5,26 +5,26 @@ module util.memoryReadOnlyStorage;
 import util.col.mutMap : getAt_mut, MutMap;
 import util.col.str : SafeCStr;
 import util.opt : force, has, Opt;
-import util.path : Path;
 import util.readOnlyStorage : ReadFileResult, ReadOnlyStorage;
+import util.uri : Uri;
 
 T withMemoryReadOnlyStorage(T)(
-	Path includeDir,
+	Uri includeDir,
 	in MutFiles files,
 	in T delegate(in ReadOnlyStorage) @safe @nogc nothrow cb,
 ) {
 	scope ReadOnlyStorage storage = ReadOnlyStorage(
 		includeDir,
 		(
-			Path path,
+			Uri uri,
 			in void delegate(in ReadFileResult!(ubyte[])) @safe @nogc pure nothrow cb,
 		) =>
 			cb(ReadFileResult!(ubyte[])(ReadFileResult!(ubyte[]).NotFound())),
 		(
-			Path path,
+			Uri uri,
 			in void delegate(in ReadFileResult!SafeCStr) @safe @nogc pure nothrow cb,
 		) {
-			Opt!SafeCStr res = getAt_mut(files, path);
+			Opt!SafeCStr res = getAt_mut(files, uri);
 			return cb(has(res)
 				? ReadFileResult!SafeCStr(force(res))
 				: ReadFileResult!SafeCStr(ReadFileResult!SafeCStr.NotFound()));
@@ -32,4 +32,4 @@ T withMemoryReadOnlyStorage(T)(
 	return cb(storage);
 }
 
-alias MutFiles = MutMap!(Path, SafeCStr);
+alias MutFiles = MutMap!(Uri, SafeCStr);

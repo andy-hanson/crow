@@ -65,17 +65,17 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.str : SafeCStr, safeCStr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
-import util.path : AllPaths;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
+import util.uri : AllUris;
 import util.util : typeAs;
 
 FileAst parseFile(
 	ref Alloc alloc,
 	scope ref Perf perf,
-	ref AllPaths allPaths,
+	ref AllUris allUris,
 	ref AllSymbols allSymbols,
 	ref ArrBuilder!DiagnosticWithinFile diagsBuilder,
 	scope SafeCStr source,
@@ -86,7 +86,7 @@ FileAst parseFile(
 			ptrTrustMe(allSymbols),
 			ptrTrustMe(diagsBuilder),
 			source);
-		return parseFileInner(allPaths, lexer);
+		return parseFileInner(allUris, lexer);
 	})(alloc, perf, PerfMeasure.parseFile);
 
 private:
@@ -558,16 +558,16 @@ Visibility tryTakeVisibility(ref Lexer lexer) =>
 		? Visibility.internal
 		: Visibility.internal;
 
-FileAst parseFileInner(ref AllPaths allPaths, ref Lexer lexer) {
+FileAst parseFileInner(ref AllUris allUris, ref Lexer lexer) {
 	SafeCStr moduleDocComment = takeNewline_topLevel(lexer);
 	Cell!(Opt!SafeCStr) firstDocComment = Cell!(Opt!SafeCStr)(some(safeCStr!""));
 	bool noStd = tryTakeToken(lexer, Token.noStd);
 	if (noStd)
 		cellSet(firstDocComment, some(takeNewline_topLevel(lexer)));
-	Opt!ImportsOrExportsAst imports = parseImportsOrExports(allPaths, lexer, Token.import_);
+	Opt!ImportsOrExportsAst imports = parseImportsOrExports(allUris, lexer, Token.import_);
 	if (has(imports))
 		cellSet(firstDocComment, some(takeNewline_topLevel(lexer)));
-	Opt!ImportsOrExportsAst exports = parseImportsOrExports(allPaths, lexer, Token.export_);
+	Opt!ImportsOrExportsAst exports = parseImportsOrExports(allUris, lexer, Token.export_);
 	if (has(exports))
 		cellSet(firstDocComment, some(takeNewline_topLevel(lexer)));
 

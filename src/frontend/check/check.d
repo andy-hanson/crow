@@ -98,7 +98,7 @@ import util.sourceRange : FileAndPos, FileAndRange, FileIndex, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
 import util.util : unreachable, todo, verify;
 
-immutable struct PathAndAst { //TODO:RENAME
+immutable struct FileAndAst {
 	FileIndex fileIndex;
 	FileAst ast;
 }
@@ -114,7 +114,7 @@ BootstrapCheck checkBootstrap(
 	ref AllSymbols allSymbols,
 	scope ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
-	in PathAndAst pathAndAst,
+	in FileAndAst fileAndAst,
 ) {
 	static ImportsAndExports emptyImportsAndExports = ImportsAndExports([], [], [], []);
 	return checkWorker(
@@ -124,7 +124,7 @@ BootstrapCheck checkBootstrap(
 		diagsBuilder,
 		programState,
 		emptyImportsAndExports,
-		pathAndAst,
+		fileAndAst,
 		(ref CheckCtx ctx,
 		in StructsAndAliasesMap structsAndAliasesMap,
 		scope ref MutArr!(StructInst*) delayedStructInsts) @safe =>
@@ -152,7 +152,7 @@ Module check(
 	scope ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
 	ref ImportsAndExports importsAndExports,
-	in PathAndAst pathAndAst,
+	in FileAndAst fileAndAst,
 	in CommonTypes commonTypes,
 ) =>
 	checkWorker(
@@ -162,7 +162,7 @@ Module check(
 		diagsBuilder,
 		programState,
 		importsAndExports,
-		pathAndAst,
+		fileAndAst,
 		(ref CheckCtx _, in StructsAndAliasesMap _2, scope ref MutArr!(StructInst*)) => commonTypes,
 	).module_;
 
@@ -928,22 +928,22 @@ BootstrapCheck checkWorker(
 	scope ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
 	ref ImportsAndExports importsAndExports,
-	in PathAndAst pathAndAst,
+	in FileAndAst fileAndAst,
 	in CommonTypes delegate(
 		ref CheckCtx,
 		in StructsAndAliasesMap,
 		scope ref MutArr!(StructInst*),
 	) @safe @nogc pure nothrow getCommonTypes,
 ) {
-	checkImportsOrExports(alloc, diagsBuilder, pathAndAst.fileIndex, importsAndExports.moduleImports);
-	checkImportsOrExports(alloc, diagsBuilder, pathAndAst.fileIndex, importsAndExports.moduleExports);
-	FileAst ast = pathAndAst.ast;
+	checkImportsOrExports(alloc, diagsBuilder, fileAndAst.fileIndex, importsAndExports.moduleImports);
+	checkImportsOrExports(alloc, diagsBuilder, fileAndAst.fileIndex, importsAndExports.moduleExports);
+	FileAst ast = fileAndAst.ast;
 	CheckCtx ctx = CheckCtx(
 		ptrTrustMe(alloc),
 		ptrTrustMe(perf),
 		ptrTrustMe(programState),
 		ptrTrustMe(allSymbols),
-		pathAndAst.fileIndex,
+		fileAndAst.fileIndex,
 		ImportsAndReExports(importsAndExports.moduleImports, importsAndExports.moduleExports),
 		ptrTrustMe(diagsBuilder));
 
@@ -975,7 +975,7 @@ BootstrapCheck checkWorker(
 		structAliases,
 		structs,
 		delayStructInsts,
-		pathAndAst.fileIndex,
+		fileAndAst.fileIndex,
 		importsAndExports,
 		ast);
 	return BootstrapCheck(res, commonTypes);

@@ -62,7 +62,7 @@ connection.onInitialized(withLogErrors('onInitialized', () => {
 }))
 
 documents.onDidChangeContent(withLogErrors('onDidChangeContent', ({document}) => {
-	compiler.addOrChangeFile(pathForDocument(document), document.getText())
+	compiler.addOrChangeFile(document.uri, document.getText())
 	const diags = getSyntaxDiagnostics(document)
 	connection.sendDiagnostics(diags)
 }))
@@ -72,18 +72,11 @@ let compiler
 
 /** @type {function(TextDocument): PublishDiagnosticsParams} */
 const getSyntaxDiagnostics = (document) => {
-	const {parseDiagnostics} = compiler.getTokensAndParseDiagnostics(pathForDocument(document))
+	const {parseDiagnostics} = compiler.getTokensAndParseDiagnostics(document.uri)
 	const diags = parseDiagnostics.map(({message, range}) =>
 		Diagnostic.create(toRange(document, range), message))
 	return {uri: document.uri, diagnostics: diags}
 }
-
-/** @type {function(TextDocumentIdentifier): string} */
-const pathForDocument = document =>
-	document.uri.startsWith("file://") ? document.uri.slice("file://".length) : document.uri
-/** @type {function(string): string} */
-const uriForPath = path =>
-	'file://' + path
 
 /** @type {function(TextDocument, crow.DiagRange): Range} */
 const toRange = (document, {start, end}) =>
@@ -96,9 +89,9 @@ const toPosition = (document, offset) => {
 	return Number.isNaN(res.character) ? Position.create(res.line, 0) : res
 }
 
-/** @type {function(TextDocument, crow.PathAndRange): Location} */
-const toLocation = (document, {path, range}) =>
-	Location.create(uriForPath(path), toRange(document, range))
+/** @type {function(TextDocument, crow.UriAndRange): Location} */
+const toLocation = (document, {uri, range}) =>
+	Location.create(uri, toRange(document, range))
 
 connection.onDidChangeWatchedFiles(withLogErrors('onDidChangeWatchedFiles', _change => {
 	// Monitored files have change in VSCode
@@ -107,23 +100,23 @@ connection.onDidChangeWatchedFiles(withLogErrors('onDidChangeWatchedFiles', _cha
 
 connection.onDefinition(withLogErrors('onDefinition', params => {
 	connection.console.log("TOP OF connection.getDefinition")
-	const {document, path, offset} = getDocumentPathAndOffset(params)
-	const {definition} = compiler.getDefinition(path, offset)
+	const {document, uri, offset} = getDocumentUriAndOffset(params)
+	const {definition} = compiler.getDefinition(uri, offset)
 	return definition
 		? [toLocation(document, definition)]
 		: []
 }))
 
 connection.onHover(withLogErrors('onHover', params => {
-	const {path, offset} = getDocumentPathAndOffset(params)
-	const hover = compiler.getHover(path, offset)
+	const {uri, offset} = getDocumentUriAndOffset(params)
+	const hover = compiler.getHover(uri, offset)
 	return hover ? {contents:hover} : null
 }))
 
-/** @type {function(TextDocumentPositionParams): {document:TextDocument, path:string, offset:number}} */
-const getDocumentPathAndOffset = ({position, textDocument}) => {
+/** @type {function(TextDocumentPositionParams): {document:TextDocument, uri:string, offset:number}} */
+const getDocumentUriAndOffset = ({position, textDocument}) => {
 	const document = nonUndefined(documents.get(textDocument.uri))
-	return {document, path:pathForDocument(textDocument), offset:document.offsetAt(position)}
+	return {document, uri:textDocument.uri, offset:document.offsetAt(position)}
 }
 
 // This handler provides the initial list of the completion items.

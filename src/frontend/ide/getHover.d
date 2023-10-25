@@ -29,22 +29,22 @@ import model.model :
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.str : SafeCStr;
 import util.lineAndColumnGetter : lineAndColumnAtPos, PosKind;
-import util.path : AllPaths, PathsInfo;
 import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols, writeSym;
+import util.uri : AllUris, UrisInfo;
 import util.writer : finishWriterToSafeCStr, Writer;
 
 SafeCStr getHoverStr(
 	ref TempAlloc tempAlloc,
 	ref Alloc alloc,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in Program program,
 	in Position pos,
 ) {
 	Writer writer = Writer(ptrTrustMe(alloc));
-	getHover(tempAlloc, writer, allSymbols, allPaths, pathsInfo, program, pos);
+	getHover(tempAlloc, writer, allSymbols, allUris, urisInfo, program, pos);
 	return finishWriterToSafeCStr(writer);
 }
 
@@ -52,15 +52,15 @@ void getHover(
 	ref TempAlloc tempAlloc,
 	scope ref Writer writer,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in Program program,
 	in Position pos,
 ) =>
 	pos.kind.matchIn!void(
 		(in PositionKind.None) {},
 		(in Expr x) {
-			getExprHover(writer, allSymbols, allPaths, pathsInfo, program, *pos.module_, x);
+			getExprHover(writer, allSymbols, allUris, urisInfo, program, *pos.module_, x);
 		},
 		(in FunDecl it) {
 			writer ~= "function ";
@@ -68,7 +68,7 @@ void getHover(
 		},
 		(in PositionKind.ImportedModule x) {
 			writer ~= "import module ";
-			writeFile(writer, allPaths, pathsInfo, program.filesInfo, x.module_.fileIndex);
+			writeFile(writer, allUris, urisInfo, program.filesInfo, x.module_.fileIndex);
 		},
 		(in PositionKind.ImportedName x) {
 			getImportedNameHover(writer, x);
@@ -144,8 +144,8 @@ void hoverTypeParam(ref Writer writer, in AllSymbols allSymbols, in TypeParam a)
 void getExprHover(
 	ref Writer writer,
 	in AllSymbols allSymbols,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
+	in AllUris allUris,
+	in UrisInfo urisInfo,
 	in Program program,
 	in Module curModule,
 	in Expr a,
@@ -164,7 +164,7 @@ void getExprHover(
 		},
 		(in ExprKind.Bogus) {},
 		(in ExprKind.Call x) {
-			writeCalled(writer, allSymbols, allPaths, pathsInfo, ShowDiagOptions(false), program, x.called);
+			writeCalled(writer, allSymbols, allUris, urisInfo, ShowDiagOptions(false), program, x.called);
 		},
 		(in ExprKind.ClosureGet x) {
 			writer ~= "gets ";
@@ -176,7 +176,7 @@ void getExprHover(
 		},
 		(in ExprKind.FunPtr x) {
 			writer ~= "pointer to function ";
-			writeFunInst(writer, allSymbols, allPaths, pathsInfo, ShowDiagOptions(false), program, *x.funInst);
+			writeFunInst(writer, allSymbols, allUris, urisInfo, ShowDiagOptions(false), program, *x.funInst);
 		},
 		(in ExprKind.If) {
 			writer ~= "returns the first branch if the condition is 'true', " ~
