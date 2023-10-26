@@ -285,7 +285,7 @@ public DocumentResult compileAndDocument(
 ) {
 	Program program = frontendCompile(alloc, perf, alloc, allSymbols, allUris, storage, rootUris, none!Uri);
 	return DocumentResult(
-		documentJSON(alloc, allSymbols, allUris, urisInfo, program),
+		documentJSON(alloc, allSymbols, allUris, program),
 		strOfDiagnostics(alloc, allSymbols, allUris, urisInfo, showDiagOptions, program));
 }
 

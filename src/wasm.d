@@ -70,15 +70,15 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 }
 
 @system extern(C) void addOrChangeFile(Server* server, scope CStr uri, scope CStr content) {
-	addOrChangeFile(*server, toUri(*server, uri), SafeCStr(content));
+	addOrChangeFile(*server, toUri(*server, SafeCStr(uri)), SafeCStr(content));
 }
 
 @system extern(C) void deleteFile(Server* server, scope CStr uri) {
-	deleteFile(*server, toUri(*server, uri));
+	deleteFile(*server, toUri(*server, SafeCStr(uri)));
 }
 
 @system extern(C) CStr getFile(Server* server, scope CStr uri) =>
-	getFile(*server, toUri(*server, uri)).ptr;
+	getFile(*server, toUri(*server, SafeCStr(uri))).ptr;
 
 @system extern(C) CStr getTokensAndParseDiagnostics(Server* server, scope CStr uriPtr) {
 	Uri uri = toUri(*server, SafeCStr(uriPtr));

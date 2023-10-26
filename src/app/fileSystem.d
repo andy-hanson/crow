@@ -60,7 +60,6 @@ import util.uri :
 	parseAbsoluteFilePathAsUri,
 	fileUriToTempStr,
 	TempStrForPath,
-	toUri,
 	Uri;
 import util.util : todo, verify;
 import util.writer : finishWriterToSafeCStr, Writer;
@@ -174,7 +173,7 @@ version (Windows) {
 }
 
 T withReadOnlyStorage(T)(
-	in AllUris allUris,
+	ref AllUris allUris,
 	Uri includeDir,
 	T delegate(in ReadOnlyStorage) @safe @nogc nothrow cb,
 ) {
@@ -203,7 +202,7 @@ T withReadOnlyStorage(T)(
 private enum NulTerminate { no, yes }
 
 private @trusted void tryReadFile(
-	in AllUris allUris,
+	ref AllUris allUris,
 	Uri uri,
 	NulTerminate nulTerminate,
 	in void delegate(in ReadFileResult!(ubyte[])) @safe @nogc pure nothrow cb,

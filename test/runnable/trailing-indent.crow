@@ -1,0 +1,3 @@
+main void() summon
+	info log "Hello, world!"
+	

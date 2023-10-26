@@ -81,7 +81,7 @@ import util.memory : allocate;
 import util.ptr : castNonScope, ptrTrustMe;
 import util.sourceRange : FileIndex, Pos;
 import util.sym : sym;
-import util.uri : emptyUrisInfo, Uri, UrisInfo, parseUri, rootPath;
+import util.uri : emptyUrisInfo, parseUri;
 import util.util : verify;
 
 void testInterpreter(ref Test test) {

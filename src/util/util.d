@@ -91,7 +91,7 @@ else {
 	}
 }
 
-void debugLog(in immutable char* message) {
+void debugLog(immutable char* message) {
 	debugLog(message, 0);
 }
 

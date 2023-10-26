@@ -19,8 +19,7 @@ import util.json : Json;
 import util.jsonParse : parseJson;
 import util.sourceRange : RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
-import util.uri :
-	AllUris, bogusUri, childUri, commonAncestor, emptyRootPath, parent, parseUriWithCwd, Path, Uri, UriAndRange;
+import util.uri : AllUris, bogusUri, childUri, commonAncestor, parent, parseUriWithCwd, Uri, UriAndRange;
 import util.util : todo;
 
 Config getConfig(

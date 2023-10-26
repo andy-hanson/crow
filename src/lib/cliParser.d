@@ -13,7 +13,7 @@ import util.opt : force, has, none, Opt, some;
 import util.ptr : castNonScope;
 import util.sym : AllSymbols, Sym, sym, symOfSafeCStr, symOfStr;
 import util.union_ : Union;
-import util.uri : addExtension, alterExtension, AllUris, FileUri, getExtension, parseUriWithCwd, Uri;
+import util.uri : addExtension, alterExtension, AllUris, getExtension, parseUriWithCwd, Uri;
 import util.util : todo, verify;
 
 immutable struct Command {

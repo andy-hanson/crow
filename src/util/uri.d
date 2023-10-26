@@ -3,12 +3,13 @@ module util.uri;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateT;
-import util.col.arrUtil : reduce;
+import util.col.arrUtil : indexOf, indexOfStartingAt;
 import util.col.mutArr : MutArr, mutArrRange, mutArrSize, push;
 import util.col.str : compareSafeCStrAlphabetically, end, SafeCStr, safeCStr, strOfSafeCStr;
 import util.comparison : Comparison;
 import util.conv : safeToUshort;
 import util.hash : Hasher, hashUshort;
+import util.json : field, Json, jsonObject, jsonString;
 import util.opt : has, force, none, Opt, some;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : RangeWithinFile;
@@ -28,8 +29,6 @@ import util.sym :
 	writeSym;
 import util.util : todo, verify;
 import util.writer : finishWriterToSafeCStr, Writer;
-
-alias MutFullIndexMap(K, V) = MutArr!V;
 
 struct AllUris {
 	@safe @nogc pure nothrow:
@@ -59,16 +58,40 @@ immutable struct Uri {
 	}
 }
 
-bool isPathlessUri(in AllUris allUris, Uri a) =>
+private bool isRootUri(in AllUris allUris, Uri a) =>
 	!has(parent(allUris, a));
 
-bool isFileUri(in AllUris allUris, Uri a) =>
-	todo!bool("isFileUri");
+private Sym fileScheme() =>
+	sym!"file:";
 
-FileUri asFileUri(in AllUris allUris, Uri a) {
+bool isFileUri(in AllUris allUris, Uri a) =>
+	firstComponent(allUris, a.path) == fileScheme;
+
+FileUri asFileUri(ref AllUris allUris, Uri a) {
 	verify(isFileUri(allUris, a));
-	// Strip the first component (after asserting that it's `file:`)
-	return todo!FileUri("asFileUri");
+	return FileUri(skipFirstComponent(allUris, a.path));
+}
+
+private Sym firstComponent(in AllUris allUris, Path a) {
+	Opt!Path parent = parent(allUris, a);
+	return has(parent)
+		? firstComponent(allUris, force(parent))
+		: baseName(allUris, a);
+}
+
+private Path skipFirstComponent(ref AllUris allUris, Path a) {
+	Opt!Path parent = parent(allUris, a);
+	return has(parent)
+		? skipFirstComponent(allUris, force(parent), a)
+		: rootPath(allUris, sym!"");
+}
+
+private Path skipFirstComponent(ref AllUris allUris, Path aParent, Path a) {
+	Opt!Path grandParent = parent(allUris, aParent);
+	Sym name = baseName(allUris, a);
+	return has(grandParent)
+		? childPath(allUris, skipFirstComponent(allUris, force(grandParent), aParent), name)
+		: rootPath(allUris, name);
 }
 
 // Uri that is restricted to be a 'file:'
@@ -77,8 +100,8 @@ immutable struct FileUri {
 	private Path path;
 }
 
-Uri toUri(in AllUris allUris, FileUri a) =>
-	todo!Uri("toUri");
+Uri toUri(ref AllUris allUris, FileUri a) =>
+	concatUriAndPath(allUris, Uri(rootPath(allUris, fileScheme)), a.path);
 
 // Represents the path part of a URI, e.g. 'a/b/c'
 immutable struct Path {
@@ -145,14 +168,14 @@ private Path modifyBaseName(ref AllUris allUris, Path a, in Sym delegate(Sym) @s
 }
 
 Sym getExtension(ref AllUris allUris, Uri a) =>
-	isPathlessUri(allUris, a)
+	isRootUri(allUris, a)
 		? sym!""
 		: getExtension(allUris, a.path);
 Sym getExtension(ref AllUris allUris, Path a) =>
 	getExtension(allUris.allSymbols, baseName(allUris, a));
 
 Sym baseName(in AllUris allUris, Uri a) =>
-	isPathlessUri(allUris, a)
+	isRootUri(allUris, a)
 		? sym!""
 		: baseName(allUris, a.path);
 Sym baseName(in AllUris allUris, Path a) =>
@@ -188,9 +211,6 @@ private Path getOrAddChild(ref AllUris allUris, ref MutArr!Path children, Opt!Pa
 	push(*allUris.alloc, allUris.pathToChildren, MutArr!Path());
 	return res;
 }
-
-Path emptyRootPath(ref AllUris allUris) =>
-	rootPath(allUris, sym!"");
 
 Path rootPath(ref AllUris allUris, Sym name) =>
 	getOrAddChild(allUris, allUris.rootChildren, none!Path, name);
@@ -256,102 +276,84 @@ private void walkPathBackwards(
 		walkPathBackwards(allUris, force(par), cb);
 }
 
-private size_t pathToStrLength(in AllUris allUris, string prefix, size_t prefixMultiple, Path path) {
+private size_t pathToStrLength(in AllUris allUris, Path path, PathToStrOptions options) {
 	size_t res = 0;
-	if (prefixMultiple != 0)
-		res += prefix.length * prefixMultiple + 1;
-	walkPathBackwards(allUris, path, (Sym part, bool isFirstPart) {
+	walkPathBackwards(allUris, path, (Sym part, bool _) {
 		// 1 for '/'
-		res += (isFirstPart ? 0 : 1) + symSize(allUris.allSymbols, part);
+		res += 1 + symSize(allUris.allSymbols, part);
 	});
-	return res + 1;
+	verify(res > 0);
+	// - 1 uncount the leading slash (before maybe adding it back)
+	return res - 1 + options.leadingSlash + options.nulTerminate;
 }
 
 alias TempStrForPath = char[0x1000];
 
-SafeCStr fileUriToTempStr(scope return ref TempStrForPath temp, in AllUris allUris, FileUri uri) =>
-	pathToTempStr(temp, allUris, uri.path);
-
-private @trusted SafeCStr pathToTempStr(scope return ref TempStrForPath temp, in AllUris allUris, Path path) {
-	size_t length = pathToStrLength(allUris, "", 0, path);
-	verify(length < temp.length);
-	pathToStrWorker2(allUris, "", 0, path, temp.ptr, temp.ptr + length);
+private @trusted SafeCStr uriToTempStr(return ref TempStrForPath temp, in AllUris allUris, Uri uri) =>
+	pathToTempStr(temp, allUris, uri.path, false);
+@trusted SafeCStr fileUriToTempStr(return ref TempStrForPath temp, in AllUris allUris, FileUri uri) =>
+	pathToTempStr(temp, allUris, uri.path, true);
+private @trusted SafeCStr pathToTempStr(
+	return ref TempStrForPath temp,
+	in AllUris allUris,
+	Path path,
+	bool leadingSlash,
+) {
+	PathToStrOptions options = PathToStrOptions(true, true);
+	size_t length = pathToStrLength(allUris, path, options);
+	verify(length <= temp.length);
+	pathToStrWorker(allUris, path, temp[0 .. length], options);
 	return SafeCStr(cast(immutable) temp.ptr);
 }
 
-private string pathToStrWorker(ref Alloc alloc, in AllUris allUris, Path path) =>
-	pathToStrWorker(alloc, allUris, "", 0, path);
-
-private @trusted string pathToStrWorker(
-	ref Alloc alloc,
-	in AllUris allUris,
-	in string prefix,
-	size_t prefixCount,
-	Path path,
-) {
-	size_t length = pathToStrLength(allUris, prefix, prefixCount, path);
-	char* begin = allocateT!char(alloc, length);
-	pathToStrWorker2(allUris, prefix, prefixCount, path, begin, begin + length);
-	return cast(immutable) begin[0 .. length];
+private immutable struct PathToStrOptions {
+	bool leadingSlash;
+	bool nulTerminate;
 }
-
-private @system void pathToStrWorker2(
-	in AllUris allUris,
-	in string prefix,
-	size_t prefixMultiple,
-	Path path,
-	scope char* begin,
-	scope char* end,
-) {
-	char* cur = end - 1;
-	*cur = '\0';
+private @system void pathToStrWorker(in AllUris allUris, Path path, char[] outBuf, PathToStrOptions options) {
+	char* cur = outBuf.ptr + outBuf.length;
+	if (options.nulTerminate) {
+		cur--;
+		*cur = '\0';
+	}
 	walkPathBackwards(allUris, path, (Sym part, bool isFirstPart) @trusted {
+		char* partEnd = cur;
 		cur -= symSize(allUris.allSymbols, part);
 		char* j = cur;
 		eachCharInSym(allUris.allSymbols, part, (char c) @trusted {
 			*j = c;
 			j++;
 		});
-		verify(j == cur + symSize(allUris.allSymbols, part));
-		if (!isFirstPart) {
+		verify(j == partEnd);
+		if (!isFirstPart || options.leadingSlash) {
 			cur--;
 			*cur = '/';
 		}
 	});
-	if (prefixMultiple != 0) {
-		cur--;
-		*cur = '/';
-		const char* rootEnd = cur;
-		verify(rootEnd == begin + prefix.length * prefixMultiple);
-		cur = begin;
-		foreach (size_t i; 0 .. prefixMultiple)
-			foreach (char c; prefix) {
-				*cur = c;
-				cur++;
-			}
-		verify(cur == rootEnd);
-	}
+	verify(cur == &outBuf[0]);
 }
 
-SafeCStr pathOrRelPathToStr(ref Alloc alloc, in AllUris allUris, PathOrRelPath a) =>
-	matchPathOrRelPath(
+Json pathOrRelPathToJson(ref Alloc alloc, in AllUris allUris, PathOrRelPath a) =>
+	matchPathOrRelPath!Json(
 		a,
 		(Path global) =>
-			pathToSafeCStr(alloc, allUris, global),
+			jsonString(pathToSafeCStr(alloc, allUris, global, false)),
 		(RelPath relPath) =>
-			relPathToSafeCStr(alloc, allUris, relPath));
-
-private @trusted SafeCStr relPathToSafeCStr(ref Alloc alloc, in AllUris allUris, RelPath a) =>
-	SafeCStr(a.nParents == 0
-		? pathToStrWorker(alloc, allUris, ".", 1, a.path).ptr
-		: pathToStrWorker(alloc, allUris, "..", a.nParents, a.path).ptr);
+			jsonObject(alloc, [
+				field!"nParents"(relPath.nParents),
+				field!"path"(pathToSafeCStr(alloc, allUris, relPath.path, false))]));
 
 SafeCStr uriToSafeCStr(ref Alloc alloc, in AllUris allUris, Uri a) =>
-	pathToSafeCStr(alloc, allUris, a.path);
+	pathToSafeCStr(alloc, allUris, a.path, false);
 SafeCStr fileUriToSafeCStr(ref Alloc alloc, in AllUris allUris, FileUri a) =>
-	pathToSafeCStr(alloc, allUris, a.path);
-@trusted SafeCStr pathToSafeCStr(ref Alloc alloc, in AllUris allUris, Path path) =>
-	immutable SafeCStr(pathToStrWorker(alloc, allUris, path).ptr);
+	pathToSafeCStr(alloc, allUris, a.path, true);
+private @trusted SafeCStr pathToSafeCStr(ref Alloc alloc, in AllUris allUris, Path path, bool leadingSlash) {
+	PathToStrOptions options = PathToStrOptions(leadingSlash, true);
+	size_t length = pathToStrLength(allUris, path, options);
+	char* begin = allocateT!char(alloc, length);
+	pathToStrWorker(allUris, path, begin[0 .. length], options);
+	return SafeCStr(cast(immutable) begin);
+}
 
 public SafeCStr uriToSafeCStrPreferRelative(ref Alloc alloc, in AllUris allUris, ref UrisInfo urisInfo, Uri a) {
 	Writer writer = Writer(ptrTrustMe(alloc));
@@ -360,13 +362,30 @@ public SafeCStr uriToSafeCStrPreferRelative(ref Alloc alloc, in AllUris allUris,
 }
 
 Uri parseUri(ref AllUris allUris, in SafeCStr str) =>
-	todo!Uri("parseUri");
-Uri parseUri(ref AllUris allUris, in string) =>
-	todo!Uri("parseUri");
-Path parsePath(ref AllUris allUris, in SafeCStr str) =>
+	parseUri(allUris, strOfSafeCStr(str));
+Uri parseUri(ref AllUris allUris, in string uri) {
+	Opt!size_t optColon = indexOf(uri, ':');
+	if (has(optColon)) {
+		size_t colon = force(optColon);
+		size_t start = colon < uri.length - 2 && uri[colon + 1] == '/' && uri[colon + 2] == '/' ? colon + 3 : colon + 1;
+		Opt!size_t slash = indexOfStartingAt(uri, '/', start);
+		return has(slash)
+			? concatUriAndPath(
+				allUris,
+				rootUri(allUris, uri[0 .. force(slash)]),
+				parsePath(allUris, uri[force(slash) + 1 .. $]))
+			: rootUri(allUris, uri);
+	} else
+		return toUri(allUris, FileUri(parsePath(allUris, uri)));
+}
+private Uri rootUri(ref AllUris allUris, in string schemeAndAuthority) =>
+	Uri(rootPath(allUris, symOfStr(allUris.allSymbols, schemeAndAuthority)));
+
+private Path parsePath(ref AllUris allUris, in SafeCStr str) =>
 	parsePath(allUris, strOfSafeCStr(str));
-Path parsePath(ref AllUris allUris, in string str) {
+private Path parsePath(ref AllUris allUris, in string str) {
 	StringIter iter = StringIter(str);
+	skipWhile(iter, (char x) => x == '/');
 	string part = parsePathPart(allUris, iter);
 	return parsePathRecur(allUris, iter, rootPath(allUris, symOfStr(allUris.allSymbols, part)));
 }
@@ -395,9 +414,9 @@ private @system RelPath parseRelPathRecur(ref AllUris allUris, size_t nParents, 
 		: RelPath(safeToUshort(nParents), parsePath(allUris, a));
 
 FileUri parseAbsoluteFilePathAsUri(ref AllUris allUris, in SafeCStr a) =>
-	parseAbsoluteFilePathAsUri(allUris, strOfSafeCStr(a));
+	FileUri(parsePath(allUris, a));
 FileUri parseAbsoluteFilePathAsUri(ref AllUris allUris, in string a) =>
-	todo!FileUri("parseAbsoluteFilePathAsUri");
+	FileUri(parsePath(allUris, a));
 
 Uri parseUriWithCwd(ref AllUris allUris, Uri cwd, in SafeCStr a) =>
 	parseUriWithCwd(allUris, cwd, strOfSafeCStr(a));
@@ -419,15 +438,12 @@ private @trusted bool looksLikeAbsolutePath(string a) =>
 	(a.length >= 1 && a[0] == '/') ||
 	(a.length >= 3 && a[0] == 'C' && a[1] == ':' && isSlash(a[2]));
 
-Comparison compareUriAlphabetically(in AllUris allUris, Uri a, Uri b) =>
-	comparePathAlphabetically(allUris, a.path, b.path);
-
-@trusted Comparison comparePathAlphabetically(in AllUris allUris, Path a, Path b) {
+@trusted Comparison compareUriAlphabetically(in AllUris allUris, Uri a, Uri b) {
 	//TODO:PERF
 	TempStrForPath aBuf;
 	TempStrForPath bBuf;
-	pathToTempStr(aBuf, allUris, a);
-	pathToTempStr(bBuf, allUris, b);
+	uriToTempStr(aBuf, allUris, a);
+	uriToTempStr(bBuf, allUris, b);
 	return compareSafeCStrAlphabetically(SafeCStr(cast(immutable) aBuf.ptr), SafeCStr(cast(immutable) bBuf.ptr));
 }
 
@@ -448,7 +464,7 @@ Opt!Uri commonAncestor(in AllUris allUris, in Uri[] uris) =>
 	uris.length == 0
 		? none!Uri
 		: commonAncestorRecur(allUris, uris[0], uris[1 .. $]);
-Opt!Uri commonAncestorRecur(in AllUris allUris, Uri cur, in Uri[] uris) {
+private Opt!Uri commonAncestorRecur(in AllUris allUris, Uri cur, in Uri[] uris) {
 	if (uris.length == 0)
 		return some(cur);
 	else {
@@ -457,26 +473,23 @@ Opt!Uri commonAncestorRecur(in AllUris allUris, Uri cur, in Uri[] uris) {
 	}
 }
 private Opt!Uri commonAncestorBinary(in AllUris allUris, Uri a, Uri b) {
-	return todo!(Opt!Uri)("commonAncestorBinary");
-}
-/*
-private Path commonAncestorBinary(in AllUris allUris, Path a, Path b) {
-	size_t aParts = countPathParts(allUris, a);
-	size_t bParts = countPathParts(allUris, b);
+	size_t aParts = countPathParts(allUris, a.path);
+	size_t bParts = countPathParts(allUris, b.path);
 	return aParts > bParts
 		? commonAncestorRecur(allUris, removeLastNParts(allUris, a, aParts - bParts), b)
 		: commonAncestorRecur(allUris, a, removeLastNParts(allUris, b, bParts - aParts));
 }
-private Path commonAncestorRecur(in AllUris allUris, Path a, Path b) {
+private Opt!Uri commonAncestorRecur(in AllUris allUris, Uri a, Uri b) {
 	if (a == b)
-		return a;
+		return some(a);
 	else {
-		Opt!Path parA = parent(allUris, a);
-		Opt!Path parB = parent(allUris, b);
-		return commonAncestorRecur(allUris, force(parA), force(parB));
+		Opt!Uri parA = parent(allUris, a);
+		Opt!Uri parB = parent(allUris, b);
+		return has(parA)
+			? commonAncestorRecur(allUris, force(parA), force(parB))
+			: none!Uri;
 	}
 }
-*/
 
 private:
 
@@ -517,6 +530,16 @@ Uri removeLastNParts(in AllUris allUris, Uri a, size_t nToRemove) {
 		Opt!Uri par = parent(allUris, a);
 		return removeLastNParts(allUris, force(par), nToRemove - 1);
 	}
+}
+
+public void TEST_eachPart(
+	in AllUris allUris,
+	Uri a,
+	in void delegate(Sym) @safe @nogc pure nothrow cb,
+) {
+	eachPart(allUris, a.path, size_t.max, (Sym x, bool _) {
+		cb(x);
+	});
 }
 
 void eachPart(

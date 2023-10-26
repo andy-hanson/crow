@@ -78,7 +78,7 @@ import util.opt : Opt;
 import util.sourceRange : jsonOfRangeWithinFile;
 import util.sym : Sym, sym;
 import util.union_ : Union;
-import util.uri : pathOrRelPathToStr, AllUris;
+import util.uri : pathOrRelPathToJson, AllUris;
 
 Json jsonOfAst(ref Alloc alloc, in AllUris allUris, in FileAst ast) =>
 	jsonObject(alloc, [
@@ -106,7 +106,7 @@ Json jsonOfImportsOrExports(ref Alloc alloc, in AllUris allUris, in ImportsOrExp
 
 Json jsonOfImportOrExportAst(ref Alloc alloc, in AllUris allUris, in ImportOrExportAst a) =>
 	jsonObject(alloc, [
-		field!"path"(pathOrRelPathToStr(alloc, allUris, a.path)),
+		field!"path"(pathOrRelPathToJson(alloc, allUris, a.path)),
 		field!"import-kind"(a.kind.matchIn!Json(
 			(in ImportOrExportAstKind.ModuleWhole) =>
 				jsonString!"whole",

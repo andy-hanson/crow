@@ -1,5 +1,5 @@
 import
-	crow/io/file: read-file
+	crow/io/file: current-directory, read-file
 	crow/io/path: change-extension, child-path, remove-extension
 	./document-content: all-exports, module-content
 	./get-modules: get-modules
@@ -9,9 +9,10 @@ import
 	./search-dir-recursive: search-dir-recursive
 
 documentation path-and-content[]^() summon
-	all-module-paths <- "include/crow" search-dir-recursive (x => !x.ignore-dir), \
+	include = current-directory ~~ "/include"
+	all-module-paths <- "{include}/crow" search-dir-recursive (x => !x.ignore-dir), \
 		(x => x != "std.crow")
-	all-modules <- all-module-paths get-modules "include/"
+	all-modules <- all-module-paths get-modules "file:{include}/"
 	all-paths = (for x : all-modules; x path) sort-paths
 	all-exports = all-modules all-exports
 	modules path-and-content[] = for module : all-modules

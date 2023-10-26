@@ -175,7 +175,7 @@ Sym concatSymsWithDot(ref AllSymbols allSymbols, Sym a, Sym b) =>
 	return symOfStr(allSymbols, cast(immutable) temp[0 .. i]);
 }
 
-Sym symOfStr(ref AllSymbols allSymbols, scope string str) {
+Sym symOfStr(ref AllSymbols allSymbols, in string str) {
 	Opt!Sym packed = tryPackShortSym(str);
 	return has(packed) ? force(packed) : getSymFromLongStr(allSymbols, str);
 }
@@ -437,6 +437,7 @@ immutable string[] specialSyms = [
 	"extern-pointer\0",
 	"extern-pointers\0",
 	"field-pointer\0",
+	"file:\0",
 	"flags-members\0",
 	"has-non-public-fields\0",
 	"init-constants\0",

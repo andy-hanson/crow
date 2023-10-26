@@ -4,7 +4,7 @@
 		"end": {"line": 1, "column": 12},
 		"hover": "builtin type nat",
 		"definition": {
-			"path": "function.crow",
+			"uri": "magic:function.crow",
 			"range": {"start": 0, "end": 11}
 		}
 	},
@@ -13,7 +13,7 @@
 		"end": {"line": 3, "column": 2},
 		"hover": "function f",
 		"definition": {
-			"path": "function.crow",
+			"uri": "magic:function.crow",
 			"range": {"start": 13, "end": 14}
 		}
 	},
@@ -22,7 +22,7 @@
 		"end": {"line": 3, "column": 7},
 		"hover": "builtin type nat",
 		"definition": {
-			"path": "function.crow",
+			"uri": "magic:function.crow",
 			"range": {"start": 0, "end": 11}
 		}
 	},
@@ -31,7 +31,7 @@
 		"end": {"line": 3, "column": 8},
 		"hover": "parameter a nat",
 		"definition": {
-			"path": "function.crow",
+			"uri": "magic:function.crow",
 			"range": {"start": 19, "end": 24}
 		}
 	},
@@ -40,7 +40,7 @@
 		"end": {"line": 3, "column": 12},
 		"hover": "builtin type nat",
 		"definition": {
-			"path": "function.crow",
+			"uri": "magic:function.crow",
 			"range": {"start": 0, "end": 11}
 		}
 	},
@@ -49,16 +49,16 @@
 		"end": {"line": 4, "column": 7},
 		"hover": "a nat",
 		"definition": {
-			"path": "function.crow",
+			"uri": "magic:function.crow",
 			"range": {"start": 19, "end": 24}
 		}
 	},
 	{
 		"start": {"line": 4, "column": 7},
 		"end": {"line": 4, "column": 8},
-		"hover": "g nat(a nat) (from function.crow line 6)",
+		"hover": "g nat(a nat) (from magic:function.crow line 6)",
 		"definition": {
-			"path": "function.crow",
+			"uri": "magic:function.crow",
 			"range": {"start": 32, "end": 33}
 		}
 	},
@@ -67,7 +67,7 @@
 		"end": {"line": 6, "column": 2},
 		"hover": "function g",
 		"definition": {
-			"path": "function.crow",
+			"uri": "magic:function.crow",
 			"range": {"start": 32, "end": 33}
 		}
 	},
@@ -76,7 +76,7 @@
 		"end": {"line": 6, "column": 7},
 		"hover": "builtin type nat",
 		"definition": {
-			"path": "function.crow",
+			"uri": "magic:function.crow",
 			"range": {"start": 0, "end": 11}
 		}
 	},
@@ -85,7 +85,7 @@
 		"end": {"line": 6, "column": 8},
 		"hover": "parameter a nat",
 		"definition": {
-			"path": "function.crow",
+			"uri": "magic:function.crow",
 			"range": {"start": 38, "end": 43}
 		}
 	},
@@ -94,7 +94,7 @@
 		"end": {"line": 6, "column": 12},
 		"hover": "builtin type nat",
 		"definition": {
-			"path": "function.crow",
+			"uri": "magic:function.crow",
 			"range": {"start": 0, "end": 11}
 		}
 	}

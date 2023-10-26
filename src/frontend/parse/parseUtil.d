@@ -196,6 +196,9 @@ private NewlineOrDedent skipToNextNewlineOrDedent(ref Lexer lexer) {
 				if (dedentsNeeded == 0)
 					return NewlineOrDedent.newline;
 				break;
+			case Token.EOF:
+				verify(dedentsNeeded == 0);
+				return NewlineOrDedent.newline;
 			case Token.newlineIndent:
 				dedentsNeeded += 1;
 				break;

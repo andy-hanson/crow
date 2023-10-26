@@ -29,7 +29,7 @@ import util.late : Late, late, lateGet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
 import util.sym : AllSymbols, concatSyms, Sym, sym, symAsTempBuffer;
-import util.uri : AllUris, asFileUri, childUri, FileUri, fileUriToTempStr, isFileUri, TempStrForPath, Uri;
+import util.uri : AllUris, asFileUri, childUri, fileUriToTempStr, isFileUri, TempStrForPath, Uri;
 import util.util : todo, unreachable, verify;
 
 @trusted ExitCode withRealExtern(
@@ -124,7 +124,7 @@ Sym dllOrSoName(ref AllSymbols allSymbols, immutable Sym libraryName) {
 	}
 }
 
-@trusted Opt!(DLLib*) tryLoadLibraryFromUri(in AllUris allUris, Uri uri) {
+@trusted Opt!(DLLib*) tryLoadLibraryFromUri(ref AllUris allUris, Uri uri) {
 	if (isFileUri(allUris, uri)) {
 		TempStrForPath buf = void;
 		SafeCStr file = fileUriToTempStr(buf, allUris, asFileUri(allUris, uri));

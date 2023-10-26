@@ -96,6 +96,11 @@ Opt!size_t findIndex(T)(in T[] a, in bool delegate(in T) @safe @nogc pure nothro
 Opt!size_t indexOf(T)(in T[] xs, in T value) =>
 	findIndex!T(xs, (in T x) => x == value);
 
+Opt!size_t indexOfStartingAt(T)(in T[] xs, in T value, size_t start) {
+	Opt!size_t indexFromStart = indexOf(xs[start .. $], value);
+	return has(indexFromStart) ? some(force(indexFromStart) + start) : none!size_t;
+}
+
 @trusted Opt!size_t indexOfPointer(T)(in T[] xs, in T* pointer) {
 	size_t res = pointer - xs.ptr;
 	return 0 <= res && res < xs.length ? some(res) : none!size_t;
@@ -410,10 +415,6 @@ private @system State mapAndFoldRecur(Out, State, In)(
 	} else
 		return state;
 }
-
-T reduce(T)(in T[] values, in T delegate(T, T) @safe @nogc pure nothrow cb) =>
-	fold!(T, T)(values[0], values[1 .. $], (T a, in T b) =>
-		cb(a, b));
 
 T fold(T, U)(T start, in U[] arr, in T delegate(T a, in U b) @safe @nogc pure nothrow cb) =>
 	empty(arr)

@@ -401,7 +401,8 @@ SafeCStr[] cCompilerArgs(in CCompileOptions options) {
 		return ExitCode.error;
 	}
 
-	SafeCStr[] args = cCompileArgs(alloc, allSymbols, allUris, cPath, asFileUri(allUris, exePath), externLibraries, options);
+	SafeCStr[] args = cCompileArgs(
+		alloc, allSymbols, allUris, cPath, asFileUri(allUris, exePath), externLibraries, options);
 	version (Windows) {
 		TempStrForPath clPath = void;
 		ExitCode clErr = findPathToCl(clPath);

@@ -34,7 +34,7 @@ main nat^(_ string[]) summon
 -exclude-names string set()
 	# TODO: gl.crow needs a multi-line call syntax
 	"bin", "COPYING.txt", "crow.sublime-syntax", "dyncall", "gl.crow", "node_modules", \
-		"package-lock.json", "site"
+		"package-lock.json", "site", "trailing-indent.crow"
 
 -lint-file failure[](path string) summon
 	text string = path read-file

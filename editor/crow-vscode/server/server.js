@@ -1,7 +1,7 @@
 const {createConnection, TextDocuments, ProposedFeatures} = require("vscode-languageserver")
 /** @typedef {import("vscode-languageserver-protocol").TextDocumentPositionParams} TextDocumentPositionParams */
 const {
-	DidChangeConfigurationNotification, DefinitionRequest, HoverRequest, TextDocumentIdentifier,
+	DidChangeConfigurationNotification, DefinitionRequest, HoverRequest,
 } = require("vscode-languageserver-protocol")
 /** @typedef {import("vscode-languageserver-types").CompletionItem} CompletionItem */
 const {CompletionItemKind, Diagnostic, Location, Position, Range} = require("vscode-languageserver-types")
@@ -62,6 +62,7 @@ connection.onInitialized(withLogErrors('onInitialized', () => {
 }))
 
 documents.onDidChangeContent(withLogErrors('onDidChangeContent', ({document}) => {
+	console.log("did change content", document.uri)
 	compiler.addOrChangeFile(document.uri, document.getText())
 	const diags = getSyntaxDiagnostics(document)
 	connection.sendDiagnostics(diags)

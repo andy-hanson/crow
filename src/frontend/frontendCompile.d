@@ -41,7 +41,6 @@ import util.uri :
 	concatUriAndPath,
 	firstAndRest,
 	matchPathOrRelPath,
-	parent,
 	parentOrEmpty,
 	Path,
 	Uri,

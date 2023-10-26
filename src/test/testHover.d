@@ -18,11 +18,11 @@ import util.json : field, Json, jsonList, jsonObject, jsonToStringPretty, option
 import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, PosKind;
 import util.memoryReadOnlyStorage : withMemoryReadOnlyStorage, MutFiles;
 import util.opt : has, none, Opt, optEqual;
-import util.uri : AllUris, emptyUrisInfo, parseUri, Uri, rootPath;
+import util.uri : AllUris, emptyUrisInfo, parseUri, Uri;
 import util.perf : Perf, withNullPerf;
 import util.readOnlyStorage : ReadOnlyStorage;
 import util.sourceRange : Pos;
-import util.sym : AllSymbols, sym, symOfStr;
+import util.sym : AllSymbols;
 import util.util : debugLog, verifyFail;
 
 @trusted void testHover(ref Test test) {

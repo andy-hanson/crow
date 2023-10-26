@@ -102,6 +102,10 @@ DocCommentAndIndentDelta skipBlankLinesAndGetIndentDelta(
 			continue;
 		}
 
+		if (*ptr == '\0')
+			// Ignore indent before EOF
+			newIndent = 0;
+
 		// If we got here, we're looking at a non-empty line (or EOF)
 		int delta = safeIntFromUint(newIndent) - safeIntFromUint(curIndent);
 		if (delta > 1) {

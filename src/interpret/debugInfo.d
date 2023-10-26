@@ -19,7 +19,7 @@ import util.opt : force, has, none, Opt, some;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : FileAndPos, FileIndex;
 import util.sym : AllSymbols;
-import util.uri : AllUris, FileUri, Uri, UrisInfo, uriToSafeCStrPreferRelative;
+import util.uri : AllUris, UrisInfo, uriToSafeCStrPreferRelative;
 import util.util : min, verify;
 import util.writer : debugLogWithWriter, finishWriterToSafeCStr, writeHex, Writer;
 
@@ -117,7 +117,8 @@ private @trusted BacktraceEntry backtraceEntryFromSource(
 	Opt!FileIndex opFileIndex = getFileIndex(info.lowProgram, source.fun);
 	if (has(opFileIndex)) {
 		FileIndex fileIndex = force(opFileIndex);
-		CStr fileUri = uriToSafeCStrPreferRelative(alloc, info.allUris, info.urisInfo, info.filesInfo.fileUris[fileIndex]).ptr;
+		CStr fileUri = uriToSafeCStrPreferRelative(
+			alloc, info.allUris, info.urisInfo, info.filesInfo.fileUris[fileIndex]).ptr;
 		LineAndColumn lc =
 			lineAndColumnAtPos(info.filesInfo.lineAndColumnGetters[fileIndex], source.pos, PosKind.startOfRange);
 		return BacktraceEntry(funName, fileUri, lc.line + 1, 0);
