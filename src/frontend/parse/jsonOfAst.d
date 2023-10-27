@@ -42,6 +42,7 @@ import frontend.parse.ast :
 	NameAndRange,
 	ParamsAst,
 	ParenthesizedAst,
+	PathOrRelPath,
 	PtrAst,
 	SeqAst,
 	SpecBodyAst,
@@ -78,7 +79,7 @@ import util.opt : Opt;
 import util.sourceRange : jsonOfRangeWithinFile;
 import util.sym : Sym, sym;
 import util.union_ : Union;
-import util.uri : pathOrRelPathToJson, AllUris;
+import util.uri : AllUris, Path, pathToSafeCStr, RelPath;
 
 Json jsonOfAst(ref Alloc alloc, in AllUris allUris, in FileAst ast) =>
 	jsonObject(alloc, [
@@ -116,6 +117,15 @@ Json jsonOfImportOrExportAst(ref Alloc alloc, in AllUris allUris, in ImportOrExp
 				jsonObject(alloc, [
 					field!"name"(f.name),
 					field!"file-type"(symOfImportFileType(f.type))])))]);
+
+Json pathOrRelPathToJson(ref Alloc alloc, in AllUris allUris, PathOrRelPath a) =>
+	a.match!Json(
+		(Path global) =>
+			jsonString(pathToSafeCStr(alloc, allUris, global, false)),
+		(RelPath relPath) =>
+			jsonObject(alloc, [
+				field!"nParents"(relPath.nParents),
+				field!"path"(pathToSafeCStr(alloc, allUris, relPath.path, false))]));
 
 Json jsonOfSpecDeclAst(ref Alloc alloc, in SpecDeclAst a) =>
 	jsonObject(alloc, [

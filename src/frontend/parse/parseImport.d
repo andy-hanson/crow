@@ -2,7 +2,8 @@ module frontend.parse.parseImport;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast : ImportOrExportAst, ImportOrExportAstKind, ImportsOrExportsAst, NameAndRange, TypeAst;
+import frontend.parse.ast :
+	ImportOrExportAst, ImportOrExportAstKind, ImportsOrExportsAst, NameAndRange, PathOrRelPath, TypeAst;
 import frontend.parse.lexer : addDiag, addDiagAtChar, alloc, allSymbols, curPos, Lexer, range, Token;
 import frontend.parse.parseType : parseType;
 import frontend.parse.parseUtil :
@@ -24,7 +25,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : concatSymsWithDot, Sym, sym;
-import util.uri : AllUris, childPath, Path, PathOrRelPath, rootPath;
+import util.uri : AllUris, childPath, Path, RelPath, rootPath;
 import util.util : todo, typeAs;
 
 Opt!ImportsOrExportsAst parseImportsOrExports(ref AllUris allUris, ref Lexer lexer, Token keyword) {
@@ -65,9 +66,8 @@ PathOrRelPath parseImportPath(ref AllUris allUris, ref Lexer lexer) {
 		} else
 			return none!ushort;
 	}();
-	return PathOrRelPath(
-		nParents,
-		addPathComponents(allUris, lexer, rootPath(allUris, takePathComponent(lexer))));
+	Path path = addPathComponents(allUris, lexer, rootPath(allUris, takePathComponent(lexer)));
+	return has(nParents) ? PathOrRelPath(RelPath(force(nParents), path)) : PathOrRelPath(path);
 }
 
 size_t takeDotDotSlashes(ref Lexer lexer, size_t acc) {

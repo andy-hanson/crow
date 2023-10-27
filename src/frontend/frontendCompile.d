@@ -10,7 +10,8 @@ import model.parseDiag : ParseDiag;
 import frontend.check.check : BootstrapCheck, check, checkBootstrap, FileAndAst, ImportOrExportFile, ImportsAndExports;
 import frontend.config : getConfig;
 import frontend.diagnosticsBuilder : addDiagnosticsForFile, DiagnosticsBuilder, finishDiagnostics;
-import frontend.parse.ast : emptyFileAst, FileAst, ImportOrExportAst, ImportOrExportAstKind, ImportsOrExportsAst;
+import frontend.parse.ast :
+	emptyFileAst, FileAst, ImportOrExportAst, ImportOrExportAstKind, ImportsOrExportsAst;
 import frontend.lang : crowExtension;
 import frontend.parse.parse : parseFile;
 import frontend.programState : ProgramState;
@@ -40,7 +41,6 @@ import util.uri :
 	childUri,
 	concatUriAndPath,
 	firstAndRest,
-	matchPathOrRelPath,
 	parentOrEmpty,
 	Path,
 	Uri,
@@ -475,8 +475,7 @@ ResolvedImport tryResolveImport(
 	ResolvedImport resolved(Uri uri) {
 		return ResolvedImport(ast.range, some(addExtensionIfNone!crowExtension(allUris, uri)), ast.kind);
 	}
-	return matchPathOrRelPath!ResolvedImport(
-		ast.path,
+	return ast.path.match!ResolvedImport(
 		(Path global) {
 			PathFirstAndRest fr = firstAndRest(allUris, global);
 			Opt!Uri fromConfig = config.include[fr.first];

@@ -31,8 +31,6 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 		x to-export
 
 -to-path symbol(a json, remove-prefix string)
-	info log "PATH: {a.as-string!}"
-	info log "PREFIX: {remove-prefix}"
 	(a.as-string! try-remove-start remove-prefix)! to
 
 -get-doc string(a json)

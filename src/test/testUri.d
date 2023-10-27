@@ -5,7 +5,7 @@ module test.testUri;
 import test.testUtil : Test;
 import util.col.str : SafeCStr, safeCStr, safeCStrEq;
 import util.comparison : Comparison;
-import util.opt : force, has, none, Opt, some;
+import util.opt : none, optEqual, some;
 import util.sym : Sym, sym, symAsTempBuffer, symOfStr;
 import util.uri :
 	AllUris,
@@ -17,6 +17,7 @@ import util.uri :
 	fileUriToTempStr,
 	getExtension,
 	isFileUri,
+	parent,
 	parseUri,
 	parseUriWithCwd,
 	TempStrForPath,
@@ -57,10 +58,16 @@ void testUri(ref Test test) {
 	verify(aXZW == parseUriWithCwd(allUris, aX, safeCStr!"z/w"));
 	verify(aY == parseUriWithCwd(allUris, aX, safeCStr!"../y"));
 
-	verify(optEqual(commonAncestor(allUris, [aX, aY]), some(a)));
-	verify(optEqual(commonAncestor(allUris, [aX, aXZW]), some(aX)));
-	verify(optEqual(commonAncestor(allUris, [aX, aXZW, aY]), some(a)));
-	verify(optEqual(commonAncestor(allUris, [aX, parseUri(allUris, "http://crow-lang.org")]), none!Uri));
+	Uri crowLang = parseUri(allUris, "http://crow-lang.org");
+	verify(parseUriWithCwd(allUris, aX, "http://crow-lang.org") == crowLang);
+
+	verify(optEqual!Uri(commonAncestor(allUris, [aX, aY]), some(a)));
+	verify(optEqual!Uri(commonAncestor(allUris, [aX, aXZW]), some(aX)));
+	verify(optEqual!Uri(commonAncestor(allUris, [aX, aXZW, aY]), some(a)));
+	verify(optEqual!Uri(commonAncestor(allUris, [aX, crowLang]), none!Uri));
+
+	verify(optEqual!Uri(parent(allUris, crowLang), none!Uri));
+	verify(getExtension(allUris, crowLang) == sym!"");
 
 	testFileUri(test);
 }
@@ -101,8 +108,3 @@ void verifyEq(ref Test test, Sym a, Sym b) {
 		verifyFail();
 	}
 }
-
-bool optEqual(in Opt!Uri a, in Opt!Uri b) =>
-	has(a)
-		? has(b) && force(a) == force(b)
-		: !has(b);

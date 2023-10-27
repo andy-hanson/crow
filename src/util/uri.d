@@ -9,7 +9,6 @@ import util.col.str : compareSafeCStrAlphabetically, end, SafeCStr, safeCStr, st
 import util.comparison : Comparison;
 import util.conv : safeToUshort;
 import util.hash : Hasher, hashUshort;
-import util.json : field, Json, jsonObject, jsonString;
 import util.opt : has, force, none, Opt, some;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : RangeWithinFile;
@@ -227,23 +226,8 @@ Uri bogusUri(ref AllUris allUris) =>
 Path childPath(ref AllUris allUris, Path parent, Sym name) =>
 	getOrAddChild(allUris, allUris.pathToChildren[parent.index], some(parent), name);
 
-immutable struct PathOrRelPath {
-	private:
-	Opt!ushort nParents_;
-	Path path_;
-}
-
-T matchPathOrRelPath(T)(
-	PathOrRelPath a,
-	in T delegate(Path) @safe @nogc pure nothrow cbGlobal,
-	in T delegate(RelPath) @safe @nogc pure nothrow cbRel,
-) =>
-	has(a.nParents_)
-		? cbRel(RelPath(force(a.nParents_), a.path_))
-		: cbGlobal(a.path_);
-
 immutable struct RelPath {
-	private ushort nParents;
+	ushort nParents;
 	Path path;
 }
 
@@ -333,21 +317,11 @@ private @system void pathToStrWorker(in AllUris allUris, Path path, char[] outBu
 	verify(cur == &outBuf[0]);
 }
 
-Json pathOrRelPathToJson(ref Alloc alloc, in AllUris allUris, PathOrRelPath a) =>
-	matchPathOrRelPath!Json(
-		a,
-		(Path global) =>
-			jsonString(pathToSafeCStr(alloc, allUris, global, false)),
-		(RelPath relPath) =>
-			jsonObject(alloc, [
-				field!"nParents"(relPath.nParents),
-				field!"path"(pathToSafeCStr(alloc, allUris, relPath.path, false))]));
-
 SafeCStr uriToSafeCStr(ref Alloc alloc, in AllUris allUris, Uri a) =>
 	pathToSafeCStr(alloc, allUris, a.path, false);
 SafeCStr fileUriToSafeCStr(ref Alloc alloc, in AllUris allUris, FileUri a) =>
 	pathToSafeCStr(alloc, allUris, a.path, true);
-private @trusted SafeCStr pathToSafeCStr(ref Alloc alloc, in AllUris allUris, Path path, bool leadingSlash) {
+@trusted SafeCStr pathToSafeCStr(ref Alloc alloc, in AllUris allUris, Path path, bool leadingSlash) {
 	PathToStrOptions options = PathToStrOptions(leadingSlash, true);
 	size_t length = pathToStrLength(allUris, path, options);
 	char* begin = allocateT!char(alloc, length);
@@ -424,6 +398,8 @@ Uri parseUriWithCwd(ref AllUris allUris, Uri cwd, in string a) {
 	//TODO: handle actual URIs...
 	if (looksLikeAbsolutePath(a))
 		return toUri(allUris, parseAbsoluteFilePathAsUri(allUris, a));
+	else if (looksLikeUri(a))
+		return parseUri(allUris, a);
 	else {
 		//TODO: handle parse error (return none if so)
 		RelPath rp = parseRelPath(allUris, a);
@@ -434,9 +410,15 @@ Uri parseUriWithCwd(ref AllUris allUris, Uri cwd, in string a) {
 	}
 }
 
-private @trusted bool looksLikeAbsolutePath(string a) =>
+private @trusted bool looksLikeAbsolutePath(in string a) =>
 	(a.length >= 1 && a[0] == '/') ||
 	(a.length >= 3 && a[0] == 'C' && a[1] == ':' && isSlash(a[2]));
+
+private bool looksLikeUri(in string a) =>
+	containsSubstring(a, "://");
+
+private bool containsSubstring(in string a, in string b) =>
+	a.length >= b.length && (a[0 .. b.length] == b || containsSubstring(a[1 .. $], b));
 
 @trusted Comparison compareUriAlphabetically(in AllUris allUris, Uri a, Uri b) {
 	//TODO:PERF

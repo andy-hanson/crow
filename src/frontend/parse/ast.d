@@ -11,7 +11,7 @@ import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
-import util.uri : PathOrRelPath;
+import util.uri : Path, RelPath;
 import util.util : unreachable, verify;
 
 immutable struct NameAndRange {
@@ -682,6 +682,10 @@ immutable struct ImportOrExportAst {
 	// Does not include the extension (which is only allowed for file imports)
 	PathOrRelPath path;
 	ImportOrExportAstKind kind;
+}
+
+immutable struct PathOrRelPath {
+	mixin Union!(Path, RelPath);
 }
 
 immutable struct ImportOrExportAstKind {
