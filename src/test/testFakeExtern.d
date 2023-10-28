@@ -5,12 +5,12 @@ module test.testFakeExtern;
 import interpret.extern_ :
 	DynCallType, DynCallSig, Extern, ExternFunPtrsForAllLibraries, ExternFunPtrsForLibrary, FunPtr;
 import interpret.fakeExtern : Pipe, unreachableWriteCb, withFakeExtern, WriteCb;
-import lib.compiler : ExitCode;
 import model.lowModel : ExternLibrary;
 import test.testUtil : Test;
 import util.col.map : mustGetAt;
 import util.col.mutArr : moveToArr, MutArr, pushAll;
 import util.col.str : CStr, SafeCStr, strEq;
+import util.exitCode : ExitCode;
 import util.opt : force, none, Opt;
 import util.sym : Sym, sym;
 import util.uri : Uri;

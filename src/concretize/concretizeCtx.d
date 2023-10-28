@@ -75,9 +75,8 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only, only2, sizeEq;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
-import util.col.arrUtil :
-	arrEqual, arrLiteral, arrMax, every, everyWithIndex, exists, filterUnordered, fold, map, mapWithIndex, mapZip;
-import util.col.mutArr : MutArr, mutArrIsEmpty, push;
+import util.col.arrUtil : arrEqual, arrLiteral, arrMax, every, everyWithIndex, exists, fold, map, mapWithIndex, mapZip;
+import util.col.mutArr : filterUnordered, MutArr, mutArrIsEmpty, push;
 import util.col.mutMap : addToMutMap, getOrAdd, getOrAddAndDidAdd, mustDelete, MutMap, ValueAndDidAdd;
 import util.col.str : SafeCStr;
 import util.hash : Hasher;

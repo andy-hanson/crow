@@ -2,7 +2,6 @@ module test.test;
 
 @safe @nogc nothrow: // not pure
 
-import lib.compiler : ExitCode;
 import test.testApplyFn : testApplyFn;
 import test.testMap : testMap;
 import test.testFakeExtern : testFakeExtern;
@@ -20,6 +19,7 @@ import test.testUri : testUri;
 import test.testUtil : Test;
 import test.testWriter : testWriter;
 import util.alloc.alloc : Alloc;
+import util.exitCode : ExitCode;
 import util.opt : force, has, Opt;
 import util.ptr : ptrTrustMe;
 import util.sym : Sym, sym;

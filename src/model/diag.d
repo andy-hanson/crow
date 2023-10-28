@@ -65,10 +65,10 @@ immutable struct Diagnostics {
 	DiagSeverity severity;
 	Diagnostic[] diags;
 }
-bool isEmpty(in Diagnostics a) =>
+bool diagnosticsIsEmpty(in Diagnostics a) =>
 	empty(a.diags);
-bool isFatal(in Diagnostics a) =>
-	a.severity >= DiagSeverity.commonMissing;
+bool diagnosticsIsFatal(in Diagnostics a) =>
+	isFatal(a.severity);
 
 enum TypeKind {
 	builtin,

@@ -49,6 +49,9 @@ immutable struct ParseDiag {
 	immutable struct FileDoesNotExist {
 		Opt!UriAndRange importedFrom;
 	}
+	immutable struct FileLoading {
+		Opt!UriAndRange importedFrom;
+	}
 	immutable struct FileReadError {
 		Opt!UriAndRange importedFrom;
 	}
@@ -104,6 +107,7 @@ immutable struct ParseDiag {
 		CircularImport,
 		Expected,
 		FileDoesNotExist,
+		FileLoading,
 		FileReadError,
 		FunctionTypeMissingParens,
 		ImportFileTypeNotSupported,

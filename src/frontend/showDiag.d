@@ -53,7 +53,6 @@ import util.sourceRange : FileAndPos;
 import util.sym : AllSymbols, Sym, writeSym;
 import util.util : unreachable, verify;
 import util.writer :
-	finishWriter,
 	finishWriterToSafeCStr,
 	writeBold,
 	writeEscapedChar,
@@ -86,7 +85,7 @@ SafeCStr strOfDiagnostics(
 	return finishWriterToSafeCStr(writer);
 }
 
-string strOfDiagnostic(
+SafeCStr strOfDiagnostic(
 	ref Alloc alloc,
 	in AllSymbols allSymbols,
 	in AllUris allUris,
@@ -97,7 +96,7 @@ string strOfDiagnostic(
 ) {
 	Writer writer = Writer(ptrTrustMe(alloc));
 	showDiagnostic(alloc, writer, allSymbols, allUris, urisInfo, options, program, diagnostic);
-	return finishWriter(writer);
+	return finishWriterToSafeCStr(writer);
 }
 
 private:
@@ -264,6 +263,9 @@ void writeParseDiag(
 				writeUri(writer, allUris, urisInfo, force(d.importedFrom).uri);
 				writer ~= ')';
 			}
+		},
+		(in ParseDiag.FileLoading d) {
+			writer ~= "loading this file...";
 		},
 		(in ParseDiag.FileReadError d) {
 			writer ~= "unable to read file";

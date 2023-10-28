@@ -8,17 +8,15 @@ import util.opt : none, Opt, some;
 import util.util : verify;
 
 struct EnumMap(E, V) {
-	@safe @nogc nothrow:
+	@safe @nogc pure nothrow:
 
-	int opApply(in int delegate(immutable V) @safe @nogc nothrow cb) immutable {
+	int opApply(in int delegate(immutable V) @safe @nogc pure nothrow cb) immutable {
 		foreach (E e; cast(E) 0 .. cast(E) size) {
 			int x = cb(this[e]);
 			verify(x == 0);
 		}
 		return 0;
 	}
-
-	pure:
 
 	enum size = EnumMembers!E.length;
 	static foreach (size_t i; 0 .. size)

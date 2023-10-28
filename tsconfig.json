@@ -2,7 +2,8 @@
 	"include": [
 		"crow-js",
 		"editor/crow-vscode",
-		"site-src/script"
+		"site-src/script",
+		"test"
 	],
 	"compilerOptions": {
 		// Use @types/node from here

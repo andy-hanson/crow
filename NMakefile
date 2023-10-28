@@ -100,7 +100,6 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\interpret\runBytecode.d \
 	src\interpret\stacks.d \
 	src\lib\cliParser.d \
-	src\lib\compiler.d \
 	src\lib\server.d \
 	src\lower\checkLowModel.d \
 	src\lower\generateCallFunOrAct.d \
@@ -140,20 +139,20 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\comparison.d \
 	src\util\conv.d \
 	src\util\diff.d \
+	src\util\exitCode.d \
 	src\util\hash.d \
 	src\util\json.d \
 	src\util\jsonParse.d \
 	src\util\late.d \
 	src\util\lineAndColumnGetter.d \
 	src\util\memory.d \
-	src\util\memoryReadOnlyStorage.d \
 	src\util\opt.d \
 	src\util\perf.d \
 	src\util\ptr.d \
-	src\util\readOnlyStorage.d \
 	src\util\sourceRange.d \
-	src\util\union.d \
+	src\util\storage.d \
 	src\util\sym.d \
+	src\util\union.d \
 	src\util\uri.d \
 	src\util\util.d \
 	src\util\writer.d \

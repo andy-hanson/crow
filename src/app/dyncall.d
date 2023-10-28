@@ -16,7 +16,6 @@ import interpret.extern_ :
 	writeSymToCb;
 import interpret.runBytecode : syntheticCall;
 import interpret.stacks : dataPush, Stacks;
-import lib.compiler : ExitCode;
 import model.lowModel : ExternLibraries, ExternLibrary;
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : map, mapImpure;
@@ -25,6 +24,7 @@ import util.col.mapBuilder : MapBuilder, finishMap, tryAddToMap;
 import util.col.mutArr : MutArr, mutArrIsEmpty, push, tempAsArr;
 import util.col.str : CStr, SafeCStr, safeCStr;
 import util.conv : bitsOfFloat32, bitsOfFloat64, float32OfBits, float64OfBits, safeToUshort;
+import util.exitCode : ExitCode;
 import util.late : Late, late, lateGet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;

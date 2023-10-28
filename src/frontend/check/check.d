@@ -43,7 +43,6 @@ import model.model :
 	CommonTypes,
 	decl,
 	Destructure,
-	FileContent,
 	FunBody,
 	FunDecl,
 	FunFlags,
@@ -89,11 +88,12 @@ import util.col.multiMap : buildMultiMap, multiMapEach;
 import util.col.mutArr : mustPop, MutArr, mutArrIsEmpty;
 import util.col.mutMap : insertOrUpdate, moveToMap, MutMap;
 import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, mutMaxArrSize, push, pushIfUnderMaxSize, toArray;
-import util.col.str : copySafeCStr, SafeCStr, safeCStr, strOfSafeCStr;
+import util.col.str : copySafeCStr, safeCStr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, someMut, some;
 import util.perf : Perf;
 import util.ptr : ptrTrustMe;
+import util.storage : asBytes, asString, FileContent;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
 import util.util : unreachable, todo, verify;
@@ -679,16 +679,15 @@ FunBody getFileImportFunctionBody(
 	ref FunsMap funsMap,
 	ref FunDecl f,
 	ref ImportOrExportFile ie,
-) =>
-	ie.content.match!FunBody(
-		(immutable ubyte[] bytes) =>
-			FunBody(FunBody.FileBytes(bytes)),
-		(SafeCStr str) {
-			ExprAst ast = ExprAst(
-				f.range.range,
-				ExprAstKind(LiteralStringAst(strOfSafeCStr(str))));
+) {
+	final switch (ie.type) {
+		case ImportFileType.nat8Array:
+			return FunBody(FunBody.FileBytes(asBytes(ie.content)));
+		case ImportFileType.string:
+			ExprAst ast = ExprAst(f.range.range, ExprAstKind(LiteralStringAst(asString(ie.content))));
 			return FunBody(getExprFunctionBody(ctx, commonTypes, structsAndAliasesMap, funsMap, f, ast));
-		});
+	}
+}
 
 FunBody.ExpressionBody getExprFunctionBody(
 	ref CheckCtx ctx,
@@ -742,7 +741,7 @@ Type typeForFileImport(
 			TypeAst.SuffixName suffixName = TypeAst.SuffixName(nat8, NameAndRange(range.start, sym!"array"));
 			scope TypeAst arrayNat8 = TypeAst(&suffixName);
 			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, arrayNat8, structsAndAliasesMap);
-		case ImportFileType.str:
+		case ImportFileType.string:
 			//TODO: this sort of duplicates 'getStrType'
 			TypeAst ast = TypeAst(NameAndRange(range.start, sym!"string"));
 			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, ast, structsAndAliasesMap);

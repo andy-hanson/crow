@@ -42,6 +42,10 @@ struct Alloc {
 
 alias TempAlloc = Alloc;
 
+@trusted void verifyOwns(T)(in Alloc alloc, in T[] values) {
+	verify(alloc.start < cast(ulong*) values.ptr && cast(ulong*) (values.ptr + values.length) <= alloc.cur);
+}
+
 size_t curBytes(ref Alloc alloc) =>
 	(alloc.cur - alloc.end) * word.sizeof;
 
@@ -63,6 +67,9 @@ private word* allocateWords(ref Alloc alloc, size_t nWords) {
 
 T* allocateT(T)(ref Alloc alloc, size_t count) =>
 	cast(T*) allocateBytes(alloc, T.sizeof * count);
+
+T[] allocateElements(T)(ref Alloc alloc, size_t count) =>
+	allocateT!T(alloc, count)[0 .. count];
 
 T* allocateUninitialized(T)(ref Alloc alloc) =>
 	allocateT!T(alloc, 1);

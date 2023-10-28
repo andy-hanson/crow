@@ -51,7 +51,6 @@ import interpret.funToReferences :
 	FunPtrTypeToDynCallSig, FunToReferences, initFunToReferences, registerFunPtrReference;
 import interpret.runBytecode : opCall, stepUntilBreak, stepUntilExit, withInterpreter;
 import interpret.stacks : dataBegin, dataPop, dataPush, Stacks;
-import lib.compiler : ExitCode;
 import lower.lowExprHelpers : nat64Type;
 import model.diag : FilesInfo, filesInfoForSingle;
 import model.lowModel :
@@ -76,6 +75,7 @@ import test.testUtil : expectDataStack, expectReturnStack, Test;
 import util.alloc.alloc : Alloc;
 import util.col.enumMap : EnumMap;
 import util.col.fullIndexMap : emptyFullIndexMap, fullIndexMapOfArr;
+import util.exitCode : ExitCode;
 import util.lineAndColumnGetter : lineAndColumnGetterForEmptyFile;
 import util.memory : allocate;
 import util.ptr : castNonScope, ptrTrustMe;

@@ -115,13 +115,13 @@ ImportFileType parseImportFileType(ref Lexer lexer) {
 		return force(fileType);
 	else {
 		addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.ImportFileTypeNotSupported()));
-		return ImportFileType.str;
+		return ImportFileType.string;
 	}
 }
 
 Opt!ImportFileType toImportFileType(in TypeAst a) =>
 	isSimpleName(a, sym!"string")
-	? some(ImportFileType.str)
+	? some(ImportFileType.string)
 	: isInstStructOneArg(a, sym!"nat8", sym!"array")
 	? some(ImportFileType.nat8Array)
 	: none!ImportFileType;

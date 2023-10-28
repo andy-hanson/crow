@@ -1072,19 +1072,15 @@ immutable struct ImportOrExportKind {
 }
 static assert(ImportOrExportKind.sizeof == ulong.sizeof * 2);
 
-enum ImportFileType { nat8Array, str }
+enum ImportFileType { nat8Array, string }
 
 Sym symOfImportFileType(ImportFileType a) {
 	final switch (a) {
 		case ImportFileType.nat8Array:
 			return sym!"nat8Array";
-		case ImportFileType.str:
+		case ImportFileType.string:
 			return sym!"string";
 	}
-}
-
-immutable struct FileContent {
-	mixin Union!(ubyte[], SafeCStr);
 }
 
 immutable struct NameReferents {
@@ -1207,6 +1203,7 @@ Program fakeProgramForDiagnostics(FilesInfo filesInfo, Diagnostics diagnostics) 
 	Program(filesInfo, Config(), [], [], CommonFuns(), CommonTypes(), diagnostics);
 
 immutable struct Config {
+	Uri crowIncludeDir;
 	ConfigImportUris include;
 	ConfigExternUris extern_;
 }

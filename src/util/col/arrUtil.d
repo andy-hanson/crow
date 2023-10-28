@@ -2,7 +2,6 @@ module util.col.arrUtil;
 
 import util.alloc.alloc : Alloc, allocateT;
 import util.col.arr : empty, ptrsRange, sizeEq;
-import util.col.mutArr : mustPop, MutArr, mutArrSize;
 import util.comparison : Comparer, Comparison;
 import util.memory : initMemory, initMemory_mut;
 import util.opt : force, has, none, Opt, some;
@@ -15,22 +14,6 @@ import util.util : max, verify;
 	foreach (size_t i, ref In x; a)
 		initMemory(res + i, cb(x));
 	return res[0 .. a.length];
-}
-
-@trusted Opt!(Out[]) mapOrNoneImpure(Out, In)(
-	ref Alloc alloc,
-	in In[] a,
-	in Opt!Out delegate(in In) @safe @nogc nothrow cb,
-) {
-	Out* res = allocateT!Out(alloc, a.length);
-	foreach (size_t i, ref immutable In x; a) {
-		Opt!Out o = cb(x);
-		if (has(o))
-			initMemory(res + i, force(o));
-		else
-			return none!(Out[]);
-	}
-	return some(res[0 .. a.length]);
 }
 
 pure:
@@ -189,7 +172,7 @@ T[] copyArr(T)(ref Alloc alloc, scope T[] a) =>
 @trusted Opt!(Out[]) mapOrNone(Out, In)(
 	ref Alloc alloc,
 	in In[] a,
-	in Opt!Out delegate(ref In) @safe @nogc pure nothrow cb,
+	in Opt!Out delegate(in In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = allocateT!Out(alloc, a.length);
 	foreach (size_t i, ref In x; a) {
@@ -436,19 +419,6 @@ N arrMax(N, T)(N start, in T[] a, in N delegate(in T) @safe @nogc pure nothrow c
 size_t sum(T)(in T[] a, in size_t delegate(in T) @safe @nogc pure nothrow cb) =>
 	fold!(size_t, T)(0, a, (size_t l, in T t) =>
 		size_t(l + cb(t)));
-
-void filterUnordered(T)(ref MutArr!T a, in bool delegate(ref T) @safe @nogc pure nothrow pred) {
-	size_t i = 0;
-	while (i < mutArrSize(a)) {
-		if (pred(a[i]))
-			i++;
-		else if (i == mutArrSize(a) - 1)
-			mustPop(a);
-		else {
-			a[i] = mustPop(a);
-		}
-	}
-}
 
 size_t arrMaxIndex(T, U)(in U[] a, in T delegate(in U, size_t) @safe @nogc pure nothrow cb, Comparer!T compare) =>
 	arrMaxIndexRecur!(T, U)(0, cb(a[0], 0), a, 1, cb, compare);

@@ -8,11 +8,11 @@ import app.fileSystem :
 	getPathToThisExecutable,
 	spawnAndWait,
 	stderr,
-	withBuffer,
+	tryReadFile,
 	withUriOrTemp,
-	withReadOnlyStorage,
 	writeFile;
 import core.stdc.stdio : fprintf, printf;
+import core.stdc.stdlib : free, malloc;
 version (Windows) {} else { import core.stdc.stdio : posixStderr = stderr; }
 
 version (Windows) {
@@ -25,22 +25,33 @@ version (GccJitAvailable) {
 	import backend.jit : jitAndRun;
 }
 import frontend.lang : cExtension, JitOptions, OptimizationLevel;
-import frontend.showDiag : ShowDiagOptions, strOfDiagnostics;
+import frontend.showDiag : ShowDiagOptions;
 import interpret.extern_ : Extern;
-import lib.cliParser : BuildOptions, CCompileOptions, Command, hasAnyOut, parseCommand, RunOptions;
-import lib.compiler :
+import lib.cliParser : BuildOptions, CCompileOptions, Command, hasAnyOut, parseCommand, PrintKind, RunOptions;
+import lib.server :
+	addOrChangeFile,
 	buildAndInterpret,
 	buildToC,
 	BuildToCResult,
 	buildToLowProgram,
-	compileAndDocument,
-	DiagsAndResultStrs,
+	DiagsAndResultJson,
 	DocumentResult,
-	ExitCode,
-	print,
+	getDocumentation,
+	getOneUnknownUri,
+	justParseEverything,
+	justTypeCheck,
+	printAst,
+	printConcreteModel,
+	printLowModel,
+	printModel,
+	printTokens,
 	ProgramsAndFilesInfo,
-	justTypeCheck;
-import model.diag : isEmpty, isFatal;
+	Server,
+	setCwd,
+	setDiagOptions,
+	setIncludeDir,
+	showDiagnostics;
+import model.diag : diagnosticsIsEmpty, diagnosticsIsFatal;
 import model.lowModel : ExternLibrary;
 version (Test) {
 	import test.test : test;
@@ -49,10 +60,11 @@ import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil : prepend;
 import util.col.str : CStr, SafeCStr, safeCStr, safeCStrIsEmpty;
-import util.opt : force, has, none, Opt, some;
+import util.exitCode : ExitCode;
+import util.json : jsonToString;
+import util.opt : force, has, none, Opt;
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasure, PerfMeasureResult, withMeasure;
 import util.ptr : ptrTrustMe;
-import util.readOnlyStorage : ReadOnlyStorage;
 import util.sym : AllSymbols, concatSyms, safeCStrOfSym, Sym, sym, writeSym;
 import util.uri :
 	AllUris,
@@ -64,33 +76,52 @@ import util.uri :
 	isFileUri,
 	Uri,
 	parentOrEmpty,
-	UrisInfo,
 	uriToSafeCStr,
 	TempStrForPath,
 	toUri,
 	writeFileUri;
-import util.util : todo;
+import util.util : todo, verify;
 import util.writer : finishWriterToSafeCStr, Writer;
 import versionInfo : versionInfoForJIT;
 
 @system extern(C) int main(int argc, CStr* argv) {
 	size_t GB = 1024 * 1024 * 1024;
 	size_t memorySizeWords = GB * 3 / 2 / ulong.sizeof;
-	return withBuffer!(int, ulong)(memorySizeWords, (scope ulong[] mem) {
-		Alloc alloc = Alloc(mem);
-		AllSymbols allSymbols = AllSymbols(ptrTrustMe(alloc));
-		AllUris allUris = AllUris(ptrTrustMe(alloc), ptrTrustMe(allSymbols));
-		ulong function() @safe @nogc pure nothrow getTimeNanosPure =
-			cast(ulong function() @safe @nogc pure nothrow) &getTimeNanos;
-		scope Perf perf = Perf(() => getTimeNanosPure());
-		int res = go(alloc, perf, allSymbols, allUris, cast(SafeCStr[]) argv[1 .. argc]).value;
-		if (perfEnabled)
-			logPerf(perf);
-		return res;
-	});
+	ulong[] mem = (cast(ulong*) malloc(memorySizeWords * ulong.sizeof))[0 .. memorySizeWords];
+	verify(mem.ptr != null);
+	scope(exit) free(mem.ptr);
+
+	ulong function() @safe @nogc pure nothrow getTimeNanosPure =
+		cast(ulong function() @safe @nogc pure nothrow) &getTimeNanos;
+	scope Perf perf = Perf(() => getTimeNanosPure());
+	Server server = Server(Alloc(mem));
+	Uri cwd = toUri(server.allUris, getCwd(server.allUris));
+	setCwd(server, cwd);
+	setDiagOptions(server, ShowDiagOptions(true));
+	Command command = parseCommand(
+		server.alloc, server.allSymbols, server.allUris, cwd, cast(SafeCStr[]) argv[1 .. argc]);
+	int res = go(perf, server, command).value;
+	if (perfEnabled)
+		logPerf(perf);
+	return res;
 }
 
 private:
+
+void loadSingleFile(ref Server server, Uri uri) {
+	addOrChangeFile(server, uri, tryReadFile(server.storage.alloc, server.allUris, uri));
+}
+
+void loadAllFiles(ref Perf perf, ref Server server, in Uri[] rootUris) {
+	while (true) {
+		justParseEverything(server.alloc, perf, server, rootUris);
+		Opt!Uri uri = getOneUnknownUri(server);
+		if (has(uri))
+			loadSingleFile(server, force(uri));
+		else
+			break;
+	}
+}
 
 void logPerf(in Perf perf) {
 	eachMeasure(perf, (in SafeCStr name, in PerfMeasureResult m) @trusted {
@@ -121,78 +152,75 @@ static assert(divRound(14, 10) == 1);
 	}
 }
 
-ExitCode go(ref Alloc alloc, ref Perf perf, ref AllSymbols allSymbols, ref AllUris allUris, in SafeCStr[] args) {
-	Uri crowDir = getCrowDir(allUris);
-	Uri includeDir = childUri(allUris, crowDir, sym!"include");
-	Uri cwd = toUri(allUris, getCwd(allUris));
-	UrisInfo urisInfo = UrisInfo(some(cwd));
-	Command command = parseCommand(alloc, allSymbols, allUris, cwd, args);
-	ShowDiagOptions showDiagOptions = ShowDiagOptions(true);
-
+ExitCode go(ref Perf perf, ref Server server, in Command command) {
+	setIncludeDir(server, childUri(server.allUris, getCrowDir(server.allUris), sym!"include"));
 	return command.matchImpure!ExitCode(
 		(in Command.Build x) =>
-			runBuild(alloc, perf, allSymbols, allUris, urisInfo, includeDir, x.mainUri, x.options),
-		(in Command.Document x) =>
-			runDocument(alloc, perf, allSymbols, allUris, urisInfo, includeDir, x.rootUris),
+			runBuild(perf, server, x.mainUri, x.options),
+		(in Command.Document x) {
+			loadAllFiles(perf, server, x.rootUris);
+			DocumentResult result = getDocumentation(server.alloc, perf, server, x.rootUris);
+			return safeCStrIsEmpty(result.diagnostics) ? println(result.document) : printErr(result.diagnostics);
+		},
 		(in Command.Help x) =>
 			help(x),
-		(in Command.Print x) =>
-			withReadOnlyStorage!ExitCode(allUris, includeDir, (in ReadOnlyStorage storage) {
-				DiagsAndResultStrs printed = print(
-					alloc,
-					perf,
-					// Just going with this arbitrarily. Only affects concrete-model priting.
-					versionInfoForJIT(),
-					allSymbols,
-					allUris,
-					urisInfo,
-					storage,
-					showDiagOptions,
-					x.kind,
-					x.mainUri);
-				if (!safeCStrIsEmpty(printed.diagnostics)) printErr(printed.diagnostics);
-				if (!safeCStrIsEmpty(printed.result)) print(printed.result);
-				return safeCStrIsEmpty(printed.diagnostics) ? ExitCode.ok : ExitCode.error;
-			}),
-		(in Command.Run run) =>
-			withReadOnlyStorage!ExitCode(allUris, includeDir, (in ReadOnlyStorage storage) =>
-				run.options.matchImpure!ExitCode(
-					(in RunOptions.Interpret) =>
-						withRealExtern(alloc, allSymbols, allUris, (in Extern extern_) => buildAndInterpret(
-							alloc,
+		(in Command.Print x) {
+			DiagsAndResultJson printed = () {
+				final switch (x.kind) {
+					case PrintKind.tokens:
+						loadSingleFile(server, x.mainUri);
+						return printTokens(server.alloc, perf, server, x.mainUri);
+					case PrintKind.ast:
+						loadSingleFile(server, x.mainUri);
+						return printAst(server.alloc, perf, server, x.mainUri);
+					case PrintKind.model:
+						loadAllFiles(perf, server, [x.mainUri]);
+						return printModel(server.alloc, perf, server, x.mainUri);
+					case PrintKind.concreteModel:
+						loadAllFiles(perf, server, [x.mainUri]);
+						return printConcreteModel(server.alloc, perf, server, versionInfoForJIT(), x.mainUri);
+					case PrintKind.lowModel:
+						loadAllFiles(perf, server, [x.mainUri]);
+						return printLowModel(server.alloc, perf, server, versionInfoForJIT(), x.mainUri);
+				}
+			}();
+			if (!safeCStrIsEmpty(printed.diagnostics))
+				printErr(printed.diagnostics);
+			print(jsonToString(server.alloc, server.allSymbols, printed.result));
+			return safeCStrIsEmpty(printed.diagnostics) ? ExitCode.ok : ExitCode.error;
+		},
+		(in Command.Run run) {
+			loadAllFiles(perf, server, [run.mainUri]);
+			return run.options.matchImpure!ExitCode(
+				(in RunOptions.Interpret) =>
+					withRealExtern(server.alloc, server.allSymbols, server.allUris, (in Extern extern_) =>
+						buildAndInterpret(
+							server.alloc,
 							perf,
-							allSymbols,
-							allUris,
-							urisInfo,
-							storage,
+							server,
 							extern_,
 							(in SafeCStr x) {
 								printErr(x);
 							},
-							showDiagOptions,
 							run.mainUri,
-							getAllArgs(alloc, allUris, storage, run.mainUri, run.programArgs))),
-					(in RunOptions.Jit it) {
-						version (GccJitAvailable) {
-							return buildAndJit(
-								alloc,
-								perf,
-								allSymbols,
-								allUris,
-								urisInfo,
-								it.options,
-								showDiagOptions,
-								storage,
-								run.mainUri,
-								getAllArgs(alloc, allUris, storage, run.mainUri, run.programArgs));
-						} else {
-							printErr(safeCStr!"'--jit' is not supported on Windows");
-							return ExitCode.error;
-						}
-					})),
+							getAllArgs(server.alloc, server.allUris, run.mainUri, run.programArgs))),
+				(in RunOptions.Jit x) {
+					version (GccJitAvailable) {
+						return buildAndJit(
+							perf,
+							server,
+							x.options,
+							run.mainUri,
+							getAllArgs(server.alloc, server.allUris, run.mainUri, run.programArgs));
+					} else {
+						printErr(safeCStr!"'--jit' is not supported on Windows");
+						return ExitCode.error;
+					}
+				});
+		},
 		(in Command.Test it) {
 			version (Test) {
-				return test(alloc, it.name);
+				return test(server.alloc, it.name);
 			} else
 				return printErr(safeCStr!"Did not compile with tests");
 		},
@@ -203,13 +231,7 @@ ExitCode go(ref Alloc alloc, ref Perf perf, ref AllSymbols allSymbols, ref AllUr
 Uri getCrowDir(ref AllUris allUris) =>
 	parentOrEmpty(allUris, parentOrEmpty(allUris, toUri(allUris,getPathToThisExecutable(allUris))));
 
-SafeCStr[] getAllArgs(
-	ref Alloc alloc,
-	in AllUris allUris,
-	in ReadOnlyStorage storage,
-	Uri main,
-	in SafeCStr[] programArgs,
-) =>
+SafeCStr[] getAllArgs(ref Alloc alloc, in AllUris allUris, Uri main, in SafeCStr[] programArgs) =>
 	prepend(alloc, uriToSafeCStr(alloc, allUris, main), programArgs);
 
 @trusted ExitCode printVersion() {
@@ -244,94 +266,45 @@ immutable(char*) dCompilerName() {
 	}
 }
 
-ExitCode runDocument(
-	ref Alloc alloc,
-	ref Perf perf,
-	ref AllSymbols allSymbols,
-	ref AllUris allUris,
-	in UrisInfo urisInfo,
-	Uri includeDir,
-	in Uri[] rootUris,
-) =>
-	withReadOnlyStorage!ExitCode(allUris, includeDir, (in ReadOnlyStorage storage) {
-		DocumentResult result =
-			compileAndDocument(alloc, perf, allSymbols, allUris, urisInfo, storage, showDiagOptions, rootUris);
-		return safeCStrIsEmpty(result.diagnostics) ? println(result.document) : printErr(result.diagnostics);
+ExitCode runBuild(ref Perf perf, ref Server server, Uri main, in BuildOptions options) {
+	loadAllFiles(perf, server, [main]);
+	if (hasAnyOut(options.out_))
+		return buildToCAndCompile(perf, server, main, options);
+	else {
+		Opt!SafeCStr error = justTypeCheck(server.alloc, perf, server, [main]);
+		return has(error) ? printErr(force(error)) : println(safeCStr!"OK");
+	}
+}
+
+ExitCode buildToCAndCompile(ref Perf perf, ref Server server, Uri main, BuildOptions options) {
+	loadAllFiles(perf, server, [main]);
+	BuildToCResult result = buildToC(server.alloc, perf, server, main);
+	if (!safeCStrIsEmpty(result.diagnostics))
+		printErr(result.diagnostics);
+	return withUriOrTemp!cExtension(server.allUris, options.out_.outC, main, (FileUri cUri) {
+		ExitCode res = writeFile(server.allUris, cUri, result.cSource);
+		return res == ExitCode.ok && has(options.out_.outExecutable)
+			? compileC(
+				server.alloc, perf, server.allSymbols, server.allUris,
+				cUri, force(options.out_.outExecutable), result.externLibraries, options.cCompileOptions)
+			: res;
 	});
-
-ExitCode runBuild(
-	ref Alloc alloc,
-	ref Perf perf,
-	ref AllSymbols allSymbols,
-	ref AllUris allUris,
-	in UrisInfo urisInfo,
-	Uri includeDir,
-	Uri mainUri,
-	in BuildOptions options,
-) =>
-	hasAnyOut(options.out_)
-		? buildToCAndCompile(
-			alloc, perf, allSymbols, allUris, urisInfo, showDiagOptions, includeDir, mainUri, options)
-		: withReadOnlyStorage!ExitCode(allUris, includeDir, (in ReadOnlyStorage storage) {
-			Opt!SafeCStr error = justTypeCheck(
-				alloc, perf, allSymbols, allUris, urisInfo, storage, showDiagOptions, mainUri);
-			return has(error) ? printErr(force(error)) : println(safeCStr!"OK");
-		});
-
-ShowDiagOptions showDiagOptions() =>
-	ShowDiagOptions(true);
-
-ExitCode buildToCAndCompile(
-	ref Alloc alloc,
-	ref Perf perf,
-	ref AllSymbols allSymbols,
-	ref AllUris allUris,
-	in UrisInfo urisInfo,
-	in ShowDiagOptions showDiagOptions,
-	Uri includeDir,
-	Uri mainUri,
-	BuildOptions options,
-) =>
-	withReadOnlyStorage!ExitCode(allUris, includeDir, (in ReadOnlyStorage storage) {
-		BuildToCResult result =
-			buildToC(alloc, perf, allSymbols, allUris, urisInfo, storage, showDiagOptions, mainUri);
-		if (!safeCStrIsEmpty(result.diagnostics))
-			printErr(result.diagnostics);
-		return withUriOrTemp!cExtension(allUris, options.out_.outC, mainUri, (FileUri cUri) {
-			ExitCode res = writeFile(allUris, cUri, result.cSource);
-			return res == ExitCode.ok && has(options.out_.outExecutable)
-				? compileC(
-					alloc, perf, allSymbols, allUris,
-					cUri, force(options.out_.outExecutable), result.externLibraries, options.cCompileOptions)
-				: res;
-		});
-	});
+}
 
 version (GccJitAvailable) { ExitCode buildAndJit(
-	ref Alloc alloc,
 	ref Perf perf,
-	ref AllSymbols allSymbols,
-	ref AllUris allUris,
-	in UrisInfo urisInfo,
+	ref Server server,
 	in JitOptions jitOptions,
-	in ShowDiagOptions showDiagOptions,
-	in ReadOnlyStorage storage,
 	Uri main,
 	in SafeCStr[] programArgs,
 ) {
-	ProgramsAndFilesInfo programs =
-		buildToLowProgram(alloc, perf, versionInfoForJIT(), allSymbols, allUris, storage, main);
-	if (!isEmpty(programs.program.diagnostics))
-		printErr(strOfDiagnostics(
-			alloc,
-			allSymbols,
-			allUris,
-			urisInfo,
-			showDiagOptions,
-			programs.program));
-	return isFatal(programs.program.diagnostics)
+	loadAllFiles(perf, server, [main]);
+	ProgramsAndFilesInfo programs = buildToLowProgram(server.alloc, perf, server, versionInfoForJIT(), main);
+	if (!diagnosticsIsEmpty(programs.program.diagnostics))
+		printErr(showDiagnostics(server.alloc, server, programs.program));
+	return diagnosticsIsFatal(programs.program.diagnostics)
 		? ExitCode.error
-		: ExitCode(jitAndRun(alloc, perf, allSymbols, programs.lowProgram, jitOptions, programArgs));
+		: ExitCode(jitAndRun(server.alloc, perf, server.allSymbols, programs.lowProgram, jitOptions, programArgs));
 } }
 
 ExitCode help(in Command.Help a) {
@@ -368,6 +341,7 @@ SafeCStr[] cCompilerArgs(in CCompileOptions options) {
 			safeCStr!"-std=c17",
 			safeCStr!"-Wno-maybe-uninitialized",
 			safeCStr!"-Wno-missing-field-initializers",
+			safeCStr!"-Wno-unused-function",
 			safeCStr!"-Wno-unused-parameter",
 			safeCStr!"-Wno-unused-but-set-variable",
 			safeCStr!"-Wno-unused-variable",

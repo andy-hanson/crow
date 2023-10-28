@@ -18,7 +18,7 @@ Exports of `wasm.d`:
 @typedef ExportFunctions
 @property {function(): number} getParameterBufferPointer
 @property {function(): number} getParameterBufferSizeBytes
-@property {function(CStr): Server} newServer
+@property {function(CStr, CStr): Server} newServer
 @property {function(Server, CStr, CStr): void} addOrChangeFile
 @property {function(Server, CStr): void} deleteFile
 @property {function(Server, CStr): CStr} getFile
@@ -103,9 +103,10 @@ let globalWrites = []
 /**
 @param {ArrayBuffer} bytes This is the content of 'crow.wasm'
 @param {string} includeDir
+@param {string} cwd
 @return {Promise<crow.Compiler>}
 */
-globalCrow.makeCompiler = async (bytes, includeDir) => {
+globalCrow.makeCompiler = async (bytes, includeDir, cwd) => {
 	const result = await WebAssembly.instantiate(bytes, {
 		env: {
 			/** @type {function(): bigint} */
@@ -140,7 +141,7 @@ globalCrow.makeCompiler = async (bytes, includeDir) => {
 	const { getParameterBufferPointer, getParameterBufferSizeBytes, memory, newServer } = exports
 	const view = new DataView(memory.buffer)
 	const paramAlloc = new Allocator(view, getParameterBufferPointer(), getParameterBufferSizeBytes())
-	const server = newServer(paramAlloc.writeCStr(includeDir))
+	const server = newServer(paramAlloc.writeCStr(includeDir), paramAlloc.writeCStr(cwd))
 	paramAlloc.clear()
 
 	/** @type {function(number): string} */

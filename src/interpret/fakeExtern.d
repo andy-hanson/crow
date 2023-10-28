@@ -14,13 +14,13 @@ import interpret.extern_ :
 	writeSymToCb;
 import interpret.runBytecode : syntheticCall;
 import interpret.stacks : dataPush, Stacks;
-import lib.compiler : ExitCode;
 import model.lowModel : ExternLibraries, ExternLibrary;
 import util.alloc.alloc : Alloc, allocateBytes;
 import util.col.arrUtil : map;
 import util.col.map : KeyValuePair, makeMap;
 import util.col.mutArr : MutArr, mutArrIsEmpty, push, tempAsArr;
 import util.col.str : safeCStr;
+import util.exitCode : ExitCode;
 import util.memory : memmove, memset;
 import util.opt : force, has, none, Opt, some;
 import util.sym : AllSymbols, Sym, sym;

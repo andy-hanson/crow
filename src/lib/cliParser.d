@@ -3,7 +3,6 @@ module lib.cliParser;
 @safe @nogc pure nothrow:
 
 import frontend.lang : cExtension, crowExtension, JitOptions, OptimizationLevel;
-import lib.compiler : PrintKind;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
@@ -48,6 +47,14 @@ immutable struct Command {
 	immutable struct Version {}
 
 	mixin Union!(Build, Document, Help, Print, Run, Test, Version);
+}
+
+enum PrintKind {
+	tokens,
+	ast,
+	model,
+	concreteModel,
+	lowModel,
 }
 
 immutable struct RunOptions {
@@ -178,7 +185,7 @@ Opt!Uri tryParseCrowUri(ref Alloc alloc, ref AllUris allUris, Uri cwd, in SafeCS
 
 Opt!(Uri[]) tryParseRootUris(ref Alloc alloc, ref AllUris allUris, Uri cwd, in SafeCStr[] args) {
 	verify(!empty(args));
-	return mapOrNone!(Uri, SafeCStr)(alloc, args, (ref SafeCStr arg) =>
+	return mapOrNone!(Uri, SafeCStr)(alloc, args, (in SafeCStr arg) =>
 		tryParseCrowUri(alloc, allUris, cwd, arg));
 }
 

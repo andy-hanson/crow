@@ -2,10 +2,10 @@
 
 import frontend.ide.getDefinition : Definition, jsonOfDefinition;
 import frontend.ide.getTokens : jsonOfTokens;
+import frontend.showDiag : ShowDiagOptions;
 import interpret.fakeExtern : Pipe;
-import lib.compiler : ExitCode;
 import lib.server :
-	addOrChangeFile,
+	addOrChangeFileFromTempString,
 	deleteFile,
 	getDefinition,
 	getFile,
@@ -13,17 +13,22 @@ import lib.server :
 	getTokensAndParseDiagnostics,
 	run,
 	Server,
+	setCwd,
+	setDiagOptions,
+	setIncludeDir,
 	StrParseDiagnostic,
 	TokensAndParseDiagnostics,
 	toUri;
 import util.alloc.alloc : Alloc, allocateT;
 import util.col.str : CStr, SafeCStr;
+import util.exitCode : ExitCode;
 import util.json : field, jsonObject, Json, jsonToString, jsonList, jsonString, optionalField;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
 import util.opt : force, has, Opt;
 import util.perf : eachMeasure, Perf, PerfMeasureResult, withNullPerf;
 import util.sourceRange : Pos, jsonOfRangeWithinFile;
-import util.uri : Uri;
+import util.storage : asSafeCStr, FileContent;
+import util.uri : parseUri, Uri;
 
 // seems to be the required entry point
 extern(C) void _start() {}
@@ -62,23 +67,29 @@ private ulong[1000 * 1024 * 1024 / ulong.sizeof] resultBuffer;
 extern(C) size_t getParameterBufferSizeBytes() =>
 	parameterBuffer.length * ulong.sizeof;
 
-@system extern(C) Server* newServer(scope CStr includeDir) {
+@system extern(C) Server* newServer(scope CStr includeDir, scope CStr cwd) {
 	Alloc alloc = Alloc(serverBuffer);
-	Server* ptr = allocateT!Server(alloc, 1);
-	ptr.__ctor(alloc.move(), SafeCStr(includeDir));
-	return ptr;
+	Server* server = allocateT!Server(alloc, 1);
+	server.__ctor(alloc.move());
+	setIncludeDir(*server, parseUri(server.allUris, SafeCStr(includeDir)));
+	setCwd(*server, parseUri(server.allUris, SafeCStr(cwd)));
+	setDiagOptions(*server, ShowDiagOptions(false));
+	return server;
 }
 
 @system extern(C) void addOrChangeFile(Server* server, scope CStr uri, scope CStr content) {
-	addOrChangeFile(*server, toUri(*server, SafeCStr(uri)), SafeCStr(content));
+	addOrChangeFileFromTempString(*server, toUri(*server, SafeCStr(uri)), SafeCStr(content));
 }
 
 @system extern(C) void deleteFile(Server* server, scope CStr uri) {
 	deleteFile(*server, toUri(*server, SafeCStr(uri)));
 }
 
-@system extern(C) CStr getFile(Server* server, scope CStr uri) =>
-	getFile(*server, toUri(*server, SafeCStr(uri))).ptr;
+@system extern(C) CStr getFile(Server* server, scope CStr uri) {
+	Alloc resultAlloc = Alloc(resultBuffer);
+	Opt!FileContent res = getFile(resultAlloc, *server, toUri(*server, SafeCStr(uri)));
+	return has(res) ? asSafeCStr(force(res)).ptr : "";
+}
 
 @system extern(C) CStr getTokensAndParseDiagnostics(Server* server, scope CStr uriPtr) {
 	Uri uri = toUri(*server, SafeCStr(uriPtr));

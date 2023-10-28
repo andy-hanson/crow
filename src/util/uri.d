@@ -435,7 +435,6 @@ immutable struct UriAndRange {
 }
 
 immutable struct UrisInfo {
-	@disable this(ref const UrisInfo);
 	Opt!Uri cwd;
 }
 

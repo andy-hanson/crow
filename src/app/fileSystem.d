@@ -2,7 +2,6 @@ module app.fileSystem;
 
 @safe @nogc nothrow: // not pure
 
-import core.memory : pureFree, pureMalloc;
 import core.stdc.errno : ENOENT, errno;
 import core.stdc.stdio : fclose, ferror, FILE, fopen, fprintf, fread, fseek, ftell, fwrite, printf, SEEK_END, SEEK_SET;
 version (Windows) {} else { import core.stdc.stdio : posixStderr = stderr; }
@@ -41,14 +40,15 @@ version (Windows) {
 	import core.sys.posix.sys.stat : mkdir, pid_t, S_IRWXU;
 	import core.sys.posix.unistd : getcwd, read, readlink, unlink;
 }
-import lib.compiler : ExitCode;
-import util.alloc.alloc : Alloc, TempAlloc;
+import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.arrUtil : arrLiteral;
 import util.col.str : CStr, SafeCStr, safeCStrSize;
+import util.exitCode : ExitCode;
 import util.memory : memset;
 import util.opt : force, has, Opt, some;
 import util.ptr : ptrTrustMe;
-import util.readOnlyStorage : ReadFileResult, ReadOnlyStorage;
+import util.storage : FileContent, ReadFileResult;
 import util.sym : Sym;
 import util.uri :
 	AllUris,
@@ -63,19 +63,6 @@ import util.uri :
 	Uri;
 import util.util : todo, verify;
 import util.writer : finishWriterToSafeCStr, Writer;
-
-@system Out withBuffer(Out, T)(size_t size, in Out delegate(scope T[]) @nogc nothrow cb) {
-	static immutable size_t maxSizeOnStack = 0x100000 / T.sizeof;
-	if (size <= maxSizeOnStack) {
-		T[maxSizeOnStack] buf = void;
-		return cb(buf[0 .. size]);
-	} else {
-		T* buf = cast(T*) pureMalloc(size * T.sizeof);
-		verify(buf != null);
-		scope(exit) pureFree(buf);
-		return cb(buf[0 .. size]);
-	}
-}
 
 FILE* stderr() {
 	version (Windows) {
@@ -172,52 +159,18 @@ version (Windows) {
 	}
 }
 
-T withReadOnlyStorage(T)(
-	ref AllUris allUris,
-	Uri includeDir,
-	T delegate(in ReadOnlyStorage) @safe @nogc nothrow cb,
-) {
-	scope ReadOnlyStorage storage = ReadOnlyStorage(
-		includeDir,
-		(
-			Uri uri,
-			in void delegate(in ReadFileResult!(ubyte[])) @safe @nogc pure nothrow cb,
-		) =>
-			tryReadFile(allUris, uri, NulTerminate.no, cb),
-		(
-			Uri uri,
-			in void delegate(in ReadFileResult!SafeCStr) @safe @nogc pure nothrow cb,
-		) =>
-			tryReadFile(allUris, uri, NulTerminate.yes, (in ReadFileResult!(ubyte[]) x) =>
-				x.matchIn!void(
-					(in immutable ubyte[] bytes) @trusted =>
-						cb(ReadFileResult!SafeCStr(SafeCStr(cast(immutable char*) bytes.ptr))),
-					(in ReadFileResult!(ubyte[]).NotFound) =>
-						cb(ReadFileResult!SafeCStr(ReadFileResult!SafeCStr.NotFound())),
-					(in ReadFileResult!(ubyte[]).Error) =>
-						cb(ReadFileResult!SafeCStr(ReadFileResult!SafeCStr.Error())))));
-	return cb(storage);
-}
-
-private enum NulTerminate { no, yes }
-
-private @trusted void tryReadFile(
-	ref AllUris allUris,
-	Uri uri,
-	NulTerminate nulTerminate,
-	in void delegate(in ReadFileResult!(ubyte[])) @safe @nogc pure nothrow cb,
-) {
+@trusted ReadFileResult tryReadFile(ref Alloc alloc, ref AllUris allUris, Uri uri) {
 	if (!isFileUri(allUris, uri))
-		return cb(ReadFileResult!(ubyte[])(ReadFileResult!(ubyte[]).NotFound()));
+		return ReadFileResult(ReadFileResult.NotFound());
 
 	TempStrForPath pathBuf = void;
 	CStr pathCStr = fileUriToTempStr(pathBuf, allUris, asFileUri(allUris, uri)).ptr;
 
 	FILE* fd = fopen(pathCStr, "rb");
 	if (fd == null)
-		return cb(errno == ENOENT
-			? ReadFileResult!(ubyte[])(ReadFileResult!(ubyte[]).NotFound())
-			: ReadFileResult!(ubyte[])(ReadFileResult!(ubyte[]).Error()));
+		return errno == ENOENT
+			? ReadFileResult(ReadFileResult.NotFound())
+			: ReadFileResult(ReadFileResult.Error());
 	scope(exit) fclose(fd);
 
 	int err = fseek(fd, 0, SEEK_END);
@@ -227,26 +180,22 @@ private @trusted void tryReadFile(
 	if (ftellResult < 0)
 		todo!void("ftell failed");
 	size_t fileSize = cast(size_t) ftellResult;
-	if (fileSize == 0) {
-		if (nulTerminate) {
-			static immutable ubyte[] bytes = [0];
-			cb(ReadFileResult!(ubyte[])(bytes));
-		} else
-			cb(ReadFileResult!(ubyte[])([]));
-	} else {
-		withBuffer!(void, ubyte)(fileSize + (nulTerminate ? 1 : 0), (scope ubyte[] contentBuf) {
-			// Go back to the beginning so we can read
-			int err2 = fseek(fd, 0, SEEK_SET);
-			verify(err2 == 0);
+	if (fileSize == 0)
+		return ReadFileResult(FileContent(arrLiteral!(immutable ubyte)(alloc, [0])));
+	else {
+		ubyte[] result = allocateElements!ubyte(alloc, fileSize + 1);
 
-			size_t nBytesRead = fread(contentBuf.ptr, ubyte.sizeof, fileSize, fd);
-			verify(nBytesRead == fileSize);
-			if (ferror(fd))
-				todo!void("error reading file");
-			if (nulTerminate) contentBuf[nBytesRead] = '\0';
+		// Go back to the beginning so we can read
+		int err2 = fseek(fd, 0, SEEK_SET);
+		verify(err2 == 0);
 
-			cb(ReadFileResult!(ubyte[])(cast(immutable) contentBuf[0 .. nBytesRead + (nulTerminate ? 1 : 0)]));
-		});
+		size_t nBytesRead = fread(result.ptr, ubyte.sizeof, fileSize, fd);
+		verify(nBytesRead == fileSize);
+		if (ferror(fd))
+			todo!void("error reading file");
+		result[nBytesRead] = '\0';
+
+		return ReadFileResult(FileContent(cast(immutable) result));
 	}
 }
 

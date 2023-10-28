@@ -57,7 +57,11 @@ const getCompiler = () => {
 }
 const includeDir = "/include"
 const makeCompiler = async () =>
-	crow.makeCompiler(await (await fetch("../bin/crow.wasm")).arrayBuffer(), includeDir)
+	crow.makeCompiler(
+		await (await fetch("../bin/crow.wasm")).arrayBuffer(),
+		includeDir,
+		// TODO: better CWD?
+		"/")
 
 export class CrowRunnable extends HTMLElement {
 	constructor() {

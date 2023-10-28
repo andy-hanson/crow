@@ -40,10 +40,8 @@ immutable struct VersionInfo {
 VersionInfo versionInfoForInterpret() =>
 	VersionInfo(true, false);
 
-version (WebAssembly) {} else {
-	VersionInfo versionInfoForJIT() =>
-		VersionInfo(false, true);
+VersionInfo versionInfoForJIT() =>
+	VersionInfo(false, true);
 
-	VersionInfo versionInfoForBuildToC() =>
-		VersionInfo(false, false);
-}
+VersionInfo versionInfoForBuildToC() =>
+	VersionInfo(false, false);

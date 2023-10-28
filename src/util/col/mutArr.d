@@ -3,8 +3,10 @@ module util.col.mutArr;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateT, freeT, freeTPartial;
+import util.col.arrUtil : indexOf;
 import util.conv : safeToSizeT;
 import util.memory : initMemory_mut, memcpy, overwriteMemory;
+import util.opt : force, has, Opt;
 import util.util : verify;
 
 struct MutArr(T) {
@@ -87,3 +89,26 @@ void mutArrClear(T)(ref MutArr!T a) {
 
 @trusted const(T[]) tempAsArr(T)(ref const MutArr!T a) =>
 	a.begin_[0 .. a.size_];
+
+void removeUnordered(T)(ref MutArr!T a, in T value) {
+	Opt!size_t index = indexOf(tempAsArr(a), value);
+	if (has(index))
+		removeUnorderedAt(a, force(index));
+}
+
+void filterUnordered(T)(ref MutArr!T a, in bool delegate(ref T) @safe @nogc pure nothrow pred) {
+	size_t i = 0;
+	while (i < mutArrSize(a)) {
+		if (pred(a[i]))
+			i++;
+		else
+			removeUnorderedAt(a, i);
+	}
+}
+
+private void removeUnorderedAt(T)(ref MutArr!T a, size_t i) {
+	verify(i < mutArrSize(a));
+	T last = mustPop(a);
+	if (i != mutArrSize(a))
+		a[i] = last;
+}

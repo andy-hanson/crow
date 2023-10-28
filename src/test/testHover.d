@@ -10,17 +10,16 @@ import model.model : Module, Program;
 import test.testUtil : Test;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
+import util.col.arr : only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.mutMap : addToMutMap;
 import util.col.str : end, SafeCStr, safeCStr, safeCStrEq, safeCStrIsEmpty, safeCStrSize, strOfSafeCStr;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonList, jsonObject, jsonToStringPretty, optionalField;
 import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, PosKind;
-import util.memoryReadOnlyStorage : withMemoryReadOnlyStorage, MutFiles;
 import util.opt : has, none, Opt, optEqual;
 import util.uri : AllUris, emptyUrisInfo, parseUri, Uri;
 import util.perf : Perf, withNullPerf;
-import util.readOnlyStorage : ReadOnlyStorage;
+import util.storage : allocateToStorage, ReadFileResult, Storage, setFile;
 import util.sourceRange : Pos;
 import util.sym : AllSymbols;
 import util.util : debugLog, verifyFail;
@@ -56,17 +55,13 @@ immutable struct HoverTest {
 
 HoverTest initHoverTest(string fileName)(ref Test test, in SafeCStr content) {
 	Uri uri = parseUri(test.allUris, "magic:" ~ fileName);
-	MutFiles files;
-	addToMutMap(test.alloc, files, uri, content);
-	Program program = withMemoryReadOnlyStorage!Program(
-		parseUri(test.allUris, "magic:include"),
-		files,
-		(in ReadOnlyStorage storage) =>
-			withNullPerf!(Program, (ref Perf perf) =>
-				frontendCompile(
-					test.alloc, perf, test.alloc, test.allSymbols, test.allUris, storage, [uri], none!Uri)));
-	Module* mainModule = &program.allModules[$ - 1];
-	return HoverTest(program, mainModule);
+	Storage storage = Storage(test.allocPtr);
+	setFile(storage, uri, ReadFileResult(allocateToStorage(storage, content)));
+	Program program = withNullPerf!(Program, (ref Perf perf) =>
+		frontendCompile(
+			test.alloc, perf, test.alloc, test.allSymbols, test.allUris, storage,
+			parseUri(test.allUris, "magic:include"), [uri], none!Uri));
+	return HoverTest(program, only(program.rootModules));
 }
 
 immutable struct InfoAtPos {

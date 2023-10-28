@@ -7,5 +7,10 @@ const path = require("path")
 
 const crowDir = path.join(__dirname, "../../../")
 
+/** @type {function(): Promise<crow.Compiler>} */
 exports.makeCompiler = () =>
-	crow.makeCompiler(fs.readFileSync(path.join(crowDir, "bin/crow.wasm")), path.join(crowDir, "include"))
+	crow.makeCompiler(
+		fs.readFileSync(path.join(crowDir, "bin/crow.wasm")),
+		path.join(crowDir, "include"),	
+		// TODO: get the real CWD from VSCode API
+		crowDir)
