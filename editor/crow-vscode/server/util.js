@@ -11,6 +11,17 @@ const crowDir = path.join(__dirname, "../../../")
 exports.makeCompiler = () =>
 	crow.makeCompiler(
 		fs.readFileSync(path.join(crowDir, "bin/crow.wasm")),
-		path.join(crowDir, "include"),	
+		path.join(crowDir, "include"),
 		// TODO: get the real CWD from VSCode API
 		crowDir)
+
+/**
+ * @template T
+ * @param {T | null | undefined} x
+ * @return {T}
+ */
+exports.nonNull = x => {
+	if (x == null)
+		throw new Error("Null value")
+	return x
+}

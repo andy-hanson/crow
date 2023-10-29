@@ -32,12 +32,26 @@ import util.writer : finishWriterToSafeCStr, Writer;
 struct AllUris {
 	@safe @nogc pure nothrow:
 	private:
-	Alloc* alloc;
+	Alloc* allocPtr;
 	AllSymbols* allSymbolsPtr;
+
+	// Root path at index 0 will have children, but they won't have it as a parent
 	MutArr!(Opt!Path) pathToParent;
 	MutArr!Sym pathToBaseName;
 	MutArr!(MutArr!Path) pathToChildren;
-	MutArr!Path rootChildren;
+
+	public this(Alloc* a, AllSymbols* as) {
+		allocPtr = a;
+		allSymbolsPtr = as;
+
+		// 0 must be the empty URI
+		push(alloc, pathToParent, none!Path);
+		push(alloc, pathToBaseName, sym!"");
+		push(alloc, pathToChildren, MutArr!Path());
+	}
+
+	ref Alloc alloc() return scope =>
+		*allocPtr;
 
 	ref const(AllSymbols) allSymbols() return scope const =>
 		*allSymbolsPtr;
@@ -51,6 +65,12 @@ immutable struct Uri {
 
 	// The first component is the scheme + authority packed into a Sym
 	private Path path;
+
+	Path pathIncludingScheme() =>
+		path;
+
+	static Uri empty() =>
+		Uri(Path.empty);
 
 	void hash(ref Hasher hasher) scope {
 		path.hash(hasher);
@@ -82,7 +102,7 @@ private Path skipFirstComponent(ref AllUris allUris, Path a) {
 	Opt!Path parent = parent(allUris, a);
 	return has(parent)
 		? skipFirstComponent(allUris, force(parent), a)
-		: rootPath(allUris, sym!"");
+		: Path.empty;
 }
 
 private Path skipFirstComponent(ref AllUris allUris, Path aParent, Path a) {
@@ -96,7 +116,7 @@ private Path skipFirstComponent(ref AllUris allUris, Path aParent, Path a) {
 // Uri that is restricted to be a 'file:'
 immutable struct FileUri {
 	// Unlike for a Uri, this doesn't have "file" as the first component
-	private Path path;
+	Path path;
 }
 
 Uri toUri(ref AllUris allUris, FileUri a) =>
@@ -107,6 +127,9 @@ immutable struct Path {
 	@safe @nogc pure nothrow:
 
 	private ushort index;
+
+	static Path empty() =>
+		Path(0);
 
 	void hash(ref Hasher hasher) scope {
 		hashUshort(hasher, index);
@@ -204,15 +227,15 @@ private Path getOrAddChild(ref AllUris allUris, ref MutArr!Path children, Opt!Pa
 			return child;
 
 	Path res = Path(safeToUshort(mutArrSize(allUris.pathToParent)));
-	push(*allUris.alloc, children, res);
-	push(*allUris.alloc, allUris.pathToParent, parent);
-	push(*allUris.alloc, allUris.pathToBaseName, name);
-	push(*allUris.alloc, allUris.pathToChildren, MutArr!Path());
+	push(allUris.alloc, children, res);
+	push(allUris.alloc, allUris.pathToParent, parent);
+	push(allUris.alloc, allUris.pathToBaseName, name);
+	push(allUris.alloc, allUris.pathToChildren, MutArr!Path());
 	return res;
 }
 
 Path rootPath(ref AllUris allUris, Sym name) =>
-	getOrAddChild(allUris, allUris.rootChildren, none!Path, name);
+	getOrAddChild(allUris, allUris.pathToChildren[Path.empty.index], none!Path, name);
 
 Uri childUri(ref AllUris allUris, Uri parent, Sym name) =>
 	Uri(childPath(allUris, parent.path, name));
@@ -319,6 +342,8 @@ private @system void pathToStrWorker(in AllUris allUris, Path path, char[] outBu
 
 SafeCStr uriToSafeCStr(ref Alloc alloc, in AllUris allUris, Uri a) =>
 	pathToSafeCStr(alloc, allUris, a.path, false);
+string uriToString(ref Alloc alloc, in AllUris allUris, Uri a) =>
+	strOfSafeCStr(uriToSafeCStr(alloc, allUris, a));
 SafeCStr fileUriToSafeCStr(ref Alloc alloc, in AllUris allUris, FileUri a) =>
 	pathToSafeCStr(alloc, allUris, a.path, true);
 @trusted SafeCStr pathToSafeCStr(ref Alloc alloc, in AllUris allUris, Path path, bool leadingSlash) {
@@ -515,10 +540,10 @@ Uri removeLastNParts(in AllUris allUris, Uri a, size_t nToRemove) {
 
 public void TEST_eachPart(
 	in AllUris allUris,
-	Uri a,
+	Path a,
 	in void delegate(Sym) @safe @nogc pure nothrow cb,
 ) {
-	eachPart(allUris, a.path, size_t.max, (Sym x, bool _) {
+	eachPart(allUris, a, size_t.max, (Sym x, bool _) {
 		cb(x);
 	});
 }

@@ -2,7 +2,6 @@ module util.col.arr;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc, freeT;
 import util.conv : safeToUshort;
 import util.util : verify;
 
@@ -67,10 +66,6 @@ SmallArray!(immutable T) small(T)(immutable T[] values) =>
 
 SmallArray!T emptySmallArray(T)() =>
 	small!T([]);
-
-@system void freeArr(T)(ref Alloc alloc, immutable T[] a) {
-	freeT!T(alloc, cast(T*) a.ptr, a.length);
-}
 
 @trusted T[] castMutable(T)(immutable T[] a) =>
 	cast(T[]) a;

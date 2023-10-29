@@ -30,6 +30,7 @@ import interpret.extern_ : Extern;
 import lib.cliParser : BuildOptions, CCompileOptions, Command, hasAnyOut, parseCommand, PrintKind, RunOptions;
 import lib.server :
 	addOrChangeFile,
+	allUnknownUris,
 	buildAndInterpret,
 	buildToC,
 	BuildToCResult,
@@ -37,7 +38,6 @@ import lib.server :
 	DiagsAndResultJson,
 	DocumentResult,
 	getDocumentation,
-	getOneUnknownUri,
 	justParseEverything,
 	justTypeCheck,
 	printAst,
@@ -53,16 +53,18 @@ import lib.server :
 	showDiagnostics;
 import model.diag : diagnosticsIsEmpty, diagnosticsIsFatal;
 import model.lowModel : ExternLibrary;
+import model.model : Program;
 version (Test) {
 	import test.test : test;
 }
 import util.alloc.alloc : Alloc;
+import util.col.arr : empty;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil : prepend;
 import util.col.str : CStr, SafeCStr, safeCStr, safeCStrIsEmpty;
 import util.exitCode : ExitCode;
 import util.json : jsonToString;
-import util.opt : force, has, none, Opt;
+import util.opt : force, has, none;
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasure, PerfMeasureResult, withMeasure;
 import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols, concatSyms, safeCStrOfSym, Sym, sym, writeSym;
@@ -108,19 +110,18 @@ import versionInfo : versionInfoForJIT;
 
 private:
 
-void loadSingleFile(ref Server server, Uri uri) {
-	addOrChangeFile(server, uri, tryReadFile(server.storage.alloc, server.allUris, uri));
+void loadAllFiles(ref Perf perf, ref Server server, in Uri[] rootUris) {
+	Uri[] unknowns = rootUris;
+	do {
+		foreach (Uri uri; unknowns)
+			loadSingleFile(server, uri);
+		justParseEverything(server.alloc, perf, server, rootUris);
+		unknowns = allUnknownUris(server.alloc, server);
+	} while (!empty(unknowns));
 }
 
-void loadAllFiles(ref Perf perf, ref Server server, in Uri[] rootUris) {
-	while (true) {
-		justParseEverything(server.alloc, perf, server, rootUris);
-		Opt!Uri uri = getOneUnknownUri(server);
-		if (has(uri))
-			loadSingleFile(server, force(uri));
-		else
-			break;
-	}
+void loadSingleFile(ref Server server, Uri uri) {
+	addOrChangeFile(server, uri, tryReadFile(server.storage.alloc, server.allUris, uri));
 }
 
 void logPerf(in Perf perf) {
@@ -229,7 +230,7 @@ ExitCode go(ref Perf perf, ref Server server, in Command command) {
 }
 
 Uri getCrowDir(ref AllUris allUris) =>
-	parentOrEmpty(allUris, parentOrEmpty(allUris, toUri(allUris,getPathToThisExecutable(allUris))));
+	parentOrEmpty(allUris, parentOrEmpty(allUris, toUri(allUris, getPathToThisExecutable(allUris))));
 
 SafeCStr[] getAllArgs(ref Alloc alloc, in AllUris allUris, Uri main, in SafeCStr[] programArgs) =>
 	prepend(alloc, uriToSafeCStr(alloc, allUris, main), programArgs);
@@ -271,8 +272,10 @@ ExitCode runBuild(ref Perf perf, ref Server server, Uri main, in BuildOptions op
 	if (hasAnyOut(options.out_))
 		return buildToCAndCompile(perf, server, main, options);
 	else {
-		Opt!SafeCStr error = justTypeCheck(server.alloc, perf, server, [main]);
-		return has(error) ? printErr(force(error)) : println(safeCStr!"OK");
+		Program program = justTypeCheck(server.alloc, perf, server, [main]);
+		return diagnosticsIsEmpty(program.diagnostics)
+			? println(safeCStr!"OK")
+			: printErr(showDiagnostics(server.alloc, server, program));
 	}
 }
 

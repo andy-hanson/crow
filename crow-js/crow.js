@@ -22,7 +22,9 @@ Exports of `wasm.d`:
 @property {function(Server, CStr, CStr): void} addOrChangeFile
 @property {function(Server, CStr): void} deleteFile
 @property {function(Server, CStr): CStr} getFile
+@property {function(Server): CStr} allUnknownUris
 @property {function(Server, CStr): CStr} getTokensAndParseDiagnostics
+@property {function(Server): CStr} getAllDiagnostics
 @property {function(Server, CStr, number): CStr} getDefinition
 @property {function(Server, CStr, number): CStr} getHover
 @property {function(Server, CStr): number} run
@@ -174,6 +176,8 @@ globalCrow.makeCompiler = async (bytes, includeDir, cwd) => {
 				paramAlloc.clear()
 			}
 		},
+		allUnknownUris: () =>
+			JSON.parse(readCStr(exports.allUnknownUris(server))),
 		getTokensAndParseDiagnostics: uri => {
 			try {
 				const res = JSON.parse(
@@ -184,16 +188,18 @@ globalCrow.makeCompiler = async (bytes, includeDir, cwd) => {
 				paramAlloc.clear()
 			}
 		},
-		getDefinition: (uri, pos) => {
+		getAllDiagnostics: () =>
+			JSON.parse(readCStr(exports.getAllDiagnostics(server))),
+		getDefinition: ({uri, position}) => {
 			try {
-				return JSON.parse(readCStr(exports.getDefinition(server, paramAlloc.writeCStr(uri), pos)))
+				return JSON.parse(readCStr(exports.getDefinition(server, paramAlloc.writeCStr(uri), position)))
 			} finally {
 				paramAlloc.clear()
 			}
 		},
-		getHover: (uri, pos) => {
+		getHover: ({uri, position}) => {
 			try {
-				return JSON.parse(readCStr(exports.getHover(server, paramAlloc.writeCStr(uri), pos))).hover
+				return JSON.parse(readCStr(exports.getHover(server, paramAlloc.writeCStr(uri), position))).hover
 			} finally {
 				paramAlloc.clear()
 			}

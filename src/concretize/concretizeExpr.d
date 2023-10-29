@@ -85,9 +85,10 @@ import util.col.str : SafeCStr, safeCStr;
 import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
-import util.sourceRange : FileAndRange, FileIndex, RangeWithinFile;
+import util.sourceRange : FileAndRange, RangeWithinFile;
 import util.sym : Sym, sym;
 import util.union_ : Union;
+import util.uri : Uri;
 import util.util : todo, unreachable, verify;
 import versionInfo : VersionInfo;
 
@@ -98,7 +99,7 @@ ConcreteExpr concretizeFunBody(
 	in Destructure[] params,
 	ref Expr e,
 ) {
-	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe(ctx), e.range.fileIndex, containing, cf);
+	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe(ctx), e.range.uri, containing, cf);
 	return withStackMap2!(ConcreteExpr, Local*, LocalOrConstant, ExprKind.Loop*, LoopAndType*)((ref Locals locals) {
 		// Ignore closure param, which is never destructured.
 		ConcreteLocal[] paramsToDestructure =
@@ -144,7 +145,7 @@ struct ConcretizeExprCtx {
 	@safe @nogc pure nothrow:
 
 	ConcretizeCtx* concretizeCtxPtr;
-	FileIndex curFileIndex;
+	Uri curUri;
 	immutable ContainingFunInfo containing;
 	immutable ConcreteFun* currentConcreteFunPtr; // This is the ConcreteFun* for a lambda, not its containing fun
 	size_t nextLambdaIndex = 0;
@@ -168,7 +169,7 @@ ConcreteType voidType(ref ConcretizeExprCtx ctx) =>
 	.voidType(ctx.concretizeCtx);
 
 FileAndRange toFileAndRange(in ConcretizeExprCtx ctx, RangeWithinFile a) =>
-	FileAndRange(ctx.curFileIndex, a);
+	FileAndRange(ctx.curUri, a);
 
 immutable struct TypedConstant {
 	ConcreteType type;

@@ -31,7 +31,7 @@ import model.model : EnumFunction, enumFunctionName, flagsFunctionName, FunInst,
 import util.alloc.alloc : Alloc;
 import util.json :
 	field, Json, jsonObject, optionalArrayField, optionalField, optionalFlagField, jsonList, jsonString, kindField;
-import util.sourceRange : jsonOfFileAndRange;
+import util.sourceRange : jsonOfRangeWithinFile;
 import util.sym : Sym, sym;
 import util.util : todo;
 
@@ -215,7 +215,7 @@ Sym name(in ConcreteLocalSource a) =>
 
 Json jsonOfConcreteExpr(ref Alloc alloc, in ConcreteExpr a) =>
 	jsonObject(alloc, [
-		field!"range"(jsonOfFileAndRange(alloc, a.range)),
+		field!"range"(jsonOfRangeWithinFile(alloc, a.range.range)),
 		field!"type"(jsonOfConcreteType(alloc, a.type)),
 		field!"expr-kind"(jsonOfConcreteExprKind(alloc, a.kind))]);
 

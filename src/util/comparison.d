@@ -21,9 +21,6 @@ Comparison oppositeComparison(Comparison a) {
 	}
 }
 
-Comparison compareNat16(ushort a, ushort b) =>
-	compareT(a, b);
-
 Comparison compareNat32(uint a, uint b) =>
 	compareT(a, b);
 

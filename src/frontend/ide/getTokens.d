@@ -63,11 +63,11 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.sortUtil : eachSorted, findUnsortedPair, UnsortedPair;
-import util.comparison : compareNat32, Comparison;
 import util.conv : safeToUint;
 import util.json : field, jsonObject, Json, jsonList;
 import util.opt : force, has, Opt;
-import util.sourceRange : Pos, jsonOfRangeWithinFile, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile;
+import util.sourceRange :
+	compareRangeWithinFile, Pos, jsonOfRangeWithinFile, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym, symSize;
 import util.util : todo;
 
@@ -583,9 +583,6 @@ void assertTokensSorted(Token[] tokens) {
 		// To debug, just disable this assertion and look for the unsorted token in the output
 		todo!void("tokens not sorted!");
 }
-
-Comparison compareRangeWithinFile(RangeWithinFile a, RangeWithinFile b) =>
-	compareNat32(a.start, b.start);
 
 Sym symOfTokenKind(Token.Kind kind) {
 	final switch (kind) {

@@ -3,7 +3,7 @@ module frontend.showDiag;
 @safe @nogc pure nothrow:
 
 import frontend.parse.lexer : Token;
-import model.diag : Diagnostic, Diag, ExpectedForDiag, FilesInfo, TypeKind, writeFileAndRange;
+import model.diag : Diagnostic, Diag, ExpectedForDiag, FilesInfo, TypeKind, writeUriAndRange;
 import model.model :
 	arity,
 	arityMatches,
@@ -45,12 +45,15 @@ import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : empty, only, sizeEq;
 import util.col.arrUtil : exists;
+import util.col.map : mustGetAt;
 import util.col.str : SafeCStr;
 import util.lineAndColumnGetter : lineAndColumnAtPos, PosKind;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : FileAndPos;
+import util.storage : ReadFileIssue;
 import util.sym : AllSymbols, Sym, writeSym;
+import util.uri : AllUris, baseName, UrisInfo, writeUri, writeRelPath;
 import util.util : unreachable, verify;
 import util.writer :
 	finishWriterToSafeCStr,
@@ -63,7 +66,6 @@ import util.writer :
 	writeWithNewlines,
 	writeWithSeparator,
 	Writer;
-import util.uri : AllUris, baseName, Uri, UrisInfo, writeUri, writeRelPath;
 import util.writerUtils : showChar, writeName, writeNl;
 
 immutable struct ShowDiagOptions {
@@ -146,14 +148,13 @@ void writeLineNumber(
 	in FilesInfo fi,
 	FileAndPos pos,
 ) {
-	Uri where = fi.fileUris[pos.fileIndex];
 	if (options.color)
 		writeBold(writer);
-	writeUri(writer, allUris, urisInfo, where);
+	writeUri(writer, allUris, urisInfo, pos.uri);
 	if (options.color)
 		writeReset(writer);
 	writer ~= " line ";
-	size_t line = lineAndColumnAtPos(fi.lineAndColumnGetters[pos.fileIndex], pos.pos, PosKind.startOfRange).line;
+	size_t line = lineAndColumnAtPos(mustGetAt(fi.lineAndColumnGetters, pos.uri), pos.pos, PosKind.startOfRange).line;
 	writer ~= line + 1;
 }
 
@@ -256,24 +257,18 @@ void writeParseDiag(
 					break;
 			}
 		},
-		(in ParseDiag.FileDoesNotExist d) {
-			writer ~= "file does not exist";
-			if (has(d.importedFrom)) {
-				writer ~= " (imported from ";
-				writeUri(writer, allUris, urisInfo, force(d.importedFrom).uri);
-				writer ~= ')';
-			}
-		},
-		(in ParseDiag.FileLoading d) {
-			writer ~= "loading this file...";
-		},
-		(in ParseDiag.FileReadError d) {
-			writer ~= "unable to read file";
-			if (has(d.importedFrom)) {
-				writer ~= " (imported from ";
-				writeUri(writer, allUris, urisInfo, force(d.importedFrom).uri);
-				writer ~= ')';
-			}
+		(in ParseDiag.FileIssue x) {
+			writer ~= () {
+				final switch (x.issue) {
+					case ReadFileIssue.notFound:
+						return "file does not exist: ";
+					case ReadFileIssue.error:
+						return "unable to read file ";
+					case ReadFileIssue.unknown:
+						return "IDE is still loading file ";
+				}
+			}();
+			writeUri(writer, allUris, urisInfo, x.uri);
 		},
 		(in ParseDiag.FunctionTypeMissingParens) {
 			writer ~= "function type missing parentheses";
@@ -1242,7 +1237,7 @@ void showDiagnostic(
 	in Program program,
 	in Diagnostic d,
 ) {
-	writeFileAndRange(writer, allUris, urisInfo, options, program.filesInfo, d.where);
+	writeUriAndRange(writer, allUris, urisInfo, options, program.filesInfo, d.where);
 	writer ~= ' ';
 	writeDiag(tempAlloc, writer, allSymbols, allUris, urisInfo, options, program, d.diag);
 	writeNl(writer);

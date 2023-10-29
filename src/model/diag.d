@@ -27,11 +27,11 @@ import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrUtil : arrLiteral;
-import util.col.map : mapLiteral;
+import util.col.map : mapLiteral, mustGetAt;
 import util.col.fullIndexMap : fullIndexMapOfArr;
 import util.lineAndColumnGetter : LineAndColumnGetter, PosKind;
 import util.opt : Opt;
-import util.sourceRange : FileAndPos, FileAndRange, FileIndex, FileUris, RangeWithinFile, UriToFile;
+import util.sourceRange : FileAndPos, FileIndex, FileUris, RangeWithinFile, UriAndRange, UriToFile;
 import util.sym : Sym;
 import util.union_ : Union;
 import util.uri : AllUris, Uri, UrisInfo, writeUri;
@@ -52,7 +52,8 @@ private bool isFatal(DiagSeverity a) =>
 	a >= DiagSeverity.commonMissing;
 
 immutable struct Diagnostic {
-	FileAndRange where;
+	// Some diagnostics aren't associated with a file, like if a root file is missing
+	UriAndRange where;
 	Diag diag;
 }
 
@@ -501,20 +502,19 @@ FilesInfo filesInfoForSingle(ref Alloc alloc, Uri uri, LineAndColumnGetter lineA
 	FilesInfo(
 		fullIndexMapOfArr!(FileIndex, Uri)(arrLiteral!Uri(alloc, [uri])),
 		mapLiteral!(Uri, FileIndex)(alloc, uri, FileIndex(0)),
-		fullIndexMapOfArr!(FileIndex, LineAndColumnGetter)(
-			arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetter])));
+		mapLiteral!(Uri, LineAndColumnGetter)(alloc, uri, lineAndColumnGetter));
 
-void writeFileAndRange(
+void writeUriAndRange(
 	ref Writer writer,
 	in AllUris allUris,
 	in UrisInfo urisInfo,
 	in ShowDiagOptions options,
 	in FilesInfo fi,
-	in FileAndRange where,
+	in UriAndRange where,
 ) {
-	writeFileNoResetWriter(writer, allUris, urisInfo, options, fi, where.fileIndex);
-	if (where.fileIndex != FileIndex.none)
-		writeRangeWithinFile(writer, fi.lineAndColumnGetters[where.fileIndex], where.range);
+	writeFileNoResetWriter(writer, allUris, urisInfo, options, where.uri);
+	if (where.uri != Uri.empty)
+		writeRangeWithinFile(writer, mustGetAt(fi.lineAndColumnGetters, where.uri), where.range);
 	if (options.color)
 		writeReset(writer);
 }
@@ -527,16 +527,16 @@ void writeFileAndPos(
 	in FilesInfo fi,
 	in FileAndPos where,
 ) {
-	writeFileNoResetWriter(writer, allUris, urisInfo, options, fi, where.fileIndex);
-	if (where.fileIndex != FileIndex.none)
-		writePos(writer, fi.lineAndColumnGetters[where.fileIndex], where.pos, PosKind.startOfRange);
+	writeFileNoResetWriter(writer, allUris, urisInfo, options, where.uri);
+	if (where.uri != Uri.empty)
+		writePos(writer, mustGetAt(fi.lineAndColumnGetters, where.uri), where.pos, PosKind.startOfRange);
 	if (options.color)
 		writeReset(writer);
 }
 
-void writeFile(ref Writer writer, in AllUris allUris, in UrisInfo urisInfo, in FilesInfo fi, FileIndex fileIndex) {
+void writeFile(ref Writer writer, in AllUris allUris, in UrisInfo urisInfo, Uri uri) {
 	ShowDiagOptions noColor = ShowDiagOptions(false);
-	writeFileNoResetWriter(writer, allUris, urisInfo, noColor, fi, fileIndex);
+	writeFileNoResetWriter(writer, allUris, urisInfo, noColor, uri);
 	// No need to reset writer since we didn't use color
 }
 
@@ -545,23 +545,18 @@ private void writeFileNoResetWriter(
 	in AllUris allUris,
 	in UrisInfo urisInfo,
 	in ShowDiagOptions options,
-	in FilesInfo fi,
-	FileIndex fileIndex,
+	Uri uri,
 ) {
 	if (options.color)
 		writeBold(writer);
-	if (fileIndex == FileIndex.none) {
-		writer ~= "<generated code> ";
-	} else {
-		Uri uri = fi.fileUris[fileIndex];
-		if (options.color) {
-			writeHyperlink(
-				writer,
-				() { writeUri(writer, allUris, urisInfo, uri); },
-				() { writeUri(writer, allUris, urisInfo, uri); });
-			writeRed(writer);
-		} else
-			writeUri(writer, allUris, urisInfo, uri);
-		writer ~= ' ';
-	}
+
+	if (options.color) {
+		writeHyperlink(
+			writer,
+			() { writeUri(writer, allUris, urisInfo, uri); },
+			() { writeUri(writer, allUris, urisInfo, uri); });
+		writeRed(writer);
+	} else
+		writeUri(writer, allUris, urisInfo, uri);
+	writer ~= ' ';
 }

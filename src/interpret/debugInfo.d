@@ -13,13 +13,14 @@ import model.lowModel : LowFunIndex, LowFunSource, LowProgram;
 import model.model : Program;
 import util.alloc.alloc : Alloc;
 import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, PosKind;
+import util.col.map : mustGetAt;
 import util.col.str : CStr;
 import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : ptrTrustMe;
-import util.sourceRange : FileAndPos, FileIndex;
+import util.sourceRange : FileAndPos;
 import util.sym : AllSymbols;
-import util.uri : AllUris, UrisInfo, uriToSafeCStrPreferRelative;
+import util.uri : AllUris, Uri, UrisInfo, uriToSafeCStrPreferRelative;
 import util.util : min, verify;
 import util.writer : debugLogWithWriter, finishWriterToSafeCStr, writeHex, Writer;
 
@@ -114,13 +115,12 @@ private @trusted BacktraceEntry backtraceEntryFromSource(
 	writeFunName(writer, info.allSymbols, info.program, info.lowProgram, source.fun);
 	CStr funName = finishWriterToSafeCStr(writer).ptr;
 
-	Opt!FileIndex opFileIndex = getFileIndex(info.lowProgram, source.fun);
-	if (has(opFileIndex)) {
-		FileIndex fileIndex = force(opFileIndex);
-		CStr fileUri = uriToSafeCStrPreferRelative(
-			alloc, info.allUris, info.urisInfo, info.filesInfo.fileUris[fileIndex]).ptr;
-		LineAndColumn lc =
-			lineAndColumnAtPos(info.filesInfo.lineAndColumnGetters[fileIndex], source.pos, PosKind.startOfRange);
+	Opt!Uri opUri = getUri(info.lowProgram, source.fun);
+	if (has(opUri)) {
+		Uri uri = force(opUri);
+		CStr fileUri = uriToSafeCStrPreferRelative(alloc, info.allUris, info.urisInfo, uri).ptr;
+		LineAndColumn lc = lineAndColumnAtPos(
+			mustGetAt(info.filesInfo.lineAndColumnGetters, uri), source.pos, PosKind.startOfRange);
 		return BacktraceEntry(funName, fileUri, lc.line + 1, 0);
 	} else
 		return BacktraceEntry(funName, "", 0, 0);
@@ -196,17 +196,17 @@ void writeByteCodeSource(
 ) {
 	writeFunName(writer, allSymbols, program, lowProgram, source.fun);
 	writer ~= ' ';
-	Opt!FileIndex where = getFileIndex(lowProgram, source.fun);
+	Opt!Uri where = getUri(lowProgram, source.fun);
 	if (has(where))
 		writeFileAndPos(writer, allUris, urisInfo, showDiagOptions, filesInfo, FileAndPos(force(where), source.pos));
 }
 
-Opt!FileIndex getFileIndex(in LowProgram lowProgram, LowFunIndex fun) =>
-	lowProgram.allFuns[fun].source.matchIn!(Opt!FileIndex)(
+Opt!Uri getUri(in LowProgram lowProgram, LowFunIndex fun) =>
+	lowProgram.allFuns[fun].source.matchIn!(Opt!Uri)(
 		(in ConcreteFun x) =>
-			some(concreteFunRange(x).fileIndex),
+			some(concreteFunRange(x).uri),
 		(in LowFunSource.Generated) =>
-			none!FileIndex);
+			none!Uri);
 
 void writeFunNameAtIndex(scope ref Writer writer, in InterpreterDebugInfo debugInfo, ByteCodeIndex index) {
 	writeFunName(

@@ -67,6 +67,7 @@ import util.ptr : ptrTrustMe;
 import util.sourceRange :
 	FileAndPos, jsonOfFileAndPos, jsonOfFileAndRange, jsonOfRangeWithinFile, RangeWithinFile, toFileAndPos;
 import util.sym : Sym, sym;
+import util.uri : AllUris;
 
 Json jsonOfModule(ref Alloc alloc, in Module a) {
 	Ctx ctx = Ctx(ptrTrustMe(a));
@@ -107,13 +108,19 @@ Json jsonOfImportOrExportKind(ref Alloc alloc, in ImportOrExportKind a) =>
 				field!"names"(jsonList!Sym(alloc, m.names, (in Sym name) =>
 					jsonString(name)))]));
 
-immutable struct Ctx {
+struct Ctx {
+	@safe @nogc pure nothrow:
+
 	Module* curModule;
+	AllUris* allUrisPtr;
+
+	ref const(AllUris) allUris() return scope const =>
+		*allUrisPtr;
 }
 
 Json jsonOfStructDecl(ref Alloc alloc, in Ctx ctx, in StructDecl a) =>
 	jsonObject(alloc,
-		commonDeclFields(alloc, toFileAndPos(a.range), a.docComment, a.visibility, a.name, a.typeParams),
+		commonDeclFields(alloc, ctx, toFileAndPos(a.range), a.docComment, a.visibility, a.name, a.typeParams),
 		[
 			optionalField!"purity"(a.purity != Purity.data, () => jsonString(symOfPurity(a.purity))),
 			optionalFlagField!"forced"(a.purityIsForced),
@@ -121,7 +128,7 @@ Json jsonOfStructDecl(ref Alloc alloc, in Ctx ctx, in StructDecl a) =>
 
 Json jsonOfVarDecl(ref Alloc alloc, in Ctx ctx, in VarDecl a) =>
 	jsonObject(alloc,
-		commonDeclFields(alloc, a.pos, a.docComment, a.visibility, a.name, []),
+		commonDeclFields(alloc, ctx, a.pos, a.docComment, a.visibility, a.name, []),
 		[
 			field!"var-kind"(symOfVarKind(a.kind)),
 			field!"type"(jsonOfType(alloc, ctx, a.type)),
@@ -131,7 +138,7 @@ Json jsonOfVarDecl(ref Alloc alloc, in Ctx ctx, in VarDecl a) =>
 Json jsonOfSpecDecl(ref Alloc alloc, in Ctx ctx, in SpecDecl a) =>
 	jsonObject(
 		alloc,
-		commonDeclFields(alloc, toFileAndPos(a.range), a.docComment, a.visibility, a.name, a.typeParams),
+		commonDeclFields(alloc, ctx, toFileAndPos(a.range), a.docComment, a.visibility, a.name, a.typeParams),
 		[
 			optionalArrayField!"parents"(alloc, a.parents, (in SpecInst* x) => jsonOfSpecInst(alloc, ctx, *x)),
 			field!"body"(jsonOfSpecDeclBody(alloc, ctx, a.body_)),
@@ -148,7 +155,7 @@ Json jsonOfSpecDeclBody(ref Alloc alloc, in Ctx ctx, in SpecDeclBody a) =>
 Json jsonOfSpecDeclSig(ref Alloc alloc, in Ctx ctx, in SpecDeclSig a) =>
 	jsonObject(alloc, [
 		optionalStringField!"doc"(alloc, a.docComment),
-		field!"where"(jsonOfFileAndRange(alloc, a.range)),
+		field!"where"(jsonOfFileAndRange(alloc, ctx.allUris, a.range)),
 		field!"name"(a.name),
 		field!"return-type"(jsonOfType(alloc, ctx, a.returnType)),
 		field!"params"(jsonOfDestructures(alloc, ctx, a.params))]);
@@ -156,7 +163,7 @@ Json jsonOfSpecDeclSig(ref Alloc alloc, in Ctx ctx, in SpecDeclSig a) =>
 Json jsonOfFunDecl(ref Alloc alloc, in Ctx ctx, in FunDecl a) =>
 	jsonObject(
 		alloc,
-		commonDeclFields(alloc, a.fileAndPos, a.docComment, a.visibility, a.name, a.typeParams),
+		commonDeclFields(alloc, ctx, a.fileAndPos, a.docComment, a.visibility, a.name, a.typeParams),
 		[
 			field!"flags"(funFlags(alloc, a.flags)),
 			field!"return-type"(jsonOfType(alloc, ctx, a.returnType)),
@@ -171,6 +178,7 @@ Json jsonOfTest(ref Alloc alloc, in Ctx ctx, in Test a) =>
 
 Json.ObjectField[5] commonDeclFields(
 	ref Alloc alloc,
+	in Ctx ctx,
 	FileAndPos pos,
 	in SafeCStr docComment,
 	Visibility visibility,
@@ -179,7 +187,7 @@ Json.ObjectField[5] commonDeclFields(
 ) =>
 	[
 		optionalStringField!"doc"(alloc, docComment),
-		field!"where"(jsonOfFileAndPos(alloc, pos)),
+		field!"where"(jsonOfFileAndPos(alloc, ctx.allUris, pos)),
 		field!"visibility"(symOfVisibility(visibility)),
 		field!"name"(name),
 		optionalArrayField!("type-params", TypeParam)(alloc, typeParams, (in TypeParam x) =>
@@ -466,7 +474,7 @@ Json jsonOfMatchUnionCase(ref Alloc alloc, in Ctx ctx, in ExprKind.MatchUnion.Ca
 Json jsonOfLocal(ref Alloc alloc, in Ctx ctx, in Local a) =>
 	jsonObject(alloc, [
 		kindField!"local",
-		field!"range"(jsonOfFileAndRange(alloc, a.range)),
+		field!"range"(jsonOfFileAndRange(alloc, ctx.allUris, a.range)),
 		field!"name"(a.name),
 		field!"type"(jsonOfType(alloc, ctx, a.type))]);
 

@@ -26,6 +26,7 @@ import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, Pos, RangeWithinFile;
 import util.sym : AllSymbols, Sym;
+import util.uri : Uri;
 
 struct CheckCtx {
 	@safe @nogc pure nothrow:
@@ -37,6 +38,7 @@ struct CheckCtx {
 	public ProgramState* programStatePtr;
 	AllSymbols* allSymbolsPtr;
 	public immutable FileIndex fileIndex;
+	public immutable Uri curUri;
 	public ImportsAndReExports importsAndReExports;
 	DiagnosticsBuilder* diagsBuilderPtr;
 	UsedSet used;
@@ -153,16 +155,16 @@ void eachImportAndReExport(
 }
 
 FileAndPos posInFile(in CheckCtx ctx, Pos pos) =>
-	FileAndPos(ctx.fileIndex, pos);
+	FileAndPos(ctx.curUri, pos);
 
 FileAndRange rangeInFile(in CheckCtx ctx, RangeWithinFile range) =>
-	FileAndRange(ctx.fileIndex, range);
+	FileAndRange(ctx.curUri, range);
 
 void addDiag(ref CheckCtx ctx, FileAndRange range, Diag diag) {
 	addDiagnostic(ctx.alloc, ctx.diagsBuilder, range, diag);
 }
 
 void addDiag(ref CheckCtx ctx, RangeWithinFile range, Diag diag) {
-	addDiag(ctx, FileAndRange(ctx.fileIndex, range), diag);
+	addDiag(ctx, FileAndRange(ctx.curUri, range), diag);
 }
 

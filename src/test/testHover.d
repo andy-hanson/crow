@@ -12,6 +12,7 @@ import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.map : mustGetAt;
 import util.col.str : end, SafeCStr, safeCStr, safeCStrEq, safeCStrIsEmpty, safeCStrSize, strOfSafeCStr;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonList, jsonObject, jsonToStringPretty, optionalField;
@@ -92,7 +93,7 @@ Json hoverResult(
 	Cell!(InfoAtPos) curInfo = Cell!(InfoAtPos)(InfoAtPos(safeCStr!"", none!Definition));
 
 	LineAndColumn lineAndColumnInFile(Pos pos, PosKind kind) {
-		return lineAndColumnAtPos(a.program.filesInfo.lineAndColumnGetters[a.mainModule.fileIndex], pos, kind);
+		return lineAndColumnAtPos(mustGetAt(a.program.filesInfo.lineAndColumnGetters, a.mainModule.uri), pos, kind);
 	}
 
 	void endRange(Pos end) {

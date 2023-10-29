@@ -131,8 +131,8 @@ const connected = (shadowRoot, name, noRun, comp, initialText) => {
 	const tokensAndParseDiagnostics = new MutableObservable(
 		/** @type {crow.TokensAndParseDiagnostics} */ ({tokens:[], parseDiagnostics:[]}))
 	/** @type {function(number): string} */
-	const getHover = pos =>
-		comp.getHover(MAIN, pos)
+	const getHover = position =>
+		comp.getHover({uri:MAIN, position})
 	const crowText = CrowText.create({getHover, tokensAndParseDiagnostics, text})
 
 	for (const [path, content] of Object.entries(includeAll))

@@ -96,9 +96,11 @@ import util.ptr : ptrTrustMe;
 import util.storage : asBytes, asString, FileContent;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
+import util.uri : Uri;
 import util.util : unreachable, todo, verify;
 
 immutable struct FileAndAst {
+	Uri uri;
 	FileIndex fileIndex;
 	FileAst ast;
 }
@@ -380,7 +382,7 @@ VarDecl checkVarDecl(
 	if (!empty(ast.typeParams))
 		todo!void("diag");
 	return VarDecl(
-		FileAndPos(ctx.fileIndex, ast.range.start),
+		FileAndPos(ctx.curUri, ast.range.start),
 		copySafeCStr(ctx.alloc, ast.docComment),
 		ast.visibility,
 		ast.name,
@@ -720,7 +722,7 @@ FunDecl funDeclForFileImportOrExport(
 	FunDecl(
 		safeCStr!"",
 		visibility,
-		FileAndPos(ctx.fileIndex, a.range.start),
+		FileAndPos(ctx.curUri, a.range.start),
 		a.name,
 		[],
 		typeForFileImport(ctx, commonTypes, structsAndAliasesMap, a.range, a.type),
@@ -794,6 +796,7 @@ Module checkWorkerAfterCommonTypes(
 	StructDecl[] structs,
 	ref MutArr!(StructInst*) delayStructInsts,
 	FileIndex fileIndex,
+	Uri uri,
 	ref ImportsAndExports importsAndExports,
 	in FileAst ast,
 ) {
@@ -823,6 +826,7 @@ Module checkWorkerAfterCommonTypes(
 	checkForUnused(ctx, structAliases, structs, specs, funsAndMap.funs);
 	return Module(
 		fileIndex,
+		uri,
 		copySafeCStr(ctx.alloc, ast.docComment),
 		importsAndExports.moduleImports,
 		importsAndExports.moduleExports,
@@ -834,7 +838,7 @@ Module checkWorkerAfterCommonTypes(
 			structsAndAliasesMap,
 			specsMap,
 			funsAndMap.funsMap,
-			fileIndex));
+			uri));
 }
 
 Map!(Sym, NameReferents) getAllExportedNames(
@@ -844,7 +848,7 @@ Map!(Sym, NameReferents) getAllExportedNames(
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in SpecsMap specsMap,
 	in FunsMap funsMap,
-	FileIndex fileIndex,
+	Uri uri,
 ) {
 	MutMap!(Sym, NameReferents) res;
 	void addExport(Sym name, NameReferents cur, FileAndRange range) {
@@ -874,14 +878,14 @@ Map!(Sym, NameReferents) getAllExportedNames(
 				mapEachIn!(Sym, NameReferents)(
 					m.module_.allExportedNames,
 					(in Sym name, in NameReferents value) {
-						addExport(name, value, FileAndRange(fileIndex, force(e.importSource)));
+						addExport(name, value, FileAndRange(uri, force(e.importSource)));
 					});
 			},
 			(in ImportOrExportKind.ModuleNamed m) {
 				foreach (Sym name; m.names) {
 					Opt!NameReferents value = m.module_.allExportedNames[name];
 					if (has(value))
-						addExport(name, force(value), FileAndRange(fileIndex, force(e.importSource)));
+						addExport(name, force(value), FileAndRange(uri, force(e.importSource)));
 				}
 			});
 	mapEach!(Sym, StructOrAlias)(
@@ -906,7 +910,7 @@ Map!(Sym, NameReferents) getAllExportedNames(
 				break;
 		}
 	});
-	multiMapEach!(Sym, immutable FunDecl*)(funsMap, (Sym name, immutable FunDecl*[] funs) {
+	multiMapEach!(Sym, immutable FunDecl*)(funsMap, (Sym name, in immutable FunDecl*[] funs) {
 		immutable FunDecl*[] funDecls = filter!(immutable FunDecl*)(alloc, funs, (in immutable FunDecl* x) =>
 			x.visibility != Visibility.private_);
 		if (!empty(funDecls))
@@ -914,7 +918,7 @@ Map!(Sym, NameReferents) getAllExportedNames(
 				name,
 				NameReferents(none!StructOrAlias, none!(SpecDecl*), funDecls),
 				// This argument doesn't matter because a function never results in a duplicate export error
-				FileAndRange(fileIndex, RangeWithinFile.empty));
+				FileAndRange(uri, RangeWithinFile.empty));
 	});
 
 	return moveToMap!(Sym, NameReferents)(alloc, res);
@@ -934,8 +938,8 @@ BootstrapCheck checkWorker(
 		scope ref MutArr!(StructInst*),
 	) @safe @nogc pure nothrow getCommonTypes,
 ) {
-	checkImportsOrExports(alloc, diagsBuilder, fileAndAst.fileIndex, importsAndExports.moduleImports);
-	checkImportsOrExports(alloc, diagsBuilder, fileAndAst.fileIndex, importsAndExports.moduleExports);
+	checkImportsOrExports(alloc, diagsBuilder, fileAndAst.uri, importsAndExports.moduleImports);
+	checkImportsOrExports(alloc, diagsBuilder, fileAndAst.uri, importsAndExports.moduleExports);
 	FileAst ast = fileAndAst.ast;
 	CheckCtx ctx = CheckCtx(
 		ptrTrustMe(alloc),
@@ -943,6 +947,7 @@ BootstrapCheck checkWorker(
 		ptrTrustMe(programState),
 		ptrTrustMe(allSymbols),
 		fileAndAst.fileIndex,
+		fileAndAst.uri,
 		ImportsAndReExports(importsAndExports.moduleImports, importsAndExports.moduleExports),
 		ptrTrustMe(diagsBuilder));
 
@@ -975,6 +980,7 @@ BootstrapCheck checkWorker(
 		structs,
 		delayStructInsts,
 		fileAndAst.fileIndex,
+		fileAndAst.uri,
 		importsAndExports,
 		ast);
 	return BootstrapCheck(res, commonTypes);
@@ -983,7 +989,7 @@ BootstrapCheck checkWorker(
 void checkImportsOrExports(
 	ref Alloc alloc,
 	scope ref DiagnosticsBuilder diags,
-	FileIndex thisFile,
+	Uri thisFile,
 	in ImportOrExport[] imports,
 ) {
 	foreach (ref ImportOrExport x; imports)

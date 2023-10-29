@@ -40,13 +40,15 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, sizeEq, small;
 import util.col.arrUtil : arrLiteral, arrsCorrespond, filter, findIndex, makeArr, map;
 import util.col.enumMap : EnumMap;
+import util.col.map : Map;
 import util.col.str : safeCStr;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castNonScope_ref;
-import util.sourceRange : FileAndPos, FileAndRange, RangeWithinFile;
+import util.sourceRange : FileIndex, FileAndPos, FileAndRange, RangeWithinFile;
 import util.sym : Sym, sym;
+import util.uri : Uri;
 import util.util : todo, unreachable, verify;
 
 // Must be in dependency order (can only reference earlier)
@@ -70,10 +72,10 @@ CommonFuns getCommonFuns(
 	scope ref DiagnosticsBuilder diagsBuilder,
 	ref CommonTypes commonTypes,
 	Opt!(Module*) mainModule,
-	ref immutable EnumMap!(CommonModule, Module*) modules,
+	ref immutable EnumMap!(CommonModule, Opt!(Module*)) modules,
 ) {
 	ref Module getModule(CommonModule x) {
-		return *modules[x];
+		return has(modules[x]) ? *force(modules[x]) : emptyModule;
 	}
 	Type getType(CommonModule module_, Sym name) {
 		return getNonTemplateType(alloc, programState, diagsBuilder, getModule(module_), name);
@@ -175,6 +177,9 @@ ParamShort param(string name)(Type type) =>
 
 private:
 
+immutable Module emptyModule =
+	Module(FileIndex.none, Uri.empty, safeCStr!"", [], [], [], [], [], [], [], Map!(Sym, NameReferents)());
+
 immutable TypeParam[1] singleTypeParam = [
 	TypeParam(FileAndRange.empty, sym!"t", 0),
 ];
@@ -235,7 +240,7 @@ StructDecl* getStructDeclOrAddDiag(
 		addDiagnostic(
 			alloc,
 			diagsBuilder,
-			FileAndRange(module_.fileIndex, RangeWithinFile.empty),
+			FileAndRange(module_.uri, RangeWithinFile.empty),
 			Diag(Diag.CommonTypeMissing(name)));
 		return allocate(alloc, StructDecl(
 			FileAndRange.empty,
@@ -344,7 +349,7 @@ FunDeclAndSigIndex getFunDeclMulti(
 		addDiagnostic(
 			alloc,
 			diagsBuilder,
-			FileAndRange(module_.fileIndex, RangeWithinFile.empty),
+			FileAndRange(module_.uri, RangeWithinFile.empty),
 			Diag(Diag.CommonFunMissing(name, map(alloc, expectedSigs, (ref TypeParamsAndSig sig) =>
 				TypeParamsAndSig(
 					arrLiteral(alloc, sig.typeParams),

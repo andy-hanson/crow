@@ -26,9 +26,6 @@ struct FullIndexMap(K, V) {
 	V[] values;
 }
 
-immutable(V[]) asArray(K, V)(immutable FullIndexMap!(K, V) a) =>
-	a.values;
-
 immutable(FullIndexMap!(K, V)) fullIndexMapCastImmutable(K, V)(const FullIndexMap!(K, V) a) =>
 	immutable FullIndexMap!(K, V)(castImmutable(a.values));
 immutable(FullIndexMap!(K, V)) fullIndexMapCastImmutable2(K, V)(const FullIndexMap!(K, immutable V) a) =>

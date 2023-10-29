@@ -45,7 +45,6 @@ import util.col.arrBuilder : add, ArrBuilder, arrBuilderSort, finishArr;
 import util.col.arrUtil : exists, indexOf, map, mapOp;
 import util.col.map : mapEachIn;
 import util.col.str : SafeCStr;
-import util.comparison : compareNat16, compareNat32, Comparison;
 import util.json :
 	field,
 	Json,
@@ -59,9 +58,9 @@ import util.json :
 	jsonString,
 	kindField;
 import util.opt : force, has, none, Opt, some;
-import util.sourceRange : FileAndRange;
+import util.sourceRange : compareUriAndRange, FileAndRange;
 import util.sym : AllSymbols, Sym, sym;
-import util.uri : AllUris, uriToSafeCStr;
+import util.uri : AllUris, uriToString;
 import util.util : unreachable;
 
 SafeCStr documentJSON(ref Alloc alloc, in AllSymbols allSymbols, in AllUris allUris, in Program program) =>
@@ -94,16 +93,11 @@ Json documentModule(
 					add(alloc, exports, documentFun(alloc, *fun));
 		});
 	arrBuilderSort!DocExport(exports, (in DocExport x, in DocExport y) =>
-		compareRanges(x.range, y.range));
+		compareUriAndRange(allUris, x.range, y.range));
 	return jsonObject(alloc, [
-		field!"uri"(uriToSafeCStr(alloc, allUris, program.filesInfo.fileUris[a.fileIndex])),
+		field!"uri"(uriToString(alloc, allUris, a.uri)),
 		optionalStringField!"doc"(alloc, a.docComment),
 		field!"exports"(jsonList!DocExport(alloc, finishArr(alloc, exports), (in DocExport x) => x.json))]);
-}
-
-Comparison compareRanges(FileAndRange a, FileAndRange b) {
-	Comparison compareFile = compareNat16(a.fileIndex.index, b.fileIndex.index);
-	return compareFile == Comparison.equal ? compareNat32(a.start, b.start) : compareFile;
 }
 
 immutable struct DocExport {

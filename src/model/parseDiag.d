@@ -3,10 +3,10 @@ module model.parseDiag;
 @safe @nogc pure nothrow:
 
 import frontend.parse.lexer : Token;
-import util.opt : Opt;
+import util.storage : ReadFileIssue;
 import util.sym : Sym;
 import util.union_ : Union;
-import util.uri : Uri, UriAndRange, RelPath;
+import util.uri : Uri, RelPath;
 
 immutable struct ParseDiag {
 	@safe @nogc pure nothrow:
@@ -46,14 +46,9 @@ immutable struct ParseDiag {
 		}
 		Kind kind;
 	}
-	immutable struct FileDoesNotExist {
-		Opt!UriAndRange importedFrom;
-	}
-	immutable struct FileLoading {
-		Opt!UriAndRange importedFrom;
-	}
-	immutable struct FileReadError {
-		Opt!UriAndRange importedFrom;
+	immutable struct FileIssue {
+		Uri uri;
+		ReadFileIssue issue;
 	}
 	immutable struct FunctionTypeMissingParens {}
 	immutable struct ImportFileTypeNotSupported {}
@@ -106,9 +101,7 @@ immutable struct ParseDiag {
 	mixin Union!(
 		CircularImport,
 		Expected,
-		FileDoesNotExist,
-		FileLoading,
-		FileReadError,
+		FileIssue,
 		FunctionTypeMissingParens,
 		ImportFileTypeNotSupported,
 		IndentNotDivisible,

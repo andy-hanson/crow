@@ -3,9 +3,9 @@ module frontend.parse.ast;
 @safe @nogc pure nothrow:
 
 import model.model : AssertOrForbidKind, FieldMutability, FunKind, ImportFileType, VarKind, Visibility;
-import util.col.arr : empty, SmallArray;
+import util.col.arr : SmallArray;
 import util.col.arrUtil : exists;
-import util.col.str : SafeCStr, safeCStr;
+import util.col.str : SafeCStr;
 import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile;
@@ -715,11 +715,6 @@ immutable struct FileAst {
 	TestAst[] tests;
 	VarDeclAst[] vars;
 }
-
-private ImportsOrExportsAst emptyImportsOrExports() =>
-	ImportsOrExportsAst(RangeWithinFile.empty, []);
-FileAst emptyFileAst() =>
-	FileAst(safeCStr!"", true, some(emptyImportsOrExports), some(emptyImportsOrExports), [], [], [], [], []);
 
 Sym symOfModifierKind(ModifierAst.Kind a) {
 	final switch (a) {

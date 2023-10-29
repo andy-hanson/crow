@@ -5,10 +5,13 @@ module util.sourceRange;
 import util.alloc.alloc : Alloc;
 import util.col.fullIndexMap : FullIndexMap;
 import util.col.map : Map;
-import util.conv : safeToUint, safeToUshort;
+import util.comparison : compareNat32, Comparison;
+import util.conv : safeToUint;
+import util.hash : Hasher, hashUshort;
 import util.json : field, Json, jsonObject;
+import util.opt : none;
 import util.sym : AllSymbols, Sym, symSize;
-import util.uri : Uri;
+import util.uri : AllUris, compareUriAlphabetically, Uri, uriToString;
 import util.util : verify;
 
 alias Pos = uint;
@@ -23,6 +26,10 @@ immutable struct FileIndex {
 
 	static FileIndex none() =>
 		FileIndex(ushort.max);
+
+	void hash(ref Hasher hasher) scope const {
+		hashUshort(hasher, index);
+	}
 }
 
 immutable struct RangeWithinFile {
@@ -38,6 +45,9 @@ immutable struct RangeWithinFile {
 }
 static assert(RangeWithinFile.sizeof == 8);
 
+Comparison compareRangeWithinFile(RangeWithinFile a, RangeWithinFile b) =>
+	a.start == b.start ? compareNat32(a.end, b.end) : compareNat32(a.start, b.start);
+
 RangeWithinFile combineRanges(RangeWithinFile a, RangeWithinFile b) {
 	verify(a.end <= b.start);
 	return RangeWithinFile(a.start, b.end);
@@ -52,55 +62,59 @@ RangeWithinFile rangeOfStartAndName(Pos start, Sym name, in AllSymbols allSymbol
 RangeWithinFile rangeOfStartAndLength(Pos start, size_t length) =>
 	RangeWithinFile(start, safeToUint(start + length));
 
+// TODO: RENAME
 immutable struct FileAndPos {
 	@safe @nogc pure nothrow:
 
-	FileIndex fileIndex;
+	Uri uri;
 	Pos pos;
 
 	static FileAndPos empty() =>
-		FileAndPos(FileIndex.none, 0);
+		fileAndPosFromFileAndRange(FileAndRange.empty);
 }
 
 FileAndPos fileAndPosFromFileAndRange(FileAndRange a) =>
-	FileAndPos(a.fileIndex, a.start);
+	FileAndPos(a.uri, a.start);
 
 FileAndRange fileAndRangeFromFileAndPos(FileAndPos a) =>
-	FileAndRange(a.fileIndex, RangeWithinFile(a.pos, a.pos + 1));
+	FileAndRange(a.uri, RangeWithinFile(a.pos, a.pos + 1));
 
-immutable struct FileAndRange {
+immutable struct UriAndRange {
 	@safe @nogc pure nothrow:
 
-	FileIndex fileIndex;
-	ushort size;
-	Pos start;
+	Uri uri;
+	RangeWithinFile range;
 
-	this(FileIndex fi, RangeWithinFile r) {
-		fileIndex = fi;
-		size = safeToUshort(r.end - r.start);
-		start = r.start;
-	}
+	Pos start() =>
+		range.start;
 
-	RangeWithinFile range() =>
-		RangeWithinFile(start, start + size);
+	//TODO:KILL
+	Uri fileIndex() =>
+		uri;
 
-	static FileAndRange topOfFile(FileIndex file) =>
-		FileAndRange(file, RangeWithinFile.empty);
+	static UriAndRange empty() =>
+		topOfFile(Uri.empty);
 
-	static FileAndRange empty() =>
-		FileAndRange(FileIndex.none, RangeWithinFile.empty);
+	static FileAndRange topOfFile(Uri uri) =>
+		FileAndRange(uri, RangeWithinFile.empty);
 }
-static assert(FileAndRange.sizeof == 8);
+//TODO:KILL
+alias FileAndRange = UriAndRange;
+
+Comparison compareUriAndRange(in AllUris allUris, UriAndRange a, UriAndRange b) {
+	Comparison cmpUri = compareUriAlphabetically(allUris, a.uri, b.uri);
+	return cmpUri != Comparison.equal ? cmpUri : compareRangeWithinFile(a.range, b.range);
+}
 
 FileAndPos toFileAndPos(FileAndRange a) =>
 	FileAndPos(a.fileIndex, a.start);
 
-Json jsonOfFileAndPos(ref Alloc alloc, FileAndPos a) =>
-	jsonObject(alloc, [field!"file"(a.fileIndex.index), field!"pos"(a.pos)]);
+Json jsonOfFileAndPos(ref Alloc alloc, in AllUris allUris, FileAndPos a) =>
+	jsonObject(alloc, [field!"uri"(uriToString(alloc, allUris, a.uri)), field!"pos"(a.pos)]);
 
-Json jsonOfFileAndRange(ref Alloc alloc, FileAndRange a) =>
+Json jsonOfFileAndRange(ref Alloc alloc, in AllUris allUris, FileAndRange a) =>
 	jsonObject(alloc, [
-		field!"file"(a.fileIndex.index),
+		field!"uri"(uriToString(alloc, allUris, a.uri)),
 		field!"range"(jsonOfRangeWithinFile(alloc, a.range))]);
 
 Json jsonOfRangeWithinFile(ref Alloc alloc, RangeWithinFile a) =>

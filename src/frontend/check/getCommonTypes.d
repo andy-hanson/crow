@@ -33,7 +33,7 @@ import util.col.str : safeCStr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, someMut, some;
 import util.ptr : ptrTrustMe;
-import util.sourceRange : FileAndRange, FileIndex, RangeWithinFile;
+import util.sourceRange : FileAndRange, RangeWithinFile;
 import util.sym : Sym, sym;
 import util.util : todo, verify;
 
@@ -43,7 +43,7 @@ CommonTypes getCommonTypes(
 	scope ref MutArr!(StructInst*) delayedStructInsts,
 ) {
 	void addDiagMissing(Sym name) {
-		addDiag(ctx, FileAndRange(ctx.fileIndex, RangeWithinFile.empty), Diag(Diag.CommonTypeMissing(name)));
+		addDiag(ctx, FileAndRange(ctx.curUri, RangeWithinFile.empty), Diag(Diag.CommonTypeMissing(name)));
 	}
 
 	StructInst* nonTemplateFromSym(Sym name) {
@@ -189,7 +189,7 @@ StructInst* instantiateNonTemplateStructDecl(
 
 StructDecl* bogusStructDecl(ref Alloc alloc, size_t nTypeParameters) {
 	ArrBuilder!TypeParam typeParams;
-	FileAndRange fileAndRange = FileAndRange(FileIndex(0), RangeWithinFile.empty);
+	FileAndRange fileAndRange = FileAndRange.empty;
 	foreach (size_t i; 0 .. nTypeParameters)
 		add(alloc, typeParams, TypeParam(fileAndRange, sym!"bogus", i));
 	StructDecl* res = allocate(alloc, StructDecl(

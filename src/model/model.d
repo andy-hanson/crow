@@ -11,7 +11,6 @@ import util.col.arr : arrayOfSingle, empty, only, only2, PtrAndSmallNumber, smal
 import util.col.arrUtil : arrEqual;
 import util.col.map : Map;
 import util.col.enumMap : EnumMap;
-import util.col.fullIndexMap : FullIndexMap;
 import util.col.str : SafeCStr;
 import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
@@ -33,7 +32,7 @@ import util.uri : Uri;
 import util.util : max, min, typeAs, unreachable, verify;
 import util.writer : Writer, writeWithCommas;
 
-alias LineAndColumnGetters = immutable FullIndexMap!(FileIndex, LineAndColumnGetter);
+alias LineAndColumnGetters = Map!(Uri, LineAndColumnGetter);
 
 alias Purity = immutable Purity_;
 private enum Purity_ : ubyte {
@@ -1000,6 +999,7 @@ immutable struct Module {
 	@safe @nogc pure nothrow:
 
 	FileIndex fileIndex;
+	Uri uri;
 	SafeCStr docComment;
 	ImportOrExport[] imports; // includes import of std (if applicable)
 	ImportOrExport[] reExports;
@@ -1012,7 +1012,7 @@ immutable struct Module {
 	Map!(Sym, NameReferents) allExportedNames;
 
 	FileAndRange range() scope =>
-		FileAndRange.topOfFile(fileIndex);
+		FileAndRange.topOfFile(uri);
 }
 
 immutable struct ImportOrExport {

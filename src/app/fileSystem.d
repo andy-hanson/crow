@@ -48,7 +48,7 @@ import util.exitCode : ExitCode;
 import util.memory : memset;
 import util.opt : force, has, Opt, some;
 import util.ptr : ptrTrustMe;
-import util.storage : FileContent, ReadFileResult;
+import util.storage : FileContent, ReadFileIssue, ReadFileResult;
 import util.sym : Sym;
 import util.uri :
 	AllUris,
@@ -161,7 +161,7 @@ version (Windows) {
 
 @trusted ReadFileResult tryReadFile(ref Alloc alloc, ref AllUris allUris, Uri uri) {
 	if (!isFileUri(allUris, uri))
-		return ReadFileResult(ReadFileResult.NotFound());
+		return ReadFileResult(ReadFileIssue.notFound);
 
 	TempStrForPath pathBuf = void;
 	CStr pathCStr = fileUriToTempStr(pathBuf, allUris, asFileUri(allUris, uri)).ptr;
@@ -169,8 +169,8 @@ version (Windows) {
 	FILE* fd = fopen(pathCStr, "rb");
 	if (fd == null)
 		return errno == ENOENT
-			? ReadFileResult(ReadFileResult.NotFound())
-			: ReadFileResult(ReadFileResult.Error());
+			? ReadFileResult(ReadFileIssue.notFound)
+			: ReadFileResult(ReadFileIssue.error);
 	scope(exit) fclose(fd);
 
 	int err = fseek(fd, 0, SEEK_END);

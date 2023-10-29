@@ -14,14 +14,18 @@ import util.uri :
 	childUri,
 	commonAncestor,
 	compareUriAlphabetically,
+	FileUri,
 	fileUriToTempStr,
 	getExtension,
 	isFileUri,
 	parent,
+	parseAbsoluteFilePathAsUri,
 	parseUri,
 	parseUriWithCwd,
+	Path,
 	TempStrForPath,
 	TEST_eachPart,
+	toUri,
 	Uri,
 	uriToSafeCStr;
 import util.util : debugLog, verify, verifyFail;
@@ -82,13 +86,22 @@ private:
 	verifyUri(test, allUris, uri, ["file:", "home", "crow", "a.txt"]);
 	verify(isFileUri(allUris, uri));
 	TempStrForPath pathBuf = void;
-	fileUriToTempStr(pathBuf, allUris, asFileUri(allUris, uri));
+	FileUri fileUri = asFileUri(allUris, uri);
+	fileUriToTempStr(pathBuf, allUris, fileUri);
 	SafeCStr actual = SafeCStr(cast(immutable) pathBuf.ptr);
 	verify(safeCStrEq(actual, "/home/crow/a.txt"));
+
+	FileUri ab = parseAbsoluteFilePathAsUri(allUris, "/a/b");
+	verifyPath(test, allUris, ab.path, ["a", "b"]);
+
+	verify(toUri(allUris, fileUri) == uri);
 }
 
 void verifyUri(ref Test test, in AllUris allUris, Uri a, in string[] expectedParts) {
-	//ArrBuilder!string actualBuilder;
+	verifyPath(test, allUris, a.pathIncludingScheme, expectedParts);
+}
+
+void verifyPath(ref Test test, in AllUris allUris, Path a, in string[] expectedParts) {
 	size_t i = 0;
 	TEST_eachPart(allUris, a, (Sym x) {
 		verify(i < expectedParts.length);

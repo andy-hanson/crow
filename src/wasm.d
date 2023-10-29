@@ -1,25 +1,33 @@
 @safe @nogc nothrow: // not pure
 
-import frontend.ide.getDefinition : Definition, jsonOfDefinition;
+import frontend.ide.getDefinition : jsonOfDefinition;
 import frontend.ide.getTokens : jsonOfTokens;
 import frontend.showDiag : ShowDiagOptions;
 import interpret.fakeExtern : Pipe;
 import lib.server :
 	addOrChangeFileFromTempString,
+	allUnknownUris,
 	deleteFile,
 	getDefinition,
 	getFile,
 	getHover,
 	getTokensAndParseDiagnostics,
+	ProgramAndDefinition,
 	run,
 	Server,
+	showDiagnostic,
 	setCwd,
 	setDiagOptions,
 	setIncludeDir,
-	StrParseDiagnostic,
 	TokensAndParseDiagnostics,
-	toUri;
+	toUri,
+	typeCheckAllKnownFiles;
+import model.diag : Diagnostic;
+import model.model : Program;
 import util.alloc.alloc : Alloc, allocateT;
+import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.arrUtil : map;
+import util.col.multiMap : groupBy, MultiMap, multiMapEach;
 import util.col.str : CStr, SafeCStr;
 import util.exitCode : ExitCode;
 import util.json : field, jsonObject, Json, jsonToString, jsonList, jsonString, optionalField;
@@ -28,7 +36,7 @@ import util.opt : force, has, Opt;
 import util.perf : eachMeasure, Perf, PerfMeasureResult, withNullPerf;
 import util.sourceRange : Pos, jsonOfRangeWithinFile;
 import util.storage : asSafeCStr, FileContent;
-import util.uri : parseUri, Uri;
+import util.uri : parseUri, Uri, uriToString;
 
 // seems to be the required entry point
 extern(C) void _start() {}
@@ -91,6 +99,13 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 	return has(res) ? asSafeCStr(force(res)).ptr : "";
 }
 
+@system extern(C) CStr allUnknownUris(Server* server) {
+	Alloc resultAlloc = Alloc(resultBuffer);
+	Uri[] res = allUnknownUris(resultAlloc, *server);
+	return jsonToString(resultAlloc, server.allSymbols, jsonList(map(resultAlloc, res, (ref Uri x) =>
+		jsonString(uriToString(resultAlloc, server.allUris, x))))).ptr;
+}
+
 @system extern(C) CStr getTokensAndParseDiagnostics(Server* server, scope CStr uriPtr) {
 	Uri uri = toUri(*server, SafeCStr(uriPtr));
 	Alloc resultAlloc = Alloc(resultBuffer);
@@ -98,17 +113,25 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 		getTokensAndParseDiagnostics(resultAlloc, perf, *server, uri));
 	return jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
 		field!"tokens"(jsonOfTokens(resultAlloc, res.tokens)),
-		field!"parse-diagnostics"(jsonOfParseDiagnostics(resultAlloc, res.parseDiagnostics))])).ptr;
+		field!"parse-diagnostics"(jsonOfDiagnostics(resultAlloc, *server, res.programForDiagnostics))])).ptr;
+}
+
+@system extern(C) CStr getAllDiagnostics(Server* server) {
+	Alloc resultAlloc = Alloc(resultBuffer);
+	Program program = withNullPerf!(Program, (ref Perf perf) =>
+		typeCheckAllKnownFiles(resultAlloc, perf, *server));
+	return jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
+		field!"diagnostics"(jsonOfDiagnostics(resultAlloc, *server, program))])).ptr;
 }
 
 @system extern(C) CStr getDefinition(Server* server, scope CStr uriPtr, Pos pos) {
 	Uri uri = toUri(*server, SafeCStr(uriPtr));
 	Alloc resultAlloc = Alloc(resultBuffer);
 	return withNullPerf!(SafeCStr, (ref Perf perf) {
-		Opt!Definition res = getDefinition(perf, resultAlloc, *server, uri, pos);
+		ProgramAndDefinition res = getDefinition(perf, resultAlloc, *server, uri, pos);
 		return jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
-			optionalField!"definition"(has(res), () =>
-				jsonOfDefinition(resultAlloc, server.allUris, force(res)))
+			optionalField!"definition"(has(res.definition), () =>
+				jsonOfDefinition(resultAlloc, server.allUris, force(res.definition)))
 		]));
 	}).ptr;
 }
@@ -148,8 +171,24 @@ private:
 	return res;
 }
 
-Json jsonOfParseDiagnostics(ref Alloc alloc, scope StrParseDiagnostic[] a) =>
-	jsonList!StrParseDiagnostic(alloc, a, (in StrParseDiagnostic it) =>
-		jsonObject(alloc, [
-			field!"range"(jsonOfRangeWithinFile(alloc, it.range)),
-			field!"message"(jsonString(alloc, it.message))]));
+pure:
+
+Json jsonOfDiagnostics(ref Alloc alloc, in Server server, in Program program) {
+	MultiMap!(Uri, Diagnostic) grouped =
+		groupBy!(Uri, Diagnostic)(alloc, program.diagnostics.diags, (in Diagnostic x) =>
+			x.where.uri);
+
+	ArrBuilder!Json res;
+	multiMapEach!(Uri, Diagnostic)(grouped, (Uri uri, in Diagnostic[] diags) {
+		add(alloc, res, jsonObject(alloc, [
+			field!"uri"(uriToString(alloc, server.allUris, uri)),
+			field!"diagnostics"(jsonList!Diagnostic(alloc, diags, (in Diagnostic x) =>
+				jsonOfDiagnostic(alloc, server, program, x)))]));
+	});
+	return jsonList(finishArr(alloc, res));
+}
+
+Json jsonOfDiagnostic(ref Alloc alloc, in Server server, in Program program, in Diagnostic a) =>
+	jsonObject(alloc, [
+		field!"range"(jsonOfRangeWithinFile(alloc, a.where.range)),
+		field!"message"(jsonString(alloc, showDiagnostic(alloc, server, program, a)))]);

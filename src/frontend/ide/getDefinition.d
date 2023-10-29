@@ -24,25 +24,22 @@ import model.model :
 	TypeParam;
 import util.alloc.alloc : Alloc;
 import util.opt : force, has, none, Opt, some;
-import util.json : field, Json, jsonObject;
-import util.sourceRange : FileAndRange, FileIndex, jsonOfRangeWithinFile, RangeWithinFile;
+import util.json : field, Json;
+import util.sourceRange : FileAndRange, jsonOfFileAndRange;
 import util.union_ : Union;
-import util.uri : AllUris, Uri, uriToSafeCStr;
+import util.uri : AllUris, Uri;
 
-immutable struct Definition {
-	Uri uri;
-	RangeWithinFile range;
+struct Definition {
+	FileAndRange range;
 }
 
 Json jsonOfDefinition(ref Alloc alloc, in AllUris allUris, in Definition a) =>
-	jsonObject(alloc, [
-		field!"uri"(uriToSafeCStr(alloc, allUris, a.uri)),
-		field!"range"(jsonOfRangeWithinFile(alloc, a.range))]);
+	jsonOfFileAndRange(alloc, allUris, a.range);
 
 Opt!Definition getDefinitionForPosition(in Program program, in Position pos) {
 	Opt!Target target = targetForPosition(program, pos.kind);
 	return has(target)
-		? some(definitionForTarget(program, pos.module_.fileIndex, force(target)))
+		? some(definitionForTarget(program, pos.module_.uri, force(target)))
 		: none!Definition;
 }
 
@@ -62,19 +59,17 @@ immutable struct Target {
 	);
 }
 
-Definition definitionForTarget(in Program program, FileIndex curFile, in Target a) {
-	FileAndRange range = rangeForTarget(curFile, a);
-	return Definition(program.filesInfo.fileUris[range.fileIndex], range.range);
-}
+Definition definitionForTarget(in Program program, Uri curUri, in Target a) =>
+	Definition(rangeForTarget(curUri, a));
 
-FileAndRange rangeForTarget(in FileIndex curFile, in Target a) =>
+FileAndRange rangeForTarget(Uri curUri, in Target a) =>
 	a.matchIn!FileAndRange(
 		(in FunDecl x) =>
 			x.range,
 		(in Local x) =>
 			x.range,
 		(in ExprKind.Loop x) =>
-			FileAndRange(curFile, x.range),
+			FileAndRange(curUri, x.range),
 		(in Module x) =>
 			x.range,
 		(in RecordField x) =>

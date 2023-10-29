@@ -23,7 +23,7 @@ import interpret.runBytecode : runBytecode;
 import lower.lower : lower;
 import model.concreteModel : ConcreteProgram;
 import model.diag :
-	Diagnostic, Diagnostics, diagnosticsIsFatal, DiagnosticWithinFile, DiagSeverity, FilesInfo, diagnosticsIsEmpty;
+	Diagnostic, Diagnostics, diagnosticsIsFatal, DiagnosticWithinFile, DiagSeverity, FilesInfo, filesInfoForSingle;
 import model.jsonOfConcreteModel : jsonOfConcreteProgram;
 import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
@@ -32,31 +32,27 @@ import model.model : fakeProgramForDiagnostics, Program;
 import util.alloc.alloc : Alloc;
 import util.col.arr : only;
 import util.col.arrBuilder : ArrBuilder;
-import util.col.arrUtil : arrLiteral, map;
-import util.col.map : mapLiteral;
-import util.col.fullIndexMap : fullIndexMapOfArr;
 import util.col.str : SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
 import util.exitCode : ExitCode;
 import util.json : Json;
 import util.late : Late, lateGet, lateSet;
-import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForText;
+import util.lineAndColumnGetter : lineAndColumnGetterForText;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.storage :
+	allKnownGoodUris,
 	allocateToStorage,
-	asOption,
+	allUnknownUris,
 	asSafeCStr,
 	deleteFile,
-	emptyFileContent,
 	FileContent,
 	getFileNoMarkUnknown,
-	getOneUnknownUri,
 	hasUnknownUris,
 	ReadFileResult,
 	Storage,
 	setFile,
 	withFileContent;
-import util.sourceRange : FileIndex, Pos, RangeWithinFile;
+import util.sourceRange : FileIndex, Pos;
 import util.sym : AllSymbols;
 import util.uri : AllUris, parseUri, Uri, UrisInfo;
 import util.util : verify;
@@ -75,8 +71,11 @@ ExitCode run(ref Perf perf, ref Alloc alloc, ref Server server, Uri main, in Wri
 			main, allArgs));
 }
 
-bool hasUnknownUris(in Server server) =>
+private bool hasUnknownUris(in Server server) =>
 	hasUnknownUris(server.storage);
+
+Uri[] allUnknownUris(ref Alloc alloc, in Server server) =>
+	allUnknownUris(alloc, server.storage);
 
 ExitCode buildAndInterpret(
 	ref Alloc alloc,
@@ -174,21 +173,17 @@ void deleteFile(ref Server server, Uri uri) {
 Opt!FileContent getFile(ref Alloc alloc, in Server server, Uri uri) =>
 	getFileNoMarkUnknown(alloc, server.storage, uri);
 
-Opt!Uri getOneUnknownUri(in Server server) =>
-	getOneUnknownUri(server.storage);
-
 void justParseEverything(ref Alloc alloc, ref Perf perf, ref Server server, in Uri[] rootUris) {
 	parseAllFiles(alloc, perf, server.allSymbols, server.allUris, server.storage, server.includeDir, rootUris);
 }
 
-Opt!SafeCStr justTypeCheck(ref Alloc alloc, ref Perf perf, ref Server server, in Uri[] rootUris) {
-	Program program = frontendCompile(alloc, perf, server, rootUris, none!Uri);
-	return diagnosticsIsEmpty(program.diagnostics)
-		? none!SafeCStr
-		: some(showDiagnostics(alloc, server, program));
-}
+Program typeCheckAllKnownFiles(ref Alloc alloc, ref Perf perf, ref Server server) =>
+	justTypeCheck(alloc, perf, server, allKnownGoodUris(alloc, server.storage));
 
-private SafeCStr showDiagnostic(ref Alloc alloc, in Server server, in Program program, in Diagnostic a) =>
+Program justTypeCheck(ref Alloc alloc, ref Perf perf, ref Server server, in Uri[] rootUris) =>
+	frontendCompile(alloc, perf, server, rootUris, none!Uri);
+
+SafeCStr showDiagnostic(ref Alloc alloc, in Server server, in Program program, in Diagnostic a) =>
 	strOfDiagnostic(alloc, server.allSymbols, server.allUris, server.urisInfo, server.diagOptions, program, a);
 
 SafeCStr showDiagnostics(ref Alloc alloc, in Server server, in Program program) =>
@@ -212,12 +207,7 @@ private Program frontendCompile(ref Alloc alloc, ref Perf perf, ref Server serve
 
 immutable struct TokensAndParseDiagnostics {
 	Token[] tokens;
-	StrParseDiagnostic[] parseDiagnostics;
-}
-
-immutable struct StrParseDiagnostic {
-	RangeWithinFile range;
-	SafeCStr message;
+	Program programForDiagnostics;
 }
 
 TokensAndParseDiagnostics getTokensAndParseDiagnostics(
@@ -227,33 +217,29 @@ TokensAndParseDiagnostics getTokensAndParseDiagnostics(
 	in Uri uri,
 ) =>
 	withFileContent!TokensAndParseDiagnostics(server.storage, uri, (in ReadFileResult x) {
-		Opt!FileContent content = asOption(x);
-		SafeCStr text = has(content) ? asSafeCStr(force(content)) : safeCStr!"";
+		SafeCStr text = x.isA!FileContent ? asSafeCStr(x.as!FileContent) : safeCStr!"";
 		ArrBuilder!DiagnosticWithinFile diagnosticsBuilder;
-		FileAst ast = parseFile(alloc, perf, server.allUris, server.allSymbols, diagnosticsBuilder, text);
+		FileAst ast = parseFile(alloc, perf, server.allSymbols, server.allUris, diagnosticsBuilder, text);
 		//TODO: use 'scope' to avoid allocating things here
-		FilesInfo filesInfo = FilesInfo(
-			fullIndexMapOfArr!(FileIndex, Uri)(arrLiteral!Uri(alloc, [uri])),
-			mapLiteral!(Uri, FileIndex)(alloc, uri, FileIndex(0)),
-			fullIndexMapOfArr!(FileIndex, LineAndColumnGetter)(
-				arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetterForText(alloc, text)])));
+		FilesInfo filesInfo = filesInfoForSingle(alloc, uri, lineAndColumnGetterForText(alloc, text));
 		Program program = fakeProgramForDiagnostics(filesInfo, Diagnostics(
 			DiagSeverity.parseError,
-			diagnosticsForFile(alloc, FileIndex(0), diagnosticsBuilder, server.allUris, filesInfo.fileUris).diags));
-		return TokensAndParseDiagnostics(
-			tokensOfAst(alloc, server.allSymbols, ast),
-			map(alloc, program.diagnostics.diags, (ref Diagnostic x) =>
-				StrParseDiagnostic(
-					x.where.range,
-					showDiagnostic(alloc, server, program, x))));
+			diagnosticsForFile(alloc, server.allUris, uri, diagnosticsBuilder).diags));
+		return TokensAndParseDiagnostics(tokensOfAst(alloc, server.allSymbols, ast), program);
 	});
 
-Opt!Definition getDefinition(ref Perf perf, ref Alloc alloc, ref Server server, in Uri uri, Pos pos) {
+struct ProgramAndDefinition {
+	Program program;
+	Opt!Definition definition;
+}
+
+ProgramAndDefinition getDefinition(ref Perf perf, ref Alloc alloc, ref Server server, in Uri uri, Pos pos) {
 	Program program = getProgram(perf, alloc, server, uri);
 	Opt!Position position = getPosition(server, program, uri, pos);
-	return has(position)
+	Opt!Definition definition = has(position)
 		? getDefinitionForPosition(program, force(position))
 		: none!Definition;
+	return ProgramAndDefinition(program, definition);
 }
 
 SafeCStr getHover(ref Perf perf, ref Alloc alloc, ref Server server, in Uri uri, Pos pos) {

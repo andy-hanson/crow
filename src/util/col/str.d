@@ -4,7 +4,7 @@ module util.col.str;
 
 import util.alloc.alloc : Alloc, allocateT;
 import util.comparison : Comparison;
-import util.col.arr : empty, freeArr;
+import util.col.arr : empty;
 import util.col.arrUtil : arrEqual, map;
 import util.hash : Hasher, hashUbyte;
 import util.memory : memcpy;
@@ -60,11 +60,6 @@ bool strEq(string a, string b) =>
 
 @trusted size_t safeCStrSize(in SafeCStr a) =>
 	end(a.ptr) - a.ptr;
-
-@system void freeSafeCStr(ref Alloc alloc, SafeCStr a) {
-	// + 1 to free the '\0' too
-	freeArr(alloc, a.ptr[0 .. safeCStrSize(a) + 1]);
-}
 
 bool safeCStrIsEmpty(SafeCStr a) =>
 	*a.ptr == '\0';

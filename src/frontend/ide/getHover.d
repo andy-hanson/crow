@@ -27,6 +27,7 @@ import model.model :
 	writeStructDecl,
 	writeTypeUnquoted;
 import util.alloc.alloc : Alloc, TempAlloc;
+import util.col.map : mustGetAt;
 import util.col.str : SafeCStr;
 import util.lineAndColumnGetter : lineAndColumnAtPos, PosKind;
 import util.ptr : ptrTrustMe;
@@ -68,7 +69,7 @@ void getHover(
 		},
 		(in PositionKind.ImportedModule x) {
 			writer ~= "import module ";
-			writeFile(writer, allUris, urisInfo, program.filesInfo, x.module_.fileIndex);
+			writeFile(writer, allUris, urisInfo, x.module_.uri);
 		},
 		(in PositionKind.ImportedName x) {
 			getImportedNameHover(writer, x);
@@ -259,7 +260,7 @@ void localHover(ref Writer writer, in AllSymbols allSymbols, in Program program,
 void writeLoop(ref Writer writer, in Program program, in Module curModule, in ExprKind.Loop a) {
 	writer ~= "loop on line ";
 	writer ~= lineAndColumnAtPos(
-		program.filesInfo.lineAndColumnGetters[curModule.fileIndex],
+		mustGetAt(program.filesInfo.lineAndColumnGetters, curModule.uri),
 		a.range.start,
 		PosKind.startOfRange,
 	).line;

@@ -13,7 +13,7 @@ import util.col.arrUtil : fold;
 import util.col.map : Map;
 import util.col.mapBuilder : finishMap, MapBuilder, tryAddToMap;
 import util.col.str : SafeCStr;
-import util.storage : asSafeCStr, FileContent, ReadFileResult, Storage, withFileContent;
+import util.storage : asSafeCStr, FileContent, ReadFileIssue, ReadFileResult, Storage, withFileContent;
 import util.opt : force, has, none, Opt, some;
 import util.json : Json;
 import util.jsonParse : parseJson;
@@ -56,15 +56,19 @@ Config getConfigRecur(
 		a.matchIn!(Opt!Config)(
 			(in FileContent content) =>
 				some(parseConfig(alloc, allSymbols, allUris, crowIncludeDir, searchUri, diags, asSafeCStr(content))),
-			(in ReadFileResult.NotFound) =>
-				none!Config,
-			(in ReadFileResult.Error) {
-				add(alloc, diags, DiagnosticWithinFile(RangeWithinFile.empty, Diag(
-					ParseDiag(ParseDiag.FileReadError(none!UriAndRange)))));
-				return some(emptyConfig(crowIncludeDir));
-			},
-			(in ReadFileResult.Unknown) =>
-				some(emptyConfig(crowIncludeDir))));
+			(in ReadFileIssue issue) {
+				final switch (issue) {
+					case ReadFileIssue.notFound:
+						return none!Config;
+					case ReadFileIssue.error:
+						todo!void("what file to add this error to?");
+						//add(alloc, diags, DiagnosticWithinFile(RangeWithinFile.empty, Diag(
+						//	ParseDiag(ParseDiag.FileReadError(none!UriAndRange)))));
+						return some(emptyConfig(crowIncludeDir));
+					case ReadFileIssue.unknown:
+						return some(emptyConfig(crowIncludeDir));
+				}
+ 			}));
 	foreach (ref DiagnosticWithinFile d; finishArr(alloc, diags))
 		todo!void("!");
 	if (has(res))

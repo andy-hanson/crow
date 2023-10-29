@@ -31,7 +31,7 @@ import model.jsonOfConcreteModel : jsonOfConcreteFunRef, jsonOfConcreteStructRef
 import util.alloc.alloc : Alloc;
 import util.json : field, jsonObject, optionalField, Json, jsonInt, jsonList, jsonString, kindField;
 import util.ptr : castNonScope_ref;
-import util.sourceRange : jsonOfFileAndRange;
+import util.sourceRange : jsonOfRangeWithinFile;
 
 Json jsonOfLowProgram(ref Alloc alloc, in LowProgram a) =>
 	jsonObject(alloc, [
@@ -133,7 +133,7 @@ Json jsonOfLowLocalSource(ref Alloc alloc, in LowLocalSource a) =>
 Json jsonOfLowExpr(ref Alloc alloc, in LowExpr a) =>
 	jsonObject(alloc, [
 		field!"type"(jsonOfLowType(alloc, a.type)),
-		field!"source"(jsonOfFileAndRange(alloc, a.source)),
+		field!"source"(jsonOfRangeWithinFile(alloc, a.source.range)),
 		field!"expr-kind"(jsonOfLowExprKind(alloc, a.kind))]);
 
 Json jsonOfLowExprs(ref Alloc alloc, in LowExpr[] a) =>

@@ -1,17 +1,22 @@
 declare namespace crow {
-	type DiagRange = {
+	type RangeWithinFile = {
 		start: number
 		end: number
 	}
 
-	type Diagnostic = {
-		message: string
-		range: DiagRange
+	type UriAndPosition = {
+		uri: string
+		position: number
 	}
 
 	type UriAndRange = {
 		uri: string
-		range: DiagRange
+		range: RangeWithinFile
+	}
+
+	type Diagnostic = {
+		range: RangeWithinFile
+		message: string
 	}
 
 	type Definition = {
@@ -20,7 +25,7 @@ declare namespace crow {
 
 	type Token = {
 		token: TokenKind
-		range: DiagRange
+		range: RangeWithinFile
 	}
 
 	type TokenKind =
@@ -44,6 +49,15 @@ declare namespace crow {
 		parseDiagnostics: ReadonlyArray<Diagnostic>
 	}
 
+	type UriAndDiagnostics = {
+		uri: string
+		diagnostics: ReadonlyArray<Diagnostic>
+	}
+
+	type AllDiagnosticsResult = {
+		diagnostics: ReadonlyArray<UriAndDiagnostics>
+	}
+
 	namespace Write {
 		type Pipe = "stdout" | "stderr"
 	}
@@ -57,9 +71,11 @@ declare namespace crow {
 		deleteFile(uri: string): void
 		// For debug/test
 		getFile(uri: string): string
+		allUnknownUris(): ReadonlyArray<string>
 		getTokensAndParseDiagnostics(uri: string): TokensAndParseDiagnostics
-		getDefinition(uri: string, pos: number): Definition
-		getHover(uri: string, pos: number): string
+		getAllDiagnostics(): AllDiagnosticsResult
+		getDefinition(where: UriAndPosition): Definition
+		getHover(where: UriAndPosition): string
 		run(uri: string): RunOutput
 	}
 }

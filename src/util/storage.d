@@ -4,14 +4,15 @@ module util.storage;
 
 import util.alloc.alloc : Alloc, freeT, verifyOwns;
 import util.col.arr : empty;
+import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrLiteral, copyArr, makeArr;
-import util.col.mutArr : mutArrIsEmpty, MutArr, push, removeUnordered;
-import util.col.mutMap : getAt_mut, getOrAddAndDidAdd, insertOrUpdate, MutMap, setInMap, ValueAndDidAdd;
+import util.col.mutArr : mutArrIsEmpty, MutArr, push, removeUnordered, tempAsArr;
+import util.col.mutMap : getAt_mut, getOrAddAndDidAdd, insertOrUpdate, MutMap, mutMapEach, ValueAndDidAdd;
 import util.col.str : SafeCStr, strOfSafeCStr;
 import util.opt : force, has, none, Opt, some;
 import util.union_ : Union;
 import util.uri : Uri;
-import util.util : verify, verifyFail;
+import util.util : verify;
 
 struct Storage {
 	@safe @nogc pure nothrow:
@@ -22,6 +23,7 @@ struct Storage {
 
 	private:
 	Alloc* allocPtr;
+	// This doesn't store 'Unknown' values since that's redundant
 	MutMap!(Uri, ReadFileResult) fileContents;
 	// Set of keys in 'fileContents' for which the value is Unknown
 	MutArr!Uri unknownUris;
@@ -39,44 +41,52 @@ FileContent allocateToStorage(ref Storage a, in SafeCStr content) {
 }
 
 void setFile(scope ref Storage a, Uri uri, ReadFileResult result) {
-	result.match!void(
-		(FileContent x) {
+	result.matchIn!void(
+		(in FileContent x) {
 			verifyOwns(a.alloc, x.bytes);
 		},
-		(ReadFileResult.NotFound) {},
-		(ReadFileResult.Error) {},
-		(ReadFileResult.Unknown) {
-			verifyFail();
+		(in ReadFileIssue x) {
+			verify(x != ReadFileIssue.unknown);
 		});
-	deleteFile(a, uri);
-	setInMap(a.alloc, a.fileContents, uri, result);
+
+	removeUnordered(a.unknownUris, uri);
+	setResult(a, uri, result);
 }
 
 void deleteFile(scope ref Storage a, Uri uri) {
 	removeUnordered(a.unknownUris, uri);
+	setResult(a, uri, ReadFileResult(ReadFileIssue.notFound));
+}
+
+private void setResult(scope ref Storage a, Uri uri, ReadFileResult result) {
 	insertOrUpdate!(Uri, ReadFileResult)(
 		a.alloc, a.fileContents, uri,
-		() => ReadFileResult(ReadFileResult.NotFound()),
+		() => result,
 		(ref const ReadFileResult old) @trusted {
 			old.free(a.alloc);
-			return ReadFileResult(ReadFileResult.NotFound());
+			return result;
 		});
 }
 
 bool hasUnknownUris(in Storage a) =>
 	!mutArrIsEmpty(a.unknownUris);
 
-// Written this way to avoid GC
-Opt!Uri getOneUnknownUri(in Storage a) =>
-	mutArrIsEmpty(a.unknownUris)
-		? none!Uri
-		: some(a.unknownUris[0]);
+Uri[] allKnownGoodUris(ref Alloc alloc, in Storage a) {
+	ArrBuilder!Uri res;
+	mutMapEach!(Uri, ReadFileResult)(a.fileContents, (Uri uri, ref ReadFileResult x) {
+		if (x.isA!FileContent)
+			add(alloc, res, uri);
+	});
+	return finishArr(alloc, res);
+}
+
+Uri[] allUnknownUris(ref Alloc alloc, in Storage a) =>
+	copyArr(alloc, tempAsArr(a.unknownUris));
 
 Opt!FileContent getFileNoMarkUnknown(ref Alloc alloc, in Storage a, Uri uri) {
 	Opt!ReadFileResult result = getAt_mut(a.fileContents, uri);
-	Opt!FileContent content = has(result) ? asOption(force(result)) : none!FileContent;
-	return has(content)
-		? some(copyFileContent(alloc, force(content)))
+	return has(result) && force(result).isA!FileContent
+		? some(copyFileContent(alloc, force(result).as!FileContent))
 		: none!FileContent;
 }
 
@@ -87,28 +97,25 @@ T withFileContent(T)(
 	in T delegate(in ReadFileResult) @safe @nogc pure nothrow cb,
 ) {
 	ValueAndDidAdd!ReadFileResult res = getOrAddAndDidAdd(storage.alloc, storage.fileContents, uri, () =>
-		ReadFileResult(ReadFileResult.Unknown()));
+		ReadFileResult(ReadFileIssue.unknown));
 	if (res.didAdd)
 		push(storage.alloc, storage.unknownUris, uri);
 	return cb(res.value);
 }
 
+private enum ReadFileIssue_ { notFound, error, unknown }
+alias ReadFileIssue = immutable ReadFileIssue_;
+
 immutable struct ReadFileResult {
 	@safe @nogc pure nothrow:
 
-	immutable struct NotFound {}
-	immutable struct Error {}
-	immutable struct Unknown {}
-	mixin Union!(FileContent, NotFound, Error, Unknown);
+	mixin Union!(FileContent, ReadFileIssue);
 
 	@system void free(ref Alloc alloc) {
 		if (isA!FileContent)
 			as!FileContent.free(alloc);
 	}
 }
-
-Opt!FileContent asOption(ReadFileResult a) =>
-	a.isA!FileContent ? some(a.as!FileContent) : none!FileContent;
 
 immutable struct FileContent {
 	@safe @nogc pure nothrow:
