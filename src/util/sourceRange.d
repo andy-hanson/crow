@@ -3,34 +3,14 @@ module util.sourceRange;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.fullIndexMap : FullIndexMap;
-import util.col.map : Map;
 import util.comparison : compareNat32, Comparison;
 import util.conv : safeToUint;
-import util.hash : Hasher, hashUshort;
 import util.json : field, Json, jsonObject;
-import util.opt : none;
 import util.sym : AllSymbols, Sym, symSize;
 import util.uri : AllUris, compareUriAlphabetically, Uri, uriToString;
 import util.util : verify;
 
 alias Pos = uint;
-
-alias FileUris = FullIndexMap!(FileIndex, Uri);
-alias UriToFile = Map!(Uri, FileIndex);
-
-immutable struct FileIndex {
-	@safe @nogc pure nothrow:
-
-	ushort index;
-
-	static FileIndex none() =>
-		FileIndex(ushort.max);
-
-	void hash(ref Hasher hasher) scope const {
-		hashUshort(hasher, index);
-	}
-}
 
 immutable struct RangeWithinFile {
 	@safe @nogc pure nothrow:
@@ -88,10 +68,6 @@ immutable struct UriAndRange {
 	Pos start() =>
 		range.start;
 
-	//TODO:KILL
-	Uri fileIndex() =>
-		uri;
-
 	static UriAndRange empty() =>
 		topOfFile(Uri.empty);
 
@@ -107,7 +83,7 @@ Comparison compareUriAndRange(in AllUris allUris, UriAndRange a, UriAndRange b) 
 }
 
 FileAndPos toFileAndPos(FileAndRange a) =>
-	FileAndPos(a.fileIndex, a.start);
+	FileAndPos(a.uri, a.start);
 
 Json jsonOfFileAndPos(ref Alloc alloc, in AllUris allUris, FileAndPos a) =>
 	jsonObject(alloc, [field!"uri"(uriToString(alloc, allUris, a.uri)), field!"pos"(a.pos)]);

@@ -94,14 +94,13 @@ import util.opt : force, has, none, Opt, someMut, some;
 import util.perf : Perf;
 import util.ptr : ptrTrustMe;
 import util.storage : asBytes, asString, FileContent;
-import util.sourceRange : FileAndPos, FileAndRange, FileIndex, RangeWithinFile;
+import util.sourceRange : FileAndPos, FileAndRange, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
 import util.uri : Uri;
 import util.util : unreachable, todo, verify;
 
 immutable struct FileAndAst {
 	Uri uri;
-	FileIndex fileIndex;
 	FileAst ast;
 }
 
@@ -795,7 +794,6 @@ Module checkWorkerAfterCommonTypes(
 	StructAlias[] structAliases,
 	StructDecl[] structs,
 	ref MutArr!(StructInst*) delayStructInsts,
-	FileIndex fileIndex,
 	Uri uri,
 	ref ImportsAndExports importsAndExports,
 	in FileAst ast,
@@ -825,7 +823,6 @@ Module checkWorkerAfterCommonTypes(
 		ast.tests);
 	checkForUnused(ctx, structAliases, structs, specs, funsAndMap.funs);
 	return Module(
-		fileIndex,
 		uri,
 		copySafeCStr(ctx.alloc, ast.docComment),
 		importsAndExports.moduleImports,
@@ -946,7 +943,6 @@ BootstrapCheck checkWorker(
 		ptrTrustMe(perf),
 		ptrTrustMe(programState),
 		ptrTrustMe(allSymbols),
-		fileAndAst.fileIndex,
 		fileAndAst.uri,
 		ImportsAndReExports(importsAndExports.moduleImports, importsAndExports.moduleExports),
 		ptrTrustMe(diagsBuilder));
@@ -979,7 +975,6 @@ BootstrapCheck checkWorker(
 		structAliases,
 		structs,
 		delayStructInsts,
-		fileAndAst.fileIndex,
 		fileAndAst.uri,
 		importsAndExports,
 		ast);

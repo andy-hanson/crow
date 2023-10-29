@@ -221,19 +221,6 @@ T[] copyArr(T)(ref Alloc alloc, scope T[] a) =>
 	return res[0 .. a.length];
 }
 
-@trusted Out[] mapWithSoFar(Out, In)(
-	ref Alloc alloc,
-	in In[] inputs,
-	in Out delegate(in In, in Out[], size_t) @safe @nogc pure nothrow cb
-) {
-	Out* res = allocateT!Out(alloc, inputs.length);
-	foreach (size_t i, ref In input; inputs) {
-		Out[] soFar = res[0 .. i];
-		initMemory(res + i, cb(input, soFar, i));
-	}
-	return res[0 .. inputs.length];
-}
-
 @trusted immutable(T[]) cat(T)(ref Alloc alloc, immutable T[] a, immutable T[] b) {
 	if (empty(a))
 		return b;

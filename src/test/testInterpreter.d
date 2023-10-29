@@ -7,8 +7,6 @@ import interpret.bytecode :
 	ByteCode,
 	ByteCodeIndex,
 	ByteCodeSource,
-	FileToFuns,
-	FunNameAndPos,
 	FunPtrToOperationPtr,
 	initialOperationPointer,
 	Operation,
@@ -79,7 +77,7 @@ import util.exitCode : ExitCode;
 import util.lineAndColumnGetter : lineAndColumnGetterForEmptyFile;
 import util.memory : allocate;
 import util.ptr : castNonScope, ptrTrustMe;
-import util.sourceRange : FileIndex, Pos;
+import util.sourceRange : Pos;
 import util.sym : sym;
 import util.uri : emptyUrisInfo, parseUri;
 import util.util : verify;
@@ -115,15 +113,9 @@ ByteCode dummyByteCode(Operations operations) =>
 	ByteCode(
 		operations,
 		FunPtrToOperationPtr(),
-		dummyFileToFuns(),
 		[],
 		EnumMap!(VarKind, size_t)([0, 0]),
 		ByteCodeIndex(0));
-
-FileToFuns dummyFileToFuns() {
-	static immutable FunNameAndPos[][] dummy = [[FunNameAndPos(sym!"a", Pos(0))]];
-	return fullIndexMapOfArr!(FileIndex, FunNameAndPos[])(dummy);
-}
 
 void doInterpret(
 	ref Test test,

@@ -17,17 +17,16 @@ import frontend.parse.parse : parseFile;
 import frontend.programState : ProgramState;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
-import util.col.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
-import util.col.arrUtil : contains, copyArr, map, mapOp, mapOrNone, mapWithSoFar, prepend;
-import util.col.map : mapValues;
+import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.arrUtil : contains, copyArr, map, mapOp, mapOrNone, prepend;
+import util.col.map : Map, mustGetAt;
 import util.col.mapBuilder : finishMap, MapBuilder, mustAddToMap;
-import util.col.enumMap : EnumMap, enumMapMapValues;
-import util.col.fullIndexMap : FullIndexMap, fullIndexMapOfArr;
+import util.col.enumMap : EnumMap, enumMapEach, enumMapMapValues;
 import util.col.mutMaxArr : isEmpty, mustPeek, mustPop, MutMaxArr, mutMaxArr, push;
-import util.col.mutMap : addToMutMap, getAt_mut, hasKey_mut, moveToMap, mustGetAt_mut, MutMap, setInMap;
-import util.conv : safeToUshort;
+import util.col.mutMap : addToMutMap, getAt_mut, hasKey_mut, moveToMap, MutMap, setInMap;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForText;
+import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.storage :
@@ -39,7 +38,7 @@ import util.storage :
 	ReadFileResult,
 	Storage,
 	withFileContent;
-import util.sourceRange : FileIndex, RangeWithinFile;
+import util.sourceRange : RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.uri :
@@ -56,7 +55,7 @@ import util.uri :
 	PathFirstAndRest,
 	RelPath,
 	resolveUri;
-import util.util : todo, unreachable, verify;
+import util.util : todo, verify;
 
 Program frontendCompile(
 	ref Alloc modelAlloc,
@@ -71,13 +70,14 @@ Program frontendCompile(
 ) {
 	DiagnosticsBuilder diagsBuilder = DiagnosticsBuilder();
 	Config config = getConfig(modelAlloc, allSymbols, allUris, includeDir, storage, diagsBuilder, rootUris);
+	EnumMap!(CommonModule, Uri) commonUris = commonUris(allUris, config.crowIncludeDir);
 	ParsedEverything parsed = withMeasure!(ParsedEverything, () => parseEverything(
-		modelAlloc, astsAlloc, perf, allSymbols, allUris, diagsBuilder, storage, rootUris, mainUri, config)
+		modelAlloc, astsAlloc, perf, allSymbols, allUris, diagsBuilder, storage, rootUris, mainUri, commonUris, config)
 	)(astsAlloc, perf, PerfMeasure.parseEverything);
 	return withMeasure!(Program, () =>
 		checkEverything(
 			modelAlloc, perf, allSymbols, allUris, diagsBuilder,
-			config, parsed.asts, parsed.filesInfo, parsed.commonModuleIndices)
+			config, parsed.asts, parsed.filesInfo, rootUris, mainUri, commonUris)
 	)(modelAlloc, perf, PerfMeasure.checkEverything);
 }
 
@@ -94,7 +94,7 @@ void parseAllFiles(
 	DiagnosticsBuilder diagsBuilder = DiagnosticsBuilder();
 	Config config = getConfig(alloc, allSymbols, allUris, includeDir, storage, diagsBuilder, rootUris);
 	cast(void) parseEverything(
-		alloc, alloc,perf, allSymbols, allUris, diagsBuilder, storage, rootUris, none!Uri, config);
+		alloc, alloc,perf, allSymbols, allUris, diagsBuilder, storage, rootUris, none!Uri, commonUris(allUris, config.crowIncludeDir), config);
 }
 
 immutable struct FileAstAndDiagnostics {
@@ -133,7 +133,7 @@ private:
 
 immutable struct ParseStatus {
 	immutable struct Started {}
-	immutable struct Done { FileIndex fileIndex; }
+	immutable struct Done {}
 	mixin Union!(Started, Done, ReadFileIssue);
 }
 
@@ -141,14 +141,7 @@ alias UriToStatus = MutMap!(Uri, ParseStatus);
 
 immutable struct ParsedEverything {
 	FilesInfo filesInfo;
-	CommonModuleIndices commonModuleIndices;
 	AstAndResolvedImports[] asts;
-}
-
-immutable struct CommonModuleIndices {
-	Opt!FileIndex main;
-	EnumMap!(CommonModule, FileIndex) common;
-	FileIndex[] rootUris;
 }
 
 struct ParseStackEntry {
@@ -171,13 +164,13 @@ ParsedEverything parseEverything(
 	scope ref Storage storage,
 	in Uri[] rootUris,
 	in Opt!Uri mainUri,
+	EnumMap!(CommonModule, Uri) commonUris,
 	ref Config config,
 ) {
 	verify(!empty(rootUris));
 	if (has(mainUri))
 		verify(contains(rootUris, force(mainUri)));
 
-	ArrBuilder!Uri fileIndexToUri;
 	UriToStatus statuses;
 	ArrBuilder!AstAndResolvedImports res;
 	MapBuilder!(Uri, LineAndColumnGetter) lineAndColumnGetters;
@@ -207,14 +200,10 @@ ParsedEverything parseEverything(
 				: none!(FullyResolvedImport[]);
 			if (has(exports)) {
 				ParseStackEntry entry = mustPop(stack);
-				FileIndex fileIndex = FileIndex(safeToUshort(arrBuilderSize(res)));
-
 				addDiagnosticsForFile(modelAlloc, diagsBuilder, uri, entry.diags);
-				verify(arrBuilderSize(fileIndexToUri) == fileIndex.index);
 				add(astAlloc, res, AstAndResolvedImports(uri, entry.ast, force(imports), force(exports)));
-				add(modelAlloc, fileIndexToUri, uri);
 				mustAddToMap(modelAlloc, lineAndColumnGetters, uri, entry.lineAndColumnGetter);
-				setInMap(astAlloc, statuses, uri, ParseStatus(ParseStatus.Done(fileIndex)));
+				setInMap(astAlloc, statuses, uri, ParseStatus(ParseStatus.Done()));
 			}
 			// else, we just pushed a dependency to the stack, so repeat.
 		}
@@ -229,45 +218,18 @@ ParsedEverything parseEverything(
 		}
 	}
 
-	immutable EnumMap!(CommonModule, Uri) commonUris = commonUris(allUris, config.crowIncludeDir);
-	foreach (Uri uri; commonUris)
+	enumMapEach!(CommonModule, Uri)(commonUris, (CommonModule _, in Uri uri) {
 		processRootUri(uri);
+	});
 	foreach (Uri uri; rootUris)
 		processRootUri(uri);
 
 	verify(isEmpty(stack));
 
-	CommonModuleIndices commonModuleIndices = CommonModuleIndices(
-		has(mainUri) ? some(getIndex(statuses, force(mainUri))) : none!FileIndex,
-		enumMapMapValues!(CommonModule, FileIndex, Uri)(commonUris, (in Uri uri) =>
-			getIndex(statuses, uri)),
-		map(modelAlloc, rootUris, (ref Uri uri) =>
-			getIndex(statuses, uri)));
-
 	return ParsedEverything(
-		FilesInfo(
-			fullIndexMapOfArr!(FileIndex, Uri)(finishArr(modelAlloc, fileIndexToUri)),
-			mapValues!(Uri, FileIndex, ParseStatus)(
-				modelAlloc,
-				moveToMap!(Uri, ParseStatus)(astAlloc, statuses),
-				(Uri _, ref ParseStatus x) =>
-					indexFromStatus(x)),
-			finishMap(modelAlloc, lineAndColumnGetters)),
-		commonModuleIndices,
+		FilesInfo(finishMap(modelAlloc, lineAndColumnGetters)),
 		finishArr(astAlloc, res));
 }
-
-FileIndex getIndex(in UriToStatus statuses, Uri uri) =>
-	indexFromStatus(mustGetAt_mut(statuses, uri));
-
-FileIndex indexFromStatus(in ParseStatus a) =>
-	a.matchIn!FileIndex(
-		(in ParseStatus.Started) =>
-			unreachable!FileIndex,
-		(in ParseStatus.Done x) =>
-			x.fileIndex,
-		(in ReadFileIssue x) =>
-			FileIndex.none);
 
 immutable(EnumMap!(CommonModule, Uri)) commonUris(ref AllUris allUris, Uri includeDir) {
 	Uri includeCrow = childUri(allUris, includeDir, sym!"crow");
@@ -361,14 +323,14 @@ Opt!FullyResolvedImportKind fullyResolveImportKind(
 			fullyResolveImportModule(
 				modelAlloc, astAlloc, perf, allSymbols, allUris, storage, config, statuses, stack, diags, fromUri,
 				import_.importedFrom, resolvedUri,
-				(FileIndex f) =>
-					FullyResolvedImportKind(FullyResolvedImportKind.ModuleWhole(f))),
+				(Uri uri) =>
+					FullyResolvedImportKind(FullyResolvedImportKind.ModuleWhole(uri))),
 		(in Sym[] names) =>
 			fullyResolveImportModule(
 				modelAlloc, astAlloc, perf, allSymbols, allUris, storage, config, statuses, stack, diags, fromUri,
 				import_.importedFrom, resolvedUri,
-				(FileIndex f) =>
-					FullyResolvedImportKind(FullyResolvedImportKind.ModuleNamed(f, copyArr(modelAlloc, names)))),
+				(Uri uri) =>
+					FullyResolvedImportKind(FullyResolvedImportKind.ModuleNamed(uri, copyArr(modelAlloc, names)))),
 		(in ImportOrExportAstKind.File f) =>
 			some(FullyResolvedImportKind(
 				FullyResolvedImportKind.File(
@@ -409,7 +371,7 @@ Opt!FullyResolvedImportKind fullyResolveImportModule(
 	Uri fromUri,
 	RangeWithinFile importedFrom,
 	Uri importUri,
-	in FullyResolvedImportKind delegate(FileIndex) @safe @nogc pure nothrow getSuccessKind,
+	in FullyResolvedImportKind delegate(Uri) @safe @nogc pure nothrow getSuccessKind,
 ) {
 	Opt!ParseStatus status = getAt_mut!(Uri, ParseStatus)(statuses, importUri);
 	if (has(status))
@@ -421,7 +383,7 @@ Opt!FullyResolvedImportKind fullyResolveImportModule(
 				return FullyResolvedImportKind(FullyResolvedImportKind.Failed());
 			},
 			(ParseStatus.Done x) =>
-				getSuccessKind(x.fileIndex),
+				getSuccessKind(importUri),
 			(ReadFileIssue issue) {
 				add(modelAlloc, diags, DiagnosticWithinFile(
 					importedFrom,
@@ -519,10 +481,10 @@ immutable struct FullyResolvedImport {
 
 immutable struct FullyResolvedImportKind {
 	immutable struct ModuleWhole {
-		FileIndex fileIndex;
+		Uri uri;
 	}
 	immutable struct ModuleNamed {
-		FileIndex fileIndex;
+		Uri uri;
 		Sym[] names;
 	}
 	immutable struct File {
@@ -543,7 +505,7 @@ immutable struct ImportsOrExports {
 ImportsOrExports mapImportsOrExports(
 	ref Alloc modelAlloc,
 	in FullyResolvedImport[] uris,
-	in FullIndexMap!(FileIndex, Module) compiled,
+	ref const MutMap!(Uri, immutable Module*) compiled,
 ) {
 	ArrBuilder!ImportOrExportFile fileImports;
 	ImportOrExport[] moduleImports = mapOp!(ImportOrExport, FullyResolvedImport)(
@@ -551,14 +513,18 @@ ImportsOrExports mapImportsOrExports(
 		uris,
 		(ref FullyResolvedImport x) {
 			Opt!ImportOrExportKind kind = x.kind.match!(Opt!ImportOrExportKind)(
-				(FullyResolvedImportKind.ModuleWhole m) =>
-					m.fileIndex == FileIndex.none
-						? none!ImportOrExportKind
-						: some(ImportOrExportKind(ImportOrExportKind.ModuleWhole(&compiled[m.fileIndex]))),
-				(FullyResolvedImportKind.ModuleNamed m) =>
-					m.fileIndex == FileIndex.none
-						? none!ImportOrExportKind
-						: some(ImportOrExportKind(ImportOrExportKind.ModuleNamed(&compiled[m.fileIndex], m.names))),
+				(FullyResolvedImportKind.ModuleWhole m) @safe {
+					Opt!(Module*) module_ = getAt_mut!(Uri, immutable Module*)(compiled, m.uri);
+					return has(module_)
+						? some(ImportOrExportKind(ImportOrExportKind.ModuleWhole(force(module_))))
+						: none!ImportOrExportKind;
+				},
+				(FullyResolvedImportKind.ModuleNamed m) {
+					Opt!(Module*) module_ = getAt_mut!(Uri, immutable Module*)(compiled, m.uri);
+					return has(module_)
+						? some(ImportOrExportKind(ImportOrExportKind.ModuleNamed(force(module_), m.names)))
+						: none!ImportOrExportKind;
+				},
 				(FullyResolvedImportKind.File f) {
 					//TODO: could be a temp alloc
 					add(modelAlloc, fileImports, ImportOrExportFile(force(x.range), f.name, f.type, f.content));
@@ -572,7 +538,7 @@ ImportsOrExports mapImportsOrExports(
 }
 
 struct ModulesAndCommonTypes {
-	immutable Module[] modules;
+	Map!(Uri, immutable Module*) modules;
 	CommonTypes commonTypes;
 }
 
@@ -582,22 +548,22 @@ ModulesAndCommonTypes getModules(
 	ref AllSymbols allSymbols,
 	scope ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
-	FileIndex stdIndex,
+	Uri stdUri,
 	in AstAndResolvedImports[] fileAsts,
 ) {
 	verify(!empty(fileAsts));
 	Late!CommonTypes commonTypes = late!CommonTypes;
-	Module[] modules = mapWithSoFar!(Module, AstAndResolvedImports)(
-		modelAlloc,
-		fileAsts,
-		(in AstAndResolvedImports ast, in Module[] soFar, size_t index) {
-			immutable FullIndexMap!(FileIndex, Module) compiled = fullIndexMapOfArr!(FileIndex, Module)(soFar);
-			FileAndAst fileAndAst = FileAndAst(ast.uri, FileIndex(safeToUshort(index)), ast.ast);
-			if (lateIsSet(commonTypes))
+
+	MutMap!(Uri, immutable Module*) compiled;
+
+	foreach (ref AstAndResolvedImports ast; fileAsts) {
+		FileAndAst fileAndAst = FileAndAst(ast.uri, ast.ast);
+		Module module_ = () {
+			if (lateIsSet(commonTypes)) {
 				return checkNonBootstrapModule(
-					modelAlloc, perf, allSymbols, diagsBuilder, programState, stdIndex,
+					modelAlloc, perf, allSymbols, diagsBuilder, programState, stdUri,
 					ast, compiled, fileAndAst, lateGet(commonTypes));
-			else {
+			} else {
 				// The first module to check is always 'bootstrap.crow'
 				verify(ast.resolvedImports.empty);
 				BootstrapCheck res =
@@ -605,8 +571,11 @@ ModulesAndCommonTypes getModules(
 				lateSet(commonTypes, res.commonTypes);
 				return res.module_;
 			}
-		});
-	return ModulesAndCommonTypes(modules, lateGet(commonTypes));
+		}();
+		addToMutMap(modelAlloc, compiled, ast.uri, allocate(modelAlloc, module_));
+	}
+
+	return ModulesAndCommonTypes(moveToMap!(Uri, immutable Module*)(modelAlloc, compiled), lateGet(commonTypes));
 }
 
 Module checkNonBootstrapModule(
@@ -615,9 +584,9 @@ Module checkNonBootstrapModule(
 	ref AllSymbols allSymbols,
 	scope ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
-	FileIndex stdIndex,
+	Uri stdUri,
 	in AstAndResolvedImports ast,
-	in FullIndexMap!(FileIndex, Module) compiled,
+	ref const MutMap!(Uri, immutable Module*) compiled,
 	in FileAndAst fileAndAst,
 	in CommonTypes commonTypes,
 ) {
@@ -627,7 +596,7 @@ Module checkNonBootstrapModule(
 			modelAlloc,
 			FullyResolvedImport(
 			none!RangeWithinFile,
-				FullyResolvedImportKind(FullyResolvedImportKind.ModuleWhole(stdIndex))),
+				FullyResolvedImportKind(FullyResolvedImportKind.ModuleWhole(stdUri))),
 			ast.resolvedImports);
 	ImportsOrExports imports = mapImportsOrExports(modelAlloc, allImports, compiled);
 	ImportsOrExports exports = mapImportsOrExports(modelAlloc, ast.resolvedExports, compiled);
@@ -648,28 +617,30 @@ Program checkEverything(
 	Config config,
 	in AstAndResolvedImports[] allAsts,
 	ref FilesInfo filesInfo,
-	in CommonModuleIndices moduleIndices,
+	in Uri[] rootUris,
+	in Opt!Uri mainUri,
+	in EnumMap!(CommonModule, Uri) commonUris,
 ) {
 	ProgramState programState = ProgramState();
 	ModulesAndCommonTypes modulesAndCommonTypes = getModules(
-		modelAlloc, perf, allSymbols, diagsBuilder, programState, moduleIndices.common[CommonModule.std], allAsts);
-	Module[] modules = modulesAndCommonTypes.modules;
+		modelAlloc, perf, allSymbols, diagsBuilder, programState, commonUris[CommonModule.std], allAsts);
+	Map!(Uri, immutable Module*) modules = modulesAndCommonTypes.modules;
 	immutable EnumMap!(CommonModule, Opt!(Module*)) commonModules =
-		enumMapMapValues!(CommonModule, Opt!(Module*), FileIndex)(moduleIndices.common, (in FileIndex index) =>
-			index == FileIndex.none ? none!(Module*) : some(&modules[index.index]));
+		enumMapMapValues!(CommonModule, Opt!(Module*), Uri)(commonUris, (in Uri uri) =>
+			modules[uri]);
 	CommonFuns commonFuns = getCommonFuns(
 		modelAlloc,
 		programState,
 		diagsBuilder,
 		modulesAndCommonTypes.commonTypes,
-		has(moduleIndices.main) ? some(&modules[force(moduleIndices.main).index]) : none!(Module*),
+		has(mainUri) ? some(mustGetAt(modules, force(mainUri))) : none!(Module*),
 		commonModules);
 	return Program(
 		filesInfo,
 		config,
 		modules,
-		map!(Module*, FileIndex)(modelAlloc, moduleIndices.rootUris, (ref FileIndex index) =>
-			&modules[index.index]),
+		map!(Module*, Uri)(modelAlloc, rootUris, (ref Uri uri) =>
+			mustGetAt(modules, uri)),
 		commonFuns,
 		modulesAndCommonTypes.commonTypes,
 		finishDiagnostics(modelAlloc, diagsBuilder, allUris));

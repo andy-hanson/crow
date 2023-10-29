@@ -2,15 +2,7 @@ module interpret.generateBytecode;
 
 @safe @nogc pure nothrow:
 
-import interpret.bytecode :
-	ByteCode,
-	ByteCodeIndex,
-	ByteCodeSource,
-	FileToFuns,
-	FunNameAndPos,
-	FunPtrToOperationPtr,
-	Operation,
-	Operations;
+import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeSource, FunPtrToOperationPtr, Operation, Operations;
 import interpret.bytecodeWriter :
 	ByteCodeWriter,
 	fillDelayedCall,
@@ -57,20 +49,18 @@ import model.lowModel :
 	name,
 	PrimitiveType,
 	typeSize;
-import model.model : FunDecl, Module, name, Program, range, VarKind;
+import model.model : name, Program, range, VarKind;
 import model.typeLayout : nStackEntriesForType;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : castImmutable;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : map;
 import util.col.map : Map, KeyValuePair, mustGetAt, zipToMap;
-import util.col.fullIndexMap :
-	FullIndexMap, fullIndexMapEach, fullIndexMapOfArr, fullIndexMapSize, mapFullIndexMap;
+import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach, fullIndexMapSize, mapFullIndexMap;
 import util.col.mutMaxArr : initializeMutMaxArr, MutMaxArr, push, tempAsArr;
 import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : ptrTrustMe;
-import util.sourceRange : FileIndex;
 import util.sym : AllSymbols, Sym, sym;
 import util.util : todo, unreachable, verify;
 
@@ -157,7 +147,6 @@ private ByteCode generateBytecodeInner(
 	return ByteCode(
 		operations,
 		syntheticFunPtrs.funPtrToOperationPtr,
-		fileToFuns(codeAlloc, allSymbols, modelProgram),
 		castImmutable(text.text),
 		vars.totalSizeWords,
 		funToDefinition[program.main]);
@@ -204,17 +193,6 @@ DynCallSig funPtrDynCallSig(ref Alloc alloc, in LowProgram program, in LowFunPtr
 			add(alloc, sigTypes, x);
 		});
 	return DynCallSig(finishArr(alloc, sigTypes));
-}
-
-FileToFuns fileToFuns(ref Alloc alloc, in AllSymbols allSymbols, in Program program) {
-	immutable FullIndexMap!(FileIndex, Module) modulesMap =
-		fullIndexMapOfArr!(FileIndex, Module)(program.allModules);
-	return mapFullIndexMap!(FileIndex, FunNameAndPos[], Module)(
-		alloc,
-		modulesMap,
-		(FileIndex, in Module module_) =>
-			map(alloc, module_.funs, (ref FunDecl it) =>
-				FunNameAndPos(it.name, it.fileAndPos.pos)));
 }
 
 void generateBytecodeForFun(

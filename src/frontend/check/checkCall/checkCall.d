@@ -84,7 +84,7 @@ Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in Ca
 	return checkCallCommon(
 		ctx, locals, range,
 		// Show diags at the function name and not at the whole call ast
-		FileAndRange(range.fileIndex, rangeOfNameAndRange(ast.funName, ctx.allSymbols)),
+		FileAndRange(range.uri, rangeOfNameAndRange(ast.funName, ctx.allSymbols)),
 		ast.funName.name,
 		has(ast.typeArg) ? some(typeFromAst2(ctx, *force(ast.typeArg))) : none!Type,
 		ast.args,

@@ -8,8 +8,7 @@ import model.model : VarKind;
 import util.col.map : Map;
 import util.col.enumMap : EnumMap;
 import util.col.fullIndexMap : FullIndexMap;
-import util.sym : Sym;
-import util.sourceRange : FileIndex, Pos;
+import util.sourceRange : Pos;
 import util.util : verify;
 
 immutable struct Operation {
@@ -36,14 +35,6 @@ immutable struct Operation {
 
 pure:
 
-//TODO:MOVE
-immutable struct FunNameAndPos {
-	Sym funName;
-	Pos pos;
-}
-
-alias FileToFuns = immutable FullIndexMap!(FileIndex, FunNameAndPos[]);
-
 immutable struct ByteCodeSource {
 	LowFunIndex fun;
 	Pos pos;
@@ -54,7 +45,6 @@ immutable struct ByteCode {
 
 	Operations operations;
 	FunPtrToOperationPtr funPtrToOperationPtr;
-	FileToFuns fileToFuns; // Look up in 'sources' first, then can find the corresponding function here
 	ubyte[] text;
 	EnumMap!(VarKind, size_t) varsSizeWords;
 	ByteCodeIndex main;

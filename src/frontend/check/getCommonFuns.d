@@ -46,7 +46,7 @@ import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castNonScope_ref;
-import util.sourceRange : FileIndex, FileAndPos, FileAndRange, RangeWithinFile;
+import util.sourceRange : FileAndPos, FileAndRange, RangeWithinFile;
 import util.sym : Sym, sym;
 import util.uri : Uri;
 import util.util : todo, unreachable, verify;
@@ -178,7 +178,7 @@ ParamShort param(string name)(Type type) =>
 private:
 
 immutable Module emptyModule =
-	Module(FileIndex.none, Uri.empty, safeCStr!"", [], [], [], [], [], [], [], Map!(Sym, NameReferents)());
+	Module(Uri.empty, safeCStr!"", [], [], [], [], [], [], [], Map!(Sym, NameReferents)());
 
 immutable TypeParam[1] singleTypeParam = [
 	TypeParam(FileAndRange.empty, sym!"t", 0),

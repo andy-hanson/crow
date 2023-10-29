@@ -67,17 +67,17 @@ import util.ptr : ptrTrustMe;
 import util.sourceRange :
 	FileAndPos, jsonOfFileAndPos, jsonOfFileAndRange, jsonOfRangeWithinFile, RangeWithinFile, toFileAndPos;
 import util.sym : Sym, sym;
-import util.uri : AllUris;
+import util.uri : AllUris, uriToString;
 
-Json jsonOfModule(ref Alloc alloc, in Module a) {
+Json jsonOfModule(ref Alloc alloc, in AllUris allUris, in Module a) {
 	Ctx ctx = Ctx(ptrTrustMe(a));
 	return jsonObject(alloc, [
-		field!"path"(a.fileIndex.index),
+		field!"uri"(uriToString(alloc, allUris, a.uri)),
 		optionalStringField!"doc"(alloc, a.docComment),
 		optionalArrayField!("imports", ImportOrExport)(alloc, a.imports, (in ImportOrExport x) =>
-			jsonOfImportOrExport(alloc, x)),
+			jsonOfImportOrExport(alloc, allUris, x)),
 		optionalArrayField!("re-exports", ImportOrExport)(alloc, a.reExports, (in ImportOrExport x) =>
-			jsonOfImportOrExport(alloc, x)),
+			jsonOfImportOrExport(alloc, allUris, x)),
 		optionalArrayField!("structs", StructDecl)(alloc, a.structs, (in StructDecl x) =>
 			jsonOfStructDecl(alloc, ctx, x)),
 		optionalArrayField!("vars", VarDecl)(alloc, a.vars, (in VarDecl x) =>
@@ -92,19 +92,19 @@ Json jsonOfModule(ref Alloc alloc, in Module a) {
 
 private:
 
-Json jsonOfImportOrExport(ref Alloc alloc, in ImportOrExport a) =>
+Json jsonOfImportOrExport(ref Alloc alloc, in AllUris allUris, in ImportOrExport a) =>
 	jsonObject(alloc, [
 		optionalField!("source", RangeWithinFile)(a.importSource, (in RangeWithinFile x) =>
 			jsonOfRangeWithinFile(alloc, x)),
-		field!"import-kind"(jsonOfImportOrExportKind(alloc, a.kind))]);
+		field!"import-kind"(jsonOfImportOrExportKind(alloc, allUris, a.kind))]);
 
-Json jsonOfImportOrExportKind(ref Alloc alloc, in ImportOrExportKind a) =>
+Json jsonOfImportOrExportKind(ref Alloc alloc, in AllUris allUris, in ImportOrExportKind a) =>
 	a.matchIn!Json(
 		(in ImportOrExportKind.ModuleWhole m) =>
-			jsonObject(alloc, [field!"module"(m.module_.fileIndex.index)]),
+			jsonObject(alloc, [field!"module"(uriToString(alloc, allUris, m.module_.uri))]),
 		(in ImportOrExportKind.ModuleNamed m) =>
 			jsonObject(alloc, [
-				field!"module"(m.module_.fileIndex.index),
+				field!"module"(uriToString(alloc, allUris, m.module_.uri)),
 				field!"names"(jsonList!Sym(alloc, m.names, (in Sym name) =>
 					jsonString(name)))]));
 

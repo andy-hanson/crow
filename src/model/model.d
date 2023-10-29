@@ -18,14 +18,7 @@ import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : hashPtr;
 import util.sourceRange :
-	combineRanges,
-	FileAndPos,
-	FileAndRange,
-	fileAndRangeFromFileAndPos,
-	FileIndex,
-	Pos,
-	rangeOfStartAndName,
-	RangeWithinFile;
+	combineRanges, FileAndPos, FileAndRange, fileAndRangeFromFileAndPos, Pos, rangeOfStartAndName, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym, writeSym;
 import util.union_ : Union;
 import util.uri : Uri;
@@ -998,7 +991,6 @@ immutable struct VarDecl {
 immutable struct Module {
 	@safe @nogc pure nothrow:
 
-	FileIndex fileIndex;
 	Uri uri;
 	SafeCStr docComment;
 	ImportOrExport[] imports; // includes import of std (if applicable)
@@ -1191,7 +1183,7 @@ private enum EnumBackingType_ {
 immutable struct Program {
 	FilesInfo filesInfo;
 	Config config;
-	Module[] allModules;
+	Map!(Uri, immutable Module*) allModules;
 	Module*[] rootModules;
 	CommonFuns commonFuns;
 	CommonTypes commonTypes;
@@ -1200,7 +1192,7 @@ immutable struct Program {
 Program fakeProgramForTest(FilesInfo filesInfo) =>
 	fakeProgramForDiagnostics(filesInfo, Diagnostics());
 Program fakeProgramForDiagnostics(FilesInfo filesInfo, Diagnostics diagnostics) =>
-	Program(filesInfo, Config(), [], [], CommonFuns(), CommonTypes(), diagnostics);
+	Program(filesInfo, Config(), Map!(Uri, immutable Module*)(), [], CommonFuns(), CommonTypes(), diagnostics);
 
 immutable struct Config {
 	Uri crowIncludeDir;

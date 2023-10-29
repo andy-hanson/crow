@@ -118,7 +118,7 @@ void writeUnusedDiag(
 			} else {
 				writer ~= "imported module ";
 				// TODO: helper fn
-				Sym moduleName = baseName(allUris, program.filesInfo.fileUris[x.importedModule.fileIndex]);
+				Sym moduleName = baseName(allUris, x.importedModule.uri);
 				writeSym(writer, allSymbols, moduleName);
 			}
 			writer ~= " is unused";

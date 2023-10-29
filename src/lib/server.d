@@ -28,7 +28,7 @@ import model.jsonOfConcreteModel : jsonOfConcreteProgram;
 import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
 import model.lowModel : ExternLibraries, LowProgram;
-import model.model : fakeProgramForDiagnostics, Program;
+import model.model : fakeProgramForDiagnostics, Module, Program;
 import util.alloc.alloc : Alloc;
 import util.col.arr : only;
 import util.col.arrBuilder : ArrBuilder;
@@ -52,7 +52,7 @@ import util.storage :
 	Storage,
 	setFile,
 	withFileContent;
-import util.sourceRange : FileIndex, Pos;
+import util.sourceRange : Pos;
 import util.sym : AllSymbols;
 import util.uri : AllUris, parseUri, Uri, UrisInfo;
 import util.util : verify;
@@ -254,9 +254,9 @@ private Program getProgram(ref Perf perf, ref Alloc alloc, ref Server server, Ur
 	frontendCompile(alloc, perf, server, [root], none!Uri);
 
 private Opt!Position getPosition(in Server server, ref Program program, Uri uri, Pos pos) {
-	Opt!FileIndex fileIndex = program.filesInfo.uriToFile[uri];
-	return has(fileIndex)
-		? some(getPosition(server.allSymbols, &program.allModules[force(fileIndex).index], pos))
+	Opt!(immutable Module*) module_ = program.allModules[uri];
+	return has(module_)
+		? some(getPosition(server.allSymbols, force(module_), pos))
 		: none!Position;
 }
 
@@ -290,7 +290,7 @@ private Program fakeProgram(FileAstAndDiagnostics a) =>
 
 DiagsAndResultJson printModel(ref Alloc alloc, ref Perf perf, ref Server server, Uri uri) {
 	Program program = frontendCompile(alloc, perf, server, [uri], none!Uri);
-	return diagsAndResultJson(alloc, server, program, jsonOfModule(alloc, *only(program.rootModules)));
+	return diagsAndResultJson(alloc, server, program, jsonOfModule(alloc, server.allUris, *only(program.rootModules)));
 }
 
 DiagsAndResultJson printConcreteModel(

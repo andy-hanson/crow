@@ -26,12 +26,10 @@ import model.model :
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
-import util.col.arrUtil : arrLiteral;
 import util.col.map : mapLiteral, mustGetAt;
-import util.col.fullIndexMap : fullIndexMapOfArr;
 import util.lineAndColumnGetter : LineAndColumnGetter, PosKind;
 import util.opt : Opt;
-import util.sourceRange : FileAndPos, FileIndex, FileUris, RangeWithinFile, UriAndRange, UriToFile;
+import util.sourceRange : FileAndPos, RangeWithinFile, UriAndRange;
 import util.sym : Sym;
 import util.union_ : Union;
 import util.uri : AllUris, Uri, UrisInfo, writeUri;
@@ -493,16 +491,11 @@ immutable struct ExpectedForDiag {
 }
 
 immutable struct FilesInfo {
-	FileUris fileUris;
-	UriToFile uriToFile;
 	LineAndColumnGetters lineAndColumnGetters;
 }
 
 FilesInfo filesInfoForSingle(ref Alloc alloc, Uri uri, LineAndColumnGetter lineAndColumnGetter) =>
-	FilesInfo(
-		fullIndexMapOfArr!(FileIndex, Uri)(arrLiteral!Uri(alloc, [uri])),
-		mapLiteral!(Uri, FileIndex)(alloc, uri, FileIndex(0)),
-		mapLiteral!(Uri, LineAndColumnGetter)(alloc, uri, lineAndColumnGetter));
+	FilesInfo(mapLiteral!(Uri, LineAndColumnGetter)(alloc, uri, lineAndColumnGetter));
 
 void writeUriAndRange(
 	ref Writer writer,

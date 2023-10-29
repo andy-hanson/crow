@@ -76,6 +76,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only, only2, sizeEq;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil : arrEqual, arrLiteral, arrMax, every, everyWithIndex, exists, fold, map, mapWithIndex, mapZip;
+import util.col.map : mapEach;
 import util.col.mutArr : filterUnordered, MutArr, mutArrIsEmpty, push;
 import util.col.mutMap : addToMutMap, getOrAdd, getOrAddAndDidAdd, mustDelete, MutMap, ValueAndDidAdd;
 import util.col.str : SafeCStr;
@@ -86,6 +87,7 @@ import util.opt : force, has, none;
 import util.ptr : castMutable, hashPtr;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, Sym, sym;
+import util.uri : Uri;
 import util.util : max, roundUp, todo, unreachable, verify;
 import versionInfo : VersionInfo;
 
@@ -813,8 +815,9 @@ StructBody.Enum.Member[] enumOrFlagsMembers(ConcreteType type) {
 ConcreteFunBody bodyForAllTests(ref ConcretizeCtx ctx, ConcreteType returnType) {
 	Test[] allTests = () {
 		ArrBuilder!Test allTestsBuilder;
-		foreach (ref Module m; ctx.program.allModules)
+		mapEach!(Uri, immutable Module*)(ctx.program.allModules, (Uri _, ref immutable Module* m) {
 			addAll(ctx.alloc, allTestsBuilder, m.tests);
+		});
 		return finishArr(ctx.alloc, allTestsBuilder);
 	}();
 	Constant arr = getConstantArr(

@@ -20,7 +20,7 @@ import util.opt : Opt;
 immutable struct Map(K, V) {
 	private MutMap!(immutable K, immutable V) inner;
 
-	@trusted Opt!V opIndex(in K key) =>
+	@trusted Opt!V opIndex(in K key) scope =>
 		getAt_mut!(K, V)(inner, key);
 }
 
@@ -88,16 +88,4 @@ Map!(K, V) mapLiteral(K, V)(ref Alloc alloc, immutable K key, immutable V value)
 	MutMap!(immutable K, immutable V) res;
 	addToMutMap(alloc, res, key, value);
 	return moveToMap!(K, V)(alloc, res);
-}
-
-Map!(K, VOut) mapValues(K, VOut, VIn)(
-	ref Alloc alloc,
-	Map!(K, VIn) a,
-	in immutable(VOut) delegate(immutable K, ref immutable VIn) @safe @nogc pure nothrow cb,
-) {
-	MutMap!(immutable K, immutable VOut) res;
-	mapEach!(K, VIn)(a, (immutable K key, ref immutable VIn value) {
-		addToMutMap(alloc, res, key, cb(key, value));
-	});
-	return moveToMap!(K, VOut)(alloc, res);
 }

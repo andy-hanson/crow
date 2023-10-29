@@ -24,7 +24,7 @@ import util.col.map : existsInMap;
 import util.col.mutMap : hasKey_mut, MutMap, setInMap;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
-import util.sourceRange : FileAndPos, FileAndRange, FileIndex, Pos, RangeWithinFile;
+import util.sourceRange : FileAndPos, FileAndRange, Pos, RangeWithinFile;
 import util.sym : AllSymbols, Sym;
 import util.uri : Uri;
 
@@ -37,7 +37,6 @@ struct CheckCtx {
 	Perf* perfPtr;
 	public ProgramState* programStatePtr;
 	AllSymbols* allSymbolsPtr;
-	public immutable FileIndex fileIndex;
 	public immutable Uri curUri;
 	public ImportsAndReExports importsAndReExports;
 	DiagnosticsBuilder* diagsBuilderPtr;
