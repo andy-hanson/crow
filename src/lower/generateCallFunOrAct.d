@@ -20,7 +20,7 @@ import util.col.arrUtil : arrLiteral, mapZip;
 import util.col.map : mustGetAt;
 import util.memory : allocate;
 import util.opt : some;
-import util.sourceRange : FileAndRange;
+import util.sourceRange : UriAndRange;
 import util.sym : sym;
 
 LowFun generateCallFunOrAct(
@@ -29,7 +29,7 @@ LowFun generateCallFunOrAct(
 	in ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
 	LowFunCause.CallFunOrAct a,
 ) {
-	FileAndRange range = FileAndRange.empty;
+	UriAndRange range = UriAndRange.empty;
 	LowLocal[] params = arrLiteral(alloc, [
 		genLocalByValue(alloc, sym!"fun", 0, a.funType),
 		genLocalByValue(alloc, sym!"arg", 1, a.funParamType),

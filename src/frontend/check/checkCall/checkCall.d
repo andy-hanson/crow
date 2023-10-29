@@ -68,10 +68,10 @@ import util.col.mutMaxArr :
 import util.opt : force, has, none, noneMut, Opt, some, some;
 import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMeasure, startMeasure;
 import util.ptr : castNonScope_ref, ptrTrustMe;
-import util.sourceRange : FileAndRange, RangeWithinFile;
+import util.sourceRange : UriAndRange, RangeWithinFile;
 import util.sym : Sym, sym;
 
-Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in CallAst ast, ref Expected expected) {
+Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, UriAndRange range, in CallAst ast, ref Expected expected) {
 	switch (ast.style) {
 		case CallAst.Style.dot:
 		case CallAst.Style.infix:
@@ -84,7 +84,7 @@ Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in Ca
 	return checkCallCommon(
 		ctx, locals, range,
 		// Show diags at the function name and not at the whole call ast
-		FileAndRange(range.uri, rangeOfNameAndRange(ast.funName, ctx.allSymbols)),
+		UriAndRange(range.uri, rangeOfNameAndRange(ast.funName, ctx.allSymbols)),
 		ast.funName.name,
 		has(ast.typeArg) ? some(typeFromAst2(ctx, *force(ast.typeArg))) : none!Type,
 		ast.args,
@@ -94,7 +94,7 @@ Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in Ca
 Expr checkCallSpecial(size_t n)(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
-	FileAndRange range,
+	UriAndRange range,
 	Sym funName,
 	in ExprAst[n] args,
 	ref Expected expected,
@@ -104,7 +104,7 @@ Expr checkCallSpecial(size_t n)(
 Expr checkCallSpecial(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
-	FileAndRange range,
+	UriAndRange range,
 	Sym funName,
 	in ExprAst[] args,
 	ref Expected expected,
@@ -113,7 +113,7 @@ Expr checkCallSpecial(
 
 Expr checkCallSpecialNoLocals(
 	ref ExprCtx ctx,
-	FileAndRange range,
+	UriAndRange range,
 	Sym funName,
 	in ExprAst[] args,
 	ref Expected expected,
@@ -126,8 +126,8 @@ Expr checkCallSpecialNoLocals(
 private Expr checkCallCommon(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
-	FileAndRange range,
-	FileAndRange diagRange,
+	UriAndRange range,
+	UriAndRange diagRange,
 	Sym funName,
 	in Opt!Type typeArg,
 	in ExprAst[] args,
@@ -145,7 +145,7 @@ private Expr checkCallCommon(
 
 Expr checkCallIdentifier(
 	ref ExprCtx ctx,
-	FileAndRange range,
+	UriAndRange range,
 	Sym name,
 	ref Expected expected,
 ) {
@@ -158,8 +158,8 @@ private:
 Expr checkCallInner(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
-	FileAndRange range,
-	FileAndRange diagRange,
+	UriAndRange range,
+	UriAndRange diagRange,
 	Sym funName,
 	in ExprAst[] argAsts,
 	in Opt!Type explicitTypeArg,
@@ -421,7 +421,7 @@ Expr checkCallAfterChoosingOverload(
 	ref ExprCtx ctx,
 	bool isInLambda,
 	ref const Candidate candidate,
-	FileAndRange range,
+	UriAndRange range,
 	Expr[] args,
 	ref Expected expected,
 ) {

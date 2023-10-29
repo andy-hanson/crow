@@ -18,7 +18,7 @@ import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : hashPtr;
 import util.sourceRange :
-	combineRanges, FileAndPos, FileAndRange, fileAndRangeFromFileAndPos, Pos, rangeOfStartAndName, RangeWithinFile;
+	combineRanges, UriAndPos, UriAndRange, fileAndRangeFromUriAndPos, Pos, rangeOfStartAndName, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym, writeSym;
 import util.union_ : Union;
 import util.uri : Uri;
@@ -67,7 +67,7 @@ Sym symOfPurity(Purity a) {
 }
 
 immutable struct TypeParam {
-	FileAndRange range;
+	UriAndRange range;
 	Sym name;
 	size_t index;
 }
@@ -162,7 +162,7 @@ immutable struct SpecDeclSig {
 	@safe @nogc pure nothrow:
 
 	SafeCStr docComment;
-	FileAndRange range;
+	UriAndRange range;
 	Sym name;
 	Type returnType;
 	SmallArray!Destructure params;
@@ -197,7 +197,7 @@ Sym symOfFieldMutability(FieldMutability a) {
 
 immutable struct RecordField {
 	//TODO: use NameAndRange (more compact)
-	FileAndRange range;
+	UriAndRange range;
 	Visibility visibility;
 	Sym name;
 	FieldMutability mutability;
@@ -206,7 +206,7 @@ immutable struct RecordField {
 
 immutable struct UnionMember {
 	//TODO: use NameAndRange (more compact)
-	FileAndRange range;
+	UriAndRange range;
 	Sym name;
 	Type type;
 }
@@ -252,7 +252,7 @@ immutable struct StructBody {
 	immutable struct Builtin {}
 	immutable struct Enum {
 		immutable struct Member {
-			FileAndRange range;
+			UriAndRange range;
 			Sym name;
 			EnumValue value;
 		}
@@ -282,7 +282,7 @@ static assert(StructBody.sizeof == size_t.sizeof + StructBody.Record.sizeof);
 
 immutable struct StructAlias {
 	// TODO: use NameAndRange (more compact)
-	FileAndRange range;
+	UriAndRange range;
 	SafeCStr docComment;
 	Visibility visibility;
 	Sym name;
@@ -333,7 +333,7 @@ bool isLinkageAlwaysCompatible(Linkage referencer, LinkageRange referenced) =>
 
 immutable struct StructDecl {
 	// TODO: use NameAndRange (more compact)
-	FileAndRange range;
+	UriAndRange range;
 	SafeCStr docComment;
 	Sym name;
 	SmallArray!TypeParam typeParams;
@@ -449,7 +449,7 @@ immutable struct SpecDecl {
 	@safe @nogc pure nothrow:
 
 	// TODO: use NameAndRange (more compact)
-	FileAndRange range;
+	UriAndRange range;
 	SafeCStr docComment;
 	Visibility visibility;
 	Sym name;
@@ -655,7 +655,7 @@ immutable struct FunDecl {
 	this(
 		SafeCStr dc,
 		Visibility v,
-		FileAndPos fp,
+		UriAndPos fp,
 		Sym n,
 		TypeParam[] tps,
 		Type rt,
@@ -676,7 +676,7 @@ immutable struct FunDecl {
 	this(
 		SafeCStr dc,
 		Visibility v,
-		FileAndPos fp,
+		UriAndPos fp,
 		Sym n,
 		TypeParam[] tps,
 		Type rt,
@@ -699,7 +699,7 @@ immutable struct FunDecl {
 
 	SafeCStr docComment;
 	Visibility visibility;
-	FileAndPos fileAndPos;
+	UriAndPos fileAndPos;
 	Sym name;
 	FunFlags flags;
 	Type returnType;
@@ -708,9 +708,9 @@ immutable struct FunDecl {
 	SmallArray!(SpecInst*) specs;
 	private Late!FunBody lateBody;
 
-	FileAndRange range() scope =>
+	UriAndRange range() scope =>
 		// TODO: end position
-		fileAndRangeFromFileAndPos(fileAndPos);
+		fileAndRangeFromUriAndPos(fileAndPos);
 
 	immutable(RangeWithinFile) nameRange(in AllSymbols allSymbols) =>
 		rangeOfStartAndName(fileAndPos.pos, name, allSymbols);
@@ -957,8 +957,8 @@ TypeParam[] typeParams(ref StructOrAlias a) =>
 		(ref StructAlias x) => x.typeParams.toArray(),
 		(ref StructDecl x) => x.typeParams.toArray());
 
-FileAndRange range(ref StructOrAlias a) =>
-	a.match!FileAndRange(
+UriAndRange range(ref StructOrAlias a) =>
+	a.match!UriAndRange(
 		(ref StructAlias x) => x.range,
 		(ref StructDecl x) => x.range);
 
@@ -976,7 +976,7 @@ Sym name(ref StructOrAlias a) =>
 immutable struct VarDecl {
 	@safe @nogc pure nothrow:
 
-	FileAndPos pos;
+	UriAndPos pos;
 	SafeCStr docComment;
 	Visibility visibility;
 	Sym name;
@@ -984,8 +984,8 @@ immutable struct VarDecl {
 	Type type;
 	Opt!Sym externLibraryName;
 
-	FileAndRange range() scope =>
-		fileAndRangeFromFileAndPos(pos);
+	UriAndRange range() scope =>
+		fileAndRangeFromUriAndPos(pos);
 }
 
 immutable struct Module {
@@ -1003,8 +1003,8 @@ immutable struct Module {
 	// Includes re-exports
 	Map!(Sym, NameReferents) allExportedNames;
 
-	FileAndRange range() scope =>
-		FileAndRange.topOfFile(uri);
+	UriAndRange range() scope =>
+		UriAndRange.topOfFile(uri);
 }
 
 immutable struct ImportOrExport {
@@ -1207,7 +1207,7 @@ immutable struct Local {
 	@safe @nogc pure nothrow:
 
 	//TODO: use NameAndRange (more compact)
-	FileAndRange range;
+	UriAndRange range;
 	Sym name;
 	LocalMutability mutability;
 	Type type;
@@ -1359,7 +1359,7 @@ immutable struct Destructure {
 }
 
 immutable struct Expr {
-	FileAndRange range;
+	UriAndRange range;
 	ExprKind kind;
 }
 

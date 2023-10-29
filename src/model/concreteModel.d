@@ -30,7 +30,7 @@ import util.hash : hashEnum, Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.opt : none, Opt, some;
 import util.ptr : hashPtr;
-import util.sourceRange : FileAndRange;
+import util.sourceRange : UriAndRange;
 import util.sym : Sym, sym;
 import util.union_ : Union;
 import util.util : unreachable, verify;
@@ -353,18 +353,18 @@ immutable struct ConcreteFunBody {
 
 immutable struct ConcreteFunSource {
 	immutable struct Lambda {
-		FileAndRange range;
+		UriAndRange range;
 		ConcreteFun* containingFun;
 		size_t index; // nth lambda in the containing function
 	}
 
 	immutable struct Test {
-		FileAndRange range;
+		UriAndRange range;
 		size_t testIndex;
 	}
 
 	immutable struct WrapMain {
-		FileAndRange range;
+		UriAndRange range;
 	}
 
 	mixin Union!(FunInst*, Lambda*, Test*, WrapMain*);
@@ -407,8 +407,8 @@ bool isSummon(ref ConcreteFun a) =>
 		(in ConcreteFunSource.WrapMain) =>
 			unreachable!bool());
 
-FileAndRange concreteFunRange(in ConcreteFun a) =>
-	a.source.matchIn!FileAndRange(
+UriAndRange concreteFunRange(in ConcreteFun a) =>
+	a.source.matchIn!UriAndRange(
 		(in FunInst x) =>
 			decl(x).range,
 		(in ConcreteFunSource.Lambda x) =>
@@ -433,7 +433,7 @@ void setBody(ref ConcreteFun a, ConcreteFunBody value) {
 
 immutable struct ConcreteExpr {
 	ConcreteType type;
-	FileAndRange range;
+	UriAndRange range;
 	ConcreteExprKind kind;
 }
 

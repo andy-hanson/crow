@@ -85,7 +85,7 @@ import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite, lazilySe
 import util.memory : allocate;
 import util.opt : force, has, none;
 import util.ptr : castMutable, hashPtr;
-import util.sourceRange : FileAndRange;
+import util.sourceRange : UriAndRange;
 import util.sym : AllSymbols, Sym, sym;
 import util.uri : Uri;
 import util.util : max, roundUp, todo, unreachable, verify;
@@ -469,7 +469,7 @@ public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* mo
 			0,
 	*/
 	ConcreteType nat64Type = getConcreteType_forStructInst(ctx, ctx.commonTypes.integrals.nat64, TypeArgsScope.empty);
-	FileAndRange range = decl(*modelMain).range;
+	UriAndRange range = decl(*modelMain).range;
 	ConcreteExpr callMain = ConcreteExpr(voidType(ctx), range, ConcreteExprKind(ConcreteExprKind.Call(innerMain, [])));
 	ConcreteExpr zero = ConcreteExpr(nat64Type, range, ConcreteExprKind(constantZero));
 	ConcreteFun* newNat64Future = getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
@@ -790,7 +790,7 @@ ConcreteFunBody bodyForEnumOrFlagsMembers(ref ConcretizeCtx ctx, ConcreteType re
 			constantSym(ctx, member.name),
 			Constant(Constant.Integral(member.value.value))]))));
 	Constant arr = getConstantArr(ctx.alloc, ctx.allConstants, mustBeByVal(returnType), elements);
-	return ConcreteFunBody(ConcreteExpr(returnType, FileAndRange.empty, ConcreteExprKind(arr)));
+	return ConcreteFunBody(ConcreteExpr(returnType, UriAndRange.empty, ConcreteExprKind(arr)));
 }
 
 StructBody.Enum.Member[] enumOrFlagsMembers(ConcreteType type) {
@@ -826,7 +826,7 @@ ConcreteFunBody bodyForAllTests(ref ConcretizeCtx ctx, ConcreteType returnType) 
 		mustBeByVal(returnType),
 		mapWithIndex!(Constant, Test)(ctx.alloc, allTests, (size_t testIndex, ref Test it) =>
 			Constant(Constant.FunPtr(concreteFunForTest(ctx, it, testIndex)))));
-	return ConcreteFunBody(ConcreteExpr(returnType, FileAndRange.empty, ConcreteExprKind(arr)));
+	return ConcreteFunBody(ConcreteExpr(returnType, UriAndRange.empty, ConcreteExprKind(arr)));
 }
 
 BuiltinStructKind getBuiltinStructKind(Sym name) {

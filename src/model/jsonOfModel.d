@@ -65,7 +65,7 @@ import util.json :
 import util.opt : force, has, none, Opt, some;
 import util.ptr : ptrTrustMe;
 import util.sourceRange :
-	FileAndPos, jsonOfFileAndPos, jsonOfFileAndRange, jsonOfRangeWithinFile, RangeWithinFile, toFileAndPos;
+	UriAndPos, jsonOfUriAndPos, jsonOfUriAndRange, jsonOfRangeWithinFile, RangeWithinFile, toUriAndPos;
 import util.sym : Sym, sym;
 import util.uri : AllUris, uriToString;
 
@@ -120,7 +120,7 @@ struct Ctx {
 
 Json jsonOfStructDecl(ref Alloc alloc, in Ctx ctx, in StructDecl a) =>
 	jsonObject(alloc,
-		commonDeclFields(alloc, ctx, toFileAndPos(a.range), a.docComment, a.visibility, a.name, a.typeParams),
+		commonDeclFields(alloc, ctx, toUriAndPos(a.range), a.docComment, a.visibility, a.name, a.typeParams),
 		[
 			optionalField!"purity"(a.purity != Purity.data, () => jsonString(symOfPurity(a.purity))),
 			optionalFlagField!"forced"(a.purityIsForced),
@@ -138,7 +138,7 @@ Json jsonOfVarDecl(ref Alloc alloc, in Ctx ctx, in VarDecl a) =>
 Json jsonOfSpecDecl(ref Alloc alloc, in Ctx ctx, in SpecDecl a) =>
 	jsonObject(
 		alloc,
-		commonDeclFields(alloc, ctx, toFileAndPos(a.range), a.docComment, a.visibility, a.name, a.typeParams),
+		commonDeclFields(alloc, ctx, toUriAndPos(a.range), a.docComment, a.visibility, a.name, a.typeParams),
 		[
 			optionalArrayField!"parents"(alloc, a.parents, (in SpecInst* x) => jsonOfSpecInst(alloc, ctx, *x)),
 			field!"body"(jsonOfSpecDeclBody(alloc, ctx, a.body_)),
@@ -155,7 +155,7 @@ Json jsonOfSpecDeclBody(ref Alloc alloc, in Ctx ctx, in SpecDeclBody a) =>
 Json jsonOfSpecDeclSig(ref Alloc alloc, in Ctx ctx, in SpecDeclSig a) =>
 	jsonObject(alloc, [
 		optionalStringField!"doc"(alloc, a.docComment),
-		field!"where"(jsonOfFileAndRange(alloc, ctx.allUris, a.range)),
+		field!"where"(jsonOfUriAndRange(alloc, ctx.allUris, a.range)),
 		field!"name"(a.name),
 		field!"return-type"(jsonOfType(alloc, ctx, a.returnType)),
 		field!"params"(jsonOfDestructures(alloc, ctx, a.params))]);
@@ -179,7 +179,7 @@ Json jsonOfTest(ref Alloc alloc, in Ctx ctx, in Test a) =>
 Json.ObjectField[5] commonDeclFields(
 	ref Alloc alloc,
 	in Ctx ctx,
-	FileAndPos pos,
+	UriAndPos pos,
 	in SafeCStr docComment,
 	Visibility visibility,
 	Sym name,
@@ -187,7 +187,7 @@ Json.ObjectField[5] commonDeclFields(
 ) =>
 	[
 		optionalStringField!"doc"(alloc, docComment),
-		field!"where"(jsonOfFileAndPos(alloc, ctx.allUris, pos)),
+		field!"where"(jsonOfUriAndPos(alloc, ctx.allUris, pos)),
 		field!"visibility"(symOfVisibility(visibility)),
 		field!"name"(name),
 		optionalArrayField!("type-params", TypeParam)(alloc, typeParams, (in TypeParam x) =>
@@ -474,7 +474,7 @@ Json jsonOfMatchUnionCase(ref Alloc alloc, in Ctx ctx, in ExprKind.MatchUnion.Ca
 Json jsonOfLocal(ref Alloc alloc, in Ctx ctx, in Local a) =>
 	jsonObject(alloc, [
 		kindField!"local",
-		field!"range"(jsonOfFileAndRange(alloc, ctx.allUris, a.range)),
+		field!"range"(jsonOfUriAndRange(alloc, ctx.allUris, a.range)),
 		field!"name"(a.name),
 		field!"type"(jsonOfType(alloc, ctx, a.type))]);
 

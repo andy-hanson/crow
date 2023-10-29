@@ -137,7 +137,7 @@ import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : castNonScope_ref, ptrTrustMe;
-import util.sourceRange : FileAndRange;
+import util.sourceRange : UriAndRange;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.util : todo, typeAs, unreachable, verify;
@@ -792,15 +792,15 @@ LowFun mainFun(ref GetLowTypeCtx ctx, LowFunIndex rtMainIndex, ConcreteFun* user
 		genLocalByValue(ctx.alloc, sym!"argc", 0, int32Type),
 		genLocalByValue(ctx.alloc, sym!"argv", 1, char8PtrPtrConstType)]);
 	LowExpr userMainFunPtr =
-		LowExpr(userMainFunPtrType, FileAndRange.empty, LowExprKind(Constant(Constant.FunPtr(userMain))));
+		LowExpr(userMainFunPtrType, UriAndRange.empty, LowExprKind(Constant(Constant.FunPtr(userMain))));
 	LowExpr call = LowExpr(
 		int32Type,
-		FileAndRange.empty,
+		UriAndRange.empty,
 		LowExprKind(LowExprKind.Call(
 			rtMainIndex,
 			arrLiteral!LowExpr(ctx.alloc, [
-				genLocalGet(FileAndRange.empty, &params[0]),
-				genLocalGet(FileAndRange.empty, &params[1]),
+				genLocalGet(UriAndRange.empty, &params[0]),
+				genLocalGet(UriAndRange.empty, &params[1]),
 				userMainFunPtr]))));
 	LowFunBody body_ = LowFunBody(LowFunExprBody(false, call));
 	return LowFun(
@@ -1048,7 +1048,7 @@ LowExprKind getLowExprKind(
 LowExpr getAllocateExpr(
 	ref Alloc alloc,
 	LowFunIndex allocFunIndex,
-	FileAndRange range,
+	UriAndRange range,
 	LowType ptrType,
 	ref LowExpr size,
 ) {
@@ -1059,16 +1059,16 @@ LowExpr getAllocateExpr(
 	return genPtrCast(alloc, ptrType, range, allocate);
 }
 
-LowExprKind getAllocExpr(ref GetLowExprCtx ctx, in Locals locals, FileAndRange range, ref ConcreteExprKind.Alloc a) {
+LowExprKind getAllocExpr(ref GetLowExprCtx ctx, in Locals locals, UriAndRange range, ref ConcreteExprKind.Alloc a) {
 	LowExpr arg = getLowExpr(ctx, locals, a.arg, ExprPos.nonTail);
 	LowType ptrType = getLowGcPtrType(ctx.typeCtx, arg.type);
 	return getAllocExpr2(ctx, range, arg, ptrType);
 }
 
-LowExpr getAllocExpr2Expr(ref GetLowExprCtx ctx, FileAndRange range, ref LowExpr arg, LowType ptrType) =>
+LowExpr getAllocExpr2Expr(ref GetLowExprCtx ctx, UriAndRange range, ref LowExpr arg, LowType ptrType) =>
 	LowExpr(ptrType, range, getAllocExpr2(ctx, range, arg, ptrType));
 
-LowExprKind getAllocExpr2(ref GetLowExprCtx ctx, FileAndRange range, ref LowExpr arg, LowType ptrType) {
+LowExprKind getAllocExpr2(ref GetLowExprCtx ctx, UriAndRange range, ref LowExpr arg, LowType ptrType) {
 	// (temp0 = (T*) alloc(sizeof(T)), *temp0 = arg, temp0)
 	LowLocal* local = addTempLocal(ctx, ptrType);
 	LowExpr sizeofT = genSizeOf(range, asPtrGcPointee(ptrType));
@@ -1088,7 +1088,7 @@ LowExprKind getLoopExpr(
 ) {
 	immutable LowExprKind.Loop* res = allocate(ctx.alloc, LowExprKind.Loop(
 		// Dummy initial body
-		LowExpr(voidType, FileAndRange.empty, LowExprKind(constantZero))));
+		LowExpr(voidType, UriAndRange.empty, LowExprKind(constantZero))));
 	// Go ahead and give the body the same 'exprPos'. 'continue' will know it's non-tail.
 	overwriteMemory(&res.body_, getLowExpr(ctx, addLoop(locals, &a, res), a.body_, exprPos));
 	return LowExprKind(res);
@@ -1116,7 +1116,7 @@ LowExprKind getCallExpr(
 	ref GetLowExprCtx ctx,
 	in Locals locals,
 	ExprPos exprPos,
-	FileAndRange range,
+	UriAndRange range,
 	LowType type,
 	ref ConcreteExprKind.Call a,
 ) {
@@ -1151,7 +1151,7 @@ LowExprKind getCallSpecial(
 	ref GetLowExprCtx ctx,
 	in Locals locals,
 	ExprPos exprPos,
-	FileAndRange range,
+	UriAndRange range,
 	LowType type,
 	ref ConcreteExprKind.Call a,
 ) =>
@@ -1222,7 +1222,7 @@ LowExprKind getRecordFieldGet(ref GetLowExprCtx ctx, in Locals locals, ref Concr
 		getLowExpr(ctx, locals, record, ExprPos.nonTail),
 		fieldIndex)));
 
-LowExprKind genFlagsNegate(ref Alloc alloc, FileAndRange range, ulong allValue, LowExpr a) =>
+LowExprKind genFlagsNegate(ref Alloc alloc, UriAndRange range, ulong allValue, LowExpr a) =>
 	genEnumIntersect(
 		alloc,
 		LowExpr(a.type, range, genBitwiseNegate(alloc, a)),
@@ -1263,7 +1263,7 @@ LowExpr[] getArgs(ref GetLowExprCtx ctx, in Locals locals, ConcreteExpr[] args) 
 LowExprKind callFunPtr(
 	ref GetLowExprCtx ctx,
 	in Locals locals,
-	FileAndRange range,
+	UriAndRange range,
 	LowType type,
 	ConcreteExpr[2] funPtrAndArg,
 ) {
@@ -1298,7 +1298,7 @@ LowExprKind getCallBuiltinExpr(
 	ref GetLowExprCtx ctx,
 	in Locals locals,
 	ExprPos exprPos,
-	FileAndRange range,
+	UriAndRange range,
 	LowType type,
 	ref ConcreteExprKind.Call a,
 ) {
@@ -1392,7 +1392,7 @@ LowExprKind getCallBuiltinExpr(
 LowExprKind getCreateArrExpr(
 	ref GetLowExprCtx ctx,
 	in Locals locals,
-	FileAndRange range,
+	UriAndRange range,
 	LowType arrType,
 	ConcreteType concreteArrType,
 	in ConcreteExprKind.CreateArr a,
@@ -1433,10 +1433,10 @@ LowExprKind getCreateArrExpr(
 	return LowExprKind(allocate(ctx.alloc, LowExprKind.Let(temp, allocatePtr, writeAndGetArr)));
 }
 
-LowExprKind getDropExpr(ref GetLowExprCtx ctx, in Locals locals, FileAndRange range, ref ConcreteExprKind.Drop a) =>
+LowExprKind getDropExpr(ref GetLowExprCtx ctx, in Locals locals, UriAndRange range, ref ConcreteExprKind.Drop a) =>
 	genDrop(ctx.alloc, range, getLowExpr(ctx, locals, a.arg, ExprPos.nonTail)).kind;
 
-LowExprKind getLambdaExpr(ref GetLowExprCtx ctx, in Locals locals, FileAndRange range, in ConcreteExprKind.Lambda a) =>
+LowExprKind getLambdaExpr(ref GetLowExprCtx ctx, in Locals locals, UriAndRange range, in ConcreteExprKind.Lambda a) =>
 	LowExprKind(allocate(ctx.alloc, LowExprKind.CreateUnion(
 		a.memberIndex,
 		has(a.closure)
@@ -1447,7 +1447,7 @@ LowExprKind getLetExpr(
 	ref GetLowExprCtx ctx,
 	in Locals locals,
 	ExprPos exprPos,
-	FileAndRange range,
+	UriAndRange range,
 	ref ConcreteExprKind.Let a,
 ) {
 	LowExpr valueByVal = getLowExpr(ctx, locals, a.value, ExprPos.nonTail);
@@ -1462,7 +1462,7 @@ LowExprKind getLocalGetExpr(
 	ref GetLowExprCtx ctx,
 	in Locals locals,
 	LowType type,
-	FileAndRange range,
+	UriAndRange range,
 	in ConcreteExprKind.LocalGet a,
 ) {
 	LowLocal* local = getLocal(ctx, locals, a.local);
@@ -1475,7 +1475,7 @@ LowExprKind getLocalGetExpr(
 LowExprKind getPtrToLocalExpr(
 	ref GetLowExprCtx ctx,
 	in Locals locals,
-	FileAndRange range,
+	UriAndRange range,
 	in ConcreteExprKind.PtrToLocal a,
 ) {
 	LowLocal* local = getLocal(ctx, locals, a.local);
@@ -1488,7 +1488,7 @@ LowExprKind getPtrToLocalExpr(
 LowExprKind getLocalSetExpr(
 	ref GetLowExprCtx ctx,
 	in Locals locals,
-	FileAndRange range,
+	UriAndRange range,
 	ref ConcreteExprKind.LocalSet a,
 ) {
 	LowLocal* local = getLocal(ctx, locals, a.local);
@@ -1536,7 +1536,7 @@ LowExprKind getMatchUnionExpr(
 LowExprKind getClosureCreateExpr(
 	ref GetLowExprCtx ctx,
 	in Locals locals,
-	FileAndRange range,
+	UriAndRange range,
 	LowType type,
 	in ConcreteExprKind.ClosureCreate a,
 ) {
@@ -1551,7 +1551,7 @@ LowExprKind getClosureCreateExpr(
 LowExpr getVariableRefExprForClosure(
 	ref GetLowExprCtx ctx,
 	in Locals locals,
-	FileAndRange range,
+	UriAndRange range,
 	LowType type,
 	ConcreteVariableRef a,
 ) =>
@@ -1564,7 +1564,7 @@ LowExpr getVariableRefExprForClosure(
 		(ConcreteClosureRef x) =>
 			getClosureField(ctx, range, x));
 
-LowExprKind getClosureGetExpr(ref GetLowExprCtx ctx, FileAndRange range, ConcreteExprKind.ClosureGet a) {
+LowExprKind getClosureGetExpr(ref GetLowExprCtx ctx, UriAndRange range, ConcreteExprKind.ClosureGet a) {
 	LowExpr getField = getClosureField(ctx, range, a.closureRef);
 	final switch (a.referenceKind) {
 		case ClosureReferenceKind.direct:
@@ -1577,7 +1577,7 @@ LowExprKind getClosureGetExpr(ref GetLowExprCtx ctx, FileAndRange range, Concret
 LowExprKind getClosureSetExpr(
 	ref GetLowExprCtx ctx,
 	in Locals locals,
-	FileAndRange range,
+	UriAndRange range,
 	ref ConcreteExprKind.ClosureSet a,
 ) =>
 	// Note: This doesn't write to a field, it gets a pointer from the field and writes to that
@@ -1587,7 +1587,7 @@ LowExprKind getClosureSetExpr(
 		getLowExpr(ctx, locals, a.value, ExprPos.nonTail));
 
 // NOTE: This does not dereference pointer for mutAllocated, getClosureGetExpr will do that
-LowExpr getClosureField(ref GetLowExprCtx ctx, FileAndRange range, ConcreteClosureRef closureRef) {
+LowExpr getClosureField(ref GetLowExprCtx ctx, UriAndRange range, ConcreteClosureRef closureRef) {
 	LowLocal* closureLocal = &ctx.lowParams[0];
 	LowExpr closureGet = genLocalGet(range, closureLocal);
 	LowRecord record = ctx.allTypes.allRecords[asPtrGcPointee(closureLocal.type).as!(LowType.Record)];
@@ -1607,7 +1607,7 @@ LowExprKind getPtrToFieldExpr(
 LowExprKind getThrowExpr(
 	ref GetLowExprCtx ctx,
 	in Locals locals,
-	FileAndRange range,
+	UriAndRange range,
 	LowType type,
 	ref ConcreteExprKind.Throw a,
 ) {

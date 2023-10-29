@@ -29,7 +29,7 @@ import util.col.arr : empty;
 import util.col.map : mapLiteral, mustGetAt;
 import util.lineAndColumnGetter : LineAndColumnGetter, PosKind;
 import util.opt : Opt;
-import util.sourceRange : FileAndPos, RangeWithinFile, UriAndRange;
+import util.sourceRange : UriAndPos, RangeWithinFile, UriAndRange;
 import util.sym : Sym;
 import util.union_ : Union;
 import util.uri : AllUris, Uri, UrisInfo, writeUri;
@@ -512,13 +512,13 @@ void writeUriAndRange(
 		writeReset(writer);
 }
 
-void writeFileAndPos(
+void writeUriAndPos(
 	ref Writer writer,
 	in AllUris allUris,
 	in UrisInfo urisInfo,
 	in ShowDiagOptions options,
 	in FilesInfo fi,
-	in FileAndPos where,
+	in UriAndPos where,
 ) {
 	writeFileNoResetWriter(writer, allUris, urisInfo, options, where.uri);
 	if (where.uri != Uri.empty)

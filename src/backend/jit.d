@@ -132,7 +132,7 @@ import util.conv : safeToInt;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : castImmutable, castNonScope, castNonScope_ref, ptrTrustMe;
-import util.sourceRange : FileAndRange;
+import util.sourceRange : UriAndRange;
 import util.sym : AllSymbols, writeSym;
 import util.union_ : Union, UnionMutable;
 import util.util : todo, unreachable, verify;
@@ -1610,7 +1610,7 @@ LowType boolType() =>
 	LowType(PrimitiveType.bool_);
 
 LowExpr boolExpr(bool value) =>
-	LowExpr(boolType, FileAndRange.empty, LowExprKind(constantBool(value)));
+	LowExpr(boolType, UriAndRange.empty, LowExprKind(constantBool(value)));
 
 enum PtrArith { addNat, subtractNat }
 

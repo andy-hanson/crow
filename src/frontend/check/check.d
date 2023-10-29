@@ -94,7 +94,7 @@ import util.opt : force, has, none, Opt, someMut, some;
 import util.perf : Perf;
 import util.ptr : ptrTrustMe;
 import util.storage : asBytes, asString, FileContent;
-import util.sourceRange : FileAndPos, FileAndRange, RangeWithinFile;
+import util.sourceRange : UriAndPos, UriAndRange, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
 import util.uri : Uri;
 import util.util : unreachable, todo, verify;
@@ -381,7 +381,7 @@ VarDecl checkVarDecl(
 	if (!empty(ast.typeParams))
 		todo!void("diag");
 	return VarDecl(
-		FileAndPos(ctx.curUri, ast.range.start),
+		UriAndPos(ctx.curUri, ast.range.start),
 		copySafeCStr(ctx.alloc, ast.docComment),
 		ast.visibility,
 		ast.name,
@@ -721,7 +721,7 @@ FunDecl funDeclForFileImportOrExport(
 	FunDecl(
 		safeCStr!"",
 		visibility,
-		FileAndPos(ctx.curUri, a.range.start),
+		UriAndPos(ctx.curUri, a.range.start),
 		a.name,
 		[],
 		typeForFileImport(ctx, commonTypes, structsAndAliasesMap, a.range, a.type),
@@ -848,7 +848,7 @@ Map!(Sym, NameReferents) getAllExportedNames(
 	Uri uri,
 ) {
 	MutMap!(Sym, NameReferents) res;
-	void addExport(Sym name, NameReferents cur, FileAndRange range) {
+	void addExport(Sym name, NameReferents cur, UriAndRange range) {
 		insertOrUpdate!(Sym, NameReferents)(
 			alloc,
 			res,
@@ -875,14 +875,14 @@ Map!(Sym, NameReferents) getAllExportedNames(
 				mapEachIn!(Sym, NameReferents)(
 					m.module_.allExportedNames,
 					(in Sym name, in NameReferents value) {
-						addExport(name, value, FileAndRange(uri, force(e.importSource)));
+						addExport(name, value, UriAndRange(uri, force(e.importSource)));
 					});
 			},
 			(in ImportOrExportKind.ModuleNamed m) {
 				foreach (Sym name; m.names) {
 					Opt!NameReferents value = m.module_.allExportedNames[name];
 					if (has(value))
-						addExport(name, force(value), FileAndRange(uri, force(e.importSource)));
+						addExport(name, force(value), UriAndRange(uri, force(e.importSource)));
 				}
 			});
 	mapEach!(Sym, StructOrAlias)(
@@ -915,7 +915,7 @@ Map!(Sym, NameReferents) getAllExportedNames(
 				name,
 				NameReferents(none!StructOrAlias, none!(SpecDecl*), funDecls),
 				// This argument doesn't matter because a function never results in a duplicate export error
-				FileAndRange(uri, RangeWithinFile.empty));
+				UriAndRange(uri, RangeWithinFile.empty));
 	});
 
 	return moveToMap!(Sym, NameReferents)(alloc, res);
@@ -998,7 +998,7 @@ void checkImportsOrExports(
 							diags,
 							// TODO: use the range of the particular name
 							// (by advancing pos by symSize until we get to this name)
-							FileAndRange(thisFile, force(x.importSource)),
+							UriAndRange(thisFile, force(x.importSource)),
 							Diag(Diag.ImportRefersToNothing(name)));
 			});
 }

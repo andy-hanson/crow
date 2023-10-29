@@ -32,14 +32,14 @@ import util.col.arrUtil : map;
 import util.memory : allocate;
 import util.opt : none;
 import util.ptr : ptrTrustMe;
-import util.sourceRange : FileAndRange;
+import util.sourceRange : UriAndRange;
 import util.sym : sym;
 import util.util : todo;
 
 ConcreteFunBody bodyForSafeValue(
 	ref ConcretizeCtx concretizeCtx,
 	ConcreteFun* containingFun,
-	FileAndRange range,
+	UriAndRange range,
 	ConcreteType type,
 ) {
 	Ctx ctx = Ctx(ptrTrustMe(concretizeCtx), containingFun);
@@ -62,7 +62,7 @@ struct Ctx {
 		*concretizeCtxPtr;
 }
 
-ConcreteExpr safeValueForType(ref Ctx ctx, FileAndRange range, ConcreteType type) {
+ConcreteExpr safeValueForType(ref Ctx ctx, UriAndRange range, ConcreteType type) {
 	ConcreteExpr inner = safeValueForStruct(ctx, range, type.struct_);
 	final switch (type.reference) {
 		case ReferenceKind.byVal:
@@ -80,7 +80,7 @@ ConcreteExpr safeValueForType(ref Ctx ctx, FileAndRange range, ConcreteType type
 	}
 }
 
-ConcreteExpr safeValueForStruct(ref Ctx ctx, FileAndRange range, ConcreteStruct* struct_) {
+ConcreteExpr safeValueForStruct(ref Ctx ctx, UriAndRange range, ConcreteStruct* struct_) {
 	ConcreteType type = ConcreteType(ReferenceKind.byVal, struct_);
 	ConcreteExpr fromConstant(Constant constant) {
 		return ConcreteExpr(type, range, ConcreteExprKind(constant));
@@ -147,7 +147,7 @@ ConcreteExpr safeValueForStruct(ref Ctx ctx, FileAndRange range, ConcreteStruct*
 		});
 }
 
-ConcreteExpr safeFunValue(ref Ctx ctx, FileAndRange range, ConcreteStruct* struct_) {
+ConcreteExpr safeFunValue(ref Ctx ctx, UriAndRange range, ConcreteStruct* struct_) {
 	ConcreteType[] typeArgs = struct_.source.as!(ConcreteStructSource.Inst).typeArgs;
 	ConcreteType returnType = typeArgs[0];
 	ConcreteLocal[] params =

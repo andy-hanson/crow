@@ -85,7 +85,7 @@ import util.col.str : SafeCStr, safeCStr;
 import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
-import util.sourceRange : FileAndRange, RangeWithinFile;
+import util.sourceRange : UriAndRange, RangeWithinFile;
 import util.sym : Sym, sym;
 import util.union_ : Union;
 import util.uri : Uri;
@@ -108,7 +108,7 @@ ConcreteExpr concretizeFunBody(
 	});
 }
 
-ConcreteExpr concretizeBogus(ref ConcretizeCtx ctx, ConcreteType type, FileAndRange range) =>
+ConcreteExpr concretizeBogus(ref ConcretizeCtx ctx, ConcreteType type, UriAndRange range) =>
 	makeThrow(ctx.alloc, range, type, cStrConcreteExpr(ctx, range, safeCStr!"Reached compile error"));
 
 private:
@@ -136,7 +136,7 @@ ConcreteExpr concretizeWithParamDestructures(
 				rest(addLocal(locals, local, LocalOrConstant(&concreteParams[0]))),
 			(Destructure.Split* x) =>
 				concretizeWithDestructureSplit(
-					ctx, type, toFileAndRange(ctx, params[0].range), locals, *x, &concreteParams[0],
+					ctx, type, toUriAndRange(ctx, params[0].range), locals, *x, &concreteParams[0],
 					(in Locals innerLocals) => rest(innerLocals)));
 	}
 }
@@ -168,8 +168,8 @@ ConcreteType boolType(ref ConcretizeExprCtx ctx) =>
 ConcreteType voidType(ref ConcretizeExprCtx ctx) =>
 	.voidType(ctx.concretizeCtx);
 
-FileAndRange toFileAndRange(in ConcretizeExprCtx ctx, RangeWithinFile a) =>
-	FileAndRange(ctx.curUri, a);
+UriAndRange toUriAndRange(in ConcretizeExprCtx ctx, RangeWithinFile a) =>
+	UriAndRange(ctx.curUri, a);
 
 immutable struct TypedConstant {
 	ConcreteType type;
@@ -199,7 +199,7 @@ TypeArgsScope typeScope(ref ConcretizeExprCtx ctx) =>
 ConcreteExpr concretizeCall(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	in ExprKind.Call e,
 ) {
@@ -238,7 +238,7 @@ ConcreteExpr concretizeCall(
 						concreteCalled.paramsIncludingClosure,
 						constants,
 						(ref ConcreteLocal p, ref Constant x) =>
-							ConcreteExpr(p.type, FileAndRange.empty, ConcreteExprKind(x)))));
+							ConcreteExpr(p.type, UriAndRange.empty, ConcreteExprKind(x)))));
 		},
 		(ConcreteExpr[] exprs) =>
 			ConcreteExprKind(ConcreteExprKind.Call(concreteCalled, exprs)));
@@ -268,7 +268,7 @@ ConcreteFun* getConcreteFunFromFunInst(ref ConcretizeExprCtx ctx, FunInst* funIn
 ConcreteExpr concretizeClosureGet(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in ExprKind.ClosureGet a,
 ) {
 	ClosureFieldInfo info = getClosureFieldInfo(ctx, range, *a.closureRef);
@@ -280,7 +280,7 @@ ConcreteExpr concretizeClosureGet(
 ConcreteExpr concretizeClosureSet(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	in ExprKind.ClosureSet a,
 ) {
@@ -298,7 +298,7 @@ immutable struct ClosureFieldInfo {
 	ConcreteType type; // If 'referenceKind' is 'allocated', this is the pointee type
 	ClosureReferenceKind referenceKind;
 }
-ClosureFieldInfo getClosureFieldInfo(ref ConcretizeExprCtx ctx, FileAndRange range, ClosureRef a) {
+ClosureFieldInfo getClosureFieldInfo(ref ConcretizeExprCtx ctx, UriAndRange range, ClosureRef a) {
 	ConcreteLocal* closureParam = &ctx.currentConcreteFun.paramsIncludingClosure[0];
 	ConcreteType closureType = closureParam.type;
 	ConcreteStructBody.Record record = body_(*closureType.struct_).as!(ConcreteStructBody.Record);
@@ -326,7 +326,7 @@ ConcreteExpr createAllocExpr(ref Alloc alloc, ConcreteExpr inner) {
 		ConcreteExprKind(allocate(alloc, ConcreteExprKind.Alloc(inner))));
 }
 
-ConcreteExpr getCurExclusion(ref ConcretizeExprCtx ctx, ConcreteType type, FileAndRange range) =>
+ConcreteExpr getCurExclusion(ref ConcretizeExprCtx ctx, ConcreteType type, UriAndRange range) =>
 	ConcreteExpr(type, range, ConcreteExprKind(ConcreteExprKind.Call(ctx.concretizeCtx.curExclusionFun, [])));
 
 ConcreteField[] concretizeClosureFields(ref ConcretizeCtx ctx, VariableRef[] closure, TypeArgsScope typeArgsScope) =>
@@ -370,20 +370,20 @@ ReferenceKind removeIndirection(ReferenceKind a) {
 	}
 }
 
-ConcreteExpr constantVoid(ref ConcretizeCtx ctx, FileAndRange range) =>
+ConcreteExpr constantVoid(ref ConcretizeCtx ctx, UriAndRange range) =>
 	ConcreteExpr(voidType(ctx), range, constantVoidKind());
 
 ConcreteExprKind constantVoidKind() =>
 	ConcreteExprKind(constantZero);
 
-ConcreteExpr concretizeFunPtr(ref ConcretizeExprCtx ctx, ConcreteType type, FileAndRange range, ExprKind.FunPtr e) =>
+ConcreteExpr concretizeFunPtr(ref ConcretizeExprCtx ctx, ConcreteType type, UriAndRange range, ExprKind.FunPtr e) =>
 	ConcreteExpr(type, range, ConcreteExprKind(
 		Constant(Constant.FunPtr(getOrAddNonTemplateConcreteFunAndFillBody(ctx.concretizeCtx, e.funInst)))));
 
 ConcreteExpr concretizeLambda(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	ref ExprKind.Lambda e,
 ) {
@@ -480,7 +480,7 @@ LoopAndType getLoop(in Locals locals, ExprKind.Loop* key) =>
 ConcreteExpr concretizeLet(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	ref ExprKind.Let e,
 ) {
@@ -495,7 +495,7 @@ ConcreteExpr concretizeLet(
 ConcreteExprKind.MatchUnion.Case concretizeMatchCaseWithDestructure(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	ref Destructure destructure,
 	ref Expr expr,
@@ -507,7 +507,7 @@ ConcreteExprKind.MatchUnion.Case concretizeMatchCaseWithDestructure(
 RootLocalAndExpr concretizeExprWithDestructure(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	ref Destructure destructure,
 	ref Expr expr,
@@ -523,7 +523,7 @@ struct RootLocalAndExpr {
 ConcreteExpr concretizeWithDestructureAndLet(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	ref Destructure destructure,
 	ConcreteExpr value,
@@ -548,7 +548,7 @@ ConcreteExpr concretizeWithDestructureAndLet(
 RootLocalAndExpr concretizeWithDestructure(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	ref Destructure destructure,
 	in ConcreteExpr delegate(in Locals) @safe @nogc pure nothrow cb,
@@ -576,13 +576,13 @@ RootLocalAndExpr concretizeWithDestructure(
 			}
 		});
 
-ConcreteExpr makeLocalGet(FileAndRange range, ConcreteLocal* local) =>
+ConcreteExpr makeLocalGet(UriAndRange range, ConcreteLocal* local) =>
 	ConcreteExpr(local.type, range, ConcreteExprKind(ConcreteExprKind.LocalGet(local)));
 
 ConcreteExpr concretizeWithDestructureSplit(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	in Destructure.Split split,
 	ConcreteLocal* destructured,
@@ -603,7 +603,7 @@ ConcreteExpr concretizeWithDestructurePartsRecur(
 		return cb(locals);
 	else {
 		Destructure part = parts[partIndex];
-		FileAndRange range = toFileAndRange(ctx, part.range);
+		UriAndRange range = toUriAndRange(ctx, part.range);
 		ConcreteType valueType =
 			body_(*mustBeByVal(getTemp.type)).as!(ConcreteStructBody.Record).fields[partIndex].type;
 		ConcreteType expectedType = getConcreteType(ctx, part.type);
@@ -621,7 +621,7 @@ ConcreteExpr concretizeWithDestructurePartsRecur(
 ConcreteExpr concretizeIf(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	ref ExprKind.If a,
 ) {
@@ -637,7 +637,7 @@ ConcreteExpr concretizeIf(
 ConcreteExpr concretizeIfOption(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	ref ExprKind.IfOption e,
 ) {
@@ -660,7 +660,7 @@ ConcreteExpr concretizeIfOption(
 ConcreteExpr concretizeLocalGet(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	Local* local,
 ) {
@@ -677,7 +677,7 @@ ConcreteExpr concretizeLocalGet(
 ConcreteExpr concretizePtrToLocal(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	ExprKind.PtrToLocal a,
 ) {
@@ -693,7 +693,7 @@ ConcreteExpr concretizePtrToLocal(
 ConcreteExpr concretizePtrToField(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	ref ExprKind.PtrToField a,
 ) =>
@@ -703,7 +703,7 @@ ConcreteExpr concretizePtrToField(
 ConcreteExpr concretizeLocalSet(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	ref ExprKind.LocalSet a,
 ) {
@@ -716,7 +716,7 @@ ConcreteExpr concretizeLocalSet(
 ConcreteExpr concretizeLoop(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	ref ExprKind.Loop a,
 ) {
@@ -730,7 +730,7 @@ ConcreteExpr concretizeLoop(
 ConcreteExpr concretizeLoopBreak(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	ref ExprKind.LoopBreak a,
 ) {
@@ -744,7 +744,7 @@ ConcreteExpr concretizeLoopBreak(
 ConcreteExpr concretizeLoopContinue(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	in ExprKind.LoopContinue a,
 ) {
@@ -756,7 +756,7 @@ ConcreteExpr concretizeLoopContinue(
 ConcreteExpr concretizeLoopUntil(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	ref ExprKind.LoopUntil a,
 ) =>
@@ -765,7 +765,7 @@ ConcreteExpr concretizeLoopUntil(
 ConcreteExpr concretizeLoopWhile(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	ref ExprKind.LoopWhile a,
 ) =>
@@ -774,7 +774,7 @@ ConcreteExpr concretizeLoopWhile(
 ConcreteExpr concretizeLoopUntilOrWhile(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	ref Expr conditionExpr,
 	ref Expr bodyExpr,
@@ -806,7 +806,7 @@ ConcreteExpr concretizeLoopUntilOrWhile(
 ConcreteExpr concretizeMatchEnum(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	ref ExprKind.MatchEnum e,
 ) {
@@ -821,7 +821,7 @@ ConcreteExpr concretizeMatchEnum(
 ConcreteExpr concretizeMatchUnion(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	ref ExprKind.MatchUnion e,
 ) {
@@ -834,7 +834,7 @@ ConcreteExpr concretizeMatchUnion(
 
 ConcreteVariableRef concretizeVariableRefForClosure(
 	ref ConcretizeExprCtx ctx,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	VariableRef a,
 ) =>
@@ -848,18 +848,18 @@ ConcreteVariableRef concretizeVariableRefForClosure(
 		(ClosureRef x) =>
 			ConcreteVariableRef(getClosureFieldInfo(ctx, range, x).closureRef));
 
-ConcreteExpr makeThrow(ref Alloc alloc, FileAndRange range, ConcreteType type, ConcreteExpr thrown) =>
+ConcreteExpr makeThrow(ref Alloc alloc, UriAndRange range, ConcreteType type, ConcreteExpr thrown) =>
 	ConcreteExpr(type, range, ConcreteExprKind(allocate(alloc, ConcreteExprKind.Throw(thrown))));
 
-ConcreteExpr cStrConcreteExpr(ref ConcretizeCtx ctx, FileAndRange range, SafeCStr value) =>
+ConcreteExpr cStrConcreteExpr(ref ConcretizeCtx ctx, UriAndRange range, SafeCStr value) =>
 	cStrConcreteExpr(ctx, cStrType(ctx), range, value);
-ConcreteExpr cStrConcreteExpr(ref ConcretizeCtx ctx, ConcreteType type, FileAndRange range, SafeCStr value) =>
+ConcreteExpr cStrConcreteExpr(ref ConcretizeCtx ctx, ConcreteType type, UriAndRange range, SafeCStr value) =>
 	ConcreteExpr(type, range, ConcreteExprKind(constantCStr(ctx, value)));
 
 ConcreteExpr concretizeAssertOrForbid(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
-	FileAndRange range,
+	UriAndRange range,
 	in Locals locals,
 	in ExprKind.AssertOrForbid a,
 ) {
@@ -898,7 +898,7 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, in Locals locals, ref Exp
 	concretizeExpr(ctx, getConcreteType(ctx, a.type), locals, a.expr);
 
 ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Locals locals, ref Expr a) {
-	FileAndRange range = a.range;
+	UriAndRange range = a.range;
 	if (isBogus(type))
 		return concretizeBogus(ctx.concretizeCtx, type, range);
 	return a.kind.match!ConcreteExpr(
@@ -964,7 +964,7 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 
 ConstantsOrExprs constantsOrExprsArr(
 	ref ConcretizeExprCtx ctx,
-	FileAndRange range,
+	UriAndRange range,
 	ConcreteType arrayType,
 	ConstantsOrExprs args,
 ) =>

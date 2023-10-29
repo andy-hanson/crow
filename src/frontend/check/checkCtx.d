@@ -24,7 +24,7 @@ import util.col.map : existsInMap;
 import util.col.mutMap : hasKey_mut, MutMap, setInMap;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
-import util.sourceRange : FileAndPos, FileAndRange, Pos, RangeWithinFile;
+import util.sourceRange : UriAndPos, UriAndRange, Pos, RangeWithinFile;
 import util.sym : AllSymbols, Sym;
 import util.uri : Uri;
 
@@ -153,17 +153,17 @@ void eachImportAndReExport(
 		inner(m);
 }
 
-FileAndPos posInFile(in CheckCtx ctx, Pos pos) =>
-	FileAndPos(ctx.curUri, pos);
+UriAndPos posInFile(in CheckCtx ctx, Pos pos) =>
+	UriAndPos(ctx.curUri, pos);
 
-FileAndRange rangeInFile(in CheckCtx ctx, RangeWithinFile range) =>
-	FileAndRange(ctx.curUri, range);
+UriAndRange rangeInFile(in CheckCtx ctx, RangeWithinFile range) =>
+	UriAndRange(ctx.curUri, range);
 
-void addDiag(ref CheckCtx ctx, FileAndRange range, Diag diag) {
+void addDiag(ref CheckCtx ctx, UriAndRange range, Diag diag) {
 	addDiagnostic(ctx.alloc, ctx.diagsBuilder, range, diag);
 }
 
 void addDiag(ref CheckCtx ctx, RangeWithinFile range, Diag diag) {
-	addDiag(ctx, FileAndRange(ctx.curUri, range), diag);
+	addDiag(ctx, UriAndRange(ctx.curUri, range), diag);
 }
 

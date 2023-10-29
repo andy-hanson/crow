@@ -46,7 +46,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arrUtil : arrLiteral, mapWithIndex;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
-import util.sourceRange : FileAndRange;
+import util.sourceRange : UriAndRange;
 import util.sym : sym;
 import util.util : unreachable;
 
@@ -59,7 +59,7 @@ LowFun generateMarkVisitGcPtr(
 ) {
 	LowType pointerType = LowType(pointerTypePtrGc);
 	LowType pointeeType = *pointerTypePtrGc.pointee;
-	FileAndRange range = FileAndRange.empty;
+	UriAndRange range = UriAndRange.empty;
 	LowLocal[] params = arrLiteral!LowLocal(alloc, [
 		genLocalByValue(alloc, sym!"mark-ctx", 0, markCtxType),
 		genLocalByValue(alloc, sym!"value", 1, pointerType)]);
@@ -103,7 +103,7 @@ LowFun generateMarkVisitNonArr(
 	LowType markCtxType,
 	LowType paramType,
 ) {
-	FileAndRange range = FileAndRange.empty;
+	UriAndRange range = UriAndRange.empty;
 	LowLocal[] params = arrLiteral!LowLocal(alloc, [
 		genLocalByValue(alloc, sym!"mark-ctx", 0, markCtxType),
 		genLocalByValue(alloc, sym!"value", 1, paramType)]);
@@ -146,7 +146,7 @@ LowFun generateMarkVisitArr(
 	Opt!LowFunIndex markVisitElementFun,
 ) {
 	LowType elementType = *elementPointerType.pointee;
-	FileAndRange range = FileAndRange.empty;
+	UriAndRange range = UriAndRange.empty;
 	LowLocal[] params = arrLiteral!LowLocal(alloc, [
 		genLocalByValue(alloc, sym!"mark-ctx", 0, markCtxType),
 		genLocalByValue(alloc, sym!"a", 1, LowType(arrType))]);
@@ -209,7 +209,7 @@ private:
 
 LowFunExprBody visitRecordBody(
 	ref Alloc alloc,
-	FileAndRange range,
+	UriAndRange range,
 	in MarkVisitFuns markVisitFuns,
 	LowField[] fields,
 	LowExpr markCtx,
@@ -243,7 +243,7 @@ LowFunExprBody visitRecordBody(
 
 LowFunExprBody visitUnionBody(
 	ref Alloc alloc,
-	FileAndRange range,
+	UriAndRange range,
 	in MarkVisitFuns markVisitFuns,
 	LowType[] unionMembers,
 	LowExpr markCtx,

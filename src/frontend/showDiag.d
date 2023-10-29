@@ -50,7 +50,7 @@ import util.col.str : SafeCStr;
 import util.lineAndColumnGetter : lineAndColumnAtPos, PosKind;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : ptrTrustMe;
-import util.sourceRange : FileAndPos;
+import util.sourceRange : UriAndPos;
 import util.storage : ReadFileIssue;
 import util.sym : AllSymbols, Sym, writeSym;
 import util.uri : AllUris, baseName, UrisInfo, writeUri, writeRelPath;
@@ -146,7 +146,7 @@ void writeLineNumber(
 	in UrisInfo urisInfo,
 	in ShowDiagOptions options,
 	in FilesInfo fi,
-	FileAndPos pos,
+	UriAndPos pos,
 ) {
 	if (options.color)
 		writeBold(writer);

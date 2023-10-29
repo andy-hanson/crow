@@ -58,7 +58,7 @@ import util.json :
 	jsonString,
 	kindField;
 import util.opt : force, has, none, Opt, some;
-import util.sourceRange : compareUriAndRange, FileAndRange;
+import util.sourceRange : compareUriAndRange, UriAndRange;
 import util.sym : AllSymbols, Sym, sym;
 import util.uri : AllUris, uriToString;
 import util.util : unreachable;
@@ -101,13 +101,13 @@ Json documentModule(
 }
 
 immutable struct DocExport {
-	FileAndRange range;
+	UriAndRange range;
 	Json json;
 }
 
 DocExport documentExport(
 	ref Alloc alloc,
-	FileAndRange range,
+	UriAndRange range,
 	Sym name,
 	in SafeCStr docComment,
 	in TypeParam[] typeParams,

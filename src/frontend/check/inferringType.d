@@ -39,7 +39,7 @@ import util.col.mutMaxArr : MutMaxArr, push, tempAsArr;
 import util.opt : has, force, MutOpt, none, noneMut, Opt, someMut, some;
 import util.perf : Perf;
 import util.ptr : castNonScope_ref;
-import util.sourceRange : FileAndRange, RangeWithinFile;
+import util.sourceRange : UriAndRange, RangeWithinFile;
 import util.sym : AllSymbols, Sym;
 import util.union_ : UnionMutable;
 import util.util : unreachable;
@@ -130,7 +130,7 @@ struct ExprCtx {
 		*checkCtxPtr;
 }
 
-T withTrusted(T)(ref ExprCtx ctx, FileAndRange range, in T delegate() @safe @nogc pure nothrow cb) {
+T withTrusted(T)(ref ExprCtx ctx, UriAndRange range, in T delegate() @safe @nogc pure nothrow cb) {
 	Opt!(Diag.TrustedUnnecessary.Reason) reason = ctx.outermostFunFlags.safety != FunFlags.Safety.safe
 		? some(Diag.TrustedUnnecessary.Reason.inUnsafeFunction)
 		: ctx.isInTrusted
@@ -160,7 +160,7 @@ bool checkCanDoUnsafe(ref ExprCtx ctx) {
 	}
 }
 
-FileAndRange rangeInFile2(in ExprCtx ctx, RangeWithinFile range) =>
+UriAndRange rangeInFile2(in ExprCtx ctx, RangeWithinFile range) =>
 	rangeInFile(ctx.checkCtx, range);
 
 ref ProgramState programState(return scope ref ExprCtx ctx) =>
@@ -168,7 +168,7 @@ ref ProgramState programState(return scope ref ExprCtx ctx) =>
 ProgramState* programStatePtr(ref ExprCtx ctx) =>
 	ctx.checkCtx.programStatePtr;
 
-void addDiag2(ref ExprCtx ctx, FileAndRange range, Diag diag) {
+void addDiag2(ref ExprCtx ctx, UriAndRange range, Diag diag) {
 	addDiag(ctx.checkCtx, range, diag);
 }
 void addDiag2(ref ExprCtx ctx, RangeWithinFile range, Diag diag) {
@@ -254,7 +254,7 @@ If there are multiple allowed choices, adds a diagnostic and returns none.
 */
 Opt!size_t findExpectedStructForLiteral(
 	ref ExprCtx ctx,
-	FileAndRange range,
+	UriAndRange range,
 	ref const Expected expected,
 	in immutable StructInst*[] choices,
 	size_t defaultChoice,
@@ -450,7 +450,7 @@ bool matchExpectedVsReturnTypeNoDiagnostic(
 		(const LoopInfo*) =>
 			false);
 
-Expr bogus(ref Expected expected, FileAndRange range) {
+Expr bogus(ref Expected expected, UriAndRange range) {
 	expected.match!void(
 		(Expected.Infer) {
 			setToBogus(expected);

@@ -25,16 +25,16 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.opt : force, has, none, Opt, some;
 import util.json : field, Json;
-import util.sourceRange : FileAndRange, jsonOfFileAndRange;
+import util.sourceRange : UriAndRange, jsonOfUriAndRange;
 import util.union_ : Union;
 import util.uri : AllUris, Uri;
 
 struct Definition {
-	FileAndRange range;
+	UriAndRange range;
 }
 
 Json jsonOfDefinition(ref Alloc alloc, in AllUris allUris, in Definition a) =>
-	jsonOfFileAndRange(alloc, allUris, a.range);
+	jsonOfUriAndRange(alloc, allUris, a.range);
 
 Opt!Definition getDefinitionForPosition(in Program program, in Position pos) {
 	Opt!Target target = targetForPosition(program, pos.kind);
@@ -62,14 +62,14 @@ immutable struct Target {
 Definition definitionForTarget(in Program program, Uri curUri, in Target a) =>
 	Definition(rangeForTarget(curUri, a));
 
-FileAndRange rangeForTarget(Uri curUri, in Target a) =>
-	a.matchIn!FileAndRange(
+UriAndRange rangeForTarget(Uri curUri, in Target a) =>
+	a.matchIn!UriAndRange(
 		(in FunDecl x) =>
 			x.range,
 		(in Local x) =>
 			x.range,
 		(in ExprKind.Loop x) =>
-			FileAndRange(curUri, x.range),
+			UriAndRange(curUri, x.range),
 		(in Module x) =>
 			x.range,
 		(in RecordField x) =>

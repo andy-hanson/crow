@@ -94,7 +94,8 @@ void parseAllFiles(
 	DiagnosticsBuilder diagsBuilder = DiagnosticsBuilder();
 	Config config = getConfig(alloc, allSymbols, allUris, includeDir, storage, diagsBuilder, rootUris);
 	cast(void) parseEverything(
-		alloc, alloc,perf, allSymbols, allUris, diagsBuilder, storage, rootUris, none!Uri, commonUris(allUris, config.crowIncludeDir), config);
+		alloc, alloc, perf, allSymbols, allUris, diagsBuilder, storage,
+		rootUris, none!Uri, commonUris(allUris, config.crowIncludeDir), config);
 }
 
 immutable struct FileAstAndDiagnostics {

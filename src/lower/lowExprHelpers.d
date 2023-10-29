@@ -17,7 +17,7 @@ import model.lowModel :
 	PrimitiveType;
 import util.alloc.alloc : Alloc;
 import util.memory : allocate, overwriteMemory;
-import util.sourceRange : FileAndRange;
+import util.sourceRange : UriAndRange;
 import util.sym : Sym, sym;
 import util.util : unreachable, verify;
 
@@ -42,70 +42,70 @@ private LowType anyPtrConstType =
 LowType anyPtrMutType = LowType(LowType.PtrRawMut(&nat8Type));
 LowType voidType = LowType(PrimitiveType.void_);
 
-LowExpr genAddPtr(ref Alloc alloc, LowType.PtrRawConst ptrType, FileAndRange range, LowExpr ptr, LowExpr added) =>
+LowExpr genAddPtr(ref Alloc alloc, LowType.PtrRawConst ptrType, UriAndRange range, LowExpr ptr, LowExpr added) =>
 	LowExpr(LowType(ptrType), range, LowExprKind(allocate(alloc,
 		LowExprKind.SpecialBinary(LowExprKind.SpecialBinary.Kind.addPtrAndNat64, [ptr, added]))));
 
-LowExpr genAsAnyPtrConst(ref Alloc alloc, FileAndRange range, LowExpr a) =>
+LowExpr genAsAnyPtrConst(ref Alloc alloc, UriAndRange range, LowExpr a) =>
 	LowExpr(anyPtrConstType, range, LowExprKind(allocate(alloc,
 		LowExprKind.SpecialUnary(LowExprKind.SpecialUnary.Kind.asAnyPtr, a))));
 
-LowExpr genDrop(ref Alloc alloc, FileAndRange range, LowExpr a) =>
+LowExpr genDrop(ref Alloc alloc, UriAndRange range, LowExpr a) =>
 	LowExpr(voidType, range, LowExprKind(allocate(alloc,
 		LowExprKind.SpecialUnary(LowExprKind.SpecialUnary.Kind.drop, a))));
 
 // Ensures that the side-effect order is still 'a' before 'b'
-LowExprKind genDropSecond(ref Alloc alloc, FileAndRange range, size_t localIndex, LowExpr a, LowExpr b) =>
+LowExprKind genDropSecond(ref Alloc alloc, UriAndRange range, size_t localIndex, LowExpr a, LowExpr b) =>
 	genLetTemp(alloc, range, localIndex, a, (LowExpr getA) =>
 		genSeq(alloc, range, genDrop(alloc, range, b), getA)).kind;
 
-private LowExpr genDerefGcOrRawPtr(ref Alloc alloc, FileAndRange range, LowExpr ptr) =>
+private LowExpr genDerefGcOrRawPtr(ref Alloc alloc, UriAndRange range, LowExpr ptr) =>
 	genUnary(alloc, range, asGcOrRawPointee(ptr.type), LowExprKind.SpecialUnary.Kind.deref, ptr);
 
-LowExpr genDerefGcPtr(ref Alloc alloc, FileAndRange range, LowExpr ptr) =>
+LowExpr genDerefGcPtr(ref Alloc alloc, UriAndRange range, LowExpr ptr) =>
 	genDerefGcOrRawPtr(alloc, range, ptr);
 
 LowExprKind genDerefGcPtr(ref Alloc alloc, LowExpr ptr) =>
-	genDerefGcOrRawPtr(alloc, FileAndRange(), ptr).kind;
+	genDerefGcOrRawPtr(alloc, UriAndRange(), ptr).kind;
 
-LowExpr genDerefRawPtr(ref Alloc alloc, FileAndRange range, LowExpr ptr) =>
+LowExpr genDerefRawPtr(ref Alloc alloc, UriAndRange range, LowExpr ptr) =>
 	genDerefGcOrRawPtr(alloc, range, ptr);
 
 private LowExpr genUnary(
 	ref Alloc alloc,
-	FileAndRange range,
+	UriAndRange range,
 	LowType type,
 	LowExprKind.SpecialUnary.Kind kind,
 	LowExpr arg,
 ) =>
 	LowExpr(type, range, LowExprKind(allocate(alloc, LowExprKind.SpecialUnary(kind, arg))));
 
-LowExpr genIf(ref Alloc alloc, FileAndRange range, LowExpr cond, LowExpr then, LowExpr else_) =>
+LowExpr genIf(ref Alloc alloc, UriAndRange range, LowExpr cond, LowExpr then, LowExpr else_) =>
 	LowExpr(then.type, range, LowExprKind(allocate(alloc, LowExprKind.If(cond, then, else_))));
 
-LowExpr genIncrPointer(ref Alloc alloc, FileAndRange range, LowType.PtrRawConst ptrType, LowExpr ptr) =>
+LowExpr genIncrPointer(ref Alloc alloc, UriAndRange range, LowType.PtrRawConst ptrType, LowExpr ptr) =>
 	genAddPtr(alloc, ptrType, range, ptr, genConstantNat64(range, 1));
 
-LowExpr genConstantNat64(FileAndRange range, ulong value) =>
+LowExpr genConstantNat64(UriAndRange range, ulong value) =>
 	LowExpr(nat64Type, range, LowExprKind(Constant(Constant.Integral(value))));
 
-LowExpr genCall(ref Alloc alloc, FileAndRange range, LowFunIndex called, LowType returnType, LowExpr[] args) =>
+LowExpr genCall(ref Alloc alloc, UriAndRange range, LowFunIndex called, LowType returnType, LowExpr[] args) =>
 	LowExpr(returnType, range, LowExprKind(LowExprKind.Call(called, args)));
 
-LowExpr genSizeOf(FileAndRange range, LowType t) =>
+LowExpr genSizeOf(UriAndRange range, LowType t) =>
 	LowExpr(nat64Type, range, LowExprKind(LowExprKind.SizeOf(t)));
 
-LowExpr genLocalGet(FileAndRange range, LowLocal* local) =>
+LowExpr genLocalGet(UriAndRange range, LowLocal* local) =>
 	LowExpr(local.type, range, LowExprKind(LowExprKind.LocalGet(local)));
 
-LowExpr genLocalSet(ref Alloc alloc, FileAndRange range, LowLocal* local, LowExpr value) =>
+LowExpr genLocalSet(ref Alloc alloc, UriAndRange range, LowLocal* local, LowExpr value) =>
 	LowExpr(voidType, range, LowExprKind(allocate(alloc, LowExprKind.LocalSet(local, value))));
 
-LowExpr genWrapMulNat64(ref Alloc alloc, FileAndRange range, LowExpr left, LowExpr right) =>
+LowExpr genWrapMulNat64(ref Alloc alloc, UriAndRange range, LowExpr left, LowExpr right) =>
 	LowExpr(nat64Type, range, LowExprKind(allocate(alloc,
 		LowExprKind.SpecialBinary(LowExprKind.SpecialBinary.Kind.wrapMulNat64, [left, right]))));
 
-LowExpr genPtrEq(ref Alloc alloc, FileAndRange range, LowExpr a, LowExpr b) =>
+LowExpr genPtrEq(ref Alloc alloc, UriAndRange range, LowExpr a, LowExpr b) =>
 	LowExpr(boolType, range, LowExprKind(allocate(alloc,
 		LowExprKind.SpecialBinary(LowExprKind.SpecialBinary.Kind.eqPtr, [a, b]))));
 
@@ -234,29 +234,29 @@ private LowExprKind.SpecialBinary.Kind unionForType(PrimitiveType a) {
 LowExprKind genEnumToIntegral(ref Alloc alloc, LowExpr inner) =>
 	LowExprKind(allocate(alloc, LowExprKind.SpecialUnary(LowExprKind.SpecialUnary.Kind.enumToIntegral, inner)));
 
-LowExpr genPtrCast(ref Alloc alloc, LowType type, FileAndRange range, LowExpr inner) =>
+LowExpr genPtrCast(ref Alloc alloc, LowType type, UriAndRange range, LowExpr inner) =>
 	LowExpr(type, range, genPtrCastKind(alloc, inner));
 
 LowExprKind genPtrCastKind(ref Alloc alloc, LowExpr inner) =>
 	LowExprKind(allocate(alloc, LowExprKind.PtrCast(inner)));
 
-LowExpr genRecordFieldGet(ref Alloc alloc, FileAndRange range, LowExpr target, LowType fieldType, size_t fieldIndex) =>
+LowExpr genRecordFieldGet(ref Alloc alloc, UriAndRange range, LowExpr target, LowType fieldType, size_t fieldIndex) =>
 	LowExpr(fieldType, range, LowExprKind(allocate(alloc, LowExprKind.RecordFieldGet(target, fieldIndex))));
 
-LowExpr genSeq(ref Alloc alloc, FileAndRange range, LowExpr first, LowExpr then) =>
+LowExpr genSeq(ref Alloc alloc, UriAndRange range, LowExpr first, LowExpr then) =>
 	LowExpr(then.type, range, genSeqKind(alloc, first, then));
 LowExprKind genSeqKind(ref Alloc alloc, LowExpr first, LowExpr then) =>
 	LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(LowExprKind.SpecialBinary.Kind.seq, [first, then])));
 
-LowExpr genSeq(ref Alloc alloc, FileAndRange range, LowExpr line0, LowExpr line1, LowExpr line2) =>
+LowExpr genSeq(ref Alloc alloc, UriAndRange range, LowExpr line0, LowExpr line1, LowExpr line2) =>
 	genSeq(alloc, range, line0, genSeq(alloc, range, line1, line2));
 
-LowExpr genWriteToPtr(ref Alloc alloc, FileAndRange range, LowExpr ptr, LowExpr value) =>
+LowExpr genWriteToPtr(ref Alloc alloc, UriAndRange range, LowExpr ptr, LowExpr value) =>
 	LowExpr(voidType, range, genWriteToPtr(alloc, ptr, value));
 LowExprKind genWriteToPtr(ref Alloc alloc, LowExpr ptr, LowExpr value) =>
 	LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(LowExprKind.SpecialBinary.Kind.writeToPtr, [ptr, value])));
 
-LowExpr genVoid(FileAndRange source) =>
+LowExpr genVoid(UriAndRange source) =>
 	LowExpr(voidType, source, LowExprKind(constantZero));
 
 LowLocal* genLocal(ref Alloc alloc, Sym name, size_t index, LowType type) =>
@@ -264,12 +264,12 @@ LowLocal* genLocal(ref Alloc alloc, Sym name, size_t index, LowType type) =>
 LowLocal genLocalByValue(ref Alloc alloc, Sym name, size_t index, LowType type) =>
 	LowLocal(LowLocalSource(allocate(alloc, LowLocalSource.Generated(name, index))), type);
 
-LowExpr genLet(ref Alloc alloc, FileAndRange range, LowLocal* local, LowExpr init, LowExpr then) =>
+LowExpr genLet(ref Alloc alloc, UriAndRange range, LowLocal* local, LowExpr init, LowExpr then) =>
 	LowExpr(then.type, range, LowExprKind(allocate(alloc, LowExprKind.Let(local, init, then))));
 
 LowExpr genLetTemp(
 	ref Alloc alloc,
-	FileAndRange range,
+	UriAndRange range,
 	size_t localIndex,
 	LowExpr value,
 	in LowExpr delegate(LowExpr) @safe @nogc pure nothrow cbThen,
@@ -278,10 +278,10 @@ LowExpr genLetTemp(
 	return genLet(alloc, range, local, value, cbThen(genLocalGet(range, local)));
 }
 
-LowExpr genGetArrSize(ref Alloc alloc, FileAndRange range, LowExpr arr) =>
+LowExpr genGetArrSize(ref Alloc alloc, UriAndRange range, LowExpr arr) =>
 	genRecordFieldGet(alloc, range, arr, nat64Type, 0);
 
-LowExpr genGetArrData(ref Alloc alloc, FileAndRange range, LowExpr arr, LowType.PtrRawConst elementPtrType) =>
+LowExpr genGetArrData(ref Alloc alloc, UriAndRange range, LowExpr arr, LowType.PtrRawConst elementPtrType) =>
 	genRecordFieldGet(alloc, range, arr, LowType(elementPtrType), 1);
 
 LowType.PtrRawConst getElementPtrTypeFromArrType(ref AllLowTypes allTypes, LowType.Record arrType) {
@@ -294,19 +294,19 @@ LowType.PtrRawConst getElementPtrTypeFromArrType(ref AllLowTypes allTypes, LowTy
 
 @trusted LowExpr genLoop(
 	ref Alloc alloc,
-	FileAndRange range,
+	UriAndRange range,
 	LowType type,
 	in LowExpr delegate(LowExprKind.Loop*) @safe @nogc pure nothrow cbBody,
 ) {
 	LowExprKind.Loop* res = allocate(alloc, LowExprKind.Loop(
 		// Dummy initial body
-		LowExpr(voidType, FileAndRange.empty, LowExprKind(constantZero))));
+		LowExpr(voidType, UriAndRange.empty, LowExprKind(constantZero))));
 	overwriteMemory(&res.body_, cbBody(res));
 	return LowExpr(type, range, LowExprKind(res));
 }
 
-LowExpr genLoopBreak(ref Alloc alloc, FileAndRange range, LowExprKind.Loop* loop, LowExpr value) =>
+LowExpr genLoopBreak(ref Alloc alloc, UriAndRange range, LowExprKind.Loop* loop, LowExpr value) =>
 	LowExpr(voidType, range, LowExprKind(allocate(alloc, LowExprKind.LoopBreak(loop, value))));
 
-LowExpr genLoopContinue(FileAndRange range, LowExprKind.Loop* loop) =>
+LowExpr genLoopContinue(UriAndRange range, LowExprKind.Loop* loop) =>
 	LowExpr(voidType, range, LowExprKind(LowExprKind.LoopContinue(loop)));

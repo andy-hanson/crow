@@ -44,7 +44,7 @@ import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAd
 import util.col.mutMaxArr : push, tempAsArr;
 import util.col.str : safeCStr;
 import util.opt : force, has, none, Opt, some;
-import util.sourceRange : FileAndPos, fileAndPosFromFileAndRange, FileAndRange;
+import util.sourceRange : UriAndPos, fileAndPosFromUriAndRange, UriAndRange;
 import util.sym : prependSet, prependSetDeref, Sym, sym;
 
 size_t countFunsForStructs(in StructDecl[] structs) =>
@@ -141,7 +141,7 @@ FunDecl newExtern(ref Alloc alloc, ref ProgramState programState, StructDecl* st
 	FunDecl(
 		safeCStr!"",
 		struct_.visibility,
-		fileAndPosFromFileAndRange(struct_.range),
+		fileAndPosFromUriAndRange(struct_.range),
 		sym!"new",
 		[],
 		Type(instantiateNonTemplateStructDeclNeverDelay(alloc, programState, struct_)),
@@ -169,7 +169,7 @@ void addFunsForEnum(
 ) {
 	Type enumType = Type(instantiateNonTemplateStructDeclNeverDelay(ctx.alloc, ctx.programState, struct_));
 	Visibility visibility = struct_.visibility;
-	FileAndRange range = struct_.range;
+	UriAndRange range = struct_.range;
 	addEnumFlagsCommonFunctions(
 		ctx.alloc, funsBuilder, ctx.programState, visibility, range, enumType, enum_.backingType, commonTypes,
 		sym!"enum-members");
@@ -186,7 +186,7 @@ void addFunsForFlags(
 ) {
 	Type type = Type(instantiateNonTemplateStructDeclNeverDelay(ctx.alloc, ctx.programState, struct_));
 	Visibility visibility = struct_.visibility;
-	FileAndRange range = struct_.range;
+	UriAndRange range = struct_.range;
 	addEnumFlagsCommonFunctions(
 		ctx.alloc, funsBuilder, ctx.programState, visibility, range, type, flags.backingType, commonTypes,
 		sym!"flags-members");
@@ -207,7 +207,7 @@ void addEnumFlagsCommonFunctions(
 	ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	ref ProgramState programState,
 	Visibility visibility,
-	FileAndRange range,
+	UriAndRange range,
 	Type type,
 	EnumBackingType backingType,
 	ref CommonTypes commonTypes,
@@ -231,7 +231,7 @@ FunDecl enumOrFlagsConstructor(
 	FunDecl(
 		safeCStr!"",
 		visibility,
-		fileAndPosFromFileAndRange(member.range),
+		fileAndPosFromUriAndRange(member.range),
 		member.name,
 		[],
 		enumType,
@@ -243,14 +243,14 @@ FunDecl enumOrFlagsConstructor(
 FunDecl enumEqualFunction(
 	ref Alloc alloc,
 	Visibility visibility,
-	FileAndRange fileAndRange,
+	UriAndRange fileAndRange,
 	Type enumType,
 	in CommonTypes commonTypes,
 ) =>
 	FunDecl(
 		safeCStr!"",
 		visibility,
-		fileAndPosFromFileAndRange(fileAndRange),
+		fileAndPosFromUriAndRange(fileAndRange),
 		sym!"==",
 		[],
 		Type(commonTypes.bool_),
@@ -259,11 +259,11 @@ FunDecl enumEqualFunction(
 		[],
 		FunBody(EnumFunction.equal));
 
-FunDecl flagsNewFunction(ref Alloc alloc, Visibility visibility, FileAndRange fileAndRange, Type enumType) =>
+FunDecl flagsNewFunction(ref Alloc alloc, Visibility visibility, UriAndRange fileAndRange, Type enumType) =>
 	FunDecl(
 		safeCStr!"",
 		visibility,
-		fileAndPosFromFileAndRange(fileAndRange),
+		fileAndPosFromUriAndRange(fileAndRange),
 		sym!"new",
 		[],
 		enumType,
@@ -272,11 +272,11 @@ FunDecl flagsNewFunction(ref Alloc alloc, Visibility visibility, FileAndRange fi
 		[],
 		FunBody(FlagsFunction.new_));
 
-FunDecl flagsAllFunction(ref Alloc alloc, Visibility visibility, FileAndRange fileAndRange, Type enumType) =>
+FunDecl flagsAllFunction(ref Alloc alloc, Visibility visibility, UriAndRange fileAndRange, Type enumType) =>
 	FunDecl(
 		safeCStr!"",
 		visibility,
-		fileAndPosFromFileAndRange(fileAndRange),
+		fileAndPosFromUriAndRange(fileAndRange),
 		sym!"all",
 		[],
 		enumType,
@@ -285,11 +285,11 @@ FunDecl flagsAllFunction(ref Alloc alloc, Visibility visibility, FileAndRange fi
 		[],
 		FunBody(FlagsFunction.all));
 
-FunDecl flagsNegateFunction(ref Alloc alloc, Visibility visibility, FileAndRange fileAndRange, Type enumType) =>
+FunDecl flagsNegateFunction(ref Alloc alloc, Visibility visibility, UriAndRange fileAndRange, Type enumType) =>
 	FunDecl(
 		safeCStr!"",
 		visibility,
-		fileAndPosFromFileAndRange(fileAndRange),
+		fileAndPosFromUriAndRange(fileAndRange),
 		sym!"~",
 		[],
 		enumType,
@@ -301,7 +301,7 @@ FunDecl flagsNegateFunction(ref Alloc alloc, Visibility visibility, FileAndRange
 FunDecl enumToIntegralFunction(
 	ref Alloc alloc,
 	Visibility visibility,
-	FileAndRange fileAndRange,
+	UriAndRange fileAndRange,
 	EnumBackingType enumBackingType,
 	Type enumType,
 	in CommonTypes commonTypes,
@@ -309,7 +309,7 @@ FunDecl enumToIntegralFunction(
 	FunDecl(
 		safeCStr!"",
 		visibility,
-		fileAndPosFromFileAndRange(fileAndRange),
+		fileAndPosFromUriAndRange(fileAndRange),
 		sym!"to",
 		[],
 		Type(getBackingTypeFromEnumType(enumBackingType, commonTypes)),
@@ -344,7 +344,7 @@ FunDecl enumOrFlagsMembersFunction(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	Visibility visibility,
-	FileAndRange fileAndRange,
+	UriAndRange fileAndRange,
 	Sym name,
 	Type enumType,
 	ref CommonTypes commonTypes,
@@ -352,7 +352,7 @@ FunDecl enumOrFlagsMembersFunction(
 	FunDecl(
 		safeCStr!"",
 		visibility,
-		fileAndPosFromFileAndRange(fileAndRange),
+		fileAndPosFromUriAndRange(fileAndRange),
 		name,
 		[],
 		Type(makeArrayType(
@@ -368,7 +368,7 @@ FunDecl enumOrFlagsMembersFunction(
 FunDecl flagsUnionOrIntersectFunction(
 	ref Alloc alloc,
 	Visibility visibility,
-	FileAndRange fileAndRange,
+	UriAndRange fileAndRange,
 	Type enumType,
 	Sym name,
 	EnumFunction fn,
@@ -376,7 +376,7 @@ FunDecl flagsUnionOrIntersectFunction(
 	FunDecl(
 		safeCStr!"",
 		visibility,
-		fileAndPosFromFileAndRange(fileAndRange),
+		fileAndPosFromUriAndRange(fileAndRange),
 		name,
 		[],
 		enumType,
@@ -416,7 +416,7 @@ void addFunsForRecordConstructor(
 	exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 		safeCStr!"",
 		record.flags.newVisibility,
-		fileAndPosFromFileAndRange(struct_.range),
+		fileAndPosFromUriAndRange(struct_.range),
 		sym!"new",
 		struct_.typeParams,
 		structType,
@@ -437,7 +437,7 @@ void addFunsForRecordField(
 	size_t fieldIndex,
 	ref RecordField field,
 ) {
-	FileAndPos pos = fileAndPosFromFileAndRange(field.range);
+	UriAndPos pos = fileAndPosFromUriAndRange(field.range);
 	Visibility fieldVisibility = leastVisibility(struct_.visibility, field.visibility);
 	exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 		safeCStr!"",
@@ -539,7 +539,7 @@ void addFunsForUnion(
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 			safeCStr!"",
 			struct_.visibility,
-			fileAndPosFromFileAndRange(member.range),
+			fileAndPosFromUriAndRange(member.range),
 			member.name,
 			typeParams,
 			structType,

@@ -7,7 +7,7 @@ import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeSource, Operation;
 import interpret.debugging : writeFunName;
 import interpret.runBytecode : operationOpStopInterpretation;
 import interpret.stacks : returnPeek, returnStackSize, Stacks;
-import model.diag : FilesInfo, writeFileAndPos;
+import model.diag : FilesInfo, writeUriAndPos;
 import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.lowModel : LowFunIndex, LowFunSource, LowProgram;
 import model.model : Program;
@@ -18,7 +18,7 @@ import util.col.str : CStr;
 import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : ptrTrustMe;
-import util.sourceRange : FileAndPos;
+import util.sourceRange : UriAndPos;
 import util.sym : AllSymbols;
 import util.uri : AllUris, Uri, UrisInfo, uriToSafeCStrPreferRelative;
 import util.util : min, verify;
@@ -198,7 +198,7 @@ void writeByteCodeSource(
 	writer ~= ' ';
 	Opt!Uri where = getUri(lowProgram, source.fun);
 	if (has(where))
-		writeFileAndPos(writer, allUris, urisInfo, showDiagOptions, filesInfo, FileAndPos(force(where), source.pos));
+		writeUriAndPos(writer, allUris, urisInfo, showDiagOptions, filesInfo, UriAndPos(force(where), source.pos));
 }
 
 Opt!Uri getUri(in LowProgram lowProgram, LowFunIndex fun) =>

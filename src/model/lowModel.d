@@ -22,7 +22,7 @@ import util.col.fullIndexMap : FullIndexMap;
 import util.col.str : SafeCStr;
 import util.hash : Hasher, hashSizeT, hashUint;
 import util.opt : has, none, Opt;
-import util.sourceRange : FileAndRange;
+import util.sourceRange : UriAndRange;
 import util.sym : Sym, sym;
 import util.union_ : Union;
 import util.uri : Uri;
@@ -340,15 +340,15 @@ Opt!Sym name(in LowFun a) =>
 		(in ConcreteFun x) => name(x),
 		(in LowFunSource.Generated) => none!Sym);
 
-FileAndRange lowFunRange(in LowFun a) =>
-	a.source.matchIn!FileAndRange(
+UriAndRange lowFunRange(in LowFun a) =>
+	a.source.matchIn!UriAndRange(
 		(in ConcreteFun x) =>
 			concreteFunRange(x),
 		(in LowFunSource.Generated) =>
-			FileAndRange.empty);
+			UriAndRange.empty);
 
 // TODO: use ConcreteExpr*
-private alias LowExprSource = FileAndRange;
+private alias LowExprSource = UriAndRange;
 
 immutable struct LowExpr {
 	LowType type;

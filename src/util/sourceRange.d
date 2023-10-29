@@ -42,22 +42,21 @@ RangeWithinFile rangeOfStartAndName(Pos start, Sym name, in AllSymbols allSymbol
 RangeWithinFile rangeOfStartAndLength(Pos start, size_t length) =>
 	RangeWithinFile(start, safeToUint(start + length));
 
-// TODO: RENAME
-immutable struct FileAndPos {
+immutable struct UriAndPos {
 	@safe @nogc pure nothrow:
 
 	Uri uri;
 	Pos pos;
 
-	static FileAndPos empty() =>
-		fileAndPosFromFileAndRange(FileAndRange.empty);
+	static UriAndPos empty() =>
+		fileAndPosFromUriAndRange(UriAndRange.empty);
 }
 
-FileAndPos fileAndPosFromFileAndRange(FileAndRange a) =>
-	FileAndPos(a.uri, a.start);
+UriAndPos fileAndPosFromUriAndRange(UriAndRange a) =>
+	UriAndPos(a.uri, a.start);
 
-FileAndRange fileAndRangeFromFileAndPos(FileAndPos a) =>
-	FileAndRange(a.uri, RangeWithinFile(a.pos, a.pos + 1));
+UriAndRange fileAndRangeFromUriAndPos(UriAndPos a) =>
+	UriAndRange(a.uri, RangeWithinFile(a.pos, a.pos + 1));
 
 immutable struct UriAndRange {
 	@safe @nogc pure nothrow:
@@ -71,24 +70,22 @@ immutable struct UriAndRange {
 	static UriAndRange empty() =>
 		topOfFile(Uri.empty);
 
-	static FileAndRange topOfFile(Uri uri) =>
-		FileAndRange(uri, RangeWithinFile.empty);
+	static UriAndRange topOfFile(Uri uri) =>
+		UriAndRange(uri, RangeWithinFile.empty);
 }
-//TODO:KILL
-alias FileAndRange = UriAndRange;
 
 Comparison compareUriAndRange(in AllUris allUris, UriAndRange a, UriAndRange b) {
 	Comparison cmpUri = compareUriAlphabetically(allUris, a.uri, b.uri);
 	return cmpUri != Comparison.equal ? cmpUri : compareRangeWithinFile(a.range, b.range);
 }
 
-FileAndPos toFileAndPos(FileAndRange a) =>
-	FileAndPos(a.uri, a.start);
+UriAndPos toUriAndPos(UriAndRange a) =>
+	UriAndPos(a.uri, a.start);
 
-Json jsonOfFileAndPos(ref Alloc alloc, in AllUris allUris, FileAndPos a) =>
+Json jsonOfUriAndPos(ref Alloc alloc, in AllUris allUris, UriAndPos a) =>
 	jsonObject(alloc, [field!"uri"(uriToString(alloc, allUris, a.uri)), field!"pos"(a.pos)]);
 
-Json jsonOfFileAndRange(ref Alloc alloc, in AllUris allUris, FileAndRange a) =>
+Json jsonOfUriAndRange(ref Alloc alloc, in AllUris allUris, UriAndRange a) =>
 	jsonObject(alloc, [
 		field!"uri"(uriToString(alloc, allUris, a.uri)),
 		field!"range"(jsonOfRangeWithinFile(alloc, a.range))]);

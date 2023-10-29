@@ -46,7 +46,7 @@ import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castNonScope_ref;
-import util.sourceRange : FileAndPos, FileAndRange, RangeWithinFile;
+import util.sourceRange : UriAndPos, UriAndRange, RangeWithinFile;
 import util.sym : Sym, sym;
 import util.uri : Uri;
 import util.util : todo, unreachable, verify;
@@ -162,13 +162,13 @@ CommonFuns getCommonFuns(
 		markVisit, newNat64Future, rtMain, staticSymbols, throwImpl);
 }
 
-Destructure makeParam(ref Alloc alloc, FileAndRange range, Sym name, Type type) =>
+Destructure makeParam(ref Alloc alloc, UriAndRange range, Sym name, Type type) =>
 	Destructure(allocate(alloc, Local(range, name, LocalMutability.immut, type)));
 
-Params makeParams(ref Alloc alloc, FileAndRange range, in ParamShort[] params) =>
+Params makeParams(ref Alloc alloc, UriAndRange range, in ParamShort[] params) =>
 	Params(makeParamDestructures(alloc, range, params));
 
-private Destructure[] makeParamDestructures(ref Alloc alloc, FileAndRange range, in ParamShort[] params) =>
+private Destructure[] makeParamDestructures(ref Alloc alloc, UriAndRange range, in ParamShort[] params) =>
 	map(alloc, params, (ref ParamShort x) =>
 		makeParam(alloc, range, x.name, x.type));
 
@@ -181,7 +181,7 @@ immutable Module emptyModule =
 	Module(Uri.empty, safeCStr!"", [], [], [], [], [], [], [], Map!(Sym, NameReferents)());
 
 immutable TypeParam[1] singleTypeParam = [
-	TypeParam(FileAndRange.empty, sym!"t", 0),
+	TypeParam(UriAndRange.empty, sym!"t", 0),
 ];
 Type singleTypeParamType() =>
 	Type(&singleTypeParam[0]);
@@ -240,14 +240,14 @@ StructDecl* getStructDeclOrAddDiag(
 		addDiagnostic(
 			alloc,
 			diagsBuilder,
-			FileAndRange(module_.uri, RangeWithinFile.empty),
+			UriAndRange(module_.uri, RangeWithinFile.empty),
 			Diag(Diag.CommonTypeMissing(name)));
 		return allocate(alloc, StructDecl(
-			FileAndRange.empty,
+			UriAndRange.empty,
 			safeCStr!"",
 			name,
 			small(makeArr!TypeParam(alloc, nTypeParams, (size_t idx) =>
-				TypeParam(FileAndRange.empty, sym!"a", 0))),
+				TypeParam(UriAndRange.empty, sym!"a", 0))),
 			Visibility.public_,
 			Linkage.extern_,
 			Purity.data,
@@ -349,7 +349,7 @@ FunDeclAndSigIndex getFunDeclMulti(
 		addDiagnostic(
 			alloc,
 			diagsBuilder,
-			FileAndRange(module_.uri, RangeWithinFile.empty),
+			UriAndRange(module_.uri, RangeWithinFile.empty),
 			Diag(Diag.CommonFunMissing(name, map(alloc, expectedSigs, (ref TypeParamsAndSig sig) =>
 				TypeParamsAndSig(
 					arrLiteral(alloc, sig.typeParams),
@@ -358,11 +358,11 @@ FunDeclAndSigIndex getFunDeclMulti(
 		FunDecl* decl = allocate(alloc, FunDecl(
 			safeCStr!"",
 			Visibility.public_,
-			FileAndPos.empty,
+			UriAndPos.empty,
 			name,
 			expectedSigs[0].typeParams,
 			expectedSigs[0].returnType,
-			makeParams(alloc, FileAndRange.empty, expectedSigs[0].params),
+			makeParams(alloc, UriAndRange.empty, expectedSigs[0].params),
 			FunFlags.generatedBare,
 			[],
 			FunBody(FunBody.Bogus())));
