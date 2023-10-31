@@ -14,6 +14,7 @@ import backend.mangle :
 	writeRecordName,
 	writeStructMangledName;
 import backend.writeTypes : ElementAndCount, TypeWriters, writeTypes;
+import frontend.showDiag : ShowDiagCtx;
 import interpret.debugging : writeFunName, writeFunSig;
 import lower.lowExprHelpers : boolType;
 import model.concreteModel : body_, BuiltinStructKind, ConcreteStruct, ConcreteStructBody, TypeSize, typeSize;
@@ -46,7 +47,7 @@ import model.lowModel :
 	targetIsPointer,
 	targetRecordType,
 	UpdateParam;
-import model.model : EnumValue, name, Program;
+import model.model : EnumValue, name;
 import model.typeLayout : sizeOfType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : empty, only, sizeEq;
@@ -69,13 +70,7 @@ import util.writer :
 	writeWithCommas,
 	writeWithCommasZip;
 
-SafeCStr writeToC(
-	ref Alloc alloc,
-	ref TempAlloc tempAlloc,
-	in AllSymbols allSymbols,
-	in Program modelProgram,
-	in LowProgram program,
-) {
+SafeCStr writeToC(ref Alloc alloc, ref TempAlloc tempAlloc, ref ShowDiagCtx showDiagCtx, in LowProgram program) {
 	Writer writer = Writer(ptrTrustMe(alloc));
 
 	writer ~= "#include <tgmath.h>\n"; // Implements functions in 'tgmath.crow'
@@ -88,7 +83,7 @@ SafeCStr writeToC(
 	}
 
 	Ctx ctx = Ctx(
-		ptrTrustMe(modelProgram), ptrTrustMe(program), buildMangledNames(alloc, ptrTrustMe(allSymbols), program));
+		ptrTrustMe(showDiagCtx), ptrTrustMe(program), buildMangledNames(alloc, showDiagCtx.allSymbolsPtr, program));
 
 	writeStructs(alloc, writer, ctx);
 
@@ -110,7 +105,7 @@ SafeCStr writeToC(
 
 private:
 
-void writeConstants(scope ref Writer writer, in Ctx ctx, in AllConstantsLow allConstants) {
+void writeConstants(ref Writer writer, scope ref Ctx ctx, in AllConstantsLow allConstants) {
 	foreach (ref ArrTypeAndConstantsLow a; allConstants.arrs) {
 		foreach (size_t i, Constant[] elements; a.constants) {
 			declareConstantArrStorage(writer, ctx, a.arrType, a.elementType, i, elements.length);
@@ -161,7 +156,7 @@ void writeConstants(scope ref Writer writer, in Ctx ctx, in AllConstantsLow allC
 	}
 }
 
-void writeVars(scope ref Writer writer, in Ctx ctx, in immutable FullIndexMap!(LowVarIndex, LowVar) vars) {
+void writeVars(ref Writer writer, scope ref Ctx ctx, in immutable FullIndexMap!(LowVarIndex, LowVar) vars) {
 	fullIndexMapEach!(LowVarIndex, LowVar)(vars, (LowVarIndex varIndex, ref LowVar var) {
 		writer ~= () {
 			final switch (var.kind) {
@@ -185,8 +180,8 @@ void writeVars(scope ref Writer writer, in Ctx ctx, in immutable FullIndexMap!(L
 }
 
 void declareConstantArrStorage(
-	scope ref Writer writer,
-	in Ctx ctx,
+	ref Writer writer,
+	scope ref Ctx ctx,
 	LowType.Record arrType,
 	in LowType elementType,
 	size_t index,
@@ -201,8 +196,8 @@ void declareConstantArrStorage(
 }
 
 void declareConstantPointerStorage(
-	scope ref Writer writer,
-	in Ctx ctx,
+	ref Writer writer,
+	scope ref Ctx ctx,
 	in LowType pointeeType,
 	size_t index,
 ) {
@@ -212,16 +207,16 @@ void declareConstantPointerStorage(
 	writeConstantPointerStorageName(writer, ctx.mangledNames, ctx.program, pointeeType, index);
 }
 
-const struct Ctx {
+struct Ctx {
 	@safe @nogc pure nothrow:
 
-	Program* modelProgramPtr;
+	ShowDiagCtx* showDiagCtxPtr;
 	LowProgram* programPtr;
 	MangledNames mangledNames;
 
-	ref Program modelProgram() return scope =>
-		*modelProgramPtr;
-	ref LowProgram program() return scope =>
+	ref ShowDiagCtx showDiagCtx() return scope =>
+		*showDiagCtxPtr;
+	ref LowProgram program() return scope const =>
 		*programPtr;
 	ref const(AllSymbols) allSymbols() return scope =>
 		*mangledNames.allSymbols;
@@ -231,7 +226,7 @@ struct FunBodyCtx {
 	@safe @nogc pure nothrow:
 
 	TempAlloc* tempAllocPtr;
-	const Ctx* ctxPtr;
+	Ctx* ctxPtr;
 	immutable bool hasTailRecur;
 	immutable LowFunIndex curFun;
 	size_t nextTemp;
@@ -239,7 +234,7 @@ struct FunBodyCtx {
 	ref TempAlloc tempAlloc() scope =>
 		*castNonScope(tempAllocPtr);
 
-	ref Ctx ctx() return scope const =>
+	ref inout(Ctx) ctx() return scope inout =>
 		*ctxPtr;
 
 	ref LowProgram program() return scope const =>
@@ -261,7 +256,7 @@ Temp getNextTemp(ref FunBodyCtx ctx) {
 	return temp;
 }
 
-void writeType(scope ref Writer writer, in Ctx ctx, in LowType t) {
+void writeType(ref Writer writer, scope ref Ctx ctx, in LowType t) {
 	t.combinePointer.matchIn!void(
 		(in LowType.Extern it) {
 			writer ~= "struct ";
@@ -286,30 +281,30 @@ void writeType(scope ref Writer writer, in Ctx ctx, in LowType t) {
 		});
 }
 
-void writeRecordType(scope ref Writer writer, in Ctx ctx, LowType.Record a) {
+void writeRecordType(ref Writer writer, scope ref Ctx ctx, LowType.Record a) {
 	writer ~= "struct ";
 	writeRecordName(writer, ctx.mangledNames, ctx.program, a);
 }
 
-void writeCastToType(scope ref Writer writer, in Ctx ctx, in LowType type) {
+void writeCastToType(ref Writer writer, scope ref Ctx ctx, in LowType type) {
 	writer ~= '(';
 	writeType(writer, ctx, type);
 	writer ~= ") ";
 }
 
-void writeParamDecl(scope ref Writer writer, in Ctx ctx, in LowLocal a) {
+void writeParamDecl(ref Writer writer, scope ref Ctx ctx, in LowLocal a) {
 	writeType(writer, ctx, a.type);
 	writer ~= ' ';
 	writeLowLocalName(writer, ctx.mangledNames, a);
 }
 
-void writeStructHead(scope ref Writer writer, in Ctx ctx, in ConcreteStruct* source) {
+void writeStructHead(ref Writer writer, scope ref Ctx ctx, in ConcreteStruct* source) {
 	writer ~= "struct ";
 	writeStructMangledName(writer, ctx.mangledNames, source);
 	writer ~= " {";
 }
 
-void writeStructEnd(scope ref Writer writer) {
+void writeStructEnd(ref Writer writer) {
 	writer ~= "\n};\n";
 }
 
@@ -320,7 +315,7 @@ bool isEmptyType(in Ctx ctx, in LowType a) =>
 bool isEmptyType(in FunBodyCtx ctx, in LowType a) =>
 	isEmptyType(ctx.ctx, a);
 
-void writeRecord(scope ref Writer writer, in Ctx ctx, in LowRecord a) {
+void writeRecord(ref Writer writer, scope ref Ctx ctx, in LowRecord a) {
 	if (a.packed) {
 		version (Windows) {
 			writer ~= "__pragma(pack(push, 1))\n";
@@ -347,7 +342,7 @@ void writeRecord(scope ref Writer writer, in Ctx ctx, in LowRecord a) {
 	writer ~= ";\n";
 }
 
-void writeUnion(scope ref Writer writer, in Ctx ctx, in LowUnion a) {
+void writeUnion(ref Writer writer, scope ref Ctx ctx, in LowUnion a) {
 	writeStructHead(writer, ctx, a.source);
 	writer ~= "\n\tuint64_t kind;";
 	bool isBuiltin = body_(*a.source).isA!(ConcreteStructBody.Builtin);
@@ -372,13 +367,13 @@ void writeUnion(scope ref Writer writer, in Ctx ctx, in LowUnion a) {
 	writeStructEnd(writer);
 }
 
-void declareStruct(scope ref Writer writer, in Ctx ctx, in ConcreteStruct* source) {
+void declareStruct(ref Writer writer, scope ref Ctx ctx, in ConcreteStruct* source) {
 	writer ~= "struct ";
 	writeStructMangledName(writer, ctx.mangledNames, source);
 	writer ~= ";\n";
 }
 
-void staticAssertStructSize(scope ref Writer writer, in Ctx ctx, in LowType type, TypeSize size) {
+void staticAssertStructSize(ref Writer writer, scope ref Ctx ctx, in LowType type, TypeSize size) {
 	writer ~= "_Static_assert(sizeof(";
 	writeType(writer, ctx, type);
 	writer ~= ") == ";
@@ -392,7 +387,7 @@ void staticAssertStructSize(scope ref Writer writer, in Ctx ctx, in LowType type
 	writer ~= ", \"\");\n";
 }
 
-void writeStructs(ref Alloc alloc, scope ref Writer writer, in Ctx ctx) {
+void writeStructs(ref Alloc alloc, ref Writer writer, scope ref Ctx ctx) {
 	scope TypeWriters writers = TypeWriters(
 		(ConcreteStruct* x) {
 			if (!isEmptyType(*x))
@@ -457,7 +452,7 @@ void writeStructs(ref Alloc alloc, scope ref Writer writer, in Ctx ctx) {
 	});
 }
 
-void writeFunReturnTypeNameAndParams(scope ref Writer writer, in Ctx ctx, LowFunIndex funIndex, in LowFun fun) {
+void writeFunReturnTypeNameAndParams(ref Writer writer, scope ref Ctx ctx, LowFunIndex funIndex, in LowFun fun) {
 	if (isEmptyType(ctx,fun.returnType))
 		writer ~= "void";
 	else
@@ -479,7 +474,7 @@ void writeFunReturnTypeNameAndParams(scope ref Writer writer, in Ctx ctx, LowFun
 	writer ~= ')';
 }
 
-void writeFunDeclaration(scope ref Writer writer, in Ctx ctx, LowFunIndex funIndex, in LowFun fun) {
+void writeFunDeclaration(ref Writer writer, scope ref Ctx ctx, LowFunIndex funIndex, in LowFun fun) {
 	if (fun.body_.isA!(LowFunBody.Extern))
 		writer ~= "extern ";
 	else if (!isGeneratedMain(fun))
@@ -489,9 +484,9 @@ void writeFunDeclaration(scope ref Writer writer, in Ctx ctx, LowFunIndex funInd
 }
 
 void writeFunDefinition(
-	scope ref Writer writer,
+	ref Writer writer,
 	ref TempAlloc tempAlloc,
-	in Ctx ctx,
+	scope ref Ctx ctx,
 	LowFunIndex funIndex,
 	in LowFun fun,
 ) {
@@ -502,9 +497,9 @@ void writeFunDefinition(
 		(in LowFunExprBody x) {
 			// TODO: only if a flag is set
 			writer ~= "/* ";
-			writeFunName(writer, ctx.allSymbols, ctx.modelProgram, ctx.program, funIndex);
+			writeFunName(writer, ctx.showDiagCtx, ctx.program, funIndex);
 			writer ~= ' ';
-			writeFunSig(writer, ctx.allSymbols, ctx.modelProgram, ctx.program, fun);
+			writeFunSig(writer, ctx.showDiagCtx, ctx.program, fun);
 			writer ~= " */\n";
 			writeFunWithExprBody(writer, tempAlloc, ctx, funIndex, fun, x);
 		});
@@ -512,9 +507,9 @@ void writeFunDefinition(
 
 //TODO: not @trusted
 @trusted void writeFunWithExprBody(
-	scope ref Writer writer,
+	ref Writer writer,
 	ref TempAlloc tempAlloc,
-	in Ctx ctx,
+	scope ref Ctx ctx,
 	LowFunIndex funIndex,
 	in LowFun fun,
 	in LowFunExprBody body_,
@@ -551,7 +546,7 @@ WriteExprResult writeExprDone() =>
 	WriteExprResult(WriteExprResult.Done([]));
 
 void writeTempDeclare(
-	scope ref Writer writer,
+	ref Writer writer,
 	scope ref FunBodyCtx ctx,
 	in LowType type,
 	Temp temp,
@@ -561,13 +556,13 @@ void writeTempDeclare(
 	writeTempRef(writer, temp);
 }
 
-void writeTempRef(scope ref Writer writer, in Temp a) {
+void writeTempRef(ref Writer writer, in Temp a) {
 	writer ~= "_";
 	writer ~= a.index;
 }
 
 void writeTempOrInline(
-	scope ref Writer writer,
+	ref Writer writer,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
 	in LowExpr e,
@@ -585,7 +580,7 @@ void writeTempOrInline(
 }
 
 void writeTempOrInlines(
-	scope ref Writer writer,
+	ref Writer writer,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
 	in LowExpr[] exprs,
@@ -603,7 +598,7 @@ void writeTempOrInlines(
 		});
 }
 
-void writeDeclareLocal(scope ref Writer writer, size_t indent, scope ref FunBodyCtx ctx, in LowLocal local) {
+void writeDeclareLocal(ref Writer writer, size_t indent, scope ref FunBodyCtx ctx, in LowLocal local) {
 	writeNewline(writer, indent);
 	writeType(writer, ctx.ctx, local.type);
 	writer ~= ' ';
@@ -629,7 +624,7 @@ immutable struct WriteKind {
 static assert(WriteKind.sizeof == size_t.sizeof * 3);
 
 WriteExprResult[] writeExprsTempOrInline(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
@@ -639,7 +634,7 @@ WriteExprResult[] writeExprsTempOrInline(
 		writeExprTempOrInline(writer, indent, ctx, locals, arg));
 
 Temp writeExprTemp(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
@@ -650,7 +645,7 @@ Temp writeExprTemp(
 }
 
 void writeExprVoid(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
@@ -661,7 +656,7 @@ void writeExprVoid(
 }
 
 WriteExprResult writeExprTempOrInline(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
@@ -682,7 +677,7 @@ alias addLoop = stackMapAdd!(LowExprKind.Loop*, LoopInfo*);
 alias getLoop = stackMapMustGet!(LowExprKind.Loop*, LoopInfo*);
 
 WriteExprResult writeExpr(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
@@ -816,7 +811,7 @@ WriteExprResult writeExpr(
 }
 
 WriteExprResult writeNonInlineable(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in WriteKind writeKind,
@@ -873,7 +868,7 @@ WriteExprResult writeVoid(in WriteKind writeKind) {
 }
 
 WriteExprResult writeInlineable(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
@@ -896,7 +891,7 @@ WriteExprResult writeInlineable(
 }
 
 WriteExprResult writeInlineableSingleArg(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
@@ -912,7 +907,7 @@ WriteExprResult writeInlineableSingleArg(
 		});
 
 WriteExprResult writeInlineableSimple(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
@@ -926,7 +921,7 @@ WriteExprResult writeInlineableSimple(
 	});
 
 WriteExprResult writeReturnVoid(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in WriteKind writeKind,
@@ -934,7 +929,7 @@ WriteExprResult writeReturnVoid(
 	writeReturnVoid(writer, indent, ctx, writeKind, null);
 
 WriteExprResult writeReturnVoid(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in WriteKind writeKind,
@@ -973,7 +968,7 @@ WriteExprResult writeReturnVoid(
 		});
 
 WriteExprResult writeCallExpr(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
@@ -991,7 +986,7 @@ WriteExprResult writeCallExpr(
 }
 
 void writeTailRecur(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
@@ -1017,8 +1012,8 @@ void writeTailRecur(
 }
 
 void writeCreateUnion(
-	scope ref Writer writer,
-	in Ctx ctx,
+	ref Writer writer,
+	scope ref Ctx ctx,
 	ConstantRefPos pos,
 	in LowType type,
 	size_t memberIndex,
@@ -1037,12 +1032,12 @@ void writeCreateUnion(
 	writer ~= '}';
 }
 
-void writeFunPtr(scope ref Writer writer, in Ctx ctx, LowFunIndex a) {
+void writeFunPtr(ref Writer writer, scope ref Ctx ctx, LowFunIndex a) {
 	writeLowFunMangledName(writer, ctx.mangledNames, a, ctx.program.allFuns[a]);
 }
 
 WriteExprResult writeMatchUnion(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
@@ -1085,7 +1080,7 @@ WriteExprResult writeMatchUnion(
 }
 
 void writeDefaultAbort(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
@@ -1108,7 +1103,7 @@ void writeDefaultAbort(
 
 //TODO: share code with writeMatchUnion
 WriteExprResult writeSwitch(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
@@ -1167,7 +1162,7 @@ bool isSignedIntegral(PrimitiveType a) {
 }
 
 void writeRecordFieldRef(
-	scope ref Writer writer,
+	ref Writer writer,
 	in FunBodyCtx ctx,
 	bool targetIsPointer,
 	LowType.Record record,
@@ -1188,8 +1183,8 @@ enum ConstantRefPos {
 }
 
 void writeConstantRef(
-	scope ref Writer writer,
-	in Ctx ctx,
+	ref Writer writer,
+	scope ref Ctx ctx,
 	ConstantRefPos pos,
 	in LowType type,
 	in Constant a,
@@ -1292,7 +1287,7 @@ void writeConstantRef(
 		});
 }
 
-void writeStringLiteral(scope ref Writer writer, SafeCStr a) {
+void writeStringLiteral(ref Writer writer, SafeCStr a) {
 	writer ~= '"';
 	size_t chunk = 0;
 	eachChar(a, (char c) {
@@ -1309,7 +1304,7 @@ void writeStringLiteral(scope ref Writer writer, SafeCStr a) {
 }
 
 WriteExprResult writePtrToField(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
@@ -1325,7 +1320,7 @@ WriteExprResult writePtrToField(
 	});
 
 WriteExprResult writeRecordFieldGet(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
@@ -1343,7 +1338,7 @@ WriteExprResult writeRecordFieldGet(
 
 
 WriteExprResult writeSpecialUnary(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
@@ -1459,7 +1454,7 @@ WriteExprResult writeSpecialUnary(
 	}
 }
 
-void writeZeroedValue(scope ref Writer writer, in Ctx ctx, in LowType type) {
+void writeZeroedValue(ref Writer writer, scope ref Ctx ctx, in LowType type) {
 	type.combinePointer.matchIn!void(
 		(in LowType.Extern x) {
 			writeExternZeroed(writer, ctx, x);
@@ -1494,13 +1489,13 @@ void writeZeroedValue(scope ref Writer writer, in Ctx ctx, in LowType type) {
 		});
 }
 
-void writeExternZeroed(ref Writer writer, in Ctx ctx, LowType.Extern type) {
+void writeExternZeroed(ref Writer writer, scope ref Ctx ctx, LowType.Extern type) {
 	writeCastToType(writer, ctx, LowType(type));
 	writer ~= "{{0}}";
 }
 
 WriteExprResult writeSpecialBinary(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
@@ -1696,7 +1691,7 @@ immutable struct WriteExprResultAndNested {
 
 // If we need to make a temporary, have to do that in an outer scope and write to it in an inner scope
 WriteExprResultAndNested getNestedWriteKind(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in LowType type,
@@ -1716,7 +1711,7 @@ WriteExprResultAndNested getNestedWriteKind(
 }
 
 WriteExprResult writeLogicalOperator(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
@@ -1763,7 +1758,7 @@ WriteExprResult writeLogicalOperator(
 }
 
 WriteExprResult writeIf(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
@@ -1788,7 +1783,7 @@ WriteExprResult writeIf(
 }
 
 WriteExprResult writeCallFunPtr(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
@@ -1807,7 +1802,7 @@ WriteExprResult writeCallFunPtr(
 }
 
 WriteExprResult writeLet(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
@@ -1829,7 +1824,7 @@ WriteExprResult writeLet(
 }
 
 WriteExprResult writeLocalSet(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
@@ -1846,7 +1841,7 @@ WriteExprResult writeLocalSet(
 }
 
 WriteExprResult writeLoop(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
@@ -1880,7 +1875,7 @@ WriteExprResult writeLoop(
 }
 
 WriteExprResult writeLoopBreak(
-	scope ref Writer writer,
+	ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
@@ -1899,7 +1894,7 @@ WriteExprResult writeLoopBreak(
 	return WriteExprResult(WriteExprResult.Done());
 }
 
-void writePrimitiveType(scope ref Writer writer, PrimitiveType a) {
+void writePrimitiveType(ref Writer writer, PrimitiveType a) {
 	writer ~= () {
 		final switch (a) {
 			case PrimitiveType.bool_:

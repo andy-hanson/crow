@@ -90,6 +90,17 @@ Opt!FileContent getFileNoMarkUnknown(ref Alloc alloc, in Storage a, Uri uri) {
 		: none!FileContent;
 }
 
+T withFileContentNoMarkUnknown(T)(
+	in Storage storage,
+	Uri uri,
+	in T delegate(in ReadFileResult) @safe @nogc pure nothrow cb,
+) {
+	Opt!ReadFileResult result = getAt_mut(storage.fileContents, uri);
+	return has(result)
+		? cb(force(result))
+		: cb(ReadFileResult(ReadFileIssue.unknown));
+}
+
 // Storage is mutable, so file content can only be given out temporarily.
 T withFileContent(T)(
 	scope ref Storage storage,

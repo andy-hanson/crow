@@ -173,7 +173,7 @@ private:
 
 pure:
 
-Json jsonOfDiagnostics(ref Alloc alloc, in Server server, in Program program) {
+Json jsonOfDiagnostics(ref Alloc alloc, ref Server server, in Program program) {
 	MultiMap!(Uri, Diagnostic) grouped =
 		groupBy!(Uri, Diagnostic)(alloc, program.diagnostics.diags, (in Diagnostic x) =>
 			x.where.uri);
@@ -188,7 +188,7 @@ Json jsonOfDiagnostics(ref Alloc alloc, in Server server, in Program program) {
 	return jsonList(finishArr(alloc, res));
 }
 
-Json jsonOfDiagnostic(ref Alloc alloc, in Server server, in Program program, in Diagnostic a) =>
+Json jsonOfDiagnostic(ref Alloc alloc, ref Server server, in Program program, in Diagnostic a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRangeWithinFile(alloc, a.where.range)),
 		field!"message"(jsonString(alloc, showDiagnostic(alloc, server, program, a)))]);

@@ -2,13 +2,19 @@ module test.testUtil;
 
 @safe @nogc nothrow: // not pure
 
+import frontend.showDiag : ShowDiagCtx, ShowDiagOptions;
 import interpret.bytecode : ByteCode, ByteCodeIndex, Operation;
 import interpret.debugInfo : showDataArr;
 import interpret.stacks : dataTempAsArr, returnTempAsArrReverse, Stacks;
+import model.model : Program;
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : arrEqual, arrsCorrespond, makeArr;
+import util.lineAndColumnGetter : LineAndColumnGetters;
+import util.opt : none;
+import util.ptr : ptrTrustMe;
+import util.storage : Storage;
 import util.sym : AllSymbols;
-import util.uri : AllUris;
+import util.uri : AllUris, Uri, UrisInfo;
 import util.util : verifyFail;
 import util.writer : debugLogWithWriter, Writer;
 
@@ -27,6 +33,40 @@ struct Test {
 
 	ref Alloc alloc() return scope =>
 		*allocPtr;
+}
+
+pure void withShowDiagCtxForTest(
+	return scope ref Test test,
+	return scope ref Storage storage,
+	return in Program program,
+	in void delegate(scope ref ShowDiagCtx) @safe @nogc pure nothrow cb,
+) {
+	withShowDiagCtxForTestImpl!cb(test, storage, program);
+}
+
+void withShowDiagCtxForTestImpure(
+	return scope ref Test test,
+	return scope ref Storage storage,
+	return in Program program,
+	in void delegate(scope ref ShowDiagCtx) @safe @nogc nothrow cb,
+) {
+	withShowDiagCtxForTestImpl!cb(test, storage, program);
+}
+
+private void withShowDiagCtxForTestImpl(alias cb)(
+	return scope ref Test test,
+	return scope ref Storage storage,
+	return in Program program,
+) {
+	LineAndColumnGetters lineAndColumnGetters = LineAndColumnGetters(test.allocPtr, &storage);
+	ShowDiagCtx ctx = ShowDiagCtx(
+		ptrTrustMe(test.allSymbols),
+		ptrTrustMe(test.allUris),
+		ptrTrustMe(lineAndColumnGetters),
+		UrisInfo(none!Uri),
+		ShowDiagOptions(false),
+		ptrTrustMe(program));
+	return cb(ctx);
 }
 
 @trusted void expectDataStack(ref Test test, in Stacks stacks, in immutable ulong[] expected) {

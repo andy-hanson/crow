@@ -20,7 +20,6 @@ import util.col.arrUtil : map;
 import util.col.map : KeyValuePair, makeMap;
 import util.col.mutArr : MutArr, mutArrIsEmpty, push, tempAsArr;
 import util.col.str : safeCStr;
-import util.exitCode : ExitCode;
 import util.memory : memmove, memset;
 import util.opt : force, has, none, Opt, some;
 import util.sym : AllSymbols, Sym, sym;
@@ -32,11 +31,11 @@ alias WriteCb = void delegate(Pipe, in string);
 WriteCb unreachableWriteCb() =>
 	(Pipe _, in string _1) => unreachable!void;
 
-ExitCode withFakeExtern(
+T withFakeExtern(T)(
 	ref Alloc alloc,
 	ref const AllSymbols allSymbols,
 	in WriteCb write,
-	in ExitCode delegate(scope ref Extern) @safe @nogc nothrow cb,
+	in T delegate(scope ref Extern) @safe @nogc nothrow cb,
 ) {
 	scope Extern extern_ = Extern(
 		(in ExternLibraries libraries, scope WriteError writeError) =>

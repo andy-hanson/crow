@@ -356,7 +356,7 @@ SafeCStr fileUriToSafeCStr(ref Alloc alloc, in AllUris allUris, FileUri a) =>
 
 public SafeCStr uriToSafeCStrPreferRelative(ref Alloc alloc, in AllUris allUris, ref UrisInfo urisInfo, Uri a) {
 	Writer writer = Writer(ptrTrustMe(alloc));
-	writeUri(writer, allUris, urisInfo, a);
+	writeUriPreferRelative(writer, allUris, urisInfo, a);
 	return finishWriterToSafeCStr(writer);
 }
 
@@ -462,9 +462,6 @@ immutable struct UriAndRange {
 immutable struct UrisInfo {
 	Opt!Uri cwd;
 }
-
-UrisInfo emptyUrisInfo() =>
-	UrisInfo(none!Uri);
 
 Opt!Uri commonAncestor(in AllUris allUris, in Uri[] uris) =>
 	uris.length == 0
@@ -592,7 +589,7 @@ void writePathPlain(ref Writer writer, in AllUris allUris, Path p) {
 	writeSym(writer, allUris.allSymbols, baseName(allUris, p));
 }
 
-public void writeUri(ref Writer writer, in AllUris allUris, ref UrisInfo urisInfo, Uri a) {
+public void writeUriPreferRelative(ref Writer writer, in AllUris allUris, in UrisInfo urisInfo, Uri a) {
 	eachPartPreferRelative(allUris, urisInfo, a, (Sym part, bool isLast) {
 		writeSym(writer, allUris.allSymbols, part);
 		if (!isLast)

@@ -35,12 +35,12 @@ struct Writer {
 	}
 }
 
-void debugLogWithWriter(in void delegate(scope ref Writer) @safe @nogc pure nothrow cb) {
-	debugLogWithWriter((ref Alloc, ref Writer writer) {
+void debugLogWithWriter(in void delegate(ref Writer) @safe @nogc pure nothrow cb) {
+	debugLogWithWriter((scope ref Alloc, ref Writer writer) {
 		cb(writer);
 	});
 }
-void debugLogWithWriter(in void delegate(scope ref Alloc, scope ref Writer) @safe @nogc pure nothrow cb) {
+void debugLogWithWriter(in void delegate(scope ref Alloc, ref Writer) @safe @nogc pure nothrow cb) {
 	debug {
 		withStackAlloc!0x1000((scope ref Alloc alloc) {
 			Writer writer = Writer(&alloc);

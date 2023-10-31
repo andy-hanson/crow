@@ -3,8 +3,7 @@ module frontend.ide.getHover;
 @safe @nogc pure nothrow:
 
 import frontend.ide.getPosition : Position, PositionKind;
-import frontend.showDiag : ShowDiagOptions, writeCalled, writeFunInst;
-import model.diag : writeFile;
+import frontend.showDiag : ShowDiagCtx, writeCalled, writeFile, writeFunInst, writeTypeUnquoted;
 import model.model :
 	AssertOrForbidKind,
 	body_,
@@ -16,105 +15,86 @@ import model.model :
 	FunKind,
 	StructDecl,
 	Local,
-	Module,
 	name,
-	Program,
 	SpecDecl,
 	StructBody,
 	StructInst,
 	Type,
-	TypeParam,
-	writeStructDecl,
-	writeTypeUnquoted;
-import util.alloc.alloc : Alloc, TempAlloc;
-import util.col.map : mustGetAt;
+	TypeParam;
+import util.alloc.alloc : Alloc;
 import util.col.str : SafeCStr;
-import util.lineAndColumnGetter : lineAndColumnAtPos, PosKind;
+import util.lineAndColumnGetter : lineAndColumnRange;
 import util.ptr : ptrTrustMe;
-import util.sym : AllSymbols, writeSym;
-import util.uri : AllUris, UrisInfo;
+import util.sourceRange : UriAndRange;
+import util.sym : writeSym;
+import util.uri : Uri;
 import util.writer : finishWriterToSafeCStr, Writer;
+import util.writerUtils : writeLineAndColumnRange;
 
-SafeCStr getHoverStr(
-	ref TempAlloc tempAlloc,
-	ref Alloc alloc,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
-	in UrisInfo urisInfo,
-	in Program program,
-	in Position pos,
-) {
+SafeCStr getHoverStr(ref Alloc alloc, ref ShowDiagCtx ctx, in Position pos) {
 	Writer writer = Writer(ptrTrustMe(alloc));
-	getHover(tempAlloc, writer, allSymbols, allUris, urisInfo, program, pos);
+	getHover(writer, ctx, pos);
 	return finishWriterToSafeCStr(writer);
 }
 
-void getHover(
-	ref TempAlloc tempAlloc,
-	scope ref Writer writer,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
-	in UrisInfo urisInfo,
-	in Program program,
-	in Position pos,
-) =>
+void getHover(ref Writer writer, ref ShowDiagCtx ctx, in Position pos) =>
 	pos.kind.matchIn!void(
 		(in PositionKind.None) {},
 		(in Expr x) {
-			getExprHover(writer, allSymbols, allUris, urisInfo, program, *pos.module_, x);
+			getExprHover(writer, ctx, pos.module_.uri, x);
 		},
 		(in FunDecl it) {
 			writer ~= "function ";
-			writeSym(writer, allSymbols, it.name);
+			writeSym(writer, ctx.allSymbols, it.name);
 		},
 		(in PositionKind.ImportedModule x) {
 			writer ~= "import module ";
-			writeFile(writer, allUris, urisInfo, x.module_.uri);
+			writeFile(writer, ctx, x.module_.uri);
 		},
 		(in PositionKind.ImportedName x) {
-			getImportedNameHover(writer, x);
+			getImportedNameHover(writer, ctx, x);
 		},
 		(in PositionKind.LocalNonParameter x) {
 			writer ~= "local ";
-			localHover(writer, allSymbols, program, *x.local);
+			localHover(writer, ctx, *x.local);
 		},
 		(in PositionKind.LocalParameter x) {
 			writer ~= "parameter ";
-			localHover(writer, allSymbols, program, *x.local);
+			localHover(writer, ctx, *x.local);
 		},
 		(in PositionKind.RecordFieldPosition x) {
 			writer ~= "field ";
-			writeStructDecl(writer, allSymbols, program, *x.struct_);
+			writeSym(writer, ctx.allSymbols, x.struct_.name);
 			writer ~= '.';
-			writeSym(writer, allSymbols, x.field.name);
+			writeSym(writer, ctx.allSymbols, x.field.name);
 			writer ~= " (";
-			writeTypeUnquoted(writer, allSymbols, program, x.field.type);
+			writeTypeUnquoted(writer, ctx, x.field.type);
 			writer ~= ')';
 		},
 		(in SpecDecl x) {
 			writer ~= "spec ";
-			writeSym(writer, allSymbols, x.name);
+			writeSym(writer, ctx.allSymbols, x.name);
 		},
 		(in StructDecl x) {
-			writeStructDecl(writer, allSymbols, x);
+			writeStructDeclHover(writer, ctx, x);
 		},
 		(in Type x) {
 			x.matchIn!void(
 				(in Type.Bogus) {},
 				(in TypeParam p) {
-					hoverTypeParam(writer, allSymbols, p);
+					hoverTypeParam(writer, ctx, p);
 				},
 				(in StructInst i) {
-					writeStructDecl(writer, allSymbols, *decl(i));
+					writeStructDeclHover(writer, ctx, *decl(i));
 				});
 		},
 		(in TypeParam x) {
-			hoverTypeParam(writer, allSymbols, x);
+			hoverTypeParam(writer, ctx, x);
 		});
 
 private:
 
-void writeStructDecl(ref Writer writer, in AllSymbols allSymbols, in StructDecl a) {
+void writeStructDeclHover(ref Writer writer, ref ShowDiagCtx ctx, in StructDecl a) {
 	writer ~= body_(a).matchIn!string(
 		(in StructBody.Bogus) =>
 			"type ",
@@ -130,27 +110,19 @@ void writeStructDecl(ref Writer writer, in AllSymbols allSymbols, in StructDecl 
 			"record ",
 		(in StructBody.Union) =>
 			"union ");
-	writeSym(writer, allSymbols, a.name);
+	writeSym(writer, ctx.allSymbols, a.name);
 }
 
-void getImportedNameHover(ref Writer writer, in PositionKind.ImportedName) {
+void getImportedNameHover(ref Writer writer, ref ShowDiagCtx ctx, in PositionKind.ImportedName) {
 	writer ~= "TODO: getImportedNameHover";
 }
 
-void hoverTypeParam(ref Writer writer, in AllSymbols allSymbols, in TypeParam a) {
+void hoverTypeParam(ref Writer writer, ref ShowDiagCtx ctx, in TypeParam a) {
 	writer ~= "type parameter ";
-	writeSym(writer, allSymbols, a.name);
+	writeSym(writer, ctx.allSymbols, a.name);
 }
 
-void getExprHover(
-	ref Writer writer,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
-	in UrisInfo urisInfo,
-	in Program program,
-	in Module curModule,
-	in Expr a,
-) =>
+void getExprHover(ref Writer writer, ref ShowDiagCtx ctx, in Uri curUri, in Expr a) =>
 	a.kind.matchIn!void(
 		(in ExprKind.AssertOrForbid x) {
 			writer ~= "throws if the condition is ";
@@ -165,19 +137,19 @@ void getExprHover(
 		},
 		(in ExprKind.Bogus) {},
 		(in ExprKind.Call x) {
-			writeCalled(writer, allSymbols, allUris, urisInfo, ShowDiagOptions(false), program, x.called);
+			writeCalled(writer, ctx, x.called);
 		},
 		(in ExprKind.ClosureGet x) {
 			writer ~= "gets ";
-			closureRefHover(writer, allSymbols, program, *x.closureRef);
+			closureRefHover(writer, ctx, *x.closureRef);
 		},
 		(in ExprKind.ClosureSet x) {
 			writer ~= "sets ";
-			closureRefHover(writer, allSymbols, program, *x.closureRef);
+			closureRefHover(writer, ctx, *x.closureRef);
 		},
 		(in ExprKind.FunPtr x) {
 			writer ~= "pointer to function ";
-			writeFunInst(writer, allSymbols, allUris, urisInfo, ShowDiagOptions(false), program, *x.funInst);
+			writeFunInst(writer, ctx, *x.funInst);
 		},
 		(in ExprKind.If) {
 			writer ~= "returns the first branch if the condition is 'true', " ~
@@ -207,22 +179,22 @@ void getExprHover(
 		(in ExprKind.LiteralCString) {},
 		(in ExprKind.LiteralSymbol) {},
 		(in ExprKind.LocalGet x) {
-			localHover(writer, allSymbols, program, *x.local);
+			localHover(writer, ctx, *x.local);
 		},
 		(in ExprKind.LocalSet x) {
 			writer ~= "sets ";
-			localHover(writer, allSymbols, program, *x.local);
+			localHover(writer, ctx, *x.local);
 		},
 		(in ExprKind.Loop) {
 			writer ~= "loop that terminates at a 'break'";
 		},
 		(in ExprKind.LoopBreak x) {
 			writer ~= "breaks out of ";
-			writeLoop(writer, program, curModule, *x.loop);
+			writeLoop(writer, ctx, curUri, *x.loop);
 		},
 		(in ExprKind.LoopContinue x) {
 			writer ~= "goes back to top of ";
-			writeLoop(writer, program, curModule, *x.loop);
+			writeLoop(writer, ctx, curUri, *x.loop);
 		},
 		(in ExprKind.LoopUntil) {
 			writer ~= "loop that runs as long as the condition is 'false'";
@@ -237,31 +209,27 @@ void getExprHover(
 		},
 		(in ExprKind.PtrToLocal x) {
 			writer ~= "pointer to ";
-			localHover(writer, allSymbols, program, *x.local);
+			localHover(writer, ctx, *x.local);
 		},
 		(in ExprKind.Seq) {},
 		(in ExprKind.Throw) {
 			writer ~= "throws an exception";
 		});
 
-void closureRefHover(ref Writer writer, in AllSymbols allSymbols, in Program program, in ClosureRef a) {
+void closureRefHover(ref Writer writer, ref ShowDiagCtx ctx, in ClosureRef a) {
 	writer ~= "closure variable ";
-	writeSym(writer, allSymbols, a.name);
+	writeSym(writer, ctx.allSymbols, a.name);
 	writer ~= ' ';
-	writeTypeUnquoted(writer, allSymbols, program, a.type);
+	writeTypeUnquoted(writer, ctx, a.type);
 }
 
-void localHover(ref Writer writer, in AllSymbols allSymbols, in Program program, in Local a) {
-	writeSym(writer, allSymbols, a.name);
+void localHover(ref Writer writer, ref ShowDiagCtx ctx, in Local a) {
+	writeSym(writer, ctx.allSymbols, a.name);
 	writer ~= ' ';
-	writeTypeUnquoted(writer, allSymbols, program, a.type);
+	writeTypeUnquoted(writer, ctx, a.type);
 }
 
-void writeLoop(ref Writer writer, in Program program, in Module curModule, in ExprKind.Loop a) {
-	writer ~= "loop on line ";
-	writer ~= lineAndColumnAtPos(
-		mustGetAt(program.filesInfo.lineAndColumnGetters, curModule.uri),
-		a.range.start,
-		PosKind.startOfRange,
-	).line;
+void writeLoop(ref Writer writer, ref ShowDiagCtx ctx, Uri curUri, in ExprKind.Loop a) {
+	writer ~= "loop at ";
+	writeLineAndColumnRange(writer, lineAndColumnRange(ctx.lineAndColumnGetters, UriAndRange(curUri, a.range)));
 }

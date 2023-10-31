@@ -14,7 +14,7 @@ import frontend.ide.getTokens : jsonOfTokens, Token, tokensOfAst;
 import frontend.parse.ast : FileAst;
 import frontend.parse.jsonOfAst : jsonOfAst;
 import frontend.parse.parse : parseFile;
-import frontend.showDiag : ShowDiagOptions, strOfDiagnostic, strOfDiagnostics;
+import frontend.showDiag : ShowDiagCtx, ShowDiagOptions, strOfDiagnostic, strOfDiagnostics;
 import interpret.bytecode : ByteCode;
 import interpret.extern_ : Extern, ExternFunPtrsForAllLibraries, WriteError;
 import interpret.fakeExtern : Pipe, withFakeExtern, WriteCb;
@@ -23,7 +23,7 @@ import interpret.runBytecode : runBytecode;
 import lower.lower : lower;
 import model.concreteModel : ConcreteProgram;
 import model.diag :
-	Diagnostic, Diagnostics, diagnosticsIsFatal, DiagnosticWithinFile, DiagSeverity, FilesInfo, filesInfoForSingle;
+	Diagnostic, Diagnostics, diagnosticsIsFatal, DiagnosticWithinFile, DiagSeverity;
 import model.jsonOfConcreteModel : jsonOfConcreteProgram;
 import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
@@ -36,9 +36,10 @@ import util.col.str : SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
 import util.exitCode : ExitCode;
 import util.json : Json;
 import util.late : Late, lateGet, lateSet;
-import util.lineAndColumnGetter : lineAndColumnGetterForText;
+import util.lineAndColumnGetter : LineAndColumnGetters;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
+import util.ptr : ptrTrustMe;
 import util.storage :
 	allKnownGoodUris,
 	allocateToStorage,
@@ -100,17 +101,9 @@ ExitCode buildAndInterpret(
 			ByteCode byteCode = generateBytecode(
 				alloc, perf, server.allSymbols,
 				programs.program, programs.lowProgram, force(externFunPtrs), extern_.makeSyntheticFunPtrs);
+			ShowDiagCtx showDiagCtx = getShowDiagCtx(server, programs.program);
 			return ExitCode(runBytecode(
-				perf,
-				alloc,
-				server.allSymbols,
-				server.allUris,
-				server.urisInfo,
-				extern_.doDynCall,
-				programs.program,
-				programs.lowProgram,
-				byteCode,
-				allArgs));
+				perf, alloc, showDiagCtx, extern_.doDynCall, programs.lowProgram, byteCode, allArgs));
 		} else {
 			writeError(safeCStr!"Failed to load external libraries\n");
 			return ExitCode.error;
@@ -130,12 +123,14 @@ struct Server {
 	private Late!UrisInfo urisInfo_;
 	private Late!ShowDiagOptions diagOptions_;
 	Storage storage;
+	LineAndColumnGetters lineAndColumnGetters;
 
 	@trusted this(Alloc a) {
 		alloc = a.move();
 		allSymbols = AllSymbols(&alloc);
 		allUris = AllUris(&alloc, &allSymbols);
 		storage = Storage(&alloc);
+		lineAndColumnGetters = LineAndColumnGetters(&alloc, &storage);
 	}
 
 	ref Uri includeDir() return scope const =>
@@ -183,11 +178,15 @@ Program typeCheckAllKnownFiles(ref Alloc alloc, ref Perf perf, ref Server server
 Program justTypeCheck(ref Alloc alloc, ref Perf perf, ref Server server, in Uri[] rootUris) =>
 	frontendCompile(alloc, perf, server, rootUris, none!Uri);
 
-SafeCStr showDiagnostic(ref Alloc alloc, in Server server, in Program program, in Diagnostic a) =>
-	strOfDiagnostic(alloc, server.allSymbols, server.allUris, server.urisInfo, server.diagOptions, program, a);
+SafeCStr showDiagnostic(ref Alloc alloc, scope ref Server server, in Program program, in Diagnostic a) {
+	ShowDiagCtx ctx = getShowDiagCtx(server, program);
+	return strOfDiagnostic(alloc, ctx, a);
+}
 
-SafeCStr showDiagnostics(ref Alloc alloc, in Server server, in Program program) =>
-	strOfDiagnostics(alloc, server.allSymbols, server.allUris, server.urisInfo, server.diagOptions, program);
+SafeCStr showDiagnostics(ref Alloc alloc, scope ref Server server, in Program program) {
+	ShowDiagCtx ctx = getShowDiagCtx(server, program);
+	return strOfDiagnostics(alloc, ctx, program.diagnostics);
+}
 
 immutable struct DocumentResult {
 	SafeCStr document;
@@ -220,12 +219,11 @@ TokensAndParseDiagnostics getTokensAndParseDiagnostics(
 		SafeCStr text = x.isA!FileContent ? asSafeCStr(x.as!FileContent) : safeCStr!"";
 		ArrBuilder!DiagnosticWithinFile diagnosticsBuilder;
 		FileAst ast = parseFile(alloc, perf, server.allSymbols, server.allUris, diagnosticsBuilder, text);
-		//TODO: use 'scope' to avoid allocating things here
-		FilesInfo filesInfo = filesInfoForSingle(alloc, uri, lineAndColumnGetterForText(alloc, text));
-		Program program = fakeProgramForDiagnostics(filesInfo, Diagnostics(
-			DiagSeverity.parseError,
-			diagnosticsForFile(alloc, server.allUris, uri, diagnosticsBuilder).diags));
-		return TokensAndParseDiagnostics(tokensOfAst(alloc, server.allSymbols, ast), program);
+		return TokensAndParseDiagnostics(
+			tokensOfAst(alloc, server.allSymbols, ast),
+			fakeProgramForDiagnostics(Diagnostics(
+				DiagSeverity.parseError,
+				diagnosticsForFile(alloc, server.allUris, uri, diagnosticsBuilder).diags)));
 	});
 
 struct ProgramAndDefinition {
@@ -245,8 +243,9 @@ ProgramAndDefinition getDefinition(ref Perf perf, ref Alloc alloc, ref Server se
 SafeCStr getHover(ref Perf perf, ref Alloc alloc, ref Server server, in Uri uri, Pos pos) {
 	Program program = getProgram(perf, alloc, server, uri);
 	Opt!Position position = getPosition(server, program, uri, pos);
+	ShowDiagCtx ctx = getShowDiagCtx(server, program);
 	return has(position)
-		? getHoverStr(alloc, alloc, server.allSymbols, server.allUris, server.urisInfo, program, force(position))
+		? getHoverStr(alloc, ctx, force(position))
 		: safeCStr!"";
 }
 
@@ -275,18 +274,19 @@ DiagsAndResultJson printTokens(ref Alloc alloc, ref Perf perf, ref Server server
 	FileAstAndDiagnostics astResult = parseSingleAst(
 		alloc, perf, server.allSymbols, server.allUris, server.storage, uri);
 	return diagsAndResultJson(
-		alloc, server, fakeProgram(astResult),
+		alloc, server, fakeProgramForDiagnostics(astResult.diagnostics),
 		jsonOfTokens(alloc, tokensOfAst(alloc, server.allSymbols, astResult.ast)));
 }
 
 DiagsAndResultJson printAst(ref Alloc alloc, ref Perf perf, ref Server server, Uri uri) {
 	FileAstAndDiagnostics astResult = parseSingleAst(
 		alloc, perf, server.allSymbols, server.allUris, server.storage, uri);
-	return diagsAndResultJson(alloc, server, fakeProgram(astResult), jsonOfAst(alloc, server.allUris, astResult.ast));
+	return diagsAndResultJson(
+		alloc,
+		server,
+		fakeProgramForDiagnostics(astResult.diagnostics),
+		jsonOfAst(alloc, server.allUris, astResult.ast));
 }
-
-private Program fakeProgram(FileAstAndDiagnostics a) =>
-	fakeProgramForDiagnostics(a.filesInfo, a.diagnostics);
 
 DiagsAndResultJson printModel(ref Alloc alloc, ref Perf perf, ref Server server, Uri uri) {
 	Program program = frontendCompile(alloc, perf, server, [uri], none!Uri);
@@ -301,9 +301,10 @@ DiagsAndResultJson printConcreteModel(
 	Uri uri,
 ) {
 	Program program = frontendCompile(alloc, perf, server, [uri], none!Uri);
+	ShowDiagCtx ctx = getShowDiagCtx(server, program);
 	return diagsAndResultJson(
 		alloc, server, program,
-		jsonOfConcreteProgram(alloc, concretize(alloc, perf, versionInfo, server.allSymbols, program)));
+		jsonOfConcreteProgram(alloc, concretize(alloc, perf, ctx, versionInfo, program)));
 }
 
 DiagsAndResultJson printLowModel(
@@ -314,7 +315,8 @@ DiagsAndResultJson printLowModel(
 	Uri uri,
 ) {
 	Program program = frontendCompile(alloc, perf, server, [uri], none!Uri);
-	ConcreteProgram concreteProgram = concretize(alloc, perf, versionInfo, server.allSymbols, program);
+	ShowDiagCtx ctx = getShowDiagCtx(server, program);
+	ConcreteProgram concreteProgram = concretize(alloc, perf, ctx, versionInfo, program);
 	LowProgram lowProgram = lower(alloc, perf, server.allSymbols, program.config.extern_, program, concreteProgram);
 	return diagsAndResultJson(alloc, server, program, jsonOfLowProgram(alloc, lowProgram));
 }
@@ -333,7 +335,8 @@ ProgramsAndFilesInfo buildToLowProgram(
 	Uri main,
 ) {
 	Program program = frontendCompile(alloc, perf, server, [main], some(main));
-	ConcreteProgram concreteProgram = concretize(alloc, perf, versionInfo, server.allSymbols, program);
+	ShowDiagCtx ctx = getShowDiagCtx(server, program);
+	ConcreteProgram concreteProgram = concretize(alloc, perf, ctx, versionInfo, program);
 	LowProgram lowProgram = lower(alloc, perf, server.allSymbols, program.config.extern_, program, concreteProgram);
 	return ProgramsAndFilesInfo(program, concreteProgram, lowProgram);
 }
@@ -345,10 +348,22 @@ immutable struct BuildToCResult {
 }
 BuildToCResult buildToC(ref Alloc alloc, ref Perf perf, ref Server server, Uri main) {
 	ProgramsAndFilesInfo programs = buildToLowProgram(alloc, perf, server, versionInfoForBuildToC, main);
+	ShowDiagCtx ctx = getShowDiagCtx(server, programs.program);
 	return BuildToCResult(
 		diagnosticsIsFatal(programs.program.diagnostics)
 			? safeCStr!""
-			: writeToC(alloc, alloc, server.allSymbols, programs.program, programs.lowProgram),
+			: writeToC(alloc, alloc, ctx, programs.lowProgram),
 		showDiagnostics(alloc, server, programs.program),
 		programs.lowProgram.externLibraries);
 }
+
+private:
+
+ShowDiagCtx getShowDiagCtx(return scope ref Server server, return scope ref Program program) =>
+	ShowDiagCtx(
+		ptrTrustMe(server.allSymbols),
+		ptrTrustMe(server.allUris),
+		ptrTrustMe(server.lineAndColumnGetters),
+		server.urisInfo,
+		server.diagOptions,
+		ptrTrustMe(program));

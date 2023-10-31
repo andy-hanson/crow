@@ -2,7 +2,6 @@ module model.diag;
 
 @safe @nogc pure nothrow:
 
-import frontend.showDiag : ShowDiagOptions;
 import model.model :
 	Called,
 	CalledDecl,
@@ -10,7 +9,6 @@ import model.model :
 	EnumBackingType,
 	FunDecl,
 	FunDeclAndTypeArgs,
-	LineAndColumnGetters,
 	Local,
 	Module,
 	ReturnAndParamTypes,
@@ -24,17 +22,11 @@ import model.model :
 	VariableRef,
 	Visibility;
 import model.parseDiag : ParseDiag;
-import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
-import util.col.map : mapLiteral, mustGetAt;
-import util.lineAndColumnGetter : LineAndColumnGetter, PosKind;
 import util.opt : Opt;
-import util.sourceRange : UriAndPos, RangeWithinFile, UriAndRange;
+import util.sourceRange : RangeWithinFile, UriAndRange;
 import util.sym : Sym;
 import util.union_ : Union;
-import util.uri : AllUris, Uri, UrisInfo, writeUri;
-import util.writer : Writer, writeBold, writeHyperlink, writeRed, writeReset;
-import util.writerUtils : writePos, writeRangeWithinFile;
 
 enum DiagSeverity {
 	unusedCode,
@@ -488,68 +480,4 @@ immutable struct ExpectedForDiag {
 	immutable struct Infer {}
 	immutable struct Loop {}
 	mixin Union!(Type[], Infer, Loop);
-}
-
-immutable struct FilesInfo {
-	LineAndColumnGetters lineAndColumnGetters;
-}
-
-FilesInfo filesInfoForSingle(ref Alloc alloc, Uri uri, LineAndColumnGetter lineAndColumnGetter) =>
-	FilesInfo(mapLiteral!(Uri, LineAndColumnGetter)(alloc, uri, lineAndColumnGetter));
-
-void writeUriAndRange(
-	ref Writer writer,
-	in AllUris allUris,
-	in UrisInfo urisInfo,
-	in ShowDiagOptions options,
-	in FilesInfo fi,
-	in UriAndRange where,
-) {
-	writeFileNoResetWriter(writer, allUris, urisInfo, options, where.uri);
-	if (where.uri != Uri.empty)
-		writeRangeWithinFile(writer, mustGetAt(fi.lineAndColumnGetters, where.uri), where.range);
-	if (options.color)
-		writeReset(writer);
-}
-
-void writeUriAndPos(
-	ref Writer writer,
-	in AllUris allUris,
-	in UrisInfo urisInfo,
-	in ShowDiagOptions options,
-	in FilesInfo fi,
-	in UriAndPos where,
-) {
-	writeFileNoResetWriter(writer, allUris, urisInfo, options, where.uri);
-	if (where.uri != Uri.empty)
-		writePos(writer, mustGetAt(fi.lineAndColumnGetters, where.uri), where.pos, PosKind.startOfRange);
-	if (options.color)
-		writeReset(writer);
-}
-
-void writeFile(ref Writer writer, in AllUris allUris, in UrisInfo urisInfo, Uri uri) {
-	ShowDiagOptions noColor = ShowDiagOptions(false);
-	writeFileNoResetWriter(writer, allUris, urisInfo, noColor, uri);
-	// No need to reset writer since we didn't use color
-}
-
-private void writeFileNoResetWriter(
-	ref Writer writer,
-	in AllUris allUris,
-	in UrisInfo urisInfo,
-	in ShowDiagOptions options,
-	Uri uri,
-) {
-	if (options.color)
-		writeBold(writer);
-
-	if (options.color) {
-		writeHyperlink(
-			writer,
-			() { writeUri(writer, allUris, urisInfo, uri); },
-			() { writeUri(writer, allUris, urisInfo, uri); });
-		writeRed(writer);
-	} else
-		writeUri(writer, allUris, urisInfo, uri);
-	writer ~= ' ';
 }

@@ -2,26 +2,21 @@ module util.writerUtils;
 
 @safe @nogc pure nothrow:
 
-import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, LineAndColumnGetter, PosKind;
-import util.sourceRange : Pos, RangeWithinFile;
-import util.sym : AllSymbols, Sym, writeSym, writeSymAndGetSize;
+import util.lineAndColumnGetter : LineAndColumn, LineAndColumnRange;
+import util.sym : AllSymbols, Sym, writeSymAndGetSize;
 import util.util : todo;
 import util.writer : Writer;
 
-private void writeLineAndColumn(ref Writer writer, LineAndColumn lc) {
+void writeLineAndColumnRange(ref Writer writer, in LineAndColumnRange a) {
+	writeLineAndColumn(writer, a.start);
+	writer ~= '-';
+	writeLineAndColumn(writer, a.end);
+}
+
+void writeLineAndColumn(ref Writer writer, LineAndColumn lc) {
 	writer ~= lc.line + 1;
 	writer ~= ':';
 	writer ~= lc.column + 1;
-}
-
-void writePos(ref Writer writer, in LineAndColumnGetter lc, Pos pos, PosKind kind) {
-	writeLineAndColumn(writer, lineAndColumnAtPos(lc, pos, kind));
-}
-
-void writeRangeWithinFile(scope ref Writer writer, in LineAndColumnGetter lc, RangeWithinFile range) {
-	writePos(writer, lc, range.start, PosKind.startOfRange);
-	writer ~= '-';
-	writePos(writer, lc, range.end, PosKind.endOfRange);
 }
 
 void showChar(scope ref Writer writer, char c) {
@@ -39,12 +34,6 @@ void showChar(scope ref Writer writer, char c) {
 			writer ~= c;
 			break;
 	}
-}
-
-void writeName(scope ref Writer writer, in AllSymbols allSymbols, Sym name) {
-	writer ~= '\'';
-	writeSym(writer, allSymbols, name);
-	writer ~= '\'';
 }
 
 void writeNl(scope ref Writer writer) {

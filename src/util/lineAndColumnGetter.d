@@ -4,15 +4,54 @@ module util.lineAndColumnGetter;
 
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.mutMap : getOrAdd, MutMap;
 import util.col.str : SafeCStr, safeCStr;
 import util.conv : safeToUint, safeToUshort;
-import util.sourceRange : Pos;
+import util.sourceRange : Pos, UriAndPos, UriAndRange;
+import util.storage : asSafeCStr, FileContent, ReadFileIssue, ReadFileResult, Storage, withFileContentNoMarkUnknown;
+import util.uri : Uri;
 import util.util : verify;
+
+struct LineAndColumnGetters {
+	@safe @nogc pure nothrow:
+
+	private:
+	Alloc* alloc;
+	const Storage* storage;
+	MutMap!(Uri, LineAndColumnGetter) getters;
+
+	public this(return scope Alloc* a, return scope const Storage* s) {
+		alloc = a;
+		storage = s;
+	}
+}
+
+LineAndColumn lineAndColumnAtPos(ref LineAndColumnGetters a, UriAndPos pos, PosKind kind) =>
+	lineAndColumnAtPos(lineAndColumnGetterForUri(a, pos.uri), pos.pos, kind);
+
+LineAndColumnRange lineAndColumnRange(ref LineAndColumnGetters a, UriAndRange range) =>
+	LineAndColumnRange(
+		lineAndColumnAtPos(a, UriAndPos(range.uri, range.range.start), PosKind.startOfRange),
+		lineAndColumnAtPos(a, UriAndPos(range.uri, range.range.end), PosKind.endOfRange));
+
+private LineAndColumnGetter lineAndColumnGetterForUri(ref LineAndColumnGetters a, Uri uri) =>
+	getOrAdd(*a.alloc, a.getters, uri, () =>
+		withFileContentNoMarkUnknown!LineAndColumnGetter(*a.storage, uri, (in ReadFileResult x) =>
+			x.matchIn!LineAndColumnGetter(
+				(in FileContent content) =>
+					lineAndColumnGetterForText(*a.alloc, asSafeCStr(content)),
+				(in ReadFileIssue _) =>
+					lineAndColumnGetterForEmptyFile(*a.alloc))));
 
 immutable struct LineAndColumn {
 	// both 0-indexed
 	ushort line;
 	ushort column;
+}
+
+immutable struct LineAndColumnRange {
+	LineAndColumn start;
+	LineAndColumn end;
 }
 
 immutable struct LineAndColumnGetter {
@@ -52,7 +91,7 @@ immutable struct LineAndColumnGetter {
 	return LineAndColumnGetter(usesCRLF, finishArr(alloc, lineToPos), finishArr(alloc, lineToNTabs));
 }
 
-LineAndColumnGetter lineAndColumnGetterForEmptyFile(ref Alloc alloc) =>
+private LineAndColumnGetter lineAndColumnGetterForEmptyFile(ref Alloc alloc) =>
 	lineAndColumnGetterForText(alloc, safeCStr!"");
 
 enum PosKind { startOfRange, endOfRange }

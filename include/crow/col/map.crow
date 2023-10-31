@@ -164,6 +164,14 @@ Adds/updates many entries to `a`.
 		res ~:= pair
 	res
 
++keys[k, v] k[](a v[k]) k key
+	for k, _ : a
+		k
+
++values[k, v] v[](a v[k]) k key
+	for _, v : a
+		v
+
 got-or-added[k, v] union
 	got v
 	added (v[k], v)

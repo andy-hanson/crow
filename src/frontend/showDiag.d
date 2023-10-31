@@ -2,8 +2,9 @@ module frontend.showDiag;
 
 @safe @nogc pure nothrow:
 
+import frontend.check.typeFromAst : typeSyntaxKind;
 import frontend.parse.lexer : Token;
-import model.diag : Diagnostic, Diag, ExpectedForDiag, FilesInfo, TypeKind, writeUriAndRange;
+import model.diag : Diagnostic, Diagnostics, Diag, ExpectedForDiag, TypeKind;
 import model.model :
 	arity,
 	arityMatches,
@@ -17,6 +18,7 @@ import model.model :
 	FunDecl,
 	FunDeclAndTypeArgs,
 	FunInst,
+	isTuple,
 	Local,
 	LocalMutability,
 	name,
@@ -36,96 +38,131 @@ import model.model :
 	Type,
 	typeArgs,
 	TypeParam,
-	TypeParamsAndSig,
-	writeStructInst,
-	writeTypeArgs,
-	writeTypeQuoted,
-	writeTypeUnquoted;
+	TypeParamsAndSig;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.col.arr : empty, only, sizeEq;
+import util.col.arr : empty, only, only2, sizeEq;
 import util.col.arrUtil : exists;
-import util.col.map : mustGetAt;
 import util.col.str : SafeCStr;
-import util.lineAndColumnGetter : lineAndColumnAtPos, PosKind;
+import util.lineAndColumnGetter : lineAndColumnAtPos, LineAndColumnGetters, lineAndColumnRange, PosKind;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : ptrTrustMe;
-import util.sourceRange : UriAndPos;
+import util.sourceRange : UriAndPos, UriAndRange;
 import util.storage : ReadFileIssue;
 import util.sym : AllSymbols, Sym, writeSym;
-import util.uri : AllUris, baseName, UrisInfo, writeUri, writeRelPath;
+import util.uri : AllUris, baseName, Uri, UrisInfo, writeRelPath, writeUri, writeUriPreferRelative;
 import util.util : unreachable, verify;
 import util.writer :
 	finishWriterToSafeCStr,
 	writeBold,
 	writeEscapedChar,
+	writeHyperlink,
 	writeQuotedStr,
+	writeRed,
 	writeReset,
 	writeWithCommas,
 	writeWithCommasZip,
 	writeWithNewlines,
 	writeWithSeparator,
 	Writer;
-import util.writerUtils : showChar, writeName, writeNl;
+import util.writerUtils : showChar, writeLineAndColumn, writeLineAndColumnRange, writeNl;
+
+struct ShowDiagCtx {
+	@safe @nogc pure nothrow:
+
+	const AllSymbols* allSymbolsPtr;
+	const AllUris* allUrisPtr;
+	LineAndColumnGetters* lineAndColumnGettersPtr;
+	UrisInfo urisInfo;
+	ShowDiagOptions options;
+	immutable Program* programPtr;
+
+	ref const(AllSymbols) allSymbols() return scope const =>
+		*allSymbolsPtr;
+	ref const(AllUris) allUris() return scope const =>
+		*allUrisPtr;
+	ref Program program() return scope const =>
+		*programPtr;
+	ref LineAndColumnGetters lineAndColumnGetters() return scope =>
+		*lineAndColumnGettersPtr;
+}
 
 immutable struct ShowDiagOptions {
 	bool color;
 }
 
-SafeCStr strOfDiagnostics(
-	ref Alloc alloc,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
-	in UrisInfo urisInfo,
-	in ShowDiagOptions options,
-	in Program program,
-) {
+SafeCStr strOfDiagnostics(ref Alloc alloc, scope ref ShowDiagCtx ctx, in Diagnostics diagnostics) {
 	Writer writer = Writer(ptrTrustMe(alloc));
-	writeWithNewlines!Diagnostic(writer, program.diagnostics.diags, (in Diagnostic x) {
-		showDiagnostic(alloc, writer, allSymbols, allUris, urisInfo, options, program, x);
+	writeWithNewlines!Diagnostic(writer, diagnostics.diags, (in Diagnostic x) {
+		showDiagnostic(alloc, writer, ctx, x);
 	});
 	return finishWriterToSafeCStr(writer);
 }
 
-SafeCStr strOfDiagnostic(
-	ref Alloc alloc,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
-	in UrisInfo urisInfo,
-	in ShowDiagOptions options,
-	in Program program,
-	in Diagnostic diagnostic,
-) {
+SafeCStr strOfDiagnostic(ref Alloc alloc, scope ref ShowDiagCtx ctx, in Diagnostic diagnostic) {
 	Writer writer = Writer(ptrTrustMe(alloc));
-	showDiagnostic(alloc, writer, allSymbols, allUris, urisInfo, options, program, diagnostic);
+	showDiagnostic(alloc, writer, ctx, diagnostic);
 	return finishWriterToSafeCStr(writer);
+}
+
+private void writeUriAndRange(ref Writer writer, scope ref ShowDiagCtx ctx, in UriAndRange where) {
+	writeFileNoResetWriter(writer, ctx, where.uri);
+	if (where.uri != Uri.empty)
+		writeLineAndColumnRange(writer, lineAndColumnRange(ctx.lineAndColumnGetters, where));
+	if (ctx.options.color)
+		writeReset(writer);
+}
+
+void writeUriAndPos(ref Writer writer, scope ref ShowDiagCtx ctx, in UriAndPos where) {
+	writeFileNoResetWriter(writer, ctx, where.uri);
+	if (where.uri != Uri.empty)
+		writeLineAndColumn(writer, lineAndColumnAtPos(ctx.lineAndColumnGetters, where, PosKind.startOfRange));
+	if (ctx.options.color)
+		writeReset(writer);
+}
+
+void writeFile(ref Writer writer, in ShowDiagCtx ctx, Uri uri) {
+	writeFileNoResetWriter(writer, ctx, uri);
+	if (ctx.options.color)
+		writeReset(writer);
 }
 
 private:
 
-void writeUnusedDiag(
-	scope ref Writer writer,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
-	in Program program,
-	in Diag.Unused a,
-) {
+void writeUri(ref Writer writer, in ShowDiagCtx ctx, Uri uri) {
+	writeUriPreferRelative(writer, ctx.allUris, ctx.urisInfo, uri);
+}
+
+void writeFileNoResetWriter(ref Writer writer, in ShowDiagCtx ctx, Uri uri) {
+	if (ctx.options.color)
+		writeBold(writer);
+
+	if (ctx.options.color) {
+		writeHyperlink(
+			writer,
+			() { writeUri(writer, ctx, uri); },
+			() { writeUri(writer, ctx, uri); });
+		writeRed(writer);
+	} else
+		writeUri(writer, ctx, uri);
+	writer ~= ' ';
+}
+
+void writeUnusedDiag(ref Writer writer, scope ref ShowDiagCtx ctx, in Diag.Unused a) {
 	a.kind.matchIn!void(
 		(in Diag.Unused.Kind.Import x) {
 			if (has(x.importedName)) {
 				writer ~= "imported name ";
-				writeSym(writer, allSymbols, force(x.importedName));
+				writeName(writer, ctx, force(x.importedName));
 			} else {
 				writer ~= "imported module ";
-				// TODO: helper fn
-				Sym moduleName = baseName(allUris, x.importedModule.uri);
-				writeSym(writer, allSymbols, moduleName);
+				writeName(writer, ctx, baseName(ctx.allUris, x.importedModule.uri));
 			}
 			writer ~= " is unused";
 		},
 		(in Diag.Unused.Kind.Local x) {
 			writer ~= "local ";
-			writeSym(writer, allSymbols, x.local.name);
+			writeName(writer, ctx, x.local.name);
 			writer ~= (x.local.mutability == LocalMutability.immut)
 				? " is unused"
 				: x.usedGet
@@ -135,42 +172,29 @@ void writeUnusedDiag(
 				: " is unused";
 		},
 		(in Diag.Unused.Kind.PrivateDecl x) {
-			writeSym(writer, allSymbols, x.name);
+			writeName(writer, ctx, x.name);
 			writer ~= " is unused";
 		});
 }
 
-void writeLineNumber(
-	scope ref Writer writer,
-	in AllUris allUris,
-	in UrisInfo urisInfo,
-	in ShowDiagOptions options,
-	in FilesInfo fi,
-	UriAndPos pos,
-) {
-	if (options.color)
+void writeLineNumber(ref Writer writer, scope ref ShowDiagCtx ctx, in UriAndPos pos) {
+	if (ctx.options.color)
 		writeBold(writer);
-	writeUri(writer, allUris, urisInfo, pos.uri);
-	if (options.color)
+	writeUri(writer, ctx, pos.uri);
+	if (ctx.options.color)
 		writeReset(writer);
 	writer ~= " line ";
-	size_t line = lineAndColumnAtPos(mustGetAt(fi.lineAndColumnGetters, pos.uri), pos.pos, PosKind.startOfRange).line;
+	size_t line = lineAndColumnAtPos(ctx.lineAndColumnGetters, pos, PosKind.startOfRange).line;
 	writer ~= line + 1;
 }
 
-void writeParseDiag(
-	scope ref Writer writer,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
-	in UrisInfo urisInfo,
-	in ParseDiag d,
-) {
+void writeParseDiag(ref Writer writer, scope ref ShowDiagCtx ctx, in ParseDiag d) {
 	d.matchIn!void(
 		(in ParseDiag.CircularImport x) {
 			writer ~= "circular import from ";
-			writeUri(writer, allUris, urisInfo, x.from);
+			writeUri(writer, ctx, x.from);
 			writer ~= " to ";
-			writeUri(writer, allUris, urisInfo, x.to);
+			writeUri(writer, ctx, x.to);
 		},
 		(in ParseDiag.Expected it) {
 			final switch (it.kind) {
@@ -268,7 +292,7 @@ void writeParseDiag(
 						return "IDE is still loading file ";
 				}
 			}();
-			writeUri(writer, allUris, urisInfo, x.uri);
+			writeUri(writer, ctx, x.uri);
 		},
 		(in ParseDiag.FunctionTypeMissingParens) {
 			writer ~= "function type missing parentheses";
@@ -335,9 +359,9 @@ void writeParseDiag(
 				? "on its own line"
 				: "in a context where it can be followed by an indented block";
 		},
-		(in ParseDiag.RelativeImportReachesPastRoot d) {
+		(in ParseDiag.RelativeImportReachesPastRoot x) {
 			writer ~= "importing ";
-			writeRelPath(writer, allUris, d.imported);
+			writeRelPath(writer, ctx.allUris, x.imported);
 			writer ~= " reaches above the source directory";
 			//TODO: recommend a compiler option to fix this
 		},
@@ -349,9 +373,9 @@ void writeParseDiag(
 			showChar(writer, u.ch);
 			writer ~= "'";
 		},
-		(in ParseDiag.UnexpectedOperator u) {
+		(in ParseDiag.UnexpectedOperator x) {
 			writer ~= "unexpected '";
-			writeSym(writer, allSymbols, u.operator);
+			writeSym(writer, ctx.allSymbols, x.operator);
 			writer ~= '\'';
 		},
 		(in ParseDiag.UnexpectedToken u) {
@@ -362,281 +386,14 @@ void writeParseDiag(
 		});
 }
 
-void writePurity(scope ref Writer writer, in AllSymbols allSymbols, Purity p) {
-	writeName(writer, allSymbols, symOfPurity(p));
-}
-
-void writeSig(
-	scope ref Writer writer,
-	in AllSymbols allSymbols,
-	in Program program,
-	Sym name,
-	in Type returnType,
-	in Params params,
-	in Opt!ReturnAndParamTypes instantiated,
-) {
-	writeSym(writer, allSymbols, name);
-	writer ~= ' ';
-	writeTypeUnquoted(writer, allSymbols, program, has(instantiated) ? force(instantiated).returnType : returnType);
-	writer ~= '(';
-	params.matchIn!void(
-		(in Destructure[] paramsArray) {
-			if (has(instantiated))
-				writeWithCommasZip!(Destructure, Type)(
-					writer,
-					paramsArray,
-					force(instantiated).paramTypes,
-					(in Destructure x, in Type t) {
-						writeDestructure(writer, allSymbols, program, x, some(t));
-					});
-			else
-				writeWithCommas!Destructure(writer, paramsArray, (in Destructure x) {
-					writeDestructure(writer, allSymbols, program, x, none!Type);
-				});
-		},
-		(in Params.Varargs varargs) {
-			writer ~= "...";
-			writeTypeUnquoted(writer, allSymbols, program, has(instantiated)
-				? only(force(instantiated).paramTypes)
-				: varargs.param.type);
-		});
-	writer ~= ')';
-}
-
-void writeSigSimple(
-	scope ref Writer writer,
-	in AllSymbols allSymbols,
-	in Program program,
-	Sym name,
-	in TypeParamsAndSig sig,
-) {
-	writeSym(writer, allSymbols, name);
-	if (!empty(sig.typeParams)) {
-		writer ~= '[';
-		writeWithCommas!TypeParam(writer, sig.typeParams, (in TypeParam x) {
-			writeSym(writer, allSymbols, x.name);
-		});
-		writer ~= ']';
-	}
-	writer ~= ' ';
-	writeTypeUnquoted(writer, allSymbols, program, sig.returnType);
-	writer ~= '(';
-	writeWithCommas!ParamShort(writer, sig.params, (in ParamShort x) {
-		writeSym(writer, allSymbols, x.name);
-		writer ~= ' ';
-		writeTypeUnquoted(writer, allSymbols, program, x.type);
-	});
-	writer ~= ')';
-}
-
-void writeDestructure(
-	scope ref Writer writer,
-	in AllSymbols allSymbols,
-	in Program program,
-	in Destructure a,
-	in Opt!Type instantiated,
-) {
-	Type type = has(instantiated) ? force(instantiated) : a.type;
-	a.matchIn!void(
-		(in Destructure.Ignore) {
-			writer ~= "_ ";
-			writeTypeUnquoted(writer, allSymbols, program, type);
-		},
-		(in Local x) {
-			writeSym(writer, allSymbols, x.name);
-			writer ~= ' ';
-			writeTypeUnquoted(writer, allSymbols, program, type);
-		},
-		(in Destructure.Split x) {
-			writer ~= '(';
-			writeWithCommasZip!(Destructure, Type)(
-				writer, x.parts, typeArgs(*type.as!(StructInst*)), (in Destructure part, in Type partType) {
-					writeDestructure(writer, allSymbols, program, part, some(partType));
-				});
-			writer ~= ')';
-		});
-}
-
-void writeSpecTrace(
-	scope ref Writer writer,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
-	in UrisInfo urisInfo,
-	in ShowDiagOptions options,
-	in Program program,
-	in FunDeclAndTypeArgs[] trace,
-) {
+void writeSpecTrace(ref Writer writer, scope ref ShowDiagCtx ctx, in FunDeclAndTypeArgs[] trace) {
 	foreach (FunDeclAndTypeArgs x; trace) {
 		writer ~= "\n\t";
-		writeFunDeclAndTypeArgs(writer, allSymbols, allUris, urisInfo, options, program, x);
+		writeFunDeclAndTypeArgs(writer, ctx, x);
 	}
 }
 
-void writeFunDeclAndTypeArgs(
-	scope ref Writer writer,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
-	in UrisInfo urisInfo,
-	in ShowDiagOptions options,
-	in Program program,
-	in FunDeclAndTypeArgs a,
-) {
-	writeSym(writer, allSymbols, a.decl.name);
-	writeTypeArgs(writer, allSymbols, program, a.typeArgs);
-	writeFunDeclLocation(writer, allSymbols, allUris, urisInfo, options, program.filesInfo, *a.decl);
-}
-
-public void writeCalled(
-	scope ref Writer writer,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
-	in UrisInfo urisInfo,
-	in ShowDiagOptions options,
-	in Program program,
-	in Called a,
-) {
-	a.matchIn!void(
-		(in FunInst x) {
-			writeFunInst(writer, allSymbols, allUris, urisInfo, options, program, x);
-		},
-		(in CalledSpecSig x) {
-			writeCalledSpecSig(writer, allSymbols, program, x);
-		});
-}
-
-public void writeFunInst(
-	scope ref Writer writer,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
-	in UrisInfo urisInfo,
-	in ShowDiagOptions options,
-	in Program program,
-	in FunInst a,
-) {
-	writeFunDecl(writer, allSymbols, allUris, urisInfo, options, program, *decl(a));
-	writeTypeParamsAndArgs(writer, allSymbols, program, decl(a).typeParams, typeArgs(a));
-}
-
-void writeCalledSpecSig(
-	scope ref Writer writer,
-	in AllSymbols allSymbols,
-	in Program program,
-	in CalledSpecSig x,
-) {
-	writeSig(
-		writer, allSymbols, program, x.name, x.returnType,
-		Params(x.nonInstantiatedSig.params), some(x.instantiatedSig));
-	writer ~= " (from spec ";
-	writeName(writer, allSymbols, name(*x.specInst));
-	writer ~= ')';
-}
-
-void writeTypeParamsAndArgs(
-	scope ref Writer writer,
-	in AllSymbols allSymbols,
-	in Program program,
-	in TypeParam[] typeParams,
-	in Type[] typeArgs,
-) {
-	verify(sizeEq(typeParams, typeArgs));
-	if (!empty(typeParams)) {
-		writer ~= " with ";
-		writeWithCommasZip!(TypeParam, Type)(writer, typeParams, typeArgs, (in TypeParam param, in Type arg) {
-			writeSym(writer, allSymbols, param.name);
-			writer ~= '=';
-			writeTypeUnquoted(writer, allSymbols, program, arg);
-		});
-	}
-}
-
-void writeCalledDecl(
-	scope ref Writer writer,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
-	in UrisInfo urisInfo,
-	in ShowDiagOptions options,
-	in Program program,
-	in CalledDecl a,
-) {
-	a.matchIn!void(
-		(in FunDecl x) {
-			writeFunDecl(writer, allSymbols, allUris, urisInfo, options, program, x);
-		},
-		(in CalledSpecSig x) {
-			writeCalledSpecSig(writer, allSymbols, program, x);
-		});
-}
-
-void writeFunDecl(
-	scope ref Writer writer,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
-	in UrisInfo urisInfo,
-	in ShowDiagOptions options,
-	in Program program,
-	in FunDecl a,
-) {
-	writeSig(writer, allSymbols, program, a.name, a.returnType, a.params, none!ReturnAndParamTypes);
-	writeFunDeclLocation(writer, allSymbols, allUris, urisInfo, options, program.filesInfo, a);
-}
-
-void writeFunDeclLocation(
-	scope ref Writer writer,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
-	in UrisInfo urisInfo,
-	in ShowDiagOptions options,
-	in FilesInfo fi,
-	in FunDecl funDecl,
-) {
-	writer ~= " (from ";
-	writeLineNumber(writer, allUris, urisInfo, options, fi, funDecl.fileAndPos);
-	writer ~= ')';
-}
-
-void writeCalleds(
-	scope ref Writer writer,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
-	in UrisInfo urisInfo,
-	in ShowDiagOptions options,
-	in Program program,
-	in Called[] cs,
-) {
-	foreach (ref Called x; cs) {
-		writeNl(writer);
-		writer ~= '\t';
-		writeCalled(writer, allSymbols, allUris, urisInfo, options, program, x);
-	}
-}
-
-void writeCalledDecls(
-	scope ref Writer writer,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
-	in UrisInfo urisInfo,
-	in ShowDiagOptions options,
-	in Program program,
-	in CalledDecl[] cs,
-	in bool delegate(in CalledDecl) @safe @nogc pure nothrow filter = (in _) => true,
-) {
-	foreach (ref CalledDecl c; cs)
-		if (filter(c)) {
-			writeNl(writer);
-			writer ~= '\t';
-			writeCalledDecl(writer, allSymbols, allUris, urisInfo, options, program, c);
-		}
-}
-
-void writeCallNoMatch(
-	scope ref Writer writer,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
-	in UrisInfo urisInfo,
-	in ShowDiagOptions options,
-	in Program program,
-	in Diag.CallNoMatch d,
-) {
+void writeCallNoMatch(ref Writer writer, scope ref ShowDiagCtx ctx, in Diag.CallNoMatch d) {
 	bool someCandidateHasCorrectNTypeArgs =
 		d.actualNTypeArgs == 0 ||
 		exists!CalledDecl(d.allCandidates, (in CalledDecl c) =>
@@ -653,15 +410,15 @@ void writeCallNoMatch(
 			// but message should reflect that the user might not have wanted a call.
 			writer ~= "or variable ";
 		writer ~= "named ";
-		writeName(writer, allSymbols, d.funName);
+		writeName(writer, ctx, d.funName);
 
 		if (d.actualArgTypes.length == 1) {
 			writer ~= "\nargument type: ";
-			writeTypeQuoted(writer, allSymbols, program, only(d.actualArgTypes));
+			writeTypeQuoted(writer, ctx, only(d.actualArgTypes));
 		}
 	} else if (!someCandidateHasCorrectArity) {
 		writer ~= "there are functions named ";
-		writeName(writer, allSymbols, d.funName);
+		writeName(writer, ctx, d.funName);
 		writer ~= ", but none takes ";
 		if (someCandidateHasCorrectNTypeArgs) {
 			writer ~= d.actualArity;
@@ -670,10 +427,10 @@ void writeCallNoMatch(
 			writer ~= " type";
 		}
 		writer ~= " arguments. candidates:";
-		writeCalledDecls(writer, allSymbols, allUris, urisInfo, options, program, d.allCandidates);
+		writeCalledDecls(writer, ctx, d.allCandidates);
 	} else {
 		writer ~= "there are functions named ";
-		writeName(writer, allSymbols, d.funName);
+		writeName(writer, ctx, d.funName);
 		writer ~= ", but they do not match the ";
 		bool hasRet = has(d.expectedReturnType);
 		bool hasArgs = empty(d.actualArgTypes);
@@ -684,12 +441,12 @@ void writeCallNoMatch(
 		writer ~= '.';
 		if (hasRet) {
 			writer ~= "\nexpected return type: ";
-			writeTypeQuoted(writer, allSymbols, program, force(d.expectedReturnType));
+			writeTypeQuoted(writer, ctx, force(d.expectedReturnType));
 		}
 		if (hasArgs) {
 			writer ~= "\nactual argument types: ";
 			writeWithCommas!Type(writer, d.actualArgTypes, (in Type t) {
-				writeTypeQuoted(writer, allSymbols, program, t);
+				writeTypeQuoted(writer, ctx, t);
 			});
 			if (d.actualArgTypes.length < d.actualArity)
 				writer ~= " (other arguments not checked, gave up early)";
@@ -697,39 +454,28 @@ void writeCallNoMatch(
 		writer ~= "\ncandidates (with ";
 		writer ~= d.actualArity;
 		writer ~= " arguments):";
-		writeCalledDecls(
-			writer, allSymbols, allUris, urisInfo, options, program, d.allCandidates,
-			(in CalledDecl c) =>
-				arityMatches(arity(c), d.actualArity));
+		writeCalledDecls(writer, ctx, d.allCandidates, (in CalledDecl c) =>
+			arityMatches(arity(c), d.actualArity));
 	}
 }
 
-void writeDiag(
-	ref TempAlloc tempAlloc,
-	scope ref Writer writer,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
-	in UrisInfo urisInfo,
-	in ShowDiagOptions options,
-	in Program program,
-	in Diag d,
-) {
-	d.matchIn!void(
-		(in Diag.AssignmentNotAllowed d) {
+void writeDiag(ref TempAlloc tempAlloc, ref Writer writer, scope ref ShowDiagCtx ctx, in Diag diag) {
+	diag.matchIn!void(
+		(in Diag.AssignmentNotAllowed) {
 			writer ~= "can't assign to this kind of expression";
 		},
-		(in Diag.BuiltinUnsupported d) {
+		(in Diag.BuiltinUnsupported x) {
 			writer ~= "the compiler does not implement a builtin named ";
-			writeName(writer, allSymbols, d.name);
+			writeName(writer, ctx, x.name);
 		},
-		(in Diag.CallMultipleMatches d) {
+		(in Diag.CallMultipleMatches x) {
 			writer ~= "cannot choose an overload of ";
-			writeName(writer, allSymbols, d.funName);
+			writeName(writer, ctx, x.funName);
 			writer ~= ". multiple functions match:";
-			writeCalledDecls(writer, allSymbols, allUris, urisInfo, options, program, d.matches);
+			writeCalledDecls(writer, ctx, x.matches);
 		},
-		(in Diag.CallNoMatch d) {
-			writeCallNoMatch(writer, allSymbols, allUris, urisInfo, options, program, d);
+		(in Diag.CallNoMatch x) {
+			writeCallNoMatch(writer, ctx, x);
 		},
 		(in Diag.CallShouldUseSyntax x) {
 			writer ~= () {
@@ -774,7 +520,7 @@ void writeDiag(
 				}
 			}();
 			writer ~= ' ';
-			writeFunDecl(writer, allSymbols, allUris, urisInfo, options, program, *x.callee);
+			writeFunDecl(writer, ctx, *x.callee);
 			if (x.reason == Diag.CantCall.Reason.unsafe)
 				writer ~= "\n(consider putting the call in a 'trusted' expression)";
 		},
@@ -783,37 +529,37 @@ void writeDiag(
 		},
 		(in Diag.CommonFunDuplicate x) {
 			writer ~= "module contains multiple valid ";
-			writeName(writer, allSymbols, x.name);
+			writeName(writer, ctx, x.name);
 			writer ~= " functions";
 		},
 		(in Diag.CommonFunMissing x) {
 			writer ~= "module should have a function:\n\t";
 			writeWithSeparator!TypeParamsAndSig(writer, x.sigChoices, "\nor:\n\t", (in TypeParamsAndSig sig) {
-				writeSigSimple(writer, allSymbols, program, x.name, sig);
+				writeSigSimple(writer, ctx, x.name, sig);
 			});
 		},
-		(in Diag.CommonTypeMissing d) {
+		(in Diag.CommonTypeMissing x) {
 			writer ~= "expected to find a type named ";
-			writeName(writer, allSymbols, d.name);
+			writeName(writer, ctx, x.name);
 			writer ~= " in this module";
 		},
-		(in Diag.DestructureTypeMismatch d) {
-			d.expected.matchIn!void(
-				(in Diag.DestructureTypeMismatch.Expected.Tuple x) {
+		(in Diag.DestructureTypeMismatch x) {
+			x.expected.matchIn!void(
+				(in Diag.DestructureTypeMismatch.Expected.Tuple t) {
 					writer ~= "expected a tuple with ";
-					writer ~= x.size;
+					writer ~= t.size;
 					writer ~= " elements, but got ";
 				},
 				(in Type t) {
 					writer ~= "expected type ";
-					writeTypeQuoted(writer, allSymbols, program, t);
+					writeTypeQuoted(writer, ctx, t);
 					writer ~= ", but got ";
 				});
-			writeTypeQuoted(writer, allSymbols, program, d.actual);
+			writeTypeQuoted(writer, ctx, x.actual);
 		},
-		(in Diag.DuplicateDeclaration d) {
-			string desc = () {
-				final switch (d.kind) {
+		(in Diag.DuplicateDeclaration x) {
+			writer ~= () {
+				final switch (x.kind) {
 					case Diag.DuplicateDeclaration.Kind.enumMember:
 						return "enum member";
 					case Diag.DuplicateDeclaration.Kind.flagsMember:
@@ -832,15 +578,14 @@ void writeDiag(
 						return "union member";
 				}
 			}();
-			writer ~= desc;
 			writer ~= " name ";
-			writeName(writer, allSymbols, d.name);
+			writeName(writer, ctx, x.name);
 			writer ~= " is already used";
 		},
-		(in Diag.DuplicateExports d) {
+		(in Diag.DuplicateExports x) {
 			writer ~= "there are multiple exported ";
 			writer ~= () {
-				final switch (d.kind) {
+				final switch (x.kind) {
 					case Diag.DuplicateExports.Kind.spec:
 						return "specs";
 					case Diag.DuplicateExports.Kind.type:
@@ -848,45 +593,45 @@ void writeDiag(
 				}
 			}();
 			writer ~= " named ";
-			writeName(writer, allSymbols, d.name);
+			writeName(writer, ctx, x.name);
 		},
-		(in Diag.DuplicateImports d) {
-			//TODO: use d.kind
+		(in Diag.DuplicateImports x) {
+			//TODO: use x.kind
 			writer ~= "the symbol ";
-			writeName(writer, allSymbols, d.name);
+			writeName(writer, ctx, x.name);
 			writer ~= " appears in multiple modules";
 		},
-		(in Diag.EnumBackingTypeInvalid d) {
+		(in Diag.EnumBackingTypeInvalid x) {
 			writer ~= "type ";
-			writeStructInst(writer, allSymbols, program, *d.actual);
+			writeStructInst(writer, ctx, *x.actual);
 			writer ~= " cannot be used to back an enum";
 		},
-		(in Diag.EnumDuplicateValue d) {
+		(in Diag.EnumDuplicateValue x) {
 			writer ~= "duplicate enum value ";
-			if (d.signed)
-				writer ~= d.value;
+			if (x.signed)
+				writer ~= x.value;
 			else
-				writer ~= cast(ulong) d.value;
+				writer ~= cast(ulong) x.value;
 		},
-		(in Diag.EnumMemberOverflows d) {
+		(in Diag.EnumMemberOverflows x) {
 			writer ~= "enum member is not in the allowed range ";
-			writer ~= minValue(d.backingType);
+			writer ~= minValue(x.backingType);
 			writer ~= " to ";
-			writer ~= maxValue(d.backingType);
+			writer ~= maxValue(x.backingType);
 		},
-		(in Diag.ExpectedTypeIsNotALambda d) {
-			if (has(d.expectedType)) {
+		(in Diag.ExpectedTypeIsNotALambda x) {
+			if (has(x.expectedType)) {
 				writer ~= "the expected type at the lambda is ";
-				writeTypeQuoted(writer, allSymbols, program, force(d.expectedType));
+				writeTypeQuoted(writer, ctx, force(x.expectedType));
 				writer ~= ", which is not a lambda type";
 			} else
 				writer ~= "there is no expected type at this location; lambdas need an expected type";
 		},
-		(in Diag.ExternFunForbidden d) {
+		(in Diag.ExternFunForbidden x) {
 			writer ~= "'extern' function ";
-			writeName(writer, allSymbols, d.fun.name);
+			writeName(writer, ctx, x.fun.name);
 			writer ~= () {
-				final switch (d.reason) {
+				final switch (x.reason) {
 					case Diag.ExternFunForbidden.Reason.hasSpecs:
 						return " can't have specs";
 					case Diag.ExternFunForbidden.Reason.hasTypeParams:
@@ -902,12 +647,12 @@ void writeDiag(
 		(in Diag.ExternMissingLibraryName) {
 			writer ~= "expected 'extern' to be preceded by the library name";
 		},
-		(in Diag.ExternRecordImplicitlyByVal d) {
+		(in Diag.ExternRecordImplicitlyByVal x) {
 			writer ~= "'extern' record ";
-			writeName(writer, allSymbols, d.struct_.name);
+			writeName(writer, ctx, x.struct_.name);
 			writer ~= " is implicitly 'by-val'";
 		},
-		(in Diag.ExternUnion d) {
+		(in Diag.ExternUnion) {
 			writer ~= "a union can't be 'extern'";
 		},
 		(in Diag.FunMissingBody) {
@@ -916,31 +661,31 @@ void writeDiag(
 		(in Diag.FunModifierTrustedOnNonExtern) {
 			writer ~= "only 'extern' functions can be 'trusted'; otherwise 'trusted' should be used as an expression";
 		},
-		(in Diag.IfNeedsOpt d) {
+		(in Diag.IfNeedsOpt x) {
 			writer ~= "Expected an option type, but got ";
-			writeTypeQuoted(writer, allSymbols, program, d.actualType);
+			writeTypeQuoted(writer, ctx, x.actualType);
 		},
-		(in Diag.ImportRefersToNothing it) {
+		(in Diag.ImportRefersToNothing x) {
 			writer ~= "imported name ";
-			writeName(writer, allSymbols, it.name);
+			writeName(writer, ctx, x.name);
 			writer ~= " does not refer to anything";
 		},
 		(in Diag.LambdaCantInferParamType x) {
 			writer ~= "can't infer the lambda parameter's type.";
 		},
-		(in Diag.LambdaClosesOverMut d) {
+		(in Diag.LambdaClosesOverMut x) {
 			writer ~= "this lambda is a 'fun' but references ";
-			writeName(writer, allSymbols, d.name);
-			if (has(d.type)) {
+			writeName(writer, ctx, x.name);
+			if (has(x.type)) {
 				writer ~= " of 'mut' type ";
-				writeTypeQuoted(writer, allSymbols, program, force(d.type));
+				writeTypeQuoted(writer, ctx, force(x.type));
 			} else
 				writer ~= " which is 'mut'";
 			writer ~= " (should it be an 'act' or 'ref' fun?)";
 		},
 		(in Diag.LambdaMultipleMatch x) {
 			writer ~= "multiple lambda types are possible.\n";
-			writeExpected(writer, allSymbols, program, x.expected);
+			writeExpected(writer, ctx, x.expected);
 			writer ~= "consider explicitly typing the lambda's parameter.";
 		},
 		(in Diag.LambdaNotExpected x) {
@@ -948,90 +693,90 @@ void writeDiag(
 				writer ~= "lambda expression needs an expected type";
 			else {
 				writer ~= "the lambda doesn't match the expected type at this location.\n";
-				writeExpected(writer, allSymbols, program, x.expected);
+				writeExpected(writer, ctx, x.expected);
 			}
 		},
-		(in Diag.LinkageWorseThanContainingFun d) {
+		(in Diag.LinkageWorseThanContainingFun x) {
 			writer ~= "'extern' function ";
-			writeName(writer, allSymbols, d.containingFun.name);
-			if (has(d.param)) {
-				Opt!Sym paramName = force(d.param).name;
+			writeName(writer, ctx, x.containingFun.name);
+			if (has(x.param)) {
+				Opt!Sym paramName = force(x.param).name;
 				if (has(paramName)) {
 					writer ~= " parameter ";
-					writeName(writer, allSymbols, force(paramName));
+					writeName(writer, ctx, force(paramName));
 				}
 			}
 			writer ~= " can't reference non-extern type ";
-			writeTypeQuoted(writer, allSymbols, program, d.referencedType);
+			writeTypeQuoted(writer, ctx, x.referencedType);
 		},
-		(in Diag.LinkageWorseThanContainingType d) {
+		(in Diag.LinkageWorseThanContainingType x) {
 			writer ~= "extern type ";
-			writeName(writer, allSymbols, d.containingType.name);
+			writeName(writer, ctx, x.containingType.name);
 			writer ~= " can't reference non-extern type ";
-			writeTypeQuoted(writer, allSymbols, program, d.referencedType);
+			writeTypeQuoted(writer, ctx, x.referencedType);
 		},
-		(in Diag.LiteralAmbiguous d) {
+		(in Diag.LiteralAmbiguous x) {
 			writer ~= "multiple possible types for literal expression: ";
-			writeWithCommas!(StructInst*)(writer, d.types, (in StructInst* type) {
-				writeStructInst(writer, allSymbols, program, *type);
+			writeWithCommas!(StructInst*)(writer, x.types, (in StructInst* type) {
+				writeStructInst(writer, ctx, *type);
 			});
 		},
-		(in Diag.LiteralOverflow d) {
+		(in Diag.LiteralOverflow x) {
 			writer ~= "literal exceeds the range of a ";
-			writeStructInst(writer, allSymbols, program, *d.type);
+			writeStructInst(writer, ctx, *x.type);
 		},
 		(in Diag.LocalIgnoredButMutable) {
 			writer ~= "unnecessary 'mut' on ignored local variable";
 		},
-		(in Diag.LocalNotMutable d) {
+		(in Diag.LocalNotMutable x) {
 			writer ~= "local variable ";
-			writeName(writer, allSymbols, name(d.local));
+			writeName(writer, ctx, name(x.local));
 			writer ~= " was not marked 'mut'";
 		},
-		(in Diag.LoopWithoutBreak d) {
+		(in Diag.LoopWithoutBreak) {
 			writer ~= "'loop' has no 'break'";
 		},
-		(in Diag.MatchCaseNamesDoNotMatch d) {
+		(in Diag.MatchCaseNamesDoNotMatch x) {
 			writer ~= "expected the case names to be: ";
-			writeWithCommas!Sym(writer, d.expectedNames, (in Sym name) {
-				writeName(writer, allSymbols, name);
+			writeWithCommas!Sym(writer, x.expectedNames, (in Sym name) {
+				writeName(writer, ctx, name);
 			});
 		},
-		(in Diag.MatchOnNonUnion d) {
+		(in Diag.MatchOnNonUnion x) {
 			writer ~= "can't match on non-union type ";
-			writeTypeQuoted(writer, allSymbols, program, d.type);
+			writeTypeQuoted(writer, ctx, x.type);
 		},
-		(in Diag.ModifierConflict d) {
-			writeName(writer, allSymbols, d.curModifier);
+		(in Diag.ModifierConflict x) {
+			writeName(writer, ctx, x.curModifier);
 			writer ~= " conflicts with ";
-			writeName(writer, allSymbols, d.prevModifier);
+			writeName(writer, ctx, x.prevModifier);
 		},
-		(in Diag.ModifierDuplicate d) {
+		(in Diag.ModifierDuplicate x) {
 			writer ~= "redundant ";
-			writeName(writer, allSymbols, d.modifier);
+			writeName(writer, ctx, x.modifier);
 		},
-		(in Diag.ModifierInvalid d) {
-			writeName(writer, allSymbols, d.modifier);
+		(in Diag.ModifierInvalid x) {
+			writeName(writer, ctx, x.modifier);
 			writer ~= " is not supported for ";
-			writer ~= aOrAnTypeKind(d.typeKind);
+			writer ~= aOrAnTypeKind(x.typeKind);
 		},
-		(in Diag.ModifierRedundantDueToModifier d) {
-			writeName(writer, allSymbols, d.redundantModifier);
+		(in Diag.ModifierRedundantDueToModifier x) {
+			writeName(writer, ctx, x.redundantModifier);
 			writer ~= " is redundant given ";
-			writeName(writer, allSymbols, d.modifier);
+			writeName(writer, ctx, x.modifier);
 		},
-		(in Diag.ModifierRedundantDueToTypeKind d) {
-			writeName(writer, allSymbols, d.modifier);
+		(in Diag.ModifierRedundantDueToTypeKind x) {
+			writeName(writer, ctx, x.modifier);
 			writer ~= " is already the default for ";
-			writer ~= aOrAnTypeKind(d.typeKind);
+			writer ~= aOrAnTypeKind(x.typeKind);
 			writer ~= " type";
 		},
-		(in Diag.MutFieldNotAllowed d) {
+		(in Diag.MutFieldNotAllowed) {
 			writer ~= "field is mut, but containing record was not marked mut";
 		},
-		(in Diag.NameNotFound d) {
+		(in Diag.NameNotFound x) {
 			writer ~= () {
-				final switch (d.kind) {
+				final switch (x.kind) {
 					case Diag.NameNotFound.Kind.spec:
 						return "spec";
 					case Diag.NameNotFound.Kind.type:
@@ -1039,7 +784,7 @@ void writeDiag(
 				}
 			}();
 			writer ~= " name not found: ";
-			writeName(writer, allSymbols, d.name);
+			writeName(writer, ctx, x.name);
 		},
 		(in Diag.NeedsExpectedType x) {
 			writer ~= () {
@@ -1063,15 +808,15 @@ void writeDiag(
 		(in Diag.ParamNotMutable) {
 			writer ~= "can't change the value of a parameter; consider introducing a mutable local instead";
 		},
-		(in ParseDiag pd) {
-			writeParseDiag(writer, allSymbols, allUris, urisInfo, pd);
+		(in ParseDiag x) {
+			writeParseDiag(writer, ctx, x);
 		},
 		(in Diag.PtrIsUnsafe) {
 			writer ~= "getting a pointer is unsafe";
 		},
-		(in Diag.PtrMutToConst d) {
+		(in Diag.PtrMutToConst x) {
 			writer ~= () {
-				final switch (d.kind) {
+				final switch (x.kind) {
 					case Diag.PtrMutToConst.Kind.field:
 						return "can't get a mutable pointer to a non-'mut' field";
 					case Diag.PtrMutToConst.Kind.local:
@@ -1082,40 +827,39 @@ void writeDiag(
 		(in Diag.PtrUnsupported) {
 			writer ~= "can't get a pointer to this kind of expression";
 		},
-		(in Diag.PurityWorseThanParent d) {
+		(in Diag.PurityWorseThanParent x) {
 			writer ~= "struct ";
-			writeName(writer, allSymbols, d.parent.name);
+			writeName(writer, ctx, x.parent.name);
 			writer ~= " has purity ";
-			writePurity(writer, allSymbols, d.parent.purity);
+			writePurity(writer, ctx, x.parent.purity);
 			writer ~= ", but member of type ";
-			writeTypeQuoted(writer, allSymbols, program, d.child);
+			writeTypeQuoted(writer, ctx, x.child);
 			writer ~= " has purity ";
-			writePurity(writer, allSymbols, bestCasePurity(d.child));
+			writePurity(writer, ctx, bestCasePurity(x.child));
 		},
-		(in Diag.RecordNewVisibilityIsRedundant d) {
+		(in Diag.RecordNewVisibilityIsRedundant x) {
 			writer ~= "the 'new' function for this record is already ";
-			writeName(writer, allSymbols, symOfVisibility(d.visibility));
+			writeName(writer, ctx, symOfVisibility(x.visibility));
 			writer ~= " by default";
 		},
 		(in Diag.SpecMatchError x) {
 			x.reason.matchIn!void(
 				(in Diag.SpecMatchError.Reason.MultipleMatches y) {
 					writer ~= "multiple implementations found for spec signature ";
-					writeName(writer, allSymbols, y.sigName);
+					writeName(writer, ctx, y.sigName);
 					writer ~= ':';
-					writeCalleds(writer, allSymbols, allUris, urisInfo, options, program, y.matches);
+					writeCalleds(writer, ctx, y.matches);
 				});
 			writer ~= "\n\tcalling:";
-			writeSpecTrace(writer, allSymbols, allUris, urisInfo, options, program, x.trace);
+			writeSpecTrace(writer, ctx, x.trace);
 		},
 		(in Diag.SpecNoMatch x) {
 			writer ~= "a spec was not satisfied.\n\t";
 			x.reason.matchIn!void(
 				(in Diag.SpecNoMatch.Reason.BuiltinNotSatisfied y) {
-					writeTypeQuoted(writer, allSymbols, program, y.type);
-					writer ~= " is not '";
-					writeSym(writer, allSymbols, symOfSpecBodyBuiltinKind(y.kind));
-					writer ~= "'";
+					writeTypeQuoted(writer, ctx, y.type);
+					writer ~= " is not ";
+					writeName(writer, ctx, symOfSpecBodyBuiltinKind(y.kind));
 				},
 				(in Diag.SpecNoMatch.Reason.CantInferTypeArguments _) {
 					writer ~= "can't infer type arguments";
@@ -1123,29 +867,28 @@ void writeDiag(
 				(in Diag.SpecNoMatch.Reason.SpecImplNotFound y) {
 					writer ~= "no implementation was found for spec signature ";
 					SpecDeclSig* sig = y.sigDecl;
-					writeSig(
-						writer, allSymbols, program, sig.name, sig.returnType, Params(sig.params), some(y.sigType));
+					writeSig(writer, ctx, sig.name, sig.returnType, Params(sig.params), some(y.sigType));
 				},
 				(in Diag.SpecNoMatch.Reason.TooDeep _) {
 					writer ~= "spec instantiation is too deep";
 				});
 			writer ~= " calling:";
-			writeSpecTrace(writer, allSymbols, allUris, urisInfo, options, program, x.trace);
+			writeSpecTrace(writer, ctx, x.trace);
 		},
 		(in Diag.SpecNameMissing) {
 			writer ~= "spec name is missing";
 		},
-		(in Diag.SpecRecursion d) {
+		(in Diag.SpecRecursion x) {
 			writer ~= "spec's parents tree is too deep. trace: ";
-			writeWithCommas!(immutable SpecDecl*)(writer, d.trace, (in SpecDecl* x) {
-				writeName(writer, allSymbols, x.name);
+			writeWithCommas!(immutable SpecDecl*)(writer, x.trace, (in SpecDecl* spec) {
+				writeName(writer, ctx, spec.name);
 			});
 		},
-		(in Diag.ThreadLocalError d) {
+		(in Diag.ThreadLocalError x) {
 			writer ~= "thread-local ";
-			writeName(writer, allSymbols, d.fun.name);
+			writeName(writer, ctx, x.fun.name);
 			writer ~= () {
-				final switch (d.kind) {
+				final switch (x.kind) {
 					case Diag.ThreadLocalError.Kind.hasParams:
 						return " can't have parameters";
 					case Diag.ThreadLocalError.Kind.hasSpecs:
@@ -1157,9 +900,9 @@ void writeDiag(
 				}
 			}();
 		},
-		(in Diag.TrustedUnnecessary d) {
+		(in Diag.TrustedUnnecessary x) {
 			writer ~= () {
-				final switch (d.reason) {
+				final switch (x.reason) {
 					case Diag.TrustedUnnecessary.Reason.inTrusted:
 						return "'trusted' is redundant inside another 'trusted'";
 					case Diag.TrustedUnnecessary.Reason.inUnsafeFunction:
@@ -1169,22 +912,22 @@ void writeDiag(
 				}
 			}();
 		},
-		(in Diag.TypeAnnotationUnnecessary d) {
+		(in Diag.TypeAnnotationUnnecessary x) {
 			writer ~= "type ";
-			writeTypeQuoted(writer, allSymbols, program, d.type);
+			writeTypeQuoted(writer, ctx, x.type);
 			writer ~= " was already inferred";
 		},
-		(in Diag.TypeConflict d) {
-			writeExpected(writer, allSymbols, program, d.expected);
+		(in Diag.TypeConflict x) {
+			writeExpected(writer, ctx, x.expected);
 			writer ~= "\nactual:\n\t";
-			writeTypeQuoted(writer, allSymbols, program, d.actual);
+			writeTypeQuoted(writer, ctx, x.actual);
 		},
 		(in Diag.TypeParamCantHaveTypeArgs) {
 			writer ~= "a type parameter can't take type arguments";
 		},
-		(in Diag.TypeShouldUseSyntax it) {
+		(in Diag.TypeShouldUseSyntax x) {
 			writer ~= () {
-				final switch (it.kind) {
+				final switch (x.kind) {
 					case Diag.TypeShouldUseSyntax.Kind.funAct:
 						return "prefer to write 'act r(p)' instead of '(r, p) fun-act'";
 					case Diag.TypeShouldUseSyntax.Kind.funFar:
@@ -1213,13 +956,13 @@ void writeDiag(
 			}();
 		},
 		(in Diag.Unused x) {
-			writeUnusedDiag(writer, allSymbols, allUris, program, x);
+			writeUnusedDiag(writer, ctx, x);
 		},
 		(in Diag.VarargsParamMustBeArray _) {
 			writer ~= "variadic parameter must be an 'array'";
 		},
 		(in Diag.WrongNumberTypeArgs x) {
-			writeName(writer, allSymbols, x.name);
+			writeName(writer, ctx, x.name);
 			writer ~= " expected to get ";
 			writer ~= x.nExpectedTypeArgs;
 			writer ~= " type args, but got ";
@@ -1227,33 +970,24 @@ void writeDiag(
 		});
 }
 
-void showDiagnostic(
-	ref TempAlloc tempAlloc,
-	scope ref Writer writer,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
-	in UrisInfo urisInfo,
-	in ShowDiagOptions options,
-	in Program program,
-	in Diagnostic d,
-) {
-	writeUriAndRange(writer, allUris, urisInfo, options, program.filesInfo, d.where);
+void showDiagnostic(ref TempAlloc tempAlloc, ref Writer writer, scope ref ShowDiagCtx ctx, in Diagnostic diag) {
+	writeUriAndRange(writer, ctx, diag.where);
 	writer ~= ' ';
-	writeDiag(tempAlloc, writer, allSymbols, allUris, urisInfo, options, program, d.diag);
+	writeDiag(tempAlloc, writer, ctx, diag.diag);
 	writeNl(writer);
 }
 
-void writeExpected(scope ref Writer writer, in AllSymbols allSymbols, in Program program, in ExpectedForDiag a) {
+void writeExpected(ref Writer writer, scope ref ShowDiagCtx ctx, in ExpectedForDiag a) {
 	a.matchIn!void(
 		(in Type[] types) {
 			if (types.length == 1) {
 				writer ~= "expected type: ";
-				writeTypeQuoted(writer, allSymbols, program, only(types));
+				writeTypeQuoted(writer, ctx, only(types));
 			} else {
 				writer ~= "expected one of these types:";
 				foreach (Type t; types) {
 					writer ~= "\n\t";
-					writeTypeQuoted(writer, allSymbols, program, t);
+					writeTypeQuoted(writer, ctx, t);
 				}
 			}
 		},
@@ -1474,4 +1208,313 @@ string describeTokenForUnexpected(Token token) {
 		case Token.with_:
 			return "unexpected keyword 'with'";
 	}
+}
+
+// TODO: all below to showModel.d
+
+public:
+
+void writeCalled(ref Writer writer, scope ref ShowDiagCtx ctx, in Called a) {
+	a.matchIn!void(
+		(in FunInst x) {
+			writeFunInst(writer, ctx, x);
+		},
+		(in CalledSpecSig x) {
+			writeCalledSpecSig(writer, ctx, x);
+		});
+}
+
+private void writeCalledDecl(ref Writer writer, scope ref ShowDiagCtx ctx, in CalledDecl a) {
+	a.matchIn!void(
+		(in FunDecl x) {
+			writeFunDecl(writer, ctx, x);
+		},
+		(in CalledSpecSig x) {
+			writeCalledSpecSig(writer, ctx, x);
+		});
+}
+
+private void writeCalledDecls(
+	ref Writer writer,
+	scope ref ShowDiagCtx ctx,
+	in CalledDecl[] cs,
+	in bool delegate(in CalledDecl) @safe @nogc pure nothrow filter = (in _) => true,
+) {
+	foreach (ref CalledDecl c; cs)
+		if (filter(c)) {
+			writeNl(writer);
+			writer ~= '\t';
+			writeCalledDecl(writer, ctx, c);
+		}
+}
+
+private void writeCalleds(ref Writer writer, scope ref ShowDiagCtx ctx, in Called[] cs) {
+	foreach (ref Called x; cs) {
+		writeNl(writer);
+		writer ~= '\t';
+		writeCalled(writer, ctx, x);
+	}
+}
+
+private void writeCalledSpecSig(ref Writer writer, scope ref ShowDiagCtx ctx, in CalledSpecSig x) {
+	writeSig(writer, ctx, x.name, x.returnType, Params(x.nonInstantiatedSig.params), some(x.instantiatedSig));
+	writer ~= " (from spec ";
+	writeName(writer, ctx, name(*x.specInst));
+	writer ~= ')';
+}
+
+private void writeTypeParamsAndArgs(
+	ref Writer writer,
+	scope ref ShowDiagCtx ctx,
+	in TypeParam[] typeParams,
+	in Type[] typeArgs,
+) {
+	verify(sizeEq(typeParams, typeArgs));
+	if (!empty(typeParams)) {
+		writer ~= " with ";
+		writeWithCommasZip!(TypeParam, Type)(writer, typeParams, typeArgs, (in TypeParam param, in Type arg) {
+			writeSym(writer, ctx.allSymbols, param.name);
+			writer ~= '=';
+			writeTypeUnquoted(writer, ctx, arg);
+		});
+	}
+}
+
+private void writeFunDecl(ref Writer writer, scope ref ShowDiagCtx ctx, in FunDecl a) {
+	writeSig(writer, ctx, a.name, a.returnType, a.params, none!ReturnAndParamTypes);
+	writeFunDeclLocation(writer, ctx, a);
+}
+
+private void writeFunDeclAndTypeArgs(ref Writer writer, scope ref ShowDiagCtx ctx, in FunDeclAndTypeArgs a) {
+	writeSym(writer, ctx.allSymbols, a.decl.name);
+	writeTypeArgs(writer, ctx, a.typeArgs);
+	writeFunDeclLocation(writer, ctx, *a.decl);
+}
+
+void writeFunInst(ref Writer writer, scope ref ShowDiagCtx ctx, in FunInst a) {
+	writeFunDecl(writer, ctx, *decl(a));
+	writeTypeParamsAndArgs(writer, ctx, decl(a).typeParams, typeArgs(a));
+}
+
+private void writeFunDeclLocation(ref Writer writer, scope ref ShowDiagCtx ctx, in FunDecl funDecl) {
+	writer ~= " (from ";
+	writeLineNumber(writer, ctx, funDecl.fileAndPos);
+	writer ~= ')';
+}
+
+private void writeSig(
+	ref Writer writer,
+	scope ref ShowDiagCtx ctx,
+	Sym name,
+	in Type returnType,
+	in Params params,
+	in Opt!ReturnAndParamTypes instantiated,
+) {
+	writeSym(writer, ctx.allSymbols, name);
+	writer ~= ' ';
+	writeTypeUnquoted(writer, ctx, has(instantiated) ? force(instantiated).returnType : returnType);
+	writer ~= '(';
+	params.matchIn!void(
+		(in Destructure[] paramsArray) {
+			if (has(instantiated))
+				writeWithCommasZip!(Destructure, Type)(
+					writer,
+					paramsArray,
+					force(instantiated).paramTypes,
+					(in Destructure x, in Type t) {
+						writeDestructure(writer, ctx, x, some(t));
+					});
+			else
+				writeWithCommas!Destructure(writer, paramsArray, (in Destructure x) {
+					writeDestructure(writer, ctx, x, none!Type);
+				});
+		},
+		(in Params.Varargs varargs) {
+			writer ~= "...";
+			writeTypeUnquoted(writer, ctx, has(instantiated)
+				? only(force(instantiated).paramTypes)
+				: varargs.param.type);
+		});
+	writer ~= ')';
+}
+
+private void writeSigSimple(ref Writer writer, scope ref ShowDiagCtx ctx, Sym name, in TypeParamsAndSig sig) {
+	writeSym(writer, ctx.allSymbols, name);
+	if (!empty(sig.typeParams)) {
+		writer ~= '[';
+		writeWithCommas!TypeParam(writer, sig.typeParams, (in TypeParam x) {
+			writeSym(writer, ctx.allSymbols, x.name);
+		});
+		writer ~= ']';
+	}
+	writer ~= ' ';
+	writeTypeUnquoted(writer, ctx, sig.returnType);
+	writer ~= '(';
+	writeWithCommas!ParamShort(writer, sig.params, (in ParamShort x) {
+		writeSym(writer, ctx.allSymbols, x.name);
+		writer ~= ' ';
+		writeTypeUnquoted(writer, ctx, x.type);
+	});
+	writer ~= ')';
+}
+
+private void writeDestructure(
+	ref Writer writer,
+	scope ref ShowDiagCtx ctx,
+	in Destructure a,
+	in Opt!Type instantiated,
+) {
+	Type type = has(instantiated) ? force(instantiated) : a.type;
+	a.matchIn!void(
+		(in Destructure.Ignore) {
+			writer ~= "_ ";
+			writeTypeUnquoted(writer, ctx, type);
+		},
+		(in Local x) {
+			writeSym(writer, ctx.allSymbols, x.name);
+			writer ~= ' ';
+			writeTypeUnquoted(writer, ctx, type);
+		},
+		(in Destructure.Split x) {
+			writer ~= '(';
+			writeWithCommasZip!(Destructure, Type)(
+				writer, x.parts, typeArgs(*type.as!(StructInst*)), (in Destructure part, in Type partType) {
+					writeDestructure(writer, ctx, part, some(partType));
+				});
+			writer ~= ')';
+		});
+}
+
+private void writeStructInst(scope ref Writer writer, scope ref ShowDiagCtx ctx, in StructInst s) {
+	void fun(string keyword) @safe {
+		writer ~= keyword;
+		writer ~= ' ';
+		Type[2] rp = only2(s.typeArgs);
+		writeTypeUnquoted(writer, ctx, rp[0]);
+		Type param = rp[1];
+		bool needParens = !(param.isA!(StructInst*) && isTuple(ctx.program.commonTypes, *param.as!(StructInst*)));
+		if (needParens) writer ~= '(';
+		writeTypeUnquoted(writer, ctx, param);
+		if (needParens) writer ~= ')';
+	}
+	void map(string open) {
+		Type[2] vk = only2(s.typeArgs);
+		writeTypeUnquoted(writer, ctx, vk[0]);
+		writer ~= open;
+		writeTypeUnquoted(writer, ctx, vk[1]);
+		writer ~= ']';
+	}
+	void suffix(string suffix) {
+		writeTypeUnquoted(writer, ctx, only(s.typeArgs));
+		writer ~= suffix;
+	}
+
+	Sym name = decl(s).name;
+	Opt!(Diag.TypeShouldUseSyntax.Kind) kind = typeSyntaxKind(name);
+	if (has(kind)) {
+		final switch (force(kind)) {
+			case Diag.TypeShouldUseSyntax.Kind.map:
+				return map("[");
+			case Diag.TypeShouldUseSyntax.Kind.funAct:
+				return fun("act");
+			case Diag.TypeShouldUseSyntax.Kind.funFar:
+				return fun("far");
+			case Diag.TypeShouldUseSyntax.Kind.funFun:
+				return fun("fun");
+			case Diag.TypeShouldUseSyntax.Kind.future:
+				return suffix("^");
+			case Diag.TypeShouldUseSyntax.Kind.list:
+				return suffix("[]");
+			case Diag.TypeShouldUseSyntax.Kind.mutMap:
+				return map(" mut[");
+			case Diag.TypeShouldUseSyntax.Kind.mutList:
+				return suffix(" mut[]");
+			case Diag.TypeShouldUseSyntax.Kind.mutPointer:
+				return suffix(" mut*");
+			case Diag.TypeShouldUseSyntax.Kind.opt:
+				return suffix("?");
+			case Diag.TypeShouldUseSyntax.Kind.pointer:
+				return suffix("*");
+			case Diag.TypeShouldUseSyntax.Kind.tuple:
+				return writeTupleType(writer, ctx, s.typeArgs);
+		}
+	} else {
+		switch (s.typeArgs.length) {
+			case 0:
+				break;
+			case 1:
+				writeTypeUnquoted(writer, ctx, only(s.typeArgs));
+				writer ~= ' ';
+				break;
+			default:
+				writeTupleType(writer, ctx, s.typeArgs);
+				writer ~= ' ';
+				break;
+		}
+		writeSym(writer, ctx.allSymbols, name);
+	}
+}
+
+private void writeTupleType(scope ref Writer writer, scope ref ShowDiagCtx ctx, in Type[] members) {
+	writer ~= '(';
+	writeWithCommas!Type(writer, members, (in Type arg) {
+		writeTypeUnquoted(writer, ctx, arg);
+	});
+	writer ~= ')';
+}
+
+void writeTypeArgsGeneric(T)(
+	scope ref Writer writer,
+	in T[] typeArgs,
+	in bool delegate(in T) @safe @nogc pure nothrow isSimpleType,
+	in void delegate(in T) @safe @nogc pure nothrow cbWriteType,
+) {
+	if (!empty(typeArgs)) {
+		writer ~= '@';
+		if (typeArgs.length == 1 && isSimpleType(only(typeArgs)))
+			cbWriteType(only(typeArgs));
+		else {
+			writer ~= '(';
+			writeWithCommas!T(writer, typeArgs, cbWriteType);
+			writer ~= ')';
+		}
+	}
+}
+
+void writeTypeArgs(scope ref Writer writer, scope ref ShowDiagCtx ctx, in Type[] types) {
+	writeTypeArgsGeneric!Type(writer, types,
+		(in Type x) =>
+			!x.isA!(StructInst*) || empty(typeArgs(*x.as!(StructInst*))),
+		(in Type x) {
+			writeTypeUnquoted(writer, ctx, x);
+		});
+}
+
+private void writeTypeQuoted(scope ref Writer writer, scope ref ShowDiagCtx ctx, in Type a) {
+	writer ~= '\'';
+	writeTypeUnquoted(writer, ctx, a);
+	writer ~= '\'';
+}
+
+void writeTypeUnquoted(scope ref Writer writer, scope ref ShowDiagCtx ctx, in Type a) {
+	a.matchIn!void(
+		(in Type.Bogus) {
+			writer ~= "<<bogus>>";
+		},
+		(in TypeParam x) {
+			writeSym(writer, ctx.allSymbols, x.name);
+		},
+		(in StructInst x) {
+			writeStructInst(writer, ctx, x);
+		});
+}
+
+private void writePurity(ref Writer writer, in ShowDiagCtx ctx, Purity p) {
+	writeName(writer, ctx, symOfPurity(p));
+}
+
+private void writeName(scope ref Writer writer, in ShowDiagCtx ctx, Sym name) {
+	writer ~= '\'';
+	writeSym(writer, ctx.allSymbols, name);
+	writer ~= '\'';
 }

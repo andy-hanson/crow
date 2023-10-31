@@ -2,6 +2,7 @@ module interpret.runBytecode;
 
 @nogc nothrow: // not @safe, not pure
 
+import frontend.showDiag : ShowDiagCtx;
 import interpret.bytecode :
 	ByteCode, ByteCodeOffset, ByteCodeOffsetUnsigned, FunPtrToOperationPtr, initialOperationPointer, Operation;
 import interpret.debugInfo : BacktraceEntry, fillBacktrace, InterpreterDebugInfo, printDebugInfo;
@@ -30,7 +31,6 @@ import interpret.stacks :
 	Stacks,
 	withStacks;
 import model.lowModel : LowProgram;
-import model.model : Program;
 import model.typeLayout : PackField;
 import util.alloc.alloc : Alloc;
 import util.col.str : SafeCStr;
@@ -39,31 +39,24 @@ import util.memory : memcpy, memmove, overwriteMemory;
 import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasureNoAlloc;
 import util.ptr : castNonScope_ref, ptrTrustMe;
-import util.sym : AllSymbols;
-import util.uri : AllUris, UrisInfo;
 import util.util : debugLog, divRoundUp, drop, unreachable, verify;
 
 @safe int runBytecode(
 	scope ref Perf perf,
 	ref Alloc alloc, // for thread locals
-	in AllSymbols allSymbols,
-	in AllUris allUris,
-	in UrisInfo urisInfo,
+	scope ref ShowDiagCtx showDiagCtx,
 	in DoDynCall doDynCall,
-	in Program program,
 	in LowProgram lowProgram,
 	in ByteCode byteCode,
 	in SafeCStr[] allArgs,
 ) =>
-	withInterpreter!int(
-		alloc, doDynCall, program, lowProgram, byteCode, allSymbols, allUris, urisInfo,
-		(ref Stacks stacks) {
-			dataPush(stacks, allArgs.length);
-			dataPush(stacks, cast(ulong) allArgs.ptr);
-			return withMeasureNoAlloc!(int, () @trusted =>
-				runBytecodeInner(stacks, initialOperationPointer(byteCode))
-			)(perf, PerfMeasure.run);
-		});
+	withInterpreter!int(alloc, doDynCall, showDiagCtx, lowProgram, byteCode, (ref Stacks stacks) {
+		dataPush(stacks, allArgs.length);
+		dataPush(stacks, cast(ulong) allArgs.ptr);
+		return withMeasureNoAlloc!(int, () @trusted =>
+			runBytecodeInner(stacks, initialOperationPointer(byteCode))
+		)(perf, PerfMeasure.run);
+	});
 
 private int runBytecodeInner(ref Stacks stacks, Operation* operation) {
 	stepUntilExit(stacks, operation);
@@ -116,21 +109,13 @@ void stepUntilBreak(ref Stacks stacks, ref Operation* operation) {
 @safe T withInterpreter(T)(
 	ref Alloc alloc,
 	in DoDynCall doDynCall_,
-	in Program program,
+	ref ShowDiagCtx showDiagCtx,
 	in LowProgram lowProgram,
 	in ByteCode byteCode,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
-	in UrisInfo urisInfo,
 	in T delegate(ref Stacks) @nogc nothrow cb,
 ) {
 	InterpreterDebugInfo debugInfo = InterpreterDebugInfo(
-		ptrTrustMe(program),
-		ptrTrustMe(lowProgram),
-		ptrTrustMe(byteCode),
-		ptrTrustMe(allSymbols),
-		ptrTrustMe(allUris),
-		ptrTrustMe(urisInfo));
+		ptrTrustMe(showDiagCtx), ptrTrustMe(lowProgram), ptrTrustMe(byteCode));
 	setGlobals(InterpreterGlobals(
 		ptrTrustMe(debugInfo),
 		castNonScope_ref(byteCode).funPtrToOperationPtr,
@@ -160,9 +145,9 @@ private void setNext(Stacks stacks, Operation* operationPtr) {
 private static Stacks nextStacks;
 private static Operation* nextOperationPtr;
 
-private const struct InterpreterGlobals {
+private struct InterpreterGlobals {
 	InterpreterDebugInfo* debugInfoPtr;
-	FunPtrToOperationPtr funPtrToOperationPtr;
+	const FunPtrToOperationPtr funPtrToOperationPtr;
 	DoDynCall doDynCall;
 }
 private __gshared InterpreterGlobals globals = void;

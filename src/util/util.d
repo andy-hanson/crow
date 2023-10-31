@@ -5,7 +5,7 @@ module util.util;
 T typeAs(T)(T a) =>
 	a;
 
-T todo(T)(in immutable char* s) {
+ref T todo(T)(in immutable char* s) {
 	debugLog(s);
 	assert(0);
 }

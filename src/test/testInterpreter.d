@@ -2,6 +2,7 @@ module test.testInterpreter;
 
 @safe @nogc nothrow: // not pure
 
+import frontend.showDiag : ShowDiagCtx;
 import interpret.applyFn : fnWrapAddIntegral;
 import interpret.bytecode :
 	ByteCode,
@@ -50,7 +51,6 @@ import interpret.funToReferences :
 import interpret.runBytecode : opCall, stepUntilBreak, stepUntilExit, withInterpreter;
 import interpret.stacks : dataBegin, dataPop, dataPush, Stacks;
 import lower.lowExprHelpers : nat64Type;
-import model.diag : FilesInfo, filesInfoForSingle;
 import model.lowModel :
 	AllConstantsLow,
 	AllLowTypes,
@@ -69,17 +69,15 @@ import model.lowModel :
 	LowUnion;
 import model.model : fakeProgramForTest, VarKind;
 import model.typeLayout : Pack, PackField;
-import test.testUtil : expectDataStack, expectReturnStack, Test;
+import test.testUtil : expectDataStack, expectReturnStack, Test, withShowDiagCtxForTestImpure;
 import util.alloc.alloc : Alloc;
 import util.col.enumMap : EnumMap;
 import util.col.fullIndexMap : emptyFullIndexMap, fullIndexMapOfArr;
-import util.exitCode : ExitCode;
-import util.lineAndColumnGetter : lineAndColumnGetterForEmptyFile;
 import util.memory : allocate;
 import util.ptr : castNonScope, ptrTrustMe;
 import util.sourceRange : Pos;
+import util.storage : Storage;
 import util.sym : sym;
-import util.uri : emptyUrisInfo, parseUri;
 import util.util : verify;
 
 void testInterpreter(ref Test test) {
@@ -122,9 +120,6 @@ void doInterpret(
 	in ByteCode byteCode,
 	in void delegate(ref Stacks stacks, Operation*) @system @nogc nothrow runInterpreter,
 ) {
-	FilesInfo filesInfo = filesInfoForSingle(test.alloc,
-		parseUri(test.allUris, "magic:test.crow"),
-		lineAndColumnGetterForEmptyFile(test.alloc));
 	LowFun[1] lowFun = [LowFun(
 		LowFunSource(allocate(test.alloc, LowFunSource.Generated(sym!"test", []))),
 		nat64Type,
@@ -142,14 +137,13 @@ void doInterpret(
 		fullIndexMapOfArr!(LowFunIndex, LowFun)(lowFun),
 		LowFunIndex(0),
 		[]);
-	withFakeExtern(test.alloc, test.allSymbols, unreachableWriteCb, (scope ref Extern extern_) {
-		withInterpreter!void(
-			test.alloc, extern_.doDynCall, fakeProgramForTest(filesInfo), lowProgram,
-			byteCode, test.allSymbols, test.allUris, emptyUrisInfo,
-			(ref Stacks stacks) {
+	withFakeExtern!void(test.alloc, test.allSymbols, unreachableWriteCb, (scope ref Extern extern_) {
+		Storage storage = Storage(test.allocPtr);
+		withShowDiagCtxForTestImpure(test, storage, fakeProgramForTest, (ref ShowDiagCtx ctx) {
+			withInterpreter!void(test.alloc, extern_.doDynCall, ctx, lowProgram, byteCode, (ref Stacks stacks) {
 				runInterpreter(stacks, initialOperationPointer(byteCode));
 			});
-		return ExitCode(0);
+		});
 	});
 }
 

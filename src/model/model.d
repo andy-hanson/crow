@@ -2,30 +2,25 @@ module model.model;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.typeFromAst : typeSyntaxKind;
 import frontend.parse.ast : NameAndRange, rangeOfNameAndRange;
 import model.concreteModel : TypeSize;
 import model.constant : Constant;
-import model.diag : Diag, Diagnostics, FilesInfo; // TODO: move FilesInfo here?
-import util.col.arr : arrayOfSingle, empty, only, only2, PtrAndSmallNumber, small, SmallArray;
+import model.diag : Diagnostics;
+import util.col.arr : arrayOfSingle, empty, PtrAndSmallNumber, small, SmallArray;
 import util.col.arrUtil : arrEqual;
 import util.col.map : Map;
 import util.col.enumMap : EnumMap;
 import util.col.str : SafeCStr;
 import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
-import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : hashPtr;
 import util.sourceRange :
 	combineRanges, UriAndPos, UriAndRange, fileAndRangeFromUriAndPos, Pos, rangeOfStartAndName, RangeWithinFile;
-import util.sym : AllSymbols, Sym, sym, writeSym;
+import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.uri : Uri;
 import util.util : max, min, typeAs, unreachable, verify;
-import util.writer : Writer, writeWithCommas;
-
-alias LineAndColumnGetters = Map!(Uri, LineAndColumnGetter);
 
 alias Purity = immutable Purity_;
 private enum Purity_ : ubyte {
@@ -1181,7 +1176,6 @@ private enum EnumBackingType_ {
 }
 
 immutable struct Program {
-	FilesInfo filesInfo;
 	Config config;
 	Map!(Uri, immutable Module*) allModules;
 	Module*[] rootModules;
@@ -1189,10 +1183,10 @@ immutable struct Program {
 	CommonTypes commonTypes;
 	Diagnostics diagnostics;
 }
-Program fakeProgramForTest(FilesInfo filesInfo) =>
-	fakeProgramForDiagnostics(filesInfo, Diagnostics());
-Program fakeProgramForDiagnostics(FilesInfo filesInfo, Diagnostics diagnostics) =>
-	Program(filesInfo, Config(), Map!(Uri, immutable Module*)(), [], CommonFuns(), CommonTypes(), diagnostics);
+Program fakeProgramForTest() =>
+	fakeProgramForDiagnostics(Diagnostics());
+Program fakeProgramForDiagnostics(Diagnostics diagnostics) =>
+	Program(Config(), Map!(Uri, immutable Module*)(), [], CommonFuns(), CommonTypes(), diagnostics);
 
 immutable struct Config {
 	Uri crowIncludeDir;
@@ -1543,135 +1537,6 @@ Sym symOfAssertOrForbidKind(AssertOrForbidKind a) {
 		case AssertOrForbidKind.forbid:
 			return sym!"forbid";
 	}
-}
-
-void writeStructDecl(scope ref Writer writer, in AllSymbols allSymbols, in Program program, in StructDecl a) {
-	writeSym(writer, allSymbols, a.name);
-}
-
-void writeStructInst(scope ref Writer writer, in AllSymbols allSymbols, in Program program, in StructInst s) {
-	void fun(string keyword) {
-		writer ~= keyword;
-		writer ~= ' ';
-		Type[2] rp = only2(s.typeArgs);
-		writeTypeUnquoted(writer, allSymbols, program, rp[0]);
-		Type param = rp[1];
-		bool needParens = !(param.isA!(StructInst*) && isTuple(program.commonTypes, *param.as!(StructInst*)));
-		if (needParens) writer ~= '(';
-		writeTypeUnquoted(writer, allSymbols, program, param);
-		if (needParens) writer ~= ')';
-	}
-	void map(string open) {
-		Type[2] vk = only2(s.typeArgs);
-		writeTypeUnquoted(writer, allSymbols, program, vk[0]);
-		writer ~= open;
-		writeTypeUnquoted(writer, allSymbols, program, vk[1]);
-		writer ~= ']';
-	}
-	void suffix(string suffix) {
-		writeTypeUnquoted(writer, allSymbols, program, only(s.typeArgs));
-		writer ~= suffix;
-	}
-
-	Sym name = decl(s).name;
-	Opt!(Diag.TypeShouldUseSyntax.Kind) kind = typeSyntaxKind(name);
-	if (has(kind)) {
-		final switch (force(kind)) {
-			case Diag.TypeShouldUseSyntax.Kind.map:
-				return map("[");
-			case Diag.TypeShouldUseSyntax.Kind.funAct:
-				return fun("act");
-			case Diag.TypeShouldUseSyntax.Kind.funFar:
-				return fun("far");
-			case Diag.TypeShouldUseSyntax.Kind.funFun:
-				return fun("fun");
-			case Diag.TypeShouldUseSyntax.Kind.future:
-				return suffix("^");
-			case Diag.TypeShouldUseSyntax.Kind.list:
-				return suffix("[]");
-			case Diag.TypeShouldUseSyntax.Kind.mutMap:
-				return map(" mut[");
-			case Diag.TypeShouldUseSyntax.Kind.mutList:
-				return suffix(" mut[]");
-			case Diag.TypeShouldUseSyntax.Kind.mutPointer:
-				return suffix(" mut*");
-			case Diag.TypeShouldUseSyntax.Kind.opt:
-				return suffix("?");
-			case Diag.TypeShouldUseSyntax.Kind.pointer:
-				return suffix("*");
-			case Diag.TypeShouldUseSyntax.Kind.tuple:
-				return writeTupleType(writer, allSymbols, program, s.typeArgs);
-		}
-	} else {
-		switch (s.typeArgs.length) {
-			case 0:
-				break;
-			case 1:
-				writeTypeUnquoted(writer, allSymbols, program, only(s.typeArgs));
-				writer ~= ' ';
-				break;
-			default:
-				writeTupleType(writer, allSymbols, program, s.typeArgs);
-				writer ~= ' ';
-				break;
-		}
-		writeSym(writer, allSymbols, name);
-	}
-}
-
-private void writeTupleType(scope ref Writer writer, in AllSymbols allSymbols, in Program program, in Type[] members) {
-	writer ~= '(';
-	writeWithCommas!Type(writer, members, (in Type arg) {
-		writeTypeUnquoted(writer, allSymbols, program, arg);
-	});
-	writer ~= ')';
-}
-
-void writeTypeArgsGeneric(T)(
-	scope ref Writer writer,
-	in T[] typeArgs,
-	in bool delegate(in T) @safe @nogc pure nothrow isSimpleType,
-	in void delegate(in T) @safe @nogc pure nothrow cbWriteType,
-) {
-	if (!empty(typeArgs)) {
-		writer ~= '@';
-		if (typeArgs.length == 1 && isSimpleType(only(typeArgs)))
-			cbWriteType(only(typeArgs));
-		else {
-			writer ~= '(';
-			writeWithCommas!T(writer, typeArgs, cbWriteType);
-			writer ~= ')';
-		}
-	}
-}
-
-void writeTypeArgs(scope ref Writer writer, in AllSymbols allSymbols, in Program program, in Type[] types) {
-	writeTypeArgsGeneric!Type(writer, types,
-		(in Type x) =>
-			!x.isA!(StructInst*) || empty(typeArgs(*x.as!(StructInst*))),
-		(in Type x) {
-			writeTypeUnquoted(writer, allSymbols, program, x);
-		});
-}
-
-void writeTypeQuoted(scope ref Writer writer, in AllSymbols allSymbols, in Program program, in Type a) {
-	writer ~= '\'';
-	writeTypeUnquoted(writer, allSymbols, program, a);
-	writer ~= '\'';
-}
-
-//TODO:MOVE
-void writeTypeUnquoted(ref Writer writer, in AllSymbols allSymbols, in Program program, in Type a) {
-	a.matchIn!void(
-		(in Type.Bogus) {
-			writer ~= "<<bogus>>";
-		},
-		(in TypeParam x) {
-			writeSym(writer, allSymbols, x.name);
-		},
-		(in StructInst x) {
-			writeStructInst(writer, allSymbols, program, x);
-		});
 }
 
 alias Visibility = immutable Visibility_;

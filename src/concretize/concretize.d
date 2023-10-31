@@ -12,6 +12,7 @@ import concretize.concretizeCtx :
 	deferredFillRecordAndUnionBodies,
 	getOrAddNonTemplateConcreteFunAndFillBody,
 	voidType;
+import frontend.showDiag : ShowDiagCtx;
 import model.concreteModel :
 	ConcreteCommonFuns, ConcreteFun, ConcreteLambdaImpl, ConcreteProgram, ConcreteStruct, mustBeByVal;
 import model.model : CommonFuns, MainFun, Program;
@@ -23,27 +24,26 @@ import util.late : lateSet;
 import util.opt : force;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : ptrTrustMe;
-import util.sym : AllSymbols;
 import util.util : verify;
 import versionInfo : VersionInfo;
 
 ConcreteProgram concretize(
 	ref Alloc alloc,
 	scope ref Perf perf,
+	ref ShowDiagCtx showDiagCtx,
 	in VersionInfo versionInfo,
-	in AllSymbols allSymbols,
 	ref Program program,
 ) =>
 	withMeasure!(ConcreteProgram, () =>
-		concretizeInner(&alloc, versionInfo, allSymbols, program)
+		concretizeInner(&alloc, showDiagCtx, versionInfo, program)
 	)(alloc, perf, PerfMeasure.concretize);
 
 private:
 
 ConcreteProgram concretizeInner(
 	Alloc* allocPtr,
+	ref ShowDiagCtx showDiagCtx,
 	in VersionInfo versionInfo,
-	in AllSymbols allSymbols,
 	ref Program program,
 ) {
 	ref Alloc alloc() =>
@@ -51,7 +51,7 @@ ConcreteProgram concretizeInner(
 	ConcretizeCtx ctx = ConcretizeCtx(
 		allocPtr,
 		versionInfo,
-		ptrTrustMe(allSymbols),
+		showDiagCtx.allSymbolsPtr,
 		ptrTrustMe(program.commonTypes),
 		ptrTrustMe(program));
 	CommonFuns commonFuns = program.commonFuns;
@@ -89,7 +89,7 @@ ConcreteProgram concretizeInner(
 			rtMainConcreteFun,
 			throwImplFun,
 			userMainConcreteFun));
-	checkConcreteProgram(allSymbols, program, ConcreteCommonTypes(boolType(ctx), cStrType(ctx), voidType(ctx)), res);
+	checkConcreteProgram(showDiagCtx, ConcreteCommonTypes(boolType(ctx), cStrType(ctx), voidType(ctx)), res);
 	return res;
 }
 

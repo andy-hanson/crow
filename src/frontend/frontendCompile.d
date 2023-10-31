@@ -3,7 +3,7 @@ module frontend.frontendCompile;
 @safe @nogc pure nothrow:
 
 import frontend.check.getCommonFuns : CommonModule, getCommonFuns;
-import model.diag : Diag, Diagnostics, DiagnosticWithinFile, FilesInfo, filesInfoForSingle;
+import model.diag : Diag, Diagnostics, DiagnosticWithinFile;
 import model.model :
 	CommonFuns, CommonTypes, Config, ImportFileType, ImportOrExport, ImportOrExportKind, Module, Program;
 import model.parseDiag : ParseDiag;
@@ -20,12 +20,10 @@ import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : contains, copyArr, map, mapOp, mapOrNone, prepend;
 import util.col.map : Map, mustGetAt;
-import util.col.mapBuilder : finishMap, MapBuilder, mustAddToMap;
 import util.col.enumMap : EnumMap, enumMapEach, enumMapMapValues;
 import util.col.mutMaxArr : isEmpty, mustPeek, mustPop, MutMaxArr, mutMaxArr, push;
 import util.col.mutMap : addToMutMap, getAt_mut, hasKey_mut, moveToMap, MutMap, setInMap;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
-import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForText;
 import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
@@ -71,13 +69,12 @@ Program frontendCompile(
 	DiagnosticsBuilder diagsBuilder = DiagnosticsBuilder();
 	Config config = getConfig(modelAlloc, allSymbols, allUris, includeDir, storage, diagsBuilder, rootUris);
 	EnumMap!(CommonModule, Uri) commonUris = commonUris(allUris, config.crowIncludeDir);
-	ParsedEverything parsed = withMeasure!(ParsedEverything, () => parseEverything(
+	AstAndResolvedImports[] parsed = withMeasure!(AstAndResolvedImports[], () => parseEverything(
 		modelAlloc, astsAlloc, perf, allSymbols, allUris, diagsBuilder, storage, rootUris, mainUri, commonUris, config)
 	)(astsAlloc, perf, PerfMeasure.parseEverything);
 	return withMeasure!(Program, () =>
 		checkEverything(
-			modelAlloc, perf, allSymbols, allUris, diagsBuilder,
-			config, parsed.asts, parsed.filesInfo, rootUris, mainUri, commonUris)
+			modelAlloc, perf, allSymbols, allUris, diagsBuilder, config, parsed, rootUris, mainUri, commonUris)
 	)(modelAlloc, perf, PerfMeasure.checkEverything);
 }
 
@@ -100,7 +97,6 @@ void parseAllFiles(
 
 immutable struct FileAstAndDiagnostics {
 	FileAst ast;
-	FilesInfo filesInfo;
 	Diagnostics diagnostics;
 }
 
@@ -120,12 +116,7 @@ FileAstAndDiagnostics parseSingleAst(
 				FileAst ast = parseFile(alloc, perf, allSymbols, allUris, diags, content.asSafeCStr());
 				DiagnosticsBuilder diagsBuilder;
 				addDiagnosticsForFile(alloc, diagsBuilder, uri, diags);
-				FilesInfo filesInfo =
-					filesInfoForSingle(alloc, uri, lineAndColumnGetterForText(alloc, content.asSafeCStr()));
-				return FileAstAndDiagnostics(
-					ast,
-					filesInfo,
-					finishDiagnostics(alloc, diagsBuilder, allUris));
+				return FileAstAndDiagnostics(ast, finishDiagnostics(alloc, diagsBuilder, allUris));
 			},
 			(in ReadFileIssue issue) =>
 				todo!FileAstAndDiagnostics("parseSingleAst with file issue")));
@@ -140,22 +131,16 @@ immutable struct ParseStatus {
 
 alias UriToStatus = MutMap!(Uri, ParseStatus);
 
-immutable struct ParsedEverything {
-	FilesInfo filesInfo;
-	AstAndResolvedImports[] asts;
-}
-
 struct ParseStackEntry {
 	immutable Uri uri;
 	immutable FileAst ast;
-	immutable LineAndColumnGetter lineAndColumnGetter;
 	immutable ResolvedImportsAndExports importsAndExports;
 	ArrBuilder!DiagnosticWithinFile diags;
 }
 
 alias ParseStack = MutMaxArr!(32, ParseStackEntry);
 
-ParsedEverything parseEverything(
+AstAndResolvedImports[] parseEverything(
 	ref Alloc modelAlloc,
 	ref Alloc astAlloc,
 	scope ref Perf perf,
@@ -174,7 +159,6 @@ ParsedEverything parseEverything(
 
 	UriToStatus statuses;
 	ArrBuilder!AstAndResolvedImports res;
-	MapBuilder!(Uri, LineAndColumnGetter) lineAndColumnGetters;
 
 	ParseStack stack = mutMaxArr!(32, ParseStackEntry)();
 
@@ -203,7 +187,6 @@ ParsedEverything parseEverything(
 				ParseStackEntry entry = mustPop(stack);
 				addDiagnosticsForFile(modelAlloc, diagsBuilder, uri, entry.diags);
 				add(astAlloc, res, AstAndResolvedImports(uri, entry.ast, force(imports), force(exports)));
-				mustAddToMap(modelAlloc, lineAndColumnGetters, uri, entry.lineAndColumnGetter);
 				setInMap(astAlloc, statuses, uri, ParseStatus(ParseStatus.Done()));
 			}
 			// else, we just pushed a dependency to the stack, so repeat.
@@ -226,10 +209,7 @@ ParsedEverything parseEverything(
 		processRootUri(uri);
 
 	verify(isEmpty(stack));
-
-	return ParsedEverything(
-		FilesInfo(finishMap(modelAlloc, lineAndColumnGetters)),
-		finishArr(astAlloc, res));
+	return finishArr(astAlloc, res);
 }
 
 immutable(EnumMap!(CommonModule, Uri)) commonUris(ref AllUris allUris, Uri includeDir) {
@@ -269,8 +249,7 @@ void parseAndPush(
 				FileAst ast = parseFile(astAlloc, perf, allSymbols, allUris, diags, x.asSafeCStr());
 				ResolvedImportsAndExports importsAndExports = resolveImportsAndExports(
 					modelAlloc, astAlloc, allUris, diags, config, uri, ast.imports, ast.exports);
-				LineAndColumnGetter lineAndColumnGetter = lineAndColumnGetterForText(modelAlloc, x.asSafeCStr());
-				push(stack, ParseStackEntry(uri, ast, lineAndColumnGetter, importsAndExports, diags));
+				push(stack, ParseStackEntry(uri, ast, importsAndExports, diags));
 				return ParseStatus(ParseStatus.Started());
 			},
 			(ReadFileIssue x) =>
@@ -617,7 +596,6 @@ Program checkEverything(
 	ref DiagnosticsBuilder diagsBuilder,
 	Config config,
 	in AstAndResolvedImports[] allAsts,
-	ref FilesInfo filesInfo,
 	in Uri[] rootUris,
 	in Opt!Uri mainUri,
 	in EnumMap!(CommonModule, Uri) commonUris,
@@ -637,7 +615,6 @@ Program checkEverything(
 		has(mainUri) ? some(mustGetAt(modules, force(mainUri))) : none!(Module*),
 		commonModules);
 	return Program(
-		filesInfo,
 		config,
 		modules,
 		map!(Module*, Uri)(modelAlloc, rootUris, (ref Uri uri) =>

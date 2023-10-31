@@ -2,6 +2,7 @@ module concretize.checkConcreteModel;
 
 @safe @nogc pure nothrow:
 
+import frontend.showDiag : ShowDiagCtx;
 import interpret.debugging : writeConcreteType;
 import model.concreteModel :
 	body_,
@@ -14,22 +15,15 @@ import model.concreteModel :
 	isBogus,
 	isVoid;
 import model.constant : Constant;
-import model.model : Program;
 import util.alloc.alloc : Alloc, withStackAlloc;
 import util.col.arrUtil : zip;
 import util.opt : force, has;
 import util.ptr : ptrTrustMe;
-import util.sym : AllSymbols;
 import util.util : debugLog, verify, verifyFail;
 import util.writer : finishWriterToCStr, Writer;
 
-void checkConcreteProgram(
-	in AllSymbols allSymbols,
-	in Program program,
-	in ConcreteCommonTypes types,
-	in ConcreteProgram a,
-) {
-	Ctx ctx = Ctx(ptrTrustMe(allSymbols), ptrTrustMe(program), ptrTrustMe(types));
+void checkConcreteProgram(ref ShowDiagCtx showDiagCtx, in ConcreteCommonTypes types, in ConcreteProgram a) {
+	Ctx ctx = Ctx(ptrTrustMe(showDiagCtx), ptrTrustMe(types));
 	foreach (ConcreteFun* fun; a.allFuns)
 		if (body_(*fun).isA!ConcreteExpr)
 			checkExpr(ctx, fun.returnType, body_(*fun).as!ConcreteExpr);
@@ -44,8 +38,7 @@ immutable struct ConcreteCommonTypes {
 private:
 
 struct Ctx {
-	const AllSymbols* allSymbols;
-	Program* program;
+	ShowDiagCtx* showDiagCtx;
 	ConcreteCommonTypes* types;
 }
 
@@ -154,14 +147,14 @@ void checkExprAnyType(ref Ctx ctx, in ConcreteExpr expr) {
 	checkExpr(ctx, expr.type, expr);
 }
 
-void checkType(in Ctx ctx, in ConcreteType expected, in ConcreteType actual) {
+void checkType(ref Ctx ctx, in ConcreteType expected, in ConcreteType actual) {
 	if (expected != actual) {
 		withStackAlloc!1024((ref Alloc alloc) {
 			Writer writer = Writer(&alloc);
 			writer ~= "expected ";
-			writeConcreteType(writer, *ctx.allSymbols, *ctx.program, expected);
+			writeConcreteType(writer, *ctx.showDiagCtx, expected);
 			writer ~= " but was ";
-			writeConcreteType(writer, *ctx.allSymbols, *ctx.program, actual);
+			writeConcreteType(writer, *ctx.showDiagCtx, actual);
 			debugLog(finishWriterToCStr(writer));
 		});
 		verifyFail();

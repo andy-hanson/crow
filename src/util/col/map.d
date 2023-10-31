@@ -83,9 +83,3 @@ void mapEachIn(K, V)(in Map!(K, V) a, in void delegate(in K, in V) @safe @nogc p
 }
 bool existsInMap(K, V)(in Map!(K, V) a, in bool delegate(in K, in V) @safe @nogc pure nothrow cb) =>
 	existsInMutMap!(immutable K, immutable V)(a.inner, cb);
-
-Map!(K, V) mapLiteral(K, V)(ref Alloc alloc, immutable K key, immutable V value) {
-	MutMap!(immutable K, immutable V) res;
-	addToMutMap(alloc, res, key, value);
-	return moveToMap!(K, V)(alloc, res);
-}

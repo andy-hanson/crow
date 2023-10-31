@@ -1,28 +1,27 @@
 module test.testHover;
 
-@safe @nogc nothrow: // not pure
+@safe @nogc pure nothrow:
 
 import frontend.frontendCompile : frontendCompile;
 import frontend.ide.getDefinition : Definition, getDefinitionForPosition, jsonOfDefinition;
 import frontend.ide.getHover : getHoverStr;
 import frontend.ide.getPosition : getPosition, Position;
+import frontend.showDiag : ShowDiagCtx;
 import model.model : Module, Program;
-import test.testUtil : Test;
+import test.testUtil : Test, withShowDiagCtxForTest;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.map : mustGetAt;
 import util.col.str : end, SafeCStr, safeCStr, safeCStrEq, safeCStrIsEmpty, safeCStrSize, strOfSafeCStr;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonList, jsonObject, jsonToStringPretty, optionalField;
 import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, PosKind;
 import util.opt : has, none, Opt, optEqual;
-import util.uri : AllUris, emptyUrisInfo, parseUri, Uri;
+import util.uri : parseUri, Uri;
 import util.perf : Perf, withNullPerf;
 import util.storage : allocateToStorage, ReadFileResult, Storage, setFile;
-import util.sourceRange : Pos;
-import util.sym : AllSymbols;
+import util.sourceRange : Pos, UriAndPos;
 import util.util : debugLog, verifyFail;
 
 @trusted void testHover(ref Test test) {
@@ -35,26 +34,24 @@ private:
 void hoverTest(string crowFileName, string outputFileName)(ref Test test) {
 	SafeCStr content = safeCStr!(import("hover/" ~ crowFileName));
 	string expected = import(outputFileName);
-	HoverTest hoverTest = initHoverTest!crowFileName(test, content);
-	SafeCStr actual = jsonToStringPretty(
-		test.alloc,
-		test.allSymbols,
-		hoverResult(test.alloc, test.allSymbols, test.allUris, content, hoverTest));
-	if (strOfSafeCStr(actual) != expected) {
-		debugLog("Test output was not as expected. File is:");
-		debugLog(outputFileName);
-		debugLog("Actual is:");
-		debugLog(actual.ptr);
-		verifyFail();
-	}
+	withHoverTest!crowFileName(test, content, (ref ShowDiagCtx ctx, Module* module_) {
+		SafeCStr actual = jsonToStringPretty(
+			test.alloc, test.allSymbols, hoverResult(test.alloc, content, ctx, module_));
+		if (strOfSafeCStr(actual) != expected) {
+			debugLog("Test output was not as expected. File is:");
+			debugLog(outputFileName);
+			debugLog("Actual is:");
+			debugLog(actual.ptr);
+			verifyFail();
+		}
+	});
 }
 
-immutable struct HoverTest {
-	Program program;
-	Module* mainModule;
-}
-
-HoverTest initHoverTest(string fileName)(ref Test test, in SafeCStr content) {
+void withHoverTest(string fileName)(
+	ref Test test,
+	in SafeCStr content,
+	in void delegate(ref ShowDiagCtx, Module*) @safe @nogc pure nothrow cb,
+) {
 	Uri uri = parseUri(test.allUris, "magic:" ~ fileName);
 	Storage storage = Storage(test.allocPtr);
 	setFile(storage, uri, ReadFileResult(allocateToStorage(storage, content)));
@@ -62,7 +59,9 @@ HoverTest initHoverTest(string fileName)(ref Test test, in SafeCStr content) {
 		frontendCompile(
 			test.alloc, perf, test.alloc, test.allSymbols, test.allUris, storage,
 			parseUri(test.allUris, "magic:include"), [uri], none!Uri));
-	return HoverTest(program, only(program.rootModules));
+	withShowDiagCtxForTest(test, storage, program, (ref ShowDiagCtx ctx) {
+		cb(ctx, only(program.rootModules));
+	});
 }
 
 immutable struct InfoAtPos {
@@ -79,13 +78,7 @@ immutable struct InfoAtPos {
 			optEqual!Definition(definition, b.definition);
 }
 
-Json hoverResult(
-	ref Alloc alloc,
-	ref AllSymbols allSymbols,
-	in AllUris allUris,
-	in SafeCStr content,
-	in HoverTest a,
-) {
+Json hoverResult(ref Alloc alloc, in SafeCStr content, ref ShowDiagCtx ctx, Module* mainModule) {
 	ArrBuilder!Json parts;
 
 	// We combine ranges that have the same info.
@@ -93,7 +86,7 @@ Json hoverResult(
 	Cell!(InfoAtPos) curInfo = Cell!(InfoAtPos)(InfoAtPos(safeCStr!"", none!Definition));
 
 	LineAndColumn lineAndColumnInFile(Pos pos, PosKind kind) {
-		return lineAndColumnAtPos(mustGetAt(a.program.filesInfo.lineAndColumnGetters, a.mainModule.uri), pos, kind);
+		return lineAndColumnAtPos(ctx.lineAndColumnGetters, UriAndPos(mainModule.uri, pos), kind);
 	}
 
 	void endRange(Pos end) {
@@ -104,17 +97,15 @@ Json hoverResult(
 				field!"end"(jsonOfLineAndColumn(alloc, lineAndColumnInFile(end, PosKind.endOfRange))),
 				field!"hover"(info.hover),
 				optionalField!("definition", Definition)(info.definition, (in Definition x) =>
-					jsonOfDefinition(alloc, allUris, x)),
+					jsonOfDefinition(alloc, ctx.allUris, x)),
 			]));
 		}
 	}
 
 	Pos endOfFile = safeToUint(safeCStrSize(content));
 	foreach (Pos pos; 0 .. endOfFile + 1) {
-		Position position = getPosition(allSymbols, a.mainModule, pos);
-		InfoAtPos here = InfoAtPos(
-			getHoverStr(alloc, alloc, allSymbols, allUris, emptyUrisInfo, a.program, position),
-			getDefinitionForPosition(a.program, position));
+		Position position = getPosition(ctx.allSymbols, mainModule, pos);
+		InfoAtPos here = InfoAtPos(getHoverStr(alloc, ctx, position), getDefinitionForPosition(ctx.program, position));
 		if (here != cellGet(curInfo)) {
 			endRange(pos);
 			curRangeStart = pos;
