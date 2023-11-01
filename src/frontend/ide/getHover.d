@@ -3,7 +3,9 @@ module frontend.ide.getHover;
 @safe @nogc pure nothrow:
 
 import frontend.ide.getPosition : Position, PositionKind;
-import frontend.showDiag : ShowDiagCtx, writeCalled, writeFile, writeFunInst, writeTypeUnquoted;
+import frontend.showDiag : ShowDiagCtx;
+import frontend.showModel : writeFile, writeFunInst, writeLineAndColumnRange, writeTypeUnquoted;
+import frontend.showModel : writeCalled;
 import model.model :
 	AssertOrForbidKind,
 	body_,
@@ -29,7 +31,6 @@ import util.sourceRange : UriAndRange;
 import util.sym : writeSym;
 import util.uri : Uri;
 import util.writer : finishWriterToSafeCStr, Writer;
-import util.writerUtils : writeLineAndColumnRange;
 
 SafeCStr getHoverStr(ref Alloc alloc, ref ShowDiagCtx ctx, in Position pos) {
 	Writer writer = Writer(ptrTrustMe(alloc));

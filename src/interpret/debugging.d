@@ -12,7 +12,8 @@ import model.concreteModel :
 	ConcreteType,
 	ReferenceKind,
 	symOfReferenceKind;
-import frontend.showDiag : ShowDiagCtx, writeTypeArgs, writeTypeArgsGeneric;
+import frontend.showDiag : ShowDiagCtx;
+import frontend.showModel : writeTypeArgs, writeTypeArgsGeneric;
 import model.lowModel :
 	AllLowTypes, LowFun, LowFunIndex, LowFunSource, LowProgram, LowType, PrimitiveType, symOfPrimitiveType;
 import model.model : decl, FunInst, name, Local, typeArgs;

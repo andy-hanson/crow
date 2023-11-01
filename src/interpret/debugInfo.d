@@ -2,7 +2,8 @@ module interpret.debugInfo;
 
 @safe @nogc nothrow: // not pure (because of backtraceStringsStorage)
 
-import frontend.showDiag : ShowDiagCtx, writeUriAndPos;
+import frontend.showDiag : ShowDiagCtx;
+import frontend.showModel : writeUriAndPos;
 import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeSource, Operation;
 import interpret.debugging : writeFunName;
 import interpret.runBytecode : operationOpStopInterpretation;

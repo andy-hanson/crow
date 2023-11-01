@@ -2,70 +2,63 @@ module frontend.showDiag;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.typeFromAst : typeSyntaxKind;
 import frontend.parse.lexer : Token;
+import frontend.showModel :
+	writeCalledDecls,
+	writeCalleds,
+	writeFunDecl,
+	writeFunDeclAndTypeArgs,
+	writeName,
+	writePurity,
+	writeSig,
+	writeSigSimple,
+	writeStructInst,
+	writeTypeQuoted,
+	writeUri,
+	writeUriAndRange;
 import model.diag : Diagnostic, Diagnostics, Diag, ExpectedForDiag, TypeKind;
 import model.model :
 	arity,
 	arityMatches,
 	bestCasePurity,
-	Called,
 	CalledDecl,
-	CalledSpecSig,
-	decl,
-	Destructure,
 	EnumBackingType,
-	FunDecl,
 	FunDeclAndTypeArgs,
-	FunInst,
-	isTuple,
 	Local,
 	LocalMutability,
 	name,
 	nTypeParams,
 	Params,
-	ParamShort,
 	Program,
-	Purity,
 	range,
-	ReturnAndParamTypes,
 	SpecDecl,
 	SpecDeclSig,
 	StructInst,
-	symOfPurity,
 	symOfSpecBodyBuiltinKind,
 	symOfVisibility,
 	Type,
-	typeArgs,
-	TypeParam,
 	TypeParamsAndSig;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.col.arr : empty, only, only2, sizeEq;
+import util.col.arr : empty, only;
 import util.col.arrUtil : exists;
 import util.col.str : SafeCStr;
-import util.lineAndColumnGetter : lineAndColumnAtPos, LineAndColumnGetters, lineAndColumnRange, PosKind;
+import util.lineAndColumnGetter : LineAndColumnGetters;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : ptrTrustMe;
-import util.sourceRange : UriAndPos, UriAndRange;
 import util.storage : ReadFileIssue;
 import util.sym : AllSymbols, Sym, writeSym;
-import util.uri : AllUris, baseName, Uri, UrisInfo, writeRelPath, writeUri, writeUriPreferRelative;
-import util.util : unreachable, verify;
+import util.uri : AllUris, baseName, UrisInfo, writeRelPath, writeUri;
+import util.util : unreachable;
 import util.writer :
 	finishWriterToSafeCStr,
-	writeBold,
 	writeEscapedChar,
-	writeHyperlink,
+	writeNewline,
 	writeQuotedStr,
-	writeRed,
-	writeReset,
 	writeWithCommas,
-	writeWithCommasZip,
 	writeWithNewlines,
 	writeWithSeparator,
 	Writer;
-import util.writerUtils : showChar, writeLineAndColumn, writeLineAndColumnRange, writeNl;
 
 struct ShowDiagCtx {
 	@safe @nogc pure nothrow:
@@ -105,48 +98,7 @@ SafeCStr strOfDiagnostic(ref Alloc alloc, scope ref ShowDiagCtx ctx, in Diagnost
 	return finishWriterToSafeCStr(writer);
 }
 
-private void writeUriAndRange(ref Writer writer, scope ref ShowDiagCtx ctx, in UriAndRange where) {
-	writeFileNoResetWriter(writer, ctx, where.uri);
-	if (where.uri != Uri.empty)
-		writeLineAndColumnRange(writer, lineAndColumnRange(ctx.lineAndColumnGetters, where));
-	if (ctx.options.color)
-		writeReset(writer);
-}
-
-void writeUriAndPos(ref Writer writer, scope ref ShowDiagCtx ctx, in UriAndPos where) {
-	writeFileNoResetWriter(writer, ctx, where.uri);
-	if (where.uri != Uri.empty)
-		writeLineAndColumn(writer, lineAndColumnAtPos(ctx.lineAndColumnGetters, where, PosKind.startOfRange));
-	if (ctx.options.color)
-		writeReset(writer);
-}
-
-void writeFile(ref Writer writer, in ShowDiagCtx ctx, Uri uri) {
-	writeFileNoResetWriter(writer, ctx, uri);
-	if (ctx.options.color)
-		writeReset(writer);
-}
-
 private:
-
-void writeUri(ref Writer writer, in ShowDiagCtx ctx, Uri uri) {
-	writeUriPreferRelative(writer, ctx.allUris, ctx.urisInfo, uri);
-}
-
-void writeFileNoResetWriter(ref Writer writer, in ShowDiagCtx ctx, Uri uri) {
-	if (ctx.options.color)
-		writeBold(writer);
-
-	if (ctx.options.color) {
-		writeHyperlink(
-			writer,
-			() { writeUri(writer, ctx, uri); },
-			() { writeUri(writer, ctx, uri); });
-		writeRed(writer);
-	} else
-		writeUri(writer, ctx, uri);
-	writer ~= ' ';
-}
 
 void writeUnusedDiag(ref Writer writer, scope ref ShowDiagCtx ctx, in Diag.Unused a) {
 	a.kind.matchIn!void(
@@ -175,17 +127,6 @@ void writeUnusedDiag(ref Writer writer, scope ref ShowDiagCtx ctx, in Diag.Unuse
 			writeName(writer, ctx, x.name);
 			writer ~= " is unused";
 		});
-}
-
-void writeLineNumber(ref Writer writer, scope ref ShowDiagCtx ctx, in UriAndPos pos) {
-	if (ctx.options.color)
-		writeBold(writer);
-	writeUri(writer, ctx, pos.uri);
-	if (ctx.options.color)
-		writeReset(writer);
-	writer ~= " line ";
-	size_t line = lineAndColumnAtPos(ctx.lineAndColumnGetters, pos, PosKind.startOfRange).line;
-	writer ~= line + 1;
 }
 
 void writeParseDiag(ref Writer writer, scope ref ShowDiagCtx ctx, in ParseDiag d) {
@@ -384,6 +325,23 @@ void writeParseDiag(ref Writer writer, scope ref ShowDiagCtx ctx, in ParseDiag d
 		(in ParseDiag.WhenMustHaveElse) {
 			writer ~= "'if' expression must end in 'else'";
 		});
+}
+
+void showChar(scope ref Writer writer, char c) {
+	switch (c) {
+		case '\0':
+			writer ~= "\\0";
+			break;
+		case '\n':
+			writer ~= "\\n";
+			break;
+		case '\t':
+			writer ~= "\\t";
+			break;
+		default:
+			writer ~= c;
+			break;
+	}
 }
 
 void writeSpecTrace(ref Writer writer, scope ref ShowDiagCtx ctx, in FunDeclAndTypeArgs[] trace) {
@@ -974,7 +932,7 @@ void showDiagnostic(ref TempAlloc tempAlloc, ref Writer writer, scope ref ShowDi
 	writeUriAndRange(writer, ctx, diag.where);
 	writer ~= ' ';
 	writeDiag(tempAlloc, writer, ctx, diag.diag);
-	writeNl(writer);
+	writeNewline(writer);
 }
 
 void writeExpected(ref Writer writer, scope ref ShowDiagCtx ctx, in ExpectedForDiag a) {
@@ -1208,313 +1166,4 @@ string describeTokenForUnexpected(Token token) {
 		case Token.with_:
 			return "unexpected keyword 'with'";
 	}
-}
-
-// TODO: all below to showModel.d
-
-public:
-
-void writeCalled(ref Writer writer, scope ref ShowDiagCtx ctx, in Called a) {
-	a.matchIn!void(
-		(in FunInst x) {
-			writeFunInst(writer, ctx, x);
-		},
-		(in CalledSpecSig x) {
-			writeCalledSpecSig(writer, ctx, x);
-		});
-}
-
-private void writeCalledDecl(ref Writer writer, scope ref ShowDiagCtx ctx, in CalledDecl a) {
-	a.matchIn!void(
-		(in FunDecl x) {
-			writeFunDecl(writer, ctx, x);
-		},
-		(in CalledSpecSig x) {
-			writeCalledSpecSig(writer, ctx, x);
-		});
-}
-
-private void writeCalledDecls(
-	ref Writer writer,
-	scope ref ShowDiagCtx ctx,
-	in CalledDecl[] cs,
-	in bool delegate(in CalledDecl) @safe @nogc pure nothrow filter = (in _) => true,
-) {
-	foreach (ref CalledDecl c; cs)
-		if (filter(c)) {
-			writeNl(writer);
-			writer ~= '\t';
-			writeCalledDecl(writer, ctx, c);
-		}
-}
-
-private void writeCalleds(ref Writer writer, scope ref ShowDiagCtx ctx, in Called[] cs) {
-	foreach (ref Called x; cs) {
-		writeNl(writer);
-		writer ~= '\t';
-		writeCalled(writer, ctx, x);
-	}
-}
-
-private void writeCalledSpecSig(ref Writer writer, scope ref ShowDiagCtx ctx, in CalledSpecSig x) {
-	writeSig(writer, ctx, x.name, x.returnType, Params(x.nonInstantiatedSig.params), some(x.instantiatedSig));
-	writer ~= " (from spec ";
-	writeName(writer, ctx, name(*x.specInst));
-	writer ~= ')';
-}
-
-private void writeTypeParamsAndArgs(
-	ref Writer writer,
-	scope ref ShowDiagCtx ctx,
-	in TypeParam[] typeParams,
-	in Type[] typeArgs,
-) {
-	verify(sizeEq(typeParams, typeArgs));
-	if (!empty(typeParams)) {
-		writer ~= " with ";
-		writeWithCommasZip!(TypeParam, Type)(writer, typeParams, typeArgs, (in TypeParam param, in Type arg) {
-			writeSym(writer, ctx.allSymbols, param.name);
-			writer ~= '=';
-			writeTypeUnquoted(writer, ctx, arg);
-		});
-	}
-}
-
-private void writeFunDecl(ref Writer writer, scope ref ShowDiagCtx ctx, in FunDecl a) {
-	writeSig(writer, ctx, a.name, a.returnType, a.params, none!ReturnAndParamTypes);
-	writeFunDeclLocation(writer, ctx, a);
-}
-
-private void writeFunDeclAndTypeArgs(ref Writer writer, scope ref ShowDiagCtx ctx, in FunDeclAndTypeArgs a) {
-	writeSym(writer, ctx.allSymbols, a.decl.name);
-	writeTypeArgs(writer, ctx, a.typeArgs);
-	writeFunDeclLocation(writer, ctx, *a.decl);
-}
-
-void writeFunInst(ref Writer writer, scope ref ShowDiagCtx ctx, in FunInst a) {
-	writeFunDecl(writer, ctx, *decl(a));
-	writeTypeParamsAndArgs(writer, ctx, decl(a).typeParams, typeArgs(a));
-}
-
-private void writeFunDeclLocation(ref Writer writer, scope ref ShowDiagCtx ctx, in FunDecl funDecl) {
-	writer ~= " (from ";
-	writeLineNumber(writer, ctx, funDecl.fileAndPos);
-	writer ~= ')';
-}
-
-private void writeSig(
-	ref Writer writer,
-	scope ref ShowDiagCtx ctx,
-	Sym name,
-	in Type returnType,
-	in Params params,
-	in Opt!ReturnAndParamTypes instantiated,
-) {
-	writeSym(writer, ctx.allSymbols, name);
-	writer ~= ' ';
-	writeTypeUnquoted(writer, ctx, has(instantiated) ? force(instantiated).returnType : returnType);
-	writer ~= '(';
-	params.matchIn!void(
-		(in Destructure[] paramsArray) {
-			if (has(instantiated))
-				writeWithCommasZip!(Destructure, Type)(
-					writer,
-					paramsArray,
-					force(instantiated).paramTypes,
-					(in Destructure x, in Type t) {
-						writeDestructure(writer, ctx, x, some(t));
-					});
-			else
-				writeWithCommas!Destructure(writer, paramsArray, (in Destructure x) {
-					writeDestructure(writer, ctx, x, none!Type);
-				});
-		},
-		(in Params.Varargs varargs) {
-			writer ~= "...";
-			writeTypeUnquoted(writer, ctx, has(instantiated)
-				? only(force(instantiated).paramTypes)
-				: varargs.param.type);
-		});
-	writer ~= ')';
-}
-
-private void writeSigSimple(ref Writer writer, scope ref ShowDiagCtx ctx, Sym name, in TypeParamsAndSig sig) {
-	writeSym(writer, ctx.allSymbols, name);
-	if (!empty(sig.typeParams)) {
-		writer ~= '[';
-		writeWithCommas!TypeParam(writer, sig.typeParams, (in TypeParam x) {
-			writeSym(writer, ctx.allSymbols, x.name);
-		});
-		writer ~= ']';
-	}
-	writer ~= ' ';
-	writeTypeUnquoted(writer, ctx, sig.returnType);
-	writer ~= '(';
-	writeWithCommas!ParamShort(writer, sig.params, (in ParamShort x) {
-		writeSym(writer, ctx.allSymbols, x.name);
-		writer ~= ' ';
-		writeTypeUnquoted(writer, ctx, x.type);
-	});
-	writer ~= ')';
-}
-
-private void writeDestructure(
-	ref Writer writer,
-	scope ref ShowDiagCtx ctx,
-	in Destructure a,
-	in Opt!Type instantiated,
-) {
-	Type type = has(instantiated) ? force(instantiated) : a.type;
-	a.matchIn!void(
-		(in Destructure.Ignore) {
-			writer ~= "_ ";
-			writeTypeUnquoted(writer, ctx, type);
-		},
-		(in Local x) {
-			writeSym(writer, ctx.allSymbols, x.name);
-			writer ~= ' ';
-			writeTypeUnquoted(writer, ctx, type);
-		},
-		(in Destructure.Split x) {
-			writer ~= '(';
-			writeWithCommasZip!(Destructure, Type)(
-				writer, x.parts, typeArgs(*type.as!(StructInst*)), (in Destructure part, in Type partType) {
-					writeDestructure(writer, ctx, part, some(partType));
-				});
-			writer ~= ')';
-		});
-}
-
-private void writeStructInst(scope ref Writer writer, scope ref ShowDiagCtx ctx, in StructInst s) {
-	void fun(string keyword) @safe {
-		writer ~= keyword;
-		writer ~= ' ';
-		Type[2] rp = only2(s.typeArgs);
-		writeTypeUnquoted(writer, ctx, rp[0]);
-		Type param = rp[1];
-		bool needParens = !(param.isA!(StructInst*) && isTuple(ctx.program.commonTypes, *param.as!(StructInst*)));
-		if (needParens) writer ~= '(';
-		writeTypeUnquoted(writer, ctx, param);
-		if (needParens) writer ~= ')';
-	}
-	void map(string open) {
-		Type[2] vk = only2(s.typeArgs);
-		writeTypeUnquoted(writer, ctx, vk[0]);
-		writer ~= open;
-		writeTypeUnquoted(writer, ctx, vk[1]);
-		writer ~= ']';
-	}
-	void suffix(string suffix) {
-		writeTypeUnquoted(writer, ctx, only(s.typeArgs));
-		writer ~= suffix;
-	}
-
-	Sym name = decl(s).name;
-	Opt!(Diag.TypeShouldUseSyntax.Kind) kind = typeSyntaxKind(name);
-	if (has(kind)) {
-		final switch (force(kind)) {
-			case Diag.TypeShouldUseSyntax.Kind.map:
-				return map("[");
-			case Diag.TypeShouldUseSyntax.Kind.funAct:
-				return fun("act");
-			case Diag.TypeShouldUseSyntax.Kind.funFar:
-				return fun("far");
-			case Diag.TypeShouldUseSyntax.Kind.funFun:
-				return fun("fun");
-			case Diag.TypeShouldUseSyntax.Kind.future:
-				return suffix("^");
-			case Diag.TypeShouldUseSyntax.Kind.list:
-				return suffix("[]");
-			case Diag.TypeShouldUseSyntax.Kind.mutMap:
-				return map(" mut[");
-			case Diag.TypeShouldUseSyntax.Kind.mutList:
-				return suffix(" mut[]");
-			case Diag.TypeShouldUseSyntax.Kind.mutPointer:
-				return suffix(" mut*");
-			case Diag.TypeShouldUseSyntax.Kind.opt:
-				return suffix("?");
-			case Diag.TypeShouldUseSyntax.Kind.pointer:
-				return suffix("*");
-			case Diag.TypeShouldUseSyntax.Kind.tuple:
-				return writeTupleType(writer, ctx, s.typeArgs);
-		}
-	} else {
-		switch (s.typeArgs.length) {
-			case 0:
-				break;
-			case 1:
-				writeTypeUnquoted(writer, ctx, only(s.typeArgs));
-				writer ~= ' ';
-				break;
-			default:
-				writeTupleType(writer, ctx, s.typeArgs);
-				writer ~= ' ';
-				break;
-		}
-		writeSym(writer, ctx.allSymbols, name);
-	}
-}
-
-private void writeTupleType(scope ref Writer writer, scope ref ShowDiagCtx ctx, in Type[] members) {
-	writer ~= '(';
-	writeWithCommas!Type(writer, members, (in Type arg) {
-		writeTypeUnquoted(writer, ctx, arg);
-	});
-	writer ~= ')';
-}
-
-void writeTypeArgsGeneric(T)(
-	scope ref Writer writer,
-	in T[] typeArgs,
-	in bool delegate(in T) @safe @nogc pure nothrow isSimpleType,
-	in void delegate(in T) @safe @nogc pure nothrow cbWriteType,
-) {
-	if (!empty(typeArgs)) {
-		writer ~= '@';
-		if (typeArgs.length == 1 && isSimpleType(only(typeArgs)))
-			cbWriteType(only(typeArgs));
-		else {
-			writer ~= '(';
-			writeWithCommas!T(writer, typeArgs, cbWriteType);
-			writer ~= ')';
-		}
-	}
-}
-
-void writeTypeArgs(scope ref Writer writer, scope ref ShowDiagCtx ctx, in Type[] types) {
-	writeTypeArgsGeneric!Type(writer, types,
-		(in Type x) =>
-			!x.isA!(StructInst*) || empty(typeArgs(*x.as!(StructInst*))),
-		(in Type x) {
-			writeTypeUnquoted(writer, ctx, x);
-		});
-}
-
-private void writeTypeQuoted(scope ref Writer writer, scope ref ShowDiagCtx ctx, in Type a) {
-	writer ~= '\'';
-	writeTypeUnquoted(writer, ctx, a);
-	writer ~= '\'';
-}
-
-void writeTypeUnquoted(scope ref Writer writer, scope ref ShowDiagCtx ctx, in Type a) {
-	a.matchIn!void(
-		(in Type.Bogus) {
-			writer ~= "<<bogus>>";
-		},
-		(in TypeParam x) {
-			writeSym(writer, ctx.allSymbols, x.name);
-		},
-		(in StructInst x) {
-			writeStructInst(writer, ctx, x);
-		});
-}
-
-private void writePurity(ref Writer writer, in ShowDiagCtx ctx, Purity p) {
-	writeName(writer, ctx, symOfPurity(p));
-}
-
-private void writeName(scope ref Writer writer, in ShowDiagCtx ctx, Sym name) {
-	writer ~= '\'';
-	writeSym(writer, ctx.allSymbols, name);
-	writer ~= '\'';
 }

@@ -7,10 +7,9 @@ import util.col.arr : only;
 import util.col.arrUtil : allocateUninitialized, arrMax, arrMaxIndex, contains;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.comparison : compareSizeT;
-import util.sym : AllSymbols, Sym, sym, symSize, writeSym;
-import util.writer : Writer, writeRed, writeReset;
-import util.writerUtils : writeNlIndent, writeSpaces, writeSymPadded;
-import util.util : max, verify;
+import util.sym : AllSymbols, Sym, sym, symSize, writeSym, writeSymAndGetSize;
+import util.writer : writeNewline, Writer, writeRed, writeReset, writeSpaces;
+import util.util : max, todo, verify;
 
 void diffSymbols(
 	ref TempAlloc tempAlloc,
@@ -144,7 +143,7 @@ void printDiff(
 		arrMax!(size_t, Sym)(0, a, (in Sym s) => symSize(allSymbols, s)),
 		symSize(allSymbols, expected));
 
-	writeNlIndent(writer);
+	writeNewline(writer, 1);
 	writeSymPadded(writer, allSymbols, expected, columnSize);
 	writer ~= "you wrote\n";
 
@@ -153,7 +152,7 @@ void printDiff(
 	size_t ai = 0;
 	size_t bi = 0;
 	void extraA() {
-		writeNlIndent(writer);
+		writeNewline(writer, 1);
 		if (color)
 			writeRed(writer);
 		writeSym(writer, allSymbols, a[ai]);
@@ -162,7 +161,7 @@ void printDiff(
 		ai++;
 	}
 	void extraB() {
-		writeNlIndent(writer);
+		writeNewline(writer, 1);
 		writeSpaces(writer, columnSize);
 		if (color)
 			writeRed(writer);
@@ -172,7 +171,7 @@ void printDiff(
 		bi++;
 	}
 	void misspelling() {
-		writeNlIndent(writer);
+		writeNewline(writer, 1);
 		if (color)
 			writeRed(writer);
 		writeSymPadded(writer, allSymbols, a[ai], columnSize);
@@ -184,7 +183,7 @@ void printDiff(
 	}
 	void common() {
 		verify(a[ai] == b[bi]);
-		writeNlIndent(writer);
+		writeNewline(writer, 1);
 		writeSymPadded(writer, allSymbols, a[ai], columnSize);
 		writeSym(writer, allSymbols, b[bi]);
 		ai++;
@@ -206,4 +205,10 @@ void printDiff(
 		extraA();
 	while (bi < b.length)
 		extraB();
+}
+
+void writeSymPadded(scope ref Writer writer, in AllSymbols allSymbols, Sym name, size_t size) {
+	size_t symSize = writeSymAndGetSize(writer, allSymbols, name);
+	if (symSize >= size) todo!void("??");
+	writeSpaces(writer, size - symSize);
 }

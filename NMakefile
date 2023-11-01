@@ -86,6 +86,7 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\frontend\lang.d \
 	src\frontend\programState.d \
 	src\frontend\showDiag.d \
+	src\frontend\showModel.d \
 	src\interpret\applyFn.d \
 	src\interpret\bytecode.d \
 	src\interpret\bytecodeWriter.d \
@@ -156,7 +157,6 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\uri.d \
 	src\util\util.d \
 	src\util\writer.d \
-	src\util\writerUtils.d \
 	src\versionInfo.d
 app_only_files = src\app\main.d src\app\dyncall.d src\app\fileSystem.d
 app_src_no_test = $(app_only_files) \
