@@ -10,7 +10,7 @@ import util.col.arr : arrayOfSingle, empty, PtrAndSmallNumber, small, SmallArray
 import util.col.arrUtil : arrEqual;
 import util.col.map : Map;
 import util.col.enumMap : EnumMap;
-import util.col.str : SafeCStr;
+import util.col.str : SafeCStr, safeCStr;
 import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : force, has, none, Opt, some;
@@ -1001,6 +1001,8 @@ immutable struct Module {
 	UriAndRange range() scope =>
 		UriAndRange.topOfFile(uri);
 }
+Module emptyModule(Uri uri) =>
+	Module(uri, safeCStr!"", [], [], [], [], [], [], [], Map!(Sym, NameReferents)());
 
 immutable struct ImportOrExport {
 	// none for an automatic import of std

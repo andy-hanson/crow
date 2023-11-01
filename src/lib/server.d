@@ -5,7 +5,7 @@ module lib.server;
 import backend.writeToC : writeToC;
 import concretize.concretize : concretize;
 import document.document : documentJSON;
-import frontend.diagnosticsBuilder : diagnosticsForFile;
+import frontend.diagnosticsBuilder : DiagnosticsBuilder, DiagnosticsBuilderForFile, finishDiagnostics;
 import frontend.frontendCompile : frontendCompile, FileAstAndDiagnostics, parseAllFiles, parseSingleAst;
 import frontend.ide.getDefinition : Definition, getDefinitionForPosition;
 import frontend.ide.getHover : getHoverStr;
@@ -23,8 +23,7 @@ import interpret.generateBytecode : generateBytecode;
 import interpret.runBytecode : runBytecode;
 import lower.lower : lower;
 import model.concreteModel : ConcreteProgram;
-import model.diag :
-	Diagnostic, Diagnostics, diagnosticsIsFatal, DiagnosticWithinFile, DiagSeverity;
+import model.diag : Diagnostic, diagnosticsIsFatal;
 import model.jsonOfConcreteModel : jsonOfConcreteProgram;
 import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
@@ -32,7 +31,6 @@ import model.lowModel : ExternLibraries, LowProgram;
 import model.model : fakeProgramForDiagnostics, Module, Program;
 import util.alloc.alloc : Alloc;
 import util.col.arr : only;
-import util.col.arrBuilder : ArrBuilder;
 import util.col.str : SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
 import util.exitCode : ExitCode;
 import util.json : Json;
@@ -89,22 +87,22 @@ ExitCode buildAndInterpret(
 	in SafeCStr[] allArgs,
 ) {
 	verify(!hasUnknownUris(server));
-	ProgramsAndFilesInfo programs = buildToLowProgram(alloc, perf, server, versionInfoForInterpret, main);
+	Programs programs = buildToLowProgram(alloc, perf, server, versionInfoForInterpret, main);
 	SafeCStr diags = showDiagnostics(alloc, server, programs.program);
 	if (!safeCStrIsEmpty(diags))
 		writeError(diags);
-	if (diagnosticsIsFatal(programs.program.diagnostics))
+	if (!has(programs.lowProgram))
 		return ExitCode.error;
 	else {
+		LowProgram lowProgram = force(programs.lowProgram);
 		Opt!ExternFunPtrsForAllLibraries externFunPtrs =
-			extern_.loadExternFunPtrs(programs.lowProgram.externLibraries, writeError);
+			extern_.loadExternFunPtrs(lowProgram.externLibraries, writeError);
 		if (has(externFunPtrs)) {
 			ByteCode byteCode = generateBytecode(
 				alloc, perf, server.allSymbols,
-				programs.program, programs.lowProgram, force(externFunPtrs), extern_.makeSyntheticFunPtrs);
+				programs.program, lowProgram, force(externFunPtrs), extern_.makeSyntheticFunPtrs);
 			ShowCtx printCtx = getShowDiagCtx(server, programs.program);
-			return ExitCode(runBytecode(
-				perf, alloc, printCtx, extern_.doDynCall, programs.lowProgram, byteCode, allArgs));
+			return ExitCode(runBytecode(perf, alloc, printCtx, extern_.doDynCall, lowProgram, byteCode, allArgs));
 		} else {
 			writeError(safeCStr!"Failed to load external libraries\n");
 			return ExitCode.error;
@@ -218,13 +216,12 @@ TokensAndParseDiagnostics getTokensAndParseDiagnostics(
 ) =>
 	withFileContent!TokensAndParseDiagnostics(server.storage, uri, (in ReadFileResult x) {
 		SafeCStr text = x.isA!FileContent ? asSafeCStr(x.as!FileContent) : safeCStr!"";
-		ArrBuilder!DiagnosticWithinFile diagnosticsBuilder;
-		FileAst ast = parseFile(alloc, perf, server.allSymbols, server.allUris, diagnosticsBuilder, text);
+		DiagnosticsBuilder diags = DiagnosticsBuilder(&alloc);
+		DiagnosticsBuilderForFile diagsForFile = DiagnosticsBuilderForFile(&diags, uri);
+		FileAst ast = parseFile(alloc, perf, server.allSymbols, server.allUris, diagsForFile, text);
 		return TokensAndParseDiagnostics(
 			tokensOfAst(alloc, server.allSymbols, ast),
-			fakeProgramForDiagnostics(Diagnostics(
-				DiagSeverity.parseError,
-				diagnosticsForFile(alloc, server.allUris, uri, diagnosticsBuilder).diags)));
+			fakeProgramForDiagnostics(finishDiagnostics(diags, server.allUris)));
 	});
 
 struct ProgramAndDefinition {
@@ -322,13 +319,13 @@ DiagsAndResultJson printLowModel(
 	return diagsAndResultJson(alloc, server, program, jsonOfLowProgram(alloc, lowProgram));
 }
 
-immutable struct ProgramsAndFilesInfo {
+immutable struct Programs {
 	Program program;
-	ConcreteProgram concreteProgram;
-	LowProgram lowProgram;
+	Opt!ConcreteProgram concreteProgram;
+	Opt!LowProgram lowProgram;
 }
 
-ProgramsAndFilesInfo buildToLowProgram(
+Programs buildToLowProgram(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref Server server,
@@ -337,9 +334,13 @@ ProgramsAndFilesInfo buildToLowProgram(
 ) {
 	Program program = frontendCompile(alloc, perf, server, [main], some(main));
 	ShowCtx ctx = getShowDiagCtx(server, program);
-	ConcreteProgram concreteProgram = concretize(alloc, perf, ctx, versionInfo, program);
-	LowProgram lowProgram = lower(alloc, perf, server.allSymbols, program.config.extern_, program, concreteProgram);
-	return ProgramsAndFilesInfo(program, concreteProgram, lowProgram);
+	if (diagnosticsIsFatal(program.diagnostics))
+		return Programs(program, none!ConcreteProgram, none!LowProgram);
+	else {
+		ConcreteProgram concreteProgram = concretize(alloc, perf, ctx, versionInfo, program);
+		LowProgram lowProgram = lower(alloc, perf, server.allSymbols, program.config.extern_, program, concreteProgram);
+		return Programs(program, some(concreteProgram), some(lowProgram));
+	}
 }
 
 immutable struct BuildToCResult {
@@ -348,14 +349,14 @@ immutable struct BuildToCResult {
 	ExternLibraries externLibraries;
 }
 BuildToCResult buildToC(ref Alloc alloc, ref Perf perf, ref Server server, Uri main) {
-	ProgramsAndFilesInfo programs = buildToLowProgram(alloc, perf, server, versionInfoForBuildToC, main);
+	Programs programs = buildToLowProgram(alloc, perf, server, versionInfoForBuildToC, main);
 	ShowCtx ctx = getShowDiagCtx(server, programs.program);
 	return BuildToCResult(
-		diagnosticsIsFatal(programs.program.diagnostics)
+		has(programs.lowProgram)
 			? safeCStr!""
-			: writeToC(alloc, alloc, ctx, programs.lowProgram),
+			: writeToC(alloc, alloc, ctx, force(programs.lowProgram)),
 		showDiagnostics(alloc, server, programs.program),
-		programs.lowProgram.externLibraries);
+		has(programs.lowProgram) ? force(programs.lowProgram).externLibraries : []);
 }
 
 private:

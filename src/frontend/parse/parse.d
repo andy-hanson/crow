@@ -2,6 +2,7 @@ module frontend.parse.parse;
 
 @safe @nogc pure nothrow:
 
+import frontend.diagnosticsBuilder : DiagnosticsBuilderForFile;
 import frontend.parse.ast :
 	DestructureAst,
 	ExprAst,
@@ -55,7 +56,6 @@ import frontend.parse.parseUtil :
 	tryTakeName,
 	tryTakeOperator,
 	tryTakeToken;
-import model.diag : DiagnosticWithinFile;
 import model.model : FieldMutability, VarKind, Visibility;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
@@ -77,7 +77,7 @@ FileAst parseFile(
 	scope ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllUris allUris,
-	ref ArrBuilder!DiagnosticWithinFile diagsBuilder,
+	scope ref DiagnosticsBuilderForFile diagsBuilder,
 	scope SafeCStr source,
 ) =>
 	withMeasure!(FileAst, () @trusted {

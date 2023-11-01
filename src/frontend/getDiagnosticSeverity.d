@@ -53,6 +53,8 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagSeverity.checkError,
 		(in Diag.ExternUnion) =>
 			DiagSeverity.checkError,
+		(in Diag.FileIssue) =>
+			DiagSeverity.fileIssue,
 		(in Diag.FunMissingBody) =>
 			DiagSeverity.checkError,
 		(in FunModifierTrustedOnNonExtern) =>

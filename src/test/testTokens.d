@@ -2,18 +2,18 @@ module test.testTokens;
 
 @safe @nogc pure nothrow:
 
+import frontend.diagnosticsBuilder : DiagnosticsBuilder, DiagnosticsBuilderForFile;
 import frontend.ide.getTokens : jsonOfTokens, Token, tokensOfAst;
 import frontend.parse.ast : FileAst;
 import frontend.parse.jsonOfAst : jsonOfAst;
 import frontend.parse.parse : parseFile;
-import model.diag : DiagnosticWithinFile;
 import test.testUtil : Test;
-import util.col.arrBuilder : ArrBuilder;
 import util.col.arrUtil : arrEqual, arrLiteral;
 import util.col.str : SafeCStr, safeCStr;
 import util.json : writeJson;
 import util.perf : Perf, withNullPerf;
 import util.sourceRange : RangeWithinFile;
+import util.uri : parseUri;
 import util.util : verifyFail;
 import util.writer : debugLogWithWriter, Writer;
 
@@ -44,9 +44,11 @@ void testTokens(ref Test test) {
 private:
 
 void testOne(ref Test test, SafeCStr source, Token[] expectedTokens) {
-	ArrBuilder!DiagnosticWithinFile diags;
+	DiagnosticsBuilder diags = DiagnosticsBuilder(test.allocPtr);
+	DiagnosticsBuilderForFile diagsForFile = DiagnosticsBuilderForFile(
+		&diags, parseUri(test.allUris, "magic:test.crow"));
 	FileAst ast = withNullPerf!(FileAst, (scope ref Perf perf) =>
-		parseFile(test.alloc, perf, test.allSymbols, test.allUris, diags, source));
+		parseFile(test.alloc, perf, test.allSymbols, test.allUris, diagsForFile, source));
 	Token[] tokens = tokensOfAst(test.alloc, test.allSymbols, ast);
 	if (!arrEqual(tokens, expectedTokens)) {
 		debugLogWithWriter((ref Writer writer) {

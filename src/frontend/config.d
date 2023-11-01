@@ -2,24 +2,23 @@ module frontend.config;
 
 @safe @nogc pure nothrow:
 
-import frontend.diagnosticsBuilder : DiagnosticsBuilder;
-import model.diag : Diag, DiagnosticWithinFile;
+import frontend.diagnosticsBuilder : addDiagnosticForFile, DiagnosticsBuilder, DiagnosticsBuilderForFile;
+import model.diag : Diag;
 import model.model : Config, ConfigExternUris, ConfigImportUris;
-import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.col.arr : only;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : fold;
 import util.col.map : Map;
 import util.col.mapBuilder : finishMap, MapBuilder, tryAddToMap;
 import util.col.str : SafeCStr;
-import util.storage : asSafeCStr, FileContent, ReadFileIssue, ReadFileResult, Storage, withFileContent;
-import util.opt : force, has, none, Opt, some;
 import util.json : Json;
+import util.opt : force, has, none, Opt, some;
+import util.ptr : ptrTrustMe;
 import util.jsonParse : parseJson;
 import util.sourceRange : RangeWithinFile;
+import util.storage : asSafeCStr, FileContent, ReadFileIssue, ReadFileResult, Storage, withFileContent;
 import util.sym : AllSymbols, Sym, sym;
-import util.uri : AllUris, bogusUri, childUri, commonAncestor, parent, parseUriWithCwd, Uri, UriAndRange;
+import util.uri : AllUris, bogusUri, childUri, commonAncestor, parent, parseUriWithCwd, Uri;
 import util.util : todo;
 
 Config getConfig(
@@ -51,7 +50,7 @@ Config getConfigRecur(
 	Uri searchUri,
 ) {
 	Uri configUri = childUri(allUris, searchUri, sym!"crow-config.json");
-	ArrBuilder!DiagnosticWithinFile diags;
+	DiagnosticsBuilderForFile diags = DiagnosticsBuilderForFile(ptrTrustMe(diagsBuilder), configUri);
 	Opt!Config res = withFileContent!(Opt!Config)(storage, configUri, (in ReadFileResult a) =>
 		a.matchIn!(Opt!Config)(
 			(in FileContent content) =>
@@ -61,16 +60,12 @@ Config getConfigRecur(
 					case ReadFileIssue.notFound:
 						return none!Config;
 					case ReadFileIssue.error:
-						todo!void("what file to add this error to?");
-						//add(alloc, diags, DiagnosticWithinFile(RangeWithinFile.empty, Diag(
-						//	ParseDiag(ParseDiag.FileReadError(none!UriAndRange)))));
+						addDiagnosticForFile(diags, RangeWithinFile.empty, Diag(Diag.FileIssue(configUri, issue)));
 						return some(emptyConfig(crowIncludeDir));
 					case ReadFileIssue.unknown:
 						return some(emptyConfig(crowIncludeDir));
 				}
  			}));
-	foreach (ref DiagnosticWithinFile d; finishArr(alloc, diags))
-		todo!void("!");
 	if (has(res))
 		return force(res);
 	else {
@@ -98,7 +93,7 @@ Config parseConfig(
 	ref AllUris allUris,
 	Uri crowIncludeDir,
 	Uri dirContainingConfig,
-	scope ref ArrBuilder!DiagnosticWithinFile diags,
+	scope ref DiagnosticsBuilderForFile diags,
 	in SafeCStr content,
 ) {
 	Opt!Json json = parseJson(alloc, allSymbols, content);
@@ -122,7 +117,7 @@ Config parseConfigRecur(
 	ref AllUris allUris,
 	Uri crowIncludeDir,
 	Uri dirContainingConfig,
-	scope ref ArrBuilder!DiagnosticWithinFile diags,
+	scope ref DiagnosticsBuilderForFile diags,
 	in Json.Object fields,
 ) =>
 	fold!(Config, Json.ObjectField)(emptyConfig(crowIncludeDir), fields, (Config cur, in Json.ObjectField field) {
@@ -147,7 +142,7 @@ Map!(Sym, Uri) parseIncludeOrExtern(
 	ref AllSymbols allSymbols,
 	ref AllUris allUris,
 	Uri dirContainingConfig,
-	scope ref ArrBuilder!DiagnosticWithinFile diags,
+	scope ref DiagnosticsBuilderForFile diags,
 	in Json json,
 ) =>
 	parseSymMap!Uri(alloc, allSymbols, diags, json, (in Json value) {
@@ -158,7 +153,7 @@ Map!(Sym, Uri) parseIncludeOrExtern(
 Opt!Uri parseUri(
 	ref AllUris allUris,
 	Uri dirContainingConfig,
-	scope ref ArrBuilder!DiagnosticWithinFile diags,
+	scope ref DiagnosticsBuilderForFile diags,
 	in Json json,
 ) {
 	if (json.isA!string)
@@ -172,7 +167,7 @@ Opt!Uri parseUri(
 Map!(Sym, T) parseSymMap(T)(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
-	scope ref ArrBuilder!DiagnosticWithinFile diags,
+	scope ref DiagnosticsBuilderForFile diags,
 	in Json json,
 	in T delegate(in Json) @safe @nogc pure nothrow cbValue,
 ) {

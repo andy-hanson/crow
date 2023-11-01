@@ -2,6 +2,7 @@ module frontend.parse.lexer;
 
 @safe @nogc pure nothrow:
 
+import frontend.diagnosticsBuilder : addDiagnosticForFile, DiagnosticsBuilderForFile;
 import frontend.parse.lexToken :
 	DocCommentAndExtraDedents,
 	isNewlineToken,
@@ -16,11 +17,10 @@ import frontend.parse.lexToken :
 	plainToken,
 	takeStringPart;
 import frontend.parse.lexWhitespace : detectIndentKind, IndentKind, skipSpacesAndComments, skipUntilNewline;
-import model.diag : Diag, DiagnosticWithinFile;
+import model.diag : Diag;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arrBuilder : add, ArrBuilder;
 import util.col.str : CStr, SafeCStr;
 import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, some;
@@ -34,7 +34,7 @@ struct Lexer {
 	private:
 	Alloc* allocPtr;
 	AllSymbols* allSymbolsPtr;
-	ArrBuilder!DiagnosticWithinFile* diagnosticsBuilderPtr;
+	DiagnosticsBuilderForFile* diagnosticsBuilderPtr;
 	immutable CStr sourceBegin;
 	immutable IndentKind indentKind;
 
@@ -57,7 +57,7 @@ ref AllSymbols allSymbols(return ref Lexer lexer) =>
 @trusted Lexer createLexer(
 	Alloc* alloc,
 	AllSymbols* allSymbols,
-	ArrBuilder!DiagnosticWithinFile* diagnosticsBuilder,
+	DiagnosticsBuilderForFile* diagnosticsBuilder,
 	SafeCStr source,
 ) {
 	Lexer lexer = Lexer(alloc, allSymbols, diagnosticsBuilder, source.ptr, detectIndentKind(source), 0, source.ptr);
@@ -71,7 +71,7 @@ Pos curPos(in Lexer lexer) =>
 	lexer.nextTokenPos;
 
 void addDiag(ref Lexer lexer, RangeWithinFile range, ParseDiag diag) {
-	add(lexer.alloc, *lexer.diagnosticsBuilderPtr, DiagnosticWithinFile(range, Diag(diag)));
+	addDiagnosticForFile(*lexer.diagnosticsBuilderPtr, range, Diag(diag));
 }
 
 void addDiagAtChar(ref Lexer lexer, ParseDiag diag) {

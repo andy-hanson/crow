@@ -861,7 +861,7 @@ Map!(Sym, NameReferents) getAllExportedNames(
 					? some(Diag.DuplicateExports.Kind.spec)
 					: none!(Diag.DuplicateExports.Kind);
 				if (has(kind))
-					addDiagnostic(alloc, diagsBuilder, range, Diag(Diag.DuplicateExports(force(kind), name)));
+					addDiagnostic(diagsBuilder, range, Diag(Diag.DuplicateExports(force(kind), name)));
 				return NameReferents(
 					has(prev.structOrAlias) ? prev.structOrAlias : cur.structOrAlias,
 					has(prev.spec) ? prev.spec : cur.spec,
@@ -994,7 +994,6 @@ void checkImportsOrExports(
 				foreach (Sym name; m.names)
 					if (!hasKey(m.module_.allExportedNames, name))
 						addDiagnostic(
-							alloc,
 							diags,
 							// TODO: use the range of the particular name
 							// (by advancing pos by symSize until we get to this name)

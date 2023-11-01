@@ -197,19 +197,6 @@ void writeParseDiag(ref Writer writer, scope ref ShowCtx ctx, in ParseDiag d) {
 					break;
 			}
 		},
-		(in ParseDiag.FileIssue x) {
-			writer ~= () {
-				final switch (x.issue) {
-					case ReadFileIssue.notFound:
-						return "file does not exist: ";
-					case ReadFileIssue.error:
-						return "unable to read file ";
-					case ReadFileIssue.unknown:
-						return "IDE is still loading file ";
-				}
-			}();
-			writeUri(writer, ctx, x.uri);
-		},
 		(in ParseDiag.FunctionTypeMissingParens) {
 			writer ~= "function type missing parentheses";
 		},
@@ -587,6 +574,19 @@ void writeDiag(ref TempAlloc tempAlloc, ref Writer writer, scope ref ShowCtx ctx
 		},
 		(in Diag.ExternUnion) {
 			writer ~= "a union can't be 'extern'";
+		},
+		(in Diag.FileIssue x) {
+			writer ~= () {
+				final switch (x.issue) {
+					case ReadFileIssue.notFound:
+						return "file does not exist: ";
+					case ReadFileIssue.error:
+						return "unable to read file ";
+					case ReadFileIssue.unknown:
+						return "IDE is still loading file ";
+				}
+			}();
+			writeUri(writer, ctx, x.uri);
 		},
 		(in Diag.FunMissingBody) {
 			writer ~= "this function needs a body";

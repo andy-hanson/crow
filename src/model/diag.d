@@ -24,9 +24,11 @@ import model.model :
 import model.parseDiag : ParseDiag;
 import util.col.arr : empty;
 import util.opt : Opt;
-import util.sourceRange : RangeWithinFile, UriAndRange;
+import util.sourceRange : UriAndRange;
+import util.storage : ReadFileIssue;
 import util.sym : Sym;
 import util.union_ : Union;
+import util.uri : Uri;
 
 enum DiagSeverity {
 	unusedCode,
@@ -36,7 +38,7 @@ enum DiagSeverity {
 	// Severe error where a common fun (e.g. 'alloc') or type (e.g. 'void') is missing
 	commonMissing,
 	parseError,
-	fileNotFound,
+	fileIssue,
 }
 private bool isFatal(DiagSeverity a) =>
 	a >= DiagSeverity.commonMissing;
@@ -44,11 +46,6 @@ private bool isFatal(DiagSeverity a) =>
 immutable struct Diagnostic {
 	// Some diagnostics aren't associated with a file, like if a root file is missing
 	UriAndRange where;
-	Diag diag;
-}
-
-immutable struct DiagnosticWithinFile {
-	RangeWithinFile range;
 	Diag diag;
 }
 
@@ -200,6 +197,11 @@ immutable struct Diag {
 		StructDecl* struct_;
 	}
 	immutable struct ExternUnion {}
+	// This will be added for the file itself, and also at any imports.
+	immutable struct FileIssue {
+		Uri uri;
+		ReadFileIssue issue;
+	}
 	immutable struct FunMissingBody {}
 	immutable struct FunModifierTrustedOnNonExtern {}
 	immutable struct IfNeedsOpt {
@@ -427,6 +429,7 @@ immutable struct Diag {
 		ExternMissingLibraryName,
 		ExternRecordImplicitlyByVal,
 		ExternUnion,
+		FileIssue,
 		FunMissingBody,
 		FunModifierTrustedOnNonExtern,
 		IfNeedsOpt,

@@ -3,7 +3,6 @@ module model.parseDiag;
 @safe @nogc pure nothrow:
 
 import frontend.parse.lexer : Token;
-import util.storage : ReadFileIssue;
 import util.sym : Sym;
 import util.union_ : Union;
 import util.uri : Uri, RelPath;
@@ -45,10 +44,6 @@ immutable struct ParseDiag {
 			typeArgsEnd,
 		}
 		Kind kind;
-	}
-	immutable struct FileIssue {
-		Uri uri;
-		ReadFileIssue issue;
 	}
 	immutable struct FunctionTypeMissingParens {}
 	immutable struct ImportFileTypeNotSupported {}
@@ -101,7 +96,6 @@ immutable struct ParseDiag {
 	mixin Union!(
 		CircularImport,
 		Expected,
-		FileIssue,
 		FunctionTypeMissingParens,
 		ImportFileTypeNotSupported,
 		IndentNotDivisible,

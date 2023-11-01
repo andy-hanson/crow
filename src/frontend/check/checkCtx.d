@@ -160,7 +160,7 @@ UriAndRange rangeInFile(in CheckCtx ctx, RangeWithinFile range) =>
 	UriAndRange(ctx.curUri, range);
 
 void addDiag(ref CheckCtx ctx, UriAndRange range, Diag diag) {
-	addDiagnostic(ctx.alloc, ctx.diagsBuilder, range, diag);
+	addDiagnostic(ctx.diagsBuilder, range, diag);
 }
 
 void addDiag(ref CheckCtx ctx, RangeWithinFile range, Diag diag) {

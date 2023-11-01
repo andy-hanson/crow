@@ -238,7 +238,6 @@ StructDecl* getStructDeclOrAddDiag(
 		return force(res);
 	else {
 		addDiagnostic(
-			alloc,
 			diagsBuilder,
 			UriAndRange(module_.uri, RangeWithinFile.empty),
 			Diag(Diag.CommonTypeMissing(name)));
@@ -338,7 +337,7 @@ FunDeclAndSigIndex getFunDeclMulti(
 			signatureMatchesTemplate(*x, sig));
 		if (has(index)) {
 			if (lateIsSet(res))
-				addDiagnostic(alloc, diagsBuilder, x.range, Diag(Diag.CommonFunDuplicate(name)));
+				addDiagnostic(diagsBuilder, x.range, Diag(Diag.CommonFunDuplicate(name)));
 			else
 				lateSet(res, FunDeclAndSigIndex(x, force(index)));
 		}
@@ -347,7 +346,6 @@ FunDeclAndSigIndex getFunDeclMulti(
 		return lateGet(res);
 	else {
 		addDiagnostic(
-			alloc,
 			diagsBuilder,
 			UriAndRange(module_.uri, RangeWithinFile.empty),
 			Diag(Diag.CommonFunMissing(name, map(alloc, expectedSigs, (ref TypeParamsAndSig sig) =>

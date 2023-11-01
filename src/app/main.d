@@ -45,13 +45,13 @@ import lib.server :
 	printLowModel,
 	printModel,
 	printTokens,
-	ProgramsAndFilesInfo,
+	Programs,
 	Server,
 	setCwd,
 	setDiagOptions,
 	setIncludeDir,
 	showDiagnostics;
-import model.diag : diagnosticsIsEmpty, diagnosticsIsFatal;
+import model.diag : diagnosticsIsEmpty;
 import model.lowModel : ExternLibrary;
 import model.model : Program;
 version (Test) {
@@ -302,12 +302,13 @@ version (GccJitAvailable) { ExitCode buildAndJit(
 	in SafeCStr[] programArgs,
 ) {
 	loadAllFiles(perf, server, [main]);
-	ProgramsAndFilesInfo programs = buildToLowProgram(server.alloc, perf, server, versionInfoForJIT(), main);
+	Programs programs = buildToLowProgram(server.alloc, perf, server, versionInfoForJIT(), main);
 	if (!diagnosticsIsEmpty(programs.program.diagnostics))
 		printErr(showDiagnostics(server.alloc, server, programs.program));
-	return diagnosticsIsFatal(programs.program.diagnostics)
-		? ExitCode.error
-		: ExitCode(jitAndRun(server.alloc, perf, server.allSymbols, programs.lowProgram, jitOptions, programArgs));
+	return has(programs.lowProgram)
+		? ExitCode(jitAndRun(
+			server.alloc, perf, server.allSymbols, force(programs.lowProgram), jitOptions, programArgs))
+		: ExitCode.error;
 } }
 
 ExitCode help(in Command.Help a) {
