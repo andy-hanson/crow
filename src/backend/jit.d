@@ -94,7 +94,7 @@ import backend.mangle :
 	writeLowLocalName,
 	writeLowFunMangledName,
 	writeLowVarMangledName;
-import frontend.showDiag : ShowDiagCtx;
+import frontend.showModel : ShowCtx;
 import frontend.lang : JitOptions, OptimizationLevel;
 import model.constant : Constant, constantBool;
 import model.lowModel :
@@ -312,9 +312,9 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in AllSymbols all
 						import interpret.debugging : writeFunName, writeFunSig;
 						writer ~= "Stub ";
 						writer ~= funIndex.index;
-						writeFunName(writer, todo!ShowDiagCtx("!"), program, funIndex);
+						writeFunName(writer, todo!ShowCtx("!"), program, funIndex);
 						writer ~= ' ';
-						writeFunSig(writer, todo!ShowDiagCtx("!"), program, fun);
+						writeFunSig(writer, todo!ShowCtx("!"), program, fun);
 					});
 					gcc_jit_block_end_with_return(exprCtx.curBlock, null, arbitraryValue(exprCtx, expr.expr.type));
 				} else {

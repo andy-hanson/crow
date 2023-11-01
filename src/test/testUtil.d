@@ -2,7 +2,7 @@ module test.testUtil;
 
 @safe @nogc nothrow: // not pure
 
-import frontend.showDiag : ShowDiagCtx, ShowDiagOptions;
+import frontend.showModel : ShowCtx, ShowOptions;
 import interpret.bytecode : ByteCode, ByteCodeIndex, Operation;
 import interpret.debugInfo : showDataArr;
 import interpret.stacks : dataTempAsArr, returnTempAsArrReverse, Stacks;
@@ -39,7 +39,7 @@ pure void withShowDiagCtxForTest(
 	return scope ref Test test,
 	return scope ref Storage storage,
 	return in Program program,
-	in void delegate(scope ref ShowDiagCtx) @safe @nogc pure nothrow cb,
+	in void delegate(scope ref ShowCtx) @safe @nogc pure nothrow cb,
 ) {
 	withShowDiagCtxForTestImpl!cb(test, storage, program);
 }
@@ -48,7 +48,7 @@ void withShowDiagCtxForTestImpure(
 	return scope ref Test test,
 	return scope ref Storage storage,
 	return in Program program,
-	in void delegate(scope ref ShowDiagCtx) @safe @nogc nothrow cb,
+	in void delegate(scope ref ShowCtx) @safe @nogc nothrow cb,
 ) {
 	withShowDiagCtxForTestImpl!cb(test, storage, program);
 }
@@ -59,12 +59,12 @@ private void withShowDiagCtxForTestImpl(alias cb)(
 	return in Program program,
 ) {
 	LineAndColumnGetters lineAndColumnGetters = LineAndColumnGetters(test.allocPtr, &storage);
-	ShowDiagCtx ctx = ShowDiagCtx(
+	ShowCtx ctx = ShowCtx(
 		ptrTrustMe(test.allSymbols),
 		ptrTrustMe(test.allUris),
 		ptrTrustMe(lineAndColumnGetters),
 		UrisInfo(none!Uri),
-		ShowDiagOptions(false),
+		ShowOptions(false),
 		ptrTrustMe(program));
 	return cb(ctx);
 }

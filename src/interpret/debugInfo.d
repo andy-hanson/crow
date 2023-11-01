@@ -2,8 +2,7 @@ module interpret.debugInfo;
 
 @safe @nogc nothrow: // not pure (because of backtraceStringsStorage)
 
-import frontend.showDiag : ShowDiagCtx;
-import frontend.showModel : writeUriAndPos;
+import frontend.showModel : ShowCtx, writeUriAndPos;
 import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeSource, Operation;
 import interpret.debugging : writeFunName;
 import interpret.runBytecode : operationOpStopInterpretation;
@@ -24,11 +23,11 @@ import util.writer : debugLogWithWriter, finishWriterToSafeCStr, writeHex, Write
 
 struct InterpreterDebugInfo {
 	@safe @nogc pure nothrow:
-	ShowDiagCtx* showDiagPtr;
+	ShowCtx* showDiagPtr;
 	LowProgram* lowProgramPtr;
 	ByteCode* byteCodePtr;
 
-	ref inout(ShowDiagCtx) showDiag() inout return scope =>
+	ref inout(ShowCtx) showDiag() inout return scope =>
 		*showDiagPtr;
 	ref const(AllSymbols) allSymbols() const return scope =>
 		showDiag.allSymbols;
@@ -175,7 +174,7 @@ void showReturnStack(
 	writeFunNameAtByteCodePtr(writer, debugInfo, cur);
 }
 
-void writeByteCodeSource(ref Writer writer, ref ShowDiagCtx ctx, in LowProgram lowProgram, in ByteCodeSource source) {
+void writeByteCodeSource(ref Writer writer, ref ShowCtx ctx, in LowProgram lowProgram, in ByteCodeSource source) {
 	writeFunName(writer, ctx, lowProgram, source.fun);
 	writer ~= ' ';
 	Opt!Uri where = getUri(lowProgram, source.fun);

@@ -2,7 +2,7 @@ module test.testInterpreter;
 
 @safe @nogc nothrow: // not pure
 
-import frontend.showDiag : ShowDiagCtx;
+import frontend.showModel : ShowCtx;
 import interpret.applyFn : fnWrapAddIntegral;
 import interpret.bytecode :
 	ByteCode,
@@ -139,7 +139,7 @@ void doInterpret(
 		[]);
 	withFakeExtern!void(test.alloc, test.allSymbols, unreachableWriteCb, (scope ref Extern extern_) {
 		Storage storage = Storage(test.allocPtr);
-		withShowDiagCtxForTestImpure(test, storage, fakeProgramForTest, (ref ShowDiagCtx ctx) {
+		withShowDiagCtxForTestImpure(test, storage, fakeProgramForTest, (ref ShowCtx ctx) {
 			withInterpreter!void(test.alloc, extern_.doDynCall, ctx, lowProgram, byteCode, (ref Stacks stacks) {
 				runInterpreter(stacks, initialOperationPointer(byteCode));
 			});

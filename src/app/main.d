@@ -25,7 +25,7 @@ version (GccJitAvailable) {
 	import backend.jit : jitAndRun;
 }
 import frontend.lang : cExtension, JitOptions, OptimizationLevel;
-import frontend.showDiag : ShowDiagOptions;
+import frontend.showModel : ShowOptions;
 import interpret.extern_ : Extern;
 import lib.cliParser : BuildOptions, CCompileOptions, Command, hasAnyOut, parseCommand, PrintKind, RunOptions;
 import lib.server :
@@ -99,7 +99,7 @@ import versionInfo : versionInfoForJIT;
 	Server server = Server(Alloc(mem));
 	Uri cwd = toUri(server.allUris, getCwd(server.allUris));
 	setCwd(server, cwd);
-	setDiagOptions(server, ShowDiagOptions(true));
+	setDiagOptions(server, ShowOptions(true));
 	Command command = parseCommand(
 		server.alloc, server.allSymbols, server.allUris, cwd, cast(SafeCStr[]) argv[1 .. argc]);
 	int res = go(perf, server, command).value;

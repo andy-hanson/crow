@@ -2,7 +2,7 @@ module concretize.checkConcreteModel;
 
 @safe @nogc pure nothrow:
 
-import frontend.showDiag : ShowDiagCtx;
+import frontend.showModel : ShowCtx;
 import interpret.debugging : writeConcreteType;
 import model.concreteModel :
 	body_,
@@ -22,8 +22,8 @@ import util.ptr : ptrTrustMe;
 import util.util : debugLog, verify, verifyFail;
 import util.writer : finishWriterToCStr, Writer;
 
-void checkConcreteProgram(ref ShowDiagCtx showDiagCtx, in ConcreteCommonTypes types, in ConcreteProgram a) {
-	Ctx ctx = Ctx(ptrTrustMe(showDiagCtx), ptrTrustMe(types));
+void checkConcreteProgram(ref ShowCtx printCtx, in ConcreteCommonTypes types, in ConcreteProgram a) {
+	Ctx ctx = Ctx(ptrTrustMe(printCtx), ptrTrustMe(types));
 	foreach (ConcreteFun* fun; a.allFuns)
 		if (body_(*fun).isA!ConcreteExpr)
 			checkExpr(ctx, fun.returnType, body_(*fun).as!ConcreteExpr);
@@ -38,7 +38,7 @@ immutable struct ConcreteCommonTypes {
 private:
 
 struct Ctx {
-	ShowDiagCtx* showDiagCtx;
+	ShowCtx* printCtx;
 	ConcreteCommonTypes* types;
 }
 
@@ -152,9 +152,9 @@ void checkType(ref Ctx ctx, in ConcreteType expected, in ConcreteType actual) {
 		withStackAlloc!1024((ref Alloc alloc) {
 			Writer writer = Writer(&alloc);
 			writer ~= "expected ";
-			writeConcreteType(writer, *ctx.showDiagCtx, expected);
+			writeConcreteType(writer, *ctx.printCtx, expected);
 			writer ~= " but was ";
-			writeConcreteType(writer, *ctx.showDiagCtx, actual);
+			writeConcreteType(writer, *ctx.printCtx, actual);
 			debugLog(finishWriterToCStr(writer));
 		});
 		verifyFail();

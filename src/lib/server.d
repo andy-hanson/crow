@@ -14,7 +14,8 @@ import frontend.ide.getTokens : jsonOfTokens, Token, tokensOfAst;
 import frontend.parse.ast : FileAst;
 import frontend.parse.jsonOfAst : jsonOfAst;
 import frontend.parse.parse : parseFile;
-import frontend.showDiag : ShowDiagCtx, ShowDiagOptions, strOfDiagnostic, strOfDiagnostics;
+import frontend.showDiag : strOfDiagnostic, strOfDiagnostics;
+import frontend.showModel : ShowCtx, ShowOptions;
 import interpret.bytecode : ByteCode;
 import interpret.extern_ : Extern, ExternFunPtrsForAllLibraries, WriteError;
 import interpret.fakeExtern : Pipe, withFakeExtern, WriteCb;
@@ -101,9 +102,9 @@ ExitCode buildAndInterpret(
 			ByteCode byteCode = generateBytecode(
 				alloc, perf, server.allSymbols,
 				programs.program, programs.lowProgram, force(externFunPtrs), extern_.makeSyntheticFunPtrs);
-			ShowDiagCtx showDiagCtx = getShowDiagCtx(server, programs.program);
+			ShowCtx printCtx = getShowDiagCtx(server, programs.program);
 			return ExitCode(runBytecode(
-				perf, alloc, showDiagCtx, extern_.doDynCall, programs.lowProgram, byteCode, allArgs));
+				perf, alloc, printCtx, extern_.doDynCall, programs.lowProgram, byteCode, allArgs));
 		} else {
 			writeError(safeCStr!"Failed to load external libraries\n");
 			return ExitCode.error;
@@ -121,7 +122,7 @@ struct Server {
 	AllUris allUris;
 	private Late!Uri includeDir_;
 	private Late!UrisInfo urisInfo_;
-	private Late!ShowDiagOptions diagOptions_;
+	private Late!ShowOptions diagOptions_;
 	Storage storage;
 	LineAndColumnGetters lineAndColumnGetters;
 
@@ -137,7 +138,7 @@ struct Server {
 		lateGet(includeDir_);
 	ref UrisInfo urisInfo() return scope const =>
 		lateGet(urisInfo_);
-	ref ShowDiagOptions diagOptions() return scope const =>
+	ref ShowOptions diagOptions() return scope const =>
 		lateGet(diagOptions_);
 }
 
@@ -149,8 +150,8 @@ void setCwd(ref Server server, Uri uri) {
 	lateSet!UrisInfo(server.urisInfo_, UrisInfo(some(uri)));
 }
 
-void setDiagOptions(ref Server server, in ShowDiagOptions options) {
-	lateSet!ShowDiagOptions(server.diagOptions_, options);
+void setDiagOptions(ref Server server, in ShowOptions options) {
+	lateSet!ShowOptions(server.diagOptions_, options);
 }
 
 void addOrChangeFileFromTempString(ref Server server, Uri uri, in SafeCStr value) {
@@ -179,12 +180,12 @@ Program justTypeCheck(ref Alloc alloc, ref Perf perf, ref Server server, in Uri[
 	frontendCompile(alloc, perf, server, rootUris, none!Uri);
 
 SafeCStr showDiagnostic(ref Alloc alloc, scope ref Server server, in Program program, in Diagnostic a) {
-	ShowDiagCtx ctx = getShowDiagCtx(server, program);
+	ShowCtx ctx = getShowDiagCtx(server, program);
 	return strOfDiagnostic(alloc, ctx, a);
 }
 
 SafeCStr showDiagnostics(ref Alloc alloc, scope ref Server server, in Program program) {
-	ShowDiagCtx ctx = getShowDiagCtx(server, program);
+	ShowCtx ctx = getShowDiagCtx(server, program);
 	return strOfDiagnostics(alloc, ctx, program.diagnostics);
 }
 
@@ -243,7 +244,7 @@ ProgramAndDefinition getDefinition(ref Perf perf, ref Alloc alloc, ref Server se
 SafeCStr getHover(ref Perf perf, ref Alloc alloc, ref Server server, in Uri uri, Pos pos) {
 	Program program = getProgram(perf, alloc, server, uri);
 	Opt!Position position = getPosition(server, program, uri, pos);
-	ShowDiagCtx ctx = getShowDiagCtx(server, program);
+	ShowCtx ctx = getShowDiagCtx(server, program);
 	return has(position)
 		? getHoverStr(alloc, ctx, force(position))
 		: safeCStr!"";
@@ -301,7 +302,7 @@ DiagsAndResultJson printConcreteModel(
 	Uri uri,
 ) {
 	Program program = frontendCompile(alloc, perf, server, [uri], none!Uri);
-	ShowDiagCtx ctx = getShowDiagCtx(server, program);
+	ShowCtx ctx = getShowDiagCtx(server, program);
 	return diagsAndResultJson(
 		alloc, server, program,
 		jsonOfConcreteProgram(alloc, concretize(alloc, perf, ctx, versionInfo, program)));
@@ -315,7 +316,7 @@ DiagsAndResultJson printLowModel(
 	Uri uri,
 ) {
 	Program program = frontendCompile(alloc, perf, server, [uri], none!Uri);
-	ShowDiagCtx ctx = getShowDiagCtx(server, program);
+	ShowCtx ctx = getShowDiagCtx(server, program);
 	ConcreteProgram concreteProgram = concretize(alloc, perf, ctx, versionInfo, program);
 	LowProgram lowProgram = lower(alloc, perf, server.allSymbols, program.config.extern_, program, concreteProgram);
 	return diagsAndResultJson(alloc, server, program, jsonOfLowProgram(alloc, lowProgram));
@@ -335,7 +336,7 @@ ProgramsAndFilesInfo buildToLowProgram(
 	Uri main,
 ) {
 	Program program = frontendCompile(alloc, perf, server, [main], some(main));
-	ShowDiagCtx ctx = getShowDiagCtx(server, program);
+	ShowCtx ctx = getShowDiagCtx(server, program);
 	ConcreteProgram concreteProgram = concretize(alloc, perf, ctx, versionInfo, program);
 	LowProgram lowProgram = lower(alloc, perf, server.allSymbols, program.config.extern_, program, concreteProgram);
 	return ProgramsAndFilesInfo(program, concreteProgram, lowProgram);
@@ -348,7 +349,7 @@ immutable struct BuildToCResult {
 }
 BuildToCResult buildToC(ref Alloc alloc, ref Perf perf, ref Server server, Uri main) {
 	ProgramsAndFilesInfo programs = buildToLowProgram(alloc, perf, server, versionInfoForBuildToC, main);
-	ShowDiagCtx ctx = getShowDiagCtx(server, programs.program);
+	ShowCtx ctx = getShowDiagCtx(server, programs.program);
 	return BuildToCResult(
 		diagnosticsIsFatal(programs.program.diagnostics)
 			? safeCStr!""
@@ -359,8 +360,8 @@ BuildToCResult buildToC(ref Alloc alloc, ref Perf perf, ref Server server, Uri m
 
 private:
 
-ShowDiagCtx getShowDiagCtx(return scope ref Server server, return scope ref Program program) =>
-	ShowDiagCtx(
+ShowCtx getShowDiagCtx(return scope ref Server server, return scope ref Program program) =>
+	ShowCtx(
 		ptrTrustMe(server.allSymbols),
 		ptrTrustMe(server.allUris),
 		ptrTrustMe(server.lineAndColumnGetters),

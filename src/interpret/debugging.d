@@ -12,8 +12,7 @@ import model.concreteModel :
 	ConcreteType,
 	ReferenceKind,
 	symOfReferenceKind;
-import frontend.showDiag : ShowDiagCtx;
-import frontend.showModel : writeTypeArgs, writeTypeArgsGeneric;
+import frontend.showModel : ShowCtx, writeTypeArgs, writeTypeArgsGeneric;
 import model.lowModel :
 	AllLowTypes, LowFun, LowFunIndex, LowFunSource, LowProgram, LowType, PrimitiveType, symOfPrimitiveType;
 import model.model : decl, FunInst, name, Local, typeArgs;
@@ -21,11 +20,11 @@ import util.col.arr : only;
 import util.writer : Writer, writeWithCommas;
 import util.sym : writeSym;
 
-void writeFunName(ref Writer writer, ref ShowDiagCtx ctx, in LowProgram lowProgram, LowFunIndex fun) {
+void writeFunName(ref Writer writer, ref ShowCtx ctx, in LowProgram lowProgram, LowFunIndex fun) {
 	writeFunName(writer, ctx, lowProgram, lowProgram.allFuns[fun]);
 }
 
-void writeFunName(ref Writer writer, ref ShowDiagCtx ctx, in LowProgram lowProgram, in LowFun a) {
+void writeFunName(ref Writer writer, ref ShowCtx ctx, in LowProgram lowProgram, in LowFun a) {
 	a.source.matchIn!void(
 		(in ConcreteFun x) {
 			writeConcreteFunName(writer, ctx, x);
@@ -37,7 +36,7 @@ void writeFunName(ref Writer writer, ref ShowDiagCtx ctx, in LowProgram lowProgr
 		});
 }
 
-private void writeLowTypeArgs(ref Writer writer, ref ShowDiagCtx ctx, in LowProgram lowProgram, in LowType[] typeArgs) {
+private void writeLowTypeArgs(ref Writer writer, ref ShowCtx ctx, in LowProgram lowProgram, in LowType[] typeArgs) {
 	writeTypeArgsGeneric!LowType(writer, typeArgs,
 		(in LowType x) => false,
 		(in LowType typeArg) {
@@ -45,7 +44,7 @@ private void writeLowTypeArgs(ref Writer writer, ref ShowDiagCtx ctx, in LowProg
 		});
 }
 
-void writeFunSig(scope ref Writer writer, ref ShowDiagCtx ctx, in LowProgram lowProgram, in LowFun a) {
+void writeFunSig(scope ref Writer writer, ref ShowCtx ctx, in LowProgram lowProgram, in LowFun a) {
 	a.source.matchIn!void(
 		(in ConcreteFun x) {
 			writeConcreteType(writer, ctx, x.returnType);
@@ -74,7 +73,7 @@ void writeFunSig(scope ref Writer writer, ref ShowDiagCtx ctx, in LowProgram low
 		});
 }
 
-void writeLowType(scope ref Writer writer, ref ShowDiagCtx ctx, in AllLowTypes lowTypes, in LowType a) {
+void writeLowType(scope ref Writer writer, ref ShowCtx ctx, in AllLowTypes lowTypes, in LowType a) {
 	a.matchIn!void(
 		(in LowType.Extern) {
 			writer ~= "some extern type"; // TODO: more detail
@@ -108,7 +107,7 @@ void writeLowType(scope ref Writer writer, ref ShowDiagCtx ctx, in AllLowTypes l
 		});
 }
 
-void writeConcreteFunName(scope ref Writer writer, ref ShowDiagCtx ctx, in ConcreteFun a) {
+void writeConcreteFunName(scope ref Writer writer, ref ShowCtx ctx, in ConcreteFun a) {
 	a.source.matchIn!void(
 		(in FunInst it) {
 			writeSym(writer, ctx.allSymbols, it.name);
@@ -128,7 +127,7 @@ void writeConcreteFunName(scope ref Writer writer, ref ShowDiagCtx ctx, in Concr
 		});
 }
 
-void writeConcreteType(scope ref Writer writer, ref ShowDiagCtx ctx, in ConcreteType a) {
+void writeConcreteType(scope ref Writer writer, ref ShowCtx ctx, in ConcreteType a) {
 	writeConcreteStruct(writer, ctx, *a.struct_);
 	if (a.reference != ReferenceKind.byVal) {
 		writer ~= ' ';
@@ -138,7 +137,7 @@ void writeConcreteType(scope ref Writer writer, ref ShowDiagCtx ctx, in Concrete
 
 private:
 
-void writeConcreteStruct(scope ref Writer writer, ref ShowDiagCtx ctx, in ConcreteStruct a) {
+void writeConcreteStruct(scope ref Writer writer, ref ShowCtx ctx, in ConcreteStruct a) {
 	a.source.matchIn!void(
 		(in ConcreteStructSource.Bogus) {
 			writer ~= "BOGUS";

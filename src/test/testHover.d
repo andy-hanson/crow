@@ -6,7 +6,7 @@ import frontend.frontendCompile : frontendCompile;
 import frontend.ide.getDefinition : Definition, getDefinitionForPosition, jsonOfDefinition;
 import frontend.ide.getHover : getHoverStr;
 import frontend.ide.getPosition : getPosition, Position;
-import frontend.showDiag : ShowDiagCtx;
+import frontend.showModel : ShowCtx;
 import model.model : Module, Program;
 import test.testUtil : Test, withShowDiagCtxForTest;
 import util.alloc.alloc : Alloc;
@@ -34,7 +34,7 @@ private:
 void hoverTest(string crowFileName, string outputFileName)(ref Test test) {
 	SafeCStr content = safeCStr!(import("hover/" ~ crowFileName));
 	string expected = import(outputFileName);
-	withHoverTest!crowFileName(test, content, (ref ShowDiagCtx ctx, Module* module_) {
+	withHoverTest!crowFileName(test, content, (ref ShowCtx ctx, Module* module_) {
 		SafeCStr actual = jsonToStringPretty(
 			test.alloc, test.allSymbols, hoverResult(test.alloc, content, ctx, module_));
 		if (strOfSafeCStr(actual) != expected) {
@@ -50,7 +50,7 @@ void hoverTest(string crowFileName, string outputFileName)(ref Test test) {
 void withHoverTest(string fileName)(
 	ref Test test,
 	in SafeCStr content,
-	in void delegate(ref ShowDiagCtx, Module*) @safe @nogc pure nothrow cb,
+	in void delegate(ref ShowCtx, Module*) @safe @nogc pure nothrow cb,
 ) {
 	Uri uri = parseUri(test.allUris, "magic:" ~ fileName);
 	Storage storage = Storage(test.allocPtr);
@@ -59,7 +59,7 @@ void withHoverTest(string fileName)(
 		frontendCompile(
 			test.alloc, perf, test.alloc, test.allSymbols, test.allUris, storage,
 			parseUri(test.allUris, "magic:include"), [uri], none!Uri));
-	withShowDiagCtxForTest(test, storage, program, (ref ShowDiagCtx ctx) {
+	withShowDiagCtxForTest(test, storage, program, (ref ShowCtx ctx) {
 		cb(ctx, only(program.rootModules));
 	});
 }
@@ -78,7 +78,7 @@ immutable struct InfoAtPos {
 			optEqual!Definition(definition, b.definition);
 }
 
-Json hoverResult(ref Alloc alloc, in SafeCStr content, ref ShowDiagCtx ctx, Module* mainModule) {
+Json hoverResult(ref Alloc alloc, in SafeCStr content, ref ShowCtx ctx, Module* mainModule) {
 	ArrBuilder!Json parts;
 
 	// We combine ranges that have the same info.

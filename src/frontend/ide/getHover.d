@@ -3,7 +3,7 @@ module frontend.ide.getHover;
 @safe @nogc pure nothrow:
 
 import frontend.ide.getPosition : Position, PositionKind;
-import frontend.showDiag : ShowDiagCtx;
+import frontend.showModel : ShowCtx;
 import frontend.showModel : writeFile, writeFunInst, writeLineAndColumnRange, writeTypeUnquoted;
 import frontend.showModel : writeCalled;
 import model.model :
@@ -32,13 +32,13 @@ import util.sym : writeSym;
 import util.uri : Uri;
 import util.writer : finishWriterToSafeCStr, Writer;
 
-SafeCStr getHoverStr(ref Alloc alloc, ref ShowDiagCtx ctx, in Position pos) {
+SafeCStr getHoverStr(ref Alloc alloc, ref ShowCtx ctx, in Position pos) {
 	Writer writer = Writer(ptrTrustMe(alloc));
 	getHover(writer, ctx, pos);
 	return finishWriterToSafeCStr(writer);
 }
 
-void getHover(ref Writer writer, ref ShowDiagCtx ctx, in Position pos) =>
+void getHover(ref Writer writer, ref ShowCtx ctx, in Position pos) =>
 	pos.kind.matchIn!void(
 		(in PositionKind.None) {},
 		(in Expr x) {
@@ -95,7 +95,7 @@ void getHover(ref Writer writer, ref ShowDiagCtx ctx, in Position pos) =>
 
 private:
 
-void writeStructDeclHover(ref Writer writer, ref ShowDiagCtx ctx, in StructDecl a) {
+void writeStructDeclHover(ref Writer writer, ref ShowCtx ctx, in StructDecl a) {
 	writer ~= body_(a).matchIn!string(
 		(in StructBody.Bogus) =>
 			"type ",
@@ -114,16 +114,16 @@ void writeStructDeclHover(ref Writer writer, ref ShowDiagCtx ctx, in StructDecl 
 	writeSym(writer, ctx.allSymbols, a.name);
 }
 
-void getImportedNameHover(ref Writer writer, ref ShowDiagCtx ctx, in PositionKind.ImportedName) {
+void getImportedNameHover(ref Writer writer, ref ShowCtx ctx, in PositionKind.ImportedName) {
 	writer ~= "TODO: getImportedNameHover";
 }
 
-void hoverTypeParam(ref Writer writer, ref ShowDiagCtx ctx, in TypeParam a) {
+void hoverTypeParam(ref Writer writer, ref ShowCtx ctx, in TypeParam a) {
 	writer ~= "type parameter ";
 	writeSym(writer, ctx.allSymbols, a.name);
 }
 
-void getExprHover(ref Writer writer, ref ShowDiagCtx ctx, in Uri curUri, in Expr a) =>
+void getExprHover(ref Writer writer, ref ShowCtx ctx, in Uri curUri, in Expr a) =>
 	a.kind.matchIn!void(
 		(in ExprKind.AssertOrForbid x) {
 			writer ~= "throws if the condition is ";
@@ -217,20 +217,20 @@ void getExprHover(ref Writer writer, ref ShowDiagCtx ctx, in Uri curUri, in Expr
 			writer ~= "throws an exception";
 		});
 
-void closureRefHover(ref Writer writer, ref ShowDiagCtx ctx, in ClosureRef a) {
+void closureRefHover(ref Writer writer, ref ShowCtx ctx, in ClosureRef a) {
 	writer ~= "closure variable ";
 	writeSym(writer, ctx.allSymbols, a.name);
 	writer ~= ' ';
 	writeTypeUnquoted(writer, ctx, a.type);
 }
 
-void localHover(ref Writer writer, ref ShowDiagCtx ctx, in Local a) {
+void localHover(ref Writer writer, ref ShowCtx ctx, in Local a) {
 	writeSym(writer, ctx.allSymbols, a.name);
 	writer ~= ' ';
 	writeTypeUnquoted(writer, ctx, a.type);
 }
 
-void writeLoop(ref Writer writer, ref ShowDiagCtx ctx, Uri curUri, in ExprKind.Loop a) {
+void writeLoop(ref Writer writer, ref ShowCtx ctx, Uri curUri, in ExprKind.Loop a) {
 	writer ~= "loop at ";
 	writeLineAndColumnRange(writer, lineAndColumnRange(ctx.lineAndColumnGetters, UriAndRange(curUri, a.range)));
 }

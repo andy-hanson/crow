@@ -14,7 +14,7 @@ import backend.mangle :
 	writeRecordName,
 	writeStructMangledName;
 import backend.writeTypes : ElementAndCount, TypeWriters, writeTypes;
-import frontend.showDiag : ShowDiagCtx;
+import frontend.showModel : ShowCtx;
 import interpret.debugging : writeFunName, writeFunSig;
 import lower.lowExprHelpers : boolType;
 import model.concreteModel : body_, BuiltinStructKind, ConcreteStruct, ConcreteStructBody, TypeSize, typeSize;
@@ -70,7 +70,7 @@ import util.writer :
 	writeWithCommas,
 	writeWithCommasZip;
 
-SafeCStr writeToC(ref Alloc alloc, ref TempAlloc tempAlloc, ref ShowDiagCtx showDiagCtx, in LowProgram program) {
+SafeCStr writeToC(ref Alloc alloc, ref TempAlloc tempAlloc, ref ShowCtx printCtx, in LowProgram program) {
 	Writer writer = Writer(ptrTrustMe(alloc));
 
 	writer ~= "#include <tgmath.h>\n"; // Implements functions in 'tgmath.crow'
@@ -83,7 +83,7 @@ SafeCStr writeToC(ref Alloc alloc, ref TempAlloc tempAlloc, ref ShowDiagCtx show
 	}
 
 	Ctx ctx = Ctx(
-		ptrTrustMe(showDiagCtx), ptrTrustMe(program), buildMangledNames(alloc, showDiagCtx.allSymbolsPtr, program));
+		ptrTrustMe(printCtx), ptrTrustMe(program), buildMangledNames(alloc, printCtx.allSymbolsPtr, program));
 
 	writeStructs(alloc, writer, ctx);
 
@@ -210,11 +210,11 @@ void declareConstantPointerStorage(
 struct Ctx {
 	@safe @nogc pure nothrow:
 
-	ShowDiagCtx* showDiagCtxPtr;
+	ShowCtx* showDiagCtxPtr;
 	LowProgram* programPtr;
 	MangledNames mangledNames;
 
-	ref ShowDiagCtx showDiagCtx() return scope =>
+	ref ShowCtx printCtx() return scope =>
 		*showDiagCtxPtr;
 	ref LowProgram program() return scope const =>
 		*programPtr;
@@ -497,9 +497,9 @@ void writeFunDefinition(
 		(in LowFunExprBody x) {
 			// TODO: only if a flag is set
 			writer ~= "/* ";
-			writeFunName(writer, ctx.showDiagCtx, ctx.program, funIndex);
+			writeFunName(writer, ctx.printCtx, ctx.program, funIndex);
 			writer ~= ' ';
-			writeFunSig(writer, ctx.showDiagCtx, ctx.program, fun);
+			writeFunSig(writer, ctx.printCtx, ctx.program, fun);
 			writer ~= " */\n";
 			writeFunWithExprBody(writer, tempAlloc, ctx, funIndex, fun, x);
 		});

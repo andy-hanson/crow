@@ -4,6 +4,7 @@ module frontend.showDiag;
 
 import frontend.parse.lexer : Token;
 import frontend.showModel :
+	ShowCtx,
 	writeCalledDecls,
 	writeCalleds,
 	writeFunDecl,
@@ -29,7 +30,6 @@ import model.model :
 	name,
 	nTypeParams,
 	Params,
-	Program,
 	range,
 	SpecDecl,
 	SpecDeclSig,
@@ -43,12 +43,11 @@ import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : empty, only;
 import util.col.arrUtil : exists;
 import util.col.str : SafeCStr;
-import util.lineAndColumnGetter : LineAndColumnGetters;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : ptrTrustMe;
 import util.storage : ReadFileIssue;
-import util.sym : AllSymbols, Sym, writeSym;
-import util.uri : AllUris, baseName, UrisInfo, writeRelPath, writeUri;
+import util.sym : Sym, writeSym;
+import util.uri : baseName, writeRelPath, writeUri;
 import util.util : unreachable;
 import util.writer :
 	finishWriterToSafeCStr,
@@ -60,31 +59,7 @@ import util.writer :
 	writeWithSeparator,
 	Writer;
 
-struct ShowDiagCtx {
-	@safe @nogc pure nothrow:
-
-	const AllSymbols* allSymbolsPtr;
-	const AllUris* allUrisPtr;
-	LineAndColumnGetters* lineAndColumnGettersPtr;
-	UrisInfo urisInfo;
-	ShowDiagOptions options;
-	immutable Program* programPtr;
-
-	ref const(AllSymbols) allSymbols() return scope const =>
-		*allSymbolsPtr;
-	ref const(AllUris) allUris() return scope const =>
-		*allUrisPtr;
-	ref Program program() return scope const =>
-		*programPtr;
-	ref LineAndColumnGetters lineAndColumnGetters() return scope =>
-		*lineAndColumnGettersPtr;
-}
-
-immutable struct ShowDiagOptions {
-	bool color;
-}
-
-SafeCStr strOfDiagnostics(ref Alloc alloc, scope ref ShowDiagCtx ctx, in Diagnostics diagnostics) {
+SafeCStr strOfDiagnostics(ref Alloc alloc, scope ref ShowCtx ctx, in Diagnostics diagnostics) {
 	Writer writer = Writer(ptrTrustMe(alloc));
 	writeWithNewlines!Diagnostic(writer, diagnostics.diags, (in Diagnostic x) {
 		showDiagnostic(alloc, writer, ctx, x);
@@ -92,7 +67,7 @@ SafeCStr strOfDiagnostics(ref Alloc alloc, scope ref ShowDiagCtx ctx, in Diagnos
 	return finishWriterToSafeCStr(writer);
 }
 
-SafeCStr strOfDiagnostic(ref Alloc alloc, scope ref ShowDiagCtx ctx, in Diagnostic diagnostic) {
+SafeCStr strOfDiagnostic(ref Alloc alloc, scope ref ShowCtx ctx, in Diagnostic diagnostic) {
 	Writer writer = Writer(ptrTrustMe(alloc));
 	showDiagnostic(alloc, writer, ctx, diagnostic);
 	return finishWriterToSafeCStr(writer);
@@ -100,7 +75,7 @@ SafeCStr strOfDiagnostic(ref Alloc alloc, scope ref ShowDiagCtx ctx, in Diagnost
 
 private:
 
-void writeUnusedDiag(ref Writer writer, scope ref ShowDiagCtx ctx, in Diag.Unused a) {
+void writeUnusedDiag(ref Writer writer, scope ref ShowCtx ctx, in Diag.Unused a) {
 	a.kind.matchIn!void(
 		(in Diag.Unused.Kind.Import x) {
 			if (has(x.importedName)) {
@@ -129,7 +104,7 @@ void writeUnusedDiag(ref Writer writer, scope ref ShowDiagCtx ctx, in Diag.Unuse
 		});
 }
 
-void writeParseDiag(ref Writer writer, scope ref ShowDiagCtx ctx, in ParseDiag d) {
+void writeParseDiag(ref Writer writer, scope ref ShowCtx ctx, in ParseDiag d) {
 	d.matchIn!void(
 		(in ParseDiag.CircularImport x) {
 			writer ~= "circular import from ";
@@ -344,14 +319,14 @@ void showChar(scope ref Writer writer, char c) {
 	}
 }
 
-void writeSpecTrace(ref Writer writer, scope ref ShowDiagCtx ctx, in FunDeclAndTypeArgs[] trace) {
+void writeSpecTrace(ref Writer writer, scope ref ShowCtx ctx, in FunDeclAndTypeArgs[] trace) {
 	foreach (FunDeclAndTypeArgs x; trace) {
 		writer ~= "\n\t";
 		writeFunDeclAndTypeArgs(writer, ctx, x);
 	}
 }
 
-void writeCallNoMatch(ref Writer writer, scope ref ShowDiagCtx ctx, in Diag.CallNoMatch d) {
+void writeCallNoMatch(ref Writer writer, scope ref ShowCtx ctx, in Diag.CallNoMatch d) {
 	bool someCandidateHasCorrectNTypeArgs =
 		d.actualNTypeArgs == 0 ||
 		exists!CalledDecl(d.allCandidates, (in CalledDecl c) =>
@@ -417,7 +392,7 @@ void writeCallNoMatch(ref Writer writer, scope ref ShowDiagCtx ctx, in Diag.Call
 	}
 }
 
-void writeDiag(ref TempAlloc tempAlloc, ref Writer writer, scope ref ShowDiagCtx ctx, in Diag diag) {
+void writeDiag(ref TempAlloc tempAlloc, ref Writer writer, scope ref ShowCtx ctx, in Diag diag) {
 	diag.matchIn!void(
 		(in Diag.AssignmentNotAllowed) {
 			writer ~= "can't assign to this kind of expression";
@@ -928,14 +903,14 @@ void writeDiag(ref TempAlloc tempAlloc, ref Writer writer, scope ref ShowDiagCtx
 		});
 }
 
-void showDiagnostic(ref TempAlloc tempAlloc, ref Writer writer, scope ref ShowDiagCtx ctx, in Diagnostic diag) {
+void showDiagnostic(ref TempAlloc tempAlloc, ref Writer writer, scope ref ShowCtx ctx, in Diagnostic diag) {
 	writeUriAndRange(writer, ctx, diag.where);
 	writer ~= ' ';
 	writeDiag(tempAlloc, writer, ctx, diag.diag);
 	writeNewline(writer);
 }
 
-void writeExpected(ref Writer writer, scope ref ShowDiagCtx ctx, in ExpectedForDiag a) {
+void writeExpected(ref Writer writer, scope ref ShowCtx ctx, in ExpectedForDiag a) {
 	a.matchIn!void(
 		(in Type[] types) {
 			if (types.length == 1) {

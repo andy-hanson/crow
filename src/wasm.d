@@ -2,7 +2,7 @@
 
 import frontend.ide.getDefinition : jsonOfDefinition;
 import frontend.ide.getTokens : jsonOfTokens;
-import frontend.showDiag : ShowDiagOptions;
+import frontend.showModel : ShowOptions;
 import interpret.fakeExtern : Pipe;
 import lib.server :
 	addOrChangeFileFromTempString,
@@ -15,10 +15,10 @@ import lib.server :
 	ProgramAndDefinition,
 	run,
 	Server,
-	showDiagnostic,
 	setCwd,
 	setDiagOptions,
 	setIncludeDir,
+	showDiagnostic,
 	TokensAndParseDiagnostics,
 	toUri,
 	typeCheckAllKnownFiles;
@@ -81,7 +81,7 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 	server.__ctor(alloc.move());
 	setIncludeDir(*server, parseUri(server.allUris, SafeCStr(includeDir)));
 	setCwd(*server, parseUri(server.allUris, SafeCStr(cwd)));
-	setDiagOptions(*server, ShowDiagOptions(false));
+	setDiagOptions(*server, ShowOptions(false));
 	return server;
 }
 

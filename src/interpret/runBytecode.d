@@ -2,7 +2,7 @@ module interpret.runBytecode;
 
 @nogc nothrow: // not @safe, not pure
 
-import frontend.showDiag : ShowDiagCtx;
+import frontend.showModel : ShowCtx;
 import interpret.bytecode :
 	ByteCode, ByteCodeOffset, ByteCodeOffsetUnsigned, FunPtrToOperationPtr, initialOperationPointer, Operation;
 import interpret.debugInfo : BacktraceEntry, fillBacktrace, InterpreterDebugInfo, printDebugInfo;
@@ -44,13 +44,13 @@ import util.util : debugLog, divRoundUp, drop, unreachable, verify;
 @safe int runBytecode(
 	scope ref Perf perf,
 	ref Alloc alloc, // for thread locals
-	scope ref ShowDiagCtx showDiagCtx,
+	scope ref ShowCtx printCtx,
 	in DoDynCall doDynCall,
 	in LowProgram lowProgram,
 	in ByteCode byteCode,
 	in SafeCStr[] allArgs,
 ) =>
-	withInterpreter!int(alloc, doDynCall, showDiagCtx, lowProgram, byteCode, (ref Stacks stacks) {
+	withInterpreter!int(alloc, doDynCall, printCtx, lowProgram, byteCode, (ref Stacks stacks) {
 		dataPush(stacks, allArgs.length);
 		dataPush(stacks, cast(ulong) allArgs.ptr);
 		return withMeasureNoAlloc!(int, () @trusted =>
@@ -109,13 +109,13 @@ void stepUntilBreak(ref Stacks stacks, ref Operation* operation) {
 @safe T withInterpreter(T)(
 	ref Alloc alloc,
 	in DoDynCall doDynCall_,
-	ref ShowDiagCtx showDiagCtx,
+	ref ShowCtx printCtx,
 	in LowProgram lowProgram,
 	in ByteCode byteCode,
 	in T delegate(ref Stacks) @nogc nothrow cb,
 ) {
 	InterpreterDebugInfo debugInfo = InterpreterDebugInfo(
-		ptrTrustMe(showDiagCtx), ptrTrustMe(lowProgram), ptrTrustMe(byteCode));
+		ptrTrustMe(printCtx), ptrTrustMe(lowProgram), ptrTrustMe(byteCode));
 	setGlobals(InterpreterGlobals(
 		ptrTrustMe(debugInfo),
 		castNonScope_ref(byteCode).funPtrToOperationPtr,

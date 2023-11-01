@@ -3,7 +3,6 @@ module frontend.showModel;
 @safe @nogc pure nothrow:
 
 import frontend.check.typeFromAst : typeSyntaxKind;
-import frontend.showDiag : ShowDiagCtx;
 import model.diag : Diag;
 import model.model :
 	Called,
@@ -19,6 +18,7 @@ import model.model :
 	name,
 	Params,
 	ParamShort,
+	Program,
 	Purity,
 	ReturnAndParamTypes,
 	StructInst,
@@ -28,14 +28,39 @@ import model.model :
 	TypeParam,
 	TypeParamsAndSig;
 import util.col.arr : empty, only, only2, sizeEq;
-import util.lineAndColumnGetter : lineAndColumnAtPos, LineAndColumn, LineAndColumnRange, lineAndColumnRange, PosKind;
+import util.lineAndColumnGetter :
+	lineAndColumnAtPos, LineAndColumn, LineAndColumnGetters, LineAndColumnRange, lineAndColumnRange, PosKind;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : UriAndPos, UriAndRange;
-import util.sym : Sym, writeSym;
-import util.uri : Uri, writeUri, writeUriPreferRelative;
+import util.sym : AllSymbols, Sym, writeSym;
+import util.uri : AllUris, Uri, UrisInfo, writeUri, writeUriPreferRelative;
 import util.util : verify;
 import util.writer :
 	writeBold, writeHyperlink, writeNewline, writeRed, writeReset, writeWithCommas, writeWithCommasZip, Writer;
+
+struct ShowCtx {
+	@safe @nogc pure nothrow:
+
+	const AllSymbols* allSymbolsPtr;
+	const AllUris* allUrisPtr;
+	LineAndColumnGetters* lineAndColumnGettersPtr;
+	UrisInfo urisInfo;
+	ShowOptions options;
+	immutable Program* programPtr;
+
+	ref const(AllSymbols) allSymbols() return scope const =>
+		*allSymbolsPtr;
+	ref const(AllUris) allUris() return scope const =>
+		*allUrisPtr;
+	ref Program program() return scope const =>
+		*programPtr;
+	ref LineAndColumnGetters lineAndColumnGetters() return scope =>
+		*lineAndColumnGettersPtr;
+}
+
+immutable struct ShowOptions {
+	bool color;
+}
 
 void writeLineAndColumnRange(ref Writer writer, in LineAndColumnRange a) {
 	writeLineAndColumn(writer, a.start);
@@ -49,7 +74,7 @@ private void writeLineAndColumn(ref Writer writer, LineAndColumn lc) {
 	writer ~= lc.column + 1;
 }
 
-void writeCalled(ref Writer writer, scope ref ShowDiagCtx ctx, in Called a) {
+void writeCalled(ref Writer writer, scope ref ShowCtx ctx, in Called a) {
 	a.matchIn!void(
 		(in FunInst x) {
 			writeFunInst(writer, ctx, x);
@@ -59,7 +84,7 @@ void writeCalled(ref Writer writer, scope ref ShowDiagCtx ctx, in Called a) {
 		});
 }
 
-private void writeCalledDecl(ref Writer writer, scope ref ShowDiagCtx ctx, in CalledDecl a) {
+private void writeCalledDecl(ref Writer writer, scope ref ShowCtx ctx, in CalledDecl a) {
 	a.matchIn!void(
 		(in FunDecl x) {
 			writeFunDecl(writer, ctx, x);
@@ -71,7 +96,7 @@ private void writeCalledDecl(ref Writer writer, scope ref ShowDiagCtx ctx, in Ca
 
 void writeCalledDecls(
 	ref Writer writer,
-	scope ref ShowDiagCtx ctx,
+	scope ref ShowCtx ctx,
 	in CalledDecl[] cs,
 	in bool delegate(in CalledDecl) @safe @nogc pure nothrow filter = (in _) => true,
 ) {
@@ -83,7 +108,7 @@ void writeCalledDecls(
 		}
 }
 
-void writeCalleds(ref Writer writer, scope ref ShowDiagCtx ctx, in Called[] cs) {
+void writeCalleds(ref Writer writer, scope ref ShowCtx ctx, in Called[] cs) {
 	foreach (ref Called x; cs) {
 		writeNewline(writer);
 		writer ~= '\t';
@@ -91,7 +116,7 @@ void writeCalleds(ref Writer writer, scope ref ShowDiagCtx ctx, in Called[] cs) 
 	}
 }
 
-private void writeCalledSpecSig(ref Writer writer, scope ref ShowDiagCtx ctx, in CalledSpecSig x) {
+private void writeCalledSpecSig(ref Writer writer, scope ref ShowCtx ctx, in CalledSpecSig x) {
 	writeSig(writer, ctx, x.name, x.returnType, Params(x.nonInstantiatedSig.params), some(x.instantiatedSig));
 	writer ~= " (from spec ";
 	writeName(writer, ctx, name(*x.specInst));
@@ -100,7 +125,7 @@ private void writeCalledSpecSig(ref Writer writer, scope ref ShowDiagCtx ctx, in
 
 private void writeTypeParamsAndArgs(
 	ref Writer writer,
-	scope ref ShowDiagCtx ctx,
+	scope ref ShowCtx ctx,
 	in TypeParam[] typeParams,
 	in Type[] typeArgs,
 ) {
@@ -115,29 +140,29 @@ private void writeTypeParamsAndArgs(
 	}
 }
 
-void writeFunDecl(ref Writer writer, scope ref ShowDiagCtx ctx, in FunDecl a) {
+void writeFunDecl(ref Writer writer, scope ref ShowCtx ctx, in FunDecl a) {
 	writeSig(writer, ctx, a.name, a.returnType, a.params, none!ReturnAndParamTypes);
 	writeFunDeclLocation(writer, ctx, a);
 }
 
-void writeFunDeclAndTypeArgs(ref Writer writer, scope ref ShowDiagCtx ctx, in FunDeclAndTypeArgs a) {
+void writeFunDeclAndTypeArgs(ref Writer writer, scope ref ShowCtx ctx, in FunDeclAndTypeArgs a) {
 	writeSym(writer, ctx.allSymbols, a.decl.name);
 	writeTypeArgs(writer, ctx, a.typeArgs);
 	writeFunDeclLocation(writer, ctx, *a.decl);
 }
 
-void writeFunInst(ref Writer writer, scope ref ShowDiagCtx ctx, in FunInst a) {
+void writeFunInst(ref Writer writer, scope ref ShowCtx ctx, in FunInst a) {
 	writeFunDecl(writer, ctx, *decl(a));
 	writeTypeParamsAndArgs(writer, ctx, decl(a).typeParams, typeArgs(a));
 }
 
-private void writeFunDeclLocation(ref Writer writer, scope ref ShowDiagCtx ctx, in FunDecl funDecl) {
+private void writeFunDeclLocation(ref Writer writer, scope ref ShowCtx ctx, in FunDecl funDecl) {
 	writer ~= " (from ";
 	writeLineNumber(writer, ctx, funDecl.fileAndPos);
 	writer ~= ')';
 }
 
-private void writeLineNumber(ref Writer writer, scope ref ShowDiagCtx ctx, in UriAndPos pos) {
+private void writeLineNumber(ref Writer writer, scope ref ShowCtx ctx, in UriAndPos pos) {
 	if (ctx.options.color)
 		writeBold(writer);
 	writeUri(writer, ctx, pos.uri);
@@ -150,7 +175,7 @@ private void writeLineNumber(ref Writer writer, scope ref ShowDiagCtx ctx, in Ur
 
 void writeSig(
 	ref Writer writer,
-	scope ref ShowDiagCtx ctx,
+	scope ref ShowCtx ctx,
 	Sym name,
 	in Type returnType,
 	in Params params,
@@ -184,7 +209,7 @@ void writeSig(
 	writer ~= ')';
 }
 
-void writeSigSimple(ref Writer writer, scope ref ShowDiagCtx ctx, Sym name, in TypeParamsAndSig sig) {
+void writeSigSimple(ref Writer writer, scope ref ShowCtx ctx, Sym name, in TypeParamsAndSig sig) {
 	writeSym(writer, ctx.allSymbols, name);
 	if (!empty(sig.typeParams)) {
 		writer ~= '[';
@@ -206,7 +231,7 @@ void writeSigSimple(ref Writer writer, scope ref ShowDiagCtx ctx, Sym name, in T
 
 private void writeDestructure(
 	ref Writer writer,
-	scope ref ShowDiagCtx ctx,
+	scope ref ShowCtx ctx,
 	in Destructure a,
 	in Opt!Type instantiated,
 ) {
@@ -231,7 +256,7 @@ private void writeDestructure(
 		});
 }
 
-void writeStructInst(scope ref Writer writer, scope ref ShowDiagCtx ctx, in StructInst s) {
+void writeStructInst(scope ref Writer writer, scope ref ShowCtx ctx, in StructInst s) {
 	void fun(string keyword) @safe {
 		writer ~= keyword;
 		writer ~= ' ';
@@ -301,7 +326,7 @@ void writeStructInst(scope ref Writer writer, scope ref ShowDiagCtx ctx, in Stru
 	}
 }
 
-private void writeTupleType(scope ref Writer writer, scope ref ShowDiagCtx ctx, in Type[] members) {
+private void writeTupleType(scope ref Writer writer, scope ref ShowCtx ctx, in Type[] members) {
 	writer ~= '(';
 	writeWithCommas!Type(writer, members, (in Type arg) {
 		writeTypeUnquoted(writer, ctx, arg);
@@ -327,7 +352,7 @@ void writeTypeArgsGeneric(T)(
 	}
 }
 
-void writeTypeArgs(scope ref Writer writer, scope ref ShowDiagCtx ctx, in Type[] types) {
+void writeTypeArgs(scope ref Writer writer, scope ref ShowCtx ctx, in Type[] types) {
 	writeTypeArgsGeneric!Type(writer, types,
 		(in Type x) =>
 			!x.isA!(StructInst*) || empty(typeArgs(*x.as!(StructInst*))),
@@ -336,13 +361,13 @@ void writeTypeArgs(scope ref Writer writer, scope ref ShowDiagCtx ctx, in Type[]
 		});
 }
 
-void writeTypeQuoted(scope ref Writer writer, scope ref ShowDiagCtx ctx, in Type a) {
+void writeTypeQuoted(scope ref Writer writer, scope ref ShowCtx ctx, in Type a) {
 	writer ~= '\'';
 	writeTypeUnquoted(writer, ctx, a);
 	writer ~= '\'';
 }
 
-void writeTypeUnquoted(scope ref Writer writer, scope ref ShowDiagCtx ctx, in Type a) {
+void writeTypeUnquoted(scope ref Writer writer, scope ref ShowCtx ctx, in Type a) {
 	a.matchIn!void(
 		(in Type.Bogus) {
 			writer ~= "<<bogus>>";
@@ -355,17 +380,17 @@ void writeTypeUnquoted(scope ref Writer writer, scope ref ShowDiagCtx ctx, in Ty
 		});
 }
 
-void writePurity(ref Writer writer, in ShowDiagCtx ctx, Purity p) {
+void writePurity(ref Writer writer, in ShowCtx ctx, Purity p) {
 	writeName(writer, ctx, symOfPurity(p));
 }
 
-void writeName(scope ref Writer writer, in ShowDiagCtx ctx, Sym name) {
+void writeName(scope ref Writer writer, in ShowCtx ctx, Sym name) {
 	writer ~= '\'';
 	writeSym(writer, ctx.allSymbols, name);
 	writer ~= '\'';
 }
 
-void writeUriAndRange(ref Writer writer, scope ref ShowDiagCtx ctx, in UriAndRange where) {
+void writeUriAndRange(ref Writer writer, scope ref ShowCtx ctx, in UriAndRange where) {
 	writeFileNoResetWriter(writer, ctx, where.uri);
 	if (where.uri != Uri.empty)
 		writeLineAndColumnRange(writer, lineAndColumnRange(ctx.lineAndColumnGetters, where));
@@ -373,7 +398,7 @@ void writeUriAndRange(ref Writer writer, scope ref ShowDiagCtx ctx, in UriAndRan
 		writeReset(writer);
 }
 
-void writeUriAndPos(ref Writer writer, scope ref ShowDiagCtx ctx, in UriAndPos where) {
+void writeUriAndPos(ref Writer writer, scope ref ShowCtx ctx, in UriAndPos where) {
 	writeFileNoResetWriter(writer, ctx, where.uri);
 	if (where.uri != Uri.empty)
 		writeLineAndColumn(writer, lineAndColumnAtPos(ctx.lineAndColumnGetters, where, PosKind.startOfRange));
@@ -381,17 +406,17 @@ void writeUriAndPos(ref Writer writer, scope ref ShowDiagCtx ctx, in UriAndPos w
 		writeReset(writer);
 }
 
-void writeFile(ref Writer writer, in ShowDiagCtx ctx, Uri uri) {
+void writeFile(ref Writer writer, in ShowCtx ctx, Uri uri) {
 	writeFileNoResetWriter(writer, ctx, uri);
 	if (ctx.options.color)
 		writeReset(writer);
 }
 
-void writeUri(ref Writer writer, in ShowDiagCtx ctx, Uri uri) {
+void writeUri(ref Writer writer, in ShowCtx ctx, Uri uri) {
 	writeUriPreferRelative(writer, ctx.allUris, ctx.urisInfo, uri);
 }
 
-private void writeFileNoResetWriter(ref Writer writer, in ShowDiagCtx ctx, Uri uri) {
+private void writeFileNoResetWriter(ref Writer writer, in ShowCtx ctx, Uri uri) {
 	if (ctx.options.color)
 		writeBold(writer);
 
