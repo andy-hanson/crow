@@ -2,6 +2,9 @@ module frontend.parse.lexUtil;
 
 @safe @nogc pure nothrow:
 
+bool isDecimalDigit(char c) =>
+	'0' <= c && c <= '9';
+
 bool isWhitespace(char a) {
 	switch (a) {
 		case ' ':

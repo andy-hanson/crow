@@ -1,9 +1,6 @@
 exit code: 0
 stderr:
 test/compile-errors/modifier-conflict.crow 4:17-4:20 'mut' conflicts with 'data'
-
 test/compile-errors/modifier-conflict.crow 6:16-6:22 'shared' conflicts with 'mut'
-
 test/compile-errors/modifier-conflict.crow 8:26-8:32 'shared' conflicts with 'force-shared'
-
 test/compile-errors/modifier-conflict.crow 10:21-10:27 'by-val' conflicts with 'by-ref'

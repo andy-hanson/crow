@@ -2,14 +2,15 @@
 /** @typedef {import("vscode").DocumentSemanticTokensProvider} DocumentSemanticTokensProvider */
 /** @typedef {import("vscode").ExtensionContext} ExtensionContext */
 /** @typedef {import("vscode").TextDocument} TextDocument */
-const {languages, SemanticTokens, SemanticTokensBuilder, SemanticTokensLegend} = require("vscode")
+const {languages, SemanticTokens, Uri, workspace} = require("vscode")
 /** @typedef {import("vscode-languageclient").LanguageClientOptions} LanguageClientOptions */
 /** @typedef {import("vscode-languageclient/lib/node/main.js").ServerOptions} ServerOptions */
 const {LanguageClient, TransportKind} = require("vscode-languageclient/lib/node/main.js")
 
 const {makeCompiler} = require("../server/util.js")
+const {crowSemanticTokensLegend, getTokens} = require("./tokens.js")
 
-/** @type {LanguageClient | undefined} */
+/** @type {LanguageClient} */
 let client
 
 /** @type {function(ExtensionContext): void} */
@@ -40,102 +41,43 @@ exports.activate = context => {
 	client.start()
 
 	context.subscriptions.push(
-		languages.registerDocumentSemanticTokensProvider({language:"crow"}, crowSemanticTokensProvider, legend))
+		languages.registerDocumentSemanticTokensProvider(
+			{language:"crow"},
+			crowSemanticTokensProvider,
+			crowSemanticTokensLegend))
+
+	client.onNotification("custom/unknownUris", onUnknownUris)
+}
+
+/** @type {function(string): void} */
+const log = message =>
+	client.outputChannel.appendLine(message)
+
+/** @type {function(crowProtocol.UnknownUris): void} */
+const onUnknownUris = ({unknownUris}) => {
+	log("client will open unknown URIs " + JSON.stringify(unknownUris))
+	for (const uri of unknownUris) {
+		log("URI IS " + uri);
+		/** @type {Promise<TextDocument>} */ (workspace.openTextDocument(Uri.parse(uri)))
+			.then(doc => {
+				log("successfully read " + doc.uri)
+				// In success case, it will get 'onDidOpen'?
+			})
+			.catch(error => {
+				client.sendNotification("custom/readFileResult", {
+					uri,
+					type: error.name === 'CodeExpectedError' ? 'notFound' : 'error',
+				})
+				//log(`error name is: ${error.name}`)
+				//log(`error message is: ${error.message}`)
+				//log(`error reading ${uri}: ${error}`)
+			})
+	}
 }
 
 /** @type {function(): Thenable<void> | undefined} */
 exports.deactivate = () =>
 	client && client.stop()
-
-/**
-@typedef {
-	| "comment"
-	| "string"
-	| "keyword"
-	| "number"
-	| "regexp"
-	| "operator"
-	| "namespace"
-	| "type"
-	| "struct"
-	| "class"
-	| "interface"
-	| "enum"
-	| "typeParameter"
-	| "function"
-	| "method"
-	| "macro"
-	| "variable"
-	| "parameter"
-	| "property"
-	| "label"
-} TokenType
-*/
-
-/** @type {ReadonlyArray<TokenType>} */
-const tokenTypesLegend = [
-	"comment",
-	"string",
-	"keyword",
-	"number",
-	"regexp",
-	"operator",
-	"namespace",
-	"type",
-	"struct",
-	"class",
-	"interface",
-	"enum",
-	"typeParameter",
-	"function",
-	"method",
-	"macro",
-	"variable",
-	"parameter",
-	"property",
-	"label"
-]
-
-/**
-@typedef {
-	| "declaration"
-	| "documentation"
-	| "readonly"
-	| "static"
-	| "abstract"
-	| "deprecated"
-	| "modification"
-	| "async"
-} TokenModifier
-*/
-
-/** @type {ReadonlyArray<TokenModifier>} */
-const tokenModifiersLegend = [
-	"declaration",
-	"documentation",
-	"readonly",
-	"static",
-	"abstract",
-	"deprecated",
-	"modification",
-	"async",
-]
-
-
-/** @type {Map<string, number>} */
-const tokenTypes = new Map()
-tokenTypesLegend.forEach((tokenType, index) => {
-	tokenTypes.set(tokenType, index)
-})
-
-/** @type {Map<string, number>} */
-const tokenModifiers = new Map()
-tokenModifiersLegend.forEach((tokenModifier, index) => {
-	tokenModifiers.set(tokenModifier, index)
-})
-const legend = new SemanticTokensLegend(
-	/** @type {string[]} */ (tokenTypesLegend),
-	/** @type {string[]} */ (tokenModifiersLegend))
 
 /** @type {Promise<crow.Compiler> | null} */
 let myCompiler = null
@@ -152,16 +94,7 @@ const getCompiler = () => {
  */
 const provideDocumentSemanticTokens = async (document, _cancellationToken) => {
 	try {
-		const comp = await getCompiler()
-		comp.addOrChangeFile("main", document.getText())
-		const tokens = comp.getTokensAndParseDiagnostics("main").tokens
-		const builder = new SemanticTokensBuilder()
-		for (const {token, range:{start, end}} of tokens) {
-			const length = end - start
-			const {line, character} = document.positionAt(start)
-			builder.push(line, character, length, encodeTokenType(convertToken(token)), encodeTokenModifiers([]))
-		}
-		return builder.build()
+		return getTokens(await getCompiler(), document)
 	} catch (e) {
 		// VSCode just swallows exceptions, at least log them
 		console.log("Caught error in provideDocumentSemanticTokens")
@@ -170,67 +103,6 @@ const provideDocumentSemanticTokens = async (document, _cancellationToken) => {
 	}
 }
 
-/**
- * @param {crow.TokenKind} kind
- * @return {TokenType}
- */
-const convertToken = kind => {
-	switch (kind) {
-		case "member":
-			return "property"
-		case "fun":
-			return "function"
-		case "identifier":
-			return "variable"
-		case "import":
-			return "namespace"
-		case "keyword":
-			return "keyword"
-		case "lit-num":
-			return "number"
-		case "lit-str":
-			return "string"
-		case "local":
-			return "variable"
-		case "modifier":
-			return "keyword"
-		case "param":
-			return "parameter"
-		case "spec":
-			return "label"
-		case "struct":
-			return "type"
-		case "var-decl":
-			return "variable"
-		case "type-param":
-			return "typeParameter"
-		default:
-			return assertNever(kind)
-	}
-}
-
-/** @type {function(never): never} */
-const assertNever = () => {
-	throw new Error()
-}
 
 /** @type {DocumentSemanticTokensProvider} */
 const crowSemanticTokensProvider = {provideDocumentSemanticTokens}
-
-/**
- * @param {string} tokenType
- * @return {number}
- */
-const encodeTokenType = tokenType =>
-	tokenTypes.get(tokenType) || 0
-
-/** @type {function(ReadonlyArray<string>): number} */
-const encodeTokenModifiers = modifiers => {
-	let result = 0
-	for (const mod of modifiers) {
-		const modifierNumber = tokenModifiers.get(mod)
-		if (modifierNumber !== undefined)
-			result = result | (1 << modifierNumber)
-	}
-	return result
-}

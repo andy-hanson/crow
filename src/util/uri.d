@@ -81,7 +81,7 @@ private bool isRootUri(in AllUris allUris, Uri a) =>
 	!has(parent(allUris, a));
 
 private Sym fileScheme() =>
-	sym!"file:";
+	sym!"file://";
 
 bool isFileUri(in AllUris allUris, Uri a) =>
 	firstComponent(allUris, a.path) == fileScheme;

@@ -52,7 +52,7 @@ connection.onInitialize(({capabilities}) => {
 	return result
 })
 
-connection.onInitialized(withLogErrors('onInitialized', () => {
+connection.onInitialized(withLogErrors("onInitialized", () => {
 	for (const request of [DefinitionRequest, HoverRequest]) {
 		connection.client.register(request.type)
 	}
@@ -61,23 +61,55 @@ connection.onInitialized(withLogErrors('onInitialized', () => {
 	}
 }))
 
-documents.onDidChangeContent(withLogErrors('onDidChangeContent', ({document}) => {
-	console.log("did change content", document.uri)
+documents.onDidOpen(withLogErrors("onDidOpen", ({document}) => {
+	connection.console.log("onDidOpen " + document.uri)
+	onDidOpenOrChangeDocument(document)
+}))
+
+documents.onDidClose(withLogErrors("onDidClose", ({/*document*/}) => {
+	connection.console.log("onDidClose (unimplemented)")
+}))
+
+documents.onDidChangeContent(withLogErrors("onDidChangeContent", ({document}) => {
+	connection.console.log("onDidChangeContent " + document.uri)
+	onDidOpenOrChangeDocument(document)
+}))
+
+/** @type {function(crowProtocol.ReadFileResult): void} */
+const onReadFileResult = ({uri}) => {
+	connection.console.log("GOT readFileResult " + uri)
+	// TODO: Handle error results differently (this will allow the correct diagnostic to be shown)
+	compiler.deleteFile(uri)
+}
+// 'onDidOpen' should handle normal files, this is for file not found or error
+connection.onNotification("custom/readFileResult", withLogErrors("readFileResult", onReadFileResult))
+
+/** @type {function(TextDocument): void} */
+const onDidOpenOrChangeDocument = document => {
 	compiler.addOrChangeFile(document.uri, document.getText())
 	const diags = getSyntaxDiagnostics(document)
 	connection.sendDiagnostics(diags)
 
-	//TODO: load the file contents
-	//for (const uri of compiler.allUnknownUris()) {
-	//	compiler.addOrChangeFile(uri, xxx)
-	//}
+	compiler.searchImportsFromUri(document.uri)
 
-	connection.console.log("Will now get semantic diagnostics")
-	for (const {uri, diagnostics} of compiler.getAllDiagnostics().diagnostics) {
-		connection.sendDiagnostics(toDiagnostics(nonNull(documents.get(uri)), diagnostics))
+	const unknownUris = compiler.allUnknownUris()
+	if (unknownUris.length) {
+		connection.console.log("Server will notify client of unknown URIs")
+		/** @type {crowProtocol.UnknownUris} */
+		const message = {unknownUris}
+		connection.sendNotification("custom/unknownUris", message)
+	} else {
+		connection.console.log("Will now get semantic diagnostics")
+		for (const {uri, diagnostics} of compiler.getAllDiagnostics().diagnostics) {
+			connection.sendDiagnostics(toDiagnostics(nonNull(documents.get(uri)), diagnostics))
+		}
+		connection.console.log("Did get semantic diagnostics")
 	}
-	connection.console.log("Did get semantic diagnostics")
-}))
+}
+
+// Make the text document manager listen on the connection
+// for open, change and close text document events
+documents.listen(connection)
 
 /** @type {crow.Compiler} */
 let compiler
@@ -111,35 +143,35 @@ const toLocation = ({uri, range}) => {
 	return Location.create(uri, toRange(document, range))
 }
 
-connection.onDidChangeWatchedFiles(withLogErrors('onDidChangeWatchedFiles', _change => {
+connection.onDidChangeWatchedFiles(withLogErrors("onDidChangeWatchedFiles", _change => {
 	// Monitored files have change in VSCode
-	connection.console.log('We received a file change event')
+	connection.console.log("onDidChangeWatchedFiles (unimplemented)")
 }))
 
-connection.onDefinition(withLogErrors('onDefinition', params => {
+connection.onDefinition(withLogErrors("onDefinition", params => {
 	const {definition} = compiler.getDefinition(getUriAndPosition(params))
 	return definition
 		? [toLocation(definition)]
 		: []
 }))
 
-connection.onHover(withLogErrors('onHover', params => {
+connection.onHover(withLogErrors("onHover", params => {
 	const hover = compiler.getHover(getUriAndPosition(params))
 	return hover ? {contents:hover} : null
 }))
 
 /** @type {function(TextDocumentPositionParams): crow.UriAndPosition} */
 const getUriAndPosition = ({position, textDocument}) => {
-	const document = nonUndefined(documents.get(textDocument.uri))
+	const document = nonNull(documents.get(textDocument.uri))
 	return {uri:textDocument.uri, position:document.offsetAt(position)}
 }
 
 // This handler provides the initial list of the completion items.
-connection.onCompletion(withLogErrors('onCompletion', _textDocumentPosition => {
+connection.onCompletion(withLogErrors("onCompletion", _textDocumentPosition => {
 	/** @type {CompletionItem[]} */
 	const res = [
 		{
-			label: 'JavaScript',
+			label: "JavaScript",
 			kind: CompletionItemKind.Text,
 			data: 2
 		}
@@ -147,17 +179,13 @@ connection.onCompletion(withLogErrors('onCompletion', _textDocumentPosition => {
 	return res
 }))
 
-connection.onCompletionResolve(withLogErrors('onCompletionResolve', item => {
+connection.onCompletionResolve(withLogErrors("onCompletionResolve", item => {
 	if (item.data === 2) {
-		item.detail = 'JavaScript details'
-		item.documentation = 'JavaScript documentation'
+		item.detail = "JavaScript details"
+		item.documentation = "JavaScript documentation"
 	}
 	return item
 }))
-
-// Make the text document manager listen on the connection
-// for open, change and close text document events
-documents.listen(connection)
 
 const setUpCompiler = async () => {
 	try {
@@ -169,14 +197,3 @@ const setUpCompiler = async () => {
 	}
 }
 setUpCompiler()
-
-/**
- * @template T
- * @param {T | undefined} x
- * @return {T}
- */
-const nonUndefined = x => {
-	if (x === undefined)
-		throw new Error()
-	return x
-}

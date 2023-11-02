@@ -3,7 +3,7 @@ module frontend.parse.lexToken;
 @safe @nogc pure nothrow:
 
 import frontend.parse.ast : LiteralFloatAst, LiteralIntAst, LiteralNatAst;
-import frontend.parse.lexUtil : startsWith, tryTakeChar, tryTakeChars;
+import frontend.parse.lexUtil : isDecimalDigit, startsWith, tryTakeChar, tryTakeChars;
 import frontend.parse.lexWhitespace : DocCommentAndIndentDelta, IndentKind, skipBlankLinesAndGetIndentDelta;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
@@ -268,7 +268,7 @@ Possibly writes to 'data' depending on the kind of token returned.
 		case ']':
 			return plainToken(Token.bracketRight);
 		case '-':
-			return isDigit(*ptr)
+			return isDecimalDigit(*ptr)
 				? takeNumberAfterSign(ptr, some(Sign.minus))
 				: tryTakeChar(ptr, '>')
 				? plainToken(Token.arrowAccess)
@@ -280,7 +280,7 @@ Possibly writes to 'data' depending on the kind of token returned.
 				? operatorToken(ptr, allSymbols, sym!"==")
 				: plainToken(Token.equal);
 		case '+':
-			return isDigit(*ptr)
+			return isDecimalDigit(*ptr)
 				? takeNumberAfterSign(ptr, some(Sign.plus))
 				: operatorToken(ptr, allSymbols, sym!"+");
 		case '|':
@@ -333,7 +333,7 @@ Possibly writes to 'data' depending on the kind of token returned.
 				return token == Token.name
 					? nameLikeToken(ptr, allSymbols, sym, Token.name)
 					: plainToken(token);
-			} else if (isDigit(c)) {
+			} else if (isDecimalDigit(c)) {
 				ptr--;
 				return takeNumberAfterSign(ptr, none!Sign);
 			} else
@@ -485,8 +485,10 @@ StringPart takeStringPart(
 					char escaped = () {
 						switch (escapeCode) {
 							case 'x':
-								size_t digit0 = toHexDigit(takeChar(ptr));
-								size_t digit1 = toHexDigit(takeChar(ptr));
+								ulong digit0 = charToNat(takeChar(ptr));
+								ulong digit1 = charToNat(takeChar(ptr));
+								if (digit0 == ulong.max || digit1 == ulong.max)
+									todo!void("bad hex digit");
 								return cast(char) (digit0 * 16 + digit1);
 							case 'n':
 								return '\n';
@@ -652,7 +654,7 @@ enum Sign {
 		? 2
 		: 10;
 	LiteralNatAst n = takeNat(ptr, base);
-	if (*ptr == '.' && isDigit(*(ptr + 1))) {
+	if (*ptr == '.' && isDecimalDigit(*(ptr + 1))) {
 		ptr++;
 		return takeFloat(ptr, has(sign) ? force(sign) : Sign.plus, n, base);
 	} else if (has(sign))
@@ -694,7 +696,7 @@ double pow(double acc, double base, ulong power) =>
 ulong getDivisor(ulong acc, ulong a, ulong base) =>
 	acc < a ? getDivisor(acc * base, a, base) : acc;
 
-@system LiteralNatAst takeNat(ref immutable(char)* ptr, ulong base) {
+public @system LiteralNatAst takeNat(ref immutable(char)* ptr, ulong base) {
 	ulong value = 0;
 	bool overflow = false;
 	while (true) {
@@ -711,23 +713,14 @@ ulong getDivisor(ulong acc, ulong a, ulong base) =>
 	return LiteralNatAst(value, overflow);
 }
 
-ulong charToNat(char c) =>
-	'0' <= c && c <= '9'
-		? c - '0'
-		: 'a' <= c && c <= 'f'
-		? 10 + (c - 'a')
-		: 'A' <= c && c <= 'F'
-		? 10 + (c - 'A')
+ulong charToNat(char a) =>
+	isDecimalDigit(a)
+		? a - '0'
+		: 'a' <= a && a <= 'f'
+		? 10 + (a - 'a')
+		: 'A' <= a && a <= 'F'
+		? 10 + (a - 'A')
 		: ulong.max;
-
-size_t toHexDigit(char c) {
-	if ('0' <= c && c <= '9')
-		return c - '0';
-	else if ('a' <= c && c <= 'f')
-		return 10 + c - 'a';
-	else
-		return todo!size_t("parse diagnostic -- bad hex digit");
-}
 
 @trusted string takeNameRest(ref immutable(char)* ptr, immutable char* begin) {
 	while (isAlphaIdentifierContinue(*ptr))
@@ -740,11 +733,8 @@ size_t toHexDigit(char c) {
 bool isAlphaIdentifierStart(char c) =>
 	('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
 
-bool isDigit(char c) =>
-	'0' <= c && c <= '9';
-
 bool isAlphaIdentifierContinue(char c) =>
-	isAlphaIdentifierStart(c) || c == '-' || isDigit(c);
+	isAlphaIdentifierStart(c) || c == '-' || isDecimalDigit(c);
 
 bool isTypeChar(char c) {
 	switch (c) {

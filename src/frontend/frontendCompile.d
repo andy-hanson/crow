@@ -29,14 +29,7 @@ import util.opt : force, has, Opt, none, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : ptrTrustMe;
 import util.storage :
-	asSafeCStr,
-	copyFileContent,
-	emptyFileContent,
-	FileContent,
-	ReadFileIssue,
-	ReadFileResult,
-	Storage,
-	withFileContent;
+	asSafeCStr, copyFileContent, emptyFileContent, FileContent, ReadFileIssue, ReadFileResult, Storage, withFileContent;
 import util.sourceRange : RangeWithinFile, UriAndRange;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;

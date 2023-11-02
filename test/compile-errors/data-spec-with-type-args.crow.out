@@ -3,40 +3,31 @@ stderr:
 test/compile-errors/data-spec-with-type-args.crow 8:5-8:17 a spec was not satisfied.
 	'm' is not 'data' calling:
 	takes-data@m (from test/compile-errors/data-spec-with-type-args.crow line 59)
-
 test/compile-errors/data-spec-with-type-args.crow 20:5-20:23 a spec was not satisfied.
 	'm' is not 'data' calling:
 	takes-mt-t-data@m (from test/compile-errors/data-spec-with-type-args.crow line 56)
-
 test/compile-errors/data-spec-with-type-args.crow 21:5-21:18 a spec was not satisfied.
 	'm mt' is not 'data' calling:
 	takes-data@(m mt) (from test/compile-errors/data-spec-with-type-args.crow line 59)
-
 test/compile-errors/data-spec-with-type-args.crow 27:5-27:18 a spec was not satisfied.
 	'd mt' is not 'data' calling:
 	takes-data@(d mt) (from test/compile-errors/data-spec-with-type-args.crow line 59)
-
 test/compile-errors/data-spec-with-type-args.crow 32:5-32:23 a spec was not satisfied.
 	'm' is not 'data' calling:
 	takes-dt-t-data@m (from test/compile-errors/data-spec-with-type-args.crow line 53)
-
 test/compile-errors/data-spec-with-type-args.crow 33:5-33:18 a spec was not satisfied.
 	'm dt' is not 'data' calling:
 	takes-data@(m dt) (from test/compile-errors/data-spec-with-type-args.crow line 59)
-
 test/compile-errors/data-spec-with-type-args.crow 36:5-36:15 a spec was not satisfied.
 	'm' is not 'data' calling:
 	indirect@m (from test/compile-errors/data-spec-with-type-args.crow line 64)
 	takes-data@m (from test/compile-errors/data-spec-with-type-args.crow line 59)
-
 test/compile-errors/data-spec-with-type-args.crow 48:5-48:22 a spec was not satisfied.
 	't' is not 'data' calling:
 	takes-dt-t-data@t (from test/compile-errors/data-spec-with-type-args.crow line 53)
-
 test/compile-errors/data-spec-with-type-args.crow 51:5-51:22 a spec was not satisfied.
 	't' is not 'data' calling:
 	takes-mt-t-data@t (from test/compile-errors/data-spec-with-type-args.crow line 56)
-
 test/compile-errors/data-spec-with-type-args.crow 57:5-57:17 a spec was not satisfied.
 	't mt' is not 'data' calling:
 	takes-data@(t mt) (from test/compile-errors/data-spec-with-type-args.crow line 59)

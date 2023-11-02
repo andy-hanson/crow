@@ -33,7 +33,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : only;
 import util.col.str : SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
 import util.exitCode : ExitCode;
-import util.json : Json;
+import util.json : Json, jsonString;
 import util.late : Late, lateGet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetters;
 import util.opt : force, has, none, Opt, some;
@@ -70,12 +70,6 @@ ExitCode run(ref Perf perf, ref Alloc alloc, ref Server server, Uri main, in Wri
 			},
 			main, allArgs));
 }
-
-private bool hasUnknownUris(in Server server) =>
-	hasUnknownUris(server.storage);
-
-Uri[] allUnknownUris(ref Alloc alloc, in Server server) =>
-	allUnknownUris(alloc, server.storage);
 
 ExitCode buildAndInterpret(
 	ref Alloc alloc,
@@ -167,6 +161,12 @@ void deleteFile(ref Server server, Uri uri) {
 Opt!FileContent getFile(ref Alloc alloc, in Server server, Uri uri) =>
 	getFileNoMarkUnknown(alloc, server.storage, uri);
 
+private bool hasUnknownUris(in Server server) =>
+	hasUnknownUris(server.storage);
+
+Uri[] allUnknownUris(ref Alloc alloc, in Server server) =>
+	allUnknownUris(alloc, server.storage);
+
 void justParseEverything(ref Alloc alloc, ref Perf perf, ref Server server, in Uri[] rootUris) {
 	parseAllFiles(alloc, perf, server.allSymbols, server.allUris, server.storage, server.includeDir, rootUris);
 }
@@ -212,7 +212,7 @@ TokensAndParseDiagnostics getTokensAndParseDiagnostics(
 	ref Alloc alloc,
 	scope ref Perf perf,
 	ref Server server,
-	in Uri uri,
+	Uri uri,
 ) =>
 	withFileContent!TokensAndParseDiagnostics(server.storage, uri, (in ReadFileResult x) {
 		SafeCStr text = x.isA!FileContent ? asSafeCStr(x.as!FileContent) : safeCStr!"";
@@ -229,7 +229,7 @@ struct ProgramAndDefinition {
 	Opt!Definition definition;
 }
 
-ProgramAndDefinition getDefinition(ref Perf perf, ref Alloc alloc, ref Server server, in Uri uri, Pos pos) {
+ProgramAndDefinition getDefinition(ref Perf perf, ref Alloc alloc, ref Server server, Uri uri, Pos pos) {
 	Program program = getProgram(perf, alloc, server, uri);
 	Opt!Position position = getPosition(server, program, uri, pos);
 	Opt!Definition definition = has(position)
@@ -238,8 +238,10 @@ ProgramAndDefinition getDefinition(ref Perf perf, ref Alloc alloc, ref Server se
 	return ProgramAndDefinition(program, definition);
 }
 
-SafeCStr getHover(ref Perf perf, ref Alloc alloc, ref Server server, in Uri uri, Pos pos) {
-	Program program = getProgram(perf, alloc, server, uri);
+SafeCStr getHover(ref Perf perf, ref Alloc alloc, ref Server server, Uri uri, Pos pos) =>
+	getHoverForProgram(alloc, server, uri, pos, getProgram(perf, alloc, server, uri));
+
+private SafeCStr getHoverForProgram(ref Alloc alloc, ref Server server, Uri uri, Pos pos, in Program program) {
 	Opt!Position position = getPosition(server, program, uri, pos);
 	ShowCtx ctx = getShowDiagCtx(server, program);
 	return has(position)
@@ -317,6 +319,11 @@ DiagsAndResultJson printLowModel(
 	ConcreteProgram concreteProgram = concretize(alloc, perf, ctx, versionInfo, program);
 	LowProgram lowProgram = lower(alloc, perf, server.allSymbols, program.config.extern_, program, concreteProgram);
 	return diagsAndResultJson(alloc, server, program, jsonOfLowProgram(alloc, lowProgram));
+}
+
+DiagsAndResultJson printHover(ref Alloc alloc, ref Perf perf, ref Server server, Uri uri, Pos pos) {
+	Program program = getProgram(perf, alloc, server, uri);
+	return diagsAndResultJson(alloc, server, program, jsonString(getHoverForProgram(alloc, server, uri, pos, program)));
 }
 
 immutable struct Programs {

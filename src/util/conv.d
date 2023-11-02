@@ -19,8 +19,11 @@ int safeToInt(size_t a) {
 	return cast(int) a;
 }
 
-uint safeToUint(size_t a) {
-	verify(a <= uint.max);
+bool isUint(ulong a) =>
+	a <= uint.max;
+
+uint safeToUint(ulong a) {
+	verify(isUint(a));
 	return cast(uint) a;
 }
 

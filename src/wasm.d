@@ -12,6 +12,7 @@ import lib.server :
 	getFile,
 	getHover,
 	getTokensAndParseDiagnostics,
+	justParseEverything,
 	ProgramAndDefinition,
 	run,
 	Server,
@@ -99,6 +100,15 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 	return has(res) ? asSafeCStr(force(res)).ptr : "";
 }
 
+@system extern(C) void searchImportsFromUri(Server* server, scope CStr uriCStr) {
+	Alloc resultAlloc = Alloc(resultBuffer);
+	Uri uri = toUri(*server, SafeCStr(uriCStr));
+	withNullPerf!(void, (ref Perf perf) {
+		justParseEverything(resultAlloc, perf, *server, [uri]);
+	});
+}
+
+// This is just a getter; call 'justParseEverything' first to populate the list of unknown URIs
 @system extern(C) CStr allUnknownUris(Server* server) {
 	Alloc resultAlloc = Alloc(resultBuffer);
 	Uri[] res = allUnknownUris(resultAlloc, *server);

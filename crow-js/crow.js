@@ -22,6 +22,7 @@ Exports of `wasm.d`:
 @property {function(Server, CStr, CStr): void} addOrChangeFile
 @property {function(Server, CStr): void} deleteFile
 @property {function(Server, CStr): CStr} getFile
+@property {function(Server, CStr): void} searchImportsFromUri
 @property {function(Server): CStr} allUnknownUris
 @property {function(Server, CStr): CStr} getTokensAndParseDiagnostics
 @property {function(Server): CStr} getAllDiagnostics
@@ -123,9 +124,9 @@ globalCrow.makeCompiler = async (bytes, includeDir, cwd) => {
 			debugLog: (str, value) => {
 				console.log(readCStr(str), value)
 			},
-			/** @type {function(): void} */
-			verifyFail: () => {
-				throw new Error("Called verifyFail!")
+			/** @type {function(number, number, number): void} */
+			_verifyFail: (fileStart, fileLength, line) => {
+				throw new Error("Called verifyFail! " + JSON.stringify({file:readString(fileStart, fileLength), line}))
 			},
 			...mathFunctions,
 			/** @type {function(number, number, number): void} */
@@ -172,6 +173,13 @@ globalCrow.makeCompiler = async (bytes, includeDir, cwd) => {
 		getFile: uri => {
 			try {
 				return readCStr(exports.getFile(server, paramAlloc.writeCStr(uri)))
+			} finally {
+				paramAlloc.clear()
+			}
+		},
+		searchImportsFromUri: uri => {
+			try {
+				exports.searchImportsFromUri(server, paramAlloc.writeCStr(uri))
 			} finally {
 				paramAlloc.clear()
 			}

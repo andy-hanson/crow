@@ -3,11 +3,16 @@ module lib.cliParser;
 @safe @nogc pure nothrow:
 
 import frontend.lang : cExtension, crowExtension, JitOptions, OptimizationLevel;
+import frontend.parse.ast : LiteralNatAst;
+import frontend.parse.lexToken : takeNat;
+import frontend.parse.lexUtil : isDecimalDigit, tryTakeChar;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : findIndex, foldOrStop, mapOrNone;
 import util.col.str : SafeCStr, safeCStr, safeCStrEq, strOfSafeCStr;
+import util.conv : isUint, safeToUint;
+import util.lineAndColumnGetter : LineAndColumn;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castNonScope;
 import util.sym : AllSymbols, Sym, sym, symOfSafeCStr, symOfStr;
@@ -49,12 +54,15 @@ immutable struct Command {
 	mixin Union!(Build, Document, Help, Print, Run, Test, Version);
 }
 
-enum PrintKind {
-	tokens,
-	ast,
-	model,
-	concreteModel,
-	lowModel,
+immutable struct PrintKind {
+	immutable struct Tokens {}
+	immutable struct Ast {}
+	immutable struct Model {}
+	immutable struct ConcreteModel {}
+	immutable struct LowModel {}
+	immutable struct Hover { LineAndColumn lineAndColumn; }
+
+	mixin Union!(Tokens, Ast, Model, ConcreteModel, LowModel, Hover);
 }
 
 immutable struct RunOptions {
@@ -196,8 +204,8 @@ Command parsePrintCommand(
 	Uri cwd,
 	in SafeCStr[] args,
 ) {
-	Opt!PrintKind kind = args.length == 2
-		? parsePrintKind(symOfSafeCStr(allSymbols, args[0]))
+	Opt!PrintKind kind = args.length >= 2
+		? parsePrintKind(symOfSafeCStr(allSymbols, args[0]), args[2 .. $])
 		: none!PrintKind;
 	return has(kind)
 		? withMainUri(alloc, allUris, cwd, args[1], (Uri uri) =>
@@ -205,21 +213,44 @@ Command parsePrintCommand(
 		: todo!Command("Command.HelpPrint");
 }
 
-Opt!PrintKind parsePrintKind(Sym a) {
+Opt!PrintKind parsePrintKind(Sym a, in SafeCStr[] args) {
 	switch (a.value) {
 		case sym!"tokens".value:
-			return some(PrintKind.tokens);
+			return empty(args) ? some(PrintKind(PrintKind.Tokens())) : none!PrintKind;
 		case sym!"ast".value:
-			return some(PrintKind.ast);
+			return empty(args) ? some(PrintKind(PrintKind.Ast())) : none!PrintKind;
 		case sym!"model".value:
-			return some(PrintKind.model);
+			return empty(args) ? some(PrintKind(PrintKind.Model())) : none!PrintKind;
 		case sym!"concrete-model".value:
-			return some(PrintKind.concreteModel);
+			return empty(args) ? some(PrintKind(PrintKind.ConcreteModel())) : none!PrintKind;
 		case sym!"low-model".value:
-			return some(PrintKind.lowModel);
+			return empty(args) ? some(PrintKind(PrintKind.LowModel())) : none!PrintKind;
+		case sym!"hover".value:
+			Opt!LineAndColumn lc = args.length == 1 ? parseLineAndColumn(args[0]) : none!LineAndColumn;
+			return has(lc) ? some(PrintKind(PrintKind.Hover(force(lc)))) : none!PrintKind;
 		default:
 			return none!PrintKind;
 	}
+}
+
+@trusted Opt!LineAndColumn parseLineAndColumn(in SafeCStr a) {
+	immutable(char)* ptr = a.ptr;
+	Opt!uint line = tryTakeNat(ptr);
+	bool colon = tryTakeChar(ptr, ':');
+	Opt!uint column = tryTakeNat(ptr);
+	return has(line) && colon && has(column) && *ptr == '\0'
+		? some(LineAndColumn(force(line), force(column)))
+		: none!LineAndColumn;
+}
+
+@system Opt!uint tryTakeNat(ref immutable(char)* ptr) {
+	if (isDecimalDigit(*ptr)) {
+		LiteralNatAst res = takeNat(ptr, 10);
+		return !res.overflow && isUint(res.value)
+			? some(safeToUint(res.value))
+			: none!uint;
+	} else
+		return none!uint;
 }
 
 Command parseDocumentCommand(

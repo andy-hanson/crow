@@ -437,7 +437,7 @@ immutable string[] specialSyms = [
 	"extern-pointer\0",
 	"extern-pointers\0",
 	"field-pointer\0",
-	"file:\0",
+	"file://\0",
 	"flags-members\0",
 	"has-non-public-fields\0",
 	"init-constants\0",

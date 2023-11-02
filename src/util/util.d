@@ -49,25 +49,12 @@ bool isMultipleOf(T)(T a, T b) {
 	return a % b == 0;
 }
 
-void verify(immutable char* reason = null)(bool condition) {
-	version (assert) {
-		if (!condition) {
-			static if (reason != null)
-				debugLog(reason, 0);
-			verifyFail();
-		}
+void verify(immutable char* reason = null)(bool condition, in string file = __FILE__, int line = __LINE__) {
+	if (!condition) {
+		static if (reason != null)
+			debugLog(reason, 0);
+		verifyFail(file, line);
 	}
-	version (WebAssembly) {
-		if (!condition) {
-			static if (reason != null)
-				debugLog(reason, 0);
-			verifyFail();
-		}
-	}
-}
-
-version (WebAssembly) {
-	extern(C) void verifyFail();
 }
 
 void verifyEq(T)(T a, T b) {
@@ -82,13 +69,16 @@ void verifyEq(T)(T a, T b) {
 	verify(a == b);
 }
 
-version (WebAssembly) {
-	extern(C) void verifyFail();
-}
-else {
-	void verifyFail() {
+@trusted void verifyFail(in string file = __FILE__, int line = __LINE__) {
+	version (WebAssembly) {
+		_verifyFail(file.ptr, file.length, line);
+	} else {
 		assert(0);
 	}
+}
+
+version (WebAssembly) {
+	private extern(C) void _verifyFail(immutable char* filePtr, size_t fileLength, int line);
 }
 
 void debugLog(immutable char* message) {

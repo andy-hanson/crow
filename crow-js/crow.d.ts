@@ -71,6 +71,7 @@ declare namespace crow {
 		deleteFile(uri: string): void
 		// For debug/test
 		getFile(uri: string): string
+		searchImportsFromUri(uri: string): void
 		allUnknownUris(): ReadonlyArray<string>
 		getTokensAndParseDiagnostics(uri: string): TokensAndParseDiagnostics
 		getAllDiagnostics(): AllDiagnosticsResult

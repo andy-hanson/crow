@@ -6,11 +6,11 @@ import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.mutMap : getOrAdd, MutMap;
 import util.col.str : SafeCStr, safeCStr;
-import util.conv : safeToUint, safeToUshort;
+import util.conv : safeToUint;
 import util.sourceRange : Pos, UriAndPos, UriAndRange;
 import util.storage : asSafeCStr, FileContent, ReadFileIssue, ReadFileResult, Storage, withFileContentNoMarkUnknown;
 import util.uri : Uri;
-import util.util : verify;
+import util.util : min, verify;
 
 struct LineAndColumnGetters {
 	@safe @nogc pure nothrow:
@@ -25,6 +25,9 @@ struct LineAndColumnGetters {
 		storage = s;
 	}
 }
+
+Pos posAtLineAndColumn(ref LineAndColumnGetters a, Uri uri, LineAndColumn lc) =>
+	posAtLineAndColumn(lineAndColumnGetterForUri(a, uri), lc);
 
 LineAndColumn lineAndColumnAtPos(ref LineAndColumnGetters a, UriAndPos pos, PosKind kind) =>
 	lineAndColumnAtPos(lineAndColumnGetterForUri(a, pos.uri), pos.pos, kind);
@@ -45,8 +48,8 @@ private LineAndColumnGetter lineAndColumnGetterForUri(ref LineAndColumnGetters a
 
 immutable struct LineAndColumn {
 	// both 0-indexed
-	ushort line;
-	ushort column;
+	uint line;
+	uint column;
 }
 
 immutable struct LineAndColumnRange {
@@ -57,6 +60,7 @@ immutable struct LineAndColumnRange {
 immutable struct LineAndColumnGetter {
 	@safe @nogc pure nothrow:
 	bool usesCRLF;
+	Pos maxPos;
 	Pos[] lineToPos;
 	ubyte[] lineToNTabs;
 
@@ -97,7 +101,7 @@ private LineAndColumnGetter lineAndColumnGetterForEmptyFile(ref Alloc alloc) =>
 enum PosKind { startOfRange, endOfRange }
 
 LineAndColumn lineAndColumnAtPos(in LineAndColumnGetter lc, Pos pos, PosKind kind) {
-	ushort line = lineAtPos(lc, pos);
+	uint line = lineAtPos(lc, pos);
 	if (kind == PosKind.endOfRange && lc.lineToPos[line] == pos && line != 0) {
 		// Show end of range at the end of the previous line
 		line--;
@@ -113,16 +117,25 @@ LineAndColumn lineAndColumnAtPos(in LineAndColumnGetter lc, Pos pos, PosKind kin
 	uint column = nCharsIntoLine <= nTabs
 		? nCharsIntoLine * TAB_SIZE
 		: nTabs * (TAB_SIZE - 1) + nCharsIntoLine;
-	return LineAndColumn(line, safeToUshort(column));
+	return LineAndColumn(line, column);
+}
+
+Pos posAtLineAndColumn(in LineAndColumnGetter a, LineAndColumn lc) {
+	if (lc.line >= a.lineToPos.length)
+		return a.maxPos;
+	else
+		return min(
+			a.lineToPos[lc.line] + a.lineToNTabs[lc.column] + lc.column,
+			lc.line == a.lineToPos.length - 1 ? a.maxPos : a.lineToPos[lc.line + 1] - 1);
 }
 
 private:
 
-ushort lineAtPos(in LineAndColumnGetter lc, Pos pos) {
-	ushort lowLine = 0; // inclusive
-	ushort highLine = safeToUshort(lc.lineToPos.length);
+uint lineAtPos(in LineAndColumnGetter lc, Pos pos) {
+	uint lowLine = 0; // inclusive
+	uint highLine = safeToUint(lc.lineToPos.length);
 	while (lowLine < highLine - 1) {
-		ushort middleLine = mid(lowLine, highLine);
+		uint middleLine = mid(lowLine, highLine);
 		Pos middlePos = lc.lineToPos[middleLine];
 		if (pos == middlePos)
 			return middleLine;
@@ -138,7 +151,7 @@ ushort lineAtPos(in LineAndColumnGetter lc, Pos pos) {
 
 uint TAB_SIZE() => 4; // TODO: configurable
 
-ushort mid(ushort a, ushort b) =>
+uint mid(uint a, uint b) =>
 	(a + b) / 2;
 
 @system ubyte advanceAndGetNTabs(ref immutable(char)* a) {

@@ -70,7 +70,7 @@ import util.sym : Sym, sym;
 import util.uri : AllUris, uriToString;
 
 Json jsonOfModule(ref Alloc alloc, in AllUris allUris, in Module a) {
-	Ctx ctx = Ctx(ptrTrustMe(a));
+	Ctx ctx = Ctx(ptrTrustMe(a), ptrTrustMe(allUris));
 	return jsonObject(alloc, [
 		field!"uri"(uriToString(alloc, allUris, a.uri)),
 		optionalStringField!"doc"(alloc, a.docComment),
@@ -108,13 +108,13 @@ Json jsonOfImportOrExportKind(ref Alloc alloc, in AllUris allUris, in ImportOrEx
 				field!"names"(jsonList!Sym(alloc, m.names, (in Sym name) =>
 					jsonString(name)))]));
 
-struct Ctx {
+const struct Ctx {
 	@safe @nogc pure nothrow:
 
 	Module* curModule;
 	AllUris* allUrisPtr;
 
-	ref const(AllUris) allUris() return scope const =>
+	ref const(AllUris) allUris() return scope =>
 		*allUrisPtr;
 }
 

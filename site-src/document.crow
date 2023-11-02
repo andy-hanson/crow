@@ -12,7 +12,7 @@ documentation path-and-content[]^() summon
 	include = current-directory ~~ "/include"
 	all-module-paths <- "{include}/crow" search-dir-recursive (x => !x.ignore-dir), \
 		(x => x != "std.crow")
-	all-modules <- all-module-paths get-modules "file:{include}/"
+	all-modules <- all-module-paths get-modules "file://{include}/"
 	all-paths = (for x : all-modules; x path) sort-paths
 	all-exports = all-modules all-exports
 	modules path-and-content[] = for module : all-modules

@@ -52,7 +52,6 @@ import util.util : unreachable;
 import util.writer :
 	finishWriterToSafeCStr,
 	writeEscapedChar,
-	writeNewline,
 	writeQuotedStr,
 	writeWithCommas,
 	writeWithNewlines,
@@ -907,7 +906,6 @@ void showDiagnostic(ref TempAlloc tempAlloc, ref Writer writer, scope ref ShowCt
 	writeUriAndRange(writer, ctx, diag.where);
 	writer ~= ' ';
 	writeDiag(tempAlloc, writer, ctx, diag.diag);
-	writeNewline(writer);
 }
 
 void writeExpected(ref Writer writer, scope ref ShowCtx ctx, in ExpectedForDiag a) {

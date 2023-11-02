@@ -1,31 +1,17 @@
 exit code: 0
 stderr:
 test/compile-errors/duplicate-declaration.crow 6:5-6:10 record field name 'a' is already used
-
 test/compile-errors/duplicate-declaration.crow 8:1-10:10 type name 'foo' is already used
-
 test/compile-errors/duplicate-declaration.crow 10:5-10:10 union member name 'b' is already used
-
 test/compile-errors/duplicate-declaration.crow 12:1-14:6 type name 'foo' is already used
-
 test/compile-errors/duplicate-declaration.crow 14:5-14:6 enum member name 'c' is already used
-
 test/compile-errors/duplicate-declaration.crow 16:1-18:6 type name 'foo' is already used
-
 test/compile-errors/duplicate-declaration.crow 18:5-18:6 flags member name 'd' is already used
-
 test/compile-errors/duplicate-declaration.crow 21:1-21:7 spec name 's' is already used
-
 test/compile-errors/duplicate-declaration.crow 23:14-23:19 local name 'a' is already used
-
 test/compile-errors/duplicate-declaration.crow 28:5-28:6 local name 'a' is already used
-
 test/compile-errors/duplicate-declaration.crow 32:5-32:6 local name 'a' is already used
-
 test/compile-errors/duplicate-declaration.crow 37:9-37:10 local name 'a' is already used
-
 test/compile-errors/duplicate-declaration.crow 43:14-43:15 local name 'b' is already used
-
 test/compile-errors/duplicate-declaration.crow 44:13-44:14 local name 'a' is already used
-
 test/compile-errors/duplicate-declaration.crow 49:14-49:15 local name 'a' is already used
