@@ -18,8 +18,8 @@
 		}
 	},
 	{
-		"start": {"line": 3, "column": 2},
-		"end": {"line": 3, "column": 7},
+		"start": {"line": 3, "column": 3},
+		"end": {"line": 3, "column": 6},
 		"hover": "builtin type nat",
 		"definition": {
 			"uri": "magic:function.crow",
@@ -72,8 +72,8 @@
 		}
 	},
 	{
-		"start": {"line": 6, "column": 2},
-		"end": {"line": 6, "column": 7},
+		"start": {"line": 6, "column": 3},
+		"end": {"line": 6, "column": 6},
 		"hover": "builtin type nat",
 		"definition": {
 			"uri": "magic:function.crow",

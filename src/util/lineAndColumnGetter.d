@@ -47,7 +47,7 @@ private LineAndColumnGetter lineAndColumnGetterForUri(ref LineAndColumnGetters a
 					lineAndColumnGetterForEmptyFile(*a.alloc))));
 
 immutable struct LineAndColumn {
-	// both 0-indexed
+	// both 0-indexed (even though they are usually 1-indexed when written)
 	uint line;
 	uint column;
 }
@@ -64,8 +64,9 @@ immutable struct LineAndColumnGetter {
 	Pos[] lineToPos;
 	ubyte[] lineToNTabs;
 
-	this(bool ucr, immutable Pos[] lp, immutable ubyte[] lnt) {
+	this(bool ucr, Pos mp, immutable Pos[] lp, immutable ubyte[] lnt) {
 		usesCRLF = ucr;
+		maxPos = mp;
 		lineToPos = lp;
 		lineToNTabs = lnt;
 		verify(lineToPos.length == lineToNTabs.length);
@@ -92,7 +93,11 @@ immutable struct LineAndColumnGetter {
 		}
 	}
 
-	return LineAndColumnGetter(usesCRLF, finishArr(alloc, lineToPos), finishArr(alloc, lineToNTabs));
+	return LineAndColumnGetter(
+		usesCRLF,
+		safeToUint(ptr - text.ptr),
+		finishArr(alloc, lineToPos),
+		finishArr(alloc, lineToNTabs));
 }
 
 private LineAndColumnGetter lineAndColumnGetterForEmptyFile(ref Alloc alloc) =>
@@ -120,16 +125,19 @@ LineAndColumn lineAndColumnAtPos(in LineAndColumnGetter lc, Pos pos, PosKind kin
 	return LineAndColumn(line, column);
 }
 
-Pos posAtLineAndColumn(in LineAndColumnGetter a, LineAndColumn lc) {
-	if (lc.line >= a.lineToPos.length)
-		return a.maxPos;
-	else
-		return min(
-			a.lineToPos[lc.line] + a.lineToNTabs[lc.column] + lc.column,
+Pos posAtLineAndColumn(in LineAndColumnGetter a, LineAndColumn lc) =>
+	lc.line >= a.lineToPos.length
+		? a.maxPos
+		: min(
+			a.lineToPos[lc.line] + columnToPosOffset(lc.column, a.lineToNTabs[lc.line]),
 			lc.line == a.lineToPos.length - 1 ? a.maxPos : a.lineToPos[lc.line + 1] - 1);
-}
 
 private:
+
+Pos columnToPosOffset(uint column, ubyte nTabs) =>
+	column <= nTabs * TAB_SIZE
+		? column / TAB_SIZE
+		: column - (nTabs * (TAB_SIZE - 1));
 
 uint lineAtPos(in LineAndColumnGetter lc, Pos pos) {
 	uint lowLine = 0; // inclusive

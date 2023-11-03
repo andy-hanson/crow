@@ -235,13 +235,18 @@ Opt!PrintKind parsePrintKind(Sym a, in SafeCStr[] args) {
 
 @trusted Opt!LineAndColumn parseLineAndColumn(in SafeCStr a) {
 	immutable(char)* ptr = a.ptr;
-	Opt!uint line = tryTakeNat(ptr);
+	Opt!uint line = convertFrom1Indexed(tryTakeNat(ptr));
 	bool colon = tryTakeChar(ptr, ':');
-	Opt!uint column = tryTakeNat(ptr);
+	Opt!uint column = convertFrom1Indexed(tryTakeNat(ptr));
 	return has(line) && colon && has(column) && *ptr == '\0'
 		? some(LineAndColumn(force(line), force(column)))
 		: none!LineAndColumn;
 }
+
+Opt!uint convertFrom1Indexed(in Opt!uint a) =>
+	has(a) && force(a) != 0
+		? some(force(a) - 1)
+		: none!uint;
 
 @system Opt!uint tryTakeNat(ref immutable(char)* ptr) {
 	if (isDecimalDigit(*ptr)) {

@@ -653,6 +653,7 @@ immutable struct FunDecl {
 		UriAndPos fp,
 		Sym n,
 		TypeParam[] tps,
+		RangeWithinFile rtr,
 		Type rt,
 		Params pms,
 		FunFlags f,
@@ -663,6 +664,7 @@ immutable struct FunDecl {
 		fileAndPos = fp;
 		name = n;
 		flags = f;
+		returnTypeRange = rtr;
 		returnType = rt;
 		params = pms;
 		typeParams = small(tps);
@@ -685,6 +687,7 @@ immutable struct FunDecl {
 		fileAndPos = fp;
 		name = n;
 		flags = f;
+		returnTypeRange = RangeWithinFile.empty;
 		returnType = rt;
 		params = pms;
 		typeParams = small(tps);
@@ -697,6 +700,7 @@ immutable struct FunDecl {
 	UriAndPos fileAndPos;
 	Sym name;
 	FunFlags flags;
+	RangeWithinFile returnTypeRange;
 	Type returnType;
 	Params params;
 	SmallArray!TypeParam typeParams;

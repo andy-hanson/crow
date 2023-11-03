@@ -25,7 +25,7 @@ import model.model :
 	StructInst,
 	Type,
 	TypeParam;
-import util.col.arr : empty, ptrsRange;
+import util.col.arr : ptrsRange;
 import util.col.arrUtil : first;
 import util.opt : force, has, none, Opt, optOr, some;
 import util.sourceRange : hasPos, Pos, RangeWithinFile;
@@ -115,8 +115,8 @@ Opt!PositionKind positionInFun(FunDecl* a, Pos pos, in AllSymbols allSymbols) {
 		return some(PositionKind(a));
 
 	Destructure[] params = paramsArray(a.params);
-	//TODO: have a way to get return type range if there are no parameters
-	if (!empty(params) && betweenRanges(nameRange, pos, params[0].range))
+
+	if (hasPos(a.returnTypeRange, pos))
 		return some(PositionKind(a.returnType));
 	foreach (Destructure x; params) {
 		Opt!PositionKind res = positionInParameterDestructure(allSymbols, pos, x);
@@ -349,6 +349,3 @@ Opt!PositionKind positionInExpr(in AllSymbols allSymbols, ref Expr a, Pos pos) {
 
 bool nameHasPos(in AllSymbols allSymbols, Pos start, Sym name, Pos pos) =>
 	start <= pos && pos < start + symSize(allSymbols, name);
-
-bool betweenRanges(RangeWithinFile left, Pos pos, RangeWithinFile right) =>
-	left.end <= pos && pos < right.start;
