@@ -69,6 +69,7 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\frontend\ide\getHover.d \
 	src\frontend\ide\getPosition.d \
 	src\frontend\ide\getTokens.d \
+	src\frontend\ide\position.d \
 	src\frontend\parse\ast.d \
 	src\frontend\parse\jsonOfAst.d \
 	src\frontend\parse\lexer.d \

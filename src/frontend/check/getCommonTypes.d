@@ -5,6 +5,7 @@ module frontend.check.getCommonTypes;
 import frontend.check.checkCtx : addDiag, CheckCtx;
 import frontend.check.instantiate : instantiateStruct;
 import frontend.check.maps : StructsAndAliasesMap;
+import frontend.parse.ast : StructDeclAst;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
@@ -29,7 +30,6 @@ import util.col.arr : empty, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.enumMap : EnumMap;
 import util.col.mutArr : MutArr;
-import util.col.str : safeCStr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, someMut, some;
 import util.ptr : ptrTrustMe;
@@ -189,12 +189,12 @@ StructInst* instantiateNonTemplateStructDecl(
 
 StructDecl* bogusStructDecl(ref Alloc alloc, size_t nTypeParameters) {
 	ArrBuilder!TypeParam typeParams;
-	UriAndRange fileAndRange = UriAndRange.empty;
+	UriAndRange uriAndRange = UriAndRange.empty;
 	foreach (size_t i; 0 .. nTypeParameters)
-		add(alloc, typeParams, TypeParam(fileAndRange, sym!"bogus", i));
+		add(alloc, typeParams, TypeParam(uriAndRange, sym!"bogus", i));
 	StructDecl* res = allocate(alloc, StructDecl(
-		fileAndRange,
-		safeCStr!"",
+		none!(StructDeclAst*),
+		uriAndRange.uri,
 		sym!"bogus",
 		small(finishArr(alloc, typeParams)),
 		Visibility.public_,

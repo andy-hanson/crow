@@ -11,6 +11,7 @@ import frontend.parse.ast :
 	CallAst,
 	DestructureAst,
 	EmptyAst,
+	ExplicitVisibility,
 	ExprAst,
 	FileAst,
 	ForAst,
@@ -58,7 +59,7 @@ import frontend.parse.ast :
 	UnlessAst,
 	VarDeclAst,
 	WithAst;
-import model.model : symOfVarKind, Visibility;
+import model.model : symOfVarKind;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
@@ -131,18 +132,8 @@ private:
 
 alias TokensBuilder = ArrBuilder!Token;
 
-RangeWithinFile rangeAtName(in AllSymbols allSymbols, Visibility visibility, Pos start, Sym name) {
-	uint offset = () {
-		final switch (visibility) {
-			case Visibility.private_:
-			case Visibility.public_:
-				return 1;
-			case Visibility.internal:
-				return 0;
-		}
-	}();
-	return rangeAtName(allSymbols, start + offset, name);
-}
+RangeWithinFile rangeAtName(in AllSymbols allSymbols, ExplicitVisibility visibility, Pos start, Sym name) =>
+	rangeAtName(allSymbols, start + (visibility == ExplicitVisibility.default_ ? 0 : 1), name);
 
 RangeWithinFile rangeAtName(in AllSymbols allSymbols, Pos start, Sym name) =>
 	RangeWithinFile(start, start + symSize(allSymbols, name));

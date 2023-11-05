@@ -2,6 +2,7 @@ module frontend.check.checkStructs;
 
 @safe @nogc pure nothrow:
 
+import frontend.check.check : visibilityFromExplicit;
 import frontend.check.checkCtx : addDiag, CheckCtx, rangeInFile;
 import frontend.check.maps : StructsAndAliasesMap;
 import frontend.check.typeFromAst : checkTypeParams, typeFromAst;
@@ -42,9 +43,8 @@ import model.model :
 	Visibility,
 	visibility;
 import util.col.arr : empty, small;
-import util.col.arrUtil : eachPair, fold, map, mapAndFold, MapAndFold, mapToMut, zipPtrFirst;
+import util.col.arrUtil : eachPair, fold, map, mapAndFold, MapAndFold, mapPointers, zipPtrFirst;
 import util.col.mutArr : MutArr;
-import util.col.str : copySafeCStr;
 import util.conv : safeToSizeT;
 import util.opt : force, has, none, Opt, optOrDefault, some, someMut;
 import util.ptr : ptrTrustMe;
@@ -53,14 +53,14 @@ import util.sym : Sym, sym;
 import util.util : isMultipleOf, todo, unreachable, verify;
 
 StructDecl[] checkStructsInitial(ref CheckCtx ctx, in StructDeclAst[] asts) =>
-	mapToMut!(StructDecl, StructDeclAst)(ctx.alloc, asts, (in StructDeclAst ast) {
+	mapPointers!(StructDecl, StructDeclAst)(ctx.alloc, asts, (StructDeclAst* ast) {
 		LinkageAndPurity p = getStructModifiers(ctx, getTypeKind(ast.body_), ast.modifiers);
 		return StructDecl(
-			rangeInFile(ctx, ast.range),
-			copySafeCStr(ctx.alloc, ast.docComment),
+			some(ast),
+			ctx.curUri,
 			ast.name,
 			small(checkTypeParams(ctx, ast.typeParams)),
-			ast.visibility,
+			visibilityFromExplicit(ast.visibility),
 			p.linkage,
 			p.purityAndForced.purity,
 			p.purityAndForced.forced);
@@ -508,10 +508,9 @@ StructBody.Record checkRecord(
 	ForcedByValOrRefOrNone valOrRef = isExtern ? ForcedByValOrRefOrNone.byVal : modifiers.byValOrRefOrNone;
 	if (isExtern && modifiers.byValOrRefOrNone != ForcedByValOrRefOrNone.none)
 		addDiag(ctx, struct_.range, Diag(Diag.ExternRecordImplicitlyByVal(struct_)));
-	RecordField[] fields = map!(RecordField, StructDeclAst.Body.Record.Field)(
-		ctx.alloc, r.fields, (scope ref StructDeclAst.Body.Record.Field field) =>
-			checkRecordField(
-				ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, field));
+	RecordField[] fields = mapPointers!(RecordField, StructDeclAst.Body.Record.Field)(
+		ctx.alloc, r.fields, (StructDeclAst.Body.Record.Field* field) =>
+			checkRecordField(ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, field));
 	eachPair!RecordField(fields, (in RecordField a, in RecordField b) {
 		if (a.name == b.name)
 			addDiag(ctx, b.range, Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.recordField, a.name)));
@@ -527,14 +526,20 @@ RecordField checkRecordField(
 	ref StructsAndAliasesMap structsAndAliasesMap,
 	ref MutArr!(StructInst*) delayStructInsts,
 	StructDecl* struct_,
-	in StructDeclAst.Body.Record.Field ast,
+	StructDeclAst.Body.Record.Field* ast,
 ) {
 	Type fieldType = typeFromAst(
 		ctx, commonTypes, ast.type, structsAndAliasesMap, struct_.typeParams, someMut(ptrTrustMe(delayStructInsts)));
 	checkReferenceLinkageAndPurity(ctx, struct_, ast.range, fieldType);
 	if (ast.mutability != FieldMutability.const_ && struct_.purity != Purity.mut && !struct_.purityIsForced)
 		addDiag(ctx, ast.range, Diag(Diag.MutFieldNotAllowed()));
-	return RecordField(rangeInFile(ctx, ast.range), ast.visibility, ast.name, ast.mutability, fieldType);
+	return RecordField(
+		ast,
+		rangeInFile(ctx, ast.range),
+		visibilityFromExplicit(ast.visibility),
+		ast.name,
+		ast.mutability,
+		fieldType);
 }
 
 StructBody.Union checkUnion(

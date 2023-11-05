@@ -2,10 +2,10 @@ module frontend.ide.getHover;
 
 @safe @nogc pure nothrow:
 
-import frontend.ide.getPosition : Position, PositionKind;
-import frontend.showModel : ShowCtx;
-import frontend.showModel : writeFile, writeFunInst, writeLineAndColumnRange, writeTypeUnquoted;
-import frontend.showModel : writeCalled;
+import frontend.ide.position : Position, PositionKind;
+import frontend.parse.ast : FunModifierAst;
+import frontend.showModel :
+	ShowCtx, writeCalled, writeFile, writeFunInst, writeLineAndColumnRange, writeName, writeSpecInst, writeTypeUnquoted;
 import model.model :
 	AssertOrForbidKind,
 	body_,
@@ -19,10 +19,13 @@ import model.model :
 	Local,
 	name,
 	SpecDecl,
+	SpecInst,
 	StructBody,
 	StructInst,
+	symOfVisibility,
 	Type,
-	TypeParam;
+	TypeParam,
+	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.str : SafeCStr;
 import util.lineAndColumnGetter : lineAndColumnRange;
@@ -30,6 +33,7 @@ import util.ptr : ptrTrustMe;
 import util.sourceRange : UriAndRange;
 import util.sym : writeSym;
 import util.uri : Uri;
+import util.util : unreachable;
 import util.writer : finishWriterToSafeCStr, Writer;
 
 SafeCStr getHoverStr(ref Alloc alloc, scope ref ShowCtx ctx, in Position pos) {
@@ -47,6 +51,34 @@ void getHover(ref Writer writer, scope ref ShowCtx ctx, in Position pos) =>
 		(in FunDecl it) {
 			writer ~= "function ";
 			writeSym(writer, ctx.allSymbols, it.name);
+		},
+		(in PositionKind.FunExtern x) {
+			writer ~= "function comes from external library ";
+			writeName(writer, ctx, x.funDecl.name);
+		},
+		(in PositionKind.FunSpecialModifier x) {
+			writer ~= () {
+				final switch (x.flag) {
+					case FunModifierAst.Special.Flags.none:
+						return unreachable!string;
+					case FunModifierAst.Special.Flags.builtin:
+						return "This function is built in to the compiler.";
+					case FunModifierAst.Special.Flags.extern_:
+						// This is a compile error, so just let that explain it.
+						return "";
+					case FunModifierAst.Special.Flags.bare:
+						return "This function does not use the Crow runtime.";
+					case FunModifierAst.Special.Flags.summon:
+						return "This function can directly access all I/O capacilities.";
+					case FunModifierAst.Special.Flags.trusted:
+						return "This function is not unsafe, but can do unsafe things internally.";
+					case FunModifierAst.Special.Flags.unsafe:
+						return "This function can only be called by 'trusted' or 'unsafe' functions.";
+					case FunModifierAst.Special.Flags.forceCtx:
+						return "This function uses the runtime, but 'bare' functions can call it. " ~
+							"(Don't use outside of the Crow runtime.)";
+				}
+			}();
 		},
 		(in PositionKind.ImportedModule x) {
 			writer ~= "import module ";
@@ -76,6 +108,10 @@ void getHover(ref Writer writer, scope ref ShowCtx ctx, in Position pos) =>
 			writer ~= "spec ";
 			writeSym(writer, ctx.allSymbols, x.name);
 		},
+		(in SpecInst x) {
+			writer ~= "spec ";
+			writeSpecInst(writer, ctx, x);
+		},
 		(in StructDecl x) {
 			writeStructDeclHover(writer, ctx, x);
 		},
@@ -91,6 +127,11 @@ void getHover(ref Writer writer, scope ref ShowCtx ctx, in Position pos) =>
 		},
 		(in TypeParam x) {
 			hoverTypeParam(writer, ctx, x);
+		},
+		(in Visibility x) {
+			writer ~= "The declaration is ";
+			writeSym(writer, ctx.allSymbols, symOfVisibility(x));
+			writer ~= '.';
 		});
 
 private:
@@ -108,9 +149,9 @@ void writeStructDeclHover(ref Writer writer, scope ref ShowCtx ctx, in StructDec
 		(in StructBody.Flags) =>
 			"flags type ",
 		(in StructBody.Record) =>
-			"record ",
+			"record type ",
 		(in StructBody.Union) =>
-			"union ");
+			"union type ");
 	writeSym(writer, ctx.allSymbols, a.name);
 }
 

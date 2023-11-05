@@ -20,6 +20,7 @@ import frontend.check.typeFromAst :
 import frontend.diagnosticsBuilder : addDiagnostic, DiagnosticsBuilder;
 import frontend.parse.ast :
 	DestructureAst,
+	ExplicitVisibility,
 	ExprAst,
 	ExprAstKind,
 	FileAst,
@@ -167,6 +168,19 @@ Module check(
 		(ref CheckCtx _, in StructsAndAliasesMap _2, scope ref MutArr!(StructInst*)) => commonTypes,
 	).module_;
 
+Visibility visibilityFromExplicit(ExplicitVisibility a) {
+	final switch (a) {
+		case ExplicitVisibility.default_:
+			return Visibility.internal;
+		case ExplicitVisibility.private_:
+			return Visibility.private_;
+		case ExplicitVisibility.internal:
+			return Visibility.internal;
+		case ExplicitVisibility.public_:
+			return Visibility.public_;
+	}
+}
+
 private:
 
 Params checkParams(
@@ -267,7 +281,7 @@ SpecDecl[] checkSpecDeclsInitial(
 		return SpecDecl(
 			rangeInFile(ctx, ast.range),
 			copySafeCStr(ctx.alloc, ast.docComment),
-			ast.visibility,
+			visibilityFromExplicit(ast.visibility),
 			ast.name,
 			small(typeParams),
 			body_);
@@ -324,7 +338,7 @@ StructAlias[] checkStructAliasesInitial(ref CheckCtx ctx, scope StructAliasAst[]
 		StructAlias(
 			rangeInFile(ctx, ast.range),
 			copySafeCStr(ctx.alloc, ast.docComment),
-			ast.visibility,
+			visibilityFromExplicit(ast.visibility),
 			ast.name,
 			small(checkTypeParams(ctx, ast.typeParams))));
 
@@ -383,7 +397,7 @@ VarDecl checkVarDecl(
 	return VarDecl(
 		UriAndPos(ctx.curUri, ast.range.start),
 		copySafeCStr(ctx.alloc, ast.docComment),
-		ast.visibility,
+		visibilityFromExplicit(ast.visibility),
 		ast.name,
 		ast.kind,
 		typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, ast.type, structsAndAliasesMap),
@@ -571,12 +585,12 @@ FunsAndMap checkFuns(
 		exactSizeArrBuilderAdd(
 			funsBuilder,
 			FunDecl(
+				some(&funAst),
 				copySafeCStr(ctx.alloc, funAst.docComment),
-				funAst.visibility,
+				visibilityFromExplicit(funAst.visibility),
 				posInFile(ctx, funAst.range.start),
 				funAst.name,
 				typeParams,
-				range(funAst.returnType, ctx.allSymbols),
 				rp.returnType,
 				rp.params,
 				flagsAndSpecs.flags,
@@ -720,12 +734,12 @@ FunDecl funDeclForFileImportOrExport(
 	Visibility visibility,
 ) =>
 	FunDecl(
+		none!(FunDeclAst*),
 		safeCStr!"",
 		visibility,
 		UriAndPos(ctx.curUri, a.range.start),
 		a.name,
 		[],
-		RangeWithinFile.empty,
 		typeForFileImport(ctx, commonTypes, structsAndAliasesMap, a.range, a.type),
 		Params([]),
 		FunFlags.generatedBare,

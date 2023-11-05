@@ -1,14 +1,5 @@
 [
 	{
-		"start": {"line": 1, "column": 1},
-		"end": {"line": 1, "column": 12},
-		"hover": "builtin type nat",
-		"definition": {
-			"uri": "magic:function.crow",
-			"range": {"start": 0, "end": 11}
-		}
-	},
-	{
 		"start": {"line": 3, "column": 1},
 		"end": {"line": 3, "column": 2},
 		"hover": "function f",

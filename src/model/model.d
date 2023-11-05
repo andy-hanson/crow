@@ -2,7 +2,7 @@ module model.model;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast : NameAndRange, rangeOfNameAndRange;
+import frontend.parse.ast : FunDeclAst, NameAndRange, rangeOfNameAndRange, StructDeclAst;
 import model.concreteModel : TypeSize;
 import model.constant : Constant;
 import model.diag : Diagnostics;
@@ -191,6 +191,7 @@ Sym symOfFieldMutability(FieldMutability a) {
 }
 
 immutable struct RecordField {
+	StructDeclAst.Body.Record.Field* ast;
 	//TODO: use NameAndRange (more compact)
 	UriAndRange range;
 	Visibility visibility;
@@ -327,9 +328,10 @@ bool isLinkageAlwaysCompatible(Linkage referencer, LinkageRange referenced) =>
 	referenced.leastStrict >= referencer;
 
 immutable struct StructDecl {
-	// TODO: use NameAndRange (more compact)
-	UriAndRange range;
-	SafeCStr docComment;
+	@safe @nogc pure nothrow:
+
+	Opt!(StructDeclAst*) ast;
+	Uri moduleUri;
 	Sym name;
 	SmallArray!TypeParam typeParams;
 	Visibility visibility;
@@ -339,6 +341,12 @@ immutable struct StructDecl {
 	bool purityIsForced;
 
 	private Late!StructBody lateBody;
+
+	SafeCStr docComment() scope =>
+		has(ast) ? force(ast).docComment : safeCStr!"";
+
+	UriAndRange range() scope =>
+		UriAndRange(moduleUri, has(ast) ? force(ast).range : RangeWithinFile.empty);
 }
 
 bool isTemplate(in StructDecl a) =>
@@ -648,23 +656,23 @@ immutable struct FunDecl {
 	@disable this(ref const FunDecl);
 
 	this(
+		Opt!(FunDeclAst*) a,
 		SafeCStr dc,
 		Visibility v,
 		UriAndPos fp,
 		Sym n,
 		TypeParam[] tps,
-		RangeWithinFile rtr,
 		Type rt,
 		Params pms,
 		FunFlags f,
 		immutable SpecInst*[] sps,
 	) {
+		ast = a;
 		docComment = dc;
 		visibility = v;
 		fileAndPos = fp;
 		name = n;
 		flags = f;
-		returnTypeRange = rtr;
 		returnType = rt;
 		params = pms;
 		typeParams = small(tps);
@@ -682,12 +690,12 @@ immutable struct FunDecl {
 		immutable SpecInst*[] sps,
 		FunBody b,
 	) {
+		ast = none!(FunDeclAst*);
 		docComment = dc;
 		visibility = v;
 		fileAndPos = fp;
 		name = n;
 		flags = f;
-		returnTypeRange = RangeWithinFile.empty;
 		returnType = rt;
 		params = pms;
 		typeParams = small(tps);
@@ -695,12 +703,12 @@ immutable struct FunDecl {
 		setBody(b);
 	}
 
+	Opt!(FunDeclAst*) ast;
 	SafeCStr docComment;
 	Visibility visibility;
 	UriAndPos fileAndPos;
 	Sym name;
 	FunFlags flags;
-	RangeWithinFile returnTypeRange;
 	Type returnType;
 	Params params;
 	SmallArray!TypeParam typeParams;

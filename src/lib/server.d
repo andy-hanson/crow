@@ -9,8 +9,9 @@ import frontend.diagnosticsBuilder : DiagnosticsBuilder, DiagnosticsBuilderForFi
 import frontend.frontendCompile : frontendCompile, FileAstAndDiagnostics, parseAllFiles, parseSingleAst;
 import frontend.ide.getDefinition : Definition, getDefinitionForPosition;
 import frontend.ide.getHover : getHoverStr;
-import frontend.ide.getPosition : getPosition, Position;
+import frontend.ide.getPosition : getPosition;
 import frontend.ide.getTokens : jsonOfTokens, Token, tokensOfAst;
+import frontend.ide.position : Position;
 import frontend.parse.ast : FileAst;
 import frontend.parse.jsonOfAst : jsonOfAst;
 import frontend.parse.parse : parseFile;

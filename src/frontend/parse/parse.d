@@ -5,6 +5,7 @@ module frontend.parse.parse;
 import frontend.diagnosticsBuilder : DiagnosticsBuilderForFile;
 import frontend.parse.ast :
 	DestructureAst,
+	ExplicitVisibility,
 	ExprAst,
 	FileAst,
 	FunDeclAst,
@@ -56,7 +57,7 @@ import frontend.parse.parseUtil :
 	tryTakeName,
 	tryTakeOperator,
 	tryTakeToken;
-import model.model : FieldMutability, VarKind, Visibility;
+import model.model : FieldMutability, VarKind;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
@@ -200,7 +201,7 @@ StructDeclAst.Body.Record.Field[] parseRecordFields(ref Lexer lexer) {
 	ArrBuilder!(StructDeclAst.Body.Record.Field) fields;
 	while (true) {
 		Pos start = curPos(lexer);
-		Visibility visibility = tryTakeVisibility(lexer);
+		ExplicitVisibility visibility = tryTakeVisibility(lexer);
 		Sym name = takeName(lexer);
 		FieldMutability mutability = parseFieldMutability(lexer);
 		TypeAst type = parseType(lexer);
@@ -244,7 +245,7 @@ StructDeclAst.Body.Union.Member[] parseUnionMembers(ref Lexer lexer) {
 FunDeclAst parseFun(
 	ref Lexer lexer,
 	SafeCStr docComment,
-	Visibility visibility,
+	ExplicitVisibility visibility,
 	Pos start,
 	Sym name,
 	NameAndRange[] typeParams,
@@ -352,7 +353,7 @@ void parseSpecOrStructOrFun(
 	SafeCStr docComment,
 ) {
 	Pos start = curPos(lexer);
-	Visibility visibility = tryTakeVisibility(lexer);
+	ExplicitVisibility visibility = tryTakeVisibility(lexer);
 	Sym name = takeNameOrOperator(lexer);
 	NameAndRange[] typeParams = parseTypeParams(lexer);
 
@@ -466,7 +467,7 @@ VarDeclAst parseVarDecl(
 	ref Lexer lexer,
 	Pos start,
 	SafeCStr docComment,
-	Visibility visibility,
+	ExplicitVisibility visibility,
 	Sym name,
 	NameAndRange[] typeParams,
 	Pos kindPos,
@@ -549,14 +550,14 @@ Opt!(ModifierAst.Kind) modifierKindFromSym(Sym a) {
 	}
 }
 
-Visibility tryTakeVisibility(ref Lexer lexer) =>
+ExplicitVisibility tryTakeVisibility(ref Lexer lexer) =>
 	tryTakeOperator(lexer, sym!"-")
-		? Visibility.private_
+		? ExplicitVisibility.private_
 		: tryTakeOperator(lexer, sym!"+")
-		? Visibility.public_
+		? ExplicitVisibility.public_
 		: tryTakeOperator(lexer, sym!"~")
-		? Visibility.internal
-		: Visibility.internal;
+		? ExplicitVisibility.internal
+		: ExplicitVisibility.default_;
 
 FileAst parseFileInner(ref AllUris allUris, ref Lexer lexer) {
 	SafeCStr moduleDocComment = takeNewline_topLevel(lexer);

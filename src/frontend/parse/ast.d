@@ -2,7 +2,7 @@ module frontend.parse.ast;
 
 @safe @nogc pure nothrow:
 
-import model.model : AssertOrForbidKind, FieldMutability, FunKind, ImportFileType, VarKind, Visibility;
+import model.model : AssertOrForbidKind, FieldMutability, FunKind, ImportFileType, VarKind;
 import util.col.arr : SmallArray;
 import util.col.arrUtil : exists;
 import util.col.str : SafeCStr;
@@ -30,6 +30,25 @@ static assert(NameAndRange.sizeof == ulong.sizeof * 2);
 
 RangeWithinFile rangeOfNameAndRange(NameAndRange a, ref const AllSymbols allSymbols) =>
 	rangeOfStartAndName(a.start, a.name, allSymbols);
+
+enum ExplicitVisibility {
+	default_,
+	private_,
+	internal,
+	public_,
+}
+Sym symOfExplicitVisibility(ExplicitVisibility a) {
+	final switch (a) {
+		case ExplicitVisibility.default_:
+			return sym!"default";
+		case ExplicitVisibility.private_:
+			return sym!"private";
+		case ExplicitVisibility.internal:
+			return sym!"internal";
+		case ExplicitVisibility.public_:
+			return sym!"public";
+	}
+}
 
 immutable struct TypeAst {
 	immutable struct Bogus {
@@ -482,7 +501,7 @@ immutable struct SpecSigAst {
 immutable struct StructAliasAst {
 	RangeWithinFile range;
 	SafeCStr docComment;
-	Visibility visibility;
+	ExplicitVisibility visibility;
 	Sym name;
 	SmallArray!NameAndRange typeParams;
 	TypeAst target;
@@ -538,7 +557,7 @@ immutable struct StructDeclAst {
 		immutable struct Record {
 			immutable struct Field {
 				RangeWithinFile range;
-				Visibility visibility;
+				ExplicitVisibility visibility;
 				Sym name;
 				FieldMutability mutability;
 				TypeAst type;
@@ -560,7 +579,7 @@ immutable struct StructDeclAst {
 
 	RangeWithinFile range;
 	SafeCStr docComment;
-	Visibility visibility;
+	ExplicitVisibility visibility;
 	Sym name; // start is range.start
 	SmallArray!NameAndRange typeParams;
 	SmallArray!ModifierAst modifiers;
@@ -577,7 +596,7 @@ static assert(SpecBodyAst.sizeof == ulong.sizeof);
 immutable struct SpecDeclAst {
 	RangeWithinFile range;
 	SafeCStr docComment;
-	Visibility visibility;
+	ExplicitVisibility visibility;
 	Sym name;
 	SmallArray!NameAndRange typeParams;
 	SmallArray!TypeAst parents;
@@ -587,7 +606,7 @@ immutable struct SpecDeclAst {
 immutable struct FunDeclAst {
 	RangeWithinFile range;
 	SafeCStr docComment;
-	Visibility visibility;
+	ExplicitVisibility visibility;
 	Sym name; // Range starts at sig.range.start
 	SmallArray!NameAndRange typeParams;
 	TypeAst returnType;
@@ -627,7 +646,7 @@ immutable struct FunModifierAst {
 		TypeAst* left;
 		Pos externPos;
 
-		RangeWithinFile range(in AllSymbols allSymbols) =>
+		RangeWithinFile range(in AllSymbols allSymbols) scope =>
 			RangeWithinFile(
 				.range(*left, allSymbols).start,
 				suffixRange(allSymbols).end);
@@ -638,6 +657,15 @@ immutable struct FunModifierAst {
 	// TypeAst will be interpreted as a spec inst
 	mixin Union!(Special, Extern, TypeAst);
 }
+
+RangeWithinFile range(in FunModifierAst a, in AllSymbols allSymbols) =>
+	a.matchIn!RangeWithinFile(
+		(in FunModifierAst.Special x) =>
+			x.range(allSymbols),
+		(in FunModifierAst.Extern x) =>
+			x.range(allSymbols),
+		(in TypeAst x) =>
+			x.range(allSymbols));
 
 Sym symOfSpecialFlag(FunModifierAst.Special.Flags a) {
 	switch (a) {
@@ -668,7 +696,7 @@ immutable struct TestAst {
 immutable struct VarDeclAst {
 	RangeWithinFile range;
 	SafeCStr docComment;
-	Visibility visibility;
+	ExplicitVisibility visibility;
 	Sym name;
 	NameAndRange[] typeParams; // This will be a compile error
 	Pos kindPos;

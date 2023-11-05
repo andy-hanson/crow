@@ -5,6 +5,7 @@ module frontend.check.getCommonFuns;
 import frontend.check.inferringType : typesAreCorrespondingStructInsts;
 import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay;
 import frontend.diagnosticsBuilder : addDiagnostic, DiagnosticsBuilder;
+import frontend.parse.ast : StructDeclAst;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
@@ -242,8 +243,8 @@ StructDecl* getStructDeclOrAddDiag(
 			UriAndRange(module_.uri, RangeWithinFile.empty),
 			Diag(Diag.CommonTypeMissing(name)));
 		return allocate(alloc, StructDecl(
-			UriAndRange.empty,
-			safeCStr!"",
+			none!(StructDeclAst*),
+			module_.uri,
 			name,
 			small(makeArr!TypeParam(alloc, nTypeParams, (size_t idx) =>
 				TypeParam(UriAndRange.empty, sym!"a", 0))),

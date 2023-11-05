@@ -89,13 +89,30 @@ Opt!size_t indexOfStartingAt(T)(in T[] xs, in T value, size_t start) {
 	return 0 <= res && res < xs.length ? some(res) : none!size_t;
 }
 
-Opt!Out first(Out, In)(in In[] a, in Opt!Out delegate(In) @safe @nogc pure nothrow cb) {
-	foreach (ref In x; a) {
+Opt!Out firstWithIndex(Out, In)(in In[] a, in Opt!Out delegate(size_t, In) @safe @nogc pure nothrow cb) {
+	foreach (size_t index, In x; a) {
+		Opt!Out res = cb(index, x);
+		if (has(res))
+			return res;
+	}
+	return none!Out;
+}
+
+Opt!Out first(Out, In)(in In[] a, in Opt!Out delegate(In) @safe @nogc pure nothrow cb) =>
+	firstWithIndex!(Out, In)(a, (size_t _, In x) => cb(x));
+
+Opt!Out firstPointer(Out, In)(In[] a, in Opt!Out delegate(In*) @safe @nogc pure nothrow cb) {
+	foreach (In* x; ptrsRange(a)) {
 		Opt!Out res = cb(x);
 		if (has(res))
 			return res;
 	}
 	return none!Out;
+}
+
+Opt!Out firstZip(Out, In0, In1)(in In0[] a, in In1[] b, in Opt!Out delegate(In0, In1) @safe @nogc pure nothrow cb) {
+	verify(sizeEq(a, b));
+	return firstWithIndex!(Out, In0)(a, (size_t i, In0 x) => cb(x, b[i]));
 }
 
 Opt!(T*) findPtr(T)(T[] arr, in bool delegate(in T) @safe @nogc pure nothrow cb) {
@@ -210,16 +227,23 @@ T[] copyArr(T)(ref Alloc alloc, scope T[] a) =>
 	return res[0 .. a.length];
 }
 
-@trusted Out[] mapPointersWithIndex(Out, In)(
+@trusted Out[] mapPointers(Out, In)(
 	ref Alloc alloc,
 	In[] a,
-	in Out delegate(size_t, In*) @safe @nogc pure nothrow cb,
+	in Out delegate(In*) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = allocateT!Out(alloc, a.length);
 	foreach (size_t i; 0 .. a.length)
-		initMemory(res + i, cb(i, &a[i]));
+		initMemory(res + i, cb(&a[i]));
 	return res[0 .. a.length];
 }
+
+Out[] mapPointersWithIndex(Out, In)(
+	ref Alloc alloc,
+	In[] a,
+	in Out delegate(size_t, In*) @safe @nogc pure nothrow cb,
+) =>
+	mapPointers!(Out, In)(alloc, a, (In* x) @trusted => cb(x - a.ptr, x));
 
 @trusted immutable(T[]) cat(T)(ref Alloc alloc, immutable T[] a, immutable T[] b) {
 	if (empty(a))

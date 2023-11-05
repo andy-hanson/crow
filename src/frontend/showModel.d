@@ -21,6 +21,7 @@ import model.model :
 	Program,
 	Purity,
 	ReturnAndParamTypes,
+	SpecInst,
 	StructInst,
 	symOfPurity,
 	Type,
@@ -388,6 +389,11 @@ void writeName(scope ref Writer writer, in ShowCtx ctx, Sym name) {
 	writer ~= '\'';
 	writeSym(writer, ctx.allSymbols, name);
 	writer ~= '\'';
+}
+
+void writeSpecInst(scope ref Writer writer, scope ref ShowCtx ctx, in SpecInst a) {
+	writeSym(writer, ctx.allSymbols, decl(a).name);
+	writeTypeArgs(writer, ctx, typeArgs(a));
 }
 
 void writeUriAndRange(ref Writer writer, scope ref ShowCtx ctx, in UriAndRange where) {

@@ -50,6 +50,9 @@ ref inout(T) force(T)(ref inout Option!T a) {
 	return a.value_;
 }
 
+Opt!T optIf(T)(bool b, in T delegate() @safe @nogc pure nothrow cb) =>
+	b ? some(cb()) : none!T;
+
 Opt!T optOr(T)(Opt!T a, in Opt!T delegate() @safe @nogc pure nothrow cb) =>
 	has(a) ? a : cb();
 

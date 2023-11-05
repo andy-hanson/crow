@@ -2,7 +2,7 @@ module frontend.ide.getDefinition;
 
 @safe @nogc pure nothrow:
 
-import frontend.ide.getPosition : Position, PositionKind;
+import frontend.ide.position : Position, PositionKind;
 import model.model :
 	Called,
 	CalledSpecSig,
@@ -17,11 +17,13 @@ import model.model :
 	RecordField,
 	SpecDecl,
 	SpecDeclSig,
+	SpecInst,
 	StructDecl,
 	StructInst,
 	toLocal,
 	Type,
-	TypeParam;
+	TypeParam,
+	Visibility;
 import util.alloc.alloc : Alloc;
 import util.opt : force, has, none, Opt, some;
 import util.json : field, Json;
@@ -91,6 +93,10 @@ Opt!Target targetForPosition(in Program program, PositionKind pos) =>
 			exprTarget(program, x),
 		(FunDecl* x) =>
 			some(Target(x)),
+		(PositionKind.FunExtern) =>
+			none!Target,
+		(PositionKind.FunSpecialModifier) =>
+			none!Target,
 		(PositionKind.ImportedModule x) =>
 			some(Target(x.module_)),
 		(PositionKind.ImportedName x) =>
@@ -104,6 +110,8 @@ Opt!Target targetForPosition(in Program program, PositionKind pos) =>
 			some(Target(x.field)),
 		(SpecDecl* x) =>
 			some(Target(x)),
+		(SpecInst* x) =>
+			some(Target(decl(*x))),
 		(StructDecl* x) =>
 			some(Target(x)),
 		(Type x) =>
@@ -115,7 +123,9 @@ Opt!Target targetForPosition(in Program program, PositionKind pos) =>
 				(StructInst* x) =>
 					some(Target(decl(*x)))),
 		(TypeParam* x) =>
-			some(Target(x)));
+			some(Target(x)),
+		(Visibility _) =>
+			none!Target);
 
 Opt!Target exprTarget(in Program program, ref Expr a) =>
 	a.kind.match!(Opt!Target)(

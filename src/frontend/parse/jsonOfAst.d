@@ -51,6 +51,7 @@ import frontend.parse.ast :
 	StructAliasAst,
 	StructDeclAst,
 	symForTypeAstSuffix,
+	symOfExplicitVisibility,
 	symOfModifierKind,
 	symOfSpecialFlag,
 	ThenAst,
@@ -60,7 +61,7 @@ import frontend.parse.ast :
 	TypedAst,
 	UnlessAst,
 	WithAst;
-import model.model : symOfAssertOrForbidKind, symOfFieldMutability, symOfFunKind, symOfImportFileType, symOfVisibility;
+import model.model : symOfAssertOrForbidKind, symOfFieldMutability, symOfFunKind, symOfImportFileType;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.json :
@@ -131,7 +132,7 @@ Json jsonOfSpecDeclAst(ref Alloc alloc, in SpecDeclAst a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRangeWithinFile(alloc, a.range)),
 		field!"comment"(jsonString(alloc, a.docComment)),
-		field!"visibility"(symOfVisibility(a.visibility)),
+		field!"visibility"(symOfExplicitVisibility(a.visibility)),
 		field!"name"(a.name),
 		field!"parents"(jsonOfTypeAsts(alloc, a.parents)),
 		maybeTypeParams(alloc, a.typeParams),
@@ -157,7 +158,7 @@ Json jsonOfStructAliasAst(ref Alloc alloc, in StructAliasAst a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRangeWithinFile(alloc, a.range)),
 		optionalStringField!"doc"(alloc, a.docComment),
-		field!"visibility"(symOfVisibility(a.visibility)),
+		field!"visibility"(symOfExplicitVisibility(a.visibility)),
 		field!"name"(a.name),
 		maybeTypeParams(alloc, a.typeParams),
 		field!"target"(jsonOfTypeAst(alloc, a.target))]);
@@ -255,7 +256,7 @@ Json jsonOfStructDeclAst(ref Alloc alloc, in StructDeclAst a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRangeWithinFile(alloc, a.range)),
 		field!"doc"(jsonString(alloc, a.docComment)),
-		field!"visibility"(symOfVisibility(a.visibility)),
+		field!"visibility"(symOfExplicitVisibility(a.visibility)),
 		maybeTypeParams(alloc, a.typeParams),
 		optionalArrayField!("modifiers", ModifierAst)(alloc, a.modifiers, (in ModifierAst x) =>
 			jsonOfModifierAst(alloc, x)),
@@ -273,7 +274,7 @@ Json jsonOfModifierAst(ref Alloc alloc, in ModifierAst a) =>
 Json jsonOfFunDeclAst(ref Alloc alloc, in FunDeclAst a) =>
 	jsonObject(alloc, [
 		optionalStringField!"doc"(alloc, a.docComment),
-		field!"visibility"(symOfVisibility(a.visibility)),
+		field!"visibility"(symOfExplicitVisibility(a.visibility)),
 		field!"range"(jsonOfRangeWithinFile(alloc, a.range)),
 		field!"name"(a.name),
 		maybeTypeParams(alloc, a.typeParams),
