@@ -193,7 +193,13 @@ Opt!PositionKind positionInSpec(in AllSymbols allSymbols, SpecDecl* a, Pos pos) 
 	return some(PositionKind(a));
 }
 
-Opt!PositionKind positionInStructBody(in AllSymbols allSymbols, StructDecl* decl, ref StructBody body_, in StructDeclAst.Body ast, Pos pos) =>
+Opt!PositionKind positionInStructBody(
+	in AllSymbols allSymbols,
+	StructDecl* decl,
+	ref StructBody body_,
+	in StructDeclAst.Body ast,
+	Pos pos,
+) =>
 	body_.match!(Opt!PositionKind)(
 		(StructBody.Bogus) =>
 			none!PositionKind,
@@ -215,11 +221,20 @@ Opt!PositionKind positionInStructBody(in AllSymbols allSymbols, StructDecl* decl
 			//TODO
 			none!PositionKind);
 
-Opt!PositionKind positionInRecordField(in AllSymbols allSymbols, StructDecl* decl, RecordField* field, StructDeclAst.Body.Record.Field fieldAst, Pos pos) =>
+Opt!PositionKind positionInRecordField(
+	in AllSymbols allSymbols,
+	StructDecl* decl,
+	RecordField* field,
+	in StructDeclAst.Body.Record.Field fieldAst,
+	Pos pos,
+) =>
 	optOr!PositionKind(
 		positionInVisibility(field, fieldAst, pos),
-		() => optIf(hasPos(allSymbols, fieldAst.name, pos), () => PositionKind(PositionKind.RecordFieldPosition(decl, field))),
-		() => has(fieldAst.mutability) ? positionInFieldMutability(allSymbols, force(fieldAst.mutability), pos) : none!PositionKind,
+		() => optIf(hasPos(allSymbols, fieldAst.name, pos), () =>
+			PositionKind(PositionKind.RecordFieldPosition(decl, field))),
+		() => has(fieldAst.mutability)
+			? positionInFieldMutability(allSymbols, force(fieldAst.mutability), pos)
+			: none!PositionKind,
 		() => positionInType(allSymbols, field.type, fieldAst.type, pos));
 
 Opt!PositionKind positionInFieldMutability(in AllSymbols allSymbols, in FieldMutabilityAst ast, Pos pos) =>
@@ -335,9 +350,6 @@ Opt!PositionKind positionInExpr(in AllSymbols allSymbols, ref Expr a, Pos pos) {
 				optOr!PositionKind(recur(x.thrown), () => here()));
 	}
 }
-
-bool nameHasPos(in AllSymbols allSymbols, Pos start, Sym name, Pos pos) =>
-	start <= pos && pos < start + symSize(allSymbols, name);
 
 Opt!PositionKind positionInType(in AllSymbols allSymbols, Type type, TypeAst ast, Pos pos) {
 	if (!hasPos(range(ast, allSymbols), pos))

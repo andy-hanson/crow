@@ -49,11 +49,8 @@ immutable struct UriAndPos {
 	Pos pos;
 
 	static UriAndPos empty() =>
-		fileAndPosFromUriAndRange(UriAndRange.empty);
+		UriAndPos(Uri.empty, 0);
 }
-
-UriAndPos fileAndPosFromUriAndRange(UriAndRange a) =>
-	UriAndPos(a.uri, a.start);
 
 UriAndRange fileAndRangeFromUriAndPos(UriAndPos a) =>
 	UriAndRange(a.uri, RangeWithinFile(a.pos, a.pos + 1));
@@ -81,9 +78,6 @@ Comparison compareUriAndRange(in AllUris allUris, UriAndRange a, UriAndRange b) 
 
 UriAndPos toUriAndPos(UriAndRange a) =>
 	UriAndPos(a.uri, a.start);
-
-Json jsonOfUriAndPos(ref Alloc alloc, in AllUris allUris, UriAndPos a) =>
-	jsonObject(alloc, [field!"uri"(uriToString(alloc, allUris, a.uri)), field!"pos"(a.pos)]);
 
 Json jsonOfUriAndRange(ref Alloc alloc, in AllUris allUris, UriAndRange a) =>
 	jsonObject(alloc, [

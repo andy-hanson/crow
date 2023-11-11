@@ -18,7 +18,7 @@ import frontend.programState : ProgramState;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : contains, copyArr, map, mapOp, mapOrNone, prepend;
+import util.col.arrUtil : contains, map, mapOp, mapOrNone, prepend;
 import util.col.map : Map;
 import util.col.enumMap : EnumMap, enumMapEach, enumMapMapValues;
 import util.col.mutMaxArr : isEmpty, mustPeek, mustPop, MutMaxArr, mutMaxArr, push;

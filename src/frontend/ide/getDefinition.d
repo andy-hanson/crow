@@ -13,7 +13,6 @@ import model.model :
 	FunInst,
 	Local,
 	localMustHaveRange,
-	LocalSource,
 	Module,
 	Program,
 	range,

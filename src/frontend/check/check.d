@@ -2,7 +2,7 @@ module frontend.check.check;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCtx : addDiag, CheckCtx, checkForUnused, ImportsAndReExports, posInFile, rangeInFile;
+import frontend.check.checkCtx : addDiag, CheckCtx, checkForUnused, ImportsAndReExports, rangeInFile;
 import frontend.check.checkExpr : checkFunctionBody;
 import frontend.check.checkStructs : checkStructBodies, checkStructsInitial;
 import frontend.check.getCommonTypes : getCommonTypes;
@@ -90,7 +90,7 @@ import util.col.multiMap : buildMultiMap, multiMapEach;
 import util.col.mutArr : mustPop, MutArr, mutArrIsEmpty;
 import util.col.mutMap : insertOrUpdate, moveToMap, MutMap;
 import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, mutMaxArrSize, push, pushIfUnderMaxSize, toArray;
-import util.col.str : copySafeCStr, safeCStr;
+import util.col.str : copySafeCStr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, someMut, some;
 import util.perf : Perf;
@@ -586,7 +586,7 @@ FunsAndMap checkFuns(
 		exactSizeArrBuilderAdd(
 			funsBuilder,
 			FunDecl(
-				allocate(ctx.alloc, FunDeclSource(FunDeclSource.Ast(ctx.curUri, funAst))),
+				FunDeclSource(FunDeclSource.Ast(ctx.curUri, funAst)),
 				visibilityFromExplicit(funAst.visibility),
 				funAst.name.name,
 				small(typeParams),
@@ -733,7 +733,7 @@ FunDecl funDeclForFileImportOrExport(
 	Visibility visibility,
 ) =>
 	FunDecl(
-		allocate(ctx.alloc, FunDeclSource(FunDeclSource.FileImport(UriAndRange(ctx.curUri, a.range)))),
+		FunDeclSource(FunDeclSource.FileImport(UriAndRange(ctx.curUri, a.range))),
 		visibility,
 		a.name,
 		emptySmallArray!TypeParam,
@@ -776,7 +776,8 @@ FunBody.Extern checkExternBody(ref CheckCtx ctx, FunDecl* fun, in Opt!TypeAst ty
 		(Destructure[] params) {
 			foreach (Destructure* p; ptrsRange(params))
 				if (!isLinkageAlwaysCompatible(funLinkage, linkageRange(p.type)))
-					addDiag(ctx, p.range(ctx.allSymbols), Diag(Diag.LinkageWorseThanContainingFun(fun, p.type, some(p))));
+					addDiag(ctx, p.range(ctx.allSymbols), Diag(
+						Diag.LinkageWorseThanContainingFun(fun, p.type, some(p))));
 		},
 		(ref Params.Varargs) {
 			addDiag(ctx, fun.range, Diag(Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.variadic)));

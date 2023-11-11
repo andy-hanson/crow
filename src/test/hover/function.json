@@ -1,11 +1,25 @@
 [
 	{
+		"start": {"line": 1, "column": 1},
+		"end": {"line": 1, "column": 4},
+		"hover": "builtin type nat",
+		"definition": {
+			"uri": "magic:function.crow",
+			"range": {"start": 0, "end": 11}
+		}
+	},
+	{
+		"start": {"line": 1, "column": 5},
+		"end": {"line": 1, "column": 12},
+		"hover": "Declares a type implemented by the compiler."
+	},
+	{
 		"start": {"line": 3, "column": 1},
 		"end": {"line": 3, "column": 2},
 		"hover": "function f",
 		"definition": {
 			"uri": "magic:function.crow",
-			"range": {"start": 13, "end": 14}
+			"range": {"start": 13, "end": 30}
 		}
 	},
 	{
@@ -27,7 +41,7 @@
 		}
 	},
 	{
-		"start": {"line": 3, "column": 8},
+		"start": {"line": 3, "column": 9},
 		"end": {"line": 3, "column": 12},
 		"hover": "builtin type nat",
 		"definition": {
@@ -50,7 +64,7 @@
 		"hover": "g nat(a nat) (from magic:function.crow line 6)",
 		"definition": {
 			"uri": "magic:function.crow",
-			"range": {"start": 32, "end": 33}
+			"range": {"start": 32, "end": 47}
 		}
 	},
 	{
@@ -59,7 +73,7 @@
 		"hover": "function g",
 		"definition": {
 			"uri": "magic:function.crow",
-			"range": {"start": 32, "end": 33}
+			"range": {"start": 32, "end": 47}
 		}
 	},
 	{
@@ -81,7 +95,7 @@
 		}
 	},
 	{
-		"start": {"line": 6, "column": 8},
+		"start": {"line": 6, "column": 9},
 		"end": {"line": 6, "column": 12},
 		"hover": "builtin type nat",
 		"definition": {

@@ -7,7 +7,14 @@ import frontend.check.checkCtx : addDiag, CheckCtx, rangeInFile;
 import frontend.check.maps : StructsAndAliasesMap;
 import frontend.check.typeFromAst : checkTypeParams, typeFromAst;
 import frontend.parse.ast :
-	FieldMutabilityAst, LiteralIntAst, LiteralNatAst, ModifierAst, rangeOfModifierAst, StructDeclAst, symOfModifierKind, TypeAst;
+	FieldMutabilityAst,
+	LiteralIntAst,
+	LiteralNatAst,
+	ModifierAst,
+	rangeOfModifierAst,
+	StructDeclAst,
+	symOfModifierKind,
+	TypeAst;
 import model.concreteModel : TypeSize;
 import model.diag : Diag, TypeKind;
 import model.model :

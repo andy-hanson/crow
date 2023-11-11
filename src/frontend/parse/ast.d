@@ -622,7 +622,7 @@ immutable struct StructDeclAst {
 RangeWithinFile keywordRange(in StructDeclAst a, in AllSymbols allSymbols) =>
 	rangeOfNameAndRange(NameAndRange(a.keywordPos, keywordForStructBody(a.body_)), allSymbols);
 
-Sym keywordForStructBody(in StructDeclAst.Body a) =>
+private Sym keywordForStructBody(in StructDeclAst.Body a) =>
 	a.matchIn!Sym(
 		(in StructDeclAst.Body.Builtin) =>
 			sym!"builtin",

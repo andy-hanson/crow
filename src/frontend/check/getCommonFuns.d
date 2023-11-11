@@ -50,7 +50,7 @@ import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castNonScope_ref;
-import util.sourceRange : UriAndPos, UriAndRange, RangeWithinFile;
+import util.sourceRange : UriAndRange, RangeWithinFile;
 import util.sym : Sym, sym;
 import util.uri : Uri;
 import util.util : todo, unreachable, verify;
@@ -169,7 +169,7 @@ CommonFuns getCommonFuns(
 Destructure makeParam(ref Alloc alloc, Sym name, Type type) =>
 	Destructure(allocate(alloc, Local(LocalSource(LocalSource.Generated()), name, LocalMutability.immut, type)));
 
-Params makeParams(ref Alloc alloc, ParamShort[] params) =>
+Params makeParams(ref Alloc alloc, in ParamShort[] params) =>
 	Params(map(alloc, params, (ref ParamShort x) =>
 		makeParam(alloc, x.name, x.type)));
 
@@ -355,7 +355,6 @@ FunDeclAndSigIndex getFunDeclMulti(
 					sig.returnType,
 					arrLiteral(alloc, sig.params))))));
 		FunDecl* decl = allocate(alloc, funDeclWithBody(
-			alloc,
 			FunDeclSource(FunDeclSource.Bogus(module_.uri)),
 			Visibility.public_,
 			name,

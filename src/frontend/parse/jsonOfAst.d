@@ -63,7 +63,7 @@ import frontend.parse.ast :
 	TypedAst,
 	UnlessAst,
 	WithAst;
-import model.model : symOfAssertOrForbidKind, symOfFieldMutability, symOfFunKind, symOfImportFileType;
+import model.model : symOfAssertOrForbidKind, symOfFunKind, symOfImportFileType;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.json :

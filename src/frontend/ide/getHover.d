@@ -31,9 +31,9 @@ import util.col.str : SafeCStr;
 import util.lineAndColumnGetter : lineAndColumnRange;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : UriAndRange;
-import util.sym : sym, writeSym;
+import util.sym : writeSym;
 import util.uri : Uri;
-import util.util : todo, unreachable;
+import util.util : unreachable;
 import util.writer : finishWriterToSafeCStr, Writer;
 
 SafeCStr getHoverStr(ref Alloc alloc, scope ref ShowCtx ctx, in Position pos) {
@@ -88,25 +88,24 @@ void getHover(ref Writer writer, scope ref ShowCtx ctx, in Position pos) =>
 			getImportedNameHover(writer, ctx, x);
 		},
 		(in PositionKind.Keyword x) {
-			/*
 			writer ~= () {
 				final switch (x.kind) {
 					case PositionKind.Keyword.Kind.builtin:
-						return "Declares a type implemented by the compiler/";
-					case sym!"enum".value:
+						return "Declares a type implemented by the compiler.";
+					case PositionKind.Keyword.Kind.enum_:
 						return "Declares an enumerated type. The type can only have the values listed.";
-					case sym!"extern".value:
+					case PositionKind.Keyword.Kind.extern_:
 						return "Declares a type implemented by an external library.";
-					case sym!"flags".value:
+					case PositionKind.Keyword.Kind.flags:
 						return "Declares a type that can have any combination of flags (this would be an 'enum' in C)";
-					case sym!"record".value:
+					case PositionKind.Keyword.Kind.localMut:
+						return "Makes this a mutable variable.";
+					case PositionKind.Keyword.Kind.record:
 						return "Declares a type combining several named members.";
-					case sym!"union".value:
+					case PositionKind.Keyword.Kind.union_:
 						return "Declares a type where a value will be one of the listed choices.";
 				}
 			}();
-			*/
-			todo!void("!!");
 		},
 		(in PositionKind.LocalNonParameter x) {
 			writer ~= "local ";

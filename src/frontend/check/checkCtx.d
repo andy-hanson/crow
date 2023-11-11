@@ -25,7 +25,7 @@ import util.col.map : existsInMap;
 import util.col.mutMap : hasKey_mut, MutMap, setInMap;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
-import util.sourceRange : UriAndPos, UriAndRange, Pos, RangeWithinFile;
+import util.sourceRange : UriAndRange, RangeWithinFile;
 import util.sym : AllSymbols, Sym;
 import util.uri : Uri;
 
@@ -153,9 +153,6 @@ void eachImportAndReExport(
 	foreach (ref ImportOrExport m; a.reExports)
 		inner(m);
 }
-
-UriAndPos posInFile(in CheckCtx ctx, Pos pos) =>
-	UriAndPos(ctx.curUri, pos);
 
 UriAndRange rangeInFile(in CheckCtx ctx, RangeWithinFile range) =>
 	UriAndRange(ctx.curUri, range);

@@ -51,7 +51,6 @@ import model.model :
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : mapOp;
-import util.col.str : SafeCStr;
 import util.json :
 	field,
 	Json,
@@ -65,8 +64,7 @@ import util.json :
 	kindField;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : ptrTrustMe;
-import util.sourceRange :
-	UriAndPos, jsonOfUriAndPos, jsonOfUriAndRange, jsonOfRangeWithinFile, RangeWithinFile, toUriAndPos;
+import util.sourceRange : jsonOfUriAndRange, jsonOfRangeWithinFile, RangeWithinFile;
 import util.sym : Sym, sym;
 import util.uri : AllUris, uriToString;
 

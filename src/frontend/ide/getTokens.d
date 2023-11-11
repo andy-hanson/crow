@@ -11,7 +11,6 @@ import frontend.parse.ast :
 	CallAst,
 	DestructureAst,
 	EmptyAst,
-	ExplicitVisibility,
 	ExprAst,
 	FileAst,
 	ForAst,

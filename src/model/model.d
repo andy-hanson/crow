@@ -21,8 +21,7 @@ import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : hashPtr;
-import util.sourceRange :
-	combineRanges, UriAndPos, UriAndRange, fileAndRangeFromUriAndPos, Pos, rangeOfStartAndName, RangeWithinFile;
+import util.sourceRange : combineRanges, UriAndPos, UriAndRange, fileAndRangeFromUriAndPos, Pos, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.uri : Uri;
@@ -183,17 +182,6 @@ enum FieldMutability {
 	const_,
 	private_,
 	public_,
-}
-
-Sym symOfFieldMutability(FieldMutability a) {
-	final switch (a) {
-		case FieldMutability.const_:
-			return sym!"const";
-		case FieldMutability.private_:
-			return sym!"private";
-		case FieldMutability.public_:
-			return sym!"public";
-	}
 }
 
 immutable struct RecordField {
@@ -696,7 +684,7 @@ immutable struct FunDeclSource {
 immutable struct FunDecl {
 	@safe @nogc pure nothrow:
 
-	FunDeclSource* source;
+	FunDeclSource source;
 	Visibility visibility;
 	Sym name;
 	SmallArray!TypeParam typeParams;
@@ -716,6 +704,9 @@ immutable struct FunDecl {
 		lateSet(lateBody, b);
 	}
 }
+
+SafeCStr docComment(in FunDecl a) =>
+	a.source.as!(FunDeclSource.Ast).ast.docComment;
 
 Linkage linkage(in FunDecl a) =>
 	a.body_.isA!(FunBody.Extern) ? Linkage.extern_ : Linkage.internal;
@@ -1227,7 +1218,9 @@ bool localIsAllocated(in Local a) scope {
 }
 
 UriAndRange localMustHaveRange(in Local a, in AllSymbols allSymbols) =>
-	UriAndRange(a.source.as!(LocalSource.Ast).uri, rangeOfDestructureSingle(*a.source.as!(LocalSource.Ast).ast, allSymbols));
+	UriAndRange(
+		a.source.as!(LocalSource.Ast).uri,
+		rangeOfDestructureSingle(*a.source.as!(LocalSource.Ast).ast, allSymbols));
 
 enum LocalMutability {
 	immut,
