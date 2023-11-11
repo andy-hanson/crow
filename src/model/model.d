@@ -696,57 +696,14 @@ immutable struct FunDeclSource {
 immutable struct FunDecl {
 	@safe @nogc pure nothrow:
 
-	@disable this(ref const FunDecl);
-
-	this(
-		FunDeclSource s,
-		Visibility v,
-		Sym n,
-		TypeParam[] tps,
-		Type rt,
-		Params pms,
-		FunFlags f,
-		immutable SpecInst*[] sps,
-	) {
-		source = s;
-		visibility = v;
-		name = n;
-		flags = f;
-		returnType = rt;
-		params = pms;
-		typeParams = small(tps);
-		specs = sps;
-	}
-	this(
-		FunDeclSource s,
-		Visibility v,
-		Sym n,
-		TypeParam[] tps,
-		Type rt,
-		Params pms,
-		FunFlags f,
-		immutable SpecInst*[] sps,
-		FunBody b,
-	) {
-		source = s;
-		visibility = v;
-		name = n;
-		flags = f;
-		returnType = rt;
-		params = pms;
-		typeParams = small(tps);
-		specs = sps;
-		setBody(b);
-	}
-
-	FunDeclSource source;
+	FunDeclSource* source;
 	Visibility visibility;
 	Sym name;
-	FunFlags flags;
+	SmallArray!TypeParam typeParams;
 	Type returnType;
 	Params params;
-	SmallArray!TypeParam typeParams;
-	SmallArray!(SpecInst*) specs;
+	FunFlags flags;
+	SmallArray!(immutable SpecInst*) specs;
 	private Late!FunBody lateBody;
 
 	UriAndRange range() scope =>

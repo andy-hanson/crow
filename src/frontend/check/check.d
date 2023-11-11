@@ -81,7 +81,7 @@ import model.model :
 	visibility;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : empty, only, ptrsRange, small;
+import util.col.arr : empty, emptySmallArray, only, ptrsRange, small;
 import util.col.arrUtil : cat, filter, map, mapOp, mapToMut, zip, zipPtrFirst;
 import util.col.map : Map, mapEach, mapEachIn, hasKey, KeyValuePair;
 import util.col.mapBuilder : MapBuilder, finishMap, tryAddToMap;
@@ -586,14 +586,14 @@ FunsAndMap checkFuns(
 		exactSizeArrBuilderAdd(
 			funsBuilder,
 			FunDecl(
-				FunDeclSource(FunDeclSource.Ast(ctx.curUri, funAst)),
+				allocate(ctx.alloc, FunDeclSource(FunDeclSource.Ast(ctx.curUri, funAst))),
 				visibilityFromExplicit(funAst.visibility),
 				funAst.name.name,
-				typeParams,
+				small(typeParams),
 				rp.returnType,
 				rp.params,
 				flagsAndSpecs.flags,
-				flagsAndSpecs.specs));
+				small(flagsAndSpecs.specs)));
 	}
 	foreach (ref ImportOrExportFile f; fileImports)
 		exactSizeArrBuilderAdd(
@@ -733,14 +733,14 @@ FunDecl funDeclForFileImportOrExport(
 	Visibility visibility,
 ) =>
 	FunDecl(
-		FunDeclSource(FunDeclSource.FileImport(UriAndRange(ctx.curUri, a.range))),
+		allocate(ctx.alloc, FunDeclSource(FunDeclSource.FileImport(UriAndRange(ctx.curUri, a.range)))),
 		visibility,
 		a.name,
-		[],
+		emptySmallArray!TypeParam,
 		typeForFileImport(ctx, commonTypes, structsAndAliasesMap, a.range, a.type),
 		Params([]),
 		FunFlags.generatedBare,
-		[]);
+		emptySmallArray!(immutable SpecInst*));
 
 Type typeForFileImport(
 	ref CheckCtx ctx,

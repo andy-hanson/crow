@@ -2,6 +2,7 @@ module frontend.check.getCommonFuns;
 
 @safe @nogc pure nothrow:
 
+import frontend.check.funsForStruct : funDeclWithBody;
 import frontend.check.inferringType : typesAreCorrespondingStructInsts;
 import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay;
 import frontend.diagnosticsBuilder : addDiagnostic, DiagnosticsBuilder;
@@ -353,7 +354,8 @@ FunDeclAndSigIndex getFunDeclMulti(
 					arrLiteral(alloc, sig.typeParams),
 					sig.returnType,
 					arrLiteral(alloc, sig.params))))));
-		FunDecl* decl = allocate(alloc, FunDecl(
+		FunDecl* decl = allocate(alloc, funDeclWithBody(
+			alloc,
 			FunDeclSource(FunDeclSource.Bogus(module_.uri)),
 			Visibility.public_,
 			name,

@@ -28,6 +28,8 @@ import model.model :
 	ParamShort,
 	range,
 	RecordField,
+	SpecInst,
+	setBody,
 	StructBody,
 	StructDecl,
 	StructInst,
@@ -40,11 +42,12 @@ import model.model :
 	Visibility,
 	visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty;
+import util.col.arr : empty, small;
 import util.col.arrUtil : map, sum;
 import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd;
 import util.col.mutMaxArr : push, tempAsArr;
 import util.col.str : safeCStr;
+import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : UriAndPos, fileAndPosFromUriAndRange, UriAndRange;
 import util.sym : prependSet, prependSetDeref, Sym, sym;
@@ -110,44 +113,61 @@ void addFunsForStruct(
 
 void addFunsForVar(
 	ref CheckCtx ctx,
-	ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	scope ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	in CommonTypes commonTypes,
 	VarDecl* var,
 ) {
-	exactSizeArrBuilderAdd(funsBuilder, FunDecl(
+	exactSizeArrBuilderAdd(funsBuilder, basicFunDecl(
+		ctx.alloc,
 		FunDeclSource(var),
 		var.visibility,
 		var.name,
-		[],
 		var.type,
 		Params([]),
 		FunFlags.generatedBareUnsafe,
-		[],
 		FunBody(FunBody.VarGet(var))));
-	exactSizeArrBuilderAdd(funsBuilder, FunDecl(
+	exactSizeArrBuilderAdd(funsBuilder, basicFunDecl(
+		ctx.alloc,
 		FunDeclSource(var),
 		var.visibility,
 		prependSet(ctx.allSymbols, var.name),
-		[],
 		Type(commonTypes.void_),
 		makeParams(ctx.alloc, [param!"a"(var.type)]),
 		FunFlags.generatedBareUnsafe,
-		[],
 		FunBody(FunBody.VarSet(var))));
+}
+
+FunDecl funDeclWithBody(
+	ref Alloc alloc,
+	FunDeclSource source,
+	Visibility visibility,
+	Sym name,
+	TypeParam[] typeParams,
+	Type returnType,
+	Params params,
+	FunFlags flags,
+	immutable(SpecInst*)[] specInsts,
+	FunBody body_,
+) {
+	FunDecl res = FunDecl(allocate(alloc, source), visibility, name, small(typeParams), returnType, params, flags, small(specInsts));
+	res.setBody(body_);
+	return res;
 }
 
 private:
 
+FunDecl basicFunDecl(ref Alloc alloc, FunDeclSource source, Visibility visibility, Sym name, Type returnType, Params params, FunFlags flags, FunBody body_) =>
+	funDeclWithBody(alloc, source, visibility, name, [], returnType, params, flags, [], body_);
+
 FunDecl newExtern(ref Alloc alloc, ref ProgramState programState, StructDecl* struct_) =>
-	FunDecl(
+	basicFunDecl(
+		alloc,
 		FunDeclSource(struct_),
 		struct_.visibility,
 		sym!"new",
-		[],
 		Type(instantiateNonTemplateStructDeclNeverDelay(alloc, programState, struct_)),
 		Params([]),
 		FunFlags.generatedBareUnsafe,
-		[],
 		FunBody(FunBody.CreateExtern()));
 
 StructInst* instantiateNonTemplateStructDeclNeverDelay(
@@ -217,63 +237,58 @@ void addEnumFlagsCommonFunctions(
 }
 
 FunDecl enumOrFlagsConstructor(ref Alloc alloc, Visibility visibility, Type enumType, StructBody.Enum.Member* member) =>
-	FunDecl(
+	basicFunDecl(
+		alloc,
 		FunDeclSource(member),
 		visibility,
 		member.name,
-		[],
 		enumType,
 		Params([]),
 		FunFlags.generatedBare,
-		[],
 		FunBody(FunBody.CreateEnum(member.value)));
 
 FunDecl enumEqualFunction(ref Alloc alloc, StructDecl* struct_, Type enumType, in CommonTypes commonTypes) =>
-	FunDecl(
+	basicFunDecl(
+		alloc,
 		FunDeclSource(struct_),
 		struct_.visibility,
 		sym!"==",
-		[],
 		Type(commonTypes.bool_),
 		makeParams(alloc, [param!"a"(enumType), param!"b"(enumType)]),
 		FunFlags.generatedBare.withOkIfUnused(),
-		[],
 		FunBody(EnumFunction.equal));
 
 FunDecl flagsNewFunction(ref Alloc alloc, StructDecl* struct_, Type enumType) =>
-	FunDecl(
+	basicFunDecl(
+		alloc,
 		FunDeclSource(struct_),
 		struct_.visibility,
 		sym!"new",
-		[],
 		enumType,
 		Params([]),
 		FunFlags.generatedBare.withOkIfUnused(),
-		[],
 		FunBody(FlagsFunction.new_));
 
 FunDecl flagsAllFunction(ref Alloc alloc, StructDecl* struct_, Type enumType) =>
-	FunDecl(
+	basicFunDecl(
+		alloc,
 		FunDeclSource(struct_),
 		struct_.visibility,
 		sym!"all",
-		[],
 		enumType,
 		Params([]),
 		FunFlags.generatedBare.withOkIfUnused(),
-		[],
 		FunBody(FlagsFunction.all));
 
 FunDecl flagsNegateFunction(ref Alloc alloc, StructDecl* struct_, Type enumType) =>
-	FunDecl(
+	basicFunDecl(
+		alloc,
 		FunDeclSource(struct_),
 		struct_.visibility,
 		sym!"~",
-		[],
 		enumType,
 		makeParams(alloc, [param!"a"(enumType)]),
 		FunFlags.generatedBare.withOkIfUnused(),
-		[],
 		FunBody(FlagsFunction.negate));
 
 FunDecl enumToIntegralFunction(
@@ -283,15 +298,14 @@ FunDecl enumToIntegralFunction(
 	Type enumType,
 	in CommonTypes commonTypes,
 ) =>
-	FunDecl(
+	basicFunDecl(
+		alloc,
 		FunDeclSource(struct_),
 		struct_.visibility,
 		sym!"to",
-		[],
 		Type(getBackingTypeFromEnumType(enumBackingType, commonTypes)),
 		makeParams(alloc, [param!"a"(enumType)]),
 		FunFlags.generatedBare.withOkIfUnused(),
-		[],
 		FunBody(EnumFunction.toIntegral));
 
 StructInst* getBackingTypeFromEnumType(EnumBackingType a, ref CommonTypes commonTypes) {
@@ -324,11 +338,11 @@ FunDecl enumOrFlagsMembersFunction(
 	Type enumType,
 	ref CommonTypes commonTypes,
 ) =>
-	FunDecl(
+	basicFunDecl(
+		alloc,
 		FunDeclSource(struct_),
 		struct_.visibility,
 		name,
-		[],
 		Type(makeArrayType(
 			alloc,
 			programState,
@@ -336,19 +350,17 @@ FunDecl enumOrFlagsMembersFunction(
 			makeTupleType(alloc, programState, commonTypes, [Type(commonTypes.symbol), enumType]))),
 		Params([]),
 		FunFlags.generatedBare.withOkIfUnused(),
-		[],
 		FunBody(EnumFunction.members));
 
 FunDecl flagsUnionOrIntersectFunction(ref Alloc alloc, StructDecl* struct_, Type enumType, Sym name, EnumFunction fn) =>
-	FunDecl(
+	basicFunDecl(
+		alloc,
 		FunDeclSource(struct_),
 		struct_.visibility,
 		name,
-		[],
 		enumType,
 		makeParams(alloc, [param!"a"(enumType), param!"b"(enumType)]),
 		FunFlags.generatedBare.withOkIfUnused(),
-		[],
 		FunBody(fn));
 
 void addFunsForRecord(
@@ -379,7 +391,8 @@ void addFunsForRecordConstructor(
 	Type structType,
 	bool byVal,
 ) {
-	exactSizeArrBuilderAdd(funsBuilder, FunDecl(
+	exactSizeArrBuilderAdd(funsBuilder, funDeclWithBody(
+		ctx.alloc,
 		FunDeclSource(struct_),
 		record.flags.newVisibility,
 		sym!"new",
@@ -403,7 +416,8 @@ void addFunsForRecordField(
 	ref RecordField field,
 ) {
 	Visibility fieldVisibility = leastVisibility(struct_.visibility, field.visibility);
-	exactSizeArrBuilderAdd(funsBuilder, FunDecl(
+	exactSizeArrBuilderAdd(funsBuilder, funDeclWithBody(
+		ctx.alloc,
 		FunDeclSource(struct_),
 		fieldVisibility,
 		field.name,
@@ -415,7 +429,8 @@ void addFunsForRecordField(
 		FunBody(FunBody.RecordFieldGet(fieldIndex))));
 
 	void addRecordFieldPointer(Visibility visibility, Type recordPointer, Type fieldPointer) {
-		exactSizeArrBuilderAdd(funsBuilder, FunDecl(
+		exactSizeArrBuilderAdd(funsBuilder, funDeclWithBody(
+			ctx.alloc,
 			FunDeclSource(struct_),
 			visibility,
 			field.name,
@@ -438,7 +453,8 @@ void addFunsForRecordField(
 		Visibility setVisibility = leastVisibility(struct_.visibility, force(mutVisibility));
 		Type recordMutPointer = Type(makeMutPointerType(ctx.alloc, ctx.programState, commonTypes, structType));
 		if (recordIsByVal) {
-			exactSizeArrBuilderAdd(funsBuilder, FunDecl(
+			exactSizeArrBuilderAdd(funsBuilder, funDeclWithBody(
+				ctx.alloc,
 				FunDeclSource(struct_),
 				setVisibility,
 				prependSetDeref(ctx.allSymbols, field.name),
@@ -456,7 +472,8 @@ void addFunsForRecordField(
 				recordMutPointer,
 				Type(makeMutPointerType(ctx.alloc, ctx.programState, commonTypes, field.type)));
 		} else
-			exactSizeArrBuilderAdd(funsBuilder, FunDecl(
+			exactSizeArrBuilderAdd(funsBuilder, funDeclWithBody(
+				ctx.alloc,
 				FunDeclSource(struct_),
 				setVisibility,
 				prependSet(ctx.allSymbols, field.name),
@@ -496,7 +513,8 @@ void addFunsForUnion(
 		Params params = isVoid(commonTypes, member.type)
 			? Params([])
 			: makeParams(ctx.alloc, [param!"a"(member.type)]);
-		exactSizeArrBuilderAdd(funsBuilder, FunDecl(
+		exactSizeArrBuilderAdd(funsBuilder, funDeclWithBody(
+			ctx.alloc,
 			FunDeclSource(struct_),
 			struct_.visibility,
 			member.name,
