@@ -22,6 +22,7 @@ import model.model :
 	Purity,
 	ReturnAndParamTypes,
 	SpecInst,
+	range,
 	StructInst,
 	symOfPurity,
 	Type,
@@ -32,7 +33,7 @@ import util.col.arr : empty, only, only2, sizeEq;
 import util.lineAndColumnGetter :
 	lineAndColumnAtPos, LineAndColumn, LineAndColumnGetters, LineAndColumnRange, lineAndColumnRange, PosKind;
 import util.opt : force, has, none, Opt, some;
-import util.sourceRange : UriAndPos, UriAndRange;
+import util.sourceRange : toUriAndPos, UriAndPos, UriAndRange;
 import util.sym : AllSymbols, Sym, writeSym;
 import util.uri : AllUris, Uri, UrisInfo, writeUri, writeUriPreferRelative;
 import util.util : verify;
@@ -159,7 +160,7 @@ void writeFunInst(ref Writer writer, scope ref ShowCtx ctx, in FunInst a) {
 
 private void writeFunDeclLocation(ref Writer writer, scope ref ShowCtx ctx, in FunDecl funDecl) {
 	writer ~= " (from ";
-	writeLineNumber(writer, ctx, funDecl.fileAndPos);
+	writeLineNumber(writer, ctx, toUriAndPos(funDecl.range));
 	writer ~= ')';
 }
 

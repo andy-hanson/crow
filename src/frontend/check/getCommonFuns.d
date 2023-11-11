@@ -16,6 +16,7 @@ import model.model :
 	Destructure,
 	FunBody,
 	FunDecl,
+	FunDeclSource,
 	FunFlags,
 	FunInst,
 	FunKind,
@@ -23,6 +24,7 @@ import model.model :
 	Linkage,
 	Local,
 	LocalMutability,
+	LocalSource,
 	MainFun,
 	Module,
 	NameReferents,
@@ -163,15 +165,12 @@ CommonFuns getCommonFuns(
 		markVisit, newNat64Future, rtMain, staticSymbols, throwImpl);
 }
 
-Destructure makeParam(ref Alloc alloc, UriAndRange range, Sym name, Type type) =>
-	Destructure(allocate(alloc, Local(range, name, LocalMutability.immut, type)));
+Destructure makeParam(ref Alloc alloc, Sym name, Type type) =>
+	Destructure(allocate(alloc, Local(LocalSource(LocalSource.Generated()), name, LocalMutability.immut, type)));
 
-Params makeParams(ref Alloc alloc, UriAndRange range, in ParamShort[] params) =>
-	Params(makeParamDestructures(alloc, range, params));
-
-private Destructure[] makeParamDestructures(ref Alloc alloc, UriAndRange range, in ParamShort[] params) =>
-	map(alloc, params, (ref ParamShort x) =>
-		makeParam(alloc, range, x.name, x.type));
+Params makeParams(ref Alloc alloc, ParamShort[] params) =>
+	Params(map(alloc, params, (ref ParamShort x) =>
+		makeParam(alloc, x.name, x.type)));
 
 ParamShort param(string name)(Type type) =>
 	ParamShort(sym!name, type);
@@ -355,13 +354,12 @@ FunDeclAndSigIndex getFunDeclMulti(
 					sig.returnType,
 					arrLiteral(alloc, sig.params))))));
 		FunDecl* decl = allocate(alloc, FunDecl(
-			safeCStr!"",
+			FunDeclSource(FunDeclSource.Bogus(module_.uri)),
 			Visibility.public_,
-			UriAndPos.empty,
 			name,
 			expectedSigs[0].typeParams,
 			expectedSigs[0].returnType,
-			makeParams(alloc, UriAndRange.empty, expectedSigs[0].params),
+			makeParams(alloc, expectedSigs[0].params),
 			FunFlags.generatedBare,
 			[],
 			FunBody(FunBody.Bogus())));

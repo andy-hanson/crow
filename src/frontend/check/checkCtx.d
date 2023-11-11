@@ -12,6 +12,7 @@ import model.model :
 	Module,
 	NameReferents,
 	okIfUnused,
+	range,
 	SpecDecl,
 	StructAlias,
 	StructDecl,

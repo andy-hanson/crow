@@ -115,6 +115,11 @@ Opt!Out firstZip(Out, In0, In1)(in In0[] a, in In1[] b, in Opt!Out delegate(In0,
 	return firstWithIndex!(Out, In0)(a, (size_t i, In0 x) => cb(x, b[i]));
 }
 
+Opt!Out firstZipPointerFirst(Out, In0, In1)(In0[] a, in In1[] b, in Opt!Out delegate(In0*, In1) @safe @nogc pure nothrow cb) {
+	verify(sizeEq(a, b));
+	return firstWithIndex!(Out, In1)(b, (size_t i, In1 x) => cb(&a[i], x));
+}
+
 Opt!(T*) findPtr(T)(T[] arr, in bool delegate(in T) @safe @nogc pure nothrow cb) {
 	foreach (T* x; ptrsRange!T(arr))
 		if (cb(*x))

@@ -11,7 +11,7 @@ import frontend.check.check : BootstrapCheck, check, checkBootstrap, FileAndAst,
 import frontend.config : getConfig;
 import frontend.diagnosticsBuilder :
 	addDiagnostic, addDiagnosticForFile, DiagnosticsBuilder, DiagnosticsBuilderForFile, finishDiagnostics;
-import frontend.parse.ast : FileAst, ImportOrExportAst, ImportOrExportAstKind, ImportsOrExportsAst;
+import frontend.parse.ast : FileAst, ImportOrExportAst, ImportOrExportAstKind, ImportsOrExportsAst, NameAndRange;
 import frontend.lang : crowExtension;
 import frontend.parse.parse : parseFile;
 import frontend.programState : ProgramState;
@@ -295,15 +295,17 @@ Opt!FullyResolvedImportKind fullyResolveImportKind(
 				import_.importedFrom, resolvedUri,
 				(Uri uri) =>
 					FullyResolvedImportKind(FullyResolvedImportKind.ModuleWhole(uri))),
-		(in Sym[] names) =>
+		(in NameAndRange[] names) =>
 			fullyResolveImportModule(
 				modelAlloc, astAlloc, perf, allSymbols, allUris, storage, diags, config, statuses, stack, fromUri,
 				import_.importedFrom, resolvedUri,
 				(Uri uri) =>
-					FullyResolvedImportKind(FullyResolvedImportKind.ModuleNamed(uri, copyArr(modelAlloc, names)))),
+					FullyResolvedImportKind(FullyResolvedImportKind.ModuleNamed(
+						uri,
+						map(modelAlloc, names, (ref NameAndRange name) => name.name)))),
 		(in ImportOrExportAstKind.File f) =>
 			some(FullyResolvedImportKind(FullyResolvedImportKind.File(
-				f.name,
+				f.name.name,
 				f.type,
 				readFileContent(
 					modelAlloc, storage, diags, UriAndRange(fromUri, import_.importedFrom), resolvedUri)))));

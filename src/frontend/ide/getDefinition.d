@@ -12,8 +12,11 @@ import model.model :
 	FunDecl,
 	FunInst,
 	Local,
+	localMustHaveRange,
+	LocalSource,
 	Module,
 	Program,
+	range,
 	RecordField,
 	SpecDecl,
 	SpecDeclSig,
@@ -23,11 +26,13 @@ import model.model :
 	toLocal,
 	Type,
 	TypeParam,
+	uriAndRange,
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.opt : force, has, none, Opt, some;
 import util.json : field, Json;
 import util.sourceRange : UriAndRange, jsonOfUriAndRange;
+import util.sym : AllSymbols;
 import util.union_ : Union;
 import util.uri : AllUris, Uri;
 
@@ -38,10 +43,10 @@ struct Definition {
 Json jsonOfDefinition(ref Alloc alloc, in AllUris allUris, in Definition a) =>
 	jsonOfUriAndRange(alloc, allUris, a.range);
 
-Opt!Definition getDefinitionForPosition(in Program program, in Position pos) {
+Opt!Definition getDefinitionForPosition(in AllSymbols allSymbols, in Program program, in Position pos) {
 	Opt!Target target = targetForPosition(program, pos.kind);
 	return has(target)
-		? some(definitionForTarget(program, pos.module_.uri, force(target)))
+		? some(definitionForTarget(allSymbols, program, pos.module_.uri, force(target)))
 		: none!Definition;
 }
 
@@ -61,21 +66,21 @@ immutable struct Target {
 	);
 }
 
-Definition definitionForTarget(in Program program, Uri curUri, in Target a) =>
-	Definition(rangeForTarget(curUri, a));
+Definition definitionForTarget(in AllSymbols allSymbols, in Program program, Uri curUri, in Target a) =>
+	Definition(rangeForTarget(allSymbols, curUri, a));
 
-UriAndRange rangeForTarget(Uri curUri, in Target a) =>
+UriAndRange rangeForTarget(in AllSymbols allSymbols, Uri curUri, in Target a) =>
 	a.matchIn!UriAndRange(
 		(in FunDecl x) =>
 			x.range,
 		(in Local x) =>
-			x.range,
+			localMustHaveRange(x, allSymbols),
 		(in ExprKind.Loop x) =>
 			UriAndRange(curUri, x.range),
 		(in Module x) =>
 			x.range,
 		(in RecordField x) =>
-			x.range,
+			uriAndRange(x),
 		(in SpecDecl x) =>
 			x.range,
 		(in SpecDeclSig x) =>
@@ -102,10 +107,14 @@ Opt!Target targetForPosition(in Program program, PositionKind pos) =>
 		(PositionKind.ImportedName x) =>
 			// TODO: get the declaration
 			none!Target,
+		(PositionKind.Keyword _) =>
+			none!Target,
 		(PositionKind.LocalNonParameter x) =>
 			some(Target(x.local)),
 		(PositionKind.LocalParameter x) =>
 			some(Target(x.local)),
+		(PositionKind.RecordFieldMutability) =>
+			none!Target,
 		(PositionKind.RecordFieldPosition x) =>
 			some(Target(x.field)),
 		(SpecDecl* x) =>

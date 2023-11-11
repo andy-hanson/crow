@@ -18,9 +18,11 @@ import model.model :
 	ForcedByValOrRefOrNone,
 	FunBody,
 	FunDecl,
+	FunDeclSource,
 	FunFlags,
 	IntegralTypes,
 	leastVisibility,
+	LocalSource,
 	name,
 	Params,
 	ParamShort,
@@ -38,7 +40,7 @@ import model.model :
 	Visibility,
 	visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, ptrsRange;
+import util.col.arr : empty;
 import util.col.arrUtil : map, sum;
 import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd;
 import util.col.mutMaxArr : push, tempAsArr;
@@ -46,6 +48,7 @@ import util.col.str : safeCStr;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : UriAndPos, fileAndPosFromUriAndRange, UriAndRange;
 import util.sym : prependSet, prependSetDeref, Sym, sym;
+import util.uri : Uri;
 
 size_t countFunsForStructs(in StructDecl[] structs) =>
 	sum!StructDecl(structs, (in StructDecl x) => countFunsForStruct(x));
@@ -108,13 +111,12 @@ void addFunsForStruct(
 void addFunsForVar(
 	ref CheckCtx ctx,
 	ref ExactSizeArrBuilder!FunDecl funsBuilder,
-	ref CommonTypes commonTypes,
+	in CommonTypes commonTypes,
 	VarDecl* var,
 ) {
 	exactSizeArrBuilderAdd(funsBuilder, FunDecl(
-		safeCStr!"",
+		FunDeclSource(var),
 		var.visibility,
-		var.pos,
 		var.name,
 		[],
 		var.type,
@@ -123,13 +125,12 @@ void addFunsForVar(
 		[],
 		FunBody(FunBody.VarGet(var))));
 	exactSizeArrBuilderAdd(funsBuilder, FunDecl(
-		safeCStr!"",
+		FunDeclSource(var),
 		var.visibility,
-		var.pos,
 		prependSet(ctx.allSymbols, var.name),
 		[],
 		Type(commonTypes.void_),
-		makeParams(ctx.alloc, var.range, [param!"a"(var.type)]),
+		makeParams(ctx.alloc, [param!"a"(var.type)]),
 		FunFlags.generatedBareUnsafe,
 		[],
 		FunBody(FunBody.VarSet(var))));
@@ -139,9 +140,8 @@ private:
 
 FunDecl newExtern(ref Alloc alloc, ref ProgramState programState, StructDecl* struct_) =>
 	FunDecl(
-		safeCStr!"",
+		FunDeclSource(struct_),
 		struct_.visibility,
-		fileAndPosFromUriAndRange(struct_.range),
 		sym!"new",
 		[],
 		Type(instantiateNonTemplateStructDeclNeverDelay(alloc, programState, struct_)),
@@ -171,10 +171,10 @@ void addFunsForEnum(
 	Visibility visibility = struct_.visibility;
 	UriAndRange range = struct_.range;
 	addEnumFlagsCommonFunctions(
-		ctx.alloc, funsBuilder, ctx.programState, visibility, range, enumType, enum_.backingType, commonTypes,
+		ctx.alloc, funsBuilder, ctx.programState, struct_, enumType, enum_.backingType, commonTypes,
 		sym!"enum-members");
 	foreach (ref StructBody.Enum.Member member; enum_.members)
-		exactSizeArrBuilderAdd(funsBuilder, enumOrFlagsConstructor(ctx.alloc, visibility, enumType, member));
+		exactSizeArrBuilderAdd(funsBuilder, enumOrFlagsConstructor(ctx.alloc, visibility, enumType, &member));
 }
 
 void addFunsForFlags(
@@ -185,53 +185,41 @@ void addFunsForFlags(
 	ref StructBody.Flags flags,
 ) {
 	Type type = Type(instantiateNonTemplateStructDeclNeverDelay(ctx.alloc, ctx.programState, struct_));
-	Visibility visibility = struct_.visibility;
-	UriAndRange range = struct_.range;
 	addEnumFlagsCommonFunctions(
-		ctx.alloc, funsBuilder, ctx.programState, visibility, range, type, flags.backingType, commonTypes,
-		sym!"flags-members");
-	exactSizeArrBuilderAdd(funsBuilder, flagsNewFunction(ctx.alloc, visibility, range, type));
-	exactSizeArrBuilderAdd(funsBuilder, flagsAllFunction(ctx.alloc, visibility, range, type));
-	exactSizeArrBuilderAdd(funsBuilder, flagsNegateFunction(ctx.alloc, visibility, range, type));
+		ctx.alloc, funsBuilder, ctx.programState, struct_, type, flags.backingType, commonTypes, sym!"flags-members");
+	exactSizeArrBuilderAdd(funsBuilder, flagsNewFunction(ctx.alloc, struct_, type));
+	exactSizeArrBuilderAdd(funsBuilder, flagsAllFunction(ctx.alloc, struct_, type));
+	exactSizeArrBuilderAdd(funsBuilder, flagsNegateFunction(ctx.alloc, struct_, type));
 	exactSizeArrBuilderAdd(funsBuilder, flagsUnionOrIntersectFunction(
-		ctx.alloc, visibility, range, type, sym!"|", EnumFunction.union_));
+		ctx.alloc, struct_, type, sym!"|", EnumFunction.union_));
 	exactSizeArrBuilderAdd(funsBuilder, flagsUnionOrIntersectFunction(
-		ctx.alloc, visibility, range, type, sym!"&", EnumFunction.intersect));
+		ctx.alloc, struct_, type, sym!"&", EnumFunction.intersect));
 
 	foreach (ref StructBody.Enum.Member member; flags.members)
-		exactSizeArrBuilderAdd(funsBuilder, enumOrFlagsConstructor(ctx.alloc, visibility, type, member));
+		exactSizeArrBuilderAdd(funsBuilder, enumOrFlagsConstructor(ctx.alloc, struct_.visibility, type, &member));
 }
 
 void addEnumFlagsCommonFunctions(
 	ref Alloc alloc,
 	ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	ref ProgramState programState,
-	Visibility visibility,
-	UriAndRange range,
+	StructDecl* struct_,
 	Type type,
 	EnumBackingType backingType,
 	ref CommonTypes commonTypes,
 	Sym membersName,
 ) {
-	exactSizeArrBuilderAdd(funsBuilder, enumEqualFunction(alloc, visibility, range, type, commonTypes));
+	exactSizeArrBuilderAdd(funsBuilder, enumEqualFunction(alloc, struct_, type, commonTypes));
+	exactSizeArrBuilderAdd(funsBuilder, enumToIntegralFunction(alloc, struct_, backingType, type, commonTypes));
 	exactSizeArrBuilderAdd(
 		funsBuilder,
-		enumToIntegralFunction(alloc, visibility, range, backingType, type, commonTypes));
-	exactSizeArrBuilderAdd(
-		funsBuilder,
-		enumOrFlagsMembersFunction(alloc, programState, visibility, range, membersName, type, commonTypes));
+		enumOrFlagsMembersFunction(alloc, programState, struct_, membersName, type, commonTypes));
 }
 
-FunDecl enumOrFlagsConstructor(
-	ref Alloc alloc,
-	Visibility visibility,
-	Type enumType,
-	ref StructBody.Enum.Member member,
-) =>
+FunDecl enumOrFlagsConstructor(ref Alloc alloc, Visibility visibility, Type enumType, StructBody.Enum.Member* member) =>
 	FunDecl(
-		safeCStr!"",
+		FunDeclSource(member),
 		visibility,
-		fileAndPosFromUriAndRange(member.range),
 		member.name,
 		[],
 		enumType,
@@ -240,30 +228,22 @@ FunDecl enumOrFlagsConstructor(
 		[],
 		FunBody(FunBody.CreateEnum(member.value)));
 
-FunDecl enumEqualFunction(
-	ref Alloc alloc,
-	Visibility visibility,
-	UriAndRange fileAndRange,
-	Type enumType,
-	in CommonTypes commonTypes,
-) =>
+FunDecl enumEqualFunction(ref Alloc alloc, StructDecl* struct_, Type enumType, in CommonTypes commonTypes) =>
 	FunDecl(
-		safeCStr!"",
-		visibility,
-		fileAndPosFromUriAndRange(fileAndRange),
+		FunDeclSource(struct_),
+		struct_.visibility,
 		sym!"==",
 		[],
 		Type(commonTypes.bool_),
-		makeParams(alloc, fileAndRange, [param!"a"(enumType), param!"b"(enumType)]),
+		makeParams(alloc, [param!"a"(enumType), param!"b"(enumType)]),
 		FunFlags.generatedBare.withOkIfUnused(),
 		[],
 		FunBody(EnumFunction.equal));
 
-FunDecl flagsNewFunction(ref Alloc alloc, Visibility visibility, UriAndRange fileAndRange, Type enumType) =>
+FunDecl flagsNewFunction(ref Alloc alloc, StructDecl* struct_, Type enumType) =>
 	FunDecl(
-		safeCStr!"",
-		visibility,
-		fileAndPosFromUriAndRange(fileAndRange),
+		FunDeclSource(struct_),
+		struct_.visibility,
 		sym!"new",
 		[],
 		enumType,
@@ -272,11 +252,10 @@ FunDecl flagsNewFunction(ref Alloc alloc, Visibility visibility, UriAndRange fil
 		[],
 		FunBody(FlagsFunction.new_));
 
-FunDecl flagsAllFunction(ref Alloc alloc, Visibility visibility, UriAndRange fileAndRange, Type enumType) =>
+FunDecl flagsAllFunction(ref Alloc alloc, StructDecl* struct_, Type enumType) =>
 	FunDecl(
-		safeCStr!"",
-		visibility,
-		fileAndPosFromUriAndRange(fileAndRange),
+		FunDeclSource(struct_),
+		struct_.visibility,
 		sym!"all",
 		[],
 		enumType,
@@ -285,35 +264,32 @@ FunDecl flagsAllFunction(ref Alloc alloc, Visibility visibility, UriAndRange fil
 		[],
 		FunBody(FlagsFunction.all));
 
-FunDecl flagsNegateFunction(ref Alloc alloc, Visibility visibility, UriAndRange fileAndRange, Type enumType) =>
+FunDecl flagsNegateFunction(ref Alloc alloc, StructDecl* struct_, Type enumType) =>
 	FunDecl(
-		safeCStr!"",
-		visibility,
-		fileAndPosFromUriAndRange(fileAndRange),
+		FunDeclSource(struct_),
+		struct_.visibility,
 		sym!"~",
 		[],
 		enumType,
-		makeParams(alloc, fileAndRange, [param!"a"(enumType)]),
+		makeParams(alloc, [param!"a"(enumType)]),
 		FunFlags.generatedBare.withOkIfUnused(),
 		[],
 		FunBody(FlagsFunction.negate));
 
 FunDecl enumToIntegralFunction(
 	ref Alloc alloc,
-	Visibility visibility,
-	UriAndRange fileAndRange,
+	StructDecl* struct_,
 	EnumBackingType enumBackingType,
 	Type enumType,
 	in CommonTypes commonTypes,
 ) =>
 	FunDecl(
-		safeCStr!"",
-		visibility,
-		fileAndPosFromUriAndRange(fileAndRange),
+		FunDeclSource(struct_),
+		struct_.visibility,
 		sym!"to",
 		[],
 		Type(getBackingTypeFromEnumType(enumBackingType, commonTypes)),
-		makeParams(alloc, fileAndRange, [param!"a"(enumType)]),
+		makeParams(alloc, [param!"a"(enumType)]),
 		FunFlags.generatedBare.withOkIfUnused(),
 		[],
 		FunBody(EnumFunction.toIntegral));
@@ -343,16 +319,14 @@ StructInst* getBackingTypeFromEnumType(EnumBackingType a, ref CommonTypes common
 FunDecl enumOrFlagsMembersFunction(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	Visibility visibility,
-	UriAndRange fileAndRange,
+	StructDecl* struct_,
 	Sym name,
 	Type enumType,
 	ref CommonTypes commonTypes,
 ) =>
 	FunDecl(
-		safeCStr!"",
-		visibility,
-		fileAndPosFromUriAndRange(fileAndRange),
+		FunDeclSource(struct_),
+		struct_.visibility,
 		name,
 		[],
 		Type(makeArrayType(
@@ -365,22 +339,14 @@ FunDecl enumOrFlagsMembersFunction(
 		[],
 		FunBody(EnumFunction.members));
 
-FunDecl flagsUnionOrIntersectFunction(
-	ref Alloc alloc,
-	Visibility visibility,
-	UriAndRange fileAndRange,
-	Type enumType,
-	Sym name,
-	EnumFunction fn,
-) =>
+FunDecl flagsUnionOrIntersectFunction(ref Alloc alloc, StructDecl* struct_, Type enumType, Sym name, EnumFunction fn) =>
 	FunDecl(
-		safeCStr!"",
-		visibility,
-		fileAndPosFromUriAndRange(fileAndRange),
+		FunDeclSource(struct_),
+		struct_.visibility,
 		name,
 		[],
 		enumType,
-		makeParams(alloc, fileAndRange, [param!"a"(enumType), param!"b"(enumType)]),
+		makeParams(alloc, [param!"a"(enumType), param!"b"(enumType)]),
 		FunFlags.generatedBare.withOkIfUnused(),
 		[],
 		FunBody(fn));
@@ -394,8 +360,8 @@ void addFunsForRecord(
 ) {
 	TypeParam[] typeParams = struct_.typeParams;
 	scope TypeArgsArray typeArgs = typeArgsArray();
-	foreach (TypeParam* p; ptrsRange(typeParams))
-		push(typeArgs, Type(p));
+	foreach (ref TypeParam p; typeParams)
+		push(typeArgs, Type(&p));
 	Type structType = Type(
 		instantiateStructNeverDelay(ctx.alloc, ctx.programState, struct_, tempAsArr(typeArgs)));
 	bool byVal = recordIsAlwaysByVal(record);
@@ -414,14 +380,13 @@ void addFunsForRecordConstructor(
 	bool byVal,
 ) {
 	exactSizeArrBuilderAdd(funsBuilder, FunDecl(
-		safeCStr!"",
+		FunDeclSource(struct_),
 		record.flags.newVisibility,
-		fileAndPosFromUriAndRange(struct_.range),
 		sym!"new",
 		struct_.typeParams,
 		structType,
-		Params(map(ctx.alloc, record.fields, (ref RecordField it) =>
-			makeParam(ctx.alloc, it.range, it.name, it.type))),
+		Params(map(ctx.alloc, record.fields, (ref RecordField x) =>
+			makeParam(ctx.alloc, x.name, x.type))),
 		byVal ? FunFlags.generatedBare : FunFlags.generated,
 		[],
 		FunBody(FunBody.CreateRecord())));
@@ -437,29 +402,26 @@ void addFunsForRecordField(
 	size_t fieldIndex,
 	ref RecordField field,
 ) {
-	UriAndPos pos = fileAndPosFromUriAndRange(field.range);
 	Visibility fieldVisibility = leastVisibility(struct_.visibility, field.visibility);
 	exactSizeArrBuilderAdd(funsBuilder, FunDecl(
-		safeCStr!"",
+		FunDeclSource(struct_),
 		fieldVisibility,
-		pos,
 		field.name,
 		struct_.typeParams,
 		field.type,
-		makeParams(ctx.alloc, field.range, [param!"a"(structType)]),
+		makeParams(ctx.alloc, [param!"a"(structType)]),
 		FunFlags.generatedBare,
 		[],
 		FunBody(FunBody.RecordFieldGet(fieldIndex))));
 
 	void addRecordFieldPointer(Visibility visibility, Type recordPointer, Type fieldPointer) {
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(
-			safeCStr!"",
+			FunDeclSource(struct_),
 			visibility,
-			pos,
 			field.name,
 			struct_.typeParams,
 			fieldPointer,
-			makeParams(ctx.alloc, field.range, [param!"a"(recordPointer)]),
+			makeParams(ctx.alloc, [param!"a"(recordPointer)]),
 			FunFlags.generatedBareUnsafe,
 			[],
 			FunBody(FunBody.RecordFieldPointer(fieldIndex))));
@@ -477,13 +439,12 @@ void addFunsForRecordField(
 		Type recordMutPointer = Type(makeMutPointerType(ctx.alloc, ctx.programState, commonTypes, structType));
 		if (recordIsByVal) {
 			exactSizeArrBuilderAdd(funsBuilder, FunDecl(
-				safeCStr!"",
+				FunDeclSource(struct_),
 				setVisibility,
-				pos,
 				prependSetDeref(ctx.allSymbols, field.name),
 				struct_.typeParams,
 				Type(commonTypes.void_),
-				makeParams(ctx.alloc, field.range, [
+				makeParams(ctx.alloc, [
 					param!"a"(recordMutPointer),
 					ParamShort(field.name, field.type),
 				]),
@@ -496,13 +457,12 @@ void addFunsForRecordField(
 				Type(makeMutPointerType(ctx.alloc, ctx.programState, commonTypes, field.type)));
 		} else
 			exactSizeArrBuilderAdd(funsBuilder, FunDecl(
-				safeCStr!"",
+				FunDeclSource(struct_),
 				setVisibility,
-				pos,
 				prependSet(ctx.allSymbols, field.name),
 				struct_.typeParams,
 				Type(commonTypes.void_),
-				makeParams(ctx.alloc, field.range, [param!"a"(structType), ParamShort(field.name, field.type)]),
+				makeParams(ctx.alloc, [param!"a"(structType), ParamShort(field.name, field.type)]),
 				FunFlags.generatedBare,
 				[],
 				FunBody(FunBody.RecordFieldSet(fieldIndex))));
@@ -529,17 +489,16 @@ void addFunsForUnion(
 ) {
 	TypeParam[] typeParams = struct_.typeParams;
 	scope TypeArgsArray typeArgs = typeArgsArray();
-	foreach (TypeParam* x; ptrsRange(typeParams))
-		push(typeArgs, Type(x));
+	foreach (ref TypeParam x; typeParams)
+		push(typeArgs, Type(&x));
 	Type structType = Type(instantiateStructNeverDelay(ctx.alloc, ctx.programState, struct_, tempAsArr(typeArgs)));
 	foreach (size_t memberIndex, ref UnionMember member; union_.members) {
 		Params params = isVoid(commonTypes, member.type)
 			? Params([])
-			: makeParams(ctx.alloc, member.range, [param!"a"(member.type)]);
+			: makeParams(ctx.alloc, [param!"a"(member.type)]);
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(
-			safeCStr!"",
+			FunDeclSource(struct_),
 			struct_.visibility,
-			fileAndPosFromUriAndRange(member.range),
 			member.name,
 			typeParams,
 			structType,

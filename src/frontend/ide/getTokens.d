@@ -132,9 +132,6 @@ private:
 
 alias TokensBuilder = ArrBuilder!Token;
 
-RangeWithinFile rangeAtName(in AllSymbols allSymbols, ExplicitVisibility visibility, Pos start, Sym name) =>
-	rangeAtName(allSymbols, start + (visibility == ExplicitVisibility.default_ ? 0 : 1), name);
-
 RangeWithinFile rangeAtName(in AllSymbols allSymbols, Pos start, Sym name) =>
 	RangeWithinFile(start, start + symSize(allSymbols, name));
 
@@ -153,7 +150,7 @@ void addImportTokens(
 }
 
 void addSpecTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in SpecDeclAst a) {
-	add(alloc, tokens, Token(Token.Kind.spec, rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
+	add(alloc, tokens, Token(Token.Kind.spec, rangeOfNameAndRange(a.name, allSymbols)));
 	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
 	a.body_.matchIn!void(
 		(in SpecBodyAst.Builtin) {},
@@ -229,13 +226,13 @@ void addTypeParamsTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbol
 }
 
 void addStructAliasTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in StructAliasAst a) {
-	add(alloc, tokens, Token(Token.Kind.struct_, rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
+	add(alloc, tokens, Token(Token.Kind.struct_, rangeOfNameAndRange(a.name, allSymbols)));
 	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
 	addTypeTokens(alloc, tokens, allSymbols, a.target);
 }
 
 void addStructTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in StructDeclAst a) {
-	add(alloc, tokens, Token(Token.Kind.struct_, rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
+	add(alloc, tokens, Token(Token.Kind.struct_, rangeOfNameAndRange(a.name, allSymbols)));
 	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
 	a.body_.matchIn!void(
 		(in StructDeclAst.Body.Builtin) {
@@ -253,7 +250,7 @@ void addStructTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols al
 		(in StructDeclAst.Body.Record record) {
 			addModifierTokens(alloc, tokens, allSymbols, a);
 			foreach (ref StructDeclAst.Body.Record.Field field; record.fields) {
-				add(alloc, tokens, Token(Token.Kind.member, rangeAtName(allSymbols, field.range.start, field.name)));
+				add(alloc, tokens, Token(Token.Kind.member, rangeOfNameAndRange(field.name, allSymbols)));
 				addTypeTokens(alloc, tokens, allSymbols, field.type);
 			}
 		},
@@ -316,9 +313,7 @@ void addEnumOrFlagsTokens(
 }
 
 void addVarDeclTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in VarDeclAst a) {
-	add(alloc, tokens, Token(
-		Token.Kind.varDecl,
-		rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
+	add(alloc, tokens, Token(Token.Kind.varDecl, rangeOfNameAndRange(a.name, allSymbols)));
 	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
 	add(alloc, tokens, Token(
 		Token.Kind.keyword,
@@ -328,9 +323,7 @@ void addVarDeclTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols a
 }
 
 void addFunTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols allSymbols, in FunDeclAst a) {
-	add(alloc, tokens, Token(
-		Token.Kind.fun,
-		rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
+	add(alloc, tokens, Token(Token.Kind.fun, rangeOfNameAndRange(a.name, allSymbols)));
 	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
 	addSigReturnTypeAndParamsTokens(alloc, tokens, allSymbols, a.returnType, a.params);
 	addFunModifierTokens(alloc, tokens, allSymbols, a.modifiers);

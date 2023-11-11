@@ -13,6 +13,7 @@ import frontend.parse.ast :
 	EmptyAst,
 	ExprAst,
 	ExprAstKind,
+	FieldMutabilityAst,
 	FileAst,
 	ForAst,
 	FunDeclAst,
@@ -52,6 +53,7 @@ import frontend.parse.ast :
 	StructDeclAst,
 	symForTypeAstSuffix,
 	symOfExplicitVisibility,
+	symOfFieldMutabilityAstKind,
 	symOfModifierKind,
 	symOfSpecialFlag,
 	ThenAst,
@@ -73,11 +75,12 @@ import util.json :
 	optionalField,
 	optionalStringField,
 	Json,
+	jsonInt,
 	jsonList,
 	jsonString,
 	kindField;
 import util.opt : Opt;
-import util.sourceRange : jsonOfRangeWithinFile;
+import util.sourceRange : jsonOfRangeWithinFile, Pos;
 import util.sym : Sym, sym;
 import util.union_ : Union;
 import util.uri : AllUris, Path, pathToSafeCStr, RelPath;
@@ -112,11 +115,13 @@ Json jsonOfImportOrExportAst(ref Alloc alloc, in AllUris allUris, in ImportOrExp
 		field!"import-kind"(a.kind.matchIn!Json(
 			(in ImportOrExportAstKind.ModuleWhole) =>
 				jsonString!"whole",
-			(in Sym[] names) =>
-				jsonObject(alloc, [field!"names"(jsonList!Sym(alloc, names, (in Sym name) => jsonString(name)))]),
+			(in NameAndRange[] names) =>
+				jsonObject(alloc, [
+					field!"names"(jsonList!NameAndRange(alloc, names, (in NameAndRange name) =>
+						jsonOfNameAndRange(alloc, name)))]),
 			(in ImportOrExportAstKind.File f) =>
 				jsonObject(alloc, [
-					field!"name"(f.name),
+					field!"name"(jsonOfNameAndRange(alloc, f.name)),
 					field!"file-type"(symOfImportFileType(f.type))])))]);
 
 Json pathOrRelPathToJson(ref Alloc alloc, in AllUris allUris, PathOrRelPath a) =>
@@ -133,7 +138,7 @@ Json jsonOfSpecDeclAst(ref Alloc alloc, in SpecDeclAst a) =>
 		field!"range"(jsonOfRangeWithinFile(alloc, a.range)),
 		field!"comment"(jsonString(alloc, a.docComment)),
 		field!"visibility"(symOfExplicitVisibility(a.visibility)),
-		field!"name"(a.name),
+		field!"name"(jsonOfNameAndRange(alloc, a.name)),
 		field!"parents"(jsonOfTypeAsts(alloc, a.parents)),
 		maybeTypeParams(alloc, a.typeParams),
 		field!"body"(jsonOfSpecBodyAst(alloc, a.body_))]);
@@ -159,7 +164,7 @@ Json jsonOfStructAliasAst(ref Alloc alloc, in StructAliasAst a) =>
 		field!"range"(jsonOfRangeWithinFile(alloc, a.range)),
 		optionalStringField!"doc"(alloc, a.docComment),
 		field!"visibility"(symOfExplicitVisibility(a.visibility)),
-		field!"name"(a.name),
+		field!"name"(jsonOfNameAndRange(alloc, a.name)),
 		maybeTypeParams(alloc, a.typeParams),
 		field!"target"(jsonOfTypeAst(alloc, a.target))]);
 
@@ -212,8 +217,12 @@ Json jsonOfLiteralIntOrNat(ref Alloc alloc, in LiteralIntOrNat a) =>
 Json jsonOfField(ref Alloc alloc, in StructDeclAst.Body.Record.Field a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRangeWithinFile(alloc, a.range)),
-		field!"mutability"(symOfFieldMutability(a.mutability)),
-		field!"name"(a.name),
+		field!"visibility"(symOfExplicitVisibility(a.visibility)),
+		field!"name"(jsonOfNameAndRange(alloc, a.name)),
+		optionalField!("mutability", FieldMutabilityAst)(a.mutability, (in FieldMutabilityAst x) =>
+			jsonObject(alloc, [
+				field!"pos"(x.pos),
+				field!"kind"(symOfFieldMutabilityAstKind(x.kind))])),
 		field!"type"(jsonOfTypeAst(alloc, a.type))]);
 
 Json jsonOfRecordAst(ref Alloc alloc, in StructDeclAst.Body.Record a) =>
@@ -276,7 +285,7 @@ Json jsonOfFunDeclAst(ref Alloc alloc, in FunDeclAst a) =>
 		optionalStringField!"doc"(alloc, a.docComment),
 		field!"visibility"(symOfExplicitVisibility(a.visibility)),
 		field!"range"(jsonOfRangeWithinFile(alloc, a.range)),
-		field!"name"(a.name),
+		field!"name"(jsonOfNameAndRange(alloc, a.name)),
 		maybeTypeParams(alloc, a.typeParams),
 		field!"return"(jsonOfTypeAst(alloc, a.returnType)),
 		field!"params"(jsonOfParamsAst(alloc, a.params)),
@@ -359,7 +368,7 @@ Json jsonOfDestructureAst(ref Alloc alloc, in DestructureAst a) =>
 			jsonObject(alloc, [
 				kindField!"single",
 				field!"name"(jsonOfNameAndRange(alloc, x.name)),
-				optionalFlagField!"mut"(x.mut),
+				optionalField!("mut", Pos)(x.mut, (in Pos y) => jsonInt(y)),
 				optionalField!("type", TypeAst*)(x.type, (in TypeAst* t) =>
 					jsonOfTypeAst(alloc, *t))]),
 		(in DestructureAst.Void x) =>

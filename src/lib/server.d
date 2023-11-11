@@ -234,7 +234,7 @@ ProgramAndDefinition getDefinition(ref Perf perf, ref Alloc alloc, ref Server se
 	Program program = getProgram(perf, alloc, server, uri);
 	Opt!Position position = getPosition(server, program, uri, pos);
 	Opt!Definition definition = has(position)
-		? getDefinitionForPosition(program, force(position))
+		? getDefinitionForPosition(server.allSymbols, program, force(position))
 		: none!Definition;
 	return ProgramAndDefinition(program, definition);
 }

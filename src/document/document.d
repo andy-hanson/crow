@@ -8,6 +8,7 @@ import model.model :
 	Destructure,
 	FieldMutability,
 	FunDecl,
+	FunDeclSource,
 	isBare,
 	isGenerated,
 	isSummon,
@@ -230,7 +231,7 @@ Json documentSpecDeclSig(ref Alloc alloc, in SpecDeclSig a) =>
 		field!"params"(documentParamDestructures(alloc, a.params))]);
 
 DocExport documentFun(ref Alloc alloc, in FunDecl a) =>
-	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, jsonObject(alloc, [
+	documentExport(alloc, a.range, a.name, a.source.as!(FunDeclSource.Ast).ast.docComment, a.typeParams, jsonObject(alloc, [
 		kindField!"fun",
 		field!"return-type"(documentTypeRef(alloc, a.returnType)),
 		documentParams(alloc, a.params),

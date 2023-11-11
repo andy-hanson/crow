@@ -106,7 +106,7 @@ Json hoverResult(ref Alloc alloc, in SafeCStr content, ref ShowCtx ctx, Module* 
 	Pos endOfFile = safeToUint(safeCStrSize(content));
 	foreach (Pos pos; 0 .. endOfFile + 1) {
 		Position position = getPosition(ctx.allSymbols, mainModule, pos);
-		InfoAtPos here = InfoAtPos(getHoverStr(alloc, ctx, position), getDefinitionForPosition(ctx.program, position));
+		InfoAtPos here = InfoAtPos(getHoverStr(alloc, ctx, position), getDefinitionForPosition(ctx.allSymbols, ctx.program, position));
 		if (here != cellGet(curInfo)) {
 			endRange(pos);
 			curRangeStart = pos;

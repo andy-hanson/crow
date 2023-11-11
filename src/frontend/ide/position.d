@@ -2,7 +2,7 @@ module frontend.ide.position;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast : FunModifierAst;
+import frontend.parse.ast : FieldMutabilityAst, FunModifierAst;
 import model.model :
 	Expr,
 	FunDecl,
@@ -42,11 +42,26 @@ immutable struct PositionKind {
 		ImportOrExport* import_;
 		Sym name;
 	}
+	immutable struct Keyword {
+		enum Kind {
+			builtin,
+			enum_,
+			extern_,
+			flags,
+			localMut,
+			record,
+			union_,
+		}
+		Kind kind;
+	}
 	immutable struct LocalNonParameter {
 		Local* local;
 	}
 	immutable struct LocalParameter {
 		Local* local;
+	}
+	immutable struct RecordFieldMutability {
+		FieldMutabilityAst.Kind kind;
 	}
 	immutable struct RecordFieldPosition {
 		StructDecl* struct_;
@@ -61,8 +76,10 @@ immutable struct PositionKind {
 		FunSpecialModifier,
 		ImportedModule,
 		ImportedName,
+		Keyword,
 		LocalNonParameter,
 		LocalParameter,
+		RecordFieldMutability,
 		RecordFieldPosition,
 		SpecDecl*,
 		SpecInst*,

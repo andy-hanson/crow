@@ -2,7 +2,13 @@ module model.model;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast : FunDeclAst, NameAndRange, rangeOfNameAndRange, StructDeclAst;
+import frontend.parse.ast :
+	DestructureAst,
+	FunDeclAst,
+	NameAndRange,
+	rangeOfDestructureSingle,
+	rangeOfNameAndRange,
+	StructDeclAst;
 import model.concreteModel : TypeSize;
 import model.constant : Constant;
 import model.diag : Diagnostics;
@@ -192,13 +198,18 @@ Sym symOfFieldMutability(FieldMutability a) {
 
 immutable struct RecordField {
 	StructDeclAst.Body.Record.Field* ast;
-	//TODO: use NameAndRange (more compact)
-	UriAndRange range;
+	StructDecl* containingRecord;
 	Visibility visibility;
 	Sym name;
 	FieldMutability mutability;
 	Type type;
 }
+
+RangeWithinFile range(in RecordField a) =>
+	a.ast.range;
+
+UriAndRange uriAndRange(in RecordField a) =>
+	UriAndRange(a.containingRecord.moduleUri, a.ast.range);
 
 immutable struct UnionMember {
 	//TODO: use NameAndRange (more compact)
@@ -650,16 +661,46 @@ immutable struct FunFlags {
 }
 static assert(FunFlags.sizeof == 7);
 
+immutable struct FunDeclSource {
+	@safe @nogc pure nothrow:
+
+	immutable struct Bogus {
+		Uri uri;
+	}
+	immutable struct Ast {
+		Uri uri;
+		FunDeclAst* ast;
+	}
+	immutable struct FileImport {
+		UriAndRange range;
+	}
+
+	mixin Union!(Bogus, Ast, FileImport, StructBody.Enum.Member*, StructDecl*, VarDecl*);
+
+	UriAndRange range() scope =>
+		matchIn!UriAndRange(
+			(in FunDeclSource.Bogus x) =>
+				UriAndRange(x.uri, RangeWithinFile.empty),
+			(in FunDeclSource.Ast x) =>
+				UriAndRange(x.uri, x.ast.range),
+			(in FunDeclSource.FileImport x) =>
+				x.range,
+			(in StructBody.Enum.Member x) =>
+				x.range,
+			(in StructDecl x) =>
+				x.range,
+			(in VarDecl x) =>
+				x.range);
+}
+
 immutable struct FunDecl {
 	@safe @nogc pure nothrow:
 
 	@disable this(ref const FunDecl);
 
 	this(
-		Opt!(FunDeclAst*) a,
-		SafeCStr dc,
+		FunDeclSource s,
 		Visibility v,
-		UriAndPos fp,
 		Sym n,
 		TypeParam[] tps,
 		Type rt,
@@ -667,10 +708,8 @@ immutable struct FunDecl {
 		FunFlags f,
 		immutable SpecInst*[] sps,
 	) {
-		ast = a;
-		docComment = dc;
+		source = s;
 		visibility = v;
-		fileAndPos = fp;
 		name = n;
 		flags = f;
 		returnType = rt;
@@ -679,9 +718,8 @@ immutable struct FunDecl {
 		specs = sps;
 	}
 	this(
-		SafeCStr dc,
+		FunDeclSource s,
 		Visibility v,
-		UriAndPos fp,
 		Sym n,
 		TypeParam[] tps,
 		Type rt,
@@ -690,10 +728,8 @@ immutable struct FunDecl {
 		immutable SpecInst*[] sps,
 		FunBody b,
 	) {
-		ast = none!(FunDeclAst*);
-		docComment = dc;
+		source = s;
 		visibility = v;
-		fileAndPos = fp;
 		name = n;
 		flags = f;
 		returnType = rt;
@@ -703,10 +739,8 @@ immutable struct FunDecl {
 		setBody(b);
 	}
 
-	Opt!(FunDeclAst*) ast;
-	SafeCStr docComment;
+	FunDeclSource source;
 	Visibility visibility;
-	UriAndPos fileAndPos;
 	Sym name;
 	FunFlags flags;
 	Type returnType;
@@ -716,11 +750,7 @@ immutable struct FunDecl {
 	private Late!FunBody lateBody;
 
 	UriAndRange range() scope =>
-		// TODO: end position
-		fileAndRangeFromUriAndPos(fileAndPos);
-
-	immutable(RangeWithinFile) nameRange(in AllSymbols allSymbols) =>
-		rangeOfStartAndName(fileAndPos.pos, name, allSymbols);
+		source.range;
 
 	ref FunBody body_() return scope =>
 		lateGet(lateBody);
@@ -730,7 +760,7 @@ immutable struct FunDecl {
 	}
 }
 
-Linkage linkage(ref FunDecl a) =>
+Linkage linkage(in FunDecl a) =>
 	a.body_.isA!(FunBody.Extern) ? Linkage.extern_ : Linkage.internal;
 
 bool isBare(in FunDecl a) =>
@@ -1211,34 +1241,54 @@ immutable struct Config {
 alias ConfigImportUris = Map!(Sym, Uri);
 alias ConfigExternUris = Map!(Sym, Uri);
 
+immutable struct LocalSource {
+	immutable struct Ast {
+		Uri uri;
+		DestructureAst.Single* ast;
+	}
+	immutable struct Generated {}
+	mixin Union!(Ast, Generated);
+}
+
 immutable struct Local {
 	@safe @nogc pure nothrow:
 
-	//TODO: use NameAndRange (more compact)
-	UriAndRange range;
+	LocalSource source;
 	Sym name;
 	LocalMutability mutability;
 	Type type;
+}
 
-	RangeWithinFile nameRange(in AllSymbols allSymbols) =>
-		rangeOfNameAndRange(NameAndRange(range.range.start, name), allSymbols);
-
-	bool isAllocated() {
-		final switch (mutability) {
-			case LocalMutability.immut:
-			case LocalMutability.mutOnStack:
-				return false;
-			case LocalMutability.mutAllocated:
-				return true;
-		}
+bool localIsAllocated(in Local a) scope {
+	final switch (a.mutability) {
+		case LocalMutability.immut:
+		case LocalMutability.mutOnStack:
+			return false;
+		case LocalMutability.mutAllocated:
+			return true;
 	}
 }
+
+UriAndRange localMustHaveRange(in Local a, in AllSymbols allSymbols) =>
+	UriAndRange(a.source.as!(LocalSource.Ast).uri, rangeOfDestructureSingle(*a.source.as!(LocalSource.Ast).ast, allSymbols));
 
 enum LocalMutability {
 	immut,
 	mutOnStack, // Mutable and on the stack
 	mutAllocated, // Mutable and must be heap-allocated since it's used in a closure
 }
+
+Sym symOfLocalMutability(LocalMutability a) {
+	final switch (a) {
+		case LocalMutability.immut:
+			return sym!"immut";
+		case LocalMutability.mutOnStack:
+			return sym!"mutOnStack";
+		case LocalMutability.mutAllocated:
+			return sym!"mutAllocated";
+	}
+}
+
 enum Mutability { immut, mut }
 Mutability toMutability(LocalMutability a) {
 	final switch (a) {
@@ -1343,18 +1393,18 @@ immutable struct Destructure {
 	Opt!RangeWithinFile nameRange(in AllSymbols allSymbols) scope {
 		Opt!Sym name = name;
 		return has(name)
-			? some(rangeOfNameAndRange(NameAndRange(range.start, force(name)), allSymbols))
+			? some(rangeOfNameAndRange(NameAndRange(range(allSymbols).start, force(name)), allSymbols))
 			: none!RangeWithinFile;
 	}
 
-	RangeWithinFile range() scope =>
+	RangeWithinFile range(in AllSymbols allSymbols) scope =>
 		matchIn!RangeWithinFile(
 			(in Ignore x) =>
 				RangeWithinFile(x.pos, x.pos + 1),
 			(in Local x) =>
-				x.range.range,
+				localMustHaveRange(x, allSymbols).range,
 			(in Split x) =>
-				combineRanges(x.parts[0].range, x.parts[$ - 1].range));
+				combineRanges(x.parts[0].range(allSymbols), x.parts[$ - 1].range(allSymbols)));
 
 	Type type() scope =>
 		matchIn!Type(

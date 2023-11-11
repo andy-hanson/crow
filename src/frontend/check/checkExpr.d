@@ -106,6 +106,7 @@ import model.model :
 	isDefinitelyByRef,
 	isTemplate,
 	Local,
+	localMustHaveRange,
 	LocalMutability,
 	Mutability,
 	name,
@@ -147,7 +148,7 @@ Expr checkFunctionBody(
 	Destructure[] params,
 	in immutable SpecInst*[] specs,
 	in FunFlags flags,
-	in ExprAst ast,
+	ref ExprAst ast,
 ) {
 	ExprCtx exprCtx = ExprCtx(
 		ptrTrustMe(checkCtx),
@@ -166,74 +167,74 @@ Expr checkFunctionBody(
 	return res;
 }
 
-Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, in ExprAst ast, ref Expected expected) {
+Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ref ExprAst ast, ref Expected expected) {
 	UriAndRange range = rangeInFile2(ctx, ast.range);
-	return ast.kind.matchIn!Expr(
-		(in ArrowAccessAst a) =>
+	return ast.kind.match!Expr(
+		(ArrowAccessAst a) =>
 			checkArrowAccess(ctx, locals, range, a, expected),
-		(in AssertOrForbidAst a) =>
+		(ref AssertOrForbidAst a) =>
 			checkAssertOrForbid(ctx, locals, range, a, expected),
-		(in AssignmentAst a) =>
-			checkAssignment(ctx, locals, range, a, expected),
-		(in AssignmentCallAst a) =>
+		(ref AssignmentAst a) =>
+			checkAssignment(ctx, locals, range, a.left, a.right, expected),
+		(ref AssignmentCallAst a) =>
 			checkAssignmentCall(ctx, locals, range, a, expected),
-		(in BogusAst _) =>
+		(BogusAst _) =>
 			bogus(expected, range),
-		(in CallAst a) =>
+		(CallAst a) =>
 			checkCall(ctx, locals, range, a, expected),
-		(in EmptyAst a) =>
+		(EmptyAst a) =>
 			checkEmptyNew(ctx, range, expected),
-		(in ForAst a) =>
+		(ref ForAst a) =>
 			checkFor(ctx, locals, range, a, expected),
-		(in IdentifierAst a) =>
+		(IdentifierAst a) =>
 			checkIdentifier(ctx, locals, range, a, expected),
-		(in IfAst a) =>
+		(ref IfAst a) =>
 			checkIf(ctx, locals, range, a, expected),
-		(in IfOptionAst a) =>
+		(ref IfOptionAst a) =>
 			checkIfOption(ctx, locals, range, a, expected),
-		(in InterpolatedAst a) =>
+		(InterpolatedAst a) =>
 			checkInterpolated(ctx, locals, range, a, expected),
-		(in LambdaAst a) =>
+		(ref LambdaAst a) =>
 			checkLambda(ctx, locals, range, a, expected),
-		(in LetAst a) =>
+		(ref LetAst a) =>
 			checkLet(ctx, locals, range, a, expected),
-		(in LiteralFloatAst a) =>
+		(LiteralFloatAst a) =>
 			checkLiteralFloat(ctx, range, a, expected),
-		(in LiteralIntAst a) =>
+		(LiteralIntAst a) =>
 			checkLiteralInt(ctx, range, a, expected),
-		(in LiteralNatAst a) =>
+		(LiteralNatAst a) =>
 			checkLiteralNat(ctx, range, a, expected),
-		(in LiteralStringAst a) =>
+		(LiteralStringAst a) =>
 			checkLiteralString(ctx, range, ast, a.value, expected),
-		(in LoopAst a) =>
+		(ref LoopAst a) =>
 			checkLoop(ctx, locals, range, a, expected),
-		(in LoopBreakAst a) =>
+		(ref LoopBreakAst a) =>
 			checkLoopBreak(ctx, locals, range, a, expected),
-		(in LoopContinueAst _) =>
+		(LoopContinueAst _) =>
 			checkLoopContinue(ctx, range, expected),
-		(in LoopUntilAst a) =>
+		(ref LoopUntilAst a) =>
 			checkLoopUntil(ctx, locals, range, a, expected),
-		(in LoopWhileAst a) =>
+		(ref LoopWhileAst a) =>
 			checkLoopWhile(ctx, locals, range, a, expected),
-		(in MatchAst a) =>
+		(ref MatchAst a) =>
 			checkMatch(ctx, locals, range, a, expected),
-		(in ParenthesizedAst a) =>
+		(ref ParenthesizedAst a) =>
 			checkExpr(ctx, locals, a.inner, expected),
-		(in PtrAst a) =>
+		(ref PtrAst a) =>
 			checkPtr(ctx, locals, range, a, expected),
-		(in SeqAst a) =>
+		(ref SeqAst a) =>
 			checkSeq(ctx, locals, range, a, expected),
-		(in ThenAst a) =>
+		(ref ThenAst a) =>
 			checkThen(ctx, locals, range, a, expected),
-		(in ThrowAst a) =>
+		(ref ThrowAst a) =>
 			checkThrow(ctx, locals, range, a, expected),
-		(in TrustedAst a) =>
+		(ref TrustedAst a) =>
 			withTrusted!Expr(ctx, range, () => checkExpr(ctx, locals, a.inner, expected)),
-		(in TypedAst a) =>
+		(ref TypedAst a) =>
 			checkTyped(ctx, locals, range, a, expected),
-		(in UnlessAst a) =>
+		(ref UnlessAst a) =>
 			checkUnless(ctx, locals, range, a, expected),
-		(in WithAst a) =>
+		(ref WithAst a) =>
 			checkWith(ctx, locals, range, a, expected));
 }
 
@@ -261,29 +262,29 @@ Opt!Expr checkWithParamDestructuresRecur(
 		: checkWithDestructure(ctx, locals, params[0], (ref LocalsInfo innerLocals) =>
 			checkWithParamDestructuresRecur(ctx, innerLocals, params[1 .. $], cb));
 
-ExprAndType checkAndInfer(ref ExprCtx ctx, ref LocalsInfo locals, in ExprAst ast) {
+ExprAndType checkAndInfer(ref ExprCtx ctx, ref LocalsInfo locals, ref ExprAst ast) {
 	Expected expected = Expected(Expected.Infer());
 	Expr expr = checkExpr(ctx, locals, ast, expected);
 	return ExprAndType(expr, inferred(expected));
 }
 
-ExprAndType checkAndExpectOrInfer(ref ExprCtx ctx, ref LocalsInfo locals, in ExprAst ast, Opt!Type optExpected) =>
+ExprAndType checkAndExpectOrInfer(ref ExprCtx ctx, ref LocalsInfo locals, ref ExprAst ast, Opt!Type optExpected) =>
 	has(optExpected)
 		? ExprAndType(checkAndExpect(ctx, locals, ast, force(optExpected)), force(optExpected))
 		: checkAndInfer(ctx, locals, ast);
 
-Expr checkAndExpect(ref ExprCtx ctx, ref LocalsInfo locals, in ExprAst ast, Type expected) {
+Expr checkAndExpect(ref ExprCtx ctx, ref LocalsInfo locals, ref ExprAst ast, Type expected) {
 	Expected et = Expected(expected);
 	return checkExpr(ctx, locals, ast, et);
 }
 
-Expr checkAndExpectBool(ref ExprCtx ctx, ref LocalsInfo locals, in ExprAst ast) =>
+Expr checkAndExpectBool(ref ExprCtx ctx, ref LocalsInfo locals, ref ExprAst ast) =>
 	checkAndExpect(ctx, locals, ast, Type(ctx.commonTypes.bool_));
 
-Expr checkAndExpectCStr(ref ExprCtx ctx, ref LocalsInfo locals, in ExprAst ast) =>
+Expr checkAndExpectCStr(ref ExprCtx ctx, ref LocalsInfo locals, ref ExprAst ast) =>
 	checkAndExpect(ctx, locals, ast, Type(ctx.commonTypes.cString));
 
-Expr checkAndExpectVoid(ref ExprCtx ctx, ref LocalsInfo locals, in ExprAst ast) =>
+Expr checkAndExpectVoid(ref ExprCtx ctx, ref LocalsInfo locals, ref ExprAst ast) =>
 	checkAndExpect(ctx, locals, ast, voidType(ctx));
 
 Type voidType(ref const ExprCtx ctx) =>
@@ -303,14 +304,14 @@ Expr checkArrowAccess(
 		ctx, locals, range, ast.name.name, [ExprAst(range.range, ExprAstKind(callDeref))], expected);
 }
 
-Expr checkIf(ref ExprCtx ctx, ref LocalsInfo locals, UriAndRange range, in IfAst ast, ref Expected expected) {
+Expr checkIf(ref ExprCtx ctx, ref LocalsInfo locals, UriAndRange range, ref IfAst ast, ref Expected expected) {
 	Expr cond = checkAndExpectBool(ctx, locals, ast.cond);
 	Expr then = checkExpr(ctx, locals, ast.then, expected);
 	Expr else_ = checkExpr(ctx, locals, ast.else_, expected);
 	return Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.If(cond, then, else_))));
 }
 
-Expr checkThrow(ref ExprCtx ctx, ref LocalsInfo locals, UriAndRange range, in ThrowAst ast, ref Expected expected) {
+Expr checkThrow(ref ExprCtx ctx, ref LocalsInfo locals, UriAndRange range, ref ThrowAst ast, ref Expected expected) {
 	Opt!Type inferred = tryGetInferred(expected);
 	if (has(inferred)) {
 		Expr thrown = checkAndExpectCStr(ctx, locals, ast.thrown);
@@ -325,7 +326,7 @@ Expr checkAssertOrForbid(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	UriAndRange range,
-	in AssertOrForbidAst ast,
+	ref AssertOrForbidAst ast,
 	ref Expected expected,
 ) {
 	Expr* condition = allocate(ctx.alloc, checkAndExpectBool(ctx, locals, ast.condition));
@@ -341,17 +342,8 @@ Expr checkAssignment(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	UriAndRange range,
-	in AssignmentAst ast,
-	ref Expected expected,
-) =>
-	checkAssignment(ctx, locals, range, ast.left, ast.right, expected);
-
-Expr checkAssignment(
-	ref ExprCtx ctx,
-	ref LocalsInfo locals,
-	UriAndRange range,
 	in ExprAst left,
-	in ExprAst right,
+	ref ExprAst right,
 	ref Expected expected,
 ) {
 	if (left.kind.isA!IdentifierAst)
@@ -389,28 +381,24 @@ Expr checkAssignment(
 	}
 }
 
-Expr checkAssignmentCall(
+// TODO: @trusted because 'call' is scope and 'checkExpr' sometimes keeps a pointer to the expr (but not for a CallAst)
+@trusted Expr checkAssignmentCall(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	UriAndRange range,
-	in AssignmentCallAst ast,
+	ref AssignmentCallAst ast,
 	ref Expected expected,
 ) {
 	ExprAst[2] args = [castNonScope_ref(ast.left), castNonScope_ref(ast.right)];
-	return checkAssignment(
-		ctx, locals, range, ast.left,
-		ExprAst(range.range, ExprAstKind(CallAst(
-			CallAst.style.infix,
-			ast.funName,
-			args))),
-		expected);
+	ExprAst call = ExprAst(range.range, ExprAstKind(CallAst(CallAst.style.infix, ast.funName, args)));
+	return checkAssignment(ctx, locals, range, ast.left, call, expected);
 }
 
 Expr checkUnless(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	UriAndRange range,
-	in UnlessAst ast,
+	ref UnlessAst ast,
 	ref Expected expected,
 ) {
 	Expr cond = checkAndExpectBool(ctx, locals, ast.cond);
@@ -426,7 +414,7 @@ Expr checkIfOption(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	UriAndRange range,
-	in IfOptionAst ast,
+	ref IfOptionAst ast,
 	ref Expected expected,
 ) {
 	// We don't know the cond type, except that it's an option
@@ -440,7 +428,7 @@ Expr checkIfOption(
 		return bogus(expected, range);
 	} else {
 		Type nonOptionalType = only(typeArgs(*inst));
-		Destructure destructure = checkDestructure(ctx, ast.destructure, nonOptionalType);
+		Destructure destructure = checkDestructure2(ctx, ast.destructure, nonOptionalType);
 		Expr then = checkExprWithDestructure(ctx, locals, destructure, ast.then, expected);
 		Expr else_ = checkExpr(ctx, locals, ast.else_, expected);
 		return Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.IfOption(destructure, option, then, else_))));
@@ -684,7 +672,7 @@ Expr checkAssignIdentifier(
 	ref LocalsInfo locals,
 	UriAndRange range,
 	in Sym left,
-	in ExprAst right,
+	ref ExprAst right,
 	ref Expected expected,
 ) {
 	MutOpt!VariableRefAndType optVar = getVariableRefForSet(ctx, locals, range, left);
@@ -862,7 +850,7 @@ Expr checkExprWithDestructure(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	ref Destructure destructure,
-	in ExprAst ast,
+	ref ExprAst ast,
 	ref Expected expected,
 ) {
 	Opt!Expr res = checkWithDestructure(ctx, locals, destructure, (ref LocalsInfo innerLocals) =>
@@ -906,7 +894,7 @@ Opt!Expr checkWithLocal(
 	in Opt!Expr delegate(ref LocalsInfo) @safe @nogc pure nothrow cb,
 ) {
 	if (nameIsParameterOrLocalInScope(ctx.alloc, locals, local.name))
-		addDiag2(ctx, local.range, Diag(
+		addDiag2(ctx, localMustHaveRange(*local, ctx.allSymbols), Diag(
 			Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.paramOrLocal, local.name)));
 
 	LocalNode localNode = LocalNode(locals.locals, [false, false, false, false], local);
@@ -926,10 +914,11 @@ void addUnusedLocalDiags(ref ExprCtx ctx, Local* local, scope ref LocalNode node
 	bool isGot = node.isUsed[LocalAccessKind.getOnStack] || node.isUsed[LocalAccessKind.getThroughClosure];
 	bool isSet = node.isUsed[LocalAccessKind.setOnStack] || node.isUsed[LocalAccessKind.setThroughClosure];
 	if (!isGot || (!isSet && local.mutability != LocalMutability.immut))
-		addDiag2(ctx, local.range, Diag(Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.Local(local, isGot, isSet)))));
+		addDiag2(ctx, localMustHaveRange(*local, ctx.allSymbols), Diag(
+			Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.Local(local, isGot, isSet)))));
 }
 
-Expr checkPtr(ref ExprCtx ctx, ref LocalsInfo locals, UriAndRange range, in PtrAst ast, ref Expected expected) {
+Expr checkPtr(ref ExprCtx ctx, ref LocalsInfo locals, UriAndRange range, ref PtrAst ast, ref Expected expected) {
 	return getExpectedPointee(ctx, expected).match!Expr(
 		(ExpectedPointee.None) {
 			addDiag2(ctx, range, Diag(Diag.NeedsExpectedType(Diag.NeedsExpectedType.Kind.pointer)));
@@ -976,7 +965,7 @@ Expr checkPtrInner(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	UriAndRange range,
-	in PtrAst ast,
+	ref PtrAst ast,
 	Type pointerType,
 	Type pointeeType,
 	PointerMutability expectedMutability,
@@ -1098,7 +1087,7 @@ Expr checkFunPointer(ref ExprCtx ctx, UriAndRange range, in PtrAst ast, ref Expe
 	return check(ctx, expected, Type(structInst), Expr(range, ExprKind(ExprKind.FunPtr(funInst))));
 }
 
-Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, UriAndRange range, in LambdaAst ast, ref Expected expected) {
+Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, UriAndRange range, ref LambdaAst ast, ref Expected expected) {
 	MutOpt!ExpectedLambdaType opEt = getExpectedLambdaType(ctx, range, expected, ast.param);
 	if (!has(opEt))
 		return bogus(expected, range);
@@ -1106,7 +1095,7 @@ Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, UriAndRange range, in L
 	ExpectedLambdaType et = force(opEt);
 	FunKind kind = et.kind;
 
-	Destructure param = checkDestructure(ctx, ast.param, et.instantiatedParamType);
+	Destructure param = checkDestructure2(ctx, ast.param, et.instantiatedParamType);
 
 	ExprKind.Lambda* lambda = () @trusted { return allocateUninitialized!(ExprKind.Lambda)(ctx.alloc); }();
 
@@ -1180,19 +1169,19 @@ VariableRef[] checkClosure(ref ExprCtx ctx, UriAndRange range, FunKind kind, Clo
 Opt!Type typeFromDestructure(ref ExprCtx ctx, in DestructureAst ast) =>
 	.typeFromDestructure(ctx.checkCtx, ctx.commonTypes, ast, ctx.structsAndAliasesMap, ctx.outermostFunTypeParams);
 
-Destructure checkDestructure(ref ExprCtx ctx, in DestructureAst ast, Type type) =>
+Destructure checkDestructure2(ref ExprCtx ctx, ref DestructureAst ast, Type type) =>
 	.checkDestructure(
 		ctx.checkCtx, ctx.commonTypes, ctx.structsAndAliasesMap, ctx.outermostFunTypeParams,
 		noDelayStructInsts, ast, some(type));
 
-Expr checkLet(ref ExprCtx ctx, ref LocalsInfo locals, UriAndRange range, in LetAst ast, ref Expected expected) {
+Expr checkLet(ref ExprCtx ctx, ref LocalsInfo locals, UriAndRange range, ref LetAst ast, ref Expected expected) {
 	ExprAndType value = checkAndExpectOrInfer(ctx, locals, ast.value, typeFromDestructure(ctx, ast.destructure));
-	Destructure destructure = checkDestructure(ctx, ast.destructure, value.type);
+	Destructure destructure = checkDestructure2(ctx, ast.destructure, value.type);
 	Expr then = checkExprWithDestructure(ctx, locals, destructure, ast.then, expected);
 	return Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.Let(destructure, value.expr, then))));
 }
 
-Expr checkLoop(ref ExprCtx ctx, ref LocalsInfo locals, UriAndRange range, in LoopAst ast, ref Expected expected) {
+Expr checkLoop(ref ExprCtx ctx, ref LocalsInfo locals, UriAndRange range, ref LoopAst ast, ref Expected expected) {
 	Opt!Type expectedType = tryGetInferred(expected);
 	if (has(expectedType)) {
 		Type type = force(expectedType);
@@ -1216,7 +1205,7 @@ Expr checkLoopBreak(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	UriAndRange range,
-	in LoopBreakAst ast,
+	ref LoopBreakAst ast,
 	ref Expected expected,
 ) {
 	MutOpt!(LoopInfo*) optLoop = tryGetLoop(expected);
@@ -1243,7 +1232,7 @@ Expr checkLoopUntil(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	UriAndRange range,
-	in LoopUntilAst ast,
+	ref LoopUntilAst ast,
 	ref Expected expected,
 ) =>
 	check(ctx, expected, voidType(ctx), Expr(
@@ -1256,7 +1245,7 @@ Expr checkLoopWhile(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	UriAndRange range,
-	in LoopWhileAst ast,
+	ref LoopWhileAst ast,
 	ref Expected expected,
 ) =>
 	check(ctx, expected, voidType(ctx), Expr(
@@ -1265,7 +1254,7 @@ Expr checkLoopWhile(
 			checkAndExpectBool(ctx, locals, ast.condition),
 			checkAndExpectVoid(ctx, locals, ast.body_))))));
 
-Expr checkMatch(ref ExprCtx ctx, ref LocalsInfo locals, UriAndRange range, in MatchAst ast, ref Expected expected) {
+Expr checkMatch(ref ExprCtx ctx, ref LocalsInfo locals, UriAndRange range, ref MatchAst ast, ref Expected expected) {
 	ExprAndType matchedAndType = checkAndInfer(ctx, locals, ast.matched);
 	Type matchedType = matchedAndType.type;
 	StructBody body_ = matchedType.isA!(StructInst*)
@@ -1349,16 +1338,17 @@ ExprKind.MatchUnion.Case checkMatchCase(
 	ref LocalsInfo locals,
 	UnionMember* member,
 	Type memberType,
-	in MatchAst.CaseAst caseAst,
+	ref MatchAst.CaseAst caseAst,
 	ref Expected expected,
 ) {
-	Destructure destructure = checkDestructure(
-		ctx, has(caseAst.destructure) ? force(caseAst.destructure) : DestructureAst(DestructureAst.Void()), memberType);
+	immutable DestructureAst destructureVoidAst = DestructureAst(DestructureAst.Void());
+	Destructure destructure = checkDestructure2(
+		ctx, has(caseAst.destructure) ? force(caseAst.destructure) : destructureVoidAst, memberType);
 	return ExprKind.MatchUnion.Case(
 		destructure, checkExprWithDestructure(ctx, locals, destructure, caseAst.then, expected));
 }
 
-Expr checkSeq(ref ExprCtx ctx, ref LocalsInfo locals, UriAndRange range, in SeqAst ast, ref Expected expected) {
+Expr checkSeq(ref ExprCtx ctx, ref LocalsInfo locals, UriAndRange range, ref SeqAst ast, ref Expected expected) {
 	Expr first = checkAndExpectVoid(ctx, locals, ast.first);
 	Expr then = checkExpr(ctx, locals, ast.then, expected);
 	return Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.Seq(first, then))));
@@ -1464,7 +1454,7 @@ Expr checkThen(ref ExprCtx ctx, ref LocalsInfo locals, UriAndRange range, in The
 	return checkCallSpecial!2(ctx, locals, range, sym!"then", [ast.futExpr, lambda], expected);
 }
 
-Expr checkTyped(ref ExprCtx ctx, ref LocalsInfo locals, UriAndRange range, in TypedAst ast, ref Expected expected) {
+Expr checkTyped(ref ExprCtx ctx, ref LocalsInfo locals, UriAndRange range, ref TypedAst ast, ref Expected expected) {
 	Type type = typeFromAst2(ctx, ast.type);
 	Opt!Type inferred = tryGetInferred(expected);
 	// If inferred != type, we'll fail in 'check'

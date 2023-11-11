@@ -46,6 +46,7 @@ import model.model :
 	Destructure,
 	FunBody,
 	FunDecl,
+	FunDeclSource,
 	FunFlags,
 	ImportFileType,
 	ImportOrExport,
@@ -191,13 +192,13 @@ Params checkParams(
 	TypeParam[] typeParamsScope,
 	ref DelayStructInsts delayStructInsts,
 ) =>
-	ast.matchIn!Params(
-		(in DestructureAst[] asts) =>
+	ast.match!Params(
+		(DestructureAst[] asts) =>
 			Params(map!(Destructure, DestructureAst)(ctx.alloc, asts, (ref DestructureAst ast) =>
 				checkDestructure(
 					ctx, commonTypes, structsAndAliasesMap, typeParamsScope, delayStructInsts,
 					ast, none!Type))),
-		(in ParamsAst.Varargs varargs) {
+		(ref ParamsAst.Varargs varargs) {
 			Destructure param = checkDestructure(
 				ctx, commonTypes, structsAndAliasesMap, typeParamsScope, delayStructInsts, varargs.param, none!Type);
 			Opt!Type elementType = param.type.match!(Opt!Type)(
@@ -277,12 +278,12 @@ SpecDecl[] checkSpecDeclsInitial(
 	map(ctx.alloc, asts, (ref SpecDeclAst ast) {
 		TypeParam[] typeParams = checkTypeParams(ctx, ast.typeParams);
 		SpecDeclBody body_ =
-			checkSpecDeclBody(ctx, commonTypes, typeParams, structsAndAliasesMap, ast.range, ast.name, ast.body_);
+			checkSpecDeclBody(ctx, commonTypes, typeParams, structsAndAliasesMap, ast.range, ast.name.name, ast.body_);
 		return SpecDecl(
 			rangeInFile(ctx, ast.range),
 			copySafeCStr(ctx.alloc, ast.docComment),
 			visibilityFromExplicit(ast.visibility),
-			ast.name,
+			ast.name.name,
 			small(typeParams),
 			body_);
 	});
@@ -339,7 +340,7 @@ StructAlias[] checkStructAliasesInitial(ref CheckCtx ctx, scope StructAliasAst[]
 			rangeInFile(ctx, ast.range),
 			copySafeCStr(ctx.alloc, ast.docComment),
 			visibilityFromExplicit(ast.visibility),
-			ast.name,
+			ast.name.name,
 			small(checkTypeParams(ctx, ast.typeParams))));
 
 void checkStructAliasTargets(
@@ -398,7 +399,7 @@ VarDecl checkVarDecl(
 		UriAndPos(ctx.curUri, ast.range.start),
 		copySafeCStr(ctx.alloc, ast.docComment),
 		visibilityFromExplicit(ast.visibility),
-		ast.name,
+		ast.name.name,
 		ast.kind,
 		typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, ast.type, structsAndAliasesMap),
 		checkVarModifiers(ctx, ast.modifiers));
@@ -570,7 +571,7 @@ FunsAndMap checkFuns(
 	ExactSizeArrBuilder!FunDecl funsBuilder = newExactSizeArrBuilder!FunDecl(
 		ctx.alloc,
 		asts.length + fileImports.length + fileExports.length + countFunsForStructs(structs) + countFunsForVars(vars));
-	foreach (ref FunDeclAst funAst; asts) {
+	foreach (FunDeclAst* funAst; ptrsRange(asts)) {
 		TypeParam[] typeParams = checkTypeParams(ctx, funAst.typeParams);
 		ReturnTypeAndParams rp = checkReturnTypeAndParams(
 			ctx,
@@ -585,11 +586,9 @@ FunsAndMap checkFuns(
 		exactSizeArrBuilderAdd(
 			funsBuilder,
 			FunDecl(
-				some(&funAst),
-				copySafeCStr(ctx.alloc, funAst.docComment),
+				FunDeclSource(FunDeclSource.Ast(ctx.curUri, funAst)),
 				visibilityFromExplicit(funAst.visibility),
-				posInFile(ctx, funAst.range.start),
-				funAst.name,
+				funAst.name.name,
 				typeParams,
 				rp.returnType,
 				rp.params,
@@ -652,7 +651,7 @@ FunsAndMap checkFuns(
 		fun.setBody(getFileImportFunctionBody(ctx, commonTypes, structsAndAliasesMap, funsMap, *fun, f));
 	}
 
-	Test[] tests = map(ctx.alloc, testAsts, (scope ref TestAst ast) {
+	Test[] tests = map(ctx.alloc, testAsts, (ref TestAst ast) {
 		Type voidType = Type(commonTypes.void_);
 		if (!has(ast.body_))
 			todo!void("diag: test needs body");
@@ -711,7 +710,7 @@ FunBody.ExpressionBody getExprFunctionBody(
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in FunsMap funsMap,
 	in FunDecl f,
-	in ExprAst e,
+	ref ExprAst e,
 ) =>
 	FunBody.ExpressionBody(checkFunctionBody(
 		ctx,
@@ -734,10 +733,8 @@ FunDecl funDeclForFileImportOrExport(
 	Visibility visibility,
 ) =>
 	FunDecl(
-		none!(FunDeclAst*),
-		safeCStr!"",
+		FunDeclSource(FunDeclSource.FileImport(UriAndRange(ctx.curUri, a.range))),
 		visibility,
-		UriAndPos(ctx.curUri, a.range.start),
 		a.name,
 		[],
 		typeForFileImport(ctx, commonTypes, structsAndAliasesMap, a.range, a.type),
@@ -779,12 +776,12 @@ FunBody.Extern checkExternBody(ref CheckCtx ctx, FunDecl* fun, in Opt!TypeAst ty
 		(Destructure[] params) {
 			foreach (Destructure* p; ptrsRange(params))
 				if (!isLinkageAlwaysCompatible(funLinkage, linkageRange(p.type)))
-					addDiag(ctx, p.range, Diag(Diag.LinkageWorseThanContainingFun(fun, p.type, some(p))));
+					addDiag(ctx, p.range(ctx.allSymbols), Diag(Diag.LinkageWorseThanContainingFun(fun, p.type, some(p))));
 		},
 		(ref Params.Varargs) {
 			addDiag(ctx, fun.range, Diag(Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.variadic)));
 		});
-	return FunBody.Extern(externLibraryNameFromTypeArg(ctx, fun.nameRange(ctx.allSymbols), typeArg));
+	return FunBody.Extern(externLibraryNameFromTypeArg(ctx, fun.range.range, typeArg));
 }
 
 Sym externLibraryNameFromTypeArg(ref CheckCtx ctx, RangeWithinFile range, in Opt!TypeAst typeArg) {

@@ -29,6 +29,7 @@ import model.model :
 	Destructure,
 	Local,
 	LocalMutability,
+	LocalSource,
 	NameReferents,
 	SpecDecl,
 	SpecInst,
@@ -394,7 +395,7 @@ Destructure checkDestructure(
 	in StructsAndAliasesMap structsAndAliasesMap,
 	TypeParam[] typeParamsScope,
 	DelayStructInsts delayStructInsts,
-	in DestructureAst ast,
+	ref DestructureAst ast,
 	// This is for the type coming from the RHS of a 'let', or the expected type of a lambda
 	Opt!Type destructuredType,
 ) {
@@ -413,29 +414,29 @@ Destructure checkDestructure(
 			return Type(Type.Bogus());
 		}
 	}
-	return ast.matchIn!Destructure(
-		(in DestructureAst.Single x) {
+	return ast.match!Destructure(
+		(DestructureAst.Single x) {
 			Opt!Type declaredType = has(x.type)
 				? some(typeFromAst(
 					ctx, commonTypes, *force(x.type), structsAndAliasesMap, typeParamsScope, delayStructInsts))
 				: none!Type;
 			Type type = getType(declaredType);
 			if (x.name.name == sym!"_") {
-				if (x.mut)
+				if (has(x.mut))
 					addDiag(ctx, ast.range(ctx.allSymbols), Diag(Diag.LocalIgnoredButMutable()));
 				return Destructure(allocate(ctx.alloc, Destructure.Ignore(x.name.start, type)));
 			} else
 				return Destructure(allocate(ctx.alloc, Local(
-					rangeInFile(ctx, ast.range(ctx.allSymbols)),
+					LocalSource(LocalSource.Ast(ctx.curUri, &ast.as!(DestructureAst.Single)())),
 					x.name.name,
-					x.mut ? LocalMutability.mutOnStack : LocalMutability.immut,
+					has(x.mut) ? LocalMutability.mutOnStack : LocalMutability.immut,
 					type)));
 		},
-		(in DestructureAst.Void x) {
+		(DestructureAst.Void x) {
 			Type type = getType(some(Type(commonTypes.void_)));
 			return Destructure(allocate(ctx.alloc, Destructure.Ignore(x.pos, type)));
 		},
-		(in DestructureAst[] partAsts) {
+		(DestructureAst[] partAsts) {
 			if (has(destructuredType)) {
 				Type tupleType = force(destructuredType);
 				Opt!(Type[]) fieldTypes = asTuple(commonTypes, tupleType);
@@ -456,7 +457,7 @@ Destructure checkDestructure(
 					return Destructure(allocate(ctx.alloc, Destructure.Split(
 						Type(Type.Bogus()),
 						small(map!(Destructure, DestructureAst)(
-							ctx.alloc, partAsts, (scope ref DestructureAst part) =>
+							ctx.alloc, partAsts, (ref DestructureAst part) =>
 								checkDestructure(
 									ctx, commonTypes, structsAndAliasesMap, typeParamsScope, delayStructInsts,
 									part, some(Type(Type.Bogus()))))))));

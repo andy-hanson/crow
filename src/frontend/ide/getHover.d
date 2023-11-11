@@ -3,7 +3,7 @@ module frontend.ide.getHover;
 @safe @nogc pure nothrow:
 
 import frontend.ide.position : Position, PositionKind;
-import frontend.parse.ast : FunModifierAst;
+import frontend.parse.ast : FieldMutabilityAst, FunModifierAst;
 import frontend.showModel :
 	ShowCtx, writeCalled, writeFile, writeFunInst, writeLineAndColumnRange, writeName, writeSpecInst, writeTypeUnquoted;
 import model.model :
@@ -31,9 +31,9 @@ import util.col.str : SafeCStr;
 import util.lineAndColumnGetter : lineAndColumnRange;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : UriAndRange;
-import util.sym : writeSym;
+import util.sym : sym, writeSym;
 import util.uri : Uri;
-import util.util : unreachable;
+import util.util : todo, unreachable;
 import util.writer : finishWriterToSafeCStr, Writer;
 
 SafeCStr getHoverStr(ref Alloc alloc, scope ref ShowCtx ctx, in Position pos) {
@@ -87,6 +87,27 @@ void getHover(ref Writer writer, scope ref ShowCtx ctx, in Position pos) =>
 		(in PositionKind.ImportedName x) {
 			getImportedNameHover(writer, ctx, x);
 		},
+		(in PositionKind.Keyword x) {
+			/*
+			writer ~= () {
+				final switch (x.kind) {
+					case PositionKind.Keyword.Kind.builtin:
+						return "Declares a type implemented by the compiler/";
+					case sym!"enum".value:
+						return "Declares an enumerated type. The type can only have the values listed.";
+					case sym!"extern".value:
+						return "Declares a type implemented by an external library.";
+					case sym!"flags".value:
+						return "Declares a type that can have any combination of flags (this would be an 'enum' in C)";
+					case sym!"record".value:
+						return "Declares a type combining several named members.";
+					case sym!"union".value:
+						return "Declares a type where a value will be one of the listed choices.";
+				}
+			}();
+			*/
+			todo!void("!!");
+		},
 		(in PositionKind.LocalNonParameter x) {
 			writer ~= "local ";
 			localHover(writer, ctx, *x.local);
@@ -94,6 +115,16 @@ void getHover(ref Writer writer, scope ref ShowCtx ctx, in Position pos) =>
 		(in PositionKind.LocalParameter x) {
 			writer ~= "parameter ";
 			localHover(writer, ctx, *x.local);
+		},
+		(in PositionKind.RecordFieldMutability x) {
+			writer ~= () {
+				final switch (x.kind) {
+					case FieldMutabilityAst.Kind.private_:
+						return "Defines a private setter.";
+					case FieldMutabilityAst.Kind.public_:
+						return "Defines a public setter.";
+				}
+			}();
 		},
 		(in PositionKind.RecordFieldPosition x) {
 			writer ~= "field ";

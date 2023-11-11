@@ -656,7 +656,7 @@ DestructureAst parseForThenOrWithParameter(
 
 ExprAst parseLambdaAfterNameAndArrow(ref Lexer lexer, Pos start, AllowedBlock allowedBlock, Sym paramName) =>
 	parseLambdaAfterArrow(lexer, start, allowedBlock, DestructureAst(
-		DestructureAst.Single(NameAndRange(start, paramName), false, none!(TypeAst*))));
+		DestructureAst.Single(NameAndRange(start, paramName), none!Pos, none!(TypeAst*))));
 
 ExprAst parseLambdaAfterArrow(ref Lexer lexer, Pos start, AllowedBlock allowedBlock, DestructureAst parameter) {
 	ExprAst body_ = parseExprInlineOrBlock(lexer, start, allowedBlock, ParseDiag.NeedsBlockCtx.Kind.lambda);
@@ -888,7 +888,8 @@ public DestructureAst parseDestructureRequireParens(ref Lexer lexer) {
 		}
 	} else {
 		NameAndRange name = takeNameAndRangeAllowUnderscore(lexer);
-		bool mut = tryTakeToken(lexer, Token.mut);
+		Pos posForMut = curPos(lexer);
+		Opt!Pos mut = tryTakeToken(lexer, Token.mut) ? some(posForMut) : none!Pos;
 		Opt!(TypeAst*) type = () {
 			switch (getPeekToken(lexer)) {
 				case Token.arrowThen:

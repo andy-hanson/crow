@@ -3,7 +3,21 @@ module frontend.ide.getPosition;
 @safe @nogc pure nothrow:
 
 import frontend.ide.position : Position, PositionKind;
-import frontend.parse.ast : ExplicitVisibility, FunDeclAst, FunModifierAst, NameAndRange, range, TypeAst;
+import frontend.parse.ast :
+	DestructureAst,
+	ExplicitVisibility,
+	FieldMutabilityAst,
+	FunDeclAst,
+	FunModifierAst,
+	keywordRange,
+	NameAndRange,
+	range,
+	rangeOfDestructureSingle,
+	rangeOfMutKeyword,
+	rangeOfNameAndRange,
+	StructDeclAst,
+	symOfFieldMutabilityAstKind,
+	TypeAst;
 import model.model :
 	body_,
 	decl,
@@ -12,9 +26,11 @@ import model.model :
 	ExprKind,
 	FunBody,
 	FunDecl,
+	FunDeclSource,
 	ImportOrExport,
 	ImportOrExportKind,
 	Local,
+	LocalSource,
 	Module,
 	paramsArray,
 	range,
@@ -24,11 +40,12 @@ import model.model :
 	StructDecl,
 	StructInst,
 	Type,
-	typeArgs;
+	typeArgs,
+	TypeParam;
 import util.col.arr : only, ptrsRange;
-import util.col.arrUtil : first, firstPointer, firstWithIndex, firstZip;
+import util.col.arrUtil : first, firstPointer, firstWithIndex, firstZip, firstZipPointerFirst;
 import util.opt : force, has, none, Opt, optIf, optOr, optOr, some;
-import util.sourceRange : hasPos, Pos;
+import util.sourceRange : hasPos, Pos, RangeWithinFile;
 import util.sym : AllSymbols, Sym, symSize;
 import util.union_ : Union;
 
@@ -53,14 +70,14 @@ Opt!PositionKind getPositionKind(in AllSymbols allSymbols, ref Module module_, P
 				? positionInSpec(allSymbols, x, pos)
 				: none!PositionKind),
 		() => firstPointer!(PositionKind, FunDecl)(module_.funs, (FunDecl* x) =>
-			has(x.ast)
-				? positionInFun(allSymbols, x, *force(x.ast), pos)
+			x.source.isA!(FunDeclSource.Ast)
+				? positionInFun(allSymbols, x, *x.source.as!(FunDeclSource.Ast).ast, pos)
 				: none!PositionKind));
 	//TODO: check for aliases too
 
 Opt!PositionKind positionInFun(in AllSymbols allSymbols, FunDecl* a, in FunDeclAst ast, Pos pos) =>
 	optOr!PositionKind(
-		optIf(hasPos(a.nameRange(allSymbols), pos), () => PositionKind(a)),
+		optIf(hasPos(allSymbols, ast.name, pos), () => PositionKind(a)),
 		() => positionInType(allSymbols, a.returnType, ast.returnType, pos),
 		() => first!(PositionKind, Destructure)(paramsArray(a.params), (Destructure x) =>
 			positionInParameterDestructure(allSymbols, pos, x)),
@@ -98,12 +115,16 @@ Opt!PositionKind positionInDestructure(
 	a.matchWithPointers!(Opt!PositionKind)(
 		(Destructure.Ignore*) =>
 			none!PositionKind,
-		(Local* x) =>
-			hasPos(x.range.range, pos)
-				? hasPos(x.nameRange(allSymbols), pos)
-					? some(cb(x))
-					: some(PositionKind(x.type))
-				: none!PositionKind,
+		(Local* x) {
+			DestructureAst.Single* ast = x.source.as!(LocalSource.Ast).ast;
+			return hasPos(rangeOfDestructureSingle(*ast, allSymbols), pos)
+				? optOr!PositionKind(
+					optIf(hasPos(rangeOfNameAndRange(ast.name, allSymbols), pos), () => cb(x)),
+					() => optIf(optHasPos(rangeOfMutKeyword(*ast), pos), () =>
+						PositionKind(PositionKind.Keyword(PositionKind.Keyword.Kind.localMut))),
+					() => has(ast.type) ? positionInType(allSymbols, x.type, *force(ast.type), pos) : none!PositionKind)
+				: none!PositionKind;
+		},
 		(Destructure.Split* x) =>
 			//TODO: handle x.destructuredType
 			first!(PositionKind, Destructure)(x.parts, (Destructure part) =>
@@ -130,25 +151,49 @@ Opt!PositionKind positionInImportsOrExports(in AllSymbols allSymbols, ImportOrEx
 
 Opt!PositionKind positionInStruct(in AllSymbols allSymbols, StructDecl* a, Pos pos) =>
 	has(a.ast)
-		? optOr!PositionKind(
-			positionInVisibility(a, pos),
-			//TODO: position for the name itself
-			//TODO: position for 'record' keyword
-			//TODO: positions for flags (like 'extern')
-			() => positionInStructBody(allSymbols, a, body_(*a), pos))
+		? positionInStruct(allSymbols, a, *force(a.ast), pos)
 		: none!PositionKind;
 
-Opt!PositionKind positionInVisibility(T)(in T a, Pos pos) =>
-	pos == force(a.ast).range.start && force(a.ast).visibility != ExplicitVisibility.default_
+Opt!PositionKind positionInStruct(in AllSymbols allSymbols, StructDecl* a, in StructDeclAst ast, Pos pos) =>
+	optOr!PositionKind(
+		positionInVisibility(a, ast, pos),
+		() => optIf(hasPos(rangeOfNameAndRange(ast.name, allSymbols), pos), () => PositionKind(a)),
+		() => optIf(hasPos(keywordRange(ast, allSymbols), pos), () =>
+			PositionKind(PositionKind.Keyword(keywordKindForStructBody(ast.body_)))),
+		() => positionInTypeParams(allSymbols, a.typeParams, ast.typeParams, pos),
+		//TODO: positions for flags (like 'extern' or 'by-val')
+		() => positionInStructBody(allSymbols, a, body_(*a), ast.body_, pos));
+
+PositionKind.Keyword.Kind keywordKindForStructBody(in StructDeclAst.Body a) =>
+	a.matchIn!(PositionKind.Keyword.Kind)(
+		(in StructDeclAst.Body.Builtin) =>
+			PositionKind.Keyword.Kind.builtin,
+		(in StructDeclAst.Body.Enum) =>
+			PositionKind.Keyword.Kind.enum_,
+		(in StructDeclAst.Body.Extern) =>
+			PositionKind.Keyword.Kind.extern_,
+		(in StructDeclAst.Body.Flags) =>
+			PositionKind.Keyword.Kind.flags,
+		(in StructDeclAst.Body.Record) =>
+			PositionKind.Keyword.Kind.record,
+		(in StructDeclAst.Body.Union) =>
+			PositionKind.Keyword.Kind.union_);
+
+Opt!PositionKind positionInVisibility(T, TAst)(in T a, in TAst ast, Pos pos) =>
+	pos == ast.range.start && ast.visibility != ExplicitVisibility.default_
 		? some(PositionKind(a.visibility))
 		: none!PositionKind;
+
+Opt!PositionKind positionInTypeParams(in AllSymbols allSymbols, TypeParam[] typeParams, NameAndRange[] asts, Pos pos) =>
+	firstZipPointerFirst!(PositionKind, TypeParam, NameAndRange)(typeParams, asts, (TypeParam* p, NameAndRange x) =>
+		optIf(hasPos(allSymbols, x, pos), () => PositionKind(p)));
 
 Opt!PositionKind positionInSpec(in AllSymbols allSymbols, SpecDecl* a, Pos pos) {
 	//TODO:delve inside!
 	return some(PositionKind(a));
 }
 
-Opt!PositionKind positionInStructBody(in AllSymbols allSymbols, StructDecl* decl, ref StructBody body_, Pos pos) =>
+Opt!PositionKind positionInStructBody(in AllSymbols allSymbols, StructDecl* decl, ref StructBody body_, in StructDeclAst.Body ast, Pos pos) =>
 	body_.match!(Opt!PositionKind)(
 		(StructBody.Bogus) =>
 			none!PositionKind,
@@ -160,17 +205,27 @@ Opt!PositionKind positionInStructBody(in AllSymbols allSymbols, StructDecl* decl
 			none!PositionKind,
 		(StructBody.Flags) =>
 			none!PositionKind, // TODO
-		(StructBody.Record x) {
-			foreach (RecordField* field; ptrsRange(x.fields))
-				if (hasPos(field.range.range, pos))
-					return nameHasPos(allSymbols, field.range.start, field.name, pos)
-						? some(PositionKind(PositionKind.RecordFieldPosition(decl, field)))
-						: positionInType(allSymbols, field.type, field.ast.type, pos);
-			return none!PositionKind;
-		},
+		(StructBody.Record x) =>
+			firstZipPointerFirst!(PositionKind, RecordField, StructDeclAst.Body.Record.Field)(
+				x.fields,
+				ast.as!(StructDeclAst.Body.Record).fields,
+				(RecordField* field, StructDeclAst.Body.Record.Field fieldAst) =>
+					positionInRecordField(allSymbols, decl, field, fieldAst, pos)),
 		(StructBody.Union) =>
 			//TODO
 			none!PositionKind);
+
+Opt!PositionKind positionInRecordField(in AllSymbols allSymbols, StructDecl* decl, RecordField* field, StructDeclAst.Body.Record.Field fieldAst, Pos pos) =>
+	optOr!PositionKind(
+		positionInVisibility(field, fieldAst, pos),
+		() => optIf(hasPos(allSymbols, fieldAst.name, pos), () => PositionKind(PositionKind.RecordFieldPosition(decl, field))),
+		() => has(fieldAst.mutability) ? positionInFieldMutability(allSymbols, force(fieldAst.mutability), pos) : none!PositionKind,
+		() => positionInType(allSymbols, field.type, fieldAst.type, pos));
+
+Opt!PositionKind positionInFieldMutability(in AllSymbols allSymbols, in FieldMutabilityAst ast, Pos pos) =>
+	optIf(
+		hasPos(allSymbols, NameAndRange(ast.pos, symOfFieldMutabilityAstKind(ast.kind)), pos),
+		() => PositionKind(PositionKind.RecordFieldMutability(ast.kind)));
 
 Opt!PositionKind positionInExpr(in AllSymbols allSymbols, ref Expr a, Pos pos) {
 	if (!hasPos(a.range.range, pos))
@@ -315,3 +370,9 @@ Opt!PositionKind positionInType(in AllSymbols allSymbols, Type type, TypeAst ast
 		return optOr!PositionKind(fromInner, () => some(PositionKind(type)));
 	}
 }
+
+bool hasPos(in AllSymbols allSymbols, in NameAndRange nr, Pos pos) =>
+	hasPos(rangeOfNameAndRange(nr, allSymbols), pos);
+
+bool optHasPos(Opt!RangeWithinFile a, Pos p) =>
+	has(a) && hasPos(force(a), p);

@@ -154,16 +154,23 @@ mixin template Union(ReprTypes...) {
 		}
 	}
 
-	@trusted immutable(T) as(T)() immutable {
-		static foreach (i, Ty; ReprTypes) {
-			static if (is(immutable T == toMemberType!Ty)) {
-				verify(kind == i);
-				static if (usesTaggedPointer) {
+	static if (usesTaggedPointer) {
+		@trusted immutable(T) as(T)() immutable {
+			static foreach (i, Ty; ReprTypes) {
+				static if (is(immutable T == toMemberType!Ty)) {
+					verify(kind == i);
 					static if (is(Ty == P*, P))
 						return (cast(immutable P*) ptrValue);
 					else
 						return Ty.fromTagged(ptrValue);
-				} else {
+				}
+			}
+		}
+	} else {
+		@trusted ref immutable(T) as(T)() immutable {
+			static foreach (i, Ty; ReprTypes) {
+				static if (is(immutable T == toMemberType!Ty)) {
+					verify(kind == i);
 					mixin("return as", i, ";");
 				}
 			}

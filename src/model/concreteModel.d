@@ -16,6 +16,7 @@ import model.model :
 	isSummon,
 	isTuple,
 	Local,
+	localIsAllocated,
 	name,
 	Params,
 	Purity,
@@ -302,7 +303,7 @@ immutable struct ConcreteLocal {
 
 	bool isAllocated() scope =>
 		source.matchIn!bool(
-			(in Local x) => x.isAllocated,
+			(in Local x) => localIsAllocated(x),
 			(in ConcreteLocalSource.Closure) => false,
 			(in ConcreteLocalSource.Generated) => false);
 }

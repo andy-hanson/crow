@@ -86,7 +86,7 @@ import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
 import util.sourceRange : UriAndRange, RangeWithinFile;
-import util.sym : Sym, sym;
+import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.uri : Uri;
 import util.util : todo, unreachable, verify;
@@ -136,7 +136,7 @@ ConcreteExpr concretizeWithParamDestructures(
 				rest(addLocal(locals, local, LocalOrConstant(&concreteParams[0]))),
 			(Destructure.Split* x) =>
 				concretizeWithDestructureSplit(
-					ctx, type, toUriAndRange(ctx, params[0].range), locals, *x, &concreteParams[0],
+					ctx, type, toUriAndRange(ctx, params[0].range(ctx.allSymbols)), locals, *x, &concreteParams[0],
 					(in Locals innerLocals) => rest(innerLocals)));
 	}
 }
@@ -158,6 +158,9 @@ struct ConcretizeExprCtx {
 
 	ref ConcreteFun currentConcreteFun() return scope const =>
 		*currentConcreteFunPtr;
+
+	ref const(AllSymbols) allSymbols() const =>
+		concretizeCtx.allSymbols;
 
 	ref inout(AllConstantsBuilder) allConstants() return scope inout =>
 		concretizeCtx.allConstants;
@@ -603,7 +606,7 @@ ConcreteExpr concretizeWithDestructurePartsRecur(
 		return cb(locals);
 	else {
 		Destructure part = parts[partIndex];
-		UriAndRange range = toUriAndRange(ctx, part.range);
+		UriAndRange range = toUriAndRange(ctx, part.range(ctx.allSymbols));
 		ConcreteType valueType =
 			body_(*mustBeByVal(getTemp.type)).as!(ConcreteStructBody.Record).fields[partIndex].type;
 		ConcreteType expectedType = getConcreteType(ctx, part.type);

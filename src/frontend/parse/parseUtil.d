@@ -124,17 +124,17 @@ Opt!Sym tryTakeName(ref Lexer lexer) =>
 Sym takeName(ref Lexer lexer) =>
 	takeNameAndRange(lexer).name;
 
-Sym takeNameOrOperator(ref Lexer lexer) {
+NameAndRange takeNameOrOperator(ref Lexer lexer) {
 	Pos start = curPos(lexer);
 	Opt!Sym res = tryTakeToken!Sym(lexer, (TokenAndData x) =>
 		isSymToken(x.token) && x.token != Token.nameOrOperatorColonEquals
 			? some(x.asSym())
 			: none!Sym);
-	if (has(res)) {
-		return force(res);
-	} else {
+	if (has(res))
+		return NameAndRange(start, force(res));
+	else {
 		addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.nameOrOperator)));
-		return sym!"bogus";
+		return NameAndRange(start, sym!"bogus");
 	}
 }
 

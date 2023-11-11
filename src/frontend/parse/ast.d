@@ -2,12 +2,12 @@ module frontend.parse.ast;
 
 @safe @nogc pure nothrow:
 
-import model.model : AssertOrForbidKind, FieldMutability, FunKind, ImportFileType, VarKind;
+import model.model : AssertOrForbidKind, FunKind, ImportFileType, VarKind;
 import util.col.arr : SmallArray;
 import util.col.arrUtil : exists;
 import util.col.str : SafeCStr;
 import util.conv : safeToUint;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
@@ -28,7 +28,7 @@ immutable struct NameAndRange {
 }
 static assert(NameAndRange.sizeof == ulong.sizeof * 2);
 
-RangeWithinFile rangeOfNameAndRange(NameAndRange a, ref const AllSymbols allSymbols) =>
+RangeWithinFile rangeOfNameAndRange(NameAndRange a, in AllSymbols allSymbols) =>
 	rangeOfStartAndName(a.start, a.name, allSymbols);
 
 enum ExplicitVisibility {
@@ -47,6 +47,25 @@ Sym symOfExplicitVisibility(ExplicitVisibility a) {
 			return sym!"internal";
 		case ExplicitVisibility.public_:
 			return sym!"public";
+	}
+}
+
+immutable struct FieldMutabilityAst {
+	enum Kind {
+		private_,
+		public_,
+	}
+
+	Pos pos;
+	Kind kind;
+}
+
+Sym symOfFieldMutabilityAstKind(FieldMutabilityAst.Kind a) {
+	final switch (a) {
+		case FieldMutabilityAst.Kind.private_:
+			return sym!"-mut";
+		case FieldMutabilityAst.Kind.public_:
+			return sym!"mut";
 	}
 }
 
@@ -300,7 +319,7 @@ immutable struct DestructureAst {
 	// `()` is a destructure matcing only void values
 	immutable struct Single {
 		NameAndRange name; // Name may be '_', meaning ignore and don't create a local
-		bool mut;
+		Opt!Pos mut; // position of 'mut' keyword if it exists
 		Opt!(TypeAst*) type;
 	}
 	immutable struct Void {
@@ -330,6 +349,18 @@ immutable struct DestructureAst {
 			(in DestructureAst[] parts) =>
 				RangeWithinFile(parts[0].range(allSymbols).start, parts[$ - 1].range(allSymbols).end));
 }
+
+Opt!RangeWithinFile rangeOfMutKeyword(in DestructureAst.Single a) =>
+	has(a.mut)
+		? some(RangeWithinFile(force(a.mut), force(a.mut) + safeToUint("mut".length)))
+		: none!RangeWithinFile;
+
+RangeWithinFile rangeOfDestructureSingle(in DestructureAst.Single a, in AllSymbols allSymbols) scope =>
+	RangeWithinFile(a.name.start, (
+		has(a.type)
+		? range(*force(a.type), allSymbols)
+		: optOrDefault!RangeWithinFile(rangeOfMutKeyword(a), () => rangeOfNameAndRange(a.name, allSymbols))
+	).end);
 
 immutable struct LetAst {
 	DestructureAst destructure;
@@ -386,7 +417,7 @@ immutable struct MatchAst {
 		ExprAst then;
 
 		RangeWithinFile memberNameRange(ref const AllSymbols allSymbols) scope =>
-			rangeOfStartAndName(safeToUint(range.start + "as ".length), memberName, allSymbols);
+			rangeOfStartAndName(range.start + safeToUint("as ".length), memberName, allSymbols);
 	}
 
 	ExprAst matched;
@@ -493,16 +524,16 @@ static assert(ParamsAst.sizeof == 8);
 immutable struct SpecSigAst {
 	SafeCStr docComment;
 	RangeWithinFile range;
-	Sym name;
+	Sym name; // start is range.start
 	TypeAst returnType;
 	ParamsAst params;
 }
 
 immutable struct StructAliasAst {
-	RangeWithinFile range;
 	SafeCStr docComment;
+	RangeWithinFile range;
 	ExplicitVisibility visibility;
-	Sym name;
+	NameAndRange name;
 	SmallArray!NameAndRange typeParams;
 	TypeAst target;
 }
@@ -558,8 +589,8 @@ immutable struct StructDeclAst {
 			immutable struct Field {
 				RangeWithinFile range;
 				ExplicitVisibility visibility;
-				Sym name;
-				FieldMutability mutability;
+				NameAndRange name;
+				Opt!FieldMutabilityAst mutability;
 				TypeAst type;
 			}
 			SmallArray!Field fields;
@@ -577,15 +608,34 @@ immutable struct StructDeclAst {
 	}
 	static assert(Body.sizeof <= 24);
 
-	RangeWithinFile range;
 	SafeCStr docComment;
+	// Range starts at the visibility
+	RangeWithinFile range;
 	ExplicitVisibility visibility;
-	Sym name; // start is range.start
+	NameAndRange name;
 	SmallArray!NameAndRange typeParams;
+	Pos keywordPos;
 	SmallArray!ModifierAst modifiers;
 	Body body_;
 }
-static assert(StructDeclAst.sizeof <= 80);
+
+RangeWithinFile keywordRange(in StructDeclAst a, in AllSymbols allSymbols) =>
+	rangeOfNameAndRange(NameAndRange(a.keywordPos, keywordForStructBody(a.body_)), allSymbols);
+
+Sym keywordForStructBody(in StructDeclAst.Body a) =>
+	a.matchIn!Sym(
+		(in StructDeclAst.Body.Builtin) =>
+			sym!"builtin",
+		(in StructDeclAst.Body.Enum) =>
+			sym!"enum",
+		(in StructDeclAst.Body.Extern) =>
+			sym!"extern",
+		(in StructDeclAst.Body.Flags) =>
+			sym!"flags",
+		(in StructDeclAst.Body.Record) =>
+			sym!"record",
+		(in StructDeclAst.Body.Union) =>
+			sym!"union");
 
 immutable struct SpecBodyAst {
 	immutable struct Builtin {}
@@ -597,7 +647,7 @@ immutable struct SpecDeclAst {
 	RangeWithinFile range;
 	SafeCStr docComment;
 	ExplicitVisibility visibility;
-	Sym name;
+	NameAndRange name;
 	SmallArray!NameAndRange typeParams;
 	SmallArray!TypeAst parents;
 	SpecBodyAst body_;
@@ -607,7 +657,7 @@ immutable struct FunDeclAst {
 	RangeWithinFile range;
 	SafeCStr docComment;
 	ExplicitVisibility visibility;
-	Sym name; // Range starts at sig.range.start
+	NameAndRange name;
 	SmallArray!NameAndRange typeParams;
 	TypeAst returnType;
 	ParamsAst params;
@@ -697,7 +747,7 @@ immutable struct VarDeclAst {
 	RangeWithinFile range;
 	SafeCStr docComment;
 	ExplicitVisibility visibility;
-	Sym name;
+	NameAndRange name;
 	NameAndRange[] typeParams; // This will be a compile error
 	Pos kindPos;
 	VarKind kind;
@@ -719,10 +769,10 @@ immutable struct PathOrRelPath {
 immutable struct ImportOrExportAstKind {
 	immutable struct ModuleWhole {}
 	immutable struct File {
-		Sym name;
+		NameAndRange name;
 		ImportFileType type;
 	}
-	mixin Union!(ModuleWhole, SmallArray!Sym, File*);
+	mixin Union!(ModuleWhole, SmallArray!NameAndRange, File*);
 }
 static assert(ImportOrExportAstKind.sizeof == ulong.sizeof);
 

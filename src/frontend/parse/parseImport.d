@@ -12,6 +12,7 @@ import frontend.parse.parseUtil :
 	peekToken,
 	takeIndentOrFailGeneric,
 	takeName,
+	takeNameAndRange,
 	takeNameOrOperator,
 	takeNewlineOrDedent,
 	takeOrAddDiagExpectedOperator,
@@ -100,7 +101,7 @@ ImportOrExportAstKind parseImportOrExportKind(ref Lexer lexer, Pos start) {
 				(RangeWithinFile _) =>
 					ImportOrExportAstKind(ImportOrExportAstKind.ModuleWhole()));
 	} else if (tryTakeToken(lexer, Token.as)) {
-		Sym name = takeName(lexer);
+		NameAndRange name = takeNameAndRange(lexer);
 		ImportFileType type = parseImportFileType(lexer);
 		return ImportOrExportAstKind(allocate(lexer.alloc, ImportOrExportAstKind.File(name, type)));
 	} else
@@ -138,7 +139,7 @@ bool isInstStructOneArg(TypeAst a, Sym typeArgName, Sym name) {
 }
 
 ImportOrExportAstKind parseIndentedImportNames(ref Lexer lexer, Pos start) {
-	ArrBuilder!Sym names;
+	ArrBuilder!NameAndRange names;
 	while (true) {
 		TrailingComma trailingComma = takeCommaSeparatedNames(lexer, names);
 		final switch (takeNewlineOrDedent(lexer)) {
@@ -165,8 +166,8 @@ ImportOrExportAstKind parseIndentedImportNames(ref Lexer lexer, Pos start) {
 	}
 }
 
-Sym[] parseSingleImportNamesOnSingleLine(ref Lexer lexer) {
-	ArrBuilder!Sym names;
+NameAndRange[] parseSingleImportNamesOnSingleLine(ref Lexer lexer) {
+	ArrBuilder!NameAndRange names;
 	final switch (takeCommaSeparatedNames(lexer, names)) {
 		case TrailingComma.no:
 			break;
@@ -179,7 +180,7 @@ Sym[] parseSingleImportNamesOnSingleLine(ref Lexer lexer) {
 
 enum TrailingComma { no, yes }
 
-TrailingComma takeCommaSeparatedNames(ref Lexer lexer, ref ArrBuilder!Sym names) {
+TrailingComma takeCommaSeparatedNames(ref Lexer lexer, ref ArrBuilder!NameAndRange names) {
 	add(lexer.alloc, names, takeNameOrOperator(lexer));
 	return tryTakeToken(lexer, Token.comma)
 		? peekEndOfLine(lexer)

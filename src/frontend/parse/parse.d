@@ -7,6 +7,7 @@ import frontend.parse.ast :
 	DestructureAst,
 	ExplicitVisibility,
 	ExprAst,
+	FieldMutabilityAst,
 	FileAst,
 	FunDeclAst,
 	FunModifierAst,
@@ -57,7 +58,7 @@ import frontend.parse.parseUtil :
 	tryTakeName,
 	tryTakeOperator,
 	tryTakeToken;
-import model.model : FieldMutability, VarKind;
+import model.model : VarKind;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
@@ -71,7 +72,7 @@ import util.ptr : ptrTrustMe;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
 import util.uri : AllUris;
-import util.util : typeAs;
+import util.util : typeAs, verify;
 
 FileAst parseFile(
 	ref Alloc alloc,
@@ -138,10 +139,11 @@ SpecSigAst parseSpecSig(ref Lexer lexer) {
 	// TODO: get doc comment
 	SafeCStr comment = safeCStr!"";
 	Pos start = curPos(lexer);
-	Sym name = takeNameOrOperator(lexer);
+	NameAndRange name = takeNameOrOperator(lexer);
+	verify(name.start == start);
 	TypeAst returnType = parseType(lexer);
 	ParamsAst params = parseParams(lexer);
-	return SpecSigAst(comment, range(lexer, start), name, returnType, params);
+	return SpecSigAst(comment, range(lexer, start), name.name, returnType, params);
 }
 
 SpecSigAst[] parseIndentedSigs(ref Lexer lexer) {
@@ -202,8 +204,8 @@ StructDeclAst.Body.Record.Field[] parseRecordFields(ref Lexer lexer) {
 	while (true) {
 		Pos start = curPos(lexer);
 		ExplicitVisibility visibility = tryTakeVisibility(lexer);
-		Sym name = takeName(lexer);
-		FieldMutability mutability = parseFieldMutability(lexer);
+		NameAndRange name = takeNameAndRange(lexer);
+		Opt!FieldMutabilityAst mutability = parseFieldMutability(lexer);
 		TypeAst type = parseType(lexer);
 		add(lexer.alloc, fields, StructDeclAst.Body.Record.Field(
 			range(lexer, start), visibility, name, mutability, type));
@@ -216,19 +218,20 @@ StructDeclAst.Body.Record.Field[] parseRecordFields(ref Lexer lexer) {
 	}
 }
 
-FieldMutability parseFieldMutability(ref Lexer lexer) {
+Opt!FieldMutabilityAst parseFieldMutability(ref Lexer lexer) {
+	Pos pos = curPos(lexer);
 	TokenAndData peek = getPeekTokenAndData(lexer);
 	if (tryTakeOperator(lexer, sym!"-")) {
 		if (tryTakeToken(lexer, Token.mut))
-			return FieldMutability.private_;
+			return some(FieldMutabilityAst(pos, FieldMutabilityAst.Kind.private_));
 		else {
 			addDiagUnexpectedCurToken(lexer, curPos(lexer) - 1, peek);
-			return FieldMutability.const_;
+			return none!FieldMutabilityAst;
 		}
 	} else
 		return tryTakeToken(lexer, Token.mut)
-			? FieldMutability.public_
-			: FieldMutability.const_;
+			? some(FieldMutabilityAst(pos, FieldMutabilityAst.Kind.public_))
+			: none!FieldMutabilityAst;
 }
 
 StructDeclAst.Body.Union.Member[] parseUnionMembers(ref Lexer lexer) {
@@ -247,7 +250,7 @@ FunDeclAst parseFun(
 	SafeCStr docComment,
 	ExplicitVisibility visibility,
 	Pos start,
-	Sym name,
+	NameAndRange name,
 	NameAndRange[] typeParams,
 ) {
 	TypeAst returnType = parseType(lexer);
@@ -354,18 +357,20 @@ void parseSpecOrStructOrFun(
 ) {
 	Pos start = curPos(lexer);
 	ExplicitVisibility visibility = tryTakeVisibility(lexer);
-	Sym name = takeNameOrOperator(lexer);
+	NameAndRange name = takeNameOrOperator(lexer);
 	NameAndRange[] typeParams = parseTypeParams(lexer);
+	Pos keywordPos = curPos(lexer);
 
 	void addStruct(in StructDeclAst.Body delegate() @safe @nogc pure nothrow cb) {
 		ModifierAst[] modifiers = parseModifiers(lexer);
 		StructDeclAst.Body body_ = cb();
 		add(lexer.alloc, structs, StructDeclAst(
-			range(lexer, start),
 			docComment,
+			range(lexer, start),
 			visibility,
 			name,
 			small(typeParams),
+			keywordPos,
 			small(modifiers),
 			body_));
 	}
@@ -381,7 +386,7 @@ void parseSpecOrStructOrFun(
 				},
 				(RangeWithinFile range) => TypeAst(TypeAst.Bogus(range)));
 			add(lexer.alloc, structAliases, StructAliasAst(
-				range(lexer, start), docComment, visibility, name, small(typeParams), target));
+				docComment, range(lexer, start), visibility, name, small(typeParams), target));
 			break;
 		case Token.builtin:
 			takeNextToken(lexer);
@@ -468,7 +473,7 @@ VarDeclAst parseVarDecl(
 	Pos start,
 	SafeCStr docComment,
 	ExplicitVisibility visibility,
-	Sym name,
+	NameAndRange name,
 	NameAndRange[] typeParams,
 	Pos kindPos,
 	VarKind kind,

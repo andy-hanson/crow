@@ -7,7 +7,7 @@ import frontend.check.checkCtx : addDiag, CheckCtx, rangeInFile;
 import frontend.check.maps : StructsAndAliasesMap;
 import frontend.check.typeFromAst : checkTypeParams, typeFromAst;
 import frontend.parse.ast :
-	LiteralIntAst, LiteralNatAst, ModifierAst, rangeOfModifierAst, StructDeclAst, symOfModifierKind, TypeAst;
+	FieldMutabilityAst, LiteralIntAst, LiteralNatAst, ModifierAst, rangeOfModifierAst, StructDeclAst, symOfModifierKind, TypeAst;
 import model.concreteModel : TypeSize;
 import model.diag : Diag, TypeKind;
 import model.model :
@@ -58,7 +58,7 @@ StructDecl[] checkStructsInitial(ref CheckCtx ctx, in StructDeclAst[] asts) =>
 		return StructDecl(
 			some(ast),
 			ctx.curUri,
-			ast.name,
+			ast.name.name,
 			small(checkTypeParams(ctx, ast.typeParams)),
 			visibilityFromExplicit(ast.visibility),
 			p.linkage,
@@ -531,15 +531,27 @@ RecordField checkRecordField(
 	Type fieldType = typeFromAst(
 		ctx, commonTypes, ast.type, structsAndAliasesMap, struct_.typeParams, someMut(ptrTrustMe(delayStructInsts)));
 	checkReferenceLinkageAndPurity(ctx, struct_, ast.range, fieldType);
-	if (ast.mutability != FieldMutability.const_ && struct_.purity != Purity.mut && !struct_.purityIsForced)
+	if (has(ast.mutability) && struct_.purity != Purity.mut && !struct_.purityIsForced)
 		addDiag(ctx, ast.range, Diag(Diag.MutFieldNotAllowed()));
 	return RecordField(
 		ast,
-		rangeInFile(ctx, ast.range),
+		struct_,
 		visibilityFromExplicit(ast.visibility),
-		ast.name,
-		ast.mutability,
+		ast.name.name,
+		fieldMutabilityFromAst(ast.mutability),
 		fieldType);
+}
+
+FieldMutability fieldMutabilityFromAst(Opt!FieldMutabilityAst a) {
+	if (has(a)) {
+		final switch (force(a).kind) {
+			case FieldMutabilityAst.Kind.private_:
+				return FieldMutability.private_;
+			case FieldMutabilityAst.Kind.public_:
+				return FieldMutability.public_;
+		}
+	} else
+		return FieldMutability.const_;
 }
 
 StructBody.Union checkUnion(
