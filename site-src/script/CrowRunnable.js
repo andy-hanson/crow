@@ -130,7 +130,7 @@ const connected = (shadowRoot, name, noRun, comp, initialText) => {
 	/** @type {MutableObservable<crow.TokensAndParseDiagnostics>} */
 	const tokensAndParseDiagnostics = new MutableObservable(
 		/** @type {crow.TokensAndParseDiagnostics} */ ({tokens:[], parseDiagnostics:[]}))
-	/** @type {function(number): string} */
+	/** @type {function(crow.LineAndCharacter): string} */
 	const getHover = position =>
 		comp.getHover({uri:MAIN, position})
 	const crowText = CrowText.create({getHover, tokensAndParseDiagnostics, text})
@@ -152,7 +152,7 @@ const connected = (shadowRoot, name, noRun, comp, initialText) => {
 			setTimeout(() => {
 				collapseButton.classList.remove("collapsed")
 				output.finishRunning(comp.run(MAIN))
-			}, 0)
+		}, 0)
 		} catch (e) {
 			console.error("ERROR WHILE RUNNING", e)
 			throw e

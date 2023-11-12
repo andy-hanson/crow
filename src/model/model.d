@@ -6,6 +6,7 @@ import frontend.parse.ast :
 	DestructureAst,
 	FunDeclAst,
 	NameAndRange,
+	nameRangeOfDestructureSingle,
 	rangeOfDestructureSingle,
 	rangeOfNameAndRange,
 	StructDeclAst;
@@ -13,15 +14,16 @@ import model.concreteModel : TypeSize;
 import model.constant : Constant;
 import model.diag : Diagnostics;
 import util.col.arr : arrayOfSingle, empty, PtrAndSmallNumber, small, SmallArray;
-import util.col.arrUtil : arrEqual;
+import util.col.arrUtil : arrEqual, first;
 import util.col.map : Map;
 import util.col.enumMap : EnumMap;
 import util.col.str : SafeCStr, safeCStr;
 import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, Opt, optOr, some;
 import util.ptr : hashPtr;
-import util.sourceRange : combineRanges, UriAndPos, UriAndRange, fileAndRangeFromUriAndPos, Pos, RangeWithinFile;
+import util.sourceRange :
+	combineRanges, UriAndPos, UriAndRange, fileAndRangeFromUriAndPos, Pos, rangeOfStartAndLength, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.uri : Uri;
@@ -1217,7 +1219,12 @@ bool localIsAllocated(in Local a) scope {
 	}
 }
 
-UriAndRange localMustHaveRange(in Local a, in AllSymbols allSymbols) =>
+UriAndRange localMustHaveNameRange(in Local a, in AllSymbols allSymbols) =>
+	UriAndRange(
+		a.source.as!(LocalSource.Ast).uri,
+		nameRangeOfDestructureSingle(*a.source.as!(LocalSource.Ast).ast, allSymbols));
+
+private UriAndRange localMustHaveRange(in Local a, in AllSymbols allSymbols) =>
 	UriAndRange(
 		a.source.as!(LocalSource.Ast).uri,
 		rangeOfDestructureSingle(*a.source.as!(LocalSource.Ast).ast, allSymbols));
@@ -1542,6 +1549,84 @@ immutable struct ExprKind {
 		Throw*);
 }
 
+void eachDescendentExprIncluding(in Expr a, in void delegate(in Expr) @safe @nogc pure nothrow cb) {
+	cb(a);
+	eachDescendentExprExcluding(a.kind, cb);
+}
+
+void eachDescendentExprExcluding(in ExprKind a, in void delegate(in Expr) @safe @nogc pure nothrow cb) {
+	eachDirectChildExpr(a, (in Expr x) {
+		eachDescendentExprIncluding(x, cb);
+	});
+}
+
+private void eachDirectChildExpr(in ExprKind a, in void delegate(in Expr) @safe @nogc pure nothrow cb) {
+	Opt!bool res = findDirectChildExpr!bool(a, (in Expr x) {
+		cb(x);
+		return none!bool;
+	});
+	verify(!has(res));
+}
+
+private Opt!T findDirectChildExpr(T)(in ExprKind a, in Opt!T delegate(in Expr) @safe @nogc pure nothrow cb) =>
+	a.matchIn!(Opt!T)(
+		(in ExprKind.AssertOrForbid x) =>
+			optOr!T(cb(*x.condition), () =>
+				has(x.thrown) ? cb(*force(x.thrown)) : none!T),
+		(in ExprKind.Bogus) =>
+			none!T,
+		(in ExprKind.Call x) =>
+			first!(T, Expr)(x.args, (Expr y) => cb(y)),
+		(in ExprKind.ClosureGet) =>
+			none!T,
+		(in ExprKind.ClosureSet x) =>
+			cb(*x.value),
+		(in ExprKind.FunPtr) =>
+			none!T,
+		(in ExprKind.If x) =>
+			optOr!T(cb(x.cond), () => cb(x.then), () => cb(x.else_)),
+		(in ExprKind.IfOption x) =>
+			optOr!T(cb(x.option.expr), () => cb(x.then), () => cb(x.else_)),
+		(in ExprKind.Lambda x) =>
+			cb(x.body_),
+		(in ExprKind.Let x) =>
+			optOr!T(cb(x.value), () => cb(x.then)),
+		(in ExprKind.Literal) =>
+			none!T,
+		(in ExprKind.LiteralCString) =>
+			none!T,
+		(in ExprKind.LiteralSymbol) =>
+			none!T,
+		(in ExprKind.LocalGet) =>
+			none!T,
+		(in ExprKind.LocalSet x) =>
+			cb(x.value),
+		(in ExprKind.Loop x) =>
+			cb(x.body_),
+		(in ExprKind.LoopBreak x) =>
+			cb(x.value),
+		(in ExprKind.LoopContinue) =>
+			none!T,
+		(in ExprKind.LoopUntil x) =>
+			optOr!T(cb(x.condition), () => cb(x.body_)),
+		(in ExprKind.LoopWhile x) =>
+			optOr!T(cb(x.condition), () => cb(x.body_)),
+		(in ExprKind.MatchEnum x) =>
+			optOr!T(cb(x.matched.expr), () => first!(T, Expr)(x.cases, (Expr y) => cb(y))),
+		(in ExprKind.MatchUnion x) =>
+			optOr!T(
+				cb(x.matched.expr),
+				() => first!(T, ExprKind.MatchUnion.Case)(x.cases, (ExprKind.MatchUnion.Case case_) =>
+					cb(case_.then))),
+		(in ExprKind.PtrToField x) =>
+			cb(x.target.expr),
+		(in ExprKind.PtrToLocal) =>
+			none!T,
+		(in ExprKind.Seq x) =>
+			optOr!T(cb(x.first), () => cb(x.then)),
+		(in ExprKind.Throw x) =>
+			cb(x.thrown));
+
 enum AssertOrForbidKind { assert_, forbid }
 
 Sym symOfAssertOrForbidKind(AssertOrForbidKind a) {
@@ -1552,6 +1637,9 @@ Sym symOfAssertOrForbidKind(AssertOrForbidKind a) {
 			return sym!"forbid";
 	}
 }
+
+RangeWithinFile loopKeywordRange(in ExprKind.Loop a) =>
+	rangeOfStartAndLength(a.range.start, "loop".length);
 
 alias Visibility = immutable Visibility_;
 private enum Visibility_ : ubyte {

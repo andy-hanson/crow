@@ -34,6 +34,10 @@ immutable struct PositionKind {
 		FunDecl* funDecl;
 		FunModifierAst.Special.Flags flag;
 	}
+	immutable struct Expression {
+		FunDecl* containingFun;
+		Expr* expr;
+	}
 	immutable struct ImportedModule {
 		ImportOrExport* import_;
 		Module* module_;
@@ -54,10 +58,8 @@ immutable struct PositionKind {
 		}
 		Kind kind;
 	}
-	immutable struct LocalNonParameter {
-		Local* local;
-	}
-	immutable struct LocalParameter {
+	immutable struct LocalInFunction {
+		FunDecl* containingFun;
 		Local* local;
 	}
 	immutable struct RecordFieldMutability {
@@ -70,15 +72,14 @@ immutable struct PositionKind {
 
 	mixin Union!(
 		None,
-		Expr,
+		Expression,
 		FunDecl*,
 		FunExtern,
 		FunSpecialModifier,
 		ImportedModule,
 		ImportedName,
 		Keyword,
-		LocalNonParameter,
-		LocalParameter,
+		LocalInFunction,
 		RecordFieldMutability,
 		RecordFieldPosition,
 		SpecDecl*,

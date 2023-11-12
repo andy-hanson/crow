@@ -10,6 +10,7 @@ import frontend.frontendCompile : frontendCompile, FileAstAndDiagnostics, parseA
 import frontend.ide.getDefinition : Definition, getDefinitionForPosition;
 import frontend.ide.getHover : getHoverStr;
 import frontend.ide.getPosition : getPosition;
+import frontend.ide.getReferences : getReferencesForPosition, jsonOfReferences;
 import frontend.ide.getTokens : jsonOfTokens, Token, tokensOfAst;
 import frontend.ide.position : Position;
 import frontend.lang : crowExtension;
@@ -37,7 +38,8 @@ import util.col.str : SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
 import util.exitCode : ExitCode;
 import util.json : Json, jsonString;
 import util.late : Late, lateGet, lateSet;
-import util.lineAndColumnGetter : lineAndColumnGetterForUri, LineAndColumnGetters, uncacheFile;
+import util.lineAndColumnGetter :
+	LineAndColumnGetters, toLineAndCharacter, uncacheFile, UriLineAndCharacter, UriLineAndColumn;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.ptr : ptrTrustMe;
@@ -55,7 +57,7 @@ import util.storage :
 	Storage,
 	setFile,
 	withFile;
-import util.sourceRange : Pos;
+import util.sourceRange : UriAndRange;
 import util.sym : AllSymbols;
 import util.uri : AllUris, getExtension, parseUri, Uri, UrisInfo;
 import util.util : verify;
@@ -278,20 +280,40 @@ struct ProgramAndDefinition {
 	Opt!Definition definition;
 }
 
-ProgramAndDefinition getDefinition(ref Perf perf, ref Alloc alloc, ref Server server, Uri uri, Pos pos) {
-	Program program = getProgram(perf, alloc, server, uri);
-	Opt!Position position = getPosition(server, program, uri, pos);
+ProgramAndDefinition getDefinition(ref Perf perf, ref Alloc alloc, ref Server server, in UriLineAndCharacter where) {
+	Program program = getProgram(perf, alloc, server, where.uri);
+	Opt!Position position = getPosition(server, program, where);
 	Opt!Definition definition = has(position)
 		? getDefinitionForPosition(server.allSymbols, program, force(position))
 		: none!Definition;
 	return ProgramAndDefinition(program, definition);
 }
 
-SafeCStr getHover(ref Perf perf, ref Alloc alloc, ref Server server, Uri uri, Pos pos) =>
-	getHoverForProgram(alloc, server, uri, pos, getProgram(perf, alloc, server, uri));
+UriAndRange[] getReferences(ref Perf perf, ref Alloc alloc, ref Server server, in UriLineAndCharacter where) =>
+	getReferencesForProgram(alloc, server, where, getProgram(perf, alloc, server, where.uri));
 
-private SafeCStr getHoverForProgram(ref Alloc alloc, ref Server server, Uri uri, Pos pos, in Program program) {
-	Opt!Position position = getPosition(server, program, uri, pos);
+private UriAndRange[] getReferencesForProgram(
+	ref Alloc alloc,
+	scope ref Server server,
+	in UriLineAndCharacter where,
+	in Program program,
+) {
+	Opt!Position position = getPosition(server, program, where);
+	return has(position)
+		? getReferencesForPosition(alloc, server.allSymbols, program, force(position))
+		: [];
+}
+
+SafeCStr getHover(ref Perf perf, ref Alloc alloc, ref Server server, in UriLineAndCharacter where) =>
+	getHoverForProgram(alloc, server, where, getProgram(perf, alloc, server, where.uri));
+
+private SafeCStr getHoverForProgram(
+	ref Alloc alloc,
+	scope ref Server server,
+	in UriLineAndCharacter where,
+	in Program program,
+) {
+	Opt!Position position = getPosition(server, program, where);
 	ShowCtx ctx = getShowDiagCtx(server, program);
 	return has(position)
 		? getHoverStr(alloc, ctx, force(position))
@@ -301,10 +323,10 @@ private SafeCStr getHoverForProgram(ref Alloc alloc, ref Server server, Uri uri,
 private Program getProgram(ref Perf perf, ref Alloc alloc, ref Server server, Uri root) =>
 	frontendCompile(alloc, perf, server, [root], none!Uri);
 
-private Opt!Position getPosition(in Server server, ref Program program, Uri uri, Pos pos) {
-	Opt!(immutable Module*) module_ = program.allModules[uri];
+private Opt!Position getPosition(scope ref Server server, in Program program, in UriLineAndCharacter where) {
+	Opt!(immutable Module*) module_ = program.allModules[where.uri];
 	return has(module_)
-		? some(getPosition(server.allSymbols, force(module_), pos))
+		? some(getPosition(server.allSymbols, force(module_), server.lineAndColumnGetters[where]))
 		: none!Position;
 }
 
@@ -322,12 +344,9 @@ private DiagsAndResultJson diagsAndResultJson(ref Alloc alloc, ref Server server
 DiagsAndResultJson printTokens(ref Alloc alloc, ref Perf perf, ref Server server, Uri uri) {
 	FileAstAndDiagnostics astResult = parseSingleAst(
 		alloc, perf, server.allSymbols, server.allUris, server.storage, uri);
-	return diagsAndResultJson(
-		alloc, server, fakeProgramForDiagnostics(astResult.diagnostics),
-		jsonOfTokens(
-			alloc,
-			lineAndColumnGetterForUri(server.lineAndColumnGetters, uri),
-			tokensOfAst(alloc, server.allSymbols, server.allUris, astResult.ast)));
+	Json json = jsonOfTokens(
+		alloc, server.lineAndColumnGetters[uri], tokensOfAst(alloc, server.allSymbols, server.allUris, astResult.ast));
+	return diagsAndResultJson(alloc, server, fakeProgramForDiagnostics(astResult.diagnostics), json);
 }
 
 DiagsAndResultJson printAst(ref Alloc alloc, ref Perf perf, ref Server server, Uri uri) {
@@ -337,16 +356,13 @@ DiagsAndResultJson printAst(ref Alloc alloc, ref Perf perf, ref Server server, U
 		alloc,
 		server,
 		fakeProgramForDiagnostics(astResult.diagnostics),
-		jsonOfAst(alloc, server.allUris, lineAndColumnGetterForUri(server.lineAndColumnGetters, uri), astResult.ast));
+		jsonOfAst(alloc, server.allUris, server.lineAndColumnGetters[uri], astResult.ast));
 }
 
 DiagsAndResultJson printModel(ref Alloc alloc, ref Perf perf, ref Server server, Uri uri) {
 	Program program = frontendCompile(alloc, perf, server, [uri], none!Uri);
-	return diagsAndResultJson(alloc, server, program, jsonOfModule(
-		alloc,
-		server.allUris,
-		lineAndColumnGetterForUri(server.lineAndColumnGetters, uri),
-		*only(program.rootModules)));
+	Json json = jsonOfModule(alloc, server.allUris, server.lineAndColumnGetters[uri], *only(program.rootModules));
+	return diagsAndResultJson(alloc, server, program, json);
 }
 
 DiagsAndResultJson printConcreteModel(
@@ -379,9 +395,20 @@ DiagsAndResultJson printLowModel(
 	return diagsAndResultJson(alloc, server, program, jsonOfLowProgram(alloc, lineAndColumnGetters, lowProgram));
 }
 
-DiagsAndResultJson printHover(ref Alloc alloc, ref Perf perf, ref Server server, Uri uri, Pos pos) {
-	Program program = getProgram(perf, alloc, server, uri);
-	return diagsAndResultJson(alloc, server, program, jsonString(getHoverForProgram(alloc, server, uri, pos, program)));
+DiagsAndResultJson printHover(ref Alloc alloc, ref Perf perf, ref Server server, in UriLineAndColumn where) {
+	Program program = getProgram(perf, alloc, server, where.uri);
+	Json json = jsonString(
+		getHoverForProgram(alloc, server, toLineAndCharacter(server.lineAndColumnGetters, where), program));
+	return diagsAndResultJson(alloc, server, program, json);
+}
+
+DiagsAndResultJson printReferences(ref Alloc alloc, ref Perf perf, ref Server server, in UriLineAndColumn where) {
+	Program program = getProgram(perf, alloc, server, where.uri);
+	return diagsAndResultJson(alloc, server, program, jsonOfReferences(
+		alloc,
+		server.allUris,
+		server.lineAndColumnGetters,
+		getReferencesForProgram(alloc, server, toLineAndCharacter(server.lineAndColumnGetters, where), program)));
 }
 
 immutable struct Programs {

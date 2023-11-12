@@ -13,7 +13,6 @@ import util.lineAndColumnGetter :
 	LineAndCharacterRange,
 	lineAndCharacterRange,
 	LineAndColumnGetter,
-	lineAndColumnGetterForUri,
 	LineAndColumnGetters,
 	PosKind;
 import util.uri : AllUris, compareUriAlphabetically, Uri, uriToString;
@@ -43,7 +42,7 @@ RangeWithinFile combineRanges(RangeWithinFile a, RangeWithinFile b) {
 }
 
 bool hasPos(RangeWithinFile a, Pos p) =>
-	a.start <= p && p < a.end;
+	a.start <= p && p <= a.end;
 
 RangeWithinFile rangeOfStartAndName(Pos start, Sym name, in AllSymbols allSymbols) =>
 	rangeOfStartAndLength(start, symSize(allSymbols, name));
@@ -91,13 +90,13 @@ UriAndPos toUriAndPos(UriAndRange a) =>
 Json jsonOfUriAndRange(ref Alloc alloc, in AllUris allUris, scope ref LineAndColumnGetters lcg, UriAndRange a) =>
 	jsonObject(alloc, [
 		field!"uri"(uriToString(alloc, allUris, a.uri)),
-		field!"range"(jsonOfRangeWithinFile(alloc, lineAndColumnGetterForUri(lcg, a.uri), a.range))]);
+		field!"range"(jsonOfRangeWithinFile(alloc, lcg[a.uri], a.range))]);
 
 Json jsonOfPosWithinFile(ref Alloc alloc, in LineAndColumnGetter lcg, Pos a, PosKind posKind) =>
 	jsonOfLineAndCharacter(alloc, lineAndCharacterAtPos(lcg, a, posKind));
 
 Json jsonOfRangeWithinFile(ref Alloc alloc, scope ref LineAndColumnGetters lcg, UriAndRange a) =>
-	jsonOfRangeWithinFile(alloc, lineAndColumnGetterForUri(lcg, a.uri), a.range);
+	jsonOfRangeWithinFile(alloc, lcg[a.uri], a.range);
 
 Json jsonOfRangeWithinFile(ref Alloc alloc, in LineAndColumnGetter lcg, in RangeWithinFile a) {
 	LineAndCharacterRange r = lineAndCharacterRange(lcg, a);

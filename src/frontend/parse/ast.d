@@ -355,7 +355,10 @@ Opt!RangeWithinFile rangeOfMutKeyword(in DestructureAst.Single a) =>
 		? some(RangeWithinFile(force(a.mut), force(a.mut) + safeToUint("mut".length)))
 		: none!RangeWithinFile;
 
-RangeWithinFile rangeOfDestructureSingle(in DestructureAst.Single a, in AllSymbols allSymbols) scope =>
+RangeWithinFile nameRangeOfDestructureSingle(in DestructureAst.Single a, in AllSymbols allSymbols) =>
+	rangeOfNameAndRange(a.name, allSymbols);
+
+RangeWithinFile rangeOfDestructureSingle(in DestructureAst.Single a, in AllSymbols allSymbols) =>
 	RangeWithinFile(a.name.start, (
 		has(a.type)
 		? range(*force(a.type), allSymbols)

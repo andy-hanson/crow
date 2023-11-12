@@ -61,8 +61,9 @@ immutable struct PrintKind {
 	immutable struct ConcreteModel {}
 	immutable struct LowModel {}
 	immutable struct Hover { LineAndColumn lineAndColumn; }
+	immutable struct References { LineAndColumn lineAndColumn; }
 
-	mixin Union!(Tokens, Ast, Model, ConcreteModel, LowModel, Hover);
+	mixin Union!(Tokens, Ast, Model, ConcreteModel, LowModel, Hover, References);
 }
 
 immutable struct RunOptions {
@@ -214,20 +215,29 @@ Command parsePrintCommand(
 }
 
 Opt!PrintKind parsePrintKind(Sym a, in SafeCStr[] args) {
+	Opt!PrintKind expectEmptyArgs(PrintKind x) =>
+		empty(args) ? some(x) : none!PrintKind;
+
+	Opt!PrintKind expectLineAndColumn(in PrintKind delegate(LineAndColumn) @safe @nogc pure nothrow cb) {
+		Opt!LineAndColumn lc = args.length == 1 ? parseLineAndColumn(args[0]) : none!LineAndColumn;
+		return has(lc) ? some(cb(force(lc))) : none!PrintKind;
+	}
+
 	switch (a.value) {
 		case sym!"tokens".value:
-			return empty(args) ? some(PrintKind(PrintKind.Tokens())) : none!PrintKind;
+			return expectEmptyArgs(PrintKind(PrintKind.Tokens()));
 		case sym!"ast".value:
-			return empty(args) ? some(PrintKind(PrintKind.Ast())) : none!PrintKind;
+			return expectEmptyArgs(PrintKind(PrintKind.Ast()));
 		case sym!"model".value:
-			return empty(args) ? some(PrintKind(PrintKind.Model())) : none!PrintKind;
+			return expectEmptyArgs(PrintKind(PrintKind.Model()));
 		case sym!"concrete-model".value:
-			return empty(args) ? some(PrintKind(PrintKind.ConcreteModel())) : none!PrintKind;
+			return expectEmptyArgs(PrintKind(PrintKind.ConcreteModel()));
 		case sym!"low-model".value:
-			return empty(args) ? some(PrintKind(PrintKind.LowModel())) : none!PrintKind;
+			return expectEmptyArgs(PrintKind(PrintKind.LowModel()));
 		case sym!"hover".value:
-			Opt!LineAndColumn lc = args.length == 1 ? parseLineAndColumn(args[0]) : none!LineAndColumn;
-			return has(lc) ? some(PrintKind(PrintKind.Hover(force(lc)))) : none!PrintKind;
+			return expectLineAndColumn(lc => PrintKind(PrintKind.Hover(lc)));
+		case sym!"references".value:
+			return expectLineAndColumn(lc => PrintKind(PrintKind.References(lc)));
 		default:
 			return none!PrintKind;
 	}

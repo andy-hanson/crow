@@ -106,7 +106,7 @@ import model.model :
 	isDefinitelyByRef,
 	isTemplate,
 	Local,
-	localMustHaveRange,
+	localMustHaveNameRange,
 	LocalMutability,
 	Mutability,
 	name,
@@ -894,7 +894,7 @@ Opt!Expr checkWithLocal(
 	in Opt!Expr delegate(ref LocalsInfo) @safe @nogc pure nothrow cb,
 ) {
 	if (nameIsParameterOrLocalInScope(ctx.alloc, locals, local.name))
-		addDiag2(ctx, localMustHaveRange(*local, ctx.allSymbols), Diag(
+		addDiag2(ctx, localMustHaveNameRange(*local, ctx.allSymbols), Diag(
 			Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.paramOrLocal, local.name)));
 
 	LocalNode localNode = LocalNode(locals.locals, [false, false, false, false], local);
@@ -914,7 +914,7 @@ void addUnusedLocalDiags(ref ExprCtx ctx, Local* local, scope ref LocalNode node
 	bool isGot = node.isUsed[LocalAccessKind.getOnStack] || node.isUsed[LocalAccessKind.getThroughClosure];
 	bool isSet = node.isUsed[LocalAccessKind.setOnStack] || node.isUsed[LocalAccessKind.setThroughClosure];
 	if (!isGot || (!isSet && local.mutability != LocalMutability.immut))
-		addDiag2(ctx, localMustHaveRange(*local, ctx.allSymbols), Diag(
+		addDiag2(ctx, localMustHaveNameRange(*local, ctx.allSymbols), Diag(
 			Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.Local(local, isGot, isSet)))));
 }
 

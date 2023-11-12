@@ -8,7 +8,7 @@ const tab_size = 4
 
 /**
  * @typedef CrowTextProps
- * @property {function(number): string} getHover
+ * @property {function(crow.LineAndCharacter): string} getHover
  * @property {Observable<crow.TokensAndParseDiagnostics>} tokensAndParseDiagnostics
  * @property {MutableObservable<string>} text
  */
@@ -192,15 +192,14 @@ export class CrowText extends HTMLElement {
 			const lineText = lines[line] || ''
 			const leadingTabs = countLeadingTabs(lineText)
 			const tabsFix = leadingTabs * (tab_size - 1)
-			const column = clamp(columnPre - tabsFix, 0, lineText.length - 1)
-			const pos = sum(lines.slice(0, line), line => line.length + "\n".length) + column
+			const character = clamp(columnPre - tabsFix, 0, lineText.length - 1)
 			mouseMoveIndex++
 
 			if (mouseMoveIndex === 2**16) mouseMoveIndex = 0
 			const saveMouseMoveIndex = mouseMoveIndex
 			setTimeout(() => {
 				if (mouseIsIn && mouseMoveIndex === saveMouseMoveIndex) {
-					const hover = getHover(pos)
+					const hover = getHover({line, character})
 					if (hover !== "") {
 						tooltip = createDiv({className:"hover-tooltip", children:[hover]})
 						textContainer.append(tooltip)
@@ -250,19 +249,6 @@ const indentationAt = (str, pos) => {
 		pos--
 	} while (pos >= 0 && str[pos] != "\n")
 	return str.slice(pos + 1, firstNonSpace)
-}
-
-/**
- * @template T
- * @param {ReadonlyArray<T>} xs
- * @param {function(T): number} cb
- * @return {number}
- */
-const sum = (xs, cb) => {
-	let res = 0
-	for (const x of xs)
-		res += cb(x)
-	return res
 }
 
 /** @type {function(string): number} */
@@ -513,21 +499,13 @@ const lessOrEqual = (a, b) =>
 
 /** @type {function(ReadonlyArray<string>, crow.LineAndCharacter): crow.LineAndCharacter} */
 const nextPosition = (lines, pos) =>
-	pos.character >= getLength(nonNull(lines[pos.line]))
+	pos.character >= nonNull(lines[pos.line]).length
 		? {line:pos.line + 1, character:0}
 		: {line:pos.line, character:pos.character + 1}
 
 /** @type {function(ReadonlyArray<string>): crow.LineAndCharacter} */
 const lastPosition = lines =>
-	({line:lines.length - 1, character:getLength(last(lines))})
-
-/** @type {function(string): number} */
-const getLength = line => {
-	let res = 0
-	for (const char of line)
-		res += (char === '\t' ? 4 : 1)
-	return res
-}
+	({line:lines.length - 1, character:last(lines).length})
 
 /**
  * @template T

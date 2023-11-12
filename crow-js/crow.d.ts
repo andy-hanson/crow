@@ -10,9 +10,9 @@ declare namespace crow {
 		end: LineAndCharacter
 	}
 
-	type UriAndPosition = {
+	type UriLineAndCharacter = {
 		uri: string
-		position: number
+		position: LineAndCharacter
 	}
 
 	type UriAndRange = {
@@ -26,7 +26,7 @@ declare namespace crow {
 	}
 
 	type Definition = {
-		definition: UriAndRange | null
+		definition: UriAndRange | undefined
 	}
 
 	type Token = {
@@ -85,8 +85,9 @@ declare namespace crow {
 		allLoadingUris(): ReadonlyArray<string>
 		getTokensAndParseDiagnostics(uri: string): TokensAndParseDiagnostics
 		getAllDiagnostics(): AllDiagnosticsResult
-		getDefinition(where: UriAndPosition): Definition
-		getHover(where: UriAndPosition): string
+		getDefinition(where: UriLineAndCharacter): Definition
+		getReferences(where: UriLineAndCharacter): ReadonlyArray<UriAndRange>
+		getHover(where: UriLineAndCharacter): string
 		run(uri: string): RunOutput
 	}
 }

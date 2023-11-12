@@ -20,31 +20,44 @@ struct LineAndColumnGetters {
 	const Storage* storage;
 	MutMap!(Uri, LineAndColumnGetter) getters;
 
-	public this(return scope Alloc* a, return scope const Storage* s) {
+	public:
+	this(return scope Alloc* a, return scope const Storage* s) {
 		alloc = a;
 		storage = s;
 	}
+
+	LineAndColumnGetter opIndex(Uri uri) scope =>
+		getOrAdd(*alloc, getters, uri, () =>
+			withFileNoMarkUnknown!LineAndColumnGetter(*storage, uri, (in ReadFileResult x) =>
+				x.matchIn!LineAndColumnGetter(
+					(in FileContent content) =>
+						lineAndColumnGetterForText(*alloc, asSafeCStr(content)),
+					(in ReadFileIssue _) =>
+						lineAndColumnGetterForEmptyFile(*alloc))));
+
+	Pos opIndex(in UriLineAndCharacter x) scope =>
+		this[x.uri][x.lineAndCharacter];
 }
+
+UriLineAndCharacter toLineAndCharacter(scope ref LineAndColumnGetters a, in UriLineAndColumn x) =>
+	UriLineAndCharacter(x.uri, toLineAndCharacter(a[x.uri], x.lineAndColumn));
 
 void uncacheFile(scope ref LineAndColumnGetters a, Uri uri) {
 	// TODO: also free memory
 	mayDelete(a.getters, uri);
 }
 
-Pos posAtLineAndColumn(ref LineAndColumnGetters a, Uri uri, in LineAndColumn lc) =>
-	posAtLineAndColumn(lineAndColumnGetterForUri(a, uri), lc);
-
 LineAndColumn lineAndColumnAtPos(ref LineAndColumnGetters a, in UriAndPos pos, PosKind kind) =>
-	lineAndColumnAtPos(lineAndColumnGetterForUri(a, pos.uri), pos.pos, kind);
+	lineAndColumnAtPos(a[pos.uri], pos.pos, kind);
 
 LineAndCharacter lineAndCharacterAtPos(ref LineAndColumnGetters a, in UriAndPos pos, PosKind kind) =>
-	lineAndCharacterAtPos(lineAndColumnGetterForUri(a, pos.uri), pos.pos, kind);
+	lineAndCharacterAtPos(a[pos.uri], pos.pos, kind);
 
 LineAndCharacterRange lineAndCharacterRange(scope ref LineAndColumnGetters a, in UriAndRange range) =>
-	lineAndCharacterRange(lineAndColumnGetterForUri(a, range.uri), range.range);
+	lineAndCharacterRange(a[range.uri], range.range);
 
 LineAndColumnRange lineAndColumnRange(scope ref LineAndColumnGetters a, in UriAndRange range) =>
-	lineAndColumnRange(lineAndColumnGetterForUri(a, range.uri), range.range);
+	lineAndColumnRange(a[range.uri], range.range);
 
 LineAndCharacterRange lineAndCharacterRange(in LineAndColumnGetter a, in RangeWithinFile range) =>
 	LineAndCharacterRange(
@@ -56,17 +69,19 @@ LineAndColumnRange lineAndColumnRange(in LineAndColumnGetter a, in RangeWithinFi
 		lineAndColumnAtPos(a, range.start, PosKind.startOfRange),
 		lineAndColumnAtPos(a, range.end, PosKind.endOfRange));
 
-LineAndColumnGetter lineAndColumnGetterForUri(ref LineAndColumnGetters a, Uri uri) =>
-	getOrAdd(*a.alloc, a.getters, uri, () =>
-		withFileNoMarkUnknown!LineAndColumnGetter(*a.storage, uri, (in ReadFileResult x) =>
-			x.matchIn!LineAndColumnGetter(
-				(in FileContent content) =>
-					lineAndColumnGetterForText(*a.alloc, asSafeCStr(content)),
-				(in ReadFileIssue _) =>
-					lineAndColumnGetterForEmptyFile(*a.alloc))));
+immutable struct UriLineAndCharacter {
+	Uri uri;
+	LineAndCharacter lineAndCharacter;
+}
+
+immutable struct UriLineAndColumn {
+	Uri uri;
+	LineAndColumn lineAndColumn;
+}
 
 immutable struct LineAndCharacter {
 	uint line;
+	// This counts tabs as 1 character.
 	uint character;
 }
 
@@ -74,6 +89,7 @@ immutable struct LineAndColumn {
 	@safe @nogc pure nothrow:
 
 	uint line0Indexed;
+	// This counts tabs as TAB_SIZE characters.
 	uint column0Indexed;
 
 	uint line1Indexed() =>
@@ -106,7 +122,24 @@ immutable struct LineAndColumnGetter {
 		lineToNTabs = lnt;
 		verify(lineToPos.length == lineToNTabs.length);
 	}
+
+	Pos opIndex(in LineAndCharacter lc) scope =>
+		lc.line >= lineToPos.length
+			? maxPos
+			: min(
+				lineToPos[lc.line] + lc.character,
+				lc.line >= lineToPos.length - 1 ? maxPos : lineToPos[lc.line + 1] - 1);
+
+	Pos opIndex(in LineAndColumn lc) scope =>
+		this[toLineAndCharacter(this, lc)];
 }
+
+LineAndCharacter toLineAndCharacter(in LineAndColumnGetter a, in LineAndColumn lc) =>
+	LineAndCharacter(
+		lc.line0Indexed,
+		columnToCharacter(
+			lc.column0Indexed,
+			lc.line0Indexed < a.lineToNTabs.length ? a.lineToNTabs[lc.line0Indexed] : 0));
 
 @trusted LineAndColumnGetter lineAndColumnGetterForText(ref Alloc alloc, scope SafeCStr text) {
 	ArrBuilder!Pos lineToPos;
@@ -165,16 +198,9 @@ LineAndCharacter lineAndCharacterAtPos(in LineAndColumnGetter lc, Pos pos, PosKi
 	return LineAndCharacter(line, character);
 }
 
-Pos posAtLineAndColumn(in LineAndColumnGetter a, LineAndColumn lc) =>
-	lc.line0Indexed >= a.lineToPos.length
-		? a.maxPos
-		: min(
-			a.lineToPos[lc.line0Indexed] + columnToPosOffset(lc.column0Indexed, a.lineToNTabs[lc.line0Indexed]),
-			lc.line0Indexed == a.lineToPos.length - 1 ? a.maxPos : a.lineToPos[lc.line0Indexed + 1] - 1);
-
 private:
 
-Pos columnToPosOffset(uint column, ubyte nTabs) =>
+Pos columnToCharacter(uint column, ubyte nTabs) =>
 	column <= nTabs * TAB_SIZE
 		? column / TAB_SIZE
 		: column - (nTabs * (TAB_SIZE - 1));

@@ -5,7 +5,7 @@ module test.testLineAndColumnGetter;
 import test.testUtil : Test;
 import util.col.str : safeCStr;
 import util.lineAndColumnGetter :
-	LineAndColumn, lineAndColumnAtPos, LineAndColumnGetter, lineAndColumnGetterForText, posAtLineAndColumn, PosKind;
+	LineAndColumn, lineAndColumnAtPos, LineAndColumnGetter, lineAndColumnGetterForText, PosKind;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos;
 import util.util : verifyEq;
@@ -40,8 +40,8 @@ void testLFOrCR(in LineAndColumnGetter lcg) {
 	verifyConvert(lcg, Pos(7), PosKind.startOfRange, LineAndColumn(2, 1));
 	verifyConvert(lcg, Pos(8), PosKind.startOfRange, LineAndColumn(3, 0));
 
-	verifyEq(posAtLineAndColumn(lcg, LineAndColumn(0, 99)), Pos(1));
-	verifyEq(posAtLineAndColumn(lcg, LineAndColumn(99, 99)), Pos(8));
+	verifyEq(lcg[LineAndColumn(0, 99)], Pos(1));
+	verifyEq(lcg[LineAndColumn(99, 99)], Pos(8));
 }
 
 void testCRLF(ref Test test) {
@@ -70,5 +70,5 @@ void verifyConvert(
 	in Opt!Pos convertBackPos = none!Pos,
 ) {
 	verifyEq(lineAndColumnAtPos(lcg, pos, kind), lineAndColumn);
-	verifyEq(posAtLineAndColumn(lcg, lineAndColumn), has(convertBackPos) ? force(convertBackPos) : pos);
+	verifyEq(lcg[lineAndColumn], has(convertBackPos) ? force(convertBackPos) : pos);
 }

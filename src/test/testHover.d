@@ -17,7 +17,7 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.str : end, SafeCStr, safeCStr, safeCStrEq, safeCStrIsEmpty, safeCStrSize, strOfSafeCStr;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonList, jsonObject, jsonToStringPretty, optionalField;
-import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForUri, PosKind;
+import util.lineAndColumnGetter : LineAndColumnGetter, PosKind;
 import util.opt : has, none, Opt, optEqual;
 import util.uri : parseUri, Uri;
 import util.perf : Perf, withNullPerf;
@@ -86,7 +86,7 @@ Json hoverResult(ref Alloc alloc, in SafeCStr content, ref ShowCtx ctx, Module* 
 	Pos curRangeStart = 0;
 	Cell!(InfoAtPos) curInfo = Cell!(InfoAtPos)(InfoAtPos(safeCStr!"", none!Definition));
 
-	LineAndColumnGetter lcg = lineAndColumnGetterForUri(ctx.lineAndColumnGetters, mainModule.uri);
+	LineAndColumnGetter lcg = ctx.lineAndColumnGetters[mainModule.uri];
 
 	void endRange(Pos end) {
 		InfoAtPos info = cellGet(curInfo);
@@ -108,7 +108,7 @@ Json hoverResult(ref Alloc alloc, in SafeCStr content, ref ShowCtx ctx, Module* 
 			getHoverStr(alloc, ctx, position),
 			getDefinitionForPosition(ctx.allSymbols, ctx.program, position));
 		if (here != cellGet(curInfo)) {
-			endRange(pos);
+			endRange(pos - 1);
 			curRangeStart = pos;
 			cellSet(curInfo, here);
 		}

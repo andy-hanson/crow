@@ -1,6 +1,7 @@
 @safe @nogc nothrow: // not pure
 
 import frontend.ide.getDefinition : jsonOfDefinition;
+import frontend.ide.getReferences : jsonOfReferences;
 import frontend.ide.getTokens : jsonOfTokens;
 import frontend.showModel : ShowOptions;
 import interpret.fakeExtern : Pipe;
@@ -11,6 +12,7 @@ import lib.server :
 	getDefinition,
 	getFile,
 	getHover,
+	getReferences,
 	getTokensAndParseDiagnostics,
 	justParseEverything,
 	ProgramAndDefinition,
@@ -35,11 +37,11 @@ import util.col.multiMap : groupBy, MultiMap, multiMapEach;
 import util.col.str : CStr, SafeCStr;
 import util.exitCode : ExitCode;
 import util.json : field, jsonObject, Json, jsonToString, jsonList, jsonString, optionalField;
-import util.lineAndColumnGetter : lineAndColumnGetterForUri;
+import util.lineAndColumnGetter : LineAndCharacter, UriLineAndCharacter;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
 import util.opt : force, has, Opt;
 import util.perf : eachMeasure, Perf, PerfMeasureResult, withNullPerf;
-import util.sourceRange : Pos, jsonOfRangeWithinFile;
+import util.sourceRange : jsonOfRangeWithinFile, UriAndRange;
 import util.storage : asSafeCStr, FileContent, readFileIssueOfSym, ReadFileResult;
 import util.sym : symOfSafeCStr;
 import util.uri : parseUri, Uri, uriToString;
@@ -143,10 +145,7 @@ CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 	TokensAndParseDiagnostics res = withNullPerf!(TokensAndParseDiagnostics, (ref Perf perf) =>
 		getTokensAndParseDiagnostics(resultAlloc, perf, *server, uri));
 	return jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
-		field!"tokens"(jsonOfTokens(
-			resultAlloc,
-			lineAndColumnGetterForUri(server.lineAndColumnGetters, uri),
-			res.tokens)),
+		field!"tokens"(jsonOfTokens(resultAlloc, server.lineAndColumnGetters[uri], res.tokens)),
 		field!"parse-diagnostics"(jsonOfDiagnostics(resultAlloc, *server, res.programForDiagnostics))])).ptr;
 }
 
@@ -158,11 +157,11 @@ CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 		field!"diagnostics"(jsonOfDiagnostics(resultAlloc, *server, program))])).ptr;
 }
 
-@system extern(C) CStr getDefinition(Server* server, scope CStr uriPtr, Pos pos) {
-	Uri uri = toUri(*server, SafeCStr(uriPtr));
+@system extern(C) CStr getDefinition(Server* server, scope CStr uriPtr, uint line, uint character) {
+	UriLineAndCharacter where = toUriLineAndCharacter(*server, SafeCStr(uriPtr), line, character);
 	Alloc resultAlloc = Alloc(resultBuffer);
 	return withNullPerf!(SafeCStr, (ref Perf perf) {
-		ProgramAndDefinition res = getDefinition(perf, resultAlloc, *server, uri, pos);
+		ProgramAndDefinition res = getDefinition(perf, resultAlloc, *server, where);
 		return jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
 			optionalField!"definition"(has(res.definition), () =>
 				jsonOfDefinition(resultAlloc, server.allUris, server.lineAndColumnGetters, force(res.definition)))
@@ -170,14 +169,27 @@ CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 	}).ptr;
 }
 
-@system extern(C) CStr getHover(Server* server, scope CStr uriPtr, Pos pos) {
-	Uri uri = toUri(*server, SafeCStr(uriPtr));
+@system extern(C) CStr getReferences(Server* server, scope CStr uriPtr, uint line, uint character) {
+	UriLineAndCharacter where = toUriLineAndCharacter(*server, SafeCStr(uriPtr), line, character);
 	Alloc resultAlloc = Alloc(resultBuffer);
-	return withNullPerf!(CStr, (ref Perf perf) =>
-		jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
-			field!"hover"(getHover(perf, resultAlloc, *server, uri, pos)),
-		])).ptr);
+	return withNullPerf!(SafeCStr, (ref Perf perf) {
+		UriAndRange[] references = getReferences(perf, resultAlloc, *server, where);
+		return jsonToString(resultAlloc, server.allSymbols, jsonOfReferences(
+			resultAlloc, server.allUris, server.lineAndColumnGetters, references));
+	}).ptr;
 }
+
+@system extern(C) CStr getHover(Server* server, scope CStr uriPtr, uint line, uint character) {
+	UriLineAndCharacter where = toUriLineAndCharacter(*server, SafeCStr(uriPtr), line, character);
+	Alloc resultAlloc = Alloc(resultBuffer);
+	return withNullPerf!(SafeCStr, (ref Perf perf) {
+		SafeCStr hover = getHover(perf, resultAlloc, *server, where);
+		return jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [field!"hover"(hover)]));
+	}).ptr;
+}
+
+UriLineAndCharacter toUriLineAndCharacter(scope ref Server server, SafeCStr uri, uint line, uint character) =>
+	UriLineAndCharacter(toUri(server, uri), LineAndCharacter(line, character));
 
 @system extern(C) int run(Server* server, scope CStr uriPtr) {
 	Uri uri = toUri(*server, SafeCStr(uriPtr));

@@ -4,14 +4,14 @@ const {
 	DidChangeConfigurationNotification, DefinitionRequest, HoverRequest,
 } = require("vscode-languageserver-protocol")
 /** @typedef {import("vscode-languageserver-types").CompletionItem} CompletionItem */
-const {CompletionItemKind, Diagnostic, Location, Position, Range} = require("vscode-languageserver-types")
+const {CompletionItemKind} = require("vscode-languageserver-types")
 const {TextDocumentSyncKind} = require("vscode-languageserver-protocol")
 /** @typedef {import("vscode-languageserver-protocol").InitializeParams} InitializeParams */
 /** @typedef {import("vscode-languageserver-protocol").InitializeResult<unknown>} InitializeResult */
 /** @typedef {import("vscode-languageserver-protocol").PublishDiagnosticsParams} PublishDiagnosticsParams */
 const {TextDocument} = require("vscode-languageserver-textdocument")
 
-const {makeCompiler, nonNull, VERBOSE} = require("./util.js")
+const {makeCompiler, VERBOSE} = require("./util.js")
 
 // @ts-ignore
 const connection = createConnection(ProposedFeatures.all)
@@ -67,6 +67,7 @@ connection.onInitialize(({capabilities}) => {
 		capabilities: {
 			textDocumentSync: TextDocumentSyncKind.Incremental,
 			completionProvider: {resolveProvider: true},
+			referencesProvider: {},
 		},
 	}
 	return result
@@ -87,7 +88,7 @@ documents.onDidOpen(withLogErrors("onDidOpen", ({document}) => {
 }))
 
 documents.onDidClose(withLogErrors("onDidClose", ({document}) => {
-	log("onDidClose (unimplemented)", {uri:document.uri})
+	logVerbose("onDidClose (unimplemented)", {uri:document.uri})
 }))
 
 documents.onDidChangeContent(withLogErrors("onDidChangeContent", ({document}) => {
@@ -140,23 +141,7 @@ let compiler
 
 /** @type {function(TextDocument, ReadonlyArray<crow.Diagnostic>): PublishDiagnosticsParams} */
 const toDiagnostics = (document, diagnostics) =>
-	({uri:document.uri, diagnostics:diagnostics.map(x => toDiagnostic(x))})
-
-/** @type {function(crow.Diagnostic): Diagnostic} */
-const toDiagnostic = ({range, message}) =>
-	Diagnostic.create(toRange(range), message)
-
-/** @type {function(crow.RangeWithinFile): Range} */
-const toRange = ({start, end}) =>
-	Range.create(toPosition(start), toPosition(end))
-
-/** @type {function(crow.LineAndCharacter): Position} */
-const toPosition = ({line, character}) =>
-	Position.create(line, character)
-
-/** @type {function(crow.UriAndRange): Location} */
-const toLocation = ({uri, range}) =>
-	Location.create(uri, toRange(range))
+	({uri:document.uri, diagnostics:diagnostics.slice()})
 
 /** @type {function(string): TextDocument | null} */
 const getDocument = uri => {
@@ -180,20 +165,21 @@ connection.onDidChangeWatchedFiles(withLogErrors("onDidChangeWatchedFiles", _cha
 }))
 
 connection.onDefinition(withLogErrors("onDefinition", params => {
-	const {definition} = compiler.getDefinition(getUriAndPosition(params))
-	return definition === null ? [] : [toLocation(definition)]
+	const {definition} = compiler.getDefinition(getUriLineAndCharacter(params))
+	return definition === undefined ? [] : [definition]
 }))
 
 connection.onHover(withLogErrors("onHover", params => {
-	const hover = compiler.getHover(getUriAndPosition(params))
+	const hover = compiler.getHover(getUriLineAndCharacter(params))
 	return hover ? {contents:hover} : null
 }))
 
-/** @type {function(TextDocumentPositionParams): crow.UriAndPosition} */
-const getUriAndPosition = ({position, textDocument}) => {
-	const document = nonNull(documents.get(textDocument.uri))
-	return {uri:textDocument.uri, position:document.offsetAt(position)}
-}
+connection.onReferences(withLogErrors("onReferences", params =>
+	compiler.getReferences(getUriLineAndCharacter(params)).slice()))
+
+/** @type {function(TextDocumentPositionParams): crow.UriLineAndCharacter} */
+const getUriLineAndCharacter = ({textDocument, position}) =>
+	({uri:textDocument.uri, position})
 
 // This handler provides the initial list of the completion items.
 connection.onCompletion(withLogErrors("onCompletion", _textDocumentPosition => {

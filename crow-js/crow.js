@@ -29,8 +29,9 @@ Exports of `wasm.d`:
 @property {function(Server): CStr} allLoadingUris
 @property {function(Server, CStr): CStr} getTokensAndParseDiagnostics
 @property {function(Server): CStr} getAllDiagnostics
-@property {function(Server, CStr, number): CStr} getDefinition
-@property {function(Server, CStr, number): CStr} getHover
+@property {function(Server, CStr, number, number): CStr} getDefinition
+@property {function(Server, CStr, number, number): CStr} getReferences
+@property {function(Server, CStr, number, number): CStr} getHover
 @property {function(Server, CStr): number} run
 */
 
@@ -158,37 +159,39 @@ globalCrow.makeCompiler = async (bytes, includeDir, cwd) => {
 	const readString = (begin, end) =>
 		readStringFromView(view, begin, end)
 
+	/**
+	@template T
+	@param {() => T} cb
+	@return T
+	*/
+	const withParams = cb => {
+		try {
+			return cb()
+		} finally {
+			paramAlloc.clear()
+		}
+	}
+
+	/** @type {function(() => number): any} */
+	const withParamsAndJson = cb => {
+		try {
+			return JSON.parse(readCStr(cb()))
+		} finally {
+			paramAlloc.clear()
+		}
+	}
+
 	return {
 		version: () =>
 			readCStr(exports.version_(server)),
-		setFileSuccess: (uri, content) =>{
-			try {
-				exports.setFileSuccess(server, paramAlloc.writeCStr(uri), paramAlloc.writeCStr(content))
-			} finally {
-				paramAlloc.clear()
-			}
-		},
-		setFileIssue: (uri, issue) => {
-			try {
-				exports.setFileIssue(server, paramAlloc.writeCStr(uri), paramAlloc.writeCStr(issue))
-			} finally {
-				paramAlloc.clear()
-			}
-		},
-		getFile: uri => {
-			try {
-				return readCStr(exports.getFile(server, paramAlloc.writeCStr(uri)))
-			} finally {
-				paramAlloc.clear()
-			}
-		},
-		searchImportsFromUri: uri => {
-			try {
-				exports.searchImportsFromUri(server, paramAlloc.writeCStr(uri))
-			} finally {
-				paramAlloc.clear()
-			}
-		},
+		setFileSuccess: (uri, content) => withParams(() =>
+			exports.setFileSuccess(server, paramAlloc.writeCStr(uri), paramAlloc.writeCStr(content))),
+		setFileIssue: (uri, issue) => withParams(() =>
+			exports.setFileIssue(server, paramAlloc.writeCStr(uri), paramAlloc.writeCStr(issue))),
+		getFile: uri => withParams(() =>
+			readCStr(exports.getFile(server, paramAlloc.writeCStr(uri)))),
+		searchImportsFromUri: uri => withParams(() =>
+			exports.searchImportsFromUri(server, paramAlloc.writeCStr(uri))),
 		allStorageUris: () =>
 			JSON.parse(readCStr(exports.allStorageUris(server))),
 		allUnknownUris: () =>
@@ -196,31 +199,17 @@ globalCrow.makeCompiler = async (bytes, includeDir, cwd) => {
 		allLoadingUris: () =>
 			JSON.parse(readCStr(exports.allLoadingUris(server))),
 		getTokensAndParseDiagnostics: uri => {
-			try {
-				const res = JSON.parse(
-					readCStr(exports.getTokensAndParseDiagnostics(server, paramAlloc.writeCStr(uri)))
-				)
-				return {tokens:res.tokens, parseDiagnostics:res["parse-diagnostics"]}
-			} finally {
-				paramAlloc.clear()
-			}
+			const res = withParamsAndJson(() => exports.getTokensAndParseDiagnostics(server, paramAlloc.writeCStr(uri)))
+			return {tokens:res.tokens, parseDiagnostics:res["parse-diagnostics"]}
 		},
 		getAllDiagnostics: () =>
 			JSON.parse(readCStr(exports.getAllDiagnostics(server))),
-		getDefinition: ({uri, position}) => {
-			try {
-				return JSON.parse(readCStr(exports.getDefinition(server, paramAlloc.writeCStr(uri), position)))
-			} finally {
-				paramAlloc.clear()
-			}
-		},
-		getHover: ({uri, position}) => {
-			try {
-				return JSON.parse(readCStr(exports.getHover(server, paramAlloc.writeCStr(uri), position))).hover
-			} finally {
-				paramAlloc.clear()
-			}
-		},
+		getDefinition: ({uri, position:{line, character}}) => withParamsAndJson(() =>
+			exports.getDefinition(server, paramAlloc.writeCStr(uri), line, character)),
+		getReferences: ({uri, position:{line, character}}) => withParamsAndJson(() =>
+			exports.getReferences(server, paramAlloc.writeCStr(uri), line, character)),
+		getHover: ({uri, position:{line, character}}) => withParamsAndJson(() =>
+			exports.getHover(server, paramAlloc.writeCStr(uri), line, character)).hover,
 		run: uri => {
 			try {
 				globalWrites = []

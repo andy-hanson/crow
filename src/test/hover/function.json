@@ -43,12 +43,12 @@
 	{
 		"start": {"line": 2, "character": 6},
 		"end": {"line": 2, "character": 7},
-		"hover": "parameter a nat",
+		"hover": "local a nat",
 		"definition": {
 			"uri": "magic:function.crow",
 			"range": {
 				"start": {"line": 2, "character": 6},
-				"end": {"line": 2, "character": 11}
+				"end": {"line": 2, "character": 7}
 			}
 		}
 	},
@@ -72,12 +72,12 @@
 			"uri": "magic:function.crow",
 			"range": {
 				"start": {"line": 2, "character": 6},
-				"end": {"line": 2, "character": 11}
+				"end": {"line": 2, "character": 7}
 			}
 		}
 	},
 	{
-		"start": {"line": 3, "character": 3},
+		"start": {"line": 3, "character": 4},
 		"end": {"line": 3, "character": 4},
 		"hover": "g nat(a nat) (from magic:function.crow line 6)",
 		"definition": {
@@ -115,12 +115,12 @@
 	{
 		"start": {"line": 5, "character": 6},
 		"end": {"line": 5, "character": 7},
-		"hover": "parameter a nat",
+		"hover": "local a nat",
 		"definition": {
 			"uri": "magic:function.crow",
 			"range": {
 				"start": {"line": 5, "character": 6},
-				"end": {"line": 5, "character": 11}
+				"end": {"line": 5, "character": 7}
 			}
 		}
 	},

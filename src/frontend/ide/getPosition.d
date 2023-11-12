@@ -80,12 +80,12 @@ Opt!PositionKind positionInFun(in AllSymbols allSymbols, FunDecl* a, in FunDeclA
 		optIf(hasPos(allSymbols, ast.name, pos), () => PositionKind(a)),
 		() => positionInType(allSymbols, a.returnType, ast.returnType, pos),
 		() => first!(PositionKind, Destructure)(paramsArray(a.params), (Destructure x) =>
-			positionInParameterDestructure(allSymbols, pos, x)),
+			positionInDestructure(allSymbols, a, pos, x)),
 		() => firstWithIndex!(PositionKind, FunModifierAst)(ast.modifiers, (size_t index, FunModifierAst modifier) =>
 			optIf(hasPos(range(modifier, allSymbols), pos), () =>
 				positionForModifier(a, ast, index, modifier))),
 		() => a.body_.isA!(FunBody.ExpressionBody)
-			? positionInExpr(allSymbols, a.body_.as!(FunBody.ExpressionBody).expr, pos)
+			? positionInExpr(allSymbols, a, a.body_.as!(FunBody.ExpressionBody).expr, pos)
 			: none!PositionKind);
 
 PositionKind positionForModifier(FunDecl* a, in FunDeclAst ast, size_t index, in FunModifierAst modifier) =>
@@ -103,15 +103,7 @@ PositionKind positionForModifier(FunDecl* a, in FunDeclAst ast, size_t index, in
 			return PositionKind(a.specs[specIndex]);
 		});
 
-Opt!PositionKind positionInParameterDestructure(in AllSymbols allSymbols, Pos pos, in Destructure a) =>
-	positionInDestructure(allSymbols, pos, a, (Local* x) => PositionKind(PositionKind.LocalParameter(x)));
-
-Opt!PositionKind positionInDestructure(
-	in AllSymbols allSymbols,
-	Pos pos,
-	in Destructure a,
-	in PositionKind delegate(Local*) @safe @nogc pure nothrow cb,
-) =>
+Opt!PositionKind positionInDestructure(in AllSymbols allSymbols, FunDecl* containingFun, Pos pos, in Destructure a) =>
 	a.matchWithPointers!(Opt!PositionKind)(
 		(Destructure.Ignore*) =>
 			none!PositionKind,
@@ -119,7 +111,8 @@ Opt!PositionKind positionInDestructure(
 			DestructureAst.Single* ast = x.source.as!(LocalSource.Ast).ast;
 			return hasPos(rangeOfDestructureSingle(*ast, allSymbols), pos)
 				? optOr!PositionKind(
-					optIf(hasPos(rangeOfNameAndRange(ast.name, allSymbols), pos), () => cb(x)),
+					optIf(hasPos(rangeOfNameAndRange(ast.name, allSymbols), pos), () =>
+						PositionKind(PositionKind.LocalInFunction(containingFun, x))),
 					() => optIf(optHasPos(rangeOfMutKeyword(*ast), pos), () =>
 						PositionKind(PositionKind.Keyword(PositionKind.Keyword.Kind.localMut))),
 					() => has(ast.type) ? positionInType(allSymbols, x.type, *force(ast.type), pos) : none!PositionKind)
@@ -128,7 +121,7 @@ Opt!PositionKind positionInDestructure(
 		(Destructure.Split* x) =>
 			//TODO: handle x.destructuredType
 			first!(PositionKind, Destructure)(x.parts, (Destructure part) =>
-				positionInDestructure(allSymbols, pos, part, cb)));
+				positionInDestructure(allSymbols, containingFun, pos, part)));
 
 Opt!PositionKind positionInImportsOrExports(in AllSymbols allSymbols, ImportOrExport[] importsOrExports, Pos pos) {
 	foreach (ImportOrExport* im; ptrsRange(importsOrExports))
@@ -242,25 +235,20 @@ Opt!PositionKind positionInFieldMutability(in AllSymbols allSymbols, in FieldMut
 		hasPos(allSymbols, NameAndRange(ast.pos, symOfFieldMutabilityAstKind(ast.kind)), pos),
 		() => PositionKind(PositionKind.RecordFieldMutability(ast.kind)));
 
-Opt!PositionKind positionInExpr(in AllSymbols allSymbols, ref Expr a, Pos pos) {
+Opt!PositionKind positionInExpr(in AllSymbols allSymbols, FunDecl* containingFun, ref Expr a, Pos pos) {
 	if (!hasPos(a.range.range, pos))
 		return none!PositionKind;
 	else {
-		Opt!PositionKind here() {
-			return some(PositionKind(a));
-		}
-		Opt!PositionKind inDestructure(in Destructure x) {
-			return positionInDestructure(allSymbols, pos, x, (Local* x) =>
-				PositionKind(PositionKind.LocalNonParameter(x)));
-		}
-		Opt!PositionKind recur(in Expr inner) {
-			return positionInExpr(allSymbols, inner, pos);
-		}
-		Opt!PositionKind recurOpt(in Opt!(Expr*) inner) {
-			return has(inner)
+		Opt!PositionKind here() =>
+			some(PositionKind(PositionKind.Expression(containingFun, &a)));
+		Opt!PositionKind inDestructure(in Destructure x) =>
+			positionInDestructure(allSymbols, containingFun, pos, x);
+		Opt!PositionKind recur(in Expr inner) =>
+			positionInExpr(allSymbols, containingFun, inner, pos);
+		Opt!PositionKind recurOpt(in Opt!(Expr*) inner) =>
+			has(inner)
 				? recur(*force(inner))
 				: none!PositionKind;
-		}
 
 		return a.kind.match!(Opt!PositionKind)(
 			(ExprKind.AssertOrForbid x) =>

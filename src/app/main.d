@@ -37,6 +37,7 @@ import lib.server :
 	printHover,
 	printLowModel,
 	printModel,
+	printReferences,
 	printTokens,
 	Programs,
 	Server,
@@ -57,7 +58,7 @@ import util.col.arrUtil : prepend;
 import util.col.str : CStr, SafeCStr, safeCStr, safeCStrIsEmpty;
 import util.exitCode : ExitCode;
 import util.json : jsonToString;
-import util.lineAndColumnGetter : posAtLineAndColumn;
+import util.lineAndColumnGetter : UriLineAndColumn;
 import util.opt : force, has;
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasureResult;
 import util.sym : sym;
@@ -224,9 +225,11 @@ ExitCode doPrint(ref Perf perf, ref Server server, in Command.Print command) {
 		},
 		(in PrintKind.Hover x) {
 			loadAllFiles(perf, server, [mainUri]);
-			return printHover(
-				server.alloc, perf, server, mainUri,
-				posAtLineAndColumn(server.lineAndColumnGetters, mainUri, x.lineAndColumn));
+			return printHover(server.alloc, perf, server, UriLineAndColumn(mainUri, x.lineAndColumn));
+		},
+		(in PrintKind.References x) {
+			loadAllFiles(perf, server, [mainUri]);
+			return printReferences(server.alloc, perf, server, UriLineAndColumn(mainUri, x.lineAndColumn));
 		});
 	if (!safeCStrIsEmpty(printed.diagnostics))
 		printError(printed.diagnostics);

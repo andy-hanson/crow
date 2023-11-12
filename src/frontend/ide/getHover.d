@@ -45,8 +45,8 @@ SafeCStr getHoverStr(ref Alloc alloc, scope ref ShowCtx ctx, in Position pos) {
 void getHover(ref Writer writer, scope ref ShowCtx ctx, in Position pos) =>
 	pos.kind.matchIn!void(
 		(in PositionKind.None) {},
-		(in Expr x) {
-			getExprHover(writer, ctx, pos.module_.uri, x);
+		(in PositionKind.Expression x) {
+			getExprHover(writer, ctx, pos.module_.uri, *x.expr);
 		},
 		(in FunDecl it) {
 			writer ~= "function ";
@@ -107,12 +107,8 @@ void getHover(ref Writer writer, scope ref ShowCtx ctx, in Position pos) =>
 				}
 			}();
 		},
-		(in PositionKind.LocalNonParameter x) {
+		(in PositionKind.LocalInFunction x) {
 			writer ~= "local ";
-			localHover(writer, ctx, *x.local);
-		},
-		(in PositionKind.LocalParameter x) {
-			writer ~= "parameter ";
 			localHover(writer, ctx, *x.local);
 		},
 		(in PositionKind.RecordFieldMutability x) {
