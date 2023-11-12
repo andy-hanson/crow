@@ -117,6 +117,8 @@ const onDidOpenOrChangeDocument = document => {
 	afterFileChange()
 }
 
+let lastDiagnosticsUris = new Set()
+
 const afterFileChange = () => {
 	const unknownUris = compiler.allUnknownUris()
 	if (unknownUris.length) {
@@ -129,11 +131,16 @@ const afterFileChange = () => {
 	} else if (compiler.allLoadingUris().length) {
 		logVerbose("Waiting on loading URIs", compiler.allLoadingUris())
 	} else {
-		for (const {uri, diagnostics} of compiler.getAllDiagnostics().diagnostics) {
+		const newDiags = compiler.getAllDiagnostics().diagnostics
+		for (const {uri, diagnostics} of newDiags) {
+			lastDiagnosticsUris.delete(uri)
 			const doc = getDocument(uri)
 			if (doc !== null)
 				connection.sendDiagnostics(toDiagnostics(doc, diagnostics))
 		}
+		for (const uri of lastDiagnosticsUris)
+			connection.sendDiagnostics({uri, diagnostics:[]})
+		lastDiagnosticsUris = new Set(newDiags.map(x => x.uri))
 	}
 }
 
