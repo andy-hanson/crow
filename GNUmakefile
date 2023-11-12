@@ -77,7 +77,7 @@ app_files_no_test = src/app/*.d $(src_files_no_test)
 app_files_with_test = src/app/*.d $(src_files_with_test)
 # TODO: should not need document/mangle/writeToC/writeTypes
 wasm_src = src/wasm.d $(src_files_common) src/document/document.d src/backend/mangle.d src/backend/writeToC.d src/backend/writeTypes.d
-wasm_deps = $(wasm_src)
+wasm_deps = $(wasm_src) $(other_deps)
 
 bin/d-imports/date.txt:
 	mkdir -p bin/d-imports

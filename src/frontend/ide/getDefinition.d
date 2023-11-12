@@ -28,6 +28,7 @@ import model.model :
 	uriAndRange,
 	Visibility;
 import util.alloc.alloc : Alloc;
+import util.lineAndColumnGetter : LineAndColumnGetters;
 import util.opt : force, has, none, Opt, some;
 import util.json : field, Json;
 import util.sourceRange : UriAndRange, jsonOfUriAndRange;
@@ -39,8 +40,8 @@ struct Definition {
 	UriAndRange range;
 }
 
-Json jsonOfDefinition(ref Alloc alloc, in AllUris allUris, in Definition a) =>
-	jsonOfUriAndRange(alloc, allUris, a.range);
+Json jsonOfDefinition(ref Alloc alloc, in AllUris allUris, ref LineAndColumnGetters lcg, in Definition a) =>
+	jsonOfUriAndRange(alloc, allUris, lcg, a.range);
 
 Opt!Definition getDefinitionForPosition(in AllSymbols allSymbols, in Program program, in Position pos) {
 	Opt!Target target = targetForPosition(program, pos.kind);

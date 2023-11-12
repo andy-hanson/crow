@@ -25,3 +25,5 @@ exports.nonNull = x => {
 		throw new Error("Null value")
 	return x
 }
+
+exports.VERBOSE = false

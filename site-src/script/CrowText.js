@@ -310,7 +310,7 @@ const createDiagSpan = (message, children) =>
  * @typedef DiagContainer
  * @property {"diag"} type
  * @property {Array<Node>} children
- * @property {number} end
+ * @property {crow.LineAndCharacter} end
  * @property {string} message
  */
 
@@ -331,7 +331,9 @@ const createDiagSpan = (message, children) =>
 
 /** @type {function(ReadonlyArray<crow.Token>, ReadonlyArray<crow.Diagnostic>, string): ReadonlyArray<Node>} */
 const tokensAndDiagsToNodes = (tokens, diags, text) => {
-	let pos = 0
+	const lines = text.split('\n')
+	/** @type {crow.LineAndCharacter} */
+	let pos = {line:0, character:0}
 	// Last entry is the most nested container
 	/** @type {Array<SomeContainer>} */
 	const containerStack = [
@@ -377,15 +379,15 @@ const tokensAndDiagsToNodes = (tokens, diags, text) => {
 		}
 	}
 
-	/** @type {function(number): boolean} */
-	const maybeStartDiag = nextPos => {
+	/** @type {function(): boolean} */
+	const maybeStartDiag = () => {
 		if (diagIndex < diags.length) {
 			const {message, range:{start, end}} = nonNull(diags[diagIndex])
-			if (start < nextPos) {
+			if (less(start, pos)) {
 				// Ignore nested diags
 				if (last(containerStack).type !== "diag") {
 					finishText()
-					containerStack.push({type:"diag", children:[], end, message})
+					containerStack.push({type:"diag", children:[], end:end, message})
 				}
 				diagIndex++
 				return true
@@ -394,55 +396,57 @@ const tokensAndDiagsToNodes = (tokens, diags, text) => {
 		return false
 	}
 
-	/** @type {function(number): boolean} */
-	const shouldStopDiag = tokenEnd => {
+	/** @type {function(): boolean} */
+	const shouldStopDiag = () => {
 		const lastContainer = last(containerStack)
-		return lastContainer.type === "diag" && lastContainer.end <= tokenEnd
+		return lastContainer.type === "diag" && lessOrEqual(lastContainer.end, pos)
 	}
 
-	/** @type {function(number): void} */
-	const maybeStopDiag = tokenEnd => {
-		if (shouldStopDiag(tokenEnd)) {
+	/** @type {function(): void} */
+	const maybeStopDiag = () => {
+		if (shouldStopDiag()) {
 			popContainer()
 		}
 	}
 
 
-	/** @type {function(number): HTMLSpanElement} */
+	/** @type {function(crow.LineAndCharacter): HTMLSpanElement} */
 	const noTokenNode = startPos => {
-		assert(startPos < pos)
-		return createSpan({ className: "no-token", children: [text.slice(startPos, pos)] })
+		assert(less(startPos, pos))
+		return createSpan({ className: "no-token", children: [sliceLine(lines, startPos, pos)] })
 	}
 
-	/** @type {function(number): void} */
+	/** @type {function(crow.LineAndCharacter): void} */
 	const walkTo = end => {
 		let startPos = pos
-		while (pos < end) {
-			if (maybeStartDiag(pos)) {
-				if (startPos < pos) secondLast(containerStack).children.push(noTokenNode(startPos))
+		while (less(pos, end)) {
+			if (maybeStartDiag()) {
+				if (less(startPos, pos)) secondLast(containerStack).children.push(noTokenNode(startPos))
 				startPos = pos
 			}
-			if (text[pos] === '\n') {
-				if (startPos < pos) last(containerStack).children.push(noTokenNode(startPos))
-				startPos = pos + 1
+			const nextPos = nextPosition(lines, pos)
+			if (nextPos.line !== pos.line) {
+				if (!equal(startPos, pos)) last(containerStack).children.push(noTokenNode(startPos))
+				startPos = nextPos
 				nextLine()
 			}
-			pos++
-			if (shouldStopDiag(pos)) {
+			pos = nextPos
+			if (shouldStopDiag()) {
 				last(containerStack).children.push(noTokenNode(startPos))
 				startPos = pos
 				popContainer()
 			}
 		}
-		if (startPos < pos) last(containerStack).children.push(noTokenNode(startPos))
+		if (less(startPos, pos))
+			last(containerStack).children.push(noTokenNode(startPos))
 	}
 
-	/** @type {function(string, number): void} */
+	/** @type {function(string, crow.LineAndCharacter): void} */
 	const addSpan = (className, end) => {
-		assert(pos <= end)
+		assert(lessOrEqual(pos, end))
 		// Ignore empty spans, they can happen when there are parse errors
-		if (pos != end) {
-			const parts = text.slice(pos, end).split('\n')
+		if (!equal(pos, end)) {
+			const parts = sliceLines(lines, pos, end)
 			last(containerStack).children.push(createSpan({ className, children: [nonNull(parts[0])] }))
 			for (const part of parts.slice(1)) {
 				nextLine()
@@ -455,17 +459,74 @@ const tokensAndDiagsToNodes = (tokens, diags, text) => {
 	startLine()
 
 	let diagIndex = 0
-	for (const {token, range:{start:tokenPos, end:tokenEnd}} of tokens) {
-		walkTo(tokenPos)
-		maybeStartDiag(tokenPos)
-		addSpan(token, tokenEnd)
-		maybeStopDiag(tokenEnd)
+	for (const {token, range:{start, end}} of tokens) {
+		walkTo(start)
+		maybeStartDiag()
+		addSpan(token, end)
+		maybeStopDiag()
 	}
 
-	walkTo(text.length)
+	walkTo(lastPosition(lines))
 	endLine()
 	assert(containerStack.length === 1 && nonNull(containerStack[0]).type === "all")
 	return nonNull(containerStack[0]).children
+}
+
+/** @type {function(ReadonlyArray<string>, crow.LineAndCharacter, crow.LineAndCharacter): ReadonlyArray<string>} */
+const sliceLines = (lines, start, end) =>
+	start.line === end.line
+		? [sliceLine(lines, start, end)]
+		: [
+			sliceLine(lines, start, null),
+			...lines.slice(start.line, end.line),
+			sliceLine(lines, null, end),
+		]
+
+/** @type {function(ReadonlyArray<string>, crow.LineAndCharacter | null, crow.LineAndCharacter | null): string} */
+const sliceLine = (lines, start, end) => {
+	assert(start === null || end === null || start.line === end.line)
+	if (start !== null) {
+		if (end !== null) {
+			assert(start.line === end.line)
+			return nonNull(lines[start.line]).slice(start.character, end.character)
+		} else
+			return nonNull(lines[start.line]).slice(start.character)
+	} else {
+		assert(end !== null)
+		return nonNull(lines[end.line]).slice(0, end.character)
+	}
+}
+
+/** @type {function(crow.LineAndCharacter, crow.LineAndCharacter): boolean} */
+const less = (a, b) =>
+	a.line < b.line ? true :
+	b.line < a.line ? false :
+	a.character < b.character;
+
+/** @type {function(crow.LineAndCharacter, crow.LineAndCharacter): boolean} */
+const equal = (a, b) =>
+	a.line === b.line && a.character === b.character
+
+/** @type {function(crow.LineAndCharacter, crow.LineAndCharacter): boolean} */
+const lessOrEqual = (a, b) =>
+	less(a, b) || equal(a, b)
+
+/** @type {function(ReadonlyArray<string>, crow.LineAndCharacter): crow.LineAndCharacter} */
+const nextPosition = (lines, pos) =>
+	pos.character >= getLength(nonNull(lines[pos.line]))
+		? {line:pos.line + 1, character:0}
+		: {line:pos.line, character:pos.character + 1}
+
+/** @type {function(ReadonlyArray<string>): crow.LineAndCharacter} */
+const lastPosition = lines =>
+	({line:lines.length - 1, character:getLength(last(lines))})
+
+/** @type {function(string): number} */
+const getLength = line => {
+	let res = 0
+	for (const char of line)
+		res += (char === '\t' ? 4 : 1)
+	return res
 }
 
 /**

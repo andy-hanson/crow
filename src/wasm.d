@@ -5,9 +5,9 @@ import frontend.ide.getTokens : jsonOfTokens;
 import frontend.showModel : ShowOptions;
 import interpret.fakeExtern : Pipe;
 import lib.server :
-	addOrChangeFileFromTempString,
+	allLoadingUris,
+	allStorageUris,
 	allUnknownUris,
-	deleteFile,
 	getDefinition,
 	getFile,
 	getHover,
@@ -18,11 +18,14 @@ import lib.server :
 	Server,
 	setCwd,
 	setDiagOptions,
+	setFile,
+	setFileFromTemp,
 	setIncludeDir,
 	showDiagnostic,
 	TokensAndParseDiagnostics,
 	toUri,
-	typeCheckAllKnownFiles;
+	typeCheckAllKnownFiles,
+	version_;
 import model.diag : Diagnostic;
 import model.model : Program;
 import util.alloc.alloc : Alloc, allocateT;
@@ -32,11 +35,13 @@ import util.col.multiMap : groupBy, MultiMap, multiMapEach;
 import util.col.str : CStr, SafeCStr;
 import util.exitCode : ExitCode;
 import util.json : field, jsonObject, Json, jsonToString, jsonList, jsonString, optionalField;
+import util.lineAndColumnGetter : lineAndColumnGetterForUri;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
 import util.opt : force, has, Opt;
 import util.perf : eachMeasure, Perf, PerfMeasureResult, withNullPerf;
 import util.sourceRange : Pos, jsonOfRangeWithinFile;
-import util.storage : asSafeCStr, FileContent;
+import util.storage : asSafeCStr, FileContent, readFileIssueOfSym, ReadFileResult;
+import util.sym : symOfSafeCStr;
 import util.uri : parseUri, Uri, uriToString;
 
 // seems to be the required entry point
@@ -86,12 +91,18 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 	return server;
 }
 
-@system extern(C) void addOrChangeFile(Server* server, scope CStr uri, scope CStr content) {
-	addOrChangeFileFromTempString(*server, toUri(*server, SafeCStr(uri)), SafeCStr(content));
+extern(C) CStr version_(Server* server) {
+	Alloc resultAlloc = Alloc(resultBuffer);
+	return version_(resultAlloc, *server).ptr;
 }
 
-@system extern(C) void deleteFile(Server* server, scope CStr uri) {
-	deleteFile(*server, toUri(*server, SafeCStr(uri)));
+@system extern(C) void setFileSuccess(Server* server, scope CStr uri, scope CStr content) {
+	setFileFromTemp(*server, toUri(*server, SafeCStr(uri)), SafeCStr(content));
+}
+
+@system extern(C) void setFileIssue(Server* server, scope CStr uri, scope CStr issue) {
+	setFile(*server, toUri(*server, SafeCStr(uri)), ReadFileResult(
+		readFileIssueOfSym(symOfSafeCStr(server.allSymbols, SafeCStr(issue)))));
 }
 
 @system extern(C) CStr getFile(Server* server, scope CStr uri) {
@@ -108,13 +119,23 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 	});
 }
 
-// This is just a getter; call 'justParseEverything' first to populate the list of unknown URIs
+// These are just getters; call 'justParseEverything' first to search for URIs
+@system extern(C) CStr allStorageUris(Server* server) {
+	Alloc resultAlloc = Alloc(resultBuffer);
+	return urisToJson(resultAlloc, *server, allStorageUris(resultAlloc, *server));
+}
 @system extern(C) CStr allUnknownUris(Server* server) {
 	Alloc resultAlloc = Alloc(resultBuffer);
-	Uri[] res = allUnknownUris(resultAlloc, *server);
-	return jsonToString(resultAlloc, server.allSymbols, jsonList(map(resultAlloc, res, (ref Uri x) =>
-		jsonString(uriToString(resultAlloc, server.allUris, x))))).ptr;
+	return urisToJson(resultAlloc, *server, allUnknownUris(resultAlloc, *server));
 }
+@system extern(C) CStr allLoadingUris(Server* server) {
+	Alloc resultAlloc = Alloc(resultBuffer);
+	return urisToJson(resultAlloc, *server, allLoadingUris(resultAlloc, *server));
+}
+
+CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
+	jsonToString(alloc, server.allSymbols, jsonList(map(alloc, uris, (ref Uri x) =>
+		jsonString(uriToString(alloc, server.allUris, x))))).ptr;
 
 @system extern(C) CStr getTokensAndParseDiagnostics(Server* server, scope CStr uriPtr) {
 	Uri uri = toUri(*server, SafeCStr(uriPtr));
@@ -122,7 +143,10 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 	TokensAndParseDiagnostics res = withNullPerf!(TokensAndParseDiagnostics, (ref Perf perf) =>
 		getTokensAndParseDiagnostics(resultAlloc, perf, *server, uri));
 	return jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
-		field!"tokens"(jsonOfTokens(resultAlloc, res.tokens)),
+		field!"tokens"(jsonOfTokens(
+			resultAlloc,
+			lineAndColumnGetterForUri(server.lineAndColumnGetters, uri),
+			res.tokens)),
 		field!"parse-diagnostics"(jsonOfDiagnostics(resultAlloc, *server, res.programForDiagnostics))])).ptr;
 }
 
@@ -141,7 +165,7 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 		ProgramAndDefinition res = getDefinition(perf, resultAlloc, *server, uri, pos);
 		return jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
 			optionalField!"definition"(has(res.definition), () =>
-				jsonOfDefinition(resultAlloc, server.allUris, force(res.definition)))
+				jsonOfDefinition(resultAlloc, server.allUris, server.lineAndColumnGetters, force(res.definition)))
 		]));
 	}).ptr;
 }
@@ -200,5 +224,5 @@ Json jsonOfDiagnostics(ref Alloc alloc, ref Server server, in Program program) {
 
 Json jsonOfDiagnostic(ref Alloc alloc, ref Server server, in Program program, in Diagnostic a) =>
 	jsonObject(alloc, [
-		field!"range"(jsonOfRangeWithinFile(alloc, a.where.range)),
+		field!"range"(jsonOfRangeWithinFile(alloc, server.lineAndColumnGetters, a.where)),
 		field!"message"(jsonString(alloc, showDiagnostic(alloc, server, program, a)))]);

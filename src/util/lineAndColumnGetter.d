@@ -4,11 +4,11 @@ module util.lineAndColumnGetter;
 
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.mutMap : getOrAdd, MutMap;
+import util.col.mutMap : getOrAdd, mayDelete, MutMap;
 import util.col.str : SafeCStr, safeCStr;
 import util.conv : safeToUint;
-import util.sourceRange : Pos, UriAndPos, UriAndRange;
-import util.storage : asSafeCStr, FileContent, ReadFileIssue, ReadFileResult, Storage, withFileContentNoMarkUnknown;
+import util.sourceRange : Pos, RangeWithinFile, UriAndPos, UriAndRange;
+import util.storage : asSafeCStr, FileContent, ReadFileIssue, ReadFileResult, Storage, withFileNoMarkUnknown;
 import util.uri : Uri;
 import util.util : min, verify;
 
@@ -26,35 +26,70 @@ struct LineAndColumnGetters {
 	}
 }
 
-Pos posAtLineAndColumn(ref LineAndColumnGetters a, Uri uri, LineAndColumn lc) =>
+void uncacheFile(scope ref LineAndColumnGetters a, Uri uri) {
+	// TODO: also free memory
+	mayDelete(a.getters, uri);
+}
+
+Pos posAtLineAndColumn(ref LineAndColumnGetters a, Uri uri, in LineAndColumn lc) =>
 	posAtLineAndColumn(lineAndColumnGetterForUri(a, uri), lc);
 
-LineAndColumn lineAndColumnAtPos(ref LineAndColumnGetters a, UriAndPos pos, PosKind kind) =>
+LineAndColumn lineAndColumnAtPos(ref LineAndColumnGetters a, in UriAndPos pos, PosKind kind) =>
 	lineAndColumnAtPos(lineAndColumnGetterForUri(a, pos.uri), pos.pos, kind);
 
-LineAndColumnRange lineAndColumnRange(ref LineAndColumnGetters a, UriAndRange range) =>
-	LineAndColumnRange(
-		lineAndColumnAtPos(a, UriAndPos(range.uri, range.range.start), PosKind.startOfRange),
-		lineAndColumnAtPos(a, UriAndPos(range.uri, range.range.end), PosKind.endOfRange));
+LineAndCharacter lineAndCharacterAtPos(ref LineAndColumnGetters a, in UriAndPos pos, PosKind kind) =>
+	lineAndCharacterAtPos(lineAndColumnGetterForUri(a, pos.uri), pos.pos, kind);
 
-private LineAndColumnGetter lineAndColumnGetterForUri(ref LineAndColumnGetters a, Uri uri) =>
+LineAndCharacterRange lineAndCharacterRange(scope ref LineAndColumnGetters a, in UriAndRange range) =>
+	lineAndCharacterRange(lineAndColumnGetterForUri(a, range.uri), range.range);
+
+LineAndColumnRange lineAndColumnRange(scope ref LineAndColumnGetters a, in UriAndRange range) =>
+	lineAndColumnRange(lineAndColumnGetterForUri(a, range.uri), range.range);
+
+LineAndCharacterRange lineAndCharacterRange(in LineAndColumnGetter a, in RangeWithinFile range) =>
+	LineAndCharacterRange(
+		lineAndCharacterAtPos(a, range.start, PosKind.startOfRange),
+		lineAndCharacterAtPos(a, range.end, PosKind.endOfRange));
+
+LineAndColumnRange lineAndColumnRange(in LineAndColumnGetter a, in RangeWithinFile range) =>
+	LineAndColumnRange(
+		lineAndColumnAtPos(a, range.start, PosKind.startOfRange),
+		lineAndColumnAtPos(a, range.end, PosKind.endOfRange));
+
+LineAndColumnGetter lineAndColumnGetterForUri(ref LineAndColumnGetters a, Uri uri) =>
 	getOrAdd(*a.alloc, a.getters, uri, () =>
-		withFileContentNoMarkUnknown!LineAndColumnGetter(*a.storage, uri, (in ReadFileResult x) =>
+		withFileNoMarkUnknown!LineAndColumnGetter(*a.storage, uri, (in ReadFileResult x) =>
 			x.matchIn!LineAndColumnGetter(
 				(in FileContent content) =>
 					lineAndColumnGetterForText(*a.alloc, asSafeCStr(content)),
 				(in ReadFileIssue _) =>
 					lineAndColumnGetterForEmptyFile(*a.alloc))));
 
-immutable struct LineAndColumn {
-	// both 0-indexed (even though they are usually 1-indexed when written)
+immutable struct LineAndCharacter {
 	uint line;
-	uint column;
+	uint character;
+}
+
+immutable struct LineAndColumn {
+	@safe @nogc pure nothrow:
+
+	uint line0Indexed;
+	uint column0Indexed;
+
+	uint line1Indexed() =>
+		line0Indexed + 1;
+	uint column1Indexed() =>
+		column0Indexed + 1;
 }
 
 immutable struct LineAndColumnRange {
 	LineAndColumn start;
 	LineAndColumn end;
+}
+
+immutable struct LineAndCharacterRange {
+	LineAndCharacter start;
+	LineAndCharacter end;
 }
 
 immutable struct LineAndColumnGetter {
@@ -106,6 +141,15 @@ private LineAndColumnGetter lineAndColumnGetterForEmptyFile(ref Alloc alloc) =>
 enum PosKind { startOfRange, endOfRange }
 
 LineAndColumn lineAndColumnAtPos(in LineAndColumnGetter lc, Pos pos, PosKind kind) {
+	LineAndCharacter res = lineAndCharacterAtPos(lc, pos, kind);
+	ubyte nTabs = lc.lineToNTabs[res.line];
+	uint column = res.character <= nTabs
+		? res.character * TAB_SIZE
+		: nTabs * (TAB_SIZE - 1) + res.character;
+	return LineAndColumn(res.line, column);
+}
+
+LineAndCharacter lineAndCharacterAtPos(in LineAndColumnGetter lc, Pos pos, PosKind kind) {
 	uint line = lineAtPos(lc, pos);
 	if (kind == PosKind.endOfRange && lc.lineToPos[line] == pos && line != 0) {
 		// Show end of range at the end of the previous line
@@ -114,23 +158,19 @@ LineAndColumn lineAndColumnAtPos(in LineAndColumnGetter lc, Pos pos, PosKind kin
 	}
 	Pos lineStart = lc.lineToPos[line];
 	verify((pos >= lineStart && line == lc.lineToPos.length - 1) || pos <= lc.lineToPos[line + 1]);
-	uint nCharsIntoLine = pos - lineStart;
+	uint character = pos - lineStart;
 	// Don't include a column for the '\r' in '\r\n'
 	if (lc.usesCRLF && line + 1 < lc.lineToPos.length && pos + 1 == lc.lineToPos[line + 1])
-		nCharsIntoLine--;
-	ubyte nTabs = lc.lineToNTabs[line];
-	uint column = nCharsIntoLine <= nTabs
-		? nCharsIntoLine * TAB_SIZE
-		: nTabs * (TAB_SIZE - 1) + nCharsIntoLine;
-	return LineAndColumn(line, column);
+		character--;
+	return LineAndCharacter(line, character);
 }
 
 Pos posAtLineAndColumn(in LineAndColumnGetter a, LineAndColumn lc) =>
-	lc.line >= a.lineToPos.length
+	lc.line0Indexed >= a.lineToPos.length
 		? a.maxPos
 		: min(
-			a.lineToPos[lc.line] + columnToPosOffset(lc.column, a.lineToNTabs[lc.line]),
-			lc.line == a.lineToPos.length - 1 ? a.maxPos : a.lineToPos[lc.line + 1] - 1);
+			a.lineToPos[lc.line0Indexed] + columnToPosOffset(lc.column0Indexed, a.lineToNTabs[lc.line0Indexed]),
+			lc.line0Indexed == a.lineToPos.length - 1 ? a.maxPos : a.lineToPos[lc.line0Indexed + 1] - 1);
 
 private:
 

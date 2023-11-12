@@ -164,6 +164,11 @@ ref KeyValuePair!(K, V) getOrAddPair(K, V)(
 	}
 }
 
+Opt!V mayDelete(K, V)(ref MutMap!(K, V) a, in K key) =>
+	hasKey_mut(a, key)
+		? some(mustDelete(a, key))
+		: none!V;
+
 immutable(V) mustDelete(K, V)(ref MutMap!(K, V) a, in K key) {
 	verify(a.pairs.length != 0);
 	size_t i = getHash(key) % a.pairs.length;

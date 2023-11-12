@@ -19,11 +19,14 @@ Exports of `wasm.d`:
 @property {function(): number} getParameterBufferPointer
 @property {function(): number} getParameterBufferSizeBytes
 @property {function(CStr, CStr): Server} newServer
-@property {function(Server, CStr, CStr): void} addOrChangeFile
-@property {function(Server, CStr): void} deleteFile
+@property {function(Server): CStr} version_
+@property {function(Server, CStr, CStr): void} setFileSuccess
+@property {function(Server, CStr, CStr): void} setFileIssue
 @property {function(Server, CStr): CStr} getFile
 @property {function(Server, CStr): void} searchImportsFromUri
+@property {function(Server): CStr} allStorageUris
 @property {function(Server): CStr} allUnknownUris
+@property {function(Server): CStr} allLoadingUris
 @property {function(Server, CStr): CStr} getTokensAndParseDiagnostics
 @property {function(Server): CStr} getAllDiagnostics
 @property {function(Server, CStr, number): CStr} getDefinition
@@ -156,16 +159,18 @@ globalCrow.makeCompiler = async (bytes, includeDir, cwd) => {
 		readStringFromView(view, begin, end)
 
 	return {
-		addOrChangeFile: (uri, content) =>{
+		version: () =>
+			readCStr(exports.version_(server)),
+		setFileSuccess: (uri, content) =>{
 			try {
-				exports.addOrChangeFile(server, paramAlloc.writeCStr(uri), paramAlloc.writeCStr(content))
+				exports.setFileSuccess(server, paramAlloc.writeCStr(uri), paramAlloc.writeCStr(content))
 			} finally {
 				paramAlloc.clear()
 			}
 		},
-		deleteFile: uri => {
+		setFileIssue: (uri, issue) => {
 			try {
-				exports.deleteFile(server, paramAlloc.writeCStr(uri))
+				exports.setFileIssue(server, paramAlloc.writeCStr(uri), paramAlloc.writeCStr(issue))
 			} finally {
 				paramAlloc.clear()
 			}
@@ -184,8 +189,12 @@ globalCrow.makeCompiler = async (bytes, includeDir, cwd) => {
 				paramAlloc.clear()
 			}
 		},
+		allStorageUris: () =>
+			JSON.parse(readCStr(exports.allStorageUris(server))),
 		allUnknownUris: () =>
 			JSON.parse(readCStr(exports.allUnknownUris(server))),
+		allLoadingUris: () =>
+			JSON.parse(readCStr(exports.allLoadingUris(server))),
 		getTokensAndParseDiagnostics: uri => {
 			try {
 				const res = JSON.parse(

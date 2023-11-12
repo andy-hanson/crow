@@ -9,14 +9,14 @@ const main = async () => {
 	const include = JSON.parse(fs.readFileSync("site/include-all.json", "utf-8"))
 	for (const [path, content] of Object.entries(include)) {
 		const fullPath = `/include/${path}`
-		comp.addOrChangeFile(fullPath, content)
+		comp.setFileSuccess(fullPath, content)
 		if (comp.getFile(fullPath) !== content)
 			throw new Error(`Can't read back ${path}`)
 	}
 
 	const path = "demo/hello.crow"
 	const content = fs.readFileSync(path, "utf-8")
-	comp.addOrChangeFile(path, content)
+	comp.setFileSuccess(path, content)
 	const result = comp.run(path)
 	if (result.exitCode !== 0 || !writesEqual(result.writes, [{pipe:'stdout', text:"Hello, world!\n"}])) {
 		console.error(result)

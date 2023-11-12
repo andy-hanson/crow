@@ -12,6 +12,7 @@ import frontend.ide.getHover : getHoverStr;
 import frontend.ide.getPosition : getPosition;
 import frontend.ide.getTokens : jsonOfTokens, Token, tokensOfAst;
 import frontend.ide.position : Position;
+import frontend.lang : crowExtension;
 import frontend.parse.ast : FileAst;
 import frontend.parse.jsonOfAst : jsonOfAst;
 import frontend.parse.parse : parseFile;
@@ -36,27 +37,29 @@ import util.col.str : SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
 import util.exitCode : ExitCode;
 import util.json : Json, jsonString;
 import util.late : Late, lateGet, lateSet;
-import util.lineAndColumnGetter : LineAndColumnGetters;
+import util.lineAndColumnGetter : lineAndColumnGetterForUri, LineAndColumnGetters, uncacheFile;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.ptr : ptrTrustMe;
 import util.storage :
-	allKnownGoodUris,
 	allocateToStorage,
-	allUnknownUris,
+	allKnownGoodUris,
+	allStorageUris,
+	allUrisWithIssue,
 	asSafeCStr,
-	deleteFile,
 	FileContent,
 	getFileNoMarkUnknown,
-	hasUnknownUris,
+	hasUnknownOrLoadingUris,
+	ReadFileIssue,
 	ReadFileResult,
 	Storage,
 	setFile,
-	withFileContent;
+	withFile;
 import util.sourceRange : Pos;
 import util.sym : AllSymbols;
-import util.uri : AllUris, parseUri, Uri, UrisInfo;
+import util.uri : AllUris, getExtension, parseUri, Uri, UrisInfo;
 import util.util : verify;
+import util.writer : finishWriterToSafeCStr, Writer;
 import versionInfo : VersionInfo, versionInfoForBuildToC, versionInfoForInterpret;
 
 ExitCode run(ref Perf perf, ref Alloc alloc, ref Server server, Uri main, in WriteCb writeCb) {
@@ -81,7 +84,7 @@ ExitCode buildAndInterpret(
 	Uri main,
 	in SafeCStr[] allArgs,
 ) {
-	verify(!hasUnknownUris(server));
+	verify(!hasUnknownOrLoadingUris(server));
 	Programs programs = buildToLowProgram(alloc, perf, server, versionInfoForInterpret, main);
 	SafeCStr diags = showDiagnostics(alloc, server, programs.program);
 	if (!safeCStrIsEmpty(diags))
@@ -135,6 +138,44 @@ struct Server {
 		lateGet(diagOptions_);
 }
 
+SafeCStr version_(ref Alloc alloc, in Server server) {
+	static immutable string date = import("date.txt")[0 .. "2020-02-02".length];
+	static immutable string commitHash = import("commit-hash.txt")[0 .. 8];
+	Writer writer = Writer(&alloc);
+	writer ~= date;
+	//"%.*s (%.*s)",
+	writer ~= " (";
+	writer ~= commitHash;
+	writer ~= ")";
+	version (Debug) {
+		writer ~= ", debug build";
+	}
+	version (assert) {} else {
+		writer ~= ", assertions disabled";
+	}
+	version (TailRecursionAvailable) {} else {
+		writer ~= ", no tail calls";
+	}
+	version (GccJitEnabled) {} else {
+		writer ~= ", does not support '--jit'";
+	}
+	writer ~= ", built with ";
+	writer ~= dCompilerName;
+	return finishWriterToSafeCStr(writer);
+}
+
+private string dCompilerName() {
+	version (DigitalMars) {
+		return "DMD";
+	} else version (GNU) {
+		return "GDC";
+	} else version (LDC) {
+		return "LDC";
+	} else {
+		static assert(false);
+	}
+}
+
 void setIncludeDir(ref Server server, Uri uri) {
 	lateSet!Uri(server.includeDir_, uri);
 }
@@ -147,33 +188,40 @@ void setDiagOptions(ref Server server, in ShowOptions options) {
 	lateSet!ShowOptions(server.diagOptions_, options);
 }
 
-void addOrChangeFileFromTempString(ref Server server, Uri uri, in SafeCStr value) {
-	setFile(server.storage, uri, ReadFileResult(allocateToStorage(server.storage, value)));
+void setFile(ref Server server, Uri uri, ReadFileResult result) {
+	uncacheFile(server, uri);
+	setFile(server.storage, uri, result);
 }
 
-void addOrChangeFile(ref Server server, Uri uri, ReadFileResult value) {
-	setFile(server.storage, uri, value);
+void setFileFromTemp(ref Server server, Uri uri, in SafeCStr text) {
+	uncacheFile(server, uri);
+	setFile(server, uri, ReadFileResult(allocateToStorage(server.storage, text)));
 }
 
-void deleteFile(ref Server server, Uri uri) {
-	deleteFile(server.storage, uri);
+private void uncacheFile(scope ref Server server, Uri uri) {
+	uncacheFile(server.lineAndColumnGetters, uri);
 }
 
 Opt!FileContent getFile(ref Alloc alloc, in Server server, Uri uri) =>
 	getFileNoMarkUnknown(alloc, server.storage, uri);
 
-private bool hasUnknownUris(in Server server) =>
-	hasUnknownUris(server.storage);
+private bool hasUnknownOrLoadingUris(in Server server) =>
+	hasUnknownOrLoadingUris(server.storage);
 
+Uri[] allStorageUris(ref Alloc alloc, in Server server) =>
+	allStorageUris(alloc, server.storage);
 Uri[] allUnknownUris(ref Alloc alloc, in Server server) =>
-	allUnknownUris(alloc, server.storage);
+	allUrisWithIssue(alloc, server.storage, ReadFileIssue.unknown);
+Uri[] allLoadingUris(ref Alloc alloc, in Server server) =>
+	allUrisWithIssue(alloc, server.storage, ReadFileIssue.loading);
 
 void justParseEverything(ref Alloc alloc, ref Perf perf, ref Server server, in Uri[] rootUris) {
 	parseAllFiles(alloc, perf, server.allSymbols, server.allUris, server.storage, server.includeDir, rootUris);
 }
 
 Program typeCheckAllKnownFiles(ref Alloc alloc, ref Perf perf, ref Server server) =>
-	justTypeCheck(alloc, perf, server, allKnownGoodUris(alloc, server.storage));
+	justTypeCheck(alloc, perf, server, allKnownGoodUris(alloc, server.storage, (Uri uri) =>
+		getExtension(server.allUris, uri) == crowExtension));
 
 Program justTypeCheck(ref Alloc alloc, ref Perf perf, ref Server server, in Uri[] rootUris) =>
 	frontendCompile(alloc, perf, server, rootUris, none!Uri);
@@ -215,13 +263,13 @@ TokensAndParseDiagnostics getTokensAndParseDiagnostics(
 	ref Server server,
 	Uri uri,
 ) =>
-	withFileContent!TokensAndParseDiagnostics(server.storage, uri, (in ReadFileResult x) {
+	withFile!TokensAndParseDiagnostics(server.storage, uri, (in ReadFileResult x) {
 		SafeCStr text = x.isA!FileContent ? asSafeCStr(x.as!FileContent) : safeCStr!"";
 		DiagnosticsBuilder diags = DiagnosticsBuilder(&alloc);
 		DiagnosticsBuilderForFile diagsForFile = DiagnosticsBuilderForFile(&diags, uri);
 		FileAst ast = parseFile(alloc, perf, server.allSymbols, server.allUris, diagsForFile, text);
 		return TokensAndParseDiagnostics(
-			tokensOfAst(alloc, server.allSymbols, ast),
+			tokensOfAst(alloc, server.allSymbols, server.allUris, ast),
 			fakeProgramForDiagnostics(finishDiagnostics(diags, server.allUris)));
 	});
 
@@ -276,7 +324,10 @@ DiagsAndResultJson printTokens(ref Alloc alloc, ref Perf perf, ref Server server
 		alloc, perf, server.allSymbols, server.allUris, server.storage, uri);
 	return diagsAndResultJson(
 		alloc, server, fakeProgramForDiagnostics(astResult.diagnostics),
-		jsonOfTokens(alloc, tokensOfAst(alloc, server.allSymbols, astResult.ast)));
+		jsonOfTokens(
+			alloc,
+			lineAndColumnGetterForUri(server.lineAndColumnGetters, uri),
+			tokensOfAst(alloc, server.allSymbols, server.allUris, astResult.ast)));
 }
 
 DiagsAndResultJson printAst(ref Alloc alloc, ref Perf perf, ref Server server, Uri uri) {
@@ -286,18 +337,23 @@ DiagsAndResultJson printAst(ref Alloc alloc, ref Perf perf, ref Server server, U
 		alloc,
 		server,
 		fakeProgramForDiagnostics(astResult.diagnostics),
-		jsonOfAst(alloc, server.allUris, astResult.ast));
+		jsonOfAst(alloc, server.allUris, lineAndColumnGetterForUri(server.lineAndColumnGetters, uri), astResult.ast));
 }
 
 DiagsAndResultJson printModel(ref Alloc alloc, ref Perf perf, ref Server server, Uri uri) {
 	Program program = frontendCompile(alloc, perf, server, [uri], none!Uri);
-	return diagsAndResultJson(alloc, server, program, jsonOfModule(alloc, server.allUris, *only(program.rootModules)));
+	return diagsAndResultJson(alloc, server, program, jsonOfModule(
+		alloc,
+		server.allUris,
+		lineAndColumnGetterForUri(server.lineAndColumnGetters, uri),
+		*only(program.rootModules)));
 }
 
 DiagsAndResultJson printConcreteModel(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref Server server,
+	scope ref LineAndColumnGetters lineAndColumnGetters,
 	in VersionInfo versionInfo,
 	Uri uri,
 ) {
@@ -305,13 +361,14 @@ DiagsAndResultJson printConcreteModel(
 	ShowCtx ctx = getShowDiagCtx(server, program);
 	return diagsAndResultJson(
 		alloc, server, program,
-		jsonOfConcreteProgram(alloc, concretize(alloc, perf, ctx, versionInfo, program)));
+		jsonOfConcreteProgram(alloc, lineAndColumnGetters, concretize(alloc, perf, ctx, versionInfo, program)));
 }
 
 DiagsAndResultJson printLowModel(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref Server server,
+	scope ref LineAndColumnGetters lineAndColumnGetters,
 	in VersionInfo versionInfo,
 	Uri uri,
 ) {
@@ -319,7 +376,7 @@ DiagsAndResultJson printLowModel(
 	ShowCtx ctx = getShowDiagCtx(server, program);
 	ConcreteProgram concreteProgram = concretize(alloc, perf, ctx, versionInfo, program);
 	LowProgram lowProgram = lower(alloc, perf, server.allSymbols, program.config.extern_, program, concreteProgram);
-	return diagsAndResultJson(alloc, server, program, jsonOfLowProgram(alloc, lowProgram));
+	return diagsAndResultJson(alloc, server, program, jsonOfLowProgram(alloc, lineAndColumnGetters, lowProgram));
 }
 
 DiagsAndResultJson printHover(ref Alloc alloc, ref Perf perf, ref Server server, Uri uri, Pos pos) {

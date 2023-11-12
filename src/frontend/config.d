@@ -16,7 +16,7 @@ import util.opt : force, has, none, Opt, some;
 import util.ptr : ptrTrustMe;
 import util.jsonParse : parseJson;
 import util.sourceRange : RangeWithinFile;
-import util.storage : asSafeCStr, FileContent, ReadFileIssue, ReadFileResult, Storage, withFileContent;
+import util.storage : asSafeCStr, FileContent, ReadFileIssue, ReadFileResult, Storage, withFile;
 import util.sym : AllSymbols, Sym, sym;
 import util.uri : AllUris, bogusUri, childUri, commonAncestor, parent, parseUriWithCwd, Uri;
 import util.util : todo;
@@ -51,7 +51,7 @@ Config getConfigRecur(
 ) {
 	Uri configUri = childUri(allUris, searchUri, sym!"crow-config.json");
 	DiagnosticsBuilderForFile diags = DiagnosticsBuilderForFile(ptrTrustMe(diagsBuilder), configUri);
-	Opt!Config res = withFileContent!(Opt!Config)(storage, configUri, (in ReadFileResult a) =>
+	Opt!Config res = withFile!(Opt!Config)(storage, configUri, (in ReadFileResult a) =>
 		a.matchIn!(Opt!Config)(
 			(in FileContent content) =>
 				some(parseConfig(alloc, allSymbols, allUris, crowIncludeDir, searchUri, diags, asSafeCStr(content))),
@@ -62,6 +62,7 @@ Config getConfigRecur(
 					case ReadFileIssue.error:
 						addDiagnosticForFile(diags, RangeWithinFile.empty, Diag(Diag.FileIssue(configUri, issue)));
 						return some(emptyConfig(crowIncludeDir));
+					case ReadFileIssue.loading:
 					case ReadFileIssue.unknown:
 						return some(emptyConfig(crowIncludeDir));
 				}

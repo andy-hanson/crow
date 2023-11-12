@@ -39,6 +39,7 @@ import frontend.parse.ast :
 	NameAndRange,
 	ParamsAst,
 	ParenthesizedAst,
+	pathRange,
 	PtrAst,
 	range,
 	rangeOfModifierAst,
@@ -65,10 +66,12 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.sortUtil : eachSorted, findUnsortedPair, UnsortedPair;
 import util.conv : safeToUint;
 import util.json : field, jsonObject, Json, jsonList;
+import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : force, has, Opt;
 import util.sourceRange :
 	compareRangeWithinFile, Pos, jsonOfRangeWithinFile, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym, symSize;
+import util.uri : AllUris;
 import util.util : todo;
 
 immutable struct Token {
@@ -92,15 +95,17 @@ immutable struct Token {
 	RangeWithinFile range;
 }
 
-Json jsonOfTokens(ref Alloc alloc, scope Token[] tokens) =>
+Json jsonOfTokens(ref Alloc alloc, in LineAndColumnGetter lcg, in Token[] tokens) =>
 	jsonList!Token(alloc, tokens, (in Token x) =>
-		jsonOfToken(alloc, x));
+		jsonOfToken(alloc, lcg, x));
 
-Token[] tokensOfAst(ref Alloc alloc, ref AllSymbols allSymbols, in FileAst ast) {
+Token[] tokensOfAst(ref Alloc alloc, in AllSymbols allSymbols, in AllUris allUris, in FileAst ast) {
 	TokensBuilder tokens;
 
-	addImportTokens(alloc, tokens, allSymbols, ast.imports, sym!"import");
-	addImportTokens(alloc, tokens, allSymbols, ast.exports, sym!"export");
+	if (has(ast.imports))
+		addImportTokens(alloc, tokens, allSymbols, allUris, force(ast.imports), sym!"import");
+	if (has(ast.exports))
+		addImportTokens(alloc, tokens, allSymbols, allUris, force(ast.exports), sym!"export");
 
 	//TODO: also tests...
 	eachSorted!(RangeWithinFile, SpecDeclAst, StructAliasAst, StructDeclAst, FunDeclAst, VarDeclAst)(
@@ -138,13 +143,14 @@ void addImportTokens(
 	ref Alloc alloc,
 	ref TokensBuilder tokens,
 	in AllSymbols allSymbols,
-	in Opt!ImportsOrExportsAst a,
+	in AllUris allUris,
+	in ImportsOrExportsAst a,
 	Sym keyword,
 ) {
-	if (has(a)) {
-		add(alloc, tokens, Token(Token.Kind.keyword, rangeAtName(allSymbols, force(a).range.start, keyword)));
-		foreach (ref ImportOrExportAst path; force(a).paths)
-			add(alloc, tokens, Token(Token.Kind.importPath, path.range));
+	add(alloc, tokens, Token(Token.Kind.keyword, rangeAtName(allSymbols, a.range.start, keyword)));
+	foreach (ref ImportOrExportAst x; a.paths) {
+		add(alloc, tokens, Token(Token.Kind.importPath, pathRange(allUris, x)));
+		// TODO: tokens for imported names
 	}
 }
 
@@ -321,7 +327,7 @@ void addVarDeclTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols a
 	addFunModifierTokens(alloc, tokens, allSymbols, a.modifiers);
 }
 
-void addFunTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols allSymbols, in FunDeclAst a) {
+void addFunTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in FunDeclAst a) {
 	add(alloc, tokens, Token(Token.Kind.fun, rangeOfNameAndRange(a.name, allSymbols)));
 	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
 	addSigReturnTypeAndParamsTokens(alloc, tokens, allSymbols, a.returnType, a.params);
@@ -330,7 +336,7 @@ void addFunTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols allS
 		addExprTokens(alloc, tokens, allSymbols, force(a.body_));
 }
 
-void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols allSymbols, in ExprAst a) {
+void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in ExprAst a) {
 	a.kind.matchIn!void(
 		(in ArrowAccessAst it) {
 			addExprTokens(alloc, tokens, allSymbols, *it.left);
@@ -554,7 +560,7 @@ void addDestructureTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbo
 		});
 }
 
-void addExprsTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols allSymbols, in ExprAst[] exprs) {
+void addExprsTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in ExprAst[] exprs) {
 	foreach (ref ExprAst expr; exprs)
 		addExprTokens(alloc, tokens, allSymbols, expr);
 }
@@ -600,7 +606,7 @@ Sym symOfTokenKind(Token.Kind kind) {
 	}
 }
 
-Json jsonOfToken(ref Alloc alloc, Token token) =>
+Json jsonOfToken(ref Alloc alloc, in LineAndColumnGetter lcg, Token token) =>
 	jsonObject(alloc, [
 		field!"token"(symOfTokenKind(token.kind)),
-		field!"range"(jsonOfRangeWithinFile(alloc, token.range))]);
+		field!"range"(jsonOfRangeWithinFile(alloc, lcg, token.range))]);

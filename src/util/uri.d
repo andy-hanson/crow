@@ -283,7 +283,9 @@ private void walkPathBackwards(
 		walkPathBackwards(allUris, force(par), cb);
 }
 
-private size_t pathToStrLength(in AllUris allUris, Path path, PathToStrOptions options) {
+size_t pathLength(in AllUris allUris, Path path) =>
+	pathToStrLength(allUris, path, PathToStrOptions(false, false));
+private size_t pathToStrLength(in AllUris allUris, Path path, in PathToStrOptions options) {
 	size_t res = 0;
 	walkPathBackwards(allUris, path, (Sym part, bool _) {
 		// 1 for '/'
@@ -317,7 +319,7 @@ private immutable struct PathToStrOptions {
 	bool leadingSlash;
 	bool nulTerminate;
 }
-private @system void pathToStrWorker(in AllUris allUris, Path path, char[] outBuf, PathToStrOptions options) {
+private @system void pathToStrWorker(in AllUris allUris, Path path, char[] outBuf, in PathToStrOptions options) {
 	char* cur = outBuf.ptr + outBuf.length;
 	if (options.nulTerminate) {
 		cur--;
@@ -597,10 +599,13 @@ public void writeUriPreferRelative(ref Writer writer, in AllUris allUris, in Uri
 	});
 }
 
-public void writeRelPath(ref Writer writer, in AllUris allUris, RelPath p) {
-	foreach (ushort i; 0 .. p.nParents)
+public size_t relPathLength(in AllUris allUris, in RelPath a) =>
+	a.nParents * 3 + pathLength(allUris, a.path);
+
+public void writeRelPath(ref Writer writer, in AllUris allUris, in RelPath a) {
+	foreach (ushort i; 0 .. a.nParents)
 		writer ~= "../";
-	writePathPlain(writer, allUris, p.path);
+	writePathPlain(writer, allUris, a.path);
 }
 
 struct StringIter {

@@ -1,48 +1,60 @@
 [
 	{
-		"start": {"line": 1, "column": 1},
-		"end": {"line": 1, "column": 4},
+		"start": {"line": 0, "character": 0},
+		"end": {"line": 0, "character": 3},
 		"hover": "builtin type nat",
 		"definition": {
 			"uri": "magic:basic.crow",
-			"range": {"start": 0, "end": 11}
+			"range": {
+				"start": {"line": 0, "character": 0},
+				"end": {"line": 0, "character": 11}
+			}
 		}
 	},
 	{
-		"start": {"line": 1, "column": 5},
-		"end": {"line": 1, "column": 12},
+		"start": {"line": 0, "character": 4},
+		"end": {"line": 0, "character": 11},
 		"hover": "Declares a type implemented by the compiler."
 	},
 	{
-		"start": {"line": 3, "column": 1},
-		"end": {"line": 3, "column": 2},
+		"start": {"line": 2, "character": 0},
+		"end": {"line": 2, "character": 1},
 		"hover": "record type r",
 		"definition": {
 			"uri": "magic:basic.crow",
-			"range": {"start": 13, "end": 30}
+			"range": {
+				"start": {"line": 2, "character": 0},
+				"end": {"line": 3, "character": 8}
+			}
 		}
 	},
 	{
-		"start": {"line": 3, "column": 3},
-		"end": {"line": 3, "column": 9},
+		"start": {"line": 2, "character": 2},
+		"end": {"line": 2, "character": 8},
 		"hover": "Declares a type combining several named members."
 	},
 	{
-		"start": {"line": 4, "column": 5},
-		"end": {"line": 4, "column": 8},
+		"start": {"line": 3, "character": 1},
+		"end": {"line": 3, "character": 4},
 		"hover": "field r.fld (nat)",
 		"definition": {
 			"uri": "magic:basic.crow",
-			"range": {"start": 23, "end": 30}
+			"range": {
+				"start": {"line": 3, "character": 1},
+				"end": {"line": 3, "character": 8}
+			}
 		}
 	},
 	{
-		"start": {"line": 4, "column": 9},
-		"end": {"line": 4, "column": 12},
+		"start": {"line": 3, "character": 5},
+		"end": {"line": 3, "character": 8},
 		"hover": "builtin type nat",
 		"definition": {
 			"uri": "magic:basic.crow",
-			"range": {"start": 0, "end": 11}
+			"range": {
+				"start": {"line": 0, "character": 0},
+				"end": {"line": 0, "character": 11}
+			}
 		}
 	}
 ]

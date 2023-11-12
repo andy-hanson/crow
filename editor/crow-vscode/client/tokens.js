@@ -1,15 +1,21 @@
 /** @typedef {import("vscode").TextDocument} TextDocument */
 const {SemanticTokens, SemanticTokensBuilder, SemanticTokensLegend} = require("vscode")
 
-/** @type {function(crow.Compiler, TextDocument): SemanticTokens} */
-exports.getTokens = (comp, document) => {
-	comp.addOrChangeFile("main", document.getText())
-	const tokens = comp.getTokensAndParseDiagnostics("main").tokens
+/** @type {function(crow.Compiler, string): SemanticTokens} */
+exports.getTokens = (comp, text) => {
+	comp.setFileSuccess("current", text)
+	const tokens = comp.getTokensAndParseDiagnostics("current").tokens
 	const builder = new SemanticTokensBuilder()
 	for (const {token, range:{start, end}} of tokens) {
-		const length = end - start
-		const {line, character} = document.positionAt(start)
-		builder.push(line, character, length, encodeTokenType(convertToken(token)), encodeTokenModifiers([]))
+		if (start.line !== end.line)
+			throw new Error("Multi-line token? " + JSON.stringify({token, start, end}))
+		const length = end.character - start.character
+		builder.push(
+			start.line,
+			start.character,
+			length,
+			encodeTokenType(convertToken(token)),
+			encodeTokenModifiers([]))
 	}
 	return builder.build()
 }

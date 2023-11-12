@@ -136,10 +136,10 @@ const connected = (shadowRoot, name, noRun, comp, initialText) => {
 	const crowText = CrowText.create({getHover, tokensAndParseDiagnostics, text})
 
 	for (const [path, content] of Object.entries(includeAll))
-		comp.addOrChangeFile(`${includeDir}/${path}`, content)
+		comp.setFileSuccess(`${includeDir}/${path}`, content)
 
 	text.nowAndSubscribe(value => {
-		comp.addOrChangeFile(MAIN, value)
+		comp.setFileSuccess(MAIN, value)
 		tokensAndParseDiagnostics.set(comp.getTokensAndParseDiagnostics(MAIN))
 	})
 

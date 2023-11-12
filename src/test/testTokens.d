@@ -11,6 +11,7 @@ import test.testUtil : Test;
 import util.col.arrUtil : arrEqual, arrLiteral;
 import util.col.str : SafeCStr, safeCStr;
 import util.json : writeJson;
+import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForText;
 import util.perf : Perf, withNullPerf;
 import util.sourceRange : RangeWithinFile;
 import util.uri : parseUri;
@@ -49,16 +50,17 @@ void testOne(ref Test test, SafeCStr source, Token[] expectedTokens) {
 		&diags, parseUri(test.allUris, "magic:test.crow"));
 	FileAst ast = withNullPerf!(FileAst, (scope ref Perf perf) =>
 		parseFile(test.alloc, perf, test.allSymbols, test.allUris, diagsForFile, source));
-	Token[] tokens = tokensOfAst(test.alloc, test.allSymbols, ast);
+	Token[] tokens = tokensOfAst(test.alloc, test.allSymbols, test.allUris, ast);
 	if (!arrEqual(tokens, expectedTokens)) {
 		debugLogWithWriter((ref Writer writer) {
+			LineAndColumnGetter lcg = lineAndColumnGetterForText(test.alloc, source);
 			writer ~= "expected tokens:\n";
-			writeJson(writer, test.allSymbols, jsonOfTokens(test.alloc, expectedTokens));
+			writeJson(writer, test.allSymbols, jsonOfTokens(test.alloc, lcg, expectedTokens));
 			writer ~= "\nactual tokens:\n";
-			writeJson(writer, test.allSymbols, jsonOfTokens(test.alloc, tokens));
+			writeJson(writer, test.allSymbols, jsonOfTokens(test.alloc, lcg, tokens));
 
 			writer ~= "\n\n(hint: ast is:)\n";
-			writeJson(writer, test.allSymbols, jsonOfAst(test.alloc, test.allUris, ast));
+			writeJson(writer, test.allSymbols, jsonOfAst(test.alloc, test.allUris, lcg, ast));
 		});
 		verifyFail();
 	}

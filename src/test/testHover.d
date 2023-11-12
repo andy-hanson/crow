@@ -17,12 +17,12 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.str : end, SafeCStr, safeCStr, safeCStrEq, safeCStrIsEmpty, safeCStrSize, strOfSafeCStr;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonList, jsonObject, jsonToStringPretty, optionalField;
-import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, PosKind;
+import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForUri, PosKind;
 import util.opt : has, none, Opt, optEqual;
 import util.uri : parseUri, Uri;
 import util.perf : Perf, withNullPerf;
 import util.storage : allocateToStorage, ReadFileResult, Storage, setFile;
-import util.sourceRange : Pos, UriAndPos;
+import util.sourceRange : jsonOfPosWithinFile, Pos;
 import util.util : debugLog, verifyFail;
 
 @trusted void testHover(ref Test test) {
@@ -86,19 +86,17 @@ Json hoverResult(ref Alloc alloc, in SafeCStr content, ref ShowCtx ctx, Module* 
 	Pos curRangeStart = 0;
 	Cell!(InfoAtPos) curInfo = Cell!(InfoAtPos)(InfoAtPos(safeCStr!"", none!Definition));
 
-	LineAndColumn lineAndColumnInFile(Pos pos, PosKind kind) {
-		return lineAndColumnAtPos(ctx.lineAndColumnGetters, UriAndPos(mainModule.uri, pos), kind);
-	}
+	LineAndColumnGetter lcg = lineAndColumnGetterForUri(ctx.lineAndColumnGetters, mainModule.uri);
 
 	void endRange(Pos end) {
 		InfoAtPos info = cellGet(curInfo);
 		if (!info.isEmpty()) {
 			add(alloc, parts, jsonObject(alloc, [
-				field!"start"(jsonOfLineAndColumn(alloc, lineAndColumnInFile(curRangeStart, PosKind.startOfRange))),
-				field!"end"(jsonOfLineAndColumn(alloc, lineAndColumnInFile(end, PosKind.endOfRange))),
+				field!"start"(jsonOfPosWithinFile(alloc, lcg, curRangeStart, PosKind.startOfRange)),
+				field!"end"(jsonOfPosWithinFile(alloc, lcg, end, PosKind.endOfRange)),
 				field!"hover"(info.hover),
 				optionalField!("definition", Definition)(info.definition, (in Definition x) =>
-					jsonOfDefinition(alloc, ctx.allUris, x)),
+					jsonOfDefinition(alloc, ctx.allUris, ctx.lineAndColumnGetters, x)),
 			]));
 		}
 	}
@@ -119,8 +117,3 @@ Json hoverResult(ref Alloc alloc, in SafeCStr content, ref ShowCtx ctx, Module* 
 
 	return jsonList(finishArr(alloc, parts));
 }
-
-Json jsonOfLineAndColumn(ref Alloc alloc, in LineAndColumn a) =>
-	jsonObject(alloc, [
-		field!"line"(a.line + 1),
-		field!"column"(a.column + 1)]);

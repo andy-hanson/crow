@@ -11,10 +11,30 @@ const {TextDocumentSyncKind} = require("vscode-languageserver-protocol")
 /** @typedef {import("vscode-languageserver-protocol").PublishDiagnosticsParams} PublishDiagnosticsParams */
 const {TextDocument} = require("vscode-languageserver-textdocument")
 
-const {makeCompiler, nonNull} = require("./util.js")
+const {makeCompiler, nonNull, VERBOSE} = require("./util.js")
 
 // @ts-ignore
 const connection = createConnection(ProposedFeatures.all)
+
+/** @type {function(string, unknown): string} */
+const formatLog = (message, content) =>
+	content === undefined ? message : `${message}: ${JSON.stringify(content)}`
+
+/** @type {function(string, ?unknown): void} */
+const log = (message, content) => {
+	connection.console.log(formatLog(message, content))
+}
+
+/** @type {function(string, ?unknown): void} */
+const logError = (message, content) => {
+	connection.console.error(formatLog(message, content))
+}
+
+/** @type {function(string, ?unknown): void} */
+const logVerbose = (message, content) => {
+	if (VERBOSE)
+		log(message, content)
+}
 
 /** @type {TextDocuments<TextDocument>} */
 const documents = new TextDocuments(TextDocument)
@@ -32,7 +52,7 @@ const withLogErrors = (description, cb) => {
 		try {
 			return cb(p)
 		} catch (error) {
-			connection.console.log(`Error in ${description}: ` + (/** @type {Error} */ (error)).stack)
+			log(`Error in ${description}`, {stack:(/** @type {Error} */ (error)).stack})
 			throw error
 		}
 	}
@@ -62,48 +82,52 @@ connection.onInitialized(withLogErrors("onInitialized", () => {
 }))
 
 documents.onDidOpen(withLogErrors("onDidOpen", ({document}) => {
-	connection.console.log("onDidOpen " + document.uri)
+	logVerbose("onDidOpen", {uri:document.uri})
 	onDidOpenOrChangeDocument(document)
 }))
 
-documents.onDidClose(withLogErrors("onDidClose", ({/*document*/}) => {
-	connection.console.log("onDidClose (unimplemented)")
+documents.onDidClose(withLogErrors("onDidClose", ({document}) => {
+	log("onDidClose (unimplemented)", {uri:document.uri})
 }))
 
 documents.onDidChangeContent(withLogErrors("onDidChangeContent", ({document}) => {
-	connection.console.log("onDidChangeContent " + document.uri)
+	logVerbose("onDidChangeContent", {uri:document.uri})
 	onDidOpenOrChangeDocument(document)
 }))
 
 /** @type {function(crowProtocol.ReadFileResult): void} */
-const onReadFileResult = ({uri}) => {
-	connection.console.log("GOT readFileResult " + uri)
-	// TODO: Handle error results differently (this will allow the correct diagnostic to be shown)
-	compiler.deleteFile(uri)
+const onReadFileResult = ({uri, type}) => {
+	logVerbose("onReadFileResult", {uri, type})
+	compiler.setFileIssue(uri, type)
+	afterFileChange()
 }
 // 'onDidOpen' should handle normal files, this is for file not found or error
 connection.onNotification("custom/readFileResult", withLogErrors("readFileResult", onReadFileResult))
 
 /** @type {function(TextDocument): void} */
 const onDidOpenOrChangeDocument = document => {
-	compiler.addOrChangeFile(document.uri, document.getText())
-	const diags = getSyntaxDiagnostics(document)
-	connection.sendDiagnostics(diags)
-
+	compiler.setFileSuccess(document.uri, document.getText())
 	compiler.searchImportsFromUri(document.uri)
+	afterFileChange()
+}
 
+const afterFileChange = () => {
 	const unknownUris = compiler.allUnknownUris()
 	if (unknownUris.length) {
-		connection.console.log("Server will notify client of unknown URIs")
+		for (const uri of unknownUris)
+			compiler.setFileIssue(uri, "loading")
+		logVerbose("Server will notify client of unknown URIs", unknownUris)
 		/** @type {crowProtocol.UnknownUris} */
 		const message = {unknownUris}
 		connection.sendNotification("custom/unknownUris", message)
+	} else if (compiler.allLoadingUris().length) {
+		logVerbose("Waiting on loading URIs", compiler.allLoadingUris())
 	} else {
-		connection.console.log("Will now get semantic diagnostics")
 		for (const {uri, diagnostics} of compiler.getAllDiagnostics().diagnostics) {
-			connection.sendDiagnostics(toDiagnostics(nonNull(documents.get(uri)), diagnostics))
+			const doc = getDocument(uri)
+			if (doc !== null)
+				connection.sendDiagnostics(toDiagnostics(doc, diagnostics))
 		}
-		connection.console.log("Did get semantic diagnostics")
 	}
 }
 
@@ -114,45 +138,50 @@ documents.listen(connection)
 /** @type {crow.Compiler} */
 let compiler
 
-/** @type {function(TextDocument): PublishDiagnosticsParams} */
-const getSyntaxDiagnostics = (document) =>
-	toDiagnostics(document, compiler.getTokensAndParseDiagnostics(document.uri).parseDiagnostics)
-
 /** @type {function(TextDocument, ReadonlyArray<crow.Diagnostic>): PublishDiagnosticsParams} */
 const toDiagnostics = (document, diagnostics) =>
-	({uri:document.uri, diagnostics:diagnostics.map(x => toDiagnostic(document, x))})
+	({uri:document.uri, diagnostics:diagnostics.map(x => toDiagnostic(x))})
 
-/** @type {function(TextDocument, crow.Diagnostic): Diagnostic} */
-const toDiagnostic = (document, {range, message}) =>
-	Diagnostic.create(toRange(document, range), message)
+/** @type {function(crow.Diagnostic): Diagnostic} */
+const toDiagnostic = ({range, message}) =>
+	Diagnostic.create(toRange(range), message)
 
-/** @type {function(TextDocument, crow.RangeWithinFile): Range} */
-const toRange = (document, {start, end}) =>
-	Range.create(toPosition(document, start), toPosition(document, end))
+/** @type {function(crow.RangeWithinFile): Range} */
+const toRange = ({start, end}) =>
+	Range.create(toPosition(start), toPosition(end))
 
-/** @type {function(TextDocument, number): Position} */
-const toPosition = (document, offset) => {
-	const res = document.positionAt(offset)
-	// It will sometimes give NaN positions at the end of the file, which breaks the protocol
-	return Number.isNaN(res.character) ? Position.create(res.line, 0) : res
-}
+/** @type {function(crow.LineAndCharacter): Position} */
+const toPosition = ({line, character}) =>
+	Position.create(line, character)
 
 /** @type {function(crow.UriAndRange): Location} */
-const toLocation = ({uri, range}) => {
-	const document = nonNull(documents.get(uri))
-	return Location.create(uri, toRange(document, range))
+const toLocation = ({uri, range}) =>
+	Location.create(uri, toRange(range))
+
+/** @type {function(string): TextDocument | null} */
+const getDocument = uri => {
+	const res = documents.get(uri)
+	if (res === undefined) {
+		if (!compiler.allUnknownUris().includes(uri))
+			logError("Failed to get document.", {
+				uri,
+				allDocuments: documents.keys().slice().sort(),
+				compilerAllUris: compiler.allStorageUris().slice().sort(),
+				unknownUris: compiler.allUnknownUris(),
+			})
+		return null
+	} else
+		return res
 }
 
 connection.onDidChangeWatchedFiles(withLogErrors("onDidChangeWatchedFiles", _change => {
 	// Monitored files have change in VSCode
-	connection.console.log("onDidChangeWatchedFiles (unimplemented)")
+	log("onDidChangeWatchedFiles (unimplemented)", {})
 }))
 
 connection.onDefinition(withLogErrors("onDefinition", params => {
 	const {definition} = compiler.getDefinition(getUriAndPosition(params))
-	return definition
-		? [toLocation(definition)]
-		: []
+	return definition === null ? [] : [toLocation(definition)]
 }))
 
 connection.onHover(withLogErrors("onHover", params => {
@@ -191,8 +220,9 @@ const setUpCompiler = async () => {
 	try {
 		compiler = await makeCompiler()
 		connection.listen()
+		log("Crow language server started", {version: compiler.version()})
 	} catch (error) {
-		connection.console.log("Failed to initialize: " + error)
+		logError("Failed to initialize", error)
 		throw error
 	}
 }

@@ -29,7 +29,7 @@ import util.opt : force, has, Opt, none, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : ptrTrustMe;
 import util.storage :
-	asSafeCStr, copyFileContent, emptyFileContent, FileContent, ReadFileIssue, ReadFileResult, Storage, withFileContent;
+	asSafeCStr, copyFileContent, emptyFileContent, FileContent, ReadFileIssue, ReadFileResult, Storage, withFile;
 import util.sourceRange : RangeWithinFile, UriAndRange;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
@@ -103,7 +103,7 @@ FileAstAndDiagnostics parseSingleAst(
 	Uri uri,
 ) =>
 	// In this case model alloc and AST alloc are the same
-	withFileContent!FileAstAndDiagnostics(storage, uri, (in ReadFileResult x) =>
+	withFile!FileAstAndDiagnostics(storage, uri, (in ReadFileResult x) =>
 		x.matchIn!FileAstAndDiagnostics(
 			(in FileContent content) {
 				DiagnosticsBuilder diagsBuilder = DiagnosticsBuilder(&alloc);
@@ -230,7 +230,7 @@ void parseAndPush(
 	ref ParseStack stack,
 	Uri uri,
 ) {
-	withFileContent!void(storage, uri, (in ReadFileResult x) {
+	withFile!void(storage, uri, (in ReadFileResult x) {
 		ParseStatus status = x.match!ParseStatus(
 			(FileContent x) @safe {
 				DiagnosticsBuilderForFile fileDiags = DiagnosticsBuilderForFile(ptrTrustMe(diags), uri);
@@ -317,7 +317,7 @@ FileContent readFileContent(
 	UriAndRange importedFrom,
 	Uri uri,
 ) =>
-	withFileContent!FileContent(storage, uri, (in ReadFileResult x) =>
+	withFile!FileContent(storage, uri, (in ReadFileResult x) =>
 		x.matchIn!FileContent(
 			(in FileContent content) => copyFileContent(modelAlloc, content),
 			(in ReadFileIssue issue) {

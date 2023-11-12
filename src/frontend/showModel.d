@@ -71,9 +71,9 @@ void writeLineAndColumnRange(ref Writer writer, in LineAndColumnRange a) {
 }
 
 private void writeLineAndColumn(ref Writer writer, LineAndColumn lc) {
-	writer ~= lc.line + 1;
+	writer ~= lc.line1Indexed;
 	writer ~= ':';
-	writer ~= lc.column + 1;
+	writer ~= lc.column1Indexed;
 }
 
 void writeCalled(ref Writer writer, scope ref ShowCtx ctx, in Called a) {
@@ -171,8 +171,7 @@ private void writeLineNumber(ref Writer writer, scope ref ShowCtx ctx, in UriAnd
 	if (ctx.options.color)
 		writeReset(writer);
 	writer ~= " line ";
-	size_t line = lineAndColumnAtPos(ctx.lineAndColumnGetters, pos, PosKind.startOfRange).line;
-	writer ~= line + 1;
+	writer ~= lineAndColumnAtPos(ctx.lineAndColumnGetters, pos, PosKind.startOfRange).line1Indexed;
 }
 
 void writeSig(

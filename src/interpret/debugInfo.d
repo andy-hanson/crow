@@ -115,7 +115,7 @@ private @trusted BacktraceEntry backtraceEntryFromSource(
 		CStr fileUri = uriToSafeCStrPreferRelative(alloc, info.allUris, info.urisInfo, uri).ptr;
 		LineAndColumn lc = lineAndColumnAtPos(
 			info.lineAndColumnGetters, UriAndPos(uri, source.pos), PosKind.startOfRange);
-		return BacktraceEntry(funName, fileUri, lc.line + 1, 0);
+		return BacktraceEntry(funName, fileUri, lc.line1Indexed, 0);
 	} else
 		return BacktraceEntry(funName, "", 0, 0);
 }

@@ -62,21 +62,22 @@ import util.json :
 	optionalField,
 	optionalStringField,
 	kindField;
+import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : ptrTrustMe;
-import util.sourceRange : jsonOfUriAndRange, jsonOfRangeWithinFile, RangeWithinFile;
+import util.sourceRange : jsonOfRangeWithinFile, RangeWithinFile;
 import util.sym : Sym, sym;
 import util.uri : AllUris, uriToString;
 
-Json jsonOfModule(ref Alloc alloc, in AllUris allUris, in Module a) {
-	Ctx ctx = Ctx(ptrTrustMe(a), ptrTrustMe(allUris));
+Json jsonOfModule(ref Alloc alloc, in AllUris allUris, in LineAndColumnGetter lcg, in Module a) {
+	Ctx ctx = Ctx(ptrTrustMe(a), ptrTrustMe(allUris), lcg);
 	return jsonObject(alloc, [
 		field!"uri"(uriToString(alloc, allUris, a.uri)),
 		optionalStringField!"doc"(alloc, a.docComment),
 		optionalArrayField!("imports", ImportOrExport)(alloc, a.imports, (in ImportOrExport x) =>
-			jsonOfImportOrExport(alloc, allUris, x)),
+			jsonOfImportOrExport(alloc, ctx, x)),
 		optionalArrayField!("re-exports", ImportOrExport)(alloc, a.reExports, (in ImportOrExport x) =>
-			jsonOfImportOrExport(alloc, allUris, x)),
+			jsonOfImportOrExport(alloc, ctx, x)),
 		optionalArrayField!("structs", StructDecl)(alloc, a.structs, (in StructDecl x) =>
 			jsonOfStructDecl(alloc, ctx, x)),
 		optionalArrayField!("vars", VarDecl)(alloc, a.vars, (in VarDecl x) =>
@@ -91,11 +92,11 @@ Json jsonOfModule(ref Alloc alloc, in AllUris allUris, in Module a) {
 
 private:
 
-Json jsonOfImportOrExport(ref Alloc alloc, in AllUris allUris, in ImportOrExport a) =>
+Json jsonOfImportOrExport(ref Alloc alloc, in Ctx ctx, in ImportOrExport a) =>
 	jsonObject(alloc, [
 		optionalField!("source", RangeWithinFile)(a.importSource, (in RangeWithinFile x) =>
-			jsonOfRangeWithinFile(alloc, x)),
-		field!"import-kind"(jsonOfImportOrExportKind(alloc, allUris, a.kind))]);
+			jsonOfRangeWithinFile(alloc, ctx.lineAndColumnGetter, x)),
+		field!"import-kind"(jsonOfImportOrExportKind(alloc, ctx.allUris, a.kind))]);
 
 Json jsonOfImportOrExportKind(ref Alloc alloc, in AllUris allUris, in ImportOrExportKind a) =>
 	a.matchIn!Json(
@@ -112,6 +113,7 @@ const struct Ctx {
 
 	Module* curModule;
 	AllUris* allUrisPtr;
+	LineAndColumnGetter lineAndColumnGetter;
 
 	ref const(AllUris) allUris() return scope =>
 		*allUrisPtr;
@@ -154,7 +156,7 @@ Json jsonOfSpecDeclBody(ref Alloc alloc, in Ctx ctx, in SpecDeclBody a) =>
 Json jsonOfSpecDeclSig(ref Alloc alloc, in Ctx ctx, in SpecDeclSig a) =>
 	jsonObject(alloc, [
 		optionalStringField!"doc"(alloc, a.docComment),
-		field!"where"(jsonOfUriAndRange(alloc, ctx.allUris, a.range)),
+		field!"where"(jsonOfRangeWithinFile(alloc, ctx.lineAndColumnGetter, a.range.range)),
 		field!"name"(a.name),
 		field!"return-type"(jsonOfType(alloc, ctx, a.returnType)),
 		field!"params"(jsonOfDestructures(alloc, ctx, a.params))]);

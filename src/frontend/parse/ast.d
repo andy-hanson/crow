@@ -11,7 +11,7 @@ import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
-import util.uri : Path, RelPath;
+import util.uri : AllUris, Path, pathLength, RelPath, relPathLength;
 import util.util : unreachable, verify;
 
 immutable struct NameAndRange {
@@ -761,10 +761,18 @@ immutable struct ImportOrExportAst {
 	PathOrRelPath path;
 	ImportOrExportAstKind kind;
 }
+RangeWithinFile pathRange(in AllUris allUris, in ImportOrExportAst a) =>
+	rangeOfStartAndLength(a.range.start, pathOrRelPathLength(allUris, a.path));
 
 immutable struct PathOrRelPath {
 	mixin Union!(Path, RelPath);
 }
+private size_t pathOrRelPathLength(in AllUris allUris, in PathOrRelPath a) =>
+	a.matchIn!size_t(
+		(in Path x) =>
+			pathLength(allUris, x),
+		(in RelPath x) =>
+			relPathLength(allUris, x));
 
 immutable struct ImportOrExportAstKind {
 	immutable struct ModuleWhole {}

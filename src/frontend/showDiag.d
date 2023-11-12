@@ -578,9 +578,10 @@ void writeDiag(ref TempAlloc tempAlloc, ref Writer writer, scope ref ShowCtx ctx
 			writer ~= () {
 				final switch (x.issue) {
 					case ReadFileIssue.notFound:
-						return "file does not exist: ";
+						return "File does not exist: ";
 					case ReadFileIssue.error:
-						return "unable to read file ";
+						return "Unable to read file ";
+					case ReadFileIssue.loading:
 					case ReadFileIssue.unknown:
 						return "IDE is still loading file ";
 				}

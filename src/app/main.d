@@ -22,7 +22,6 @@ import frontend.showModel : ShowOptions;
 import interpret.extern_ : Extern;
 import lib.cliParser : BuildOptions, Command, hasAnyOut, parseCommand, PrintKind, RunOptions;
 import lib.server :
-	addOrChangeFile,
 	allUnknownUris,
 	buildAndInterpret,
 	buildToC,
@@ -43,8 +42,10 @@ import lib.server :
 	Server,
 	setCwd,
 	setDiagOptions,
+	setFile,
 	setIncludeDir,
-	showDiagnostics;
+	showDiagnostics,
+	version_;
 import model.diag : diagnosticsIsEmpty;
 import model.model : Program;
 version (Test) {
@@ -106,7 +107,7 @@ void loadAllFiles(ref Perf perf, ref Server server, in Uri[] rootUris) {
 }
 
 void loadSingleFile(ref Server server, Uri uri) {
-	addOrChangeFile(server, uri, tryReadFile(server.storage.alloc, server.allUris, uri));
+	setFile(server, uri, tryReadFile(server.storage.alloc, server.allUris, uri));
 }
 
 void logPerf(in Perf perf) {
@@ -188,7 +189,7 @@ ExitCode go(ref Perf perf, ref Server server, in Command command) {
 				return printError(safeCStr!"Did not compile with tests");
 		},
 		(in Command.Version) =>
-			printVersion());
+			print(version_(server.alloc, server)));
 }
 
 Uri getCrowDir(ref AllUris allUris) =>
@@ -214,11 +215,12 @@ ExitCode doPrint(ref Perf perf, ref Server server, in Command.Print command) {
 		},
 		(in PrintKind.ConcreteModel) {
 			loadAllFiles(perf, server, [mainUri]);
-			return printConcreteModel(server.alloc, perf, server, versionInfoForJIT(), mainUri);
+			return printConcreteModel(
+				server.alloc, perf, server, server.lineAndColumnGetters, versionInfoForJIT(), mainUri);
 		},
 		(in PrintKind.LowModel) {
 			loadAllFiles(perf, server, [mainUri]);
-			return printLowModel(server.alloc, perf, server, versionInfoForJIT(), mainUri);
+			return printLowModel(server.alloc, perf, server, server.lineAndColumnGetters, versionInfoForJIT(), mainUri);
 		},
 		(in PrintKind.Hover x) {
 			loadAllFiles(perf, server, [mainUri]);
@@ -230,38 +232,6 @@ ExitCode doPrint(ref Perf perf, ref Server server, in Command.Print command) {
 		printError(printed.diagnostics);
 	print(jsonToString(server.alloc, server.allSymbols, printed.result));
 	return safeCStrIsEmpty(printed.diagnostics) ? ExitCode.ok : ExitCode.error;
-}
-
-@trusted ExitCode printVersion() {
-	static immutable string date = import("date.txt")[0 .. "2020-02-02".length];
-	static immutable string commitHash = import("commit-hash.txt")[0 .. 8];
-	printf("%.*s (%.*s)", cast(int) date.length, date.ptr, cast(int) commitHash.length, commitHash.ptr);
-	version (Debug) {
-		printf(", debug build");
-	}
-	version (assert) {} else {
-		printf(", assertions disabled");
-	}
-	version (TailRecursionAvailable) {} else {
-		printf(", no tail calls");
-	}
-	version (GccJitEnabled) {} else {
-		printf(", does not support '--jit'");
-	}
-	printf(", built with %s\n", dCompilerName);
-	return ExitCode.ok;
-}
-
-immutable(char*) dCompilerName() {
-	version (DigitalMars) {
-		return "DMD";
-	} else version (GNU) {
-		return "GDC";
-	} else version (LDC) {
-		return "LDC";
-	} else {
-		static assert(false);
-	}
 }
 
 ExitCode runBuild(ref Perf perf, ref Server server, Uri main, in BuildOptions options) {

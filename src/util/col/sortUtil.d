@@ -3,7 +3,7 @@ module util.col.sortUtil;
 @safe @nogc pure nothrow:
 
 import util.col.arr : empty;
-import util.col.arrUtil : every;
+import util.col.arrUtil : everyWithIndex;
 import util.comparison : Comparer, Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.memory : overwriteMemory;
@@ -54,13 +54,24 @@ void eachSorted(K, A0, A1, A2, A3, A4)(
 	in K delegate(in A4) @safe @nogc pure nothrow getComparable4,
 	in void delegate(in A4) @safe @nogc pure nothrow cb4,
 ) {
+	void verifySorted(T)(in T[] xs, in K delegate(in T) @safe @nogc pure nothrow getComparable) {
+		.verifySorted!T(xs, (in T x, in T y) =>
+			comparer(getComparable(x), getComparable(y)));
+	}
+	verifySorted!A0(a0, getComparable0);
+	verifySorted!A1(a1, getComparable1);
+	verifySorted!A2(a2, getComparable2);
+	verifySorted!A3(a3, getComparable3);
+	verifySorted!A4(a4, getComparable4);
+
+	// For each list, this is the next index into that list.
 	size_t[5] indices;
 
-	Opt!K getComparable(size_t i) {
+	Opt!K getComparable(size_t indexOfList) {
 		Opt!K get(T)(in T[] a, in K delegate(in T) @safe @nogc pure nothrow getComparable) {
-			return indices[i] == a.length ? none!K : some(getComparable(a[indices[i]]));
+			return indices[indexOfList] == a.length ? none!K : some(getComparable(a[indices[indexOfList]]));
 		}
-		final switch (i) {
+		final switch (indexOfList) {
 			case 0: return get!A0(a0, getComparable0);
 			case 1: return get!A1(a1, getComparable1);
 			case 2: return get!A2(a2, getComparable2);
@@ -68,35 +79,41 @@ void eachSorted(K, A0, A1, A2, A3, A4)(
 			case 4: return get!A4(a4, getComparable4);
 		}
 	}
-	void consume(size_t i) {
-		size_t index = indices[i];
-		final switch (i) {
+	void consume(size_t indexOfList) {
+		size_t index = indices[indexOfList];
+		final switch (indexOfList) {
 			case 0: cb0(a0[index]); break;
 			case 1: cb1(a1[index]); break;
 			case 2: cb2(a2[index]); break;
 			case 3: cb3(a3[index]); break;
 			case 4: cb4(a4[index]); break;
 		}
-		indices[i]++;
+		indices[indexOfList]++;
 	}
 
 	while (true) {
-		size_t best = indices.length;
-		foreach (size_t i; 0 .. indices.length) {
-			Opt!K k = getComparable(i);
+		size_t nextList = indices.length;
+		foreach (size_t indexOfList; 0 .. indices.length) {
+			Opt!K k = getComparable(indexOfList);
 			if (has(k)) {
-				Opt!K bestK = best == indices.length ? none!K : getComparable(best);
-				if (!has(bestK) || comparer(force(k), force(bestK)) != Comparison.greater)
-					best = i;
+				Opt!K nextListK = nextList == indices.length ? none!K : getComparable(nextList);
+				if (!has(nextListK) || comparer(force(k), force(nextListK)) != Comparison.greater)
+					nextList = indexOfList;
 			}
 		}
-		if (best == indices.length)
+		if (nextList == indices.length)
 			break;
 		else
-			consume(best);
+			consume(nextList);
 	}
 
-	verify(every!size_t(indices, (in size_t i) => !has(getComparable(i))));
+	verify(everyWithIndex!size_t(indices, (size_t indexOfList, in size_t _) =>
+		!has(getComparable(indexOfList))));
+}
+
+private void verifySorted(T)(in T[] xs, in Comparer!T comparer) {
+	foreach (size_t i; 1 .. xs.length)
+		verify(comparer(xs[i - 1], xs[i]) != Comparison.greater);
 }
 
 immutable struct UnsortedPair {

@@ -1,7 +1,13 @@
 declare namespace crow {
+	type LineAndCharacter = {
+		// 0-indexed
+		line: number
+		character: number
+	}
+
 	type RangeWithinFile = {
-		start: number
-		end: number
+		start: LineAndCharacter
+		end: LineAndCharacter
 	}
 
 	type UriAndPosition = {
@@ -67,12 +73,16 @@ declare namespace crow {
 
 	function makeCompiler(bytes: ArrayBuffer, includeDir: string, cwd: string): Promise<Compiler>
 	interface Compiler {
-		addOrChangeFile(uri: string, content: string): void
-		deleteFile(uri: string): void
+		version(): string
+		setFileSuccess(uri: string, content: string): void
+		setFileIssue(uri: string, issue: "notFound" | "unknown" | "loading" | "error"): void
 		// For debug/test
 		getFile(uri: string): string
 		searchImportsFromUri(uri: string): void
+		// All file URIs, whether the file has content or has an issue.
+		allStorageUris(): ReadonlyArray<string>
 		allUnknownUris(): ReadonlyArray<string>
+		allLoadingUris(): ReadonlyArray<string>
 		getTokensAndParseDiagnostics(uri: string): TokensAndParseDiagnostics
 		getAllDiagnostics(): AllDiagnosticsResult
 		getDefinition(where: UriAndPosition): Definition

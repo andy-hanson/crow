@@ -7,6 +7,15 @@ import util.comparison : compareNat32, Comparison;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonObject;
 import util.sym : AllSymbols, Sym, symSize;
+import util.lineAndColumnGetter :
+	LineAndCharacter,
+	lineAndCharacterAtPos,
+	LineAndCharacterRange,
+	lineAndCharacterRange,
+	LineAndColumnGetter,
+	lineAndColumnGetterForUri,
+	LineAndColumnGetters,
+	PosKind;
 import util.uri : AllUris, compareUriAlphabetically, Uri, uriToString;
 import util.util : verify;
 
@@ -79,10 +88,25 @@ Comparison compareUriAndRange(in AllUris allUris, UriAndRange a, UriAndRange b) 
 UriAndPos toUriAndPos(UriAndRange a) =>
 	UriAndPos(a.uri, a.start);
 
-Json jsonOfUriAndRange(ref Alloc alloc, in AllUris allUris, UriAndRange a) =>
+Json jsonOfUriAndRange(ref Alloc alloc, in AllUris allUris, scope ref LineAndColumnGetters lcg, UriAndRange a) =>
 	jsonObject(alloc, [
 		field!"uri"(uriToString(alloc, allUris, a.uri)),
-		field!"range"(jsonOfRangeWithinFile(alloc, a.range))]);
+		field!"range"(jsonOfRangeWithinFile(alloc, lineAndColumnGetterForUri(lcg, a.uri), a.range))]);
 
-Json jsonOfRangeWithinFile(ref Alloc alloc, RangeWithinFile a) =>
-	jsonObject(alloc, [field!"start"(a.start), field!"end"(a.end)]);
+Json jsonOfPosWithinFile(ref Alloc alloc, in LineAndColumnGetter lcg, Pos a, PosKind posKind) =>
+	jsonOfLineAndCharacter(alloc, lineAndCharacterAtPos(lcg, a, posKind));
+
+Json jsonOfRangeWithinFile(ref Alloc alloc, scope ref LineAndColumnGetters lcg, UriAndRange a) =>
+	jsonOfRangeWithinFile(alloc, lineAndColumnGetterForUri(lcg, a.uri), a.range);
+
+Json jsonOfRangeWithinFile(ref Alloc alloc, in LineAndColumnGetter lcg, in RangeWithinFile a) {
+	LineAndCharacterRange r = lineAndCharacterRange(lcg, a);
+	return jsonObject(alloc, [
+		field!"start"(jsonOfLineAndCharacter(alloc, r.start)),
+		field!"end"(jsonOfLineAndCharacter(alloc, r.end))]);
+}
+
+private:
+
+Json jsonOfLineAndCharacter(ref Alloc alloc, in LineAndCharacter a) =>
+	jsonObject(alloc, [field!"line"(a.line), field!"character"(a.character)]);

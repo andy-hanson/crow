@@ -30,11 +30,13 @@ import model.model : EnumValue, Local;
 import model.jsonOfConcreteModel : jsonOfConcreteFunRef, jsonOfConcreteStructRef;
 import util.alloc.alloc : Alloc;
 import util.json : field, jsonObject, optionalField, Json, jsonInt, jsonList, jsonString, kindField;
-import util.ptr : castNonScope_ref;
+import util.lineAndColumnGetter : LineAndColumnGetters;
+import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.sourceRange : jsonOfRangeWithinFile;
 
-Json jsonOfLowProgram(ref Alloc alloc, in LowProgram a) =>
-	jsonObject(alloc, [
+Json jsonOfLowProgram(ref Alloc alloc, scope ref LineAndColumnGetters lineAndColumnGetters, in LowProgram a) {
+	Ctx ctx = Ctx(ptrTrustMe(lineAndColumnGetters));
+	return jsonObject(alloc, [
 		field!"extern"(
 			jsonList!(LowType.Extern, LowExternType)(alloc, a.allExternTypes, (in LowExternType x) =>
 				jsonOfExternType(alloc, x))),
@@ -45,10 +47,20 @@ Json jsonOfLowProgram(ref Alloc alloc, in LowProgram a) =>
 		field!"unions"(jsonList!(LowType.Union, LowUnion)(alloc, a.allUnions, (in LowUnion x) =>
 			jsonOfLowUnion(alloc, x))),
 		field!"funs"(jsonList!(LowFunIndex, LowFun)(alloc, a.allFuns, (in LowFun x) =>
-			jsonOfLowFun(alloc, x))),
+			jsonOfLowFun(alloc, ctx, x))),
 		field!"main"(a.main.index)]);
+}
 
 private:
+
+struct Ctx {
+	@safe @nogc pure nothrow:
+
+	LineAndColumnGetters* lineAndColumnGettersPtr;
+
+	ref LineAndColumnGetters lineAndColumnGetters() return scope =>
+		*lineAndColumnGettersPtr;
+}
 
 Json jsonOfLowType(ref Alloc alloc, in LowType a) =>
 	a.matchIn!Json(
@@ -93,13 +105,13 @@ Json jsonOfLowUnion(ref Alloc alloc, in LowUnion a) =>
 		field!"members"(jsonList!LowType(alloc, a.members, (in LowType x) =>
 			jsonOfLowType(alloc, x)))]);
 
-Json jsonOfLowFun(ref Alloc alloc, in LowFun a) =>
+Json jsonOfLowFun(ref Alloc alloc, scope ref Ctx ctx, in LowFun a) =>
 	jsonObject(alloc, [
 		field!"source"(jsonOfLowFunSource(alloc, a.source)),
 		field!"return-type"(jsonOfLowType(alloc, a.returnType)),
 		field!"params"(jsonList!LowLocal(alloc, a.params, (in LowLocal x) =>
 			jsonOfLowLocal(alloc, x))),
-		field!"body"(jsonOfLowFunBody(alloc, a.body_))]);
+		field!"body"(jsonOfLowFunBody(alloc, ctx, a.body_))]);
 
 Json jsonOfLowFunSource(ref Alloc alloc, in LowFunSource a) =>
 	a.matchIn!Json(
@@ -108,12 +120,12 @@ Json jsonOfLowFunSource(ref Alloc alloc, in LowFunSource a) =>
 		(in LowFunSource.Generated x) =>
 			jsonObject(alloc, [kindField!"generated", field!"name"(x.name)]));
 
-Json jsonOfLowFunBody(ref Alloc alloc, in LowFunBody a) =>
+Json jsonOfLowFunBody(ref Alloc alloc, scope ref Ctx ctx, in LowFunBody a) =>
 	a.matchIn!Json(
 		(in LowFunBody.Extern) =>
 			jsonString!"extern",
 		(in LowFunExprBody x) =>
-			jsonOfLowExpr(alloc, x.expr));
+			jsonOfLowExpr(alloc, ctx, x.expr));
 
 Json jsonOfLowLocal(ref Alloc alloc, in LowLocal a) =>
 	jsonObject(alloc, [
@@ -130,51 +142,51 @@ Json jsonOfLowLocalSource(ref Alloc alloc, in LowLocalSource a) =>
 				field!"name"(x.name),
 				field!"index"(x.index)]));
 
-Json jsonOfLowExpr(ref Alloc alloc, in LowExpr a) =>
+Json jsonOfLowExpr(ref Alloc alloc, scope ref Ctx ctx, in LowExpr a) =>
 	jsonObject(alloc, [
 		field!"type"(jsonOfLowType(alloc, a.type)),
-		field!"source"(jsonOfRangeWithinFile(alloc, a.source.range)),
-		field!"expr-kind"(jsonOfLowExprKind(alloc, a.kind))]);
+		field!"source"(jsonOfRangeWithinFile(alloc, ctx.lineAndColumnGetters, a.source)),
+		field!"expr-kind"(jsonOfLowExprKind(alloc, ctx, a.kind))]);
 
-Json jsonOfLowExprs(ref Alloc alloc, in LowExpr[] a) =>
+Json jsonOfLowExprs(ref Alloc alloc, scope ref Ctx ctx, in LowExpr[] a) =>
 	jsonList!LowExpr(alloc, a, (in LowExpr x) =>
-		jsonOfLowExpr(alloc, x));
+		jsonOfLowExpr(alloc, ctx, x));
 
-Json jsonOfLowExprKind(ref Alloc alloc, in LowExprKind a) =>
+Json jsonOfLowExprKind(ref Alloc alloc, scope ref Ctx ctx, in LowExprKind a) =>
 	a.matchIn!Json(
 		(in LowExprKind.Call x) =>
 			jsonObject(alloc, [
 				kindField!"call",
 				field!"called"(x.called.index),
-				field!"args"(jsonOfLowExprs(alloc, x.args))]),
+				field!"args"(jsonOfLowExprs(alloc, ctx, x.args))]),
 		(in LowExprKind.CallFunPtr x) =>
 			jsonObject(alloc, [
 				kindField!"call-fun-pointer",
-				field!"fun-pointer"(jsonOfLowExpr(alloc, x.funPtr)),
-				field!"args"(jsonOfLowExprs(alloc, x.args))]),
+				field!"fun-pointer"(jsonOfLowExpr(alloc, ctx, x.funPtr)),
+				field!"args"(jsonOfLowExprs(alloc, ctx, x.args))]),
 		(in LowExprKind.CreateRecord x) =>
 			jsonObject(alloc, [
 				kindField!"create-record",
-				field!"args"(jsonOfLowExprs(alloc, x.args))]),
+				field!"args"(jsonOfLowExprs(alloc, ctx, x.args))]),
 		(in LowExprKind.CreateUnion x) =>
 			jsonObject(alloc, [
 				kindField!"create-union",
 				field!"member-index"(x.memberIndex),
-				field!"arg"(jsonOfLowExpr(alloc, x.arg))]),
+				field!"arg"(jsonOfLowExpr(alloc, ctx, x.arg))]),
 		(in LowExprKind.If x) =>
 			jsonObject(alloc, [
 				kindField!"if",
-				field!"condition"(jsonOfLowExpr(alloc, x.cond)),
-				field!"then"(jsonOfLowExpr(alloc, x.then)),
-				field!"else"(jsonOfLowExpr(alloc, x.else_))]),
+				field!"condition"(jsonOfLowExpr(alloc, ctx, x.cond)),
+				field!"then"(jsonOfLowExpr(alloc, ctx, x.then)),
+				field!"else"(jsonOfLowExpr(alloc, ctx, x.else_))]),
 		(in LowExprKind.InitConstants) =>
 			jsonString!"init-const" ,
 		(in LowExprKind.Let x) =>
 			jsonObject(alloc, [
 				kindField!"let",
 				field!"local"(jsonOfLowLocal(alloc, *x.local)),
-				field!"value"(jsonOfLowExpr(alloc, x.value)),
-				field!"then"(jsonOfLowExpr(alloc, x.then))]),
+				field!"value"(jsonOfLowExpr(alloc, ctx, x.value)),
+				field!"then"(jsonOfLowExpr(alloc, ctx, x.then))]),
 		(in LowExprKind.LocalGet x) =>
 			jsonObject(alloc, [
 				kindField!"local-get",
@@ -183,27 +195,27 @@ Json jsonOfLowExprKind(ref Alloc alloc, in LowExprKind a) =>
 			jsonObject(alloc, [
 				kindField!"local-set",
 				field!"source"(jsonOfLowLocalSource(alloc, x.local.source)),
-				field!"value"(jsonOfLowExpr(alloc, x.value))]),
+				field!"value"(jsonOfLowExpr(alloc, ctx, x.value))]),
 		(in LowExprKind.Loop x) =>
 			jsonObject(alloc, [
 				kindField!"loop",
-				field!"body"(jsonOfLowExpr(alloc, x.body_))]),
+				field!"body"(jsonOfLowExpr(alloc, ctx, x.body_))]),
 		(in LowExprKind.LoopBreak x) =>
 			jsonObject(alloc, [
 				kindField!"break",
-				field!"value"(jsonOfLowExpr(alloc, x.value))]),
+				field!"value"(jsonOfLowExpr(alloc, ctx, x.value))]),
 		(in LowExprKind.LoopContinue) =>
 			jsonObject(alloc, [kindField!"continue"]),
 		(in LowExprKind.MatchUnion x) =>
-			jsonOfMatchUnion(alloc, x),
+			jsonOfMatchUnion(alloc, ctx, x),
 		(in LowExprKind.PtrCast x) =>
 			jsonObject(alloc, [
 				kindField!"pointer-cast",
-				field!"target"(jsonOfLowExpr(alloc, x.target))]),
+				field!"target"(jsonOfLowExpr(alloc, ctx, x.target))]),
 		(in LowExprKind.PtrToField x) =>
 			jsonObject(alloc, [
 				kindField!"pointer-to-field",
-				field!"target"(jsonOfLowExpr(alloc, x.target)),
+				field!"target"(jsonOfLowExpr(alloc, ctx, x.target)),
 				field!"field-index"(x.fieldIndex)]),
 		(in LowExprKind.PtrToLocal x) =>
 			jsonObject(alloc, [
@@ -212,14 +224,14 @@ Json jsonOfLowExprKind(ref Alloc alloc, in LowExprKind a) =>
 		(in LowExprKind.RecordFieldGet x) =>
 			jsonObject(alloc, [
 				kindField!"get-field",
-				field!"target"(jsonOfLowExpr(alloc, x.target)),
+				field!"target"(jsonOfLowExpr(alloc, ctx, x.target)),
 				field!"field-index"(x.fieldIndex)]),
 		(in LowExprKind.RecordFieldSet x) =>
 			jsonObject(alloc, [
 				kindField!"set-field",
-				field!"target"(jsonOfLowExpr(alloc, x.target)),
+				field!"target"(jsonOfLowExpr(alloc, ctx, x.target)),
 				field!"field-index"(x.fieldIndex),
-				field!"value"(jsonOfLowExpr(alloc, x.value))]),
+				field!"value"(jsonOfLowExpr(alloc, ctx, x.value))]),
 		(in LowExprKind.SizeOf x) =>
 			jsonObject(alloc, [
 				kindField!"size-of",
@@ -232,38 +244,38 @@ Json jsonOfLowExprKind(ref Alloc alloc, in LowExprKind a) =>
 			jsonObject(alloc, [
 				kindField!"unary",
 				field!"operation"(strOfSpecialUnaryKind(x.kind)),
-				field!"arg"(jsonOfLowExpr(alloc, x.arg))]),
+				field!"arg"(jsonOfLowExpr(alloc, ctx, x.arg))]),
 		(in LowExprKind.SpecialBinary x) =>
 			jsonObject(alloc, [
 				kindField!"binary",
 				field!"operation"(strOfSpecialBinaryKind(x.kind)),
 				field!"args"(jsonList!LowExpr(alloc, castNonScope_ref(x.args), (in LowExpr e) =>
-					jsonOfLowExpr(alloc, e)))]),
+					jsonOfLowExpr(alloc, ctx, e)))]),
 		(in LowExprKind.SpecialTernary x) =>
 			jsonObject(alloc, [
 				kindField!"ternary",
 				field!"operation"(strOfSpecialTernaryKind(x.kind)),
 				field!"args"(jsonList!LowExpr(alloc, castNonScope_ref(x.args), (in LowExpr e) =>
-					jsonOfLowExpr(alloc, e)))]),
+					jsonOfLowExpr(alloc, ctx, e)))]),
 		(in LowExprKind.Switch0ToN x) =>
 			jsonObject(alloc, [
 				kindField!"switch",
-				field!"value"(jsonOfLowExpr(alloc, x.value)),
-				field!"cases"(jsonOfLowExprs(alloc, x.cases))]),
+				field!"value"(jsonOfLowExpr(alloc, ctx, x.value)),
+				field!"cases"(jsonOfLowExprs(alloc, ctx, x.cases))]),
 		(in LowExprKind.SwitchWithValues x) =>
 			jsonObject(alloc, [
 				kindField!"switch",
-				field!"value"(jsonOfLowExpr(alloc, x.value)),
+				field!"value"(jsonOfLowExpr(alloc, ctx, x.value)),
 				field!"values"(jsonList!EnumValue(alloc, x.values, (in EnumValue value) =>
 					jsonInt(value.value))),
-				field!"cases"(jsonOfLowExprs(alloc, x.cases))]),
+				field!"cases"(jsonOfLowExprs(alloc, ctx, x.cases))]),
 		(in LowExprKind.TailRecur x) =>
 			jsonObject(alloc, [
 				kindField!"tail-recur",
 				field!"updates"(jsonList!UpdateParam(alloc, x.updateParams, (in UpdateParam updateParam) =>
 					jsonObject(alloc, [
 						field!"param"(jsonOfLowLocalSource(alloc, updateParam.param.source)),
-						field!"value"(jsonOfLowExpr(alloc, updateParam.newValue)),
+						field!"value"(jsonOfLowExpr(alloc, ctx, updateParam.newValue)),
 					])))]),
 		(in LowExprKind.VarGet x) =>
 			jsonObject(alloc, [
@@ -273,17 +285,17 @@ Json jsonOfLowExprKind(ref Alloc alloc, in LowExprKind a) =>
 			jsonObject(alloc, [
 				kindField!"var-set",
 				field!"var"(x.varIndex.index),
-				field!"value"(jsonOfLowExpr(alloc, *x.value))]));
+				field!"value"(jsonOfLowExpr(alloc, ctx, *x.value))]));
 
-Json jsonOfMatchUnion(ref Alloc alloc, in LowExprKind.MatchUnion a) =>
+Json jsonOfMatchUnion(ref Alloc alloc, scope ref Ctx ctx, in LowExprKind.MatchUnion a) =>
 	jsonObject(alloc, [
 		kindField!"match-union",
-		field!"value"(jsonOfLowExpr(alloc, a.matchedValue)),
+		field!"value"(jsonOfLowExpr(alloc, ctx, a.matchedValue)),
 		field!"cases"(jsonList!(LowExprKind.MatchUnion.Case)(alloc, a.cases, (in LowExprKind.MatchUnion.Case case_) =>
 			jsonObject(alloc, [
 				optionalField!("local", LowLocal*)(case_.local, (in LowLocal* x) =>
 					jsonOfLowLocalSource(alloc, x.source)),
-				field!"then"(jsonOfLowExpr(alloc, case_.then))])))]);
+				field!"then"(jsonOfLowExpr(alloc, ctx, case_.then))])))]);
 
 string strOfSpecialUnaryKind(LowExprKind.SpecialUnary.Kind a) {
 	final switch (a) {

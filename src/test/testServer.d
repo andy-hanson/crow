@@ -2,7 +2,7 @@ module test.testServer;
 
 @safe @nogc pure nothrow:
 
-import lib.server : addOrChangeFileFromTempString, getFile, Server;
+import lib.server : setFileFromTemp, getFile, Server;
 import test.testUtil : Test;
 import util.alloc.alloc : Alloc, withStackAlloc;
 import util.col.str : SafeCStr, safeCStr, safeCStrEq;
@@ -16,7 +16,7 @@ import util.util : verify;
 		Server server = Server(alloc.move());
 		Uri uri = parseUri(server.allUris, "main.crow");
 		SafeCStr content = safeCStr!"content";
-		addOrChangeFileFromTempString(server, uri, content);
+		setFileFromTemp(server, uri, content);
 		Opt!FileContent res = getFile(test.alloc, server, uri);
 		verify(safeCStrEq(asSafeCStr(force(res)), content));
 	});
