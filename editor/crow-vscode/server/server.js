@@ -18,7 +18,7 @@ const connection = createConnection(ProposedFeatures.all)
 
 /** @type {function(string, unknown): string} */
 const formatLog = (message, content) =>
-	content === undefined ? message : `${message}: ${JSON.stringify(content)}`
+	content === undefined ? message : `${new Date().toISOString()} ${message}: ${JSON.stringify(content)}`
 
 /** @type {function(string, ?unknown): void} */
 const log = (message, content) => {
@@ -44,16 +44,21 @@ let hasConfigurationCapability = false
 /**
  * @template P, R
  * @param {string} description
- * @param {(p: P) => R} cb
- * @return {(p: P) => R}
+ * @param {(params: P) => R} cb
+ * @return {(params: P) => R}
  */
 const withLogErrors = (description, cb) => {
-	return p => {
+	return params => {
+		const paramsWithDocument = /** @type {{document:TextDocument | undefined}} */ (params)
+		const info = paramsWithDocument.document ? {...params, document:paramsWithDocument.document.uri} : params
 		try {
-			return cb(p)
+			logVerbose(`begin ${description}`, info)
+			return cb(params)
 		} catch (error) {
 			log(`Error in ${description}`, {stack:(/** @type {Error} */ (error)).stack})
 			throw error
+		} finally {
+			logVerbose("end " + description, info)
 		}
 	}
 }

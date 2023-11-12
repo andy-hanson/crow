@@ -171,7 +171,9 @@ StringPart takeInitialStringPart(ref Lexer lexer, QuoteKind quoteKind) {
 
 private StringPart takeStringPartCommon(ref Lexer lexer, QuoteKind quoteKind) {
 	StringPart res = takeStringPart(lexer.alloc, lexer.ptr, quoteKind, (ParseDiag x) => addDiagAtChar(lexer, x));
-	takeNextToken(lexer);
+	// Don't skip newline token (which is a parse error)
+	if (!isNewlineToken(getPeekToken(lexer)))
+		takeNextToken(lexer);
 	return res;
 }
 

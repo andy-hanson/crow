@@ -26,4 +26,4 @@ exports.nonNull = x => {
 	return x
 }
 
-exports.VERBOSE = false
+exports.VERBOSE = true

@@ -48,6 +48,7 @@ import frontend.parse.lexer :
 	ElifOrElse,
 	EqualsOrThen,
 	getPeekToken,
+	getPeekTokenAndData,
 	Lexer,
 	lookaheadEqualsOrThen,
 	lookaheadLambda,
@@ -65,6 +66,7 @@ import frontend.parse.lexer :
 	tryTakeNewlineThenAs,
 	tryTakeNewlineThenElifOrElse,
 	tryTakeNewlineThenElse;
+import frontend.parse.lexToken : isNewlineToken;
 import frontend.parse.parseType : parseType, parseTypeForTypedExpr, tryParseTypeArgForExpr;
 import frontend.parse.parseUtil :
 	peekEndOfLine,
@@ -714,6 +716,10 @@ ExprAst parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBlock) {
 	) {
 		return .ifAllowBlock(lexer, start, allowedBlock, kind, cbAllowBlock);
 	}
+
+	// Don't skip newline tokens
+	if (isNewlineToken(getPeekToken(lexer)))
+		return badToken(lexer, start, getPeekTokenAndData(lexer));
 
 	TokenAndData token = takeNextToken(lexer);
 	switch (token.token) {

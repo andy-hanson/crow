@@ -443,9 +443,9 @@ StringPart takeStringPart(
 	ArrBuilder!char res;
 	StringPart.After after = () {
 		while (true) {
-			char x = takeChar(ptr);
-			switch(x) {
+			switch (peekChar(ptr)) {
 				case '"':
+					skipChar(ptr);
 					final switch (quoteKind) {
 						case QuoteKind.double_:
 							return StringPart.After.quote;
@@ -457,30 +457,11 @@ StringPart takeStringPart(
 							break;
 					}
 					break;
-				case '\r':
-				case '\n':
-					final switch (quoteKind) {
-						case QuoteKind.double_:
-							addDiag(ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.quoteDouble)));
-							return StringPart.After.quote;
-						case QuoteKind.double3:
-							add(alloc, res, x);
-							break;
-					}
-					break;
-				case '\0':
-					addDiag(ParseDiag(ParseDiag.Expected(() {
-						final switch (quoteKind) {
-							case QuoteKind.double_:
-								return ParseDiag.Expected.Kind.quoteDouble;
-							case QuoteKind.double3:
-								return ParseDiag.Expected.Kind.quoteDouble3;
-						}
-					}())));
-					return StringPart.After.quote;
 				case '{':
+					skipChar(ptr);
 					return StringPart.After.lbrace;
 				case '\\':
+					skipChar(ptr);
 					char escapeCode = takeChar(ptr);
 					char escaped = () {
 						switch (escapeCode) {
@@ -511,8 +492,29 @@ StringPart takeStringPart(
 					}();
 					add(alloc, res, escaped);
 					break;
+				case '\r':
+				case '\n':
+					final switch (quoteKind) {
+						case QuoteKind.double_:
+							addDiag(ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.quoteDouble)));
+							return StringPart.After.quote;
+						case QuoteKind.double3:
+							add(alloc, res, takeChar(ptr));
+							break;
+					}
+					break;
+				case '\0':
+					addDiag(ParseDiag(ParseDiag.Expected(() {
+						final switch (quoteKind) {
+							case QuoteKind.double_:
+								return ParseDiag.Expected.Kind.quoteDouble;
+							case QuoteKind.double3:
+								return ParseDiag.Expected.Kind.quoteDouble3;
+						}
+					}())));
+					return StringPart.After.quote;
 				default:
-					add(alloc, res, x);
+					add(alloc, res, takeChar(ptr));
 			}
 		}
 	}();
@@ -532,6 +534,13 @@ private:
 	Token token = x.indentDelta == 0 ? newlineOrEOF : x.indentDelta < 0 ? Token.newlineDedent : Token.newlineIndent;
 	uint extraDedents = token == Token.newlineDedent ? -x.indentDelta - 1 : 0;
 	return TokenAndData(token, DocCommentAndExtraDedents(x.docComment, extraDedents));
+}
+
+@trusted char peekChar(immutable char* ptr) =>
+	*ptr;
+
+@trusted void skipChar(ref immutable(char)* ptr) {
+	ptr++;
 }
 
 @trusted char takeChar(ref immutable(char)* ptr) {
