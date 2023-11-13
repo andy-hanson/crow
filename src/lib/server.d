@@ -7,7 +7,7 @@ import concretize.concretize : concretize;
 import document.document : documentJSON;
 import frontend.diagnosticsBuilder : DiagnosticsBuilder, DiagnosticsBuilderForFile, finishDiagnostics;
 import frontend.frontendCompile : frontendCompile, FileAstAndDiagnostics, parseAllFiles, parseSingleAst;
-import frontend.ide.getDefinition : Definition, getDefinitionForPosition;
+import frontend.ide.getDefinition : getDefinitionForPosition;
 import frontend.ide.getHover : getHoverStr;
 import frontend.ide.getPosition : getPosition;
 import frontend.ide.getReferences : getReferencesForPosition, jsonOfReferences;
@@ -24,6 +24,7 @@ import interpret.extern_ : Extern, ExternFunPtrsForAllLibraries, WriteError;
 import interpret.fakeExtern : Pipe, withFakeExtern, WriteCb;
 import interpret.generateBytecode : generateBytecode;
 import interpret.runBytecode : runBytecode;
+import lib.cliParser : PrintKind;
 import lower.lower : lower;
 import model.concreteModel : ConcreteProgram;
 import model.diag : Diagnostic, diagnosticsIsFatal;
@@ -250,7 +251,13 @@ DocumentResult getDocumentation(ref Alloc alloc, ref Perf perf, ref Server serve
 		showDiagnostics(alloc, server, program));
 }
 
-private Program frontendCompile(ref Alloc alloc, ref Perf perf, ref Server server, in Uri[] rootUris, Opt!Uri main) =>
+private Program frontendCompile(
+	ref Alloc alloc,
+	ref Perf perf,
+	scope ref Server server,
+	in Uri[] rootUris,
+	in Opt!Uri main,
+) =>
 	frontendCompile(
 		alloc, perf, alloc, server.allSymbols, server.allUris, server.storage, server.includeDir, rootUris, main);
 
@@ -275,18 +282,19 @@ TokensAndParseDiagnostics getTokensAndParseDiagnostics(
 			fakeProgramForDiagnostics(finishDiagnostics(diags, server.allUris)));
 	});
 
-struct ProgramAndDefinition {
-	Program program;
-	Opt!Definition definition;
-}
+UriAndRange[] getDefinition(ref Perf perf, ref Alloc alloc, ref Server server, in UriLineAndCharacter where) =>
+	getDefinitionForProgram(alloc, server, where, getProgram(perf, alloc, server, where.uri));
 
-ProgramAndDefinition getDefinition(ref Perf perf, ref Alloc alloc, ref Server server, in UriLineAndCharacter where) {
-	Program program = getProgram(perf, alloc, server, where.uri);
+private UriAndRange[] getDefinitionForProgram(
+	ref Alloc alloc,
+	scope ref Server server,
+	in UriLineAndCharacter where,
+	in Program program,
+) {
 	Opt!Position position = getPosition(server, program, where);
-	Opt!Definition definition = has(position)
-		? getDefinitionForPosition(server.allSymbols, program, force(position))
-		: none!Definition;
-	return ProgramAndDefinition(program, definition);
+	return has(position)
+		? getDefinitionForPosition(alloc, server.allSymbols, program, force(position))
+		: [];
 }
 
 UriAndRange[] getReferences(ref Perf perf, ref Alloc alloc, ref Server server, in UriLineAndCharacter where) =>
@@ -300,7 +308,7 @@ private UriAndRange[] getReferencesForProgram(
 ) {
 	Opt!Position position = getPosition(server, program, where);
 	return has(position)
-		? getReferencesForPosition(alloc, server.allSymbols, program, force(position))
+		? getReferencesForPosition(alloc, server.allSymbols, server.allUris, program, force(position))
 		: [];
 }
 
@@ -320,13 +328,13 @@ private SafeCStr getHoverForProgram(
 		: safeCStr!"";
 }
 
-private Program getProgram(ref Perf perf, ref Alloc alloc, ref Server server, Uri root) =>
+private Program getProgram(ref Perf perf, ref Alloc alloc, scope ref Server server, Uri root) =>
 	frontendCompile(alloc, perf, server, [root], none!Uri);
 
 private Opt!Position getPosition(scope ref Server server, in Program program, in UriLineAndCharacter where) {
 	Opt!(immutable Module*) module_ = program.allModules[where.uri];
 	return has(module_)
-		? some(getPosition(server.allSymbols, force(module_), server.lineAndColumnGetters[where]))
+		? some(getPosition(server.allSymbols, server.allUris, force(module_), server.lineAndColumnGetters[where]))
 		: none!Position;
 }
 
@@ -338,7 +346,12 @@ struct DiagsAndResultJson {
 	Json result;
 }
 
-private DiagsAndResultJson diagsAndResultJson(ref Alloc alloc, ref Server server, in Program program, Json result) =>
+private DiagsAndResultJson diagsAndResultJson(
+	ref Alloc alloc,
+	scope ref Server server,
+	in Program program,
+	Json result,
+) =>
 	DiagsAndResultJson(showDiagnostics(alloc, server, program), result);
 
 DiagsAndResultJson printTokens(ref Alloc alloc, ref Perf perf, ref Server server, Uri uri) {
@@ -395,20 +408,28 @@ DiagsAndResultJson printLowModel(
 	return diagsAndResultJson(alloc, server, program, jsonOfLowProgram(alloc, lineAndColumnGetters, lowProgram));
 }
 
-DiagsAndResultJson printHover(ref Alloc alloc, ref Perf perf, ref Server server, in UriLineAndColumn where) {
+DiagsAndResultJson printIde(
+	ref Alloc alloc,
+	ref Perf perf,
+	scope ref Server server,
+	in UriLineAndColumn where,
+	in PrintKind.Ide.Kind kind,
+) {
 	Program program = getProgram(perf, alloc, server, where.uri);
-	Json json = jsonString(
-		getHoverForProgram(alloc, server, toLineAndCharacter(server.lineAndColumnGetters, where), program));
+	UriLineAndCharacter where2 = toLineAndCharacter(server.lineAndColumnGetters, where);
+	Json locations(UriAndRange[] xs) =>
+		jsonOfReferences(alloc, server.allUris, server.lineAndColumnGetters, xs);
+	Json json = () {
+		final switch (kind) {
+			case PrintKind.Ide.Kind.definition:
+				return locations(getDefinitionForProgram(alloc, server, where2, program));
+			case PrintKind.Ide.Kind.hover:
+				return jsonString(getHoverForProgram(alloc, server, where2, program));
+			case PrintKind.Ide.Kind.references:
+				return locations(getReferencesForProgram(alloc, server, where2, program));
+		}
+	}();
 	return diagsAndResultJson(alloc, server, program, json);
-}
-
-DiagsAndResultJson printReferences(ref Alloc alloc, ref Perf perf, ref Server server, in UriLineAndColumn where) {
-	Program program = getProgram(perf, alloc, server, where.uri);
-	return diagsAndResultJson(alloc, server, program, jsonOfReferences(
-		alloc,
-		server.allUris,
-		server.lineAndColumnGetters,
-		getReferencesForProgram(alloc, server, toLineAndCharacter(server.lineAndColumnGetters, where), program)));
 }
 
 immutable struct Programs {

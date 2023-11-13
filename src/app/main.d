@@ -34,10 +34,9 @@ import lib.server :
 	justTypeCheck,
 	printAst,
 	printConcreteModel,
-	printHover,
+	printIde,
 	printLowModel,
 	printModel,
-	printReferences,
 	printTokens,
 	Programs,
 	Server,
@@ -223,13 +222,9 @@ ExitCode doPrint(ref Perf perf, ref Server server, in Command.Print command) {
 			loadAllFiles(perf, server, [mainUri]);
 			return printLowModel(server.alloc, perf, server, server.lineAndColumnGetters, versionInfoForJIT(), mainUri);
 		},
-		(in PrintKind.Hover x) {
+		(in PrintKind.Ide x) {
 			loadAllFiles(perf, server, [mainUri]);
-			return printHover(server.alloc, perf, server, UriLineAndColumn(mainUri, x.lineAndColumn));
-		},
-		(in PrintKind.References x) {
-			loadAllFiles(perf, server, [mainUri]);
-			return printReferences(server.alloc, perf, server, UriLineAndColumn(mainUri, x.lineAndColumn));
+			return printIde(server.alloc, perf, server, UriLineAndColumn(mainUri, x.lineAndColumn), x.kind);
 		});
 	if (!safeCStrIsEmpty(printed.diagnostics))
 		printError(printed.diagnostics);

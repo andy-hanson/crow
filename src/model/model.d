@@ -5,6 +5,7 @@ module model.model;
 import frontend.parse.ast :
 	DestructureAst,
 	FunDeclAst,
+	ImportOrExportAst,
 	NameAndRange,
 	nameRangeOfDestructureSingle,
 	rangeOfDestructureSingle,
@@ -662,7 +663,8 @@ immutable struct FunDeclSource {
 		FunDeclAst* ast;
 	}
 	immutable struct FileImport {
-		UriAndRange range;
+		Uri uri;
+		ImportOrExportAst* ast;
 	}
 
 	mixin Union!(Bogus, Ast, FileImport, StructBody.Enum.Member*, StructDecl*, VarDecl*);
@@ -674,7 +676,7 @@ immutable struct FunDeclSource {
 			(in FunDeclSource.Ast x) =>
 				UriAndRange(x.uri, x.ast.range),
 			(in FunDeclSource.FileImport x) =>
-				x.range,
+				UriAndRange(x.uri, x.ast.range),
 			(in StructBody.Enum.Member x) =>
 				x.range,
 			(in StructDecl x) =>
@@ -998,7 +1000,7 @@ Module emptyModule(Uri uri) =>
 
 immutable struct ImportOrExport {
 	// none for an automatic import of std
-	Opt!RangeWithinFile importSource;
+	Opt!(ImportOrExportAst*) source;
 	ImportOrExportKind kind;
 }
 
@@ -1047,9 +1049,8 @@ immutable struct ImportOrExportKind {
 			? cbWhole(ModuleWhole(modulePtr))
 			: cbNamed(ModuleNamed(modulePtr, names));
 
-	private:
 	Module* modulePtr;
-	SmallArray!Sym names;
+	private SmallArray!Sym names;
 }
 static assert(ImportOrExportKind.sizeof == ulong.sizeof * 2);
 

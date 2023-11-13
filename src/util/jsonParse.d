@@ -10,7 +10,7 @@ import util.json : Json;
 import util.opt : force, has, none, Opt, some;
 import util.sym : AllSymbols, symOfStr;
 
-Opt!Json parseJson(ref Alloc alloc, ref AllSymbols allSymbols, in SafeCStr source) {
+Opt!Json parseJson(ref Alloc alloc, scope ref AllSymbols allSymbols, in SafeCStr source) {
 	immutable(char)* ptr = source.ptr;
 	Opt!Json res = parseValue(alloc, allSymbols, ptr);
 	skipWhitespace(ptr);
@@ -19,7 +19,7 @@ Opt!Json parseJson(ref Alloc alloc, ref AllSymbols allSymbols, in SafeCStr sourc
 
 private:
 
-Opt!Json parseValue(ref Alloc alloc, ref AllSymbols allSymbols, scope ref immutable(char)* ptr) {
+Opt!Json parseValue(ref Alloc alloc, scope ref AllSymbols allSymbols, scope ref immutable(char)* ptr) {
 	skipWhitespace(ptr);
 	switch (next(ptr)) {
 		case 'f':
@@ -63,14 +63,14 @@ Opt!Json parseString(ref Alloc alloc, scope ref immutable(char)* ptr) {
 	}
 }
 
-Opt!Json parseArray(ref Alloc alloc, ref AllSymbols allSymbols, scope ref immutable(char)* ptr) {
+Opt!Json parseArray(ref Alloc alloc, scope ref AllSymbols allSymbols, scope ref immutable(char)* ptr) {
 	ArrBuilder!Json res;
 	return parseArrayRecur(alloc, allSymbols, res, ptr);
 }
 Opt!Json parseArrayRecur(
 	ref Alloc alloc,
-	ref AllSymbols allSymbols,
-	ref ArrBuilder!Json res,
+	scope ref AllSymbols allSymbols,
+	scope ref ArrBuilder!Json res,
 	scope ref immutable(char)* ptr,
 ) {
 	if (tryTakePunctuation(ptr, ']'))
@@ -89,15 +89,15 @@ Opt!Json parseArrayRecur(
 	}
 }
 
-Opt!Json parseObject(ref Alloc alloc, ref AllSymbols allSymbols, scope ref immutable(char)* ptr) {
+Opt!Json parseObject(ref Alloc alloc, scope ref AllSymbols allSymbols, scope ref immutable(char)* ptr) {
 	ArrBuilder!(Json.ObjectField) res;
 	return parseObjectRecur(alloc, allSymbols, res, ptr);
 }
 
 Opt!Json parseObjectRecur(
 	ref Alloc alloc,
-	ref AllSymbols allSymbols,
-	ref ArrBuilder!(Json.ObjectField) res,
+	scope ref AllSymbols allSymbols,
+	scope ref ArrBuilder!(Json.ObjectField) res,
 	scope ref immutable(char)* ptr,
 ) {
 	if (tryTakePunctuation(ptr, '"')) {

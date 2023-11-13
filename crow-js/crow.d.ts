@@ -25,10 +25,6 @@ declare namespace crow {
 		message: string
 	}
 
-	type Definition = {
-		definition: UriAndRange | undefined
-	}
-
 	type Token = {
 		token: TokenKind
 		range: RangeWithinFile
@@ -85,7 +81,7 @@ declare namespace crow {
 		allLoadingUris(): ReadonlyArray<string>
 		getTokensAndParseDiagnostics(uri: string): TokensAndParseDiagnostics
 		getAllDiagnostics(): AllDiagnosticsResult
-		getDefinition(where: UriLineAndCharacter): Definition
+		getDefinition(where: UriLineAndCharacter): ReadonlyArray<UriAndRange>
 		getReferences(where: UriLineAndCharacter): ReadonlyArray<UriAndRange>
 		getHover(where: UriLineAndCharacter): string
 		run(uri: string): RunOutput

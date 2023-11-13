@@ -4,6 +4,7 @@ module frontend.ide.getReferences;
 
 import frontend.ide.getTarget : exprTarget, Target, targetForPosition;
 import frontend.ide.position : Position, PositionKind;
+import frontend.parse.ast : pathRange;
 import model.model :
 	eachDescendentExprExcluding,
 	eachDescendentExprIncluding,
@@ -11,6 +12,7 @@ import model.model :
 	ExprKind,
 	FunBody,
 	FunDecl,
+	ImportOrExport,
 	localMustHaveNameRange,
 	loopKeywordRange,
 	Module,
@@ -23,6 +25,7 @@ import model.model :
 	TypeParam;
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.map : mapEach;
 import util.json : Json, jsonList;
 import util.lineAndColumnGetter : LineAndColumnGetters;
 import util.opt : force, has, Opt, optEqual, some;
@@ -32,9 +35,15 @@ import util.sym : AllSymbols;
 import util.uri : AllUris, Uri;
 import util.util : typeAs;
 
-UriAndRange[] getReferencesForPosition(ref Alloc alloc, in AllSymbols allSymbols, in Program program, in Position pos) {
+UriAndRange[] getReferencesForPosition(
+	ref Alloc alloc,
+	in AllSymbols allSymbols,
+	in AllUris allUris,
+	in Program program,
+	ref Position pos,
+) {
 	Opt!Target target = targetForPosition(program, pos.kind);
-	return has(target) ? referencesForTarget(alloc, allSymbols, program, pos.module_.uri, force(target)) : [];
+	return has(target) ? referencesForTarget(alloc, allSymbols, allUris, program, pos.module_.uri, force(target)) : [];
 }
 
 Json jsonOfReferences(
@@ -51,38 +60,38 @@ private:
 UriAndRange[] referencesForTarget(
 	ref Alloc alloc,
 	in AllSymbols allSymbols,
+	in AllUris allUris,
 	in Program program,
 	Uri curUri,
-	in Target a,
+	return scope ref Target a,
 ) =>
-	a.matchIn!(UriAndRange[])(
-		(in FunDecl x) =>
+	a.matchWithPointers!(UriAndRange[])(
+		(FunDecl* x) =>
 			// TODO
 			typeAs!(UriAndRange[])([]),
-		(in Target.LocalInFunction x) =>
-			localReferences(alloc, allSymbols, program, curUri, x),
-		(in ExprKind.Loop x) =>
-			loopReferences(alloc, curUri, x),
-		(in Module x) =>
-			// TODO
-			typeAs!(UriAndRange[])([]),
-		(in RecordField x) =>
+		(Target.LocalInFunction x) =>
+			referencesForLocal(alloc, allSymbols, program, curUri, x),
+		(ExprKind.Loop* x) =>
+			referencesForLoop(alloc, curUri, *x),
+		(Module* x) =>
+			referencesForModule(alloc, allUris, program, x),
+		(RecordField* x) =>
 			// TODO (get references for the get/set functions)
 			typeAs!(UriAndRange[])([]),
-		(in SpecDecl x) =>
+		(SpecDecl* x) =>
 			// TODO (search all functions)
 			typeAs!(UriAndRange[])([]),
-		(in SpecDeclSig x) =>
+		(SpecDeclSig* x) =>
 			// TODO (find call references)
 			typeAs!(UriAndRange[])([]),
-		(in StructDecl x) =>
+		(StructDecl* x) =>
 			// TODO
 			typeAs!(UriAndRange[])([]),
-		(in TypeParam x) =>
+		(TypeParam* x) =>
 			// TODO
 			typeAs!(UriAndRange[])([]));
 
-UriAndRange[] localReferences(
+UriAndRange[] referencesForLocal(
 	ref Alloc alloc,
 	in AllSymbols allSymbols,
 	in Program program,
@@ -102,7 +111,7 @@ UriAndRange[] localReferences(
 	return finishArr(alloc, res);
 }
 
-UriAndRange[] loopReferences(ref Alloc alloc, Uri curUri, in ExprKind.Loop x) {
+UriAndRange[] referencesForLoop(ref Alloc alloc, Uri curUri, in ExprKind.Loop x) {
 	ArrBuilder!UriAndRange res;
 	add(alloc, res, UriAndRange(curUri, loopKeywordRange(x)));
 	eachDescendentExprExcluding(ExprKind(&x), (in Expr child) {
@@ -110,4 +119,36 @@ UriAndRange[] loopReferences(ref Alloc alloc, Uri curUri, in ExprKind.Loop x) {
 			add(alloc, res, child.range);
 	});
 	return finishArr(alloc, res);
+}
+
+UriAndRange[] referencesForModule(ref Alloc alloc, in AllUris allUris, in Program program, in Module* target) {
+	ArrBuilder!UriAndRange res;
+	eachModuleReferencing(program, target, (in Module importer, in ImportOrExport ie) {
+		if (has(ie.source))
+			add(alloc, res, UriAndRange(importer.uri, pathRange(allUris, *force(ie.source))));
+	});
+	return finishArr(alloc, res);
+}
+
+void eachModuleReferencing(
+	in Program program,
+	in Module* target,
+	in void delegate(in Module, in ImportOrExport) @safe @nogc pure nothrow cb,
+) {
+	mapEach!(Uri, immutable Module*)(program.allModules, (Uri _, ref immutable Module* module_) {
+		eachModuleReference(*module_, target, (in ImportOrExport x) {
+			cb(*module_, x);
+		});
+	});
+}
+
+void eachModuleReference(in Module a, Module* b, in void delegate(in ImportOrExport) @safe @nogc pure nothrow cb) {
+	void iter(in ImportOrExport[] xs) {
+		foreach (ImportOrExport ie; xs) {
+			if (ie.kind.modulePtr == b)
+				cb(ie);
+		}
+	}
+	iter(a.imports);
+	iter(a.reExports);
 }

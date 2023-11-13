@@ -1,9 +1,9 @@
 exit code: 0
 stderr:
-test/compile-errors/unused.crow 3:5-3:26 imported name 'sec' is unused
-test/compile-errors/unused.crow 5:5-5:37 imported name 'time-locale' is unused
-test/compile-errors/unused.crow 7:5-7:20 imported name 'ssize_t' is unused
-test/compile-errors/unused.crow 9:5-9:35 imported name 'begin-end' is unused
+test/compile-errors/unused.crow 3:5-3:21 imported name 'sec' is unused
+test/compile-errors/unused.crow 5:5-5:24 imported name 'time-locale' is unused
+test/compile-errors/unused.crow 7:5-7:11 imported name 'ssize_t' is unused
+test/compile-errors/unused.crow 9:5-9:24 imported name 'begin-end' is unused
 test/compile-errors/unused.crow 11:5-11:20 imported module 'process.crow' is unused
 test/compile-errors/unused.crow 16:13-16:14 local 'p' is unused
 test/compile-errors/unused.crow 17:23-17:24 local 'x' is unused

@@ -384,7 +384,7 @@ Opt!Type typeFromDestructure(
 			some(Type(commonTypes.void_)),
 		(in DestructureAst[] parts) {
 			// TODO:PERF use temp alloc
-			Opt!(Type[]) types = mapOrNone!(Type, DestructureAst)(ctx.alloc, parts, (in DestructureAst part) =>
+			Opt!(Type[]) types = mapOrNone!(Type, DestructureAst)(ctx.alloc, parts, (ref DestructureAst part) =>
 				typeFromDestructure(ctx, commonTypes, part, structsAndAliasesMap, typeParamsScope));
 			return has(types) ? some(makeTupleType(ctx.alloc, ctx.programState, commonTypes, force(types))) : none!Type;
 		});

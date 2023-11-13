@@ -2,6 +2,7 @@ module model.jsonOfModel;
 
 @safe @nogc pure nothrow:
 
+import frontend.parse.ast : ImportOrExportAst, pathRange;
 import model.jsonOfConstant : jsonOfConstant;
 import model.model :
 	body_,
@@ -65,7 +66,7 @@ import util.json :
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : ptrTrustMe;
-import util.sourceRange : jsonOfRangeWithinFile, RangeWithinFile;
+import util.sourceRange : jsonOfRangeWithinFile;
 import util.sym : Sym, sym;
 import util.uri : AllUris, uriToString;
 
@@ -94,8 +95,8 @@ private:
 
 Json jsonOfImportOrExport(ref Alloc alloc, in Ctx ctx, in ImportOrExport a) =>
 	jsonObject(alloc, [
-		optionalField!("source", RangeWithinFile)(a.importSource, (in RangeWithinFile x) =>
-			jsonOfRangeWithinFile(alloc, ctx.lineAndColumnGetter, x)),
+		optionalField!("source", ImportOrExportAst*)(a.source, (in ImportOrExportAst* x) =>
+			jsonOfRangeWithinFile(alloc, ctx.lineAndColumnGetter, pathRange(ctx.allUris, *x))),
 		field!"import-kind"(jsonOfImportOrExportKind(alloc, ctx.allUris, a.kind))]);
 
 Json jsonOfImportOrExportKind(ref Alloc alloc, in AllUris allUris, in ImportOrExportKind a) =>

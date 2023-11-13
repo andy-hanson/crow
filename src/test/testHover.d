@@ -3,7 +3,7 @@ module test.testHover;
 @safe @nogc pure nothrow:
 
 import frontend.frontendCompile : frontendCompile;
-import frontend.ide.getDefinition : Definition, getDefinitionForPosition, jsonOfDefinition;
+import frontend.ide.getDefinition : getDefinitionForPosition;
 import frontend.ide.getHover : getHoverStr;
 import frontend.ide.getPosition : getPosition;
 import frontend.ide.position : Position;
@@ -12,17 +12,18 @@ import model.model : Module, Program;
 import test.testUtil : Test, withShowDiagCtxForTest;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : only;
+import util.col.arr : empty, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.arrUtil : arrEqual;
 import util.col.str : end, SafeCStr, safeCStr, safeCStrEq, safeCStrIsEmpty, safeCStrSize, strOfSafeCStr;
 import util.conv : safeToUint;
-import util.json : field, Json, jsonList, jsonObject, jsonToStringPretty, optionalField;
+import util.json : field, Json, jsonList, jsonObject, jsonToStringPretty, optionalArrayField;
 import util.lineAndColumnGetter : LineAndColumnGetter, PosKind;
-import util.opt : has, none, Opt, optEqual;
+import util.opt : none;
 import util.uri : parseUri, Uri;
 import util.perf : Perf, withNullPerf;
 import util.storage : allocateToStorage, ReadFileResult, Storage, setFile;
-import util.sourceRange : jsonOfPosWithinFile, Pos;
+import util.sourceRange : jsonOfPosWithinFile, jsonOfUriAndRange, Pos, UriAndRange;
 import util.util : debugLog, verifyFail;
 
 @trusted void testHover(ref Test test) {
@@ -69,14 +70,13 @@ immutable struct InfoAtPos {
 	@safe @nogc pure nothrow:
 
 	SafeCStr hover;
-	Opt!Definition definition;
+	UriAndRange[] definition;
 
-	bool isEmpty() =>
-		safeCStrIsEmpty(hover) && !has(definition);
+	bool isEmpty() scope =>
+		safeCStrIsEmpty(hover) && empty(definition);
 
 	bool opEquals(in InfoAtPos b) scope =>
-		safeCStrEq(hover, b.hover) &&
-			optEqual!Definition(definition, b.definition);
+		safeCStrEq(hover, b.hover) && arrEqual(definition, b.definition);
 }
 
 Json hoverResult(ref Alloc alloc, in SafeCStr content, ref ShowCtx ctx, Module* mainModule) {
@@ -84,7 +84,7 @@ Json hoverResult(ref Alloc alloc, in SafeCStr content, ref ShowCtx ctx, Module* 
 
 	// We combine ranges that have the same info.
 	Pos curRangeStart = 0;
-	Cell!(InfoAtPos) curInfo = Cell!(InfoAtPos)(InfoAtPos(safeCStr!"", none!Definition));
+	Cell!(InfoAtPos) curInfo = Cell!(InfoAtPos)(InfoAtPos(safeCStr!"", []));
 
 	LineAndColumnGetter lcg = ctx.lineAndColumnGetters[mainModule.uri];
 
@@ -95,18 +95,18 @@ Json hoverResult(ref Alloc alloc, in SafeCStr content, ref ShowCtx ctx, Module* 
 				field!"start"(jsonOfPosWithinFile(alloc, lcg, curRangeStart, PosKind.startOfRange)),
 				field!"end"(jsonOfPosWithinFile(alloc, lcg, end, PosKind.endOfRange)),
 				field!"hover"(info.hover),
-				optionalField!("definition", Definition)(info.definition, (in Definition x) =>
-					jsonOfDefinition(alloc, ctx.allUris, ctx.lineAndColumnGetters, x)),
+				optionalArrayField!("definition", UriAndRange)(alloc, info.definition, (in UriAndRange x) =>
+					jsonOfUriAndRange(alloc, ctx.allUris, ctx.lineAndColumnGetters, x)),
 			]));
 		}
 	}
 
 	Pos endOfFile = safeToUint(safeCStrSize(content));
 	foreach (Pos pos; 0 .. endOfFile + 1) {
-		Position position = getPosition(ctx.allSymbols, mainModule, pos);
+		Position position = getPosition(ctx.allSymbols, ctx.allUris, mainModule, pos);
 		InfoAtPos here = InfoAtPos(
 			getHoverStr(alloc, ctx, position),
-			getDefinitionForPosition(ctx.allSymbols, ctx.program, position));
+			getDefinitionForPosition(alloc, ctx.allSymbols, ctx.program, position));
 		if (here != cellGet(curInfo)) {
 			endRange(pos - 1);
 			curRangeStart = pos;

@@ -2,6 +2,7 @@ module frontend.check.checkCtx;
 
 @safe @nogc pure nothrow:
 
+import frontend.parse.ast : pathRange;
 import frontend.diagnosticsBuilder : addDiagnostic, DiagnosticsBuilder;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
@@ -27,7 +28,7 @@ import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.sourceRange : UriAndRange, RangeWithinFile;
 import util.sym : AllSymbols, Sym;
-import util.uri : Uri;
+import util.uri : AllUris, Uri;
 
 struct CheckCtx {
 	@safe @nogc pure nothrow:
@@ -38,6 +39,7 @@ struct CheckCtx {
 	Perf* perfPtr;
 	public ProgramState* programStatePtr;
 	AllSymbols* allSymbolsPtr;
+	const AllUris* allUrisPtr;
 	public immutable Uri curUri;
 	public ImportsAndReExports importsAndReExports;
 	DiagnosticsBuilder* diagsBuilderPtr;
@@ -50,6 +52,9 @@ struct CheckCtx {
 
 	ref inout(AllSymbols) allSymbols() return scope inout =>
 		*allSymbolsPtr;
+
+	ref const(AllUris) allUris() return scope const =>
+		*allUrisPtr;
 
 	ref Perf perf() return scope =>
 		*perfPtr;
@@ -97,20 +102,24 @@ void checkForUnused(ref CheckCtx ctx, StructAlias[] aliases, StructDecl[] struct
 }
 
 private void checkUnusedImports(ref CheckCtx ctx) {
-	foreach (ref ImportOrExport x; ctx.importsAndReExports.imports)
+	foreach (ref ImportOrExport x; ctx.importsAndReExports.imports) {
+		void addDiagUnused(Module* module_, Opt!Sym name) {
+			addDiag(
+				ctx,
+				pathRange(ctx.allUris, *force(x.source)),
+				Diag(Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.Import(module_, name)))));
+		}
 		x.kind.match!void(
 			(ImportOrExportKind.ModuleWhole m) {
-				if (!isUsedModuleWhole(ctx, m.module_) && has(x.importSource))
-					addDiag(ctx, force(x.importSource), Diag(
-						Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.Import(m.modulePtr, none!Sym)))));
+				if (!isUsedModuleWhole(ctx, m.module_) && has(x.source))
+					addDiagUnused(m.modulePtr, none!Sym);
 			},
 			(ImportOrExportKind.ModuleNamed m) {
-				foreach (Sym name; m.names) {
+				foreach (Sym name; m.names)
 					if (!isUsedNamedImport(ctx, m.module_, name))
-						addDiag(ctx, force(x.importSource), Diag(
-							Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.Import(m.modulePtr, some(name))))));
-				}
+						addDiagUnused(m.modulePtr, some(name));
 			});
+	}
 }
 
 private bool isUsedModuleWhole(in CheckCtx ctx, in Module module_) =>

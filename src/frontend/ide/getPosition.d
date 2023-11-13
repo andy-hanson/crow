@@ -9,8 +9,10 @@ import frontend.parse.ast :
 	FieldMutabilityAst,
 	FunDeclAst,
 	FunModifierAst,
+	ImportOrExportAst,
 	keywordRange,
 	NameAndRange,
+	pathRange,
 	range,
 	rangeOfDestructureSingle,
 	rangeOfMutKeyword,
@@ -46,20 +48,21 @@ import util.col.arr : only, ptrsRange;
 import util.col.arrUtil : first, firstPointer, firstWithIndex, firstZip, firstZipPointerFirst;
 import util.opt : force, has, none, Opt, optIf, optOr, optOr, some;
 import util.sourceRange : hasPos, Pos, RangeWithinFile;
-import util.sym : AllSymbols, Sym, symSize;
+import util.sym : AllSymbols;
 import util.union_ : Union;
+import util.uri : AllUris;
 
-Position getPosition(in AllSymbols allSymbols, Module* module_, Pos pos) {
-	Opt!PositionKind kind = getPositionKind(allSymbols, *module_, pos);
+Position getPosition(in AllSymbols allSymbols, in AllUris allUris, Module* module_, Pos pos) {
+	Opt!PositionKind kind = getPositionKind(allSymbols, allUris, *module_, pos);
 	return Position(module_, has(kind) ? force(kind) : PositionKind(PositionKind.None()));
 }
 
 private:
 
-Opt!PositionKind getPositionKind(in AllSymbols allSymbols, ref Module module_, Pos pos) =>
+Opt!PositionKind getPositionKind(in AllSymbols allSymbols, in AllUris allUris, ref Module module_, Pos pos) =>
 	optOr!PositionKind(
-		positionInImportsOrExports(allSymbols, module_.imports, pos),
-		() => positionInImportsOrExports(allSymbols, module_.reExports, pos),
+		positionInImportsOrExports(allSymbols, allUris, module_.imports, pos),
+		() => positionInImportsOrExports(allSymbols, allUris, module_.reExports, pos),
 		() => firstPointer!(PositionKind, StructDecl)(module_.structs, (StructDecl* x) =>
 			hasPos(x.range.range, pos)
 				? positionInStruct(allSymbols, x, pos)
@@ -123,22 +126,25 @@ Opt!PositionKind positionInDestructure(in AllSymbols allSymbols, FunDecl* contai
 			first!(PositionKind, Destructure)(x.parts, (Destructure part) =>
 				positionInDestructure(allSymbols, containingFun, pos, part)));
 
-Opt!PositionKind positionInImportsOrExports(in AllSymbols allSymbols, ImportOrExport[] importsOrExports, Pos pos) {
+Opt!PositionKind positionInImportsOrExports(
+	in AllSymbols allSymbols,
+	in AllUris allUris,
+	ImportOrExport[] importsOrExports,
+	Pos pos,
+) {
 	foreach (ImportOrExport* im; ptrsRange(importsOrExports))
-		if (has(im.importSource) && hasPos(force(im.importSource), pos))
+		if (has(im.source) && hasPos(force(im.source).range, pos)) {
+			ImportOrExportAst* source = force(im.source);
 			return im.kind.match!(Opt!PositionKind)(
 				(ImportOrExportKind.ModuleWhole m) =>
 					some(PositionKind(PositionKind.ImportedModule(im, m.modulePtr))),
-				(ImportOrExportKind.ModuleNamed m) {
-					Pos namePos = force(im.importSource).start;
-					foreach (Sym name; m.names) {
-						Pos nameEnd = namePos + symSize(allSymbols, name);
-						if (pos < nameEnd)
-							return some(PositionKind(PositionKind.ImportedName(im, name)));
-						namePos = nameEnd + 1;
-					}
-					return some(PositionKind(PositionKind.ImportedModule(im, m.modulePtr)));
-				});
+				(ImportOrExportKind.ModuleNamed m) =>
+					hasPos(pathRange(allUris, *force(im.source)), pos)
+						? some(PositionKind(PositionKind.ImportedModule(im, m.modulePtr)))
+						: first!(PositionKind, NameAndRange)(source.kind.as!(NameAndRange[]), (NameAndRange x) =>
+							optIf(hasPos(allSymbols, x, pos), () =>
+								PositionKind(PositionKind.ImportedName(im, x.name)))));
+		}
 	return none!PositionKind;
 }
 

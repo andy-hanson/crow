@@ -77,8 +77,8 @@ import util.util : typeAs, verify;
 FileAst parseFile(
 	ref Alloc alloc,
 	scope ref Perf perf,
-	ref AllSymbols allSymbols,
-	ref AllUris allUris,
+	scope ref AllSymbols allSymbols,
+	scope ref AllUris allUris,
 	scope ref DiagnosticsBuilderForFile diagsBuilder,
 	scope SafeCStr source,
 ) =>

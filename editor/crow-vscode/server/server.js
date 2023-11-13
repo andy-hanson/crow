@@ -176,14 +176,12 @@ connection.onDidChangeWatchedFiles(withLogErrors("onDidChangeWatchedFiles", _cha
 	log("onDidChangeWatchedFiles (unimplemented)", {})
 }))
 
-connection.onDefinition(withLogErrors("onDefinition", params => {
-	const {definition} = compiler.getDefinition(getUriLineAndCharacter(params))
-	return definition === undefined ? [] : [definition]
-}))
+connection.onDefinition(withLogErrors("onDefinition", params =>
+	compiler.getDefinition(getUriLineAndCharacter(params)).slice()))
 
 connection.onHover(withLogErrors("onHover", params => {
 	const hover = compiler.getHover(getUriLineAndCharacter(params))
-	return hover ? {contents:hover} : null
+	return hover ? {contents:{kind:'markdown', value:hover}} : null
 }))
 
 connection.onReferences(withLogErrors("onReferences", params =>

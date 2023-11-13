@@ -23,8 +23,8 @@ import util.util : todo;
 
 Config getConfig(
 	ref Alloc alloc,
-	ref AllSymbols allSymbols,
-	ref AllUris allUris,
+	scope ref AllSymbols allSymbols,
+	scope ref AllUris allUris,
 	Uri crowIncludeDir,
 	scope ref Storage storage,
 	scope ref DiagnosticsBuilder diagsBuilder,
@@ -42,8 +42,8 @@ private:
 
 Config getConfigRecur(
 	ref Alloc alloc,
-	ref AllSymbols allSymbols,
-	ref AllUris allUris,
+	scope ref AllSymbols allSymbols,
+	scope ref AllUris allUris,
 	Uri crowIncludeDir,
 	scope ref Storage storage,
 	scope ref DiagnosticsBuilder diagsBuilder,
@@ -90,8 +90,8 @@ Config withExtern(Config a, ConfigExternUris extern_) =>
 
 Config parseConfig(
 	ref Alloc alloc,
-	ref AllSymbols allSymbols,
-	ref AllUris allUris,
+	scope ref AllSymbols allSymbols,
+	scope ref AllUris allUris,
 	Uri crowIncludeDir,
 	Uri dirContainingConfig,
 	scope ref DiagnosticsBuilderForFile diags,
@@ -114,8 +114,8 @@ Config parseConfig(
 
 Config parseConfigRecur(
 	ref Alloc alloc,
-	ref AllSymbols allSymbols,
-	ref AllUris allUris,
+	scope ref AllSymbols allSymbols,
+	scope ref AllUris allUris,
 	Uri crowIncludeDir,
 	Uri dirContainingConfig,
 	scope ref DiagnosticsBuilderForFile diags,
@@ -140,8 +140,8 @@ Config parseConfigRecur(
 
 Map!(Sym, Uri) parseIncludeOrExtern(
 	ref Alloc alloc,
-	ref AllSymbols allSymbols,
-	ref AllUris allUris,
+	scope ref AllSymbols allSymbols,
+	scope ref AllUris allUris,
 	Uri dirContainingConfig,
 	scope ref DiagnosticsBuilderForFile diags,
 	in Json json,
@@ -152,7 +152,7 @@ Map!(Sym, Uri) parseIncludeOrExtern(
 	});
 
 Opt!Uri parseUri(
-	ref AllUris allUris,
+	scope ref AllUris allUris,
 	Uri dirContainingConfig,
 	scope ref DiagnosticsBuilderForFile diags,
 	in Json json,

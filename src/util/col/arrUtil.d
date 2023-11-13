@@ -198,7 +198,7 @@ T[] copyArr(T)(ref Alloc alloc, scope T[] a) =>
 @trusted Opt!(Out[]) mapOrNone(Out, In)(
 	ref Alloc alloc,
 	in In[] a,
-	in Opt!Out delegate(in In) @safe @nogc pure nothrow cb,
+	in Opt!Out delegate(ref In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = allocateT!Out(alloc, a.length);
 	foreach (size_t i, ref In x; a) {

@@ -26,9 +26,11 @@ import frontend.parse.ast :
 	FileAst,
 	FunDeclAst,
 	FunModifierAst,
+	ImportOrExportAst,
 	LiteralStringAst,
 	NameAndRange,
 	ParamsAst,
+	pathRange,
 	range,
 	SpecBodyAst,
 	SpecDeclAst,
@@ -83,7 +85,7 @@ import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : empty, emptySmallArray, only, ptrsRange, small;
 import util.col.arrUtil : cat, filter, map, mapOp, mapToMut, zip, zipPtrFirst;
-import util.col.map : Map, mapEach, mapEachIn, hasKey, KeyValuePair;
+import util.col.map : Map, mapEach, hasKey, KeyValuePair;
 import util.col.mapBuilder : MapBuilder, finishMap, tryAddToMap;
 import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd, finish, newExactSizeArrBuilder;
 import util.col.multiMap : buildMultiMap, multiMapEach;
@@ -98,7 +100,7 @@ import util.ptr : ptrTrustMe;
 import util.storage : asBytes, asString, FileContent;
 import util.sourceRange : UriAndPos, UriAndRange, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
-import util.uri : Uri;
+import util.uri : AllUris, Uri;
 import util.util : unreachable, todo, verify;
 
 immutable struct FileAndAst {
@@ -114,7 +116,8 @@ immutable struct BootstrapCheck {
 BootstrapCheck checkBootstrap(
 	ref Alloc alloc,
 	ref Perf perf,
-	ref AllSymbols allSymbols,
+	scope ref AllSymbols allSymbols,
+	in AllUris allUris,
 	scope ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
 	in FileAndAst fileAndAst,
@@ -124,6 +127,7 @@ BootstrapCheck checkBootstrap(
 		alloc,
 		perf,
 		allSymbols,
+		allUris,
 		diagsBuilder,
 		programState,
 		emptyImportsAndExports,
@@ -142,7 +146,7 @@ immutable struct ImportsAndExports {
 }
 
 immutable struct ImportOrExportFile {
-	RangeWithinFile range;
+	Opt!(ImportOrExportAst*) source;
 	Sym name;
 	ImportFileType type;
 	FileContent content;
@@ -151,7 +155,8 @@ immutable struct ImportOrExportFile {
 Module check(
 	ref Alloc alloc,
 	ref Perf perf,
-	ref AllSymbols allSymbols,
+	scope ref AllSymbols allSymbols,
+	in AllUris allUris,
 	scope ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
 	ref ImportsAndExports importsAndExports,
@@ -162,6 +167,7 @@ Module check(
 		alloc,
 		perf,
 		allSymbols,
+		allUris,
 		diagsBuilder,
 		programState,
 		importsAndExports,
@@ -729,15 +735,15 @@ FunDecl funDeclForFileImportOrExport(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	in ImportOrExportFile a,
+	ref ImportOrExportFile a,
 	Visibility visibility,
 ) =>
 	FunDecl(
-		FunDeclSource(FunDeclSource.FileImport(UriAndRange(ctx.curUri, a.range))),
+		FunDeclSource(FunDeclSource.FileImport(ctx.curUri, force(a.source))),
 		visibility,
 		a.name,
 		emptySmallArray!TypeParam,
-		typeForFileImport(ctx, commonTypes, structsAndAliasesMap, a.range, a.type),
+		typeForFileImport(ctx, commonTypes, structsAndAliasesMap, pathRange(ctx.allUris, *force(a.source)), a.type),
 		Params([]),
 		FunFlags.generatedBare,
 		emptySmallArray!(immutable SpecInst*));
@@ -844,6 +850,7 @@ Module checkWorkerAfterCommonTypes(
 		structs, vars, specs, funsAndMap.funs, funsAndMap.tests,
 		getAllExportedNames(
 			ctx.alloc,
+			ctx.allUris,
 			ctx.diagsBuilder,
 			importsAndExports.moduleExports,
 			structsAndAliasesMap,
@@ -854,6 +861,7 @@ Module checkWorkerAfterCommonTypes(
 
 Map!(Sym, NameReferents) getAllExportedNames(
 	ref Alloc alloc,
+	in AllUris allUris,
 	scope ref DiagnosticsBuilder diagsBuilder,
 	in ImportOrExport[] reExports,
 	in StructsAndAliasesMap structsAndAliasesMap,
@@ -862,7 +870,7 @@ Map!(Sym, NameReferents) getAllExportedNames(
 	Uri uri,
 ) {
 	MutMap!(Sym, NameReferents) res;
-	void addExport(Sym name, NameReferents cur, UriAndRange range) {
+	void addExport(Sym name, NameReferents cur, RangeWithinFile delegate() @safe @nogc pure nothrow range) {
 		insertOrUpdate!(Sym, NameReferents)(
 			alloc,
 			res,
@@ -875,7 +883,8 @@ Map!(Sym, NameReferents) getAllExportedNames(
 					? some(Diag.DuplicateExports.Kind.spec)
 					: none!(Diag.DuplicateExports.Kind);
 				if (has(kind))
-					addDiagnostic(diagsBuilder, range, Diag(Diag.DuplicateExports(force(kind), name)));
+					addDiagnostic(diagsBuilder, UriAndRange(uri, range()), Diag(
+						Diag.DuplicateExports(force(kind), name)));
 				return NameReferents(
 					has(prev.structOrAlias) ? prev.structOrAlias : cur.structOrAlias,
 					has(prev.spec) ? prev.spec : cur.spec,
@@ -886,17 +895,17 @@ Map!(Sym, NameReferents) getAllExportedNames(
 	foreach (ref ImportOrExport e; reExports)
 		e.kind.matchIn!void(
 			(in ImportOrExportKind.ModuleWhole m) {
-				mapEachIn!(Sym, NameReferents)(
+				mapEach!(Sym, NameReferents)(
 					m.module_.allExportedNames,
-					(in Sym name, in NameReferents value) {
-						addExport(name, value, UriAndRange(uri, force(e.importSource)));
+					(Sym name, ref NameReferents value) {
+						addExport(name, value, () => pathRange(allUris, *force(e.source)));
 					});
 			},
 			(in ImportOrExportKind.ModuleNamed m) {
 				foreach (Sym name; m.names) {
 					Opt!NameReferents value = m.module_.allExportedNames[name];
 					if (has(value))
-						addExport(name, force(value), UriAndRange(uri, force(e.importSource)));
+						addExport(name, force(value), () => pathRange(allUris, *force(e.source)));
 				}
 			});
 	mapEach!(Sym, StructOrAlias)(
@@ -907,7 +916,7 @@ Map!(Sym, NameReferents) getAllExportedNames(
 					break;
 				case Visibility.internal:
 				case Visibility.public_:
-					addExport(name, NameReferents(some(x), none!(SpecDecl*), []), range(x));
+					addExport(name, NameReferents(some(x), none!(SpecDecl*), []), () => range(x).range);
 					break;
 			}
 		});
@@ -917,7 +926,7 @@ Map!(Sym, NameReferents) getAllExportedNames(
 				break;
 			case Visibility.internal:
 			case Visibility.public_:
-				addExport(name, NameReferents(none!StructOrAlias, some(x), []), x.range);
+				addExport(name, NameReferents(none!StructOrAlias, some(x), []), () => x.range.range);
 				break;
 		}
 	});
@@ -929,7 +938,7 @@ Map!(Sym, NameReferents) getAllExportedNames(
 				name,
 				NameReferents(none!StructOrAlias, none!(SpecDecl*), funDecls),
 				// This argument doesn't matter because a function never results in a duplicate export error
-				UriAndRange(uri, RangeWithinFile.empty));
+				() => RangeWithinFile.empty);
 	});
 
 	return moveToMap!(Sym, NameReferents)(alloc, res);
@@ -939,6 +948,7 @@ BootstrapCheck checkWorker(
 	ref Alloc alloc,
 	scope ref Perf perf,
 	scope ref AllSymbols allSymbols,
+	in AllUris allUris,
 	scope ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
 	ref ImportsAndExports importsAndExports,
@@ -949,14 +959,15 @@ BootstrapCheck checkWorker(
 		scope ref MutArr!(StructInst*),
 	) @safe @nogc pure nothrow getCommonTypes,
 ) {
-	checkImportsOrExports(alloc, diagsBuilder, fileAndAst.uri, importsAndExports.moduleImports);
-	checkImportsOrExports(alloc, diagsBuilder, fileAndAst.uri, importsAndExports.moduleExports);
+	checkImportsOrExports(alloc, allUris, diagsBuilder, fileAndAst.uri, importsAndExports.moduleImports);
+	checkImportsOrExports(alloc, allUris, diagsBuilder, fileAndAst.uri, importsAndExports.moduleExports);
 	FileAst ast = fileAndAst.ast;
 	CheckCtx ctx = CheckCtx(
 		ptrTrustMe(alloc),
 		ptrTrustMe(perf),
 		ptrTrustMe(programState),
 		ptrTrustMe(allSymbols),
+		ptrTrustMe(allUris),
 		fileAndAst.uri,
 		ImportsAndReExports(importsAndExports.moduleImports, importsAndExports.moduleExports),
 		ptrTrustMe(diagsBuilder));
@@ -997,6 +1008,7 @@ BootstrapCheck checkWorker(
 
 void checkImportsOrExports(
 	ref Alloc alloc,
+	in AllUris allUris,
 	scope ref DiagnosticsBuilder diags,
 	Uri thisFile,
 	in ImportOrExport[] imports,
@@ -1009,9 +1021,8 @@ void checkImportsOrExports(
 					if (!hasKey(m.module_.allExportedNames, name))
 						addDiagnostic(
 							diags,
-							// TODO: use the range of the particular name
-							// (by advancing pos by symSize until we get to this name)
-							UriAndRange(thisFile, force(x.importSource)),
+							// TODO: use the range of the particular name, not the path
+							UriAndRange(thisFile, pathRange(allUris, *force(x.source))),
 							Diag(Diag.ImportRefersToNothing(name)));
 			});
 }

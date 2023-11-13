@@ -1,6 +1,5 @@
 @safe @nogc nothrow: // not pure
 
-import frontend.ide.getDefinition : jsonOfDefinition;
 import frontend.ide.getReferences : jsonOfReferences;
 import frontend.ide.getTokens : jsonOfTokens;
 import frontend.showModel : ShowOptions;
@@ -15,7 +14,6 @@ import lib.server :
 	getReferences,
 	getTokensAndParseDiagnostics,
 	justParseEverything,
-	ProgramAndDefinition,
 	run,
 	Server,
 	setCwd,
@@ -36,7 +34,7 @@ import util.col.arrUtil : map;
 import util.col.multiMap : groupBy, MultiMap, multiMapEach;
 import util.col.str : CStr, SafeCStr;
 import util.exitCode : ExitCode;
-import util.json : field, jsonObject, Json, jsonToString, jsonList, jsonString, optionalField;
+import util.json : field, jsonObject, Json, jsonToString, jsonList, jsonString;
 import util.lineAndColumnGetter : LineAndCharacter, UriLineAndCharacter;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
 import util.opt : force, has, Opt;
@@ -161,11 +159,9 @@ CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 	UriLineAndCharacter where = toUriLineAndCharacter(*server, SafeCStr(uriPtr), line, character);
 	Alloc resultAlloc = Alloc(resultBuffer);
 	return withNullPerf!(SafeCStr, (ref Perf perf) {
-		ProgramAndDefinition res = getDefinition(perf, resultAlloc, *server, where);
-		return jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
-			optionalField!"definition"(has(res.definition), () =>
-				jsonOfDefinition(resultAlloc, server.allUris, server.lineAndColumnGetters, force(res.definition)))
-		]));
+		UriAndRange[] res = getDefinition(perf, resultAlloc, *server, where);
+		Json json = jsonOfReferences(resultAlloc, server.allUris, server.lineAndColumnGetters, res);
+		return jsonToString(resultAlloc, server.allSymbols, json);
 	}).ptr;
 }
 

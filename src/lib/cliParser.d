@@ -60,10 +60,13 @@ immutable struct PrintKind {
 	immutable struct Model {}
 	immutable struct ConcreteModel {}
 	immutable struct LowModel {}
-	immutable struct Hover { LineAndColumn lineAndColumn; }
-	immutable struct References { LineAndColumn lineAndColumn; }
+	immutable struct Ide {
+		enum Kind { hover, definition, references }
+		Kind kind;
+		LineAndColumn lineAndColumn;
+	}
 
-	mixin Union!(Tokens, Ast, Model, ConcreteModel, LowModel, Hover, References);
+	mixin Union!(Tokens, Ast, Model, ConcreteModel, LowModel, Ide);
 }
 
 immutable struct RunOptions {
@@ -194,7 +197,7 @@ Opt!Uri tryParseCrowUri(ref Alloc alloc, ref AllUris allUris, Uri cwd, in SafeCS
 
 Opt!(Uri[]) tryParseRootUris(ref Alloc alloc, ref AllUris allUris, Uri cwd, in SafeCStr[] args) {
 	verify(!empty(args));
-	return mapOrNone!(Uri, SafeCStr)(alloc, args, (in SafeCStr arg) =>
+	return mapOrNone!(Uri, SafeCStr)(alloc, args, (ref SafeCStr arg) =>
 		tryParseCrowUri(alloc, allUris, cwd, arg));
 }
 
@@ -218,7 +221,7 @@ Opt!PrintKind parsePrintKind(Sym a, in SafeCStr[] args) {
 	Opt!PrintKind expectEmptyArgs(PrintKind x) =>
 		empty(args) ? some(x) : none!PrintKind;
 
-	Opt!PrintKind expectLineAndColumn(in PrintKind delegate(LineAndColumn) @safe @nogc pure nothrow cb) {
+	Opt!PrintKind expectLineAndColumn(in PrintKind delegate(in LineAndColumn) @safe @nogc pure nothrow cb) {
 		Opt!LineAndColumn lc = args.length == 1 ? parseLineAndColumn(args[0]) : none!LineAndColumn;
 		return has(lc) ? some(cb(force(lc))) : none!PrintKind;
 	}
@@ -234,12 +237,24 @@ Opt!PrintKind parsePrintKind(Sym a, in SafeCStr[] args) {
 			return expectEmptyArgs(PrintKind(PrintKind.ConcreteModel()));
 		case sym!"low-model".value:
 			return expectEmptyArgs(PrintKind(PrintKind.LowModel()));
-		case sym!"hover".value:
-			return expectLineAndColumn(lc => PrintKind(PrintKind.Hover(lc)));
-		case sym!"references".value:
-			return expectLineAndColumn(lc => PrintKind(PrintKind.References(lc)));
 		default:
-			return none!PrintKind;
+			Opt!(PrintKind.Ide.Kind) kind = ideKindFromSym(a);
+			return has(kind)
+				? expectLineAndColumn((in LineAndColumn lc) => PrintKind(PrintKind.Ide(force(kind), lc)))
+				: none!PrintKind;
+	}
+}
+
+Opt!(PrintKind.Ide.Kind) ideKindFromSym(Sym a) {
+	switch (a.value) {
+		case sym!"hover".value:
+			return some(PrintKind.Ide.Kind.hover);
+		case sym!"definition".value:
+			return some(PrintKind.Ide.Kind.definition);
+		case sym!"references".value:
+			return some(PrintKind.Ide.Kind.references);
+		default:
+			return none!(PrintKind.Ide.Kind);
 	}
 }
 
