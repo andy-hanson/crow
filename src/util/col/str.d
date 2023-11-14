@@ -94,3 +94,15 @@ bool safeCStrEq(SafeCStr a, SafeCStr b) =>
 		: a.ptr[0] > b.ptr[0]
 		? Comparison.greater
 		: compareSafeCStrAlphabetically(SafeCStr(a.ptr + 1), SafeCStr(b.ptr + 1));
+
+@trusted void eachSplit(in SafeCStr a, char splitter, in void delegate(in string) @safe @nogc pure nothrow cb) {
+	immutable(char)* ptr = a.ptr;
+	while (*ptr != '\0') {
+		immutable char* start = ptr;
+		while (*ptr != splitter && *ptr != '\0')
+			ptr++;
+		cb(start[0 .. (ptr - start)]);
+		if (*ptr == splitter)
+			ptr++;
+	}
+}

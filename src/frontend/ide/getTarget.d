@@ -20,7 +20,6 @@ import model.model :
 	StructDecl,
 	StructInst,
 	toLocal,
-	Type,
 	TypeParam,
 	Visibility;
 import util.opt : none, Opt, some;
@@ -28,21 +27,17 @@ import util.json : field;
 import util.union_ : Union;
 
 immutable struct Target {
-	immutable struct LocalInFunction {
-		FunDecl* containingFun;
-		Local* local;
-	}
-
 	mixin Union!(
 		FunDecl*,
-		LocalInFunction,
+		PositionKind.ImportedName,
+		PositionKind.LocalInFunction,
 		ExprKind.Loop*,
 		Module*,
 		RecordField*,
 		SpecDecl*,
 		SpecDeclSig*,
 		StructDecl*,
-		TypeParam*,
+		PositionKind.TypeParamWithContainer,
 	);
 }
 
@@ -61,12 +56,11 @@ Opt!Target targetForPosition(in Program program, PositionKind pos) =>
 		(PositionKind.ImportedModule x) =>
 			some(Target(x.module_)),
 		(PositionKind.ImportedName x) =>
-			// TODO: get the declaration
-			none!Target,
+			some(Target(x)),
 		(PositionKind.Keyword _) =>
 			none!Target,
 		(PositionKind.LocalInFunction x) =>
-			some(Target(Target.LocalInFunction(x.containingFun, x.local))),
+			some(Target(x)),
 		(PositionKind.RecordFieldMutability) =>
 			none!Target,
 		(PositionKind.RecordFieldPosition x) =>
@@ -77,22 +71,22 @@ Opt!Target targetForPosition(in Program program, PositionKind pos) =>
 			some(Target(decl(*x))),
 		(StructDecl* x) =>
 			some(Target(x)),
-		(Type x) =>
-			x.matchWithPointers!(Opt!Target)(
+		(PositionKind.TypeWithContainer x) =>
+			x.type.matchWithPointers!(Opt!Target)(
 				(Bogus) =>
 					none!Target,
-				(TypeParam* x) =>
-					some(Target(x)),
+				(TypeParam* p) =>
+					some(Target(PositionKind.TypeParamWithContainer(x.container, p))),
 				(StructInst* x) =>
 					some(Target(decl(*x)))),
-		(TypeParam* x) =>
+		(PositionKind.TypeParamWithContainer x) =>
 			some(Target(x)),
 		(Visibility _) =>
 			none!Target);
 
 Opt!Target exprTarget(in Program program, PositionKind.Expression a) {
 	Opt!Target local(Local* x) =>
-		some(Target(Target.LocalInFunction(a.containingFun, x)));
+		some(Target(PositionKind.LocalInFunction(a.containingFun, x)));
 	return a.expr.kind.match!(Opt!Target)(
 		(ExprKind.AssertOrForbid) =>
 			none!Target,

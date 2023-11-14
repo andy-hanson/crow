@@ -141,8 +141,8 @@ void getHover(ref Writer writer, scope ref ShowCtx ctx, in Position pos) =>
 		(in StructDecl x) {
 			writeStructDeclHover(writer, ctx, x);
 		},
-		(in Type x) {
-			x.matchIn!void(
+		(in PositionKind.TypeWithContainer x) {
+			x.type.matchIn!void(
 				(in Type.Bogus) {},
 				(in TypeParam p) {
 					hoverTypeParam(writer, ctx, p);
@@ -151,8 +151,8 @@ void getHover(ref Writer writer, scope ref ShowCtx ctx, in Position pos) =>
 					writeStructDeclHover(writer, ctx, *decl(i));
 				});
 		},
-		(in TypeParam x) {
-			hoverTypeParam(writer, ctx, x);
+		(in PositionKind.TypeParamWithContainer x) {
+			hoverTypeParam(writer, ctx, *x.typeParam);
 		},
 		(in Visibility x) {
 			writer ~= "The declaration is ";

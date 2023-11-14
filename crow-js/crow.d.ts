@@ -1,4 +1,6 @@
 declare namespace crow {
+	type Uri = string
+
 	type LineAndCharacter = {
 		// 0-indexed
 		line: number
@@ -11,12 +13,12 @@ declare namespace crow {
 	}
 
 	type UriLineAndCharacter = {
-		uri: string
+		uri: Uri
 		position: LineAndCharacter
 	}
 
 	type UriAndRange = {
-		uri: string
+		uri: Uri
 		range: RangeWithinFile
 	}
 
@@ -52,7 +54,7 @@ declare namespace crow {
 	}
 
 	type UriAndDiagnostics = {
-		uri: string
+		uri: Uri
 		diagnostics: ReadonlyArray<Diagnostic>
 	}
 
@@ -67,23 +69,23 @@ declare namespace crow {
 
 	type RunOutput = {exitCode:number, writes:ReadonlyArray<Write>}
 
-	function makeCompiler(bytes: ArrayBuffer, includeDir: string, cwd: string): Promise<Compiler>
+	function makeCompiler(bytes: ArrayBuffer, includeDir: Uri, cwd: Uri): Promise<Compiler>
 	interface Compiler {
 		version(): string
-		setFileSuccess(uri: string, content: string): void
-		setFileIssue(uri: string, issue: "notFound" | "unknown" | "loading" | "error"): void
+		setFileSuccess(uri: Uri, content: string): void
+		setFileIssue(uri: Uri, issue: "notFound" | "unknown" | "loading" | "error"): void
 		// For debug/test
-		getFile(uri: string): string
-		searchImportsFromUri(uri: string): void
+		getFile(uri: Uri): string
+		searchImportsFromUri(uri: Uri): void
 		// All file URIs, whether the file has content or has an issue.
-		allStorageUris(): ReadonlyArray<string>
-		allUnknownUris(): ReadonlyArray<string>
-		allLoadingUris(): ReadonlyArray<string>
-		getTokensAndParseDiagnostics(uri: string): TokensAndParseDiagnostics
+		allStorageUris(): ReadonlyArray<Uri>
+		allUnknownUris(): ReadonlyArray<Uri>
+		allLoadingUris(): ReadonlyArray<Uri>
+		getTokensAndParseDiagnostics(uri: Uri): TokensAndParseDiagnostics
 		getAllDiagnostics(): AllDiagnosticsResult
 		getDefinition(where: UriLineAndCharacter): ReadonlyArray<UriAndRange>
-		getReferences(where: UriLineAndCharacter): ReadonlyArray<UriAndRange>
+		getReferences(where: UriLineAndCharacter, roots: ReadonlyArray<Uri>): ReadonlyArray<UriAndRange>
 		getHover(where: UriLineAndCharacter): string
-		run(uri: string): RunOutput
+		run(uri: Uri): RunOutput
 	}
 }

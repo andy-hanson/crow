@@ -24,6 +24,11 @@ immutable struct Position {
 	PositionKind kind;
 }
 
+immutable struct TypeParamContainer {
+	mixin Union!(FunDecl*, SpecDecl*, StructDecl*);
+}
+alias TypeContainer = TypeParamContainer;
+
 immutable struct PositionKind {
 	immutable struct None {}
 
@@ -69,6 +74,14 @@ immutable struct PositionKind {
 		StructDecl* struct_;
 		RecordField* field;
 	}
+	immutable struct TypeWithContainer {
+		TypeContainer container;
+		Type type;
+	}
+	immutable struct TypeParamWithContainer {
+		TypeParamContainer container;
+		TypeParam* typeParam;
+	}
 
 	mixin Union!(
 		None,
@@ -85,7 +98,7 @@ immutable struct PositionKind {
 		SpecDecl*,
 		SpecInst*,
 		StructDecl*,
-		Type,
-		TypeParam*,
+		TypeWithContainer,
+		TypeParamWithContainer,
 		Visibility);
 }

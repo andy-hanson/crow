@@ -30,7 +30,7 @@ Exports of `wasm.d`:
 @property {function(Server, CStr): CStr} getTokensAndParseDiagnostics
 @property {function(Server): CStr} getAllDiagnostics
 @property {function(Server, CStr, number, number): CStr} getDefinition
-@property {function(Server, CStr, number, number): CStr} getReferences
+@property {function(Server, CStr, number, number, CStr): CStr} getReferences
 @property {function(Server, CStr, number, number): CStr} getHover
 @property {function(Server, CStr): number} run
 */
@@ -206,8 +206,13 @@ globalCrow.makeCompiler = async (bytes, includeDir, cwd) => {
 			JSON.parse(readCStr(exports.getAllDiagnostics(server))),
 		getDefinition: ({uri, position:{line, character}}) => withParamsAndJson(() =>
 			exports.getDefinition(server, paramAlloc.writeCStr(uri), line, character)),
-		getReferences: ({uri, position:{line, character}}) => withParamsAndJson(() =>
-			exports.getReferences(server, paramAlloc.writeCStr(uri), line, character)),
+		getReferences: ({uri, position:{line, character}}, roots) => {
+			for (const root of roots)
+				if (root.includes('|'))
+					throw new Error(`URI can't contain '|': ${root}`)
+			return withParamsAndJson(() => exports.getReferences(
+				server, paramAlloc.writeCStr(uri), line, character, paramAlloc.writeCStr(roots.join('|'))))
+		},
 		getHover: ({uri, position:{line, character}}) => withParamsAndJson(() =>
 			exports.getHover(server, paramAlloc.writeCStr(uri), line, character)).hover,
 		run: uri => {

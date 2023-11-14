@@ -3,7 +3,7 @@ module frontend.parse.ast;
 @safe @nogc pure nothrow:
 
 import model.model : AssertOrForbidKind, FunKind, ImportFileType, VarKind;
-import util.col.arr : SmallArray;
+import util.col.arr : arrayOfSingle, SmallArray;
 import util.col.arrUtil : exists;
 import util.col.str : SafeCStr;
 import util.conv : safeToUint;
@@ -523,6 +523,13 @@ immutable struct ParamsAst {
 	mixin Union!(SmallArray!DestructureAst, Varargs*);
 }
 static assert(ParamsAst.sizeof == 8);
+
+DestructureAst[] paramsArray(return scope ParamsAst a) =>
+	a.matchWithPointers!(DestructureAst[])(
+		(DestructureAst[] x) =>
+			x,
+		(ParamsAst.Varargs* x) =>
+			arrayOfSingle(&x.param));
 
 immutable struct SpecSigAst {
 	SafeCStr docComment;

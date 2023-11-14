@@ -185,7 +185,10 @@ connection.onHover(withLogErrors("onHover", params => {
 }))
 
 connection.onReferences(withLogErrors("onReferences", params =>
-	compiler.getReferences(getUriLineAndCharacter(params)).slice()))
+	compiler.getReferences(
+		getUriLineAndCharacter(params),
+		documents.keys().filter(cur => cur.endsWith('.crow')),
+	).slice()))
 
 /** @type {function(TextDocumentPositionParams): crow.UriLineAndCharacter} */
 const getUriLineAndCharacter = ({textDocument, position}) =>

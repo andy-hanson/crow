@@ -32,7 +32,7 @@ import util.alloc.alloc : Alloc, allocateT;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : map;
 import util.col.multiMap : groupBy, MultiMap, multiMapEach;
-import util.col.str : CStr, SafeCStr;
+import util.col.str : CStr, eachSplit, SafeCStr;
 import util.exitCode : ExitCode;
 import util.json : field, jsonObject, Json, jsonToString, jsonList, jsonString;
 import util.lineAndColumnGetter : LineAndCharacter, UriLineAndCharacter;
@@ -165,11 +165,14 @@ CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 	}).ptr;
 }
 
-@system extern(C) CStr getReferences(Server* server, scope CStr uriPtr, uint line, uint character) {
-	UriLineAndCharacter where = toUriLineAndCharacter(*server, SafeCStr(uriPtr), line, character);
+@system extern(C) CStr getReferences(Server* server, scope CStr uriPtr, uint line, uint character, scope CStr roots) {
 	Alloc resultAlloc = Alloc(resultBuffer);
+	SafeCStr uriSafe = SafeCStr(uriPtr);
+	SafeCStr rootsSafe = SafeCStr(roots);
 	return withNullPerf!(SafeCStr, (ref Perf perf) {
-		UriAndRange[] references = getReferences(perf, resultAlloc, *server, where);
+		UriLineAndCharacter where = toUriLineAndCharacter(*server, uriSafe, line, character);
+		Uri[] roots = toUris(resultAlloc, *server, rootsSafe);
+		UriAndRange[] references = getReferences(perf, resultAlloc, *server, where, roots);
 		return jsonToString(resultAlloc, server.allSymbols, jsonOfReferences(
 			resultAlloc, server.allUris, server.lineAndColumnGetters, references));
 	}).ptr;
@@ -184,9 +187,6 @@ CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 	}).ptr;
 }
 
-UriLineAndCharacter toUriLineAndCharacter(scope ref Server server, SafeCStr uri, uint line, uint character) =>
-	UriLineAndCharacter(toUri(server, uri), LineAndCharacter(line, character));
-
 @system extern(C) int run(Server* server, scope CStr uriPtr) {
 	Uri uri = toUri(*server, SafeCStr(uriPtr));
 	Alloc resultAlloc = Alloc(resultBuffer);
@@ -195,6 +195,17 @@ UriLineAndCharacter toUriLineAndCharacter(scope ref Server server, SafeCStr uri,
 			write(pipe, x.ptr, x.length);
 		})).value;
 }
+
+Uri[] toUris(ref Alloc alloc, scope ref Server server, SafeCStr uris) {
+	ArrBuilder!Uri res;
+	eachSplit(uris, '|', (in string x) {
+		add(alloc, res, parseUri(server.allUris, x));
+	});
+	return finishArr(alloc, res);
+}
+
+UriLineAndCharacter toUriLineAndCharacter(scope ref Server server, SafeCStr uri, uint line, uint character) =>
+	UriLineAndCharacter(toUri(server, uri), LineAndCharacter(line, character));
 
 extern(C) void write(Pipe pipe, scope immutable char* begin, size_t length);
 

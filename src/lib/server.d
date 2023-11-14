@@ -283,7 +283,7 @@ TokensAndParseDiagnostics getTokensAndParseDiagnostics(
 	});
 
 UriAndRange[] getDefinition(ref Perf perf, ref Alloc alloc, ref Server server, in UriLineAndCharacter where) =>
-	getDefinitionForProgram(alloc, server, where, getProgram(perf, alloc, server, where.uri));
+	getDefinitionForProgram(alloc, server, where, getProgram(perf, alloc, server, [where.uri]));
 
 private UriAndRange[] getDefinitionForProgram(
 	ref Alloc alloc,
@@ -297,8 +297,14 @@ private UriAndRange[] getDefinitionForProgram(
 		: [];
 }
 
-UriAndRange[] getReferences(ref Perf perf, ref Alloc alloc, ref Server server, in UriLineAndCharacter where) =>
-	getReferencesForProgram(alloc, server, where, getProgram(perf, alloc, server, where.uri));
+UriAndRange[] getReferences(
+	ref Perf perf,
+	ref Alloc alloc,
+	ref Server server,
+	in UriLineAndCharacter where,
+	in Uri[] roots,
+) =>
+	getReferencesForProgram(alloc, server, where, getProgram(perf, alloc, server, roots));
 
 private UriAndRange[] getReferencesForProgram(
 	ref Alloc alloc,
@@ -313,7 +319,7 @@ private UriAndRange[] getReferencesForProgram(
 }
 
 SafeCStr getHover(ref Perf perf, ref Alloc alloc, ref Server server, in UriLineAndCharacter where) =>
-	getHoverForProgram(alloc, server, where, getProgram(perf, alloc, server, where.uri));
+	getHoverForProgram(alloc, server, where, getProgram(perf, alloc, server, [where.uri]));
 
 private SafeCStr getHoverForProgram(
 	ref Alloc alloc,
@@ -328,8 +334,8 @@ private SafeCStr getHoverForProgram(
 		: safeCStr!"";
 }
 
-private Program getProgram(ref Perf perf, ref Alloc alloc, scope ref Server server, Uri root) =>
-	frontendCompile(alloc, perf, server, [root], none!Uri);
+private Program getProgram(ref Perf perf, ref Alloc alloc, scope ref Server server, in Uri[] roots) =>
+	frontendCompile(alloc, perf, server, roots, none!Uri);
 
 private Opt!Position getPosition(scope ref Server server, in Program program, in UriLineAndCharacter where) {
 	Opt!(immutable Module*) module_ = program.allModules[where.uri];
@@ -415,7 +421,7 @@ DiagsAndResultJson printIde(
 	in UriLineAndColumn where,
 	in PrintKind.Ide.Kind kind,
 ) {
-	Program program = getProgram(perf, alloc, server, where.uri);
+	Program program = getProgram(perf, alloc, server, [where.uri]); // TODO: we should support specifying roots...
 	UriLineAndCharacter where2 = toLineAndCharacter(server.lineAndColumnGetters, where);
 	Json locations(UriAndRange[] xs) =>
 		jsonOfReferences(alloc, server.allUris, server.lineAndColumnGetters, xs);
