@@ -11,6 +11,7 @@ import model.model :
 	Module,
 	RecordField,
 	SpecDecl,
+	SpecDeclSig,
 	SpecInst,
 	StructDecl,
 	Type,
@@ -22,6 +23,18 @@ import util.union_ : Union;
 immutable struct Position {
 	Module* module_;
 	PositionKind kind;
+}
+
+immutable struct LocalContainer {
+	@safe @nogc pure nothrow:
+	mixin Union!(FunDecl*, SpecDecl*);
+
+	TypeContainer toTypeContainer() =>
+		matchWithPointers!TypeContainer(
+			(FunDecl* x) =>
+				TypeContainer(x),
+			(SpecDecl* x) =>
+				TypeContainer(x));
 }
 
 immutable struct TypeParamContainer {
@@ -63,8 +76,8 @@ immutable struct PositionKind {
 		}
 		Kind kind;
 	}
-	immutable struct LocalInFunction {
-		FunDecl* containingFun;
+	immutable struct LocalPosition {
+		LocalContainer container;
 		Local* local;
 	}
 	immutable struct RecordFieldMutability {
@@ -73,6 +86,10 @@ immutable struct PositionKind {
 	immutable struct RecordFieldPosition {
 		StructDecl* struct_;
 		RecordField* field;
+	}
+	immutable struct SpecSig {
+		SpecDecl* spec;
+		SpecDeclSig* sig;
 	}
 	immutable struct TypeWithContainer {
 		TypeContainer container;
@@ -92,11 +109,12 @@ immutable struct PositionKind {
 		ImportedModule,
 		ImportedName,
 		Keyword,
-		LocalInFunction,
+		LocalPosition,
 		RecordFieldMutability,
 		RecordFieldPosition,
 		SpecDecl*,
 		SpecInst*,
+		SpecSig,
 		StructDecl*,
 		TypeWithContainer,
 		TypeParamWithContainer,

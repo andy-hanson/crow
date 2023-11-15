@@ -156,7 +156,6 @@ Json jsonOfSpecDeclBody(ref Alloc alloc, in Ctx ctx, in SpecDeclBody a) =>
 
 Json jsonOfSpecDeclSig(ref Alloc alloc, in Ctx ctx, in SpecDeclSig a) =>
 	jsonObject(alloc, [
-		optionalStringField!"doc"(alloc, a.docComment),
 		field!"where"(jsonOfRangeWithinFile(alloc, ctx.lineAndColumnGetter, a.range.range)),
 		field!"name"(a.name),
 		field!"return-type"(jsonOfType(alloc, ctx, a.returnType)),

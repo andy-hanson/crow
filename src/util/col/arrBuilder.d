@@ -11,6 +11,16 @@ struct ArrBuilder(T) {
 	private MutArr!(immutable T) data;
 }
 
+alias ArrBuilderCb(T) = void delegate(in T) @safe @nogc pure nothrow;
+
+T[] buildArray(T)(ref Alloc alloc, in void delegate(in ArrBuilderCb!T) @safe @nogc pure nothrow cb) {
+	ArrBuilder!T res;
+	cb((in T x) {
+		add(alloc, res, x);
+	});
+	return finishArr(alloc, res);
+}
+
 void add(T)(scope ref Alloc alloc, ref ArrBuilder!T a, immutable T value) {
 	push(alloc, a.data, value);
 }

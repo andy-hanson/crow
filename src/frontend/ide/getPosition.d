@@ -2,8 +2,8 @@ module frontend.ide.getPosition;
 
 @safe @nogc pure nothrow:
 
-import frontend.ide.ideUtil : eachDestructureComponent, eachTypeComponent;
-import frontend.ide.position : Position, PositionKind, TypeContainer, TypeParamContainer;
+import frontend.ide.ideUtil : eachDestructureComponent, eachSpecParent, eachTypeArg, eachTypeComponent;
+import frontend.ide.position : LocalContainer, Position, PositionKind, TypeContainer, TypeParamContainer;
 import frontend.parse.ast :
 	DestructureAst,
 	ExplicitVisibility,
@@ -13,11 +13,13 @@ import frontend.parse.ast :
 	ImportOrExportAst,
 	keywordRange,
 	NameAndRange,
+	paramsArray,
 	pathRange,
 	range,
 	rangeOfDestructureSingle,
 	rangeOfMutKeyword,
 	rangeOfNameAndRange,
+	SpecSigAst,
 	StructDeclAst,
 	symOfFieldMutabilityAstKind,
 	TypeAst;
@@ -35,17 +37,22 @@ import model.model :
 	Local,
 	LocalSource,
 	Module,
+	Params,
 	paramsArray,
 	range,
 	RecordField,
 	SpecDecl,
+	SpecDeclBody,
+	SpecDeclSig,
+	SpecInst,
 	StructBody,
 	StructDecl,
 	Type,
+	typeArgs,
 	TypeParam;
 import util.col.arr : ptrsRange;
 import util.col.arrUtil : first, firstPointer, firstWithIndex, firstZipPointerFirst;
-import util.opt : force, has, none, Opt, optIf, optOr, optOr, some;
+import util.opt : force, has, none, Opt, optIf, optOr, optOr, optOrDefault, some;
 import util.sourceRange : hasPos, Pos, RangeWithinFile;
 import util.sym : AllSymbols;
 import util.union_ : Union;
@@ -68,7 +75,6 @@ Opt!PositionKind getPositionKind(in AllSymbols allSymbols, in AllUris allUris, r
 				: none!PositionKind),
 		() => firstPointer!(PositionKind, SpecDecl)(module_.specs, (SpecDecl* x) =>
 			hasPos(x.range.range, pos)
-				//TODO: delve inside!
 				? positionInSpec(allSymbols, x, pos)
 				: none!PositionKind),
 		() => firstPointer!(PositionKind, FunDecl)(module_.funs, (FunDecl* x) =>
@@ -82,14 +88,17 @@ Opt!PositionKind positionInFun(in AllSymbols allSymbols, FunDecl* a, in FunDeclA
 		optIf(hasPos(allSymbols, ast.name, pos), () => PositionKind(a)),
 		() => positionInTypeParams(allSymbols, TypeParamContainer(a), a.typeParams, ast.typeParams, pos),
 		() => positionInType(allSymbols, TypeContainer(a), a.returnType, ast.returnType, pos),
-		() => first!(PositionKind, Destructure)(paramsArray(a.params), (Destructure x) =>
-			positionInDestructure(allSymbols, a, pos, x)),
+		() => positionInParams(allSymbols, LocalContainer(a), a.params, pos),
 		() => firstWithIndex!(PositionKind, FunModifierAst)(ast.modifiers, (size_t index, FunModifierAst modifier) =>
 			optIf(hasPos(range(modifier, allSymbols), pos), () =>
 				positionForModifier(a, ast, index, modifier))),
 		() => a.body_.isA!(FunBody.ExpressionBody)
 			? positionInExpr(allSymbols, a, a.body_.as!(FunBody.ExpressionBody).expr, pos)
 			: none!PositionKind);
+
+Opt!PositionKind positionInParams(in AllSymbols allSymbols, LocalContainer container, in Params params, Pos pos) =>
+	first!(PositionKind, Destructure)(paramsArray(params), (Destructure x) =>
+		positionInDestructure(allSymbols, container, x, pos));
 
 PositionKind positionForModifier(FunDecl* a, in FunDeclAst ast, size_t index, in FunModifierAst modifier) =>
 	modifier.matchIn!PositionKind(
@@ -106,17 +115,17 @@ PositionKind positionForModifier(FunDecl* a, in FunDeclAst ast, size_t index, in
 			return PositionKind(a.specs[specIndex]);
 		});
 
-Opt!PositionKind positionInDestructure(in AllSymbols allSymbols, FunDecl* containingFun, Pos pos, Destructure a) =>
+Opt!PositionKind positionInDestructure(in AllSymbols allSymbols, LocalContainer container, in Destructure a, Pos pos) =>
 	eachDestructureComponent!PositionKind(a, (Local* x) {
 		DestructureAst.Single* ast = x.source.as!(LocalSource.Ast).ast;
 		return hasPos(rangeOfDestructureSingle(*ast, allSymbols), pos)
 			? optOr!PositionKind(
 				optIf(hasPos(rangeOfNameAndRange(ast.name, allSymbols), pos), () =>
-					PositionKind(PositionKind.LocalInFunction(containingFun, x))),
+					PositionKind(PositionKind.LocalPosition(container, x))),
 				() => optIf(optHasPos(rangeOfMutKeyword(*ast), pos), () =>
 					PositionKind(PositionKind.Keyword(PositionKind.Keyword.Kind.localMut))),
 				() => has(ast.type)
-					? positionInType(allSymbols, TypeContainer(containingFun), x.type, *force(ast.type), pos)
+					? positionInType(allSymbols, container.toTypeContainer(), x.type, *force(ast.type), pos)
 					: none!PositionKind)
 			: none!PositionKind;
 	});
@@ -188,10 +197,49 @@ Opt!PositionKind positionInTypeParams(
 	firstZipPointerFirst!(PositionKind, TypeParam, NameAndRange)(typeParams, asts, (TypeParam* p, NameAndRange x) =>
 		optIf(hasPos(allSymbols, x, pos), () => PositionKind(PositionKind.TypeParamWithContainer(container, p))));
 
-Opt!PositionKind positionInSpec(in AllSymbols allSymbols, SpecDecl* a, Pos pos) {
-	//TODO:delve inside!
-	return some(PositionKind(a));
-}
+Opt!PositionKind positionInSpec(in AllSymbols allSymbols, SpecDecl* a, Pos pos) =>
+	//TODO:visibility
+	//TODO: 'spec' keyword itself
+	optOr!PositionKind(
+		optIf(hasPos(allSymbols, a.ast.name, pos), () => PositionKind(a)),
+		() => positionInTypeParams(allSymbols, TypeParamContainer(a), a.typeParams, a.ast.typeParams, pos),
+		() => positionInSpecParents(allSymbols, a, pos),
+		() => positionInSpecBody(allSymbols, a, pos));
+
+Opt!PositionKind positionInSpecParents(in AllSymbols allSymbols, SpecDecl* a, Pos pos) =>
+	eachSpecParent!PositionKind(*a, (SpecInst* parent, in TypeAst ast) =>
+		optIf(hasPos(range(ast, allSymbols), pos), () =>
+			optOrDefault!PositionKind(
+				eachTypeArg!PositionKind(typeArgs(*parent), ast, (in Type typeArg, in TypeAst argAst) =>
+					positionInType(allSymbols, TypeContainer(a), typeArg, argAst, pos)),
+				() => PositionKind(parent))));
+
+Opt!PositionKind positionInSpecBody(in AllSymbols allSymbols, SpecDecl* a, Pos pos) =>
+	a.body_.matchIn!(Opt!PositionKind)(
+		(in SpecDeclBody.Builtin) =>
+			//TODO: keyword position
+			none!PositionKind,
+		(in SpecDeclSig[] sigs) =>
+			firstZipPointerFirst!(PositionKind, SpecDeclSig, SpecSigAst)(
+				sigs,
+				a.ast.body_.as!(SpecSigAst[]),
+				(SpecDeclSig* sig, SpecSigAst sigAst) =>
+					positionInSpecSig(allSymbols, a, sig, sigAst, pos)));
+
+Opt!PositionKind positionInSpecSig(
+	in AllSymbols allSymbols,
+	SpecDecl* spec,
+	SpecDeclSig* sig,
+	in SpecSigAst ast,
+	Pos pos,
+) =>
+	hasPos(ast.range, pos)
+		? optOr!PositionKind(
+			optIf(hasPos(allSymbols, ast.nameAndRange, pos), () =>
+				PositionKind(PositionKind.SpecSig(spec, sig))),
+			() => positionInType(allSymbols, TypeContainer(spec), sig.returnType, ast.returnType, pos),
+			() => positionInParams(allSymbols, LocalContainer(spec), Params(sig.params), pos))
+		: none!PositionKind;
 
 Opt!PositionKind positionInStructBody(
 	in AllSymbols allSymbols,
@@ -249,7 +297,7 @@ Opt!PositionKind positionInExpr(in AllSymbols allSymbols, FunDecl* containingFun
 		Opt!PositionKind here() =>
 			some(PositionKind(PositionKind.Expression(containingFun, &a)));
 		Opt!PositionKind inDestructure(in Destructure x) =>
-			positionInDestructure(allSymbols, containingFun, pos, x);
+			positionInDestructure(allSymbols, LocalContainer(containingFun), x, pos);
 		Opt!PositionKind recur(in Expr inner) =>
 			positionInExpr(allSymbols, containingFun, inner, pos);
 		Opt!PositionKind recurOpt(in Opt!(Expr*) inner) =>

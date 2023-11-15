@@ -2,40 +2,131 @@ module frontend.ide.ideUtil;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast : NameAndRange, TypeAst;
-import model.model : Destructure, Expr, ExprKind, Local, StructInst, Type, typeArgs;
-import util.col.arr : only;
-import util.col.arrUtil : first, firstZip;
-import util.opt : force, has, none, Opt, optOr;
-import util.util : verify;
+import frontend.parse.ast : FunModifierAst, NameAndRange, TypeAst;
+import model.model :
+	Destructure,
+	Expr,
+	ExprKind,
+	FunDecl,
+	FunDeclSource,
+	Local,
+	SpecDecl,
+	SpecInst,
+	StructInst,
+	Type,
+	typeArgs,
+	TypeParam;
+import util.col.arr : arrayOfSingle, empty, only;
+import util.col.arrBuilder : ArrBuilderCb;
+import util.col.arrUtil : count, first, firstZip;
+import util.opt : force, has, none, Opt, optOr, some;
+import util.sourceRange : UriAndRange;
+import util.util : typeAs, verify;
+
+alias ReferenceCb = ArrBuilderCb!UriAndRange;
+
+void eachSpecParent(in SpecDecl a, in void delegate(SpecInst*, in TypeAst) @safe @nogc pure nothrow cb) {
+	Opt!bool res = eachSpecParent!bool(a, (SpecInst* x, in TypeAst ast) {
+		cb(x, ast);
+		return none!bool;
+	});
+	verify(!has(res));
+}
+
+Opt!T eachSpecParent(T)(in SpecDecl a, in Opt!T delegate(SpecInst*, in TypeAst) @safe @nogc pure nothrow cb) =>
+	firstZip!(T, immutable SpecInst*, TypeAst)(a.parents, a.ast.parents, (immutable SpecInst* parent, TypeAst ast) =>
+		cb(parent, ast));
+
+void eachFunSpec(in FunDecl a, in void delegate(in SpecInst*, in TypeAst) @safe @nogc pure nothrow cb) {
+	if (a.source.isA!(FunDeclSource.Ast)) {
+		FunModifierAst[] modifiers = a.source.as!(FunDeclSource.Ast).ast.modifiers;
+		// Count may not match if there are compile errors.
+		zipSecondMapOpIfSizeEq!(SpecInst*, FunModifierAst, TypeAst)(
+			a.specs,
+			modifiers,
+			(in FunModifierAst x) => x.isA!(TypeAst) ? some(x.as!TypeAst) : none!TypeAst,
+			cb);
+	}
+}
+
+private void zipSecondMapOpIfSizeEq(T, UIn, UOut)(
+	in T[] a,
+	in UIn[] b,
+	in Opt!UOut delegate(in UIn) @safe @nogc pure nothrow bMap,
+	in void delegate(in T, in UOut) @safe @nogc pure nothrow cb,
+) {
+	size_t cnt = count!UIn(b, (in UIn x) => has(bMap(x)));
+	if (cnt == a.length) {
+		size_t bi = 0;
+		foreach (ref const T x; a) {
+			while (true) {
+				Opt!UOut y = bMap(b[bi]);
+				bi++;
+				if (has(y)) {
+					cb(x, force(y));
+					break;
+				}
+			}
+		}
+		debug {
+			while (bi < b.length && !has(bMap(b[bi]))) bi++;
+			verify(bi == b.length);
+		}
+	}
+}
 
 Opt!T eachTypeComponent(T)(
 	in Type type,
 	in TypeAst ast,
 	in Opt!T delegate(in Type, in TypeAst) @safe @nogc pure nothrow cb,
-) {
-	Opt!T fromArgs(in TypeAst[] typeArgAsts) {
-		Type[] args = typeArgs(*type.as!(StructInst*));
-		TypeAst[] actualArgAsts = typeArgAsts.length == args.length
-			? typeArgAsts
-			: only(typeArgAsts).as!(TypeAst.Tuple*).members;
-		return firstZip!(T, Type, TypeAst)(args, actualArgAsts, (Type x, TypeAst y) => cb(x, y));
-	}
-	return ast.match!(Opt!T)(
+) =>
+	type.matchIn!(Opt!T)(
+		(in Type.Bogus) =>
+			none!T,
+		(in TypeParam) =>
+			none!T,
+		(in StructInst x) =>
+			eachTypeArg!T(typeArgs(x), ast, cb));
+
+private TypeAst[] typeAstTypeArgs(return scope TypeAst ast) =>
+	ast.match!(TypeAst[])(
 		(TypeAst.Bogus) =>
-			none!T,
+			typeAs!(TypeAst[])([]),
 		(ref TypeAst.Fun x) =>
-			fromArgs(x.returnAndParamTypes),
+			x.returnAndParamTypes,
 		(ref TypeAst.Map x) =>
-			fromArgs([x.v, x.k]),
-		(NameAndRange x) =>
-			none!T,
+			x.kv,
+		(NameAndRange _) =>
+			typeAs!(TypeAst[])([]),
 		(ref TypeAst.SuffixName x) =>
-			fromArgs([x.left]),
+			arrayOfSingle(&x.left),
 		(ref TypeAst.SuffixSpecial x) =>
-			fromArgs([x.left]),
+			arrayOfSingle(&x.left),
 		(ref TypeAst.Tuple x) =>
-			fromArgs(x.members));
+			x.members);
+
+void eachTypeArg(
+	in Type[] typeArgs,
+	in TypeAst ast,
+	in void delegate(in Type, in TypeAst) @safe @nogc pure nothrow cb,
+) {
+	Opt!bool res = eachTypeArg!bool(typeArgs, ast, (in Type x, in TypeAst y) {
+		cb(x, y);
+		return none!bool;
+	});
+	verify(!has(res));
+}
+
+Opt!T eachTypeArg(T)(
+	in Type[] typeArgs,
+	in TypeAst ast,
+	in Opt!T delegate(in Type, in TypeAst) @safe @nogc pure nothrow cb,
+) {
+	TypeAst[] typeArgAsts = typeAstTypeArgs(ast);
+	TypeAst[] actualArgAsts = typeArgAsts.length == typeArgs.length
+		? typeArgAsts
+		: only(typeArgAsts).as!(TypeAst.Tuple*).members;
+	return firstZip!(T, Type, TypeAst)(typeArgs, actualArgAsts, (Type x, TypeAst y) => cb(x, y));
 }
 
 Opt!T eachDestructureComponent(T)(Destructure a, in Opt!T delegate(Local*) @safe @nogc pure nothrow cb) =>
@@ -45,9 +136,10 @@ Opt!T eachDestructureComponent(T)(Destructure a, in Opt!T delegate(Local*) @safe
 		(Local* x) =>
 			cb(x),
 		(Destructure.Split* x) =>
-			//TODO: handle x.destructuredType
-			first!(T, Destructure)(x.parts, (Destructure part) =>
-				eachDestructureComponent!T(part, cb)));
+			empty(x.parts)
+				? none!T
+				: first!(T, Destructure)(x.parts, (Destructure part) =>
+					eachDestructureComponent!T(part, cb)));
 
 void eachDescendentExprIncluding(in Expr a, in void delegate(in Expr) @safe @nogc pure nothrow cb) {
 	cb(a);

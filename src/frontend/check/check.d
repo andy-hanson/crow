@@ -84,7 +84,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : empty, emptySmallArray, only, ptrsRange, small;
-import util.col.arrUtil : cat, filter, map, mapOp, mapToMut, zip, zipPtrFirst;
+import util.col.arrUtil : cat, filter, map, mapOp, mapToMut, mapPointers, zip, zipPtrFirst;
 import util.col.map : Map, mapEach, hasKey, KeyValuePair;
 import util.col.mapBuilder : MapBuilder, finishMap, tryAddToMap;
 import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd, finish, newExactSizeArrBuilder;
@@ -120,7 +120,7 @@ BootstrapCheck checkBootstrap(
 	in AllUris allUris,
 	scope ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
-	in FileAndAst fileAndAst,
+	ref FileAndAst fileAndAst,
 ) {
 	static ImportsAndExports emptyImportsAndExports = ImportsAndExports([], [], [], []);
 	return checkWorker(
@@ -160,7 +160,7 @@ Module check(
 	scope ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
 	ref ImportsAndExports importsAndExports,
-	in FileAndAst fileAndAst,
+	ref FileAndAst fileAndAst,
 	in CommonTypes commonTypes,
 ) =>
 	checkWorker(
@@ -258,13 +258,13 @@ SpecDeclBody checkSpecDeclBody(
 	in StructsAndAliasesMap structsAndAliasesMap,
 	RangeWithinFile range,
 	Sym name,
-	in SpecBodyAst ast,
+	SpecBodyAst ast,
 ) =>
-	ast.matchIn!SpecDeclBody(
-		(in SpecBodyAst.Builtin) =>
+	ast.match!SpecDeclBody(
+		(SpecBodyAst.Builtin) =>
 			SpecDeclBody(SpecDeclBody.Builtin(getSpecBodyBuiltinKind(ctx, range, name))),
-		(in SpecSigAst[] sigs) =>
-			SpecDeclBody(map(ctx.alloc, sigs, (ref SpecSigAst x) {
+		(SpecSigAst[] sigs) =>
+			SpecDeclBody(mapPointers(ctx.alloc, sigs, (SpecSigAst* x) {
 				ReturnTypeAndParams rp = checkReturnTypeAndParams(
 					ctx, commonTypes, x.returnType, x.params, typeParams, structsAndAliasesMap, noDelayStructInsts);
 				Destructure[] params = rp.params.match!(Destructure[])(
@@ -272,22 +272,22 @@ SpecDeclBody checkSpecDeclBody(
 						x,
 					(ref Params.Varargs _) =>
 						todo!(Destructure[])("diag: no varargs in spec"));
-				return SpecDeclSig(x.docComment, rangeInFile(ctx, x.range), x.name, rp.returnType, small(params));
+				return SpecDeclSig(ctx.curUri, x, x.name, rp.returnType, small(params));
 			})));
 
 SpecDecl[] checkSpecDeclsInitial(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesMap structsAndAliasesMap,
-	in SpecDeclAst[] asts,
+	SpecDeclAst[] asts,
 ) =>
-	map(ctx.alloc, asts, (ref SpecDeclAst ast) {
+	mapPointers(ctx.alloc, asts, (SpecDeclAst* ast) {
 		TypeParam[] typeParams = checkTypeParams(ctx, ast.typeParams);
 		SpecDeclBody body_ =
 			checkSpecDeclBody(ctx, commonTypes, typeParams, structsAndAliasesMap, ast.range, ast.name.name, ast.body_);
 		return SpecDecl(
-			rangeInFile(ctx, ast.range),
-			copySafeCStr(ctx.alloc, ast.docComment),
+			ctx.curUri,
+			ast,
 			visibilityFromExplicit(ast.visibility),
 			ast.name.name,
 			small(typeParams),
@@ -816,7 +816,7 @@ Module checkWorkerAfterCommonTypes(
 	ref MutArr!(StructInst*) delayStructInsts,
 	Uri uri,
 	ref ImportsAndExports importsAndExports,
-	in FileAst ast,
+	ref FileAst ast,
 ) {
 	checkStructBodies(ctx, commonTypes, structsAndAliasesMap, structs, ast.structs, delayStructInsts);
 
@@ -952,7 +952,7 @@ BootstrapCheck checkWorker(
 	scope ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
 	ref ImportsAndExports importsAndExports,
-	in FileAndAst fileAndAst,
+	ref FileAndAst fileAndAst,
 	in CommonTypes delegate(
 		ref CheckCtx,
 		in StructsAndAliasesMap,

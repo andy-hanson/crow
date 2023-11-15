@@ -107,7 +107,7 @@ void getHover(ref Writer writer, scope ref ShowCtx ctx, in Position pos) =>
 				}
 			}();
 		},
-		(in PositionKind.LocalInFunction x) {
+		(in PositionKind.LocalPosition x) {
 			writer ~= "local ";
 			localHover(writer, ctx, *x.local);
 		},
@@ -132,11 +132,15 @@ void getHover(ref Writer writer, scope ref ShowCtx ctx, in Position pos) =>
 		},
 		(in SpecDecl x) {
 			writer ~= "spec ";
-			writeSym(writer, ctx.allSymbols, x.name);
+			writeName(writer, ctx, x.name);
 		},
 		(in SpecInst x) {
 			writer ~= "spec ";
 			writeSpecInst(writer, ctx, x);
+		},
+		(in PositionKind.SpecSig x) {
+			writer ~= "spec signature ";
+			writeName(writer, ctx, x.sig.name);
 		},
 		(in StructDecl x) {
 			writeStructDeclHover(writer, ctx, x);

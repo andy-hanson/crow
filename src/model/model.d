@@ -10,6 +10,8 @@ import frontend.parse.ast :
 	nameRangeOfDestructureSingle,
 	rangeOfDestructureSingle,
 	rangeOfNameAndRange,
+	SpecDeclAst,
+	SpecSigAst,
 	StructDeclAst;
 import model.concreteModel : TypeSize;
 import model.constant : Constant;
@@ -164,11 +166,14 @@ Arity arity(in Params a) =>
 immutable struct SpecDeclSig {
 	@safe @nogc pure nothrow:
 
-	SafeCStr docComment;
-	UriAndRange range;
+	Uri uri;
+	SpecSigAst* ast;
 	Sym name;
 	Type returnType;
 	SmallArray!Destructure params;
+
+	UriAndRange range() scope =>
+		UriAndRange(uri, ast.range);
 }
 
 immutable struct TypeParamsAndSig {
@@ -453,23 +458,26 @@ Sym symOfSpecBodyBuiltinKind(SpecDeclBody.Builtin.Kind kind) {
 immutable struct SpecDecl {
 	@safe @nogc pure nothrow:
 
-	// TODO: use NameAndRange (more compact)
-	UriAndRange range;
-	SafeCStr docComment;
+	Uri uri;
+	SpecDeclAst* ast;
 	Visibility visibility;
 	Sym name;
 	SmallArray!TypeParam typeParams;
 	SpecDeclBody body_;
 	Late!(SmallArray!(immutable SpecInst*)) parents_;
 
-	bool parentsIsSet() =>
+	UriAndRange range() scope =>
+		UriAndRange(uri, ast.range);
+	SafeCStr docComment() return scope =>
+		ast.docComment;
+	bool parentsIsSet() scope =>
 		lateIsSet(parents_);
 	immutable(SpecInst*[]) parents() scope =>
 		lateGet(parents_);
-	void parents(immutable SpecInst*[] value) {
+	void parents(immutable SpecInst*[] value) scope {
 		lateSet(parents_, small(value));
 	}
-	void overwriteParents(immutable SpecInst*[] value) =>
+	void overwriteParents(immutable SpecInst*[] value) scope =>
 		lateSetOverwrite(parents_, small(value));
 }
 

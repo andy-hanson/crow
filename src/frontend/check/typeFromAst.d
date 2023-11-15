@@ -334,9 +334,7 @@ private Type typeFromMapAst(
 	TypeParam[] typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
-	// TODO: don't create synthetic AST
-	TypeAst[2] tupleMembers = [ast.k, ast.v];
-	TypeAst.Tuple tuple = TypeAst.Tuple(RangeWithinFile.empty, castNonScope_ref(tupleMembers));
+	TypeAst.Tuple tuple = TypeAst.Tuple(RangeWithinFile.empty, castNonScope_ref(ast.kv));
 	TypeAst typeArg = TypeAst(ptrTrustMe(tuple));
 	return instStructFromAst(
 		ctx,

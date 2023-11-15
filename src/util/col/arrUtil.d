@@ -174,6 +174,14 @@ T[] copyArr(T)(ref Alloc alloc, scope T[] a) =>
 	return res[0 .. 1 + a.length];
 }
 
+size_t count(T)(in T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
+	size_t res = 0;
+	foreach (ref T x; a)
+		if (cb(x))
+			res++;
+	return res;
+}
+
 @trusted T[] filter(T)(ref Alloc alloc, in T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) =>
 	mapOp!(T, T)(alloc, a, (ref T x) =>
 		cb(x) ? some(x) : none!T);
@@ -312,6 +320,16 @@ Opt!Out zipFirst(Out, T, U)(
 			return res;
 	}
 	return none!Out;
+}
+
+void zipIn(T, U)(
+	in T[] a,
+	in U[] b,
+	in void delegate(in T, in U) @safe @nogc pure nothrow cb,
+) {
+	verify(sizeEq(a, b));
+	foreach (size_t i; 0 .. a.length)
+		cb(a[i], b[i]);
 }
 
 void zip(T, U)(

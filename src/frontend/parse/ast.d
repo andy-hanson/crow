@@ -88,13 +88,18 @@ immutable struct TypeAst {
 	}
 
 	immutable struct Map {
+		@safe @nogc pure nothrow:
 		enum Kind {
 			data,
 			mut,
 		}
 		Kind kind;
-		TypeAst v;
-		TypeAst k;
+		// They are actually written v[k] at the use, but applied as (k, v)
+		TypeAst[2] kv;
+		TypeAst k() return scope =>
+			kv[0];
+		TypeAst v() return scope =>
+			kv[1];
 	}
 
 	immutable struct SuffixName {
@@ -316,12 +321,12 @@ immutable struct LambdaAst {
 immutable struct DestructureAst {
 	@safe @nogc pure nothrow:
 
-	// `()` is a destructure matcing only void values
 	immutable struct Single {
 		NameAndRange name; // Name may be '_', meaning ignore and don't create a local
 		Opt!Pos mut; // position of 'mut' keyword if it exists
 		Opt!(TypeAst*) type;
 	}
+	// `()` is a destructure matching only void values
 	immutable struct Void {
 		Pos pos;
 	}
@@ -532,11 +537,16 @@ DestructureAst[] paramsArray(return scope ParamsAst a) =>
 			arrayOfSingle(&x.param));
 
 immutable struct SpecSigAst {
+	@safe @nogc pure nothrow:
+
 	SafeCStr docComment;
 	RangeWithinFile range;
-	Sym name; // start is range.start
+	Sym name;
 	TypeAst returnType;
 	ParamsAst params;
+
+	NameAndRange nameAndRange() scope =>
+		NameAndRange(range.start, name);
 }
 
 immutable struct StructAliasAst {

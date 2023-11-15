@@ -145,7 +145,7 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, TypeAst left) {
 	Opt!TypeAst mapLike(TypeAst.Map.Kind kind) {
 		TypeAst key = parseType(lexer);
 		takeOrAddDiagExpectedToken(lexer, Token.bracketRight, ParseDiag.Expected.Kind.closingBracket);
-		return some(TypeAst(allocate(lexer.alloc, TypeAst.Map(kind, left, key))));
+		return some(TypeAst(allocate(lexer.alloc, TypeAst.Map(kind, [key, left]))));
 	}
 
 	if (tryTakeToken(lexer, Token.question))

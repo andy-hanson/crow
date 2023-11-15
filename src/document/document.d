@@ -225,7 +225,7 @@ DocExport documentSpec(ref Alloc alloc, in SpecDecl a) =>
 
 Json documentSpecDeclSig(ref Alloc alloc, in SpecDeclSig a) =>
 	jsonObject(alloc, [
-		optionalStringField!"doc"(alloc, a.docComment),
+		optionalStringField!"doc"(alloc, a.ast.docComment),
 		field!"name"(a.name),
 		field!"return-type"(documentTypeRef(alloc, a.returnType)),
 		field!"params"(documentParamDestructures(alloc, a.params))]);

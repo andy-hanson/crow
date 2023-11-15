@@ -2,14 +2,24 @@ module frontend.ide.getReferences;
 
 @safe @nogc pure nothrow:
 
+import frontend.ide.getDefinition : definitionForTarget;
 import frontend.ide.getTarget : exprTarget, Target, targetForPosition;
 import frontend.ide.ideUtil :
-	eachDestructureComponent, eachTypeComponent, eachDescendentExprExcluding, eachDescendentExprIncluding;
+	eachDestructureComponent,
+	eachFunSpec,
+	eachSpecParent,
+	eachTypeComponent,
+	eachDescendentExprExcluding,
+	eachDescendentExprIncluding,
+	eachTypeArg,
+	ReferenceCb;
 import frontend.ide.position : Position, PositionKind;
-import frontend.parse.ast : DestructureAst, FunDeclAst, paramsArray, pathRange, range, StructDeclAst, TypeAst;
+import frontend.parse.ast :
+	DestructureAst, FunDeclAst, ParamsAst, paramsArray, pathRange, range, StructDeclAst, TypeAst;
 import model.model :
 	body_,
 	Called,
+	CalledSpecSig,
 	Destructure,
 	decl,
 	Expr,
@@ -21,26 +31,28 @@ import model.model :
 	ImportOrExport,
 	Local,
 	LocalSource,
-	localMustHaveNameRange,
-	loopKeywordRange,
 	Module,
+	Params,
 	paramsArray,
 	Program,
 	range,
 	RecordField,
 	SpecDecl,
+	SpecDeclBody,
 	SpecDeclSig,
+	SpecInst,
 	StructBody,
 	StructDecl,
 	StructInst,
 	Test,
 	Type,
+	typeArgs,
 	UnionMember,
 	VarDecl,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : zip;
+import util.col.arrBuilder : buildArray;
+import util.col.arrUtil : zip, zipIn;
 import util.col.map : mapEach, mustGetAt;
 import util.json : Json, jsonList;
 import util.lineAndColumnGetter : LineAndColumnGetters;
@@ -49,7 +61,7 @@ import util.ptr : ptrTrustMe;
 import util.sourceRange : UriAndRange, jsonOfUriAndRange;
 import util.sym : AllSymbols;
 import util.uri : AllUris, Uri;
-import util.util : typeAs, verify;
+import util.util : verify;
 
 UriAndRange[] getReferencesForPosition(
 	ref Alloc alloc,
@@ -59,7 +71,12 @@ UriAndRange[] getReferencesForPosition(
 	ref Position pos,
 ) {
 	Opt!Target target = targetForPosition(program, pos.kind);
-	return has(target) ? referencesForTarget(alloc, allSymbols, allUris, program, pos.module_, force(target)) : [];
+	return has(target)
+		? buildArray!UriAndRange(alloc, (in ReferenceCb cb) {
+			definitionForTarget(allSymbols, pos.module_.uri, force(target), cb);
+			referencesForTarget(allSymbols, allUris, program, pos.module_.uri, force(target), cb);
+		})
+		: [];
 }
 
 Json jsonOfReferences(
@@ -73,89 +90,91 @@ Json jsonOfReferences(
 
 private:
 
-UriAndRange[] referencesForTarget(
-	ref Alloc alloc,
+void referencesForTarget(
 	in AllSymbols allSymbols,
 	in AllUris allUris,
 	in Program program,
-	in Module* curModule,
-	return scope ref Target a,
+	Uri curUri,
+	in Target a,
+	in ReferenceCb cb,
 ) =>
-	a.matchWithPointers!(UriAndRange[])(
-		(FunDecl* x) =>
-			referencesForFunDecl(alloc, program, x),
-		(PositionKind.ImportedName x) =>
-			typeAs!(UriAndRange[])([]), //TODO: this should be references in the current module only
-		(PositionKind.LocalInFunction x) =>
-			referencesForLocal(alloc, allSymbols, program, curModule.uri, x),
-		(ExprKind.Loop* x) =>
-			referencesForLoop(alloc, curModule.uri, *x),
-		(Module* x) =>
-			referencesForModule(alloc, allUris, program, x),
-		(RecordField* x) =>
+	a.matchWithPointers!void(
+		(FunDecl* x) {
+			referencesForFunDecl(program, x, cb);
+		},
+		(PositionKind.ImportedName x) {
+			//TODO: this should be references in the current module only
+		},
+		(PositionKind.LocalPosition x) {
+			referencesForLocal(allSymbols, program, curUri, x, cb);
+		},
+		(ExprKind.Loop* x) {
+			referencesForLoop(curUri, *x, cb);
+		},
+		(Module* x) {
+			referencesForModule(allUris, program, x, cb);
+		},
+		(RecordField* x) {
 			// TODO (get references for the get/set functions, plus ExprKind.PtrToField)
-			typeAs!(UriAndRange[])([]),
-		(SpecDecl* x) =>
-			// TODO (search all functions)
-			typeAs!(UriAndRange[])([]),
-		(SpecDeclSig* x) =>
-			// TODO (find call references)
-			typeAs!(UriAndRange[])([]),
-		(StructDecl* x) =>
-			referencesForStructDecl(alloc, allSymbols, program, x),
-		(PositionKind.TypeParamWithContainer x) =>
-			referencesForTypeParam(alloc, allSymbols, curModule.uri, x));
+		},
+		(SpecDecl* x) {
+			referencesForSpecDecl(allSymbols, program, x, cb);
+		},
+		(PositionKind.SpecSig x) {
+			referencesForSpecSig(allSymbols, program, x, cb);
+		},
+		(StructDecl* x) {
+			referencesForStructDecl(allSymbols, program, x, cb);
+		},
+		(PositionKind.TypeParamWithContainer x) {
+			referencesForTypeParam(allSymbols, curUri, x, cb);
+		});
 
-UriAndRange[] referencesForLocal(
-	ref Alloc alloc,
+void referencesForLocal(
 	in AllSymbols allSymbols,
 	in Program program,
 	Uri curUri,
-	in PositionKind.LocalInFunction a,
+	in PositionKind.LocalPosition a,
+	in ReferenceCb cb,
 ) {
-	ArrBuilder!UriAndRange res;
-	add(alloc, res, localMustHaveNameRange(*a.local, allSymbols));
-	Expr body_ = a.containingFun.body_.isA!(FunBody.ExpressionBody)
-		? a.containingFun.body_.as!(FunBody.ExpressionBody).expr
-		: Expr(UriAndRange.empty, ExprKind(ExprKind.Bogus()));
-	eachDescendentExprIncluding(body_, (in Expr x) @safe {
-		Opt!Target xTarget = exprTarget(program, PositionKind.Expression(a.containingFun, ptrTrustMe(x)));
-		if (optEqual!Target(xTarget, some(Target(a))))
-			add(alloc, res, x.range);
-	});
-	return finishArr(alloc, res);
+	a.container.match!void(
+		(ref FunDecl fun) {
+			Expr body_ = fun.body_.isA!(FunBody.ExpressionBody)
+				? fun.body_.as!(FunBody.ExpressionBody).expr
+				: Expr(UriAndRange.empty, ExprKind(ExprKind.Bogus()));
+			eachDescendentExprIncluding(body_, (in Expr x) @safe {
+				Opt!Target xTarget = exprTarget(program, PositionKind.Expression(&fun, ptrTrustMe(x)));
+				if (optEqual!Target(xTarget, some(Target(a))))
+					cb(x.range);
+			});
+		},
+		(ref SpecDecl) {});
 }
 
-UriAndRange[] referencesForLoop(ref Alloc alloc, Uri curUri, in ExprKind.Loop loop) {
-	ArrBuilder!UriAndRange res;
-	add(alloc, res, UriAndRange(curUri, loopKeywordRange(loop)));
+void referencesForLoop(Uri curUri, in ExprKind.Loop loop, in ReferenceCb cb) {
 	eachDescendentExprExcluding(ExprKind(&loop), (in Expr child) {
 		if (child.kind.isA!(ExprKind.LoopBreak*) || child.kind.isA!(ExprKind.LoopContinue))
-			add(alloc, res, child.range);
+			cb(child.range);
 	});
-	return finishArr(alloc, res);
 }
 
-UriAndRange[] referencesForTypeParam(
-	ref Alloc alloc,
+void referencesForTypeParam(
 	in AllSymbols allSymbols,
 	Uri curUri,
 	in PositionKind.TypeParamWithContainer a,
+	in ReferenceCb refCb,
 ) {
-	ArrBuilder!UriAndRange res;
-	add(alloc, res, a.typeParam.range);
-	scope TypeCb cb = (in Type type, in TypeAst ast) {
+	scope TypeCb typeCb = (in Type type, in TypeAst ast) {
 		if (type == Type(a.typeParam))
-			add(alloc, res, UriAndRange(curUri, range(ast, allSymbols)));
+			refCb(UriAndRange(curUri, range(ast, allSymbols)));
 	};
 	a.container.matchIn!void(
 		(in FunDecl x) =>
-			eachTypeInFun(x, cb),
+			eachTypeInFun(x, typeCb),
 		(in SpecDecl x) =>
-			eachTypeInSpec(x, cb),
+			eachTypeInSpec(x, typeCb),
 		(in StructDecl x) =>
-			eachTypeInStruct(x, cb));
-	return finishArr(alloc, res);
+			eachTypeInStruct(x, typeCb));
 }
 
 alias TypeCb = void delegate(in Type, in TypeAst) @safe @nogc pure nothrow;
@@ -178,12 +197,7 @@ void eachTypeInFun(in FunDecl a, in TypeCb cb) {
 	if (a.source.isA!(FunDeclSource.Ast)) {
 		FunDeclAst* ast = a.source.as!(FunDeclSource.Ast).ast;
 		eachTypeInType(a.returnType, ast.returnType, cb);
-		zip!(Destructure, DestructureAst)(
-			paramsArray(a.params),
-			paramsArray(ast.params),
-			(ref Destructure d, ref DestructureAst _) {
-				eachTypeInDestructure(d, cb);
-			});
+		eachTypeInParams(a.params, ast.params, cb);
 		// TODO: search in specs
 		if (a.body_.isA!(FunBody.ExpressionBody))
 			eachTypeInExpr(a.body_.as!(FunBody.ExpressionBody).expr, cb);
@@ -191,7 +205,17 @@ void eachTypeInFun(in FunDecl a, in TypeCb cb) {
 }
 
 void eachTypeInSpec(in SpecDecl a, in TypeCb cb) {
-	// TODO
+	eachSpecParent(a, (SpecInst* parent, in TypeAst ast) {
+		eachTypeArg(typeArgs(*parent), ast, cb);
+	});
+	a.body_.matchIn!void(
+		(in SpecDeclBody.Builtin) {},
+		(in SpecDeclSig[] sigs) {
+			foreach (ref SpecDeclSig sig; sigs) {
+				eachTypeInType(sig.returnType, sig.ast.returnType, cb);
+				eachTypeInParams(Params(sig.params), sig.ast.params, cb);
+			}
+		});
 }
 
 void eachTypeInStruct(in StructDecl a, in TypeCb cb) {
@@ -234,6 +258,12 @@ void eachTypeInType(in Type a, in TypeAst ast, in TypeCb cb) {
 		return none!bool;
 	});
 	verify(!has(res));
+}
+
+void eachTypeInParams(in Params a, in ParamsAst asts, in TypeCb cb) {
+	zip!(Destructure, DestructureAst)(paramsArray(a), paramsArray(asts), (ref Destructure x, ref DestructureAst _) {
+		eachTypeInDestructure(x, cb);
+	});
 }
 
 void eachTypeInDestructure(in Destructure a, in TypeCb cb) {
@@ -294,52 +324,73 @@ void eachTypeDirectlyInExpr(in Expr a, in TypeCb cb) {
 		(in ExprKind.Throw x) {});
 }
 
-UriAndRange[] referencesForFunDecl(ref Alloc alloc, in Program program, in FunDecl* a) {
-	ArrBuilder!UriAndRange res;
-	eachModuleThatMayReference(program, a.visibility, moduleOf(program, a), (in Module module_) {
-		foreach (ref FunDecl x; module_.funs) {
-			if (x.body_.isA!(FunBody.ExpressionBody))
-				referencesForFunDeclInExpr(alloc, res, a, x.body_.as!(FunBody.ExpressionBody).expr);
+void referencesForFunDecl(in Program program, in FunDecl* a, in ReferenceCb cb) {
+	eachExprThatMayReference(program, a, (in Expr x) {
+		if (x.kind.isA!(ExprKind.Call)) {
+			Called called = x.kind.as!(ExprKind.Call).called;
+			if (called.isA!(FunInst*) && decl(*called.as!(FunInst*)) == a)
+				cb(x.range);
+		} else if (x.kind.isA!(ExprKind.FunPtr)) {
+			if (decl(*x.kind.as!(ExprKind.FunPtr).funInst) == a)
+				cb(x.range);
 		}
 	});
-	return finishArr(alloc, res);
 }
 
-UriAndRange[] referencesForStructDecl(ref Alloc alloc, in AllSymbols allSymbols, in Program program, in StructDecl* a) {
-	ArrBuilder!UriAndRange res;
-	add(alloc, res, a.range);
+void eachExprThatMayReference(T)(in Program program, in T a, in void delegate(in Expr) @safe @nogc pure nothrow cb) {
+	eachModuleThatMayReference(program, a.visibility, moduleOf(program, a), (in Module module_) {
+		foreach (ref FunDecl fun; module_.funs) {
+			if (fun.body_.isA!(FunBody.ExpressionBody))
+				eachDescendentExprIncluding(fun.body_.as!(FunBody.ExpressionBody).expr, cb);
+		}
+		foreach (ref Test test; module_.tests)
+			eachDescendentExprIncluding(test.body_, cb);
+	});
+}
+
+void referencesForSpecSig(in AllSymbols allSymbols, in Program program, in PositionKind.SpecSig a, in ReferenceCb cb) {
+	eachExprThatMayReference(program, a.spec, (in Expr x) {
+		if (x.kind.isA!(ExprKind.Call)) {
+			Called called = x.kind.as!(ExprKind.Call).called;
+			if (called.isA!(CalledSpecSig*) && called.as!(CalledSpecSig*).nonInstantiatedSig == a.sig)
+				cb(x.range);
+		} else if (x.kind.isA!(ExprKind.FunPtr)) {
+			// Currently doesn't support specs
+			verify(x.kind.as!(ExprKind.FunPtr).funInst != null);
+		}
+	});
+}
+
+void referencesForSpecDecl(in AllSymbols allSymbols, in Program program, in SpecDecl* a, in ReferenceCb refCb) {
+	eachModuleThatMayReference(program, a.visibility, moduleOf(program, a), (in Module module_) {
+		scope void delegate(in SpecInst*, in TypeAst) @safe @nogc pure nothrow cb = (spec, ast) {
+			if (decl(*spec) == a)
+				refCb(UriAndRange(module_.uri, range(ast, allSymbols)));
+		};
+		foreach (ref SpecDecl spec; module_.specs)
+			zipIn!(SpecInst*, TypeAst)(spec.parents, spec.ast.parents, cb);
+		foreach (ref FunDecl fun; module_.funs)
+			eachFunSpec(fun, cb);
+	});
+}
+
+void referencesForStructDecl(in AllSymbols allSymbols, in Program program, in StructDecl* a, in ReferenceCb cb) {
 	eachModuleThatMayReference(program, a.visibility, moduleOf(program, a), (in Module module_) {
 		eachTypeInModule(module_, (in Type t, in TypeAst ast) {
 			if (t.isA!(StructInst*) && decl(*t.as!(StructInst*)) == a)
-				add(alloc, res, UriAndRange(module_.uri, range(ast, allSymbols)));
+				cb(UriAndRange(module_.uri, range(ast, allSymbols)));
 		});
 	});
-	return finishArr(alloc, res);
 }
 
 Module* moduleOf(T)(in Program program, in T t) =>
 	mustGetAt(program.allModules, t.range.uri);
 
-void referencesForFunDeclInExpr(ref Alloc alloc, scope ref ArrBuilder!UriAndRange res, in FunDecl* a, in Expr expr) {
-	eachDescendentExprIncluding(expr, (in Expr x) {
-		if (x.kind.isA!(ExprKind.Call)) {
-			Called called = x.kind.as!(ExprKind.Call).called;
-			if (called.isA!(FunInst*) && decl(*called.as!(FunInst*)) == a)
-				add(alloc, res, x.range);
-		} else if (x.kind.isA!(ExprKind.FunPtr)) {
-			if (decl(*x.kind.as!(ExprKind.FunPtr).funInst) == a)
-				add(alloc, res, x.range);
-		}
-	});
-}
-
-UriAndRange[] referencesForModule(ref Alloc alloc, in AllUris allUris, in Program program, in Module* target) {
-	ArrBuilder!UriAndRange res;
+void referencesForModule(in AllUris allUris, in Program program, in Module* target, in ReferenceCb cb) {
 	eachModuleReferencing(program, target, (in Module importer, in ImportOrExport ie) {
 		if (has(ie.source))
-			add(alloc, res, UriAndRange(importer.uri, pathRange(allUris, *force(ie.source))));
+			cb(UriAndRange(importer.uri, pathRange(allUris, *force(ie.source))));
 	});
-	return finishArr(alloc, res);
 }
 
 void eachModuleThatMayReference(

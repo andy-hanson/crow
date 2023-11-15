@@ -2,7 +2,7 @@ module frontend.ide.getTarget;
 
 @safe @nogc pure nothrow:
 
-import frontend.ide.position : PositionKind;
+import frontend.ide.position : LocalContainer, PositionKind;
 import model.model :
 	Called,
 	CalledSpecSig,
@@ -15,7 +15,6 @@ import model.model :
 	Program,
 	RecordField,
 	SpecDecl,
-	SpecDeclSig,
 	SpecInst,
 	StructDecl,
 	StructInst,
@@ -30,12 +29,12 @@ immutable struct Target {
 	mixin Union!(
 		FunDecl*,
 		PositionKind.ImportedName,
-		PositionKind.LocalInFunction,
+		PositionKind.LocalPosition,
 		ExprKind.Loop*,
 		Module*,
 		RecordField*,
 		SpecDecl*,
-		SpecDeclSig*,
+		PositionKind.SpecSig,
 		StructDecl*,
 		PositionKind.TypeParamWithContainer,
 	);
@@ -59,7 +58,7 @@ Opt!Target targetForPosition(in Program program, PositionKind pos) =>
 			some(Target(x)),
 		(PositionKind.Keyword _) =>
 			none!Target,
-		(PositionKind.LocalInFunction x) =>
+		(PositionKind.LocalPosition x) =>
 			some(Target(x)),
 		(PositionKind.RecordFieldMutability) =>
 			none!Target,
@@ -69,6 +68,8 @@ Opt!Target targetForPosition(in Program program, PositionKind pos) =>
 			some(Target(x)),
 		(SpecInst* x) =>
 			some(Target(decl(*x))),
+		(PositionKind.SpecSig x) =>
+			some(Target(x)),
 		(StructDecl* x) =>
 			some(Target(x)),
 		(PositionKind.TypeWithContainer x) =>
@@ -86,7 +87,7 @@ Opt!Target targetForPosition(in Program program, PositionKind pos) =>
 
 Opt!Target exprTarget(in Program program, PositionKind.Expression a) {
 	Opt!Target local(Local* x) =>
-		some(Target(PositionKind.LocalInFunction(a.containingFun, x)));
+		some(Target(PositionKind.LocalPosition(LocalContainer(a.containingFun), x)));
 	return a.expr.kind.match!(Opt!Target)(
 		(ExprKind.AssertOrForbid) =>
 			none!Target,
@@ -150,4 +151,4 @@ Opt!Target calledTarget(ref Called a) =>
 		(ref FunInst x) =>
 			some(Target(decl(x))),
 		(ref CalledSpecSig x) =>
-			some(Target(x.nonInstantiatedSig)));
+			some(Target(PositionKind.SpecSig(decl(*x.specInst), x.nonInstantiatedSig))));

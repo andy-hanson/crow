@@ -558,7 +558,7 @@ Module checkNonBootstrapModule(
 	Uri stdUri,
 	in AstAndResolvedImports ast,
 	ref const MutMap!(Uri, immutable Module*) compiled,
-	in FileAndAst fileAndAst,
+	ref FileAndAst fileAndAst,
 	in CommonTypes commonTypes,
 ) {
 	FullyResolvedImport[] allImports = ast.ast.noStd
