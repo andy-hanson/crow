@@ -411,7 +411,7 @@ bool isSummon(ref ConcreteFun a) =>
 UriAndRange concreteFunRange(in ConcreteFun a) =>
 	a.source.matchIn!UriAndRange(
 		(in FunInst x) =>
-			decl(x).range,
+			range(*decl(x)),
 		(in ConcreteFunSource.Lambda x) =>
 			x.range,
 		(in ConcreteFunSource.Test x) =>

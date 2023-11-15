@@ -469,7 +469,7 @@ public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* mo
 			0,
 	*/
 	ConcreteType nat64Type = getConcreteType_forStructInst(ctx, ctx.commonTypes.integrals.nat64, TypeArgsScope.empty);
-	UriAndRange range = decl(*modelMain).range;
+	UriAndRange range = range(*decl(*modelMain));
 	ConcreteExpr callMain = ConcreteExpr(voidType(ctx), range, ConcreteExprKind(ConcreteExprKind.Call(innerMain, [])));
 	ConcreteExpr zero = ConcreteExpr(nat64Type, range, ConcreteExprKind(constantZero));
 	ConcreteFun* newNat64Future = getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
@@ -722,7 +722,7 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 				}
 			},
 			(FunBody.CreateEnum x) =>
-				ConcreteFunBody(Constant(Constant.Integral(x.value.value))),
+				ConcreteFunBody(Constant(Constant.Integral(x.member.value.value))),
 			(FunBody.CreateExtern) =>
 				ConcreteFunBody(constantZero),
 			(FunBody.CreateRecord) =>

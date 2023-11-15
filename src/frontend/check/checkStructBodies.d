@@ -514,7 +514,7 @@ StructBody.Record checkRecord(
 	bool isExtern = struct_.linkage != Linkage.internal;
 	ForcedByValOrRefOrNone valOrRef = isExtern ? ForcedByValOrRefOrNone.byVal : modifiers.byValOrRefOrNone;
 	if (isExtern && modifiers.byValOrRefOrNone != ForcedByValOrRefOrNone.none)
-		addDiag(ctx, struct_.range, Diag(Diag.ExternRecordImplicitlyByVal(struct_)));
+		addDiag(ctx, range(*struct_), Diag(Diag.ExternRecordImplicitlyByVal(struct_)));
 	RecordField[] fields = mapPointers!(RecordField, StructDeclAst.Body.Record.Field)(
 		ctx.alloc, r.fields, (StructDeclAst.Body.Record.Field* field) =>
 			checkRecordField(ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, field));
@@ -573,7 +573,7 @@ StructBody.Union checkUnion(
 		case Linkage.internal:
 			break;
 		case Linkage.extern_:
-			addDiag(ctx, struct_.range, Diag(Diag.ExternUnion()));
+			addDiag(ctx, range(*struct_), Diag(Diag.ExternUnion()));
 	}
 	UnionMember[] members = map(ctx.alloc, ast.members, (ref StructDeclAst.Body.Union.Member memberAst) =>
 		checkUnionMember(ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, memberAst));

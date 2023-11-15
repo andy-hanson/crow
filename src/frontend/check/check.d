@@ -98,7 +98,7 @@ import util.opt : force, has, none, Opt, someMut, some;
 import util.perf : Perf;
 import util.ptr : ptrTrustMe;
 import util.storage : asBytes, asString, FileContent;
-import util.sourceRange : UriAndPos, UriAndRange, RangeWithinFile;
+import util.sourceRange : UriAndRange, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
 import util.uri : AllUris, Uri;
 import util.util : unreachable, todo, verify;
@@ -323,7 +323,7 @@ void checkSpecDeclParents(
 void detectAndFixSpecRecursion(ref CheckCtx ctx, SpecDecl* decl) {
 	MutMaxArr!(8, immutable SpecDecl*) trace = mutMaxArr!(8, immutable SpecDecl*);
 	if (recurDetectSpecRecursion(decl, trace)) {
-		addDiag(ctx, decl.range, Diag(Diag.SpecRecursion(toArray(ctx.alloc, trace))));
+		addDiag(ctx, range(*decl), Diag(Diag.SpecRecursion(toArray(ctx.alloc, trace))));
 		decl.overwriteParents([]);
 	}
 }
@@ -378,32 +378,25 @@ void checkStructAliasTargets(
 StructsAndAliasesMap buildStructsAndAliasesMap(ref CheckCtx ctx, StructDecl[] structs, StructAlias[] aliases) {
 	MapBuilder!(Sym, StructOrAlias) builder;
 	foreach (StructDecl* decl; ptrsRange(structs))
-		addToDeclsMap!StructOrAlias(ctx, builder, StructOrAlias(decl), Diag.DuplicateDeclaration.Kind.structOrAlias);
+		addToDeclsMap!StructOrAlias(
+			ctx, builder, StructOrAlias(decl), Diag.DuplicateDeclaration.Kind.structOrAlias, () => range(*decl));
 	foreach (StructAlias* alias_; ptrsRange(aliases))
-		addToDeclsMap!StructOrAlias(ctx, builder, StructOrAlias(alias_), Diag.DuplicateDeclaration.Kind.structOrAlias);
+		addToDeclsMap!StructOrAlias(
+			ctx, builder, StructOrAlias(alias_), Diag.DuplicateDeclaration.Kind.structOrAlias, () => range(*alias_));
 	return finishMap(ctx.alloc, builder);
 }
-
-VarDecl[] checkVars(
-	ref CheckCtx ctx,
-	ref CommonTypes commonTypes,
-	in StructsAndAliasesMap structsAndAliasesMap,
-	in VarDeclAst[] asts,
-) =>
-	map(ctx.alloc, asts, (ref VarDeclAst ast) =>
-		checkVarDecl(ctx, commonTypes, structsAndAliasesMap, ast));
 
 VarDecl checkVarDecl(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	in VarDeclAst ast,
+	VarDeclAst* ast,
 ) {
 	if (!empty(ast.typeParams))
 		todo!void("diag");
 	return VarDecl(
-		UriAndPos(ctx.curUri, ast.range.start),
-		copySafeCStr(ctx.alloc, ast.docComment),
+		ast,
+		ctx.curUri,
 		visibilityFromExplicit(ast.visibility),
 		ast.name.name,
 		ast.kind,
@@ -439,10 +432,11 @@ void addToDeclsMap(T)(
 	ref MapBuilder!(Sym, T) builder,
 	T added,
 	Diag.DuplicateDeclaration.Kind kind,
+	in UriAndRange delegate() @safe @nogc pure nothrow getRange,
 ) {
 	Opt!T old = tryAddToMap(ctx.alloc, builder, added.name, added);
 	if (has(old))
-		addDiag(ctx, added.range, Diag(Diag.DuplicateDeclaration(kind, added.name)));
+		addDiag(ctx, getRange(), Diag(Diag.DuplicateDeclaration(kind, added.name)));
 }
 
 immutable struct FunsAndMap {
@@ -772,12 +766,12 @@ FunBody.Extern checkExternBody(ref CheckCtx ctx, FunDecl* fun, in Opt!TypeAst ty
 	Linkage funLinkage = Linkage.extern_;
 
 	if (!empty(fun.typeParams))
-		addDiag(ctx, fun.range, Diag(Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.hasTypeParams)));
+		addDiag(ctx, range(*fun), Diag(Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.hasTypeParams)));
 	if (!empty(fun.specs))
-		addDiag(ctx, fun.range, Diag(Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.hasSpecs)));
+		addDiag(ctx, range(*fun), Diag(Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.hasSpecs)));
 
 	if (!isLinkageAlwaysCompatible(funLinkage, linkageRange(fun.returnType)))
-		addDiag(ctx, fun.range, Diag(Diag.LinkageWorseThanContainingFun(fun, fun.returnType, none!(Destructure*))));
+		addDiag(ctx, range(*fun), Diag(Diag.LinkageWorseThanContainingFun(fun, fun.returnType, none!(Destructure*))));
 	fun.params.match!void(
 		(Destructure[] params) {
 			foreach (Destructure* p; ptrsRange(params))
@@ -786,9 +780,9 @@ FunBody.Extern checkExternBody(ref CheckCtx ctx, FunDecl* fun, in Opt!TypeAst ty
 						Diag.LinkageWorseThanContainingFun(fun, p.type, some(p))));
 		},
 		(ref Params.Varargs) {
-			addDiag(ctx, fun.range, Diag(Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.variadic)));
+			addDiag(ctx, range(*fun), Diag(Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.variadic)));
 		});
-	return FunBody.Extern(externLibraryNameFromTypeArg(ctx, fun.range.range, typeArg));
+	return FunBody.Extern(externLibraryNameFromTypeArg(ctx, range(*fun).range, typeArg));
 }
 
 Sym externLibraryNameFromTypeArg(ref CheckCtx ctx, RangeWithinFile range, in Opt!TypeAst typeArg) {
@@ -803,7 +797,7 @@ Sym externLibraryNameFromTypeArg(ref CheckCtx ctx, RangeWithinFile range, in Opt
 SpecsMap buildSpecsMap(ref CheckCtx ctx, SpecDecl[] specs) {
 	MapBuilder!(Sym, SpecDecl*) res;
 	foreach (SpecDecl* spec; ptrsRange(specs))
-		addToDeclsMap(ctx, res, spec, Diag.DuplicateDeclaration.Kind.spec);
+		addToDeclsMap(ctx, res, spec, Diag.DuplicateDeclaration.Kind.spec, () => range(*spec));
 	return finishMap(ctx.alloc, res);
 }
 
@@ -826,7 +820,8 @@ Module checkWorkerAfterCommonTypes(
 			instantiateStructTypes(ctx.alloc, ctx.programState, i.declAndArgs, someMut(ptrTrustMe(delayStructInsts)));
 	}
 
-	VarDecl[] vars = checkVars(ctx, commonTypes, structsAndAliasesMap, ast.vars);
+	VarDecl[] vars = mapPointers(ctx.alloc, ast.vars, (VarDeclAst* ast) =>
+		checkVarDecl(ctx, commonTypes, structsAndAliasesMap, ast));
 	SpecDecl[] specs = checkSpecDeclsInitial(ctx, commonTypes, structsAndAliasesMap, ast.specs);
 	SpecsMap specsMap = buildSpecsMap(ctx, specs);
 	checkSpecDeclParents(ctx, commonTypes, structsAndAliasesMap, specsMap, ast.specs, specs);
@@ -926,7 +921,7 @@ Map!(Sym, NameReferents) getAllExportedNames(
 				break;
 			case Visibility.internal:
 			case Visibility.public_:
-				addExport(name, NameReferents(none!StructOrAlias, some(x), []), () => x.range.range);
+				addExport(name, NameReferents(none!StructOrAlias, some(x), []), () => range(*x).range);
 				break;
 		}
 	});

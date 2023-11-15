@@ -639,8 +639,11 @@ immutable struct StructDeclAst {
 	Body body_;
 }
 
-RangeWithinFile keywordRange(in StructDeclAst a, in AllSymbols allSymbols) =>
+RangeWithinFile keywordRange(in AllSymbols allSymbols, in StructDeclAst a) =>
 	rangeOfNameAndRange(NameAndRange(a.keywordPos, keywordForStructBody(a.body_)), allSymbols);
+
+RangeWithinFile nameRange(in AllSymbols allSymbols, in StructDeclAst a) =>
+	rangeOfNameAndRange(a.name, allSymbols);
 
 private Sym keywordForStructBody(in StructDeclAst.Body a) =>
 	a.matchIn!Sym(
@@ -673,6 +676,9 @@ immutable struct SpecDeclAst {
 	SpecBodyAst body_;
 }
 
+RangeWithinFile nameRange(in AllSymbols allSymbols, in SpecDeclAst a) =>
+	rangeOfNameAndRange(a.name, allSymbols);
+
 immutable struct FunDeclAst {
 	RangeWithinFile range;
 	SafeCStr docComment;
@@ -684,6 +690,9 @@ immutable struct FunDeclAst {
 	SmallArray!FunModifierAst modifiers;
 	Opt!ExprAst body_;
 }
+
+RangeWithinFile nameRange(in AllSymbols allSymbols, in FunDeclAst a) =>
+	rangeOfNameAndRange(a.name, allSymbols);
 
 immutable struct FunModifierAst {
 	@safe @nogc pure nothrow:

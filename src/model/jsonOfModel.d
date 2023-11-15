@@ -28,6 +28,7 @@ import model.model :
 	name,
 	Params,
 	Purity,
+	range,
 	SpecDecl,
 	SpecDeclBody,
 	SpecDeclSig,
@@ -156,7 +157,7 @@ Json jsonOfSpecDeclBody(ref Alloc alloc, in Ctx ctx, in SpecDeclBody a) =>
 
 Json jsonOfSpecDeclSig(ref Alloc alloc, in Ctx ctx, in SpecDeclSig a) =>
 	jsonObject(alloc, [
-		field!"where"(jsonOfRangeWithinFile(alloc, ctx.lineAndColumnGetter, a.range.range)),
+		field!"where"(jsonOfRangeWithinFile(alloc, ctx.lineAndColumnGetter, range(a).range)),
 		field!"name"(a.name),
 		field!"return-type"(jsonOfType(alloc, ctx, a.returnType)),
 		field!"params"(jsonOfDestructures(alloc, ctx, a.params))]);
@@ -253,9 +254,7 @@ Json jsonOfFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 		(in FunBody.Builtin) =>
 			jsonString!"builtin" ,
 		(in FunBody.CreateEnum x) =>
-			jsonObject(alloc, [
-				kindField!"new-enum",
-				field!"value"(x.value.value)]),
+			jsonObject(alloc, [kindField!"create-enum", field!"member"(x.member.name)]),
 		(in FunBody.CreateExtern) =>
 			jsonString!"new-extern",
 		(in FunBody.CreateRecord) =>

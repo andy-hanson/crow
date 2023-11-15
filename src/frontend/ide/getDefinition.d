@@ -11,13 +11,15 @@ import model.model :
 	localMustHaveNameRange,
 	loopKeywordRange,
 	Module,
+	nameRange,
 	NameReferents,
 	Program,
 	range,
 	RecordField,
 	SpecDecl,
+	StructBody,
 	StructDecl,
-	uriAndRange;
+	VarDecl;
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : buildArray;
 import util.opt : force, has, Opt, optOrDefault;
@@ -39,8 +41,11 @@ private:
 // public for 'getReferences' only
 public void definitionForTarget(in AllSymbols allSymbols, Uri curUri, in Target a, in ReferenceCb cb) =>
 	a.matchIn!void(
+		(in StructBody.Enum.Member x) {
+			cb(nameRange(allSymbols, x));
+		},
 		(in FunDecl x) {
-			cb(x.range);
+			cb(nameRange(allSymbols, x));
 		},
 		(in PositionKind.ImportedName x) {
 			definitionForImportedName(x, cb);
@@ -55,19 +60,22 @@ public void definitionForTarget(in AllSymbols allSymbols, Uri curUri, in Target 
 			cb(x.range);
 		},
 		(in RecordField x) {
-			cb(uriAndRange(x));
+			cb(nameRange(allSymbols, x));
 		},
 		(in SpecDecl x) {
-			cb(x.range);
+			cb(nameRange(allSymbols, x));
 		},
 		(in PositionKind.SpecSig x) {
-			cb(x.sig.range);
+			cb(nameRange(allSymbols, *x.sig));
 		},
 		(in StructDecl x) {
-			cb(x.range);
+			cb(nameRange(allSymbols, x));
 		},
 		(in PositionKind.TypeParamWithContainer x) {
 			cb(x.typeParam.range);
+		},
+		(in VarDecl x) {
+			cb(nameRange(allSymbols, x));
 		});
 
 void definitionForImportedName(in PositionKind.ImportedName a, in ReferenceCb cb) {
@@ -76,7 +84,7 @@ void definitionForImportedName(in PositionKind.ImportedName a, in ReferenceCb cb
 	if (has(nr.structOrAlias))
 		cb(range(force(nr.structOrAlias)));
 	if (has(nr.spec))
-		cb(force(nr.spec).range);
+		cb(range(*force(nr.spec)));
 	foreach (FunDecl* f; nr.funs)
-		cb(f.range);
+		cb(range(*f));
 }

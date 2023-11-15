@@ -37,6 +37,7 @@ import model.model :
 	Local,
 	LocalSource,
 	Module,
+	nameRange,
 	Params,
 	paramsArray,
 	range,
@@ -49,7 +50,8 @@ import model.model :
 	StructDecl,
 	Type,
 	typeArgs,
-	TypeParam;
+	TypeParam,
+	VarDecl;
 import util.col.arr : ptrsRange;
 import util.col.arrUtil : first, firstPointer, firstWithIndex, firstZipPointerFirst;
 import util.opt : force, has, none, Opt, optIf, optOr, optOr, optOrDefault, some;
@@ -70,11 +72,15 @@ Opt!PositionKind getPositionKind(in AllSymbols allSymbols, in AllUris allUris, r
 		positionInImportsOrExports(allSymbols, allUris, module_.imports, pos),
 		() => positionInImportsOrExports(allSymbols, allUris, module_.reExports, pos),
 		() => firstPointer!(PositionKind, StructDecl)(module_.structs, (StructDecl* x) =>
-			hasPos(x.range.range, pos)
+			hasPos(range(*x).range, pos)
 				? positionInStruct(allSymbols, x, pos)
 				: none!PositionKind),
+		() => firstPointer!(PositionKind, VarDecl)(module_.vars, (VarDecl* x) =>
+			hasPos(range(*x).range, pos)
+				? positionInVar(allSymbols, x, pos)
+				: none!PositionKind),
 		() => firstPointer!(PositionKind, SpecDecl)(module_.specs, (SpecDecl* x) =>
-			hasPos(x.range.range, pos)
+			hasPos(range(*x).range, pos)
 				? positionInSpec(allSymbols, x, pos)
 				: none!PositionKind),
 		() => firstPointer!(PositionKind, FunDecl)(module_.funs, (FunDecl* x) =>
@@ -152,6 +158,13 @@ Opt!PositionKind positionInImportsOrExports(
 	return none!PositionKind;
 }
 
+Opt!PositionKind positionInVar(in AllSymbols allSymbols, VarDecl* a, Pos pos) =>
+	optOr!PositionKind(
+		positionInVisibility(a, a.ast, pos),
+		() => optIf(hasPos(nameRange(allSymbols, *a).range, pos), () => PositionKind(a)));
+		//TODO: keyword range
+		//TODO: type range
+
 Opt!PositionKind positionInStruct(in AllSymbols allSymbols, StructDecl* a, Pos pos) =>
 	has(a.ast)
 		? positionInStruct(allSymbols, a, *force(a.ast), pos)
@@ -160,8 +173,8 @@ Opt!PositionKind positionInStruct(in AllSymbols allSymbols, StructDecl* a, Pos p
 Opt!PositionKind positionInStruct(in AllSymbols allSymbols, StructDecl* a, in StructDeclAst ast, Pos pos) =>
 	optOr!PositionKind(
 		positionInVisibility(a, ast, pos),
-		() => optIf(hasPos(rangeOfNameAndRange(ast.name, allSymbols), pos), () => PositionKind(a)),
-		() => optIf(hasPos(keywordRange(ast, allSymbols), pos), () =>
+		() => optIf(hasPos(nameRange(allSymbols, *a).range, pos), () => PositionKind(a)),
+		() => optIf(hasPos(keywordRange(allSymbols, ast), pos), () =>
 			PositionKind(PositionKind.Keyword(keywordKindForStructBody(ast.body_)))),
 		() => positionInTypeParams(allSymbols, TypeParamContainer(a), a.typeParams, ast.typeParams, pos),
 		//TODO: positions for flags (like 'extern' or 'by-val')

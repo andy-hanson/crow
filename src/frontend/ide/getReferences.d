@@ -28,10 +28,12 @@ import model.model :
 	FunDecl,
 	FunDeclSource,
 	FunInst,
+	greatestVisibility,
 	ImportOrExport,
 	Local,
 	LocalSource,
 	Module,
+	moduleUri,
 	Params,
 	paramsArray,
 	Program,
@@ -51,21 +53,23 @@ import model.model :
 	VarDecl,
 	Visibility;
 import util.alloc.alloc : Alloc;
+import util.col.arr : only;
 import util.col.arrBuilder : buildArray;
-import util.col.arrUtil : zip, zipIn;
+import util.col.arrUtil : allSame, contains, find, fold, zip, zipIn;
 import util.col.map : mapEach, mustGetAt;
+import util.col.mutMaxArr : mutMaxArr, MutMaxArr, push, tempAsArr;
 import util.json : Json, jsonList;
 import util.lineAndColumnGetter : LineAndColumnGetters;
 import util.opt : force, has, none, Opt, optEqual, some;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : UriAndRange, jsonOfUriAndRange;
-import util.sym : AllSymbols;
+import util.sym : AllSymbols, prependSet, Sym;
 import util.uri : AllUris, Uri;
-import util.util : verify;
+import util.util : todo, verify;
 
 UriAndRange[] getReferencesForPosition(
 	ref Alloc alloc,
-	in AllSymbols allSymbols,
+	scope ref AllSymbols allSymbols,
 	in AllUris allUris,
 	in Program program,
 	ref Position pos,
@@ -91,7 +95,7 @@ Json jsonOfReferences(
 private:
 
 void referencesForTarget(
-	in AllSymbols allSymbols,
+	scope ref AllSymbols allSymbols,
 	in AllUris allUris,
 	in Program program,
 	Uri curUri,
@@ -99,8 +103,11 @@ void referencesForTarget(
 	in ReferenceCb cb,
 ) =>
 	a.matchWithPointers!void(
+		(StructBody.Enum.Member* x) {
+			referencesForEnumMember(program, x, cb);
+		},
 		(FunDecl* x) {
-			referencesForFunDecl(program, x, cb);
+			referencesForFunDecls(program, [x], cb);
 		},
 		(PositionKind.ImportedName x) {
 			//TODO: this should be references in the current module only
@@ -115,7 +122,7 @@ void referencesForTarget(
 			referencesForModule(allUris, program, x, cb);
 		},
 		(RecordField* x) {
-			// TODO (get references for the get/set functions, plus ExprKind.PtrToField)
+			referencesForRecordField(program, *x, cb);
 		},
 		(SpecDecl* x) {
 			referencesForSpecDecl(allSymbols, program, x, cb);
@@ -128,6 +135,9 @@ void referencesForTarget(
 		},
 		(PositionKind.TypeParamWithContainer x) {
 			referencesForTypeParam(allSymbols, curUri, x, cb);
+		},
+		(VarDecl* x) {
+			referencesForVarDecl(allSymbols, program, x, cb);
 		});
 
 void referencesForLocal(
@@ -324,21 +334,29 @@ void eachTypeDirectlyInExpr(in Expr a, in TypeCb cb) {
 		(in ExprKind.Throw x) {});
 }
 
-void referencesForFunDecl(in Program program, in FunDecl* a, in ReferenceCb cb) {
-	eachExprThatMayReference(program, a, (in Expr x) {
+void referencesForFunDecls(in Program program, in FunDecl*[] decls, in ReferenceCb cb) {
+	Visibility maxVisibility = fold(Visibility.private_, decls, (Visibility a, in FunDecl* b) =>
+		greatestVisibility(a, b.visibility));
+	verify(allSame!(Uri, FunDecl*)(decls, (in FunDecl* x) => moduleUri(*x)));
+	eachExprThatMayReference(program, maxVisibility, moduleOf(program, moduleUri(*decls[0])), (in Expr x) {
 		if (x.kind.isA!(ExprKind.Call)) {
 			Called called = x.kind.as!(ExprKind.Call).called;
-			if (called.isA!(FunInst*) && decl(*called.as!(FunInst*)) == a)
+			if (called.isA!(FunInst*) && contains(decls, decl(*called.as!(FunInst*))))
 				cb(x.range);
 		} else if (x.kind.isA!(ExprKind.FunPtr)) {
-			if (decl(*x.kind.as!(ExprKind.FunPtr).funInst) == a)
+			if (contains(decls, decl(*x.kind.as!(ExprKind.FunPtr).funInst)))
 				cb(x.range);
 		}
 	});
 }
 
-void eachExprThatMayReference(T)(in Program program, in T a, in void delegate(in Expr) @safe @nogc pure nothrow cb) {
-	eachModuleThatMayReference(program, a.visibility, moduleOf(program, a), (in Module module_) {
+void eachExprThatMayReference(
+	in Program program,
+	Visibility visibility,
+	Module* module_,
+	in void delegate(in Expr) @safe @nogc pure nothrow cb,
+) {
+	eachModuleThatMayReference(program, visibility, module_, (in Module module_) {
 		foreach (ref FunDecl fun; module_.funs) {
 			if (fun.body_.isA!(FunBody.ExpressionBody))
 				eachDescendentExprIncluding(fun.body_.as!(FunBody.ExpressionBody).expr, cb);
@@ -349,7 +367,7 @@ void eachExprThatMayReference(T)(in Program program, in T a, in void delegate(in
 }
 
 void referencesForSpecSig(in AllSymbols allSymbols, in Program program, in PositionKind.SpecSig a, in ReferenceCb cb) {
-	eachExprThatMayReference(program, a.spec, (in Expr x) {
+	eachExprThatMayReference(program, a.spec.visibility, moduleOf(program, a.spec.moduleUri), (in Expr x) {
 		if (x.kind.isA!(ExprKind.Call)) {
 			Called called = x.kind.as!(ExprKind.Call).called;
 			if (called.isA!(CalledSpecSig*) && called.as!(CalledSpecSig*).nonInstantiatedSig == a.sig)
@@ -361,8 +379,52 @@ void referencesForSpecSig(in AllSymbols allSymbols, in Program program, in Posit
 	});
 }
 
+void referencesForRecordField(in Program program, in RecordField field, in ReferenceCb cb) {
+	withRecordFieldFunctions(program, field, (in FunDecl*[] funs) {
+		referencesForFunDecls(program, funs, cb);
+	});
+}
+
+void referencesForEnumMember(in Program program, in StructBody.Enum.Member* x, in ReferenceCb cb) {
+	// Find the corresponding creation function
+	todo!void("!!!");
+}
+
+void referencesForVarDecl(scope ref AllSymbols allSymbols, in Program program, in VarDecl* a, in ReferenceCb cb) {
+	// Find references to get/set
+	Module* module_ = moduleOf(program, a.moduleUri);
+	Opt!(FunDecl*) getter = find(funsNamed(module_, a.name), (in FunDecl* x) =>
+		x.body_.isA!(FunBody.VarGet) && x.body_.as!(FunBody.VarGet).var == a);
+	Opt!(FunDecl*) setter = find(funsNamed(module_, prependSet(allSymbols, a.name)), (in FunDecl* x) =>
+		x.body_.isA!(FunBody.VarSet) && x.body_.as!(FunBody.VarSet).var == a);
+	referencesForFunDecls(program, [force(getter), force(setter)], cb);
+}
+
+void withRecordFieldFunctions(
+	in Program program,
+	in RecordField field,
+	in void delegate(in FunDecl*[]) @safe @nogc pure nothrow cb,
+) {
+	MutMaxArr!(3, FunDecl*) res = mutMaxArr!(3, FunDecl*);
+	foreach (FunDecl* fun; funsNamed(moduleOf(program, field.containingRecord.moduleUri), field.name)) {
+		if (isRecordFieldFunction(fun.body_)) {
+			Type paramType = only(fun.params.as!(Destructure[])).type;
+			// TODO: for RecordFieldPointer we need to look for pointer to the struct
+			if (paramType.isA!(StructInst*) && decl(*paramType.as!(StructInst*)) == field.containingRecord)
+				push(res, fun);
+		}
+	}
+	cb(tempAsArr(res));
+}
+
+immutable(FunDecl*)[] funsNamed(in Module* module_, Sym name) =>
+	mustGetAt(module_.allExportedNames, name).funs;
+
+bool isRecordFieldFunction(in FunBody a) =>
+	a.isA!(FunBody.RecordFieldGet) || a.isA!(FunBody.RecordFieldPointer) || a.isA!(FunBody.RecordFieldSet);
+
 void referencesForSpecDecl(in AllSymbols allSymbols, in Program program, in SpecDecl* a, in ReferenceCb refCb) {
-	eachModuleThatMayReference(program, a.visibility, moduleOf(program, a), (in Module module_) {
+	eachModuleThatMayReference(program, a.visibility, moduleOf(program, a.moduleUri), (in Module module_) {
 		scope void delegate(in SpecInst*, in TypeAst) @safe @nogc pure nothrow cb = (spec, ast) {
 			if (decl(*spec) == a)
 				refCb(UriAndRange(module_.uri, range(ast, allSymbols)));
@@ -375,7 +437,7 @@ void referencesForSpecDecl(in AllSymbols allSymbols, in Program program, in Spec
 }
 
 void referencesForStructDecl(in AllSymbols allSymbols, in Program program, in StructDecl* a, in ReferenceCb cb) {
-	eachModuleThatMayReference(program, a.visibility, moduleOf(program, a), (in Module module_) {
+	eachModuleThatMayReference(program, a.visibility, moduleOf(program, a.moduleUri), (in Module module_) {
 		eachTypeInModule(module_, (in Type t, in TypeAst ast) {
 			if (t.isA!(StructInst*) && decl(*t.as!(StructInst*)) == a)
 				cb(UriAndRange(module_.uri, range(ast, allSymbols)));
@@ -383,8 +445,8 @@ void referencesForStructDecl(in AllSymbols allSymbols, in Program program, in St
 	});
 }
 
-Module* moduleOf(T)(in Program program, in T t) =>
-	mustGetAt(program.allModules, t.range.uri);
+Module* moduleOf(in Program program, Uri uri) =>
+	mustGetAt(program.allModules, uri);
 
 void referencesForModule(in AllUris allUris, in Program program, in Module* target, in ReferenceCb cb) {
 	eachModuleReferencing(program, target, (in Module importer, in ImportOrExport ie) {

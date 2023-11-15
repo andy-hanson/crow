@@ -1,0 +1,5 @@
+v thread-local(nat)
+
+f void() unsafe
+	v := 3
+	info log "{v}"

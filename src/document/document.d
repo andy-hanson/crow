@@ -21,6 +21,7 @@ import model.model :
 	paramsArray,
 	Program,
 	Purity,
+	range,
 	RecordField,
 	SpecDecl,
 	SpecDeclBody,
@@ -130,7 +131,7 @@ DocExport documentStructOrAlias(ref Alloc alloc, in StructOrAlias a) =>
 
 DocExport documentStructAlias(ref Alloc alloc, in StructAlias a) {
 	Opt!(StructInst*) optTarget = target(a);
-	return documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, jsonObject(alloc, [
+	return documentExport(alloc, range(a), a.name, a.docComment, a.typeParams, jsonObject(alloc, [
 		kindField!"alias",
 		field!"target"(documentStructInst(alloc, *force(optTarget)))]));
 }

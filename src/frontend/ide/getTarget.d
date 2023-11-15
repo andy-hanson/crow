@@ -4,29 +4,38 @@ module frontend.ide.getTarget;
 
 import frontend.ide.position : LocalContainer, PositionKind;
 import model.model :
+	body_,
 	Called,
 	CalledSpecSig,
 	decl,
+	Destructure,
+	EnumFunction,
 	ExprKind,
+	FlagsFunction,
+	FunBody,
 	FunDecl,
 	FunInst,
 	Local,
 	Module,
 	Program,
 	RecordField,
+	StructBody,
 	SpecDecl,
 	SpecInst,
 	StructDecl,
 	StructInst,
 	toLocal,
 	TypeParam,
+	VarDecl,
 	Visibility;
 import util.opt : none, Opt, some;
 import util.json : field;
 import util.union_ : Union;
+import util.util : todo;
 
 immutable struct Target {
 	mixin Union!(
+		StructBody.Enum.Member*,
 		FunDecl*,
 		PositionKind.ImportedName,
 		PositionKind.LocalPosition,
@@ -37,6 +46,7 @@ immutable struct Target {
 		PositionKind.SpecSig,
 		StructDecl*,
 		PositionKind.TypeParamWithContainer,
+		VarDecl*,
 	);
 }
 
@@ -81,6 +91,8 @@ Opt!Target targetForPosition(in Program program, PositionKind pos) =>
 				(StructInst* x) =>
 					some(Target(decl(*x)))),
 		(PositionKind.TypeParamWithContainer x) =>
+			some(Target(x)),
+		(VarDecl* x) =>
 			some(Target(x)),
 		(Visibility _) =>
 			none!Target);
@@ -148,7 +160,53 @@ private:
 
 Opt!Target calledTarget(ref Called a) =>
 	a.match!(Opt!Target)(
-		(ref FunInst x) =>
-			some(Target(decl(x))),
+		(ref FunInst funInst) {
+			FunDecl* decl = decl(funInst);
+			return some(decl.body_.match!(Target)(
+				(FunBody.Bogus) =>
+					Target(decl),
+				(FunBody.Builtin) =>
+					Target(decl),
+				(FunBody.CreateEnum x) =>
+					// goto the enum member
+					Target(x.member),
+				(FunBody.CreateExtern) =>
+					// goto the return type
+					returnTypeTarget(decl),
+				(FunBody.CreateRecord) =>
+					returnTypeTarget(decl),
+				(FunBody.CreateUnion) =>
+					// goto the union member
+					todo!Target("!"),
+				(EnumFunction x) =>
+					// goto the type
+					returnTypeTarget(decl),
+				(FunBody.Extern) =>
+					Target(decl),
+				(FunBody.ExpressionBody) =>
+					Target(decl),
+				(FunBody.FileBytes) =>
+					todo!(Target)("!"),
+				(FlagsFunction) =>
+					returnTypeTarget(decl),
+				(FunBody.RecordFieldGet x) =>
+					recordFieldTarget(decl, x.fieldIndex),
+				(FunBody.RecordFieldPointer x) =>
+					recordFieldTarget(decl, x.fieldIndex),
+				(FunBody.RecordFieldSet x) =>
+					recordFieldTarget(decl, x.fieldIndex),
+				(FunBody.VarGet x) =>
+					Target(x.var),
+				(FunBody.VarSet x) =>
+					Target(x.var)));
+		},
 		(ref CalledSpecSig x) =>
 			some(Target(PositionKind.SpecSig(decl(*x.specInst), x.nonInstantiatedSig))));
+
+Target returnTypeTarget(FunDecl* fun) =>
+	Target(decl(*fun.returnType.as!(StructInst*)));
+
+Target recordFieldTarget(FunDecl* fun, size_t fieldIndex) {
+	StructDecl* record = decl(*fun.params.as!(Destructure[])[0].type.as!(StructInst*));
+	return Target(&body_(*record).as!(StructBody.Record).fields[fieldIndex]);
+}

@@ -60,9 +60,6 @@ immutable struct UriAndPos {
 		UriAndPos(Uri.empty, 0);
 }
 
-UriAndRange fileAndRangeFromUriAndPos(UriAndPos a) =>
-	UriAndRange(a.uri, RangeWithinFile(a.pos, a.pos + 1));
-
 immutable struct UriAndRange {
 	@safe @nogc pure nothrow:
 

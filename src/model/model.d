@@ -7,12 +7,14 @@ import frontend.parse.ast :
 	FunDeclAst,
 	ImportOrExportAst,
 	NameAndRange,
+	nameRange,
 	nameRangeOfDestructureSingle,
 	rangeOfDestructureSingle,
 	rangeOfNameAndRange,
 	SpecDeclAst,
 	SpecSigAst,
-	StructDeclAst;
+	StructDeclAst,
+	VarDeclAst;
 import model.concreteModel : TypeSize;
 import model.constant : Constant;
 import model.diag : Diagnostics;
@@ -25,8 +27,7 @@ import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : hashPtr;
-import util.sourceRange :
-	combineRanges, UriAndPos, UriAndRange, fileAndRangeFromUriAndPos, Pos, rangeOfStartAndLength, RangeWithinFile;
+import util.sourceRange : combineRanges, UriAndRange, Pos, rangeOfStartAndLength, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.uri : Uri;
@@ -164,17 +165,18 @@ Arity arity(in Params a) =>
 			Arity(Arity.Varargs()));
 
 immutable struct SpecDeclSig {
-	@safe @nogc pure nothrow:
-
 	Uri uri;
 	SpecSigAst* ast;
 	Sym name;
 	Type returnType;
 	SmallArray!Destructure params;
-
-	UriAndRange range() scope =>
-		UriAndRange(uri, ast.range);
 }
+
+UriAndRange range(in SpecDeclSig a) scope =>
+	UriAndRange(a.uri, a.ast.range);
+
+UriAndRange nameRange(in AllSymbols allSymbols, in SpecDeclSig a) =>
+	UriAndRange(a.uri, rangeOfNameAndRange(a.ast.nameAndRange, allSymbols));
 
 immutable struct TypeParamsAndSig {
 	TypeParam[] typeParams;
@@ -204,8 +206,8 @@ immutable struct RecordField {
 RangeWithinFile range(in RecordField a) =>
 	a.ast.range;
 
-UriAndRange uriAndRange(in RecordField a) =>
-	UriAndRange(a.containingRecord.moduleUri, a.ast.range);
+UriAndRange nameRange(in AllSymbols allSymbols, in RecordField a) =>
+	UriAndRange(a.containingRecord.moduleUri, rangeOfNameAndRange(a.ast.name, allSymbols));
 
 immutable struct UnionMember {
 	//TODO: use NameAndRange (more compact)
@@ -283,9 +285,12 @@ immutable struct StructBody {
 }
 static assert(StructBody.sizeof == size_t.sizeof + StructBody.Record.sizeof);
 
+UriAndRange nameRange(in AllSymbols allSymbols, in StructBody.Enum.Member a) =>
+	UriAndRange(a.range.uri, rangeOfNameAndRange(NameAndRange(a.range.range.start, a.name), allSymbols));
+
 immutable struct StructAlias {
 	// TODO: use NameAndRange (more compact)
-	UriAndRange range;
+	UriAndRange range_;
 	SafeCStr docComment;
 	Visibility visibility;
 	Sym name;
@@ -295,6 +300,9 @@ immutable struct StructAlias {
 	// This will be none if the alias target is not found
 	Late!(Opt!(StructInst*)) target_;
 }
+
+UriAndRange range(in StructAlias a) =>
+	a.range_;
 
 Opt!(StructInst*) target(ref StructAlias a) =>
 	lateGet(a.target_);
@@ -351,10 +359,13 @@ immutable struct StructDecl {
 
 	SafeCStr docComment() scope =>
 		has(ast) ? force(ast).docComment : safeCStr!"";
-
-	UriAndRange range() scope =>
-		UriAndRange(moduleUri, has(ast) ? force(ast).range : RangeWithinFile.empty);
 }
+
+UriAndRange range(in StructDecl a) =>
+	UriAndRange(a.moduleUri, has(a.ast) ? force(a.ast).range : RangeWithinFile.empty);
+
+UriAndRange nameRange(in AllSymbols allSymbols, in StructDecl a) =>
+	UriAndRange(a.moduleUri, has(a.ast) ? nameRange(allSymbols, *force(a.ast)) : RangeWithinFile.empty);
 
 bool isTemplate(in StructDecl a) =>
 	!empty(a.typeParams);
@@ -458,7 +469,7 @@ Sym symOfSpecBodyBuiltinKind(SpecDeclBody.Builtin.Kind kind) {
 immutable struct SpecDecl {
 	@safe @nogc pure nothrow:
 
-	Uri uri;
+	Uri moduleUri;
 	SpecDeclAst* ast;
 	Visibility visibility;
 	Sym name;
@@ -466,8 +477,6 @@ immutable struct SpecDecl {
 	SpecDeclBody body_;
 	Late!(SmallArray!(immutable SpecInst*)) parents_;
 
-	UriAndRange range() scope =>
-		UriAndRange(uri, ast.range);
 	SafeCStr docComment() return scope =>
 		ast.docComment;
 	bool parentsIsSet() scope =>
@@ -480,6 +489,12 @@ immutable struct SpecDecl {
 	void overwriteParents(immutable SpecInst*[] value) scope =>
 		lateSetOverwrite(parents_, small(value));
 }
+
+UriAndRange range(in SpecDecl a) =>
+	UriAndRange(a.moduleUri, a.ast.range);
+
+UriAndRange nameRange(in AllSymbols allSymbols, in SpecDecl a) =>
+	UriAndRange(a.moduleUri, nameRange(allSymbols, *a.ast));
 
 immutable struct SpecDeclAndArgs {
 	@safe @nogc pure nothrow:
@@ -581,7 +596,7 @@ immutable struct FunBody {
 	immutable struct Bogus {}
 	immutable struct Builtin {}
 	immutable struct CreateEnum {
-		EnumValue value;
+		StructBody.Enum.Member* member;
 	}
 	immutable struct CreateExtern {}
 	immutable struct CreateRecord {}
@@ -676,22 +691,37 @@ immutable struct FunDeclSource {
 	}
 
 	mixin Union!(Bogus, Ast, FileImport, StructBody.Enum.Member*, StructDecl*, VarDecl*);
-
-	UriAndRange range() scope =>
-		matchIn!UriAndRange(
-			(in FunDeclSource.Bogus x) =>
-				UriAndRange(x.uri, RangeWithinFile.empty),
-			(in FunDeclSource.Ast x) =>
-				UriAndRange(x.uri, x.ast.range),
-			(in FunDeclSource.FileImport x) =>
-				UriAndRange(x.uri, x.ast.range),
-			(in StructBody.Enum.Member x) =>
-				x.range,
-			(in StructDecl x) =>
-				x.range,
-			(in VarDecl x) =>
-				x.range);
 }
+
+UriAndRange range(in FunDeclSource a) =>
+	a.matchIn!UriAndRange(
+		(in FunDeclSource.Bogus x) =>
+			UriAndRange(x.uri, RangeWithinFile.empty),
+		(in FunDeclSource.Ast x) =>
+			UriAndRange(x.uri, x.ast.range),
+		(in FunDeclSource.FileImport x) =>
+			UriAndRange(x.uri, x.ast.range),
+		(in StructBody.Enum.Member x) =>
+			x.range,
+		(in StructDecl x) =>
+			x.range,
+		(in VarDecl x) =>
+			x.range);
+
+UriAndRange nameRange(in AllSymbols allSymbols, in FunDeclSource a) =>
+	a.matchIn!UriAndRange(
+		(in FunDeclSource.Bogus x) =>
+			UriAndRange(x.uri, RangeWithinFile.empty),
+		(in FunDeclSource.Ast x) =>
+			UriAndRange(x.uri, nameRange(allSymbols, *x.ast)),
+		(in FunDeclSource.FileImport x) =>
+			UriAndRange(x.uri, x.ast.range),
+		(in StructBody.Enum.Member x) =>
+			nameRange(allSymbols, x),
+		(in StructDecl x) =>
+			nameRange(allSymbols, x),
+		(in VarDecl x) =>
+			nameRange(allSymbols, x));
 
 immutable struct FunDecl {
 	@safe @nogc pure nothrow:
@@ -706,9 +736,6 @@ immutable struct FunDecl {
 	SmallArray!(immutable SpecInst*) specs;
 	private Late!FunBody lateBody;
 
-	UriAndRange range() scope =>
-		source.range;
-
 	ref FunBody body_() return scope =>
 		lateGet(lateBody);
 
@@ -716,6 +743,15 @@ immutable struct FunDecl {
 		lateSet(lateBody, b);
 	}
 }
+
+Uri moduleUri(in FunDecl a) =>
+	range(a).uri;
+
+UriAndRange range(in FunDecl a) scope =>
+	range(a.source);
+
+UriAndRange nameRange(in AllSymbols allSymbols, in FunDecl a) scope =>
+	nameRange(allSymbols, a.source);
 
 SafeCStr docComment(in FunDecl a) =>
 	a.source.as!(FunDeclSource.Ast).ast.docComment;
@@ -973,17 +1009,20 @@ Sym name(ref StructOrAlias a) =>
 immutable struct VarDecl {
 	@safe @nogc pure nothrow:
 
-	UriAndPos pos;
-	SafeCStr docComment;
+	VarDeclAst* ast;
+	Uri moduleUri;
 	Visibility visibility;
 	Sym name;
 	VarKind kind;
 	Type type;
 	Opt!Sym externLibraryName;
-
-	UriAndRange range() scope =>
-		fileAndRangeFromUriAndPos(pos);
 }
+
+UriAndRange range(in VarDecl a) =>
+	UriAndRange(a.moduleUri, a.ast.range);
+
+UriAndRange nameRange(in AllSymbols allSymbols, in VarDecl a) =>
+	UriAndRange(a.moduleUri, rangeOfNameAndRange(a.ast.name, allSymbols));
 
 immutable struct Module {
 	@safe @nogc pure nothrow:
@@ -1592,3 +1631,5 @@ Sym symOfVisibility(Visibility a) {
 
 Visibility leastVisibility(Visibility a, Visibility b) =>
 	min(a, b);
+Visibility greatestVisibility(Visibility a, Visibility b) =>
+	max(a, b);

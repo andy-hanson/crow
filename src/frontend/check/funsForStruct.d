@@ -241,7 +241,7 @@ FunDecl enumOrFlagsConstructor(ref Alloc alloc, Visibility visibility, Type enum
 		enumType,
 		Params([]),
 		FunFlags.generatedBare,
-		FunBody(FunBody.CreateEnum(member.value)));
+		FunBody(FunBody.CreateEnum(member)));
 
 FunDecl enumEqualFunction(ref Alloc alloc, StructDecl* struct_, Type enumType, in CommonTypes commonTypes) =>
 	basicFunDecl(

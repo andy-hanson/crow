@@ -66,8 +66,27 @@ bool everyWithIndex(T)(in T[] arr, in bool delegate(size_t, in T) @safe @nogc pu
 	return true;
 }
 
+bool allSame(Out, T)(in T[] arr, in Out delegate(in T) @safe @nogc pure nothrow cb) {
+	if (empty(arr))
+		return true;
+	else {
+		Out value = cb(arr[0]);
+		foreach (ref const T x; arr[1 .. $])
+			if (cb(x) != value)
+				return false;
+		return true;
+	}
+}
+
 bool contains(T)(in T[] xs, in T value) =>
 	exists!T(xs, (in T x) => x == value);
+
+Opt!T find(T)(in T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
+	foreach (ref const T x; a)
+		if (cb(x))
+			return some(x);
+	return none!T;
+}
 
 Opt!size_t findIndex(T)(in T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
 	foreach (size_t i, ref const T x; a)

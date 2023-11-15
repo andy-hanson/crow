@@ -22,9 +22,11 @@ import model.model :
 	SpecInst,
 	StructBody,
 	StructInst,
+	symOfVarKind,
 	symOfVisibility,
 	Type,
 	TypeParam,
+	VarDecl,
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.str : SafeCStr;
@@ -157,6 +159,14 @@ void getHover(ref Writer writer, scope ref ShowCtx ctx, in Position pos) =>
 		},
 		(in PositionKind.TypeParamWithContainer x) {
 			hoverTypeParam(writer, ctx, *x.typeParam);
+		},
+		(in VarDecl x) {
+			writeSym(writer, ctx.allSymbols, symOfVarKind(x.kind));
+			writer ~= " variable ";
+			writeName(writer, ctx, x.name);
+			writer ~= " (";
+			writeTypeUnquoted(writer, ctx, x.type);
+			writer ~= ')';
 		},
 		(in Visibility x) {
 			writer ~= "The declaration is ";

@@ -32,6 +32,7 @@ import model.model :
 	Params,
 	ParamShort,
 	Purity,
+	range,
 	StructBody,
 	StructInst,
 	StructOrAlias,
@@ -338,7 +339,7 @@ FunDeclAndSigIndex getFunDeclMulti(
 			signatureMatchesTemplate(*x, sig));
 		if (has(index)) {
 			if (lateIsSet(res))
-				addDiagnostic(diagsBuilder, x.range, Diag(Diag.CommonFunDuplicate(name)));
+				addDiagnostic(diagsBuilder, range(*x), Diag(Diag.CommonFunDuplicate(name)));
 			else
 				lateSet(res, FunDeclAndSigIndex(x, force(index)));
 		}

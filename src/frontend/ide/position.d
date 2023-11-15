@@ -16,6 +16,7 @@ import model.model :
 	StructDecl,
 	Type,
 	TypeParam,
+	VarDecl,
 	Visibility;
 import util.sym : Sym;
 import util.union_ : Union;
@@ -118,5 +119,6 @@ immutable struct PositionKind {
 		StructDecl*,
 		TypeWithContainer,
 		TypeParamWithContainer,
+		VarDecl*,
 		Visibility);
 }
