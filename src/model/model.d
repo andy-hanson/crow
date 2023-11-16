@@ -27,7 +27,7 @@ import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : hashPtr;
-import util.sourceRange : combineRanges, UriAndRange, Pos, rangeOfStartAndLength, RangeWithinFile;
+import util.sourceRange : combineRanges, UriAndRange, Pos, rangeOfStartAndLength, Range;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.uri : Uri;
@@ -203,7 +203,7 @@ immutable struct RecordField {
 	Type type;
 }
 
-RangeWithinFile range(in RecordField a) =>
+Range range(in RecordField a) =>
 	a.ast.range;
 
 UriAndRange nameRange(in AllSymbols allSymbols, in RecordField a) =>
@@ -362,10 +362,10 @@ immutable struct StructDecl {
 }
 
 UriAndRange range(in StructDecl a) =>
-	UriAndRange(a.moduleUri, has(a.ast) ? force(a.ast).range : RangeWithinFile.empty);
+	UriAndRange(a.moduleUri, has(a.ast) ? force(a.ast).range : Range.empty);
 
 UriAndRange nameRange(in AllSymbols allSymbols, in StructDecl a) =>
-	UriAndRange(a.moduleUri, has(a.ast) ? nameRange(allSymbols, *force(a.ast)) : RangeWithinFile.empty);
+	UriAndRange(a.moduleUri, has(a.ast) ? nameRange(allSymbols, *force(a.ast)) : Range.empty);
 
 bool isTemplate(in StructDecl a) =>
 	!empty(a.typeParams);
@@ -696,7 +696,7 @@ immutable struct FunDeclSource {
 UriAndRange range(in FunDeclSource a) =>
 	a.matchIn!UriAndRange(
 		(in FunDeclSource.Bogus x) =>
-			UriAndRange(x.uri, RangeWithinFile.empty),
+			UriAndRange(x.uri, Range.empty),
 		(in FunDeclSource.Ast x) =>
 			UriAndRange(x.uri, x.ast.range),
 		(in FunDeclSource.FileImport x) =>
@@ -711,7 +711,7 @@ UriAndRange range(in FunDeclSource a) =>
 UriAndRange nameRange(in AllSymbols allSymbols, in FunDeclSource a) =>
 	a.matchIn!UriAndRange(
 		(in FunDeclSource.Bogus x) =>
-			UriAndRange(x.uri, RangeWithinFile.empty),
+			UriAndRange(x.uri, Range.empty),
 		(in FunDeclSource.Ast x) =>
 			UriAndRange(x.uri, nameRange(allSymbols, *x.ast)),
 		(in FunDeclSource.FileImport x) =>
@@ -780,8 +780,12 @@ Arity arity(in FunDecl a) =>
 	arity(a.params);
 
 immutable struct Test {
+	Uri moduleUri;
 	Expr body_;
 }
+
+UriAndRange range(in Test a) =>
+	UriAndRange(a.moduleUri, a.body_.range);
 
 immutable struct FunDeclAndTypeArgs {
 	FunDecl* decl;
@@ -1395,17 +1399,17 @@ immutable struct Destructure {
 			(in Destructure.Split _) =>
 				none!Sym);
 
-	Opt!RangeWithinFile nameRange(in AllSymbols allSymbols) scope {
+	Opt!Range nameRange(in AllSymbols allSymbols) scope {
 		Opt!Sym name = name;
 		return has(name)
 			? some(rangeOfNameAndRange(NameAndRange(range(allSymbols).start, force(name)), allSymbols))
-			: none!RangeWithinFile;
+			: none!Range;
 	}
 
-	RangeWithinFile range(in AllSymbols allSymbols) scope =>
-		matchIn!RangeWithinFile(
+	Range range(in AllSymbols allSymbols) scope =>
+		matchIn!Range(
 			(in Ignore x) =>
-				RangeWithinFile(x.pos, x.pos + 1),
+				Range(x.pos, x.pos + 1),
 			(in Local x) =>
 				localMustHaveRange(x, allSymbols).range,
 			(in Split x) =>
@@ -1422,7 +1426,7 @@ immutable struct Destructure {
 }
 
 immutable struct Expr {
-	UriAndRange range;
+	Range range;
 	ExprKind kind;
 }
 
@@ -1512,7 +1516,7 @@ immutable struct ExprKind {
 	}
 
 	immutable struct Loop {
-		RangeWithinFile range;
+		Range range;
 		Expr body_;
 	}
 
@@ -1608,7 +1612,7 @@ Sym symOfAssertOrForbidKind(AssertOrForbidKind a) {
 	}
 }
 
-RangeWithinFile loopKeywordRange(in ExprKind.Loop a) =>
+Range loopKeywordRange(in ExprKind.Loop a) =>
 	rangeOfStartAndLength(a.range.start, "loop".length);
 
 alias Visibility = immutable Visibility_;

@@ -7,13 +7,13 @@ import frontend.check.inferringType : addDiag2, checkCanDoUnsafe, ExprCtx;
 import model.diag : Diag;
 import model.model : Called, CalledSpecSig, decl, FunDecl, FunInst, FunFlags, isVariadic, specImpls;
 import util.opt : force, has, none, Opt, some;
-import util.sourceRange : UriAndRange;
+import util.sourceRange : Range;
 
 /*
 Additional checks on a call after the overload and spec impls have been chosen.
 */
 
-void checkCalled(ref ExprCtx ctx, UriAndRange range, in Called called, bool isInLambda, ArgsKind argsKind) {
+void checkCalled(ref ExprCtx ctx, in Range range, in Called called, bool isInLambda, ArgsKind argsKind) {
 	called.match!void(
 		(ref FunInst x) {
 			markUsed(ctx.checkCtx, decl(x));
@@ -32,7 +32,7 @@ private:
 
 void checkCallFlags(
 	ref ExprCtx ctx,
-	UriAndRange range,
+	in Range range,
 	FunDecl* called,
 	FunFlags caller,
 	bool isCallerInLambda,

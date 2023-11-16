@@ -33,7 +33,7 @@ import util.json :
 	field, Json, jsonObject, optionalArrayField, optionalField, optionalFlagField, jsonList, jsonString, kindField;
 import util.lineAndColumnGetter : LineAndColumnGetters;
 import util.ptr : ptrTrustMe;
-import util.sourceRange : jsonOfRangeWithinFile;
+import util.sourceRange : jsonOfRange;
 import util.sym : Sym, sym;
 import util.util : todo;
 
@@ -228,7 +228,7 @@ Sym name(in ConcreteLocalSource a) =>
 
 Json jsonOfConcreteExpr(ref Alloc alloc, scope ref Ctx ctx, in ConcreteExpr a) =>
 	jsonObject(alloc, [
-		field!"range"(jsonOfRangeWithinFile(alloc, ctx.lineAndColumnGetters, a.range)),
+		field!"range"(jsonOfRange(alloc, ctx.lineAndColumnGetters, a.range)),
 		field!"type"(jsonOfConcreteType(alloc, a.type)),
 		field!"expr-kind"(jsonOfConcreteExprKind(alloc, ctx, a.kind))]);
 

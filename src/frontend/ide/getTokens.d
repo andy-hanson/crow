@@ -68,8 +68,7 @@ import util.conv : safeToUint;
 import util.json : field, jsonObject, Json, jsonList;
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : force, has, Opt;
-import util.sourceRange :
-	compareRangeWithinFile, Pos, jsonOfRangeWithinFile, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile;
+import util.sourceRange : compareRange, Pos, jsonOfRange, rangeOfStartAndLength, rangeOfStartAndName, Range;
 import util.sym : AllSymbols, Sym, sym, symSize;
 import util.uri : AllUris;
 import util.util : todo;
@@ -92,7 +91,7 @@ immutable struct Token {
 		varDecl,
 	}
 	Kind kind;
-	RangeWithinFile range;
+	Range range;
 }
 
 Json jsonOfTokens(ref Alloc alloc, in LineAndColumnGetter lcg, in Token[] tokens) =>
@@ -108,10 +107,10 @@ Token[] tokensOfAst(ref Alloc alloc, in AllSymbols allSymbols, in AllUris allUri
 		addImportTokens(alloc, tokens, allSymbols, allUris, force(ast.exports), sym!"export");
 
 	//TODO: also tests...
-	eachSorted!(RangeWithinFile, SpecDeclAst, StructAliasAst, StructDeclAst, FunDeclAst, VarDeclAst)(
-		RangeWithinFile.max,
-		(in RangeWithinFile a, in RangeWithinFile b) =>
-			compareRangeWithinFile(a, b),
+	eachSorted!(Range, SpecDeclAst, StructAliasAst, StructDeclAst, FunDeclAst, VarDeclAst)(
+		Range.max,
+		(in Range a, in Range b) =>
+			compareRange(a, b),
 		ast.specs, (in SpecDeclAst it) => it.range, (in SpecDeclAst it) {
 			addSpecTokens(alloc, tokens, allSymbols, it);
 		},
@@ -136,8 +135,8 @@ private:
 
 alias TokensBuilder = ArrBuilder!Token;
 
-RangeWithinFile rangeAtName(in AllSymbols allSymbols, Pos start, Sym name) =>
-	RangeWithinFile(start, start + symSize(allSymbols, name));
+Range rangeAtName(in AllSymbols allSymbols, Pos start, Sym name) =>
+	Range(start, start + symSize(allSymbols, name));
 
 void addImportTokens(
 	ref Alloc alloc,
@@ -202,7 +201,7 @@ void addTypeTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allS
 			addTypeTokens(alloc, tokens, allSymbols, x.v);
 			add(alloc, tokens, Token(
 				Token.Kind.keyword,
-				RangeWithinFile(range(x.v, allSymbols).end, range(x.k, allSymbols).start)));
+				Range(range(x.v, allSymbols).end, range(x.k, allSymbols).start)));
 			addTypeTokens(alloc, tokens, allSymbols, x.k);
 			add(alloc, tokens, Token(
 				Token.Kind.keyword,
@@ -312,7 +311,7 @@ void addEnumOrFlagsTokens(
 		if (has(member.value)) {
 			uint addLen = " = ".length;
 			Pos pos = member.range.start + symSize(allSymbols, member.name) + addLen;
-			add(alloc, tokens, Token(Token.Kind.literalNumber, RangeWithinFile(pos, member.range.end)));
+			add(alloc, tokens, Token(Token.Kind.literalNumber, Range(pos, member.range.end)));
 		}
 	}
 }
@@ -425,7 +424,7 @@ void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allS
 				it.parts[0].matchIn!void(
 					(in string) {},
 					(in ExprAst _) {
-						add(alloc, tokens, Token(Token.Kind.literalString, RangeWithinFile(pos, pos + 1)));
+						add(alloc, tokens, Token(Token.Kind.literalString, Range(pos, pos + 1)));
 					});
 				foreach (size_t i, ref InterpolatedPart part; it.parts)
 					part.matchIn!void(
@@ -433,7 +432,7 @@ void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allS
 							// TODO: length may be wrong if there are escapes
 							// Ensure the closing quote is highlighted
 							Pos end = safeToUint(pos + s.length) + (i == it.parts.length - 1 ? 1 : 0);
-							add(alloc, tokens, Token(Token.Kind.literalString, RangeWithinFile(pos, end)));
+							add(alloc, tokens, Token(Token.Kind.literalString, Range(pos, end)));
 						},
 						(in ExprAst e) {
 							addExprTokens(alloc, tokens, allSymbols, e);
@@ -443,9 +442,7 @@ void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allS
 				it.parts[$ - 1].matchIn!void(
 					(in string) {},
 					(in ExprAst _) {
-						add(alloc, tokens, Token(
-							Token.Kind.literalString,
-							RangeWithinFile(a.range.end - 1, a.range.end)));
+						add(alloc, tokens, Token(Token.Kind.literalString, Range(a.range.end - 1, a.range.end)));
 					});
 			}
 		},
@@ -566,8 +563,7 @@ void addExprsTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols all
 }
 
 void assertTokensSorted(Token[] tokens) {
-	Opt!UnsortedPair pair = findUnsortedPair!Token(tokens, (in Token a, in Token b) =>
-		compareRangeWithinFile(a.range, b.range));
+	Opt!UnsortedPair pair = findUnsortedPair!Token(tokens, (in Token a, in Token b) => compareRange(a.range, b.range));
 	if (has(pair))
 		// To debug, just disable this assertion and look for the unsorted token in the output
 		todo!void("tokens not sorted!");
@@ -609,4 +605,4 @@ Sym symOfTokenKind(Token.Kind kind) {
 Json jsonOfToken(ref Alloc alloc, in LineAndColumnGetter lcg, Token token) =>
 	jsonObject(alloc, [
 		field!"token"(symOfTokenKind(token.kind)),
-		field!"range"(jsonOfRangeWithinFile(alloc, lcg, token.range))]);
+		field!"range"(jsonOfRange(alloc, lcg, token.range))]);

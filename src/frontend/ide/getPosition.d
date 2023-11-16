@@ -55,7 +55,7 @@ import model.model :
 import util.col.arr : ptrsRange;
 import util.col.arrUtil : first, firstPointer, firstWithIndex, firstZipPointerFirst;
 import util.opt : force, has, none, Opt, optIf, optOr, optOr, optOrDefault, some;
-import util.sourceRange : hasPos, Pos, RangeWithinFile;
+import util.sourceRange : hasPos, Pos, Range;
 import util.sym : AllSymbols;
 import util.union_ : Union;
 import util.uri : AllUris;
@@ -304,7 +304,7 @@ Opt!PositionKind positionInFieldMutability(in AllSymbols allSymbols, in FieldMut
 		() => PositionKind(PositionKind.RecordFieldMutability(ast.kind)));
 
 Opt!PositionKind positionInExpr(in AllSymbols allSymbols, FunDecl* containingFun, ref Expr a, Pos pos) {
-	if (!hasPos(a.range.range, pos))
+	if (!hasPos(a.range, pos))
 		return none!PositionKind;
 	else {
 		Opt!PositionKind here() =>
@@ -418,5 +418,5 @@ Opt!PositionKind positionInType(in AllSymbols allSymbols, TypeContainer containe
 bool hasPos(in AllSymbols allSymbols, in NameAndRange nr, Pos pos) =>
 	hasPos(rangeOfNameAndRange(nr, allSymbols), pos);
 
-bool optHasPos(Opt!RangeWithinFile a, Pos p) =>
+bool optHasPos(in Opt!Range a, Pos p) =>
 	has(a) && hasPos(force(a), p);

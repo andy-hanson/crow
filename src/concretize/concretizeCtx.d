@@ -55,6 +55,7 @@ import model.model :
 	isTuple,
 	Local,
 	Module,
+	moduleUri,
 	name,
 	paramsArray,
 	Program,
@@ -150,12 +151,13 @@ immutable struct ConcreteFunKey {
 }
 
 private ContainingFunInfo toContainingFunInfo(ConcreteFunKey a) =>
-	ContainingFunInfo(decl(*a.inst).typeParams, a.typeArgs, a.specImpls);
+	ContainingFunInfo(moduleUri(*decl(*a.inst)), decl(*a.inst).typeParams, a.typeArgs, a.specImpls);
 
 TypeArgsScope typeArgsScope(ref ConcreteFunKey a) =>
 	typeArgsScope(toContainingFunInfo(a));
 
 immutable struct ContainingFunInfo {
+	Uri uri;
 	TypeParam[] typeParams; // TODO: get this from cf?
 	ConcreteType[] typeArgs;
 	ConcreteFun*[] specImpls;
@@ -285,7 +287,9 @@ ConcreteFun* getConcreteFunForLambdaAndFillBody(
 ) {
 	verify(!isBogus(returnType));
 	ConcreteFun* res = allocate(ctx.alloc, ConcreteFun(
-		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.Lambda(body_.range, containingConcreteFun, index))),
+		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.Lambda(
+			UriAndRange(containing.uri, body_.range),
+			containingConcreteFun, index))),
 		returnType,
 		paramsIncludingClosure));
 	ConcreteFunBodyInputs bodyInputs = ConcreteFunBodyInputs(containing, FunBody(FunBody.ExpressionBody(body_)));
@@ -449,10 +453,10 @@ void addConcreteFun(ref ConcretizeCtx ctx, ConcreteFun* fun) {
 
 ConcreteFun* concreteFunForTest(ref ConcretizeCtx ctx, ref Test test, size_t testIndex) {
 	ConcreteFun* res = allocate(ctx.alloc, ConcreteFun(
-		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.Test(test.body_.range, testIndex))),
+		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.Test(range(test), testIndex))),
 		voidType(ctx),
 		[]));
-	ContainingFunInfo containing = ContainingFunInfo([], [], []);
+	ContainingFunInfo containing = ContainingFunInfo(test.moduleUri, [], [], []);
 	ConcreteExpr body_ = concretizeFunBody(ctx, containing, res, [], test.body_);
 	lateSet(res._body_, ConcreteFunBody(body_));
 	addConcreteFun(ctx, res);

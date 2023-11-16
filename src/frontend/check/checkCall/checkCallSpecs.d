@@ -42,11 +42,11 @@ import util.col.arrUtil : every, exists, first, zipFirst;
 import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, only, push, tempAsArr, toArray;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
-import util.sourceRange : UriAndRange;
+import util.sourceRange : Range;
 import util.union_ : Union;
 import util.util : verify;
 
-Opt!Called checkCallSpecs(ref ExprCtx ctx, UriAndRange range, ref const Candidate candidate) {
+Opt!Called checkCallSpecs(ref ExprCtx ctx, in Range range, ref const Candidate candidate) {
 	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.programStatePtr, funsInScope(ctx));
 	return getCalledFromCandidateAfterTypeChecks(checkSpecsCtx, candidate, DummyTrace()).match!(Opt!Called)(
 		(Called x) {

@@ -32,7 +32,7 @@ import util.alloc.alloc : Alloc;
 import util.json : field, jsonObject, optionalField, Json, jsonInt, jsonList, jsonString, kindField;
 import util.lineAndColumnGetter : LineAndColumnGetters;
 import util.ptr : castNonScope_ref, ptrTrustMe;
-import util.sourceRange : jsonOfRangeWithinFile;
+import util.sourceRange : jsonOfRange;
 
 Json jsonOfLowProgram(ref Alloc alloc, scope ref LineAndColumnGetters lineAndColumnGetters, in LowProgram a) {
 	Ctx ctx = Ctx(ptrTrustMe(lineAndColumnGetters));
@@ -145,7 +145,7 @@ Json jsonOfLowLocalSource(ref Alloc alloc, in LowLocalSource a) =>
 Json jsonOfLowExpr(ref Alloc alloc, scope ref Ctx ctx, in LowExpr a) =>
 	jsonObject(alloc, [
 		field!"type"(jsonOfLowType(alloc, a.type)),
-		field!"source"(jsonOfRangeWithinFile(alloc, ctx.lineAndColumnGetters, a.source)),
+		field!"source"(jsonOfRange(alloc, ctx.lineAndColumnGetters, a.source)),
 		field!"expr-kind"(jsonOfLowExprKind(alloc, ctx, a.kind))]);
 
 Json jsonOfLowExprs(ref Alloc alloc, scope ref Ctx ctx, in LowExpr[] a) =>

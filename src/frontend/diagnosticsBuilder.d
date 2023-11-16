@@ -7,7 +7,7 @@ import model.diag : Diag, Diagnostic, Diagnostics, DiagSeverity;
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderClear, arrBuilderSort, finishArr;
 import util.comparison : Comparison;
-import util.sourceRange : compareUriAndRange, RangeWithinFile, UriAndRange;
+import util.sourceRange : compareUriAndRange, Range, UriAndRange;
 import util.uri : AllUris, Uri;
 
 /// Stores only diags at the highest severity seen.
@@ -27,7 +27,7 @@ struct DiagnosticsBuilder {
 	ArrBuilder!Diagnostic diags;
 }
 
-void addDiagnostic(scope ref DiagnosticsBuilder a, UriAndRange where, Diag diag) {
+void addDiagnostic(scope ref DiagnosticsBuilder a, in UriAndRange where, Diag diag) {
 	DiagSeverity severity = getDiagnosticSeverity(diag);
 	if (severity >= a.severity) {
 		if (severity > a.severity) {
@@ -50,7 +50,7 @@ struct DiagnosticsBuilderForFile {
 	Uri uri;
 }
 
-void addDiagnosticForFile(scope ref DiagnosticsBuilderForFile a, RangeWithinFile range, Diag diag) {
+void addDiagnosticForFile(scope ref DiagnosticsBuilderForFile a, in Range range, Diag diag) {
 	addDiagnostic(*a.builder, UriAndRange(a.uri, range), diag);
 }
 

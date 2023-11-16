@@ -67,7 +67,7 @@ import util.json :
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : ptrTrustMe;
-import util.sourceRange : jsonOfRangeWithinFile;
+import util.sourceRange : jsonOfRange;
 import util.sym : Sym, sym;
 import util.uri : AllUris, uriToString;
 
@@ -97,7 +97,7 @@ private:
 Json jsonOfImportOrExport(ref Alloc alloc, in Ctx ctx, in ImportOrExport a) =>
 	jsonObject(alloc, [
 		optionalField!("source", ImportOrExportAst*)(a.source, (in ImportOrExportAst* x) =>
-			jsonOfRangeWithinFile(alloc, ctx.lineAndColumnGetter, pathRange(ctx.allUris, *x))),
+			jsonOfRange(alloc, ctx.lineAndColumnGetter, pathRange(ctx.allUris, *x))),
 		field!"import-kind"(jsonOfImportOrExportKind(alloc, ctx.allUris, a.kind))]);
 
 Json jsonOfImportOrExportKind(ref Alloc alloc, in AllUris allUris, in ImportOrExportKind a) =>
@@ -157,7 +157,7 @@ Json jsonOfSpecDeclBody(ref Alloc alloc, in Ctx ctx, in SpecDeclBody a) =>
 
 Json jsonOfSpecDeclSig(ref Alloc alloc, in Ctx ctx, in SpecDeclSig a) =>
 	jsonObject(alloc, [
-		field!"where"(jsonOfRangeWithinFile(alloc, ctx.lineAndColumnGetter, range(a).range)),
+		field!"where"(jsonOfRange(alloc, ctx.lineAndColumnGetter, range(a).range)),
 		field!"name"(a.name),
 		field!"return-type"(jsonOfType(alloc, ctx, a.returnType)),
 		field!"params"(jsonOfDestructures(alloc, ctx, a.params))]);

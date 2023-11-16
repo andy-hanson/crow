@@ -62,7 +62,7 @@ import util.json : Json, jsonList;
 import util.lineAndColumnGetter : LineAndColumnGetters;
 import util.opt : force, has, none, Opt, optEqual, some;
 import util.ptr : ptrTrustMe;
-import util.sourceRange : UriAndRange, jsonOfUriAndRange;
+import util.sourceRange : Range, UriAndRange, jsonOfUriAndRange;
 import util.sym : AllSymbols, prependSet, Sym;
 import util.uri : AllUris, Uri;
 import util.util : todo, verify;
@@ -151,11 +151,11 @@ void referencesForLocal(
 		(ref FunDecl fun) {
 			Expr body_ = fun.body_.isA!(FunBody.ExpressionBody)
 				? fun.body_.as!(FunBody.ExpressionBody).expr
-				: Expr(UriAndRange.empty, ExprKind(ExprKind.Bogus()));
+				: Expr(Range.empty, ExprKind(ExprKind.Bogus()));
 			eachDescendentExprIncluding(body_, (in Expr x) @safe {
 				Opt!Target xTarget = exprTarget(program, PositionKind.Expression(&fun, ptrTrustMe(x)));
 				if (optEqual!Target(xTarget, some(Target(a))))
-					cb(x.range);
+					cb(UriAndRange(fun.moduleUri, x.range));
 			});
 		},
 		(ref SpecDecl) {});
@@ -164,7 +164,7 @@ void referencesForLocal(
 void referencesForLoop(Uri curUri, in ExprKind.Loop loop, in ReferenceCb cb) {
 	eachDescendentExprExcluding(ExprKind(&loop), (in Expr child) {
 		if (child.kind.isA!(ExprKind.LoopBreak*) || child.kind.isA!(ExprKind.LoopContinue))
-			cb(child.range);
+			cb(UriAndRange(curUri, child.range));
 	});
 }
 
@@ -338,14 +338,15 @@ void referencesForFunDecls(in Program program, in FunDecl*[] decls, in Reference
 	Visibility maxVisibility = fold(Visibility.private_, decls, (Visibility a, in FunDecl* b) =>
 		greatestVisibility(a, b.visibility));
 	verify(allSame!(Uri, FunDecl*)(decls, (in FunDecl* x) => moduleUri(*x)));
-	eachExprThatMayReference(program, maxVisibility, moduleOf(program, moduleUri(*decls[0])), (in Expr x) {
+	Module* itsModule = moduleOf(program, moduleUri(*decls[0]));
+	eachExprThatMayReference(program, maxVisibility, itsModule, (in Module module_, in Expr x) {
 		if (x.kind.isA!(ExprKind.Call)) {
 			Called called = x.kind.as!(ExprKind.Call).called;
 			if (called.isA!(FunInst*) && contains(decls, decl(*called.as!(FunInst*))))
-				cb(x.range);
+				cb(UriAndRange(module_.uri, x.range));
 		} else if (x.kind.isA!(ExprKind.FunPtr)) {
 			if (contains(decls, decl(*x.kind.as!(ExprKind.FunPtr).funInst)))
-				cb(x.range);
+				cb(UriAndRange(module_.uri, x.range));
 		}
 	});
 }
@@ -354,24 +355,29 @@ void eachExprThatMayReference(
 	in Program program,
 	Visibility visibility,
 	Module* module_,
-	in void delegate(in Expr) @safe @nogc pure nothrow cb,
+	in void delegate(in Module, in Expr) @safe @nogc pure nothrow cb,
 ) {
 	eachModuleThatMayReference(program, visibility, module_, (in Module module_) {
 		foreach (ref FunDecl fun; module_.funs) {
 			if (fun.body_.isA!(FunBody.ExpressionBody))
-				eachDescendentExprIncluding(fun.body_.as!(FunBody.ExpressionBody).expr, cb);
+				eachDescendentExprIncluding(fun.body_.as!(FunBody.ExpressionBody).expr, (in Expr x) {
+					cb(module_, x);
+				});
 		}
 		foreach (ref Test test; module_.tests)
-			eachDescendentExprIncluding(test.body_, cb);
+			eachDescendentExprIncluding(test.body_, (in Expr x) {
+				cb(module_, x);
+			});
 	});
 }
 
 void referencesForSpecSig(in AllSymbols allSymbols, in Program program, in PositionKind.SpecSig a, in ReferenceCb cb) {
-	eachExprThatMayReference(program, a.spec.visibility, moduleOf(program, a.spec.moduleUri), (in Expr x) {
+	Module* itsModule = moduleOf(program, a.spec.moduleUri);
+	eachExprThatMayReference(program, a.spec.visibility, itsModule, (in Module module_, in Expr x) {
 		if (x.kind.isA!(ExprKind.Call)) {
 			Called called = x.kind.as!(ExprKind.Call).called;
 			if (called.isA!(CalledSpecSig*) && called.as!(CalledSpecSig*).nonInstantiatedSig == a.sig)
-				cb(x.range);
+				cb(UriAndRange(module_.uri, x.range));
 		} else if (x.kind.isA!(ExprKind.FunPtr)) {
 			// Currently doesn't support specs
 			verify(x.kind.as!(ExprKind.FunPtr).funInst != null);

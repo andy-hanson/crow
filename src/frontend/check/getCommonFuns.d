@@ -51,7 +51,7 @@ import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castNonScope_ref;
-import util.sourceRange : UriAndRange, RangeWithinFile;
+import util.sourceRange : Range, UriAndRange;
 import util.sym : Sym, sym;
 import util.uri : Uri;
 import util.util : todo, unreachable, verify;
@@ -239,10 +239,7 @@ StructDecl* getStructDeclOrAddDiag(
 	if (has(res) && force(res).typeParams.length == nTypeParams)
 		return force(res);
 	else {
-		addDiagnostic(
-			diagsBuilder,
-			UriAndRange(module_.uri, RangeWithinFile.empty),
-			Diag(Diag.CommonTypeMissing(name)));
+		addDiagnostic(diagsBuilder, UriAndRange(module_.uri, Range.empty), Diag(Diag.CommonTypeMissing(name)));
 		return allocate(alloc, StructDecl(
 			none!(StructDeclAst*),
 			module_.uri,
@@ -349,7 +346,7 @@ FunDeclAndSigIndex getFunDeclMulti(
 	else {
 		addDiagnostic(
 			diagsBuilder,
-			UriAndRange(module_.uri, RangeWithinFile.empty),
+			UriAndRange(module_.uri, Range.empty),
 			Diag(Diag.CommonFunMissing(name, map(alloc, expectedSigs, (ref TypeParamsAndSig sig) =>
 				TypeParamsAndSig(
 					arrLiteral(alloc, sig.typeParams),

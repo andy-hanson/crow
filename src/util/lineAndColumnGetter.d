@@ -7,7 +7,7 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.mutMap : getOrAdd, mayDelete, MutMap;
 import util.col.str : SafeCStr, safeCStr;
 import util.conv : safeToUint;
-import util.sourceRange : Pos, RangeWithinFile, UriAndPos, UriAndRange;
+import util.sourceRange : Pos, Range, UriAndPos, UriAndRange;
 import util.storage : asSafeCStr, FileContent, ReadFileIssue, ReadFileResult, Storage, withFileNoMarkUnknown;
 import util.uri : Uri;
 import util.util : min, verify;
@@ -59,12 +59,12 @@ LineAndCharacterRange lineAndCharacterRange(scope ref LineAndColumnGetters a, in
 LineAndColumnRange lineAndColumnRange(scope ref LineAndColumnGetters a, in UriAndRange range) =>
 	lineAndColumnRange(a[range.uri], range.range);
 
-LineAndCharacterRange lineAndCharacterRange(in LineAndColumnGetter a, in RangeWithinFile range) =>
+LineAndCharacterRange lineAndCharacterRange(in LineAndColumnGetter a, in Range range) =>
 	LineAndCharacterRange(
 		lineAndCharacterAtPos(a, range.start, PosKind.startOfRange),
 		lineAndCharacterAtPos(a, range.end, PosKind.endOfRange));
 
-LineAndColumnRange lineAndColumnRange(in LineAndColumnGetter a, in RangeWithinFile range) =>
+LineAndColumnRange lineAndColumnRange(in LineAndColumnGetter a, in Range range) =>
 	LineAndColumnRange(
 		lineAndColumnAtPos(a, range.start, PosKind.startOfRange),
 		lineAndColumnAtPos(a, range.end, PosKind.endOfRange));

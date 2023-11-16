@@ -33,6 +33,7 @@ import model.concreteModel :
 	ConcreteField,
 	ConcreteFun,
 	ConcreteFunBody,
+	concreteFunRange,
 	ConcreteLambdaImpl,
 	ConcreteLocal,
 	ConcreteLocalSource,
@@ -85,7 +86,7 @@ import util.col.str : SafeCStr, safeCStr;
 import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
-import util.sourceRange : UriAndRange, RangeWithinFile;
+import util.sourceRange : Range, UriAndRange;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.uri : Uri;
@@ -99,7 +100,7 @@ ConcreteExpr concretizeFunBody(
 	in Destructure[] params,
 	ref Expr e,
 ) {
-	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe(ctx), e.range.uri, containing, cf);
+	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe(ctx), concreteFunRange(*cf).uri, containing, cf);
 	return withStackMap2!(ConcreteExpr, Local*, LocalOrConstant, ExprKind.Loop*, LoopAndType*)((ref Locals locals) {
 		// Ignore closure param, which is never destructured.
 		ConcreteLocal[] paramsToDestructure =
@@ -171,7 +172,7 @@ ConcreteType boolType(ref ConcretizeExprCtx ctx) =>
 ConcreteType voidType(ref ConcretizeExprCtx ctx) =>
 	.voidType(ctx.concretizeCtx);
 
-UriAndRange toUriAndRange(in ConcretizeExprCtx ctx, RangeWithinFile a) =>
+UriAndRange toUriAndRange(in ConcretizeExprCtx ctx, in Range a) =>
 	UriAndRange(ctx.curUri, a);
 
 immutable struct TypedConstant {
@@ -901,7 +902,7 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, in Locals locals, ref Exp
 	concretizeExpr(ctx, getConcreteType(ctx, a.type), locals, a.expr);
 
 ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Locals locals, ref Expr a) {
-	UriAndRange range = a.range;
+	UriAndRange range = UriAndRange(ctx.curUri, a.range);
 	if (isBogus(type))
 		return concretizeBogus(ctx.concretizeCtx, type, range);
 	return a.kind.match!ConcreteExpr(

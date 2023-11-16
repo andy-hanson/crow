@@ -24,7 +24,7 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.conv : safeToUshort;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
-import util.sourceRange : Pos, RangeWithinFile;
+import util.sourceRange : Pos, Range;
 import util.sym : concatSymsWithDot, Sym, sym;
 import util.uri : AllUris, childPath, Path, RelPath, rootPath;
 import util.util : todo, typeAs;
@@ -35,7 +35,7 @@ Opt!ImportsOrExportsAst parseImportsOrExports(ref AllUris allUris, ref Lexer lex
 		ImportOrExportAst[] imports = takeIndentOrFailGeneric!(ImportOrExportAst[])(
 			lexer,
 			() => parseImportLines(allUris, lexer),
-			(RangeWithinFile _) => typeAs!(ImportOrExportAst[])([]));
+			(in Range _) => typeAs!(ImportOrExportAst[])([]));
 		return some(ImportsOrExportsAst(range(lexer, start), imports));
 	} else
 		return none!ImportsOrExportsAst;
@@ -98,8 +98,7 @@ ImportOrExportAstKind parseImportOrExportKind(ref Lexer lexer, Pos start) {
 			: takeIndentOrFailGeneric(
 				lexer,
 				() => parseIndentedImportNames(lexer, start),
-				(RangeWithinFile _) =>
-					ImportOrExportAstKind(ImportOrExportAstKind.ModuleWhole()));
+				(in Range _) => ImportOrExportAstKind(ImportOrExportAstKind.ModuleWhole()));
 	} else if (tryTakeToken(lexer, Token.as)) {
 		NameAndRange name = takeNameAndRange(lexer);
 		ImportFileType type = parseImportFileType(lexer);

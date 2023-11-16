@@ -13,7 +13,7 @@ import util.col.str : SafeCStr, safeCStr;
 import util.json : writeJson;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForText;
 import util.perf : Perf, withNullPerf;
-import util.sourceRange : RangeWithinFile;
+import util.sourceRange : Range;
 import util.uri : parseUri;
 import util.util : verifyFail;
 import util.writer : debugLogWithWriter, Writer;
@@ -22,24 +22,24 @@ void testTokens(ref Test test) {
 	testOne(test, safeCStr!"", []);
 
 	testOne(test, testSource, arrLiteral!Token(test.alloc, [
-		Token(Token.Kind.keyword, RangeWithinFile(0, 6)),
-		Token(Token.Kind.importPath, RangeWithinFile(8, 10)),
-		Token(Token.Kind.fun, RangeWithinFile(12, 16)),
-		Token(Token.Kind.struct_, RangeWithinFile(17, 26)),
-		Token(Token.Kind.keyword, RangeWithinFile(26, 27)),
-		Token(Token.Kind.param, RangeWithinFile(28, 32)),
-		Token(Token.Kind.struct_, RangeWithinFile(33, 36)),
-		Token(Token.Kind.keyword, RangeWithinFile(36, 38)),
-		Token(Token.Kind.modifier, RangeWithinFile(40, 46)),
-		Token(Token.Kind.literalNumber, RangeWithinFile(48, 50)),
-		Token(Token.Kind.fun, RangeWithinFile(50, 58))]));
+		Token(Token.Kind.keyword, Range(0, 6)),
+		Token(Token.Kind.importPath, Range(8, 10)),
+		Token(Token.Kind.fun, Range(12, 16)),
+		Token(Token.Kind.struct_, Range(17, 26)),
+		Token(Token.Kind.keyword, Range(26, 27)),
+		Token(Token.Kind.param, Range(28, 32)),
+		Token(Token.Kind.struct_, Range(33, 36)),
+		Token(Token.Kind.keyword, Range(36, 38)),
+		Token(Token.Kind.modifier, Range(40, 46)),
+		Token(Token.Kind.literalNumber, Range(48, 50)),
+		Token(Token.Kind.fun, Range(50, 58))]));
 
 	testOne(test, testSource2, arrLiteral!Token(test.alloc, [
-		Token(Token.Kind.fun, RangeWithinFile(0, 1)),
-		Token(Token.Kind.struct_, RangeWithinFile(2, 5)),
-		Token(Token.Kind.param, RangeWithinFile(6, 7)),
-		Token(Token.Kind.struct_, RangeWithinFile(9, 12)),
-		Token(Token.Kind.literalNumber, RangeWithinFile(15, 16))]));
+		Token(Token.Kind.fun, Range(0, 1)),
+		Token(Token.Kind.struct_, Range(2, 5)),
+		Token(Token.Kind.param, Range(6, 7)),
+		Token(Token.Kind.struct_, Range(9, 12)),
+		Token(Token.Kind.literalNumber, Range(15, 16))]));
 }
 
 private:

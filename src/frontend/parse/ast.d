@@ -8,7 +8,7 @@ import util.col.arrUtil : exists;
 import util.col.str : SafeCStr;
 import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, optOrDefault, some;
-import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile;
+import util.sourceRange : Pos, Range, rangeOfStartAndLength, rangeOfStartAndName;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.uri : AllUris, Path, pathLength, RelPath, relPathLength;
@@ -28,7 +28,7 @@ immutable struct NameAndRange {
 }
 static assert(NameAndRange.sizeof == ulong.sizeof * 2);
 
-RangeWithinFile rangeOfNameAndRange(NameAndRange a, in AllSymbols allSymbols) =>
+Range rangeOfNameAndRange(NameAndRange a, in AllSymbols allSymbols) =>
 	rangeOfStartAndName(a.start, a.name, allSymbols);
 
 enum ExplicitVisibility {
@@ -71,13 +71,13 @@ Sym symOfFieldMutabilityAstKind(FieldMutabilityAst.Kind a) {
 
 immutable struct TypeAst {
 	immutable struct Bogus {
-		RangeWithinFile range;
+		Range range;
 	}
 
 	immutable struct Fun {
 		@safe @nogc pure nothrow:
 
-		RangeWithinFile range;
+		Range range;
 		FunKind kind;
 		TypeAst[] returnAndParamTypes;
 
@@ -124,10 +124,10 @@ immutable struct TypeAst {
 	immutable struct Tuple {
 		@safe @nogc pure nothrow:
 
-		RangeWithinFile range;
+		Range range;
 		TypeAst[] members;
 
-		this(RangeWithinFile r, TypeAst[] ms) {
+		this(Range r, TypeAst[] ms) {
 			range = r;
 			members = ms;
 			verify(members.length >= 2);
@@ -138,8 +138,8 @@ immutable struct TypeAst {
 }
 //TODO: static assert(TypeAst.sizeof == ulong.sizeof);
 
-RangeWithinFile range(in TypeAst a, in AllSymbols allSymbols) =>
-	a.matchIn!RangeWithinFile(
+Range range(in TypeAst a, in AllSymbols allSymbols) =>
+	a.matchIn!Range(
 		(in TypeAst.Bogus x) => x.range,
 		(in TypeAst.Fun x) => x.range,
 		(in TypeAst.Map x) => range(x, allSymbols),
@@ -148,17 +148,17 @@ RangeWithinFile range(in TypeAst a, in AllSymbols allSymbols) =>
 		(in TypeAst.SuffixSpecial x) => range(x, allSymbols),
 		(in TypeAst.Tuple x) => x.range);
 
-RangeWithinFile range(in TypeAst.Map a, in AllSymbols allSymbols) =>
-	RangeWithinFile(range(a.v, allSymbols).start, safeToUint(range(a.k, allSymbols).end + "]".length));
-RangeWithinFile range(in TypeAst.SuffixSpecial a, in AllSymbols allSymbols) =>
-	RangeWithinFile(range(a.left, allSymbols).start, suffixEnd(a));
-RangeWithinFile suffixRange(in TypeAst.SuffixSpecial a) =>
-	RangeWithinFile(a.suffixPos, suffixEnd(a));
+Range range(in TypeAst.Map a, in AllSymbols allSymbols) =>
+	Range(range(a.v, allSymbols).start, safeToUint(range(a.k, allSymbols).end + "]".length));
+Range range(in TypeAst.SuffixSpecial a, in AllSymbols allSymbols) =>
+	Range(range(a.left, allSymbols).start, suffixEnd(a));
+Range suffixRange(in TypeAst.SuffixSpecial a) =>
+	Range(a.suffixPos, suffixEnd(a));
 private Pos suffixEnd(in TypeAst.SuffixSpecial a) =>
 	a.suffixPos + suffixLength(a.kind);
-RangeWithinFile range(in TypeAst.SuffixName a, in AllSymbols allSymbols) =>
-	RangeWithinFile(range(a.left, allSymbols).start, suffixRange(a, allSymbols).end);
-RangeWithinFile suffixRange(in TypeAst.SuffixName a, in AllSymbols allSymbols) =>
+Range range(in TypeAst.SuffixName a, in AllSymbols allSymbols) =>
+	Range(range(a.left, allSymbols).start, suffixRange(a, allSymbols).end);
+Range suffixRange(in TypeAst.SuffixName a, in AllSymbols allSymbols) =>
 	rangeOfNameAndRange(a.name, allSymbols);
 
 private uint suffixLength(TypeAst.SuffixSpecial.Kind a) {
@@ -270,6 +270,9 @@ immutable struct CallAst {
 		NameAndRange(funNameStart, funNameName);
 }
 
+Range nameRange(in AllSymbols allSymbols, in CallAst a) =>
+	rangeOfNameAndRange(a.funName, allSymbols);
+
 // Used for implicit 'else ()' or implicit '()' after a Let
 immutable struct EmptyAst {}
 
@@ -341,33 +344,33 @@ immutable struct DestructureAst {
 			(in DestructureAst[] parts) =>
 				parts[0].pos);
 
-	RangeWithinFile range(in AllSymbols allSymbols) scope =>
-		matchIn!RangeWithinFile(
+	Range range(in AllSymbols allSymbols) scope =>
+		matchIn!Range(
 			(in DestructureAst.Single x) {
-				RangeWithinFile name = rangeOfNameAndRange(x.name, allSymbols);
+				Range name = rangeOfNameAndRange(x.name, allSymbols);
 				return has(x.type)
-					? RangeWithinFile(name.start, .range(*force(x.type), allSymbols).end)
+					? Range(name.start, .range(*force(x.type), allSymbols).end)
 					: name;
 			},
 			(in DestructureAst.Void x) =>
 				rangeOfStartAndLength(x.pos, "()".length),
 			(in DestructureAst[] parts) =>
-				RangeWithinFile(parts[0].range(allSymbols).start, parts[$ - 1].range(allSymbols).end));
+				Range(parts[0].range(allSymbols).start, parts[$ - 1].range(allSymbols).end));
 }
 
-Opt!RangeWithinFile rangeOfMutKeyword(in DestructureAst.Single a) =>
+Opt!Range rangeOfMutKeyword(in DestructureAst.Single a) =>
 	has(a.mut)
-		? some(RangeWithinFile(force(a.mut), force(a.mut) + safeToUint("mut".length)))
-		: none!RangeWithinFile;
+		? some(Range(force(a.mut), force(a.mut) + safeToUint("mut".length)))
+		: none!Range;
 
-RangeWithinFile nameRangeOfDestructureSingle(in DestructureAst.Single a, in AllSymbols allSymbols) =>
+Range nameRangeOfDestructureSingle(in DestructureAst.Single a, in AllSymbols allSymbols) =>
 	rangeOfNameAndRange(a.name, allSymbols);
 
-RangeWithinFile rangeOfDestructureSingle(in DestructureAst.Single a, in AllSymbols allSymbols) =>
-	RangeWithinFile(a.name.start, (
+Range rangeOfDestructureSingle(in DestructureAst.Single a, in AllSymbols allSymbols) =>
+	Range(a.name.start, (
 		has(a.type)
 		? range(*force(a.type), allSymbols)
-		: optOrDefault!RangeWithinFile(rangeOfMutKeyword(a), () => rangeOfNameAndRange(a.name, allSymbols))
+		: optOrDefault!Range(rangeOfMutKeyword(a), () => rangeOfNameAndRange(a.name, allSymbols))
 	).end);
 
 immutable struct LetAst {
@@ -419,12 +422,12 @@ immutable struct MatchAst {
 	immutable struct CaseAst {
 		@safe @nogc pure nothrow:
 
-		RangeWithinFile range;
+		Range range;
 		Sym memberName;
 		Opt!DestructureAst destructure;
 		ExprAst then;
 
-		RangeWithinFile memberNameRange(ref const AllSymbols allSymbols) scope =>
+		Range memberNameRange(ref const AllSymbols allSymbols) scope =>
 			rangeOfStartAndName(range.start + safeToUint("as ".length), memberName, allSymbols);
 	}
 
@@ -516,7 +519,7 @@ immutable struct ExprAstKind {
 static assert(ExprAstKind.sizeof <= 5 * ulong.sizeof);
 
 immutable struct ExprAst {
-	RangeWithinFile range;
+	Range range;
 	ExprAstKind kind;
 }
 static assert(ExprAst.sizeof <= 6 * ulong.sizeof);
@@ -540,7 +543,7 @@ immutable struct SpecSigAst {
 	@safe @nogc pure nothrow:
 
 	SafeCStr docComment;
-	RangeWithinFile range;
+	Range range;
 	Sym name;
 	TypeAst returnType;
 	ParamsAst params;
@@ -551,7 +554,7 @@ immutable struct SpecSigAst {
 
 immutable struct StructAliasAst {
 	SafeCStr docComment;
-	RangeWithinFile range;
+	Range range;
 	ExplicitVisibility visibility;
 	NameAndRange name;
 	SmallArray!NameAndRange typeParams;
@@ -576,7 +579,7 @@ immutable struct ModifierAst {
 	Kind kind;
 }
 
-RangeWithinFile rangeOfModifierAst(ModifierAst a, ref const AllSymbols allSymbols) =>
+Range rangeOfModifierAst(ModifierAst a, ref const AllSymbols allSymbols) =>
 	rangeOfStartAndName(a.pos, symOfModifierKind(a.kind), allSymbols);
 
 immutable struct LiteralIntOrNat {
@@ -588,7 +591,7 @@ immutable struct StructDeclAst {
 		immutable struct Builtin {}
 		immutable struct Enum {
 			immutable struct Member {
-				RangeWithinFile range;
+				Range range;
 				Sym name;
 				Opt!LiteralIntOrNat value;
 			}
@@ -607,7 +610,7 @@ immutable struct StructDeclAst {
 		}
 		immutable struct Record {
 			immutable struct Field {
-				RangeWithinFile range;
+				Range range;
 				ExplicitVisibility visibility;
 				NameAndRange name;
 				Opt!FieldMutabilityAst mutability;
@@ -617,7 +620,7 @@ immutable struct StructDeclAst {
 		}
 		immutable struct Union {
 			immutable struct Member {
-				RangeWithinFile range;
+				Range range;
 				Sym name;
 				Opt!TypeAst type;
 			}
@@ -630,7 +633,7 @@ immutable struct StructDeclAst {
 
 	SafeCStr docComment;
 	// Range starts at the visibility
-	RangeWithinFile range;
+	Range range;
 	ExplicitVisibility visibility;
 	NameAndRange name;
 	SmallArray!NameAndRange typeParams;
@@ -639,10 +642,10 @@ immutable struct StructDeclAst {
 	Body body_;
 }
 
-RangeWithinFile keywordRange(in AllSymbols allSymbols, in StructDeclAst a) =>
+Range keywordRange(in AllSymbols allSymbols, in StructDeclAst a) =>
 	rangeOfNameAndRange(NameAndRange(a.keywordPos, keywordForStructBody(a.body_)), allSymbols);
 
-RangeWithinFile nameRange(in AllSymbols allSymbols, in StructDeclAst a) =>
+Range nameRange(in AllSymbols allSymbols, in StructDeclAst a) =>
 	rangeOfNameAndRange(a.name, allSymbols);
 
 private Sym keywordForStructBody(in StructDeclAst.Body a) =>
@@ -667,7 +670,7 @@ immutable struct SpecBodyAst {
 static assert(SpecBodyAst.sizeof == ulong.sizeof);
 
 immutable struct SpecDeclAst {
-	RangeWithinFile range;
+	Range range;
 	SafeCStr docComment;
 	ExplicitVisibility visibility;
 	NameAndRange name;
@@ -676,11 +679,11 @@ immutable struct SpecDeclAst {
 	SpecBodyAst body_;
 }
 
-RangeWithinFile nameRange(in AllSymbols allSymbols, in SpecDeclAst a) =>
+Range nameRange(in AllSymbols allSymbols, in SpecDeclAst a) =>
 	rangeOfNameAndRange(a.name, allSymbols);
 
 immutable struct FunDeclAst {
-	RangeWithinFile range;
+	Range range;
 	SafeCStr docComment;
 	ExplicitVisibility visibility;
 	NameAndRange name;
@@ -691,7 +694,7 @@ immutable struct FunDeclAst {
 	Opt!ExprAst body_;
 }
 
-RangeWithinFile nameRange(in AllSymbols allSymbols, in FunDeclAst a) =>
+Range nameRange(in AllSymbols allSymbols, in FunDeclAst a) =>
 	rangeOfNameAndRange(a.name, allSymbols);
 
 immutable struct FunModifierAst {
@@ -715,7 +718,7 @@ immutable struct FunModifierAst {
 		Pos pos;
 		Flags flag;
 
-		RangeWithinFile range(in AllSymbols allSymbols) =>
+		Range range(in AllSymbols allSymbols) =>
 			rangeOfNameAndRange(NameAndRange(pos, symOfSpecialFlag(flag)), allSymbols);
 	}
 
@@ -725,11 +728,11 @@ immutable struct FunModifierAst {
 		TypeAst* left;
 		Pos externPos;
 
-		RangeWithinFile range(in AllSymbols allSymbols) scope =>
-			RangeWithinFile(
+		Range range(in AllSymbols allSymbols) scope =>
+			Range(
 				.range(*left, allSymbols).start,
 				suffixRange(allSymbols).end);
-		RangeWithinFile suffixRange(in AllSymbols allSymbols) scope =>
+		Range suffixRange(in AllSymbols allSymbols) scope =>
 			rangeOfNameAndRange(NameAndRange(externPos, sym!"extern"), allSymbols);
 	}
 
@@ -737,8 +740,8 @@ immutable struct FunModifierAst {
 	mixin Union!(Special, Extern, TypeAst);
 }
 
-RangeWithinFile range(in FunModifierAst a, in AllSymbols allSymbols) =>
-	a.matchIn!RangeWithinFile(
+Range range(in FunModifierAst a, in AllSymbols allSymbols) =>
+	a.matchIn!Range(
 		(in FunModifierAst.Special x) =>
 			x.range(allSymbols),
 		(in FunModifierAst.Extern x) =>
@@ -773,7 +776,7 @@ immutable struct TestAst {
 
 // 'extern' or 'thread-local'
 immutable struct VarDeclAst {
-	RangeWithinFile range;
+	Range range;
 	SafeCStr docComment;
 	ExplicitVisibility visibility;
 	NameAndRange name;
@@ -785,12 +788,12 @@ immutable struct VarDeclAst {
 }
 
 immutable struct ImportOrExportAst {
-	RangeWithinFile range;
+	Range range;
 	// Does not include the extension (which is only allowed for file imports)
 	PathOrRelPath path;
 	ImportOrExportAstKind kind;
 }
-RangeWithinFile pathRange(in AllUris allUris, in ImportOrExportAst a) =>
+Range pathRange(in AllUris allUris, in ImportOrExportAst a) =>
 	rangeOfStartAndLength(a.range.start, pathOrRelPathLength(allUris, a.path));
 
 immutable struct PathOrRelPath {
@@ -814,7 +817,7 @@ immutable struct ImportOrExportAstKind {
 static assert(ImportOrExportAstKind.sizeof == ulong.sizeof);
 
 immutable struct ImportsOrExportsAst {
-	RangeWithinFile range;
+	Range range;
 	ImportOrExportAst[] paths;
 }
 

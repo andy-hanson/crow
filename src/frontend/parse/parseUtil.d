@@ -21,7 +21,7 @@ import model.parseDiag : ParseDiag;
 import util.col.arrUtil : contains;
 import util.col.str : copyToSafeCStr, SafeCStr, safeCStr;
 import util.opt : force, has, none, Opt, some;
-import util.sourceRange : Pos, RangeWithinFile;
+import util.sourceRange : Pos, Range;
 import util.sym : Sym, sym;
 import util.util : unreachable, verify;
 
@@ -211,13 +211,13 @@ private NewlineOrDedent skipToNextNewlineOrDedent(ref Lexer lexer) {
 T takeIndentOrFailGeneric(T)(
 	ref Lexer lexer,
 	in T delegate() @safe @nogc pure nothrow cbIndent,
-	in T delegate(RangeWithinFile) @safe @nogc pure nothrow cbFail,
+	in T delegate(in Range) @safe @nogc pure nothrow cbFail,
 ) {
 	Pos start = curPos(lexer);
 	if (tryTakeToken(lexer, Token.newlineIndent))
 		return cbIndent();
 	else {
-		addDiag(lexer, RangeWithinFile(start, start + 1), ParseDiag(
+		addDiag(lexer, Range(start, start + 1), ParseDiag(
 			ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
 		return cbFail(range(lexer, start)); //TODO: the range is always empty!
 	}

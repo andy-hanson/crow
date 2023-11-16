@@ -11,7 +11,7 @@ import util.conv : safeToUshort;
 import util.hash : Hasher, hashUshort;
 import util.opt : has, force, none, Opt, some;
 import util.ptr : ptrTrustMe;
-import util.sourceRange : RangeWithinFile;
+import util.sourceRange : Range;
 import util.sym :
 	addExtension,
 	alterExtension,
@@ -458,7 +458,7 @@ private bool containsSubstring(in string a, in string b) =>
 
 immutable struct UriAndRange {
 	Uri uri;
-	RangeWithinFile range;
+	Range range;
 }
 
 immutable struct UrisInfo {

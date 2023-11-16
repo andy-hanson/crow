@@ -31,7 +31,7 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : ptrTrustMe;
 import util.storage :
 	asSafeCStr, copyFileContent, emptyFileContent, FileContent, ReadFileIssue, ReadFileResult, Storage, withFile;
-import util.sourceRange : RangeWithinFile, UriAndRange;
+import util.sourceRange : Range, UriAndRange;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.uri :
@@ -242,7 +242,7 @@ void parseAndPush(
 				return ParseStatus(ParseStatus.Started());
 			},
 			(ReadFileIssue issue) {
-				addDiagnostic(diags, UriAndRange(uri, RangeWithinFile.empty), Diag(Diag.FileIssue(uri, issue)));
+				addDiagnostic(diags, UriAndRange(uri, Range.empty), Diag(Diag.FileIssue(uri, issue)));
 				return ParseStatus(issue);
 			});
 		addToMutMap(astAlloc, statuses, uri, status);

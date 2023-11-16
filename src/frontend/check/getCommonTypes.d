@@ -33,7 +33,7 @@ import util.col.mutArr : MutArr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, someMut, some;
 import util.ptr : ptrTrustMe;
-import util.sourceRange : UriAndRange, RangeWithinFile;
+import util.sourceRange : Range, UriAndRange;
 import util.sym : Sym, sym;
 import util.util : todo, verify;
 
@@ -43,7 +43,7 @@ CommonTypes getCommonTypes(
 	scope ref MutArr!(StructInst*) delayedStructInsts,
 ) {
 	void addDiagMissing(Sym name) {
-		addDiag(ctx, UriAndRange(ctx.curUri, RangeWithinFile.empty), Diag(Diag.CommonTypeMissing(name)));
+		addDiag(ctx, UriAndRange(ctx.curUri, Range.empty), Diag(Diag.CommonTypeMissing(name)));
 	}
 
 	StructInst* nonTemplateFromSym(Sym name) {

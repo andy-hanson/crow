@@ -39,7 +39,7 @@ import util.lineAndColumnGetter : LineAndCharacter, UriLineAndCharacter;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
 import util.opt : force, has, Opt;
 import util.perf : eachMeasure, Perf, PerfMeasureResult, withNullPerf;
-import util.sourceRange : jsonOfRangeWithinFile, UriAndRange;
+import util.sourceRange : jsonOfRange, UriAndRange;
 import util.storage : asSafeCStr, FileContent, readFileIssueOfSym, ReadFileResult;
 import util.sym : symOfSafeCStr;
 import util.uri : parseUri, Uri, uriToString;
@@ -243,5 +243,5 @@ Json jsonOfDiagnostics(ref Alloc alloc, ref Server server, in Program program) {
 
 Json jsonOfDiagnostic(ref Alloc alloc, ref Server server, in Program program, in Diagnostic a) =>
 	jsonObject(alloc, [
-		field!"range"(jsonOfRangeWithinFile(alloc, server.lineAndColumnGetters, a.where)),
+		field!"range"(jsonOfRange(alloc, server.lineAndColumnGetters, a.where)),
 		field!"message"(jsonString(alloc, showDiagnostic(alloc, server, program, a)))]);

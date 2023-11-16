@@ -15,7 +15,7 @@ import util.json : Json;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : ptrTrustMe;
 import util.jsonParse : parseJson;
-import util.sourceRange : RangeWithinFile;
+import util.sourceRange : Range;
 import util.storage : asSafeCStr, FileContent, ReadFileIssue, ReadFileResult, Storage, withFile;
 import util.sym : AllSymbols, Sym, sym;
 import util.uri : AllUris, bogusUri, childUri, commonAncestor, parent, parseUriWithCwd, Uri;
@@ -60,7 +60,7 @@ Config getConfigRecur(
 					case ReadFileIssue.notFound:
 						return none!Config;
 					case ReadFileIssue.error:
-						addDiagnosticForFile(diags, RangeWithinFile.empty, Diag(Diag.FileIssue(configUri, issue)));
+						addDiagnosticForFile(diags, Range.empty, Diag(Diag.FileIssue(configUri, issue)));
 						return some(emptyConfig(crowIncludeDir));
 					case ReadFileIssue.loading:
 					case ReadFileIssue.unknown:

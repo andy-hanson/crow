@@ -20,35 +20,35 @@ import util.util : verify;
 
 alias Pos = uint;
 
-immutable struct RangeWithinFile {
+immutable struct Range {
 	@safe @nogc pure nothrow:
 
 	Pos start;
 	Pos end;
 
-	static RangeWithinFile max() =>
-		RangeWithinFile(Pos.max, Pos.max);
-	static RangeWithinFile empty() =>
-		RangeWithinFile(0, 0);
+	static Range max() =>
+		Range(Pos.max, Pos.max);
+	static Range empty() =>
+		Range(0, 0);
 }
-static assert(RangeWithinFile.sizeof == 8);
+static assert(Range.sizeof == 8);
 
-Comparison compareRangeWithinFile(RangeWithinFile a, RangeWithinFile b) =>
+Comparison compareRange(in Range a, in Range b) =>
 	a.start == b.start ? compareNat32(a.end, b.end) : compareNat32(a.start, b.start);
 
-RangeWithinFile combineRanges(RangeWithinFile a, RangeWithinFile b) {
+Range combineRanges(in Range a, in Range b) {
 	verify(a.end <= b.start);
-	return RangeWithinFile(a.start, b.end);
+	return Range(a.start, b.end);
 }
 
-bool hasPos(RangeWithinFile a, Pos p) =>
+bool hasPos(in Range a, Pos p) =>
 	a.start <= p && p <= a.end;
 
-RangeWithinFile rangeOfStartAndName(Pos start, Sym name, in AllSymbols allSymbols) =>
+Range rangeOfStartAndName(Pos start, Sym name, in AllSymbols allSymbols) =>
 	rangeOfStartAndLength(start, symSize(allSymbols, name));
 
-RangeWithinFile rangeOfStartAndLength(Pos start, size_t length) =>
-	RangeWithinFile(start, safeToUint(start + length));
+Range rangeOfStartAndLength(Pos start, size_t length) =>
+	Range(start, safeToUint(start + length));
 
 immutable struct UriAndPos {
 	@safe @nogc pure nothrow:
@@ -64,7 +64,7 @@ immutable struct UriAndRange {
 	@safe @nogc pure nothrow:
 
 	Uri uri;
-	RangeWithinFile range;
+	Range range;
 
 	Pos start() =>
 		range.start;
@@ -73,12 +73,12 @@ immutable struct UriAndRange {
 		topOfFile(Uri.empty);
 
 	static UriAndRange topOfFile(Uri uri) =>
-		UriAndRange(uri, RangeWithinFile.empty);
+		UriAndRange(uri, Range.empty);
 }
 
 Comparison compareUriAndRange(in AllUris allUris, UriAndRange a, UriAndRange b) {
 	Comparison cmpUri = compareUriAlphabetically(allUris, a.uri, b.uri);
-	return cmpUri != Comparison.equal ? cmpUri : compareRangeWithinFile(a.range, b.range);
+	return cmpUri != Comparison.equal ? cmpUri : compareRange(a.range, b.range);
 }
 
 UriAndPos toUriAndPos(UriAndRange a) =>
@@ -87,15 +87,15 @@ UriAndPos toUriAndPos(UriAndRange a) =>
 Json jsonOfUriAndRange(ref Alloc alloc, in AllUris allUris, scope ref LineAndColumnGetters lcg, UriAndRange a) =>
 	jsonObject(alloc, [
 		field!"uri"(uriToString(alloc, allUris, a.uri)),
-		field!"range"(jsonOfRangeWithinFile(alloc, lcg[a.uri], a.range))]);
+		field!"range"(jsonOfRange(alloc, lcg[a.uri], a.range))]);
 
 Json jsonOfPosWithinFile(ref Alloc alloc, in LineAndColumnGetter lcg, Pos a, PosKind posKind) =>
 	jsonOfLineAndCharacter(alloc, lineAndCharacterAtPos(lcg, a, posKind));
 
-Json jsonOfRangeWithinFile(ref Alloc alloc, scope ref LineAndColumnGetters lcg, UriAndRange a) =>
-	jsonOfRangeWithinFile(alloc, lcg[a.uri], a.range);
+Json jsonOfRange(ref Alloc alloc, scope ref LineAndColumnGetters lcg, UriAndRange a) =>
+	jsonOfRange(alloc, lcg[a.uri], a.range);
 
-Json jsonOfRangeWithinFile(ref Alloc alloc, in LineAndColumnGetter lcg, in RangeWithinFile a) {
+Json jsonOfRange(ref Alloc alloc, in LineAndColumnGetter lcg, in Range a) {
 	LineAndCharacterRange r = lineAndCharacterRange(lcg, a);
 	return jsonObject(alloc, [
 		field!"start"(jsonOfLineAndCharacter(alloc, r.start)),

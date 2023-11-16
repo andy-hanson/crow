@@ -85,7 +85,7 @@ import util.col.arrUtil : arrLiteral, prepend;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some, some;
-import util.sourceRange : Pos, RangeWithinFile;
+import util.sourceRange : Pos, Range;
 import util.sym : AllSymbols, appendEquals, Sym, sym;
 import util.util : max, verify;
 
@@ -96,7 +96,7 @@ Opt!ExprAst parseFunExprBody(ref Lexer lexer) =>
 
 private:
 
-ExprAst bogusExpr(RangeWithinFile range) =>
+ExprAst bogusExpr(in Range range) =>
 	ExprAst(range, ExprAstKind(BogusAst()));
 
 enum AllowedBlock { no, yes }
@@ -280,7 +280,7 @@ ExprAst parseCallsAfterComma(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx
 	ExprAst[] args = peekTokenExpression(lexer)
 		? parseArgsRecur(lexer, requirePrecedenceGtComma(argCtx), builder)
 		: finishArr(lexer.alloc, builder);
-	RangeWithinFile range = range(lexer, start);
+	Range range = range(lexer, start);
 	return ExprAst(range, ExprAstKind(
 		//TODO: range is wrong..
 		CallAst(CallAst.Style.comma, NameAndRange(range.start, sym!"new"), args)));
@@ -630,7 +630,7 @@ ExprAst parseLoopWhile(ref Lexer lexer, Pos start) {
 }
 
 ExprAst takeIndentOrFail_Expr(ref Lexer lexer, in ExprAst delegate() @safe @nogc pure nothrow cbIndent) =>
-	takeIndentOrFailGeneric(lexer, cbIndent, (RangeWithinFile range) => bogusExpr(range));
+	takeIndentOrFailGeneric(lexer, cbIndent, (in Range range) => bogusExpr(range));
 
 ExprAst parseLambdaWithParenthesizedParameters(ref Lexer lexer, Pos start, AllowedBlock allowedBlock) {
 	DestructureAst parameter = parseDestructureRequireParens(lexer);

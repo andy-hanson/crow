@@ -48,7 +48,7 @@ import util.col.arrUtil : eachPair, findPtr, map, mapOrNone, mapWithIndex, mapZi
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.ptr : castNonScope_ref, ptrTrustMe;
-import util.sourceRange : RangeWithinFile;
+import util.sourceRange : Range;
 import util.sym : Sym, sym;
 import util.util : todo;
 
@@ -56,7 +56,7 @@ private Type instStructFromAst(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	Sym name,
-	RangeWithinFile suffixRange,
+	in Range suffixRange,
 	in Opt!(TypeAst*) typeArgsAst,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	TypeParam[] typeParamsScope,
@@ -102,7 +102,7 @@ Type makeTupleType(ref Alloc alloc, ref ProgramState programState, ref CommonTyp
 private Opt!(Type[]) getTypeArgsIfNumberMatches(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	RangeWithinFile range,
+	in Range range,
 	Sym name,
 	size_t nExpectedTypeArgs,
 	return in Opt!Type* type,
@@ -334,7 +334,7 @@ private Type typeFromMapAst(
 	TypeParam[] typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
-	TypeAst.Tuple tuple = TypeAst.Tuple(RangeWithinFile.empty, castNonScope_ref(ast.kv));
+	TypeAst.Tuple tuple = TypeAst.Tuple(Range.empty, castNonScope_ref(ast.kv));
 	TypeAst typeArg = TypeAst(ptrTrustMe(tuple));
 	return instStructFromAst(
 		ctx,
@@ -479,7 +479,7 @@ private:
 Opt!T tryFindT(T)(
 	ref CheckCtx ctx,
 	Sym name,
-	RangeWithinFile range,
+	in Range range,
 	Opt!T fromThisModule,
 	Diag.DuplicateImports.Kind duplicateImportKind,
 	Diag.NameNotFound.Kind nameNotFoundKind,

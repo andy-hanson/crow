@@ -98,7 +98,7 @@ import util.opt : force, has, none, Opt, someMut, some;
 import util.perf : Perf;
 import util.ptr : ptrTrustMe;
 import util.storage : asBytes, asString, FileContent;
-import util.sourceRange : UriAndRange, RangeWithinFile;
+import util.sourceRange : Range, UriAndRange;
 import util.sym : AllSymbols, Sym, sym;
 import util.uri : AllUris, Uri;
 import util.util : unreachable, todo, verify;
@@ -239,7 +239,7 @@ ReturnTypeAndParams checkReturnTypeAndParams(
 		typeFromAst(ctx, commonTypes, returnTypeAst, structsAndAliasesMap, typeParams, delayStructInsts),
 		checkParams(ctx, commonTypes, paramsAst, structsAndAliasesMap, typeParams, delayStructInsts));
 
-SpecDeclBody.Builtin.Kind getSpecBodyBuiltinKind(ref CheckCtx ctx, RangeWithinFile range, Sym name) {
+SpecDeclBody.Builtin.Kind getSpecBodyBuiltinKind(ref CheckCtx ctx, in Range range, Sym name) {
 	switch (name.value) {
 		case sym!"data".value:
 			return SpecDeclBody.Builtin.Kind.data;
@@ -256,7 +256,7 @@ SpecDeclBody checkSpecDeclBody(
 	ref CommonTypes commonTypes,
 	TypeParam[] typeParams,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	RangeWithinFile range,
+	in Range range,
 	Sym name,
 	SpecBodyAst ast,
 ) =>
@@ -453,7 +453,7 @@ immutable struct FunFlagsAndSpecs {
 FunFlagsAndSpecs checkFunModifiers(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	RangeWithinFile range,
+	in Range range,
 	in FunModifierAst[] asts,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in SpecsMap specsMap,
@@ -504,7 +504,7 @@ Opt!(SpecInst*) checkFunModifierNonSpecial(
 	}
 }
 
-FunFlags checkFunFlags(ref CheckCtx ctx, RangeWithinFile range, FunModifierAst.Special.Flags flags) {
+FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, FunModifierAst.Special.Flags flags) {
 	void warnRedundant(Sym modifier, Sym redundantModifier) {
 		addDiag(ctx, range, Diag(Diag.ModifierRedundantDueToModifier(modifier, redundantModifier)));
 	}
@@ -655,7 +655,7 @@ FunsAndMap checkFuns(
 		Type voidType = Type(commonTypes.void_);
 		if (!has(ast.body_))
 			todo!void("diag: test needs body");
-		return Test(checkFunctionBody(
+		return Test(ctx.curUri, checkFunctionBody(
 			ctx,
 			structsAndAliasesMap,
 			commonTypes,
@@ -746,7 +746,7 @@ Type typeForFileImport(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	RangeWithinFile range,
+	in Range range,
 	ImportFileType type,
 ) {
 	final switch (type) {
@@ -785,7 +785,7 @@ FunBody.Extern checkExternBody(ref CheckCtx ctx, FunDecl* fun, in Opt!TypeAst ty
 	return FunBody.Extern(externLibraryNameFromTypeArg(ctx, range(*fun).range, typeArg));
 }
 
-Sym externLibraryNameFromTypeArg(ref CheckCtx ctx, RangeWithinFile range, in Opt!TypeAst typeArg) {
+Sym externLibraryNameFromTypeArg(ref CheckCtx ctx, in Range range, in Opt!TypeAst typeArg) {
 	if (has(typeArg) && force(typeArg).isA!NameAndRange)
 		return force(typeArg).as!NameAndRange.name;
 	else {
@@ -865,7 +865,7 @@ Map!(Sym, NameReferents) getAllExportedNames(
 	Uri uri,
 ) {
 	MutMap!(Sym, NameReferents) res;
-	void addExport(Sym name, NameReferents cur, RangeWithinFile delegate() @safe @nogc pure nothrow range) {
+	void addExport(Sym name, NameReferents cur, Range delegate() @safe @nogc pure nothrow range) {
 		insertOrUpdate!(Sym, NameReferents)(
 			alloc,
 			res,
@@ -933,7 +933,7 @@ Map!(Sym, NameReferents) getAllExportedNames(
 				name,
 				NameReferents(none!StructOrAlias, none!(SpecDecl*), funDecls),
 				// This argument doesn't matter because a function never results in a duplicate export error
-				() => RangeWithinFile.empty);
+				() => Range.empty);
 	});
 
 	return moveToMap!(Sym, NameReferents)(alloc, res);

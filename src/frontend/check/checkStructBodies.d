@@ -55,7 +55,7 @@ import util.col.mutArr : MutArr;
 import util.conv : safeToSizeT;
 import util.opt : force, has, none, Opt, optOrDefault, some, someMut;
 import util.ptr : ptrTrustMe;
-import util.sourceRange : RangeWithinFile;
+import util.sourceRange : Range;
 import util.sym : Sym, sym;
 import util.util : isMultipleOf, todo, unreachable, verify;
 
@@ -314,7 +314,7 @@ StructBody.Enum checkEnum(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesMap structsAndAliasesMap,
-	RangeWithinFile range,
+	in Range range,
 	in StructDeclAst.Body.Enum e,
 	ref MutArr!(StructInst*) delayStructInsts,
 ) {
@@ -332,7 +332,7 @@ StructBody.Flags checkFlags(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesMap structsAndAliasesMap,
-	RangeWithinFile range,
+	in Range range,
 	in StructDeclAst.Body.Flags f,
 	ref MutArr!(StructInst*) delayStructInsts,
 ) {
@@ -363,7 +363,7 @@ EnumOrFlagsTypeAndMembers checkEnumOrFlagsMembers(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesMap structsAndAliasesMap,
-	RangeWithinFile range,
+	in Range range,
 	in Opt!(TypeAst*) typeArg,
 	in StructDeclAst.Body.Enum.Member[] memberAsts,
 	ref MutArr!(StructInst*) delayStructInsts,
@@ -470,7 +470,7 @@ bool isSignedEnumBackingType(EnumBackingType a) {
 EnumBackingType defaultEnumBackingType() =>
 	EnumBackingType.nat32;
 
-EnumBackingType getEnumTypeFromType(ref CheckCtx ctx, RangeWithinFile range, in CommonTypes commonTypes, in Type type) {
+EnumBackingType getEnumTypeFromType(ref CheckCtx ctx, in Range range, in CommonTypes commonTypes, in Type type) {
 	IntegralTypes integrals = commonTypes.integrals;
 	return type.matchWithPointers!EnumBackingType(
 		(Type.Bogus) =>
@@ -614,7 +614,7 @@ immutable struct RecordModifiers {
 RecordModifiers withByValOrRef(
 	ref CheckCtx ctx,
 	RecordModifiers cur,
-	RangeWithinFile range,
+	in Range range,
 	ForcedByValOrRefOrNone value) {
 	if (cur.byValOrRefOrNone != ForcedByValOrRefOrNone.none) {
 		Sym valueSym = symOfForcedByValOrRefOrNone(value);
@@ -625,7 +625,7 @@ RecordModifiers withByValOrRef(
 	return RecordModifiers(value, cur.newVisibility, cur.packed);
 }
 
-RecordModifiers withNewVisibility(ref CheckCtx ctx, RecordModifiers cur, RangeWithinFile range, Visibility value) {
+RecordModifiers withNewVisibility(ref CheckCtx ctx, RecordModifiers cur, in Range range, Visibility value) {
 	if (has(cur.newVisibility)) {
 		Sym valueSym = symOfNewVisibility(value);
 		addDiag(ctx, range, value == force(cur.newVisibility)
@@ -646,7 +646,7 @@ Sym symOfNewVisibility(Visibility a) {
 	}
 }
 
-RecordModifiers withPacked(ref CheckCtx ctx, RecordModifiers cur, RangeWithinFile range) {
+RecordModifiers withPacked(ref CheckCtx ctx, RecordModifiers cur, in Range range) {
 	if (cur.packed)
 		addDiag(ctx, range, Diag(Diag.ModifierDuplicate(sym!"packed")));
 	return RecordModifiers(cur.byValOrRefOrNone, cur.newVisibility, true);
@@ -657,7 +657,7 @@ RecordModifiers checkRecordModifiers(ref CheckCtx ctx, ModifierAst[] modifiers) 
 		RecordModifiers(ForcedByValOrRefOrNone.none, none!Visibility, false),
 		modifiers,
 		(RecordModifiers cur, in ModifierAst modifier) {
-			RangeWithinFile range = rangeOfModifierAst(modifier, ctx.allSymbols);
+			Range range = rangeOfModifierAst(modifier, ctx.allSymbols);
 			final switch (modifier.kind) {
 				case ModifierAst.Kind.byRef:
 					return withByValOrRef(ctx, cur, range, ForcedByValOrRefOrNone.byRef);
@@ -679,13 +679,13 @@ RecordModifiers checkRecordModifiers(ref CheckCtx ctx, ModifierAst[] modifiers) 
 			}
 		});
 
-void checkReferenceLinkageAndPurity(ref CheckCtx ctx, StructDecl* struct_, RangeWithinFile range, Type referencedType) {
+void checkReferenceLinkageAndPurity(ref CheckCtx ctx, StructDecl* struct_, in Range range, Type referencedType) {
 	if (!isLinkagePossiblyCompatible(struct_.linkage, linkageRange(referencedType)))
 		addDiag(ctx, range, Diag(Diag.LinkageWorseThanContainingType(struct_, referencedType)));
 	checkReferencePurity(ctx, struct_, range, referencedType);
 }
 
-void checkReferencePurity(ref CheckCtx ctx, StructDecl* struct_, RangeWithinFile range, Type referencedType) {
+void checkReferencePurity(ref CheckCtx ctx, StructDecl* struct_, in Range range, Type referencedType) {
 	if (!isPurityPossiblyCompatible(struct_.purity, purityRange(referencedType)) &&
 		!struct_.purityIsForced)
 		addDiag(ctx, range, Diag(Diag.PurityWorseThanParent(struct_, referencedType)));

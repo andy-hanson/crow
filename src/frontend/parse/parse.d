@@ -69,7 +69,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : ptrTrustMe;
-import util.sourceRange : Pos, RangeWithinFile;
+import util.sourceRange : Pos, Range;
 import util.sym : AllSymbols, Sym, sym;
 import util.uri : AllUris;
 import util.util : typeAs, verify;
@@ -384,7 +384,7 @@ void parseSpecOrStructOrFun(
 					takeDedent(lexer);
 					return res;
 				},
-				(RangeWithinFile range) => TypeAst(TypeAst.Bogus(range)));
+				(in Range range) => TypeAst(TypeAst.Bogus(range)));
 			add(lexer.alloc, structAliases, StructAliasAst(
 				docComment, range(lexer, start), visibility, name, small(typeParams), target));
 			break;
@@ -488,7 +488,7 @@ StructDeclAst.Body.Union.Member[] parseUnionMembersOrDiag(ref Lexer lexer) =>
 	takeIndentOrFailGeneric!(StructDeclAst.Body.Union.Member[])(
 		lexer,
 		() => parseUnionMembers(lexer),
-		(RangeWithinFile _) => typeAs!(StructDeclAst.Body.Union.Member[])([]));
+		(in Range _) => typeAs!(StructDeclAst.Body.Union.Member[])([]));
 
 ModifierAst[] parseModifiers(ref Lexer lexer) {
 	if (peekEndOfLine(lexer)) return [];

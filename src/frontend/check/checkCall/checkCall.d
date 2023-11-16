@@ -41,7 +41,7 @@ import frontend.check.inferringType :
 	typeFromAst2;
 import frontend.check.typeFromAst : getNTypeArgsForDiagnostic, unpackTupleIfNeeded;
 import frontend.lang : maxTypeParams;
-import frontend.parse.ast : CallAst, ExprAst, LambdaAst, rangeOfNameAndRange;
+import frontend.parse.ast : CallAst, ExprAst, LambdaAst, nameRange, rangeOfNameAndRange;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
@@ -68,10 +68,16 @@ import util.col.mutMaxArr :
 import util.opt : force, has, none, noneMut, Opt, some, some;
 import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMeasure, startMeasure;
 import util.ptr : castNonScope_ref, ptrTrustMe;
-import util.sourceRange : UriAndRange, RangeWithinFile;
+import util.sourceRange : Range;
 import util.sym : Sym, sym;
 
-Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, UriAndRange range, in CallAst ast, ref Expected expected) {
+Expr checkCall(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	in Range range,
+	in CallAst ast,
+	ref Expected expected,
+) {
 	switch (ast.style) {
 		case CallAst.Style.dot:
 		case CallAst.Style.infix:
@@ -84,7 +90,7 @@ Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, UriAndRange range, in Cal
 	return checkCallCommon(
 		ctx, locals, range,
 		// Show diags at the function name and not at the whole call ast
-		UriAndRange(range.uri, rangeOfNameAndRange(ast.funName, ctx.allSymbols)),
+		nameRange(ctx.allSymbols, ast),
 		ast.funName.name,
 		has(ast.typeArg) ? some(typeFromAst2(ctx, *force(ast.typeArg))) : none!Type,
 		ast.args,
@@ -94,7 +100,7 @@ Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, UriAndRange range, in Cal
 Expr checkCallSpecial(size_t n)(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
-	UriAndRange range,
+	in Range range,
 	Sym funName,
 	in ExprAst[n] args,
 	ref Expected expected,
@@ -104,7 +110,7 @@ Expr checkCallSpecial(size_t n)(
 Expr checkCallSpecial(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
-	UriAndRange range,
+	in Range range,
 	Sym funName,
 	in ExprAst[] args,
 	ref Expected expected,
@@ -113,7 +119,7 @@ Expr checkCallSpecial(
 
 Expr checkCallSpecialNoLocals(
 	ref ExprCtx ctx,
-	UriAndRange range,
+	in Range range,
 	Sym funName,
 	in ExprAst[] args,
 	ref Expected expected,
@@ -126,8 +132,8 @@ Expr checkCallSpecialNoLocals(
 private Expr checkCallCommon(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
-	UriAndRange range,
-	UriAndRange diagRange,
+	in Range range,
+	in Range diagRange,
 	Sym funName,
 	in Opt!Type typeArg,
 	in ExprAst[] args,
@@ -143,13 +149,8 @@ private Expr checkCallCommon(
 	return res;
 }
 
-Expr checkCallIdentifier(
-	ref ExprCtx ctx,
-	UriAndRange range,
-	Sym name,
-	ref Expected expected,
-) {
-	checkCallShouldUseSyntax(ctx, range.range, name, 0);
+Expr checkCallIdentifier(ref ExprCtx ctx, in Range range, Sym name, ref Expected expected) {
+	checkCallShouldUseSyntax(ctx, range, name, 0);
 	return checkCallSpecialNoLocals(ctx, range, name, [], expected);
 }
 
@@ -158,8 +159,8 @@ private:
 Expr checkCallInner(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
-	UriAndRange range,
-	UriAndRange diagRange,
+	in Range range,
+	in Range diagRange,
 	Sym funName,
 	in ExprAst[] argAsts,
 	in Opt!Type explicitTypeArg,
@@ -233,7 +234,7 @@ Expr checkCallInner(
 		return checkCallAfterChoosingOverload(ctx, isInLambda(locals), only(candidates), range, force(args), expected);
 }
 
-void checkCallShouldUseSyntax(ref ExprCtx ctx, RangeWithinFile range, Sym funName, size_t arity) {
+void checkCallShouldUseSyntax(ref ExprCtx ctx, in Range range, Sym funName, size_t arity) {
 	Opt!(Diag.CallShouldUseSyntax.Kind) kind = shouldUseSyntaxKind(funName, ctx.outermostFunName);
 	if (has(kind))
 		addDiag2(ctx, range, Diag(Diag.CallShouldUseSyntax(arity, force(kind))));
@@ -421,7 +422,7 @@ Expr checkCallAfterChoosingOverload(
 	ref ExprCtx ctx,
 	bool isInLambda,
 	ref const Candidate candidate,
-	UriAndRange range,
+	in Range range,
 	Expr[] args,
 	ref Expected expected,
 ) {

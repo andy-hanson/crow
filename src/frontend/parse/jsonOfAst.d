@@ -82,7 +82,7 @@ import util.json :
 import util.lineAndColumnGetter : LineAndColumnGetter, PosKind;
 import util.opt : Opt;
 import util.ptr : ptrTrustMe;
-import util.sourceRange : jsonOfPosWithinFile, jsonOfRangeWithinFile, Pos, RangeWithinFile;
+import util.sourceRange : jsonOfPosWithinFile, jsonOfRange, Pos, Range;
 import util.sym : Sym, sym;
 import util.union_ : Union;
 import util.uri : AllUris, Path, pathToSafeCStr, RelPath;
@@ -117,12 +117,12 @@ const struct Ctx {
 		*allUrisPtr;
 }
 
-Json jsonOfRangeWithinFile(ref Alloc alloc, scope ref Ctx ctx, in RangeWithinFile a) =>
-	jsonOfRangeWithinFile(alloc, ctx.lineAndColumnGetter, a);
+Json jsonOfRange(ref Alloc alloc, scope ref Ctx ctx, in Range a) =>
+	jsonOfRange(alloc, ctx.lineAndColumnGetter, a);
 
 Json jsonOfImportsOrExports(ref Alloc alloc, scope ref Ctx ctx, in ImportsOrExportsAst a) =>
 	jsonObject(alloc, [
-		field!"range"(jsonOfRangeWithinFile(alloc, ctx, a.range)),
+		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		field!"imports"(jsonList!ImportOrExportAst(alloc, a.paths, (in ImportOrExportAst a) =>
 			jsonOfImportOrExportAst(alloc, ctx, a)))]);
 
@@ -152,7 +152,7 @@ Json pathOrRelPathToJson(ref Alloc alloc, in AllUris allUris, PathOrRelPath a) =
 
 Json jsonOfSpecDeclAst(ref Alloc alloc, scope ref Ctx ctx, in SpecDeclAst a) =>
 	jsonObject(alloc, [
-		field!"range"(jsonOfRangeWithinFile(alloc, ctx, a.range)),
+		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		field!"comment"(jsonString(alloc, a.docComment)),
 		field!"visibility"(symOfExplicitVisibility(a.visibility)),
 		field!"name"(jsonOfNameAndRange(alloc, ctx, a.name)),
@@ -170,7 +170,7 @@ Json jsonOfSpecBodyAst(ref Alloc alloc, scope ref Ctx ctx, in SpecBodyAst a) =>
 
 Json jsonOfSpecSig(ref Alloc alloc, scope ref Ctx ctx, in SpecSigAst a) =>
 	jsonObject(alloc, [
-		field!"range"(jsonOfRangeWithinFile(alloc, ctx, a.range)),
+		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		field!"doc"(jsonString(alloc, a.docComment)),
 		field!"name"(a.name),
 		field!"return-type"(jsonOfTypeAst(alloc, ctx, a.returnType)),
@@ -178,7 +178,7 @@ Json jsonOfSpecSig(ref Alloc alloc, scope ref Ctx ctx, in SpecSigAst a) =>
 
 Json jsonOfStructAliasAst(ref Alloc alloc, scope ref Ctx ctx, in StructAliasAst a) =>
 	jsonObject(alloc, [
-		field!"range"(jsonOfRangeWithinFile(alloc, ctx, a.range)),
+		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		optionalStringField!"doc"(alloc, a.docComment),
 		field!"visibility"(symOfExplicitVisibility(a.visibility)),
 		field!"name"(jsonOfNameAndRange(alloc, ctx, a.name)),
@@ -202,7 +202,7 @@ Json jsonOfEnumOrFlags(
 
 Json jsonOfEnumMember(ref Alloc alloc, scope ref Ctx ctx, in StructDeclAst.Body.Enum.Member a) =>
 	jsonObject(alloc, [
-		field!"range"(jsonOfRangeWithinFile(alloc, ctx, a.range)),
+		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		field!"name"(a.name),
 		optionalField!("value", LiteralIntOrNat)(a.value, (in LiteralIntOrNat x) =>
 			jsonOfLiteralIntOrNat(alloc, x))]);
@@ -234,7 +234,7 @@ Json jsonOfLiteralIntOrNat(ref Alloc alloc, in LiteralIntOrNat a) =>
 
 Json jsonOfField(ref Alloc alloc, scope ref Ctx ctx, in StructDeclAst.Body.Record.Field a) =>
 	jsonObject(alloc, [
-		field!"range"(jsonOfRangeWithinFile(alloc, ctx, a.range)),
+		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		field!"visibility"(symOfExplicitVisibility(a.visibility)),
 		field!"name"(jsonOfNameAndRange(alloc, ctx, a.name)),
 		optionalField!("mutability", FieldMutabilityAst)(a.mutability, (in FieldMutabilityAst x) =>
@@ -281,7 +281,7 @@ Json jsonOfStructBodyAst(ref Alloc alloc, scope ref Ctx ctx, in StructDeclAst.Bo
 
 Json jsonOfStructDeclAst(ref Alloc alloc, scope ref Ctx ctx, in StructDeclAst a) =>
 	jsonObject(alloc, [
-		field!"range"(jsonOfRangeWithinFile(alloc, ctx, a.range)),
+		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		field!"doc"(jsonString(alloc, a.docComment)),
 		field!"visibility"(symOfExplicitVisibility(a.visibility)),
 		maybeTypeParams(alloc, ctx, a.typeParams),
@@ -302,7 +302,7 @@ Json jsonOfFunDeclAst(ref Alloc alloc, scope ref Ctx ctx, in FunDeclAst a) =>
 	jsonObject(alloc, [
 		optionalStringField!"doc"(alloc, a.docComment),
 		field!"visibility"(symOfExplicitVisibility(a.visibility)),
-		field!"range"(jsonOfRangeWithinFile(alloc, ctx, a.range)),
+		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		field!"name"(jsonOfNameAndRange(alloc, ctx, a.name)),
 		maybeTypeParams(alloc, ctx, a.typeParams),
 		field!"return"(jsonOfTypeAst(alloc, ctx, a.returnType)),
@@ -340,11 +340,11 @@ Json jsonOfTypeAst(ref Alloc alloc, scope ref Ctx ctx, in TypeAst a) =>
 		(in TypeAst.Bogus x) =>
 			jsonObject(alloc, [
 				kindField!"bogus",
-				field!"range"(jsonOfRangeWithinFile(alloc, ctx, x.range))]),
+				field!"range"(jsonOfRange(alloc, ctx, x.range))]),
 		(in TypeAst.Fun x) =>
 			jsonObject(alloc, [
 				kindField!"fun",
-				field!"range"(jsonOfRangeWithinFile(alloc, ctx, x.range)),
+				field!"range"(jsonOfRange(alloc, ctx, x.range)),
 				field!"fun-kind"(symOfFunKind(x.kind)),
 				field!"return-type"(jsonOfTypeAst(alloc, ctx, x.returnType)),
 				field!"param-types"(jsonOfTypeAsts(alloc, ctx, x.paramTypes))]),
@@ -369,7 +369,7 @@ Json jsonOfTypeAst(ref Alloc alloc, scope ref Ctx ctx, in TypeAst a) =>
 		(in TypeAst.Tuple x) =>
 			jsonObject(alloc, [
 				kindField!"tuple",
-				field!"range"(jsonOfRangeWithinFile(alloc, ctx, x.range)),
+				field!"range"(jsonOfRange(alloc, ctx, x.range)),
 				field!"members"(jsonOfTypeAsts(alloc, ctx, x.members))]));
 
 Json jsonOfTypeAsts(ref Alloc alloc, scope ref Ctx ctx, in TypeAst[] a) =>
@@ -516,7 +516,7 @@ Json jsonOfExprAstKind(ref Alloc alloc, scope ref Ctx ctx, in ExprAstKind ast) =
 				field!"matched"(jsonOfExprAst(alloc, ctx, x.matched)),
 				field!"cases"(jsonList!(MatchAst.CaseAst)(alloc, x.cases, (in MatchAst.CaseAst case_) =>
 					jsonObject(alloc, [
-						field!"range"(jsonOfRangeWithinFile(alloc, ctx, case_.range)),
+						field!"range"(jsonOfRange(alloc, ctx, case_.range)),
 						field!"member-name"(case_.memberName),
 						optionalField!("destructure", DestructureAst)(case_.destructure, (in DestructureAst x) =>
 							jsonOfDestructureAst(alloc, ctx, x)),

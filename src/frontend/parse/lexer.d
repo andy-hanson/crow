@@ -24,7 +24,7 @@ import util.cell : Cell, cellGet, cellSet;
 import util.col.str : CStr, SafeCStr;
 import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, some;
-import util.sourceRange : Pos, RangeWithinFile;
+import util.sourceRange : Pos, Range;
 import util.sym : AllSymbols;
 import util.util : verify;
 
@@ -70,7 +70,7 @@ ref AllSymbols allSymbols(return ref Lexer lexer) =>
 Pos curPos(in Lexer lexer) =>
 	lexer.nextTokenPos;
 
-void addDiag(ref Lexer lexer, RangeWithinFile range, ParseDiag diag) {
+void addDiag(ref Lexer lexer, in Range range, ParseDiag diag) {
 	addDiagnosticForFile(*lexer.diagnosticsBuilderPtr, range, Diag(diag));
 }
 
@@ -78,7 +78,7 @@ void addDiagAtChar(ref Lexer lexer, ParseDiag diag) {
 	addDiag(lexer, rangeAtChar(lexer), diag);
 }
 
-RangeWithinFile rangeAtChar(in Lexer lexer) {
+Range rangeAtChar(in Lexer lexer) {
 	Pos pos = curPos(lexer);
 	Pos nextPos = () @trusted {
 		switch (*lexer.ptr) {
@@ -91,7 +91,7 @@ RangeWithinFile rangeAtChar(in Lexer lexer) {
 				return pos + 1;
 		}
 	}();
-	return RangeWithinFile(pos, nextPos);
+	return Range(pos, nextPos);
 }
 
 void addDiagUnexpectedCurToken(ref Lexer lexer, Pos start, TokenAndData token) {
@@ -108,9 +108,9 @@ void addDiagUnexpectedCurToken(ref Lexer lexer, Pos start, TokenAndData token) {
 	addDiag(lexer, range(lexer, start), diag);
 }
 
-RangeWithinFile range(in Lexer lexer, Pos begin) {
+Range range(in Lexer lexer, Pos begin) {
 	verify(begin <= curPos(lexer));
-	return RangeWithinFile(begin, curPos(lexer));
+	return Range(begin, curPos(lexer));
 }
 
 void skipUntilNewlineNoDiag(ref Lexer lexer) {
@@ -153,7 +153,7 @@ TokenAndData getPeekTokenAndData(return scope ref const Lexer lexer) =>
 Token getPeekToken(in Lexer lexer) =>
 	getPeekTokenAndData(lexer).token;
 
-private RangeWithinFile range(in Lexer lexer, CStr begin) {
+private Range range(in Lexer lexer, CStr begin) {
 	verify(begin >= lexer.sourceBegin);
 	return range(lexer, safeToUint(begin - lexer.sourceBegin));
 }
