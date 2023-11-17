@@ -71,13 +71,7 @@ import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.sourceRange : Range;
 import util.sym : Sym, sym;
 
-Expr checkCall(
-	ref ExprCtx ctx,
-	ref LocalsInfo locals,
-	in Range range,
-	in CallAst ast,
-	ref Expected expected,
-) {
+Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref CallAst ast, ref Expected expected) {
 	switch (ast.style) {
 		case CallAst.Style.dot:
 		case CallAst.Style.infix:
@@ -88,7 +82,7 @@ Expr checkCall(
 			break;
 	}
 	return checkCallCommon(
-		ctx, locals, range,
+		ctx, locals, source,
 		// Show diags at the function name and not at the whole call ast
 		nameRange(ctx.allSymbols, ast),
 		ast.funName.name,
@@ -100,43 +94,43 @@ Expr checkCall(
 Expr checkCallSpecial(size_t n)(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
-	in Range range,
+	ExprAst* ast,
 	Sym funName,
 	in ExprAst[n] args,
 	ref Expected expected,
 ) =>
-	checkCallCommon(ctx, locals, range, range, funName, none!Type, castNonScope_ref(args), expected);
+	checkCallCommon(ctx, locals, ast, ast.range, funName, none!Type, castNonScope_ref(args), expected);
 
 Expr checkCallSpecial(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
-	in Range range,
+	ExprAst* source,
 	Sym funName,
 	in ExprAst[] args,
 	ref Expected expected,
 ) =>
-	checkCallCommon(ctx, locals, range, range, funName, none!Type, castNonScope_ref(args), expected);
+	checkCallCommon(ctx, locals, source, source.range, funName, none!Type, castNonScope_ref(args), expected);
 
 Expr checkCallSpecialNoLocals(
 	ref ExprCtx ctx,
-	in Range range,
+	ExprAst* source,
 	Sym funName,
 	in ExprAst[] args,
 	ref Expected expected,
 ) {
 	FunOrLambdaInfo emptyFunInfo = FunOrLambdaInfo(noneMut!(LocalsInfo*), none!(ExprKind.Lambda*));
 	LocalsInfo emptyLocals = LocalsInfo(ptrTrustMe(emptyFunInfo), noneMut!(LocalNode*));
-	return checkCallSpecial(ctx, emptyLocals, range, funName, args, expected);
+	return checkCallSpecial(ctx, emptyLocals, source, funName, args, expected);
 }
 
 private Expr checkCallCommon(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
-	in Range range,
+	ExprAst* source,
 	in Range diagRange,
 	Sym funName,
 	in Opt!Type typeArg,
-	in ExprAst[] args,
+	ExprAst[] args,
 	ref Expected expected,
 ) {
 	PerfMeasurer perfMeasurer = startMeasure(ctx.alloc, ctx.perf, PerfMeasure.checkCall);
@@ -144,14 +138,14 @@ private Expr checkCallCommon(
 		funsInScope(ctx), funName, args.length,
 		(ref Candidates candidates) =>
 			checkCallInner(
-				ctx, locals, range, diagRange, funName, args, typeArg, perfMeasurer, candidates, expected));
+				ctx, locals, source, diagRange, funName, args, typeArg, perfMeasurer, candidates, expected));
 	endMeasure(ctx.alloc, ctx.perf, perfMeasurer);
 	return res;
 }
 
-Expr checkCallIdentifier(ref ExprCtx ctx, in Range range, Sym name, ref Expected expected) {
-	checkCallShouldUseSyntax(ctx, range, name, 0);
-	return checkCallSpecialNoLocals(ctx, range, name, [], expected);
+Expr checkCallIdentifier(ref ExprCtx ctx, ExprAst* source, Sym name, ref Expected expected) {
+	checkCallShouldUseSyntax(ctx, source.range, name, 0);
+	return checkCallSpecialNoLocals(ctx, source, name, [], expected);
 }
 
 private:
@@ -159,10 +153,10 @@ private:
 Expr checkCallInner(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
-	in Range range,
+	ExprAst* source,
 	in Range diagRange,
 	Sym funName,
-	in ExprAst[] argAsts,
+	ExprAst[] argAsts,
 	in Opt!Type explicitTypeArg,
 	ref PerfMeasurer perfMeasurer,
 	ref Candidates candidates,
@@ -180,7 +174,7 @@ Expr checkCallInner(
 	// Apply explicitly typed arguments first
 	foreach (size_t argIdx, ExprAst arg; argAsts)
 		if (inferCandidateTypeArgsFromExplicitlyTypedArgument(ctx, candidates, argIdx, arg) == ContinueOrAbort.abort)
-			return bogus(expected, range);
+			return bogus(expected, source);
 
 	ArrBuilder!Type actualArgTypes;
 	bool someArgIsBogus = false;
@@ -196,7 +190,7 @@ Expr checkCallInner(
 		Expected expected = Expected(tempAsArr(castNonScope_ref(paramExpected)));
 
 		pauseMeasure(ctx.alloc, ctx.perf, perfMeasurer);
-		Expr arg = checkExpr(ctx, locals, argAsts[argIdx], expected);
+		Expr arg = checkExpr(ctx, locals, &argAsts[argIdx], expected);
 		resumeMeasure(ctx.alloc, ctx.perf, perfMeasurer);
 
 		Type actualArgType = inferred(expected);
@@ -212,7 +206,7 @@ Expr checkCallInner(
 	});
 
 	if (someArgIsBogus)
-		return bogus(expected, range);
+		return bogus(expected, source);
 
 	filterCandidatesButDontRemoveAll(candidates, (scope ref Candidate x) =>
 		inferCandidateTypeArgsFromSpecs(ctx, x));
@@ -229,9 +223,9 @@ Expr checkCallInner(
 				allCandidates)));
 		} else
 			addDiag2(ctx, diagRange, Diag(Diag.CallMultipleMatches(funName, candidatesForDiag(ctx.alloc, candidates))));
-		return bogus(expected, range);
+		return bogus(expected, source);
 	} else
-		return checkCallAfterChoosingOverload(ctx, isInLambda(locals), only(candidates), range, force(args), expected);
+		return checkCallAfterChoosingOverload(ctx, isInLambda(locals), only(candidates), source, force(args), expected);
 }
 
 void checkCallShouldUseSyntax(ref ExprCtx ctx, in Range range, Sym funName, size_t arity) {
@@ -422,18 +416,18 @@ Expr checkCallAfterChoosingOverload(
 	ref ExprCtx ctx,
 	bool isInLambda,
 	ref const Candidate candidate,
-	in Range range,
+	ExprAst* source,
 	Expr[] args,
 	ref Expected expected,
 ) {
-	Opt!Called opCalled = checkCallSpecs(ctx, range, candidate);
+	Opt!Called opCalled = checkCallSpecs(ctx, source.range, candidate);
 	if (has(opCalled)) {
 		Called called = force(opCalled);
-		checkCalled(ctx, range, called, isInLambda, empty(args) ? ArgsKind.empty : ArgsKind.nonEmpty);
-		Expr calledExpr = Expr(range, ExprKind(ExprKind.Call(called, args)));
+		checkCalled(ctx, source, called, isInLambda, empty(args) ? ArgsKind.empty : ArgsKind.nonEmpty);
+		Expr calledExpr = Expr(source, ExprKind(ExprKind.Call(called, args)));
 		//TODO: PERF second return type check may be unnecessary
 		// if we already filtered by return type at the beginning
-		return check(ctx, expected, called.returnType, calledExpr);
+		return check(ctx, source, expected, called.returnType, calledExpr);
 	} else
-		return bogus(expected, range);
+		return bogus(expected, source);
 }

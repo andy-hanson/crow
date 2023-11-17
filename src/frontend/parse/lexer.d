@@ -43,6 +43,7 @@ struct Lexer {
 	uint curIndent;
 	// This is after 'nextToken'.
 	immutable(char)* ptr;
+	immutable(char)* prevTokenEnd;
 	// Position at start of 'nextToken'.
 	Pos nextTokenPos = void;
 	Cell!TokenAndData nextToken = void;
@@ -60,7 +61,8 @@ ref AllSymbols allSymbols(return ref Lexer lexer) =>
 	DiagnosticsBuilderForFile* diagnosticsBuilder,
 	SafeCStr source,
 ) {
-	Lexer lexer = Lexer(alloc, allSymbols, diagnosticsBuilder, source.ptr, detectIndentKind(source), 0, source.ptr);
+	Lexer lexer = Lexer(
+		alloc, allSymbols, diagnosticsBuilder, source.ptr, detectIndentKind(source), 0, source.ptr, source.ptr);
 	cellSet(lexer.nextToken,
 		lexInitialToken(lexer.ptr, lexer.allSymbols, lexer.indentKind, lexer.curIndent, (ParseDiag x) =>
 			addDiagAtChar(lexer, x)));
@@ -110,7 +112,7 @@ void addDiagUnexpectedCurToken(ref Lexer lexer, Pos start, TokenAndData token) {
 
 Range range(in Lexer lexer, Pos begin) {
 	verify(begin <= curPos(lexer));
-	return Range(begin, curPos(lexer));
+	return Range(begin, safeToUint(lexer.prevTokenEnd - lexer.sourceBegin));
 }
 
 void skipUntilNewlineNoDiag(ref Lexer lexer) {
@@ -142,6 +144,7 @@ TokenAndData takeNextToken(ref Lexer lexer) {
 }
 
 private void readNextToken(ref Lexer lexer) {
+	lexer.prevTokenEnd = lexer.ptr;
 	skipSpacesAndComments(lexer.ptr);
 	lexer.nextTokenPos = safeToUint(lexer.ptr - lexer.sourceBegin);
 	cellSet(lexer.nextToken, lexToken(lexer.ptr, lexer.allSymbols, lexer.indentKind, lexer.curIndent, (ParseDiag x) =>

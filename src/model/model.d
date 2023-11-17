@@ -4,6 +4,7 @@ module model.model;
 
 import frontend.parse.ast :
 	DestructureAst,
+	ExprAst,
 	FunDeclAst,
 	ImportOrExportAst,
 	NameAndRange,
@@ -1426,8 +1427,13 @@ immutable struct Destructure {
 }
 
 immutable struct Expr {
-	Range range;
+	@safe @nogc pure nothrow:
+
+	ExprAst* ast;
 	ExprKind kind;
+
+	Range range() scope =>
+		ast.range;
 }
 
 immutable struct ExprAndType {

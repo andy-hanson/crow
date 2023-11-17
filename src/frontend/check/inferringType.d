@@ -8,7 +8,7 @@ import frontend.check.instantiate :
 import frontend.check.maps : FunsMap, StructsAndAliasesMap;
 import frontend.check.typeFromAst : typeFromAst;
 import frontend.lang : maxClosureFields;
-import frontend.parse.ast : TypeAst;
+import frontend.parse.ast : ExprAst, TypeAst;
 import frontend.programState : ProgramState;
 import model.diag : Diag, ExpectedForDiag;
 import model.model :
@@ -130,21 +130,21 @@ struct ExprCtx {
 		*checkCtxPtr;
 }
 
-T withTrusted(T)(ref ExprCtx ctx, in Range range, in T delegate() @safe @nogc pure nothrow cb) {
+T withTrusted(T)(ref ExprCtx ctx, ExprAst* source, in T delegate() @safe @nogc pure nothrow cb) {
 	Opt!(Diag.TrustedUnnecessary.Reason) reason = ctx.outermostFunFlags.safety != FunFlags.Safety.safe
 		? some(Diag.TrustedUnnecessary.Reason.inUnsafeFunction)
 		: ctx.isInTrusted
 		? some(Diag.TrustedUnnecessary.Reason.inTrusted)
 		: none!(Diag.TrustedUnnecessary.Reason);
 	if(has(reason)) {
-		addDiag2(ctx, range, Diag(Diag.TrustedUnnecessary(force(reason))));
+		addDiag2(ctx, source, Diag(Diag.TrustedUnnecessary(force(reason))));
 		return cb();
 	} else {
 		ctx.isInTrusted = true;
 		T res = cb();
 		ctx.isInTrusted = false;
 		if (!ctx.usedTrusted)
-			addDiag2(ctx, range, Diag(Diag.TrustedUnnecessary(Diag.TrustedUnnecessary.Reason.unused)));
+			addDiag2(ctx, source, Diag(Diag.TrustedUnnecessary(Diag.TrustedUnnecessary.Reason.unused)));
 		ctx.usedTrusted = false;
 		return res;
 	}
@@ -170,6 +170,9 @@ void addDiag2(ref ExprCtx ctx, in UriAndRange range, Diag diag) {
 }
 void addDiag2(ref ExprCtx ctx, in Range range, Diag diag) {
 	addDiag(ctx.checkCtx, range, diag);
+}
+void addDiag2(ref ExprCtx ctx, in ExprAst* source, Diag diag) {
+	addDiag2(ctx, source.range, diag);
 }
 
 immutable(Type) typeFromAst2(ref ExprCtx ctx, in TypeAst ast) =>
@@ -251,7 +254,7 @@ If there are multiple allowed choices, adds a diagnostic and returns none.
 */
 Opt!size_t findExpectedStructForLiteral(
 	ref ExprCtx ctx,
-	in Range range,
+	ExprAst* source,
 	ref const Expected expected,
 	in immutable StructInst*[] choices,
 	size_t defaultChoice,
@@ -288,7 +291,7 @@ Opt!size_t findExpectedStructForLiteral(
 					}
 				}
 			if (!arrBuilderIsEmpty(multiple)) {
-				addDiag2(ctx, range, Diag(Diag.LiteralAmbiguous(finishArr(ctx.alloc, multiple))));
+				addDiag2(ctx, source, Diag(Diag.LiteralAmbiguous(finishArr(ctx.alloc, multiple))));
 				return none!size_t;
 			} else
 				return has(cellGet(rslt)) ? cellGet(rslt) : some(defaultChoice);
@@ -447,7 +450,7 @@ bool matchExpectedVsReturnTypeNoDiagnostic(
 		(const LoopInfo*) =>
 			false);
 
-Expr bogus(ref Expected expected, in Range range) {
+Expr bogus(ref Expected expected, ExprAst* ast) {
 	expected.match!void(
 		(Expected.Infer) {
 			setToBogus(expected);
@@ -457,7 +460,7 @@ Expr bogus(ref Expected expected, in Range range) {
 			setToBogus(expected);
 		},
 		(LoopInfo*) {});
-	return Expr(range, ExprKind(ExprKind.Bogus()));
+	return Expr(ast, ExprKind(ExprKind.Bogus()));
 }
 
 Type inferred(ref const Expected expected) =>
@@ -473,12 +476,12 @@ Type inferred(ref const Expected expected) =>
 			// Just treat loop body as 'void'
 			x.voidType);
 
-Expr check(ref ExprCtx ctx, ref Expected expected, Type exprType, Expr expr) {
+Expr check(ref ExprCtx ctx, ExprAst* source, ref Expected expected, Type exprType, Expr expr) {
 	if (setTypeNoDiagnostic(ctx.alloc, ctx.programState, expected, exprType))
 		return expr;
 	else {
 		addDiag2(ctx, expr.range, Diag(Diag.TypeConflict(getExpectedForDiag(ctx.alloc, expected), exprType)));
-		return bogus(expected, expr.range);
+		return bogus(expected, source);
 	}
 }
 

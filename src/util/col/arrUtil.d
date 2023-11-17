@@ -361,6 +361,12 @@ void zip(T, U)(
 		cb(a[i], b[i]);
 }
 
+void zipPointers(T, U)(T[] a, U[] b, in void delegate(T*, U*) @safe @nogc pure nothrow cb) {
+	verify(sizeEq(a, b));
+	foreach (size_t i; 0 .. a.length)
+		cb(&a[i], &b[i]);
+}
+
 void zipPtrFirst(T, U)(
 	T[] a,
 	scope U[] b,
@@ -399,18 +405,18 @@ void zipPtrFirst(T, U)(
 	return res[0 .. sz];
 }
 
-@trusted Out[] mapZipPtrFirst3(Out, In0, In1, In2)(
+@trusted Out[] mapZipPointers3(Out, In0, In1, In2)(
 	ref Alloc alloc,
 	In0[] in0,
-	in In1[] in1,
-	in In2[] in2,
-	in Out delegate(In0*, ref In1, ref In2) @safe @nogc pure nothrow cb,
+	In1[] in1,
+	In2[] in2,
+	in Out delegate(In0*, In1*, In2*) @safe @nogc pure nothrow cb,
 ) {
 	verify(sizeEq(in0, in1) && sizeEq(in1, in2));
 	size_t sz = in0.length;
 	Out* res = allocateT!Out(alloc, sz);
 	foreach (size_t i; 0 .. sz)
-		initMemory(res + i, cb(&in0[i], in1[i], in2[i]));
+		initMemory(res + i, cb(&in0[i], &in1[i], &in2[i]));
 	return res[0 .. sz];
 }
 

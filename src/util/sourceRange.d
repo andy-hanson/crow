@@ -31,7 +31,6 @@ immutable struct Range {
 	static Range empty() =>
 		Range(0, 0);
 }
-static assert(Range.sizeof == 8);
 
 Comparison compareRange(in Range a, in Range b) =>
 	a.start == b.start ? compareNat32(a.end, b.end) : compareNat32(a.start, b.start);

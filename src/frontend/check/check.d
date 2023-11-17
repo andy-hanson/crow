@@ -84,7 +84,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : empty, emptySmallArray, only, ptrsRange, small;
-import util.col.arrUtil : cat, filter, map, mapOp, mapToMut, mapPointers, zip, zipPtrFirst;
+import util.col.arrUtil : cat, filter, map, mapOp, mapToMut, mapPointers, zip, zipPointers;
 import util.col.map : Map, mapEach, hasKey, KeyValuePair;
 import util.col.mapBuilder : MapBuilder, finishMap, tryAddToMap;
 import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd, finish, newExactSizeArrBuilder;
@@ -614,7 +614,7 @@ FunsAndMap checkFuns(
 		ctx.alloc, funs, (size_t index, FunDecl* x) => KeyValuePair!(Sym, immutable FunDecl*)(x.name, x));
 
 	FunDecl[] funsWithAsts = funs[0 .. asts.length];
-	zipPtrFirst!(FunDecl, FunDeclAst)(funsWithAsts, asts, (FunDecl* fun, ref FunDeclAst funAst) {
+	zipPointers!(FunDecl, FunDeclAst)(funsWithAsts, asts, (FunDecl* fun, FunDeclAst* funAst) {
 		fun.setBody(() {
 			final switch (fun.flags.specialBody) {
 				case FunFlags.SpecialBody.none:
@@ -628,7 +628,7 @@ FunsAndMap checkFuns(
 							structsAndAliasesMap,
 							funsMap,
 							*fun,
-							force(funAst.body_)));
+							&force(funAst.body_)));
 				case FunFlags.SpecialBody.builtin:
 				case FunFlags.SpecialBody.generated:
 					if (has(funAst.body_))
@@ -638,7 +638,7 @@ FunsAndMap checkFuns(
 					if (has(funAst.body_))
 						todo!void("diag: builtin fun can't have body");
 					return FunBody(checkExternBody(
-						ctx, fun, getExternTypeArg(funAst, FunModifierAst.Special.Flags.extern_)));
+						ctx, fun, getExternTypeArg(*funAst, FunModifierAst.Special.Flags.extern_)));
 			}
 		}());
 	});
@@ -651,7 +651,7 @@ FunsAndMap checkFuns(
 		fun.setBody(getFileImportFunctionBody(ctx, commonTypes, structsAndAliasesMap, funsMap, *fun, f));
 	}
 
-	Test[] tests = map(ctx.alloc, testAsts, (ref TestAst ast) {
+	Test[] tests = mapPointers(ctx.alloc, testAsts, (TestAst* ast) {
 		Type voidType = Type(commonTypes.void_);
 		if (!has(ast.body_))
 			todo!void("diag: test needs body");
@@ -666,7 +666,7 @@ FunsAndMap checkFuns(
 			[],
 			[],
 			FunFlags.none.withSummon,
-			force(ast.body_)));
+			&force(ast.body_)));
 	});
 
 	return FunsAndMap(funs, tests, funsMap);
@@ -699,7 +699,10 @@ FunBody getFileImportFunctionBody(
 		case ImportFileType.nat8Array:
 			return FunBody(FunBody.FileBytes(asBytes(ie.content)));
 		case ImportFileType.string:
-			ExprAst ast = ExprAst(f.range.range, ExprAstKind(LiteralStringAst(asString(ie.content))));
+			// TODO: this could just use a special FunBody, but we need a way to wrap it in string constructor
+			ExprAst* ast = allocate(ctx.alloc, ExprAst(
+				f.range.range,
+				ExprAstKind(LiteralStringAst(asString(ie.content)))));
 			return FunBody(getExprFunctionBody(ctx, commonTypes, structsAndAliasesMap, funsMap, f, ast));
 	}
 }
@@ -710,7 +713,7 @@ FunBody.ExpressionBody getExprFunctionBody(
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in FunsMap funsMap,
 	in FunDecl f,
-	ref ExprAst e,
+	ExprAst* e,
 ) =>
 	FunBody.ExpressionBody(checkFunctionBody(
 		ctx,

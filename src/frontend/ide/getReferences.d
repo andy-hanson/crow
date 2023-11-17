@@ -15,7 +15,19 @@ import frontend.ide.ideUtil :
 	ReferenceCb;
 import frontend.ide.position : Position, PositionKind;
 import frontend.parse.ast :
-	DestructureAst, FunDeclAst, ParamsAst, paramsArray, pathRange, range, StructDeclAst, TypeAst;
+	AssignmentAst,
+	AssignmentCallAst,
+	CallAst,
+	DestructureAst,
+	ExprAstKind,
+	FunDeclAst,
+	ParamsAst,
+	paramsArray,
+	pathRange,
+	range,
+	rangeOfNameAndRange,
+	StructDeclAst,
+	TypeAst;
 import model.model :
 	body_,
 	Called,
@@ -107,7 +119,7 @@ void referencesForTarget(
 			referencesForEnumMember(program, x, cb);
 		},
 		(FunDecl* x) {
-			referencesForFunDecls(program, [x], cb);
+			referencesForFunDecls(allSymbols, program, [x], cb);
 		},
 		(PositionKind.ImportedName x) {
 			//TODO: this should be references in the current module only
@@ -122,7 +134,7 @@ void referencesForTarget(
 			referencesForModule(allUris, program, x, cb);
 		},
 		(RecordField* x) {
-			referencesForRecordField(program, *x, cb);
+			referencesForRecordField(allSymbols, program, *x, cb);
 		},
 		(SpecDecl* x) {
 			referencesForSpecDecl(allSymbols, program, x, cb);
@@ -151,7 +163,7 @@ void referencesForLocal(
 		(ref FunDecl fun) {
 			Expr body_ = fun.body_.isA!(FunBody.ExpressionBody)
 				? fun.body_.as!(FunBody.ExpressionBody).expr
-				: Expr(Range.empty, ExprKind(ExprKind.Bogus()));
+				: Expr(null, ExprKind(ExprKind.Bogus()));
 			eachDescendentExprIncluding(body_, (in Expr x) @safe {
 				Opt!Target xTarget = exprTarget(program, PositionKind.Expression(&fun, ptrTrustMe(x)));
 				if (optEqual!Target(xTarget, some(Target(a))))
@@ -334,7 +346,7 @@ void eachTypeDirectlyInExpr(in Expr a, in TypeCb cb) {
 		(in ExprKind.Throw x) {});
 }
 
-void referencesForFunDecls(in Program program, in FunDecl*[] decls, in ReferenceCb cb) {
+void referencesForFunDecls(in AllSymbols allSymbols, in Program program, in FunDecl*[] decls, in ReferenceCb cb) {
 	Visibility maxVisibility = fold(Visibility.private_, decls, (Visibility a, in FunDecl* b) =>
 		greatestVisibility(a, b.visibility));
 	verify(allSame!(Uri, FunDecl*)(decls, (in FunDecl* x) => moduleUri(*x)));
@@ -343,12 +355,23 @@ void referencesForFunDecls(in Program program, in FunDecl*[] decls, in Reference
 		if (x.kind.isA!(ExprKind.Call)) {
 			Called called = x.kind.as!(ExprKind.Call).called;
 			if (called.isA!(FunInst*) && contains(decls, decl(*called.as!(FunInst*))))
-				cb(UriAndRange(module_.uri, x.range));
+				cb(UriAndRange(module_.uri, callNameRange(allSymbols, x)));
 		} else if (x.kind.isA!(ExprKind.FunPtr)) {
 			if (contains(decls, decl(*x.kind.as!(ExprKind.FunPtr).funInst)))
-				cb(UriAndRange(module_.uri, x.range));
+				cb(UriAndRange(module_.uri, callNameRange(allSymbols, x)));
 		}
 	});
+}
+
+Range callNameRange(in AllSymbols allSymbols, in Expr a) {
+	ExprAstKind kind = a.ast.kind;
+	return kind.isA!(AssignmentAst*)
+		? kind.as!(AssignmentAst*).left.range
+		: kind.isA!(AssignmentCallAst*)
+		? rangeOfNameAndRange(kind.as!(AssignmentCallAst*).funName, allSymbols)
+		: kind.isA!CallAst
+		? rangeOfNameAndRange(kind.as!CallAst.funName, allSymbols)
+		: a.ast.range;
 }
 
 void eachExprThatMayReference(
@@ -385,9 +408,9 @@ void referencesForSpecSig(in AllSymbols allSymbols, in Program program, in Posit
 	});
 }
 
-void referencesForRecordField(in Program program, in RecordField field, in ReferenceCb cb) {
+void referencesForRecordField(in AllSymbols allSymbols, in Program program, in RecordField field, in ReferenceCb cb) {
 	withRecordFieldFunctions(program, field, (in FunDecl*[] funs) {
-		referencesForFunDecls(program, funs, cb);
+		referencesForFunDecls(allSymbols, program, funs, cb);
 	});
 }
 
@@ -403,7 +426,7 @@ void referencesForVarDecl(scope ref AllSymbols allSymbols, in Program program, i
 		x.body_.isA!(FunBody.VarGet) && x.body_.as!(FunBody.VarGet).var == a);
 	Opt!(FunDecl*) setter = find(funsNamed(module_, prependSet(allSymbols, a.name)), (in FunDecl* x) =>
 		x.body_.isA!(FunBody.VarSet) && x.body_.as!(FunBody.VarSet).var == a);
-	referencesForFunDecls(program, [force(getter), force(setter)], cb);
+	referencesForFunDecls(allSymbols, program, [force(getter), force(setter)], cb);
 }
 
 void withRecordFieldFunctions(

@@ -76,7 +76,7 @@
 	},
 	{
 		"start": {"line": 3, "character": 1},
-		"end": {"line": 3, "character": 3},
+		"end": {"line": 3, "character": 2},
 		"hover": "a nat",
 		"definition": [
 			{
@@ -89,7 +89,7 @@
 		]
 	},
 	{
-		"start": {"line": 3, "character": 4},
+		"start": {"line": 3, "character": 3},
 		"end": {"line": 3, "character": 4},
 		"hover": "g nat(a nat) (from magic:function.crow line 6)",
 		"definition": [

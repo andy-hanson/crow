@@ -398,7 +398,9 @@ Json jsonOfDestructureAst(ref Alloc alloc, scope ref Ctx ctx, in DestructureAst 
 				jsonOfDestructureAst(alloc, ctx, part)));
 
 Json jsonOfExprAst(ref Alloc alloc, scope ref Ctx ctx, in ExprAst ast) =>
-	jsonOfExprAstKind(alloc, ctx, ast.kind);
+	jsonObject(alloc, [
+		field!"range"(jsonOfRange(alloc, ctx, ast.range)),
+		field!"kind"(jsonOfExprAstKind(alloc, ctx, ast.kind))]);
 
 Json jsonOfNameAndRange(ref Alloc alloc, scope ref Ctx ctx, in NameAndRange a) =>
 	jsonObject(alloc, [

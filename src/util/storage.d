@@ -180,5 +180,5 @@ FileContent emptyFileContent(ref Alloc alloc) {
 	*/
 }
 
-FileContent copyFileContent(ref Alloc alloc, in FileContent a) =>
+private FileContent copyFileContent(ref Alloc alloc, in FileContent a) =>
 	FileContent(copyArr(alloc, a.bytes));

@@ -31,7 +31,7 @@ void testTokens(ref Test test) {
 		Token(Token.Kind.struct_, Range(33, 36)),
 		Token(Token.Kind.keyword, Range(36, 38)),
 		Token(Token.Kind.modifier, Range(40, 46)),
-		Token(Token.Kind.literalNumber, Range(48, 50)),
+		Token(Token.Kind.literalNumber, Range(48, 49)),
 		Token(Token.Kind.fun, Range(50, 58))]));
 
 	testOne(test, testSource2, arrLiteral!Token(test.alloc, [
