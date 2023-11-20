@@ -24,7 +24,7 @@ import lib.server :
 	setFile,
 	setFileFromTemp,
 	setIncludeDir,
-	showDiagnostic,
+	showDiag,
 	TokensAndParseDiagnostics,
 	toUri,
 	typeCheckAllKnownFiles,
@@ -269,7 +269,7 @@ Json jsonOfDiagnostic(ref Alloc alloc, ref Server server, in Program program, in
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, server.lineAndColumnGetters, a.where)),
 		field!"severity"(cast(uint) toLspDiagnosticSeverity(getDiagnosticSeverity(a.diag))),
-		field!"message"(jsonString(alloc, showDiagnostic(alloc, server, program, a)))]);
+		field!"message"(jsonString(alloc, showDiag(alloc, server, program, a.diag)))]);
 
 enum LspDiagnosticSeverity {
 	Error = 1,

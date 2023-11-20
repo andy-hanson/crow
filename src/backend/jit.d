@@ -308,7 +308,7 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in AllSymbols all
 					globalVoid);
 
 				if (isStubFunction(funIndex)) {
-					debugLogWithWriter((ref Writer writer) {
+					debugLogWithWriter((scope ref Writer writer) {
 						import interpret.debugging : writeFunName, writeFunSig;
 						writer ~= "Stub ";
 						writer ~= funIndex.index;

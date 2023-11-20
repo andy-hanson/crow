@@ -35,7 +35,7 @@ struct Writer {
 	}
 }
 
-void debugLogWithWriter(in void delegate(ref Writer) @safe @nogc pure nothrow cb) {
+void debugLogWithWriter(in void delegate(scope ref Writer) @safe @nogc pure nothrow cb) {
 	debugLogWithWriter((scope ref Alloc, ref Writer writer) {
 		cb(writer);
 	});
@@ -48,6 +48,12 @@ void debugLogWithWriter(in void delegate(scope ref Alloc, ref Writer) @safe @nog
 			debugLog(finishWriterToCStr(writer));
 		});
 	}
+}
+
+SafeCStr withWriter(ref Alloc alloc, in void delegate(scope ref Writer writer) @safe @nogc pure nothrow cb) {
+	Writer writer = Writer(&alloc);
+	cb(writer);
+	return finishWriterToSafeCStr(writer);
 }
 
 string finishWriter(scope ref Writer writer) =>

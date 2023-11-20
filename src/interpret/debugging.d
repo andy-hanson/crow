@@ -20,11 +20,11 @@ import util.col.arr : only;
 import util.writer : Writer, writeWithCommas;
 import util.sym : writeSym;
 
-void writeFunName(ref Writer writer, ref ShowCtx ctx, in LowProgram lowProgram, LowFunIndex fun) {
+void writeFunName(scope ref Writer writer, ref ShowCtx ctx, in LowProgram lowProgram, LowFunIndex fun) {
 	writeFunName(writer, ctx, lowProgram, lowProgram.allFuns[fun]);
 }
 
-void writeFunName(ref Writer writer, ref ShowCtx ctx, in LowProgram lowProgram, in LowFun a) {
+void writeFunName(scope ref Writer writer, ref ShowCtx ctx, in LowProgram lowProgram, in LowFun a) {
 	a.source.matchIn!void(
 		(in ConcreteFun x) {
 			writeConcreteFunName(writer, ctx, x);
@@ -36,7 +36,12 @@ void writeFunName(ref Writer writer, ref ShowCtx ctx, in LowProgram lowProgram, 
 		});
 }
 
-private void writeLowTypeArgs(ref Writer writer, ref ShowCtx ctx, in LowProgram lowProgram, in LowType[] typeArgs) {
+private void writeLowTypeArgs(
+	scope ref Writer writer,
+	ref ShowCtx ctx,
+	in LowProgram lowProgram,
+	in LowType[] typeArgs,
+) {
 	writeTypeArgsGeneric!LowType(writer, typeArgs,
 		(in LowType x) => false,
 		(in LowType typeArg) {

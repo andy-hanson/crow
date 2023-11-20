@@ -18,7 +18,7 @@ import frontend.lang : crowExtension;
 import frontend.parse.ast : FileAst;
 import frontend.parse.jsonOfAst : jsonOfAst;
 import frontend.parse.parse : parseFile;
-import frontend.showDiag : strOfDiagnostic, strOfDiagnostics;
+import frontend.showDiag : stringOfDiag, stringOfDiagnostics;
 import frontend.showModel : ShowCtx, ShowOptions;
 import interpret.bytecode : ByteCode;
 import interpret.extern_ : Extern, ExternFunPtrsForAllLibraries, WriteError;
@@ -28,7 +28,7 @@ import interpret.runBytecode : runBytecode;
 import lib.cliParser : PrintKind;
 import lower.lower : lower;
 import model.concreteModel : ConcreteProgram;
-import model.diag : Diagnostic, diagnosticsIsFatal;
+import model.diag : Diag, Diagnostic, diagnosticsIsFatal;
 import model.jsonOfConcreteModel : jsonOfConcreteProgram;
 import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
@@ -230,14 +230,14 @@ Program typeCheckAllKnownFiles(ref Alloc alloc, ref Perf perf, ref Server server
 Program justTypeCheck(ref Alloc alloc, ref Perf perf, ref Server server, in Uri[] rootUris) =>
 	frontendCompile(alloc, perf, server, rootUris, none!Uri);
 
-SafeCStr showDiagnostic(ref Alloc alloc, scope ref Server server, in Program program, in Diagnostic a) {
+SafeCStr showDiag(ref Alloc alloc, scope ref Server server, in Program program, in Diag a) {
 	ShowCtx ctx = getShowDiagCtx(server, program);
-	return strOfDiagnostic(alloc, ctx, a);
+	return stringOfDiag(alloc, ctx, a);
 }
 
 SafeCStr showDiagnostics(ref Alloc alloc, scope ref Server server, in Program program) {
 	ShowCtx ctx = getShowDiagCtx(server, program);
-	return strOfDiagnostics(alloc, ctx, program.diagnostics);
+	return stringOfDiagnostics(alloc, ctx, program.diagnostics);
 }
 
 immutable struct DocumentResult {
