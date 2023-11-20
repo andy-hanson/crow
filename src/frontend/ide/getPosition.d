@@ -23,35 +23,8 @@ import frontend.parse.ast :
 	StructDeclAst,
 	symOfFieldMutabilityAstKind,
 	TypeAst;
-import model.model :
-	body_,
-	decl,
-	Destructure,
-	Expr,
-	ExprKind,
-	FunBody,
-	FunDecl,
-	FunDeclSource,
-	ImportOrExport,
-	ImportOrExportKind,
-	Local,
-	LocalSource,
-	Module,
-	nameRange,
-	Params,
-	paramsArray,
-	range,
-	RecordField,
-	SpecDecl,
-	SpecDeclBody,
-	SpecDeclSig,
-	SpecInst,
-	StructBody,
-	StructDecl,
-	Type,
-	typeArgs,
-	TypeParam,
-	VarDecl;
+import model.model;
+import model.model : paramsArray, range;
 import util.col.arr : ptrsRange;
 import util.col.arrUtil : first, firstPointer, firstWithIndex, firstZipPointerFirst;
 import util.opt : force, has, none, Opt, optIf, optOr, optOr, optOrDefault, some;
@@ -319,90 +292,90 @@ Opt!PositionKind positionInExpr(in AllSymbols allSymbols, FunDecl* containingFun
 				: none!PositionKind;
 
 		return a.kind.match!(Opt!PositionKind)(
-			(ExprKind.AssertOrForbid x) =>
+			(AssertOrForbidExpr x) =>
 				optOr!PositionKind(
 					recur(*x.condition),
 					() => recurOpt(x.thrown),
 					() => here()),
-			(ExprKind.Bogus) =>
+			(BogusExpr _) =>
 				none!PositionKind,
-			(ExprKind.Call x) =>
+			(CallExpr x) =>
 				optOr!PositionKind(
 					first!(PositionKind, Expr)(x.args, (Expr y) => recur(y)),
 					() => here()),
-			(ExprKind.ClosureGet) =>
+			(ClosureGetExpr _) =>
 				here(),
-			(ExprKind.ClosureSet x) =>
+			(ClosureSetExpr x) =>
 				optOr!PositionKind(
 					recur(*x.value),
 					() => here()),
-			(ExprKind.FunPtr) =>
+			(FunPtrExpr _) =>
 				here(),
-			(ref ExprKind.If x) =>
+			(ref IfExpr x) =>
 				optOr!PositionKind(
 					recur(x.cond),
 					() => recur(x.then),
 					() => recur(x.else_),
 					() => here()),
-			(ref ExprKind.IfOption x) =>
+			(ref IfOptionExpr x) =>
 				optOr!PositionKind(
 					inDestructure(x.destructure),
 					() => recur(x.option.expr),
 					() => recur(x.then),
 					() => recur(x.else_),
 					() => here()),
-			(ref ExprKind.Lambda x) =>
+			(ref LambdaExpr x) =>
 				optOr!PositionKind(
 					inDestructure(x.param),
 					() => recur(x.body_),
 					() => here()),
-			(ref ExprKind.Let x) =>
+			(ref LetExpr x) =>
 				optOr!PositionKind(
 					inDestructure(x.destructure),
 					() => recur(x.value),
 					() => recur(x.then),
 					() => here()),
-			(ref ExprKind.Literal) =>
+			(ref LiteralExpr _) =>
 				here(),
-			(ExprKind.LiteralCString) =>
+			(LiteralCStringExpr _) =>
 				here(),
-			(ExprKind.LiteralSymbol) =>
+			(LiteralSymbolExpr _) =>
 				here(),
-			(ExprKind.LocalGet) =>
+			(LocalGetExpr _) =>
 				here(),
-			(ref ExprKind.LocalSet) =>
+			(ref LocalSetExpr _) =>
 				here(),
-			(ref ExprKind.Loop x) =>
+			(ref LoopExpr x) =>
 				optOr!PositionKind(recur(x.body_), () => here()),
-			(ref ExprKind.LoopBreak x) =>
+			(ref LoopBreakExpr x) =>
 				optOr!PositionKind(recur(x.value), () => here()),
-			(ExprKind.LoopContinue) =>
+			(LoopContinueExpr _) =>
 				here(),
-			(ref ExprKind.LoopUntil x) =>
+			(ref LoopUntilExpr x) =>
 				optOr!PositionKind(recur(x.condition), () => recur(x.body_), () => here()),
-			(ref ExprKind.LoopWhile x) =>
+			(ref LoopWhileExpr x) =>
 				optOr!PositionKind(recur(x.condition), () => recur(x.body_), () => here()),
-			(ref ExprKind.MatchEnum x) =>
+			(ref MatchEnumExpr x) =>
 				optOr!PositionKind(
 					recur(x.matched.expr),
 					() => first!(PositionKind, Expr)(x.cases, (Expr y) => recur(y)),
 					() => here()),
-			(ref ExprKind.MatchUnion x) =>
+			(ref MatchUnionExpr x) =>
 				optOr!PositionKind(
 					recur(x.matched.expr),
-					() => first!(PositionKind, ExprKind.MatchUnion.Case)(x.cases, (ExprKind.MatchUnion.Case case_) =>
+					() => first!(PositionKind, MatchUnionExpr.Case)(x.cases, (MatchUnionExpr.Case case_) =>
 						optOr!PositionKind(
 							inDestructure(case_.destructure),
 							() => recur(case_.then)))),
-			(ref ExprKind.PtrToField x) =>
+			(ref PtrToFieldExpr x) =>
 				optOr!PositionKind(
 					recur(x.target.expr),
 					() => here()),
-			(ExprKind.PtrToLocal) =>
+			(PtrToLocalExpr) =>
 				here(),
-			(ref ExprKind.Seq x) =>
+			(ref SeqExpr x) =>
 				optOr!PositionKind(recur(x.first), () => recur(x.then)),
-			(ref ExprKind.Throw x) =>
+			(ref ThrowExpr x) =>
 				optOr!PositionKind(recur(x.thrown), () => here()));
 	}
 }

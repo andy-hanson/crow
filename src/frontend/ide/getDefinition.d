@@ -6,8 +6,8 @@ import frontend.ide.getTarget : Target, targetForPosition;
 import frontend.ide.ideUtil : ReferenceCb;
 import frontend.ide.position : Position, PositionKind;
 import model.model :
-	ExprKind,
 	FunDecl,
+	LoopExpr,
 	localMustHaveNameRange,
 	loopKeywordRange,
 	Module,
@@ -53,7 +53,7 @@ public void definitionForTarget(in AllSymbols allSymbols, Uri curUri, in Target 
 		(in PositionKind.LocalPosition x) {
 			cb(localMustHaveNameRange(*x.local, allSymbols));
 		},
-		(in ExprKind.Loop x) {
+		(in LoopExpr x) {
 			cb(UriAndRange(curUri, loopKeywordRange(x)));
 		},
 		(in Module x) {

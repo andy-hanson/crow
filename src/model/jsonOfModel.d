@@ -5,30 +5,54 @@ module model.jsonOfModel;
 import frontend.parse.ast : ImportOrExportAst, pathRange;
 import model.jsonOfConstant : jsonOfConstant;
 import model.model :
+	AssertOrForbidExpr,
 	body_,
+	BogusExpr,
 	Called,
 	CalledSpecSig,
+	CallExpr,
+	ClosureGetExpr,
+	ClosureSetExpr,
 	decl,
 	Destructure,
 	EnumFunction,
 	enumFunctionName,
 	Expr,
 	ExprAndType,
-	ExprKind,
 	FlagsFunction,
 	flagsFunctionName,
 	FunBody,
 	FunDecl,
 	FunFlags,
 	FunInst,
+	FunPtrExpr,
+	IfExpr,
+	IfOptionExpr,
 	ImportOrExport,
 	ImportOrExportKind,
+	LambdaExpr,
+	LetExpr,
+	LiteralExpr,
+	LiteralCStringExpr,
+	LiteralSymbolExpr,
 	Local,
+	LocalGetExpr,
+	LocalSetExpr,
+	LoopBreakExpr,
+	LoopContinueExpr,
+	LoopExpr,
+	LoopUntilExpr,
+	LoopWhileExpr,
+	MatchEnumExpr,
+	MatchUnionExpr,
 	Module,
 	name,
 	Params,
+	PtrToFieldExpr,
+	PtrToLocalExpr,
 	Purity,
 	range,
+	SeqExpr,
 	SpecDecl,
 	SpecDeclBody,
 	SpecDeclSig,
@@ -44,6 +68,7 @@ import model.model :
 	symOfVarKind,
 	symOfVisibility,
 	Test,
+	ThrowExpr,
 	Type,
 	typeArgs,
 	TypeParam,
@@ -323,45 +348,45 @@ Json jsonOfExprAndType(ref Alloc alloc, in Ctx ctx, in ExprAndType a) =>
 
 Json jsonOfExpr(ref Alloc alloc, in Ctx ctx, in Expr a) =>
 	a.kind.matchIn!Json(
-		(in ExprKind.AssertOrForbid x) =>
+		(in AssertOrForbidExpr x) =>
 			jsonObject(alloc, [
 				kindField(symOfAssertOrForbidKind(x.kind)),
 				field!"condition"(jsonOfExpr(alloc, ctx, *x.condition)),
 				optionalField!("thrown", Expr*)(x.thrown, (in Expr* thrown) =>
 					jsonOfExpr(alloc, ctx, *thrown))]),
-		(in ExprKind.Bogus) =>
+		(in BogusExpr _) =>
 			jsonObject(alloc, [kindField!"bogus"]),
-		(in ExprKind.Call x) =>
+		(in CallExpr x) =>
 			jsonObject(alloc, [
 				kindField!"call",
 				field!"called"(jsonOfCalled(alloc, ctx, x.called)),
 				field!"args"(jsonOfExprs(alloc, ctx, x.args))]),
-		(in ExprKind.ClosureGet x) =>
+		(in ClosureGetExpr x) =>
 			jsonObject(alloc, [
 				kindField!"closure-get",
 				field!"index"(x.closureRef.index)]),
-		(in ExprKind.ClosureSet x) =>
+		(in ClosureSetExpr x) =>
 			jsonObject(alloc, [
 				kindField!"closure-set",
 				field!"index"(x.closureRef.index)]),
-		(in ExprKind.FunPtr x) =>
+		(in FunPtrExpr x) =>
 			jsonObject(alloc, [
 				kindField!"fun-pointer",
 				field!"fun"(jsonOfFunInst(alloc, ctx, *x.funInst))]),
-		(in ExprKind.If x) =>
+		(in IfExpr x) =>
 			jsonObject(alloc, [
 				kindField!"if",
 				field!"condition"(jsonOfExpr(alloc, ctx, x.cond)),
 				field!"then"(jsonOfExpr(alloc, ctx, x.then)),
 				field!"else"(jsonOfExpr(alloc, ctx, x.else_))]),
-		(in ExprKind.IfOption x) =>
+		(in IfOptionExpr x) =>
 			jsonObject(alloc, [
 				kindField!"if-option",
 				field!"destructure"(jsonOfDestructure(alloc, ctx, x.destructure)),
 				field!"option"(jsonOfExprAndType(alloc, ctx, x.option)),
 				field!"then"(jsonOfExpr(alloc, ctx, x.then)),
 				field!"else"(jsonOfExpr(alloc, ctx, x.else_))]),
-		(in ExprKind.Lambda x) =>
+		(in LambdaExpr x) =>
 			jsonObject(alloc, [
 				kindField!"lambda",
 				field!"param"(jsonOfDestructure(alloc, ctx, x.param)),
@@ -370,79 +395,79 @@ Json jsonOfExpr(ref Alloc alloc, in Ctx ctx, in Expr a) =>
 					jsonString(v.name))),
 				field!"fun-kind"(symOfFunKind(x.kind)),
 				field!"return-type"(jsonOfType(alloc, ctx, x.returnType))]),
-		(in ExprKind.Let x) =>
+		(in LetExpr x) =>
 			jsonObject(alloc, [
 				kindField!"let",
 				field!"destructure"(jsonOfDestructure(alloc, ctx, x.destructure)),
 				field!"value"(jsonOfExpr(alloc, ctx, x.value)),
 				field!"then"(jsonOfExpr(alloc, ctx, x.then))]),
-		(in ExprKind.Literal x) =>
+		(in LiteralExpr x) =>
 			jsonObject(alloc, [
 				kindField!"literal",
 				field!"value"(jsonOfConstant(alloc, x.value))]),
-		(in ExprKind.LiteralCString x) =>
+		(in LiteralCStringExpr x) =>
 			jsonObject(alloc, [
 				kindField!"c-string",
 				field!"value"(jsonString(alloc, x.value))]),
-		(in ExprKind.LiteralSymbol x) =>
+		(in LiteralSymbolExpr x) =>
 			jsonObject(alloc, [
 				kindField!"symbol",
 				field!"value"(x.value)]),
-		(in ExprKind.LocalGet x) =>
+		(in LocalGetExpr x) =>
 			jsonObject(alloc, [
 				kindField!"local-get",
 				field!"name"(x.local.name)]),
-		(in ExprKind.LocalSet x) =>
+		(in LocalSetExpr x) =>
 			jsonObject(alloc, [
 				kindField!"local-set",
 				field!"name"(x.local.name),
 				field!"value"(jsonOfExpr(alloc, ctx, x.value))]),
-		(in ExprKind.Loop x) =>
+		(in LoopExpr x) =>
 			jsonObject(alloc, [
 				kindField!"loop",
 				field!"body"(jsonOfExpr(alloc, ctx, x.body_))]),
-		(in ExprKind.LoopBreak x) =>
+		(in LoopBreakExpr x) =>
 			jsonObject(alloc, [
 				kindField!"break",
 				field!"value"(jsonOfExpr(alloc, ctx, x.value))]),
-		(in ExprKind.LoopContinue x) =>
+		(in LoopContinueExpr x) =>
 			jsonObject(alloc, [kindField!"continue"]),
-		(in ExprKind.LoopUntil x) =>
+		(in LoopUntilExpr x) =>
 			jsonObject(alloc, [
 				kindField!"until",
 				field!"condition"(jsonOfExpr(alloc, ctx, x.condition)),
 				field!"body"(jsonOfExpr(alloc, ctx, x.body_))]),
-		(in ExprKind.LoopWhile x) =>
+		(in LoopWhileExpr x) =>
 			jsonObject(alloc, [
 				kindField!"while",
 				field!"condition"(jsonOfExpr(alloc, ctx, x.condition)),
 				field!"body"(jsonOfExpr(alloc, ctx, x.body_))]),
-		(in ExprKind.MatchEnum a) =>
+		(in MatchEnumExpr a) =>
 			jsonObject(alloc, [
 				kindField!"match-enum",
 				field!"matched"(jsonOfExprAndType(alloc, ctx, a.matched)),
 				field!"cases"(jsonOfExprs(alloc, ctx, a.cases))]),
-		(in ExprKind.MatchUnion a) =>
+		(in MatchUnionExpr a) =>
 			jsonObject(alloc, [
 				kindField!"match-union",
 				field!"matched"(jsonOfExprAndType(alloc, ctx, a.matched)),
-				field!"cases"(jsonList!(ExprKind.MatchUnion.Case)(alloc, a.cases, (in ExprKind.MatchUnion.Case case_) =>
+				field!"cases"(jsonList!(MatchUnionExpr.Case)(alloc, a.cases, (in MatchUnionExpr.Case case_) =>
 					jsonOfMatchUnionCase(alloc, ctx, case_)))]),
-		(in ExprKind.PtrToField x) =>
+		(in PtrToFieldExpr x) =>
 			jsonObject(alloc, [
 				kindField!"pointer-to-field",
 				field!"target"(jsonOfExprAndType(alloc, ctx, x.target)),
 				field!"field-index"(x.fieldIndex)]),
-		(in ExprKind.PtrToLocal x) =>
+		(in PtrToLocalExpr x) =>
 			jsonObject(alloc, [
 				kindField!"pointer-to-local",
 				field!"name"(x.local.name)]),
-		(in ExprKind.Seq a) =>
+		(in SeqExpr a) =>
 			jsonObject(alloc, [
 				kindField!"seq",
 				field!"first"(jsonOfExpr(alloc, ctx, a.first)),
 				field!"then"(jsonOfExpr(alloc, ctx, a.then))]),
-		(in ExprKind.Throw a) =>
+		(in ThrowExpr a) =>
 			jsonObject(alloc, [
 				kindField!"throw",
 				field!"thrown"(jsonOfExpr(alloc, ctx, a.thrown))]));
@@ -462,7 +487,7 @@ Json jsonOfDestructureSplit(ref Alloc alloc, in Ctx ctx, in Destructure.Split a)
 		field!"type"(jsonOfType(alloc, ctx, a.destructuredType)),
 		field!"parts"(jsonOfDestructures(alloc, ctx, a.parts))]);
 
-Json jsonOfMatchUnionCase(ref Alloc alloc, in Ctx ctx, in ExprKind.MatchUnion.Case a) =>
+Json jsonOfMatchUnionCase(ref Alloc alloc, in Ctx ctx, in MatchUnionExpr.Case a) =>
 	jsonObject(alloc, [
 		field!"destructure"(jsonOfDestructure(alloc, ctx, a.destructure)),
 		field!"then"(jsonOfExpr(alloc, ctx, a.then))]);

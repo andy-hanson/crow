@@ -31,9 +31,14 @@ import frontend.parse.ast :
 	StructDeclAst,
 	TypeAst;
 import model.model :
+	AssertOrForbidExpr,
 	body_,
+	BogusExpr,
 	Called,
 	CalledSpecSig,
+	CallExpr,
+	ClosureGetExpr,
+	ClosureSetExpr,
 	Destructure,
 	decl,
 	eachImportOrReExport,
@@ -43,18 +48,34 @@ import model.model :
 	FunDecl,
 	FunDeclSource,
 	FunInst,
+	FunPtrExpr,
 	greatestVisibility,
+	IfExpr,
+	IfOptionExpr,
 	ImportOrExport,
+	LambdaExpr,
+	LetExpr,
 	Local,
+	LocalSetExpr,
 	LocalSource,
+	LoopBreakExpr,
+	LoopContinueExpr,
+	LoopExpr,
+	LoopUntilExpr,
+	LoopWhileExpr,
+	MatchEnumExpr,
+	MatchUnionExpr,
 	Module,
 	moduleUri,
 	NameReferents,
 	Params,
 	paramsArray,
 	Program,
+	PtrToFieldExpr,
+	PtrToLocalExpr,
 	range,
 	RecordField,
+	SeqExpr,
 	SpecDecl,
 	SpecDeclBody,
 	SpecDeclSig,
@@ -64,6 +85,7 @@ import model.model :
 	StructDecl,
 	StructInst,
 	Test,
+	ThrowExpr,
 	Type,
 	typeArgs,
 	UnionMember,
@@ -143,7 +165,7 @@ void referencesForTarget(
 		(PositionKind.LocalPosition x) {
 			referencesForLocal(allSymbols, program, curUri, x, cb);
 		},
-		(ExprKind.Loop* x) {
+		(LoopExpr* x) {
 			referencesForLoop(curUri, *x, cb);
 		},
 		(Module* x) {
@@ -236,7 +258,7 @@ void referencesForLocal(
 		(ref FunDecl fun) {
 			Expr body_ = fun.body_.isA!(FunBody.ExpressionBody)
 				? fun.body_.as!(FunBody.ExpressionBody).expr
-				: Expr(null, ExprKind(ExprKind.Bogus()));
+				: Expr(null, ExprKind(BogusExpr()));
 			eachDescendentExprIncluding(body_, (in Expr x) @safe {
 				Opt!Target xTarget = exprTarget(program, PositionKind.Expression(&fun, ptrTrustMe(x)));
 				if (optEqual!Target(xTarget, some(Target(a))))
@@ -246,9 +268,9 @@ void referencesForLocal(
 		(ref SpecDecl) {});
 }
 
-void referencesForLoop(Uri curUri, in ExprKind.Loop loop, in ReferenceCb cb) {
+void referencesForLoop(Uri curUri, in LoopExpr loop, in ReferenceCb cb) {
 	eachDescendentExprExcluding(ExprKind(&loop), (in Expr child) {
-		if (child.kind.isA!(ExprKind.LoopBreak*) || child.kind.isA!(ExprKind.LoopContinue))
+		if (child.kind.isA!(LoopBreakExpr*) || child.kind.isA!LoopContinueExpr)
 			cb(UriAndRange(curUri, child.range));
 	});
 }
@@ -379,44 +401,44 @@ void eachTypeInExpr(in Expr expr, in TypeCb cb) {
 
 void eachTypeDirectlyInExpr(in Expr a, in TypeCb cb) {
 	a.kind.matchIn!void(
-		(in ExprKind.AssertOrForbid x) {},
-		(in ExprKind.Bogus) {},
-		(in ExprKind.Call x) {
+		(in AssertOrForbidExpr x) {},
+		(in BogusExpr) {},
+		(in CallExpr x) {
 			//TODO: types in explicit type args
 		},
-		(in ExprKind.ClosureGet) {},
-		(in ExprKind.ClosureSet x) {},
-		(in ExprKind.FunPtr) {
+		(in ClosureGetExpr _) {},
+		(in ClosureSetExpr x) {},
+		(in FunPtrExpr _) {
 			//TODO: types in explicit type args
 		},
-		(in ExprKind.If x) {},
-		(in ExprKind.IfOption x) {},
-		(in ExprKind.Lambda x) {
+		(in IfExpr x) {},
+		(in IfOptionExpr x) {},
+		(in LambdaExpr x) {
 			eachTypeInDestructure(x.param, cb);
 		},
-		(in ExprKind.Let x) {
+		(in LetExpr x) {
 			eachTypeInDestructure(x.destructure, cb);
 		},
-		(in ExprKind.Literal) {},
-		(in ExprKind.LiteralCString) {},
-		(in ExprKind.LiteralSymbol) {},
-		(in ExprKind.LocalGet) {},
-		(in ExprKind.LocalSet x) {},
-		(in ExprKind.Loop x) {},
-		(in ExprKind.LoopBreak x) {},
-		(in ExprKind.LoopContinue) {},
-		(in ExprKind.LoopUntil x) {},
-		(in ExprKind.LoopWhile x) {},
-		(in ExprKind.MatchEnum x) {},
-		(in ExprKind.MatchUnion x) {
-			foreach (ref ExprKind.MatchUnion.Case case_; x.cases) {
+		(in LiteralExpr) {},
+		(in LiteralCStringExpr) {},
+		(in LiteralSymbolExpr) {},
+		(in LocalGetExpr) {},
+		(in LocalSetExpr x) {},
+		(in LoopExpr x) {},
+		(in LoopBreakExpr x) {},
+		(in LoopContinueExpr) {},
+		(in LoopUntilExpr x) {},
+		(in LoopWhileExpr x) {},
+		(in MatchEnumExpr x) {},
+		(in MatchUnionExpr x) {
+			foreach (ref MatchUnionExpr.Case case_; x.cases) {
 				eachTypeInDestructure(case_.destructure, cb);
 			}
 		},
-		(in ExprKind.PtrToField x) {},
-		(in ExprKind.PtrToLocal) {},
-		(in ExprKind.Seq x) {},
-		(in ExprKind.Throw x) {});
+		(in PtrToFieldExpr x) {},
+		(in PtrToLocalExpr _) {},
+		(in SeqExpr x) {},
+		(in ThrowExpr x) {});
 }
 
 void referencesForFunDecls(in AllSymbols allSymbols, in Program program, in FunDecl*[] decls, in ReferenceCb cb) {
@@ -426,12 +448,12 @@ void referencesForFunDecls(in AllSymbols allSymbols, in Program program, in FunD
 		verify(allSame!(Uri, FunDecl*)(decls, (in FunDecl* x) => moduleUri(*x)));
 		Module* itsModule = moduleOf(program, moduleUri(*decls[0]));
 		eachExprThatMayReference(program, maxVisibility, itsModule, (in Module module_, in Expr x) {
-			if (x.kind.isA!(ExprKind.Call)) {
-				Called called = x.kind.as!(ExprKind.Call).called;
+			if (x.kind.isA!CallExpr) {
+				Called called = x.kind.as!CallExpr.called;
 				if (called.isA!(FunInst*) && contains(decls, decl(*called.as!(FunInst*))))
 					cb(UriAndRange(module_.uri, callNameRange(allSymbols, x)));
-			} else if (x.kind.isA!(ExprKind.FunPtr)) {
-				if (contains(decls, decl(*x.kind.as!(ExprKind.FunPtr).funInst)))
+			} else if (x.kind.isA!FunPtrExpr) {
+				if (contains(decls, decl(*x.kind.as!FunPtrExpr.funInst)))
 					cb(UriAndRange(module_.uri, callNameRange(allSymbols, x)));
 			}
 		});
@@ -472,13 +494,13 @@ void eachExprThatMayReference(
 void referencesForSpecSig(in AllSymbols allSymbols, in Program program, in PositionKind.SpecSig a, in ReferenceCb cb) {
 	Module* itsModule = moduleOf(program, a.spec.moduleUri);
 	eachExprThatMayReference(program, a.spec.visibility, itsModule, (in Module module_, in Expr x) {
-		if (x.kind.isA!(ExprKind.Call)) {
-			Called called = x.kind.as!(ExprKind.Call).called;
+		if (x.kind.isA!CallExpr) {
+			Called called = x.kind.as!CallExpr.called;
 			if (called.isA!(CalledSpecSig*) && called.as!(CalledSpecSig*).nonInstantiatedSig == a.sig)
 				cb(UriAndRange(module_.uri, x.range));
-		} else if (x.kind.isA!(ExprKind.FunPtr)) {
+		} else if (x.kind.isA!FunPtrExpr) {
 			// Currently doesn't support specs
-			verify(x.kind.as!(ExprKind.FunPtr).funInst != null);
+			verify(x.kind.as!FunPtrExpr.funInst != null);
 		}
 	});
 }

@@ -1,5 +1,6 @@
 @safe @nogc nothrow: // not pure
 
+import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
 import frontend.ide.getRename : jsonOfRename, Rename;
 import frontend.ide.getReferences : jsonOfReferences;
 import frontend.ide.getTokens : jsonOfTokens;
@@ -28,7 +29,7 @@ import lib.server :
 	toUri,
 	typeCheckAllKnownFiles,
 	version_;
-import model.diag : Diagnostic;
+import model.diag : Diagnostic, DiagSeverity;
 import model.model : Program;
 import util.alloc.alloc : Alloc, allocateT;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
@@ -267,4 +268,27 @@ Json jsonOfDiagnostics(ref Alloc alloc, ref Server server, in Program program) {
 Json jsonOfDiagnostic(ref Alloc alloc, ref Server server, in Program program, in Diagnostic a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, server.lineAndColumnGetters, a.where)),
+		field!"severity"(cast(uint) toLspDiagnosticSeverity(getDiagnosticSeverity(a.diag))),
 		field!"message"(jsonString(alloc, showDiagnostic(alloc, server, program, a)))]);
+
+enum LspDiagnosticSeverity {
+	Error = 1,
+	Warning = 2,
+	Information = 3,
+	Hint = 4,
+}
+
+LspDiagnosticSeverity toLspDiagnosticSeverity(DiagSeverity a) {
+	final switch (a) {
+		case DiagSeverity.unusedCode:
+			return LspDiagnosticSeverity.Hint;
+		case DiagSeverity.checkWarning:
+			return LspDiagnosticSeverity.Warning;
+		case DiagSeverity.checkError:
+		case DiagSeverity.nameNotFound:
+		case DiagSeverity.commonMissing:
+		case DiagSeverity.parseError:
+		case DiagSeverity.fileIssue:
+			return LspDiagnosticSeverity.Error;
+	}
+}

@@ -2,18 +2,18 @@ module frontend.frontendCompile;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.getCommonFuns : CommonModule, getCommonFuns;
 import model.diag : Diag, Diagnostics;
 import model.model :
 	CommonFuns, CommonTypes, Config, emptyModule, ImportFileType, ImportOrExport, ImportOrExportKind, Module, Program;
 import model.parseDiag : ParseDiag;
 import frontend.check.check : BootstrapCheck, check, checkBootstrap, FileAndAst, ImportOrExportFile, ImportsAndExports;
+import frontend.check.getCommonFuns : CommonModule, getCommonFuns;
 import frontend.config : getConfig;
 import frontend.diagnosticsBuilder :
 	addDiagnostic, addDiagnosticForFile, DiagnosticsBuilder, DiagnosticsBuilderForFile, finishDiagnostics;
+import frontend.lang : crowExtension;
 import frontend.parse.ast :
 	FileAst, ImportOrExportAst, ImportOrExportAstKind, ImportsOrExportsAst, NameAndRange, pathRange;
-import frontend.lang : crowExtension;
 import frontend.parse.parse : parseFile;
 import frontend.programState : ProgramState;
 import util.alloc.alloc : Alloc;

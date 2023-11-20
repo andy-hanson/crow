@@ -1325,14 +1325,14 @@ Mutability toMutability(LocalMutability a) {
 immutable struct ClosureRef {
 	@safe @nogc pure nothrow:
 
-	PtrAndSmallNumber!(ExprKind.Lambda) lambdaAndIndex;
+	PtrAndSmallNumber!LambdaExpr lambdaAndIndex;
 
 	ulong asTaggable() =>
 		lambdaAndIndex.asTaggable;
 	static ClosureRef fromTagged(ulong x) =>
-		ClosureRef(PtrAndSmallNumber!(ExprKind.Lambda).fromTagged(x));
+		ClosureRef(PtrAndSmallNumber!LambdaExpr.fromTagged(x));
 
-	ExprKind.Lambda* lambda() =>
+	LambdaExpr* lambda() =>
 		lambdaAndIndex.ptr;
 
 	ushort index() =>
@@ -1448,175 +1448,45 @@ immutable struct Expr {
 		ast.range;
 }
 
+immutable struct ExprKind {
+	mixin Union!(
+		AssertOrForbidExpr,
+		BogusExpr,
+		CallExpr,
+		ClosureGetExpr,
+		ClosureSetExpr,
+		FunPtrExpr,
+		IfExpr*,
+		IfOptionExpr*,
+		LambdaExpr*,
+		LetExpr*,
+		LiteralExpr*,
+		LiteralCStringExpr,
+		LiteralSymbolExpr,
+		LocalGetExpr,
+		LocalSetExpr*,
+		LoopExpr*,
+		LoopBreakExpr*,
+		LoopContinueExpr,
+		LoopUntilExpr*,
+		LoopWhileExpr*,
+		MatchEnumExpr*,
+		MatchUnionExpr*,
+		PtrToFieldExpr*,
+		PtrToLocalExpr,
+		SeqExpr*,
+		ThrowExpr*);
+}
+
 immutable struct ExprAndType {
 	Expr expr;
 	Type type;
 }
 
-immutable struct ExprKind {
-	@safe @nogc pure nothrow:
-
-	immutable struct AssertOrForbid {
-		AssertOrForbidKind kind;
-		Expr* condition;
-		Opt!(Expr*) thrown;
-	}
-
-	immutable struct Bogus {}
-
-	immutable struct Call {
-		Called called;
-		Expr[] args;
-	}
-
-	immutable struct ClosureGet {
-		// TODO: by value (causes forward reference error on dmd 2.100 but not on dmd 2.101)
-		ClosureRef* closureRef;
-	}
-
-	immutable struct ClosureSet {
-		// TODO: by value (causes forward reference error on dmd 2.100 but not on dmd 2.101)
-		ClosureRef* closureRef;
-		Expr* value;
-	}
-
-	immutable struct FunPtr {
-		FunInst* funInst;
-	}
-
-	immutable struct If {
-		Expr cond;
-		Expr then;
-		Expr else_;
-	}
-
-	immutable struct IfOption {
-		Destructure destructure;
-		ExprAndType option;
-		Expr then;
-		Expr else_;
-	}
-
-	immutable struct Lambda {
-		Destructure param;
-		Expr body_;
-		VariableRef[] closure;
-		FunKind kind;
-		// For FunKind.far this includes 'future' wrapper
-		Type returnType;
-	}
-
-	immutable struct Let {
-		Destructure destructure;
-		Expr value;
-		Expr then;
-	}
-
-	immutable struct Literal {
-		Constant value;
-	}
-
-	immutable struct LiteralCString {
-		SafeCStr value;
-	}
-
-	immutable struct LiteralSymbol {
-		Sym value;
-	}
-
-	immutable struct LocalGet {
-		Local* local;
-	}
-
-	immutable struct LocalSet {
-		Local* local;
-		Expr value;
-	}
-
-	immutable struct Loop {
-		Range range;
-		Expr body_;
-	}
-
-	immutable struct LoopBreak {
-		Loop* loop;
-		Expr value;
-	}
-
-	immutable struct LoopContinue {
-		Loop* loop;
-	}
-
-	immutable struct LoopUntil {
-		Expr condition;
-		Expr body_;
-	}
-
-	immutable struct LoopWhile {
-		Expr condition;
-		Expr body_;
-	}
-
-	immutable struct MatchEnum {
-		ExprAndType matched;
-		Expr[] cases;
-	}
-
-	immutable struct MatchUnion {
-		immutable struct Case {
-			Destructure destructure;
-			Expr then;
-		}
-
-		ExprAndType matched;
-		Case[] cases;
-	}
-
-	immutable struct PtrToField {
-		ExprAndType target; // This will be a pointer or by-ref type
-		size_t fieldIndex;
-	}
-
-	immutable struct PtrToLocal {
-		Local* local;
-	}
-
-	immutable struct Seq {
-		Expr first;
-		Expr then;
-	}
-
-	immutable struct Throw {
-		Expr thrown;
-	}
-
-	mixin Union!(
-		AssertOrForbid,
-		Bogus,
-		Call,
-		ClosureGet,
-		ClosureSet,
-		FunPtr,
-		If*,
-		IfOption*,
-		Lambda*,
-		Let*,
-		Literal*,
-		LiteralCString,
-		LiteralSymbol,
-		LocalGet,
-		LocalSet*,
-		Loop*,
-		LoopBreak*,
-		LoopContinue,
-		LoopUntil*,
-		LoopWhile*,
-		MatchEnum*,
-		MatchUnion*,
-		PtrToField*,
-		PtrToLocal,
-		Seq*,
-		Throw*);
+immutable struct AssertOrForbidExpr {
+	AssertOrForbidKind kind;
+	Expr* condition;
+	Opt!(Expr*) thrown;
 }
 
 enum AssertOrForbidKind { assert_, forbid }
@@ -1630,8 +1500,136 @@ Sym symOfAssertOrForbidKind(AssertOrForbidKind a) {
 	}
 }
 
-Range loopKeywordRange(in ExprKind.Loop a) =>
+immutable struct BogusExpr {}
+
+immutable struct CallExpr {
+	Called called;
+	Expr[] args;
+}
+
+immutable struct ClosureGetExpr {
+	// TODO: by value (causes forward reference error on dmd 2.100 but not on dmd 2.101)
+	ClosureRef* closureRef;
+}
+
+immutable struct ClosureSetExpr {
+	// TODO: by value (causes forward reference error on dmd 2.100 but not on dmd 2.101)
+	ClosureRef* closureRef;
+	Expr* value;
+}
+
+immutable struct FunPtrExpr {
+	FunInst* funInst;
+}
+
+immutable struct IfExpr {
+	Expr cond;
+	Expr then;
+	Expr else_;
+}
+
+immutable struct IfOptionExpr {
+	Destructure destructure;
+	ExprAndType option;
+	Expr then;
+	Expr else_;
+}
+
+immutable struct LambdaExpr {
+	Destructure param;
+	Expr body_;
+	VariableRef[] closure;
+	FunKind kind;
+	// For FunKind.far this includes 'future' wrapper
+	Type returnType;
+}
+
+immutable struct LetExpr {
+	Destructure destructure;
+	Expr value;
+	Expr then;
+}
+
+immutable struct LiteralExpr {
+	Constant value;
+}
+
+immutable struct LiteralCStringExpr {
+	SafeCStr value;
+}
+
+immutable struct LiteralSymbolExpr {
+	Sym value;
+}
+
+immutable struct LocalGetExpr {
+	Local* local;
+}
+
+immutable struct LocalSetExpr {
+	Local* local;
+	Expr value;
+}
+
+immutable struct LoopExpr {
+	Range range;
+	Expr body_;
+}
+
+Range loopKeywordRange(in LoopExpr a) =>
 	rangeOfStartAndLength(a.range.start, "loop".length);
+
+immutable struct LoopBreakExpr {
+	LoopExpr* loop;
+	Expr value;
+}
+
+immutable struct LoopContinueExpr {
+	LoopExpr* loop;
+}
+
+immutable struct LoopUntilExpr {
+	Expr condition;
+	Expr body_;
+}
+
+immutable struct LoopWhileExpr {
+	Expr condition;
+	Expr body_;
+}
+
+immutable struct MatchEnumExpr {
+	ExprAndType matched;
+	Expr[] cases;
+}
+
+immutable struct MatchUnionExpr {
+	immutable struct Case {
+		Destructure destructure;
+		Expr then;
+	}
+
+	ExprAndType matched;
+	Case[] cases;
+}
+
+immutable struct PtrToFieldExpr {
+	ExprAndType target; // This will be a pointer or by-ref type
+	size_t fieldIndex;
+}
+
+immutable struct PtrToLocalExpr {
+	Local* local;
+}
+
+immutable struct SeqExpr {
+	Expr first;
+	Expr then;
+}
+
+immutable struct ThrowExpr {
+	Expr thrown;
+}
 
 alias Visibility = immutable Visibility_;
 private enum Visibility_ : ubyte {

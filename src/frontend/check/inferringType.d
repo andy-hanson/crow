@@ -12,6 +12,7 @@ import frontend.parse.ast : ExprAst, TypeAst;
 import frontend.programState : ProgramState;
 import model.diag : Diag, ExpectedForDiag;
 import model.model :
+	BogusExpr,
 	CommonTypes,
 	decl,
 	Destructure,
@@ -19,7 +20,9 @@ import model.model :
 	ExprKind,
 	FunFlags,
 	FunKind,
+	LambdaExpr,
 	Local,
+	LoopExpr,
 	Mutability,
 	range,
 	SpecInst,
@@ -64,7 +67,7 @@ struct FunOrLambdaInfo {
 	MutOpt!(LocalsInfo*) outer;
 	// none for a function.
 	// WARN: This will not be initialized; but we allocate the pointer early.
-	immutable Opt!(ExprKind.Lambda*) lambda;
+	immutable Opt!(LambdaExpr*) lambda;
 	// Will be uninitialized for a function
 	MutMaxArr!(maxClosureFields, ClosureFieldBuilder) closureFields = void;
 }
@@ -217,7 +220,7 @@ bool matchTypesNoDiagnostic(
 
 struct LoopInfo {
 	immutable Type voidType;
-	immutable ExprKind.Loop* loop;
+	immutable LoopExpr* loop;
 	immutable Type type;
 	bool hasBreak;
 }
@@ -460,7 +463,7 @@ Expr bogus(ref Expected expected, ExprAst* ast) {
 			setToBogus(expected);
 		},
 		(LoopInfo*) {});
-	return Expr(ast, ExprKind(ExprKind.Bogus()));
+	return Expr(ast, ExprKind(BogusExpr()));
 }
 
 Type inferred(ref const Expected expected) =>

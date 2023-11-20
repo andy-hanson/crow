@@ -85,10 +85,15 @@ import model.diag : Diag;
 import model.model :
 	Arity,
 	arity,
+	AssertOrForbidExpr,
 	body_,
+	BogusExpr,
 	Called,
 	CalledDecl,
+	CallExpr,
+	ClosureGetExpr,
 	ClosureRef,
+	ClosureSetExpr,
 	CommonTypes,
 	decl,
 	Destructure,
@@ -101,20 +106,41 @@ import model.model :
 	FunFlags,
 	FunInst,
 	FunKind,
+	FunPtrExpr,
+	IfExpr,
+	IfOptionExpr,
 	IntegralTypes,
 	isDefinitelyByRef,
 	isTemplate,
+	LambdaExpr,
+	LetExpr,
+	LiteralCStringExpr,
+	LiteralExpr,
+	LiteralSymbolExpr,
 	Local,
+	LocalGetExpr,
 	localMustHaveNameRange,
+	LocalSetExpr,
 	LocalMutability,
+	LoopBreakExpr,
+	LoopContinueExpr,
+	LoopExpr,
+	LoopUntilExpr,
+	LoopWhileExpr,
+	MatchEnumExpr,
+	MatchUnionExpr,
 	Mutability,
 	name,
+	PtrToFieldExpr,
+	PtrToLocalExpr,
 	Purity,
 	range,
+	SeqExpr,
 	SpecInst,
 	StructBody,
 	StructDecl,
 	StructInst,
+	ThrowExpr,
 	toMutability,
 	Type,
 	typeArgs,
@@ -160,7 +186,7 @@ Expr checkFunctionBody(
 		typeParams,
 		flags);
 	// leave funInfo.closureFields uninitialized, it won't be used
-	FunOrLambdaInfo funInfo = FunOrLambdaInfo(noneMut!(LocalsInfo*), none!(ExprKind.Lambda*));
+	FunOrLambdaInfo funInfo = FunOrLambdaInfo(noneMut!(LocalsInfo*), none!(LambdaExpr*));
 	Expr res = checkWithParamDestructures(
 		castNonScope_ref(exprCtx), ast, funInfo, params,
 		(ref LocalsInfo innerLocals) =>
@@ -249,7 +275,7 @@ Expr checkWithParamDestructures(
 	LocalsInfo locals = LocalsInfo(ptrTrustMe(funInfo), noneMut!(LocalNode*));
 	Opt!Expr res = checkWithParamDestructuresRecur(ctx, locals, params, (ref LocalsInfo innerLocals) =>
 		some(cb(innerLocals)));
-	return has(res) ? force(res) : Expr(ast, ExprKind(ExprKind.Bogus()));
+	return has(res) ? force(res) : Expr(ast, ExprKind(BogusExpr()));
 }
 Opt!Expr checkWithParamDestructuresRecur(
 	ref ExprCtx ctx,
@@ -307,14 +333,14 @@ Expr checkIf(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, IfAst* ast
 	Expr cond = checkAndExpectBool(ctx, locals, &ast.cond);
 	Expr then = checkExpr(ctx, locals, &ast.then, expected);
 	Expr else_ = checkExpr(ctx, locals, &ast.else_, expected);
-	return Expr(source, ExprKind(allocate(ctx.alloc, ExprKind.If(cond, then, else_))));
+	return Expr(source, ExprKind(allocate(ctx.alloc, IfExpr(cond, then, else_))));
 }
 
 Expr checkThrow(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ThrowAst* ast, ref Expected expected) {
 	Opt!Type inferred = tryGetInferred(expected);
 	if (has(inferred)) {
 		Expr thrown = checkAndExpectCStr(ctx, locals, &ast.thrown);
-		return Expr(source, ExprKind(allocate(ctx.alloc, ExprKind.Throw(thrown))));
+		return Expr(source, ExprKind(allocate(ctx.alloc, ThrowExpr(thrown))));
 	} else {
 		addDiag2(ctx, source, Diag(Diag.NeedsExpectedType(Diag.NeedsExpectedType.Kind.throw_)));
 		return bogus(expected, source);
@@ -334,7 +360,7 @@ Expr checkAssertOrForbid(
 		: none!(Expr*);
 	return check(ctx, source, expected, voidType(ctx), Expr(
 		source,
-		ExprKind(ExprKind.AssertOrForbid(ast.kind, condition, thrown))));
+		ExprKind(AssertOrForbidExpr(ast.kind, condition, thrown))));
 }
 
 Expr checkAssignment(
@@ -405,7 +431,7 @@ Expr checkUnless(
 	Expr cond = checkAndExpectBool(ctx, locals, &ast.cond);
 	Expr else_ = checkExpr(ctx, locals, &ast.body_, expected);
 	Expr then = checkEmptyNew(ctx, source, expected);
-	return Expr(source, ExprKind(allocate(ctx.alloc, ExprKind.If(cond, then, else_))));
+	return Expr(source, ExprKind(allocate(ctx.alloc, IfExpr(cond, then, else_))));
 }
 
 Expr checkEmptyNew(ref ExprCtx ctx, ExprAst* source, ref Expected expected) =>
@@ -432,7 +458,7 @@ Expr checkIfOption(
 		Destructure destructure = checkDestructure2(ctx, ast.destructure, nonOptionalType);
 		Expr then = checkExprWithDestructure(ctx, locals, destructure, &ast.then, expected);
 		Expr else_ = checkExpr(ctx, locals, &ast.else_, expected);
-		return Expr(source, ExprKind(allocate(ctx.alloc, ExprKind.IfOption(destructure, option, then, else_))));
+		return Expr(source, ExprKind(allocate(ctx.alloc, IfOptionExpr(destructure, option, then, else_))));
 	}
 }
 
@@ -616,7 +642,7 @@ MutOpt!VariableRefAndType getIdentifierFromFunOrLambda(
 		if (field.name == name) {
 			field.setIsUsed(accessKindInClosure(accessKind));
 			return someMut(VariableRefAndType(
-				VariableRef(ClosureRef(PtrAndSmallNumber!(ExprKind.Lambda)(force(info.lambda), safeToUshort(index)))),
+				VariableRef(ClosureRef(PtrAndSmallNumber!LambdaExpr(force(info.lambda), safeToUshort(index)))),
 				field.mutability,
 				field.isUsed,
 				field.type));
@@ -633,8 +659,7 @@ MutOpt!VariableRefAndType getIdentifierFromFunOrLambda(
 			ClosureFieldBuilder(name, outer.mutability, outer.isUsed, outer.type, outer.variableRef));
 		outer.setIsUsed(accessKindInClosure(accessKind));
 		return someMut(VariableRefAndType(
-			VariableRef(ClosureRef(
-				PtrAndSmallNumber!(ExprKind.Lambda)(force(info.lambda), safeToUshort(closureFieldIndex)))),
+			VariableRef(ClosureRef(PtrAndSmallNumber!LambdaExpr(force(info.lambda), safeToUshort(closureFieldIndex)))),
 			outer.mutability,
 			outer.isUsed,
 			outer.type));
@@ -684,11 +709,11 @@ Expr checkAssignIdentifier(
 			(Local* local) =>
 				check(ctx, source, expected, voidType(ctx), Expr(
 					source,
-					ExprKind(allocate(ctx.alloc, ExprKind.LocalSet(local, value))))),
+					ExprKind(allocate(ctx.alloc, LocalSetExpr(local, value))))),
 			(ClosureRef cr) =>
 				check(ctx, source, expected, voidType(ctx), Expr(
 					source,
-					ExprKind(ExprKind.ClosureSet(allocate(ctx.alloc, cr), allocate(ctx.alloc, value))))));
+					ExprKind(ClosureSetExpr(allocate(ctx.alloc, cr), allocate(ctx.alloc, value))))));
 	} else
 		return checkCallSpecial!1(ctx, locals, source, prependSet(ctx.allSymbols, left), [*right], expected);
 }
@@ -712,9 +737,9 @@ MutOpt!VariableRefAndType getVariableRefForSet(ref ExprCtx ctx, ref LocalsInfo l
 Expr toExpr(ref Alloc alloc, ExprAst* source, VariableRef a) =>
 	a.matchWithPointers!Expr(
 		(Local* x) =>
-			Expr(source, ExprKind(ExprKind.LocalGet(x))),
+			Expr(source, ExprKind(LocalGetExpr(x))),
 		(ClosureRef x) =>
-			Expr(source, ExprKind(ExprKind.ClosureGet(allocate(alloc, x)))));
+			Expr(source, ExprKind(ClosureGetExpr(allocate(alloc, x)))));
 
 Expr checkLiteralFloat(ref ExprCtx ctx, ExprAst* source, in LiteralFloatAst ast, ref Expected expected) {
 	immutable StructInst*[2] allowedTypes = [ctx.commonTypes.float32, ctx.commonTypes.float64];
@@ -740,7 +765,7 @@ Expr asFloat(
 ) {
 	verify(isFloatType(ctx.commonTypes, numberType));
 	return check(ctx, source, expected, Type(numberType), Expr(source, ExprKind(
-		allocate(ctx.alloc, ExprKind.Literal(Constant(Constant.Float(value)))))));
+		allocate(ctx.alloc, LiteralExpr(Constant(Constant.Float(value)))))));
 }
 
 Expr checkLiteralInt(ref ExprCtx ctx, ExprAst* source, in LiteralIntAst ast, ref Expected expected) {
@@ -766,7 +791,7 @@ Expr checkLiteralInt(ref ExprCtx ctx, ExprAst* source, in LiteralIntAst ast, ref
 			if (ast.overflow || !contains(ranges[typeIndex], ast.value))
 				addDiag2(ctx, source, Diag(Diag.LiteralOverflow(numberType)));
 			return check(ctx, source, expected, Type(numberType), Expr(source, ExprKind(
-				allocate(ctx.alloc, ExprKind.Literal(constant)))));
+				allocate(ctx.alloc, LiteralExpr(constant)))));
 		}
 	} else
 		return bogus(expected, source);
@@ -800,7 +825,7 @@ Expr checkLiteralNat(ref ExprCtx ctx, ExprAst* source, in LiteralNatAst ast, ref
 			if (ast.overflow || ast.value > maximums[typeIndex])
 				addDiag2(ctx, source, Diag(Diag.LiteralOverflow(numberType)));
 			return check(ctx, source, expected, Type(numberType), Expr(source, ExprKind(
-				allocate(ctx.alloc, ExprKind.Literal(constant)))));
+				allocate(ctx.alloc, LiteralExpr(constant)))));
 		}
 	} else
 		return bogus(expected, source);
@@ -816,11 +841,11 @@ Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, scope string value, re
 			} else
 				return only(value);
 		}();
-		return Expr(source, ExprKind(allocate(ctx.alloc, ExprKind.Literal(Constant(Constant.Integral(char_))))));
+		return Expr(source, ExprKind(allocate(ctx.alloc, LiteralExpr(Constant(Constant.Integral(char_))))));
 	} else if (expectedStruct == ctx.commonTypes.symbol)
-		return Expr(source, ExprKind(ExprKind.LiteralSymbol(symOfStr(ctx.allSymbols, value))));
+		return Expr(source, ExprKind(LiteralSymbolExpr(symOfStr(ctx.allSymbols, value))));
 	else if (expectedStruct == ctx.commonTypes.cString)
-		return Expr(source, ExprKind(ExprKind.LiteralCString(copyToSafeCStr(ctx.alloc, value))));
+		return Expr(source, ExprKind(LiteralCStringExpr(copyToSafeCStr(ctx.alloc, value))));
 	else {
 		defaultExpectedToString(ctx, source, expected);
 		return checkCallSpecialNoLocals(ctx, source, sym!"literal", arrayOfSingle(source), expected);
@@ -970,15 +995,15 @@ Expr checkPtrInner(
 	if (!checkCanDoUnsafe(ctx))
 		addDiag2(ctx, source, Diag(Diag.PtrIsUnsafe()));
 	Expr inner = checkAndExpect(ctx, locals, &ast.inner, pointeeType);
-	if (inner.kind.isA!(ExprKind.LocalGet)) {
-		Local* local = inner.kind.as!(ExprKind.LocalGet).local;
+	if (inner.kind.isA!LocalGetExpr) {
+		Local* local = inner.kind.as!LocalGetExpr.local;
 		if (local.mutability < expectedMutability)
 			addDiag2(ctx, source, Diag(Diag.PtrMutToConst(Diag.PtrMutToConst.Kind.local)));
 		if (expectedMutability == PointerMutability.mutable)
 			markIsUsedSetOnStack(locals, local);
-		return check(ctx, source, expected, pointerType, Expr(source, ExprKind(ExprKind.PtrToLocal(local))));
-	} else if (inner.kind.isA!(ExprKind.Call))
-		return checkPtrOfCall(ctx, source, inner.kind.as!(ExprKind.Call), pointerType, expectedMutability, expected);
+		return check(ctx, source, expected, pointerType, Expr(source, ExprKind(PtrToLocalExpr(local))));
+	} else if (inner.kind.isA!CallExpr)
+		return checkPtrOfCall(ctx, source, inner.kind.as!CallExpr, pointerType, expectedMutability, expected);
 	else {
 		addDiag2(ctx, source, Diag(Diag.PtrUnsupported()));
 		return bogus(expected, source);
@@ -988,7 +1013,7 @@ Expr checkPtrInner(
 Expr checkPtrOfCall(
 	ref ExprCtx ctx,
 	ExprAst* source,
-	ExprKind.Call call,
+	ref CallExpr call,
 	Type pointerType,
 	PointerMutability expectedMutability,
 	ref Expected expected,
@@ -1010,9 +1035,9 @@ Expr checkPtrOfCall(
 				if (fieldMutability < expectedMutability)
 					addDiag2(ctx, source, Diag(Diag.PtrMutToConst(Diag.PtrMutToConst.Kind.field)));
 				return check(ctx, source, expected, pointerType, Expr(source, ExprKind(allocate(ctx.alloc,
-					ExprKind.PtrToField(ExprAndType(target, Type(recordType)), rfg.fieldIndex)))));
-			} else if (target.kind.isA!(ExprKind.Call)) {
-				ExprKind.Call targetCall = target.kind.as!(ExprKind.Call);
+					PtrToFieldExpr(ExprAndType(target, Type(recordType)), rfg.fieldIndex)))));
+			} else if (target.kind.isA!CallExpr) {
+				CallExpr targetCall = target.kind.as!CallExpr;
 				Called called = targetCall.called;
 				if (called.isA!(FunInst*) && isDerefFunction(ctx, called.as!(FunInst*))) {
 					FunInst* derefFun = called.as!(FunInst*);
@@ -1023,7 +1048,7 @@ Expr checkPtrOfCall(
 					if (max(fieldMutability, pointerMutability) < expectedMutability)
 						todo!void("diag: can't get mut* to immutable field");
 					return check(ctx, source, expected, pointerType, Expr(source, ExprKind(allocate(ctx.alloc,
-						ExprKind.PtrToField(ExprAndType(targetPtr, derefedType), rfg.fieldIndex)))));
+						PtrToFieldExpr(ExprAndType(targetPtr, derefedType), rfg.fieldIndex)))));
 				} else
 					return fail();
 			} else
@@ -1080,7 +1105,7 @@ Expr checkFunPointer(ref ExprCtx ctx, ExprAst* source, in PtrAst ast, ref Expect
 	Type paramType = makeTupleType(ctx.alloc, ctx.programState, ctx.commonTypes, funInst.paramTypes);
 	StructInst* structInst = instantiateStructNeverDelay(
 		ctx.alloc, ctx.programState, ctx.commonTypes.funPtrStruct, [funInst.returnType, paramType]);
-	return check(ctx, source, expected, Type(structInst), Expr(source, ExprKind(ExprKind.FunPtr(funInst))));
+	return check(ctx, source, expected, Type(structInst), Expr(source, ExprKind(FunPtrExpr(funInst))));
 }
 
 Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref LambdaAst ast, ref Expected expected) {
@@ -1093,7 +1118,7 @@ Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref La
 
 	Destructure param = checkDestructure2(ctx, ast.param, et.instantiatedParamType);
 
-	ExprKind.Lambda* lambda = () @trusted { return allocateUninitialized!(ExprKind.Lambda)(ctx.alloc); }();
+	LambdaExpr* lambda = () @trusted { return allocateUninitialized!LambdaExpr(ctx.alloc); }();
 
 	FunOrLambdaInfo lambdaInfo = FunOrLambdaInfo(someMut(ptrTrustMe(locals)), some(castImmutable(lambda)));
 	initializeMutMaxArr(lambdaInfo.closureFields);
@@ -1117,7 +1142,7 @@ Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref La
 		: actualPossiblyFutReturnType;
 	StructInst* instFunStruct = instantiateStructNeverDelay(
 		ctx.alloc, ctx.programState, et.funStruct, [actualNonFutReturnType, param.type]);
-	initMemory(lambda, ExprKind.Lambda(
+	initMemory(lambda, LambdaExpr(
 		param,
 		body_,
 		closureFields,
@@ -1174,16 +1199,16 @@ Expr checkLet(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, LetAst* a
 	ExprAndType value = checkAndExpectOrInfer(ctx, locals, &ast.value, typeFromDestructure(ctx, ast.destructure));
 	Destructure destructure = checkDestructure2(ctx, ast.destructure, value.type);
 	Expr then = checkExprWithDestructure(ctx, locals, destructure, &ast.then, expected);
-	return Expr(source, ExprKind(allocate(ctx.alloc, ExprKind.Let(destructure, value.expr, then))));
+	return Expr(source, ExprKind(allocate(ctx.alloc, LetExpr(destructure, value.expr, then))));
 }
 
 Expr checkLoop(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, LoopAst* ast, ref Expected expected) {
 	Opt!Type expectedType = tryGetInferred(expected);
 	if (has(expectedType)) {
 		Type type = force(expectedType);
-		ExprKind.Loop* loop = allocate(ctx.alloc, ExprKind.Loop(
+		LoopExpr* loop = allocate(ctx.alloc, LoopExpr(
 			source.range,
-			Expr(source, ExprKind(ExprKind.Bogus()))));
+			Expr(source, ExprKind(BogusExpr()))));
 		LoopInfo info = LoopInfo(voidType(ctx), castImmutable(loop), type, false);
 		scope Expected bodyExpected = Expected(&info);
 		Expr body_ = checkExpr(ctx, locals, &ast.body_, castNonScope_ref(bodyExpected));
@@ -1213,14 +1238,14 @@ Expr checkLoopBreak(
 		Expr value = checkAndExpect(ctx, locals, &ast.value, loop.type);
 		return Expr(
 			source,
-			ExprKind(allocate(ctx.alloc, ExprKind.LoopBreak(loop.loop, value))));
+			ExprKind(allocate(ctx.alloc, LoopBreakExpr(loop.loop, value))));
 	}
 }
 
 Expr checkLoopContinue(ref ExprCtx ctx, ExprAst* source, ref Expected expected) {
 	MutOpt!(LoopInfo*) optLoop = tryGetLoop(expected);
 	return has(optLoop)
-		? Expr(source, ExprKind(ExprKind.LoopContinue(force(optLoop).loop)))
+		? Expr(source, ExprKind(LoopContinueExpr(force(optLoop).loop)))
 		: checkCallSpecialNoLocals(ctx, source, sym!"loop-continue", [], expected);
 }
 
@@ -1233,7 +1258,7 @@ Expr checkLoopUntil(
 ) =>
 	check(ctx, source, expected, voidType(ctx), Expr(
 		source,
-		ExprKind(allocate(ctx.alloc, ExprKind.LoopUntil(
+		ExprKind(allocate(ctx.alloc, LoopUntilExpr(
 			checkAndExpectBool(ctx, locals, &ast.condition),
 			checkAndExpectVoid(ctx, locals, &ast.body_))))));
 
@@ -1246,7 +1271,7 @@ Expr checkLoopWhile(
 ) =>
 	check(ctx, source, expected, voidType(ctx), Expr(
 		source,
-		ExprKind(allocate(ctx.alloc, ExprKind.LoopWhile(
+		ExprKind(allocate(ctx.alloc, LoopWhileExpr(
 			checkAndExpectBool(ctx, locals, &ast.condition),
 			checkAndExpectVoid(ctx, locals, &ast.body_))))));
 
@@ -1296,7 +1321,7 @@ Expr checkMatchEnum(
 		});
 		return Expr(
 			source,
-			ExprKind(allocate(ctx.alloc, ExprKind.MatchEnum(matched, cases))));
+			ExprKind(allocate(ctx.alloc, MatchEnumExpr(matched, cases))));
 	}
 }
 
@@ -1320,16 +1345,16 @@ Expr checkMatchUnion(
 			map(ctx.alloc, declaredMembers, (ref UnionMember member) => member.name))));
 		return bogus(expected, source);
 	} else {
-		ExprKind.MatchUnion.Case[] cases =
-			mapZipPointers3!(ExprKind.MatchUnion.Case, UnionMember, Type, MatchAst.CaseAst)(
+		MatchUnionExpr.Case[] cases =
+			mapZipPointers3!(MatchUnionExpr.Case, UnionMember, Type, MatchAst.CaseAst)(
 				ctx.alloc, declaredMembers, instantiatedTypes, ast.cases,
 				(UnionMember* member, Type* type, MatchAst.CaseAst* caseAst) =>
 					checkMatchCase(ctx, locals, member, *type, caseAst, expected));
-		return Expr(source, ExprKind(allocate(ctx.alloc, ExprKind.MatchUnion(matched, cases))));
+		return Expr(source, ExprKind(allocate(ctx.alloc, MatchUnionExpr(matched, cases))));
 	}
 }
 
-ExprKind.MatchUnion.Case checkMatchCase(
+MatchUnionExpr.Case checkMatchCase(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	UnionMember* member,
@@ -1340,14 +1365,14 @@ ExprKind.MatchUnion.Case checkMatchCase(
 	immutable DestructureAst destructureVoidAst = DestructureAst(DestructureAst.Void());
 	Destructure destructure = checkDestructure2(
 		ctx, has(caseAst.destructure) ? force(caseAst.destructure) : destructureVoidAst, memberType);
-	return ExprKind.MatchUnion.Case(
+	return MatchUnionExpr.Case(
 		destructure, checkExprWithDestructure(ctx, locals, destructure, &caseAst.then, expected));
 }
 
 Expr checkSeq(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, SeqAst* ast, ref Expected expected) {
 	Expr first = checkAndExpectVoid(ctx, locals, &ast.first);
 	Expr then = checkExpr(ctx, locals, &ast.then, expected);
-	return Expr(source, ExprKind(allocate(ctx.alloc, ExprKind.Seq(first, then))));
+	return Expr(source, ExprKind(allocate(ctx.alloc, SeqExpr(first, then))));
 }
 
 bool hasBreakOrContinue(in ExprAst a) =>

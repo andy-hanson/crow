@@ -6,28 +6,7 @@ import frontend.ide.position : Position, PositionKind;
 import frontend.parse.ast : FieldMutabilityAst, FunModifierAst;
 import frontend.showModel :
 	ShowCtx, writeCalled, writeFile, writeFunInst, writeLineAndColumnRange, writeName, writeSpecInst, writeTypeUnquoted;
-import model.model :
-	AssertOrForbidKind,
-	body_,
-	ClosureRef,
-	decl,
-	Expr,
-	ExprKind,
-	FunDecl,
-	FunKind,
-	StructDecl,
-	Local,
-	name,
-	SpecDecl,
-	SpecInst,
-	StructBody,
-	StructInst,
-	symOfVarKind,
-	symOfVisibility,
-	Type,
-	TypeParam,
-	VarDecl,
-	Visibility;
+import model.model;
 import util.alloc.alloc : Alloc;
 import util.col.str : SafeCStr;
 import util.lineAndColumnGetter : lineAndColumnRange;
@@ -206,7 +185,7 @@ void hoverTypeParam(ref Writer writer, scope ref ShowCtx ctx, in TypeParam a) {
 
 void getExprHover(ref Writer writer, scope ref ShowCtx ctx, in Uri curUri, in Expr a) =>
 	a.kind.matchIn!void(
-		(in ExprKind.AssertOrForbid x) {
+		(in AssertOrForbidExpr x) {
 			writer ~= "throws if the condition is ";
 			writer ~= () {
 				final switch (x.kind) {
@@ -217,31 +196,31 @@ void getExprHover(ref Writer writer, scope ref ShowCtx ctx, in Uri curUri, in Ex
 				}
 			}();
 		},
-		(in ExprKind.Bogus) {},
-		(in ExprKind.Call x) {
+		(in BogusExpr _) {},
+		(in CallExpr x) {
 			writeCalled(writer, ctx, x.called);
 		},
-		(in ExprKind.ClosureGet x) {
+		(in ClosureGetExpr x) {
 			writer ~= "gets ";
 			closureRefHover(writer, ctx, *x.closureRef);
 		},
-		(in ExprKind.ClosureSet x) {
+		(in ClosureSetExpr x) {
 			writer ~= "sets ";
 			closureRefHover(writer, ctx, *x.closureRef);
 		},
-		(in ExprKind.FunPtr x) {
+		(in FunPtrExpr x) {
 			writer ~= "pointer to function ";
 			writeFunInst(writer, ctx, *x.funInst);
 		},
-		(in ExprKind.If) {
+		(in IfExpr _) {
 			writer ~= "returns the first branch if the condition is 'true', " ~
 				"and the second branch if the condition is 'false'";
 		},
-		(in ExprKind.IfOption) {
+		(in IfOptionExpr _) {
 			writer ~= "returns the first branch if the option is non-empty, " ~
 				"and the second branch if it is empty";
 		},
-		(in ExprKind.Lambda x) {
+		(in LambdaExpr x) {
 			writer ~= () {
 				final switch (x.kind) {
 					case FunKind.fun:
@@ -256,45 +235,45 @@ void getExprHover(ref Writer writer, scope ref ShowCtx ctx, in Uri curUri, in Ex
 			}();
 			writer ~= " literal";
 		},
-		(in ExprKind.Let) {},
-		(in ExprKind.Literal) {},
-		(in ExprKind.LiteralCString) {},
-		(in ExprKind.LiteralSymbol) {},
-		(in ExprKind.LocalGet x) {
+		(in LetExpr _) {},
+		(in LiteralExpr _) {},
+		(in LiteralCStringExpr _) {},
+		(in LiteralSymbolExpr _) {},
+		(in LocalGetExpr x) {
 			localHover(writer, ctx, *x.local);
 		},
-		(in ExprKind.LocalSet x) {
+		(in LocalSetExpr x) {
 			writer ~= "sets ";
 			localHover(writer, ctx, *x.local);
 		},
-		(in ExprKind.Loop) {
+		(in LoopExpr _) {
 			writer ~= "loop that terminates at a 'break'";
 		},
-		(in ExprKind.LoopBreak x) {
+		(in LoopBreakExpr x) {
 			writer ~= "breaks out of ";
 			writeLoop(writer, ctx, curUri, *x.loop);
 		},
-		(in ExprKind.LoopContinue x) {
+		(in LoopContinueExpr x) {
 			writer ~= "goes back to top of ";
 			writeLoop(writer, ctx, curUri, *x.loop);
 		},
-		(in ExprKind.LoopUntil) {
+		(in LoopUntilExpr _) {
 			writer ~= "loop that runs as long as the condition is 'false'";
 		},
-		(in ExprKind.LoopWhile) {
+		(in LoopWhileExpr _) {
 			writer ~= "loop that runs as long as the condition is 'true'";
 		},
-		(in ExprKind.MatchEnum) {},
-		(in ExprKind.MatchUnion) {},
-		(in ExprKind.PtrToField x) {
-			// TODO: ExprKind.PtrToField should have the RecordField
+		(in MatchEnumExpr _) {},
+		(in MatchUnionExpr _) {},
+		(in PtrToFieldExpr x) {
+			// TODO: PtrToFieldExpr should have the RecordField
 		},
-		(in ExprKind.PtrToLocal x) {
+		(in PtrToLocalExpr x) {
 			writer ~= "pointer to ";
 			localHover(writer, ctx, *x.local);
 		},
-		(in ExprKind.Seq) {},
-		(in ExprKind.Throw) {
+		(in SeqExpr _) {},
+		(in ThrowExpr _) {
 			writer ~= "throws an exception";
 		});
 
@@ -311,7 +290,7 @@ void localHover(ref Writer writer, scope ref ShowCtx ctx, in Local a) {
 	writeTypeUnquoted(writer, ctx, a.type);
 }
 
-void writeLoop(ref Writer writer, scope ref ShowCtx ctx, Uri curUri, in ExprKind.Loop a) {
+void writeLoop(ref Writer writer, scope ref ShowCtx ctx, Uri curUri, in LoopExpr a) {
 	writer ~= "loop at ";
 	writeLineAndColumnRange(writer, lineAndColumnRange(ctx.lineAndColumnGetters, UriAndRange(curUri, a.range)));
 }

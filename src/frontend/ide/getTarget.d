@@ -4,26 +4,51 @@ module frontend.ide.getTarget;
 
 import frontend.ide.position : LocalContainer, PositionKind;
 import model.model :
+	AssertOrForbidExpr,
 	body_,
+	BogusExpr,
 	Called,
 	CalledSpecSig,
+	CallExpr,
+	ClosureGetExpr,
+	ClosureSetExpr,
 	decl,
 	Destructure,
 	EnumFunction,
-	ExprKind,
 	FlagsFunction,
 	FunBody,
 	FunDecl,
 	FunInst,
+	FunPtrExpr,
+	IfExpr,
+	IfOptionExpr,
+	LambdaExpr,
+	LetExpr,
+	LiteralCStringExpr,
+	LiteralExpr,
+	LiteralSymbolExpr,
 	Local,
+	LocalGetExpr,
+	LocalSetExpr,
+	LoopBreakExpr,
+	LoopContinueExpr,
+	LoopExpr,
+	LoopUntilExpr,
+	LoopWhileExpr,
+	MatchEnumExpr,
+	MatchUnionExpr,
 	Module,
 	Program,
+	PtrToFieldExpr,
+	PtrToLocalExpr,
 	RecordField,
+	SeqExpr,
 	StructBody,
 	SpecDecl,
 	SpecInst,
 	StructDecl,
 	StructInst,
+	ThrowExpr,
 	toLocal,
 	TypeParam,
 	VarDecl,
@@ -39,7 +64,7 @@ immutable struct Target {
 		FunDecl*,
 		PositionKind.ImportedName,
 		PositionKind.LocalPosition,
-		ExprKind.Loop*,
+		LoopExpr*,
 		Module*,
 		RecordField*,
 		SpecDecl*,
@@ -101,58 +126,58 @@ Opt!Target exprTarget(in Program program, PositionKind.Expression a) {
 	Opt!Target local(Local* x) =>
 		some(Target(PositionKind.LocalPosition(LocalContainer(a.containingFun), x)));
 	return a.expr.kind.match!(Opt!Target)(
-		(ExprKind.AssertOrForbid) =>
+		(AssertOrForbidExpr _) =>
 			none!Target,
-		(ExprKind.Bogus) =>
+		(BogusExpr _) =>
 			none!Target,
-		(ExprKind.Call x) =>
+		(CallExpr x) =>
 			calledTarget(x.called),
-		(ExprKind.ClosureGet x) =>
+		(ClosureGetExpr x) =>
 			local(toLocal(*x.closureRef)),
-		(ExprKind.ClosureSet x) =>
+		(ClosureSetExpr x) =>
 			local(toLocal(*x.closureRef)),
-		(ExprKind.FunPtr x) =>
+		(FunPtrExpr x) =>
 			some(Target(decl(*x.funInst))),
-		(ref ExprKind.If) =>
+		(ref IfExpr _) =>
 			none!Target,
-		(ref ExprKind.IfOption) =>
+		(ref IfOptionExpr _) =>
 			none!Target,
-		(ref ExprKind.Lambda) =>
+		(ref LambdaExpr _) =>
 			none!Target,
-		(ref ExprKind.Let) =>
+		(ref LetExpr _) =>
 			none!Target,
-		(ref ExprKind.Literal) =>
+		(ref LiteralExpr _) =>
 			none!Target,
-		(ExprKind.LiteralCString) =>
+		(LiteralCStringExpr _) =>
 			none!Target,
-		(ExprKind.LiteralSymbol) =>
+		(LiteralSymbolExpr _) =>
 			none!Target,
-		(ExprKind.LocalGet x) =>
+		(LocalGetExpr x) =>
 			local(x.local),
-		(ref ExprKind.LocalSet x) =>
+		(ref LocalSetExpr x) =>
 			local(x.local),
-		(ref ExprKind.Loop x) =>
+		(ref LoopExpr x) =>
 			some(Target(&x)),
-		(ref ExprKind.LoopBreak x) =>
+		(ref LoopBreakExpr x) =>
 			some(Target(x.loop)),
-		(ExprKind.LoopContinue x) =>
+		(LoopContinueExpr x) =>
 			some(Target(x.loop)),
-		(ref ExprKind.LoopUntil) =>
+		(ref LoopUntilExpr _) =>
 			none!Target,
-		(ref ExprKind.LoopWhile) =>
+		(ref LoopWhileExpr _) =>
 			none!Target,
-		(ref ExprKind.MatchEnum) =>
+		(ref MatchEnumExpr _) =>
 			none!Target,
-		(ref ExprKind.MatchUnion) =>
+		(ref MatchUnionExpr _) =>
 			none!Target,
-		(ref ExprKind.PtrToField x) =>
+		(ref PtrToFieldExpr x) =>
 			// TODO: target the field
 			none!Target,
-		(ExprKind.PtrToLocal x) =>
+		(PtrToLocalExpr x) =>
 			local(x.local),
-		(ref ExprKind.Seq) =>
+		(ref SeqExpr _) =>
 			none!Target,
-		(ref ExprKind.Throw) =>
+		(ref ThrowExpr _) =>
 			none!Target);
 }
 

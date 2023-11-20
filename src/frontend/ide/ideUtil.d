@@ -3,19 +3,7 @@ module frontend.ide.ideUtil;
 @safe @nogc pure nothrow:
 
 import frontend.parse.ast : FunModifierAst, NameAndRange, TypeAst;
-import model.model :
-	Destructure,
-	Expr,
-	ExprKind,
-	FunDecl,
-	FunDeclSource,
-	Local,
-	SpecDecl,
-	SpecInst,
-	StructInst,
-	Type,
-	typeArgs,
-	TypeParam;
+import model.model;
 import util.col.arr : arrayOfSingle, empty, only;
 import util.col.arrBuilder : ArrBuilderCb;
 import util.col.arrUtil : count, first, firstZip;
@@ -162,59 +150,59 @@ private void eachDirectChildExpr(in ExprKind a, in void delegate(in Expr) @safe 
 
 private Opt!T findDirectChildExpr(T)(in ExprKind a, in Opt!T delegate(in Expr) @safe @nogc pure nothrow cb) =>
 	a.matchIn!(Opt!T)(
-		(in ExprKind.AssertOrForbid x) =>
+		(in AssertOrForbidExpr x) =>
 			optOr!T(cb(*x.condition), () =>
 				has(x.thrown) ? cb(*force(x.thrown)) : none!T),
-		(in ExprKind.Bogus) =>
+		(in BogusExpr _) =>
 			none!T,
-		(in ExprKind.Call x) =>
+		(in CallExpr x) =>
 			first!(T, Expr)(x.args, (Expr y) => cb(y)),
-		(in ExprKind.ClosureGet) =>
+		(in ClosureGetExpr _) =>
 			none!T,
-		(in ExprKind.ClosureSet x) =>
+		(in ClosureSetExpr x) =>
 			cb(*x.value),
-		(in ExprKind.FunPtr) =>
+		(in FunPtrExpr _) =>
 			none!T,
-		(in ExprKind.If x) =>
+		(in IfExpr x) =>
 			optOr!T(cb(x.cond), () => cb(x.then), () => cb(x.else_)),
-		(in ExprKind.IfOption x) =>
+		(in IfOptionExpr x) =>
 			optOr!T(cb(x.option.expr), () => cb(x.then), () => cb(x.else_)),
-		(in ExprKind.Lambda x) =>
+		(in LambdaExpr x) =>
 			cb(x.body_),
-		(in ExprKind.Let x) =>
+		(in LetExpr x) =>
 			optOr!T(cb(x.value), () => cb(x.then)),
-		(in ExprKind.Literal) =>
+		(in LiteralExpr _) =>
 			none!T,
-		(in ExprKind.LiteralCString) =>
+		(in LiteralCStringExpr _) =>
 			none!T,
-		(in ExprKind.LiteralSymbol) =>
+		(in LiteralSymbolExpr _) =>
 			none!T,
-		(in ExprKind.LocalGet) =>
+		(in LocalGetExpr _) =>
 			none!T,
-		(in ExprKind.LocalSet x) =>
+		(in LocalSetExpr x) =>
 			cb(x.value),
-		(in ExprKind.Loop x) =>
+		(in LoopExpr x) =>
 			cb(x.body_),
-		(in ExprKind.LoopBreak x) =>
+		(in LoopBreakExpr x) =>
 			cb(x.value),
-		(in ExprKind.LoopContinue) =>
+		(in LoopContinueExpr _) =>
 			none!T,
-		(in ExprKind.LoopUntil x) =>
+		(in LoopUntilExpr x) =>
 			optOr!T(cb(x.condition), () => cb(x.body_)),
-		(in ExprKind.LoopWhile x) =>
+		(in LoopWhileExpr x) =>
 			optOr!T(cb(x.condition), () => cb(x.body_)),
-		(in ExprKind.MatchEnum x) =>
+		(in MatchEnumExpr x) =>
 			optOr!T(cb(x.matched.expr), () => first!(T, Expr)(x.cases, (Expr y) => cb(y))),
-		(in ExprKind.MatchUnion x) =>
+		(in MatchUnionExpr x) =>
 			optOr!T(
 				cb(x.matched.expr),
-				() => first!(T, ExprKind.MatchUnion.Case)(x.cases, (ExprKind.MatchUnion.Case case_) =>
+				() => first!(T, MatchUnionExpr.Case)(x.cases, (MatchUnionExpr.Case case_) =>
 					cb(case_.then))),
-		(in ExprKind.PtrToField x) =>
+		(in PtrToFieldExpr x) =>
 			cb(x.target.expr),
-		(in ExprKind.PtrToLocal) =>
+		(in PtrToLocalExpr _) =>
 			none!T,
-		(in ExprKind.Seq x) =>
+		(in SeqExpr x) =>
 			optOr!T(cb(x.first), () => cb(x.then)),
-		(in ExprKind.Throw x) =>
+		(in ThrowExpr x) =>
 			cb(x.thrown));

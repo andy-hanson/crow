@@ -50,10 +50,12 @@ import model.model :
 	Called,
 	CalledDecl,
 	CalledSpecSig,
+	CallExpr,
 	decl,
 	Expr,
 	ExprKind,
 	FunDecl,
+	LambdaExpr,
 	ReturnAndParamTypes,
 	SpecDeclBody,
 	SpecDeclSig,
@@ -118,7 +120,7 @@ Expr checkCallSpecialNoLocals(
 	in ExprAst[] args,
 	ref Expected expected,
 ) {
-	FunOrLambdaInfo emptyFunInfo = FunOrLambdaInfo(noneMut!(LocalsInfo*), none!(ExprKind.Lambda*));
+	FunOrLambdaInfo emptyFunInfo = FunOrLambdaInfo(noneMut!(LocalsInfo*), none!(LambdaExpr*));
 	LocalsInfo emptyLocals = LocalsInfo(ptrTrustMe(emptyFunInfo), noneMut!(LocalNode*));
 	return checkCallSpecial(ctx, emptyLocals, source, funName, args, expected);
 }
@@ -424,7 +426,7 @@ Expr checkCallAfterChoosingOverload(
 	if (has(opCalled)) {
 		Called called = force(opCalled);
 		checkCalled(ctx, source, called, isInLambda, empty(args) ? ArgsKind.empty : ArgsKind.nonEmpty);
-		Expr calledExpr = Expr(source, ExprKind(ExprKind.Call(called, args)));
+		Expr calledExpr = Expr(source, ExprKind(CallExpr(called, args)));
 		//TODO: PERF second return type check may be unnecessary
 		// if we already filtered by return type at the beginning
 		return check(ctx, source, expected, called.returnType, calledExpr);

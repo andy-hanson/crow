@@ -22,8 +22,12 @@ declare namespace crow {
 		range: Range
 	}
 
+	// Error = 1, Warning = 2, Information = 3, Hint = 4
+	type DiagnosticSeverity = 1 | 2 | 3 | 4
+
 	type Diagnostic = {
 		range: Range
+		severity: DiagnosticSeverity
 		message: string
 	}
 
