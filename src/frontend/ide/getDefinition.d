@@ -79,7 +79,7 @@ public void definitionForTarget(in AllSymbols allSymbols, Uri curUri, in Target 
 		});
 
 void definitionForImportedName(in PositionKind.ImportedName a, in ReferenceCb cb) {
-	NameReferents nr = optOrDefault!NameReferents(a.import_.kind.modulePtr.allExportedNames[a.name], () =>
+	NameReferents nr = optOrDefault!NameReferents(a.import_.modulePtr.allExportedNames[a.name], () =>
 		NameReferents());
 	if (has(nr.structOrAlias))
 		cb(range(force(nr.structOrAlias)));

@@ -52,7 +52,7 @@ import util.util : unreachable;
 import util.writer :
 	finishWriterToSafeCStr,
 	writeEscapedChar,
-	writeQuotedStr,
+	writeQuotedString,
 	writeWithCommas,
 	writeWithNewlines,
 	writeWithSeparator,
@@ -219,7 +219,7 @@ void writeParseDiag(ref Writer writer, scope ref ShowCtx ctx, in ParseDiag d) {
 			writer ~= d.expectedTabs ? "space" : "tab";
 		},
 		(in ParseDiag.InvalidName it) {
-			writeQuotedStr(writer, it.actual);
+			writeQuotedString(writer, it.actual);
 			writer ~= " is not a valid name";
 		},
 		(in ParseDiag.InvalidStringEscape it) {

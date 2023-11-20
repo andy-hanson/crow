@@ -1,5 +1,6 @@
 @safe @nogc nothrow: // not pure
 
+import frontend.ide.getRename : jsonOfRename, Rename;
 import frontend.ide.getReferences : jsonOfReferences;
 import frontend.ide.getTokens : jsonOfTokens;
 import frontend.showModel : ShowOptions;
@@ -11,6 +12,7 @@ import lib.server :
 	getDefinition,
 	getFile,
 	getHover,
+	getRename,
 	getReferences,
 	getTokensAndParseDiagnostics,
 	justParseEverything,
@@ -32,7 +34,7 @@ import util.alloc.alloc : Alloc, allocateT;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : map;
 import util.col.multiMap : groupBy, MultiMap, multiMapEach;
-import util.col.str : CStr, eachSplit, SafeCStr;
+import util.col.str : CStr, eachSplit, SafeCStr, strOfSafeCStr;
 import util.exitCode : ExitCode;
 import util.json : field, jsonObject, Json, jsonToString, jsonList, jsonString;
 import util.lineAndColumnGetter : LineAndCharacter, UriLineAndCharacter;
@@ -175,6 +177,27 @@ CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 		UriAndRange[] references = getReferences(perf, resultAlloc, *server, where, roots);
 		return jsonToString(resultAlloc, server.allSymbols, jsonOfReferences(
 			resultAlloc, server.allUris, server.lineAndColumnGetters, references));
+	}).ptr;
+}
+
+@system extern(C) CStr getRename(
+	Server* server,
+	scope CStr uriPtr,
+	uint line,
+	uint character,
+	scope CStr roots,
+	scope CStr newNamePtr,
+) {
+	Alloc resultAlloc = Alloc(resultBuffer);
+	SafeCStr uriSafe = SafeCStr(uriPtr);
+	SafeCStr rootsSafe = SafeCStr(roots);
+	SafeCStr newName = SafeCStr(newNamePtr);
+	return withNullPerf!(SafeCStr, (ref Perf perf) {
+		UriLineAndCharacter where = toUriLineAndCharacter(*server, uriSafe, line, character);
+		Uri[] roots = toUris(resultAlloc, *server, rootsSafe);
+		Opt!Rename rename = getRename(perf, resultAlloc, *server, where, roots, strOfSafeCStr(newName));
+		Json renameJson = jsonOfRename(resultAlloc, server.allUris, server.lineAndColumnGetters, rename);
+		return jsonToString(resultAlloc, server.allSymbols, renameJson);
 	}).ptr;
 }
 

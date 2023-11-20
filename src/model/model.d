@@ -1050,10 +1050,22 @@ immutable struct Module {
 Module emptyModule(Uri uri) =>
 	Module(uri, safeCStr!"", [], [], [], [], [], [], [], Map!(Sym, NameReferents)());
 
+void eachImportOrReExport(in Module a, in void delegate(in ImportOrExport) @safe @nogc pure nothrow cb) {
+	foreach (ref ImportOrExport x; a.imports)
+		cb(x);
+	foreach (ref ImportOrExport x; a.reExports)
+		cb(x);
+}
+
 immutable struct ImportOrExport {
+	@safe @nogc pure nothrow:
+
 	// none for an automatic import of std
 	Opt!(ImportOrExportAst*) source;
 	ImportOrExportKind kind;
+
+	Module* modulePtr() return scope =>
+		kind.modulePtr;
 }
 
 // No File option since those become FunDecls

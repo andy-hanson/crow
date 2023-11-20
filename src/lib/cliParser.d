@@ -61,7 +61,7 @@ immutable struct PrintKind {
 	immutable struct ConcreteModel {}
 	immutable struct LowModel {}
 	immutable struct Ide {
-		enum Kind { hover, definition, references }
+		enum Kind { hover, definition, rename, references }
 		Kind kind;
 		LineAndColumn lineAndColumn;
 	}
@@ -251,6 +251,8 @@ Opt!(PrintKind.Ide.Kind) ideKindFromSym(Sym a) {
 			return some(PrintKind.Ide.Kind.hover);
 		case sym!"definition".value:
 			return some(PrintKind.Ide.Kind.definition);
+		case sym!"rename".value:
+			return some(PrintKind.Ide.Kind.rename);
 		case sym!"references".value:
 			return some(PrintKind.Ide.Kind.references);
 		default:

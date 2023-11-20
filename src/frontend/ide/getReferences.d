@@ -21,6 +21,8 @@ import frontend.parse.ast :
 	DestructureAst,
 	ExprAstKind,
 	FunDeclAst,
+	ImportOrExportAst,
+	NameAndRange,
 	ParamsAst,
 	paramsArray,
 	pathRange,
@@ -34,6 +36,7 @@ import model.model :
 	CalledSpecSig,
 	Destructure,
 	decl,
+	eachImportOrReExport,
 	Expr,
 	ExprKind,
 	FunBody,
@@ -46,6 +49,7 @@ import model.model :
 	LocalSource,
 	Module,
 	moduleUri,
+	NameReferents,
 	Params,
 	paramsArray,
 	Program,
@@ -55,6 +59,7 @@ import model.model :
 	SpecDeclBody,
 	SpecDeclSig,
 	SpecInst,
+	StructAlias,
 	StructBody,
 	StructDecl,
 	StructInst,
@@ -65,7 +70,7 @@ import model.model :
 	VarDecl,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : only;
+import util.col.arr : empty, only;
 import util.col.arrBuilder : buildArray;
 import util.col.arrUtil : allSame, contains, find, fold, zip, zipIn;
 import util.col.map : mapEach, mustGetAt;
@@ -84,13 +89,12 @@ UriAndRange[] getReferencesForPosition(
 	scope ref AllSymbols allSymbols,
 	in AllUris allUris,
 	in Program program,
-	ref Position pos,
+	in Position pos,
 ) {
 	Opt!Target target = targetForPosition(program, pos.kind);
 	return has(target)
 		? buildArray!UriAndRange(alloc, (in ReferenceCb cb) {
-			definitionForTarget(allSymbols, pos.module_.uri, force(target), cb);
-			referencesForTarget(allSymbols, allUris, program, pos.module_.uri, force(target), cb);
+			eachReferenceForTarget(allSymbols, allUris, program, pos.module_.uri, force(target), cb);
 		})
 		: [];
 }
@@ -103,6 +107,18 @@ Json jsonOfReferences(
 ) =>
 	jsonList!UriAndRange(alloc, references, (in UriAndRange x) =>
 		jsonOfUriAndRange(alloc, allUris, lineAndColumnGetters, x));
+
+void eachReferenceForTarget(
+	scope ref AllSymbols allSymbols,
+	in AllUris allUris,
+	in Program program,
+	Uri curUri,
+	in Target target,
+	in ReferenceCb cb,
+) {
+	definitionForTarget(allSymbols, curUri, target, cb);
+	referencesForTarget(allSymbols, allUris, program, curUri, target, cb);
+}
 
 private:
 
@@ -122,7 +138,7 @@ void referencesForTarget(
 			referencesForFunDecls(allSymbols, program, [x], cb);
 		},
 		(PositionKind.ImportedName x) {
-			//TODO: this should be references in the current module only
+			referencesForImportedName(allSymbols, program, x, cb);
 		},
 		(PositionKind.LocalPosition x) {
 			referencesForLocal(allSymbols, program, curUri, x, cb);
@@ -151,6 +167,63 @@ void referencesForTarget(
 		(VarDecl* x) {
 			referencesForVarDecl(allSymbols, program, x, cb);
 		});
+
+void referencesForStructAlias(in StructAlias* a, in ReferenceCb cb) {
+	// TODO
+}
+
+void referencesForImportedName(
+	in AllSymbols allSymbols,
+	in Program program,
+	in PositionKind.ImportedName a,
+	in ReferenceCb cb,
+) {
+	Module* module_ = a.import_.modulePtr;
+	eachImportForName(allSymbols, program, module_, a.name, cb);
+	Opt!NameReferents onr = module_.allExportedNames[a.name];
+	if (has(onr)) {
+		NameReferents nr = force(onr);
+		if (has(nr.structOrAlias))
+			force(nr.structOrAlias).matchWithPointers!void(
+				(StructAlias* x) {
+					referencesForStructAlias(x, cb);
+				},
+				(StructDecl* x) {
+					referencesForStructDecl(allSymbols, program, x, cb);
+				});
+		if (has(nr.spec))
+			referencesForSpecDecl(allSymbols, program, force(nr.spec), cb);
+		referencesForFunDecls(allSymbols, program, nr.funs, cb);
+	}
+}
+
+void eachImportForName(
+	in AllSymbols allSymbols,
+	in Program program,
+	in Module* exportingModule,
+	Sym name,
+	in ReferenceCb cb,
+) {
+	eachModuleReferencing(program, exportingModule, (in Module importingModule, in ImportOrExport x) {
+		eachImportForName(allSymbols, importingModule, x, name, cb);
+	});
+}
+void eachImportForName(
+	in AllSymbols allSymbols,
+	in Module importingModule,
+	in ImportOrExport a,
+	Sym name,
+	in ReferenceCb cb,
+) {
+	if (has(a.source)) {
+		ImportOrExportAst* source = force(a.source);
+		if (source.kind.isA!(NameAndRange[])) {
+			foreach (NameAndRange x; source.kind.as!(NameAndRange[]))
+				if (x.name == name)
+					cb(UriAndRange(importingModule.uri, rangeOfNameAndRange(x, allSymbols)));
+		}
+	}
+}
 
 void referencesForLocal(
 	in AllSymbols allSymbols,
@@ -347,20 +420,22 @@ void eachTypeDirectlyInExpr(in Expr a, in TypeCb cb) {
 }
 
 void referencesForFunDecls(in AllSymbols allSymbols, in Program program, in FunDecl*[] decls, in ReferenceCb cb) {
-	Visibility maxVisibility = fold(Visibility.private_, decls, (Visibility a, in FunDecl* b) =>
-		greatestVisibility(a, b.visibility));
-	verify(allSame!(Uri, FunDecl*)(decls, (in FunDecl* x) => moduleUri(*x)));
-	Module* itsModule = moduleOf(program, moduleUri(*decls[0]));
-	eachExprThatMayReference(program, maxVisibility, itsModule, (in Module module_, in Expr x) {
-		if (x.kind.isA!(ExprKind.Call)) {
-			Called called = x.kind.as!(ExprKind.Call).called;
-			if (called.isA!(FunInst*) && contains(decls, decl(*called.as!(FunInst*))))
-				cb(UriAndRange(module_.uri, callNameRange(allSymbols, x)));
-		} else if (x.kind.isA!(ExprKind.FunPtr)) {
-			if (contains(decls, decl(*x.kind.as!(ExprKind.FunPtr).funInst)))
-				cb(UriAndRange(module_.uri, callNameRange(allSymbols, x)));
-		}
-	});
+	if (!empty(decls)) {
+		Visibility maxVisibility = fold(Visibility.private_, decls, (Visibility a, in FunDecl* b) =>
+			greatestVisibility(a, b.visibility));
+		verify(allSame!(Uri, FunDecl*)(decls, (in FunDecl* x) => moduleUri(*x)));
+		Module* itsModule = moduleOf(program, moduleUri(*decls[0]));
+		eachExprThatMayReference(program, maxVisibility, itsModule, (in Module module_, in Expr x) {
+			if (x.kind.isA!(ExprKind.Call)) {
+				Called called = x.kind.as!(ExprKind.Call).called;
+				if (called.isA!(FunInst*) && contains(decls, decl(*called.as!(FunInst*))))
+					cb(UriAndRange(module_.uri, callNameRange(allSymbols, x)));
+			} else if (x.kind.isA!(ExprKind.FunPtr)) {
+				if (contains(decls, decl(*x.kind.as!(ExprKind.FunPtr).funInst)))
+					cb(UriAndRange(module_.uri, callNameRange(allSymbols, x)));
+			}
+		});
+	}
 }
 
 Range callNameRange(in AllSymbols allSymbols, in Expr a) {
@@ -499,23 +574,13 @@ void eachModuleThatMayReference(
 
 void eachModuleReferencing(
 	in Program program,
-	in Module* target,
+	in Module* exportingModule,
 	in void delegate(in Module, in ImportOrExport) @safe @nogc pure nothrow cb,
 ) {
-	mapEach!(Uri, immutable Module*)(program.allModules, (Uri _, ref immutable Module* module_) {
-		eachModuleReference(*module_, target, (in ImportOrExport x) {
-			cb(*module_, x);
+	mapEach!(Uri, immutable Module*)(program.allModules, (Uri _, ref immutable Module* importingModule) {
+		eachImportOrReExport(*importingModule, (in ImportOrExport x) @safe {
+			if (x.modulePtr == exportingModule)
+				cb(*importingModule, x);
 		});
 	});
-}
-
-void eachModuleReference(in Module a, Module* b, in void delegate(in ImportOrExport) @safe @nogc pure nothrow cb) {
-	void iter(in ImportOrExport[] xs) {
-		foreach (ImportOrExport ie; xs) {
-			if (ie.kind.modulePtr == b)
-				cb(ie);
-		}
-	}
-	iter(a.imports);
-	iter(a.reExports);
 }

@@ -4,6 +4,7 @@ const {
 	DidChangeConfigurationNotification, DefinitionRequest, HoverRequest,
 } = require("vscode-languageserver-protocol")
 /** @typedef {import("vscode-languageserver-types").CompletionItem} CompletionItem */
+/** @typedef {import("vscode-languageserver-types").WorkspaceEdit} WorkspaceEdit */
 const {CompletionItemKind} = require("vscode-languageserver-types")
 const {TextDocumentSyncKind} = require("vscode-languageserver-protocol")
 /** @typedef {import("vscode-languageserver-protocol").InitializeParams} InitializeParams */
@@ -73,6 +74,7 @@ connection.onInitialize(({capabilities}) => {
 			textDocumentSync: TextDocumentSyncKind.Incremental,
 			completionProvider: {resolveProvider: true},
 			referencesProvider: {},
+			renameProvider: {}
 		},
 	}
 	return result
@@ -177,7 +179,7 @@ connection.onDidChangeWatchedFiles(withLogErrors("onDidChangeWatchedFiles", _cha
 }))
 
 connection.onDefinition(withLogErrors("onDefinition", params =>
-	compiler.getDefinition(getUriLineAndCharacter(params)).slice()))
+	compiler.getDefinition(getUriLineAndCharacter(params))))
 
 connection.onHover(withLogErrors("onHover", params => {
 	const hover = compiler.getHover(getUriLineAndCharacter(params))
@@ -185,10 +187,14 @@ connection.onHover(withLogErrors("onHover", params => {
 }))
 
 connection.onReferences(withLogErrors("onReferences", params =>
-	compiler.getReferences(
-		getUriLineAndCharacter(params),
-		documents.keys().filter(cur => cur.endsWith('.crow')),
-	).slice()))
+	compiler.getReferences(getUriLineAndCharacter(params), getCrowUris())))
+
+connection.onRenameRequest(withLogErrors("onRename", params =>
+	compiler.getRename(getUriLineAndCharacter(params), getCrowUris(), params.newName)))
+
+/** @type {function(): ReadonlyArray<string>} */
+const getCrowUris = () =>
+documents.keys().filter(cur => cur.endsWith('.crow'))
 
 /** @type {function(TextDocumentPositionParams): crow.UriLineAndCharacter} */
 const getUriLineAndCharacter = ({textDocument, position}) =>

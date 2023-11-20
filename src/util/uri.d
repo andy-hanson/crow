@@ -600,7 +600,7 @@ public void writeUriPreferRelative(ref Writer writer, in AllUris allUris, in Uri
 }
 
 public size_t relPathLength(in AllUris allUris, in RelPath a) =>
-	a.nParents * 3 + pathLength(allUris, a.path);
+	(a.nParents == 0 ? "./".length : a.nParents * "../".length) + pathLength(allUris, a.path);
 
 public void writeRelPath(ref Writer writer, in AllUris allUris, in RelPath a) {
 	foreach (ushort i; 0 .. a.nParents)

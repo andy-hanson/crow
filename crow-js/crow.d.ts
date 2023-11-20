@@ -7,7 +7,7 @@ declare namespace crow {
 		character: number
 	}
 
-	type RangeWithinFile = {
+	type Range = {
 		start: LineAndCharacter
 		end: LineAndCharacter
 	}
@@ -19,17 +19,17 @@ declare namespace crow {
 
 	type UriAndRange = {
 		uri: Uri
-		range: RangeWithinFile
+		range: Range
 	}
 
 	type Diagnostic = {
-		range: RangeWithinFile
+		range: Range
 		message: string
 	}
 
 	type Token = {
 		token: TokenKind
-		range: RangeWithinFile
+		range: Range
 	}
 
 	type TokenKind =
@@ -69,6 +69,15 @@ declare namespace crow {
 
 	type RunOutput = {exitCode:number, writes:ReadonlyArray<Write>}
 
+	type TextEdit = {
+		range: Range
+		newText: string
+	}
+
+	type Rename = {
+		changes: { [uri: Uri]: TextEdit[] }
+	}
+
 	function makeCompiler(bytes: ArrayBuffer, includeDir: Uri, cwd: Uri): Promise<Compiler>
 	interface Compiler {
 		version(): string
@@ -83,8 +92,9 @@ declare namespace crow {
 		allLoadingUris(): ReadonlyArray<Uri>
 		getTokensAndParseDiagnostics(uri: Uri): TokensAndParseDiagnostics
 		getAllDiagnostics(): AllDiagnosticsResult
-		getDefinition(where: UriLineAndCharacter): ReadonlyArray<UriAndRange>
-		getReferences(where: UriLineAndCharacter, roots: ReadonlyArray<Uri>): ReadonlyArray<UriAndRange>
+		getDefinition(where: UriLineAndCharacter): UriAndRange[]
+		getReferences(where: UriLineAndCharacter, roots: ReadonlyArray<Uri>): UriAndRange[]
+		getRename(where: UriLineAndCharacter, roots: ReadonlyArray<Uri>, newName: string): Rename | null
 		getHover(where: UriLineAndCharacter): string
 		run(uri: Uri): RunOutput
 	}

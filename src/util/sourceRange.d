@@ -91,7 +91,7 @@ Json jsonOfUriAndRange(ref Alloc alloc, in AllUris allUris, scope ref LineAndCol
 Json jsonOfPosWithinFile(ref Alloc alloc, in LineAndColumnGetter lcg, Pos a, PosKind posKind) =>
 	jsonOfLineAndCharacter(alloc, lineAndCharacterAtPos(lcg, a, posKind));
 
-Json jsonOfRange(ref Alloc alloc, scope ref LineAndColumnGetters lcg, UriAndRange a) =>
+Json jsonOfRange(ref Alloc alloc, scope ref LineAndColumnGetters lcg, in UriAndRange a) =>
 	jsonOfRange(alloc, lcg[a.uri], a.range);
 
 Json jsonOfRange(ref Alloc alloc, in LineAndColumnGetter lcg, in Range a) {

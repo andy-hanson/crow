@@ -1,3 +1,3 @@
 exit code: 1
 stderr:
-test/compile-errors/circular-import-b.crow 2:5-2:22 circular import from test/compile-errors/circular-import-b.crow to test/compile-errors/circular-import-a.crow
+test/compile-errors/circular-import-b.crow 2:5-2:24 circular import from test/compile-errors/circular-import-b.crow to test/compile-errors/circular-import-a.crow

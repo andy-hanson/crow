@@ -31,6 +31,7 @@ Exports of `wasm.d`:
 @property {function(Server): CStr} getAllDiagnostics
 @property {function(Server, CStr, number, number): CStr} getDefinition
 @property {function(Server, CStr, number, number, CStr): CStr} getReferences
+@property {function(Server, CStr, number, number, CStr, CStr): CStr} getRename
 @property {function(Server, CStr, number, number): CStr} getHover
 @property {function(Server, CStr): number} run
 */
@@ -175,7 +176,9 @@ globalCrow.makeCompiler = async (bytes, includeDir, cwd) => {
 	/** @type {function(() => number): any} */
 	const withParamsAndJson = cb => {
 		try {
-			return JSON.parse(readCStr(cb()))
+			const str = readCStr(cb())
+			console.log("IT IS", str)
+			return JSON.parse(str)
 		} finally {
 			paramAlloc.clear()
 		}
@@ -206,13 +209,16 @@ globalCrow.makeCompiler = async (bytes, includeDir, cwd) => {
 			JSON.parse(readCStr(exports.getAllDiagnostics(server))),
 		getDefinition: ({uri, position:{line, character}}) => withParamsAndJson(() =>
 			exports.getDefinition(server, paramAlloc.writeCStr(uri), line, character)),
-		getReferences: ({uri, position:{line, character}}, roots) => {
-			for (const root of roots)
-				if (root.includes('|'))
-					throw new Error(`URI can't contain '|': ${root}`)
-			return withParamsAndJson(() => exports.getReferences(
-				server, paramAlloc.writeCStr(uri), line, character, paramAlloc.writeCStr(roots.join('|'))))
-		},
+		getReferences: ({uri, position:{line, character}}, roots) =>
+			withParamsAndJson(() => exports.getReferences(
+				server, paramAlloc.writeCStr(uri), line, character, paramAlloc.writeCStr(rootsToString(roots)))),
+		getRename: ({uri, position:{line, character}}, roots, newName) =>
+			withParamsAndJson(() => exports.getRename(
+				server,
+				paramAlloc.writeCStr(uri),
+				line, character,
+				paramAlloc.writeCStr(rootsToString(roots)),
+				paramAlloc.writeCStr(newName))),
 		getHover: ({uri, position:{line, character}}) => withParamsAndJson(() =>
 			exports.getHover(server, paramAlloc.writeCStr(uri), line, character)).hover,
 		run: uri => {
@@ -226,6 +232,14 @@ globalCrow.makeCompiler = async (bytes, includeDir, cwd) => {
 			}
 		},
 	}
+}
+
+/** @type {function(ReadonlyArray<string>): string} */
+const rootsToString = roots => {
+	for (const root of roots)
+		if (root.includes('|'))
+			throw new Error(`URI can't contain '|': ${root}`)
+	return roots.join('|')
 }
 
 /** @type {function(DataView, number, number): string} */

@@ -10,6 +10,7 @@ import frontend.frontendCompile : frontendCompile, FileAstAndDiagnostics, parseA
 import frontend.ide.getDefinition : getDefinitionForPosition;
 import frontend.ide.getHover : getHoverStr;
 import frontend.ide.getPosition : getPosition;
+import frontend.ide.getRename : getRenameForPosition, jsonOfRename, Rename;
 import frontend.ide.getReferences : getReferencesForPosition, jsonOfReferences;
 import frontend.ide.getTokens : jsonOfTokens, Token, tokensOfAst;
 import frontend.ide.position : Position;
@@ -283,13 +284,13 @@ TokensAndParseDiagnostics getTokensAndParseDiagnostics(
 	});
 
 UriAndRange[] getDefinition(ref Perf perf, ref Alloc alloc, ref Server server, in UriLineAndCharacter where) =>
-	getDefinitionForProgram(alloc, server, where, getProgram(perf, alloc, server, [where.uri]));
+	getDefinitionForProgram(alloc, server, getProgram(perf, alloc, server, [where.uri]), where);
 
 private UriAndRange[] getDefinitionForProgram(
 	ref Alloc alloc,
 	scope ref Server server,
-	in UriLineAndCharacter where,
 	in Program program,
+	in UriLineAndCharacter where,
 ) {
 	Opt!Position position = getPosition(server, program, where);
 	return has(position)
@@ -300,7 +301,7 @@ private UriAndRange[] getDefinitionForProgram(
 UriAndRange[] getReferences(
 	ref Perf perf,
 	ref Alloc alloc,
-	ref Server server,
+	scope ref Server server,
 	in UriLineAndCharacter where,
 	in Uri[] roots,
 ) =>
@@ -318,14 +319,37 @@ private UriAndRange[] getReferencesForProgram(
 		: [];
 }
 
+Opt!Rename getRename(
+	ref Perf perf,
+	ref Alloc alloc,
+	scope ref Server server,
+	in UriLineAndCharacter where,
+	in Uri[] roots,
+	string newName,
+) =>
+	getRenameForProgram(alloc, server, getProgram(perf, alloc, server, roots), where, newName);
+
+private Opt!Rename getRenameForProgram(
+	ref Alloc alloc,
+	scope ref Server server,
+	in Program program,
+	in UriLineAndCharacter where,
+	string newName,
+) {
+	Opt!Position position = getPosition(server, program, where);
+	return has(position)
+		? getRenameForPosition(alloc, server.allSymbols, server.allUris, program, force(position), newName)
+		: none!Rename;
+}
+
 SafeCStr getHover(ref Perf perf, ref Alloc alloc, ref Server server, in UriLineAndCharacter where) =>
-	getHoverForProgram(alloc, server, where, getProgram(perf, alloc, server, [where.uri]));
+	getHoverForProgram(alloc, server, getProgram(perf, alloc, server, [where.uri]), where);
 
 private SafeCStr getHoverForProgram(
 	ref Alloc alloc,
 	scope ref Server server,
-	in UriLineAndCharacter where,
 	in Program program,
+	in UriLineAndCharacter where,
 ) {
 	Opt!Position position = getPosition(server, program, where);
 	ShowCtx ctx = getShowDiagCtx(server, program);
@@ -428,9 +452,12 @@ DiagsAndResultJson printIde(
 	Json json = () {
 		final switch (kind) {
 			case PrintKind.Ide.Kind.definition:
-				return locations(getDefinitionForProgram(alloc, server, where2, program));
+				return locations(getDefinitionForProgram(alloc, server, program, where2));
 			case PrintKind.Ide.Kind.hover:
-				return jsonString(getHoverForProgram(alloc, server, where2, program));
+				return jsonString(getHoverForProgram(alloc, server, program, where2));
+			case PrintKind.Ide.Kind.rename:
+				Opt!Rename rename = getRenameForProgram(alloc, server, program, where2, "new-name");
+				return jsonOfRename(alloc, server.allUris, server.lineAndColumnGetters, rename);
 			case PrintKind.Ide.Kind.references:
 				return locations(getReferencesForProgram(alloc, server, where2, program));
 		}

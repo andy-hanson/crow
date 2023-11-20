@@ -13,8 +13,9 @@ import util.opt : force, has, Opt;
 import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols, Sym, sym, writeQuotedSym;
 import util.union_ : Union;
+import util.util : todo;
 import util.writer :
-	finishWriterToSafeCStr, writeFloatLiteral, Writer, writeQuotedStr, writeWithCommasCompact, writeWithSeparator;
+	finishWriterToSafeCStr, writeFloatLiteral, Writer, writeQuotedString, writeWithCommasCompact, writeWithSeparator;
 
 immutable struct Json {
 	@safe @nogc pure nothrow:
@@ -23,8 +24,10 @@ immutable struct Json {
 	alias List = immutable Json[];
 	alias ObjectField = immutable KeyValuePair!(Sym, Json);
 	alias Object = immutable ObjectField[];
+	alias StringObjectField = immutable KeyValuePair!(string, Json);
+	alias StringObject = immutable StringObjectField[];
 	// string and Sym cases should be treated as equivalent.
-	mixin Union!(Null, bool, double, string, Sym, List, Object);
+	mixin Union!(Null, bool, double, string, Sym, List, Object, StringObject);
 
 	// Distinguishes SafeCStr / string / Sym. Use only for tests.
 	bool opEquals(in Json b) scope =>
@@ -42,7 +45,9 @@ immutable struct Json {
 			(in Json[] x) =>
 				b.isA!(Json[]) && arrEqual!Json(x, b.as!(Json[])),
 			(in Json.Object oa) =>
-				b.isA!Object && arrEqual(oa, b.as!Object));
+				b.isA!Object && arrEqual(oa, b.as!Object),
+			(in Json.StringObject ob) =>
+				todo!bool(""));
 }
 
 Json jsonObject(Json.ObjectField[] fields) =>
@@ -66,7 +71,7 @@ private @trusted immutable(T[]) concatenate(T)(ref Alloc alloc, in T[] a, in T[]
 	return cast(immutable) res[0 .. len];
 }
 
-private Json jsonNull() =>
+Json jsonNull() =>
 	Json(Json.Null());
 
 Json.ObjectField optionalField(string name)(bool isPresent, in Json delegate() @safe @nogc pure nothrow cb) =>
@@ -165,7 +170,7 @@ void writeJson(ref Writer writer, in AllSymbols allSymbols, in Json a) =>
 			writeFloatLiteral(writer, x);
 		},
 		(in string x) {
-			writeQuotedStr(writer, x);
+			writeQuotedString(writer, x);
 		},
 		(in Sym it) {
 			writeQuotedSym(writer, allSymbols, it);
@@ -178,16 +183,32 @@ void writeJson(ref Writer writer, in AllSymbols allSymbols, in Json a) =>
 			writer ~= ']';
 		},
 		(in Json.Object x) {
-			writer ~= '{';
-			writeWithCommasCompact!(Json.ObjectField)(writer, x, (in Json.ObjectField pair) {
-				writeQuotedSym(writer, allSymbols, pair.key);
-				writer ~= ':';
-				writeJson(writer, allSymbols, pair.value);
+			writeObjectCompact!Sym(writer, allSymbols, x, (in Sym key) {
+				writeQuotedSym(writer, allSymbols, key);
 			});
-			writer ~= '}';
+		},
+		(in Json.StringObject x) {
+			writeObjectCompact!string(writer, allSymbols, x, (in string key) {
+				writeQuotedString(writer, key);
+			});
 		});
 
 private:
+
+void writeObjectCompact(K)(
+	ref Writer writer,
+	in AllSymbols allSymbols,
+	in KeyValuePair!(K, Json)[] pairs,
+	in void delegate(in K) @safe @nogc pure nothrow writeKey,
+) {
+	writer ~= '{';
+	writeWithCommasCompact!(KeyValuePair!(K, Json))(writer, pairs, (in KeyValuePair!(K, Json) pair) {
+		writeKey(pair.key);
+		writer ~= ':';
+		writeJson(writer, allSymbols, pair.value);
+	});
+	writer ~= '}';
+}
 
 void writeJsonPretty(ref Writer writer, in AllSymbols allSymbols, in Json a, in uint indent) {
 	if (a.isA!(Json[])) {

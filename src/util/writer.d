@@ -193,7 +193,7 @@ private void writeWithSeparator(T)(
 		}
 }
 
-void writeQuotedStr(scope ref Writer writer, in string s) {
+void writeQuotedString(scope ref Writer writer, in string s) {
 	writer ~= '"';
 	foreach (char c; s)
 		writeEscapedChar_inner(writer, c);

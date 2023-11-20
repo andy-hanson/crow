@@ -12,7 +12,7 @@ import util.hash : Hasher, hashUlong;
 import util.opt : force, has, Opt, none, some;
 import util.ptr : ptrTrustMe;
 import util.util : drop, verify;
-import util.writer : digitChar, finishWriterToSafeCStr, Writer;
+import util.writer : digitChar, finishWriterToSafeCStr, writeEscapedChar, Writer;
 
 immutable struct Sym {
 	@safe @nogc pure nothrow:
@@ -246,7 +246,9 @@ void writeSym(scope ref Writer writer, in AllSymbols allSymbols, Sym a) {
 
 void writeQuotedSym(scope ref Writer writer, in AllSymbols allSymbols, Sym a) {
 	writer ~= '"';
-	writeSym(writer, allSymbols, a);
+	eachCharInSym(allSymbols, a, (char x) {
+		writeEscapedChar(writer, x);
+	});
 	writer ~= '"';
 }
 
