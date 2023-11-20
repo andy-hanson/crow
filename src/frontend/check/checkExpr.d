@@ -710,10 +710,10 @@ Expr checkAssignIdentifier(
 				check(ctx, source, expected, voidType(ctx), Expr(
 					source,
 					ExprKind(allocate(ctx.alloc, LocalSetExpr(local, value))))),
-			(ClosureRef cr) =>
+			(ClosureRef x) =>
 				check(ctx, source, expected, voidType(ctx), Expr(
 					source,
-					ExprKind(ClosureSetExpr(allocate(ctx.alloc, cr), allocate(ctx.alloc, value))))));
+					ExprKind(ClosureSetExpr(x, allocate(ctx.alloc, value))))));
 	} else
 		return checkCallSpecial!1(ctx, locals, source, prependSet(ctx.allSymbols, left), [*right], expected);
 }
@@ -739,7 +739,7 @@ Expr toExpr(ref Alloc alloc, ExprAst* source, VariableRef a) =>
 		(Local* x) =>
 			Expr(source, ExprKind(LocalGetExpr(x))),
 		(ClosureRef x) =>
-			Expr(source, ExprKind(ClosureGetExpr(allocate(alloc, x)))));
+			Expr(source, ExprKind(ClosureGetExpr(x))));
 
 Expr checkLiteralFloat(ref ExprCtx ctx, ExprAst* source, in LiteralFloatAst ast, ref Expected expected) {
 	immutable StructInst*[2] allowedTypes = [ctx.commonTypes.float32, ctx.commonTypes.float64];

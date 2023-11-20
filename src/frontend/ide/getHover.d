@@ -202,11 +202,11 @@ void getExprHover(ref Writer writer, scope ref ShowCtx ctx, in Uri curUri, in Ex
 		},
 		(in ClosureGetExpr x) {
 			writer ~= "gets ";
-			closureRefHover(writer, ctx, *x.closureRef);
+			closureRefHover(writer, ctx, x.closureRef);
 		},
 		(in ClosureSetExpr x) {
 			writer ~= "sets ";
-			closureRefHover(writer, ctx, *x.closureRef);
+			closureRefHover(writer, ctx, x.closureRef);
 		},
 		(in FunPtrExpr x) {
 			writer ~= "pointer to function ";

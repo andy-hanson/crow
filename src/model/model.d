@@ -1508,13 +1508,11 @@ immutable struct CallExpr {
 }
 
 immutable struct ClosureGetExpr {
-	// TODO: by value (causes forward reference error on dmd 2.100 but not on dmd 2.101)
-	ClosureRef* closureRef;
+	ClosureRef closureRef;
 }
 
 immutable struct ClosureSetExpr {
-	// TODO: by value (causes forward reference error on dmd 2.100 but not on dmd 2.101)
-	ClosureRef* closureRef;
+	ClosureRef closureRef;
 	Expr* value;
 }
 

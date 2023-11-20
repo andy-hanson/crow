@@ -133,9 +133,9 @@ Opt!Target exprTarget(in Program program, PositionKind.Expression a) {
 		(CallExpr x) =>
 			calledTarget(x.called),
 		(ClosureGetExpr x) =>
-			local(toLocal(*x.closureRef)),
+			local(toLocal(x.closureRef)),
 		(ClosureSetExpr x) =>
-			local(toLocal(*x.closureRef)),
+			local(toLocal(x.closureRef)),
 		(FunPtrExpr x) =>
 			some(Target(decl(*x.funInst))),
 		(ref IfExpr _) =>

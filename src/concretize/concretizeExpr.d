@@ -299,7 +299,7 @@ ConcreteExpr concretizeClosureGet(
 	in UriAndRange range,
 	in ClosureGetExpr a,
 ) {
-	ClosureFieldInfo info = getClosureFieldInfo(ctx, range, *a.closureRef);
+	ClosureFieldInfo info = getClosureFieldInfo(ctx, range, a.closureRef);
 	verify(info.type == type);
 	return ConcreteExpr(type, range, ConcreteExprKind(
 		allocate(ctx.alloc, ConcreteExprKind.ClosureGet(info.closureRef, info.referenceKind))));
@@ -312,8 +312,8 @@ ConcreteExpr concretizeClosureSet(
 	in Locals locals,
 	in ClosureSetExpr a,
 ) {
-	verify(getClosureReferenceKind(*a.closureRef) == ClosureReferenceKind.allocated);
-	ClosureFieldInfo info = getClosureFieldInfo(ctx, range, *a.closureRef);
+	verify(getClosureReferenceKind(a.closureRef) == ClosureReferenceKind.allocated);
+	ClosureFieldInfo info = getClosureFieldInfo(ctx, range, a.closureRef);
 	verify(info.referenceKind == ClosureReferenceKind.allocated);
 	ConcreteExpr value = concretizeExpr(ctx, info.type, locals, *a.value);
 	verify(isVoid(type));
