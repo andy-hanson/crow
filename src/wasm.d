@@ -41,7 +41,7 @@ import util.json : field, jsonObject, Json, jsonToString, jsonList, jsonString;
 import util.lineAndColumnGetter : LineAndCharacter, UriLineAndCharacter;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
 import util.opt : force, has, Opt;
-import util.perf : eachMeasure, Perf, PerfMeasureResult, withNullPerf;
+import util.perf : eachMeasure, Perf, PerfMeasureResult, perfTotal;
 import util.sourceRange : jsonOfRange, UriAndRange;
 import util.storage : asSafeCStr, FileContent, readFileIssueOfSym, ReadFileResult;
 import util.sym : symOfSafeCStr;
@@ -117,7 +117,7 @@ extern(C) CStr version_(Server* server) {
 @system extern(C) void searchImportsFromUri(Server* server, scope CStr uriCStr) {
 	Alloc resultAlloc = Alloc(resultBuffer);
 	Uri uri = toUri(*server, SafeCStr(uriCStr));
-	withNullPerf!(void, (ref Perf perf) {
+	withWebPerf!("searchImportsFromUri", void)((scope ref Perf perf) {
 		justParseEverything(resultAlloc, perf, *server, [uri]);
 	});
 }
@@ -143,25 +143,27 @@ CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 @system extern(C) CStr getTokensAndParseDiagnostics(Server* server, scope CStr uriPtr) {
 	Uri uri = toUri(*server, SafeCStr(uriPtr));
 	Alloc resultAlloc = Alloc(resultBuffer);
-	TokensAndParseDiagnostics res = withNullPerf!(TokensAndParseDiagnostics, (ref Perf perf) =>
-		getTokensAndParseDiagnostics(resultAlloc, perf, *server, uri));
-	return jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
-		field!"tokens"(jsonOfTokens(resultAlloc, server.lineAndColumnGetters[uri], res.tokens)),
-		field!"parse-diagnostics"(jsonOfDiagnostics(resultAlloc, *server, res.programForDiagnostics))])).ptr;
+	return withWebPerf!("getTokensAndParseDiagnostics", CStr)((scope ref Perf perf) {
+		TokensAndParseDiagnostics res = getTokensAndParseDiagnostics(resultAlloc, perf, *server, uri);
+		return jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
+			field!"tokens"(jsonOfTokens(resultAlloc, server.lineAndColumnGetters[uri], res.tokens)),
+			field!"parse-diagnostics"(jsonOfDiagnostics(resultAlloc, *server, res.programForDiagnostics))])).ptr;
+	});
 }
 
 @system extern(C) CStr getAllDiagnostics(Server* server) {
 	Alloc resultAlloc = Alloc(resultBuffer);
-	Program program = withNullPerf!(Program, (ref Perf perf) =>
-		typeCheckAllKnownFiles(resultAlloc, perf, *server));
-	return jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
-		field!"diagnostics"(jsonOfDiagnostics(resultAlloc, *server, program))])).ptr;
+	return withWebPerf!("getAllDiagnostics", CStr)((scope ref Perf perf) {
+		Program program = typeCheckAllKnownFiles(resultAlloc, perf, *server);
+		return jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
+			field!"diagnostics"(jsonOfDiagnostics(resultAlloc, *server, program))])).ptr;
+	});
 }
 
 @system extern(C) CStr getDefinition(Server* server, scope CStr uriPtr, uint line, uint character) {
 	UriLineAndCharacter where = toUriLineAndCharacter(*server, SafeCStr(uriPtr), line, character);
 	Alloc resultAlloc = Alloc(resultBuffer);
-	return withNullPerf!(SafeCStr, (ref Perf perf) {
+	return withWebPerf!("getDefinition", SafeCStr)((scope ref Perf perf) {
 		UriAndRange[] res = getDefinition(perf, resultAlloc, *server, where);
 		Json json = jsonOfReferences(resultAlloc, server.allUris, server.lineAndColumnGetters, res);
 		return jsonToString(resultAlloc, server.allSymbols, json);
@@ -172,7 +174,7 @@ CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 	Alloc resultAlloc = Alloc(resultBuffer);
 	SafeCStr uriSafe = SafeCStr(uriPtr);
 	SafeCStr rootsSafe = SafeCStr(roots);
-	return withNullPerf!(SafeCStr, (ref Perf perf) {
+	return withWebPerf!("getReferences", SafeCStr)((scope ref Perf perf) {
 		UriLineAndCharacter where = toUriLineAndCharacter(*server, uriSafe, line, character);
 		Uri[] roots = toUris(resultAlloc, *server, rootsSafe);
 		UriAndRange[] references = getReferences(perf, resultAlloc, *server, where, roots);
@@ -193,7 +195,7 @@ CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 	SafeCStr uriSafe = SafeCStr(uriPtr);
 	SafeCStr rootsSafe = SafeCStr(roots);
 	SafeCStr newName = SafeCStr(newNamePtr);
-	return withNullPerf!(SafeCStr, (ref Perf perf) {
+	return withWebPerf!("getRename", SafeCStr)((scope ref Perf perf) {
 		UriLineAndCharacter where = toUriLineAndCharacter(*server, uriSafe, line, character);
 		Uri[] roots = toUris(resultAlloc, *server, rootsSafe);
 		Opt!Rename rename = getRename(perf, resultAlloc, *server, where, roots, strOfSafeCStr(newName));
@@ -205,7 +207,7 @@ CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 @system extern(C) CStr getHover(Server* server, scope CStr uriPtr, uint line, uint character) {
 	UriLineAndCharacter where = toUriLineAndCharacter(*server, SafeCStr(uriPtr), line, character);
 	Alloc resultAlloc = Alloc(resultBuffer);
-	return withNullPerf!(SafeCStr, (ref Perf perf) {
+	return withWebPerf!("getHover", SafeCStr)((scope ref Perf perf) {
 		SafeCStr hover = getHover(perf, resultAlloc, *server, where);
 		return jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [field!"hover"(hover)]));
 	}).ptr;
@@ -214,7 +216,7 @@ CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 @system extern(C) int run(Server* server, scope CStr uriPtr) {
 	Uri uri = toUri(*server, SafeCStr(uriPtr));
 	Alloc resultAlloc = Alloc(resultBuffer);
-	return withWebPerf!ExitCode((scope ref Perf perf) =>
+	return withWebPerf!("run", ExitCode)((scope ref Perf perf) =>
 		run(perf, resultAlloc, *server, uri, (Pipe pipe, in string x) @trusted {
 			write(pipe, x.ptr, x.length);
 		})).value;
@@ -235,17 +237,25 @@ extern(C) void write(Pipe pipe, scope immutable char* begin, size_t length);
 
 // Not really pure, but JS doesn't know that
 extern(C) pure ulong getTimeNanos();
-extern(C) void perfLog(scope CStr name, ulong count, ulong nanoseconds, ulong bytesAllocated);
+extern(C) void perfLogMeasure(scope CStr name, uint count, ulong nanoseconds, uint bytesAllocated);
+extern(C) void perfLogFinish(scope CStr name, ulong totalNanoseconds);
 
 private:
 
-@system T withWebPerf(T)(in T delegate(scope ref Perf perf) @nogc nothrow cb) {
+@system T withWebPerf(CStr name, T)(in T delegate(scope ref Perf perf) @nogc nothrow cb) {
 	scope Perf perf = Perf(() => getTimeNanos());
-	T res = cb(perf);
+	static if (is(T == void)) {
+		cb(perf);
+	} else {
+		T res = cb(perf);
+	}
 	eachMeasure(perf, (in SafeCStr name, in PerfMeasureResult m) {
-		perfLog(name.ptr, m.count, m.nanoseconds, m.bytesAllocated);
+		perfLogMeasure(name.ptr, m.count, m.nanoseconds, m.bytesAllocated);
 	});
-	return res;
+	perfLogFinish(name, perfTotal(perf));
+	static if (!is(T == void)) {
+		return res;
+	}
 }
 
 pure:

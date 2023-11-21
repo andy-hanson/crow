@@ -107,27 +107,35 @@ const mathFunctions = Object.fromEntries(
 /** @type {crow.Write[]} */
 let globalWrites = []
 
+/** @type {function(bigint): number} */
+const toMsec = nsec =>
+	Math.round(Number(nsec) / 1_000_000)
 
-/**
-@param {ArrayBuffer} bytes This is the content of 'crow.wasm'
-@param {string} includeDir
-@param {string} cwd
-@return {Promise<crow.Compiler>}
-*/
-globalCrow.makeCompiler = async (bytes, includeDir, cwd) => {
+/** @type {crow.makeCompiler} */
+globalCrow.makeCompiler = async (bytes, includeDir, cwd, logger) => {
+	/** @type {Array<{name:string, count:number, msec:number, bytesAllocated:number}>} */
+	let perfMeasures = []
 	const result = await WebAssembly.instantiate(bytes, {
 		env: {
 			/** @type {function(): bigint} */
 			getTimeNanos: () =>
 				BigInt(Math.round(performance.now() * 1_000_000)),
 			/** @type {function(number, number, bigint, number): void} */
-			perfLog: (namePtr, count, nanoseconds, bytesAllocated) => {
-				const name = readCStr(namePtr)
-				console.log(`${name} x ${count} took ${nanoseconds / 1_000_000n}ms and ${bytesAllocated} bytes`)
+			perfLogMeasure: (namePtr, count, nanoseconds, bytesAllocated) => {
+				perfMeasures.push({name:readCStr(namePtr), count, msec:toMsec(nanoseconds), bytesAllocated})
+			},
+			/** @type {function(number, bigint): void} */
+			perfLogFinish: (name, totalNanoseconds) => {
+				logger(`performance for ${readCStr(name)}`, {
+					TOTAL: toMsec(totalNanoseconds),
+					...Object.fromEntries(perfMeasures.map(({name, count, msec, bytesAllocated}) =>
+						[name, {count, msec, bytesAllocated}]))
+				})
+				perfMeasures = []
 			},
 			/** @type {function(number, number): void} */
 			debugLog: (str, value) => {
-				console.log(readCStr(str), value)
+				logger(readCStr(str), value)
 			},
 			/** @type {function(number, number, number): void} */
 			_verifyFail: (fileStart, fileLength, line) => {
@@ -140,10 +148,11 @@ globalCrow.makeCompiler = async (bytes, includeDir, cwd) => {
 			},
 			/** @type {function(...unknown[]): void} */
 			__assert: (...args) => {
-				console.log("ASSERT", args)
+				logger("ASSERT", args)
 			},
 		}
 	})
+
 	const exports = /** @type {Exports} */ (result.instance.exports)
 
 	const { getParameterBufferPointer, getParameterBufferSizeBytes, memory, newServer } = exports
@@ -176,9 +185,7 @@ globalCrow.makeCompiler = async (bytes, includeDir, cwd) => {
 	/** @type {function(() => number): any} */
 	const withParamsAndJson = cb => {
 		try {
-			const str = readCStr(cb())
-			console.log("IT IS", str)
-			return JSON.parse(str)
+			return JSON.parse(readCStr(cb()))
 		} finally {
 			paramAlloc.clear()
 		}

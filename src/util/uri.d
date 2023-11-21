@@ -10,7 +10,6 @@ import util.comparison : Comparison;
 import util.conv : safeToUshort;
 import util.hash : Hasher, hashUshort;
 import util.opt : has, force, none, Opt, some;
-import util.ptr : ptrTrustMe;
 import util.sourceRange : Range;
 import util.sym :
 	addExtension,
@@ -27,7 +26,7 @@ import util.sym :
 	symSize,
 	writeSym;
 import util.util : todo, verify;
-import util.writer : finishWriterToSafeCStr, Writer;
+import util.writer : withWriter, Writer;
 
 struct AllUris {
 	@safe @nogc pure nothrow:
@@ -356,11 +355,10 @@ SafeCStr fileUriToSafeCStr(ref Alloc alloc, in AllUris allUris, FileUri a) =>
 	return SafeCStr(cast(immutable) begin);
 }
 
-public SafeCStr uriToSafeCStrPreferRelative(ref Alloc alloc, in AllUris allUris, ref UrisInfo urisInfo, Uri a) {
-	Writer writer = Writer(ptrTrustMe(alloc));
-	writeUriPreferRelative(writer, allUris, urisInfo, a);
-	return finishWriterToSafeCStr(writer);
-}
+public SafeCStr uriToSafeCStrPreferRelative(ref Alloc alloc, in AllUris allUris, ref UrisInfo urisInfo, Uri a) =>
+	withWriter(alloc, (scope ref Writer writer) {
+		writeUriPreferRelative(writer, allUris, urisInfo, a);
+	});
 
 Uri parseUri(ref AllUris allUris, in SafeCStr str) =>
 	parseUri(allUris, strOfSafeCStr(str));

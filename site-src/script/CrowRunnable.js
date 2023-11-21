@@ -61,7 +61,8 @@ const makeCompiler = async () =>
 		await (await fetch("../bin/crow.wasm")).arrayBuffer(),
 		includeDir,
 		// TODO: better CWD?
-		"/")
+		"/",
+		console.log)
 
 export class CrowRunnable extends HTMLElement {
 	constructor() {

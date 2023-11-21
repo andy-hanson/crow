@@ -10,9 +10,8 @@ import util.col.mutMaxArr : clear, MutMaxArr, mutMaxArr, push, pushAll, tempAsAr
 import util.col.str : copyToSafeCStr, eachChar, SafeCStr, strEq, strOfSafeCStr;
 import util.hash : Hasher, hashUlong;
 import util.opt : force, has, Opt, none, some;
-import util.ptr : ptrTrustMe;
 import util.util : drop, verify;
-import util.writer : digitChar, finishWriterToSafeCStr, writeEscapedChar, Writer;
+import util.writer : digitChar, withWriter, writeEscapedChar, Writer;
 
 immutable struct Sym {
 	@safe @nogc pure nothrow:
@@ -209,15 +208,12 @@ private Sym getSym(string name) {
 	return force(opt);
 }
 
-SafeCStr safeCStrOfSym(ref Alloc alloc, ref const AllSymbols allSymbols, Sym a) {
-	if (isLongSym(a))
-		return asLongSym(allSymbols, a);
-	else {
-		Writer writer = Writer(ptrTrustMe(alloc));
-		writeSym(writer, allSymbols, a);
-		return finishWriterToSafeCStr(writer);
-	}
-}
+SafeCStr safeCStrOfSym(ref Alloc alloc, ref const AllSymbols allSymbols, Sym a) =>
+	isLongSym(a)
+		? asLongSym(allSymbols, a)
+		: withWriter(alloc, (scope ref Writer writer) {
+			writeSym(writer, allSymbols, a);
+		});
 
 char[bufferSize] symAsTempBuffer(size_t bufferSize)(in AllSymbols allSymbols, Sym a) {
 	char[bufferSize] res;

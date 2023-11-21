@@ -7,13 +7,14 @@ const path = require("path")
 
 const crowDir = path.join(__dirname, "../../../")
 
-/** @type {function(): Promise<crow.Compiler>} */
-exports.makeCompiler = () =>
+/** @type {function(crow.Logger): Promise<crow.Compiler>} */
+exports.makeCompiler = logger =>
 	crow.makeCompiler(
 		fs.readFileSync(path.join(crowDir, "bin/crow.wasm")),
 		path.join(crowDir, "include"),
 		// TODO: get the real CWD from VSCode API
-		crowDir)
+		crowDir,
+		logger)
 
 /**
  * @template T
@@ -26,4 +27,5 @@ exports.nonNull = x => {
 	return x
 }
 
-exports.VERBOSE = true
+exports.LOG_PERF = true
+exports.LOG_VERBOSE = false

@@ -12,7 +12,7 @@ const {TextDocumentSyncKind} = require("vscode-languageserver-protocol")
 /** @typedef {import("vscode-languageserver-protocol").PublishDiagnosticsParams} PublishDiagnosticsParams */
 const {TextDocument} = require("vscode-languageserver-textdocument")
 
-const {makeCompiler, VERBOSE} = require("./util.js")
+const {makeCompiler, LOG_PERF, LOG_VERBOSE} = require("./util.js")
 
 // @ts-ignore
 const connection = createConnection(ProposedFeatures.all)
@@ -33,7 +33,13 @@ const logError = (message, content) => {
 
 /** @type {function(string, ?unknown): void} */
 const logVerbose = (message, content) => {
-	if (VERBOSE)
+	if (LOG_VERBOSE)
+		log(message, content)
+}
+
+/** @type {function(string, ?unknown): void} */
+const logPerf = (message, content) => {
+	if (LOG_PERF)
 		log(message, content)
 }
 
@@ -223,7 +229,9 @@ connection.onCompletionResolve(withLogErrors("onCompletionResolve", item => {
 
 const setUpCompiler = async () => {
 	try {
-		compiler = await makeCompiler()
+		const start = +new Date()
+		compiler = await makeCompiler(log)
+		logPerf("Time to start compiler", {time:+new Date() - start})
 		connection.listen()
 		log("Crow language server started", {version: compiler.version()})
 	} catch (error) {

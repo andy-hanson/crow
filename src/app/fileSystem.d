@@ -47,7 +47,6 @@ import util.col.str : CStr, SafeCStr, safeCStrSize;
 import util.exitCode : ExitCode;
 import util.memory : memset;
 import util.opt : force, has, Opt, some;
-import util.ptr : ptrTrustMe;
 import util.storage : FileContent, ReadFileIssue, ReadFileResult;
 import util.sym : Sym;
 import util.uri :
@@ -62,7 +61,7 @@ import util.uri :
 	TempStrForPath,
 	Uri;
 import util.util : todo, verify;
-import util.writer : finishWriterToSafeCStr, Writer;
+import util.writer : withWriter, Writer;
 
 FILE* stderr() {
 	version (Windows) {
@@ -410,20 +409,19 @@ version (Windows) {
 
 version (Windows) {
 	CStr windowsArgsCStr(
-		ref TempAlloc tempAlloc,
+		ref Alloc alloc,
 		in SafeCStr executablePath,
 		in SafeCStr[] args,
-	) {
-		Writer writer = Writer(ptrTrustMe(tempAlloc));
-		writer ~= '"';
-		writer ~= executablePath;
-		writer ~= '"';
-		foreach (SafeCStr arg; args) {
-			writer ~= ' ';
-			writer ~= arg;
-		}
-		return finishWriterToSafeCStr(writer).ptr;
-	}
+	) =>
+		withWriter(tempAlloc, (scope ref Writer writer) {
+			writer ~= '"';
+			writer ~= executablePath;
+			writer ~= '"';
+			foreach (SafeCStr arg; args) {
+				writer ~= ' ';
+				writer ~= arg;
+			}
+		}).ptr;
 }
 
 void verifyOk(int ok) {

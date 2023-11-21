@@ -20,7 +20,7 @@ import util.col.arrUtil : zip;
 import util.opt : force, has;
 import util.ptr : ptrTrustMe;
 import util.util : debugLog, verify, verifyFail;
-import util.writer : finishWriterToCStr, Writer;
+import util.writer : withWriter, Writer;
 
 void checkConcreteProgram(ref ShowCtx printCtx, in ConcreteCommonTypes types, in ConcreteProgram a) {
 	Ctx ctx = Ctx(ptrTrustMe(printCtx), ptrTrustMe(types));
@@ -150,12 +150,12 @@ void checkExprAnyType(ref Ctx ctx, in ConcreteExpr expr) {
 void checkType(ref Ctx ctx, in ConcreteType expected, in ConcreteType actual) {
 	if (expected != actual) {
 		withStackAlloc!1024((ref Alloc alloc) {
-			Writer writer = Writer(&alloc);
-			writer ~= "expected ";
-			writeConcreteType(writer, *ctx.printCtx, expected);
-			writer ~= " but was ";
-			writeConcreteType(writer, *ctx.printCtx, actual);
-			debugLog(finishWriterToCStr(writer));
+			debugLog(withWriter(alloc, (scope ref Writer writer) {
+				writer ~= "expected ";
+				writeConcreteType(writer, *ctx.printCtx, expected);
+				writer ~= " but was ";
+				writeConcreteType(writer, *ctx.printCtx, actual);
+			}).ptr);
 		});
 		verifyFail();
 	}

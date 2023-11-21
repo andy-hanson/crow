@@ -58,11 +58,6 @@ SafeCStr stringOfDiagnostics(ref Alloc alloc, scope ref ShowCtx ctx, in Diagnost
 		});
 	});
 
-SafeCStr stringOfDiagnostic(ref Alloc alloc, scope ref ShowCtx ctx, in Diagnostic diagnostic) =>
-	withWriter(alloc, (scope ref Writer writer) {
-		showDiagnostic(writer, ctx, diagnostic);
-	});
-
 SafeCStr stringOfDiag(ref Alloc alloc, scope ref ShowCtx ctx, in Diag diag) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		writeDiag(writer, ctx, diag);

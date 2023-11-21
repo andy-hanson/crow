@@ -7,7 +7,7 @@ const {languages, SemanticTokens, Uri, workspace} = require("vscode")
 /** @typedef {import("vscode-languageclient/lib/node/main.js").ServerOptions} ServerOptions */
 const {LanguageClient, TransportKind} = require("vscode-languageclient/lib/node/main.js")
 
-const {makeCompiler, nonNull, VERBOSE} = require("../server/util.js")
+const {makeCompiler, nonNull, LOG_VERBOSE} = require("../server/util.js")
 const {crowSemanticTokensLegend, getTokens} = require("./tokens.js")
 
 /** @type {LanguageClient} */
@@ -76,7 +76,7 @@ const logError = message => {
 }
 /** @type {function(string): void} */
 const logVerbose = message => {
-	if (VERBOSE)
+	if (LOG_VERBOSE)
 		log(message)
 }
 
@@ -110,7 +110,7 @@ exports.deactivate = () =>
 let myCompiler = null
 /** @type {function(): Promise<crow.Compiler>} */
 const getCompiler = () => {
-	if (myCompiler == null) myCompiler = makeCompiler()
+	if (myCompiler == null) myCompiler = makeCompiler(console.log)
 	return myCompiler
 }
 

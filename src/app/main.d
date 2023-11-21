@@ -59,16 +59,9 @@ import util.exitCode : ExitCode;
 import util.json : jsonToString;
 import util.lineAndColumnGetter : UriLineAndColumn;
 import util.opt : force, has;
-import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasureResult;
+import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasureResult, perfTotal;
 import util.sym : sym;
-import util.uri :
-	AllUris,
-	childUri,
-	FileUri,
-	Uri,
-	parentOrEmpty,
-	uriToSafeCStr,
-	toUri;
+import util.uri : AllUris, childUri, FileUri, Uri, parentOrEmpty, uriToSafeCStr, toUri;
 import util.util : verify;
 import versionInfo : versionInfoForJIT;
 
@@ -110,7 +103,7 @@ void loadSingleFile(ref Server server, Uri uri) {
 	setFile(server, uri, tryReadFile(server.storage.alloc, server.allUris, uri));
 }
 
-void logPerf(in Perf perf) {
+@trusted void logPerf(in Perf perf) {
 	eachMeasure(perf, (in SafeCStr name, in PerfMeasureResult m) @trusted {
 		printf(
 			"%s * %d took %llums and %lluKB\n",
@@ -119,6 +112,7 @@ void logPerf(in Perf perf) {
 			divRound(m.nanoseconds, 1_000_000),
 			divRound(m.bytesAllocated, 1024));
 	});
+	printf("Total: %llums", divRound(perfTotal(perf), 1_000_000));
 }
 
 ulong divRound(ulong a, ulong b) {

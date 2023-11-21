@@ -14,12 +14,11 @@ import util.lineAndColumnGetter : LineAndColumn, LineAndColumnGetters, lineAndCo
 import util.col.str : CStr;
 import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : ptrTrustMe;
 import util.sourceRange : UriAndPos;
 import util.sym : AllSymbols;
 import util.uri : AllUris, Uri, UrisInfo, uriToSafeCStrPreferRelative;
 import util.util : min, verify;
-import util.writer : debugLogWithWriter, finishWriterToSafeCStr, writeHex, Writer;
+import util.writer : debugLogWithWriter, withWriter, writeHex, Writer;
 
 struct InterpreterDebugInfo {
 	@safe @nogc pure nothrow:
@@ -105,10 +104,9 @@ private @trusted BacktraceEntry backtraceEntryFromSource(
 	scope ref InterpreterDebugInfo info,
 	ByteCodeSource source,
 ) {
-	Writer writer = Writer(ptrTrustMe(alloc));
-	writeFunName(writer, info.showDiag, info.lowProgram, source.fun);
-	CStr funName = finishWriterToSafeCStr(writer).ptr;
-
+	CStr funName = withWriter(alloc, (scope ref Writer writer) {
+		writeFunName(writer, info.showDiag, info.lowProgram, source.fun);
+	}).ptr;
 	Opt!Uri opUri = getUri(info.lowProgram, source.fun);
 	if (has(opUri)) {
 		Uri uri = force(opUri);

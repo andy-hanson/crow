@@ -82,7 +82,9 @@ declare namespace crow {
 		changes: { [uri: Uri]: TextEdit[] }
 	}
 
-	function makeCompiler(bytes: ArrayBuffer, includeDir: Uri, cwd: Uri): Promise<Compiler>
+	type Logger = (arg0: string, arg1?: unknown) => void
+
+	function makeCompiler(bytes: ArrayBuffer, includeDir: Uri, cwd: Uri, logger: Logger): Promise<Compiler>
 	interface Compiler {
 		version(): string
 		setFileSuccess(uri: Uri, content: string): void

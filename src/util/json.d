@@ -10,12 +10,11 @@ import util.col.map : KeyValuePair;
 import util.col.str : copyStr, SafeCStr, safeCStrIsEmpty, strEq, strOfSafeCStr;
 import util.memory : initMemory;
 import util.opt : force, has, Opt;
-import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols, Sym, sym, writeQuotedSym;
 import util.union_ : Union;
 import util.util : todo;
 import util.writer :
-	finishWriterToSafeCStr, writeFloatLiteral, Writer, writeQuotedString, writeWithCommasCompact, writeWithSeparator;
+	withWriter, writeFloatLiteral, Writer, writeQuotedString, writeWithCommasCompact, writeWithSeparator;
 
 immutable struct Json {
 	@safe @nogc pure nothrow:
@@ -146,17 +145,15 @@ Json.ObjectField field(string name)(string value) =>
 Json.ObjectField field(string name)(Sym value) =>
 	field!name(Json(value));
 
-SafeCStr jsonToString(ref Alloc alloc, in AllSymbols allSymbols, in Json a) {
-	Writer writer = Writer(ptrTrustMe(alloc));
-	writeJson(writer, allSymbols, a);
-	return finishWriterToSafeCStr(writer);
-}
+SafeCStr jsonToString(ref Alloc alloc, in AllSymbols allSymbols, in Json a) =>
+	withWriter(alloc, (scope ref Writer writer) {
+		writeJson(writer, allSymbols, a);
+	});
 
-SafeCStr jsonToStringPretty(ref Alloc alloc, in AllSymbols allSymbols, in Json a) {
-	Writer writer = Writer(ptrTrustMe(alloc));
-	writeJsonPretty(writer, allSymbols, a, 0);
-	return finishWriterToSafeCStr(writer);
-}
+SafeCStr jsonToStringPretty(ref Alloc alloc, in AllSymbols allSymbols, in Json a) =>
+	withWriter(alloc, (scope ref Writer writer) {
+		writeJsonPretty(writer, allSymbols, a, 0);
+	});
 
 void writeJson(ref Writer writer, in AllSymbols allSymbols, in Json a) =>
 	a.matchIn!void(

@@ -16,11 +16,10 @@ import util.col.str : SafeCStr, safeCStr;
 import util.exitCode : ExitCode;
 import util.opt : force, has, none;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols, concatSyms, safeCStrOfSym, Sym, sym, writeSym;
 import util.uri : AllUris, asFileUri, childFileUri, FileUri, fileUriToSafeCStr, isFileUri, Uri, writeFileUri;
 import util.util : todo;
-import util.writer : finishWriterToSafeCStr, Writer;
+import util.writer : withWriter, Writer;
 
 @trusted ExitCode compileC(
 	ref Alloc alloc,
@@ -86,26 +85,26 @@ SafeCStr[] cCompileArgs(
 				}
 		} else {
 			if (has(x.configuredDir)) {
-				Writer writer = Writer(ptrTrustMe(alloc));
-				writer ~= "-L";
-				if (!isFileUri(allUris, force(x.configuredDir)))
-					todo!void("diagnostic: can't link to non-file");
-				writeFileUri(writer, allUris, asFileUri(allUris, force(x.configuredDir)));
-				add(alloc, args, finishWriterToSafeCStr(writer));
+				add(alloc, args, withWriter(alloc, (scope ref Writer writer) {
+					writer ~= "-L";
+					if (!isFileUri(allUris, force(x.configuredDir)))
+						todo!void("diagnostic: can't link to non-file");
+					writeFileUri(writer, allUris, asFileUri(allUris, force(x.configuredDir)));
+				}));
 			}
 
-			Writer writer = Writer(ptrTrustMe(alloc));
-			writer ~= "-l";
-			writeSym(writer, allSymbols, x.libraryName);
-			add(alloc, args, finishWriterToSafeCStr(writer));
+			add(alloc, args, withWriter(alloc, (scope ref Writer writer) {
+				writer ~= "-l";
+				writeSym(writer, allSymbols, x.libraryName);
+			}));
 		}
 	}
 	version (Windows) {
 		add(alloc, args, safeCStr!"/DEBUG");
-		Writer writer = Writer(ptrTrustMe(alloc));
-		writer ~= "/out:";
-		writeFileUri(writer, allUris, exePath);
-		add(alloc, args, finishWriterToSafeCStr(writer));
+		add(alloc, args, withWriter(writer, (scope ref Writer writer) {
+			writer ~= "/out:";
+			writeFileUri(writer, allUris, exePath);
+		}));
 	} else {
 		add(alloc, args, safeCStr!"-lm");
 		addAll(alloc, args, [

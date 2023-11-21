@@ -33,8 +33,16 @@ T withNullPerf(T, alias cb)() {
 }
 
 struct Perf {
+	@safe @nogc pure nothrow:
+
 	ulong delegate() @safe @nogc pure nothrow cbGetTimeNSec;
+	ulong nsecStart;
 	private EnumMap!(PerfMeasure, PerfMeasureResult) measures;
+
+	this(return scope ulong delegate() @safe @nogc pure nothrow cb) {
+		cbGetTimeNSec = cb;
+		nsecStart = cb();
+	}
 }
 
 pure bool perfEnabled() =>
@@ -127,6 +135,9 @@ void eachMeasure(in Perf perf, in void delegate(in SafeCStr, in PerfMeasureResul
 	}
 }
 
+ulong perfTotal(in Perf perf) =>
+	perf.cbGetTimeNSec() - perf.nsecStart;
+
 enum PerfMeasure {
 	cCompile,
 	checkCall,
@@ -182,4 +193,3 @@ pure SafeCStr perfMeasureName(PerfMeasure a) {
 			return safeCStr!"run";
 	}
 }
-

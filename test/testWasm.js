@@ -5,7 +5,7 @@ require("../crow-js/crow.js")
 const fs = require("fs")
 
 const main = async () => {
-	const comp = await crow.makeCompiler(fs.readFileSync('bin/crow.wasm'), "/include", "/cwd")
+	const comp = await crow.makeCompiler(fs.readFileSync('bin/crow.wasm'), "/include", "/cwd", console.log)
 	const include = JSON.parse(fs.readFileSync("site/include-all.json", "utf-8"))
 	for (const [path, content] of Object.entries(include)) {
 		const fullPath = `/include/${path}`

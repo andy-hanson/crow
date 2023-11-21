@@ -3,16 +3,16 @@ module test.testWriter;
 @safe @nogc pure nothrow:
 
 import test.testUtil : Test;
-import util.col.str : strEq;
+import util.col.str : SafeCStr, strEq, strOfSafeCStr;
 import util.util : verify;
-import util.writer : finishWriter, writeFloatLiteral, Writer;
+import util.writer : withWriter, writeFloatLiteral, Writer;
 
 @trusted void testWriter(ref Test test) {
 	void writes(double value, string expected) {
-		Writer writer = Writer(test.allocPtr);
-		writeFloatLiteral(writer, value);
-		string res = finishWriter(writer);
-		verify(strEq(res, expected));
+		SafeCStr actual = withWriter(test.alloc, (scope ref Writer writer) {
+			writeFloatLiteral(writer, value);
+		});
+		verify(strEq(strOfSafeCStr(actual), expected));
 	}
 
 	writes(-0.0, "-0");

@@ -136,7 +136,7 @@ import util.sourceRange : UriAndRange;
 import util.sym : AllSymbols, writeSym;
 import util.union_ : Union, UnionMutable;
 import util.util : todo, unreachable, verify;
-import util.writer : debugLogWithWriter, finishWriterToCStr, Writer;
+import util.writer : debugLogWithWriter, withWriter, Writer;
 
 @trusted int jitAndRun(
 	ref Alloc alloc,
@@ -211,13 +211,12 @@ GccProgram getGccProgram(
 	//gcc_jit_context_set_bool_option(*ctx, gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, true);
 	//gcc_jit_context_set_bool_option(*ctx, gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE, true);
 
-	foreach (ref ExternLibrary x; program.externLibraries) {
+	foreach (ref ExternLibrary x; program.externLibraries)
 		//TODO:NO ALLOC
-		Writer writer = Writer(ptrTrustMe(alloc));
-		writer ~= "-l";
-		writeSym(writer, allSymbols, x.libraryName);
-		gcc_jit_context_add_driver_option(*ctx, finishWriterToCStr(writer));
-	}
+		gcc_jit_context_add_driver_option(*ctx, withWriter(alloc, (scope ref Writer writer) {
+			writer ~= "-l";
+			writeSym(writer, allSymbols, x.libraryName);
+		}).ptr);
 
 	withMeasure!(void, () {
 		buildGccProgram(alloc, *ctx, allSymbols, program);
@@ -422,9 +421,9 @@ GlobalsForConstants generateGlobalsForConstants(
 						gccElementType,
 						cast(int) values.length);
 					//TODO:NO ALLOC
-					Writer writer = Writer(ptrTrustMe(alloc));
-					writeConstantArrStorageName(writer, mangledNames, program, tc.arrType, index);
-					CStr name = finishWriterToCStr(writer);
+					CStr name = withWriter(alloc, (scope ref Writer writer) {
+						writeConstantArrStorageName(writer, mangledNames, program, tc.arrType, index);
+					}).ptr;
 					return gcc_jit_lvalue_as_rvalue(gcc_jit_context_new_global(
 						ctx,
 						null,
@@ -442,9 +441,9 @@ GlobalsForConstants generateGlobalsForConstants(
 				tc.constants,
 				(size_t index, scope ref Constant) {
 					//TODO:NO ALLOC
-					Writer writer = Writer(ptrTrustMe(alloc));
-					writeConstantPointerStorageName(writer, mangledNames, program, tc.pointeeType, index);
-					CStr name = finishWriterToCStr(writer);
+					CStr name = withWriter(alloc, (scope ref Writer writer) {
+						writeConstantPointerStorageName(writer, mangledNames, program, tc.pointeeType, index);
+					}).ptr;
 					return gcc_jit_context_new_global(
 						ctx,
 						null,
@@ -470,9 +469,9 @@ GccVars generateGccVars(
 		alloc, program.vars, (LowVarIndex varIndex, in LowVar var) {
 			immutable gcc_jit_type* type = getGccType(types, var.type);
 			//TODO:NO ALLOC
-			Writer writer = Writer(ptrTrustMe(alloc));
-			writeLowVarMangledName(writer, mangledNames, varIndex, var);
-			CStr name = finishWriterToCStr(writer);
+			CStr name = withWriter(alloc, (scope ref Writer writer) {
+				writeLowVarMangledName(writer, mangledNames, varIndex, var);
+			}).ptr;
 			gcc_jit_lvalue* res = gcc_jit_context_new_global(
 				ctx, null,
 				var.isExtern
@@ -512,14 +511,15 @@ GccVars generateGccVars(
 	//TODO:NO ALLOC
 	immutable gcc_jit_param*[] params = map(alloc, fun.params, (ref LowLocal param) {
 		//TODO:NO ALLOC
-		Writer writer = Writer(ptrTrustMe(alloc));
-		writeLowLocalName(writer, mangledNames, param);
-		return gcc_jit_context_new_param(ctx, null, getGccType(gccTypes, param.type), finishWriterToCStr(writer));
+		CStr name = withWriter(alloc, (scope ref Writer writer) {
+			writeLowLocalName(writer, mangledNames, param);
+		}).ptr;
+		return gcc_jit_context_new_param(ctx, null, getGccType(gccTypes, param.type), name);
 	});
 	//TODO:NO ALLOC
-	Writer writer = Writer(ptrTrustMe(alloc));
-	writeLowFunMangledName(writer, mangledNames, funIndex, fun);
-	CStr name = finishWriterToCStr(writer);
+	CStr name = withWriter(alloc, (scope ref Writer writer) {
+		writeLowFunMangledName(writer, mangledNames, funIndex, fun);
+	}).ptr;
 	return gcc_jit_context_new_function(ctx, null, kind, returnType, name, cast(int) params.length, params.ptr, false);
 }
 
@@ -1054,13 +1054,10 @@ ExprResult emitWithLocal(
 	in ExprResult delegate(ref ExprEmit) @safe @nogc pure nothrow cbValue,
 ) {
 	//TODO:NO ALLOC
-	Writer writer = Writer(ctx.allocPtr);
-	writeLowLocalName(writer, ctx.mangledNames, *lowLocal);
-	gcc_jit_lvalue* gccLocal = gcc_jit_function_new_local(
-		ctx.curFun,
-		null,
-		getGccType(ctx.types, lowLocal.type),
-		finishWriterToCStr(writer));
+	CStr name = withWriter(ctx.alloc, (scope ref Writer writer) {
+		writeLowLocalName(writer, ctx.mangledNames, *lowLocal);
+	}).ptr;
+	gcc_jit_lvalue* gccLocal = gcc_jit_function_new_local(ctx.curFun, null, getGccType(ctx.types, lowLocal.type), name);
 	emitToLValueCb(gccLocal, (ref ExprEmit valueEmit) =>
 		cbValue(valueEmit));
 	Locals newLocals = addLocal(locals, lowLocal, gccLocal);

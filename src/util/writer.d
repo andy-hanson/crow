@@ -5,13 +5,12 @@ module util.writer;
 import util.alloc.alloc : Alloc, withStackAlloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : zip;
-import util.col.str : CStr, eachChar, SafeCStr;
+import util.col.str : eachChar, SafeCStr;
 import util.util : abs, debugLog, verify;
 
 struct Writer {
 	private:
-	//TODO:PRIVATE
-	public Alloc* alloc;
+	Alloc* alloc;
 	ArrBuilder!char res;
 
 	void opOpAssign(string op, T)(in T a) scope if (op == "~") {
@@ -36,36 +35,26 @@ struct Writer {
 }
 
 void debugLogWithWriter(in void delegate(scope ref Writer) @safe @nogc pure nothrow cb) {
-	debugLogWithWriter((scope ref Alloc, ref Writer writer) {
+	debugLogWithWriter((scope ref Alloc, scope ref Writer writer) {
 		cb(writer);
 	});
 }
-void debugLogWithWriter(in void delegate(scope ref Alloc, ref Writer) @safe @nogc pure nothrow cb) {
+void debugLogWithWriter(in void delegate(scope ref Alloc, scope ref Writer) @safe @nogc pure nothrow cb) {
 	debug {
 		withStackAlloc!0x1000((scope ref Alloc alloc) {
-			Writer writer = Writer(&alloc);
-			cb(alloc, writer);
-			debugLog(finishWriterToCStr(writer));
+			debugLog(withWriter(alloc, (scope ref Writer writer) {
+				cb(alloc, writer);
+			}).ptr);
 		});
 	}
 }
 
-SafeCStr withWriter(ref Alloc alloc, in void delegate(scope ref Writer writer) @safe @nogc pure nothrow cb) {
-	Writer writer = Writer(&alloc);
+@trusted SafeCStr withWriter(ref Alloc alloc, in void delegate(scope ref Writer writer) @safe @nogc pure nothrow cb) {
+	scope Writer writer = Writer(&alloc);
 	cb(writer);
-	return finishWriterToSafeCStr(writer);
-}
-
-string finishWriter(scope ref Writer writer) =>
-	finishArr(*writer.alloc, writer.res);
-
-@trusted CStr finishWriterToCStr(scope ref Writer writer) {
 	writer ~= '\0';
-	return finishWriter(writer).ptr;
+	return SafeCStr(finishArr(*writer.alloc, writer.res).ptr);
 }
-
-@trusted SafeCStr finishWriterToSafeCStr(scope ref Writer writer) =>
-	SafeCStr(finishWriterToCStr(writer));
 
 void writeHex(scope ref Writer writer, ulong a) {
 	writeNat(writer, a, 16);

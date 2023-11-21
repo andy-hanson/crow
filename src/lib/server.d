@@ -28,7 +28,7 @@ import interpret.runBytecode : runBytecode;
 import lib.cliParser : PrintKind;
 import lower.lower : lower;
 import model.concreteModel : ConcreteProgram;
-import model.diag : Diag, Diagnostic, diagnosticsIsFatal;
+import model.diag : Diag, diagnosticsIsFatal;
 import model.jsonOfConcreteModel : jsonOfConcreteProgram;
 import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
@@ -63,7 +63,7 @@ import util.sourceRange : UriAndRange;
 import util.sym : AllSymbols;
 import util.uri : AllUris, getExtension, parseUri, Uri, UrisInfo;
 import util.util : verify;
-import util.writer : finishWriterToSafeCStr, Writer;
+import util.writer : withWriter, Writer;
 import versionInfo : VersionInfo, versionInfoForBuildToC, versionInfoForInterpret;
 
 ExitCode run(ref Perf perf, ref Alloc alloc, ref Server server, Uri main, in WriteCb writeCb) {
@@ -142,31 +142,31 @@ struct Server {
 		lateGet(diagOptions_);
 }
 
-SafeCStr version_(ref Alloc alloc, in Server server) {
-	static immutable string date = import("date.txt")[0 .. "2020-02-02".length];
-	static immutable string commitHash = import("commit-hash.txt")[0 .. 8];
-	Writer writer = Writer(&alloc);
-	writer ~= date;
-	//"%.*s (%.*s)",
-	writer ~= " (";
-	writer ~= commitHash;
-	writer ~= ")";
-	version (Debug) {
-		writer ~= ", debug build";
-	}
-	version (assert) {} else {
-		writer ~= ", assertions disabled";
-	}
-	version (TailRecursionAvailable) {} else {
-		writer ~= ", no tail calls";
-	}
-	version (GccJitEnabled) {} else {
-		writer ~= ", does not support '--jit'";
-	}
-	writer ~= ", built with ";
-	writer ~= dCompilerName;
-	return finishWriterToSafeCStr(writer);
-}
+SafeCStr version_(ref Alloc alloc, in Server server) =>
+	withWriter(alloc, (scope ref Writer writer) {
+		static immutable string date = import("date.txt")[0 .. "2020-02-02".length];
+		static immutable string commitHash = import("commit-hash.txt")[0 .. 8];
+
+		writer ~= date;
+		//"%.*s (%.*s)",
+		writer ~= " (";
+		writer ~= commitHash;
+		writer ~= ")";
+		version (Debug) {
+			writer ~= ", debug build";
+		}
+		version (assert) {} else {
+			writer ~= ", assertions disabled";
+		}
+		version (TailRecursionAvailable) {} else {
+			writer ~= ", no tail calls";
+		}
+		version (GccJitEnabled) {} else {
+			writer ~= ", does not support '--jit'";
+		}
+		writer ~= ", built with ";
+		writer ~= dCompilerName;
+	});
 
 private string dCompilerName() {
 	version (DigitalMars) {
