@@ -74,7 +74,7 @@ import versionInfo : versionInfoForJIT;
 	ulong function() @safe @nogc pure nothrow getTimeNanosPure =
 		cast(ulong function() @safe @nogc pure nothrow) &getTimeNanos;
 	scope Perf perf = Perf(() => getTimeNanosPure());
-	Server server = Server(Alloc(mem));
+	Server server = Server(mem);
 	Uri cwd = toUri(server.allUris, getCwd(server.allUris));
 	setCwd(server, cwd);
 	setDiagOptions(server, ShowOptions(true));

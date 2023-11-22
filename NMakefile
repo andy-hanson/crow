@@ -171,6 +171,7 @@ app_src_no_test = $(app_only_files) \
 	src\document\document.d
 app_src_with_test = $(app_src_no_test) \
 	src\test\test.d \
+	src\test\testAlloc.d \
 	src\test\testApplyFn.d \
 	src\test\testFakeExtern.d \
 	src\test\testHover.d \

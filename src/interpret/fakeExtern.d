@@ -87,7 +87,7 @@ Opt!ExternFunPtrsForAllLibraries getAllFakeExternFuns(
 		return 0;
 	} else if (ptr == &malloc) {
 		verify(args.length == 1);
-		return cast(ulong) allocateBytes(alloc, cast(size_t) args[0]);
+		return cast(ulong) allocateBytes(alloc, cast(size_t) args[0]).ptr;
 	} else if (ptr == &memmove) {
 		verify(args.length == 3);
 		return cast(ulong) memmove(cast(ubyte*) args[0], cast(const ubyte*) args[1], cast(size_t) args[2]);

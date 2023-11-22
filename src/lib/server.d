@@ -33,7 +33,7 @@ import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
 import model.lowModel : ExternLibraries, LowProgram;
 import model.model : fakeProgramForAst, hasFatalDiagnostics, Module, Program;
-import util.alloc.alloc : Alloc;
+import util.alloc.alloc : Alloc, MetaAlloc, newAlloc;
 import util.col.arr : only;
 import util.col.str : SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
 import util.exitCode : ExitCode;
@@ -116,6 +116,7 @@ pure:
 struct Server {
 	@safe @nogc pure nothrow:
 
+	MetaAlloc metaAlloc;
 	Alloc alloc;
 	AllSymbols allSymbols;
 	AllUris allUris;
@@ -125,8 +126,9 @@ struct Server {
 	Storage storage;
 	LineAndColumnGetters lineAndColumnGetters;
 
-	@trusted this(Alloc a) {
-		alloc = a.move();
+	@trusted this(ulong[] memory) {
+		metaAlloc = MetaAlloc(memory);
+		alloc = newAlloc(metaAlloc);
 		allSymbols = AllSymbols(&alloc);
 		allUris = AllUris(&alloc, &allSymbols);
 		storage = Storage(&alloc);

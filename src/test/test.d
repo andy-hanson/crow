@@ -2,6 +2,7 @@ module test.test;
 
 @safe @nogc nothrow: // not pure
 
+import test.testAlloc : testAlloc;
 import test.testApplyFn : testApplyFn;
 import test.testMap : testMap;
 import test.testFakeExtern : testFakeExtern;
@@ -35,6 +36,7 @@ ExitCode test(ref Alloc alloc, Opt!Sym name) {
 private:
 
 NameAndTest[] allTests = [
+	NameAndTest(sym!"alloc", &testAlloc),
 	NameAndTest(sym!"apply-fn", &testApplyFn),
 	NameAndTest(sym!"fake-extern", &testFakeExtern),
 	NameAndTest(sym!"hover", &testHover),

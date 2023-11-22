@@ -32,7 +32,7 @@ import lib.server :
 	version_;
 import model.diag : Diagnostic, DiagnosticSeverity;
 import model.model : Program;
-import util.alloc.alloc : Alloc, allocateUninitialized;
+import util.alloc.alloc : Alloc, withStaticAlloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : map;
 import util.col.str : CStr, eachSplit, SafeCStr, strOfSafeCStr;
@@ -72,11 +72,14 @@ extern(C) @system pure void* memmove(return scope ubyte* dest, scope const ubyte
 	utilMemmove(dest, src, n);
 
 // Used for the server (and compiler allocation)
-private ulong[900 * 1024 * 1024 / ulong.sizeof] serverBuffer;
+private ulong[900 * 1024 * 1024 / ulong.sizeof] serverBuffer = void;
 // Used to pass strings in
-private ulong[100 * 1024 * 1024 / ulong.sizeof] parameterBuffer;
+private ulong[100 * 1024 * 1024 / ulong.sizeof] parameterBuffer = void;
 // Used to pass strings out and for fake 'malloc' from 'callFakeExternFun'
-private ulong[1000 * 1024 * 1024 / ulong.sizeof] resultBuffer;
+private ulong[1000 * 1024 * 1024 / ulong.sizeof] resultBuffer = void;
+
+// Currently only supports one server
+private Server serverStorage = void;
 
 @system extern(C) ubyte* getParameterBufferPointer() =>
 	cast(ubyte*) parameterBuffer.ptr;
@@ -85,19 +88,17 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 	parameterBuffer.length * ulong.sizeof;
 
 @system extern(C) Server* newServer(scope CStr includeDir, scope CStr cwd) {
-	Alloc alloc = Alloc(serverBuffer);
-	Server* server = allocateUninitialized!Server(alloc);
-	server.__ctor(alloc.move());
+	Server* server = &serverStorage;
+	server.__ctor(serverBuffer);
 	setIncludeDir(*server, parseUri(server.allUris, SafeCStr(includeDir)));
 	setCwd(*server, parseUri(server.allUris, SafeCStr(cwd)));
 	setDiagOptions(*server, ShowOptions(false));
 	return server;
 }
 
-extern(C) CStr version_(Server* server) {
-	Alloc resultAlloc = Alloc(resultBuffer);
-	return version_(resultAlloc, *server).ptr;
-}
+@system extern(C) CStr version_(Server* server) =>
+	wasmCall!("version", CStr)((scope ref Perf _, ref Alloc resultAlloc) =>
+		version_(resultAlloc, *server).ptr);
 
 @system extern(C) void setFileSuccess(Server* server, scope CStr uri, scope CStr content) {
 	setFileFromTemp(*server, toUri(*server, SafeCStr(uri)), SafeCStr(content));
@@ -108,42 +109,41 @@ extern(C) CStr version_(Server* server) {
 		readFileIssueOfSym(symOfSafeCStr(server.allSymbols, SafeCStr(issue)))));
 }
 
-@system extern(C) CStr getFile(Server* server, scope CStr uri) {
-	Alloc resultAlloc = Alloc(resultBuffer);
-	Opt!FileContent res = getFile(resultAlloc, *server, toUri(*server, SafeCStr(uri)));
-	return has(res) ? asSafeCStr(force(res)).ptr : "";
-}
-
-@system extern(C) void searchImportsFromUri(Server* server, scope CStr uriCStr) {
-	Alloc resultAlloc = Alloc(resultBuffer);
-	Uri uri = toUri(*server, SafeCStr(uriCStr));
-	withWebPerf!("searchImportsFromUri", void)((scope ref Perf perf) {
-		justParseEverything(resultAlloc, perf, *server, [uri]);
+@system extern(C) CStr getFile(Server* server, scope CStr uriCStr) {
+	SafeCStr uriStr = SafeCStr(uriCStr);
+	return wasmCall!("getFile", CStr)((scope ref Perf _, ref Alloc resultAlloc) {
+		Opt!FileContent res = getFile(resultAlloc, *server, toUri(*server, uriStr));
+		return has(res) ? asSafeCStr(force(res)).ptr : "";
 	});
 }
 
-// These are just getters; call 'justParseEverything' first to search for URIs
-@system extern(C) CStr allStorageUris(Server* server) {
-	Alloc resultAlloc = Alloc(resultBuffer);
-	return urisToJson(resultAlloc, *server, allStorageUris(resultAlloc, *server));
-}
-@system extern(C) CStr allUnknownUris(Server* server) {
-	Alloc resultAlloc = Alloc(resultBuffer);
-	return urisToJson(resultAlloc, *server, allUnknownUris(resultAlloc, *server));
-}
-@system extern(C) CStr allLoadingUris(Server* server) {
-	Alloc resultAlloc = Alloc(resultBuffer);
-	return urisToJson(resultAlloc, *server, allLoadingUris(resultAlloc, *server));
+@system extern(C) void searchImportsFromUri(Server* server, scope CStr uriCStr) {
+	SafeCStr uriStr = SafeCStr(uriCStr);
+	return wasmCall!("searchImportsFromUri", void)((scope ref Perf perf, ref Alloc resultAlloc) =>
+		justParseEverything(resultAlloc, perf, *server, [toUri(*server, uriStr)]));
 }
 
-CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
+// These are just getters; call 'justParseEverything' first to search for URIs
+@system extern(C) CStr allStorageUris(Server* server) =>
+	wasmCall!("allStorageUris", CStr)((scope ref Perf _, ref Alloc resultAlloc) =>
+		urisToJson(resultAlloc, *server, allStorageUris(resultAlloc, *server)));
+
+@system extern(C) CStr allUnknownUris(Server* server) =>
+	wasmCall!("allUnknownUris", CStr)((scope ref Perf _, ref Alloc resultAlloc) =>
+		urisToJson(resultAlloc, *server, allUnknownUris(resultAlloc, *server)));
+
+@system extern(C) CStr allLoadingUris(Server* server) =>
+	wasmCall!("allLoadingUris", CStr)((scope ref Perf _, ref Alloc resultAlloc) =>
+		urisToJson(resultAlloc, *server, allLoadingUris(resultAlloc, *server)));
+
+pure CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 	jsonToString(alloc, server.allSymbols, jsonList(map(alloc, uris, (ref Uri x) =>
 		jsonString(uriToString(alloc, server.allUris, x))))).ptr;
 
-@system extern(C) CStr getTokens(Server* server, scope CStr uriPtr) {
-	Uri uri = toUri(*server, SafeCStr(uriPtr));
-	Alloc resultAlloc = Alloc(resultBuffer);
-	return withWebPerf!("getTokens", CStr)((scope ref Perf perf) {
+@system extern(C) CStr getTokens(Server* server, scope CStr uriCStr) {
+	SafeCStr uriStr = SafeCStr(uriCStr);
+	return wasmCall!("getTokens", CStr)((scope ref Perf perf, ref Alloc resultAlloc) {
+		Uri uri = toUri(*server, uriStr);
 		Token[] res = getTokens(resultAlloc, perf, *server, uri);
 		Json json = jsonOfTokens(resultAlloc, server.lineAndColumnGetters[uri], res);
 		return jsonToString(resultAlloc, server.allSymbols, json).ptr;
@@ -151,18 +151,16 @@ CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 }
 
 
-@system extern(C) CStr getAllDiagnostics(Server* server) {
-	Alloc resultAlloc = Alloc(resultBuffer);
-	return withWebPerf!("getAllDiagnostics", CStr)((scope ref Perf perf) {
+@system extern(C) CStr getAllDiagnostics(Server* server) =>
+	wasmCall!("getAllDiagnostics", CStr)((scope ref Perf perf, ref Alloc resultAlloc) {
 		Program program = typeCheckAllKnownFiles(resultAlloc, perf, *server);
 		return jsonToString(resultAlloc, server.allSymbols, jsonOfDiagnostics(resultAlloc, *server, program)).ptr;
 	});
-}
 
-@system extern(C) CStr getDiagnosticsForUri(Server* server, scope CStr uriPtr, uint minSeverity) {
-	Uri uri = toUri(*server, SafeCStr(uriPtr));
-	Alloc resultAlloc = Alloc(resultBuffer);
-	return withWebPerf!("getDiagnosticsForUri", CStr)((scope ref Perf perf) {
+@system extern(C) CStr getDiagnosticsForUri(Server* server, scope CStr uriCStr, uint minSeverity) {
+	SafeCStr uriStr = SafeCStr(uriCStr);
+	return wasmCall!("getDiagnosticsForUri", CStr)((scope ref Perf perf, ref Alloc resultAlloc) {
+		Uri uri = toUri(*server, uriStr);
 		Program program = justTypeCheck(resultAlloc, perf, *server, [uri]);
 		Diagnostic[] diags = sortedDiagnosticsForUri(resultAlloc, program, uri, cast(DiagnosticSeverity) minSeverity);
 		Json json = jsonOfDiagnostics(resultAlloc, *server, program, uri, diags);
@@ -170,21 +168,20 @@ CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 	});
 }
 
-@system extern(C) CStr getDefinition(Server* server, scope CStr uriPtr, uint line, uint character) {
-	UriLineAndCharacter where = toUriLineAndCharacter(*server, SafeCStr(uriPtr), line, character);
-	Alloc resultAlloc = Alloc(resultBuffer);
-	return withWebPerf!("getDefinition", SafeCStr)((scope ref Perf perf) {
+@system extern(C) CStr getDefinition(Server* server, scope CStr uriCStr, uint line, uint character) {
+	SafeCStr uriStr = SafeCStr(uriCStr);
+	return wasmCall!("getDefinition", SafeCStr)((scope ref Perf perf, ref Alloc resultAlloc) {
+		UriLineAndCharacter where = toUriLineAndCharacter(*server, uriStr, line, character);
 		UriAndRange[] res = getDefinition(perf, resultAlloc, *server, where);
 		Json json = jsonOfReferences(resultAlloc, server.allUris, server.lineAndColumnGetters, res);
 		return jsonToString(resultAlloc, server.allSymbols, json);
 	}).ptr;
 }
 
-@system extern(C) CStr getReferences(Server* server, scope CStr uriPtr, uint line, uint character, scope CStr roots) {
-	Alloc resultAlloc = Alloc(resultBuffer);
-	SafeCStr uriSafe = SafeCStr(uriPtr);
+@system extern(C) CStr getReferences(Server* server, scope CStr uriCStr, uint line, uint character, scope CStr roots) {
+	SafeCStr uriSafe = SafeCStr(uriCStr);
 	SafeCStr rootsSafe = SafeCStr(roots);
-	return withWebPerf!("getReferences", SafeCStr)((scope ref Perf perf) {
+	return wasmCall!("getReferences", SafeCStr)((scope ref Perf perf, ref Alloc resultAlloc) {
 		UriLineAndCharacter where = toUriLineAndCharacter(*server, uriSafe, line, character);
 		Uri[] roots = toUris(resultAlloc, *server, rootsSafe);
 		UriAndRange[] references = getReferences(perf, resultAlloc, *server, where, roots);
@@ -195,17 +192,16 @@ CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 
 @system extern(C) CStr getRename(
 	Server* server,
-	scope CStr uriPtr,
+	scope CStr uriCStr,
 	uint line,
 	uint character,
 	scope CStr roots,
 	scope CStr newNamePtr,
 ) {
-	Alloc resultAlloc = Alloc(resultBuffer);
-	SafeCStr uriSafe = SafeCStr(uriPtr);
+	SafeCStr uriSafe = SafeCStr(uriCStr);
 	SafeCStr rootsSafe = SafeCStr(roots);
 	SafeCStr newName = SafeCStr(newNamePtr);
-	return withWebPerf!("getRename", SafeCStr)((scope ref Perf perf) {
+	return wasmCall!("getRename", SafeCStr)((scope ref Perf perf, ref Alloc resultAlloc) {
 		UriLineAndCharacter where = toUriLineAndCharacter(*server, uriSafe, line, character);
 		Uri[] roots = toUris(resultAlloc, *server, rootsSafe);
 		Opt!Rename rename = getRename(perf, resultAlloc, *server, where, roots, strOfSafeCStr(newName));
@@ -214,20 +210,18 @@ CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 	}).ptr;
 }
 
-@system extern(C) CStr getHover(Server* server, scope CStr uriPtr, uint line, uint character) {
-	UriLineAndCharacter where = toUriLineAndCharacter(*server, SafeCStr(uriPtr), line, character);
-	Alloc resultAlloc = Alloc(resultBuffer);
-	return withWebPerf!("getHover", SafeCStr)((scope ref Perf perf) {
-		SafeCStr hover = getHover(perf, resultAlloc, *server, where);
+@system extern(C) CStr getHover(Server* server, scope CStr uriCStr, uint line, uint character) {
+	SafeCStr uriStr = SafeCStr(uriCStr);
+	return wasmCall!("getHover", SafeCStr)((scope ref Perf perf, ref Alloc resultAlloc) {
+		SafeCStr hover = getHover(perf, resultAlloc, *server, toUriLineAndCharacter(*server, uriStr, line, character));
 		return jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [field!"hover"(hover)]));
 	}).ptr;
 }
 
-@system extern(C) int run(Server* server, scope CStr uriPtr) {
-	Uri uri = toUri(*server, SafeCStr(uriPtr));
-	Alloc resultAlloc = Alloc(resultBuffer);
-	return withWebPerfImpure!("run", ExitCode)((scope ref Perf perf) =>
-		run(perf, resultAlloc, *server, uri, (Pipe pipe, in string x) @trusted {
+@system extern(C) int run(Server* server, scope CStr uriCStr) {
+	SafeCStr uriStr = SafeCStr(uriCStr);
+	return wasmCallImpure!("run", ExitCode)((scope ref Perf perf, ref Alloc resultAlloc) =>
+		run(perf, resultAlloc, *server, toUri(*server, uriStr), (Pipe pipe, in string x) @trusted {
 			write(pipe, x.ptr, x.length);
 		})).value;
 }
@@ -252,10 +246,16 @@ extern(C) void perfLogFinish(scope CStr name, ulong totalNanoseconds);
 
 private:
 
-T withWebPerf(CStr name, T)(in T delegate(scope ref Perf perf) @safe @nogc pure nothrow cb) =>
-	withWebPerfAlias!(name, T, cb)();
-T withWebPerfImpure(CStr name, T)(in T delegate(scope ref Perf perf) @safe @nogc nothrow cb) =>
-	withWebPerfAlias!(name, T, cb)();
+T wasmCall(CStr name, T)(in T delegate(scope ref Perf, ref Alloc) @safe @nogc pure nothrow cb) =>
+	wasmCallAlias!(name, T, cb)();
+T wasmCallImpure(CStr name, T)(in T delegate(scope ref Perf, ref Alloc) @safe @nogc nothrow cb) =>
+	wasmCallAlias!(name, T, cb)();
+
+T wasmCallAlias(CStr name, T, alias cb)() =>
+	withWebPerfAlias!(name, T, (scope ref Perf perf) @trusted =>
+		withStaticAlloc!(T, (ref Alloc resultAlloc) =>
+			cb(perf, resultAlloc)
+		)(resultBuffer));
 
 T withWebPerfAlias(CStr name, T, alias cb)() {
 	if (perfEnabled) {

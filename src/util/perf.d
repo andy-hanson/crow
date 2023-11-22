@@ -2,7 +2,7 @@ module util.perf;
 
 @safe @nogc nothrow: // not pure
 
-import util.alloc.alloc : Alloc, curBytes;
+import util.alloc.alloc : Alloc, perf_curBytes;
 import util.col.enumMap : EnumMap, enumMapEach;
 import util.col.sortUtil : sortInPlace;
 import util.col.str : SafeCStr, safeCStr;
@@ -73,7 +73,7 @@ struct PerfMeasurer {
 
 @trusted pure PerfMeasurer startMeasure(ref Alloc alloc, scope ref Perf perf, PerfMeasure measure) {
 	if (perfEnabled) {
-		size_t bytesBefore = curBytes(alloc);
+		size_t bytesBefore = perf_curBytes(alloc);
 		ulong nsecBefore = perf.cbGetTimeNSec();
 		return PerfMeasurer(measure, bytesBefore, nsecBefore, false);
 	} else
@@ -85,7 +85,7 @@ struct PerfMeasurer {
 		verify(!measurer.paused);
 		addToMeasure(perf, measurer.measure, PerfMeasureResult(
 			0,
-			curBytes(alloc) - measurer.bytesBefore,
+			perf_curBytes(alloc) - measurer.bytesBefore,
 			perf.cbGetTimeNSec() - measurer.nsecBefore));
 		measurer.paused = true;
 	}
@@ -94,7 +94,7 @@ struct PerfMeasurer {
 @trusted pure void resumeMeasure(ref Alloc alloc, scope ref Perf perf, scope ref PerfMeasurer measurer) {
 	if (perfEnabled) {
 		verify(measurer.paused);
-		measurer.bytesBefore = curBytes(alloc);
+		measurer.bytesBefore = perf_curBytes(alloc);
 		measurer.nsecBefore = perf.cbGetTimeNSec();
 		measurer.paused = false;
 	}
@@ -105,7 +105,7 @@ struct PerfMeasurer {
 		verify(!measurer.paused);
 		addToMeasure(perf, measurer.measure, PerfMeasureResult(
 			1,
-			curBytes(alloc) - measurer.bytesBefore,
+			perf_curBytes(alloc) - measurer.bytesBefore,
 			perf.cbGetTimeNSec() - measurer.nsecBefore));
 	}
 }

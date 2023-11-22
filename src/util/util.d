@@ -16,6 +16,11 @@ T min(T)(T a, T b) =>
 T max(T)(T a, T b) =>
 	a > b ? a : b;
 
+T clamp(T)(T a, T min, T max) {
+	verify(min <= max);
+	return a < min ? min : a > max ? max : a;
+}
+
 ulong abs(long a) =>
 	a < 0 ? -a : a;
 

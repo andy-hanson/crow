@@ -9,7 +9,7 @@ import interpret.runBytecode : operationOpStopInterpretation;
 import interpret.stacks : returnPeek, returnStackSize, Stacks;
 import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.lowModel : LowFunIndex, LowFunSource, LowProgram;
-import util.alloc.alloc : Alloc;
+import util.alloc.alloc : Alloc, withStaticAlloc;
 import util.lineAndColumnGetter : LineAndColumn, LineAndColumnGetters, lineAndColumnAtPos, PosKind;
 import util.col.arr : isPointerInRange;
 import util.col.str : CStr;
@@ -81,13 +81,13 @@ private struct Ptr64(T) {
 	size_t max,
 	size_t skip,
 	in Stacks stacks,
-) {
-	Alloc alloc = Alloc(backtraceStringsStorage);
-	size_t resSize = min(returnStackSize(stacks) - skip, max);
-	foreach (size_t i, ref BacktraceEntry entry; out_[0 .. resSize])
-		overwriteMemory(&entry, getBacktraceEntry(alloc, info, returnPeek(stacks, skip + i)));
-	return out_ + resSize;
-}
+) =>
+	withStaticAlloc!(BacktraceEntry*, (ref Alloc alloc) {
+		size_t resSize = min(returnStackSize(stacks) - skip, max);
+		foreach (size_t i, ref BacktraceEntry entry; out_[0 .. resSize])
+			overwriteMemory(&entry, getBacktraceEntry(alloc, info, returnPeek(stacks, skip + i)));
+		return out_ + resSize;
+	})(backtraceStringsStorage);
 
 private static ulong[0x1000] backtraceStringsStorage = void;
 

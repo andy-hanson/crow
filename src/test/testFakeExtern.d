@@ -43,7 +43,7 @@ private:
 		ubyte* ptr2 = cast(ubyte*) extern_.doDynCall(malloc, mallocSig, args16);
 		*ptr1 = 1;
 		verify(*ptr1 == 1);
-		verify(ptr2 == ptr1 + 8);
+		verify(ptr2 != ptr1);
 		DynCallType[2] freeSigTypes = [DynCallType.void_, DynCallType.pointer];
 		scope DynCallSig freeSig = DynCallSig(freeSigTypes);
 		ulong[1] freePtr2 = [cast(ulong) ptr2];
