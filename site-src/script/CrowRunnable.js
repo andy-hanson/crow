@@ -1,7 +1,7 @@
 /// <reference path="../../crow-js/crow.js" />
 
 import { copyIcon, downloadIcon, playIcon, upIcon } from "./CrowIcon.js"
-import { CrowText } from "./CrowText.js"
+import { CrowText, TokensAndDiagnostics } from "./CrowText.js"
 import { LoadingIcon } from "./LoadingIcon.js"
 import { MutableObservable } from "./util/MutableObservable.js"
 import { assert, createButton, createDiv, createSpan, nonNull, removeAllChildren, setStyleSheet } from "./util/util.js"
@@ -128,20 +128,26 @@ const connected = (shadowRoot, name, noRun, comp, initialText) => {
 
 	/** @type {MutableObservable<string>} */
 	const text = new MutableObservable(initialText)
-	/** @type {MutableObservable<crow.TokensAndParseDiagnostics>} */
-	const tokensAndParseDiagnostics = new MutableObservable(
-		/** @type {crow.TokensAndParseDiagnostics} */ ({tokens:[], parseDiagnostics:[]}))
+	/** @type {TokensAndDiagnostics} */
+	const empty = {tokens:[], diagnostics:[]}
+	/** @type {MutableObservable<TokensAndDiagnostics>} */
+	const tokensAndDiagnostics = new MutableObservable(empty)
 	/** @type {function(crow.LineAndCharacter): string} */
 	const getHover = position =>
 		comp.getHover({uri:MAIN, position})
-	const crowText = CrowText.create({getHover, tokensAndParseDiagnostics, text})
+	const crowText = CrowText.create({getHover, tokensAndDiagnostics, text})
 
 	for (const [path, content] of Object.entries(includeAll))
 		comp.setFileSuccess(`${includeDir}/${path}`, content)
+	comp.setFileIssue("file:///crow-config.json", "notFound")
 
 	text.nowAndSubscribe(value => {
 		comp.setFileSuccess(MAIN, value)
-		tokensAndParseDiagnostics.set(comp.getTokensAndParseDiagnostics(MAIN))
+		tokensAndDiagnostics.set({
+			tokens: comp.getTokens(MAIN),
+			// Min severity of 2 = checkError (not unused)
+			diagnostics: comp.getDiagnosticsForUri(MAIN, 2)
+		})
 	})
 
 	const output = makeOutput()
@@ -149,6 +155,7 @@ const connected = (shadowRoot, name, noRun, comp, initialText) => {
 	const runButton = noRun ? null : createButton({className:"run", children:[playIcon()]})
 	if (runButton) runButton.onclick = () => {
 		try {
+			assert(comp.allUnknownUris().length === 0)
 			// Put behind a timeout so loading will show
 			setTimeout(() => {
 				collapseButton.classList.remove("collapsed")

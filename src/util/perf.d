@@ -41,7 +41,8 @@ struct Perf {
 
 	this(return scope ulong delegate() @safe @nogc pure nothrow cb) {
 		cbGetTimeNSec = cb;
-		nsecStart = cb();
+		if (perfEnabled)
+			nsecStart = cb();
 	}
 }
 
@@ -136,7 +137,7 @@ void eachMeasure(in Perf perf, in void delegate(in SafeCStr, in PerfMeasureResul
 }
 
 ulong perfTotal(in Perf perf) =>
-	perf.cbGetTimeNSec() - perf.nsecStart;
+	perfEnabled ? perf.cbGetTimeNSec() - perf.nsecStart : 0;
 
 enum PerfMeasure {
 	cCompile,

@@ -139,7 +139,7 @@ const afterFileChange = () => {
 	} else if (compiler.allLoadingUris().length) {
 		logVerbose("Waiting on loading URIs", compiler.allLoadingUris())
 	} else {
-		const newDiags = compiler.getAllDiagnostics().diagnostics
+		const newDiags = compiler.getAllDiagnostics() // TODO: use getDiagnosticsForUri?
 		for (const {uri, diagnostics} of newDiags) {
 			lastDiagnosticsUris.delete(uri)
 			const doc = getDocument(uri)

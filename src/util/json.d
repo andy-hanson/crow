@@ -2,13 +2,12 @@ module util.json;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc, allocateT;
+import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
-import util.col.arrUtil : arrEqual, every, filter, map;
+import util.col.arrUtil : arrEqual, concatenateIn, every, filter, map;
 import util.col.fullIndexMap : FullIndexMap;
 import util.col.map : KeyValuePair;
 import util.col.str : copyStr, SafeCStr, safeCStrIsEmpty, strEq, strOfSafeCStr;
-import util.memory : initMemory;
 import util.opt : force, has, Opt;
 import util.sym : AllSymbols, Sym, sym, writeQuotedSym;
 import util.union_ : Union;
@@ -58,17 +57,7 @@ Json jsonObject(ref Alloc alloc, in Json.ObjectField[] fields) =>
 // TODO: should be possible to concatenate in the caller (assuming array sizes are compile-time constants).
 // But a D bug prevents this: https://issues.dlang.org/show_bug.cgi?id=1654
 Json jsonObject(ref Alloc alloc, in Json.ObjectField[] fields1, in Json.ObjectField[] fields2) =>
-	jsonObject(alloc, concatenate!(Json.ObjectField)(alloc, fields1, fields2));
-
-private @trusted immutable(T[]) concatenate(T)(ref Alloc alloc, in T[] a, in T[] b) {
-	size_t len = a.length + b.length;
-	T* res = allocateT!T(alloc, len);
-	foreach (size_t i, T x; a)
-		initMemory(&res[i], x);
-	foreach (size_t i, T x; b)
-		initMemory(&res[a.length + i], x);
-	return cast(immutable) res[0 .. len];
-}
+	jsonObject(alloc, concatenateIn!(Json.ObjectField)(alloc, fields1, fields2));
 
 Json jsonNull() =>
 	Json(Json.Null());

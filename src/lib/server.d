@@ -33,7 +33,6 @@ import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
 import model.lowModel : ExternLibraries, LowProgram;
 import model.model : fakeProgramForAst, hasFatalDiagnostics, Module, Program;
-import model.parseDiag : ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.col.arr : only;
 import util.col.str : SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
@@ -66,7 +65,7 @@ import util.util : verify;
 import util.writer : withWriter, Writer;
 import versionInfo : VersionInfo, versionInfoForBuildToC, versionInfoForInterpret;
 
-ExitCode run(ref Perf perf, ref Alloc alloc, ref Server server, Uri main, in WriteCb writeCb) {
+ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri main, in WriteCb writeCb) {
 	// TODO: use an arena so anything allocated during interpretation is cleaned up.
 	// Or just have interpreter free things.
 	SafeCStr[1] allArgs = [safeCStr!"/usr/bin/fakeExecutable"];
@@ -81,7 +80,7 @@ ExitCode run(ref Perf perf, ref Alloc alloc, ref Server server, Uri main, in Wri
 
 ExitCode buildAndInterpret(
 	ref Alloc alloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	ref Server server,
 	in Extern extern_,
 	in WriteError writeError,
@@ -219,15 +218,15 @@ Uri[] allUnknownUris(ref Alloc alloc, in Server server) =>
 Uri[] allLoadingUris(ref Alloc alloc, in Server server) =>
 	allUrisWithIssue(alloc, server.storage, ReadFileIssue.loading);
 
-void justParseEverything(ref Alloc alloc, ref Perf perf, ref Server server, in Uri[] rootUris) {
+void justParseEverything(ref Alloc alloc, scope ref Perf perf, ref Server server, in Uri[] rootUris) {
 	parseAllFiles(alloc, perf, server.allSymbols, server.allUris, server.storage, server.includeDir, rootUris);
 }
 
-Program typeCheckAllKnownFiles(ref Alloc alloc, ref Perf perf, ref Server server) =>
+Program typeCheckAllKnownFiles(ref Alloc alloc, scope ref Perf perf, ref Server server) =>
 	justTypeCheck(alloc, perf, server, allKnownGoodUris(alloc, server.storage, (Uri uri) =>
 		getExtension(server.allUris, uri) == crowExtension));
 
-Program justTypeCheck(ref Alloc alloc, ref Perf perf, ref Server server, in Uri[] rootUris) =>
+Program justTypeCheck(ref Alloc alloc, scope ref Perf perf, ref Server server, in Uri[] rootUris) =>
 	frontendCompile(alloc, perf, server, rootUris, none!Uri);
 
 SafeCStr showDiag(ref Alloc alloc, scope ref Server server, in Program program, in Diag a) {
@@ -254,7 +253,7 @@ DocumentResult getDocumentation(ref Alloc alloc, ref Perf perf, ref Server serve
 
 private Program frontendCompile(
 	ref Alloc alloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	scope ref Server server,
 	in Uri[] rootUris,
 	in Opt!Uri main,
@@ -262,26 +261,14 @@ private Program frontendCompile(
 	frontendCompile(
 		alloc, perf, alloc, server.allSymbols, server.allUris, server.storage, server.includeDir, rootUris, main);
 
-immutable struct TokensAndParseDiagnostics {
-	Token[] tokens;
-	ParseDiagnostic[] diagnostics;
-}
-
-TokensAndParseDiagnostics getTokensAndParseDiagnostics(
-	ref Alloc alloc,
-	scope ref Perf perf,
-	ref Server server,
-	Uri uri,
-) =>
-	withFile!TokensAndParseDiagnostics(server.storage, uri, (in ReadFileResult x) {
+Token[] getTokens(ref Alloc alloc, scope ref Perf perf, ref Server server, Uri uri) =>
+	withFile!(Token[])(server.storage, uri, (in ReadFileResult x) {
 		SafeCStr text = x.isA!FileContent ? asSafeCStr(x.as!FileContent) : safeCStr!"";
 		FileAst* ast = parseFile(alloc, perf, server.allSymbols, server.allUris, text);
-		return TokensAndParseDiagnostics(
-			tokensOfAst(alloc, server.allSymbols, server.allUris, *ast),
-			ast.diagnostics);
+		return tokensOfAst(alloc, server.allSymbols, server.allUris, *ast);
 	});
 
-UriAndRange[] getDefinition(ref Perf perf, ref Alloc alloc, ref Server server, in UriLineAndCharacter where) =>
+UriAndRange[] getDefinition(scope ref Perf perf, ref Alloc alloc, ref Server server, in UriLineAndCharacter where) =>
 	getDefinitionForProgram(alloc, server, getProgram(perf, alloc, server, [where.uri]), where);
 
 private UriAndRange[] getDefinitionForProgram(
@@ -297,7 +284,7 @@ private UriAndRange[] getDefinitionForProgram(
 }
 
 UriAndRange[] getReferences(
-	ref Perf perf,
+	scope ref Perf perf,
 	ref Alloc alloc,
 	scope ref Server server,
 	in UriLineAndCharacter where,
@@ -318,7 +305,7 @@ private UriAndRange[] getReferencesForProgram(
 }
 
 Opt!Rename getRename(
-	ref Perf perf,
+	scope ref Perf perf,
 	ref Alloc alloc,
 	scope ref Server server,
 	in UriLineAndCharacter where,
@@ -340,7 +327,7 @@ private Opt!Rename getRenameForProgram(
 		: none!Rename;
 }
 
-SafeCStr getHover(ref Perf perf, ref Alloc alloc, ref Server server, in UriLineAndCharacter where) =>
+SafeCStr getHover(scope ref Perf perf, ref Alloc alloc, ref Server server, in UriLineAndCharacter where) =>
 	getHoverForProgram(alloc, server, getProgram(perf, alloc, server, [where.uri]), where);
 
 private SafeCStr getHoverForProgram(
@@ -356,7 +343,7 @@ private SafeCStr getHoverForProgram(
 		: safeCStr!"";
 }
 
-private Program getProgram(ref Perf perf, ref Alloc alloc, scope ref Server server, in Uri[] roots) =>
+private Program getProgram(scope ref Perf perf, ref Alloc alloc, scope ref Server server, in Uri[] roots) =>
 	frontendCompile(alloc, perf, server, roots, none!Uri);
 
 private Opt!Position getPosition(scope ref Server server, in Program program, in UriLineAndCharacter where) {
@@ -382,20 +369,20 @@ private DiagsAndResultJson diagsAndResultJson(
 ) =>
 	DiagsAndResultJson(showDiagnostics(alloc, server, program), result);
 
-DiagsAndResultJson printTokens(ref Alloc alloc, ref Perf perf, ref Server server, Uri uri) {
+DiagsAndResultJson printTokens(ref Alloc alloc, scope ref Perf perf, ref Server server, Uri uri) {
 	FileAst* ast = parseSingleAst(alloc, perf, server.allSymbols, server.allUris, server.storage, uri);
 	Json json = jsonOfTokens(
 		alloc, server.lineAndColumnGetters[uri], tokensOfAst(alloc, server.allSymbols, server.allUris, *ast));
 	return diagsAndResultJson(alloc, server, fakeProgramForAst(alloc, uri, ast), json);
 }
 
-DiagsAndResultJson printAst(ref Alloc alloc, ref Perf perf, ref Server server, Uri uri) {
+DiagsAndResultJson printAst(ref Alloc alloc, scope ref Perf perf, ref Server server, Uri uri) {
 	FileAst* ast = parseSingleAst(alloc, perf, server.allSymbols, server.allUris, server.storage, uri);
 	Json json = jsonOfAst(alloc, server.allUris, server.lineAndColumnGetters[uri], *ast);
 	return diagsAndResultJson(alloc, server, fakeProgramForAst(alloc, uri, ast), json);
 }
 
-DiagsAndResultJson printModel(ref Alloc alloc, ref Perf perf, ref Server server, Uri uri) {
+DiagsAndResultJson printModel(ref Alloc alloc, scope ref Perf perf, ref Server server, Uri uri) {
 	Program program = frontendCompile(alloc, perf, server, [uri], none!Uri);
 	Json json = jsonOfModule(alloc, server.allUris, server.lineAndColumnGetters[uri], *only(program.rootModules));
 	return diagsAndResultJson(alloc, server, program, json);
@@ -403,7 +390,7 @@ DiagsAndResultJson printModel(ref Alloc alloc, ref Perf perf, ref Server server,
 
 DiagsAndResultJson printConcreteModel(
 	ref Alloc alloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	ref Server server,
 	scope ref LineAndColumnGetters lineAndColumnGetters,
 	in VersionInfo versionInfo,
@@ -418,7 +405,7 @@ DiagsAndResultJson printConcreteModel(
 
 DiagsAndResultJson printLowModel(
 	ref Alloc alloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	ref Server server,
 	scope ref LineAndColumnGetters lineAndColumnGetters,
 	in VersionInfo versionInfo,
@@ -433,7 +420,7 @@ DiagsAndResultJson printLowModel(
 
 DiagsAndResultJson printIde(
 	ref Alloc alloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	scope ref Server server,
 	in UriLineAndColumn where,
 	in PrintKind.Ide.Kind kind,
@@ -466,7 +453,7 @@ immutable struct Programs {
 
 Programs buildToLowProgram(
 	ref Alloc alloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	ref Server server,
 	in VersionInfo versionInfo,
 	Uri main,
@@ -487,7 +474,7 @@ immutable struct BuildToCResult {
 	SafeCStr diagnostics;
 	ExternLibraries externLibraries;
 }
-BuildToCResult buildToC(ref Alloc alloc, ref Perf perf, ref Server server, Uri main) {
+BuildToCResult buildToC(ref Alloc alloc, scope ref Perf perf, ref Server server, Uri main) {
 	Programs programs = buildToLowProgram(alloc, perf, server, versionInfoForBuildToC, main);
 	ShowCtx ctx = getShowDiagCtx(server, programs.program);
 	return BuildToCResult(

@@ -1,40 +1,37 @@
 module util.col.arrUtil;
 
-import util.alloc.alloc : Alloc, allocateT;
-import util.col.arr : empty, ptrsRange, sizeEq;
+import util.alloc.alloc : Alloc, allocateElements, freeElements;
+import util.col.arr : empty, endPtr, ptrsRange, sizeEq;
 import util.comparison : Comparer, Comparison;
-import util.memory : initMemory, initMemory_mut;
+import util.memory : copyToFrom, initMemory, initMemory_mut;
 import util.opt : force, has, none, Opt, some;
 import util.util : max, verify;
 
 @safe @nogc nothrow:
 
 @trusted Out[] mapImpure(Out, In)(ref Alloc alloc, in In[] a, in Out delegate(in In) @safe @nogc nothrow cb) {
-	Out* res = allocateT!Out(alloc, a.length);
+	Out[] res = allocateElements!Out(alloc, a.length);
 	foreach (size_t i, ref In x; a)
-		initMemory(res + i, cb(x));
-	return res[0 .. a.length];
+		initMemory(&res[i], cb(x));
+	return res;
 }
 
 pure:
 
 @trusted T[] arrLiteral(T)(scope ref Alloc alloc, scope T[] values) {
-	T* res = allocateT!T(alloc, values.length);
+	T[] res = allocateElements!T(alloc, values.length);
 	foreach (size_t i, ref T x; values)
-		initMemory!T(res + i, x);
-	return res[0 .. values.length];
+		initMemory!T(&res[i], x);
+	return res;
 }
 
-@system Out[] allocateUninitialized(Out)(ref Alloc alloc, size_t size) =>
-	allocateT!Out(alloc, size)[0 .. size];
-
 @trusted Out[] fillArr_mut(Out)(ref Alloc alloc, size_t size, in Out delegate(size_t) @safe @nogc pure nothrow cb) {
-	Out* res = allocateT!Out(alloc, size);
+	Out[] res = allocateElements!Out(alloc, size);
 	foreach (size_t i; 0 .. size) {
 		Out value = cb(i);
-		initMemory_mut!Out(res + i, value);
+		initMemory_mut!Out(&res[i], value);
 	}
-	return res[0 .. size];
+	return res;
 }
 
 @trusted Opt!(Out[]) fillArrOrFail(Out)(
@@ -42,15 +39,17 @@ pure:
 	size_t size,
 	in Opt!Out delegate(size_t) @safe @nogc pure nothrow cb,
 ) {
-	Out* res = allocateT!Out(alloc, size);
+	Out[] res = allocateElements!Out(alloc, size);
 	foreach (size_t i; 0 .. size) {
 		Opt!Out op = cb(i);
 		if (has(op))
-			initMemory(res + i, force(op));
-		else
+			initMemory(&res[i], force(op));
+		else {
+			freeElements(alloc, res);
 			return none!(Out[]);
+		}
 	}
-	return some(res[0 .. size]);
+	return some(res);
 }
 
 bool exists(T)(in T[] arr, in bool delegate(in T) @safe @nogc pure nothrow cb) =>
@@ -151,13 +150,13 @@ Opt!(T*) findPtr(T)(T[] arr, in bool delegate(in T) @safe @nogc pure nothrow cb)
 }
 
 T[] copyArr(T)(ref Alloc alloc, scope T[] a) =>
-	map!(T, T)(alloc, a, (ref T it) => it);
+	map!(T, T)(alloc, a, (ref T x) => x);
 
 @trusted Out[] makeArr(Out)(ref Alloc alloc, size_t size, in Out delegate(size_t) @safe @nogc pure nothrow cb) {
-	Out* res = allocateT!Out(alloc, size);
+	Out[] res = allocateElements!Out(alloc, size);
 	foreach (size_t i; 0 .. size)
-		initMemory(res + i, cb(i));
-	return res[0 .. size];
+		initMemory(&res[i], cb(i));
+	return res;
 }
 
 @trusted immutable(Out[]) map(Out, In)(
@@ -165,19 +164,19 @@ T[] copyArr(T)(ref Alloc alloc, scope T[] a) =>
 	scope In[] a,
 	in immutable(Out) delegate(ref In) @safe @nogc pure nothrow cb,
 ) {
-	Out* res = allocateT!Out(alloc, a.length);
+	Out[] res = allocateElements!Out(alloc, a.length);
 	foreach (size_t i, ref In x; a)
-		initMemory(res + i, cb(x));
-	return cast(immutable) res[0 .. a.length];
+		initMemory(&res[i], cb(x));
+	return cast(immutable) res;
 }
 
 @trusted Out[] mapToMut(Out, In)(ref Alloc alloc, in In[] a, in Out delegate(in In) @safe @nogc pure nothrow cb) {
-	Out* res = allocateT!Out(alloc, a.length);
+	Out[] res = allocateElements!Out(alloc, a.length);
 	foreach (size_t i, ref immutable In x; a) {
 		Out value = cb(x);
-		initMemory_mut(res + i, value);
+		initMemory_mut(&res[i], value);
 	}
-	return res[0 .. a.length];
+	return res;
 }
 
 @trusted Out[] mapWithFirst(Out, In)(
@@ -186,11 +185,11 @@ T[] copyArr(T)(ref Alloc alloc, scope T[] a) =>
 	in In[] a,
 	in Out delegate(size_t, ref In) @safe @nogc pure nothrow cb,
 ) {
-	Out* res = allocateT!Out(alloc, 1 + a.length);
-	initMemory!Out(res, first);
+	Out[] res = allocateElements!Out(alloc, 1 + a.length);
+	initMemory!Out(&res[0], first);
 	foreach (size_t i, ref In x; a)
-		initMemory!Out(res + 1 + i, cb(i, x));
-	return res[0 .. 1 + a.length];
+		initMemory!Out(&res[1 + i], cb(i, x));
+	return res;
 }
 
 size_t count(T)(in T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
@@ -210,16 +209,17 @@ size_t count(T)(in T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
 	in In[] a,
 	in Opt!Out delegate(ref In) @safe @nogc pure nothrow cb,
 ) {
-	Out* res = allocateT!Out(alloc, a.length);
-	Out* resOut = res;
+	Out[] res = allocateElements!Out(alloc, a.length);
+	size_t outI = 0;
 	foreach (ref In x; a) {
 		Opt!Out o = cb(x);
 		if (has(o)) {
-			initMemory(resOut, force(o));
-			resOut++;
+			initMemory(&res[outI], force(o));
+			outI++;
 		}
 	}
-	return res[0 .. (resOut - res)];
+	freeElements(alloc, res[outI .. $]);
+	return res[0 .. outI];
 }
 
 @trusted Opt!(Out[]) mapOrNone(Out, In)(
@@ -227,15 +227,17 @@ size_t count(T)(in T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
 	in In[] a,
 	in Opt!Out delegate(ref In) @safe @nogc pure nothrow cb,
 ) {
-	Out* res = allocateT!Out(alloc, a.length);
+	Out[] res = allocateElements!Out(alloc, a.length);
 	foreach (size_t i, ref In x; a) {
 		Opt!Out o = cb(x);
 		if (has(o))
-			initMemory(res + i, force(o));
-		else
+			initMemory(&res[i], force(o));
+		else {
+			freeElements(alloc, res);
 			return none!(Out[]);
+		}
 	}
-	return some(res[0 .. a.length]);
+	return some(res);
 }
 
 @trusted Out[] mapWithIndexAndConcatOne(Out, In)(
@@ -244,33 +246,29 @@ size_t count(T)(in T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
 	in Out delegate(size_t, ref In) @safe @nogc pure nothrow cb,
 	Out concatOne,
 ) {
-	size_t outSize = a.length + 1;
-	Out* res = allocateT!Out(alloc, outSize);
+	Out[] res = allocateElements!Out(alloc, a.length + 1);
 	foreach (size_t i, ref In x; a)
-		initMemory!Out(res + i, cb(i, x));
-	initMemory!Out(res + a.length, concatOne);
-	return res[0 .. outSize];
+		initMemory!Out(&res[i], cb(i, x));
+	initMemory!Out(&res[a.length], concatOne);
+	return res;
 }
 
-@trusted Out[] mapWithIndex(Out, In)(
+Out[] mapWithIndex(Out, In)(
 	ref Alloc alloc,
 	in In[] a,
 	in Out delegate(size_t, ref In) @safe @nogc pure nothrow cb,
-) {
-	Out* res = allocateT!Out(alloc, a.length);
-	foreach (size_t i, ref In x; a)
-		initMemory(res + i, cb(i, x));
-	return res[0 .. a.length];
-}
+) =>
+	mapPointers!(Out, In)(alloc, a, (In* x) @trusted =>
+		cb(x - a.ptr, *x));
 
 @trusted Out[] mapPointers(Out, In)(
 	ref Alloc alloc,
 	In[] a,
 	in Out delegate(In*) @safe @nogc pure nothrow cb,
 ) {
-	Out* res = allocateT!Out(alloc, a.length);
+	Out[] res = allocateElements!Out(alloc, a.length);
 	foreach (size_t i; 0 .. a.length)
-		initMemory(res + i, cb(&a[i]));
+		initMemory(&res[i], cb(&a[i]));
 	return res[0 .. a.length];
 }
 
@@ -281,45 +279,27 @@ Out[] mapPointersWithIndex(Out, In)(
 ) =>
 	mapPointers!(Out, In)(alloc, a, (In* x) @trusted => cb(x - a.ptr, x));
 
-@trusted immutable(T[]) cat(T)(ref Alloc alloc, immutable T[] a, immutable T[] b) {
-	if (empty(a))
-		return b;
-	else if (empty(b))
-		return a;
-	else {
-		size_t resSize = a.length + b.length;
-		T* res = allocateT!T(alloc, resSize);
-		foreach (size_t i, ref immutable T x; a)
-			initMemory(res + i, x);
-		foreach (size_t i, ref immutable T x; b)
-			initMemory(res + a.length + i, x);
-		return res[0 .. resSize];
-	}
+T[] concatenate(T)(ref Alloc alloc, T[] a, T[] b) =>
+	empty(a)
+		? b
+		: empty(b)
+		? a
+		: concatenateIn!T(alloc, a, b);
+
+@trusted T[] concatenateIn(T)(ref Alloc alloc, scope T[] a, scope T[] b) {
+	T[] res = allocateElements!T(alloc, a.length + b.length);
+	copyToFrom!T(res[0 .. a.length], a);
+	copyToFrom!T(res[a.length .. $], b);
+	return res;
 }
 
-@trusted T[] append(T)(scope ref Alloc alloc, scope T[] a, T b) {
-	size_t resSize = a.length + 1;
-	T* res = allocateT!T(alloc, resSize);
-	foreach (size_t i; 0 .. a.length)
-		initMemory(res + i, a[i]);
-	initMemory(res + a.length, b);
-	return res[0 .. resSize];
-}
+T[] append(T)(scope ref Alloc alloc, scope T[] a, T b) =>
+	concatenateIn!T(alloc, a, [b]);
 
-@trusted T[] prepend(T)(scope ref Alloc alloc, T a, scope T[] b) {
-	size_t resSize = 1 + b.length;
-	T* res = allocateT!T(alloc, resSize);
-	initMemory(res + 0, a);
-	foreach (size_t i, ref const T x; b)
-		initMemory(res + 1 + i, x);
-	return res[0 .. resSize];
-}
+T[] prepend(T)(scope ref Alloc alloc, T a, scope T[] b) =>
+	concatenateIn!T(alloc, [a], b);
 
-bool zipEvery(T, U)(
-	in T[] a,
-	in U[] b,
-	in bool delegate(in T, in U) @safe @nogc pure nothrow cb,
-) {
+bool zipEvery(T, U)(in T[] a, in U[] b, in bool delegate(in T, in U) @safe @nogc pure nothrow cb) {
 	verify(sizeEq(a, b));
 	foreach (size_t i; 0 .. a.length)
 		if (!cb(a[i], b[i]))
@@ -341,21 +321,13 @@ Opt!Out zipFirst(Out, T, U)(
 	return none!Out;
 }
 
-void zipIn(T, U)(
-	in T[] a,
-	in U[] b,
-	in void delegate(in T, in U) @safe @nogc pure nothrow cb,
-) {
+void zipIn(T, U)(in T[] a, in U[] b, in void delegate(in T, in U) @safe @nogc pure nothrow cb) {
 	verify(sizeEq(a, b));
 	foreach (size_t i; 0 .. a.length)
 		cb(a[i], b[i]);
 }
 
-void zip(T, U)(
-	scope T[] a,
-	scope U[] b,
-	in void delegate(ref T, ref U) @safe @nogc pure nothrow cb,
-) {
+void zip(T, U)(scope T[] a, scope U[] b, in void delegate(ref T, ref U) @safe @nogc pure nothrow cb) {
 	verify(sizeEq(a, b));
 	foreach (size_t i; 0 .. a.length)
 		cb(a[i], b[i]);
@@ -367,11 +339,7 @@ void zipPointers(T, U)(T[] a, U[] b, in void delegate(T*, U*) @safe @nogc pure n
 		cb(&a[i], &b[i]);
 }
 
-void zipPtrFirst(T, U)(
-	T[] a,
-	scope U[] b,
-	in void delegate(T*, ref U) @safe @nogc pure nothrow cb,
-) {
+void zipPtrFirst(T, U)(T[] a, scope U[] b, in void delegate(T*, ref U) @safe @nogc pure nothrow cb) {
 	verify(sizeEq(a, b));
 	foreach (size_t i; 0 .. a.length)
 		cb(&a[i], b[i]);
@@ -384,11 +352,8 @@ void zipPtrFirst(T, U)(
 	in Out delegate(ref In0, ref In1) @safe @nogc pure nothrow cb,
 ) {
 	verify(sizeEq(in0, in1));
-	size_t sz = in0.length;
-	Out* res = allocateT!Out(alloc, sz);
-	foreach (size_t i; 0 .. sz)
-		initMemory(res + i, cb(in0[i], in1[i]));
-	return res[0 .. sz];
+	return makeArr(alloc, in0.length, (size_t i) =>
+		cb(in0[i], in1[i]));
 }
 
 @trusted Out[] mapZipPtrFirst(Out, In0, In1)(
@@ -398,11 +363,8 @@ void zipPtrFirst(T, U)(
 	in Out delegate(In0*, in In1) @safe @nogc pure nothrow cb,
 ) {
 	verify(sizeEq(in0, in1));
-	size_t sz = in0.length;
-	Out* res = allocateT!Out(alloc, sz);
-	foreach (size_t i; 0 .. sz)
-		initMemory(res + i, cb(&in0[i], in1[i]));
-	return res[0 .. sz];
+	return makeArr(alloc, in0.length, (size_t i) =>
+		cb(&in0[i], in1[i]));
 }
 
 @trusted Out[] mapZipPointers3(Out, In0, In1, In2)(
@@ -413,11 +375,8 @@ void zipPtrFirst(T, U)(
 	in Out delegate(In0*, In1*, In2*) @safe @nogc pure nothrow cb,
 ) {
 	verify(sizeEq(in0, in1) && sizeEq(in1, in2));
-	size_t sz = in0.length;
-	Out* res = allocateT!Out(alloc, sz);
-	foreach (size_t i; 0 .. sz)
-		initMemory(res + i, cb(&in0[i], &in1[i], &in2[i]));
-	return res[0 .. sz];
+	return makeArr(alloc, in0.length, (size_t i) =>
+		cb(&in0[i], &in1[i], &in2[i]));
 }
 
 bool arrsCorrespond(T, U)(in T[] a, in U[] b, in bool delegate(in T, in U) @safe @nogc pure nothrow cb) =>
@@ -442,9 +401,9 @@ immutable struct MapAndFold(Out, State) {
 	in In[] a,
 	in MapAndFold!(Out, State) delegate(in In, State) @safe @nogc pure nothrow cb,
 ) {
-	Out* res = allocateT!Out(alloc, a.length);
-	State endState = mapAndFoldRecur!(Out, State, In)(res, start, a.ptr, a.ptr + a.length, cb);
-	return MapAndFoldResult!(Out, State)(cast(immutable) res[0 .. a.length], endState);
+	Out[] res = allocateElements!Out(alloc, a.length);
+	State endState = mapAndFoldRecur!(Out, State, In)(res.ptr, start, a.ptr, endPtr(a), cb);
+	return MapAndFoldResult!(Out, State)(res, endState);
 }
 
 private @system State mapAndFoldRecur(Out, State, In)(

@@ -18,13 +18,14 @@ import frontend.showModel :
 	writeTypeQuoted,
 	writeUri,
 	writeUriAndRange;
-import model.diag : Diagnostic, Diag, DiagSeverity, ExpectedForDiag, TypeKind, UriAndDiagnostic;
+import model.diag : Diagnostic, Diag, DiagnosticSeverity, ExpectedForDiag, TypeKind, UriAndDiagnostic;
 import model.model :
 	arity,
 	arityMatches,
 	bestCasePurity,
 	CalledDecl,
 	eachDiagnostic,
+	eachDiagnosticForUri,
 	EnumBackingType,
 	FunDeclAndTypeArgs,
 	Local,
@@ -49,17 +50,18 @@ import util.col.arrUtil : exists;
 import util.col.multiMap : makeMultiMap, MultiMap, MultiMapCb, multiMapEach;
 import util.col.sortUtil : sorted;
 import util.col.str : SafeCStr;
+import util.comparison : Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : compareRange;
 import util.storage : ReadFileIssue;
-import util.sym : AllSymbols, Sym, writeSym;
+import util.sym : Sym, writeSym;
 import util.uri : AllUris, baseName, compareUriAlphabetically, Uri, writeRelPath, writeUri;
 import util.util : max, unreachable;
 import util.writer : withWriter, writeEscapedChar, writeQuotedString, writeWithCommas, writeWithSeparator, Writer;
 
 SafeCStr stringOfDiagnostics(ref Alloc alloc, scope ref ShowCtx ctx, in Program program) =>
 	withWriter(alloc, (scope ref Writer writer) {
-		DiagSeverity severity = maxDiagnosticSeverity(program);
+		DiagnosticSeverity severity = maxDiagnosticSeverity(program);
 		bool first = true;
 		foreach (UriAndDiagnostics x; sortedDiagnostics(alloc, ctx.allUris, program)) {
 			foreach (Diagnostic diagnostic; x.diagnostics)
@@ -78,10 +80,6 @@ SafeCStr stringOfDiag(ref Alloc alloc, scope ref ShowCtx ctx, in Diag diag) =>
 		writeDiag(writer, ctx, diag);
 	});
 
-SafeCStr stringOfParseDiag(ref Alloc alloc, in AllSymbols allSymbols, in AllUris allUris, in ParseDiag a) =>
-	withWriter(alloc, (scope ref Writer writer) =>
-		writeParseDiag(writer, allSymbols, allUris, a));
-
 immutable struct UriAndDiagnostics {
 	Uri uri;
 	Diagnostic[] diagnostics;
@@ -97,7 +95,7 @@ UriAndDiagnostics[] sortedDiagnostics(ref Alloc alloc, in AllUris allUris, in Pr
 	ArrBuilder!UriAndDiagnostics res;
 	multiMapEach!(Uri, Diagnostic)(map, (Uri uri, in Diagnostic[] diagnostics) {
 		Diagnostic[] sortedDiags = sorted!Diagnostic(alloc, diagnostics, (in Diagnostic x, in Diagnostic y) =>
-			compareRange(x.range, y.range));
+			compareDiagnostic(x, y));
 		add(alloc, res, UriAndDiagnostics(uri, sortedDiags));
 	});
 	arrBuilderSort!UriAndDiagnostics(res, (in UriAndDiagnostics x, in UriAndDiagnostics y) =>
@@ -105,10 +103,23 @@ UriAndDiagnostics[] sortedDiagnostics(ref Alloc alloc, in AllUris allUris, in Pr
 	return finishArr(alloc, res);
 }
 
+Diagnostic[] sortedDiagnosticsForUri(ref Alloc alloc, in Program program, Uri uri, DiagnosticSeverity minSeverity) {
+	ArrBuilder!Diagnostic res;
+	eachDiagnosticForUri(program, uri, (in Diagnostic x) {
+		if (getDiagnosticSeverity(x.kind) >= minSeverity)
+			add(alloc, res, x);
+	});
+	arrBuilderSort!Diagnostic(res, (in Diagnostic x, in Diagnostic y) => compareDiagnostic(x, y));
+	return finishArr(alloc, res);
+}
+
 private:
 
-DiagSeverity maxDiagnosticSeverity(in Program a) {
-	DiagSeverity res = DiagSeverity.unusedCode;
+Comparison compareDiagnostic(in Diagnostic a, in Diagnostic b) =>
+	compareRange(a.range, b.range);
+
+DiagnosticSeverity maxDiagnosticSeverity(in Program a) {
+	DiagnosticSeverity res = DiagnosticSeverity.unusedCode;
 	eachDiagnostic(a, (in UriAndDiagnostic x) {
 		res = max(res, getDiagnosticSeverity(x.kind));
 	});
@@ -144,7 +155,7 @@ void writeUnusedDiag(scope ref Writer writer, scope ref ShowCtx ctx, in Diag.Unu
 		});
 }
 
-void writeParseDiag(scope ref Writer writer, in AllSymbols allSymbols, in AllUris allUris, in ParseDiag d) {
+void writeParseDiag(scope ref Writer writer, scope ref ShowCtx ctx, in ParseDiag d) {
 	d.matchIn!void(
 		(in ParseDiag.Expected it) {
 			final switch (it.kind) {
@@ -301,7 +312,7 @@ void writeParseDiag(scope ref Writer writer, in AllSymbols allSymbols, in AllUri
 		},
 		(in ParseDiag.RelativeImportReachesPastRoot x) {
 			writer ~= "importing ";
-			writeRelPath(writer, allUris, x.imported);
+			writeRelPath(writer, ctx.allUris, x.imported);
 			writer ~= " reaches above the source directory";
 			//TODO: recommend a compiler option to fix this
 		},
@@ -315,7 +326,7 @@ void writeParseDiag(scope ref Writer writer, in AllSymbols allSymbols, in AllUri
 		},
 		(in ParseDiag.UnexpectedOperator x) {
 			writer ~= "unexpected '";
-			writeSym(writer, allSymbols, x.operator);
+			writeSym(writer, ctx.allSymbols, x.operator);
 			writer ~= '\'';
 		},
 		(in ParseDiag.UnexpectedToken u) {
@@ -790,7 +801,7 @@ void writeDiag(scope ref Writer writer, scope ref ShowCtx ctx, in Diag diag) {
 			writer ~= "can't change the value of a parameter; consider introducing a mutable local instead";
 		},
 		(in ParseDiag x) {
-			writeParseDiag(writer, ctx.allSymbols, ctx.allUris, x);
+			writeParseDiag(writer, ctx, x);
 		},
 		(in Diag.PtrIsUnsafe) {
 			writer ~= "getting a pointer is unsafe";

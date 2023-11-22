@@ -84,7 +84,7 @@ import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : empty, emptySmallArray, only, ptrsRange, small;
 import util.col.arrBuilder : ArrBuilder;
-import util.col.arrUtil : cat, filter, map, mapOp, mapToMut, mapPointers, zip, zipPointers;
+import util.col.arrUtil : concatenate, filter, map, mapOp, mapToMut, mapPointers, zip, zipPointers;
 import util.col.map : Map, mapEach, hasKey, KeyValuePair;
 import util.col.mapBuilder : MapBuilder, finishMap, tryAddToMap;
 import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd, finish, newExactSizeArrBuilder;
@@ -115,7 +115,7 @@ immutable struct BootstrapCheck {
 
 BootstrapCheck checkBootstrap(
 	ref Alloc alloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	scope ref AllSymbols allSymbols,
 	in AllUris allUris,
 	ref ProgramState programState,
@@ -154,7 +154,7 @@ immutable struct ImportOrExportFile {
 
 Module check(
 	ref Alloc alloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	scope ref AllSymbols allSymbols,
 	in AllUris allUris,
 	ref ProgramState programState,
@@ -875,7 +875,7 @@ Map!(Sym, NameReferents) getAllExportedNames(
 				return NameReferents(
 					has(prev.structOrAlias) ? prev.structOrAlias : cur.structOrAlias,
 					has(prev.spec) ? prev.spec : cur.spec,
-					cat(ctx.alloc, prev.funs, cur.funs));
+					concatenate(ctx.alloc, prev.funs, cur.funs));
 			});
 	}
 

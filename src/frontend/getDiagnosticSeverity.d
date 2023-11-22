@@ -2,152 +2,152 @@ module frontend.getDiagnosticSeverity;
 
 @safe @nogc pure nothrow:
 
-import model.diag : Diag, DiagSeverity;
+import model.diag : Diag, DiagnosticSeverity;
 import model.parseDiag : ParseDiag;
 
-DiagSeverity getDiagnosticSeverity(in Diag a) =>
-	a.matchIn!DiagSeverity(
+DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
+	a.matchIn!DiagnosticSeverity(
 		(in Diag.AssignmentNotAllowed) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.BuiltinUnsupported) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.CallMultipleMatches) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.CallNoMatch) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.CallShouldUseSyntax) =>
-			DiagSeverity.checkWarning,
+			DiagnosticSeverity.checkWarning,
 		(in Diag.CantCall) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.CharLiteralMustBeOneChar) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.CircularImport) =>
-			DiagSeverity.circularImport,
+			DiagnosticSeverity.circularImport,
 		(in Diag.CommonFunDuplicate) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.CommonFunMissing) =>
-			DiagSeverity.commonMissing,
+			DiagnosticSeverity.commonMissing,
 		(in Diag.CommonTypeMissing) =>
-			DiagSeverity.commonMissing,
+			DiagnosticSeverity.commonMissing,
 		(in Diag.DestructureTypeMismatch) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.DuplicateDeclaration) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.DuplicateExports) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.DuplicateImports) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.EnumBackingTypeInvalid) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.EnumDuplicateValue) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.EnumMemberOverflows) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.ExpectedTypeIsNotALambda) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.ExternFunForbidden) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.ExternHasTypeParams) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.ExternMissingLibraryName) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.ExternRecordImplicitlyByVal) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.ExternUnion) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.FunMissingBody) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in FunModifierTrustedOnNonExtern) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.IfNeedsOpt) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.ImportFileIssue) =>
-			DiagSeverity.fileIssue,
+			DiagnosticSeverity.fileIssue,
 		(in Diag.ImportRefersToNothing) =>
-			DiagSeverity.nameNotFound,
+			DiagnosticSeverity.nameNotFound,
 		(in Diag.LambdaCantInferParamType) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.LambdaClosesOverMut) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.LambdaMultipleMatch) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.LambdaNotExpected) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.LinkageWorseThanContainingFun) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.LinkageWorseThanContainingType) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.LiteralAmbiguous) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.LiteralOverflow) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.LocalIgnoredButMutable) =>
-			DiagSeverity.checkWarning,
+			DiagnosticSeverity.checkWarning,
 		(in Diag.LocalNotMutable) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.LoopWithoutBreak) =>
-			DiagSeverity.checkWarning,
+			DiagnosticSeverity.checkWarning,
 		(in Diag.MatchCaseNamesDoNotMatch) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.MatchOnNonUnion) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.ModifierConflict) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.ModifierDuplicate) =>
-			DiagSeverity.checkWarning,
+			DiagnosticSeverity.checkWarning,
 		(in Diag.ModifierInvalid) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.ModifierRedundantDueToModifier) =>
-			DiagSeverity.checkWarning,
+			DiagnosticSeverity.checkWarning,
 		(in Diag.ModifierRedundantDueToTypeKind) =>
-			DiagSeverity.checkWarning,
+			DiagnosticSeverity.checkWarning,
 		(in Diag.MutFieldNotAllowed) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.NameNotFound) =>
-			DiagSeverity.nameNotFound,
+			DiagnosticSeverity.nameNotFound,
 		(in Diag.NeedsExpectedType) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.ParamCantBeMutable) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.ParamMissingType) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.ParamNotMutable) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in ParseDiag _) =>
-			DiagSeverity.parseError,
+			DiagnosticSeverity.parseError,
 		(in Diag.PtrIsUnsafe) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.PtrMutToConst) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.PtrUnsupported) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.PurityWorseThanParent) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.RecordNewVisibilityIsRedundant) =>
-			DiagSeverity.checkWarning,
+			DiagnosticSeverity.checkWarning,
 		(in Diag.SpecMatchError) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.SpecNoMatch) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.SpecNameMissing) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.SpecRecursion) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.ThreadLocalError) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.TrustedUnnecessary) =>
-			DiagSeverity.checkWarning,
+			DiagnosticSeverity.checkWarning,
 		(in Diag.TypeAnnotationUnnecessary) =>
-			DiagSeverity.checkWarning,
+			DiagnosticSeverity.checkWarning,
 		(in Diag.TypeConflict) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.TypeParamCantHaveTypeArgs) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.TypeShouldUseSyntax) =>
-			DiagSeverity.checkWarning,
+			DiagnosticSeverity.checkWarning,
 		(in Diag.Unused) =>
-			DiagSeverity.unusedCode,
+			DiagnosticSeverity.unusedCode,
 		(in Diag.VarargsParamMustBeArray) =>
-			DiagSeverity.checkError,
+			DiagnosticSeverity.checkError,
 		(in Diag.WrongNumberTypeArgs) =>
-			DiagSeverity.checkError);
+			DiagnosticSeverity.checkError);

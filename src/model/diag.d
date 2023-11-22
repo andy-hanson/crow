@@ -32,7 +32,8 @@ import util.uri : Uri;
 
 // In the CLI, we omit diagnostics if there are other more severe ones.
 // So e.g., you wouldn't see unused code errors if there are parse errors.
-enum DiagSeverity {
+enum DiagnosticSeverity {
+	// Warn: JS 'getDiagnosticsForUri' calls use these numbers directly
 	unusedCode,
 	checkWarning,
 	checkError,
@@ -43,8 +44,8 @@ enum DiagSeverity {
 	parseError,
 	fileIssue,
 }
-bool isFatal(DiagSeverity a) =>
-	a >= DiagSeverity.commonMissing;
+bool isFatal(DiagnosticSeverity a) =>
+	a >= DiagnosticSeverity.commonMissing;
 
 immutable struct UriAndDiagnostic {
 	@safe @nogc pure nothrow:

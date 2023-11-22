@@ -65,29 +65,18 @@ private word* allocateWords(ref Alloc alloc, size_t nWords) {
 	return res;
 }
 
-T* allocateT(T)(ref Alloc alloc, size_t count) =>
-	cast(T*) allocateBytes(alloc, T.sizeof * count);
+T* allocateUninitialized(T)(ref Alloc alloc) =>
+	&allocateElements!T(alloc, 1)[0];
 
 T[] allocateElements(T)(ref Alloc alloc, size_t count) =>
-	allocateT!T(alloc, count)[0 .. count];
-
-T* allocateUninitialized(T)(ref Alloc alloc) =>
-	allocateT!T(alloc, 1);
+	(cast(T*) allocateBytes(alloc, T.sizeof * count))[0 .. count];
 
 private void freeBytes(ref Alloc alloc, ubyte* ptr, size_t) {
 	// do nothing
 }
 
-private void freeBytesPartial(ref Alloc alloc, ubyte* ptr, size_t) {
-	// do nothing
-}
-
-void freeT(T)(ref Alloc alloc, T* ptr, size_t count) {
-	freeBytes(alloc, cast(ubyte*) ptr, T.sizeof * count);
-}
-
-void freeTPartial(T)(ref Alloc alloc, T* ptr, size_t count) {
-	freeBytesPartial(alloc, cast(ubyte*) ptr, T.sizeof * count);
+void freeElements(T)(ref Alloc alloc, T[] range) {
+	freeBytes(alloc, cast(ubyte*) range.ptr, T.sizeof * range.length);
 }
 
 private alias word = ulong;

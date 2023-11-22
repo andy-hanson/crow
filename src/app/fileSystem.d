@@ -41,6 +41,7 @@ version (Windows) {
 	import core.sys.posix.unistd : getcwd, read, readlink, unlink;
 }
 import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
+import util.col.arr : endPtr;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrLiteral;
 import util.col.str : CStr, SafeCStr, safeCStrSize;
@@ -430,7 +431,7 @@ void verifyOk(int ok) {
 
 version (Windows) {
 	@system void readFromPipe(ref char[0x10000] out_, HANDLE pipe) {
-		readFromPipeRecur(out_.ptr, out_.ptr + out_.length, pipe);
+		readFromPipeRecur(out_.ptr, endPtr(out_), pipe);
 	}
 
 	@system void readFromPipeRecur(char* out_, char* outEnd, HANDLE pipe) {

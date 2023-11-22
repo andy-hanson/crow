@@ -2,8 +2,8 @@ module util.col.mutMap;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc, allocateT;
-import util.col.arr : empty;
+import util.alloc.alloc : Alloc, allocateElements;
+import util.col.arr : empty, endPtr;
 import util.col.arrUtil : map;
 import util.col.map : Map;
 import util.hash : Hasher, hashSizeT, hashUbyte;
@@ -229,16 +229,16 @@ private @trusted immutable(Out[]) mapToArr_const(Out, K, V)(
 	in MutMap!(K, V) a,
 	in immutable(Out) delegate(immutable K, ref const V) @safe @nogc pure nothrow cb,
 ) {
-	Out* res = allocateT!Out(alloc, a.size);
-	Out* cur = res;
+	Out[] res = allocateElements!Out(alloc, a.size);
+	Out* cur = res.ptr;
 	foreach (ref const MutOpt!(KeyValuePair!(K, V)) pair; a.pairs) {
 		if (has(pair)) {
 			initMemory(cur, cb(force(pair).key, force(pair).value));
 			cur++;
 		}
 	}
-	verify(cur == res + a.size);
-	return cast(immutable) res[0 .. a.size];
+	verify(cur == endPtr(res));
+	return cast(immutable) res;
 }
 @trusted immutable(Out[]) mapToArr_mut(Out, K, V)(
 	ref Alloc alloc,
@@ -348,8 +348,7 @@ immutable(bool) shouldExpand(K, V)(ref const MutMap!(K, V) a) =>
 
 @trusted void doExpand(K, V)(ref Alloc alloc, scope ref MutMap!(K, V) a) {
 	immutable size_t newSize = a.pairs.length < 2 ? 2 : a.pairs.length * 2;
-	MutOpt!(KeyValuePair!(K, V))* newPairs = allocateT!(MutOpt!(KeyValuePair!(K, V)))(alloc, newSize);
-	MutMap!(K, V) bigger = MutMap!(K, V)(0, newPairs[0 .. newSize]);
+	MutMap!(K, V) bigger = MutMap!(K, V)(0, allocateElements!(MutOpt!(KeyValuePair!(K, V)))(alloc, newSize));
 	foreach (ref MutOpt!(KeyValuePair!(K, V)) pair; bigger.pairs)
 		initMemory(&pair, noneMut!(KeyValuePair!(K, V)));
 	foreach (ref MutOpt!(KeyValuePair!(K, V)) pair; a.pairs)

@@ -2,9 +2,9 @@ module util.diff;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc, TempAlloc;
+import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
 import util.col.arr : only;
-import util.col.arrUtil : allocateUninitialized, arrMax, arrMaxIndex, contains;
+import util.col.arrUtil : arrMax, arrMaxIndex, contains;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.comparison : compareSizeT;
 import util.sym : AllSymbols, Sym, sym, symSize, writeSym, writeSymAndGetSize;
@@ -123,7 +123,7 @@ void longestCommonSubsequenceRecur(
 }
 
 @trusted Sym[] longestCommonSubsequence(ref Alloc alloc, in Sym[] a, in Sym[] b) {
-	size_t[] scratch = allocateUninitialized!size_t(alloc, (b.length + 1) * 2);
+	size_t[] scratch = allocateElements!size_t(alloc, (b.length + 1) * 2);
 	ArrBuilder!Sym res;
 	longestCommonSubsequenceRecur(alloc, a, b, scratch, res);
 	return finishArr(alloc, res);

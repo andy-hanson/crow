@@ -3,6 +3,7 @@ module interpret.stacks;
 @nogc nothrow: // not @safe, not pure
 
 import interpret.bytecode : Operation;
+import util.col.arr : endPtr;
 import util.util : verify;
 
 private size_t stacksStorageSize() =>
@@ -24,9 +25,7 @@ The callback should have a net 0 effect on the stack depths..
 */
 @trusted T withStacks(T)(in T delegate(ref Stacks) @nogc nothrow cb) {
 	if (!stacksInitialized) {
-		savedStacks = Stacks(
-			stacksStorage.ptr - 1,
-			cast(Operation**) (stacksStorage.ptr + stacksStorage.length));
+		savedStacks = Stacks(stacksStorage.ptr - 1, cast(Operation**) endPtr(stacksStorage));
 		stacksInitialized = true;
 	}
 
@@ -47,7 +46,7 @@ The callback should have a net 0 effect on the stack depths..
 
 private inout(Operation)** storageEnd(ref inout Stacks a) {
 	verify!"storageEnd"(stacksStorage.length == stacksStorageSize);
-	return cast(inout(Operation)**) (stacksStorage.ptr + stacksStorage.length);
+	return cast(inout(Operation)**) endPtr(stacksStorage);
 }
 
 struct Stacks {

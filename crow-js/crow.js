@@ -27,8 +27,9 @@ Exports of `wasm.d`:
 @property {function(Server): CStr} allStorageUris
 @property {function(Server): CStr} allUnknownUris
 @property {function(Server): CStr} allLoadingUris
-@property {function(Server, CStr): CStr} getTokensAndParseDiagnostics
+@property {function(Server, CStr): CStr} getTokens
 @property {function(Server): CStr} getAllDiagnostics
+@property {function(Server, CStr, number): CStr} getDiagnosticsForUri
 @property {function(Server, CStr, number, number): CStr} getDefinition
 @property {function(Server, CStr, number, number, CStr): CStr} getReferences
 @property {function(Server, CStr, number, number, CStr, CStr): CStr} getRename
@@ -208,10 +209,12 @@ globalCrow.makeCompiler = async (bytes, includeDir, cwd, logger) => {
 			JSON.parse(readCStr(exports.allUnknownUris(server))),
 		allLoadingUris: () =>
 			JSON.parse(readCStr(exports.allLoadingUris(server))),
-		getTokensAndParseDiagnostics: uri =>
-			withParamsAndJson(() => exports.getTokensAndParseDiagnostics(server, paramAlloc.writeCStr(uri))),
+		getTokens: uri =>
+			withParamsAndJson(() => exports.getTokens(server, paramAlloc.writeCStr(uri))),
 		getAllDiagnostics: () =>
 			JSON.parse(readCStr(exports.getAllDiagnostics(server))),
+		getDiagnosticsForUri: (uri, minSeverity) =>
+			withParamsAndJson(() => exports.getDiagnosticsForUri(server, paramAlloc.writeCStr(uri), minSeverity || 0)),
 		getDefinition: ({uri, position:{line, character}}) => withParamsAndJson(() =>
 			exports.getDefinition(server, paramAlloc.writeCStr(uri), line, character)),
 		getReferences: ({uri, position:{line, character}}, roots) =>

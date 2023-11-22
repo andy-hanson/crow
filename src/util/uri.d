@@ -2,9 +2,10 @@ module util.uri;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc, allocateT;
+import util.alloc.alloc : Alloc, allocateElements;
+import util.col.arr : endPtr;
 import util.col.arrUtil : indexOf, indexOfStartingAt;
-import util.col.mutArr : MutArr, mutArrRange, mutArrSize, push;
+import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
 import util.col.str : compareSafeCStrAlphabetically, end, SafeCStr, safeCStr, strOfSafeCStr;
 import util.comparison : Comparison;
 import util.conv : safeToUshort;
@@ -221,7 +222,7 @@ PathFirstAndRest firstAndRest(ref AllUris allUris, Path a) {
 }
 
 private Path getOrAddChild(ref AllUris allUris, ref MutArr!Path children, Opt!Path parent, Sym name) {
-	foreach (Path child; mutArrRange(children))
+	foreach (Path child; tempAsArr(children))
 		if (baseName(allUris, child) == name)
 			return child;
 
@@ -319,7 +320,7 @@ private immutable struct PathToStrOptions {
 	bool nulTerminate;
 }
 private @system void pathToStrWorker(in AllUris allUris, Path path, char[] outBuf, in PathToStrOptions options) {
-	char* cur = outBuf.ptr + outBuf.length;
+	char* cur = endPtr(outBuf);
 	if (options.nulTerminate) {
 		cur--;
 		*cur = '\0';
@@ -350,9 +351,9 @@ SafeCStr fileUriToSafeCStr(ref Alloc alloc, in AllUris allUris, FileUri a) =>
 @trusted SafeCStr pathToSafeCStr(ref Alloc alloc, in AllUris allUris, Path path, bool leadingSlash) {
 	PathToStrOptions options = PathToStrOptions(leadingSlash, true);
 	size_t length = pathToStrLength(allUris, path, options);
-	char* begin = allocateT!char(alloc, length);
-	pathToStrWorker(allUris, path, begin[0 .. length], options);
-	return SafeCStr(cast(immutable) begin);
+	char[] res = allocateElements!char(alloc, length);
+	pathToStrWorker(allUris, path, res, options);
+	return SafeCStr(cast(immutable) res.ptr);
 }
 
 public SafeCStr uriToSafeCStrPreferRelative(ref Alloc alloc, in AllUris allUris, ref UrisInfo urisInfo, Uri a) =>

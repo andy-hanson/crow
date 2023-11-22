@@ -7,9 +7,16 @@ const lineHeightPx = 20
 const tab_size = 4
 
 /**
+ * @typedef TokensAndDiagnostics
+ * @property {ReadonlyArray<crow.Token>} tokens
+ * @property {ReadonlyArray<crow.Diagnostic>} diagnostics
+ */
+export const TokensAndDiagnostics = null
+
+/**
  * @typedef CrowTextProps
  * @property {function(crow.LineAndCharacter): string} getHover
- * @property {Observable<crow.TokensAndParseDiagnostics>} tokensAndParseDiagnostics
+ * @property {Observable<TokensAndDiagnostics>} tokensAndDiagnostics
  * @property {MutableObservable<string>} text
  */
 
@@ -139,7 +146,7 @@ export class CrowText extends HTMLElement {
 	}
 
 	connectedCallback() {
-		const {getHover, tokensAndParseDiagnostics, text} = this.props
+		const {getHover, tokensAndDiagnostics, text} = this.props
 		const highlightDiv = createDiv({className:"highlight"})
 		const ta = createNode("textarea")
 		const initialText = text.get()
@@ -214,11 +221,11 @@ export class CrowText extends HTMLElement {
 
 		const diagDebounce = makeDebouncer(1000)
 
-		tokensAndParseDiagnostics.nowAndSubscribe(({tokens, parseDiagnostics}) => {
-			highlight({tokens, parseDiagnostics:[]}, highlightDiv, ta.value)
+		tokensAndDiagnostics.nowAndSubscribe(({tokens, diagnostics}) => {
+			highlight({tokens, diagnostics:[]}, highlightDiv, ta.value)
 			lineNumbers.textContent = ta.value.split("\n").map((_, i) => String(i + 1)).join("\n")
 			diagDebounce(() => {
-				highlight({tokens, parseDiagnostics}, highlightDiv, ta.value)
+				highlight({tokens, diagnostics}, highlightDiv, ta.value)
 			})
 		})
 
@@ -263,10 +270,9 @@ const countLeadingTabs = s => {
 }
 
 
-/** @type {function(crow.TokensAndParseDiagnostics, Node, string): void} */
-const highlight = ({tokens, parseDiagnostics}, highlightDiv, v) => {
-	// Only use at most 1 diag
-	const nodes = tokensAndDiagsToNodes(tokens, parseDiagnostics.slice(0, 1), v)
+/** @type {function(TokensAndDiagnostics, Node, string): void} */
+const highlight = ({tokens, diagnostics}, highlightDiv, v) => {
+	const nodes = tokensAndDiagsToNodes(tokens, diagnostics, v)
 	removeAllChildren(highlightDiv)
 	for (const node of nodes)
 		highlightDiv.appendChild(node)

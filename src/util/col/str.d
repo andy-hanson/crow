@@ -2,12 +2,12 @@ module util.col.str;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc, allocateT;
+import util.alloc.alloc : Alloc, allocateElements;
 import util.comparison : Comparison;
 import util.col.arr : empty;
 import util.col.arrUtil : arrEqual, map;
 import util.hash : Hasher, hashUbyte;
-import util.memory : memcpy;
+import util.memory : copyToFrom;
 
 alias CStr = immutable char*;
 
@@ -44,11 +44,10 @@ immutable struct SafeCStr {
 	if (empty(s))
 		return safeCStr!"";
 	else {
-		char* res = allocateT!char(alloc, s.length + 1);
-		static assert(ubyte.sizeof == char.sizeof);
-		memcpy(cast(ubyte*) res, cast(ubyte*) s.ptr, s.length);
-		res[s.length] = '\0';
-		return SafeCStr(cast(immutable) res);
+		char[] res = allocateElements!char(alloc, s.length + 1);
+		copyToFrom!char(res[0 .. $ - 1], s);
+		res[$ - 1] = '\0';
+		return SafeCStr(cast(immutable) res.ptr);
 	}
 }
 

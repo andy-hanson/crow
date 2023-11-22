@@ -49,7 +49,7 @@ import util.util : verify;
 
 Program frontendCompile(
 	ref Alloc modelAlloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	ref Alloc astsAlloc,
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
@@ -71,7 +71,7 @@ Program frontendCompile(
 // The purpose of this is to discover unknown files
 void parseAllFiles(
 	ref Alloc alloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllUris allUris,
 	scope ref Storage storage,
@@ -86,7 +86,7 @@ void parseAllFiles(
 
 FileAst* parseSingleAst(
 	ref Alloc alloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllUris allUris,
 	scope ref Storage storage,
@@ -467,7 +467,7 @@ struct ModulesAndCommonTypes {
 
 ModulesAndCommonTypes getModules(
 	ref Alloc modelAlloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	scope ref AllSymbols allSymbols,
 	in AllUris allUris,
 	ref ProgramState programState,
@@ -502,7 +502,7 @@ ModulesAndCommonTypes getModules(
 
 Module checkNonBootstrapModule(
 	ref Alloc modelAlloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	scope ref AllSymbols allSymbols,
 	in AllUris allUris,
 	ref ProgramState programState,
@@ -534,7 +534,7 @@ Module checkNonBootstrapModule(
 
 Program checkEverything(
 	ref Alloc modelAlloc,
-	ref Perf perf,
+	scope ref Perf perf,
 	scope ref AllSymbols allSymbols,
 	in AllUris allUris,
 	Config config,

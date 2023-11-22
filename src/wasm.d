@@ -3,8 +3,8 @@
 import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
 import frontend.ide.getRename : jsonOfRename, Rename;
 import frontend.ide.getReferences : jsonOfReferences;
-import frontend.ide.getTokens : jsonOfTokens;
-import frontend.showDiag : sortedDiagnostics, stringOfParseDiag, UriAndDiagnostics;
+import frontend.ide.getTokens : jsonOfTokens, Token;
+import frontend.showDiag : sortedDiagnostics, sortedDiagnosticsForUri, UriAndDiagnostics;
 import frontend.showModel : ShowOptions;
 import interpret.fakeExtern : Pipe;
 import lib.server :
@@ -16,8 +16,9 @@ import lib.server :
 	getHover,
 	getRename,
 	getReferences,
-	getTokensAndParseDiagnostics,
+	getTokens,
 	justParseEverything,
+	justTypeCheck,
 	run,
 	Server,
 	setCwd,
@@ -26,14 +27,12 @@ import lib.server :
 	setFileFromTemp,
 	setIncludeDir,
 	showDiag,
-	TokensAndParseDiagnostics,
 	toUri,
 	typeCheckAllKnownFiles,
 	version_;
-import model.diag : Diag, Diagnostic, DiagSeverity;
+import model.diag : Diagnostic, DiagnosticSeverity;
 import model.model : Program;
-import model.parseDiag : ParseDiagnostic;
-import util.alloc.alloc : Alloc, allocateT;
+import util.alloc.alloc : Alloc, allocateUninitialized;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : map;
 import util.col.str : CStr, eachSplit, SafeCStr, strOfSafeCStr;
@@ -42,7 +41,7 @@ import util.json : field, jsonObject, Json, jsonToString, jsonList, jsonString;
 import util.lineAndColumnGetter : LineAndCharacter, UriLineAndCharacter;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
 import util.opt : force, has, Opt;
-import util.perf : eachMeasure, Perf, PerfMeasureResult, perfTotal;
+import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasureResult, perfTotal, withNullPerf;
 import util.sourceRange : jsonOfRange, UriAndRange;
 import util.storage : asSafeCStr, FileContent, readFileIssueOfSym, ReadFileResult;
 import util.sym : symOfSafeCStr;
@@ -87,7 +86,7 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 
 @system extern(C) Server* newServer(scope CStr includeDir, scope CStr cwd) {
 	Alloc alloc = Alloc(serverBuffer);
-	Server* server = allocateT!Server(alloc, 1);
+	Server* server = allocateUninitialized!Server(alloc);
 	server.__ctor(alloc.move());
 	setIncludeDir(*server, parseUri(server.allUris, SafeCStr(includeDir)));
 	setCwd(*server, parseUri(server.allUris, SafeCStr(cwd)));
@@ -141,24 +140,33 @@ CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 	jsonToString(alloc, server.allSymbols, jsonList(map(alloc, uris, (ref Uri x) =>
 		jsonString(uriToString(alloc, server.allUris, x))))).ptr;
 
-@system extern(C) CStr getTokensAndParseDiagnostics(Server* server, scope CStr uriPtr) {
+@system extern(C) CStr getTokens(Server* server, scope CStr uriPtr) {
 	Uri uri = toUri(*server, SafeCStr(uriPtr));
 	Alloc resultAlloc = Alloc(resultBuffer);
-	return withWebPerf!("getTokensAndParseDiagnostics", CStr)((scope ref Perf perf) {
-		TokensAndParseDiagnostics res = getTokensAndParseDiagnostics(resultAlloc, perf, *server, uri);
-		return jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
-			field!"tokens"(jsonOfTokens(resultAlloc, server.lineAndColumnGetters[uri], res.tokens)),
-			field!"parseDiagnostics"(jsonList!ParseDiagnostic(resultAlloc, res.diagnostics, (in ParseDiagnostic x) =>
-				jsonOfParseDiagnostic(resultAlloc, *server, uri, x)))])).ptr;
+	return withWebPerf!("getTokens", CStr)((scope ref Perf perf) {
+		Token[] res = getTokens(resultAlloc, perf, *server, uri);
+		Json json = jsonOfTokens(resultAlloc, server.lineAndColumnGetters[uri], res);
+		return jsonToString(resultAlloc, server.allSymbols, json).ptr;
 	});
 }
+
 
 @system extern(C) CStr getAllDiagnostics(Server* server) {
 	Alloc resultAlloc = Alloc(resultBuffer);
 	return withWebPerf!("getAllDiagnostics", CStr)((scope ref Perf perf) {
 		Program program = typeCheckAllKnownFiles(resultAlloc, perf, *server);
-		return jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
-			field!"diagnostics"(jsonOfDiagnostics(resultAlloc, *server, program))])).ptr;
+		return jsonToString(resultAlloc, server.allSymbols, jsonOfDiagnostics(resultAlloc, *server, program)).ptr;
+	});
+}
+
+@system extern(C) CStr getDiagnosticsForUri(Server* server, scope CStr uriPtr, uint minSeverity) {
+	Uri uri = toUri(*server, SafeCStr(uriPtr));
+	Alloc resultAlloc = Alloc(resultBuffer);
+	return withWebPerf!("getDiagnosticsForUri", CStr)((scope ref Perf perf) {
+		Program program = justTypeCheck(resultAlloc, perf, *server, [uri]);
+		Diagnostic[] diags = sortedDiagnosticsForUri(resultAlloc, program, uri, cast(DiagnosticSeverity) minSeverity);
+		Json json = jsonOfDiagnostics(resultAlloc, *server, program, uri, diags);
+		return jsonToString(resultAlloc, server.allSymbols, json).ptr;
 	});
 }
 
@@ -218,13 +226,13 @@ CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 @system extern(C) int run(Server* server, scope CStr uriPtr) {
 	Uri uri = toUri(*server, SafeCStr(uriPtr));
 	Alloc resultAlloc = Alloc(resultBuffer);
-	return withWebPerf!("run", ExitCode)((scope ref Perf perf) =>
+	return withWebPerfImpure!("run", ExitCode)((scope ref Perf perf) =>
 		run(perf, resultAlloc, *server, uri, (Pipe pipe, in string x) @trusted {
 			write(pipe, x.ptr, x.length);
 		})).value;
 }
 
-Uri[] toUris(ref Alloc alloc, scope ref Server server, SafeCStr uris) {
+pure Uri[] toUris(ref Alloc alloc, scope ref Server server, SafeCStr uris) {
 	ArrBuilder!Uri res;
 	eachSplit(uris, '|', (in string x) {
 		add(alloc, res, parseUri(server.allUris, x));
@@ -232,7 +240,7 @@ Uri[] toUris(ref Alloc alloc, scope ref Server server, SafeCStr uris) {
 	return finishArr(alloc, res);
 }
 
-UriLineAndCharacter toUriLineAndCharacter(scope ref Server server, SafeCStr uri, uint line, uint character) =>
+pure UriLineAndCharacter toUriLineAndCharacter(scope ref Server server, SafeCStr uri, uint line, uint character) =>
 	UriLineAndCharacter(toUri(server, uri), LineAndCharacter(line, character));
 
 extern(C) void write(Pipe pipe, scope immutable char* begin, size_t length);
@@ -244,20 +252,28 @@ extern(C) void perfLogFinish(scope CStr name, ulong totalNanoseconds);
 
 private:
 
-@system T withWebPerf(CStr name, T)(in T delegate(scope ref Perf perf) @nogc nothrow cb) {
-	scope Perf perf = Perf(() => getTimeNanos());
-	static if (is(T == void)) {
-		cb(perf);
-	} else {
-		T res = cb(perf);
-	}
-	eachMeasure(perf, (in SafeCStr name, in PerfMeasureResult m) {
-		perfLogMeasure(name.ptr, m.count, m.nanoseconds, m.bytesAllocated);
-	});
-	perfLogFinish(name, perfTotal(perf));
-	static if (!is(T == void)) {
-		return res;
-	}
+T withWebPerf(CStr name, T)(in T delegate(scope ref Perf perf) @safe @nogc pure nothrow cb) =>
+	withWebPerfAlias!(name, T, cb)();
+T withWebPerfImpure(CStr name, T)(in T delegate(scope ref Perf perf) @safe @nogc nothrow cb) =>
+	withWebPerfAlias!(name, T, cb)();
+
+T withWebPerfAlias(CStr name, T, alias cb)() {
+	if (perfEnabled) {
+		scope Perf perf = Perf(() => getTimeNanos());
+		static if (is(T == void)) {
+			cb(perf);
+		} else {
+			T res = cb(perf);
+		}
+		eachMeasure(perf, (in SafeCStr name, in PerfMeasureResult m) {
+			perfLogMeasure(name.ptr, m.count, m.nanoseconds, m.bytesAllocated);
+		});
+		perfLogFinish(name, perfTotal(perf));
+		static if (!is(T == void)) {
+			return res;
+		}
+	} else
+		return withNullPerf!(T, cb);
 }
 
 pure:
@@ -269,17 +285,15 @@ Json jsonOfDiagnostics(ref Alloc alloc, ref Server server, in Program program) =
 			field!"diagnostics"(jsonList!Diagnostic(alloc, diags.diagnostics, (in Diagnostic x) =>
 				jsonOfDiagnostic(alloc, server, program, diags.uri, x)))]));
 
+Json jsonOfDiagnostics(ref Alloc alloc, ref Server server, in Program program, Uri uri, in Diagnostic[] diagnostics) =>
+	jsonList!Diagnostic(alloc, diagnostics, (in Diagnostic x) =>
+		jsonOfDiagnostic(alloc, server, program, uri, x));
+
 Json jsonOfDiagnostic(ref Alloc alloc, scope ref Server server, in Program program, Uri uri, in Diagnostic a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, server.lineAndColumnGetters[uri], a.range)),
 		field!"severity"(cast(uint) toLspDiagnosticSeverity(getDiagnosticSeverity(a.kind))),
 		field!"message"(jsonString(alloc, showDiag(alloc, server, program, a.kind)))]);
-
-Json jsonOfParseDiagnostic(ref Alloc alloc, scope ref Server server, Uri uri, in ParseDiagnostic a) =>
-	jsonObject(alloc, [
-		field!"range"(jsonOfRange(alloc, server.lineAndColumnGetters[uri], a.range)),
-		field!"severity"(cast(uint) toLspDiagnosticSeverity(getDiagnosticSeverity(Diag(a.kind)))),
-		field!"message"(jsonString(alloc, stringOfParseDiag(alloc, server.allSymbols, server.allUris, a.kind)))]);
 
 enum LspDiagnosticSeverity {
 	Error = 1,
@@ -288,18 +302,18 @@ enum LspDiagnosticSeverity {
 	Hint = 4,
 }
 
-LspDiagnosticSeverity toLspDiagnosticSeverity(DiagSeverity a) {
+LspDiagnosticSeverity toLspDiagnosticSeverity(DiagnosticSeverity a) {
 	final switch (a) {
-		case DiagSeverity.unusedCode:
+		case DiagnosticSeverity.unusedCode:
 			return LspDiagnosticSeverity.Hint;
-		case DiagSeverity.checkWarning:
+		case DiagnosticSeverity.checkWarning:
 			return LspDiagnosticSeverity.Warning;
-		case DiagSeverity.checkError:
-		case DiagSeverity.nameNotFound:
-		case DiagSeverity.circularImport:
-		case DiagSeverity.commonMissing:
-		case DiagSeverity.parseError:
-		case DiagSeverity.fileIssue:
+		case DiagnosticSeverity.checkError:
+		case DiagnosticSeverity.nameNotFound:
+		case DiagnosticSeverity.circularImport:
+		case DiagnosticSeverity.commonMissing:
+		case DiagnosticSeverity.parseError:
+		case DiagnosticSeverity.fileIssue:
 			return LspDiagnosticSeverity.Error;
 	}
 }

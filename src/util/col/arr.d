@@ -97,8 +97,14 @@ ref inout(T[2]) only2(T)(return scope inout T[] a) {
 @trusted T[] arrayOfSingle(T)(T* a) =>
 	a[0 .. 1];
 
+@system T* endPtr(T)(T[] a) =>
+	a.ptr + a.length;
+
+@system bool isPointerInRange(T)(in T[] xs, in T* x) =>
+	xs.ptr <= x && x < endPtr(xs);
+
 @trusted PtrsRange!T ptrsRange(T)(T[] a) =>
-	PtrsRange!T(a.ptr, a.ptr + a.length);
+	PtrsRange!T(a.ptr, endPtr(a));
 
 private struct PtrsRange(T) {
 	T* begin;

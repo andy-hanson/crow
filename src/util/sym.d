@@ -8,6 +8,7 @@ import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : addToMutMap, getAt_mut, MutMap, mutMapSize;
 import util.col.mutMaxArr : clear, MutMaxArr, mutMaxArr, push, pushAll, tempAsArr;
 import util.col.str : copyToSafeCStr, eachChar, SafeCStr, strEq, strOfSafeCStr;
+import util.conv : safeToSizeT;
 import util.hash : Hasher, hashUlong;
 import util.opt : force, has, Opt, none, some;
 import util.util : drop, verify;
@@ -372,7 +373,7 @@ public bool isLongSym(Sym a) =>
 
 @trusted SafeCStr asLongSym(return scope ref const AllSymbols allSymbols, Sym a) {
 	verify(isLongSym(a));
-	return allSymbols.largeStringFromIndex[a.value];
+	return allSymbols.largeStringFromIndex[safeToSizeT(a.value)];
 }
 
 Sym getSymFromLongStr(ref AllSymbols allSymbols, in string str) {

@@ -52,11 +52,6 @@ declare namespace crow {
 		| "type-param"
 		| "var-decl"
 
-	type TokensAndParseDiagnostics = {
-		tokens: ReadonlyArray<Token>
-		parseDiagnostics: ReadonlyArray<Diagnostic>
-	}
-
 	type UriAndDiagnostics = {
 		uri: Uri
 		diagnostics: ReadonlyArray<Diagnostic>
@@ -96,8 +91,9 @@ declare namespace crow {
 		allStorageUris(): ReadonlyArray<Uri>
 		allUnknownUris(): ReadonlyArray<Uri>
 		allLoadingUris(): ReadonlyArray<Uri>
-		getTokensAndParseDiagnostics(uri: Uri): TokensAndParseDiagnostics
-		getAllDiagnostics(): AllDiagnosticsResult
+		getTokens(uri: Uri): ReadonlyArray<Token>
+		getAllDiagnostics(): ReadonlyArray<UriAndDiagnostics>
+		getDiagnosticsForUri(uri: Uri, minSeverity?: number): ReadonlyArray<Diagnostic>
 		getDefinition(where: UriLineAndCharacter): UriAndRange[]
 		getReferences(where: UriLineAndCharacter, roots: ReadonlyArray<Uri>): UriAndRange[]
 		getRename(where: UriLineAndCharacter, roots: ReadonlyArray<Uri>, newName: string): Rename | null

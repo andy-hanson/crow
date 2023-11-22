@@ -332,16 +332,12 @@ ExprAst parseNamedCalls(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argC
 		if (has(assignment)) {
 			final switch (force(assignment)) {
 				case AssignmentKind.inPlace:
-					return ExprAstKind(CallAst(
-						CallAst.Style.infix,
-						funName,
-						prepend!ExprAst(lexer.alloc, lhs, args)));
+					return ExprAstKind(CallAst(CallAst.Style.infix, funName, prepend(lexer.alloc, lhs, args)));
 				case AssignmentKind.replace:
 					return ExprAstKind(allocate(lexer.alloc, AssignmentCallAst(lhs, funName, only(args))));
 			}
 		} else
-			return ExprAstKind(
-				CallAst(CallAst.Style.infix, funName, prepend!ExprAst(lexer.alloc, lhs, args), typeArg));
+			return ExprAstKind(CallAst(CallAst.Style.infix, funName, prepend(lexer.alloc, lhs, args), typeArg));
 	}();
 	ExprAst expr = ExprAst(range(lexer, start), exprKind);
 	return parseCalls(lexer, start, expr, argCtx);

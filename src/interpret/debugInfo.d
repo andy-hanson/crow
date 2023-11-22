@@ -11,6 +11,7 @@ import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.lowModel : LowFunIndex, LowFunSource, LowProgram;
 import util.alloc.alloc : Alloc;
 import util.lineAndColumnGetter : LineAndColumn, LineAndColumnGetters, lineAndColumnAtPos, PosKind;
+import util.col.arr : isPointerInRange;
 import util.col.str : CStr;
 import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
@@ -203,9 +204,6 @@ void writeFunNameAtIndex(ref Writer writer, scope ref InterpreterDebugInfo debug
 		writer ~= "opStopInterpretation";
 }
 
-@system bool ptrInRange(T)(in T[] xs, in T* x) =>
-	xs.ptr <= x && x < (xs.ptr + xs.length);
-
 ByteCodeSource byteCodeSourceAtIndex(in InterpreterDebugInfo a, ByteCodeIndex index) =>
 	a.byteCode.sources[index];
 
@@ -217,7 +215,7 @@ Opt!ByteCodeSource byteCodeSourceAtByteCodePtr(in InterpreterDebugInfo a, in Ope
 }
 
 @trusted Opt!ByteCodeIndex byteCodeIndexOfPtr(in InterpreterDebugInfo a, in Operation* ptr) {
-	if (ptrInRange(operationOpStopInterpretation, ptr))
+	if (isPointerInRange(operationOpStopInterpretation, ptr))
 		return none!ByteCodeIndex;
 	else {
 		size_t index = ptr - a.byteCode.byteCode.ptr;

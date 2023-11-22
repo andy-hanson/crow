@@ -2,7 +2,7 @@ module util.storage;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc, freeT, verifyOwns;
+import util.alloc.alloc : Alloc, freeElements, verifyOwns;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : copyArr, makeArr;
@@ -157,7 +157,7 @@ immutable struct FileContent {
 	private ubyte[] bytes;
 
 	@system void free(ref Alloc alloc) {
-		freeT(alloc, bytes.ptr, bytes.length);
+		freeElements(alloc, bytes);
 	}
 }
 

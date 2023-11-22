@@ -1265,6 +1265,14 @@ bool hasFatalDiagnostics(in Program a) =>
 	existsDiagnostic(a, (in UriAndDiagnostic x) =>
 		isFatal(getDiagnosticSeverity(x.kind)));
 
+// TODO:PERF
+void eachDiagnosticForUri(in Program a, Uri uri, in void delegate(in Diagnostic) @safe @nogc pure nothrow cb) {
+	eachDiagnostic(a, (in UriAndDiagnostic x) {
+		if (x.uri == uri)
+			cb(x.diagnostic);
+	});
+}
+
 // Iterates in no particular order
 void eachDiagnostic(in Program a, in void delegate(in UriAndDiagnostic) @safe @nogc pure nothrow cb) {
 	bool res = existsDiagnostic(a, (in UriAndDiagnostic x) {
