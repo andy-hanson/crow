@@ -2,12 +2,19 @@ module util.col.sortUtil;
 
 @safe @nogc pure nothrow:
 
+import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
-import util.col.arrUtil : everyWithIndex;
+import util.col.arrUtil : everyWithIndex, map;
 import util.comparison : Comparer, Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.memory : overwriteMemory;
 import util.util : verify;
+
+T[] sorted(T)(ref Alloc alloc, in T[] a, in Comparer!T compare) {
+	T[] res = map(alloc, a, (ref T x) => x);
+	sortInPlace!T(res, compare);
+	return res;
+}
 
 //TODO:PERF More efficient than bubble sort..
 void sortInPlace(T)(scope T[] a, in Comparer!T compare) {

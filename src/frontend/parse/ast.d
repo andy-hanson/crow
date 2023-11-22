@@ -3,6 +3,7 @@ module frontend.parse.ast;
 @safe @nogc pure nothrow:
 
 import model.model : AssertOrForbidKind, FunKind, ImportFileType, VarKind;
+import model.parseDiag : ParseDiagnostic;
 import util.col.arr : arrayOfSingle, SmallArray;
 import util.col.arrUtil : exists;
 import util.col.str : SafeCStr;
@@ -822,6 +823,7 @@ immutable struct ImportsOrExportsAst {
 }
 
 immutable struct FileAst {
+	ParseDiagnostic[] diagnostics;
 	SafeCStr docComment;
 	bool noStd;
 	Opt!ImportsOrExportsAst imports;

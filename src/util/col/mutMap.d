@@ -288,7 +288,7 @@ immutable(Map!(K, VOut)) mapToMap(K, VOut, VIn)(
 immutable(V[]) valuesArray(K, V)(ref Alloc alloc, in MutMap!(K, V) a) =>
 	mapToArr_const!(V, K, V)(alloc, a, (immutable(K), ref V v) => v);
 
-void mutMapEach(K, V)(in MutMap!(K, V) a, in void delegate(const K, ref const V) @safe @nogc pure nothrow cb) {
+void mutMapEach(K, V)(ref inout MutMap!(K, V) a, in void delegate(const K, ref inout V) @safe @nogc pure nothrow cb) {
 	foreach (ref const MutOpt!(KeyValuePair!(K, V)) pair; a.pairs)
 		if (has(pair))
 			cb(force(pair).key, force(pair).value);

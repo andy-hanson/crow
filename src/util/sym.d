@@ -446,7 +446,7 @@ immutable string[] specialSyms = [
 	"line-and-column-getter\0",
 	"loop-continue\0",
 	"mutAllocated\0",
-	"parse-diagnostics\0",
+	"parseDiagnostics\0",
 	"pointer-cast-from-extern\0",
 	"pointer-cast-to-extern\0",
 	"pointer-to-field\0",

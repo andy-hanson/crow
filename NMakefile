@@ -85,7 +85,6 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\frontend\parse\parseType.d \
 	src\frontend\parse\parseUtil.d \
 	src\frontend\config.d \
-	src\frontend\diagnosticsBuilder.d \
 	src\frontend\frontendCompile.d \
 	src\frontend\getDiagnosticSeverity.d \
 	src\frontend\lang.d \

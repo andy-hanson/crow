@@ -79,16 +79,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : mapOp;
 import util.json :
-	field,
-	Json,
-	jsonList,
-	jsonObject,
-	jsonString,
-	optionalArrayField,
-	optionalFlagField,
-	optionalField,
-	optionalStringField,
-	kindField;
+	field, Json, jsonList, jsonObject, jsonString, optionalArrayField, optionalFlagField, optionalField, kindField;
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : ptrTrustMe;
@@ -100,7 +91,6 @@ Json jsonOfModule(ref Alloc alloc, in AllUris allUris, in LineAndColumnGetter lc
 	Ctx ctx = Ctx(ptrTrustMe(a), ptrTrustMe(allUris), lcg);
 	return jsonObject(alloc, [
 		field!"uri"(uriToString(alloc, allUris, a.uri)),
-		optionalStringField!"doc"(alloc, a.docComment),
 		optionalArrayField!("imports", ImportOrExport)(alloc, a.imports, (in ImportOrExport x) =>
 			jsonOfImportOrExport(alloc, ctx, x)),
 		optionalArrayField!("re-exports", ImportOrExport)(alloc, a.reExports, (in ImportOrExport x) =>

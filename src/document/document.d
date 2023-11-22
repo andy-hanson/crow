@@ -98,7 +98,7 @@ Json documentModule(
 		compareUriAndRange(allUris, x.range, y.range));
 	return jsonObject(alloc, [
 		field!"uri"(uriToString(alloc, allUris, a.uri)),
-		optionalStringField!"doc"(alloc, a.docComment),
+		optionalStringField!"doc"(alloc, a.ast.docComment),
 		field!"exports"(jsonList!DocExport(alloc, finishArr(alloc, exports), (in DocExport x) => x.json))]);
 }
 

@@ -29,7 +29,7 @@ import util.sym : concatSymsWithDot, Sym, sym;
 import util.uri : AllUris, childPath, Path, RelPath, rootPath;
 import util.util : todo, typeAs;
 
-Opt!ImportsOrExportsAst parseImportsOrExports(ref AllUris allUris, ref Lexer lexer, Token keyword) {
+Opt!ImportsOrExportsAst parseImportsOrExports(scope ref AllUris allUris, ref Lexer lexer, Token keyword) {
 	Pos start = curPos(lexer);
 	if (tryTakeToken(lexer, keyword)) {
 		ImportOrExportAst[] imports = takeIndentOrFailGeneric!(ImportOrExportAst[])(
@@ -43,7 +43,7 @@ Opt!ImportsOrExportsAst parseImportsOrExports(ref AllUris allUris, ref Lexer lex
 
 private:
 
-ImportOrExportAst[] parseImportLines(ref AllUris allUris, ref Lexer lexer) {
+ImportOrExportAst[] parseImportLines(scope ref AllUris allUris, ref Lexer lexer) {
 	ArrBuilder!ImportOrExportAst res;
 	while (true) {
 		add(lexer.alloc, res, parseSingleModuleImportOnOwnLine(allUris, lexer));
@@ -56,7 +56,7 @@ ImportOrExportAst[] parseImportLines(ref AllUris allUris, ref Lexer lexer) {
 	}
 }
 
-PathOrRelPath parseImportPath(ref AllUris allUris, ref Lexer lexer) {
+PathOrRelPath parseImportPath(scope ref AllUris allUris, ref Lexer lexer) {
 	Opt!ushort nParents = () {
 		if (tryTakeToken(lexer, Token.dot)) {
 			takeOrAddDiagExpectedOperator(lexer, sym!"/", ParseDiag.Expected.Kind.slash);
@@ -79,12 +79,12 @@ size_t takeDotDotSlashes(ref Lexer lexer, size_t acc) {
 		return acc;
 }
 
-Path addPathComponents(ref AllUris allUris, ref Lexer lexer, Path acc) =>
+Path addPathComponents(scope ref AllUris allUris, ref Lexer lexer, Path acc) =>
 	tryTakeOperator(lexer, sym!"/")
 		? addPathComponents(allUris, lexer, childPath(allUris, acc, takePathComponent(lexer)))
 		: acc;
 
-ImportOrExportAst parseSingleModuleImportOnOwnLine(ref AllUris allUris, ref Lexer lexer) {
+ImportOrExportAst parseSingleModuleImportOnOwnLine(scope ref AllUris allUris, ref Lexer lexer) {
 	Pos start = curPos(lexer);
 	PathOrRelPath path = parseImportPath(allUris, lexer);
 	ImportOrExportAstKind kind = parseImportOrExportKind(lexer, start);

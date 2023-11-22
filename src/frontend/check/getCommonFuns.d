@@ -5,10 +5,9 @@ module frontend.check.getCommonFuns;
 import frontend.check.funsForStruct : funDeclWithBody;
 import frontend.check.inferringType : typesAreCorrespondingStructInsts;
 import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay;
-import frontend.diagnosticsBuilder : addDiagnostic, DiagnosticsBuilder;
 import frontend.parse.ast : StructDeclAst;
 import frontend.programState : ProgramState;
-import model.diag : Diag;
+import model.diag : Diag, UriAndDiagnostic;
 import model.model :
 	assertNonVariadic,
 	CommonFuns,
@@ -43,10 +42,10 @@ import model.model :
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, sizeEq, small;
+import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrLiteral, arrsCorrespond, filter, findIndex, makeArr, map;
 import util.col.enumMap : EnumMap;
 import util.col.map : Map;
-import util.col.str : safeCStr;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
@@ -74,11 +73,12 @@ private enum CommonModule_ {
 CommonFuns getCommonFuns(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	scope ref DiagnosticsBuilder diagsBuilder,
 	ref CommonTypes commonTypes,
 	Opt!(Module*) mainModule,
 	ref immutable EnumMap!(CommonModule, Opt!(Module*)) modules,
 ) {
+	ArrBuilder!UriAndDiagnostic diagsBuilder;
+
 	ref Module getModule(CommonModule x) {
 		return has(modules[x]) ? *force(modules[x]) : emptyModule;
 	}
@@ -163,6 +163,7 @@ CommonFuns getCommonFuns(
 		voidType,
 		[param!"message"(cStringType)]);
 	return CommonFuns(
+		finishArr(alloc, diagsBuilder),
 		allocFun, funOrActSubscriptFunDecls, curExclusion, main, mark,
 		markVisit, newNat64Future, rtMain, staticSymbols, throwImpl);
 }
@@ -180,7 +181,7 @@ ParamShort param(string name)(Type type) =>
 private:
 
 immutable Module emptyModule =
-	Module(Uri.empty, safeCStr!"", [], [], [], [], [], [], [], Map!(Sym, NameReferents)());
+	Module(Uri.empty, null, [], [], [], [], [], [], [], [], Map!(Sym, NameReferents)());
 
 immutable TypeParam[1] singleTypeParam = [
 	TypeParam(UriAndRange.empty, sym!"t", 0),
@@ -218,7 +219,7 @@ FunKind firstArgFunKind(in CommonTypes commonTypes, FunDecl* f) {
 Type getNonTemplateType(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	scope ref DiagnosticsBuilder diagsBuilder,
+	scope ref ArrBuilder!UriAndDiagnostic diagsBuilder,
 	ref Module module_,
 	Sym name,
 ) {
@@ -230,7 +231,7 @@ Type getNonTemplateType(
 
 StructDecl* getStructDeclOrAddDiag(
 	ref Alloc alloc,
-	scope ref DiagnosticsBuilder diagsBuilder,
+	scope ref ArrBuilder!UriAndDiagnostic diagsBuilder,
 	ref Module module_,
 	Sym name,
 	size_t nTypeParams,
@@ -239,7 +240,9 @@ StructDecl* getStructDeclOrAddDiag(
 	if (has(res) && force(res).typeParams.length == nTypeParams)
 		return force(res);
 	else {
-		addDiagnostic(diagsBuilder, UriAndRange(module_.uri, Range.empty), Diag(Diag.CommonTypeMissing(name)));
+		add(alloc, diagsBuilder, UriAndDiagnostic(
+			UriAndRange(module_.uri, Range.empty),
+			Diag(Diag.CommonTypeMissing(name))));
 		return allocate(alloc, StructDecl(
 			none!(StructDeclAst*),
 			module_.uri,
@@ -289,7 +292,7 @@ bool typesMatch(in Type a, in TypeParam[] typeParamsA, in Type b, in TypeParam[]
 
 FunDecl* getFunDecl(
 	ref Alloc alloc,
-	scope ref DiagnosticsBuilder diagsBuilder,
+	scope ref ArrBuilder!UriAndDiagnostic diagsBuilder,
 	ref Module module_,
 	Sym name,
 	in TypeParamsAndSig expectedSig,
@@ -299,7 +302,7 @@ FunDecl* getFunDecl(
 MainFun getMainFun(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	scope ref DiagnosticsBuilder diagsBuilder,
+	scope ref ArrBuilder!UriAndDiagnostic diagsBuilder,
 	ref Module mainModule,
 	Type nat64FutureType,
 	Type stringListType,
@@ -325,7 +328,7 @@ immutable struct FunDeclAndSigIndex {
 
 FunDeclAndSigIndex getFunDeclMulti(
 	ref Alloc alloc,
-	scope ref DiagnosticsBuilder diagsBuilder,
+	scope ref ArrBuilder!UriAndDiagnostic diagsBuilder,
 	ref Module module_,
 	Sym name,
 	in TypeParamsAndSig[] expectedSigs,
@@ -336,7 +339,7 @@ FunDeclAndSigIndex getFunDeclMulti(
 			signatureMatchesTemplate(*x, sig));
 		if (has(index)) {
 			if (lateIsSet(res))
-				addDiagnostic(diagsBuilder, range(*x), Diag(Diag.CommonFunDuplicate(name)));
+				add(alloc, diagsBuilder, UriAndDiagnostic(range(*x), Diag(Diag.CommonFunDuplicate(name))));
 			else
 				lateSet(res, FunDeclAndSigIndex(x, force(index)));
 		}
@@ -344,14 +347,13 @@ FunDeclAndSigIndex getFunDeclMulti(
 	if (lateIsSet(res))
 		return lateGet(res);
 	else {
-		addDiagnostic(
-			diagsBuilder,
+		add(alloc, diagsBuilder, UriAndDiagnostic(
 			UriAndRange(module_.uri, Range.empty),
 			Diag(Diag.CommonFunMissing(name, map(alloc, expectedSigs, (ref TypeParamsAndSig sig) =>
 				TypeParamsAndSig(
 					arrLiteral(alloc, sig.typeParams),
 					sig.returnType,
-					arrLiteral(alloc, sig.params))))));
+					arrLiteral(alloc, sig.params)))))));
 		FunDecl* decl = allocate(alloc, funDeclWithBody(
 			FunDeclSource(FunDeclSource.Bogus(module_.uri)),
 			Visibility.public_,

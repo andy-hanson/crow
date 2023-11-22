@@ -21,6 +21,8 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagSeverity.checkError,
 		(in Diag.CharLiteralMustBeOneChar) =>
 			DiagSeverity.checkError,
+		(in Diag.CircularImport) =>
+			DiagSeverity.circularImport,
 		(in Diag.CommonFunDuplicate) =>
 			DiagSeverity.checkError,
 		(in Diag.CommonFunMissing) =>
@@ -53,14 +55,14 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagSeverity.checkError,
 		(in Diag.ExternUnion) =>
 			DiagSeverity.checkError,
-		(in Diag.FileIssue) =>
-			DiagSeverity.fileIssue,
 		(in Diag.FunMissingBody) =>
 			DiagSeverity.checkError,
 		(in FunModifierTrustedOnNonExtern) =>
 			DiagSeverity.checkError,
 		(in Diag.IfNeedsOpt) =>
 			DiagSeverity.checkError,
+		(in Diag.ImportFileIssue) =>
+			DiagSeverity.fileIssue,
 		(in Diag.ImportRefersToNothing) =>
 			DiagSeverity.nameNotFound,
 		(in Diag.LambdaCantInferParamType) =>

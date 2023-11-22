@@ -4,6 +4,7 @@ import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
 import frontend.ide.getRename : jsonOfRename, Rename;
 import frontend.ide.getReferences : jsonOfReferences;
 import frontend.ide.getTokens : jsonOfTokens;
+import frontend.showDiag : sortedDiagnostics, stringOfParseDiag, UriAndDiagnostics;
 import frontend.showModel : ShowOptions;
 import interpret.fakeExtern : Pipe;
 import lib.server :
@@ -29,12 +30,12 @@ import lib.server :
 	toUri,
 	typeCheckAllKnownFiles,
 	version_;
-import model.diag : Diagnostic, DiagSeverity;
+import model.diag : Diag, Diagnostic, DiagSeverity;
 import model.model : Program;
+import model.parseDiag : ParseDiagnostic;
 import util.alloc.alloc : Alloc, allocateT;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : map;
-import util.col.multiMap : groupBy, MultiMap, multiMapEach;
 import util.col.str : CStr, eachSplit, SafeCStr, strOfSafeCStr;
 import util.exitCode : ExitCode;
 import util.json : field, jsonObject, Json, jsonToString, jsonList, jsonString;
@@ -147,7 +148,8 @@ CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 		TokensAndParseDiagnostics res = getTokensAndParseDiagnostics(resultAlloc, perf, *server, uri);
 		return jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
 			field!"tokens"(jsonOfTokens(resultAlloc, server.lineAndColumnGetters[uri], res.tokens)),
-			field!"parse-diagnostics"(jsonOfDiagnostics(resultAlloc, *server, res.programForDiagnostics))])).ptr;
+			field!"parseDiagnostics"(jsonList!ParseDiagnostic(resultAlloc, res.diagnostics, (in ParseDiagnostic x) =>
+				jsonOfParseDiagnostic(resultAlloc, *server, uri, x)))])).ptr;
 	});
 }
 
@@ -260,26 +262,24 @@ private:
 
 pure:
 
-Json jsonOfDiagnostics(ref Alloc alloc, ref Server server, in Program program) {
-	MultiMap!(Uri, Diagnostic) grouped =
-		groupBy!(Uri, Diagnostic)(alloc, program.diagnostics.diags, (in Diagnostic x) =>
-			x.where.uri);
+Json jsonOfDiagnostics(ref Alloc alloc, ref Server server, in Program program) =>
+	jsonList!UriAndDiagnostics(alloc, sortedDiagnostics(alloc, server.allUris, program), (in UriAndDiagnostics diags) =>
+		jsonObject(alloc, [
+			field!"uri"(uriToString(alloc, server.allUris, diags.uri)),
+			field!"diagnostics"(jsonList!Diagnostic(alloc, diags.diagnostics, (in Diagnostic x) =>
+				jsonOfDiagnostic(alloc, server, program, diags.uri, x)))]));
 
-	ArrBuilder!Json res;
-	multiMapEach!(Uri, Diagnostic)(grouped, (Uri uri, in Diagnostic[] diags) {
-		add(alloc, res, jsonObject(alloc, [
-			field!"uri"(uriToString(alloc, server.allUris, uri)),
-			field!"diagnostics"(jsonList!Diagnostic(alloc, diags, (in Diagnostic x) =>
-				jsonOfDiagnostic(alloc, server, program, x)))]));
-	});
-	return jsonList(finishArr(alloc, res));
-}
-
-Json jsonOfDiagnostic(ref Alloc alloc, ref Server server, in Program program, in Diagnostic a) =>
+Json jsonOfDiagnostic(ref Alloc alloc, scope ref Server server, in Program program, Uri uri, in Diagnostic a) =>
 	jsonObject(alloc, [
-		field!"range"(jsonOfRange(alloc, server.lineAndColumnGetters, a.where)),
-		field!"severity"(cast(uint) toLspDiagnosticSeverity(getDiagnosticSeverity(a.diag))),
-		field!"message"(jsonString(alloc, showDiag(alloc, server, program, a.diag)))]);
+		field!"range"(jsonOfRange(alloc, server.lineAndColumnGetters[uri], a.range)),
+		field!"severity"(cast(uint) toLspDiagnosticSeverity(getDiagnosticSeverity(a.kind))),
+		field!"message"(jsonString(alloc, showDiag(alloc, server, program, a.kind)))]);
+
+Json jsonOfParseDiagnostic(ref Alloc alloc, scope ref Server server, Uri uri, in ParseDiagnostic a) =>
+	jsonObject(alloc, [
+		field!"range"(jsonOfRange(alloc, server.lineAndColumnGetters[uri], a.range)),
+		field!"severity"(cast(uint) toLspDiagnosticSeverity(getDiagnosticSeverity(Diag(a.kind)))),
+		field!"message"(jsonString(alloc, stringOfParseDiag(alloc, server.allSymbols, server.allUris, a.kind)))]);
 
 enum LspDiagnosticSeverity {
 	Error = 1,
@@ -296,6 +296,7 @@ LspDiagnosticSeverity toLspDiagnosticSeverity(DiagSeverity a) {
 			return LspDiagnosticSeverity.Warning;
 		case DiagSeverity.checkError:
 		case DiagSeverity.nameNotFound:
+		case DiagSeverity.circularImport:
 		case DiagSeverity.commonMissing:
 		case DiagSeverity.parseError:
 		case DiagSeverity.fileIssue:

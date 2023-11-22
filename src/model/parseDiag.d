@@ -3,16 +3,19 @@ module model.parseDiag;
 @safe @nogc pure nothrow:
 
 import frontend.parse.lexer : Token;
+import util.sourceRange : Range;
+import util.storage : ReadFileIssue;
 import util.sym : Sym;
 import util.union_ : Union;
-import util.uri : Uri, RelPath;
+import util.uri : RelPath;
+
+immutable struct ParseDiagnostic {
+	Range range;
+	ParseDiag kind;
+}
 
 immutable struct ParseDiag {
 	@safe @nogc pure nothrow:
-	immutable struct CircularImport {
-		Uri from;
-		Uri to;
-	}
 	immutable struct Expected {
 		enum Kind {
 			afterMut,
@@ -94,7 +97,6 @@ immutable struct ParseDiag {
 	immutable struct WhenMustHaveElse {}
 
 	mixin Union!(
-		CircularImport,
 		Expected,
 		FunctionTypeMissingParens,
 		ImportFileTypeNotSupported,
@@ -104,6 +106,7 @@ immutable struct ParseDiag {
 		InvalidName,
 		InvalidStringEscape,
 		NeedsBlockCtx,
+		ReadFileIssue,
 		RelativeImportReachesPastRoot,
 		TrailingComma,
 		UnexpectedCharacter,

@@ -3,9 +3,8 @@ module frontend.check.checkCtx;
 @safe @nogc pure nothrow:
 
 import frontend.parse.ast : pathRange;
-import frontend.diagnosticsBuilder : addDiagnostic, DiagnosticsBuilder;
 import frontend.programState : ProgramState;
-import model.diag : Diag;
+import model.diag : Diag, Diagnostic;
 import model.model :
 	FunDecl,
 	ImportOrExport,
@@ -21,6 +20,7 @@ import model.model :
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.arr : ptrsRange;
+import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : contains, exists;
 import util.col.map : existsInMap;
 import util.col.mutMap : hasKey_mut, MutMap, setInMap;
@@ -29,6 +29,7 @@ import util.perf : Perf;
 import util.sourceRange : Range, UriAndRange;
 import util.sym : AllSymbols, Sym;
 import util.uri : AllUris, Uri;
+import util.util : verify;
 
 struct CheckCtx {
 	@safe @nogc pure nothrow:
@@ -42,7 +43,7 @@ struct CheckCtx {
 	const AllUris* allUrisPtr;
 	public immutable Uri curUri;
 	public ImportsAndReExports importsAndReExports;
-	DiagnosticsBuilder* diagsBuilderPtr;
+	ArrBuilder!Diagnostic* diagnosticsBuilder;
 	UsedSet used;
 
 	public:
@@ -61,9 +62,6 @@ struct CheckCtx {
 
 	@trusted ref ProgramState programState() return scope =>
 		*programStatePtr;
-
-	ref DiagnosticsBuilder diagsBuilder() return scope =>
-		*diagsBuilderPtr;
 }
 
 private struct UsedSet {
@@ -166,11 +164,14 @@ void eachImportAndReExport(
 UriAndRange rangeInFile(in CheckCtx ctx, in Range range) =>
 	UriAndRange(ctx.curUri, range);
 
-void addDiag(ref CheckCtx ctx, UriAndRange range, Diag diag) {
-	addDiagnostic(ctx.diagsBuilder, range, diag);
+void addDiag(ref CheckCtx ctx, in UriAndRange range, Diag diag) {
+	verify(range.uri == ctx.curUri);
+	addDiag(ctx, range.range, diag);
 }
 
 void addDiag(ref CheckCtx ctx, in Range range, Diag diag) {
-	addDiag(ctx, UriAndRange(ctx.curUri, range), diag);
+	add(ctx.alloc, *ctx.diagnosticsBuilder, Diagnostic(range, diag));
 }
 
+Diagnostic[] finishDiagnostics(ref CheckCtx ctx) =>
+	finishArr(ctx.alloc, *ctx.diagnosticsBuilder);

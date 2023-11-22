@@ -2,7 +2,6 @@ module test.testTokens;
 
 @safe @nogc pure nothrow:
 
-import frontend.diagnosticsBuilder : DiagnosticsBuilder, DiagnosticsBuilderForFile;
 import frontend.ide.getTokens : jsonOfTokens, Token, tokensOfAst;
 import frontend.parse.ast : FileAst;
 import frontend.parse.jsonOfAst : jsonOfAst;
@@ -14,7 +13,6 @@ import util.json : writeJson;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForText;
 import util.perf : Perf, withNullPerf;
 import util.sourceRange : Range;
-import util.uri : parseUri;
 import util.util : verifyFail;
 import util.writer : debugLogWithWriter, Writer;
 
@@ -45,12 +43,9 @@ void testTokens(ref Test test) {
 private:
 
 void testOne(ref Test test, SafeCStr source, Token[] expectedTokens) {
-	DiagnosticsBuilder diags = DiagnosticsBuilder(test.allocPtr);
-	DiagnosticsBuilderForFile diagsForFile = DiagnosticsBuilderForFile(
-		&diags, parseUri(test.allUris, "magic:test.crow"));
-	FileAst ast = withNullPerf!(FileAst, (scope ref Perf perf) =>
-		parseFile(test.alloc, perf, test.allSymbols, test.allUris, diagsForFile, source));
-	Token[] tokens = tokensOfAst(test.alloc, test.allSymbols, test.allUris, ast);
+	FileAst* ast = withNullPerf!(FileAst*, (scope ref Perf perf) =>
+		parseFile(test.alloc, perf, test.allSymbols, test.allUris, source));
+	Token[] tokens = tokensOfAst(test.alloc, test.allSymbols, test.allUris, *ast);
 	if (!arrEqual(tokens, expectedTokens)) {
 		debugLogWithWriter((ref Writer writer) {
 			LineAndColumnGetter lcg = lineAndColumnGetterForText(test.alloc, source);
@@ -60,7 +55,7 @@ void testOne(ref Test test, SafeCStr source, Token[] expectedTokens) {
 			writeJson(writer, test.allSymbols, jsonOfTokens(test.alloc, lcg, tokens));
 
 			writer ~= "\n\n(hint: ast is:)\n";
-			writeJson(writer, test.allSymbols, jsonOfAst(test.alloc, test.allUris, lcg, ast));
+			writeJson(writer, test.allSymbols, jsonOfAst(test.alloc, test.allUris, lcg, *ast));
 		});
 		verifyFail();
 	}

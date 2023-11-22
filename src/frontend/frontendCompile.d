@@ -2,15 +2,13 @@ module frontend.frontendCompile;
 
 @safe @nogc pure nothrow:
 
-import model.diag : Diag, Diagnostics;
+import model.diag : Diag, Diagnostic;
 import model.model :
 	CommonFuns, CommonTypes, Config, emptyModule, ImportFileType, ImportOrExport, ImportOrExportKind, Module, Program;
-import model.parseDiag : ParseDiag;
+import model.parseDiag : ParseDiag, ParseDiagnostic;
 import frontend.check.check : BootstrapCheck, check, checkBootstrap, FileAndAst, ImportOrExportFile, ImportsAndExports;
 import frontend.check.getCommonFuns : CommonModule, getCommonFuns;
 import frontend.config : getConfig;
-import frontend.diagnosticsBuilder :
-	addDiagnostic, addDiagnosticForFile, DiagnosticsBuilder, DiagnosticsBuilderForFile, finishDiagnostics;
 import frontend.lang : crowExtension;
 import frontend.parse.ast :
 	FileAst, ImportOrExportAst, ImportOrExportAstKind, ImportsOrExportsAst, NameAndRange, pathRange;
@@ -19,18 +17,18 @@ import frontend.programState : ProgramState;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : contains, map, mapOp, mapOrNone, mapPointers, prepend;
+import util.col.arrUtil : arrLiteral, contains, map, mapOp, mapOrNone, mapPointers, prepend;
 import util.col.map : Map;
 import util.col.enumMap : EnumMap, enumMapEach, enumMapMapValues;
 import util.col.mutMaxArr : isEmpty, mustPeek, mustPop, MutMaxArr, mutMaxArr, push;
 import util.col.mutMap : addToMutMap, getAt_mut, hasKey_mut, moveToMap, MutMap, setInMap;
+import util.col.str : safeCStr;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : ptrTrustMe;
-import util.storage : asSafeCStr, emptyFileContent, FileContent, ReadFileIssue, ReadFileResult, Storage, withFile;
-import util.sourceRange : Range, UriAndRange;
+import util.storage : asSafeCStr, FileContent, ReadFileIssue, ReadFileResult, Storage, withFile;
+import util.sourceRange : Range;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.uri :
@@ -47,7 +45,7 @@ import util.uri :
 	PathFirstAndRest,
 	RelPath,
 	resolveUri;
-import util.util : todo, verify;
+import util.util : verify;
 
 Program frontendCompile(
 	ref Alloc modelAlloc,
@@ -60,15 +58,13 @@ Program frontendCompile(
 	in Uri[] rootUris,
 	in Opt!Uri mainUri,
 ) {
-	DiagnosticsBuilder diagsBuilder = DiagnosticsBuilder(&modelAlloc);
-	Config config = getConfig(modelAlloc, allSymbols, allUris, includeDir, storage, diagsBuilder, rootUris);
+	Config config = getConfig(modelAlloc, allSymbols, allUris, includeDir, storage, rootUris);
 	EnumMap!(CommonModule, Uri) commonUris = commonUris(allUris, config.crowIncludeDir);
 	AstAndResolvedImports[] parsed = withMeasure!(AstAndResolvedImports[], () => parseEverything(
-		modelAlloc, astsAlloc, perf, allSymbols, allUris, diagsBuilder, storage, rootUris, mainUri, commonUris, config)
+		modelAlloc, astsAlloc, perf, allSymbols, allUris, storage, rootUris, mainUri, commonUris, config)
 	)(astsAlloc, perf, PerfMeasure.parseEverything);
 	return withMeasure!(Program, () =>
-		checkEverything(
-			modelAlloc, perf, allSymbols, allUris, diagsBuilder, config, parsed, rootUris, mainUri, commonUris)
+		checkEverything(modelAlloc, perf, allSymbols, allUris, config, parsed, rootUris, mainUri, commonUris)
 	)(modelAlloc, perf, PerfMeasure.checkEverything);
 }
 
@@ -82,19 +78,13 @@ void parseAllFiles(
 	in Uri includeDir,
 	in Uri[] rootUris,
 ) {
-	DiagnosticsBuilder diagsBuilder = DiagnosticsBuilder(&alloc); // Diagnostics will be ignored
-	Config config = getConfig(alloc, allSymbols, allUris, includeDir, storage, diagsBuilder, rootUris);
+	Config config = getConfig(alloc, allSymbols, allUris, includeDir, storage, rootUris);
 	cast(void) parseEverything(
-		alloc, alloc, perf, allSymbols, allUris, diagsBuilder, storage,
+		alloc, alloc, perf, allSymbols, allUris, storage,
 		rootUris, none!Uri, commonUris(allUris, config.crowIncludeDir), config);
 }
 
-immutable struct FileAstAndDiagnostics {
-	FileAst ast;
-	Diagnostics diagnostics;
-}
-
-FileAstAndDiagnostics parseSingleAst(
+FileAst* parseSingleAst(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
@@ -102,19 +92,17 @@ FileAstAndDiagnostics parseSingleAst(
 	scope ref Storage storage,
 	Uri uri,
 ) =>
-	// In this case model alloc and AST alloc are the same
-	withFile!FileAstAndDiagnostics(storage, uri, (in ReadFileResult x) =>
-		x.matchIn!FileAstAndDiagnostics(
-			(in FileContent content) {
-				DiagnosticsBuilder diagsBuilder = DiagnosticsBuilder(&alloc);
-				DiagnosticsBuilderForFile diags = DiagnosticsBuilderForFile(&diagsBuilder, uri);
-				FileAst ast = parseFile(alloc, perf, allSymbols, allUris, diags, content.asSafeCStr());
-				return FileAstAndDiagnostics(ast, finishDiagnostics(diagsBuilder, allUris));
-			},
+	withFile!(FileAst*)(storage, uri, (in ReadFileResult x) =>
+		x.matchIn!(FileAst*)(
+			(in FileContent content) =>
+				parseFile(alloc, perf, allSymbols, allUris, content.asSafeCStr()),
 			(in ReadFileIssue issue) =>
-				todo!FileAstAndDiagnostics("parseSingleAst with file issue")));
+				astForIssue(alloc, issue)));
 
 private:
+
+FileAst* astForIssue(ref Alloc alloc, ReadFileIssue issue) =>
+	fileAstForDiags(alloc, arrLiteral(alloc, [ParseDiagnostic(Range.empty, ParseDiag(issue))]));
 
 immutable struct ParseStatus {
 	immutable struct Started {}
@@ -126,7 +114,7 @@ alias UriToStatus = MutMap!(Uri, ParseStatus);
 
 struct ParseStackEntry {
 	immutable Uri uri;
-	immutable FileAst ast;
+	immutable FileAst* ast;
 	immutable ResolvedImportsAndExports importsAndExports;
 }
 
@@ -138,7 +126,6 @@ AstAndResolvedImports[] parseEverything(
 	scope ref Perf perf,
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
-	scope ref DiagnosticsBuilder diags,
 	scope ref Storage storage,
 	in Uri[] rootUris,
 	in Opt!Uri mainUri,
@@ -161,7 +148,7 @@ AstAndResolvedImports[] parseEverything(
 		return mapOrNone!(FullyResolvedImport, ResolvedImport)(
 			modelAlloc, importsOrExports, (ref ResolvedImport import_) =>
 				fullyResolveImport(
-					modelAlloc, astAlloc, perf, allSymbols, allUris, storage, diags, config,
+					astAlloc, perf, allSymbols, allUris, storage, config,
 					statuses, stack, fromUri, import_));
 	}
 
@@ -184,7 +171,7 @@ AstAndResolvedImports[] parseEverything(
 
 	void processRootUri(Uri uri) {
 		if (!hasKey_mut(statuses, uri)) {
-			parseAndPush(modelAlloc, astAlloc, perf, allSymbols, allUris, storage, diags, config, statuses, stack, uri);
+			parseAndPush(astAlloc, perf, allSymbols, allUris, storage, config, statuses, stack, uri);
 			process();
 		}
 	}
@@ -218,13 +205,11 @@ immutable(EnumMap!(CommonModule, Uri)) commonUris(ref AllUris allUris, Uri inclu
 }
 
 void parseAndPush(
-	ref Alloc modelAlloc,
-	ref Alloc astAlloc,
+	ref Alloc alloc,
 	scope ref Perf perf,
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
 	scope ref Storage storage,
-	scope ref DiagnosticsBuilder diags,
 	in Config config,
 	scope ref UriToStatus statuses,
 	ref ParseStack stack,
@@ -233,54 +218,49 @@ void parseAndPush(
 	withFile!void(storage, uri, (in ReadFileResult x) {
 		ParseStatus status = x.match!ParseStatus(
 			(FileContent x) {
-				DiagnosticsBuilderForFile fileDiags = DiagnosticsBuilderForFile(ptrTrustMe(diags), uri);
-				FileAst ast = parseFile(astAlloc, perf, allSymbols, allUris, fileDiags, x.asSafeCStr());
-				ResolvedImportsAndExports importsAndExports = resolveImportsAndExports(
-					modelAlloc, astAlloc, allUris, fileDiags, config, uri, ast.imports, ast.exports);
-				push(stack, ParseStackEntry(uri, ast, importsAndExports));
+				FileAst* ast = parseFile(alloc, perf, allSymbols, allUris, x.asSafeCStr());
+				push(stack, ParseStackEntry(uri, ast, resolveImportsAndExports(
+					alloc, allUris, config, uri, ast.imports, ast.exports)));
 				return ParseStatus(ParseStatus.Started());
 			},
 			(ReadFileIssue issue) {
-				addDiagnostic(diags, UriAndRange(uri, Range.empty), Diag(Diag.FileIssue(uri, issue)));
+				push(stack, ParseStackEntry(uri, astForIssue(alloc, issue), ResolvedImportsAndExports()));
 				return ParseStatus(issue);
 			});
-		addToMutMap(astAlloc, statuses, uri, status);
+		addToMutMap(alloc, statuses, uri, status);
 	});
 }
 
 // returns none if we can't resolve all imported modules yet
 Opt!FullyResolvedImport fullyResolveImport(
-	ref Alloc modelAlloc,
-	ref Alloc astAlloc,
+	ref Alloc alloc,
 	scope ref Perf perf,
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
 	scope ref Storage storage,
-	scope ref DiagnosticsBuilder diags,
 	in Config config,
 	ref UriToStatus statuses,
 	ref ParseStack stack,
 	Uri fromUri,
 	ResolvedImport import_,
 ) {
-	Opt!FullyResolvedImportKind kind = has(import_.resolvedUri)
-		? fullyResolveImportKind(
-			modelAlloc, astAlloc, perf, allSymbols, allUris, storage, diags, config, statuses, stack, fromUri,
-			import_, force(import_.resolvedUri))
-		: some(FullyResolvedImportKind(FullyResolvedImportKind.Failed()));
+	Opt!FullyResolvedImportKind kind = import_.resolvedUri.matchIn!(Opt!FullyResolvedImportKind)(
+		(in Uri uri) =>
+			fullyResolveImportKind(
+				alloc, perf, allSymbols, allUris, storage, config, statuses, stack, fromUri, import_, uri),
+		(in Diagnostic diag) =>
+			some(FullyResolvedImportKind(diag)));
 	return has(kind)
 		? some(FullyResolvedImport(some(import_.ast), force(kind)))
 		: none!FullyResolvedImport;
 }
 
 Opt!FullyResolvedImportKind fullyResolveImportKind(
-	ref Alloc modelAlloc,
-	ref Alloc astAlloc,
+	ref Alloc alloc,
 	scope ref Perf perf,
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
 	scope ref Storage storage,
-	scope ref DiagnosticsBuilder diags,
 	in Config config,
 	scope ref UriToStatus statuses,
 	ref ParseStack stack,
@@ -291,50 +271,41 @@ Opt!FullyResolvedImportKind fullyResolveImportKind(
 	import_.ast.kind.matchIn!(Opt!FullyResolvedImportKind)(
 		(in ImportOrExportAstKind.ModuleWhole) =>
 			fullyResolveImportModule(
-				modelAlloc, astAlloc, perf, allSymbols, allUris, storage, diags, config, statuses, stack, fromUri,
+				alloc, perf, allSymbols, allUris, storage, config, statuses, stack, fromUri,
 				*import_.ast, resolvedUri,
 				(Uri uri) =>
 					FullyResolvedImportKind(FullyResolvedImportKind.ModuleWhole(uri))),
 		(in NameAndRange[] names) =>
 			fullyResolveImportModule(
-				modelAlloc, astAlloc, perf, allSymbols, allUris, storage, diags, config, statuses, stack, fromUri,
+				alloc, perf, allSymbols, allUris, storage, config, statuses, stack, fromUri,
 				*import_.ast, resolvedUri,
 				(Uri uri) =>
 					FullyResolvedImportKind(FullyResolvedImportKind.ModuleNamed(
 						uri,
-						map(modelAlloc, names, (ref NameAndRange name) => name.name)))),
-		(in ImportOrExportAstKind.File f) =>
-			some(FullyResolvedImportKind(FullyResolvedImportKind.File(
-				f.name.name,
-				f.type,
-				readFileContent(modelAlloc, allUris, storage, diags, fromUri, *import_.ast, resolvedUri)))));
+						map(alloc, names, (ref NameAndRange name) => name.name)))),
+		(in ImportOrExportAstKind.File x) =>
+			some(readFileContent(allUris, storage, *import_.ast, x, resolvedUri)));
 
-FileContent readFileContent(
-	ref Alloc modelAlloc,
+FullyResolvedImportKind readFileContent(
 	in AllUris allUris,
 	scope ref Storage storage,
-	scope ref DiagnosticsBuilder diags,
-	Uri fromUri,
 	in ImportOrExportAst ast,
+	in ImportOrExportAstKind.File astKind,
 	Uri uri,
 ) =>
-	withFile!FileContent(storage, uri, (in ReadFileResult x) =>
-		x.matchIn!FileContent(
-			(in FileContent content) =>
-				content,
-			(in ReadFileIssue issue) {
-				addDiagnostic(diags, importDiagRange(allUris, fromUri, ast), Diag(Diag.FileIssue(uri, issue)));
-				return emptyFileContent(modelAlloc);
-			}));
+	withFile!FullyResolvedImportKind(storage, uri, (in ReadFileResult x) =>
+		x.matchIn!FullyResolvedImportKind(
+			(in FileContent x) =>
+				FullyResolvedImportKind(FullyResolvedImportKind.File(astKind.name.name, astKind.type, x)),
+			(in ReadFileIssue x) =>
+				FullyResolvedImportKind(Diagnostic(pathRange(allUris, ast), Diag(Diag.ImportFileIssue(uri, x))))));
 
 Opt!FullyResolvedImportKind fullyResolveImportModule(
-	ref Alloc modelAlloc,
-	ref Alloc astAlloc,
+	ref Alloc alloc,
 	scope ref Perf perf,
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
 	scope ref Storage storage,
-	scope ref DiagnosticsBuilder diags,
 	in Config config,
 	scope ref UriToStatus statuses,
 	ref ParseStack stack,
@@ -346,42 +317,32 @@ Opt!FullyResolvedImportKind fullyResolveImportModule(
 	Opt!ParseStatus status = getAt_mut!(Uri, ParseStatus)(statuses, importUri);
 	if (has(status))
 		return some(force(status).match!FullyResolvedImportKind(
-			(ParseStatus.Started) {
-				addDiagnostic(diags, importDiagRange(allUris, fromUri, ast), Diag(
-					ParseDiag(ParseDiag.CircularImport(fromUri, importUri))));
-				return FullyResolvedImportKind(FullyResolvedImportKind.Failed());
-			},
+			(ParseStatus.Started) =>
+				FullyResolvedImportKind(Diagnostic(pathRange(allUris, ast), Diag(Diag.CircularImport(importUri)))),
 			(ParseStatus.Done x) =>
 				getSuccessKind(importUri),
-			(ReadFileIssue issue) {
-				addDiagnostic(diags, importDiagRange(allUris, fromUri, ast), Diag(Diag.FileIssue(importUri, issue)));
-				return FullyResolvedImportKind(FullyResolvedImportKind.Failed());
-			}));
+			(ReadFileIssue issue) =>
+				FullyResolvedImportKind(Diagnostic(
+					pathRange(allUris, ast),
+					Diag(Diag.ImportFileIssue(importUri, issue))))));
 	else {
-		parseAndPush(
-			modelAlloc, astAlloc, perf, allSymbols, allUris, storage, diags, config, statuses, stack, importUri);
+		parseAndPush(alloc, perf, allSymbols, allUris, storage, config, statuses, stack, importUri);
 		return none!FullyResolvedImportKind;
 	}
 }
 
-UriAndRange importDiagRange(in AllUris allUris, Uri uri, in ImportOrExportAst ast) =>
-	UriAndRange(uri, pathRange(allUris, ast));
-
 immutable struct ResolvedImport {
 	ImportOrExportAst* ast;
-	Opt!Uri resolvedUri;
+	ResolvedUriOrDiag resolvedUri;
 }
 
-ResolvedImport tryResolveImport(
-	ref Alloc modelAlloc,
-	scope ref AllUris allUris,
-	scope ref DiagnosticsBuilderForFile diags,
-	in Config config,
-	Uri fromUri,
-	ImportOrExportAst* ast,
-) {
+immutable struct ResolvedUriOrDiag {
+	mixin Union!(Uri, Diagnostic);
+}
+
+ResolvedImport tryResolveImport(scope ref AllUris allUris, in Config config, Uri fromUri, ImportOrExportAst* ast) {
 	ResolvedImport resolved(Uri uri) =>
-		ResolvedImport(ast, some(addExtensionIfNone!crowExtension(allUris, uri)));
+		ResolvedImport(ast, ResolvedUriOrDiag(addExtensionIfNone!crowExtension(allUris, uri)));
 	return ast.path.match!ResolvedImport(
 		(Path global) {
 			PathFirstAndRest fr = firstAndRest(allUris, global);
@@ -392,13 +353,10 @@ ResolvedImport tryResolveImport(
 		},
 		(RelPath relPath) {
 			Opt!Uri rel = resolveUri(allUris, parentOrEmpty(allUris, fromUri), relPath);
-			if (has(rel))
-				return resolved(force(rel));
-			else {
-				addDiagnosticForFile(diags, pathRange(allUris, *ast), Diag(
-					ParseDiag(ParseDiag.RelativeImportReachesPastRoot(relPath))));
-				return ResolvedImport(ast, none!Uri);
-			}
+			return has(rel)
+				? resolved(force(rel))
+				: ResolvedImport(ast, ResolvedUriOrDiag(Diagnostic(pathRange(allUris, *ast), Diag(
+					ParseDiag(ParseDiag.RelativeImportReachesPastRoot(relPath))))));
 		});
 }
 
@@ -408,36 +366,30 @@ immutable struct ResolvedImportsAndExports {
 }
 
 ResolvedImport[] resolveImportOrExportUris(
-	ref Alloc modelAlloc,
-	ref Alloc astAlloc,
+	ref Alloc alloc,
 	scope ref AllUris allUris,
-	scope ref DiagnosticsBuilderForFile diagnosticsBuilder,
 	in Config config,
 	Uri fromUri,
 	in Opt!ImportsOrExportsAst importsOrExports,
 ) =>
-	mapPointers(astAlloc, has(importsOrExports) ? force(importsOrExports).paths : [], (ImportOrExportAst* i) =>
-		tryResolveImport(modelAlloc, allUris, diagnosticsBuilder, config, fromUri, i));
+	mapPointers(alloc, has(importsOrExports) ? force(importsOrExports).paths : [], (ImportOrExportAst* i) =>
+		tryResolveImport(allUris, config, fromUri, i));
 
 ResolvedImportsAndExports resolveImportsAndExports(
-	ref Alloc modelAlloc,
-	ref Alloc astAlloc,
+	ref Alloc alloc,
 	scope ref AllUris allUris,
-	scope ref DiagnosticsBuilderForFile diagnosticsBuilder,
 	in Config config,
 	Uri fromUri,
 	in Opt!ImportsOrExportsAst imports,
 	in Opt!ImportsOrExportsAst exports,
 ) =>
 	ResolvedImportsAndExports(
-		resolveImportOrExportUris(
-			modelAlloc, astAlloc, allUris, diagnosticsBuilder, config, fromUri, imports),
-		resolveImportOrExportUris(
-			modelAlloc, astAlloc, allUris, diagnosticsBuilder, config, fromUri, exports));
+		resolveImportOrExportUris(alloc, allUris, config, fromUri, imports),
+		resolveImportOrExportUris(alloc, allUris, config, fromUri, exports));
 
 immutable struct AstAndResolvedImports {
 	Uri uri;
-	FileAst ast;
+	FileAst* ast;
 	FullyResolvedImport[] resolvedImports;
 	FullyResolvedImport[] resolvedExports;
 }
@@ -461,9 +413,8 @@ immutable struct FullyResolvedImportKind {
 		ImportFileType type;
 		FileContent content;
 	}
-	immutable struct Failed {}
 
-	mixin Union!(ModuleWhole, ModuleNamed, File, Failed);
+	mixin Union!(ModuleWhole, ModuleNamed, File, Diagnostic);
 }
 
 immutable struct ImportsOrExports {
@@ -472,13 +423,14 @@ immutable struct ImportsOrExports {
 }
 
 ImportsOrExports mapImportsOrExports(
-	ref Alloc modelAlloc,
+	ref Alloc alloc,
+	scope ref ArrBuilder!Diagnostic diagsBuilder,
 	in FullyResolvedImport[] uris,
 	ref const MutMap!(Uri, immutable Module*) compiled,
 ) {
 	ArrBuilder!ImportOrExportFile fileImports;
 	ImportOrExport[] moduleImports = mapOp!(ImportOrExport, FullyResolvedImport)(
-		modelAlloc,
+		alloc,
 		uris,
 		(ref FullyResolvedImport x) {
 			Opt!ImportOrExportKind kind = x.kind.match!(Opt!ImportOrExportKind)(
@@ -496,14 +448,16 @@ ImportsOrExports mapImportsOrExports(
 				},
 				(FullyResolvedImportKind.File f) {
 					//TODO: could be a temp alloc
-					add(modelAlloc, fileImports, ImportOrExportFile(x.source, f.name, f.type, f.content));
+					add(alloc, fileImports, ImportOrExportFile(x.source, f.name, f.type, f.content));
 					return none!ImportOrExportKind;
 				},
-				(FullyResolvedImportKind.Failed) =>
-					none!ImportOrExportKind);
+				(Diagnostic x) {
+					add(alloc, diagsBuilder, x);
+					return none!ImportOrExportKind;
+				});
 			return has(kind) ? some(ImportOrExport(x.source, force(kind))) : none!ImportOrExport;
 	});
-	return ImportsOrExports(moduleImports, finishArr(modelAlloc, fileImports));
+	return ImportsOrExports(moduleImports, finishArr(alloc, fileImports));
 }
 
 struct ModulesAndCommonTypes {
@@ -516,7 +470,6 @@ ModulesAndCommonTypes getModules(
 	ref Perf perf,
 	scope ref AllSymbols allSymbols,
 	in AllUris allUris,
-	scope ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
 	Uri stdUri,
 	in AstAndResolvedImports[] fileAsts,
@@ -531,13 +484,12 @@ ModulesAndCommonTypes getModules(
 		Module module_ = () {
 			if (lateIsSet(commonTypes)) {
 				return checkNonBootstrapModule(
-					modelAlloc, perf, allSymbols, allUris, diagsBuilder, programState, stdUri,
-					ast, compiled, fileAndAst, lateGet(commonTypes));
+					modelAlloc, perf, allSymbols, allUris, programState, stdUri, ast, compiled, fileAndAst,
+					lateGet(commonTypes));
 			} else {
 				// The first module to check is always 'bootstrap.crow'
 				verify(ast.resolvedImports.empty);
-				BootstrapCheck res =
-					checkBootstrap(modelAlloc, perf, allSymbols, allUris, diagsBuilder, programState, fileAndAst);
+				BootstrapCheck res = checkBootstrap(modelAlloc, perf, allSymbols, allUris, programState, fileAndAst);
 				lateSet(commonTypes, res.commonTypes);
 				return res.module_;
 			}
@@ -553,7 +505,6 @@ Module checkNonBootstrapModule(
 	ref Perf perf,
 	scope ref AllSymbols allSymbols,
 	in AllUris allUris,
-	scope ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
 	Uri stdUri,
 	in AstAndResolvedImports ast,
@@ -569,15 +520,16 @@ Module checkNonBootstrapModule(
 				none!(ImportOrExportAst*),
 				FullyResolvedImportKind(FullyResolvedImportKind.ModuleWhole(stdUri))),
 			ast.resolvedImports);
-	ImportsOrExports imports = mapImportsOrExports(modelAlloc, allImports, compiled);
-	ImportsOrExports exports = mapImportsOrExports(modelAlloc, ast.resolvedExports, compiled);
+	ArrBuilder!Diagnostic diagsBuilder;
+	ImportsOrExports imports = mapImportsOrExports(modelAlloc, diagsBuilder, allImports, compiled);
+	ImportsOrExports exports = mapImportsOrExports(modelAlloc, diagsBuilder, ast.resolvedExports, compiled);
 	ImportsAndExports importsAndExports = ImportsAndExports(
 		imports.moduleImports,
 		exports.moduleImports,
 		imports.fileImports,
 		exports.fileImports);
 	return check(
-		modelAlloc, perf, allSymbols, allUris, diagsBuilder, programState, importsAndExports, fileAndAst, commonTypes);
+		modelAlloc, perf, allSymbols, allUris, programState, fileAndAst, diagsBuilder, importsAndExports, commonTypes);
 }
 
 Program checkEverything(
@@ -585,7 +537,6 @@ Program checkEverything(
 	ref Perf perf,
 	scope ref AllSymbols allSymbols,
 	in AllUris allUris,
-	scope ref DiagnosticsBuilder diagsBuilder,
 	Config config,
 	in AstAndResolvedImports[] allAsts,
 	in Uri[] rootUris,
@@ -594,7 +545,7 @@ Program checkEverything(
 ) {
 	ProgramState programState = ProgramState();
 	ModulesAndCommonTypes modulesAndCommonTypes = getModules(
-		modelAlloc, perf, allSymbols, allUris, diagsBuilder, programState, commonUris[CommonModule.std], allAsts);
+		modelAlloc, perf, allSymbols, allUris, programState, commonUris[CommonModule.std], allAsts);
 	Map!(Uri, immutable Module*) modules = modulesAndCommonTypes.modules;
 	immutable EnumMap!(CommonModule, Opt!(Module*)) commonModules =
 		enumMapMapValues!(CommonModule, Opt!(Module*), Uri)(commonUris, (in Uri uri) =>
@@ -602,7 +553,6 @@ Program checkEverything(
 	CommonFuns commonFuns = getCommonFuns(
 		modelAlloc,
 		programState,
-		diagsBuilder,
 		modulesAndCommonTypes.commonTypes,
 		has(mainUri) ? modules[force(mainUri)] : none!(Module*),
 		commonModules);
@@ -611,9 +561,17 @@ Program checkEverything(
 		modules,
 		map!(Module*, Uri)(modelAlloc, rootUris, (ref Uri uri) {
 			Opt!(Module*) res = modules[uri];
-			return has(res) ? force(res) : allocate(modelAlloc, emptyModule(uri));
+			return has(res) ? force(res) : allocate(modelAlloc, emptyModule(uri, fileAstForDiags(modelAlloc, [])));
 		}),
 		commonFuns,
-		modulesAndCommonTypes.commonTypes,
-		finishDiagnostics(diagsBuilder, allUris));
+		modulesAndCommonTypes.commonTypes);
 }
+
+FileAst* fileAstForDiags(ref Alloc alloc, ParseDiagnostic[] diags) =>
+	allocate(alloc, FileAst(
+		diags,
+		safeCStr!"",
+		false,
+		none!ImportsOrExportsAst,
+		none!ImportsOrExportsAst,
+		[], [], [], [], [], []));

@@ -2,7 +2,6 @@ module frontend.parse.parse;
 
 @safe @nogc pure nothrow:
 
-import frontend.diagnosticsBuilder : DiagnosticsBuilderForFile;
 import frontend.parse.ast :
 	DestructureAst,
 	ExplicitVisibility,
@@ -31,6 +30,7 @@ import frontend.parse.lexer :
 	allSymbols,
 	createLexer,
 	curPos,
+	finishDiagnostics,
 	getPeekToken,
 	getPeekTokenAndData,
 	Lexer,
@@ -68,26 +68,21 @@ import util.col.str : SafeCStr, safeCStr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : ptrTrustMe;
+import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.sourceRange : Pos, Range;
 import util.sym : AllSymbols, Sym, sym;
 import util.uri : AllUris;
 import util.util : typeAs, verify;
 
-FileAst parseFile(
+FileAst* parseFile(
 	ref Alloc alloc,
 	scope ref Perf perf,
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
-	scope ref DiagnosticsBuilderForFile diagsBuilder,
 	scope SafeCStr source,
 ) =>
-	withMeasure!(FileAst, () @trusted {
-		Lexer lexer = createLexer(
-			ptrTrustMe(alloc),
-			ptrTrustMe(allSymbols),
-			ptrTrustMe(diagsBuilder),
-			source);
+	withMeasure!(FileAst*, () {
+		Lexer lexer = createLexer(ptrTrustMe(alloc), ptrTrustMe(allSymbols), castNonScope_ref(source));
 		return parseFileInner(allUris, lexer);
 	})(alloc, perf, PerfMeasure.parseFile);
 
@@ -564,7 +559,7 @@ ExplicitVisibility tryTakeVisibility(ref Lexer lexer) =>
 		? ExplicitVisibility.internal
 		: ExplicitVisibility.default_;
 
-FileAst parseFileInner(ref AllUris allUris, ref Lexer lexer) {
+FileAst* parseFileInner(scope ref AllUris allUris, ref Lexer lexer) {
 	SafeCStr moduleDocComment = takeNewline_topLevel(lexer);
 	Cell!(Opt!SafeCStr) firstDocComment = Cell!(Opt!SafeCStr)(some(safeCStr!""));
 	bool noStd = tryTakeToken(lexer, Token.noStd);
@@ -598,7 +593,8 @@ FileAst parseFileInner(ref AllUris allUris, ref Lexer lexer) {
 		parseSpecOrStructOrFunOrTest(lexer, specs, structAliases, structs, funs, tests, vars, docComment);
 	}
 
-	return FileAst(
+	return allocate(lexer.alloc, FileAst(
+		finishDiagnostics(lexer),
 		moduleDocComment,
 		noStd,
 		imports,
@@ -608,5 +604,5 @@ FileAst parseFileInner(ref AllUris allUris, ref Lexer lexer) {
 		finishArr(lexer.alloc, structs),
 		finishArr(lexer.alloc, funs),
 		finishArr(lexer.alloc, tests),
-		finishArr(lexer.alloc, vars));
+		finishArr(lexer.alloc, vars)));
 }

@@ -46,8 +46,7 @@ import lib.server :
 	setIncludeDir,
 	showDiagnostics,
 	version_;
-import model.diag : diagnosticsIsEmpty;
-import model.model : Program;
+import model.model : hasAnyDiagnostics, Program;
 version (Test) {
 	import test.test : test;
 }
@@ -232,9 +231,9 @@ ExitCode runBuild(ref Perf perf, ref Server server, Uri main, in BuildOptions op
 		return buildToCAndCompile(perf, server, main, options);
 	else {
 		Program program = justTypeCheck(server.alloc, perf, server, [main]);
-		return diagnosticsIsEmpty(program.diagnostics)
-			? print(safeCStr!"OK")
-			: printError(showDiagnostics(server.alloc, server, program));
+		return hasAnyDiagnostics(program)
+			? printError(showDiagnostics(server.alloc, server, program))
+			: print(safeCStr!"OK");
 	}
 }
 
@@ -262,7 +261,7 @@ version (GccJitAvailable) { ExitCode buildAndJit(
 ) {
 	loadAllFiles(perf, server, [main]);
 	Programs programs = buildToLowProgram(server.alloc, perf, server, versionInfoForJIT(), main);
-	if (!diagnosticsIsEmpty(programs.program.diagnostics))
+	if (hasAnyDiagnostics(programs.program))
 		printError(showDiagnostics(server.alloc, server, programs.program));
 	return has(programs.lowProgram)
 		? ExitCode(jitAndRun(

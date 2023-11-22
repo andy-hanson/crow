@@ -2,6 +2,7 @@ module frontend.showDiag;
 
 @safe @nogc pure nothrow:
 
+import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
 import frontend.parse.lexer : Token;
 import frontend.showModel :
 	ShowCtx,
@@ -17,12 +18,13 @@ import frontend.showModel :
 	writeTypeQuoted,
 	writeUri,
 	writeUriAndRange;
-import model.diag : Diagnostic, Diagnostics, Diag, ExpectedForDiag, TypeKind;
+import model.diag : Diagnostic, Diag, DiagSeverity, ExpectedForDiag, TypeKind, UriAndDiagnostic;
 import model.model :
 	arity,
 	arityMatches,
 	bestCasePurity,
 	CalledDecl,
+	eachDiagnostic,
 	EnumBackingType,
 	FunDeclAndTypeArgs,
 	Local,
@@ -30,6 +32,7 @@ import model.model :
 	name,
 	nTypeParams,
 	Params,
+	Program,
 	range,
 	SpecDecl,
 	SpecDeclSig,
@@ -41,21 +44,33 @@ import model.model :
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
+import util.col.arrBuilder : add, ArrBuilder, arrBuilderSort, finishArr;
 import util.col.arrUtil : exists;
+import util.col.multiMap : makeMultiMap, MultiMap, MultiMapCb, multiMapEach;
+import util.col.sortUtil : sorted;
 import util.col.str : SafeCStr;
 import util.opt : force, has, none, Opt, some;
+import util.sourceRange : compareRange;
 import util.storage : ReadFileIssue;
-import util.sym : Sym, writeSym;
-import util.uri : baseName, writeRelPath, writeUri;
-import util.util : unreachable;
-import util.writer :
-	withWriter, writeEscapedChar, writeQuotedString, writeWithCommas, writeWithNewlines, writeWithSeparator, Writer;
+import util.sym : AllSymbols, Sym, writeSym;
+import util.uri : AllUris, baseName, compareUriAlphabetically, Uri, writeRelPath, writeUri;
+import util.util : max, unreachable;
+import util.writer : withWriter, writeEscapedChar, writeQuotedString, writeWithCommas, writeWithSeparator, Writer;
 
-SafeCStr stringOfDiagnostics(ref Alloc alloc, scope ref ShowCtx ctx, in Diagnostics diagnostics) =>
+SafeCStr stringOfDiagnostics(ref Alloc alloc, scope ref ShowCtx ctx, in Program program) =>
 	withWriter(alloc, (scope ref Writer writer) {
-		writeWithNewlines!Diagnostic(writer, diagnostics.diags, (in Diagnostic x) {
-			showDiagnostic(writer, ctx, x);
-		});
+		DiagSeverity severity = maxDiagnosticSeverity(program);
+		bool first = true;
+		foreach (UriAndDiagnostics x; sortedDiagnostics(alloc, ctx.allUris, program)) {
+			foreach (Diagnostic diagnostic; x.diagnostics)
+				if (getDiagnosticSeverity(diagnostic.kind) == severity) {
+					if (!first)
+						writer ~= '\n';
+					else
+						first = false;
+					showDiagnostic(writer, ctx, UriAndDiagnostic(x.uri, diagnostic));
+				}
+		}
 	});
 
 SafeCStr stringOfDiag(ref Alloc alloc, scope ref ShowCtx ctx, in Diag diag) =>
@@ -63,7 +78,42 @@ SafeCStr stringOfDiag(ref Alloc alloc, scope ref ShowCtx ctx, in Diag diag) =>
 		writeDiag(writer, ctx, diag);
 	});
 
+SafeCStr stringOfParseDiag(ref Alloc alloc, in AllSymbols allSymbols, in AllUris allUris, in ParseDiag a) =>
+	withWriter(alloc, (scope ref Writer writer) =>
+		writeParseDiag(writer, allSymbols, allUris, a));
+
+immutable struct UriAndDiagnostics {
+	Uri uri;
+	Diagnostic[] diagnostics;
+}
+
+UriAndDiagnostics[] sortedDiagnostics(ref Alloc alloc, in AllUris allUris, in Program program) {
+	MultiMap!(Uri, Diagnostic) map = makeMultiMap!(Uri, Diagnostic)(alloc, (in MultiMapCb!(Uri, Diagnostic) cb) {
+		eachDiagnostic(program, (in UriAndDiagnostic x) {
+			cb(x.uri, x.diagnostic);
+		});
+	});
+
+	ArrBuilder!UriAndDiagnostics res;
+	multiMapEach!(Uri, Diagnostic)(map, (Uri uri, in Diagnostic[] diagnostics) {
+		Diagnostic[] sortedDiags = sorted!Diagnostic(alloc, diagnostics, (in Diagnostic x, in Diagnostic y) =>
+			compareRange(x.range, y.range));
+		add(alloc, res, UriAndDiagnostics(uri, sortedDiags));
+	});
+	arrBuilderSort!UriAndDiagnostics(res, (in UriAndDiagnostics x, in UriAndDiagnostics y) =>
+		compareUriAlphabetically(allUris, x.uri, y.uri));
+	return finishArr(alloc, res);
+}
+
 private:
+
+DiagSeverity maxDiagnosticSeverity(in Program a) {
+	DiagSeverity res = DiagSeverity.unusedCode;
+	eachDiagnostic(a, (in UriAndDiagnostic x) {
+		res = max(res, getDiagnosticSeverity(x.kind));
+	});
+	return res;
+}
 
 void writeUnusedDiag(scope ref Writer writer, scope ref ShowCtx ctx, in Diag.Unused a) {
 	a.kind.matchIn!void(
@@ -94,14 +144,8 @@ void writeUnusedDiag(scope ref Writer writer, scope ref ShowCtx ctx, in Diag.Unu
 		});
 }
 
-void writeParseDiag(scope ref Writer writer, scope ref ShowCtx ctx, in ParseDiag d) {
+void writeParseDiag(scope ref Writer writer, in AllSymbols allSymbols, in AllUris allUris, in ParseDiag d) {
 	d.matchIn!void(
-		(in ParseDiag.CircularImport x) {
-			writer ~= "circular import from ";
-			writeUri(writer, ctx, x.from);
-			writer ~= " to ";
-			writeUri(writer, ctx, x.to);
-		},
 		(in ParseDiag.Expected it) {
 			final switch (it.kind) {
 				case ParseDiag.Expected.Kind.afterMut:
@@ -252,9 +296,12 @@ void writeParseDiag(scope ref Writer writer, scope ref ShowCtx ctx, in ParseDiag
 				? "on its own line"
 				: "in a context where it can be followed by an indented block";
 		},
+		(in ReadFileIssue x) {
+			showReadFileIssue(writer, x);
+		},
 		(in ParseDiag.RelativeImportReachesPastRoot x) {
 			writer ~= "importing ";
-			writeRelPath(writer, ctx.allUris, x.imported);
+			writeRelPath(writer, allUris, x.imported);
 			writer ~= " reaches above the source directory";
 			//TODO: recommend a compiler option to fix this
 		},
@@ -268,7 +315,7 @@ void writeParseDiag(scope ref Writer writer, scope ref ShowCtx ctx, in ParseDiag
 		},
 		(in ParseDiag.UnexpectedOperator x) {
 			writer ~= "unexpected '";
-			writeSym(writer, ctx.allSymbols, x.operator);
+			writeSym(writer, allSymbols, x.operator);
 			writer ~= '\'';
 		},
 		(in ParseDiag.UnexpectedToken u) {
@@ -277,6 +324,20 @@ void writeParseDiag(scope ref Writer writer, scope ref ShowCtx ctx, in ParseDiag
 		(in ParseDiag.WhenMustHaveElse) {
 			writer ~= "'if' expression must end in 'else'";
 		});
+}
+
+void showReadFileIssue(scope ref Writer writer, ReadFileIssue a) {
+	writer ~= () {
+		final switch (a) {
+			case ReadFileIssue.notFound:
+				return "File does not exist";
+			case ReadFileIssue.error:
+				return "Unable to read file";
+			case ReadFileIssue.loading:
+			case ReadFileIssue.unknown:
+				return "IDE is still loading file";
+		}
+	}();
 }
 
 void showChar(scope ref Writer writer, char c) {
@@ -437,6 +498,11 @@ void writeDiag(scope ref Writer writer, scope ref ShowCtx ctx, in Diag diag) {
 		(in Diag.CharLiteralMustBeOneChar) {
 			writer ~= "value of 'char' type must be a single character";
 		},
+		(in Diag.CircularImport x) {
+			writer ~= "import of ";
+			writeUri(writer, ctx, x.to);
+			writer ~= " would create a circular import";
+		},
 		(in Diag.CommonFunDuplicate x) {
 			writer ~= "module contains multiple valid ";
 			writeName(writer, ctx, x.name);
@@ -565,20 +631,6 @@ void writeDiag(scope ref Writer writer, scope ref ShowCtx ctx, in Diag diag) {
 		(in Diag.ExternUnion) {
 			writer ~= "a union can't be 'extern'";
 		},
-		(in Diag.FileIssue x) {
-			writer ~= () {
-				final switch (x.issue) {
-					case ReadFileIssue.notFound:
-						return "File does not exist: ";
-					case ReadFileIssue.error:
-						return "Unable to read file ";
-					case ReadFileIssue.loading:
-					case ReadFileIssue.unknown:
-						return "IDE is still loading file ";
-				}
-			}();
-			writeUri(writer, ctx, x.uri);
-		},
 		(in Diag.FunMissingBody) {
 			writer ~= "this function needs a body";
 		},
@@ -588,6 +640,11 @@ void writeDiag(scope ref Writer writer, scope ref ShowCtx ctx, in Diag diag) {
 		(in Diag.IfNeedsOpt x) {
 			writer ~= "Expected an option type, but got ";
 			writeTypeQuoted(writer, ctx, x.actualType);
+		},
+		(in Diag.ImportFileIssue x) {
+			showReadFileIssue(writer, x.issue);
+			writer ~= ": ";
+			writeUri(writer, ctx, x.uri);
 		},
 		(in Diag.ImportRefersToNothing x) {
 			writer ~= "imported name ";
@@ -733,7 +790,7 @@ void writeDiag(scope ref Writer writer, scope ref ShowCtx ctx, in Diag diag) {
 			writer ~= "can't change the value of a parameter; consider introducing a mutable local instead";
 		},
 		(in ParseDiag x) {
-			writeParseDiag(writer, ctx, x);
+			writeParseDiag(writer, ctx.allSymbols, ctx.allUris, x);
 		},
 		(in Diag.PtrIsUnsafe) {
 			writer ~= "getting a pointer is unsafe";
@@ -894,10 +951,10 @@ void writeDiag(scope ref Writer writer, scope ref ShowCtx ctx, in Diag diag) {
 		});
 }
 
-void showDiagnostic(scope ref Writer writer, scope ref ShowCtx ctx, in Diagnostic diag) {
-	writeUriAndRange(writer, ctx, diag.where);
+void showDiagnostic(scope ref Writer writer, scope ref ShowCtx ctx, in UriAndDiagnostic a) {
+	writeUriAndRange(writer, ctx, a.where);
 	writer ~= ' ';
-	writeDiag(writer, ctx, diag.diag);
+	writeDiag(writer, ctx, a.kind);
 }
 
 void writeExpected(scope ref Writer writer, scope ref ShowCtx ctx, in ExpectedForDiag a) {

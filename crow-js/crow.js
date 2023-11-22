@@ -208,10 +208,8 @@ globalCrow.makeCompiler = async (bytes, includeDir, cwd, logger) => {
 			JSON.parse(readCStr(exports.allUnknownUris(server))),
 		allLoadingUris: () =>
 			JSON.parse(readCStr(exports.allLoadingUris(server))),
-		getTokensAndParseDiagnostics: uri => {
-			const res = withParamsAndJson(() => exports.getTokensAndParseDiagnostics(server, paramAlloc.writeCStr(uri)))
-			return {tokens:res.tokens, parseDiagnostics:res["parse-diagnostics"]}
-		},
+		getTokensAndParseDiagnostics: uri =>
+			withParamsAndJson(() => exports.getTokensAndParseDiagnostics(server, paramAlloc.writeCStr(uri))),
 		getAllDiagnostics: () =>
 			JSON.parse(readCStr(exports.getAllDiagnostics(server))),
 		getDefinition: ({uri, position:{line, character}}) => withParamsAndJson(() =>

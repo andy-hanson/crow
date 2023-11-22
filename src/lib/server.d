@@ -5,8 +5,7 @@ module lib.server;
 import backend.writeToC : writeToC;
 import concretize.concretize : concretize;
 import document.document : documentJSON;
-import frontend.diagnosticsBuilder : DiagnosticsBuilder, DiagnosticsBuilderForFile, finishDiagnostics;
-import frontend.frontendCompile : frontendCompile, FileAstAndDiagnostics, parseAllFiles, parseSingleAst;
+import frontend.frontendCompile : frontendCompile, parseAllFiles, parseSingleAst;
 import frontend.ide.getDefinition : getDefinitionForPosition;
 import frontend.ide.getHover : getHoverStr;
 import frontend.ide.getPosition : getPosition;
@@ -28,12 +27,13 @@ import interpret.runBytecode : runBytecode;
 import lib.cliParser : PrintKind;
 import lower.lower : lower;
 import model.concreteModel : ConcreteProgram;
-import model.diag : Diag, diagnosticsIsFatal;
+import model.diag : Diag;
 import model.jsonOfConcreteModel : jsonOfConcreteProgram;
 import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
 import model.lowModel : ExternLibraries, LowProgram;
-import model.model : fakeProgramForDiagnostics, Module, Program;
+import model.model : fakeProgramForAst, hasFatalDiagnostics, Module, Program;
+import model.parseDiag : ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.col.arr : only;
 import util.col.str : SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
@@ -237,7 +237,7 @@ SafeCStr showDiag(ref Alloc alloc, scope ref Server server, in Program program, 
 
 SafeCStr showDiagnostics(ref Alloc alloc, scope ref Server server, in Program program) {
 	ShowCtx ctx = getShowDiagCtx(server, program);
-	return stringOfDiagnostics(alloc, ctx, program.diagnostics);
+	return stringOfDiagnostics(alloc, ctx, program);
 }
 
 immutable struct DocumentResult {
@@ -264,7 +264,7 @@ private Program frontendCompile(
 
 immutable struct TokensAndParseDiagnostics {
 	Token[] tokens;
-	Program programForDiagnostics;
+	ParseDiagnostic[] diagnostics;
 }
 
 TokensAndParseDiagnostics getTokensAndParseDiagnostics(
@@ -275,12 +275,10 @@ TokensAndParseDiagnostics getTokensAndParseDiagnostics(
 ) =>
 	withFile!TokensAndParseDiagnostics(server.storage, uri, (in ReadFileResult x) {
 		SafeCStr text = x.isA!FileContent ? asSafeCStr(x.as!FileContent) : safeCStr!"";
-		DiagnosticsBuilder diags = DiagnosticsBuilder(&alloc);
-		DiagnosticsBuilderForFile diagsForFile = DiagnosticsBuilderForFile(&diags, uri);
-		FileAst ast = parseFile(alloc, perf, server.allSymbols, server.allUris, diagsForFile, text);
+		FileAst* ast = parseFile(alloc, perf, server.allSymbols, server.allUris, text);
 		return TokensAndParseDiagnostics(
-			tokensOfAst(alloc, server.allSymbols, server.allUris, ast),
-			fakeProgramForDiagnostics(finishDiagnostics(diags, server.allUris)));
+			tokensOfAst(alloc, server.allSymbols, server.allUris, *ast),
+			ast.diagnostics);
 	});
 
 UriAndRange[] getDefinition(ref Perf perf, ref Alloc alloc, ref Server server, in UriLineAndCharacter where) =>
@@ -385,21 +383,16 @@ private DiagsAndResultJson diagsAndResultJson(
 	DiagsAndResultJson(showDiagnostics(alloc, server, program), result);
 
 DiagsAndResultJson printTokens(ref Alloc alloc, ref Perf perf, ref Server server, Uri uri) {
-	FileAstAndDiagnostics astResult = parseSingleAst(
-		alloc, perf, server.allSymbols, server.allUris, server.storage, uri);
+	FileAst* ast = parseSingleAst(alloc, perf, server.allSymbols, server.allUris, server.storage, uri);
 	Json json = jsonOfTokens(
-		alloc, server.lineAndColumnGetters[uri], tokensOfAst(alloc, server.allSymbols, server.allUris, astResult.ast));
-	return diagsAndResultJson(alloc, server, fakeProgramForDiagnostics(astResult.diagnostics), json);
+		alloc, server.lineAndColumnGetters[uri], tokensOfAst(alloc, server.allSymbols, server.allUris, *ast));
+	return diagsAndResultJson(alloc, server, fakeProgramForAst(alloc, uri, ast), json);
 }
 
 DiagsAndResultJson printAst(ref Alloc alloc, ref Perf perf, ref Server server, Uri uri) {
-	FileAstAndDiagnostics astResult = parseSingleAst(
-		alloc, perf, server.allSymbols, server.allUris, server.storage, uri);
-	return diagsAndResultJson(
-		alloc,
-		server,
-		fakeProgramForDiagnostics(astResult.diagnostics),
-		jsonOfAst(alloc, server.allUris, server.lineAndColumnGetters[uri], astResult.ast));
+	FileAst* ast = parseSingleAst(alloc, perf, server.allSymbols, server.allUris, server.storage, uri);
+	Json json = jsonOfAst(alloc, server.allUris, server.lineAndColumnGetters[uri], *ast);
+	return diagsAndResultJson(alloc, server, fakeProgramForAst(alloc, uri, ast), json);
 }
 
 DiagsAndResultJson printModel(ref Alloc alloc, ref Perf perf, ref Server server, Uri uri) {
@@ -480,7 +473,7 @@ Programs buildToLowProgram(
 ) {
 	Program program = frontendCompile(alloc, perf, server, [main], some(main));
 	ShowCtx ctx = getShowDiagCtx(server, program);
-	if (diagnosticsIsFatal(program.diagnostics))
+	if (hasFatalDiagnostics(program))
 		return Programs(program, none!ConcreteProgram, none!LowProgram);
 	else {
 		ConcreteProgram concreteProgram = concretize(alloc, perf, ctx, versionInfo, program);

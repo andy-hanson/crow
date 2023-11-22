@@ -5,7 +5,7 @@ module util.storage;
 import util.alloc.alloc : Alloc, freeT, verifyOwns;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : arrLiteral, copyArr, makeArr;
+import util.col.arrUtil : copyArr, makeArr;
 import util.col.mutMap : addToMutMap, getAt_mut, getOrAdd, mayDelete, MutMap, mutMapEachIn;
 import util.col.str : SafeCStr, strOfSafeCStr;
 import util.opt : force, has, none, Opt, optOrDefault, some;
@@ -169,16 +169,6 @@ immutable(ubyte[]) asBytes(return scope FileContent a) =>
 
 string asString(return scope FileContent a) =>
 	cast(string) asBytes(a);
-
-// Due to a compiler bug, isn't emitting this function, so force it with extern
-FileContent emptyFileContent(ref Alloc alloc) {
-	return FileContent(arrLiteral!(immutable ubyte)(alloc, [0]));
-	/*
-	TODO: somehow this causes linker errors
-	immutable ubyte[] bytes = [0];
-	return FileContent(bytes);
-	*/
-}
 
 private FileContent copyFileContent(ref Alloc alloc, in FileContent a) =>
 	FileContent(copyArr(alloc, a.bytes));

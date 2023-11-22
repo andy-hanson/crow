@@ -33,7 +33,7 @@ void addAll(T)(ref Alloc alloc, ref ArrBuilder!(immutable T) a, in immutable T[]
 	pushAll(alloc, a.data, value);
 }
 
-void arrBuilderClear(T)(ref ArrBuilder!T a) {
+private void arrBuilderClear(T)(ref ArrBuilder!T a) {
 	mutArrClear(a.data);
 }
 

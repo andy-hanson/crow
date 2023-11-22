@@ -2,7 +2,6 @@ module frontend.parse.lexer;
 
 @safe @nogc pure nothrow:
 
-import frontend.diagnosticsBuilder : addDiagnosticForFile, DiagnosticsBuilderForFile;
 import frontend.parse.lexToken :
 	DocCommentAndExtraDedents,
 	isNewlineToken,
@@ -17,10 +16,10 @@ import frontend.parse.lexToken :
 	plainToken,
 	takeStringPart;
 import frontend.parse.lexWhitespace : detectIndentKind, IndentKind, skipSpacesAndComments, skipUntilNewline;
-import model.diag : Diag;
-import model.parseDiag : ParseDiag;
+import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
+import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.str : CStr, SafeCStr;
 import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, some;
@@ -34,7 +33,6 @@ struct Lexer {
 	private:
 	Alloc* allocPtr;
 	AllSymbols* allSymbolsPtr;
-	DiagnosticsBuilderForFile* diagnosticsBuilderPtr;
 	immutable CStr sourceBegin;
 	immutable IndentKind indentKind;
 
@@ -44,6 +42,7 @@ struct Lexer {
 	// This is after 'nextToken'.
 	immutable(char)* ptr;
 	immutable(char)* prevTokenEnd;
+	ArrBuilder!ParseDiagnostic diagnosticsBuilder;
 	// Position at start of 'nextToken'.
 	Pos nextTokenPos = void;
 	Cell!TokenAndData nextToken = void;
@@ -58,11 +57,9 @@ ref AllSymbols allSymbols(return ref Lexer lexer) =>
 @trusted Lexer createLexer(
 	Alloc* alloc,
 	AllSymbols* allSymbols,
-	DiagnosticsBuilderForFile* diagnosticsBuilder,
 	SafeCStr source,
 ) {
-	Lexer lexer = Lexer(
-		alloc, allSymbols, diagnosticsBuilder, source.ptr, detectIndentKind(source), 0, source.ptr, source.ptr);
+	Lexer lexer = Lexer(alloc, allSymbols, source.ptr, detectIndentKind(source), 0, source.ptr, source.ptr);
 	cellSet(lexer.nextToken,
 		lexInitialToken(lexer.ptr, lexer.allSymbols, lexer.indentKind, lexer.curIndent, (ParseDiag x) =>
 			addDiagAtChar(lexer, x)));
@@ -73,8 +70,11 @@ Pos curPos(in Lexer lexer) =>
 	lexer.nextTokenPos;
 
 void addDiag(ref Lexer lexer, in Range range, ParseDiag diag) {
-	addDiagnosticForFile(*lexer.diagnosticsBuilderPtr, range, Diag(diag));
+	add(lexer.alloc, lexer.diagnosticsBuilder, ParseDiagnostic(range, diag));
 }
+
+ParseDiagnostic[] finishDiagnostics(ref Lexer lexer) =>
+	finishArr(lexer.alloc, lexer.diagnosticsBuilder);
 
 void addDiagAtChar(ref Lexer lexer, ParseDiag diag) {
 	addDiag(lexer, rangeAtChar(lexer), diag);

@@ -24,39 +24,54 @@ import model.model :
 import model.parseDiag : ParseDiag;
 import util.col.arr : empty;
 import util.opt : Opt;
-import util.sourceRange : UriAndRange;
+import util.sourceRange : Range, UriAndRange;
 import util.storage : ReadFileIssue;
 import util.sym : Sym;
 import util.union_ : Union;
 import util.uri : Uri;
 
+// In the CLI, we omit diagnostics if there are other more severe ones.
+// So e.g., you wouldn't see unused code errors if there are parse errors.
 enum DiagSeverity {
 	unusedCode,
 	checkWarning,
 	checkError,
 	nameNotFound,
-	// Severe error where a common fun (e.g. 'alloc') or type (e.g. 'void') is missing
+	// Severe error where a common fun (e.g. 'alloc', 'main') or type (e.g. 'void') is missing
 	commonMissing,
+	circularImport,
 	parseError,
 	fileIssue,
 }
-private bool isFatal(DiagSeverity a) =>
+bool isFatal(DiagSeverity a) =>
 	a >= DiagSeverity.commonMissing;
 
-immutable struct Diagnostic {
-	// Some diagnostics aren't associated with a file, like if a root file is missing
-	UriAndRange where;
-	Diag diag;
+immutable struct UriAndDiagnostic {
+	@safe @nogc pure nothrow:
+
+	Uri uri;
+	Diagnostic diagnostic;
+
+	this(Uri u, Diagnostic d) {
+		uri = u;
+		diagnostic = d;
+	}
+	this(UriAndRange range, Diag kind) {
+		uri = range.uri;
+		diagnostic = Diagnostic(range.range, kind);
+	}
+
+	UriAndRange where() scope =>
+		UriAndRange(uri, diagnostic.range);
+
+	Diag kind() return scope =>
+		diagnostic.kind;
 }
 
-immutable struct Diagnostics {
-	DiagSeverity severity;
-	Diagnostic[] diags;
+immutable struct Diagnostic {
+	Range range;
+	Diag kind;
 }
-bool diagnosticsIsEmpty(in Diagnostics a) =>
-	empty(a.diags);
-bool diagnosticsIsFatal(in Diagnostics a) =>
-	isFatal(a.severity);
 
 enum TypeKind {
 	builtin,
@@ -125,6 +140,9 @@ immutable struct Diag {
 	}
 
 	immutable struct CharLiteralMustBeOneChar {}
+	immutable struct CircularImport {
+		Uri to;
+	}
 	immutable struct CommonFunDuplicate {
 		Sym name;
 	}
@@ -197,15 +215,15 @@ immutable struct Diag {
 		StructDecl* struct_;
 	}
 	immutable struct ExternUnion {}
-	// This will be added for the file itself, and also at any imports.
-	immutable struct FileIssue {
-		Uri uri;
-		ReadFileIssue issue;
-	}
 	immutable struct FunMissingBody {}
 	immutable struct FunModifierTrustedOnNonExtern {}
 	immutable struct IfNeedsOpt {
 		Type actualType;
+	}
+	// This is for an issue with an imported file. That will also have a ParseDiag for the issue.
+	immutable struct ImportFileIssue {
+		Uri uri;
+		ReadFileIssue issue;
 	}
 	immutable struct ImportRefersToNothing {
 		Sym name;
@@ -413,6 +431,7 @@ immutable struct Diag {
 		CallShouldUseSyntax,
 		CantCall,
 		CharLiteralMustBeOneChar,
+		CircularImport,
 		CommonFunDuplicate,
 		CommonFunMissing,
 		CommonTypeMissing,
@@ -429,10 +448,10 @@ immutable struct Diag {
 		ExternMissingLibraryName,
 		ExternRecordImplicitlyByVal,
 		ExternUnion,
-		FileIssue,
 		FunMissingBody,
 		FunModifierTrustedOnNonExtern,
 		IfNeedsOpt,
+		ImportFileIssue,
 		ImportRefersToNothing,
 		LambdaCantInferParamType,
 		LambdaClosesOverMut,
