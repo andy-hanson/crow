@@ -7,6 +7,7 @@ import frontend.ide.getDefinition : getDefinitionForPosition;
 import frontend.ide.getHover : getHoverStr;
 import frontend.ide.getPosition : getPosition;
 import frontend.ide.position : Position;
+import frontend.lang : crowExtension;
 import frontend.showModel : ShowCtx;
 import frontend.storage : FileContent, jsonOfUriAndRange, ReadFileResult, Storage, setFile;
 import model.model : Module, Program;
@@ -21,10 +22,11 @@ import util.conv : safeToUint;
 import util.json : field, Json, jsonList, jsonObject, jsonToStringPretty, optionalArrayField;
 import util.lineAndColumnGetter : LineAndColumnGetter, PosKind;
 import util.opt : none;
-import util.uri : parseUri, Uri;
+import util.uri : getExtension, parseUri, Uri;
 import util.perf : Perf, withNullPerf;
+import util.ptr : ptrTrustMe;
 import util.sourceRange : jsonOfPosWithinFile, Pos, UriAndRange;
-import util.util : debugLog, verifyFail;
+import util.util : debugLog, verify, verifyFail;
 
 @trusted void testHover(ref Test test) {
 	hoverTest!("basic.crow", "hover/basic.json")(test);
@@ -54,13 +56,14 @@ void withHoverTest(string fileName)(
 	in SafeCStr content,
 	in void delegate(in ShowCtx, Module*) @safe @nogc pure nothrow cb,
 ) {
-	Uri uri = parseUri(test.allUris, "magic:" ~ fileName);
-	Storage storage = Storage(test.metaAlloc);
-	setFile(storage, uri, ReadFileResult(FileContent(content)));
+	Uri uri = parseUri(test.allUris, "magic:/" ~ fileName);
+	verify(getExtension(test.allUris, uri) == crowExtension);
+	Storage storage = Storage(test.metaAlloc, ptrTrustMe(test.allSymbols), ptrTrustMe(test.allUris));
+	setFile(test.perf, storage, uri, ReadFileResult(FileContent(content)));
 	Program program = withNullPerf!(Program, (ref Perf perf) =>
 		frontendCompile(
-			perf, test.alloc, test.alloc, test.allSymbols, test.allUris, storage,
-			parseUri(test.allUris, "magic:include"), [uri], none!Uri));
+			perf, test.alloc, test.allSymbols, test.allUris, storage,
+			parseUri(test.allUris, "magic:/include"), [uri], none!Uri));
 	withShowDiagCtxForTest(test, storage, program, (in ShowCtx ctx) {
 		cb(ctx, only(program.rootModules));
 	});

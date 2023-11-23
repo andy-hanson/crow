@@ -2,6 +2,10 @@ module frontend.storage;
 
 @safe @nogc pure nothrow:
 
+import frontend.config : parseConfig, ParsedConfig;
+import frontend.lang : crowConfigBaseName, crowExtension;
+import frontend.parse.ast : FileAst;
+import frontend.parse.parse : parseFile;
 import model.diag : ReadFileDiag;
 import util.alloc.alloc : Alloc, AllocAndValue, freeAlloc, MetaAlloc, newAlloc, withAlloc;
 import util.col.arr : empty;
@@ -25,25 +29,32 @@ import util.lineAndColumnGetter :
 	toLineAndCharacter,
 	UriLineAndCharacter,
 	UriLineAndColumn;
+import util.memory : allocate;
 import util.opt : ConstOpt, force, has, none, MutOpt, Opt, some;
-import util.ptr : castNonScope,castNonScope_ref;
+import util.perf : Perf;
+import util.ptr : castNonScope_ref;
 import util.sourceRange : jsonOfRange, lineAndCharacterRange, Pos, UriAndPos, UriAndRange;
+import util.sym : AllSymbols;
 import util.union_ : Union;
-import util.uri : AllUris, Uri, stringOfUri;
+import util.uri : AllUris, baseName, getExtension, parentOrEmpty, Uri, stringOfUri;
 import util.util : verify;
 
 struct Storage {
 	@safe @nogc pure nothrow:
 
-	this(MetaAlloc* a) {
+	this(MetaAlloc* a, AllSymbols* as, AllUris* au) {
 		metaAlloc = a;
-		mapAlloc_ = newAlloc(a);
+		allSymbols = as;
+		allUris = au;
+		mapAlloc_ = newAlloc(metaAlloc);
 	}
 
 	private:
 	MetaAlloc* metaAlloc;
+	AllSymbols* allSymbols;
+	AllUris* allUris;
 	Alloc mapAlloc_;
-	// Store in separate maps depending on success / issue
+	// Store in separate maps depending on success / diag
 	MutMap!(Uri, AllocAndValue!FileInfo) successes;
 	MutMap!(Uri, ReadFileDiag) diags;
 
@@ -53,13 +64,18 @@ struct Storage {
 		castNonScope_ref(mapAlloc_);
 }
 
-private struct FileInfo {
+private immutable struct FileInfo {
 	FileContent content;
 	LineAndColumnGetter lineAndColumnGetter;
-	// TODO: FileAst ast;
+	ParseResult parsed;
 }
 
-@trusted void setFile(scope ref Storage a, Uri uri, in ReadFileResult result) {
+immutable struct ParseResult {
+	immutable struct None {}
+	mixin Union!(FileAst*, ParsedConfig*, None);
+}
+
+@trusted void setFile(scope ref Perf perf, ref Storage a, Uri uri, in ReadFileResult result) {
 	mayDelete(a.diags, uri);
 	MutOpt!(AllocAndValue!FileInfo) oldContent = mayDelete(a.successes, uri);
 	if (has(oldContent))
@@ -67,16 +83,33 @@ private struct FileInfo {
 
 	result.matchIn!void(
 		(in FileContent x) @safe {
-			addToMutMap(a.mapAlloc, a.successes, uri, getFileInfo(castNonScope(a.metaAlloc), x));
+			addToMutMap(a.mapAlloc, a.successes, uri, getFileInfo(perf, a, uri, x));
 		},
 		(in ReadFileDiag x) {
 			addToMutMap(a.mapAlloc, a.diags, uri, x);
 		});
 }
 
-private AllocAndValue!FileInfo getFileInfo(MetaAlloc* metaAlloc, in FileContent content) =>
-	withAlloc(metaAlloc, (ref Alloc alloc) =>
-		FileInfo(copyFileContent(alloc, content), lineAndColumnGetterForText(alloc, asSafeCStr(content))));
+private AllocAndValue!FileInfo getFileInfo(scope ref Perf perf, ref Storage storage, Uri uri, in FileContent content) =>
+	withAlloc!FileInfo(storage.metaAlloc, (ref Alloc alloc) =>
+		FileInfo(
+			copyFileContent(alloc, content),
+			lineAndColumnGetterForText(alloc, asSafeCStr(content)),
+			parseContent(perf, alloc, *storage.allSymbols, *storage.allUris, uri, asSafeCStr(content))));
+
+private ParseResult parseContent(
+	scope ref Perf perf,
+	ref Alloc alloc,
+	scope ref AllSymbols allSymbols,
+	scope ref AllUris allUris,
+	Uri uri,
+	in SafeCStr content,
+) =>
+	getExtension(allUris, uri) == crowExtension
+		? ParseResult(parseFile(perf, alloc, allSymbols, allUris, content))
+		: baseName(allUris, uri) == crowConfigBaseName
+		? ParseResult(allocate(alloc, parseConfig(alloc, allSymbols, allUris, parentOrEmpty(allUris, uri), content)))
+		: ParseResult(ParseResult.None());
 
 bool hasUnknownOrLoadingUris(in Storage a) {
 	bool res = false;
@@ -120,17 +153,31 @@ Opt!FileContent getFileNoMarkUnknown(return in Storage a, Uri uri) {
 	return has(res) ? some(force(res).value.content) : none!FileContent;
 }
 
-// Storage is mutable, so file content can only be given out temporarily.
-T withFile(T)(
-	scope ref Storage a,
-	Uri uri,
-	in T delegate(in ReadFileResult) @safe @nogc pure nothrow cb,
-) {
-	ConstOpt!(AllocAndValue!FileInfo) res = a.successes[uri];
-	return cb(has(res)
-		? ReadFileResult(force(res).value.content)
-		: ReadFileResult(getOrAdd!(Uri, ReadFileDiag)(a.mapAlloc, a.diags, uri, () => ReadFileDiag.unknown)));
+private immutable struct FileInfoOrDiag {
+	mixin Union!(FileInfo, ReadFileDiag);
 }
+
+private FileInfoOrDiag fileOrDiag(scope ref Storage a, Uri uri) {
+	ConstOpt!(AllocAndValue!FileInfo) res = a.successes[uri];
+	return has(res)
+		? FileInfoOrDiag(force(res).value)
+		: FileInfoOrDiag(getOrAdd!(Uri, ReadFileDiag)(a.mapAlloc, a.diags, uri, () => ReadFileDiag.unknown));
+}
+
+private immutable struct ParsedOrDiag {
+	mixin Union!(ParseResult, ReadFileDiag);
+}
+
+ParsedOrDiag getParsedOrDiag(ref Storage a, Uri uri) =>
+	fileOrDiag(a, uri).match!ParsedOrDiag(
+		(FileInfo x) => ParsedOrDiag(x.parsed),
+		(ReadFileDiag x) => ParsedOrDiag(x));
+
+// Storage is mutable, so file content can only be given out temporarily.
+ReadFileResult getFileContentOrDiag(ref Storage a, Uri uri) =>
+	fileOrDiag(a, uri).match!ReadFileResult(
+		(FileInfo x) => ReadFileResult(x.content),
+		(ReadFileDiag x) => ReadFileResult(x));
 
 immutable struct ReadFileResult {
 	mixin Union!(FileContent, ReadFileDiag);

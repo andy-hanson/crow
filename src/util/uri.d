@@ -186,11 +186,11 @@ private Path modifyBaseName(ref AllUris allUris, Path a, in Sym delegate(Sym) @s
 	return has(parent) ? childPath(allUris, force(parent), newBaseName) : rootPath(allUris, newBaseName);
 }
 
-Sym getExtension(ref AllUris allUris, Uri a) =>
+Sym getExtension(scope ref AllUris allUris, Uri a) =>
 	isRootUri(allUris, a)
 		? sym!""
 		: getExtension(allUris, a.path);
-Sym getExtension(ref AllUris allUris, Path a) =>
+Sym getExtension(scope ref AllUris allUris, Path a) =>
 	getExtension(allUris.allSymbols, baseName(allUris, a));
 
 Sym baseName(in AllUris allUris, Uri a) =>

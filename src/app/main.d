@@ -90,22 +90,22 @@ private:
 
 void loadAllFiles(scope ref Perf perf, ref Server server, in Uri[] rootUris) {
 	foreach (Uri uri; rootUris)
-		loadSingleFile(server, uri);
+		loadSingleFile(perf, server, uri);
 	while (true) {
 		bool shouldBreak = withTempAllocImpure(server.metaAlloc, (ref Alloc alloc) {
 			justParseEverything(perf, alloc, server, rootUris);
 			Uri[] unknowns = allUnknownUris(alloc, server);
 			foreach (Uri uri; unknowns)
-				loadSingleFile(server, uri);
+				loadSingleFile(perf, server, uri);
 			return empty(unknowns);
 		});
 		if (shouldBreak) break;
 	}
 }
 
-void loadSingleFile(ref Server server, Uri uri) {
+void loadSingleFile(scope ref Perf perf, ref Server server, Uri uri) {
 	withTempAllocImpure(server.metaAlloc, (ref Alloc alloc) {
-		setFile(server, uri, tryReadFile(alloc, server.allUris, uri));
+		setFile(perf, server, uri, tryReadFile(alloc, server.allUris, uri));
 	});
 }
 
@@ -198,11 +198,11 @@ ExitCode doPrint(scope ref Perf perf, ref Alloc alloc, ref Server server, in Com
 	Uri mainUri = command.mainUri;
 	DiagsAndResultJson printed = command.kind.matchImpure!DiagsAndResultJson(
 		(in PrintKind.Tokens) {
-			loadSingleFile(server, mainUri);
+			loadSingleFile(perf, server, mainUri);
 			return printTokens(perf, alloc, server, mainUri);
 		},
 		(in PrintKind.Ast) {
-			loadSingleFile(server, mainUri);
+			loadSingleFile(perf, server, mainUri);
 			return printAst(perf, alloc, server, mainUri);
 		},
 		(in PrintKind.Model) {

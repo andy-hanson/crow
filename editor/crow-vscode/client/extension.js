@@ -121,7 +121,10 @@ const getCompiler = () => {
  */
 const provideDocumentSemanticTokens = async (document, _cancellationToken) => {
 	try {
-		return getTokens(await getCompiler(), document.getText())
+		const uri = document.uri.toString()
+		const comp = await getCompiler()
+		comp.setFileSuccess(uri, document.getText())
+		return getTokens(comp, uri)
 	} catch (e) {
 		// VSCode just swallows exceptions, at least log them
 		logError(`Caught error in provideDocumentSemanticTokens for ${document.uri}: ${

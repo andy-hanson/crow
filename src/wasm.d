@@ -100,12 +100,20 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 		version_(resultAlloc, *server).ptr);
 
 @system extern(C) void setFileSuccess(Server* server, scope CStr uri, scope CStr content) {
-	setFile(*server, toUri(*server, SafeCStr(uri)), ReadFileResult(FileContent(SafeCStr(content))));
+	SafeCStr uriStr = SafeCStr(uri);
+	SafeCStr contentStr = SafeCStr(content);
+	wasmCall!("setFileSuccess", void)((scope ref Perf perf, ref Alloc _) {
+		setFile(perf, *server, toUri(*server, uriStr), ReadFileResult(FileContent(contentStr)));
+	});
 }
 
 @system extern(C) void setFileIssue(Server* server, scope CStr uri, scope CStr issue) {
-	setFile(*server, toUri(*server, SafeCStr(uri)), ReadFileResult(
-		readFileDiagOfSym(symOfSafeCStr(server.allSymbols, SafeCStr(issue)))));
+	SafeCStr uriStr = SafeCStr(uri);
+	SafeCStr issueStr = SafeCStr(issue);
+	wasmCall!("setFileIssue", void)((scope ref Perf perf, ref Alloc _) {
+		setFile(perf, *server, toUri(*server, uriStr), ReadFileResult(
+			readFileDiagOfSym(symOfSafeCStr(server.allSymbols, issueStr))));
+	});
 }
 
 @system extern(C) CStr getFile(Server* server, scope CStr uriCStr) {

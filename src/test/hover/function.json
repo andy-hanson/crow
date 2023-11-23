@@ -5,7 +5,7 @@
 		"hover": "builtin type nat",
 		"definition": [
 			{
-				"uri": "magic:function.crow",
+				"uri": "magic:/function.crow",
 				"range": {
 					"start": {"line": 0, "character": 0},
 					"end": {"line": 0, "character": 3}
@@ -24,7 +24,7 @@
 		"hover": "function f",
 		"definition": [
 			{
-				"uri": "magic:function.crow",
+				"uri": "magic:/function.crow",
 				"range": {
 					"start": {"line": 2, "character": 0},
 					"end": {"line": 2, "character": 1}
@@ -38,7 +38,7 @@
 		"hover": "builtin type nat",
 		"definition": [
 			{
-				"uri": "magic:function.crow",
+				"uri": "magic:/function.crow",
 				"range": {
 					"start": {"line": 0, "character": 0},
 					"end": {"line": 0, "character": 3}
@@ -52,7 +52,7 @@
 		"hover": "local a nat",
 		"definition": [
 			{
-				"uri": "magic:function.crow",
+				"uri": "magic:/function.crow",
 				"range": {
 					"start": {"line": 2, "character": 6},
 					"end": {"line": 2, "character": 7}
@@ -66,7 +66,7 @@
 		"hover": "builtin type nat",
 		"definition": [
 			{
-				"uri": "magic:function.crow",
+				"uri": "magic:/function.crow",
 				"range": {
 					"start": {"line": 0, "character": 0},
 					"end": {"line": 0, "character": 3}
@@ -80,7 +80,7 @@
 		"hover": "a nat",
 		"definition": [
 			{
-				"uri": "magic:function.crow",
+				"uri": "magic:/function.crow",
 				"range": {
 					"start": {"line": 2, "character": 6},
 					"end": {"line": 2, "character": 7}
@@ -91,10 +91,10 @@
 	{
 		"start": {"line": 3, "character": 3},
 		"end": {"line": 3, "character": 4},
-		"hover": "g nat(a nat) (from magic:function.crow line 6)",
+		"hover": "g nat(a nat) (from magic:/function.crow line 6)",
 		"definition": [
 			{
-				"uri": "magic:function.crow",
+				"uri": "magic:/function.crow",
 				"range": {
 					"start": {"line": 5, "character": 0},
 					"end": {"line": 5, "character": 1}
@@ -108,7 +108,7 @@
 		"hover": "function g",
 		"definition": [
 			{
-				"uri": "magic:function.crow",
+				"uri": "magic:/function.crow",
 				"range": {
 					"start": {"line": 5, "character": 0},
 					"end": {"line": 5, "character": 1}
@@ -122,7 +122,7 @@
 		"hover": "builtin type nat",
 		"definition": [
 			{
-				"uri": "magic:function.crow",
+				"uri": "magic:/function.crow",
 				"range": {
 					"start": {"line": 0, "character": 0},
 					"end": {"line": 0, "character": 3}
@@ -136,7 +136,7 @@
 		"hover": "local a nat",
 		"definition": [
 			{
-				"uri": "magic:function.crow",
+				"uri": "magic:/function.crow",
 				"range": {
 					"start": {"line": 5, "character": 6},
 					"end": {"line": 5, "character": 7}
@@ -150,7 +150,7 @@
 		"hover": "builtin type nat",
 		"definition": [
 			{
-				"uri": "magic:function.crow",
+				"uri": "magic:/function.crow",
 				"range": {
 					"start": {"line": 0, "character": 0},
 					"end": {"line": 0, "character": 3}

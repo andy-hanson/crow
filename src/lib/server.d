@@ -5,7 +5,7 @@ module lib.server;
 import backend.writeToC : writeToC;
 import concretize.concretize : concretize;
 import document.document : documentJSON;
-import frontend.frontendCompile : frontendCompile, parseAllFiles, parseSingleAst;
+import frontend.frontendCompile : frontendCompile, parseAllFiles;
 import frontend.ide.getDefinition : getDefinitionForPosition;
 import frontend.ide.getHover : getHoverStr;
 import frontend.ide.getPosition : getPosition;
@@ -14,25 +14,24 @@ import frontend.ide.getReferences : getReferencesForPosition, jsonOfReferences;
 import frontend.ide.getTokens : jsonOfTokens, Token, tokensOfAst;
 import frontend.ide.position : Position;
 import frontend.lang : crowExtension;
-import frontend.parse.ast : FileAst;
+import frontend.parse.ast : fileAstForReadFileDiag, FileAst;
 import frontend.parse.jsonOfAst : jsonOfAst;
-import frontend.parse.parse : parseFile;
 import frontend.showDiag : stringOfDiag, stringOfDiagnostics;
 import frontend.showModel : ShowCtx, ShowOptions;
 import frontend.storage :
 	allKnownGoodUris,
 	allStorageUris,
 	allUrisWithFileDiag,
-	asSafeCStr,
 	FileContent,
 	getFileNoMarkUnknown,
+	getParsedOrDiag,
 	hasUnknownOrLoadingUris,
 	LineAndColumnGetters,
+	ParseResult,
 	ReadFileResult,
 	Storage,
 	setFile,
-	toLineAndCharacter,
-	withFile;
+	toLineAndCharacter;
 import interpret.bytecode : ByteCode;
 import interpret.extern_ : Extern, ExternFunPtrsForAllLibraries, WriteError;
 import interpret.fakeExtern : Pipe, withFakeExtern, WriteCb;
@@ -60,7 +59,7 @@ import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
 import util.sourceRange : UriAndRange;
 import util.sym : AllSymbols;
 import util.uri : AllUris, getExtension, parseUri, Uri, UrisInfo;
-import util.util : verify;
+import util.util : typeAs, verify;
 import util.writer : withWriter, Writer;
 import versionInfo : VersionInfo, versionInfoForBuildToC, versionInfoForInterpret;
 
@@ -127,7 +126,7 @@ struct Server {
 		metaAlloc_ = MetaAlloc(memory);
 		allSymbols = AllSymbols(metaAlloc);
 		allUris = AllUris(metaAlloc, &allSymbols);
-		storage = Storage(metaAlloc);
+		storage = Storage(metaAlloc, &allSymbols, &allUris);
 	}
 
 	MetaAlloc* metaAlloc() =>
@@ -192,8 +191,8 @@ void setDiagOptions(ref Server server, in ShowOptions options) {
 	lateSet!ShowOptions(server.diagOptions_, options);
 }
 
-void setFile(ref Server server, Uri uri, in ReadFileResult result) {
-	setFile(server.storage, uri, result);
+void setFile(scope ref Perf perf, ref Server server, Uri uri, in ReadFileResult result) {
+	setFile(perf, server.storage, uri, result);
 }
 
 Opt!FileContent getFile(return in Server server, Uri uri) =>
@@ -245,19 +244,20 @@ DocumentResult getDocumentation(scope ref Perf perf, ref Alloc alloc, ref Server
 private Program frontendCompile(
 	scope ref Perf perf,
 	ref Alloc alloc,
-	scope ref Server server,
+	ref Server server,
 	in Uri[] rootUris,
 	in Opt!Uri main,
 ) =>
-	frontendCompile(
-		perf, alloc, alloc, server.allSymbols, server.allUris, server.storage, server.includeDir, rootUris, main);
+	frontendCompile(perf, alloc, server.allSymbols, server.allUris, server.storage, server.includeDir, rootUris, main);
 
-Token[] getTokens(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri uri) =>
-	withFile!(Token[])(server.storage, uri, (in ReadFileResult x) {
-		SafeCStr text = x.isA!FileContent ? asSafeCStr(x.as!FileContent) : safeCStr!"";
-		FileAst* ast = parseFile(perf, alloc, server.allSymbols, server.allUris, text);
-		return tokensOfAst(alloc, server.allSymbols, server.allUris, *ast);
-	});
+Token[] getTokens(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri uri) {
+	verify(getExtension(server.allUris, uri) == crowExtension);
+	return getParsedOrDiag(server.storage, uri).match!(Token[])(
+		(ParseResult x) =>
+			tokensOfAst(alloc, server.allSymbols, server.allUris, *x.as!(FileAst*)),
+		(ReadFileDiag _) =>
+			typeAs!(Token[])([]));
+}
 
 UriAndRange[] getDefinition(scope ref Perf perf, ref Alloc alloc, ref Server server, in UriLineAndCharacter where) =>
 	getDefinitionForProgram(alloc, server, getProgram(perf, alloc, server, [where.uri]), where);
@@ -277,7 +277,7 @@ private UriAndRange[] getDefinitionForProgram(
 UriAndRange[] getReferences(
 	scope ref Perf perf,
 	ref Alloc alloc,
-	scope ref Server server,
+	ref Server server,
 	in UriLineAndCharacter where,
 	in Uri[] roots,
 ) =>
@@ -298,7 +298,7 @@ private UriAndRange[] getReferencesForProgram(
 Opt!Rename getRename(
 	scope ref Perf perf,
 	ref Alloc alloc,
-	scope ref Server server,
+	ref Server server,
 	in UriLineAndCharacter where,
 	in Uri[] roots,
 	string newName,
@@ -334,7 +334,7 @@ private SafeCStr getHoverForProgram(
 		: safeCStr!"";
 }
 
-private Program getProgram(scope ref Perf perf, ref Alloc alloc, scope ref Server server, in Uri[] roots) =>
+private Program getProgram(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] roots) =>
 	frontendCompile(perf, alloc, server, roots, none!Uri);
 
 private Opt!Position getPosition(scope ref Server server, in Program program, in UriLineAndCharacter where) {
@@ -361,17 +361,24 @@ private DiagsAndResultJson diagsAndResultJson(
 	DiagsAndResultJson(showDiagnostics(alloc, server, program), result);
 
 DiagsAndResultJson printTokens(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri uri) {
-	FileAst* ast = parseSingleAst(perf, alloc, server.allSymbols, server.allUris, server.storage, uri);
+	FileAst* ast = getAst(alloc, server.storage, uri);
 	Json json = jsonOfTokens(
 		alloc, server.lineAndColumnGetters[uri], tokensOfAst(alloc, server.allSymbols, server.allUris, *ast));
 	return diagsAndResultJson(alloc, server, fakeProgramForAst(alloc, uri, ast), json);
 }
 
 DiagsAndResultJson printAst(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri uri) {
-	FileAst* ast = parseSingleAst(perf, alloc, server.allSymbols, server.allUris, server.storage, uri);
+	FileAst* ast = getAst(alloc, server.storage, uri);
 	Json json = jsonOfAst(alloc, server.allUris, server.lineAndColumnGetters[uri], *ast);
 	return diagsAndResultJson(alloc, server, fakeProgramForAst(alloc, uri, ast), json);
 }
+
+private FileAst* getAst(ref Alloc alloc, ref Storage storage, Uri uri) =>
+	getParsedOrDiag(storage, uri).match!(FileAst*)(
+		(ParseResult x) =>
+			x.as!(FileAst*),
+		(ReadFileDiag x) =>
+			fileAstForReadFileDiag(alloc, x));
 
 DiagsAndResultJson printModel(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri uri) {
 	Program program = frontendCompile(perf, alloc, server, [uri], none!Uri);
@@ -412,7 +419,7 @@ DiagsAndResultJson printLowModel(
 DiagsAndResultJson printIde(
 	scope ref Perf perf,
 	ref Alloc alloc,
-	scope ref Server server,
+	ref Server server,
 	in UriLineAndColumn where,
 	in PrintKind.Ide.Kind kind,
 ) {

@@ -2,7 +2,8 @@ module frontend.config;
 
 @safe @nogc pure nothrow:
 
-import frontend.storage : asSafeCStr, FileContent, ReadFileResult, Storage, withFile;
+import frontend.lang : crowConfigBaseName;
+import frontend.storage : getParsedOrDiag, ParseResult, Storage;
 import model.diag : Diag, Diagnostic, ReadFileDiag;
 import model.model : Config, ConfigExternUris, ConfigImportUris;
 import model.parseDiag : ParseDiag;
@@ -26,7 +27,7 @@ Config getConfig(
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
 	Uri crowIncludeDir,
-	scope ref Storage storage,
+	ref Storage storage,
 	in Uri[] rootUris,
 ) {
 	Opt!Uri search = rootUris.length == 1
@@ -44,44 +45,34 @@ Config getConfigRecur(
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
 	Uri crowIncludeDir,
-	scope ref Storage storage,
+	ref Storage storage,
 	Uri searchUri,
 ) {
-	Uri configUri = childUri(allUris, searchUri, sym!"crow-config.json");
-	Opt!Config res = withFile!(Opt!Config)(storage, configUri, (in ReadFileResult a) =>
-		a.matchIn!(Opt!Config)(
-			(in FileContent content) =>
-				some(parseConfig(
-					alloc, allSymbols, allUris, configUri, crowIncludeDir, searchUri, asSafeCStr(content))),
-			(in ReadFileDiag diag) {
-				final switch (diag) {
-					case ReadFileDiag.notFound:
-						return none!Config;
-					case ReadFileDiag.error:
-						return some(emptyConfig(some(configUri), crowIncludeDir, arrLiteral(alloc, [
-							Diagnostic(Range.empty, Diag(ParseDiag(diag)))])));
-					case ReadFileDiag.loading:
-					case ReadFileDiag.unknown:
-						return some(emptyConfig(some(configUri), crowIncludeDir, []));
-				}
-			}));
-	if (has(res))
-		return force(res);
-	else {
-		Opt!Uri par = parent(allUris, searchUri);
-		return has(par)
-			? getConfigRecur(alloc, allSymbols, allUris, crowIncludeDir, storage, force(par))
-			: emptyConfig(none!Uri, crowIncludeDir, []);
-	}
+	Uri configUri = childUri(allUris, searchUri, crowConfigBaseName);
+	return getParsedOrDiag(storage, configUri).match!Config(
+		(ParseResult x) =>
+			configFromParsed(crowIncludeDir, configUri, *x.as!(ParsedConfig*)),
+		(ReadFileDiag x) {
+			final switch (x) {
+				case ReadFileDiag.notFound:
+					Opt!Uri par = parent(allUris, searchUri);
+					return has(par)
+						? getConfigRecur(alloc, allSymbols, allUris, crowIncludeDir, storage, force(par))
+						: emptyConfig(none!Uri, crowIncludeDir, []);
+				case ReadFileDiag.error:
+					return emptyConfig(some(configUri), crowIncludeDir, arrLiteral(alloc, [
+						Diagnostic(Range.empty, Diag(ParseDiag(x)))]));
+				case ReadFileDiag.loading:
+				case ReadFileDiag.unknown:
+					return emptyConfig(some(configUri), crowIncludeDir, []);
+			}
+		});
 }
 
 pure:
 
 Config emptyConfig(Opt!Uri configUri, Uri crowIncludeDir, Diagnostic[] diagnostics) =>
-	configFromContent(configUri, crowIncludeDir, diagnostics, emptyConfigContent);
-
-Config configFromContent(Opt!Uri configUri, Uri crowIncludeDir, Diagnostic[] diagnostics, ConfigContent content) =>
-	Config(configUri, diagnostics, crowIncludeDir, content.include, content.extern_);
+	Config(configUri, diagnostics, crowIncludeDir, ConfigImportUris(), ConfigExternUris());
 
 ConfigContent emptyConfigContent() =>
 	ConfigContent(ConfigImportUris(), ConfigExternUris());
@@ -92,12 +83,19 @@ ConfigContent withInclude(ConfigContent a, ConfigImportUris include) =>
 ConfigContent withExtern(ConfigContent a, ConfigExternUris extern_) =>
 	ConfigContent(a.include, extern_);
 
-Config parseConfig(
+Config configFromParsed(Uri crowIncludeDir, Uri configUri, ParsedConfig parsed) =>
+	Config(some(configUri), parsed.diagnostics, crowIncludeDir, parsed.include, parsed.extern_);
+
+public immutable struct ParsedConfig {
+	Diagnostic[] diagnostics;
+	ConfigImportUris include;
+	ConfigExternUris extern_;
+}
+
+public ParsedConfig parseConfig(
 	ref Alloc alloc,
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
-	Uri configUri,
-	Uri crowIncludeDir,
 	Uri dirContainingConfig,
 	in SafeCStr text,
 ) {
@@ -105,11 +103,10 @@ Config parseConfig(
 	Opt!Json json = parseJson(alloc, allSymbols, text); // TODO: this should take diagsBuilder
 	if (has(json) && force(json).isA!(Json.Object)) {
 		ConfigContent content = parseConfigRecur(
-			alloc, allSymbols, allUris, crowIncludeDir, dirContainingConfig, diagsBuilder,
-			force(json).as!(Json.Object));
-		return configFromContent(some(configUri), crowIncludeDir, finishArr(alloc, diagsBuilder), content);
+			alloc, allSymbols, allUris, dirContainingConfig, diagsBuilder, force(json).as!(Json.Object));
+		return ParsedConfig(finishArr(alloc, diagsBuilder), content.include, content.extern_);
 	} else
-		return emptyConfig(some(configUri), crowIncludeDir, arrLiteral(alloc, [todo!Diagnostic("diag -- bad JSON")]));
+		return ParsedConfig(arrLiteral(alloc, [todo!Diagnostic("diag -- bad JSON")]));
 }
 
 struct ConfigContent {
@@ -121,7 +118,6 @@ ConfigContent parseConfigRecur(
 	ref Alloc alloc,
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
-	Uri crowIncludeDir,
 	Uri dirContainingConfig,
 	scope ref ArrBuilder!Diagnostic diags,
 	in Json.Object fields,

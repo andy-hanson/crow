@@ -7,6 +7,8 @@ import util.sym : Sym, sym;
 Sym cExtension() => sym!".c";
 Sym crowExtension() => sym!".crow";
 
+Sym crowConfigBaseName() => sym!"crow-config.json";
+
 immutable struct JitOptions {
 	OptimizationLevel optimization;
 }

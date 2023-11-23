@@ -2,12 +2,15 @@ module frontend.parse.ast;
 
 @safe @nogc pure nothrow:
 
+import model.diag : ReadFileDiag;
 import model.model : AssertOrForbidKind, FunKind, ImportFileType, VarKind;
-import model.parseDiag : ParseDiagnostic;
+import model.parseDiag : ParseDiag, ParseDiagnostic;
+import util.alloc.alloc : Alloc;
 import util.col.arr : arrayOfSingle, SmallArray;
-import util.col.arrUtil : exists;
-import util.col.str : SafeCStr;
+import util.col.arrUtil : arrLiteral, exists;
+import util.col.str : SafeCStr, safeCStr;
 import util.conv : safeToUint;
+import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.sourceRange : Pos, Range, rangeOfStartAndLength, rangeOfStartAndName;
 import util.sym : AllSymbols, Sym, sym;
@@ -835,6 +838,18 @@ immutable struct FileAst {
 	TestAst[] tests;
 	VarDeclAst[] vars;
 }
+
+FileAst* fileAstForDiags(ref Alloc alloc, ParseDiagnostic[] diags) =>
+	allocate(alloc, FileAst(
+		diags,
+		safeCStr!"",
+		false,
+		none!ImportsOrExportsAst,
+		none!ImportsOrExportsAst,
+		[], [], [], [], [], []));
+
+FileAst* fileAstForReadFileDiag(ref Alloc alloc, ReadFileDiag a) =>
+	fileAstForDiags(alloc, arrLiteral(alloc, [ParseDiagnostic(Range.empty, ParseDiag(a))]));
 
 Sym symOfModifierKind(ModifierAst.Kind a) {
 	final switch (a) {

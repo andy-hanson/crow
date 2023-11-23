@@ -5,7 +5,7 @@
 		"hover": "builtin type nat",
 		"definition": [
 			{
-				"uri": "magic:basic.crow",
+				"uri": "magic:/basic.crow",
 				"range": {
 					"start": {"line": 0, "character": 0},
 					"end": {"line": 0, "character": 3}
@@ -24,7 +24,7 @@
 		"hover": "record type r",
 		"definition": [
 			{
-				"uri": "magic:basic.crow",
+				"uri": "magic:/basic.crow",
 				"range": {
 					"start": {"line": 2, "character": 0},
 					"end": {"line": 2, "character": 1}
@@ -43,7 +43,7 @@
 		"hover": "field r.fld (nat)",
 		"definition": [
 			{
-				"uri": "magic:basic.crow",
+				"uri": "magic:/basic.crow",
 				"range": {
 					"start": {"line": 3, "character": 1},
 					"end": {"line": 3, "character": 4}
@@ -57,7 +57,7 @@
 		"hover": "builtin type nat",
 		"definition": [
 			{
-				"uri": "magic:basic.crow",
+				"uri": "magic:/basic.crow",
 				"range": {
 					"start": {"line": 0, "character": 0},
 					"end": {"line": 0, "character": 3}

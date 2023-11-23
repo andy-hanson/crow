@@ -149,7 +149,6 @@ enum PerfMeasure {
 	gccJit,
 	generateBytecode,
 	lower,
-	parseEverything,
 	parseFile,
 	run,
 }
@@ -186,8 +185,6 @@ pure SafeCStr perfMeasureName(PerfMeasure a) {
 			return safeCStr!"generateBytecode";
 		case PerfMeasure.lower:
 			return safeCStr!"lower";
-		case PerfMeasure.parseEverything:
-			return safeCStr!"parseEverything";
 		case PerfMeasure.parseFile:
 			return safeCStr!"parseFile";
 		case PerfMeasure.run:

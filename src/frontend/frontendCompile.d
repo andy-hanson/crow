@@ -2,33 +2,37 @@ module frontend.frontendCompile;
 
 @safe @nogc pure nothrow:
 
-import frontend.storage : asSafeCStr, FileContent, ReadFileResult, Storage, withFile;
+import frontend.storage : FileContent, getFileContentOrDiag, getParsedOrDiag, ParseResult, Storage;
 import model.diag : Diag, Diagnostic, ReadFileDiag;
 import model.model :
 	CommonFuns, CommonTypes, Config, emptyModule, ImportFileType, ImportOrExport, ImportOrExportKind, Module, Program;
-import model.parseDiag : ParseDiag, ParseDiagnostic;
+import model.parseDiag : ParseDiag;
 import frontend.check.check : BootstrapCheck, check, checkBootstrap, FileAndAst, ImportOrExportFile, ImportsAndExports;
 import frontend.check.getCommonFuns : CommonModule, getCommonFuns;
 import frontend.config : getConfig;
 import frontend.lang : crowExtension;
 import frontend.parse.ast :
-	FileAst, ImportOrExportAst, ImportOrExportAstKind, ImportsOrExportsAst, NameAndRange, pathRange;
-import frontend.parse.parse : parseFile;
+	FileAst,
+	fileAstForDiags,
+	fileAstForReadFileDiag,
+	ImportOrExportAst,
+	ImportOrExportAstKind,
+	ImportsOrExportsAst,
+	NameAndRange,
+	pathRange;
 import frontend.programState : ProgramState;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : arrLiteral, contains, map, mapOp, mapOrNone, mapPointers, prepend;
+import util.col.arrUtil : contains, map, mapOp, mapOrNone, mapPointers, prepend;
 import util.col.map : Map;
 import util.col.enumMap : EnumMap, enumMapEach, enumMapMapValues;
 import util.col.mutMaxArr : isEmpty, mustPeek, mustPop, MutMaxArr, mutMaxArr, push;
 import util.col.mutMap : addToMutMap, getAt_mut, hasKey_mut, moveToMap, MutMap, setInMap;
-import util.col.str : safeCStr;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.sourceRange : Range;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.uri :
@@ -49,23 +53,21 @@ import util.util : verify;
 
 Program frontendCompile(
 	scope ref Perf perf,
-	ref Alloc modelAlloc,
-	ref Alloc astsAlloc,
+	ref Alloc alloc,
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
-	scope ref Storage storage,
+	ref Storage storage,
 	in Uri includeDir,
 	in Uri[] rootUris,
 	in Opt!Uri mainUri,
 ) {
-	Config config = getConfig(modelAlloc, allSymbols, allUris, includeDir, storage, rootUris);
+	Config config = getConfig(alloc, allSymbols, allUris, includeDir, storage, rootUris);
 	EnumMap!(CommonModule, Uri) commonUris = commonUris(allUris, config.crowIncludeDir);
-	AstAndResolvedImports[] parsed = withMeasure!(AstAndResolvedImports[], () => parseEverything(
-		perf, modelAlloc, astsAlloc, allSymbols, allUris, storage, rootUris, mainUri, commonUris, config)
-	)(perf, astsAlloc, PerfMeasure.parseEverything);
+	AstAndResolvedImports[] parsed = parseEverything(
+		perf, alloc, allSymbols, allUris, storage, rootUris, mainUri, commonUris, config);
 	return withMeasure!(Program, () =>
-		checkEverything(perf, modelAlloc, allSymbols, allUris, config, parsed, rootUris, mainUri, commonUris)
-	)(perf, modelAlloc, PerfMeasure.checkEverything);
+		checkEverything(perf, alloc, allSymbols, allUris, config, parsed, rootUris, mainUri, commonUris)
+	)(perf, alloc, PerfMeasure.checkEverything);
 }
 
 // The purpose of this is to discover unknown files
@@ -74,35 +76,17 @@ void parseAllFiles(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	ref AllUris allUris,
-	scope ref Storage storage,
+	ref Storage storage,
 	in Uri includeDir,
 	in Uri[] rootUris,
 ) {
 	Config config = getConfig(alloc, allSymbols, allUris, includeDir, storage, rootUris);
 	cast(void) parseEverything(
-		perf, alloc, alloc, allSymbols, allUris, storage,
+		perf, alloc, allSymbols, allUris, storage,
 		rootUris, none!Uri, commonUris(allUris, config.crowIncludeDir), config);
 }
 
-FileAst* parseSingleAst(
-	scope ref Perf perf,
-	ref Alloc alloc,
-	ref AllSymbols allSymbols,
-	ref AllUris allUris,
-	scope ref Storage storage,
-	Uri uri,
-) =>
-	withFile!(FileAst*)(storage, uri, (in ReadFileResult x) =>
-		x.matchIn!(FileAst*)(
-			(in FileContent content) =>
-				parseFile(perf, alloc, allSymbols, allUris, content.asSafeCStr()),
-			(in ReadFileDiag x) =>
-				astForReadFileDiag(alloc, x)));
-
 private:
-
-FileAst* astForReadFileDiag(ref Alloc alloc, ReadFileDiag a) =>
-	fileAstForDiags(alloc, arrLiteral(alloc, [ParseDiagnostic(Range.empty, ParseDiag(a))]));
 
 immutable struct ParseStatus {
 	immutable struct Started {}
@@ -122,8 +106,7 @@ alias ParseStack = MutMaxArr!(32, ParseStackEntry);
 
 AstAndResolvedImports[] parseEverything(
 	scope ref Perf perf,
-	ref Alloc modelAlloc,
-	ref Alloc astAlloc,
+	ref Alloc alloc,
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
 	scope ref Storage storage,
@@ -144,13 +127,9 @@ AstAndResolvedImports[] parseEverything(
 	Opt!(FullyResolvedImport[]) resolveImportsOrExports(
 		Uri fromUri,
 		ResolvedImport[] importsOrExports,
-	) {
-		return mapOrNone!(FullyResolvedImport, ResolvedImport)(
-			modelAlloc, importsOrExports, (ref ResolvedImport import_) =>
-				fullyResolveImport(
-					perf, astAlloc, allSymbols, allUris, storage, config,
-					statuses, stack, fromUri, import_));
-	}
+	) =>
+		mapOrNone!(FullyResolvedImport, ResolvedImport)(alloc, importsOrExports, (ref ResolvedImport import_) =>
+			fullyResolveImport(perf, alloc, allSymbols, allUris, storage, config, statuses, stack, fromUri, import_));
 
 	void process() {
 		while (!isEmpty(stack)) {
@@ -162,8 +141,8 @@ AstAndResolvedImports[] parseEverything(
 				: none!(FullyResolvedImport[]);
 			if (has(exports)) {
 				ParseStackEntry entry = mustPop(stack);
-				add(astAlloc, res, AstAndResolvedImports(uri, entry.ast, force(imports), force(exports)));
-				setInMap(astAlloc, statuses, uri, ParseStatus(ParseStatus.Done()));
+				add(alloc, res, AstAndResolvedImports(uri, entry.ast, force(imports), force(exports)));
+				setInMap(alloc, statuses, uri, ParseStatus(ParseStatus.Done()));
 			}
 			// else, we just pushed a dependency to the stack, so repeat.
 		}
@@ -171,7 +150,7 @@ AstAndResolvedImports[] parseEverything(
 
 	void processRootUri(Uri uri) {
 		if (!hasKey_mut(statuses, uri)) {
-			parseAndPush(perf, astAlloc, allSymbols, allUris, storage, config, statuses, stack, uri);
+			parseAndPush(perf, alloc, allSymbols, allUris, storage, config, statuses, stack, uri);
 			process();
 		}
 	}
@@ -183,7 +162,7 @@ AstAndResolvedImports[] parseEverything(
 		processRootUri(uri);
 
 	verify(isEmpty(stack));
-	return finishArr(astAlloc, res);
+	return finishArr(alloc, res);
 }
 
 immutable(EnumMap!(CommonModule, Uri)) commonUris(ref AllUris allUris, Uri includeDir) {
@@ -215,20 +194,18 @@ void parseAndPush(
 	ref ParseStack stack,
 	Uri uri,
 ) {
-	withFile!void(storage, uri, (in ReadFileResult x) {
-		ParseStatus status = x.match!ParseStatus(
-			(FileContent x) {
-				FileAst* ast = parseFile(perf, alloc, allSymbols, allUris, x.asSafeCStr());
-				push(stack, ParseStackEntry(uri, ast, resolveImportsAndExports(
-					alloc, allUris, config, uri, ast.imports, ast.exports)));
-				return ParseStatus(ParseStatus.Started());
-			},
-			(ReadFileDiag x) {
-				push(stack, ParseStackEntry(uri, astForReadFileDiag(alloc, x), ResolvedImportsAndExports()));
-				return ParseStatus(x);
-			});
-		addToMutMap(alloc, statuses, uri, status);
-	});
+	ParseStatus status = getParsedOrDiag(storage, uri).match!ParseStatus(
+		(ParseResult x) {
+			FileAst* ast = x.as!(FileAst*);
+			push(stack, ParseStackEntry(uri, ast, resolveImportsAndExports(
+				alloc, allUris, config, uri, ast.imports, ast.exports)));
+			return ParseStatus(ParseStatus.Started());
+		},
+		(ReadFileDiag x) {
+			push(stack, ParseStackEntry(uri, fileAstForReadFileDiag(alloc, x), ResolvedImportsAndExports()));
+			return ParseStatus(x);
+		});
+	addToMutMap(alloc, statuses, uri, status);
 }
 
 // returns none if we can't resolve all imported modules yet
@@ -288,17 +265,16 @@ Opt!FullyResolvedImportKind fullyResolveImportKind(
 
 FullyResolvedImportKind readFileContent(
 	in AllUris allUris,
-	scope ref Storage storage,
+	ref Storage storage,
 	in ImportOrExportAst ast,
 	in ImportOrExportAstKind.File astKind,
 	Uri uri,
 ) =>
-	withFile!FullyResolvedImportKind(storage, uri, (in ReadFileResult x) =>
-		x.matchIn!FullyResolvedImportKind(
-			(in FileContent x) =>
-				FullyResolvedImportKind(FullyResolvedImportKind.File(astKind.name.name, astKind.type, x)),
-			(in ReadFileDiag x) =>
-				FullyResolvedImportKind(Diagnostic(pathRange(allUris, ast), Diag(Diag.ImportFileDiag(uri, x))))));
+	getFileContentOrDiag(storage, uri).match!FullyResolvedImportKind(
+		(FileContent x) =>
+			FullyResolvedImportKind(FullyResolvedImportKind.File(astKind.name.name, astKind.type, x)),
+		(ReadFileDiag x) =>
+			FullyResolvedImportKind(Diagnostic(pathRange(allUris, ast), Diag(Diag.ImportFileDiag(uri, x)))));
 
 Opt!FullyResolvedImportKind fullyResolveImportModule(
 	scope ref Perf perf,
@@ -564,12 +540,3 @@ Program checkEverything(
 		commonFuns,
 		modulesAndCommonTypes.commonTypes);
 }
-
-FileAst* fileAstForDiags(ref Alloc alloc, ParseDiagnostic[] diags) =>
-	allocate(alloc, FileAst(
-		diags,
-		safeCStr!"",
-		false,
-		none!ImportsOrExportsAst,
-		none!ImportsOrExportsAst,
-		[], [], [], [], [], []));

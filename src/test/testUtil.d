@@ -11,6 +11,7 @@ import model.model : Program;
 import util.alloc.alloc : Alloc, MetaAlloc, newAlloc;
 import util.col.arrUtil : arrEqual, arrsCorrespond, makeArr;
 import util.opt : none;
+import util.perf : Perf;
 import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols;
 import util.uri : AllUris, Uri, UrisInfo;
@@ -21,16 +22,21 @@ struct Test {
 	@safe @nogc pure nothrow:
 
 	MetaAlloc* metaAlloc;
+	Perf* perfPtr;
 	Alloc alloc;
 	AllSymbols allSymbols;
 	AllUris allUris;
 
-	@trusted this(MetaAlloc* m) {
+	@trusted this(MetaAlloc* m, return scope Perf* p) {
 		metaAlloc = m;
+		perfPtr = p;
 		alloc = newAlloc(m);
 		allSymbols = AllSymbols(metaAlloc);
 		allUris = AllUris(metaAlloc, &allSymbols);
 	}
+
+	ref Perf perf() return scope =>
+		*perfPtr;
 }
 
 pure void withShowDiagCtxForTest(
