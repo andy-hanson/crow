@@ -28,6 +28,7 @@ private struct Option(T) {
 }
 
 alias Opt(T) = immutable Option!(immutable T);
+alias ConstOpt(T) = const Option!T;
 alias MutOpt(T) = Option!T;
 
 Opt!T none(T)() =>
@@ -38,6 +39,9 @@ MutOpt!T noneMut(T)() =>
 
 Opt!T some(T)(immutable T value) =>
 	Opt!T(value);
+
+ConstOpt!T someConst(T)(const T value) =>
+	ConstOpt!T(value);
 
 MutOpt!T someMut(T)(T value) =>
 	MutOpt!T(value);

@@ -107,7 +107,7 @@ ByteCode makeByteCode(
 	return dummyByteCode(finishOperations(writer));
 }
 
-ByteCode dummyByteCode(Operations operations) =>
+ByteCode dummyByteCode(return scope Operations operations) =>
 	ByteCode(
 		operations,
 		FunPtrToOperationPtr(),
@@ -138,7 +138,7 @@ void doInterpret(
 		LowFunIndex(0),
 		[]);
 	withFakeExtern!void(test.alloc, test.allSymbols, unreachableWriteCb, (scope ref Extern extern_) {
-		Storage storage = Storage(test.allocPtr);
+		Storage storage = Storage(test.metaAlloc);
 		withShowDiagCtxForTestImpure(test, storage, fakeProgramForTest, (ref ShowCtx ctx) {
 			withInterpreter!void(test.alloc, extern_.doDynCall, ctx, lowProgram, byteCode, (ref Stacks stacks) {
 				runInterpreter(stacks, initialOperationPointer(byteCode));
@@ -160,7 +160,7 @@ ByteCodeSource emptyByteCodeSource() =>
 	ByteCodeSource(LowFunIndex(0), Pos(0));
 
 void testCall(ref Test test) {
-	ByteCodeWriter writer = newByteCodeWriter(test.allocPtr);
+	ByteCodeWriter writer = newByteCodeWriter(&test.alloc);
 	ByteCodeSource source = emptyByteCodeSource;
 
 	// Code is:
@@ -227,7 +227,7 @@ void testCallFunPtr(ref Test test) {
 	LowType.FunPtr funType = LowType.FunPtr(0);
 	ByteCodeSource source = emptyByteCodeSource;
 
-	ByteCodeWriter writer = newByteCodeWriter(test.allocPtr);
+	ByteCodeWriter writer = newByteCodeWriter(&test.alloc);
 	FunToReferences funToReferences = initFunToReferences(test.alloc, funPtrTypeToDynCallSig, 1);
 
 	StackEntry argsFirstStackEntry = getNextStackEntry(writer);
@@ -272,7 +272,7 @@ void testCallFunPtr(ref Test test) {
 }
 
 void testSwitchAndJump(ref Test test) {
-	ByteCodeWriter writer = newByteCodeWriter(test.allocPtr);
+	ByteCodeWriter writer = newByteCodeWriter(&test.alloc);
 	ByteCodeSource source = emptyByteCodeSource;
 
 	// Code is:

@@ -8,15 +8,26 @@ import util.col.arrUtil : map;
 import util.col.map : Map;
 import util.hash : Hasher, hashSizeT, hashUbyte;
 import util.memory : initMemory, overwriteMemory;
-import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
+import util.opt : ConstOpt, force, has, MutOpt, none, noneMut, Opt, some, someConst, someMut;
 import util.ptr : hashPtr;
 import util.col.str : strEq;
 import util.util : drop, unreachable, verify;
 
 struct MutMap(K, V) {
+	@safe @nogc pure nothrow:
+
 	private:
 	size_t size;
 	MutOpt!(KeyValuePair!(K, V))[] pairs;
+
+	public MutOpt!V opIndex(in immutable K key) {
+		Opt!size_t i = getIndex(this, key);
+		return has(i) ? someMut!V(force(pairs[force(i)]).value) : noneMut!V;
+	}
+	public ConstOpt!V opIndex(in immutable K key) const {
+		Opt!size_t i = getIndex(this, key);
+		return has(i) ? someConst!V(force(pairs[force(i)]).value) : noneMut!V;
+	}
 }
 
 struct KeyValuePair(K, V) {
@@ -30,19 +41,24 @@ bool mutMapIsEmpty(K, V)(ref const MutMap!(K, V) a) =>
 size_t mutMapSize(K, V)(ref const MutMap!(K, V) a) =>
 	a.size;
 
-bool hasKey_mut(K, V)(ref const MutMap!(K, immutable V) a, in K key) =>
-	has(getAt_mut(a, key));
+bool hasKey_mut(K, V)(ref const MutMap!(K, V) a, in K key) =>
+	has(getIndex(a, key));
 
 Opt!V getAt_mut(K, V)(ref const MutMap!(immutable K, immutable V) a, in immutable K key) {
-	if (empty(a.pairs)) return none!V;
+	Opt!size_t i = getIndex(a, key);
+	return has(i) ? some(force(a.pairs[force(i)]).value) : none!V;
+}
+
+private Opt!size_t getIndex(K, V)(in MutMap!(K, V) a, in immutable K key) {
+	if (empty(a.pairs)) return none!size_t;
 
 	verify(a.size < a.pairs.length);
 	size_t i = getHash(key) % a.pairs.length;
 	while (true) {
 		if (!has(a.pairs[i]))
-			return none!V;
+			return none!size_t;
 		else if (eq!(immutable K)(key, force(a.pairs[i]).key))
-			return some(force(a.pairs[i]).value);
+			return some(i);
 		else {
 			i = nextI(a, i);
 		}
@@ -164,27 +180,31 @@ ref KeyValuePair!(K, V) getOrAddPair(K, V)(
 	}
 }
 
-Opt!V mayDelete(K, V)(ref MutMap!(K, V) a, in K key) =>
-	hasKey_mut(a, key)
-		? some(mustDelete(a, key))
-		: none!V;
+MutOpt!V mayDelete(K, V)(ref MutMap!(K, V) a, in K key) {
+	Opt!size_t index = getIndex(a, key);
+	return has(index) ? someMut(deleteAtIndex(a, force(index))) : noneMut!V;
+}
 
-immutable(V) mustDelete(K, V)(ref MutMap!(K, V) a, in K key) {
+V mustDelete(K, V)(ref MutMap!(K, V) a, in K key) {
 	verify(a.pairs.length != 0);
 	size_t i = getHash(key) % a.pairs.length;
 	while (true) {
 		if (!has(a.pairs[i]))
 			return unreachable!(immutable V);
-		else if (key == force(a.pairs[i]).key) {
-			immutable V res = force(a.pairs[i]).value;
-			a.size--;
-			fillHole(a, i, nextI(a, i));
-			return res;
-		} else {
+		else if (key == force(a.pairs[i]).key)
+			return deleteAtIndex(a, i);
+		else {
 			i++;
 			if (i == a.pairs.length) i = 0;
 		}
 	}
+}
+
+private V deleteAtIndex(K, V)(ref MutMap!(K, V) a, size_t i) {
+	V res = force(a.pairs[i]).value;
+	a.size--;
+	fillHole(a, i, nextI(a, i));
+	return res;
 }
 
 // When there is a hole, move anything there that would be closer to where it should be.
@@ -231,7 +251,7 @@ private @trusted immutable(Out[]) mapToArr_const(Out, K, V)(
 ) {
 	Out[] res = allocateElements!Out(alloc, a.size);
 	Out* cur = res.ptr;
-	foreach (ref const MutOpt!(KeyValuePair!(K, V)) pair; a.pairs) {
+	foreach (ref ConstOpt!(KeyValuePair!(K, V)) pair; a.pairs) {
 		if (has(pair)) {
 			initMemory(cur, cb(force(pair).key, force(pair).value));
 			cur++;
@@ -289,7 +309,7 @@ immutable(V[]) valuesArray(K, V)(ref Alloc alloc, in MutMap!(K, V) a) =>
 	mapToArr_const!(V, K, V)(alloc, a, (immutable(K), ref V v) => v);
 
 void mutMapEach(K, V)(ref inout MutMap!(K, V) a, in void delegate(const K, ref inout V) @safe @nogc pure nothrow cb) {
-	foreach (ref const MutOpt!(KeyValuePair!(K, V)) pair; a.pairs)
+	foreach (ref ConstOpt!(KeyValuePair!(K, V)) pair; a.pairs)
 		if (has(pair))
 			cb(force(pair).key, force(pair).value);
 }
@@ -305,7 +325,7 @@ void mutMapEachIn(K, V)(
 	in MutMap!(K, V) a,
 	in void delegate(in K, in V) @safe @nogc pure nothrow cb,
 ) {
-	foreach (scope ref const MutOpt!(KeyValuePair!(K, V)) pair; a.pairs)
+	foreach (scope ref ConstOpt!(KeyValuePair!(K, V)) pair; a.pairs)
 		if (has(pair))
 			cb(force(pair).key, force(pair).value);
 }
@@ -313,7 +333,7 @@ bool existsInMutMap(K, V)(
 	in MutMap!(K, V) a,
 	in bool delegate(in K, in V) @safe @nogc pure nothrow cb,
 ) {
-	foreach (scope ref const MutOpt!(KeyValuePair!(K, V)) pair; a.pairs)
+	foreach (scope ref ConstOpt!(KeyValuePair!(K, V)) pair; a.pairs)
 		if (has(pair) && cb(force(pair).key, force(pair).value))
 			return true;
 	return false;

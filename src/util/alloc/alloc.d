@@ -3,12 +3,20 @@ module util.alloc.alloc;
 @nogc nothrow: // not @safe, not pure
 
 import util.col.arr : arrOfRange, endPtr;
-import util.util : clamp, divRoundUp, verify;
+import util.util : clamp, divRoundUp, verify, verifyFail;
 
 T withStaticAlloc(T, alias cb)(word[] memory) {
 	scope MetaAlloc metaAlloc = MetaAlloc(memory);
-	scope Alloc alloc = newAlloc(metaAlloc);
+	scope Alloc alloc = newAlloc(&metaAlloc);
 	return cb(alloc);
+}
+
+@trusted void withTempAllocImpure(MetaAlloc* a, in void delegate(ref Alloc) @safe @nogc nothrow cb) {
+	// TODO:PERF Since this is temporary, an initial block could be on the stack?
+	Alloc alloc = newAlloc(a);
+	cb(alloc);
+	FinishedAlloc finished = finishAlloc(alloc);
+	freeAlloc(finished);
 }
 
 pure:
@@ -33,12 +41,12 @@ struct MetaAlloc {
 
 	word[] words;
 
-	@system BlockHeader* freeListSentinel() =>
+	@trusted BlockHeader* freeListSentinel() =>
 		cast(BlockHeader*) words.ptr;
 }
 
-Alloc newAlloc(return scope ref MetaAlloc a) =>
-	Alloc(&a, allocateBlock(a, 0));
+@safe Alloc newAlloc(MetaAlloc* a) =>
+	Alloc(a, allocateBlock(*a, 0));
 
 struct Alloc {
 	@safe @nogc pure nothrow:
@@ -47,7 +55,7 @@ struct Alloc {
 
 	@disable this();
 	@disable this(ref const Alloc);
-	@system this(MetaAlloc* m, BlockHeader* b) {
+	@trusted this(MetaAlloc* m, BlockHeader* b) {
 		meta = m;
 		verify(b.prev == null);
 		curBlock = b;
@@ -61,7 +69,7 @@ struct Alloc {
 alias TempAlloc = Alloc;
 
 // Alloc that we are done allocating to.
-private struct FinishedAlloc {
+struct FinishedAlloc {
 	private:
 	MetaAlloc* meta;
 	BlockHeader* lastBlock;
@@ -94,16 +102,30 @@ size_t perf_curBytes(ref Alloc a) {
 	return words * word.sizeof;
 }
 
-private FinishedAlloc finishAlloc(ref Alloc a) =>
-	FinishedAlloc(a.meta, a.curBlock);
+@trusted FinishedAlloc finishAlloc(ref Alloc a) {
+	freeRestOfBlock(*a.meta, a.curBlock, a.cur);
+	return FinishedAlloc(a.meta, a.curBlock);
+}
 
-private void freeAlloc(ref FinishedAlloc a) {
+void freeAlloc(ref FinishedAlloc a) {
 	BlockHeader* cur = a.lastBlock;
 	do {
 		BlockHeader* prev = cur.prev;
 		freeBlock(*a.meta, cur);
 		cur = prev;
 	} while (cur != null);
+}
+
+struct AllocAndValue(T) {
+	FinishedAlloc alloc;
+	T value;
+}
+
+@safe AllocAndValue!T withAlloc(T)(MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc pure nothrow cb) {
+	Alloc alloc = newAlloc(a);
+	T value = cb(alloc);
+	FinishedAlloc finished = finishAlloc(alloc);
+	return AllocAndValue!T(finished, value);
 }
 
 private:
@@ -125,37 +147,41 @@ struct BlockHeader {
 		word* padding = void;
 	}
 
-	@system inout(word[]) words() inout return scope =>
+	@trusted inout(word[]) words() inout return scope =>
 		arrOfRange!word(cast(inout word*) (&this + 1), end);
 }
 static assert(BlockHeader.sizeof % word.sizeof == 0);
 
-BlockHeader* allocateBlock(ref MetaAlloc a, size_t minWords) {
+@safe BlockHeader* allocateBlock(ref MetaAlloc a, size_t minWords) {
 	BlockHeader* cur = a.freeListSentinel.next;
 	while (cur != null) {
 		if (cur.words.length >= minWords) {
 			size_t sizeWords = clamp(preferredBlockWordCount, minWords, cur.words.length);
-			maybeSplitBlock(cur, sizeWords);
+			cast(void) maybeSplitBlock(cur, sizeWords);
 			removeFromList(cur);
 			verify(cur.prev == null && cur.next == null && cur.words.length >= sizeWords);
 			return cur;
 		} else
 			cur = cur.next;
 	}
-	assert(false); // OOM
+	// OOM
+	verifyFail("OOM");
+	assert(false);
 }
 
-void maybeSplitBlock(BlockHeader* left, size_t leftSizeWords) {
+@trusted bool maybeSplitBlock(BlockHeader* left, size_t leftSizeWords) {
 	verify(left.words.length >= leftSizeWords);
 	size_t remaining = left.words.length - leftSizeWords;
 	if (remaining >= blockHeaderSizeWords + minBlockSize) {
 		BlockHeader* right = cast(BlockHeader*) &left.words[leftSizeWords];
 		*right = BlockHeader(left, left.next, left.end);
 		*left = BlockHeader(left.prev, right, cast(word*) right);
-	}
+		return true;
+	} else
+		return false;
 }
 
-void removeFromList(BlockHeader* a) {
+@safe void removeFromList(BlockHeader* a) {
 	if (a.prev != null)
 		a.prev.next = a.next;
 	if (a.next != null)
@@ -164,25 +190,34 @@ void removeFromList(BlockHeader* a) {
 	a.next = null;
 }
 
+void freeRestOfBlock(ref MetaAlloc a, BlockHeader* block, word* cur) {
+	if (maybeSplitBlock(block, cur - block.words.ptr)) {
+		BlockHeader* freed = block.next;
+		removeFromList(block.next);
+		freeBlock(a, freed);
+	}
+}
+
 // TODO: Keep blocks in sorted order and merge adjacent blocks
 void freeBlock(ref MetaAlloc a, BlockHeader* block) {
 	insertBlockToRight(a.freeListSentinel, block);
 }
 
 void insertBlockToRight(BlockHeader* a, BlockHeader* b) {
-	a.next.prev = b;
+	if (a.next != null)
+		a.next.prev = b;
 	*b = BlockHeader(a, a.next, b.end);
 	a.next = b;
 }
 
 // Anything less than this becomes fragmentation.
-size_t minBlockSize() =>
+@safe size_t minBlockSize() =>
 	0x100;
 
-size_t preferredBlockWordCount() =>
+@safe size_t preferredBlockWordCount() =>
 	0x100000 - blockHeaderSizeWords;
 
-size_t blockHeaderSizeWords() =>
+@safe size_t blockHeaderSizeWords() =>
 	bytesToWords(BlockHeader.sizeof);
 
 bool blockOwns(T)(in BlockHeader* a, in T[] values) =>
@@ -235,22 +270,22 @@ void freeWords(ref Alloc a, in word[] range) {
 	}
 }
 
-const(word[]) outerWordRange(T)(return in T[] range) =>
+@trusted const(word[]) outerWordRange(T)(return in T[] range) =>
 	arrOfRange(roundDownToWord(cast(ubyte*) range.ptr), roundUpToWord(cast(ubyte*) endPtr(range)));
 
-const(word[]) innerWordRange(T)(return in T[] range) {
+@trusted const(word[]) innerWordRange(T)(return in T[] range) {
 	const word* begin = roundUpToWord(cast(ubyte*) range.ptr);
 	const word* end = roundDownToWord(cast(ubyte*) endPtr(range));
 	return begin < end ? arrOfRange(begin, end) : [];
 }
 
-size_t bytesToWords(size_t bytes) =>
+@safe size_t bytesToWords(size_t bytes) =>
 	divRoundUp(bytes, word.sizeof);
 
-const(word*) roundUpToWord(return in ubyte* a) {
+@trusted const(word*) roundUpToWord(return in ubyte* a) {
 	size_t rem = (cast(size_t) a) % word.sizeof;
 	return cast(word*) (rem == 0 ? a : a - rem + word.sizeof);
 }
 
-const(word*) roundDownToWord(return in ubyte* a) =>
+@trusted const(word*) roundDownToWord(return in ubyte* a) =>
 	cast(word*) (a - ((cast(size_t) a) % word.sizeof));

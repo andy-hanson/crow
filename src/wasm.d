@@ -24,7 +24,6 @@ import lib.server :
 	setCwd,
 	setDiagOptions,
 	setFile,
-	setFileFromTemp,
 	setIncludeDir,
 	showDiag,
 	toUri,
@@ -101,7 +100,7 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 		version_(resultAlloc, *server).ptr);
 
 @system extern(C) void setFileSuccess(Server* server, scope CStr uri, scope CStr content) {
-	setFileFromTemp(*server, toUri(*server, SafeCStr(uri)), SafeCStr(content));
+	setFile(*server, toUri(*server, SafeCStr(uri)), ReadFileResult(FileContent(SafeCStr(content))));
 }
 
 @system extern(C) void setFileIssue(Server* server, scope CStr uri, scope CStr issue) {
@@ -111,8 +110,8 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 
 @system extern(C) CStr getFile(Server* server, scope CStr uriCStr) {
 	SafeCStr uriStr = SafeCStr(uriCStr);
-	return wasmCall!("getFile", CStr)((scope ref Perf _, ref Alloc resultAlloc) {
-		Opt!FileContent res = getFile(resultAlloc, *server, toUri(*server, uriStr));
+	return wasmCall!("getFile", CStr)((scope ref Perf _, ref Alloc _a) {
+		Opt!FileContent res = getFile(*server, toUri(*server, uriStr));
 		return has(res) ? asSafeCStr(force(res)).ptr : "";
 	});
 }

@@ -43,9 +43,8 @@ import util.lineAndColumnGetter :
 	LineAndColumnGetters, toLineAndCharacter, uncacheFile, UriLineAndCharacter, UriLineAndColumn;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
-import util.ptr : ptrTrustMe;
+import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
 import util.storage :
-	allocateToStorage,
 	allKnownGoodUris,
 	allStorageUris,
 	allUrisWithIssue,
@@ -116,7 +115,7 @@ pure:
 struct Server {
 	@safe @nogc pure nothrow:
 
-	MetaAlloc metaAlloc;
+	MetaAlloc metaAlloc_;
 	Alloc alloc;
 	AllSymbols allSymbols;
 	AllUris allUris;
@@ -127,14 +126,16 @@ struct Server {
 	LineAndColumnGetters lineAndColumnGetters;
 
 	@trusted this(ulong[] memory) {
-		metaAlloc = MetaAlloc(memory);
+		metaAlloc_ = MetaAlloc(memory);
 		alloc = newAlloc(metaAlloc);
 		allSymbols = AllSymbols(&alloc);
 		allUris = AllUris(&alloc, &allSymbols);
-		storage = Storage(&alloc);
+		storage = Storage(metaAlloc);
 		lineAndColumnGetters = LineAndColumnGetters(&alloc, &storage);
 	}
 
+	MetaAlloc* metaAlloc() =>
+		castNonScope(&metaAlloc_);
 	ref Uri includeDir() return scope const =>
 		lateGet(includeDir_);
 	ref UrisInfo urisInfo() return scope const =>
@@ -193,22 +194,17 @@ void setDiagOptions(ref Server server, in ShowOptions options) {
 	lateSet!ShowOptions(server.diagOptions_, options);
 }
 
-void setFile(ref Server server, Uri uri, ReadFileResult result) {
+void setFile(ref Server server, Uri uri, in ReadFileResult result) {
 	uncacheFile(server, uri);
 	setFile(server.storage, uri, result);
-}
-
-void setFileFromTemp(ref Server server, Uri uri, in SafeCStr text) {
-	uncacheFile(server, uri);
-	setFile(server, uri, ReadFileResult(allocateToStorage(server.storage, text)));
 }
 
 private void uncacheFile(scope ref Server server, Uri uri) {
 	uncacheFile(server.lineAndColumnGetters, uri);
 }
 
-Opt!FileContent getFile(ref Alloc alloc, in Server server, Uri uri) =>
-	getFileNoMarkUnknown(alloc, server.storage, uri);
+Opt!FileContent getFile(return in Server server, Uri uri) =>
+	getFileNoMarkUnknown(castNonScope_ref(server.storage), uri);
 
 private bool hasUnknownOrLoadingUris(in Server server) =>
 	hasUnknownOrLoadingUris(server.storage);

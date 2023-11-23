@@ -7,7 +7,7 @@ import interpret.bytecode : ByteCode, ByteCodeIndex, Operation;
 import interpret.debugInfo : showDataArr;
 import interpret.stacks : dataTempAsArr, returnTempAsArrReverse, Stacks;
 import model.model : Program;
-import util.alloc.alloc : Alloc;
+import util.alloc.alloc : Alloc, MetaAlloc, newAlloc;
 import util.col.arrUtil : arrEqual, arrsCorrespond, makeArr;
 import util.lineAndColumnGetter : LineAndColumnGetters;
 import util.opt : none;
@@ -21,18 +21,17 @@ import util.writer : debugLogWithWriter, Writer;
 struct Test {
 	@safe @nogc pure nothrow:
 
-	Alloc* allocPtr;
+	MetaAlloc* metaAlloc;
+	Alloc alloc;
 	AllSymbols allSymbols;
 	AllUris allUris;
 
-	@trusted this(Alloc* ap) {
-		allocPtr = ap;
-		allSymbols = AllSymbols(ap);
-		allUris = AllUris(ap, &allSymbols);
+	@trusted this(MetaAlloc* m) {
+		metaAlloc = m;
+		alloc = newAlloc(m);
+		allSymbols = AllSymbols(&alloc);
+		allUris = AllUris(&alloc, &allSymbols);
 	}
-
-	ref Alloc alloc() return scope =>
-		*allocPtr;
 }
 
 pure void withShowDiagCtxForTest(
@@ -58,7 +57,7 @@ private void withShowDiagCtxForTestImpl(alias cb)(
 	return scope ref Storage storage,
 	return in Program program,
 ) {
-	LineAndColumnGetters lineAndColumnGetters = LineAndColumnGetters(test.allocPtr, &storage);
+	LineAndColumnGetters lineAndColumnGetters = LineAndColumnGetters(&test.alloc, &storage);
 	ShowCtx ctx = ShowCtx(
 		ptrTrustMe(test.allSymbols),
 		ptrTrustMe(test.allUris),

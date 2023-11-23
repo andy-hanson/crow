@@ -181,7 +181,6 @@ app_src_with_test = $(app_src_no_test) \
 	src\test\testMap.d \
 	src\test\testMemory.d \
 	src\test\testUri.d \
-	src\test\testServer.d \
 	src\test\testSortUtil.d \
 	src\test\testStack.d \
 	src\test\testSym.d \

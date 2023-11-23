@@ -11,6 +11,7 @@ import util.col.str : copyToSafeCStr, eachChar, SafeCStr, strEq, strOfSafeCStr;
 import util.conv : safeToSizeT;
 import util.hash : Hasher, hashUlong;
 import util.opt : force, has, Opt, none, some;
+import util.ptr : castNonScope_ref;
 import util.util : drop, verify;
 import util.writer : digitChar, withWriter, writeEscapedChar, Writer;
 
@@ -31,7 +32,7 @@ immutable struct Sym {
 struct AllSymbols {
 	@safe @nogc pure nothrow:
 
-	@trusted this(Alloc* allocPtr_) {
+	@trusted this(return scope Alloc* allocPtr_) {
 		allocPtr = allocPtr_;
 		foreach (string s; specialSyms) { {
 			SafeCStr str = SafeCStr(s.ptr);
@@ -188,7 +189,7 @@ void eachCharInSym(in AllSymbols allSymbols, Sym a, in void delegate(char) @safe
 		eachCharInShortSym(a.value, cb);
 	else {
 		verify(isLongSym(a));
-		eachChar(asLongSym(allSymbols, a), cb);
+		eachChar(asLongSym(castNonScope_ref(allSymbols), a), cb);
 	}
 }
 
@@ -209,7 +210,7 @@ private Sym getSym(string name) {
 	return force(opt);
 }
 
-SafeCStr safeCStrOfSym(ref Alloc alloc, ref const AllSymbols allSymbols, Sym a) =>
+SafeCStr safeCStrOfSym(ref Alloc alloc, return scope ref const AllSymbols allSymbols, Sym a) =>
 	isLongSym(a)
 		? asLongSym(allSymbols, a)
 		: withWriter(alloc, (scope ref Writer writer) {

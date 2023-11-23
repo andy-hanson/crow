@@ -11,7 +11,6 @@ import test.testInterpreter : testInterpreter;
 import test.testJson : testJson;
 import test.testLineAndColumnGetter : testLineAndColumnGetter;
 import test.testMemory : testMemory;
-import test.testServer : testServer;
 import test.testSortUtil : testSortUtil;
 import test.testStack : testStack;
 import test.testSym : testSym;
@@ -19,14 +18,13 @@ import test.testTokens : testTokens;
 import test.testUri : testUri;
 import test.testUtil : Test;
 import test.testWriter : testWriter;
-import util.alloc.alloc : Alloc;
+import util.alloc.alloc : MetaAlloc;
 import util.exitCode : ExitCode;
 import util.opt : force, has, Opt;
-import util.ptr : ptrTrustMe;
 import util.sym : Sym, sym;
 
-ExitCode test(ref Alloc alloc, Opt!Sym name) {
-	Test test = Test(ptrTrustMe(alloc));
+ExitCode test(MetaAlloc* alloc, Opt!Sym name) {
+	Test test = Test(alloc);
 	foreach (ref NameAndTest it; allTests)
 		if (!has(name) || force(name) == it.name)
 			it.test(test);
@@ -45,7 +43,6 @@ NameAndTest[] allTests = [
 	NameAndTest(sym!"line-and-column-getter", &testLineAndColumnGetter),
 	NameAndTest(sym!"map", &testMap),
 	NameAndTest(sym!"memory", &testMemory),
-	NameAndTest(sym!"server", &testServer),
 	NameAndTest(sym!"sort-util", &testSortUtil),
 	NameAndTest(sym!"stack", &testStack),
 	NameAndTest(sym!"sym", &testSym),

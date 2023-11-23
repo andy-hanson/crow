@@ -22,7 +22,7 @@ import util.lineAndColumnGetter : LineAndColumnGetter, PosKind;
 import util.opt : none;
 import util.uri : parseUri, Uri;
 import util.perf : Perf, withNullPerf;
-import util.storage : allocateToStorage, ReadFileResult, Storage, setFile;
+import util.storage : FileContent, ReadFileResult, Storage, setFile;
 import util.sourceRange : jsonOfPosWithinFile, jsonOfUriAndRange, Pos, UriAndRange;
 import util.util : debugLog, verifyFail;
 
@@ -55,8 +55,8 @@ void withHoverTest(string fileName)(
 	in void delegate(ref ShowCtx, Module*) @safe @nogc pure nothrow cb,
 ) {
 	Uri uri = parseUri(test.allUris, "magic:" ~ fileName);
-	Storage storage = Storage(test.allocPtr);
-	setFile(storage, uri, ReadFileResult(allocateToStorage(storage, content)));
+	Storage storage = Storage(test.metaAlloc);
+	setFile(storage, uri, ReadFileResult(FileContent(content)));
 	Program program = withNullPerf!(Program, (ref Perf perf) =>
 		frontendCompile(
 			test.alloc, perf, test.alloc, test.allSymbols, test.allUris, storage,

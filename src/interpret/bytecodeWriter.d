@@ -67,7 +67,7 @@ struct ByteCodeWriter {
 	size_t nextStackEntry = 0;
 }
 
-ByteCodeWriter newByteCodeWriter(Alloc* alloc) =>
+ByteCodeWriter newByteCodeWriter(return scope Alloc* alloc) =>
 	ByteCodeWriter(alloc);
 
 immutable struct StackEntry {

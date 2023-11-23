@@ -50,7 +50,7 @@ import model.model : hasAnyDiagnostics, Program;
 version (Test) {
 	import test.test : test;
 }
-import util.alloc.alloc : Alloc;
+import util.alloc.alloc : Alloc, withTempAllocImpure;
 import util.col.arr : empty;
 import util.col.arrUtil : prepend;
 import util.col.str : CStr, SafeCStr, safeCStr, safeCStrIsEmpty;
@@ -99,7 +99,9 @@ void loadAllFiles(ref Perf perf, ref Server server, in Uri[] rootUris) {
 }
 
 void loadSingleFile(ref Server server, Uri uri) {
-	setFile(server, uri, tryReadFile(server.storage.alloc, server.allUris, uri));
+	withTempAllocImpure(server.metaAlloc, (ref Alloc alloc) {
+		setFile(server, uri, tryReadFile(alloc, server.allUris, uri));
+	});
 }
 
 @trusted void logPerf(in Perf perf) {
@@ -177,7 +179,7 @@ ExitCode go(ref Perf perf, ref Server server, in Command command) {
 		},
 		(in Command.Test it) {
 			version (Test) {
-				return test(server.alloc, it.name);
+				return test(server.metaAlloc, it.name);
 			} else
 				return printError(safeCStr!"Did not compile with tests");
 		},

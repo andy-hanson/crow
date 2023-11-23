@@ -8,14 +8,14 @@ import util.sym : AllSymbols, appendHexExtension, isShortSym, isLongSym, prepend
 import util.util : verify;
 
 void testSym(ref Test test) {
-	AllSymbols allSymbols = AllSymbols(test.allocPtr);
+	AllSymbols allSymbols = AllSymbols(&test.alloc);
 
-	Sym staticSym(string a)() {
+	Sym staticSym(string a)() @safe {
 		verify(sym!a == nonStaticSym!a);
 		return sym!a;
 	}
 
-	Sym nonStaticSym(string a)() {
+	Sym nonStaticSym(string a)() @safe {
 		Sym res = symOfStr(allSymbols, a);
 		verify(safeCStrEq(safeCStrOfSym(test.alloc, allSymbols, res), safeCStr!a));
 		return res;
