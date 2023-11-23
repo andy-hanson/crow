@@ -1,4 +1,4 @@
-const {createConnection, TextDocuments, ProposedFeatures} = require("vscode-languageserver")
+const {createConnection, ProposedFeatures} = require("vscode-languageserver")
 /** @typedef {import("vscode-languageserver-protocol").TextDocumentPositionParams} TextDocumentPositionParams */
 const {
 	DidChangeConfigurationNotification, DefinitionRequest, HoverRequest,
@@ -10,6 +10,7 @@ const {TextDocumentSyncKind} = require("vscode-languageserver-protocol")
 /** @typedef {import("vscode-languageserver-protocol").InitializeParams} InitializeParams */
 /** @typedef {import("vscode-languageserver-protocol").InitializeResult<unknown>} InitializeResult */
 /** @typedef {import("vscode-languageserver-protocol").PublishDiagnosticsParams} PublishDiagnosticsParams */
+/** @typedef {import("vscode-languageserver-protocol").TextDocumentContentChangeEvent} TextDocumentContentChangeEvent */
 const {TextDocument} = require("vscode-languageserver-textdocument")
 
 const {makeCompiler, LOG_PERF, LOG_VERBOSE} = require("./util.js")
@@ -42,9 +43,6 @@ const logPerf = (message, content) => {
 	if (LOG_PERF)
 		log(message, content)
 }
-
-/** @type {TextDocuments<TextDocument>} */
-const documents = new TextDocuments(TextDocument)
 
 let hasConfigurationCapability = false
 
@@ -95,18 +93,29 @@ connection.onInitialized(withLogErrors("onInitialized", () => {
 	}
 }))
 
-documents.onDidOpen(withLogErrors("onDidOpen", ({document}) => {
-	logVerbose("onDidOpen", {uri:document.uri})
-	onDidOpenOrChangeDocument(document)
+/** @type {Set<string>} */
+const openDocuments = new Set()
+
+/** @type {function(): ReadonlyArray<string>} */
+const getCrowUris = () =>
+	Array.from(openDocuments).filter(cur => cur.endsWith('.crow'))
+
+connection.onDidOpenTextDocument(withLogErrors("onDidOpenTextDocument", (params) => {
+	const {uri, text} = params.textDocument
+	openDocuments.add(uri)
+	compiler.setFileSuccess(uri, text)
+	afterOpenOrChangeFile(uri)
 }))
 
-documents.onDidClose(withLogErrors("onDidClose", ({document}) => {
-	logVerbose("onDidClose (unimplemented)", {uri:document.uri})
+connection.onDidChangeTextDocument(withLogErrors("onDidChangeTextDocument", params => {
+	const {contentChanges, textDocument:{uri}} = params
+	compiler.changeFile(uri, contentChanges)
+	afterOpenOrChangeFile(uri)
 }))
 
-documents.onDidChangeContent(withLogErrors("onDidChangeContent", ({document}) => {
-	logVerbose("onDidChangeContent", {uri:document.uri})
-	onDidOpenOrChangeDocument(document)
+connection.onDidCloseTextDocument(withLogErrors("onDidCloseTextDocument", params => {
+	openDocuments.delete(params.textDocument.uri)
+	// TODO: tell compiler it's closed
 }))
 
 /** @type {function(crowProtocol.ReadFileResult): void} */
@@ -118,10 +127,9 @@ const onReadFileResult = ({uri, type}) => {
 // 'onDidOpen' should handle normal files, this is for file not found or error
 connection.onNotification("custom/readFileResult", withLogErrors("readFileResult", onReadFileResult))
 
-/** @type {function(TextDocument): void} */
-const onDidOpenOrChangeDocument = document => {
-	compiler.setFileSuccess(document.uri, document.getText())
-	compiler.searchImportsFromUri(document.uri)
+/** @type {function(crow.Uri): void} */
+const afterOpenOrChangeFile = uri => {
+	compiler.searchImportsFromUri(uri)
 	afterFileChange()
 }
 
@@ -142,9 +150,7 @@ const afterFileChange = () => {
 		const newDiags = compiler.getAllDiagnostics() // TODO: use getDiagnosticsForUri?
 		for (const {uri, diagnostics} of newDiags) {
 			lastDiagnosticsUris.delete(uri)
-			const doc = getDocument(uri)
-			if (doc !== null)
-				connection.sendDiagnostics(toDiagnostics(doc, diagnostics))
+			connection.sendDiagnostics({uri, diagnostics})
 		}
 		for (const uri of lastDiagnosticsUris)
 			connection.sendDiagnostics({uri, diagnostics:[]})
@@ -152,32 +158,8 @@ const afterFileChange = () => {
 	}
 }
 
-// Make the text document manager listen on the connection
-// for open, change and close text document events
-documents.listen(connection)
-
 /** @type {crow.Compiler} */
 let compiler
-
-/** @type {function(TextDocument, ReadonlyArray<crow.Diagnostic>): PublishDiagnosticsParams} */
-const toDiagnostics = (document, diagnostics) =>
-	({uri:document.uri, diagnostics:diagnostics.slice()})
-
-/** @type {function(string): TextDocument | null} */
-const getDocument = uri => {
-	const res = documents.get(uri)
-	if (res === undefined) {
-		if (!compiler.allUnknownUris().includes(uri))
-			logError("Failed to get document.", {
-				uri,
-				allDocuments: documents.keys().slice().sort(),
-				compilerAllUris: compiler.allStorageUris().slice().sort(),
-				unknownUris: compiler.allUnknownUris(),
-			})
-		return null
-	} else
-		return res
-}
 
 connection.onDidChangeWatchedFiles(withLogErrors("onDidChangeWatchedFiles", _change => {
 	// Monitored files have change in VSCode
@@ -197,10 +179,6 @@ connection.onReferences(withLogErrors("onReferences", params =>
 
 connection.onRenameRequest(withLogErrors("onRename", params =>
 	compiler.getRename(getUriLineAndCharacter(params), getCrowUris(), params.newName)))
-
-/** @type {function(): ReadonlyArray<string>} */
-const getCrowUris = () =>
-documents.keys().filter(cur => cur.endsWith('.crow'))
 
 /** @type {function(TextDocumentPositionParams): crow.UriLineAndCharacter} */
 const getUriLineAndCharacter = ({textDocument, position}) =>

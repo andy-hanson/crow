@@ -22,6 +22,7 @@ Exports of `wasm.d`:
 @property {function(Server): CStr} version_
 @property {function(Server, CStr, CStr): void} setFileSuccess
 @property {function(Server, CStr, CStr): void} setFileIssue
+@property {function(Server, CStr, CStr): void} changeFile
 @property {function(Server, CStr): CStr} getFile
 @property {function(Server, CStr): void} searchImportsFromUri
 @property {function(Server): CStr} allStorageUris
@@ -199,6 +200,8 @@ globalCrow.makeCompiler = async (bytes, includeDir, cwd, logger) => {
 			exports.setFileSuccess(server, paramAlloc.writeCStr(uri), paramAlloc.writeCStr(content))),
 		setFileIssue: (uri, issue) => withParams(() =>
 			exports.setFileIssue(server, paramAlloc.writeCStr(uri), paramAlloc.writeCStr(issue))),
+		changeFile: (uri, changes) => withParams(() =>
+			exports.changeFile(server, paramAlloc.writeCStr(uri), paramAlloc.writeCStr(JSON.stringify(changes)))),
 		getFile: uri => withParams(() =>
 			readCStr(exports.getFile(server, paramAlloc.writeCStr(uri)))),
 		searchImportsFromUri: uri => withParams(() =>

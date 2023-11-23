@@ -79,6 +79,9 @@ immutable struct LineAndColumnGetter {
 
 	Pos opIndex(in LineAndColumn lc) scope =>
 		this[toLineAndCharacter(this, lc)];
+
+	Range opIndex(in LineAndCharacterRange lc) scope =>
+		Range(this[lc.start], this[lc.end]);
 }
 
 LineAndCharacter toLineAndCharacter(in LineAndColumnGetter a, in LineAndColumn lc) =>

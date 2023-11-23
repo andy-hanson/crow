@@ -54,11 +54,11 @@ declare namespace crow {
 
 	type UriAndDiagnostics = {
 		uri: Uri
-		diagnostics: ReadonlyArray<Diagnostic>
+		diagnostics: Diagnostic[]
 	}
 
 	type AllDiagnosticsResult = {
-		diagnostics: ReadonlyArray<UriAndDiagnostics>
+		diagnostics: UriAndDiagnostics[]
 	}
 
 	namespace Write {
@@ -77,6 +77,11 @@ declare namespace crow {
 		changes: { [uri: Uri]: TextEdit[] }
 	}
 
+	type ChangeEvent = {
+		range?: Range
+		text: string
+	}
+
 	type Logger = (arg0: string, arg1?: unknown) => void
 
 	function makeCompiler(bytes: ArrayBuffer, includeDir: Uri, cwd: Uri, logger: Logger): Promise<Compiler>
@@ -84,6 +89,7 @@ declare namespace crow {
 		version(): string
 		setFileSuccess(uri: Uri, content: string): void
 		setFileIssue(uri: Uri, issue: "notFound" | "unknown" | "loading" | "error"): void
+		changeFile(uri: Uri, changes: ReadonlyArray<ChangeEvent>): void
 		// For debug/test
 		getFile(uri: Uri): string
 		searchImportsFromUri(uri: Uri): void

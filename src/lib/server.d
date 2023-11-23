@@ -22,6 +22,7 @@ import frontend.storage :
 	allKnownGoodUris,
 	allStorageUris,
 	allUrisWithFileDiag,
+	changeFile,
 	FileContent,
 	getFileNoMarkUnknown,
 	getParsedOrDiag,
@@ -38,6 +39,7 @@ import interpret.fakeExtern : Pipe, withFakeExtern, WriteCb;
 import interpret.generateBytecode : generateBytecode;
 import interpret.runBytecode : runBytecode;
 import lib.cliParser : PrintKind;
+import lib.lsp.lspTypes : ChangeEvent;
 import lower.lower : lower;
 import model.concreteModel : ConcreteProgram;
 import model.diag : Diag, ReadFileDiag;
@@ -193,6 +195,10 @@ void setDiagOptions(ref Server server, in ShowOptions options) {
 
 void setFile(scope ref Perf perf, ref Server server, Uri uri, in ReadFileResult result) {
 	setFile(perf, server.storage, uri, result);
+}
+
+void changeFile(scope ref Perf perf, ref Server server, Uri uri, in ChangeEvent[] changes) {
+	changeFile(perf, server.storage, uri, changes);
 }
 
 Opt!FileContent getFile(return in Server server, Uri uri) =>

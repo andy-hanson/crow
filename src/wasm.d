@@ -8,10 +8,12 @@ import frontend.showDiag : sortedDiagnostics, sortedDiagnosticsForUri, UriAndDia
 import frontend.showModel : ShowOptions;
 import frontend.storage : asSafeCStr, FileContent, ReadFileResult;
 import interpret.fakeExtern : Pipe;
+import lib.lsp.lspParse : parseChangeEvents;
 import lib.server :
 	allLoadingUris,
 	allStorageUris,
 	allUnknownUris,
+	changeFile,
 	getDefinition,
 	getFile,
 	getHover,
@@ -113,6 +115,14 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 	wasmCall!("setFileIssue", void)((scope ref Perf perf, ref Alloc _) {
 		setFile(perf, *server, toUri(*server, uriStr), ReadFileResult(
 			readFileDiagOfSym(symOfSafeCStr(server.allSymbols, issueStr))));
+	});
+}
+
+@system extern(C) void changeFile(Server* server, scope CStr uri, scope CStr changes) {
+	SafeCStr uriStr = SafeCStr(uri);
+	SafeCStr changesStr = SafeCStr(changes);
+	wasmCall!("changeFile", void)((scope ref Perf perf, ref Alloc alloc) {
+		changeFile(perf, *server, toUri(*server, uriStr), parseChangeEvents(alloc, server.allSymbols, changesStr));
 	});
 }
 

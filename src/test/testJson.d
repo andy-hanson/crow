@@ -13,6 +13,7 @@ import util.writer : debugLogWithWriter, Writer;
 
 void testJson(ref Test test) {
 	testBoolean(test);
+	testNumber(test);
 	testString(test);
 	testObject(test);
 	testArray(test);
@@ -26,10 +27,14 @@ void testBoolean(ref Test test) {
 	verifyParseJson(test, safeCStr!"true", Json(true));
 }
 
+void testNumber(ref Test test) {
+	verifyParseJson(test, safeCStr!"123", Json(123));
+}
+
 void testString(ref Test test) {
 	verifyParseJson(test, safeCStr!"\"\"", Json(""));
 	verifyParseJson(test, safeCStr!"\"abc\"", Json("abc"));
-	verifyParseJson(test, safeCStr!"\"a\\nb\"", Json("a\\nb"));
+	verifyParseJson(test, safeCStr!"\"a\\nb\"", Json("a\nb"));
 }
 
 @trusted void testArray(ref Test test) {

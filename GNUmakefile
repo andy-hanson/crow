@@ -50,6 +50,7 @@ src_files_common = src/concretize/*.d \
 	src/frontend/*/*/*.d \
 	src/interpret/*.d \
 	src/lib/*.d \
+	src/lib/*/*.d \
 	src/lower/*.d \
 	src/model/*.d \
 	src/util/*.d \

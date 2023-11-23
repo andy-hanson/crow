@@ -6,8 +6,9 @@ import frontend.config : parseConfig, ParsedConfig;
 import frontend.lang : crowConfigBaseName, crowExtension;
 import frontend.parse.ast : FileAst;
 import frontend.parse.parse : parseFile;
+import lib.lsp.lspTypes : ChangeEvent;
 import model.diag : ReadFileDiag;
-import util.alloc.alloc : Alloc, AllocAndValue, freeAlloc, MetaAlloc, newAlloc, withAlloc;
+import util.alloc.alloc : Alloc, AllocAndValue, freeAlloc, MetaAlloc, newAlloc, withAlloc, withTempAlloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : copyArr;
@@ -33,11 +34,12 @@ import util.memory : allocate;
 import util.opt : ConstOpt, force, has, none, MutOpt, Opt, some;
 import util.perf : Perf;
 import util.ptr : castNonScope_ref;
-import util.sourceRange : jsonOfRange, lineAndCharacterRange, Pos, UriAndPos, UriAndRange;
+import util.sourceRange : jsonOfRange, lineAndCharacterRange, Pos, Range, UriAndPos, UriAndRange;
 import util.sym : AllSymbols;
 import util.union_ : Union;
 import util.uri : AllUris, baseName, getExtension, parentOrEmpty, Uri, stringOfUri;
 import util.util : verify;
+import util.writer : withWriter, Writer;
 
 struct Storage {
 	@safe @nogc pure nothrow:
@@ -88,6 +90,20 @@ immutable struct ParseResult {
 		(in ReadFileDiag x) {
 			addToMutMap(a.mapAlloc, a.diags, uri, x);
 		});
+}
+
+void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in ChangeEvent[] changes) {
+	foreach (ChangeEvent change; changes)
+		changeFile(perf, a, uri, change);
+}
+
+void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in ChangeEvent change) {
+	FileInfo info = fileOrDiag(a, uri).as!FileInfo;
+	// TODO:PERF This means an unnecessary copy in 'setFile'
+	withTempAlloc(a.metaAlloc, (ref Alloc alloc) {
+		SafeCStr newContent = applyChange(alloc, asString(info.content), info.lineAndColumnGetter, change);
+		setFile(perf, a, uri, ReadFileResult(FileContent(newContent)));
+	});
 }
 
 private AllocAndValue!FileInfo getFileInfo(scope ref Perf perf, ref Storage storage, Uri uri, in FileContent content) =>
@@ -247,3 +263,14 @@ Json jsonOfUriAndRange(ref Alloc alloc, in AllUris allUris, in LineAndColumnGett
 
 Json jsonOfRange(ref Alloc alloc, in LineAndColumnGetters lcg, in UriAndRange a) =>
 	jsonOfRange(alloc, lcg[a.uri], a.range);
+
+private SafeCStr applyChange(ref Alloc alloc, in string input, in LineAndColumnGetter lc, in ChangeEvent event) =>
+	withWriter(alloc, (scope ref Writer writer) {
+		if (has(event.range)) {
+			Range range = lc[force(event.range)];
+			writer ~= input[0 .. range.start];
+			writer ~= event.text;
+			writer ~= input[range.end .. $];
+		} else
+			writer ~= event.text;
+	});

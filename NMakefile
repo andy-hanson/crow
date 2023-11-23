@@ -106,6 +106,8 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\interpret\runBytecode.d \
 	src\interpret\stacks.d \
 	src\lib\cliParser.d \
+	src\lib\lsp\lspParse.d \
+	src\lib\lsp\lspTypes.d \
 	src\lib\server.d \
 	src\lower\checkLowModel.d \
 	src\lower\generateCallFunOrAct.d \

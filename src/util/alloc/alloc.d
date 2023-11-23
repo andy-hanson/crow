@@ -11,7 +11,10 @@ T withStaticAlloc(T, alias cb)(word[] memory) {
 	return cb(alloc);
 }
 
-@trusted T withTempAllocImpure(T)(MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc nothrow cb) {
+T withTempAllocImpure(T)(MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc nothrow cb) =>
+	withTempAllocAlias!(T, cb)(a);
+
+@trusted private T withTempAllocAlias(T, alias cb)(MetaAlloc* a) {
 	// TODO:PERF Since this is temporary, an initial block could be on the stack?
 	Alloc alloc = newAlloc(a);
 	static if (is(T == void)) {
@@ -26,6 +29,9 @@ T withStaticAlloc(T, alias cb)(word[] memory) {
 }
 
 pure:
+
+@safe T withTempAlloc(T)(MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc pure nothrow cb) =>
+	withTempAllocAlias!(T, cb)(a);
 
 @trusted T withStackAlloc(size_t sizeWords, T)(in T delegate(ref Alloc) @safe @nogc pure nothrow cb) {
 	ulong[sizeWords] memory = void;
