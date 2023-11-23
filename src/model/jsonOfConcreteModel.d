@@ -2,6 +2,7 @@ module model.jsonOfConcreteModel;
 
 @safe @nogc pure nothrow:
 
+import frontend.storage : jsonOfRange, LineAndColumnGetters;
 import model.concreteModel :
 	body_,
 	ConcreteClosureRef,
@@ -31,14 +32,11 @@ import model.model : EnumFunction, enumFunctionName, flagsFunctionName, FunInst,
 import util.alloc.alloc : Alloc;
 import util.json :
 	field, Json, jsonObject, optionalArrayField, optionalField, optionalFlagField, jsonList, jsonString, kindField;
-import util.lineAndColumnGetter : LineAndColumnGetters;
-import util.ptr : ptrTrustMe;
-import util.sourceRange : jsonOfRange;
 import util.sym : Sym, sym;
 import util.util : todo;
 
-Json jsonOfConcreteProgram(ref Alloc alloc, scope ref LineAndColumnGetters lcg, in ConcreteProgram a) {
-	Ctx ctx = Ctx(ptrTrustMe(lcg));
+Json jsonOfConcreteProgram(ref Alloc alloc, in LineAndColumnGetters lcg, in ConcreteProgram a) {
+	Ctx ctx = Ctx(lcg);
 	return jsonObject(alloc, [
 		field!"structs"(jsonList!(ConcreteStruct*)(alloc, a.allStructs, (in ConcreteStruct* x) =>
 			jsonOfConcreteStruct(alloc, *x))),
@@ -52,13 +50,8 @@ Json jsonOfConcreteProgram(ref Alloc alloc, scope ref LineAndColumnGetters lcg, 
 
 private:
 
-struct Ctx {
-	@safe @nogc pure nothrow:
-
-	LineAndColumnGetters* lineAndColumnGettersPtr;
-
-	ref LineAndColumnGetters lineAndColumnGetters() return scope =>
-		*lineAndColumnGettersPtr;
+const struct Ctx {
+	LineAndColumnGetters lineAndColumnGetters;
 }
 
 Json jsonOfConcreteStruct(ref Alloc alloc, in ConcreteStruct a) =>
@@ -135,7 +128,7 @@ Json jsonOfConcreteVar(ref Alloc alloc, in ConcreteVar a) =>
 		field!"source"(a.source.name),
 		field!"type"(jsonOfConcreteType(alloc, a.type))]);
 
-Json jsonOfConcreteFun(ref Alloc alloc, scope ref Ctx ctx, in ConcreteFun a) =>
+Json jsonOfConcreteFun(ref Alloc alloc, in Ctx ctx, in ConcreteFun a) =>
 	jsonObject(alloc, [
 		field!"source"(jsonOfConcreteFunSource(alloc, a.source)),
 		field!"return-type"(jsonOfConcreteType(alloc, a.returnType)),
@@ -160,7 +153,7 @@ Json jsonOfConcreteFunSource(ref Alloc alloc, in ConcreteFunSource a) =>
 public Json jsonOfConcreteFunRef(ref Alloc alloc, in ConcreteFun a) =>
 	jsonOfConcreteFunSource(alloc, a.source);
 
-Json jsonOfConcreteFunBody(ref Alloc alloc, scope ref Ctx ctx, in ConcreteFunBody a) =>
+Json jsonOfConcreteFunBody(ref Alloc alloc, in Ctx ctx, in ConcreteFunBody a) =>
 	a.matchIn!Json(
 		(in ConcreteFunBody.Builtin x) =>
 			jsonOfConcreteFunBodyBuiltin(alloc, x),
@@ -226,17 +219,17 @@ Sym name(in ConcreteLocalSource a) =>
 		(in ConcreteLocalSource.Generated x) =>
 			x.name);
 
-Json jsonOfConcreteExpr(ref Alloc alloc, scope ref Ctx ctx, in ConcreteExpr a) =>
+Json jsonOfConcreteExpr(ref Alloc alloc, in Ctx ctx, in ConcreteExpr a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx.lineAndColumnGetters, a.range)),
 		field!"type"(jsonOfConcreteType(alloc, a.type)),
 		field!"expr-kind"(jsonOfConcreteExprKind(alloc, ctx, a.kind))]);
 
-Json jsonOfConcreteExprs(ref Alloc alloc, scope ref Ctx ctx, in ConcreteExpr[] a) =>
+Json jsonOfConcreteExprs(ref Alloc alloc, in Ctx ctx, in ConcreteExpr[] a) =>
 	jsonList!ConcreteExpr(alloc, a, (in ConcreteExpr x) =>
 		jsonOfConcreteExpr(alloc, ctx, x));
 
-Json jsonOfConcreteExprKind(ref Alloc alloc, scope ref Ctx ctx, in ConcreteExprKind a) =>
+Json jsonOfConcreteExprKind(ref Alloc alloc, in Ctx ctx, in ConcreteExprKind a) =>
 	a.matchIn!Json(
 		(in ConcreteExprKind.Alloc x) =>
 			jsonObject(alloc, [

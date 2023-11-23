@@ -60,7 +60,7 @@ import util.lineAndColumnGetter : UriLineAndColumn;
 import util.opt : force, has;
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasureResult, perfTotal;
 import util.sym : sym;
-import util.uri : AllUris, childUri, FileUri, Uri, parentOrEmpty, uriToSafeCStr, toUri;
+import util.uri : AllUris, childUri, FileUri, Uri, parentOrEmpty, safeCStrOfUri, toUri;
 import util.util : verify;
 import versionInfo : versionInfoForJIT;
 
@@ -192,7 +192,7 @@ Uri getCrowDir(ref AllUris allUris) =>
 	parentOrEmpty(allUris, parentOrEmpty(allUris, toUri(allUris, getPathToThisExecutable(allUris))));
 
 SafeCStr[] getAllArgs(ref Alloc alloc, in AllUris allUris, Uri main, in SafeCStr[] programArgs) =>
-	prepend(alloc, uriToSafeCStr(alloc, allUris, main), programArgs);
+	prepend(alloc, safeCStrOfUri(alloc, allUris, main), programArgs);
 
 ExitCode doPrint(scope ref Perf perf, ref Alloc alloc, ref Server server, in Command.Print command) {
 	Uri mainUri = command.mainUri;

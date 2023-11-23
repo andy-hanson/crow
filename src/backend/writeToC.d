@@ -70,7 +70,7 @@ import util.writer :
 	writeWithCommas,
 	writeWithCommasZip;
 
-SafeCStr writeToC(ref Alloc alloc, ref TempAlloc tempAlloc, ref ShowCtx printCtx, in LowProgram program) =>
+SafeCStr writeToC(ref Alloc alloc, ref TempAlloc tempAlloc, in ShowCtx printCtx, in LowProgram program) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		writer ~= "#include <tgmath.h>\n"; // Implements functions in 'tgmath.crow'
 		writer ~= "#include <stddef.h>\n"; // for NULL
@@ -204,7 +204,7 @@ void declareConstantPointerStorage(
 	writeConstantPointerStorageName(writer, ctx.mangledNames, ctx.program, pointeeType, index);
 }
 
-struct Ctx {
+const struct Ctx {
 	@safe @nogc pure nothrow:
 
 	ShowCtx* showDiagCtxPtr;

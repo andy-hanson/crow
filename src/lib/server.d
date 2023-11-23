@@ -27,9 +27,11 @@ import frontend.storage :
 	FileContent,
 	getFileNoMarkUnknown,
 	hasUnknownOrLoadingUris,
+	LineAndColumnGetters,
 	ReadFileResult,
 	Storage,
 	setFile,
+	toLineAndCharacter,
 	withFile;
 import interpret.bytecode : ByteCode;
 import interpret.extern_ : Extern, ExternFunPtrsForAllLibraries, WriteError;
@@ -51,8 +53,7 @@ import util.col.str : SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
 import util.exitCode : ExitCode;
 import util.json : Json, jsonString;
 import util.late : Late, lateGet, lateSet;
-import util.lineAndColumnGetter :
-	LineAndColumnGetters, toLineAndCharacter, uncacheFile, UriLineAndCharacter, UriLineAndColumn;
+import util.lineAndColumnGetter : UriLineAndCharacter, UriLineAndColumn;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
@@ -121,14 +122,12 @@ struct Server {
 	private Late!UrisInfo urisInfo_;
 	private Late!ShowOptions diagOptions_;
 	Storage storage;
-	LineAndColumnGetters lineAndColumnGetters;
 
 	@trusted this(ulong[] memory) {
 		metaAlloc_ = MetaAlloc(memory);
 		allSymbols = AllSymbols(metaAlloc);
 		allUris = AllUris(metaAlloc, &allSymbols);
 		storage = Storage(metaAlloc);
-		lineAndColumnGetters = LineAndColumnGetters(metaAlloc, &storage);
 	}
 
 	MetaAlloc* metaAlloc() =>
@@ -139,6 +138,8 @@ struct Server {
 		lateGet(urisInfo_);
 	ref ShowOptions diagOptions() return scope const =>
 		lateGet(diagOptions_);
+	LineAndColumnGetters lineAndColumnGetters() return scope const =>
+		LineAndColumnGetters(&castNonScope_ref(storage));
 }
 
 SafeCStr version_(ref Alloc alloc, in Server server) =>
@@ -192,12 +193,7 @@ void setDiagOptions(ref Server server, in ShowOptions options) {
 }
 
 void setFile(ref Server server, Uri uri, in ReadFileResult result) {
-	uncacheFile(server, uri);
 	setFile(server.storage, uri, result);
-}
-
-private void uncacheFile(scope ref Server server, Uri uri) {
-	uncacheFile(server.lineAndColumnGetters, uri);
 }
 
 Opt!FileContent getFile(return in Server server, Uri uri) =>
@@ -387,7 +383,7 @@ DiagsAndResultJson printConcreteModel(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
-	scope ref LineAndColumnGetters lineAndColumnGetters,
+	in LineAndColumnGetters lineAndColumnGetters,
 	in VersionInfo versionInfo,
 	Uri uri,
 ) {
@@ -402,7 +398,7 @@ DiagsAndResultJson printLowModel(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
-	scope ref LineAndColumnGetters lineAndColumnGetters,
+	in LineAndColumnGetters lineAndColumnGetters,
 	in VersionInfo versionInfo,
 	Uri uri,
 ) {
@@ -482,11 +478,11 @@ BuildToCResult buildToC(scope ref Perf perf, ref Alloc alloc, ref Server server,
 
 private:
 
-ShowCtx getShowDiagCtx(return scope ref Server server, return scope ref Program program) =>
+ShowCtx getShowDiagCtx(return scope ref const Server server, return scope ref Program program) =>
 	ShowCtx(
 		ptrTrustMe(server.allSymbols),
 		ptrTrustMe(server.allUris),
-		ptrTrustMe(server.lineAndColumnGetters),
+		server.lineAndColumnGetters,
 		server.urisInfo,
 		server.diagOptions,
 		ptrTrustMe(program));

@@ -7,13 +7,29 @@ import util.alloc.alloc : Alloc, AllocAndValue, freeAlloc, MetaAlloc, newAlloc, 
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : copyArr;
-import util.col.mutMap : addToMutMap, getAt_mut, getOrAdd, mayDelete, MutMap, mutMapEachIn;
+import util.col.mutMap : addToMutMap, getOrAdd, mayDelete, MutMap, mutMapEachIn;
 import util.col.str : SafeCStr, safeCStrSize;
-import util.opt : ConstOpt, force, has, none, MutOpt, Opt, optOrDefault, some;
+import util.json : field, Json, jsonObject;
+import util.lineAndColumnGetter :
+	LineAndCharacter,
+	lineAndCharacterAtPos,
+	LineAndCharacterRange,
+	LineAndColumn,
+	lineAndColumnAtPos,
+	LineAndColumnGetter,
+	lineAndColumnGetterForEmptyFile,
+	lineAndColumnGetterForText,
+	LineAndColumnRange,
+	lineAndColumnRange,
+	PosKind,
+	toLineAndCharacter,
+	UriLineAndCharacter,
+	UriLineAndColumn;
+import util.opt : ConstOpt, force, has, none, MutOpt, Opt, some;
 import util.ptr : castNonScope,castNonScope_ref;
-import util.sym : Sym, sym;
+import util.sourceRange : jsonOfRange, lineAndCharacterRange, Pos, UriAndPos, UriAndRange;
 import util.union_ : Union;
-import util.uri : Uri;
+import util.uri : AllUris, Uri, stringOfUri;
 import util.util : verify;
 
 struct Storage {
@@ -39,9 +55,8 @@ struct Storage {
 
 private struct FileInfo {
 	FileContent content;
-	// TODO:
-	// LineAndColumnGetter lineAndColumnGetter;
-	// FileAst ast;
+	LineAndColumnGetter lineAndColumnGetter;
+	// TODO: FileAst ast;
 }
 
 @trusted void setFile(scope ref Storage a, Uri uri, in ReadFileResult result) {
@@ -61,7 +76,7 @@ private struct FileInfo {
 
 private AllocAndValue!FileInfo getFileInfo(MetaAlloc* metaAlloc, in FileContent content) =>
 	withAlloc(metaAlloc, (ref Alloc alloc) =>
-		FileInfo(copyFileContent(alloc, content)));
+		FileInfo(copyFileContent(alloc, content), lineAndColumnGetterForText(alloc, asSafeCStr(content))));
 
 bool hasUnknownOrLoadingUris(in Storage a) {
 	bool res = false;
@@ -103,13 +118,6 @@ Uri[] allUrisWithFileDiag(ref Alloc alloc, in Storage a, ReadFileDiag diag) {
 Opt!FileContent getFileNoMarkUnknown(return in Storage a, Uri uri) {
 	ConstOpt!(AllocAndValue!FileInfo) res = a.successes[uri];
 	return has(res) ? some(force(res).value.content) : none!FileContent;
-}
-
-T withFileNoMarkUnknown(T)(in Storage a, Uri uri, in T delegate(in ReadFileResult) @safe @nogc pure nothrow cb) {
-	scope Opt!FileContent res = getFileNoMarkUnknown(castNonScope_ref(a), uri);
-	return cb(has(res)
-		? ReadFileResult(force(res))
-		: ReadFileResult(optOrDefault!ReadFileDiag(getAt_mut(a.diags, uri), () => ReadFileDiag.unknown)));
 }
 
 // Storage is mutable, so file content can only be given out temporarily.
@@ -155,3 +163,40 @@ string asString(return scope FileContent a) =>
 
 private FileContent copyFileContent(ref Alloc alloc, in FileContent a) =>
 	FileContent(copyArr(alloc, a.bytes));
+
+const struct LineAndColumnGetters {
+	@safe @nogc pure nothrow:
+
+	private const Storage* storage;
+
+	LineAndColumnGetter opIndex(Uri uri) scope {
+		ConstOpt!(AllocAndValue!FileInfo) res = storage.successes[uri];
+		return has(res) ? force(res).value.lineAndColumnGetter : lineAndColumnGetterForEmptyFile;
+	}
+
+	Pos opIndex(in UriLineAndCharacter x) scope =>
+		this[x.uri][x.lineAndCharacter];
+}
+
+UriLineAndCharacter toLineAndCharacter(in LineAndColumnGetters a, in UriLineAndColumn x) =>
+	UriLineAndCharacter(x.uri, toLineAndCharacter(a[x.uri], x.lineAndColumn));
+
+LineAndColumn lineAndColumnAtPos(in LineAndColumnGetters a, in UriAndPos pos, PosKind kind) =>
+	lineAndColumnAtPos(a[pos.uri], pos.pos, kind);
+
+LineAndCharacter lineAndCharacterAtPos(in LineAndColumnGetters a, in UriAndPos pos, PosKind kind) =>
+	lineAndCharacterAtPos(a[pos.uri], pos.pos, kind);
+
+LineAndCharacterRange lineAndCharacterRange(in LineAndColumnGetters a, in UriAndRange range) =>
+	lineAndCharacterRange(a[range.uri], range.range);
+
+LineAndColumnRange lineAndColumnRange(in LineAndColumnGetters a, in UriAndRange range) =>
+	lineAndColumnRange(a[range.uri], range.range);
+
+Json jsonOfUriAndRange(ref Alloc alloc, in AllUris allUris, in LineAndColumnGetters lcg, UriAndRange a) =>
+	jsonObject(alloc, [
+		field!"uri"(stringOfUri(alloc, allUris, a.uri)),
+		field!"range"(jsonOfRange(alloc, lcg, a))]);
+
+Json jsonOfRange(ref Alloc alloc, in LineAndColumnGetters lcg, in UriAndRange a) =>
+	jsonOfRange(alloc, lcg[a.uri], a.range);

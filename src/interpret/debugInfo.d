@@ -3,6 +3,7 @@ module interpret.debugInfo;
 @safe @nogc nothrow: // not pure (because of backtraceStringsStorage)
 
 import frontend.showModel : ShowCtx, writeUriAndPos;
+import frontend.storage : lineAndColumnAtPos, LineAndColumnGetters;
 import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeSource, Operation;
 import interpret.debugging : writeFunName;
 import interpret.runBytecode : operationOpStopInterpretation;
@@ -10,7 +11,7 @@ import interpret.stacks : returnPeek, returnStackSize, Stacks;
 import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.lowModel : LowFunIndex, LowFunSource, LowProgram;
 import util.alloc.alloc : Alloc, withStaticAlloc;
-import util.lineAndColumnGetter : LineAndColumn, LineAndColumnGetters, lineAndColumnAtPos, PosKind;
+import util.lineAndColumnGetter : LineAndColumn, PosKind;
 import util.col.arr : isPointerInRange;
 import util.col.str : CStr;
 import util.memory : overwriteMemory;
@@ -173,7 +174,7 @@ void showReturnStack(
 	writeFunNameAtByteCodePtr(writer, debugInfo, cur);
 }
 
-void writeByteCodeSource(ref Writer writer, ref ShowCtx ctx, in LowProgram lowProgram, in ByteCodeSource source) {
+void writeByteCodeSource(ref Writer writer, in ShowCtx ctx, in LowProgram lowProgram, in ByteCodeSource source) {
 	writeFunName(writer, ctx, lowProgram, source.fun);
 	writer ~= ' ';
 	Opt!Uri where = getUri(lowProgram, source.fun);

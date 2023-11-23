@@ -58,7 +58,7 @@ import util.uri : AllUris, baseName, compareUriAlphabetically, Uri, writeRelPath
 import util.util : max, unreachable;
 import util.writer : withWriter, writeEscapedChar, writeQuotedString, writeWithCommas, writeWithSeparator, Writer;
 
-SafeCStr stringOfDiagnostics(ref Alloc alloc, scope ref ShowCtx ctx, in Program program) =>
+SafeCStr stringOfDiagnostics(ref Alloc alloc, in ShowCtx ctx, in Program program) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		DiagnosticSeverity severity = maxDiagnosticSeverity(program);
 		bool first = true;
@@ -74,7 +74,7 @@ SafeCStr stringOfDiagnostics(ref Alloc alloc, scope ref ShowCtx ctx, in Program 
 		}
 	});
 
-SafeCStr stringOfDiag(ref Alloc alloc, scope ref ShowCtx ctx, in Diag diag) =>
+SafeCStr stringOfDiag(ref Alloc alloc, in ShowCtx ctx, in Diag diag) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		writeDiag(writer, ctx, diag);
 	});
@@ -125,7 +125,7 @@ DiagnosticSeverity maxDiagnosticSeverity(in Program a) {
 	return res;
 }
 
-void writeUnusedDiag(scope ref Writer writer, scope ref ShowCtx ctx, in Diag.Unused a) {
+void writeUnusedDiag(scope ref Writer writer, in ShowCtx ctx, in Diag.Unused a) {
 	a.kind.matchIn!void(
 		(in Diag.Unused.Kind.Import x) {
 			if (has(x.importedName)) {
@@ -154,7 +154,7 @@ void writeUnusedDiag(scope ref Writer writer, scope ref ShowCtx ctx, in Diag.Unu
 		});
 }
 
-void writeParseDiag(scope ref Writer writer, scope ref ShowCtx ctx, in ParseDiag d) {
+void writeParseDiag(scope ref Writer writer, in ShowCtx ctx, in ParseDiag d) {
 	d.matchIn!void(
 		(in ParseDiag.Expected it) {
 			final switch (it.kind) {
@@ -367,14 +367,14 @@ void showChar(scope ref Writer writer, char c) {
 	}
 }
 
-void writeSpecTrace(scope ref Writer writer, scope ref ShowCtx ctx, in FunDeclAndTypeArgs[] trace) {
+void writeSpecTrace(scope ref Writer writer, in ShowCtx ctx, in FunDeclAndTypeArgs[] trace) {
 	foreach (FunDeclAndTypeArgs x; trace) {
 		writer ~= "\n\t";
 		writeFunDeclAndTypeArgs(writer, ctx, x);
 	}
 }
 
-void writeCallNoMatch(scope ref Writer writer, scope ref ShowCtx ctx, in Diag.CallNoMatch d) {
+void writeCallNoMatch(scope ref Writer writer, in ShowCtx ctx, in Diag.CallNoMatch d) {
 	bool someCandidateHasCorrectNTypeArgs =
 		d.actualNTypeArgs == 0 ||
 		exists!CalledDecl(d.allCandidates, (in CalledDecl c) =>
@@ -440,7 +440,7 @@ void writeCallNoMatch(scope ref Writer writer, scope ref ShowCtx ctx, in Diag.Ca
 	}
 }
 
-void writeDiag(scope ref Writer writer, scope ref ShowCtx ctx, in Diag diag) {
+void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 	diag.matchIn!void(
 		(in Diag.AssignmentNotAllowed) {
 			writer ~= "can't assign to this kind of expression";
@@ -961,13 +961,13 @@ void writeDiag(scope ref Writer writer, scope ref ShowCtx ctx, in Diag diag) {
 		});
 }
 
-void showDiagnostic(scope ref Writer writer, scope ref ShowCtx ctx, in UriAndDiagnostic a) {
+void showDiagnostic(scope ref Writer writer, in ShowCtx ctx, in UriAndDiagnostic a) {
 	writeUriAndRange(writer, ctx, a.where);
 	writer ~= ' ';
 	writeDiag(writer, ctx, a.kind);
 }
 
-void writeExpected(scope ref Writer writer, scope ref ShowCtx ctx, in ExpectedForDiag a) {
+void writeExpected(scope ref Writer writer, in ShowCtx ctx, in ExpectedForDiag a) {
 	a.matchIn!void(
 		(in Type[] types) {
 			if (types.length == 1) {

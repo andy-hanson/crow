@@ -3,6 +3,7 @@ module frontend.showModel;
 @safe @nogc pure nothrow:
 
 import frontend.check.typeFromAst : typeSyntaxKind;
+import frontend.storage : lineAndColumnAtPos, LineAndColumnGetters, lineAndColumnRange;
 import model.diag : Diag;
 import model.model :
 	Called,
@@ -30,8 +31,7 @@ import model.model :
 	TypeParam,
 	TypeParamsAndSig;
 import util.col.arr : empty, only, only2, sizeEq;
-import util.lineAndColumnGetter :
-	lineAndColumnAtPos, LineAndColumn, LineAndColumnGetters, LineAndColumnRange, lineAndColumnRange, PosKind;
+import util.lineAndColumnGetter : LineAndColumn, LineAndColumnRange, PosKind;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : toUriAndPos, UriAndPos, UriAndRange;
 import util.sym : AllSymbols, Sym, writeSym;
@@ -40,12 +40,12 @@ import util.util : verify;
 import util.writer :
 	writeBold, writeHyperlink, writeNewline, writeRed, writeReset, writeWithCommas, writeWithCommasZip, Writer;
 
-struct ShowCtx {
+const struct ShowCtx {
 	@safe @nogc pure nothrow:
 
 	const AllSymbols* allSymbolsPtr;
 	const AllUris* allUrisPtr;
-	LineAndColumnGetters* lineAndColumnGettersPtr;
+	LineAndColumnGetters lineAndColumnGetters;
 	UrisInfo urisInfo;
 	ShowOptions options;
 	immutable Program* programPtr;
@@ -56,8 +56,6 @@ struct ShowCtx {
 		*allUrisPtr;
 	ref Program program() return scope const =>
 		*programPtr;
-	ref LineAndColumnGetters lineAndColumnGetters() return scope =>
-		*lineAndColumnGettersPtr;
 }
 
 immutable struct ShowOptions {
@@ -76,7 +74,7 @@ private void writeLineAndColumn(scope ref Writer writer, LineAndColumn lc) {
 	writer ~= lc.column1Indexed;
 }
 
-void writeCalled(scope ref Writer writer, scope ref ShowCtx ctx, in Called a) {
+void writeCalled(scope ref Writer writer, in ShowCtx ctx, in Called a) {
 	a.matchIn!void(
 		(in FunInst x) {
 			writeFunInst(writer, ctx, x);
@@ -86,7 +84,7 @@ void writeCalled(scope ref Writer writer, scope ref ShowCtx ctx, in Called a) {
 		});
 }
 
-private void writeCalledDecl(scope ref Writer writer, scope ref ShowCtx ctx, in CalledDecl a) {
+private void writeCalledDecl(scope ref Writer writer, in ShowCtx ctx, in CalledDecl a) {
 	a.matchIn!void(
 		(in FunDecl x) {
 			writeFunDecl(writer, ctx, x);
@@ -98,7 +96,7 @@ private void writeCalledDecl(scope ref Writer writer, scope ref ShowCtx ctx, in 
 
 void writeCalledDecls(
 	scope ref Writer writer,
-	scope ref ShowCtx ctx,
+	in ShowCtx ctx,
 	in CalledDecl[] cs,
 	in bool delegate(in CalledDecl) @safe @nogc pure nothrow filter = (in _) => true,
 ) {
@@ -110,7 +108,7 @@ void writeCalledDecls(
 		}
 }
 
-void writeCalleds(scope ref Writer writer, scope ref ShowCtx ctx, in Called[] cs) {
+void writeCalleds(scope ref Writer writer, in ShowCtx ctx, in Called[] cs) {
 	foreach (ref Called x; cs) {
 		writeNewline(writer);
 		writer ~= '\t';
@@ -118,7 +116,7 @@ void writeCalleds(scope ref Writer writer, scope ref ShowCtx ctx, in Called[] cs
 	}
 }
 
-private void writeCalledSpecSig(scope ref Writer writer, scope ref ShowCtx ctx, in CalledSpecSig x) {
+private void writeCalledSpecSig(scope ref Writer writer, in ShowCtx ctx, in CalledSpecSig x) {
 	writeSig(writer, ctx, x.name, x.returnType, Params(x.nonInstantiatedSig.params), some(x.instantiatedSig));
 	writer ~= " (from spec ";
 	writeName(writer, ctx, name(*x.specInst));
@@ -127,7 +125,7 @@ private void writeCalledSpecSig(scope ref Writer writer, scope ref ShowCtx ctx, 
 
 private void writeTypeParamsAndArgs(
 	scope ref Writer writer,
-	scope ref ShowCtx ctx,
+	in ShowCtx ctx,
 	in TypeParam[] typeParams,
 	in Type[] typeArgs,
 ) {
@@ -142,29 +140,29 @@ private void writeTypeParamsAndArgs(
 	}
 }
 
-void writeFunDecl(scope ref Writer writer, scope ref ShowCtx ctx, in FunDecl a) {
+void writeFunDecl(scope ref Writer writer, in ShowCtx ctx, in FunDecl a) {
 	writeSig(writer, ctx, a.name, a.returnType, a.params, none!ReturnAndParamTypes);
 	writeFunDeclLocation(writer, ctx, a);
 }
 
-void writeFunDeclAndTypeArgs(scope ref Writer writer, scope ref ShowCtx ctx, in FunDeclAndTypeArgs a) {
+void writeFunDeclAndTypeArgs(scope ref Writer writer, in ShowCtx ctx, in FunDeclAndTypeArgs a) {
 	writeSym(writer, ctx.allSymbols, a.decl.name);
 	writeTypeArgs(writer, ctx, a.typeArgs);
 	writeFunDeclLocation(writer, ctx, *a.decl);
 }
 
-void writeFunInst(scope ref Writer writer, scope ref ShowCtx ctx, in FunInst a) {
+void writeFunInst(scope ref Writer writer, in ShowCtx ctx, in FunInst a) {
 	writeFunDecl(writer, ctx, *decl(a));
 	writeTypeParamsAndArgs(writer, ctx, decl(a).typeParams, typeArgs(a));
 }
 
-private void writeFunDeclLocation(scope ref Writer writer, scope ref ShowCtx ctx, in FunDecl funDecl) {
+private void writeFunDeclLocation(scope ref Writer writer, in ShowCtx ctx, in FunDecl funDecl) {
 	writer ~= " (from ";
 	writeLineNumber(writer, ctx, toUriAndPos(funDecl.range));
 	writer ~= ')';
 }
 
-private void writeLineNumber(scope ref Writer writer, scope ref ShowCtx ctx, in UriAndPos pos) {
+private void writeLineNumber(scope ref Writer writer, in ShowCtx ctx, in UriAndPos pos) {
 	if (ctx.options.color)
 		writeBold(writer);
 	writeUri(writer, ctx, pos.uri);
@@ -176,7 +174,7 @@ private void writeLineNumber(scope ref Writer writer, scope ref ShowCtx ctx, in 
 
 void writeSig(
 	scope ref Writer writer,
-	scope ref ShowCtx ctx,
+	in ShowCtx ctx,
 	Sym name,
 	in Type returnType,
 	in Params params,
@@ -210,7 +208,7 @@ void writeSig(
 	writer ~= ')';
 }
 
-void writeSigSimple(scope ref Writer writer, scope ref ShowCtx ctx, Sym name, in TypeParamsAndSig sig) {
+void writeSigSimple(scope ref Writer writer, in ShowCtx ctx, Sym name, in TypeParamsAndSig sig) {
 	writeSym(writer, ctx.allSymbols, name);
 	if (!empty(sig.typeParams)) {
 		writer ~= '[';
@@ -232,7 +230,7 @@ void writeSigSimple(scope ref Writer writer, scope ref ShowCtx ctx, Sym name, in
 
 private void writeDestructure(
 	scope ref Writer writer,
-	scope ref ShowCtx ctx,
+	in ShowCtx ctx,
 	in Destructure a,
 	in Opt!Type instantiated,
 ) {
@@ -257,7 +255,7 @@ private void writeDestructure(
 		});
 }
 
-void writeStructInst(scope ref Writer writer, scope ref ShowCtx ctx, in StructInst s) {
+void writeStructInst(scope ref Writer writer, in ShowCtx ctx, in StructInst s) {
 	void fun(string keyword) @safe {
 		writer ~= keyword;
 		writer ~= ' ';
@@ -327,7 +325,7 @@ void writeStructInst(scope ref Writer writer, scope ref ShowCtx ctx, in StructIn
 	}
 }
 
-private void writeTupleType(scope ref Writer writer, scope ref ShowCtx ctx, in Type[] members) {
+private void writeTupleType(scope ref Writer writer, in ShowCtx ctx, in Type[] members) {
 	writer ~= '(';
 	writeWithCommas!Type(writer, members, (in Type arg) {
 		writeTypeUnquoted(writer, ctx, arg);
@@ -353,7 +351,7 @@ void writeTypeArgsGeneric(T)(
 	}
 }
 
-void writeTypeArgs(scope ref Writer writer, scope ref ShowCtx ctx, in Type[] types) {
+void writeTypeArgs(scope ref Writer writer, in ShowCtx ctx, in Type[] types) {
 	writeTypeArgsGeneric!Type(writer, types,
 		(in Type x) =>
 			!x.isA!(StructInst*) || empty(typeArgs(*x.as!(StructInst*))),
@@ -362,13 +360,13 @@ void writeTypeArgs(scope ref Writer writer, scope ref ShowCtx ctx, in Type[] typ
 		});
 }
 
-void writeTypeQuoted(scope ref Writer writer, scope ref ShowCtx ctx, in Type a) {
+void writeTypeQuoted(scope ref Writer writer, in ShowCtx ctx, in Type a) {
 	writer ~= '\'';
 	writeTypeUnquoted(writer, ctx, a);
 	writer ~= '\'';
 }
 
-void writeTypeUnquoted(scope ref Writer writer, scope ref ShowCtx ctx, in Type a) {
+void writeTypeUnquoted(scope ref Writer writer, in ShowCtx ctx, in Type a) {
 	a.matchIn!void(
 		(in Type.Bogus) {
 			writer ~= "<<bogus>>";
@@ -391,12 +389,12 @@ void writeName(scope ref Writer writer, in ShowCtx ctx, Sym name) {
 	writer ~= '\'';
 }
 
-void writeSpecInst(scope ref Writer writer, scope ref ShowCtx ctx, in SpecInst a) {
+void writeSpecInst(scope ref Writer writer, in ShowCtx ctx, in SpecInst a) {
 	writeSym(writer, ctx.allSymbols, decl(a).name);
 	writeTypeArgs(writer, ctx, typeArgs(a));
 }
 
-void writeUriAndRange(scope ref Writer writer, scope ref ShowCtx ctx, in UriAndRange where) {
+void writeUriAndRange(scope ref Writer writer, in ShowCtx ctx, in UriAndRange where) {
 	writeFileNoResetWriter(writer, ctx, where.uri);
 	if (where.uri != Uri.empty)
 		writeLineAndColumnRange(writer, lineAndColumnRange(ctx.lineAndColumnGetters, where));
@@ -404,7 +402,7 @@ void writeUriAndRange(scope ref Writer writer, scope ref ShowCtx ctx, in UriAndR
 		writeReset(writer);
 }
 
-void writeUriAndPos(scope ref Writer writer, scope ref ShowCtx ctx, in UriAndPos where) {
+void writeUriAndPos(scope ref Writer writer, in ShowCtx ctx, in UriAndPos where) {
 	writeFileNoResetWriter(writer, ctx, where.uri);
 	if (where.uri != Uri.empty)
 		writeLineAndColumn(writer, lineAndColumnAtPos(ctx.lineAndColumnGetters, where, PosKind.startOfRange));

@@ -20,11 +20,11 @@ import util.col.arr : only;
 import util.writer : Writer, writeWithCommas;
 import util.sym : writeSym;
 
-void writeFunName(scope ref Writer writer, ref ShowCtx ctx, in LowProgram lowProgram, LowFunIndex fun) {
+void writeFunName(scope ref Writer writer, in ShowCtx ctx, in LowProgram lowProgram, LowFunIndex fun) {
 	writeFunName(writer, ctx, lowProgram, lowProgram.allFuns[fun]);
 }
 
-void writeFunName(scope ref Writer writer, ref ShowCtx ctx, in LowProgram lowProgram, in LowFun a) {
+void writeFunName(scope ref Writer writer, in ShowCtx ctx, in LowProgram lowProgram, in LowFun a) {
 	a.source.matchIn!void(
 		(in ConcreteFun x) {
 			writeConcreteFunName(writer, ctx, x);
@@ -38,7 +38,7 @@ void writeFunName(scope ref Writer writer, ref ShowCtx ctx, in LowProgram lowPro
 
 private void writeLowTypeArgs(
 	scope ref Writer writer,
-	ref ShowCtx ctx,
+	in ShowCtx ctx,
 	in LowProgram lowProgram,
 	in LowType[] typeArgs,
 ) {
@@ -49,7 +49,7 @@ private void writeLowTypeArgs(
 		});
 }
 
-void writeFunSig(scope ref Writer writer, ref ShowCtx ctx, in LowProgram lowProgram, in LowFun a) {
+void writeFunSig(scope ref Writer writer, in ShowCtx ctx, in LowProgram lowProgram, in LowFun a) {
 	a.source.matchIn!void(
 		(in ConcreteFun x) {
 			writeConcreteType(writer, ctx, x.returnType);
@@ -78,7 +78,7 @@ void writeFunSig(scope ref Writer writer, ref ShowCtx ctx, in LowProgram lowProg
 		});
 }
 
-void writeLowType(scope ref Writer writer, ref ShowCtx ctx, in AllLowTypes lowTypes, in LowType a) {
+void writeLowType(scope ref Writer writer, in ShowCtx ctx, in AllLowTypes lowTypes, in LowType a) {
 	a.matchIn!void(
 		(in LowType.Extern) {
 			writer ~= "some extern type"; // TODO: more detail
@@ -112,7 +112,7 @@ void writeLowType(scope ref Writer writer, ref ShowCtx ctx, in AllLowTypes lowTy
 		});
 }
 
-void writeConcreteFunName(scope ref Writer writer, ref ShowCtx ctx, in ConcreteFun a) {
+void writeConcreteFunName(scope ref Writer writer, in ShowCtx ctx, in ConcreteFun a) {
 	a.source.matchIn!void(
 		(in FunInst it) {
 			writeSym(writer, ctx.allSymbols, it.name);
@@ -132,7 +132,7 @@ void writeConcreteFunName(scope ref Writer writer, ref ShowCtx ctx, in ConcreteF
 		});
 }
 
-void writeConcreteType(scope ref Writer writer, ref ShowCtx ctx, in ConcreteType a) {
+void writeConcreteType(scope ref Writer writer, in ShowCtx ctx, in ConcreteType a) {
 	writeConcreteStruct(writer, ctx, *a.struct_);
 	if (a.reference != ReferenceKind.byVal) {
 		writer ~= ' ';
@@ -142,7 +142,7 @@ void writeConcreteType(scope ref Writer writer, ref ShowCtx ctx, in ConcreteType
 
 private:
 
-void writeConcreteStruct(scope ref Writer writer, ref ShowCtx ctx, in ConcreteStruct a) {
+void writeConcreteStruct(scope ref Writer writer, in ShowCtx ctx, in ConcreteStruct a) {
 	a.source.matchIn!void(
 		(in ConcreteStructSource.Bogus) {
 			writer ~= "BOGUS";

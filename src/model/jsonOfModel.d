@@ -85,12 +85,12 @@ import util.opt : force, has, none, Opt, some;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : jsonOfRange;
 import util.sym : Sym, sym;
-import util.uri : AllUris, uriToString;
+import util.uri : AllUris, stringOfUri;
 
 Json jsonOfModule(ref Alloc alloc, in AllUris allUris, in LineAndColumnGetter lcg, in Module a) {
 	Ctx ctx = Ctx(ptrTrustMe(a), ptrTrustMe(allUris), lcg);
 	return jsonObject(alloc, [
-		field!"uri"(uriToString(alloc, allUris, a.uri)),
+		field!"uri"(stringOfUri(alloc, allUris, a.uri)),
 		optionalArrayField!("imports", ImportOrExport)(alloc, a.imports, (in ImportOrExport x) =>
 			jsonOfImportOrExport(alloc, ctx, x)),
 		optionalArrayField!("re-exports", ImportOrExport)(alloc, a.reExports, (in ImportOrExport x) =>
@@ -118,10 +118,10 @@ Json jsonOfImportOrExport(ref Alloc alloc, in Ctx ctx, in ImportOrExport a) =>
 Json jsonOfImportOrExportKind(ref Alloc alloc, in AllUris allUris, in ImportOrExportKind a) =>
 	a.matchIn!Json(
 		(in ImportOrExportKind.ModuleWhole m) =>
-			jsonObject(alloc, [field!"module"(uriToString(alloc, allUris, m.module_.uri))]),
+			jsonObject(alloc, [field!"module"(stringOfUri(alloc, allUris, m.module_.uri))]),
 		(in ImportOrExportKind.ModuleNamed m) =>
 			jsonObject(alloc, [
-				field!"module"(uriToString(alloc, allUris, m.module_.uri)),
+				field!"module"(stringOfUri(alloc, allUris, m.module_.uri)),
 				field!"names"(jsonList!Sym(alloc, m.names, (in Sym name) =>
 					jsonString(name)))]));
 

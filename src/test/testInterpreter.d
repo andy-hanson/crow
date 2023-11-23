@@ -139,7 +139,7 @@ void doInterpret(
 		[]);
 	withFakeExtern!void(test.alloc, test.allSymbols, unreachableWriteCb, (scope ref Extern extern_) {
 		Storage storage = Storage(test.metaAlloc);
-		withShowDiagCtxForTestImpure(test, storage, fakeProgramForTest, (ref ShowCtx ctx) {
+		withShowDiagCtxForTestImpure(test, storage, fakeProgramForTest, (in ShowCtx ctx) {
 			withInterpreter!void(test.alloc, extern_.doDynCall, ctx, lowProgram, byteCode, (ref Stacks stacks) {
 				runInterpreter(stacks, initialOperationPointer(byteCode));
 			});

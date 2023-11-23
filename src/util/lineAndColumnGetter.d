@@ -2,69 +2,13 @@ module util.lineAndColumnGetter;
 
 @safe @nogc pure nothrow:
 
-import frontend.storage : asSafeCStr, FileContent, ReadFileResult, Storage, withFileNoMarkUnknown;
-import model.diag : ReadFileDiag;
-import util.alloc.alloc : Alloc, MetaAlloc, newAlloc;
+import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.mutMap : getOrAdd, mayDelete, MutMap;
-import util.col.str : SafeCStr, safeCStr;
+import util.col.str : SafeCStr;
 import util.conv : safeToUint;
-import util.ptr : castNonScope_ref;
-import util.sourceRange : Pos, Range, UriAndPos, UriAndRange;
+import util.sourceRange : Pos, Range;
 import util.uri : Uri;
 import util.util : min, verify;
-
-struct LineAndColumnGetters {
-	@safe @nogc pure nothrow:
-
-	private:
-	Alloc alloc;
-	const Storage* storage;
-	MutMap!(Uri, LineAndColumnGetter) getters;
-
-	public:
-	this(MetaAlloc* metaAlloc, return scope const Storage* s) {
-		alloc = newAlloc(metaAlloc);
-		storage = s;
-	}
-
-	LineAndColumnGetter opIndex(Uri uri) scope =>
-		getOrAdd(castNonScope_ref(alloc), getters, uri, () =>
-			withFileNoMarkUnknown!LineAndColumnGetter(*storage, uri, (in ReadFileResult x) =>
-				x.matchIn!LineAndColumnGetter(
-					(in FileContent content) =>
-						lineAndColumnGetterForText(alloc, asSafeCStr(content)),
-					(in ReadFileDiag _) =>
-						lineAndColumnGetterForEmptyFile(alloc))));
-
-	Pos opIndex(in UriLineAndCharacter x) scope =>
-		this[x.uri][x.lineAndCharacter];
-}
-
-UriLineAndCharacter toLineAndCharacter(scope ref LineAndColumnGetters a, in UriLineAndColumn x) =>
-	UriLineAndCharacter(x.uri, toLineAndCharacter(a[x.uri], x.lineAndColumn));
-
-void uncacheFile(scope ref LineAndColumnGetters a, Uri uri) {
-	// TODO: also free memory
-	mayDelete(a.getters, uri);
-}
-
-LineAndColumn lineAndColumnAtPos(ref LineAndColumnGetters a, in UriAndPos pos, PosKind kind) =>
-	lineAndColumnAtPos(a[pos.uri], pos.pos, kind);
-
-LineAndCharacter lineAndCharacterAtPos(ref LineAndColumnGetters a, in UriAndPos pos, PosKind kind) =>
-	lineAndCharacterAtPos(a[pos.uri], pos.pos, kind);
-
-LineAndCharacterRange lineAndCharacterRange(scope ref LineAndColumnGetters a, in UriAndRange range) =>
-	lineAndCharacterRange(a[range.uri], range.range);
-
-LineAndColumnRange lineAndColumnRange(scope ref LineAndColumnGetters a, in UriAndRange range) =>
-	lineAndColumnRange(a[range.uri], range.range);
-
-LineAndCharacterRange lineAndCharacterRange(in LineAndColumnGetter a, in Range range) =>
-	LineAndCharacterRange(
-		lineAndCharacterAtPos(a, range.start, PosKind.startOfRange),
-		lineAndCharacterAtPos(a, range.end, PosKind.endOfRange));
 
 LineAndColumnRange lineAndColumnRange(in LineAndColumnGetter a, in Range range) =>
 	LineAndColumnRange(
@@ -122,6 +66,7 @@ immutable struct LineAndColumnGetter {
 		maxPos = mp;
 		lineToPos = lp;
 		lineToNTabs = lnt;
+		verify(lineToPos.length > 0);
 		verify(lineToPos.length == lineToNTabs.length);
 	}
 
@@ -170,8 +115,11 @@ LineAndCharacter toLineAndCharacter(in LineAndColumnGetter a, in LineAndColumn l
 		finishArr(alloc, lineToNTabs));
 }
 
-private LineAndColumnGetter lineAndColumnGetterForEmptyFile(ref Alloc alloc) =>
-	lineAndColumnGetterForText(alloc, safeCStr!"");
+LineAndColumnGetter lineAndColumnGetterForEmptyFile() {
+	static immutable Pos[] lineToPos = [0];
+	static immutable ubyte[] lineToNTabs = [0];
+	return LineAndColumnGetter(false, 0, lineToPos, lineToNTabs);
+}
 
 enum PosKind { startOfRange, endOfRange }
 
@@ -207,12 +155,13 @@ Pos columnToCharacter(uint column, ubyte nTabs) =>
 		? column / TAB_SIZE
 		: column - (nTabs * (TAB_SIZE - 1));
 
-uint lineAtPos(in LineAndColumnGetter lc, Pos pos) {
+uint lineAtPos(in LineAndColumnGetter a, Pos pos) {
 	uint lowLine = 0; // inclusive
-	uint highLine = safeToUint(lc.lineToPos.length);
+	uint highLine = safeToUint(a.lineToPos.length);
+	verify(highLine != 0);
 	while (lowLine < highLine - 1) {
 		uint middleLine = mid(lowLine, highLine);
-		Pos middlePos = lc.lineToPos[middleLine];
+		Pos middlePos = a.lineToPos[middleLine];
 		if (pos == middlePos)
 			return middleLine;
 		else if (pos < middlePos)

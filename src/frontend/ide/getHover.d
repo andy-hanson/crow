@@ -6,22 +6,22 @@ import frontend.ide.position : Position, PositionKind;
 import frontend.parse.ast : FieldMutabilityAst, FunModifierAst;
 import frontend.showModel :
 	ShowCtx, writeCalled, writeFile, writeFunInst, writeLineAndColumnRange, writeName, writeSpecInst, writeTypeUnquoted;
+import frontend.storage : lineAndColumnRange;
 import model.model;
 import util.alloc.alloc : Alloc;
 import util.col.str : SafeCStr;
-import util.lineAndColumnGetter : lineAndColumnRange;
 import util.sourceRange : UriAndRange;
 import util.sym : writeSym;
 import util.uri : Uri;
 import util.util : unreachable;
 import util.writer : withWriter, Writer;
 
-SafeCStr getHoverStr(ref Alloc alloc, scope ref ShowCtx ctx, in Position pos) =>
+SafeCStr getHoverStr(ref Alloc alloc, in ShowCtx ctx, in Position pos) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		getHover(writer, ctx, pos);
 	});
 
-void getHover(scope ref Writer writer, scope ref ShowCtx ctx, in Position pos) =>
+void getHover(scope ref Writer writer, in ShowCtx ctx, in Position pos) =>
 	pos.kind.matchIn!void(
 		(in PositionKind.None) {},
 		(in PositionKind.Expression x) {
@@ -153,7 +153,7 @@ void getHover(scope ref Writer writer, scope ref ShowCtx ctx, in Position pos) =
 
 private:
 
-void writeStructDeclHover(scope ref Writer writer, scope ref ShowCtx ctx, in StructDecl a) {
+void writeStructDeclHover(scope ref Writer writer, in ShowCtx ctx, in StructDecl a) {
 	writer ~= body_(a).matchIn!string(
 		(in StructBody.Bogus) =>
 			"type ",
@@ -172,16 +172,16 @@ void writeStructDeclHover(scope ref Writer writer, scope ref ShowCtx ctx, in Str
 	writeSym(writer, ctx.allSymbols, a.name);
 }
 
-void getImportedNameHover(scope ref Writer writer, scope ref ShowCtx ctx, in PositionKind.ImportedName) {
+void getImportedNameHover(scope ref Writer writer, in ShowCtx ctx, in PositionKind.ImportedName) {
 	writer ~= "TODO: getImportedNameHover";
 }
 
-void hoverTypeParam(scope ref Writer writer, scope ref ShowCtx ctx, in TypeParam a) {
+void hoverTypeParam(scope ref Writer writer, in ShowCtx ctx, in TypeParam a) {
 	writer ~= "type parameter ";
 	writeSym(writer, ctx.allSymbols, a.name);
 }
 
-void getExprHover(scope ref Writer writer, scope ref ShowCtx ctx, in Uri curUri, in Expr a) =>
+void getExprHover(scope ref Writer writer, in ShowCtx ctx, in Uri curUri, in Expr a) =>
 	a.kind.matchIn!void(
 		(in AssertOrForbidExpr x) {
 			writer ~= "throws if the condition is ";
@@ -275,20 +275,20 @@ void getExprHover(scope ref Writer writer, scope ref ShowCtx ctx, in Uri curUri,
 			writer ~= "throws an exception";
 		});
 
-void closureRefHover(scope ref Writer writer, scope ref ShowCtx ctx, in ClosureRef a) {
+void closureRefHover(scope ref Writer writer, in ShowCtx ctx, in ClosureRef a) {
 	writer ~= "closure variable ";
 	writeSym(writer, ctx.allSymbols, a.name);
 	writer ~= ' ';
 	writeTypeUnquoted(writer, ctx, a.type);
 }
 
-void localHover(scope ref Writer writer, scope ref ShowCtx ctx, in Local a) {
+void localHover(scope ref Writer writer, in ShowCtx ctx, in Local a) {
 	writeSym(writer, ctx.allSymbols, a.name);
 	writer ~= ' ';
 	writeTypeUnquoted(writer, ctx, a.type);
 }
 
-void writeLoop(scope ref Writer writer, scope ref ShowCtx ctx, Uri curUri, in LoopExpr a) {
+void writeLoop(scope ref Writer writer, in ShowCtx ctx, Uri curUri, in LoopExpr a) {
 	writer ~= "loop at ";
 	writeLineAndColumnRange(writer, lineAndColumnRange(ctx.lineAndColumnGetters, UriAndRange(curUri, a.range)));
 }

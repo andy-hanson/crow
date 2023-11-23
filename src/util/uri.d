@@ -339,10 +339,10 @@ private @system void pathToStrWorker(in AllUris allUris, Path path, char[] outBu
 	verify(cur == &outBuf[0]);
 }
 
-SafeCStr uriToSafeCStr(ref Alloc alloc, in AllUris allUris, Uri a) =>
+SafeCStr safeCStrOfUri(ref Alloc alloc, in AllUris allUris, Uri a) =>
 	pathToSafeCStr(alloc, allUris, a.path, false);
-string uriToString(ref Alloc alloc, in AllUris allUris, Uri a) =>
-	strOfSafeCStr(uriToSafeCStr(alloc, allUris, a));
+string stringOfUri(ref Alloc alloc, in AllUris allUris, Uri a) =>
+	strOfSafeCStr(safeCStrOfUri(alloc, allUris, a));
 SafeCStr fileUriToSafeCStr(ref Alloc alloc, in AllUris allUris, FileUri a) =>
 	pathToSafeCStr(alloc, allUris, a.path, true);
 @trusted SafeCStr pathToSafeCStr(ref Alloc alloc, in AllUris allUris, Path path, bool leadingSlash) {

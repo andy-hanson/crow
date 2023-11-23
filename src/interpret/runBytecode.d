@@ -44,7 +44,7 @@ import util.util : debugLog, divRoundUp, drop, unreachable, verify;
 @safe int runBytecode(
 	scope ref Perf perf,
 	ref Alloc alloc, // for thread locals
-	scope ref ShowCtx printCtx,
+	in ShowCtx printCtx,
 	in DoDynCall doDynCall,
 	in LowProgram lowProgram,
 	in ByteCode byteCode,
@@ -109,7 +109,7 @@ void stepUntilBreak(ref Stacks stacks, ref Operation* operation) {
 @safe T withInterpreter(T)(
 	ref Alloc alloc,
 	in DoDynCall doDynCall_,
-	ref ShowCtx printCtx,
+	in ShowCtx printCtx,
 	in LowProgram lowProgram,
 	in ByteCode byteCode,
 	in T delegate(ref Stacks) @nogc nothrow cb,

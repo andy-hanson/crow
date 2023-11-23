@@ -62,7 +62,7 @@ import util.json :
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : compareUriAndRange, UriAndRange;
 import util.sym : AllSymbols, Sym, sym;
-import util.uri : AllUris, uriToString;
+import util.uri : AllUris, stringOfUri;
 import util.util : unreachable;
 
 SafeCStr documentJSON(ref Alloc alloc, in AllSymbols allSymbols, in AllUris allUris, in Program program) =>
@@ -97,7 +97,7 @@ Json documentModule(
 	arrBuilderSort!DocExport(exports, (in DocExport x, in DocExport y) =>
 		compareUriAndRange(allUris, x.range, y.range));
 	return jsonObject(alloc, [
-		field!"uri"(uriToString(alloc, allUris, a.uri)),
+		field!"uri"(stringOfUri(alloc, allUris, a.uri)),
 		optionalStringField!"doc"(alloc, a.ast.docComment),
 		field!"exports"(jsonList!DocExport(alloc, finishArr(alloc, exports), (in DocExport x) => x.json))]);
 }

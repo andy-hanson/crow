@@ -23,14 +23,14 @@ import util.col.mutMap : mapToMap, moveToValues, mutMapIsEmpty;
 import util.late : lateSet;
 import util.opt : force;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : ptrTrustMe;
+import util.ptr : castNonScope, ptrTrustMe;
 import util.util : verify;
 import versionInfo : VersionInfo;
 
 ConcreteProgram concretize(
 	scope ref Perf perf,
 	ref Alloc alloc,
-	ref ShowCtx printCtx,
+	in ShowCtx printCtx,
 	in VersionInfo versionInfo,
 	ref Program program,
 ) =>
@@ -42,7 +42,7 @@ private:
 
 ConcreteProgram concretizeInner(
 	Alloc* allocPtr,
-	ref ShowCtx printCtx,
+	in ShowCtx printCtx,
 	in VersionInfo versionInfo,
 	ref Program program,
 ) {
@@ -51,7 +51,7 @@ ConcreteProgram concretizeInner(
 	ConcretizeCtx ctx = ConcretizeCtx(
 		allocPtr,
 		versionInfo,
-		printCtx.allSymbolsPtr,
+		castNonScope(printCtx.allSymbolsPtr),
 		ptrTrustMe(program.commonTypes),
 		ptrTrustMe(program));
 	CommonFuns commonFuns = program.commonFuns;

@@ -2,6 +2,7 @@ module model.jsonOfLowModel;
 
 @safe @nogc pure nothrow:
 
+import frontend.storage : jsonOfRange, LineAndColumnGetters;
 import model.concreteModel : ConcreteFun;
 import model.constant : Constant;
 import model.jsonOfConstant : jsonOfConstant;
@@ -30,12 +31,10 @@ import model.model : EnumValue, Local;
 import model.jsonOfConcreteModel : jsonOfConcreteFunRef, jsonOfConcreteStructRef;
 import util.alloc.alloc : Alloc;
 import util.json : field, jsonObject, optionalField, Json, jsonInt, jsonList, jsonString, kindField;
-import util.lineAndColumnGetter : LineAndColumnGetters;
-import util.ptr : castNonScope_ref, ptrTrustMe;
-import util.sourceRange : jsonOfRange;
+import util.ptr : castNonScope_ref;
 
-Json jsonOfLowProgram(ref Alloc alloc, scope ref LineAndColumnGetters lineAndColumnGetters, in LowProgram a) {
-	Ctx ctx = Ctx(ptrTrustMe(lineAndColumnGetters));
+Json jsonOfLowProgram(ref Alloc alloc, in LineAndColumnGetters lineAndColumnGetters, in LowProgram a) {
+	Ctx ctx = Ctx(lineAndColumnGetters);
 	return jsonObject(alloc, [
 		field!"extern"(
 			jsonList!(LowType.Extern, LowExternType)(alloc, a.allExternTypes, (in LowExternType x) =>
@@ -53,13 +52,8 @@ Json jsonOfLowProgram(ref Alloc alloc, scope ref LineAndColumnGetters lineAndCol
 
 private:
 
-struct Ctx {
-	@safe @nogc pure nothrow:
-
-	LineAndColumnGetters* lineAndColumnGettersPtr;
-
-	ref LineAndColumnGetters lineAndColumnGetters() return scope =>
-		*lineAndColumnGettersPtr;
+const struct Ctx {
+	LineAndColumnGetters lineAndColumnGetters;
 }
 
 Json jsonOfLowType(ref Alloc alloc, in LowType a) =>
@@ -105,7 +99,7 @@ Json jsonOfLowUnion(ref Alloc alloc, in LowUnion a) =>
 		field!"members"(jsonList!LowType(alloc, a.members, (in LowType x) =>
 			jsonOfLowType(alloc, x)))]);
 
-Json jsonOfLowFun(ref Alloc alloc, scope ref Ctx ctx, in LowFun a) =>
+Json jsonOfLowFun(ref Alloc alloc, in Ctx ctx, in LowFun a) =>
 	jsonObject(alloc, [
 		field!"source"(jsonOfLowFunSource(alloc, a.source)),
 		field!"return-type"(jsonOfLowType(alloc, a.returnType)),
@@ -120,7 +114,7 @@ Json jsonOfLowFunSource(ref Alloc alloc, in LowFunSource a) =>
 		(in LowFunSource.Generated x) =>
 			jsonObject(alloc, [kindField!"generated", field!"name"(x.name)]));
 
-Json jsonOfLowFunBody(ref Alloc alloc, scope ref Ctx ctx, in LowFunBody a) =>
+Json jsonOfLowFunBody(ref Alloc alloc, in Ctx ctx, in LowFunBody a) =>
 	a.matchIn!Json(
 		(in LowFunBody.Extern) =>
 			jsonString!"extern",
@@ -142,17 +136,17 @@ Json jsonOfLowLocalSource(ref Alloc alloc, in LowLocalSource a) =>
 				field!"name"(x.name),
 				field!"index"(x.index)]));
 
-Json jsonOfLowExpr(ref Alloc alloc, scope ref Ctx ctx, in LowExpr a) =>
+Json jsonOfLowExpr(ref Alloc alloc, in Ctx ctx, in LowExpr a) =>
 	jsonObject(alloc, [
 		field!"type"(jsonOfLowType(alloc, a.type)),
 		field!"source"(jsonOfRange(alloc, ctx.lineAndColumnGetters, a.source)),
 		field!"expr-kind"(jsonOfLowExprKind(alloc, ctx, a.kind))]);
 
-Json jsonOfLowExprs(ref Alloc alloc, scope ref Ctx ctx, in LowExpr[] a) =>
+Json jsonOfLowExprs(ref Alloc alloc, in Ctx ctx, in LowExpr[] a) =>
 	jsonList!LowExpr(alloc, a, (in LowExpr x) =>
 		jsonOfLowExpr(alloc, ctx, x));
 
-Json jsonOfLowExprKind(ref Alloc alloc, scope ref Ctx ctx, in LowExprKind a) =>
+Json jsonOfLowExprKind(ref Alloc alloc, in Ctx ctx, in LowExprKind a) =>
 	a.matchIn!Json(
 		(in LowExprKind.Call x) =>
 			jsonObject(alloc, [
@@ -287,7 +281,7 @@ Json jsonOfLowExprKind(ref Alloc alloc, scope ref Ctx ctx, in LowExprKind a) =>
 				field!"var"(x.varIndex.index),
 				field!"value"(jsonOfLowExpr(alloc, ctx, *x.value))]));
 
-Json jsonOfMatchUnion(ref Alloc alloc, scope ref Ctx ctx, in LowExprKind.MatchUnion a) =>
+Json jsonOfMatchUnion(ref Alloc alloc, in Ctx ctx, in LowExprKind.MatchUnion a) =>
 	jsonObject(alloc, [
 		kindField!"match-union",
 		field!"value"(jsonOfLowExpr(alloc, ctx, a.matchedValue)),

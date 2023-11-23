@@ -23,11 +23,11 @@ import util.uri :
 	parseUri,
 	parseUriWithCwd,
 	Path,
+	safeCStrOfUri,
 	TempStrForPath,
 	TEST_eachPart,
 	toUri,
-	Uri,
-	uriToSafeCStr;
+	Uri;
 import util.util : debugLog, verify, verifyFail;
 
 void testUri(ref Test test) {
@@ -41,7 +41,7 @@ void testUri(ref Test test) {
 	verify(compareUriAlphabetically(allUris, a, a) == Comparison.equal);
 	verify(compareUriAlphabetically(allUris, a, b) == Comparison.less);
 
-	verify(safeCStrEq(uriToSafeCStr(test.alloc, allUris, a), safeCStr!"file:///a"));
+	verify(safeCStrEq(safeCStrOfUri(test.alloc, allUris, a), safeCStr!"file:///a"));
 
 	Uri aX = childUri(allUris, a, sym!"x");
 	verifyUri(test, allUris, aX, ["file://", "a", "x"]);
@@ -49,16 +49,16 @@ void testUri(ref Test test) {
 	Uri aY = childUri(allUris, a, sym!"y");
 	verifyUri(test, allUris, aY, ["file://", "a", "y"]);
 	verify(aX != aY);
-	verify(safeCStrEq(uriToSafeCStr(test.alloc, allUris, aX), safeCStr!"file:///a/x"));
-	verify(safeCStrEq(uriToSafeCStr(test.alloc, allUris, aY), safeCStr!"file:///a/y"));
+	verify(safeCStrEq(safeCStrOfUri(test.alloc, allUris, aX), safeCStr!"file:///a/x"));
+	verify(safeCStrEq(safeCStrOfUri(test.alloc, allUris, aY), safeCStr!"file:///a/y"));
 
 	Uri zW = parseUriWithCwd(allUris, aX, safeCStr!"/z/w.crow");
 	verifyUri(test, allUris, zW, ["file://", "z", "w.crow"]);
 	verify(baseName(allUris, zW) == symOfStr(test.allSymbols, "w.crow"));
-	verify(safeCStrEq(uriToSafeCStr(test.alloc, allUris, zW), safeCStr!"file:///z/w.crow"));
+	verify(safeCStrEq(safeCStrOfUri(test.alloc, allUris, zW), safeCStr!"file:///z/w.crow"));
 	verify(getExtension(allUris, zW) == sym!".crow");
 	Uri aXZW = parseUriWithCwd(allUris, aX, safeCStr!"./z/w");
-	verify(safeCStrEq(uriToSafeCStr(test.alloc, allUris, aXZW), safeCStr!"file:///a/x/z/w"));
+	verify(safeCStrEq(safeCStrOfUri(test.alloc, allUris, aXZW), safeCStr!"file:///a/x/z/w"));
 	verify(aXZW == parseUriWithCwd(allUris, aX, safeCStr!"z/w"));
 	verify(aY == parseUriWithCwd(allUris, aX, safeCStr!"../y"));
 

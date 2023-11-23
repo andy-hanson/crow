@@ -8,14 +8,8 @@ import util.conv : safeToUint;
 import util.json : field, Json, jsonObject;
 import util.sym : AllSymbols, Sym, symSize;
 import util.lineAndColumnGetter :
-	LineAndCharacter,
-	lineAndCharacterAtPos,
-	LineAndCharacterRange,
-	lineAndCharacterRange,
-	LineAndColumnGetter,
-	LineAndColumnGetters,
-	PosKind;
-import util.uri : AllUris, compareUriAlphabetically, Uri, uriToString;
+	LineAndCharacter, lineAndCharacterAtPos, LineAndCharacterRange, LineAndColumnGetter, PosKind;
+import util.uri : AllUris, compareUriAlphabetically, Uri;
 import util.util : verify;
 
 alias Pos = uint;
@@ -83,16 +77,8 @@ Comparison compareUriAndRange(in AllUris allUris, UriAndRange a, UriAndRange b) 
 UriAndPos toUriAndPos(UriAndRange a) =>
 	UriAndPos(a.uri, a.start);
 
-Json jsonOfUriAndRange(ref Alloc alloc, in AllUris allUris, scope ref LineAndColumnGetters lcg, UriAndRange a) =>
-	jsonObject(alloc, [
-		field!"uri"(uriToString(alloc, allUris, a.uri)),
-		field!"range"(jsonOfRange(alloc, lcg[a.uri], a.range))]);
-
 Json jsonOfPosWithinFile(ref Alloc alloc, in LineAndColumnGetter lcg, Pos a, PosKind posKind) =>
 	jsonOfLineAndCharacter(alloc, lineAndCharacterAtPos(lcg, a, posKind));
-
-Json jsonOfRange(ref Alloc alloc, scope ref LineAndColumnGetters lcg, in UriAndRange a) =>
-	jsonOfRange(alloc, lcg[a.uri], a.range);
 
 Json jsonOfRange(ref Alloc alloc, in LineAndColumnGetter lcg, in Range a) {
 	LineAndCharacterRange r = lineAndCharacterRange(lcg, a);
@@ -100,6 +86,11 @@ Json jsonOfRange(ref Alloc alloc, in LineAndColumnGetter lcg, in Range a) {
 		field!"start"(jsonOfLineAndCharacter(alloc, r.start)),
 		field!"end"(jsonOfLineAndCharacter(alloc, r.end))]);
 }
+
+LineAndCharacterRange lineAndCharacterRange(in LineAndColumnGetter lcg, in Range a) =>
+	LineAndCharacterRange(
+		lineAndCharacterAtPos(lcg, a.start, PosKind.startOfRange),
+		lineAndCharacterAtPos(lcg, a.end, PosKind.endOfRange));
 
 private:
 

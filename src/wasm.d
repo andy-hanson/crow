@@ -44,7 +44,7 @@ import util.opt : force, has, Opt;
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasureResult, perfTotal, withNullPerf;
 import util.sourceRange : jsonOfRange, UriAndRange;
 import util.sym : symOfSafeCStr;
-import util.uri : parseUri, Uri, uriToString;
+import util.uri : parseUri, stringOfUri, Uri;
 
 // seems to be the required entry point
 extern(C) void _start() {}
@@ -137,7 +137,7 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 
 pure CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 	jsonToString(alloc, server.allSymbols, jsonList(map(alloc, uris, (ref Uri x) =>
-		jsonString(uriToString(alloc, server.allUris, x))))).ptr;
+		jsonString(stringOfUri(alloc, server.allUris, x))))).ptr;
 
 @system extern(C) CStr getTokens(Server* server, scope CStr uriCStr) {
 	SafeCStr uriStr = SafeCStr(uriCStr);
@@ -280,7 +280,7 @@ pure:
 Json jsonOfDiagnostics(ref Alloc alloc, ref Server server, in Program program) =>
 	jsonList!UriAndDiagnostics(alloc, sortedDiagnostics(alloc, server.allUris, program), (in UriAndDiagnostics diags) =>
 		jsonObject(alloc, [
-			field!"uri"(uriToString(alloc, server.allUris, diags.uri)),
+			field!"uri"(stringOfUri(alloc, server.allUris, diags.uri)),
 			field!"diagnostics"(jsonList!Diagnostic(alloc, diags.diagnostics, (in Diagnostic x) =>
 				jsonOfDiagnostic(alloc, server, program, diags.uri, x)))]));
 
@@ -312,7 +312,7 @@ LspDiagnosticSeverity toLspDiagnosticSeverity(DiagnosticSeverity a) {
 		case DiagnosticSeverity.circularImport:
 		case DiagnosticSeverity.commonMissing:
 		case DiagnosticSeverity.parseError:
-		case DiagnosticSeverity.fileIssue:
+		case DiagnosticSeverity.readFile:
 			return LspDiagnosticSeverity.Error;
 	}
 }

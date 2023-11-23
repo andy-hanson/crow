@@ -22,7 +22,7 @@ import util.ptr : ptrTrustMe;
 import util.util : debugLog, verify, verifyFail;
 import util.writer : withWriter, Writer;
 
-void checkConcreteProgram(ref ShowCtx printCtx, in ConcreteCommonTypes types, in ConcreteProgram a) {
+void checkConcreteProgram(in ShowCtx printCtx, in ConcreteCommonTypes types, in ConcreteProgram a) {
 	Ctx ctx = Ctx(ptrTrustMe(printCtx), ptrTrustMe(types));
 	foreach (ConcreteFun* fun; a.allFuns)
 		if (body_(*fun).isA!ConcreteExpr)

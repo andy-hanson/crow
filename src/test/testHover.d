@@ -8,7 +8,7 @@ import frontend.ide.getHover : getHoverStr;
 import frontend.ide.getPosition : getPosition;
 import frontend.ide.position : Position;
 import frontend.showModel : ShowCtx;
-import frontend.storage : FileContent, ReadFileResult, Storage, setFile;
+import frontend.storage : FileContent, jsonOfUriAndRange, ReadFileResult, Storage, setFile;
 import model.model : Module, Program;
 import test.testUtil : Test, withShowDiagCtxForTest;
 import util.alloc.alloc : Alloc;
@@ -23,7 +23,7 @@ import util.lineAndColumnGetter : LineAndColumnGetter, PosKind;
 import util.opt : none;
 import util.uri : parseUri, Uri;
 import util.perf : Perf, withNullPerf;
-import util.sourceRange : jsonOfPosWithinFile, jsonOfUriAndRange, Pos, UriAndRange;
+import util.sourceRange : jsonOfPosWithinFile, Pos, UriAndRange;
 import util.util : debugLog, verifyFail;
 
 @trusted void testHover(ref Test test) {
@@ -36,7 +36,7 @@ private:
 void hoverTest(string crowFileName, string outputFileName)(ref Test test) {
 	SafeCStr content = safeCStr!(import("hover/" ~ crowFileName));
 	string expected = import(outputFileName);
-	withHoverTest!crowFileName(test, content, (ref ShowCtx ctx, Module* module_) {
+	withHoverTest!crowFileName(test, content, (in ShowCtx ctx, Module* module_) {
 		SafeCStr actual = jsonToStringPretty(
 			test.alloc, test.allSymbols, hoverResult(test.alloc, content, ctx, module_));
 		if (strOfSafeCStr(actual) != expected) {
@@ -52,7 +52,7 @@ void hoverTest(string crowFileName, string outputFileName)(ref Test test) {
 void withHoverTest(string fileName)(
 	ref Test test,
 	in SafeCStr content,
-	in void delegate(ref ShowCtx, Module*) @safe @nogc pure nothrow cb,
+	in void delegate(in ShowCtx, Module*) @safe @nogc pure nothrow cb,
 ) {
 	Uri uri = parseUri(test.allUris, "magic:" ~ fileName);
 	Storage storage = Storage(test.metaAlloc);
@@ -61,7 +61,7 @@ void withHoverTest(string fileName)(
 		frontendCompile(
 			perf, test.alloc, test.alloc, test.allSymbols, test.allUris, storage,
 			parseUri(test.allUris, "magic:include"), [uri], none!Uri));
-	withShowDiagCtxForTest(test, storage, program, (ref ShowCtx ctx) {
+	withShowDiagCtxForTest(test, storage, program, (in ShowCtx ctx) {
 		cb(ctx, only(program.rootModules));
 	});
 }
@@ -79,7 +79,7 @@ immutable struct InfoAtPos {
 		safeCStrEq(hover, b.hover) && arrEqual(definition, b.definition);
 }
 
-Json hoverResult(ref Alloc alloc, in SafeCStr content, ref ShowCtx ctx, Module* mainModule) {
+Json hoverResult(ref Alloc alloc, in SafeCStr content, in ShowCtx ctx, Module* mainModule) {
 	ArrBuilder!Json parts;
 
 	// We combine ranges that have the same info.
