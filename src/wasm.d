@@ -6,6 +6,7 @@ import frontend.ide.getReferences : jsonOfReferences;
 import frontend.ide.getTokens : jsonOfTokens, Token;
 import frontend.showDiag : sortedDiagnostics, sortedDiagnosticsForUri, UriAndDiagnostics;
 import frontend.showModel : ShowOptions;
+import frontend.storage : asSafeCStr, FileContent, ReadFileResult;
 import interpret.fakeExtern : Pipe;
 import lib.server :
 	allLoadingUris,
@@ -29,7 +30,7 @@ import lib.server :
 	toUri,
 	typeCheckAllKnownFiles,
 	version_;
-import model.diag : Diagnostic, DiagnosticSeverity;
+import model.diag : Diagnostic, DiagnosticSeverity, readFileDiagOfSym;
 import model.model : Program;
 import util.alloc.alloc : Alloc, withStaticAlloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
@@ -42,7 +43,6 @@ import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
 import util.opt : force, has, Opt;
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasureResult, perfTotal, withNullPerf;
 import util.sourceRange : jsonOfRange, UriAndRange;
-import util.storage : asSafeCStr, FileContent, readFileIssueOfSym, ReadFileResult;
 import util.sym : symOfSafeCStr;
 import util.uri : parseUri, Uri, uriToString;
 
@@ -105,7 +105,7 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 
 @system extern(C) void setFileIssue(Server* server, scope CStr uri, scope CStr issue) {
 	setFile(*server, toUri(*server, SafeCStr(uri)), ReadFileResult(
-		readFileIssueOfSym(symOfSafeCStr(server.allSymbols, SafeCStr(issue)))));
+		readFileDiagOfSym(symOfSafeCStr(server.allSymbols, SafeCStr(issue)))));
 }
 
 @system extern(C) CStr getFile(Server* server, scope CStr uriCStr) {

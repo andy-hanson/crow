@@ -3,6 +3,7 @@ module test.testUtil;
 @safe @nogc nothrow: // not pure
 
 import frontend.showModel : ShowCtx, ShowOptions;
+import frontend.storage : Storage;
 import interpret.bytecode : ByteCode, ByteCodeIndex, Operation;
 import interpret.debugInfo : showDataArr;
 import interpret.stacks : dataTempAsArr, returnTempAsArrReverse, Stacks;
@@ -12,7 +13,6 @@ import util.col.arrUtil : arrEqual, arrsCorrespond, makeArr;
 import util.lineAndColumnGetter : LineAndColumnGetters;
 import util.opt : none;
 import util.ptr : castNonScope, ptrTrustMe;
-import util.storage : Storage;
 import util.sym : AllSymbols;
 import util.uri : AllUris, Uri, UrisInfo;
 import util.util : verifyFail;

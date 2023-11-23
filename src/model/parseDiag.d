@@ -3,8 +3,8 @@ module model.parseDiag;
 @safe @nogc pure nothrow:
 
 import frontend.parse.lexer : Token;
+import model.diag : ReadFileDiag;
 import util.sourceRange : Range;
-import util.storage : ReadFileIssue;
 import util.sym : Sym;
 import util.union_ : Union;
 import util.uri : RelPath;
@@ -106,7 +106,7 @@ immutable struct ParseDiag {
 		InvalidName,
 		InvalidStringEscape,
 		NeedsBlockCtx,
-		ReadFileIssue,
+		ReadFileDiag,
 		RelativeImportReachesPastRoot,
 		TrailingComma,
 		UnexpectedCharacter,

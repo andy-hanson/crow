@@ -2,7 +2,8 @@ module frontend.frontendCompile;
 
 @safe @nogc pure nothrow:
 
-import model.diag : Diag, Diagnostic;
+import frontend.storage : asSafeCStr, FileContent, ReadFileResult, Storage, withFile;
+import model.diag : Diag, Diagnostic, ReadFileDiag;
 import model.model :
 	CommonFuns, CommonTypes, Config, emptyModule, ImportFileType, ImportOrExport, ImportOrExportKind, Module, Program;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
@@ -27,7 +28,6 @@ import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.storage : asSafeCStr, FileContent, ReadFileIssue, ReadFileResult, Storage, withFile;
 import util.sourceRange : Range;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
@@ -96,18 +96,18 @@ FileAst* parseSingleAst(
 		x.matchIn!(FileAst*)(
 			(in FileContent content) =>
 				parseFile(perf, alloc, allSymbols, allUris, content.asSafeCStr()),
-			(in ReadFileIssue issue) =>
-				astForIssue(alloc, issue)));
+			(in ReadFileDiag x) =>
+				astForReadFileDiag(alloc, x)));
 
 private:
 
-FileAst* astForIssue(ref Alloc alloc, ReadFileIssue issue) =>
-	fileAstForDiags(alloc, arrLiteral(alloc, [ParseDiagnostic(Range.empty, ParseDiag(issue))]));
+FileAst* astForReadFileDiag(ref Alloc alloc, ReadFileDiag a) =>
+	fileAstForDiags(alloc, arrLiteral(alloc, [ParseDiagnostic(Range.empty, ParseDiag(a))]));
 
 immutable struct ParseStatus {
 	immutable struct Started {}
 	immutable struct Done {}
-	mixin Union!(Started, Done, ReadFileIssue);
+	mixin Union!(Started, Done, ReadFileDiag);
 }
 
 alias UriToStatus = MutMap!(Uri, ParseStatus);
@@ -223,9 +223,9 @@ void parseAndPush(
 					alloc, allUris, config, uri, ast.imports, ast.exports)));
 				return ParseStatus(ParseStatus.Started());
 			},
-			(ReadFileIssue issue) {
-				push(stack, ParseStackEntry(uri, astForIssue(alloc, issue), ResolvedImportsAndExports()));
-				return ParseStatus(issue);
+			(ReadFileDiag x) {
+				push(stack, ParseStackEntry(uri, astForReadFileDiag(alloc, x), ResolvedImportsAndExports()));
+				return ParseStatus(x);
 			});
 		addToMutMap(alloc, statuses, uri, status);
 	});
@@ -297,8 +297,8 @@ FullyResolvedImportKind readFileContent(
 		x.matchIn!FullyResolvedImportKind(
 			(in FileContent x) =>
 				FullyResolvedImportKind(FullyResolvedImportKind.File(astKind.name.name, astKind.type, x)),
-			(in ReadFileIssue x) =>
-				FullyResolvedImportKind(Diagnostic(pathRange(allUris, ast), Diag(Diag.ImportFileIssue(uri, x))))));
+			(in ReadFileDiag x) =>
+				FullyResolvedImportKind(Diagnostic(pathRange(allUris, ast), Diag(Diag.ImportFileDiag(uri, x))))));
 
 Opt!FullyResolvedImportKind fullyResolveImportModule(
 	scope ref Perf perf,
@@ -321,10 +321,8 @@ Opt!FullyResolvedImportKind fullyResolveImportModule(
 				FullyResolvedImportKind(Diagnostic(pathRange(allUris, ast), Diag(Diag.CircularImport(importUri)))),
 			(ParseStatus.Done x) =>
 				getSuccessKind(importUri),
-			(ReadFileIssue issue) =>
-				FullyResolvedImportKind(Diagnostic(
-					pathRange(allUris, ast),
-					Diag(Diag.ImportFileIssue(importUri, issue))))));
+			(ReadFileDiag x) =>
+				FullyResolvedImportKind(Diagnostic(pathRange(allUris, ast), Diag(Diag.ImportFileDiag(importUri, x))))));
 	else {
 		parseAndPush(perf, alloc, allSymbols, allUris, storage, config, statuses, stack, importUri);
 		return none!FullyResolvedImportKind;

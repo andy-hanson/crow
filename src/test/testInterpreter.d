@@ -3,6 +3,7 @@ module test.testInterpreter;
 @safe @nogc nothrow: // not pure
 
 import frontend.showModel : ShowCtx;
+import frontend.storage : Storage;
 import interpret.applyFn : fnWrapAddIntegral;
 import interpret.bytecode :
 	ByteCode,
@@ -76,7 +77,6 @@ import util.col.fullIndexMap : emptyFullIndexMap, fullIndexMapOfArr;
 import util.memory : allocate;
 import util.ptr : castNonScope, ptrTrustMe;
 import util.sourceRange : Pos;
-import util.storage : Storage;
 import util.sym : sym;
 import util.util : verify;
 

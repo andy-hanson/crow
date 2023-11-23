@@ -25,8 +25,7 @@ import model.parseDiag : ParseDiag;
 import util.col.arr : empty;
 import util.opt : Opt;
 import util.sourceRange : Range, UriAndRange;
-import util.storage : ReadFileIssue;
-import util.sym : Sym;
+import util.sym : Sym, sym;
 import util.union_ : Union;
 import util.uri : Uri;
 
@@ -42,7 +41,7 @@ enum DiagnosticSeverity {
 	commonMissing,
 	circularImport,
 	parseError,
-	fileIssue,
+	readFile,
 }
 bool isFatal(DiagnosticSeverity a) =>
 	a >= DiagnosticSeverity.commonMissing;
@@ -81,6 +80,22 @@ enum TypeKind {
 	extern_,
 	record,
 	union_,
+}
+
+private enum ReadFileDiag_ { notFound, unknown, loading, error }
+alias ReadFileDiag = immutable ReadFileDiag_;
+
+ReadFileDiag readFileDiagOfSym(Sym a) {
+	final switch (a.value) {
+		case sym!"notFound".value:
+			return ReadFileDiag.notFound;
+		case sym!"unknown".value:
+			return ReadFileDiag.unknown;
+		case sym!"loading".value:
+			return ReadFileDiag.loading;
+		case sym!"error".value:
+			return ReadFileDiag.error;
+	}
 }
 
 immutable struct Diag {
@@ -221,10 +236,11 @@ immutable struct Diag {
 	immutable struct IfNeedsOpt {
 		Type actualType;
 	}
-	// This is for an issue with an imported file. That will also have a ParseDiag for the issue.
-	immutable struct ImportFileIssue {
+	// The imported file will also have a ParseDiag for the issue, but we also show the error in the importer.
+	// (This is important in an IDE.)
+	immutable struct ImportFileDiag {
 		Uri uri;
-		ReadFileIssue issue;
+		ReadFileDiag diag;
 	}
 	immutable struct ImportRefersToNothing {
 		Sym name;
@@ -452,7 +468,7 @@ immutable struct Diag {
 		FunMissingBody,
 		FunModifierTrustedOnNonExtern,
 		IfNeedsOpt,
-		ImportFileIssue,
+		ImportFileDiag,
 		ImportRefersToNothing,
 		LambdaCantInferParamType,
 		LambdaClosesOverMut,

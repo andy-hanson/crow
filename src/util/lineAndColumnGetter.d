@@ -2,6 +2,8 @@ module util.lineAndColumnGetter;
 
 @safe @nogc pure nothrow:
 
+import frontend.storage : asSafeCStr, FileContent, ReadFileResult, Storage, withFileNoMarkUnknown;
+import model.diag : ReadFileDiag;
 import util.alloc.alloc : Alloc, MetaAlloc, newAlloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.mutMap : getOrAdd, mayDelete, MutMap;
@@ -9,7 +11,6 @@ import util.col.str : SafeCStr, safeCStr;
 import util.conv : safeToUint;
 import util.ptr : castNonScope_ref;
 import util.sourceRange : Pos, Range, UriAndPos, UriAndRange;
-import util.storage : asSafeCStr, FileContent, ReadFileIssue, ReadFileResult, Storage, withFileNoMarkUnknown;
 import util.uri : Uri;
 import util.util : min, verify;
 
@@ -33,7 +34,7 @@ struct LineAndColumnGetters {
 				x.matchIn!LineAndColumnGetter(
 					(in FileContent content) =>
 						lineAndColumnGetterForText(alloc, asSafeCStr(content)),
-					(in ReadFileIssue _) =>
+					(in ReadFileDiag _) =>
 						lineAndColumnGetterForEmptyFile(alloc))));
 
 	Pos opIndex(in UriLineAndCharacter x) scope =>

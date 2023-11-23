@@ -1,7 +1,8 @@
-module util.storage;
+module frontend.storage;
 
 @safe @nogc pure nothrow:
 
+import model.diag : ReadFileDiag;
 import util.alloc.alloc : Alloc, AllocAndValue, freeAlloc, MetaAlloc, newAlloc, withAlloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
@@ -28,7 +29,7 @@ struct Storage {
 	Alloc mapAlloc_;
 	// Store in separate maps depending on success / issue
 	MutMap!(Uri, AllocAndValue!FileInfo) successes;
-	MutMap!(Uri, ReadFileIssue) issues;
+	MutMap!(Uri, ReadFileDiag) diags;
 
 	public:
 
@@ -44,7 +45,7 @@ private struct FileInfo {
 }
 
 @trusted void setFile(scope ref Storage a, Uri uri, in ReadFileResult result) {
-	mayDelete(a.issues, uri);
+	mayDelete(a.diags, uri);
 	MutOpt!(AllocAndValue!FileInfo) oldContent = mayDelete(a.successes, uri);
 	if (has(oldContent))
 		freeAlloc(force(oldContent).alloc);
@@ -53,8 +54,8 @@ private struct FileInfo {
 		(in FileContent x) @safe {
 			addToMutMap(a.mapAlloc, a.successes, uri, getFileInfo(castNonScope(a.metaAlloc), x));
 		},
-		(in ReadFileIssue x) {
-			addToMutMap(a.mapAlloc, a.issues, uri, x);
+		(in ReadFileDiag x) {
+			addToMutMap(a.mapAlloc, a.diags, uri, x);
 		});
 }
 
@@ -64,8 +65,8 @@ private AllocAndValue!FileInfo getFileInfo(MetaAlloc* metaAlloc, in FileContent 
 
 bool hasUnknownOrLoadingUris(in Storage a) {
 	bool res = false;
-	mutMapEachIn!(Uri, ReadFileIssue)(a.issues, (in Uri uri, in ReadFileIssue issue) {
-		res = res || issue == ReadFileIssue.unknown || issue == ReadFileIssue.loading;
+	mutMapEachIn!(Uri, ReadFileDiag)(a.diags, (in Uri uri, in ReadFileDiag x) {
+		res = res || x == ReadFileDiag.unknown || x == ReadFileDiag.loading;
 	});
 	return res;
 }
@@ -75,7 +76,7 @@ Uri[] allStorageUris(ref Alloc alloc, in Storage a) {
 	mutMapEachIn!(Uri, AllocAndValue!FileInfo)(a.successes, (in Uri uri, in AllocAndValue!FileInfo _) {
 		add(alloc, res, uri);
 	});
-	mutMapEachIn!(Uri, ReadFileIssue)(a.issues, (in Uri uri, in ReadFileIssue _) {
+	mutMapEachIn!(Uri, ReadFileDiag)(a.diags, (in Uri uri, in ReadFileDiag _) {
 		add(alloc, res, uri);
 	});
 	return finishArr(alloc, res);
@@ -90,10 +91,10 @@ Uri[] allKnownGoodUris(ref Alloc alloc, in Storage a, in bool delegate(Uri) @saf
 	return finishArr(alloc, res);
 }
 
-Uri[] allUrisWithIssue(ref Alloc alloc, in Storage a, ReadFileIssue issue) {
+Uri[] allUrisWithFileDiag(ref Alloc alloc, in Storage a, ReadFileDiag diag) {
 	ArrBuilder!Uri res;
-	mutMapEachIn!(Uri, ReadFileIssue)(a.issues, (in Uri uri, in ReadFileIssue x) {
-		if (x == issue)
+	mutMapEachIn!(Uri, ReadFileDiag)(a.diags, (in Uri uri, in ReadFileDiag x) {
+		if (x == diag)
 			add(alloc, res, uri);
 	});
 	return finishArr(alloc, res);
@@ -108,7 +109,7 @@ T withFileNoMarkUnknown(T)(in Storage a, Uri uri, in T delegate(in ReadFileResul
 	scope Opt!FileContent res = getFileNoMarkUnknown(castNonScope_ref(a), uri);
 	return cb(has(res)
 		? ReadFileResult(force(res))
-		: ReadFileResult(optOrDefault!ReadFileIssue(getAt_mut(a.issues, uri), () => ReadFileIssue.unknown)));
+		: ReadFileResult(optOrDefault!ReadFileDiag(getAt_mut(a.diags, uri), () => ReadFileDiag.unknown)));
 }
 
 // Storage is mutable, so file content can only be given out temporarily.
@@ -120,27 +121,11 @@ T withFile(T)(
 	ConstOpt!(AllocAndValue!FileInfo) res = a.successes[uri];
 	return cb(has(res)
 		? ReadFileResult(force(res).value.content)
-		: ReadFileResult(getOrAdd!(Uri, ReadFileIssue)(a.mapAlloc, a.issues, uri, () => ReadFileIssue.unknown)));
-}
-
-private enum ReadFileIssue_ { notFound, unknown, loading, error }
-alias ReadFileIssue = immutable ReadFileIssue_;
-
-ReadFileIssue readFileIssueOfSym(Sym a) {
-	final switch (a.value) {
-		case sym!"notFound".value:
-			return ReadFileIssue.notFound;
-		case sym!"unknown".value:
-			return ReadFileIssue.unknown;
-		case sym!"loading".value:
-			return ReadFileIssue.loading;
-		case sym!"error".value:
-			return ReadFileIssue.error;
-	}
+		: ReadFileResult(getOrAdd!(Uri, ReadFileDiag)(a.mapAlloc, a.diags, uri, () => ReadFileDiag.unknown)));
 }
 
 immutable struct ReadFileResult {
-	mixin Union!(FileContent, ReadFileIssue);
+	mixin Union!(FileContent, ReadFileDiag);
 }
 
 immutable struct FileContent {

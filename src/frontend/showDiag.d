@@ -18,7 +18,7 @@ import frontend.showModel :
 	writeTypeQuoted,
 	writeUri,
 	writeUriAndRange;
-import model.diag : Diagnostic, Diag, DiagnosticSeverity, ExpectedForDiag, TypeKind, UriAndDiagnostic;
+import model.diag : Diagnostic, Diag, DiagnosticSeverity, ExpectedForDiag, ReadFileDiag, TypeKind, UriAndDiagnostic;
 import model.model :
 	arity,
 	arityMatches,
@@ -53,7 +53,6 @@ import util.col.str : SafeCStr;
 import util.comparison : Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : compareRange;
-import util.storage : ReadFileIssue;
 import util.sym : Sym, writeSym;
 import util.uri : AllUris, baseName, compareUriAlphabetically, Uri, writeRelPath, writeUri;
 import util.util : max, unreachable;
@@ -307,8 +306,8 @@ void writeParseDiag(scope ref Writer writer, scope ref ShowCtx ctx, in ParseDiag
 				? "on its own line"
 				: "in a context where it can be followed by an indented block";
 		},
-		(in ReadFileIssue x) {
-			showReadFileIssue(writer, x);
+		(in ReadFileDiag x) {
+			showReadFileDiag(writer, x);
 		},
 		(in ParseDiag.RelativeImportReachesPastRoot x) {
 			writer ~= "importing ";
@@ -337,15 +336,15 @@ void writeParseDiag(scope ref Writer writer, scope ref ShowCtx ctx, in ParseDiag
 		});
 }
 
-void showReadFileIssue(scope ref Writer writer, ReadFileIssue a) {
+void showReadFileDiag(scope ref Writer writer, ReadFileDiag a) {
 	writer ~= () {
 		final switch (a) {
-			case ReadFileIssue.notFound:
+			case ReadFileDiag.notFound:
 				return "File does not exist";
-			case ReadFileIssue.error:
+			case ReadFileDiag.error:
 				return "Unable to read file";
-			case ReadFileIssue.loading:
-			case ReadFileIssue.unknown:
+			case ReadFileDiag.loading:
+			case ReadFileDiag.unknown:
 				return "IDE is still loading file";
 		}
 	}();
@@ -652,8 +651,8 @@ void writeDiag(scope ref Writer writer, scope ref ShowCtx ctx, in Diag diag) {
 			writer ~= "Expected an option type, but got ";
 			writeTypeQuoted(writer, ctx, x.actualType);
 		},
-		(in Diag.ImportFileIssue x) {
-			showReadFileIssue(writer, x.issue);
+		(in Diag.ImportFileDiag x) {
+			showReadFileDiag(writer, x.diag);
 			writer ~= ": ";
 			writeUri(writer, ctx, x.uri);
 		},

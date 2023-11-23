@@ -19,6 +19,18 @@ import frontend.parse.jsonOfAst : jsonOfAst;
 import frontend.parse.parse : parseFile;
 import frontend.showDiag : stringOfDiag, stringOfDiagnostics;
 import frontend.showModel : ShowCtx, ShowOptions;
+import frontend.storage :
+	allKnownGoodUris,
+	allStorageUris,
+	allUrisWithFileDiag,
+	asSafeCStr,
+	FileContent,
+	getFileNoMarkUnknown,
+	hasUnknownOrLoadingUris,
+	ReadFileResult,
+	Storage,
+	setFile,
+	withFile;
 import interpret.bytecode : ByteCode;
 import interpret.extern_ : Extern, ExternFunPtrsForAllLibraries, WriteError;
 import interpret.fakeExtern : Pipe, withFakeExtern, WriteCb;
@@ -27,7 +39,7 @@ import interpret.runBytecode : runBytecode;
 import lib.cliParser : PrintKind;
 import lower.lower : lower;
 import model.concreteModel : ConcreteProgram;
-import model.diag : Diag;
+import model.diag : Diag, ReadFileDiag;
 import model.jsonOfConcreteModel : jsonOfConcreteProgram;
 import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
@@ -44,19 +56,6 @@ import util.lineAndColumnGetter :
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
-import util.storage :
-	allKnownGoodUris,
-	allStorageUris,
-	allUrisWithIssue,
-	asSafeCStr,
-	FileContent,
-	getFileNoMarkUnknown,
-	hasUnknownOrLoadingUris,
-	ReadFileIssue,
-	ReadFileResult,
-	Storage,
-	setFile,
-	withFile;
 import util.sourceRange : UriAndRange;
 import util.sym : AllSymbols;
 import util.uri : AllUris, getExtension, parseUri, Uri, UrisInfo;
@@ -210,9 +209,9 @@ private bool hasUnknownOrLoadingUris(in Server server) =>
 Uri[] allStorageUris(ref Alloc alloc, in Server server) =>
 	allStorageUris(alloc, server.storage);
 Uri[] allUnknownUris(ref Alloc alloc, in Server server) =>
-	allUrisWithIssue(alloc, server.storage, ReadFileIssue.unknown);
+	allUrisWithFileDiag(alloc, server.storage, ReadFileDiag.unknown);
 Uri[] allLoadingUris(ref Alloc alloc, in Server server) =>
-	allUrisWithIssue(alloc, server.storage, ReadFileIssue.loading);
+	allUrisWithFileDiag(alloc, server.storage, ReadFileDiag.loading);
 
 void justParseEverything(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] rootUris) {
 	parseAllFiles(perf, alloc, server.allSymbols, server.allUris, server.storage, server.includeDir, rootUris);

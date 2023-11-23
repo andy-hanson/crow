@@ -61,8 +61,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.IfNeedsOpt) =>
 			DiagnosticSeverity.checkError,
-		(in Diag.ImportFileIssue) =>
-			DiagnosticSeverity.fileIssue,
+		(in Diag.ImportFileDiag) =>
+			DiagnosticSeverity.readFile,
 		(in Diag.ImportRefersToNothing) =>
 			DiagnosticSeverity.nameNotFound,
 		(in Diag.LambdaCantInferParamType) =>

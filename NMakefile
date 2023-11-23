@@ -91,6 +91,7 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\frontend\programState.d \
 	src\frontend\showDiag.d \
 	src\frontend\showModel.d \
+	src\frontend\storage.d \
 	src\interpret\applyFn.d \
 	src\interpret\bytecode.d \
 	src\interpret\bytecodeWriter.d \
@@ -155,7 +156,6 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\perf.d \
 	src\util\ptr.d \
 	src\util\sourceRange.d \
-	src\util\storage.d \
 	src\util\sym.d \
 	src\util\union.d \
 	src\util\uri.d \

@@ -40,6 +40,8 @@ version (Windows) {
 	import core.sys.posix.sys.stat : mkdir, pid_t, S_IRWXU;
 	import core.sys.posix.unistd : getcwd, read, readlink, unlink;
 }
+import frontend.storage : FileContent, ReadFileResult;
+import model.diag : ReadFileDiag;
 import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
 import util.col.arr : endPtr;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
@@ -48,7 +50,6 @@ import util.col.str : CStr, SafeCStr, safeCStrSize;
 import util.exitCode : ExitCode;
 import util.memory : memset;
 import util.opt : force, has, Opt, some;
-import util.storage : FileContent, ReadFileIssue, ReadFileResult;
 import util.sym : Sym;
 import util.uri :
 	AllUris,
@@ -161,7 +162,7 @@ version (Windows) {
 
 @trusted ReadFileResult tryReadFile(ref Alloc alloc, ref AllUris allUris, Uri uri) {
 	if (!isFileUri(allUris, uri))
-		return ReadFileResult(ReadFileIssue.notFound);
+		return ReadFileResult(ReadFileDiag.notFound);
 
 	TempStrForPath pathBuf = void;
 	CStr pathCStr = fileUriToTempStr(pathBuf, allUris, asFileUri(allUris, uri)).ptr;
@@ -169,8 +170,8 @@ version (Windows) {
 	FILE* fd = fopen(pathCStr, "rb");
 	if (fd == null)
 		return errno == ENOENT
-			? ReadFileResult(ReadFileIssue.notFound)
-			: ReadFileResult(ReadFileIssue.error);
+			? ReadFileResult(ReadFileDiag.notFound)
+			: ReadFileResult(ReadFileDiag.error);
 	scope(exit) fclose(fd);
 
 	int err = fseek(fd, 0, SEEK_END);

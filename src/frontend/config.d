@@ -2,7 +2,8 @@ module frontend.config;
 
 @safe @nogc pure nothrow:
 
-import model.diag : Diag, Diagnostic;
+import frontend.storage : asSafeCStr, FileContent, ReadFileResult, Storage, withFile;
+import model.diag : Diag, Diagnostic, ReadFileDiag;
 import model.model : Config, ConfigExternUris, ConfigImportUris;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
@@ -16,7 +17,6 @@ import util.json : Json;
 import util.opt : force, has, none, Opt, some;
 import util.jsonParse : parseJson;
 import util.sourceRange : Range;
-import util.storage : asSafeCStr, FileContent, ReadFileIssue, ReadFileResult, Storage, withFile;
 import util.sym : AllSymbols, Sym, sym;
 import util.uri : AllUris, bogusUri, childUri, commonAncestor, parent, parseUriWithCwd, Uri;
 import util.util : todo;
@@ -53,15 +53,15 @@ Config getConfigRecur(
 			(in FileContent content) =>
 				some(parseConfig(
 					alloc, allSymbols, allUris, configUri, crowIncludeDir, searchUri, asSafeCStr(content))),
-			(in ReadFileIssue issue) {
-				final switch (issue) {
-					case ReadFileIssue.notFound:
+			(in ReadFileDiag diag) {
+				final switch (diag) {
+					case ReadFileDiag.notFound:
 						return none!Config;
-					case ReadFileIssue.error:
+					case ReadFileDiag.error:
 						return some(emptyConfig(some(configUri), crowIncludeDir, arrLiteral(alloc, [
-							Diagnostic(Range.empty, Diag(ParseDiag(issue)))])));
-					case ReadFileIssue.loading:
-					case ReadFileIssue.unknown:
+							Diagnostic(Range.empty, Diag(ParseDiag(diag)))])));
+					case ReadFileDiag.loading:
+					case ReadFileDiag.unknown:
 						return some(emptyConfig(some(configUri), crowIncludeDir, []));
 				}
 			}));

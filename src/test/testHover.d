@@ -8,6 +8,7 @@ import frontend.ide.getHover : getHoverStr;
 import frontend.ide.getPosition : getPosition;
 import frontend.ide.position : Position;
 import frontend.showModel : ShowCtx;
+import frontend.storage : FileContent, ReadFileResult, Storage, setFile;
 import model.model : Module, Program;
 import test.testUtil : Test, withShowDiagCtxForTest;
 import util.alloc.alloc : Alloc;
@@ -22,7 +23,6 @@ import util.lineAndColumnGetter : LineAndColumnGetter, PosKind;
 import util.opt : none;
 import util.uri : parseUri, Uri;
 import util.perf : Perf, withNullPerf;
-import util.storage : FileContent, ReadFileResult, Storage, setFile;
 import util.sourceRange : jsonOfPosWithinFile, jsonOfUriAndRange, Pos, UriAndRange;
 import util.util : debugLog, verifyFail;
 

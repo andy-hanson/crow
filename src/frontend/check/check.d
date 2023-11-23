@@ -39,6 +39,7 @@ import frontend.parse.ast :
 	TypeAst,
 	VarDeclAst;
 import frontend.programState : ProgramState;
+import frontend.storage : asBytes, asString, FileContent;
 import model.diag : Diag, Diagnostic;
 import model.model :
 	body_,
@@ -97,7 +98,6 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, someMut, some;
 import util.perf : Perf;
 import util.ptr : ptrTrustMe;
-import util.storage : asBytes, asString, FileContent;
 import util.sourceRange : Range, UriAndRange;
 import util.sym : AllSymbols, Sym, sym;
 import util.uri : AllUris, Uri;
