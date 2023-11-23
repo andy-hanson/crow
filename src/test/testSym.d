@@ -8,7 +8,7 @@ import util.sym : AllSymbols, appendHexExtension, isShortSym, isLongSym, prepend
 import util.util : verify;
 
 void testSym(ref Test test) {
-	AllSymbols allSymbols = AllSymbols(&test.alloc);
+	AllSymbols allSymbols = AllSymbols(test.metaAlloc);
 
 	Sym staticSym(string a)() @safe {
 		verify(sym!a == nonStaticSym!a);

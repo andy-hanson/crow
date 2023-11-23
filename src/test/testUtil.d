@@ -29,8 +29,8 @@ struct Test {
 	@trusted this(MetaAlloc* m) {
 		metaAlloc = m;
 		alloc = newAlloc(m);
-		allSymbols = AllSymbols(&alloc);
-		allUris = AllUris(&alloc, &allSymbols);
+		allSymbols = AllSymbols(metaAlloc);
+		allUris = AllUris(metaAlloc, &allSymbols);
 	}
 }
 

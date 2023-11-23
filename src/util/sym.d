@@ -2,7 +2,7 @@ module util.sym;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc;
+import util.alloc.alloc : Alloc, MetaAlloc, newAlloc;
 import util.col.arr : only;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : addToMutMap, getAt_mut, MutMap, mutMapSize;
@@ -32,8 +32,8 @@ immutable struct Sym {
 struct AllSymbols {
 	@safe @nogc pure nothrow:
 
-	@trusted this(return scope Alloc* allocPtr_) {
-		allocPtr = allocPtr_;
+	@trusted this(MetaAlloc* metaAlloc) {
+		alloc = newAlloc(metaAlloc);
 		foreach (string s; specialSyms) { {
 			SafeCStr str = SafeCStr(s.ptr);
 			debug {
@@ -45,12 +45,9 @@ struct AllSymbols {
 	}
 
 	private:
-	Alloc* allocPtr;
+	Alloc alloc;
 	MutMap!(immutable string, Sym) largeStringToIndex;
 	MutArr!SafeCStr largeStringFromIndex;
-
-	ref Alloc alloc() return scope =>
-		*allocPtr;
 }
 
 // WARN: 'value' must have been allocated by a.alloc

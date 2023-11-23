@@ -128,8 +128,8 @@ struct Server {
 	@trusted this(ulong[] memory) {
 		metaAlloc_ = MetaAlloc(memory);
 		alloc = newAlloc(metaAlloc);
-		allSymbols = AllSymbols(&alloc);
-		allUris = AllUris(&alloc, &allSymbols);
+		allSymbols = AllSymbols(metaAlloc);
+		allUris = AllUris(metaAlloc, &allSymbols);
 		storage = Storage(metaAlloc);
 		lineAndColumnGetters = LineAndColumnGetters(&alloc, &storage);
 	}

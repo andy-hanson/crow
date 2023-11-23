@@ -2,7 +2,7 @@ module util.uri;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc, allocateElements;
+import util.alloc.alloc : Alloc, allocateElements, MetaAlloc, newAlloc;
 import util.col.arr : endPtr;
 import util.col.arrUtil : indexOf, indexOfStartingAt;
 import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
@@ -32,7 +32,7 @@ import util.writer : withWriter, Writer;
 struct AllUris {
 	@safe @nogc pure nothrow:
 	private:
-	Alloc* allocPtr;
+	Alloc alloc;
 	AllSymbols* allSymbolsPtr;
 
 	// Root path at index 0 will have children, but they won't have it as a parent
@@ -40,8 +40,8 @@ struct AllUris {
 	MutArr!Sym pathToBaseName;
 	MutArr!(MutArr!Path) pathToChildren;
 
-	public this(Alloc* a, AllSymbols* as) {
-		allocPtr = a;
+	public this(MetaAlloc* a, AllSymbols* as) {
+		alloc = newAlloc(a);
 		allSymbolsPtr = as;
 
 		// 0 must be the empty URI
@@ -49,9 +49,6 @@ struct AllUris {
 		push(alloc, pathToBaseName, sym!"");
 		push(alloc, pathToChildren, MutArr!Path());
 	}
-
-	ref Alloc alloc() return scope =>
-		*allocPtr;
 
 	ref const(AllSymbols) allSymbols() return scope const =>
 		*allSymbolsPtr;
