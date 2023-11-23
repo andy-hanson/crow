@@ -222,7 +222,7 @@ bin\crow-debug.exe: $(app_deps_with_test)
 	ldc2 -ofbin\crow-debug.exe -g $(ldc_flags_assert) $(ldc_flags_app) $(ldc_flags_debug) $(app_src_with_test) $(app_link)
 
 bin\crow.exe: $(app_deps_no_test)
-	ldc2 -ofbin\crow.exe -g $(ldc_flags_assert) $(ldc_flags_app) $(ldc_fast_flags) $(app_src_no_test) $(app_link)
+	ldc2 -ofbin\crow.exe -g $(ldc_flags_assert) $(ldc_flags_app) $(ldc_fast_flags) $(app_src_no_test) $(app_link) -deps=bin/dependencies.txt
 	del bin\crow.obj
 
 bin\crow.wasm: $(wasm_deps)
@@ -237,7 +237,7 @@ bin\crow.zip: bin\crow.exe demo\* include\* libraries\*
 
 ### lint ###
 
-lint: lint-basic lint-dscanner lint-d-imports-exports
+lint: lint-basic lint-dscanner lint-d-imports-exports bin\dependencies.dot
 
 lint-basic: bin\crow.exe
 	.\bin\crow.exe run test\lint-basic.crow
@@ -247,6 +247,12 @@ lint-dscanner:
 
 lint-d-imports-exports: bin\crow.exe
 	.\bin\crow.exe run test\lint-d-imports-exports.crow
+
+bin\dependencies.svg: bin\dependencies.dot
+	dot -Tsvg -o bin\dependencies.svg bin\dependencies.dot
+
+bin\dependencies.dot: bin/crow test/dependencies.crow
+	.\bin\crow.exe run test\dependencies.crow
 
 ### site ###
 

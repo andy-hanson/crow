@@ -1,7 +1,7 @@
 # This file is for Linux.
 # WARN: If editing this file, you might need to change NMakefile too.
 
-.PHONY: confirm-upload-site debug end-to-end-test end-to-end-test-overwrite serve prepare-site test unit-test
+.PHONY: confirm-upload-site debug end-to-end-test end-to-end-test-overwrite serve prepare-site show-dependencies test unit-test
 
 # WARN: Does not clean `dyncall` as that takes too long to restore
 # Also does not clean `node_modules` for the VSCode plugin
@@ -97,7 +97,7 @@ bin/crow-dmd: $(app_deps_with_test)
 	rm -f bin/crow-dmd.o
 
 bin/crow: $(app_deps_no_test)
-	ldc2 -ofbin/crow $(ldc_flags_assert) $(ldc_fast_flags) $(app_src_no_test) $(app_link)
+	ldc2 -ofbin/crow $(ldc_flags_assert) $(ldc_fast_flags) $(app_src_no_test) $(app_link) -deps=bin/dependencies.txt
 	rm bin/crow.o
 
 # This isn't used anywhere, but you can rename the result to 'crow.wasm' to help debugging in the browser
@@ -116,7 +116,7 @@ bin/crow.tar.xz: bin/crow demo/* demo/*/* editor/sublime/* $(ALL_INCLUDE) librar
 
 ### lint ###
 
-lint: lint-basic lint-dscanner lint-d-imports-exports typescript
+lint: lint-basic lint-dscanner lint-d-imports-exports bin/dependencies.dot typescript
 
 lint-basic: bin/crow
 	./bin/crow run test/lint-basic.crow
@@ -126,6 +126,15 @@ lint-dscanner:
 
 lint-d-imports-exports: bin/crow
 	./bin/crow run test/lint-d-imports-exports.crow
+
+show-dependencies: bin/dependencies.svg
+	xdg-open bin/dependencies.svg
+
+bin/dependencies.svg: bin/dependencies.dot
+	dot -Tsvg -o bin/dependencies.svg bin/dependencies.dot
+
+bin/dependencies.dot: bin/crow test/dependencies.crow
+	./bin/crow run test/dependencies.crow
 
 typescript: editor/crow-vscode/server/node_modules
 	./editor/crow-vscode/server/node_modules/typescript/bin/tsc
