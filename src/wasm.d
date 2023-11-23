@@ -35,9 +35,8 @@ import lib.server :
 import model.diag : Diagnostic, DiagnosticSeverity, readFileDiagOfSym;
 import model.model : Program;
 import util.alloc.alloc : Alloc, withStaticAlloc;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : map;
-import util.col.str : CStr, eachSplit, SafeCStr, strOfSafeCStr;
+import util.col.str : CStr, SafeCStr, strOfSafeCStr;
 import util.exitCode : ExitCode;
 import util.json : field, jsonObject, Json, jsonToString, jsonList, jsonString;
 import util.lineAndColumnGetter : LineAndCharacter, UriLineAndCharacter;
@@ -195,13 +194,11 @@ pure CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 	}).ptr;
 }
 
-@system extern(C) CStr getReferences(Server* server, scope CStr uriCStr, uint line, uint character, scope CStr roots) {
+@system extern(C) CStr getReferences(Server* server, scope CStr uriCStr, uint line, uint character) {
 	SafeCStr uriSafe = SafeCStr(uriCStr);
-	SafeCStr rootsSafe = SafeCStr(roots);
 	return wasmCall!("getReferences", SafeCStr)((scope ref Perf perf, ref Alloc resultAlloc) {
 		UriLineAndCharacter where = toUriLineAndCharacter(*server, uriSafe, line, character);
-		Uri[] roots = toUris(resultAlloc, *server, rootsSafe);
-		UriAndRange[] references = getReferences(perf, resultAlloc, *server, where, roots);
+		UriAndRange[] references = getReferences(perf, resultAlloc, *server, where);
 		return jsonToString(resultAlloc, server.allSymbols, jsonOfReferences(
 			resultAlloc, server.allUris, server.lineAndColumnGetters, references));
 	}).ptr;
@@ -212,16 +209,13 @@ pure CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 	scope CStr uriCStr,
 	uint line,
 	uint character,
-	scope CStr roots,
 	scope CStr newNamePtr,
 ) {
 	SafeCStr uriSafe = SafeCStr(uriCStr);
-	SafeCStr rootsSafe = SafeCStr(roots);
 	SafeCStr newName = SafeCStr(newNamePtr);
 	return wasmCall!("getRename", SafeCStr)((scope ref Perf perf, ref Alloc resultAlloc) {
 		UriLineAndCharacter where = toUriLineAndCharacter(*server, uriSafe, line, character);
-		Uri[] roots = toUris(resultAlloc, *server, rootsSafe);
-		Opt!Rename rename = getRename(perf, resultAlloc, *server, where, roots, strOfSafeCStr(newName));
+		Opt!Rename rename = getRename(perf, resultAlloc, *server, where, strOfSafeCStr(newName));
 		Json renameJson = jsonOfRename(resultAlloc, server.allUris, server.lineAndColumnGetters, rename);
 		return jsonToString(resultAlloc, server.allSymbols, renameJson);
 	}).ptr;
@@ -241,14 +235,6 @@ pure CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 		run(perf, resultAlloc, *server, toUri(*server, uriStr), (Pipe pipe, in string x) @trusted {
 			write(pipe, x.ptr, x.length);
 		})).value;
-}
-
-pure Uri[] toUris(ref Alloc alloc, scope ref Server server, SafeCStr uris) {
-	ArrBuilder!Uri res;
-	eachSplit(uris, '|', (in string x) {
-		add(alloc, res, parseUri(server.allUris, x));
-	});
-	return finishArr(alloc, res);
 }
 
 pure UriLineAndCharacter toUriLineAndCharacter(scope ref Server server, SafeCStr uri, uint line, uint character) =>

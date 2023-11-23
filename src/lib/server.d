@@ -19,7 +19,7 @@ import frontend.parse.jsonOfAst : jsonOfAst;
 import frontend.showDiag : stringOfDiag, stringOfDiagnostics;
 import frontend.showModel : ShowCtx, ShowOptions;
 import frontend.storage :
-	allKnownGoodUris,
+	allKnownGoodCrowUris,
 	allStorageUris,
 	allUrisWithFileDiag,
 	changeFile,
@@ -219,8 +219,7 @@ void justParseEverything(scope ref Perf perf, ref Alloc alloc, ref Server server
 }
 
 Program typeCheckAllKnownFiles(scope ref Perf perf, ref Alloc alloc, ref Server server) =>
-	justTypeCheck(perf, alloc, server, allKnownGoodUris(alloc, server.storage, (Uri uri) =>
-		getExtension(server.allUris, uri) == crowExtension));
+	justTypeCheck(perf, alloc, server, allKnownGoodCrowUris(alloc, server.storage));
 
 Program justTypeCheck(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] rootUris) =>
 	frontendCompile(perf, alloc, server, rootUris, none!Uri);
@@ -280,14 +279,8 @@ private UriAndRange[] getDefinitionForProgram(
 		: [];
 }
 
-UriAndRange[] getReferences(
-	scope ref Perf perf,
-	ref Alloc alloc,
-	ref Server server,
-	in UriLineAndCharacter where,
-	in Uri[] roots,
-) =>
-	getReferencesForProgram(alloc, server, where, getProgram(perf, alloc, server, roots));
+UriAndRange[] getReferences(scope ref Perf perf, ref Alloc alloc, ref Server server, in UriLineAndCharacter where) =>
+	getReferencesForProgram(alloc, server, where, getProgramForReferences(perf, alloc, server));
 
 private UriAndRange[] getReferencesForProgram(
 	ref Alloc alloc,
@@ -306,10 +299,9 @@ Opt!Rename getRename(
 	ref Alloc alloc,
 	ref Server server,
 	in UriLineAndCharacter where,
-	in Uri[] roots,
 	string newName,
 ) =>
-	getRenameForProgram(alloc, server, getProgram(perf, alloc, server, roots), where, newName);
+	getRenameForProgram(alloc, server, getProgramForReferences(perf, alloc, server), where, newName);
 
 private Opt!Rename getRenameForProgram(
 	ref Alloc alloc,
@@ -342,6 +334,9 @@ private SafeCStr getHoverForProgram(
 
 private Program getProgram(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] roots) =>
 	frontendCompile(perf, alloc, server, roots, none!Uri);
+
+private Program getProgramForReferences(scope ref Perf perf, ref Alloc alloc, ref Server server) =>
+	getProgram(perf, alloc, server, allKnownGoodCrowUris(alloc, server.storage));
 
 private Opt!Position getPosition(scope ref Server server, in Program program, in UriLineAndCharacter where) {
 	Opt!(immutable Module*) module_ = program.allModules[where.uri];

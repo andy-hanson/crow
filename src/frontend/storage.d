@@ -146,10 +146,10 @@ Uri[] allStorageUris(ref Alloc alloc, in Storage a) {
 	return finishArr(alloc, res);
 }
 
-Uri[] allKnownGoodUris(ref Alloc alloc, in Storage a, in bool delegate(Uri) @safe @nogc pure nothrow filter) {
+Uri[] allKnownGoodCrowUris(ref Alloc alloc, scope ref Storage a) {
 	ArrBuilder!Uri res;
 	mutMapEachIn!(Uri, AllocAndValue!FileInfo)(a.successes, (in Uri uri, in AllocAndValue!FileInfo _) {
-		if (filter(uri))
+		if (getExtension(*a.allUris, uri) == crowExtension)
 			add(alloc, res, uri);
 	});
 	return finishArr(alloc, res);

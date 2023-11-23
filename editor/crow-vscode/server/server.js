@@ -93,16 +93,8 @@ connection.onInitialized(withLogErrors("onInitialized", () => {
 	}
 }))
 
-/** @type {Set<string>} */
-const openDocuments = new Set()
-
-/** @type {function(): ReadonlyArray<string>} */
-const getCrowUris = () =>
-	Array.from(openDocuments).filter(cur => cur.endsWith('.crow'))
-
 connection.onDidOpenTextDocument(withLogErrors("onDidOpenTextDocument", (params) => {
 	const {uri, text} = params.textDocument
-	openDocuments.add(uri)
 	compiler.setFileSuccess(uri, text)
 	afterOpenOrChangeFile(uri)
 }))
@@ -113,9 +105,7 @@ connection.onDidChangeTextDocument(withLogErrors("onDidChangeTextDocument", para
 	afterOpenOrChangeFile(uri)
 }))
 
-connection.onDidCloseTextDocument(withLogErrors("onDidCloseTextDocument", params => {
-	openDocuments.delete(params.textDocument.uri)
-	// TODO: tell compiler it's closed
+connection.onDidCloseTextDocument(withLogErrors("onDidCloseTextDocument", () => {
 }))
 
 /** @type {function(crowProtocol.ReadFileResult): void} */
@@ -175,10 +165,10 @@ connection.onHover(withLogErrors("onHover", params => {
 }))
 
 connection.onReferences(withLogErrors("onReferences", params =>
-	compiler.getReferences(getUriLineAndCharacter(params), getCrowUris())))
+	compiler.getReferences(getUriLineAndCharacter(params))))
 
 connection.onRenameRequest(withLogErrors("onRename", params =>
-	compiler.getRename(getUriLineAndCharacter(params), getCrowUris(), params.newName)))
+	compiler.getRename(getUriLineAndCharacter(params), params.newName)))
 
 /** @type {function(TextDocumentPositionParams): crow.UriLineAndCharacter} */
 const getUriLineAndCharacter = ({textDocument, position}) =>

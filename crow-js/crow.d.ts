@@ -101,8 +101,8 @@ declare namespace crow {
 		getAllDiagnostics(): ReadonlyArray<UriAndDiagnostics>
 		getDiagnosticsForUri(uri: Uri, minSeverity?: number): ReadonlyArray<Diagnostic>
 		getDefinition(where: UriLineAndCharacter): UriAndRange[]
-		getReferences(where: UriLineAndCharacter, roots: ReadonlyArray<Uri>): UriAndRange[]
-		getRename(where: UriLineAndCharacter, roots: ReadonlyArray<Uri>, newName: string): Rename | null
+		getReferences(where: UriLineAndCharacter): UriAndRange[]
+		getRename(where: UriLineAndCharacter, newName: string): Rename | null
 		getHover(where: UriLineAndCharacter): string
 		run(uri: Uri): RunOutput
 	}

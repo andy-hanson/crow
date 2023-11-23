@@ -32,8 +32,8 @@ Exports of `wasm.d`:
 @property {function(Server): CStr} getAllDiagnostics
 @property {function(Server, CStr, number): CStr} getDiagnosticsForUri
 @property {function(Server, CStr, number, number): CStr} getDefinition
-@property {function(Server, CStr, number, number, CStr): CStr} getReferences
-@property {function(Server, CStr, number, number, CStr, CStr): CStr} getRename
+@property {function(Server, CStr, number, number): CStr} getReferences
+@property {function(Server, CStr, number, number, CStr): CStr} getRename
 @property {function(Server, CStr, number, number): CStr} getHover
 @property {function(Server, CStr): number} run
 */
@@ -220,16 +220,11 @@ globalCrow.makeCompiler = async (bytes, includeDir, cwd, logger) => {
 			withParamsAndJson(() => exports.getDiagnosticsForUri(server, paramAlloc.writeCStr(uri), minSeverity || 0)),
 		getDefinition: ({uri, position:{line, character}}) => withParamsAndJson(() =>
 			exports.getDefinition(server, paramAlloc.writeCStr(uri), line, character)),
-		getReferences: ({uri, position:{line, character}}, roots) =>
-			withParamsAndJson(() => exports.getReferences(
-				server, paramAlloc.writeCStr(uri), line, character, paramAlloc.writeCStr(rootsToString(roots)))),
-		getRename: ({uri, position:{line, character}}, roots, newName) =>
+		getReferences: ({uri, position:{line, character}}) =>
+			withParamsAndJson(() => exports.getReferences(server, paramAlloc.writeCStr(uri), line, character)),
+		getRename: ({uri, position:{line, character}}, newName) =>
 			withParamsAndJson(() => exports.getRename(
-				server,
-				paramAlloc.writeCStr(uri),
-				line, character,
-				paramAlloc.writeCStr(rootsToString(roots)),
-				paramAlloc.writeCStr(newName))),
+				server, paramAlloc.writeCStr(uri), line, character, paramAlloc.writeCStr(newName))),
 		getHover: ({uri, position:{line, character}}) => withParamsAndJson(() =>
 			exports.getHover(server, paramAlloc.writeCStr(uri), line, character)).hover,
 		run: uri => {
@@ -243,14 +238,6 @@ globalCrow.makeCompiler = async (bytes, includeDir, cwd, logger) => {
 			}
 		},
 	}
-}
-
-/** @type {function(ReadonlyArray<string>): string} */
-const rootsToString = roots => {
-	for (const root of roots)
-		if (root.includes('|'))
-			throw new Error(`URI can't contain '|': ${root}`)
-	return roots.join('|')
 }
 
 /** @type {function(DataView, number, number): string} */
