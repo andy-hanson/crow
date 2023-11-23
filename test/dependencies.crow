@@ -26,7 +26,8 @@ ignore bool(a dependency)
 	a.importer.ignore-module || a.exporter.ignore-module
 
 ignore-module bool(a string)
-	ignore-base string[] = "core.", "std.", "util."
+	# omit model and util since these are commonly imported dependencies
+	ignore-base string[] = "core.", "model.", "std.", "util."
 	a == "object" || ignore-base exists (x => a starts-with x) || a ends-with ".txt"
 
 -to-dot string(dependencies dependency[])

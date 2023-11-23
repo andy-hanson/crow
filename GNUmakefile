@@ -128,7 +128,7 @@ lint-d-imports-exports: bin/crow
 	./bin/crow run test/lint-d-imports-exports.crow
 
 show-dependencies: bin/dependencies.svg
-	xdg-open bin/dependencies.svg
+	open bin/dependencies.svg
 
 bin/dependencies.svg: bin/dependencies.dot
 	dot -Tsvg -o bin/dependencies.svg bin/dependencies.dot

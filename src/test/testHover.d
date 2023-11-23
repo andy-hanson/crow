@@ -59,7 +59,7 @@ void withHoverTest(string fileName)(
 	setFile(storage, uri, ReadFileResult(FileContent(content)));
 	Program program = withNullPerf!(Program, (ref Perf perf) =>
 		frontendCompile(
-			test.alloc, perf, test.alloc, test.allSymbols, test.allUris, storage,
+			perf, test.alloc, test.alloc, test.allSymbols, test.allUris, storage,
 			parseUri(test.allUris, "magic:include"), [uri], none!Uri));
 	withShowDiagCtxForTest(test, storage, program, (ref ShowCtx ctx) {
 		cb(ctx, only(program.rootModules));

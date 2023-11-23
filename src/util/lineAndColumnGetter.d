@@ -2,11 +2,12 @@ module util.lineAndColumnGetter;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc;
+import util.alloc.alloc : Alloc, MetaAlloc, newAlloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.mutMap : getOrAdd, mayDelete, MutMap;
 import util.col.str : SafeCStr, safeCStr;
 import util.conv : safeToUint;
+import util.ptr : castNonScope_ref;
 import util.sourceRange : Pos, Range, UriAndPos, UriAndRange;
 import util.storage : asSafeCStr, FileContent, ReadFileIssue, ReadFileResult, Storage, withFileNoMarkUnknown;
 import util.uri : Uri;
@@ -16,24 +17,24 @@ struct LineAndColumnGetters {
 	@safe @nogc pure nothrow:
 
 	private:
-	Alloc* alloc;
+	Alloc alloc;
 	const Storage* storage;
 	MutMap!(Uri, LineAndColumnGetter) getters;
 
 	public:
-	this(return scope Alloc* a, return scope const Storage* s) {
-		alloc = a;
+	this(MetaAlloc* metaAlloc, return scope const Storage* s) {
+		alloc = newAlloc(metaAlloc);
 		storage = s;
 	}
 
 	LineAndColumnGetter opIndex(Uri uri) scope =>
-		getOrAdd(*alloc, getters, uri, () =>
+		getOrAdd(castNonScope_ref(alloc), getters, uri, () =>
 			withFileNoMarkUnknown!LineAndColumnGetter(*storage, uri, (in ReadFileResult x) =>
 				x.matchIn!LineAndColumnGetter(
 					(in FileContent content) =>
-						lineAndColumnGetterForText(*alloc, asSafeCStr(content)),
+						lineAndColumnGetterForText(alloc, asSafeCStr(content)),
 					(in ReadFileIssue _) =>
-						lineAndColumnGetterForEmptyFile(*alloc))));
+						lineAndColumnGetterForEmptyFile(alloc))));
 
 	Pos opIndex(in UriLineAndCharacter x) scope =>
 		this[x.uri][x.lineAndCharacter];

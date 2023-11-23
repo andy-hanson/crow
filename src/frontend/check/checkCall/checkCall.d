@@ -135,13 +135,13 @@ private Expr checkCallCommon(
 	ExprAst[] args,
 	ref Expected expected,
 ) {
-	PerfMeasurer perfMeasurer = startMeasure(ctx.alloc, ctx.perf, PerfMeasure.checkCall);
+	PerfMeasurer perfMeasurer = startMeasure(ctx.perf, ctx.alloc, PerfMeasure.checkCall);
 	Expr res = withCandidates!Expr(
 		funsInScope(ctx), funName, args.length,
 		(ref Candidates candidates) =>
 			checkCallInner(
 				ctx, locals, source, diagRange, funName, args, typeArg, perfMeasurer, candidates, expected));
-	endMeasure(ctx.alloc, ctx.perf, perfMeasurer);
+	endMeasure(ctx.perf, ctx.alloc, perfMeasurer);
 	return res;
 }
 
@@ -191,9 +191,9 @@ Expr checkCallInner(
 		getParamExpected(ctx.alloc, ctx.programState, paramExpected, candidates, argIdx);
 		Expected expected = Expected(tempAsArr(castNonScope_ref(paramExpected)));
 
-		pauseMeasure(ctx.alloc, ctx.perf, perfMeasurer);
+		pauseMeasure(ctx.perf, ctx.alloc, perfMeasurer);
 		Expr arg = checkExpr(ctx, locals, &argAsts[argIdx], expected);
-		resumeMeasure(ctx.alloc, ctx.perf, perfMeasurer);
+		resumeMeasure(ctx.perf, ctx.alloc, perfMeasurer);
 
 		Type actualArgType = inferred(expected);
 		// If it failed to check, don't continue, just stop there.

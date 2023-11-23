@@ -48,8 +48,8 @@ import util.uri :
 import util.util : verify;
 
 Program frontendCompile(
-	ref Alloc modelAlloc,
 	scope ref Perf perf,
+	ref Alloc modelAlloc,
 	ref Alloc astsAlloc,
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
@@ -61,17 +61,17 @@ Program frontendCompile(
 	Config config = getConfig(modelAlloc, allSymbols, allUris, includeDir, storage, rootUris);
 	EnumMap!(CommonModule, Uri) commonUris = commonUris(allUris, config.crowIncludeDir);
 	AstAndResolvedImports[] parsed = withMeasure!(AstAndResolvedImports[], () => parseEverything(
-		modelAlloc, astsAlloc, perf, allSymbols, allUris, storage, rootUris, mainUri, commonUris, config)
-	)(astsAlloc, perf, PerfMeasure.parseEverything);
+		perf, modelAlloc, astsAlloc, allSymbols, allUris, storage, rootUris, mainUri, commonUris, config)
+	)(perf, astsAlloc, PerfMeasure.parseEverything);
 	return withMeasure!(Program, () =>
-		checkEverything(modelAlloc, perf, allSymbols, allUris, config, parsed, rootUris, mainUri, commonUris)
-	)(modelAlloc, perf, PerfMeasure.checkEverything);
+		checkEverything(perf, modelAlloc, allSymbols, allUris, config, parsed, rootUris, mainUri, commonUris)
+	)(perf, modelAlloc, PerfMeasure.checkEverything);
 }
 
 // The purpose of this is to discover unknown files
 void parseAllFiles(
-	ref Alloc alloc,
 	scope ref Perf perf,
+	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	ref AllUris allUris,
 	scope ref Storage storage,
@@ -80,13 +80,13 @@ void parseAllFiles(
 ) {
 	Config config = getConfig(alloc, allSymbols, allUris, includeDir, storage, rootUris);
 	cast(void) parseEverything(
-		alloc, alloc, perf, allSymbols, allUris, storage,
+		perf, alloc, alloc, allSymbols, allUris, storage,
 		rootUris, none!Uri, commonUris(allUris, config.crowIncludeDir), config);
 }
 
 FileAst* parseSingleAst(
-	ref Alloc alloc,
 	scope ref Perf perf,
+	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	ref AllUris allUris,
 	scope ref Storage storage,
@@ -95,7 +95,7 @@ FileAst* parseSingleAst(
 	withFile!(FileAst*)(storage, uri, (in ReadFileResult x) =>
 		x.matchIn!(FileAst*)(
 			(in FileContent content) =>
-				parseFile(alloc, perf, allSymbols, allUris, content.asSafeCStr()),
+				parseFile(perf, alloc, allSymbols, allUris, content.asSafeCStr()),
 			(in ReadFileIssue issue) =>
 				astForIssue(alloc, issue)));
 
@@ -121,9 +121,9 @@ struct ParseStackEntry {
 alias ParseStack = MutMaxArr!(32, ParseStackEntry);
 
 AstAndResolvedImports[] parseEverything(
+	scope ref Perf perf,
 	ref Alloc modelAlloc,
 	ref Alloc astAlloc,
-	scope ref Perf perf,
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
 	scope ref Storage storage,
@@ -148,7 +148,7 @@ AstAndResolvedImports[] parseEverything(
 		return mapOrNone!(FullyResolvedImport, ResolvedImport)(
 			modelAlloc, importsOrExports, (ref ResolvedImport import_) =>
 				fullyResolveImport(
-					astAlloc, perf, allSymbols, allUris, storage, config,
+					perf, astAlloc, allSymbols, allUris, storage, config,
 					statuses, stack, fromUri, import_));
 	}
 
@@ -171,7 +171,7 @@ AstAndResolvedImports[] parseEverything(
 
 	void processRootUri(Uri uri) {
 		if (!hasKey_mut(statuses, uri)) {
-			parseAndPush(astAlloc, perf, allSymbols, allUris, storage, config, statuses, stack, uri);
+			parseAndPush(perf, astAlloc, allSymbols, allUris, storage, config, statuses, stack, uri);
 			process();
 		}
 	}
@@ -205,8 +205,8 @@ immutable(EnumMap!(CommonModule, Uri)) commonUris(ref AllUris allUris, Uri inclu
 }
 
 void parseAndPush(
-	ref Alloc alloc,
 	scope ref Perf perf,
+	ref Alloc alloc,
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
 	scope ref Storage storage,
@@ -218,7 +218,7 @@ void parseAndPush(
 	withFile!void(storage, uri, (in ReadFileResult x) {
 		ParseStatus status = x.match!ParseStatus(
 			(FileContent x) {
-				FileAst* ast = parseFile(alloc, perf, allSymbols, allUris, x.asSafeCStr());
+				FileAst* ast = parseFile(perf, alloc, allSymbols, allUris, x.asSafeCStr());
 				push(stack, ParseStackEntry(uri, ast, resolveImportsAndExports(
 					alloc, allUris, config, uri, ast.imports, ast.exports)));
 				return ParseStatus(ParseStatus.Started());
@@ -233,8 +233,8 @@ void parseAndPush(
 
 // returns none if we can't resolve all imported modules yet
 Opt!FullyResolvedImport fullyResolveImport(
-	ref Alloc alloc,
 	scope ref Perf perf,
+	ref Alloc alloc,
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
 	scope ref Storage storage,
@@ -247,7 +247,7 @@ Opt!FullyResolvedImport fullyResolveImport(
 	Opt!FullyResolvedImportKind kind = import_.resolvedUri.matchIn!(Opt!FullyResolvedImportKind)(
 		(in Uri uri) =>
 			fullyResolveImportKind(
-				alloc, perf, allSymbols, allUris, storage, config, statuses, stack, fromUri, import_, uri),
+				perf, alloc, allSymbols, allUris, storage, config, statuses, stack, fromUri, import_, uri),
 		(in Diagnostic diag) =>
 			some(FullyResolvedImportKind(diag)));
 	return has(kind)
@@ -256,8 +256,8 @@ Opt!FullyResolvedImport fullyResolveImport(
 }
 
 Opt!FullyResolvedImportKind fullyResolveImportKind(
-	ref Alloc alloc,
 	scope ref Perf perf,
+	ref Alloc alloc,
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
 	scope ref Storage storage,
@@ -271,13 +271,13 @@ Opt!FullyResolvedImportKind fullyResolveImportKind(
 	import_.ast.kind.matchIn!(Opt!FullyResolvedImportKind)(
 		(in ImportOrExportAstKind.ModuleWhole) =>
 			fullyResolveImportModule(
-				alloc, perf, allSymbols, allUris, storage, config, statuses, stack, fromUri,
+				perf, alloc, allSymbols, allUris, storage, config, statuses, stack, fromUri,
 				*import_.ast, resolvedUri,
 				(Uri uri) =>
 					FullyResolvedImportKind(FullyResolvedImportKind.ModuleWhole(uri))),
 		(in NameAndRange[] names) =>
 			fullyResolveImportModule(
-				alloc, perf, allSymbols, allUris, storage, config, statuses, stack, fromUri,
+				perf, alloc, allSymbols, allUris, storage, config, statuses, stack, fromUri,
 				*import_.ast, resolvedUri,
 				(Uri uri) =>
 					FullyResolvedImportKind(FullyResolvedImportKind.ModuleNamed(
@@ -301,8 +301,8 @@ FullyResolvedImportKind readFileContent(
 				FullyResolvedImportKind(Diagnostic(pathRange(allUris, ast), Diag(Diag.ImportFileIssue(uri, x))))));
 
 Opt!FullyResolvedImportKind fullyResolveImportModule(
-	ref Alloc alloc,
 	scope ref Perf perf,
+	ref Alloc alloc,
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
 	scope ref Storage storage,
@@ -326,7 +326,7 @@ Opt!FullyResolvedImportKind fullyResolveImportModule(
 					pathRange(allUris, ast),
 					Diag(Diag.ImportFileIssue(importUri, issue))))));
 	else {
-		parseAndPush(alloc, perf, allSymbols, allUris, storage, config, statuses, stack, importUri);
+		parseAndPush(perf, alloc, allSymbols, allUris, storage, config, statuses, stack, importUri);
 		return none!FullyResolvedImportKind;
 	}
 }
@@ -533,8 +533,8 @@ Module checkNonBootstrapModule(
 }
 
 Program checkEverything(
-	ref Alloc modelAlloc,
 	scope ref Perf perf,
+	ref Alloc modelAlloc,
 	scope ref AllSymbols allSymbols,
 	in AllUris allUris,
 	Config config,

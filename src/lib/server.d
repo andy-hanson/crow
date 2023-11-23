@@ -33,7 +33,7 @@ import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
 import model.lowModel : ExternLibraries, LowProgram;
 import model.model : fakeProgramForAst, hasFatalDiagnostics, Module, Program;
-import util.alloc.alloc : Alloc, MetaAlloc, newAlloc;
+import util.alloc.alloc : Alloc, MetaAlloc;
 import util.col.arr : only;
 import util.col.str : SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
 import util.exitCode : ExitCode;
@@ -70,7 +70,7 @@ ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri main, 
 	SafeCStr[1] allArgs = [safeCStr!"/usr/bin/fakeExecutable"];
 	return withFakeExtern(alloc, server.allSymbols, writeCb, (scope ref Extern extern_) =>
 		buildAndInterpret(
-			alloc, perf, server, extern_,
+			perf, alloc, server, extern_,
 			(in SafeCStr x) {
 				writeCb(Pipe.stderr, strOfSafeCStr(x));
 			},
@@ -78,8 +78,8 @@ ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri main, 
 }
 
 ExitCode buildAndInterpret(
-	ref Alloc alloc,
 	scope ref Perf perf,
+	ref Alloc alloc,
 	ref Server server,
 	in Extern extern_,
 	in WriteError writeError,
@@ -87,7 +87,7 @@ ExitCode buildAndInterpret(
 	in SafeCStr[] allArgs,
 ) {
 	verify(!hasUnknownOrLoadingUris(server));
-	Programs programs = buildToLowProgram(alloc, perf, server, versionInfoForInterpret, main);
+	Programs programs = buildToLowProgram(perf, alloc, server, versionInfoForInterpret, main);
 	SafeCStr diags = showDiagnostics(alloc, server, programs.program);
 	if (!safeCStrIsEmpty(diags))
 		writeError(diags);
@@ -99,7 +99,7 @@ ExitCode buildAndInterpret(
 			extern_.loadExternFunPtrs(lowProgram.externLibraries, writeError);
 		if (has(externFunPtrs)) {
 			ByteCode byteCode = generateBytecode(
-				alloc, perf, server.allSymbols,
+				perf, alloc, server.allSymbols,
 				programs.program, lowProgram, force(externFunPtrs), extern_.makeSyntheticFunPtrs);
 			ShowCtx printCtx = getShowDiagCtx(server, programs.program);
 			return ExitCode(runBytecode(perf, alloc, printCtx, extern_.doDynCall, lowProgram, byteCode, allArgs));
@@ -116,7 +116,6 @@ struct Server {
 	@safe @nogc pure nothrow:
 
 	MetaAlloc metaAlloc_;
-	Alloc alloc;
 	AllSymbols allSymbols;
 	AllUris allUris;
 	private Late!Uri includeDir_;
@@ -127,11 +126,10 @@ struct Server {
 
 	@trusted this(ulong[] memory) {
 		metaAlloc_ = MetaAlloc(memory);
-		alloc = newAlloc(metaAlloc);
 		allSymbols = AllSymbols(metaAlloc);
 		allUris = AllUris(metaAlloc, &allSymbols);
 		storage = Storage(metaAlloc);
-		lineAndColumnGetters = LineAndColumnGetters(&alloc, &storage);
+		lineAndColumnGetters = LineAndColumnGetters(metaAlloc, &storage);
 	}
 
 	MetaAlloc* metaAlloc() =>
@@ -216,16 +214,16 @@ Uri[] allUnknownUris(ref Alloc alloc, in Server server) =>
 Uri[] allLoadingUris(ref Alloc alloc, in Server server) =>
 	allUrisWithIssue(alloc, server.storage, ReadFileIssue.loading);
 
-void justParseEverything(ref Alloc alloc, scope ref Perf perf, ref Server server, in Uri[] rootUris) {
-	parseAllFiles(alloc, perf, server.allSymbols, server.allUris, server.storage, server.includeDir, rootUris);
+void justParseEverything(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] rootUris) {
+	parseAllFiles(perf, alloc, server.allSymbols, server.allUris, server.storage, server.includeDir, rootUris);
 }
 
-Program typeCheckAllKnownFiles(ref Alloc alloc, scope ref Perf perf, ref Server server) =>
-	justTypeCheck(alloc, perf, server, allKnownGoodUris(alloc, server.storage, (Uri uri) =>
+Program typeCheckAllKnownFiles(scope ref Perf perf, ref Alloc alloc, ref Server server) =>
+	justTypeCheck(perf, alloc, server, allKnownGoodUris(alloc, server.storage, (Uri uri) =>
 		getExtension(server.allUris, uri) == crowExtension));
 
-Program justTypeCheck(ref Alloc alloc, scope ref Perf perf, ref Server server, in Uri[] rootUris) =>
-	frontendCompile(alloc, perf, server, rootUris, none!Uri);
+Program justTypeCheck(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] rootUris) =>
+	frontendCompile(perf, alloc, server, rootUris, none!Uri);
 
 SafeCStr showDiag(ref Alloc alloc, scope ref Server server, in Program program, in Diag a) {
 	ShowCtx ctx = getShowDiagCtx(server, program);
@@ -242,27 +240,27 @@ immutable struct DocumentResult {
 	SafeCStr diagnostics;
 }
 
-DocumentResult getDocumentation(ref Alloc alloc, ref Perf perf, ref Server server, in Uri[] uris) {
-	Program program = frontendCompile(alloc, perf, server, uris, none!Uri);
+DocumentResult getDocumentation(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] uris) {
+	Program program = frontendCompile(perf, alloc, server, uris, none!Uri);
 	return DocumentResult(
 		documentJSON(alloc, server.allSymbols, server.allUris, program),
 		showDiagnostics(alloc, server, program));
 }
 
 private Program frontendCompile(
-	ref Alloc alloc,
 	scope ref Perf perf,
+	ref Alloc alloc,
 	scope ref Server server,
 	in Uri[] rootUris,
 	in Opt!Uri main,
 ) =>
 	frontendCompile(
-		alloc, perf, alloc, server.allSymbols, server.allUris, server.storage, server.includeDir, rootUris, main);
+		perf, alloc, alloc, server.allSymbols, server.allUris, server.storage, server.includeDir, rootUris, main);
 
-Token[] getTokens(ref Alloc alloc, scope ref Perf perf, ref Server server, Uri uri) =>
+Token[] getTokens(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri uri) =>
 	withFile!(Token[])(server.storage, uri, (in ReadFileResult x) {
 		SafeCStr text = x.isA!FileContent ? asSafeCStr(x.as!FileContent) : safeCStr!"";
-		FileAst* ast = parseFile(alloc, perf, server.allSymbols, server.allUris, text);
+		FileAst* ast = parseFile(perf, alloc, server.allSymbols, server.allUris, text);
 		return tokensOfAst(alloc, server.allSymbols, server.allUris, *ast);
 	});
 
@@ -342,7 +340,7 @@ private SafeCStr getHoverForProgram(
 }
 
 private Program getProgram(scope ref Perf perf, ref Alloc alloc, scope ref Server server, in Uri[] roots) =>
-	frontendCompile(alloc, perf, server, roots, none!Uri);
+	frontendCompile(perf, alloc, server, roots, none!Uri);
 
 private Opt!Position getPosition(scope ref Server server, in Program program, in UriLineAndCharacter where) {
 	Opt!(immutable Module*) module_ = program.allModules[where.uri];
@@ -367,58 +365,58 @@ private DiagsAndResultJson diagsAndResultJson(
 ) =>
 	DiagsAndResultJson(showDiagnostics(alloc, server, program), result);
 
-DiagsAndResultJson printTokens(ref Alloc alloc, scope ref Perf perf, ref Server server, Uri uri) {
-	FileAst* ast = parseSingleAst(alloc, perf, server.allSymbols, server.allUris, server.storage, uri);
+DiagsAndResultJson printTokens(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri uri) {
+	FileAst* ast = parseSingleAst(perf, alloc, server.allSymbols, server.allUris, server.storage, uri);
 	Json json = jsonOfTokens(
 		alloc, server.lineAndColumnGetters[uri], tokensOfAst(alloc, server.allSymbols, server.allUris, *ast));
 	return diagsAndResultJson(alloc, server, fakeProgramForAst(alloc, uri, ast), json);
 }
 
-DiagsAndResultJson printAst(ref Alloc alloc, scope ref Perf perf, ref Server server, Uri uri) {
-	FileAst* ast = parseSingleAst(alloc, perf, server.allSymbols, server.allUris, server.storage, uri);
+DiagsAndResultJson printAst(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri uri) {
+	FileAst* ast = parseSingleAst(perf, alloc, server.allSymbols, server.allUris, server.storage, uri);
 	Json json = jsonOfAst(alloc, server.allUris, server.lineAndColumnGetters[uri], *ast);
 	return diagsAndResultJson(alloc, server, fakeProgramForAst(alloc, uri, ast), json);
 }
 
-DiagsAndResultJson printModel(ref Alloc alloc, scope ref Perf perf, ref Server server, Uri uri) {
-	Program program = frontendCompile(alloc, perf, server, [uri], none!Uri);
+DiagsAndResultJson printModel(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri uri) {
+	Program program = frontendCompile(perf, alloc, server, [uri], none!Uri);
 	Json json = jsonOfModule(alloc, server.allUris, server.lineAndColumnGetters[uri], *only(program.rootModules));
 	return diagsAndResultJson(alloc, server, program, json);
 }
 
 DiagsAndResultJson printConcreteModel(
-	ref Alloc alloc,
 	scope ref Perf perf,
+	ref Alloc alloc,
 	ref Server server,
 	scope ref LineAndColumnGetters lineAndColumnGetters,
 	in VersionInfo versionInfo,
 	Uri uri,
 ) {
-	Program program = frontendCompile(alloc, perf, server, [uri], none!Uri);
+	Program program = frontendCompile(perf, alloc, server, [uri], none!Uri);
 	ShowCtx ctx = getShowDiagCtx(server, program);
 	return diagsAndResultJson(
 		alloc, server, program,
-		jsonOfConcreteProgram(alloc, lineAndColumnGetters, concretize(alloc, perf, ctx, versionInfo, program)));
+		jsonOfConcreteProgram(alloc, lineAndColumnGetters, concretize(perf, alloc, ctx, versionInfo, program)));
 }
 
 DiagsAndResultJson printLowModel(
-	ref Alloc alloc,
 	scope ref Perf perf,
+	ref Alloc alloc,
 	ref Server server,
 	scope ref LineAndColumnGetters lineAndColumnGetters,
 	in VersionInfo versionInfo,
 	Uri uri,
 ) {
-	Program program = frontendCompile(alloc, perf, server, [uri], none!Uri);
+	Program program = frontendCompile(perf, alloc, server, [uri], none!Uri);
 	ShowCtx ctx = getShowDiagCtx(server, program);
-	ConcreteProgram concreteProgram = concretize(alloc, perf, ctx, versionInfo, program);
-	LowProgram lowProgram = lower(alloc, perf, server.allSymbols, program.config.extern_, program, concreteProgram);
+	ConcreteProgram concreteProgram = concretize(perf, alloc, ctx, versionInfo, program);
+	LowProgram lowProgram = lower(perf, alloc, server.allSymbols, program.config.extern_, program, concreteProgram);
 	return diagsAndResultJson(alloc, server, program, jsonOfLowProgram(alloc, lineAndColumnGetters, lowProgram));
 }
 
 DiagsAndResultJson printIde(
-	ref Alloc alloc,
 	scope ref Perf perf,
+	ref Alloc alloc,
 	scope ref Server server,
 	in UriLineAndColumn where,
 	in PrintKind.Ide.Kind kind,
@@ -450,19 +448,19 @@ immutable struct Programs {
 }
 
 Programs buildToLowProgram(
-	ref Alloc alloc,
 	scope ref Perf perf,
+	ref Alloc alloc,
 	ref Server server,
 	in VersionInfo versionInfo,
 	Uri main,
 ) {
-	Program program = frontendCompile(alloc, perf, server, [main], some(main));
+	Program program = frontendCompile(perf, alloc, server, [main], some(main));
 	ShowCtx ctx = getShowDiagCtx(server, program);
 	if (hasFatalDiagnostics(program))
 		return Programs(program, none!ConcreteProgram, none!LowProgram);
 	else {
-		ConcreteProgram concreteProgram = concretize(alloc, perf, ctx, versionInfo, program);
-		LowProgram lowProgram = lower(alloc, perf, server.allSymbols, program.config.extern_, program, concreteProgram);
+		ConcreteProgram concreteProgram = concretize(perf, alloc, ctx, versionInfo, program);
+		LowProgram lowProgram = lower(perf, alloc, server.allSymbols, program.config.extern_, program, concreteProgram);
 		return Programs(program, some(concreteProgram), some(lowProgram));
 	}
 }
@@ -472,8 +470,8 @@ immutable struct BuildToCResult {
 	SafeCStr diagnostics;
 	ExternLibraries externLibraries;
 }
-BuildToCResult buildToC(ref Alloc alloc, scope ref Perf perf, ref Server server, Uri main) {
-	Programs programs = buildToLowProgram(alloc, perf, server, versionInfoForBuildToC, main);
+BuildToCResult buildToC(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri main) {
+	Programs programs = buildToLowProgram(perf, alloc, server, versionInfoForBuildToC, main);
 	ShowCtx ctx = getShowDiagCtx(server, programs.program);
 	return BuildToCResult(
 		has(programs.lowProgram)

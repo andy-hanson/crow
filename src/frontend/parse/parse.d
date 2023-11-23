@@ -75,8 +75,8 @@ import util.uri : AllUris;
 import util.util : typeAs, verify;
 
 FileAst* parseFile(
-	ref Alloc alloc,
 	scope ref Perf perf,
+	ref Alloc alloc,
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
 	scope SafeCStr source,
@@ -84,7 +84,7 @@ FileAst* parseFile(
 	withMeasure!(FileAst*, () {
 		Lexer lexer = createLexer(ptrTrustMe(alloc), ptrTrustMe(allSymbols), castNonScope_ref(source));
 		return parseFileInner(allUris, lexer);
-	})(alloc, perf, PerfMeasure.parseFile);
+	})(perf, alloc, PerfMeasure.parseFile);
 
 private:
 

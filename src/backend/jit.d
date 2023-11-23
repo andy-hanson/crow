@@ -139,14 +139,14 @@ import util.util : todo, unreachable, verify;
 import util.writer : debugLogWithWriter, withWriter, Writer;
 
 @trusted int jitAndRun(
+	scope ref Perf perf,
 	ref Alloc alloc,
-	ref Perf perf,
 	in AllSymbols allSymbols,
 	in LowProgram program,
 	in JitOptions options,
 	in SafeCStr[] allArgs,
 ) {
-	GccProgram gccProgram = getGccProgram(alloc, perf, allSymbols, program, options);
+	GccProgram gccProgram = getGccProgram(perf, alloc, allSymbols, program, options);
 
 	//TODO: perf measure this?
 	AssertFieldOffsetsType assertFieldOffsets = cast(AssertFieldOffsetsType)
@@ -164,23 +164,23 @@ import util.writer : debugLogWithWriter, withWriter, Writer;
 
 	MainType main = withMeasure!(MainType, () @trusted =>
 		cast(MainType) gcc_jit_result_get_code(gccProgram.result, "main")
-	)(alloc, perf, PerfMeasure.gccJit);
+	)(perf, alloc, PerfMeasure.gccJit);
 	verify(main != null);
 	gcc_jit_context_release(gccProgram.ctx);
 
 	bool fieldOffsetsCorrect = assertFieldOffsets();
 	verify(fieldOffsetsCorrect);
-	int exitCode = runMain(alloc, perf, allArgs, main);
+	int exitCode = runMain(perf, alloc, allArgs, main);
 	gcc_jit_result_release(gccProgram.result);
 	return exitCode;
 }
 
 private:
 
-int runMain(ref Alloc alloc, ref Perf perf, in SafeCStr[] allArgs, MainType main) =>
+int runMain(scope ref Perf perf, ref Alloc alloc, in SafeCStr[] allArgs, MainType main) =>
 	withMeasure!(int, () @trusted =>
 		main(cast(int) allArgs.length, cast(CStr*) allArgs.ptr)
-	)(alloc, perf, PerfMeasure.run);
+	)(perf, alloc, PerfMeasure.run);
 
 pure:
 
@@ -191,8 +191,8 @@ struct GccProgram {
 }
 
 GccProgram getGccProgram(
+	scope ref Perf perf,
 	ref Alloc alloc,
-	ref Perf perf,
 	in AllSymbols allSymbols,
 	in LowProgram program,
 	in JitOptions options,
@@ -220,13 +220,13 @@ GccProgram getGccProgram(
 
 	withMeasure!(void, () {
 		buildGccProgram(alloc, *ctx, allSymbols, program);
-	})(alloc, perf, PerfMeasure.gccCreateProgram);
+	})(perf, alloc, PerfMeasure.gccCreateProgram);
 
 	verify(gcc_jit_context_get_first_error(*ctx) == null);
 
 	immutable gcc_jit_result* result = withMeasure!(immutable gcc_jit_result*, () =>
 		gcc_jit_context_compile(*ctx)
-	)(alloc, perf, PerfMeasure.gccCompile);
+	)(perf, alloc, PerfMeasure.gccCompile);
 	verify(result != null);
 	return GccProgram(ctx, result);
 }

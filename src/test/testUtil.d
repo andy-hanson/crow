@@ -11,7 +11,7 @@ import util.alloc.alloc : Alloc, MetaAlloc, newAlloc;
 import util.col.arrUtil : arrEqual, arrsCorrespond, makeArr;
 import util.lineAndColumnGetter : LineAndColumnGetters;
 import util.opt : none;
-import util.ptr : ptrTrustMe;
+import util.ptr : castNonScope, ptrTrustMe;
 import util.storage : Storage;
 import util.sym : AllSymbols;
 import util.uri : AllUris, Uri, UrisInfo;
@@ -35,29 +35,29 @@ struct Test {
 }
 
 pure void withShowDiagCtxForTest(
-	return scope ref Test test,
-	return scope ref Storage storage,
-	return in Program program,
+	scope ref Test test,
+	scope ref Storage storage,
+	in Program program,
 	in void delegate(scope ref ShowCtx) @safe @nogc pure nothrow cb,
 ) {
 	withShowDiagCtxForTestImpl!cb(test, storage, program);
 }
 
 void withShowDiagCtxForTestImpure(
-	return scope ref Test test,
-	return scope ref Storage storage,
-	return in Program program,
+	scope ref Test test,
+	scope ref Storage storage,
+	in Program program,
 	in void delegate(scope ref ShowCtx) @safe @nogc nothrow cb,
 ) {
 	withShowDiagCtxForTestImpl!cb(test, storage, program);
 }
 
 private void withShowDiagCtxForTestImpl(alias cb)(
-	return scope ref Test test,
-	return scope ref Storage storage,
-	return in Program program,
+	scope ref Test test,
+	scope ref Storage storage,
+	in Program program,
 ) {
-	LineAndColumnGetters lineAndColumnGetters = LineAndColumnGetters(&test.alloc, &storage);
+	LineAndColumnGetters lineAndColumnGetters = LineAndColumnGetters(castNonScope(test.metaAlloc), &storage);
 	ShowCtx ctx = ShowCtx(
 		ptrTrustMe(test.allSymbols),
 		ptrTrustMe(test.allUris),

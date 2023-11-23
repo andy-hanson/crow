@@ -143,8 +143,8 @@ import util.union_ : Union;
 import util.util : todo, typeAs, unreachable, verify;
 
 LowProgram lower(
-	ref Alloc alloc,
 	scope ref Perf perf,
+	ref Alloc alloc,
 	in AllSymbols allSymbols,
 	in ConfigExternUris configExtern,
 	ref Program program,
@@ -152,7 +152,7 @@ LowProgram lower(
 ) =>
 	withMeasure!(LowProgram, () =>
 		lowerInner(alloc, allSymbols, configExtern, program, a)
-	)(alloc, perf, PerfMeasure.lower);
+	)(perf, alloc, PerfMeasure.lower);
 
 private LowProgram lowerInner(
 	ref Alloc alloc,

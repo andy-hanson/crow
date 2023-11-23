@@ -28,15 +28,15 @@ import util.util : verify;
 import versionInfo : VersionInfo;
 
 ConcreteProgram concretize(
-	ref Alloc alloc,
 	scope ref Perf perf,
+	ref Alloc alloc,
 	ref ShowCtx printCtx,
 	in VersionInfo versionInfo,
 	ref Program program,
 ) =>
 	withMeasure!(ConcreteProgram, () =>
 		concretizeInner(&alloc, printCtx, versionInfo, program)
-	)(alloc, perf, PerfMeasure.concretize);
+	)(perf, alloc, PerfMeasure.concretize);
 
 private:
 

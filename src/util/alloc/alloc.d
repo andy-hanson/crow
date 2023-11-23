@@ -11,12 +11,18 @@ T withStaticAlloc(T, alias cb)(word[] memory) {
 	return cb(alloc);
 }
 
-@trusted void withTempAllocImpure(MetaAlloc* a, in void delegate(ref Alloc) @safe @nogc nothrow cb) {
+@trusted T withTempAllocImpure(T)(MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc nothrow cb) {
 	// TODO:PERF Since this is temporary, an initial block could be on the stack?
 	Alloc alloc = newAlloc(a);
-	cb(alloc);
+	static if (is(T == void)) {
+		cb(alloc);
+	} else {
+		T res = cb(alloc);
+	}
 	FinishedAlloc finished = finishAlloc(alloc);
 	freeAlloc(finished);
+	static if (!is(T == void))
+		return res;
 }
 
 pure:

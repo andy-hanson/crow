@@ -44,7 +44,7 @@ private:
 
 void testOne(ref Test test, SafeCStr source, Token[] expectedTokens) {
 	FileAst* ast = withNullPerf!(FileAst*, (scope ref Perf perf) =>
-		parseFile(test.alloc, perf, test.allSymbols, test.allUris, source));
+		parseFile(perf, test.alloc, test.allSymbols, test.allUris, source));
 	Token[] tokens = tokensOfAst(test.alloc, test.allSymbols, test.allUris, *ast);
 	if (!arrEqual(tokens, expectedTokens)) {
 		debugLogWithWriter((ref Writer writer) {

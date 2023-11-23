@@ -22,8 +22,8 @@ import util.util : todo;
 import util.writer : withWriter, Writer;
 
 @trusted ExitCode compileC(
+	scope ref Perf perf,
 	ref Alloc alloc,
-	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllUris allUris,
 	in FileUri cPath,
@@ -47,7 +47,7 @@ import util.writer : withWriter, Writer;
 	}
 	return withMeasure!(ExitCode, () =>
 		spawnAndWait(alloc, allUris, executable, args)
-	)(alloc, perf, PerfMeasure.cCompile);
+	)(perf, alloc, PerfMeasure.cCompile);
 }
 
 pure:

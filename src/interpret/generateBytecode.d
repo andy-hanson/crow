@@ -65,8 +65,8 @@ import util.sym : AllSymbols, Sym, sym;
 import util.util : todo, unreachable, verify;
 
 ByteCode generateBytecode(
-	ref Alloc alloc,
 	scope ref Perf perf,
+	ref Alloc alloc,
 	in AllSymbols allSymbols,
 	in Program modelProgram,
 	in LowProgram program,
@@ -76,7 +76,7 @@ ByteCode generateBytecode(
 	//TODO: use a temp alloc for 2nd arg
 	return withMeasure!(ByteCode, () =>
 		generateBytecodeInner(alloc, alloc, allSymbols, modelProgram, program, externFunPtrs, makeSyntheticFunPtrs)
-	)(alloc, perf, PerfMeasure.generateBytecode);
+	)(perf, alloc, PerfMeasure.generateBytecode);
 }
 
 private ByteCode generateBytecodeInner(

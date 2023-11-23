@@ -16,13 +16,13 @@ T withMeasureNoAlloc(T, alias cb)(ref Perf perf, PerfMeasure measure) {
 	return res;
 }
 
-T withMeasure(T, alias cb)(ref Alloc alloc, scope ref Perf perf, PerfMeasure measure) {
-	PerfMeasurer measurer = startMeasure(alloc, perf, measure);
+T withMeasure(T, alias cb)(scope ref Perf perf, ref Alloc alloc, PerfMeasure measure) {
+	PerfMeasurer measurer = startMeasure(perf, alloc, measure);
 	static if (is(T == void))
 		cb();
 	else
 		T res = cb();
-	endMeasure(alloc, perf, measurer);
+	endMeasure(perf, alloc, measurer);
 	static if (!is(T == void))
 		return res;
 }
@@ -71,7 +71,7 @@ struct PerfMeasurer {
 	bool paused;
 }
 
-@trusted pure PerfMeasurer startMeasure(ref Alloc alloc, scope ref Perf perf, PerfMeasure measure) {
+@trusted pure PerfMeasurer startMeasure(scope ref Perf perf, ref Alloc alloc, PerfMeasure measure) {
 	if (perfEnabled) {
 		size_t bytesBefore = perf_curBytes(alloc);
 		ulong nsecBefore = perf.cbGetTimeNSec();
@@ -80,7 +80,7 @@ struct PerfMeasurer {
 		return PerfMeasurer(measure, 0, 0, false);
 }
 
-@trusted pure void pauseMeasure(ref Alloc alloc, scope ref Perf perf, scope ref PerfMeasurer measurer) {
+@trusted pure void pauseMeasure(scope ref Perf perf, ref Alloc alloc, scope ref PerfMeasurer measurer) {
 	if (perfEnabled) {
 		verify(!measurer.paused);
 		addToMeasure(perf, measurer.measure, PerfMeasureResult(
@@ -91,7 +91,7 @@ struct PerfMeasurer {
 	}
 }
 
-@trusted pure void resumeMeasure(ref Alloc alloc, scope ref Perf perf, scope ref PerfMeasurer measurer) {
+@trusted pure void resumeMeasure(scope ref Perf perf, ref Alloc alloc, scope ref PerfMeasurer measurer) {
 	if (perfEnabled) {
 		verify(measurer.paused);
 		measurer.bytesBefore = perf_curBytes(alloc);
@@ -100,7 +100,7 @@ struct PerfMeasurer {
 	}
 }
 
-@trusted pure void endMeasure(ref Alloc alloc, scope ref Perf perf, scope ref PerfMeasurer measurer) {
+@trusted pure void endMeasure(scope ref Perf perf, ref Alloc alloc, scope ref PerfMeasurer measurer) {
 	if (perfEnabled) {
 		verify(!measurer.paused);
 		addToMeasure(perf, measurer.measure, PerfMeasureResult(

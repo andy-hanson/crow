@@ -119,7 +119,7 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 @system extern(C) void searchImportsFromUri(Server* server, scope CStr uriCStr) {
 	SafeCStr uriStr = SafeCStr(uriCStr);
 	return wasmCall!("searchImportsFromUri", void)((scope ref Perf perf, ref Alloc resultAlloc) =>
-		justParseEverything(resultAlloc, perf, *server, [toUri(*server, uriStr)]));
+		justParseEverything(perf, resultAlloc, *server, [toUri(*server, uriStr)]));
 }
 
 // These are just getters; call 'justParseEverything' first to search for URIs
@@ -143,7 +143,7 @@ pure CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 	SafeCStr uriStr = SafeCStr(uriCStr);
 	return wasmCall!("getTokens", CStr)((scope ref Perf perf, ref Alloc resultAlloc) {
 		Uri uri = toUri(*server, uriStr);
-		Token[] res = getTokens(resultAlloc, perf, *server, uri);
+		Token[] res = getTokens(perf, resultAlloc, *server, uri);
 		Json json = jsonOfTokens(resultAlloc, server.lineAndColumnGetters[uri], res);
 		return jsonToString(resultAlloc, server.allSymbols, json).ptr;
 	});
@@ -152,7 +152,7 @@ pure CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 
 @system extern(C) CStr getAllDiagnostics(Server* server) =>
 	wasmCall!("getAllDiagnostics", CStr)((scope ref Perf perf, ref Alloc resultAlloc) {
-		Program program = typeCheckAllKnownFiles(resultAlloc, perf, *server);
+		Program program = typeCheckAllKnownFiles(perf, resultAlloc, *server);
 		return jsonToString(resultAlloc, server.allSymbols, jsonOfDiagnostics(resultAlloc, *server, program)).ptr;
 	});
 
@@ -160,7 +160,7 @@ pure CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 	SafeCStr uriStr = SafeCStr(uriCStr);
 	return wasmCall!("getDiagnosticsForUri", CStr)((scope ref Perf perf, ref Alloc resultAlloc) {
 		Uri uri = toUri(*server, uriStr);
-		Program program = justTypeCheck(resultAlloc, perf, *server, [uri]);
+		Program program = justTypeCheck(perf, resultAlloc, *server, [uri]);
 		Diagnostic[] diags = sortedDiagnosticsForUri(resultAlloc, program, uri, cast(DiagnosticSeverity) minSeverity);
 		Json json = jsonOfDiagnostics(resultAlloc, *server, program, uri, diags);
 		return jsonToString(resultAlloc, server.allSymbols, json).ptr;

@@ -50,7 +50,7 @@ import model.model : hasAnyDiagnostics, Program;
 version (Test) {
 	import test.test : test;
 }
-import util.alloc.alloc : Alloc, withTempAllocImpure;
+import util.alloc.alloc : Alloc, newAlloc, withTempAllocImpure;
 import util.col.arr : empty;
 import util.col.arrUtil : prepend;
 import util.col.str : CStr, SafeCStr, safeCStr, safeCStrIsEmpty;
@@ -78,9 +78,9 @@ import versionInfo : versionInfoForJIT;
 	Uri cwd = toUri(server.allUris, getCwd(server.allUris));
 	setCwd(server, cwd);
 	setDiagOptions(server, ShowOptions(true));
-	Command command = parseCommand(
-		server.alloc, server.allSymbols, server.allUris, cwd, cast(SafeCStr[]) argv[1 .. argc]);
-	int res = go(perf, server, command).value;
+	Alloc alloc = newAlloc(server.metaAlloc);
+	Command command = parseCommand(alloc, server.allSymbols, server.allUris, cwd, cast(SafeCStr[]) argv[1 .. argc]);
+	int res = go(perf, alloc, server, command).value;
 	if (perfEnabled)
 		logPerf(perf);
 	return res;
@@ -88,14 +88,19 @@ import versionInfo : versionInfoForJIT;
 
 private:
 
-void loadAllFiles(ref Perf perf, ref Server server, in Uri[] rootUris) {
-	Uri[] unknowns = rootUris;
-	do {
-		foreach (Uri uri; unknowns)
-			loadSingleFile(server, uri);
-		justParseEverything(server.alloc, perf, server, rootUris);
-		unknowns = allUnknownUris(server.alloc, server);
-	} while (!empty(unknowns));
+void loadAllFiles(scope ref Perf perf, ref Server server, in Uri[] rootUris) {
+	foreach (Uri uri; rootUris)
+		loadSingleFile(server, uri);
+	while (true) {
+		bool shouldBreak = withTempAllocImpure(server.metaAlloc, (ref Alloc alloc) {
+			justParseEverything(perf, alloc, server, rootUris);
+			Uri[] unknowns = allUnknownUris(alloc, server);
+			foreach (Uri uri; unknowns)
+				loadSingleFile(server, uri);
+			return empty(unknowns);
+		});
+		if (shouldBreak) break;
+	}
 }
 
 void loadSingleFile(ref Server server, Uri uri) {
@@ -134,43 +139,39 @@ static assert(divRound(14, 10) == 1);
 	}
 }
 
-ExitCode go(ref Perf perf, ref Server server, in Command command) {
+ExitCode go(scope ref Perf perf, ref Alloc alloc, ref Server server, in Command command) {
 	setIncludeDir(server, childUri(server.allUris, getCrowDir(server.allUris), sym!"include"));
 	return command.matchImpure!ExitCode(
 		(in Command.Build x) =>
-			runBuild(perf, server, x.mainUri, x.options),
+			runBuild(perf, alloc, server, x.mainUri, x.options),
 		(in Command.Document x) {
 			loadAllFiles(perf, server, x.rootUris);
-			DocumentResult result = getDocumentation(server.alloc, perf, server, x.rootUris);
+			DocumentResult result = getDocumentation(perf, alloc, server, x.rootUris);
 			return safeCStrIsEmpty(result.diagnostics) ? print(result.document) : printError(result.diagnostics);
 		},
 		(in Command.Help x) =>
 			help(x),
 		(in Command.Print x) =>
-			doPrint(perf, server, x),
+			doPrint(perf, alloc, server, x),
 		(in Command.Run run) {
 			loadAllFiles(perf, server, [run.mainUri]);
 			return run.options.matchImpure!ExitCode(
 				(in RunOptions.Interpret) =>
-					withRealExtern(server.alloc, server.allSymbols, server.allUris, (in Extern extern_) =>
+					withRealExtern(alloc, server.allSymbols, server.allUris, (in Extern extern_) =>
 						buildAndInterpret(
-							server.alloc,
 							perf,
+							alloc,
 							server,
 							extern_,
 							(in SafeCStr x) {
 								printError(x);
 							},
 							run.mainUri,
-							getAllArgs(server.alloc, server.allUris, run.mainUri, run.programArgs))),
+							getAllArgs(alloc, server.allUris, run.mainUri, run.programArgs))),
 				(in RunOptions.Jit x) {
 					version (GccJitAvailable) {
-						return buildAndJit(
-							perf,
-							server,
-							x.options,
-							run.mainUri,
-							getAllArgs(server.alloc, server.allUris, run.mainUri, run.programArgs));
+						SafeCStr[] args = getAllArgs(alloc, server.allUris, run.mainUri, run.programArgs);
+						return buildAndJit(perf, alloc, server, x.options, run.mainUri, args);
 					} else {
 						printError(safeCStr!"'--jit' is not supported on Windows");
 						return ExitCode.error;
@@ -184,7 +185,7 @@ ExitCode go(ref Perf perf, ref Server server, in Command command) {
 				return printError(safeCStr!"Did not compile with tests");
 		},
 		(in Command.Version) =>
-			print(version_(server.alloc, server)));
+			print(version_(alloc, server)));
 }
 
 Uri getCrowDir(ref AllUris allUris) =>
@@ -193,81 +194,80 @@ Uri getCrowDir(ref AllUris allUris) =>
 SafeCStr[] getAllArgs(ref Alloc alloc, in AllUris allUris, Uri main, in SafeCStr[] programArgs) =>
 	prepend(alloc, uriToSafeCStr(alloc, allUris, main), programArgs);
 
-ExitCode doPrint(ref Perf perf, ref Server server, in Command.Print command) {
+ExitCode doPrint(scope ref Perf perf, ref Alloc alloc, ref Server server, in Command.Print command) {
 	Uri mainUri = command.mainUri;
 	DiagsAndResultJson printed = command.kind.matchImpure!DiagsAndResultJson(
 		(in PrintKind.Tokens) {
 			loadSingleFile(server, mainUri);
-			return printTokens(server.alloc, perf, server, mainUri);
+			return printTokens(perf, alloc, server, mainUri);
 		},
 		(in PrintKind.Ast) {
 			loadSingleFile(server, mainUri);
-			return printAst(server.alloc, perf, server, mainUri);
+			return printAst(perf, alloc, server, mainUri);
 		},
 		(in PrintKind.Model) {
 			loadAllFiles(perf, server, [mainUri]);
-			return printModel(server.alloc, perf, server, mainUri);
+			return printModel(perf, alloc, server, mainUri);
 		},
 		(in PrintKind.ConcreteModel) {
 			loadAllFiles(perf, server, [mainUri]);
-			return printConcreteModel(
-				server.alloc, perf, server, server.lineAndColumnGetters, versionInfoForJIT(), mainUri);
+			return printConcreteModel(perf, alloc, server, server.lineAndColumnGetters, versionInfoForJIT(), mainUri);
 		},
 		(in PrintKind.LowModel) {
 			loadAllFiles(perf, server, [mainUri]);
-			return printLowModel(server.alloc, perf, server, server.lineAndColumnGetters, versionInfoForJIT(), mainUri);
+			return printLowModel(perf, alloc, server, server.lineAndColumnGetters, versionInfoForJIT(), mainUri);
 		},
 		(in PrintKind.Ide x) {
 			loadAllFiles(perf, server, [mainUri]);
-			return printIde(server.alloc, perf, server, UriLineAndColumn(mainUri, x.lineAndColumn), x.kind);
+			return printIde(perf, alloc, server, UriLineAndColumn(mainUri, x.lineAndColumn), x.kind);
 		});
 	if (!safeCStrIsEmpty(printed.diagnostics))
 		printError(printed.diagnostics);
-	print(jsonToString(server.alloc, server.allSymbols, printed.result));
+	print(jsonToString(alloc, server.allSymbols, printed.result));
 	return safeCStrIsEmpty(printed.diagnostics) ? ExitCode.ok : ExitCode.error;
 }
 
-ExitCode runBuild(ref Perf perf, ref Server server, Uri main, in BuildOptions options) {
+ExitCode runBuild(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri main, in BuildOptions options) {
 	loadAllFiles(perf, server, [main]);
 	if (hasAnyOut(options.out_))
-		return buildToCAndCompile(perf, server, main, options);
+		return buildToCAndCompile(perf, alloc, server, main, options);
 	else {
-		Program program = justTypeCheck(server.alloc, perf, server, [main]);
+		Program program = justTypeCheck(perf, alloc, server, [main]);
 		return hasAnyDiagnostics(program)
-			? printError(showDiagnostics(server.alloc, server, program))
+			? printError(showDiagnostics(alloc, server, program))
 			: print(safeCStr!"OK");
 	}
 }
 
-ExitCode buildToCAndCompile(ref Perf perf, ref Server server, Uri main, BuildOptions options) {
+ExitCode buildToCAndCompile(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri main, BuildOptions options) {
 	loadAllFiles(perf, server, [main]);
-	BuildToCResult result = buildToC(server.alloc, perf, server, main);
+	BuildToCResult result = buildToC(perf, alloc, server, main);
 	if (!safeCStrIsEmpty(result.diagnostics))
 		printError(result.diagnostics);
 	return withUriOrTemp!cExtension(server.allUris, options.out_.outC, main, (FileUri cUri) {
 		ExitCode res = writeFile(server.allUris, cUri, result.cSource);
 		return res == ExitCode.ok && has(options.out_.outExecutable)
 			? compileC(
-				server.alloc, perf, server.allSymbols, server.allUris,
+				perf, alloc, server.allSymbols, server.allUris,
 				cUri, force(options.out_.outExecutable), result.externLibraries, options.cCompileOptions)
 			: res;
 	});
 }
 
 version (GccJitAvailable) { ExitCode buildAndJit(
-	ref Perf perf,
+	scope ref Perf perf,
+	ref Alloc alloc,
 	ref Server server,
 	in JitOptions jitOptions,
 	Uri main,
 	in SafeCStr[] programArgs,
 ) {
 	loadAllFiles(perf, server, [main]);
-	Programs programs = buildToLowProgram(server.alloc, perf, server, versionInfoForJIT(), main);
+	Programs programs = buildToLowProgram(perf, alloc, server, versionInfoForJIT(), main);
 	if (hasAnyDiagnostics(programs.program))
-		printError(showDiagnostics(server.alloc, server, programs.program));
+		printError(showDiagnostics(alloc, server, programs.program));
 	return has(programs.lowProgram)
-		? ExitCode(jitAndRun(
-			server.alloc, perf, server.allSymbols, force(programs.lowProgram), jitOptions, programArgs))
+		? ExitCode(jitAndRun(perf, alloc, server.allSymbols, force(programs.lowProgram), jitOptions, programArgs))
 		: ExitCode.error;
 } }
 
