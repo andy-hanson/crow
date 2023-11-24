@@ -7,7 +7,7 @@ import concretize.concretize : concretize;
 import document.document : documentJSON;
 import frontend.frontendCompile : frontendCompile, parseAllFiles;
 import frontend.ide.getDefinition : getDefinitionForPosition;
-import frontend.ide.getHover : getHoverStr;
+import frontend.ide.getHover : getHover;
 import frontend.ide.getPosition : getPosition;
 import frontend.ide.getRename : getRenameForPosition, jsonOfRename, Rename;
 import frontend.ide.getReferences : getReferencesForPosition, jsonOfReferences;
@@ -39,7 +39,16 @@ import interpret.fakeExtern : Pipe, withFakeExtern, WriteCb;
 import interpret.generateBytecode : generateBytecode;
 import interpret.runBytecode : runBytecode;
 import lib.cliParser : PrintKind;
-import lib.lsp.lspTypes : ChangeEvent;
+import lib.lsp.lspParse : parseDefinitionParams, parseHoverParams;
+import lib.lsp.lspToJson : jsonOfHover;
+import lib.lsp.lspTypes :
+	DefinitionParams,
+	Hover,
+	HoverParams,
+	RenameParams,
+	TextDocumentChangeEvent,
+	TextDocumentIdentifier,
+	TextDocumentPositionParams;
 import lower.lower : lower;
 import model.concreteModel : ConcreteProgram;
 import model.diag : Diag, ReadFileDiag;
@@ -52,14 +61,14 @@ import util.alloc.alloc : Alloc, MetaAlloc;
 import util.col.arr : only;
 import util.col.str : SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
 import util.exitCode : ExitCode;
-import util.json : Json, jsonString;
+import util.json : Json;
 import util.late : Late, lateGet, lateSet;
-import util.lineAndColumnGetter : UriLineAndCharacter, UriLineAndColumn;
+import util.lineAndColumnGetter : UriLineAndColumn;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
 import util.sourceRange : UriAndRange;
-import util.sym : AllSymbols;
+import util.sym : AllSymbols, sym, symOfStr;
 import util.uri : AllUris, getExtension, parseUri, Uri, UrisInfo;
 import util.util : typeAs, verify;
 import util.writer : withWriter, Writer;
@@ -197,7 +206,7 @@ void setFile(scope ref Perf perf, ref Server server, Uri uri, in ReadFileResult 
 	setFile(perf, server.storage, uri, result);
 }
 
-void changeFile(scope ref Perf perf, ref Server server, Uri uri, in ChangeEvent[] changes) {
+void changeFile(scope ref Perf perf, ref Server server, Uri uri, in TextDocumentChangeEvent[] changes) {
 	changeFile(perf, server.storage, uri, changes);
 }
 
@@ -264,28 +273,43 @@ Token[] getTokens(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri u
 			typeAs!(Token[])([]));
 }
 
-UriAndRange[] getDefinition(scope ref Perf perf, ref Alloc alloc, ref Server server, in UriLineAndCharacter where) =>
-	getDefinitionForProgram(alloc, server, getProgram(perf, alloc, server, [where.uri]), where);
+Json handleLspMessage(scope ref Perf perf, ref Alloc alloc, ref Server server, in string kind, in Json params) {
+	final switch (symOfStr(server.allSymbols, kind).value) {
+		case sym!"textDocument/definition".value:
+			return jsonOfReferences(alloc, server.allUris, server.lineAndColumnGetters, getDefinition(
+				perf, alloc, server, parseDefinitionParams(alloc, server.allUris, params)));
+		case sym!"textDocument/hover".value:
+			return jsonOfHover(alloc, getHover(perf, alloc, server, parseHoverParams(alloc, server.allUris, params)));
+	}
+}
+
+UriAndRange[] getDefinition(scope ref Perf perf, ref Alloc alloc, ref Server server, in DefinitionParams params) =>
+	getDefinitionForProgram(alloc, server, getProgram(perf, alloc, server, [params.textDocument.uri]), params);
 
 private UriAndRange[] getDefinitionForProgram(
 	ref Alloc alloc,
 	scope ref Server server,
 	in Program program,
-	in UriLineAndCharacter where,
+	in DefinitionParams params,
 ) {
-	Opt!Position position = getPosition(server, program, where);
+	Opt!Position position = getPosition(server, program, params);
 	return has(position)
 		? getDefinitionForPosition(alloc, server.allSymbols, program, force(position))
 		: [];
 }
 
-UriAndRange[] getReferences(scope ref Perf perf, ref Alloc alloc, ref Server server, in UriLineAndCharacter where) =>
+UriAndRange[] getReferences(
+	scope ref Perf perf,
+	ref Alloc alloc,
+	ref Server server,
+	in TextDocumentPositionParams where,
+) =>
 	getReferencesForProgram(alloc, server, where, getProgramForReferences(perf, alloc, server));
 
 private UriAndRange[] getReferencesForProgram(
 	ref Alloc alloc,
 	scope ref Server server,
-	in UriLineAndCharacter where,
+	in TextDocumentPositionParams where,
 	in Program program,
 ) {
 	Opt!Position position = getPosition(server, program, where);
@@ -294,42 +318,35 @@ private UriAndRange[] getReferencesForProgram(
 		: [];
 }
 
-Opt!Rename getRename(
-	scope ref Perf perf,
-	ref Alloc alloc,
-	ref Server server,
-	in UriLineAndCharacter where,
-	string newName,
-) =>
-	getRenameForProgram(alloc, server, getProgramForReferences(perf, alloc, server), where, newName);
+Opt!Rename getRename(scope ref Perf perf, ref Alloc alloc, ref Server server, in RenameParams params) =>
+	getRenameForProgram(alloc, server, getProgramForReferences(perf, alloc, server), params);
 
 private Opt!Rename getRenameForProgram(
 	ref Alloc alloc,
 	scope ref Server server,
 	in Program program,
-	in UriLineAndCharacter where,
-	string newName,
+	in RenameParams params,
 ) {
-	Opt!Position position = getPosition(server, program, where);
+	Opt!Position position = getPosition(server, program, params.textDocumentAndPosition);
 	return has(position)
-		? getRenameForPosition(alloc, server.allSymbols, server.allUris, program, force(position), newName)
+		? getRenameForPosition(alloc, server.allSymbols, server.allUris, program, force(position), params.newName)
 		: none!Rename;
 }
 
-SafeCStr getHover(scope ref Perf perf, ref Alloc alloc, ref Server server, in UriLineAndCharacter where) =>
-	getHoverForProgram(alloc, server, getProgram(perf, alloc, server, [where.uri]), where);
+Opt!Hover getHover(scope ref Perf perf, ref Alloc alloc, ref Server server, in HoverParams params) =>
+	getHoverForProgram(alloc, server, getProgram(perf, alloc, server, [params.textDocument.uri]), params);
 
-private SafeCStr getHoverForProgram(
+private Opt!Hover getHoverForProgram(
 	ref Alloc alloc,
 	scope ref Server server,
 	in Program program,
-	in UriLineAndCharacter where,
+	in HoverParams params,
 ) {
-	Opt!Position position = getPosition(server, program, where);
+	Opt!Position position = getPosition(server, program, params);
 	ShowCtx ctx = getShowDiagCtx(server, program);
 	return has(position)
-		? getHoverStr(alloc, ctx, force(position))
-		: safeCStr!"";
+		? getHover(alloc, ctx, force(position))
+		: none!Hover;
 }
 
 private Program getProgram(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] roots) =>
@@ -338,8 +355,8 @@ private Program getProgram(scope ref Perf perf, ref Alloc alloc, ref Server serv
 private Program getProgramForReferences(scope ref Perf perf, ref Alloc alloc, ref Server server) =>
 	getProgram(perf, alloc, server, allKnownGoodCrowUris(alloc, server.storage));
 
-private Opt!Position getPosition(scope ref Server server, in Program program, in UriLineAndCharacter where) {
-	Opt!(immutable Module*) module_ = program.allModules[where.uri];
+private Opt!Position getPosition(scope ref Server server, in Program program, in TextDocumentPositionParams where) {
+	Opt!(immutable Module*) module_ = program.allModules[where.textDocument.uri];
 	return has(module_)
 		? some(getPosition(server.allSymbols, server.allUris, force(module_), server.lineAndColumnGetters[where]))
 		: none!Position;
@@ -425,7 +442,7 @@ DiagsAndResultJson printIde(
 	in PrintKind.Ide.Kind kind,
 ) {
 	Program program = getProgram(perf, alloc, server, [where.uri]); // TODO: we should support specifying roots...
-	UriLineAndCharacter where2 = toLineAndCharacter(server.lineAndColumnGetters, where);
+	TextDocumentPositionParams where2 = toTextDocumentPositionParams(server.lineAndColumnGetters, where);
 	Json locations(UriAndRange[] xs) =>
 		jsonOfReferences(alloc, server.allUris, server.lineAndColumnGetters, xs);
 	Json json = () {
@@ -433,9 +450,9 @@ DiagsAndResultJson printIde(
 			case PrintKind.Ide.Kind.definition:
 				return locations(getDefinitionForProgram(alloc, server, program, where2));
 			case PrintKind.Ide.Kind.hover:
-				return jsonString(getHoverForProgram(alloc, server, program, where2));
+				return jsonOfHover(alloc, getHoverForProgram(alloc, server, program, where2));
 			case PrintKind.Ide.Kind.rename:
-				Opt!Rename rename = getRenameForProgram(alloc, server, program, where2, "new-name");
+				Opt!Rename rename = getRenameForProgram(alloc, server, program, RenameParams(where2, "new-name"));
 				return jsonOfRename(alloc, server.allUris, server.lineAndColumnGetters, rename);
 			case PrintKind.Ide.Kind.references:
 				return locations(getReferencesForProgram(alloc, server, where2, program));
@@ -443,6 +460,9 @@ DiagsAndResultJson printIde(
 	}();
 	return diagsAndResultJson(alloc, server, program, json);
 }
+
+private TextDocumentPositionParams toTextDocumentPositionParams(in LineAndColumnGetters lcg, in UriLineAndColumn a) =>
+	TextDocumentPositionParams(TextDocumentIdentifier(a.uri), toLineAndCharacter(lcg[a.uri], a.lineAndColumn));
 
 immutable struct Programs {
 	Program program;

@@ -458,4 +458,8 @@ immutable string[] specialSyms = [
 	"to-mut-pointer\0",
 	"unsafe-bit-shift-left\0",
 	"unsafe-bit-shift-right\0",
+
+	"textDocument\0",
+	"textDocument/definition\0",
+	"textDocument/hover\0",
 ];

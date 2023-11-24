@@ -133,8 +133,13 @@ const connected = (shadowRoot, name, noRun, comp, initialText) => {
 	/** @type {MutableObservable<TokensAndDiagnostics>} */
 	const tokensAndDiagnostics = new MutableObservable(empty)
 	/** @type {function(crow.LineAndCharacter): string} */
-	const getHover = position =>
-		comp.getHover({uri:MAIN, position})
+	const getHover = position => {
+		const hover = comp.handleLspMessage('textDocument/hover', {
+			textDocument: {uri:MAIN},
+			position,
+		})
+		return hover ? hover.contents.value : ''
+	}
 	const crowText = CrowText.create({getHover, tokensAndDiagnostics, text})
 
 	for (const [path, content] of Object.entries(includeAll))

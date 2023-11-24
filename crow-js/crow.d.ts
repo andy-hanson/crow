@@ -100,10 +100,9 @@ declare namespace crow {
 		getTokens(uri: Uri): ReadonlyArray<Token>
 		getAllDiagnostics(): ReadonlyArray<UriAndDiagnostics>
 		getDiagnosticsForUri(uri: Uri, minSeverity?: number): ReadonlyArray<Diagnostic>
-		getDefinition(where: UriLineAndCharacter): UriAndRange[]
 		getReferences(where: UriLineAndCharacter): UriAndRange[]
 		getRename(where: UriLineAndCharacter, newName: string): Rename | null
-		getHover(where: UriLineAndCharacter): string
+		handleLspMessage(kind: string, params: any): any
 		run(uri: Uri): RunOutput
 	}
 }

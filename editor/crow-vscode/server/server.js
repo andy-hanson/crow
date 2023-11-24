@@ -44,8 +44,6 @@ const logPerf = (message, content) => {
 		log(message, content)
 }
 
-let hasConfigurationCapability = false
-
 /**
  * @template P, R
  * @param {string} description
@@ -68,10 +66,7 @@ const withLogErrors = (description, cb) => {
 	}
 }
 
-connection.onInitialize(({capabilities}) => {
-	// Does the client support the `workspace/configuration` request?
-	// If not, we fall back using global settings.
-	hasConfigurationCapability = !!(capabilities.workspace && !!capabilities.workspace.configuration)
+connection.onInitialize(_params => {
 	/** @type {InitializeResult} */
 	const result = {
 		capabilities: {
@@ -84,16 +79,14 @@ connection.onInitialize(({capabilities}) => {
 	return result
 })
 
-connection.onInitialized(withLogErrors("onInitialized", () => {
+connection.onInitialized(withLogErrors("onInitialized", _params => {
 	for (const request of [DefinitionRequest, HoverRequest]) {
 		connection.client.register(request.type)
 	}
-	if (hasConfigurationCapability) {
-		connection.client.register(DidChangeConfigurationNotification.type, undefined)
-	}
+	connection.client.register(DidChangeConfigurationNotification.type, undefined)
 }))
 
-connection.onDidOpenTextDocument(withLogErrors("onDidOpenTextDocument", (params) => {
+connection.onDidOpenTextDocument(withLogErrors("onDidOpenTextDocument", params => {
 	const {uri, text} = params.textDocument
 	compiler.setFileSuccess(uri, text)
 	afterOpenOrChangeFile(uri)
@@ -105,7 +98,7 @@ connection.onDidChangeTextDocument(withLogErrors("onDidChangeTextDocument", para
 	afterOpenOrChangeFile(uri)
 }))
 
-connection.onDidCloseTextDocument(withLogErrors("onDidCloseTextDocument", () => {
+connection.onDidCloseTextDocument(withLogErrors("onDidCloseTextDocument", _params => {
 }))
 
 /** @type {function(crowProtocol.ReadFileResult): void} */
@@ -157,12 +150,10 @@ connection.onDidChangeWatchedFiles(withLogErrors("onDidChangeWatchedFiles", _cha
 }))
 
 connection.onDefinition(withLogErrors("onDefinition", params =>
-	compiler.getDefinition(getUriLineAndCharacter(params))))
+	compiler.handleLspMessage("textDocument/definition", params)))
 
-connection.onHover(withLogErrors("onHover", params => {
-	const hover = compiler.getHover(getUriLineAndCharacter(params))
-	return hover ? {contents:{kind:'markdown', value:hover}} : null
-}))
+connection.onHover(withLogErrors("onHover", params =>
+	compiler.handleLspMessage("textDocument/hover", params)))
 
 connection.onReferences(withLogErrors("onReferences", params =>
 	compiler.getReferences(getUriLineAndCharacter(params))))

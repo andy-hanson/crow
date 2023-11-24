@@ -11,6 +11,7 @@ import model.model : Program;
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : map;
 import util.col.multiMap : makeMultiMap, mapMultiMap, MultiMap, MultiMapCb;
+import util.col.str : copyStr;
 import util.json : field, Json, jsonList, jsonNull, jsonObject;
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : force, has, none, Opt, some;
@@ -33,13 +34,14 @@ Opt!Rename getRenameForPosition(
 	in AllUris allUris,
 	in Program program,
 	in Position pos,
-	string newName,
+	in string newName,
 ) {
 	Opt!Target target = targetForPosition(program, pos.kind);
 	return has(target)
 		? some(Rename(makeMultiMap!(Uri, TextEdit)(alloc, (in MultiMapCb!(Uri, TextEdit) cb) {
+			string newNameOut = copyStr(alloc, newName);
 			eachRenameLocation(allSymbols, allUris, program, pos.module_.uri, force(target), (in UriAndRange x) {
-				cb(x.uri, TextEdit(x.range, newName));
+				cb(x.uri, TextEdit(x.range, newNameOut));
 			});
 		})))
 		: none!Rename;

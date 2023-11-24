@@ -6,7 +6,7 @@ import frontend.config : parseConfig, ParsedConfig;
 import frontend.lang : crowConfigBaseName, crowExtension;
 import frontend.parse.ast : FileAst;
 import frontend.parse.parse : parseFile;
-import lib.lsp.lspTypes : ChangeEvent;
+import lib.lsp.lspTypes : TextDocumentChangeEvent, TextDocumentPositionParams;
 import model.diag : ReadFileDiag;
 import util.alloc.alloc : Alloc, AllocAndValue, freeAlloc, MetaAlloc, newAlloc, withAlloc, withTempAlloc;
 import util.col.arr : empty;
@@ -92,12 +92,12 @@ immutable struct ParseResult {
 		});
 }
 
-void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in ChangeEvent[] changes) {
-	foreach (ChangeEvent change; changes)
+void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentChangeEvent[] changes) {
+	foreach (TextDocumentChangeEvent change; changes)
 		changeFile(perf, a, uri, change);
 }
 
-void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in ChangeEvent change) {
+void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentChangeEvent change) {
 	FileInfo info = fileOrDiag(a, uri).as!FileInfo;
 	// TODO:PERF This means an unnecessary copy in 'setFile'
 	withTempAlloc(a.metaAlloc, (ref Alloc alloc) {
@@ -237,8 +237,8 @@ const struct LineAndColumnGetters {
 		return has(res) ? force(res).value.lineAndColumnGetter : lineAndColumnGetterForEmptyFile;
 	}
 
-	Pos opIndex(in UriLineAndCharacter x) scope =>
-		this[x.uri][x.lineAndCharacter];
+	Pos opIndex(in TextDocumentPositionParams x) scope =>
+		this[x.textDocument.uri][x.position];
 }
 
 UriLineAndCharacter toLineAndCharacter(in LineAndColumnGetters a, in UriLineAndColumn x) =>
@@ -264,7 +264,12 @@ Json jsonOfUriAndRange(ref Alloc alloc, in AllUris allUris, in LineAndColumnGett
 Json jsonOfRange(ref Alloc alloc, in LineAndColumnGetters lcg, in UriAndRange a) =>
 	jsonOfRange(alloc, lcg[a.uri], a.range);
 
-private SafeCStr applyChange(ref Alloc alloc, in string input, in LineAndColumnGetter lc, in ChangeEvent event) =>
+private SafeCStr applyChange(
+	ref Alloc alloc,
+	in string input,
+	in LineAndColumnGetter lc,
+	in TextDocumentChangeEvent event,
+) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		if (has(event.range)) {
 			Range range = lc[force(event.range)];

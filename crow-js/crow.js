@@ -34,7 +34,7 @@ Exports of `wasm.d`:
 @property {function(Server, CStr, number, number): CStr} getDefinition
 @property {function(Server, CStr, number, number): CStr} getReferences
 @property {function(Server, CStr, number, number, CStr): CStr} getRename
-@property {function(Server, CStr, number, number): CStr} getHover
+@property {function(Server, CStr, CStr): CStr} handleLspMessage
 @property {function(Server, CStr): number} run
 */
 
@@ -218,15 +218,13 @@ globalCrow.makeCompiler = async (bytes, includeDir, cwd, logger) => {
 			JSON.parse(readCStr(exports.getAllDiagnostics(server))),
 		getDiagnosticsForUri: (uri, minSeverity) =>
 			withParamsAndJson(() => exports.getDiagnosticsForUri(server, paramAlloc.writeCStr(uri), minSeverity || 0)),
-		getDefinition: ({uri, position:{line, character}}) => withParamsAndJson(() =>
-			exports.getDefinition(server, paramAlloc.writeCStr(uri), line, character)),
 		getReferences: ({uri, position:{line, character}}) =>
 			withParamsAndJson(() => exports.getReferences(server, paramAlloc.writeCStr(uri), line, character)),
 		getRename: ({uri, position:{line, character}}, newName) =>
 			withParamsAndJson(() => exports.getRename(
 				server, paramAlloc.writeCStr(uri), line, character, paramAlloc.writeCStr(newName))),
-		getHover: ({uri, position:{line, character}}) => withParamsAndJson(() =>
-			exports.getHover(server, paramAlloc.writeCStr(uri), line, character)).hover,
+		handleLspMessage: (kind, params) => withParamsAndJson(() =>
+			exports.handleLspMessage(server, paramAlloc.writeCStr(kind), paramAlloc.writeCStr(JSON.stringify(params)))),
 		run: uri => {
 			try {
 				globalWrites = []

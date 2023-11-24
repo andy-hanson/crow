@@ -9,17 +9,17 @@ import frontend.showModel : ShowOptions;
 import frontend.storage : asSafeCStr, FileContent, ReadFileResult;
 import interpret.fakeExtern : Pipe;
 import lib.lsp.lspParse : parseChangeEvents;
+import lib.lsp.lspTypes : RenameParams, TextDocumentIdentifier, TextDocumentPositionParams;
 import lib.server :
 	allLoadingUris,
 	allStorageUris,
 	allUnknownUris,
 	changeFile,
-	getDefinition,
 	getFile,
-	getHover,
 	getRename,
 	getReferences,
 	getTokens,
+	handleLspMessage,
 	justParseEverything,
 	justTypeCheck,
 	run,
@@ -39,7 +39,8 @@ import util.col.arrUtil : map;
 import util.col.str : CStr, SafeCStr, strOfSafeCStr;
 import util.exitCode : ExitCode;
 import util.json : field, jsonObject, Json, jsonToString, jsonList, jsonString;
-import util.lineAndColumnGetter : LineAndCharacter, UriLineAndCharacter;
+import util.jsonParse : parseJson;
+import util.lineAndColumnGetter : LineAndCharacter;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
 import util.opt : force, has, Opt;
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasureResult, perfTotal, withNullPerf;
@@ -184,21 +185,21 @@ pure CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 	});
 }
 
-@system extern(C) CStr getDefinition(Server* server, scope CStr uriCStr, uint line, uint character) {
-	SafeCStr uriStr = SafeCStr(uriCStr);
-	return wasmCall!("getDefinition", SafeCStr)((scope ref Perf perf, ref Alloc resultAlloc) {
-		UriLineAndCharacter where = toUriLineAndCharacter(*server, uriStr, line, character);
-		UriAndRange[] res = getDefinition(perf, resultAlloc, *server, where);
-		Json json = jsonOfReferences(resultAlloc, server.allUris, server.lineAndColumnGetters, res);
-		return jsonToString(resultAlloc, server.allSymbols, json);
+@system extern(C) CStr handleLspMessage(Server* server, scope CStr kind, scope CStr body) {
+	SafeCStr kindStr = SafeCStr(kind);
+	SafeCStr bodyStr = SafeCStr(body);
+	return wasmCall!("handleLspMessage", SafeCStr)((scope ref Perf perf, ref Alloc resultAlloc) {
+		Opt!Json paramsJson = parseJson(resultAlloc, server.allSymbols, bodyStr);
+		return jsonToString(resultAlloc, server.allSymbols, handleLspMessage(
+			perf, resultAlloc, *server, strOfSafeCStr(kindStr), force(paramsJson)));
 	}).ptr;
 }
 
 @system extern(C) CStr getReferences(Server* server, scope CStr uriCStr, uint line, uint character) {
 	SafeCStr uriSafe = SafeCStr(uriCStr);
 	return wasmCall!("getReferences", SafeCStr)((scope ref Perf perf, ref Alloc resultAlloc) {
-		UriLineAndCharacter where = toUriLineAndCharacter(*server, uriSafe, line, character);
-		UriAndRange[] references = getReferences(perf, resultAlloc, *server, where);
+		UriAndRange[] references = getReferences(perf, resultAlloc, *server, toTextDocumentPositionParams(
+			*server, uriSafe, line, character));
 		return jsonToString(resultAlloc, server.allSymbols, jsonOfReferences(
 			resultAlloc, server.allUris, server.lineAndColumnGetters, references));
 	}).ptr;
@@ -214,18 +215,11 @@ pure CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 	SafeCStr uriSafe = SafeCStr(uriCStr);
 	SafeCStr newName = SafeCStr(newNamePtr);
 	return wasmCall!("getRename", SafeCStr)((scope ref Perf perf, ref Alloc resultAlloc) {
-		UriLineAndCharacter where = toUriLineAndCharacter(*server, uriSafe, line, character);
-		Opt!Rename rename = getRename(perf, resultAlloc, *server, where, strOfSafeCStr(newName));
+		Opt!Rename rename = getRename(perf, resultAlloc, *server, RenameParams(
+			toTextDocumentPositionParams(*server, uriSafe, line, character),
+			strOfSafeCStr(newName)));
 		Json renameJson = jsonOfRename(resultAlloc, server.allUris, server.lineAndColumnGetters, rename);
 		return jsonToString(resultAlloc, server.allSymbols, renameJson);
-	}).ptr;
-}
-
-@system extern(C) CStr getHover(Server* server, scope CStr uriCStr, uint line, uint character) {
-	SafeCStr uriStr = SafeCStr(uriCStr);
-	return wasmCall!("getHover", SafeCStr)((scope ref Perf perf, ref Alloc resultAlloc) {
-		SafeCStr hover = getHover(perf, resultAlloc, *server, toUriLineAndCharacter(*server, uriStr, line, character));
-		return jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [field!"hover"(hover)]));
 	}).ptr;
 }
 
@@ -237,8 +231,13 @@ pure CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 		})).value;
 }
 
-pure UriLineAndCharacter toUriLineAndCharacter(scope ref Server server, SafeCStr uri, uint line, uint character) =>
-	UriLineAndCharacter(toUri(server, uri), LineAndCharacter(line, character));
+pure TextDocumentPositionParams toTextDocumentPositionParams(
+	scope ref Server server,
+	in SafeCStr uri,
+	uint line,
+	uint character,
+) =>
+	TextDocumentPositionParams(TextDocumentIdentifier(toUri(server, uri)), LineAndCharacter(line, character));
 
 extern(C) void write(Pipe pipe, scope immutable char* begin, size_t length);
 

@@ -80,12 +80,13 @@ UriAndPos toUriAndPos(UriAndRange a) =>
 Json jsonOfPosWithinFile(ref Alloc alloc, in LineAndColumnGetter lcg, Pos a, PosKind posKind) =>
 	jsonOfLineAndCharacter(alloc, lineAndCharacterAtPos(lcg, a, posKind));
 
-Json jsonOfRange(ref Alloc alloc, in LineAndColumnGetter lcg, in Range a) {
-	LineAndCharacterRange r = lineAndCharacterRange(lcg, a);
-	return jsonObject(alloc, [
-		field!"start"(jsonOfLineAndCharacter(alloc, r.start)),
-		field!"end"(jsonOfLineAndCharacter(alloc, r.end))]);
-}
+Json jsonOfRange(ref Alloc alloc, in LineAndColumnGetter lcg, in Range a) =>
+	jsonOfLineAndCharacterRange(alloc, lineAndCharacterRange(lcg, a));
+
+Json jsonOfLineAndCharacterRange(ref Alloc alloc, in LineAndCharacterRange a) =>
+	jsonObject(alloc, [
+		field!"start"(jsonOfLineAndCharacter(alloc, a.start)),
+		field!"end"(jsonOfLineAndCharacter(alloc, a.end))]);
 
 LineAndCharacterRange lineAndCharacterRange(in LineAndColumnGetter lcg, in Range a) =>
 	LineAndCharacterRange(

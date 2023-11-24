@@ -4,12 +4,13 @@ module test.testHover;
 
 import frontend.frontendCompile : frontendCompile;
 import frontend.ide.getDefinition : getDefinitionForPosition;
-import frontend.ide.getHover : getHoverStr;
+import frontend.ide.getHover : getHover;
 import frontend.ide.getPosition : getPosition;
 import frontend.ide.position : Position;
 import frontend.lang : crowExtension;
 import frontend.showModel : ShowCtx;
 import frontend.storage : FileContent, jsonOfUriAndRange, ReadFileResult, Storage, setFile;
+import lib.lsp.lspTypes : Hover;
 import model.model : Module, Program;
 import test.testUtil : Test, withShowDiagCtxForTest;
 import util.alloc.alloc : Alloc;
@@ -21,7 +22,7 @@ import util.col.str : end, SafeCStr, safeCStr, safeCStrEq, safeCStrIsEmpty, safe
 import util.conv : safeToUint;
 import util.json : field, Json, jsonList, jsonObject, jsonToStringPretty, optionalArrayField;
 import util.lineAndColumnGetter : LineAndColumnGetter, PosKind;
-import util.opt : none;
+import util.opt : force, has, none, Opt;
 import util.uri : getExtension, parseUri, Uri;
 import util.perf : Perf, withNullPerf;
 import util.ptr : ptrTrustMe;
@@ -107,8 +108,9 @@ Json hoverResult(ref Alloc alloc, in SafeCStr content, in ShowCtx ctx, Module* m
 	Pos endOfFile = safeToUint(safeCStrSize(content));
 	foreach (Pos pos; 0 .. endOfFile + 1) {
 		Position position = getPosition(ctx.allSymbols, ctx.allUris, mainModule, pos);
+		Opt!Hover hover = getHover(alloc, ctx, position);
 		InfoAtPos here = InfoAtPos(
-			getHoverStr(alloc, ctx, position),
+			has(hover) ? force(hover).contents.value : safeCStr!"",
 			getDefinitionForPosition(alloc, ctx.allSymbols, ctx.program, position));
 		if (here != cellGet(curInfo)) {
 			endRange(pos - 1);

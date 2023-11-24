@@ -7,19 +7,26 @@ import frontend.parse.ast : FieldMutabilityAst, FunModifierAst;
 import frontend.showModel :
 	ShowCtx, writeCalled, writeFile, writeFunInst, writeLineAndColumnRange, writeName, writeSpecInst, writeTypeUnquoted;
 import frontend.storage : lineAndColumnRange;
+import lib.lsp.lspTypes : Hover, MarkupContent, MarkupKind;
 import model.model;
 import util.alloc.alloc : Alloc;
-import util.col.str : SafeCStr;
+import util.col.str : SafeCStr, safeCStrIsEmpty;
+import util.lineAndColumnGetter : LineAndCharacterRange;
+import util.opt : none, Opt, some;
 import util.sourceRange : UriAndRange;
 import util.sym : writeSym;
 import util.uri : Uri;
 import util.util : unreachable;
 import util.writer : withWriter, Writer;
 
-SafeCStr getHoverStr(ref Alloc alloc, in ShowCtx ctx, in Position pos) =>
-	withWriter(alloc, (scope ref Writer writer) {
+Opt!Hover getHover(ref Alloc alloc, in ShowCtx ctx, in Position pos) {
+	SafeCStr content = withWriter(alloc, (scope ref Writer writer) {
 		getHover(writer, ctx, pos);
 	});
+	return safeCStrIsEmpty(content)
+		? none!Hover
+		: some(Hover(MarkupContent(MarkupKind.plaintext, content), none!LineAndCharacterRange));
+}
 
 void getHover(scope ref Writer writer, in ShowCtx ctx, in Position pos) =>
 	pos.kind.matchIn!void(
