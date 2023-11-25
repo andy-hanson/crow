@@ -55,7 +55,7 @@ const getCompiler = () => {
 	}
 	return _compiler
 }
-const includeDir = "/include"
+const includeDir = "file:///include"
 const makeCompiler = async () =>
 	crow.makeCompiler(
 		await (await fetch("../bin/crow.wasm")).arrayBuffer(),
@@ -124,8 +124,7 @@ const reduceIndent = a => {
 
 /** @type {function(ShadowRoot, string, boolean, crow.Compiler, string): void} */
 const connected = (shadowRoot, name, noRun, comp, initialText) => {
-	const MAIN = `/${name}`
-
+	const mainUri = `file:///${name}`
 	/** @type {MutableObservable<string>} */
 	const text = new MutableObservable(initialText)
 	/** @type {TokensAndDiagnostics} */
@@ -134,24 +133,31 @@ const connected = (shadowRoot, name, noRun, comp, initialText) => {
 	const tokensAndDiagnostics = new MutableObservable(empty)
 	/** @type {function(crow.LineAndCharacter): string} */
 	const getHover = position => {
-		const hover = comp.handleLspMessage('textDocument/hover', {
-			textDocument: {uri:MAIN},
-			position,
-		})
+		const hover = comp.handleLspMessage({
+			method: 'textDocument/hover',
+			id: 1,
+			params: {textDocument:{uri:mainUri}, position},
+		}).messages[0].result
 		return hover ? hover.contents.value : ''
 	}
 	const crowText = CrowText.create({getHover, tokensAndDiagnostics, text})
-
-	for (const [path, content] of Object.entries(includeAll))
-		comp.setFileSuccess(`${includeDir}/${path}`, content)
-	comp.setFileIssue("file:///crow-config.json", "notFound")
+	setupCompiler(comp, mainUri)
 
 	text.nowAndSubscribe(value => {
-		comp.setFileSuccess(MAIN, value)
+		const response = comp.handleLspMessage({
+			method: "textDocument/didChange",
+			params: {textDocument:{uri:mainUri}, contentChanges:[{text:value}]},
+		})
+		let diagnostics = []
+		for (const message of response.messages) {
+			assert(message.method === "textDocument/publishDiagnostics")
+			assert(message.params.uri === mainUri)
+			diagnostics = message.params.diagnostics
+		}
 		tokensAndDiagnostics.set({
-			tokens: comp.getTokens(MAIN),
-			// Min severity of 2 = checkError (not unused)
-			diagnostics: comp.getDiagnosticsForUri(MAIN, 2)
+			tokens: comp.getTokens(mainUri),
+			// Errors only
+			diagnostics: diagnostics.filter((/** @type {{severity:number}} */ x) => x.severity <= 1),
 		})
 	})
 
@@ -160,11 +166,10 @@ const connected = (shadowRoot, name, noRun, comp, initialText) => {
 	const runButton = noRun ? null : createButton({className:"run", children:[playIcon()]})
 	if (runButton) runButton.onclick = () => {
 		try {
-			assert(comp.allUnknownUris().length === 0)
 			// Put behind a timeout so loading will show
 			setTimeout(() => {
 				collapseButton.classList.remove("collapsed")
-				output.finishRunning(comp.run(MAIN))
+				output.finishRunning(comp.run(mainUri))
 		}, 0)
 		} catch (e) {
 			console.error("ERROR WHILE RUNNING", e)
@@ -201,6 +206,25 @@ const connected = (shadowRoot, name, noRun, comp, initialText) => {
 		children: [...(runButton ? [runButton] : []), copyButton, downloadButton, collapseButton],
 	})
 	shadowRoot.append(createDiv({className:"outer-container", children:[crowText, output.container, bottom]}))
+}
+
+/** @type {function(crow.Compiler, crow.Uri): void} */
+const setupCompiler = (comp, mainUri) => {
+	/** @type {function(string, string): unknown} */
+	const didOpen = (uri, text) => ({
+		method: "textDocument/didOpen",
+		params: {textDocument: {uri, text}},
+	})
+	for (const [path, text] of Object.entries(includeAll)) {
+		comp.handleLspMessage(didOpen(`${includeDir}/${path}`, text))
+	}
+	comp.handleLspMessage(didOpen(mainUri, ''))
+	comp.handleLspMessage(didOpen("file:///crow-config.json", "{}"))
+	const {unloadedUris} = comp.handleLspMessage({method:"custom/unloadedUris", id:1, params:{}}).messages[0].result
+	for (const uri of unloadedUris) {
+		assert(uri.endsWith("/crow-config.json"))
+		comp.handleLspMessage({method: "custom/readFileResult", params:{uri, type:"notFound"}})
+	}
 }
 
 const makeOutput = () => {

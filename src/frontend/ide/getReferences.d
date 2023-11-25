@@ -30,7 +30,6 @@ import frontend.parse.ast :
 	rangeOfNameAndRange,
 	StructDeclAst,
 	TypeAst;
-import frontend.storage : jsonOfUriAndRange, LineAndColumnGetters;
 import model.model :
 	AssertOrForbidExpr,
 	body_,
@@ -98,7 +97,6 @@ import util.col.arrBuilder : buildArray;
 import util.col.arrUtil : allSame, contains, find, fold, zip, zipIn;
 import util.col.map : mapEach, mustGetAt;
 import util.col.mutMaxArr : mutMaxArr, MutMaxArr, push, tempAsArr;
-import util.json : Json, jsonList;
 import util.opt : force, has, none, Opt, optEqual, some;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : Range, UriAndRange;
@@ -120,15 +118,6 @@ UriAndRange[] getReferencesForPosition(
 		})
 		: [];
 }
-
-Json jsonOfReferences(
-	ref Alloc alloc,
-	in AllUris allUris,
-	in LineAndColumnGetters lineAndColumnGetters,
-	in UriAndRange[] references,
-) =>
-	jsonList!UriAndRange(alloc, references, (in UriAndRange x) =>
-		jsonOfUriAndRange(alloc, allUris, lineAndColumnGetters, x));
 
 void eachReferenceForTarget(
 	scope ref AllSymbols allSymbols,

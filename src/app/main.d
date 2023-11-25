@@ -4,8 +4,11 @@ module app.main;
 
 import app.appUtil : print, printError;
 import app.dyncall : withRealExtern;
-import app.fileSystem : getCwd, getPathToThisExecutable, tryReadFile, withUriOrTemp, writeFile;
-import core.stdc.stdio : printf;
+import app.fileSystem : getCwd, getPathToThisExecutable, stdin, stdout, tryReadFile, withUriOrTemp, writeFile;
+import lib.lsp.lspParse : parseLspInMessage;
+import lib.lsp.lspToJson : jsonOfLspOutMessage;
+import lib.lsp.lspTypes : LspInMessage, LspOutMessage;
+import core.stdc.stdio : fflush, printf, fgets, fread;
 import core.stdc.stdlib : free, malloc;
 
 version (Windows) {
@@ -30,8 +33,10 @@ import lib.server :
 	DiagsAndResultJson,
 	DocumentResult,
 	getDocumentation,
+	handleLspMessage,
 	justParseEverything,
 	justTypeCheck,
+	LspOutAction,
 	printAst,
 	printConcreteModel,
 	printIde,
@@ -41,9 +46,9 @@ import lib.server :
 	Programs,
 	Server,
 	setCwd,
-	setDiagOptions,
 	setFile,
 	setIncludeDir,
+	setShowOptions,
 	showDiagnostics,
 	version_;
 import model.model : hasAnyDiagnostics, Program;
@@ -53,13 +58,14 @@ version (Test) {
 import util.alloc.alloc : Alloc, newAlloc, withTempAllocImpure;
 import util.col.arr : empty;
 import util.col.arrUtil : prepend;
-import util.col.str : CStr, SafeCStr, safeCStr, safeCStrIsEmpty;
+import util.col.str : CStr, mustStripPrefix, SafeCStr, safeCStr, safeCStrIsEmpty, safeCStrSize;
 import util.exitCode : ExitCode;
-import util.json : jsonToString;
+import util.json : Json, jsonToString;
+import util.jsonParse : mustParseJson, mustParseUint, skipWhitespace;
 import util.lineAndColumnGetter : UriLineAndColumn;
-import util.opt : force, has;
-import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasureResult, perfTotal;
-import util.sym : sym;
+import util.opt : force, has, Opt;
+import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasureResult, perfTotal, withNullPerf;
+import util.sym : AllSymbols, sym;
 import util.uri : AllUris, childUri, FileUri, Uri, parentOrEmpty, safeCStrOfUri, toUri;
 import util.util : verify;
 import versionInfo : versionInfoForJIT;
@@ -77,9 +83,9 @@ import versionInfo : versionInfoForJIT;
 	Server server = Server(mem);
 	Uri cwd = toUri(server.allUris, getCwd(server.allUris));
 	setCwd(server, cwd);
-	setDiagOptions(server, ShowOptions(true));
+	setShowOptions(server, ShowOptions(true));
 	Alloc alloc = newAlloc(server.metaAlloc);
-	Command command = parseCommand(alloc, server.allSymbols, server.allUris, cwd, cast(SafeCStr[]) argv[1 .. argc]);
+	Command command = parseCommand(alloc, server.allUris, cwd, cast(SafeCStr[]) argv[1 .. argc]);
 	int res = go(perf, alloc, server, command).value;
 	if (perfEnabled)
 		logPerf(perf);
@@ -87,6 +93,55 @@ import versionInfo : versionInfoForJIT;
 }
 
 private:
+
+@trusted ExitCode runLsp(ref Server server) {
+	setShowOptions(server, ShowOptions(false));
+
+	while (true) {
+		//TODO: track perf for each message/response
+		Opt!ExitCode stop = withNullPerf!(Opt!ExitCode, (scope ref Perf perf) =>
+			withTempAllocImpure!(Opt!ExitCode)(server.metaAlloc, (ref Alloc alloc) {
+				LspInMessage message = readIn(alloc, server.allSymbols, server.allUris);
+				LspOutAction action = handleLspMessage(perf, alloc, server, message);
+				foreach (LspOutMessage outMessage; action.outMessages)
+					writeOut(alloc, server.allSymbols, jsonOfLspOutMessage(
+						alloc, server.allUris, server.lineAndColumnGetters, outMessage));
+				return action.exitCode;
+			}));
+		if (has(stop))
+			return force(stop);
+		else
+			continue;
+	}
+}
+
+@trusted LspInMessage readIn(ref Alloc alloc, scope ref AllSymbols allSymbols, scope ref AllUris allUris) {
+	char[0x10000] buffer;
+	immutable(char)* line0 = cast(immutable) fgets(buffer.ptr, buffer.length, stdin);
+	assert(line0 != null);
+	SafeCStr stripped = mustStripPrefix(SafeCStr(cast(immutable) line0), "Content-Length: ");
+	uint contentLength = mustParseUint(stripped);
+	assert(contentLength < buffer.length);
+
+	immutable(char)* line1 = cast(immutable) fgets(buffer.ptr, buffer.length, stdin);
+	assert(line1 != null);
+	skipWhitespace(line1);
+	assert(*line1 == '\0');
+
+	size_t n = fread(buffer.ptr, char.sizeof, contentLength, stdin);
+	assert(n == contentLength);
+	buffer[n] = '\0';
+
+	Json json = mustParseJson(alloc, allSymbols, SafeCStr(cast(immutable) buffer.ptr));
+	LspInMessage res = parseLspInMessage(alloc, allUris, json);
+	return res;
+}
+
+@trusted void writeOut(ref Alloc alloc, in AllSymbols allSymbols, in Json contentJson) {
+	SafeCStr content = jsonToString(alloc, allSymbols, contentJson);
+	printf("Content-Length: %lu\r\n\r\n%s", safeCStrSize(content), content.ptr);
+	fflush(stdout);
+}
 
 void loadAllFiles(scope ref Perf perf, ref Server server, in Uri[] rootUris) {
 	foreach (Uri uri; rootUris)
@@ -118,7 +173,7 @@ void loadSingleFile(scope ref Perf perf, ref Server server, Uri uri) {
 			divRound(m.nanoseconds, 1_000_000),
 			divRound(m.bytesAllocated, 1024));
 	});
-	printf("Total: %llums", divRound(perfTotal(perf), 1_000_000));
+	printf("Total: %llums\n", divRound(perfTotal(perf), 1_000_000));
 }
 
 ulong divRound(ulong a, ulong b) {
@@ -151,6 +206,8 @@ ExitCode go(scope ref Perf perf, ref Alloc alloc, ref Server server, in Command 
 		},
 		(in Command.Help x) =>
 			help(x),
+		(in Command.Lsp) =>
+			runLsp(server),
 		(in Command.Print x) =>
 			doPrint(perf, alloc, server, x),
 		(in Command.Run run) {
@@ -178,9 +235,9 @@ ExitCode go(scope ref Perf perf, ref Alloc alloc, ref Server server, in Command 
 					}
 				});
 		},
-		(in Command.Test it) {
+		(in Command.Test) {
 			version (Test) {
-				return test(server.metaAlloc, it.name);
+				return test(server.metaAlloc);
 			} else
 				return printError(safeCStr!"Did not compile with tests");
 		},

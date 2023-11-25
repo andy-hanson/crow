@@ -88,8 +88,10 @@ bin/d-imports/commit-hash.txt:
 	mkdir -p bin/d-imports
 	git rev-parse --short HEAD > bin/d-imports/commit-hash.txt
 
+debug_flags = --d-debug -g --d-version=Debug
+
 bin/crow-debug: $(app_deps_with_test)
-	ldc2 -ofbin/crow-debug $(ldc_flags_assert) --d-debug -g --d-version=Debug --d-version=Test $(app_src_with_test) $(app_link)
+	ldc2 -ofbin/crow-debug $(ldc_flags_assert) $(debug_flags) --d-version=Test $(app_src_with_test) $(app_link)
 	rm bin/crow-debug.o
 
 # This isn't used anywhere, but you could use it to test things out quickly, since compilation with DMD is much faster.
@@ -103,7 +105,7 @@ bin/crow: $(app_deps_no_test)
 
 # This isn't used anywhere, but you can rename the result to 'crow.wasm' to help debugging in the browser
 bin/crow-debug.wasm: $(wasm_deps)
-	ldc2 -g -ofbin/crow-debug.wasm $(ldc_flags_assert) $(ldc_wasm_flags) $(wasm_src)
+	ldc2 -ofbin/crow-debug.wasm $(debug_flags) $(ldc_flags_assert) $(ldc_wasm_flags) $(wasm_src)
 	rm bin/crow-debug.o
 
 bin/crow.wasm: $(wasm_deps)
@@ -117,7 +119,7 @@ bin/crow.tar.xz: bin/crow demo/* demo/*/* editor/sublime/* $(ALL_INCLUDE) librar
 
 ### lint ###
 
-lint: lint-basic lint-dscanner lint-d-imports-exports bin/dependencies.dot typescript
+lint: lint-basic lint-dscanner lint-d-imports-exports bin/dependencies.dot
 
 lint-basic: bin/crow
 	./bin/crow run test/lint-basic.crow
@@ -136,9 +138,6 @@ bin/dependencies.svg: bin/dependencies.dot
 
 bin/dependencies.dot: bin/crow test/dependencies.crow
 	./bin/crow run test/dependencies.crow
-
-typescript: editor/crow-vscode/server/node_modules
-	./editor/crow-vscode/server/node_modules/typescript/bin/tsc
 
 editor/crow-vscode/server/node_modules:
 	cd editor/crow-vscode/server

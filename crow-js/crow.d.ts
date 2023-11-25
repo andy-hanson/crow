@@ -52,30 +52,12 @@ declare namespace crow {
 		| "type-param"
 		| "var-decl"
 
-	type UriAndDiagnostics = {
-		uri: Uri
-		diagnostics: Diagnostic[]
-	}
-
-	type AllDiagnosticsResult = {
-		diagnostics: UriAndDiagnostics[]
-	}
-
 	namespace Write {
 		type Pipe = "stdout" | "stderr"
 	}
 	type Write = {pipe:Write.Pipe, text:string}
 
 	type RunOutput = {exitCode:number, writes:ReadonlyArray<Write>}
-
-	type TextEdit = {
-		range: Range
-		newText: string
-	}
-
-	type Rename = {
-		changes: { [uri: Uri]: TextEdit[] }
-	}
 
 	type ChangeEvent = {
 		range?: Range
@@ -84,25 +66,21 @@ declare namespace crow {
 
 	type Logger = (arg0: string, arg1?: unknown) => void
 
+	// For "custom/readFileResult"
+	type ReadFileResult = {
+		uri: string
+		type: "notFound" | "error"
+	}
+
+	type UnknownUris = {
+		unknownUris: ReadonlyArray<string>
+	}
+
 	function makeCompiler(bytes: ArrayBuffer, includeDir: Uri, cwd: Uri, logger: Logger): Promise<Compiler>
 	interface Compiler {
 		version(): string
-		setFileSuccess(uri: Uri, content: string): void
-		setFileIssue(uri: Uri, issue: "notFound" | "unknown" | "loading" | "error"): void
-		changeFile(uri: Uri, changes: ReadonlyArray<ChangeEvent>): void
-		// For debug/test
-		getFile(uri: Uri): string
-		searchImportsFromUri(uri: Uri): void
-		// All file URIs, whether the file has content or has an issue.
-		allStorageUris(): ReadonlyArray<Uri>
-		allUnknownUris(): ReadonlyArray<Uri>
-		allLoadingUris(): ReadonlyArray<Uri>
 		getTokens(uri: Uri): ReadonlyArray<Token>
-		getAllDiagnostics(): ReadonlyArray<UriAndDiagnostics>
-		getDiagnosticsForUri(uri: Uri, minSeverity?: number): ReadonlyArray<Diagnostic>
-		getReferences(where: UriLineAndCharacter): UriAndRange[]
-		getRename(where: UriLineAndCharacter, newName: string): Rename | null
-		handleLspMessage(kind: string, params: any): any
+		handleLspMessage(inputMessage: any): {messages:any[], exitCode?:number}
 		run(uri: Uri): RunOutput
 	}
 }

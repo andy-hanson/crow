@@ -1,3 +1,6 @@
+const childProcess = require("child_process")
+const fs = require("fs")
+const path = require("path")
 /** @typedef {import("vscode").CancellationToken} CancellationToken */
 /** @typedef {import("vscode").DocumentSemanticTokensProvider} DocumentSemanticTokensProvider */
 /** @typedef {import("vscode").ExtensionContext} ExtensionContext */
@@ -5,31 +8,64 @@
 const {languages, SemanticTokens, Uri, workspace} = require("vscode")
 /** @typedef {import("vscode-languageclient").LanguageClientOptions} LanguageClientOptions */
 /** @typedef {import("vscode-languageclient/lib/node/main.js").ServerOptions} ServerOptions */
-const {LanguageClient, TransportKind} = require("vscode-languageclient/lib/node/main.js")
+/** @typedef {import("vscode-languageclient/lib/node/main.js").StreamInfo} StreamInfo */
+const {LanguageClient} = require("vscode-languageclient/lib/node/main.js")
+const protocol = require("vscode-languageserver-protocol")
 
-const {makeCompiler, nonNull, LOG_VERBOSE} = require("../server/util.js")
+// @ts-ignore
+require("../../../crow-js/crow.js")
+
 const {crowSemanticTokensLegend, getTokens} = require("./tokens.js")
+
+const crowDir = path.join(__dirname, "../../../")
+/** @type {function(crow.Logger): Promise<crow.Compiler>} */
+const makeCompiler = logger =>
+	crow.makeCompiler(
+		fs.readFileSync(path.join(crowDir, "bin/crow.wasm")),
+		path.join(crowDir, "include"),
+		// TODO: get the real CWD from VSCode API
+		crowDir,
+		logger)
+
+/**
+ * @template T
+ * @param {T | null | undefined} x
+ * @return {T}
+ */
+const nonNull = x => {
+	if (x == null)
+		throw new Error("Null value")
+	return x
+}
+
+const LOG_VERBOSE = false
 
 /** @type {LanguageClient} */
 let client
 
 /** @type {function(ExtensionContext): void} */
 exports.activate = context => {
-	const serverModule = context.asAbsolutePath("server/server.js")
-	// The debug options for the server
-	// --inspect=6009: runs the server in Node's Inspector mode so VS Code can attach to the server for debugging
-	const debugOptions = {execArgv:["--nolazy", "--inspect=6009"]}
+	// TODO: '.exe' on Windows
+	const crowPath = context.asAbsolutePath("../../bin/crow-debug")
 
-	// If the extension is launched in debug mode then the debug server options are used
-	// Otherwise the run options are used
 	/** @type {ServerOptions} */
-	const serverOptions = {
-		run: {module:serverModule, transport:TransportKind.ipc},
-		debug: {
-			module: serverModule,
-			transport: TransportKind.ipc,
-			options: debugOptions,
-		}
+	const serverOptions = () => {
+		const proc = childProcess.spawn(crowPath, ['lsp'], {stdio:'pipe'})
+
+		proc.stderr.on('data', chunk => {
+			console.log("GOT A CHUNK OF STDERR", chunk.toString('utf-8'))
+		})
+		proc.stderr.on('close', () => {
+			console.log("stderr closed??")
+		})
+
+		// Use this to log the server's responsees
+		//cp.stdout.on('data', chunk => {
+		//	console.log("GOT A CHUNK OF STDOUT", chunk.toString('utf-8'))
+		//})
+
+		// TODO: log when cp closed
+		return Promise.resolve(proc)
 	}
 
 	/** @type {LanguageClientOptions} */
@@ -80,7 +116,7 @@ const logVerbose = message => {
 		log(message)
 }
 
-/** @type {function(crowProtocol.UnknownUris): void} */
+/** @type {function(crow.UnknownUris): void} */
 const onUnknownUris = ({unknownUris}) => {
 	for (const uri of unknownUris) {
 		logVerbose(`Handle unknown uri ${uri}`);
@@ -92,7 +128,7 @@ const onUnknownUris = ({unknownUris}) => {
 			.catch(error => {
 				if (error.name !== "CodeExpectedError")
 					logVerbose(`Error reading file: ${JSON.stringify({uri, error})}`)
-				/** @type {crowProtocol.ReadFileResult} */
+				/** @type {crow.ReadFileResult} */
 				const message = {
 					uri,
 					type: error.name === "CodeExpectedError" ? "notFound" : "error",
@@ -121,9 +157,17 @@ const getCompiler = () => {
  */
 const provideDocumentSemanticTokens = async (document, _cancellationToken) => {
 	try {
+		console.log("TOP OF provideDocumentSemanticTokens")
+		log("Will get tokens")
 		const uri = document.uri.toString()
 		const comp = await getCompiler()
-		comp.setFileSuccess(uri, document.getText())
+		/** @type {protocol.DidOpenTextDocumentParams} */
+		const params = {
+			textDocument: {uri, languageId:document.languageId, version:document.version, text:document.getText()},
+		}
+		//TODO: this opens it every time...
+		comp.handleLspMessage({method:"textDocument/didOpen", params})
+		log("Will really get tokens this time")
 		return getTokens(comp, uri)
 	} catch (e) {
 		// VSCode just swallows exceptions, at least log them

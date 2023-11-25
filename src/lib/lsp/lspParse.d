@@ -4,33 +4,133 @@ module lib.lsp.lspParse;
 
 import lib.lsp.lspTypes :
 	DefinitionParams,
+	DidChangeTextDocumentParams,
+	DidCloseTextDocumentParams,
+	DidOpenTextDocumentParams,
+	ExitParams,
 	HoverParams,
-	TextDocumentChangeEvent,
+	InitializeParams,
+	InitializedParams,
+	LspInMessage,
+	LspInNotification,
+	LspInRequest,
+	LspInRequestParams,
+	ReadFileResultParams,
+	ReadFileResultType,
+	ReferenceParams,
+	RenameParams,
+	SetTraceParams,
+	ShutdownParams,
+	TextDocumentContentChangeEvent,
 	TextDocumentIdentifier,
-	TextDocumentPositionParams;
+	TextDocumentItem,
+	TextDocumentPositionParams,
+	TraceValue,
+	UnloadedUrisParams;
 import util.alloc.alloc : Alloc;
-import util.col.arrUtil : exists, find, map;
-import util.col.str : SafeCStr;
-import util.json : Json;
-import util.jsonParse : parseJson;
+import util.col.arrUtil : map;
+import util.json : get, hasKey, Json;
+import util.jsonParse : asUint;
 import util.lineAndColumnGetter : LineAndCharacter, LineAndCharacterRange;
-import util.opt : force, none, Opt, some;
-import util.sym : AllSymbols, sym;
-import util.uri : AllUris, parseUri;
-import util.util : verify;
+import util.opt : none, some;
+import util.uri : AllUris, parseUri, Uri;
+import util.util : verifyFail;
 
-TextDocumentChangeEvent[] parseChangeEvents(ref Alloc alloc, scope ref AllSymbols allSymbols, in SafeCStr source) {
-	Opt!Json json = parseJson(alloc, allSymbols, source);
-	return parseList!TextDocumentChangeEvent(alloc, force(json), (in Json x) => parseChangeEvent(alloc, x));
+// If extending this, remember to modify 'initializeCapabilities'
+LspInMessage parseLspInMessage(ref Alloc alloc, scope ref AllUris allUris, in Json a) {
+	LspInMessage notification(T)(T res) =>
+		LspInMessage(LspInNotification(res));
+	LspInMessage request(T)(T res) =>
+		LspInMessage(LspInRequest(asUint(get!"id"(a)), LspInRequestParams(res)));
+
+	Json params = get!"params"(a);
+	switch (get!"method"(a).as!string) {
+		case "$/setTrace":
+			return notification(SetTraceParams(parseTraceValue(get!"value"(params).as!string)));
+		case "custom/readFileResult":
+			return notification(parseReadFileResultParams(allUris, params));
+		case "custom/unloadedUris":
+			return request(UnloadedUrisParams());
+		case "exit":
+			return notification(ExitParams());
+		case "initialize":
+			return request(InitializeParams(hasKey!"trace"(params)
+				? parseTraceValue(get!"trace"(params).as!string)
+				: TraceValue.off));
+		case "initialized":
+			return notification(InitializedParams());
+		case "shutdown":
+			return request(ShutdownParams());
+		case "textDocument/definition":
+			return request(parseDefinitionParams(alloc, allUris, params));
+		case "textDocument/didChange":
+			return notification(parseDidChangeTextDocumentParams(alloc, allUris, params));
+		case "textDocument/didClose":
+			return notification(DidCloseTextDocumentParams());
+		case "textDocument/didOpen":
+			return notification(parseDidOpenTextDocumentParams(allUris, params));
+		case "textDocument/hover":
+			return request(parseHoverParams(alloc, allUris, params));
+		case "textDocument/references":
+			return request(parseReferenceParams(alloc, allUris, params));
+		case "textDocument/rename":
+			return request(parseRenameParams(alloc, allUris, params));
+		default:
+			verifyFail();
+			assert(false);
+	}
 }
 
-DefinitionParams parseDefinitionParams(ref Alloc alloc, scope ref AllUris allUris, in Json source) =>
-	parseTextDocumentPositionParams(alloc, allUris, source);
-
-HoverParams parseHoverParams(ref Alloc alloc, scope ref AllUris allUris, in Json source) =>
-	parseTextDocumentPositionParams(alloc, allUris, source);
-
 private:
+
+TraceValue parseTraceValue(string a) {
+	final switch (a) {
+		case "off":
+			return TraceValue.off;
+		case "messages":
+			return TraceValue.messages;
+		case "verbose":
+			return TraceValue.verbose;
+	}
+}
+
+DidChangeTextDocumentParams parseDidChangeTextDocumentParams(ref Alloc alloc, scope ref AllUris allUris, in Json a) =>
+	DidChangeTextDocumentParams(
+		parseTextDocumentIdentifier(allUris, get!"textDocument"(a)),
+		parseList!TextDocumentContentChangeEvent(alloc, get!"contentChanges"(a), (in Json x) =>
+			parseTextDocumentContentChangeEvent(alloc, x)));
+
+DidOpenTextDocumentParams parseDidOpenTextDocumentParams(scope ref AllUris allUris, in Json a) =>
+	DidOpenTextDocumentParams(parseTextDocumentItem(allUris, get!"textDocument"(a)));
+
+ReadFileResultParams parseReadFileResultParams(scope ref AllUris allUris, in Json a) =>
+	ReadFileResultParams(parseUriProperty(allUris, a), toReadFileResponseType(get!"type"(a).as!string));
+
+ReadFileResultType toReadFileResponseType(in string a) {
+	final switch (a) {
+		case "notFound":
+			return ReadFileResultType.notFound;
+		case "error":
+			return ReadFileResultType.error;
+	}
+}
+
+DefinitionParams parseDefinitionParams(ref Alloc alloc, scope ref AllUris allUris, in Json a) =>
+	DefinitionParams(parseTextDocumentPositionParams(alloc, allUris, a));
+HoverParams parseHoverParams(ref Alloc alloc, scope ref AllUris allUris, in Json a) =>
+	HoverParams(parseTextDocumentPositionParams(alloc, allUris, a));
+RenameParams parseRenameParams(ref Alloc alloc, scope ref AllUris allUris, in Json a) =>
+	RenameParams(
+		parseTextDocumentPositionParams(alloc, allUris, a),
+		get!"newName"(a).as!string);
+ReferenceParams parseReferenceParams(ref Alloc alloc, scope ref AllUris allUris, in Json a) =>
+	ReferenceParams(parseTextDocumentPositionParams(alloc, allUris, a));
+
+TextDocumentItem parseTextDocumentItem(scope ref AllUris allUris, in Json a) =>
+	TextDocumentItem(parseUriProperty(allUris, a), parseTextProperty(a));
+
+string parseTextProperty(in Json a) =>
+	get!"text"(a).as!string;
 
 TextDocumentPositionParams parseTextDocumentPositionParams(ref Alloc alloc, scope ref AllUris allUris, in Json a) =>
 	TextDocumentPositionParams(
@@ -38,25 +138,18 @@ TextDocumentPositionParams parseTextDocumentPositionParams(ref Alloc alloc, scop
 		parsePosition(get!"position"(a)));
 
 TextDocumentIdentifier parseTextDocumentIdentifier(scope ref AllUris allUris, in Json a) =>
-	TextDocumentIdentifier(parseUri(allUris, get!"uri"(a).as!string));
+	TextDocumentIdentifier(parseUriProperty(allUris, a));
+
+Uri parseUriProperty(scope ref AllUris allUris, in Json a) =>
+	parseUri(allUris, get!"uri"(a).as!string);
 
 T[] parseList(T)(ref Alloc alloc, in Json input, in T delegate(in Json) @safe @nogc pure nothrow cb) =>
 	map!(T, Json)(alloc, input.as!(Json[]), (ref Json x) => cb(x));
 
-Json get(string key)(in Json a) {
-	Opt!(Json.ObjectField) pair = find!(Json.ObjectField)(a.as!(Json.Object), (in Json.ObjectField pair) =>
-		pair.key == sym!key);
-	return force(pair).value;
-}
-
-bool hasKey(string key)(in Json a) =>
-	a.isA!(Json.Object) && exists!(Json.ObjectField)(a.as!(Json.Object), (in Json.ObjectField pair) =>
-		pair.key == sym!key);
-
-TextDocumentChangeEvent parseChangeEvent(ref Alloc alloc, in Json a) =>
+TextDocumentContentChangeEvent parseTextDocumentContentChangeEvent(ref Alloc alloc, in Json a) =>
 	hasKey!"range"(a)
-		? TextDocumentChangeEvent(some(parseLineAndCharacterRange(get!"range"(a))), get!"text"(a).as!string)
-		: TextDocumentChangeEvent(none!LineAndCharacterRange, get!"text"(a).as!string);
+		? TextDocumentContentChangeEvent(some(parseLineAndCharacterRange(get!"range"(a))), parseTextProperty(a))
+		: TextDocumentContentChangeEvent(none!LineAndCharacterRange, parseTextProperty(a));
 
 LineAndCharacterRange parseLineAndCharacterRange(in Json a) =>
 	LineAndCharacterRange(parseLineAndCharacter(get!"start"(a)), parseLineAndCharacter(get!"end"(a)));
@@ -65,12 +158,3 @@ alias parsePosition = parseLineAndCharacter;
 
 LineAndCharacter parseLineAndCharacter(in Json a) =>
 	LineAndCharacter(asUint(get!"line"(a)), asUint(get!"character"(a)));
-
-uint asUint(in Json a) =>
-	safeUintOfDouble(a.as!double);
-
-uint safeUintOfDouble(double a) {
-	uint res = cast(int) a;
-	verify((cast(double) res) == a);
-	return res;
-}

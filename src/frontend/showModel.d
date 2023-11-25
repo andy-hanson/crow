@@ -58,7 +58,7 @@ const struct ShowCtx {
 		*programPtr;
 }
 
-immutable struct ShowOptions {
+struct ShowOptions {
 	bool color;
 }
 

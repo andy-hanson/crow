@@ -138,6 +138,10 @@ private Expr checkCallCommon(
 	PerfMeasurer perfMeasurer = startMeasure(ctx.perf, ctx.alloc, PerfMeasure.checkCall);
 	Expr res = withCandidates!Expr(
 		funsInScope(ctx), funName, args.length,
+		(scope ref Candidate candidate) =>
+			(!has(typeArg) || filterCandidateByExplicitTypeArg(ctx, candidate, force(typeArg))) &&
+			matchExpectedVsReturnTypeNoDiagnostic(
+				ctx.alloc, ctx.programState, expected, candidate.called.returnType, inferringTypeArgs(candidate)),
 		(ref Candidates candidates) =>
 			checkCallInner(
 				ctx, locals, source, diagRange, funName, args, typeArg, perfMeasurer, candidates, expected));
@@ -160,18 +164,11 @@ Expr checkCallInner(
 	Sym funName,
 	ExprAst[] argAsts,
 	in Opt!Type explicitTypeArg,
-	ref PerfMeasurer perfMeasurer,
+	scope ref PerfMeasurer perfMeasurer,
 	ref Candidates candidates,
 	ref Expected expected,
 ) {
 	size_t arity = argAsts.length;
-
-	if (has(explicitTypeArg))
-		filterCandidatesByExplicitTypeArg(ctx, candidates, force(explicitTypeArg));
-
-	filterCandidates(candidates, (ref Candidate candidate) =>
-		matchExpectedVsReturnTypeNoDiagnostic(
-			ctx.alloc, ctx.programState, expected, candidate.called.returnType, inferringTypeArgs(candidate)));
 
 	// Apply explicitly typed arguments first
 	foreach (size_t argIdx, ExprAst arg; argAsts)
@@ -261,16 +258,14 @@ Opt!(Diag.CallShouldUseSyntax.Kind) shouldUseSyntaxKind(Sym calledFunName, Sym o
 	}
 }
 
-void filterCandidatesByExplicitTypeArg(ref ExprCtx ctx, scope ref Candidates candidates, in Type typeArg) {
-	filterCandidates(candidates, (ref Candidate candidate) {
-		size_t nTypeParams = mutMaxArrSize(candidate.typeArgs);
-		Type[] args = unpackTupleIfNeeded(ctx.commonTypes, nTypeParams, &typeArg);
-		bool ok = args.length == nTypeParams;
-		if (ok)
-			fillMutMaxArr(candidate.typeArgs, size(candidate.typeArgs), (size_t i) =>
-				SingleInferringType(some(args[i])));
-		return ok;
-	});
+bool filterCandidateByExplicitTypeArg(ref ExprCtx ctx, scope ref Candidate candidate, in Type typeArg) {
+	size_t nTypeParams = mutMaxArrSize(candidate.typeArgs);
+	Type[] args = unpackTupleIfNeeded(ctx.commonTypes, nTypeParams, &typeArg);
+	bool ok = args.length == nTypeParams;
+	if (ok)
+		fillMutMaxArr(candidate.typeArgs, size(candidate.typeArgs), (size_t i) =>
+			SingleInferringType(some(args[i])));
+	return ok;
 }
 
 alias ParamExpected = MutMaxArr!(maxCandidates, TypeAndInferring);
@@ -279,7 +274,7 @@ void getParamExpected(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref ParamExpected paramExpected,
-	ref Candidates candidates,
+	scope ref Candidates candidates,
 	size_t argIdx,
 ) {
 	foreach (scope ref Candidate candidate; candidates) {
@@ -394,25 +389,28 @@ bool inferCandidateTypeArgsFromSpecSig(
 	in FunDecl called,
 	in SpecDeclSig specSig,
 	in ReturnAndParamTypes returnAndParamTypes,
-) =>
-	withCandidates(funsInScope(ctx), specSig.name, specSig.params.length, (ref Candidates specCandidates) {
-		const InferringTypeArgs constCallInferring = inferringTypeArgs(callCandidate);
-		filterCandidates(specCandidates, (ref Candidate specCandidate) =>
-			testCandidateForSpecSig(
-				ctx.alloc, ctx.programState, specCandidate, returnAndParamTypes, constCallInferring));
-
-		switch (size(specCandidates)) {
-			case 0:
-				return false;
-			case 1:
-				inferCandidateTypeArgsFromCheckedSpecSig(
-					ctx.alloc, ctx.programState,
-					only(specCandidates), specSig, returnAndParamTypes, inferringTypeArgs(callCandidate));
-				return true;
-			default:
-				return true;
-		}
-	});
+) {
+	const InferringTypeArgs constCallInferring = inferringTypeArgs(callCandidate);
+	return withCandidates(
+		funsInScope(ctx),
+		specSig.name,
+		specSig.params.length,
+		(scope ref Candidate x) =>
+			testCandidateForSpecSig(ctx.alloc, ctx.programState, x, returnAndParamTypes, constCallInferring),
+		(scope ref Candidates specCandidates) {
+			switch (size(specCandidates)) {
+				case 0:
+					return false;
+				case 1:
+					inferCandidateTypeArgsFromCheckedSpecSig(
+						ctx.alloc, ctx.programState,
+						only(specCandidates), specSig, returnAndParamTypes, inferringTypeArgs(callCandidate));
+					return true;
+				default:
+					return true;
+			}
+		});
+}
 
 Expr checkCallAfterChoosingOverload(
 	ref ExprCtx ctx,

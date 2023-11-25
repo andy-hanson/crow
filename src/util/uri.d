@@ -6,7 +6,7 @@ import util.alloc.alloc : Alloc, allocateElements, MetaAlloc, newAlloc;
 import util.col.arr : endPtr;
 import util.col.arrUtil : indexOf, indexOfStartingAt;
 import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
-import util.col.str : compareSafeCStrAlphabetically, end, SafeCStr, safeCStr, strOfSafeCStr;
+import util.col.str : compareSafeCStrAlphabetically, SafeCStr, safeCStr, strOfSafeCStr;
 import util.comparison : Comparison;
 import util.conv : safeToUshort;
 import util.hash : Hasher, hashUshort;

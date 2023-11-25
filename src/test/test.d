@@ -20,17 +20,15 @@ import test.testUtil : Test;
 import test.testWriter : testWriter;
 import util.alloc.alloc : MetaAlloc;
 import util.exitCode : ExitCode;
-import util.opt : force, has, Opt;
 import util.perf : Perf, withNullPerf;
 import util.ptr : ptrTrustMe;
 import util.sym : Sym, sym;
 
-ExitCode test(MetaAlloc* alloc, Opt!Sym name) =>
+ExitCode test(MetaAlloc* alloc) =>
 	withNullPerf!(ExitCode, (scope ref Perf perf) {
 		Test test = Test(alloc, ptrTrustMe(perf));
 		foreach (ref NameAndTest x; allTests)
-			if (!has(name) || force(name) == x.name)
-				x.test(test);
+			x.test(test);
 		return ExitCode.ok;
 	});
 

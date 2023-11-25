@@ -1,52 +1,37 @@
 @safe @nogc nothrow: // not pure
 
-import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
-import frontend.ide.getRename : jsonOfRename, Rename;
-import frontend.ide.getReferences : jsonOfReferences;
 import frontend.ide.getTokens : jsonOfTokens, Token;
-import frontend.showDiag : sortedDiagnostics, sortedDiagnosticsForUri, UriAndDiagnostics;
-import frontend.showModel : ShowOptions;
-import frontend.storage : asSafeCStr, FileContent, ReadFileResult;
+import frontend.storage : asSafeCStr, FileContent, LineAndColumnGetters, ReadFileResult;
 import interpret.fakeExtern : Pipe;
-import lib.lsp.lspParse : parseChangeEvents;
-import lib.lsp.lspTypes : RenameParams, TextDocumentIdentifier, TextDocumentPositionParams;
+import lib.lsp.lspParse : parseLspInMessage;
+import lib.lsp.lspToJson : jsonOfLspOutMessage;
+import lib.lsp.lspTypes : LspInMessage, LspOutMessage, TextDocumentIdentifier, TextDocumentPositionParams;
 import lib.server :
-	allLoadingUris,
-	allStorageUris,
-	allUnknownUris,
-	changeFile,
 	getFile,
-	getRename,
-	getReferences,
 	getTokens,
 	handleLspMessage,
 	justParseEverything,
-	justTypeCheck,
+	LspOutAction,
 	run,
 	Server,
 	setCwd,
-	setDiagOptions,
 	setFile,
 	setIncludeDir,
-	showDiag,
 	toUri,
-	typeCheckAllKnownFiles,
 	version_;
-import model.diag : Diagnostic, DiagnosticSeverity, readFileDiagOfSym;
-import model.model : Program;
+import model.diag : readFileDiagOfSym;
 import util.alloc.alloc : Alloc, withStaticAlloc;
 import util.col.arrUtil : map;
-import util.col.str : CStr, SafeCStr, strOfSafeCStr;
+import util.col.str : CStr, SafeCStr;
 import util.exitCode : ExitCode;
-import util.json : field, jsonObject, Json, jsonToString, jsonList, jsonString;
-import util.jsonParse : parseJson;
+import util.json : field, jsonObject, Json, jsonToString, jsonList, jsonString, optionalField;
+import util.jsonParse : mustParseJson;
 import util.lineAndColumnGetter : LineAndCharacter;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
 import util.opt : force, has, Opt;
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasureResult, perfTotal, withNullPerf;
-import util.sourceRange : jsonOfRange, UriAndRange;
 import util.sym : symOfSafeCStr;
-import util.uri : parseUri, stringOfUri, Uri;
+import util.uri : AllUris, parseUri, stringOfUri, Uri;
 
 // seems to be the required entry point
 extern(C) void _start() {}
@@ -93,7 +78,6 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 	server.__ctor(serverBuffer);
 	setIncludeDir(*server, parseUri(server.allUris, SafeCStr(includeDir)));
 	setCwd(*server, parseUri(server.allUris, SafeCStr(cwd)));
-	setDiagOptions(*server, ShowOptions(false));
 	return server;
 }
 
@@ -118,14 +102,6 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 	});
 }
 
-@system extern(C) void changeFile(Server* server, scope CStr uri, scope CStr changes) {
-	SafeCStr uriStr = SafeCStr(uri);
-	SafeCStr changesStr = SafeCStr(changes);
-	wasmCall!("changeFile", void)((scope ref Perf perf, ref Alloc alloc) {
-		changeFile(perf, *server, toUri(*server, uriStr), parseChangeEvents(alloc, server.allSymbols, changesStr));
-	});
-}
-
 @system extern(C) CStr getFile(Server* server, scope CStr uriCStr) {
 	SafeCStr uriStr = SafeCStr(uriCStr);
 	return wasmCall!("getFile", CStr)((scope ref Perf _, ref Alloc _a) {
@@ -140,88 +116,37 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 		justParseEverything(perf, resultAlloc, *server, [toUri(*server, uriStr)]));
 }
 
-// These are just getters; call 'justParseEverything' first to search for URIs
-@system extern(C) CStr allStorageUris(Server* server) =>
-	wasmCall!("allStorageUris", CStr)((scope ref Perf _, ref Alloc resultAlloc) =>
-		urisToJson(resultAlloc, *server, allStorageUris(resultAlloc, *server)));
-
-@system extern(C) CStr allUnknownUris(Server* server) =>
-	wasmCall!("allUnknownUris", CStr)((scope ref Perf _, ref Alloc resultAlloc) =>
-		urisToJson(resultAlloc, *server, allUnknownUris(resultAlloc, *server)));
-
-@system extern(C) CStr allLoadingUris(Server* server) =>
-	wasmCall!("allLoadingUris", CStr)((scope ref Perf _, ref Alloc resultAlloc) =>
-		urisToJson(resultAlloc, *server, allLoadingUris(resultAlloc, *server)));
-
 pure CStr urisToJson(ref Alloc alloc, in Server server, in Uri[] uris) =>
 	jsonToString(alloc, server.allSymbols, jsonList(map(alloc, uris, (ref Uri x) =>
 		jsonString(stringOfUri(alloc, server.allUris, x))))).ptr;
 
 @system extern(C) CStr getTokens(Server* server, scope CStr uriCStr) {
 	SafeCStr uriStr = SafeCStr(uriCStr);
-	return wasmCall!("getTokens", CStr)((scope ref Perf perf, ref Alloc resultAlloc) {
+	return wasmCall!("getTokens", SafeCStr)((scope ref Perf perf, ref Alloc resultAlloc) {
 		Uri uri = toUri(*server, uriStr);
 		Token[] res = getTokens(perf, resultAlloc, *server, uri);
 		Json json = jsonOfTokens(resultAlloc, server.lineAndColumnGetters[uri], res);
-		return jsonToString(resultAlloc, server.allSymbols, json).ptr;
-	});
+		return jsonToString(resultAlloc, server.allSymbols, json);
+	}).ptr;
 }
 
-
-@system extern(C) CStr getAllDiagnostics(Server* server) =>
-	wasmCall!("getAllDiagnostics", CStr)((scope ref Perf perf, ref Alloc resultAlloc) {
-		Program program = typeCheckAllKnownFiles(perf, resultAlloc, *server);
-		return jsonToString(resultAlloc, server.allSymbols, jsonOfDiagnostics(resultAlloc, *server, program)).ptr;
-	});
-
-@system extern(C) CStr getDiagnosticsForUri(Server* server, scope CStr uriCStr, uint minSeverity) {
-	SafeCStr uriStr = SafeCStr(uriCStr);
-	return wasmCall!("getDiagnosticsForUri", CStr)((scope ref Perf perf, ref Alloc resultAlloc) {
-		Uri uri = toUri(*server, uriStr);
-		Program program = justTypeCheck(perf, resultAlloc, *server, [uri]);
-		Diagnostic[] diags = sortedDiagnosticsForUri(resultAlloc, program, uri, cast(DiagnosticSeverity) minSeverity);
-		Json json = jsonOfDiagnostics(resultAlloc, *server, program, uri, diags);
-		return jsonToString(resultAlloc, server.allSymbols, json).ptr;
-	});
-}
-
-@system extern(C) CStr handleLspMessage(Server* server, scope CStr kind, scope CStr body) {
-	SafeCStr kindStr = SafeCStr(kind);
-	SafeCStr bodyStr = SafeCStr(body);
+@system extern(C) CStr handleLspMessage(Server* server, scope CStr input) {
+	SafeCStr inputStr = SafeCStr(input);
 	return wasmCall!("handleLspMessage", SafeCStr)((scope ref Perf perf, ref Alloc resultAlloc) {
-		Opt!Json paramsJson = parseJson(resultAlloc, server.allSymbols, bodyStr);
-		return jsonToString(resultAlloc, server.allSymbols, handleLspMessage(
-			perf, resultAlloc, *server, strOfSafeCStr(kindStr), force(paramsJson)));
+		Json inputJson = mustParseJson(resultAlloc, server.allSymbols, inputStr);
+		LspInMessage inputMessage = parseLspInMessage(resultAlloc, server.allUris, inputJson);
+		LspOutAction output = handleLspMessage(perf, resultAlloc, *server, inputMessage);
+		Json outputJson = jsonOfLspOutAction(resultAlloc, server.allUris, server.lineAndColumnGetters, output);
+		return jsonToString(resultAlloc, server.allSymbols, outputJson);
 	}).ptr;
 }
 
-@system extern(C) CStr getReferences(Server* server, scope CStr uriCStr, uint line, uint character) {
-	SafeCStr uriSafe = SafeCStr(uriCStr);
-	return wasmCall!("getReferences", SafeCStr)((scope ref Perf perf, ref Alloc resultAlloc) {
-		UriAndRange[] references = getReferences(perf, resultAlloc, *server, toTextDocumentPositionParams(
-			*server, uriSafe, line, character));
-		return jsonToString(resultAlloc, server.allSymbols, jsonOfReferences(
-			resultAlloc, server.allUris, server.lineAndColumnGetters, references));
-	}).ptr;
-}
-
-@system extern(C) CStr getRename(
-	Server* server,
-	scope CStr uriCStr,
-	uint line,
-	uint character,
-	scope CStr newNamePtr,
-) {
-	SafeCStr uriSafe = SafeCStr(uriCStr);
-	SafeCStr newName = SafeCStr(newNamePtr);
-	return wasmCall!("getRename", SafeCStr)((scope ref Perf perf, ref Alloc resultAlloc) {
-		Opt!Rename rename = getRename(perf, resultAlloc, *server, RenameParams(
-			toTextDocumentPositionParams(*server, uriSafe, line, character),
-			strOfSafeCStr(newName)));
-		Json renameJson = jsonOfRename(resultAlloc, server.allUris, server.lineAndColumnGetters, rename);
-		return jsonToString(resultAlloc, server.allSymbols, renameJson);
-	}).ptr;
-}
+pure Json jsonOfLspOutAction(ref Alloc alloc, in AllUris allUris, in LineAndColumnGetters lcg, in LspOutAction a) =>
+	jsonObject(alloc, [
+		field!"messages"(jsonList(map(alloc, a.outMessages, (ref LspOutMessage x) =>
+			jsonOfLspOutMessage(alloc, allUris, lcg, x)))),
+		optionalField!("exitCode", ExitCode)(a.exitCode, (in ExitCode x) =>
+			Json(x.value))]);
 
 @system extern(C) int run(Server* server, scope CStr uriCStr) {
 	SafeCStr uriStr = SafeCStr(uriCStr);
@@ -276,46 +201,4 @@ T withWebPerfAlias(CStr name, T, alias cb)() {
 		}
 	} else
 		return withNullPerf!(T, cb);
-}
-
-pure:
-
-Json jsonOfDiagnostics(ref Alloc alloc, ref Server server, in Program program) =>
-	jsonList!UriAndDiagnostics(alloc, sortedDiagnostics(alloc, server.allUris, program), (in UriAndDiagnostics diags) =>
-		jsonObject(alloc, [
-			field!"uri"(stringOfUri(alloc, server.allUris, diags.uri)),
-			field!"diagnostics"(jsonList!Diagnostic(alloc, diags.diagnostics, (in Diagnostic x) =>
-				jsonOfDiagnostic(alloc, server, program, diags.uri, x)))]));
-
-Json jsonOfDiagnostics(ref Alloc alloc, ref Server server, in Program program, Uri uri, in Diagnostic[] diagnostics) =>
-	jsonList!Diagnostic(alloc, diagnostics, (in Diagnostic x) =>
-		jsonOfDiagnostic(alloc, server, program, uri, x));
-
-Json jsonOfDiagnostic(ref Alloc alloc, scope ref Server server, in Program program, Uri uri, in Diagnostic a) =>
-	jsonObject(alloc, [
-		field!"range"(jsonOfRange(alloc, server.lineAndColumnGetters[uri], a.range)),
-		field!"severity"(cast(uint) toLspDiagnosticSeverity(getDiagnosticSeverity(a.kind))),
-		field!"message"(jsonString(alloc, showDiag(alloc, server, program, a.kind)))]);
-
-enum LspDiagnosticSeverity {
-	Error = 1,
-	Warning = 2,
-	Information = 3,
-	Hint = 4,
-}
-
-LspDiagnosticSeverity toLspDiagnosticSeverity(DiagnosticSeverity a) {
-	final switch (a) {
-		case DiagnosticSeverity.unusedCode:
-			return LspDiagnosticSeverity.Hint;
-		case DiagnosticSeverity.checkWarning:
-			return LspDiagnosticSeverity.Warning;
-		case DiagnosticSeverity.checkError:
-		case DiagnosticSeverity.nameNotFound:
-		case DiagnosticSeverity.circularImport:
-		case DiagnosticSeverity.commonMissing:
-		case DiagnosticSeverity.parseError:
-		case DiagnosticSeverity.readFile:
-			return LspDiagnosticSeverity.Error;
-	}
 }

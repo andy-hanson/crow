@@ -3,7 +3,7 @@ module frontend.check.checkCall.checkCallSpecs;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCall.candidates :
-	Candidate, Candidates, FunsInScope, funsInScope, testCandidateForSpecSig, withCandidates;
+	Candidate, eachCandidate, FunsInScope, funsInScope, testCandidateForSpecSig;
 import frontend.check.inferringType :
 	addDiag2, ExprCtx, InferringTypeArgs, programStatePtr, SingleInferringType, tryGetInferred;
 import frontend.check.instantiate :
@@ -55,7 +55,7 @@ Opt!Called checkCallSpecs(ref ExprCtx ctx, in Range range, ref const Candidate c
 			});
 			return some(x);
 		},
-		(DummyTrace.NoMatch _) {
+		(DummyTrace.NoMatch _) @safe {
 			MutMaxArr!(maxSpecDepth, FunDeclAndTypeArgs) trace = mutMaxArr!(maxSpecDepth, FunDeclAndTypeArgs);
 			addDiag2(
 				ctx,
@@ -195,42 +195,39 @@ Trace.Result findSpecSigImplementation(Trace)(
 	SpecDeclSig* sigDecl,
 	in ReturnAndParamTypes sigType,
 	scope Trace trace,
-) =>
-	withCandidates(ctx.funsInScope, sigDecl.name, sigType.paramTypes.length, (ref Candidates candidates) {
-		Cell!(Opt!Called) res;
-		ArrBuilder!Called multipleMatches;
-		Cell!(Opt!(Trace.NoMatch)) deepestNoMatch = Cell!(Opt!(Trace.NoMatch))();
-		foreach (ref Candidate candidate; candidates) {
-			checkCandidate(ctx, sigDecl, sigType, candidate, trace).match!bool(
-				(Called x) {
-					if (has(cellGet(res))) {
-						add(ctx.alloc, multipleMatches, x);
-					} else
-						cellSet(res, some(x));
-					return false;
-				},
-				(Trace.NoMatch x) {
-					if (!has(cellGet(deepestNoMatch)) || deeper(x, force(cellGet(deepestNoMatch))))
-						cellSet(deepestNoMatch, some(x));
-					return false;
-				});
-		}
-		if (has(cellGet(res))) {
-			if (arrBuilderIsEmpty(multipleMatches)) {
-				return Trace.Result(force(cellGet(res)));
-			} else {
-				add(ctx.alloc, multipleMatches, force(cellGet(res)));
-				add(ctx.alloc, ctx.matchDiags, Diag.SpecMatchError(Diag.SpecMatchError.Reason(
-					Diag.SpecMatchError.Reason.MultipleMatches(sigDecl.name, finishArr(ctx.alloc, multipleMatches)))));
-				return Trace.Result(force(cellGet(res)));
-			}
-		} else
-			return Trace.Result(has(cellGet(deepestNoMatch))
-				? force(cellGet(deepestNoMatch))
-				: specNoMatch(
-					trace,
-					Diag.SpecNoMatch.Reason(Diag.SpecNoMatch.Reason.SpecImplNotFound(sigDecl, sigType))));
+) {
+	Cell!(Opt!Called) res;
+	ArrBuilder!Called multipleMatches;
+	Cell!(Opt!(Trace.NoMatch)) deepestNoMatch = Cell!(Opt!(Trace.NoMatch))();
+	eachCandidate(ctx.funsInScope, sigDecl.name, sigType.paramTypes.length, (ref Candidate candidate) {
+		checkCandidate(ctx, sigDecl, sigType, candidate, trace).match!void(
+			(Called x) {
+				if (has(cellGet(res))) {
+					add(ctx.alloc, multipleMatches, x);
+				} else
+					cellSet(res, some(x));
+			},
+			(Trace.NoMatch x) {
+				if (!has(cellGet(deepestNoMatch)) || deeper(x, force(cellGet(deepestNoMatch))))
+					cellSet(deepestNoMatch, some(x));
+			});
 	});
+	if (has(cellGet(res))) {
+		if (arrBuilderIsEmpty(multipleMatches)) {
+			return Trace.Result(force(cellGet(res)));
+		} else {
+			add(ctx.alloc, multipleMatches, force(cellGet(res)));
+			add(ctx.alloc, ctx.matchDiags, Diag.SpecMatchError(Diag.SpecMatchError.Reason(
+				Diag.SpecMatchError.Reason.MultipleMatches(sigDecl.name, finishArr(ctx.alloc, multipleMatches)))));
+			return Trace.Result(force(cellGet(res)));
+		}
+	} else
+		return Trace.Result(has(cellGet(deepestNoMatch))
+			? force(cellGet(deepestNoMatch))
+			: specNoMatch(
+				trace,
+				Diag.SpecNoMatch.Reason(Diag.SpecNoMatch.Reason.SpecImplNotFound(sigDecl, sigType))));
+}
 
 bool checkBuiltinSpec(
 	ref CheckSpecsCtx ctx,

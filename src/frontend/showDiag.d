@@ -25,7 +25,6 @@ import model.model :
 	bestCasePurity,
 	CalledDecl,
 	eachDiagnostic,
-	eachDiagnosticForUri,
 	EnumBackingType,
 	FunDeclAndTypeArgs,
 	Local,
@@ -99,16 +98,6 @@ UriAndDiagnostics[] sortedDiagnostics(ref Alloc alloc, in AllUris allUris, in Pr
 	});
 	arrBuilderSort!UriAndDiagnostics(res, (in UriAndDiagnostics x, in UriAndDiagnostics y) =>
 		compareUriAlphabetically(allUris, x.uri, y.uri));
-	return finishArr(alloc, res);
-}
-
-Diagnostic[] sortedDiagnosticsForUri(ref Alloc alloc, in Program program, Uri uri, DiagnosticSeverity minSeverity) {
-	ArrBuilder!Diagnostic res;
-	eachDiagnosticForUri(program, uri, (in Diagnostic x) {
-		if (getDiagnosticSeverity(x.kind) >= minSeverity)
-			add(alloc, res, x);
-	});
-	arrBuilderSort!Diagnostic(res, (in Diagnostic x, in Diagnostic y) => compareDiagnostic(x, y));
 	return finishArr(alloc, res);
 }
 

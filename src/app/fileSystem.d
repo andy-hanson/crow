@@ -4,7 +4,9 @@ module app.fileSystem;
 
 import core.stdc.errno : ENOENT, errno;
 import core.stdc.stdio : fclose, ferror, FILE, fopen, fprintf, fread, fseek, ftell, fwrite, printf, SEEK_END, SEEK_SET;
-version (Windows) {} else { import core.stdc.stdio : posixStderr = stderr; }
+version (Windows) {} else {
+	import core.stdc.stdio : posixStderr = stderr, posixStdin = stdin, posixStdout = stdout;
+}
 import core.stdc.string : strerror;
 
 version (Windows) {
@@ -64,6 +66,22 @@ import util.uri :
 	Uri;
 import util.util : todo, verify;
 import util.writer : withWriter, Writer;
+
+FILE* stdin() {
+	version (Windows) {
+		return __acrt_iob_func(0);
+	} else {
+		return posixStdin;
+	}
+}
+
+FILE* stdout() {
+	version (Windows) {
+		return __acrt_iob_func(1);
+	} else {
+		return posixStdout;
+	}
+}
 
 FILE* stderr() {
 	version (Windows) {

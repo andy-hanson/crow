@@ -9,7 +9,7 @@ import
 		union-decl, union-member
 
 get-modules module[]^(paths string[], remove-prefix string) summon
-	result = crow-path spawn-and-wait-result "doc" ~ paths
+	result = crow-path spawn-and-wait-result "document" ~ paths
 	if result has-error
 		throw "Could not get documentation. stderr: {result stderr}"
 	(((json ~~ spaces) parse result.stdout)! to-modules remove-prefix),
@@ -21,31 +21,31 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 		"bin/crow"
 
 -to-modules module[](a json, remove-prefix string)
-	res module[] = for x : a["modules"]!.as-list!
+	res module[] = for x : a["modules"].as-list!
 		x to-module remove-prefix
 	res filter x => !x.exports.is-empty
 
 -to-module module(a json, remove-prefix string)
-	path = a["uri"]! to-path remove-prefix
-	path, a.get-doc, for x : a["exports"]!.as-list!
+	path = a["uri"] to-path remove-prefix
+	path, a.get-doc, for x : a["exports"].as-list!
 		x to-export
 
 -to-path symbol(a json, remove-prefix string)
 	(a.as-string! try-remove-start remove-prefix)! to
 
 -get-doc string(a json)
-	if c ?= a["doc"]
-		c.as-string!
+	a["doc"].as-string-allow-null!
 
 -to-export module-export(a json)
-	type-params type-param[] = if t ?= a["type-params"]
+	t = a["type-params"]
+	type-params type-param[] = if t != json-null
 		for x : t.as-list!
 			x to-type-param
-	value = a["value"]! to-export-value
+	value = a["value"] to-export-value
 	a.get-name, a.get-doc, type-params, value
 
 -to-export-value module-export-value(a json)
-	kind = a["kind"]!.as-symbol!
+	kind = a["kind"].as-symbol!
 	if kind == "alias"
 		a.to-alias-decl alias-decl
 	elif kind == "builtin"
@@ -68,7 +68,7 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 		throw "unexpected export kind {kind}"
 
 -to-alias-decl alias-decl(a json)
-	target = a["target"]! to-type-ref
+	target = a["target"] to-type-ref
 	target,
 
 -to-enum-decl enum-decl(a json)
@@ -78,70 +78,66 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 	a.get-enum-flags-members,
 
 -get-enum-flags-members symbol[](a json)
-	for x : a["members"]!.as-list!
+	for x : a["members"].as-list!
 		x.as-string! to
 
 -to-record-decl record-decl(a json)
-	has-non-public-fields = if h ?= a["has-non-public-fields"]
-		h.as-bool!
-	a.get-purity, has-non-public-fields, for x : a["fields"]!.as-list!
+	has-non-public-fields = a["has-non-public-fields"].as-bool-allow-null!
+	a.get-purity, has-non-public-fields, for x : a["fields"].as-list!
 		x to-record-field
 
 -get-purity purity(a json)
-	if p ?= a["purity"]
+	p = a["purity"]
+	if p == json-null
+		data
+	else
 		s = p.as-string!
 		if s == "shared"
 			shared
 		else
 			s is "mut"
 			mut_
-	else
-		data
 
 -to-record-field record-field(a json)
-	is-mut = if m ?= a["mut"]
-		m.as-bool!
-	a.get-name, a.get-type, is-mut
+	a.get-name, a.get-type, a["mut"].as-bool-allow-null!
 
 -to-union-decl union-decl(a json)
-	a.get-purity, for x : a["members"]!.as-list!
+	a.get-purity, for x : a["members"].as-list!
 		x to-union-member
 
 -to-union-member union-member(a json)
-	type type-ref? = if t ?= a["type"]
+	t = a["type"]
+	type type-ref? = unless t is-null
 		t.to-type-ref,
 	a.get-name, type
 
 -get-name symbol(a json)
-	a["name"]!.as-string! to
+	a["name"].as-string! to
 
 -to-type-param type-param(a json)
 	a.get-name,
 
 -get-type type-ref(a json)
-	a["type"]! to-type-ref
+	a["type"] to-type-ref
 
 -get-type-args type-ref[](a json)
-	if args ?= a["type-args"]
-		for x : args.as-list!
-			x to-type-ref
+	for x : a["type-args"].as-list-allow-null!
+		x to-type-ref
 
 -to-fun-decl fun-decl(a json)
-	variadic = if v ?= a["variadic"]
-		v.as-bool!
-	a.get-return-type, variadic, a.get-params, if s ?= a["specs"]
-		for x : s.as-list!
-			x to-spec-ref
+	variadic = a["variadic"].as-bool-allow-null!
+	a.get-return-type, variadic, a.get-params, for x : a["specs"].as-list-allow-null!
+		x to-spec-ref
 
 -to-spec-decl spec-decl(a json)
-	parents spec-ref[] = for x : a["parents"]!.as-list!
+	parents spec-ref[] = for x : a["parents"].as-list!
 		x to-spec-ref
-	body-json = a["body"]!
-	kind = body-json["kind"]!.as-symbol!
+	body-json = a["body"]
+	kind = body-json["kind"].as-symbol!
 	body_ = if kind == "builtin"
 		spec-builtin
 	elif kind == "sigs"
-		sigs spec-sig[] = for x : body-json["sigs"]!.as-list!
+		sigs spec-sig[] = for x : body-json["sigs"].as-list!
 			x to-sig
 		sigs spec-sigs
 	else
@@ -152,18 +148,18 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 	a.get-doc, a.get-name, a.get-return-type, a.get-params
 
 -get-return-type type-ref(a json)
-	a["return-type"]! to-type-ref
+	a["return-type"] to-type-ref
 
 -get-params param[](a json)
-	for x : a["params"]!.as-list!
+	for x : a["params"].as-list!
 		x to-param
 
 -to-param param(a json)
 	a.get-name, a.get-type
 
 -to-type-ref type-ref(a json)
-	kind = a["kind"]!.as-symbol!
-	name symbol = a["name"]!.as-symbol!
+	kind = a["kind"].as-symbol!
+	name symbol = a["name"].as-symbol!
 	if kind == "type-param"
 		name, ()
 	else
@@ -171,8 +167,8 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 		name, a.get-type-args
 
 -to-spec-ref spec-ref(a json)
-	kind = a["kind"]!.as-symbol!
-	name symbol = a["name"]!.as-symbol!
+	kind = a["kind"].as-symbol!
+	name symbol = a["name"].as-symbol!
 	if kind == "special"
 		name, ()
 	else

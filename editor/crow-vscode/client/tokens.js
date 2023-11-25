@@ -4,7 +4,9 @@ const {SemanticTokens, SemanticTokensBuilder, SemanticTokensLegend} = require("v
 /** @type {function(crow.Compiler, string): SemanticTokens} */
 exports.getTokens = (comp, uri) => {
 	const builder = new SemanticTokensBuilder()
-	for (const {token, range:{start, end}} of comp.getTokens(uri)) {
+	const tokens = comp.getTokens(uri)
+	console.log("TOKENS ARE", tokens)
+	for (const {token, range:{start, end}} of tokens) {
 		if (start.line !== end.line)
 			throw new Error("Multi-line token? " + JSON.stringify({token, start, end}))
 		const length = end.character - start.character

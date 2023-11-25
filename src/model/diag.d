@@ -82,7 +82,7 @@ enum TypeKind {
 	union_,
 }
 
-private enum ReadFileDiag_ { notFound, unknown, loading, error }
+private enum ReadFileDiag_ { unknown, loading, notFound, error }
 alias ReadFileDiag = immutable ReadFileDiag_;
 
 ReadFileDiag readFileDiagOfSym(Sym a) {

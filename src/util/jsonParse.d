@@ -9,13 +9,42 @@ import util.col.str : SafeCStr, strOfSafeCStr;
 import util.json : Json;
 import util.opt : force, has, none, Opt, some;
 import util.sym : AllSymbols, symOfStr;
+import util.util : verify;
 import util.writer : withWriter, Writer;
+
+Json mustParseJson(ref Alloc alloc, scope ref AllSymbols allSymbols, in SafeCStr source) {
+	Opt!Json res = parseJson(alloc, allSymbols, source);
+	return force(res);
+}
 
 Opt!Json parseJson(ref Alloc alloc, scope ref AllSymbols allSymbols, in SafeCStr source) {
 	immutable(char)* ptr = source.ptr;
 	Opt!Json res = parseValue(alloc, allSymbols, ptr);
 	skipWhitespace(ptr);
 	return *ptr == '\0' ? res : none!Json;
+}
+
+uint mustParseUint(SafeCStr s) {
+	immutable(char)* ptr = s.ptr;
+	skipWhitespace(ptr);
+	Json res = parseNumber(0, ptr);
+	skipWhitespace(ptr);
+	verify(*ptr == '\0');
+	return safeUintOfDouble(res.as!double);
+}
+
+uint asUint(in Json a) =>
+	safeUintOfDouble(a.as!double);
+
+private uint safeUintOfDouble(double a) {
+	uint res = cast(int) a;
+	verify((cast(double) res) == a);
+	return res;
+}
+
+@trusted void skipWhitespace(scope ref immutable(char)* ptr) {
+	while (isWhitespace(*ptr))
+		ptr++;
 }
 
 private:
@@ -40,13 +69,13 @@ Opt!Json parseValue(ref Alloc alloc, scope ref AllSymbols allSymbols, scope ref 
 		case '{':
 			return parseObject(alloc, allSymbols, ptr);
 		case '0': .. case '9':
-			return some(parseNumber(alloc, x - '0', ptr));
+			return some(parseNumber(x - '0', ptr));
 		default:
 			return none!Json;
 	}
 }
 
-Json parseNumber(ref Alloc alloc, double value, scope ref immutable(char)* ptr) {
+Json parseNumber(double value, scope ref immutable(char)* ptr) {
 	// TODO: support floats?
 	while (isDecimalDigit(*ptr))
 		value = value * 10 + (next(ptr) - '0');
@@ -167,9 +196,4 @@ Opt!Json parseObjectRecur(
 bool tryTakePunctuation(scope ref immutable(char)* ptr, char expected) {
 	skipWhitespace(ptr);
 	return tryTakeChar(ptr, expected);
-}
-
-@trusted void skipWhitespace(scope ref immutable(char)* ptr) {
-	while (isWhitespace(*ptr))
-		ptr++;
 }

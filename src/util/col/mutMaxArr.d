@@ -124,6 +124,11 @@ T mustPop(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) {
 	return a.values[a.size_];
 }
 
+void mustPopAndDrop(size_t maxSize, T)(scope ref MutMaxArr!(maxSize, T) a) {
+	verify(a.size_ != 0);
+	a.size_--;
+}
+
 ref inout(T) only(size_t maxSize, T)(ref inout MutMaxArr!(maxSize, T) a) {
 	verify(a.size_ == 1);
 	return a.values[0];

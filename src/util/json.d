@@ -4,7 +4,7 @@ module util.json;
 
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
-import util.col.arrUtil : arrEqual, concatenateIn, every, filter, map;
+import util.col.arrUtil : arrEqual, concatenateIn, copyArr, every, exists, find, map;
 import util.col.fullIndexMap : FullIndexMap;
 import util.col.map : KeyValuePair;
 import util.col.str : copyStr, SafeCStr, safeCStrIsEmpty, strEq, strOfSafeCStr;
@@ -48,11 +48,19 @@ immutable struct Json {
 				todo!bool(""));
 }
 
-Json jsonObject(Json.ObjectField[] fields) =>
+Json get(string key)(in Json a) {
+	Opt!(Json.ObjectField) pair = find!(Json.ObjectField)(a.as!(Json.Object), (in Json.ObjectField pair) =>
+		pair.key == sym!key);
+	return has(pair) ? force(pair).value : jsonNull;
+}
+bool hasKey(string key)(in Json a) =>
+	a.isA!(Json.Object) && exists!(Json.ObjectField)(a.as!(Json.Object), (in Json.ObjectField pair) =>
+		pair.key == sym!key);
+
+Json jsonObject(return scope Json.ObjectField[] fields) =>
 	Json(fields);
 Json jsonObject(ref Alloc alloc, in Json.ObjectField[] fields) =>
-	jsonObject(filter!(Json.ObjectField)(alloc, fields, (in Json.ObjectField x) =>
-		!x.value.isA!(Json.Null)));
+	jsonObject(copyArr(alloc, fields));
 
 // TODO: should be possible to concatenate in the caller (assuming array sizes are compile-time constants).
 // But a D bug prevents this: https://issues.dlang.org/show_bug.cgi?id=1654
@@ -123,7 +131,7 @@ Json jsonString(Sym a) =>
 Json jsonString(string a)() =>
 	jsonString(a);
 
-Json.ObjectField field(string name)(Json value) =>
+Json.ObjectField field(string name)(return scope Json value) =>
 	Json.ObjectField(sym!name, value);
 Json.ObjectField field(string name)(double value) =>
 	field!name(Json(value));

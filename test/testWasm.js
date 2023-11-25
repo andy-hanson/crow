@@ -2,27 +2,39 @@
 
 // @ts-ignore
 require("../crow-js/crow.js")
+const assert = require("assert")
 const fs = require("fs")
 
 const main = async () => {
-	const comp = await crow.makeCompiler(fs.readFileSync('bin/crow.wasm'), "/include", "/cwd", console.log)
+	const comp = await crow.makeCompiler(fs.readFileSync('bin/crow.wasm'), "file:///include", "/cwd", console.log)
 	const include = JSON.parse(fs.readFileSync("site/include-all.json", "utf-8"))
 	for (const [path, content] of Object.entries(include)) {
-		const fullPath = `/include/${path}`
-		comp.setFileSuccess(fullPath, content)
-		if (comp.getFile(fullPath) !== content)
-			throw new Error(`Can't read back ${path}`)
+		const fullPath = `file:///include/${path}`
+		comp.handleLspMessage(didOpen(fullPath, content))
+	}
+	const MAIN = "file:///demo/hello.crow"
+	comp.handleLspMessage(didOpen(MAIN, fs.readFileSync(`${__dirname}/../demo/hello.crow`, "utf-8")))
+
+	comp.handleLspMessage(didOpen("file:///crow-config.json", "{}"))
+	const {unloadedUris} = comp.handleLspMessage({method:"custom/unloadedUris", id:1, params:{}}).messages[0].result
+	for (const uri of unloadedUris) {
+		assert(uri.endsWith("/crow-config.json"))
+		comp.handleLspMessage({method: "custom/readFileResult", params:{uri, type:"notFound"}})
 	}
 
-	const path = "demo/hello.crow"
-	const content = fs.readFileSync(path, "utf-8")
-	comp.setFileSuccess(path, content)
-	const result = comp.run(path)
+	const result = comp.run(MAIN)
 	if (result.exitCode !== 0 || !writesEqual(result.writes, [{pipe:'stdout', text:"Hello, world!\n"}])) {
 		console.error(result)
 		throw new Error("Bad result")
 	}
 }
+
+// TODO: share code with CrowRunnable.js
+/** @type {function(string, string): unknown} */
+const didOpen = (uri, text) => ({
+	method: "textDocument/didOpen",
+	params: {textDocument: {uri, text}},
+})
 
 /** @type {function(ReadonlyArray<crow.Write>, ReadonlyArray<crow.Write>): boolean} */
 const writesEqual = (a, b) => {

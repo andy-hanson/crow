@@ -16,7 +16,8 @@
 	{
 		"start": {"line": 0, "character": 4},
 		"end": {"line": 0, "character": 11},
-		"hover": "Declares a type implemented by the compiler."
+		"hover": "Declares a type implemented by the compiler.",
+		"definition": null
 	},
 	{
 		"start": {"line": 2, "character": 0},

@@ -459,7 +459,7 @@ immutable string[] specialSyms = [
 	"unsafe-bit-shift-left\0",
 	"unsafe-bit-shift-right\0",
 
+	"contentChanges\0",
 	"textDocument\0",
-	"textDocument/definition\0",
-	"textDocument/hover\0",
+	"unloadedUris\0",
 ];

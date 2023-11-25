@@ -6,12 +6,12 @@ import frontend.config : parseConfig, ParsedConfig;
 import frontend.lang : crowConfigBaseName, crowExtension;
 import frontend.parse.ast : FileAst;
 import frontend.parse.parse : parseFile;
-import lib.lsp.lspTypes : TextDocumentChangeEvent, TextDocumentPositionParams;
+import lib.lsp.lspTypes : TextDocumentContentChangeEvent, TextDocumentPositionParams;
 import model.diag : ReadFileDiag;
 import util.alloc.alloc : Alloc, AllocAndValue, freeAlloc, MetaAlloc, newAlloc, withAlloc, withTempAlloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : copyArr;
+import util.col.arrUtil : contains, copyArr;
 import util.col.mutMap : addToMutMap, getOrAdd, mayDelete, MutMap, mutMapEachIn;
 import util.col.str : SafeCStr, safeCStrSize;
 import util.json : field, Json, jsonObject;
@@ -92,12 +92,12 @@ immutable struct ParseResult {
 		});
 }
 
-void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentChangeEvent[] changes) {
-	foreach (TextDocumentChangeEvent change; changes)
+void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentContentChangeEvent[] changes) {
+	foreach (TextDocumentContentChangeEvent change; changes)
 		changeFile(perf, a, uri, change);
 }
 
-void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentChangeEvent change) {
+void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentContentChangeEvent change) {
 	FileInfo info = fileOrDiag(a, uri).as!FileInfo;
 	// TODO:PERF This means an unnecessary copy in 'setFile'
 	withTempAlloc(a.metaAlloc, (ref Alloc alloc) {
@@ -127,10 +127,26 @@ private ParseResult parseContent(
 		? ParseResult(allocate(alloc, parseConfig(alloc, allSymbols, allUris, parentOrEmpty(allUris, uri), content)))
 		: ParseResult(ParseResult.None());
 
-bool hasUnknownOrLoadingUris(in Storage a) {
-	bool res = false;
+enum FilesState {
+	hasUnknown,
+	hasLoading,
+	allLoaded,
+}
+
+FilesState filesState(in Storage a) {
+	FilesState res = FilesState.allLoaded;
 	mutMapEachIn!(Uri, ReadFileDiag)(a.diags, (in Uri uri, in ReadFileDiag x) {
-		res = res || x == ReadFileDiag.unknown || x == ReadFileDiag.loading;
+		final switch (x) {
+			case ReadFileDiag.unknown:
+				res = FilesState.hasUnknown;
+				break;
+			case ReadFileDiag.loading:
+				if (res != FilesState.hasUnknown) res = FilesState.hasLoading;
+				break;
+			case ReadFileDiag.notFound:
+			case ReadFileDiag.error:
+				break;
+		}
 	});
 	return res;
 }
@@ -155,10 +171,10 @@ Uri[] allKnownGoodCrowUris(ref Alloc alloc, scope ref Storage a) {
 	return finishArr(alloc, res);
 }
 
-Uri[] allUrisWithFileDiag(ref Alloc alloc, in Storage a, ReadFileDiag diag) {
+Uri[] allUrisWithFileDiag(ref Alloc alloc, in Storage a, in ReadFileDiag[] searchDiags) {
 	ArrBuilder!Uri res;
 	mutMapEachIn!(Uri, ReadFileDiag)(a.diags, (in Uri uri, in ReadFileDiag x) {
-		if (x == diag)
+		if (contains(searchDiags, x))
 			add(alloc, res, uri);
 	});
 	return finishArr(alloc, res);
@@ -268,7 +284,7 @@ private SafeCStr applyChange(
 	ref Alloc alloc,
 	in string input,
 	in LineAndColumnGetter lc,
-	in TextDocumentChangeEvent event,
+	in TextDocumentContentChangeEvent event,
 ) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		if (has(event.range)) {

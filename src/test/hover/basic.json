@@ -16,7 +16,8 @@
 	{
 		"start": {"line": 0, "character": 4},
 		"end": {"line": 0, "character": 11},
-		"hover": "Declares a type implemented by the compiler."
+		"hover": "Declares a type implemented by the compiler.",
+		"definition": null
 	},
 	{
 		"start": {"line": 2, "character": 0},
@@ -35,7 +36,8 @@
 	{
 		"start": {"line": 2, "character": 2},
 		"end": {"line": 2, "character": 8},
-		"hover": "Declares a type combining several named members."
+		"hover": "Declares a type combining several named members.",
+		"definition": null
 	},
 	{
 		"start": {"line": 3, "character": 1},

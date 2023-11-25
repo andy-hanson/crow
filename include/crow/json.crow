@@ -11,7 +11,7 @@ import
 		with-block
 	./misc: to
 	./number: ==, float32, float64, int8, int16, int32, int64, nat8, nat16, nat32, nat64, to
-	./option: new, option
+	./option: ??, new, option
 	./result: result
 	./string: ==, ~~, literal, new, quote, string, to
 	./symbol: ==, <=>, hash-mix, symbol, to
@@ -200,13 +200,31 @@ This does not render as JSON; `to::string` does that.
 	as json-object o
 		o,
 
+as-bool-allow-null bool?(a json)
+	if a is-null
+		false,
+	else
+		a as-bool
+
+as-list-allow-null json[]?(a json)
+	if a is-null
+		(),
+	else
+		a as-list
+
+as-string-allow-null string?(a json)
+	if a is-null
+		"",
+	else
+		a as-string
+
 ###
 If `a` is an `object` containing the key `key`, returns the associated value.
-Else, returns an empty option.
+Else, returns null.
 ###
-+subscript json?(a json, key symbol)
++subscript json(a json, key symbol)
 	if o ?= a as-object
-		o[key]
+		o[key] ?? json-null
 
 +json json grammar()
 	spaces ~~ json-inner ~~ spaces

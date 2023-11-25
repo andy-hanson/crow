@@ -2,7 +2,7 @@
 	"name": "crow-vscode",
 	"version": "0.0.0",
 	"engines": {
-		"vscode": "^1.51.1"
+		"vscode": "^1.84.2"
 	},
 	"activationEvents": [
 		"onLanguage:crow"
@@ -12,8 +12,13 @@
 		"languages": [
 			{
 				"id": "crow",
-				"extensions": [".crow"]
+				"extensions": [
+					".crow"
+				]
 			}
 		]
+	},
+	"dependencies": {
+		"@types/node": "^20.10.0"
 	}
 }

@@ -20,21 +20,8 @@ Exports of `wasm.d`:
 @property {function(): number} getParameterBufferSizeBytes
 @property {function(CStr, CStr): Server} newServer
 @property {function(Server): CStr} version_
-@property {function(Server, CStr, CStr): void} setFileSuccess
-@property {function(Server, CStr, CStr): void} setFileIssue
-@property {function(Server, CStr, CStr): void} changeFile
-@property {function(Server, CStr): CStr} getFile
-@property {function(Server, CStr): void} searchImportsFromUri
-@property {function(Server): CStr} allStorageUris
-@property {function(Server): CStr} allUnknownUris
-@property {function(Server): CStr} allLoadingUris
 @property {function(Server, CStr): CStr} getTokens
-@property {function(Server): CStr} getAllDiagnostics
-@property {function(Server, CStr, number): CStr} getDiagnosticsForUri
-@property {function(Server, CStr, number, number): CStr} getDefinition
-@property {function(Server, CStr, number, number): CStr} getReferences
-@property {function(Server, CStr, number, number, CStr): CStr} getRename
-@property {function(Server, CStr, CStr): CStr} handleLspMessage
+@property {function(Server, CStr): CStr} handleLspMessage
 @property {function(Server, CStr): number} run
 */
 
@@ -171,19 +158,6 @@ globalCrow.makeCompiler = async (bytes, includeDir, cwd, logger) => {
 	const readString = (begin, end) =>
 		readStringFromView(view, begin, end)
 
-	/**
-	@template T
-	@param {() => T} cb
-	@return T
-	*/
-	const withParams = cb => {
-		try {
-			return cb()
-		} finally {
-			paramAlloc.clear()
-		}
-	}
-
 	/** @type {function(() => number): any} */
 	const withParamsAndJson = cb => {
 		try {
@@ -196,35 +170,10 @@ globalCrow.makeCompiler = async (bytes, includeDir, cwd, logger) => {
 	return {
 		version: () =>
 			readCStr(exports.version_(server)),
-		setFileSuccess: (uri, content) => withParams(() =>
-			exports.setFileSuccess(server, paramAlloc.writeCStr(uri), paramAlloc.writeCStr(content))),
-		setFileIssue: (uri, issue) => withParams(() =>
-			exports.setFileIssue(server, paramAlloc.writeCStr(uri), paramAlloc.writeCStr(issue))),
-		changeFile: (uri, changes) => withParams(() =>
-			exports.changeFile(server, paramAlloc.writeCStr(uri), paramAlloc.writeCStr(JSON.stringify(changes)))),
-		getFile: uri => withParams(() =>
-			readCStr(exports.getFile(server, paramAlloc.writeCStr(uri)))),
-		searchImportsFromUri: uri => withParams(() =>
-			exports.searchImportsFromUri(server, paramAlloc.writeCStr(uri))),
-		allStorageUris: () =>
-			JSON.parse(readCStr(exports.allStorageUris(server))),
-		allUnknownUris: () =>
-			JSON.parse(readCStr(exports.allUnknownUris(server))),
-		allLoadingUris: () =>
-			JSON.parse(readCStr(exports.allLoadingUris(server))),
 		getTokens: uri =>
 			withParamsAndJson(() => exports.getTokens(server, paramAlloc.writeCStr(uri))),
-		getAllDiagnostics: () =>
-			JSON.parse(readCStr(exports.getAllDiagnostics(server))),
-		getDiagnosticsForUri: (uri, minSeverity) =>
-			withParamsAndJson(() => exports.getDiagnosticsForUri(server, paramAlloc.writeCStr(uri), minSeverity || 0)),
-		getReferences: ({uri, position:{line, character}}) =>
-			withParamsAndJson(() => exports.getReferences(server, paramAlloc.writeCStr(uri), line, character)),
-		getRename: ({uri, position:{line, character}}, newName) =>
-			withParamsAndJson(() => exports.getRename(
-				server, paramAlloc.writeCStr(uri), line, character, paramAlloc.writeCStr(newName))),
-		handleLspMessage: (kind, params) => withParamsAndJson(() =>
-			exports.handleLspMessage(server, paramAlloc.writeCStr(kind), paramAlloc.writeCStr(JSON.stringify(params)))),
+		handleLspMessage: (inputMessage) => withParamsAndJson(() =>
+			exports.handleLspMessage(server, paramAlloc.writeCStr(JSON.stringify(inputMessage)))),
 		run: uri => {
 			try {
 				globalWrites = []

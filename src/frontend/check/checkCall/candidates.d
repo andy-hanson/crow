@@ -45,6 +45,7 @@ import util.col.mutMaxArr :
 	filterUnorderedButDontRemoveAll,
 	initializeMutMaxArr,
 	mapTo,
+	mustPopAndDrop,
 	MutMaxArr,
 	mutMaxArr,
 	pushUninitialized,
@@ -52,7 +53,8 @@ import util.col.mutMaxArr :
 import util.opt : force, has, MutOpt, none, Opt;
 import util.sym : Sym;
 
-size_t maxCandidates() => 256;
+// Max number of candidates with same return type
+size_t maxCandidates() => 64;
 alias Candidates = MutMaxArr!(maxCandidates, Candidate);
 
 CalledDecl[] candidatesForDiag(ref Alloc alloc, in Candidates candidates) =>
@@ -90,14 +92,35 @@ T withCandidates(T)(
 	in FunsInScope funs,
 	Sym funName,
 	size_t actualArity,
+	// Filter candidates early to avoid a large array
+	in bool delegate(scope ref Candidate) @safe @nogc pure nothrow cbFilterCandidate,
 	in T delegate(ref Candidates) @safe @nogc pure nothrow cb,
 ) {
 	Candidates candidates = mutMaxArr!(maxCandidates, Candidate);
 	eachFunInScope(funs, funName, (CalledDecl called) @trusted {
-		if (arityMatches(arity(called), actualArity))
-			initializeCandidate(*pushUninitialized(candidates), called);
+		if (arityMatches(arity(called), actualArity)) {
+			Candidate* candidate = pushUninitialized(candidates);
+			initializeCandidate(*candidate, called);
+			if (!cbFilterCandidate(*candidate))
+				mustPopAndDrop(candidates);
+		}
 	});
 	return cb(candidates);
+}
+
+void eachCandidate(
+	in FunsInScope funs,
+	Sym funName,
+	size_t actualArity,
+	in void delegate(ref Candidate) @safe @nogc pure nothrow cb,
+) {
+	eachFunInScope(funs, funName, (CalledDecl called) @trusted {
+		if (arityMatches(arity(called), actualArity)) {
+			Candidate candidate = void;
+			initializeCandidate(candidate, called);
+			cb(candidate);
+		}
+	});
 }
 
 void filterCandidates(

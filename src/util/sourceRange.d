@@ -83,7 +83,7 @@ Json jsonOfPosWithinFile(ref Alloc alloc, in LineAndColumnGetter lcg, Pos a, Pos
 Json jsonOfRange(ref Alloc alloc, in LineAndColumnGetter lcg, in Range a) =>
 	jsonOfLineAndCharacterRange(alloc, lineAndCharacterRange(lcg, a));
 
-Json jsonOfLineAndCharacterRange(ref Alloc alloc, in LineAndCharacterRange a) =>
+private Json jsonOfLineAndCharacterRange(ref Alloc alloc, in LineAndCharacterRange a) =>
 	jsonObject(alloc, [
 		field!"start"(jsonOfLineAndCharacter(alloc, a.start)),
 		field!"end"(jsonOfLineAndCharacter(alloc, a.end))]);

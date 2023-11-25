@@ -33,7 +33,7 @@ immutable struct SafeCStr {
 	}
 }
 
-@trusted CStr end(CStr c) {
+private @trusted CStr cstrEnd(CStr c) {
 	immutable(char)* ptr = c;
 	while (*ptr != '\0')
 		ptr++;
@@ -58,13 +58,13 @@ bool strEq(string a, string b) =>
 	SafeCStr(content);
 
 @trusted size_t safeCStrSize(in SafeCStr a) =>
-	end(a.ptr) - a.ptr;
+	cstrEnd(a.ptr) - a.ptr;
 
 bool safeCStrIsEmpty(SafeCStr a) =>
 	*a.ptr == '\0';
 
 @trusted string strOfSafeCStr(return scope SafeCStr a) =>
-	a.ptr[0 .. (end(a.ptr) - a.ptr)];
+	a.ptr[0 .. (cstrEnd(a.ptr) - a.ptr)];
 
 string copyStr(ref Alloc alloc, in string a) =>
 	map!(char, immutable char)(alloc, a, (ref immutable char x) => x);
@@ -93,3 +93,12 @@ bool safeCStrEq(SafeCStr a, SafeCStr b) =>
 		: a.ptr[0] > b.ptr[0]
 		? Comparison.greater
 		: compareSafeCStrAlphabetically(SafeCStr(a.ptr + 1), SafeCStr(b.ptr + 1));
+
+pure @trusted SafeCStr mustStripPrefix(SafeCStr a, string prefix) {
+	immutable(char)* ptr = a.ptr;
+	foreach (char c; prefix) {
+		assert(*ptr == c);
+		ptr++;
+	}
+	return SafeCStr(ptr);
+}

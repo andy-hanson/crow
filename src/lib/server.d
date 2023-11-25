@@ -6,17 +6,18 @@ import backend.writeToC : writeToC;
 import concretize.concretize : concretize;
 import document.document : documentJSON;
 import frontend.frontendCompile : frontendCompile, parseAllFiles;
+import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
 import frontend.ide.getDefinition : getDefinitionForPosition;
 import frontend.ide.getHover : getHover;
 import frontend.ide.getPosition : getPosition;
-import frontend.ide.getRename : getRenameForPosition, jsonOfRename, Rename;
-import frontend.ide.getReferences : getReferencesForPosition, jsonOfReferences;
+import frontend.ide.getRename : getRenameForPosition;
+import frontend.ide.getReferences : getReferencesForPosition;
 import frontend.ide.getTokens : jsonOfTokens, Token, tokensOfAst;
 import frontend.ide.position : Position;
 import frontend.lang : crowExtension;
 import frontend.parse.ast : fileAstForReadFileDiag, FileAst;
 import frontend.parse.jsonOfAst : jsonOfAst;
-import frontend.showDiag : stringOfDiag, stringOfDiagnostics;
+import frontend.showDiag : sortedDiagnostics, stringOfDiag, stringOfDiagnostics, UriAndDiagnostics;
 import frontend.showModel : ShowCtx, ShowOptions;
 import frontend.storage :
 	allKnownGoodCrowUris,
@@ -24,9 +25,10 @@ import frontend.storage :
 	allUrisWithFileDiag,
 	changeFile,
 	FileContent,
+	FilesState,
+	filesState,
 	getFileNoMarkUnknown,
 	getParsedOrDiag,
-	hasUnknownOrLoadingUris,
 	LineAndColumnGetters,
 	ParseResult,
 	ReadFileResult,
@@ -39,27 +41,55 @@ import interpret.fakeExtern : Pipe, withFakeExtern, WriteCb;
 import interpret.generateBytecode : generateBytecode;
 import interpret.runBytecode : runBytecode;
 import lib.cliParser : PrintKind;
-import lib.lsp.lspParse : parseDefinitionParams, parseHoverParams;
-import lib.lsp.lspToJson : jsonOfHover;
+import lib.lsp.lspToJson : jsonOfHover, jsonOfReferences, jsonOfRename;
 import lib.lsp.lspTypes :
 	DefinitionParams,
+	DidChangeTextDocumentParams,
+	DidCloseTextDocumentParams,
+	DidOpenTextDocumentParams,
+	ExitParams,
 	Hover,
 	HoverParams,
+	InitializedParams,
+	InitializeParams,
+	InitializeResult,
+	LspDiagnostic,
+	LspDiagnosticSeverity,
+	LspInMessage,
+	LspInNotification,
+	LspInRequest,
+	LspInRequestParams,
+	LspOutMessage,
+	LspOutNotification,
+	LspOutResponse,
+	LspOutResult,
+	PublishDiagnosticsParams,
+	ReadFileResultParams,
+	ReadFileResultType,
+	ReferenceParams,
+	RegisterCapability,
 	RenameParams,
-	TextDocumentChangeEvent,
+	SetTraceParams,
+	ShutdownParams,
+	TextDocumentContentChangeEvent,
 	TextDocumentIdentifier,
-	TextDocumentPositionParams;
+	TextDocumentPositionParams,
+	UnloadedUris,
+	UnloadedUrisParams,
+	UnknownUris,
+	WorkspaceEdit;
 import lower.lower : lower;
 import model.concreteModel : ConcreteProgram;
-import model.diag : Diag, ReadFileDiag;
+import model.diag : Diagnostic, DiagnosticSeverity, ReadFileDiag;
 import model.jsonOfConcreteModel : jsonOfConcreteProgram;
 import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
 import model.lowModel : ExternLibraries, LowProgram;
 import model.model : fakeProgramForAst, hasFatalDiagnostics, Module, Program;
-import util.alloc.alloc : Alloc, MetaAlloc;
+import util.alloc.alloc : Alloc, freeElements, MetaAlloc, newAlloc;
 import util.col.arr : only;
-import util.col.str : SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
+import util.col.arrUtil : arrLiteral, concatenate, contains, map, mapOp;
+import util.col.str : copyToSafeCStr, SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
 import util.exitCode : ExitCode;
 import util.json : Json;
 import util.late : Late, lateGet, lateSet;
@@ -68,7 +98,7 @@ import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
 import util.sourceRange : UriAndRange;
-import util.sym : AllSymbols, sym, symOfStr;
+import util.sym : AllSymbols;
 import util.uri : AllUris, getExtension, parseUri, Uri, UrisInfo;
 import util.util : typeAs, verify;
 import util.writer : withWriter, Writer;
@@ -96,7 +126,7 @@ ExitCode buildAndInterpret(
 	Uri main,
 	in SafeCStr[] allArgs,
 ) {
-	verify(!hasUnknownOrLoadingUris(server));
+	verify(filesState(server) == FilesState.allLoaded);
 	Programs programs = buildToLowProgram(perf, alloc, server, versionInfoForInterpret, main);
 	SafeCStr diags = showDiagnostics(alloc, server, programs.program);
 	if (!safeCStrIsEmpty(diags))
@@ -130,14 +160,16 @@ struct Server {
 	AllUris allUris;
 	private Late!Uri includeDir_;
 	private Late!UrisInfo urisInfo_;
-	private Late!ShowOptions diagOptions_;
+	ShowOptions showOptions_ = ShowOptions(false);
 	Storage storage;
+	LspState lspState;
 
 	@trusted this(ulong[] memory) {
 		metaAlloc_ = MetaAlloc(memory);
 		allSymbols = AllSymbols(metaAlloc);
 		allUris = AllUris(metaAlloc, &allSymbols);
 		storage = Storage(metaAlloc, &allSymbols, &allUris);
+		lspState = LspState(newAlloc(metaAlloc), []);
 	}
 
 	MetaAlloc* metaAlloc() =>
@@ -146,10 +178,15 @@ struct Server {
 		lateGet(includeDir_);
 	ref UrisInfo urisInfo() return scope const =>
 		lateGet(urisInfo_);
-	ref ShowOptions diagOptions() return scope const =>
-		lateGet(diagOptions_);
+	ShowOptions showOptions() scope const =>
+		showOptions_;
 	LineAndColumnGetters lineAndColumnGetters() return scope const =>
 		LineAndColumnGetters(&castNonScope_ref(storage));
+}
+
+private struct LspState {
+	Alloc stateAlloc;
+	Uri[] urisWithDiagnostics;
 }
 
 SafeCStr version_(ref Alloc alloc, in Server server) =>
@@ -198,45 +235,37 @@ void setCwd(ref Server server, Uri uri) {
 	lateSet!UrisInfo(server.urisInfo_, UrisInfo(some(uri)));
 }
 
-void setDiagOptions(ref Server server, in ShowOptions options) {
-	lateSet!ShowOptions(server.diagOptions_, options);
+void setShowOptions(ref Server server, in ShowOptions options) {
+	server.showOptions_ = options;
 }
 
 void setFile(scope ref Perf perf, ref Server server, Uri uri, in ReadFileResult result) {
 	setFile(perf, server.storage, uri, result);
 }
 
-void changeFile(scope ref Perf perf, ref Server server, Uri uri, in TextDocumentChangeEvent[] changes) {
+void changeFile(scope ref Perf perf, ref Server server, Uri uri, in TextDocumentContentChangeEvent[] changes) {
 	changeFile(perf, server.storage, uri, changes);
 }
 
 Opt!FileContent getFile(return in Server server, Uri uri) =>
 	getFileNoMarkUnknown(castNonScope_ref(server.storage), uri);
 
-private bool hasUnknownOrLoadingUris(in Server server) =>
-	hasUnknownOrLoadingUris(server.storage);
+FilesState filesState(in Server server) =>
+	filesState(server.storage);
 
 Uri[] allStorageUris(ref Alloc alloc, in Server server) =>
 	allStorageUris(alloc, server.storage);
 Uri[] allUnknownUris(ref Alloc alloc, in Server server) =>
-	allUrisWithFileDiag(alloc, server.storage, ReadFileDiag.unknown);
-Uri[] allLoadingUris(ref Alloc alloc, in Server server) =>
-	allUrisWithFileDiag(alloc, server.storage, ReadFileDiag.loading);
+	allUrisWithFileDiag(alloc, server.storage, [ReadFileDiag.unknown]);
+private Uri[] allUnloadedUris(ref Alloc alloc, in Server server) =>
+	allUrisWithFileDiag(alloc, server.storage, [ReadFileDiag.unknown, ReadFileDiag.loading]);
 
 void justParseEverything(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] rootUris) {
 	parseAllFiles(perf, alloc, server.allSymbols, server.allUris, server.storage, server.includeDir, rootUris);
 }
 
-Program typeCheckAllKnownFiles(scope ref Perf perf, ref Alloc alloc, ref Server server) =>
-	justTypeCheck(perf, alloc, server, allKnownGoodCrowUris(alloc, server.storage));
-
 Program justTypeCheck(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] rootUris) =>
 	frontendCompile(perf, alloc, server, rootUris, none!Uri);
-
-SafeCStr showDiag(ref Alloc alloc, scope ref Server server, in Program program, in Diag a) {
-	ShowCtx ctx = getShowDiagCtx(server, program);
-	return stringOfDiag(alloc, ctx, a);
-}
 
 SafeCStr showDiagnostics(ref Alloc alloc, scope ref Server server, in Program program) {
 	ShowCtx ctx = getShowDiagCtx(server, program);
@@ -273,55 +302,31 @@ Token[] getTokens(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri u
 			typeAs!(Token[])([]));
 }
 
-Json handleLspMessage(scope ref Perf perf, ref Alloc alloc, ref Server server, in string kind, in Json params) {
-	final switch (symOfStr(server.allSymbols, kind).value) {
-		case sym!"textDocument/definition".value:
-			return jsonOfReferences(alloc, server.allUris, server.lineAndColumnGetters, getDefinition(
-				perf, alloc, server, parseDefinitionParams(alloc, server.allUris, params)));
-		case sym!"textDocument/hover".value:
-			return jsonOfHover(alloc, getHover(perf, alloc, server, parseHoverParams(alloc, server.allUris, params)));
-	}
-}
-
-UriAndRange[] getDefinition(scope ref Perf perf, ref Alloc alloc, ref Server server, in DefinitionParams params) =>
-	getDefinitionForProgram(alloc, server, getProgram(perf, alloc, server, [params.textDocument.uri]), params);
-
 private UriAndRange[] getDefinitionForProgram(
 	ref Alloc alloc,
 	scope ref Server server,
 	in Program program,
 	in DefinitionParams params,
 ) {
-	Opt!Position position = getPosition(server, program, params);
+	Opt!Position position = getPosition(server, program, params.params);
 	return has(position)
 		? getDefinitionForPosition(alloc, server.allSymbols, program, force(position))
 		: [];
 }
 
-UriAndRange[] getReferences(
-	scope ref Perf perf,
-	ref Alloc alloc,
-	ref Server server,
-	in TextDocumentPositionParams where,
-) =>
-	getReferencesForProgram(alloc, server, where, getProgramForReferences(perf, alloc, server));
-
 private UriAndRange[] getReferencesForProgram(
 	ref Alloc alloc,
 	scope ref Server server,
-	in TextDocumentPositionParams where,
 	in Program program,
+	in ReferenceParams params,
 ) {
-	Opt!Position position = getPosition(server, program, where);
+	Opt!Position position = getPosition(server, program, params.params);
 	return has(position)
 		? getReferencesForPosition(alloc, server.allSymbols, server.allUris, program, force(position))
 		: [];
 }
 
-Opt!Rename getRename(scope ref Perf perf, ref Alloc alloc, ref Server server, in RenameParams params) =>
-	getRenameForProgram(alloc, server, getProgramForReferences(perf, alloc, server), params);
-
-private Opt!Rename getRenameForProgram(
+private Opt!WorkspaceEdit getRenameForProgram(
 	ref Alloc alloc,
 	scope ref Server server,
 	in Program program,
@@ -330,11 +335,8 @@ private Opt!Rename getRenameForProgram(
 	Opt!Position position = getPosition(server, program, params.textDocumentAndPosition);
 	return has(position)
 		? getRenameForPosition(alloc, server.allSymbols, server.allUris, program, force(position), params.newName)
-		: none!Rename;
+		: none!WorkspaceEdit;
 }
-
-Opt!Hover getHover(scope ref Perf perf, ref Alloc alloc, ref Server server, in HoverParams params) =>
-	getHoverForProgram(alloc, server, getProgram(perf, alloc, server, [params.textDocument.uri]), params);
 
 private Opt!Hover getHoverForProgram(
 	ref Alloc alloc,
@@ -342,7 +344,7 @@ private Opt!Hover getHoverForProgram(
 	in Program program,
 	in HoverParams params,
 ) {
-	Opt!Position position = getPosition(server, program, params);
+	Opt!Position position = getPosition(server, program, params.params);
 	ShowCtx ctx = getShowDiagCtx(server, program);
 	return has(position)
 		? getHover(alloc, ctx, force(position))
@@ -439,30 +441,36 @@ DiagsAndResultJson printIde(
 	ref Alloc alloc,
 	ref Server server,
 	in UriLineAndColumn where,
-	in PrintKind.Ide.Kind kind,
+	PrintKind.Ide.Kind kind,
 ) {
 	Program program = getProgram(perf, alloc, server, [where.uri]); // TODO: we should support specifying roots...
-	TextDocumentPositionParams where2 = toTextDocumentPositionParams(server.lineAndColumnGetters, where);
-	Json locations(UriAndRange[] xs) =>
-		jsonOfReferences(alloc, server.allUris, server.lineAndColumnGetters, xs);
-	Json json = () {
-		final switch (kind) {
-			case PrintKind.Ide.Kind.definition:
-				return locations(getDefinitionForProgram(alloc, server, program, where2));
-			case PrintKind.Ide.Kind.hover:
-				return jsonOfHover(alloc, getHoverForProgram(alloc, server, program, where2));
-			case PrintKind.Ide.Kind.rename:
-				Opt!Rename rename = getRenameForProgram(alloc, server, program, RenameParams(where2, "new-name"));
-				return jsonOfRename(alloc, server.allUris, server.lineAndColumnGetters, rename);
-			case PrintKind.Ide.Kind.references:
-				return locations(getReferencesForProgram(alloc, server, where2, program));
-		}
-	}();
-	return diagsAndResultJson(alloc, server, program, json);
+	TextDocumentPositionParams params = TextDocumentPositionParams(
+		TextDocumentIdentifier(where.uri),
+		toLineAndCharacter(server.lineAndColumnGetters[where.uri], where.lineAndColumn));
+	return diagsAndResultJson(alloc, server, program, getPrinted(alloc, server, program, params, kind));
 }
 
-private TextDocumentPositionParams toTextDocumentPositionParams(in LineAndColumnGetters lcg, in UriLineAndColumn a) =>
-	TextDocumentPositionParams(TextDocumentIdentifier(a.uri), toLineAndCharacter(lcg[a.uri], a.lineAndColumn));
+private Json getPrinted(
+	ref Alloc alloc,
+	ref Server server,
+	in Program program,
+	in TextDocumentPositionParams params,
+	PrintKind.Ide.Kind kind,
+) {
+	Json locations(UriAndRange[] xs) =>
+		jsonOfReferences(alloc, server.allUris, server.lineAndColumnGetters, xs);
+	final switch (kind) {
+		case PrintKind.Ide.Kind.definition:
+			return locations(getDefinitionForProgram(alloc, server, program, DefinitionParams(params)));
+		case PrintKind.Ide.Kind.hover:
+			return jsonOfHover(alloc, getHoverForProgram(alloc, server, program, HoverParams(params)));
+		case PrintKind.Ide.Kind.rename:
+			Opt!WorkspaceEdit rename = getRenameForProgram(alloc, server, program, RenameParams(params, "new-name"));
+			return jsonOfRename(alloc, server.allUris, server.lineAndColumnGetters, rename);
+		case PrintKind.Ide.Kind.references:
+			return locations(getReferencesForProgram(alloc, server, program, ReferenceParams(params)));
+	}
+}
 
 immutable struct Programs {
 	Program program;
@@ -504,6 +512,21 @@ BuildToCResult buildToC(scope ref Perf perf, ref Alloc alloc, ref Server server,
 		has(programs.lowProgram) ? force(programs.lowProgram).externLibraries : []);
 }
 
+immutable struct LspOutAction {
+	LspOutMessage[] outMessages;
+	Opt!ExitCode exitCode;
+}
+
+LspOutAction handleLspMessage(scope ref Perf perf, ref Alloc alloc, ref Server server, in LspInMessage message) =>
+	message.matchIn!LspOutAction(
+		(in LspInNotification x) =>
+			handleLspNotification(perf, alloc, server, x),
+		(in LspInRequest x) =>
+			LspOutAction(
+				arrLiteral!LspOutMessage(alloc, [
+					LspOutMessage(LspOutResponse(x.id, handleLspRequest(perf, alloc, server, x.params)))]),
+				none!ExitCode));
+
 private:
 
 ShowCtx getShowDiagCtx(return scope ref const Server server, return scope ref Program program) =>
@@ -512,5 +535,129 @@ ShowCtx getShowDiagCtx(return scope ref const Server server, return scope ref Pr
 		ptrTrustMe(server.allUris),
 		server.lineAndColumnGetters,
 		server.urisInfo,
-		server.diagOptions,
+		server.showOptions,
 		ptrTrustMe(program));
+
+LspOutAction handleLspNotification(scope ref Perf perf, ref Alloc alloc, ref Server server, in LspInNotification a) =>
+	a.matchIn!LspOutAction(
+		(in DidChangeTextDocumentParams x) {
+			changeFile(perf, server, x.textDocument.uri, x.contentChanges);
+			return handleFileChanged(perf, alloc, server, x.textDocument.uri);
+		},
+		(in DidCloseTextDocumentParams x) =>
+			LspOutAction([]),
+		(in DidOpenTextDocumentParams x) {
+			// TODO:PERF unnecessary copy ('setFile' does another)
+			setFile(perf, server, x.textDocument.uri, ReadFileResult(
+				FileContent(copyToSafeCStr(alloc, x.textDocument.text))));
+			return handleFileChanged(perf, alloc, server, x.textDocument.uri);
+		},
+		(in ExitParams x) =>
+			LspOutAction([], some(ExitCode.ok)),
+		(in InitializedParams x) =>
+			initializedAction(alloc),
+		(in ReadFileResultParams x) {
+			setFile(perf, server, x.uri, ReadFileResult(readFileDiagOfReadFileResultType(x.type)));
+			return handleFileChanged(perf, alloc, server, x.uri);
+		},
+		(in SetTraceParams _) =>
+			// TODO: implement this
+			LspOutAction([]));
+
+LspOutResult handleLspRequest(scope ref Perf perf, ref Alloc alloc, ref Server server, in LspInRequestParams a) =>
+	a.matchIn!LspOutResult(
+		(in DefinitionParams x) =>
+			LspOutResult(getDefinitionForProgram(
+				alloc, server, getProgram(perf, alloc, server, [x.params.textDocument.uri]), x)),
+		(in HoverParams x) =>
+			LspOutResult(getHoverForProgram(
+				alloc, server, getProgram(perf, alloc, server, [x.params.textDocument.uri]), x)),
+		(in InitializeParams x) =>
+			LspOutResult(InitializeResult()),
+		(in ReferenceParams x) =>
+			LspOutResult(getReferencesForProgram(alloc, server, getProgramForReferences(perf, alloc, server), x)),
+		(in RenameParams x) =>
+			LspOutResult(getRenameForProgram(alloc, server, getProgramForReferences(perf, alloc, server), x)),
+		(in ShutdownParams _) =>
+			LspOutResult(LspOutResult.Null()),
+		(in UnloadedUrisParams) =>
+			LspOutResult(UnloadedUris(allUnloadedUris(alloc, server))));
+
+ReadFileDiag readFileDiagOfReadFileResultType(ReadFileResultType a) {
+	final switch (a) {
+		case ReadFileResultType.notFound:
+			return ReadFileDiag.notFound;
+		case ReadFileResultType.error:
+			return ReadFileDiag.error;
+	}
+}
+
+LspOutAction handleFileChanged(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri changed) {
+	// This is to discover unknown URIs
+	if (getExtension(server.allUris, changed) == crowExtension)
+		justParseEverything(perf, alloc, server, [changed]);
+	final switch (filesState(server)) {
+		case FilesState.hasUnknown:
+			Uri[] unknown = allUnknownUris(alloc, server);
+			foreach (Uri uri; unknown)
+				setFile(perf, server, uri, ReadFileResult(ReadFileDiag.loading));
+			return LspOutAction(arrLiteral!LspOutMessage(alloc, [notification(UnknownUris(unknown))]));
+		case FilesState.hasLoading:
+			return LspOutAction([]);
+		case FilesState.allLoaded:
+			return notifyDiagnostics(perf, alloc, server);
+	}
+}
+
+LspOutMessage notification(T)(T a) =>
+	LspOutMessage(LspOutNotification(a));
+
+LspOutAction notifyDiagnostics(scope ref Perf perf, ref Alloc alloc, ref Server server) {
+	Program program = justTypeCheck(perf, alloc, server, allKnownGoodCrowUris(alloc, server.storage));
+	UriAndDiagnostics[] diags = sortedDiagnostics(alloc, server.allUris, program);
+	ref LspState state() => server.lspState;
+	Uri[] newUris = map(state.stateAlloc, diags, (ref UriAndDiagnostics x) => x.uri);
+	UriAndDiagnostics[] all = concatenate(
+		alloc,
+		diags,
+		mapOp!(UriAndDiagnostics, Uri)(alloc, state.urisWithDiagnostics, (ref Uri uri) =>
+			contains(newUris, uri) ? none!UriAndDiagnostics : some(UriAndDiagnostics(uri, []))));
+	() @trusted {
+		freeElements!Uri(state.stateAlloc, state.urisWithDiagnostics);
+	}();
+	state.urisWithDiagnostics = castNonScope(newUris);
+	ShowCtx ctx = getShowDiagCtx(server, program);
+	return LspOutAction(map!(LspOutMessage, UriAndDiagnostics)(alloc, all, (ref UriAndDiagnostics ud) =>
+		notification(PublishDiagnosticsParams(ud.uri, map(alloc, ud.diagnostics, (ref Diagnostic x) =>
+			LspDiagnostic(
+				x.range,
+				toLspDiagnosticSeverity(getDiagnosticSeverity(x.kind)),
+				stringOfDiag(alloc, ctx, x.kind)))))));
+}
+
+LspDiagnosticSeverity toLspDiagnosticSeverity(DiagnosticSeverity a) {
+	final switch (a) {
+		case DiagnosticSeverity.unusedCode:
+			return LspDiagnosticSeverity.Hint;
+		case DiagnosticSeverity.checkWarning:
+			return LspDiagnosticSeverity.Warning;
+		case DiagnosticSeverity.checkError:
+		case DiagnosticSeverity.nameNotFound:
+		case DiagnosticSeverity.circularImport:
+		case DiagnosticSeverity.commonMissing:
+		case DiagnosticSeverity.parseError:
+		case DiagnosticSeverity.readFile:
+			return LspDiagnosticSeverity.Error;
+	}
+}
+
+LspOutAction initializedAction(ref Alloc alloc) =>
+	LspOutAction(arrLiteral!LspOutMessage(alloc, [
+		register("textDocument/definition"),
+		register("textDocument/hover"),
+		register("textDocument/rename"),
+		register("textDocument/references"),
+	]));
+
+LspOutMessage register(string method) =>
+	notification(RegisterCapability(method, method));

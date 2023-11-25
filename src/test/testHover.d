@@ -18,7 +18,7 @@ import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : empty, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrEqual;
-import util.col.str : end, SafeCStr, safeCStr, safeCStrEq, safeCStrIsEmpty, safeCStrSize, strOfSafeCStr;
+import util.col.str : SafeCStr, safeCStr, safeCStrEq, safeCStrIsEmpty, safeCStrSize, strOfSafeCStr;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonList, jsonObject, jsonToStringPretty, optionalArrayField;
 import util.lineAndColumnGetter : LineAndColumnGetter, PosKind;

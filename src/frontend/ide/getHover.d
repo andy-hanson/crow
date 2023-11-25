@@ -11,7 +11,6 @@ import lib.lsp.lspTypes : Hover, MarkupContent, MarkupKind;
 import model.model;
 import util.alloc.alloc : Alloc;
 import util.col.str : SafeCStr, safeCStrIsEmpty;
-import util.lineAndColumnGetter : LineAndCharacterRange;
 import util.opt : none, Opt, some;
 import util.sourceRange : UriAndRange;
 import util.sym : writeSym;
@@ -25,7 +24,7 @@ Opt!Hover getHover(ref Alloc alloc, in ShowCtx ctx, in Position pos) {
 	});
 	return safeCStrIsEmpty(content)
 		? none!Hover
-		: some(Hover(MarkupContent(MarkupKind.plaintext, content), none!LineAndCharacterRange));
+		: some(Hover(MarkupContent(MarkupKind.plaintext, content)));
 }
 
 void getHover(scope ref Writer writer, in ShowCtx ctx, in Position pos) =>
