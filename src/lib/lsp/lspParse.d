@@ -7,6 +7,7 @@ import lib.lsp.lspTypes :
 	DidChangeTextDocumentParams,
 	DidCloseTextDocumentParams,
 	DidOpenTextDocumentParams,
+	DidSaveTextDocumentParams,
 	ExitParams,
 	HoverParams,
 	InitializeParams,
@@ -75,6 +76,9 @@ LspInMessage parseLspInMessage(ref Alloc alloc, scope ref AllUris allUris, in Js
 			return notification(DidCloseTextDocumentParams());
 		case "textDocument/didOpen":
 			return notification(DidOpenTextDocumentParams(parseTextDocumentItem(allUris, get!"textDocument"(params))));
+		case "textDocument/didSave":
+			return notification(DidSaveTextDocumentParams(
+				parseTextDocumentIdentifier(allUris, get!"textDocument"(params))));
 		case "textDocument/hover":
 			return request(HoverParams(parseTextDocumentPositionParams(alloc, allUris, params)));
 		case "textDocument/references":

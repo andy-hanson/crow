@@ -28,9 +28,8 @@ main nat^(_ string[]) summon
 		ext in exclude-extensions
 
 -exclude-extensions string set()
-	a string set = "bmp", "dll", "err", "exe", "ilk", "lib", "mdb", "obj"
-	b string set = "ogg", "otf", "pdb", "png", "svg", "ttf", "wasm", "wav", "woff2"
-	a | b
+	"bmp", "dll", "err", "exe", "ilk", "lib", "mdb", "obj", "ogg", "otf", "pdb", "png", "svg", \
+	"ttf", "vsix", "wasm", "wav", "woff2"
 -exclude-names string set()
 	# TODO: gl.crow needs a multi-line call syntax
 	"bin", "COPYING.txt", "crow.sublime-syntax", "dyncall", "gl.crow", "node_modules", \

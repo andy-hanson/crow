@@ -77,3 +77,9 @@ kcachegrind .
 ## Windows
 
 Haven't tested this yet.
+
+
+# Publishing
+
+Run `make upload-site` to build and publish. This requires you to have `node` and `aws` installed.
+You need to do this on both Linux and Windows. (Windows updates `crow.zip`, Linux handles everything else.)

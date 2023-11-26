@@ -2,88 +2,65 @@
 	<h1>Download</h1>
 
 	<aside>
-		<h4>Build from source</h4>
 		<p>
-			You can build from source instead of downloading binaries.
-			<br />
-			Instructions for that are <a href="https://github.com/andy-hanson/crow#setup">here</a>.
+			To build from source, see <a href="https://github.com/andy-hanson/crow#setup">here</a>.
 		</p>
 	</aside>
 
-	<h2>Linux</h2>
-
-	<a href="./bin/crow.tar.xz">
-		<crow-icon icon="download"></crow-icon> <code>crow.tar.xz</code>
-	</a>
+	<h2>
+		Linux
+		<a href="./bin/crow.tar.xz">
+			<crow-icon icon="download"></crow-icon> <code>crow.tar.xz</code>
+		</a>
+	</h2>
+	
 	<p>
 		Crow needs <code>libgccjit</code> version 12+ and <code>libunwind</code>.
+		<br />
 		On Ubuntu based systems: <code>apt install libgccjit-12-dev libunwind-dev</code>
 		<br />
 		Then download the above and run the below in a terminal:
 	</p>
 
 	<div class="code-block">
-		cd ~/Downloads
-		<br />
 		tar --extract --xz --file crow.tar.xz
 		<br />
-		./crow/bin/crow run ./crow/demo/hello
+		sudo ln --force --symbolic ~/Downloads/crow/bin/crow /usr/local/bin/crow
+		<br />
+		crow run ./crow/demo/hello
 	</div>
 
-	<p>This should print <code>Hello, world!</code>.</p>
-
 	<p>
-		To avoid having to type out the full path to <code>crow</code>:
+		Some demos require additional dependencies.
 		<br />
-		<code>sudo ln --force --symbolic ~/Downloads/crow/bin/crow /usr/local/bin/crow</code>
+		On Ubuntu based systems:
+		<code>apt install libsdl2-dev libsndfile1-dev libsodium-dev libsqlite3-dev</code>
 	</p>
 
-	<aside>
-		<h4>Additional dependencies</h4>
-		<p>
-			Some of the programs in <code>crow/demo</code> require additional dependencies.
-			<br />
-			On Ubuntu based systems:
-			<code>apt install libsdl2-dev libsndfile1-dev libsodium-dev libsqlite3-dev</code>
-		</p>
-	</aside>
-
-	<h2>Windows</h2>
-
-	<a href="./bin/crow.zip">
-		<crow-icon icon="download"></crow-icon> <code>crow.zip</code>
-	</a>
+	<h2>
+		Windows
+		<a href="./bin/crow.zip">
+			<crow-icon icon="download"></crow-icon> <code>crow.zip</code>
+		</a>
+	</h2>
 
 	<p>
-		Download the above and run the below in a terminal:
+		Download the above, unzip it, and edit the <code>PATH</code> environment variable
+		to include the <code>crow\bin</code> directory.
+		<br />
+		Then:
 	</p>
 
 	<div class="code-block">
-		cd Downloads
-		<br />
-		mkdir crow
-		<br />
-		tar --extract --file crow.zip --directory crow
-		<br />
-		.\crow\bin\crow.exe run crow\demo\hello
+		crow run crow\demo\hello
 	</div>
 
-	<p>
-		This should print <code>Hello, world!</code>.
-	</p>
-
-	<p>
-		To avoid having to type out the full path to <code>crow</code>:
-		edit the <code>PATH</code> environment variable to include the <code>crow</code> directory.
-	</p>
-
 	<aside class="danger">
-		<h4>Builds require native tools</h4>
 		<p>
 			To use <code>crow build</code>, you need to run it in the
 			"x64 Native Tools Command Prompt for VS 20__" (fill in the year).
 			<br />
-			<code>crow run</code> should work in any terminal.
+			Other commands like <code>crow run</code> should work in any terminal.
 		</p>
 	</aside>
 
@@ -92,10 +69,19 @@
 		If you want it ported to a different system, just <a href="https://github.com/andy-hanson/crow/issues">ask</a>.
 	</p>
 
+	<h1>Editor support</h1>
+
+	<h2>VSCode</h2>
+
+	<div class="code-block">
+		code --install-extension crow/editor/vscode/crow-0.0.0.vsix
+	</div>
+
+	This supports syntax highlighting, diagnostics, go-to-definition, references, and renaming.
+
 	<h2>Sublime Text</h2>
-	<p>
-		Crow comes with a syntax definition for Sublime Text. To install it:
-	</p>
+
+	<h3>Syntax definition</h3>
 	<ul class="bullets">
 		<li>
 			Linux:
@@ -115,5 +101,31 @@
 	<p>
 		Then restart Sublime Text and open a Crow file.
 		In the lower-right corner, click "Plain text" and change it to "Crow".
+	</p>
+
+	<h3>LSP support</h3>
+
+	<p>
+		Install package control, then install the <code>LSP</code> plugin.
+		<br />
+		In the top menu, open Preferences → Package settings → LSP → Settings.
+		<br />
+		In the "clients" section, paste:
+	</p>
+
+	<div class="code-block">
+<pre>"crow": {
+	"command": ["/usr/local/bin/crow", "lsp"],
+	"enabled": true,
+	"languageId": "crow",
+	"scopes": ["source.crow"],
+	"syntaxes": "Packages/crow/crow.sublime-syntax"
+}</pre>
+	</div>
+
+	<p>
+		You should now be able to see diagnostics (try calling a nonexistent function).
+		For other actions, right click and use the "LSP" menu.
+		If there seems to be an issue, debug with the "LSP: Toggle Log Panel" command.
 	</p>
 </main>

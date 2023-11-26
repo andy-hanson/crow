@@ -1,12 +1,18 @@
-# Set up
+# Build
 
-Run `npm install`.
+In the root of the `crow` repository, run `make editor/vscode/crow-0.0.0.vsix`.
 
-# Installing
+# Install
 
-TODO
+First, the extension needs `crow` to be installed somewhere on the default PATH (e.g., `/usr/local/bin/crow`).
+See https://crow-lang.org/download.html for instructions.
 
-# Debugging
+Then run:
+```
+code --install-extension crow/editor/vscode/crow-0.0.0.vsix
+```
+
+# Debug
 
 To debug the VSCode extension:
 

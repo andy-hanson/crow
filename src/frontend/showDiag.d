@@ -333,8 +333,9 @@ void showReadFileDiag(scope ref Writer writer, ReadFileDiag a) {
 			case ReadFileDiag.error:
 				return "Unable to read file";
 			case ReadFileDiag.loading:
-			case ReadFileDiag.unknown:
 				return "IDE is still loading file";
+			case ReadFileDiag.unknown:
+				return "IDE has not started loading file";
 		}
 	}();
 }

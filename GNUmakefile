@@ -111,9 +111,6 @@ bin/crow.wasm: $(wasm_deps)
 
 ALL_INCLUDE = include/*.crow include/*/*.crow include/*/*/*.crow include/*/*/*/*.crow
 
-bin/crow.tar.xz: bin/crow demo/* demo/*/* editor/sublime/* $(ALL_INCLUDE) libraries/* libraries/*/*
-	tar --directory .. --create --xz --exclude demo/extern --file bin/crow.tar.xz crow/bin/crow crow/demo crow/editor/sublime crow/include crow/libraries
-
 ### lint ###
 
 lint: lint-basic lint-dscanner lint-d-imports-exports bin/dependencies.dot
@@ -136,10 +133,6 @@ bin/dependencies.svg: bin/dependencies.dot
 bin/dependencies.dot: bin/crow test/dependencies.crow
 	./bin/crow run test/dependencies.crow
 
-editor/crow-vscode/server/node_modules:
-	cd editor/crow-vscode/server
-	npm install
-
 ### site ###
 
 prepare-site: bin/crow bin/crow.wasm bin/crow.tar.xz
@@ -148,7 +141,18 @@ prepare-site: bin/crow bin/crow.wasm bin/crow.tar.xz
 serve: prepare-site
 	bin/crow run site-src/serve.crow
 
-# `crow.zip` uploaded by NMakefile
+### publish ###
+
+bin/crow.tar.xz: bin/crow bin/crow.vsix demo/* demo/*/* editor/sublime/* $(ALL_INCLUDE) libraries/* libraries/*/*
+	tar --directory .. --create --xz --exclude demo/extern --file bin/crow.tar.xz crow/bin/crow crow/demo crow/editor crow/include crow/libraries
+
+bin/crow.vsix: editor/vscode/*
+	cd editor/vscode && ./node_modules/vsce/vsce package --allow-missing-repository --out ../../bin/crow.vsix
+
+editor/vscode/node_modules:
+	cd editor/vscode && npm install
+
+# `crow.zip` is uploaded by NMakefile
 aws_upload_command = aws s3 sync site s3://crow-lang.org --delete --exclude "crow.zip"
 
 confirm-upload-site:

@@ -4,11 +4,11 @@ module app.main;
 
 import app.appUtil : print, printError;
 import app.dyncall : withRealExtern;
-import app.fileSystem : getCwd, getPathToThisExecutable, stdin, stdout, tryReadFile, withUriOrTemp, writeFile;
+import app.fileSystem : getCwd, getPathToThisExecutable, stderr, stdin, stdout, tryReadFile, withUriOrTemp, writeFile;
 import lib.lsp.lspParse : parseLspInMessage;
 import lib.lsp.lspToJson : jsonOfLspOutMessage;
 import lib.lsp.lspTypes : LspInMessage, LspOutAction, LspOutMessage, SemanticTokensParams, TextDocumentIdentifier;
-import core.stdc.stdio : fflush, printf, fgets, fread;
+import core.stdc.stdio : fflush, fprintf, printf, fgets, fread;
 import core.stdc.stdlib : free, malloc;
 
 version (Windows) {
@@ -22,6 +22,7 @@ version (GccJitAvailable) {
 }
 import frontend.lang : cExtension, JitOptions;
 import frontend.showModel : ShowOptions;
+import frontend.storage : FilesState;
 import interpret.extern_ : Extern;
 import lib.cliParser : BuildOptions, Command, hasAnyOut, parseCommand, PrintKind, RunOptions;
 import lib.server :
@@ -30,11 +31,12 @@ import lib.server :
 	buildToC,
 	BuildToCResult,
 	buildToLowProgram,
+	CbHandleUnknownUris,
 	DiagsAndResultJson,
 	DocumentResult,
+	filesState,
 	getDocumentation,
 	handleLspMessage,
-	justParseEverything,
 	justTypeCheck,
 	printAst,
 	printConcreteModel,
@@ -43,6 +45,7 @@ import lib.server :
 	printModel,
 	printTokens,
 	Programs,
+	searchForUnknownUris,
 	Server,
 	setCwd,
 	setFile,
@@ -55,14 +58,13 @@ version (Test) {
 	import test.test : test;
 }
 import util.alloc.alloc : Alloc, newAlloc, withTempAllocImpure;
-import util.col.arr : empty;
 import util.col.arrUtil : prepend;
 import util.col.str : CStr, mustStripPrefix, SafeCStr, safeCStr, safeCStrIsEmpty, safeCStrSize;
 import util.exitCode : ExitCode;
 import util.json : Json, jsonToString;
 import util.jsonParse : mustParseJson, mustParseUint, skipWhitespace;
 import util.lineAndColumnGetter : UriLineAndColumn;
-import util.opt : force, has, Opt;
+import util.opt : force, has, Opt, some;
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasureResult, perfTotal, withNullPerf;
 import util.sym : AllSymbols, sym;
 import util.uri : AllUris, childUri, FileUri, Uri, parentOrEmpty, safeCStrOfUri, toUri;
@@ -94,6 +96,11 @@ import versionInfo : versionInfoForJIT;
 private:
 
 @trusted ExitCode runLsp(ref Server server) {
+	withTempAllocImpure!void(server.metaAlloc, (ref Alloc alloc) @trusted {
+		fprintf(stderr, "Crow version %s\nRunning language server protocol\n", version_(alloc, server).ptr);
+		fprintf(stderr, "Running language server protocol\n");
+	});
+
 	setShowOptions(server, ShowOptions(false));
 
 	while (true) {
@@ -101,10 +108,14 @@ private:
 		Opt!ExitCode stop = withNullPerf!(Opt!ExitCode, (scope ref Perf perf) =>
 			withTempAllocImpure!(Opt!ExitCode)(server.metaAlloc, (ref Alloc alloc) {
 				LspInMessage message = readIn(alloc, server.allSymbols, server.allUris);
-				LspOutAction action = handleLspMessage(perf, alloc, server, message);
-				foreach (LspOutMessage outMessage; action.outMessages)
+				scope CbHandleUnknownUris dg = () {
+					loadUntilNoUnknownUris(perf, server);
+				};
+				LspOutAction action = handleLspMessage(perf, alloc, server, message, some(dg));
+				foreach (LspOutMessage outMessage; action.outMessages) {
 					writeOut(alloc, server.allSymbols, jsonOfLspOutMessage(
 						alloc, server.allUris, server.lineAndColumnGetters, outMessage));
+				}
 				return action.exitCode;
 			}));
 		if (has(stop))
@@ -143,15 +154,17 @@ private:
 void loadAllFiles(scope ref Perf perf, ref Server server, in Uri[] rootUris) {
 	foreach (Uri uri; rootUris)
 		loadSingleFile(perf, server, uri);
-	while (true) {
-		bool shouldBreak = withTempAllocImpure(server.metaAlloc, (ref Alloc alloc) {
-			justParseEverything(perf, alloc, server, rootUris);
-			Uri[] unknowns = allUnknownUris(alloc, server);
-			foreach (Uri uri; unknowns)
+	searchForUnknownUris(perf, server);
+	loadUntilNoUnknownUris(perf, server);
+}
+
+void loadUntilNoUnknownUris(scope ref Perf perf, ref Server server) {
+	while (filesState(server) != FilesState.allLoaded) {
+		withTempAllocImpure(server.metaAlloc, (ref Alloc alloc) {
+			foreach (Uri uri; allUnknownUris(alloc, server))
 				loadSingleFile(perf, server, uri);
-			return empty(unknowns);
 		});
-		if (shouldBreak) break;
+		searchForUnknownUris(perf, server);
 	}
 }
 

@@ -216,8 +216,11 @@ main h1, main h2, main h3 {
 
 main h1 {
 	font-size: 2rem;
-	margin-top: 0.25em;
+	margin-top: 1em;
 	border-bottom: 2px solid #000;
+}
+main h1:first-of-type {
+	margin-top: 0.25em;
 }
 
 main h2 {
@@ -239,7 +242,7 @@ main h3 {
 aside {
 	margin-left: 4em;
 	margin-right: 4em;
-	margin-top: 1.5em;
+	margin-top: 1em;
 	margin-bottom: 1em;
 	--bg: #ddffcc;
 	--border: #209050;
@@ -284,11 +287,17 @@ aside > h4 {
 }
 
 div.code-block {
-	margin: 1em;
+	margin-left: 1em;
+	margin-right: 1em;
+	margin-top: 0.5em;
+	margin-bottom: 0.5em;
 	padding: 0.25em;
 	border-radius: 0.5em;
 	color: #224400;
 	font-family: 'hack', monospace;
+}
+div.code-block > pre {
+	margin: 0;
 }
 
 code {

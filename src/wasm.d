@@ -3,16 +3,16 @@
 import lib.lsp.lspParse : parseLspInMessage;
 import lib.lsp.lspToJson : jsonOfLspOutAction;
 import lib.lsp.lspTypes : LspInMessage, LspOutAction;
-import lib.server : handleLspMessage, Server, setCwd, setIncludeDir;
+import lib.server : CbHandleUnknownUris, handleLspMessage, Server, setCwd, setIncludeDir;
 import util.alloc.alloc : Alloc, withTempAlloc, withTempAllocImpure;
 import util.col.str : CStr, SafeCStr;
 import util.json : get, Json, jsonToString;
 import util.jsonParse : mustParseJson;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
+import util.opt : none;
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasureResult, perfTotal, withNullPerf;
 import util.uri : parseUri;
 
-// seems to be the required entry point
 extern(C) void _start() {}
 
 extern(C) @system pure ubyte* memset(return scope ubyte* dest, int c, size_t n) {
@@ -64,7 +64,7 @@ extern(C) size_t getParameterBufferLength() => parameterBuffer.length;
 		withTempAllocImpure!SafeCStr(server.metaAlloc, (ref Alloc resultAlloc) {
 			Json inputJson = mustParseJson(resultAlloc, server.allSymbols, inputStr);
 			LspInMessage inputMessage = parseLspInMessage(resultAlloc, server.allUris, inputJson);
-			LspOutAction output = handleLspMessage(perf, resultAlloc, *server, inputMessage);
+			LspOutAction output = handleLspMessage(perf, resultAlloc, *server, inputMessage, none!CbHandleUnknownUris);
 			Json outputJson = jsonOfLspOutAction(resultAlloc, server.allUris, server.lineAndColumnGetters, output);
 			return jsonToString(resultAlloc, server.allSymbols, outputJson);
 		})).ptr;

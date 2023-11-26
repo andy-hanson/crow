@@ -29,6 +29,7 @@ immutable struct LspInNotification {
 		DidChangeTextDocumentParams,
 		DidCloseTextDocumentParams,
 		DidOpenTextDocumentParams,
+		DidSaveTextDocumentParams,
 		ExitParams,
 		InitializedParams,
 		ReadFileResultParams,
@@ -147,6 +148,10 @@ immutable struct DidChangeTextDocumentParams {
 }
 
 immutable struct DidCloseTextDocumentParams {}
+
+immutable struct DidSaveTextDocumentParams {
+	TextDocumentIdentifier textDocument;
+}
 
 immutable struct DidOpenTextDocumentParams {
 	TextDocumentItem textDocument;

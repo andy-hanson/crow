@@ -46,6 +46,7 @@ import lib.lsp.lspTypes :
 	DidChangeTextDocumentParams,
 	DidCloseTextDocumentParams,
 	DidOpenTextDocumentParams,
+	DidSaveTextDocumentParams,
 	ExitParams,
 	Hover,
 	HoverParams,
@@ -92,7 +93,7 @@ import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
 import model.lowModel : ExternLibraries, LowProgram;
 import model.model : fakeProgramForAst, hasFatalDiagnostics, Module, Program;
-import util.alloc.alloc : Alloc, freeElements, MetaAlloc, newAlloc;
+import util.alloc.alloc : Alloc, freeElements, MetaAlloc, newAlloc, withTempAlloc;
 import util.col.arr : only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrLiteral, concatenate, contains, map, mapOp;
@@ -144,15 +145,84 @@ ExitCode buildAndInterpret(
 	}
 }
 
-LspOutAction handleLspMessage(scope ref Perf perf, ref Alloc alloc, ref Server server, in LspInMessage message) =>
+alias CbHandleUnknownUris = void delegate() @safe @nogc nothrow;
+
+LspOutAction handleLspMessage(
+	scope ref Perf perf,
+	ref Alloc alloc,
+	ref Server server,
+	in LspInMessage message,
+	in Opt!CbHandleUnknownUris cb,
+) =>
 	message.matchImpure!LspOutAction(
 		(in LspInNotification x) =>
-			handleLspNotification(perf, alloc, server, x),
+			handleLspNotification(perf, alloc, server, x, cb),
 		(in LspInRequest x) =>
 			LspOutAction(
 				arrLiteral!LspOutMessage(alloc, [
 					LspOutMessage(LspOutResponse(x.id, handleLspRequest(perf, alloc, server, x.params)))]),
 				none!ExitCode));
+
+private LspOutAction handleLspNotification(
+	scope ref Perf perf,
+	ref Alloc alloc,
+	ref Server server,
+	in LspInNotification a,
+	in Opt!CbHandleUnknownUris cb,
+) =>
+	a.matchImpure!LspOutAction(
+		(in DidChangeTextDocumentParams x) {
+			changeFile(perf, server, x.textDocument.uri, x.contentChanges);
+			return handleFileChanged(perf, alloc, server, x.textDocument.uri, cb);
+		},
+		(in DidCloseTextDocumentParams x) =>
+			LspOutAction([]),
+		(in DidOpenTextDocumentParams x) {
+			// TODO:PERF unnecessary copy ('setFile' does another)
+			setFile(perf, server, x.textDocument.uri, ReadFileResult(
+				FileContent(copyToSafeCStr(alloc, x.textDocument.text))));
+			return handleFileChanged(perf, alloc, server, x.textDocument.uri, cb);
+		},
+		(in DidSaveTextDocumentParams x) =>
+			LspOutAction([]),
+		(in ExitParams x) =>
+			LspOutAction([], some(ExitCode.ok)),
+		(in InitializedParams x) =>
+			initializedAction(alloc),
+		(in ReadFileResultParams x) {
+			setFile(perf, server, x.uri, ReadFileResult(readFileDiagOfReadFileResultType(x.type)));
+			return handleFileChanged(perf, alloc, server, x.uri, cb);
+		},
+		(in SetTraceParams _) =>
+			// TODO: implement this
+			LspOutAction([]));
+
+private LspOutAction handleFileChanged(
+	scope ref Perf perf,
+	ref Alloc alloc,
+	ref Server server,
+	Uri changed,
+	in Opt!CbHandleUnknownUris cb,
+) {
+	// This is to discover unknown URIs
+	if (getExtension(server.allUris, changed) == crowExtension)
+		searchForUnknownUris(perf, server);
+	if (has(cb)) {
+		force(cb)();
+		verify(filesState(server) == FilesState.allLoaded);
+	}
+	final switch (filesState(server)) {
+		case FilesState.hasUnknown:
+			Uri[] unknown = allUnknownUris(alloc, server);
+			foreach (Uri uri; unknown)
+				setFile(perf, server, uri, ReadFileResult(ReadFileDiag.loading));
+			return LspOutAction(arrLiteral!LspOutMessage(alloc, [notification(UnknownUris(unknown))]));
+		case FilesState.hasLoading:
+			return LspOutAction([]);
+		case FilesState.allLoaded:
+			return notifyDiagnostics(perf, alloc, server);
+	}
+}
 
 private LspOutResult handleLspRequest(
 	scope ref Perf perf,
@@ -307,8 +377,12 @@ Uri[] allUnknownUris(ref Alloc alloc, in Server server) =>
 private Uri[] allUnloadedUris(ref Alloc alloc, in Server server) =>
 	allUrisWithFileDiag(alloc, server.storage, [ReadFileDiag.unknown, ReadFileDiag.loading]);
 
-void justParseEverything(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] rootUris) {
-	parseAllFiles(perf, alloc, server.allSymbols, server.allUris, server.storage, server.includeDir, rootUris);
+void searchForUnknownUris(scope ref Perf perf, ref Server server) {
+	withTempAlloc(server.metaAlloc, (ref Alloc alloc) {
+		parseAllFiles(
+			perf, alloc, server.allSymbols, server.allUris, server.storage, server.includeDir,
+			allKnownGoodCrowUris(alloc, server.storage));
+	});
 }
 
 Program justTypeCheck(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] rootUris) =>
@@ -572,55 +646,12 @@ ShowCtx getShowDiagCtx(return scope ref const Server server, return scope ref Pr
 		server.showOptions,
 		ptrTrustMe(program));
 
-LspOutAction handleLspNotification(scope ref Perf perf, ref Alloc alloc, ref Server server, in LspInNotification a) =>
-	a.matchIn!LspOutAction(
-		(in DidChangeTextDocumentParams x) {
-			changeFile(perf, server, x.textDocument.uri, x.contentChanges);
-			return handleFileChanged(perf, alloc, server, x.textDocument.uri);
-		},
-		(in DidCloseTextDocumentParams x) =>
-			LspOutAction([]),
-		(in DidOpenTextDocumentParams x) {
-			// TODO:PERF unnecessary copy ('setFile' does another)
-			setFile(perf, server, x.textDocument.uri, ReadFileResult(
-				FileContent(copyToSafeCStr(alloc, x.textDocument.text))));
-			return handleFileChanged(perf, alloc, server, x.textDocument.uri);
-		},
-		(in ExitParams x) =>
-			LspOutAction([], some(ExitCode.ok)),
-		(in InitializedParams x) =>
-			initializedAction(alloc),
-		(in ReadFileResultParams x) {
-			setFile(perf, server, x.uri, ReadFileResult(readFileDiagOfReadFileResultType(x.type)));
-			return handleFileChanged(perf, alloc, server, x.uri);
-		},
-		(in SetTraceParams _) =>
-			// TODO: implement this
-			LspOutAction([]));
-
 ReadFileDiag readFileDiagOfReadFileResultType(ReadFileResultType a) {
 	final switch (a) {
 		case ReadFileResultType.notFound:
 			return ReadFileDiag.notFound;
 		case ReadFileResultType.error:
 			return ReadFileDiag.error;
-	}
-}
-
-LspOutAction handleFileChanged(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri changed) {
-	// This is to discover unknown URIs
-	if (getExtension(server.allUris, changed) == crowExtension)
-		justParseEverything(perf, alloc, server, [changed]);
-	final switch (filesState(server)) {
-		case FilesState.hasUnknown:
-			Uri[] unknown = allUnknownUris(alloc, server);
-			foreach (Uri uri; unknown)
-				setFile(perf, server, uri, ReadFileResult(ReadFileDiag.loading));
-			return LspOutAction(arrLiteral!LspOutMessage(alloc, [notification(UnknownUris(unknown))]));
-		case FilesState.hasLoading:
-			return LspOutAction([]);
-		case FilesState.allLoaded:
-			return notifyDiagnostics(perf, alloc, server);
 	}
 }
 

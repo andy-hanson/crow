@@ -1,5 +1,8 @@
 {
-	"name": "crow-vscode",
+	"name": "crow",
+	"displayName": "Crow Programming Language",
+	"description": "IDE support for Crow",
+	"publisher": "crow",
 	"version": "0.0.0",
 	"engines": {
 		"vscode": "^1.84.2"
@@ -20,5 +23,8 @@
 	},
 	"dependencies": {
 		"vscode-languageclient": "^9.0.1"
+	},
+	"devDependencies": {
+		"vsce": "^2.15.0"
 	}
 }
