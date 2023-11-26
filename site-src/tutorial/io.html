@@ -18,13 +18,14 @@
 
 	<aside class="small">
 		Imports will be explained in {{tutorial/modules}}.
-		Basically, this makes the functions <code class="fun">out</code> and <code class="fun">print</code> visible.
+		Basically, this makes the functions <code class="function">out</code> and
+		<code class="function">print</code> visible.
 	</aside>
 
 	<p>
-		<code class="fun">print</code> is a <code class="spec">summon</code> function.
+		<code class="function">print</code> is a <code class="spec">summon</code> function.
 		It can only be directly called by another <code class="spec">summon</code> function,
-		which is why we marked <code class="fun">main</code>.
+		which is why we marked <code class="function">main</code>.
 		<br />
 		See the compile error if you remove <code class="spec">summon</code>.
 	</p>
@@ -49,10 +50,10 @@
 	</crow-runnable>
 
 	<p>
-		In the above example, <code class="fun">times</code> is an ordinary function.
+		In the above example, <code class="function">times</code> is an ordinary function.
 		Yet, running it causes I/O to happen due to calling <code class="local">f</code>.
 		<br />
-		Still, <code class="fun">times</code> is considered ordinary because its I/O
+		Still, <code class="function">times</code> is considered ordinary because its I/O
 		is fully controlled by its caller.
 	</p>
 
@@ -64,7 +65,7 @@
 
 	<aside class="small">
 		If an ordinary function can't reach any lambdas through its parameters,
-		it can't perform any I/O (except <code class="fun">log</code>).
+		it can't perform any I/O (except <code class="function">log</code>).
 	</aside>
 </section>
 <section>
@@ -115,10 +116,10 @@
 	</aside>
 
 	<p>
-		In the above example, <code class="struct">connection</code> is the "interface":
+		In the above example, <code class="type">connection</code> is the "interface":
 		a record full of <code class="keyword">far</code> lambdas.
 		<br />
-		It allows <code class="fun">use-connection</code> to be written without <code class="spec">summon</code>.
+		It allows <code class="function">use-connection</code> to be written without <code class="spec">summon</code>.
 	</p>
 	<p>
 		Observe that in this example we're using a map to fake most of the I/O.

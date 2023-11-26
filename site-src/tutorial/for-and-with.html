@@ -10,7 +10,7 @@
 	</crow-runnable>
 
 	<p>
-		It can be <code class="struct">void</code> as above,
+		It can be <code class="type">void</code> as above,
 		or it can be used to map over a collection.
 	</p>
 	<crow-runnable>
@@ -43,7 +43,7 @@
 	<h2>Desugaring for loops</code></h2>
 	<p>
 		<code class="keyword">for</code> is actually just syntax for calling a function
-		<code class="fun">for-loop</code> and passing it a lambda.
+		<code class="function">for-loop</code> and passing it a lambda.
 		<br />
 		(That is usually implemented using a <code class="keyword">loop</code>
 		or by delegating to another <code class="keyword">for-loop</code> function.)
@@ -91,7 +91,7 @@
 		<code>for-break nat(xs nat[], f-body act nat break-or-continue(nat), f-else act nat())</code>.
 		<br />
 		The <code class="keyword">break</code> and <code class="continue">continue</code> keywords
-		desugar into constructing <code class="struct">break-or-continue</code> values.
+		desugar into constructing <code class="type">break-or-continue</code> values.
 		<br />
 		That type is declared in {{doc/misc}}.
 	</p>
@@ -142,8 +142,8 @@
 	<p>
 		A related expression is <code class="keyword">with</code>.
 		Technically, this behaves exactly like <code class="keyword">for</code>
-		except that the function it calls is named <code class="fun">with-block</code>
-		instead of <code class="fun">for-loop</code>.
+		except that the function it calls is named <code class="function">with-block</code>
+		instead of <code class="function">for-loop</code>.
 	</p>
 	<p>
 		However, using <code class="keyword">with</code> instead of <code class="keyword">for</code>
@@ -153,8 +153,8 @@
 	</p>
 	<p>
 		One example use is to build a collection.
-		<code class="fun">build</code> returns a type called <code class="struct">build-options</code>
-		which is used as the argument to <code class="fun">with-block</code>.
+		<code class="function">build</code> returns a type called <code class="type">build-options</code>
+		which is used as the argument to <code class="function">with-block</code>.
 		<br />
 		The signature works like <code>with-block string(a build-options, f act void(string-builder))</code>.
 	</p>

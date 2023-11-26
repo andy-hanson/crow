@@ -30,15 +30,15 @@
 	</crow-runnable>
 
 	<aside class="small">
-		Remove <code class="keyword">unsafe</code> from the declaration of <code class="fun">main</code>
+		Remove <code class="keyword">unsafe</code> from the declaration of <code class="function">main</code>
 		to see a compile error.
 	</aside>
 
 	<p>
-		The reason <code class="fun">capacity</code> is unsafe is that it returns information
+		The reason <code class="function">capacity</code> is unsafe is that it returns information
 		that normally should not be accessed.
 		Future versions of Crow may return a different result,
-		if the details of how a <code class="struct">mut[]</code> allocates change.
+		if the details of how a <code class="type">mut[]</code> allocates change.
 	</p>
 
 	<aside class="small">
@@ -58,7 +58,7 @@
 		<code class="keyword">trusted</code>.
 	</p>
 	<p>
-		A common example of this is <code class="fun">+</code> functions on integer types,
+		A common example of this is <code class="function">+</code> functions on integer types,
 		which check for overflow/underflow before calling a primitive unchecked add function.
 	</p>
 
@@ -76,13 +76,14 @@
 		<code class="keyword">trusted</code> parses as a prefix, just like <code class="keyword">throw</code>.
 	</aside>
 	<p>
-		The above example calls the Posix <code class="fun">write</code> function,
+		The above example calls the Posix <code class="function">write</code> function,
 		which is dangerous in general; it takes a pointer and length separately and does bad things
 		if length is wrong.
 		<br />
-		(Anything involving pointers is unsafe; so <code class="fun">begin-pointer</code> is also unsafe.)
+		(Anything involving pointers is unsafe; so <code class="function">begin-pointer</code> is also unsafe.)
 		<br />
-		But in this example, we know that the length is correct, making the call to <code class="fun">write</code> safe.
+		But in this example, we know that the length is correct,
+		making the call to <code class="function">write</code> safe.
 	</p>
 
 	<p>
@@ -93,7 +94,7 @@
 		When deciding whether to mark a function as <code class="keyword">unsafe</code> or to use
 		<code class="keyword">trusted</code> in its body,
 		ask whether a malicious caller could cause the function to bad things.
-		(A good example is by passing <code class="fun">null</code>.)
+		(A good example is by passing <code class="function">null</code>.)
 		<br />
 		If so, always mark it as <code class="keyword">unsafe</code>.
 	</p>
@@ -109,8 +110,8 @@
 	</p>
 	<p>
 		Unlike in C, pointers are "const" by default.
-		<code class="struct">nat*</code> is a readable pointer;
-		<code class="struct">nat mut*</code> is readable and writable.
+		<code class="type">nat*</code> is a readable pointer;
+		<code class="type">nat mut*</code> is readable and writable.
 	</p>
 
 	<crow-runnable>
@@ -132,7 +133,7 @@
 	</crow-runnable>
 
 	<aside class="small">
-		It's important to set up a <code class="fun">finally</code> handler to free the pointer
+		It's important to set up a <code class="function">finally</code> handler to free the pointer
 		<em>before</em> allocating it.
 	</aside>
 
@@ -166,8 +167,8 @@
 
 	<p>
 		Crow doesn't have any implicit conversions.
-		To convert a constant to a mutable pointer, use <code class="fun">as-mut</code>.
-		To convert back, use <code class="fun">as-const</code>.
+		To convert a constant to a mutable pointer, use <code class="function">as-mut</code>.
+		To convert back, use <code class="function">as-const</code>.
 	</p>
 
 	<aside class="small">These functions are defined in {{doc/pointer}}.</aside>
@@ -238,8 +239,8 @@
 	</crow-runnable>
 
 	<p>
-		Declaring the global generates a getter function <code class="fun">x</code>
-		and a setter function <code class="fun">set-x</code> (called by <code>x := 1</code>).
+		Declaring the global generates a getter function <code class="function">x</code>
+		and a setter function <code class="function">set-x</code> (called by <code>x := 1</code>).
 		<br />
 		Both of these are <code class="keyword">unsafe</code>.
 	</p>
@@ -358,7 +359,7 @@
 		Basically, this means it should not allocate any garbage-collected data.
 		That means it can only create records explicitly marked <code class="keyword">by-val</code>.
 		It also can't do anything involving tasks,
-		such as using <code class="fun">then</code> or <code>with : parallel</code>.
+		such as using <code class="function">then</code> or <code>with : parallel</code>.
 	</p>
 	<p>
 		The main reason to make a function <code class="keyword">bare</code>
@@ -384,7 +385,7 @@
 		A <code class="keyword">bare</code> function can only call other <code class="keyword">bare</code> functions,
 		but <em>any</em> function can call a <code class="keyword">bare</code> function.
 		<br />
-		(E.g., <code class="fun">+</code> is <code class="keyword">bare</code> and anything can call it.)
+		(E.g., <code class="function">+</code> is <code class="keyword">bare</code> and anything can call it.)
 		<br />
 		Recall that <code class="keyword">unsafe</code> works in the opposite way.
 	</p>
@@ -393,7 +394,7 @@
 		<h4>Throwing in "bare" code</h4>
 		<p>
 			<code class="keyword">bare</code> functions are allowed to throw exceptions.
-			(E.g., <code class="fun">+</code> throws on overflow.)
+			(E.g., <code class="function">+</code> throws on overflow.)
 			<br />
 			If an exception is thrown and it's not part of a Crow task, it might not be caught.
 			In that case, the program will abort.

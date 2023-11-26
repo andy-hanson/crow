@@ -67,6 +67,9 @@ Json jsonObject(ref Alloc alloc, in Json.ObjectField[] fields) =>
 Json jsonObject(ref Alloc alloc, in Json.ObjectField[] fields1, in Json.ObjectField[] fields2) =>
 	jsonObject(alloc, concatenateIn!(Json.ObjectField)(alloc, fields1, fields2));
 
+Json jsonBool(bool b) =>
+	Json(b);
+
 Json jsonNull() =>
 	Json(Json.Null());
 
@@ -77,7 +80,7 @@ Json.ObjectField optionalField(string name, T)(in Opt!T a, in Json delegate(in T
 	field!name(has(a) ? cb(force(a)) : jsonNull);
 
 Json.ObjectField optionalFlagField(string name)(bool value) =>
-	field!name(value ? Json(true) : jsonNull);
+	field!name(value ? jsonBool(true) : jsonNull);
 
 Json.ObjectField optionalArrayField(string name)(Json[] array) =>
 	optionalField!name(!empty(array), () => jsonList(array));

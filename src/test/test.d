@@ -14,7 +14,6 @@ import test.testMemory : testMemory;
 import test.testSortUtil : testSortUtil;
 import test.testStack : testStack;
 import test.testSym : testSym;
-import test.testTokens : testTokens;
 import test.testUri : testUri;
 import test.testUtil : Test;
 import test.testWriter : testWriter;
@@ -47,7 +46,6 @@ NameAndTest[] allTests = [
 	NameAndTest(sym!"sort-util", &testSortUtil),
 	NameAndTest(sym!"stack", &testStack),
 	NameAndTest(sym!"sym", &testSym),
-	NameAndTest(sym!"tokens", &testTokens),
 	NameAndTest(sym!"path", &testUri),
 	NameAndTest(sym!"writer", &testWriter),
 ];

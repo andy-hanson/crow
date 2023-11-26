@@ -31,7 +31,7 @@ import util.lineAndColumnGetter :
 	UriLineAndCharacter,
 	UriLineAndColumn;
 import util.memory : allocate;
-import util.opt : ConstOpt, force, has, none, MutOpt, Opt, some;
+import util.opt : ConstOpt, force, has, MutOpt;
 import util.perf : Perf;
 import util.ptr : castNonScope_ref;
 import util.sourceRange : jsonOfRange, lineAndCharacterRange, Pos, Range, UriAndPos, UriAndRange;
@@ -180,11 +180,6 @@ Uri[] allUrisWithFileDiag(ref Alloc alloc, in Storage a, in ReadFileDiag[] searc
 	return finishArr(alloc, res);
 }
 
-Opt!FileContent getFileNoMarkUnknown(return in Storage a, Uri uri) {
-	ConstOpt!(AllocAndValue!FileInfo) res = a.successes[uri];
-	return has(res) ? some(force(res).value.content) : none!FileContent;
-}
-
 private immutable struct FileInfoOrDiag {
 	mixin Union!(FileInfo, ReadFileDiag);
 }
@@ -234,7 +229,7 @@ immutable struct FileContent {
 immutable(ubyte[]) asBytes(return scope FileContent a) =>
 	a.bytes[0 .. $ - 1];
 
-@trusted SafeCStr asSafeCStr(return scope FileContent a) =>
+private @trusted SafeCStr asSafeCStr(return scope FileContent a) =>
 	SafeCStr(cast(immutable char*) a.bytes.ptr);
 
 string asString(return scope FileContent a) =>

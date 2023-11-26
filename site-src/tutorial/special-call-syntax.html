@@ -15,23 +15,23 @@
 		</thead>
 		<tbody>
 			<tr>
-				<td><code class="fun">!x</code></td>
+				<td><code class="function">!x</code></td>
 				<td>Logical "not".</td>
 			</tr>
 			<tr>
-				<td><code class="fun">x!</code></td>
+				<td><code class="function">x!</code></td>
 				<td>Gets the value from an option, or throws an exception if it is empty.</td>
 			</tr>
 			<tr>
-				<td><code class="fun">-x</code></td>
+				<td><code class="function">-x</code></td>
 				<td>Negates a number.</td>
 			</tr>
 			<tr>
-				<td><code class="fun">~x</code></td>
+				<td><code class="function">~x</code></td>
 				<td>Bitwise negation.</td>
 			</tr>
 			<tr>
-				<td><code class="fun">*x</code></td>
+				<td><code class="function">*x</code></td>
 				<td>Dereferences a pointer.</td>
 			</tr>
 		</tbody>
@@ -41,7 +41,7 @@
 	<p>
 		These are in order of operator precedence.
 		<br />
-		For example, <code class="fun">*</code> binds more tightly than <code class="fun">+</code>,
+		For example, <code class="function">*</code> binds more tightly than <code class="function">+</code>,
 		so <code>1 + 2 * 3</code> parses as <code>1 + (2 * 3)</code>.
 	</p>
 	<aside class="small">
@@ -56,14 +56,14 @@
 		</thead>
 		<tbody>
 			<tr>
-				<td><code class="fun">~=</code>, <code class="fun">~~=</code></td>
+				<td><code class="function">~=</code>, <code class="function">~~=</code></td>
 				<td>
-					Mutating concatenation; adds one (<code class="fun">~=</code>)
-					or many (<code class="fun">~~=</code>) elements to a collection.
+					Mutating concatenation; adds one (<code class="function">~=</code>)
+					or many (<code class="function">~~=</code>) elements to a collection.
 				</td>
 			</tr>
 			<tr>
-				<td><code class="fun">||</code></td>
+				<td><code class="function">||</code></td>
 				<td>
 					Logical "or"; or for option types, chooses the first non-empty option.
 					<br />
@@ -72,7 +72,7 @@
 				</td>
 			</tr>
 			<tr>
-				<td><code class="fun">&&</code></td>
+				<td><code class="function">&&</code></td>
 				<td>
 					Logical "and".
 					<br />
@@ -81,7 +81,7 @@
 				</td>
 			</tr>
 			<tr>
-				<td><code class="fun">??</code></td>
+				<td><code class="function">??</code></td>
 				<td>
 					Provides a default value for an option.
 					<br />
@@ -90,66 +90,68 @@
 				</td>
 			</tr>
 			<tr>
-				<td><code class="fun">foo</code></td>
+				<td><code class="function">foo</code></td>
 				<td>Ordinary named functions; included here to show precedence.</td>
 			</tr>
 			<tr>
-				<td><code class="fun">..</code></td>
+				<td><code class="function">..</code></td>
 				<td>Numerical range, e.g. <code>0 .. 10</code></td>
 			</tr>
 			<tr>
-				<td><code class="fun">~</code>, <code class="fun">~~</code></td>
+				<td><code class="function">~</code>, <code class="function">~~</code></td>
 				<td>
-					<code class="fun">~</code> adds one element to a collection.
+					<code class="function">~</code> adds one element to a collection.
 					<br />
 					For ordered collections, <code>x ~ xs</code> adds to <code>x</code> to the left
 					and <code>xs ~ x</code> adds <code>x</code> to the right.
 					<br />
 					For unordered collections, only <code>xs ~ x</code> should be implemented.
 					<br />
-					<code class="fun">~~</code> concatenates two collections (or combines unordered collections).
+					<code class="function">~~</code> concatenates two collections (or combines unordered collections).
 				</td>
 			</tr>
 			<tr>
 				<td>
-					<code class="fun">==</code>,
-					<code class="fun">!=</code>,
-					<code class="fun">&lt;</code>,
-					<code class="fun">></code>,
-					<code class="fun">&lt;=</code>,
-					<code class="fun">>=</code>,
-					<code class="fun">&lt;=></code>
+					<code class="function">==</code>,
+					<code class="function">!=</code>,
+					<code class="function">&lt;</code>,
+					<code class="function">></code>,
+					<code class="function">&lt;=</code>,
+					<code class="function">>=</code>,
+					<code class="function">&lt;=></code>
 				</td>
 				<td>
-					Comparison; <code class="fun">&lt;=></code> is 3-way comparison.
+					Comparison; <code class="function">&lt;=></code> is 3-way comparison.
 				</td>
 			</tr>
 			<tr>
-				<td><code class="fun">|</code></td>
+				<td><code class="function">|</code></td>
 				<td>Union of sets; or bitwise "or".</td>
 			</tr>
 			<tr>
-				<td><code class="fun">&amp;</code></td>
+				<td><code class="function">&amp;</code></td>
 				<td>Intersection of sets; or bitwise "and".</td>
 			</tr>
 			<tr>
-				<td><code class="fun">&lt;&lt;</code>, <code class="fun">>></code></td>
+				<td><code class="function">&lt;&lt;</code>, <code class="function">>></code></td>
 				<td>Bitshift left and right.</td>
 			</tr>
 			<tr>
-				<td><code class="fun">+</code>, <code class="fun">-</code></td>
+				<td><code class="function">+</code>, <code class="function">-</code></td>
 				<td>
 					Addition and subtraction.
 					<br />
-					For math only; to "add" collections (including strings), use <code class="fun">~~</code>.
+					For math only; to "add" collections (including strings), use <code class="function">~~</code>.
 				</td>
 			</tr>
 			<tr>
-				<td><code class="fun">*</code>, <code class="fun">/</code>, <code class="fun">%</code></td>
+				<td>
+					<code class="function">*</code>, <code class="function">/</code>, <code class="function">%</code>
+				</td>
 				<td>Multiply, divide, and modulo.</td>
 			</tr>
 			<tr>
-				<td><code class="fun">**</code></td>
+				<td><code class="function">**</code></td>
 				<td>
 					Exponentiation; <code>2 ** 3</code> is <code>8</code>.
 				</td>
@@ -160,7 +162,7 @@
 	<aside>
 		<h4>Named function precedence</h4>
 		<p>
-			Notice that named functions are included in the precedence table (see <code class="fun">foo</code>).
+			Notice that named functions are included in the precedence table (see <code class="function">foo</code>).
 			<br />
 			This alows you to mix them with operators without using parentheses.
 		</p>
@@ -190,8 +192,8 @@
 	</crow-runnable>
 
 	<p>
-		The exception is that <code class="fun">!</code> would be ambiguous,
-		so you must define a name functions <code class="fun">not</code> or <code class="fun">force</code>.
+		The exception is that <code class="function">!</code> would be ambiguous,
+		so you must define a name functions <code class="function">not</code> or <code class="function">force</code>.
 	</p>
 	<crow-runnable>
 		main void()
@@ -209,7 +211,8 @@
 	<aside class="small">
 		You can't define new operators.
 		<br />
-		There's also currently no way to define your own lazily-evaluated functions like <code class="fun">||</code>.
+		There's also currently no way to define your own lazily-evaluated functions like
+		<code class="function">||</code>.
 	</aside>
 </section>
 <section>
@@ -217,7 +220,7 @@
 	<p>
 		We've seen <code>()</code> a lot in this tutorial.
 		<br />
-		This is syntax for calling a function <code class="fun">new</code> with no arguments.
+		This is syntax for calling a function <code class="function">new</code> with no arguments.
 		<br />
 		To call it with arguments, separate them with commas.
 		If there is only one argument, leave a trailing comma.

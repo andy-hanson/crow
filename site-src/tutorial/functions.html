@@ -54,7 +54,7 @@
 	<h2>Function call syntax</h2>
 	<p>
 		In crow, a function name always comes after its first argument (if any).
-		To call a function <code class="fun">f</code>:
+		To call a function <code class="function">f</code>:
 		<ul class="bullets">
 			<li>
 				With 0 arguments: <code>f</code>.
@@ -78,7 +78,7 @@
 	<p>
 		So what does <code>a b c d e</code> mean?
 		<br />
-		A function name comes after its first argument. So the first function name is <code class="fun">b</code>.
+		A function name comes after its first argument. So the first function name is <code class="function">b</code>.
 		<br />
 		Then <code>c</code> provides the second argument to that function.
 		There is no comma after <code>c</code>, so <code>d</code> is another function name
@@ -89,9 +89,9 @@
 	</p>
 	<p>
 		If you instead wrote <code>a <span class="fun">b</span> c, d <span class="fun">e</span></code>,
-		then the call to <code class="fun">b</code> gets <code>d</code> as a third argument.
+		then the call to <code class="function">b</code> gets <code>d</code> as a third argument.
 		<br />
-		Then the whole expression is passed into <code class="fun">e</code>,
+		Then the whole expression is passed into <code class="function">e</code>,
 		making this equivalent to <code>(a b c, d) e</code>.
 	</p>
 	<p>

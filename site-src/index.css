@@ -307,19 +307,22 @@ crow-icon {
 	transform-origin: bottom;
 }
 
-code.import { color: #ff8040; }
-code.fun { color: #207020; }
-code > span.fun { color: #207020; }
-code.local { color: #404020; }
-code.var-decl { color: #404020; }
-code.param { color: #806020; }
-code.struct { color: #4060ff; }
-code.type-param { color: #40a0ff; }
-code.spec { color: #c02000; }
+/*
+Token types:
+https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocument_semanticTokens
+*/
+code.namespace { color: #ff8040; }
+code.function { color: #207020; }
+code > span.function { color: #207020; }
+code.variable { color: #404020; }
+code.parameter { color: #806020; }
+code.type, code.enum { color: #4060ff; }
+code.typeParameter { color: #40a0ff; }
+code.interface { color: #c02000; }
 code.keyword { color: #ff60a0; }
-code.member { color: #602080; }
-code.lit-str { color: #ff8020; }
-code.lit-num { color: #ff6040; }
+code.property, code.enumMember { color: #602080; }
+code.string { color: #ff8020; }
+code.number { color: #ff6040; }
 
 #next {
 	margin-top: 1em;

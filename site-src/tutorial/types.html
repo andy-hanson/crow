@@ -4,13 +4,13 @@
 	<p>The primitive types are:</p>
 	<table><tbody>
 		<tr>
-			<td><code class="struct">bool</code></td>
+			<td><code class="type">bool</code></td>
 			<td>
-				Boolean type; <code class="fun">false</code> or <code class="fun">true</code>.
+				Boolean type; <code class="function">false</code> or <code class="function">true</code>.
 			</td>
 		</tr>
 		<tr>
-			<td><code class="struct">char8</code></td>
+			<td><code class="type">char8</code></td>
 			<td>
 				Single byte in a UTF-8 string.
 				This is not a numeric type.
@@ -18,32 +18,32 @@
 		</tr>
 		<tr>
 			<td>
-				<code class="struct">nat8</code>,
-				<code class="struct">nat16</code>,
-				<code class="struct">nat32</code>,
-				<code class="struct">nat64</code>
+				<code class="type">nat8</code>,
+				<code class="type">nat16</code>,
+				<code class="type">nat32</code>,
+				<code class="type">nat64</code>
 			</td>
 			<td>
 				Natural numbers, in the range 0 to 2<sup>n</sup> - 1.
-				<code class="struct">nat</code> is short for <code class="struct">nat64</code>.
+				<code class="type">nat</code> is short for <code class="type">nat64</code>.
 			</td>
 		</tr>
 		<tr>
 			<td>
-				<code class="struct">int8</code>,
-				<code class="struct">int16</code>,
-				<code class="struct">int32</code>,
-				<code class="struct">int64</code>
+				<code class="type">int8</code>,
+				<code class="type">int16</code>,
+				<code class="type">int32</code>,
+				<code class="type">int64</code>
 			</td>
 			<td>
 				Integers, in the range -2<sup>n - 1</sup> to 2<sup>n - 1</sup> - 1.
-				<code class="struct">int</code> is short for <code class="struct">int64</code>.
+				<code class="type">int</code> is short for <code class="type">int64</code>.
 			</td>
 			<tr>
-				<td><code class="struct">float32</code>, <code class="struct">float64</code></td>
+				<td><code class="type">float32</code>, <code class="type">float64</code></td>
 				<td>
 					Floating-point values.
-					<code class="struct">float</code> is short for <code class="struct">float64</code>.
+					<code class="type">float</code> is short for <code class="type">float64</code>.
 				</td>
 			</tr>
 		</tr>
@@ -51,7 +51,7 @@
 
 	<h3>Arithmetic</h3>
 	<p>
-		<code class="struct">nat</code> and <code class="struct">int</code> arithmetic
+		<code class="type">nat</code> and <code class="type">int</code> arithmetic
 		always returns an exactly correct result or throws an exception.
 	</p>
 	<crow-runnable>
@@ -60,7 +60,7 @@
 			_ = a + 1
 	</crow-runnable>
 	<p>
-		<code class="struct">float</code> arithmetic doesn't have such checks,
+		<code class="type">float</code> arithmetic doesn't have such checks,
 		since floats are usually expected to be inexact.
 	</p>
 
@@ -74,7 +74,7 @@
 		</p>
 		<p>
 			If a variable doesn't make sense with a negative value (for example, a count of anything),
-			make it a <code class="struct">nat</code> instead of <code class="int">int</code>
+			make it a <code class="type">nat</code> instead of <code class="int">int</code>
 			to protect it from negative values.
 		</p>
 	</aside>
@@ -82,7 +82,7 @@
 	<h3>Conversion</h3>
 	<p>
 		There is no dedicated syntax for conversion,
-		but a function should be named <code class="fun">to</code> if it does an obvious conversion.
+		but a function should be named <code class="function">to</code> if it does an obvious conversion.
 		<br />
 		This relies on type inference which will be explained more in {{tutorial/type-inference}}.
 	</p>
@@ -109,7 +109,7 @@
 	<p>
 		Strings are technically a library type and not a primitive type.
 		<br />
-		<code class="struct">string</code> wraps a <code class="struct">char8[]</code>;
+		<code class="type">string</code> wraps a <code class="type">char8[]</code>;
 		an immutable list of UTF-8 bytes.
 		<br />
 		Lists are explained more in {{tutorial/collections}}.
@@ -157,15 +157,15 @@ but I forgot it
 	<h2>Symbols</h2>
 	<p>
 		Strings are often used simply as identifiers or like ad-hoc enums.
-		In crow, you should instead use <code class="struct">symbol</code>s for those use cases.
+		In crow, you should instead use <code class="type">symbol</code>s for those use cases.
 		<br />
-		A <code class="struct">symbol</code> is a unique identifier that comes from a string.
+		A <code class="type">symbol</code> is a unique identifier that comes from a string.
 		<br />
 		The string is interned,
 		meaning that two separately-allocated strings that are equal will only result in a single allocated symbol.
 		<br />
 		So, two symbols are equal if their pointers are equal.
-		That means <code class="fun">==</code> on symbols is fast, making them good as a key in a map.
+		That means <code class="function">==</code> on symbols is fast, making them good as a key in a map.
 	</p>
 	<p>The literal syntax for a symbol is the same as for a string.</p>
 
@@ -184,7 +184,7 @@ but I forgot it
 	</crow-runnable>
 
 	<p>
-		As usual, to convert between strings and symbols, call the <code class="fun">to</code> function.
+		As usual, to convert between strings and symbols, call the <code class="function">to</code> function.
 	</p>
 </section>
 <section>

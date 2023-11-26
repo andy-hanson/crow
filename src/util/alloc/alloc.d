@@ -11,6 +11,7 @@ T withStaticAlloc(T, alias cb)(word[] memory) {
 	return cb(alloc);
 }
 
+// It's safe to use the result immediately after this ends so long as there are no other allocations.
 T withTempAllocImpure(T)(MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc nothrow cb) =>
 	withTempAllocAlias!(T, cb)(a);
 

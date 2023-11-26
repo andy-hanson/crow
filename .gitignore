@@ -1,9 +1,7 @@
 bin
 site
 dyncall
-editor/crow-vscode/node_modules
-editor/crow-vscode/client/node_modules
-editor/crow-vscode/server/node_modules
+editor/vscode/node_modules
 test/test
 *.exe
 *.ilk

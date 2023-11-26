@@ -3,7 +3,7 @@
 
 	<p>
 		Function templates will only let you call functions known to exist.
-		Foe xample, you can't call <code class="fun">+</code> if it's not guaranteed to exist for all types
+		Foe xample, you can't call <code class="function">+</code> if it's not guaranteed to exist for all types
 		the template is instantiated with.
 		<br />
 		The solution is to predeclare the function. That's what <code class="keyword">spec</code>s do.
@@ -31,21 +31,21 @@
 		<br />
 		The syntax for instantiating a spec template is just like for a type template.
 		<code>t summable</code> instantiates <code class="spec">summable</code>
-		using <code>t</code>. (The type parameter to <code class="fun">sum</code>
+		using <code>t</code>. (The type parameter to <code class="function">sum</code>
 		happens to have the same name as the type parameter to <code class="spec">summable</code>.)
 	</p>
 
 	<p>
-		Since <code class="fun">sum</code> depends on <code class="spec">summable</code>,
+		Since <code class="function">sum</code> depends on <code class="spec">summable</code>,
 		the functions declared inside <code class="spec">summable</code>
-		are in scope inside of <code class="fun">sum</code>.
+		are in scope inside of <code class="function">sum</code>.
 		<br />
 		So, the call to <code class="keyword">()</code> in <code>res mut t = ()</code>
-		calls <code class="fun">new t()</code>, and <code>res +:= x</code> calls <code>+ t(a t, b t)</code>.
+		calls <code class="function">new t()</code>, and <code>res +:= x</code> calls <code>+ t(a t, b t)</code>.
 	</p>
 
 	<p>
-		When <code class="fun">sum</code> is called by <code class="fun">main</code>,
+		When <code class="function">sum</code> is called by <code class="function">main</code>,
 		type arguments are inferred first, then the spec is implemented using functions from the caller's context.
 		<br />
 		So in <code>(1, 2)::nat[] sum</code>, Crow first determines that it's calling <code>sum@nat</code>.
@@ -60,12 +60,12 @@
 		<p>
 			The functions that implement a spec might theirselves need specs implemented.
 			<br />
-			For example, <code class="fun">==</code> on a <code>(nat, string)[]</code> calls
-			<code class="fun">==</code> on <code class="struct">list</code>,
-			which needs <code class="fun">==</code> on the element type <code class="struct">(nat, string)</code>.
-			While implementing that, <code>==</code> on <code class="struct">tuple2</code>
-			then needs <code class="fun">==</code> on each member type,
-			<code class="struct">nat</code> and <code class="struct">string</code>.
+			For example, <code class="function">==</code> on a <code>(nat, string)[]</code> calls
+			<code class="function">==</code> on <code class="type">list</code>,
+			which needs <code class="function">==</code> on the element type <code class="type">(nat, string)</code>.
+			While implementing that, <code>==</code> on <code class="type">tuple2</code>
+			then needs <code class="function">==</code> on each member type,
+			<code class="type">nat</code> and <code class="type">string</code>.
 			<br />
 			This whole process happens automatically.
 			There's no way to explicitly specify the functions that instantiate a spec.
@@ -145,7 +145,7 @@
 		Instead, these specs are only satisfied when their type argument is a
 		<code class="keyword">data</code> or <code class="keyword">shared</code> type, respectively.
 		<br />
-		For example, this is how functions on <code class="struct">map</code> types
+		For example, this is how functions on <code class="type">map</code> types
 		enforce that the key is <code class="keyword">data</code>.
 	</p>
 
@@ -164,7 +164,7 @@
 	</aside>
 
 	<p>
-		Notice how to satisfy the spec needed by <code>to::(t set)</code>, <code class="fun">count</code> just
+		Notice how to satisfy the spec needed by <code>to::(t set)</code>, <code class="function">count</code> just
 		defers to its own caller by declaring the same spec itself.
 	</p>
 </section>

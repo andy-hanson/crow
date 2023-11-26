@@ -15,6 +15,11 @@ LineAndColumnRange lineAndColumnRange(in LineAndColumnGetter a, in Range range) 
 		lineAndColumnAtPos(a, range.start, PosKind.startOfRange),
 		lineAndColumnAtPos(a, range.end, PosKind.endOfRange));
 
+LineAndCharacterRange lineAndCharacterRange(in LineAndColumnGetter a, in Range range) =>
+	LineAndCharacterRange(
+		lineAndCharacterAtPos(a, range.start, PosKind.startOfRange),
+		lineAndCharacterAtPos(a, range.end, PosKind.endOfRange));
+
 immutable struct UriLineAndCharacter {
 	Uri uri;
 	LineAndCharacter lineAndCharacter;
@@ -61,6 +66,7 @@ immutable struct LineAndColumnGetter {
 	Pos[] lineToPos;
 	ubyte[] lineToNTabs;
 
+	@disable this();
 	this(bool ucr, Pos mp, immutable Pos[] lp, immutable ubyte[] lnt) {
 		usesCRLF = ucr;
 		maxPos = mp;
@@ -161,7 +167,7 @@ Pos columnToCharacter(uint column, ubyte nTabs) =>
 uint lineAtPos(in LineAndColumnGetter a, Pos pos) {
 	uint lowLine = 0; // inclusive
 	uint highLine = safeToUint(a.lineToPos.length);
-	verify(highLine != 0);
+	assert(highLine != 0);
 	while (lowLine < highLine - 1) {
 		uint middleLine = mid(lowLine, highLine);
 		Pos middlePos = a.lineToPos[middleLine];

@@ -24,6 +24,9 @@ immutable struct Range {
 		Range(Pos.max, Pos.max);
 	static Range empty() =>
 		Range(0, 0);
+
+	Range opSlice(uint low, uint high) =>
+		Range(start + low, start + high);
 }
 
 Comparison compareRange(in Range a, in Range b) =>

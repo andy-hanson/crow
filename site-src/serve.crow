@@ -43,6 +43,6 @@ content-type string(path string)
 	elif path ends-with ".svg"
 		"image/svg+xml"
 	elif path ends-with ".wasm"
-		"text/wasm"
+		"application/wasm"
 	else
 		"text/plain"

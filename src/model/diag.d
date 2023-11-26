@@ -25,7 +25,7 @@ import model.parseDiag : ParseDiag;
 import util.col.arr : empty;
 import util.opt : Opt;
 import util.sourceRange : Range, UriAndRange;
-import util.sym : Sym, sym;
+import util.sym : Sym;
 import util.union_ : Union;
 import util.uri : Uri;
 
@@ -84,19 +84,6 @@ enum TypeKind {
 
 private enum ReadFileDiag_ { unknown, loading, notFound, error }
 alias ReadFileDiag = immutable ReadFileDiag_;
-
-ReadFileDiag readFileDiagOfSym(Sym a) {
-	final switch (a.value) {
-		case sym!"notFound".value:
-			return ReadFileDiag.notFound;
-		case sym!"unknown".value:
-			return ReadFileDiag.unknown;
-		case sym!"loading".value:
-			return ReadFileDiag.loading;
-		case sym!"error".value:
-			return ReadFileDiag.error;
-	}
-}
 
 immutable struct Diag {
 	@safe @nogc pure nothrow:

@@ -15,26 +15,26 @@
 	</crow-runnable>
 
 	<aside class="small">
-		There is no "truthiness" in crow; the type of the condition must be <code class="struct">bool</code> exactly.
+		There is no "truthiness" in crow; the type of the condition must be <code class="type">bool</code> exactly.
 	</aside>
 
 	<h3>Using "if" as an expression</h3>
 	<p>
 		Crow's syntax technically does not have any statements; only expressions.
-		Any line of code not at the end of a block is a <code class="struct">void</code> expression.
+		Any line of code not at the end of a block is a <code class="type">void</code> expression.
 	</p>
 	<p>
-		When an <code class="keyword">if</code> appears in a <code class="struct">void</code> context,
-		the true and false branches must also be <code class="struct">void</code> expressions.
+		When an <code class="keyword">if</code> appears in a <code class="type">void</code> context,
+		the true and false branches must also be <code class="type">void</code> expressions.
 		<br />
-		A call to <code class="fun">log</code> works because
-		it is a function returning <code class="struct">void</code>.
+		A call to <code class="function">log</code> works because
+		it is a function returning <code class="type">void</code>.
 	</p>
 
 	<aside>
 		<h4>The "void" type</h4>
 		<p>
-			<code class="struct">void</code> is a type and works anywhere a type does.
+			<code class="type">void</code> is a type and works anywhere a type does.
 			<br />
 			It has no content and takes up no space.
 		</p>
@@ -46,7 +46,7 @@
 
 	<p>
 		Since <code class="keyword">if</code> is an expression,
-		it can have a non-void type like <code class="struct">string</code>.
+		it can have a non-void type like <code class="type">string</code>.
 		So the first example can be rewritten as:
 	</p>
 

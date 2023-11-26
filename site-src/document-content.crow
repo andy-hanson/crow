@@ -74,7 +74,7 @@ module-content string(a module, all-exports all-exports)
 
 -type-name-reference string(name symbol, ctx ctx)
 	if name in ctx.type-params || name in allowed-missing-reference
-		"""<code class="struct">{name}</code>"""
+		"""<code class="type">{name}</code>"""
 	else
 		name type-or-spec-name-reference ctx.all-exports.types, "struct", ctx
 -allowed-missing-reference symbol set()
@@ -241,7 +241,7 @@ module-content string(a module, all-exports all-exports)
 
 -spec-sig-li string(a spec-sig, ctx ctx)
 	rt = a.return-type return-type-and-params-and-specs false, a.params, (), ctx
-	"""<li class="sig"><code class="fun">{a name}</code> {rt}</li>"""
+	"""<li class="sig"><code class="function">{a name}</code> {rt}</li>"""
 
 -return-type-and-params-and-specs string(
 	return-type type-ref,

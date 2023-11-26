@@ -14,7 +14,7 @@ all: clean bin\crow-debug.exe test lint serve
 
 ### test ###
 
-test: unit-test wasm-test crow-unit-tests end-to-end-test
+test: unit-test crow-unit-tests end-to-end-test
 
 unit-test: bin\crow-debug.exe
 	.\bin\crow-debug.exe test
@@ -27,9 +27,6 @@ end-to-end-test: bin\crow.exe
 
 end-to-end-test-overwrite: bin\crow.exe
 	.\bin\crow.exe run test\test-end-to-end.crow -- --overwrite-output
-
-wasm-test: prepare-site
-	node .\test\testWasm.js
 
 ### external dependencies ###
 
@@ -187,7 +184,6 @@ app_src_with_test = $(app_src_no_test) \
 	src\test\testSortUtil.d \
 	src\test\testStack.d \
 	src\test\testSym.d \
-	src\test\testTokens.d \
 	src\test\testUtil.d \
 	src\test\testWriter.d
 other_deps = bin\d-imports\date.txt bin\d-imports\commit-hash.txt

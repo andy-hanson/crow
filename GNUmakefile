@@ -18,7 +18,7 @@ debug-dmd: bin/crow-dmd
 
 ### test ###
 
-test: unit-test wasm-test crow-unit-tests end-to-end-test
+test: unit-test crow-unit-tests end-to-end-test
 
 unit-test: bin/crow-debug
 	./bin/crow-debug test
@@ -31,9 +31,6 @@ end-to-end-test: bin/crow
 
 end-to-end-test-overwrite: bin/crow
 	./bin/crow run test/test-end-to-end.crow -- --overwrite-output
-
-wasm-test: prepare-site
-	./test/testWasm.js
 
 ### external dependencies ###
 

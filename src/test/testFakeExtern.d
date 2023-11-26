@@ -4,7 +4,8 @@ module test.testFakeExtern;
 
 import interpret.extern_ :
 	DynCallType, DynCallSig, Extern, ExternFunPtrsForAllLibraries, ExternFunPtrsForLibrary, FunPtr;
-import interpret.fakeExtern : Pipe, unreachableWriteCb, withFakeExtern, WriteCb;
+import interpret.fakeExtern : unreachableWriteCb, withFakeExtern, WriteCb;
+import lib.lsp.lspTypes : Pipe;
 import model.lowModel : ExternLibrary;
 import test.testUtil : Test;
 import util.col.map : mustGetAt;

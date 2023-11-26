@@ -7,7 +7,7 @@ import app.dyncall : withRealExtern;
 import app.fileSystem : getCwd, getPathToThisExecutable, stdin, stdout, tryReadFile, withUriOrTemp, writeFile;
 import lib.lsp.lspParse : parseLspInMessage;
 import lib.lsp.lspToJson : jsonOfLspOutMessage;
-import lib.lsp.lspTypes : LspInMessage, LspOutMessage;
+import lib.lsp.lspTypes : LspInMessage, LspOutAction, LspOutMessage, SemanticTokensParams, TextDocumentIdentifier;
 import core.stdc.stdio : fflush, printf, fgets, fread;
 import core.stdc.stdlib : free, malloc;
 
@@ -36,7 +36,6 @@ import lib.server :
 	handleLspMessage,
 	justParseEverything,
 	justTypeCheck,
-	LspOutAction,
 	printAst,
 	printConcreteModel,
 	printIde,
@@ -132,9 +131,7 @@ private:
 	assert(n == contentLength);
 	buffer[n] = '\0';
 
-	Json json = mustParseJson(alloc, allSymbols, SafeCStr(cast(immutable) buffer.ptr));
-	LspInMessage res = parseLspInMessage(alloc, allUris, json);
-	return res;
+	return parseLspInMessage(alloc, allUris, mustParseJson(alloc, allSymbols, SafeCStr(cast(immutable) buffer.ptr)));
 }
 
 @trusted void writeOut(ref Alloc alloc, in AllSymbols allSymbols, in Json contentJson) {
@@ -256,7 +253,7 @@ ExitCode doPrint(scope ref Perf perf, ref Alloc alloc, ref Server server, in Com
 	DiagsAndResultJson printed = command.kind.matchImpure!DiagsAndResultJson(
 		(in PrintKind.Tokens) {
 			loadSingleFile(perf, server, mainUri);
-			return printTokens(perf, alloc, server, mainUri);
+			return printTokens(perf, alloc, server, SemanticTokensParams(TextDocumentIdentifier(mainUri)));
 		},
 		(in PrintKind.Ast) {
 			loadSingleFile(perf, server, mainUri);

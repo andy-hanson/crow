@@ -156,17 +156,17 @@
 <section>
 	<h2>Extern types</h2>
 	<p>
-		Notice that <code class="struct">regmatch_t</code> is marked
+		Notice that <code class="type">regmatch_t</code> is marked
 		<code class="keyword">extern</code>.
 		This is required to use the type in an <code class="keyword">extern</code> function.
 		<br />
 		Otherwise, Crow would be free to layout the type any way it wants.
 	</p>
 	<p>
-		Basic types like <code class="struct">nat64</code> that have C equivalents
+		Basic types like <code class="type">nat64</code> that have C equivalents
 		are all <code class="keyword">extern</code>.
 		<br />
-		<code class="struct">string</code> is not.
+		<code class="type">string</code> is not.
 	</p>
 
 	<aside class="small">
@@ -177,10 +177,10 @@
 	<aside class="danger">
 		<h4>C equivalent types</h4>
 		<p>
-			In Crow, <code class="struct">int</code> always means <code class="struct">int64</code> on all systems.
+			In Crow, <code class="type">int</code> always means <code class="type">int64</code> on all systems.
 			<br />
 			This is not the case in C, so when declaring a C function,
-			use an alias from {{doc/c-types}} like <code class="struct">c-int</code>.
+			use an alias from {{doc/c-types}} like <code class="type">c-int</code>.
 		</p>
 	</aside>
 </section>
@@ -219,7 +219,7 @@
 		Notice how all functions are imported unconditionally.
 		Importing a function does <em>not</em> cause it to be included in the compilation.
 		<br />
-		Crow chooses what functions to include by starting with <code class="fun">main</code>,
+		Crow chooses what functions to include by starting with <code class="function">main</code>,
 		then repeatedly adding any function called by an included function.
 		<br />
 		If a function call is in the unused branch of a version check like <code>if is-windows</code>,

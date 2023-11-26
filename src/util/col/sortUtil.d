@@ -3,7 +3,6 @@ module util.col.sortUtil;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty;
 import util.col.arrUtil : everyWithIndex, map;
 import util.comparison : Comparer, Comparison;
 import util.opt : force, has, none, Opt, some;
@@ -118,28 +117,9 @@ void eachSorted(K, A0, A1, A2, A3, A4)(
 		!has(getComparable(indexOfList))));
 }
 
-private void verifySorted(T)(in T[] xs, in Comparer!T comparer) {
+private:
+
+void verifySorted(T)(in T[] xs, in Comparer!T comparer) {
 	foreach (size_t i; 1 .. xs.length)
 		verify(comparer(xs[i - 1], xs[i]) != Comparison.greater);
-}
-
-immutable struct UnsortedPair {
-	size_t index0;
-	size_t index1;
-}
-
-// Returns index of lower value
-Opt!UnsortedPair findUnsortedPair(T)(in T[] a, Comparer!T compare) {
-	if (!empty(a)) {
-		foreach (size_t i; 0 .. a.length - 1) {
-			final switch (compare(a[i], a[i + 1])) {
-				case Comparison.less:
-				case Comparison.equal:
-					break;
-				case Comparison.greater:
-					return some(UnsortedPair(i, i + 1));
-			}
-		}
-	}
-	return none!UnsortedPair;
 }

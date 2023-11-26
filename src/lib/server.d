@@ -12,7 +12,7 @@ import frontend.ide.getHover : getHover;
 import frontend.ide.getPosition : getPosition;
 import frontend.ide.getRename : getRenameForPosition;
 import frontend.ide.getReferences : getReferencesForPosition;
-import frontend.ide.getTokens : jsonOfTokens, Token, tokensOfAst;
+import frontend.ide.getTokens : tokensOfAst;
 import frontend.ide.position : Position;
 import frontend.lang : crowExtension;
 import frontend.parse.ast : fileAstForReadFileDiag, FileAst;
@@ -27,7 +27,6 @@ import frontend.storage :
 	FileContent,
 	FilesState,
 	filesState,
-	getFileNoMarkUnknown,
 	getParsedOrDiag,
 	LineAndColumnGetters,
 	ParseResult,
@@ -37,11 +36,11 @@ import frontend.storage :
 	toLineAndCharacter;
 import interpret.bytecode : ByteCode;
 import interpret.extern_ : Extern, ExternFunPtrsForAllLibraries, WriteError;
-import interpret.fakeExtern : Pipe, withFakeExtern, WriteCb;
+import interpret.fakeExtern : withFakeExtern, WriteCb;
 import interpret.generateBytecode : generateBytecode;
 import interpret.runBytecode : runBytecode;
 import lib.cliParser : PrintKind;
-import lib.lsp.lspToJson : jsonOfHover, jsonOfReferences, jsonOfRename;
+import lib.lsp.lspToJson : jsonOfHover, jsonOfReferences, jsonOfRename, jsonOfSemanticTokens;
 import lib.lsp.lspTypes :
 	DefinitionParams,
 	DidChangeTextDocumentParams,
@@ -59,16 +58,22 @@ import lib.lsp.lspTypes :
 	LspInNotification,
 	LspInRequest,
 	LspInRequestParams,
+	LspOutAction,
 	LspOutMessage,
 	LspOutNotification,
 	LspOutResponse,
 	LspOutResult,
+	Pipe,
 	PublishDiagnosticsParams,
 	ReadFileResultParams,
 	ReadFileResultType,
 	ReferenceParams,
 	RegisterCapability,
 	RenameParams,
+	RunParams,
+	RunResult,
+	SemanticTokens,
+	SemanticTokensParams,
 	SetTraceParams,
 	ShutdownParams,
 	TextDocumentContentChangeEvent,
@@ -77,7 +82,8 @@ import lib.lsp.lspTypes :
 	UnloadedUris,
 	UnloadedUrisParams,
 	UnknownUris,
-	WorkspaceEdit;
+	WorkspaceEdit,
+	Write;
 import lower.lower : lower;
 import model.concreteModel : ConcreteProgram;
 import model.diag : Diagnostic, DiagnosticSeverity, ReadFileDiag;
@@ -88,8 +94,9 @@ import model.lowModel : ExternLibraries, LowProgram;
 import model.model : fakeProgramForAst, hasFatalDiagnostics, Module, Program;
 import util.alloc.alloc : Alloc, freeElements, MetaAlloc, newAlloc;
 import util.col.arr : only;
+import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrLiteral, concatenate, contains, map, mapOp;
-import util.col.str : copyToSafeCStr, SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
+import util.col.str : copyStr, copyToSafeCStr, SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
 import util.exitCode : ExitCode;
 import util.json : Json;
 import util.late : Late, lateGet, lateSet;
@@ -99,23 +106,10 @@ import util.perf : Perf;
 import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
 import util.sourceRange : UriAndRange;
 import util.sym : AllSymbols;
-import util.uri : AllUris, getExtension, parseUri, Uri, UrisInfo;
-import util.util : typeAs, verify;
+import util.uri : AllUris, getExtension, Uri, UrisInfo;
+import util.util : verify;
 import util.writer : withWriter, Writer;
 import versionInfo : VersionInfo, versionInfoForBuildToC, versionInfoForInterpret;
-
-ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri main, in WriteCb writeCb) {
-	// TODO: use an arena so anything allocated during interpretation is cleaned up.
-	// Or just have interpreter free things.
-	SafeCStr[1] allArgs = [safeCStr!"/usr/bin/fakeExecutable"];
-	return withFakeExtern(alloc, server.allSymbols, writeCb, (scope ref Extern extern_) =>
-		buildAndInterpret(
-			perf, alloc, server, extern_,
-			(in SafeCStr x) {
-				writeCb(Pipe.stderr, strOfSafeCStr(x));
-			},
-			main, allArgs));
-}
 
 ExitCode buildAndInterpret(
 	scope ref Perf perf,
@@ -148,6 +142,62 @@ ExitCode buildAndInterpret(
 			return ExitCode.error;
 		}
 	}
+}
+
+LspOutAction handleLspMessage(scope ref Perf perf, ref Alloc alloc, ref Server server, in LspInMessage message) =>
+	message.matchImpure!LspOutAction(
+		(in LspInNotification x) =>
+			handleLspNotification(perf, alloc, server, x),
+		(in LspInRequest x) =>
+			LspOutAction(
+				arrLiteral!LspOutMessage(alloc, [
+					LspOutMessage(LspOutResponse(x.id, handleLspRequest(perf, alloc, server, x.params)))]),
+				none!ExitCode));
+
+private LspOutResult handleLspRequest(
+	scope ref Perf perf,
+	ref Alloc alloc,
+	ref Server server,
+	in LspInRequestParams a,
+) =>
+	a.matchImpure!LspOutResult(
+		(in DefinitionParams x) =>
+			LspOutResult(getDefinitionForProgram(
+				alloc, server, getProgram(perf, alloc, server, [x.params.textDocument.uri]), x)),
+		(in HoverParams x) =>
+			LspOutResult(getHoverForProgram(
+				alloc, server, getProgram(perf, alloc, server, [x.params.textDocument.uri]), x)),
+		(in InitializeParams x) =>
+			LspOutResult(InitializeResult()),
+		(in ReferenceParams x) =>
+			LspOutResult(getReferencesForProgram(alloc, server, getProgramForReferences(perf, alloc, server), x)),
+		(in RenameParams x) =>
+			LspOutResult(getRenameForProgram(alloc, server, getProgramForReferences(perf, alloc, server), x)),
+		(in RunParams x) {
+			ArrBuilder!Write writes;
+			ExitCode exitCode = run(perf, alloc, server, x.uri, (Pipe pipe, in string x) {
+				add(alloc, writes, Write(pipe, copyStr(alloc, x)));
+			});
+			return LspOutResult(RunResult(exitCode, finishArr(alloc, writes)));
+		},
+		(in SemanticTokensParams x) =>
+			LspOutResult(getTokens(perf, alloc, server, x)),
+		(in ShutdownParams _) =>
+			LspOutResult(LspOutResult.Null()),
+		(in UnloadedUrisParams) =>
+			LspOutResult(UnloadedUris(allUnloadedUris(alloc, server))));
+
+private ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri main, in WriteCb writeCb) {
+	// TODO: use an arena so anything allocated during interpretation is cleaned up.
+	// Or just have interpreter free things.
+	SafeCStr[1] allArgs = [safeCStr!"/usr/bin/fakeExecutable"];
+	return withFakeExtern(alloc, server.allSymbols, writeCb, (scope ref Extern extern_) =>
+		buildAndInterpret(
+			perf, alloc, server, extern_,
+			(in SafeCStr x) {
+				writeCb(Pipe.stderr, strOfSafeCStr(x));
+			},
+			main, allArgs));
 }
 
 pure:
@@ -247,9 +297,6 @@ void changeFile(scope ref Perf perf, ref Server server, Uri uri, in TextDocument
 	changeFile(perf, server.storage, uri, changes);
 }
 
-Opt!FileContent getFile(return in Server server, Uri uri) =>
-	getFileNoMarkUnknown(castNonScope_ref(server.storage), uri);
-
 FilesState filesState(in Server server) =>
 	filesState(server.storage);
 
@@ -293,13 +340,16 @@ private Program frontendCompile(
 ) =>
 	frontendCompile(perf, alloc, server.allSymbols, server.allUris, server.storage, server.includeDir, rootUris, main);
 
-Token[] getTokens(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri uri) {
+private SemanticTokens getTokens(
+	scope ref Perf perf,
+	ref Alloc alloc,
+	ref Server server,
+	in SemanticTokensParams params,
+) {
+	Uri uri = params.textDocument.uri;
 	verify(getExtension(server.allUris, uri) == crowExtension);
-	return getParsedOrDiag(server.storage, uri).match!(Token[])(
-		(ParseResult x) =>
-			tokensOfAst(alloc, server.allSymbols, server.allUris, *x.as!(FileAst*)),
-		(ReadFileDiag _) =>
-			typeAs!(Token[])([]));
+	FileAst* ast = getParsedOrDiag(server.storage, uri).as!ParseResult.as!(FileAst*);
+	return tokensOfAst(alloc, server.allSymbols, server.allUris, server.lineAndColumnGetters[uri], *ast);
 }
 
 private UriAndRange[] getDefinitionForProgram(
@@ -364,9 +414,6 @@ private Opt!Position getPosition(scope ref Server server, in Program program, in
 		: none!Position;
 }
 
-Uri toUri(ref Server server, in SafeCStr uri) =>
-	parseUri(server.allUris, uri);
-
 struct DiagsAndResultJson {
 	SafeCStr diagnostics;
 	Json result;
@@ -380,12 +427,14 @@ private DiagsAndResultJson diagsAndResultJson(
 ) =>
 	DiagsAndResultJson(showDiagnostics(alloc, server, program), result);
 
-DiagsAndResultJson printTokens(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri uri) {
-	FileAst* ast = getAst(alloc, server.storage, uri);
-	Json json = jsonOfTokens(
-		alloc, server.lineAndColumnGetters[uri], tokensOfAst(alloc, server.allSymbols, server.allUris, *ast));
-	return diagsAndResultJson(alloc, server, fakeProgramForAst(alloc, uri, ast), json);
-}
+DiagsAndResultJson printTokens(
+	scope ref Perf perf,
+	ref Alloc alloc,
+	ref Server server,
+	in SemanticTokensParams params,
+) =>
+	// TODO: decode it?
+	DiagsAndResultJson(safeCStr!"", jsonOfSemanticTokens(alloc, getTokens(perf, alloc, server, params)));
 
 DiagsAndResultJson printAst(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri uri) {
 	FileAst* ast = getAst(alloc, server.storage, uri);
@@ -512,21 +561,6 @@ BuildToCResult buildToC(scope ref Perf perf, ref Alloc alloc, ref Server server,
 		has(programs.lowProgram) ? force(programs.lowProgram).externLibraries : []);
 }
 
-immutable struct LspOutAction {
-	LspOutMessage[] outMessages;
-	Opt!ExitCode exitCode;
-}
-
-LspOutAction handleLspMessage(scope ref Perf perf, ref Alloc alloc, ref Server server, in LspInMessage message) =>
-	message.matchIn!LspOutAction(
-		(in LspInNotification x) =>
-			handleLspNotification(perf, alloc, server, x),
-		(in LspInRequest x) =>
-			LspOutAction(
-				arrLiteral!LspOutMessage(alloc, [
-					LspOutMessage(LspOutResponse(x.id, handleLspRequest(perf, alloc, server, x.params)))]),
-				none!ExitCode));
-
 private:
 
 ShowCtx getShowDiagCtx(return scope ref const Server server, return scope ref Program program) =>
@@ -563,25 +597,6 @@ LspOutAction handleLspNotification(scope ref Perf perf, ref Alloc alloc, ref Ser
 		(in SetTraceParams _) =>
 			// TODO: implement this
 			LspOutAction([]));
-
-LspOutResult handleLspRequest(scope ref Perf perf, ref Alloc alloc, ref Server server, in LspInRequestParams a) =>
-	a.matchIn!LspOutResult(
-		(in DefinitionParams x) =>
-			LspOutResult(getDefinitionForProgram(
-				alloc, server, getProgram(perf, alloc, server, [x.params.textDocument.uri]), x)),
-		(in HoverParams x) =>
-			LspOutResult(getHoverForProgram(
-				alloc, server, getProgram(perf, alloc, server, [x.params.textDocument.uri]), x)),
-		(in InitializeParams x) =>
-			LspOutResult(InitializeResult()),
-		(in ReferenceParams x) =>
-			LspOutResult(getReferencesForProgram(alloc, server, getProgramForReferences(perf, alloc, server), x)),
-		(in RenameParams x) =>
-			LspOutResult(getRenameForProgram(alloc, server, getProgramForReferences(perf, alloc, server), x)),
-		(in ShutdownParams _) =>
-			LspOutResult(LspOutResult.Null()),
-		(in UnloadedUrisParams) =>
-			LspOutResult(UnloadedUris(allUnloadedUris(alloc, server))));
 
 ReadFileDiag readFileDiagOfReadFileResultType(ReadFileResultType a) {
 	final switch (a) {
@@ -657,6 +672,7 @@ LspOutAction initializedAction(ref Alloc alloc) =>
 		register("textDocument/hover"),
 		register("textDocument/rename"),
 		register("textDocument/references"),
+		register("textDocument/semanticTokens/full"),
 	]));
 
 LspOutMessage register(string method) =>

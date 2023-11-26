@@ -19,6 +19,8 @@ import lib.lsp.lspTypes :
 	ReadFileResultType,
 	ReferenceParams,
 	RenameParams,
+	RunParams,
+	SemanticTokensParams,
 	SetTraceParams,
 	ShutdownParams,
 	TextDocumentContentChangeEvent,
@@ -37,18 +39,22 @@ import util.uri : AllUris, parseUri, Uri;
 import util.util : verifyFail;
 
 // If extending this, remember to modify 'initializeCapabilities'
-LspInMessage parseLspInMessage(ref Alloc alloc, scope ref AllUris allUris, in Json a) {
+LspInMessage parseLspInMessage(ref Alloc alloc, scope ref AllUris allUris, in Json message) {
 	LspInMessage notification(T)(T res) =>
 		LspInMessage(LspInNotification(res));
 	LspInMessage request(T)(T res) =>
-		LspInMessage(LspInRequest(asUint(get!"id"(a)), LspInRequestParams(res)));
+		LspInMessage(LspInRequest(asUint(get!"id"(message)), LspInRequestParams(res)));
 
-	Json params = get!"params"(a);
-	switch (get!"method"(a).as!string) {
+	Json params = get!"params"(message);
+	switch (get!"method"(message).as!string) {
 		case "$/setTrace":
 			return notification(SetTraceParams(parseTraceValue(get!"value"(params).as!string)));
 		case "custom/readFileResult":
-			return notification(parseReadFileResultParams(allUris, params));
+			return notification(ReadFileResultParams(
+				parseUriProperty(allUris, params),
+				toReadFileResponseType(get!"type"(params).as!string)));
+		case "custom/run":
+			return request(RunParams(parseUriProperty(allUris, params)));
 		case "custom/unloadedUris":
 			return request(UnloadedUrisParams());
 		case "exit":
@@ -62,19 +68,23 @@ LspInMessage parseLspInMessage(ref Alloc alloc, scope ref AllUris allUris, in Js
 		case "shutdown":
 			return request(ShutdownParams());
 		case "textDocument/definition":
-			return request(parseDefinitionParams(alloc, allUris, params));
+			return request(DefinitionParams(parseTextDocumentPositionParams(alloc, allUris, params)));
 		case "textDocument/didChange":
 			return notification(parseDidChangeTextDocumentParams(alloc, allUris, params));
 		case "textDocument/didClose":
 			return notification(DidCloseTextDocumentParams());
 		case "textDocument/didOpen":
-			return notification(parseDidOpenTextDocumentParams(allUris, params));
+			return notification(DidOpenTextDocumentParams(parseTextDocumentItem(allUris, get!"textDocument"(params))));
 		case "textDocument/hover":
-			return request(parseHoverParams(alloc, allUris, params));
+			return request(HoverParams(parseTextDocumentPositionParams(alloc, allUris, params)));
 		case "textDocument/references":
-			return request(parseReferenceParams(alloc, allUris, params));
+			return request(ReferenceParams(parseTextDocumentPositionParams(alloc, allUris, params)));
 		case "textDocument/rename":
-			return request(parseRenameParams(alloc, allUris, params));
+			return request(RenameParams(
+				parseTextDocumentPositionParams(alloc, allUris, params),
+				get!"newName"(params).as!string));
+		case "textDocument/semanticTokens/full":
+			return request(SemanticTokensParams(parseTextDocumentIdentifier(allUris, get!"textDocument"(params))));
 		default:
 			verifyFail();
 			assert(false);
@@ -100,12 +110,6 @@ DidChangeTextDocumentParams parseDidChangeTextDocumentParams(ref Alloc alloc, sc
 		parseList!TextDocumentContentChangeEvent(alloc, get!"contentChanges"(a), (in Json x) =>
 			parseTextDocumentContentChangeEvent(alloc, x)));
 
-DidOpenTextDocumentParams parseDidOpenTextDocumentParams(scope ref AllUris allUris, in Json a) =>
-	DidOpenTextDocumentParams(parseTextDocumentItem(allUris, get!"textDocument"(a)));
-
-ReadFileResultParams parseReadFileResultParams(scope ref AllUris allUris, in Json a) =>
-	ReadFileResultParams(parseUriProperty(allUris, a), toReadFileResponseType(get!"type"(a).as!string));
-
 ReadFileResultType toReadFileResponseType(in string a) {
 	final switch (a) {
 		case "notFound":
@@ -114,17 +118,6 @@ ReadFileResultType toReadFileResponseType(in string a) {
 			return ReadFileResultType.error;
 	}
 }
-
-DefinitionParams parseDefinitionParams(ref Alloc alloc, scope ref AllUris allUris, in Json a) =>
-	DefinitionParams(parseTextDocumentPositionParams(alloc, allUris, a));
-HoverParams parseHoverParams(ref Alloc alloc, scope ref AllUris allUris, in Json a) =>
-	HoverParams(parseTextDocumentPositionParams(alloc, allUris, a));
-RenameParams parseRenameParams(ref Alloc alloc, scope ref AllUris allUris, in Json a) =>
-	RenameParams(
-		parseTextDocumentPositionParams(alloc, allUris, a),
-		get!"newName"(a).as!string);
-ReferenceParams parseReferenceParams(ref Alloc alloc, scope ref AllUris allUris, in Json a) =>
-	ReferenceParams(parseTextDocumentPositionParams(alloc, allUris, a));
 
 TextDocumentItem parseTextDocumentItem(scope ref AllUris allUris, in Json a) =>
 	TextDocumentItem(parseUriProperty(allUris, a), parseTextProperty(a));

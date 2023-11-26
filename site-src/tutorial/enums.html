@@ -33,8 +33,8 @@
 	<p>
 		<code class="keyword">match</code> expressions work the same for enums as they do for unions.
 		<br />
-		Also as with a union, declaring the enum generates functions <code class="fun">left</code>
-		and <code class="fun">right</code> returning enum values.
+		Also as with a union, declaring the enum generates functions <code class="function">left</code>
+		and <code class="function">right</code> returning enum values.
 		<br />
 		The similarity makes it easy to change an enum to union (or vice versa) without breaking too much code.
 	</p>
@@ -42,10 +42,10 @@
 <section>
 	<h2>Conversion</h2>
 	<p>
-		Enums automatically support conversion to <code class="struct">nat32</code>,
-		<code class="struct">symbol</code>, or <code class="struct">string</code>.
+		Enums automatically support conversion to <code class="type">nat32</code>,
+		<code class="type">symbol</code>, or <code class="type">string</code>.
 		<br />
-		You can also convert from a <code class="struct">symbol</code> or <code class="struct">string</code>,
+		You can also convert from a <code class="type">symbol</code> or <code class="type">string</code>,
 		which returns an option of the enum.
 	</p>
 
@@ -75,9 +75,9 @@
 <section>
 	<h2>Custom integer representation</h2>
 	<p>
-		By default, enums are stored as a <code class="struct">nat32</code>,
-		but you can make it a different size of <code class="struct">nat</code>,
-		or even an <code class="struct">int</code>.
+		By default, enums are stored as a <code class="type">nat32</code>,
+		but you can make it a different size of <code class="type">nat</code>,
+		or even an <code class="type">int</code>.
 	</p>
 
 	<crow-runnable>
@@ -90,7 +90,7 @@
 	</crow-runnable>
 
 	<aside class="small">
-		The generated <code class="fun">to</code> function's return type is the specified representation type.
+		The generated <code class="function">to</code> function's return type is the specified representation type.
 	</aside>
 
 	<p>
@@ -148,12 +148,12 @@
 	</crow-runnable>
 
 	<aside class="small">
-		This calls <code class="fun">is-in</code> from {{doc/flags-util}}.
+		This calls <code class="function">is-in</code> from {{doc/flags-util}}.
 	</aside>
 
 	<p>
-		Declaring a <code class="keyword">flags</code> type declares a function <code class="fun">|</code>
-		that gets the union of flags and <code class="fun">&</code> that gets the intersection.
+		Declaring a <code class="keyword">flags</code> type declares a function <code class="function">|</code>
+		that gets the union of flags and <code class="function">&</code> that gets the intersection.
 	</p>
 
 	<p>

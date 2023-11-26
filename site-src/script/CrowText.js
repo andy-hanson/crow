@@ -1,3 +1,4 @@
+import { Diagnostic, LineAndCharacter } from "./crow.js"
 import { MutableObservable, Observable } from "./util/MutableObservable.js"
 import {
 	assert, createDiv, createNode, createSpan, makeDebouncer, nonNull, removeAllChildren, setStyleSheet,
@@ -7,15 +8,26 @@ const lineHeightPx = 20
 const tab_size = 4
 
 /**
+@typedef Token
+@property {number} line
+@property {number} character
+@property {number} length
+@property {string} type
+@property {ReadonlyArray<string>} modifiers
+*/
+export const Token = null
+
+
+/**
  * @typedef TokensAndDiagnostics
- * @property {ReadonlyArray<crow.Token>} tokens
- * @property {ReadonlyArray<crow.Diagnostic>} diagnostics
+ * @property {ReadonlyArray<Token>} tokens
+ * @property {ReadonlyArray<Diagnostic>} diagnostics
  */
 export const TokensAndDiagnostics = null
 
 /**
  * @typedef CrowTextProps
- * @property {function(crow.LineAndCharacter): string} getHover
+ * @property {function(LineAndCharacter): string} getHover
  * @property {Observable<TokensAndDiagnostics>} tokensAndDiagnostics
  * @property {MutableObservable<string>} text
  */
@@ -86,21 +98,21 @@ textarea {
 	font-family: "hack";
 }
 .no-token { font-weight: light; color: #aaa; }
+
+.declaration { font-weight: bold; }
+.function { color: #78dce8; }
+.interface { color: #a9dc76; }
 .keyword { font-weight: bold; color: #ff6188; }
-.identifier { color: #ffebbd; }
-.import { color: #ff6188; }
 .modifier { color: #ff6188; }
-.fun { color: #78dce8; }
-.struct { color: #ab9df2; }
-.type-param { color: #fc9867; }
-.spec { color: #a9dc76; }
-.param { color: #ffebbd; }
-.local { bold; color: #ffebbd; }
-.var-decl { color: #ffebbd; }
-.lit-num { color: #ffd866; }
-.lit-str { color: #ffd866; }
-.member { color: #fc9867; }
 .name { color: green; }
+.namespace { color: #ff6188; }
+.number { color: #ffd866; }
+.parameter { color: #ffebbd; }
+.string { color: #ffd866; }
+.type { color: #ab9df2; }
+.type-param { color: #fc9867; }
+.variable { color: #ffebbd; }
+
 .diag {
 	position: relative;
 	border-bottom: 0.2em dotted #e87878;
@@ -271,8 +283,8 @@ const countLeadingTabs = s => {
 
 
 /** @type {function(TokensAndDiagnostics, Node, string): void} */
-const highlight = ({tokens, diagnostics}, highlightDiv, v) => {
-	const nodes = tokensAndDiagsToNodes(tokens, diagnostics, v)
+const highlight = (td, highlightDiv, text) => {
+	const nodes = tokensAndDiagsToNodes(td, text)
 	removeAllChildren(highlightDiv)
 	for (const node of nodes)
 		highlightDiv.appendChild(node)
@@ -302,7 +314,7 @@ const createDiagSpan = (message, children) =>
  * @typedef DiagContainer
  * @property {"diag"} type
  * @property {Array<Node>} children
- * @property {crow.LineAndCharacter} end
+ * @property {LineAndCharacter} end
  * @property {string} message
  */
 
@@ -321,10 +333,10 @@ const createDiagSpan = (message, children) =>
  * @typedef {Container | TextContainer} SomeContainer
  */
 
-/** @type {function(ReadonlyArray<crow.Token>, ReadonlyArray<crow.Diagnostic>, string): ReadonlyArray<Node>} */
-const tokensAndDiagsToNodes = (tokens, diags, text) => {
+/** @type {function(TokensAndDiagnostics, string): ReadonlyArray<Node>} */
+const tokensAndDiagsToNodes = ({tokens, diagnostics}, text) => {
 	const lines = text.split('\n')
-	/** @type {crow.LineAndCharacter} */
+	/** @type {LineAndCharacter} */
 	let pos = {line:0, character:0}
 	// Last entry is the most nested container
 	/** @type {Array<SomeContainer>} */
@@ -373,8 +385,8 @@ const tokensAndDiagsToNodes = (tokens, diags, text) => {
 
 	/** @type {function(): boolean} */
 	const maybeStartDiag = () => {
-		if (diagIndex < diags.length) {
-			const {message, range:{start, end}} = nonNull(diags[diagIndex])
+		if (diagIndex < diagnostics.length) {
+			const {message, range:{start, end}} = nonNull(diagnostics[diagIndex])
 			if (less(start, pos)) {
 				// Ignore nested diags
 				if (last(containerStack).type !== "diag") {
@@ -402,13 +414,13 @@ const tokensAndDiagsToNodes = (tokens, diags, text) => {
 	}
 
 
-	/** @type {function(crow.LineAndCharacter): HTMLSpanElement} */
+	/** @type {function(LineAndCharacter): HTMLSpanElement} */
 	const noTokenNode = startPos => {
 		assert(less(startPos, pos))
 		return createSpan({ className: "no-token", children: [sliceLine(lines, startPos, pos)] })
 	}
 
-	/** @type {function(crow.LineAndCharacter): void} */
+	/** @type {function(LineAndCharacter): void} */
 	const walkTo = end => {
 		let startPos = pos
 		while (less(pos, end)) {
@@ -433,7 +445,7 @@ const tokensAndDiagsToNodes = (tokens, diags, text) => {
 			last(containerStack).children.push(noTokenNode(startPos))
 	}
 
-	/** @type {function(string, crow.LineAndCharacter): void} */
+	/** @type {function(string, LineAndCharacter): void} */
 	const addSpan = (className, end) => {
 		assert(lessOrEqual(pos, end))
 		// Ignore empty spans, they can happen when there are parse errors
@@ -451,10 +463,10 @@ const tokensAndDiagsToNodes = (tokens, diags, text) => {
 	startLine()
 
 	let diagIndex = 0
-	for (const {token, range:{start, end}} of tokens) {
-		walkTo(start)
+	for (const {type, modifiers, line, character, length} of tokens) {
+		walkTo({line, character})
 		maybeStartDiag()
-		addSpan(token, end)
+		addSpan([type, ...modifiers].join(' '), {line, character:character + length})
 		maybeStopDiag()
 	}
 
@@ -464,7 +476,7 @@ const tokensAndDiagsToNodes = (tokens, diags, text) => {
 	return nonNull(containerStack[0]).children
 }
 
-/** @type {function(ReadonlyArray<string>, crow.LineAndCharacter, crow.LineAndCharacter): ReadonlyArray<string>} */
+/** @type {function(ReadonlyArray<string>, LineAndCharacter, LineAndCharacter): ReadonlyArray<string>} */
 const sliceLines = (lines, start, end) =>
 	start.line === end.line
 		? [sliceLine(lines, start, end)]
@@ -474,7 +486,7 @@ const sliceLines = (lines, start, end) =>
 			sliceLine(lines, null, end),
 		]
 
-/** @type {function(ReadonlyArray<string>, crow.LineAndCharacter | null, crow.LineAndCharacter | null): string} */
+/** @type {function(ReadonlyArray<string>, LineAndCharacter | null, LineAndCharacter | null): string} */
 const sliceLine = (lines, start, end) => {
 	assert(start === null || end === null || start.line === end.line)
 	if (start !== null) {
@@ -489,27 +501,27 @@ const sliceLine = (lines, start, end) => {
 	}
 }
 
-/** @type {function(crow.LineAndCharacter, crow.LineAndCharacter): boolean} */
+/** @type {function(LineAndCharacter, LineAndCharacter): boolean} */
 const less = (a, b) =>
 	a.line < b.line ? true :
 	b.line < a.line ? false :
 	a.character < b.character;
 
-/** @type {function(crow.LineAndCharacter, crow.LineAndCharacter): boolean} */
+/** @type {function(LineAndCharacter, LineAndCharacter): boolean} */
 const equal = (a, b) =>
 	a.line === b.line && a.character === b.character
 
-/** @type {function(crow.LineAndCharacter, crow.LineAndCharacter): boolean} */
+/** @type {function(LineAndCharacter, LineAndCharacter): boolean} */
 const lessOrEqual = (a, b) =>
 	less(a, b) || equal(a, b)
 
-/** @type {function(ReadonlyArray<string>, crow.LineAndCharacter): crow.LineAndCharacter} */
+/** @type {function(ReadonlyArray<string>, LineAndCharacter): LineAndCharacter} */
 const nextPosition = (lines, pos) =>
 	pos.character >= nonNull(lines[pos.line]).length
 		? {line:pos.line + 1, character:0}
 		: {line:pos.line, character:pos.character + 1}
 
-/** @type {function(ReadonlyArray<string>): crow.LineAndCharacter} */
+/** @type {function(ReadonlyArray<string>): LineAndCharacter} */
 const lastPosition = lines =>
 	({line:lines.length - 1, character:last(lines).length})
 

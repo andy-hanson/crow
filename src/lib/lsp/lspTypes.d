@@ -5,6 +5,7 @@ module lib.lsp.lspTypes;
 
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/
 
+import util.exitCode : ExitCode;
 import util.lineAndColumnGetter : LineAndCharacter, LineAndCharacterRange;
 import util.col.str : SafeCStr;
 import util.col.multiMap : MultiMap;
@@ -45,8 +46,15 @@ immutable struct LspInRequestParams {
 		InitializeParams,
 		ReferenceParams,
 		RenameParams,
+		RunParams,
+		SemanticTokensParams,
 		ShutdownParams,
 		UnloadedUrisParams);
+}
+
+immutable struct LspOutAction {
+	LspOutMessage[] outMessages;
+	Opt!ExitCode exitCode;
 }
 
 immutable struct LspOutMessage {
@@ -67,6 +75,8 @@ immutable struct LspOutResult {
 	mixin Union!(
 		InitializeResult,
 		Opt!Hover,
+		RunResult,
+		SemanticTokens,
 		UnloadedUris,
 		UriAndRange[], // for definition or references
 		Opt!WorkspaceEdit, // for rename
@@ -98,6 +108,20 @@ immutable struct ReadFileResultParams {
 	ReadFileResultType type;
 }
 enum ReadFileResultType { notFound, error }
+// Parameter to "custom/run"
+immutable struct RunParams {
+	Uri uri;
+}
+immutable struct RunResult {
+	ExitCode exitCode;
+	Write[] writes;
+}
+immutable struct Write {
+	Pipe pipe;
+	string text;
+}
+enum Pipe { stdout, stderr }
+
 // Parameter to "custom/unloadedUris"
 immutable struct UnloadedUrisParams {}
 immutable struct UnloadedUris {
@@ -185,6 +209,10 @@ immutable struct ReferenceParams {
 	TextDocumentPositionParams params;
 }
 
+immutable struct SemanticTokensParams {
+	TextDocumentIdentifier textDocument;
+}
+
 immutable struct TextDocumentIdentifier {
 	Uri uri;
 }
@@ -196,4 +224,8 @@ immutable struct WorkspaceEdit {
 immutable struct TextEdit {
 	Range range;
 	string newText;
+}
+
+immutable struct SemanticTokens {
+	uint[] data;
 }

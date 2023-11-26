@@ -2,10 +2,10 @@
 	<h2>Lists</h2>
 
 	<p>
-		<code class="struct">string[]</code> declares a list type.
+		<code class="type">string[]</code> declares a list type.
 		This is an immutable ordered collection of elements.
 		<br />
-		It acts like an array, but concatenation (<code class="fun">~~</code>) is efficient.
+		It acts like an array, but concatenation (<code class="function">~~</code>) is efficient.
 		<br />
 		Some common list operations are:
 	</p>
@@ -49,7 +49,7 @@
 
 	<p>
 		Creating a list uses the same syntax as creating a record,
-		meaning it is calling a function called <code class="fun">new</code>.
+		meaning it is calling a function called <code class="function">new</code>.
 		This function is variadic, meaning it can take any number of arguments.
 	</p>
 
@@ -77,9 +77,9 @@
 <section>
 	<h2>Mutable lists</h2>
 	<p>
-		<code class="struct">string mut[]</code> declares a mutable list.
+		<code class="type">string mut[]</code> declares a mutable list.
 		<br />
-		Use <code class="fun">~=</code> and <code class="fun">~~=</code> to append elements or lists.
+		Use <code class="function">~=</code> and <code class="function">~~=</code> to append elements or lists.
 		(There is no efficient prepend; there is {{doc/col/mut-dequeue}} for that.)
 	</p>
 	<crow-runnable>
@@ -98,8 +98,8 @@
 <section>
 	<h2>Maps</h2>
 	<p>
-		<code class="struct">string[nat]</code> declares a map from
-		<code class="struct">nat</code>s to <code class="struct">string</code>s.
+		<code class="type">string[nat]</code> declares a map from
+		<code class="type">nat</code>s to <code class="type">string</code>s.
 	</p>
 	<crow-runnable>
 		main void()
@@ -109,7 +109,7 @@
 			info log m2[1]!
 	</crow-runnable>
 	<aside class="small">
-		<code>m[1]</code> returns an option, so this used <code class="fun">!</code> to force it.
+		<code>m[1]</code> returns an option, so this used <code class="function">!</code> to force it.
 		<br />
 		Recall from {{tutorial/options}} that this could have used <code>m[1] ?? "not found"</code> instead if
 		we're not sure that the key will exist in the map.
@@ -120,7 +120,7 @@
 <section>
 	<h2>Mutable maps</h2>
 	<p>
-		<code class="struct">string mut[nat]</code> declares a mutable map.
+		<code class="type">string mut[nat]</code> declares a mutable map.
 	</p>
 	<aside class="small">
 		Map keys must be immutable, for both mutable and immutable maps.

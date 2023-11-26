@@ -2,7 +2,7 @@
 	<h2>Throwing exceptions</h2>
 
 	Sometimes a function has no correct return value given its inputs and should throw an exception instead.
-	For example, <code class="fun">+</code> on <code class="struct">nat</code>s will throw an exception if
+	For example, <code class="function">+</code> on <code class="type">nat</code>s will throw an exception if
 	the result is too big to represent.
 
 	There are 3 keywords for throwing exceptions, each having basically the same effect.
@@ -38,7 +38,7 @@
 
 	<p>
 		<code class="keyword">throw</code> throws an exception unconditionally.
-		It takes the error message. This can be any expression of type <code class="struct">string</code>.
+		It takes the error message. This can be any expression of type <code class="type">string</code>.
 	</p>
 	<crow-runnable>
 		main void()
@@ -57,7 +57,7 @@
 	</crow-runnable>
 
 	<p>
-		There is also a helpful function <code class="fun">is</code> for asserting equality.
+		There is also a helpful function <code class="function">is</code> for asserting equality.
 		<br />
 		This acts like <code>assert x == y</code>, but converts arguments to JSON for the error message.
 	</p>
@@ -111,7 +111,7 @@
 
 	<h3>Ensuring code is run</h3>
 	<p>
-		There is also <code class="fun">finally</code>
+		There is also <code class="function">finally</code>
 		to ensure that cleanup code is run even when there is an exception.
 	</p>
 	<crow-runnable>

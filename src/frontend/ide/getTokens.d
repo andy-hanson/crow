@@ -2,6 +2,8 @@ module frontend.ide.getTokens;
 
 @safe @nogc pure nothrow:
 
+import std.traits : EnumMembers, staticMap;
+
 import frontend.parse.ast :
 	ArrowAccessAst,
 	AssertOrForbidAst,
@@ -59,109 +61,201 @@ import frontend.parse.ast :
 	UnlessAst,
 	VarDeclAst,
 	WithAst;
+import lib.lsp.lspTypes : SemanticTokens;
 import model.model : symOfVarKind;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.sortUtil : eachSorted, findUnsortedPair, UnsortedPair;
+import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
+import util.col.sortUtil : eachSorted;
 import util.conv : safeToUint;
-import util.json : field, jsonObject, Json, jsonList;
-import util.lineAndColumnGetter : LineAndColumnGetter;
+import util.json : field, Json;
+import util.lineAndColumnGetter : LineAndCharacter, LineAndCharacterRange, lineAndCharacterRange, LineAndColumnGetter;
 import util.opt : force, has, Opt;
-import util.sourceRange : compareRange, Pos, jsonOfRange, rangeOfStartAndLength, rangeOfStartAndName, Range;
+import util.sourceRange : compareRange, Pos, rangeOfStartAndLength, rangeOfStartAndName, Range;
 import util.sym : AllSymbols, Sym, sym, symSize;
 import util.uri : AllUris;
-import util.util : todo;
 
-immutable struct Token {
-	enum Kind {
-		fun,
-		identifier,
-		importPath,
-		keyword,
-		local,
-		literalNumber,
-		literalString,
-		member, // record / union / enum / flags member
-		modifier,
-		param,
-		spec,
-		struct_,
-		typeParam,
-		varDecl,
-	}
-	Kind kind;
-	Range range;
-}
-
-Json jsonOfTokens(ref Alloc alloc, in LineAndColumnGetter lcg, in Token[] tokens) =>
-	jsonList!Token(alloc, tokens, (in Token x) =>
-		jsonOfToken(alloc, lcg, x));
-
-Token[] tokensOfAst(ref Alloc alloc, in AllSymbols allSymbols, in AllUris allUris, in FileAst ast) {
-	TokensBuilder tokens;
+SemanticTokens tokensOfAst(
+	ref Alloc alloc,
+	in AllSymbols allSymbols,
+	in AllUris allUris,
+	in LineAndColumnGetter lineAndColumnGetter,
+	in FileAst ast,
+) {
+	TokensBuilder tokens = TokensBuilder(&alloc, lineAndColumnGetter);
 
 	if (has(ast.imports))
-		addImportTokens(alloc, tokens, allSymbols, allUris, force(ast.imports), sym!"import");
+		addImportTokens(tokens, allSymbols, allUris, force(ast.imports));
 	if (has(ast.exports))
-		addImportTokens(alloc, tokens, allSymbols, allUris, force(ast.exports), sym!"export");
+		addImportTokens(tokens, allSymbols, allUris, force(ast.exports));
 
 	//TODO: also tests...
 	eachSorted!(Range, SpecDeclAst, StructAliasAst, StructDeclAst, FunDeclAst, VarDeclAst)(
 		Range.max,
 		(in Range a, in Range b) =>
 			compareRange(a, b),
-		ast.specs, (in SpecDeclAst it) => it.range, (in SpecDeclAst it) {
-			addSpecTokens(alloc, tokens, allSymbols, it);
+		ast.specs, (in SpecDeclAst x) => x.range, (in SpecDeclAst x) {
+			addSpecTokens(tokens, allSymbols, x);
 		},
-		ast.structAliases, (in StructAliasAst it) => it.range, (in StructAliasAst it) {
-			addStructAliasTokens(alloc, tokens, allSymbols, it);
+		ast.structAliases, (in StructAliasAst x) => x.range, (in StructAliasAst x) {
+			addStructAliasTokens(tokens, allSymbols, x);
 		},
-		ast.structs, (in StructDeclAst it) => it.range, (in StructDeclAst it) {
-			addStructTokens(alloc, tokens, allSymbols, it);
+		ast.structs, (in StructDeclAst x) => x.range, (in StructDeclAst x) {
+			addStructTokens(tokens, allSymbols, x);
 		},
-		ast.funs, (in FunDeclAst it) => it.range, (in FunDeclAst it) {
-			addFunTokens(alloc, tokens, allSymbols, it);
+		ast.funs, (in FunDeclAst x) => x.range, (in FunDeclAst x) {
+			addFunTokens(tokens, allSymbols, x);
 		},
 		ast.vars, (in VarDeclAst x) => x.range, (in VarDeclAst x) {
-			addVarDeclTokens(alloc, tokens, allSymbols, x);
+			addVarDeclTokens( tokens, allSymbols, x);
 		});
-	Token[] res = finishArr(alloc, tokens);
-	assertTokensSorted(res);
-	return res;
+	return SemanticTokens(finishArr(alloc, tokens.encoded));
+}
+
+Json getTokensLegend() {
+	static immutable Json.StringObject fields = [
+		Json.StringObjectField("tokenTypes", Json(allTokenTypesJson)),
+		Json.StringObjectField("tokenModifiers", Json(allTokenModifiersJson)),
+	];
+	return Json(fields);
 }
 
 private:
 
-alias TokensBuilder = ArrBuilder!Token;
+enum TokenType {
+	comment,
+	enum_,
+	enumMember,
+	function_,
+	interface_,
+	keyword,
+	namespace,
+	number,
+	parameter,
+	property,
+	string,
+	type,
+	typeParameter,
+	variable,
+}
+immutable Json[] allTokenTypesJson = [staticMap!(jsonOfTokenType, EnumMembers!TokenType)];
+enum jsonOfTokenType(TokenType a) = Json(stringOfTokenType(a));
+
+// This will be a flags enum
+enum TokenModifiers {
+	declaration = 1,
+}
+TokenModifiers noTokenModifiers() =>
+	cast(TokenModifiers) 0;
+immutable Json[] allTokenModifiersJson = [staticMap!(jsonOfTokenModifier, EnumMembers!TokenModifiers)];
+enum jsonOfTokenModifier(TokenModifiers a) = Json(stringOfTokenModifier(a));
+
+string stringOfTokenType(TokenType a) {
+	final switch (a) {
+		case TokenType.comment:
+			return "comment";
+		case TokenType.enum_:
+			return "enum";
+		case TokenType.enumMember:
+			return "enumMember";
+		case TokenType.function_:
+			return "function";
+		case TokenType.interface_:
+			return "interface";
+		case TokenType.keyword:
+			return "keyword";
+		case TokenType.namespace:
+			return "namespace";
+		case TokenType.number:
+			return "number";
+		case TokenType.parameter:
+			return "parameter";
+		case TokenType.property:
+			return "property";
+		case TokenType.string:
+			return "string";
+		case TokenType.type:
+			return "type";
+		case TokenType.typeParameter:
+			return "typeParameter";
+		case TokenType.variable:
+			return "variable";
+	}
+}
+
+string stringOfTokenModifier(TokenModifiers a) {
+	final switch (a) {
+		case TokenModifiers.declaration:
+			return "declaration";
+	}
+}
+
+struct TokensBuilder {
+	Alloc* alloc;
+	LineAndColumnGetter lineAndColumnGetter; //TODO:PERF this could just be a LineAndCharacterGetter
+	ArrBuilder!(immutable uint) encoded;
+	uint prevLine;
+	uint prevCharacter;
+}
+void add(scope ref TokensBuilder a, Range range, TokenType type, TokenModifiers modifiers) {
+	LineAndCharacterRange lcRange = lineAndCharacterRange(a.lineAndColumnGetter, range);
+	assert(lcRange.start.line == lcRange.end.line);
+	LineAndCharacter pos = lcRange.start;
+	uint length = lcRange.end.character - lcRange.start.character;
+
+	assert(a.prevLine < pos.line ||
+		(a.prevLine == pos.line && a.prevCharacter < pos.character) ||
+		(a.prevLine == 0 && a.prevCharacter == 0));
+	immutable uint[5] toAdd = pos.line == a.prevLine
+		? [0, pos.character - a.prevCharacter, length, type, modifiers]
+		: [pos.line - a.prevLine, pos.character, length, type, modifiers];
+	addAll!(immutable uint)(*a.alloc, a.encoded, toAdd);
+	a.prevLine = pos.line;
+	a.prevCharacter = pos.character;
+}
+
+void declare(scope ref TokensBuilder a, TokenType type, in Range range) {
+	add(a, range, type, TokenModifiers.declaration);
+}
+void reference(scope ref TokensBuilder a, TokenType type, in Range range) {
+	add(a, range, type, noTokenModifiers);
+}
+void keyword(scope ref TokensBuilder a, in Range range) {
+	reference(a, TokenType.keyword, range);
+}
+void numberLiteral(scope ref TokensBuilder a, in Range range) {
+	reference(a, TokenType.number, range);
+}
+void stringLiteral(scope ref TokensBuilder a, in Range range) {
+	reference(a, TokenType.string, range);
+}
 
 Range rangeAtName(in AllSymbols allSymbols, Pos start, Sym name) =>
 	Range(start, start + symSize(allSymbols, name));
 
 void addImportTokens(
-	ref Alloc alloc,
-	ref TokensBuilder tokens,
+	scope ref TokensBuilder tokens,
 	in AllSymbols allSymbols,
 	in AllUris allUris,
 	in ImportsOrExportsAst a,
-	Sym keyword,
 ) {
-	add(alloc, tokens, Token(Token.Kind.keyword, rangeAtName(allSymbols, a.range.start, keyword)));
+	// "export".length is the same
+	keyword(tokens, a.range[0 .. "import".length]);
 	foreach (ref ImportOrExportAst x; a.paths) {
-		add(alloc, tokens, Token(Token.Kind.importPath, pathRange(allUris, x)));
+		reference(tokens, TokenType.namespace, pathRange(allUris, x));
 		// TODO: tokens for imported names
 	}
 }
 
-void addSpecTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in SpecDeclAst a) {
-	add(alloc, tokens, Token(Token.Kind.spec, rangeOfNameAndRange(a.name, allSymbols)));
-	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
+void addSpecTokens(ref TokensBuilder tokens, in AllSymbols allSymbols, in SpecDeclAst a) {
+	declare(tokens, TokenType.interface_, rangeOfNameAndRange(a.name, allSymbols));
+	addTypeParamsTokens(tokens, allSymbols, a.typeParams);
 	a.body_.matchIn!void(
 		(in SpecBodyAst.Builtin) {},
 		(in SpecSigAst[] sigs) {
 			foreach (ref SpecSigAst sig; sigs) {
-				add(alloc, tokens, Token(Token.Kind.fun, rangeAtName(allSymbols, sig.range.start, sig.name)));
-				addSigReturnTypeAndParamsTokens(alloc, tokens, allSymbols, sig.returnType, sig.params);
+				declare(tokens, TokenType.function_, rangeAtName(allSymbols, sig.range.start, sig.name));
+				addSigReturnTypeAndParamsTokens(tokens, allSymbols, sig.returnType, sig.params);
 			}
 		});
 }
@@ -170,125 +264,118 @@ void addSpecTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allS
 // Might be https://github.com/ldc-developers/ldc/issues/3879
 pragma(inline, false)
 void addSigReturnTypeAndParamsTokens(
-	ref Alloc alloc,
-	ref TokensBuilder tokens,
+	scope ref TokensBuilder tokens,
 	in AllSymbols allSymbols,
 	in TypeAst returnType,
 	in ParamsAst params,
 ) {
-	addTypeTokens(alloc, tokens, allSymbols, returnType);
+	addTypeTokens(tokens, allSymbols, returnType);
 	params.matchIn!void(
 		(in DestructureAst[] regular) {
 			foreach (ref DestructureAst param; regular)
-				addDestructureTokens(alloc, tokens, allSymbols, param);
+				addDestructureTokens(tokens, allSymbols, param);
 		},
 		(in ParamsAst.Varargs) {
-			addDestructureTokens(alloc, tokens, allSymbols, params.as!(ParamsAst.Varargs*).param);
+			addDestructureTokens(tokens, allSymbols, params.as!(ParamsAst.Varargs*).param);
 		});
 }
 
-void addTypeTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in TypeAst a) {
+void addTypeTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in TypeAst a) {
 	a.matchIn!void(
 		(in TypeAst.Bogus) {},
 		(in TypeAst.Fun x) {
-			add(alloc, tokens, Token(
-				Token.Kind.keyword,
-				rangeOfStartAndName(x.range.start, sym!"fun", allSymbols)));
+			keyword(tokens, rangeOfStartAndName(x.range.start, sym!"fun", allSymbols));
 			foreach (TypeAst t; x.returnAndParamTypes)
-				addTypeTokens(alloc, tokens, allSymbols, t);
+				addTypeTokens(tokens, allSymbols, t);
 		},
 		(in TypeAst.Map x) {
-			addTypeTokens(alloc, tokens, allSymbols, x.v);
-			add(alloc, tokens, Token(
-				Token.Kind.keyword,
-				Range(range(x.v, allSymbols).end, range(x.k, allSymbols).start)));
-			addTypeTokens(alloc, tokens, allSymbols, x.k);
-			add(alloc, tokens, Token(
-				Token.Kind.keyword,
-				rangeOfStartAndLength(range(x.k, allSymbols).end, "]".length)));
+			addTypeTokens(tokens, allSymbols, x.v);
+			keyword(tokens, Range(range(x.v, allSymbols).end, range(x.k, allSymbols).start));
+			addTypeTokens(tokens, allSymbols, x.k);
+			keyword(tokens, rangeOfStartAndLength(range(x.k, allSymbols).end, "]".length));
 		},
 		(in NameAndRange x) {
-			add(alloc, tokens, Token(Token.Kind.struct_, rangeOfNameAndRange(x, allSymbols)));
+			reference(tokens, TokenType.type, rangeOfNameAndRange(x, allSymbols));
 		},
 		(in TypeAst.SuffixName x) {
-			addTypeTokens(alloc, tokens, allSymbols, x.left);
-			add(alloc, tokens, Token(Token.Kind.struct_, rangeOfNameAndRange(x.name, allSymbols)));
+			addTypeTokens(tokens, allSymbols, x.left);
+			reference(tokens, TokenType.type, rangeOfNameAndRange(x.name, allSymbols));
 		},
-		(in TypeAst.SuffixSpecial it) {
-			addTypeTokens(alloc, tokens, allSymbols, it.left);
-			add(alloc, tokens, Token(Token.Kind.keyword, suffixRange(it)));
+		(in TypeAst.SuffixSpecial x) {
+			addTypeTokens(tokens, allSymbols, x.left);
+			declare(tokens, TokenType.type, suffixRange(x));
 		},
-		(in TypeAst.Tuple it) {
-			foreach (TypeAst t; it.members)
-				addTypeTokens(alloc, tokens, allSymbols, t);
+		(in TypeAst.Tuple x) {
+			foreach (TypeAst t; x.members)
+				addTypeTokens(tokens, allSymbols, t);
 		});
 }
 
-void addTypeParamsTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in NameAndRange[] a) {
+void addTypeParamsTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in NameAndRange[] a) {
 	foreach (NameAndRange typeParam; a)
-		add(alloc, tokens, Token(Token.Kind.typeParam, rangeOfNameAndRange(typeParam, allSymbols)));
+		declare(tokens, TokenType.typeParameter, rangeOfNameAndRange(typeParam, allSymbols));
 }
 
-void addStructAliasTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in StructAliasAst a) {
-	add(alloc, tokens, Token(Token.Kind.struct_, rangeOfNameAndRange(a.name, allSymbols)));
-	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
-	addTypeTokens(alloc, tokens, allSymbols, a.target);
+void addStructAliasTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in StructAliasAst a) {
+	declare(tokens, TokenType.type, rangeOfNameAndRange(a.name, allSymbols));
+	addTypeParamsTokens(tokens, allSymbols, a.typeParams);
+	addTypeTokens(tokens, allSymbols, a.target);
 }
 
-void addStructTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in StructDeclAst a) {
-	add(alloc, tokens, Token(Token.Kind.struct_, rangeOfNameAndRange(a.name, allSymbols)));
-	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
+void addStructTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in StructDeclAst a) {
+	declare(tokens, TokenType.type, rangeOfNameAndRange(a.name, allSymbols));
+	addTypeParamsTokens(tokens, allSymbols, a.typeParams);
 	a.body_.matchIn!void(
 		(in StructDeclAst.Body.Builtin) {
-			addModifierTokens(alloc, tokens, allSymbols, a);
+			addModifierTokens(tokens, allSymbols, a);
 		},
-		(in StructDeclAst.Body.Enum it) {
-			addEnumOrFlagsTokens(alloc, tokens, allSymbols, a, it.typeArg, it.members);
+		(in StructDeclAst.Body.Enum x) {
+			addEnumOrFlagsTokens(tokens, allSymbols, a, x.typeArg, x.members);
 		},
 		(in StructDeclAst.Body.Extern) {
-			addModifierTokens(alloc, tokens, allSymbols, a);
+			addModifierTokens(tokens, allSymbols, a);
 		},
-		(in StructDeclAst.Body.Flags it) {
-			addEnumOrFlagsTokens(alloc, tokens, allSymbols, a, it.typeArg, it.members);
+		(in StructDeclAst.Body.Flags x) {
+			addEnumOrFlagsTokens(tokens, allSymbols, a, x.typeArg, x.members);
 		},
 		(in StructDeclAst.Body.Record record) {
-			addModifierTokens(alloc, tokens, allSymbols, a);
+			addModifierTokens(tokens, allSymbols, a);
 			foreach (ref StructDeclAst.Body.Record.Field field; record.fields) {
-				add(alloc, tokens, Token(Token.Kind.member, rangeOfNameAndRange(field.name, allSymbols)));
-				addTypeTokens(alloc, tokens, allSymbols, field.type);
+				declare(tokens, TokenType.property, rangeOfNameAndRange(field.name, allSymbols));
+				addTypeTokens(tokens, allSymbols, field.type);
 			}
 		},
 		(in StructDeclAst.Body.Union union_) {
-			addModifierTokens(alloc, tokens, allSymbols, a);
+			addModifierTokens(tokens, allSymbols, a);
 			foreach (ref StructDeclAst.Body.Union.Member member; union_.members) {
-				add(alloc, tokens, Token(Token.Kind.member, rangeAtName(allSymbols, member.range.start, member.name)));
+				declare(tokens, TokenType.enumMember, rangeAtName(allSymbols, member.range.start, member.name));
 				if (has(member.type))
-					addTypeTokens(alloc, tokens, allSymbols, force(member.type));
+					addTypeTokens(tokens, allSymbols, force(member.type));
 			}
 		});
 }
 
-void addModifierTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in StructDeclAst a) {
-	foreach (ref ModifierAst modifier; a.modifiers)
-		add(alloc, tokens, Token(Token.Kind.modifier, rangeOfModifierAst(modifier, allSymbols)));
+void addModifierTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in StructDeclAst a) {
+	foreach (ref ModifierAst x; a.modifiers)
+		keyword(tokens, rangeOfModifierAst(x, allSymbols));
 }
-void addFunModifierTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in FunModifierAst[] a) {
-	foreach (ref FunModifierAst modifier; a) {
-		modifier.matchIn!void(
+void addFunModifierTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in FunModifierAst[] a) {
+	foreach (ref FunModifierAst mod; a) {
+		mod.matchIn!void(
 			(in FunModifierAst.Special x) {
-				add(alloc, tokens, Token(Token.Kind.modifier, x.range(allSymbols)));
+				keyword(tokens, x.range(allSymbols));
 			},
 			(in FunModifierAst.Extern x) {
-				addTypeTokens(alloc, tokens, allSymbols, *x.left);
-				add(alloc, tokens, Token(Token.Kind.modifier, x.suffixRange(allSymbols)));
+				addTypeTokens(tokens, allSymbols, *x.left);
+				keyword(tokens, x.suffixRange(allSymbols));
 			},
 			(in TypeAst x) {
 				if (x.isA!NameAndRange)
-					add(alloc, tokens, Token(Token.Kind.spec, x.range(allSymbols)));
+					reference(tokens, TokenType.interface_, x.range(allSymbols));
 				else if (x.isA!(TypeAst.SuffixName*)) {
 					TypeAst.SuffixName* n = x.as!(TypeAst.SuffixName*);
-					addTypeTokens(alloc, tokens, allSymbols, n.left);
-					add(alloc, tokens, Token(Token.Kind.spec, rangeOfNameAndRange(n.name, allSymbols)));
+					addTypeTokens(tokens, allSymbols, n.left);
+					reference(tokens, TokenType.interface_, rangeOfNameAndRange(n.name, allSymbols));
 				}
 				// else parse error, so ignore
 			});
@@ -296,313 +383,262 @@ void addFunModifierTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbo
 }
 
 void addEnumOrFlagsTokens(
-	ref Alloc alloc,
-	ref TokensBuilder tokens,
+	scope ref TokensBuilder tokens,
 	in AllSymbols allSymbols,
 	in StructDeclAst a,
 	in Opt!(TypeAst*) typeArg,
 	in StructDeclAst.Body.Enum.Member[] members,
 ) {
 	if (has(typeArg))
-		addTypeTokens(alloc, tokens, allSymbols, *force(typeArg));
-	addModifierTokens(alloc, tokens, allSymbols, a);
+		addTypeTokens(tokens, allSymbols, *force(typeArg));
+	addModifierTokens(tokens, allSymbols, a);
 	foreach (ref StructDeclAst.Body.Enum.Member member; members) {
-		add(alloc, tokens, Token(Token.Kind.member, member.range));
+		declare(tokens, TokenType.enumMember, member.range);
 		if (has(member.value)) {
 			uint addLen = " = ".length;
 			Pos pos = member.range.start + symSize(allSymbols, member.name) + addLen;
-			add(alloc, tokens, Token(Token.Kind.literalNumber, Range(pos, member.range.end)));
+			numberLiteral(tokens, Range(pos, member.range.end));
 		}
 	}
 }
 
-void addVarDeclTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in VarDeclAst a) {
-	add(alloc, tokens, Token(Token.Kind.varDecl, rangeOfNameAndRange(a.name, allSymbols)));
-	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
-	add(alloc, tokens, Token(
-		Token.Kind.keyword,
-		rangeOfStartAndLength(a.kindPos, symSize(allSymbols, symOfVarKind(a.kind)))));
-	addTypeTokens(alloc, tokens, allSymbols, a.type);
-	addFunModifierTokens(alloc, tokens, allSymbols, a.modifiers);
+void addVarDeclTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in VarDeclAst a) {
+	declare(tokens, TokenType.variable, rangeOfNameAndRange(a.name, allSymbols));
+	addTypeParamsTokens(tokens, allSymbols, a.typeParams);
+	keyword(tokens, rangeOfStartAndLength(a.kindPos, symSize(allSymbols, symOfVarKind(a.kind))));
+	addTypeTokens(tokens, allSymbols, a.type);
+	addFunModifierTokens(tokens, allSymbols, a.modifiers);
 }
 
-void addFunTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in FunDeclAst a) {
-	add(alloc, tokens, Token(Token.Kind.fun, rangeOfNameAndRange(a.name, allSymbols)));
-	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
-	addSigReturnTypeAndParamsTokens(alloc, tokens, allSymbols, a.returnType, a.params);
-	addFunModifierTokens(alloc, tokens, allSymbols, a.modifiers);
+void addFunTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in FunDeclAst a) {
+	declare(tokens, TokenType.function_, rangeOfNameAndRange(a.name, allSymbols));
+	addTypeParamsTokens(tokens, allSymbols, a.typeParams);
+	addSigReturnTypeAndParamsTokens(tokens, allSymbols, a.returnType, a.params);
+	addFunModifierTokens(tokens, allSymbols, a.modifiers);
 	if (has(a.body_))
-		addExprTokens(alloc, tokens, allSymbols, force(a.body_));
+		addExprTokens(tokens, allSymbols, force(a.body_));
 }
 
-void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in ExprAst a) {
+void addExprTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in ExprAst a) {
 	a.kind.matchIn!void(
-		(in ArrowAccessAst it) {
-			addExprTokens(alloc, tokens, allSymbols, *it.left);
-			add(alloc, tokens, Token(Token.Kind.fun, rangeOfNameAndRange(it.name, allSymbols)));
+		(in ArrowAccessAst x) {
+			addExprTokens(tokens, allSymbols, *x.left);
+			reference(tokens, TokenType.function_, rangeOfNameAndRange(x.name, allSymbols));
 		},
 		(in AssertOrForbidAst x) {
-			add(alloc, tokens, Token(
-				Token.Kind.keyword,
-				// Only the length matters, and "assert" is same length as "forbid"
-				rangeOfNameAndRange(NameAndRange(a.range.start, sym!"assert"), allSymbols)));
-			addExprTokens(alloc, tokens, allSymbols, x.condition);
+			// Only the length matters, and "assert" is same length as "forbid"
+			keyword(tokens, rangeOfNameAndRange(NameAndRange(a.range.start, sym!"assert"), allSymbols));
+			addExprTokens(tokens, allSymbols, x.condition);
 			if (has(x.thrown))
-				addExprTokens(alloc, tokens, allSymbols, force(x.thrown));
+				addExprTokens(tokens, allSymbols, force(x.thrown));
 		},
 		(in AssignmentAst x) {
-			addExprTokens(alloc, tokens, allSymbols, x.left);
-			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(x.assignmentPos, ":=".length)));
-			addExprTokens(alloc, tokens, allSymbols, x.right);
+			addExprTokens(tokens, allSymbols, x.left);
+			keyword(tokens, rangeOfStartAndLength(x.assignmentPos, ":=".length));
+			addExprTokens(tokens, allSymbols, x.right);
 		},
 		(in AssignmentCallAst x) {
-			addExprTokens(alloc, tokens, allSymbols, x.left);
-			add(alloc, tokens, Token(Token.Kind.fun, rangeOfNameAndRange(x.funName, allSymbols)));
-			addExprTokens(alloc, tokens, allSymbols, x.right);
+			addExprTokens(tokens, allSymbols, x.left);
+			reference(tokens, TokenType.function_, rangeOfNameAndRange(x.funName, allSymbols));
+			addExprTokens(tokens, allSymbols, x.right);
 		},
 		(in BogusAst _) {},
-		(in CallAst it) {
+		(in CallAst x) {
 			void addName() {
-				add(alloc, tokens, Token(Token.Kind.fun, rangeOfNameAndRange(it.funName, allSymbols)));
-				if (has(it.typeArg))
-					addTypeTokens(alloc, tokens, allSymbols, *force(it.typeArg));
+				reference(tokens, TokenType.function_, rangeOfNameAndRange(x.funName, allSymbols));
+				if (has(x.typeArg))
+					addTypeTokens(tokens, allSymbols, *force(x.typeArg));
 			}
-			final switch (it.style) {
+			final switch (x.style) {
 				case CallAst.Style.dot:
 				case CallAst.Style.infix:
-					addExprTokens(alloc, tokens, allSymbols, it.args[0]);
+					addExprTokens(tokens, allSymbols, x.args[0]);
 					addName();
-					addExprsTokens(alloc, tokens, allSymbols, it.args[1 .. $]);
+					addExprsTokens(tokens, allSymbols, x.args[1 .. $]);
 					break;
 				case CallAst.Style.prefixBang:
-					add(alloc, tokens, Token(Token.Kind.fun, rangeOfStartAndLength(it.funName.start, 1)));
-					addExprTokens(alloc, tokens, allSymbols, it.args[0]);
+					reference(tokens, TokenType.function_, rangeOfStartAndLength(x.funName.start, 1));
+					addExprTokens(tokens, allSymbols, x.args[0]);
 					break;
 				case CallAst.Style.suffixBang:
-					addExprTokens(alloc, tokens, allSymbols, it.args[0]);
-					add(alloc, tokens, Token(Token.Kind.fun, rangeOfStartAndLength(it.funName.start, 1)));
+					addExprTokens(tokens, allSymbols, x.args[0]);
+					reference(tokens, TokenType.function_, rangeOfStartAndLength(x.funName.start, 1));
 					break;
 				case CallAst.style.emptyParens:
 					break;
 				case CallAst.style.prefixOperator:
 				case CallAst.Style.single:
 					addName();
-					addExprsTokens(alloc, tokens, allSymbols, it.args);
+					addExprsTokens(tokens, allSymbols, x.args);
 					break;
 				case CallAst.Style.comma:
 				case CallAst.Style.subscript:
-					addExprsTokens(alloc, tokens, allSymbols, it.args);
+					addExprsTokens(tokens, allSymbols, x.args);
 					break;
 			}
 		},
 		(in EmptyAst x) {},
 		(in ForAst x) {
-			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "for".length)));
-			addDestructureTokens(alloc, tokens, allSymbols, x.param);
-			addExprTokens(alloc, tokens, allSymbols, x.collection);
-			addExprTokens(alloc, tokens, allSymbols, x.body_);
-			addExprTokens(alloc, tokens, allSymbols, x.else_);
+			keyword(tokens, rangeOfStartAndLength(a.range.start, "for".length));
+			addDestructureTokens(tokens, allSymbols, x.param);
+			addExprTokens(tokens, allSymbols, x.collection);
+			addExprTokens(tokens, allSymbols, x.body_);
+			addExprTokens(tokens, allSymbols, x.else_);
 		},
 		(in IdentifierAst _) {
-			add(alloc, tokens, Token(Token.Kind.identifier, a.range));
+			reference(tokens, TokenType.variable, a.range);
 		},
-		(in IfAst it) {
-			addExprTokens(alloc, tokens, allSymbols, it.cond);
-			addExprTokens(alloc, tokens, allSymbols, it.then);
-			addExprTokens(alloc, tokens, allSymbols, it.else_);
+		(in IfAst x) {
+			addExprTokens(tokens, allSymbols, x.cond);
+			addExprTokens(tokens, allSymbols, x.then);
+			addExprTokens(tokens, allSymbols, x.else_);
 		},
-		(in IfOptionAst it) {
-			addDestructureTokens(alloc, tokens, allSymbols, it.destructure);
-			addExprTokens(alloc, tokens, allSymbols, it.option);
-			addExprTokens(alloc, tokens, allSymbols, it.then);
-			addExprTokens(alloc, tokens, allSymbols, it.else_);
+		(in IfOptionAst x) {
+			addDestructureTokens(tokens, allSymbols, x.destructure);
+			addExprTokens(tokens, allSymbols, x.option);
+			addExprTokens(tokens, allSymbols, x.then);
+			addExprTokens(tokens, allSymbols, x.else_);
 		},
-		(in InterpolatedAst it) {
+		(in InterpolatedAst x) {
 			Pos pos = a.range.start;
-			if (!empty(it.parts)) {
+			if (!empty(x.parts)) {
 				// Ensure opening quote is highlighted
-				it.parts[0].matchIn!void(
+				x.parts[0].matchIn!void(
 					(in string) {},
 					(in ExprAst _) {
-						add(alloc, tokens, Token(Token.Kind.literalString, Range(pos, pos + 1)));
+						stringLiteral(tokens, Range(pos, pos + 1));
 					});
-				foreach (size_t i, ref InterpolatedPart part; it.parts)
+				foreach (size_t i, ref InterpolatedPart part; x.parts)
 					part.matchIn!void(
 						(in string s) {
 							// TODO: length may be wrong if there are escapes
 							// Ensure the closing quote is highlighted
-							Pos end = safeToUint(pos + s.length) + (i == it.parts.length - 1 ? 1 : 0);
-							add(alloc, tokens, Token(Token.Kind.literalString, Range(pos, end)));
+							Pos end = safeToUint(pos + s.length) + (i == x.parts.length - 1 ? 1 : 0);
+							stringLiteral(tokens, Range(pos, end));
 						},
 						(in ExprAst e) {
-							addExprTokens(alloc, tokens, allSymbols, e);
+							addExprTokens(tokens, allSymbols, e);
 							pos = safeToUint(e.range.end + 1);
 						});
 				// Ensure closing quote is highlighted
-				it.parts[$ - 1].matchIn!void(
+				x.parts[$ - 1].matchIn!void(
 					(in string) {},
 					(in ExprAst _) {
-						add(alloc, tokens, Token(Token.Kind.literalString, Range(a.range.end - 1, a.range.end)));
+						stringLiteral(tokens, Range(a.range.end - 1, a.range.end));
 					});
 			}
 		},
-		(in LambdaAst it) {
-			addDestructureTokens(alloc, tokens, allSymbols, it.param);
-			addExprTokens(alloc, tokens, allSymbols, it.body_);
+		(in LambdaAst x) {
+			addDestructureTokens(tokens, allSymbols, x.param);
+			addExprTokens(tokens, allSymbols, x.body_);
 		},
 		(in LetAst x) {
-			addDestructureTokens(alloc, tokens, allSymbols, x.destructure);
-			addExprTokens(alloc, tokens, allSymbols, x.value);
-			addExprTokens(alloc, tokens, allSymbols, x.then);
+			addDestructureTokens(tokens, allSymbols, x.destructure);
+			addExprTokens(tokens, allSymbols, x.value);
+			addExprTokens(tokens, allSymbols, x.then);
 		},
 		(in LiteralFloatAst _) {
-			add(alloc, tokens, Token(Token.Kind.literalNumber, a.range));
+			numberLiteral(tokens, a.range);
 		},
 		(in LiteralIntAst _) {
-			add(alloc, tokens, Token(Token.Kind.literalNumber, a.range));
+			numberLiteral(tokens, a.range);
 		},
 		(in LiteralNatAst _) {
-			add(alloc, tokens, Token(Token.Kind.literalNumber, a.range));
+			numberLiteral(tokens, a.range);
 		},
 		(in LiteralStringAst _) {
-			add(alloc, tokens, Token(Token.Kind.literalString, a.range));
+			stringLiteral(tokens, a.range);
 		},
 		(in LoopAst x) {
-			add(alloc, tokens, Token(
-				Token.Kind.keyword,
-				rangeOfStartAndLength(a.range.start, "loop".length)));
-			addExprTokens(alloc, tokens, allSymbols, x.body_);
+			keyword(tokens, rangeOfStartAndLength(a.range.start, "loop".length));
+			addExprTokens(tokens, allSymbols, x.body_);
 		},
-		(in LoopBreakAst it) {
-			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "break".length)));
-			addExprTokens(alloc, tokens, allSymbols, it.value);
+		(in LoopBreakAst x) {
+			keyword(tokens, rangeOfStartAndLength(a.range.start, "break".length));
+			addExprTokens(tokens, allSymbols, x.value);
 		},
 		(in LoopContinueAst _) {
-			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "continue".length)));
+			keyword(tokens, rangeOfStartAndLength(a.range.start, "continue".length));
 		},
-		(in LoopUntilAst it) {
-			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "until".length)));
-			addExprTokens(alloc, tokens, allSymbols, it.condition);
-			addExprTokens(alloc, tokens, allSymbols, it.body_);
+		(in LoopUntilAst x) {
+			keyword(tokens, rangeOfStartAndLength(a.range.start, "until".length));
+			addExprTokens(tokens, allSymbols, x.condition);
+			addExprTokens(tokens, allSymbols, x.body_);
 		},
-		(in LoopWhileAst it) {
-			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "while".length)));
-			addExprTokens(alloc, tokens, allSymbols, it.condition);
-			addExprTokens(alloc, tokens, allSymbols, it.body_);
+		(in LoopWhileAst x) {
+			keyword(tokens, rangeOfStartAndLength(a.range.start, "while".length));
+			addExprTokens(tokens, allSymbols, x.condition);
+			addExprTokens(tokens, allSymbols, x.body_);
 		},
-		(in MatchAst it) {
-			addExprTokens(alloc, tokens, allSymbols, it.matched);
-			foreach (ref MatchAst.CaseAst case_; it.cases) {
-				add(alloc, tokens, Token(Token.Kind.struct_, case_.memberNameRange(allSymbols)));
+		(in MatchAst x) {
+			addExprTokens(tokens, allSymbols, x.matched);
+			foreach (ref MatchAst.CaseAst case_; x.cases) {
+				reference(tokens, TokenType.enumMember, case_.memberNameRange(allSymbols));
 				if (has(case_.destructure))
-					addDestructureTokens(alloc, tokens, allSymbols, force(case_.destructure));
-				addExprTokens(alloc, tokens, allSymbols, case_.then);
+					addDestructureTokens(tokens, allSymbols, force(case_.destructure));
+				addExprTokens(tokens, allSymbols, case_.then);
 			}
 		},
-		(in ParenthesizedAst it) {
-			addExprTokens(alloc, tokens, allSymbols, it.inner);
+		(in ParenthesizedAst x) {
+			addExprTokens(tokens, allSymbols, x.inner);
 		},
 		(in PtrAst x) {
-			addExprTokens(alloc, tokens, allSymbols, x.inner);
+			addExprTokens(tokens, allSymbols, x.inner);
 		},
-		(in SeqAst it) {
-			addExprTokens(alloc, tokens, allSymbols, it.first);
-			addExprTokens(alloc, tokens, allSymbols, it.then);
+		(in SeqAst x) {
+			addExprTokens(tokens, allSymbols, x.first);
+			addExprTokens( tokens, allSymbols, x.then);
 		},
 		(in ThenAst x) {
-			addDestructureTokens(alloc, tokens, allSymbols, x.left);
-			addExprTokens(alloc, tokens, allSymbols, x.futExpr);
-			addExprTokens(alloc, tokens, allSymbols, x.then);
+			addDestructureTokens(tokens, allSymbols, x.left);
+			addExprTokens(tokens, allSymbols, x.futExpr);
+			addExprTokens(tokens, allSymbols, x.then);
 		},
-		(in ThrowAst it) {
-			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "throw".length)));
-			addExprTokens(alloc, tokens, allSymbols, it.thrown);
+		(in ThrowAst x) {
+			keyword(tokens, rangeOfStartAndLength(a.range.start, "throw".length));
+			addExprTokens(tokens, allSymbols, x.thrown);
 		},
-		(in TrustedAst it) {
-			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "trusted".length)));
-			addExprTokens(alloc, tokens, allSymbols, it.inner);
+		(in TrustedAst x) {
+			keyword(tokens, rangeOfStartAndLength(a.range.start, "trusted".length));
+			addExprTokens(tokens, allSymbols, x.inner);
 		},
-		(in TypedAst it) {
-			addExprTokens(alloc, tokens, allSymbols, it.expr);
-			addTypeTokens(alloc, tokens, allSymbols, it.type);
+		(in TypedAst x) {
+			addExprTokens(tokens, allSymbols, x.expr);
+			addTypeTokens(tokens, allSymbols, x.type);
 		},
-		(in UnlessAst it) {
-			addExprTokens(alloc, tokens, allSymbols, it.cond);
-			addExprTokens(alloc, tokens, allSymbols, it.body_);
+		(in UnlessAst x) {
+			addExprTokens(tokens, allSymbols, x.cond);
+			addExprTokens(tokens, allSymbols, x.body_);
 		},
 		(in WithAst x) {
-			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "with".length)));
-			addDestructureTokens(alloc, tokens, allSymbols, x.param);
-			addExprTokens(alloc, tokens, allSymbols, x.arg);
-			addExprTokens(alloc, tokens, allSymbols, x.body_);
+			keyword(tokens, rangeOfStartAndLength(a.range.start, "with".length));
+			addDestructureTokens(tokens, allSymbols, x.param);
+			addExprTokens(tokens, allSymbols, x.arg);
+			addExprTokens(tokens, allSymbols, x.body_);
 		});
 }
 
-void addDestructureTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in DestructureAst a) {
+void addDestructureTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in DestructureAst a) {
 	a.matchIn!void(
 		(in DestructureAst.Single x) {
-			add(alloc, tokens, Token(
-				x.name.name == sym!"_" ? Token.Kind.keyword : Token.Kind.param,
-				rangeOfNameAndRange(x.name, allSymbols)));
+			declare(
+				tokens,
+				x.name.name == sym!"_" ? TokenType.comment : TokenType.parameter,
+				rangeOfNameAndRange(x.name, allSymbols));
 			//TODO: add 'mut' keyword
 			if (has(x.type))
-				addTypeTokens(alloc, tokens, allSymbols, *force(x.type));
+				addTypeTokens(tokens, allSymbols, *force(x.type));
 		},
 		(in DestructureAst.Void x) {
-			add(alloc, tokens, Token(Token.Kind.keyword, a.range(allSymbols)));
+			keyword(tokens, a.range(allSymbols));
 		},
 		(in DestructureAst[] xs) {
 			foreach (ref DestructureAst x; xs)
-				addDestructureTokens(alloc, tokens, allSymbols, x);
+				addDestructureTokens(tokens, allSymbols, x);
 		});
 }
 
-void addExprsTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in ExprAst[] exprs) {
+void addExprsTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in ExprAst[] exprs) {
 	foreach (ref ExprAst expr; exprs)
-		addExprTokens(alloc, tokens, allSymbols, expr);
+		addExprTokens(tokens, allSymbols, expr);
 }
-
-void assertTokensSorted(Token[] tokens) {
-	Opt!UnsortedPair pair = findUnsortedPair!Token(tokens, (in Token a, in Token b) => compareRange(a.range, b.range));
-	if (has(pair))
-		// To debug, just disable this assertion and look for the unsorted token in the output
-		todo!void("tokens not sorted!");
-}
-
-Sym symOfTokenKind(Token.Kind kind) {
-	final switch (kind) {
-		case Token.Kind.fun:
-			return sym!"fun";
-		case Token.Kind.identifier:
-			return sym!"identifier";
-		case Token.Kind.importPath:
-			return sym!"import";
-		case Token.Kind.keyword:
-			return sym!"keyword";
-		case Token.Kind.literalNumber:
-			return sym!"lit-num";
-		case Token.Kind.literalString:
-			return sym!"lit-str";
-		case Token.Kind.local:
-			return sym!"local";
-		case Token.Kind.member:
-			return sym!"member";
-		case Token.Kind.modifier:
-			return sym!"modifier";
-		case Token.Kind.param:
-			return sym!"param";
-		case Token.Kind.spec:
-			return sym!"spec";
-		case Token.Kind.struct_:
-			return sym!"struct";
-		case Token.Kind.typeParam:
-			return sym!"type-param";
-		case Token.Kind.varDecl:
-			return sym!"var-decl";
-	}
-}
-
-Json jsonOfToken(ref Alloc alloc, in LineAndColumnGetter lcg, Token token) =>
-	jsonObject(alloc, [
-		field!"token"(symOfTokenKind(token.kind)),
-		field!"range"(jsonOfRange(alloc, lcg, token.range))]);

@@ -209,12 +209,12 @@
 	</crow-runnable>
 
 	<p>
-		In this example, you can't call <code class="fun">width</code>, <code class="fun">height</code>,
-		or <code class="fun">debug</code> from outside <code>dimensions.crow</code>.
+		In this example, you can't call <code class="function">width</code>, <code class="function">height</code>,
+		or <code class="function">debug</code> from outside <code>dimensions.crow</code>.
 		<br />
-		You also can't call the default <code class="fun">new</code> function for <code class="struct">dimensions</code>
-		that takes arguments for <code class="fun">width</code> and <code class="fun">height</code>,
-		since those are private.
+		You also can't call the default <code class="function">new</code> function for
+		<code class="type">dimensions</code> that takes arguments for <code class="function">width</code>
+		and <code class="function">height</code>, since those are private.
 		<br />
 		You <em>can</em> call the other <code>new</code> function which is declared internal.
 		(Functions with the same name don't have to have the same visibility.)
@@ -227,7 +227,7 @@
 		<h4>Unused code</h4>
 		<p>
 			If you comment out <code>info log a.debug</code> to fix the compile error,
-			you'll see a warning that <code class="fun">debug</code> as unused,
+			you'll see a warning that <code class="function">debug</code> as unused,
 			since it isn't used in <code>dimensions.crow</code> and can't be used anywhere else.
 		</p>
 	</aside>
@@ -235,8 +235,8 @@
 	<aside>
 		<h4>Visibility for operators</h4>
 		<p>
-			When defining a function named <code class="fun">+</code>, <code class="fun">~</code>,
-			or <code class="fun">-</code>, it must have an explicit visibility,
+			When defining a function named <code class="function">+</code>, <code class="function">~</code>,
+			or <code class="function">-</code>, it must have an explicit visibility,
 			as in <code>+ + nat(a nat, b nat)</code>.
 			<br />
 			The first <code>+</code> is the visibility, and the second is the function name.

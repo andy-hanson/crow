@@ -64,7 +64,7 @@ link record
 		"bin/crow.zip"
 	else
 		"bin/crow.tar.xz"
-	other link[] = for x : ("bin/crow.wasm", bundle, "crow-js/crow.js")::string[]
+	other link[] = for x : ("bin/crow.wasm", bundle)::string[]
 		x, x
 	in-src-paths ~~ script ~~ font ~~ other,
 

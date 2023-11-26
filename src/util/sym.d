@@ -178,9 +178,6 @@ Sym symOfStr(ref AllSymbols allSymbols, in string str) {
 	return has(packed) ? force(packed) : getSymFromLongStr(allSymbols, str);
 }
 
-Sym symOfSafeCStr(ref AllSymbols allSymbols, scope SafeCStr a) =>
-	symOfStr(allSymbols, strOfSafeCStr(a));
-
 void eachCharInSym(in AllSymbols allSymbols, Sym a, in void delegate(char) @safe @nogc pure nothrow cb) {
 	if (isShortSym(a))
 		eachCharInShortSym(a.value, cb);

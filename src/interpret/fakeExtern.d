@@ -2,6 +2,7 @@ module interpret.fakeExtern;
 
 @safe @nogc nothrow: // not pure
 
+import lib.lsp.lspTypes : Pipe;
 import interpret.bytecode : Operation;
 import interpret.extern_ :
 	DynCallSig,
@@ -25,7 +26,6 @@ import util.opt : force, has, none, Opt, some;
 import util.sym : AllSymbols, Sym, sym;
 import util.util : debugLog, todo, unreachable, verify, verifyFail;
 
-enum Pipe { stdout, stderr }
 alias WriteCb = void delegate(Pipe, in string);
 
 WriteCb unreachableWriteCb() =>

@@ -7,7 +7,7 @@
 	"activationEvents": [
 		"onLanguage:crow"
 	],
-	"main": "./client/extension.js",
+	"main": "./index.js",
 	"contributes": {
 		"languages": [
 			{
@@ -19,6 +19,6 @@
 		]
 	},
 	"dependencies": {
-		"@types/node": "^20.10.0"
+		"vscode-languageclient": "^9.0.1"
 	}
 }

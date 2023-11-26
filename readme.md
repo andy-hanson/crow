@@ -17,7 +17,6 @@ To work on Crow, you'll need these tools:
 * [`ldc`](https://github.com/ldc-developers/ldc#installation): Used to compile `bin/crow`.
 	- Don't use the Visual D installer as it uses an older compiler.
 	Download the latest [release](https://github.com/ldc-developers/ldc/releases) instead.
-* [`node.js`](https://nodejs.org/): Used for tests of the WASM module
 * Also install dependencies listed on the [download](https://crow-lang.org/download.html) page.
 * On Windows, use the "x64 Native Tools Command Prompt for VS 20__" (fill in the year) when running build commands.
 

@@ -2,6 +2,11 @@ module util.util;
 
 @safe @nogc pure nothrow:
 
+version (WebAssembly) { } else {
+	import core.stdc.stdio : fprintf;
+	import app.fileSystem : stderr;
+}
+
 T typeAs(T)(T a) =>
 	a;
 
@@ -95,9 +100,9 @@ version (WebAssembly) {
 	extern(C) void debugLog(scope immutable char* message, size_t value);
 } else {
 	void debugLog(in immutable char* message, size_t value) {
-		import core.stdc.stdio : printf;
+		// Log to stderr because LSP uses stdout
 		debug {
-			printf("debug log: %s == %llu\n", message, value);
+			fprintf(stderr, "debug log: %s == %llu\n", message, value);
 		}
 	}
 }

@@ -5,7 +5,7 @@
 		A record is like a <code>struct</code> or <code>class</code> in other languages:
 		it combines several values in named fields.
 		<br />
-		In this example, the <code class="struct">dimensions</code> record combines two floats
+		In this example, the <code class="type">dimensions</code> record combines two floats
 		<code>width</code> and <code>height</code>.
 	</p>
 	<crow-runnable>
@@ -21,11 +21,12 @@
 
 	<h3>Generated functions</h3>
 	<p>
-		Declaring the record generates a function <code class="fun">new dimensions(width float, height float)</code>
+		Declaring the record generates a function
+		<code class="function">new dimensions(width float, height float)</code>
 		used in <code>a dimensions = 4, 2</code>.
 		<br />
-		It also generates functions <code class="fun">width float(a dimensions)</code> and
-		<code class="fun">height float(a dimensions)</code> for accessing the fields.
+		It also generates functions <code class="function">width float(a dimensions)</code> and
+		<code class="function">height float(a dimensions)</code> for accessing the fields.
 	</p>
 	<aside>
 		<h4>It's just functions</h4>

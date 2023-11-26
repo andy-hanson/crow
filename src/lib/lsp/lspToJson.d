@@ -2,32 +2,46 @@ module lib.lsp.lspToJson;
 
 @safe @nogc pure nothrow:
 
+import frontend.ide.getTokens : getTokensLegend;
 import frontend.storage : jsonOfUriAndRange, LineAndColumnGetters;
 import lib.lsp.lspTypes :
 	Hover,
 	InitializeResult,
 	LspDiagnostic,
+	LspOutAction,
 	LspOutMessage,
 	LspOutNotification,
 	LspOutResponse,
 	LspOutResult,
 	MarkupContent,
 	MarkupKind,
+	Pipe,
 	PublishDiagnosticsParams,
 	RegisterCapability,
+	RunResult,
+	SemanticTokens,
 	TextEdit,
 	UnknownUris,
 	UnloadedUris,
-	WorkspaceEdit;
+	WorkspaceEdit,
+	Write;
 import util.alloc.alloc : Alloc;
-import util.col.arrUtil : arrLiteral, map;
+import util.col.arrUtil : map;
 import util.col.multiMap : mapMultiMap, MultiMap;
 import util.col.str : strOfSafeCStr;
-import util.json : field, Json, jsonList, jsonNull, jsonObject, jsonString;
+import util.exitCode : ExitCode;
+import util.json : field, Json, jsonBool, jsonList, jsonNull, jsonObject, jsonString, optionalField;
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : force, has, Opt;
 import util.sourceRange : jsonOfRange, UriAndRange;
 import util.uri : AllUris, stringOfUri, Uri;
+
+Json jsonOfLspOutAction(ref Alloc alloc, in AllUris allUris, in LineAndColumnGetters lcg, in LspOutAction a) =>
+	jsonObject(alloc, [
+		field!"messages"(jsonList(map(alloc, a.outMessages, (ref LspOutMessage x) =>
+			jsonOfLspOutMessage(alloc, allUris, lcg, x)))),
+		optionalField!("exitCode", ExitCode)(a.exitCode, (in ExitCode x) =>
+			Json(x.value))]);
 
 Json jsonOfLspOutMessage(ref Alloc alloc, in AllUris allUris, in LineAndColumnGetters lcg, ref LspOutMessage a) =>
 	a.match!Json(
@@ -64,9 +78,13 @@ Json jsonOfLspOutNotification(
 Json jsonOfLspOutResult(ref Alloc alloc, in AllUris allUris, in LineAndColumnGetters lcg, ref LspOutResult a) =>
 	a.match!Json(
 		(InitializeResult _) =>
-			jsonObject(alloc, [field!"capabilities"(initializeCapabilities(alloc))]),
+			jsonObject(alloc, [field!"capabilities"(initializeCapabilities)]),
 		(Opt!Hover x) =>
 			jsonOfHover(alloc, x),
+		(RunResult x) =>
+			jsonOfRunResult(alloc, x),
+		(SemanticTokens x) =>
+			jsonOfSemanticTokens(alloc, x),
 		(UnloadedUris x) =>
 			jsonObject(alloc, [field!"unloadedUris"(jsonList!Uri(alloc, x.unloadedUris, (in Uri x) =>
 				Json(stringOfUri(alloc, allUris, x))))]),
@@ -77,14 +95,45 @@ Json jsonOfLspOutResult(ref Alloc alloc, in AllUris allUris, in LineAndColumnGet
 		(LspOutResult.Null) =>
 			jsonNull);
 
-Json initializeCapabilities(ref Alloc alloc) =>
-	Json(arrLiteral!(Json.StringObjectField)(alloc, [
+public Json jsonOfSemanticTokens(ref Alloc alloc, in SemanticTokens a) =>
+	jsonObject(alloc, [field!"data"(jsonList(alloc, a.data, (in uint i) => Json(i)))]);
+
+Json jsonOfRunResult(ref Alloc alloc, in RunResult a) =>
+	jsonObject(alloc, [
+		field!"exitCode"(a.exitCode.value),
+		field!"writes"(jsonList(map(alloc, a.writes, (ref Write x) =>
+			jsonOfWrite(alloc, x))))]);
+
+Json jsonOfWrite(ref Alloc alloc, Write a) =>
+	jsonObject(alloc, [
+		field!"pipe"(stringOfPipe(a.pipe)),
+		field!"text"(a.text)]);
+
+string stringOfPipe(Pipe a) {
+	final switch (a) {
+		case Pipe.stdout:
+			return "stdout";
+		case Pipe.stderr:
+			return "stderr";
+	}
+}
+
+Json initializeCapabilities() {
+	static immutable Json.StringObjectField[2] semanticTokensOptions = [
+		Json.StringObjectField("full", jsonBool(true)),
+		Json.StringObjectField("legend", getTokensLegend()),
+	];
+	static immutable Json.StringObjectField[6] capabilities = [
 		Json.StringObjectField("textDocumentSync", Json(2)), // incremental
 		//Json.StringObjectField/TODO: completionProvider: {resolveProvider: true},
 		Json.StringObjectField("definitionProvider", jsonObject([])),
 		Json.StringObjectField("hoverProvider", jsonObject([])),
 		Json.StringObjectField("referencesProvider", jsonObject([])),
-		Json.StringObjectField("renameProvider", jsonObject([]))]));
+		Json.StringObjectField("renameProvider", jsonObject([])),
+		Json.StringObjectField("semanticTokensProvider", Json(semanticTokensOptions)),
+	];
+	return Json(capabilities);
+}
 
 Json jsonOfPublishDiagnosticsParams(
 	ref Alloc alloc,

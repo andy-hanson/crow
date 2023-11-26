@@ -1,12 +1,9 @@
-/// <reference path="../../crow-js/crow.js" />
-
+import { CrowServer, getCrowServer, LineAndCharacter, SemanticTokensLegend, Write } from "./crow.js"
 import { copyIcon, downloadIcon, playIcon, upIcon } from "./CrowIcon.js"
-import { CrowText, TokensAndDiagnostics } from "./CrowText.js"
+import { CrowText, Token, TokensAndDiagnostics } from "./CrowText.js"
 import { LoadingIcon } from "./LoadingIcon.js"
 import { MutableObservable } from "./util/MutableObservable.js"
 import { assert, createButton, createDiv, createSpan, nonNull, removeAllChildren, setStyleSheet } from "./util/util.js"
-// @ts-ignore
-import includeAll from "/include-all.json" assert { type: "json" }
 
 const css = `
 .outer-container {
@@ -46,24 +43,6 @@ div.icon svg { height: 1.5em; }
 button.collapsed { display: none; }
 `
 
-/** @type {Promise<crow.Compiler> | null} */
-let _compiler = null
-/** @type {function(): Promise<crow.Compiler>} */
-const getCompiler = () => {
-	if (_compiler === null) {
-		_compiler = makeCompiler()
-	}
-	return _compiler
-}
-const includeDir = "file:///include"
-const makeCompiler = async () =>
-	crow.makeCompiler(
-		await (await fetch("../bin/crow.wasm")).arrayBuffer(),
-		includeDir,
-		// TODO: better CWD?
-		"/",
-		console.log)
-
 export class CrowRunnable extends HTMLElement {
 	constructor() {
 		super()
@@ -71,15 +50,14 @@ export class CrowRunnable extends HTMLElement {
 	}
 
 	connectedCallback() {
-		getCompiler()
-			.then(comp =>
-				connected(
-					nonNull(this.shadowRoot),
-					getCrowRunnableName(this.getAttribute("name")),
-					this.getAttribute("no-run") !== null,
-					comp,
-					getChildText(this.childNodes)))
-			.catch(console.error)
+		getCrowServer().then(crow => {
+			connected(
+				nonNull(this.shadowRoot),
+				getCrowRunnableName(this.getAttribute("name")),
+				this.getAttribute("no-run") !== null,
+				crow,
+				getChildText(this.childNodes))
+		})
 	}
 }
 customElements.define("crow-runnable", CrowRunnable)
@@ -122,8 +100,8 @@ const reduceIndent = a => {
 	return a.replaceAll(a.slice(0, a.search(/\S/)), "\n").trim()
 }
 
-/** @type {function(ShadowRoot, string, boolean, crow.Compiler, string): void} */
-const connected = (shadowRoot, name, noRun, comp, initialText) => {
+/** @type {function(ShadowRoot, string, boolean, CrowServer, string): void} */
+const connected = (shadowRoot, name, noRun, crow, initialText) => {
 	const mainUri = `file:///${name}`
 	/** @type {MutableObservable<string>} */
 	const text = new MutableObservable(initialText)
@@ -131,31 +109,19 @@ const connected = (shadowRoot, name, noRun, comp, initialText) => {
 	const empty = {tokens:[], diagnostics:[]}
 	/** @type {MutableObservable<TokensAndDiagnostics>} */
 	const tokensAndDiagnostics = new MutableObservable(empty)
-	/** @type {function(crow.LineAndCharacter): string} */
+	/** @type {function(LineAndCharacter): string} */
 	const getHover = position => {
-		const hover = comp.handleLspMessage({
-			method: 'textDocument/hover',
-			id: 1,
-			params: {textDocument:{uri:mainUri}, position},
-		}).messages[0].result
-		return hover ? hover.contents.value : ''
+		const hover = crow.request("textDocument/hover", {textDocument:{uri:mainUri}, position})
+		return hover ? hover.contents.value : ""
 	}
 	const crowText = CrowText.create({getHover, tokensAndDiagnostics, text})
-	setupCompiler(comp, mainUri)
+	crow.openFile(mainUri, '')
 
 	text.nowAndSubscribe(value => {
-		const response = comp.handleLspMessage({
-			method: "textDocument/didChange",
-			params: {textDocument:{uri:mainUri}, contentChanges:[{text:value}]},
-		})
-		let diagnostics = []
-		for (const message of response.messages) {
-			assert(message.method === "textDocument/publishDiagnostics")
-			assert(message.params.uri === mainUri)
-			diagnostics = message.params.diagnostics
-		}
+		const diagnostics = crow.changeFile(mainUri, value)
+		const encodedTokens = crow.request("textDocument/semanticTokens/full", {textDocument:{uri:mainUri}}).data
 		tokensAndDiagnostics.set({
-			tokens: comp.getTokens(mainUri),
+			tokens: decodeTokens(encodedTokens, crow.tokensLegend),
 			// Errors only
 			diagnostics: diagnostics.filter((/** @type {{severity:number}} */ x) => x.severity <= 1),
 		})
@@ -169,8 +135,8 @@ const connected = (shadowRoot, name, noRun, comp, initialText) => {
 			// Put behind a timeout so loading will show
 			setTimeout(() => {
 				collapseButton.classList.remove("collapsed")
-				output.finishRunning(comp.run(mainUri))
-		}, 0)
+				output.finishRunning(crow.request("custom/run", {uri:mainUri}))
+			}, 0)
 		} catch (e) {
 			console.error("ERROR WHILE RUNNING", e)
 			throw e
@@ -208,25 +174,6 @@ const connected = (shadowRoot, name, noRun, comp, initialText) => {
 	shadowRoot.append(createDiv({className:"outer-container", children:[crowText, output.container, bottom]}))
 }
 
-/** @type {function(crow.Compiler, crow.Uri): void} */
-const setupCompiler = (comp, mainUri) => {
-	/** @type {function(string, string): unknown} */
-	const didOpen = (uri, text) => ({
-		method: "textDocument/didOpen",
-		params: {textDocument: {uri, text}},
-	})
-	for (const [path, text] of Object.entries(includeAll)) {
-		comp.handleLspMessage(didOpen(`${includeDir}/${path}`, text))
-	}
-	comp.handleLspMessage(didOpen(mainUri, ''))
-	comp.handleLspMessage(didOpen("file:///crow-config.json", "{}"))
-	const {unloadedUris} = comp.handleLspMessage({method:"custom/unloadedUris", id:1, params:{}}).messages[0].result
-	for (const uri of unloadedUris) {
-		assert(uri.endsWith("/crow-config.json"))
-		comp.handleLspMessage({method: "custom/readFileResult", params:{uri, type:"notFound"}})
-	}
-}
-
 const makeOutput = () => {
 	const container = createDiv({className:"output"})
 	container.style.height = "0"
@@ -244,7 +191,7 @@ const makeOutput = () => {
 			container.append(new LoadingIcon())
 			container.append(createDiv(), createDiv(), createDiv(), createDiv())
 		},
-		/** @type {function(crow.RunOutput): void} */
+		/** @type {function(RunResult): void} */
 		finishRunning: ({writes, exitCode}) => {
 			container.classList.remove("running")
 			container.style.height = ''
@@ -254,9 +201,11 @@ const makeOutput = () => {
 	}
 }
 
-/** @type {function(ParentNode, ReadonlyArray<crow.Write>, number): void} */
+/** @typedef {{exitCode:number, writes:ReadonlyArray<Write>}} RunResult */
+
+/** @type {function(ParentNode, ReadonlyArray<Write>, number): void} */
 const addSpansForWrites = (container, writes, exitCode) => {
-	/** @type {crow.Write.Pipe | "exit-code" | null} */
+	/** @type {Write["pipe"] | "exit-code" | null} */
 	let curPipe = null
 	let curLine = ""
 
@@ -288,4 +237,33 @@ const addSpansForWrites = (container, writes, exitCode) => {
 		curLine = `Exit code: ${exitCode}`
 		finishLine()
 	}
+}
+/** @type {function(number[], SemanticTokensLegend): Token[]} */
+const decodeTokens = (data, legend) => {
+	const res = []
+	let prevLine = 0
+	let prevCharacter = 0
+	let i = 0
+	const next = () => nonNull(data[i++])
+	while (i < data.length) {
+		const lineDelta = next()
+		const characterDelta = next()
+		const [line, character] = lineDelta === 0
+			? [prevLine, prevCharacter + characterDelta]
+			: [prevLine + lineDelta, characterDelta]
+		prevLine = line
+		prevCharacter = character
+		const length = next()
+		const type = nonNull(legend.tokenTypes[next()])
+		const modifiers = decodeModifiers(next(), legend.tokenModifiers)
+		res.push({line, character, length, type, modifiers})
+	}
+	return res
+}
+
+/** @type {function(number, ReadonlyArray<string>): ReadonlyArray<string>} */
+const decodeModifiers = (encoded, legend) => {
+	assert(legend.length === 1)
+	assert(encoded === 0 || encoded === 1)
+	return encoded === 0 ? [] : legend
 }

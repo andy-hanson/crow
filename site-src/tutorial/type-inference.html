@@ -8,12 +8,12 @@
 	</p>
 	<ul class="bullets">
 		<li>
-			<code class="lit-num">7</code> can be a <code class="struct">nat</code>,
-			<code class="struct">int</code>, or <code class="struct">float</code> (and more).
+			<code class="string">7</code> can be a <code class="type">nat</code>,
+			<code class="type">int</code>, or <code class="type">float</code> (and more).
 		</li>
 		<li>
-			<code class="lit-str">"foo"</code> can be a <code class="struct">string</code> or
-			<code class="struct">symbol</code>.
+			<code class="string">"foo"</code> can be a <code class="type">string</code> or
+			<code class="type">symbol</code>.
 		</li>
 		<li>
 			<code>()</code> calls <code>new</code> with no arguments.
@@ -83,11 +83,11 @@
 		</li>
 		<li>
 			<strong>From special expressions:</strong>
-			Any expression not at the end of a block must be <code class="struct">void</code>.
+			Any expression not at the end of a block must be <code class="type">void</code>.
 			<br />
 			The condition of an <code class="keyword">if</code>, <code class="keyword">elif</code>,
 			<code class="keyword">unless</code>, <code class="keyword">while</code>,
-			or <code class="keyword">until</code> must be a <code class="struct">bool</code>.
+			or <code class="keyword">until</code> must be a <code class="type">bool</code>.
 
 			<crow-runnable>
 				main void()
@@ -148,17 +148,17 @@
 		(This does not apply if there are multiple expected types from overloads; it's a compile error in that case.)
 	</p>
 	<ul class="bullets">
-		<li>A simple number like <code class="lit-num">0</code> defaults to <code class="struct">nat</code>.</li>
+		<li>A simple number like <code class="number">0</code> defaults to <code class="type">nat</code>.</li>
 		<li>
-			A number with a sign like <code class="lit-num">+1</code> or <code class="lit-num">-1</code>
-			defaults to <code class="struct">int</code>.
+			A number with a sign like <code class="number">+1</code> or <code class="number">-1</code>
+			defaults to <code class="type">int</code>.
 		</li>
 		<li>
-			A number with a decimal point like <code class="lit-num">1.5</code>
-			defaults to <code class="struct">float</code>.
+			A number with a decimal point like <code class="number">1.5</code>
+			defaults to <code class="type">float</code>.
 		</li>
 		<li>
-			A string literal like <code class="lit-str">"foo"</code> defaults to <code class="struct">string</code>.
+			A string literal like <code class="string">"foo"</code> defaults to <code class="type">string</code>.
 		</li>
 	</ul>
 	<crow-runnable>
