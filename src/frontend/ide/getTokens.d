@@ -76,6 +76,7 @@ import util.opt : force, has, Opt;
 import util.sourceRange : compareRange, Pos, rangeOfStartAndLength, rangeOfStartAndName, Range;
 import util.sym : AllSymbols, Sym, sym, symSize;
 import util.uri : AllUris;
+import util.util : stringOfEnum;
 
 SemanticTokens tokensOfAst(
 	ref Alloc alloc,
@@ -190,38 +191,8 @@ TokenModifiers noTokenModifiers() =>
 immutable Json[] allTokenModifiersJson = [staticMap!(jsonOfTokenModifier, EnumMembers!TokenModifiers)];
 enum jsonOfTokenModifier(TokenModifiers a) = Json(stringOfTokenModifier(a));
 
-string stringOfTokenType(TokenType a) {
-	final switch (a) {
-		case TokenType.comment:
-			return "comment";
-		case TokenType.enum_:
-			return "enum";
-		case TokenType.enumMember:
-			return "enumMember";
-		case TokenType.function_:
-			return "function";
-		case TokenType.interface_:
-			return "interface";
-		case TokenType.keyword:
-			return "keyword";
-		case TokenType.namespace:
-			return "namespace";
-		case TokenType.number:
-			return "number";
-		case TokenType.parameter:
-			return "parameter";
-		case TokenType.property:
-			return "property";
-		case TokenType.string:
-			return "string";
-		case TokenType.type:
-			return "type";
-		case TokenType.typeParameter:
-			return "typeParameter";
-		case TokenType.variable:
-			return "variable";
-	}
-}
+string stringOfTokenType(TokenType a) =>
+	stringOfEnum(a);
 
 string stringOfTokenModifier(TokenModifiers a) {
 	final switch (a) {

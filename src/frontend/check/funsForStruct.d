@@ -56,23 +56,23 @@ private size_t countFunsForStruct(in StructDecl a) =>
 			0,
 		(in StructBody.Builtin) =>
 			0,
-		(in StructBody.Enum it) =>
+		(in StructBody.Enum x) =>
 			// '==', 'to', 'enum-members', and a constructor for each member
-			3 + it.members.length,
+			3 + x.members.length,
 		(in StructBody.Extern x) =>
 			size_t(has(x.size) ? 1 : 0),
-		(in StructBody.Flags it) =>
+		(in StructBody.Flags x) =>
 			// '()', 'all', '==', '~', '|', '&', 'to', 'flags-members',
 			// and a constructor for each member
-			8 + it.members.length,
+			8 + x.members.length,
 		(in StructBody.Record x) {
 			size_t forFields = sum!RecordField(x.fields, (in RecordField field) =>
 				field.mutability == FieldMutability.const_ ? 1 : 2);
 			// byVal has get/set for pointer too
 			return 1 + forFields * (recordIsAlwaysByVal(x) ? 2 : 1);
 		},
-		(in StructBody.Union it) =>
-			it.members.length);
+		(in StructBody.Union x) =>
+			x.members.length);
 
 size_t countFunsForVars(in VarDecl[] vars) =>
 	vars.length * 2;
@@ -86,22 +86,22 @@ void addFunsForStruct(
 	body_(*struct_).match!void(
 		(StructBody.Bogus) {},
 		(StructBody.Builtin) {},
-		(StructBody.Enum it) {
-			addFunsForEnum(ctx, funsBuilder, commonTypes, struct_, it);
+		(StructBody.Enum x) {
+			addFunsForEnum(ctx, funsBuilder, commonTypes, struct_, x);
 		},
 		(StructBody.Extern x) {
 			if (has(x.size)) {
 				exactSizeArrBuilderAdd(funsBuilder, newExtern(ctx.alloc, ctx.programState, struct_));
 			}
 		},
-		(StructBody.Flags it) {
-			addFunsForFlags(ctx, funsBuilder, commonTypes, struct_, it);
+		(StructBody.Flags x) {
+			addFunsForFlags(ctx, funsBuilder, commonTypes, struct_, x);
 		},
-		(StructBody.Record it) {
-			addFunsForRecord(ctx, funsBuilder, commonTypes, struct_, it);
+		(StructBody.Record x) {
+			addFunsForRecord(ctx, funsBuilder, commonTypes, struct_, x);
 		},
-		(StructBody.Union it) {
-			addFunsForUnion(ctx, funsBuilder, commonTypes, struct_, it);
+		(StructBody.Union x) {
+			addFunsForUnion(ctx, funsBuilder, commonTypes, struct_, x);
 		});
 }
 

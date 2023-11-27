@@ -173,22 +173,22 @@ private void writeConcreteFunMangledName(
 	in ConcreteFun* source,
 ) {
 	source.source.matchIn!void(
-		(in FunInst it) {
+		(in FunInst x) {
 			if (body_(*source).isA!(ConcreteFunBody.Extern))
-				writeSym(writer, *mangledNames.allSymbols, it.name);
+				writeSym(writer, *mangledNames.allSymbols, x.name);
 			else {
-				writeMangledName(writer, mangledNames, it.name);
+				writeMangledName(writer, mangledNames, x.name);
 				maybeWriteIndexSuffix(writer, mangledNames.funToNameIndex[source]);
 			}
 		},
-		(in ConcreteFunSource.Lambda it) {
-			writeConcreteFunMangledName(writer, mangledNames, it.containingFun);
+		(in ConcreteFunSource.Lambda x) {
+			writeConcreteFunMangledName(writer, mangledNames, x.containingFun);
 			writer ~= "__lambda";
-			writer ~= it.index;
+			writer ~= x.index;
 		},
-		(in ConcreteFunSource.Test it) {
+		(in ConcreteFunSource.Test x) {
 			writer ~= "__test";
-			writer ~= it.testIndex;
+			writer ~= x.testIndex;
 		},
 		(in ConcreteFunSource.WrapMain x) {
 			writer ~= "__wrap_main";

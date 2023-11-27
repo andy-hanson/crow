@@ -18,7 +18,7 @@ import util.ptr : castNonScope;
 import util.sym : Sym, sym;
 import util.union_ : Union;
 import util.uri : addExtension, alterExtension, AllUris, getExtension, parseUriWithCwd, Uri;
-import util.util : todo;
+import util.util : optEnumOfString, todo;
 
 immutable struct Command {
 	immutable struct Build {
@@ -232,25 +232,10 @@ Opt!PrintKind parsePrintKind(in SafeCStr a, in SafeCStr[] args) {
 		case "low-model":
 			return expectEmptyArgs(PrintKind(PrintKind.LowModel()));
 		default:
-			Opt!(PrintKind.Ide.Kind) kind = ideKindFromString(strOfSafeCStr(a));
+			Opt!(PrintKind.Ide.Kind) kind = optEnumOfString!(PrintKind.Ide.Kind)(strOfSafeCStr(a));
 			return has(kind)
 				? expectLineAndColumn((in LineAndColumn lc) => PrintKind(PrintKind.Ide(force(kind), lc)))
 				: none!PrintKind;
-	}
-}
-
-Opt!(PrintKind.Ide.Kind) ideKindFromString(in string a) {
-	switch (a) {
-		case "hover":
-			return some(PrintKind.Ide.Kind.hover);
-		case "definition":
-			return some(PrintKind.Ide.Kind.definition);
-		case "rename":
-			return some(PrintKind.Ide.Kind.rename);
-		case "references":
-			return some(PrintKind.Ide.Kind.references);
-		default:
-			return none!(PrintKind.Ide.Kind);
 	}
 }
 

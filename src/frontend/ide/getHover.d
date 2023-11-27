@@ -33,9 +33,9 @@ void getHover(scope ref Writer writer, in ShowCtx ctx, in Position pos) =>
 		(in PositionKind.Expression x) {
 			getExprHover(writer, ctx, pos.module_.uri, *x.expr);
 		},
-		(in FunDecl it) {
+		(in FunDecl x) {
 			writer ~= "function ";
-			writeSym(writer, ctx.allSymbols, it.name);
+			writeSym(writer, ctx.allSymbols, x.name);
 		},
 		(in PositionKind.FunExtern x) {
 			writer ~= "function comes from external library ";

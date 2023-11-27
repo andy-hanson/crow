@@ -37,6 +37,7 @@ import util.jsonParse : asUint;
 import util.lineAndColumnGetter : LineAndCharacter, LineAndCharacterRange;
 import util.opt : none, some;
 import util.uri : AllUris, parseUri, Uri;
+import util.util : enumOfString;
 
 // If extending this, remember to modify 'initializeCapabilities'
 LspInMessage parseLspInMessage(ref Alloc alloc, scope ref AllUris allUris, in Json message) {
@@ -95,16 +96,8 @@ LspInMessage parseLspInMessage(ref Alloc alloc, scope ref AllUris allUris, in Js
 
 private:
 
-TraceValue parseTraceValue(string a) {
-	final switch (a) {
-		case "off":
-			return TraceValue.off;
-		case "messages":
-			return TraceValue.messages;
-		case "verbose":
-			return TraceValue.verbose;
-	}
-}
+TraceValue parseTraceValue(string a) =>
+	enumOfString!TraceValue(a);
 
 DidChangeTextDocumentParams parseDidChangeTextDocumentParams(ref Alloc alloc, scope ref AllUris allUris, in Json a) =>
 	DidChangeTextDocumentParams(

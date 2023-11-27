@@ -14,8 +14,6 @@ import lib.lsp.lspTypes :
 	LspOutResponse,
 	LspOutResult,
 	MarkupContent,
-	MarkupKind,
-	Pipe,
 	PublishDiagnosticsParams,
 	RegisterCapability,
 	RunResult,
@@ -35,6 +33,7 @@ import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : force, has, Opt;
 import util.sourceRange : jsonOfRange, UriAndRange;
 import util.uri : AllUris, stringOfUri, Uri;
+import util.util : stringOfEnum;
 
 Json jsonOfLspOutAction(ref Alloc alloc, in AllUris allUris, in LineAndColumnGetters lcg, in LspOutAction a) =>
 	jsonObject(alloc, [
@@ -103,17 +102,8 @@ Json jsonOfRunResult(ref Alloc alloc, in RunResult a) =>
 
 Json jsonOfWrite(ref Alloc alloc, Write a) =>
 	jsonObject(alloc, [
-		field!"pipe"(stringOfPipe(a.pipe)),
+		field!"pipe"(stringOfEnum(a.pipe)),
 		field!"text"(a.text)]);
-
-string stringOfPipe(Pipe a) {
-	final switch (a) {
-		case Pipe.stdout:
-			return "stdout";
-		case Pipe.stderr:
-			return "stderr";
-	}
-}
 
 Json initializeCapabilities() {
 	static immutable Json.StringObjectField[2] semanticTokensOptions = [
@@ -194,14 +184,5 @@ Json jsonOfTextEdit(ref Alloc alloc, in LineAndColumnGetter lcg, ref TextEdit a)
 
 Json jsonOfMarkupContent(ref Alloc alloc, in MarkupContent a) =>
 	jsonObject(alloc, [
-		field!"kind"(stringOfMarkupKind(a.kind)),
+		field!"kind"(stringOfEnum(a.kind)),
 		field!"value"(jsonString(alloc, a.value))]);
-
-string stringOfMarkupKind(MarkupKind a) {
-	final switch (a) {
-		case MarkupKind.plaintext:
-			return "plaintext";
-		case MarkupKind.markdown:
-			return "markdown";
-	}
-}

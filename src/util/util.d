@@ -2,6 +2,10 @@ module util.util;
 
 @safe @nogc pure nothrow:
 
+import std.meta : staticMap;
+
+import util.opt : none, Opt, some;
+
 version (WebAssembly) { } else {
 	import core.stdc.stdio : fprintf;
 	import app.fileSystem : stderr;
@@ -80,3 +84,40 @@ T unreachable(T)() {
 }
 
 void drop(T)(T) {}
+
+E enumOfString(E)(in string a) {
+	assertNormalEnum!E();
+	final switch (a) {
+		static foreach (size_t index, string member; __traits(allMembers, E)) {
+			case member:
+				return cast(E) index;
+		}
+	}
+}
+
+Opt!E optEnumOfString(E)(in string a) {
+	assertNormalEnum!E();
+	switch (a) {
+		static foreach (size_t index, string member; __traits(allMembers, E)) {
+			case member:
+				return some(cast(E) index);
+		}
+		default:
+			return none!E;
+	}
+}
+
+string stringOfEnum(E)(E value) {
+	assertNormalEnum!E();
+	static immutable string[] strings = [staticMap!(stripUnderscore, __traits(allMembers, E))];
+	return strings[value];
+}
+
+// Enum members must be 0 .. n
+private void assertNormalEnum(E)() {
+	static foreach (size_t i, string name; __traits(allMembers, E))
+		static assert(__traits(getMember, E, name) == i);
+}
+
+private enum stripUnderscore(string s) =
+	s[$ - 1] == '_' ? s[0 .. $ - 1] : s;

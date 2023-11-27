@@ -56,7 +56,7 @@ import util.opt : force, has, none, Opt, some;
 import util.sourceRange : compareRange;
 import util.sym : AllSymbols, Sym, writeSym;
 import util.uri : AllUris, baseName, compareUriAlphabetically, Uri, writeRelPath, writeUri;
-import util.util : max, unreachable;
+import util.util : stringOfEnum, max, unreachable;
 import util.writer : withWriter, writeEscapedChar, writeQuotedString, writeWithCommas, writeWithSeparator, Writer;
 
 SafeCStr stringOfDiagnostics(ref Alloc alloc, in ShowCtx ctx, in Program program) =>
@@ -162,8 +162,8 @@ void writeUnusedDiag(scope ref Writer writer, in ShowCtx ctx, in Diag.Unused a) 
 
 void writeParseDiag(scope ref Writer writer, in AllSymbols allSymbols, in AllUris allUris, in ParseDiag d) {
 	d.matchIn!void(
-		(in ParseDiag.Expected it) {
-			final switch (it.kind) {
+		(in ParseDiag.Expected x) {
+			final switch (x.kind) {
 				case ParseDiag.Expected.Kind.afterMut:
 					writer ~= "expected '[' or '*' after 'mut'";
 					break;
@@ -260,7 +260,7 @@ void writeParseDiag(scope ref Writer writer, in AllSymbols allSymbols, in AllUri
 			writer ~= d.nSpaces;
 			writer ~= " which is not divisible";
 		},
-		(in ParseDiag.IndentTooMuch it) {
+		(in ParseDiag.IndentTooMuch x) {
 			writer ~= "indented too far";
 		},
 		(in ParseDiag.IndentWrongCharacter d) {
@@ -269,46 +269,25 @@ void writeParseDiag(scope ref Writer writer, in AllSymbols allSymbols, in AllUri
 			writer ~= " (based on first indented line), but here there is a ";
 			writer ~= d.expectedTabs ? "space" : "tab";
 		},
-		(in ParseDiag.InvalidName it) {
-			writeQuotedString(writer, it.actual);
+		(in ParseDiag.InvalidName x) {
+			writeQuotedString(writer, x.actual);
 			writer ~= " is not a valid name";
 		},
-		(in ParseDiag.InvalidStringEscape it) {
+		(in ParseDiag.InvalidStringEscape x) {
 			writer ~= "invalid escape character '";
-			writeEscapedChar(writer, it.actual);
+			writeEscapedChar(writer, x.actual);
 			writer ~= '\'';
 		},
-		(in ParseDiag.NeedsBlockCtx it) {
-			writer ~= () {
-				final switch (it.kind) {
-					case ParseDiag.NeedsBlockCtx.Kind.break_:
-						return "'break'";
-					case ParseDiag.NeedsBlockCtx.Kind.for_:
-						return "'for'";
-					case ParseDiag.NeedsBlockCtx.Kind.if_:
-						return "'if'";
-					case ParseDiag.NeedsBlockCtx.Kind.match:
-						return "'match'";
-					case ParseDiag.NeedsBlockCtx.Kind.lambda:
-						return "lambda";
-					case ParseDiag.NeedsBlockCtx.Kind.loop:
-						return "loop";
-					case ParseDiag.NeedsBlockCtx.Kind.throw_:
-						return "'throw'";
-					case ParseDiag.NeedsBlockCtx.Kind.trusted:
-						return "'trusted'";
-					case ParseDiag.NeedsBlockCtx.Kind.unless:
-						return "'unless'";
-					case ParseDiag.NeedsBlockCtx.Kind.until:
-						return "'until'";
-					case ParseDiag.NeedsBlockCtx.Kind.while_:
-						return "'while'";
-					case ParseDiag.NeedsBlockCtx.Kind.with_:
-						return "'with'";
-				}
-			}();
+		(in ParseDiag.NeedsBlockCtx x) {
+			if (x.kind == ParseDiag.NeedsBlockCtx.Kind.lambda)
+				writer ~= "lambda";
+			else {
+				writer ~= '\'';
+				writer ~= stringOfEnum(x.kind);
+				writer ~= '\'';
+			}
 			writer ~= " expression must appear ";
-			writer ~= it.kind == ParseDiag.NeedsBlockCtx.Kind.break_
+			writer ~= x.kind == ParseDiag.NeedsBlockCtx.Kind.break_
 				? "on its own line"
 				: "in a context where it can be followed by an indented block";
 		},
@@ -773,29 +752,14 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 			writer ~= "field is mut, but containing record was not marked mut";
 		},
 		(in Diag.NameNotFound x) {
-			writer ~= () {
-				final switch (x.kind) {
-					case Diag.NameNotFound.Kind.spec:
-						return "spec";
-					case Diag.NameNotFound.Kind.type:
-						return "type";
-				}
-			}();
+			writer ~= stringOfEnum(x.kind);
 			writer ~= " name not found: ";
 			writeName(writer, ctx, x.name);
 		},
 		(in Diag.NeedsExpectedType x) {
-			writer ~= () {
-				final switch (x.kind) {
-					case Diag.NeedsExpectedType.Kind.loop:
-						return "'loop'";
-					case Diag.NeedsExpectedType.Kind.pointer:
-						return "pointer";
-					case Diag.NeedsExpectedType.Kind.throw_:
-						return "'throw'";
-				}
-			}();
-			writer ~= " expression needs an expected type";
+			writer ~= '\'';
+			writer ~= stringOfEnum(x.kind);
+			writer ~= "' expression needs an expected type";
 		},
 		(in Diag.ParamCantBeMutable) {
 			writer ~= "mutable parameters are not supported";
