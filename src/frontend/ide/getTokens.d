@@ -2,6 +2,7 @@ module frontend.ide.getTokens;
 
 @safe @nogc pure nothrow:
 
+import std.range : iota;
 import std.traits : EnumMembers, staticMap;
 
 import frontend.parse.ast :
@@ -66,9 +67,10 @@ import model.model : symOfVarKind;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
+import util.col.arrUtil : arrLiteral;
 import util.col.sortUtil : eachSorted;
 import util.conv : safeToUint;
-import util.json : field, Json;
+import util.json : field, Json, jsonList, jsonObject;
 import util.lineAndColumnGetter : LineAndCharacter, LineAndCharacterRange, lineAndCharacterRange, LineAndColumnGetter;
 import util.opt : force, has, Opt;
 import util.sourceRange : compareRange, Pos, rangeOfStartAndLength, rangeOfStartAndName, Range;
@@ -112,6 +114,21 @@ SemanticTokens tokensOfAst(
 	return SemanticTokens(finishArr(alloc, tokens.encoded));
 }
 
+Json jsonOfDecodedTokens(ref Alloc alloc, in SemanticTokens a) {
+	ArrBuilder!Json res;
+	decodeTokens(a, (in LineAndCharacter lc, size_t length, TokenType type, TokenModifiers modifiers) {
+		add(alloc, res, jsonObject(alloc, [
+			field!"line"(lc.line),
+			field!"character"(lc.character),
+			field!"length"(length),
+			field!"type"(stringOfTokenType(type)),
+			field!"modifiers"(jsonList(modifiers == noTokenModifiers
+				? []
+				: arrLiteral(alloc, [Json(stringOfTokenModifier(modifiers))])))]));
+	});
+	return jsonList(finishArr(alloc, res));
+}
+
 Json getTokensLegend() {
 	static immutable Json.StringObject fields = [
 		Json.StringObjectField("tokenTypes", Json(allTokenTypesJson)),
@@ -121,6 +138,28 @@ Json getTokensLegend() {
 }
 
 private:
+
+void decodeTokens(
+	in SemanticTokens a,
+	in void delegate(in LineAndCharacter, size_t, TokenType, TokenModifiers) @safe @nogc pure nothrow cb,
+) {
+	uint line = 0;
+	uint character = 0;
+	foreach (size_t i; iota(0, a.data.length, 5)) {
+		uint deltaLine = a.data[i];
+		uint deltaCharacter = a.data[i + 1];
+		uint length = a.data[i + 2];
+		TokenType type = cast(TokenType) a.data[i + 3];
+		TokenModifiers modifiers = cast(TokenModifiers) a.data[i + 4];
+		if (deltaLine == 0)
+			character += deltaCharacter;
+		else {
+			line += deltaLine;
+			character = deltaCharacter;
+		}
+		cb(LineAndCharacter(line, character), length, type, modifiers);
+	}
+}
 
 enum TokenType {
 	comment,
@@ -138,13 +177,14 @@ enum TokenType {
 	typeParameter,
 	variable,
 }
-immutable Json[] allTokenTypesJson = [staticMap!(jsonOfTokenType, EnumMembers!TokenType)];
-enum jsonOfTokenType(TokenType a) = Json(stringOfTokenType(a));
-
 // This will be a flags enum
 enum TokenModifiers {
 	declaration = 1,
 }
+
+immutable Json[] allTokenTypesJson = [staticMap!(jsonOfTokenType, EnumMembers!TokenType)];
+enum jsonOfTokenType(TokenType a) = Json(stringOfTokenType(a));
+
 TokenModifiers noTokenModifiers() =>
 	cast(TokenModifiers) 0;
 immutable Json[] allTokenModifiersJson = [staticMap!(jsonOfTokenModifier, EnumMembers!TokenModifiers)];

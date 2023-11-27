@@ -12,12 +12,13 @@ import frontend.ide.getHover : getHover;
 import frontend.ide.getPosition : getPosition;
 import frontend.ide.getRename : getRenameForPosition;
 import frontend.ide.getReferences : getReferencesForPosition;
-import frontend.ide.getTokens : tokensOfAst;
+import frontend.ide.getTokens : jsonOfDecodedTokens, tokensOfAst;
 import frontend.ide.position : Position;
 import frontend.lang : crowExtension;
 import frontend.parse.ast : fileAstForReadFileDiag, FileAst;
 import frontend.parse.jsonOfAst : jsonOfAst;
-import frontend.showDiag : sortedDiagnostics, stringOfDiag, stringOfDiagnostics, UriAndDiagnostics;
+import frontend.showDiag :
+	sortedDiagnostics, stringOfDiag, stringOfDiagnostics, stringOfParseDiagnostics, UriAndDiagnostics;
 import frontend.showModel : ShowCtx, ShowOptions;
 import frontend.storage :
 	allKnownGoodCrowUris,
@@ -40,7 +41,7 @@ import interpret.fakeExtern : withFakeExtern, WriteCb;
 import interpret.generateBytecode : generateBytecode;
 import interpret.runBytecode : runBytecode;
 import lib.cliParser : PrintKind;
-import lib.lsp.lspToJson : jsonOfHover, jsonOfReferences, jsonOfRename, jsonOfSemanticTokens;
+import lib.lsp.lspToJson : jsonOfHover, jsonOfReferences, jsonOfRename;
 import lib.lsp.lspTypes :
 	DefinitionParams,
 	DidChangeTextDocumentParams,
@@ -92,7 +93,7 @@ import model.jsonOfConcreteModel : jsonOfConcreteProgram;
 import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
 import model.lowModel : ExternLibraries, LowProgram;
-import model.model : fakeProgramForAst, hasFatalDiagnostics, Module, Program;
+import model.model : hasFatalDiagnostics, Module, Program;
 import util.alloc.alloc : Alloc, freeElements, MetaAlloc, newAlloc, withTempAlloc;
 import util.col.arr : only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
@@ -249,8 +250,10 @@ private LspOutResult handleLspRequest(
 			});
 			return LspOutResult(RunResult(exitCode, finishArr(alloc, writes)));
 		},
-		(in SemanticTokensParams x) =>
-			LspOutResult(getTokens(perf, alloc, server, x)),
+		(in SemanticTokensParams x) {
+			Uri uri = x.textDocument.uri;
+			return LspOutResult(getTokens(alloc, server, uri, *getAst(alloc, server, uri)));
+		},
 		(in ShutdownParams _) =>
 			LspOutResult(LspOutResult.Null()),
 		(in UnloadedUrisParams) =>
@@ -413,18 +416,6 @@ private Program frontendCompile(
 ) =>
 	frontendCompile(perf, alloc, server.allSymbols, server.allUris, server.storage, server.includeDir, rootUris, main);
 
-private SemanticTokens getTokens(
-	scope ref Perf perf,
-	ref Alloc alloc,
-	ref Server server,
-	in SemanticTokensParams params,
-) {
-	Uri uri = params.textDocument.uri;
-	assert(getExtension(server.allUris, uri) == crowExtension);
-	FileAst* ast = getParsedOrDiag(server.storage, uri).as!ParseResult.as!(FileAst*);
-	return tokensOfAst(alloc, server.allSymbols, server.allUris, server.lineAndColumnGetters[uri], *ast);
-}
-
 private UriAndRange[] getDefinitionForProgram(
 	ref Alloc alloc,
 	scope ref Server server,
@@ -492,7 +483,7 @@ struct DiagsAndResultJson {
 	Json result;
 }
 
-private DiagsAndResultJson diagsAndResultJson(
+private DiagsAndResultJson printForProgram(
 	ref Alloc alloc,
 	scope ref Server server,
 	in Program program,
@@ -500,32 +491,38 @@ private DiagsAndResultJson diagsAndResultJson(
 ) =>
 	DiagsAndResultJson(showDiagnostics(alloc, server, program), result);
 
-DiagsAndResultJson printTokens(
-	scope ref Perf perf,
-	ref Alloc alloc,
-	ref Server server,
-	in SemanticTokensParams params,
-) =>
-	// TODO: decode it?
-	DiagsAndResultJson(safeCStr!"", jsonOfSemanticTokens(alloc, getTokens(perf, alloc, server, params)));
+private DiagsAndResultJson printForAst(ref Alloc alloc, ref Server server, Uri uri, in FileAst ast, Json result) =>
+	DiagsAndResultJson(
+		stringOfParseDiagnostics(
+			alloc, server.allSymbols, server.allUris, server.lineAndColumnGetters[uri], ast.parseDiagnostics),
+		result);
 
-DiagsAndResultJson printAst(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri uri) {
-	FileAst* ast = getAst(alloc, server.storage, uri);
-	Json json = jsonOfAst(alloc, server.allUris, server.lineAndColumnGetters[uri], *ast);
-	return diagsAndResultJson(alloc, server, fakeProgramForAst(alloc, uri, ast), json);
+DiagsAndResultJson printTokens(ref Alloc alloc, ref Server server, in SemanticTokensParams params) {
+	Uri uri = params.textDocument.uri;
+	FileAst* ast = getAst(alloc, server, uri);
+	return printForAst(alloc, server, uri, *ast, jsonOfDecodedTokens(alloc, getTokens(alloc, server, uri, *ast)));
 }
 
-private FileAst* getAst(ref Alloc alloc, ref Storage storage, Uri uri) =>
-	getParsedOrDiag(storage, uri).match!(FileAst*)(
+DiagsAndResultJson printAst(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri uri) {
+	FileAst* ast = getAst(alloc, server, uri);
+	return printForAst(
+		alloc, server, uri, *ast,
+		jsonOfAst(alloc, server.allUris, server.lineAndColumnGetters[uri], *ast));
+}
+
+private FileAst* getAst(ref Alloc alloc, ref Server server, Uri uri) {
+	assert(getExtension(server.allUris, uri) == crowExtension);
+	return getParsedOrDiag(server.storage, uri).match!(FileAst*)(
 		(ParseResult x) =>
 			x.as!(FileAst*),
 		(ReadFileDiag x) =>
 			fileAstForReadFileDiag(alloc, x));
+}
 
 DiagsAndResultJson printModel(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri uri) {
 	Program program = frontendCompile(perf, alloc, server, [uri], none!Uri);
 	Json json = jsonOfModule(alloc, server.allUris, server.lineAndColumnGetters[uri], *only(program.rootModules));
-	return diagsAndResultJson(alloc, server, program, json);
+	return printForProgram(alloc, server, program, json);
 }
 
 DiagsAndResultJson printConcreteModel(
@@ -538,7 +535,7 @@ DiagsAndResultJson printConcreteModel(
 ) {
 	Program program = frontendCompile(perf, alloc, server, [uri], none!Uri);
 	ShowCtx ctx = getShowDiagCtx(server, program);
-	return diagsAndResultJson(
+	return printForProgram(
 		alloc, server, program,
 		jsonOfConcreteProgram(alloc, lineAndColumnGetters, concretize(perf, alloc, ctx, versionInfo, program)));
 }
@@ -555,7 +552,7 @@ DiagsAndResultJson printLowModel(
 	ShowCtx ctx = getShowDiagCtx(server, program);
 	ConcreteProgram concreteProgram = concretize(perf, alloc, ctx, versionInfo, program);
 	LowProgram lowProgram = lower(perf, alloc, server.allSymbols, program.config.extern_, program, concreteProgram);
-	return diagsAndResultJson(alloc, server, program, jsonOfLowProgram(alloc, lineAndColumnGetters, lowProgram));
+	return printForProgram(alloc, server, program, jsonOfLowProgram(alloc, lineAndColumnGetters, lowProgram));
 }
 
 DiagsAndResultJson printIde(
@@ -569,7 +566,7 @@ DiagsAndResultJson printIde(
 	TextDocumentPositionParams params = TextDocumentPositionParams(
 		TextDocumentIdentifier(where.uri),
 		toLineAndCharacter(server.lineAndColumnGetters[where.uri], where.lineAndColumn));
-	return diagsAndResultJson(alloc, server, program, getPrinted(alloc, server, program, params, kind));
+	return printForProgram(alloc, server, program, getPrinted(alloc, server, program, params, kind));
 }
 
 private Json getPrinted(
@@ -635,6 +632,9 @@ BuildToCResult buildToC(scope ref Perf perf, ref Alloc alloc, ref Server server,
 }
 
 private:
+
+SemanticTokens getTokens(ref Alloc alloc, ref Server server, Uri uri, in FileAst ast) =>
+	tokensOfAst(alloc, server.allSymbols, server.allUris, server.lineAndColumnGetters[uri], ast);
 
 ShowCtx getShowDiagCtx(return scope ref const Server server, return scope ref Program program) =>
 	ShowCtx(

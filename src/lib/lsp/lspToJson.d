@@ -84,7 +84,7 @@ Json jsonOfLspOutResult(ref Alloc alloc, in AllUris allUris, in LineAndColumnGet
 		(RunResult x) =>
 			jsonOfRunResult(alloc, x),
 		(SemanticTokens x) =>
-			jsonOfSemanticTokens(alloc, x),
+			jsonObject(alloc, [field!"data"(jsonList(alloc, x.data, (in uint i) => Json(i)))]),
 		(UnloadedUris x) =>
 			jsonObject(alloc, [field!"unloadedUris"(jsonList!Uri(alloc, x.unloadedUris, (in Uri x) =>
 				Json(stringOfUri(alloc, allUris, x))))]),
@@ -94,9 +94,6 @@ Json jsonOfLspOutResult(ref Alloc alloc, in AllUris allUris, in LineAndColumnGet
 			jsonOfRename(alloc, allUris, lcg, x),
 		(LspOutResult.Null) =>
 			jsonNull);
-
-public Json jsonOfSemanticTokens(ref Alloc alloc, in SemanticTokens a) =>
-	jsonObject(alloc, [field!"data"(jsonList(alloc, a.data, (in uint i) => Json(i)))]);
 
 Json jsonOfRunResult(ref Alloc alloc, in RunResult a) =>
 	jsonObject(alloc, [

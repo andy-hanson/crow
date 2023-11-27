@@ -10,6 +10,7 @@ import frontend.showModel :
 	writeCalleds,
 	writeFunDecl,
 	writeFunDeclAndTypeArgs,
+	writeLineAndColumnRange,
 	writeName,
 	writePurity,
 	writeSig,
@@ -41,18 +42,19 @@ import model.model :
 	symOfVisibility,
 	Type,
 	TypeParamsAndSig;
-import model.parseDiag : ParseDiag;
+import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSort, finishArr;
 import util.col.arrUtil : exists;
+import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnRange;
 import util.col.multiMap : makeMultiMap, MultiMap, MultiMapCb, multiMapEach;
 import util.col.sortUtil : sorted;
 import util.col.str : SafeCStr;
 import util.comparison : Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : compareRange;
-import util.sym : Sym, writeSym;
+import util.sym : AllSymbols, Sym, writeSym;
 import util.uri : AllUris, baseName, compareUriAlphabetically, Uri, writeRelPath, writeUri;
 import util.util : max, unreachable;
 import util.writer : withWriter, writeEscapedChar, writeQuotedString, writeWithCommas, writeWithSeparator, Writer;
@@ -76,6 +78,21 @@ SafeCStr stringOfDiagnostics(ref Alloc alloc, in ShowCtx ctx, in Program program
 SafeCStr stringOfDiag(ref Alloc alloc, in ShowCtx ctx, in Diag diag) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		writeDiag(writer, ctx, diag);
+	});
+
+SafeCStr stringOfParseDiagnostics(
+	ref Alloc alloc,
+	in AllSymbols allSymbols,
+	in AllUris allUris,
+	in LineAndColumnGetter lcg,
+	in ParseDiagnostic[] diagnostics,
+) =>
+	withWriter(alloc, (scope ref Writer writer) {
+		foreach (ref ParseDiagnostic x; diagnostics) {
+			writeLineAndColumnRange(writer, lineAndColumnRange(lcg, x.range));
+			writer ~= ' ';
+			writeParseDiag(writer, allSymbols, allUris, x.kind);
+		}
 	});
 
 immutable struct UriAndDiagnostics {
@@ -143,7 +160,7 @@ void writeUnusedDiag(scope ref Writer writer, in ShowCtx ctx, in Diag.Unused a) 
 		});
 }
 
-void writeParseDiag(scope ref Writer writer, in ShowCtx ctx, in ParseDiag d) {
+void writeParseDiag(scope ref Writer writer, in AllSymbols allSymbols, in AllUris allUris, in ParseDiag d) {
 	d.matchIn!void(
 		(in ParseDiag.Expected it) {
 			final switch (it.kind) {
@@ -300,7 +317,7 @@ void writeParseDiag(scope ref Writer writer, in ShowCtx ctx, in ParseDiag d) {
 		},
 		(in ParseDiag.RelativeImportReachesPastRoot x) {
 			writer ~= "importing ";
-			writeRelPath(writer, ctx.allUris, x.imported);
+			writeRelPath(writer, allUris, x.imported);
 			writer ~= " reaches above the source directory";
 			//TODO: recommend a compiler option to fix this
 		},
@@ -314,7 +331,7 @@ void writeParseDiag(scope ref Writer writer, in ShowCtx ctx, in ParseDiag d) {
 		},
 		(in ParseDiag.UnexpectedOperator x) {
 			writer ~= "unexpected '";
-			writeSym(writer, ctx.allSymbols, x.operator);
+			writeSym(writer, allSymbols, x.operator);
 			writer ~= '\'';
 		},
 		(in ParseDiag.UnexpectedToken u) {
@@ -790,7 +807,7 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 			writer ~= "can't change the value of a parameter; consider introducing a mutable local instead";
 		},
 		(in ParseDiag x) {
-			writeParseDiag(writer, ctx, x);
+			writeParseDiag(writer, ctx.allSymbols, ctx.allUris, x);
 		},
 		(in Diag.PtrIsUnsafe) {
 			writer ~= "getting a pointer is unsafe";

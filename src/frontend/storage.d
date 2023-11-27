@@ -59,8 +59,6 @@ struct Storage {
 	MutMap!(Uri, AllocAndValue!FileInfo) successes;
 	MutMap!(Uri, ReadFileDiag) diags;
 
-	public:
-
 	ref Alloc mapAlloc() scope =>
 		castNonScope_ref(mapAlloc_);
 }

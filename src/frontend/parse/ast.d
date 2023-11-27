@@ -826,7 +826,7 @@ immutable struct ImportsOrExportsAst {
 }
 
 immutable struct FileAst {
-	ParseDiagnostic[] diagnostics;
+	ParseDiagnostic[] parseDiagnostics;
 	SafeCStr docComment;
 	bool noStd;
 	Opt!ImportsOrExportsAst imports;

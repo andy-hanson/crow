@@ -24,12 +24,6 @@ immutable struct Map(K, V) {
 		getAt_mut!(K, V)(inner, key);
 }
 
-Map!(K, V) mapLiteral(K, V)(ref Alloc alloc, K key, V value) =>
-	makeMap!(K, V, bool)(
-		alloc,
-		[false],
-		(in bool b) => immutable KeyValuePair!(K, V)(key, value));
-
 bool hasKey(K, V)(in Map!(K, V) a, immutable K key) =>
 	hasKey_mut(a.inner, key);
 

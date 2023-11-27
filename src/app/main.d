@@ -265,7 +265,7 @@ ExitCode doPrint(scope ref Perf perf, ref Alloc alloc, ref Server server, in Com
 	DiagsAndResultJson printed = command.kind.matchImpure!DiagsAndResultJson(
 		(in PrintKind.Tokens) {
 			loadSingleFile(perf, server, mainUri);
-			return printTokens(perf, alloc, server, SemanticTokensParams(TextDocumentIdentifier(mainUri)));
+			return printTokens(alloc, server, SemanticTokensParams(TextDocumentIdentifier(mainUri)));
 		},
 		(in PrintKind.Ast) {
 			loadSingleFile(perf, server, mainUri);

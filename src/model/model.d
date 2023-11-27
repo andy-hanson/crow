@@ -22,15 +22,13 @@ import model.concreteModel : TypeSize;
 import model.constant : Constant;
 import model.diag : Diag, Diagnostic, isFatal, UriAndDiagnostic;
 import model.parseDiag : ParseDiagnostic;
-import util.alloc.alloc : Alloc;
 import util.col.arr : arrayOfSingle, empty, PtrAndSmallNumber, small, SmallArray;
 import util.col.arrUtil : arrEqual, exists, first;
-import util.col.map : existsInMap, Map, mapLiteral;
+import util.col.map : existsInMap, Map;
 import util.col.enumMap : EnumMap;
 import util.col.str : SafeCStr, safeCStr;
 import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
-import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : hashPtr;
 import util.sourceRange : combineRanges, UriAndRange, Pos, rangeOfStartAndLength, Range;
@@ -1248,13 +1246,6 @@ immutable struct Program {
 	CommonFuns commonFuns;
 	CommonTypes commonTypes;
 }
-Program fakeProgramForAst(ref Alloc alloc, Uri uri, FileAst* ast) =>
-	Program(
-		Config(),
-		mapLiteral!(Uri, immutable Module*)(alloc, uri, allocate(alloc, emptyModule(uri, ast))),
-		[],
-		CommonFuns(),
-		CommonTypes());
 Program fakeProgramForTest() =>
 	Program(Config(), Map!(Uri, immutable Module*)(), [], CommonFuns(), CommonTypes());
 
@@ -1279,7 +1270,7 @@ private bool existsDiagnostic(in Program a, in bool delegate(in UriAndDiagnostic
 	exists!Diagnostic(a.config.diagnostics, (in Diagnostic x) =>
 		cb(UriAndDiagnostic(force(a.config.configUri), x))) ||
 	existsInMap!(Uri, immutable Module*)(a.allModules, (in Uri uri, in Module* m) =>
-		exists!ParseDiagnostic(m.ast.diagnostics, (in ParseDiagnostic x) =>
+		exists!ParseDiagnostic(m.ast.parseDiagnostics, (in ParseDiagnostic x) =>
 			cb(UriAndDiagnostic(UriAndRange(uri, x.range), Diag(x.kind)))) ||
 		exists!Diagnostic(m.diagnostics, (in Diagnostic x) =>
 			cb(UriAndDiagnostic(uri, x))));
