@@ -29,7 +29,6 @@ import util.perf : Perf;
 import util.sourceRange : Range, UriAndRange;
 import util.sym : AllSymbols, Sym;
 import util.uri : AllUris, Uri;
-import util.util : verify;
 
 struct CheckCtx {
 	@safe @nogc pure nothrow:
@@ -165,7 +164,7 @@ UriAndRange rangeInFile(in CheckCtx ctx, in Range range) =>
 	UriAndRange(ctx.curUri, range);
 
 void addDiag(ref CheckCtx ctx, in UriAndRange range, Diag diag) {
-	verify(range.uri == ctx.curUri);
+	assert(range.uri == ctx.curUri);
 	addDiag(ctx, range.range, diag);
 }
 

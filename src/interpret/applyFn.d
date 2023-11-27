@@ -3,7 +3,6 @@ module interpret.applyFn;
 @safe @nogc pure nothrow:
 
 import util.conv : bitsOfFloat32, bitsOfFloat64, float32OfBits, float64OfBits;
-import util.util : verify;
 
 private ulong binaryFloat32s(alias cb)(ulong a, ulong b) =>
 	bitsOfFloat32(cb(float32OfBits(a), float32OfBits(b)));
@@ -83,11 +82,11 @@ alias fnSubFloat64 = binaryFloat64s!((double a, double b) => a - b);
 ulong fnTruncateToInt64FromFloat64(ulong a) =>
 	cast(ulong) cast(long) float64OfBits(a);
 ulong fnUnsafeBitShiftLeftNat64(ulong a, ulong b) {
-	verify(b < 64);
+	assert(b < 64);
 	return a << b;
 }
 ulong fnUnsafeBitShiftRightNat64(ulong a, ulong b) {
-	verify(b < 64);
+	assert(b < 64);
 	return a >> b;
 }
 alias fnUnsafeDivFloat32 = binaryFloat32s!((float a, float b) => a / b);

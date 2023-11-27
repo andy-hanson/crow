@@ -26,7 +26,7 @@ import util.sym :
 	symOfStr,
 	symSize,
 	writeSym;
-import util.util : todo, verify;
+import util.util : todo;
 import util.writer : withWriter, Writer;
 
 struct AllUris {
@@ -84,7 +84,7 @@ bool isFileUri(in AllUris allUris, Uri a) =>
 	firstComponent(allUris, a.path) == fileScheme;
 
 FileUri asFileUri(ref AllUris allUris, Uri a) {
-	verify(isFileUri(allUris, a));
+	assert(isFileUri(allUris, a));
 	return FileUri(skipFirstComponent(allUris, a.path));
 }
 
@@ -288,7 +288,7 @@ private size_t pathToStrLength(in AllUris allUris, Path path, in PathToStrOption
 		// 1 for '/'
 		res += 1 + symSize(allUris.allSymbols, part);
 	});
-	verify(res > 0);
+	assert(res > 0);
 	// - 1 uncount the leading slash (before maybe adding it back)
 	return res - 1 + options.leadingSlash + options.nulTerminate;
 }
@@ -307,7 +307,7 @@ private @trusted SafeCStr pathToTempStr(
 ) {
 	PathToStrOptions options = PathToStrOptions(true, true);
 	size_t length = pathToStrLength(allUris, path, options);
-	verify(length <= temp.length);
+	assert(length <= temp.length);
 	pathToStrWorker(allUris, path, temp[0 .. length], options);
 	return SafeCStr(cast(immutable) temp.ptr);
 }
@@ -330,13 +330,13 @@ private @system void pathToStrWorker(in AllUris allUris, Path path, char[] outBu
 			*j = c;
 			j++;
 		});
-		verify(j == partEnd);
+		assert(j == partEnd);
 		if (!isFirstPart || options.leadingSlash) {
 			cur--;
 			*cur = '/';
 		}
 	});
-	verify(cur == &outBuf[0]);
+	assert(cur == &outBuf[0]);
 }
 
 SafeCStr safeCStrOfUri(ref Alloc alloc, in AllUris allUris, Uri a) =>
@@ -549,7 +549,7 @@ void eachPart(
 	size_t maxParts,
 	in void delegate(Sym, bool) @safe @nogc pure nothrow cb,
 ) {
-	verify(maxParts > 0);
+	assert(maxParts > 0);
 	Opt!Path par = parent(allUris, a);
 	if (has(par))
 		eachPartRecur(allUris, force(par), maxParts - 1, cb);

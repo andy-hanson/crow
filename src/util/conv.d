@@ -2,20 +2,18 @@ module util.conv;
 
 @safe @nogc pure nothrow:
 
-import util.util : verify;
-
 int safeIntFromUint(uint u) {
-	verify(u <= int.max);
+	assert(u <= int.max);
 	return cast(int) u;
 }
 
 ushort safeToUshort(size_t a) {
-	verify(a <= ushort.max);
+	assert(a <= ushort.max);
 	return cast(ushort) a;
 }
 
 int safeToInt(size_t a) {
-	verify(a <= int.max);
+	assert(a <= int.max);
 	return cast(int) a;
 }
 
@@ -23,12 +21,12 @@ bool isUint(ulong a) =>
 	a <= uint.max;
 
 uint safeToUint(ulong a) {
-	verify(isUint(a));
+	assert(isUint(a));
 	return cast(uint) a;
 }
 
 size_t safeToSizeT(ulong a) {
-	verify(a <= size_t.max);
+	assert(a <= size_t.max);
 	return cast(size_t) a;
 }
 

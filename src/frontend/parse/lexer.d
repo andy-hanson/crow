@@ -25,7 +25,6 @@ import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
 import util.sym : AllSymbols;
-import util.util : verify;
 
 public import frontend.parse.lexToken : ElifOrElse, EqualsOrThen, QuoteKind, StringPart, Token, TokenAndData;
 
@@ -111,7 +110,7 @@ void addDiagUnexpectedCurToken(ref Lexer lexer, Pos start, TokenAndData token) {
 }
 
 Range range(in Lexer lexer, Pos begin) {
-	verify(begin <= curPos(lexer));
+	assert(begin <= curPos(lexer));
 	return Range(begin, safeToUint(lexer.prevTokenEnd - lexer.sourceBegin));
 }
 
@@ -119,7 +118,7 @@ void skipUntilNewlineNoDiag(ref Lexer lexer) {
 	if (!isNewlineToken(getPeekToken(lexer))) {
 		skipUntilNewline(lexer.ptr);
 		readNextToken(lexer);
-		verify(isNewlineToken(getPeekToken(lexer)));
+		assert(isNewlineToken(getPeekToken(lexer)));
 	}
 }
 
@@ -157,7 +156,7 @@ Token getPeekToken(in Lexer lexer) =>
 	getPeekTokenAndData(lexer).token;
 
 private Range range(in Lexer lexer, CStr begin) {
-	verify(begin >= lexer.sourceBegin);
+	assert(begin >= lexer.sourceBegin);
 	return range(lexer, safeToUint(begin - lexer.sourceBegin));
 }
 
@@ -168,7 +167,7 @@ StringPart takeClosingBraceThenStringPart(ref Lexer lexer, QuoteKind quoteKind) 
 }
 
 StringPart takeInitialStringPart(ref Lexer lexer, QuoteKind quoteKind) {
-	verify(getPeekToken(lexer) == Token.quotedText);
+	assert(getPeekToken(lexer) == Token.quotedText);
 	return takeStringPartCommon(lexer, quoteKind);
 }
 
@@ -200,9 +199,9 @@ bool lookaheadLambda(in Lexer lexer) =>
 bool tryTakeNewlineThenAs(ref Lexer lexer) {
 	if (getPeekToken(lexer) == Token.newlineSameIndent && .lookaheadAs(lexer.ptr)) {
 		TokenAndData a = takeNextToken(lexer);
-		verify(a.token == Token.newlineSameIndent);
+		assert(a.token == Token.newlineSameIndent);
 		TokenAndData b = takeNextToken(lexer);
-		verify(b.token == Token.as);
+		assert(b.token == Token.as);
 		return true;
 	} else
 		return false;
@@ -211,9 +210,9 @@ bool tryTakeNewlineThenAs(ref Lexer lexer) {
 bool tryTakeNewlineThenElse(ref Lexer lexer) {
 	if (getPeekToken(lexer) == Token.newlineSameIndent && lookaheadElse(lexer.ptr)) {
 		TokenAndData a = takeNextToken(lexer);
-		verify(a.token == Token.newlineSameIndent);
+		assert(a.token == Token.newlineSameIndent);
 		TokenAndData b = takeNextToken(lexer);
-		verify(b.token == Token.else_);
+		assert(b.token == Token.else_);
 		return true;
 	} else
 		return false;
@@ -224,9 +223,9 @@ Opt!ElifOrElse tryTakeNewlineThenElifOrElse(ref Lexer lexer) {
 		Opt!ElifOrElse res = lookaheadElifOrElse(lexer.ptr);
 		if (has(res)) {
 			TokenAndData a = takeNextToken(lexer);
-			verify(a.token == Token.newlineSameIndent);
+			assert(a.token == Token.newlineSameIndent);
 			TokenAndData b = takeNextToken(lexer);
-			verify(b.token == elifOrElseToken(force(res)));
+			assert(b.token == elifOrElseToken(force(res)));
 		}
 		return res;
 	} else

@@ -56,7 +56,7 @@ import util.col.arrBuilder : add, ArrBuilder, backUp, finishArr;
 import util.col.fullIndexMap : fullIndexMapOfArr;
 import util.col.mutArr : moveToArr_mut, mustPop, MutArr, mutArrEnd, mutArrSize, push;
 import util.memory : initMemory, overwriteMemory;
-import util.util : divRoundUp, isMultipleOf, todo, verify;
+import util.util : divRoundUp, isMultipleOf, todo;
 
 struct ByteCodeWriter {
 	private:
@@ -95,7 +95,7 @@ void setNextStackEntry(scope ref ByteCodeWriter writer, StackEntry entry) {
 }
 
 void setStackEntryAfterParameters(scope ref ByteCodeWriter writer, StackEntry entry) {
-	verify(writer.nextStackEntry == 0);
+	assert(writer.nextStackEntry == 0);
 	writer.nextStackEntry = entry.entry;
 }
 
@@ -132,11 +132,11 @@ void writeCallFunPtr(
 	StackEntry stackEntryBeforeArgs,
 	in DynCallSig sig,
 ) {
-	verify(stackEntryBeforeArgs.entry == writer.nextStackEntry - sig.parameterTypes.length - 1);
+	assert(stackEntryBeforeArgs.entry == writer.nextStackEntry - sig.parameterTypes.length - 1);
 	pushOperationFn(writer, source, &opCallFunPtr);
 	writeCallFunPtrCommon(writer, source, sig);
 	writer.nextStackEntry -= 1; // for the fun-pointer
-	verify(writer.nextStackEntry == stackEntryBeforeArgs.entry + (sig.returnType == DynCallType.void_ ? 0 : 1));
+	assert(writer.nextStackEntry == stackEntryBeforeArgs.entry + (sig.returnType == DynCallType.void_ ? 0 : 1));
 }
 
 void writeCallFunPtrExtern(scope ref ByteCodeWriter writer, ByteCodeSource source, FunPtr funPtr, in DynCallSig sig) {
@@ -152,7 +152,7 @@ private void writeCallFunPtrCommon(scope ref ByteCodeWriter writer, ByteCodeSour
 }
 
 private size_t getStackOffsetTo(in ByteCodeWriter writer, StackEntry stackEntry) {
-	verify(stackEntry.entry <= getNextStackEntry(writer).entry);
+	assert(stackEntry.entry <= getNextStackEntry(writer).entry);
 	return getNextStackEntry(writer).entry - 1 - stackEntry.entry;
 }
 
@@ -163,8 +163,8 @@ private StackOffsetBytes getStackOffsetBytes(in ByteCodeWriter writer, StackEntr
 }
 
 void writeDupEntries(scope ref ByteCodeWriter writer, ByteCodeSource source, StackEntries entries) {
-	verify(entries.size != 0);
-	verify(entries.start.entry + entries.size <= getNextStackEntry(writer).entry);
+	assert(entries.size != 0);
+	assert(entries.start.entry + entries.size <= getNextStackEntry(writer).entry);
 	writeDup(writer, source, entries.start, 0, entries.size * 8);
 }
 
@@ -179,8 +179,8 @@ void writeDup(
 	size_t offsetBytes,
 	size_t sizeBytes,
 ) {
-	verify(sizeBytes != 0);
-	verify(offsetBytes < 8);
+	assert(sizeBytes != 0);
+	assert(offsetBytes < 8);
 
 	if (offsetBytes == 0 && isMultipleOf(sizeBytes, 8)) {
 		writeDupWords(writer, source, getStackOffsetTo(writer, start), sizeBytes / 8);
@@ -198,7 +198,7 @@ private void writeDupWords(
 	size_t offsetWords,
 	size_t sizeWords,
 ) {
-	verify(sizeWords != 0);
+	assert(sizeWords != 0);
 	writer.nextStackEntry += sizeWords;
 
 	static foreach (size_t possibleSize; 1 .. 8)
@@ -234,7 +234,7 @@ private void writeSetInner(scope ref ByteCodeWriter writer, ByteCodeSource sourc
 }
 
 void writeRead(scope ref ByteCodeWriter writer, ByteCodeSource source, size_t pointerOffsetBytes, size_t nBytesToRead) {
-	verify(nBytesToRead != 0);
+	assert(nBytesToRead != 0);
 	if (isMultipleOf(pointerOffsetBytes, 8) && isMultipleOf(nBytesToRead, 8))
 		writeReadWords(writer, source, pointerOffsetBytes / 8, nBytesToRead / 8);
 	else
@@ -248,7 +248,7 @@ private void writeReadWords(
 	size_t pointerOffsetWords,
 	size_t nWordsToRead,
 ) {
-	verify(nWordsToRead != 0);
+	assert(nWordsToRead != 0);
 
 	static foreach (size_t possiblePointerOffsetWords; 0 .. 8)
 		static foreach (size_t possibleNWordsToRead; 1 .. 4)
@@ -327,7 +327,7 @@ void writeThreadLocalPtr(scope ref ByteCodeWriter writer, ByteCodeSource source,
 }
 
 void writeWrite(scope ref ByteCodeWriter writer, ByteCodeSource source, size_t offset, size_t size) {
-	verify(size != 0);
+	assert(size != 0);
 	pushOperationFn(writer, source, &opWrite);
 	pushSizeT(writer, source, offset);
 	pushSizeT(writer, source, size);
@@ -335,13 +335,13 @@ void writeWrite(scope ref ByteCodeWriter writer, ByteCodeSource source, size_t o
 }
 
 void writeAddConstantNat64(scope ref ByteCodeWriter writer, ByteCodeSource source, ulong arg) {
-	verify(arg != 0);
+	assert(arg != 0);
 	writePushConstant(writer, source, arg);
 	writeFnBinary!fnWrapAddIntegral(writer, source);
 }
 
 void writeMulConstantNat64(scope ref ByteCodeWriter writer, ByteCodeSource source, ulong arg) {
-	verify(arg != 0 && arg != 1);
+	assert(arg != 0 && arg != 1);
 	writePushConstant(writer, source, arg);
 	writeFnBinary!fnWrapMulIntegral(writer, source);
 }
@@ -400,11 +400,11 @@ void writeRemove(scope ref ByteCodeWriter writer, ByteCodeSource source, StackEn
 void writeReturnData(scope ref ByteCodeWriter writer, ByteCodeSource source, StackEntries returnEntries) {
 	StackEntry next = getNextStackEntry(writer);
 	StackEntry returnEnd = stackEntriesEnd(returnEntries);
-	verify(stackEntriesEnd(returnEntries).entry <= next.entry);
+	assert(stackEntriesEnd(returnEntries).entry <= next.entry);
 	if (returnEnd != next) {
 		size_t offset = getStackOffsetTo(writer, returnEntries.start);
 		writeReturnDataInner(writer, source, offset, returnEntries.size);
-		verify(writer.nextStackEntry - (offset + 1) + returnEntries.size == returnEnd.entry);
+		assert(writer.nextStackEntry - (offset + 1) + returnEntries.size == returnEnd.entry);
 		writer.nextStackEntry = returnEnd.entry;
 	}
 }
@@ -415,7 +415,7 @@ private void writeRemoveInner(
 	size_t offsetWords,
 	size_t removedWords,
 ) {
-	verify(removedWords <= offsetWords + 1);
+	assert(removedWords <= offsetWords + 1);
 	size_t returnedWords = offsetWords + 1 - removedWords;
 	writeReturnDataInner(writer, source, offsetWords, returnedWords);
 }
@@ -426,7 +426,7 @@ private void writeReturnDataInner(
 	size_t offsetWords,
 	size_t returnedWords,
 ) {
-	verify(returnedWords <= offsetWords + 1);
+	assert(returnedWords <= offsetWords + 1);
 
 	static foreach (size_t possibleSize; 0 .. 8)
 		static foreach (size_t possibleOffset; possibleSize + 1 .. 16)
@@ -463,9 +463,9 @@ ByteCodeIndex writeJumpDelayed(scope ref ByteCodeWriter writer, ByteCodeSource s
 		// This happens for a 'break' at the bottom of a loop.
 		// Just back up to remove the jump.
 		Operation popped1 = popOperation(writer);
-		verify(popped1.ulong_ == 0);
+		assert(popped1.ulong_ == 0);
 		Operation popped0 = popOperation(writer);
-		verify(popped0.fn == &opJump);
+		assert(popped0.fn == &opJump);
 	} else {
 		ByteCodeOffset offset = getByteCodeOffsetForJumpToCurrent(writer, jumpIndex);
 		writer.operations[jumpIndex.index] = Operation(offset.offset);
@@ -473,7 +473,7 @@ ByteCodeIndex writeJumpDelayed(scope ref ByteCodeWriter writer, ByteCodeSource s
 }
 
 private ByteCodeOffset getByteCodeOffsetForJumpToCurrent(in ByteCodeWriter writer, ByteCodeIndex jumpIndex) {
-	verify(jumpIndex.index < nextByteCodeIndex(writer).index);
+	assert(jumpIndex.index < nextByteCodeIndex(writer).index);
 	static assert(ByteCodeIndex.sizeof <= Operation.sizeof);
 	// We add the jump offset after having read the jump value
 	ByteCodeIndex jumpEnd = addByteCodeIndex(jumpIndex, 1);
@@ -521,7 +521,7 @@ SwitchDelayed writeSwitch0ToNDelay(scope ref ByteCodeWriter writer, ByteCodeSour
 	pushOperationFn(writer, source, &opSwitch0ToN);
 	// + 1 because the array size takes up one entry
 	ByteCodeIndex addresses = addByteCodeIndex(nextByteCodeIndex(writer), 1);
-	verify(nCases < emptyCases.length);
+	assert(nCases < emptyCases.length);
 	writeArray!ByteCodeOffsetUnsigned(writer, source, emptyCases[0 .. nCases]);
 	writer.nextStackEntry -= 1;
 	return SwitchDelayed(addresses, nextByteCodeIndex(writer));
@@ -570,7 +570,7 @@ private @trusted void writeArray(T)(scope ref ByteCodeWriter writer, ByteCodeSou
 		T* outBegin = cast(T*) &writer.operations[mutArrSize(writer.operations) - nOperations];
 		foreach (size_t i, T value; values)
 			initMemory(outBegin + i, value);
-		verify(outBegin + values.length <= cast(T*) mutArrEnd(writer.operations));
+		assert(outBegin + values.length <= cast(T*) mutArrEnd(writer.operations));
 	}
 }
 

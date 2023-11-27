@@ -4,7 +4,6 @@ module interpret.stacks;
 
 import interpret.bytecode : Operation;
 import util.col.arr : endPtr;
-import util.util : verify;
 
 private size_t stacksStorageSize() =>
 	0x10000;
@@ -15,7 +14,7 @@ private static ulong[stacksStorageSize] stacksStorage = void;
 pragma(inline, true):
 
 void saveStacks(Stacks a) {
-	verify(stacksInitialized);
+	assert(stacksInitialized);
 	savedStacks = a;
 }
 
@@ -37,7 +36,7 @@ The callback should have a net 0 effect on the stack depths..
 	else
 		T res = cb(curStacks);
 
-	verify(curStacks == stacksAtStart);
+	assert(curStacks == stacksAtStart);
 	savedStacks = stacksAtStart;
 
 	static if (!is(T == void))
@@ -45,7 +44,7 @@ The callback should have a net 0 effect on the stack depths..
 }
 
 private inout(Operation)** storageEnd(ref inout Stacks a) {
-	verify!"storageEnd"(stacksStorage.length == stacksStorageSize);
+	debug assert(stacksStorage.length == stacksStorageSize);
 	return cast(inout(Operation)**) endPtr(stacksStorage);
 }
 
@@ -55,13 +54,13 @@ struct Stacks {
 }
 
 bool dataStackIsEmpty(in Stacks a) {
-	debug verify!"dataStackIsEmpty check"(a.dataPtr >= dataBegin(a) - 1);
+	debug assert(a.dataPtr >= dataBegin(a) - 1);
 	return a.dataPtr == dataBegin(a) - 1;
 }
 
 void dataPush(ref Stacks a, ulong value) {
 	a.dataPtr++;
-	debug verify!"dataPush check"(a.dataPtr < cast(ulong*) a.returnPtr);
+	debug assert(a.dataPtr < cast(ulong*) a.returnPtr);
 	*a.dataPtr = value;
 }
 
@@ -72,15 +71,15 @@ void dataPush(ref Stacks a, in ulong[] values) {
 
 void dataPushUninitialized(ref Stacks a, size_t n) {
 	a.dataPtr += n;
-	debug verify!"dataPushUninitialized check"(a.dataPtr < cast(ulong*) a.returnPtr);
+	debug assert(a.dataPtr < cast(ulong*) a.returnPtr);
 }
 
 ulong dataPeek(in Stacks a, size_t offset = 0) =>
 	*(a.dataPtr - offset);
 
 void dataDupWords(ref Stacks a, size_t offsetWords, size_t sizeWords) {
-	debug verify(sizeWords != 0);
-	debug verify(sizeWords <= offsetWords + 1);
+	debug assert(sizeWords != 0);
+	debug assert(sizeWords <= offsetWords + 1);
 	const(ulong)* ptr = dataTop(a) - offsetWords;
 	foreach (size_t i; 0 .. sizeWords) {
 		dataPush(a, *ptr);
@@ -130,7 +129,7 @@ Typically used to remove local variables when returning from a function.
 'sizeWords' is allowed to be 0, in which case this just removes the top 'offsetWords' entries from the stack.
 */
 void dataReturn(ref Stacks a, size_t offsetWords, size_t sizeWords) {
-	debug verify(sizeWords <= offsetWords);
+	debug assert(sizeWords <= offsetWords);
 	const ulong* inPtr = a.dataPtr + 1 - sizeWords;
 	ulong* outPtr = a.dataPtr - offsetWords;
 	foreach (size_t i; 0 .. sizeWords)
@@ -139,7 +138,7 @@ void dataReturn(ref Stacks a, size_t offsetWords, size_t sizeWords) {
 }
 
 bool returnStackIsEmpty(in Stacks a) {
-	debug verify!"returnStackIsEmpty check"(a.returnPtr <= storageEnd(a));
+	debug assert(a.returnPtr <= storageEnd(a));
 	return a.returnPtr == storageEnd(a);
 }
 
@@ -149,9 +148,11 @@ size_t returnStackSize(in Stacks a) =>
 void returnPush(ref Stacks a, Operation* value) {
 	const ulong* begin = dataBegin(a);
 	Operation** end = storageEnd(a);
-	debug verify!"returnPush check 1"(begin - 1 <= a.dataPtr);
-	debug verify!"returnPush check 2"(a.dataPtr < cast(ulong*) a.returnPtr);
-	debug verify!"returnPush check 3"(a.returnPtr <= end);
+	debug {
+		assert(begin - 1 <= a.dataPtr);
+		assert(a.dataPtr < cast(ulong*) a.returnPtr);
+		assert(a.returnPtr <= end);
+	}
 
 	a.returnPtr--;
 	*a.returnPtr = value;

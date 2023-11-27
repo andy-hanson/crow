@@ -37,7 +37,7 @@ import util.sourceRange : combineRanges, UriAndRange, Pos, rangeOfStartAndLength
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.uri : Uri;
-import util.util : max, min, typeAs, unreachable, verify;
+import util.util : max, min, typeAs, unreachable;
 
 alias Purity = immutable Purity_;
 private enum Purity_ : ubyte {
@@ -1099,7 +1099,7 @@ immutable struct ImportOrExportKind {
 		names = [];
 	}
 	this(ModuleNamed a) {
-		verify(a.names.length != 0);
+		assert(a.names.length != 0);
 		modulePtr = a.modulePtr;
 		names = a.names;
 	}
@@ -1271,7 +1271,7 @@ void eachDiagnostic(in Program a, in void delegate(in UriAndDiagnostic) @safe @n
 		cb(x);
 		return false;
 	});
-	verify(!res);
+	assert(!res);
 }
 
 private bool existsDiagnostic(in Program a, in bool delegate(in UriAndDiagnostic) @safe @nogc pure nothrow cb) =>

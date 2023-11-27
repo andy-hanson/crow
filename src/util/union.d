@@ -21,7 +21,6 @@ mixin template Union(ReprTypes...) {
 		toHandlersImpure,
 		toHandlersWithPointers,
 		toMemberType;
-	import util.util : verify;
 
 	static foreach (T; ReprTypes)
 		static assert(isImmutable!T, "Union types must be immutable (otherwise use UnionMutable)");
@@ -72,10 +71,10 @@ mixin template Union(ReprTypes...) {
 	static foreach (i, T; ReprTypes) {
 		immutable this(immutable toMemberType!T a) {
 			static if (is(T == P*, P))
-				verify(a != null);
+				assert(a != null);
 			static if (usesTaggedPointer) {
 				ulong ptr = getAsTaggable!T(a);
-				verify((ptr & 0b11) == 0);
+				assert((ptr & 0b11) == 0);
 				static assert((i & 0b11) == i);
 				value = ptr | i;
 			} else {
@@ -158,7 +157,7 @@ mixin template Union(ReprTypes...) {
 		@trusted immutable(T) as(T)() immutable {
 			static foreach (i, Ty; ReprTypes) {
 				static if (is(immutable T == toMemberType!Ty)) {
-					verify(kind == i);
+					assert(kind == i);
 					static if (is(Ty == P*, P))
 						return (cast(immutable P*) ptrValue);
 					else
@@ -170,7 +169,7 @@ mixin template Union(ReprTypes...) {
 		@trusted ref immutable(T) as(T)() immutable {
 			static foreach (i, Ty; ReprTypes) {
 				static if (is(immutable T == toMemberType!Ty)) {
-					verify(kind == i);
+					assert(kind == i);
 					mixin("return as", i, ";");
 				}
 			}
@@ -197,7 +196,6 @@ mixin template UnionMutable(Types...) {
 
 	import util.memory : overwriteMemory;
 	import util.union_ : toHandlersConst, toHandlersMutable;
-	import util.util : verify;
 
 	private uint kind;
 	union {
@@ -249,7 +247,7 @@ mixin template UnionMutable(Types...) {
 	@trusted ref T as(T)() {
 		static foreach (i, Ty; Types) {
 			static if (is(T == Ty)) {
-				verify(kind == i);
+				assert(kind == i);
 				mixin("return as", i, ";");
 			}
 		}

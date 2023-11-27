@@ -40,7 +40,6 @@ import interpret.stacks : dataPush, Stacks;
 import test.testInterpreter : interpreterTest, stepUntilExitAndExpect;
 import test.testUtil : Test;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
-import util.util : verify;
 
 void testApplyFn(ref Test test) {
 	ulong one = 1; // https://issues.dlang.org/show_bug.cgi?id=17778
@@ -71,15 +70,15 @@ void testApplyFn(ref Test test) {
 	testFnBinary!fnLessFloat64(test, [bitsOfFloat64(-1.0), bitsOfFloat64(1.0)], 1);
 	testFnBinary!fnLessFloat64(test, [bitsOfFloat64(1.0), bitsOfFloat64(-1.0)], 0);
 
-	verify(u64OfI8Bits(-1) == 0xff);
+	assert(u64OfI8Bits(-1) == 0xff);
 
 	testFnBinary!fnLessInt8(test, [u64OfI8Bits(-1), u64OfI8Bits(1)], 1);
 
-	verify(u64OfI16Bits(-1) == 0xffff);
+	assert(u64OfI16Bits(-1) == 0xffff);
 
 	testFnBinary!fnLessInt16(test, [u64OfI16Bits(-1), u64OfI16Bits(1)], 1);
 
-	verify(u64OfI32Bits(-1) == 0x00000000ffffffff);
+	assert(u64OfI32Bits(-1) == 0x00000000ffffffff);
 
 	testFnBinary!fnLessInt32(test, [u64OfI32Bits(-1), u64OfI32Bits(1)], 1);
 	testFnBinary!fnLessInt32(test, [u64OfI32Bits(int.max), u64OfI32Bits(1)], 0);

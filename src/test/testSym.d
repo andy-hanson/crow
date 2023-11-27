@@ -5,56 +5,55 @@ module test.testSym;
 import test.testUtil : Test;
 import util.col.str : safeCStr, safeCStrEq;
 import util.sym : AllSymbols, appendHexExtension, isShortSym, isLongSym, prependSet, safeCStrOfSym, Sym, sym, symOfStr;
-import util.util : verify;
 
 void testSym(ref Test test) {
 	AllSymbols allSymbols = AllSymbols(test.metaAlloc);
 
 	Sym staticSym(string a)() @safe {
-		verify(sym!a == nonStaticSym!a);
+		assert(sym!a == nonStaticSym!a);
 		return sym!a;
 	}
 
 	Sym nonStaticSym(string a)() @safe {
 		Sym res = symOfStr(allSymbols, a);
-		verify(safeCStrEq(safeCStrOfSym(test.alloc, allSymbols, res), safeCStr!a));
+		assert(safeCStrEq(safeCStrOfSym(test.alloc, allSymbols, res), safeCStr!a));
 		return res;
 	}
 
 	Sym nat8 = staticSym!"nat8";
-	verify(isShortSym(nat8));
+	assert(isShortSym(nat8));
 
 	Sym operator = staticSym!"+";
-	verify(operator == sym!"+");
-	verify(isLongSym(operator));
+	assert(operator == sym!"+");
+	assert(isLongSym(operator));
 
 	Sym shortSym = staticSym!"a9aa";
-	verify(shortSym == staticSym!"a9aa");
+	assert(shortSym == staticSym!"a9aa");
 
 	Sym cStyle = staticSym!"C_Style";
-	verify(isShortSym(cStyle));
+	assert(isShortSym(cStyle));
 
 	Sym setA = prependSet(allSymbols, staticSym!"a");
-	verify(setA == staticSym!"set-a");
-	verify(isShortSym(setA));
+	assert(setA == staticSym!"set-a");
+	assert(isShortSym(setA));
 
 	Sym setAbcdefgh = prependSet(allSymbols, staticSym!"abcdefgh");
-	verify(setAbcdefgh == staticSym!"set-abcdefgh");
-	verify(isShortSym(setAbcdefgh));
+	assert(setAbcdefgh == staticSym!"set-abcdefgh");
+	assert(isShortSym(setAbcdefgh));
 
 	Sym setAbcdefghi = prependSet(allSymbols, staticSym!"abcdefghi");
-	verify(setAbcdefghi == nonStaticSym!"set-abcdefghi");
-	verify(isLongSym(setAbcdefghi));
+	assert(setAbcdefghi == nonStaticSym!"set-abcdefghi");
+	assert(isLongSym(setAbcdefghi));
 
 	Sym mvSize = staticSym!"mv_size";
-	verify(isShortSym(mvSize));
+	assert(isShortSym(mvSize));
 	Sym setMvSize = prependSet(allSymbols, mvSize);
-	verify(setMvSize == staticSym!"set-mv_size");
-	verify(isShortSym(setMvSize));
+	assert(setMvSize == staticSym!"set-mv_size");
+	assert(isShortSym(setMvSize));
 
 	Sym setN0 = prependSet(allSymbols, staticSym!"n0");
-	verify(setN0 == staticSym!"set-n0");
+	assert(setN0 == staticSym!"set-n0");
 
 	Sym goodFood = appendHexExtension(allSymbols, staticSym!"good", [0xf0, 0x0d]);
-	verify(goodFood == nonStaticSym!"good.f00d");
+	assert(goodFood == nonStaticSym!"good.f00d");
 }

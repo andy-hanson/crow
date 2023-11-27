@@ -24,7 +24,7 @@ import util.col.str : safeCStr;
 import util.memory : memmove, memset;
 import util.opt : force, has, none, Opt, some;
 import util.sym : AllSymbols, Sym, sym;
-import util.util : debugLog, todo, unreachable, verify, verifyFail;
+import util.util : debugLog, todo, unreachable;
 
 alias WriteCb = void delegate(Pipe, in string);
 
@@ -83,23 +83,23 @@ Opt!ExternFunPtrsForAllLibraries getAllFakeExternFuns(
 	in ulong[] args,
 ) {
 	if (ptr == &free) {
-		verify(args.length == 1);
+		assert(args.length == 1);
 		return 0;
 	} else if (ptr == &malloc) {
-		verify(args.length == 1);
+		assert(args.length == 1);
 		return cast(ulong) allocateBytes(alloc, cast(size_t) args[0]).ptr;
 	} else if (ptr == &memmove) {
-		verify(args.length == 3);
+		assert(args.length == 3);
 		return cast(ulong) memmove(cast(ubyte*) args[0], cast(const ubyte*) args[1], cast(size_t) args[2]);
 	} else if (ptr == &memset) {
-		verify(args.length == 3);
+		assert(args.length == 3);
 		return cast(ulong) memset(cast(ubyte*) args[0], cast(ubyte) args[1], cast(size_t) args[2]);
 	} else if (ptr == &write) {
-		verify(args.length == 3);
+		assert(args.length == 3);
 		int fd = cast(int) args[0];
 		immutable char* buf = cast(immutable char*) args[1];
 		size_t nBytes = cast(size_t) args[2];
-		verify(fd == 1 || fd == 2);
+		assert(fd == 1 || fd == 2);
 		Pipe pipe = fd == 1 ? Pipe.stdout : Pipe.stderr;
 		writeCb(pipe, buf[0 .. nBytes]);
 		return nBytes;
@@ -164,7 +164,7 @@ void write() {}
 
 void abort() {
 	debugLog("program aborted");
-	verifyFail();
+	assert(false);
 }
 
 int clockGetTime(int, const(void*)) =>

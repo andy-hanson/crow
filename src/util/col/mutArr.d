@@ -4,7 +4,6 @@ module util.col.mutArr;
 
 import util.alloc.alloc : Alloc, allocateElements, freeElements;
 import util.memory : copyToFrom, initMemory_mut, overwriteMemory;
-import util.util : verify;
 
 struct MutArr(T) {
 	private:
@@ -13,12 +12,12 @@ struct MutArr(T) {
 
 	public:
 	@trusted ref inout(T) opIndex(immutable size_t index) return scope inout {
-		verify(index < size_);
+		assert(index < size_);
 		return inner[index];
 	}
 
 	@trusted void opIndexAssign(T value, immutable size_t index) {
-		verify(index < size_);
+		assert(index < size_);
 		overwriteMemory(&inner[index], value);
 	}
 }
@@ -49,7 +48,7 @@ immutable(bool) mutArrIsEmpty(T)(ref const MutArr!T a) =>
 
 	initMemory_mut!T(&a.inner[a.size_], value);
 	a.size_++;
-	verify(a.size_ <= a.inner.length);
+	assert(a.size_ <= a.inner.length);
 }
 
 void pushAll(T)(ref Alloc alloc, ref MutArr!(immutable T) a, scope immutable T[] values) {
@@ -62,7 +61,7 @@ void mutArrClear(T)(ref MutArr!T a) {
 }
 
 @trusted T mustPop(T)(ref MutArr!T a) {
-	verify(a.size_ != 0);
+	assert(a.size_ != 0);
 	a.size_--;
 	return a.inner[a.size_];
 }
@@ -91,7 +90,7 @@ void filterUnordered(T)(ref MutArr!T a, in bool delegate(ref T) @safe @nogc pure
 }
 
 private void removeUnorderedAt(T)(ref MutArr!T a, size_t i) {
-	verify(i < mutArrSize(a));
+	assert(i < mutArrSize(a));
 	T last = mustPop(a);
 	if (i != mutArrSize(a))
 		a[i] = last;

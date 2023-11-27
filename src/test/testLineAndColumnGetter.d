@@ -8,7 +8,6 @@ import util.lineAndColumnGetter :
 	LineAndColumn, lineAndColumnAtPos, LineAndColumnGetter, lineAndColumnGetterForText, PosKind;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos;
-import util.util : verifyEq;
 
 void testLineAndColumnGetter(ref Test test) {
 	testLF(test);
@@ -40,8 +39,8 @@ void testLFOrCR(in LineAndColumnGetter lcg) {
 	verifyConvert(lcg, Pos(7), PosKind.startOfRange, LineAndColumn(2, 1));
 	verifyConvert(lcg, Pos(8), PosKind.startOfRange, LineAndColumn(3, 0));
 
-	verifyEq(lcg[LineAndColumn(0, 99)], Pos(1));
-	verifyEq(lcg[LineAndColumn(99, 99)], Pos(8));
+	assert(lcg[LineAndColumn(0, 99)] == Pos(1));
+	assert(lcg[LineAndColumn(99, 99)] == Pos(8));
 }
 
 void testCRLF(ref Test test) {
@@ -69,6 +68,6 @@ void verifyConvert(
 	in LineAndColumn lineAndColumn,
 	in Opt!Pos convertBackPos = none!Pos,
 ) {
-	verifyEq(lineAndColumnAtPos(lcg, pos, kind), lineAndColumn);
-	verifyEq(lcg[lineAndColumn], has(convertBackPos) ? force(convertBackPos) : pos);
+	assert(lineAndColumnAtPos(lcg, pos, kind) == lineAndColumn);
+	assert(lcg[lineAndColumn] == (has(convertBackPos) ? force(convertBackPos) : pos));
 }

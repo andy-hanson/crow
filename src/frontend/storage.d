@@ -38,7 +38,6 @@ import util.sourceRange : jsonOfRange, lineAndCharacterRange, Pos, Range, UriAnd
 import util.sym : AllSymbols;
 import util.union_ : Union;
 import util.uri : AllUris, baseName, getExtension, parentOrEmpty, Uri, stringOfUri;
-import util.util : verify;
 import util.writer : withWriter, Writer;
 
 struct Storage {
@@ -215,7 +214,7 @@ immutable struct FileContent {
 
 	this(immutable ubyte[] a) {
 		bytes = a;
-		verify(!empty(bytes) && bytes[$ - 1] == '\0');
+		assert(!empty(bytes) && bytes[$ - 1] == '\0');
 	}
 	@trusted this(SafeCStr a) {
 		static assert(char.sizeof == ubyte.sizeof);

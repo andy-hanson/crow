@@ -19,7 +19,7 @@ import util.opt : force, has, none, Opt, some;
 import util.sourceRange : UriAndPos;
 import util.sym : AllSymbols;
 import util.uri : AllUris, Uri, UrisInfo, uriToSafeCStrPreferRelative;
-import util.util : min, verify;
+import util.util : min;
 import util.writer : debugLogWithWriter, withWriter, writeHex, Writer;
 
 struct InterpreterDebugInfo {
@@ -220,7 +220,7 @@ Opt!ByteCodeSource byteCodeSourceAtByteCodePtr(in InterpreterDebugInfo a, in Ope
 		return none!ByteCodeIndex;
 	else {
 		size_t index = ptr - a.byteCode.byteCode.ptr;
-		verify(index < a.byteCode.byteCode.length);
+		assert(index < a.byteCode.byteCode.length);
 		return some(ByteCodeIndex(index));
 	}
 }

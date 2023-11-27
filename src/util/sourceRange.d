@@ -10,7 +10,6 @@ import util.sym : AllSymbols, Sym, symSize;
 import util.lineAndColumnGetter :
 	LineAndCharacter, lineAndCharacterAtPos, LineAndCharacterRange, LineAndColumnGetter, PosKind;
 import util.uri : AllUris, compareUriAlphabetically, Uri;
-import util.util : verify;
 
 alias Pos = uint;
 
@@ -33,7 +32,7 @@ Comparison compareRange(in Range a, in Range b) =>
 	a.start == b.start ? compareNat32(a.end, b.end) : compareNat32(a.start, b.start);
 
 Range combineRanges(in Range a, in Range b) {
-	verify(a.end <= b.start);
+	assert(a.end <= b.start);
 	return Range(a.start, b.end);
 }
 

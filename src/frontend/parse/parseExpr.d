@@ -87,7 +87,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, some, some;
 import util.sourceRange : Pos, Range;
 import util.sym : AllSymbols, appendEquals, Sym, sym;
-import util.util : max, verify;
+import util.util : max;
 
 Opt!ExprAst parseFunExprBody(ref Lexer lexer) =>
 	tryTakeToken(lexer, Token.newlineIndent)
@@ -221,7 +221,7 @@ bool isExpressionStartToken(Token a) {
 }
 
 ExprAst[] parseArgsRecur(ref Lexer lexer, ArgCtx ctx, ref ArrBuilder!ExprAst args) {
-	verify(ctx.allowedCalls.minPrecedenceExclusive >= commaPrecedence);
+	assert(ctx.allowedCalls.minPrecedenceExclusive >= commaPrecedence);
 	add(lexer.alloc, args, parseExprAndCalls(lexer, ctx));
 	return tryTakeToken(lexer, Token.comma)
 		? parseArgsRecur(lexer, ctx, args)

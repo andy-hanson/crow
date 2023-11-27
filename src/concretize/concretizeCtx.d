@@ -89,7 +89,7 @@ import util.ptr : castMutable, hashPtr;
 import util.sourceRange : UriAndRange;
 import util.sym : AllSymbols, Sym, sym;
 import util.uri : Uri;
-import util.util : max, roundUp, todo, unreachable, verify;
+import util.util : max, roundUp, todo, unreachable;
 import versionInfo : VersionInfo;
 
 immutable struct TypeArgsScope {
@@ -101,7 +101,7 @@ immutable struct TypeArgsScope {
 	this(TypeParam[] tp, ConcreteType[] ta) {
 		typeParams = tp;
 		typeArgs = ta;
-		verify(sizeEq(typeParams, typeArgs));
+		assert(sizeEq(typeParams, typeArgs));
 	}
 
 	static TypeArgsScope empty() =>
@@ -285,7 +285,7 @@ ConcreteFun* getConcreteFunForLambdaAndFillBody(
 	in ContainingFunInfo containing,
 	in Expr body_,
 ) {
-	verify(!isBogus(returnType));
+	assert(!isBogus(returnType));
 	ConcreteFun* res = allocate(ctx.alloc, ConcreteFun(
 		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.Lambda(
 			UriAndRange(containing.uri, body_.range),
@@ -342,7 +342,7 @@ ConcreteType getConcreteType(ref ConcretizeCtx ctx, in Type t, in TypeArgsScope 
 			bogusType(ctx),
 		(TypeParam* p) {
 			// Handle calledConcreteFun first
-			verify(p == &typeArgsScope.typeParams[p.index]);
+			assert(p == &typeArgsScope.typeParams[p.index]);
 			return typeArgsScope.typeArgs[p.index];
 		},
 		(StructInst* i) =>
@@ -362,7 +362,7 @@ ConcreteType concreteTypeFromClosure(
 	else {
 		Purity purity = fold!(Purity, ConcreteField)(Purity.data, closureFields, (Purity p, in ConcreteField f) {
 			// TODO: lambda fields are never mutable, use a different type?
-			verify(f.mutability == ConcreteMutability.const_);
+			assert(f.mutability == ConcreteMutability.const_);
 			return worsePurity(p, purity(f.type));
 		});
 		ConcreteStruct* cs = allocate(ctx.alloc, ConcreteStruct(purity, ConcreteStruct.SpecialKind.none, source));
@@ -700,7 +700,7 @@ public void deferredFillRecordAndUnionBodies(ref ConcretizeCtx ctx) {
 			}
 			return !canGet;
 		});
-		verify(couldGetSomething);
+		assert(couldGetSomething);
 		deferredFillRecordAndUnionBodies(ctx);
 	}
 }

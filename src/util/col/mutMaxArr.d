@@ -6,7 +6,6 @@ import util.alloc.alloc : Alloc;
 import util.col.arrUtil : arrLiteral, exists;
 import util.memory : overwriteMemory;
 import util.ptr : castNonScope;
-import util.util : verify;
 
 struct MutMaxArr(size_t maxSize, T) {
 	// Current compilers will initialize 'values' even though it is marked '= void'.
@@ -17,7 +16,7 @@ struct MutMaxArr(size_t maxSize, T) {
 	@disable void opAssign(ref const MutMaxArr);
 
 	ref inout(T) opIndex(size_t i) inout {
-		verify(i < size_);
+		assert(i < size_);
 		return values[i];
 	}
 
@@ -25,7 +24,7 @@ struct MutMaxArr(size_t maxSize, T) {
 	@trusted int opApply(in int delegate(ref T) @safe @nogc pure nothrow cb) scope {
 		foreach (scope ref T x; values.ptr[0 .. size_]) {
 			int i = cb(x);
-			verify(i == 0);
+			assert(i == 0);
 		}
 		return 0;
 	}
@@ -72,7 +71,7 @@ void initializeMutMaxArr(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) {
 }
 
 @system T* pushUninitialized(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) {
-	verify(a.size_ != maxSize);
+	assert(a.size_ != maxSize);
 	T* res = a.values.ptr + a.size_;
 	a.size_++;
 	return res;
@@ -93,7 +92,7 @@ void mapTo(size_t maxSize, Out, In)(
 	scope In[] values,
 	in Out delegate(ref In) @safe @nogc pure nothrow cb,
 ) {
-	verify(values.length < maxSize);
+	assert(values.length < maxSize);
 	a.size_ = values.length;
 	foreach (size_t i; 0 .. values.length)
 		overwriteMemory(&a.values[i], cb(values[i]));
@@ -114,23 +113,23 @@ void pushIfUnderMaxSize(size_t maxSize, T)(scope ref MutMaxArr!(maxSize, T) a, i
 }
 
 ref inout(T) mustPeek(size_t maxSize, T)(ref inout MutMaxArr!(maxSize, T) a) {
-	verify(a.size_ != 0);
+	assert(a.size_ != 0);
 	return a.values[a.size_ - 1];
 }
 
 T mustPop(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) {
-	verify(a.size_ != 0);
+	assert(a.size_ != 0);
 	a.size_--;
 	return a.values[a.size_];
 }
 
 void mustPopAndDrop(size_t maxSize, T)(scope ref MutMaxArr!(maxSize, T) a) {
-	verify(a.size_ != 0);
+	assert(a.size_ != 0);
 	a.size_--;
 }
 
 ref inout(T) only(size_t maxSize, T)(ref inout MutMaxArr!(maxSize, T) a) {
-	verify(a.size_ == 1);
+	assert(a.size_ == 1);
 	return a.values[0];
 }
 
@@ -176,7 +175,7 @@ private:
 	in bool delegate(ref T) @safe @nogc pure nothrow pred,
 	in void delegate(ref T, ref T) @safe @nogc pure nothrow overwrite,
 ) {
-	verify(begin <= end);
+	assert(begin <= end);
 	return begin == end
 		? end
 		: pred(*begin)

@@ -19,7 +19,7 @@ import util.alloc.alloc : Alloc;
 import util.memory : allocate, overwriteMemory;
 import util.sourceRange : UriAndRange;
 import util.sym : Sym, sym;
-import util.util : unreachable, verify;
+import util.util : unreachable;
 
 LowType boolType = LowType(PrimitiveType.bool_);
 LowType char8Type = LowType(PrimitiveType.char8);
@@ -110,7 +110,7 @@ LowExpr genPtrEq(ref Alloc alloc, UriAndRange range, LowExpr a, LowExpr b) =>
 		LowExprKind.SpecialBinary(LowExprKind.SpecialBinary.Kind.eqPtr, [a, b]))));
 
 LowExprKind genEnumEq(ref Alloc alloc, LowExpr a, LowExpr b) {
-	verify(a.type.as!PrimitiveType == b.type.as!PrimitiveType);
+	assert(a.type.as!PrimitiveType == b.type.as!PrimitiveType);
 	return LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(eqForType(a.type.as!PrimitiveType), [a, b])));
 }
 
@@ -118,12 +118,12 @@ LowExprKind genBitwiseNegate(ref Alloc alloc, LowExpr a) =>
 	LowExprKind(allocate(alloc, LowExprKind.SpecialUnary(bitwiseNegateForType(a.type.as!PrimitiveType), a)));
 
 LowExprKind genEnumIntersect(ref Alloc alloc, LowExpr a, LowExpr b) {
-	verify(a.type.as!PrimitiveType == b.type.as!PrimitiveType);
+	assert(a.type.as!PrimitiveType == b.type.as!PrimitiveType);
 	return LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(intersectForType(a.type.as!PrimitiveType), [a, b])));
 }
 
 LowExprKind genEnumUnion(ref Alloc alloc, LowExpr a, LowExpr b) {
-	verify(a.type.as!PrimitiveType == b.type.as!PrimitiveType);
+	assert(a.type.as!PrimitiveType == b.type.as!PrimitiveType);
 	return LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(unionForType(a.type.as!PrimitiveType), [a, b])));
 }
 
@@ -286,9 +286,9 @@ LowExpr genGetArrData(ref Alloc alloc, UriAndRange range, LowExpr arr, LowType.P
 
 LowType.PtrRawConst getElementPtrTypeFromArrType(ref AllLowTypes allTypes, LowType.Record arrType) {
 	LowRecord arrRecord = allTypes.allRecords[arrType];
-	verify(arrRecord.fields.length == 2);
-	verify(debugName(arrRecord.fields[0]) == sym!"size");
-	verify(debugName(arrRecord.fields[1]) == sym!"pointer");
+	assert(arrRecord.fields.length == 2);
+	assert(debugName(arrRecord.fields[0]) == sym!"size");
+	assert(debugName(arrRecord.fields[1]) == sym!"pointer");
 	return arrRecord.fields[1].type.as!(LowType.PtrRawConst);
 }
 

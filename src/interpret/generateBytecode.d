@@ -62,7 +62,7 @@ import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols, Sym, sym;
-import util.util : todo, unreachable, verify;
+import util.util : todo, unreachable;
 
 ByteCode generateBytecode(
 	scope ref Perf perf,
@@ -208,8 +208,8 @@ void generateBytecodeForFun(
 	LowFunIndex funIndex,
 	in LowFun fun,
 ) {
-	verify(varsInfo.totalSizeWords[VarKind.global] < maxGlobalsSizeWords);
-	verify(varsInfo.totalSizeWords[VarKind.threadLocal] < maxThreadLocalsSizeWords);
+	assert(varsInfo.totalSizeWords[VarKind.global] < maxGlobalsSizeWords);
+	assert(varsInfo.totalSizeWords[VarKind.threadLocal] < maxThreadLocalsSizeWords);
 
 	size_t stackEntry = 0;
 	StackEntries[] parameters = map(tempAlloc, fun.params, (ref LowLocal it) {
@@ -232,7 +232,7 @@ void generateBytecodeForFun(
 				tempAlloc, writer, allSymbols, modelProgram, program, textInfo, varsInfo, externFunPtrs, funIndex,
 				funToReferences, fun.params, parameters, returnEntries, body_);
 		});
-	verify(getNextStackEntry(writer).entry == returnEntries);
+	assert(getNextStackEntry(writer).entry == returnEntries);
 	setNextStackEntry(writer, StackEntry(0));
 }
 
@@ -337,9 +337,9 @@ void toDynCallTypes(in LowProgram program, in LowType a, in void delegate(DynCal
 	} else if (a.isA!(LowType.Union)) {
 		// This should only happen for the 'str[]' in 'main'
 		LowUnion u = program.allUnions[a.as!(LowType.Union)];
-		verify(name(*u.source.source.as!(ConcreteStructSource.Inst).inst) == sym!"node");
+		assert(name(*u.source.source.as!(ConcreteStructSource.Inst).inst) == sym!"node");
 		size_t sizeWords = 3;
-		verify(typeSize(u).sizeBytes == ulong.sizeof * sizeWords);
+		assert(typeSize(u).sizeBytes == ulong.sizeof * sizeWords);
 		foreach (size_t i; 0 .. sizeWords)
 			cb(DynCallType.nat64);
 	} else

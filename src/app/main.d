@@ -68,14 +68,13 @@ import util.opt : force, has, Opt, some;
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasureResult, perfTotal, withNullPerf;
 import util.sym : AllSymbols, sym;
 import util.uri : AllUris, childUri, FileUri, Uri, parentOrEmpty, safeCStrOfUri, toUri;
-import util.util : verify;
 import versionInfo : versionInfoForJIT;
 
 @system extern(C) int main(int argc, CStr* argv) {
 	size_t GB = 1024 * 1024 * 1024;
 	size_t memorySizeWords = GB * 3 / 2 / ulong.sizeof;
 	ulong[] mem = (cast(ulong*) malloc(memorySizeWords * ulong.sizeof))[0 .. memorySizeWords];
-	verify(mem.ptr != null);
+	assert(mem.ptr != null);
 	scope(exit) free(mem.ptr);
 
 	ulong function() @safe @nogc pure nothrow getTimeNanosPure =

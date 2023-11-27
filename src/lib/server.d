@@ -108,7 +108,6 @@ import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
 import util.sourceRange : UriAndRange;
 import util.sym : AllSymbols;
 import util.uri : AllUris, getExtension, Uri, UrisInfo;
-import util.util : verify;
 import util.writer : withWriter, Writer;
 import versionInfo : VersionInfo, versionInfoForBuildToC, versionInfoForInterpret;
 
@@ -121,7 +120,7 @@ ExitCode buildAndInterpret(
 	Uri main,
 	in SafeCStr[] allArgs,
 ) {
-	verify(filesState(server) == FilesState.allLoaded);
+	assert(filesState(server) == FilesState.allLoaded);
 	Programs programs = buildToLowProgram(perf, alloc, server, versionInfoForInterpret, main);
 	SafeCStr diags = showDiagnostics(alloc, server, programs.program);
 	if (!safeCStrIsEmpty(diags))
@@ -209,7 +208,7 @@ private LspOutAction handleFileChanged(
 		searchForUnknownUris(perf, server);
 	if (has(cb)) {
 		force(cb)();
-		verify(filesState(server) == FilesState.allLoaded);
+		assert(filesState(server) == FilesState.allLoaded);
 	}
 	final switch (filesState(server)) {
 		case FilesState.hasUnknown:
@@ -421,7 +420,7 @@ private SemanticTokens getTokens(
 	in SemanticTokensParams params,
 ) {
 	Uri uri = params.textDocument.uri;
-	verify(getExtension(server.allUris, uri) == crowExtension);
+	assert(getExtension(server.allUris, uri) == crowExtension);
 	FileAst* ast = getParsedOrDiag(server.storage, uri).as!ParseResult.as!(FileAst*);
 	return tokensOfAst(alloc, server.allSymbols, server.allUris, server.lineAndColumnGetters[uri], *ast);
 }

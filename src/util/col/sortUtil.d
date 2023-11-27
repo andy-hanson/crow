@@ -7,7 +7,6 @@ import util.col.arrUtil : everyWithIndex, map;
 import util.comparison : Comparer, Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.memory : overwriteMemory;
-import util.util : verify;
 
 T[] sorted(T)(ref Alloc alloc, in T[] a, in Comparer!T compare) {
 	T[] res = map(alloc, a, (ref T x) => x);
@@ -113,7 +112,7 @@ void eachSorted(K, A0, A1, A2, A3, A4)(
 			consume(nextList);
 	}
 
-	verify(everyWithIndex!size_t(indices, (size_t indexOfList, in size_t _) =>
+	assert(everyWithIndex!size_t(indices, (size_t indexOfList, in size_t _) =>
 		!has(getComparable(indexOfList))));
 }
 
@@ -121,5 +120,5 @@ private:
 
 void verifySorted(T)(in T[] xs, in Comparer!T comparer) {
 	foreach (size_t i; 1 .. xs.length)
-		verify(comparer(xs[i - 1], xs[i]) != Comparison.greater);
+		assert(comparer(xs[i - 1], xs[i]) != Comparison.greater);
 }

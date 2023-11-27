@@ -8,7 +8,7 @@ import util.json : Json, writeJson;
 import util.jsonParse : parseJson;
 import util.opt : force, has, Opt;
 import util.sym : sym;
-import util.util : typeAs, verify, verifyFail;
+import util.util : typeAs;
 import util.writer : debugLogWithWriter, Writer;
 
 void testJson(ref Test test) {
@@ -64,12 +64,12 @@ void testString(ref Test test) {
 
 void verifyParseError(ref Test test, in SafeCStr source) {
 	Opt!Json actual = parseJson(test.alloc, test.allSymbols, source);
-	verify(!has(actual));
+	assert(!has(actual));
 }
 
 void verifyParseJson(ref Test test, in SafeCStr source, in Json expected) {
 	Opt!Json actual = parseJson(test.alloc, test.allSymbols, source);
-	verify(has(actual));
+	assert(has(actual));
 	if (force(actual) != expected) {
 		debugLogWithWriter((ref Writer writer) {
 			writer ~= "actual: ";
@@ -77,6 +77,6 @@ void verifyParseJson(ref Test test, in SafeCStr source, in Json expected) {
 			writer ~= "\nexpected: ";
 			writeJson(writer, test.allSymbols, expected);
 		});
-		verifyFail();
+		assert(false);
 	}
 }

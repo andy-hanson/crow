@@ -41,7 +41,7 @@ import util.col.fullIndexMap : FullIndexMap, mapFullIndexMap;
 import util.col.str : SafeCStr, safeCStrSize;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.ptr : castNonScope, ptrTrustMe;
-import util.util : todo, unreachable, verify;
+import util.util : todo, unreachable;
 
 immutable struct VarsInfo {
 	// Thread-locals and globals offsets are in different buffers.
@@ -197,7 +197,7 @@ void ensureConstant(ref Alloc alloc, ref TempAlloc tempAlloc, ref Ctx ctx, in Lo
 	c.matchIn!void(
 		(in Constant.ArrConstant it) {
 			ArrTypeAndConstantsLow* arrs = &ctx.program.allConstants.arrs[it.typeIndex];
-			verify(arrs.arrType == t.as!(LowType.Record));
+			assert(arrs.arrType == t.as!(LowType.Record));
 			recurWriteArr(
 				alloc,
 				tempAlloc,
@@ -215,7 +215,7 @@ void ensureConstant(ref Alloc alloc, ref TempAlloc tempAlloc, ref Ctx ctx, in Lo
 		(in Constant.Integral) {},
 		(in Constant.Pointer it) {
 			PointerTypeAndConstantsLow* ptrs = &ctx.program.allConstants.pointers[it.typeIndex];
-			verify(ptrs.pointeeType == asPtrGcPointee(t));
+			assert(ptrs.pointeeType == asPtrGcPointee(t));
 			recurWritePointer(
 				alloc, tempAlloc, ctx,
 				it.typeIndex, ptrs.pointeeType, it.index, ptrs.constants[it.index]);
@@ -249,7 +249,7 @@ void recurWriteArr(
 	size_t index, // constant index within the same type
 	in Constant[] elements,
 ) {
-	verify(!empty(elements));
+	assert(!empty(elements));
 	size_t[] indexToTextIndex = ctx.arrTypeIndexToConstantIndexToTextIndex[arrTypeIndex];
 	if (indexToTextIndex[index] == 0) {
 		foreach (Constant it; elements)
@@ -382,5 +382,5 @@ void writeConstant(ref Alloc alloc, ref TempAlloc tempAlloc, ref Ctx ctx, in Low
 		});
 
 	size_t sizeAfter = exactSizeArrBuilderCurSize(ctx.text);
-	verify(typeSize == sizeAfter - sizeBefore);
+	assert(typeSize == sizeAfter - sizeBefore);
 }

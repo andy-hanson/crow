@@ -39,7 +39,7 @@ import util.memory : memcpy, memmove, overwriteMemory;
 import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasureNoAlloc;
 import util.ptr : castNonScope_ref, ptrTrustMe;
-import util.util : debugLog, divRoundUp, drop, unreachable, verify;
+import util.util : debugLog, divRoundUp, drop, unreachable;
 
 @safe int runBytecode(
 	scope ref Perf perf,
@@ -61,8 +61,8 @@ import util.util : debugLog, divRoundUp, drop, unreachable, verify;
 private int runBytecodeInner(ref Stacks stacks, Operation* operation) {
 	stepUntilExit(stacks, operation);
 	ulong returnCode = dataPop(stacks);
-	verify(dataStackIsEmpty(stacks));
-	verify(returnStackIsEmpty(stacks));
+	assert(dataStackIsEmpty(stacks));
+	assert(returnStackIsEmpty(stacks));
 	return cast(int) returnCode;
 }
 
@@ -99,7 +99,7 @@ void stepUntilExit(ref Stacks stacks, ref Operation* operation) {
 void stepUntilBreak(ref Stacks stacks, ref Operation* operation) {
 	setNext(stacks, operation);
 	do {
-		verify(nextOperationPtr.fn != &opStopInterpretation);
+		assert(nextOperationPtr.fn != &opStopInterpretation);
 		nextOperationPtr.fn(nextStacks.dataPtr, nextStacks.returnPtr, nextOperationPtr + 1);
 	} while ((nextOperationPtr - 1).fn != &opBreak);
 	stacks = nextStacks;
@@ -275,7 +275,7 @@ private void opReadWordsVariableInner(ref Stacks stacks, ref Operation* cur) {
 }
 
 private void opReadWordsCommon(ref Stacks stacks, ref Operation* cur, size_t pointerOffsetWords, size_t nWordsToRead) {
-	debug verify(nWordsToRead != 0);
+	debug assert(nWordsToRead != 0);
 	immutable ulong* ptr = (cast(immutable ulong*) dataPop(stacks)) + pointerOffsetWords;
 	foreach (size_t i; 0 .. nWordsToRead)
 		dataPush(stacks, ptr[i]);
@@ -309,7 +309,7 @@ private void opWriteInner(ref Stacks stacks, ref Operation* cur) {
 	size_t offset = readSizeT(cur);
 	size_t size = readSizeT(cur);
 	if (size < 8) { //TODO:UNNECESSARY?
-		verify(size != 0);
+		assert(size != 0);
 		ulong value = dataPop(stacks);
 		ubyte* ptr = cast(ubyte*) dataPop(stacks);
 		writePartialBytes(ptr + offset, value, size);
@@ -368,7 +368,7 @@ private void opCallFunPtrInner(ref Stacks stacks, ref Operation* cur) {
 
 alias opCallFunPtrExtern = operation!opCallFunPtrExternInner;
 private void opCallFunPtrExternInner(ref Stacks stacks, ref Operation* cur) {
-	verify(FunPtr.sizeof <= ulong.sizeof);
+	assert(FunPtr.sizeof <= ulong.sizeof);
 	FunPtr funPtr = FunPtr(cast(immutable void*) readNat64(cur));
 	DynCallSig sig = readDynCallSig(cur);
 	scope immutable ulong[] params = dataPopN(stacks, sig.parameterTypes.length);
@@ -453,13 +453,13 @@ private Operation* readOperationPtr(ref Operation* cur) =>
 
 private immutable(T[]) readArray(T)(ref Operation* cur) {
 	size_t size = readSizeT(cur);
-	verify(size < 999); // sanity check
+	assert(size < 999); // sanity check
 	immutable T* ptr = cast(immutable T*) cur;
 	immutable T[] res = ptr[0 .. size];
 	immutable(ubyte)* end = cast(immutable ubyte*) (ptr + size);
 	while ((cast(size_t) end) % Operation.sizeof != 0) end++;
-	verify((cast(size_t) cur) % Operation.sizeof == 0);
-	verify((cast(size_t) end) % Operation.sizeof == 0);
+	assert((cast(size_t) cur) % Operation.sizeof == 0);
+	assert((cast(size_t) end) % Operation.sizeof == 0);
 	cur = cast(Operation*) end;
 	return res;
 }
@@ -536,8 +536,8 @@ private void opSetVariableInner(ref Stacks stacks, ref Operation* cur) {
 }
 
 private void opSetCommon(ref Stacks stacks, ref Operation* cur, size_t offsetWords, size_t sizeWords) {
-	debug verify(sizeWords != 0);
-	debug verify(sizeWords <= offsetWords + 1);
+	debug assert(sizeWords != 0);
+	debug assert(sizeWords <= offsetWords + 1);
 	// Start at the end of the range and pop in reverse
 	ulong* begin = dataTop(stacks) - offsetWords;
 	ulong* ptr = begin + sizeWords;
@@ -545,7 +545,7 @@ private void opSetCommon(ref Stacks stacks, ref Operation* cur, size_t offsetWor
 		ptr--;
 		*ptr = dataPop(stacks);
 	}
-	verify(ptr == begin);
+	assert(ptr == begin);
 }
 
 private void readNoCheck(ref Stacks stacks, const ubyte* readFrom, size_t sizeBytes) {

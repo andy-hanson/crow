@@ -11,7 +11,7 @@ import util.memory : initMemory, overwriteMemory;
 import util.opt : ConstOpt, force, has, MutOpt, none, noneMut, Opt, some, someConst, someMut;
 import util.ptr : hashPtr;
 import util.col.str : strEq;
-import util.util : drop, unreachable, verify;
+import util.util : drop, unreachable;
 
 struct MutMap(K, V) {
 	@safe @nogc pure nothrow:
@@ -52,7 +52,7 @@ Opt!V getAt_mut(K, V)(ref const MutMap!(immutable K, immutable V) a, in immutabl
 private Opt!size_t getIndex(K, V)(in MutMap!(K, V) a, in immutable K key) {
 	if (empty(a.pairs)) return none!size_t;
 
-	verify(a.size < a.pairs.length);
+	assert(a.size < a.pairs.length);
 	size_t i = getHash(key) % a.pairs.length;
 	while (true) {
 		if (!has(a.pairs[i]))
@@ -66,8 +66,8 @@ private Opt!size_t getIndex(K, V)(in MutMap!(K, V) a, in immutable K key) {
 }
 
 ref const(V) mustGetAt_mut(K, V)(ref const MutMap!(K, V) a, in K key) {
-	verify(!empty(a.pairs));
-	verify(a.size < a.pairs.length);
+	assert(!empty(a.pairs));
+	assert(a.size < a.pairs.length);
 	size_t i = getHash(key) % a.pairs.length;
 	while (true) {
 		if (eq!K(key, force(a.pairs[i]).key))
@@ -82,7 +82,7 @@ ref const(V) mustGetAt_mut(K, V)(ref const MutMap!(K, V) a, in K key) {
 void addToMutMap(K, V)(ref Alloc alloc, scope ref MutMap!(K, V) a, K key, V value) {
 	size_t sizeBefore = a.size;
 	drop(setInMap(alloc, a, key, value));
-	verify(a.size == sizeBefore + 1);
+	assert(a.size == sizeBefore + 1);
 }
 
 ref KeyValuePair!(K, V) setInMap(K, V)(ref Alloc alloc, scope ref MutMap!(K, V) a, K key, V value) =>
@@ -140,12 +140,12 @@ ref KeyValuePair!(K, V) getOrAddPair(K, V)(
 	in KeyValuePair!(K, V) delegate() @safe @nogc pure nothrow getPair,
 ) {
 	ensureNonEmptyCapacity(alloc, a);
-	verify(a.size < a.pairs.length);
+	assert(a.size < a.pairs.length);
 	size_t i = getHash(key) % a.pairs.length;
 	while (true) {
 		if (!has(a.pairs[i])) {
 			KeyValuePair!(K, V) pair = getPair();
-			verify(pair.key == key);
+			assert(pair.key == key);
 			return addAt!(K, V)(alloc, a, i, pair);
 		}
 		else if (key == force(a.pairs[i]).key)
@@ -186,7 +186,7 @@ MutOpt!V mayDelete(K, V)(ref MutMap!(K, V) a, in K key) {
 }
 
 V mustDelete(K, V)(ref MutMap!(K, V) a, in K key) {
-	verify(a.pairs.length != 0);
+	assert(a.pairs.length != 0);
 	size_t i = getHash(key) % a.pairs.length;
 	while (true) {
 		if (!has(a.pairs[i]))
@@ -230,7 +230,7 @@ private immutable(size_t) nextI(K, V)(
 	ref const MutMap!(K, V) a,
 	immutable size_t i,
 ) {
-	verify(a.size < a.pairs.length);
+	assert(a.size < a.pairs.length);
 	immutable size_t res = i + 1;
 	return res == a.pairs.length ? 0 : res;
 }
@@ -257,7 +257,7 @@ private @trusted immutable(Out[]) mapToArr_const(Out, K, V)(
 			cur++;
 		}
 	}
-	verify(cur == endPtr(res));
+	assert(cur == endPtr(res));
 	return cast(immutable) res;
 }
 @trusted immutable(Out[]) mapToArr_mut(Out, K, V)(

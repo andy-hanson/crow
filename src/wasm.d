@@ -60,7 +60,7 @@ extern(C) size_t getParameterBufferLength() => parameterBuffer.length;
 // Input and output are both temporary, should be parsed immediately
 @system extern(C) CStr handleLspMessage(Server* server, scope CStr input) {
 	SafeCStr inputStr = SafeCStr(input);
-	return withWebPerf!(SafeCStr, (scope ref Perf perf) @trusted =>
+	return withWebPerf!(SafeCStr, (scope ref Perf perf) =>
 		withTempAllocImpure!SafeCStr(server.metaAlloc, (ref Alloc resultAlloc) {
 			Json inputJson = mustParseJson(resultAlloc, server.allSymbols, inputStr);
 			LspInMessage inputMessage = parseLspInMessage(resultAlloc, server.allUris, inputJson);

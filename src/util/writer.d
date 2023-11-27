@@ -6,7 +6,7 @@ import util.alloc.alloc : Alloc, withStackAlloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : zip;
 import util.col.str : eachChar, SafeCStr;
-import util.util : abs, debugLog, verify;
+import util.util : abs, debugLog;
 
 struct Writer {
 	private:
@@ -67,7 +67,7 @@ void writeHex(scope ref Writer writer, long a) {
 }
 
 void writeFloatLiteral(scope ref Writer writer, double a) {
-	// TODO: verify(!isNaN(a)); (needs an isnan function)
+	// TODO: assert(!isNaN(a)); (needs an isnan function)
 
 	// Print simple floats as decimal
 	if ((cast(double) (cast(long) a)) == a) {
@@ -108,7 +108,7 @@ private void writeNat(scope ref Writer writer, ulong n, ulong base = 10) {
 }
 
 char digitChar(ulong digit) {
-	verify(digit < 16);
+	assert(digit < 16);
 	return digit < 10 ? cast(char) ('0' + digit) : cast(char) ('a' + (digit - 10));
 }
 

@@ -64,7 +64,7 @@ import util.uri :
 	fileUriToTempStr,
 	TempStrForPath,
 	Uri;
-import util.util : todo, verify;
+import util.util : todo;
 import util.writer : withWriter, Writer;
 
 FILE* stdin() {
@@ -206,10 +206,10 @@ version (Windows) {
 
 		// Go back to the beginning so we can read
 		int err2 = fseek(fd, 0, SEEK_SET);
-		verify(err2 == 0);
+		assert(err2 == 0);
 
 		size_t nBytesRead = fread(result.ptr, ubyte.sizeof, fileSize, fd);
-		verify(nBytesRead == fileSize);
+		assert(nBytesRead == fileSize);
 		if (ferror(fd))
 			todo!void("error reading file");
 		result[nBytesRead] = '\0';
@@ -268,12 +268,12 @@ private @system FILE* tryOpenFileForWrite(in AllUris allUris, FileUri uri) {
 	TempStrForPath res = void;
 	version (Windows) {
 		HMODULE mod = GetModuleHandle(null);
-		verify(mod != null);
+		assert(mod != null);
 		DWORD size = GetModuleFileNameA(mod, res.ptr, res.length);
 	} else {
 		long size = readlink("/proc/self/exe", res.ptr, res.length);
 	}
-	verify(size > 0 && size < res.length);
+	assert(size > 0 && size < res.length);
 	res[size] = '\0';
 	return parseAbsoluteFilePathAsUri(allUris, SafeCStr(cast(immutable) res.ptr));
 }
@@ -374,7 +374,7 @@ private @system FILE* tryOpenFileForWrite(in AllUris allUris, FileUri uri) {
 		if (spawnStatus == 0) {
 			int waitStatus;
 			int resPid = waitpid(pid, &waitStatus, 0);
-			verify(resPid == pid);
+			assert(resPid == pid);
 			if (WIFEXITED(waitStatus))
 				return ExitCode(WEXITSTATUS(waitStatus)); // only valid if WIFEXITED
 			else {
@@ -445,7 +445,7 @@ version (Windows) {
 }
 
 void verifyOk(int ok) {
-	verify(ok == 1);
+	assert(ok == 1);
 }
 
 version (Windows) {
@@ -454,7 +454,7 @@ version (Windows) {
 	}
 
 	@system void readFromPipeRecur(char* out_, char* outEnd, HANDLE pipe) {
-		verify(out_ < outEnd);
+		assert(out_ < outEnd);
 		if (out_ + 1 == outEnd) {
 			*out_ = '\0';
 		} else {
@@ -508,7 +508,7 @@ version (Windows) {
 			buffer.ptr,
 			buffer.length,
 			null);
-		verify(size != 0 && size < buffer.length);
+		assert(size != 0 && size < buffer.length);
 		fprintf(stderr, "%s: %.*s", description, size, buffer.ptr);
 	}
 }

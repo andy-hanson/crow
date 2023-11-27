@@ -75,14 +75,10 @@ const imports = {
 	debugLog: (str, value) => {
 		console.log(readCString(str), value)
 	},
-	/** @type {function(CStr, number, number): void} */
-	_verifyFail: (fileStart, fileLength, line) => {
-		throw new Error("Called verifyFail! " + JSON.stringify({file:readString(fileStart, fileLength), line}))
-	},
 	...Object.fromEntries(mathKeys.map(name => [name, Math[name]])),
-	/** @type {function(...unknown[]): void} */
-	__assert: (...args) => {
-		console.error("ASSERT", args)
+	/** @type {function(CStr, CStr, number): void} */
+	__assert: (asserted, file, line) => {
+		throw new Error(`Assertion '${readCString(asserted)}' failed on ${readCString(file)} line ${line}`)
 	},
 }
 

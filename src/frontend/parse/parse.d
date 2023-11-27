@@ -72,7 +72,7 @@ import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.sourceRange : Pos, Range;
 import util.sym : AllSymbols, Sym, sym;
 import util.uri : AllUris;
-import util.util : typeAs, verify;
+import util.util : typeAs;
 
 FileAst* parseFile(
 	scope ref Perf perf,
@@ -135,7 +135,7 @@ SpecSigAst parseSpecSig(ref Lexer lexer) {
 	SafeCStr comment = safeCStr!"";
 	Pos start = curPos(lexer);
 	NameAndRange name = takeNameOrOperator(lexer);
-	verify(name.start == start);
+	assert(name.start == start);
 	TypeAst returnType = parseType(lexer);
 	ParamsAst params = parseParams(lexer);
 	return SpecSigAst(comment, range(lexer, start), name.name, returnType, params);

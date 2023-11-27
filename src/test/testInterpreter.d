@@ -78,7 +78,6 @@ import util.memory : allocate;
 import util.ptr : castNonScope, ptrTrustMe;
 import util.sourceRange : Pos;
 import util.sym : sym;
-import util.util : verify;
 
 void testInterpreter(ref Test test) {
 	testCall(test);
@@ -192,16 +191,16 @@ void testCall(ref Test test) {
 
 	doInterpret(test, byteCode, (ref Stacks stacks, Operation* operation) {
 		stepUntilBreakAndExpect(test, stacks, [1, 2], operation);
-		verify(operation.fn == &opCall);
+		assert(operation.fn == &opCall);
 		stepUntilBreakAndExpect(test, stacks, [1, 2], operation);
 		expectReturnStack(test, byteCode, stacks, [afterCall]);
 		// opCall returns the first operation and moves nextOperation to the one after.
 		// + 1 because we are after the break.
-		verify(operation == &byteCode.byteCode[fIndex.index + 1]);
-		verify(curByteCodeIndex(byteCode, operation) == ByteCodeIndex(fIndex.index + 1));
+		assert(operation == &byteCode.byteCode[fIndex.index + 1]);
+		assert(curByteCodeIndex(byteCode, operation) == ByteCodeIndex(fIndex.index + 1));
 		stepUntilBreakAndExpect(test, stacks, [3], operation); // return
 		// + 1 because we are after the break.
-		verify(curByteCodeIndex(byteCode, operation) == ByteCodeIndex(afterCall.index + 1));
+		assert(curByteCodeIndex(byteCode, operation) == ByteCodeIndex(afterCall.index + 1));
 		expectDataStack(test, stacks, [3]);
 		expectReturnStack(test, byteCode, stacks, []);
 		stepUntilExitAndExpect(test, stacks, [3], operation);
@@ -265,7 +264,7 @@ void testCallFunPtr(ref Test test) {
 			[cast(ulong) funPtr.fn, 1, 2],
 			operation);
 		stepUntilBreakAndExpect(test, stacks, [3], operation); // +
-		verify(curByteCodeIndex(byteCode, operation) == ByteCodeIndex(afterCall.index + 1));
+		assert(curByteCodeIndex(byteCode, operation) == ByteCodeIndex(afterCall.index + 1));
 		expectReturnStack(test, byteCode, stacks, []);
 		stepUntilExitAndExpect(test, stacks, [3], operation);
 	});
@@ -310,10 +309,10 @@ void testSwitchAndJump(ref Test test) {
 	doInterpret(test, byteCode, (ref Stacks stacks, Operation* operation) {
 		stepUntilBreakAndExpect(test, stacks, [0], operation);
 		stepUntilBreakAndExpect(test, stacks, [], operation);
-		verify(curByteCodeIndex(byteCode, operation) == firstCase);
+		assert(curByteCodeIndex(byteCode, operation) == firstCase);
 		stepUntilBreakAndExpect(test, stacks, [3], operation); // push 3
 		stepUntilBreakAndExpect(test, stacks, [3], operation); // jump
-		verify(curByteCodeIndex(byteCode, operation) == bottom);
+		assert(curByteCodeIndex(byteCode, operation) == bottom);
 		stepUntilExitAndExpect(test, stacks, [3], operation);
 	});
 
@@ -324,9 +323,9 @@ void testSwitchAndJump(ref Test test) {
 		dataPush(stacks, 1);
 		expectDataStack(test, stacks, [1]);
 		stepUntilBreakAndExpect(test, stacks, [], operation);
-		verify(curByteCodeIndex(byteCode, operation) == secondCase);
+		assert(curByteCodeIndex(byteCode, operation) == secondCase);
 		stepUntilBreakAndExpect(test, stacks, [5], operation);
-		verify(curByteCodeIndex(byteCode, operation) == bottom);
+		assert(curByteCodeIndex(byteCode, operation) == bottom);
 		stepUntilExitAndExpect(test, stacks, [5], operation);
 	});
 }
@@ -630,7 +629,7 @@ void testStackRef(ref Test test) {
 }
 
 void verifyStackEntry(in ByteCodeWriter writer, size_t n) {
-	verify(getNextStackEntry(writer) == StackEntry(n));
+	assert(getNextStackEntry(writer) == StackEntry(n));
 }
 
 public @trusted void stepUntilExitAndExpect(

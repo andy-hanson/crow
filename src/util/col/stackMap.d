@@ -3,7 +3,6 @@ module util.col.stackMap;
 @safe @nogc pure nothrow:
 
 import util.ptr : castNonScope_ref, ptrTrustMe;
-import util.util : verify;
 
 struct StackMap(K, V) {
 	private:
@@ -21,7 +20,7 @@ private immutable(K) invalid(K)() {
 }
 
 ref inout(V) stackMapMustGet(K, V)(return ref inout(StackMap!(K, V)) a, scope immutable K key) {
-	verify(a.key != invalid!K);
+	assert(a.key != invalid!K);
 	return a.key == key
 		? a.value
 		: stackMapMustGet!(K, V)(*a.next, key);
@@ -32,7 +31,7 @@ ref inout(V) stackMapMustGet(K, V)(return ref inout(StackMap!(K, V)) a, scope im
 	immutable K key,
 	inout V value,
 ) {
-	verify(key != invalid!K);
+	assert(key != invalid!K);
 	return inout StackMap!(K, V)(key, value, cast(inout StackMap!(K, V)*) ptrTrustMe(a));
 }
 

@@ -101,7 +101,7 @@ import util.ptr : ptrTrustMe;
 import util.sourceRange : Range, UriAndRange;
 import util.sym : AllSymbols, Sym, sym;
 import util.uri : AllUris, Uri;
-import util.util : unreachable, todo, verify;
+import util.util : unreachable, todo;
 
 immutable struct FileAndAst {
 	Uri uri;
@@ -550,7 +550,7 @@ FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, FunModifierAst.Special.
 		MutMaxArr!(2, Sym) bodyModifiers = mutMaxArr!(2, Sym);
 		if (builtin) pushIfUnderMaxSize(bodyModifiers, sym!"builtin");
 		if (extern_) pushIfUnderMaxSize(bodyModifiers, sym!"extern");
-		verify(mutMaxArrSize(bodyModifiers) == 2);
+		assert(mutMaxArrSize(bodyModifiers) == 2);
 		addDiag(ctx, range, Diag(Diag.ModifierConflict(bodyModifiers[0], bodyModifiers[1])));
 	}
 	return FunFlags.regular(bare, summon, safety, specialBody, forceCtx);

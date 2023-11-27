@@ -102,7 +102,7 @@ import util.ptr : ptrTrustMe;
 import util.sourceRange : Range, UriAndRange;
 import util.sym : AllSymbols, prependSet, Sym;
 import util.uri : AllUris, Uri;
-import util.util : todo, verify;
+import util.util : todo;
 
 UriAndRange[] getReferencesForPosition(
 	ref Alloc alloc,
@@ -363,7 +363,7 @@ void eachTypeInType(in Type a, in TypeAst ast, in TypeCb cb) {
 		eachTypeInType(x, y, cb);
 		return none!bool;
 	});
-	verify(!has(res));
+	assert(!has(res));
 }
 
 void eachTypeInParams(in Params a, in ParamsAst asts, in TypeCb cb) {
@@ -379,7 +379,7 @@ void eachTypeInDestructure(in Destructure a, in TypeCb cb) {
 			cb(x.type, *force(ast.type));
 		return none!bool;
 	});
-	verify(!has(res));
+	assert(!has(res));
 }
 
 void eachTypeInExpr(in Expr expr, in TypeCb cb) {
@@ -434,7 +434,7 @@ void referencesForFunDecls(in AllSymbols allSymbols, in Program program, in FunD
 	if (!empty(decls)) {
 		Visibility maxVisibility = fold(Visibility.private_, decls, (Visibility a, in FunDecl* b) =>
 			greatestVisibility(a, b.visibility));
-		verify(allSame!(Uri, FunDecl*)(decls, (in FunDecl* x) => moduleUri(*x)));
+		assert(allSame!(Uri, FunDecl*)(decls, (in FunDecl* x) => moduleUri(*x)));
 		Module* itsModule = moduleOf(program, moduleUri(*decls[0]));
 		eachExprThatMayReference(program, maxVisibility, itsModule, (in Module module_, in Expr x) {
 			if (x.kind.isA!CallExpr) {
@@ -489,7 +489,7 @@ void referencesForSpecSig(in AllSymbols allSymbols, in Program program, in Posit
 				cb(UriAndRange(module_.uri, x.range));
 		} else if (x.kind.isA!FunPtrExpr) {
 			// Currently doesn't support specs
-			verify(x.kind.as!FunPtrExpr.funInst != null);
+			assert(x.kind.as!FunPtrExpr.funInst != null);
 		}
 	});
 }

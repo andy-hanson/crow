@@ -30,7 +30,7 @@ import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
 import util.sym : AllSymbols, concatSyms, Sym, sym, symAsTempBuffer;
 import util.uri : AllUris, asFileUri, childUri, fileUriToTempStr, isFileUri, TempStrForPath, Uri;
-import util.util : todo, unreachable, verify;
+import util.util : todo, unreachable;
 
 @trusted ExitCode withRealExtern(
 	ref Alloc alloc,
@@ -215,7 +215,7 @@ LoadedLibraries loadLibrariesInner(
 		// which calls another native function, etc, growing the dyncall stack indefinitely.)
 		// TODO: manually track the stack size and abort on failure
 		dcVm = dcNewCallVM(0x1000);
-		verify(dcVm != null);
+		assert(dcVm != null);
 		dcMode(dcVm, DC_CALL_C_DEFAULT);
 	}
 

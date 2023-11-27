@@ -3,7 +3,6 @@ module util.memory;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateUninitialized;
-import util.util : verify;
 
 @trusted void initMemory(T)(T* ptr, const T value) {
 	*(cast(byte[T.sizeof]*) ptr) = *(cast(const byte[T.sizeof]*) &value);
@@ -47,6 +46,6 @@ void overwriteMemory(T)(T* ptr, scope T value) {
 }
 
 @trusted void copyToFrom(T)(scope T[] dest, in T[] source) {
-	verify(dest.length == source.length);
+	assert(dest.length == source.length);
 	cast(void) memcpy(cast(ubyte*) dest.ptr, cast(ubyte*) source.ptr, T.sizeof * dest.length);
 }

@@ -9,7 +9,6 @@ import util.col.map : Map;
 import util.col.enumMap : EnumMap;
 import util.col.fullIndexMap : FullIndexMap;
 import util.sourceRange : Pos;
-import util.util : verify;
 
 immutable struct Operation {
 	alias Fn = immutable void function(
@@ -77,7 +76,7 @@ immutable struct StackOffsetBytes {
 
 	this(size_t o) {
 		offsetBytes = o;
-		verify(offsetBytes > 0);
+		assert(offsetBytes > 0);
 	}
 }
 

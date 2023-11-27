@@ -15,7 +15,7 @@ import util.exitCode : ExitCode;
 import util.opt : force, none, Opt;
 import util.sym : Sym, sym;
 import util.uri : Uri;
-import util.util : typeAs, unreachable, verify;
+import util.util : typeAs, unreachable;
 
 void testFakeExtern(ref Test test) {
 	testMallocAndFree(test);
@@ -43,8 +43,8 @@ private:
 		ulong[1] args16 = [8];
 		ubyte* ptr2 = cast(ubyte*) extern_.doDynCall(malloc, mallocSig, args16);
 		*ptr1 = 1;
-		verify(*ptr1 == 1);
-		verify(ptr2 != ptr1);
+		assert(*ptr1 == 1);
+		assert(ptr2 != ptr1);
 		DynCallType[2] freeSigTypes = [DynCallType.void_, DynCallType.pointer];
 		scope DynCallSig freeSig = DynCallSig(freeSigTypes);
 		ulong[1] freePtr2 = [cast(ulong) ptr2];
@@ -89,7 +89,7 @@ void testWrite(ref Test test) {
 			extern_.doDynCall(write, sig, args3);
 			return ExitCode(42);
 		});
-	verify(result.value == 42);
-	verify(strEq(moveToArr(test.alloc, stdout), "gnarway c"));
-	verify(strEq(moveToArr(test.alloc, stderr), "tu"));
+	assert(result.value == 42);
+	assert(strEq(moveToArr(test.alloc, stdout), "gnarway c"));
+	assert(strEq(moveToArr(test.alloc, stderr), "tu"));
 }

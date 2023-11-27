@@ -35,7 +35,7 @@ import util.opt : force, has, none, Opt, someMut, some;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : Range, UriAndRange;
 import util.sym : Sym, sym;
-import util.util : todo, verify;
+import util.util : todo;
 
 CommonTypes getCommonTypes(
 	ref CheckCtx ctx,
@@ -171,7 +171,7 @@ Opt!(StructInst*) instantiateNonTemplateStructOrAlias(
 	scope ref MutArr!(StructInst*) delayedStructInsts,
 	StructOrAlias structOrAlias,
 ) {
-	verify(empty(typeParams(structOrAlias)));
+	assert(empty(typeParams(structOrAlias)));
 	return structOrAlias.matchWithPointers!(Opt!(StructInst*))(
 		(StructAlias* x) =>
 			target(*x),

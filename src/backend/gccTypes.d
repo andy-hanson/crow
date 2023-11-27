@@ -68,7 +68,7 @@ import util.conv : safeToInt;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.ptr : castImmutable, castNonScope_ref;
 import util.sym : AllSymbols, writeSym;
-import util.util : typeAs, verify;
+import util.util : typeAs;
 import util.writer : withWriter, Writer;
 
 immutable struct GccTypes {
@@ -337,7 +337,7 @@ struct GccTypesWip {
 	in LowFunPtrType funPtr,
 ) {
 	MutOpt!(gcc_jit_type*)* ptr = &typesWip.funPtrs[funPtrIndex];
-	verify(!has(*ptr));
+	assert(!has(*ptr));
 	const gcc_jit_type* returnType = getGccType(typesWip, funPtr.returnType);
 	//TODO:NO ALLOC
 	immutable gcc_jit_type*[] paramTypes = map(alloc, funPtr.paramTypes, (ref LowType x) =>
@@ -367,7 +367,7 @@ struct GccTypesWip {
 		}).ptr;
 		return gcc_jit_context_new_field(ctx, null, getGccType(typesWip, field.type), name);
 	});
-	verify(empty(typesWip.recordFields[recordIndex]));
+	assert(empty(typesWip.recordFields[recordIndex]));
 	typesWip.recordFields[recordIndex] = fields;
 	gcc_jit_struct_set_fields(struct_, null, cast(int) fields.length, fields.ptr);
 }
@@ -411,7 +411,7 @@ struct GccTypesWip {
 	immutable gcc_jit_field* innerField = gcc_jit_context_new_field(ctx, null, innerUnion, "inner");
 	scope immutable gcc_jit_field*[2] outerFields = [kindField, innerField];
 	gcc_jit_struct_set_fields(struct_, null, 2, outerFields.ptr);
-	verify(!has(typesWip.unionFields[unionIndex]));
+	assert(!has(typesWip.unionFields[unionIndex]));
 	typesWip.unionFields[unionIndex] = some(UnionFields(kindField, innerField, memberFields));
 }
 

@@ -5,7 +5,6 @@ module util.late;
 import util.memory : initMemory;
 import util.opt : force, has, Opt, some;
 import util.ptr : castNonScope_ref;
-import util.util : verify;
 
 immutable struct Late(T) {
 	private Opt!T value_;
@@ -21,19 +20,19 @@ bool lateIsSet(T)(ref Late!T a) =>
 	has(a.value_);
 
 @trusted ref immutable(T) lateGet(T)(return scope ref Late!T a) {
-	verify(lateIsSet(a));
+	assert(lateIsSet(a));
 	// TODO: castNonScope_ref not needed in newer dmd
 	return force(castNonScope_ref(a.value_));
 }
 
 @trusted void lateSet(T)(ref Late!T a, T value) {
-	verify(!lateIsSet(a));
+	assert(!lateIsSet(a));
 	initMemory(&a.value_, some(value));
 }
 
 // TODO: we shouldn't do this
 @trusted void lateSetOverwrite(T)(ref Late!T a, T value) {
-	verify(lateIsSet(a));
+	assert(lateIsSet(a));
 	initMemory(&a.value_, some(value));
 }
 

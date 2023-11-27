@@ -19,7 +19,7 @@ import util.alloc.alloc : Alloc, withStackAlloc;
 import util.col.arrUtil : zip;
 import util.opt : force, has;
 import util.ptr : ptrTrustMe;
-import util.util : debugLog, verify, verifyFail;
+import util.util : debugLog;
 import util.writer : withWriter, Writer;
 
 void checkConcreteProgram(in ShowCtx printCtx, in ConcreteCommonTypes types, in ConcreteProgram a) {
@@ -43,7 +43,7 @@ struct Ctx {
 }
 
 void checkExpr(ref Ctx ctx, in ConcreteType type, in ConcreteExpr expr) {
-	verify(!isBogus(type) || expr.kind.isA!(ConcreteExprKind.Throw*));
+	assert(!isBogus(type) || expr.kind.isA!(ConcreteExprKind.Throw*));
 	checkType(ctx, type, expr.type);
 	expr.kind.matchIn!void(
 		(in ConcreteExprKind.Alloc x) {
@@ -81,7 +81,7 @@ void checkExpr(ref Ctx ctx, in ConcreteType type, in ConcreteExpr expr) {
 			checkExprAnyType(ctx, x.arg);
 		},
 		(in ConcreteExprKind.Drop x) {
-			verify(isVoid(type));
+			assert(isVoid(type));
 			checkExprAnyType(ctx, x.arg);
 		},
 		(in ConcreteExprKind.If x) {
@@ -101,19 +101,19 @@ void checkExpr(ref Ctx ctx, in ConcreteType type, in ConcreteExpr expr) {
 			checkType(ctx, type, x.local.type);
 		},
 		(in ConcreteExprKind.LocalSet x) {
-			verify(isVoid(type));
+			assert(isVoid(type));
 			checkExpr(ctx, x.local.type, x.value);
 		},
 		(in ConcreteExprKind.Loop x) {
 			checkExpr(ctx, ctx.types.void_, x.body_);
 		},
 		(in ConcreteExprKind.LoopBreak x) {
-			verify(isVoid(type));
+			assert(isVoid(type));
 			// TODO: use type from loop
 			checkExprAnyType(ctx, x.value);
 		},
 		(in ConcreteExprKind.LoopContinue) {
-			verify(isVoid(type));
+			assert(isVoid(type));
 		},
 		(in ConcreteExprKind.MatchEnum x) {
 			checkExprAnyType(ctx, x.matchedValue);
@@ -157,6 +157,6 @@ void checkType(ref Ctx ctx, in ConcreteType expected, in ConcreteType actual) {
 				writeConcreteType(writer, *ctx.printCtx, actual);
 			}).ptr);
 		});
-		verifyFail();
+		assert(false);
 	}
 }

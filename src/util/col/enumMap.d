@@ -5,7 +5,6 @@ module util.col.enumMap;
 import std.meta : staticMap;
 import std.traits : EnumMembers;
 import util.opt : none, Opt, some;
-import util.util : verify;
 
 struct EnumMap(E, V) {
 	@safe @nogc pure nothrow:
@@ -13,7 +12,7 @@ struct EnumMap(E, V) {
 	int opApply(in int delegate(immutable V) @safe @nogc pure nothrow cb) immutable {
 		foreach (E e; cast(E) 0 .. cast(E) size) {
 			int x = cb(this[e]);
-			verify(x == 0);
+			assert(x == 0);
 		}
 		return 0;
 	}

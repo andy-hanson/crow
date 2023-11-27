@@ -7,7 +7,7 @@ import model.lowModel : isPrimitiveType, isPtrRawConstOrMut, LowExprKind, LowTyp
 import util.alloc.alloc : Alloc;
 import util.sym : AllSymbols, Sym, sym, writeSym;
 import util.union_ : Union;
-import util.util : todo, verify;
+import util.util : todo;
 import util.writer : debugLogWithWriter, Writer;
 
 immutable struct BuiltinKind {
@@ -43,11 +43,11 @@ BuiltinKind getBuiltinKind(
 	LowType p1,
 ) {
 	BuiltinKind unary(LowExprKind.SpecialUnary.Kind kind) {
-		verify(arity == 1);
+		assert(arity == 1);
 		return BuiltinKind(kind);
 	}
 	BuiltinKind binary(LowExprKind.SpecialBinary.Kind kind) {
-		verify(arity == 2);
+		assert(arity == 2);
 		return BuiltinKind(kind);
 	}
 	T failT(T)() {

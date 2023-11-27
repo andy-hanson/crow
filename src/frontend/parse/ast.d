@@ -16,7 +16,7 @@ import util.sourceRange : Pos, Range, rangeOfStartAndLength, rangeOfStartAndName
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.uri : AllUris, Path, pathLength, RelPath, relPathLength;
-import util.util : unreachable, verify;
+import util.util : unreachable;
 
 immutable struct NameAndRange {
 	@safe @nogc pure nothrow:
@@ -134,7 +134,7 @@ immutable struct TypeAst {
 		this(Range r, TypeAst[] ms) {
 			range = r;
 			members = ms;
-			verify(members.length >= 2);
+			assert(members.length >= 2);
 		}
 	}
 
@@ -311,7 +311,7 @@ immutable struct InterpolatedAst {
 
 	this(InterpolatedPart[] p) {
 		parts = p;
-		verify(exists!InterpolatedPart(parts, (in InterpolatedPart part) =>
+		assert(exists!InterpolatedPart(parts, (in InterpolatedPart part) =>
 			part.isA!ExprAst));
 	}
 }

@@ -7,7 +7,6 @@ import util.col.enumMap : EnumMap, enumMapEach;
 import util.col.sortUtil : sortInPlace;
 import util.col.str : SafeCStr, safeCStr;
 import util.comparison : compareUlong, oppositeComparison;
-import util.util : verify;
 
 T withMeasureNoAlloc(T, alias cb)(ref Perf perf, PerfMeasure measure) {
 	PerfMeasurerNoAlloc measurer = startMeasureNoAlloc(perf, measure);
@@ -82,7 +81,7 @@ struct PerfMeasurer {
 
 @trusted pure void pauseMeasure(scope ref Perf perf, ref Alloc alloc, scope ref PerfMeasurer measurer) {
 	if (perfEnabled) {
-		verify(!measurer.paused);
+		assert(!measurer.paused);
 		addToMeasure(perf, measurer.measure, PerfMeasureResult(
 			0,
 			perf_curBytes(alloc) - measurer.bytesBefore,
@@ -93,7 +92,7 @@ struct PerfMeasurer {
 
 @trusted pure void resumeMeasure(scope ref Perf perf, ref Alloc alloc, scope ref PerfMeasurer measurer) {
 	if (perfEnabled) {
-		verify(measurer.paused);
+		assert(measurer.paused);
 		measurer.bytesBefore = perf_curBytes(alloc);
 		measurer.nsecBefore = perf.cbGetTimeNSec();
 		measurer.paused = false;
@@ -102,7 +101,7 @@ struct PerfMeasurer {
 
 @trusted pure void endMeasure(scope ref Perf perf, ref Alloc alloc, scope ref PerfMeasurer measurer) {
 	if (perfEnabled) {
-		verify(!measurer.paused);
+		assert(!measurer.paused);
 		addToMeasure(perf, measurer.measure, PerfMeasureResult(
 			1,
 			perf_curBytes(alloc) - measurer.bytesBefore,

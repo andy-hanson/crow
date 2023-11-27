@@ -6,7 +6,6 @@ import util.alloc.alloc : Alloc;
 import util.col.mutMap : getOrAddAndDidAdd, moveToMap, MutMap, ValueAndDidAdd;
 import util.col.map : Map;
 import util.opt : has, none, Opt, some;
-import util.util : verify;
 
 struct MapBuilder(K, V) {
 	@disable this(ref const MapBuilder);
@@ -17,7 +16,7 @@ struct MapBuilder(K, V) {
 
 void mustAddToMap(K, V)(ref Alloc alloc, ref MapBuilder!(K, V) a, immutable K key, immutable V value) {
 	Opt!V res = tryAddToMap(alloc, a, key, value);
-	verify(!has(res));
+	assert(!has(res));
 }
 
 // If there is already a value there, does nothing and returns it

@@ -9,7 +9,7 @@ import util.col.arrBuilder : ArrBuilderCb;
 import util.col.arrUtil : count, first, firstZip;
 import util.opt : force, has, none, Opt, optOr, some;
 import util.sourceRange : UriAndRange;
-import util.util : typeAs, verify;
+import util.util : typeAs;
 
 alias ReferenceCb = ArrBuilderCb!UriAndRange;
 
@@ -18,7 +18,7 @@ void eachSpecParent(in SpecDecl a, in void delegate(SpecInst*, in TypeAst) @safe
 		cb(x, ast);
 		return none!bool;
 	});
-	verify(!has(res));
+	assert(!has(res));
 }
 
 Opt!T eachSpecParent(T)(in SpecDecl a, in Opt!T delegate(SpecInst*, in TypeAst) @safe @nogc pure nothrow cb) =>
@@ -58,7 +58,7 @@ private void zipSecondMapOpIfSizeEq(T, UIn, UOut)(
 		}
 		debug {
 			while (bi < b.length && !has(bMap(b[bi]))) bi++;
-			verify(bi == b.length);
+			assert(bi == b.length);
 		}
 	}
 }
@@ -102,7 +102,7 @@ void eachTypeArg(
 		cb(x, y);
 		return none!bool;
 	});
-	verify(!has(res));
+	assert(!has(res));
 }
 
 Opt!T eachTypeArg(T)(
@@ -145,7 +145,7 @@ private void eachDirectChildExpr(in ExprKind a, in void delegate(in Expr) @safe 
 		cb(x);
 		return none!bool;
 	});
-	verify(!has(res));
+	assert(!has(res));
 }
 
 private Opt!T findDirectChildExpr(T)(in ExprKind a, in Opt!T delegate(in Expr) @safe @nogc pure nothrow cb) =>

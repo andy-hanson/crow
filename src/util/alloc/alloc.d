@@ -3,7 +3,7 @@ module util.alloc.alloc;
 @nogc nothrow: // not @safe, not pure
 
 import util.col.arr : arrOfRange, endPtr;
-import util.util : clamp, divRoundUp, verify, verifyFail;
+import util.util : clamp, divRoundUp;
 
 T withStaticAlloc(T, alias cb)(word[] memory) {
 	scope MetaAlloc metaAlloc = MetaAlloc(memory);
@@ -45,7 +45,7 @@ struct MetaAlloc {
 	@disable this();
 	@disable this(ref const MetaAlloc);
 	@trusted this(return scope word[] w) {
-		verify(w.length > blockHeaderSizeWords * 2);
+		assert(w.length > blockHeaderSizeWords * 2);
 		words = w;
 		BlockHeader* block = freeListSentinel + 1;
 		*block = BlockHeader(freeListSentinel, null, endPtr(words));
@@ -70,7 +70,7 @@ struct Alloc {
 	@disable this(ref const Alloc);
 	@trusted this(MetaAlloc* m, BlockHeader* b) {
 		meta = m;
-		verify(b.prev == null);
+		assert(b.prev == null);
 		curBlock = b;
 		cur = b.words.ptr;
 	}
@@ -101,8 +101,8 @@ void freeElements(T)(ref Alloc a, in T[] range) {
 	freeWords(a, innerWordRange(range));
 }
 
-@trusted void verifyOwns(T)(in Alloc a, in T[] values) {
-	verify(allocOwns(a, values));
+@trusted void assertOwns(T)(in Alloc a, in T[] values) {
+	assert(allocOwns(a, values));
 }
 bool allocOwns(T)(in Alloc a, in T[] values) =>
 	existsBlock(a, (in BlockHeader* b) => blockOwns(b, values));
@@ -172,18 +172,16 @@ static assert(BlockHeader.sizeof % word.sizeof == 0);
 			size_t sizeWords = clamp(preferredBlockWordCount, minWords, cur.words.length);
 			cast(void) maybeSplitBlock(cur, sizeWords);
 			removeFromList(cur);
-			verify(cur.prev == null && cur.next == null && cur.words.length >= sizeWords);
+			assert(cur.prev == null && cur.next == null && cur.words.length >= sizeWords);
 			return cur;
 		} else
 			cur = cur.next;
 	}
-	// OOM
-	verifyFail("OOM");
-	assert(false);
+	assert(false, "OOM");
 }
 
 @trusted bool maybeSplitBlock(BlockHeader* left, size_t leftSizeWords) {
-	verify(left.words.length >= leftSizeWords);
+	assert(left.words.length >= leftSizeWords);
 	size_t remaining = left.words.length - leftSizeWords;
 	if (remaining >= blockHeaderSizeWords + minBlockSize) {
 		BlockHeader* right = cast(BlockHeader*) &left.words[leftSizeWords];
@@ -262,10 +260,10 @@ word[] allocateWords(ref Alloc a, size_t nWords) {
 		fetchNewBlock(a, nWords);
 		newCur = a.cur + nWords;
 	}
-	verify(newCur <= a.curBlock.end);
+	assert(newCur <= a.curBlock.end);
 	word[] res = a.cur[0 .. nWords];
 	a.cur = newCur;
-	verifyOwns(a, res);
+	assertOwns(a, res);
 	return res;
 }
 

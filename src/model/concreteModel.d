@@ -34,7 +34,7 @@ import util.ptr : hashPtr;
 import util.sourceRange : UriAndRange;
 import util.sym : Sym, sym;
 import util.union_ : Union;
-import util.util : unreachable, verify;
+import util.util : unreachable;
 
 enum BuiltinStructKind {
 	bool_,
@@ -172,7 +172,7 @@ Purity purity(ConcreteType a) =>
 	a.struct_.purity;
 
 ConcreteStruct* mustBeByVal(ConcreteType a) {
-	verify(a.reference == ReferenceKind.byVal);
+	assert(a.reference == ReferenceKind.byVal);
 	return a.struct_;
 }
 

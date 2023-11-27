@@ -135,7 +135,7 @@ import util.ptr : castImmutable, castNonScope, castNonScope_ref, ptrTrustMe;
 import util.sourceRange : UriAndRange;
 import util.sym : AllSymbols, writeSym;
 import util.union_ : Union, UnionMutable;
-import util.util : todo, unreachable, verify;
+import util.util : todo, unreachable;
 import util.writer : debugLogWithWriter, withWriter, Writer;
 
 @trusted int jitAndRun(
@@ -151,7 +151,7 @@ import util.writer : debugLogWithWriter, withWriter, Writer;
 	//TODO: perf measure this?
 	AssertFieldOffsetsType assertFieldOffsets = cast(AssertFieldOffsetsType)
 		gcc_jit_result_get_code(gccProgram.result, assertFieldOffsetsFunctionName);
-	verify(assertFieldOffsets != null);
+	assert(assertFieldOffsets != null);
 
 	//TODO
 	if (false) {
@@ -165,11 +165,11 @@ import util.writer : debugLogWithWriter, withWriter, Writer;
 	MainType main = withMeasure!(MainType, () @trusted =>
 		cast(MainType) gcc_jit_result_get_code(gccProgram.result, "main")
 	)(perf, alloc, PerfMeasure.gccJit);
-	verify(main != null);
+	assert(main != null);
 	gcc_jit_context_release(gccProgram.ctx);
 
 	bool fieldOffsetsCorrect = assertFieldOffsets();
-	verify(fieldOffsetsCorrect);
+	assert(fieldOffsetsCorrect);
 	int exitCode = runMain(perf, alloc, allArgs, main);
 	gcc_jit_result_release(gccProgram.result);
 	return exitCode;
@@ -198,7 +198,7 @@ GccProgram getGccProgram(
 	in JitOptions options,
 ) {
 	gcc_jit_context* ctx = gcc_jit_context_acquire();
-	verify(ctx != null);
+	assert(ctx != null);
 
 	gcc_jit_context_set_bool_option(*ctx, gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DEBUGINFO, true);
 	final switch (options.optimization) {
@@ -222,12 +222,12 @@ GccProgram getGccProgram(
 		buildGccProgram(alloc, *ctx, allSymbols, program);
 	})(perf, alloc, PerfMeasure.gccCreateProgram);
 
-	verify(gcc_jit_context_get_first_error(*ctx) == null);
+	assert(gcc_jit_context_get_first_error(*ctx) == null);
 
 	immutable gcc_jit_result* result = withMeasure!(immutable gcc_jit_result*, () =>
 		gcc_jit_context_compile(*ctx)
 	)(perf, alloc, PerfMeasure.gccCompile);
-	verify(result != null);
+	assert(result != null);
 	return GccProgram(ctx, result);
 }
 
@@ -332,7 +332,7 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in AllSymbols all
 						writer ~= "Error: ";
 						writer ~= SafeCStr(err);
 					});
-				verify(err == null);
+				assert(err == null);
 			});
 	});
 }
@@ -571,7 +571,7 @@ immutable struct ExprResult {
 }
 
 ExprResult emitSimpleNoSideEffects(ref ExprCtx ctx, ref ExprEmit emit, gcc_jit_rvalue* value) {
-	verify(value != null);
+	assert(value != null);
 	return emit.match!ExprResult(
 		(ExprEmit.Loop*) =>
 			unreachable!ExprResult,
@@ -679,7 +679,7 @@ ExprResult emitWithBranching(
 		(ExprEmit.Return) =>
 			ExprResult(ExprResult.BreakContinueOrReturn()),
 		(ExprEmit.Value) {
-			verify(has(local));
+			assert(has(local));
 			return ExprResult(ExprResult.Void());
 		},
 		(ExprEmit.Void) =>
@@ -692,7 +692,7 @@ ExprResult emitWithBranching(
 	// If no endBlock, curBlock doesn't matter because nothing else will be done.
 	ctx.curBlock = has(endBlock) ? force(endBlock) : originalBlock;
 	if (has(local)) {
-		verify(expectedResult.isA!(ExprResult.Void));
+		assert(expectedResult.isA!(ExprResult.Void));
 		return ExprResult(gcc_jit_lvalue_as_rvalue(force(local)));
 	} else
 		return expectedResult;
@@ -739,7 +739,7 @@ ExprResult emitSwitch(
 						} else
 							return cbCase(emit, i);
 					}();
-					verify(result == expectedResult);
+					assert(result == expectedResult);
 					if (has(endBlock) && !result.isA!(ExprResult.BreakContinueOrReturn)) {
 						// A nested branch may have changed to a new block, so use that instead of 'caseBlock'
 						gcc_jit_block_end_with_jump(ctx.curBlock, null, force(endBlock));
@@ -889,7 +889,7 @@ void emitToLValueCb(
 ) {
 	ExprEmit emit = ExprEmit(ExprEmit.WriteTo(lvalue));
 	ExprResult result = cbEmit(emit);
-	verify(result.isA!(ExprResult.Void));
+	assert(result.isA!(ExprResult.Void));
 }
 
 void emitToLValue(ref ExprCtx ctx, ref Locals locals, gcc_jit_lvalue* lvalue, in LowExpr a) {
@@ -900,7 +900,7 @@ void emitToLValue(ref ExprCtx ctx, ref Locals locals, gcc_jit_lvalue* lvalue, in
 void emitToVoid(ref ExprCtx ctx, ref Locals locals, in LowExpr a) {
 	ExprEmit emitVoid = ExprEmit(ExprEmit.Void());
 	ExprResult result = toGccExpr(ctx, locals, emitVoid, a);
-	verify(result.isA!(ExprResult.Void));
+	assert(result.isA!(ExprResult.Void));
 }
 
 @trusted ExprResult callToGcc(
@@ -943,7 +943,7 @@ void emitToVoid(ref ExprCtx ctx, ref Locals locals, in LowExpr a) {
 	ref ExprEmit emit,
 	in LowExprKind.TailRecur a,
 ) {
-	verify(emit.isA!(ExprEmit.Return));
+	assert(emit.isA!(ExprEmit.Return));
 
 	// We need to be sure to generate all the new parameter values before overwriting any,
 	gcc_jit_lvalue*[] updateParamLocals =
@@ -1090,7 +1090,7 @@ ExprResult loopToGcc(ref ExprCtx ctx, ref Locals locals, ref ExprEmit emit, in L
 				has(local) ? ExprEmit(ExprEmit.WriteTo(force(local))) : emit);
 			ExprEmit innerEmit = ExprEmit(ptrTrustMe(info));
 			ExprResult innerResult = toGccExpr(ctx, locals, innerEmit, a.body_);
-			verify(innerResult.isA!(ExprResult.BreakContinueOrReturn));
+			assert(innerResult.isA!(ExprResult.BreakContinueOrReturn));
 		});
 
 ExprResult loopBreakToGcc(ref ExprCtx ctx, ref Locals locals, ref ExprEmit emit, in LowExprKind.LoopBreak a) {
@@ -1214,7 +1214,7 @@ ExprResult recordFieldSetToGcc(
 ) {
 	gcc_jit_rvalue* target = emitToRValue(ctx, locals, a.target);
 	immutable gcc_jit_field* field = ctx.types.recordFields[targetRecordType(a)][a.fieldIndex];
-	verify(targetIsPointer(a)); // TODO: make if this is always true, don't have it...
+	assert(targetIsPointer(a)); // TODO: make if this is always true, don't have it...
 	gcc_jit_rvalue* value = emitToRValue(ctx, locals, a.value);
 	gcc_jit_block_add_assignment(ctx.curBlock, null, gcc_jit_rvalue_dereference_field(target, null, field), value);
 	return emitVoid(ctx, emit);
@@ -1235,7 +1235,7 @@ ExprResult constantToGcc(ref ExprCtx ctx, ref ExprEmit emit, in LowType type, in
 				gcc_jit_context_new_array_access(ctx.gcc, null, storage, gcc_jit_context_zero(ctx.gcc, ctx.nat64Type)),
 				null);
 			immutable gcc_jit_field*[] fields = ctx.types.recordFields[type.as!(LowType.Record)];
-			verify(fields.length == 2);
+			assert(fields.length == 2);
 			immutable gcc_jit_field* sizeField = fields[0];
 			immutable gcc_jit_field* ptrField = fields[1];
 			return emitWriteToLValue(ctx, emit, type, (gcc_jit_lvalue* local) {
@@ -1269,7 +1269,7 @@ ExprResult constantToGcc(ref ExprCtx ctx, ref ExprEmit emit, in LowType type, in
 					// We need to cast function pointer to any-ptr for 'all-funs'
 					return gcc_jit_context_new_cast(ctx.gcc, null, value, getGccType(ctx.types, type));
 				else {
-					verify(type.isA!(LowType.FunPtr));
+					assert(type.isA!(LowType.FunPtr));
 					return value;
 				}
 			}();
@@ -1683,7 +1683,7 @@ ExprResult ifToGcc(
 					// A nested if may have changed the block, so use 'curBlock' and not just 'block'
 					gcc_jit_block_end_with_jump(ctx.curBlock, null, force(endBlock));
 				}
-				verify(result == expectedResult);
+				assert(result == expectedResult);
 			}
 			branch(thenBlock, then);
 			branch(elseBlock, else_);
@@ -1804,7 +1804,7 @@ ExprResult initConstantsToGcc(ref ExprCtx ctx, ref ExprEmit emit) {
 				globals,
 				tc.constants,
 				(ref immutable gcc_jit_rvalue* global, ref Constant[] elements) {
-					verify(!empty(elements)); // Not sure how GCC would handle an empty global
+					assert(!empty(elements)); // Not sure how GCC would handle an empty global
 					foreach (size_t index, Constant elementValue; elements) {
 						gcc_jit_lvalue* elementLValue = gcc_jit_context_new_array_access(
 							ctx.gcc,

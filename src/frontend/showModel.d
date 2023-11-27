@@ -36,7 +36,6 @@ import util.opt : force, has, none, Opt, some;
 import util.sourceRange : toUriAndPos, UriAndPos, UriAndRange;
 import util.sym : AllSymbols, Sym, writeSym;
 import util.uri : AllUris, Uri, UrisInfo, writeUri, writeUriPreferRelative;
-import util.util : verify;
 import util.writer :
 	writeBold, writeHyperlink, writeNewline, writeRed, writeReset, writeWithCommas, writeWithCommasZip, Writer;
 
@@ -129,7 +128,7 @@ private void writeTypeParamsAndArgs(
 	in TypeParam[] typeParams,
 	in Type[] typeArgs,
 ) {
-	verify(sizeEq(typeParams, typeArgs));
+	assert(sizeEq(typeParams, typeArgs));
 	if (!empty(typeParams)) {
 		writer ~= " with ";
 		writeWithCommasZip!(TypeParam, Type)(writer, typeParams, typeArgs, (in TypeParam param, in Type arg) {

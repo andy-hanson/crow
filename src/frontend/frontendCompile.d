@@ -49,7 +49,6 @@ import util.uri :
 	PathFirstAndRest,
 	RelPath,
 	resolveUri;
-import util.util : verify;
 
 Program frontendCompile(
 	scope ref Perf perf,
@@ -115,9 +114,9 @@ AstAndResolvedImports[] parseEverything(
 	EnumMap!(CommonModule, Uri) commonUris,
 	ref Config config,
 ) {
-	verify(!empty(rootUris));
+	assert(!empty(rootUris));
 	if (has(mainUri))
-		verify(contains(rootUris, force(mainUri)));
+		assert(contains(rootUris, force(mainUri)));
 
 	UriToStatus statuses;
 	ArrBuilder!AstAndResolvedImports res;
@@ -161,7 +160,7 @@ AstAndResolvedImports[] parseEverything(
 	foreach (Uri uri; rootUris)
 		processRootUri(uri);
 
-	verify(isEmpty(stack));
+	assert(isEmpty(stack));
 	return finishArr(alloc, res);
 }
 
@@ -448,7 +447,7 @@ ModulesAndCommonTypes getModules(
 	Uri stdUri,
 	in AstAndResolvedImports[] fileAsts,
 ) {
-	verify(!empty(fileAsts));
+	assert(!empty(fileAsts));
 	Late!CommonTypes commonTypes = late!CommonTypes;
 
 	MutMap!(Uri, immutable Module*) compiled;
@@ -462,7 +461,7 @@ ModulesAndCommonTypes getModules(
 					lateGet(commonTypes));
 			} else {
 				// The first module to check is always 'bootstrap.crow'
-				verify(ast.resolvedImports.empty);
+				assert(ast.resolvedImports.empty);
 				BootstrapCheck res = checkBootstrap(modelAlloc, perf, allSymbols, allUris, programState, fileAndAst);
 				lateSet(commonTypes, res.commonTypes);
 				return res.module_;

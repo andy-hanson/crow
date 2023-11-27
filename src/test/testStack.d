@@ -17,7 +17,6 @@ import interpret.stacks :
 	withStacks;
 import test.testUtil : expectDataStack, Test;
 import util.col.arrUtil : arrEqual;
-import util.util : verify;
 
 void testStack(ref Test test) {
 	testPushPop(test);
@@ -31,13 +30,13 @@ private:
 }
 
 @system void testPushPop(ref Test test, Stacks a) {
-	verify(dataStackIsEmpty(a));
-	verify(returnStackIsEmpty(a));
+	assert(dataStackIsEmpty(a));
+	assert(returnStackIsEmpty(a));
 
 	dataPush(a, 42);
-	verify(dataPeek(a) == 42);
-	verify(dataPop(a) == 42);
-	verify(dataStackIsEmpty(a));
+	assert(dataPeek(a) == 42);
+	assert(dataPop(a) == 42);
+	assert(dataStackIsEmpty(a));
 
 	ulong* begin = dataEnd(a);
 
@@ -46,18 +45,18 @@ private:
 	expectDataStack(test, a, [5, 6]);
 
 	dataPush(a, 7);
-	verify(dataTop(a) == begin + 2);
-	verify(dataEnd(a) == begin + 3);
+	assert(dataTop(a) == begin + 2);
+	assert(dataEnd(a) == begin + 3);
 
 	scope immutable ulong[] popped = dataPopN(a, 2);
-	verify(arrEqual(popped, [6, 7]));
+	assert(arrEqual(popped, [6, 7]));
 	expectDataStack(test, a, [5]);
 
 	dataPush(a, 8);
 	dataPush(a, 9);
 	expectDataStack(test, a, [5, 8, 9]);
 	ulong removed = dataRemove(a, 1);
-	verify(removed == 8);
+	assert(removed == 8);
 	expectDataStack(test, a, [5, 9]);
 
 	dataPush(a, 11);
@@ -68,10 +67,10 @@ private:
 	dataReturn(a, 2, 1);
 	expectDataStack(test, a, [5, 13]);
 
-	verify(dataPop(a) == 13);
-	verify(dataPop(a) == 5);
-	verify(dataStackIsEmpty(a));
-	verify(returnStackIsEmpty(a));
+	assert(dataPop(a) == 13);
+	assert(dataPop(a) == 5);
+	assert(dataStackIsEmpty(a));
+	assert(returnStackIsEmpty(a));
 }
 
 @trusted void testDataReturn(ref Test test) {

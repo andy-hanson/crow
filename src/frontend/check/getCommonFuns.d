@@ -53,7 +53,7 @@ import util.ptr : castNonScope_ref;
 import util.sourceRange : Range, UriAndRange;
 import util.sym : Sym, sym;
 import util.uri : Uri;
-import util.util : todo, unreachable, verify;
+import util.util : todo, unreachable;
 
 // Must be in dependency order (can only reference earlier)
 alias CommonModule = immutable CommonModule_;
@@ -208,7 +208,7 @@ immutable(FunDecl*[]) getFunOrActSubscriptFuns(
 
 FunKind firstArgFunKind(in CommonTypes commonTypes, FunDecl* f) {
 	Destructure[] params = assertNonVariadic(f.params);
-	verify(!empty(params));
+	assert(!empty(params));
 	StructDecl* actual = decl(*params[0].type.as!(StructInst*));
 	foreach (FunKind kind; [FunKind.fun, FunKind.act, FunKind.pointer])
 		if (actual == commonTypes.funStructs[kind])

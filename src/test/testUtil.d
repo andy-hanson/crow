@@ -15,7 +15,6 @@ import util.perf : Perf;
 import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols;
 import util.uri : AllUris, Uri, UrisInfo;
-import util.util : verifyFail;
 import util.writer : debugLogWithWriter, Writer;
 
 struct Test {
@@ -79,7 +78,7 @@ private void withShowDiagCtxForTestImpl(alias cb)(
 			writer ~= "\nactual:\n";
 			showDataArr(writer, stack);
 		});
-		verifyFail();
+		assert(false);
 	}
 }
 
@@ -110,7 +109,7 @@ private void withShowDiagCtxForTestImpl(alias cb)(
 			}
 			writer ~= '\n';
 		});
-		verifyFail();
+		assert(false);
 	}
 }
 

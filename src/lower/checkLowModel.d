@@ -48,7 +48,7 @@ import util.json : field, Json, jsonObject, jsonString, kindField, writeJson;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols;
-import util.util : drop, verify;
+import util.util : drop;
 import util.writer : debugLogWithWriter, Writer;
 
 void checkLowProgram(in AllSymbols allSymbols, in Program program, in LowProgram a) {
@@ -111,7 +111,7 @@ void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr
 		(in LowExprKind.Call it) {
 			LowFun* fun = &ctx.ctx.program.allFuns[it.called];
 			checkTypeEqual(ctx.ctx, type, fun.returnType);
-			verify(sizeEq(fun.params, it.args));
+			assert(sizeEq(fun.params, it.args));
 			zip!(LowLocal, LowExpr)(fun.params, it.args, (ref LowLocal param, ref LowExpr arg) {
 				checkLowExpr(ctx, info, param.type, arg);
 			});
@@ -119,7 +119,7 @@ void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr
 		(in LowExprKind.CallFunPtr it) {
 			LowFunPtrType funPtrType = ctx.ctx.program.allFunPtrTypes[it.funPtr.type.as!(LowType.FunPtr)];
 			checkTypeEqual(ctx.ctx, type, funPtrType.returnType);
-			verify(sizeEq(funPtrType.paramTypes, it.args));
+			assert(sizeEq(funPtrType.paramTypes, it.args));
 			zip!(LowType, LowExpr)(funPtrType.paramTypes, it.args, (ref LowType paramType, ref LowExpr arg) {
 				checkLowExpr(ctx, info, paramType, arg);
 			});
@@ -140,7 +140,7 @@ void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr
 			checkLowExpr(ctx, info, type, it.else_);
 		},
 		(in LowExprKind.InitConstants) {
-			verify(isVoid(type));
+			assert(isVoid(type));
 		},
 		(in LowExprKind.Let it) {
 			checkLowExpr(ctx, info, it.local.type, it.value);
@@ -193,7 +193,7 @@ void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr
 		},
 		(in LowExprKind.RecordFieldSet it) {
 			LowType.Record recordType = targetRecordType(it);
-			verify(targetIsPointer(it)); // TODO: then this function doesn't need to exist
+			assert(targetIsPointer(it)); // TODO: then this function doesn't need to exist
 			checkLowExpr(ctx, info, it.target.type, it.target);
 			LowType fieldType = ctx.ctx.program.allRecords[recordType].fields[it.fieldIndex].type;
 			checkLowExpr(ctx, info, fieldType, it.value);
@@ -308,10 +308,10 @@ ExpectUnary unaryExpected(
 		case LowExprKind.SpecialUnary.Kind.toNat64FromNat32:
 			return expect(nat64Type, nat32Type);
 		case LowExprKind.SpecialUnary.Kind.toNat64FromPtr:
-			verify(isPtrGcOrRaw(argType));
+			assert(isPtrGcOrRaw(argType));
 			return ExpectUnary(some(nat64Type), none!LowType);
 		case LowExprKind.SpecialUnary.Kind.toPtrFromNat64:
-			verify(isPtrGcOrRaw(returnType));
+			assert(isPtrGcOrRaw(returnType));
 			return ExpectUnary(none!LowType, some(nat64Type));
 		case LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64:
 			return expect(int64Type, float64Type);
@@ -373,8 +373,8 @@ ExpectBinary binaryExpected(
 			return expect(float64Type, float64Type, float64Type);
 		case LowExprKind.SpecialBinary.Kind.addPtrAndNat64:
 		case LowExprKind.SpecialBinary.Kind.subPtrAndNat64:
-			verify(returnType == arg0Type);
-			verify(isPtrGcOrRaw(returnType));
+			assert(returnType == arg0Type);
+			assert(isPtrGcOrRaw(returnType));
 			return ExpectBinary(none!LowType, [none!LowType, some(nat64Type)]);
 		case LowExprKind.SpecialBinary.Kind.and:
 		case LowExprKind.SpecialBinary.Kind.orBool:
@@ -478,12 +478,12 @@ ExpectBinary binaryExpected(
 			return expect(boolType, nat64Type, nat64Type);
 		case LowExprKind.SpecialBinary.Kind.eqPtr:
 		case LowExprKind.SpecialBinary.Kind.lessPtr:
-			verify(arg0Type == arg1Type);
+			assert(arg0Type == arg1Type);
 			return ExpectBinary(some(boolType), [none!LowType, none!LowType]);
 		case LowExprKind.SpecialBinary.Kind.lessChar8:
 			return expect(boolType, char8Type, char8Type);
 		case LowExprKind.SpecialBinary.Kind.seq:
-			verify(returnType == arg1Type);
+			assert(returnType == arg1Type);
 			return ExpectBinary(none!LowType, [some(voidType), none!LowType]);
 		case LowExprKind.SpecialBinary.Kind.writeToPtr:
 			return ExpectBinary(some(voidType), [none!LowType, some(asGcOrRawPointee(arg0Type))]);
@@ -505,7 +505,7 @@ void checkTypeEqual(ref Ctx ctx, in LowType expected, in LowType actual) {
 			writer ~= "\nActual:\n";
 			writeJson(writer, ctx.allSymbols, jsonOfLowType2(alloc, ctx.program, actual));
 		});
-	verify(expected == actual);
+	assert(expected == actual);
 }
 
 Json jsonOfLowType2(ref Alloc alloc, in LowProgram program, in LowType a) =>

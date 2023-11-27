@@ -37,7 +37,6 @@ import util.jsonParse : asUint;
 import util.lineAndColumnGetter : LineAndCharacter, LineAndCharacterRange;
 import util.opt : none, some;
 import util.uri : AllUris, parseUri, Uri;
-import util.util : verifyFail;
 
 // If extending this, remember to modify 'initializeCapabilities'
 LspInMessage parseLspInMessage(ref Alloc alloc, scope ref AllUris allUris, in Json message) {
@@ -90,7 +89,6 @@ LspInMessage parseLspInMessage(ref Alloc alloc, scope ref AllUris allUris, in Js
 		case "textDocument/semanticTokens/full":
 			return request(SemanticTokensParams(parseTextDocumentIdentifier(allUris, get!"textDocument"(params))));
 		default:
-			verifyFail();
 			assert(false);
 	}
 }

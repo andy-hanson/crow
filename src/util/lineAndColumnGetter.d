@@ -8,7 +8,7 @@ import util.col.str : SafeCStr;
 import util.conv : safeToUint;
 import util.sourceRange : Pos, Range;
 import util.uri : Uri;
-import util.util : min, verify;
+import util.util : min;
 
 LineAndColumnRange lineAndColumnRange(in LineAndColumnGetter a, in Range range) =>
 	LineAndColumnRange(
@@ -72,8 +72,8 @@ immutable struct LineAndColumnGetter {
 		maxPos = mp;
 		lineToPos = lp;
 		lineToNTabs = lnt;
-		verify(lineToPos.length > 0);
-		verify(lineToPos.length == lineToNTabs.length);
+		assert(lineToPos.length > 0);
+		assert(lineToPos.length == lineToNTabs.length);
 	}
 
 	Pos opIndex(in LineAndCharacter lc) scope =>
@@ -149,7 +149,7 @@ LineAndCharacter lineAndCharacterAtPos(in LineAndColumnGetter lc, Pos pos, PosKi
 		pos--;
 	}
 	Pos lineStart = lc.lineToPos[line];
-	verify((pos >= lineStart && line == lc.lineToPos.length - 1) || pos <= lc.lineToPos[line + 1]);
+	assert((pos >= lineStart && line == lc.lineToPos.length - 1) || pos <= lc.lineToPos[line + 1]);
 	uint character = pos - lineStart;
 	// Don't include a column for the '\r' in '\r\n'
 	if (lc.usesCRLF && line + 1 < lc.lineToPos.length && pos + 1 == lc.lineToPos[line + 1])

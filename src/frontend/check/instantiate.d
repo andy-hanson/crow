@@ -47,7 +47,7 @@ import util.col.mutArr : MutArr, push;
 import util.col.mutMaxArr : mapTo, MutMaxArr, mutMaxArr, push, tempAsArr;
 import util.memory : allocate;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
-import util.util : typeAs, verify;
+import util.util : typeAs;
 
 immutable struct TypeParamsAndArgs {
 	@safe @nogc pure nothrow:
@@ -58,7 +58,7 @@ immutable struct TypeParamsAndArgs {
 	this(TypeParam[] tp, Type[] ta) {
 		typeParams = tp;
 		typeArgs = ta;
-		verify(sizeEq(typeParams, typeArgs));
+		assert(sizeEq(typeParams, typeArgs));
 	}
 }
 

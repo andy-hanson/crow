@@ -2,7 +2,6 @@ module util.opt;
 
 @safe @nogc pure nothrow:
 
-import util.util : verify;
 
 private struct Option(T) {
 	@safe @nogc pure nothrow:
@@ -50,7 +49,7 @@ bool has(T)(in Option!T a) =>
 	a.has_;
 
 ref inout(T) force(T)(ref inout Option!T a) {
-	verify(has(a));
+	assert(has(a));
 	return a.value_;
 }
 

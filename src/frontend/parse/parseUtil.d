@@ -23,7 +23,7 @@ import util.col.str : copyToSafeCStr, SafeCStr, safeCStr;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
 import util.sym : Sym, sym;
-import util.util : unreachable, verify;
+import util.util : unreachable;
 
 bool peekToken(ref Lexer lexer, Token expected) =>
 	getPeekToken(lexer) == expected;
@@ -153,7 +153,7 @@ SafeCStr takeNewline_topLevel(ref Lexer lexer) {
 	else {
 		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.newline)));
 		NewlineOrDedent nl = skipToNextNewlineOrDedent(lexer);
-		verify(nl == NewlineOrDedent.newline);
+		assert(nl == NewlineOrDedent.newline);
 		return safeCStr!"";
 	}
 }
@@ -197,7 +197,7 @@ private NewlineOrDedent skipToNextNewlineOrDedent(ref Lexer lexer) {
 					return NewlineOrDedent.newline;
 				break;
 			case Token.EOF:
-				verify(dedentsNeeded == 0);
+				assert(dedentsNeeded == 0);
 				return NewlineOrDedent.newline;
 			case Token.newlineIndent:
 				dedentsNeeded += 1;

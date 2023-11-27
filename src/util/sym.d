@@ -12,7 +12,7 @@ import util.conv : safeToSizeT;
 import util.hash : Hasher, hashUlong;
 import util.opt : force, has, Opt, none, some;
 import util.ptr : castNonScope_ref;
-import util.util : drop, verify;
+import util.util : drop;
 import util.writer : digitChar, withWriter, writeEscapedChar, Writer;
 
 immutable struct Sym {
@@ -38,7 +38,7 @@ struct AllSymbols {
 			SafeCStr str = SafeCStr(s.ptr);
 			debug {
 				Opt!Sym packed = tryPackShortSym(strOfSafeCStr(str));
-				verify(!has(packed));
+				assert(!has(packed));
 			}
 			drop(addLargeString(this, str));
 		} }
@@ -53,7 +53,7 @@ struct AllSymbols {
 // WARN: 'value' must have been allocated by a.alloc
 private Sym addLargeString(ref AllSymbols a, SafeCStr value) {
 	size_t index = mutArrSize(a.largeStringFromIndex);
-	verify(mutMapSize(a.largeStringToIndex) == index);
+	assert(mutMapSize(a.largeStringToIndex) == index);
 	Sym res = Sym(index);
 	addToMutMap(a.alloc, a.largeStringToIndex, strOfSafeCStr(value), res);
 	push(a.alloc, a.largeStringFromIndex, value);
@@ -141,7 +141,7 @@ private @trusted Sym prependToLongStr(string prepend)(ref AllSymbols allSymbols,
 	eachCharInSym(allSymbols, a, (char x) {
 		temp[i] = x;
 		i++;
-		verify(i <= temp.length);
+		assert(i <= temp.length);
 	});
 	return getSymFromLongStr(allSymbols, cast(immutable) temp[0 .. i]);
 }
@@ -153,7 +153,7 @@ private @trusted Sym appendToLongStr(Sym append)(ref AllSymbols allSymbols, Sym 
 		eachCharInSym(allSymbols, sym, (char x) {
 			temp[i] = x;
 			i++;
-			verify(i <= temp.length);
+			assert(i <= temp.length);
 		});
 	return getSymFromLongStr(allSymbols, cast(immutable) temp[0 .. i]);
 }
@@ -168,7 +168,7 @@ Sym concatSymsWithDot(ref AllSymbols allSymbols, Sym a, Sym b) =>
 		eachCharInSym(allSymbols, s, (char x) {
 			temp[i] = x;
 			i++;
-			verify(i <= temp.length);
+			assert(i <= temp.length);
 		});
 	return symOfStr(allSymbols, cast(immutable) temp[0 .. i]);
 }
@@ -182,7 +182,7 @@ void eachCharInSym(in AllSymbols allSymbols, Sym a, in void delegate(char) @safe
 	if (isShortSym(a))
 		eachCharInShortSym(a.value, cb);
 	else {
-		verify(isLongSym(a));
+		assert(isLongSym(a));
 		eachChar(asLongSym(castNonScope_ref(allSymbols), a), cb);
 	}
 }
@@ -213,7 +213,7 @@ SafeCStr safeCStrOfSym(ref Alloc alloc, return scope ref const AllSymbols allSym
 
 char[bufferSize] symAsTempBuffer(size_t bufferSize)(in AllSymbols allSymbols, Sym a) {
 	char[bufferSize] res;
-	verify(symSize(allSymbols, a) < bufferSize);
+	assert(symSize(allSymbols, a) < bufferSize);
 	size_t index;
 	eachCharInSym(allSymbols, a, (char c) {
 		res[index] = c;
@@ -254,11 +254,11 @@ size_t shortSymMaxChars() =>
 	12;
 
 ulong codeForLetter(char a) {
-	verify('a' <= a && a <= 'z');
+	assert('a' <= a && a <= 'z');
 	return 1 + a - 'a';
 }
 char letterFromCode(ulong code) {
-	verify(1 <= code && code <= 26);
+	assert(1 <= code && code <= 26);
 	return cast(char) ('a' + (code - 1));
 }
 ulong codeForHyphen() => 27;
@@ -334,7 +334,7 @@ void eachCharInShortSym(ulong value, in void delegate(char) @safe @nogc pure not
 	}
 
 	while (remaining != 0) {
-		verify(remaining < 999);
+		assert(remaining < 999);
 		ulong x = take();
 		if (x < 27) {
 			if (x != 0)
@@ -367,7 +367,7 @@ public bool isLongSym(Sym a) =>
 	!isShortSym(a);
 
 @trusted SafeCStr asLongSym(return scope ref const AllSymbols allSymbols, Sym a) {
-	verify(isLongSym(a));
+	assert(isLongSym(a));
 	return allSymbols.largeStringFromIndex[safeToSizeT(a.value)];
 }
 

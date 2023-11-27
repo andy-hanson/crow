@@ -27,7 +27,7 @@ import util.uri : getExtension, parseUri, Uri;
 import util.perf : Perf, withNullPerf;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : jsonOfPosWithinFile, Pos, UriAndRange;
-import util.util : debugLog, verify, verifyFail;
+import util.util : debugLog;
 
 @trusted void testHover(ref Test test) {
 	hoverTest!("basic.crow", "hover/basic.json")(test);
@@ -47,7 +47,7 @@ void hoverTest(string crowFileName, string outputFileName)(ref Test test) {
 			debugLog(outputFileName);
 			debugLog("Actual is:");
 			debugLog(actual.ptr);
-			verifyFail();
+			assert(false);
 		}
 	});
 }
@@ -58,7 +58,7 @@ void withHoverTest(string fileName)(
 	in void delegate(in ShowCtx, Module*) @safe @nogc pure nothrow cb,
 ) {
 	Uri uri = parseUri(test.allUris, "magic:/" ~ fileName);
-	verify(getExtension(test.allUris, uri) == crowExtension);
+	assert(getExtension(test.allUris, uri) == crowExtension);
 	Storage storage = Storage(test.metaAlloc, ptrTrustMe(test.allSymbols), ptrTrustMe(test.allUris));
 	setFile(test.perf, storage, uri, ReadFileResult(FileContent(content)));
 	Program program = withNullPerf!(Program, (ref Perf perf) =>

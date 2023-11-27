@@ -26,7 +26,6 @@ import util.sourceRange : UriAndRange;
 import util.sym : Sym, sym;
 import util.union_ : Union;
 import util.uri : Uri;
-import util.util : verify;
 
 immutable struct LowExternType {
 	ConcreteStruct* source;
@@ -249,7 +248,7 @@ immutable(LowType) asPtrGcPointee(LowType a) =>
 	*a.as!(LowType.PtrGc).pointee;
 
 immutable(LowType) asPtrRawPointee(LowType a) {
-	verify(isPtrRawConstOrMut(a));
+	assert(isPtrRawConstOrMut(a));
 	return asGcOrRawPointee(a);
 }
 

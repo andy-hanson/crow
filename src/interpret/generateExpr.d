@@ -146,7 +146,7 @@ import util.opt : force, has, Opt;
 import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
 import util.sym : AllSymbols, Sym;
 import util.union_ : UnionMutable;
-import util.util : divRoundUp, unreachable, verify;
+import util.util : divRoundUp, unreachable;
 
 void generateFunFromExpr(
 	ref TempAlloc tempAlloc,
@@ -181,7 +181,7 @@ void generateFunFromExpr(
 	StackEntries returnStackEntries = StackEntries(StackEntry(0), returnEntries);
 	ExprAfter after = ExprAfter(returnStackEntries, ExprAfterKind(ExprAfterKind.Return()));
 	generateExpr(castNonScope_ref(writer), ctx, locals, after, body_.expr);
-	verify(getNextStackEntry(writer).entry == returnEntries);
+	assert(getNextStackEntry(writer).entry == returnEntries);
 }
 
 private:
@@ -230,7 +230,7 @@ void handleAfter(
 
 void handleAfterReturnData(ref ByteCodeWriter writer, ByteCodeSource source, in ExprAfter after) {
 	writeReturnData(writer, source, after.returnValueStackEntries);
-	verify(getNextStackEntry(writer) == stackEntriesEnd(after.returnValueStackEntries));
+	assert(getNextStackEntry(writer) == stackEntriesEnd(after.returnValueStackEntries));
 }
 
 struct ExprCtx {
@@ -297,7 +297,7 @@ void generateExpr(
 	scope ref ExprAfter after,
 	in LowExpr expr,
 ) {
-	verify(after.returnValueStackEntries.size == nStackEntriesForType(ctx, expr.type));
+	assert(after.returnValueStackEntries.size == nStackEntriesForType(ctx, expr.type));
 	ByteCodeSource source = ByteCodeSource(ctx.curFunIndex, expr.source.range.start);
 	expr.kind.matchIn!void(
 		(in LowExprKind.Call it) {
@@ -306,7 +306,7 @@ void generateExpr(
 			generateArgsAndContinue(writer, ctx, locals, it.args);
 			ByteCodeIndex where = writeCallDelayed(writer, source, stackEntryBeforeArgs, expectedStackEffect);
 			registerCall(ctx.tempAlloc, ctx.funToReferences, it.called, where);
-			verify(stackEntryBeforeArgs.entry + expectedStackEffect == getNextStackEntry(writer).entry);
+			assert(stackEntryBeforeArgs.entry + expectedStackEffect == getNextStackEntry(writer).entry);
 			//TODO: do a tailcall if possible
 			handleAfter(writer, ctx, source, after);
 		},
@@ -450,7 +450,7 @@ __gshared ulong[maxGlobalsSizeWords] globalsStorage;
 @trusted ulong* getGlobalsPointer(ulong offsetInWords) {
 	ulong* function() @nogc pure nothrow getIt = cast(ulong* function() @nogc pure nothrow) () =>
 		globalsStorage.ptr;
-	verify(offsetInWords < maxGlobalsSizeWords);
+	assert(offsetInWords < maxGlobalsSizeWords);
 	return getIt() + offsetInWords;
 }
 
@@ -475,7 +475,7 @@ void generateLet(
 ) {
 	StackEntries localEntries = StackEntries(getNextStackEntry(writer), nStackEntriesForType(ctx, a.local.type));
 	generateExprAndContinue(writer, ctx, locals, a.value);
-	verify(getNextStackEntry(writer) == stackEntriesEnd(localEntries));
+	assert(getNextStackEntry(writer) == stackEntriesEnd(localEntries));
 	generateExpr(writer, ctx, addLocal(locals, a.local, localEntries), after, a.then);
 }
 
@@ -506,7 +506,7 @@ void generateLoopBreak(
 	scope ref ExprAfter after,
 	in LowExprKind.LoopBreak a,
 ) {
-	verify(after.returnValueStackEntries.size == 0);
+	assert(after.returnValueStackEntries.size == 0);
 	ExprAfterKind.Loop loop = after.kind.as!(ExprAfterKind.Loop);
 	generateExpr(writer, ctx, locals, *loop.afterBreak, a.value);
 	setNextStackEntry(writer, after.returnValueStackEntries.start);
@@ -520,7 +520,7 @@ void generateLoopContinue(
 	scope ref ExprAfter after,
 	in LowExprKind.LoopContinue a,
 ) {
-	verify(after.returnValueStackEntries.size == 0);
+	assert(after.returnValueStackEntries.size == 0);
 	ExprAfterKind.Loop loop = after.kind.as!(ExprAfterKind.Loop);
 	handleAfterReturnData(writer, source, after);
 	writeJump(writer, source, loop.loopTop);
@@ -559,7 +559,7 @@ void generateMatchUnion(
 				fillDelayedSwitchEntry(writer, switchDelayed, caseIndex);
 				if (has(case_.local)) {
 					size_t nEntries = nStackEntriesForType(ctx, force(case_.local).type);
-					verify(nEntries <= matchedEntriesWithoutKind.size);
+					assert(nEntries <= matchedEntriesWithoutKind.size);
 					generateExpr(
 						writer, ctx,
 						addLocal(locals, force(case_.local), StackEntries(matchedEntriesWithoutKind.start, nEntries)),
@@ -649,8 +649,8 @@ void generateTailRecur(
 		writeSet(writer, source, getLocal(ctx, locals, updateParam.param));
 
 	// Delete anything on the stack besides parameters
-	verify(after.kind.isA!(ExprAfterKind.Return));
-	verify(after.returnValueStackEntries.start.entry == 0);
+	assert(after.kind.isA!(ExprAfterKind.Return));
+	assert(after.returnValueStackEntries.start.entry == 0);
 	StackEntry parametersEnd = empty(ctx.parameterEntries)
 		? StackEntry(0)
 		: stackEntriesEnd(ctx.parameterEntries[$ - 1]);
@@ -682,7 +682,7 @@ void generateCreateRecord(
 		source,
 		(size_t fieldIndex, LowType fieldType) {
 			LowExpr arg = it.args[fieldIndex];
-			verify(arg.type == fieldType);
+			assert(arg.type == fieldType);
 			generateExprAndContinue(writer, ctx, locals, arg);
 		});
 }
@@ -704,7 +704,7 @@ void generateCreateRecordOrConstantRecord(
 	if (has(optPack))
 		writePack(writer, source, force(optPack));
 
-	verify(getNextStackEntry(writer).entry - before.entry == nStackEntriesForRecordType(ctx, type));
+	assert(getNextStackEntry(writer).entry - before.entry == nStackEntriesForRecordType(ctx, type));
 }
 
 void generateCreateUnion(
@@ -742,7 +742,7 @@ void generateCreateUnionOrConstantUnion(
 	StackEntry after = getNextStackEntry(writer);
 	if (before.entry + size != after.entry) {
 		// Some members of a union are smaller than the union.
-		verify(before.entry + size > after.entry);
+		assert(before.entry + size > after.entry);
 		writePushEmptySpace(writer, source, before.entry + size - after.entry);
 	}
 }
@@ -1048,14 +1048,14 @@ void generateRecordFieldSet(
 	in LowExprKind.RecordFieldSet a,
 ) {
 	StackEntry before = getNextStackEntry(writer);
-	verify(targetIsPointer(a));
+	assert(targetIsPointer(a));
 	generateExprAndContinue(writer, ctx, locals, a.target);
 	StackEntry mid = getNextStackEntry(writer);
 	generateExprAndContinue(writer, ctx, locals, a.value);
 	FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, targetRecordType(a), a.fieldIndex);
-	verify(mid.entry + divRoundUp(offsetAndSize.size, stackEntrySize) == getNextStackEntry(writer).entry);
+	assert(mid.entry + divRoundUp(offsetAndSize.size, stackEntrySize) == getNextStackEntry(writer).entry);
 	writeWrite(writer, source, offsetAndSize.offset, offsetAndSize.size);
-	verify(getNextStackEntry(writer) == before);
+	assert(getNextStackEntry(writer) == before);
 }
 
 void generateSpecialTernary(
@@ -1336,7 +1336,7 @@ void generateIf(
 		fillDelayedJumpIfFalse(writer, delayed);
 		setNextStackEntry(writer, stackEntryAtStart);
 		cbElse(afterLastBranch);
-		verify(getNextStackEntry(writer) == stackEntriesEnd(after.returnValueStackEntries));
+		assert(getNextStackEntry(writer) == stackEntriesEnd(after.returnValueStackEntries));
 	});
 }
 

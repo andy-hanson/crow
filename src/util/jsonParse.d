@@ -9,7 +9,6 @@ import util.col.str : SafeCStr, strOfSafeCStr;
 import util.json : Json;
 import util.opt : force, has, none, Opt, some;
 import util.sym : AllSymbols, symOfStr;
-import util.util : verify;
 import util.writer : withWriter, Writer;
 
 Json mustParseJson(ref Alloc alloc, scope ref AllSymbols allSymbols, in SafeCStr source) {
@@ -29,7 +28,7 @@ uint mustParseUint(SafeCStr s) {
 	skipWhitespace(ptr);
 	Json res = parseNumber(0, ptr);
 	skipWhitespace(ptr);
-	verify(*ptr == '\0');
+	assert(*ptr == '\0');
 	return safeUintOfDouble(res.as!double);
 }
 
@@ -38,7 +37,7 @@ uint asUint(in Json a) =>
 
 private uint safeUintOfDouble(double a) {
 	uint res = cast(int) a;
-	verify((cast(double) res) == a);
+	assert((cast(double) res) == a);
 	return res;
 }
 

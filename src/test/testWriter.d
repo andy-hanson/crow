@@ -4,7 +4,6 @@ module test.testWriter;
 
 import test.testUtil : Test;
 import util.col.str : SafeCStr, strEq, strOfSafeCStr;
-import util.util : verify;
 import util.writer : withWriter, writeFloatLiteral, Writer;
 
 @trusted void testWriter(ref Test test) {
@@ -12,7 +11,7 @@ import util.writer : withWriter, writeFloatLiteral, Writer;
 		SafeCStr actual = withWriter(test.alloc, (scope ref Writer writer) {
 			writeFloatLiteral(writer, value);
 		});
-		verify(strEq(strOfSafeCStr(actual), expected));
+		assert(strEq(strOfSafeCStr(actual), expected));
 	}
 
 	writes(-0.0, "-0");

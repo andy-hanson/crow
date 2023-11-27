@@ -44,7 +44,6 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range;
 import util.union_ : Union;
-import util.util : verify;
 
 Opt!Called checkCallSpecs(ref ExprCtx ctx, in Range range, ref const Candidate candidate) {
 	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.programStatePtr, funsInScope(ctx));
@@ -134,7 +133,7 @@ DummyTrace.NoMatch specNoMatch(scope DummyTrace, Diag.SpecNoMatch.Reason) =>
 RealTrace.NoMatch specNoMatch(scope RealTrace a, Diag.SpecNoMatch.Reason reason) =>
 	Diag.SpecNoMatch(reason, toArray(*a.alloc, *a.trace));
 bool isFull(DummyTrace trace) {
-	verify(trace.depth <= maxSpecDepth);
+	assert(trace.depth <= maxSpecDepth);
 	return trace.depth == maxSpecDepth;
 }
 bool isFull(RealTrace trace) =>

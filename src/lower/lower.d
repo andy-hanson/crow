@@ -140,7 +140,7 @@ import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.sourceRange : UriAndRange;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
-import util.util : todo, typeAs, unreachable, verify;
+import util.util : todo, typeAs, unreachable;
 
 LowProgram lower(
 	scope ref Perf perf,
@@ -425,7 +425,7 @@ PrimitiveType typeForEnum(EnumBackingType a) {
 LowUnion getLowUnion(ref Alloc alloc, in ConcreteProgram program, ref GetLowTypeCtx getLowTypeCtx, ConcreteStruct* s) =>
 	LowUnion(s, body_(*s).matchIn!(LowType[])(
 		(in ConcreteStructBody.Builtin it) {
-			verify(it.kind == BuiltinStructKind.fun);
+			assert(it.kind == BuiltinStructKind.fun);
 			ConcreteLambdaImpl[] impls = optOrDefault!(ConcreteLambdaImpl[])(program.funStructToImpls[s], () =>
 				typeAs!(ConcreteLambdaImpl[])([]));
 			return map(getLowTypeCtx.alloc, impls, (ref ConcreteLambdaImpl impl) =>
@@ -551,7 +551,7 @@ AllLowFuns getAllLowFuns(
 	}
 
 	LowFunIndex generateMarkVisitForType(LowType lowType) @safe @nogc pure nothrow {
-		verify(needsMarkVisitFun(allTypes, lowType));
+		assert(needsMarkVisitFun(allTypes, lowType));
 		LowFunIndex addNonArr() {
 			return addLowFun(LowFunCause(LowFunCause.MarkVisitNonArr(lowType)));
 		}
@@ -673,7 +673,7 @@ AllLowFuns getAllLowFuns(
 			(ConcreteFunBody.VarSet) =>
 				none!LowFunIndex);
 		if (concreteFunWillBecomeNonExternLowFun(program, *fun))
-			verify(has(opIndex));
+			assert(has(opIndex));
 		if (has(opIndex))
 			mustAddToMap(getLowTypeCtx.alloc, concreteFunToLowFunIndexBuilder, fun, force(opIndex));
 	}
@@ -1204,7 +1204,7 @@ LowExprKind getCallSpecial(
 		(ConcreteFunBody.RecordFieldPointer x) =>
 			getPtrToFieldExpr(ctx, locals, only(a.args), x.fieldIndex),
 		(ConcreteFunBody.RecordFieldSet x) {
-			verify(a.args.length == 2);
+			assert(a.args.length == 2);
 			return LowExprKind(allocate(ctx.alloc, LowExprKind.RecordFieldSet(
 				getLowExpr(ctx, locals, a.args[0], ExprPos.nonTail),
 				x.fieldIndex,
@@ -1238,16 +1238,16 @@ LowExprKind genEnumFunction(
 	LowExpr arg1() { return getLowExpr(ctx, locals, args[1], ExprPos.nonTail); }
 	final switch (a) {
 		case EnumFunction.equal:
-			verify(args.length == 2);
+			assert(args.length == 2);
 			return genEnumEq(ctx.alloc, arg0(), arg1());
 		case EnumFunction.intersect:
-			verify(args.length == 2);
+			assert(args.length == 2);
 			return genEnumIntersect(ctx.alloc, arg0(), arg1());
 		case EnumFunction.toIntegral:
-			verify(args.length == 1);
+			assert(args.length == 1);
 			return genEnumToIntegral(ctx.alloc, arg0());
 		case EnumFunction.union_:
-			verify(args.length == 2);
+			assert(args.length == 2);
 			return genEnumUnion(ctx.alloc, arg0(), arg1());
 		case EnumFunction.members:
 			// In concretize, this was translated to a constant
@@ -1322,11 +1322,11 @@ LowExprKind getCallBuiltinExpr(
 		(BuiltinKind.InitConstants) =>
 			LowExprKind(LowExprKind.InitConstants()),
 		(LowExprKind.SpecialUnary.Kind kind) {
-			verify(a.args.length == 1);
+			assert(a.args.length == 1);
 			return LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialUnary(kind, getArg(a.args[0], ExprPos.nonTail))));
 		},
 		(LowExprKind.SpecialBinary.Kind kind) {
-			verify(a.args.length == 2);
+			assert(a.args.length == 2);
 			ExprPos arg1Pos = () {
 				switch (kind) {
 					case LowExprKind.SpecialBinary.Kind.and:
@@ -1347,15 +1347,15 @@ LowExprKind getCallBuiltinExpr(
 					getArg(a.args[1], arg1Pos)])));
 		},
 		(LowExprKind.SpecialTernary.Kind kind) {
-			verify(a.args.length == 3);
+			assert(a.args.length == 3);
 			return LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialTernary(kind, [
 				getArg(a.args[0], ExprPos.nonTail),
 				getArg(a.args[1], ExprPos.nonTail),
 				getArg(a.args[2], ExprPos.nonTail)])));
 		},
 		(BuiltinKind.OptOr) {
-			verify(a.args.length == 2);
-			verify(p0 == p1);
+			assert(a.args.length == 2);
+			assert(p0 == p1);
 			LowLocal* lhsLocal = addTempLocal(ctx, p0);
 			LowExpr lhsRef = genLocalGet(range, lhsLocal);
 			return LowExprKind(allocate(ctx.alloc, LowExprKind.Let(
@@ -1368,7 +1368,7 @@ LowExprKind getCallBuiltinExpr(
 						LowExprKind.MatchUnion.Case(none!(LowLocal*), lhsRef)]))))))));
 		},
 		(BuiltinKind.OptQuestion2) {
-			verify(a.args.length == 2);
+			assert(a.args.length == 2);
 			LowLocal* valueLocal = addTempLocal(ctx, p1);
 			return LowExprKind(allocate(ctx.alloc, LowExprKind.MatchUnion(
 				getArg(a.args[0], ExprPos.nonTail),
@@ -1377,7 +1377,7 @@ LowExprKind getCallBuiltinExpr(
 					LowExprKind.MatchUnion.Case(some(valueLocal), genLocalGet(range, valueLocal))]))));
 		},
 		(BuiltinKind.PointerCast) {
-			verify(a.args.length == 1);
+			assert(a.args.length == 1);
 			return genPtrCastKind(ctx.alloc, getLowExpr(ctx, locals, only(a.args), ExprPos.nonTail));
 		},
 		(BuiltinKind.SizeOf) {

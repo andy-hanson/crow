@@ -11,7 +11,7 @@ import util.col.arr : arrOfRange, empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.opt : force, has, none, Opt, some;
 import util.sym : AllSymbols, appendEquals, Sym, sym, symOfStr;
-import util.util : drop, todo, unreachable, verify;
+import util.util : drop, todo, unreachable;
 
 immutable struct DocCommentAndExtraDedents {
 	string docComment;
@@ -34,7 +34,7 @@ immutable struct TokenAndData {
 
 	public:
 	this(Token t, bool) {
-		verify(!isSymToken(t) &&
+		assert(!isSymToken(t) &&
 			!isNewlineToken(t) &&
 			t != Token.literalFloat &&
 			t != Token.literalInt &&
@@ -42,27 +42,27 @@ immutable struct TokenAndData {
 		token = t;
 	}
 	this(Token t, Sym s) {
-		verify(isSymToken(t));
+		assert(isSymToken(t));
 		token = t;
 		sym = s;
 	}
 	this(Token t, DocCommentAndExtraDedents d) {
-		verify(isNewlineToken(t));
+		assert(isNewlineToken(t));
 		token = t;
 		docComment = d;
 	}
 	this(Token t, LiteralFloatAst l) {
-		verify(t == Token.literalFloat);
+		assert(t == Token.literalFloat);
 		token = t;
 		literalFloat = l;
 	}
 	this(Token t, LiteralIntAst l) {
-		verify(t == Token.literalInt);
+		assert(t == Token.literalInt);
 		token = t;
 		literalInt = l;
 	}
 	this(Token t, LiteralNatAst l) {
-		verify(t == Token.literalNat);
+		assert(t == Token.literalNat);
 		token = t;
 		literalNat = l;
 	}
@@ -71,24 +71,24 @@ immutable struct TokenAndData {
 		isSymToken(token);
 
 	Sym asSym() {
-		verify(isSym());
+		assert(isSym());
 		return sym;
 	}
 	// WARN: The docComment string is temporary.
 	@trusted DocCommentAndExtraDedents asDocComment() {
-		verify(isNewlineToken(token));
+		assert(isNewlineToken(token));
 		return docComment;
 	}
 	LiteralFloatAst asLiteralFloat() {
-		verify(token == Token.literalFloat);
+		assert(token == Token.literalFloat);
 		return literalFloat;
 	}
 	LiteralIntAst asLiteralInt() {
-		verify(token == Token.literalInt);
+		assert(token == Token.literalInt);
 		return literalInt;
 	}
 	LiteralNatAst asLiteralNat() {
-		verify(token == Token.literalNat);
+		assert(token == Token.literalNat);
 		return literalNat;
 	}
 }

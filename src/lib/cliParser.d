@@ -18,7 +18,7 @@ import util.ptr : castNonScope;
 import util.sym : Sym, sym;
 import util.union_ : Union;
 import util.uri : addExtension, alterExtension, AllUris, getExtension, parseUriWithCwd, Uri;
-import util.util : todo, verify;
+import util.util : todo;
 
 immutable struct Command {
 	immutable struct Build {
@@ -196,7 +196,7 @@ Opt!Uri tryParseCrowUri(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in 
 }
 
 Opt!(Uri[]) tryParseRootUris(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in SafeCStr[] args) {
-	verify(!empty(args));
+	assert(!empty(args));
 	return mapOrNone!(Uri, SafeCStr)(alloc, args, (ref SafeCStr arg) =>
 		tryParseCrowUri(alloc, allUris, cwd, arg));
 }

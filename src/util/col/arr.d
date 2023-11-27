@@ -3,7 +3,6 @@ module util.col.arr;
 @safe @nogc pure nothrow:
 
 import util.conv : safeToUshort;
-import util.util : verify;
 
 // Like SmallArray but without implying that it's an array
 immutable struct PtrAndSmallNumber(T) {
@@ -17,7 +16,7 @@ immutable struct PtrAndSmallNumber(T) {
 	this(immutable T* ptr, ushort number) {
 		static assert(ushort.max == 0xffff);
 		ulong val = cast(ulong) ptr;
-		verify((val & 0xffff_0000_0000_0000) == 0);
+		assert((val & 0xffff_0000_0000_0000) == 0);
 		value = ((cast(ulong) number) << 48) | val;
 	}
 
@@ -53,7 +52,7 @@ immutable struct SmallArray(T) {
 
 	@trusted immutable(T[]) toArray() {
 		size_t length = sizeAndBegin.number;
-		verify(length < 0xffff); // sanity check
+		assert(length < 0xffff); // sanity check
 		return sizeAndBegin.ptr()[0 .. length];
 	}
 
@@ -74,7 +73,7 @@ SmallArray!T emptySmallArray(T)() =>
 	cast(immutable) a;
 
 @system inout(T[]) arrOfRange(T)(inout T* begin, inout T* end) {
-	verify(begin <= end);
+	assert(begin <= end);
 	return begin[0 .. end - begin];
 }
 
@@ -85,12 +84,12 @@ bool empty(T)(in T[] a) =>
 	a.length == 0;
 
 ref inout(T) only(T)(return scope inout T[] a) {
-	verify(a.length == 1);
+	assert(a.length == 1);
 	return a[0];
 }
 
 ref inout(T[2]) only2(T)(return scope inout T[] a) {
-	verify(a.length == 2);
+	assert(a.length == 2);
 	return a[0 .. 2];
 }
 

@@ -8,7 +8,7 @@
 clean:
 	rm -rf bin site temp
 
-all: clean bin/crow-debug test lint serve
+all: clean test lint serve
 
 debug: bin/crow-debug
 	gdb ./bin/crow-debug
@@ -64,15 +64,12 @@ dmd_flags_common = $(d_flags_common) -version=GccJitAvailable
 dmd_flags_assert = $(dmd_flags_common) -check=on -boundscheck=on
 dmd_flags_debug = -debug -g -version=Debug -version=Test
 ldc_flags_common = $(d_flags_common) --d-version=GccJitAvailable
-ldc_flags_no_assert = $(ldc_flags_common) --enable-asserts=false --boundscheck=off
 ldc_flags_assert = $(ldc_flags_common) --enable-asserts=true --boundscheck=on
 ldc_wasm_flags = -mtriple=wasm32-unknown-unknown-wasm -L-allow-undefined
 ldc_fast_flags_no_tail_call = -O2 -L=--strip-all
 ldc_fast_flags = $(ldc_fast_flags_no_tail_call) --d-version=TailRecursionAvailable
 app_link = -L=-ldyncall_s -L=-ldyncallback_s -L=-ldynload_s -L=-L./dyncall/dyncall -L=-L./dyncall/dyncallback -L=-L./dyncall/dynload -L=-lgccjit
 
-app_files_no_test = src/app/*.d $(src_files_no_test)
-app_files_with_test = src/app/*.d $(src_files_with_test)
 # TODO: should not need document/mangle/writeToC/writeTypes
 wasm_src = src/wasm.d $(src_files_common) src/document/document.d src/backend/mangle.d src/backend/writeToC.d src/backend/writeTypes.d
 wasm_deps = $(wasm_src) $(other_deps)
@@ -106,7 +103,7 @@ bin/crow-debug.wasm: $(wasm_deps)
 	rm bin/crow-debug.o
 
 bin/crow.wasm: $(wasm_deps)
-	ldc2 -ofbin/crow.wasm $(ldc_flags_no_assert) $(ldc_wasm_flags) $(ldc_fast_flags_no_tail_call) $(wasm_src)
+	ldc2 -ofbin/crow.wasm $(ldc_flags_assert) $(ldc_wasm_flags) $(ldc_fast_flags_no_tail_call) $(wasm_src)
 	rm bin/crow.o
 
 ALL_INCLUDE = include/*.crow include/*/*.crow include/*/*/*.crow include/*/*/*/*.crow

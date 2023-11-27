@@ -160,7 +160,7 @@ import util.ptr : castImmutable, castNonScope_ref, ptrTrustMe;
 import util.sourceRange : Pos, Range;
 import util.sym : prependSet, prependSetDeref, Sym, sym, symOfStr;
 import util.union_ : Union;
-import util.util : max, todo, unreachable, verify;
+import util.util : max, todo, unreachable;
 
 Expr checkFunctionBody(
 	ref CheckCtx checkCtx,
@@ -763,7 +763,7 @@ Expr asFloat(
 	double value,
 	ref Expected expected,
 ) {
-	verify(isFloatType(ctx.commonTypes, numberType));
+	assert(isFloatType(ctx.commonTypes, numberType));
 	return check(ctx, source, expected, Type(numberType), Expr(source, ExprKind(
 		allocate(ctx.alloc, LiteralExpr(Constant(Constant.Float(value)))))));
 }
@@ -1076,7 +1076,7 @@ PointerMutability mutabilityForPtrDecl(in ExprCtx ctx, in StructDecl* a) {
 	if (a == ctx.commonTypes.ptrConst)
 		return PointerMutability.immutable_;
 	else {
-		verify(a == ctx.commonTypes.ptrMut);
+		assert(a == ctx.commonTypes.ptrMut);
 		return PointerMutability.mutable;
 	}
 }
@@ -1156,7 +1156,7 @@ Type unwrapFutureType(Type a, in ExprCtx ctx) {
 	if (a.isA!(Type.Bogus))
 		return Type(Type.Bogus());
 	else {
-		verify(decl(*a.as!(StructInst*)) == ctx.commonTypes.future);
+		assert(decl(*a.as!(StructInst*)) == ctx.commonTypes.future);
 		return only(typeArgs(*a.as!(StructInst*)));
 	}
 }

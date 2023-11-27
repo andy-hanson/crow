@@ -57,7 +57,7 @@ import util.opt : force, has, none, Opt, optOrDefault, some, someMut;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : Range;
 import util.sym : Sym, sym;
-import util.util : isMultipleOf, todo, unreachable, verify;
+import util.util : isMultipleOf, todo, unreachable;
 
 StructDecl[] checkStructsInitial(ref CheckCtx ctx, in StructDeclAst[] asts) =>
 	mapPointers!(StructDecl, StructDeclAst)(ctx.alloc, asts, (StructDeclAst* ast) {
@@ -281,12 +281,12 @@ Opt!PurityAndForced purityAndForcedFromModifier(ModifierAst.Kind a) {
 Sym symOfPurityAndForced(PurityAndForced a) {
 	final switch (a.purity) {
 		case Purity.data:
-			verify(!a.forced);
+			assert(!a.forced);
 			return sym!"data";
 		case Purity.shared_:
 			return a.forced ? sym!"force-shared" : sym!"shared";
 		case Purity.mut:
-			verify(!a.forced);
+			assert(!a.forced);
 			return sym!"mut";
 	}
 }

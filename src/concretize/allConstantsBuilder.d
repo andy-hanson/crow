@@ -19,7 +19,6 @@ import util.col.str : SafeCStr;
 import util.opt : force, has, Opt;
 import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols, safeCStrOfSym, Sym;
-import util.util : verify;
 
 struct AllConstantsBuilder {
 	private:
@@ -118,7 +117,7 @@ Constant getConstantCStr(ref Alloc alloc, ref AllConstantsBuilder allConstants, 
 		value,
 		() {
 			size_t index = mutArrSize(allConstants.cStringValues);
-			verify(mutMapSize(allConstants.cStrings) == index);
+			assert(mutMapSize(allConstants.cStrings) == index);
 			push(alloc, allConstants.cStringValues, value);
 			return Constant.CString(index);
 		}));

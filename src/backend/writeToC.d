@@ -60,7 +60,7 @@ import util.opt : force, has, Opt, some;
 import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
 import util.sym : AllSymbols;
 import util.union_ : Union;
-import util.util : abs, drop, unreachable, verify;
+import util.util : abs, drop, unreachable;
 import util.writer :
 	withWriter,
 	writeEscapedChar_inner,
@@ -343,7 +343,7 @@ void writeUnion(scope ref Writer writer, scope ref Ctx ctx, in LowUnion a) {
 	writeStructHead(writer, ctx, a.source);
 	writer ~= "\n\tuint64_t kind;";
 	bool isBuiltin = body_(*a.source).isA!(ConcreteStructBody.Builtin);
-	if (isBuiltin) verify(body_(*a.source).as!(ConcreteStructBody.Builtin).kind == BuiltinStructKind.fun);
+	if (isBuiltin) assert(body_(*a.source).as!(ConcreteStructBody.Builtin).kind == BuiltinStructKind.fun);
 	if (isBuiltin || exists!LowType(a.members, (in LowType member) => !isEmptyType(ctx, member))) {
 		writer ~= "\n\tunion {";
 		foreach (size_t memberIndex, LowType member; a.members) {
@@ -569,7 +569,7 @@ void writeTempOrInline(
 		(in WriteExprResult.Done it) {
 			WriteKind writeKind = WriteKind(WriteKind.Inline(it.args));
 			WriteExprResult res = writeExpr(writer, 0, ctx, locals, writeKind, e);
-			verify(empty(res.as!(WriteExprResult.Done).args));
+			assert(empty(res.as!(WriteExprResult.Done).args));
 		},
 		(in Temp it) {
 			writeTempRef(writer, it);
@@ -583,7 +583,7 @@ void writeTempOrInlines(
 	in LowExpr[] exprs,
 	in WriteExprResult[] args,
 ) {
-	verify(sizeEq(exprs, args));
+	assert(sizeEq(exprs, args));
 	writeWithCommasZip!(LowExpr, WriteExprResult)(
 		writer,
 		exprs,
@@ -792,7 +792,7 @@ WriteExprResult writeExpr(
 				writer, indent, ctx, locals, writeKind, type, it.value, it.cases,
 				(size_t i) => it.values[i]),
 		(in LowExprKind.TailRecur it) {
-			verify(writeKind.isA!(WriteKind.Return));
+			assert(writeKind.isA!(WriteKind.Return));
 			writeTailRecur(writer, indent, ctx, locals, it);
 			return writeExprDone();
 		},
@@ -860,7 +860,7 @@ WriteExprResult writeNonInlineable(
 }
 
 WriteExprResult writeVoid(in WriteKind writeKind) {
-	verify(writeKind.isA!(WriteKind.Void));
+	assert(writeKind.isA!(WriteKind.Void));
 	return WriteExprResult(WriteExprResult.Done());
 }
 
@@ -1186,7 +1186,7 @@ void writeConstantRef(
 	in LowType type,
 	in Constant a,
 ) {
-	verify(!isEmptyType(ctx, type));
+	assert(!isEmptyType(ctx, type));
 	a.matchIn!void(
 		(in Constant.ArrConstant it) {
 			if (pos == ConstantRefPos.outer) writeCastToType(writer, ctx, type);
@@ -1258,7 +1258,7 @@ void writeConstantRef(
 		},
 		(in Constant.Record it) {
 			LowField[] fields = ctx.program.allRecords[type.as!(LowType.Record)].fields;
-			verify(sizeEq(fields, it.args));
+			assert(sizeEq(fields, it.args));
 			if (pos == ConstantRefPos.outer)
 				writeCastToType(writer, ctx, type);
 			writer ~= '{';
@@ -1460,7 +1460,7 @@ void writeZeroedValue(scope ref Writer writer, scope ref Ctx ctx, in LowType typ
 			writer ~= "NULL";
 		},
 		(in PrimitiveType it) {
-			verify(it != PrimitiveType.void_);
+			assert(it != PrimitiveType.void_);
 			writer ~= '0';
 		},
 		(in LowPtrCombine _) {
@@ -1512,7 +1512,7 @@ WriteExprResult writeSpecialBinary(
 		return writeInlineable(
 			writer, indent, ctx, locals, writeKind, type, [castNonScope_ref(left), castNonScope_ref(right)],
 			(in WriteExprResult[] args) {
-				verify(args.length == 2);
+				assert(args.length == 2);
 				writer ~= '(';
 				writeTempOrInline(writer, ctx, locals, left, args[0]);
 				writer ~= ' ';
@@ -1695,7 +1695,7 @@ WriteExprResultAndNested getNestedWriteKind(
 	return scope ref WriteKind writeKind,
 ) {
 	if (isEmptyType(ctx, type)) {
-		verify(writeKind.isA!(WriteKind.Void) || writeKind.isA!(WriteKind.Return));
+		assert(writeKind.isA!(WriteKind.Void) || writeKind.isA!(WriteKind.Return));
 		return WriteExprResultAndNested(writeExprDone(), writeKind);
 	} if (writeKind.isA!(WriteKind.MakeTemp) || writeKind.isA!(WriteKind.InlineOrTemp)) {
 		Temp temp = getNextTemp(ctx);
@@ -1879,7 +1879,7 @@ WriteExprResult writeLoopBreak(
 	in WriteKind writeKind,
 	in LowExprKind.LoopBreak a,
 ) {
-	verify(writeKind.isA!(WriteKind.Void));
+	assert(writeKind.isA!(WriteKind.Void));
 	LoopInfo* info = getLoop(locals, a.loop);
 	drop(writeExpr(writer, indent, ctx, locals, info.writeKind, a.value));
 	if (!info.writeKind.isA!(WriteKind.Return)) {

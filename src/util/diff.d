@@ -9,7 +9,7 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.comparison : compareSizeT;
 import util.sym : AllSymbols, Sym, sym, symSize, writeSym, writeSymAndGetSize;
 import util.writer : writeNewline, Writer, writeRed, writeReset, writeSpaces;
-import util.util : max, todo, verify;
+import util.util : max, todo;
 
 void diffSymbols(
 	ref TempAlloc tempAlloc,
@@ -43,7 +43,7 @@ void getMaximumCommonSubsequenceLengths(T)(
 ) {
 	// The buffers need to be 1 more than the length of b,
 	// because they have an entry at size(b).
-	verify(result.length == b.length + 1);
+	assert(result.length == b.length + 1);
 
 	// We are actually calculating a matrix. But we only need to store one row.
 	// matrix[r][c] = maximum subsequence length of a[0 .. i] and b[0 .. j].
@@ -87,7 +87,7 @@ size_t findBestSplitIndex(
 	size_t i = a.length / 2;
 	// 1 greater because it goes from 0 to b.length inclusive
 	size_t subseqsSize = b.length + 1;
-	verify(scratch.length >= subseqsSize * 2);
+	assert(scratch.length >= subseqsSize * 2);
 	size_t[] leftSubsequenceLengths = scratch[0 .. subseqsSize];
 	size_t[] rightSubsequenceLengths = scratch[subseqsSize .. subseqsSize * 2];
 	getMaximumCommonSubsequenceLengths!Sym(a[0 .. i], b, leftSubsequenceLengths, false);
@@ -182,7 +182,7 @@ void printDiff(
 		bi++;
 	}
 	void common() {
-		verify(a[ai] == b[bi]);
+		assert(a[ai] == b[bi]);
 		writeNewline(writer, 1);
 		writeSymPadded(writer, allSymbols, a[ai], columnSize);
 		writeSym(writer, allSymbols, b[bi]);

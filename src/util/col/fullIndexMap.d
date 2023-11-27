@@ -7,7 +7,6 @@ import util.conv : safeToUint, safeToUshort;
 import util.col.arr : castImmutable;
 import util.col.arrUtil : fillArr_mut, mapWithIndex;
 import util.memory : overwriteMemory;
-import util.util : verify;
 
 struct FullIndexMap(K, V) {
 	@disable this();
@@ -87,7 +86,7 @@ void fullIndexMapZip(K, V0, V1)(
 	ref FullIndexMap!(K, V1) b,
 	in void delegate(K, ref immutable V0, ref V1) @safe @nogc pure nothrow cb,
 ) {
-	verify(fullIndexMapSize(a) == fullIndexMapSize(b));
+	assert(fullIndexMapSize(a) == fullIndexMapSize(b));
 	foreach (size_t i; 0 .. fullIndexMapSize(a))
 		cb(K(i), a.values[i], b.values[i]);
 }
@@ -98,8 +97,8 @@ void fullIndexMapZip3(K, V0, V1, V2)(
 	immutable FullIndexMap!(K, V2) c,
 	in void delegate(K, ref immutable V0, ref immutable V1, ref immutable V2) @safe @nogc pure nothrow cb,
 ) {
-	verify(fullIndexMapSize(a) == fullIndexMapSize(b));
-	verify(fullIndexMapSize(b) == fullIndexMapSize(c));
+	assert(fullIndexMapSize(a) == fullIndexMapSize(b));
+	assert(fullIndexMapSize(b) == fullIndexMapSize(c));
 	foreach (size_t i; 0 .. fullIndexMapSize(a))
 		cb(K(i), a.values[i], b.values[i], c.values[i]);
 }

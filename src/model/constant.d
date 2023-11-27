@@ -5,7 +5,6 @@ module model.constant;
 import model.concreteModel : ConcreteFun;
 import util.col.arrUtil : arrEqual;
 import util.union_ : Union;
-import util.util : verify;
 
 // WARN: The type of a constant is implicit (given by context).
 // This means two constants that look equal may not be the same constant if they have different types
@@ -54,7 +53,7 @@ immutable struct Constant {
 
 	// WARN: Only do this with constants known to have the same type
 	bool opEquals(in Constant b) scope {
-		verify(kind == b.kind);
+		assert(kind == b.kind);
 		return matchIn!bool(
 			(in Constant.ArrConstant x) =>
 				b.as!(Constant.ArrConstant).index == x.index,
@@ -84,7 +83,7 @@ Constant constantBool(bool b) =>
 
 bool asBool(Constant a) {
 	long value = a.as!(Constant.Integral).value;
-	verify(value == 0 || value == 1);
+	assert(value == 0 || value == 1);
 	return value == 1;
 }
 

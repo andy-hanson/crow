@@ -114,7 +114,7 @@ import util.sourceRange : Range, UriAndRange;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.uri : Uri;
-import util.util : todo, unreachable, verify;
+import util.util : todo, unreachable;
 import versionInfo : VersionInfo;
 
 ConcreteExpr concretizeFunBody(
@@ -146,7 +146,7 @@ ConcreteExpr concretizeWithParamDestructures(
 	ConcreteLocal[] concreteParams,
 	ref Expr expr,
 ) {
-	verify(sizeEq(params, concreteParams));
+	assert(sizeEq(params, concreteParams));
 	if (empty(params))
 		return concretizeExpr(ctx, type, locals, expr);
 	else {
@@ -234,7 +234,7 @@ ConcreteExpr concretizeCall(
 	ConcreteFun* concreteCalled = getConcreteFunFromCalled(ctx, e.called);
 	if (isBogus(concreteCalled.returnType))
 		return concretizeBogus(ctx.concretizeCtx, type, range);
-	verify(concreteCalled.returnType == type);
+	assert(concreteCalled.returnType == type);
 	bool argsMayBeConstants =
 		empty(e.args) || (!isSummon(*concreteCalled) && purity(concreteCalled.returnType) == Purity.data);
 	ConstantsOrExprs args = () {
@@ -300,7 +300,7 @@ ConcreteExpr concretizeClosureGet(
 	in ClosureGetExpr a,
 ) {
 	ClosureFieldInfo info = getClosureFieldInfo(ctx, range, a.closureRef);
-	verify(info.type == type);
+	assert(info.type == type);
 	return ConcreteExpr(type, range, ConcreteExprKind(
 		allocate(ctx.alloc, ConcreteExprKind.ClosureGet(info.closureRef, info.referenceKind))));
 }
@@ -312,11 +312,11 @@ ConcreteExpr concretizeClosureSet(
 	in Locals locals,
 	in ClosureSetExpr a,
 ) {
-	verify(getClosureReferenceKind(a.closureRef) == ClosureReferenceKind.allocated);
+	assert(getClosureReferenceKind(a.closureRef) == ClosureReferenceKind.allocated);
 	ClosureFieldInfo info = getClosureFieldInfo(ctx, range, a.closureRef);
-	verify(info.referenceKind == ClosureReferenceKind.allocated);
+	assert(info.referenceKind == ClosureReferenceKind.allocated);
 	ConcreteExpr value = concretizeExpr(ctx, info.type, locals, *a.value);
-	verify(isVoid(type));
+	assert(isVoid(type));
 	return ConcreteExpr(type, range, ConcreteExprKind(
 		allocate(ctx.alloc, ConcreteExprKind.ClosureSet(info.closureRef, value))));
 }
@@ -347,7 +347,7 @@ ClosureFieldInfo getClosureFieldInfo(ref ConcretizeExprCtx ctx, in UriAndRange r
 }
 
 ConcreteExpr createAllocExpr(ref Alloc alloc, ConcreteExpr inner) {
-	verify(inner.type.reference == ReferenceKind.byVal);
+	assert(inner.type.reference == ReferenceKind.byVal);
 	return ConcreteExpr(
 		byRef(inner.type),
 		inner.range,
@@ -461,11 +461,11 @@ ConcreteExpr concretizeLambda(
 	if (e.kind == FunKind.far) {
 		// For a 'far' function this is the inner 'act' type.
 		ConcreteField[] fields = body_(*concreteStruct).as!(ConcreteStructBody.Record).fields;
-		verify(fields.length == 2);
+		assert(fields.length == 2);
 		ConcreteField exclusionField = fields[0];
-		verify(exclusionField.debugName == sym!"exclusion");
+		assert(exclusionField.debugName == sym!"exclusion");
 		ConcreteField actionField = fields[1];
-		verify(actionField.debugName == sym!"action");
+		assert(actionField.debugName == sym!"action");
 		ConcreteType funType = actionField.type;
 		ConcreteExpr exclusion = getCurExclusion(ctx, exclusionField.type, range);
 		return ConcreteExpr(type, range, ConcreteExprKind(
@@ -762,7 +762,7 @@ ConcreteExpr concretizeLoopBreak(
 	in Locals locals,
 	ref LoopBreakExpr a,
 ) {
-	verify(isVoid(type));
+	assert(isVoid(type));
 	LoopAndType loop = castNonScope(getLoop(locals, a.loop));
 	ConcreteExpr value = concretizeExpr(ctx, loop.type, locals, a.value);
 	return ConcreteExpr(type, range, ConcreteExprKind(
@@ -776,7 +776,7 @@ ConcreteExpr concretizeLoopContinue(
 	in Locals locals,
 	in LoopContinueExpr a,
 ) {
-	verify(isVoid(type));
+	assert(isVoid(type));
 	ConcreteExprKind.Loop* loop = castNonScope(getLoop(locals, a.loop).loop);
 	return ConcreteExpr(type, range, ConcreteExprKind(ConcreteExprKind.LoopContinue(loop)));
 }
@@ -808,7 +808,7 @@ ConcreteExpr concretizeLoopUntilOrWhile(
 	ref Expr bodyExpr,
 	bool isUntil,
 ) {
-	verify(isVoid(type));
+	assert(isVoid(type));
 	ConcreteExprKind.Loop* res = allocate(ctx.alloc, ConcreteExprKind.Loop());
 	ConcreteExpr breakVoid = ConcreteExpr(
 		voidType(ctx),
@@ -891,7 +891,7 @@ ConcreteExpr concretizeAssertOrForbid(
 	in Locals locals,
 	in AssertOrForbidExpr a,
 ) {
-	verify(isVoid(type));
+	assert(isVoid(type));
 	ConcreteExpr condition = concretizeExpr(ctx, boolType(ctx), locals, *a.condition);
 	ConcreteExpr thrown = has(a.thrown)
 		? concretizeExpr(ctx, cStrType(ctx.concretizeCtx), locals, *force(a.thrown))

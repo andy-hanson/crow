@@ -19,7 +19,7 @@ import util.col.arrUtil : every;
 import util.col.fullIndexMap :
 	FullIndexMap, fullIndexMapEachKey, fullIndexMapEachValue, fullIndexMapSize, makeFullIndexMap_mut;
 import util.opt : none, Opt, some;
-import util.util : isMultipleOf, unreachable, verify;
+import util.util : isMultipleOf, unreachable;
 
 void writeTypes(ref Alloc alloc, in LowProgram program, in TypeWriters writers) {
 	fullIndexMapEachValue!(LowType.Extern, LowExternType)(program.allExternTypes, (ref LowExternType it) {
@@ -78,7 +78,7 @@ void writeTypes(ref Alloc alloc, in LowProgram program, in TypeWriters writers) 
 			}
 		});
 		if (someIncomplete)
-			verify(madeProgress);
+			assert(madeProgress);
 		else
 			break;
 	}
@@ -103,13 +103,13 @@ Opt!ElementAndCount getElementAndCountForExtern(TypeSize size) {
 		case 1:
 			return some(ElementAndCount(PrimitiveType.nat8, size.sizeBytes));
 		case 2:
-			verify(isMultipleOf(size.sizeBytes, 2));
+			assert(isMultipleOf(size.sizeBytes, 2));
 			return some(ElementAndCount(PrimitiveType.nat16, size.sizeBytes / 2));
 		case 4:
-			verify(isMultipleOf(size.sizeBytes, 4));
+			assert(isMultipleOf(size.sizeBytes, 4));
 			return some(ElementAndCount(PrimitiveType.nat32, size.sizeBytes / 4));
 		case 8:
-			verify(isMultipleOf(size.sizeBytes, 8));
+			assert(isMultipleOf(size.sizeBytes, 8));
 			return some(ElementAndCount(PrimitiveType.nat64, size.sizeBytes / 8));
 		default:
 			return unreachable!(Opt!ElementAndCount);
@@ -167,7 +167,7 @@ StructState writeRecordDeclarationOrDefinition(
 	StructState prevState,
 	LowType.Record recordIndex,
 ) {
-	verify(prevState != StructState.defined);
+	assert(prevState != StructState.defined);
 	LowRecord record = program.allRecords[recordIndex];
 	bool canWriteFields = every!LowField(record.fields, (in LowField f) =>
 		canReferenceTypeAsValue(structStates, f.type));
@@ -187,7 +187,7 @@ StructState writeUnionDeclarationOrDefinition(
 	StructState prevState,
 	LowType.Union unionIndex,
 ) {
-	verify(prevState != StructState.defined);
+	assert(prevState != StructState.defined);
 	LowUnion union_ = program.allUnions[unionIndex];
 	if (every!LowType(union_.members, (in LowType t) => canReferenceTypeAsValue(structStates, t))) {
 		writers.cbWriteUnion(unionIndex, union_);

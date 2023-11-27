@@ -5,7 +5,7 @@ import util.col.arr : empty, endPtr, ptrsRange, sizeEq;
 import util.comparison : Comparer, Comparison;
 import util.memory : copyToFrom, initMemory, initMemory_mut;
 import util.opt : force, has, none, Opt, some;
-import util.util : max, verify;
+import util.util : max;
 
 @safe @nogc nothrow:
 
@@ -129,7 +129,7 @@ Opt!Out firstPointer(Out, In)(In[] a, in Opt!Out delegate(In*) @safe @nogc pure 
 }
 
 Opt!Out firstZip(Out, In0, In1)(in In0[] a, in In1[] b, in Opt!Out delegate(In0, In1) @safe @nogc pure nothrow cb) {
-	verify(sizeEq(a, b));
+	assert(sizeEq(a, b));
 	return firstWithIndex!(Out, In0)(a, (size_t i, In0 x) => cb(x, b[i]));
 }
 
@@ -138,7 +138,7 @@ Opt!Out firstZipPointerFirst(Out, In0, In1)(
 	in In1[] b,
 	in Opt!Out delegate(In0*, In1) @safe @nogc pure nothrow cb,
 ) {
-	verify(sizeEq(a, b));
+	assert(sizeEq(a, b));
 	return firstWithIndex!(Out, In1)(b, (size_t i, In1 x) => cb(&a[i], x));
 }
 
@@ -300,7 +300,7 @@ T[] prepend(T)(scope ref Alloc alloc, T a, scope T[] b) =>
 	concatenateIn!T(alloc, [a], b);
 
 bool zipEvery(T, U)(in T[] a, in U[] b, in bool delegate(in T, in U) @safe @nogc pure nothrow cb) {
-	verify(sizeEq(a, b));
+	assert(sizeEq(a, b));
 	foreach (size_t i; 0 .. a.length)
 		if (!cb(a[i], b[i]))
 			return false;
@@ -312,7 +312,7 @@ Opt!Out zipFirst(Out, T, U)(
 	in U[] b,
 	in Opt!Out delegate(T*, in U) @safe @nogc pure nothrow cb,
 ) {
-	verify(sizeEq(a, b));
+	assert(sizeEq(a, b));
 	foreach (size_t i; 0 .. a.length) {
 		Opt!Out res = cb(&a[i], b[i]);
 		if (has(res))
@@ -322,25 +322,25 @@ Opt!Out zipFirst(Out, T, U)(
 }
 
 void zipIn(T, U)(in T[] a, in U[] b, in void delegate(in T, in U) @safe @nogc pure nothrow cb) {
-	verify(sizeEq(a, b));
+	assert(sizeEq(a, b));
 	foreach (size_t i; 0 .. a.length)
 		cb(a[i], b[i]);
 }
 
 void zip(T, U)(scope T[] a, scope U[] b, in void delegate(ref T, ref U) @safe @nogc pure nothrow cb) {
-	verify(sizeEq(a, b));
+	assert(sizeEq(a, b));
 	foreach (size_t i; 0 .. a.length)
 		cb(a[i], b[i]);
 }
 
 void zipPointers(T, U)(T[] a, U[] b, in void delegate(T*, U*) @safe @nogc pure nothrow cb) {
-	verify(sizeEq(a, b));
+	assert(sizeEq(a, b));
 	foreach (size_t i; 0 .. a.length)
 		cb(&a[i], &b[i]);
 }
 
 void zipPtrFirst(T, U)(T[] a, scope U[] b, in void delegate(T*, ref U) @safe @nogc pure nothrow cb) {
-	verify(sizeEq(a, b));
+	assert(sizeEq(a, b));
 	foreach (size_t i; 0 .. a.length)
 		cb(&a[i], b[i]);
 }
@@ -351,7 +351,7 @@ void zipPtrFirst(T, U)(T[] a, scope U[] b, in void delegate(T*, ref U) @safe @no
 	scope In1[] in1,
 	in Out delegate(ref In0, ref In1) @safe @nogc pure nothrow cb,
 ) {
-	verify(sizeEq(in0, in1));
+	assert(sizeEq(in0, in1));
 	return makeArr(alloc, in0.length, (size_t i) =>
 		cb(in0[i], in1[i]));
 }
@@ -362,7 +362,7 @@ void zipPtrFirst(T, U)(T[] a, scope U[] b, in void delegate(T*, ref U) @safe @no
 	in In1[] in1,
 	in Out delegate(In0*, in In1) @safe @nogc pure nothrow cb,
 ) {
-	verify(sizeEq(in0, in1));
+	assert(sizeEq(in0, in1));
 	return makeArr(alloc, in0.length, (size_t i) =>
 		cb(&in0[i], in1[i]));
 }
@@ -374,7 +374,7 @@ void zipPtrFirst(T, U)(T[] a, scope U[] b, in void delegate(T*, ref U) @safe @no
 	In2[] in2,
 	in Out delegate(In0*, In1*, In2*) @safe @nogc pure nothrow cb,
 ) {
-	verify(sizeEq(in0, in1) && sizeEq(in1, in2));
+	assert(sizeEq(in0, in1) && sizeEq(in1, in2));
 	return makeArr(alloc, in0.length, (size_t i) =>
 		cb(&in0[i], &in1[i], &in2[i]));
 }
