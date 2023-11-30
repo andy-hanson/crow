@@ -2,7 +2,8 @@ module frontend.check.check;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCtx : addDiag, CheckCtx, checkForUnused, finishDiagnostics, ImportsAndReExports, rangeInFile;
+import frontend.check.checkCtx :
+	addDiag, CheckCtx, checkForUnused, finishDiagnostics, ImportAndReExportModules, rangeInFile;
 import frontend.check.checkExpr : checkFunctionBody;
 import frontend.check.checkStructs : checkStructBodies, checkStructsInitial;
 import frontend.check.getCommonTypes : getCommonTypes;
@@ -25,6 +26,8 @@ import frontend.parse.ast :
 	FileAst,
 	FunDeclAst,
 	FunModifierAst,
+	ImportOrExportAstKind,
+	ImportsOrExportsAst,
 	ImportOrExportAst,
 	LiteralStringAst,
 	NameAndRange,
@@ -84,9 +87,9 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : empty, emptySmallArray, only, ptrsRange, small;
-import util.col.arrBuilder : ArrBuilder;
+import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : concatenate, filter, map, mapOp, mapToMut, mapPointers, zip, zipPointers;
-import util.col.map : Map, mapEach, hasKey, KeyValuePair;
+import util.col.map : Map, mapEach, KeyValuePair;
 import util.col.mapBuilder : MapBuilder, finishMap, tryAddToMap;
 import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd, finish, newExactSizeArrBuilder;
 import util.col.multiMap : buildMultiMap, multiMapEach;
@@ -100,6 +103,7 @@ import util.perf : Perf;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : Range, UriAndRange;
 import util.sym : AllSymbols, Sym, sym;
+import util.union_ : Union;
 import util.uri : AllUris, Uri;
 import util.util : unreachable, todo;
 
@@ -108,69 +112,53 @@ immutable struct FileAndAst {
 	FileAst* ast;
 }
 
+immutable struct ResolvedImport {
+	mixin Union!(Module*, FileContent, Diag.ImportFileDiag);
+}
+
 immutable struct BootstrapCheck {
-	Module module_;
-	CommonTypes commonTypes;
+	Module* module_;
+	CommonTypes* commonTypes;
 }
 
 BootstrapCheck checkBootstrap(
-	ref Alloc alloc,
 	scope ref Perf perf,
+	ref Alloc alloc,
 	scope ref AllSymbols allSymbols,
 	in AllUris allUris,
 	ref ProgramState programState,
 	ref FileAndAst fileAndAst,
-) {
-	ArrBuilder!Diagnostic diagsBuilder;
-	static ImportsAndExports emptyImportsAndExports = ImportsAndExports([], [], [], []);
-	return checkWorker(
-		alloc,
-		perf,
-		allSymbols,
-		allUris,
-		diagsBuilder,
-		programState,
-		emptyImportsAndExports,
-		fileAndAst,
-		(ref CheckCtx ctx,
-		in StructsAndAliasesMap structsAndAliasesMap,
-		scope ref MutArr!(StructInst*) delayedStructInsts) @safe =>
-			getCommonTypes(ctx, structsAndAliasesMap, delayedStructInsts));
-}
-
-immutable struct ImportsAndExports {
-	ImportOrExport[] moduleImports;
-	ImportOrExport[] moduleExports;
-	ImportOrExportFile[] fileImports;
-	ImportOrExportFile[] fileExports;
-}
-
-immutable struct ImportOrExportFile {
-	Opt!(ImportOrExportAst*) source;
-	Sym name;
-	ImportFileType type;
-	FileContent content;
-}
-
-Module check(
-	ref Alloc alloc,
-	scope ref Perf perf,
-	scope ref AllSymbols allSymbols,
-	in AllUris allUris,
-	ref ProgramState programState,
-	ref FileAndAst fileAndAst,
-	scope ref ArrBuilder!Diagnostic diagsBuilder,
-	ref ImportsAndExports importsAndExports,
-	in CommonTypes commonTypes,
 ) =>
 	checkWorker(
 		alloc,
 		perf,
 		allSymbols,
 		allUris,
-		diagsBuilder,
 		programState,
-		importsAndExports,
+		[],
+		fileAndAst,
+		(ref CheckCtx ctx,
+		in StructsAndAliasesMap structsAndAliasesMap,
+		scope ref MutArr!(StructInst*) delayedStructInsts) =>
+			getCommonTypes(ctx, structsAndAliasesMap, delayedStructInsts));
+
+Module* check(
+	scope ref Perf perf,
+	ref Alloc alloc,
+	scope ref AllSymbols allSymbols,
+	in AllUris allUris,
+	ref ProgramState programState,
+	ref FileAndAst fileAndAst,
+	in ResolvedImport[] imports,
+	CommonTypes* commonTypes,
+) =>
+	checkWorker(
+		alloc,
+		perf,
+		allSymbols,
+		allUris,
+		programState,
+		imports,
 		fileAndAst,
 		(ref CheckCtx _, in StructsAndAliasesMap _2, scope ref MutArr!(StructInst*)) => commonTypes,
 	).module_;
@@ -695,7 +683,7 @@ FunBody getFileImportFunctionBody(
 	ref FunDecl f,
 	ref ImportOrExportFile ie,
 ) {
-	final switch (ie.type) {
+	final switch (ie.source.kind.as!(ImportOrExportAstKind.File*).type) {
 		case ImportFileType.nat8Array:
 			return FunBody(FunBody.FileBytes(asBytes(ie.content)));
 		case ImportFileType.string:
@@ -734,16 +722,18 @@ FunDecl funDeclForFileImportOrExport(
 	in StructsAndAliasesMap structsAndAliasesMap,
 	ref ImportOrExportFile a,
 	Visibility visibility,
-) =>
-	FunDecl(
-		FunDeclSource(FunDeclSource.FileImport(ctx.curUri, force(a.source))),
+) {
+	ImportOrExportAstKind.File* ast = a.source.kind.as!(ImportOrExportAstKind.File*);
+	return FunDecl(
+		FunDeclSource(FunDeclSource.FileImport(ctx.curUri, a.source)),
 		visibility,
-		a.name,
+		ast.name.name,
 		emptySmallArray!TypeParam,
-		typeForFileImport(ctx, commonTypes, structsAndAliasesMap, pathRange(ctx.allUris, *force(a.source)), a.type),
+		typeForFileImport(ctx, commonTypes, structsAndAliasesMap, pathRange(ctx.allUris, *a.source), ast.type),
 		Params([]),
 		FunFlags.generatedBare,
 		emptySmallArray!(immutable SpecInst*));
+}
 
 Type typeForFileImport(
 	ref CheckCtx ctx,
@@ -798,13 +788,13 @@ Sym externLibraryNameFromTypeArg(ref CheckCtx ctx, in Range range, in Opt!TypeAs
 }
 
 SpecsMap buildSpecsMap(ref CheckCtx ctx, SpecDecl[] specs) {
-	MapBuilder!(Sym, SpecDecl*) res;
+	MapBuilder!(Sym, immutable SpecDecl*) res;
 	foreach (SpecDecl* spec; ptrsRange(specs))
 		addToDeclsMap(ctx, res, spec, Diag.DuplicateDeclaration.Kind.spec, () => range(*spec));
 	return finishMap(ctx.alloc, res);
 }
 
-Module checkWorkerAfterCommonTypes(
+Module* checkWorkerAfterCommonTypes(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesMap structsAndAliasesMap,
@@ -812,7 +802,7 @@ Module checkWorkerAfterCommonTypes(
 	StructDecl[] structs,
 	ref MutArr!(StructInst*) delayStructInsts,
 	Uri uri,
-	ref ImportsAndExports importsAndExports,
+	ref ImportsAndReExports importsAndReExports,
 	FileAst* ast,
 ) {
 	checkStructBodies(ctx, commonTypes, structsAndAliasesMap, structs, ast.structs, delayStructInsts);
@@ -835,19 +825,20 @@ Module checkWorkerAfterCommonTypes(
 		structs,
 		structsAndAliasesMap,
 		vars,
-		importsAndExports.fileImports,
-		importsAndExports.fileExports,
+		importsAndReExports.fileImports,
+		importsAndReExports.fileExports,
 		ast.funs,
 		ast.tests);
 	checkForUnused(ctx, structAliases, structs, specs, funsAndMap.funs);
-	return Module(
+	return allocate(ctx.alloc, Module(
 		uri,
 		ast,
 		finishDiagnostics(ctx),
-		importsAndExports.moduleImports,
-		importsAndExports.moduleExports,
+		importsAndReExports.moduleImports,
+		importsAndReExports.moduleReExports,
 		structs, vars, specs, funsAndMap.funs, funsAndMap.tests,
-		getAllExportedNames(ctx, importsAndExports.moduleExports, structsAndAliasesMap, specsMap, funsAndMap.funsMap));
+		getAllExportedNames(
+			ctx, importsAndReExports.moduleReExports, structsAndAliasesMap, specsMap, funsAndMap.funsMap)));
 }
 
 Map!(Sym, NameReferents) getAllExportedNames(
@@ -907,7 +898,7 @@ Map!(Sym, NameReferents) getAllExportedNames(
 					break;
 			}
 		});
-	mapEach!(Sym, SpecDecl*)(specsMap, (Sym name, ref SpecDecl* x) {
+	mapEach!(Sym, immutable SpecDecl*)(specsMap, (Sym name, ref immutable SpecDecl* x) {
 		final switch (x.visibility) {
 			case Visibility.private_:
 				break;
@@ -936,16 +927,18 @@ BootstrapCheck checkWorker(
 	scope ref Perf perf,
 	scope ref AllSymbols allSymbols,
 	in AllUris allUris,
-	scope ref ArrBuilder!Diagnostic diagsBuilder,
 	ref ProgramState programState,
-	ref ImportsAndExports importsAndExports,
+	in ResolvedImport[] resolvedImports,
 	ref FileAndAst fileAndAst,
-	in CommonTypes delegate(
+	in CommonTypes* delegate(
 		ref CheckCtx,
 		in StructsAndAliasesMap,
 		scope ref MutArr!(StructInst*),
 	) @safe @nogc pure nothrow getCommonTypes,
 ) {
+	ArrBuilder!Diagnostic diagsBuilder;
+	ImportsAndReExports importsAndReExports = checkImportsAndReExports(
+		alloc, allUris, diagsBuilder, fileAndAst.ast, resolvedImports);
 	FileAst* ast = fileAndAst.ast;
 	CheckCtx ctx = CheckCtx(
 		ptrTrustMe(alloc),
@@ -954,10 +947,8 @@ BootstrapCheck checkWorker(
 		ptrTrustMe(allSymbols),
 		ptrTrustMe(allUris),
 		fileAndAst.uri,
-		ImportsAndReExports(importsAndExports.moduleImports, importsAndExports.moduleExports),
+		importsAndReExports.modules,
 		ptrTrustMe(diagsBuilder));
-	checkImportsOrExports(ctx, importsAndExports.moduleImports);
-	checkImportsOrExports(ctx, importsAndExports.moduleExports);
 
 	// Since structs may refer to each other, first get a structsAndAliasesMap, *then* fill in bodies
 	StructDecl[] structs = checkStructsInitial(ctx, ast.structs);
@@ -970,37 +961,128 @@ BootstrapCheck checkWorker(
 	// we'll delay creating the StructInst body, which isn't needed until expr checking.
 	MutArr!(StructInst*) delayStructInsts;
 
-	CommonTypes commonTypes = getCommonTypes(ctx, structsAndAliasesMap, delayStructInsts);
+	CommonTypes* commonTypes = getCommonTypes(ctx, structsAndAliasesMap, delayStructInsts);
 
 	checkStructAliasTargets(
 		ctx,
-		commonTypes,
+		*commonTypes,
 		structsAndAliasesMap,
 		structAliases,
 		ast.structAliases,
 		delayStructInsts);
 
-	Module res = checkWorkerAfterCommonTypes(
+	Module* res = checkWorkerAfterCommonTypes(
 		ctx,
-		commonTypes,
+		*commonTypes,
 		structsAndAliasesMap,
 		structAliases,
 		structs,
 		delayStructInsts,
 		fileAndAst.uri,
-		importsAndExports,
+		importsAndReExports,
 		ast);
 	return BootstrapCheck(res, commonTypes);
 }
 
-void checkImportsOrExports(ref CheckCtx ctx, in ImportOrExport[] imports) {
-	foreach (ref ImportOrExport x; imports)
-		x.kind.matchIn!void(
-			(in ImportOrExportKind.ModuleWhole) {},
-			(in ImportOrExportKind.ModuleNamed m) {
-				foreach (Sym name; m.names)
-					if (!hasKey(m.module_.allExportedNames, name))
-						// TODO: use the range of the particular name, not the path
-						addDiag(ctx, pathRange(ctx.allUris, *force(x.source)), Diag(Diag.ImportRefersToNothing(name)));
+immutable struct ImportsAndReExports {
+	@safe @nogc pure nothrow:
+
+	ImportOrExport[] moduleImports;
+	ImportOrExport[] moduleReExports;
+	ImportOrExportFile[] fileImports;
+	ImportOrExportFile[] fileExports;
+
+	ImportAndReExportModules modules() =>
+		ImportAndReExportModules(moduleImports, moduleReExports);
+}
+immutable struct ImportOrExportFile {
+	ImportOrExportAst* source;
+	FileContent content;
+}
+
+ImportsAndReExports checkImportsAndReExports(
+	ref Alloc alloc,
+	in AllUris allUris,
+	scope ref ArrBuilder!Diagnostic diagsBuilder,
+	FileAst* ast,
+	in ResolvedImport[] resolvedImports,
+) {
+	scope ResolvedImport[] resolvedImportsLeft = resolvedImports;
+	ImportsOrReExports imports = checkImportsOrReExports(
+		alloc, allUris, diagsBuilder, ast.imports, resolvedImportsLeft, !ast.noStd);
+	ImportsOrReExports reExports = checkImportsOrReExports(
+		alloc, allUris, diagsBuilder, ast.reExports, resolvedImportsLeft, false);
+	assert(empty(resolvedImportsLeft));
+	return ImportsAndReExports(imports.modules, reExports.modules, imports.files, reExports.files);
+}
+
+struct ImportsOrReExports {
+	ImportOrExport[] modules;
+	ImportOrExportFile[] files;
+}
+ImportsOrReExports checkImportsOrReExports(
+	ref Alloc alloc,
+	in AllUris allUris,
+	scope ref ArrBuilder!Diagnostic diagsBuilder,
+	in Opt!ImportsOrExportsAst ast,
+	scope ref ResolvedImport[] resolvedImports,
+	bool includeStd,
+) {
+	ArrBuilder!ImportOrExport imports;
+	ArrBuilder!ImportOrExportFile fileImports;
+
+	ResolvedImport nextResolvedImport() {
+		ResolvedImport res = resolvedImports[0];
+		resolvedImports = resolvedImports[1 .. $];
+		return res;
+	}
+
+	void handleModuleImport(
+		Opt!(ImportOrExportAst*) source,
+		ImportOrExportKind delegate(Module*) @safe @nogc pure nothrow cb,
+	) {
+		nextResolvedImport().matchWithPointers!void(
+			(Module* x) {
+				add(alloc, imports, ImportOrExport(source, cb(x)));
+			},
+			(FileContent) {
+				unreachable!void();
+			},
+			(Diag.ImportFileDiag x) {
+				add(alloc, diagsBuilder, Diagnostic(
+					has(source) ? pathRange(allUris, *force(source)) : Range.empty,
+					Diag(x)));
 			});
+	}
+
+	if (includeStd)
+		handleModuleImport(none!(ImportOrExportAst*), (Module* x) =>
+			ImportOrExportKind(ImportOrExportKind.ModuleWhole(x)));
+
+	if (has(ast))
+		foreach (ImportOrExportAst* importAst; ptrsRange(force(ast).paths)) {
+			Opt!(ImportOrExportAst*) source = some(importAst);
+			importAst.kind.match!void(
+				(ImportOrExportAstKind.ModuleWhole) {
+					handleModuleImport(source, (Module* x) => ImportOrExportKind(ImportOrExportKind.ModuleWhole(x)));
+				},
+				(NameAndRange[] names) {
+					handleModuleImport(source, (Module* x) =>
+						ImportOrExportKind(ImportOrExportKind.ModuleNamed(x, map(alloc, names, (ref NameAndRange x) =>
+							x.name))));
+				},
+				(ref ImportOrExportAstKind.File x) {
+					nextResolvedImport().matchWithPointers!void(
+						(Module*) {
+							unreachable!void();
+						},
+						(FileContent x) {
+							add(alloc, fileImports, ImportOrExportFile(importAst, x));
+						},
+						(Diag.ImportFileDiag x) {
+							add(alloc, diagsBuilder, Diagnostic(pathRange(allUris, *importAst), Diag(x)));
+						});
+				});
+		}
+	return ImportsOrReExports(finishArr(alloc, imports), finishArr(alloc, fileImports));
 }

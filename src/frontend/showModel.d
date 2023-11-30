@@ -101,16 +101,14 @@ void writeCalledDecls(
 ) {
 	foreach (ref CalledDecl c; cs)
 		if (filter(c)) {
-			writeNewline(writer);
-			writer ~= '\t';
+			writeNewline(writer, 1);
 			writeCalledDecl(writer, ctx, c);
 		}
 }
 
 void writeCalleds(scope ref Writer writer, in ShowCtx ctx, in Called[] cs) {
 	foreach (ref Called x; cs) {
-		writeNewline(writer);
-		writer ~= '\t';
+		writeNewline(writer, 1);
 		writeCalled(writer, ctx, x);
 	}
 }

@@ -281,7 +281,7 @@ void writeSpaces(scope ref Writer writer, size_t nSpaces) {
 		writer ~= ' ';
 }
 
-void writeNewline(scope ref Writer writer, size_t indent = 0) {
+void writeNewline(scope ref Writer writer, size_t indent) {
 	writer ~= '\n';
 	foreach (size_t _; 0 .. indent)
 		writer ~= '\t';

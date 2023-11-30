@@ -37,7 +37,7 @@ import util.sourceRange : Range, UriAndRange;
 import util.sym : Sym, sym;
 import util.util : todo;
 
-CommonTypes getCommonTypes(
+CommonTypes* getCommonTypes(
 	ref CheckCtx ctx,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	scope ref MutArr!(StructInst*) delayedStructInsts,
@@ -116,7 +116,7 @@ CommonTypes getCommonTypes(
 		getDecl!"tuple9"(9),
 	];
 
-	return CommonTypes(
+	return allocate(ctx.alloc, CommonTypes(
 		bool_,
 		char8,
 		cStr,
@@ -131,7 +131,7 @@ CommonTypes getCommonTypes(
 		pointerConst,
 		pointerMut,
 		tuples,
-		funs);
+		funs));
 }
 
 private:

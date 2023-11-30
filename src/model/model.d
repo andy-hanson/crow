@@ -1240,14 +1240,21 @@ private enum EnumBackingType_ {
 }
 
 immutable struct Program {
-	Config config;
+	Opt!(Config*) mainConfig; // Only if this program has "main"
+	Map!(Uri, immutable Config*) allConfigs;
 	Map!(Uri, immutable Module*) allModules;
 	Module*[] rootModules;
 	CommonFuns commonFuns;
 	CommonTypes commonTypes;
 }
 Program fakeProgramForTest() =>
-	Program(Config(), Map!(Uri, immutable Module*)(), [], CommonFuns(), CommonTypes());
+	Program(
+		none!(Config*),
+		Map!(Uri, immutable Config*)(),
+		Map!(Uri, immutable Module*)(),
+		[],
+		CommonFuns(),
+		CommonTypes());
 
 bool hasAnyDiagnostics(in Program a) =>
 	existsDiagnostic(a, (in UriAndDiagnostic _) => true);
@@ -1267,8 +1274,9 @@ void eachDiagnostic(in Program a, in void delegate(in UriAndDiagnostic) @safe @n
 
 private bool existsDiagnostic(in Program a, in bool delegate(in UriAndDiagnostic) @safe @nogc pure nothrow cb) =>
 	exists!UriAndDiagnostic(a.commonFuns.diagnostics, cb) ||
-	exists!Diagnostic(a.config.diagnostics, (in Diagnostic x) =>
-		cb(UriAndDiagnostic(force(a.config.configUri), x))) ||
+	existsInMap!(Uri, immutable Config*)(a.allConfigs, (in Uri uri, in Config* config) =>
+		exists!Diagnostic(config.diagnostics, (in Diagnostic x) =>
+			cb(UriAndDiagnostic(uri, x)))) ||
 	existsInMap!(Uri, immutable Module*)(a.allModules, (in Uri uri, in Module* m) =>
 		exists!ParseDiagnostic(m.ast.parseDiagnostics, (in ParseDiagnostic x) =>
 			cb(UriAndDiagnostic(UriAndRange(uri, x.range), Diag(x.kind)))) ||
@@ -1276,12 +1284,12 @@ private bool existsDiagnostic(in Program a, in bool delegate(in UriAndDiagnostic
 			cb(UriAndDiagnostic(uri, x))));
 
 immutable struct Config {
-	Opt!Uri configUri;
+	Opt!Uri configUri; // none for default config
 	Diagnostic[] diagnostics;
-	Uri crowIncludeDir;
 	ConfigImportUris include;
 	ConfigExternUris extern_;
 }
+Config emptyConfig = Config(none!Uri, [], ConfigImportUris(), ConfigExternUris());
 
 alias ConfigImportUris = Map!(Sym, Uri);
 alias ConfigExternUris = Map!(Sym, Uri);

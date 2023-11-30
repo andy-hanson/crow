@@ -13,7 +13,7 @@ struct ExactSizeArrBuilder(T) {
 	T* cur;
 }
 
-@trusted immutable(size_t) exactSizeArrBuilderCurSize(T)(ref const ExactSizeArrBuilder!T a) =>
+@trusted size_t exactSizeArrBuilderCurSize(T)(ref const ExactSizeArrBuilder!T a) =>
 	a.cur - a.inner.ptr;
 
 @trusted ExactSizeArrBuilder!T newExactSizeArrBuilder(T)(ref Alloc alloc, size_t size) {
@@ -21,10 +21,10 @@ struct ExactSizeArrBuilder(T) {
 	return ExactSizeArrBuilder!T(inner, inner.ptr);
 }
 
-@trusted immutable(T*) exactSizeArrBuilderAdd(T)(scope ref ExactSizeArrBuilder!T a, immutable T value) {
+@trusted T* exactSizeArrBuilderAdd(T)(scope ref ExactSizeArrBuilder!T a, T value) {
 	assert(a.cur < endPtr(a.inner));
 	initMemory!T(a.cur, value);
-	immutable T* res = cast(immutable) a.cur;
+	T* res = a.cur;
 	a.cur++;
 	return res;
 }

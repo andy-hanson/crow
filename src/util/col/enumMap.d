@@ -21,7 +21,7 @@ struct EnumMap(E, V) {
 	static foreach (size_t i; 0 .. size)
 		static assert(Members[i] == i);
 
-	immutable this(immutable V[size] values) {
+	this(inout V[size] values) inout {
 		static foreach (size_t i; 0 .. size)
 			mixin("value", i, " = values[", i, "];");
 	}
@@ -42,10 +42,9 @@ struct EnumMap(E, V) {
 	}
 }
 
-immutable(EnumMap!(E, V)) makeEnumMap(E, V)(in immutable(V) delegate(E) @safe @nogc pure nothrow cb) {
-	immutable(V) getAt(E e)() =>
-		cb(e);
-	return immutable EnumMap!(E, V)([staticMap!(getAt, EnumMembers!E)]);
+EnumMap!(E, V) makeEnumMap(E, V)(in V delegate(E) @safe @nogc pure nothrow cb) {
+	V getAt(E e)() => cb(e);
+	return EnumMap!(E, V)([staticMap!(getAt, EnumMembers!E)]);
 }
 
 void enumMapEach(E, V)(in EnumMap!(E, V) a, in void delegate(E, in V) @safe @nogc pure nothrow cb) {
@@ -61,9 +60,9 @@ Opt!E enumMapFindKey(E, V)(in EnumMap!(E, V) a, in bool delegate(in V) @safe @no
 	return none!E;
 }
 
-@trusted immutable(EnumMap!(E, VOut)) enumMapMapValues(E, VOut, VIn)(
+@trusted EnumMap!(E, VOut) enumMapMapValues(E, VOut, VIn)(
 	in EnumMap!(E, VIn) a,
-	in immutable(VOut) delegate(in VIn) @safe @nogc pure nothrow cb,
+	in VOut delegate(in VIn) @safe @nogc pure nothrow cb,
 ) =>
 	makeEnumMap!(E, VOut)((E e) =>
 		cb(a[e]));

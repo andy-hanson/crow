@@ -830,7 +830,7 @@ immutable struct FileAst {
 	SafeCStr docComment;
 	bool noStd;
 	Opt!ImportsOrExportsAst imports;
-	Opt!ImportsOrExportsAst exports;
+	Opt!ImportsOrExportsAst reExports;
 	SpecDeclAst[] specs;
 	StructAliasAst[] structAliases;
 	StructDeclAst[] structs;

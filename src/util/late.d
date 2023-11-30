@@ -3,15 +3,26 @@ module util.late;
 @safe @nogc pure nothrow:
 
 import util.memory : initMemory;
-import util.opt : force, has, Opt, some;
+import util.opt : force, has, MutOpt, Opt, none, some, someMut;
 import util.ptr : castNonScope_ref;
+
+struct MutLate(T) {
+	private MutOpt!T value_;
+}
+
+T lateGet(T)(ref MutLate!T a) =>
+	force(a.value_);
+
+void lateSet(T)(ref MutLate!T a, T value) {
+	a.value_ = someMut(value);
+}
 
 immutable struct Late(T) {
 	private Opt!T value_;
 }
 
 @trusted Late!T late(T)() =>
-	Late!T();
+	Late!T(none!T);
 
 @trusted Late!T late(T)(T value) =>
 	Late!T(some(value));

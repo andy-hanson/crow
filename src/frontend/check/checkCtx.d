@@ -23,7 +23,7 @@ import util.col.arr : ptrsRange;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : contains, exists;
 import util.col.map : existsInMap;
-import util.col.mutMap : hasKey_mut, MutMap, setInMap;
+import util.col.mutSet : mayAddToMutSet, MutSet, mutSetHas;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.sourceRange : Range, UriAndRange;
@@ -41,7 +41,7 @@ struct CheckCtx {
 	AllSymbols* allSymbolsPtr;
 	const AllUris* allUrisPtr;
 	public immutable Uri curUri;
-	public ImportsAndReExports importsAndReExports;
+	public ImportAndReExportModules importsAndReExports;
 	ArrBuilder!Diagnostic* diagnosticsBuilder;
 	UsedSet used;
 
@@ -64,14 +64,14 @@ struct CheckCtx {
 }
 
 private struct UsedSet {
-	private MutMap!(immutable void*, immutable void[0]) used;
+	private MutSet!(immutable void*) used;
 }
 
 private bool isUsed(in UsedSet a, in immutable void* value) =>
-	hasKey_mut!(immutable void*, immutable void[0])(a.used, value);
+	mutSetHas(a.used, value);
 
 private void markUsed(ref Alloc alloc, scope ref UsedSet a, immutable void* value) {
-	setInMap!(immutable void*, immutable void[0])(alloc, a.used, value, []);
+	mayAddToMutSet(alloc, a.used, value);
 }
 
 void markUsed(ref CheckCtx ctx, immutable void* a) {
@@ -135,13 +135,13 @@ private bool containsUsed(in NameReferents a, in UsedSet used) =>
 	exists!(immutable FunDecl*)(a.funs, (in FunDecl* x) =>
 		isUsed(used, x));
 
-immutable struct ImportsAndReExports {
+immutable struct ImportAndReExportModules {
 	immutable ImportOrExport[] imports;
 	immutable ImportOrExport[] reExports;
 }
 
 void eachImportAndReExport(
-	in ImportsAndReExports a,
+	in ImportAndReExportModules a,
 	Sym name,
 	in void delegate(in NameReferents) @safe @nogc pure nothrow cb,
 ) {

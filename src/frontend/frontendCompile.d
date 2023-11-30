@@ -2,46 +2,44 @@ module frontend.frontendCompile;
 
 @safe @nogc pure nothrow:
 
-import frontend.storage : FileContent, getFileContentOrDiag, getParsedOrDiag, ParseResult, Storage;
-import model.diag : Diag, Diagnostic, ReadFileDiag;
-import model.model :
-	CommonFuns, CommonTypes, Config, emptyModule, ImportFileType, ImportOrExport, ImportOrExportKind, Module, Program;
-import model.parseDiag : ParseDiag;
-import frontend.check.check : BootstrapCheck, check, checkBootstrap, FileAndAst, ImportOrExportFile, ImportsAndExports;
+import model.diag : Diag, ReadFileDiag;
+import model.model : CommonTypes, Config, emptyConfig, Module, Program;
+import frontend.check.check : BootstrapCheck, check, checkBootstrap, FileAndAst, ResolvedImport;
 import frontend.check.getCommonFuns : CommonModule, getCommonFuns;
-import frontend.config : getConfig;
-import frontend.lang : crowExtension;
-import frontend.parse.ast :
-	FileAst,
-	fileAstForDiags,
-	fileAstForReadFileDiag,
-	ImportOrExportAst,
-	ImportOrExportAstKind,
-	ImportsOrExportsAst,
-	NameAndRange,
-	pathRange;
+import frontend.lang : crowConfigBaseName, crowExtension;
+import frontend.parse.ast : FileAst, fileAstForReadFileDiag, ImportOrExportAst, ImportOrExportAstKind, NameAndRange;
 import frontend.programState : ProgramState;
-import util.alloc.alloc : Alloc;
-import util.col.arr : empty;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : contains, map, mapOp, mapOrNone, mapPointers, prepend;
+import frontend.storage :
+	FileContent,
+	FilesState,
+	filesState,
+	FileType,
+	fileType,
+	getFileContentOrDiag,
+	getParsedOrDiag,
+	markUnknownIfNotExist,
+	ParseResult,
+	Storage;
+import util.alloc.alloc : Alloc, allocateUninitialized, MetaAlloc, newAlloc;
+import util.col.arrBuilder : add, ArrBuilder, arrBuilderTempAsArr, finishArr;
+import util.col.arrUtil : contains, exists, every, findIndex, map;
+import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd, finish, newExactSizeArrBuilder;
 import util.col.map : Map;
-import util.col.enumMap : EnumMap, enumMapEach, enumMapMapValues;
-import util.col.mutMaxArr : isEmpty, mustPeek, mustPop, MutMaxArr, mutMaxArr, push;
-import util.col.mutMap : addToMutMap, getAt_mut, hasKey_mut, moveToMap, MutMap, setInMap;
-import util.late : late, Late, lateGet, lateIsSet, lateSet;
-import util.memory : allocate;
-import util.opt : force, has, Opt, none, some;
-import util.perf : Perf, PerfMeasure, withMeasure;
-import util.sym : AllSymbols, Sym, sym;
-import util.union_ : Union;
+import util.col.enumMap : EnumMap, enumMapMapValues, makeEnumMap;
+import util.col.mutMap : findInMutMap, getOrAdd, mapToMap, moveToMap, MutMap, mutMapEachValue, mutMapMustGet;
+import util.col.mutSet : mayAddToMutSet, MutSet, mutSetHas, mutSetMayDelete, mutSetMustDelete, mutSetPopArbitrary;
+import util.memory : allocate, initMemory;
+import util.opt : force, has, MutOpt, Opt, none, noneMut, some, someMut;
+import util.perf : Perf;
+import util.sym : AllSymbols, sym;
+import util.union_ : Union, UnionMutable;
 import util.uri :
 	addExtension,
-	addExtensionIfNone,
 	AllUris,
 	childUri,
 	concatUriAndPath,
 	firstAndRest,
+	parent,
 	parentOrEmpty,
 	Path,
 	Uri,
@@ -49,119 +47,381 @@ import util.uri :
 	PathFirstAndRest,
 	RelPath,
 	resolveUri;
+import util.util : todo;
 
-Program frontendCompile(
-	scope ref Perf perf,
-	ref Alloc alloc,
-	scope ref AllSymbols allSymbols,
-	scope ref AllUris allUris,
-	ref Storage storage,
-	in Uri includeDir,
-	in Uri[] rootUris,
-	in Opt!Uri mainUri,
-) {
-	Config config = getConfig(alloc, allSymbols, allUris, includeDir, storage, rootUris);
-	EnumMap!(CommonModule, Uri) commonUris = commonUris(allUris, config.crowIncludeDir);
-	AstAndResolvedImports[] parsed = parseEverything(
-		perf, alloc, allSymbols, allUris, storage, rootUris, mainUri, commonUris, config);
-	return withMeasure!(Program, () =>
-		checkEverything(perf, alloc, allSymbols, allUris, config, parsed, rootUris, mainUri, commonUris)
-	)(perf, alloc, PerfMeasure.checkEverything);
+struct FrontendCompiler {
+	@safe @nogc pure nothrow:
+	private:
+	Alloc alloc;
+	AllSymbols* allSymbolsPtr;
+	AllUris* allUrisPtr;
+	Storage* storagePtr;
+	Uri crowIncludeDir;
+	EnumMap!(CommonModule, CrowFile*) commonFiles;
+	ProgramState programState;
+	// Set after 'bootstrap' is compiled
+	MutOpt!(CommonTypes*) commonTypes;
+	MutMap!(Uri, CrowFile*) crowFiles;
+	size_t countUncompiledCrowFiles; // Number of crowFiles without 'module_'
+	MutMap!(Uri, OtherFile*) otherFiles;
+	// Set of files which are ready to compile immediately.
+	// (Parsing and resolving imports is always done immediately.)
+	// This doesn't include files whose imports are not yet compiled.
+	// If all Uris are resolved but nothing is workable, there must be a circular import.
+	MutSet!(CrowFile*) workable;
+
+	ref AllSymbols allSymbols() return scope =>
+		*allSymbolsPtr;
+	ref inout(AllUris) allUris() return scope inout =>
+		*allUrisPtr;
+	ref Storage storage() return scope =>
+		*storagePtr;
 }
 
-// The purpose of this is to discover unknown files
-void parseAllFiles(
-	scope ref Perf perf,
-	ref Alloc alloc,
-	ref AllSymbols allSymbols,
-	ref AllUris allUris,
-	ref Storage storage,
-	in Uri includeDir,
-	in Uri[] rootUris,
+FrontendCompiler* initFrontend(
+	MetaAlloc* metaAlloc,
+	AllSymbols* allSymbols,
+	AllUris* allUris,
+	Storage* storage,
+	Uri crowIncludeDir,
 ) {
-	Config config = getConfig(alloc, allSymbols, allUris, includeDir, storage, rootUris);
-	cast(void) parseEverything(
-		perf, alloc, allSymbols, allUris, storage,
-		rootUris, none!Uri, commonUris(allUris, config.crowIncludeDir), config);
+	return () @trusted {
+		Alloc alloc = newAlloc(metaAlloc);
+		FrontendCompiler* res = allocateUninitialized!FrontendCompiler(alloc);
+		initMemory(res, FrontendCompiler(
+			alloc.move(), allSymbols, allUris, storage, crowIncludeDir,
+			makeEnumMap!(CommonModule, CrowFile*)((CommonModule _) => null)));
+		res.commonFiles = enumMapMapValues!(CommonModule, CrowFile*, Uri)(
+			commonUris(*allUris, crowIncludeDir), (in Uri uri) =>
+				ensureCrowFile(*res, uri));
+		return res;
+	}();
+}
+
+private struct CrowFile {
+	immutable Uri uri;
+	// This needs to be filled in in 3 steps: ast/config, resolvedImports/referencedBy, module
+
+	MutOpt!(Config*) config; // This will be some(defaultConfig) if there is no config file on the path
+	MutOpt!(FileAst*) ast;
+
+	MutOpt!(MostlyResolvedImport[]) resolvedImports; // Also includes re-exports. Set once we have config.
+	MutSet!(CrowFile*) referencedBy;
+
+	// This will be compiled only after all imports are compiled
+	MutOpt!(Module*) module_;
+}
+
+private struct OtherFile {
+	immutable Uri uri;
+	bool loaded;
+	MutSet!(CrowFile*) referencedBy;
+}
+
+Program makeProgramForMain(ref Alloc alloc, ref FrontendCompiler a, Uri mainUri) =>
+	makeProgramCommon(alloc, a, some(mainUri), [mainUri]);
+
+Program makeProgramForRoots(ref Alloc alloc, ref FrontendCompiler a, in Uri[] roots) =>
+	makeProgramCommon(alloc, a, none!Uri, roots);
+
+private Program makeProgramCommon(ref Alloc alloc, ref FrontendCompiler a, Opt!Uri mainUri, in Uri[] roots) {
+	assert(filesState(a.storage) == FilesState.allLoaded);
+	MutOpt!(CrowFile*) mainFile = has(mainUri)
+		? someMut(mutMapMustGet(a.crowFiles, force(mainUri)))
+		: noneMut!(CrowFile*);
+	Opt!(Module*) mainModule = has(mainFile) ? some(force(force(mainFile).module_)) : none!(Module*);
+	EnumMap!(CommonModule, Module*) commonModules = enumMapMapValues!(CommonModule, Module*, CrowFile*)(
+		a.commonFiles, (in CrowFile* x) =>
+			force(x.module_));
+	return Program(
+		has(mainFile) ? some(force(force(mainFile).config)) : none!(Config*),
+		getAllConfigs(alloc, a),
+		mapToMap!(Uri, immutable Module*, CrowFile*)(alloc, a.crowFiles, (ref const CrowFile* file) =>
+			force(file.module_)),
+		map!(Module*, Uri)(alloc, roots, (ref Uri uri) => force(mutMapMustGet(a.crowFiles, uri).module_)),
+		getCommonFuns(alloc, a.programState, *force(a.commonTypes), mainModule, commonModules),
+		*force(a.commonTypes));
+}
+
+void onFileChanged(scope ref Perf perf, ref FrontendCompiler a, Uri uri) {
+	validateReferencedBy(a);
+	final switch (fileType(a.allUris, uri)) {
+		case FileType.crow:
+			FileAst* ast = getParsedOrDiag(a.storage, uri).match!(FileAst*)(
+				(ParseResult x) =>
+					x.as!(FileAst*),
+				(ReadFileDiag x) =>
+					// TODO: Storage should just store this
+					fileAstForReadFileDiag(a.alloc, x));
+			fileAstChanged(perf, a, ensureCrowFile(a, uri), ast);
+			break;
+		case FileType.crowConfig:
+			mutMapEachValue(a.crowFiles, (ref CrowFile* file) {
+				updateFileOnConfigChange(perf, a, file);
+			});
+			break;
+		case FileType.other:
+			OtherFile* file = ensureOtherFile(a, uri);
+			file.loaded = true;
+			foreach (CrowFile* x; file.referencedBy)
+				addToWorkableIfSo(a, x);
+			break;
+	}
+	validateReferencedBy(a);
+	doDirtyWork(perf, a);
+	validateReferencedBy(a);
 }
 
 private:
 
-immutable struct ParseStatus {
-	immutable struct Started {}
-	immutable struct Done {}
-	mixin Union!(Started, Done, ReadFileDiag);
-}
 
-alias UriToStatus = MutMap!(Uri, ParseStatus);
-
-struct ParseStackEntry {
-	immutable Uri uri;
-	immutable FileAst* ast;
-	immutable ResolvedImportsAndExports importsAndExports;
-}
-
-alias ParseStack = MutMaxArr!(32, ParseStackEntry);
-
-AstAndResolvedImports[] parseEverything(
-	scope ref Perf perf,
-	ref Alloc alloc,
-	scope ref AllSymbols allSymbols,
-	scope ref AllUris allUris,
-	scope ref Storage storage,
-	in Uri[] rootUris,
-	in Opt!Uri mainUri,
-	EnumMap!(CommonModule, Uri) commonUris,
-	ref Config config,
-) {
-	assert(!empty(rootUris));
-	if (has(mainUri))
-		assert(contains(rootUris, force(mainUri)));
-
-	UriToStatus statuses;
-	ArrBuilder!AstAndResolvedImports res;
-
-	ParseStack stack = mutMaxArr!(32, ParseStackEntry)();
-
-	Opt!(FullyResolvedImport[]) resolveImportsOrExports(
-		Uri fromUri,
-		ResolvedImport[] importsOrExports,
-	) =>
-		mapOrNone!(FullyResolvedImport, ResolvedImport)(alloc, importsOrExports, (ref ResolvedImport import_) =>
-			fullyResolveImport(perf, alloc, allSymbols, allUris, storage, config, statuses, stack, fromUri, import_));
-
-	void process() {
-		while (!isEmpty(stack)) {
-			Uri uri = mustPeek(stack).uri;
-			ResolvedImportsAndExports importsAndExports = mustPeek(stack).importsAndExports;
-			Opt!(FullyResolvedImport[]) imports = resolveImportsOrExports(uri, importsAndExports.imports);
-			Opt!(FullyResolvedImport[]) exports = has(imports)
-				? resolveImportsOrExports(uri, importsAndExports.exports)
-				: none!(FullyResolvedImport[]);
-			if (has(exports)) {
-				ParseStackEntry entry = mustPop(stack);
-				add(alloc, res, AstAndResolvedImports(uri, entry.ast, force(imports), force(exports)));
-				setInMap(alloc, statuses, uri, ParseStatus(ParseStatus.Done()));
-			}
-			// else, we just pushed a dependency to the stack, so repeat.
-		}
-	}
-
-	void processRootUri(Uri uri) {
-		if (!hasKey_mut(statuses, uri)) {
-			parseAndPush(perf, alloc, allSymbols, allUris, storage, config, statuses, stack, uri);
-			process();
-		}
-	}
-
-	enumMapEach!(CommonModule, Uri)(commonUris, (CommonModule _, in Uri uri) {
-		processRootUri(uri);
+Map!(Uri, immutable Config*) getAllConfigs(ref Alloc alloc, in FrontendCompiler a) {
+	MutMap!(Uri, immutable Config*) res;
+	mutMapEachValue!(Uri, CrowFile*)(a.crowFiles, (in CrowFile* file) {
+		Config* config = force(file.config);
+		if (has(config.configUri))
+			getOrAdd!(Uri, immutable Config*)(alloc, res, force(config.configUri), () => config);
 	});
-	foreach (Uri uri; rootUris)
-		processRootUri(uri);
+	return moveToMap!(Uri, immutable Config*)(alloc, res);
+}
 
-	assert(isEmpty(stack));
-	return finishArr(alloc, res);
+CrowFile* ensureCrowFile(ref FrontendCompiler a, Uri uri) {
+	assert(fileType(a.allUris, uri) == FileType.crow);
+	return getOrAdd!(Uri, CrowFile*)(a.alloc, a.crowFiles, uri, () {
+		markUnknownIfNotExist(a.storage, uri);
+		a.countUncompiledCrowFiles++;
+		return allocate(a.alloc, CrowFile(uri, tryFindConfig(a.storage, a.allUris, parentOrEmpty(a.allUris, uri))));
+	});
+}
+
+OtherFile* ensureOtherFile(ref FrontendCompiler a, Uri uri) {
+	return getOrAdd!(Uri, OtherFile*)(a.alloc, a.otherFiles, uri, () {
+		markUnknownIfNotExist(a.storage, uri);
+		return allocate(a.alloc, OtherFile(uri));
+	});
+}
+
+// TODO:PERF Kill
+void validateReferencedBy(scope ref FrontendCompiler a) {
+	mutMapEachValue!(Uri, CrowFile*)(a.crowFiles, (in CrowFile* file) {
+		if (has(file.resolvedImports)) {
+			foreach (ref const MostlyResolvedImport x; force(file.resolvedImports)) {
+				if (x.isA!(CrowFile*))
+					assert(mutSetHas(x.as!(CrowFile*).referencedBy, file));
+			}
+		}
+		foreach (const CrowFile* importer; file.referencedBy) {
+			assert(mutMapMustGet(a.crowFiles, importer.uri) == importer);
+			assert(exists!MostlyResolvedImport(force(importer.resolvedImports), (in MostlyResolvedImport x) =>
+				x.isA!(CrowFile*) && x.as!(CrowFile*) == file));
+			assert(!(has(importer.module_) && !has(file.module_)));
+		}
+	});
+}
+
+void doDirtyWork(scope ref Perf perf, ref FrontendCompiler a) {
+	CrowFile* bootstrap = a.commonFiles[CommonModule.bootstrap];
+	if (mutSetMayDelete(a.workable, bootstrap)) {
+		FileAndAst fa = FileAndAst(bootstrap.uri, force(bootstrap.ast));
+		BootstrapCheck bs = checkBootstrap(perf, a.alloc, a.allSymbols, a.allUris, a.programState, fa);
+		// TODO: free old commonTypes
+		a.commonTypes = someMut(bs.commonTypes);
+		bootstrap.module_ = someMut(bs.module_);
+		a.countUncompiledCrowFiles--;
+		// TODO: markAllDirty(); // Since they all use commonTypes
+	}
+
+	while (true) {
+		MutOpt!(CrowFile*) opt = mutSetPopArbitrary(a.workable);
+		if (has(opt)) {
+			CrowFile* file = force(opt);
+			file.module_ = someMut(compileModule(perf, a, file));
+			a.countUncompiledCrowFiles--;
+			foreach (CrowFile* importer; file.referencedBy)
+				addToWorkableIfSo(a, importer);
+		} else if (filesState(a.storage) == FilesState.allLoaded && a.countUncompiledCrowFiles != 0)
+			fixCircularImports(a);
+		else
+			break;
+	}
+}
+
+void fixCircularImports(ref FrontendCompiler a) {
+	ArrBuilder!Uri cycleBuilder;
+	MutOpt!(CrowFile*) start = findInMutMap!(Uri, CrowFile*)(a.crowFiles, (in Uri _, in CrowFile* x) =>
+		!has(x.module_));
+	fixCircularImportsRecur(a, cycleBuilder, force(start));
+}
+Uri[] fixCircularImportsRecur(ref FrontendCompiler a, scope ref ArrBuilder!Uri cycleBuilder, CrowFile* file) {
+	assert(!has(file.module_));
+	add(a.alloc, cycleBuilder, file.uri);
+	Opt!size_t optImportIndex = findIndex!MostlyResolvedImport(
+		force(file.resolvedImports), (in MostlyResolvedImport x) =>
+			!isImportWorkable(a.allUris, x));
+	size_t importIndex = force(optImportIndex);
+	CrowFile* next = force(file.resolvedImports)[importIndex].as!(CrowFile*);
+	Uri[] cycle = contains(arrBuilderTempAsArr(cycleBuilder), next.uri)
+		? finishArr(a.alloc, cycleBuilder)
+		: fixCircularImportsRecur(a, cycleBuilder, next);
+	force(file.resolvedImports)[importIndex] = MostlyResolvedImport(
+		Diag.ImportFileDiag(Diag.ImportFileDiag.CircularImport(cycle)));
+	mutSetMayDelete(next.referencedBy, file);
+	addToWorkableIfSo(a, file);
+	return cycle;
+}
+
+Module* compileModule(scope ref Perf perf, ref FrontendCompiler a, CrowFile* file) {
+	assert(isWorkable(a.allUris, *file));
+	FileAndAst ast = FileAndAst(file.uri, force(file.ast));
+	return check(
+		perf, a.alloc, a.allSymbols, a.allUris, a.programState, ast,
+		fullyResolveImports(a, force(file.resolvedImports)),
+		force(a.commonTypes));
+}
+
+void fileAstChanged(scope ref Perf perf, ref FrontendCompiler a, CrowFile* file, FileAst* ast) {
+	file.ast = someMut(ast); // TODO: free old ast
+	updatedAstOrConfig(perf, a, file);
+}
+
+void updateFileOnConfigChange(scope ref Perf perf, ref FrontendCompiler a, CrowFile* file) {
+	MutOpt!(Config*) bestConfig = tryFindConfig(a.storage, a.allUris, parentOrEmpty(a.allUris, file.uri));
+	if (has(bestConfig)) {
+		if (!has(file.config) || force(bestConfig) != force(file.config)) {
+			file.config = bestConfig;
+			updatedAstOrConfig(perf, a, file);
+		}
+	}
+}
+
+void updatedAstOrConfig(scope ref Perf perf, ref FrontendCompiler a, CrowFile* file) {
+	if (has(file.ast) && has(file.config)) {
+		if (has(file.resolvedImports)) {
+			foreach (ref MostlyResolvedImport x; force(file.resolvedImports)) {
+				if (x.isA!(CrowFile*))
+					mutSetMustDelete!(CrowFile*)(x.as!(CrowFile*).referencedBy, file);
+			}
+			file.resolvedImports = noneMut!(MostlyResolvedImport[]); // TODO: clear old resolvedImports
+		}
+		file.resolvedImports = someMut(resolveImports(a, *force(file.ast), *force(file.config), file.uri));
+		foreach (MostlyResolvedImport x; force(file.resolvedImports))
+			x.match!void(
+				(CrowFile* x) {
+					mayAddToMutSet(a.alloc, x.referencedBy, file);
+				},
+				(OtherFile* x) {
+					mayAddToMutSet(a.alloc, x.referencedBy, file);
+				},
+				(Diag.ImportFileDiag) {});
+		addToWorkableIfSo(a, file);
+	}
+	markDirty(*file);
+}
+
+void addToWorkableIfSo(ref FrontendCompiler a, CrowFile* file) {
+	if (isWorkable(a.allUris, *file))
+		mayAddToMutSet!(CrowFile*)(a.alloc, a.workable, file);
+}
+
+bool isWorkable(scope ref AllUris allUris, in CrowFile a) {
+	assert(!has(a.module_));
+	return has(a.ast) &&
+		has(a.config) &&
+		every!MostlyResolvedImport(force(a.resolvedImports), (in MostlyResolvedImport x) =>
+			isImportWorkable(allUris, x));
+}
+
+bool isImportWorkable(scope ref AllUris allUris, in MostlyResolvedImport a) =>
+	a.matchConst!bool(
+		(const CrowFile* x) =>
+			has(x.module_),
+		(const OtherFile* x) =>
+			x.loaded,
+		(Diag.ImportFileDiag x) {
+			if (x.isA!(Diag.ImportFileDiag.ReadError)) {
+				Diag.ImportFileDiag.ReadError read = x.as!(Diag.ImportFileDiag.ReadError);
+				// Unknown/loading files still have a CrowFile* or Config*
+				assert(isUnknownOrLoading(read.diag) || fileType(allUris, read.uri) == FileType.other);
+			}
+			return true;
+		});
+
+bool isUnknownOrLoading(ReadFileDiag a) {
+	final switch (a) {
+		case ReadFileDiag.unknown:
+		case ReadFileDiag.loading:
+			return true;
+		case ReadFileDiag.notFound:
+		case ReadFileDiag.error:
+			return false;
+	}
+}
+
+MostlyResolvedImport[] resolveImports(ref FrontendCompiler a, in FileAst ast, in Config config, Uri uri) {
+	ExactSizeArrBuilder!MostlyResolvedImport res = newExactSizeArrBuilder!MostlyResolvedImport(
+		a.alloc, countImportsAndReExports(ast));
+	if (!ast.noStd)
+		exactSizeArrBuilderAdd!MostlyResolvedImport(res, MostlyResolvedImport(a.commonFiles[CommonModule.std]));
+	if (has(ast.imports)) {
+		foreach (ImportOrExportAst x; force(ast.imports).paths)
+			exactSizeArrBuilderAdd!MostlyResolvedImport(res, tryResolveImport(a, config, uri, x));
+	}
+	if (has(ast.reExports)) {
+		foreach (ImportOrExportAst x; force(ast.reExports).paths)
+			exactSizeArrBuilderAdd!MostlyResolvedImport(res, tryResolveImport(a, config, uri, x));
+	}
+	return finish(res);
+}
+
+size_t countImportsAndReExports(in FileAst a) =>
+	(a.noStd ? 0 : 1) +
+	(has(a.imports) ? force(a.imports).paths.length : 0) +
+	(has(a.reExports) ? force(a.reExports).paths.length : 0);
+
+void markDirty(ref CrowFile file) {
+	if (has(file.module_)) {
+		// TODO: free the old module (but programState may reference!)
+		file.module_ = noneMut!(Module*);
+		foreach (CrowFile* x; file.referencedBy)
+			markDirty(*x);
+	}
+}
+ResolvedImport[] fullyResolveImports(ref FrontendCompiler a, MostlyResolvedImport[] imports) =>
+	map(a.alloc, imports, (ref MostlyResolvedImport x) =>
+		x.match!ResolvedImport(
+			(CrowFile* x) =>
+				ResolvedImport(force(x.module_)),
+			(OtherFile* file) =>
+				getFileContentOrDiag(a.storage, file.uri).match!ResolvedImport(
+					(FileContent content) =>
+						ResolvedImport(content),
+					(ReadFileDiag x) =>
+						ResolvedImport(Diag.ImportFileDiag(Diag.ImportFileDiag.ReadError(file.uri, x)))),
+			(Diag.ImportFileDiag x) =>
+				ResolvedImport(x)));
+
+MutOpt!(Config*) tryFindConfig(scope ref Storage storage, scope ref AllUris allUris, Uri configDir) {
+	Uri configUri = childUri(allUris, configDir, crowConfigBaseName);
+	return getParsedOrDiag(storage, configUri).match!(MutOpt!(Config*))(
+		(ParseResult x) =>
+			someMut(x.as!(Config*)),
+		(ReadFileDiag x) {
+			final switch (x) {
+				case ReadFileDiag.notFound:
+					Opt!Uri par = parent(allUris, configDir);
+					return has(par) ? tryFindConfig(storage, allUris, force(par)) : someMut(&emptyConfig);
+				case ReadFileDiag.error:
+					// We want Config* to be unique, so can't alloc here. Storage should do that?
+					return todo!(MutOpt!(Config*))("!!!");
+				case ReadFileDiag.loading:
+				case ReadFileDiag.unknown:
+					// Query all possible configs to ensure they are loaded early
+					Opt!Uri par = parent(allUris, configDir);
+					if (has(par))
+						tryFindConfig(storage, allUris, force(par));
+					return noneMut!(Config*);
+			}
+		});
 }
 
 immutable(EnumMap!(CommonModule, Uri)) commonUris(ref AllUris allUris, Uri includeDir) {
@@ -182,360 +442,42 @@ immutable(EnumMap!(CommonModule, Uri)) commonUris(ref AllUris allUris, Uri inclu
 	]), (in Uri x) => addExtension!crowExtension(allUris, x));
 }
 
-void parseAndPush(
-	scope ref Perf perf,
-	ref Alloc alloc,
-	scope ref AllSymbols allSymbols,
-	scope ref AllUris allUris,
-	scope ref Storage storage,
-	in Config config,
-	scope ref UriToStatus statuses,
-	ref ParseStack stack,
-	Uri uri,
-) {
-	ParseStatus status = getParsedOrDiag(storage, uri).match!ParseStatus(
-		(ParseResult x) {
-			FileAst* ast = x.as!(FileAst*);
-			push(stack, ParseStackEntry(uri, ast, resolveImportsAndExports(
-				alloc, allUris, config, uri, ast.imports, ast.exports)));
-			return ParseStatus(ParseStatus.Started());
-		},
-		(ReadFileDiag x) {
-			push(stack, ParseStackEntry(uri, fileAstForReadFileDiag(alloc, x), ResolvedImportsAndExports()));
-			return ParseStatus(x);
-		});
-	addToMutMap(alloc, statuses, uri, status);
+immutable struct UriOrDiag {
+	mixin Union!(Uri, Diag.ImportFileDiag);
 }
 
-// returns none if we can't resolve all imported modules yet
-Opt!FullyResolvedImport fullyResolveImport(
-	scope ref Perf perf,
-	ref Alloc alloc,
-	scope ref AllSymbols allSymbols,
-	scope ref AllUris allUris,
-	scope ref Storage storage,
-	in Config config,
-	ref UriToStatus statuses,
-	ref ParseStack stack,
-	Uri fromUri,
-	ResolvedImport import_,
-) {
-	Opt!FullyResolvedImportKind kind = import_.resolvedUri.matchIn!(Opt!FullyResolvedImportKind)(
-		(in Uri uri) =>
-			fullyResolveImportKind(
-				perf, alloc, allSymbols, allUris, storage, config, statuses, stack, fromUri, import_, uri),
-		(in Diagnostic diag) =>
-			some(FullyResolvedImportKind(diag)));
-	return has(kind)
-		? some(FullyResolvedImport(some(import_.ast), force(kind)))
-		: none!FullyResolvedImport;
+struct MostlyResolvedImport {
+	// For unknown/loading file, this will still be a CrowFile* or OtherFile*
+	mixin UnionMutable!(CrowFile*, OtherFile*, Diag.ImportFileDiag);
 }
 
-Opt!FullyResolvedImportKind fullyResolveImportKind(
-	scope ref Perf perf,
-	ref Alloc alloc,
-	scope ref AllSymbols allSymbols,
-	scope ref AllUris allUris,
-	scope ref Storage storage,
-	in Config config,
-	scope ref UriToStatus statuses,
-	ref ParseStack stack,
-	Uri fromUri,
-	in ResolvedImport import_,
-	Uri resolvedUri,
-) =>
-	import_.ast.kind.matchIn!(Opt!FullyResolvedImportKind)(
-		(in ImportOrExportAstKind.ModuleWhole) =>
-			fullyResolveImportModule(
-				perf, alloc, allSymbols, allUris, storage, config, statuses, stack, fromUri,
-				*import_.ast, resolvedUri,
-				(Uri uri) =>
-					FullyResolvedImportKind(FullyResolvedImportKind.ModuleWhole(uri))),
-		(in NameAndRange[] names) =>
-			fullyResolveImportModule(
-				perf, alloc, allSymbols, allUris, storage, config, statuses, stack, fromUri,
-				*import_.ast, resolvedUri,
-				(Uri uri) =>
-					FullyResolvedImportKind(FullyResolvedImportKind.ModuleNamed(
-						uri,
-						map(alloc, names, (ref NameAndRange name) => name.name)))),
-		(in ImportOrExportAstKind.File x) =>
-			some(readFileContent(allUris, storage, *import_.ast, x, resolvedUri)));
-
-FullyResolvedImportKind readFileContent(
-	in AllUris allUris,
-	ref Storage storage,
-	in ImportOrExportAst ast,
-	in ImportOrExportAstKind.File astKind,
-	Uri uri,
-) =>
-	getFileContentOrDiag(storage, uri).match!FullyResolvedImportKind(
-		(FileContent x) =>
-			FullyResolvedImportKind(FullyResolvedImportKind.File(astKind.name.name, astKind.type, x)),
-		(ReadFileDiag x) =>
-			FullyResolvedImportKind(Diagnostic(pathRange(allUris, ast), Diag(Diag.ImportFileDiag(uri, x)))));
-
-Opt!FullyResolvedImportKind fullyResolveImportModule(
-	scope ref Perf perf,
-	ref Alloc alloc,
-	scope ref AllSymbols allSymbols,
-	scope ref AllUris allUris,
-	scope ref Storage storage,
-	in Config config,
-	scope ref UriToStatus statuses,
-	ref ParseStack stack,
-	Uri fromUri,
-	in ImportOrExportAst ast,
-	Uri importUri,
-	in FullyResolvedImportKind delegate(Uri) @safe @nogc pure nothrow getSuccessKind,
-) {
-	Opt!ParseStatus status = getAt_mut!(Uri, ParseStatus)(statuses, importUri);
-	if (has(status))
-		return some(force(status).match!FullyResolvedImportKind(
-			(ParseStatus.Started) =>
-				FullyResolvedImportKind(Diagnostic(pathRange(allUris, ast), Diag(Diag.CircularImport(importUri)))),
-			(ParseStatus.Done x) =>
-				getSuccessKind(importUri),
-			(ReadFileDiag x) =>
-				FullyResolvedImportKind(Diagnostic(pathRange(allUris, ast), Diag(Diag.ImportFileDiag(importUri, x))))));
-	else {
-		parseAndPush(perf, alloc, allSymbols, allUris, storage, config, statuses, stack, importUri);
-		return none!FullyResolvedImportKind;
-	}
-}
-
-immutable struct ResolvedImport {
-	ImportOrExportAst* ast;
-	ResolvedUriOrDiag resolvedUri;
-}
-
-immutable struct ResolvedUriOrDiag {
-	mixin Union!(Uri, Diagnostic);
-}
-
-ResolvedImport tryResolveImport(scope ref AllUris allUris, in Config config, Uri fromUri, ImportOrExportAst* ast) {
-	ResolvedImport resolved(Uri uri) =>
-		ResolvedImport(ast, ResolvedUriOrDiag(addExtensionIfNone!crowExtension(allUris, uri)));
-	return ast.path.match!ResolvedImport(
-		(Path global) {
-			PathFirstAndRest fr = firstAndRest(allUris, global);
+MostlyResolvedImport tryResolveImport(ref FrontendCompiler a, in Config config, Uri fromUri, in ImportOrExportAst ast) {
+	UriOrDiag base = ast.path.matchIn!UriOrDiag(
+		(in Path path) {
+			PathFirstAndRest fr = firstAndRest(a.allUris, path);
 			Opt!Uri fromConfig = config.include[fr.first];
-			return resolved(has(fromConfig)
-				? has(fr.rest) ? concatUriAndPath(allUris, force(fromConfig), force(fr.rest)) : force(fromConfig)
-				: concatUriAndPath(allUris, config.crowIncludeDir, global));
+			return UriOrDiag(has(fromConfig)
+				? (has(fr.rest) ? concatUriAndPath(a.allUris, force(fromConfig), force(fr.rest)) : force(fromConfig))
+				: concatUriAndPath(a.allUris, a.crowIncludeDir, path));
 		},
-		(RelPath relPath) {
-			Opt!Uri rel = resolveUri(allUris, parentOrEmpty(allUris, fromUri), relPath);
+		(in RelPath relPath) {
+			Opt!Uri rel = resolveUri(a.allUris, parentOrEmpty(a.allUris, fromUri), relPath);
 			return has(rel)
-				? resolved(force(rel))
-				: ResolvedImport(ast, ResolvedUriOrDiag(Diagnostic(pathRange(allUris, *ast), Diag(
-					ParseDiag(ParseDiag.RelativeImportReachesPastRoot(relPath))))));
+				? UriOrDiag(force(rel))
+				: UriOrDiag(Diag.ImportFileDiag(Diag.ImportFileDiag.RelativeImportReachesPastRoot(relPath)));
 		});
-}
-
-immutable struct ResolvedImportsAndExports {
-	ResolvedImport[] imports;
-	ResolvedImport[] exports;
-}
-
-ResolvedImport[] resolveImportOrExportUris(
-	ref Alloc alloc,
-	scope ref AllUris allUris,
-	in Config config,
-	Uri fromUri,
-	in Opt!ImportsOrExportsAst importsOrExports,
-) =>
-	mapPointers(alloc, has(importsOrExports) ? force(importsOrExports).paths : [], (ImportOrExportAst* i) =>
-		tryResolveImport(allUris, config, fromUri, i));
-
-ResolvedImportsAndExports resolveImportsAndExports(
-	ref Alloc alloc,
-	scope ref AllUris allUris,
-	in Config config,
-	Uri fromUri,
-	in Opt!ImportsOrExportsAst imports,
-	in Opt!ImportsOrExportsAst exports,
-) =>
-	ResolvedImportsAndExports(
-		resolveImportOrExportUris(alloc, allUris, config, fromUri, imports),
-		resolveImportOrExportUris(alloc, allUris, config, fromUri, exports));
-
-immutable struct AstAndResolvedImports {
-	Uri uri;
-	FileAst* ast;
-	FullyResolvedImport[] resolvedImports;
-	FullyResolvedImport[] resolvedExports;
-}
-
-immutable struct FullyResolvedImport {
-	// none for 'std'
-	Opt!(ImportOrExportAst*) source;
-	FullyResolvedImportKind kind;
-}
-
-immutable struct FullyResolvedImportKind {
-	immutable struct ModuleWhole {
-		Uri uri;
-	}
-	immutable struct ModuleNamed {
-		Uri uri;
-		Sym[] names;
-	}
-	immutable struct File {
-		Sym name;
-		ImportFileType type;
-		FileContent content;
-	}
-
-	mixin Union!(ModuleWhole, ModuleNamed, File, Diagnostic);
-}
-
-immutable struct ImportsOrExports {
-	ImportOrExport[] moduleImports;
-	ImportOrExportFile[] fileImports;
-}
-
-ImportsOrExports mapImportsOrExports(
-	ref Alloc alloc,
-	scope ref ArrBuilder!Diagnostic diagsBuilder,
-	in FullyResolvedImport[] uris,
-	ref const MutMap!(Uri, immutable Module*) compiled,
-) {
-	ArrBuilder!ImportOrExportFile fileImports;
-	ImportOrExport[] moduleImports = mapOp!(ImportOrExport, FullyResolvedImport)(
-		alloc,
-		uris,
-		(ref FullyResolvedImport x) {
-			Opt!ImportOrExportKind kind = x.kind.match!(Opt!ImportOrExportKind)(
-				(FullyResolvedImportKind.ModuleWhole m) {
-					Opt!(Module*) module_ = getAt_mut!(Uri, immutable Module*)(compiled, m.uri);
-					return has(module_)
-						? some(ImportOrExportKind(ImportOrExportKind.ModuleWhole(force(module_))))
-						: none!ImportOrExportKind;
-				},
-				(FullyResolvedImportKind.ModuleNamed m) {
-					Opt!(Module*) module_ = getAt_mut!(Uri, immutable Module*)(compiled, m.uri);
-					return has(module_)
-						? some(ImportOrExportKind(ImportOrExportKind.ModuleNamed(force(module_), m.names)))
-						: none!ImportOrExportKind;
-				},
-				(FullyResolvedImportKind.File f) {
-					//TODO: could be a temp alloc
-					add(alloc, fileImports, ImportOrExportFile(x.source, f.name, f.type, f.content));
-					return none!ImportOrExportKind;
-				},
-				(Diagnostic x) {
-					add(alloc, diagsBuilder, x);
-					return none!ImportOrExportKind;
-				});
-			return has(kind) ? some(ImportOrExport(x.source, force(kind))) : none!ImportOrExport;
-	});
-	return ImportsOrExports(moduleImports, finishArr(alloc, fileImports));
-}
-
-struct ModulesAndCommonTypes {
-	Map!(Uri, immutable Module*) modules;
-	CommonTypes commonTypes;
-}
-
-ModulesAndCommonTypes getModules(
-	ref Alloc modelAlloc,
-	scope ref Perf perf,
-	scope ref AllSymbols allSymbols,
-	in AllUris allUris,
-	ref ProgramState programState,
-	Uri stdUri,
-	in AstAndResolvedImports[] fileAsts,
-) {
-	assert(!empty(fileAsts));
-	Late!CommonTypes commonTypes = late!CommonTypes;
-
-	MutMap!(Uri, immutable Module*) compiled;
-
-	foreach (ref AstAndResolvedImports ast; fileAsts) {
-		FileAndAst fileAndAst = FileAndAst(ast.uri, ast.ast);
-		Module module_ = () {
-			if (lateIsSet(commonTypes)) {
-				return checkNonBootstrapModule(
-					modelAlloc, perf, allSymbols, allUris, programState, stdUri, ast, compiled, fileAndAst,
-					lateGet(commonTypes));
-			} else {
-				// The first module to check is always 'bootstrap.crow'
-				assert(ast.resolvedImports.empty);
-				BootstrapCheck res = checkBootstrap(modelAlloc, perf, allSymbols, allUris, programState, fileAndAst);
-				lateSet(commonTypes, res.commonTypes);
-				return res.module_;
-			}
-		}();
-		addToMutMap(modelAlloc, compiled, ast.uri, allocate(modelAlloc, module_));
-	}
-
-	return ModulesAndCommonTypes(moveToMap!(Uri, immutable Module*)(modelAlloc, compiled), lateGet(commonTypes));
-}
-
-Module checkNonBootstrapModule(
-	ref Alloc modelAlloc,
-	scope ref Perf perf,
-	scope ref AllSymbols allSymbols,
-	in AllUris allUris,
-	ref ProgramState programState,
-	Uri stdUri,
-	in AstAndResolvedImports ast,
-	ref const MutMap!(Uri, immutable Module*) compiled,
-	ref FileAndAst fileAndAst,
-	in CommonTypes commonTypes,
-) {
-	FullyResolvedImport[] allImports = ast.ast.noStd
-		? ast.resolvedImports
-		: prepend(
-			modelAlloc,
-			FullyResolvedImport(
-				none!(ImportOrExportAst*),
-				FullyResolvedImportKind(FullyResolvedImportKind.ModuleWhole(stdUri))),
-			ast.resolvedImports);
-	ArrBuilder!Diagnostic diagsBuilder;
-	ImportsOrExports imports = mapImportsOrExports(modelAlloc, diagsBuilder, allImports, compiled);
-	ImportsOrExports exports = mapImportsOrExports(modelAlloc, diagsBuilder, ast.resolvedExports, compiled);
-	ImportsAndExports importsAndExports = ImportsAndExports(
-		imports.moduleImports,
-		exports.moduleImports,
-		imports.fileImports,
-		exports.fileImports);
-	return check(
-		modelAlloc, perf, allSymbols, allUris, programState, fileAndAst, diagsBuilder, importsAndExports, commonTypes);
-}
-
-Program checkEverything(
-	scope ref Perf perf,
-	ref Alloc modelAlloc,
-	scope ref AllSymbols allSymbols,
-	in AllUris allUris,
-	Config config,
-	in AstAndResolvedImports[] allAsts,
-	in Uri[] rootUris,
-	in Opt!Uri mainUri,
-	in EnumMap!(CommonModule, Uri) commonUris,
-) {
-	ProgramState programState = ProgramState();
-	ModulesAndCommonTypes modulesAndCommonTypes = getModules(
-		modelAlloc, perf, allSymbols, allUris, programState, commonUris[CommonModule.std], allAsts);
-	Map!(Uri, immutable Module*) modules = modulesAndCommonTypes.modules;
-	immutable EnumMap!(CommonModule, Opt!(Module*)) commonModules =
-		enumMapMapValues!(CommonModule, Opt!(Module*), Uri)(commonUris, (in Uri uri) =>
-			modules[uri]);
-	CommonFuns commonFuns = getCommonFuns(
-		modelAlloc,
-		programState,
-		modulesAndCommonTypes.commonTypes,
-		has(mainUri) ? modules[force(mainUri)] : none!(Module*),
-		commonModules);
-	return Program(
-		config,
-		modules,
-		map!(Module*, Uri)(modelAlloc, rootUris, (ref Uri uri) {
-			Opt!(Module*) res = modules[uri];
-			return has(res) ? force(res) : allocate(modelAlloc, emptyModule(uri, fileAstForDiags(modelAlloc, [])));
-		}),
-		commonFuns,
-		modulesAndCommonTypes.commonTypes);
+	return base.match!MostlyResolvedImport(
+		(Uri uri) {
+			MostlyResolvedImport crowFile() =>
+				MostlyResolvedImport(ensureCrowFile(a, addExtension!crowExtension(a.allUris, uri)));
+			return ast.kind.match!MostlyResolvedImport(
+				(ImportOrExportAstKind.ModuleWhole) =>
+					crowFile(),
+				(NameAndRange[]) =>
+					crowFile(),
+				(ref ImportOrExportAstKind.File) =>
+					MostlyResolvedImport(ensureOtherFile(a, uri)));
+		},
+		(Diag.ImportFileDiag x) =>
+			MostlyResolvedImport(x));
 }

@@ -21,8 +21,6 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.CharLiteralMustBeOneChar) =>
 			DiagnosticSeverity.checkError,
-		(in Diag.CircularImport) =>
-			DiagnosticSeverity.circularImport,
 		(in Diag.CommonFunDuplicate) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.CommonFunMissing) =>
@@ -62,7 +60,7 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 		(in Diag.IfNeedsOpt) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ImportFileDiag) =>
-			DiagnosticSeverity.readFile,
+			DiagnosticSeverity.importError,
 		(in Diag.ImportRefersToNothing) =>
 			DiagnosticSeverity.nameNotFound,
 		(in Diag.LambdaCantInferParamType) =>

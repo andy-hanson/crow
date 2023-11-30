@@ -1,0 +1,6 @@
+{
+	"include": {
+		"SDL2": "../SDL2",
+		"sndfile": "../sndfile"
+	}
+}

@@ -27,7 +27,7 @@ import util.opt : Opt;
 import util.sourceRange : Range, UriAndRange;
 import util.sym : Sym;
 import util.union_ : Union;
-import util.uri : Uri;
+import util.uri : RelPath, Uri;
 
 // In the CLI, we omit diagnostics if there are other more severe ones.
 // So e.g., you wouldn't see unused code errors if there are parse errors.
@@ -39,9 +39,8 @@ enum DiagnosticSeverity {
 	nameNotFound,
 	// Severe error where a common fun (e.g. 'alloc', 'main') or type (e.g. 'void') is missing
 	commonMissing,
-	circularImport,
+	importError,
 	parseError,
-	readFile,
 }
 bool isFatal(DiagnosticSeverity a) =>
 	a >= DiagnosticSeverity.commonMissing;
@@ -143,9 +142,6 @@ immutable struct Diag {
 	}
 
 	immutable struct CharLiteralMustBeOneChar {}
-	immutable struct CircularImport {
-		Uri to;
-	}
 	immutable struct CommonFunDuplicate {
 		Sym name;
 	}
@@ -223,11 +219,20 @@ immutable struct Diag {
 	immutable struct IfNeedsOpt {
 		Type actualType;
 	}
-	// The imported file will also have a ParseDiag for the issue, but we also show the error in the importer.
-	// (This is important in an IDE.)
 	immutable struct ImportFileDiag {
-		Uri uri;
-		ReadFileDiag diag;
+		immutable struct CircularImport {
+			Uri[] cycle;
+		}
+		immutable struct ReadError {
+			// The imported file will also have a ParseDiag for the issue, but we also show the error in the importer.
+			// (This is important in an IDE.)
+			Uri uri;
+			ReadFileDiag diag;
+		}
+		immutable struct RelativeImportReachesPastRoot {
+			RelPath imported;
+		}
+		mixin Union!(CircularImport, ReadError, RelativeImportReachesPastRoot);
 	}
 	immutable struct ImportRefersToNothing {
 		Sym name;
@@ -435,7 +440,6 @@ immutable struct Diag {
 		CallShouldUseSyntax,
 		CantCall,
 		CharLiteralMustBeOneChar,
-		CircularImport,
 		CommonFunDuplicate,
 		CommonFunMissing,
 		CommonTypeMissing,

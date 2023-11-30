@@ -2,7 +2,7 @@ module frontend.check.checkCall.candidates;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCtx : eachImportAndReExport, ImportsAndReExports;
+import frontend.check.checkCtx : eachImportAndReExport, ImportAndReExportModules;
 import frontend.check.inferringType :
 	ExprCtx,
 	InferringTypeArgs,
@@ -143,7 +143,7 @@ void filterCandidatesButDontRemoveAll(
 immutable struct FunsInScope {
 	SpecInst*[] outermostFunSpecs;
 	FunsMap funsMap;
-	ImportsAndReExports importsAndReExports;
+	ImportAndReExportModules importsAndReExports;
 }
 FunsInScope funsInScope(ref const ExprCtx ctx) {
 	return FunsInScope(ctx.outermostFunSpecs, ctx.funsMap, ctx.checkCtx.importsAndReExports);

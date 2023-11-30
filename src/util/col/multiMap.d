@@ -32,7 +32,7 @@ MultiMap!(K, V) makeMultiMap(K, V)(
 	ref Alloc alloc,
 	in void delegate(in MultiMapCb!(K, V) add) @safe @nogc pure nothrow cb,
 ) {
-	MutMap!(immutable K, ArrBuilder!(immutable V)) builder;
+	MutMap!(K, ArrBuilder!(immutable V)) builder;
 	cb((K key, V value) {
 		add(alloc, getOrAdd(alloc, builder, key, () => ArrBuilder!(immutable V)()), value);
 	});

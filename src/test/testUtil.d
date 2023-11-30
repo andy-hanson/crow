@@ -7,14 +7,15 @@ import frontend.storage : LineAndColumnGetters, Storage;
 import interpret.bytecode : ByteCode, ByteCodeIndex, Operation;
 import interpret.debugInfo : showDataArr;
 import interpret.stacks : dataTempAsArr, returnTempAsArrReverse, Stacks;
+import lib.server : Server, setCwd, setIncludeDir;
 import model.model : Program;
-import util.alloc.alloc : Alloc, MetaAlloc, newAlloc;
+import util.alloc.alloc : Alloc, allocateElements, MetaAlloc, newAlloc, withTempAlloc;
 import util.col.arrUtil : arrEqual, arrsCorrespond, makeArr;
 import util.opt : none;
 import util.perf : Perf;
 import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols;
-import util.uri : AllUris, Uri, UrisInfo;
+import util.uri : AllUris, parseUri, Uri, UrisInfo;
 import util.writer : debugLogWithWriter, Writer;
 
 struct Test {
@@ -111,6 +112,21 @@ private void withShowDiagCtxForTestImpl(alias cb)(
 		});
 		assert(false);
 	}
+}
+
+pure:
+
+void withTestServer(
+	ref Test test,
+	in void delegate(ref Alloc, ref Server) @safe @nogc pure nothrow cb,
+) {
+	withTempAlloc!void(test.metaAlloc, (ref Alloc alloc) @trusted {
+		ulong[] memory = allocateElements!ulong(alloc, 0x1000000);
+		Server server = Server(memory);
+		setIncludeDir(&server, parseUri(server.allUris, "test:///include"));
+		setCwd(server, parseUri(server.allUris, "test:///"));
+		return cb(alloc, server);
+	});
 }
 
 private T[] reverse(T)(ref Alloc alloc, scope T[] xs) =>

@@ -688,9 +688,9 @@ AllLowFuns getAllLowFuns(
 		lowTypeFromConcreteType(getLowTypeCtx, program.rtMain.paramsIncludingClosure[2].type);
 
 	//TODO: use temp alloc
-	VarIndices varIndices = makeMapWithIndex!(ConcreteVar*, LowVarIndex, ConcreteVar*)(
-		getLowTypeCtx.alloc, program.allVars, (size_t i, in ConcreteVar* x) =>
-			immutable KeyValuePair!(ConcreteVar*, LowVarIndex)(x, LowVarIndex(i)));
+	VarIndices varIndices = makeMapWithIndex!(immutable ConcreteVar*, LowVarIndex, immutable ConcreteVar*)(
+		getLowTypeCtx.alloc, program.allVars, (size_t i, in immutable ConcreteVar* x) =>
+			immutable KeyValuePair!(immutable ConcreteVar*, LowVarIndex)(x, LowVarIndex(i)));
 
 	LowFunIndex markFunIndex = mustGetAt(concreteFunToLowFunIndex, program.markFun);
 	LowFunIndex allocFunIndex = mustGetAt(concreteFunToLowFunIndex, program.allocFun);
@@ -734,7 +734,7 @@ AllLowFuns getAllLowFuns(
 					moveToArr!Sym(getLowTypeCtx.alloc, xs))));
 }
 
-alias VarIndices = Map!(ConcreteVar*, LowVarIndex);
+alias VarIndices = Map!(immutable ConcreteVar*, LowVarIndex);
 
 bool concreteFunWillBecomeNonExternLowFun(in ConcreteProgram program, in ConcreteFun a) =>
 	body_(a).isA!(ConcreteExpr) || (

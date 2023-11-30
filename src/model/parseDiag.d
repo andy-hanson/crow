@@ -7,7 +7,6 @@ import model.diag : ReadFileDiag;
 import util.sourceRange : Range;
 import util.sym : Sym;
 import util.union_ : Union;
-import util.uri : RelPath;
 
 immutable struct ParseDiagnostic {
 	Range range;
@@ -81,9 +80,6 @@ immutable struct ParseDiag {
 		}
 		Kind kind;
 	}
-	immutable struct RelativeImportReachesPastRoot {
-		RelPath imported;
-	}
 	immutable struct TrailingComma {}
 	immutable struct UnexpectedCharacter {
 		char ch;
@@ -107,7 +103,6 @@ immutable struct ParseDiag {
 		InvalidStringEscape,
 		NeedsBlockCtx,
 		ReadFileDiag,
-		RelativeImportReachesPastRoot,
 		TrailingComma,
 		UnexpectedCharacter,
 		UnexpectedOperator,

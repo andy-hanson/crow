@@ -11,7 +11,7 @@ struct MapBuilder(K, V) {
 	@disable this(ref const MapBuilder);
 
 	private:
-	MutMap!(immutable K, immutable V) builder;
+	MutMap!(K, V) builder;
 }
 
 void mustAddToMap(K, V)(ref Alloc alloc, ref MapBuilder!(K, V) a, immutable K key, immutable V value) {
@@ -21,7 +21,7 @@ void mustAddToMap(K, V)(ref Alloc alloc, ref MapBuilder!(K, V) a, immutable K ke
 
 // If there is already a value there, does nothing and returns it
 Opt!V tryAddToMap(K, V)(ref Alloc alloc, ref MapBuilder!(K, V) a, immutable K key, immutable V value) {
-	ValueAndDidAdd!(immutable V) v = getOrAddAndDidAdd(alloc, a.builder, key, () => value);
+	ValueAndDidAdd!V v = getOrAddAndDidAdd!(K, V)(alloc, a.builder, key, () => value);
 	return v.didAdd ? none!V : some(v.value);
 }
 

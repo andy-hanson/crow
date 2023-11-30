@@ -93,7 +93,7 @@ Json jsonOfAst(ref Alloc alloc, in AllUris allUris, in LineAndColumnGetter lineA
 		optionalStringField!"doc"(alloc, ast.docComment),
 		optionalField!("imports", ImportsOrExportsAst)(ast.imports, (in ImportsOrExportsAst x) =>
 			jsonOfImportsOrExports(alloc, ctx, x)),
-		optionalField!("exports", ImportsOrExportsAst)(ast.exports, (in ImportsOrExportsAst x) =>
+		optionalField!("exports", ImportsOrExportsAst)(ast.reExports, (in ImportsOrExportsAst x) =>
 			jsonOfImportsOrExports(alloc, ctx, x)),
 		optionalArrayField!("specs", SpecDeclAst)(alloc, ast.specs, (in SpecDeclAst a) =>
 			jsonOfSpecDeclAst(alloc, ctx, a)),

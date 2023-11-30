@@ -172,11 +172,6 @@ private Path alterExtensionWithHexForPath(Sym newExtension)(ref AllUris allUris,
 			allUris.allSymbols,
 			appendHexExtension(allUris.allSymbols, removeExtension(allUris.allSymbols, name), bytes)));
 
-Uri addExtensionIfNone(Sym extension)(ref AllUris allUris, Uri a) =>
-	Uri(addExtensionIfNone!extension(allUris, a.path));
-Path addExtensionIfNone(Sym extension)(ref AllUris allUris, Path a) =>
-	hasExtension(allUris, a) ? a : addExtension!extension(allUris, a);
-
 private bool hasExtension(in AllUris allUris, Path a) =>
 	hasExtension(allUris.allSymbols, baseName(allUris, a));
 

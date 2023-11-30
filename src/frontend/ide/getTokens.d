@@ -89,8 +89,8 @@ SemanticTokens tokensOfAst(
 
 	if (has(ast.imports))
 		addImportTokens(tokens, allSymbols, allUris, force(ast.imports));
-	if (has(ast.exports))
-		addImportTokens(tokens, allSymbols, allUris, force(ast.exports));
+	if (has(ast.reExports))
+		addImportTokens(tokens, allSymbols, allUris, force(ast.reExports));
 
 	//TODO: also tests...
 	eachSorted!(Range, SpecDeclAst, StructAliasAst, StructDeclAst, FunDeclAst, VarDeclAst)(

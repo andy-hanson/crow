@@ -79,7 +79,7 @@ import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil : arrEqual, arrLiteral, arrMax, every, everyWithIndex, exists, fold, map, mapWithIndex, mapZip;
 import util.col.map : mapEach;
 import util.col.mutArr : filterUnordered, MutArr, mutArrIsEmpty, push;
-import util.col.mutMap : addToMutMap, getOrAdd, getOrAddAndDidAdd, mustDelete, MutMap, ValueAndDidAdd;
+import util.col.mutMap : getOrAdd, getOrAddAndDidAdd, mustAddToMutMap, mustDelete, MutMap, ValueAndDidAdd;
 import util.col.str : SafeCStr;
 import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite, lazilySet;
@@ -293,7 +293,7 @@ ConcreteFun* getConcreteFunForLambdaAndFillBody(
 		returnType,
 		paramsIncludingClosure));
 	ConcreteFunBodyInputs bodyInputs = ConcreteFunBodyInputs(containing, FunBody(FunBody.ExpressionBody(body_)));
-	addToMutMap(ctx.alloc, ctx.concreteFunToBodyInputs, res, bodyInputs);
+	mustAddToMutMap(ctx.alloc, ctx.concreteFunToBodyInputs, res, bodyInputs);
 	fillInConcreteFunBody(ctx, [modelParam], res);
 	addConcreteFun(ctx, res);
 	return res;
@@ -418,7 +418,7 @@ ConcreteFun* getConcreteFunFromKey(ref ConcretizeCtx ctx, ref ConcreteFunKey key
 	ConcreteFunBodyInputs bodyInputs = ConcreteFunBodyInputs(
 		toContainingFunInfo(key),
 		decl.body_);
-	addToMutMap(ctx.alloc, ctx.concreteFunToBodyInputs, res, bodyInputs);
+	mustAddToMutMap(ctx.alloc, ctx.concreteFunToBodyInputs, res, bodyInputs);
 	return res;
 }
 

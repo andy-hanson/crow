@@ -2,17 +2,18 @@ module frontend.storage;
 
 @safe @nogc pure nothrow:
 
-import frontend.config : parseConfig, ParsedConfig;
+import frontend.config : parseConfig;
 import frontend.lang : crowConfigBaseName, crowExtension;
 import frontend.parse.ast : FileAst;
 import frontend.parse.parse : parseFile;
 import lib.lsp.lspTypes : TextDocumentContentChangeEvent, TextDocumentPositionParams;
 import model.diag : ReadFileDiag;
+import model.model : Config;
 import util.alloc.alloc : Alloc, AllocAndValue, freeAlloc, MetaAlloc, newAlloc, withAlloc, withTempAlloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : contains, copyArr;
-import util.col.mutMap : addToMutMap, getOrAdd, mayDelete, MutMap, mutMapEachIn;
+import util.col.mutMap : getOrAdd, mayDelete, mustAddToMutMap, MutMap, mutMapEachIn;
 import util.col.str : SafeCStr, safeCStrSize;
 import util.json : field, Json, jsonObject;
 import util.lineAndColumnGetter :
@@ -37,7 +38,7 @@ import util.ptr : castNonScope_ref;
 import util.sourceRange : jsonOfRange, lineAndCharacterRange, Pos, Range, UriAndPos, UriAndRange;
 import util.sym : AllSymbols;
 import util.union_ : Union;
-import util.uri : AllUris, baseName, getExtension, parentOrEmpty, Uri, stringOfUri;
+import util.uri : AllUris, baseName, getExtension, Uri, stringOfUri;
 import util.writer : withWriter, Writer;
 
 struct Storage {
@@ -71,7 +72,7 @@ private immutable struct FileInfo {
 
 immutable struct ParseResult {
 	immutable struct None {}
-	mixin Union!(FileAst*, ParsedConfig*, None);
+	mixin Union!(FileAst*, Config*, None);
 }
 
 @trusted void setFile(scope ref Perf perf, ref Storage a, Uri uri, in ReadFileResult result) {
@@ -82,10 +83,10 @@ immutable struct ParseResult {
 
 	result.matchIn!void(
 		(in FileContent x) @safe {
-			addToMutMap(a.mapAlloc, a.successes, uri, getFileInfo(perf, a, uri, x));
+			mustAddToMutMap(a.mapAlloc, a.successes, uri, getFileInfo(perf, a, uri, x));
 		},
 		(in ReadFileDiag x) {
-			addToMutMap(a.mapAlloc, a.diags, uri, x);
+			mustAddToMutMap(a.mapAlloc, a.diags, uri, x);
 		});
 }
 
@@ -117,12 +118,29 @@ private ParseResult parseContent(
 	scope ref AllUris allUris,
 	Uri uri,
 	in SafeCStr content,
-) =>
+) {
+	final switch (fileType(allUris, uri)) {
+		case FileType.crow:
+			return ParseResult(parseFile(perf, alloc, allSymbols, allUris, content));
+		case FileType.crowConfig:
+			return ParseResult(allocate(alloc, parseConfig(alloc, allSymbols, allUris, uri, content)));
+		case FileType.other:
+			return ParseResult(ParseResult.None());
+	}
+}
+
+enum FileType {
+	crow,
+	crowConfig,
+	other,
+}
+
+FileType fileType(scope ref AllUris allUris, Uri uri) =>
 	getExtension(allUris, uri) == crowExtension
-		? ParseResult(parseFile(perf, alloc, allSymbols, allUris, content))
+		? FileType.crow
 		: baseName(allUris, uri) == crowConfigBaseName
-		? ParseResult(allocate(alloc, parseConfig(alloc, allSymbols, allUris, parentOrEmpty(allUris, uri), content)))
-		: ParseResult(ParseResult.None());
+		? FileType.crowConfig
+		: FileType.other;
 
 enum FilesState {
 	hasUnknown,
@@ -190,6 +208,10 @@ private FileInfoOrDiag fileOrDiag(scope ref Storage a, Uri uri) {
 
 private immutable struct ParsedOrDiag {
 	mixin Union!(ParseResult, ReadFileDiag);
+}
+
+void markUnknownIfNotExist(scope ref Storage a, Uri uri) {
+	cast(void) fileOrDiag(a, uri);
 }
 
 ParsedOrDiag getParsedOrDiag(ref Storage a, Uri uri) =>

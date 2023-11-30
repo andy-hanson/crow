@@ -244,7 +244,7 @@ mixin template UnionMutable(Types...) {
 		}
 	}
 
-	@trusted ref T as(T)() {
+	@trusted ref inout(T) as(T)() inout {
 		static foreach (i, Ty; Types) {
 			static if (is(T == Ty)) {
 				assert(kind == i);

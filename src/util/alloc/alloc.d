@@ -74,10 +74,23 @@ struct Alloc {
 		curBlock = b;
 		cur = b.words.ptr;
 	}
+	this(MetaAlloc* m, BlockHeader* b, word* c) {
+		meta = m;
+		curBlock = b;
+		cur = c;
+	}
 
 	MetaAlloc* meta;
 	BlockHeader* curBlock;
 	word* cur;
+
+	public Alloc move() {
+		Alloc res = Alloc(meta, curBlock, cur);
+		meta = null;
+		curBlock = null;
+		cur = null;
+		return res;
+	}
 }
 alias TempAlloc = Alloc;
 

@@ -5,7 +5,8 @@ module lib.server;
 import backend.writeToC : writeToC;
 import concretize.concretize : concretize;
 import document.document : documentJSON;
-import frontend.frontendCompile : frontendCompile, parseAllFiles;
+import frontend.frontendCompile :
+	FrontendCompiler, initFrontend, makeProgramForRoots, makeProgramForMain, onFileChanged;
 import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
 import frontend.ide.getDefinition : getDefinitionForPosition;
 import frontend.ide.getHover : getHover;
@@ -94,14 +95,14 @@ import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
 import model.lowModel : ExternLibraries, LowProgram;
 import model.model : hasFatalDiagnostics, Module, Program;
-import util.alloc.alloc : Alloc, freeElements, MetaAlloc, newAlloc, withTempAlloc;
+import util.alloc.alloc : Alloc, freeElements, MetaAlloc, newAlloc;
 import util.col.arr : only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrLiteral, concatenate, contains, map, mapOp;
 import util.col.str : copyStr, copyToSafeCStr, SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
 import util.exitCode : ExitCode;
 import util.json : Json;
-import util.late : Late, lateGet, lateSet;
+import util.late : Late, lateGet, lateSet, MutLate;
 import util.lineAndColumnGetter : UriLineAndColumn;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
@@ -204,9 +205,6 @@ private LspOutAction handleFileChanged(
 	Uri changed,
 	in Opt!CbHandleUnknownUris cb,
 ) {
-	// This is to discover unknown URIs
-	if (getExtension(server.allUris, changed) == crowExtension)
-		searchForUnknownUris(perf, server);
 	if (has(cb)) {
 		force(cb)();
 		assert(filesState(server) == FilesState.allLoaded);
@@ -233,16 +231,16 @@ private LspOutResult handleLspRequest(
 	a.matchImpure!LspOutResult(
 		(in DefinitionParams x) =>
 			LspOutResult(getDefinitionForProgram(
-				alloc, server, getProgram(perf, alloc, server, [x.params.textDocument.uri]), x)),
+				alloc, server, getProgram(alloc, server, [x.params.textDocument.uri]), x)),
 		(in HoverParams x) =>
 			LspOutResult(getHoverForProgram(
-				alloc, server, getProgram(perf, alloc, server, [x.params.textDocument.uri]), x)),
+				alloc, server, getProgram(alloc, server, [x.params.textDocument.uri]), x)),
 		(in InitializeParams x) =>
 			LspOutResult(InitializeResult()),
 		(in ReferenceParams x) =>
-			LspOutResult(getReferencesForProgram(alloc, server, getProgramForReferences(perf, alloc, server), x)),
+			LspOutResult(getReferencesForProgram(alloc, server, getProgramForAll(alloc, server), x)),
 		(in RenameParams x) =>
-			LspOutResult(getRenameForProgram(alloc, server, getProgramForReferences(perf, alloc, server), x)),
+			LspOutResult(getRenameForProgram(alloc, server, getProgramForAll(alloc, server), x)),
 		(in RunParams x) {
 			ArrBuilder!Write writes;
 			ExitCode exitCode = run(perf, alloc, server, x.uri, (Pipe pipe, in string x) {
@@ -285,6 +283,7 @@ struct Server {
 	ShowOptions showOptions_ = ShowOptions(false);
 	Storage storage;
 	LspState lspState;
+	MutLate!(FrontendCompiler*) frontend_;
 
 	@trusted this(ulong[] memory) {
 		metaAlloc_ = MetaAlloc(memory);
@@ -300,6 +299,8 @@ struct Server {
 		lateGet(includeDir_);
 	ref UrisInfo urisInfo() return scope const =>
 		lateGet(urisInfo_);
+	ref FrontendCompiler frontend() return scope =>
+		*lateGet(frontend_);
 	ShowOptions showOptions() scope const =>
 		showOptions_;
 	LineAndColumnGetters lineAndColumnGetters() return scope const =>
@@ -349,8 +350,11 @@ private string dCompilerName() {
 	}
 }
 
-void setIncludeDir(ref Server server, Uri uri) {
+void setIncludeDir(Server* server, Uri uri) {
 	lateSet!Uri(server.includeDir_, uri);
+	lateSet!(FrontendCompiler*)(
+		server.frontend_,
+		initFrontend(server.metaAlloc, &server.allSymbols, &server.allUris, &server.storage, uri));
 }
 
 void setCwd(ref Server server, Uri uri) {
@@ -363,10 +367,12 @@ void setShowOptions(ref Server server, in ShowOptions options) {
 
 void setFile(scope ref Perf perf, ref Server server, Uri uri, in ReadFileResult result) {
 	setFile(perf, server.storage, uri, result);
+	onFileChanged(perf, server.frontend, uri);
 }
 
 void changeFile(scope ref Perf perf, ref Server server, Uri uri, in TextDocumentContentChangeEvent[] changes) {
 	changeFile(perf, server.storage, uri, changes);
+	onFileChanged(perf, server.frontend, uri);
 }
 
 FilesState filesState(in Server server) =>
@@ -379,17 +385,6 @@ Uri[] allUnknownUris(ref Alloc alloc, in Server server) =>
 private Uri[] allUnloadedUris(ref Alloc alloc, in Server server) =>
 	allUrisWithFileDiag(alloc, server.storage, [ReadFileDiag.unknown, ReadFileDiag.loading]);
 
-void searchForUnknownUris(scope ref Perf perf, ref Server server) {
-	withTempAlloc(server.metaAlloc, (ref Alloc alloc) {
-		parseAllFiles(
-			perf, alloc, server.allSymbols, server.allUris, server.storage, server.includeDir,
-			allKnownGoodCrowUris(alloc, server.storage));
-	});
-}
-
-Program justTypeCheck(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] rootUris) =>
-	frontendCompile(perf, alloc, server, rootUris, none!Uri);
-
 SafeCStr showDiagnostics(ref Alloc alloc, scope ref Server server, in Program program) {
 	ShowCtx ctx = getShowDiagCtx(server, program);
 	return stringOfDiagnostics(alloc, ctx, program);
@@ -401,20 +396,11 @@ immutable struct DocumentResult {
 }
 
 DocumentResult getDocumentation(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] uris) {
-	Program program = frontendCompile(perf, alloc, server, uris, none!Uri);
+	Program program = getProgram(alloc, server, uris);
 	return DocumentResult(
 		documentJSON(alloc, server.allSymbols, server.allUris, program),
 		showDiagnostics(alloc, server, program));
 }
-
-private Program frontendCompile(
-	scope ref Perf perf,
-	ref Alloc alloc,
-	ref Server server,
-	in Uri[] rootUris,
-	in Opt!Uri main,
-) =>
-	frontendCompile(perf, alloc, server.allSymbols, server.allUris, server.storage, server.includeDir, rootUris, main);
 
 private UriAndRange[] getDefinitionForProgram(
 	ref Alloc alloc,
@@ -465,11 +451,14 @@ private Opt!Hover getHoverForProgram(
 		: none!Hover;
 }
 
-private Program getProgram(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] roots) =>
-	frontendCompile(perf, alloc, server, roots, none!Uri);
+private Program getProgram(ref Alloc alloc, ref Server server, in Uri[] roots) =>
+	makeProgramForRoots(alloc, server.frontend, roots);
 
-private Program getProgramForReferences(scope ref Perf perf, ref Alloc alloc, ref Server server) =>
-	getProgram(perf, alloc, server, allKnownGoodCrowUris(alloc, server.storage));
+Program getProgramForMain(ref Alloc alloc, ref Server server, Uri mainUri) =>
+	makeProgramForMain(alloc, server.frontend, mainUri);
+
+Program getProgramForAll(ref Alloc alloc, ref Server server) =>
+	getProgram(alloc, server, allKnownGoodCrowUris(alloc, server.storage));
 
 private Opt!Position getPosition(scope ref Server server, in Program program, in TextDocumentPositionParams where) {
 	Opt!(immutable Module*) module_ = program.allModules[where.textDocument.uri];
@@ -520,7 +509,7 @@ private FileAst* getAst(ref Alloc alloc, ref Server server, Uri uri) {
 }
 
 DiagsAndResultJson printModel(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri uri) {
-	Program program = frontendCompile(perf, alloc, server, [uri], none!Uri);
+	Program program = getProgram(alloc, server, [uri]);
 	Json json = jsonOfModule(alloc, server.allUris, server.lineAndColumnGetters[uri], *only(program.rootModules));
 	return printForProgram(alloc, server, program, json);
 }
@@ -533,7 +522,7 @@ DiagsAndResultJson printConcreteModel(
 	in VersionInfo versionInfo,
 	Uri uri,
 ) {
-	Program program = frontendCompile(perf, alloc, server, [uri], none!Uri);
+	Program program = getProgram(alloc, server, [uri]);
 	ShowCtx ctx = getShowDiagCtx(server, program);
 	return printForProgram(
 		alloc, server, program,
@@ -548,10 +537,11 @@ DiagsAndResultJson printLowModel(
 	in VersionInfo versionInfo,
 	Uri uri,
 ) {
-	Program program = frontendCompile(perf, alloc, server, [uri], none!Uri);
+	Program program = getProgramForMain(alloc, server, uri);
 	ShowCtx ctx = getShowDiagCtx(server, program);
 	ConcreteProgram concreteProgram = concretize(perf, alloc, ctx, versionInfo, program);
-	LowProgram lowProgram = lower(perf, alloc, server.allSymbols, program.config.extern_, program, concreteProgram);
+	LowProgram lowProgram = lower(
+		perf, alloc, server.allSymbols, force(program.mainConfig).extern_, program, concreteProgram);
 	return printForProgram(alloc, server, program, jsonOfLowProgram(alloc, lineAndColumnGetters, lowProgram));
 }
 
@@ -562,7 +552,7 @@ DiagsAndResultJson printIde(
 	in UriLineAndColumn where,
 	PrintKind.Ide.Kind kind,
 ) {
-	Program program = getProgram(perf, alloc, server, [where.uri]); // TODO: we should support specifying roots...
+	Program program = getProgram(alloc, server, [where.uri]); // TODO: we should support specifying roots...
 	TextDocumentPositionParams params = TextDocumentPositionParams(
 		TextDocumentIdentifier(where.uri),
 		toLineAndCharacter(server.lineAndColumnGetters[where.uri], where.lineAndColumn));
@@ -604,13 +594,14 @@ Programs buildToLowProgram(
 	in VersionInfo versionInfo,
 	Uri main,
 ) {
-	Program program = frontendCompile(perf, alloc, server, [main], some(main));
+	Program program = getProgramForMain(alloc, server, main);
 	ShowCtx ctx = getShowDiagCtx(server, program);
 	if (hasFatalDiagnostics(program))
 		return Programs(program, none!ConcreteProgram, none!LowProgram);
 	else {
 		ConcreteProgram concreteProgram = concretize(perf, alloc, ctx, versionInfo, program);
-		LowProgram lowProgram = lower(perf, alloc, server.allSymbols, program.config.extern_, program, concreteProgram);
+		LowProgram lowProgram = lower(
+			perf, alloc, server.allSymbols, force(program.mainConfig).extern_, program, concreteProgram);
 		return Programs(program, some(concreteProgram), some(lowProgram));
 	}
 }
@@ -631,11 +622,6 @@ BuildToCResult buildToC(scope ref Perf perf, ref Alloc alloc, ref Server server,
 		has(programs.lowProgram) ? force(programs.lowProgram).externLibraries : []);
 }
 
-private:
-
-SemanticTokens getTokens(ref Alloc alloc, ref Server server, Uri uri, in FileAst ast) =>
-	tokensOfAst(alloc, server.allSymbols, server.allUris, server.lineAndColumnGetters[uri], ast);
-
 ShowCtx getShowDiagCtx(return scope ref const Server server, return scope ref Program program) =>
 	ShowCtx(
 		ptrTrustMe(server.allSymbols),
@@ -644,6 +630,11 @@ ShowCtx getShowDiagCtx(return scope ref const Server server, return scope ref Pr
 		server.urisInfo,
 		server.showOptions,
 		ptrTrustMe(program));
+
+private:
+
+SemanticTokens getTokens(ref Alloc alloc, ref Server server, Uri uri, in FileAst ast) =>
+	tokensOfAst(alloc, server.allSymbols, server.allUris, server.lineAndColumnGetters[uri], ast);
 
 ReadFileDiag readFileDiagOfReadFileResultType(ReadFileResultType a) {
 	final switch (a) {
@@ -658,7 +649,7 @@ LspOutMessage notification(T)(T a) =>
 	LspOutMessage(LspOutNotification(a));
 
 LspOutAction notifyDiagnostics(scope ref Perf perf, ref Alloc alloc, ref Server server) {
-	Program program = justTypeCheck(perf, alloc, server, allKnownGoodCrowUris(alloc, server.storage));
+	Program program = getProgramForAll(alloc, server);
 	UriAndDiagnostics[] diags = sortedDiagnostics(alloc, server.allUris, program);
 	ref LspState state() => server.lspState;
 	Uri[] newUris = map(state.stateAlloc, diags, (ref UriAndDiagnostics x) => x.uri);
@@ -688,10 +679,9 @@ LspDiagnosticSeverity toLspDiagnosticSeverity(DiagnosticSeverity a) {
 			return LspDiagnosticSeverity.Warning;
 		case DiagnosticSeverity.checkError:
 		case DiagnosticSeverity.nameNotFound:
-		case DiagnosticSeverity.circularImport:
+		case DiagnosticSeverity.importError:
 		case DiagnosticSeverity.commonMissing:
 		case DiagnosticSeverity.parseError:
-		case DiagnosticSeverity.readFile:
 			return LspDiagnosticSeverity.Error;
 	}
 }

@@ -57,14 +57,15 @@ import util.sourceRange : compareRange;
 import util.sym : AllSymbols, Sym, writeSym;
 import util.uri : AllUris, baseName, compareUriAlphabetically, Uri, writeRelPath, writeUri;
 import util.util : stringOfEnum, max, unreachable;
-import util.writer : withWriter, writeEscapedChar, writeQuotedString, writeWithCommas, writeWithSeparator, Writer;
+import util.writer :
+	withWriter, writeEscapedChar, writeNewline, writeQuotedString, writeWithCommas, writeWithSeparator, Writer;
 
 SafeCStr stringOfDiagnostics(ref Alloc alloc, in ShowCtx ctx, in Program program) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		DiagnosticSeverity severity = maxDiagnosticSeverity(program);
 		bool first = true;
 		foreach (UriAndDiagnostics x; sortedDiagnostics(alloc, ctx.allUris, program)) {
-			foreach (Diagnostic diagnostic; x.diagnostics)
+			foreach (Diagnostic diagnostic; x.diagnostics) {
 				if (getDiagnosticSeverity(diagnostic.kind) == severity) {
 					if (!first)
 						writer ~= '\n';
@@ -72,6 +73,7 @@ SafeCStr stringOfDiagnostics(ref Alloc alloc, in ShowCtx ctx, in Program program
 						first = false;
 					showDiagnostic(writer, ctx, UriAndDiagnostic(x.uri, diagnostic));
 				}
+			}
 		}
 	});
 
@@ -294,12 +296,6 @@ void writeParseDiag(scope ref Writer writer, in AllSymbols allSymbols, in AllUri
 		(in ReadFileDiag x) {
 			showReadFileDiag(writer, x);
 		},
-		(in ParseDiag.RelativeImportReachesPastRoot x) {
-			writer ~= "importing ";
-			writeRelPath(writer, allUris, x.imported);
-			writer ~= " reaches above the source directory";
-			//TODO: recommend a compiler option to fix this
-		},
 		(in ParseDiag.TrailingComma) {
 			writer ~= "trailing comma";
 		},
@@ -494,11 +490,6 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 		(in Diag.CharLiteralMustBeOneChar) {
 			writer ~= "value of 'char' type must be a single character";
 		},
-		(in Diag.CircularImport x) {
-			writer ~= "import of ";
-			writeUri(writer, ctx, x.to);
-			writer ~= " would create a circular import";
-		},
 		(in Diag.CommonFunDuplicate x) {
 			writer ~= "module contains multiple valid ";
 			writeName(writer, ctx, x.name);
@@ -638,9 +629,27 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 			writeTypeQuoted(writer, ctx, x.actualType);
 		},
 		(in Diag.ImportFileDiag x) {
-			showReadFileDiag(writer, x.diag);
-			writer ~= ": ";
-			writeUri(writer, ctx, x.uri);
+			x.matchIn!void(
+				(in Diag.ImportFileDiag.CircularImport y) {
+					writer ~= "this is part of a circular import:";
+					foreach (Uri uri; y.cycle) {
+						writeNewline(writer, 1);
+						writeUri(writer, ctx, uri);
+						writer ~= " imports";
+					}
+					writeNewline(writer, 1);
+					writeUri(writer, ctx, y.cycle[0]);
+				},
+				(in Diag.ImportFileDiag.ReadError y) {
+					showReadFileDiag(writer, y.diag);
+					writer ~= ": ";
+					writeUri(writer, ctx, y.uri);
+				},
+				(in Diag.ImportFileDiag.RelativeImportReachesPastRoot y) {
+					writer ~= "relative path ";
+					writeRelPath(writer, ctx.allUris, y.imported);
+					writer ~= " reaches above the root directory";
+				});
 		},
 		(in Diag.ImportRefersToNothing x) {
 			writer ~= "imported name ";

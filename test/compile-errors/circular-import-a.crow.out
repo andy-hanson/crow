@@ -1,3 +1,10 @@
 exit code: 1
 stderr:
-test/compile-errors/circular-import-b.crow 2:5-2:24 import of test/compile-errors/circular-import-a.crow would create a circular import
+test/compile-errors/circular-import-a.crow 2:5-2:24 this is part of a circular import:
+	test/compile-errors/circular-import-a.crow imports
+	test/compile-errors/circular-import-b.crow imports
+	test/compile-errors/circular-import-a.crow
+test/compile-errors/circular-import-b.crow 2:5-2:24 this is part of a circular import:
+	test/compile-errors/circular-import-a.crow imports
+	test/compile-errors/circular-import-b.crow imports
+	test/compile-errors/circular-import-a.crow

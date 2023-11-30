@@ -37,7 +37,7 @@ import lib.server :
 	filesState,
 	getDocumentation,
 	handleLspMessage,
-	justTypeCheck,
+	getProgramForMain,
 	printAst,
 	printConcreteModel,
 	printIde,
@@ -45,7 +45,6 @@ import lib.server :
 	printModel,
 	printTokens,
 	Programs,
-	searchForUnknownUris,
 	Server,
 	setCwd,
 	setFile,
@@ -82,6 +81,7 @@ import versionInfo : versionInfoForJIT;
 	scope Perf perf = Perf(() => getTimeNanosPure());
 	Server server = Server(mem);
 	Uri cwd = toUri(server.allUris, getCwd(server.allUris));
+	setIncludeDir(&server, childUri(server.allUris, getCrowDir(server.allUris), sym!"include"));
 	setCwd(server, cwd);
 	setShowOptions(server, ShowOptions(true));
 	Alloc alloc = newAlloc(server.metaAlloc);
@@ -153,7 +153,6 @@ private:
 void loadAllFiles(scope ref Perf perf, ref Server server, in Uri[] rootUris) {
 	foreach (Uri uri; rootUris)
 		loadSingleFile(perf, server, uri);
-	searchForUnknownUris(perf, server);
 	loadUntilNoUnknownUris(perf, server);
 }
 
@@ -163,7 +162,6 @@ void loadUntilNoUnknownUris(scope ref Perf perf, ref Server server) {
 			foreach (Uri uri; allUnknownUris(alloc, server))
 				loadSingleFile(perf, server, uri);
 		});
-		searchForUnknownUris(perf, server);
 	}
 }
 
@@ -203,9 +201,8 @@ static assert(divRound(14, 10) == 1);
 	}
 }
 
-ExitCode go(scope ref Perf perf, ref Alloc alloc, ref Server server, in Command command) {
-	setIncludeDir(server, childUri(server.allUris, getCrowDir(server.allUris), sym!"include"));
-	return command.matchImpure!ExitCode(
+ExitCode go(scope ref Perf perf, ref Alloc alloc, ref Server server, in Command command) =>
+	command.matchImpure!ExitCode(
 		(in Command.Build x) =>
 			runBuild(perf, alloc, server, x.mainUri, x.options),
 		(in Command.Document x) {
@@ -252,7 +249,6 @@ ExitCode go(scope ref Perf perf, ref Alloc alloc, ref Server server, in Command 
 		},
 		(in Command.Version) =>
 			print(version_(alloc, server)));
-}
 
 Uri getCrowDir(ref AllUris allUris) =>
 	parentOrEmpty(allUris, parentOrEmpty(allUris, toUri(allUris, getPathToThisExecutable(allUris))));
@@ -298,7 +294,7 @@ ExitCode runBuild(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri m
 	if (hasAnyOut(options.out_))
 		return buildToCAndCompile(perf, alloc, server, main, options);
 	else {
-		Program program = justTypeCheck(perf, alloc, server, [main]);
+		Program program = getProgramForMain(alloc, server, main);
 		return hasAnyDiagnostics(program)
 			? printError(showDiagnostics(alloc, server, program))
 			: print(safeCStr!"OK");
@@ -328,7 +324,6 @@ version (GccJitAvailable) { ExitCode buildAndJit(
 	Uri main,
 	in SafeCStr[] programArgs,
 ) {
-	loadAllFiles(perf, server, [main]);
 	Programs programs = buildToLowProgram(perf, alloc, server, versionInfoForJIT(), main);
 	if (hasAnyDiagnostics(programs.program))
 		printError(showDiagnostics(alloc, server, programs.program));

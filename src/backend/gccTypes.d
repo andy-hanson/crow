@@ -82,7 +82,7 @@ immutable struct GccTypes {
 	public FullIndexMap!(LowType.Union, UnionFields) unionFields;
 }
 
-private alias GccPrimitiveTypes = immutable EnumMap!(PrimitiveType, gcc_jit_type*);
+private alias GccPrimitiveTypes = immutable EnumMap!(PrimitiveType, immutable gcc_jit_type*);
 private alias GccExternTypes = immutable FullIndexMap!(LowType.Extern, ExternTypeInfo);
 
 immutable struct ExternTypeInfo {
@@ -285,7 +285,7 @@ immutable(gcc_jit_type*) getGccType(ref GccTypesWip typesWip, LowType a) =>
 			gcc_jit_struct_as_type(typesWip.unions[x]));
 
 GccPrimitiveTypes getPrimitiveTypes(ref gcc_jit_context ctx) =>
-	makeEnumMap!(PrimitiveType, gcc_jit_type*)((PrimitiveType type) =>
+	makeEnumMap!(PrimitiveType, immutable gcc_jit_type*)((PrimitiveType type) =>
 		getOnePrimitiveType(ctx, type));
 
 immutable(gcc_jit_type*) getOnePrimitiveType(ref gcc_jit_context ctx, PrimitiveType a) {

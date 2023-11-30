@@ -2,30 +2,30 @@ module test.testHover;
 
 @safe @nogc pure nothrow:
 
-import frontend.frontendCompile : frontendCompile;
 import frontend.ide.getDefinition : getDefinitionForPosition;
 import frontend.ide.getHover : getHover;
 import frontend.ide.getPosition : getPosition;
 import frontend.ide.position : Position;
 import frontend.lang : crowExtension;
 import frontend.showModel : ShowCtx;
-import frontend.storage : FileContent, jsonOfUriAndRange, ReadFileResult, Storage, setFile;
+import frontend.storage : FileContent, jsonOfUriAndRange, ReadFileResult, setFile;
 import lib.lsp.lspTypes : Hover;
+import lib.server : allUnknownUris, getProgramForAll, getShowDiagCtx, Server, setFile;
+import model.diag : ReadFileDiag;
 import model.model : Module, Program;
-import test.testUtil : Test, withShowDiagCtxForTest;
+import test.testUtil : Test, withTestServer;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : empty, only;
+import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrEqual;
+import util.col.map : mustGetAt;
 import util.col.str : SafeCStr, safeCStr, safeCStrEq, safeCStrIsEmpty, safeCStrSize, strOfSafeCStr;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonList, jsonObject, jsonToStringPretty, optionalArrayField;
 import util.lineAndColumnGetter : LineAndColumnGetter, PosKind;
-import util.opt : force, has, none, Opt;
+import util.opt : force, has, Opt;
 import util.uri : getExtension, parseUri, Uri;
-import util.perf : Perf, withNullPerf;
-import util.ptr : ptrTrustMe;
 import util.sourceRange : jsonOfPosWithinFile, Pos, UriAndRange;
 import util.util : debugLog;
 
@@ -52,21 +52,32 @@ void hoverTest(string crowFileName, string outputFileName)(ref Test test) {
 	});
 }
 
+SafeCStr bootstrapContent = SafeCStr(import("crow/private/bootstrap.crow"));
+
 void withHoverTest(string fileName)(
 	ref Test test,
 	in SafeCStr content,
 	in void delegate(in ShowCtx, Module*) @safe @nogc pure nothrow cb,
 ) {
-	Uri uri = parseUri(test.allUris, "magic:/" ~ fileName);
-	assert(getExtension(test.allUris, uri) == crowExtension);
-	Storage storage = Storage(test.metaAlloc, ptrTrustMe(test.allSymbols), ptrTrustMe(test.allUris));
-	setFile(test.perf, storage, uri, ReadFileResult(FileContent(content)));
-	Program program = withNullPerf!(Program, (ref Perf perf) =>
-		frontendCompile(
-			perf, test.alloc, test.allSymbols, test.allUris, storage,
-			parseUri(test.allUris, "magic:/include"), [uri], none!Uri));
-	withShowDiagCtxForTest(test, storage, program, (in ShowCtx ctx) {
-		cb(ctx, only(program.rootModules));
+	withTestServer(test, (ref Alloc alloc, ref Server server) {
+		Uri uri = parseUri(server.allUris, "magic:/" ~ fileName);
+		assert(getExtension(server.allUris, uri) == crowExtension);
+		setFile(test.perf, server, uri, ReadFileResult(FileContent(content)));
+		while (true) {
+			Uri[] unknowns = allUnknownUris(alloc, server);
+			if (empty(unknowns))
+				break;
+			else
+				foreach (Uri unknown; unknowns)
+					setFile(
+						test.perf, server, unknown,
+						unknown == parseUri(server.allUris, "test:///include/crow/private/bootstrap.crow")
+							? ReadFileResult(FileContent(bootstrapContent))
+							: ReadFileResult(ReadFileDiag.notFound));
+		}
+
+		Program program = getProgramForAll(alloc, server);
+		cb(getShowDiagCtx(server, program), mustGetAt(program.allModules, uri));
 	});
 }
 

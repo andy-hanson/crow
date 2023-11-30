@@ -5,7 +5,7 @@ module util.sym;
 import util.alloc.alloc : Alloc, MetaAlloc, newAlloc;
 import util.col.arr : only;
 import util.col.mutArr : MutArr, mutArrSize, push;
-import util.col.mutMap : addToMutMap, getAt_mut, MutMap, mutMapSize;
+import util.col.mutMap : getAt_mut, mustAddToMutMap, MutMap, mutMapSize;
 import util.col.mutMaxArr : clear, MutMaxArr, mutMaxArr, push, pushAll, tempAsArr;
 import util.col.str : copyToSafeCStr, eachChar, SafeCStr, strEq, strOfSafeCStr;
 import util.conv : safeToSizeT;
@@ -55,7 +55,7 @@ private Sym addLargeString(ref AllSymbols a, SafeCStr value) {
 	size_t index = mutArrSize(a.largeStringFromIndex);
 	assert(mutMapSize(a.largeStringToIndex) == index);
 	Sym res = Sym(index);
-	addToMutMap(a.alloc, a.largeStringToIndex, strOfSafeCStr(value), res);
+	mustAddToMutMap(a.alloc, a.largeStringToIndex, strOfSafeCStr(value), res);
 	push(a.alloc, a.largeStringFromIndex, value);
 	return res;
 }

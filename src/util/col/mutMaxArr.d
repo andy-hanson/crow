@@ -112,11 +112,6 @@ void pushIfUnderMaxSize(size_t maxSize, T)(scope ref MutMaxArr!(maxSize, T) a, i
 		push(a, value);
 }
 
-ref inout(T) mustPeek(size_t maxSize, T)(ref inout MutMaxArr!(maxSize, T) a) {
-	assert(a.size_ != 0);
-	return a.values[a.size_ - 1];
-}
-
 T mustPop(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) {
 	assert(a.size_ != 0);
 	a.size_--;

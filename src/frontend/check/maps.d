@@ -8,5 +8,5 @@ import util.col.multiMap : MultiMap;
 import util.sym : Sym;
 
 alias StructsAndAliasesMap = Map!(Sym, StructOrAlias);
-alias SpecsMap = Map!(Sym, SpecDecl*);
+alias SpecsMap = Map!(Sym, immutable SpecDecl*);
 alias FunsMap = MultiMap!(Sym, immutable FunDecl*);

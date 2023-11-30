@@ -41,23 +41,34 @@ bool mutMapIsEmpty(K, V)(ref const MutMap!(K, V) a) =>
 size_t mutMapSize(K, V)(ref const MutMap!(K, V) a) =>
 	a.size;
 
-bool hasKey_mut(K, V)(ref const MutMap!(K, V) a, in K key) =>
+bool mutMapHasKey(K, V)(ref const MutMap!(K, V) a, in K key) =>
 	has(getIndex(a, key));
 
-Opt!V getAt_mut(K, V)(ref const MutMap!(immutable K, immutable V) a, in immutable K key) {
-	Opt!size_t i = getIndex(a, key);
+MutOpt!(KeyValuePair!(K, V)) mutMapPopArbitrary(K, V)(ref MutMap!(K, V) a) {
+	foreach (ref MutOpt!(KeyValuePair!(K, V)) pair; a.pairs) {
+		if (has(pair)) {
+			KeyValuePair!(K, V) res = force(pair);
+			pair = noneMut!(KeyValuePair!(K, V));
+			return someMut(res);
+		}
+	}
+	return noneMut!(KeyValuePair!(K, V));
+}
+
+Opt!V getAt_mut(K, V)(ref const MutMap!(K, V) a, in K key) {
+	Opt!size_t i = getIndex!(K, V)(a, key);
 	return has(i) ? some(force(a.pairs[force(i)]).value) : none!V;
 }
 
-private Opt!size_t getIndex(K, V)(in MutMap!(K, V) a, in immutable K key) {
+private Opt!size_t getIndex(K, V)(in MutMap!(K, V) a, in K key) {
 	if (empty(a.pairs)) return none!size_t;
 
 	assert(a.size < a.pairs.length);
-	size_t i = getHash(key) % a.pairs.length;
+	size_t i = getHash!K(key) % a.pairs.length;
 	while (true) {
 		if (!has(a.pairs[i]))
 			return none!size_t;
-		else if (eq!(immutable K)(key, force(a.pairs[i]).key))
+		else if (eq!K(key, force(a.pairs[i]).key))
 			return some(i);
 		else {
 			i = nextI(a, i);
@@ -65,10 +76,10 @@ private Opt!size_t getIndex(K, V)(in MutMap!(K, V) a, in immutable K key) {
 	}
 }
 
-ref const(V) mustGetAt_mut(K, V)(ref const MutMap!(K, V) a, in K key) {
+ref inout(V) mutMapMustGet(K, V)(ref inout MutMap!(K, V) a, in K key) {
 	assert(!empty(a.pairs));
 	assert(a.size < a.pairs.length);
-	size_t i = getHash(key) % a.pairs.length;
+	size_t i = getHash!K(key) % a.pairs.length;
 	while (true) {
 		if (eq!K(key, force(a.pairs[i]).key))
 			return force(a.pairs[i]).value;
@@ -79,9 +90,9 @@ ref const(V) mustGetAt_mut(K, V)(ref const MutMap!(K, V) a, in K key) {
 	}
 }
 
-void addToMutMap(K, V)(ref Alloc alloc, scope ref MutMap!(K, V) a, K key, V value) {
+void mustAddToMutMap(K, V)(ref Alloc alloc, scope ref MutMap!(K, V) a, K key, V value) {
 	size_t sizeBefore = a.size;
-	drop(setInMap(alloc, a, key, value));
+	drop(setInMap!(K, V)(alloc, a, key, value));
 	assert(a.size == sizeBefore + 1);
 }
 
@@ -141,7 +152,7 @@ ref KeyValuePair!(K, V) getOrAddPair(K, V)(
 ) {
 	ensureNonEmptyCapacity(alloc, a);
 	assert(a.size < a.pairs.length);
-	size_t i = getHash(key) % a.pairs.length;
+	size_t i = getHash!K(key) % a.pairs.length;
 	while (true) {
 		if (!has(a.pairs[i])) {
 			KeyValuePair!(K, V) pair = getPair();
@@ -165,7 +176,7 @@ ref KeyValuePair!(K, V) getOrAddPair(K, V)(
 	in V delegate(ref const V) @safe @nogc pure nothrow cbUpdate,
 ) {
 	ensureNonEmptyCapacity(alloc, a);
-	size_t i = getHash(key) % a.pairs.length;
+	size_t i = getHash!K(key) % a.pairs.length;
 	while (true) {
 		if (!has(a.pairs[i]))
 			return addAt!(K, V)(alloc, a, i, KeyValuePair!(K, V)(key, cbInsert()));
@@ -181,7 +192,7 @@ ref KeyValuePair!(K, V) getOrAddPair(K, V)(
 }
 
 MutOpt!V mayDelete(K, V)(ref MutMap!(K, V) a, in K key) {
-	Opt!size_t index = getIndex(a, key);
+	Opt!size_t index = getIndex!(K, V)(a, key);
 	return has(index) ? someMut(deleteAtIndex(a, force(index))) : noneMut!V;
 }
 
@@ -200,7 +211,7 @@ V mustDelete(K, V)(ref MutMap!(K, V) a, in K key) {
 	}
 }
 
-private V deleteAtIndex(K, V)(ref MutMap!(K, V) a, size_t i) {
+private V deleteAtIndex(K, V)(scope ref MutMap!(K, V) a, size_t i) {
 	V res = force(a.pairs[i]).value;
 	a.size--;
 	fillHole(a, i, nextI(a, i));
@@ -208,14 +219,10 @@ private V deleteAtIndex(K, V)(ref MutMap!(K, V) a, size_t i) {
 }
 
 // When there is a hole, move anything there that would be closer to where it should be.
-private void fillHole(K, V)(
-	ref MutMap!(K, V) a,
-	size_t holeI,
-	size_t fromI,
-) {
+private void fillHole(K, V)(scope ref MutMap!(K, V) a, size_t holeI, size_t fromI) {
 	while (has(a.pairs[fromI])) {
-		immutable K key = force(a.pairs[fromI]).key;
-		immutable size_t desiredI = getHash(key) % a.pairs.length;
+		K key = force(a.pairs[fromI]).key;
+		size_t desiredI = getHash!K(key) % a.pairs.length;
 		if (walkDistance(a, desiredI, holeI) < walkDistance(a, desiredI, fromI)) {
 			overwriteMemory(&a.pairs[holeI], a.pairs[fromI]);
 			holeI = fromI;
@@ -226,20 +233,13 @@ private void fillHole(K, V)(
 	overwriteMemory(&a.pairs[holeI], noneMut!(KeyValuePair!(K, V)));
 }
 
-private immutable(size_t) nextI(K, V)(
-	ref const MutMap!(K, V) a,
-	immutable size_t i,
-) {
+private size_t nextI(K, V)(in MutMap!(K, V) a, size_t i) {
 	assert(a.size < a.pairs.length);
-	immutable size_t res = i + 1;
+	size_t res = i + 1;
 	return res == a.pairs.length ? 0 : res;
 }
 
-private immutable(size_t) walkDistance(K, V)(
-	ref const MutMap!(K, V) a,
-	immutable size_t i0,
-	immutable size_t i1,
-) =>
+private size_t walkDistance(K, V)(ref const MutMap!(K, V) a, size_t i0, size_t i1) =>
 	i0 <= i1
 		? i1 - i0
 		: a.pairs.length + i1 - i0;
@@ -247,7 +247,7 @@ private immutable(size_t) walkDistance(K, V)(
 private @trusted immutable(Out[]) mapToArr_const(Out, K, V)(
 	ref Alloc alloc,
 	in MutMap!(K, V) a,
-	in immutable(Out) delegate(immutable K, ref const V) @safe @nogc pure nothrow cb,
+	in Out delegate(immutable K, ref const V) @safe @nogc pure nothrow cb,
 ) {
 	Out[] res = allocateElements!Out(alloc, a.size);
 	Out* cur = res.ptr;
@@ -276,7 +276,7 @@ immutable(V[]) moveToValues(K, V)(ref Alloc alloc, ref MutMap!(immutable K, immu
 
 @trusted immutable(Map!(K, V)) moveToMap(K, V)(
 	ref Alloc alloc,
-	ref MutMap!(immutable K, immutable V) a,
+	ref MutMap!(K, V) a,
 ) {
 	immutable Map!(K, V) res = immutable Map!(K, V)(cast(immutable) a);
 	clear(a);
@@ -293,23 +293,33 @@ immutable(Map!(K, VOut)) mapToMap(K, VOut, VIn)(
 	scope ref MutMap!(K, VIn) a,
 	in immutable(VOut) delegate(ref VIn) @safe @nogc pure nothrow cb,
 ) {
-	immutable MutOpt!(KeyValuePair!(immutable K, immutable VOut))[] outPairs =
-		map!(MutOpt!(KeyValuePair!(immutable K, immutable VOut)), MutOpt!(KeyValuePair!(K, VIn)))(
+	immutable MutOpt!(KeyValuePair!(K, VOut))[] outPairs =
+		map!(MutOpt!(KeyValuePair!(K, VOut)), MutOpt!(KeyValuePair!(K, VIn)))(
 			alloc, a.pairs, (ref MutOpt!(KeyValuePair!(K, VIn)) pair) =>
 			has(pair)
 				// TODO: do without casts...
 				? cast(immutable) someMut(
-					KeyValuePair!(immutable K, immutable VOut)(force(pair).key, cb(force(pair).value)))
-				: cast(immutable) noneMut!(KeyValuePair!(immutable K, immutable VOut)));
+					KeyValuePair!(K, VOut)(force(pair).key, cb(force(pair).value)))
+				: cast(immutable) noneMut!(KeyValuePair!(K, VOut)));
 
-	return immutable Map!(K, VOut)(immutable MutMap!(immutable K, immutable VOut)(a.size, outPairs));
+	return Map!(K, VOut)(immutable MutMap!(K, VOut)(a.size, outPairs));
 }
 
 immutable(V[]) valuesArray(K, V)(ref Alloc alloc, in MutMap!(K, V) a) =>
 	mapToArr_const!(V, K, V)(alloc, a, (immutable(K), ref V v) => v);
 
+void mutMapEachKey(K, V)(scope ref MutMap!(K, V) a, in void delegate(K) @safe @nogc pure nothrow cb) {
+	foreach (ref MutOpt!(KeyValuePair!(K, V)) pair; a.pairs)
+		if (has(pair))
+			cb(force(pair).key);
+}
+void mutMapEachKey(K, V)(scope ref const MutMap!(K, V) a, in void delegate(const K) @safe @nogc pure nothrow cb) {
+	foreach (ref const MutOpt!(KeyValuePair!(K, V)) pair; a.pairs)
+		if (has(pair))
+			cb(force(pair).key);
+}
 void mutMapEach(K, V)(ref inout MutMap!(K, V) a, in void delegate(const K, ref inout V) @safe @nogc pure nothrow cb) {
-	foreach (ref ConstOpt!(KeyValuePair!(K, V)) pair; a.pairs)
+	foreach (ref inout MutOpt!(KeyValuePair!(K, V)) pair; a.pairs)
 		if (has(pair))
 			cb(force(pair).key, force(pair).value);
 }
@@ -329,6 +339,16 @@ void mutMapEachIn(K, V)(
 		if (has(pair))
 			cb(force(pair).key, force(pair).value);
 }
+void mutMapEachValue(K, V)(ref MutMap!(K, V) a, in void delegate(ref V) @safe @nogc pure nothrow cb) {
+	foreach (ref MutOpt!(KeyValuePair!(K, V)) pair; a.pairs)
+		if (has(pair))
+			cb(force(pair).value);
+}
+void mutMapEachValue(K, V)(in MutMap!(K, V) a, in void delegate(in V) @safe @nogc pure nothrow cb) {
+	foreach (ref ConstOpt!(KeyValuePair!(K, V)) pair; a.pairs)
+		if (has(pair))
+			cb(force(pair).value);
+}
 bool existsInMutMap(K, V)(
 	in MutMap!(K, V) a,
 	in bool delegate(in K, in V) @safe @nogc pure nothrow cb,
@@ -337,6 +357,12 @@ bool existsInMutMap(K, V)(
 		if (has(pair) && cb(force(pair).key, force(pair).value))
 			return true;
 	return false;
+}
+MutOpt!V findInMutMap(K, V)(ref MutMap!(K, V) a, in bool delegate(in K, in V) @safe @nogc pure nothrow cb) {
+	foreach (ref MutOpt!(KeyValuePair!(K, V)) pair; a.pairs)
+		if (has(pair) && cb(force(pair).key, force(pair).value))
+			return someMut(force(pair).value);
+	return noneMut!V;
 }
 
 private:
@@ -384,11 +410,11 @@ bool eq(K)(in K a, in K b) {
 		return a == b;
 }
 
-ulong getHash(K)(in immutable K key) {
+ulong getHash(K)(in K key) {
 	Hasher hasher = Hasher();
 	static if (is(K == P*, P)) {
 		hashPtr(hasher, key);
-	} else static if (is(K == string)) {
+	} else static if (is(K == immutable string)) {
 		foreach (immutable char c; key)
 			hashUbyte(hasher, c);
 	} else static if (is(K == size_t)) {
