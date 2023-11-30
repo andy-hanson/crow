@@ -839,7 +839,7 @@ immutable struct FileAst {
 	VarDeclAst[] vars;
 }
 
-FileAst* fileAstForDiags(ref Alloc alloc, ParseDiagnostic[] diags) =>
+private FileAst* fileAstForDiags(ref Alloc alloc, ParseDiagnostic[] diags) =>
 	allocate(alloc, FileAst(
 		diags,
 		safeCStr!"",

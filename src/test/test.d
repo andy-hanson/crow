@@ -11,6 +11,7 @@ import test.testInterpreter : testInterpreter;
 import test.testJson : testJson;
 import test.testLineAndColumnGetter : testLineAndColumnGetter;
 import test.testMemory : testMemory;
+import test.testServer : testServer;
 import test.testSortUtil : testSortUtil;
 import test.testStack : testStack;
 import test.testSym : testSym;
@@ -18,39 +19,51 @@ import test.testUri : testUri;
 import test.testUtil : Test;
 import test.testWriter : testWriter;
 import util.alloc.alloc : MetaAlloc;
+import util.col.arr : empty;
+import util.col.arrUtil : find;
+import util.col.str : SafeCStr, strOfSafeCStr, strEq;
 import util.exitCode : ExitCode;
+import util.opt : force, Opt;
 import util.perf : Perf, withNullPerf;
 import util.ptr : ptrTrustMe;
-import util.sym : Sym, sym;
 
-ExitCode test(MetaAlloc* alloc) =>
+ExitCode test(MetaAlloc* alloc, in SafeCStr[] names) =>
 	withNullPerf!(ExitCode, (scope ref Perf perf) {
 		Test test = Test(alloc, ptrTrustMe(perf));
-		foreach (ref NameAndTest x; allTests)
-			x.test(test);
+		if (empty(names)) {
+			foreach (ref NameAndTest x; allTests)
+				x.test(test);
+		} else {
+			foreach (SafeCStr name; names) {
+				Opt!NameAndTest found = find!NameAndTest(allTests, (in NameAndTest x) =>
+					strEq(x.name, strOfSafeCStr(name)));
+				force(found).test(test);
+			}
+		}
 		return ExitCode.ok;
 	});
 
 private:
 
 NameAndTest[] allTests = [
-	NameAndTest(sym!"alloc", &testAlloc),
-	NameAndTest(sym!"apply-fn", &testApplyFn),
-	NameAndTest(sym!"fake-extern", &testFakeExtern),
-	NameAndTest(sym!"hover", &testHover),
-	NameAndTest(sym!"interpreter", &testInterpreter),
-	NameAndTest(sym!"json", &testJson),
-	NameAndTest(sym!"line-and-column-getter", &testLineAndColumnGetter),
-	NameAndTest(sym!"map", &testMap),
-	NameAndTest(sym!"memory", &testMemory),
-	NameAndTest(sym!"sort-util", &testSortUtil),
-	NameAndTest(sym!"stack", &testStack),
-	NameAndTest(sym!"sym", &testSym),
-	NameAndTest(sym!"path", &testUri),
-	NameAndTest(sym!"writer", &testWriter),
+	NameAndTest("alloc", &testAlloc),
+	NameAndTest("apply-fn", &testApplyFn),
+	NameAndTest("fake-extern", &testFakeExtern),
+	NameAndTest("hover", &testHover),
+	NameAndTest("interpreter", &testInterpreter),
+	NameAndTest("json", &testJson),
+	NameAndTest("line-and-column-getter", &testLineAndColumnGetter),
+	NameAndTest("map", &testMap),
+	NameAndTest("memory", &testMemory),
+	NameAndTest("server", &testServer),
+	NameAndTest("sort-util", &testSortUtil),
+	NameAndTest("stack", &testStack),
+	NameAndTest("sym", &testSym),
+	NameAndTest("path", &testUri),
+	NameAndTest("writer", &testWriter),
 ];
 
 immutable struct NameAndTest {
-	Sym name;
+	string name;
 	void function(ref Test) @safe @nogc nothrow test; // not pure
 }

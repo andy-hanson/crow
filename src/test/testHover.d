@@ -6,14 +6,12 @@ import frontend.ide.getDefinition : getDefinitionForPosition;
 import frontend.ide.getHover : getHover;
 import frontend.ide.getPosition : getPosition;
 import frontend.ide.position : Position;
-import frontend.lang : crowExtension;
 import frontend.showModel : ShowCtx;
-import frontend.storage : FileContent, jsonOfUriAndRange, ReadFileResult, setFile;
+import frontend.storage : jsonOfUriAndRange;
 import lib.lsp.lspTypes : Hover;
-import lib.server : allUnknownUris, getProgramForAll, getShowDiagCtx, Server, setFile;
-import model.diag : ReadFileDiag;
+import lib.server : getProgramForAll, getShowDiagCtx, Server;
 import model.model : Module, Program;
-import test.testUtil : Test, withTestServer;
+import test.testUtil : setupTestServer, Test, withTestServer;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : empty;
@@ -25,7 +23,7 @@ import util.conv : safeToUint;
 import util.json : field, Json, jsonList, jsonObject, jsonToStringPretty, optionalArrayField;
 import util.lineAndColumnGetter : LineAndColumnGetter, PosKind;
 import util.opt : force, has, Opt;
-import util.uri : getExtension, parseUri, Uri;
+import util.uri : parseUri, Uri;
 import util.sourceRange : jsonOfPosWithinFile, Pos, UriAndRange;
 import util.util : debugLog;
 
@@ -52,8 +50,6 @@ void hoverTest(string crowFileName, string outputFileName)(ref Test test) {
 	});
 }
 
-SafeCStr bootstrapContent = SafeCStr(import("crow/private/bootstrap.crow"));
-
 void withHoverTest(string fileName)(
 	ref Test test,
 	in SafeCStr content,
@@ -61,21 +57,7 @@ void withHoverTest(string fileName)(
 ) {
 	withTestServer(test, (ref Alloc alloc, ref Server server) {
 		Uri uri = parseUri(server.allUris, "magic:/" ~ fileName);
-		assert(getExtension(server.allUris, uri) == crowExtension);
-		setFile(test.perf, server, uri, ReadFileResult(FileContent(content)));
-		while (true) {
-			Uri[] unknowns = allUnknownUris(alloc, server);
-			if (empty(unknowns))
-				break;
-			else
-				foreach (Uri unknown; unknowns)
-					setFile(
-						test.perf, server, unknown,
-						unknown == parseUri(server.allUris, "test:///include/crow/private/bootstrap.crow")
-							? ReadFileResult(FileContent(bootstrapContent))
-							: ReadFileResult(ReadFileDiag.notFound));
-		}
-
+		setupTestServer(test, alloc, server, uri, content);
 		Program program = getProgramForAll(alloc, server);
 		cb(getShowDiagCtx(server, program), mustGetAt(program.allModules, uri));
 	});

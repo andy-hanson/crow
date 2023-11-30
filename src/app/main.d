@@ -241,9 +241,9 @@ ExitCode go(scope ref Perf perf, ref Alloc alloc, ref Server server, in Command 
 					}
 				});
 		},
-		(in Command.Test) {
+		(in Command.Test x) {
 			version (Test) {
-				return test(server.metaAlloc);
+				return test(server.metaAlloc, x.names);
 			} else
 				return printError(safeCStr!"Did not compile with tests");
 		},

@@ -1051,8 +1051,6 @@ immutable struct Module {
 	UriAndRange range() scope =>
 		UriAndRange.topOfFile(uri);
 }
-Module emptyModule(Uri uri, FileAst* ast) =>
-	Module(uri, ast, [], [], [], [], [], [], [], [], Map!(Sym, NameReferents)());
 
 void eachImportOrReExport(in Module a, in void delegate(in ImportOrExport) @safe @nogc pure nothrow cb) {
 	foreach (ref ImportOrExport x; a.imports)

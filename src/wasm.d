@@ -51,7 +51,7 @@ extern(C) size_t getParameterBufferLength() => parameterBuffer.length;
 	SafeCStr paramsStr = SafeCStr(paramsCStr);
 	withTempAlloc(server.metaAlloc, (ref Alloc alloc) {
 		Json params = mustParseJson(alloc, server.allSymbols, paramsStr);
-		setIncludeDir(*server, parseUri(server.allUris, get!"includeDir"(params).as!string));
+		setIncludeDir(server, parseUri(server.allUris, get!"includeDir"(params).as!string));
 		setCwd(*server, parseUri(server.allUris, get!"cwd"(params).as!string));
 	});
 	return server;

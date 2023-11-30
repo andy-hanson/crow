@@ -4,7 +4,8 @@ module util.col.mutSet;
 
 import util.alloc.alloc : Alloc;
 import util.col.map : KeyValuePair;
-import util.col.mutMap : mayDelete, mustDelete, MutMap, mutMapEachKey, mutMapHasKey, mutMapPopArbitrary, setInMap;
+import util.col.mutMap :
+	mustAddToMutMap, mayDelete, mustDelete, MutMap, mutMapEachKey, mutMapHasKey, mutMapPopArbitrary, setInMap;
 import util.opt : force, has, MutOpt, noneMut, someMut;
 
 struct MutSet(T) {
@@ -39,8 +40,12 @@ void mayAddToMutSet(T)(ref Alloc alloc, scope ref MutSet!T a, T value) {
 	setInMap(alloc, a.inner, value, []);
 }
 
+void mustAddToMutSet(T)(ref Alloc alloc, scope ref MutSet!T a, T value) {
+	mustAddToMutMap(alloc, a.inner, value, []);
+}
+
 bool mutSetMayDelete(T)(scope ref MutSet!T a, T value) {
-	MutOpt!(ubyte[0]) res = .mayDelete!(T, ubyte[0])(a.inner, value);
+	MutOpt!(ubyte[0]) res = mayDelete(a.inner, value);
 	return has(res);
 }
 

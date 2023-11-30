@@ -439,7 +439,6 @@ immutable string[] specialSyms = [
 	"is-big-endian\0",
 	"is-interpreted\0",
 	"is-single-threaded\0",
-	"line-and-column-getter\0",
 	"loop-continue\0",
 	"mutAllocated\0",
 	"parseDiagnostics\0",

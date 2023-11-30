@@ -47,7 +47,9 @@ immutable struct Command {
 		// Does not include executable path
 		SafeCStr[] programArgs;
 	}
-	immutable struct Test {}
+	immutable struct Test {
+		SafeCStr[] names;
+	}
 	immutable struct Version {}
 
 	mixin Union!(Build, Document, Help, Lsp, Print, Run, Test, Version);
@@ -118,9 +120,7 @@ Command parseCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, return
 			case "run":
 				return parseRunCommand(alloc, allUris, cwd, cmdArgs);
 			case "test":
-				return empty(cmdArgs)
-					? Command(Command.Test())
-					: Command(Command.Help(safeCStr!"Usage: 'crow test' (no args)"));
+				return Command(Command.Test(cmdArgs));
 			case "version":
 				return empty(cmdArgs)
 					? Command(Command.Version())
