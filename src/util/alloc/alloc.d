@@ -7,17 +7,17 @@ import util.util : clamp, divRoundUp;
 
 T withStaticAlloc(T, alias cb)(word[] memory) {
 	scope MetaAlloc metaAlloc = MetaAlloc(memory);
-	scope Alloc alloc = newAlloc(&metaAlloc);
+	scope Alloc alloc = newAlloc(AllocName.static_, &metaAlloc);
 	return cb(alloc);
 }
 
 // It's safe to use the result immediately after this ends so long as there are no other allocations.
-T withTempAllocImpure(T)(MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc nothrow cb) =>
-	withTempAllocAlias!(T, cb)(a);
+T withTempAllocImpure(T)(AllocName name, MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc nothrow cb) =>
+	withTempAllocAlias!(T, cb)(name, a);
 
-@trusted private T withTempAllocAlias(T, alias cb)(MetaAlloc* a) {
+@trusted private T withTempAllocAlias(T, alias cb)(AllocName name, MetaAlloc* a) {
 	// TODO:PERF Since this is temporary, an initial block could be on the stack?
-	Alloc alloc = newAlloc(a);
+	Alloc alloc = newAlloc(name, a);
 	static if (is(T == void)) {
 		cb(alloc);
 	} else {
@@ -31,8 +31,8 @@ T withTempAllocImpure(T)(MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc noth
 
 pure:
 
-@safe T withTempAlloc(T)(MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc pure nothrow cb) =>
-	withTempAllocAlias!(T, cb)(a);
+@safe T withTempAlloc(T)(AllocName name, MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc pure nothrow cb) =>
+	withTempAllocAlias!(T, cb)(name, a);
 
 @trusted T withStackAlloc(size_t sizeWords, T)(in T delegate(ref Alloc) @safe @nogc pure nothrow cb) {
 	ulong[sizeWords] memory = void;
@@ -52,14 +52,31 @@ struct MetaAlloc {
 		freeListSentinel.next = block;
 	}
 
+	private:
 	word[] words;
 
 	@trusted BlockHeader* freeListSentinel() =>
 		cast(BlockHeader*) words.ptr;
 }
 
-@safe Alloc newAlloc(MetaAlloc* a) =>
-	Alloc(a, allocateBlock(*a, 0));
+@safe Alloc newAlloc(AllocName name, MetaAlloc* a) =>
+	Alloc(name, a, allocateBlock(*a, 0));
+
+enum AllocName {
+	allSymbols,
+	allUris,
+	frontend,
+	handleLspMessage,
+	lspState,
+	main,
+	other,
+	static_,
+	storage,
+	storageChangeFile,
+	storageFileInfo,
+	test,
+	wasmNewServer,
+}
 
 struct Alloc {
 	@safe @nogc pure nothrow:
@@ -68,24 +85,27 @@ struct Alloc {
 
 	@disable this();
 	@disable this(ref const Alloc);
-	@trusted this(MetaAlloc* m, BlockHeader* b) {
+	@trusted this(AllocName name, MetaAlloc* m, BlockHeader* b) {
+		debugName = name;
 		meta = m;
 		assert(b.prev == null);
 		curBlock = b;
 		cur = b.words.ptr;
 	}
-	this(MetaAlloc* m, BlockHeader* b, word* c) {
+	this(AllocName name, MetaAlloc* m, BlockHeader* b, word* c) {
+		debugName = name;
 		meta = m;
 		curBlock = b;
 		cur = c;
 	}
 
+	AllocName debugName;
 	MetaAlloc* meta;
 	BlockHeader* curBlock;
 	word* cur;
 
 	public Alloc move() {
-		Alloc res = Alloc(meta, curBlock, cur);
+		Alloc res = Alloc(debugName, meta, curBlock, cur);
 		meta = null;
 		curBlock = null;
 		cur = null;
@@ -97,6 +117,7 @@ alias TempAlloc = Alloc;
 // Alloc that we are done allocating to.
 struct FinishedAlloc {
 	private:
+	AllocName debugName;
 	MetaAlloc* meta;
 	BlockHeader* lastBlock;
 }
@@ -130,7 +151,7 @@ size_t perf_curBytes(ref Alloc a) {
 
 @trusted FinishedAlloc finishAlloc(ref Alloc a) {
 	freeRestOfBlock(*a.meta, a.curBlock, a.cur);
-	return FinishedAlloc(a.meta, a.curBlock);
+	return FinishedAlloc(a.debugName, a.meta, a.curBlock);
 }
 
 void freeAlloc(ref FinishedAlloc a) {
@@ -147,8 +168,8 @@ struct AllocAndValue(T) {
 	T value;
 }
 
-@safe AllocAndValue!T withAlloc(T)(MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc pure nothrow cb) {
-	Alloc alloc = newAlloc(a);
+@safe AllocAndValue!T withAlloc(T)(AllocName name, MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc pure nothrow cb) {
+	Alloc alloc = newAlloc(name, a);
 	T value = cb(alloc);
 	FinishedAlloc finished = finishAlloc(alloc);
 	return AllocAndValue!T(finished, value);

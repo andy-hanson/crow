@@ -4,7 +4,7 @@ import lib.lsp.lspParse : parseLspInMessage;
 import lib.lsp.lspToJson : jsonOfLspOutAction;
 import lib.lsp.lspTypes : LspInMessage, LspOutAction;
 import lib.server : CbHandleUnknownUris, handleLspMessage, Server, setCwd, setIncludeDir;
-import util.alloc.alloc : Alloc, withTempAlloc, withTempAllocImpure;
+import util.alloc.alloc : Alloc, AllocName, withTempAlloc, withTempAllocImpure;
 import util.col.str : CStr, SafeCStr;
 import util.json : get, Json, jsonToString;
 import util.jsonParse : mustParseJson;
@@ -49,7 +49,7 @@ extern(C) size_t getParameterBufferLength() => parameterBuffer.length;
 	Server* server = &serverStorage;
 	server.__ctor(serverBuffer);
 	SafeCStr paramsStr = SafeCStr(paramsCStr);
-	withTempAlloc(server.metaAlloc, (ref Alloc alloc) {
+	withTempAlloc(AllocName.wasmNewServer, server.metaAlloc, (ref Alloc alloc) {
 		Json params = mustParseJson(alloc, server.allSymbols, paramsStr);
 		setIncludeDir(server, parseUri(server.allUris, get!"includeDir"(params).as!string));
 		setCwd(*server, parseUri(server.allUris, get!"cwd"(params).as!string));
@@ -61,7 +61,7 @@ extern(C) size_t getParameterBufferLength() => parameterBuffer.length;
 @system extern(C) CStr handleLspMessage(Server* server, scope CStr input) {
 	SafeCStr inputStr = SafeCStr(input);
 	return withWebPerf!(SafeCStr, (scope ref Perf perf) =>
-		withTempAllocImpure!SafeCStr(server.metaAlloc, (ref Alloc resultAlloc) {
+		withTempAllocImpure!SafeCStr(AllocName.handleLspMessage, server.metaAlloc, (ref Alloc resultAlloc) {
 			Json inputJson = mustParseJson(resultAlloc, server.allSymbols, inputStr);
 			LspInMessage inputMessage = parseLspInMessage(resultAlloc, server.allUris, inputJson);
 			LspOutAction output = handleLspMessage(perf, resultAlloc, *server, inputMessage, none!CbHandleUnknownUris);

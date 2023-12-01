@@ -9,7 +9,7 @@ import frontend.parse.parse : parseFile;
 import lib.lsp.lspTypes : TextDocumentContentChangeEvent, TextDocumentPositionParams;
 import model.diag : ReadFileDiag;
 import model.model : Config;
-import util.alloc.alloc : Alloc, AllocAndValue, freeAlloc, MetaAlloc, newAlloc, withAlloc, withTempAlloc;
+import util.alloc.alloc : Alloc, AllocAndValue, AllocName, freeAlloc, MetaAlloc, newAlloc, withAlloc, withTempAlloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : contains;
@@ -48,7 +48,7 @@ struct Storage {
 		metaAlloc = a;
 		allSymbols = as;
 		allUris = au;
-		mapAlloc_ = newAlloc(metaAlloc);
+		mapAlloc_ = newAlloc(AllocName.storage, metaAlloc);
 	}
 
 	private:
@@ -106,7 +106,7 @@ void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentCont
 
 void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentContentChangeEvent change) {
 	FileInfo info = fileOrDiag(a, uri).as!FileInfo;
-	withTempAlloc(a.metaAlloc, (ref Alloc alloc) {
+	withTempAlloc(AllocName.storageChangeFile, a.metaAlloc, (ref Alloc alloc) {
 		SafeCStr newContent = applyChange(alloc, asString(info.content), info.lineAndColumnGetter, change);
 		// TODO:PERF This means an unnecessary copy in 'setFile'.
 		// Would be better to modify the array in place and force re-parse.
@@ -115,7 +115,7 @@ void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentCont
 }
 
 private AllocAndValue!FileInfo getFileInfo(scope ref Perf perf, ref Storage storage, Uri uri, in string input) =>
-	withAlloc!FileInfo(storage.metaAlloc, (ref Alloc alloc) {
+	withAlloc!FileInfo(AllocName.storageFileInfo, storage.metaAlloc, (ref Alloc alloc) {
 		SafeCStr content = copyToSafeCStr(alloc, input);
 		return FileInfo(
 			FileContent(content),

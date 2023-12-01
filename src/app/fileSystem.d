@@ -141,10 +141,18 @@ private @trusted ubyte[8] getRandomBytes() {
 		if (err != 0) todo!void("Error getting random bytes");
 		return concat(bytesOfUint(v0), bytesOfUint(v1));
 	} else {
-		ubyte[8] out_;
+		return getNRandomBytes!8();
+	}
+}
+
+@trusted ubyte[n] getNRandomBytes(size_t n)() {
+	version (Windows) {
+		static assert(false); // TODO
+	} else {
+		ubyte[n] out_;
 		FILE* fd = fopen("/dev/urandom", "rb");
 		if (fd == null)
-			return todo!(ubyte[8])("missing /dev/urandom");
+			return todo!(ubyte[n])("missing /dev/urandom");
 		scope(exit) fclose(fd);
 		fread(out_.ptr, ubyte.sizeof, out_.length, fd);
 		return out_;

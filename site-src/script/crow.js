@@ -11,9 +11,11 @@ export const Write = null
 /** @typedef {{tokenTypes: ReadonlyArray<string>, tokenModifiers: ReadonlyArray<string>}} */
 export const SemanticTokensLegend = null
 
+/** @typedef {{messages:any[], exitCode?:number}} Response */
+
 /**
 @typedef
-@property {(inputMessage: any) => {messages:any[], exitCode?:number}} handleMessage
+@property {(inputMessage: any) => Response} handleMessage
 @property {(method: string, params: any) => any} request
 */
 export const CrowLspServer = null
@@ -36,7 +38,7 @@ export const Diagnostic = null
 @typedef
 @property {CrowLspServer["request"]} request
 @property {SemanticTokensLegend} tokensLegend
-@property {(uri: Uri, text: string) => void} openFile
+@property {(uri: Uri, text: string) => ReadonlyArray<Diagnostic>} openFile
 @property {(uri: Uri, text: string) => ReadonlyArray<Diagnostic>} changeFile
 @property {() => void} markUnknownFilesNotFound
 */
@@ -166,28 +168,33 @@ const crowServer = (async () => {
 	const tokensLegend = lsp.request("initialize", {}).capabilities.semanticTokensProvider.legend
 	lsp.handleMessage({method:"initialized", params:{}})
 
-	/** @type {CrowServer["openFile"]} */
-	const openFile = (uri, text) => {
-		lsp.handleMessage({
-			method: "textDocument/didOpen",
-			params: {textDocument:{uri, text}},
-		})
-	}
-
-	/** @type {CrowServer["changeFile"]} */
-	const changeFile = (uri, text) => {
-		const response = lsp.handleMessage({
-			method: "textDocument/didChange",
-			params: {textDocument:{uri}, contentChanges:[{text}]},
-		})
+	/** @type {function(Uri, Response): ReadonlyArray<Diagnostic>} */
+	const getDiagnostics = (uri, response) => {
 		let diagnostics = []
 		for (const message of response.messages) {
-			assert(message.method === "textDocument/publishDiagnostics")
-			assert(message.params.uri === uri)
-			diagnostics = message.params.diagnostics
+			if (message.method === "custom/unknownUris") {
+			} else {
+				assert(message.method === "textDocument/publishDiagnostics")
+				assert(message.params.uri === uri)
+				diagnostics = message.params.diagnostics
+			}
 		}
 		return diagnostics
 	}
+
+	/** @type {CrowServer["openFile"]} */
+	const openFile = (uri, text) =>
+		getDiagnostics(uri, lsp.handleMessage({
+			method: "textDocument/didOpen",
+			params: {textDocument:{uri, text}},
+		}))
+
+	/** @type {CrowServer["changeFile"]} */
+	const changeFile = (uri, text) =>
+		getDiagnostics(uri ,lsp.handleMessage({
+			method: "textDocument/didChange",
+			params: {textDocument:{uri}, contentChanges:[{text}]},
+		}))
 
 	/** @type {CrowServer["markUnknownFilesNotFound"]} */
 	const markUnknownFilesNotFound = () => {

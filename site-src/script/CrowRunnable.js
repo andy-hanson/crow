@@ -115,10 +115,9 @@ const connected = (shadowRoot, name, noRun, crow, initialText) => {
 		return hover ? hover.contents.value : ""
 	}
 	const crowText = CrowText.create({getHover, tokensAndDiagnostics, text})
-	crow.openFile(mainUri, '')
 
 	text.nowAndSubscribe(value => {
-		const diagnostics = crow.changeFile(mainUri, value)
+		const diagnostics = crow.openFile(mainUri, value)
 		const encodedTokens = crow.request("textDocument/semanticTokens/full", {textDocument:{uri:mainUri}}).data
 		tokensAndDiagnostics.set({
 			tokens: decodeTokens(encodedTokens, crow.tokensLegend),

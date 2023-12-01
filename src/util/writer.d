@@ -23,6 +23,8 @@ struct Writer {
 			eachChar(a, (char c) {
 				this ~= c;
 			});
+		else static if (is(T == bool))
+			this ~= (a ? "true" : "false");
 		else static if (is(T == int) || is(T == long)) {
 			if (a < 0)
 				this ~= '-';

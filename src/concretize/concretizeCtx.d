@@ -88,7 +88,7 @@ import util.opt : force, has, none;
 import util.ptr : castMutable, hashPtr;
 import util.sourceRange : UriAndRange;
 import util.sym : AllSymbols, Sym, sym;
-import util.uri : Uri;
+import util.uri : AllUris, Uri;
 import util.util : max, roundUp, todo, unreachable;
 import versionInfo : VersionInfo;
 
@@ -198,6 +198,7 @@ struct ConcretizeCtx {
 	Alloc* allocPtr;
 	immutable VersionInfo versionInfo;
 	const AllSymbols* allSymbolsPtr;
+	const AllUris* allUrisPtr;
 	CommonTypes* commonTypesPtr;
 	immutable Program* programPtr;
 	Late!(ConcreteFun*) curExclusionFun_;
@@ -227,6 +228,8 @@ struct ConcretizeCtx {
 
 	ref const(AllSymbols) allSymbols() return scope const =>
 		*allSymbolsPtr;
+	ref const(AllUris) allUris() return scope const =>
+		*allUrisPtr;
 	ref CommonTypes commonTypes() return scope const =>
 		*commonTypesPtr;
 	ConcreteFun* curExclusionFun() return scope const =>

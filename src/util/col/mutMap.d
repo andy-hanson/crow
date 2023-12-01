@@ -2,6 +2,8 @@ module util.col.mutMap;
 
 @safe @nogc pure nothrow:
 
+import std.algorithm.iteration : filter, map;
+
 import util.alloc.alloc : Alloc, allocateElements;
 import util.col.arr : empty, endPtr;
 import util.col.arrUtil : map;
@@ -339,16 +341,12 @@ void mutMapEachIn(K, V)(
 		if (has(pair))
 			cb(force(pair).key, force(pair).value);
 }
-void mutMapEachValue(K, V)(ref MutMap!(K, V) a, in void delegate(ref V) @safe @nogc pure nothrow cb) {
-	foreach (ref MutOpt!(KeyValuePair!(K, V)) pair; a.pairs)
-		if (has(pair))
-			cb(force(pair).value);
-}
-void mutMapEachValue(K, V)(in MutMap!(K, V) a, in void delegate(in V) @safe @nogc pure nothrow cb) {
-	foreach (ref ConstOpt!(KeyValuePair!(K, V)) pair; a.pairs)
-		if (has(pair))
-			cb(force(pair).value);
-}
+// range of V
+auto values(K, V)(ref MutMap!(K, V) a) =>
+	a.pairs.filter!has.map!(x => force(x).value);
+// range of const V
+auto values(K, V)(ref const MutMap!(K, V) a) =>
+	a.pairs.filter!has.map!(x => force(x).value);
 bool existsInMutMap(K, V)(
 	in MutMap!(K, V) a,
 	in bool delegate(in K, in V) @safe @nogc pure nothrow cb,

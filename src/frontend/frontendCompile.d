@@ -20,13 +20,13 @@ import frontend.storage :
 	markUnknownIfNotExist,
 	ParseResult,
 	Storage;
-import util.alloc.alloc : Alloc, allocateUninitialized, MetaAlloc, newAlloc;
+import util.alloc.alloc : Alloc, allocateUninitialized, AllocName, MetaAlloc, newAlloc;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderTempAsArr, finishArr;
 import util.col.arrUtil : contains, exists, every, findIndex, map;
 import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd, finish, newExactSizeArrBuilder;
 import util.col.map : Map;
 import util.col.enumMap : EnumMap, enumMapMapValues, makeEnumMap;
-import util.col.mutMap : findInMutMap, getOrAdd, mapToMap, moveToMap, MutMap, mutMapEachValue, mutMapMustGet;
+import util.col.mutMap : findInMutMap, getOrAdd, mapToMap, moveToMap, MutMap, mutMapMustGet, values;
 import util.col.mutSet :
 	mayAddToMutSet,
 	mustAddToMutSet,
@@ -94,7 +94,7 @@ FrontendCompiler* initFrontend(
 	Uri crowIncludeDir,
 ) {
 	return () @trusted {
-		Alloc alloc = newAlloc(metaAlloc);
+		Alloc alloc = newAlloc(AllocName.frontend, metaAlloc);
 		FrontendCompiler* res = allocateUninitialized!FrontendCompiler(alloc);
 		initMemory(res, FrontendCompiler(
 			alloc.move(), allSymbols, allUris, storage, crowIncludeDir,
@@ -147,7 +147,7 @@ private Program makeProgramCommon(ref Alloc alloc, ref FrontendCompiler a, Opt!U
 		mapToMap!(Uri, immutable Module*, CrowFile*)(alloc, a.crowFiles, (ref const CrowFile* file) =>
 			force(file.module_)),
 		map!(Module*, Uri)(alloc, roots, (ref Uri uri) => force(mutMapMustGet(a.crowFiles, uri).module_)),
-		getCommonFuns(alloc, a.programState, *force(a.commonTypes), mainModule, commonModules),
+		getCommonFuns(a.alloc, a.programState, *force(a.commonTypes), mainModule, commonModules),
 		*force(a.commonTypes));
 }
 
@@ -166,9 +166,8 @@ void onFileChanged(scope ref Perf perf, ref FrontendCompiler a, Uri uri) {
 			updatedAstOrConfig(a, file);
 			break;
 		case FileType.crowConfig:
-			mutMapEachValue(a.crowFiles, (ref CrowFile* file) {
+			foreach (CrowFile* file; values(a.crowFiles))
 				updateFileOnConfigChange(a, file);
-			});
 			break;
 		case FileType.other:
 			OtherFile* file = ensureOtherFile(a, uri);
@@ -187,11 +186,11 @@ private:
 
 Map!(Uri, immutable Config*) getAllConfigs(ref Alloc alloc, in FrontendCompiler a) {
 	MutMap!(Uri, immutable Config*) res;
-	mutMapEachValue!(Uri, CrowFile*)(a.crowFiles, (in CrowFile* file) {
+	foreach (const CrowFile* file; values(a.crowFiles)) {
 		Config* config = force(file.config);
 		if (has(config.configUri))
 			getOrAdd!(Uri, immutable Config*)(alloc, res, force(config.configUri), () => config);
-	});
+	}
 	return moveToMap!(Uri, immutable Config*)(alloc, res);
 }
 
@@ -216,7 +215,7 @@ OtherFile* ensureOtherFile(ref FrontendCompiler a, Uri uri) {
 
 // TODO:PERF Kill
 void validateReferencedBy(ref FrontendCompiler a) {
-	mutMapEachValue!(Uri, CrowFile*)(a.crowFiles, (in CrowFile* file) {
+	foreach (const CrowFile* file; a.crowFiles.values) {
 		if (has(file.resolvedImports)) {
 			foreach (ref const MostlyResolvedImport x; force(file.resolvedImports)) {
 				ConstOpt!(MutSet!(CrowFile*)*) rb = getReferencedBy(x);
@@ -229,7 +228,7 @@ void validateReferencedBy(ref FrontendCompiler a) {
 				x.isA!(CrowFile*) && x.as!(CrowFile*) == file));
 			assert(!(has(importer.module_) && !has(file.module_)));
 		}
-	});
+	}
 }
 
 void doDirtyWork(scope ref Perf perf, ref FrontendCompiler a) {
@@ -245,19 +244,21 @@ void doDirtyWork(scope ref Perf perf, ref FrontendCompiler a) {
 		markAllNonBootstrapModulesDirty(a, bootstrap); // Since they all use commonTypes
 	}
 
-	while (true) {
-		MutOpt!(CrowFile*) opt = mutSetPopArbitrary(a.workable);
-		if (has(opt)) {
-			CrowFile* file = force(opt);
-			file.module_ = someMut(compileModule(perf, a, file));
-			assert(a.countUncompiledCrowFiles > 0);
-			a.countUncompiledCrowFiles--;
-			foreach (CrowFile* importer; file.referencedBy)
-				addToWorkableIfSo(a, importer);
-		} else if (filesState(a.storage) == FilesState.allLoaded && a.countUncompiledCrowFiles != 0)
-			fixCircularImports(a);
-		else
-			break;
+	if (has(a.commonTypes)) {
+		while (true) {
+			MutOpt!(CrowFile*) opt = mutSetPopArbitrary(a.workable);
+			if (has(opt)) {
+				CrowFile* file = force(opt);
+				file.module_ = someMut(compileNonBootstrapModule(perf, a, file));
+				assert(a.countUncompiledCrowFiles > 0);
+				a.countUncompiledCrowFiles--;
+				foreach (CrowFile* importer; file.referencedBy)
+					addToWorkableIfSo(a, importer);
+			} else if (filesState(a.storage) == FilesState.allLoaded && a.countUncompiledCrowFiles != 0)
+				fixCircularImports(a);
+			else
+				break;
+		}
 	}
 }
 
@@ -285,8 +286,9 @@ Uri[] fixCircularImportsRecur(ref FrontendCompiler a, scope ref ArrBuilder!Uri c
 	return cycle;
 }
 
-Module* compileModule(scope ref Perf perf, ref FrontendCompiler a, CrowFile* file) {
+Module* compileNonBootstrapModule(scope ref Perf perf, ref FrontendCompiler a, CrowFile* file) {
 	assert(isWorkable(a.allUris, *file));
+	assert(has(a.commonTypes)); // bootstrap is always compiled first
 	FileAndAst ast = FileAndAst(file.uri, force(file.ast));
 	return check(
 		perf, a.alloc, a.allSymbols, a.allUris, a.programState, ast,
@@ -363,6 +365,7 @@ void addToWorkableIfSo(ref FrontendCompiler a, CrowFile* file) {
 		mustAddToMutSet!(CrowFile*)(a.alloc, a.workable, file);
 }
 
+// Note: File won't actually be worked on until 'CommonTypes' is set, but it still gets marked here.
 bool isWorkable(scope ref AllUris allUris, in CrowFile a) {
 	assert(!has(a.module_));
 	return has(a.ast) &&
@@ -419,15 +422,13 @@ size_t countImportsAndReExports(in FileAst a) =>
 	(has(a.reExports) ? force(a.reExports).paths.length : 0);
 
 void markAllNonBootstrapModulesDirty(ref FrontendCompiler a, CrowFile* bootstrap) {
-	mutMapEachValue(a.crowFiles, (ref CrowFile* x) {
+	foreach (CrowFile* x; values(a.crowFiles))
 		if (x != bootstrap)
 			markModuleDirty(a, *x);
-	});
 	mutSetClear(a.workable);
-	mutMapEachValue(a.crowFiles, (ref CrowFile* x) {
+	foreach (CrowFile* x; values(a.crowFiles))
 		if (x != bootstrap)
 			addToWorkableIfSo(a, x);
-	});
 }
 
 void markModuleDirty(scope ref FrontendCompiler a, scope ref CrowFile file) {

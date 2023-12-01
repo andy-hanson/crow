@@ -94,7 +94,7 @@ import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
 import model.lowModel : ExternLibraries, LowProgram;
 import model.model : hasFatalDiagnostics, Module, Program;
-import util.alloc.alloc : Alloc, freeElements, MetaAlloc, newAlloc;
+import util.alloc.alloc : Alloc, AllocName, freeElements, MetaAlloc, newAlloc;
 import util.col.arr : only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrLiteral, concatenate, contains, map, mapOp;
@@ -287,7 +287,7 @@ struct Server {
 		allSymbols = AllSymbols(metaAlloc);
 		allUris = AllUris(metaAlloc, &allSymbols);
 		storage = Storage(metaAlloc, &allSymbols, &allUris);
-		lspState = LspState(newAlloc(metaAlloc), []);
+		lspState = LspState(newAlloc(AllocName.lspState, metaAlloc), []);
 	}
 
 	MetaAlloc* metaAlloc() =>

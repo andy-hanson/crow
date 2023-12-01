@@ -51,6 +51,7 @@ ConcreteProgram concretizeInner(
 		allocPtr,
 		versionInfo,
 		castNonScope(printCtx.allSymbolsPtr),
+		castNonScope(printCtx.allUrisPtr),
 		ptrTrustMe(program.commonTypes),
 		ptrTrustMe(program));
 	CommonFuns commonFuns = program.commonFuns;
