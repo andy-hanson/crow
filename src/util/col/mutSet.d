@@ -5,7 +5,7 @@ module util.col.mutSet;
 import util.alloc.alloc : Alloc;
 import util.col.map : KeyValuePair;
 import util.col.mutMap :
-	mustAddToMutMap, mayDelete, mustDelete, MutMap, mutMapEachKey, mutMapHasKey, mutMapPopArbitrary, setInMap;
+	clear, mustAddToMutMap, mayDelete, mustDelete, MutMap, mutMapEachKey, mutMapHasKey, mutMapPopArbitrary, setInMap;
 import util.opt : force, has, MutOpt, noneMut, someMut;
 
 struct MutSet(T) {
@@ -25,6 +25,10 @@ struct MutSet(T) {
 		});
 		return 0;
 	}
+}
+
+void mutSetClear(T)(scope ref MutSet!T a) {
+	clear(a.inner);
 }
 
 bool mutSetHas(T)(in MutSet!T a, in T value) {

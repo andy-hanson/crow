@@ -28,7 +28,14 @@ import util.col.map : Map;
 import util.col.enumMap : EnumMap, enumMapMapValues, makeEnumMap;
 import util.col.mutMap : findInMutMap, getOrAdd, mapToMap, moveToMap, MutMap, mutMapEachValue, mutMapMustGet;
 import util.col.mutSet :
-	mayAddToMutSet, mustAddToMutSet, MutSet, mutSetHas, mutSetMayDelete, mutSetMustDelete, mutSetPopArbitrary;
+	mayAddToMutSet,
+	mustAddToMutSet,
+	MutSet,
+	mutSetClear,
+	mutSetHas,
+	mutSetMayDelete,
+	mutSetMustDelete,
+	mutSetPopArbitrary;
 import util.memory : allocate, initMemory;
 import util.opt : ConstOpt, force, has, MutOpt, Opt, none, noneMut, some, someMut;
 import util.perf : Perf;
@@ -235,7 +242,7 @@ void doDirtyWork(scope ref Perf perf, ref FrontendCompiler a) {
 		bootstrap.module_ = someMut(bs.module_);
 		assert(a.countUncompiledCrowFiles > 0);
 		a.countUncompiledCrowFiles--;
-		// TODO: markAllDirty(); // Since they all use commonTypes
+		markAllNonBootstrapModulesDirty(a, bootstrap); // Since they all use commonTypes
 	}
 
 	while (true) {
@@ -410,6 +417,18 @@ size_t countImportsAndReExports(in FileAst a) =>
 	(a.noStd ? 0 : 1) +
 	(has(a.imports) ? force(a.imports).paths.length : 0) +
 	(has(a.reExports) ? force(a.reExports).paths.length : 0);
+
+void markAllNonBootstrapModulesDirty(ref FrontendCompiler a, CrowFile* bootstrap) {
+	mutMapEachValue(a.crowFiles, (ref CrowFile* x) {
+		if (x != bootstrap)
+			markModuleDirty(a, *x);
+	});
+	mutSetClear(a.workable);
+	mutMapEachValue(a.crowFiles, (ref CrowFile* x) {
+		if (x != bootstrap)
+			addToWorkableIfSo(a, x);
+	});
+}
 
 void markModuleDirty(scope ref FrontendCompiler a, scope ref CrowFile file) {
 	if (has(file.module_)) {

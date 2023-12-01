@@ -12,9 +12,9 @@ import model.model : Config;
 import util.alloc.alloc : Alloc, AllocAndValue, freeAlloc, MetaAlloc, newAlloc, withAlloc, withTempAlloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : contains, copyArr;
+import util.col.arrUtil : contains;
 import util.col.mutMap : getOrAdd, mayDelete, mustAddToMutMap, MutMap, mutMapEachIn;
-import util.col.str : SafeCStr, safeCStrSize;
+import util.col.str : copyToSafeCStr, SafeCStr, safeCStrSize, strOfSafeCStr;
 import util.json : field, Json, jsonObject;
 import util.lineAndColumnGetter :
 	LineAndCharacter,
@@ -75,19 +75,28 @@ immutable struct ParseResult {
 	mixin Union!(FileAst*, Config*, None);
 }
 
-@trusted void setFile(scope ref Perf perf, ref Storage a, Uri uri, in ReadFileResult result) {
+void setFile(scope ref Perf perf, ref Storage a, Uri uri, in ReadFileResult result) {
+	result.matchIn!void(
+		(in FileContent x) {
+			setFile(perf, a, uri, asString(x));
+		},
+		(in ReadFileDiag x) {
+			setFile(perf, a, uri, x);
+		});
+}
+void setFile(scope ref Perf perf, ref Storage a, Uri uri, in string content) {
+	prepareSetFile(a, uri);
+	mustAddToMutMap(a.mapAlloc, a.successes, uri, getFileInfo(perf, a, uri, content));
+}
+void setFile(scope ref Perf perf, ref Storage a, Uri uri, ReadFileDiag diag) {
+	prepareSetFile(a, uri);
+	mustAddToMutMap(a.mapAlloc, a.diags, uri, diag);
+}
+private @trusted void prepareSetFile(ref Storage a, Uri uri) {
 	mayDelete(a.diags, uri);
 	MutOpt!(AllocAndValue!FileInfo) oldContent = mayDelete(a.successes, uri);
 	if (has(oldContent))
 		freeAlloc(force(oldContent).alloc);
-
-	result.matchIn!void(
-		(in FileContent x) @safe {
-			mustAddToMutMap(a.mapAlloc, a.successes, uri, getFileInfo(perf, a, uri, x));
-		},
-		(in ReadFileDiag x) {
-			mustAddToMutMap(a.mapAlloc, a.diags, uri, x);
-		});
 }
 
 void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentContentChangeEvent[] changes) {
@@ -97,19 +106,22 @@ void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentCont
 
 void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentContentChangeEvent change) {
 	FileInfo info = fileOrDiag(a, uri).as!FileInfo;
-	// TODO:PERF This means an unnecessary copy in 'setFile'
 	withTempAlloc(a.metaAlloc, (ref Alloc alloc) {
 		SafeCStr newContent = applyChange(alloc, asString(info.content), info.lineAndColumnGetter, change);
-		setFile(perf, a, uri, ReadFileResult(FileContent(newContent)));
+		// TODO:PERF This means an unnecessary copy in 'setFile'.
+		// Would be better to modify the array in place and force re-parse.
+		setFile(perf, a, uri, strOfSafeCStr(newContent));
 	});
 }
 
-private AllocAndValue!FileInfo getFileInfo(scope ref Perf perf, ref Storage storage, Uri uri, in FileContent content) =>
-	withAlloc!FileInfo(storage.metaAlloc, (ref Alloc alloc) =>
-		FileInfo(
-			copyFileContent(alloc, content),
-			lineAndColumnGetterForText(alloc, asSafeCStr(content)),
-			parseContent(perf, alloc, *storage.allSymbols, *storage.allUris, uri, asSafeCStr(content))));
+private AllocAndValue!FileInfo getFileInfo(scope ref Perf perf, ref Storage storage, Uri uri, in string input) =>
+	withAlloc!FileInfo(storage.metaAlloc, (ref Alloc alloc) {
+		SafeCStr content = copyToSafeCStr(alloc, input);
+		return FileInfo(
+			FileContent(content),
+			lineAndColumnGetterForText(alloc, content),
+			parseContent(perf, alloc, *storage.allSymbols, *storage.allUris, uri, content));
+	});
 
 private ParseResult parseContent(
 	scope ref Perf perf,
@@ -248,14 +260,8 @@ immutable struct FileContent {
 immutable(ubyte[]) asBytes(return scope FileContent a) =>
 	a.bytes[0 .. $ - 1];
 
-private @trusted SafeCStr asSafeCStr(return scope FileContent a) =>
-	SafeCStr(cast(immutable char*) a.bytes.ptr);
-
 string asString(return scope FileContent a) =>
 	cast(string) asBytes(a);
-
-private FileContent copyFileContent(ref Alloc alloc, in FileContent a) =>
-	FileContent(copyArr(alloc, a.bytes));
 
 const struct LineAndColumnGetters {
 	@safe @nogc pure nothrow:

@@ -26,7 +26,6 @@ import frontend.storage :
 	allStorageUris,
 	allUrisWithFileDiag,
 	changeFile,
-	FileContent,
 	FilesState,
 	filesState,
 	getParsedOrDiag,
@@ -99,7 +98,7 @@ import util.alloc.alloc : Alloc, freeElements, MetaAlloc, newAlloc;
 import util.col.arr : only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrLiteral, concatenate, contains, map, mapOp;
-import util.col.str : copyStr, copyToSafeCStr, SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
+import util.col.str : copyStr, SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
 import util.exitCode : ExitCode;
 import util.json : Json;
 import util.late : Late, lateGet, lateSet, MutLate;
@@ -179,9 +178,7 @@ private LspOutAction handleLspNotification(
 		(in DidCloseTextDocumentParams x) =>
 			LspOutAction([]),
 		(in DidOpenTextDocumentParams x) {
-			// TODO:PERF unnecessary copy ('setFile' does another)
-			setFile(perf, server, x.textDocument.uri, ReadFileResult(
-				FileContent(copyToSafeCStr(alloc, x.textDocument.text))));
+			setFile(perf, server, x.textDocument.uri, x.textDocument.text);
 			return handleFileChanged(perf, alloc, server, x.textDocument.uri, cb);
 		},
 		(in DidSaveTextDocumentParams x) =>
@@ -191,7 +188,7 @@ private LspOutAction handleLspNotification(
 		(in InitializedParams x) =>
 			initializedAction(alloc),
 		(in ReadFileResultParams x) {
-			setFile(perf, server, x.uri, ReadFileResult(readFileDiagOfReadFileResultType(x.type)));
+			setFile(perf, server, x.uri, readFileDiagOfReadFileResultType(x.type));
 			return handleFileChanged(perf, alloc, server, x.uri, cb);
 		},
 		(in SetTraceParams _) =>
@@ -213,7 +210,7 @@ private LspOutAction handleFileChanged(
 		case FilesState.hasUnknown:
 			Uri[] unknown = allUnknownUris(alloc, server);
 			foreach (Uri uri; unknown)
-				setFile(perf, server, uri, ReadFileResult(ReadFileDiag.loading));
+				setFile(perf, server, uri, ReadFileDiag.loading);
 			return LspOutAction(arrLiteral!LspOutMessage(alloc, [notification(UnknownUris(unknown))]));
 		case FilesState.hasLoading:
 			return LspOutAction([]);
@@ -368,6 +365,13 @@ void setShowOptions(ref Server server, in ShowOptions options) {
 void setFile(scope ref Perf perf, ref Server server, Uri uri, in ReadFileResult result) {
 	setFile(perf, server.storage, uri, result);
 	onFileChanged(perf, server.frontend, uri);
+}
+void setFile(scope ref Perf perf, ref Server server, Uri uri, in string result) {
+	setFile(perf, server.storage, uri, result);
+	onFileChanged(perf, server.frontend, uri);
+}
+void setFile(scope ref Perf perf, ref Server server, Uri uri, ReadFileDiag diag) {
+	setFile(perf, server, uri, ReadFileResult(diag));
 }
 
 void changeFile(scope ref Perf perf, ref Server server, Uri uri, in TextDocumentContentChangeEvent[] changes) {

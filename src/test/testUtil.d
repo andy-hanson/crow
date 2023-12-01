@@ -16,7 +16,7 @@ import model.model : Program;
 import util.alloc.alloc : Alloc, allocateElements, MetaAlloc, newAlloc, withTempAlloc;
 import util.col.arr : empty;
 import util.col.arrUtil : arrEqual, arrsCorrespond, indexOf, makeArr, map;
-import util.col.str : SafeCStr, safeCStrEq;
+import util.col.str : SafeCStr, safeCStrEq, strOfSafeCStr;
 import util.opt : force, has, none, Opt;
 import util.perf : Perf;
 import util.ptr : ptrTrustMe;
@@ -139,10 +139,10 @@ void withTestServer(
 	});
 }
 
-void setupTestServer(ref Test test, ref Alloc alloc, ref Server server, Uri mainUri, in SafeCStr mainContent) {
+void setupTestServer(ref Test test, ref Alloc alloc, ref Server server, Uri mainUri, in string mainContent) {
 	assert(getExtension(server.allUris, mainUri) == crowExtension);
-	setFile(test.perf, server, mainUri, ReadFileResult(FileContent(mainContent)));
-	Uri[] testUris = map(alloc, [testIncludePaths], (ref immutable string path) =>
+	setFile(test.perf, server, mainUri, mainContent);
+	Uri[] testUris = map(alloc, testIncludePaths, (ref immutable string path) =>
 		concatUriAndPath(server.allUris, server.includeDir, parsePath(server.allUris, path)));
 	while (true) {
 		Uri[] unknowns = allUnknownUris(alloc, server);
@@ -150,30 +150,27 @@ void setupTestServer(ref Test test, ref Alloc alloc, ref Server server, Uri main
 			break;
 		else
 			foreach (Uri unknown; unknowns)
-				setFile(
-					test.perf, server, unknown,
-					defaultFileResult(alloc, server.allUris, server.includeDir, testUris, unknown));
+				setFile(test.perf, server, unknown, defaultFileResult(alloc, server, testUris, unknown));
 	}
+}
+
+string defaultIncludeResult(string path) {
+	Opt!size_t index = indexOf(testIncludePaths, path);
+	return strOfSafeCStr(testIncludeContents[force(index)]);
 }
 
 private:
 
-ReadFileResult defaultFileResult(
-	ref Alloc alloc,
-	scope ref AllUris allUris,
-	Uri includeDir,
-	in Uri[] testUris,
-	Uri uri,
-) {
-	final switch (fileType(allUris, uri)) {
+ReadFileResult defaultFileResult(ref Alloc alloc, scope ref Server server, in Uri[] testUris, Uri uri) {
+	final switch (fileType(server.allUris, uri)) {
 		case FileType.crow:
 			Opt!size_t index = indexOf(testUris, uri);
 			if (has(index))
 				return ReadFileResult(FileContent(testIncludeContents[force(index)]));
-			else if (isAncestor(allUris, includeDir, uri)) {
+			else if (isAncestor(server.allUris, server.includeDir, uri)) {
 				debug {
 					import core.stdc.stdio : printf;
-					printf("Missing URI: %s\n", safeCStrOfUri(alloc, allUris, uri).ptr);
+					printf("Missing URI: %s\n", safeCStrOfUri(alloc, server.allUris, uri).ptr);
 				}
 				assert(false);
 			} else
@@ -185,7 +182,7 @@ ReadFileResult defaultFileResult(
 	}
 }
 
-alias testIncludePaths = AliasSeq!(
+alias testIncludePathsSeq = AliasSeq!(
 	"crow/bits.crow",
 	"crow/bool.crow",
 	"crow/col/array.crow",
@@ -263,7 +260,8 @@ alias testIncludePaths = AliasSeq!(
 	"win32.crow",
 	"windows/DbgHelp.crow",
 );
-SafeCStr[testIncludePaths.length] testIncludeContents = [staticMap!(getIncludeText, testIncludePaths)];
+immutable string[] testIncludePaths = [testIncludePathsSeq];
+immutable SafeCStr[testIncludePaths.length] testIncludeContents = [staticMap!(getIncludeText, testIncludePathsSeq)];
 enum getIncludeText(string path) = SafeCStr(import(path));
 
 T[] reverse(T)(ref Alloc alloc, scope T[] xs) =>

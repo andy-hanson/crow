@@ -18,7 +18,7 @@ import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrEqual;
 import util.col.map : mustGetAt;
-import util.col.str : SafeCStr, safeCStr, safeCStrEq, safeCStrIsEmpty, safeCStrSize, strOfSafeCStr;
+import util.col.str : SafeCStr, safeCStr, safeCStrEq, safeCStrIsEmpty, strOfSafeCStr;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonList, jsonObject, jsonToStringPretty, optionalArrayField;
 import util.lineAndColumnGetter : LineAndColumnGetter, PosKind;
@@ -35,7 +35,7 @@ import util.util : debugLog;
 private:
 
 void hoverTest(string crowFileName, string outputFileName)(ref Test test) {
-	SafeCStr content = safeCStr!(import("hover/" ~ crowFileName));
+	string content = import("hover/" ~ crowFileName);
 	string expected = import(outputFileName);
 	withHoverTest!crowFileName(test, content, (in ShowCtx ctx, Module* module_) {
 		SafeCStr actual = jsonToStringPretty(
@@ -52,7 +52,7 @@ void hoverTest(string crowFileName, string outputFileName)(ref Test test) {
 
 void withHoverTest(string fileName)(
 	ref Test test,
-	in SafeCStr content,
+	in string content,
 	in void delegate(in ShowCtx, Module*) @safe @nogc pure nothrow cb,
 ) {
 	withTestServer(test, (ref Alloc alloc, ref Server server) {
@@ -76,7 +76,7 @@ immutable struct InfoAtPos {
 		safeCStrEq(hover, b.hover) && arrEqual(definition, b.definition);
 }
 
-Json hoverResult(ref Alloc alloc, in SafeCStr content, in ShowCtx ctx, Module* mainModule) {
+Json hoverResult(ref Alloc alloc, in string content, in ShowCtx ctx, Module* mainModule) {
 	ArrBuilder!Json parts;
 
 	// We combine ranges that have the same info.
@@ -98,7 +98,7 @@ Json hoverResult(ref Alloc alloc, in SafeCStr content, in ShowCtx ctx, Module* m
 		}
 	}
 
-	Pos endOfFile = safeToUint(safeCStrSize(content));
+	Pos endOfFile = safeToUint(content.length);
 	foreach (Pos pos; 0 .. endOfFile + 1) {
 		Position position = getPosition(ctx.allSymbols, ctx.allUris, mainModule, pos);
 		Opt!Hover hover = getHover(alloc, ctx, position);

@@ -283,7 +283,7 @@ immutable(V[]) moveToValues(K, V)(ref Alloc alloc, ref MutMap!(immutable K, immu
 	return res;
 }
 
-private void clear(K, V)(scope ref MutMap!(K, V) a) {
+void clear(K, V)(scope ref MutMap!(K, V) a) {
 	a.size = 0;
 	a.pairs = [];
 }
