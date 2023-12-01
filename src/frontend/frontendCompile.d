@@ -30,7 +30,7 @@ import util.col.mutMap : findInMutMap, getOrAdd, mapToMap, moveToMap, MutMap, mu
 import util.col.mutSet :
 	mayAddToMutSet, mustAddToMutSet, MutSet, mutSetHas, mutSetMayDelete, mutSetMustDelete, mutSetPopArbitrary;
 import util.memory : allocate, initMemory;
-import util.opt : ConstOpt, force, has, MutOpt, Opt, none, noneMut, some, someConst, someMut;
+import util.opt : ConstOpt, force, has, MutOpt, Opt, none, noneMut, some, someMut;
 import util.perf : Perf;
 import util.sym : AllSymbols, sym;
 import util.union_ : Union, UnionMutable;
@@ -154,11 +154,13 @@ void onFileChanged(scope ref Perf perf, ref FrontendCompiler a, Uri uri) {
 				(ReadFileDiag x) =>
 					// TODO: Storage should just store this
 					fileAstForReadFileDiag(a.alloc, x));
-			fileAstChanged(perf, a, ensureCrowFile(a, uri), ast);
+			CrowFile* file = ensureCrowFile(a, uri);
+			file.ast = someMut(ast); // TODO: free old ast
+			updatedAstOrConfig(a, file);
 			break;
 		case FileType.crowConfig:
 			mutMapEachValue(a.crowFiles, (ref CrowFile* file) {
-				updateFileOnConfigChange(perf, a, file);
+				updateFileOnConfigChange(a, file);
 			});
 			break;
 		case FileType.other:
@@ -195,6 +197,9 @@ CrowFile* ensureCrowFile(ref FrontendCompiler a, Uri uri) {
 	});
 }
 
+CrowFile* mustGetCrowFile(ref FrontendCompiler a, Uri uri) =>
+	mutMapMustGet(a.crowFiles, uri);
+
 OtherFile* ensureOtherFile(ref FrontendCompiler a, Uri uri) {
 	return getOrAdd!(Uri, OtherFile*)(a.alloc, a.otherFiles, uri, () {
 		markUnknownIfNotExist(a.storage, uri);
@@ -203,7 +208,7 @@ OtherFile* ensureOtherFile(ref FrontendCompiler a, Uri uri) {
 }
 
 // TODO:PERF Kill
-void validateReferencedBy(scope ref FrontendCompiler a) {
+void validateReferencedBy(ref FrontendCompiler a) {
 	mutMapEachValue!(Uri, CrowFile*)(a.crowFiles, (in CrowFile* file) {
 		if (has(file.resolvedImports)) {
 			foreach (ref const MostlyResolvedImport x; force(file.resolvedImports)) {
@@ -282,43 +287,69 @@ Module* compileModule(scope ref Perf perf, ref FrontendCompiler a, CrowFile* fil
 		force(a.commonTypes));
 }
 
-void fileAstChanged(scope ref Perf perf, ref FrontendCompiler a, CrowFile* file, FileAst* ast) {
-	file.ast = someMut(ast); // TODO: free old ast
-	updatedAstOrConfig(perf, a, file);
-}
-
-void updateFileOnConfigChange(scope ref Perf perf, ref FrontendCompiler a, CrowFile* file) {
+void updateFileOnConfigChange(ref FrontendCompiler a, CrowFile* file) {
 	MutOpt!(Config*) bestConfig = tryFindConfig(a.storage, a.allUris, parentOrEmpty(a.allUris, file.uri));
 	if (has(bestConfig)) {
 		if (!has(file.config) || force(bestConfig) != force(file.config)) {
 			file.config = bestConfig;
-			updatedAstOrConfig(perf, a, file);
+			updatedAstOrConfig(a, file);
 		}
 	}
 }
 
-void updatedAstOrConfig(scope ref Perf perf, ref FrontendCompiler a, CrowFile* file) {
-	markDirty(a, *file);
-	if (has(file.ast) && has(file.config)) {
-		if (has(file.resolvedImports)) {
-			foreach (ref MostlyResolvedImport import_; force(file.resolvedImports)) {
-				MutOpt!(MutSet!(CrowFile*)*) rb = getReferencedBy(import_);
-				if (has(rb))
-					mutSetMustDelete(*force(rb), file);
+void updatedAstOrConfig(ref FrontendCompiler a, CrowFile* file) {
+	if (has(file.ast) && has(file.config))
+		recomputeResolvedImports(a, file);
+	else
+		assert(!has(file.resolvedImports) && !has(file.module_));
+}
+
+void recomputeResolvedImports(ref FrontendCompiler a, CrowFile* file) {
+	markModuleDirty(a, *file);
+
+	MutOpt!(Uri[]) circularImport = has(file.resolvedImports) ? clearResolvedImports(file) : noneMut!(Uri[]);
+
+	file.resolvedImports = someMut(resolveImports(a, *force(file.ast), *force(file.config), file.uri));
+	foreach (MostlyResolvedImport x; force(file.resolvedImports)) {
+		MutOpt!(MutSet!(CrowFile*)*) rb = getReferencedBy(x);
+		if (has(rb))
+			// Not 'mustAdd' because it could be imported twice by the same module
+			mayAddToMutSet(a.alloc, *force(rb), file);
+	}
+
+	if (has(circularImport) && !hasCircularImport(force(file.resolvedImports)))
+		foreach (Uri uri; force(circularImport))
+			if (uri != file.uri) {
+				CrowFile* other = mustGetCrowFile(a, uri);
+				MutOpt!(Uri[]) ci = clearResolvedImports(other);
+				assert(has(ci)); // But ignore it since we've already handled it
+				recomputeResolvedImports(a, other);
 			}
-			file.resolvedImports = noneMut!(MostlyResolvedImport[]); // TODO: free old resolvedImports
-		}
 
-		file.resolvedImports = someMut(resolveImports(a, *force(file.ast), *force(file.config), file.uri));
-		foreach (MostlyResolvedImport x; force(file.resolvedImports)) {
-			MutOpt!(MutSet!(CrowFile*)*) rb = getReferencedBy(x);
-			if (has(rb))
-				// Not 'mustAdd' because it could be imported twice by the same module
-				mayAddToMutSet(a.alloc, *force(rb), file);
-		}
-		addToWorkableIfSo(a, file);
-	}
+	addToWorkableIfSo(a, file);
 }
+
+MutOpt!(Uri[]) clearResolvedImports(CrowFile* file) {
+	MutOpt!(Uri[]) circularImport = noneMut!(Uri[]);
+	foreach (ref MostlyResolvedImport import_; force(file.resolvedImports)) {
+		MutOpt!(MutSet!(CrowFile*)*) rb = getReferencedBy(import_);
+		if (has(rb))
+			mutSetMustDelete(*force(rb), file);
+		else
+			circularImport = asCircularImport(import_);
+	}
+	file.resolvedImports = noneMut!(MostlyResolvedImport[]); // TODO: free old resolvedImports
+	return circularImport;
+}
+
+bool hasCircularImport(in MostlyResolvedImport[] a) =>
+	exists!MostlyResolvedImport(a, (in MostlyResolvedImport x) => isCircularImport(x));
+bool isCircularImport(in MostlyResolvedImport a) =>
+	a.isA!(Diag.ImportFileDiag) && a.as!(Diag.ImportFileDiag).isA!(Diag.ImportFileDiag.CircularImport);
+MutOpt!(Uri[]) asCircularImport(MostlyResolvedImport a) =>
+	isCircularImport(a)
+		? someMut(a.as!(Diag.ImportFileDiag).as!(Diag.ImportFileDiag.CircularImport).cycle)
+		: noneMut!(Uri[]);
 
 void addToWorkableIfSo(ref FrontendCompiler a, CrowFile* file) {
 	if (isWorkable(a.allUris, *file))
@@ -343,7 +374,7 @@ bool isImportWorkable(scope ref AllUris allUris, in MostlyResolvedImport a) =>
 			if (x.isA!(Diag.ImportFileDiag.ReadError)) {
 				Diag.ImportFileDiag.ReadError read = x.as!(Diag.ImportFileDiag.ReadError);
 				// Unknown/loading files still have a CrowFile* or Config*
-				assert(isUnknownOrLoading(read.diag) || fileType(allUris, read.uri) == FileType.other);
+				assert(!isUnknownOrLoading(read.diag) || fileType(allUris, read.uri) == FileType.other);
 			}
 			return true;
 		});
@@ -380,15 +411,16 @@ size_t countImportsAndReExports(in FileAst a) =>
 	(has(a.imports) ? force(a.imports).paths.length : 0) +
 	(has(a.reExports) ? force(a.reExports).paths.length : 0);
 
-void markDirty(scope ref FrontendCompiler a, scope ref CrowFile file) {
+void markModuleDirty(scope ref FrontendCompiler a, scope ref CrowFile file) {
 	if (has(file.module_)) {
 		// TODO: free the old module (but programState may reference!)
 		file.module_ = noneMut!(Module*);
 		a.countUncompiledCrowFiles++;
 		foreach (CrowFile* x; file.referencedBy)
-			markDirty(a, *x);
+			markModuleDirty(a, *x);
 	}
 }
+
 ResolvedImport[] fullyResolveImports(ref FrontendCompiler a, MostlyResolvedImport[] imports) =>
 	map(a.alloc, imports, (ref MostlyResolvedImport x) =>
 		x.match!ResolvedImport(
@@ -454,22 +486,16 @@ struct MostlyResolvedImport {
 	mixin UnionMutable!(CrowFile*, OtherFile*, Diag.ImportFileDiag);
 }
 
-MutOpt!(MutSet!(CrowFile*)*) getReferencedBy(ref MostlyResolvedImport a) =>
-	a.match!(MutOpt!(MutSet!(CrowFile*)*))(
+MutOpt!(MutSet!(CrowFile*)*) getReferencedBy(ref MostlyResolvedImport import_) =>
+	import_.match!(MutOpt!(MutSet!(CrowFile*)*))(
 		(CrowFile* x) =>
 			someMut(&x.referencedBy),
 		(OtherFile* x) =>
 			someMut(&x.referencedBy),
-		(Diag.ImportFileDiag) =>
+		(Diag.ImportFileDiag diag) =>
 			noneMut!(MutSet!(CrowFile*)*));
-ConstOpt!(MutSet!(CrowFile*)*) getReferencedBy(ref const MostlyResolvedImport a) =>
-	a.matchConst!(ConstOpt!(MutSet!(CrowFile*)*))(
-		(const CrowFile* x) =>
-			someConst!(MutSet!(CrowFile*)*)(&x.referencedBy),
-		(const OtherFile* x) =>
-			someConst!(MutSet!(CrowFile*)*)(&x.referencedBy),
-		(Diag.ImportFileDiag) =>
-			noneMut!(MutSet!(CrowFile*)*));
+@trusted ConstOpt!(MutSet!(CrowFile*)*) getReferencedBy(ref const MostlyResolvedImport import_) =>
+	getReferencedBy(cast(MostlyResolvedImport) import_);
 
 MostlyResolvedImport tryResolveImport(ref FrontendCompiler a, in Config config, Uri fromUri, in ImportOrExportAst ast) {
 	UriOrDiag base = ast.path.matchIn!UriOrDiag(

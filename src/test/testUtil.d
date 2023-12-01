@@ -21,7 +21,8 @@ import util.opt : force, has, none, Opt;
 import util.perf : Perf;
 import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols;
-import util.uri : AllUris, getExtension, parseUri, safeCStrOfUri, Uri, UrisInfo;
+import util.uri :
+	AllUris, concatUriAndPath, getExtension, isAncestor, parsePath, parseUri, safeCStrOfUri, Uri, UrisInfo;
 import util.writer : debugLogWithWriter, Writer;
 
 struct Test {
@@ -141,32 +142,42 @@ void withTestServer(
 void setupTestServer(ref Test test, ref Alloc alloc, ref Server server, Uri mainUri, in SafeCStr mainContent) {
 	assert(getExtension(server.allUris, mainUri) == crowExtension);
 	setFile(test.perf, server, mainUri, ReadFileResult(FileContent(mainContent)));
-	Uri[] testUris = map(alloc, testIncludeUris, (ref immutable string path) =>
-		parseUri(server.allUris, path));
+	Uri[] testUris = map(alloc, [testIncludePaths], (ref immutable string path) =>
+		concatUriAndPath(server.allUris, server.includeDir, parsePath(server.allUris, path)));
 	while (true) {
 		Uri[] unknowns = allUnknownUris(alloc, server);
 		if (empty(unknowns))
 			break;
 		else
-			foreach (Uri unknown; unknowns) {
-				setFile(test.perf, server, unknown, defaultFileResult(alloc, server.allUris, testUris, unknown));
-			}
+			foreach (Uri unknown; unknowns)
+				setFile(
+					test.perf, server, unknown,
+					defaultFileResult(alloc, server.allUris, server.includeDir, testUris, unknown));
 	}
 }
 
 private:
 
-ReadFileResult defaultFileResult(ref Alloc alloc, scope ref AllUris allUris, in Uri[] testUris, Uri uri) {
+ReadFileResult defaultFileResult(
+	ref Alloc alloc,
+	scope ref AllUris allUris,
+	Uri includeDir,
+	in Uri[] testUris,
+	Uri uri,
+) {
 	final switch (fileType(allUris, uri)) {
 		case FileType.crow:
 			Opt!size_t index = indexOf(testUris, uri);
-			if (!has(index)) {
+			if (has(index))
+				return ReadFileResult(FileContent(testIncludeContents[force(index)]));
+			else if (isAncestor(allUris, includeDir, uri)) {
 				debug {
 					import core.stdc.stdio : printf;
 					printf("Missing URI: %s\n", safeCStrOfUri(alloc, allUris, uri).ptr);
 				}
-			}
-			return ReadFileResult(FileContent(testIncludeContents[force(index)]));
+				assert(false);
+			} else
+				return ReadFileResult(ReadFileDiag.notFound);
 		case FileType.crowConfig:
 			return ReadFileResult(ReadFileDiag.notFound);
 		case FileType.other:
@@ -254,9 +265,6 @@ alias testIncludePaths = AliasSeq!(
 );
 SafeCStr[testIncludePaths.length] testIncludeContents = [staticMap!(getIncludeText, testIncludePaths)];
 enum getIncludeText(string path) = SafeCStr(import(path));
-
-immutable string[testIncludePaths.length] testIncludeUris = [staticMap!(getTestUri, testIncludePaths)];
-enum getTestUri(string path) = "test:///include/" ~ path;
 
 T[] reverse(T)(ref Alloc alloc, scope T[] xs) =>
 	makeArr(alloc, xs.length, (size_t i) =>

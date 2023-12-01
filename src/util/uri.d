@@ -373,7 +373,7 @@ Uri parseUri(ref AllUris allUris, in string uri) {
 private Uri rootUri(ref AllUris allUris, in string schemeAndAuthority) =>
 	Uri(rootPath(allUris, symOfStr(allUris.allSymbols, schemeAndAuthority)));
 
-private Path parsePath(ref AllUris allUris, in SafeCStr str) =>
+Path parsePath(ref AllUris allUris, in SafeCStr str) =>
 	parsePath(allUris, strOfSafeCStr(str));
 private Path parsePath(ref AllUris allUris, in string str) {
 	StringIter iter = StringIter(str);
@@ -454,6 +454,15 @@ immutable struct UriAndRange {
 
 immutable struct UrisInfo {
 	Opt!Uri cwd;
+}
+
+bool isAncestor(in AllUris allUris, Uri a, Uri b) {
+	if (a == b)
+		return true;
+	else {
+		Opt!Uri par = parent(allUris, b);
+		return has(par) && isAncestor(allUris, a, force(par));
+	}
 }
 
 Opt!Uri commonAncestor(in AllUris allUris, in Uri[] uris) =>
