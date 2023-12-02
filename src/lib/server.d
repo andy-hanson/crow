@@ -6,7 +6,7 @@ import backend.writeToC : writeToC;
 import concretize.concretize : concretize;
 import document.document : documentJSON;
 import frontend.frontendCompile :
-	FrontendCompiler, initFrontend, makeProgramForRoots, makeProgramForMain, onFileChanged;
+	FrontendCompiler, getFileContents, initFrontend, makeProgramForRoots, makeProgramForMain, onFileChanged;
 import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
 import frontend.ide.getDefinition : getDefinitionForPosition;
 import frontend.ide.getHover : getHover;
@@ -100,7 +100,7 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrLiteral, concatenate, contains, map, mapOp;
 import util.col.str : copyStr, SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
 import util.exitCode : ExitCode;
-import util.json : Json;
+import util.json : Json, jsonNull;
 import util.late : Late, lateGet, lateSet, MutLate;
 import util.lineAndColumnGetter : UriLineAndColumn;
 import util.opt : force, has, none, Opt, some;
@@ -526,11 +526,12 @@ DiagsAndResultJson printConcreteModel(
 	in VersionInfo versionInfo,
 	Uri uri,
 ) {
-	Program program = getProgram(perf, alloc, server, [uri]);
-	ShowCtx ctx = getShowDiagCtx(server, program);
+	Programs programs = buildToLowProgram(perf, alloc, server, versionInfo, uri);
 	return printForProgram(
-		alloc, server, program,
-		jsonOfConcreteProgram(alloc, lineAndColumnGetters, concretize(perf, alloc, ctx, versionInfo, program)));
+		alloc, server, programs.program,
+		has(programs.concreteProgram)
+			? jsonOfConcreteProgram(alloc, lineAndColumnGetters, force(programs.concreteProgram))
+			: jsonNull);
 }
 
 DiagsAndResultJson printLowModel(
@@ -541,12 +542,12 @@ DiagsAndResultJson printLowModel(
 	in VersionInfo versionInfo,
 	Uri uri,
 ) {
-	Program program = getProgramForMain(perf, alloc, server, uri);
-	ShowCtx ctx = getShowDiagCtx(server, program);
-	ConcreteProgram concreteProgram = concretize(perf, alloc, ctx, versionInfo, program);
-	LowProgram lowProgram = lower(
-		perf, alloc, server.allSymbols, force(program.mainConfig).extern_, program, concreteProgram);
-	return printForProgram(alloc, server, program, jsonOfLowProgram(alloc, lineAndColumnGetters, lowProgram));
+	Programs programs = buildToLowProgram(perf, alloc, server, versionInfo, uri);
+	return printForProgram(
+		alloc, server, programs.program,
+		has(programs.lowProgram)
+			? jsonOfLowProgram(alloc, lineAndColumnGetters, force(programs.lowProgram))
+			: jsonNull);
 }
 
 DiagsAndResultJson printIde(
@@ -603,7 +604,8 @@ Programs buildToLowProgram(
 	if (hasFatalDiagnostics(program))
 		return Programs(program, none!ConcreteProgram, none!LowProgram);
 	else {
-		ConcreteProgram concreteProgram = concretize(perf, alloc, ctx, versionInfo, program);
+		ConcreteProgram concreteProgram = concretize(
+			perf, alloc, ctx, versionInfo, program, getFileContents(alloc, server.frontend));
 		LowProgram lowProgram = lower(
 			perf, alloc, server.allSymbols, force(program.mainConfig).extern_, program, concreteProgram);
 		return Programs(program, some(concreteProgram), some(lowProgram));
@@ -620,8 +622,8 @@ BuildToCResult buildToC(scope ref Perf perf, ref Alloc alloc, ref Server server,
 	ShowCtx ctx = getShowDiagCtx(server, programs.program);
 	return BuildToCResult(
 		has(programs.lowProgram)
-			? safeCStr!""
-			: writeToC(alloc, alloc, ctx, force(programs.lowProgram)),
+			? writeToC(alloc, alloc, ctx, force(programs.lowProgram))
+			: safeCStr!"",
 		showDiagnostics(alloc, server, programs.program),
 		has(programs.lowProgram) ? force(programs.lowProgram).externLibraries : []);
 }

@@ -3,8 +3,9 @@ module concretize.concretizeCtx;
 @safe @nogc pure nothrow:
 
 import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantArr, getConstantCStr, getConstantSym;
-import concretize.concretizeExpr : concretizeBogus, concretizeFunBody;
+import concretize.concretizeExpr : concretizeBogus, concretizeBogusKind, concretizeFunBody;
 import concretize.safeValue : bodyForSafeValue;
+import frontend.storage : asBytes, FileContent, ReadFileResult;
 import model.concreteModel :
 	body_,
 	BuiltinStructKind,
@@ -37,6 +38,7 @@ import model.concreteModel :
 	sizeOrPointerSizeBytes,
 	TypeSize;
 import model.constant : Constant, constantZero;
+import model.diag : ReadFileDiag;
 import model.model :
 	body_,
 	CommonTypes,
@@ -51,6 +53,7 @@ import model.model :
 	FunBody,
 	FunDecl,
 	FunInst,
+	ImportFileType,
 	isArray,
 	isTuple,
 	Local,
@@ -77,11 +80,11 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only, only2, sizeEq;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil : arrEqual, arrLiteral, arrMax, every, everyWithIndex, exists, fold, map, mapWithIndex, mapZip;
-import util.col.map : values;
+import util.col.map : Map, mustGetAt, values;
 import util.col.mutArr : filterUnordered, MutArr, mutArrIsEmpty, push;
 import util.col.mutMap : getOrAdd, getOrAddAndDidAdd, mustAddToMutMap, mustDelete, MutMap, ValueAndDidAdd;
 import util.col.str : SafeCStr;
-import util.hash : HashCode, Hasher, hashPtr;
+import util.hash : HashCode, Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite, lazilySet;
 import util.memory : allocate;
 import util.opt : force, has, none;
@@ -206,7 +209,9 @@ struct ConcretizeCtx {
 	const AllUris* allUrisPtr;
 	CommonTypes* commonTypesPtr;
 	immutable Program* programPtr;
+	Map!(Uri, ReadFileResult) fileContents;
 	Late!(ConcreteFun*) curExclusionFun_;
+	Late!(ConcreteFun*) char8ArrayAsString_;
 	AllConstantsBuilder allConstants;
 	MutMap!(ConcreteStructKey, ConcreteStruct*) nonLambdaConcreteStructs;
 	ArrBuilder!(ConcreteStruct*) allConcreteStructs;
@@ -239,6 +244,8 @@ struct ConcretizeCtx {
 		*commonTypesPtr;
 	ConcreteFun* curExclusionFun() return scope const =>
 		lateGet(curExclusionFun_);
+	ConcreteFun* char8ArrayAsString() return scope const =>
+		lateGet(char8ArrayAsString_);
 	ref Program program() return scope const =>
 		*programPtr;
 }
@@ -290,8 +297,8 @@ ConcreteFun* getConcreteFunForLambdaAndFillBody(
 	ConcreteType returnType,
 	Destructure modelParam,
 	ConcreteLocal[] paramsIncludingClosure,
-	in ContainingFunInfo containing,
-	in Expr body_,
+	ref ContainingFunInfo containing,
+	ref Expr body_,
 ) {
 	assert(!isBogus(returnType));
 	ConcreteFun* res = allocate(ctx.alloc, ConcreteFun(
@@ -756,14 +763,8 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 				ConcreteFunBody(ConcreteFunBody.Extern(x.libraryName)),
 			(FunBody.ExpressionBody e) =>
 				ConcreteFunBody(concretizeFunBody(ctx, inputs.containing, cf, params, e.expr)),
-			(FunBody.FileBytes e) {
-				ConcreteType type = cf.returnType;
-				//TODO:PERF creating a Constant per byte is expensive
-				Constant[] bytes = map(ctx.alloc, e.bytes, (ref immutable ubyte a) =>
-					Constant(Constant.Integral(a)));
-				Constant arr = getConstantArr(ctx.alloc, ctx.allConstants, mustBeByVal(type), bytes);
-				return ConcreteFunBody(ConcreteExpr(type, concreteFunRange(*cf), ConcreteExprKind(arr)));
-			},
+			(FunBody.FileImport x) =>
+				ConcreteFunBody(concretizeFileImport(ctx, cf, x)),
 			(FlagsFunction it) =>
 				ConcreteFunBody(ConcreteFunBody.FlagsFn(
 					getAllValue(body_(*mustBeByVal(cf.returnType)).as!(ConcreteStructBody.Flags)),
@@ -780,6 +781,30 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 				ConcreteFunBody(ConcreteFunBody.VarSet(getVar(ctx, x.var))));
 		lateSetOverwrite(cf._body_, body_);
 	}
+}
+
+ConcreteExpr concretizeFileImport(ref ConcretizeCtx ctx, ConcreteFun* cf, in FunBody.FileImport import_) {
+	ConcreteType type = cf.returnType;
+	UriAndRange range = concreteFunRange(*cf);
+	ConcreteExprKind exprKind = mustGetAt(ctx.fileContents, import_.uri).match!ConcreteExprKind(
+		(FileContent content) {
+			//TODO:PERF creating a Constant per byte is expensive
+			Constant[] bytes = map(ctx.alloc, asBytes(content), (ref immutable ubyte a) =>
+				Constant(Constant.Integral(a)));
+			final switch (import_.type) {
+				case ImportFileType.nat8Array:
+					return ConcreteExprKind(getConstantArr(ctx.alloc, ctx.allConstants, mustBeByVal(type), bytes));
+				case ImportFileType.string:
+					ConcreteType char8ArrayType = only(ctx.char8ArrayAsString.paramsIncludingClosure).type;
+					ConcreteExpr char8s = ConcreteExpr(char8ArrayType, range, ConcreteExprKind(
+						getConstantArr(ctx.alloc, ctx.allConstants, mustBeByVal(char8ArrayType), bytes)));
+					return ConcreteExprKind(ConcreteExprKind.Call(
+						ctx.char8ArrayAsString, arrLiteral(ctx.alloc, [char8s])));
+			}
+		},
+		(ReadFileDiag diag) =>
+			concretizeBogusKind(ctx, range));
+	return ConcreteExpr(type, range, exprKind);
 }
 
 ConcreteVar* getVar(ref ConcretizeCtx ctx, VarDecl* decl) =>

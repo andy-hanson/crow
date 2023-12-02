@@ -13,17 +13,20 @@ import concretize.concretizeCtx :
 	getOrAddNonTemplateConcreteFunAndFillBody,
 	voidType;
 import frontend.showModel : ShowCtx;
+import frontend.storage : ReadFileResult;
 import model.concreteModel :
 	ConcreteCommonFuns, ConcreteFun, ConcreteLambdaImpl, ConcreteProgram, ConcreteStruct, mustBeByVal;
 import model.model : CommonFuns, MainFun, Program;
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : finishArr;
+import util.col.map : Map;
 import util.col.mutArr : moveToArr, MutArr;
 import util.col.mutMap : mapToMap, moveToValues, mutMapIsEmpty;
 import util.late : lateSet;
 import util.opt : force;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : castNonScope, ptrTrustMe;
+import util.uri : Uri;
 import versionInfo : VersionInfo;
 
 ConcreteProgram concretize(
@@ -32,9 +35,10 @@ ConcreteProgram concretize(
 	in ShowCtx printCtx,
 	in VersionInfo versionInfo,
 	ref Program program,
+	Map!(Uri, ReadFileResult) fileContents,
 ) =>
 	withMeasure!(ConcreteProgram, () =>
-		concretizeInner(&alloc, printCtx, versionInfo, program)
+		concretizeInner(&alloc, printCtx, versionInfo, program, fileContents)
 	)(perf, alloc, PerfMeasure.concretize);
 
 private:
@@ -44,6 +48,7 @@ ConcreteProgram concretizeInner(
 	in ShowCtx printCtx,
 	in VersionInfo versionInfo,
 	ref Program program,
+	Map!(Uri, ReadFileResult) fileContents,
 ) {
 	ref Alloc alloc() =>
 		*allocPtr;
@@ -53,9 +58,11 @@ ConcreteProgram concretizeInner(
 		castNonScope(printCtx.allSymbolsPtr),
 		castNonScope(printCtx.allUrisPtr),
 		ptrTrustMe(program.commonTypes),
-		ptrTrustMe(program));
+		ptrTrustMe(program),
+		fileContents);
 	CommonFuns commonFuns = program.commonFuns;
 	lateSet(ctx.curExclusionFun_, getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.curExclusion));
+	lateSet(ctx.char8ArrayAsString_, getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.char8ArrayAsString));
 	ConcreteFun* markFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.mark);
 	ConcreteFun* rtMainConcreteFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.rtMain);
 	// We remove items from these maps when we process them.

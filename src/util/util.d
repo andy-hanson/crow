@@ -84,8 +84,6 @@ T unreachable(T)() {
 	assert(0);
 }
 
-void drop(T)(T) {}
-
 E enumOfString(E)(in string a) {
 	assertNormalEnum!E();
 	final switch (a) {

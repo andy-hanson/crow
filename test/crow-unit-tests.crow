@@ -50,8 +50,10 @@ import
 	crow/serialize: from-bytes
 	crow/test-util/test-runner: run-all-tests
 	crow/version: is-windows
+	../editor/vscode/license.txt as license string
 
 main void() summon
+	license is "public domain"
 	_ = ().from-bytes :: nat8[]
 	_ = bold
 	_ = () :: ((nat, nat) compact-map)

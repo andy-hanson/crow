@@ -5,7 +5,15 @@ module util.col.map;
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : zip;
 import util.col.mutMap :
-	mapToArray, mapToMap, moveToMap, mustAddToMutMap, MutMap, mutMapHasKey, mutMapMustGet, mutMapSize, MutMapValues, values;
+	mapToArray,
+	moveToMap,
+	mustAddToMutMap,
+	MutMap,
+	mutMapHasKey,
+	mutMapMustGet,
+	mutMapSize,
+	MutMapValues,
+	values;
 public import util.col.mutMap : KeyValuePair;
 import util.opt : Opt;
 

@@ -5,7 +5,7 @@ module util.col.fullIndexMap;
 import util.alloc.alloc : Alloc;
 import util.conv : safeToUint, safeToUshort;
 import util.col.arr : castImmutable;
-import util.col.arrUtil : fillArr_mut, mapWithIndex;
+import util.col.arrUtil : makeArray, mapWithIndex;
 import util.memory : overwriteMemory;
 
 struct FullIndexMap(K, V) {
@@ -46,7 +46,7 @@ FullIndexMap!(K, V) makeFullIndexMap_mut(K, V)(
 	immutable size_t size,
 	in V delegate(K) @safe @nogc pure nothrow cb,
 ) =>
-	fullIndexMapOfArr_mut!(K, V)(fillArr_mut(alloc, size, (size_t i) =>
+	fullIndexMapOfArr_mut!(K, V)(makeArray(alloc, size, (size_t i) =>
 		cb(K(i))));
 
 void fullIndexMapEachKey(K, V)(

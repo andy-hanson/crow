@@ -60,7 +60,7 @@ import util.opt : force, has, Opt, some;
 import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
 import util.sym : AllSymbols;
 import util.union_ : Union;
-import util.util : abs, drop, unreachable;
+import util.util : abs, unreachable;
 import util.writer :
 	withWriter,
 	writeEscapedChar_inner,
@@ -519,7 +519,7 @@ void writeFunDefinition(
 	FunBodyCtx bodyCtx = FunBodyCtx(ptrTrustMe(tempAlloc), ptrTrustMe(ctx), body_.hasTailRecur, funIndex, 0);
 	WriteKind writeKind = WriteKind(WriteKind.Return());
 	Locals locals;
-	drop(writeExpr(writer, 1, bodyCtx, locals, writeKind, body_.expr));
+	cast(void) writeExpr(writer, 1, bodyCtx, locals, writeKind, body_.expr);
 	writer ~= "\n}\n";
 }
 
@@ -649,7 +649,7 @@ void writeExprVoid(
 	in LowExpr expr,
 ) {
 	WriteKind writeKind = WriteKind(WriteKind.Void());
-	drop(writeExpr(writer, indent, ctx, locals, writeKind, expr));
+	cast(void) writeExpr(writer, indent, ctx, locals, writeKind, expr);
 }
 
 WriteExprResult writeExprTempOrInline(
@@ -802,7 +802,7 @@ WriteExprResult writeExpr(
 			}),
 		(in LowExprKind.VarSet x) {
 			WriteKind varWriteKind = WriteKind(x.varIndex);
-			drop(writeExpr(writer, indent, ctx, locals, varWriteKind, *x.value));
+			cast(void) writeExpr(writer, indent, ctx, locals, varWriteKind, *x.value);
 			return writeReturnVoid(writer, indent, ctx, writeKind);
 		});
 }
@@ -1062,7 +1062,7 @@ WriteExprResult writeMatchUnion(
 			writer ~= ';';
 			writeNewline(writer, indent + 2);
 		}
-		drop(writeExpr(writer, indent + 2, ctx, locals, nested.writeKind, case_.then));
+		cast(void) writeExpr(writer, indent + 2, ctx, locals, nested.writeKind, case_.then);
 		if (!nested.writeKind.isA!(WriteKind.Return)) {
 			writeNewline(writer, indent + 2);
 			writer ~= "break;";
@@ -1090,9 +1090,9 @@ void writeDefaultAbort(
 	writer ~= "abort();";
 	version (Windows) {
 		if (!isEmptyType(ctx, type)) {
-			drop(writeInlineableSimple(writer, indent, ctx, locals, writeKind, type, () {
+			cast(void) writeInlineableSimple(writer, indent, ctx, locals, writeKind, type, () {
 				writeZeroedValue(writer, ctx.ctx, type);
-			}));
+			});
 			writer ~= ';';
 		}
 	}
@@ -1123,7 +1123,7 @@ WriteExprResult writeSwitch(
 		else
 			writer ~= getValue(caseIndex).asUnsigned();
 		writer ~= ": {";
-		drop(writeExpr(writer, indent + 2, ctx, locals, nested.writeKind, case_));
+		cast(void) writeExpr(writer, indent + 2, ctx, locals, nested.writeKind, case_);
 		if (!nested.writeKind.isA!(WriteKind.Return)) {
 			writeNewline(writer, indent + 2);
 			writer ~= "break;";
@@ -1188,22 +1188,22 @@ void writeConstantRef(
 ) {
 	assert(!isEmptyType(ctx, type));
 	a.matchIn!void(
-		(in Constant.ArrConstant it) {
+		(in Constant.ArrConstant x) {
 			if (pos == ConstantRefPos.outer) writeCastToType(writer, ctx, type);
-			size_t size = ctx.program.allConstants.arrs[it.typeIndex].constants[it.index].length;
+			size_t size = ctx.program.allConstants.arrs[x.typeIndex].constants[x.index].length;
 			writer ~= '{';
 			writer ~= size;
 			writer ~= ", ";
 			if (size == 0)
 				writer ~= "NULL";
 			else
-				writeConstantArrStorageName(writer, ctx.mangledNames, ctx.program, type.as!(LowType.Record), it.index);
+				writeConstantArrStorageName(writer, ctx.mangledNames, ctx.program, type.as!(LowType.Record), x.index);
 			writer ~= '}';
 		},
 		(in Constant.CString x) {
 			writeStringLiteral(writer, ctx.program.allConstants.cStrings[x.index]);
 		},
-		(in Constant.Float it) {
+		(in Constant.Float x) {
 			switch (type.as!PrimitiveType) {
 				case PrimitiveType.float32:
 					writeCastToType(writer, ctx, type);
@@ -1213,7 +1213,7 @@ void writeConstantRef(
 				default:
 					unreachable!void();
 			}
-			writeFloatLiteral(writer, it.value);
+			writeFloatLiteral(writer, x.value);
 		},
 		(in Constant.FunPtr it) {
 			bool isRawPtr = type.match!bool(
@@ -1729,24 +1729,24 @@ WriteExprResult writeLogicalOperator(
 	writer ~= ") {";
 	final switch (operator) {
 		case LogicalOperator.and:
-			drop(writeExpr(writer, indent + 1, ctx, locals, nested.writeKind, right));
+			cast(void) writeExpr(writer, indent + 1, ctx, locals, nested.writeKind, right);
 			break;
 		case LogicalOperator.or:
-			drop(writeNonInlineable(writer, indent + 1, ctx, nested.writeKind, boolType, () {
+			cast(void) writeNonInlineable(writer, indent + 1, ctx, nested.writeKind, boolType, () {
 				writer ~= '1';
-			}));
+			});
 			break;
 	}
 	writeNewline(writer, indent);
 	writer ~= "} else {";
 	final switch (operator) {
 		case LogicalOperator.and:
-			drop(writeNonInlineable(writer, indent + 1, ctx, nested.writeKind, boolType, () {
+			cast(void) writeNonInlineable(writer, indent + 1, ctx, nested.writeKind, boolType, () {
 				writer ~= '0';
-			}));
+			});
 			break;
 		case LogicalOperator.or:
-			drop(writeExpr(writer, indent + 1, ctx, locals, nested.writeKind, right));
+			cast(void) writeExpr(writer, indent + 1, ctx, locals, nested.writeKind, right);
 			break;
 	}
 	writeNewline(writer, indent);
@@ -1770,10 +1770,10 @@ WriteExprResult writeIf(
 	writer ~= "if (";
 	writeTempRef(writer, temp0);
 	writer ~= ") {";
-	drop(writeExpr(writer, indent + 1, ctx, locals, nested.writeKind, a.then));
+	cast(void) writeExpr(writer, indent + 1, ctx, locals, nested.writeKind, a.then);
 	writeNewline(writer, indent);
 	writer ~= "} else {";
-	drop(writeExpr(writer, indent + 1, ctx, locals, nested.writeKind, a.else_));
+	cast(void) writeExpr(writer, indent + 1, ctx, locals, nested.writeKind, a.else_);
 	writeNewline(writer, indent);
 	writer ~= '}';
 	return nested.result;
@@ -1813,7 +1813,7 @@ WriteExprResult writeLet(
 			writeDeclareLocal(writer, indent, ctx, *a.local);
 			writer ~= ';';
 			WriteKind localWriteKind = WriteKind(a.local);
-			drop(writeExpr(writer, indent, ctx, locals, localWriteKind, a.value));
+			cast(void) writeExpr(writer, indent, ctx, locals, localWriteKind, a.value);
 			writeNewline(writer, indent);
 		}
 	}
@@ -1832,7 +1832,7 @@ WriteExprResult writeLocalSet(
 		writeExprVoid(writer, indent, ctx, locals, a.value);
 	else {
 		WriteKind localWriteKind = WriteKind(a.local);
-		drop(writeExpr(writer, indent, ctx, locals, localWriteKind, a.value));
+		cast(void) writeExpr(writer, indent, ctx, locals, localWriteKind, a.value);
 	}
 	return writeReturnVoid(writer, indent, ctx, writeKind);
 }
@@ -1881,7 +1881,7 @@ WriteExprResult writeLoopBreak(
 ) {
 	assert(writeKind.isA!(WriteKind.Void));
 	LoopInfo* info = getLoop(locals, a.loop);
-	drop(writeExpr(writer, indent, ctx, locals, info.writeKind, a.value));
+	cast(void) writeExpr(writer, indent, ctx, locals, info.writeKind, a.value);
 	if (!info.writeKind.isA!(WriteKind.Return)) {
 		writeNewline(writer, indent);
 		writer ~= "goto __break";

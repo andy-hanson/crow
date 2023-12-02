@@ -11,7 +11,7 @@ import util.col.arr : arrOfRange, empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.opt : force, has, none, Opt, some;
 import util.sym : AllSymbols, appendEquals, Sym, sym, symOfStr;
-import util.util : drop, todo, unreachable;
+import util.util : todo, unreachable;
 
 immutable struct DocCommentAndExtraDedents {
 	string docComment;
@@ -713,7 +713,7 @@ public @system LiteralNatAst takeNat(ref immutable(char)* ptr, ulong base) {
 		if (digit < base) {
 			ptr++;
 			ulong newValue = value * base + digit;
-			drop(tryTakeChar(ptr, '_'));
+			tryTakeChar(ptr, '_');
 			overflow = overflow || newValue / base != value;
 			value = newValue;
 		} else

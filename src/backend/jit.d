@@ -123,7 +123,7 @@ import model.lowModel :
 import model.typeLayout : typeSizeBytes;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
-import util.col.arrUtil : indexOfPointer, makeArr, map, mapToMut, mapWithIndex, zip;
+import util.col.arrUtil : fillArray, indexOfPointer, makeArray, map, mapToMut, mapWithIndex, zip;
 import util.col.map : mustGetAt;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapZip, mapFullIndexMap_mut;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
@@ -725,7 +725,7 @@ ExprResult emitSwitch(
 			else
 				gcc_jit_block_end_with_return(defaultBlock, null, arbitraryValue(ctx, ctx.curFunReturnType));
 
-			immutable gcc_jit_case*[] cases = makeArr!(immutable gcc_jit_case*)(
+			immutable gcc_jit_case*[] cases = makeArray!(immutable gcc_jit_case*)(
 				ctx.alloc,
 				nCases,
 				(size_t i) {
@@ -1737,8 +1737,8 @@ ExprResult externZeroedToGcc(ref ExprCtx ctx, ref ExprEmit emit, LowType.Extern 
 			ExternTypeArrayInfo array = force(info.array);
 			gcc_jit_rvalue* elementValue = zeroForPrimitiveType(ctx, array.elementAndCount.elementType);
 			//TODO: no alloc
-			immutable gcc_jit_rvalue*[] elementValues = makeArr!(immutable gcc_jit_rvalue*)(
-				ctx.alloc, array.elementAndCount.count, (ulong _) => elementValue);
+			immutable gcc_jit_rvalue*[] elementValues = fillArray!(immutable gcc_jit_rvalue*)(
+				ctx.alloc, array.elementAndCount.count, elementValue);
 			gcc_jit_rvalue* arrayValue = gcc_jit_context_new_array_constructor(
 				ctx.gcc,
 				null,

@@ -12,7 +12,6 @@ import util.conv : safeToSizeT;
 import util.hash : HashCode, hashUlong;
 import util.opt : force, has, Opt, none, some;
 import util.ptr : castNonScope_ref;
-import util.util : drop;
 import util.writer : digitChar, withWriter, writeEscapedChar, Writer;
 
 immutable struct Sym {
@@ -39,7 +38,7 @@ struct AllSymbols {
 				Opt!Sym packed = tryPackShortSym(strOfSafeCStr(str));
 				assert(!has(packed));
 			}
-			drop(addLargeString(this, str));
+			cast(void) addLargeString(this, str);
 		} }
 	}
 

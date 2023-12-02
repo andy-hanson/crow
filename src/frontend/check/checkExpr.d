@@ -322,7 +322,8 @@ Expr checkArrowAccess(
 	ref ArrowAccessAst ast,
 	ref Expected expected,
 ) {
-	ExprAst[1] derefArgs = arrayOfSingle(ast.left);
+	// TODO: NO ALLOC
+	ExprAst[] derefArgs = arrayOfSingle(ast.left);
 	CallAst callDeref = CallAst(CallAst.style.single, NameAndRange(source.range.start, sym!"*"), derefArgs);
 	return checkCallSpecial(
 		ctx, locals, source, ast.name.name, [ExprAst(source.range, ExprAstKind(callDeref))], expected);
@@ -396,9 +397,11 @@ Expr checkAssignment(
 		}
 	} else if (left.kind.isA!ArrowAccessAst) {
 		ArrowAccessAst leftArrow = left.kind.as!ArrowAccessAst;
-		ExprAst[2] args = [*leftArrow.left, *right];
 		return checkCallSpecial(
-			ctx, locals, source, prependSetDeref(ctx.allSymbols, leftArrow.name.name), args, expected);
+			ctx, locals, source,
+			prependSetDeref(ctx.allSymbols, leftArrow.name.name),
+			[*leftArrow.left, *right],
+			expected);
 	} else {
 		addDiag2(ctx, source, Diag(Diag.AssignmentNotAllowed()));
 		return bogus(expected, source);
@@ -713,7 +716,7 @@ Expr checkAssignIdentifier(
 					source,
 					ExprKind(ClosureSetExpr(x, allocate(ctx.alloc, value))))));
 	} else
-		return checkCallSpecial!1(ctx, locals, source, prependSet(ctx.allSymbols, left), [*right], expected);
+		return checkCallSpecial(ctx, locals, source, prependSet(ctx.allSymbols, left), [*right], expected);
 }
 
 MutOpt!VariableRefAndType getVariableRefForSet(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Sym name) {
@@ -1229,7 +1232,7 @@ Expr checkLoopBreak(
 ) {
 	MutOpt!(LoopInfo*) optLoop = tryGetLoop(expected);
 	if (!has(optLoop))
-		return checkCallSpecial!1(ctx, locals, source, sym!"loop-break", [ast.value], expected);
+		return checkCallSpecial(ctx, locals, source, sym!"loop-break", [ast.value], expected);
 	else {
 		LoopInfo* loop = force(optLoop);
 		loop.hasBreak = true;
@@ -1444,31 +1447,31 @@ bool hasBreakOrContinue(in ExprAst a) =>
 		(in WithAst _) =>
 			false);
 
-Expr checkFor(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, in ForAst ast, ref Expected expected) {
-	bool isForBreak = hasBreakOrContinue(ast.body_);
-	scope LambdaAst lambdaAstBody = LambdaAst(ast.param, ast.body_);
-	scope ExprAst lambdaBody = ExprAst(source.range, ExprAstKind(ptrTrustMe(lambdaAstBody)));
-	Sym funName = isForBreak ? sym!"for-break" : sym!"for-loop";
+Expr checkFor(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref ForAst ast, ref Expected expected) {
+	// TODO: NO ALLOC
+	ExprAst lambdaBody = ExprAst(source.range, ExprAstKind(allocate(ctx.alloc, LambdaAst(ast.param, ast.body_))));
+	Sym funName = hasBreakOrContinue(ast.body_) ? sym!"for-break" : sym!"for-loop";
 	if (!ast.else_.kind.isA!EmptyAst) {
-		scope LambdaAst lambdaAstElse = LambdaAst(DestructureAst(DestructureAst.Void(source.range.start)), ast.else_);
-		scope ExprAst lambdaElse_ = ExprAst(ast.else_.range, ExprAstKind(ptrTrustMe(lambdaAstElse)));
-		return checkCallSpecial!3(ctx, locals, source, funName, [ast.collection, lambdaBody, lambdaElse_], expected);
+		// TODO: NO ALLOC
+		ExprAst lambdaElse_ = ExprAst(ast.else_.range, ExprAstKind(
+			allocate(ctx.alloc, LambdaAst(DestructureAst(DestructureAst.Void(source.range.start)), ast.else_))));
+		return checkCallSpecial(ctx, locals, source, funName, [ast.collection, lambdaBody, lambdaElse_], expected);
 	} else
-		return checkCallSpecial!2(ctx, locals, source, funName, [ast.collection, lambdaBody], expected);
+		return checkCallSpecial(ctx, locals, source, funName, [ast.collection, lambdaBody], expected);
 }
 
-Expr checkWith(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, in WithAst ast, ref Expected expected) {
+Expr checkWith(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref WithAst ast, ref Expected expected) {
 	if (!ast.else_.kind.isA!(EmptyAst))
 		todo!void("diag: no 'else' for 'with'");
-	LambdaAst lambdaInner = LambdaAst(ast.param, ast.body_);
-	ExprAst lambda = ExprAst(source.range, ExprAstKind(ptrTrustMe(lambdaInner)));
-	return checkCallSpecial!2(ctx, locals, source, sym!"with-block", [ast.arg, lambda], expected);
+	// TODO: NO ALLOC
+	ExprAst lambda = ExprAst(source.range, ExprAstKind(allocate(ctx.alloc, LambdaAst(ast.param, ast.body_))));
+	return checkCallSpecial(ctx, locals, source, sym!"with-block", [ast.arg, lambda], expected);
 }
 
-Expr checkThen(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, in ThenAst ast, ref Expected expected) {
-	LambdaAst lambdaInner = LambdaAst(ast.left, ast.then);
-	ExprAst lambda = ExprAst(source.range, ExprAstKind(ptrTrustMe(lambdaInner)));
-	return checkCallSpecial!2(ctx, locals, source, sym!"then", [ast.futExpr, lambda], expected);
+Expr checkThen(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref ThenAst ast, ref Expected expected) {
+	// TODO: NO ALLOC
+	ExprAst lambda = ExprAst(source.range, ExprAstKind(allocate(ctx.alloc, LambdaAst(ast.left, ast.then))));
+	return checkCallSpecial(ctx, locals, source, sym!"then", [ast.futExpr, lambda], expected);
 }
 
 Expr checkTyped(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, TypedAst* ast, ref Expected expected) {

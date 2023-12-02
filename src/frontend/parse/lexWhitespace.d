@@ -7,7 +7,6 @@ import model.parseDiag : ParseDiag;
 import util.col.arr : arrOfRange, empty;
 import util.col.str : SafeCStr;
 import util.conv : safeIntFromUint, safeToUint;
-import util.util : drop;
 
 private alias AddDiag = void delegate(ParseDiag) @safe @nogc pure nothrow;
 
@@ -126,7 +125,7 @@ bool isNewlineChar(char c) =>
 
 void skipRestOfLineAndNewline(ref immutable(char)* ptr) {
 	skipUntilNewline(ptr);
-	drop(tryTakeNewline(ptr));
+	cast(void) tryTakeNewline(ptr);
 }
 
 bool tryTakeNewline(ref immutable(char)* ptr) =>

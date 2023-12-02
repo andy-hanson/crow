@@ -156,12 +156,14 @@ size_t perf_curBytes(ref Alloc a) {
 }
 
 void freeAlloc(ref FinishedAlloc a) {
-	BlockHeader* cur = a.lastBlock;
-	do {
-		BlockHeader* prev = cur.prev;
-		freeBlock(*a.meta, cur);
-		cur = prev;
-	} while (cur != null);
+	if (false) {
+		BlockHeader* cur = a.lastBlock;
+		do {
+			BlockHeader* prev = cur.prev;
+			freeBlock(*a.meta, cur);
+			cur = prev;
+		} while (cur != null);
+	}
 }
 
 struct AllocAndValue(T) {

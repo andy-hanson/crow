@@ -56,7 +56,6 @@ import model.model :
 import util.opt : none, Opt, some;
 import util.json : field;
 import util.union_ : Union;
-import util.util : todo;
 
 immutable struct Target {
 	mixin Union!(
@@ -201,8 +200,8 @@ Opt!Target calledTarget(ref Called a) =>
 				(FunBody.CreateRecord) =>
 					returnTypeTarget(decl),
 				(FunBody.CreateUnion) =>
-					// goto the union member
-					todo!Target("!"),
+					// TODO: goto the particular union member
+					returnTypeTarget(decl),
 				(EnumFunction x) =>
 					// goto the type
 					returnTypeTarget(decl),
@@ -210,8 +209,9 @@ Opt!Target calledTarget(ref Called a) =>
 					Target(decl),
 				(FunBody.ExpressionBody) =>
 					Target(decl),
-				(FunBody.FileBytes) =>
-					todo!(Target)("!"),
+				(FunBody.FileImport) =>
+					// TODO: Target for a file showing all imports
+					Target(decl),
 				(FlagsFunction) =>
 					returnTypeTarget(decl),
 				(FunBody.RecordFieldGet x) =>

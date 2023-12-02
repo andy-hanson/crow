@@ -240,9 +240,15 @@ void getExprHover(scope ref Writer writer, in ShowCtx ctx, in Uri curUri, in Exp
 			writer ~= " literal";
 		},
 		(in LetExpr _) {},
-		(in LiteralExpr _) {},
-		(in LiteralCStringExpr _) {},
-		(in LiteralSymbolExpr _) {},
+		(in LiteralExpr _) {
+			writer ~= "number literal";
+		},
+		(in LiteralCStringExpr _) {
+			writer ~= "c-string literal";
+		},
+		(in LiteralSymbolExpr _) {
+			writer ~= "symbol literal";
+		},
 		(in LocalGetExpr x) {
 			localHover(writer, ctx, *x.local);
 		},

@@ -20,6 +20,7 @@ import frontend.storage :
 	getParsedOrDiag,
 	markUnknownIfNotExist,
 	ParseResult,
+	ReadFileResult,
 	Storage;
 import util.alloc.alloc : Alloc, allocateUninitialized, AllocName, MetaAlloc, newAlloc;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderTempAsArr, finishArr;
@@ -33,7 +34,6 @@ import util.col.mutSet :
 	mustAddToMutSet,
 	MutSet,
 	mutSetClearAndKeepMemory,
-	mutSetHas,
 	mutSetMayDelete,
 	mutSetMustDelete,
 	mutSetPopArbitrary;
@@ -161,9 +161,12 @@ private Program makeProgramCommon(
 		*force(a.commonTypes));
 }
 
+Map!(Uri, ReadFileResult) getFileContents(ref Alloc alloc, scope ref FrontendCompiler a) =>
+	mapToMap!(Uri, ReadFileResult, OtherFile*)(alloc, a.otherFiles, (ref OtherFile* x) =>
+		getFileContentOrDiag(a.storage, x.uri));
+
 void onFileChanged(scope ref Perf perf, ref FrontendCompiler a, Uri uri) {
 	withMeasure!(void, () {
-		validateReferencedBy(a);
 		final switch (fileType(a.allUris, uri)) {
 			case FileType.crow:
 				FileAst* ast = getParsedOrDiag(a.storage, uri).match!(FileAst*)(
@@ -181,15 +184,14 @@ void onFileChanged(scope ref Perf perf, ref FrontendCompiler a, Uri uri) {
 					updateFileOnConfigChange(a, file);
 				break;
 			case FileType.other:
+				// TODO: if the file existed before and exists now, no need to re-compile.
 				OtherFile* file = ensureOtherFile(a, uri);
 				file.loaded = true;
 				foreach (CrowFile* x; file.referencedBy)
 					addToWorkableIfSo(a, x);
 				break;
 		}
-		validateReferencedBy(a);
 		doDirtyWork(perf, a);
-		validateReferencedBy(a);
 	})(perf, a.alloc, PerfMeasure.onFileChanged);
 }
 
@@ -223,24 +225,6 @@ OtherFile* ensureOtherFile(ref FrontendCompiler a, Uri uri) {
 		markUnknownIfNotExist(a.storage, uri);
 		return allocate(a.alloc, OtherFile(uri));
 	});
-}
-
-// TODO:PERF Kill
-void validateReferencedBy(ref const FrontendCompiler a) {
-	foreach (const CrowFile* file; values(a.crowFiles)) {
-		if (has(file.resolvedImports)) {
-			foreach (ref const MostlyResolvedImport x; force(file.resolvedImports)) {
-				ConstOpt!(MutSet!(CrowFile*)*) rb = getReferencedBy(x);
-				assert(!has(rb) || mutSetHas(*force(rb), file));
-			}
-		}
-		foreach (const CrowFile* importer; file.referencedBy) {
-			assert(mutMapMustGet(a.crowFiles, importer.uri) == importer);
-			assert(exists!MostlyResolvedImport(force(importer.resolvedImports), (in MostlyResolvedImport x) =>
-				x.isA!(CrowFile*) && x.as!(CrowFile*) == file));
-			assert(!(has(importer.module_) && !has(file.module_)));
-		}
-	}
 }
 
 void doDirtyWork(scope ref Perf perf, ref FrontendCompiler a) {
@@ -461,7 +445,7 @@ ResolvedImport[] fullyResolveImports(ref FrontendCompiler a, MostlyResolvedImpor
 			(OtherFile* file) =>
 				getFileContentOrDiag(a.storage, file.uri).match!ResolvedImport(
 					(FileContent content) =>
-						ResolvedImport(content),
+						ResolvedImport(file.uri),
 					(ReadFileDiag x) =>
 						ResolvedImport(Diag.ImportFileDiag(Diag.ImportFileDiag.ReadError(file.uri, x)))),
 			(Diag.ImportFileDiag x) =>

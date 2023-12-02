@@ -42,7 +42,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, sizeEq, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : arrLiteral, arrsCorrespond, filter, findIndex, makeArr, map;
+import util.col.arrUtil : arrLiteral, arrsCorrespond, filter, findIndex, makeArray, map;
 import util.col.enumMap : EnumMap;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
@@ -107,6 +107,7 @@ CommonFuns getCommonFuns(
 	Type nat8ConstPointerType = instantiateType(commonTypes.ptrConst, [nat8Type]);
 	Type nat8MutPointerType = instantiateType(commonTypes.ptrMut, [nat8Type]);
 	Type symbolArrayType = instantiateType(arrayDecl, [symbolType]);
+	Type char8ArrayType = instantiateType(arrayDecl, [Type(commonTypes.char8)]);
 	Type cStringType = instantiateType(commonTypes.ptrConst, [Type(commonTypes.char8)]);
 	Type cStringConstPointerType = instantiateType(commonTypes.ptrConst, [cStringType]);
 	Type mainPointerType = instantiateType(commonTypes.funPtrStruct, [nat64FutureType, stringListType]);
@@ -154,10 +155,15 @@ CommonFuns getCommonFuns(
 		sym!"throw-impl",
 		voidType,
 		[param!"message"(cStringType)]);
+	FunInst* char8ArrayAsString = getFun(
+		CommonModule.string_,
+		sym!"as-string",
+		stringType,
+		[param!"a"(char8ArrayType)]);
 	return CommonFuns(
 		finishArr(alloc, diagsBuilder),
 		allocFun, funOrActSubscriptFunDecls, curExclusion, main, mark,
-		markVisit, newNat64Future, rtMain, staticSymbols, throwImpl);
+		markVisit, newNat64Future, rtMain, staticSymbols, throwImpl, char8ArrayAsString);
 }
 
 Destructure makeParam(ref Alloc alloc, Sym name, Type type) =>
@@ -236,8 +242,8 @@ StructDecl* getStructDeclOrAddDiag(
 			none!(StructDeclAst*),
 			module_.uri,
 			name,
-			small(makeArr!TypeParam(alloc, nTypeParams, (size_t idx) =>
-				TypeParam(UriAndRange.empty, sym!"a", 0))),
+			small(makeArray!TypeParam(alloc, nTypeParams, (size_t index) =>
+				TypeParam(UriAndRange.empty, sym!"a", index))),
 			Visibility.public_,
 			Linkage.extern_,
 			Purity.data,

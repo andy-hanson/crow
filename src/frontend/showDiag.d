@@ -48,7 +48,6 @@ import util.col.arr : empty, only;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSort, finishArr;
 import util.col.arrUtil : exists;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnRange;
-import util.col.map : KeyValuePair;
 import util.col.multiMap : makeMultiMap, MultiMap, MultiMapCb;
 import util.col.sortUtil : sorted;
 import util.col.str : SafeCStr;

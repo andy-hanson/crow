@@ -25,16 +25,14 @@ pure:
 	return res;
 }
 
-@trusted Out[] fillArr_mut(Out)(ref Alloc alloc, size_t size, in Out delegate(size_t) @safe @nogc pure nothrow cb) {
+@trusted Out[] makeArray(Out)(ref Alloc alloc, size_t size, in Out delegate(size_t) @safe @nogc pure nothrow cb) {
 	Out[] res = allocateElements!Out(alloc, size);
-	foreach (size_t i; 0 .. size) {
-		Out value = cb(i);
-		initMemory_mut!Out(&res[i], value);
-	}
+	foreach (size_t i; 0 .. size)
+		initMemory(&res[i], cb(i));
 	return res;
 }
 
-@trusted Opt!(Out[]) fillArrOrFail(Out)(
+@trusted Opt!(Out[]) makeArrayOrFail(Out)(
 	ref Alloc alloc,
 	size_t size,
 	in Opt!Out delegate(size_t) @safe @nogc pure nothrow cb,
@@ -51,6 +49,9 @@ pure:
 	}
 	return some(res);
 }
+
+@trusted T[] fillArray(T)(ref Alloc alloc, size_t size, T value) =>
+	makeArray(alloc, size, (size_t _) => value);
 
 bool exists(T)(in T[] arr, in bool delegate(in T) @safe @nogc pure nothrow cb) =>
 	has(findIndex!T(arr, cb));
@@ -151,13 +152,6 @@ Opt!(T*) findPtr(T)(T[] arr, in bool delegate(in T) @safe @nogc pure nothrow cb)
 
 T[] copyArr(T)(ref Alloc alloc, scope T[] a) =>
 	map!(T, T)(alloc, a, (ref T x) => x);
-
-@trusted Out[] makeArr(Out)(ref Alloc alloc, size_t size, in Out delegate(size_t) @safe @nogc pure nothrow cb) {
-	Out[] res = allocateElements!Out(alloc, size);
-	foreach (size_t i; 0 .. size)
-		initMemory(&res[i], cb(i));
-	return res;
-}
 
 @trusted immutable(Out[]) map(Out, In)(
 	ref Alloc alloc,
@@ -352,7 +346,7 @@ void zipPtrFirst(T, U)(T[] a, scope U[] b, in void delegate(T*, ref U) @safe @no
 	in Out delegate(ref In0, ref In1) @safe @nogc pure nothrow cb,
 ) {
 	assert(sizeEq(in0, in1));
-	return makeArr(alloc, in0.length, (size_t i) =>
+	return makeArray(alloc, in0.length, (size_t i) =>
 		cb(in0[i], in1[i]));
 }
 
@@ -363,7 +357,7 @@ void zipPtrFirst(T, U)(T[] a, scope U[] b, in void delegate(T*, ref U) @safe @no
 	in Out delegate(In0*, in In1) @safe @nogc pure nothrow cb,
 ) {
 	assert(sizeEq(in0, in1));
-	return makeArr(alloc, in0.length, (size_t i) =>
+	return makeArray(alloc, in0.length, (size_t i) =>
 		cb(&in0[i], in1[i]));
 }
 
@@ -375,7 +369,7 @@ void zipPtrFirst(T, U)(T[] a, scope U[] b, in void delegate(T*, ref U) @safe @no
 	in Out delegate(In0*, In1*, In2*) @safe @nogc pure nothrow cb,
 ) {
 	assert(sizeEq(in0, in1) && sizeEq(in1, in2));
-	return makeArr(alloc, in0.length, (size_t i) =>
+	return makeArray(alloc, in0.length, (size_t i) =>
 		cb(&in0[i], &in1[i], &in2[i]));
 }
 

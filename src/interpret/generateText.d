@@ -295,11 +295,11 @@ void writeConstant(ref Alloc alloc, ref TempAlloc tempAlloc, ref Ctx ctx, in Low
 	size_t typeSize = typeSizeBytes(ctx.program, type);
 
 	constant.matchIn!void(
-		(in Constant.ArrConstant it) {
+		(in Constant.ArrConstant x) {
 			//TODO:DUP CODE (see getTextInfoForArray)
-			size_t constantSize = ctx.program.allConstants.arrs[it.typeIndex].constants[it.index].length;
+			size_t constantSize = ctx.program.allConstants.arrs[x.typeIndex].constants[x.index].length;
 			add64(ctx.text, constantSize);
-			size_t textIndex = ctx.arrTypeIndexToConstantIndexToTextIndex[it.typeIndex][it.index];
+			size_t textIndex = ctx.arrTypeIndexToConstantIndexToTextIndex[x.typeIndex][x.index];
 			add64TextPtr(ctx.text, textIndex);
 		},
 		(in Constant.CString it) {

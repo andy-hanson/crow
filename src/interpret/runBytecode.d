@@ -39,7 +39,7 @@ import util.memory : memcpy, memmove, overwriteMemory;
 import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasureNoAlloc;
 import util.ptr : castNonScope_ref, ptrTrustMe;
-import util.util : debugLog, divRoundUp, drop, unreachable;
+import util.util : debugLog, divRoundUp, unreachable;
 
 @safe int runBytecode(
 	scope ref Perf perf,
@@ -481,7 +481,7 @@ private void opPackInner(ref Stacks stacks, ref Operation* cur) {
 		memmove(base + field.outOffset, base + field.inOffset, safeToSizeT(field.size));
 
 	// drop extra entries
-	drop(dataPopN(stacks, inEntries - outEntries));
+	dataPopN(stacks, inEntries - outEntries);
 
 	// fill remaining bytes with 0
 	ubyte* ptr = base + fields[$ - 1].outOffset + fields[$ - 1].size;

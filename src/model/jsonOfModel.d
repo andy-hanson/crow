@@ -287,8 +287,10 @@ Json jsonOfFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 				field!"library-name"(x.libraryName)]),
 		(in FunBody.ExpressionBody x) =>
 			jsonOfExpr(alloc, ctx, x.expr),
-		(in FunBody.FileBytes) =>
-			jsonString!"bytes" ,
+		(in FunBody.FileImport x) =>
+			jsonObject(alloc, [
+				kindField!"file-import",
+				field!"uri"(stringOfUri(alloc, ctx.allUris, x.uri))]),
 		(in FlagsFunction x) =>
 			jsonObject(alloc, [
 				kindField!"flags-fn",

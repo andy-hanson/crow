@@ -27,7 +27,7 @@ import util.col.arr : only, PtrAndSmallNumber;
 import util.col.arrUtil : contains;
 import util.col.map : Map;
 import util.col.str : SafeCStr;
-import util.hash : HashCode, hashEnum, hashPtr;
+import util.hash : HashCode, hashPtr;
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.opt : none, Opt, some;
 import util.sourceRange : UriAndRange;

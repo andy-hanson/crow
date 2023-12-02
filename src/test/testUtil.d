@@ -15,7 +15,7 @@ import model.diag : ReadFileDiag;
 import model.model : Program;
 import util.alloc.alloc : Alloc, allocateElements, AllocName, MetaAlloc, newAlloc, withTempAlloc;
 import util.col.arr : empty;
-import util.col.arrUtil : arrEqual, arrsCorrespond, indexOf, makeArr, map;
+import util.col.arrUtil : arrEqual, arrsCorrespond, indexOf, makeArray, map;
 import util.col.str : SafeCStr, safeCStrEq, strOfSafeCStr;
 import util.opt : force, has, none, Opt;
 import util.perf : Perf;
@@ -265,5 +265,5 @@ immutable SafeCStr[testIncludePaths.length] testIncludeContents = [staticMap!(ge
 enum getIncludeText(string path) = SafeCStr(import(path));
 
 T[] reverse(T)(ref Alloc alloc, scope T[] xs) =>
-	makeArr(alloc, xs.length, (size_t i) =>
+	makeArray(alloc, xs.length, (size_t i) =>
 		xs[xs.length - 1 - i]);

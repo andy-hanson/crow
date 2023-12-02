@@ -27,7 +27,7 @@ import util.col.arrUtil : arrEqual, exists, first;
 import util.col.map : existsInMap, Map;
 import util.col.enumMap : EnumMap;
 import util.col.str : SafeCStr, safeCStr;
-import util.hash : HashCode, Hasher, hashPtr, hashPtrAndTaggedPointers;
+import util.hash : HashCode, Hasher, hashPtrAndTaggedPointers;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : combineRanges, UriAndRange, Pos, rangeOfStartAndLength, Range;
@@ -593,8 +593,9 @@ immutable struct FunBody {
 	immutable struct Extern {
 		Sym libraryName;
 	}
-	immutable struct FileBytes {
-		ubyte[] bytes;
+	immutable struct FileImport {
+		ImportFileType type;
+		Uri uri;
 	}
 	immutable struct RecordFieldGet {
 		size_t fieldIndex;
@@ -618,7 +619,7 @@ immutable struct FunBody {
 		EnumFunction,
 		Extern,
 		ExpressionBody,
-		FileBytes,
+		FileImport,
 		FlagsFunction,
 		RecordFieldGet,
 		RecordFieldPointer,
@@ -1167,6 +1168,7 @@ immutable struct CommonFuns {
 	FunInst* rtMain;
 	FunInst* staticSymbols;
 	FunInst* throwImpl;
+	FunInst* char8ArrayAsString;
 }
 
 immutable struct CommonTypes {

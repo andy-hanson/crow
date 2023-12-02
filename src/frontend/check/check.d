@@ -25,14 +25,12 @@ import frontend.parse.ast :
 	DestructureAst,
 	ExplicitVisibility,
 	ExprAst,
-	ExprAstKind,
 	FileAst,
 	FunDeclAst,
 	FunModifierAst,
 	ImportOrExportAstKind,
 	ImportsOrExportsAst,
 	ImportOrExportAst,
-	LiteralStringAst,
 	NameAndRange,
 	ParamsAst,
 	pathRange,
@@ -45,7 +43,7 @@ import frontend.parse.ast :
 	TypeAst,
 	VarDeclAst;
 import frontend.programState : ProgramState;
-import frontend.storage : asBytes, asString, FileContent;
+import frontend.storage : FileContent;
 import model.diag : Diag, Diagnostic;
 import model.model :
 	body_,
@@ -116,7 +114,8 @@ immutable struct FileAndAst {
 }
 
 immutable struct ResolvedImport {
-	mixin Union!(Module*, FileContent, Diag.ImportFileDiag);
+	// Uri is for a file import
+	mixin Union!(Module*, Uri, Diag.ImportFileDiag);
 }
 
 immutable struct BootstrapCheck {
@@ -631,14 +630,10 @@ FunsAndMap checkFuns(
 			}
 		}());
 	});
-	foreach (size_t i, ref ImportOrExportFile f; fileImports) {
-		FunDecl* fun = &funs[asts.length + i];
-		fun.setBody(getFileImportFunctionBody(ctx, commonTypes, structsAndAliasesMap, funsMap, *fun, f));
-	}
-	foreach (size_t i, ref ImportOrExportFile f; fileExports) {
-		FunDecl* fun = &funs[asts.length + fileImports.length + i];
-		fun.setBody(getFileImportFunctionBody(ctx, commonTypes, structsAndAliasesMap, funsMap, *fun, f));
-	}
+	foreach (size_t i, ref ImportOrExportFile f; fileImports)
+		funs[asts.length + i].setBody(getFileImportFunctionBody(f));
+	foreach (size_t i, ref ImportOrExportFile f; fileExports)
+		funs[asts.length + fileImports.length + i].setBody(getFileImportFunctionBody(f));
 
 	Test[] tests = mapPointers(ctx.alloc, testAsts, (TestAst* ast) {
 		Type voidType = Type(commonTypes.void_);
@@ -676,25 +671,8 @@ Opt!TypeAst getExternTypeArg(ref FunDeclAst a, FunModifierAst.Special.Flags exte
 	return unreachable!(Opt!TypeAst);
 }
 
-FunBody getFileImportFunctionBody(
-	ref CheckCtx ctx,
-	in CommonTypes commonTypes,
-	in StructsAndAliasesMap structsAndAliasesMap,
-	ref FunsMap funsMap,
-	ref FunDecl f,
-	ref ImportOrExportFile ie,
-) {
-	final switch (ie.source.kind.as!(ImportOrExportAstKind.File*).type) {
-		case ImportFileType.nat8Array:
-			return FunBody(FunBody.FileBytes(asBytes(ie.content)));
-		case ImportFileType.string:
-			// TODO: this could just use a special FunBody, but we need a way to wrap it in string constructor
-			ExprAst* ast = allocate(ctx.alloc, ExprAst(
-				f.range.range,
-				ExprAstKind(LiteralStringAst(asString(ie.content)))));
-			return FunBody(getExprFunctionBody(ctx, commonTypes, structsAndAliasesMap, funsMap, f, ast));
-	}
-}
+FunBody getFileImportFunctionBody(in ImportOrExportFile a) =>
+	FunBody(FunBody.FileImport(a.source.kind.as!(ImportOrExportAstKind.File*).type, a.uri));
 
 FunBody.ExpressionBody getExprFunctionBody(
 	ref CheckCtx ctx,
@@ -988,7 +966,7 @@ immutable struct ImportsAndReExports {
 }
 immutable struct ImportOrExportFile {
 	ImportOrExportAst* source;
-	FileContent content;
+	Uri uri;
 }
 
 ImportsAndReExports checkImportsAndReExports(
@@ -1067,7 +1045,7 @@ ImportsOrReExports checkImportsOrReExports(
 						(Module*) {
 							unreachable!void();
 						},
-						(FileContent x) {
+						(Uri x) {
 							add(alloc, fileImports, ImportOrExportFile(importAst, x));
 						},
 						(Diag.ImportFileDiag x) {

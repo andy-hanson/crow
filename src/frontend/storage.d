@@ -12,9 +12,9 @@ import model.model : Config;
 import util.alloc.alloc : Alloc, AllocAndValue, AllocName, freeAlloc, MetaAlloc, newAlloc, withAlloc, withTempAlloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : contains;
-import util.col.mutMap : getOrAdd, keys, KeyValuePair, mayDelete, mustAddToMutMap, MutMap, values;
-import util.col.str : copyToSafeCStr, SafeCStr, safeCStrSize, strOfSafeCStr;
+import util.col.arrUtil : append, contains;
+import util.col.mutMap : getOrAdd, keys, mayDelete, mustAddToMutMap, MutMap, values;
+import util.col.str : SafeCStr, safeCStrSize, strOfSafeCStr;
 import util.json : field, Json, jsonObject;
 import util.lineAndColumnGetter :
 	LineAndCharacter,
@@ -84,7 +84,10 @@ void setFile(scope ref Perf perf, ref Storage a, Uri uri, in ReadFileResult resu
 			setFile(perf, a, uri, x);
 		});
 }
-void setFile(scope ref Perf perf, ref Storage a, Uri uri, in string content) {
+@trusted void setFile(scope ref Perf perf, ref Storage a, Uri uri, in string content) {
+	setFile(perf, a, uri, cast(ubyte[]) content);
+}
+void setFile(scope ref Perf perf, ref Storage a, Uri uri, in ubyte[] content) {
 	prepareSetFile(a, uri);
 	mustAddToMutMap(a.mapAlloc, a.successes, uri, getFileInfo(perf, a, uri, content));
 }
@@ -114,13 +117,14 @@ void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentCont
 	});
 }
 
-private AllocAndValue!FileInfo getFileInfo(scope ref Perf perf, ref Storage storage, Uri uri, in string input) =>
-	withAlloc!FileInfo(AllocName.storageFileInfo, storage.metaAlloc, (ref Alloc alloc) {
-		SafeCStr content = copyToSafeCStr(alloc, input);
+private AllocAndValue!FileInfo getFileInfo(scope ref Perf perf, ref Storage storage, Uri uri, in ubyte[] input) =>
+	withAlloc!FileInfo(AllocName.storageFileInfo, storage.metaAlloc, (ref Alloc alloc) @trusted {
+		FileContent content = FileContent(cast(immutable) append(alloc, input, cast(ubyte) '\0'));
 		return FileInfo(
-			FileContent(content),
-			lineAndColumnGetterForText(alloc, content),
-			parseContent(perf, alloc, *storage.allSymbols, *storage.allUris, uri, content));
+			content,
+			// TODO: only needed for CrowFile or CrowConfig
+			lineAndColumnGetterForText(alloc, asSafeCStr(content)),
+			parseContent(perf, alloc, *storage.allSymbols, *storage.allUris, uri, asSafeCStr(content)));
 	});
 
 private ParseResult parseContent(
@@ -206,7 +210,7 @@ private immutable struct FileInfoOrDiag {
 	mixin Union!(FileInfo, ReadFileDiag);
 }
 
-private FileInfoOrDiag fileOrDiag(scope ref Storage a, Uri uri) {
+private FileInfoOrDiag fileOrDiag(ref Storage a, Uri uri) {
 	ConstOpt!(AllocAndValue!FileInfo) res = a.successes[uri];
 	return has(res)
 		? FileInfoOrDiag(force(res).value)
@@ -236,6 +240,8 @@ immutable struct ReadFileResult {
 	mixin Union!(FileContent, ReadFileDiag);
 }
 
+// File content that could be a string or binary.
+// It always has a '\0' at the end just in case it's used as a string.
 immutable struct FileContent {
 	@safe @nogc pure nothrow:
 
@@ -255,7 +261,10 @@ immutable struct FileContent {
 immutable(ubyte[]) asBytes(return scope FileContent a) =>
 	a.bytes[0 .. $ - 1];
 
-string asString(return scope FileContent a) =>
+private @trusted SafeCStr asSafeCStr(return scope FileContent a) =>
+	SafeCStr(cast(immutable char*) a.bytes.ptr);
+
+private string asString(return scope FileContent a) =>
 	cast(string) asBytes(a);
 
 const struct LineAndColumnGetters {

@@ -3,16 +3,12 @@ module util.col.hashTable;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateElements, freeElements;
-import util.col.arr : empty, endPtr;
-import util.col.arrUtil : fillArr_mut, mapToMut;
-import util.col.map : Map;
+import util.col.arr : empty;
+import util.col.arrUtil : fillArray, mapToMut;
 import util.hash : getHash;
 import util.memory : initMemory, overwriteMemory;
 import util.opt : ConstOpt, force, has, MutOpt, none, noneMut, Opt, some, someConst, someMut;
 import util.col.str : strEq;
-import util.util : drop, unreachable;
-
-import core.stdc.stdio : printf;
 
 // Intended for implementing other collections. Don't use directly.
 // 'K' is be a subset of 'T' used for comparisons.
@@ -121,7 +117,6 @@ ref T mustAdd(T, K, alias getKey)(ref Alloc alloc, return scope ref HashTable!(T
 		if (!has(a.values[i])) {
 			a.size_++;
 			overwriteMemory(&a.values[i], someMut!T(value));
-			validate("after add", a);
 			return force(a.values[i]);
 		} else {
 			assert(!eq!K(key, getKey(force(a.values[i]))));
@@ -158,7 +153,6 @@ ref T insertOrUpdate(T, K, alias getKey)(
 		T newValue = cbUpdate(force(a.values[force(i)]));
 		assert(getKey(newValue) == key);
 		overwriteMemory(&a.values[force(i)], someMut(newValue));
-		validate("after update", a);
 		return force(a.values[force(i)]);
 	} else {
 		T value = cbInsert();
@@ -260,23 +254,6 @@ string typeName(T)() {
 		return __traits(identifier, T);
 }
 
-// Pointer is temporary (only valid until next operation)
-T* getOrAddPtr(T, K, alias getKey)(
-	ref Alloc alloc,
-	return scope ref HashTable!(T, K, getKey) a,
-	in K key,
-	in T delegate() @safe @nogc pure nothrow cb,
-) {
-	Opt!size_t i = getIndex(a, key);
-	if (has(i))
-		return &a.values[force(i)];
-	else {
-		T value = cb();
-		assert(getKey(value) == key);
-		mustAdd(alloc, a, value);
-	}
-}
-
 size_t mustGetIndex(T, K, alias getKey)(in HashTable!(T, K, getKey) a, in K key) {
 	Opt!size_t res = getIndex(a, key);
 	return force(res);
@@ -288,16 +265,7 @@ Opt!size_t getIndex(T, K, alias getKey)(in HashTable!(T, K, getKey) a, in K key)
 
 	size_t startI = getHash!K(key).hashCode % a.values.length;
 	size_t i = startI;
-	size_t nIters = 0;
 	while (true) {
-		nIters++;
-		if (nIters >= 200) {
-			debug {
-				printf("LONG RUN AT INDEX %lu\n", i);
-			}
-			validate("before crash", a, true);
-			assert(false);
-		}
 		if (!has(a.values[i]))
 			return none!size_t;
 		else if (eq!K(key, getKey(force(a.values[i]))))
@@ -319,13 +287,11 @@ bool shouldExpandBeforeAdd(T, K, alias getKey)(in HashTable!(T, K, getKey) a) =>
 
 @trusted void doExpand(T, K, alias getKey)(ref Alloc alloc, scope ref HashTable!(T, K, getKey) a) {
 	immutable size_t newCapacity = a.values.length < 2 ? 2 : a.values.length * 2;
-	HashTable!(T, K, getKey) bigger = HashTable!(T, K, getKey)(
-		0, fillArr_mut!(MutOpt!T)(alloc, newCapacity, (size_t _) => noneMut!T));
+	HashTable!(T, K, getKey) bigger = HashTable!(T, K, getKey)(0, fillArray!(MutOpt!T)(alloc, newCapacity, noneMut!T));
 	foreach (ref T x; a)
 		mustAdd(alloc, bigger, x);
 	freeElements(alloc, a.values);
 	a.values = bigger.values;
-	validate("after expand", a);
 }
 
 T deleteAtIndex(T, K, alias getKey)(scope ref HashTable!(T, K, getKey) a, size_t i) {
@@ -346,59 +312,7 @@ T deleteAtIndex(T, K, alias getKey)(scope ref HashTable!(T, K, getKey) a, size_t
 		fromI = nextI(a, fromI);
 	}
 
-	validate("after delete", a);
 	return res;
-}
-
-//TODO:KILL (PERF)
-void validate(T, K, alias getKey)(immutable char* desc, in HashTable!(T, K, getKey) a, bool alwaysLog = false) {
-	//debug printf("top of validate: size is %lu, capacity is %lu\n",
-	//	a.size_,
-	//	a.values.length);
-	size_t size = 0;
-	foreach (size_t i, ref const MutOpt!T x; a.values) {
-		if (has(x)) {
-			const K key = getKey(force(x));
-			size_t actualIndex = mustGetIndex(a, key);
-			if (actualIndex != i) {
-				debug {
-					printf(
-						"at index %lu, hash is %lu, hash index is %lu\n",
-						i, getHash!K(key).hashCode, getHash!K(key).hashCode % a.values.length);
-				}
-				debug {
-					printf("got index: %lu, expected: %lu\n",
-						mustGetIndex(a, key),
-						i);
-					printf(
-						"got pointer: %p, expected: %p\n",
-						&mustGet(a, key),
-						&force(x));
-				}
-			}
-			assert(mustGetIndex(a, key) == i);
-			assert(&mustGet(a, key) == &force(x));
-			size++;
-		}
-	}
-	debug {
-		if (alwaysLog || a.size_ != size) {
-			string s = typeName!K;
-			printf("validate %p %s\n", &a, desc);
-			printf("Map key type is %.*s\n", cast(int) s.length, s.ptr);
-			string s2 = typeName!T;
-			printf("Map type is %.*s\n", cast(int) s2.length, s2.ptr);		
-			printf("Map capacity is %lu\n", a.values.length);
-			foreach (size_t i, ref const MutOpt!T x; a.values) {
-				printf("at %lu: ", i);
-				if (has(x))
-					printf("hash is %lx\n", getHash!K(getKey(force(x))).hashCode);
-				else
-					printf("nothing\n");
-			}
-		}
-	}
-	assert(a.size_ == size);
 }
 
 size_t nextI(T, K, alias getKey)(in HashTable!(T, K, getKey) a, size_t i) {

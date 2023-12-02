@@ -134,7 +134,10 @@ ConcreteExpr concretizeFunBody(
 }
 
 ConcreteExpr concretizeBogus(ref ConcretizeCtx ctx, ConcreteType type, UriAndRange range) =>
-	makeThrow(ctx.alloc, range, type, cStrConcreteExpr(ctx, range, safeCStr!"Reached compile error"));
+	ConcreteExpr(type, range, concretizeBogusKind(ctx, range));
+ConcreteExprKind concretizeBogusKind(ref ConcretizeCtx ctx, in UriAndRange range) =>
+	ConcreteExprKind(allocate(ctx.alloc, ConcreteExprKind.Throw(
+		cStrConcreteExpr(ctx, range, safeCStr!"Reached compile error"))));
 
 private:
 
@@ -876,9 +879,6 @@ ConcreteVariableRef concretizeVariableRefForClosure(
 		(ClosureRef x) =>
 			ConcreteVariableRef(getClosureFieldInfo(ctx, range, x).closureRef));
 
-ConcreteExpr makeThrow(ref Alloc alloc, in UriAndRange range, ConcreteType type, ConcreteExpr thrown) =>
-	ConcreteExpr(type, range, ConcreteExprKind(allocate(alloc, ConcreteExprKind.Throw(thrown))));
-
 ConcreteExpr cStrConcreteExpr(ref ConcretizeCtx ctx, in UriAndRange range, SafeCStr value) =>
 	cStrConcreteExpr(ctx, cStrType(ctx), range, value);
 ConcreteExpr cStrConcreteExpr(ref ConcretizeCtx ctx, ConcreteType type, in UriAndRange range, SafeCStr value) =>
@@ -987,7 +987,9 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 					allocate(ctx.alloc, ConcreteExprKind.Seq(first, then))));
 		},
 		(ref ThrowExpr x) =>
-			makeThrow(ctx.alloc, range, type, concretizeExpr(ctx, cStrType(ctx.concretizeCtx), locals, x.thrown)));
+			ConcreteExpr(type, range, ConcreteExprKind(
+				allocate(ctx.alloc, ConcreteExprKind.Throw(
+					concretizeExpr(ctx, cStrType(ctx.concretizeCtx), locals, x.thrown))))));
 }
 
 ConstantsOrExprs constantsOrExprsArr(

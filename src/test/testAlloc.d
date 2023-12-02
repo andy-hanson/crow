@@ -20,7 +20,7 @@ import util.alloc.alloc :
 	newAlloc,
 	withAlloc,
 	withTempAlloc;
-import util.col.arrUtil : every, makeArr;
+import util.col.arrUtil : every, makeArray;
 
 void testAlloc(ref Test test) {
 	testFreeAlloc(test);
@@ -60,7 +60,7 @@ void testFreeAlloc(ref Test test) {
 		foreach (size_t i; 0 .. allocs.length) {
 			sizes[i] = nextShort(random);
 			allocs[i] = withAlloc!(ubyte[])(AllocName.test, &meta, (ref Alloc alloc) =>
-				makeArr!ubyte(alloc, sizes[i], (size_t _) => cast(ubyte) i));
+				makeArray!ubyte(alloc, sizes[i], (size_t _) => cast(ubyte) i));
 		}
 
 		foreach (size_t i, ref AllocAndValue!(ubyte[]) alloc; allocs) {
@@ -73,7 +73,7 @@ void testFreeAlloc(ref Test test) {
 		foreach (size_t i; 0 .. 10) {
 			size_t size = nextShort(random);
 			withAlloc!(ubyte[])(AllocName.test, &meta, (ref Alloc alloc) =>
-				makeArr!ubyte(alloc, size, (size_t _) => cast(ubyte) i));
+				makeArray!ubyte(alloc, size, (size_t _) => cast(ubyte) i));
 		}
 
 		foreach (size_t i; 0 .. 100)

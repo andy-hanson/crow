@@ -3,7 +3,7 @@ module util.col.mutIndexMap;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.arrUtil : fillArr_mut;
+import util.col.arrUtil : fillArray;
 import util.col.mutMap : ValueAndDidAdd;
 import util.memory : overwriteMemory;
 import util.opt : force, has, MutOpt, noneMut, someMut;
@@ -16,8 +16,7 @@ struct MutIndexMap(K, V) {
 }
 
 MutIndexMap!(K, V) newMutIndexMap(K, V)(ref Alloc alloc, size_t size) =>
-	MutIndexMap!(K, V)(fillArr_mut!(MutOpt!V)(alloc, size, (size_t _) =>
-		noneMut!V));
+	MutIndexMap!(K, V)(fillArray!(MutOpt!V)(alloc, size, noneMut!V));
 
 ref const(V) mustGetAt(K, V)(ref const MutIndexMap!(K, V) a, immutable K key) =>
 	force(getAt(a, key));

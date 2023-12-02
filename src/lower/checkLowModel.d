@@ -48,7 +48,6 @@ import util.json : field, Json, jsonObject, jsonString, kindField, writeJson;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols;
-import util.util : drop;
 import util.writer : debugLogWithWriter, Writer;
 
 void checkLowProgram(in AllSymbols allSymbols, in Program program, in LowProgram a) {
@@ -160,7 +159,7 @@ void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr
 			checkLowExpr(ctx, info, getLoop(info, x.loop), x.value);
 		},
 		(in LowExprKind.LoopContinue x) {
-			drop(getLoop(info, x.loop));
+			cast(void) getLoop(info, x.loop);
 		},
 		(in LowExprKind.MatchUnion it) {
 			checkLowExpr(ctx, info, it.matchedValue.type, it.matchedValue);

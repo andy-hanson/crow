@@ -2,12 +2,11 @@ module util.col.str;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc, allocateElements;
+import util.alloc.alloc : Alloc;
 import util.comparison : Comparison;
 import util.col.arr : empty;
-import util.col.arrUtil : arrEqual, map;
+import util.col.arrUtil : append, arrEqual, map;
 import util.hash : HashCode, hashString;
-import util.memory : copyToFrom;
 
 alias CStr = immutable char*;
 
@@ -37,16 +36,10 @@ private @trusted CStr cstrEnd(CStr c) {
 	return ptr;
 }
 
-@trusted SafeCStr copyToSafeCStr(ref Alloc alloc, in char[] s) {
-	if (empty(s))
-		return safeCStr!"";
-	else {
-		char[] res = allocateElements!char(alloc, s.length + 1);
-		copyToFrom!char(res[0 .. $ - 1], s);
-		res[$ - 1] = '\0';
-		return SafeCStr(cast(immutable) res.ptr);
-	}
-}
+@trusted SafeCStr copyToSafeCStr(ref Alloc alloc, in char[] s) =>
+	empty(s)
+		? safeCStr!""
+		: SafeCStr(cast(immutable) append(alloc, s, '\0').ptr);
 
 bool strEq(string a, string b) =>
 	arrEqual(a, b);

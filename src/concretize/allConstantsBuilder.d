@@ -12,10 +12,11 @@ import model.concreteModel :
 import model.constant : Constant, constantZero;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
-import util.col.arrUtil : arrEqual, arrLiteral, findIndex;
+import util.col.arrUtil : arrEqual, arrLiteral, fillArray, findIndex;
 import util.col.mutArr : moveToArr, MutArr, mutArrSize, push, tempAsArr;
-import util.col.mutMap : getOrAdd, mapToArray_mut, MutMap, mutMapSize, valuesArray;
+import util.col.mutMap : getOrAdd, MutMap, mutMapSize, values, valuesArray;
 import util.col.str : SafeCStr;
+import util.memory : initMemory;
 import util.opt : force, has, Opt;
 import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols, safeCStrOfSym, Sym;
@@ -48,20 +49,21 @@ AllConstantsConcrete finishAllConstants(
 	ConcreteStruct* arrSymStruct,
 ) {
 	Constant staticSymbols = getConstantArr(alloc, a, arrSymStruct, valuesArray(alloc, a.syms));
-	ArrTypeAndConstantsConcrete[] arrs =
-		mapToArray_mut!(ArrTypeAndConstantsConcrete, ConcreteType, ArrTypeAndConstants)(
-			alloc,
-			a.arrs,
-			(ConcreteType _, ref ArrTypeAndConstants value) =>
-				ArrTypeAndConstantsConcrete(
-					value.arrType,
-					value.elementType,
-					moveToArr!(immutable Constant[])(alloc, value.constants)));
-	PointerTypeAndConstantsConcrete[] records =
-		mapToArray_mut!(PointerTypeAndConstantsConcrete, ConcreteStruct*, PointerTypeAndConstants)(
-			alloc, a.pointers, (ConcreteStruct* key, ref PointerTypeAndConstants value) =>
-				PointerTypeAndConstantsConcrete(key, moveToArr(alloc, value.constants)));
-	return AllConstantsConcrete(moveToArr(alloc, a.cStringValues), staticSymbols, arrs, records);
+
+	ArrTypeAndConstantsConcrete[] arrays = fillArray!ArrTypeAndConstantsConcrete(
+		alloc, mutMapSize(a.arrs), ArrTypeAndConstantsConcrete(null));
+	foreach (ArrTypeAndConstants x; values(a.arrs))
+		initMemory(&arrays[x.typeIndex], ArrTypeAndConstantsConcrete(
+			x.arrType,
+			x.elementType,
+			moveToArr!(immutable Constant[])(alloc, x.constants)));
+
+	PointerTypeAndConstantsConcrete[] pointers = fillArray!PointerTypeAndConstantsConcrete(
+		alloc, mutMapSize(a.pointers), PointerTypeAndConstantsConcrete(null));
+	foreach (ConcreteStruct* pointerType, PointerTypeAndConstants x; a.pointers)
+		initMemory(&pointers[x.typeIndex], PointerTypeAndConstantsConcrete(pointerType, moveToArr(alloc, x.constants)));
+
+	return AllConstantsConcrete(moveToArr(alloc, a.cStringValues), staticSymbols, arrays, pointers);
 }
 
 // TODO: this will be used when creating constant records by-ref.
@@ -77,6 +79,7 @@ Constant getConstantArr(
 	ref Alloc alloc,
 	scope ref AllConstantsBuilder allConstants,
 	ConcreteStruct* arrStruct,
+	// TODO:PERF take this 'in', only allocate if necessary.
 	Constant[] elements,
 ) {
 	if (empty(elements))

@@ -62,7 +62,7 @@ import model.model :
 	Type;
 import util.col.arr : empty, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : every, exists, fillArrOrFail, zipEvery;
+import util.col.arrUtil : arrLiteral, every, exists, makeArrayOrFail, zipEvery;
 import util.col.mutMaxArr :
 	exists, isEmpty, fillMutMaxArr, MutMaxArr, mutMaxArr, mutMaxArrSize, only, push, size, tempAsArr;
 import util.opt : force, has, none, noneMut, Opt, some, some;
@@ -91,16 +91,6 @@ Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref Call
 		expected);
 }
 
-Expr checkCallSpecial(size_t n)(
-	ref ExprCtx ctx,
-	ref LocalsInfo locals,
-	ExprAst* ast,
-	Sym funName,
-	in ExprAst[n] args,
-	ref Expected expected,
-) =>
-	checkCallCommon(ctx, locals, ast, ast.range, funName, none!Type, castNonScope_ref(args), expected);
-
 Expr checkCallSpecial(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
@@ -109,7 +99,8 @@ Expr checkCallSpecial(
 	in ExprAst[] args,
 	ref Expected expected,
 ) =>
-	checkCallCommon(ctx, locals, source, source.range, funName, none!Type, castNonScope_ref(args), expected);
+	// TODO:NO ALLOC
+	checkCallCommon(ctx, locals, source, source.range, funName, none!Type, arrLiteral(ctx.alloc, args), expected);
 
 Expr checkCallSpecialNoLocals(
 	ref ExprCtx ctx,
@@ -175,7 +166,7 @@ Expr checkCallInner(
 
 	ArrBuilder!Type actualArgTypes;
 	bool someArgIsBogus = false;
-	Opt!(Expr[]) args = fillArrOrFail!Expr(ctx.alloc, arity, (size_t argIdx) {
+	Opt!(Expr[]) args = makeArrayOrFail!Expr(ctx.alloc, arity, (size_t argIdx) @safe {
 		if (isEmpty(candidates))
 			return none!Expr;
 
