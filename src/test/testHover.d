@@ -58,7 +58,7 @@ void withHoverTest(string fileName)(
 	withTestServer(test, (ref Alloc alloc, ref Server server) {
 		Uri uri = parseUri(server.allUris, "magic:/" ~ fileName);
 		setupTestServer(test, alloc, server, uri, content);
-		Program program = getProgramForAll(alloc, server);
+		Program program = getProgramForAll(test.perf, alloc, server);
 		cb(getShowDiagCtx(server, program), mustGetAt(program.allModules, uri));
 	});
 }

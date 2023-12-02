@@ -6,6 +6,7 @@ import model.diag : Diag, ReadFileDiag;
 import model.model : CommonTypes, Config, emptyConfig, Module, Program;
 import frontend.check.check : BootstrapCheck, check, checkBootstrap, FileAndAst, ResolvedImport;
 import frontend.check.getCommonFuns : CommonModule, getCommonFuns;
+import frontend.check.instantiate : InstantiateCtx;
 import frontend.lang : crowConfigBaseName, crowExtension;
 import frontend.parse.ast : FileAst, fileAstForReadFileDiag, ImportOrExportAst, ImportOrExportAstKind, NameAndRange;
 import frontend.programState : ProgramState;
@@ -38,7 +39,8 @@ import util.col.mutSet :
 	mutSetPopArbitrary;
 import util.memory : allocate, initMemory;
 import util.opt : ConstOpt, force, has, MutOpt, Opt, none, noneMut, some, someMut;
-import util.perf : Perf;
+import util.perf : Perf, PerfMeasure, withMeasure;
+import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols, sym;
 import util.union_ : Union, UnionMutable;
 import util.uri :
@@ -98,7 +100,8 @@ FrontendCompiler* initFrontend(
 		FrontendCompiler* res = allocateUninitialized!FrontendCompiler(alloc);
 		initMemory(res, FrontendCompiler(
 			alloc.move(), allSymbols, allUris, storage, crowIncludeDir,
-			makeEnumMap!(CommonModule, CrowFile*)((CommonModule _) => null)));
+			makeEnumMap!(CommonModule, CrowFile*)((CommonModule _) => null),
+			ProgramState(newAlloc(AllocName.programState, metaAlloc))));
 		res.commonFiles = enumMapMapValues!(CommonModule, CrowFile*, Uri)(
 			commonUris(*allUris, crowIncludeDir), (in Uri uri) =>
 				ensureCrowFile(*res, uri));
@@ -126,13 +129,19 @@ private struct OtherFile {
 	MutSet!(CrowFile*) referencedBy;
 }
 
-Program makeProgramForMain(ref Alloc alloc, ref FrontendCompiler a, Uri mainUri) =>
-	makeProgramCommon(alloc, a, some(mainUri), [mainUri]);
+Program makeProgramForMain(scope ref Perf perf, ref Alloc alloc, ref FrontendCompiler a, Uri mainUri) =>
+	makeProgramCommon(perf, alloc, a, some(mainUri), [mainUri]);
 
-Program makeProgramForRoots(ref Alloc alloc, ref FrontendCompiler a, in Uri[] roots) =>
-	makeProgramCommon(alloc, a, none!Uri, roots);
+Program makeProgramForRoots(scope ref Perf perf, ref Alloc alloc, ref FrontendCompiler a, in Uri[] roots) =>
+	makeProgramCommon(perf, alloc, a, none!Uri, roots);
 
-private Program makeProgramCommon(ref Alloc alloc, ref FrontendCompiler a, Opt!Uri mainUri, in Uri[] roots) {
+private Program makeProgramCommon(
+	scope ref Perf perf,
+	ref Alloc alloc,
+	ref FrontendCompiler a,
+	in Opt!Uri mainUri,
+	in Uri[] roots,
+) {
 	assert(filesState(a.storage) == FilesState.allLoaded);
 	MutOpt!(CrowFile*) mainFile = has(mainUri)
 		? someMut(mutMapMustGet(a.crowFiles, force(mainUri)))
@@ -141,44 +150,47 @@ private Program makeProgramCommon(ref Alloc alloc, ref FrontendCompiler a, Opt!U
 	EnumMap!(CommonModule, Module*) commonModules = enumMapMapValues!(CommonModule, Module*, CrowFile*)(
 		a.commonFiles, (in CrowFile* x) =>
 			force(x.module_));
+	InstantiateCtx ctx = InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(a.programState));
 	return Program(
 		has(mainFile) ? some(force(force(mainFile).config)) : none!(Config*),
 		getAllConfigs(alloc, a),
 		mapToMap!(Uri, immutable Module*, CrowFile*)(alloc, a.crowFiles, (ref const CrowFile* file) =>
 			force(file.module_)),
 		map!(Module*, Uri)(alloc, roots, (ref Uri uri) => force(mutMapMustGet(a.crowFiles, uri).module_)),
-		getCommonFuns(a.alloc, a.programState, *force(a.commonTypes), mainModule, commonModules),
+		getCommonFuns(a.alloc, ctx, *force(a.commonTypes), mainModule, commonModules),
 		*force(a.commonTypes));
 }
 
 void onFileChanged(scope ref Perf perf, ref FrontendCompiler a, Uri uri) {
-	validateReferencedBy(a);
-	final switch (fileType(a.allUris, uri)) {
-		case FileType.crow:
-			FileAst* ast = getParsedOrDiag(a.storage, uri).match!(FileAst*)(
-				(ParseResult x) =>
-					x.as!(FileAst*),
-				(ReadFileDiag x) =>
-					// TODO: Storage should just store this
-					fileAstForReadFileDiag(a.alloc, x));
-			CrowFile* file = ensureCrowFile(a, uri);
-			file.ast = someMut(ast); // TODO: free old ast
-			updatedAstOrConfig(a, file);
-			break;
-		case FileType.crowConfig:
-			foreach (CrowFile* file; values(a.crowFiles))
-				updateFileOnConfigChange(a, file);
-			break;
-		case FileType.other:
-			OtherFile* file = ensureOtherFile(a, uri);
-			file.loaded = true;
-			foreach (CrowFile* x; file.referencedBy)
-				addToWorkableIfSo(a, x);
-			break;
-	}
-	validateReferencedBy(a);
-	doDirtyWork(perf, a);
-	validateReferencedBy(a);
+	withMeasure!(void, () {
+		validateReferencedBy(a);
+		final switch (fileType(a.allUris, uri)) {
+			case FileType.crow:
+				FileAst* ast = getParsedOrDiag(a.storage, uri).match!(FileAst*)(
+					(ParseResult x) =>
+						x.as!(FileAst*),
+					(ReadFileDiag x) =>
+						// TODO: Storage should just store this
+						fileAstForReadFileDiag(a.alloc, x));
+				CrowFile* file = ensureCrowFile(a, uri);
+				file.ast = someMut(ast); // TODO: free old ast
+				updatedAstOrConfig(a, file);
+				break;
+			case FileType.crowConfig:
+				foreach (CrowFile* file; values(a.crowFiles))
+					updateFileOnConfigChange(a, file);
+				break;
+			case FileType.other:
+				OtherFile* file = ensureOtherFile(a, uri);
+				file.loaded = true;
+				foreach (CrowFile* x; file.referencedBy)
+					addToWorkableIfSo(a, x);
+				break;
+		}
+		validateReferencedBy(a);
+		doDirtyWork(perf, a);
+		validateReferencedBy(a);
+	})(perf, a.alloc, PerfMeasure.onFileChanged);
 }
 
 private:

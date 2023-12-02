@@ -29,7 +29,6 @@ import frontend.check.inferringType :
 	markIsUsedSetOnStack,
 	OkSkipOrAbort,
 	Pair,
-	programState,
 	setExpectedIfNoInferred,
 	tryGetDeeplyInstantiatedTypeWorker,
 	tryGetInferred,
@@ -547,7 +546,7 @@ MutOpt!ExpectedLambdaType getExpectedLambdaType(
 			if (has(optFunType)) {
 				FunType funType = force(optFunType);
 				Opt!Type optExpectedParamType = tryGetDeeplyInstantiatedTypeWorker(
-					ctx.alloc, ctx.programState, funType.nonInstantiatedParamType, funTypeInferring);
+					ctx.instantiateCtx, funType.nonInstantiatedParamType, funTypeInferring);
 				OkSkipOrAbort!Type actualParamType = () {
 					if (has(optExpectedParamType)) {
 						Type expectedParamType = force(optExpectedParamType);
@@ -563,8 +562,7 @@ MutOpt!ExpectedLambdaType getExpectedLambdaType(
 				}();
 				return actualParamType.mapOk((Type paramType) {
 					Type nonInstantiatedReturnType = funType.kind == FunKind.far
-						? makeFutType(
-							ctx.alloc, ctx.programState, ctx.commonTypes, funType.nonInstantiatedNonFutReturnType)
+						? makeFutType(ctx.instantiateCtx, ctx.commonTypes, funType.nonInstantiatedNonFutReturnType)
 						: funType.nonInstantiatedNonFutReturnType;
 					return ExpectedLambdaType(
 						funTypeInferring,
@@ -1101,10 +1099,10 @@ Expr checkFunPointer(ref ExprCtx ctx, ExprAst* source, in PtrAst ast, ref Expect
 	FunDecl* funDecl = funs[0];
 	if (isTemplate(*funDecl))
 		todo!void("can't point to template");
-	FunInst* funInst = instantiateFun(ctx.alloc, ctx.programState, funDecl, [], []);
-	Type paramType = makeTupleType(ctx.alloc, ctx.programState, ctx.commonTypes, funInst.paramTypes);
+	FunInst* funInst = instantiateFun(ctx.instantiateCtx, funDecl, [], []);
+	Type paramType = makeTupleType(ctx.instantiateCtx, ctx.commonTypes, funInst.paramTypes);
 	StructInst* structInst = instantiateStructNeverDelay(
-		ctx.alloc, ctx.programState, ctx.commonTypes.funPtrStruct, [funInst.returnType, paramType]);
+		ctx.instantiateCtx, ctx.commonTypes.funPtrStruct, [funInst.returnType, paramType]);
 	return check(ctx, source, expected, Type(structInst), Expr(source, ExprKind(FunPtrExpr(funInst))));
 }
 
@@ -1141,7 +1139,7 @@ Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref La
 		? unwrapFutureType(actualPossiblyFutReturnType, ctx)
 		: actualPossiblyFutReturnType;
 	StructInst* instFunStruct = instantiateStructNeverDelay(
-		ctx.alloc, ctx.programState, et.funStruct, [actualNonFutReturnType, param.type]);
+		ctx.instantiateCtx, et.funStruct, [actualNonFutReturnType, param.type]);
 	initMemory(lambda, LambdaExpr(
 		param,
 		body_,

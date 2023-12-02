@@ -43,11 +43,27 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : emptySmallArray, sizeEq, small, SmallArray;
 import util.col.arrUtil : copyArr, fold, map, mapWithFirst;
 import util.col.mutMap : getOrAddPair, getOrAddPairAndDidAdd, KeyValuePair, PairAndDidAdd;
-import util.col.mutArr : MutArr, push;
+import util.col.mutArr : MutArrWithAlloc, push;
 import util.col.mutMaxArr : mapTo, MutMaxArr, mutMaxArr, push, tempAsArr;
 import util.memory : allocate;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
+import util.perf : Perf, PerfMeasure, withMeasure;
 import util.util : typeAs;
+
+// This is a copyable type
+struct InstantiateCtx {
+	@safe @nogc pure nothrow:
+
+	Perf* perfPtr;
+	ProgramState* programStatePtr;
+
+	ref Perf perf() return scope =>
+		*perfPtr;
+	ref Alloc alloc() =>
+		programState.alloc;
+	ref ProgramState programState() return scope =>
+		*programStatePtr;
+}
 
 immutable struct TypeParamsAndArgs {
 	@safe @nogc pure nothrow:
@@ -82,19 +98,20 @@ private Opt!Type tryGetTypeArgFromTypeParamsAndArgs(TypeParamsAndArgs typeParams
 	return has(t) ? some(*force(t)) : none!Type;
 }
 
-alias DelaySpecInsts = MutOpt!(MutArr!(SpecInst*)*); // delayed due to 'parents' referencing other specs
-DelaySpecInsts noDelaySpecInsts() =>
-	noneMut!(MutArr!(SpecInst*)*);
-alias DelayStructInsts = MutOpt!(MutArr!(StructInst*)*);
-DelayStructInsts noDelayStructInsts() =>
-	noneMut!(MutArr!(StructInst*)*);
+alias DelaySpecInsts = MutArrWithAlloc!(SpecInst*);
+alias MayDelaySpecInsts = MutOpt!(DelaySpecInsts*); // delayed due to 'parents' referencing other specs
+MayDelaySpecInsts noDelaySpecInsts() =>
+	noneMut!(DelaySpecInsts*);
+alias DelayStructInsts = MutArrWithAlloc!(StructInst*);
+alias MayDelayStructInsts = MutOpt!(DelayStructInsts*);
+MayDelayStructInsts noDelayStructInsts() =>
+	noneMut!(DelayStructInsts*);
 
 private Type instantiateType(
-	ref Alloc alloc,
-	ref ProgramState programState,
+	ref InstantiateCtx ctx,
 	Type type,
 	in TypeParamsAndArgs typeParamsAndArgs,
-	scope DelayStructInsts delayStructInsts,
+	scope MayDelayStructInsts delayStructInsts,
 ) =>
 	type.matchWithPointers!Type(
 		(Type.Bogus _) =>
@@ -104,42 +121,26 @@ private Type instantiateType(
 			return has(op) ? force(op) : type;
 		},
 		(StructInst* i) =>
-			Type(instantiateStructInst(alloc, programState, *i, typeParamsAndArgs, delayStructInsts)));
+			Type(instantiateStructInst(ctx, *i, typeParamsAndArgs, delayStructInsts)));
 
-private Type instantiateTypeNoDelay(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	Type type,
-	TypeParamsAndArgs typeParamsAndArgs,
-) =>
-	instantiateType(alloc, programState, type, typeParamsAndArgs, noDelayStructInsts);
+private Type instantiateTypeNoDelay(ref InstantiateCtx ctx, Type type, TypeParamsAndArgs typeParamsAndArgs) =>
+	instantiateType(ctx, type, typeParamsAndArgs, noDelayStructInsts);
 
-FunInst* instantiateFun(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	FunDecl* decl,
-	in Type[] typeArgs,
-	in Called[] specImpls,
-) {
-	FunDeclAndArgs tempKey = FunDeclAndArgs(decl, typeArgs, specImpls);
-	return getOrAddPair(alloc, programState.funInsts, tempKey, () {
-		FunDeclAndArgs key = FunDeclAndArgs(decl, copyArr(alloc, typeArgs), copyArr(alloc, specImpls));
-		TypeParamsAndArgs typeParamsAndArgs = TypeParamsAndArgs(decl.typeParams, key.typeArgs);
-		return KeyValuePair!(FunDeclAndArgs, FunInst*)(key, allocate(alloc, FunInst(
-			key,
-			instantiateReturnAndParamTypes(
-				alloc, programState, decl.returnType, paramsArray(decl.params), typeParamsAndArgs))));
-	}).value;
-}
+FunInst* instantiateFun(ref InstantiateCtx ctx, FunDecl* decl, in Type[] typeArgs, in Called[] specImpls) =>
+	withMeasure!(FunInst*, () {
+		FunDeclAndArgs tempKey = FunDeclAndArgs(decl, typeArgs, specImpls);
+		return getOrAddPair(ctx.alloc, ctx.programState.funInsts, tempKey, () {
+			FunDeclAndArgs key = FunDeclAndArgs(decl, copyArr(ctx.alloc, typeArgs), copyArr(ctx.alloc, specImpls));
+			TypeParamsAndArgs typeParamsAndArgs = TypeParamsAndArgs(decl.typeParams, key.typeArgs);
+			return KeyValuePair!(FunDeclAndArgs, FunInst*)(key, allocate(ctx.alloc, FunInst(
+				key,
+				instantiateReturnAndParamTypes(ctx, decl.returnType, paramsArray(decl.params), typeParamsAndArgs))));
+		}).value;
+	})(ctx.perf, ctx.alloc, PerfMeasure.instantiateFun);
 
-Type[] instantiateStructTypes(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	StructDeclAndArgs declAndArgs,
-	scope DelayStructInsts delayStructInsts,
-) {
-	TypeParamsAndArgs typeParamsAndArgs = TypeParamsAndArgs(declAndArgs.decl.typeParams, declAndArgs.typeArgs);
-	return body_(*declAndArgs.decl).match!(Type[])(
+void instantiateStructTypes(ref InstantiateCtx ctx, StructInst* inst, scope MayDelayStructInsts delayStructInsts) {
+	TypeParamsAndArgs typeParamsAndArgs = TypeParamsAndArgs(decl(*inst).typeParams, typeArgs(*inst));
+	inst.instantiatedTypes = body_(*decl(*inst)).match!(Type[])(
 		(StructBody.Bogus) =>
 			typeAs!(Type[])([]),
 		(StructBody.Builtin) =>
@@ -151,45 +152,45 @@ Type[] instantiateStructTypes(
 		(StructBody.Flags f) =>
 			typeAs!(Type[])([]),
 		(StructBody.Record r) =>
-			map(alloc, r.fields, (ref RecordField f) =>
-				instantiateType(alloc, programState, f.type, typeParamsAndArgs, delayStructInsts)),
+			map(ctx.alloc, r.fields, (ref RecordField f) =>
+				instantiateType(ctx, f.type, typeParamsAndArgs, delayStructInsts)),
 		(StructBody.Union u) =>
-			map(alloc, u.members, (ref UnionMember x) =>
-				instantiateType(alloc, programState, x.type, typeParamsAndArgs, delayStructInsts)));
+			map(ctx.alloc, u.members, (ref UnionMember x) =>
+				instantiateType(ctx, x.type, typeParamsAndArgs, delayStructInsts)));
 }
 
 StructInst* instantiateStruct(
-	ref Alloc alloc,
-	ref ProgramState programState,
+	ref InstantiateCtx ctx,
 	StructDecl* decl,
 	in Type[] typeArgs,
-	scope DelayStructInsts delayStructInsts,
-) {
-	StructDeclAndArgs tempKey = StructDeclAndArgs(decl, typeArgs);
-	PairAndDidAdd!(StructDeclAndArgs, StructInst*) res = getOrAddPairAndDidAdd(
-		alloc,
-		programState.structInsts,
-		tempKey,
-		() {
-			StructDeclAndArgs key = StructDeclAndArgs(decl, copyArr(alloc, typeArgs));
-			return KeyValuePair!(StructDeclAndArgs, StructInst*)(key, allocate(alloc, StructInst(
-				key,
-				combinedLinkageRange(decl.linkage, typeArgs),
-				combinedPurityRange(decl.purity, typeArgs))));
-		});
+	scope MayDelayStructInsts delayStructInsts,
+) =>
+	withMeasure!(StructInst*, () {
+		StructDeclAndArgs tempKey = StructDeclAndArgs(decl, typeArgs);
+		PairAndDidAdd!(StructDeclAndArgs, StructInst*) res = getOrAddPairAndDidAdd(
+			ctx.alloc,
+			ctx.programState.structInsts,
+			tempKey,
+			() {
+				StructDeclAndArgs key = StructDeclAndArgs(decl, copyArr(ctx.alloc, typeArgs));
+				return KeyValuePair!(StructDeclAndArgs, StructInst*)(key, allocate(ctx.alloc, StructInst(
+					key,
+					combinedLinkageRange(decl.linkage, typeArgs),
+					combinedPurityRange(decl.purity, typeArgs))));
+			});
 
-	if (res.didAdd) {
-		if (bodyIsSet(*decl))
-			res.value.instantiatedTypes = instantiateStructTypes(alloc, programState, res.key, delayStructInsts);
-		else {
-			// We should only need to do this in the initial phase of settings struct bodies,
-			// which is when delayedStructInst is set.
-			push!(StructInst*)(alloc, *force(delayStructInsts), res.value);
+		if (res.didAdd) {
+			if (bodyIsSet(*decl))
+				instantiateStructTypes(ctx, res.value, delayStructInsts);
+			else {
+				// We should only need to do this in the initial phase of settings struct bodies,
+				// which is when delayedStructInst is set.
+				push(*force(delayStructInsts), res.value);
+			}
 		}
-	}
 
-	return res.value;
-}
+		return res.value;
+	})(ctx.perf, ctx.alloc, PerfMeasure.instantiateStruct);
 
 private LinkageRange combinedLinkageRange(Linkage declLinkage, in Type[] typeArgs) {
 	final switch (declLinkage) {
@@ -208,113 +209,84 @@ private PurityRange combinedPurityRange(Purity declPurity, in Type[] typeArgs) =
 		combinePurityRange(cur, purityRange(typeArg)));
 
 private StructInst* instantiateStructInst(
-	ref Alloc alloc,
-	ref ProgramState programState,
+	ref InstantiateCtx ctx,
 	ref StructInst structInst,
 	in TypeParamsAndArgs typeParamsAndArgs,
-	scope DelayStructInsts delayStructInsts,
+	scope MayDelayStructInsts delayStructInsts,
 ) {
 	scope TypeArgsArray itsTypeArgs = typeArgsArray();
 	mapTo!(maxTypeParams, Type, Type)(itsTypeArgs, typeArgs(structInst), (ref Type x) =>
-		instantiateType(alloc, programState, x, typeParamsAndArgs, delayStructInsts));
-	return instantiateStruct(alloc, programState, decl(structInst), tempAsArr(itsTypeArgs), delayStructInsts);
+		instantiateType(ctx, x, typeParamsAndArgs, delayStructInsts));
+	return instantiateStruct(ctx, decl(structInst), tempAsArr(itsTypeArgs), delayStructInsts);
 }
 
-StructInst* instantiateStructNeverDelay(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	StructDecl* decl,
-	in Type[] typeArgs,
-) =>
-	instantiateStruct(alloc, programState, decl, typeArgs, noDelayStructInsts);
+StructInst* instantiateStructNeverDelay(ref InstantiateCtx ctx, StructDecl* decl, in Type[] typeArgs) =>
+	instantiateStruct(ctx, decl, typeArgs, noDelayStructInsts);
 
-StructInst* makeArrayType(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	ref CommonTypes commonTypes,
-	Type elementType,
-) =>
-	instantiateStructNeverDelay(alloc, programState, commonTypes.array, [elementType]);
+StructInst* makeArrayType(ref InstantiateCtx ctx, ref CommonTypes commonTypes, Type elementType) =>
+	instantiateStructNeverDelay(ctx, commonTypes.array, [elementType]);
 
-StructInst* makeConstPointerType(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	ref CommonTypes commonTypes,
-	Type pointeeType,
-) =>
-	instantiateStructNeverDelay(alloc, programState, commonTypes.ptrConst, [pointeeType]);
+StructInst* makeConstPointerType(ref InstantiateCtx ctx, ref CommonTypes commonTypes, Type pointeeType) =>
+	instantiateStructNeverDelay(ctx, commonTypes.ptrConst, [pointeeType]);
 
-StructInst* makeMutPointerType(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	ref CommonTypes commonTypes,
-	Type pointeeType,
-) =>
-	instantiateStructNeverDelay(alloc, programState, commonTypes.ptrMut, [pointeeType]);
+StructInst* makeMutPointerType(ref InstantiateCtx ctx, ref CommonTypes commonTypes, Type pointeeType) =>
+	instantiateStructNeverDelay(ctx, commonTypes.ptrMut, [pointeeType]);
 
 SpecInst* instantiateSpec(
-	ref Alloc alloc,
-	ref ProgramState programState,
+	ref InstantiateCtx ctx,
 	SpecDecl* decl,
 	in Type[] typeArgs,
-	scope DelaySpecInsts delaySpecInsts,
-) {
-	SpecDeclAndArgs tempKey = SpecDeclAndArgs(decl, typeArgs);
-	return getOrAddPair(alloc, programState.specInsts, tempKey, () {
-		SpecDeclAndArgs key = SpecDeclAndArgs(decl, copyArr(alloc, typeArgs));
-		TypeParamsAndArgs typeParamsAndArgs = TypeParamsAndArgs(decl.typeParams, key.typeArgs);
-		SpecInst* res = allocate(alloc, SpecInst(key, decl.body_.match!(SmallArray!ReturnAndParamTypes)(
-			(SpecDeclBody.Builtin b) =>
-				emptySmallArray!ReturnAndParamTypes,
-			(SpecDeclSig[] sigs) =>
-				small(map(alloc, sigs, (ref SpecDeclSig sig) =>
-					instantiateReturnAndParamTypes(
-						alloc, programState, sig.returnType, sig.params, typeParamsAndArgs))))));
-		if (decl.parentsIsSet)
-			instantiateSpecParents(alloc, programState, res, delaySpecInsts);
-		else
-			push(alloc, *force(delaySpecInsts), res);
-		return KeyValuePair!(SpecDeclAndArgs, SpecInst*)(key, res);
-	}).value;
-}
+	scope MayDelaySpecInsts delaySpecInsts,
+) =>
+	withMeasure!(SpecInst*, () {
+		SpecDeclAndArgs tempKey = SpecDeclAndArgs(decl, typeArgs);
+		return getOrAddPair(ctx.alloc, ctx.programState.specInsts, tempKey, () {
+			SpecDeclAndArgs key = SpecDeclAndArgs(decl, copyArr(ctx.alloc, typeArgs));
+			TypeParamsAndArgs typeParamsAndArgs = TypeParamsAndArgs(decl.typeParams, key.typeArgs);
+			SpecInst* res = allocate(ctx.alloc, SpecInst(key, decl.body_.match!(SmallArray!ReturnAndParamTypes)(
+				(SpecDeclBody.Builtin b) =>
+					emptySmallArray!ReturnAndParamTypes,
+				(SpecDeclSig[] sigs) =>
+					small(map(ctx.alloc, sigs, (ref SpecDeclSig sig) =>
+						instantiateReturnAndParamTypes(ctx, sig.returnType, sig.params, typeParamsAndArgs))))));
+			if (decl.parentsIsSet)
+				instantiateSpecParents(ctx, res, delaySpecInsts);
+			else
+				push(*force(delaySpecInsts), res);
+			return KeyValuePair!(SpecDeclAndArgs, SpecInst*)(key, res);
+		}).value;
+	})(ctx.perf, ctx.alloc, PerfMeasure.instantiateSpec);
 
-void instantiateSpecParents(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	SpecInst* a,
-	scope DelaySpecInsts delaySpecInsts,
-) {
+void instantiateSpecParents(ref InstantiateCtx ctx, SpecInst* a, scope MayDelaySpecInsts delaySpecInsts) {
 	TypeParamsAndArgs typeParamsAndArgs = TypeParamsAndArgs(decl(*a).typeParams, typeArgs(*a));
 	a.parents = map!(immutable SpecInst*, immutable SpecInst*)(
-		alloc, decl(*a).parents, (ref immutable SpecInst* parent) =>
-			instantiateSpecInst(alloc, programState, parent, typeParamsAndArgs, delaySpecInsts));
+		ctx.alloc, decl(*a).parents, (ref immutable SpecInst* parent) =>
+			instantiateSpecInst(ctx, parent, typeParamsAndArgs, delaySpecInsts));
 }
 
 SpecInst* instantiateSpecInst(
-	ref Alloc alloc,
-	ref ProgramState programState,
+	ref InstantiateCtx ctx,
 	SpecInst* specInst,
 	in TypeParamsAndArgs typeParamsAndArgs,
-	scope DelaySpecInsts delaySpecInsts,
+	scope MayDelaySpecInsts delaySpecInsts,
 ) {
 	TypeArgsArray itsTypeArgs = typeArgsArray();
 	mapTo!(maxTypeParams, Type, Type)(itsTypeArgs, typeArgs(*specInst), (ref Type x) =>
-		instantiateType(alloc, programState, x, typeParamsAndArgs, noDelayStructInsts));
-	return instantiateSpec(alloc, programState, decl(*specInst), tempAsArr(itsTypeArgs), delaySpecInsts);
+		instantiateType(ctx, x, typeParamsAndArgs, noDelayStructInsts));
+	return instantiateSpec(ctx, decl(*specInst), tempAsArr(itsTypeArgs), delaySpecInsts);
 }
 
 private:
 
 ReturnAndParamTypes instantiateReturnAndParamTypes(
-	ref Alloc alloc,
-	ref ProgramState programState,
+	ref InstantiateCtx ctx,
 	Type declReturnType,
 	Destructure[] declParams,
 	TypeParamsAndArgs typeParamsAndArgs,
 ) =>
 	ReturnAndParamTypes(small(mapWithFirst!(Type, Destructure)(
-		alloc,
-		instantiateTypeNoDelay(alloc, programState, declReturnType, typeParamsAndArgs),
+		ctx.alloc,
+		instantiateTypeNoDelay(ctx, declReturnType, typeParamsAndArgs),
 		declParams,
 		(size_t _, ref Destructure x) =>
-			instantiateTypeNoDelay(alloc, programState, x.type, typeParamsAndArgs))));
+			instantiateTypeNoDelay(ctx, x.type, typeParamsAndArgs))));

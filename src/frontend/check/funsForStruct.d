@@ -5,9 +5,14 @@ module frontend.check.funsForStruct;
 import frontend.check.checkCtx : CheckCtx;
 import frontend.check.getCommonFuns : makeParam, makeParams, param;
 import frontend.check.instantiate :
-	instantiateStructNeverDelay, makeArrayType, makeConstPointerType, makeMutPointerType, TypeArgsArray, typeArgsArray;
+	InstantiateCtx,
+	instantiateStructNeverDelay,
+	makeArrayType,
+	makeConstPointerType,
+	makeMutPointerType,
+	TypeArgsArray,
+	typeArgsArray;
 import frontend.check.typeFromAst : makeTupleType;
-import frontend.programState : ProgramState;
 import model.model :
 	body_,
 	CommonTypes,
@@ -32,7 +37,7 @@ import model.model :
 	StructDecl,
 	StructInst,
 	Type,
-	typeArgs,
+typeArgs,
 	TypeParam,
 	typeParams,
 	UnionMember,
@@ -91,7 +96,7 @@ void addFunsForStruct(
 		},
 		(StructBody.Extern x) {
 			if (has(x.size)) {
-				exactSizeArrBuilderAdd(funsBuilder, newExtern(ctx.alloc, ctx.programState, struct_));
+				exactSizeArrBuilderAdd(funsBuilder, newExtern(ctx.instantiateCtx, struct_));
 			}
 		},
 		(StructBody.Flags x) {
@@ -158,22 +163,18 @@ FunDecl basicFunDecl(
 ) =>
 	funDeclWithBody(source, visibility, name, [], returnType, params, flags, [], body_);
 
-FunDecl newExtern(ref Alloc alloc, ref ProgramState programState, StructDecl* struct_) =>
+FunDecl newExtern(ref InstantiateCtx ctx, StructDecl* struct_) =>
 	basicFunDecl(
 		FunDeclSource(struct_),
 		struct_.visibility,
 		sym!"new",
-		Type(instantiateNonTemplateStructDeclNeverDelay(alloc, programState, struct_)),
+		Type(instantiateNonTemplateStructDeclNeverDelay(ctx, struct_)),
 		Params([]),
 		FunFlags.generatedBareUnsafe,
 		FunBody(FunBody.CreateExtern()));
 
-StructInst* instantiateNonTemplateStructDeclNeverDelay(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	StructDecl* structDecl,
-) =>
-	instantiateStructNeverDelay(alloc, programState, structDecl, []);
+StructInst* instantiateNonTemplateStructDeclNeverDelay(ref InstantiateCtx ctx, StructDecl* structDecl) =>
+	instantiateStructNeverDelay(ctx, structDecl, []);
 
 bool recordIsAlwaysByVal(in StructBody.Record record) =>
 	empty(record.fields) || record.flags.forcedByValOrRef == ForcedByValOrRefOrNone.byVal;
@@ -185,11 +186,11 @@ void addFunsForEnum(
 	StructDecl* struct_,
 	ref StructBody.Enum enum_,
 ) {
-	Type enumType = Type(instantiateNonTemplateStructDeclNeverDelay(ctx.alloc, ctx.programState, struct_));
+	Type enumType = Type(instantiateNonTemplateStructDeclNeverDelay(ctx.instantiateCtx, struct_));
 	Visibility visibility = struct_.visibility;
 	addEnumFlagsCommonFunctions(
-		ctx.alloc, funsBuilder, ctx.programState, struct_, enumType, enum_.backingType, commonTypes,
-		sym!"enum-members");
+		ctx.alloc, funsBuilder, ctx.instantiateCtx,
+		struct_, enumType, enum_.backingType, commonTypes, sym!"enum-members");
 	foreach (ref StructBody.Enum.Member member; enum_.members)
 		exactSizeArrBuilderAdd(funsBuilder, enumOrFlagsConstructor(ctx.alloc, visibility, enumType, &member));
 }
@@ -201,9 +202,9 @@ void addFunsForFlags(
 	StructDecl* struct_,
 	ref StructBody.Flags flags,
 ) {
-	Type type = Type(instantiateNonTemplateStructDeclNeverDelay(ctx.alloc, ctx.programState, struct_));
+	Type type = Type(instantiateNonTemplateStructDeclNeverDelay(ctx.instantiateCtx, struct_));
 	addEnumFlagsCommonFunctions(
-		ctx.alloc, funsBuilder, ctx.programState, struct_, type, flags.backingType, commonTypes, sym!"flags-members");
+		ctx.alloc, funsBuilder, ctx.instantiateCtx, struct_, type, flags.backingType, commonTypes, sym!"flags-members");
 	exactSizeArrBuilderAdd(funsBuilder, flagsNewFunction(ctx.alloc, struct_, type));
 	exactSizeArrBuilderAdd(funsBuilder, flagsAllFunction(ctx.alloc, struct_, type));
 	exactSizeArrBuilderAdd(funsBuilder, flagsNegateFunction(ctx.alloc, struct_, type));
@@ -219,7 +220,7 @@ void addFunsForFlags(
 void addEnumFlagsCommonFunctions(
 	ref Alloc alloc,
 	ref ExactSizeArrBuilder!FunDecl funsBuilder,
-	ref ProgramState programState,
+	ref InstantiateCtx ctx,
 	StructDecl* struct_,
 	Type type,
 	EnumBackingType backingType,
@@ -228,9 +229,7 @@ void addEnumFlagsCommonFunctions(
 ) {
 	exactSizeArrBuilderAdd(funsBuilder, enumEqualFunction(alloc, struct_, type, commonTypes));
 	exactSizeArrBuilderAdd(funsBuilder, enumToIntegralFunction(alloc, struct_, backingType, type, commonTypes));
-	exactSizeArrBuilderAdd(
-		funsBuilder,
-		enumOrFlagsMembersFunction(alloc, programState, struct_, membersName, type, commonTypes));
+	exactSizeArrBuilderAdd(funsBuilder, enumOrFlagsMembersFunction(ctx, struct_, membersName, type, commonTypes));
 }
 
 FunDecl enumOrFlagsConstructor(ref Alloc alloc, Visibility visibility, Type enumType, StructBody.Enum.Member* member) =>
@@ -322,8 +321,7 @@ StructInst* getBackingTypeFromEnumType(EnumBackingType a, ref CommonTypes common
 }
 
 FunDecl enumOrFlagsMembersFunction(
-	ref Alloc alloc,
-	ref ProgramState programState,
+	ref InstantiateCtx ctx,
 	StructDecl* struct_,
 	Sym name,
 	Type enumType,
@@ -333,11 +331,7 @@ FunDecl enumOrFlagsMembersFunction(
 		FunDeclSource(struct_),
 		struct_.visibility,
 		name,
-		Type(makeArrayType(
-			alloc,
-			programState,
-			commonTypes,
-			makeTupleType(alloc, programState, commonTypes, [Type(commonTypes.symbol), enumType]))),
+		Type(makeArrayType(ctx, commonTypes, makeTupleType(ctx, commonTypes, [Type(commonTypes.symbol), enumType]))),
 		Params([]),
 		FunFlags.generatedBare.withOkIfUnused(),
 		FunBody(EnumFunction.members));
@@ -363,8 +357,7 @@ void addFunsForRecord(
 	scope TypeArgsArray typeArgs = typeArgsArray();
 	foreach (ref TypeParam p; typeParams)
 		push(typeArgs, Type(&p));
-	Type structType = Type(
-		instantiateStructNeverDelay(ctx.alloc, ctx.programState, struct_, tempAsArr(typeArgs)));
+	Type structType = Type(instantiateStructNeverDelay(ctx.instantiateCtx, struct_, tempAsArr(typeArgs)));
 	bool byVal = recordIsAlwaysByVal(record);
 	addFunsForRecordConstructor(ctx, funsBuilder, commonTypes, struct_, record, structType, byVal);
 	foreach (size_t fieldIndex, ref RecordField field; record.fields)
@@ -431,13 +424,13 @@ void addFunsForRecordField(
 	if (recordIsByVal)
 		addRecordFieldPointer(
 			fieldVisibility,
-			Type(makeConstPointerType(ctx.alloc, ctx.programState, commonTypes, structType)),
-			Type(makeConstPointerType(ctx.alloc, ctx.programState, commonTypes, field.type)));
+			Type(makeConstPointerType(ctx.instantiateCtx, commonTypes, structType)),
+			Type(makeConstPointerType(ctx.instantiateCtx, commonTypes, field.type)));
 
 	Opt!Visibility mutVisibility = visibilityOfFieldMutability(field.mutability);
 	if (has(mutVisibility)) {
 		Visibility setVisibility = leastVisibility(struct_.visibility, force(mutVisibility));
-		Type recordMutPointer = Type(makeMutPointerType(ctx.alloc, ctx.programState, commonTypes, structType));
+		Type recordMutPointer = Type(makeMutPointerType(ctx.instantiateCtx, commonTypes, structType));
 		if (recordIsByVal) {
 			exactSizeArrBuilderAdd(funsBuilder, funDeclWithBody(
 				FunDeclSource(struct_),
@@ -455,7 +448,7 @@ void addFunsForRecordField(
 			addRecordFieldPointer(
 				setVisibility,
 				recordMutPointer,
-				Type(makeMutPointerType(ctx.alloc, ctx.programState, commonTypes, field.type)));
+				Type(makeMutPointerType(ctx.instantiateCtx, commonTypes, field.type)));
 		} else
 			exactSizeArrBuilderAdd(funsBuilder, funDeclWithBody(
 				FunDeclSource(struct_),
@@ -492,7 +485,7 @@ void addFunsForUnion(
 	scope TypeArgsArray typeArgs = typeArgsArray();
 	foreach (ref TypeParam x; typeParams)
 		push(typeArgs, Type(&x));
-	Type structType = Type(instantiateStructNeverDelay(ctx.alloc, ctx.programState, struct_, tempAsArr(typeArgs)));
+	Type structType = Type(instantiateStructNeverDelay(ctx.instantiateCtx, struct_, tempAsArr(typeArgs)));
 	foreach (size_t memberIndex, ref UnionMember member; union_.members) {
 		Params params = isVoid(commonTypes, member.type)
 			? Params([])

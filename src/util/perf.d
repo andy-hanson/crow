@@ -5,8 +5,9 @@ module util.perf;
 import util.alloc.alloc : Alloc, perf_curBytes;
 import util.col.enumMap : EnumMap, enumMapEach;
 import util.col.sortUtil : sortInPlace;
-import util.col.str : SafeCStr, safeCStr;
+import util.col.str : SafeCStr;
 import util.comparison : compareUlong, oppositeComparison;
+import util.util : safeCStrOfEnum;
 
 T withMeasureNoAlloc(T, alias cb)(ref Perf perf, PerfMeasure measure) {
 	PerfMeasurerNoAlloc measurer = startMeasureNoAlloc(perf, measure);
@@ -131,7 +132,7 @@ void eachMeasure(in Perf perf, in void delegate(in SafeCStr, in PerfMeasureResul
 		oppositeComparison(compareUlong(a.result.nanoseconds, b.result.nanoseconds)));
 	foreach (ref const PerfResultWithMeasure m; results) {
 		if (m.result.count)
-			cb(perfMeasureName(m.measure), m.result);
+			cb(safeCStrOfEnum(m.measure), m.result);
 	}
 }
 
@@ -140,16 +141,20 @@ ulong perfTotal(in Perf perf) =>
 
 enum PerfMeasure {
 	cCompile,
+	check,
 	checkCall,
-	checkEverything,
 	concretize,
 	gccCompile,
 	gccCreateProgram,
 	gccJit,
 	generateBytecode,
+	instantiateFun,
+	instantiateSpec,
+	instantiateStruct,
 	lower,
 	parseFile,
 	run,
+	onFileChanged, // This includes all type-checking
 }
 
 private:
@@ -163,30 +168,3 @@ pure PerfMeasureResult add(PerfMeasureResult a, PerfMeasureResult b) =>
 		a.count + b.count,
 		a.bytesAllocated + b.bytesAllocated,
 		a.nanoseconds + b.nanoseconds);
-
-pure SafeCStr perfMeasureName(PerfMeasure a) {
-	final switch (a) {
-		case PerfMeasure.cCompile:
-			return safeCStr!"cCompile";
-		case PerfMeasure.checkCall:
-			return safeCStr!"checkCall";
-		case PerfMeasure.checkEverything:
-			return safeCStr!"checkEverything";
-		case PerfMeasure.concretize:
-			return safeCStr!"concretize";
-		case PerfMeasure.gccCreateProgram:
-			return safeCStr!"gccCreateProgram";
-		case PerfMeasure.gccCompile:
-			return safeCStr!"gccCompile";
-		case PerfMeasure.gccJit:
-			return safeCStr!"gccJit";
-		case PerfMeasure.generateBytecode:
-			return safeCStr!"generateBytecode";
-		case PerfMeasure.lower:
-			return safeCStr!"lower";
-		case PerfMeasure.parseFile:
-			return safeCStr!"parseFile";
-		case PerfMeasure.run:
-			return safeCStr!"run";
-	}
-}

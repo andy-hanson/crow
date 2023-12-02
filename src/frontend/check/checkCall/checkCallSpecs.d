@@ -5,8 +5,9 @@ module frontend.check.checkCall.checkCallSpecs;
 import frontend.check.checkCall.candidates :
 	Candidate, eachCandidate, FunsInScope, funsInScope, testCandidateForSpecSig;
 import frontend.check.inferringType :
-	addDiag2, ExprCtx, InferringTypeArgs, programStatePtr, SingleInferringType, tryGetInferred;
+	addDiag2, ExprCtx, InferringTypeArgs, SingleInferringType, tryGetInferred;
 import frontend.check.instantiate :
+	InstantiateCtx,
 	instantiateFun,
 	instantiateSpecInst,
 	noDelaySpecInsts,
@@ -14,7 +15,6 @@ import frontend.check.instantiate :
 	typeArgsArray,
 	TypeParamsAndArgs;
 import frontend.lang : maxSpecDepth, maxSpecImpls;
-import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
 	Called,
@@ -46,7 +46,7 @@ import util.sourceRange : Range;
 import util.union_ : Union;
 
 Opt!Called checkCallSpecs(ref ExprCtx ctx, in Range range, ref const Candidate candidate) {
-	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.programStatePtr, funsInScope(ctx));
+	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, funsInScope(ctx));
 	return getCalledFromCandidateAfterTypeChecks(checkSpecsCtx, candidate, DummyTrace()).match!(Opt!Called)(
 		(Called x) {
 			consumeArr(checkSpecsCtx.alloc, checkSpecsCtx.matchDiags, (Diag.SpecMatchError diag) {
@@ -82,14 +82,12 @@ struct CheckSpecsCtx {
 	@safe @nogc pure nothrow:
 
 	Alloc* allocPtr;
-	ProgramState* programStatePtr;
+	InstantiateCtx instantiateCtx;
 	immutable FunsInScope funsInScope;
 	ArrBuilder!(Diag.SpecMatchError) matchDiags;
 
 	ref Alloc alloc() =>
 		*allocPtr;
-	ref ProgramState programState() =>
-		*programStatePtr;
 }
 
 alias SpecImpls = MutMaxArr!(maxSpecImpls, Called);
@@ -146,7 +144,7 @@ Trace.Result checkCandidate(Trace)(
 	ref Candidate candidate,
 	scope Trace trace,
 ) =>
-	testCandidateForSpecSig(ctx.alloc, ctx.programState, candidate, sigType, InferringTypeArgs())
+	testCandidateForSpecSig(ctx.instantiateCtx, candidate, sigType, InferringTypeArgs())
 		? getCalledFromCandidateAfterTypeChecks(ctx, candidate, trace)
 		: Trace.Result(specNoMatch(
 			trace,
@@ -177,7 +175,7 @@ Trace.Result getCalledFromCandidateAfterTypeChecks(Trace)(
 				return has(diag)
 					? Trace.Result(force(diag))
 					: Trace.Result(Called(instantiateFun(
-						ctx.alloc, ctx.programState, f, tempAsArr(candidateTypeArgs), tempAsArr(specImpls))));
+						ctx.instantiateCtx, f, tempAsArr(candidateTypeArgs), tempAsArr(specImpls))));
 			}
 		},
 		(CalledSpecSig s) =>
@@ -266,8 +264,7 @@ Opt!(Trace.NoMatch) checkSpecImpls(Trace)(
 		// specInst was instantiated potentially based on f's params.
 		// Meed to instantiate it again.
 		checkSpecImpl(res, ctx, called, trace, *instantiateSpecInst(
-			ctx.alloc, ctx.programState, specInst,
-			TypeParamsAndArgs(called.typeParams, calledTypeArgs), noDelaySpecInsts)));
+			ctx.instantiateCtx, specInst, TypeParamsAndArgs(called.typeParams, calledTypeArgs), noDelaySpecInsts)));
 
 Opt!(Trace.NoMatch) checkSpecImpl(Trace)(
 	ref SpecImpls res,

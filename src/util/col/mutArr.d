@@ -95,3 +95,22 @@ private void removeUnorderedAt(T)(ref MutArr!T a, size_t i) {
 	if (i != mutArrSize(a))
 		a[i] = last;
 }
+
+
+struct MutArrWithAlloc(T) {
+	private:
+	Alloc* alloc;
+	MutArr!T inner;
+
+	@disable this();
+	public this(Alloc* a) {
+		alloc = a;
+	}
+}
+void push(T)(ref MutArrWithAlloc!T a, T value) {
+	push(*a.alloc, a.inner, value);
+}
+T mustPop(T)(ref MutArrWithAlloc!T a) =>
+	mustPop(a.inner);
+bool mutArrIsEmpty(T)(in MutArrWithAlloc!T a) =>
+	mutArrIsEmpty(a.inner);

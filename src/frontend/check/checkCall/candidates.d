@@ -10,10 +10,9 @@ import frontend.check.inferringType :
 	SingleInferringType,
 	tryGetInferred,
 	tryGetTypeArgFromInferringTypeArgs;
-import frontend.check.instantiate : instantiateStructNeverDelay, TypeArgsArray, typeArgsArray;
+import frontend.check.instantiate : InstantiateCtx, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray;
 import frontend.check.maps : FunsMap;
 import frontend.lang : maxTypeParams;
-import frontend.programState : ProgramState;
 import model.model :
 	arity,
 	arityMatches,
@@ -164,51 +163,39 @@ void eachFunInScope(in FunsInScope a, Sym funName, in void delegate(CalledDecl) 
 }
 
 bool testCandidateForSpecSig(
-	ref Alloc alloc,
-	ref ProgramState programState,
+	ref InstantiateCtx ctx,
 	scope ref Candidate specCandidate,
 	in ReturnAndParamTypes returnAndParamTypes,
 	in InferringTypeArgs callInferringTypeArgs,
 ) {
 	bool res = matchTypesNoDiagnostic(
-		alloc, programState,
+		ctx,
 		specCandidate.called.returnType, inferringTypeArgs(specCandidate),
 		returnAndParamTypes.returnType, callInferringTypeArgs);
 	return res && everyWithIndex!Type(returnAndParamTypes.paramTypes, (size_t argIdx, in Type paramType) =>
-		testCandidateParamType(alloc, programState, specCandidate, paramType, argIdx, callInferringTypeArgs));
+		testCandidateParamType(ctx, specCandidate, paramType, argIdx, callInferringTypeArgs));
 }
 
 // Also does type inference on the candidate
 bool testCandidateParamType(
-	ref Alloc alloc,
-	ref ProgramState programState,
+	ref InstantiateCtx ctx,
 	scope ref Candidate candidate,
 	Type actualArgType,
 	size_t argIdx,
 	in InferringTypeArgs callInferringTypeArgs,
 ) =>
 	matchTypesNoDiagnostic(
-		alloc, programState,
-		getCandidateExpectedParameterType(alloc, programState, candidate, argIdx),
+		ctx,
+		getCandidateExpectedParameterType(ctx, candidate, argIdx),
 		inferringTypeArgs(candidate),
 		actualArgType,
 		callInferringTypeArgs);
 
-Type getCandidateExpectedParameterType(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	in Candidate candidate,
-	size_t argIndex,
-) =>
-	getCandidateExpectedParameterTypeRecur(
-		alloc,
-		programState,
-		candidate,
-		paramTypeAt(candidate.called, argIndex));
+Type getCandidateExpectedParameterType(ref InstantiateCtx ctx, in Candidate candidate, size_t argIndex) =>
+	getCandidateExpectedParameterTypeRecur(ctx, candidate, paramTypeAt(candidate.called, argIndex));
 
 private Type getCandidateExpectedParameterTypeRecur(
-	ref Alloc alloc,
-	ref ProgramState programState,
+	ref InstantiateCtx ctx,
 	in Candidate candidate,
 	Type candidateParamType,
 ) =>
@@ -224,8 +211,8 @@ private Type getCandidateExpectedParameterTypeRecur(
 		(StructInst* i) {
 			scope TypeArgsArray outTypeArgs = typeArgsArray();
 			mapTo!(maxTypeParams, Type, Type)(outTypeArgs, typeArgs(*i), (ref Type t) =>
-				getCandidateExpectedParameterTypeRecur(alloc, programState, candidate, t));
-			return Type(instantiateStructNeverDelay(alloc, programState, decl(*i), tempAsArr(outTypeArgs)));
+				getCandidateExpectedParameterTypeRecur(ctx, candidate, t));
+			return Type(instantiateStructNeverDelay(ctx, decl(*i), tempAsArr(outTypeArgs)));
 		});
 
 private Type paramTypeAt(ref CalledDecl called, size_t argIndex) =>

@@ -228,16 +228,16 @@ private LspOutResult handleLspRequest(
 	a.matchImpure!LspOutResult(
 		(in DefinitionParams x) =>
 			LspOutResult(getDefinitionForProgram(
-				alloc, server, getProgram(alloc, server, [x.params.textDocument.uri]), x)),
+				alloc, server, getProgram(perf, alloc, server, [x.params.textDocument.uri]), x)),
 		(in HoverParams x) =>
 			LspOutResult(getHoverForProgram(
-				alloc, server, getProgram(alloc, server, [x.params.textDocument.uri]), x)),
+				alloc, server, getProgram(perf, alloc, server, [x.params.textDocument.uri]), x)),
 		(in InitializeParams x) =>
 			LspOutResult(InitializeResult()),
 		(in ReferenceParams x) =>
-			LspOutResult(getReferencesForProgram(alloc, server, getProgramForAll(alloc, server), x)),
+			LspOutResult(getReferencesForProgram(alloc, server, getProgramForAll(perf, alloc, server), x)),
 		(in RenameParams x) =>
-			LspOutResult(getRenameForProgram(alloc, server, getProgramForAll(alloc, server), x)),
+			LspOutResult(getRenameForProgram(alloc, server, getProgramForAll(perf, alloc, server), x)),
 		(in RunParams x) {
 			ArrBuilder!Write writes;
 			ExitCode exitCode = run(perf, alloc, server, x.uri, (Pipe pipe, in string x) {
@@ -400,7 +400,7 @@ immutable struct DocumentResult {
 }
 
 DocumentResult getDocumentation(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] uris) {
-	Program program = getProgram(alloc, server, uris);
+	Program program = getProgram(perf, alloc, server, uris);
 	return DocumentResult(
 		documentJSON(alloc, server.allSymbols, server.allUris, program),
 		showDiagnostics(alloc, server, program));
@@ -455,14 +455,14 @@ private Opt!Hover getHoverForProgram(
 		: none!Hover;
 }
 
-private Program getProgram(ref Alloc alloc, ref Server server, in Uri[] roots) =>
-	makeProgramForRoots(alloc, server.frontend, roots);
+private Program getProgram(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] roots) =>
+	makeProgramForRoots(perf, alloc, server.frontend, roots);
 
-Program getProgramForMain(ref Alloc alloc, ref Server server, Uri mainUri) =>
-	makeProgramForMain(alloc, server.frontend, mainUri);
+Program getProgramForMain(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri mainUri) =>
+	makeProgramForMain(perf, alloc, server.frontend, mainUri);
 
-Program getProgramForAll(ref Alloc alloc, ref Server server) =>
-	getProgram(alloc, server, allKnownGoodCrowUris(alloc, server.storage));
+Program getProgramForAll(scope ref Perf perf, ref Alloc alloc, ref Server server) =>
+	getProgram(perf, alloc, server, allKnownGoodCrowUris(alloc, server.storage));
 
 private Opt!Position getPosition(scope ref Server server, in Program program, in TextDocumentPositionParams where) {
 	Opt!(immutable Module*) module_ = program.allModules[where.textDocument.uri];
@@ -513,7 +513,7 @@ private FileAst* getAst(ref Alloc alloc, ref Server server, Uri uri) {
 }
 
 DiagsAndResultJson printModel(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri uri) {
-	Program program = getProgram(alloc, server, [uri]);
+	Program program = getProgram(perf, alloc, server, [uri]);
 	Json json = jsonOfModule(alloc, server.allUris, server.lineAndColumnGetters[uri], *only(program.rootModules));
 	return printForProgram(alloc, server, program, json);
 }
@@ -526,7 +526,7 @@ DiagsAndResultJson printConcreteModel(
 	in VersionInfo versionInfo,
 	Uri uri,
 ) {
-	Program program = getProgram(alloc, server, [uri]);
+	Program program = getProgram(perf, alloc, server, [uri]);
 	ShowCtx ctx = getShowDiagCtx(server, program);
 	return printForProgram(
 		alloc, server, program,
@@ -541,7 +541,7 @@ DiagsAndResultJson printLowModel(
 	in VersionInfo versionInfo,
 	Uri uri,
 ) {
-	Program program = getProgramForMain(alloc, server, uri);
+	Program program = getProgramForMain(perf, alloc, server, uri);
 	ShowCtx ctx = getShowDiagCtx(server, program);
 	ConcreteProgram concreteProgram = concretize(perf, alloc, ctx, versionInfo, program);
 	LowProgram lowProgram = lower(
@@ -556,7 +556,7 @@ DiagsAndResultJson printIde(
 	in UriLineAndColumn where,
 	PrintKind.Ide.Kind kind,
 ) {
-	Program program = getProgram(alloc, server, [where.uri]); // TODO: we should support specifying roots...
+	Program program = getProgram(perf, alloc, server, [where.uri]); // TODO: we should support specifying roots...
 	TextDocumentPositionParams params = TextDocumentPositionParams(
 		TextDocumentIdentifier(where.uri),
 		toLineAndCharacter(server.lineAndColumnGetters[where.uri], where.lineAndColumn));
@@ -598,7 +598,7 @@ Programs buildToLowProgram(
 	in VersionInfo versionInfo,
 	Uri main,
 ) {
-	Program program = getProgramForMain(alloc, server, main);
+	Program program = getProgramForMain(perf, alloc, server, main);
 	ShowCtx ctx = getShowDiagCtx(server, program);
 	if (hasFatalDiagnostics(program))
 		return Programs(program, none!ConcreteProgram, none!LowProgram);
@@ -653,7 +653,7 @@ LspOutMessage notification(T)(T a) =>
 	LspOutMessage(LspOutNotification(a));
 
 LspOutAction notifyDiagnostics(scope ref Perf perf, ref Alloc alloc, ref Server server) {
-	Program program = getProgramForAll(alloc, server);
+	Program program = getProgramForAll(perf, alloc, server);
 	UriAndDiagnostics[] diags = sortedDiagnostics(alloc, server.allUris, program);
 	ref LspState state() => server.lspState;
 	Uri[] newUris = map(state.stateAlloc, diags, (ref UriAndDiagnostics x) => x.uri);

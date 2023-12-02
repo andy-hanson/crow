@@ -12,6 +12,9 @@ import frontend.check.funsForStruct : addFunsForStruct, addFunsForVar, countFuns
 import frontend.check.instantiate :
 	DelaySpecInsts,
 	DelayStructInsts,
+	MayDelaySpecInsts,
+	MayDelayStructInsts,
+	InstantiateCtx,
 	instantiateSpecParents,
 	instantiateStructTypes,
 	noDelaySpecInsts,
@@ -93,13 +96,13 @@ import util.col.map : Map, mapEach, KeyValuePair;
 import util.col.mapBuilder : MapBuilder, finishMap, tryAddToMap;
 import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd, finish, newExactSizeArrBuilder;
 import util.col.multiMap : buildMultiMap, multiMapEach;
-import util.col.mutArr : mustPop, MutArr, mutArrIsEmpty;
+import util.col.mutArr : mustPop, mutArrIsEmpty;
 import util.col.mutMap : insertOrUpdate, moveToMap, MutMap;
 import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, mutMaxArrSize, push, pushIfUnderMaxSize, toArray;
 import util.col.str : copySafeCStr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, someMut, some;
-import util.perf : Perf;
+import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : Range, UriAndRange;
 import util.sym : AllSymbols, Sym, sym;
@@ -139,7 +142,7 @@ BootstrapCheck checkBootstrap(
 		fileAndAst,
 		(ref CheckCtx ctx,
 		in StructsAndAliasesMap structsAndAliasesMap,
-		scope ref MutArr!(StructInst*) delayedStructInsts) =>
+		scope ref DelayStructInsts delayedStructInsts) =>
 			getCommonTypes(ctx, structsAndAliasesMap, delayedStructInsts));
 
 Module* check(
@@ -160,7 +163,7 @@ Module* check(
 		programState,
 		imports,
 		fileAndAst,
-		(ref CheckCtx _, in StructsAndAliasesMap _2, scope ref MutArr!(StructInst*)) => commonTypes,
+		(ref CheckCtx _, in StructsAndAliasesMap _2, scope ref DelayStructInsts _3) => commonTypes,
 	).module_;
 
 Visibility visibilityFromExplicit(ExplicitVisibility a) {
@@ -184,7 +187,7 @@ Params checkParams(
 	in ParamsAst ast,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	TypeParam[] typeParamsScope,
-	ref DelayStructInsts delayStructInsts,
+	MayDelayStructInsts delayStructInsts,
 ) =>
 	ast.match!Params(
 		(DestructureAst[] asts) =>
@@ -221,7 +224,7 @@ ReturnTypeAndParams checkReturnTypeAndParams(
 	in ParamsAst paramsAst,
 	TypeParam[] typeParams,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	DelayStructInsts delayStructInsts
+	MayDelayStructInsts delayStructInsts
 ) =>
 	ReturnTypeAndParams(
 		typeFromAst(ctx, commonTypes, returnTypeAst, structsAndAliasesMap, typeParams, delayStructInsts),
@@ -290,7 +293,7 @@ void checkSpecDeclParents(
 	in SpecDeclAst[] asts,
 	SpecDecl[] specs,
 ) {
-	MutArr!(SpecInst*) delaySpecInsts;
+	DelaySpecInsts delaySpecInsts = DelaySpecInsts(ctx.allocPtr);
 
 	zip!(SpecDeclAst, SpecDecl)(asts, specs, (ref SpecDeclAst ast, ref SpecDecl spec) {
 		spec.parents = mapOp!(immutable SpecInst*, TypeAst)(ctx.alloc, ast.parents, (ref TypeAst parent) =>
@@ -302,10 +305,8 @@ void checkSpecDeclParents(
 	foreach (SpecDecl* decl; ptrsRange(specs))
 		detectAndFixSpecRecursion(ctx, decl);
 
-	while (!mutArrIsEmpty(delaySpecInsts)) {
-		SpecInst* i = mustPop(delaySpecInsts);
-		instantiateSpecParents(ctx.alloc, ctx.programState, i, someMut(&delaySpecInsts));
-	}
+	while (!mutArrIsEmpty(delaySpecInsts))
+		instantiateSpecParents(ctx.instantiateCtx, mustPop(delaySpecInsts), someMut(&delaySpecInsts));
 }
 
 void detectAndFixSpecRecursion(ref CheckCtx ctx, SpecDecl* decl) {
@@ -343,7 +344,7 @@ void checkStructAliasTargets(
 	in StructsAndAliasesMap structsAndAliasesMap,
 	StructAlias[] aliases,
 	in StructAliasAst[] asts,
-	ref MutArr!(StructInst*) delayStructInsts,
+	scope ref DelayStructInsts delayStructInsts,
 ) {
 	zip!(StructAlias, StructAliasAst)(aliases, asts, (ref StructAlias structAlias, ref StructAliasAst ast) {
 		Type type = typeFromAst(
@@ -352,7 +353,7 @@ void checkStructAliasTargets(
 			ast.target,
 			structsAndAliasesMap,
 			structAlias.typeParams,
-			someMut!(MutArr!(StructInst*)*)(ptrTrustMe(delayStructInsts)));
+			someMut(ptrTrustMe(delayStructInsts)));
 		if (type.isA!(StructInst*))
 			setTarget(structAlias, some(type.as!(StructInst*)));
 		else {
@@ -476,7 +477,7 @@ Opt!(SpecInst*) checkFunModifierNonSpecial(
 	in SpecsMap specsMap,
 	TypeParam[] typeParamsScope,
 	in TypeAst ast,
-	DelaySpecInsts delaySpecInsts,
+	MayDelaySpecInsts delaySpecInsts,
 ) {
 	if (ast.isA!NameAndRange) {
 		return specFromAst(
@@ -800,18 +801,15 @@ Module* checkWorkerAfterCommonTypes(
 	ref StructsAndAliasesMap structsAndAliasesMap,
 	StructAlias[] structAliases,
 	StructDecl[] structs,
-	ref MutArr!(StructInst*) delayStructInsts,
+	scope ref DelayStructInsts delayStructInsts,
 	Uri uri,
 	ref ImportsAndReExports importsAndReExports,
 	FileAst* ast,
 ) {
 	checkStructBodies(ctx, commonTypes, structsAndAliasesMap, structs, ast.structs, delayStructInsts);
 
-	while (!mutArrIsEmpty(delayStructInsts)) {
-		StructInst* i = mustPop(delayStructInsts);
-		i.instantiatedTypes =
-			instantiateStructTypes(ctx.alloc, ctx.programState, i.declAndArgs, someMut(ptrTrustMe(delayStructInsts)));
-	}
+	while (!mutArrIsEmpty(delayStructInsts))
+		instantiateStructTypes(ctx.instantiateCtx, mustPop(delayStructInsts), someMut(ptrTrustMe(delayStructInsts)));
 
 	VarDecl[] vars = mapPointers(ctx.alloc, ast.vars, (VarDeclAst* ast) =>
 		checkVarDecl(ctx, commonTypes, structsAndAliasesMap, ast));
@@ -933,56 +931,56 @@ BootstrapCheck checkWorker(
 	in CommonTypes* delegate(
 		ref CheckCtx,
 		in StructsAndAliasesMap,
-		scope ref MutArr!(StructInst*),
+		scope ref DelayStructInsts,
 	) @safe @nogc pure nothrow getCommonTypes,
-) {
-	ArrBuilder!Diagnostic diagsBuilder;
-	ImportsAndReExports importsAndReExports = checkImportsAndReExports(
-		alloc, allUris, diagsBuilder, fileAndAst.ast, resolvedImports);
-	FileAst* ast = fileAndAst.ast;
-	CheckCtx ctx = CheckCtx(
-		ptrTrustMe(alloc),
-		ptrTrustMe(perf),
-		ptrTrustMe(programState),
-		ptrTrustMe(allSymbols),
-		ptrTrustMe(allUris),
-		fileAndAst.uri,
-		importsAndReExports.modules,
-		ptrTrustMe(diagsBuilder));
+) =>
+	withMeasure!(BootstrapCheck, () {
+		ArrBuilder!Diagnostic diagsBuilder;
+		ImportsAndReExports importsAndReExports = checkImportsAndReExports(
+			alloc, allUris, diagsBuilder, fileAndAst.ast, resolvedImports);
+		FileAst* ast = fileAndAst.ast;
+		CheckCtx ctx = CheckCtx(
+			ptrTrustMe(alloc),
+			InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(programState)),
+			ptrTrustMe(allSymbols),
+			ptrTrustMe(allUris),
+			fileAndAst.uri,
+			importsAndReExports.modules,
+			ptrTrustMe(diagsBuilder));
 
-	// Since structs may refer to each other, first get a structsAndAliasesMap, *then* fill in bodies
-	StructDecl[] structs = checkStructsInitial(ctx, ast.structs);
-	StructAlias[] structAliases = checkStructAliasesInitial(ctx, ast.structAliases);
-	StructsAndAliasesMap structsAndAliasesMap = buildStructsAndAliasesMap(ctx, structs, structAliases);
+		// Since structs may refer to each other, first get a structsAndAliasesMap, *then* fill in bodies
+		StructDecl[] structs = checkStructsInitial(ctx, ast.structs);
+		StructAlias[] structAliases = checkStructAliasesInitial(ctx, ast.structAliases);
+		StructsAndAliasesMap structsAndAliasesMap = buildStructsAndAliasesMap(ctx, structs, structAliases);
 
-	// We need to create StructInsts when filling in struct bodies.
-	// But when creating a StructInst, we usually want to fill in its body.
-	// In case the decl body isn't available yet,
-	// we'll delay creating the StructInst body, which isn't needed until expr checking.
-	MutArr!(StructInst*) delayStructInsts;
+		// We need to create StructInsts when filling in struct bodies.
+		// But when creating a StructInst, we usually want to fill in its body.
+		// In case the decl body isn't available yet,
+		// we'll delay creating the StructInst body, which isn't needed until expr checking.
+		DelayStructInsts delayStructInsts = DelayStructInsts(ctx.allocPtr);
 
-	CommonTypes* commonTypes = getCommonTypes(ctx, structsAndAliasesMap, delayStructInsts);
+		CommonTypes* commonTypes = getCommonTypes(ctx, structsAndAliasesMap, delayStructInsts);
 
-	checkStructAliasTargets(
-		ctx,
-		*commonTypes,
-		structsAndAliasesMap,
-		structAliases,
-		ast.structAliases,
-		delayStructInsts);
+		checkStructAliasTargets(
+			ctx,
+			*commonTypes,
+			structsAndAliasesMap,
+			structAliases,
+			ast.structAliases,
+			delayStructInsts);
 
-	Module* res = checkWorkerAfterCommonTypes(
-		ctx,
-		*commonTypes,
-		structsAndAliasesMap,
-		structAliases,
-		structs,
-		delayStructInsts,
-		fileAndAst.uri,
-		importsAndReExports,
-		ast);
-	return BootstrapCheck(res, commonTypes);
-}
+		Module* res = checkWorkerAfterCommonTypes(
+			ctx,
+			*commonTypes,
+			structsAndAliasesMap,
+			structAliases,
+			structs,
+			delayStructInsts,
+			fileAndAst.uri,
+			importsAndReExports,
+			ast);
+		return BootstrapCheck(res, commonTypes);
+	})(perf, alloc, PerfMeasure.check);
 
 immutable struct ImportsAndReExports {
 	@safe @nogc pure nothrow:

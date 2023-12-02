@@ -4,6 +4,7 @@ module util.util;
 
 import std.meta : staticMap;
 
+import util.col.str : SafeCStr, safeCStr;
 import util.opt : none, Opt, some;
 
 version (WebAssembly) { } else {
@@ -113,6 +114,13 @@ string stringOfEnum(E)(E value) {
 	return strings[value];
 }
 
+SafeCStr safeCStrOfEnum(E)(E value) {
+	assertNormalEnum!E();
+	static immutable SafeCStr[] strings =
+		[staticMap!(safeCStrOfString, staticMap!(stripUnderscore, __traits(allMembers, E)))];
+	return strings[value];
+}
+
 // Enum members must be 0 .. n
 private void assertNormalEnum(E)() {
 	static foreach (size_t i, string name; __traits(allMembers, E))
@@ -121,3 +129,6 @@ private void assertNormalEnum(E)() {
 
 private enum stripUnderscore(string s) =
 	s[$ - 1] == '_' ? s[0 .. $ - 1] : s;
+
+private enum safeCStrOfString(string s) =
+	safeCStr!(s ~ "\0");

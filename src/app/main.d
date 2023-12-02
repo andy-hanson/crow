@@ -294,7 +294,7 @@ ExitCode runBuild(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri m
 	if (hasAnyOut(options.out_))
 		return buildToCAndCompile(perf, alloc, server, main, options);
 	else {
-		Program program = getProgramForMain(alloc, server, main);
+		Program program = getProgramForMain(perf, alloc, server, main);
 		return hasAnyDiagnostics(program)
 			? printError(showDiagnostics(alloc, server, program))
 			: print(safeCStr!"OK");

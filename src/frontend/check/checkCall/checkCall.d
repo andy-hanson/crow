@@ -34,15 +34,14 @@ import frontend.check.inferringType :
 	LocalNode,
 	LocalsInfo,
 	matchExpectedVsReturnTypeNoDiagnostic,
-	programState,
 	SingleInferringType,
 	tryGetInferred,
 	TypeAndInferring,
 	typeFromAst2;
+import frontend.check.instantiate : InstantiateCtx;
 import frontend.check.typeFromAst : getNTypeArgsForDiagnostic, unpackTupleIfNeeded;
 import frontend.lang : maxTypeParams;
 import frontend.parse.ast : CallAst, ExprAst, LambdaAst, nameRange, rangeOfNameAndRange;
-import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
 	arity,
@@ -61,7 +60,6 @@ import model.model :
 	SpecDeclSig,
 	SpecInst,
 	Type;
-import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : every, exists, fillArrOrFail, zipEvery;
@@ -141,7 +139,7 @@ private Expr checkCallCommon(
 		(scope ref Candidate candidate) =>
 			(!has(typeArg) || filterCandidateByExplicitTypeArg(ctx, candidate, force(typeArg))) &&
 			matchExpectedVsReturnTypeNoDiagnostic(
-				ctx.alloc, ctx.programState, expected, candidate.called.returnType, inferringTypeArgs(candidate)),
+				ctx.instantiateCtx, expected, candidate.called.returnType, inferringTypeArgs(candidate)),
 		(ref Candidates candidates) =>
 			checkCallInner(
 				ctx, locals, source, diagRange, funName, args, typeArg, perfMeasurer, candidates, expected));
@@ -185,7 +183,7 @@ Expr checkCallInner(
 			inferCandidateTypeArgsFromSpecs(ctx, x));
 
 		ParamExpected paramExpected = mutMaxArr!(maxCandidates, TypeAndInferring);
-		getParamExpected(ctx.alloc, ctx.programState, paramExpected, candidates, argIdx);
+		getParamExpected(ctx.instantiateCtx, paramExpected, candidates, argIdx);
 		Expected expected = Expected(tempAsArr(castNonScope_ref(paramExpected)));
 
 		pauseMeasure(ctx.perf, ctx.alloc, perfMeasurer);
@@ -200,7 +198,7 @@ Expr checkCallInner(
 		}
 		add(ctx.alloc, actualArgTypes, actualArgType);
 		filterCandidates(candidates, (scope ref Candidate candidate) =>
-			testCandidateParamType(ctx.alloc, ctx.programState, candidate, actualArgType, argIdx, InferringTypeArgs()));
+			testCandidateParamType(ctx.instantiateCtx, candidate, actualArgType, argIdx, InferringTypeArgs()));
 		return some(arg);
 	});
 
@@ -271,14 +269,13 @@ bool filterCandidateByExplicitTypeArg(ref ExprCtx ctx, scope ref Candidate candi
 alias ParamExpected = MutMaxArr!(maxCandidates, TypeAndInferring);
 
 void getParamExpected(
-	ref Alloc alloc,
-	ref ProgramState programState,
+	ref InstantiateCtx ctx,
 	ref ParamExpected paramExpected,
 	scope ref Candidates candidates,
 	size_t argIdx,
 ) {
 	foreach (scope ref Candidate candidate; candidates) {
-		Type t = getCandidateExpectedParameterType(alloc, programState, candidate, argIdx);
+		Type t = getCandidateExpectedParameterType(ctx, candidate, argIdx);
 		InferringTypeArgs ita = inferringTypeArgs(candidate);
 		bool isDuplicate = ita.args.length == 0 &&
 			exists!TypeAndInferring(tempAsArr(paramExpected), (in TypeAndInferring x) =>
@@ -289,22 +286,21 @@ void getParamExpected(
 }
 
 void inferCandidateTypeArgsFromCheckedSpecSig(
-	ref Alloc alloc,
-	ref ProgramState programState,
+	ref InstantiateCtx ctx,
 	in Candidate specCandidate,
 	in SpecDeclSig specSig,
 	in ReturnAndParamTypes sigTypes,
 	scope InferringTypeArgs callInferringTypeArgs,
 ) {
 	inferTypeArgsFrom(
-		alloc, programState, sigTypes.returnType, callInferringTypeArgs,
+		ctx, sigTypes.returnType, callInferringTypeArgs,
 		specCandidate.called.returnType, inferringTypeArgs(specCandidate));
 	foreach (size_t argIdx; 0 .. specSig.params.length)
 		inferTypeArgsFrom(
-			alloc, programState,
+			ctx,
 			sigTypes.paramTypes[argIdx],
 			callInferringTypeArgs,
-			getCandidateExpectedParameterType(alloc, programState, specCandidate, argIdx),
+			getCandidateExpectedParameterType(ctx, specCandidate, argIdx),
 			inferringTypeArgs(specCandidate));
 }
 
@@ -338,10 +334,9 @@ ContinueOrAbort inferCandidateTypeArgsFromExplicitlyTypedArgument(
 				return ContinueOrAbort.abort;
 			else {
 				foreach (ref Candidate candidate; candidates) {
-					Type paramType = getCandidateExpectedParameterType(
-						ctx.alloc, ctx.programState, candidate, argIndex);
+					Type paramType = getCandidateExpectedParameterType(ctx.instantiateCtx, candidate, argIndex);
 					inferTypeArgsFromLambdaParameterType(
-						ctx.alloc, ctx.programState, ctx.commonTypes,
+						ctx.instantiateCtx, ctx.commonTypes,
 						paramType, candidate.inferringTypeArgs, lambdaParamType);
 				}
 				return ContinueOrAbort.continue_;
@@ -396,15 +391,18 @@ bool inferCandidateTypeArgsFromSpecSig(
 		specSig.name,
 		specSig.params.length,
 		(scope ref Candidate x) =>
-			testCandidateForSpecSig(ctx.alloc, ctx.programState, x, returnAndParamTypes, constCallInferring),
+			testCandidateForSpecSig(ctx.instantiateCtx, x, returnAndParamTypes, constCallInferring),
 		(scope ref Candidates specCandidates) {
 			switch (size(specCandidates)) {
 				case 0:
 					return false;
 				case 1:
 					inferCandidateTypeArgsFromCheckedSpecSig(
-						ctx.alloc, ctx.programState,
-						only(specCandidates), specSig, returnAndParamTypes, inferringTypeArgs(callCandidate));
+						ctx.instantiateCtx,
+						only(specCandidates),
+						specSig,
+						returnAndParamTypes,
+						inferringTypeArgs(callCandidate));
 					return true;
 				default:
 					return true;

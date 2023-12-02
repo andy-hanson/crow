@@ -70,6 +70,7 @@ enum AllocName {
 	lspState,
 	main,
 	other,
+	programState,
 	static_,
 	storage,
 	storageChangeFile,

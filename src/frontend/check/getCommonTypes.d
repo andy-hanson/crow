@@ -3,10 +3,9 @@ module frontend.check.getCommonTypes;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCtx : addDiag, CheckCtx;
-import frontend.check.instantiate : instantiateStruct;
+import frontend.check.instantiate : DelayStructInsts, InstantiateCtx, instantiateStruct;
 import frontend.check.maps : StructsAndAliasesMap;
 import frontend.parse.ast : StructDeclAst;
-import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
 	CommonTypes,
@@ -29,7 +28,6 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.enumMap : EnumMap;
-import util.col.mutArr : MutArr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, someMut, some;
 import util.ptr : ptrTrustMe;
@@ -40,7 +38,7 @@ import util.util : todo;
 CommonTypes* getCommonTypes(
 	ref CheckCtx ctx,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	scope ref MutArr!(StructInst*) delayedStructInsts,
+	scope ref DelayStructInsts delayedStructInsts,
 ) {
 	void addDiagMissing(Sym name) {
 		addDiag(ctx, UriAndRange(ctx.curUri, Range.empty), Diag(Diag.CommonTypeMissing(name)));
@@ -48,16 +46,13 @@ CommonTypes* getCommonTypes(
 
 	StructInst* nonTemplateFromSym(Sym name) {
 		Opt!(StructInst*) res =
-			getCommonNonTemplateType(ctx.alloc, ctx.programState, structsAndAliasesMap, name, delayedStructInsts);
+			getCommonNonTemplateType(ctx.instantiateCtx, structsAndAliasesMap, name, delayedStructInsts);
 		if (has(res))
 			return force(res);
 		else {
 			addDiagMissing(name);
 			return instantiateNonTemplateStructDecl(
-				ctx.alloc,
-				ctx.programState,
-				delayedStructInsts,
-				bogusStructDecl(ctx.alloc, 0));
+				ctx.instantiateCtx, delayedStructInsts, bogusStructDecl(ctx.alloc, 0));
 		}
 	}
 	StructInst* nonTemplate(string name)() {
@@ -103,7 +98,7 @@ CommonTypes* getCommonTypes(
 
 	StructDecl* constPointer = getDecl!"const-pointer"(1);
 	StructInst* cStr = instantiateStruct(
-		ctx.alloc, ctx.programState, constPointer, [Type(char8)], someMut(ptrTrustMe(delayedStructInsts)));
+		ctx.instantiateCtx, constPointer, [Type(char8)], someMut(ptrTrustMe(delayedStructInsts)));
 
 	StructDecl*[8] tuples = [
 		getDecl!"tuple2"(2),
@@ -153,22 +148,20 @@ Opt!(StructDecl*) getCommonTemplateType(
 }
 
 Opt!(StructInst*) getCommonNonTemplateType(
-	ref Alloc alloc,
-	ref ProgramState programState,
+	ref InstantiateCtx ctx,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	Sym name,
-	scope ref MutArr!(StructInst*) delayedStructInsts,
+	scope ref DelayStructInsts delayedStructInsts,
 ) {
 	Opt!StructOrAlias opStructOrAlias = structsAndAliasesMap[name];
 	return has(opStructOrAlias)
-		? instantiateNonTemplateStructOrAlias(alloc, programState, delayedStructInsts, force(opStructOrAlias))
+		? instantiateNonTemplateStructOrAlias(ctx, delayedStructInsts, force(opStructOrAlias))
 		: none!(StructInst*);
 }
 
 Opt!(StructInst*) instantiateNonTemplateStructOrAlias(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	scope ref MutArr!(StructInst*) delayedStructInsts,
+	ref InstantiateCtx ctx,
+	scope ref DelayStructInsts delayedStructInsts,
 	StructOrAlias structOrAlias,
 ) {
 	assert(empty(typeParams(structOrAlias)));
@@ -176,16 +169,15 @@ Opt!(StructInst*) instantiateNonTemplateStructOrAlias(
 		(StructAlias* x) =>
 			target(*x),
 		(StructDecl* x) =>
-			some(instantiateNonTemplateStructDecl(alloc, programState, delayedStructInsts, x)));
+			some(instantiateNonTemplateStructDecl(ctx, delayedStructInsts, x)));
 }
 
 StructInst* instantiateNonTemplateStructDecl(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	scope ref MutArr!(StructInst*) delayedStructInsts,
+	ref InstantiateCtx ctx,
+	scope ref DelayStructInsts delayedStructInsts,
 	StructDecl* structDecl,
 ) =>
-	instantiateStruct(alloc, programState, structDecl, [], someMut(ptrTrustMe(delayedStructInsts)));
+	instantiateStruct(ctx, structDecl, [], someMut(ptrTrustMe(delayedStructInsts)));
 
 StructDecl* bogusStructDecl(ref Alloc alloc, size_t nTypeParameters) {
 	ArrBuilder!TypeParam typeParams;

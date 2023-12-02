@@ -2,8 +2,8 @@ module frontend.check.checkCtx;
 
 @safe @nogc pure nothrow:
 
+import frontend.check.instantiate : InstantiateCtx;
 import frontend.parse.ast : pathRange;
-import frontend.programState : ProgramState;
 import model.diag : Diag, Diagnostic;
 import model.model :
 	FunDecl,
@@ -36,8 +36,7 @@ struct CheckCtx {
 	private:
 
 	public Alloc* allocPtr;
-	Perf* perfPtr;
-	public ProgramState* programStatePtr;
+	public InstantiateCtx instantiateCtx;
 	AllSymbols* allSymbolsPtr;
 	const AllUris* allUrisPtr;
 	public immutable Uri curUri;
@@ -47,6 +46,9 @@ struct CheckCtx {
 
 	public:
 
+	ref Perf perf() return scope =>
+		instantiateCtx.perf;
+
 	@trusted ref Alloc alloc() return scope =>
 		*allocPtr;
 
@@ -55,12 +57,6 @@ struct CheckCtx {
 
 	ref const(AllUris) allUris() return scope const =>
 		*allUrisPtr;
-
-	ref Perf perf() return scope =>
-		*perfPtr;
-
-	@trusted ref ProgramState programState() return scope =>
-		*programStatePtr;
 }
 
 private struct UsedSet {

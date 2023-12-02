@@ -4,6 +4,7 @@ module frontend.check.checkStructs;
 
 import frontend.check.check : visibilityFromExplicit;
 import frontend.check.checkCtx : addDiag, CheckCtx, rangeInFile;
+import frontend.check.instantiate : DelayStructInsts;
 import frontend.check.maps : StructsAndAliasesMap;
 import frontend.check.typeFromAst : checkTypeParams, typeFromAst;
 import frontend.parse.ast :
@@ -51,7 +52,6 @@ import model.model :
 	visibility;
 import util.col.arr : empty, small;
 import util.col.arrUtil : eachPair, fold, map, mapAndFold, MapAndFold, mapPointers, zipPtrFirst;
-import util.col.mutArr : MutArr;
 import util.conv : safeToSizeT;
 import util.opt : force, has, none, Opt, optOrDefault, some, someMut;
 import util.ptr : ptrTrustMe;
@@ -79,7 +79,7 @@ void checkStructBodies(
 	ref StructsAndAliasesMap structsAndAliasesMap,
 	ref StructDecl[] structs,
 	in StructDeclAst[] asts,
-	ref MutArr!(StructInst*) delayStructInsts,
+	scope ref DelayStructInsts delayStructInsts,
 ) {
 	zipPtrFirst!(StructDecl, StructDeclAst)(structs, asts, (StructDecl* struct_, ref StructDeclAst ast) {
 		setBody(*struct_, ast.body_.matchIn!StructBody(
@@ -87,22 +87,22 @@ void checkStructBodies(
 				checkOnlyStructModifiers(ctx, TypeKind.builtin, ast.modifiers);
 				return StructBody(StructBody.Builtin());
 			},
-			(in StructDeclAst.Body.Enum it) {
+			(in StructDeclAst.Body.Enum x) {
 				checkOnlyStructModifiers(ctx, TypeKind.enum_, ast.modifiers);
-				return StructBody(checkEnum(ctx, commonTypes, structsAndAliasesMap, ast.range, it, delayStructInsts));
+				return StructBody(checkEnum(ctx, commonTypes, structsAndAliasesMap, ast.range, x, delayStructInsts));
 			},
 			(in StructDeclAst.Body.Extern it) =>
 				StructBody(checkExtern(ctx, ast, it)),
-			(in StructDeclAst.Body.Flags it) {
+			(in StructDeclAst.Body.Flags x) {
 				checkOnlyStructModifiers(ctx, TypeKind.flags, ast.modifiers);
-				return StructBody(checkFlags(ctx, commonTypes, structsAndAliasesMap, ast.range, it, delayStructInsts));
+				return StructBody(checkFlags(ctx, commonTypes, structsAndAliasesMap, ast.range, x, delayStructInsts));
 			},
-			(in StructDeclAst.Body.Record it) =>
+			(in StructDeclAst.Body.Record x) =>
 				StructBody(checkRecord(
-					ctx, commonTypes, structsAndAliasesMap, struct_, ast.modifiers, it, delayStructInsts)),
-			(in StructDeclAst.Body.Union it) {
+					ctx, commonTypes, structsAndAliasesMap, struct_, ast.modifiers, x, delayStructInsts)),
+			(in StructDeclAst.Body.Union x) {
 				checkOnlyStructModifiers(ctx, TypeKind.union_, ast.modifiers);
-				return StructBody(checkUnion(ctx, commonTypes, structsAndAliasesMap, struct_, it, delayStructInsts));
+				return StructBody(checkUnion(ctx, commonTypes, structsAndAliasesMap, struct_, x, delayStructInsts));
 			}));
 	});
 }
@@ -316,7 +316,7 @@ StructBody.Enum checkEnum(
 	ref StructsAndAliasesMap structsAndAliasesMap,
 	in Range range,
 	in StructDeclAst.Body.Enum e,
-	ref MutArr!(StructInst*) delayStructInsts,
+	scope ref DelayStructInsts delayStructInsts,
 ) {
 	EnumOrFlagsTypeAndMembers tm = checkEnumOrFlagsMembers(
 		ctx, commonTypes, structsAndAliasesMap, range, e.typeArg, e.members, delayStructInsts,
@@ -334,7 +334,7 @@ StructBody.Flags checkFlags(
 	ref StructsAndAliasesMap structsAndAliasesMap,
 	in Range range,
 	in StructDeclAst.Body.Flags f,
-	ref MutArr!(StructInst*) delayStructInsts,
+	scope ref DelayStructInsts delayStructInsts,
 ) {
 	EnumOrFlagsTypeAndMembers tm = checkEnumOrFlagsMembers(
 		ctx, commonTypes, structsAndAliasesMap, range, f.typeArg, f.members, delayStructInsts,
@@ -366,7 +366,7 @@ EnumOrFlagsTypeAndMembers checkEnumOrFlagsMembers(
 	in Range range,
 	in Opt!(TypeAst*) typeArg,
 	in StructDeclAst.Body.Enum.Member[] memberAsts,
-	ref MutArr!(StructInst*) delayStructInsts,
+	scope ref DelayStructInsts delayStructInsts,
 	Diag.DuplicateDeclaration.Kind memberKind,
 	in ValueAndOverflow delegate(Opt!EnumValue, EnumBackingType) @safe @nogc pure nothrow cbGetNextValue,
 ) {
@@ -508,7 +508,7 @@ StructBody.Record checkRecord(
 	StructDecl* struct_,
 	ModifierAst[] modifierAsts,
 	in StructDeclAst.Body.Record r,
-	ref MutArr!(StructInst*) delayStructInsts,
+	scope ref DelayStructInsts delayStructInsts,
 ) {
 	RecordModifiers modifiers = checkRecordModifiers(ctx, modifierAsts);
 	bool isExtern = struct_.linkage != Linkage.internal;
@@ -531,7 +531,7 @@ RecordField checkRecordField(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesMap structsAndAliasesMap,
-	ref MutArr!(StructInst*) delayStructInsts,
+	scope ref DelayStructInsts delayStructInsts,
 	StructDecl* struct_,
 	StructDeclAst.Body.Record.Field* ast,
 ) {
@@ -567,7 +567,7 @@ StructBody.Union checkUnion(
 	ref StructsAndAliasesMap structsAndAliasesMap,
 	StructDecl* struct_,
 	in StructDeclAst.Body.Union ast,
-	ref MutArr!(StructInst*) delayStructInsts,
+	scope ref DelayStructInsts delayStructInsts,
 ) {
 	final switch (struct_.linkage) {
 		case Linkage.internal:
@@ -588,7 +588,7 @@ UnionMember checkUnionMember(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesMap structsAndAliasesMap,
-	ref MutArr!(StructInst*) delayStructInsts,
+	scope ref DelayStructInsts delayStructInsts,
 	StructDecl* struct_,
 	in StructDeclAst.Body.Union.Member ast,
 ) {

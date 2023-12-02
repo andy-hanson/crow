@@ -400,6 +400,7 @@ immutable struct StructDeclAndArgs {
 	}
 }
 
+// The StructInst and its contents are allocated using the ProgramState alloc.
 immutable struct StructInst {
 	@safe @nogc pure nothrow:
 
@@ -516,6 +517,7 @@ immutable struct SpecDeclAndArgs {
 	}
 }
 
+// The SpecInst and constents are allocated using the ProgramState alloc.
 immutable struct SpecInst {
 	@safe @nogc pure nothrow:
 
@@ -815,6 +817,7 @@ immutable struct FunDeclAndArgs {
 	}
 }
 
+// The FunInst and its contents are allocated using the ProgramState alloc.
 immutable struct FunInst {
 	@safe @nogc pure nothrow:
 
