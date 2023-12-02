@@ -45,7 +45,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSort, finishArr;
 import util.col.arrUtil : exists, indexOf, map, mapOp;
-import util.col.map : mapEachIn;
+import util.col.map : values;
 import util.col.str : SafeCStr;
 import util.json :
 	field,
@@ -83,17 +83,15 @@ Json documentModule(
 	in Module a,
 ) {
 	ArrBuilder!DocExport exports; // TODO: no alloc
-	mapEachIn!(Sym, NameReferents)(
-		a.allExportedNames,
-		(in Sym _, in NameReferents referents) {
-			if (has(referents.structOrAlias) && visibility(force(referents.structOrAlias)) == Visibility.public_)
-				add(alloc, exports, documentStructOrAlias(alloc, force(referents.structOrAlias)));
-			if (has(referents.spec) && force(referents.spec).visibility == Visibility.public_)
-				add(alloc, exports, documentSpec(alloc, *force(referents.spec)));
-			foreach (FunDecl* fun; referents.funs)
-				if (fun.visibility == Visibility.public_ && !isGenerated(*fun))
-					add(alloc, exports, documentFun(alloc, *fun));
-		});
+	foreach (NameReferents referents; values(a.allExportedNames)) {
+		if (has(referents.structOrAlias) && visibility(force(referents.structOrAlias)) == Visibility.public_)
+			add(alloc, exports, documentStructOrAlias(alloc, force(referents.structOrAlias)));
+		if (has(referents.spec) && force(referents.spec).visibility == Visibility.public_)
+			add(alloc, exports, documentSpec(alloc, *force(referents.spec)));
+		foreach (FunDecl* fun; referents.funs)
+			if (fun.visibility == Visibility.public_ && !isGenerated(*fun))
+				add(alloc, exports, documentFun(alloc, *fun));
+	}
 	arrBuilderSort!DocExport(exports, (in DocExport x, in DocExport y) =>
 		compareUriAndRange(allUris, x.range, y.range));
 	return jsonObject(alloc, [

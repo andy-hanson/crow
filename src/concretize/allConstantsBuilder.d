@@ -14,7 +14,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
 import util.col.arrUtil : arrEqual, arrLiteral, findIndex;
 import util.col.mutArr : moveToArr, MutArr, mutArrSize, push, tempAsArr;
-import util.col.mutMap : getOrAdd, mapToArr_mut, MutMap, mutMapSize, valuesArray;
+import util.col.mutMap : getOrAdd, mapToArray_mut, MutMap, mutMapSize, valuesArray;
 import util.col.str : SafeCStr;
 import util.opt : force, has, Opt;
 import util.ptr : ptrTrustMe;
@@ -49,7 +49,7 @@ AllConstantsConcrete finishAllConstants(
 ) {
 	Constant staticSymbols = getConstantArr(alloc, a, arrSymStruct, valuesArray(alloc, a.syms));
 	ArrTypeAndConstantsConcrete[] arrs =
-		mapToArr_mut!(ArrTypeAndConstantsConcrete, ConcreteType, ArrTypeAndConstants)(
+		mapToArray_mut!(ArrTypeAndConstantsConcrete, ConcreteType, ArrTypeAndConstants)(
 			alloc,
 			a.arrs,
 			(ConcreteType _, ref ArrTypeAndConstants value) =>
@@ -58,7 +58,7 @@ AllConstantsConcrete finishAllConstants(
 					value.elementType,
 					moveToArr!(immutable Constant[])(alloc, value.constants)));
 	PointerTypeAndConstantsConcrete[] records =
-		mapToArr_mut!(PointerTypeAndConstantsConcrete, ConcreteStruct*, PointerTypeAndConstants)(
+		mapToArray_mut!(PointerTypeAndConstantsConcrete, ConcreteStruct*, PointerTypeAndConstants)(
 			alloc, a.pointers, (ConcreteStruct* key, ref PointerTypeAndConstants value) =>
 				PointerTypeAndConstantsConcrete(key, moveToArr(alloc, value.constants)));
 	return AllConstantsConcrete(moveToArr(alloc, a.cStringValues), staticSymbols, arrs, records);

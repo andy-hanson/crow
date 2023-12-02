@@ -27,10 +27,9 @@ import util.col.arrUtil : arrEqual, exists, first;
 import util.col.map : existsInMap, Map;
 import util.col.enumMap : EnumMap;
 import util.col.str : SafeCStr, safeCStr;
-import util.hash : Hasher;
+import util.hash : HashCode, Hasher, hashPtr, hashPtrAndTaggedPointers;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : hashPtr;
 import util.sourceRange : combineRanges, UriAndRange, Pos, rangeOfStartAndLength, Range;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
@@ -89,22 +88,7 @@ immutable struct Type {
 	mixin Union!(Bogus, TypeParam*, StructInst*);
 
 	bool opEquals(scope Type b) scope =>
-		matchWithPointers!bool(
-			(Type.Bogus) =>
-				b.isA!(Type.Bogus),
-			(TypeParam* p) =>
-				b.isA!(TypeParam*) && b.as!(TypeParam*) == p,
-			(StructInst* i) =>
-				b.isA!(StructInst*) && b.as!(StructInst*) == i);
-
-	void hash(ref Hasher hasher) scope {
-		matchWithPointers!void(
-			(Type.Bogus) {},
-			(TypeParam* p) =>
-				hashPtr(hasher, p),
-			(StructInst* i) =>
-				hashPtr(hasher, i));
-	}
+		taggedPointerEquals(b);
 }
 static assert(Type.sizeof == ulong.sizeof);
 
@@ -393,11 +377,8 @@ immutable struct StructDeclAndArgs {
 	bool opEquals(in StructDeclAndArgs b) scope =>
 		decl == b.decl && arrEqual!Type(typeArgs, b.typeArgs);
 
-	void hash(ref Hasher hasher) scope {
-		hashPtr(hasher, decl);
-		foreach (Type t; typeArgs)
-			t.hash(hasher);
-	}
+	HashCode hash() scope =>
+		hashPtrAndTaggedPointers(decl, typeArgs);
 }
 
 // The StructInst and its contents are allocated using the ProgramState alloc.
@@ -510,11 +491,8 @@ immutable struct SpecDeclAndArgs {
 	bool opEquals(in SpecDeclAndArgs b) scope =>
 		decl == b.decl && arrEqual!Type(typeArgs, b.typeArgs);
 
-	void hash(ref Hasher hasher) scope {
-		hashPtr(hasher, decl);
-		foreach (Type t; typeArgs)
-			t.hash(hasher);
-	}
+	HashCode hash() scope =>
+		hashPtrAndTaggedPointers(decl, typeArgs);
 }
 
 // The SpecInst and constents are allocated using the ProgramState alloc.
@@ -808,12 +786,14 @@ immutable struct FunDeclAndArgs {
 	bool opEquals(in FunDeclAndArgs b) scope =>
 		decl == b.decl && arrEqual!Type(typeArgs, b.typeArgs) && arrEqual!Called(specImpls, b.specImpls);
 
-	void hash(ref Hasher hasher) scope {
-		hashPtr(hasher, decl);
+	HashCode hash() scope {
+		Hasher hasher = Hasher();
+		hasher ~= decl;
 		foreach (Type t; typeArgs)
-			t.hash(hasher);
+			hasher ~= t.taggedPointerValueForHash;
 		foreach (ref Called c; specImpls)
-			c.hash(hasher);
+			c.hashMix(hasher);
+		return hasher.finish();
 	}
 }
 
@@ -877,9 +857,9 @@ immutable struct CalledSpecSig {
 		// Don't bother with indexOverAllSpecUses, it's redundant if we checked sig
 		specInst == b.specInst && nonInstantiatedSig == b.nonInstantiatedSig;
 
-	void hash(ref Hasher hasher) scope {
-		hashPtr(hasher, specInst);
-		hashPtr(hasher, nonInstantiatedSig);
+	void hashMix(ref Hasher hasher) scope {
+		hasher ~= specInst;
+		hasher ~= nonInstantiatedSig;
 	}
 }
 
@@ -941,13 +921,13 @@ immutable struct Called {
 					(CalledSpecSig* sb) =>
 						*sa == *sb));
 
-	void hash(ref Hasher hasher) scope {
+	void hashMix(ref Hasher hasher) scope {
 		matchWithPointers!void(
 			(FunInst* f) {
-				hashPtr(hasher, f);
+				hasher ~= f;
 			},
 			(CalledSpecSig* s) {
-				s.hash(hasher);
+				s.hashMix(hasher);
 			});
 	}
 

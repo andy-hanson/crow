@@ -42,7 +42,8 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.arr : emptySmallArray, sizeEq, small, SmallArray;
 import util.col.arrUtil : copyArr, fold, map, mapWithFirst;
-import util.col.mutMap : getOrAddPair, getOrAddPairAndDidAdd, KeyValuePair, PairAndDidAdd;
+import util.col.hashTable : ValueAndDidAdd;
+import util.col.mutMap : getOrAddPair, getOrAddPairAndDidAdd, KeyValuePair;
 import util.col.mutArr : MutArrWithAlloc, push;
 import util.col.mutMaxArr : mapTo, MutMaxArr, mutMaxArr, push, tempAsArr;
 import util.memory : allocate;
@@ -167,7 +168,7 @@ StructInst* instantiateStruct(
 ) =>
 	withMeasure!(StructInst*, () {
 		StructDeclAndArgs tempKey = StructDeclAndArgs(decl, typeArgs);
-		PairAndDidAdd!(StructDeclAndArgs, StructInst*) res = getOrAddPairAndDidAdd(
+		ValueAndDidAdd!(KeyValuePair!(StructDeclAndArgs, StructInst*)) res = getOrAddPairAndDidAdd(
 			ctx.alloc,
 			ctx.programState.structInsts,
 			tempKey,
@@ -181,15 +182,15 @@ StructInst* instantiateStruct(
 
 		if (res.didAdd) {
 			if (bodyIsSet(*decl))
-				instantiateStructTypes(ctx, res.value, delayStructInsts);
+				instantiateStructTypes(ctx, res.value.value, delayStructInsts);
 			else {
 				// We should only need to do this in the initial phase of settings struct bodies,
 				// which is when delayedStructInst is set.
-				push(*force(delayStructInsts), res.value);
+				push(*force(delayStructInsts), res.value.value);
 			}
 		}
 
-		return res.value;
+		return res.value.value;
 	})(ctx.perf, ctx.alloc, PerfMeasure.instantiateStruct);
 
 private LinkageRange combinedLinkageRange(Linkage declLinkage, in Type[] typeArgs) {

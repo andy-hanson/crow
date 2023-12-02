@@ -2,41 +2,174 @@ module util.hash;
 
 @safe @nogc pure nothrow:
 
+import util.opt : force, has, MutOpt, noneMut, someMut;
+
+HashCode getHash(T)(in T a) {
+	static if (is(T == P*, P))
+		return hashPtr(a);
+	else static if (is(T == immutable string))
+		return hashString(a);
+	else static if (is(T == size_t))
+		return hashSizeT(a);
+	else
+		return a.hash();
+}
+
+struct HashCode {
+	size_t hashCode;
+}
+
 struct Hasher {
 	@safe @nogc pure nothrow:
 
-	private ulong value;
-
-	ulong finish() =>
-		value;
-
 	private:
+	// based on https://github.com/PeterScott/murmur3/blob/master/murmur3.c
+	// but designed to take things one at a time instead of a single buffer
+	ulong[2] h;
 
-	void mix(ulong n) {
-		value = value ^ n;
+	// murmur wants to take it 128 bits at a time but 'mix' only takes 64 bits.
+	MutOpt!ulong firstHalf;
+
+	public void opOpAssign(string op, T)(in T a) scope if (op == "~") {
+		static if (is(T == P*, P))
+			mix(cast(size_t) a);
+		else
+			mix(a);
+	}
+
+	private void mix(ulong a) {
+		if (has(firstHalf)) {
+			h = murmurStep(h, force(firstHalf), a);
+			firstHalf = noneMut!ulong;
+		} else
+			firstHalf = someMut(a);
+	}
+
+	public HashCode finish() {
+		if (has(firstHalf))
+			mix(0);
+		assert(!has(firstHalf));
+		return murmurFinish(h);
 	}
 }
 
-void hashEnum(E)(ref Hasher hasher, E a) {
-	hashSizeT(hasher, a);
+@trusted HashCode hashPtrAndTaggedPointers(T, U)(T* ptr, U[] taggedPointers) {
+	Hasher hasher;
+	hasher ~= ptr;
+	foreach (U x; taggedPointers)
+		hasher ~= x.taggedPointerValueForHash;
+	return hasher.finish();
 }
 
-void hashSizeT(ref Hasher hasher, size_t a) {
-	hasher.mix(a);
+HashCode hash2(ulong a, HashCode b) =>
+	murmurFinish([a, b.hashCode]);
+
+HashCode hashEnum(E)(E a) =>
+	hashUlong(a);
+
+HashCode hashSizeT(size_t a) =>
+	hashUlong(a);
+
+HashCode hashUshort(ushort a) =>
+	hashUlong(a);
+
+HashCode hashUint(uint a) =>
+	hashUlong(a);
+
+HashCode hashUlong(ulong a) =>
+	HashCode(fmix64(a));
+
+HashCode hashPtr(T)(T* a) =>
+	hashUlong(cast(size_t) a);
+
+@trusted HashCode hashString(in string data) {
+	const ulong* blocks = cast(const ulong *) data.ptr;
+	const size_t nBlocks = data.length / 16;
+	ulong[2] h = [0, 0];
+	foreach (size_t i; 0 .. nBlocks)
+		h = murmurStep(h, blocks[i * 2], blocks[i * 2 + 1]);
+	return murmurFinish(murmurStepTail(h, cast(immutable ubyte[]) data[nBlocks * 16 .. $]));
 }
 
-void hashUbyte(ref Hasher hasher, ubyte a) {
-	hasher.mix(a);
+ulong[2] murmurStep(ulong[2] h, ulong k1, ulong k2) {
+	ulong h1 = h[0];
+	ulong h2 = h[1];
+	k1 *= c1; k1 = rotl64(k1, 31); k1 *= c2; h1 ^= k1;
+	h1 = rotl64(h1, 27); h1 += h2; h1 = h1 * 5 + 0x52dce729;
+	k2 *= c2; k2 = rotl64(k2,33); k2 *= c1; h2 ^= k2;
+	h2 = rotl64(h2, 31); h2 += h1; h2 = h2 * 5 + 0x38495ab5;
+	return [h1, h2];
 }
 
-void hashUshort(ref Hasher hasher, ushort a) {
-	hasher.mix(a);
+ulong[2] murmurStepTail(ulong[2] h, in ubyte[] tail) {
+	assert(tail.length < 16);
+
+	ulong k1 = 0;
+	ulong k2 = 0;
+
+	final switch (tail.length & 15) {
+		case 15: k2 ^= ulong(tail[14]) << 48; goto case 14;
+		case 14: k2 ^= ulong(tail[13]) << 40; goto case 13;
+		case 13: k2 ^= ulong(tail[12]) << 32; goto case 12;
+		case 12: k2 ^= ulong(tail[11]) << 24; goto case 11;
+		case 11: k2 ^= ulong(tail[10]) << 16; goto case 10;
+		case 10: k2 ^= ulong(tail[9]) << 8; goto case 8;
+		case 9:
+			k2 ^= (ulong)(tail[ 8]) << 0;
+			k2 *= c2;
+			k2 = rotl64(k2, 33);
+			k2 *= c1;
+			h[1] ^= k2;
+			goto case 8;
+		case  8: k1 ^= ulong(tail[7]) << 56; goto case 7;
+		case  7: k1 ^= ulong(tail[6]) << 48; goto case 6;
+		case  6: k1 ^= ulong(tail[5]) << 40; goto case 5;
+		case  5: k1 ^= ulong(tail[4]) << 32; goto case 4;
+		case  4: k1 ^= ulong(tail[3]) << 24; goto case 3;
+		case  3: k1 ^= ulong(tail[2]) << 16; goto case 2;
+		case  2: k1 ^= ulong(tail[1]) << 8; goto case 1;
+		case  1:
+			k1 ^= ulong(tail[ 0]) << 0;
+			k1 *= c1;
+			k1 = rotl64(k1, 31);
+			k1 *= c2;
+			h[0] ^= k1;
+			break;
+		case 0:
+	};
+
+	return h;
 }
 
-void hashUint(ref Hasher hasher, uint a) {
-	hasher.mix(a);
+private ulong c1() => 0x87c37b91114253d5;
+private ulong c2() => 0x4cf5ad432745937f;
+
+HashCode murmurFinish(ulong[2] h) {
+	ulong h1 = h[0];
+	ulong h2 = h[1];
+
+	// h1 ^= len; h2 ^= len;
+
+	h1 += h2;
+	h2 += h1;
+
+	h1 = fmix64(h1);
+	h2 = fmix64(h2);
+
+	h1 += h2;
+	h2 += h1;
+
+	return HashCode(h1 ^ h2);
 }
 
-void hashUlong(ref Hasher hasher, ulong a) {
-	hasher.mix(a);
+ulong fmix64(ulong k) {
+	k ^= k >> 33;
+	k *= 0xff51afd7ed558ccd;
+	k ^= k >> 33;
+	k *= 0xc4ceb9fe1a85ec53;
+	k ^= k >> 33;
+	return k;
 }
+
+static ulong rotl64(ulong x, byte r) =>
+	(x << r) | (x >> (64 - r));

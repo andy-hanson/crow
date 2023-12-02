@@ -5,24 +5,26 @@ module util.col.map;
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : zip;
 import util.col.mutMap :
-	existsInMutMap,
-	getAt_mut,
-	moveToMap,
-	mustAddToMutMap,
-	MutMap,
-	mutMapEach,
-	mutMapEachIn,
-	mutMapHasKey,
-	mutMapMustGet;
+	mapToArray, mapToMap, moveToMap, mustAddToMutMap, MutMap, mutMapHasKey, mutMapMustGet, mutMapSize, MutMapValues, values;
 public import util.col.mutMap : KeyValuePair;
 import util.opt : Opt;
 
 immutable struct Map(K, V) {
+	@safe @nogc pure nothrow:
+
 	private MutMap!(K, V) inner;
 
 	@trusted Opt!V opIndex(in K key) scope =>
-		getAt_mut!(K, V)(inner, key);
+		inner[key];
+
+	int opApply(in int delegate(immutable K, ref immutable V) @safe @nogc pure nothrow cb) scope =>
+		inner.opApply(cb);
 }
+immutable(MutMapValues!(K, V)) values(K, V)(ref Map!(K, V) a) =>
+	.values(a.inner);
+
+size_t size(K, V)(in Map!(K, V) a) =>
+	mutMapSize(a.inner);
 
 bool hasKey(K, V)(in Map!(K, V) a, immutable K key) =>
 	mutMapHasKey(a.inner, key);
@@ -61,7 +63,9 @@ Map!(K, V) makeMapWithIndex(K, V, T)(
 		immutable KeyValuePair!(K, V) pair = getPair(i, input);
 		mustAddToMutMap!(immutable K, immutable V)(alloc, res, pair.key, pair.value);
 	}
-	return moveToMap!(K, V)(alloc, res);
+	Map!(K, V) mapRes = moveToMap!(K, V)(alloc, res);
+	assert(size(mapRes) == inputs.length);
+	return mapRes;
 }
 
 Map!(K, V) makeMapFromKeys(K, V)(
@@ -75,11 +79,16 @@ Map!(K, V) makeMapFromKeys(K, V)(
 @trusted immutable(V) mustGetAt(K, V)(Map!(K, V) a, in K key) =>
 	mutMapMustGet(a.inner, key);
 
-void mapEach(K, V)(in Map!(K, V) a, in void delegate(immutable K, ref immutable V) @safe @nogc pure nothrow cb) {
-	mutMapEach!(K, V)(a.inner, cb);
+bool existsInMap(K, V)(in Map!(K, V) a, in bool delegate(in K, in V) @safe @nogc pure nothrow cb) {
+	foreach (immutable K key, ref immutable V value; a)
+		if (cb(key, value))
+			return true;
+	return false;
 }
-void mapEachIn(K, V)(in Map!(K, V) a, in void delegate(in K, in V) @safe @nogc pure nothrow cb) {
-	mutMapEachIn!(K, V)(a.inner, cb);
-}
-bool existsInMap(K, V)(in Map!(K, V) a, in bool delegate(in K, in V) @safe @nogc pure nothrow cb) =>
-	existsInMutMap!(K, V)(a.inner, cb);
+
+Out[] mapToArray(Out, K, V)(
+	ref Alloc alloc,
+	in Map!(K, V) a,
+	in Out delegate(immutable K, ref immutable V) @safe @nogc pure nothrow cb,
+) =>
+	.mapToArray!(Out, K, V)(alloc, a.inner, cb);

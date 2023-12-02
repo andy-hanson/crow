@@ -130,7 +130,7 @@ import util.col.mapBuilder : finishMap, mustAddToMap, MapBuilder;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapEachValue, fullIndexMapOfArr, fullIndexMapSize;
 import util.col.mutIndexMap : getOrAddAndDidAdd, mustGetAt, MutIndexMap, newMutIndexMap;
 import util.col.mutArr : moveToArr, MutArr, push;
-import util.col.mutMap : getAt_mut, getOrAdd, mapToArr_mut, MutMap, MutMap, ValueAndDidAdd;
+import util.col.mutMap : getOrAdd, mapToArray_mut, MutMap, MutMap, ValueAndDidAdd;
 import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2MustGet0, stackMap2MustGet1, withStackMap2;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate, overwriteMemory;
@@ -204,24 +204,24 @@ struct MarkVisitFuns {
 	MutMap!(LowType, LowFunIndex) gcPointeeToVisit;
 }
 
-Opt!LowFunIndex tryGetMarkVisitFun(ref const MarkVisitFuns funs, LowType type) =>
+Opt!LowFunIndex tryGetMarkVisitFun(in MarkVisitFuns funs, LowType type) =>
 	type.match!(Opt!LowFunIndex)(
 		(LowType.Extern) =>
 			none!LowFunIndex,
 		(LowType.FunPtr) =>
 			none!LowFunIndex,
-		(PrimitiveType it) =>
+		(PrimitiveType _) =>
 			none!LowFunIndex,
-		(LowType.PtrGc it) =>
-			getAt_mut(funs.gcPointeeToVisit, *it.pointee),
+		(LowType.PtrGc x) =>
+			typeAs!(Opt!LowFunIndex)(funs.gcPointeeToVisit[*x.pointee]),
 		(LowType.PtrRawConst) =>
 			none!LowFunIndex,
 		(LowType.PtrRawMut) =>
 			none!LowFunIndex,
-		(LowType.Record it) =>
-			typeAs!(Opt!LowFunIndex)(funs.recordValToVisit[it]),
-		(LowType.Union it) =>
-			typeAs!(Opt!LowFunIndex)(funs.unionToVisit[it]));
+		(LowType.Record x) =>
+			typeAs!(Opt!LowFunIndex)(funs.recordValToVisit[x]),
+		(LowType.Union x) =>
+			typeAs!(Opt!LowFunIndex)(funs.unionToVisit[x]));
 
 private:
 
@@ -724,7 +724,7 @@ AllLowFuns getAllLowFuns(
 		concreteFunToLowFunIndex,
 		allLowFuns,
 		LowFunIndex(lowFunCauses.length),
-		mapToArr_mut!(ExternLibrary, Sym, MutArr!Sym)(
+		mapToArray_mut!(ExternLibrary, Sym, MutArr!Sym)(
 			getLowTypeCtx.alloc,
 			allExternSymbols,
 			(Sym libraryName, ref MutArr!Sym xs) =>

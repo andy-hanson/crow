@@ -170,9 +170,9 @@ T[] copyArr(T)(ref Alloc alloc, scope T[] a) =>
 	return cast(immutable) res;
 }
 
-@trusted Out[] mapToMut(Out, In)(ref Alloc alloc, in In[] a, in Out delegate(in In) @safe @nogc pure nothrow cb) {
+@trusted Out[] mapToMut(Out, In)(ref Alloc alloc, scope In[] a, in Out delegate(ref In) @safe @nogc pure nothrow cb) {
 	Out[] res = allocateElements!Out(alloc, a.length);
-	foreach (size_t i, ref immutable In x; a) {
+	foreach (size_t i, ref In x; a) {
 		Out value = cb(x);
 		initMemory_mut(&res[i], value);
 	}

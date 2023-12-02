@@ -122,13 +122,13 @@ TextAndInfo generateText(
 		mapToMut!(size_t[], ArrTypeAndConstantsLow)(
 			alloc,
 			program.allConstants.arrs,
-			(in ArrTypeAndConstantsLow it) =>
-				mapToMut!(size_t, immutable Constant[])(alloc, it.constants, (in Constant[]) => size_t(0))),
+			(ref ArrTypeAndConstantsLow it) =>
+				mapToMut!(size_t, immutable Constant[])(alloc, it.constants, (ref Constant[]) => size_t(0))),
 	 	mapToMut!(size_t[], PointerTypeAndConstantsLow)(
 			alloc,
 			program.allConstants.pointers,
-			(in PointerTypeAndConstantsLow it) =>
-				mapToMut!(size_t, Constant)(alloc, it.constants, (in Constant) => size_t(0))));
+			(ref PointerTypeAndConstantsLow x) =>
+				mapToMut!(size_t, Constant)(alloc, x.constants, (ref Constant) => size_t(0))));
 
 	// Ensure 0 is not a valid text index
 	exactSizeArrBuilderAdd(ctx.text, 0);

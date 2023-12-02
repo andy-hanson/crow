@@ -5,11 +5,11 @@ module util.sym;
 import util.alloc.alloc : Alloc, AllocName, MetaAlloc, newAlloc;
 import util.col.arr : only;
 import util.col.mutArr : MutArr, mutArrSize, push;
-import util.col.mutMap : getAt_mut, mustAddToMutMap, MutMap, mutMapSize;
+import util.col.mutMap : mustAddToMutMap, MutMap, mutMapSize;
 import util.col.mutMaxArr : clear, MutMaxArr, mutMaxArr, push, pushAll, tempAsArr;
 import util.col.str : copyToSafeCStr, eachChar, SafeCStr, strEq, strOfSafeCStr;
 import util.conv : safeToSizeT;
-import util.hash : Hasher, hashUlong;
+import util.hash : HashCode, hashUlong;
 import util.opt : force, has, Opt, none, some;
 import util.ptr : castNonScope_ref;
 import util.util : drop;
@@ -24,9 +24,8 @@ immutable struct Sym {
 	@disable this();
 	private this(ulong v) { value = v; }
 
-	void hash(ref Hasher hasher) const {
-		hashUlong(hasher, value);
-	}
+	HashCode hash() =>
+		hashUlong(value);
 }
 
 struct AllSymbols {
@@ -372,7 +371,7 @@ public bool isLongSym(Sym a) =>
 }
 
 Sym getSymFromLongStr(ref AllSymbols allSymbols, in string str) {
-	Opt!Sym value = getAt_mut(allSymbols.largeStringToIndex, str);
+	Opt!Sym value = allSymbols.largeStringToIndex[str];
 	return has(value) ? force(value) : addLargeString(allSymbols, copyToSafeCStr(allSymbols.alloc, str));
 }
 

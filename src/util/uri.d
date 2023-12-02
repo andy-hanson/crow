@@ -9,7 +9,7 @@ import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
 import util.col.str : compareSafeCStrAlphabetically, SafeCStr, safeCStr, strOfSafeCStr;
 import util.comparison : Comparison;
 import util.conv : safeToUshort;
-import util.hash : Hasher, hashUshort;
+import util.hash : HashCode;
 import util.opt : has, force, none, Opt, some;
 import util.sourceRange : Range;
 import util.sym :
@@ -69,9 +69,8 @@ immutable struct Uri {
 	static Uri empty() =>
 		Uri(Path.empty);
 
-	void hash(ref Hasher hasher) scope {
-		path.hash(hasher);
-	}
+	HashCode hash() =>
+		path.hash();
 }
 
 private bool isRootUri(in AllUris allUris, Uri a) =>
@@ -128,9 +127,8 @@ immutable struct Path {
 	static Path empty() =>
 		Path(0);
 
-	void hash(ref Hasher hasher) scope {
-		hashUshort(hasher, index);
-	}
+	HashCode hash() =>
+		HashCode(index);
 }
 
 Opt!Uri parent(in AllUris allUris, Uri a) {

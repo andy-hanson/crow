@@ -2,14 +2,8 @@ module util.ptr;
 
 @safe @nogc pure nothrow:
 
-import util.hash : Hasher, hashSizeT;
-
 @trusted T* ptrTrustMe(T)(scope ref T t) =>
 	castNonScope(&t);
-
-void hashPtr(T)(ref Hasher hasher, const T* a) {
-	hashSizeT(hasher, cast(size_t) a);
-}
 
 @trusted immutable(T*) castImmutable(T)(T* a) =>
 	cast(immutable) a;

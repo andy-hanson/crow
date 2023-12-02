@@ -20,7 +20,7 @@ import util.col.arr : empty;
 import util.col.map : Map;
 import util.col.fullIndexMap : FullIndexMap;
 import util.col.str : SafeCStr;
-import util.hash : Hasher, hashSizeT, hashUint;
+import util.hash : hash2, HashCode, hashEnum, hashSizeT;
 import util.opt : has, none, Opt;
 import util.sourceRange : UriAndRange;
 import util.sym : Sym, sym;
@@ -176,34 +176,24 @@ immutable struct LowType {
 			(in Union x) =>
 				b.isA!Union && b.as!Union.index == x.index);
 
-	void hash(ref Hasher hasher) scope {
-		hashSizeT(hasher, kind);
-		match!void(
-			(Extern x) {
-				hashSizeT(hasher, x.index);
-			},
-			(FunPtr x) {
-				hashSizeT(hasher, x.index);
-			},
-			(PrimitiveType x) {
-				hashUint(hasher, x);
-			},
-			(PtrGc x) {
-				x.pointee.hash(hasher);
-			},
-			(PtrRawConst x) {
-				x.pointee.hash(hasher);
-			},
-			(PtrRawMut x) {
-				x.pointee.hash(hasher);
-			},
-			(Record x) {
-				hashSizeT(hasher, x.index);
-			},
-			(Union x) {
-				hashSizeT(hasher, x.index);
-			});
-	}
+	HashCode hash() scope =>
+		hash2(kind, matchIn!HashCode(
+			(in Extern x) =>
+				hashSizeT(x.index),
+			(in FunPtr x) =>
+				hashSizeT(x.index),
+			(in PrimitiveType x) =>
+				hashEnum(x),
+			(in PtrGc x) =>
+				x.pointee.hash(),
+			(in PtrRawConst x) =>
+				x.pointee.hash(),
+			(in PtrRawMut x) =>
+				x.pointee.hash(),
+			(in Record x) =>
+				hashSizeT(x.index),
+			(in Union x) =>
+				hashSizeT(x.index)));
 
 	LowTypeCombinePointer combinePointer() return scope =>
 		match!LowTypeCombinePointer(
@@ -358,11 +348,10 @@ immutable struct LowExpr {
 immutable struct LowFunIndex {
 	@safe @nogc pure nothrow:
 
-	immutable size_t index;
+	size_t index;
 
-	void hash(ref Hasher hasher) scope const {
-		hashSizeT(hasher, index);
-	}
+	HashCode hash() scope =>
+		HashCode(index);
 }
 
 immutable struct LowExprKind {

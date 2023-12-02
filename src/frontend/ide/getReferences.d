@@ -95,7 +95,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
 import util.col.arrBuilder : buildArray;
 import util.col.arrUtil : allSame, contains, find, fold, zip, zipIn;
-import util.col.map : mapEach, mustGetAt;
+import util.col.map : mustGetAt, values;
 import util.col.mutMaxArr : mutMaxArr, MutMaxArr, push, tempAsArr;
 import util.opt : force, has, none, Opt, optEqual, some;
 import util.ptr : ptrTrustMe;
@@ -588,10 +588,9 @@ void eachModuleReferencing(
 	in Module* exportingModule,
 	in void delegate(in Module, in ImportOrExport) @safe @nogc pure nothrow cb,
 ) {
-	mapEach!(Uri, immutable Module*)(program.allModules, (Uri _, ref immutable Module* importingModule) {
+	foreach (immutable Module* importingModule; values(program.allModules))
 		eachImportOrReExport(*importingModule, (in ImportOrExport x) @safe {
 			if (x.modulePtr == exportingModule)
 				cb(*importingModule, x);
 		});
-	});
 }

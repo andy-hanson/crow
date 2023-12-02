@@ -264,7 +264,7 @@ void addToPrevOrIndex(T)(
 		name,
 		() =>
 			PrevOrIndex!T(cur),
-		(ref PrevOrIndex!T x) =>
+		(in PrevOrIndex!T x) =>
 			PrevOrIndex!T(x.matchWithPointers!size_t(
 				(T* prev) {
 					mustAddToMap(alloc, toNameIndex, prev, 0);

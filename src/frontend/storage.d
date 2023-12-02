@@ -13,7 +13,7 @@ import util.alloc.alloc : Alloc, AllocAndValue, AllocName, freeAlloc, MetaAlloc,
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : contains;
-import util.col.mutMap : getOrAdd, mayDelete, mustAddToMutMap, MutMap, mutMapEachIn;
+import util.col.mutMap : getOrAdd, keys, KeyValuePair, mayDelete, mustAddToMutMap, MutMap, values;
 import util.col.str : copyToSafeCStr, SafeCStr, safeCStrSize, strOfSafeCStr;
 import util.json : field, Json, jsonObject;
 import util.lineAndColumnGetter :
@@ -162,48 +162,43 @@ enum FilesState {
 
 FilesState filesState(in Storage a) {
 	FilesState res = FilesState.allLoaded;
-	mutMapEachIn!(Uri, ReadFileDiag)(a.diags, (in Uri uri, in ReadFileDiag x) {
+	foreach (ReadFileDiag x; values(a.diags)) {
 		final switch (x) {
 			case ReadFileDiag.unknown:
-				res = FilesState.hasUnknown;
-				break;
+				return FilesState.hasUnknown;
 			case ReadFileDiag.loading:
-				if (res != FilesState.hasUnknown) res = FilesState.hasLoading;
+				res = FilesState.hasLoading;
 				break;
 			case ReadFileDiag.notFound:
 			case ReadFileDiag.error:
 				break;
 		}
-	});
+	}
 	return res;
 }
 
 Uri[] allStorageUris(ref Alloc alloc, in Storage a) {
 	ArrBuilder!Uri res;
-	mutMapEachIn!(Uri, AllocAndValue!FileInfo)(a.successes, (in Uri uri, in AllocAndValue!FileInfo _) {
+	foreach (Uri uri; keys(a.successes))
 		add(alloc, res, uri);
-	});
-	mutMapEachIn!(Uri, ReadFileDiag)(a.diags, (in Uri uri, in ReadFileDiag _) {
+	foreach (Uri uri; keys(a.diags))
 		add(alloc, res, uri);
-	});
 	return finishArr(alloc, res);
 }
 
 Uri[] allKnownGoodCrowUris(ref Alloc alloc, scope ref Storage a) {
 	ArrBuilder!Uri res;
-	mutMapEachIn!(Uri, AllocAndValue!FileInfo)(a.successes, (in Uri uri, in AllocAndValue!FileInfo _) {
-		if (getExtension(*a.allUris, uri) == crowExtension)
+	foreach (Uri uri; keys(a.successes))
+		if (fileType(*a.allUris, uri) == FileType.crow)
 			add(alloc, res, uri);
-	});
 	return finishArr(alloc, res);
 }
 
 Uri[] allUrisWithFileDiag(ref Alloc alloc, in Storage a, in ReadFileDiag[] searchDiags) {
 	ArrBuilder!Uri res;
-	mutMapEachIn!(Uri, ReadFileDiag)(a.diags, (in Uri uri, in ReadFileDiag x) {
-		if (contains(searchDiags, x))
+	foreach (Uri uri, ReadFileDiag diag; a.diags)
+		if (contains(searchDiags, diag))
 			add(alloc, res, uri);
-	});
 	return finishArr(alloc, res);
 }
 

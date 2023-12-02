@@ -25,7 +25,7 @@ import lib.lsp.lspTypes :
 	Write;
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : map;
-import util.col.multiMap : mapMultiMap, MultiMap;
+import util.col.multiMap : mapToArray, MultiMap;
 import util.col.str : strOfSafeCStr;
 import util.exitCode : ExitCode;
 import util.json : field, Json, jsonBool, jsonList, jsonNull, jsonObject, jsonString, optionalField;
@@ -168,7 +168,7 @@ Json jsonOfWorkspaceEditChanges(
 	in LineAndColumnGetters lcg,
 	in MultiMap!(Uri, TextEdit) a,
 ) =>
-	Json(mapMultiMap!(Json.StringObjectField, Uri, TextEdit)(alloc, a, (Uri uri, in TextEdit[] changes) =>
+	Json(mapToArray!(Json.StringObjectField, Uri, TextEdit)(alloc, a, (Uri uri, immutable TextEdit[] changes) =>
 		Json.StringObjectField(
 			stringOfUri(alloc, allUris, uri),
 			jsonOfTextEdits(alloc, lcg[uri], changes))));

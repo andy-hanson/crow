@@ -58,6 +58,10 @@ mixin template Union(ReprTypes...) {
 			value & 0b11;
 		private ulong ptrValue() scope const =>
 			value & ~0b11;
+		bool taggedPointerEquals(typeof(this) other) =>
+			value == other.value;
+		ulong taggedPointerValueForHash() =>
+			value;
 	} else {
 		private immutable uint kind;
 		union {

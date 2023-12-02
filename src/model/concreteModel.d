@@ -27,10 +27,9 @@ import util.col.arr : only, PtrAndSmallNumber;
 import util.col.arrUtil : contains;
 import util.col.map : Map;
 import util.col.str : SafeCStr;
-import util.hash : hashEnum, Hasher;
+import util.hash : HashCode, hashEnum, hashPtr;
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.opt : none, Opt, some;
-import util.ptr : hashPtr;
 import util.sourceRange : UriAndRange;
 import util.sym : Sym, sym;
 import util.union_ : Union;
@@ -135,10 +134,8 @@ immutable struct ConcreteType {
 	bool opEquals(scope ConcreteType b) scope =>
 		struct_ == b.struct_ && reference == reference;
 
-	void hash(ref Hasher hasher) scope {
-		hashPtr(hasher, struct_);
-		hashEnum(hasher, reference);
-	}
+	HashCode hash() scope =>
+		hashPtr(struct_);
 }
 
 bool isBogus(in ConcreteType a) =>

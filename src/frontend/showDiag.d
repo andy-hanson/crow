@@ -48,7 +48,8 @@ import util.col.arr : empty, only;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSort, finishArr;
 import util.col.arrUtil : exists;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnRange;
-import util.col.multiMap : makeMultiMap, MultiMap, MultiMapCb, multiMapEach;
+import util.col.map : KeyValuePair;
+import util.col.multiMap : makeMultiMap, MultiMap, MultiMapCb;
 import util.col.sortUtil : sorted;
 import util.col.str : SafeCStr;
 import util.comparison : Comparison;
@@ -109,12 +110,12 @@ UriAndDiagnostics[] sortedDiagnostics(ref Alloc alloc, in AllUris allUris, in Pr
 		});
 	});
 
-	ArrBuilder!UriAndDiagnostics res;
-	multiMapEach!(Uri, Diagnostic)(map, (Uri uri, in Diagnostic[] diagnostics) {
-		Diagnostic[] sortedDiags = sorted!Diagnostic(alloc, diagnostics, (in Diagnostic x, in Diagnostic y) =>
+	ArrBuilder!UriAndDiagnostics res; // TODO:PERF ExactSizeArrBuilder
+	foreach (Uri uri, immutable Diagnostic[] diags; map) {
+		Diagnostic[] sortedDiags = sorted!Diagnostic(alloc, diags, (in Diagnostic x, in Diagnostic y) =>
 			compareDiagnostic(x, y));
 		add(alloc, res, UriAndDiagnostics(uri, sortedDiags));
-	});
+	}
 	arrBuilderSort!UriAndDiagnostics(res, (in UriAndDiagnostics x, in UriAndDiagnostics y) =>
 		compareUriAlphabetically(allUris, x.uri, y.uri));
 	return finishArr(alloc, res);

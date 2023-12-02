@@ -6,7 +6,7 @@ import util.alloc.alloc : Alloc, allocateElements;
 import util.comparison : Comparison;
 import util.col.arr : empty;
 import util.col.arrUtil : arrEqual, map;
-import util.hash : Hasher, hashUbyte;
+import util.hash : HashCode, hashString;
 import util.memory : copyToFrom;
 
 alias CStr = immutable char*;
@@ -26,11 +26,8 @@ immutable struct SafeCStr {
 	bool opEquals(in SafeCStr b) scope =>
 		safeCStrEq(this, b);
 
-	void hash(ref Hasher hasher) scope {
-		eachChar(this, (char c) {
-			hashUbyte(hasher, c);
-		});
-	}
+	HashCode hash() scope =>
+		hashString(strOfSafeCStr(this));
 }
 
 private @trusted CStr cstrEnd(CStr c) {

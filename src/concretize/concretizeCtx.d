@@ -77,15 +77,15 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only, only2, sizeEq;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil : arrEqual, arrLiteral, arrMax, every, everyWithIndex, exists, fold, map, mapWithIndex, mapZip;
-import util.col.map : mapEach;
+import util.col.map : values;
 import util.col.mutArr : filterUnordered, MutArr, mutArrIsEmpty, push;
 import util.col.mutMap : getOrAdd, getOrAddAndDidAdd, mustAddToMutMap, mustDelete, MutMap, ValueAndDidAdd;
 import util.col.str : SafeCStr;
-import util.hash : Hasher;
+import util.hash : HashCode, Hasher, hashPtr;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite, lazilySet;
 import util.memory : allocate;
 import util.opt : force, has, none;
-import util.ptr : castMutable, hashPtr;
+import util.ptr : castMutable;
 import util.sourceRange : UriAndRange;
 import util.sym : AllSymbols, Sym, sym;
 import util.uri : AllUris, Uri;
@@ -117,10 +117,12 @@ private immutable struct ConcreteStructKey {
 	bool opEquals(scope ref ConcreteStructKey b) scope =>
 		decl == b.decl && arrEqual!ConcreteType(typeArgs, b.typeArgs);
 
-	void hash(ref Hasher hasher) scope {
-		hashPtr(hasher, decl);
+	HashCode hash() scope {
+		Hasher hasher;
+		hasher ~= decl;
 		foreach (ConcreteType t; typeArgs)
-			t.hash(hasher);
+			hasher ~= t.struct_;
+		return hasher.finish();
 	}
 }
 
@@ -141,12 +143,15 @@ immutable struct ConcreteFunKey {
 		arrEqual!ConcreteType(typeArgs, b.typeArgs) &&
 		arrEqual!(ConcreteFun*)(specImpls, b.specImpls);
 
-	void hash(ref Hasher hasher) scope {
-		hashPtr(hasher, decl(*inst));
+	HashCode hash() scope {
+		Hasher hasher;
+		hasher ~= decl(*inst);
 		foreach (ConcreteType t; typeArgs)
-			t.hash(hasher);
+			// Ignore 'reference', functions are unlikely to overload by that
+			hasher ~= t.struct_;
 		foreach (ConcreteFun* p; specImpls)
-			hashPtr(hasher, p);
+			hasher ~= p;
+		return hasher.finish();
 	}
 }
 
@@ -822,9 +827,8 @@ StructBody.Enum.Member[] enumOrFlagsMembers(ConcreteType type) {
 ConcreteFunBody bodyForAllTests(ref ConcretizeCtx ctx, ConcreteType returnType) {
 	Test[] allTests = () {
 		ArrBuilder!Test allTestsBuilder;
-		mapEach!(Uri, immutable Module*)(ctx.program.allModules, (Uri _, ref immutable Module* m) {
+		foreach (immutable Module* m; values(ctx.program.allModules))
 			addAll(ctx.alloc, allTestsBuilder, m.tests);
-		});
 		return finishArr(ctx.alloc, allTestsBuilder);
 	}();
 	Constant arr = getConstantArr(

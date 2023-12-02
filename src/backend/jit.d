@@ -434,7 +434,7 @@ GlobalsForConstants generateGlobalsForConstants(
 		});
 
 	gcc_jit_lvalue*[][] ptrGlobals = mapToMut!(gcc_jit_lvalue*[], PointerTypeAndConstantsLow)(
-		alloc, program.allConstants.pointers, (in PointerTypeAndConstantsLow tc) {
+		alloc, program.allConstants.pointers, (ref PointerTypeAndConstantsLow tc) {
 			immutable gcc_jit_type* gccPointeeType = getGccType(types, tc.pointeeType);
 			return mapWithIndex!(gcc_jit_lvalue*, Constant)(
 				alloc,
@@ -947,7 +947,7 @@ void emitToVoid(ref ExprCtx ctx, ref Locals locals, in LowExpr a) {
 
 	// We need to be sure to generate all the new parameter values before overwriting any,
 	gcc_jit_lvalue*[] updateParamLocals =
-		mapToMut!(gcc_jit_lvalue*, UpdateParam)(ctx.alloc, a.updateParams, (in UpdateParam updateParam) {
+		mapToMut!(gcc_jit_lvalue*, UpdateParam)(ctx.alloc, a.updateParams, (ref UpdateParam updateParam) {
 			gcc_jit_lvalue* local =
 				gcc_jit_function_new_local(ctx.curFun, null, getGccType(ctx.types, updateParam.newValue.type), "temp");
 			emitToLValue(ctx, locals, castNonScope(local), updateParam.newValue);

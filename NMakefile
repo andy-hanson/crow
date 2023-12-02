@@ -131,6 +131,7 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\col\enumMap.d \
 	src\util\col\exactSizeArrBuilder.d \
 	src\util\col\fullIndexMap.d \
+	src\util\col\hashTable.d \
 	src\util\col\map.d \
 	src\util\col\mapBuilder.d \
 	src\util\col\multiMap.d \

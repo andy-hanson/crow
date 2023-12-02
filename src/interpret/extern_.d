@@ -6,9 +6,8 @@ import interpret.bytecode : Operation;
 import model.lowModel : ExternLibraries, LowFunIndex;
 import util.col.map : Map;
 import util.col.str : SafeCStr;
-import util.hash : Hasher;
+import util.hash : HashCode, hashPtr;
 import util.opt : Opt;
-import util.ptr : hashPtr;
 import util.sym : AllSymbols, Sym, symAsTempBuffer;
 
 immutable struct Extern {
@@ -44,9 +43,8 @@ immutable struct FunPtr {
 
 	void* fn;
 
-	void hash(ref Hasher hasher) scope {
-		hashPtr(hasher, fn);
-	}
+	HashCode hash() scope =>
+		hashPtr(fn);
 }
 
 immutable struct DynCallSig {

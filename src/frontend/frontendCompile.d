@@ -32,7 +32,7 @@ import util.col.mutSet :
 	mayAddToMutSet,
 	mustAddToMutSet,
 	MutSet,
-	mutSetClear,
+	mutSetClearAndKeepMemory,
 	mutSetHas,
 	mutSetMayDelete,
 	mutSetMustDelete,
@@ -226,8 +226,8 @@ OtherFile* ensureOtherFile(ref FrontendCompiler a, Uri uri) {
 }
 
 // TODO:PERF Kill
-void validateReferencedBy(ref FrontendCompiler a) {
-	foreach (const CrowFile* file; a.crowFiles.values) {
+void validateReferencedBy(ref const FrontendCompiler a) {
+	foreach (const CrowFile* file; values(a.crowFiles)) {
 		if (has(file.resolvedImports)) {
 			foreach (ref const MostlyResolvedImport x; force(file.resolvedImports)) {
 				ConstOpt!(MutSet!(CrowFile*)*) rb = getReferencedBy(x);
@@ -437,7 +437,7 @@ void markAllNonBootstrapModulesDirty(ref FrontendCompiler a, CrowFile* bootstrap
 	foreach (CrowFile* x; values(a.crowFiles))
 		if (x != bootstrap)
 			markModuleDirty(a, *x);
-	mutSetClear(a.workable);
+	mutSetClearAndKeepMemory(a.workable);
 	foreach (CrowFile* x; values(a.crowFiles))
 		if (x != bootstrap)
 			addToWorkableIfSo(a, x);

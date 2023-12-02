@@ -92,10 +92,10 @@ import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : empty, emptySmallArray, only, ptrsRange, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : concatenate, filter, map, mapOp, mapToMut, mapPointers, zip, zipPointers;
-import util.col.map : Map, mapEach, KeyValuePair;
+import util.col.map : Map, KeyValuePair, values;
 import util.col.mapBuilder : MapBuilder, finishMap, tryAddToMap;
 import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd, finish, newExactSizeArrBuilder;
-import util.col.multiMap : buildMultiMap, multiMapEach;
+import util.col.multiMap : buildMultiMap, values;
 import util.col.mutArr : mustPop, mutArrIsEmpty;
 import util.col.mutMap : insertOrUpdate, moveToMap, MutMap;
 import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, mutMaxArrSize, push, pushIfUnderMaxSize, toArray;
@@ -330,7 +330,7 @@ bool recurDetectSpecRecursion(SpecDecl* cur, ref MutMaxArr!(8, immutable SpecDec
 }
 
 StructAlias[] checkStructAliasesInitial(ref CheckCtx ctx, scope StructAliasAst[] asts) =>
-	mapToMut!(StructAlias, StructAliasAst)(ctx.alloc, asts, (in StructAliasAst ast) @safe =>
+	mapToMut!(StructAlias, StructAliasAst)(ctx.alloc, asts, (ref StructAliasAst ast) =>
 		StructAlias(
 			rangeInFile(ctx, ast.range),
 			copySafeCStr(ctx.alloc, ast.docComment),
@@ -853,7 +853,7 @@ Map!(Sym, NameReferents) getAllExportedNames(
 			res,
 			name,
 			() => cur,
-			(ref NameReferents prev) {
+			(in NameReferents prev) {
 				Opt!(Diag.DuplicateExports.Kind) kind = has(prev.structOrAlias) && has(cur.structOrAlias)
 					? some(Diag.DuplicateExports.Kind.type)
 					: has(prev.spec) && has(cur.spec)
@@ -871,11 +871,8 @@ Map!(Sym, NameReferents) getAllExportedNames(
 	foreach (ref ImportOrExport e; reExports)
 		e.kind.matchIn!void(
 			(in ImportOrExportKind.ModuleWhole m) {
-				mapEach!(Sym, NameReferents)(
-					m.module_.allExportedNames,
-					(Sym name, ref NameReferents value) {
-						addExport(name, value, () => pathRange(ctx.allUris, *force(e.source)));
-					});
+				foreach (Sym name, NameReferents referents; m.module_.allExportedNames)
+					addExport(name, referents, () => pathRange(ctx.allUris, *force(e.source)));
 			},
 			(in ImportOrExportKind.ModuleNamed m) {
 				foreach (Sym name; m.names) {
@@ -884,38 +881,34 @@ Map!(Sym, NameReferents) getAllExportedNames(
 						addExport(name, force(value), () => pathRange(ctx.allUris, *force(e.source)));
 				}
 			});
-	mapEach!(Sym, StructOrAlias)(
-		structsAndAliasesMap,
-		(Sym name, ref StructOrAlias x) {
-			final switch (visibility(x)) {
-				case Visibility.private_:
-					break;
-				case Visibility.internal:
-				case Visibility.public_:
-					addExport(name, NameReferents(some(x), none!(SpecDecl*), []), () => range(x).range);
-					break;
-			}
-		});
-	mapEach!(Sym, immutable SpecDecl*)(specsMap, (Sym name, ref immutable SpecDecl* x) {
+	foreach (StructOrAlias x; values(structsAndAliasesMap))
+		final switch (visibility(x)) {
+			case Visibility.private_:
+				break;
+			case Visibility.internal:
+			case Visibility.public_:
+				addExport(name(x), NameReferents(some(x), none!(SpecDecl*), []), () => range(x).range);
+				break;
+		}
+	foreach (immutable SpecDecl* x; values(specsMap))
 		final switch (x.visibility) {
 			case Visibility.private_:
 				break;
 			case Visibility.internal:
 			case Visibility.public_:
-				addExport(name, NameReferents(none!StructOrAlias, some(x), []), () => range(*x).range);
+				addExport(x.name, NameReferents(none!StructOrAlias, some(x), []), () => range(*x).range);
 				break;
 		}
-	});
-	multiMapEach!(Sym, immutable FunDecl*)(funsMap, (Sym name, in immutable FunDecl*[] funs) {
+	foreach (immutable FunDecl*[] funs; values(funsMap)) {
 		immutable FunDecl*[] funDecls = filter!(immutable FunDecl*)(ctx.alloc, funs, (in immutable FunDecl* x) =>
 			x.visibility != Visibility.private_);
 		if (!empty(funDecls))
 			addExport(
-				name,
+				funDecls[0].name,
 				NameReferents(none!StructOrAlias, none!(SpecDecl*), funDecls),
 				// This argument doesn't matter because a function never results in a duplicate export error
 				() => Range.empty);
-	});
+	}
 
 	return moveToMap!(Sym, NameReferents)(ctx.alloc, res);
 }
