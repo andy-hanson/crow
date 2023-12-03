@@ -47,7 +47,7 @@ struct Perf {
 }
 
 pure bool perfEnabled() =>
-	true;
+	false;
 
 private struct PerfMeasurerNoAlloc {
 	private:

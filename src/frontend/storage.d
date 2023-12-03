@@ -10,7 +10,16 @@ import lib.lsp.lspTypes : TextDocumentContentChangeEvent, TextDocumentPositionPa
 import model.diag : ReadFileDiag;
 import model.model : Config;
 import util.alloc.alloc :
-	Alloc, AllocAndValue, AllocName, freeAlloc, MemorySummary, MetaAlloc, newAlloc, summarizeMemory, withAlloc, withTempAlloc;
+	Alloc,
+	AllocAndValue,
+	AllocName,
+	freeAlloc,
+	MemorySummary,
+	MetaAlloc,
+	newAlloc,
+	summarizeMemory,
+	withAlloc,
+	withTempAlloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : append, contains;

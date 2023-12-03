@@ -326,13 +326,13 @@ Json serverSummarizeMemory(ref Alloc alloc, in Server server) =>
 		field!"frontend"(showMemory(alloc, frontendSummarizeMemory(server.frontend))),
 		field!"total"(showMemoryAmount(alloc, totalBytesAllocated(server.metaAlloc_)))]);
 
-Json showMemory(ref Alloc alloc, in MemorySummary a) =>
+private Json showMemory(ref Alloc alloc, in MemorySummary a) =>
 	jsonObject(alloc, [
 		field!"used"(showMemoryAmount(alloc, a.usedBytes)),
 		field!"free"(showMemoryAmount(alloc, a.freeBytes)),
 		field!"overhead"(showMemoryAmount(alloc, a.overheadBytes))]);
 
-SafeCStr showMemoryAmount(ref Alloc alloc, size_t bytes) =>
+private SafeCStr showMemoryAmount(ref Alloc alloc, size_t bytes) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		size_t KB = 0x400;
 		size_t MB = KB * KB;
@@ -344,7 +344,7 @@ SafeCStr showMemoryAmount(ref Alloc alloc, size_t bytes) =>
 			writer ~= (bytes % MB) / KB;
 			writer ~= "KB + ";
 		}
-		writer ~= (bytes %  KB);
+		writer ~= (bytes % KB);
 		writer ~= "B";
 	});
 

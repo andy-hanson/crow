@@ -113,22 +113,10 @@ ValueAndDidAdd!V getOrAddAndDidAdd(K, V)(
 	scope K key,
 	in V delegate() @safe @nogc pure nothrow getValue,
 ) {
-	ValueAndDidAdd!(KeyValuePair!(K, V)) res = getOrAddPairAndDidAdd!(K, V)(alloc, a, key, () =>
-		KeyValuePair!(K, V)(key, getValue()));
+	ValueAndDidAdd!(KeyValuePair!(K, V)) res = .getOrAddAndDidAdd!(KeyValuePair!(K, V), K, getKey)(
+		alloc, a.inner, key, () => KeyValuePair!(K, V)(key, getValue()));
 	return ValueAndDidAdd!V(res.value.value, res.didAdd);
 }
-
-/*
-Useful for when you want to allocate the key only if it is needed.
-'getKey' must return a value equivalent to 'key'.
-*/
-ValueAndDidAdd!(KeyValuePair!(K, V)) getOrAddPairAndDidAdd(K, V)(
-	ref Alloc alloc,
-	ref MutMap!(K, V) a,
-	in K key,
-	in KeyValuePair!(K, V) delegate() @safe @nogc pure nothrow getPair,
-) =>
-	.getOrAddAndDidAdd!(KeyValuePair!(K, V), K, getKey)(alloc, a.inner, key, getPair);
 
 ref V getOrAdd(K, V)(
 	ref Alloc alloc,
@@ -136,15 +124,7 @@ ref V getOrAdd(K, V)(
 	K key,
 	in V delegate() @safe @nogc pure nothrow getValue,
 ) =>
-	getOrAddPair(alloc, a, key, () => KeyValuePair!(K, V)(key, getValue())).value;
-
-ref KeyValuePair!(K, V) getOrAddPair(K, V)(
-	ref Alloc alloc,
-	return scope ref MutMap!(K, V) a,
-	scope K key,
-	in KeyValuePair!(K, V) delegate() @safe @nogc pure nothrow getPair,
-) =>
-	getOrAdd(alloc, a.inner, key, getPair);
+	.getOrAdd(alloc, a.inner, key, () => KeyValuePair!(K, V)(key, getValue())).value;
 
 @trusted ref KeyValuePair!(K, V) insertOrUpdate(K, V)(
 	ref Alloc alloc,
