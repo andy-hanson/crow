@@ -372,7 +372,7 @@ immutable struct StructDeclAndArgs {
 	@safe @nogc pure nothrow:
 
 	StructDecl* decl;
-	Type[] typeArgs;
+	SmallArray!Type typeArgs;
 
 	bool opEquals(in StructDeclAndArgs b) scope =>
 		decl == b.decl && arrEqual!Type(typeArgs, b.typeArgs);
@@ -486,7 +486,7 @@ immutable struct SpecDeclAndArgs {
 	@safe @nogc pure nothrow:
 
 	SpecDecl* decl;
-	Type[] typeArgs;
+	SmallArray!Type typeArgs;
 
 	bool opEquals(in SpecDeclAndArgs b) scope =>
 		decl == b.decl && arrEqual!Type(typeArgs, b.typeArgs);
@@ -781,8 +781,8 @@ immutable struct FunDeclAndArgs {
 	@safe @nogc pure nothrow:
 
 	FunDecl* decl;
-	Type[] typeArgs;
-	Called[] specImpls;
+	SmallArray!Type typeArgs;
+	SmallArray!Called specImpls;
 
 	bool opEquals(in FunDeclAndArgs b) scope =>
 		decl == b.decl && arrEqual!Type(typeArgs, b.typeArgs) && arrEqual!Called(specImpls, b.specImpls);
@@ -802,7 +802,7 @@ immutable struct FunDeclAndArgs {
 immutable struct FunInst {
 	@safe @nogc pure nothrow:
 
-	FunDeclAndArgs funDeclAndArgs;
+	FunDeclAndArgs declAndArgs;
 	ReturnAndParamTypes instantiatedSig;
 
 	Sym name() scope =>
@@ -816,13 +816,13 @@ immutable struct FunInst {
 }
 
 FunDecl* decl(ref FunInst a) =>
-	a.funDeclAndArgs.decl;
+	a.declAndArgs.decl;
 
 Type[] typeArgs(ref FunInst a) =>
-	a.funDeclAndArgs.typeArgs;
+	a.declAndArgs.typeArgs;
 
 Called[] specImpls(ref FunInst a) =>
-	a.funDeclAndArgs.specImpls;
+	a.declAndArgs.specImpls;
 
 Arity arity(in FunInst a) =>
 	arity(*decl(a));

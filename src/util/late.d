@@ -10,7 +10,7 @@ struct MutLate(T) {
 	private MutOpt!T value_;
 }
 
-T lateGet(T)(ref MutLate!T a) =>
+inout(T) lateGet(T)(ref inout MutLate!T a) =>
 	force(a.value_);
 
 void lateSet(T)(ref MutLate!T a, T value) {

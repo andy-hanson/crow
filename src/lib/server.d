@@ -6,7 +6,13 @@ import backend.writeToC : writeToC;
 import concretize.concretize : concretize;
 import document.document : documentJSON;
 import frontend.frontendCompile :
-	FrontendCompiler, getFileContents, initFrontend, makeProgramForRoots, makeProgramForMain, onFileChanged;
+	FrontendCompiler,
+	frontendSummarizeMemory,
+	getFileContents,
+	initFrontend,
+	makeProgramForRoots,
+	makeProgramForMain,
+	onFileChanged;
 import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
 import frontend.ide.getDefinition : getDefinitionForPosition;
 import frontend.ide.getHover : getHover;
@@ -32,8 +38,9 @@ import frontend.storage :
 	LineAndColumnGetters,
 	ParseResult,
 	ReadFileResult,
-	Storage,
 	setFile,
+	Storage,
+	summarizeMemory,
 	toLineAndCharacter;
 import interpret.bytecode : ByteCode;
 import interpret.extern_ : Extern, ExternFunPtrsForAllLibraries, WriteError;
@@ -94,21 +101,22 @@ import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
 import model.lowModel : ExternLibraries, LowProgram;
 import model.model : hasFatalDiagnostics, Module, Program;
-import util.alloc.alloc : Alloc, AllocName, freeElements, MetaAlloc, newAlloc;
+import util.alloc.alloc :
+	Alloc, AllocName, freeElements, MemorySummary, MetaAlloc, newAlloc, summarizeMemory, totalBytesAllocated;
 import util.col.arr : only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrLiteral, concatenate, contains, map, mapOp;
 import util.col.str : copyStr, SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
 import util.exitCode : ExitCode;
-import util.json : Json, jsonNull;
+import util.json : field, Json, jsonNull, jsonObject;
 import util.late : Late, lateGet, lateSet, MutLate;
 import util.lineAndColumnGetter : UriLineAndColumn;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
 import util.sourceRange : UriAndRange;
-import util.sym : AllSymbols;
-import util.uri : AllUris, getExtension, Uri, UrisInfo;
+import util.sym : AllSymbols, summarizeMemory;
+import util.uri : AllUris, getExtension, summarizeMemory, Uri, UrisInfo;
 import util.writer : withWriter, Writer;
 import versionInfo : VersionInfo, versionInfoForBuildToC, versionInfoForInterpret;
 
@@ -290,13 +298,13 @@ struct Server {
 		lspState = LspState(newAlloc(AllocName.lspState, metaAlloc), []);
 	}
 
-	MetaAlloc* metaAlloc() =>
+	inout(MetaAlloc*) metaAlloc() inout =>
 		castNonScope(&metaAlloc_);
-	ref Uri includeDir() return scope const =>
+	Uri includeDir() scope const =>
 		lateGet(includeDir_);
 	ref UrisInfo urisInfo() return scope const =>
 		lateGet(urisInfo_);
-	ref FrontendCompiler frontend() return scope =>
+	ref inout(FrontendCompiler) frontend() return scope inout =>
 		*lateGet(frontend_);
 	ShowOptions showOptions() scope const =>
 		showOptions_;
@@ -308,6 +316,37 @@ private struct LspState {
 	Alloc stateAlloc;
 	Uri[] urisWithDiagnostics;
 }
+
+Json serverSummarizeMemory(ref Alloc alloc, in Server server) =>
+	jsonObject(alloc, [
+		field!"allSymbols"(showMemory(alloc, summarizeMemory(server.allSymbols))),
+		field!"allUris"(showMemory(alloc, summarizeMemory(server.allUris))),
+		field!"lspState"(showMemory(alloc, summarizeMemory(server.lspState.stateAlloc))),
+		field!"storage"(showMemory(alloc, summarizeMemory(server.storage))),
+		field!"frontend"(showMemory(alloc, frontendSummarizeMemory(server.frontend))),
+		field!"total"(showMemoryAmount(alloc, totalBytesAllocated(server.metaAlloc_)))]);
+
+Json showMemory(ref Alloc alloc, in MemorySummary a) =>
+	jsonObject(alloc, [
+		field!"used"(showMemoryAmount(alloc, a.usedBytes)),
+		field!"free"(showMemoryAmount(alloc, a.freeBytes)),
+		field!"overhead"(showMemoryAmount(alloc, a.overheadBytes))]);
+
+SafeCStr showMemoryAmount(ref Alloc alloc, size_t bytes) =>
+	withWriter(alloc, (scope ref Writer writer) {
+		size_t KB = 0x400;
+		size_t MB = KB * KB;
+		if (bytes > MB) {
+			writer ~= bytes / MB;
+			writer ~= "MB + ";
+		}
+		if (bytes > 1024) {
+			writer ~= (bytes % MB) / KB;
+			writer ~= "KB + ";
+		}
+		writer ~= (bytes %  KB);
+		writer ~= "B";
+	});
 
 SafeCStr version_(ref Alloc alloc, in Server server) =>
 	withWriter(alloc, (scope ref Writer writer) {

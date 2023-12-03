@@ -9,7 +9,8 @@ import frontend.parse.parse : parseFile;
 import lib.lsp.lspTypes : TextDocumentContentChangeEvent, TextDocumentPositionParams;
 import model.diag : ReadFileDiag;
 import model.model : Config;
-import util.alloc.alloc : Alloc, AllocAndValue, AllocName, freeAlloc, MetaAlloc, newAlloc, withAlloc, withTempAlloc;
+import util.alloc.alloc :
+	Alloc, AllocAndValue, AllocName, freeAlloc, MemorySummary, MetaAlloc, newAlloc, summarizeMemory, withAlloc, withTempAlloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : append, contains;
@@ -62,6 +63,18 @@ struct Storage {
 
 	ref Alloc mapAlloc() scope =>
 		castNonScope_ref(mapAlloc_);
+}
+
+MemorySummary summarizeMemory(in Storage a) {
+	MemorySummary total = summarizeMemory(a.mapAlloc_);
+	cast(void) values(a.successes).opApply((ref const AllocAndValue!FileInfo x) {
+		total += .summarizeMemory(x.alloc);
+		return 0;
+	});
+	// TODO: below should work!!!
+	//foreach (ref const AllocAndValue!FileInfo x; values!(Uri, AllocAndValue!FileInfo)(a.successes))
+	//	total += perf_bytes(x.alloc);
+	return total;
 }
 
 private immutable struct FileInfo {

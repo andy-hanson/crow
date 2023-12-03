@@ -2,7 +2,7 @@ module util.sym;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc, AllocName, MetaAlloc, newAlloc;
+import util.alloc.alloc : Alloc, AllocName, MemorySummary, MetaAlloc, newAlloc, summarizeMemory;
 import util.col.arr : only;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : mustAddToMutMap, MutMap, mutMapSize;
@@ -47,6 +47,9 @@ struct AllSymbols {
 	MutMap!(immutable string, Sym) largeStringToIndex;
 	MutArr!SafeCStr largeStringFromIndex;
 }
+
+MemorySummary summarizeMemory(in AllSymbols a) =>
+	summarizeMemory(a.alloc);
 
 // WARN: 'value' must have been allocated by a.alloc
 private Sym addLargeString(ref AllSymbols a, SafeCStr value) {

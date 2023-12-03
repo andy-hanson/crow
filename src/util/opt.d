@@ -2,6 +2,7 @@ module util.opt;
 
 @safe @nogc pure nothrow:
 
+import util.col.arr : SmallArray;
 
 private struct Option(T) {
 	@safe @nogc pure nothrow:
@@ -11,9 +12,19 @@ private struct Option(T) {
 		inout this(return scope inout T value) {
 			value_ = value;
 		}
-		T value_;
+		T value_ = null;
 		bool has_() scope const =>
 			value_ != null;
+	} else static if (is(T == SmallArray!U, U)) {
+		inout this(return scope inout T value) {
+			value_ = value;
+			assert(has_);
+		}
+
+		T value_ = T.fromTagged(1); // = none
+		bool has_() scope const =>
+			(value_.asTaggable & 1) == 0;
+		static assert(!this.init.has);
 	} else {
 		inout this(return scope inout T value) {
 			has_ = true;

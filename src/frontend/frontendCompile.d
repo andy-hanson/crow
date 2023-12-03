@@ -9,7 +9,7 @@ import frontend.check.getCommonFuns : CommonModule, getCommonFuns;
 import frontend.check.instantiate : InstantiateCtx;
 import frontend.lang : crowConfigBaseName, crowExtension;
 import frontend.parse.ast : FileAst, fileAstForReadFileDiag, ImportOrExportAst, ImportOrExportAstKind, NameAndRange;
-import frontend.programState : ProgramState;
+import frontend.programState : ProgramState, summarizeMemory;
 import frontend.storage :
 	FileContent,
 	FilesState,
@@ -22,7 +22,7 @@ import frontend.storage :
 	ParseResult,
 	ReadFileResult,
 	Storage;
-import util.alloc.alloc : Alloc, allocateUninitialized, AllocName, MetaAlloc, newAlloc;
+import util.alloc.alloc : Alloc, allocateUninitialized, AllocName, MemorySummary, MetaAlloc, newAlloc, summarizeMemory;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderTempAsArr, finishArr;
 import util.col.arrUtil : contains, exists, every, findIndex, map;
 import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd, finish, newExactSizeArrBuilder;
@@ -87,6 +87,9 @@ struct FrontendCompiler {
 	ref Storage storage() return scope =>
 		*storagePtr;
 }
+
+MemorySummary frontendSummarizeMemory(in FrontendCompiler a) =>
+	summarizeMemory(a.alloc) + summarizeMemory(a.programState);
 
 FrontendCompiler* initFrontend(
 	MetaAlloc* metaAlloc,

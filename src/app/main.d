@@ -46,6 +46,7 @@ import lib.server :
 	printTokens,
 	Programs,
 	Server,
+	serverSummarizeMemory,
 	setCwd,
 	setFile,
 	setIncludeDir,
@@ -88,7 +89,7 @@ import versionInfo : versionInfoForJIT;
 	Command command = parseCommand(alloc, server.allUris, cwd, cast(SafeCStr[]) argv[1 .. argc]);
 	int res = go(perf, alloc, server, command).value;
 	if (perfEnabled)
-		logPerf(perf);
+		logPerf(server, perf);
 	return res;
 }
 
@@ -171,7 +172,11 @@ void loadSingleFile(scope ref Perf perf, ref Server server, Uri uri) {
 	});
 }
 
-@trusted void logPerf(in Perf perf) {
+@trusted void logPerf(scope ref Server server, in Perf perf) {
+	withTempAllocImpure!void(AllocName.other, server.metaAlloc, (ref Alloc alloc) @trusted {
+		printf("%s\n", jsonToString(alloc, server.allSymbols, serverSummarizeMemory(alloc, server)).ptr);
+	});
+
 	eachMeasure(perf, (in SafeCStr name, in PerfMeasureResult m) @trusted {
 		printf(
 			"%s * %d took %llums and %lluKB\n",

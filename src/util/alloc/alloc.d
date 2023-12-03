@@ -49,15 +49,36 @@ struct MetaAlloc {
 		words = w;
 		BlockHeader* block = freeListSentinel + 1;
 		*block = BlockHeader(freeListSentinel, null, endPtr(words));
-		freeListSentinel.next = block;
+		*freeListSentinel = BlockHeader(null, block, null); // This is just the sentinel, so it's missing a valid 'end'
 	}
 
 	private:
 	word[] words;
 
-	@trusted BlockHeader* freeListSentinel() =>
-		cast(BlockHeader*) words.ptr;
+	@trusted inout(BlockHeader*) freeListSentinel() inout =>
+		cast(inout BlockHeader*) words.ptr;
 }
+
+// This includes the allocation overhead
+@trusted size_t totalBytesAllocated(in MetaAlloc a) {
+	size_t free = 0;
+	const(BlockHeader)* b = a.freeListSentinel.next;
+	while (true) {
+		assert(b != null);
+		debug {
+			import core.stdc.stdio : printf;
+			printf(
+				"b is %p, b.prev is %p, b.next is %p, b.end is %p\n",
+				b, b.prev, b.next, b.end);
+		}
+		free += b.words.length;
+		b = b.next;
+		if (b == null)
+			break;
+	}
+	return (a.words.length - free) * word.sizeof;
+}
+
 
 @safe Alloc newAlloc(AllocName name, MetaAlloc* a) =>
 	Alloc(name, a, allocateBlock(*a, 0));
@@ -123,6 +144,16 @@ struct FinishedAlloc {
 	BlockHeader* lastBlock;
 }
 
+@trusted MemorySummary summarizeMemory(in FinishedAlloc a) {
+	size_t overheadBytes = FinishedAlloc.sizeof + BlockHeader.sizeof;
+	size_t words = a.lastBlock.words.length;
+	eachPrevBlock(a.lastBlock, (in BlockHeader* x) {
+		overheadBytes += BlockHeader.sizeof;
+		words += x.words.length;
+	});
+	return MemorySummary(words * word.sizeof, 0, overheadBytes);
+}
+
 ubyte[] allocateBytes(ref Alloc a, size_t sizeBytes) =>
 	(cast(ubyte*) allocateWords(a, bytesToWords(sizeBytes)).ptr)[0 .. sizeBytes];
 
@@ -142,12 +173,32 @@ void freeElements(T)(ref Alloc a, in T[] range) {
 bool allocOwns(T)(in Alloc a, in T[] values) =>
 	existsBlock(a, (in BlockHeader* b) => blockOwns(b, values));
 
-size_t perf_curBytes(ref Alloc a) {
-	size_t words = a.cur - a.curBlock.words.ptr;
-	eachPrevBlock(a, (in BlockHeader* x) {
-		words += x.words.length;
+struct MemorySummary {
+	@safe @nogc pure nothrow:
+
+	size_t usedBytes;
+	size_t freeBytes; // memory that is 'free' but reserved in the alloc
+	size_t overheadBytes;
+
+	MemorySummary opBinary(string op: "+")(MemorySummary b) const =>
+		MemorySummary(usedBytes + b.usedBytes, freeBytes + b.freeBytes, overheadBytes + b.overheadBytes);
+
+	void opOpAssign(string op: "+")(MemorySummary b) {
+		usedBytes += b.usedBytes;
+		freeBytes += b.freeBytes;
+		overheadBytes += b.overheadBytes;
+	}
+}
+
+@trusted MemorySummary summarizeMemory(in Alloc a) {
+	size_t overheadBytes = Alloc.sizeof + BlockHeader.sizeof;
+	size_t wordsUsed = a.cur - a.curBlock.words.ptr;
+	size_t wordsFree = endPtr(a.curBlock.words) - a.cur;
+	eachPrevBlock(a.curBlock, (in BlockHeader* x) {
+		overheadBytes += BlockHeader.sizeof;
+		wordsUsed += x.words.length;
 	});
-	return words * word.sizeof;
+	return MemorySummary(wordsUsed * word.sizeof, wordsFree * word.sizeof, overheadBytes);
 }
 
 @trusted FinishedAlloc finishAlloc(ref Alloc a) {
@@ -273,8 +324,8 @@ bool blockOwns(T)(in BlockHeader* a, in T[] values) =>
 bool isSubArray(T)(in T[] a, in T[] b) =>
 	b.ptr <= a.ptr && endPtr(a) <= endPtr(b);
 
-void eachPrevBlock(in Alloc a, in void delegate(in BlockHeader*) @nogc pure nothrow cb) {
-	const(BlockHeader)* block = a.curBlock.prev;
+void eachPrevBlock(in BlockHeader* curBlock, in void delegate(in BlockHeader*) @nogc pure nothrow cb) {
+	const(BlockHeader)* block = curBlock.prev;
 	while (block != null) {
 		cb(block);
 		block = block.prev;

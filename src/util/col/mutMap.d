@@ -72,11 +72,11 @@ struct MutMapValues(K, V) {
 
 	MutMap!(K, V)* inner;
 
-	int opApply(in int delegate(immutable V) @safe @nogc pure nothrow cb) scope immutable =>
+	int opApply(in int delegate(ref immutable V) @safe @nogc pure nothrow cb) scope immutable =>
 		inner.opApply((immutable K _, ref immutable V value) => cb(value));
-	int opApply(in int delegate(const V) @safe @nogc pure nothrow cb) scope const =>
+	int opApply(in int delegate(ref const V) @safe @nogc pure nothrow cb) scope const =>
 		inner.opApply((const K _, ref const V value) => cb(value));
-	int opApply(in int delegate(V) @safe @nogc pure nothrow cb) scope =>
+	int opApply(in int delegate(ref V) @safe @nogc pure nothrow cb) scope =>
 		inner.opApply((K _, ref V value) => cb(value));
 }
 inout(MutMapValues!(K, V)) values(K, V)(return scope inout ref MutMap!(K, V) a) =>

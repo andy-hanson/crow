@@ -3,12 +3,26 @@ module frontend.programState;
 @safe @nogc pure nothrow:
 
 import model.model : FunDeclAndArgs, FunInst, SpecDeclAndArgs, SpecInst, StructDeclAndArgs, StructInst;
-import util.alloc.alloc : Alloc;
-import util.col.mutMap : MutMap;
+import util.alloc.alloc : Alloc, MemorySummary, summarizeMemory;
+import util.col.hashTable : HashTable;
 
 struct ProgramState {
 	Alloc alloc;
-	MutMap!(FunDeclAndArgs, FunInst*) funInsts;
-	MutMap!(StructDeclAndArgs, StructInst*) structInsts;
-	MutMap!(SpecDeclAndArgs, SpecInst*) specInsts;
+	HashTable!(StructInst*, StructDeclAndArgs, getStructDeclAndArgs) structInsts;
+	HashTable!(SpecInst*, SpecDeclAndArgs, getSpecDeclAndArgs) specInsts;
+	HashTable!(FunInst*, FunDeclAndArgs, getFunDeclAndArgs) funInsts;
 }
+
+MemorySummary summarizeMemory(in ProgramState a) =>
+	summarizeMemory(a.alloc);
+
+private:
+
+StructDeclAndArgs getStructDeclAndArgs(in StructInst* a) =>
+	a.declAndArgs;
+
+SpecDeclAndArgs getSpecDeclAndArgs(in SpecInst* a) =>
+	a.declAndArgs;
+
+FunDeclAndArgs getFunDeclAndArgs(in FunInst* a) =>
+	a.declAndArgs;
