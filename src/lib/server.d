@@ -101,8 +101,7 @@ import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
 import model.lowModel : ExternLibraries, LowProgram;
 import model.model : hasFatalDiagnostics, Module, Program;
-import util.alloc.alloc :
-	Alloc, AllocName, freeElements, MemorySummary, MetaAlloc, newAlloc, summarizeMemory, totalBytesAllocated;
+import util.alloc.alloc : Alloc, AllocName, freeElements, MemorySummary, MetaAlloc, newAlloc, summarizeMemory;
 import util.col.arr : only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrLiteral, concatenate, contains, map, mapOp;
@@ -324,7 +323,7 @@ Json serverSummarizeMemory(ref Alloc alloc, in Server server) =>
 		field!"lspState"(showMemory(alloc, summarizeMemory(server.lspState.stateAlloc))),
 		field!"storage"(showMemory(alloc, summarizeMemory(server.storage))),
 		field!"frontend"(showMemory(alloc, frontendSummarizeMemory(server.frontend))),
-		field!"total"(showMemoryAmount(alloc, totalBytesAllocated(server.metaAlloc_)))]);
+		field!"total"(showMemory(alloc, summarizeMemory(server.metaAlloc_)))]);
 
 private Json showMemory(ref Alloc alloc, in MemorySummary a) =>
 	jsonObject(alloc, [
