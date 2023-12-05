@@ -28,7 +28,7 @@ struct InterpreterDebugInfo {
 	LowProgram* lowProgramPtr;
 	ByteCode* byteCodePtr;
 
-	ref inout(ShowCtx) showDiag() inout return scope =>
+	ref inout(ShowCtx) showDiag() return scope inout =>
 		*showDiagPtr;
 	ref const(AllSymbols) allSymbols() const return scope =>
 		showDiag.allSymbols;

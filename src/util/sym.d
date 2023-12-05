@@ -2,7 +2,7 @@ module util.sym;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc, AllocKind, MemorySummary, MetaAlloc, newAlloc, summarizeMemory;
+import util.alloc.alloc : Alloc, MemorySummary, summarizeMemory;
 import util.col.arr : only;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : mustAddToMutMap, MutMap, mutMapSize;
@@ -30,8 +30,8 @@ immutable struct Sym {
 struct AllSymbols {
 	@safe @nogc pure nothrow:
 
-	@trusted this(MetaAlloc* metaAlloc) {
-		alloc = newAlloc(AllocKind.allSymbols, metaAlloc);
+	@trusted this(return scope Alloc* a) {
+		allocPtr = a;
 		foreach (string s; specialSyms) { {
 			SafeCStr str = SafeCStr(s.ptr);
 			debug {
@@ -43,9 +43,12 @@ struct AllSymbols {
 	}
 
 	private:
-	Alloc alloc;
+	Alloc* allocPtr;
 	MutMap!(immutable string, Sym) largeStringToIndex;
 	MutArr!SafeCStr largeStringFromIndex;
+
+	ref inout(Alloc) alloc() return scope inout =>
+		*allocPtr;
 }
 
 MemorySummary summarizeMemory(in AllSymbols a) =>

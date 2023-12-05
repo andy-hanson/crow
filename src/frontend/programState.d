@@ -7,10 +7,14 @@ import util.alloc.alloc : Alloc, MemorySummary, summarizeMemory;
 import util.col.hashTable : HashTable;
 
 struct ProgramState {
-	Alloc alloc;
+	@safe @nogc pure nothrow:
+	Alloc* allocPtr;
 	HashTable!(StructInst*, StructDeclAndArgs, getStructDeclAndArgs) structInsts;
 	HashTable!(SpecInst*, SpecDeclAndArgs, getSpecDeclAndArgs) specInsts;
 	HashTable!(FunInst*, FunDeclAndArgs, getFunDeclAndArgs) funInsts;
+
+	ref inout(Alloc) alloc() return scope inout =>
+		*allocPtr;
 }
 
 MemorySummary summarizeMemory(in ProgramState a) =>

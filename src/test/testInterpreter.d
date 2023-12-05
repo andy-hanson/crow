@@ -159,7 +159,7 @@ ByteCodeSource emptyByteCodeSource() =>
 	ByteCodeSource(LowFunIndex(0), Pos(0));
 
 void testCall(ref Test test) {
-	ByteCodeWriter writer = newByteCodeWriter(&test.alloc);
+	ByteCodeWriter writer = newByteCodeWriter(test.allocPtr);
 	ByteCodeSource source = emptyByteCodeSource;
 
 	// Code is:
@@ -226,7 +226,7 @@ void testCallFunPtr(ref Test test) {
 	LowType.FunPtr funType = LowType.FunPtr(0);
 	ByteCodeSource source = emptyByteCodeSource;
 
-	ByteCodeWriter writer = newByteCodeWriter(&test.alloc);
+	ByteCodeWriter writer = newByteCodeWriter(test.allocPtr);
 	FunToReferences funToReferences = initFunToReferences(test.alloc, funPtrTypeToDynCallSig, 1);
 
 	StackEntry argsFirstStackEntry = getNextStackEntry(writer);
@@ -271,7 +271,7 @@ void testCallFunPtr(ref Test test) {
 }
 
 void testSwitchAndJump(ref Test test) {
-	ByteCodeWriter writer = newByteCodeWriter(&test.alloc);
+	ByteCodeWriter writer = newByteCodeWriter(test.allocPtr);
 	ByteCodeSource source = emptyByteCodeSource;
 
 	// Code is:

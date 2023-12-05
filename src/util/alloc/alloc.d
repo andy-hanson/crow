@@ -4,7 +4,6 @@ module util.alloc.alloc;
 
 import util.alloc.doubleLink :
 	DoubleLink,
-	eachHereAndPrev,
 	eachHereAndNext,
 	eachPrevNode,
 	existsHereOrPrev,
@@ -21,12 +20,12 @@ import util.alloc.doubleLink :
 import util.col.arr : arrOfRange, endPtr;
 import util.col.enumMap : EnumMap, enumMapEach;
 import util.opt : force, has, MutOpt, noneMut, someMut;
-import util.util : clamp, divRoundUp;
+import util.util : clamp, divRoundUp, max;
 
 T withStaticAlloc(T, alias cb)(word[] memory) {
 	scope MetaAlloc metaAlloc = MetaAlloc(memory);
-	scope Alloc alloc = newAlloc(AllocKind.static_, &metaAlloc);
-	return cb(alloc);
+	scope Alloc* alloc = newAlloc(AllocKind.static_, &metaAlloc);
+	return cb(*alloc);
 }
 
 // It's safe to use the result immediately after this ends so long as there are no other allocations.
@@ -35,13 +34,13 @@ T withTempAllocImpure(T)(AllocKind name, MetaAlloc* a, in T delegate(ref Alloc) 
 
 @trusted private T withTempAllocAlias(T, alias cb)(AllocKind name, MetaAlloc* a) {
 	// TODO:PERF Since this is temporary, an initial block could be on the stack?
-	Alloc alloc = newAlloc(name, a);
+	Alloc* alloc = newAlloc(name, a);
 	static if (is(T == void)) {
-		cb(alloc);
+		cb(*alloc);
 	} else {
-		T res = cb(alloc);
+		T res = cb(*alloc);
 	}
-	FinishedAlloc finished = finishAlloc(alloc);
+	FinishedAlloc* finished = finishAlloc(alloc);
 	freeAlloc(finished);
 	static if (!is(T == void))
 		return res;
@@ -144,8 +143,13 @@ private @trusted void validate(in MetaAlloc a) {
 	return MetaMemorySummary(byAlloc, total);
 }
 
-@safe Alloc newAlloc(AllocKind name, MetaAlloc* a) {
-	return Alloc(name, a, allocateBlock(*a, name, 0));
+@trusted Alloc* newAlloc(AllocKind allocKind, MetaAlloc* meta) {
+	BlockNode* block = allocateBlock(*meta, allocKind, max(bytesToWords(Alloc.sizeof), minBlockSizeWords));
+	assert(isUnlinked!allocLink(block));
+	// First thing to allocate is the Alloc itself. Then first useable word comes after that.
+	Alloc* alloc = cast(Alloc*) block.words.ptr;
+	*alloc = Alloc(allocKind, meta, block, cast(word*) (alloc + 1));
+	return alloc;
 }
 
 // This is not unique; e.g. there is a 'storage' alloc for each file
@@ -175,52 +179,17 @@ struct Alloc {
 
 	@disable this();
 	@disable this(ref const Alloc);
-	@trusted this(AllocKind kind, MetaAlloc* m, BlockNode* b) {
-		allocKind = kind;
-		meta = m;
-		assert(isStartOfList!allocLink(b));
-		curBlock = b;
-		cur = b.words.ptr;
-	}
-	this(AllocKind kind, MetaAlloc* m, BlockNode* b, word* c) {
-		allocKind = kind;
-		meta = m;
-		curBlock = b;
-		cur = c;
+	this(AllocKind ak, MetaAlloc* m, BlockNode* b, word* c) {
+		allocKind = ak; meta = m; curBlock = b; cur = c;
 	}
 
 	AllocKind allocKind;
 	MetaAlloc* meta;
 	BlockNode* curBlock;
 	word* cur;
-
-	public Alloc move() {
-		Alloc res = Alloc(allocKind, meta, curBlock, cur);
-		meta = null;
-		curBlock = null;
-		cur = null;
-		return res;
-	}
 }
+alias FinishedAlloc = Alloc;
 alias TempAlloc = Alloc;
-
-// Alloc that we are done allocating to.
-struct FinishedAlloc {
-	private:
-	AllocKind allocKind;
-	MetaAlloc* meta;
-	BlockNode* lastBlock;
-}
-
-@trusted MemorySummary summarizeMemory(in FinishedAlloc a) {
-	size_t overheadBytes = FinishedAlloc.sizeof;
-	size_t usedWords;
-	eachHereAndPrev!(allocLink, BlockNode)(a.lastBlock, (in BlockNode* x) {
-		overheadBytes += BlockNode.sizeof;
-		usedWords += x.words.length;
-	});
-	return MemorySummary(usedWords * word.sizeof, 0, overheadBytes);
-}
 
 ubyte[] allocateBytes(ref Alloc a, size_t sizeBytes) =>
 	(cast(ubyte*) allocateWords(a, bytesToWords(sizeBytes)).ptr)[0 .. sizeBytes];
@@ -291,27 +260,27 @@ struct MetaMemorySummary {
 	return MemorySummary(wordsUsed * word.sizeof, wordsFree * word.sizeof, overheadBytes);
 }
 
-@trusted FinishedAlloc finishAlloc(ref Alloc a) {
+@trusted FinishedAlloc* finishAlloc(Alloc* a) {
 	freeRestOfBlock(*a.meta, a.curBlock, a.cur);
-	return FinishedAlloc(a.allocKind, a.meta, a.curBlock);
+	return a;
 }
 
-void freeAlloc(ref FinishedAlloc a) {
-	removeAllFromListAnd!allocLink(a.lastBlock, (BlockNode* x) @trusted {
+void freeAlloc(FinishedAlloc* a) {
+	// Since the alloc was allocated into its first block, this frees it too.
+	removeAllFromListAnd!allocLink(a.curBlock, (BlockNode* x) @trusted {
 		addToFreeList(*a.meta, x);
 	});
 }
 
 struct AllocAndValue(T) {
-	FinishedAlloc alloc;
+	FinishedAlloc* alloc;
 	T value;
 }
 
 @safe AllocAndValue!T withAlloc(T)(AllocKind kind, MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc pure nothrow cb) {
-	Alloc alloc = newAlloc(kind, a);
-	T value = cb(alloc);
-	FinishedAlloc finished = finishAlloc(alloc);
-	return AllocAndValue!T(finished, value);
+	Alloc* alloc = newAlloc(kind, a);
+	T value = cb(*alloc);
+	return AllocAndValue!T(finishAlloc(alloc), value);
 }
 
 private:
@@ -376,7 +345,7 @@ struct BlockNode {
 @trusted MutOpt!(BlockNode*) maybeSplitOffBlock(BlockNode* left, size_t leftSizeWords) {
 	assert(left.words.length >= leftSizeWords);
 	size_t remaining = left.words.length - leftSizeWords;
-	if (remaining >= blockHeaderSizeWords + minBlockSize) {
+	if (remaining >= blockHeaderSizeWords + minBlockSizeWords) {
 		BlockNode* right = cast(BlockNode*) &left.words[leftSizeWords];
 		*right = BlockNode(left.allocKind);
 		insertToRight!allBlocksLink(left, right);
@@ -430,7 +399,7 @@ void findPositionInFreeListAndInsert(ref MetaAlloc a, BlockNode* block) {
 }
 
 // Anything less than this becomes fragmentation.
-@safe size_t minBlockSize() =>
+@safe size_t minBlockSizeWords() =>
 	0x100;
 
 @safe size_t preferredBlockWordCount() =>

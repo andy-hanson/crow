@@ -62,7 +62,7 @@ import util.util : todo;
 struct FrontendCompiler {
 	@safe @nogc pure nothrow:
 	private:
-	Alloc alloc;
+	Alloc* allocPtr;
 	AllSymbols* allSymbolsPtr;
 	AllUris* allUrisPtr;
 	Storage* storagePtr;
@@ -80,6 +80,8 @@ struct FrontendCompiler {
 	// If all Uris are resolved but nothing is workable, there must be a circular import.
 	MutSet!(CrowFile*) workable;
 
+	ref inout(Alloc) alloc() return scope inout =>
+		*allocPtr;
 	ref AllSymbols allSymbols() return scope =>
 		*allSymbolsPtr;
 	ref inout(AllUris) allUris() return scope inout =>
@@ -99,10 +101,10 @@ FrontendCompiler* initFrontend(
 	Uri crowIncludeDir,
 ) {
 	return () @trusted {
-		Alloc alloc = newAlloc(AllocKind.frontend, metaAlloc);
-		FrontendCompiler* res = allocateUninitialized!FrontendCompiler(alloc);
+		Alloc* alloc = newAlloc(AllocKind.frontend, metaAlloc);
+		FrontendCompiler* res = allocateUninitialized!FrontendCompiler(*alloc);
 		initMemory(res, FrontendCompiler(
-			alloc.move(), allSymbols, allUris, storage, crowIncludeDir,
+			alloc, allSymbols, allUris, storage, crowIncludeDir,
 			makeEnumMap!(CommonModule, CrowFile*)((CommonModule _) => null),
 			ProgramState(newAlloc(AllocKind.programState, metaAlloc))));
 		res.commonFiles = enumMapMapValues!(CommonModule, CrowFile*, Uri)(

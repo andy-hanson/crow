@@ -56,11 +56,6 @@ MutOpt!(T*) findNodeToRight(alias link, T)(T* a, in bool delegate(in T*) @safe @
 bool existsHereOrPrev(alias link, T)(in T* a, in bool delegate(in T*) @safe @nogc pure nothrow cb) =>
 	cb(a) || (prev!link(a) != null && existsHereOrPrev!link(prev!link(a), cb));
 
-void eachHereAndPrev(alias link, T)(in T* a, in void delegate(in T*) @safe @nogc pure nothrow cb) {
-	cb(a);
-	eachPrevNode!link(a, cb);
-}
-
 void eachHereAndNext(alias link, T)(in T* a, in void delegate(in T*) @safe @nogc pure nothrow cb) {
 	cb(a);
 	eachNextNode!link(a, cb);

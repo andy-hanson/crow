@@ -85,9 +85,9 @@ import versionInfo : versionInfoForJIT;
 	setIncludeDir(&server, childUri(server.allUris, getCrowDir(server.allUris), sym!"include"));
 	setCwd(server, cwd);
 	setShowOptions(server, ShowOptions(true));
-	Alloc alloc = newAlloc(AllocKind.main, server.metaAlloc);
-	Command command = parseCommand(alloc, server.allUris, cwd, cast(SafeCStr[]) argv[1 .. argc]);
-	int res = go(perf, alloc, server, command).value;
+	Alloc* alloc = newAlloc(AllocKind.main, server.metaAlloc);
+	Command command = parseCommand(*alloc, server.allUris, cwd, cast(SafeCStr[]) argv[1 .. argc]);
+	int res = go(perf, *alloc, server, command).value;
 	if (perfEnabled)
 		logPerf(server, perf);
 	return res;

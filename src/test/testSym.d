@@ -3,12 +3,20 @@ module test.testSym;
 @safe @nogc pure nothrow:
 
 import test.testUtil : Test;
+import util.alloc.alloc : Alloc, AllocKind, withTempAlloc;
 import util.col.str : safeCStr, safeCStrEq;
 import util.sym : AllSymbols, appendHexExtension, isShortSym, isLongSym, prependSet, safeCStrOfSym, Sym, sym, symOfStr;
 
 void testSym(ref Test test) {
-	AllSymbols allSymbols = AllSymbols(test.metaAlloc);
+	withTempAlloc!void(AllocKind.allSymbols, test.metaAlloc, (ref Alloc alloc) @safe {
+		scope AllSymbols allSymbols = AllSymbols(&alloc);
+		return inner(test, allSymbols);
+	});
+}
 
+private:
+
+void inner(ref Test test, scope ref AllSymbols allSymbols) {
 	Sym staticSym(string a)() @safe {
 		assert(sym!a == nonStaticSym!a);
 		return sym!a;

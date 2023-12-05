@@ -30,20 +30,22 @@ struct Test {
 
 	MetaAlloc* metaAlloc;
 	Perf* perfPtr;
-	Alloc alloc;
+	Alloc* allocPtr;
 	AllSymbols allSymbols;
 	AllUris allUris;
 
 	@trusted this(MetaAlloc* m, return scope Perf* p) {
 		metaAlloc = m;
 		perfPtr = p;
-		alloc = newAlloc(AllocKind.test, m);
-		allSymbols = AllSymbols(metaAlloc);
-		allUris = AllUris(metaAlloc, &allSymbols);
+		allocPtr = newAlloc(AllocKind.test, m);
+		allSymbols = AllSymbols(allocPtr);
+		allUris = AllUris(allocPtr, &allSymbols);
 	}
 
 	ref Perf perf() return scope =>
 		*perfPtr;
+	ref Alloc alloc() return scope =>
+		*allocPtr;
 }
 
 void withShowDiagCtxForTestImpure(

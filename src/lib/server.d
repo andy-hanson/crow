@@ -304,8 +304,8 @@ struct Server {
 
 	@trusted this(ulong[] memory) {
 		metaAlloc_ = MetaAlloc(memory);
-		allSymbols = AllSymbols(metaAlloc);
-		allUris = AllUris(metaAlloc, &allSymbols);
+		allSymbols = AllSymbols(newAlloc(AllocKind.allSymbols, metaAlloc));
+		allUris = AllUris(newAlloc(AllocKind.allUris, metaAlloc), &allSymbols);
 		storage = Storage(metaAlloc, &allSymbols, &allUris);
 		lspState = LspState(newAlloc(AllocKind.lspState, metaAlloc), []);
 	}
@@ -325,8 +325,13 @@ struct Server {
 }
 
 private struct LspState {
-	Alloc stateAlloc;
+	@safe @nogc pure nothrow:
+
+	Alloc* stateAllocPtr;
 	Uri[] urisWithDiagnostics;
+
+	ref inout(Alloc) stateAlloc() return scope inout =>
+		*stateAllocPtr;
 }
 
 Json serverSummarizeMemory(ref Alloc alloc, in Server server) =>

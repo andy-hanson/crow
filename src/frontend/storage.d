@@ -44,7 +44,6 @@ import util.lineAndColumnGetter :
 import util.memory : allocate;
 import util.opt : ConstOpt, force, has, MutOpt;
 import util.perf : Perf;
-import util.ptr : castNonScope_ref;
 import util.sourceRange : jsonOfRange, lineAndCharacterRange, Pos, Range, UriAndPos, UriAndRange;
 import util.sym : AllSymbols;
 import util.union_ : Union;
@@ -65,19 +64,19 @@ struct Storage {
 	MetaAlloc* metaAlloc;
 	AllSymbols* allSymbols;
 	AllUris* allUris;
-	Alloc mapAlloc_;
+	Alloc* mapAlloc_;
 	// Store in separate maps depending on success / diag
 	MutMap!(Uri, AllocAndValue!FileInfo) successes;
 	MutMap!(Uri, ReadFileDiag) diags;
 
-	ref Alloc mapAlloc() scope =>
-		castNonScope_ref(mapAlloc_);
+	ref inout(Alloc) mapAlloc() return scope inout =>
+		*mapAlloc_;
 }
 
 MemorySummary summarizeMemory(in Storage a) {
-	MemorySummary total = summarizeMemory(a.mapAlloc_);
+	MemorySummary total = summarizeMemory(a.mapAlloc);
 	cast(void) values(a.successes).opApply((ref const AllocAndValue!FileInfo x) {
-		total += .summarizeMemory(x.alloc);
+		total += .summarizeMemory(*x.alloc);
 		return 0;
 	});
 	// TODO: below should work!!!
