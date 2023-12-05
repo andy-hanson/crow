@@ -101,10 +101,22 @@ import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
 import model.lowModel : ExternLibraries, LowProgram;
 import model.model : hasFatalDiagnostics, Module, Program;
-import util.alloc.alloc : Alloc, AllocName, freeElements, MemorySummary, MetaAlloc, newAlloc, summarizeMemory;
+import util.alloc.alloc :
+	Alloc,
+	AllocKind,
+	AllocKindMemorySummary,
+	freeElements,
+	MemorySummary,
+	MetaAlloc,
+	MetaMemorySummary,
+	newAlloc,
+	summarizeMemory,
+	totalBytes;
 import util.col.arr : only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrLiteral, concatenate, contains, map, mapOp;
+import util.col.enumMap : enumMapEach;
+import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, withExactSizeArrBuilder;
 import util.col.str : copyStr, SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
 import util.exitCode : ExitCode;
 import util.json : field, Json, jsonNull, jsonObject;
@@ -116,6 +128,7 @@ import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
 import util.sourceRange : UriAndRange;
 import util.sym : AllSymbols, summarizeMemory;
 import util.uri : AllUris, getExtension, summarizeMemory, Uri, UrisInfo;
+import util.util : stringOfEnum;
 import util.writer : withWriter, Writer;
 import versionInfo : VersionInfo, versionInfoForBuildToC, versionInfoForInterpret;
 
@@ -294,7 +307,7 @@ struct Server {
 		allSymbols = AllSymbols(metaAlloc);
 		allUris = AllUris(metaAlloc, &allSymbols);
 		storage = Storage(metaAlloc, &allSymbols, &allUris);
-		lspState = LspState(newAlloc(AllocName.lspState, metaAlloc), []);
+		lspState = LspState(newAlloc(AllocKind.lspState, metaAlloc), []);
 	}
 
 	inout(MetaAlloc*) metaAlloc() inout =>
@@ -323,13 +336,35 @@ Json serverSummarizeMemory(ref Alloc alloc, in Server server) =>
 		field!"lspState"(showMemory(alloc, summarizeMemory(server.lspState.stateAlloc))),
 		field!"storage"(showMemory(alloc, summarizeMemory(server.storage))),
 		field!"frontend"(showMemory(alloc, frontendSummarizeMemory(server.frontend))),
-		field!"total"(showMemory(alloc, summarizeMemory(server.metaAlloc_)))]);
+		// NOTE: This will show more 'used' memory than above because leftover memory in allocs counts as 'used'
+		field!"total"(showTotalMemory(alloc, summarizeMemory(server.metaAlloc_)))]);
+
+private Json showTotalMemory(ref Alloc alloc, in MetaMemorySummary a) {
+	Json byAllocKind = Json(withExactSizeArrBuilder!(Json.StringObjectField)(
+		alloc, a.byAllocKind.size,
+		(scope ref ExactSizeArrBuilder!(Json.StringObjectField) builder) {
+			enumMapEach!(AllocKind, AllocKindMemorySummary)(
+				a.byAllocKind,
+				(AllocKind kind, in AllocKindMemorySummary x) {
+					builder ~= Json.StringObjectField(stringOfEnum(kind), showMemory(alloc, x));
+				});
+		}));
+	return jsonObject(alloc, [
+		field!"byAlloc"(byAllocKind),
+		field!"total"(showMemory(alloc, a.total))]);
+}
+
+private Json showMemory(ref Alloc alloc, in AllocKindMemorySummary a) =>
+	jsonObject(alloc, [
+		field!"usedandfree"(showMemoryAmount(alloc, a.usedAndFreeBytes)),
+		field!"overhead"(showMemoryAmount(alloc, a.overheadBytes))]);
 
 private Json showMemory(ref Alloc alloc, in MemorySummary a) =>
 	jsonObject(alloc, [
 		field!"used"(showMemoryAmount(alloc, a.usedBytes)),
 		field!"free"(showMemoryAmount(alloc, a.freeBytes)),
-		field!"overhead"(showMemoryAmount(alloc, a.overheadBytes))]);
+		field!"overhead"(showMemoryAmount(alloc, a.overheadBytes)),
+		field!"total"(showMemoryAmount(alloc, totalBytes(a)))]);
 
 private SafeCStr showMemoryAmount(ref Alloc alloc, size_t bytes) =>
 	withWriter(alloc, (scope ref Writer writer) {

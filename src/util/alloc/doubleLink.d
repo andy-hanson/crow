@@ -61,13 +61,9 @@ void eachHereAndPrev(alias link, T)(in T* a, in void delegate(in T*) @safe @nogc
 	eachPrevNode!link(a, cb);
 }
 
-void eachNextNode(alias link, T)(in T* a, in void delegate(in T*) @safe @nogc pure nothrow cb) {
-	assert(isStartOfList!link(a));
-	const(T)* node = next!link(a);
-	while (node != null) {
-		cb(node);
-		node = next!link(node);
-	}
+void eachHereAndNext(alias link, T)(in T* a, in void delegate(in T*) @safe @nogc pure nothrow cb) {
+	cb(a);
+	eachNextNode!link(a, cb);
 }
 
 void eachPrevNode(alias link, T)(in T* a, in void delegate(in T*) @safe @nogc pure nothrow cb) {
@@ -76,6 +72,15 @@ void eachPrevNode(alias link, T)(in T* a, in void delegate(in T*) @safe @nogc pu
 	while (node != null) {
 		cb(node);
 		node = prev!link(node);
+	}
+}
+
+private void eachNextNode(alias link, T)(in T* a, in void delegate(in T*) @safe @nogc pure nothrow cb) {
+	assert(isStartOfList!link(a));
+	const(T)* node = next!link(a);
+	while (node != null) {
+		cb(node);
+		node = next!link(node);
 	}
 }
 

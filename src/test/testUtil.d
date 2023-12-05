@@ -13,7 +13,7 @@ import interpret.stacks : dataTempAsArr, returnTempAsArrReverse, Stacks;
 import lib.server : allUnknownUris, Server, setCwd, setFile, setIncludeDir;
 import model.diag : ReadFileDiag;
 import model.model : Program;
-import util.alloc.alloc : Alloc, allocateElements, AllocName, MetaAlloc, newAlloc, withTempAlloc;
+import util.alloc.alloc : Alloc, allocateElements, AllocKind, MetaAlloc, newAlloc, withTempAlloc;
 import util.col.arr : empty;
 import util.col.arrUtil : arrEqual, arrsCorrespond, indexOf, makeArray, map;
 import util.col.str : SafeCStr, safeCStrEq, strOfSafeCStr;
@@ -37,7 +37,7 @@ struct Test {
 	@trusted this(MetaAlloc* m, return scope Perf* p) {
 		metaAlloc = m;
 		perfPtr = p;
-		alloc = newAlloc(AllocName.test, m);
+		alloc = newAlloc(AllocKind.test, m);
 		allSymbols = AllSymbols(metaAlloc);
 		allUris = AllUris(metaAlloc, &allSymbols);
 	}
@@ -130,7 +130,7 @@ void withTestServer(
 	ref Test test,
 	in void delegate(ref Alloc, ref Server) @safe @nogc pure nothrow cb,
 ) {
-	withTempAlloc!void(AllocName.test, test.metaAlloc, (ref Alloc alloc) @trusted {
+	withTempAlloc!void(AllocKind.test, test.metaAlloc, (ref Alloc alloc) @trusted {
 		ulong[] memory = allocateElements!ulong(alloc, 0x1000000);
 		Server server = Server(memory);
 		setIncludeDir(&server, parseUri(server.allUris, "test:///include"));

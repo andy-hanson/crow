@@ -2,7 +2,7 @@ module util.uri;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc, allocateElements, AllocName, MemorySummary, MetaAlloc, newAlloc, summarizeMemory;
+import util.alloc.alloc : Alloc, allocateElements, AllocKind, MemorySummary, MetaAlloc, newAlloc, summarizeMemory;
 import util.col.arr : endPtr;
 import util.col.arrUtil : indexOf, indexOfStartingAt;
 import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
@@ -41,7 +41,7 @@ struct AllUris {
 	MutArr!(MutArr!Path) pathToChildren;
 
 	public this(MetaAlloc* a, AllSymbols* as) {
-		alloc = newAlloc(AllocName.allUris, a);
+		alloc = newAlloc(AllocKind.allUris, a);
 		allSymbolsPtr = as;
 
 		// 0 must be the empty URI

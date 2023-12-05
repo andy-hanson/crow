@@ -25,7 +25,6 @@ import util.col.arrUtil : map, mapToMut, sum, zip;
 import util.col.map : mustGetAt;
 import util.col.enumMap : EnumMap;
 import util.col.exactSizeArrBuilder :
-	exactSizeArrBuilderAdd,
 	add0Bytes,
 	add16,
 	add32,
@@ -131,7 +130,7 @@ TextAndInfo generateText(
 				mapToMut!(size_t, Constant)(alloc, x.constants, (ref Constant) => size_t(0))));
 
 	// Ensure 0 is not a valid text index
-	exactSizeArrBuilderAdd(ctx.text, 0);
+	ctx.text ~= 0;
 
 	ctx.cStringIndexToTextIndex = map(alloc, program.allConstants.cStrings, (ref SafeCStr value) {
 		immutable size_t textIndex = exactSizeArrBuilderCurSize(ctx.text);
@@ -302,24 +301,24 @@ void writeConstant(ref Alloc alloc, ref TempAlloc tempAlloc, ref Ctx ctx, in Low
 			size_t textIndex = ctx.arrTypeIndexToConstantIndexToTextIndex[x.typeIndex][x.index];
 			add64TextPtr(ctx.text, textIndex);
 		},
-		(in Constant.CString it) {
-			add64TextPtr(ctx.text, ctx.cStringIndexToTextIndex[it.index]);
+		(in Constant.CString x) {
+			add64TextPtr(ctx.text, ctx.cStringIndexToTextIndex[x.index]);
 		},
-		(in Constant.Float it) {
+		(in Constant.Float x) {
 			switch (type.as!PrimitiveType) {
 				case PrimitiveType.float32:
-					add32(ctx.text, bitsOfFloat32(it.value));
+					add32(ctx.text, bitsOfFloat32(x.value));
 					break;
 				case PrimitiveType.float64:
-					add64(ctx.text, bitsOfFloat64(it.value));
+					add64(ctx.text, bitsOfFloat64(x.value));
 					break;
 				default:
 					unreachable!void();
 					break;
 			}
 		},
-		(in Constant.FunPtr it) {
-			LowFunIndex fun = mustGetAt(ctx.program.concreteFunToLowFunIndex, it.fun);
+		(in Constant.FunPtr x) {
+			LowFunIndex fun = mustGetAt(ctx.program.concreteFunToLowFunIndex, x.fun);
 			registerTextReference(
 				tempAlloc,
 				ctx.funToReferences,
@@ -328,7 +327,7 @@ void writeConstant(ref Alloc alloc, ref TempAlloc tempAlloc, ref Ctx ctx, in Low
 				TextIndex(exactSizeArrBuilderCurSize(ctx.text)));
 			add64(ctx.text, 0);
 		},
-		(in Constant.Integral it) {
+		(in Constant.Integral x) {
 			final switch (type.as!PrimitiveType) {
 				case PrimitiveType.float32:
 				case PrimitiveType.float64:
@@ -339,19 +338,19 @@ void writeConstant(ref Alloc alloc, ref TempAlloc tempAlloc, ref Ctx ctx, in Low
 				case PrimitiveType.char8:
 				case PrimitiveType.int8:
 				case PrimitiveType.nat8:
-					exactSizeArrBuilderAdd(ctx.text, cast(ubyte) it.value);
+					ctx.text ~= cast(ubyte) x.value;
 					break;
 				case PrimitiveType.int16:
 				case PrimitiveType.nat16:
-					add16(ctx.text, cast(ushort) it.value);
+					add16(ctx.text, cast(ushort) x.value);
 					break;
 				case PrimitiveType.int32:
 				case PrimitiveType.nat32:
-					add32(ctx.text, cast(uint) it.value);
+					add32(ctx.text, cast(uint) x.value);
 					break;
 				case PrimitiveType.int64:
 				case PrimitiveType.nat64:
-					add64(ctx.text, it.value);
+					add64(ctx.text, x.value);
 					break;
 			}
 		},

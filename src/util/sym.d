@@ -2,7 +2,7 @@ module util.sym;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc, AllocName, MemorySummary, MetaAlloc, newAlloc, summarizeMemory;
+import util.alloc.alloc : Alloc, AllocKind, MemorySummary, MetaAlloc, newAlloc, summarizeMemory;
 import util.col.arr : only;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : mustAddToMutMap, MutMap, mutMapSize;
@@ -31,7 +31,7 @@ struct AllSymbols {
 	@safe @nogc pure nothrow:
 
 	@trusted this(MetaAlloc* metaAlloc) {
-		alloc = newAlloc(AllocName.allSymbols, metaAlloc);
+		alloc = newAlloc(AllocKind.allSymbols, metaAlloc);
 		foreach (string s; specialSyms) { {
 			SafeCStr str = SafeCStr(s.ptr);
 			debug {

@@ -5,7 +5,7 @@ module util.alloc.alloc;
 import util.alloc.doubleLink :
 	DoubleLink,
 	eachHereAndPrev,
-	eachNextNode,
+	eachHereAndNext,
 	eachPrevNode,
 	existsHereOrPrev,
 	findNodeToRight,
@@ -19,20 +19,21 @@ import util.alloc.doubleLink :
 	removeAllFromListAnd,
 	removeFromList;
 import util.col.arr : arrOfRange, endPtr;
+import util.col.enumMap : EnumMap, enumMapEach;
 import util.opt : force, has, MutOpt, noneMut, someMut;
 import util.util : clamp, divRoundUp;
 
 T withStaticAlloc(T, alias cb)(word[] memory) {
 	scope MetaAlloc metaAlloc = MetaAlloc(memory);
-	scope Alloc alloc = newAlloc(AllocName.static_, &metaAlloc);
+	scope Alloc alloc = newAlloc(AllocKind.static_, &metaAlloc);
 	return cb(alloc);
 }
 
 // It's safe to use the result immediately after this ends so long as there are no other allocations.
-T withTempAllocImpure(T)(AllocName name, MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc nothrow cb) =>
+T withTempAllocImpure(T)(AllocKind name, MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc nothrow cb) =>
 	withTempAllocAlias!(T, cb)(name, a);
 
-@trusted private T withTempAllocAlias(T, alias cb)(AllocName name, MetaAlloc* a) {
+@trusted private T withTempAllocAlias(T, alias cb)(AllocKind name, MetaAlloc* a) {
 	// TODO:PERF Since this is temporary, an initial block could be on the stack?
 	Alloc alloc = newAlloc(name, a);
 	static if (is(T == void)) {
@@ -48,7 +49,7 @@ T withTempAllocImpure(T)(AllocName name, MetaAlloc* a, in T delegate(ref Alloc) 
 
 pure:
 
-@safe T withTempAlloc(T)(AllocName name, MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc pure nothrow cb) =>
+@safe T withTempAlloc(T)(AllocKind name, MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc pure nothrow cb) =>
 	withTempAllocAlias!(T, cb)(name, a);
 
 @trusted T withStackAlloc(size_t sizeWords, T)(in T delegate(ref Alloc) @safe @nogc pure nothrow cb) {
@@ -64,13 +65,13 @@ struct MetaAlloc {
 	@trusted this(return scope word[] w) {
 		assert(w.length > blockHeaderSizeWords * 2);
 		words = w;
-		*firstBlockSentinel = BlockNode(AllocName.sentinel);
-		*lastBlockSentinel = BlockNode(AllocName.sentinel);
+		*firstBlockSentinel = BlockNode(AllocKind.sentinel);
+		*lastBlockSentinel = BlockNode(AllocKind.sentinel);
 		insertToRight!allBlocksLink(firstBlockSentinel, lastBlockSentinel);
 		insertToRight!allocLink(firstBlockSentinel, lastBlockSentinel);
 
 		BlockNode* firstActualBlock = firstBlockSentinel + 1;
-		*firstActualBlock = BlockNode(AllocName.free);
+		*firstActualBlock = BlockNode(AllocKind.free);
 		insertToRight!allBlocksLink(firstBlockSentinel, firstActualBlock);
 		insertToRight!allocLink(firstBlockSentinel, firstActualBlock);
 
@@ -84,10 +85,10 @@ struct MetaAlloc {
 	word[] words;
 
 	// This is the sentinel for both 'allBlocksLink' and 'allocLink' for free blocks
-	@trusted inout(BlockNode*) firstBlockSentinel() inout =>
+	@trusted inout(BlockNode*) firstBlockSentinel() return scope inout =>
 		cast(inout BlockNode*) (words.ptr);
 
-	@trusted inout(BlockNode*) lastBlockSentinel() inout =>
+	@trusted inout(BlockNode*) lastBlockSentinel() return scope inout =>
 		(cast(BlockNode*) endPtr(words)) - 1;
 }
 
@@ -106,12 +107,12 @@ private @trusted void validate(in MetaAlloc a) {
 		const BlockNode* allocPrev = prev!allocLink(cur);
 		if (allocPrev != null) {
 			assert(next!allocLink(allocPrev) == cur);
-			assert(allocPrev.allocName == cur.allocName || (isFree(cur) && isSentinel(allocPrev)));
+			assert(allocPrev.allocKind == cur.allocKind || (isFree(cur) && isSentinel(allocPrev)));
 		}
 		const BlockNode* allocNext = next!allocLink(cur);
 		if (allocNext != null) {
 			assert(prev!allocLink(allocNext) == cur);
-			assert(allocNext.allocName == cur.allocName || (isFree(cur) && isSentinel(allocNext)));
+			assert(allocNext.allocKind == cur.allocKind || (isFree(cur) && isSentinel(allocNext)));
 		}
 
 		if (right == a.lastBlockSentinel)
@@ -124,30 +125,31 @@ private @trusted void validate(in MetaAlloc a) {
 	}
 }
 
-// This includes the allocation overhead
-@trusted MemorySummary summarizeMemory(in MetaAlloc a) {
-	size_t nBlocks = 0;
-	size_t freeWords = 0;
-	size_t usedWords = 0;
-	eachNextNode!allBlocksLink(a.firstBlockSentinel, (in BlockNode* x) {
-		nBlocks++;
-		if (isSentinel(x)) {
-		} else if (isFree(x))
-			freeWords += x.words.length;
-		else
-			usedWords += x.words.length;
+@trusted MetaMemorySummary summarizeMemory(in MetaAlloc a) {
+	EnumMap!(AllocKind, AllocKindMemorySummary) byAlloc;
+	eachHereAndNext!allBlocksLink(a.firstBlockSentinel, (in BlockNode* x) {
+		byAlloc[x.allocKind] += AllocKindMemorySummary(
+			x == a.lastBlockSentinel ? 0 : x.words.length * word.sizeof,
+			BlockNode.sizeof);
 	});
-	MemorySummary res = MemorySummary(usedWords * word.sizeof, freeWords * word.sizeof, nBlocks * BlockNode.sizeof);
-	assert(res.usedBytes + res.freeBytes + res.overheadBytes == a.words.length * word.sizeof);
-	return res;
+	MemorySummary total;
+	enumMapEach!(AllocKind, AllocKindMemorySummary)(byAlloc, (AllocKind name, in AllocKindMemorySummary x) {
+		if (name == AllocKind.sentinel)
+			total.overheadBytes += totalBytes(x);
+		else if (name == AllocKind.free)
+			total.freeBytes += totalBytes(x);
+		else
+			total += MemorySummary(x.usedAndFreeBytes, 0, x.overheadBytes);
+	});
+	return MetaMemorySummary(byAlloc, total);
 }
 
-@safe Alloc newAlloc(AllocName name, MetaAlloc* a) {
+@safe Alloc newAlloc(AllocKind name, MetaAlloc* a) {
 	return Alloc(name, a, allocateBlock(*a, name, 0));
 }
 
 // This is not unique; e.g. there is a 'storage' alloc for each file
-enum AllocName {
+enum AllocKind {
 	sentinel, // Not an allocator name, this indicates the first/last sentinel block
 	free, // Not an allocator name, this indicates a free block
 	allSymbols,
@@ -173,27 +175,27 @@ struct Alloc {
 
 	@disable this();
 	@disable this(ref const Alloc);
-	@trusted this(AllocName name, MetaAlloc* m, BlockNode* b) {
-		debugName = name;
+	@trusted this(AllocKind kind, MetaAlloc* m, BlockNode* b) {
+		allocKind = kind;
 		meta = m;
 		assert(isStartOfList!allocLink(b));
 		curBlock = b;
 		cur = b.words.ptr;
 	}
-	this(AllocName name, MetaAlloc* m, BlockNode* b, word* c) {
-		debugName = name;
+	this(AllocKind kind, MetaAlloc* m, BlockNode* b, word* c) {
+		allocKind = kind;
 		meta = m;
 		curBlock = b;
 		cur = c;
 	}
 
-	AllocName debugName;
+	AllocKind allocKind;
 	MetaAlloc* meta;
 	BlockNode* curBlock;
 	word* cur;
 
 	public Alloc move() {
-		Alloc res = Alloc(debugName, meta, curBlock, cur);
+		Alloc res = Alloc(allocKind, meta, curBlock, cur);
 		meta = null;
 		curBlock = null;
 		cur = null;
@@ -205,7 +207,7 @@ alias TempAlloc = Alloc;
 // Alloc that we are done allocating to.
 struct FinishedAlloc {
 	private:
-	AllocName debugName;
+	AllocKind allocKind;
 	MetaAlloc* meta;
 	BlockNode* lastBlock;
 }
@@ -246,15 +248,37 @@ struct MemorySummary {
 	size_t freeBytes; // memory that is 'free' but reserved in the alloc
 	size_t overheadBytes;
 
-	MemorySummary opBinary(string op: "+")(MemorySummary b) const =>
+	MemorySummary opBinary(string op: "+")(in MemorySummary b) const =>
 		MemorySummary(usedBytes + b.usedBytes, freeBytes + b.freeBytes, overheadBytes + b.overheadBytes);
 
-	void opOpAssign(string op: "+")(MemorySummary b) {
-		usedBytes += b.usedBytes;
-		freeBytes += b.freeBytes;
-		overheadBytes += b.overheadBytes;
+	void opOpAssign(string op: "+")(in MemorySummary b) {
+		this = this + b;
 	}
 }
+
+struct AllocKindMemorySummary {
+	@safe @nogc pure nothrow:
+
+	size_t usedAndFreeBytes;
+	size_t overheadBytes;
+
+	AllocKindMemorySummary opBinary(string op: "+")(in AllocKindMemorySummary b) const =>
+		AllocKindMemorySummary(usedAndFreeBytes + b.usedAndFreeBytes, overheadBytes + b.overheadBytes);
+
+	void opOpAssign(string op: "+")(in AllocKindMemorySummary b) {
+		this = this + b;
+	}
+}
+@safe size_t totalBytes(in AllocKindMemorySummary a) =>
+	a.usedAndFreeBytes + a.overheadBytes;
+
+struct MetaMemorySummary {
+	EnumMap!(AllocKind, AllocKindMemorySummary) byAllocKind;
+	MemorySummary total;
+}
+
+@safe size_t totalBytes(in MemorySummary a) =>
+	a.usedBytes + a.freeBytes + a.overheadBytes;
 
 @trusted MemorySummary summarizeMemory(in Alloc a) {
 	size_t overheadBytes = Alloc.sizeof + BlockNode.sizeof;
@@ -269,7 +293,7 @@ struct MemorySummary {
 
 @trusted FinishedAlloc finishAlloc(ref Alloc a) {
 	freeRestOfBlock(*a.meta, a.curBlock, a.cur);
-	return FinishedAlloc(a.debugName, a.meta, a.curBlock);
+	return FinishedAlloc(a.allocKind, a.meta, a.curBlock);
 }
 
 void freeAlloc(ref FinishedAlloc a) {
@@ -283,8 +307,8 @@ struct AllocAndValue(T) {
 	T value;
 }
 
-@safe AllocAndValue!T withAlloc(T)(AllocName name, MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc pure nothrow cb) {
-	Alloc alloc = newAlloc(name, a);
+@safe AllocAndValue!T withAlloc(T)(AllocKind kind, MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc pure nothrow cb) {
+	Alloc alloc = newAlloc(kind, a);
 	T value = cb(alloc);
 	FinishedAlloc finished = finishAlloc(alloc);
 	return AllocAndValue!T(finished, value);
@@ -297,14 +321,14 @@ alias word = ulong;
 struct BlockNode {
 	@safe @nogc pure nothrow:
 	// Mostly for debugging, but also indicates whether this is a sentinel or free block
-	AllocName allocName;
+	AllocKind allocKind;
 	// Links all blocks, in pointer order.
 	DoubleLink!BlockNode allBlocksLink_;
 	// For a free block, this links the free blocks (in arbitrary order), including the first/last sentinel.
 	// For an allocated block, this links blocks with the same Alloc (in the order they were allocated).
 	DoubleLink!BlockNode allocLink_;
 	version (WebAssembly) {
-		uint padding;		
+		uint padding;
 	}
 
 	@trusted inout(word*) end() return scope inout {
@@ -318,10 +342,10 @@ struct BlockNode {
 }
 
 @safe bool isSentinel(in BlockNode* a) =>
-	a.allocName == AllocName.sentinel;
+	a.allocKind == AllocKind.sentinel;
 
 @safe bool isFree(in BlockNode* a) =>
-	a.allocName == AllocName.free;
+	a.allocKind == AllocKind.free;
 
 @safe ref inout(DoubleLink!BlockNode) allBlocksLink(inout BlockNode* a) =>
 	a.allBlocksLink_;
@@ -329,7 +353,7 @@ struct BlockNode {
 @safe ref inout(DoubleLink!BlockNode) allocLink(inout BlockNode* a) =>
 	a.allocLink_;
 
-@safe BlockNode* allocateBlock(ref MetaAlloc meta, AllocName allocName, size_t minWords) {
+@safe BlockNode* allocateBlock(ref MetaAlloc meta, AllocKind allocKind, size_t minWords) {
 	MutOpt!(BlockNode*) found = findNodeToRight!allocLink(meta.firstBlockSentinel, (in BlockNode* x) =>
 		x.words.length >= minWords);
 	if (has(found)) {
@@ -341,7 +365,7 @@ struct BlockNode {
 			insertToRight!allocLink(res, force(remaining));
 		removeFromList!allocLink(res);
 		assert(res.words.length >= sizeWords);
-		res.allocName = allocName;
+		res.allocKind = allocKind;
 		validate(meta);
 		return res;
 	} else
@@ -354,7 +378,7 @@ struct BlockNode {
 	size_t remaining = left.words.length - leftSizeWords;
 	if (remaining >= blockHeaderSizeWords + minBlockSize) {
 		BlockNode* right = cast(BlockNode*) &left.words[leftSizeWords];
-		*right = BlockNode(left.allocName);
+		*right = BlockNode(left.allocKind);
 		insertToRight!allBlocksLink(left, right);
 		return someMut(right);
 	} else
@@ -369,7 +393,7 @@ void freeRestOfBlock(ref MetaAlloc a, BlockNode* block, word* cur) {
 
 void addToFreeList(ref MetaAlloc a, BlockNode* block) {
 	validate(a);
-	block.allocName = AllocName.free;
+	block.allocKind = AllocKind.free;
 	assert(!isUnlinked!allBlocksLink(block));
 	assert(isUnlinked!allocLink(block));
 	BlockNode* left = prev!allBlocksLink(block);
@@ -410,7 +434,7 @@ void findPositionInFreeListAndInsert(ref MetaAlloc a, BlockNode* block) {
 	0x100;
 
 @safe size_t preferredBlockWordCount() =>
-	0x100000 - blockHeaderSizeWords;
+	0x10000 - blockHeaderSizeWords;
 
 @safe size_t blockHeaderSizeWords() {
 	static assert(BlockNode.sizeof % word.sizeof == 0);
@@ -436,7 +460,7 @@ word[] allocateWords(ref Alloc a, size_t nWords) {
 }
 
 void fetchNewBlock(ref Alloc a, size_t minWords) {
-	BlockNode* block = allocateBlock(*a.meta, a.debugName, minWords);
+	BlockNode* block = allocateBlock(*a.meta, a.allocKind, minWords);
 	insertToRight!allocLink(a.curBlock, block);
 	a.curBlock = block;
 	a.cur = block.words.ptr;

@@ -92,7 +92,7 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : concatenate, filter, map, mapOp, mapToMut, mapPointers, zip, zipPointers;
 import util.col.map : Map, KeyValuePair, values;
 import util.col.mapBuilder : MapBuilder, finishMap, tryAddToMap;
-import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd, finish, newExactSizeArrBuilder;
+import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, withExactSizeArrBuilder;
 import util.col.multiMap : buildMultiMap, values;
 import util.col.mutArr : mustPop, mutArrIsEmpty;
 import util.col.mutMap : insertOrUpdate, moveToMap, MutMap;
@@ -556,47 +556,44 @@ FunsAndMap checkFuns(
 	in FunDeclAst[] asts,
 	in TestAst[] testAsts,
 ) {
-	ExactSizeArrBuilder!FunDecl funsBuilder = newExactSizeArrBuilder!FunDecl(
+	FunDecl[] funs = withExactSizeArrBuilder!FunDecl(
 		ctx.alloc,
-		asts.length + fileImports.length + fileExports.length + countFunsForStructs(structs) + countFunsForVars(vars));
-	foreach (FunDeclAst* funAst; ptrsRange(asts)) {
-		TypeParam[] typeParams = checkTypeParams(ctx, funAst.typeParams);
-		ReturnTypeAndParams rp = checkReturnTypeAndParams(
-			ctx,
-			commonTypes,
-			funAst.returnType,
-			funAst.params,
-			typeParams,
-			structsAndAliasesMap,
-			noDelayStructInsts);
-		FunFlagsAndSpecs flagsAndSpecs = checkFunModifiers(
-			ctx, commonTypes, funAst.range, funAst.modifiers, structsAndAliasesMap, specsMap, typeParams);
-		exactSizeArrBuilderAdd(
-			funsBuilder,
-			FunDecl(
-				FunDeclSource(FunDeclSource.Ast(ctx.curUri, funAst)),
-				visibilityFromExplicit(funAst.visibility),
-				funAst.name.name,
-				small(typeParams),
-				rp.returnType,
-				rp.params,
-				flagsAndSpecs.flags,
-				small(flagsAndSpecs.specs)));
-	}
-	foreach (ref ImportOrExportFile f; fileImports)
-		exactSizeArrBuilderAdd(
-			funsBuilder,
-			funDeclForFileImportOrExport(ctx, commonTypes, structsAndAliasesMap, f, Visibility.private_));
-	foreach (ref ImportOrExportFile f; fileExports)
-		exactSizeArrBuilderAdd(
-			funsBuilder,
-			funDeclForFileImportOrExport(ctx, commonTypes, structsAndAliasesMap, f, Visibility.public_));
+		asts.length + fileImports.length + fileExports.length + countFunsForStructs(structs) + countFunsForVars(vars),
+		(scope ref ExactSizeArrBuilder!FunDecl funsBuilder) {
+			foreach (FunDeclAst* funAst; ptrsRange(asts)) {
+				TypeParam[] typeParams = checkTypeParams(ctx, funAst.typeParams);
+				ReturnTypeAndParams rp = checkReturnTypeAndParams(
+					ctx,
+					commonTypes,
+					funAst.returnType,
+					funAst.params,
+					typeParams,
+					structsAndAliasesMap,
+					noDelayStructInsts);
+				FunFlagsAndSpecs flagsAndSpecs = checkFunModifiers(
+					ctx, commonTypes, funAst.range, funAst.modifiers, structsAndAliasesMap, specsMap, typeParams);
+				funsBuilder ~= FunDecl(
+					FunDeclSource(FunDeclSource.Ast(ctx.curUri, funAst)),
+					visibilityFromExplicit(funAst.visibility),
+					funAst.name.name,
+					small(typeParams),
+					rp.returnType,
+					rp.params,
+					flagsAndSpecs.flags,
+					small(flagsAndSpecs.specs));
+			}
+			foreach (ref ImportOrExportFile f; fileImports)
+				funsBuilder ~= funDeclForFileImportOrExport(
+					ctx, commonTypes, structsAndAliasesMap, f, Visibility.private_);
+			foreach (ref ImportOrExportFile f; fileExports)
+				funsBuilder ~= funDeclForFileImportOrExport(
+					ctx, commonTypes, structsAndAliasesMap, f, Visibility.public_);
 
-	foreach (StructDecl* struct_; ptrsRange(structs))
-		addFunsForStruct(ctx, funsBuilder, commonTypes, struct_);
-	foreach (VarDecl* var; ptrsRange(vars))
-		addFunsForVar(ctx, funsBuilder, commonTypes, var);
-	FunDecl[] funs = finish(funsBuilder);
+			foreach (StructDecl* struct_; ptrsRange(structs))
+				addFunsForStruct(ctx, funsBuilder, commonTypes, struct_);
+			foreach (VarDecl* var; ptrsRange(vars))
+				addFunsForVar(ctx, funsBuilder, commonTypes, var);
+		});
 
 	FunsMap funsMap = buildMultiMap!(Sym, immutable FunDecl*, FunDecl)(
 		ctx.alloc, funs, (size_t index, FunDecl* x) => KeyValuePair!(Sym, immutable FunDecl*)(x.name, x));

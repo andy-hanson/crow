@@ -11,6 +11,30 @@ struct ExactSizeArrBuilder(T) {
 	private:
 	T[] inner;
 	T* cur;
+
+	@trusted void opOpAssign(string op : "~")(T value) scope {
+		assert(cur < endPtr(inner));
+		initMemory!T(cur, value);
+		cur++;
+	}
+}
+
+T[] withExactSizeArrBuilder(T)(
+	ref Alloc alloc,
+	size_t size,
+	in void delegate(scope ref ExactSizeArrBuilder!T) @safe @nogc pure nothrow cb,
+) {
+	ExactSizeArrBuilder!T builder = newExactSizeArrBuilder!T(alloc, size);
+	cb(builder);
+	return finish(builder);
+}
+
+@trusted T[] finish(T)(ref ExactSizeArrBuilder!T a) {
+	assert(a.cur == endPtr(a.inner));
+	T[] res = a.inner;
+	a.inner = [];
+	a.cur = a.inner.ptr;
+	return res;
 }
 
 @trusted size_t exactSizeArrBuilderCurSize(T)(ref const ExactSizeArrBuilder!T a) =>
@@ -19,14 +43,6 @@ struct ExactSizeArrBuilder(T) {
 @trusted ExactSizeArrBuilder!T newExactSizeArrBuilder(T)(ref Alloc alloc, size_t size) {
 	T[] inner = allocateElements!T(alloc, size);
 	return ExactSizeArrBuilder!T(inner, inner.ptr);
-}
-
-@trusted T* exactSizeArrBuilderAdd(T)(scope ref ExactSizeArrBuilder!T a, T value) {
-	assert(a.cur < endPtr(a.inner));
-	initMemory!T(a.cur, value);
-	T* res = a.cur;
-	a.cur++;
-	return res;
 }
 
 void add16(scope ref ExactSizeArrBuilder!ubyte a, ushort value) {
@@ -72,12 +88,4 @@ void padTo(scope ref ExactSizeArrBuilder!ubyte a, size_t desiredSize) {
 	});
 	*a.cur = '\0';
 	a.cur++;
-}
-
-@trusted T[] finish(T)(ref ExactSizeArrBuilder!T a) {
-	assert(a.cur == endPtr(a.inner));
-	T[] res = a.inner;
-	a.inner = [];
-	a.cur = a.inner.ptr;
-	return res;
 }

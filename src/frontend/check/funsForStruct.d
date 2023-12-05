@@ -47,7 +47,7 @@ typeArgs,
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, small;
 import util.col.arrUtil : map, sum;
-import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd;
+import util.col.exactSizeArrBuilder : ExactSizeArrBuilder;
 import util.col.mutMaxArr : push, tempAsArr;
 import util.opt : force, has, none, Opt, some;
 import util.sym : prependSet, prependSetDeref, Sym, sym;
@@ -84,7 +84,7 @@ size_t countFunsForVars(in VarDecl[] vars) =>
 
 void addFunsForStruct(
 	ref CheckCtx ctx,
-	ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	scope ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	ref CommonTypes commonTypes,
 	StructDecl* struct_,
 ) {
@@ -95,9 +95,8 @@ void addFunsForStruct(
 			addFunsForEnum(ctx, funsBuilder, commonTypes, struct_, x);
 		},
 		(StructBody.Extern x) {
-			if (has(x.size)) {
-				exactSizeArrBuilderAdd(funsBuilder, newExtern(ctx.instantiateCtx, struct_));
-			}
+			if (has(x.size))
+				funsBuilder ~= newExtern(ctx.instantiateCtx, struct_);
 		},
 		(StructBody.Flags x) {
 			addFunsForFlags(ctx, funsBuilder, commonTypes, struct_, x);
@@ -116,22 +115,22 @@ void addFunsForVar(
 	in CommonTypes commonTypes,
 	VarDecl* var,
 ) {
-	exactSizeArrBuilderAdd(funsBuilder, basicFunDecl(
+	funsBuilder ~= basicFunDecl(
 		FunDeclSource(var),
 		var.visibility,
 		var.name,
 		var.type,
 		Params([]),
 		FunFlags.generatedBareUnsafe,
-		FunBody(FunBody.VarGet(var))));
-	exactSizeArrBuilderAdd(funsBuilder, basicFunDecl(
+		FunBody(FunBody.VarGet(var)));
+	funsBuilder ~= basicFunDecl(
 		FunDeclSource(var),
 		var.visibility,
 		prependSet(ctx.allSymbols, var.name),
 		Type(commonTypes.void_),
 		makeParams(ctx.alloc, [param!"a"(var.type)]),
 		FunFlags.generatedBareUnsafe,
-		FunBody(FunBody.VarSet(var))));
+		FunBody(FunBody.VarSet(var)));
 }
 
 FunDecl funDeclWithBody(
@@ -181,7 +180,7 @@ bool recordIsAlwaysByVal(in StructBody.Record record) =>
 
 void addFunsForEnum(
 	ref CheckCtx ctx,
-	ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	scope ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	ref CommonTypes commonTypes,
 	StructDecl* struct_,
 	ref StructBody.Enum enum_,
@@ -192,12 +191,12 @@ void addFunsForEnum(
 		ctx.alloc, funsBuilder, ctx.instantiateCtx,
 		struct_, enumType, enum_.backingType, commonTypes, sym!"enum-members");
 	foreach (ref StructBody.Enum.Member member; enum_.members)
-		exactSizeArrBuilderAdd(funsBuilder, enumOrFlagsConstructor(ctx.alloc, visibility, enumType, &member));
+		funsBuilder ~= enumOrFlagsConstructor(ctx.alloc, visibility, enumType, &member);
 }
 
 void addFunsForFlags(
 	ref CheckCtx ctx,
-	ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	scope ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	ref CommonTypes commonTypes,
 	StructDecl* struct_,
 	ref StructBody.Flags flags,
@@ -205,21 +204,18 @@ void addFunsForFlags(
 	Type type = Type(instantiateNonTemplateStructDeclNeverDelay(ctx.instantiateCtx, struct_));
 	addEnumFlagsCommonFunctions(
 		ctx.alloc, funsBuilder, ctx.instantiateCtx, struct_, type, flags.backingType, commonTypes, sym!"flags-members");
-	exactSizeArrBuilderAdd(funsBuilder, flagsNewFunction(ctx.alloc, struct_, type));
-	exactSizeArrBuilderAdd(funsBuilder, flagsAllFunction(ctx.alloc, struct_, type));
-	exactSizeArrBuilderAdd(funsBuilder, flagsNegateFunction(ctx.alloc, struct_, type));
-	exactSizeArrBuilderAdd(funsBuilder, flagsUnionOrIntersectFunction(
-		ctx.alloc, struct_, type, sym!"|", EnumFunction.union_));
-	exactSizeArrBuilderAdd(funsBuilder, flagsUnionOrIntersectFunction(
-		ctx.alloc, struct_, type, sym!"&", EnumFunction.intersect));
-
+	funsBuilder ~= flagsNewFunction(ctx.alloc, struct_, type);
+	funsBuilder ~= flagsAllFunction(ctx.alloc, struct_, type);
+	funsBuilder ~= flagsNegateFunction(ctx.alloc, struct_, type);
+	funsBuilder ~= flagsUnionOrIntersectFunction(ctx.alloc, struct_, type, sym!"|", EnumFunction.union_);
+	funsBuilder ~= flagsUnionOrIntersectFunction(ctx.alloc, struct_, type, sym!"&", EnumFunction.intersect);
 	foreach (ref StructBody.Enum.Member member; flags.members)
-		exactSizeArrBuilderAdd(funsBuilder, enumOrFlagsConstructor(ctx.alloc, struct_.visibility, type, &member));
+		funsBuilder ~= enumOrFlagsConstructor(ctx.alloc, struct_.visibility, type, &member);
 }
 
 void addEnumFlagsCommonFunctions(
 	ref Alloc alloc,
-	ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	scope ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	ref InstantiateCtx ctx,
 	StructDecl* struct_,
 	Type type,
@@ -227,9 +223,9 @@ void addEnumFlagsCommonFunctions(
 	ref CommonTypes commonTypes,
 	Sym membersName,
 ) {
-	exactSizeArrBuilderAdd(funsBuilder, enumEqualFunction(alloc, struct_, type, commonTypes));
-	exactSizeArrBuilderAdd(funsBuilder, enumToIntegralFunction(alloc, struct_, backingType, type, commonTypes));
-	exactSizeArrBuilderAdd(funsBuilder, enumOrFlagsMembersFunction(ctx, struct_, membersName, type, commonTypes));
+	funsBuilder ~= enumEqualFunction(alloc, struct_, type, commonTypes);
+	funsBuilder ~= enumToIntegralFunction(alloc, struct_, backingType, type, commonTypes);
+	funsBuilder ~= enumOrFlagsMembersFunction(ctx, struct_, membersName, type, commonTypes);
 }
 
 FunDecl enumOrFlagsConstructor(ref Alloc alloc, Visibility visibility, Type enumType, StructBody.Enum.Member* member) =>
@@ -348,7 +344,7 @@ FunDecl flagsUnionOrIntersectFunction(ref Alloc alloc, StructDecl* struct_, Type
 
 void addFunsForRecord(
 	ref CheckCtx ctx,
-	ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	scope ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	ref CommonTypes commonTypes,
 	StructDecl* struct_,
 	ref StructBody.Record record,
@@ -366,14 +362,14 @@ void addFunsForRecord(
 
 void addFunsForRecordConstructor(
 	ref CheckCtx ctx,
-	ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	scope ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	ref CommonTypes commonTypes,
 	StructDecl* struct_,
 	ref StructBody.Record record,
 	Type structType,
 	bool byVal,
 ) {
-	exactSizeArrBuilderAdd(funsBuilder, funDeclWithBody(
+	funsBuilder ~= funDeclWithBody(
 		FunDeclSource(struct_),
 		record.flags.newVisibility,
 		sym!"new",
@@ -383,12 +379,12 @@ void addFunsForRecordConstructor(
 			makeParam(ctx.alloc, x.name, x.type))),
 		byVal ? FunFlags.generatedBare : FunFlags.generated,
 		[],
-		FunBody(FunBody.CreateRecord())));
+		FunBody(FunBody.CreateRecord()));
 }
 
 void addFunsForRecordField(
 	ref CheckCtx ctx,
-	ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	scope ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	ref CommonTypes commonTypes,
 	StructDecl* struct_,
 	Type structType,
@@ -397,7 +393,7 @@ void addFunsForRecordField(
 	ref RecordField field,
 ) {
 	Visibility fieldVisibility = leastVisibility(struct_.visibility, field.visibility);
-	exactSizeArrBuilderAdd(funsBuilder, funDeclWithBody(
+	funsBuilder ~= funDeclWithBody(
 		FunDeclSource(struct_),
 		fieldVisibility,
 		field.name,
@@ -406,10 +402,10 @@ void addFunsForRecordField(
 		makeParams(ctx.alloc, [param!"a"(structType)]),
 		FunFlags.generatedBare,
 		[],
-		FunBody(FunBody.RecordFieldGet(fieldIndex))));
+		FunBody(FunBody.RecordFieldGet(fieldIndex)));
 
 	void addRecordFieldPointer(Visibility visibility, Type recordPointer, Type fieldPointer) {
-		exactSizeArrBuilderAdd(funsBuilder, funDeclWithBody(
+		funsBuilder ~= funDeclWithBody(
 			FunDeclSource(struct_),
 			visibility,
 			field.name,
@@ -418,7 +414,7 @@ void addFunsForRecordField(
 			makeParams(ctx.alloc, [param!"a"(recordPointer)]),
 			FunFlags.generatedBareUnsafe,
 			[],
-			FunBody(FunBody.RecordFieldPointer(fieldIndex))));
+			FunBody(FunBody.RecordFieldPointer(fieldIndex)));
 	}
 
 	if (recordIsByVal)
@@ -432,7 +428,7 @@ void addFunsForRecordField(
 		Visibility setVisibility = leastVisibility(struct_.visibility, force(mutVisibility));
 		Type recordMutPointer = Type(makeMutPointerType(ctx.instantiateCtx, commonTypes, structType));
 		if (recordIsByVal) {
-			exactSizeArrBuilderAdd(funsBuilder, funDeclWithBody(
+			funsBuilder ~= funDeclWithBody(
 				FunDeclSource(struct_),
 				setVisibility,
 				prependSetDeref(ctx.allSymbols, field.name),
@@ -444,13 +440,13 @@ void addFunsForRecordField(
 				]),
 				FunFlags.generatedBareUnsafe,
 				[],
-				FunBody(FunBody.RecordFieldSet(fieldIndex))));
+				FunBody(FunBody.RecordFieldSet(fieldIndex)));
 			addRecordFieldPointer(
 				setVisibility,
 				recordMutPointer,
 				Type(makeMutPointerType(ctx.instantiateCtx, commonTypes, field.type)));
 		} else
-			exactSizeArrBuilderAdd(funsBuilder, funDeclWithBody(
+			funsBuilder ~= funDeclWithBody(
 				FunDeclSource(struct_),
 				setVisibility,
 				prependSet(ctx.allSymbols, field.name),
@@ -459,7 +455,7 @@ void addFunsForRecordField(
 				makeParams(ctx.alloc, [param!"a"(structType), ParamShort(field.name, field.type)]),
 				FunFlags.generatedBare,
 				[],
-				FunBody(FunBody.RecordFieldSet(fieldIndex))));
+				FunBody(FunBody.RecordFieldSet(fieldIndex)));
 	}
 }
 
@@ -476,7 +472,7 @@ Opt!Visibility visibilityOfFieldMutability(FieldMutability a) {
 
 void addFunsForUnion(
 	ref CheckCtx ctx,
-	ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	scope ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	in CommonTypes commonTypes,
 	StructDecl* struct_,
 	ref StructBody.Union union_,
@@ -490,7 +486,7 @@ void addFunsForUnion(
 		Params params = isVoid(commonTypes, member.type)
 			? Params([])
 			: makeParams(ctx.alloc, [param!"a"(member.type)]);
-		exactSizeArrBuilderAdd(funsBuilder, funDeclWithBody(
+		funsBuilder ~= funDeclWithBody(
 			FunDeclSource(struct_),
 			struct_.visibility,
 			member.name,
@@ -499,7 +495,7 @@ void addFunsForUnion(
 			params,
 			FunFlags.generatedBare,
 			[],
-			FunBody(FunBody.CreateUnion(memberIndex))));
+			FunBody(FunBody.CreateUnion(memberIndex)));
 	}
 }
 

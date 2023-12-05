@@ -7,7 +7,7 @@ import test.testUtil : Test;
 import util.alloc.alloc :
 	Alloc,
 	AllocAndValue,
-	AllocName,
+	AllocKind,
 	allocOwns,
 	allocateElements,
 	allocateUninitialized,
@@ -48,7 +48,7 @@ void testFreeAlloc(ref Test test) {
 	auto random = Random();
 	initialize(random);
 
-	withTempAlloc!void(AllocName.test, test.metaAlloc, (ref Alloc setupAlloc) @trusted {
+	withTempAlloc!void(AllocKind.test, test.metaAlloc, (ref Alloc setupAlloc) @trusted {
 		ulong[] memory = allocateElements!ulong(setupAlloc, 0x1000000);
 		MetaAlloc meta = MetaAlloc(memory);
 
@@ -59,7 +59,7 @@ void testFreeAlloc(ref Test test) {
 		// We'll create 100 allocators. Fill each with 'i'. Then free every other one.
 		foreach (size_t i; 0 .. allocs.length) {
 			sizes[i] = nextShort(random);
-			allocs[i] = withAlloc!(ubyte[])(AllocName.test, &meta, (ref Alloc alloc) =>
+			allocs[i] = withAlloc!(ubyte[])(AllocKind.test, &meta, (ref Alloc alloc) =>
 				makeArray!ubyte(alloc, sizes[i], (size_t _) => cast(ubyte) i));
 		}
 
@@ -72,7 +72,7 @@ void testFreeAlloc(ref Test test) {
 
 		foreach (size_t i; 0 .. 10) {
 			size_t size = nextShort(random);
-			withAlloc!(ubyte[])(AllocName.test, &meta, (ref Alloc alloc) =>
+			withAlloc!(ubyte[])(AllocKind.test, &meta, (ref Alloc alloc) =>
 				makeArray!ubyte(alloc, size, (size_t _) => cast(ubyte) i));
 		}
 
@@ -87,7 +87,7 @@ void testFreeAlloc(ref Test test) {
 @trusted void testFreeElements() {
 	ulong[0x1000] memory = void;
 	MetaAlloc meta = MetaAlloc(memory);
-	Alloc alloc = newAlloc(AllocName.test, &meta);
+	Alloc alloc = newAlloc(AllocKind.test, &meta);
 
 	ulong* w0 = allocateUninitialized!ulong(alloc);
 	assertOwns(alloc, w0[0 .. 1]);

@@ -12,7 +12,7 @@ import model.model : Config;
 import util.alloc.alloc :
 	Alloc,
 	AllocAndValue,
-	AllocName,
+	AllocKind,
 	freeAlloc,
 	MemorySummary,
 	MetaAlloc,
@@ -58,7 +58,7 @@ struct Storage {
 		metaAlloc = a;
 		allSymbols = as;
 		allUris = au;
-		mapAlloc_ = newAlloc(AllocName.storage, metaAlloc);
+		mapAlloc_ = newAlloc(AllocKind.storage, metaAlloc);
 	}
 
 	private:
@@ -131,7 +131,7 @@ void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentCont
 
 void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentContentChangeEvent change) {
 	FileInfo info = fileOrDiag(a, uri).as!FileInfo;
-	withTempAlloc(AllocName.storageChangeFile, a.metaAlloc, (ref Alloc alloc) {
+	withTempAlloc(AllocKind.storageChangeFile, a.metaAlloc, (ref Alloc alloc) {
 		SafeCStr newContent = applyChange(alloc, asString(info.content), info.lineAndColumnGetter, change);
 		// TODO:PERF This means an unnecessary copy in 'setFile'.
 		// Would be better to modify the array in place and force re-parse.
@@ -140,7 +140,7 @@ void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentCont
 }
 
 private AllocAndValue!FileInfo getFileInfo(scope ref Perf perf, ref Storage storage, Uri uri, in ubyte[] input) =>
-	withAlloc!FileInfo(AllocName.storageFileInfo, storage.metaAlloc, (ref Alloc alloc) @trusted {
+	withAlloc!FileInfo(AllocKind.storageFileInfo, storage.metaAlloc, (ref Alloc alloc) @trusted {
 		FileContent content = FileContent(cast(immutable) append(alloc, input, cast(ubyte) '\0'));
 		return FileInfo(
 			content,

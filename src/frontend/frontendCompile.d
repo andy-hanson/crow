@@ -22,10 +22,10 @@ import frontend.storage :
 	ParseResult,
 	ReadFileResult,
 	Storage;
-import util.alloc.alloc : Alloc, allocateUninitialized, AllocName, MemorySummary, MetaAlloc, newAlloc, summarizeMemory;
+import util.alloc.alloc : Alloc, allocateUninitialized, AllocKind, MemorySummary, MetaAlloc, newAlloc, summarizeMemory;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderTempAsArr, finishArr;
 import util.col.arrUtil : contains, exists, every, findIndex, map;
-import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd, finish, newExactSizeArrBuilder;
+import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, withExactSizeArrBuilder;
 import util.col.map : Map;
 import util.col.enumMap : EnumMap, enumMapMapValues, makeEnumMap;
 import util.col.mutMap : findInMutMap, getOrAdd, mapToMap, moveToMap, MutMap, mutMapMustGet, values;
@@ -99,12 +99,12 @@ FrontendCompiler* initFrontend(
 	Uri crowIncludeDir,
 ) {
 	return () @trusted {
-		Alloc alloc = newAlloc(AllocName.frontend, metaAlloc);
+		Alloc alloc = newAlloc(AllocKind.frontend, metaAlloc);
 		FrontendCompiler* res = allocateUninitialized!FrontendCompiler(alloc);
 		initMemory(res, FrontendCompiler(
 			alloc.move(), allSymbols, allUris, storage, crowIncludeDir,
 			makeEnumMap!(CommonModule, CrowFile*)((CommonModule _) => null),
-			ProgramState(newAlloc(AllocName.programState, metaAlloc))));
+			ProgramState(newAlloc(AllocKind.programState, metaAlloc))));
 		res.commonFiles = enumMapMapValues!(CommonModule, CrowFile*, Uri)(
 			commonUris(*allUris, crowIncludeDir), (in Uri uri) =>
 				ensureCrowFile(*res, uri));
@@ -399,21 +399,20 @@ bool isUnknownOrLoading(ReadFileDiag a) {
 	}
 }
 
-MostlyResolvedImport[] resolveImports(ref FrontendCompiler a, in FileAst ast, in Config config, Uri uri) {
-	ExactSizeArrBuilder!MostlyResolvedImport res = newExactSizeArrBuilder!MostlyResolvedImport(
-		a.alloc, countImportsAndReExports(ast));
-	if (!ast.noStd)
-		exactSizeArrBuilderAdd!MostlyResolvedImport(res, MostlyResolvedImport(a.commonFiles[CommonModule.std]));
-	if (has(ast.imports)) {
-		foreach (ImportOrExportAst x; force(ast.imports).paths)
-			exactSizeArrBuilderAdd!MostlyResolvedImport(res, tryResolveImport(a, config, uri, x));
-	}
-	if (has(ast.reExports)) {
-		foreach (ImportOrExportAst x; force(ast.reExports).paths)
-			exactSizeArrBuilderAdd!MostlyResolvedImport(res, tryResolveImport(a, config, uri, x));
-	}
-	return finish(res);
-}
+MostlyResolvedImport[] resolveImports(ref FrontendCompiler a, in FileAst ast, in Config config, Uri uri) =>
+	withExactSizeArrBuilder!MostlyResolvedImport(
+		a.alloc,
+		countImportsAndReExports(ast),
+		(scope ref ExactSizeArrBuilder!MostlyResolvedImport res) {
+			if (!ast.noStd)
+				res ~= MostlyResolvedImport(a.commonFiles[CommonModule.std]);
+			if (has(ast.imports))
+				foreach (ImportOrExportAst x; force(ast.imports).paths)
+					res ~= tryResolveImport(a, config, uri, x);
+			if (has(ast.reExports))
+				foreach (ImportOrExportAst x; force(ast.reExports).paths)
+					res ~= tryResolveImport(a, config, uri, x);
+		});
 
 size_t countImportsAndReExports(in FileAst a) =>
 	(a.noStd ? 0 : 1) +

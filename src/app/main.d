@@ -57,7 +57,7 @@ import model.model : hasAnyDiagnostics, Program;
 version (Test) {
 	import test.test : test;
 }
-import util.alloc.alloc : Alloc, AllocName, newAlloc, withTempAllocImpure;
+import util.alloc.alloc : Alloc, AllocKind, newAlloc, withTempAllocImpure;
 import util.col.arrUtil : prepend;
 import util.col.str : CStr, mustStripPrefix, SafeCStr, safeCStr, safeCStrIsEmpty, safeCStrSize;
 import util.exitCode : ExitCode;
@@ -85,7 +85,7 @@ import versionInfo : versionInfoForJIT;
 	setIncludeDir(&server, childUri(server.allUris, getCrowDir(server.allUris), sym!"include"));
 	setCwd(server, cwd);
 	setShowOptions(server, ShowOptions(true));
-	Alloc alloc = newAlloc(AllocName.main, server.metaAlloc);
+	Alloc alloc = newAlloc(AllocKind.main, server.metaAlloc);
 	Command command = parseCommand(alloc, server.allUris, cwd, cast(SafeCStr[]) argv[1 .. argc]);
 	int res = go(perf, alloc, server, command).value;
 	if (perfEnabled)
@@ -96,7 +96,7 @@ import versionInfo : versionInfoForJIT;
 private:
 
 @trusted ExitCode runLsp(ref Server server) {
-	withTempAllocImpure!void(AllocName.other, server.metaAlloc, (ref Alloc alloc) @trusted {
+	withTempAllocImpure!void(AllocKind.other, server.metaAlloc, (ref Alloc alloc) @trusted {
 		fprintf(stderr, "Crow version %s\nRunning language server protocol\n", version_(alloc, server).ptr);
 		fprintf(stderr, "Running language server protocol\n");
 	});
@@ -106,7 +106,7 @@ private:
 	while (true) {
 		//TODO: track perf for each message/response
 		Opt!ExitCode stop = withNullPerf!(Opt!ExitCode, (scope ref Perf perf) =>
-			withTempAllocImpure!(Opt!ExitCode)(AllocName.handleLspMessage, server.metaAlloc, (ref Alloc alloc) {
+			withTempAllocImpure!(Opt!ExitCode)(AllocKind.handleLspMessage, server.metaAlloc, (ref Alloc alloc) {
 				LspInMessage message = readIn(alloc, server.allSymbols, server.allUris);
 				scope CbHandleUnknownUris dg = () {
 					loadUntilNoUnknownUris(perf, server);
@@ -159,7 +159,7 @@ void loadAllFiles(scope ref Perf perf, ref Server server, in Uri[] rootUris) {
 
 void loadUntilNoUnknownUris(scope ref Perf perf, ref Server server) {
 	while (filesState(server) != FilesState.allLoaded) {
-		withTempAllocImpure(AllocName.other, server.metaAlloc, (ref Alloc alloc) {
+		withTempAllocImpure(AllocKind.other, server.metaAlloc, (ref Alloc alloc) {
 			foreach (Uri uri; allUnknownUris(alloc, server))
 				loadSingleFile(perf, server, uri);
 		});
@@ -167,13 +167,13 @@ void loadUntilNoUnknownUris(scope ref Perf perf, ref Server server) {
 }
 
 void loadSingleFile(scope ref Perf perf, ref Server server, Uri uri) {
-	withTempAllocImpure(AllocName.other, server.metaAlloc, (ref Alloc alloc) {
+	withTempAllocImpure(AllocKind.other, server.metaAlloc, (ref Alloc alloc) {
 		setFile(perf, server, uri, tryReadFile(alloc, server.allUris, uri));
 	});
 }
 
 @trusted void logPerf(scope ref Server server, in Perf perf) {
-	withTempAllocImpure!void(AllocName.other, server.metaAlloc, (ref Alloc alloc) @trusted {
+	withTempAllocImpure!void(AllocKind.other, server.metaAlloc, (ref Alloc alloc) @trusted {
 		printf("%s\n", jsonToString(alloc, server.allSymbols, serverSummarizeMemory(alloc, server)).ptr);
 	});
 

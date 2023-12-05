@@ -29,7 +29,7 @@ struct Hasher {
 	// murmur wants to take it 128 bits at a time but 'mix' only takes 64 bits.
 	MutOpt!ulong firstHalf;
 
-	public void opOpAssign(string op, T)(in T a) scope if (op == "~") {
+	public void opOpAssign(string op : "~", T)(in T a) scope{
 		static if (is(T == P*, P))
 			mix(cast(size_t) a);
 		else
