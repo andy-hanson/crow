@@ -96,7 +96,6 @@ import util.col.arr : empty, only;
 import util.col.arrBuilder : buildArray;
 import util.col.arrUtil : allSame, contains, find, fold, zip, zipIn;
 import util.col.hashTable : mustGet;
-import util.col.map : mustGetAt;
 import util.col.mutMaxArr : mutMaxArr, MutMaxArr, push, tempAsArr;
 import util.opt : force, has, none, Opt, optEqual, some;
 import util.ptr : ptrTrustMe;
@@ -534,7 +533,7 @@ void withRecordFieldFunctions(
 }
 
 immutable(FunDecl*)[] funsNamed(in Module* module_, Sym name) =>
-	mustGetAt(module_.allExportedNames, name).funs;
+	mustGet(module_.allExportedNames, name).funs;
 
 bool isRecordFieldFunction(in FunBody a) =>
 	a.isA!(FunBody.RecordFieldGet) || a.isA!(FunBody.RecordFieldPointer) || a.isA!(FunBody.RecordFieldSet);

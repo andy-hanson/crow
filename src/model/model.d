@@ -993,7 +993,7 @@ Visibility visibility(ref StructOrAlias a) =>
 		(ref StructAlias x) => x.visibility,
 		(ref StructDecl x) => x.visibility);
 
-Sym name(ref StructOrAlias a) =>
+Sym structOrAliasName(ref StructOrAlias a) =>
 	a.match!Sym(
 		(ref StructAlias x) => x.name,
 		(ref StructDecl x) => x.name);
@@ -1031,7 +1031,7 @@ immutable struct Module {
 	FunDecl[] funs;
 	Test[] tests;
 	// Includes re-exports
-	Map!(Sym, NameReferents) allExportedNames;
+	HashTable!(NameReferents, Sym, nameFromNameReferents) allExportedNames;
 
 	UriAndRange range() scope =>
 		UriAndRange.topOfFile(uri);
@@ -1123,6 +1123,12 @@ immutable struct NameReferents {
 	Opt!(SpecDecl*) spec;
 	FunDecl*[] funs;
 }
+Sym nameFromNameReferents(in NameReferents a) =>
+	has(a.structOrAlias)
+		? structOrAliasName(force(a.structOrAlias))
+		: has(a.spec)
+		? force(a.spec).name
+		: a.funs[0].name;
 
 enum FunKind {
 	fun,

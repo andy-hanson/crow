@@ -45,7 +45,6 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSort, finishArr;
 import util.col.arrUtil : exists, indexOf, map, mapOp;
-import util.col.map : values;
 import util.col.str : SafeCStr;
 import util.json :
 	field,
@@ -83,7 +82,7 @@ Json documentModule(
 	in Module a,
 ) {
 	ArrBuilder!DocExport exports; // TODO: no alloc
-	foreach (NameReferents referents; values(a.allExportedNames)) {
+	foreach (NameReferents referents; a.allExportedNames) {
 		if (has(referents.structOrAlias) && visibility(force(referents.structOrAlias)) == Visibility.public_)
 			add(alloc, exports, documentStructOrAlias(alloc, force(referents.structOrAlias)));
 		if (has(referents.spec) && force(referents.spec).visibility == Visibility.public_)

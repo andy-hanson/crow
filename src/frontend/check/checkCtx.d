@@ -10,6 +10,7 @@ import model.model :
 	ImportOrExport,
 	ImportOrExportKind,
 	Module,
+	nameFromNameReferents,
 	NameReferents,
 	okIfUnused,
 	range,
@@ -22,7 +23,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : ptrsRange;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : contains, exists;
-import util.col.map : existsInMap;
+import util.col.hashTable : existsInHashTable;
 import util.col.mutSet : mayAddToMutSet, MutSet, mutSetHas;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
@@ -116,9 +117,8 @@ private void checkUnusedImports(ref CheckCtx ctx) {
 }
 
 private bool isUsedModuleWhole(in CheckCtx ctx, in Module module_) =>
-	existsInMap!(Sym, NameReferents)(
-		module_.allExportedNames, (in Sym _, in NameReferents x) =>
-			containsUsed(x, ctx.used));
+	existsInHashTable!(NameReferents, Sym, nameFromNameReferents)(module_.allExportedNames, (in NameReferents x) =>
+		containsUsed(x, ctx.used));
 
 private bool isUsedNamedImport(in CheckCtx ctx, in Module module_, Sym name) {
 	Opt!NameReferents opt = module_.allExportedNames[name];

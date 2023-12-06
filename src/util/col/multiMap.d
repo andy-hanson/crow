@@ -4,7 +4,7 @@ module util.col.multiMap;
 
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.map : Map, mapToArray, KeyValuePair, values;
+import util.col.map : Map, mapToArray, values;
 import util.col.mutMap : getOrAdd, mapToMap, MutMap, MutMapValues;
 import util.opt : force, has, Opt;
 
@@ -37,18 +37,6 @@ MultiMap!(K, V) makeMultiMap(K, V)(
 	});
 	return toMultiMap!(K, V)(alloc, builder);
 }
-
-MultiMap!(K, V) buildMultiMap(K, V, T)(
-	ref Alloc alloc,
-	T[] inputs,
-	in KeyValuePair!(K, V) delegate(size_t, T*) @safe @nogc pure nothrow getPair,
-) =>
-	makeMultiMap!(K, V)(alloc, (in MultiMapCb!(K, V) cb) {
-		foreach (size_t i; 0 .. inputs.length) {
-			KeyValuePair!(K, V) pair = getPair(i, &inputs[i]);
-			cb(pair.key, pair.value);
-		}
-	});
 
 private MultiMap!(K, V) toMultiMap(K, V)(ref Alloc alloc, ref MutMap!(K, ArrBuilder!V) builder) =>
 	MultiMap!(K, V)(

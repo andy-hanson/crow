@@ -87,13 +87,6 @@ Map!(K, V) makeMapFromKeys(K, V)(
 @trusted immutable(V) mustGetAt(K, V)(Map!(K, V) a, in K key) =>
 	mutMapMustGet(a.inner, key);
 
-bool existsInMap(K, V)(in Map!(K, V) a, in bool delegate(in K, in V) @safe @nogc pure nothrow cb) {
-	foreach (immutable K key, ref immutable V value; a)
-		if (cb(key, value))
-			return true;
-	return false;
-}
-
 Out[] mapToArray(Out, K, V)(
 	ref Alloc alloc,
 	in Map!(K, V) a,

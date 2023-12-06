@@ -153,8 +153,10 @@ void eachFunInScope(in FunsInScope a, Sym funName, in void delegate(CalledDecl) 
 	foreach (SpecInst* specInst; a.outermostFunSpecs)
 		eachFunInScopeForSpec(specInst, totalIndex, funName, cb);
 
-	foreach (FunDecl* f; a.funsMap[funName])
-		cb(CalledDecl(f));
+	Opt!(immutable FunDecl*[]) funs = a.funsMap[funName];
+	if (has(funs))
+		foreach (FunDecl* f; force(funs))
+			cb(CalledDecl(f));
 
 	eachImportAndReExport(a.importsAndReExports, funName, (in NameReferents x) {
 		foreach (FunDecl* f; x.funs)

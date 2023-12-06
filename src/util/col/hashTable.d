@@ -96,9 +96,8 @@ ValueAndDidAdd!(T) getOrAddAndDidAdd(T, K, alias getKey)(
 	return ValueAndDidAdd!T(res, a.size_ != sizeBefore);
 }
 
-void mayAdd(T, K, alias getKey)(ref Alloc alloc, scope ref HashTable!(T, K, getKey) a, T value) {
-	getOrAdd(alloc, a, getKey(value), () => value);
-}
+bool mayAdd(T, K, alias getKey)(ref Alloc alloc, scope ref HashTable!(T, K, getKey) a, T value) =>
+	getOrAddAndDidAdd(alloc, a, getKey(value), () => value).didAdd;
 
 ref T mustAdd(T, K, alias getKey)(ref Alloc alloc, return scope ref HashTable!(T, K, getKey) a, T value) {
 	if (shouldExpandBeforeAdd(a))
@@ -255,6 +254,27 @@ immutable(HashTable!(Out, K, getKeyOut)) mapPreservingKeys(Out, alias getKeyOut,
 			return cast(immutable) noneMut!Out;
 	});
 	return immutable HashTable!(Out, K, getKeyOut)(a.size_, outValues);
+}
+
+@trusted immutable(HashTable!(Out, K, getKeyOut)) mapAndMovePreservingKeys(Out, alias getKeyOut, In, K, alias getKey)(
+	ref Alloc alloc,
+	ref HashTable!(In, K, getKey) a,
+	in Out delegate(ref In) @safe @nogc pure nothrow cb,
+) {
+	static assert(Out.sizeof <= In.sizeof);
+	MutOpt!Out* out_ = cast(MutOpt!Out*) a.values.ptr;
+	foreach (MutOpt!In x; a.values) {
+		initMemory(out_, has(x) ? someMut!Out(cb(force(x))) : noneMut!Out);
+		out_++;
+	}
+	immutable HashTable!(Out, K, getKeyOut) res = immutable HashTable!(Out, K, getKeyOut)(
+		a.size_,
+		cast(immutable) arrayOfRange!(MutOpt!Out)(cast(MutOpt!Out*) a.values.ptr, out_));
+	MutOpt!In[] remaining = arrayOfRange(cast(MutOpt!In*) out_, endPtr(a.values));
+	freeElements(alloc, remaining);
+	a.size_ = 0;
+	a.values = [];
+	return res;
 }
 
 bool existsInHashTable(T, K, alias getKey)(

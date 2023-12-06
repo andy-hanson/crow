@@ -7,7 +7,7 @@ import frontend.check.checkCtx :
 import frontend.check.checkExpr : checkFunctionBody;
 import frontend.check.checkStructs : checkStructBodies, checkStructsInitial;
 import frontend.check.getCommonTypes : getCommonTypes;
-import frontend.check.maps : FunsMap, SpecsMap, StructsAndAliasesMap;
+import frontend.check.maps : funDeclsName, FunsMap, specDeclName, SpecsMap, StructsAndAliasesMap;
 import frontend.check.funsForStruct : addFunsForStruct, addFunsForVar, countFunsForStructs, countFunsForVars;
 import frontend.check.instantiate :
 	DelaySpecInsts,
@@ -62,6 +62,7 @@ import model.model :
 	linkageRange,
 	Module,
 	name,
+	nameFromNameReferents,
 	NameReferents,
 	Params,
 	paramsArray,
@@ -76,6 +77,7 @@ import model.model :
 	StructDecl,
 	StructInst,
 	StructOrAlias,
+	structOrAliasName,
 	target,
 	Test,
 	Type,
@@ -88,14 +90,11 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : empty, emptySmallArray, only, ptrsRange, small;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.arrBuilder : add, ArrBuilder, arrBuilderTempAsArr, finishArr;
 import util.col.arrUtil : concatenate, filter, map, mapOp, mapToMut, mapPointers, zip, zipPointers;
-import util.col.map : Map, KeyValuePair, values;
-import util.col.mapBuilder : MapBuilder, finishMap, tryAddToMap;
 import util.col.exactSizeArrBuilder : buildArrayExact, ExactSizeArrBuilder;
-import util.col.multiMap : buildMultiMap, values;
+import util.col.hashTable : HashTable, insertOrUpdate, mapAndMovePreservingKeys, mayAdd, moveToImmutable;
 import util.col.mutArr : mustPop, mutArrIsEmpty;
-import util.col.mutMap : insertOrUpdate, moveToMap, MutMap;
 import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, mutMaxArrSize, push, pushIfUnderMaxSize, toArray;
 import util.col.str : copySafeCStr;
 import util.memory : allocate;
@@ -364,14 +363,14 @@ void checkStructAliasTargets(
 }
 
 StructsAndAliasesMap buildStructsAndAliasesMap(ref CheckCtx ctx, StructDecl[] structs, StructAlias[] aliases) {
-	MapBuilder!(Sym, StructOrAlias) builder;
+	HashTable!(StructOrAlias, Sym, structOrAliasName) builder;
 	foreach (StructDecl* decl; ptrsRange(structs))
 		addToDeclsMap!StructOrAlias(
 			ctx, builder, StructOrAlias(decl), Diag.DuplicateDeclaration.Kind.structOrAlias, () => range(*decl));
 	foreach (StructAlias* alias_; ptrsRange(aliases))
 		addToDeclsMap!StructOrAlias(
 			ctx, builder, StructOrAlias(alias_), Diag.DuplicateDeclaration.Kind.structOrAlias, () => range(*alias_));
-	return finishMap(ctx.alloc, builder);
+	return moveToImmutable(builder);
 }
 
 VarDecl checkVarDecl(
@@ -415,16 +414,15 @@ Opt!Sym checkVarModifiers(ref CheckCtx ctx, in FunModifierAst[] modifiers) {
 	return cellGet(externLibraryName);
 }
 
-void addToDeclsMap(T)(
+void addToDeclsMap(T, alias getName)(
 	ref CheckCtx ctx,
-	ref MapBuilder!(Sym, T) builder,
+	scope ref HashTable!(T, Sym, getName) builder,
 	T added,
 	Diag.DuplicateDeclaration.Kind kind,
 	in UriAndRange delegate() @safe @nogc pure nothrow getRange,
 ) {
-	Opt!T old = tryAddToMap(ctx.alloc, builder, added.name, added);
-	if (has(old))
-		addDiag(ctx, getRange(), Diag(Diag.DuplicateDeclaration(kind, added.name)));
+	if (!mayAdd(ctx.alloc, builder, added))
+		addDiag(ctx, getRange(), Diag(Diag.DuplicateDeclaration(kind, getName(added))));
 }
 
 immutable struct FunsAndMap {
@@ -595,8 +593,7 @@ FunsAndMap checkFuns(
 				addFunsForVar(ctx, funsBuilder, commonTypes, var);
 		});
 
-	FunsMap funsMap = buildMultiMap!(Sym, immutable FunDecl*, FunDecl)(
-		ctx.alloc, funs, (size_t index, FunDecl* x) => KeyValuePair!(Sym, immutable FunDecl*)(x.name, x));
+	FunsMap funsMap = buildFunsMap(ctx.alloc, funs);
 
 	FunDecl[] funsWithAsts = funs[0 .. asts.length];
 	zipPointers!(FunDecl, FunDeclAst)(funsWithAsts, asts, (FunDecl* fun, FunDeclAst* funAst) {
@@ -652,6 +649,31 @@ FunsAndMap checkFuns(
 
 	return FunsAndMap(funs, tests, funsMap);
 }
+
+FunsMap buildFunsMap(ref Alloc alloc, in immutable FunDecl[] funs) {
+	HashTable!(ArrBuilder!(immutable FunDecl*), Sym, funDeclsBuilderName) res;
+	foreach (FunDecl* fun; ptrsRange(funs)) {
+		insertOrUpdate(
+			alloc,
+			res,
+			fun.name,
+			() {
+				ArrBuilder!(immutable FunDecl*) builder;
+				add(alloc, builder, fun);
+				return builder;
+			},
+			(ref ArrBuilder!(immutable FunDecl*) builder) {
+				add(alloc, builder, fun);
+				return builder;
+			});
+	}
+	return mapAndMovePreservingKeys!(
+		immutable FunDecl*[], funDeclsName, ArrBuilder!(immutable FunDecl*), Sym, funDeclsBuilderName,
+	)(alloc, res, (ref ArrBuilder!(immutable FunDecl*) x) =>
+		finishArr(alloc, x));
+}
+Sym funDeclsBuilderName(in ArrBuilder!(immutable FunDecl*) a) =>
+	arrBuilderTempAsArr(a)[0].name;
 
 Opt!TypeAst getExternTypeArg(ref FunDeclAst a, FunModifierAst.Special.Flags externOrGlobalFlag) {
 	foreach (ref FunModifierAst modifier; a.modifiers) {
@@ -764,10 +786,10 @@ Sym externLibraryNameFromTypeArg(ref CheckCtx ctx, in Range range, in Opt!TypeAs
 }
 
 SpecsMap buildSpecsMap(ref CheckCtx ctx, SpecDecl[] specs) {
-	MapBuilder!(Sym, immutable SpecDecl*) res;
+	HashTable!(immutable SpecDecl*, Sym, specDeclName) builder;
 	foreach (SpecDecl* spec; ptrsRange(specs))
-		addToDeclsMap(ctx, res, spec, Diag.DuplicateDeclaration.Kind.spec, () => range(*spec));
-	return finishMap(ctx.alloc, res);
+		addToDeclsMap(ctx, builder, spec, Diag.DuplicateDeclaration.Kind.spec, () => range(*spec));
+	return moveToImmutable(builder);
 }
 
 Module* checkWorkerAfterCommonTypes(
@@ -814,78 +836,75 @@ Module* checkWorkerAfterCommonTypes(
 			ctx, importsAndReExports.moduleReExports, structsAndAliasesMap, specsMap, funsAndMap.funsMap)));
 }
 
-Map!(Sym, NameReferents) getAllExportedNames(
+immutable(HashTable!(NameReferents, Sym, nameFromNameReferents)) getAllExportedNames(
 	ref CheckCtx ctx,
 	in ImportOrExport[] reExports,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in SpecsMap specsMap,
 	in FunsMap funsMap,
 ) {
-	MutMap!(Sym, NameReferents) res;
-	void addExport(Sym name, NameReferents cur, Range delegate() @safe @nogc pure nothrow range) {
-		insertOrUpdate!(Sym, NameReferents)(
+	HashTable!(NameReferents, Sym, nameFromNameReferents) res;
+	void addExport(NameReferents toAdd, Range delegate() @safe @nogc pure nothrow range) {
+		insertOrUpdate!(NameReferents, Sym, nameFromNameReferents)(
 			ctx.alloc,
 			res,
-			name,
-			() => cur,
-			(in NameReferents prev) {
-				Opt!(Diag.DuplicateExports.Kind) kind = has(prev.structOrAlias) && has(cur.structOrAlias)
+			nameFromNameReferents(toAdd),
+			() => toAdd,
+			(ref NameReferents prev) {
+				Opt!(Diag.DuplicateExports.Kind) kind = has(prev.structOrAlias) && has(toAdd.structOrAlias)
 					? some(Diag.DuplicateExports.Kind.type)
-					: has(prev.spec) && has(cur.spec)
+					: has(prev.spec) && has(toAdd.spec)
 					? some(Diag.DuplicateExports.Kind.spec)
 					: none!(Diag.DuplicateExports.Kind);
 				if (has(kind))
-					addDiag(ctx, range(), Diag(Diag.DuplicateExports(force(kind), name)));
+					addDiag(ctx, range(), Diag(Diag.DuplicateExports(force(kind), nameFromNameReferents(toAdd))));
 				return NameReferents(
-					has(prev.structOrAlias) ? prev.structOrAlias : cur.structOrAlias,
-					has(prev.spec) ? prev.spec : cur.spec,
-					concatenate(ctx.alloc, prev.funs, cur.funs));
+					has(prev.structOrAlias) ? prev.structOrAlias : toAdd.structOrAlias,
+					has(prev.spec) ? prev.spec : toAdd.spec,
+					concatenate(ctx.alloc, prev.funs, toAdd.funs));
 			});
 	}
 
 	foreach (ref ImportOrExport e; reExports)
 		e.kind.matchIn!void(
 			(in ImportOrExportKind.ModuleWhole m) {
-				foreach (Sym name, NameReferents referents; m.module_.allExportedNames)
-					addExport(name, referents, () => pathRange(ctx.allUris, *force(e.source)));
+				foreach (NameReferents referents; m.module_.allExportedNames)
+					addExport(referents, () => pathRange(ctx.allUris, *force(e.source)));
 			},
 			(in ImportOrExportKind.ModuleNamed m) {
 				foreach (Sym name; m.names) {
 					Opt!NameReferents value = m.module_.allExportedNames[name];
 					if (has(value))
-						addExport(name, force(value), () => pathRange(ctx.allUris, *force(e.source)));
+						addExport(force(value), () => pathRange(ctx.allUris, *force(e.source)));
 				}
 			});
-	foreach (StructOrAlias x; values(structsAndAliasesMap))
+	foreach (StructOrAlias x; structsAndAliasesMap)
 		final switch (visibility(x)) {
 			case Visibility.private_:
 				break;
 			case Visibility.internal:
 			case Visibility.public_:
-				addExport(name(x), NameReferents(some(x), none!(SpecDecl*), []), () => range(x).range);
+				addExport(NameReferents(some(x), none!(SpecDecl*), []), () => range(x).range);
 				break;
 		}
-	foreach (immutable SpecDecl* x; values(specsMap))
+	foreach (immutable SpecDecl* x; specsMap)
 		final switch (x.visibility) {
 			case Visibility.private_:
 				break;
 			case Visibility.internal:
 			case Visibility.public_:
-				addExport(x.name, NameReferents(none!StructOrAlias, some(x), []), () => range(*x).range);
+				addExport(NameReferents(none!StructOrAlias, some(x), []), () => range(*x).range);
 				break;
 		}
-	foreach (immutable FunDecl*[] funs; values(funsMap)) {
+	foreach (immutable FunDecl*[] funs; funsMap) {
 		immutable FunDecl*[] funDecls = filter!(immutable FunDecl*)(ctx.alloc, funs, (in immutable FunDecl* x) =>
 			x.visibility != Visibility.private_);
 		if (!empty(funDecls))
-			addExport(
-				funDecls[0].name,
-				NameReferents(none!StructOrAlias, none!(SpecDecl*), funDecls),
-				// This argument doesn't matter because a function never results in a duplicate export error
-				() => Range.empty);
+			// Last argument doesn't matter because a function never results in a duplicate export error
+			addExport(NameReferents(none!StructOrAlias, none!(SpecDecl*), funDecls), () => Range.empty);
 	}
 
-	return moveToMap!(Sym, NameReferents)(ctx.alloc, res);
+	return moveToImmutable(res);
 }
 
 BootstrapCheck checkWorker(
