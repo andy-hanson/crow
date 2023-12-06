@@ -5,23 +5,25 @@ module util.col.enumMap;
 import std.meta : staticMap;
 import std.traits : EnumMembers;
 import util.opt : none, Opt, some;
+import util.util : assertNormalEnum;
 
 struct EnumMap(E, V) {
-	@safe @nogc pure nothrow:
-
-	int opApply(in int delegate(immutable V) @safe @nogc pure nothrow cb) immutable {
+	int opApply(in int delegate(E, ref immutable V) @safe @nogc nothrow cb) scope immutable {
 		foreach (E e; cast(E) 0 .. cast(E) size) {
-			int x = cb(this[e]);
-			assert(x == 0);
+			int res = cb(e, this[e]);
+			if (res != 0) return res;
 		}
 		return 0;
 	}
+
+	@safe @nogc nothrow: // not pure
 
 	enum size = EnumMembers!E.length;
 	static foreach (size_t i; 0 .. size)
 		static assert(Members[i] == i);
 
 	this(inout V[size] values) inout {
+		assertNormalEnum!E;
 		static foreach (size_t i; 0 .. size)
 			mixin("value", i, " = values[", i, "];");
 	}
@@ -32,6 +34,21 @@ struct EnumMap(E, V) {
 				case cast(E) i:
 					mixin("return value", i, ";");
 		}
+	}
+
+	int opApply(in int delegate(E, ref immutable V) @safe @nogc pure nothrow cb) scope immutable {
+		foreach (E e; cast(E) 0 .. cast(E) size) {
+			int res = cb(e, this[e]);
+			if (res != 0) return res;
+		}
+		return 0;
+	}
+	int opApply(in int delegate(E, ref const V) @safe @nogc pure nothrow cb) scope const {
+		foreach (E e; cast(E) 0 .. cast(E) size) {
+			int res = cb(e, this[e]);
+			if (res != 0) return res;
+		}
+		return 0;
 	}
 
 	private:
@@ -45,11 +62,6 @@ struct EnumMap(E, V) {
 EnumMap!(E, V) makeEnumMap(E, V)(in V delegate(E) @safe @nogc pure nothrow cb) {
 	V getAt(E e)() => cb(e);
 	return EnumMap!(E, V)([staticMap!(getAt, EnumMembers!E)]);
-}
-
-void enumMapEach(E, V)(in EnumMap!(E, V) a, in void delegate(E, in V) @safe @nogc pure nothrow cb) {
-	foreach (E e; cast(E) 0 .. cast(E) a.size)
-		cb(e, a[e]);
 }
 
 Opt!E enumMapFindKey(E, V)(in EnumMap!(E, V) a, in bool delegate(in V) @safe @nogc pure nothrow cb) {

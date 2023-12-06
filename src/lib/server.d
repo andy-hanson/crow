@@ -6,13 +6,7 @@ import backend.writeToC : writeToC;
 import concretize.concretize : concretize;
 import document.document : documentJSON;
 import frontend.frontendCompile :
-	FrontendCompiler,
-	frontendSummarizeMemory,
-	getFileContents,
-	initFrontend,
-	makeProgramForRoots,
-	makeProgramForMain,
-	onFileChanged;
+	FrontendCompiler, getFileContents, initFrontend, makeProgramForRoots, makeProgramForMain, onFileChanged;
 import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
 import frontend.ide.getDefinition : getDefinitionForPosition;
 import frontend.ide.getHover : getHover;
@@ -40,7 +34,6 @@ import frontend.storage :
 	ReadFileResult,
 	setFile,
 	Storage,
-	summarizeMemory,
 	toLineAndCharacter;
 import interpret.bytecode : ByteCode;
 import interpret.extern_ : Extern, ExternFunPtrsForAllLibraries, WriteError;
@@ -101,40 +94,26 @@ import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
 import model.lowModel : ExternLibraries, LowProgram;
 import model.model : hasFatalDiagnostics, Module, Program;
-import util.alloc.alloc :
-	Alloc,
-	AllocKind,
-	AllocKindMemorySummary,
-	freeElements,
-	MemorySummary,
-	MetaAlloc,
-	MetaMemorySummary,
-	newAlloc,
-	summarizeMemory,
-	totalBytes;
+import util.alloc.alloc : Alloc, AllocKind, freeElements, MetaAlloc, newAlloc, withTempAllocImpure;
 import util.col.arr : only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrLiteral, concatenate, contains, map, mapOp;
-import util.col.enumMap : enumMapEach;
-import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, withExactSizeArrBuilder;
 import util.col.str : copyStr, SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
 import util.exitCode : ExitCode;
-import util.json : field, Json, jsonNull, jsonObject;
+import util.json : Json, jsonNull;
 import util.late : Late, lateGet, lateSet, MutLate;
 import util.lineAndColumnGetter : UriLineAndColumn;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
 import util.sourceRange : UriAndRange;
-import util.sym : AllSymbols, summarizeMemory;
-import util.uri : AllUris, getExtension, summarizeMemory, Uri, UrisInfo;
-import util.util : stringOfEnum;
+import util.sym : AllSymbols;
+import util.uri : AllUris, getExtension, Uri, UrisInfo;
 import util.writer : withWriter, Writer;
 import versionInfo : VersionInfo, versionInfoForBuildToC, versionInfoForInterpret;
 
 ExitCode buildAndInterpret(
 	scope ref Perf perf,
-	ref Alloc alloc,
 	ref Server server,
 	in Extern extern_,
 	in WriteError writeError,
@@ -142,27 +121,32 @@ ExitCode buildAndInterpret(
 	in SafeCStr[] allArgs,
 ) {
 	assert(filesState(server) == FilesState.allLoaded);
-	Programs programs = buildToLowProgram(perf, alloc, server, versionInfoForInterpret, main);
-	SafeCStr diags = showDiagnostics(alloc, server, programs.program);
-	if (!safeCStrIsEmpty(diags))
-		writeError(diags);
-	if (!has(programs.lowProgram))
-		return ExitCode.error;
-	else {
-		LowProgram lowProgram = force(programs.lowProgram);
-		Opt!ExternFunPtrsForAllLibraries externFunPtrs =
-			extern_.loadExternFunPtrs(lowProgram.externLibraries, writeError);
-		if (has(externFunPtrs)) {
-			ByteCode byteCode = generateBytecode(
-				perf, alloc, server.allSymbols,
-				programs.program, lowProgram, force(externFunPtrs), extern_.makeSyntheticFunPtrs);
-			ShowCtx printCtx = getShowDiagCtx(server, programs.program);
-			return ExitCode(runBytecode(perf, alloc, printCtx, extern_.doDynCall, lowProgram, byteCode, allArgs));
-		} else {
-			writeError(safeCStr!"Failed to load external libraries\n");
+	return withTempAllocImpure!ExitCode(server.metaAlloc, AllocKind.buildToLowProgram, (ref Alloc buildAlloc) {
+		Programs programs = buildToLowProgram(perf, buildAlloc, server, versionInfoForInterpret, main);
+		SafeCStr diags = showDiagnostics(buildAlloc, server, programs.program);
+		if (!safeCStrIsEmpty(diags))
+			writeError(diags);
+		if (!has(programs.lowProgram))
 			return ExitCode.error;
+		else {
+			LowProgram lowProgram = force(programs.lowProgram);
+			Opt!ExternFunPtrsForAllLibraries externFunPtrs =
+				extern_.loadExternFunPtrs(lowProgram.externLibraries, writeError);
+			if (has(externFunPtrs))
+				return withTempAllocImpure!ExitCode(server.metaAlloc, AllocKind.interpreter, (ref Alloc bytecodeAlloc) {
+					ByteCode byteCode = generateBytecode(
+						perf, bytecodeAlloc, server.allSymbols,
+						programs.program, lowProgram, force(externFunPtrs), extern_.makeSyntheticFunPtrs);
+					ShowCtx printCtx = getShowDiagCtx(server, programs.program);
+					return ExitCode(runBytecode(
+						perf, bytecodeAlloc, printCtx, extern_.doDynCall, lowProgram, byteCode, allArgs));
+				});
+			else {
+				writeError(safeCStr!"Failed to load external libraries\n");
+				return ExitCode.error;
+			}
 		}
-	}
+	});
 }
 
 alias CbHandleUnknownUris = void delegate() @safe @nogc nothrow;
@@ -280,7 +264,7 @@ private ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, Ur
 	SafeCStr[1] allArgs = [safeCStr!"/usr/bin/fakeExecutable"];
 	return withFakeExtern(alloc, server.allSymbols, writeCb, (scope ref Extern extern_) =>
 		buildAndInterpret(
-			perf, alloc, server, extern_,
+			perf, server, extern_,
 			(in SafeCStr x) {
 				writeCb(Pipe.stderr, strOfSafeCStr(x));
 			},
@@ -333,59 +317,6 @@ private struct LspState {
 	ref inout(Alloc) stateAlloc() return scope inout =>
 		*stateAllocPtr;
 }
-
-Json serverSummarizeMemory(ref Alloc alloc, in Server server) =>
-	jsonObject(alloc, [
-		field!"allSymbols"(showMemory(alloc, summarizeMemory(server.allSymbols))),
-		field!"allUris"(showMemory(alloc, summarizeMemory(server.allUris))),
-		field!"lspState"(showMemory(alloc, summarizeMemory(server.lspState.stateAlloc))),
-		field!"storage"(showMemory(alloc, summarizeMemory(server.storage))),
-		field!"frontend"(showMemory(alloc, frontendSummarizeMemory(server.frontend))),
-		// NOTE: This will show more 'used' memory than above because leftover memory in allocs counts as 'used'
-		field!"total"(showTotalMemory(alloc, summarizeMemory(server.metaAlloc_)))]);
-
-private Json showTotalMemory(ref Alloc alloc, in MetaMemorySummary a) {
-	Json byAllocKind = Json(withExactSizeArrBuilder!(Json.StringObjectField)(
-		alloc, a.byAllocKind.size,
-		(scope ref ExactSizeArrBuilder!(Json.StringObjectField) builder) {
-			enumMapEach!(AllocKind, AllocKindMemorySummary)(
-				a.byAllocKind,
-				(AllocKind kind, in AllocKindMemorySummary x) {
-					builder ~= Json.StringObjectField(stringOfEnum(kind), showMemory(alloc, x));
-				});
-		}));
-	return jsonObject(alloc, [
-		field!"byAlloc"(byAllocKind),
-		field!"total"(showMemory(alloc, a.total))]);
-}
-
-private Json showMemory(ref Alloc alloc, in AllocKindMemorySummary a) =>
-	jsonObject(alloc, [
-		field!"usedandfree"(showMemoryAmount(alloc, a.usedAndFreeBytes)),
-		field!"overhead"(showMemoryAmount(alloc, a.overheadBytes))]);
-
-private Json showMemory(ref Alloc alloc, in MemorySummary a) =>
-	jsonObject(alloc, [
-		field!"used"(showMemoryAmount(alloc, a.usedBytes)),
-		field!"free"(showMemoryAmount(alloc, a.freeBytes)),
-		field!"overhead"(showMemoryAmount(alloc, a.overheadBytes)),
-		field!"total"(showMemoryAmount(alloc, totalBytes(a)))]);
-
-private SafeCStr showMemoryAmount(ref Alloc alloc, size_t bytes) =>
-	withWriter(alloc, (scope ref Writer writer) {
-		size_t KB = 0x400;
-		size_t MB = KB * KB;
-		if (bytes > MB) {
-			writer ~= bytes / MB;
-			writer ~= "MB + ";
-		}
-		if (bytes > 1024) {
-			writer ~= (bytes % MB) / KB;
-			writer ~= "KB + ";
-		}
-		writer ~= (bytes % KB);
-		writer ~= "B";
-	});
 
 SafeCStr version_(ref Alloc alloc, in Server server) =>
 	withWriter(alloc, (scope ref Writer writer) {

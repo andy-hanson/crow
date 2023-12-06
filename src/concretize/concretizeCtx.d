@@ -80,6 +80,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only, only2, sizeEq;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil : arrEqual, arrLiteral, arrMax, every, everyWithIndex, exists, fold, map, mapWithIndex, mapZip;
+import util.col.hashTable : getOrAdd, getOrAddAndDidAdd, HashTable, moveToArray;
 import util.col.map : Map, mustGetAt, values;
 import util.col.mutArr : filterUnordered, MutArr, mutArrIsEmpty, push;
 import util.col.mutMap : getOrAdd, getOrAddAndDidAdd, mustAddToMutMap, mustDelete, MutMap, ValueAndDidAdd;
@@ -128,6 +129,14 @@ private immutable struct ConcreteStructKey {
 		return hasher.finish();
 	}
 }
+
+private ConcreteStructKey getStructKey(return in ConcreteStruct* a) {
+	ConcreteStructSource.Inst inst = a.source.as!(ConcreteStructSource.Inst);
+	return ConcreteStructKey(decl(*inst.inst), inst.typeArgs);
+}
+
+private VarDecl* getVarKey(return in ConcreteVar* a) =>
+	a.source;
 
 immutable struct ConcreteFunKey {
 	@safe @nogc pure nothrow:
@@ -213,9 +222,9 @@ struct ConcretizeCtx {
 	Late!(ConcreteFun*) curExclusionFun_;
 	Late!(ConcreteFun*) char8ArrayAsString_;
 	AllConstantsBuilder allConstants;
-	MutMap!(ConcreteStructKey, ConcreteStruct*) nonLambdaConcreteStructs;
+	HashTable!(ConcreteStruct*, ConcreteStructKey, getStructKey) nonLambdaConcreteStructs;
 	ArrBuilder!(ConcreteStruct*) allConcreteStructs;
-	MutMap!(immutable VarDecl*, immutable ConcreteVar*) concreteVarLookup;
+	HashTable!(immutable ConcreteVar*, immutable VarDecl*, getVarKey) concreteVarLookup;
 	MutMap!(ConcreteFunKey, ConcreteFun*) nonLambdaConcreteFuns;
 	MutArr!DeferredRecordBody deferredRecords;
 	MutArr!DeferredUnionBody deferredUnions;
@@ -249,6 +258,9 @@ struct ConcretizeCtx {
 	ref Program program() return scope const =>
 		*programPtr;
 }
+
+immutable(ConcreteVar*[]) finishConcreteVars(ref ConcretizeCtx ctx) =>
+	moveToArray!(immutable ConcreteVar*, immutable VarDecl*, getVarKey)(ctx.alloc, ctx.concreteVarLookup);
 
 private ConcreteType bogusType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._bogusType, () {
@@ -325,7 +337,7 @@ private ConcreteType getConcreteType_forStructInst(
 	ConcreteType[] typeArgs = typesToConcreteTypes(ctx, typeArgs(*i), typeArgsScope);
 	ConcreteStructKey key = ConcreteStructKey(decl(*i), typeArgs);
 	ValueAndDidAdd!(ConcreteStruct*) res =
-		getOrAddAndDidAdd!(ConcreteStructKey, ConcreteStruct*)(
+		getOrAddAndDidAdd!(ConcreteStruct*, ConcreteStructKey, getStructKey)(
 			ctx.alloc, ctx.nonLambdaConcreteStructs, key, () {
 				Purity purity = fold!(Purity, ConcreteType)(
 					i.purityRange.bestCase, typeArgs, (Purity p, in ConcreteType ta) =>
@@ -808,7 +820,7 @@ ConcreteExpr concretizeFileImport(ref ConcretizeCtx ctx, ConcreteFun* cf, in Fun
 }
 
 ConcreteVar* getVar(ref ConcretizeCtx ctx, VarDecl* decl) =>
-	getOrAdd!(immutable VarDecl*, immutable ConcreteVar*)(ctx.alloc, ctx.concreteVarLookup, decl, () =>
+	getOrAdd!(immutable ConcreteVar*, immutable VarDecl*, getVarKey)(ctx.alloc, ctx.concreteVarLookup, decl, () =>
 		allocate(ctx.alloc, ConcreteVar(decl, getConcreteType(ctx, decl.type, TypeArgsScope()))));
 
 ulong getAllValue(ConcreteStructBody.Flags flags) =>
@@ -852,7 +864,7 @@ StructBody.Enum.Member[] enumOrFlagsMembers(ConcreteType type) {
 ConcreteFunBody bodyForAllTests(ref ConcretizeCtx ctx, ConcreteType returnType) {
 	Test[] allTests = () {
 		ArrBuilder!Test allTestsBuilder;
-		foreach (immutable Module* m; values(ctx.program.allModules))
+		foreach (immutable Module* m; ctx.program.allModules)
 			addAll(ctx.alloc, allTestsBuilder, m.tests);
 		return finishArr(ctx.alloc, allTestsBuilder);
 	}();

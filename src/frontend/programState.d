@@ -3,7 +3,7 @@ module frontend.programState;
 @safe @nogc pure nothrow:
 
 import model.model : FunDeclAndArgs, FunInst, SpecDeclAndArgs, SpecInst, StructDeclAndArgs, StructInst;
-import util.alloc.alloc : Alloc, MemorySummary, summarizeMemory;
+import util.alloc.alloc : Alloc;
 import util.col.hashTable : HashTable;
 
 struct ProgramState {
@@ -16,9 +16,6 @@ struct ProgramState {
 	ref inout(Alloc) alloc() return scope inout =>
 		*allocPtr;
 }
-
-MemorySummary summarizeMemory(in ProgramState a) =>
-	summarizeMemory(a.alloc);
 
 private:
 

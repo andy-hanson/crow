@@ -72,7 +72,7 @@ SmallArray!T emptySmallArray(T)() =>
 @trusted immutable(T[]) castImmutable(T)(T[] a) =>
 	cast(immutable) a;
 
-@system inout(T[]) arrOfRange(T)(inout T* begin, inout T* end) {
+@system inout(T[]) arrayOfRange(T)(inout T* begin, inout T* end) {
 	assert(begin <= end);
 	return begin[0 .. end - begin];
 }

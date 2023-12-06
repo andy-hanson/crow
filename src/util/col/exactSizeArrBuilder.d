@@ -19,7 +19,7 @@ struct ExactSizeArrBuilder(T) {
 	}
 }
 
-T[] withExactSizeArrBuilder(T)(
+T[] buildArrayExact(T)(
 	ref Alloc alloc,
 	size_t size,
 	in void delegate(scope ref ExactSizeArrBuilder!T) @safe @nogc pure nothrow cb,

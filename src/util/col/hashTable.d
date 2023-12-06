@@ -3,8 +3,8 @@ module util.col.hashTable;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateElements, freeElements;
-import util.col.arr : empty;
-import util.col.arrUtil : fillArray, mapToMut;
+import util.col.arr : arrayOfRange, empty, endPtr;
+import util.col.arrUtil : fillArray, map;
 import util.hash : getHash;
 import util.memory : initMemory, overwriteMemory;
 import util.opt : ConstOpt, force, has, MutOpt, none, noneMut, Opt, some, someConst, someMut;
@@ -66,12 +66,6 @@ void clearAndKeepMemory(T, K, alias getKey)(scope ref HashTable!(T, K, getKey) a
 	a.size_ = 0;
 	foreach (ref MutOpt!T x; a.values)
 		overwriteMemory(&x, noneMut!T);
-}
-
-@trusted void clearAndFreeMemory(T, K, alias getKey)(ref Alloc alloc, ref HashTable!(T, K, getKey) a) {
-	a.size_ = 0;
-	freeElements(alloc, a.values);
-	a.values = [];
 }
 
 bool isEmpty(T, K, alias getKey)(in HashTable!(T, K, getKey) a) =>
@@ -179,6 +173,31 @@ MutOpt!T popArbitrary(T, K, alias getKey)(ref HashTable!(T, K, getKey) a) {
 	return noneMut!T;
 }
 
+@trusted immutable(HashTable!(T, K, getKey)) moveToImmutable(T, K, alias getKey)(ref HashTable!(T, K, getKey) a) {
+	immutable HashTable!(T, K, getKey) res = immutable HashTable!(T, K, getKey)(a.size_, cast(immutable) a.values);
+	a.size_ = 0;
+	a.values = [];
+	return res;
+}
+
+@trusted T[] moveToArray(T, K, alias getKey)(ref Alloc alloc, ref HashTable!(T, K, getKey) a) {
+	// Cleverly reuse the space in 'values'
+	T* out_ = cast(T*) a.values;
+	foreach (ref MutOpt!T x; a.values) {
+		if (has(x)) {
+			initMemory(out_, force(x));
+			out_++;
+		}
+	}
+	assert(out_ <= cast(T*) endPtr(a.values));
+	T[] res = arrayOfRange(cast(T*) a.values, out_);
+	T[] remaining = arrayOfRange(out_, cast(T*) endPtr(a.values));
+	freeElements(alloc, remaining);
+	a.size_ = 0;
+	a.values = [];
+	return res;
+}
+
 @trusted Out[] mapToArray(Out, T, K, alias getKey)(
 	ref Alloc alloc,
 	scope ref immutable HashTable!(T, K, getKey) a,
@@ -222,20 +241,30 @@ MutOpt!T popArbitrary(T, K, alias getKey)(ref HashTable!(T, K, getKey) a) {
 	return res;
 }
 
-HashTable!(Out, K, getKeyOut) mapPreservingKeys(Out, alias getKeyOut, In, K, alias getKey)(
+immutable(HashTable!(Out, K, getKeyOut)) mapPreservingKeys(Out, alias getKeyOut, In, K, alias getKey)(
 	ref Alloc alloc,
 	scope ref HashTable!(In, K, getKey) a,
 	in Out delegate(ref In) @safe @nogc pure nothrow cb,
 ) {
-	MutOpt!Out[] outValues = mapToMut!(MutOpt!Out, MutOpt!In)(alloc, a.values, (ref MutOpt!In value) {
+	immutable MutOpt!Out[] outValues = map!(immutable MutOpt!Out, MutOpt!In)(alloc, a.values, (ref MutOpt!In value) {
 		if (has(value)) {
 			Out out_ = cb(force(value));
 			assert(eq!K(getKeyOut(out_), getKey(force(value))));
-			return someMut(out_);
+			return cast(immutable) someMut!Out(out_);
 		} else
-			return noneMut!Out;
+			return cast(immutable) noneMut!Out;
 	});
-	return HashTable!(Out, K, getKeyOut)(a.size_, outValues);
+	return immutable HashTable!(Out, K, getKeyOut)(a.size_, outValues);
+}
+
+bool existsInHashTable(T, K, alias getKey)(
+	in HashTable!(T, K, getKey) a,
+	in bool delegate(in T) @safe @nogc pure nothrow cb,
+) {
+	foreach (ref const T x; a)
+		if (cb(x))
+			return true;
+	return false;
 }
 
 private:

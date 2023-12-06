@@ -10,6 +10,7 @@ import concretize.concretizeCtx :
 	ConcretizeCtx,
 	cStrType,
 	deferredFillRecordAndUnionBodies,
+	finishConcreteVars,
 	getOrAddNonTemplateConcreteFunAndFillBody,
 	voidType;
 import frontend.showModel : ShowCtx;
@@ -21,7 +22,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : finishArr;
 import util.col.map : Map;
 import util.col.mutArr : moveToArr, MutArr;
-import util.col.mutMap : mapToMap, moveToValues, mutMapIsEmpty;
+import util.col.mutMap : mapToMap, mutMapIsEmpty;
 import util.late : lateSet;
 import util.opt : force;
 import util.perf : Perf, PerfMeasure, withMeasure;
@@ -81,7 +82,7 @@ ConcreteProgram concretizeInner(
 	ConcreteProgram res = ConcreteProgram(
 		finishAllConstants(alloc, ctx.allConstants, mustBeByVal(staticSymbolsFun.returnType)),
 		finishArr(alloc, ctx.allConcreteStructs),
-		moveToValues(alloc, ctx.concreteVarLookup),
+		finishConcreteVars(ctx),
 		allConcreteFuns,
 		mapToMap!(ConcreteStruct*, ConcreteLambdaImpl[], MutArr!ConcreteLambdaImpl)(
 			alloc,

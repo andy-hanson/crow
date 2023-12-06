@@ -92,7 +92,7 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : concatenate, filter, map, mapOp, mapToMut, mapPointers, zip, zipPointers;
 import util.col.map : Map, KeyValuePair, values;
 import util.col.mapBuilder : MapBuilder, finishMap, tryAddToMap;
-import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, withExactSizeArrBuilder;
+import util.col.exactSizeArrBuilder : buildArrayExact, ExactSizeArrBuilder;
 import util.col.multiMap : buildMultiMap, values;
 import util.col.mutArr : mustPop, mutArrIsEmpty;
 import util.col.mutMap : insertOrUpdate, moveToMap, MutMap;
@@ -556,7 +556,7 @@ FunsAndMap checkFuns(
 	in FunDeclAst[] asts,
 	in TestAst[] testAsts,
 ) {
-	FunDecl[] funs = withExactSizeArrBuilder!FunDecl(
+	FunDecl[] funs = buildArrayExact!FunDecl(
 		ctx.alloc,
 		asts.length + fileImports.length + fileExports.length + countFunsForStructs(structs) + countFunsForVars(vars),
 		(scope ref ExactSizeArrBuilder!FunDecl funsBuilder) {

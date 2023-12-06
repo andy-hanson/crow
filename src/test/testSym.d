@@ -3,12 +3,12 @@ module test.testSym;
 @safe @nogc pure nothrow:
 
 import test.testUtil : Test;
-import util.alloc.alloc : Alloc, AllocKind, withTempAlloc;
+import util.alloc.alloc : Alloc, withTempAlloc;
 import util.col.str : safeCStr, safeCStrEq;
 import util.sym : AllSymbols, appendHexExtension, isShortSym, isLongSym, prependSet, safeCStrOfSym, Sym, sym, symOfStr;
 
 void testSym(ref Test test) {
-	withTempAlloc!void(AllocKind.allSymbols, test.metaAlloc, (ref Alloc alloc) @safe {
+	withTempAlloc!void(test.metaAlloc, (ref Alloc alloc) @safe {
 		scope AllSymbols allSymbols = AllSymbols(&alloc);
 		return inner(test, allSymbols);
 	});

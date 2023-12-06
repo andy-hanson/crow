@@ -157,6 +157,7 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\memory.d \
 	src\util\opt.d \
 	src\util\perf.d \
+	src\util\perfReport.d \
 	src\util\ptr.d \
 	src\util\sourceRange.d \
 	src\util\sym.d \

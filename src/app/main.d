@@ -46,7 +46,6 @@ import lib.server :
 	printTokens,
 	Programs,
 	Server,
-	serverSummarizeMemory,
 	setCwd,
 	setFile,
 	setIncludeDir,
@@ -65,7 +64,8 @@ import util.json : Json, jsonToString;
 import util.jsonParse : mustParseJson, mustParseUint, skipWhitespace;
 import util.lineAndColumnGetter : UriLineAndColumn;
 import util.opt : force, has, Opt, some;
-import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasureResult, perfTotal, withNullPerf;
+import util.perf : Perf, perfEnabled, withNullPerf;
+import util.perfReport : perfReport;
 import util.sym : AllSymbols, sym;
 import util.uri : AllUris, childUri, FileUri, Uri, parentOrEmpty, safeCStrOfUri, toUri;
 import versionInfo : versionInfoForJIT;
@@ -88,15 +88,16 @@ import versionInfo : versionInfoForJIT;
 	Alloc* alloc = newAlloc(AllocKind.main, server.metaAlloc);
 	Command command = parseCommand(*alloc, server.allUris, cwd, cast(SafeCStr[]) argv[1 .. argc]);
 	int res = go(perf, *alloc, server, command).value;
-	if (perfEnabled)
-		logPerf(server, perf);
+	if (perfEnabled) {
+		printf("%s\n", jsonToString(*alloc, server.allSymbols, perfReport(*alloc, perf, *server.metaAlloc)).ptr);
+	}
 	return res;
 }
 
 private:
 
 @trusted ExitCode runLsp(ref Server server) {
-	withTempAllocImpure!void(AllocKind.other, server.metaAlloc, (ref Alloc alloc) @trusted {
+	withTempAllocImpure!void(server.metaAlloc, (ref Alloc alloc) @trusted {
 		fprintf(stderr, "Crow version %s\nRunning language server protocol\n", version_(alloc, server).ptr);
 		fprintf(stderr, "Running language server protocol\n");
 	});
@@ -106,7 +107,7 @@ private:
 	while (true) {
 		//TODO: track perf for each message/response
 		Opt!ExitCode stop = withNullPerf!(Opt!ExitCode, (scope ref Perf perf) =>
-			withTempAllocImpure!(Opt!ExitCode)(AllocKind.handleLspMessage, server.metaAlloc, (ref Alloc alloc) {
+			withTempAllocImpure!(Opt!ExitCode)(server.metaAlloc, (ref Alloc alloc) {
 				LspInMessage message = readIn(alloc, server.allSymbols, server.allUris);
 				scope CbHandleUnknownUris dg = () {
 					loadUntilNoUnknownUris(perf, server);
@@ -159,7 +160,7 @@ void loadAllFiles(scope ref Perf perf, ref Server server, in Uri[] rootUris) {
 
 void loadUntilNoUnknownUris(scope ref Perf perf, ref Server server) {
 	while (filesState(server) != FilesState.allLoaded) {
-		withTempAllocImpure(AllocKind.other, server.metaAlloc, (ref Alloc alloc) {
+		withTempAllocImpure(server.metaAlloc, (ref Alloc alloc) {
 			foreach (Uri uri; allUnknownUris(alloc, server))
 				loadSingleFile(perf, server, uri);
 		});
@@ -167,34 +168,10 @@ void loadUntilNoUnknownUris(scope ref Perf perf, ref Server server) {
 }
 
 void loadSingleFile(scope ref Perf perf, ref Server server, Uri uri) {
-	withTempAllocImpure(AllocKind.other, server.metaAlloc, (ref Alloc alloc) {
+	withTempAllocImpure(server.metaAlloc, (ref Alloc alloc) {
 		setFile(perf, server, uri, tryReadFile(alloc, server.allUris, uri));
 	});
 }
-
-@trusted void logPerf(scope ref Server server, in Perf perf) {
-	withTempAllocImpure!void(AllocKind.other, server.metaAlloc, (ref Alloc alloc) @trusted {
-		printf("%s\n", jsonToString(alloc, server.allSymbols, serverSummarizeMemory(alloc, server)).ptr);
-	});
-
-	eachMeasure(perf, (in SafeCStr name, in PerfMeasureResult m) @trusted {
-		printf(
-			"%s * %d took %llums and %lluKB\n",
-			name.ptr,
-			m.count,
-			divRound(m.nanoseconds, 1_000_000),
-			divRound(m.bytesAllocated, 1024));
-	});
-	printf("Total: %llums\n", divRound(perfTotal(perf), 1_000_000));
-}
-
-ulong divRound(ulong a, ulong b) {
-	ulong div = a / b;
-	ulong rem = a % b;
-	return div + (rem >= b / 2 ? 1 : 0);
-}
-static assert(divRound(15, 10) == 2);
-static assert(divRound(14, 10) == 1);
 
 @trusted ulong getTimeNanos() {
 	version (Windows) {
@@ -225,17 +202,20 @@ ExitCode go(scope ref Perf perf, ref Alloc alloc, ref Server server, in Command 
 			loadAllFiles(perf, server, [run.mainUri]);
 			return run.options.matchImpure!ExitCode(
 				(in RunOptions.Interpret) =>
-					withRealExtern(alloc, server.allSymbols, server.allUris, (in Extern extern_) =>
-						buildAndInterpret(
-							perf,
-							alloc,
-							server,
-							extern_,
-							(in SafeCStr x) {
-								printError(x);
-							},
-							run.mainUri,
-							getAllArgs(alloc, server.allUris, run.mainUri, run.programArgs))),
+					withRealExtern(
+						*newAlloc(AllocKind.extern_, server.metaAlloc),
+						server.allSymbols,
+						server.allUris,
+						(in Extern extern_) =>
+							buildAndInterpret(
+								perf,
+								server,
+								extern_,
+								(in SafeCStr x) {
+									printError(x);
+								},
+								run.mainUri,
+								getAllArgs(alloc, server.allUris, run.mainUri, run.programArgs))),
 				(in RunOptions.Jit x) {
 					version (GccJitAvailable) {
 						SafeCStr[] args = getAllArgs(alloc, server.allUris, run.mainUri, run.programArgs);

@@ -24,7 +24,8 @@ import model.diag : Diag, Diagnostic, isFatal, UriAndDiagnostic;
 import model.parseDiag : ParseDiagnostic;
 import util.col.arr : arrayOfSingle, empty, PtrAndSmallNumber, small, SmallArray;
 import util.col.arrUtil : arrEqual, exists, first;
-import util.col.map : existsInMap, Map;
+import util.col.hashTable : existsInHashTable, HashTable;
+import util.col.map : Map;
 import util.col.enumMap : EnumMap;
 import util.col.str : SafeCStr, safeCStr;
 import util.hash : HashCode, Hasher, hashPtrAndTaggedPointers;
@@ -1035,6 +1036,8 @@ immutable struct Module {
 	UriAndRange range() scope =>
 		UriAndRange.topOfFile(uri);
 }
+Uri getModuleUri(in Module* a) =>
+	a.uri;
 
 void eachImportOrReExport(in Module a, in void delegate(in ImportOrExport) @safe @nogc pure nothrow cb) {
 	foreach (ref ImportOrExport x; a.imports)
@@ -1224,8 +1227,8 @@ private enum EnumBackingType_ {
 
 immutable struct Program {
 	Opt!(Config*) mainConfig; // Only if this program has "main"
-	Map!(Uri, immutable Config*) allConfigs;
-	Map!(Uri, immutable Module*) allModules;
+	HashTable!(immutable Config*, Uri, getConfigUri) allConfigs;
+	HashTable!(immutable Module*, Uri, getModuleUri) allModules;
 	Module*[] rootModules;
 	CommonFuns commonFuns;
 	CommonTypes commonTypes;
@@ -1233,8 +1236,8 @@ immutable struct Program {
 Program fakeProgramForTest() =>
 	Program(
 		none!(Config*),
-		Map!(Uri, immutable Config*)(),
-		Map!(Uri, immutable Module*)(),
+		HashTable!(immutable Config*, Uri, getConfigUri)(),
+		HashTable!(immutable Module*, Uri, getModuleUri)(),
 		[],
 		CommonFuns(),
 		CommonTypes());
@@ -1257,14 +1260,14 @@ void eachDiagnostic(in Program a, in void delegate(in UriAndDiagnostic) @safe @n
 
 private bool existsDiagnostic(in Program a, in bool delegate(in UriAndDiagnostic) @safe @nogc pure nothrow cb) =>
 	exists!UriAndDiagnostic(a.commonFuns.diagnostics, cb) ||
-	existsInMap!(Uri, immutable Config*)(a.allConfigs, (in Uri uri, in Config* config) =>
+	existsInHashTable!(immutable Config*, Uri, getConfigUri)(a.allConfigs, (in Config* config) =>
 		exists!Diagnostic(config.diagnostics, (in Diagnostic x) =>
-			cb(UriAndDiagnostic(uri, x)))) ||
-	existsInMap!(Uri, immutable Module*)(a.allModules, (in Uri uri, in Module* m) =>
-		exists!ParseDiagnostic(m.ast.parseDiagnostics, (in ParseDiagnostic x) =>
-			cb(UriAndDiagnostic(UriAndRange(uri, x.range), Diag(x.kind)))) ||
-		exists!Diagnostic(m.diagnostics, (in Diagnostic x) =>
-			cb(UriAndDiagnostic(uri, x))));
+			cb(UriAndDiagnostic(force(config.configUri), x)))) ||
+	existsInHashTable!(immutable Module*, Uri, getModuleUri)(a.allModules, (in Module* module_) =>
+		exists!ParseDiagnostic(module_.ast.parseDiagnostics, (in ParseDiagnostic x) =>
+			cb(UriAndDiagnostic(UriAndRange(module_.uri, x.range), Diag(x.kind)))) ||
+		exists!Diagnostic(module_.diagnostics, (in Diagnostic x) =>
+			cb(UriAndDiagnostic(module_.uri, x))));
 
 immutable struct Config {
 	Opt!Uri configUri; // none for default config
@@ -1272,6 +1275,8 @@ immutable struct Config {
 	ConfigImportUris include;
 	ConfigExternUris extern_;
 }
+Uri getConfigUri(in Config* a) =>
+	force(a.configUri);
 Config emptyConfig = Config(none!Uri, [], ConfigImportUris(), ConfigExternUris());
 
 alias ConfigImportUris = Map!(Sym, Uri);

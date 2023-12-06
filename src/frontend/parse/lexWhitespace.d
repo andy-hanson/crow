@@ -4,7 +4,7 @@ module frontend.parse.lexWhitespace;
 
 import frontend.parse.lexUtil : isWhitespace, tryTakeChar, tryTakeChars;
 import model.parseDiag : ParseDiag;
-import util.col.arr : arrOfRange, empty;
+import util.col.arr : arrayOfRange, empty;
 import util.col.str : SafeCStr;
 import util.conv : safeIntFromUint, safeToUint;
 
@@ -161,14 +161,14 @@ uint takeIndentAmountAfterNewlineSpaces(ref immutable(char)* ptr, uint nSpacesPe
 @trusted string takeRestOfBlockComment(return scope ref immutable(char)* ptr, in AddDiag addDiag) {
 	immutable char* begin = ptr;
 	immutable char* end = skipRestOfBlockComment(ptr, addDiag);
-	return stripWhitespace(arrOfRange(begin, end));
+	return stripWhitespace(arrayOfRange(begin, end));
 }
 
 @trusted string takeRestOfLineAndNewline(return scope ref immutable(char)* ptr) {
 	immutable char* begin = ptr;
 	skipRestOfLineAndNewline(ptr);
 	immutable char* end = ptr - 1;
-	return arrOfRange(begin, end);
+	return arrayOfRange(begin, end);
 }
 
 string stripWhitespace(string a) {

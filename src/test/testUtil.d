@@ -132,7 +132,7 @@ void withTestServer(
 	ref Test test,
 	in void delegate(ref Alloc, ref Server) @safe @nogc pure nothrow cb,
 ) {
-	withTempAlloc!void(AllocKind.test, test.metaAlloc, (ref Alloc alloc) @trusted {
+	withTempAlloc!void(test.metaAlloc, (ref Alloc alloc) @trusted {
 		ulong[] memory = allocateElements!ulong(alloc, 0x1000000);
 		Server server = Server(memory);
 		setIncludeDir(&server, parseUri(server.allUris, "test:///include"));

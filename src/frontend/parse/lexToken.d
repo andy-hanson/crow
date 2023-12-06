@@ -7,7 +7,7 @@ import frontend.parse.lexUtil : isDecimalDigit, startsWith, tryTakeChar, tryTake
 import frontend.parse.lexWhitespace : DocCommentAndIndentDelta, IndentKind, skipBlankLinesAndGetIndentDelta;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
-import util.col.arr : arrOfRange, empty;
+import util.col.arr : arrayOfRange, empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.opt : force, has, none, Opt, some;
 import util.sym : AllSymbols, appendEquals, Sym, sym, symOfStr;
@@ -736,7 +736,7 @@ ulong charToNat(char a) =>
 		ptr++;
 	if (*(ptr - 1) == '-')
 		ptr--;
-	return arrOfRange(begin, ptr);
+	return arrayOfRange(begin, ptr);
 }
 
 bool isAlphaIdentifierStart(char c) =>

@@ -120,7 +120,7 @@ SafeCStr safeCStrOfEnum(E)(E value) {
 }
 
 // Enum members must be 0 .. n
-private void assertNormalEnum(E)() {
+void assertNormalEnum(E)() {
 	static foreach (size_t i, string name; __traits(allMembers, E))
 		static assert(__traits(getMember, E, name) == i);
 }

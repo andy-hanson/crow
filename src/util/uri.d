@@ -2,7 +2,7 @@ module util.uri;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc, allocateElements, MemorySummary, summarizeMemory;
+import util.alloc.alloc : Alloc, allocateElements;
 import util.col.arr : endPtr;
 import util.col.arrUtil : indexOf, indexOfStartingAt;
 import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
@@ -57,9 +57,6 @@ struct AllUris {
 	ref AllSymbols allSymbols() return scope =>
 		*allSymbolsPtr;
 }
-
-MemorySummary summarizeMemory(in AllUris a) =>
-	summarizeMemory(a.alloc);
 
 // Uniform Resource Identifier ; does not support query or fragment.
 immutable struct Uri {

@@ -4,7 +4,6 @@ module util.col.mutMap;
 
 import util.alloc.alloc : Alloc;
 import util.col.hashTable :
-	clearAndFreeMemory,
 	HashTable,
 	getOrAdd,
 	getOrAddAndDidAdd,
@@ -168,12 +167,6 @@ private @trusted Out[] mapToArray_const(Out, K, V)(
 	mapToArray!Out(alloc, a.inner, (ref KeyValuePair!(K, V) x) =>
 		cb(x.key, x.value));
 
-immutable(V[]) moveToValues(K, V)(ref Alloc alloc, ref MutMap!(immutable K, immutable V) a) {
-	immutable V[] res = valuesArray(alloc, a);
-	clearAndFreeMemory(alloc, a.inner);
-	return res;
-}
-
 @trusted immutable(Map!(K, V)) moveToMap(K, V)(ref Alloc alloc, ref MutMap!(K, V) a) {
 	immutable Map!(K, V) res = immutable Map!(K, V)(cast(immutable) a);
 	a.inner = HashTable!(KeyValuePair!(K, V), K, getKey)();
@@ -185,20 +178,13 @@ immutable(V[]) moveToValues(K, V)(ref Alloc alloc, ref MutMap!(immutable K, immu
 	scope ref MutMap!(K, VIn) a,
 	in immutable(VOut) delegate(ref VIn) @safe @nogc pure nothrow cb,
 ) {
-	HashTable!(KeyValuePair!(K, VOut), K, getKey) out_ =
+	immutable HashTable!(KeyValuePair!(K, VOut), K, getKey) out_ =
 		mapPreservingKeys!(KeyValuePair!(K, VOut), getKey, KeyValuePair!(K, VIn), K, getKey)(
 			alloc,
 			a.inner,
 			(ref KeyValuePair!(K, VIn) x) => KeyValuePair!(K, VOut)(x.key, cb(x.value)));
-	return Map!(K, VOut)(immutable MutMap!(K, VOut)(cast(immutable) out_));
+	return Map!(K, VOut)(immutable MutMap!(K, VOut)(out_));
 }
 
 immutable(V[]) valuesArray(K, V)(ref Alloc alloc, in MutMap!(K, V) a) =>
 	mapToArray_const!(V, K, V)(alloc, a, (immutable(K), ref V v) => v);
-
-MutOpt!V findInMutMap(K, V)(ref MutMap!(K, V) a, in bool delegate(in K, in V) @safe @nogc pure nothrow cb) {
-	foreach (K key, ref V value; a)
-		if (cb(key, value))
-			return someMut(value);
-	return noneMut!V;
-}

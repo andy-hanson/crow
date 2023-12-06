@@ -48,7 +48,7 @@ void testFreeAlloc(ref Test test) {
 	auto random = Random();
 	initialize(random);
 
-	withTempAlloc!void(AllocKind.test, test.metaAlloc, (ref Alloc setupAlloc) @trusted {
+	withTempAlloc!void(test.metaAlloc, (ref Alloc setupAlloc) @trusted {
 		ulong[] memory = allocateElements!ulong(setupAlloc, 0x1000000);
 		MetaAlloc meta = MetaAlloc(memory);
 

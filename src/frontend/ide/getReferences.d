@@ -95,7 +95,8 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
 import util.col.arrBuilder : buildArray;
 import util.col.arrUtil : allSame, contains, find, fold, zip, zipIn;
-import util.col.map : mustGetAt, values;
+import util.col.hashTable : mustGet;
+import util.col.map : mustGetAt;
 import util.col.mutMaxArr : mutMaxArr, MutMaxArr, push, tempAsArr;
 import util.opt : force, has, none, Opt, optEqual, some;
 import util.ptr : ptrTrustMe;
@@ -561,7 +562,7 @@ void referencesForStructDecl(in AllSymbols allSymbols, in Program program, in St
 }
 
 Module* moduleOf(in Program program, Uri uri) =>
-	mustGetAt(program.allModules, uri);
+	mustGet(program.allModules, uri);
 
 void referencesForModule(in AllUris allUris, in Program program, in Module* target, in ReferenceCb cb) {
 	eachModuleReferencing(program, target, (in Module importer, in ImportOrExport ie) {
@@ -588,7 +589,7 @@ void eachModuleReferencing(
 	in Module* exportingModule,
 	in void delegate(in Module, in ImportOrExport) @safe @nogc pure nothrow cb,
 ) {
-	foreach (immutable Module* importingModule; values(program.allModules))
+	foreach (immutable Module* importingModule; program.allModules)
 		eachImportOrReExport(*importingModule, (in ImportOrExport x) @safe {
 			if (x.modulePtr == exportingModule)
 				cb(*importingModule, x);

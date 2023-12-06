@@ -14,10 +14,8 @@ import util.alloc.alloc :
 	AllocAndValue,
 	AllocKind,
 	freeAlloc,
-	MemorySummary,
 	MetaAlloc,
 	newAlloc,
-	summarizeMemory,
 	withAlloc,
 	withTempAlloc;
 import util.col.arr : empty;
@@ -73,18 +71,6 @@ struct Storage {
 		*mapAlloc_;
 }
 
-MemorySummary summarizeMemory(in Storage a) {
-	MemorySummary total = summarizeMemory(a.mapAlloc);
-	cast(void) values(a.successes).opApply((ref const AllocAndValue!FileInfo x) {
-		total += .summarizeMemory(*x.alloc);
-		return 0;
-	});
-	// TODO: below should work!!!
-	//foreach (ref const AllocAndValue!FileInfo x; values!(Uri, AllocAndValue!FileInfo)(a.successes))
-	//	total += perf_bytes(x.alloc);
-	return total;
-}
-
 private immutable struct FileInfo {
 	FileContent content;
 	LineAndColumnGetter lineAndColumnGetter;
@@ -130,7 +116,7 @@ void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentCont
 
 void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentContentChangeEvent change) {
 	FileInfo info = fileOrDiag(a, uri).as!FileInfo;
-	withTempAlloc(AllocKind.storageChangeFile, a.metaAlloc, (ref Alloc alloc) {
+	withTempAlloc(a.metaAlloc, (ref Alloc alloc) {
 		SafeCStr newContent = applyChange(alloc, asString(info.content), info.lineAndColumnGetter, change);
 		// TODO:PERF This means an unnecessary copy in 'setFile'.
 		// Would be better to modify the array in place and force re-parse.

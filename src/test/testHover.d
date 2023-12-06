@@ -17,7 +17,7 @@ import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrEqual;
-import util.col.map : mustGetAt;
+import util.col.hashTable : mustGet;
 import util.col.str : SafeCStr, safeCStr, safeCStrEq, safeCStrIsEmpty, strOfSafeCStr;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonList, jsonObject, jsonToStringPretty, optionalArrayField;
@@ -59,7 +59,7 @@ void withHoverTest(string fileName)(
 		Uri uri = parseUri(server.allUris, "magic:/" ~ fileName);
 		setupTestServer(test, alloc, server, uri, content);
 		Program program = getProgramForAll(test.perf, alloc, server);
-		cb(getShowDiagCtx(server, program), mustGetAt(program.allModules, uri));
+		cb(getShowDiagCtx(server, program), mustGet(program.allModules, uri));
 	});
 }
 
