@@ -19,7 +19,7 @@ import util.alloc.doubleLink :
 	removeFromList;
 import util.col.arr : arrayOfRange, arrayOfSingle, endPtr;
 import util.col.enumMap : EnumMap;
-import util.opt : force, has, MutOpt, noneMut, optEqual, someMut;
+import util.opt : ConstOpt, force, has, MutOpt, noneMut, optEqual, someMut;
 import util.util : clamp, divRoundUp, max;
 
 T withStaticAlloc(T, alias cb)(word[] memory) {
@@ -95,25 +95,25 @@ struct MetaAlloc {
 
 private @trusted void validate(in MetaAlloc a) {
 	const(BlockNode)* left = a.firstBlockSentinel;
-	const(BlockNode)* cur = next!allBlocksLink(left);
+	const(BlockNode)* cur = force(next!allBlocksLink(left));
 	while (true) {
-		const BlockNode* right = next!allBlocksLink(cur);
+		const BlockNode* right = force(next!allBlocksLink(cur));
 		assert(left < cur && cur < right);
-		assert(prev!allBlocksLink(cur) == left);
+		assert(force(prev!allBlocksLink(cur)) == left);
 		if (isFree(cur)) {
 			assert(!isFree(left));
 			assert(!isFree(right));
 		}
 
-		const BlockNode* allocPrev = prev!allocLink(cur);
-		if (allocPrev != null) {
-			assert(next!allocLink(allocPrev) == cur);
-			assert(optEqual!(Alloc*)(allocPrev.alloc, cur.alloc));
+		ConstOpt!(BlockNode*) allocPrev = prev!allocLink(cur);
+		if (has(allocPrev)) {
+			assert(force(next!allocLink(force(allocPrev))) == cur);
+			assert(optEqual!(Alloc*)(force(allocPrev).alloc, cur.alloc));
 		}
-		const BlockNode* allocNext = next!allocLink(cur);
-		if (allocNext != null) {
-			assert(prev!allocLink(allocNext) == cur);
-			assert(optEqual!(Alloc*)(allocNext.alloc, cur.alloc));
+		ConstOpt!(BlockNode*) allocNext = next!allocLink(cur);
+		if (has(allocNext)) {
+			assert(force(prev!allocLink(force(allocNext))) == cur);
+			assert(optEqual!(Alloc*)(force(allocNext).alloc, cur.alloc));
 		}
 
 		if (right == a.lastBlockSentinel)
@@ -320,7 +320,7 @@ struct BlockNode {
 	}
 
 	@trusted inout(word*) end() return scope inout {
-		word* res = cast(word*) next!allBlocksLink(&this);
+		word* res = cast(word*) force(next!allBlocksLink(&this));
 		assert(res != null);
 		return res;
 	}
@@ -383,8 +383,8 @@ void addToFreeList(ref MetaAlloc a, BlockNode* block) {
 	block.alloc = noneMut!(Alloc*);
 	assert(!isUnlinked!allBlocksLink(block));
 	assert(isUnlinked!allocLink(block));
-	BlockNode* left = prev!allBlocksLink(block);
-	BlockNode* right = next!allBlocksLink(block);
+	BlockNode* left = force(prev!allBlocksLink(block));
+	BlockNode* right = force(next!allBlocksLink(block));
 	if (isFree(left) && isFree(right)) {
 		// Remove this and the right block, making 'left' a big free block.
 		removeFromList!allBlocksLink(block);
@@ -403,14 +403,14 @@ void addToFreeList(ref MetaAlloc a, BlockNode* block) {
 	validate(a);
 }
 void findPositionInFreeListAndInsert(ref MetaAlloc a, BlockNode* block) {
-	assert(!isFree(prev!allBlocksLink(block)) && !isFree(next!allBlocksLink(block)));
+	assert(!isFree(force(prev!allBlocksLink(block))) && !isFree(force(next!allBlocksLink(block))));
 	// Find the free nodes to insert this one between.
 	BlockNode* left = a.firstBlockSentinel;
-	BlockNode* cur = next!allocLink(left);
+	BlockNode* cur = force(next!allocLink(left));
 	assert(isFree(cur) || isSentinel(cur));
 	while (cur < block) {
 		left = cur;
-		cur = next!allocLink(cur);
+		cur = force(next!allocLink(cur));
 	}
 	assert(left < block && block < cur);
 	insertToRight!allocLink(left, block);
