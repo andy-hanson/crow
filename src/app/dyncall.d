@@ -54,7 +54,7 @@ import util.util : todo, unreachable;
 
 private:
 
-alias DebugNames = immutable Map!(FunPtr, Sym);
+alias DebugNames = Map!(FunPtr, Sym);
 
 immutable struct LoadedLibraries {
 	DebugNames debugNames;

@@ -93,7 +93,7 @@ import util.col.arr : empty, emptySmallArray, only, ptrsRange, small;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderTempAsArr, finishArr;
 import util.col.arrUtil : concatenate, filter, map, mapOp, mapToMut, mapPointers, zip, zipPointers;
 import util.col.exactSizeArrBuilder : buildArrayExact, ExactSizeArrBuilder;
-import util.col.hashTable : HashTable, insertOrUpdate, mapAndMovePreservingKeys, mayAdd, moveToImmutable;
+import util.col.hashTable : HashTable, insertOrUpdate, mapAndMovePreservingKeys, mayAdd, moveToImmutable, MutHashTable;
 import util.col.mutArr : mustPop, mutArrIsEmpty;
 import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, mutMaxArrSize, push, pushIfUnderMaxSize, toArray;
 import util.col.str : copySafeCStr;
@@ -363,7 +363,7 @@ void checkStructAliasTargets(
 }
 
 StructsAndAliasesMap buildStructsAndAliasesMap(ref CheckCtx ctx, StructDecl[] structs, StructAlias[] aliases) {
-	HashTable!(StructOrAlias, Sym, structOrAliasName) builder;
+	MutHashTable!(StructOrAlias, Sym, structOrAliasName) builder;
 	foreach (StructDecl* decl; ptrsRange(structs))
 		addToDeclsMap!StructOrAlias(
 			ctx, builder, StructOrAlias(decl), Diag.DuplicateDeclaration.Kind.structOrAlias, () => range(*decl));
@@ -416,7 +416,7 @@ Opt!Sym checkVarModifiers(ref CheckCtx ctx, in FunModifierAst[] modifiers) {
 
 void addToDeclsMap(T, alias getName)(
 	ref CheckCtx ctx,
-	scope ref HashTable!(T, Sym, getName) builder,
+	scope ref MutHashTable!(T, Sym, getName) builder,
 	T added,
 	Diag.DuplicateDeclaration.Kind kind,
 	in UriAndRange delegate() @safe @nogc pure nothrow getRange,
@@ -651,7 +651,7 @@ FunsAndMap checkFuns(
 }
 
 FunsMap buildFunsMap(ref Alloc alloc, in immutable FunDecl[] funs) {
-	HashTable!(ArrBuilder!(immutable FunDecl*), Sym, funDeclsBuilderName) res;
+	MutHashTable!(ArrBuilder!(immutable FunDecl*), Sym, funDeclsBuilderName) res;
 	foreach (FunDecl* fun; ptrsRange(funs)) {
 		insertOrUpdate(
 			alloc,
@@ -786,7 +786,7 @@ Sym externLibraryNameFromTypeArg(ref CheckCtx ctx, in Range range, in Opt!TypeAs
 }
 
 SpecsMap buildSpecsMap(ref CheckCtx ctx, SpecDecl[] specs) {
-	HashTable!(immutable SpecDecl*, Sym, specDeclName) builder;
+	MutHashTable!(immutable SpecDecl*, Sym, specDeclName) builder;
 	foreach (SpecDecl* spec; ptrsRange(specs))
 		addToDeclsMap(ctx, builder, spec, Diag.DuplicateDeclaration.Kind.spec, () => range(*spec));
 	return moveToImmutable(builder);
@@ -836,14 +836,14 @@ Module* checkWorkerAfterCommonTypes(
 			ctx, importsAndReExports.moduleReExports, structsAndAliasesMap, specsMap, funsAndMap.funsMap)));
 }
 
-immutable(HashTable!(NameReferents, Sym, nameFromNameReferents)) getAllExportedNames(
+HashTable!(NameReferents, Sym, nameFromNameReferents) getAllExportedNames(
 	ref CheckCtx ctx,
 	in ImportOrExport[] reExports,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in SpecsMap specsMap,
 	in FunsMap funsMap,
 ) {
-	HashTable!(NameReferents, Sym, nameFromNameReferents) res;
+	MutHashTable!(NameReferents, Sym, nameFromNameReferents) res;
 	void addExport(NameReferents toAdd, Range delegate() @safe @nogc pure nothrow range) {
 		insertOrUpdate!(NameReferents, Sym, nameFromNameReferents)(
 			ctx.alloc,

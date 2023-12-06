@@ -54,7 +54,7 @@ immutable struct ByteCode {
 		operations.sources;
 }
 
-alias FunPtrToOperationPtr = immutable Map!(FunPtr, immutable Operation*);
+alias FunPtrToOperationPtr = Map!(FunPtr, immutable Operation*);
 
 immutable struct Operations {
 	Operation[] byteCode;

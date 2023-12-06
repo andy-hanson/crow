@@ -4,14 +4,14 @@ module frontend.programState;
 
 import model.model : FunDeclAndArgs, FunInst, SpecDeclAndArgs, SpecInst, StructDeclAndArgs, StructInst;
 import util.alloc.alloc : Alloc;
-import util.col.hashTable : HashTable;
+import util.col.hashTable : MutHashTable;
 
 struct ProgramState {
 	@safe @nogc pure nothrow:
 	Alloc* allocPtr;
-	HashTable!(StructInst*, StructDeclAndArgs, getStructDeclAndArgs) structInsts;
-	HashTable!(SpecInst*, SpecDeclAndArgs, getSpecDeclAndArgs) specInsts;
-	HashTable!(FunInst*, FunDeclAndArgs, getFunDeclAndArgs) funInsts;
+	MutHashTable!(StructInst*, StructDeclAndArgs, getStructDeclAndArgs) structInsts;
+	MutHashTable!(SpecInst*, SpecDeclAndArgs, getSpecDeclAndArgs) specInsts;
+	MutHashTable!(FunInst*, FunDeclAndArgs, getFunDeclAndArgs) funInsts;
 
 	ref inout(Alloc) alloc() return scope inout =>
 		*allocPtr;

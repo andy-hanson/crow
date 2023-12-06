@@ -3,11 +3,12 @@ module util.col.mutSet;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.hashTable : clearAndKeepMemory, HashTable, hasKey, mayAdd, mayDelete, mustAdd, mustDelete, popArbitrary;
+import util.col.hashTable :
+	clearAndKeepMemory, hasKey, mayAdd, mayDelete, mustAdd, mustDelete, MutHashTable, popArbitrary;
 import util.opt : has, MutOpt;
 
 struct MutSet(T) {
-	private HashTable!(T, T, getKey) inner;
+	private MutHashTable!(T, T, getKey) inner;
 
 	int opApply(in int delegate(ref T) @safe @nogc pure nothrow cb) scope =>
 		inner.opApply(cb);

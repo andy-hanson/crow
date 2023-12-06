@@ -4,10 +4,10 @@ module util.col.mutMap;
 
 import util.alloc.alloc : Alloc;
 import util.col.hashTable :
-	HashTable,
 	getOrAdd,
 	getOrAddAndDidAdd,
 	hasKey,
+	HashTable,
 	insertOrUpdate,
 	isEmpty,
 	mapPreservingKeys,
@@ -16,6 +16,7 @@ import util.col.hashTable :
 	mustAdd,
 	mustDelete,
 	mustGet,
+	MutHashTable,
 	size;
 import util.col.map : Map;
 import util.opt : ConstOpt, force, has, MutOpt, none, noneMut, Opt, some, someConst, someMut;
@@ -26,7 +27,7 @@ public import util.col.hashTable : ValueAndDidAdd;
 struct MutMap(K, V) {
 	@safe @nogc pure nothrow:
 
-	private HashTable!(KeyValuePair!(K, V), K, getKey) inner;
+	private MutHashTable!(KeyValuePair!(K, V), K, getKey) inner;
 
 	Opt!V opIndex(in K key) immutable {
 		Opt!(KeyValuePair!(K, V)) res = inner[key];
@@ -150,7 +151,7 @@ Out[] mapToArray(Out, K, V)(
 	scope ref immutable MutMap!(K, V) a,
 	in Out delegate(immutable K, ref immutable V) @safe @nogc pure nothrow cb,
 ) =>
-	.mapToArray!Out(alloc, a.inner, (ref immutable KeyValuePair!(K, V) x) =>
+	.mapToArray!(Out, KeyValuePair!(K, V), K, getKey)(alloc, a.inner, (ref immutable KeyValuePair!(K, V) x) =>
 		cb(x.key, x.value));
 private @trusted Out[] mapToArray_const(Out, K, V)(
 	ref Alloc alloc,
@@ -164,12 +165,12 @@ private @trusted Out[] mapToArray_const(Out, K, V)(
 	scope ref MutMap!(K, V) a,
 	in Out delegate(immutable K, ref V) @safe @nogc pure nothrow cb,
 ) =>
-	mapToArray!Out(alloc, a.inner, (ref KeyValuePair!(K, V) x) =>
+	mapToArray!(Out, KeyValuePair!(K, V), K, getKey)(alloc, a.inner, (ref KeyValuePair!(K, V) x) =>
 		cb(x.key, x.value));
 
-@trusted immutable(Map!(K, V)) moveToMap(K, V)(ref Alloc alloc, ref MutMap!(K, V) a) {
-	immutable Map!(K, V) res = immutable Map!(K, V)(cast(immutable) a);
-	a.inner = HashTable!(KeyValuePair!(K, V), K, getKey)();
+@trusted Map!(K, V) moveToMap(K, V)(ref Alloc alloc, ref MutMap!(K, V) a) {
+	Map!(K, V) res = Map!(K, V)(cast(immutable) a);
+	a.inner = MutHashTable!(KeyValuePair!(K, V), K, getKey)();
 	return res;
 }
 
@@ -178,7 +179,7 @@ private @trusted Out[] mapToArray_const(Out, K, V)(
 	scope ref MutMap!(K, VIn) a,
 	in immutable(VOut) delegate(ref VIn) @safe @nogc pure nothrow cb,
 ) {
-	immutable HashTable!(KeyValuePair!(K, VOut), K, getKey) out_ =
+	HashTable!(KeyValuePair!(K, VOut), K, getKey) out_ =
 		mapPreservingKeys!(KeyValuePair!(K, VOut), getKey, KeyValuePair!(K, VIn), K, getKey)(
 			alloc,
 			a.inner,
@@ -186,5 +187,5 @@ private @trusted Out[] mapToArray_const(Out, K, V)(
 	return Map!(K, VOut)(immutable MutMap!(K, VOut)(out_));
 }
 
-immutable(V[]) valuesArray(K, V)(ref Alloc alloc, in MutMap!(K, V) a) =>
-	mapToArray_const!(V, K, V)(alloc, a, (immutable(K), ref V v) => v);
+V[] valuesArray(K, V)(ref Alloc alloc, in MutMap!(K, V) a) =>
+	mapToArray_const!(V, K, V)(alloc, a, (immutable(K) _, ref V v) => v);

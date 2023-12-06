@@ -26,7 +26,7 @@ import util.alloc.alloc : Alloc, allocateUninitialized, AllocKind, MetaAlloc, ne
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderTempAsArr, finishArr;
 import util.col.arrUtil : contains, exists, every, findIndex, map;
 import util.col.exactSizeArrBuilder : buildArrayExact, ExactSizeArrBuilder;
-import util.col.hashTable : getOrAdd, HashTable, mapPreservingKeys, moveToImmutable, mustGet;
+import util.col.hashTable : getOrAdd, HashTable, mapPreservingKeys, moveToImmutable, mustGet, MutHashTable;
 import util.col.map : Map;
 import util.col.mapBuilder : finishMap, MapBuilder, mustAddToMap;
 import util.col.enumMap : EnumMap, enumMapMapValues, makeEnumMap;
@@ -72,9 +72,9 @@ struct FrontendCompiler {
 	ProgramState programState;
 	// Set after 'bootstrap' is compiled
 	MutOpt!(CommonTypes*) commonTypes;
-	HashTable!(CrowFile*, Uri, getCrowFileUri) crowFiles;
+	MutHashTable!(CrowFile*, Uri, getCrowFileUri) crowFiles;
 	size_t countUncompiledCrowFiles; // Number of crowFiles without 'module_'
-	HashTable!(OtherFile*, Uri, getOtherFileUri) otherFiles;
+	MutHashTable!(OtherFile*, Uri, getOtherFileUri) otherFiles;
 	// Set of files which are ready to compile immediately.
 	// (Parsing and resolving imports is always done immediately.)
 	// This doesn't include files whose imports are not yet compiled.
@@ -209,8 +209,8 @@ void onFileChanged(scope ref Perf perf, ref FrontendCompiler a, Uri uri) {
 private:
 
 
-immutable(HashTable!(immutable Config*, Uri, getConfigUri)) getAllConfigs(ref Alloc alloc, in FrontendCompiler a) {
-	HashTable!(immutable Config*, Uri, getConfigUri) res;
+HashTable!(immutable Config*, Uri, getConfigUri) getAllConfigs(ref Alloc alloc, in FrontendCompiler a) {
+	MutHashTable!(immutable Config*, Uri, getConfigUri) res;
 	foreach (const CrowFile* file; a.crowFiles) {
 		Config* config = force(file.config);
 		if (has(config.configUri))

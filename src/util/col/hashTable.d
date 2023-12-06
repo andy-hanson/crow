@@ -10,9 +10,11 @@ import util.memory : initMemory, overwriteMemory;
 import util.opt : ConstOpt, force, has, MutOpt, none, noneMut, Opt, some, someConst, someMut;
 import util.col.str : strEq;
 
+alias HashTable(T, K, alias getKey) = immutable MutHashTable!(T, K, getKey);
+
 // Intended for implementing other collections. Don't use directly.
 // 'K' is be a subset of 'T' used for comparisons.
-struct HashTable(T, K, alias getKey) {
+struct MutHashTable(T, K, alias getKey) {
 	@safe @nogc pure nothrow:
 
 	private:
@@ -62,22 +64,22 @@ struct HashTable(T, K, alias getKey) {
 	}
 }
 
-void clearAndKeepMemory(T, K, alias getKey)(scope ref HashTable!(T, K, getKey) a) {
+void clearAndKeepMemory(T, K, alias getKey)(scope ref MutHashTable!(T, K, getKey) a) {
 	a.size_ = 0;
 	foreach (ref MutOpt!T x; a.values)
 		overwriteMemory(&x, noneMut!T);
 }
 
-bool isEmpty(T, K, alias getKey)(in HashTable!(T, K, getKey) a) =>
+bool isEmpty(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a) =>
 	size(a) == 0;
 
-size_t size(T, K, alias getKey)(in HashTable!(T, K, getKey) a) =>
+size_t size(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a) =>
 	a.size_;
 
-bool hasKey(T, K, alias getKey)(in HashTable!(T, K, getKey) a, in K key) =>
+bool hasKey(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a, in K key) =>
 	has(getIndex(a, key));
 
-ref inout(T) mustGet(T, K, alias getKey)(ref inout HashTable!(T, K, getKey) a, in K key) =>
+ref inout(T) mustGet(T, K, alias getKey)(ref inout MutHashTable!(T, K, getKey) a, in K key) =>
 	force(a.values[mustGetIndex(a, key)]);
 
 struct ValueAndDidAdd(T) {
@@ -87,7 +89,7 @@ struct ValueAndDidAdd(T) {
 
 ValueAndDidAdd!(T) getOrAddAndDidAdd(T, K, alias getKey)(
 	ref Alloc alloc,
-	ref HashTable!(T, K, getKey) a,
+	ref MutHashTable!(T, K, getKey) a,
 	in K key,
 	in T delegate() @safe @nogc pure nothrow cb,
 ) {
@@ -96,10 +98,10 @@ ValueAndDidAdd!(T) getOrAddAndDidAdd(T, K, alias getKey)(
 	return ValueAndDidAdd!T(res, a.size_ != sizeBefore);
 }
 
-bool mayAdd(T, K, alias getKey)(ref Alloc alloc, scope ref HashTable!(T, K, getKey) a, T value) =>
+bool mayAdd(T, K, alias getKey)(ref Alloc alloc, scope ref MutHashTable!(T, K, getKey) a, T value) =>
 	getOrAddAndDidAdd(alloc, a, getKey(value), () => value).didAdd;
 
-ref T mustAdd(T, K, alias getKey)(ref Alloc alloc, return scope ref HashTable!(T, K, getKey) a, T value) {
+ref T mustAdd(T, K, alias getKey)(ref Alloc alloc, return scope ref MutHashTable!(T, K, getKey) a, T value) {
 	if (shouldExpandBeforeAdd(a))
 		doExpand(alloc, a);
 	assert(a.size_ < a.values.length);
@@ -120,7 +122,7 @@ ref T mustAdd(T, K, alias getKey)(ref Alloc alloc, return scope ref HashTable!(T
 
 ref T getOrAdd(T, K, alias getKey)(
 	ref Alloc alloc,
-	return scope ref HashTable!(T, K, getKey) a,
+	return scope ref MutHashTable!(T, K, getKey) a,
 	in K key,
 	in T delegate() @safe @nogc pure nothrow cb,
 ) {
@@ -136,7 +138,7 @@ ref T getOrAdd(T, K, alias getKey)(
 
 ref T insertOrUpdate(T, K, alias getKey)(
 	ref Alloc alloc,
-	ref HashTable!(T, K, getKey) a,
+	ref MutHashTable!(T, K, getKey) a,
 	in K key,
 	in T delegate() @safe @nogc pure nothrow cbInsert,
 	in T delegate(ref T) @safe @nogc pure nothrow cbUpdate,
@@ -154,15 +156,15 @@ ref T insertOrUpdate(T, K, alias getKey)(
 	}
 }
 
-MutOpt!T mayDelete(T, K, alias getKey)(ref HashTable!(T, K, getKey) a, in K key) {
+MutOpt!T mayDelete(T, K, alias getKey)(ref MutHashTable!(T, K, getKey) a, in K key) {
 	Opt!size_t index = getIndex(a, key);
 	return has(index) ? someMut(deleteAtIndex(a, force(index))) : noneMut!T;
 }
 
-T mustDelete(T, K, alias getKey)(ref HashTable!(T, K, getKey) a, in K key) =>
+T mustDelete(T, K, alias getKey)(ref MutHashTable!(T, K, getKey) a, in K key) =>
 	deleteAtIndex(a, mustGetIndex(a, key));
 
-MutOpt!T popArbitrary(T, K, alias getKey)(ref HashTable!(T, K, getKey) a) {
+MutOpt!T popArbitrary(T, K, alias getKey)(ref MutHashTable!(T, K, getKey) a) {
 	foreach (size_t index, ref MutOpt!T x; a.values)
 		if (has(x)) {
 			T res = force(x);
@@ -172,14 +174,14 @@ MutOpt!T popArbitrary(T, K, alias getKey)(ref HashTable!(T, K, getKey) a) {
 	return noneMut!T;
 }
 
-@trusted immutable(HashTable!(T, K, getKey)) moveToImmutable(T, K, alias getKey)(ref HashTable!(T, K, getKey) a) {
-	immutable HashTable!(T, K, getKey) res = immutable HashTable!(T, K, getKey)(a.size_, cast(immutable) a.values);
+@trusted HashTable!(T, K, getKey) moveToImmutable(T, K, alias getKey)(ref MutHashTable!(T, K, getKey) a) {
+	HashTable!(T, K, getKey) res = HashTable!(T, K, getKey)(a.size_, cast(immutable) a.values);
 	a.size_ = 0;
 	a.values = [];
 	return res;
 }
 
-@trusted T[] moveToArray(T, K, alias getKey)(ref Alloc alloc, ref HashTable!(T, K, getKey) a) {
+@trusted T[] moveToArray(T, K, alias getKey)(ref Alloc alloc, ref MutHashTable!(T, K, getKey) a) {
 	// Cleverly reuse the space in 'values'
 	T* out_ = cast(T*) a.values;
 	foreach (ref MutOpt!T x; a.values) {
@@ -213,7 +215,7 @@ MutOpt!T popArbitrary(T, K, alias getKey)(ref HashTable!(T, K, getKey) a) {
 }
 @trusted Out[] mapToArray(Out, T, K, alias getKey)(
 	ref Alloc alloc,
-	scope ref const HashTable!(T, K, getKey) a,
+	scope ref const MutHashTable!(T, K, getKey) a,
 	in Out delegate(ref const T) @safe @nogc pure nothrow cb,
 ) {
 	Out[] res = allocateElements!Out(alloc, a.size_);
@@ -227,7 +229,7 @@ MutOpt!T popArbitrary(T, K, alias getKey)(ref HashTable!(T, K, getKey) a) {
 }
 @trusted Out[] mapToArray(Out, T, K, alias getKey)(
 	ref Alloc alloc,
-	scope ref HashTable!(T, K, getKey) a,
+	scope ref MutHashTable!(T, K, getKey) a,
 	in Out delegate(ref T) @safe @nogc pure nothrow cb,
 ) {
 	Out[] res = allocateElements!Out(alloc, a.size_);
@@ -240,9 +242,9 @@ MutOpt!T popArbitrary(T, K, alias getKey)(ref HashTable!(T, K, getKey) a) {
 	return res;
 }
 
-immutable(HashTable!(Out, K, getKeyOut)) mapPreservingKeys(Out, alias getKeyOut, In, K, alias getKey)(
+HashTable!(Out, K, getKeyOut) mapPreservingKeys(Out, alias getKeyOut, In, K, alias getKey)(
 	ref Alloc alloc,
-	scope ref HashTable!(In, K, getKey) a,
+	scope ref MutHashTable!(In, K, getKey) a,
 	in Out delegate(ref In) @safe @nogc pure nothrow cb,
 ) {
 	immutable MutOpt!Out[] outValues = map!(immutable MutOpt!Out, MutOpt!In)(alloc, a.values, (ref MutOpt!In value) {
@@ -253,12 +255,12 @@ immutable(HashTable!(Out, K, getKeyOut)) mapPreservingKeys(Out, alias getKeyOut,
 		} else
 			return cast(immutable) noneMut!Out;
 	});
-	return immutable HashTable!(Out, K, getKeyOut)(a.size_, outValues);
+	return HashTable!(Out, K, getKeyOut)(a.size_, outValues);
 }
 
-@trusted immutable(HashTable!(Out, K, getKeyOut)) mapAndMovePreservingKeys(Out, alias getKeyOut, In, K, alias getKey)(
+@trusted HashTable!(Out, K, getKeyOut) mapAndMovePreservingKeys(Out, alias getKeyOut, In, K, alias getKey)(
 	ref Alloc alloc,
-	ref HashTable!(In, K, getKey) a,
+	ref MutHashTable!(In, K, getKey) a,
 	in Out delegate(ref In) @safe @nogc pure nothrow cb,
 ) {
 	static assert(Out.sizeof <= In.sizeof);
@@ -267,7 +269,7 @@ immutable(HashTable!(Out, K, getKeyOut)) mapPreservingKeys(Out, alias getKeyOut,
 		initMemory(out_, has(x) ? someMut!Out(cb(force(x))) : noneMut!Out);
 		out_++;
 	}
-	immutable HashTable!(Out, K, getKeyOut) res = immutable HashTable!(Out, K, getKeyOut)(
+	HashTable!(Out, K, getKeyOut) res = HashTable!(Out, K, getKeyOut)(
 		a.size_,
 		cast(immutable) arrayOfRange!(MutOpt!Out)(cast(MutOpt!Out*) a.values.ptr, out_));
 	MutOpt!In[] remaining = arrayOfRange(cast(MutOpt!In*) out_, endPtr(a.values));
@@ -278,7 +280,7 @@ immutable(HashTable!(Out, K, getKeyOut)) mapPreservingKeys(Out, alias getKeyOut,
 }
 
 bool existsInHashTable(T, K, alias getKey)(
-	in HashTable!(T, K, getKey) a,
+	in MutHashTable!(T, K, getKey) a,
 	in bool delegate(in T) @safe @nogc pure nothrow cb,
 ) {
 	foreach (ref const T x; a)
@@ -303,12 +305,12 @@ string typeName(T)() {
 		return __traits(identifier, T);
 }
 
-size_t mustGetIndex(T, K, alias getKey)(in HashTable!(T, K, getKey) a, in K key) {
+size_t mustGetIndex(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a, in K key) {
 	Opt!size_t res = getIndex(a, key);
 	return force(res);
 }
 
-Opt!size_t getIndex(T, K, alias getKey)(in HashTable!(T, K, getKey) a, in K key) {
+Opt!size_t getIndex(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a, in K key) {
 	if (empty(a.values))
 		return none!size_t;
 
@@ -327,23 +329,24 @@ Opt!size_t getIndex(T, K, alias getKey)(in HashTable!(T, K, getKey) a, in K key)
 	}
 }
 
-bool shouldExpandBeforeAdd(T, K, alias getKey)(in HashTable!(T, K, getKey) a) =>
+bool shouldExpandBeforeAdd(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a) =>
 	// For small maps, only expand if there is no empty space.
 	// For large maps, aim to be 3/4 full.
 	a.size_ <= 8
 		? a.size_ == a.values.length
 		: a.size_ * 4 / 3 >= a.values.length;
 
-@trusted void doExpand(T, K, alias getKey)(ref Alloc alloc, scope ref HashTable!(T, K, getKey) a) {
+@trusted void doExpand(T, K, alias getKey)(ref Alloc alloc, scope ref MutHashTable!(T, K, getKey) a) {
 	immutable size_t newCapacity = a.values.length < 2 ? 2 : a.values.length * 2;
-	HashTable!(T, K, getKey) bigger = HashTable!(T, K, getKey)(0, fillArray!(MutOpt!T)(alloc, newCapacity, noneMut!T));
+	MutHashTable!(T, K, getKey) bigger = MutHashTable!(T, K, getKey)(
+		0, fillArray!(MutOpt!T)(alloc, newCapacity, noneMut!T));
 	foreach (ref T x; a)
 		mustAdd(alloc, bigger, x);
 	freeElements(alloc, a.values);
 	a.values = bigger.values;
 }
 
-T deleteAtIndex(T, K, alias getKey)(scope ref HashTable!(T, K, getKey) a, size_t i) {
+T deleteAtIndex(T, K, alias getKey)(scope ref MutHashTable!(T, K, getKey) a, size_t i) {
 	T res = force(a.values[i]);
 	a.size_--;
 
@@ -364,12 +367,12 @@ T deleteAtIndex(T, K, alias getKey)(scope ref HashTable!(T, K, getKey) a, size_t
 	return res;
 }
 
-size_t nextI(T, K, alias getKey)(in HashTable!(T, K, getKey) a, size_t i) {
+size_t nextI(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a, size_t i) {
 	size_t res = i + 1;
 	return res == a.values.length ? 0 : res;
 }
 
-size_t walkDistance(T, K, alias getKey)(in HashTable!(T, K, getKey) a, size_t i0, size_t i1) =>
+size_t walkDistance(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a, size_t i0, size_t i1) =>
 	i0 <= i1
 		? i1 - i0
 		: a.values.length + i1 - i0;

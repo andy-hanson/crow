@@ -7,9 +7,9 @@ import util.col.arrUtil : allSame;
 import util.col.hashTable : HashTable;
 import util.sym : Sym;
 
-alias StructsAndAliasesMap = immutable HashTable!(StructOrAlias, Sym, structOrAliasName);
-alias SpecsMap = immutable HashTable!(immutable SpecDecl*, Sym, specDeclName);
-alias FunsMap = immutable HashTable!(immutable FunDecl*[], Sym, funDeclsName);
+alias StructsAndAliasesMap = HashTable!(StructOrAlias, Sym, structOrAliasName);
+alias SpecsMap = HashTable!(immutable SpecDecl*, Sym, specDeclName);
+alias FunsMap = HashTable!(immutable FunDecl*[], Sym, funDeclsName);
 
 Sym funDeclsName(immutable FunDecl*[] a) {
 	assert(allSame!(Sym, immutable FunDecl*)(a, (in immutable FunDecl* x) =>
