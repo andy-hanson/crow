@@ -23,18 +23,19 @@ bool isEndOfList(alias link, T)(in T* a) =>
 bool isUnlinked(alias link, T)(in T* a) =>
 	!has(prev!link(a)) && !has(next!link(a));
 
-// Removes nodes from the list (starting from the last) and calls `cb`` on each after it is removed.
+// Removes nodes from the list (starting from the last) and calls `cb` on each after it is removed.
 void removeAllFromListAnd(alias link, T)(T* last, void delegate(T*) @safe @nogc pure nothrow cb) {
 	while (true) {
 		assert(isEndOfList!link(last));
 		MutOpt!(T*) left = prev!link(last);
 		prev!link(last) = noneMut!(T*);
-		assert(isUnlinked!link(last));
-		if (has(left)) {
+		if (has(left))
 			next!link(force(left)) = noneMut!(T*);
-			cb(last);
+		assert(isUnlinked!link(last));
+		cb(last);
+		if (has(left))
 			last = force(left);
-		} else
+		else
 			break;
 	}
 }
@@ -106,9 +107,32 @@ void insertToRight(alias link, T)(T* left, T* new_) {
 
 void insertToLeft(alias link, T)(T* right, T* new_) {
 	assert(isUnlinked!link(new_));
-	prev!link(new_) = prev!link(right);
 	next!link(new_) = someMut(right);
+	prev!link(new_) = prev!link(right);
 	prev!link(right) = someMut(new_);
 	if (has(prev!link(new_)))
 		next!link(force(prev!link(new_))) = someMut(new_);
+}
+
+void assertDoubleLink(alias link, T)(in T* a) {
+	assertDoubleLinkLeft!link(a);
+	assertDoubleLinkRight!link(a);
+}
+
+private void assertDoubleLinkLeft(alias link, T)(in T* a) {
+	ConstOpt!(T*) opt = prev!link(a);
+	if (has(opt)) {
+		const T* left = force(opt);
+		assert(force(next!link(left)) == a);
+		assertDoubleLinkLeft!link(left);
+	}
+}
+
+private void assertDoubleLinkRight(alias link, T)(in T* a) {
+	ConstOpt!(T*) opt = next!link(a);
+	if (has(opt)) {
+		const T* right = force(opt);
+		assert(force(prev!link(right)) == a);
+		assertDoubleLinkRight!link(right);
+	}
 }

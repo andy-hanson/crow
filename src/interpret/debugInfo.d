@@ -83,7 +83,7 @@ private struct Ptr64(T) {
 	size_t skip,
 	in Stacks stacks,
 ) =>
-	withStaticAlloc!(BacktraceEntry*, (ref Alloc alloc) {
+	withStaticAlloc!(BacktraceEntry*, (ref Alloc alloc) @trusted {
 		size_t resSize = min(returnStackSize(stacks) - skip, max);
 		foreach (size_t i, ref BacktraceEntry entry; out_[0 .. resSize])
 			overwriteMemory(&entry, getBacktraceEntry(alloc, info, returnPeek(stacks, skip + i)));

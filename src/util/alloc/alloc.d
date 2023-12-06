@@ -1,6 +1,6 @@
 module util.alloc.alloc;
 
-@nogc nothrow: // not @safe, not pure
+@safe @nogc nothrow: // not pure
 
 import util.alloc.doubleLink :
 	DoubleLink,
@@ -16,14 +16,15 @@ import util.alloc.doubleLink :
 	next,
 	prev,
 	removeAllFromListAnd,
-	removeFromList;
+	removeFromList,
+	assertDoubleLink;
 import util.col.arr : arrayOfRange, arrayOfSingle, endPtr;
 import util.col.enumMap : EnumMap;
 import util.opt : ConstOpt, force, has, MutOpt, noneMut, optEqual, someMut;
 import util.util : clamp, divRoundUp, max;
 
 T withStaticAlloc(T, alias cb)(word[] memory) {
-	scope MetaAlloc metaAlloc = MetaAlloc(memory);
+	MetaAlloc metaAlloc = MetaAlloc(memory);
 	scope Alloc* alloc = newAlloc(AllocKind.static_, &metaAlloc);
 	return cb(*alloc);
 }
@@ -50,7 +51,7 @@ T withTempAllocImpure(T)(MetaAlloc* a, AllocKind kind, in T delegate(ref Alloc) 
 
 pure:
 
-@safe T withTempAlloc(T)(MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc pure nothrow cb) =>
+T withTempAlloc(T)(MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc pure nothrow cb) =>
 	withTempAllocAlias!(T, cb)(a);
 
 @trusted T withStackAlloc(size_t sizeWords, T)(in T delegate(ref Alloc) @safe @nogc pure nothrow cb) {
@@ -163,7 +164,7 @@ private @trusted void validate(in MetaAlloc a) {
 	return MetaMemorySummary(countFreeBlocks, byAlloc, total);
 }
 
-@trusted Alloc* newAlloc(AllocKind allocKind, MetaAlloc* meta) {
+@trusted Alloc* newAlloc(AllocKind allocKind, return scope MetaAlloc* meta) {
 	BlockNode* block = extractFreeBlock(*meta, max(bytesToWords(Alloc.sizeof), minBlockSizeWords));
 	assert(isUnlinked!allocLink(block));
 	// First thing to allocate is the Alloc itself. Then first useable word comes after that.
@@ -211,23 +212,23 @@ struct Alloc {
 alias FinishedAlloc = Alloc;
 alias TempAlloc = Alloc;
 
-ubyte[] allocateBytes(ref Alloc a, size_t sizeBytes) =>
+@system ubyte[] allocateBytes(ref Alloc a, size_t sizeBytes) =>
 	(cast(ubyte*) allocateWords(a, bytesToWords(sizeBytes)).ptr)[0 .. sizeBytes];
 
-T* allocateUninitialized(T)(ref Alloc a) =>
+@system T* allocateUninitialized(T)(ref Alloc a) =>
 	&allocateElements!T(a, 1)[0];
 
-T[] allocateElements(T)(ref Alloc a, size_t count) =>
+@system T[] allocateElements(T)(ref Alloc a, size_t count) =>
 	(cast(T*) allocateBytes(a, T.sizeof * count).ptr)[0 .. count];
 
-void freeElements(T)(ref Alloc a, in T[] range) {
+@system void freeElements(T)(ref Alloc a, in T[] range) {
 	freeWords(a, innerWordRange(range));
 }
 
 @trusted void assertOwns(T)(in Alloc a, in T[] values) {
 	assert(allocOwns(a, values));
 }
-bool allocOwns(T)(in Alloc a, in T[] values) =>
+@system bool allocOwns(T)(in Alloc a, in T[] values) =>
 	existsHereOrPrev!allocLink(a.curBlock, (in BlockNode* b) @trusted => blockOwns(b, values));
 
 struct AllocKindMemorySummary {
@@ -268,7 +269,7 @@ immutable struct MetaMemorySummary {
 	MemorySummary total;
 }
 
-@safe size_t totalBytes(in MemorySummary a) =>
+size_t totalBytes(in MemorySummary a) =>
 	a.usedBytes + a.freeBytes + a.overheadBytes;
 
 @trusted size_t perf_curBytes(in Alloc a) {
@@ -280,15 +281,20 @@ immutable struct MetaMemorySummary {
 }
 
 @trusted FinishedAlloc* finishAlloc(Alloc* a) {
-	freeRestOfBlock(*a.meta, a.curBlock, a.curWord);
+	MutOpt!(BlockNode*) freed = maybeSplitOffBlock(a.curBlock, a.curWord - a.curBlock.words.ptr);
+	if (has(freed))
+		addToFreeList(*a.meta, force(freed));
 	return a;
 }
 
-void freeAlloc(FinishedAlloc* a) {
+@system void freeAlloc(FinishedAlloc* a) {
+	assertDoubleLink!allocLink(a.curBlock);
 	// Since the alloc was allocated into its first block, this frees it too.
 	removeAllFromListAnd!allocLink(a.curBlock, (BlockNode* x) @trusted {
+		assert(force(x.alloc) == a);
 		addToFreeList(*a.meta, x);
 	});
+	*a = Alloc(a.allocKind, null, null, null);
 }
 
 struct AllocAndValue(T) {
@@ -296,15 +302,15 @@ struct AllocAndValue(T) {
 	T value;
 }
 
-@safe AllocAndValue!T withAlloc(T)(AllocKind kind, MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc pure nothrow cb) {
+AllocAndValue!T withAlloc(T)(AllocKind kind, MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc pure nothrow cb) {
 	Alloc* alloc = newAlloc(kind, a);
 	T value = cb(*alloc);
 	return AllocAndValue!T(finishAlloc(alloc), value);
 }
 
-private:
-
 alias word = ulong;
+
+private:
 
 struct BlockNode {
 	@safe @nogc pure nothrow:
@@ -328,35 +334,46 @@ struct BlockNode {
 	@trusted inout(word[]) words() return scope inout =>
 		arrayOfRange!word(cast(inout word*) (&this + 1), end);
 }
+@system size_t totalWordsIncludingHeader(in BlockNode* a) {
+	size_t res = a.end - cast(word*) a;
+	assert(res == blockHeaderSizeWords + a.words.length);
+	return res;
+}
 
-@safe bool isSentinel(in BlockNode* a) =>
+bool isSentinel(in BlockNode* a) =>
 	!has(a.alloc) && (isStartOfList!allBlocksLink(a) || isEndOfList!allBlocksLink(a));
 
-@safe bool isFree(in BlockNode* a) =>
+bool isFree(in BlockNode* a) =>
 	!has(a.alloc) && !isSentinel(a);
 
-@safe ref inout(DoubleLink!BlockNode) allBlocksLink(inout BlockNode* a) =>
+ref inout(DoubleLink!BlockNode) allBlocksLink(inout BlockNode* a) =>
 	a.allBlocksLink_;
 
-@safe ref inout(DoubleLink!BlockNode) allocLink(inout BlockNode* a) =>
+ref inout(DoubleLink!BlockNode) allocLink(inout BlockNode* a) =>
 	a.allocLink_;
 
 // WARN: This brings 'meta' into an invalid state until you use the free block
-@safe BlockNode* extractFreeBlock(ref MetaAlloc meta, size_t minWords) {
+@system BlockNode* extractFreeBlock(ref MetaAlloc meta, size_t minWords) {
 	MutOpt!(BlockNode*) found = findNodeToRight!allocLink(meta.firstBlockSentinel, (in BlockNode* x) =>
 		x.words.length >= minWords);
 	if (has(found)) {
 		BlockNode* res = force(found);
-		assert(isFree(res));
-		size_t sizeWords = clamp(preferredBlockWordCount, minWords, res.words.length);
-		MutOpt!(BlockNode*) remaining = maybeSplitOffBlock(res, sizeWords);
-		if (has(remaining))
-			insertToRight!allocLink(res, force(remaining));
-		removeFromList!allocLink(res);
-		assert(res.words.length >= sizeWords);
+		takeFromStartOfFreeBlock(res, minWords);
 		return res;
 	} else
 		assert(false, "OOM");
+}
+
+// Takes 'minWords' or 'preferredBlockWordCount' from the start of a free block,
+// unlinking it but leaving the remainder free.
+void takeFromStartOfFreeBlock(BlockNode* block, size_t minWords) {
+	assert(isFree(block));
+	size_t sizeWords = clamp(preferredBlockWordCount, minWords, block.words.length);
+	MutOpt!(BlockNode*) remaining = maybeSplitOffBlock(block, sizeWords);
+	if (has(remaining))
+		insertToRight!allocLink(block, force(remaining));
+	removeFromList!allocLink(block);
+	assert(block.words.length >= sizeWords);
 }
 
 // Splits the block and returns the new right half (which is linked to 'allBlocksLink' but not 'allocLink')
@@ -372,14 +389,7 @@ struct BlockNode {
 		return noneMut!(BlockNode*);
 }
 
-void freeRestOfBlock(ref MetaAlloc a, BlockNode* block, word* cur) {
-	MutOpt!(BlockNode*) freed = maybeSplitOffBlock(block, cur - block.words.ptr);
-	if (has(freed))
-		addToFreeList(a, force(freed));
-}
-
 void addToFreeList(ref MetaAlloc a, BlockNode* block) {
-	validate(a);
 	block.alloc = noneMut!(Alloc*);
 	assert(!isUnlinked!allBlocksLink(block));
 	assert(isUnlinked!allocLink(block));
@@ -390,10 +400,10 @@ void addToFreeList(ref MetaAlloc a, BlockNode* block) {
 		removeFromList!allBlocksLink(block);
 		removeFromList!allBlocksLink(right);
 		removeFromList!allocLink(right);
-	} else if (isFree(left)) {
+	} else if (isFree(left))
 		// Remove this block, making 'left' bigger
 		removeFromList!allBlocksLink(block);
-	} else if (isFree(right)) {
+	else if (isFree(right)) {
 		// Merge the 'right' block into this one
 		insertToLeft!allocLink(right, block);
 		removeFromList!allocLink(right);
@@ -417,28 +427,28 @@ void findPositionInFreeListAndInsert(ref MetaAlloc a, BlockNode* block) {
 }
 
 // Anything less than this becomes fragmentation.
-@safe size_t minBlockSizeWords() =>
+size_t minBlockSizeWords() =>
 	0x100;
 
-@safe size_t preferredBlockWordCount() =>
+size_t preferredBlockWordCount() =>
 	0x10000 - blockHeaderSizeWords;
 
-@safe size_t blockHeaderSizeWords() {
+size_t blockHeaderSizeWords() {
 	static assert(BlockNode.sizeof % word.sizeof == 0);
 	return bytesToWords(BlockNode.sizeof);
 }
 
-bool blockOwns(T)(in BlockNode* a, in T* value) =>
+@system bool blockOwns(T)(in BlockNode* a, in T* value) =>
 	blockOwns(a, arrayOfSingle(value));
-bool blockOwns(T)(in BlockNode* a, in T[] values) =>
+@system bool blockOwns(T)(in BlockNode* a, in T[] values) =>
 	isSubArray(outerWordRange(values), a.words);
-bool isSubArray(T)(in T[] a, in T[] b) =>
+@system bool isSubArray(T)(in T[] a, in T[] b) =>
 	b.ptr <= a.ptr && endPtr(a) <= endPtr(b);
 
-word[] allocateWords(ref Alloc a, size_t nWords) {
+@system word[] allocateWords(ref Alloc a, size_t nWords) {
 	word* newCur = a.curWord + nWords;
 	if (newCur > a.curBlock.end) {
-		fetchNewBlock(&a, nWords);
+		expandOrFetchNewBlock(&a, nWords);
 		newCur = a.curWord + nWords;
 	}
 	assert(newCur <= a.curBlock.end);
@@ -448,38 +458,51 @@ word[] allocateWords(ref Alloc a, size_t nWords) {
 	return res;
 }
 
-void fetchNewBlock(Alloc* a, size_t minWords) {
-	BlockNode* block = extractFreeBlock(*a.meta, minWords);
-	block.alloc = someMut(a);
-	insertToRight!allocLink(a.curBlock, block);
-	a.curBlock = block;
-	a.curWord = block.words.ptr;
+@system void expandOrFetchNewBlock(Alloc* a, size_t minWords) {
+	size_t remaining = a.curBlock.end - a.curWord;
+	BlockNode* cur = a.curBlock;
+	BlockNode* right = force(next!allBlocksLink(cur));
+	if (isFree(right) && remaining + totalWordsIncludingHeader(right) >= minWords) {
+		// Expand into adjacent free block. No need to modify 'curBlock' or 'curWord'.
+		takeFromStartOfFreeBlock(right, subtractAndClamp(minWords, blockHeaderSizeWords + remaining));
+		assert(isUnlinked!allocLink(right));
+		removeFromList!allBlocksLink(right);
+	} else {
+		BlockNode* block = extractFreeBlock(*a.meta, minWords);
+		block.alloc = someMut(a);
+		insertToRight!allocLink(a.curBlock, block);
+		a.curBlock = block;
+		a.curWord = block.words.ptr;
+	}
 	validate(*a.meta);
 }
 
-void freeWords(ref Alloc a, in word[] range) {
+size_t subtractAndClamp(size_t a, size_t b) =>
+	a >= b ? a - b : 0;
+
+@system void freeWords(ref Alloc a, in word[] range) {
 	// Do nothing for other frees, they will just be fragmentation within the arena
 	if (a.curWord == endPtr(range)) {
 		a.curWord = cast(word*) range.ptr;
 	}
 }
 
-@trusted const(word[]) outerWordRange(T)(return in T[] range) =>
+@system const(word[]) outerWordRange(T)(return in T[] range) =>
 	arrayOfRange(roundDownToWord(cast(ubyte*) range.ptr), roundUpToWord(cast(ubyte*) endPtr(range)));
 
-@trusted const(word[]) innerWordRange(T)(return in T[] range) {
+@system const(word[]) innerWordRange(T)(return in T[] range) {
 	const word* begin = roundUpToWord(cast(ubyte*) range.ptr);
 	const word* end = roundDownToWord(cast(ubyte*) endPtr(range));
 	return begin < end ? arrayOfRange(begin, end) : [];
 }
 
-@safe size_t bytesToWords(size_t bytes) =>
+size_t bytesToWords(size_t bytes) =>
 	divRoundUp(bytes, word.sizeof);
 
-@trusted const(word*) roundUpToWord(return in ubyte* a) {
+@system const(word*) roundUpToWord(return in ubyte* a) {
 	size_t rem = (cast(size_t) a) % word.sizeof;
 	return cast(word*) (rem == 0 ? a : a - rem + word.sizeof);
 }
 
-@trusted const(word*) roundDownToWord(return in ubyte* a) =>
+@system const(word*) roundDownToWord(return in ubyte* a) =>
 	cast(word*) (a - ((cast(size_t) a) % word.sizeof));

@@ -82,12 +82,13 @@ Json showMemory(ref Alloc alloc, in MemorySummary a) =>
 Json showMemoryCommon(ref Alloc alloc, Opt!size_t countAllocs, in MemorySummary a) =>
 	Json(buildArrayExact!(Json.ObjectField)(
 		alloc,
-		has(countAllocs) ? 5 : 4,
+		has(countAllocs) ? 6 : 5,
 		(scope ref ExactSizeArrBuilder!(Json.ObjectField) res) {
 			res ~= field!"total"(showMemoryAmount(alloc, totalBytes(a)));
 			res ~= field!"used"(showMemoryAmount(alloc, a.usedBytes));
 			res ~= field!"free"(showMemoryAmount(alloc, a.freeBytes));
 			res ~= field!"overhead"(showMemoryAmount(alloc, a.overheadBytes));
+			res ~= field!"countBlocks"(a.countBlocks);
 			if (has(countAllocs))
 				res ~= field!"countAllocs"(force(countAllocs));
 		}));
