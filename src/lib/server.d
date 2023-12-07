@@ -94,7 +94,7 @@ import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
 import model.lowModel : ExternLibraries, LowProgram;
 import model.model : hasFatalDiagnostics, Module, Program;
-import util.alloc.alloc : Alloc, AllocKind, freeElements, MetaAlloc, newAlloc, withTempAllocImpure;
+import util.alloc.alloc : Alloc, AllocKind, FetchMemoryCb, freeElements, MetaAlloc, newAlloc, withTempAllocImpure;
 import util.col.arr : only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrLiteral, concatenate, contains, map, mapOp;
@@ -286,8 +286,8 @@ struct Server {
 	LspState lspState;
 	MutLate!(FrontendCompiler*) frontend_;
 
-	@trusted this(ulong[] memory) {
-		metaAlloc_ = MetaAlloc(memory);
+	@trusted this(return scope FetchMemoryCb fetch) {
+		metaAlloc_ = MetaAlloc(fetch);
 		allSymbols = AllSymbols(newAlloc(AllocKind.allSymbols, metaAlloc));
 		allUris = AllUris(newAlloc(AllocKind.allUris, metaAlloc), &allSymbols);
 		storage = Storage(metaAlloc, &allSymbols, &allUris);

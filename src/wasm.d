@@ -4,7 +4,7 @@ import lib.lsp.lspParse : parseLspInMessage;
 import lib.lsp.lspToJson : jsonOfLspOutAction;
 import lib.lsp.lspTypes : LspInMessage, LspOutAction;
 import lib.server : CbHandleUnknownUris, handleLspMessage, Server, setCwd, setIncludeDir;
-import util.alloc.alloc : Alloc, withTempAlloc, withTempAllocImpure;
+import util.alloc.alloc : Alloc, FetchMemoryCb, withTempAlloc, withTempAllocImpure;
 import util.col.str : CStr, SafeCStr;
 import util.json : get, Json, jsonToString;
 import util.jsonParse : mustParseJson;
@@ -46,9 +46,16 @@ private ubyte[1024 * 1024] parameterBuffer = void;
 extern(C) ubyte* getParameterBufferPointer() => parameterBuffer.ptr;
 extern(C) size_t getParameterBufferLength() => parameterBuffer.length;
 
+// Like FetchMemoryCb but not pure
+alias FetchMemoryCbImpure = ulong[] delegate(size_t sizeWords, size_t timesCalled) @system @nogc nothrow;
+
 @system extern(C) Server* newServer(scope CStr paramsCStr) {
 	Server* server = &serverStorage;
-	server.__ctor(serverBuffer);
+	FetchMemoryCbImpure fetchMemoryCb = (size_t sizeWords, size_t timesCalled) {
+		assert(timesCalled == 0);
+		return serverBuffer;
+	};
+	server.__ctor(cast(FetchMemoryCb) fetchMemoryCb);
 	SafeCStr paramsStr = SafeCStr(paramsCStr);
 	withTempAlloc!void(server.metaAlloc, (ref Alloc alloc) {
 		Json params = mustParseJson(alloc, server.allSymbols, paramsStr);

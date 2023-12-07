@@ -13,7 +13,7 @@ mixin template Union(ReprTypes...) {
 	import util.col.arr : SmallArray;
 	import util.union_ :
 		canUseTaggedPointers,
-		getAsTaggable,
+		getTaggedPointerValue,
 		isEmptyStruct,
 		isImmutable,
 		toHandlers,
@@ -77,10 +77,7 @@ mixin template Union(ReprTypes...) {
 			static if (is(T == P*, P))
 				assert(a != null);
 			static if (usesTaggedPointer) {
-				ulong ptr = getAsTaggable!T(a);
-				assert((ptr & 0b11) == 0);
-				static assert((i & 0b11) == i);
-				value = ptr | i;
+				value = getTaggedPointerValue!i(a);
 			} else {
 				kind = i;
 				mixin("as", i, " = a;");
@@ -199,27 +196,47 @@ mixin template UnionMutable(Types...) {
 	@safe @nogc pure nothrow:
 
 	import util.memory : overwriteMemory;
-	import util.union_ : toHandlersConst, toHandlersMutable;
+	import util.union_ : canUseTaggedPointers, getTaggedPointerValue, isEmptyStruct, toHandlersConst, toHandlersMutable;
 
-	private uint kind;
-	union {
-		static foreach (i, T; Types) {
-			mixin("private T as", i, ";");
+	enum usesTaggedPointer = canUseTaggedPointers!Types;
+
+	static if (usesTaggedPointer) {
+		private ulong value;
+		private uint kind() scope const =>
+			value & 0b11;
+		private ulong ptrValue() scope const =>
+			value & ~0b11;
+	} else {
+		private uint kind;
+		union {
+			static foreach (i, T; Types) {
+				mixin("private T as", i, ";");
+			}
 		}
 	}
 
 	@disable this();
 	static foreach (i, T; Types) {
 		this(return T a) {
-			kind = i;
-			mixin("as", i, " = a;");
+			static if (is(T == P*, P))
+				assert(a != null);
+			static if (usesTaggedPointer) {
+				value = getTaggedPointerValue!i(a);
+			} else {
+				kind = i;
+				mixin("as", i, " = a;");
+			}
 		}
 	}
 
 	static foreach (i, T; Types) {
-		@trusted void opAssign(T value) {
-			kind = i;
-			mixin("overwriteMemory(&as", i, ", value);");
+		@trusted void opAssign(T b) {
+			static if (usesTaggedPointer) {
+				value = getTaggedPointerValue!i(b);
+			} else {
+				kind = i;
+				mixin("overwriteMemory(&as", i, ", b);");
+			}
 		}
 	}
 
@@ -227,7 +244,14 @@ mixin template UnionMutable(Types...) {
 		final switch (kind) {
 			static foreach (i, T; Types) {
 				case i:
-					mixin("return handlers[", i, "](as", i, ");");
+					static if (usesTaggedPointer) {
+						static if (isEmptyStruct!T)
+							return handlers[i](T());
+						else
+							return handlers[i](cast(P*) ptrValue);
+					} else {
+						mixin("return handlers[", i, "](as", i, ");");
+					}
 			}
 		}
 	}
@@ -236,7 +260,16 @@ mixin template UnionMutable(Types...) {
 		final switch (kind) {
 			static foreach (i, T; Types) {
 				case i:
-					mixin("return handlers[", i, "](as", i, ");");
+					static if (usesTaggedPointer) {
+						static if (isEmptyStruct!T)
+							return handlers[i](T());
+						else static if (is(T == P*, P))
+							return handlers[i](cast(const P*) ptrValue);
+						else
+							static assert(false);
+					} else {
+						mixin("return handlers[", i, "](as", i, ");");
+					}
 			}
 		}
 	}
@@ -248,11 +281,25 @@ mixin template UnionMutable(Types...) {
 		}
 	}
 
-	@trusted ref inout(T) as(T)() inout {
-		static foreach (i, Ty; Types) {
-			static if (is(T == Ty)) {
-				assert(kind == i);
-				mixin("return as", i, ";");
+	static if (usesTaggedPointer) {
+		@trusted inout(T) as(T)() inout {
+			static foreach (i, Ty; Types) {
+				static if (is(T == Ty)) {
+					assert(kind == i);
+					static if (is(Ty == P*, P))
+						return (cast(inout P*) ptrValue);
+					else
+						return Ty.fromTagged(ptrValue);
+				}
+			}
+		}
+	} else {
+		@trusted ref inout(T) as(T)() inout {
+			static foreach (i, Ty; Types) {
+				static if (is(T == Ty)) {
+					assert(kind == i);
+					mixin("return as", i, ";");
+				}
 			}
 		}
 	}
@@ -271,15 +318,23 @@ bool canUseTaggedPointers(Types...)() {
 private bool canUseTaggedPointer(T)() =>
 	isEmptyStruct!T || is(T == U*, U) || __traits(compiles, T.fromTagged(0));
 
-ulong getAsTaggable(T)(toMemberType!T a) {
+ulong getAsTaggable(T)(const T a) {
 	static if (isEmptyStruct!T)
 		return 0;
 	else static if (is(T == P*, P))
 		return cast(ulong) a;
-	else static if (is(T == SmallArray!U, U))
-		return T(a).asTaggable;
+	else static if (is(T == U[], U))
+		return SmallArray!U(a).asTaggable;
 	else
 		return a.asTaggable;
+}
+
+
+ulong getTaggedPointerValue(size_t i, T)(T a) {
+	ulong ptr = getAsTaggable!T(a);
+	assert((ptr & 0b11) == 0);
+	static assert((i & 0b11) == i);
+	return ptr | i;
 }
 
 bool isEmptyStruct(T)() {

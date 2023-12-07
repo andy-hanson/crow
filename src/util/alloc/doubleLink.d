@@ -41,13 +41,19 @@ void removeAllFromListAnd(alias link, T)(T* last, void delegate(T*) @safe @nogc 
 }
 
 // Does not consider the current node (or to its left)
-MutOpt!(T*) findNodeToRight(alias link, T)(T* a, in bool delegate(in T*) @safe @nogc pure nothrow cb) {
+MutOpt!(T*) findNodeToRight(alias link, T)(
+	T* a,
+	in bool delegate(in T*) @safe @nogc pure nothrow cbStop,
+	in bool delegate(in T*) @safe @nogc pure nothrow cbFind,
+) {
 	MutOpt!(T*) next = next!link(a);
 	return !has(next)
 		? noneMut!(T*)
-		: cb(force(next))
+		: cbStop(force(next))
+		? noneMut!(T*)
+		: cbFind(force(next))
 		? someMut(force(next))
-		: findNodeToRight!link(force(next), cb);
+		: findNodeToRight!link(force(next), cbStop, cbFind);
 }
 
 bool existsHereOrPrev(alias link, T)(in T* a, in bool delegate(in T*) @safe @nogc pure nothrow cb) =>
@@ -112,6 +118,11 @@ void insertToLeft(alias link, T)(T* right, T* new_) {
 	prev!link(right) = someMut(new_);
 	if (has(prev!link(new_)))
 		next!link(force(prev!link(new_))) = someMut(new_);
+}
+
+void replaceInList(alias link, T)(T* old, T* new_) {
+	insertToRight!link(old, new_);
+	removeFromList!link(old);
 }
 
 void assertDoubleLink(alias link, T)(in T* a) {

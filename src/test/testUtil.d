@@ -13,7 +13,7 @@ import interpret.stacks : dataTempAsArr, returnTempAsArrReverse, Stacks;
 import lib.server : allUnknownUris, Server, setCwd, setFile, setIncludeDir;
 import model.diag : ReadFileDiag;
 import model.model : Program;
-import util.alloc.alloc : Alloc, allocateElements, AllocKind, MetaAlloc, newAlloc, withTempAlloc;
+import util.alloc.alloc : Alloc, allocateElements, AllocKind, MetaAlloc, newAlloc, withTempAlloc, word;
 import util.col.arr : empty;
 import util.col.arrUtil : arrEqual, arrsCorrespond, indexOf, makeArray, map;
 import util.col.str : SafeCStr, safeCStrEq, strOfSafeCStr;
@@ -133,8 +133,8 @@ void withTestServer(
 	in void delegate(ref Alloc, ref Server) @safe @nogc pure nothrow cb,
 ) {
 	withTempAlloc!void(test.metaAlloc, (ref Alloc alloc) @trusted {
-		ulong[] memory = allocateElements!ulong(alloc, 0x1000000);
-		Server server = Server(memory);
+		scope Server server = Server((size_t sizeWords, size_t _) =>
+			allocateElements!word(alloc, sizeWords));
 		setIncludeDir(&server, parseUri(server.allUris, "test:///include"));
 		setCwd(server, parseUri(server.allUris, "test:///"));
 		return cb(alloc, server);

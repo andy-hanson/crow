@@ -47,6 +47,7 @@ Json showTimeSummary(ref Alloc alloc, in PerfResult a) =>
 Json showMemorySummary(ref Alloc alloc, in MetaMemorySummary a) =>
 	jsonObject(alloc, [
 		field!"total"(showMemory(alloc, a.total)),
+		field!"mallocs"(a.timesFetchedMemory),
 		field!"freeBlocks"(a.countFreeBlocks),
 		field!"byAlloc"(jsonOfEnumMap!(AllocKind, AllocKindMemorySummary)(
 			alloc,

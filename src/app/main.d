@@ -2,20 +2,17 @@ module app.main;
 
 @safe @nogc nothrow: // not pure
 
-import app.appUtil : print, printError;
-import app.dyncall : withRealExtern;
-import app.fileSystem : getCwd, getPathToThisExecutable, stderr, stdin, stdout, tryReadFile, withUriOrTemp, writeFile;
-import lib.lsp.lspParse : parseLspInMessage;
-import lib.lsp.lspToJson : jsonOfLspOutMessage;
-import lib.lsp.lspTypes : LspInMessage, LspOutAction, LspOutMessage, SemanticTokensParams, TextDocumentIdentifier;
+import core.memory : pureMalloc;
 import core.stdc.stdio : fflush, fprintf, printf, fgets, fread;
-import core.stdc.stdlib : free, malloc;
-
 version (Windows) {
 	import core.sys.windows.core : GetTickCount;
 } else {
 	import core.sys.posix.time : clock_gettime, CLOCK_MONOTONIC, timespec;
 }
+
+import app.appUtil : print, printError;
+import app.dyncall : withRealExtern;
+import app.fileSystem : getCwd, getPathToThisExecutable, stderr, stdin, stdout, tryReadFile, withUriOrTemp, writeFile;
 import backend.cCompile : compileC;
 version (GccJitAvailable) {
 	import backend.jit : jitAndRun;
@@ -24,6 +21,9 @@ import frontend.lang : cExtension, JitOptions;
 import frontend.showModel : ShowOptions;
 import frontend.storage : FilesState;
 import interpret.extern_ : Extern;
+import lib.lsp.lspParse : parseLspInMessage;
+import lib.lsp.lspToJson : jsonOfLspOutMessage;
+import lib.lsp.lspTypes : LspInMessage, LspOutAction, LspOutMessage, SemanticTokensParams, TextDocumentIdentifier;
 import lib.cliParser : BuildOptions, Command, hasAnyOut, parseCommand, PrintKind, RunOptions;
 import lib.server :
 	allUnknownUris,
@@ -56,7 +56,7 @@ import model.model : hasAnyDiagnostics, Program;
 version (Test) {
 	import test.test : test;
 }
-import util.alloc.alloc : Alloc, AllocKind, newAlloc, withTempAllocImpure;
+import util.alloc.alloc : Alloc, AllocKind, newAlloc, withTempAllocImpure, word;
 import util.col.arrUtil : prepend;
 import util.col.str : CStr, mustStripPrefix, SafeCStr, safeCStr, safeCStrIsEmpty, safeCStrSize;
 import util.exitCode : ExitCode;
@@ -71,16 +71,11 @@ import util.uri : AllUris, childUri, FileUri, Uri, parentOrEmpty, safeCStrOfUri,
 import versionInfo : versionInfoForJIT;
 
 @system extern(C) int main(int argc, CStr* argv) {
-	size_t GB = 1024 * 1024 * 1024;
-	size_t memorySizeWords = GB * 3 / 2 / ulong.sizeof;
-	ulong[] mem = (cast(ulong*) malloc(memorySizeWords * ulong.sizeof))[0 .. memorySizeWords];
-	assert(mem.ptr != null);
-	scope(exit) free(mem.ptr);
-
 	ulong function() @safe @nogc pure nothrow getTimeNanosPure =
 		cast(ulong function() @safe @nogc pure nothrow) &getTimeNanos;
 	scope Perf perf = Perf(() => getTimeNanosPure());
-	Server server = Server(mem);
+	Server server = Server((size_t sizeWords, size_t _) =>
+		(cast(word*) pureMalloc(sizeWords * word.sizeof))[0 .. sizeWords]);
 	Uri cwd = toUri(server.allUris, getCwd(server.allUris));
 	setIncludeDir(&server, childUri(server.allUris, getCrowDir(server.allUris), sym!"include"));
 	setCwd(server, cwd);
