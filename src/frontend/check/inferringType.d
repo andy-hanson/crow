@@ -2,187 +2,36 @@ module frontend.check.inferringType;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCtx : addDiag, CheckCtx;
+import frontend.check.exprCtx : addDiag2, ExprCtx;
 import frontend.check.instantiate :
-	InstantiateCtx, instantiateStructNeverDelay, noDelayStructInsts, tryGetTypeArg_mut, TypeArgsArray, typeArgsArray;
-import frontend.check.maps : FunsMap, StructsAndAliasesMap;
-import frontend.check.typeFromAst : typeFromAst;
-import frontend.lang : maxClosureFields;
-import frontend.parse.ast : ExprAst, TypeAst;
+	InstantiateCtx, instantiateStructNeverDelay, tryGetTypeArg_mut, TypeArgsArray, typeArgsArray;
+import frontend.parse.ast : ExprAst;
 import model.diag : Diag, ExpectedForDiag;
 import model.model :
 	BogusExpr,
 	CommonTypes,
 	decl,
-	Destructure,
 	Expr,
 	ExprKind,
-	FunFlags,
 	FunKind,
-	LambdaExpr,
-	Local,
 	LoopExpr,
-	Mutability,
 	range,
-	SpecInst,
 	StructDecl,
 	StructInst,
 	Type,
 	typeArgs,
-	TypeParam,
-	VariableRef;
+	TypeParam;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : only, only2;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderIsEmpty, arrBuilderTempAsArr, finishArr;
 import util.col.arrUtil : arrLiteral, contains, exists, indexOf, map, zip, zipEvery;
 import util.col.enumMap : enumMapFindKey;
-import util.col.mutMaxArr : MutMaxArr, push, tempAsArr;
+import util.col.mutMaxArr : push, tempAsArr;
 import util.opt : has, force, MutOpt, none, noneMut, Opt, someMut, some;
-import util.perf : Perf;
 import util.ptr : castNonScope_ref;
-import util.sourceRange : Range, UriAndRange;
-import util.sym : AllSymbols, Sym;
 import util.union_ : UnionMutable;
 import util.util : unreachable;
-
-struct ClosureFieldBuilder {
-	@safe @nogc pure nothrow:
-
-	immutable Sym name; // Redundant to the variableRef, but it's faster to keep this close
-	immutable Mutability mutability;
-	bool[4]* isUsed; // points to isUsed for the outer variable. Null for Param.
-	immutable Type type; // Same as above
-	immutable VariableRef variableRef;
-
-	void setIsUsed(LocalAccessKind accessKind) {
-		if (isUsed != null) {
-			(*isUsed)[accessKind] = true;
-		}
-	}
-}
-
-struct FunOrLambdaInfo {
-	MutOpt!(LocalsInfo*) outer;
-	// none for a function.
-	// WARN: This will not be initialized; but we allocate the pointer early.
-	immutable Opt!(LambdaExpr*) lambda;
-	// Will be uninitialized for a function
-	MutMaxArr!(maxClosureFields, ClosureFieldBuilder) closureFields = void;
-}
-
-struct LocalsInfo {
-	FunOrLambdaInfo* funOrLambda;
-	MutOpt!(LocalNode*) locals;
-}
-
-bool isInLambda(ref LocalsInfo a) =>
-	has(a.funOrLambda.outer);
-
-struct LocalNode {
-	MutOpt!(LocalNode*) prev;
-	bool[4] isUsed; // One for each LocalAccessKind
-	immutable Local* local;
-}
-enum LocalAccessKind { getOnStack, getThroughClosure, setOnStack, setThroughClosure }
-
-void markIsUsedSetOnStack(scope ref LocalsInfo locals, Local* local) {
-	LocalNode* node = force(locals.locals);
-	while (true) {
-		if (node.local == local) {
-			node.isUsed[LocalAccessKind.setOnStack] = true;
-			break;
-		}
-		node = force(node.prev);
-	}
-}
-
-struct ExprCtx {
-	@safe @nogc pure nothrow:
-
-	CheckCtx* checkCtxPtr;
-	immutable StructsAndAliasesMap structsAndAliasesMap;
-	immutable FunsMap funsMap;
-	immutable CommonTypes commonTypes;
-	immutable Sym outermostFunName;
-	immutable SpecInst*[] outermostFunSpecs;
-	immutable Destructure[] outermostFunParams;
-	immutable TypeParam[] outermostFunTypeParams;
-	immutable FunFlags outermostFunFlags;
-	private bool isInTrusted;
-	private bool usedTrusted;
-
-	ref Alloc alloc() return scope =>
-		checkCtx().alloc();
-	Alloc* allocPtr() =>
-		checkCtx().allocPtr;
-
-	ref const(AllSymbols) allSymbols() return scope const =>
-		checkCtx().allSymbols();
-	ref AllSymbols allSymbols() return scope =>
-		checkCtx().allSymbols();
-
-	ref Perf perf() return scope =>
-		checkCtx().perf();
-
-	ref CheckCtx checkCtx() return scope =>
-		*checkCtxPtr;
-
-	ref const(CheckCtx) checkCtx() return scope const =>
-		*checkCtxPtr;
-
-	ref InstantiateCtx instantiateCtx() return scope =>
-		checkCtx.instantiateCtx;
-}
-
-T withTrusted(T)(ref ExprCtx ctx, ExprAst* source, in T delegate() @safe @nogc pure nothrow cb) {
-	Opt!(Diag.TrustedUnnecessary.Reason) reason = ctx.outermostFunFlags.safety != FunFlags.Safety.safe
-		? some(Diag.TrustedUnnecessary.Reason.inUnsafeFunction)
-		: ctx.isInTrusted
-		? some(Diag.TrustedUnnecessary.Reason.inTrusted)
-		: none!(Diag.TrustedUnnecessary.Reason);
-	if(has(reason)) {
-		addDiag2(ctx, source, Diag(Diag.TrustedUnnecessary(force(reason))));
-		return cb();
-	} else {
-		ctx.isInTrusted = true;
-		T res = cb();
-		ctx.isInTrusted = false;
-		if (!ctx.usedTrusted)
-			addDiag2(ctx, source, Diag(Diag.TrustedUnnecessary(Diag.TrustedUnnecessary.Reason.unused)));
-		ctx.usedTrusted = false;
-		return res;
-	}
-}
-
-bool checkCanDoUnsafe(ref ExprCtx ctx) {
-	if (ctx.outermostFunFlags.safety == FunFlags.Safety.unsafe)
-		return true;
-	else {
-		bool res = ctx.isInTrusted;
-		if (res) ctx.usedTrusted = true;
-		return res;
-	}
-}
-
-void addDiag2(ref ExprCtx ctx, in UriAndRange range, Diag diag) {
-	addDiag(ctx.checkCtx, range, diag);
-}
-void addDiag2(ref ExprCtx ctx, in Range range, Diag diag) {
-	addDiag(ctx.checkCtx, range, diag);
-}
-void addDiag2(ref ExprCtx ctx, in ExprAst* source, Diag diag) {
-	addDiag2(ctx, source.range, diag);
-}
-
-immutable(Type) typeFromAst2(ref ExprCtx ctx, in TypeAst ast) =>
-	typeFromAst(
-		ctx.checkCtx,
-		ctx.commonTypes,
-		ast,
-		ctx.structsAndAliasesMap,
-		ctx.outermostFunTypeParams,
-		noDelayStructInsts);
 
 struct SingleInferringType {
 	@safe @nogc pure nothrow:

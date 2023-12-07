@@ -3,8 +3,8 @@ module frontend.check.checkCall.candidates;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCtx : eachImportAndReExport, ImportAndReExportModules;
+import frontend.check.exprCtx : ExprCtx;
 import frontend.check.inferringType :
-	ExprCtx,
 	InferringTypeArgs,
 	matchTypesNoDiagnostic,
 	SingleInferringType,

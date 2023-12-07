@@ -6,36 +6,37 @@ import frontend.check.checkCall.candidates : eachFunInScope, funsInScope;
 import frontend.check.checkCall.checkCall : checkCall, checkCallIdentifier, checkCallSpecial, checkCallSpecialNoLocals;
 import frontend.check.checkCall.checkCallSpecs : isPurityAlwaysCompatibleConsideringSpecs;
 import frontend.check.checkCtx : CheckCtx, markUsed;
-import frontend.check.inferringType :
+import frontend.check.exprCtx :
 	addDiag2,
-	bogus,
-	check,
 	checkCanDoUnsafe,
 	ClosureFieldBuilder,
-	Expected,
 	ExprCtx,
-	findExpectedStructForLiteral,
 	FunOrLambdaInfo,
+	LocalAccessKind,
+	LocalNode,
+	LocalsInfo,
+	markIsUsedSetOnStack,
+	typeFromAst2,
+	withTrusted;
+import frontend.check.inferringType :
+	bogus,
+	check,
+	Expected,
+	findExpectedStructForLiteral,
 	FunType,
 	getExpectedForDiag,
 	getFunType,
 	handleExpectedLambda,
 	inferred,
 	InferringTypeArgs,
-	LocalAccessKind,
-	LocalNode,
-	LocalsInfo,
 	LoopInfo,
-	markIsUsedSetOnStack,
 	OkSkipOrAbort,
 	Pair,
 	setExpectedIfNoInferred,
 	tryGetDeeplyInstantiatedTypeWorker,
 	tryGetInferred,
 	tryGetLoop,
-	typeFromAst2,
-	withCopyWithNewExpectedType,
-	withTrusted;
+	withCopyWithNewExpectedType;
 import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay, noDelayStructInsts;
 import frontend.check.maps : FunsMap, StructsAndAliasesMap;
 import frontend.check.typeFromAst : checkDestructure, makeFutType, makeTupleType, typeFromDestructure;

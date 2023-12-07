@@ -19,25 +19,19 @@ import frontend.check.checkCall.candidates :
 import frontend.check.checkCall.checkCalled : ArgsKind, checkCalled;
 import frontend.check.checkCall.checkCallSpecs : checkCallSpecs;
 import frontend.check.checkExpr : checkExpr, typeFromDestructure;
+import frontend.check.exprCtx : addDiag2, ExprCtx, FunOrLambdaInfo, isInLambda, LocalNode, LocalsInfo, typeFromAst2;
 import frontend.check.inferringType :
-	addDiag2,
 	bogus,
 	check,
 	Expected,
-	ExprCtx,
-	FunOrLambdaInfo,
 	inferred,
 	InferringTypeArgs,
 	inferTypeArgsFrom,
 	inferTypeArgsFromLambdaParameterType,
-	isInLambda,
-	LocalNode,
-	LocalsInfo,
 	matchExpectedVsReturnTypeNoDiagnostic,
 	SingleInferringType,
 	tryGetInferred,
-	TypeAndInferring,
-	typeFromAst2;
+	TypeAndInferring;
 import frontend.check.instantiate : InstantiateCtx;
 import frontend.check.typeFromAst : getNTypeArgsForDiagnostic, unpackTupleIfNeeded;
 import frontend.lang : maxTypeParams;

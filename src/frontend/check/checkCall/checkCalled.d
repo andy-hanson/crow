@@ -3,7 +3,7 @@ module frontend.check.checkCall.checkCalled;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCtx : markUsed;
-import frontend.check.inferringType : addDiag2, checkCanDoUnsafe, ExprCtx;
+import frontend.check.exprCtx : addDiag2, checkCanDoUnsafe, ExprCtx;
 import frontend.parse.ast : ExprAst;
 import model.diag : Diag;
 import model.model : Called, CalledSpecSig, decl, FunDecl, FunInst, FunFlags, isVariadic, specImpls;
