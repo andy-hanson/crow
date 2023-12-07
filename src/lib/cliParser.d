@@ -9,11 +9,11 @@ import frontend.parse.lexUtil : isDecimalDigit, tryTakeChar;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : findIndex, foldOrStop, mapOrNone;
+import util.col.arrUtil : copyArr, findIndex, foldOrStop, mapOrNone;
 import util.col.str : SafeCStr, safeCStr, safeCStrEq, strOfSafeCStr;
 import util.conv : isUint, safeToUint;
 import util.lineAndColumnGetter : LineAndColumn;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.ptr : castNonScope;
 import util.sym : Sym, sym;
 import util.union_ : Union;
@@ -21,6 +21,16 @@ import util.uri : addExtension, alterExtension, AllUris, getExtension, parseUriW
 import util.util : optEnumOfString, todo;
 
 immutable struct Command {
+	CommandKind kind;
+	CommandOptions options;
+}
+
+// options common to all commands
+private immutable struct CommandOptions {
+	bool perf;
+}
+
+immutable struct CommandKind {
 	immutable struct Build {
 		Uri mainUri;
 		BuildOptions options;
@@ -29,12 +39,8 @@ immutable struct Command {
 		Uri[] rootUris;
 	}
 	immutable struct Help {
-		enum Kind {
-			requested,
-			error,
-		}
 		SafeCStr helpText;
-		Kind kind;
+		bool requested;
 	}
 	immutable struct Lsp {}
 	immutable struct Print {
@@ -101,39 +107,51 @@ private immutable struct BuildOut {
 bool hasAnyOut(in BuildOut a) =>
 	has(a.outC) || has(a.outExecutable);
 
-Command parseCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, return scope SafeCStr[] args) {
+Command parseCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in SafeCStr[] args) {
 	if (empty(args))
-		return Command(Command.Help(helpAllText, Command.Help.Kind.error));
+		return Command(CommandKind(CommandKind.Help(helpAllText)));
 	else {
-		SafeCStr[] cmdArgs = args[1 .. $];
-		switch (strOfSafeCStr(args[0])) {
-			case "build":
-				return parseBuildCommand(alloc, allUris, cwd, cmdArgs);
-			case "document":
-				return parseDocumentCommand(alloc, allUris, cwd, cmdArgs);
-			case "lsp":
-				return empty(cmdArgs)
-					? Command(Command.Lsp())
-					: Command(Command.Help(safeCStr!"Usage: 'crow lsp' (no args)"));
-			case "print":
-				return parsePrintCommand(alloc, allUris, cwd, cmdArgs);
-			case "run":
-				return parseRunCommand(alloc, allUris, cwd, cmdArgs);
-			case "test":
-				return Command(Command.Test(cmdArgs));
-			case "version":
-				return empty(cmdArgs)
-					? Command(Command.Version())
-					: Command(Command.Help(safeCStr!"Usage: 'crow version' (no args)"));
-			default:
-				return Command(Command.Help(
-					helpAllText,
-					isHelp(args[0]) ? Command.Help.Kind.requested : Command.Help.Kind.error));
-		}
+		SplitArgsAndOptions split = splitArgs(alloc, args[1 .. $]);
+		return Command(
+			parseCommandKind(alloc, allUris, cwd, strOfSafeCStr(args[0]), split.args),
+			split.options);
 	}
 }
 
 private:
+
+CommandKind parseCommandKind(
+	ref Alloc alloc,
+	scope ref AllUris allUris,
+	Uri cwd,
+	in string commandName,
+	in SplitArgs args,
+) {
+	switch (commandName) {
+		case "build":
+			return parseBuildCommand(alloc, allUris, cwd, args);
+		case "document":
+			return parseDocumentCommand(alloc, allUris, cwd, args);
+		case "lsp":
+			return isEmpty(args)
+				? CommandKind(CommandKind.Lsp())
+				: CommandKind(CommandKind.Help(safeCStr!"Usage: 'crow lsp' (no args)", args.help));
+		case "print":
+			return parsePrintCommand(alloc, allUris, cwd, args);
+		case "run":
+			return parseRunCommand(alloc, allUris, cwd, args);
+		case "test":
+			return !args.help && empty(args.parts) && empty(args.afterDashDash)
+				? CommandKind(CommandKind.Test(copyArr(alloc, args.beforeFirstPart)))
+				: todo!CommandKind("help for 'test'");
+		case "version":
+			return isEmpty(args)
+				? CommandKind(CommandKind.Version())
+				: CommandKind(CommandKind.Help(safeCStr!"Usage: 'crow version' (no args)", args.help));
+		default:
+			return CommandKind(CommandKind.Help(helpAllText, args.help));
+	}
+}
 
 Sym defaultExeExtension() {
 	version (Windows) {
@@ -146,41 +164,26 @@ Sym defaultExeExtension() {
 BuildOut emptyBuildOut() =>
 	BuildOut(none!Uri, none!Uri);
 
-bool isHelp(in SafeCStr a) {
-	switch (strOfSafeCStr(a)) {
-		case "help":
-		case "-help":
-		case "--help":
-			return true;
-		default:
-			return false;
-	}
-}
-
-Command withMainUri(
+CommandKind withMainUri(
 	ref Alloc alloc,
 	scope ref AllUris allUris,
 	Uri cwd,
 	in SafeCStr arg,
-	in Command delegate(Uri) @safe pure @nogc nothrow cb,
+	in CommandKind delegate(Uri) @safe pure @nogc nothrow cb,
 ) {
 	Opt!Uri p = tryParseCrowUri(alloc, allUris, cwd, arg);
-	return has(p)
-		? cb(force(p))
-		: Command(Command.Help(safeCStr!"Invalid path", Command.Help.Kind.error));
+	return has(p) ? cb(force(p)) : CommandKind(CommandKind.Help(safeCStr!"Invalid path"));
 }
 
-Command withRootUris(
+CommandKind withRootUris(
 	ref Alloc alloc,
 	scope ref AllUris allUris,
 	Uri cwd,
 	in SafeCStr[] args,
-	in Command delegate(Uri[]) @safe pure @nogc nothrow cb,
+	in CommandKind delegate(Uri[]) @safe pure @nogc nothrow cb,
 ) {
 	Opt!(Uri[]) p = tryParseRootUris(alloc, allUris, cwd, args);
-	return has(p)
-		? cb(force(p))
-		: Command(Command.Help(safeCStr!"Invalid path", Command.Help.Kind.error));
+	return has(p) ? cb(force(p)) : CommandKind(CommandKind.Help(safeCStr!"Invalid path"));
 }
 
 Opt!Uri tryParseCrowUri(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in SafeCStr arg) {
@@ -201,14 +204,14 @@ Opt!(Uri[]) tryParseRootUris(ref Alloc alloc, scope ref AllUris allUris, Uri cwd
 		tryParseCrowUri(alloc, allUris, cwd, arg));
 }
 
-Command parsePrintCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in SafeCStr[] args) {
-	Opt!PrintKind kind = args.length >= 2
-		? parsePrintKind(args[0], args[2 .. $])
+CommandKind parsePrintCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in SplitArgs args) {
+	Opt!PrintKind kind = args.beforeFirstPart.length >= 2 && empty(args.parts) && empty(args.afterDashDash)
+		? parsePrintKind(args.beforeFirstPart[0], args.beforeFirstPart[2 .. $])
 		: none!PrintKind;
-	return has(kind)
-		? withMainUri(alloc, allUris, cwd, args[1], (Uri uri) =>
-			Command(Command.Print(force(kind), uri)))
-		: todo!Command("Command.HelpPrint");
+	return !args.help && has(kind)
+		? withMainUri(alloc, allUris, cwd, args.beforeFirstPart[1], (Uri uri) =>
+			CommandKind(CommandKind.Print(force(kind), uri)))
+		: todo!CommandKind("CommandKind.HelpPrint");
 }
 
 Opt!PrintKind parsePrintKind(in SafeCStr a, in SafeCStr[] args) {
@@ -264,54 +267,47 @@ Opt!uint convertFrom1Indexed(in Opt!uint a) =>
 		return none!uint;
 }
 
-Command parseDocumentCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in SafeCStr[] args) {
-	Command helpDocument = Command(Command.Help(helpDocumentText, Command.Help.Kind.error));
-	scope SplitArgs split = splitArgs(alloc, args);
+CommandKind parseDocumentCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in SplitArgs args) {
+	CommandKind helpDocument = CommandKind(CommandKind.Help(helpDocumentText, args.help));
 	return withRootUris(
 		alloc,
 		allUris,
 		cwd,
-		split.beforeFirstPart,
+		args.beforeFirstPart,
 		(Uri[] x) =>
-			empty(split.parts) && empty(split.afterDashDash)
-				? Command(Command.Document(x))
+			!args.help && empty(args.parts) && empty(args.afterDashDash)
+				? CommandKind(CommandKind.Document(x))
 				: helpDocument);
 }
 
-Command parseBuildCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in SafeCStr[] args) {
-	Command helpBuild = Command(Command.Help(helpBuildText, Command.Help.Kind.error));
-	SplitArgs split = splitArgs(alloc, args);
-	return split.beforeFirstPart.length != 1
+CommandKind parseBuildCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in SplitArgs args) {
+	CommandKind helpBuild = CommandKind(CommandKind.Help(helpBuildText, args.help));
+	return args.help || args.beforeFirstPart.length != 1
 		? helpBuild
 		: withMainUri(
 			alloc,
 			allUris,
 			cwd,
-			only(split.beforeFirstPart),
+			only(args.beforeFirstPart),
 			(Uri main) {
-				Opt!BuildOptions options = parseBuildOptions(alloc, allUris, cwd, split.parts, main);
-				return has(options) && empty(split.afterDashDash)
-					? Command(Command.Build(main, force(options)))
+				Opt!BuildOptions options = parseBuildOptions(alloc, allUris, cwd, args.parts, main);
+				return has(options) && empty(args.afterDashDash)
+					? CommandKind(CommandKind.Build(main, force(options)))
 					: helpBuild;
 			});
 }
 
-Command parseRunCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, return scope SafeCStr[] args) {
-	if (args.length == 1 && isHelp(only(args)))
-		return Command(Command.Help(helpRunText, Command.Help.Kind.requested));
-	else {
-		SplitArgs split = splitArgs(alloc, args);
-		Opt!RunOptions options = parseRunOptions(alloc, allUris, split.parts);
-		return split.beforeFirstPart.length == 1 && has(options)
-			? withMainUri(
-				alloc,
-				allUris,
-				cwd,
-				only(split.beforeFirstPart),
-				(Uri x) =>
-					Command(Command.Run(x, force(options), castNonScope(split.afterDashDash))))
-			: Command(Command.Help(helpRunText, Command.Help.Kind.error));
-	}
+CommandKind parseRunCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in SplitArgs args) {
+	Opt!RunOptions options = parseRunOptions(alloc, allUris, args.parts);
+	return !args.help && args.beforeFirstPart.length == 1 && has(options)
+		? withMainUri(
+			alloc,
+			allUris,
+			cwd,
+			only(args.beforeFirstPart),
+			(Uri x) =>
+				CommandKind(CommandKind.Run(x, force(options), castNonScope(args.afterDashDash))))
+		: CommandKind(CommandKind.Help(helpRunText, args.help));
 }
 
 Opt!RunOptions parseRunOptions(ref Alloc alloc, scope ref AllUris allUris, in ArgsPart[] argParts) {
@@ -397,50 +393,71 @@ immutable struct SplitArgs {
 	ArgsPart[] parts;
 	// After seeing a '--' we stop parsing and just return the rest raw.
 	SafeCStr[] afterDashDash;
+	bool help;
+}
+bool isEmpty(in SplitArgs a) =>
+	empty(a.beforeFirstPart) && empty(a.parts) && empty(a.afterDashDash) && !a.help;
+
+
+immutable struct SplitArgsAndOptions {
+	SplitArgs args;
+	CommandOptions options;
 }
 
-SplitArgs splitArgs(ref Alloc alloc, return scope SafeCStr[] args) {
+SplitArgsAndOptions splitArgs(ref Alloc alloc, return scope SafeCStr[] args) {
 	Opt!size_t optFirstArgIndex = findIndex!SafeCStr(args, (in SafeCStr arg) =>
 		startsWithDashDash(arg));
 	if (!has(optFirstArgIndex))
-		return SplitArgs(args, [], []);
+		return SplitArgsAndOptions(SplitArgs(args, [], []), CommandOptions());
 	else {
 		size_t firstArgIndex = force(optFirstArgIndex);
-		SafeCStr[] beforeFirstPart = args[0 .. firstArgIndex];
-		if (safeCStrEq(args[firstArgIndex], "--"))
-			return SplitArgs(beforeFirstPart, [], args[firstArgIndex + 1 .. $]);
-		else {
-			ArrBuilder!ArgsPart parts;
-			size_t firstAfterDashDash = splitArgsRecur(alloc, parts, args, firstArgIndex, firstArgIndex + 1);
-			return SplitArgs(beforeFirstPart, finishArr(alloc, parts), args[firstAfterDashDash .. $]);
-		}
+		Opt!size_t optDashDash = findIndex!SafeCStr(args[firstArgIndex .. $], (in SafeCStr arg) =>
+			safeCStrEq(arg, "--"));
+		size_t dashDash = has(optDashDash) ? force(optDashDash) + firstArgIndex : args.length;
+		NamedArgs namedArgs = splitNamedArgs(alloc, args[firstArgIndex .. dashDash]);
+		return SplitArgsAndOptions(
+			SplitArgs(args[0 .. firstArgIndex], namedArgs.parts, args[dashDash .. $], namedArgs.help),
+			namedArgs.options);
 	}
 }
 
 @trusted bool startsWithDashDash(in SafeCStr a) =>
 	a.ptr[0] == '-' && a.ptr[1] == '-';
 
-size_t splitArgsRecur(
-	ref Alloc alloc,
-	ref ArrBuilder!ArgsPart parts,
-	in SafeCStr[] args,
-	size_t curPartStart,
-	size_t index,
-) {
-	if (index == args.length) {
-		add(alloc, parts, ArgsPart(args[curPartStart], args[curPartStart + 1 .. index]));
-		return index;
-	} else {
-		SafeCStr arg = args[index];
-		if (startsWithDashDash(arg)) {
-			add(alloc, parts, ArgsPart(args[curPartStart], args[curPartStart + 1 .. index]));
-			return safeCStrEq(arg, "--")
-				? index + 1
-				// Using `index + 0` to avoid dscanner warning about 'index' not being parameter 3
-				: splitArgsRecur(alloc, parts, args, index + 0, index + 1);
-		} else
-			return splitArgsRecur(alloc, parts, args, curPartStart, index + 1);
+struct NamedArgs {
+	ArgsPart[] parts;
+	CommandOptions options;
+	bool help;
+}
+
+NamedArgs splitNamedArgs(ref Alloc alloc, in SafeCStr[] args) {
+	ArrBuilder!ArgsPart parts;
+	bool help = false;
+	bool perf = false;
+	assert(startsWithDashDash(args[0]));
+	MutOpt!size_t curPartStart;
+
+	void finishPart(size_t i) {
+		if (has(curPartStart)) {
+			add(alloc, parts, ArgsPart(args[force(curPartStart)], args[force(curPartStart) + 1 .. i]));
+			curPartStart = noneMut!size_t;
+		}
 	}
+
+	foreach (size_t i, SafeCStr arg; args) {
+		if (startsWithDashDash(arg)) {
+			finishPart(i);
+			if (safeCStrEq(arg, "--help"))
+				help = true;
+			else if (safeCStrEq(arg, "--perf"))
+				perf = true;
+			else
+				curPartStart = someMut(i);
+		}
+	}
+	finishPart(args.length);
+
+	return NamedArgs(finishArr(alloc, parts), CommandOptions(perf), help);
 }
 
 SafeCStr helpAllText() =>

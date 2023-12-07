@@ -24,7 +24,7 @@ import interpret.extern_ : Extern;
 import lib.lsp.lspParse : parseLspInMessage;
 import lib.lsp.lspToJson : jsonOfLspOutMessage;
 import lib.lsp.lspTypes : LspInMessage, LspOutAction, LspOutMessage, SemanticTokensParams, TextDocumentIdentifier;
-import lib.cliParser : BuildOptions, Command, hasAnyOut, parseCommand, PrintKind, RunOptions;
+import lib.cliParser : BuildOptions, Command, CommandKind, hasAnyOut, parseCommand, PrintKind, RunOptions;
 import lib.server :
 	allUnknownUris,
 	buildAndInterpret,
@@ -64,7 +64,7 @@ import util.json : Json, jsonToString;
 import util.jsonParse : mustParseJson, mustParseUint, skipWhitespace;
 import util.lineAndColumnGetter : UriLineAndColumn;
 import util.opt : force, has, Opt, some;
-import util.perf : Perf, perfEnabled, withNullPerf;
+import util.perf : disablePerf, isEnabled, Perf, withNullPerf;
 import util.perfReport : perfReport;
 import util.sym : AllSymbols, sym;
 import util.uri : AllUris, childUri, FileUri, Uri, parentOrEmpty, safeCStrOfUri, toUri;
@@ -82,8 +82,10 @@ import versionInfo : versionInfoForJIT;
 	setShowOptions(server, ShowOptions(true));
 	Alloc* alloc = newAlloc(AllocKind.main, server.metaAlloc);
 	Command command = parseCommand(*alloc, server.allUris, cwd, cast(SafeCStr[]) argv[1 .. argc]);
-	int res = go(perf, *alloc, server, command).value;
-	if (perfEnabled) {
+	if (!command.options.perf)
+		disablePerf(perf);
+	int res = go(perf, *alloc, server, command.kind).value;
+	if (isEnabled(perf)) {
 		printf("%s\n", jsonToString(*alloc, server.allSymbols, perfReport(*alloc, perf, *server.metaAlloc)).ptr);
 	}
 	return res;
@@ -178,22 +180,22 @@ void loadSingleFile(scope ref Perf perf, ref Server server, Uri uri) {
 	}
 }
 
-ExitCode go(scope ref Perf perf, ref Alloc alloc, ref Server server, in Command command) =>
+ExitCode go(scope ref Perf perf, ref Alloc alloc, ref Server server, in CommandKind command) =>
 	command.matchImpure!ExitCode(
-		(in Command.Build x) =>
+		(in CommandKind.Build x) =>
 			runBuild(perf, alloc, server, x.mainUri, x.options),
-		(in Command.Document x) {
+		(in CommandKind.Document x) {
 			loadAllFiles(perf, server, x.rootUris);
 			DocumentResult result = getDocumentation(perf, alloc, server, x.rootUris);
 			return safeCStrIsEmpty(result.diagnostics) ? print(result.document) : printError(result.diagnostics);
 		},
-		(in Command.Help x) =>
+		(in CommandKind.Help x) =>
 			help(x),
-		(in Command.Lsp) =>
+		(in CommandKind.Lsp) =>
 			runLsp(server),
-		(in Command.Print x) =>
+		(in CommandKind.Print x) =>
 			doPrint(perf, alloc, server, x),
-		(in Command.Run run) {
+		(in CommandKind.Run run) {
 			loadAllFiles(perf, server, [run.mainUri]);
 			return run.options.matchImpure!ExitCode(
 				(in RunOptions.Interpret) =>
@@ -221,13 +223,13 @@ ExitCode go(scope ref Perf perf, ref Alloc alloc, ref Server server, in Command 
 					}
 				});
 		},
-		(in Command.Test x) {
+		(in CommandKind.Test x) {
 			version (Test) {
 				return test(server.metaAlloc, x.names);
 			} else
 				return printError(safeCStr!"Did not compile with tests");
 		},
-		(in Command.Version) =>
+		(in CommandKind.Version) =>
 			print(version_(alloc, server)));
 
 Uri getCrowDir(ref AllUris allUris) =>
@@ -236,7 +238,7 @@ Uri getCrowDir(ref AllUris allUris) =>
 SafeCStr[] getAllArgs(ref Alloc alloc, in AllUris allUris, Uri main, in SafeCStr[] programArgs) =>
 	prepend(alloc, safeCStrOfUri(alloc, allUris, main), programArgs);
 
-ExitCode doPrint(scope ref Perf perf, ref Alloc alloc, ref Server server, in Command.Print command) {
+ExitCode doPrint(scope ref Perf perf, ref Alloc alloc, ref Server server, in CommandKind.Print command) {
 	Uri mainUri = command.mainUri;
 	DiagsAndResultJson printed = command.kind.matchImpure!DiagsAndResultJson(
 		(in PrintKind.Tokens) {
@@ -312,12 +314,7 @@ version (GccJitAvailable) { ExitCode buildAndJit(
 		: ExitCode.error;
 } }
 
-ExitCode help(in Command.Help a) {
+ExitCode help(in CommandKind.Help a) {
 	print(a.helpText);
-	final switch (a.kind) {
-		case Command.Help.Kind.requested:
-			return ExitCode.ok;
-		case Command.Help.Kind.error:
-			return ExitCode.error;
-	}
+	return a.requested ? ExitCode.ok : ExitCode.error;
 }

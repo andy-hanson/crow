@@ -10,7 +10,7 @@ import util.json : get, Json, jsonToString;
 import util.jsonParse : mustParseJson;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
 import util.opt : none;
-import util.perf : Perf, perfEnabled, PerfMeasure, PerfMeasureResult, PerfResult, perfResult, withNullPerf;
+import util.perf : Perf, PerfMeasure, PerfMeasureResult, PerfResult, perfResult, withNullPerf;
 import util.uri : parseUri;
 import util.util : safeCStrOfEnum;
 
@@ -84,6 +84,8 @@ extern(C) void perfLogMeasure(scope CStr name, uint count, ulong nanoseconds, ui
 extern(C) void perfLogFinish(scope CStr name, ulong totalNanoseconds);
 
 private:
+
+bool perfEnabled = false;
 
 T withWebPerf(T, alias cb)() {
 	if (perfEnabled) {

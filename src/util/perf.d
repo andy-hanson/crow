@@ -24,28 +24,32 @@ T withMeasure(T, alias cb)(scope ref Perf perf, ref Alloc alloc, PerfMeasure mea
 }
 
 T withNullPerf(T, alias cb)() {
-	Perf perf = Perf(() => 0);
+	Perf perf = Perf();
 	return cb(perf);
 }
 
 struct Perf {
 	@safe @nogc pure nothrow:
 
-	ulong delegate() @safe @nogc pure nothrow cbGetTimeNSec;
+	ulong delegate() @safe @nogc pure nothrow cbGetTimeNSec; // nullable
 	ulong nsecStart;
 	private EnumMap!(PerfMeasure, PerfMeasureResult) measures;
 
+	this(bool) {} // for disabled perf
 	this(return scope ulong delegate() @safe @nogc pure nothrow cb) {
 		cbGetTimeNSec = cb;
-		if (perfEnabled)
-			nsecStart = cb();
+		nsecStart = cb();
 	}
 }
 
 pure:
 
-pure bool perfEnabled() =>
-	false;
+void disablePerf(scope ref Perf a) {
+	a.cbGetTimeNSec = null;
+}
+
+bool isEnabled(in Perf a) =>
+	a.cbGetTimeNSec != null;
 
 private struct PerfMeasurerNoAlloc {
 	private:
@@ -54,10 +58,10 @@ private struct PerfMeasurerNoAlloc {
 }
 
 private pure PerfMeasurerNoAlloc startMeasureNoAlloc(ref Perf perf, PerfMeasure measure) =>
-	perfEnabled ? PerfMeasurerNoAlloc(measure, perf.cbGetTimeNSec()) : PerfMeasurerNoAlloc(measure, 0);
+	isEnabled(perf) ? PerfMeasurerNoAlloc(measure, perf.cbGetTimeNSec()) : PerfMeasurerNoAlloc(measure, 0);
 
 private pure void endMeasureNoAlloc(ref Perf perf, ref PerfMeasurerNoAlloc measurer) {
-	if (perfEnabled)
+	if (isEnabled(perf))
 		addToMeasure(perf, measurer.measure, PerfMeasureResult(1, 0, perf.cbGetTimeNSec() - measurer.nsecBefore));
 }
 
@@ -70,7 +74,7 @@ struct PerfMeasurer {
 }
 
 @trusted pure PerfMeasurer startMeasure(scope ref Perf perf, ref Alloc alloc, PerfMeasure measure) {
-	if (perfEnabled) {
+	if (isEnabled(perf)) {
 		size_t bytesBefore = perf_curBytes(alloc);
 		ulong nsecBefore = perf.cbGetTimeNSec();
 		return PerfMeasurer(measure, bytesBefore, nsecBefore, false);
@@ -79,7 +83,7 @@ struct PerfMeasurer {
 }
 
 @trusted pure void pauseMeasure(scope ref Perf perf, ref Alloc alloc, scope ref PerfMeasurer measurer) {
-	if (perfEnabled) {
+	if (isEnabled(perf)) {
 		assert(!measurer.paused);
 		addToMeasure(perf, measurer.measure, PerfMeasureResult(
 			0,
@@ -90,7 +94,7 @@ struct PerfMeasurer {
 }
 
 @trusted pure void resumeMeasure(scope ref Perf perf, ref Alloc alloc, scope ref PerfMeasurer measurer) {
-	if (perfEnabled) {
+	if (isEnabled(perf)) {
 		assert(measurer.paused);
 		measurer.bytesBefore = perf_curBytes(alloc);
 		measurer.nsecBefore = perf.cbGetTimeNSec();
@@ -99,7 +103,7 @@ struct PerfMeasurer {
 }
 
 @trusted pure void endMeasure(scope ref Perf perf, ref Alloc alloc, scope ref PerfMeasurer measurer) {
-	if (perfEnabled) {
+	if (isEnabled(perf)) {
 		assert(!measurer.paused);
 		addToMeasure(perf, measurer.measure, PerfMeasureResult(
 			1,
@@ -120,7 +124,7 @@ immutable struct PerfResult {
 }
 
 PerfResult perfResult(in Perf perf) =>
-	PerfResult(perfEnabled ? perf.cbGetTimeNSec() - perf.nsecStart : 0, perf.measures);
+	PerfResult(isEnabled(perf) ? perf.cbGetTimeNSec() - perf.nsecStart : 0, perf.measures);
 
 enum PerfMeasure {
 	cCompile,
