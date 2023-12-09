@@ -17,6 +17,7 @@ import frontend.check.exprCtx :
 	LocalsInfo,
 	markIsUsedSetOnStack,
 	typeFromAst2,
+	typeWithContext,
 	withTrusted;
 import frontend.check.inferringType :
 	asInferringTypeArgs,
@@ -84,7 +85,7 @@ import frontend.parse.ast :
 	UnlessAst,
 	WithAst;
 import model.constant : Constant;
-import model.diag : Diag;
+import model.diag : Diag, TypeWithContext;
 import model.model :
 	Arity,
 	arity,
@@ -148,6 +149,7 @@ import model.model :
 	Type,
 	typeArgs,
 	TypeParam,
+	TypeParams,
 	UnionMember,
 	VariableRef;
 import util.alloc.alloc : Alloc, allocateUninitialized;
@@ -172,7 +174,7 @@ Expr checkFunctionBody(
 	in FunsMap funsMap,
 	Type returnType,
 	Sym funName,
-	TypeParam[] typeParams,
+	TypeParams typeParams,
 	Destructure[] params,
 	in immutable SpecInst*[] specs,
 	in FunFlags flags,
@@ -457,7 +459,7 @@ Expr checkIfOption(
 		// Arbitrary type that's not opt
 		: ctx.commonTypes.void_;
 	if (decl(*inst) != ctx.commonTypes.opt) {
-		addDiag2(ctx, source, Diag(Diag.IfNeedsOpt(option.type)));
+		addDiag2(ctx, source, Diag(Diag.IfNeedsOpt(typeWithContext(ctx, option.type))));
 		return bogus(expected, source);
 	} else {
 		Type nonOptionalType = only(typeArgs(*inst));
@@ -752,7 +754,7 @@ Expr checkLiteralFloat(ref ExprCtx ctx, ExprAst* source, in LiteralFloatAst ast,
 	if (has(opTypeIndex)) {
 		StructInst* numberType = allowedTypes[force(opTypeIndex)];
 		if (ast.overflow)
-			addDiag2(ctx, source, Diag(Diag.LiteralOverflow(numberType)));
+			addDiag2(ctx, source, Diag(Diag.LiteralOverflow(typeWithContext(ctx, Type(numberType)))));
 		return asFloat(ctx, source, numberType, ast.value, expected);
 	} else
 		return bogus(expected, source);
@@ -794,7 +796,7 @@ Expr checkLiteralInt(ref ExprCtx ctx, ExprAst* source, in LiteralIntAst ast, ref
 		else {
 			Constant constant = Constant(Constant.Integral(ast.value));
 			if (ast.overflow || !contains(ranges[typeIndex], ast.value))
-				addDiag2(ctx, source, Diag(Diag.LiteralOverflow(numberType)));
+				addDiag2(ctx, source, Diag(Diag.LiteralOverflow(typeWithContext(ctx, Type(numberType)))));
 			return check(ctx, source, expected, Type(numberType), Expr(source, ExprKind(
 				allocate(ctx.alloc, LiteralExpr(constant)))));
 		}
@@ -828,7 +830,7 @@ Expr checkLiteralNat(ref ExprCtx ctx, ExprAst* source, in LiteralNatAst ast, ref
 		else {
 			Constant constant = Constant(Constant.Integral(ast.value));
 			if (ast.overflow || ast.value > maximums[typeIndex])
-				addDiag2(ctx, source, Diag(Diag.LiteralOverflow(numberType)));
+				addDiag2(ctx, source, Diag(Diag.LiteralOverflow(typeWithContext(ctx, Type(numberType)))));
 			return check(ctx, source, expected, Type(numberType), Expr(source, ExprKind(
 				allocate(ctx.alloc, LiteralExpr(constant)))));
 		}
@@ -1171,13 +1173,13 @@ VariableRef[] checkClosure(ref ExprCtx ctx, ExprAst* source, FunKind kind, Closu
 		case FunKind.fun:
 			foreach (ref ClosureFieldBuilder cf; closureFields) {
 				if (!isPurityAlwaysCompatibleConsideringSpecs(ctx.outermostFunSpecs, cf.type, Purity.shared_))
-					addDiag2(ctx, source, Diag(Diag.LambdaClosesOverMut(cf.name, some(cf.type))));
+					addDiag2(ctx, source, Diag(Diag.LambdaClosesOverMut(cf.name, some(typeWithContext(ctx, cf.type)))));
 				else {
 					final switch (cf.mutability) {
 						case Mutability.immut:
 							break;
 						case Mutability.mut:
-							addDiag2(ctx, source, Diag(Diag.LambdaClosesOverMut(cf.name, none!Type)));
+							addDiag2(ctx, source, Diag(Diag.LambdaClosesOverMut(cf.name, none!TypeWithContext)));
 					}
 				}
 			}
@@ -1295,7 +1297,7 @@ Expr checkMatch(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, MatchAs
 			matchedType.as!(StructInst*).instantiatedTypes);
 	else {
 		if (!matchedType.isA!(Type.Bogus))
-			addDiag2(ctx, ast.matched.range, Diag(Diag.MatchOnNonUnion(matchedType)));
+			addDiag2(ctx, ast.matched.range, Diag(Diag.MatchOnNonUnion(typeWithContext(ctx, matchedType))));
 		return bogus(expected, &ast.matched);
 	}
 }
@@ -1483,7 +1485,7 @@ Expr checkTyped(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, TypedAs
 	Opt!Type inferred = tryGetInferred(expected);
 	// If inferred != type, we'll fail in 'check'
 	if (has(inferred) && force(inferred) == type)
-		addDiag2(ctx, source, Diag(Diag.TypeAnnotationUnnecessary(type)));
+		addDiag2(ctx, source, Diag(Diag.TypeAnnotationUnnecessary(typeWithContext(ctx, type))));
 	Expr expr = checkAndExpect(ctx, locals, &ast.expr, type);
 	return check(ctx, source, expected, type, expr);
 }

@@ -82,6 +82,9 @@ immutable struct TypeParam {
 	Sym name;
 	size_t index;
 }
+alias TypeParams = SmallArray!TypeParam;
+TypeParams emptyTypeParams() =>
+	small!TypeParam([]);
 
 // Represent type parameter as the index, so we don't generate different types for every `t list`.
 // (These are disambiguated in the type checker using `TypeAndContext`)
@@ -206,7 +209,7 @@ UriAndRange nameRange(in AllSymbols allSymbols, in SpecDeclSig a) =>
 	UriAndRange(a.uri, rangeOfNameAndRange(a.ast.nameAndRange, allSymbols));
 
 immutable struct TypeParamsAndSig {
-	TypeParam[] typeParams;
+	TypeParams typeParams;
 	Type returnType;
 	ParamShort[] params;
 }
@@ -321,7 +324,7 @@ immutable struct StructAlias {
 	SafeCStr docComment;
 	Visibility visibility;
 	Sym name;
-	SmallArray!TypeParam typeParams;
+	TypeParams typeParams;
 
 	private:
 	// This will be none if the alias target is not found
@@ -375,7 +378,7 @@ immutable struct StructDecl {
 	Opt!(StructDeclAst*) ast;
 	Uri moduleUri;
 	Sym name;
-	SmallArray!TypeParam typeParams;
+	TypeParams typeParams;
 	Visibility visibility;
 	Linkage linkage;
 	// Note: purity on the decl does not take type args into account
@@ -498,7 +501,7 @@ immutable struct SpecDecl {
 	SpecDeclAst* ast;
 	Visibility visibility;
 	Sym name;
-	SmallArray!TypeParam typeParams;
+	TypeParams typeParams;
 	SpecDeclBody body_;
 	Late!(SmallArray!(immutable SpecInst*)) parents_;
 
@@ -753,7 +756,7 @@ immutable struct FunDecl {
 	FunDeclSource source;
 	Visibility visibility;
 	Sym name;
-	SmallArray!TypeParam typeParams;
+	TypeParams typeParams;
 	Type returnType;
 	Params params;
 	FunFlags flags;
@@ -920,10 +923,10 @@ immutable struct CalledDecl {
 			(in FunDecl f) => f.name,
 			(in CalledSpecSig s) => s.name);
 
-	TypeParam[] typeParams() return scope =>
-		match!(TypeParam[])(
-			(ref FunDecl f) => f.typeParams.toArray,
-			(CalledSpecSig) => typeAs!(TypeParam[])([]));
+	TypeParams typeParams() return scope =>
+		match!TypeParams(
+			(ref FunDecl f) => f.typeParams,
+			(CalledSpecSig _) => emptyTypeParams);
 
 	Type returnType() =>
 		match!Type(
@@ -1016,10 +1019,10 @@ immutable struct StructOrAlias {
 }
 static assert(StructOrAlias.sizeof == ulong.sizeof);
 
-TypeParam[] typeParams(ref StructOrAlias a) =>
-	a.match!(TypeParam[])(
-		(ref StructAlias x) => x.typeParams.toArray(),
-		(ref StructDecl x) => x.typeParams.toArray());
+TypeParams typeParams(ref StructOrAlias a) =>
+	a.match!TypeParams(
+		(ref StructAlias x) => x.typeParams,
+		(ref StructDecl x) => x.typeParams);
 
 UriAndRange range(ref StructOrAlias a) =>
 	a.match!UriAndRange(

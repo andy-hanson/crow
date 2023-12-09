@@ -15,6 +15,7 @@ import model.model :
 	ClosureSetExpr,
 	decl,
 	Destructure,
+	emptyTypeParams,
 	EnumFunction,
 	enumFunctionName,
 	Expr,
@@ -73,6 +74,7 @@ import model.model :
 	typeArgs,
 	TypeParam,
 	TypeParamIndex,
+	TypeParams,
 	typeParams,
 	VarDecl,
 	VariableRef,
@@ -148,7 +150,7 @@ Json jsonOfStructDecl(ref Alloc alloc, in Ctx ctx, in StructDecl a) =>
 
 Json jsonOfVarDecl(ref Alloc alloc, in Ctx ctx, in VarDecl a) =>
 	jsonObject(alloc,
-		commonDeclFields(alloc, ctx, a.visibility, a.name, []),
+		commonDeclFields(alloc, ctx, a.visibility, a.name, emptyTypeParams),
 		[
 			field!"var-kind"(symOfVarKind(a.kind)),
 			field!"type"(jsonOfType(alloc, ctx, a.type)),
@@ -200,7 +202,7 @@ Json.ObjectField[3] commonDeclFields(
 	in Ctx ctx,
 	Visibility visibility,
 	Sym name,
-	in TypeParam[] typeParams,
+	in TypeParams typeParams,
 ) =>
 	[
 		field!"visibility"(symOfVisibility(visibility)),

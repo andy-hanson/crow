@@ -44,6 +44,7 @@ import model.model :
 	CommonTypes,
 	decl,
 	Destructure,
+	emptyTypeParams,
 	EnumBackingType,
 	EnumFunction,
 	Expr,
@@ -73,12 +74,13 @@ import model.model :
 	typeArgs,
 	TypeParam,
 	TypeParamIndex,
+	TypeParams,
 	typeParams,
 	UnionMember,
 	VarDecl,
 	worsePurity;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, only, only2, sizeEq;
+import util.col.arr : empty, only, only2, sizeEq, small;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil : arrEqual, arrLiteral, arrMax, every, everyWithIndex, exists, fold, map, mapWithIndex, mapZip;
 import util.col.hashTable : getOrAdd, getOrAddAndDidAdd, moveToArray, MutHashTable;
@@ -100,17 +102,17 @@ import versionInfo : VersionInfo;
 immutable struct TypeArgsScope {
 	@safe @nogc pure nothrow:
 
-	TypeParam[] typeParams;
+	TypeParams typeParams;
 	ConcreteType[] typeArgs;
 
-	this(TypeParam[] tp, ConcreteType[] ta) {
+	this(TypeParams tp, ConcreteType[] ta) {
 		typeParams = tp;
 		typeArgs = ta;
 		assert(sizeEq(typeParams, typeArgs));
 	}
 
 	static TypeArgsScope empty() =>
-		TypeArgsScope([], []);
+		TypeArgsScope(emptyTypeParams, []);
 }
 
 private immutable struct ConcreteStructKey {
@@ -176,7 +178,7 @@ TypeArgsScope typeArgsScope(ref ConcreteFunKey a) =>
 
 immutable struct ContainingFunInfo {
 	Uri uri;
-	TypeParam[] typeParams; // TODO: get this from cf?
+	TypeParams typeParams; // TODO: get this from cf?
 	ConcreteType[] typeArgs;
 	ConcreteFun*[] specImpls;
 }
@@ -481,7 +483,7 @@ ConcreteFun* concreteFunForTest(ref ConcretizeCtx ctx, ref Test test, size_t tes
 		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.Test(range(test), testIndex))),
 		voidType(ctx),
 		[]));
-	ContainingFunInfo containing = ContainingFunInfo(test.moduleUri, [], [], []);
+	ContainingFunInfo containing = ContainingFunInfo(test.moduleUri, emptyTypeParams, [], []);
 	ConcreteExpr body_ = concretizeFunBody(ctx, containing, res, [], test.body_);
 	lateSet(res._body_, ConcreteFunBody(body_));
 	addConcreteFun(ctx, res);
@@ -819,7 +821,7 @@ ConcreteExpr concretizeFileImport(ref ConcretizeCtx ctx, ConcreteFun* cf, in Fun
 
 ConcreteVar* getVar(ref ConcretizeCtx ctx, VarDecl* decl) =>
 	getOrAdd!(immutable ConcreteVar*, immutable VarDecl*, getVarKey)(ctx.alloc, ctx.concreteVarLookup, decl, () =>
-		allocate(ctx.alloc, ConcreteVar(decl, getConcreteType(ctx, decl.type, TypeArgsScope()))));
+		allocate(ctx.alloc, ConcreteVar(decl, getConcreteType(ctx, decl.type, TypeArgsScope.empty))));
 
 ulong getAllValue(ConcreteStructBody.Flags flags) =>
 	fold!(ulong, ulong)(0, flags.values, (ulong a, in ulong b) =>

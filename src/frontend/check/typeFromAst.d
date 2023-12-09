@@ -21,12 +21,13 @@ import frontend.parse.ast :
 	symForTypeAstMap,
 	symForTypeAstSuffix,
 	TypeAst;
-import model.diag : Diag;
+import model.diag : Diag, TypeWithContext;
 import model.model :
 	asTuple,
 	CommonTypes,
 	decl,
 	Destructure,
+	emptyTypeParams,
 	Local,
 	LocalMutability,
 	LocalSource,
@@ -41,6 +42,7 @@ import model.model :
 	Type,
 	TypeParam,
 	TypeParamIndex,
+	TypeParams,
 	typeParams;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : arrayOfSingle, empty, only, small;
@@ -59,7 +61,7 @@ private Type instStructFromAst(
 	in Range suffixRange,
 	in Opt!(TypeAst*) typeArgsAst,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	TypeParam[] typeParamsScope,
+	TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
 ) {
 	Opt!StructOrAlias opDecl = tryFindT!StructOrAlias(
@@ -132,8 +134,8 @@ size_t getNTypeArgsForDiagnostic(in CommonTypes commonTypes, in Opt!Type explici
 		return 0;
 }
 
-TypeParam[] checkTypeParams(ref CheckCtx ctx, in NameAndRange[] asts) {
-	TypeParam[] res = mapWithIndex!(TypeParam, NameAndRange)(
+TypeParams checkTypeParams(ref CheckCtx ctx, in NameAndRange[] asts) {
+	TypeParams res = mapWithIndex!(TypeParam, NameAndRange)(
 		ctx.alloc,
 		asts,
 		(size_t index, scope ref NameAndRange ast) =>
@@ -151,14 +153,14 @@ Type typeFromAstNoTypeParamsNeverDelay(
 	in TypeAst ast,
 	in StructsAndAliasesMap structsAndAliasesMap,
 ) =>
-	typeFromAst(ctx, commonTypes, ast, structsAndAliasesMap, [], noDelayStructInsts);
+	typeFromAst(ctx, commonTypes, ast, structsAndAliasesMap, emptyTypeParams, noDelayStructInsts);
 
 Type typeFromAst(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	in TypeAst ast,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	TypeParam[] typeParamsScope,
+	TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
 ) =>
 	ast.matchIn!Type(
@@ -219,7 +221,7 @@ private Opt!Type optTypeFromOptAst(
 	ref CommonTypes commonTypes,
 	in Opt!(TypeAst*) ast,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	TypeParam[] typeParamsScope,
+	TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
 ) =>
 	has(ast)
@@ -231,7 +233,7 @@ Opt!(SpecInst*) specFromAst(
 	ref CommonTypes commonTypes,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in SpecsMap specsMap,
-	TypeParam[] typeParamsScope,
+	TypeParams typeParamsScope,
 	in Opt!(TypeAst*) suffixLeft,
 	NameAndRange specName,
 	MayDelaySpecInsts delaySpecInsts,
@@ -256,7 +258,7 @@ private Type typeFromTupleAst(
 	ref CommonTypes commonTypes,
 	in TypeAst[] members,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	TypeParam[] typeParamsScope,
+	TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
 ) {
 	//TODO:PERF Use temp aloc
@@ -265,7 +267,7 @@ private Type typeFromTupleAst(
 	return makeTupleType(ctx.instantiateCtx, commonTypes, args);
 }
 
-private Opt!(TypeParam*) findTypeParam(TypeParam[] typeParamsScope, Sym name) =>
+private Opt!(TypeParam*) findTypeParam(TypeParams typeParamsScope, Sym name) =>
 	findPtr!TypeParam(typeParamsScope, (in TypeParam x) =>
 		x.name == name);
 
@@ -315,7 +317,7 @@ private Type typeFromFunAst(
 	ref CommonTypes commonTypes,
 	in TypeAst.Fun ast,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	TypeParam[] typeParamsScope,
+	TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
 ) {
 	Type returnType = typeFromAst(
@@ -331,7 +333,7 @@ private Type typeFromMapAst(
 	ref CommonTypes commonTypes,
 	in TypeAst.Map ast,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	TypeParam[] typeParamsScope,
+	TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
 ) {
 	TypeAst.Tuple tuple = TypeAst.Tuple(Range.empty, castNonScope_ref(ast.kv));
@@ -365,7 +367,7 @@ Opt!Type typeFromDestructure(
 	ref CommonTypes commonTypes,
 	in DestructureAst ast,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	TypeParam[] typeParamsScope,
+	TypeParams typeParamsScope,
 ) =>
 	ast.matchIn!(Opt!Type)(
 		(in DestructureAst.Single x) =>
@@ -386,19 +388,21 @@ Destructure checkDestructure(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	TypeParam[] typeParamsScope,
+	TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
 	ref DestructureAst ast,
 	// This is for the type coming from the RHS of a 'let', or the expected type of a lambda
 	Opt!Type destructuredType,
 ) {
+	TypeWithContext typeWithContext(Type x) =>
+		TypeWithContext(x, typeParamsScope);
 	Type getType(Opt!Type declaredType) {
 		if (has(declaredType)) {
 			if (has(destructuredType) && force(destructuredType) != force(declaredType))
 				addDiag(ctx, ast.range(ctx.allSymbols), Diag(
 					Diag.DestructureTypeMismatch(
-						Diag.DestructureTypeMismatch.Expected(force(declaredType)),
-						force(destructuredType))));
+						Diag.DestructureTypeMismatch.Expected(typeWithContext(force(declaredType))),
+						typeWithContext(force(destructuredType)))));
 			return force(declaredType);
 		} else if (has(destructuredType))
 			return force(destructuredType);
@@ -446,7 +450,7 @@ Destructure checkDestructure(
 						Diag.DestructureTypeMismatch(
 							Diag.DestructureTypeMismatch.Expected(
 								Diag.DestructureTypeMismatch.Expected.Tuple(partAsts.length)),
-							tupleType)));
+							typeWithContext(tupleType))));
 					return Destructure(allocate(ctx.alloc, Destructure.Split(
 						Type(Type.Bogus()),
 						small(map!(Destructure, DestructureAst)(

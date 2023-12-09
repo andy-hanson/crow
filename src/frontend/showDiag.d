@@ -19,7 +19,7 @@ import frontend.showModel :
 	writeTypeQuoted,
 	writeUri,
 	writeUriAndRange;
-import model.diag : Diagnostic, Diag, DiagnosticSeverity, ExpectedForDiag, ReadFileDiag, TypeKind, UriAndDiagnostic;
+import model.diag : Diagnostic, Diag, DiagnosticSeverity, ExpectedForDiag, ReadFileDiag, TypeKind, TypeWithContext, UriAndDiagnostic;
 import model.model :
 	arity,
 	arityMatches,
@@ -41,9 +41,11 @@ import model.model :
 	symOfSpecBodyBuiltinKind,
 	symOfVisibility,
 	Type,
+	TypeParams,
 	TypeParamsAndSig;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
+import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : empty, only;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSort, finishArr;
 import util.col.arrUtil : exists;
@@ -349,10 +351,12 @@ void showChar(scope ref Writer writer, char c) {
 	}
 }
 
-void writeSpecTrace(scope ref Writer writer, in ShowCtx ctx, in FunDeclAndTypeArgs[] trace) {
+void writeSpecTrace(scope ref Writer writer, in ShowCtx ctx, TypeParams outermostTypeContext, in FunDeclAndTypeArgs[] trace) {
+	Cell!TypeParams prevTypeParams = Cell!TypeParams(outermostTypeContext);
 	foreach (FunDeclAndTypeArgs x; trace) {
 		writer ~= "\n\t";
-		writeFunDeclAndTypeArgs(writer, ctx, x);
+		writeFunDeclAndTypeArgs(writer, ctx, cellGet(prevTypeParams), x);
+		cellSet(prevTypeParams, x.decl.typeParams);
 	}
 }
 
@@ -377,7 +381,7 @@ void writeCallNoMatch(scope ref Writer writer, in ShowCtx ctx, in Diag.CallNoMat
 
 		if (d.actualArgTypes.length == 1) {
 			writer ~= "\nargument type: ";
-			writeTypeQuoted(writer, ctx, only(d.actualArgTypes));
+			writeTypeQuoted(writer, ctx, TypeWithContext(only(d.actualArgTypes), d.typeContext));
 		}
 	} else if (!someCandidateHasCorrectArity) {
 		writer ~= "there are functions named ";
@@ -390,7 +394,7 @@ void writeCallNoMatch(scope ref Writer writer, in ShowCtx ctx, in Diag.CallNoMat
 			writer ~= " type";
 		}
 		writer ~= " arguments. candidates:";
-		writeCalledDecls(writer, ctx, d.allCandidates);
+		writeCalledDecls(writer, ctx, d.typeContext, d.allCandidates);
 	} else {
 		writer ~= "there are functions named ";
 		writeName(writer, ctx, d.funName);
@@ -404,12 +408,12 @@ void writeCallNoMatch(scope ref Writer writer, in ShowCtx ctx, in Diag.CallNoMat
 		writer ~= '.';
 		if (hasRet) {
 			writer ~= "\nexpected return type: ";
-			writeTypeQuoted(writer, ctx, force(d.expectedReturnType));
+			writeTypeQuoted(writer, ctx, TypeWithContext(force(d.expectedReturnType), d.typeContext));
 		}
 		if (hasArgs) {
 			writer ~= "\nactual argument types: ";
 			writeWithCommas!Type(writer, d.actualArgTypes, (in Type t) {
-				writeTypeQuoted(writer, ctx, t);
+				writeTypeQuoted(writer, ctx, TypeWithContext(t, d.typeContext));
 			});
 			if (d.actualArgTypes.length < d.actualArity)
 				writer ~= " (other arguments not checked, gave up early)";
@@ -417,7 +421,7 @@ void writeCallNoMatch(scope ref Writer writer, in ShowCtx ctx, in Diag.CallNoMat
 		writer ~= "\ncandidates (with ";
 		writer ~= d.actualArity;
 		writer ~= " arguments):";
-		writeCalledDecls(writer, ctx, d.allCandidates, (in CalledDecl c) =>
+		writeCalledDecls(writer, ctx, d.typeContext, d.allCandidates, (in CalledDecl c) =>
 			arityMatches(arity(c), d.actualArity));
 	}
 }
@@ -435,7 +439,7 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 			writer ~= "cannot choose an overload of ";
 			writeName(writer, ctx, x.funName);
 			writer ~= ". multiple functions match:";
-			writeCalledDecls(writer, ctx, x.matches);
+			writeCalledDecls(writer, ctx, x.typeContext, x.matches);
 		},
 		(in Diag.CallNoMatch x) {
 			writeCallNoMatch(writer, ctx, x);
@@ -513,7 +517,7 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 					writer ~= t.size;
 					writer ~= " elements, but got ";
 				},
-				(in Type t) {
+				(in TypeWithContext t) {
 					writer ~= "expected type ";
 					writeTypeQuoted(writer, ctx, t);
 					writer ~= ", but got ";
@@ -566,7 +570,7 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 		},
 		(in Diag.EnumBackingTypeInvalid x) {
 			writer ~= "type ";
-			writeStructInst(writer, ctx, *x.actual);
+			writeTypeQuoted(writer, ctx, x.actual);
 			writer ~= " cannot be used to back an enum";
 		},
 		(in Diag.EnumDuplicateValue x) {
@@ -693,23 +697,23 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 				}
 			}
 			writer ~= " can't reference non-extern type ";
-			writeTypeQuoted(writer, ctx, x.referencedType);
+			writeTypeQuoted(writer, ctx, TypeWithContext(x.referencedType, x.containingFun.typeParams));
 		},
 		(in Diag.LinkageWorseThanContainingType x) {
 			writer ~= "extern type ";
 			writeName(writer, ctx, x.containingType.name);
 			writer ~= " can't reference non-extern type ";
-			writeTypeQuoted(writer, ctx, x.referencedType);
+			writeTypeQuoted(writer, ctx, TypeWithContext(x.referencedType, x.containingType.typeParams));
 		},
 		(in Diag.LiteralAmbiguous x) {
 			writer ~= "multiple possible types for literal expression: ";
 			writeWithCommas!(StructInst*)(writer, x.types, (in StructInst* type) {
-				writeStructInst(writer, ctx, *type);
+				writeStructInst(writer, ctx, x.typeContext, *type);
 			});
 		},
 		(in Diag.LiteralOverflow x) {
 			writer ~= "literal exceeds the range of a ";
-			writeStructInst(writer, ctx, *x.type);
+			writeTypeQuoted(writer, ctx, x.type);
 		},
 		(in Diag.LocalIgnoredButMutable) {
 			writer ~= "unnecessary 'mut' on ignored local variable";
@@ -804,7 +808,7 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 			writer ~= " has purity ";
 			writePurity(writer, ctx, x.parent.purity);
 			writer ~= ", but member of type ";
-			writeTypeQuoted(writer, ctx, x.child);
+			writeTypeQuoted(writer, ctx, TypeWithContext(x.child, x.parent.typeParams));
 			writer ~= " has purity ";
 			writePurity(writer, ctx, bestCasePurity(x.child));
 		},
@@ -819,16 +823,16 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 					writer ~= "multiple implementations found for spec signature ";
 					writeName(writer, ctx, y.sigName);
 					writer ~= ':';
-					writeCalleds(writer, ctx, y.matches);
+					writeCalleds(writer, ctx, x.outermostTypeContext, y.matches);
 				});
 			writer ~= "\n\tcalling:";
-			writeSpecTrace(writer, ctx, x.trace);
+			writeSpecTrace(writer, ctx, x.outermostTypeContext, x.trace);
 		},
 		(in Diag.SpecNoMatch x) {
 			writer ~= "a spec was not satisfied.\n\t";
 			x.reason.matchIn!void(
 				(in Diag.SpecNoMatch.Reason.BuiltinNotSatisfied y) {
-					writeTypeQuoted(writer, ctx, y.type);
+					writeTypeQuoted(writer, ctx, TypeWithContext(y.type, x.outermostTypeContext));
 					writer ~= " is not ";
 					writeName(writer, ctx, symOfSpecBodyBuiltinKind(y.kind));
 				},
@@ -838,13 +842,13 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 				(in Diag.SpecNoMatch.Reason.SpecImplNotFound y) {
 					writer ~= "no implementation was found for spec signature ";
 					SpecDeclSig* sig = y.sigDecl;
-					writeSig(writer, ctx, sig.name, sig.returnType, Params(sig.params), some(y.sigType));
+					writeSig(writer, ctx, x.outermostTypeContext, sig.name, sig.returnType, Params(sig.params), some(y.sigType));
 				},
 				(in Diag.SpecNoMatch.Reason.TooDeep _) {
 					writer ~= "spec instantiation is too deep";
 				});
 			writer ~= " calling:";
-			writeSpecTrace(writer, ctx, x.trace);
+			writeSpecTrace(writer, ctx, x.outermostTypeContext, x.trace);
 		},
 		(in Diag.SpecNameMissing) {
 			writer ~= "spec name is missing";
@@ -949,13 +953,13 @@ void showDiagnostic(scope ref Writer writer, in ShowCtx ctx, in UriAndDiagnostic
 
 void writeExpected(scope ref Writer writer, in ShowCtx ctx, in ExpectedForDiag a) {
 	a.matchIn!void(
-		(in Type[] types) {
+		(in TypeWithContext[] types) {
 			if (types.length == 1) {
 				writer ~= "expected type: ";
 				writeTypeQuoted(writer, ctx, only(types));
 			} else {
 				writer ~= "expected one of these types:";
-				foreach (Type t; types) {
+				foreach (TypeWithContext t; types) {
 					writer ~= "\n\t";
 					writeTypeQuoted(writer, ctx, t);
 				}

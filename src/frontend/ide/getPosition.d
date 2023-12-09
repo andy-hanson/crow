@@ -24,7 +24,7 @@ import frontend.parse.ast :
 	symOfFieldMutabilityAstKind,
 	TypeAst;
 import model.model;
-import model.model : paramsArray, range;
+import model.model : paramsArray, range, TypeParams;
 import util.col.arr : ptrsRange;
 import util.col.arrUtil : first, firstPointer, firstWithIndex, firstZipPointerFirst;
 import util.opt : force, has, none, Opt, optIf, optOr, optOr, optOrDefault, some;
@@ -176,7 +176,7 @@ Opt!PositionKind positionInVisibility(T, TAst)(in T a, in TAst ast, Pos pos) =>
 Opt!PositionKind positionInTypeParams(
 	in AllSymbols allSymbols,
 	TypeParamContainer container,
-	TypeParam[] typeParams,
+	TypeParams typeParams,
 	in NameAndRange[] asts,
 	Pos pos,
 ) =>

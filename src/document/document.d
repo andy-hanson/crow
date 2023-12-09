@@ -38,6 +38,7 @@ import model.model :
 	typeArgs,
 	TypeParam,
 	TypeParamIndex,
+	TypeParams,
 	typeParams,
 	UnionMember,
 	Visibility,
@@ -110,7 +111,7 @@ DocExport documentExport(
 	UriAndRange range,
 	Sym name,
 	in SafeCStr docComment,
-	in TypeParam[] typeParams,
+	in TypeParams typeParams,
 	Json value,
 ) =>
 	DocExport(range, jsonObject(alloc, [
@@ -131,7 +132,7 @@ DocExport documentStructAlias(ref Alloc alloc, in StructAlias a) {
 	Opt!(StructInst*) optTarget = target(a);
 	return documentExport(alloc, range(a), a.name, a.docComment, a.typeParams, jsonObject(alloc, [
 		kindField!"alias",
-		field!"target"(documentStructInst(alloc, *force(optTarget)))]));
+		field!"target"(documentStructInst(alloc, a.typeParams, *force(optTarget)))]));
 }
 
 DocExport documentStructDecl(ref Alloc alloc, in StructDecl a) =>
@@ -167,7 +168,7 @@ Json documentRecord(ref Alloc alloc, in StructDecl decl, in StructBody.Record a)
 		optionalFlagField!"has-non-public-fields"(hasNonPublicFields(a)),
 		field!"fields"(jsonList(
 			mapOp!(Json, RecordField)(alloc, a.fields, (ref RecordField field) =>
-				documentRecordField(alloc, field))))]);
+				documentRecordField(alloc, decl.typeParams, field))))]);
 
 Json.ObjectField maybePurity(ref Alloc alloc, in StructDecl decl) =>
 	optionalField!"purity"(decl.purity != Purity.data, () => jsonString(symOfPurity(decl.purity)));
@@ -188,9 +189,9 @@ Json documentUnion(ref Alloc alloc, in StructDecl decl, in StructBody.Union a) =
 		kindField!"union",
 		maybePurity(alloc, decl),
 		field!"members"(jsonList!UnionMember(alloc, a.members, (in UnionMember member) =>
-			documentUnionMember(alloc, member)))]);
+			documentUnionMember(alloc, decl.typeParams, member)))]);
 
-Opt!Json documentRecordField(ref Alloc alloc, in RecordField a) {
+Opt!Json documentRecordField(ref Alloc alloc, in TypeParams typeParams, in RecordField a) {
 	final switch (a.visibility) {
 		case Visibility.private_:
 		case Visibility.internal:
@@ -198,21 +199,21 @@ Opt!Json documentRecordField(ref Alloc alloc, in RecordField a) {
 		case Visibility.public_:
 			return some(jsonObject(alloc, [
 				field!"name"(a.name),
-				field!"type"(documentTypeRef(alloc, a.type)),
+				field!"type"(documentTypeRef(alloc, typeParams, a.type)),
 				optionalFlagField!"mut"(a.mutability == FieldMutability.public_)]));
 	}
 }
 
-Json documentUnionMember(ref Alloc alloc, in UnionMember a) =>
+Json documentUnionMember(ref Alloc alloc, in TypeParams typeParams, in UnionMember a) =>
 	jsonObject(alloc, [
 		field!"name"(a.name),
-		field!"type"(documentTypeRef(alloc, a.type))]);
+		field!"type"(documentTypeRef(alloc, typeParams, a.type))]);
 
 DocExport documentSpec(ref Alloc alloc, in SpecDecl a) =>
 	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, jsonObject(alloc, [
 		kindField!"spec",
 		field!"parents"(jsonList(map(alloc, a.parents, (ref immutable SpecInst* x) =>
-			documentSpecInst(alloc, *x)))),
+			documentSpecInst(alloc, a.typeParams, *x)))),
 		field!"body"(a.body_.matchIn!Json(
 			(in SpecDeclBody.Builtin) =>
 				jsonObject(alloc, [kindField!"builtin"]),
@@ -220,20 +221,20 @@ DocExport documentSpec(ref Alloc alloc, in SpecDecl a) =>
 				jsonObject(alloc, [
 					kindField!"sigs",
 					field!"sigs"(jsonList!SpecDeclSig(alloc, sigs, (in SpecDeclSig sig) =>
-						documentSpecDeclSig(alloc, sig)))])))]));
+						documentSpecDeclSig(alloc, a.typeParams, sig)))])))]));
 
-Json documentSpecDeclSig(ref Alloc alloc, in SpecDeclSig a) =>
+Json documentSpecDeclSig(ref Alloc alloc, in TypeParams typeParams, in SpecDeclSig a) =>
 	jsonObject(alloc, [
 		optionalStringField!"doc"(alloc, a.ast.docComment),
 		field!"name"(a.name),
-		field!"return-type"(documentTypeRef(alloc, a.returnType)),
-		field!"params"(documentParamDestructures(alloc, a.params))]);
+		field!"return-type"(documentTypeRef(alloc, typeParams, a.returnType)),
+		field!"params"(documentParamDestructures(alloc, typeParams, a.params))]);
 
 DocExport documentFun(ref Alloc alloc, in FunDecl a) =>
 	documentExport(alloc, a.range, a.name, docComment(a), a.typeParams, jsonObject(alloc, [
 		kindField!"fun",
-		field!"return-type"(documentTypeRef(alloc, a.returnType)),
-		documentParams(alloc, a.params),
+		field!"return-type"(documentTypeRef(alloc, a.typeParams, a.returnType)),
+		documentParams(alloc, a.typeParams, a.params),
 		optionalFlagField!"variadic"(isVariadic(a)),
 		optionalArrayField!"specs"(documentSpecs(alloc, a))]));
 
@@ -246,50 +247,50 @@ Json[] documentSpecs(ref Alloc alloc, in FunDecl a) {
 	if (isUnsafe(a))
 		add(alloc, res, jsonOfSpecialSpec(alloc, sym!"unsafe"));
 	foreach (SpecInst* spec; a.specs)
-		add(alloc, res, documentSpecInst(alloc, *spec));
+		add(alloc, res, documentSpecInst(alloc, a.typeParams, *spec));
 	return finishArr(alloc, res);
 }
 
 Json jsonOfSpecialSpec(ref Alloc alloc, Sym name) =>
 	jsonObject(alloc, [kindField!"special", field!"name"(name)]);
 
-Json.ObjectField documentParams(ref Alloc alloc, in Params params) =>
-	field!"params"(documentParamDestructures(alloc, paramsArray(params)));
+Json.ObjectField documentParams(ref Alloc alloc, in TypeParams typeParams, in Params params) =>
+	field!"params"(documentParamDestructures(alloc, typeParams, paramsArray(params)));
 
-Json documentParamDestructures(ref Alloc alloc, in Destructure[] a) =>
+Json documentParamDestructures(ref Alloc alloc, in TypeParams typeParams, in Destructure[] a) =>
 	jsonList!Destructure(alloc, a, (in Destructure x) =>
-		documentParam(alloc, x));
+		documentParam(alloc, typeParams, x));
 
-Json documentParam(ref Alloc alloc, in Destructure a) {
+Json documentParam(ref Alloc alloc, in TypeParams typeParams, in Destructure a) {
 	Opt!Sym name = a.name;
 	return jsonObject(alloc, [
 		field!"name"(has(name) ? force(name) : sym!"anonymous"),
-		field!"type"(documentTypeRef(alloc, a.type))]);
+		field!"type"(documentTypeRef(alloc, typeParams, a.type))]);
 }
 
-Json documentTypeRef(ref Alloc alloc, in Type a) =>
+Json documentTypeRef(ref Alloc alloc, in TypeParams typeParams, in Type a) =>
 	a.matchIn!Json(
 		(in Type.Bogus) =>
 			unreachable!Json,
 		(in TypeParamIndex x) =>
-			jsonObject(alloc, [kindField!"type-param", field!"name"(x.debugPtr.name)]),
+			jsonObject(alloc, [kindField!"type-param", field!"name"(typeParams[x.index].name)]),
 		(in StructInst x) =>
-			documentStructInst(alloc, x));
+			documentStructInst(alloc, typeParams, x));
 
-Json documentSpecInst(ref Alloc alloc, in SpecInst a) =>
-	documentNameAndTypeArgs(alloc, sym!"spec", name(a), typeArgs(a));
+Json documentSpecInst(ref Alloc alloc, in TypeParams typeParams, in SpecInst a) =>
+	documentNameAndTypeArgs(alloc, typeParams, sym!"spec", name(a), typeArgs(a));
 
-Json documentStructInst(ref Alloc alloc, in StructInst a) =>
-	documentNameAndTypeArgs(alloc, sym!"struct", name(a), typeArgs(a));
+Json documentStructInst(ref Alloc alloc, in TypeParams typeParams, in StructInst a) =>
+	documentNameAndTypeArgs(alloc, typeParams, sym!"struct", name(a), typeArgs(a));
 
-Json documentNameAndTypeArgs(ref Alloc alloc, Sym nodeType, Sym name, scope Type[] typeArgs) =>
+Json documentNameAndTypeArgs(ref Alloc alloc, in TypeParams typeParams, Sym nodeType, Sym name, scope Type[] typeArgs) =>
 	empty(typeArgs)
 		? jsonObject(alloc, [kindField(nodeType), field!"name"(name)])
 		: jsonObject(alloc, [
 			kindField(nodeType),
 			field!"name"(name),
 			field!"type-args"(jsonList!Type(alloc, typeArgs, (in Type typeArg) =>
-				documentTypeRef(alloc, typeArg)))]);
+				documentTypeRef(alloc, typeParams, typeArg)))]);
 
 void eachLine(string a, in void delegate(string) @safe @nogc pure nothrow cb) {
 	Opt!size_t index = indexOf(a, '\n');

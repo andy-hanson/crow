@@ -38,6 +38,7 @@ import model.model :
 	typeArgs,
 	TypeParam,
 	TypeParamIndex,
+	TypeParams,
 	typeParams,
 	UnionMember;
 import util.alloc.alloc : Alloc;
@@ -69,10 +70,10 @@ struct InstantiateCtx {
 immutable struct TypeParamsAndArgs {
 	@safe @nogc pure nothrow:
 
-	TypeParam[] typeParams;
+	TypeParams typeParams;
 	Type[] typeArgs;
 
-	this(TypeParam[] tp, Type[] ta) {
+	this(TypeParams tp, Type[] ta) {
 		typeParams = tp;
 		typeArgs = ta;
 		assert(sizeEq(typeParams, typeArgs));
@@ -83,15 +84,15 @@ alias TypeArgsArray = MutMaxArr!(maxTypeParams, Type);
 TypeArgsArray typeArgsArray() =>
 	mutMaxArr!(maxTypeParams, Type);
 
-void assertNoTypeArg(TypeParam[] typeParams, TypeParamIndex a) {
+void assertNoTypeArg(TypeParams typeParams, TypeParamIndex a) {
 	assert(!(a.index < typeParams.length && &typeParams[a.index] == a.debugPtr));
 }
-private Opt!(T*) tryGetTypeArg(T)(TypeParam[] typeParams, return scope immutable T[] typeArgs, TypeParam* typeParam) {
+private Opt!(T*) tryGetTypeArg(T)(TypeParams typeParams, return scope immutable T[] typeArgs, TypeParam* typeParam) {
 	size_t index = typeParam.index;
 	bool hasTypeParam = index < typeParams.length && &typeParams[index] == typeParam;
 	return hasTypeParam ? some(&typeArgs[index]) : none!(T*);
 }
-MutOpt!(T*) tryGetTypeArg_mut(T)(TypeParam[] typeParams, return scope T[] typeArgs, TypeParam* typeParam) {
+MutOpt!(T*) tryGetTypeArg_mut(T)(TypeParams typeParams, return scope T[] typeArgs, TypeParam* typeParam) {
 	size_t index = typeParam.index;
 	bool hasTypeParam = index < typeParams.length && &typeParams[index] == typeParam;
 	return hasTypeParam ? someMut!(T*)(&typeArgs[index]) : noneMut!(T*);

@@ -18,6 +18,7 @@ import model.model :
 	StructDecl,
 	StructInst,
 	Type,
+	TypeParams,
 	TypeParamsAndSig,
 	VariableRef,
 	Visibility;
@@ -97,11 +98,13 @@ immutable struct Diag {
 	// We don't exclude a candidate based on not having specs.
 	immutable struct CallMultipleMatches {
 		Sym funName;
+		TypeParams typeContext;
 		// Unlike CallNoMatch, these are only the ones that match
 		CalledDecl[] matches;
 	}
 
 	immutable struct CallNoMatch {
+		TypeParams typeContext;
 		Sym funName;
 		Opt!Type expectedReturnType;
 		// 0 for inferred type args.
@@ -155,10 +158,10 @@ immutable struct Diag {
 	immutable struct DestructureTypeMismatch {
 		immutable struct Expected {
 			immutable struct Tuple { size_t size; }
-			mixin Union!(Tuple, Type);
+			mixin Union!(Tuple, TypeWithContext);
 		}
 		Expected expected;
-		Type actual;
+		TypeWithContext actual;
 	}
 	immutable struct DuplicateDeclaration {
 		enum Kind {
@@ -191,7 +194,7 @@ immutable struct Diag {
 		Sym name;
 	}
 	immutable struct EnumBackingTypeInvalid {
-		StructInst* actual;
+		TypeWithContext actual;
 	}
 	immutable struct EnumDuplicateValue {
 		bool signed;
@@ -201,7 +204,7 @@ immutable struct Diag {
 		EnumBackingType backingType;
 	}
 	immutable struct ExpectedTypeIsNotALambda {
-		Opt!Type expectedType;
+		Opt!TypeWithContext expectedType;
 	}
 	immutable struct ExternFunForbidden {
 		enum Reason { hasSpecs, hasTypeParams, variadic }
@@ -217,7 +220,7 @@ immutable struct Diag {
 	immutable struct FunMissingBody {}
 	immutable struct FunModifierTrustedOnNonExtern {}
 	immutable struct IfNeedsOpt {
-		Type actualType;
+		TypeWithContext actualType;
 	}
 	immutable struct ImportFileDiag {
 		immutable struct CircularImport {
@@ -242,7 +245,7 @@ immutable struct Diag {
 		Sym name;
 		// If missing, the error is that the local itself is 'mut'.
 		// If present, the error is that the type is 'mut'.
-		Opt!Type type;
+		Opt!TypeWithContext type;
 	}
 	immutable struct LambdaMultipleMatch {
 		ExpectedForDiag expected;
@@ -261,13 +264,11 @@ immutable struct Diag {
 		Type referencedType;
 	}
 	immutable struct LiteralAmbiguous {
+		TypeParams typeContext;
 		StructInst*[] types;
 	}
-	immutable struct LiteralNotAcceptable {
-		StructInst* expectedType;
-	}
 	immutable struct LiteralOverflow {
-		StructInst* type;
+		TypeWithContext type;
 	}
 	immutable struct LocalIgnoredButMutable {}
 	immutable struct LocalNotMutable {
@@ -278,7 +279,7 @@ immutable struct Diag {
 		Sym[] expectedNames;
 	}
 	immutable struct MatchOnNonUnion {
-		Type type;
+		TypeWithContext type;
 	}
 
 	immutable struct ModifierConflict {
@@ -345,6 +346,7 @@ immutable struct Diag {
 			}
 			mixin Union!(MultipleMatches);
 		}
+		TypeParams outermostTypeContext;
 		Reason reason;
 		FunDeclAndTypeArgs[] trace;
 	}
@@ -362,6 +364,7 @@ immutable struct Diag {
 			immutable struct TooDeep {}
 			mixin Union!(BuiltinNotSatisfied, CantInferTypeArguments, SpecImplNotFound, TooDeep);
 		}
+		TypeParams outermostTypeContext;
 		Reason reason;
 		FunDeclAndTypeArgs[] trace;
 	}
@@ -383,11 +386,11 @@ immutable struct Diag {
 		Reason reason;
 	}
 	immutable struct TypeAnnotationUnnecessary {
-		Type type;
+		TypeWithContext type;
 	}
 	immutable struct TypeConflict {
 		ExpectedForDiag expected;
-		Type actual;
+		TypeWithContext actual;
 	}
 	immutable struct TypeParamCantHaveTypeArgs {}
 	immutable struct TypeShouldUseSyntax {
@@ -509,5 +512,10 @@ immutable struct Diag {
 immutable struct ExpectedForDiag {
 	immutable struct Infer {}
 	immutable struct Loop {}
-	mixin Union!(Type[], Infer, Loop);
+	mixin Union!(TypeWithContext[], Infer, Loop);
+}
+
+immutable struct TypeWithContext {
+	Type type;
+	TypeParams context;
 }

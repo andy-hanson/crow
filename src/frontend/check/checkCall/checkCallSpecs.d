@@ -20,6 +20,7 @@ import model.model :
 	Called,
 	CalledSpecSig,
 	decl,
+	emptyTypeParams,
 	FunDecl,
 	FunDeclAndTypeArgs,
 	isPurityAlwaysCompatible,
@@ -34,7 +35,8 @@ import model.model :
 	StructInst,
 	Type,
 	typeArgs,
-	TypeParam;
+	TypeParam,
+	TypeParams;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : only;
@@ -84,7 +86,7 @@ struct CheckSpecsCtx {
 
 	Alloc* allocPtr;
 	InstantiateCtx instantiateCtx;
-	TypeParam[] callerTypeParams;
+	TypeParams outerContext;
 	immutable FunsInScope funsInScope;
 	ArrBuilder!(Diag.SpecMatchError) matchDiags;
 
@@ -128,10 +130,10 @@ T withTrace(T)(
 	return res;
 }
 
-DummyTrace.NoMatch specNoMatch(scope DummyTrace, Diag.SpecNoMatch.Reason) =>
+DummyTrace.NoMatch specNoMatch(ref CheckSpecsCtx ctx, scope DummyTrace, Diag.SpecNoMatch.Reason) =>
 	DummyTrace.NoMatch();
-RealTrace.NoMatch specNoMatch(scope RealTrace a, Diag.SpecNoMatch.Reason reason) =>
-	Diag.SpecNoMatch(reason, toArray(*a.alloc, *a.trace));
+RealTrace.NoMatch specNoMatch(ref CheckSpecsCtx ctx, scope RealTrace a, Diag.SpecNoMatch.Reason reason) =>
+	Diag.SpecNoMatch(ctx.outerContext, reason, toArray(*a.alloc, *a.trace));
 bool isFull(DummyTrace trace) {
 	assert(trace.depth <= maxSpecDepth);
 	return trace.depth == maxSpecDepth;
@@ -146,9 +148,10 @@ Trace.Result checkCandidate(Trace)(
 	ref Candidate candidate,
 	scope Trace trace,
 ) =>
-	testCandidateForSpecSig(ctx.instantiateCtx, ctx.callerTypeParams, candidate, sigType, nonInferringTypeContext(ctx.callerTypeParams))
+	testCandidateForSpecSig(ctx.instantiateCtx, ctx.outerContext, candidate, sigType, nonInferringTypeContext(ctx.outerContext))
 		? getCalledFromCandidateAfterTypeChecks(ctx, candidate, trace)
 		: Trace.Result(specNoMatch(
+			ctx,
 			trace,
 			Diag.SpecNoMatch.Reason(Diag.SpecNoMatch.Reason.SpecImplNotFound(sigDecl, sigType))));
 
@@ -164,13 +167,14 @@ Trace.Result getCalledFromCandidateAfterTypeChecks(Trace)(
 			push(candidateTypeArgs, force(t));
 		else
 			return Trace.Result(specNoMatch(
+				ctx,
 				trace,
 				Diag.SpecNoMatch.Reason(Diag.SpecNoMatch.Reason.CantInferTypeArguments())));
 	}
 	return candidate.called.matchWithPointers!(Trace.Result)(
 		(FunDecl* f) {
 			if (isFull(trace))
-				return Trace.Result(specNoMatch(trace, Diag.SpecNoMatch.Reason(Diag.SpecNoMatch.Reason.TooDeep())));
+				return Trace.Result(specNoMatch(ctx, trace, Diag.SpecNoMatch.Reason(Diag.SpecNoMatch.Reason.TooDeep())));
 			else {
 				SpecImpls specImpls = mutMaxArr!(maxSpecImpls, Called);
 				Opt!(Trace.NoMatch) diag = checkSpecImpls(specImpls, ctx, f, tempAsArr(candidateTypeArgs), trace);
@@ -216,14 +220,19 @@ Trace.Result findSpecSigImplementation(Trace)(
 			return Trace.Result(force(cellGet(res)));
 		} else {
 			add(ctx.alloc, multipleMatches, force(cellGet(res)));
-			add(ctx.alloc, ctx.matchDiags, Diag.SpecMatchError(Diag.SpecMatchError.Reason(
-				Diag.SpecMatchError.Reason.MultipleMatches(sigDecl.name, finishArr(ctx.alloc, multipleMatches)))));
+			add(ctx.alloc, ctx.matchDiags, Diag.SpecMatchError(
+				ctx.outerContext,
+				Diag.SpecMatchError.Reason(
+					Diag.SpecMatchError.Reason.MultipleMatches(sigDecl.name, finishArr(ctx.alloc, multipleMatches))),
+				// TODO: THE TRACE ------------------------------------------------------------------------------------
+			));
 			return Trace.Result(force(cellGet(res)));
 		}
 	} else
 		return Trace.Result(has(cellGet(deepestNoMatch))
 			? force(cellGet(deepestNoMatch))
 			: specNoMatch(
+				ctx,
 				trace,
 				Diag.SpecNoMatch.Reason(Diag.SpecNoMatch.Reason.SpecImplNotFound(sigDecl, sigType))));
 }
@@ -284,6 +293,7 @@ Opt!(Trace.NoMatch) checkSpecImpl(Trace)(
 				checkBuiltinSpec(ctx, called, b.kind, only(typeArgs))
 					? none!(Trace.NoMatch)
 					: some(specNoMatch(
+						ctx,
 						trace,
 						Diag.SpecNoMatch.Reason(Diag.SpecNoMatch.Reason.BuiltinNotSatisfied(b.kind, only(typeArgs))))),
 			(SpecDeclSig[] sigDecls) =>

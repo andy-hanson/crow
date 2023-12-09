@@ -50,6 +50,7 @@ import model.model :
 	CommonTypes,
 	decl,
 	Destructure,
+	emptyTypeParams,
 	FunBody,
 	FunDecl,
 	FunDeclSource,
@@ -84,6 +85,7 @@ import model.model :
 	typeArgs,
 	TypeParam,
 	TypeParamIndex,
+	TypeParams,
 	typeParams,
 	VarDecl,
 	Visibility,
@@ -185,7 +187,7 @@ Params checkParams(
 	ref CommonTypes commonTypes,
 	in ParamsAst ast,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	TypeParam[] typeParamsScope,
+	TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
 ) =>
 	ast.match!Params(
@@ -221,7 +223,7 @@ ReturnTypeAndParams checkReturnTypeAndParams(
 	ref CommonTypes commonTypes,
 	in TypeAst returnTypeAst,
 	in ParamsAst paramsAst,
-	TypeParam[] typeParams,
+	TypeParams typeParams,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	MayDelayStructInsts delayStructInsts
 ) =>
@@ -244,7 +246,7 @@ SpecDeclBody.Builtin.Kind getSpecBodyBuiltinKind(ref CheckCtx ctx, in Range rang
 SpecDeclBody checkSpecDeclBody(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	TypeParam[] typeParams,
+	TypeParams typeParams,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in Range range,
 	Sym name,
@@ -272,7 +274,7 @@ SpecDecl[] checkSpecDeclsInitial(
 	SpecDeclAst[] asts,
 ) =>
 	mapPointers(ctx.alloc, asts, (SpecDeclAst* ast) {
-		TypeParam[] typeParams = checkTypeParams(ctx, ast.typeParams);
+		TypeParams typeParams = checkTypeParams(ctx, ast.typeParams);
 		SpecDeclBody body_ =
 			checkSpecDeclBody(ctx, commonTypes, typeParams, structsAndAliasesMap, ast.range, ast.name.name, ast.body_);
 		return SpecDecl(
@@ -444,7 +446,7 @@ FunFlagsAndSpecs checkFunModifiers(
 	in FunModifierAst[] asts,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in SpecsMap specsMap,
-	TypeParam[] typeParamsScope,
+	TypeParams typeParamsScope,
 ) {
 	FunModifierAst.Special.Flags allFlags = FunModifierAst.Special.Flags.none;
 	immutable SpecInst*[] specs =
@@ -473,7 +475,7 @@ Opt!(SpecInst*) checkFunModifierNonSpecial(
 	ref CommonTypes commonTypes,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in SpecsMap specsMap,
-	TypeParam[] typeParamsScope,
+	TypeParams typeParamsScope,
 	in TypeAst ast,
 	MayDelaySpecInsts delaySpecInsts,
 ) {
@@ -560,7 +562,7 @@ FunsAndMap checkFuns(
 		asts.length + fileImports.length + fileExports.length + countFunsForStructs(structs) + countFunsForVars(vars),
 		(scope ref ExactSizeArrBuilder!FunDecl funsBuilder) {
 			foreach (FunDeclAst* funAst; ptrsRange(asts)) {
-				TypeParam[] typeParams = checkTypeParams(ctx, funAst.typeParams);
+				TypeParams typeParams = checkTypeParams(ctx, funAst.typeParams);
 				ReturnTypeAndParams rp = checkReturnTypeAndParams(
 					ctx,
 					commonTypes,
@@ -641,7 +643,7 @@ FunsAndMap checkFuns(
 			funsMap,
 			voidType,
 			sym!"test",
-			[],
+			emptyTypeParams,
 			[],
 			[],
 			FunFlags.none.withSummon,

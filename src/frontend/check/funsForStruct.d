@@ -16,6 +16,7 @@ import frontend.check.typeFromAst : makeTupleType;
 import model.model :
 	body_,
 	CommonTypes,
+	emptyTypeParams,
 	EnumBackingType,
 	EnumFunction,
 	FieldMutability,
@@ -40,6 +41,7 @@ import model.model :
 	typeArgs,
 	TypeParam,
 	TypeParamIndex,
+	TypeParams,
 	typeParams,
 	UnionMember,
 	VarDecl,
@@ -138,7 +140,7 @@ FunDecl funDeclWithBody(
 	FunDeclSource source,
 	Visibility visibility,
 	Sym name,
-	TypeParam[] typeParams,
+	TypeParams typeParams,
 	Type returnType,
 	Params params,
 	FunFlags flags,
@@ -161,7 +163,7 @@ FunDecl basicFunDecl(
 	FunFlags flags,
 	FunBody body_,
 ) =>
-	funDeclWithBody(source, visibility, name, [], returnType, params, flags, [], body_);
+	funDeclWithBody(source, visibility, name, emptyTypeParams, returnType, params, flags, [], body_);
 
 FunDecl newExtern(ref InstantiateCtx ctx, StructDecl* struct_) =>
 	basicFunDecl(
@@ -350,7 +352,7 @@ void addFunsForRecord(
 	StructDecl* struct_,
 	ref StructBody.Record record,
 ) {
-	TypeParam[] typeParams = struct_.typeParams;
+	TypeParams typeParams = struct_.typeParams;
 	scope TypeArgsArray typeArgs = typeArgsArray();
 	foreach (size_t i, ref TypeParam p; typeParams)
 		push(typeArgs, Type(TypeParamIndex(i, &p)));
@@ -478,7 +480,7 @@ void addFunsForUnion(
 	StructDecl* struct_,
 	ref StructBody.Union union_,
 ) {
-	TypeParam[] typeParams = struct_.typeParams;
+	TypeParams typeParams = struct_.typeParams;
 	scope TypeArgsArray typeArgs = typeArgsArray();
 	foreach (size_t i, ref TypeParam x; typeParams)
 		push(typeArgs, Type(TypeParamIndex(i, &x)));

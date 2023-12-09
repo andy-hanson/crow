@@ -13,6 +13,7 @@ import model.model :
 	CommonTypes,
 	decl,
 	Destructure,
+	emptyTypeParams,
 	FunBody,
 	FunDecl,
 	FunDeclSource,
@@ -38,12 +39,13 @@ import model.model :
 	Type,
 	TypeParam,
 	TypeParamIndex,
+	TypeParams,
 	TypeParamsAndSig,
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, sizeEq, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : arrLiteral, arrsCorrespond, filter, findIndex, makeArray, map;
+import util.col.arrUtil : arrsCorrespond, copyArr, filter, findIndex, makeArray, map;
 import util.col.enumMap : EnumMap;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
@@ -82,12 +84,12 @@ CommonFuns getCommonFuns(
 		return Type(instantiateStructNeverDelay(ctx, decl, typeArgs));
 	}
 	FunDecl* getFunDeclInner(
-		ref Module module_, Sym name, TypeParam[] typeParams, Type returnType, in ParamShort[] params,
+		ref Module module_, Sym name, TypeParams typeParams, Type returnType, in ParamShort[] params,
 	) {
 		return getFunDecl(alloc, diagsBuilder, module_, name, TypeParamsAndSig(typeParams, returnType, params));
 	}
 	FunInst* getFunInner(ref Module module_, Sym name, Type returnType, in ParamShort[] params) {
-		return instantiateNonTemplateFun(ctx, getFunDeclInner(module_, name, [], returnType, params));
+		return instantiateNonTemplateFun(ctx, getFunDeclInner(module_, name, emptyTypeParams, returnType, params));
 	}
 	FunInst* getFun(CommonModule module_, Sym name, Type returnType, in ParamShort[] params) {
 		return getFunInner(*modules[module_], name, returnType, params);
@@ -134,11 +136,11 @@ CommonFuns getCommonFuns(
 		param!"value"(singleTypeParamType),
 	];
 	FunDecl* markVisit = getFunDeclInner(
-		*modules[CommonModule.alloc], sym!"mark-visit", singleTypeParam, voidType, castNonScope_ref(markVisitParams));
+		*modules[CommonModule.alloc], sym!"mark-visit", small(singleTypeParam), voidType, castNonScope_ref(markVisitParams));
 	scope ParamShort[] newTFutureParams = [param!"value"(singleTypeParamType)];
 	Type tFuture = instantiateType(commonTypes.future, [singleTypeParamType]);
 	FunDecl* newTFuture = getFunDeclInner(
-		*modules[CommonModule.future], sym!"new", singleTypeParam, tFuture, castNonScope_ref(newTFutureParams));
+		*modules[CommonModule.future], sym!"new", small(singleTypeParam), tFuture, castNonScope_ref(newTFutureParams));
 	FunInst* newNat64Future = instantiateFun(ctx, newTFuture, [nat64Type], []);
 	FunInst* rtMain = getFun(
 		CommonModule.runtimeMain,
@@ -275,7 +277,7 @@ bool signatureMatchesTemplate(in FunDecl actual, in TypeParamsAndSig expected) =
 			(ref Destructure x, ref ParamShort y) =>
 				typesMatch(x.type, actual.typeParams, y.type, expected.typeParams));
 
-bool typesMatch(in Type a, in TypeParam[] typeParamsA, in Type b, in TypeParam[] typeParamsB) =>
+bool typesMatch(in Type a, in TypeParams typeParamsA, in Type b, in TypeParams typeParamsB) =>
 	a == b
 	|| a.isA!(TypeParamIndex) && b.isA!(TypeParamIndex) && a.as!(TypeParamIndex).index == b.as!(TypeParamIndex).index
 	|| typesAreCorrespondingStructInsts(a, b, (ref Type x, ref Type y) =>
@@ -301,8 +303,8 @@ MainFun getMainFun(
 ) {
 	scope ParamShort[] params = [param!"args"(stringListType)];
 	FunDeclAndSigIndex decl = getFunDeclMulti(alloc, diagsBuilder, mainModule, sym!"main", [
-		TypeParamsAndSig([], voidType, []),
-		TypeParamsAndSig([], nat64FutureType, castNonScope_ref(params))]);
+		TypeParamsAndSig(emptyTypeParams, voidType, []),
+		TypeParamsAndSig(emptyTypeParams, nat64FutureType, castNonScope_ref(params))]);
 	FunInst* inst = instantiateNonTemplateFun(ctx, decl.decl);
 	final switch (decl.sigIndex) {
 		case 0:
@@ -342,9 +344,9 @@ FunDeclAndSigIndex getFunDeclMulti(
 			UriAndRange(module_.uri, Range.empty),
 			Diag(Diag.CommonFunMissing(name, map(alloc, expectedSigs, (ref TypeParamsAndSig sig) =>
 				TypeParamsAndSig(
-					arrLiteral(alloc, sig.typeParams),
+					copyArr(alloc, sig.typeParams),
 					sig.returnType,
-					arrLiteral(alloc, sig.params)))))));
+					copyArr(alloc, sig.params)))))));
 		FunDecl* decl = allocate(alloc, funDeclWithBody(
 			FunDeclSource(FunDeclSource.Bogus(module_.uri)),
 			Visibility.public_,

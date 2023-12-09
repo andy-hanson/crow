@@ -17,10 +17,12 @@ import frontend.parse.ast :
 	symOfModifierKind,
 	TypeAst;
 import model.concreteModel : TypeSize;
-import model.diag : Diag, TypeKind;
+import model.diag : Diag, TypeKind, TypeWithContext;
 import model.model :
 	body_,
 	CommonTypes,
+	emptyTypeParams,
+	emptyTypeParams,
 	EnumBackingType,
 	EnumValue,
 	FieldMutability,
@@ -373,7 +375,7 @@ EnumOrFlagsTypeAndMembers checkEnumOrFlagsMembers(
 ) {
 	Type implementationType = has(typeArg)
 		? typeFromAst(
-			ctx, commonTypes, *force(typeArg), structsAndAliasesMap, [], someMut(ptrTrustMe(delayStructInsts)))
+			ctx, commonTypes, *force(typeArg), structsAndAliasesMap, emptyTypeParams, someMut(ptrTrustMe(delayStructInsts)))
 		: Type(commonTypes.integrals.nat32);
 	EnumBackingType enumType = getEnumTypeFromType(ctx, range, commonTypes, implementationType);
 
@@ -497,7 +499,7 @@ EnumBackingType getEnumTypeFromType(ref CheckCtx ctx, in Range range, in CommonT
 				: x == integrals.nat64
 				? EnumBackingType.nat64
 				: (() {
-					addDiag(ctx, range, Diag(Diag.EnumBackingTypeInvalid(x)));
+					addDiag(ctx, range, Diag(Diag.EnumBackingTypeInvalid(TypeWithContext(Type(x), emptyTypeParams))));
 					return defaultEnumBackingType();
 				})());
 }

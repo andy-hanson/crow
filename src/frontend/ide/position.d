@@ -17,6 +17,7 @@ import model.model :
 	Type,
 	TypeParam,
 	TypeParamIndex,
+	TypeParams,
 	VarDecl,
 	Visibility;
 import util.sym : Sym;
@@ -38,11 +39,21 @@ immutable struct LocalContainer {
 			(SpecDecl* x) =>
 				TypeContainer(x));
 }
+TypeParams typeParams(LocalContainer a) =>
+	typeParams(a.toTypeContainer);
 
 immutable struct TypeParamContainer {
 	mixin Union!(FunDecl*, SpecDecl*, StructDecl*);
 }
 alias TypeContainer = TypeParamContainer;
+TypeParams typeParams(in TypeParamContainer a) =>
+	a.matchIn!TypeParams(
+		(in FunDecl x) =>
+			x.typeParams,
+		(in SpecDecl x) =>
+			x.typeParams,
+		(in StructDecl x) =>
+			x.typeParams);
 
 immutable struct PositionKind {
 	immutable struct None {}

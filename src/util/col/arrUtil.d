@@ -1,7 +1,7 @@
 module util.col.arrUtil;
 
 import util.alloc.alloc : Alloc, allocateElements, freeElements;
-import util.col.arr : empty, endPtr, ptrsRange, sizeEq;
+import util.col.arr : empty, endPtr, ptrsRange, sizeEq, small, SmallArray;
 import util.comparison : Comparer, Comparison;
 import util.memory : copyToFrom, initMemory, initMemory_mut;
 import util.opt : force, has, none, Opt, some;
@@ -150,6 +150,9 @@ Opt!(T*) findPtr(T)(T[] arr, in bool delegate(in T) @safe @nogc pure nothrow cb)
 	return none!(T*);
 }
 
+
+SmallArray!T copyArr(T)(ref Alloc alloc, scope SmallArray!T a) =>
+	small(copyArr(alloc, a.toArray));
 T[] copyArr(T)(ref Alloc alloc, scope T[] a) =>
 	map!(T, T)(alloc, a, (ref T x) => x);
 

@@ -58,7 +58,8 @@ import model.model :
 	SpecDeclSig,
 	SpecInst,
 	Type,
-	TypeParam;
+	TypeParam,
+	TypeParams;
 import util.col.arr : empty, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrLiteral, every, exists, makeArrayOrFail, zipEvery;
@@ -202,6 +203,7 @@ Expr checkCallInner(
 		if (isEmpty(candidates)) {
 			CalledDecl[] allCandidates = getAllCandidatesAsCalledDecls(ctx, funName);
 			addDiag2(ctx, diagRange, Diag(Diag.CallNoMatch(
+				ctx.outermostFunTypeParams,
 				funName,
 				tryGetInferred(expected),
 				getNTypeArgsForDiagnostic(ctx.commonTypes, explicitTypeArg),
@@ -209,7 +211,7 @@ Expr checkCallInner(
 				finishArr(ctx.alloc, actualArgTypes),
 				allCandidates)));
 		} else
-			addDiag2(ctx, diagRange, Diag(Diag.CallMultipleMatches(funName, candidatesForDiag(ctx.alloc, candidates))));
+			addDiag2(ctx, diagRange, Diag(Diag.CallMultipleMatches(funName, ctx.outermostFunTypeParams, candidatesForDiag(ctx.alloc, candidates))));
 		return bogus(expected, source);
 	} else
 		return checkCallAfterChoosingOverload(ctx, isInLambda(locals), only(candidates), source, force(args), expected);
@@ -260,13 +262,13 @@ alias ParamExpected = MutMaxArr!(maxCandidates, TypeAndContext);
 
 void getParamExpected(
 	ref InstantiateCtx ctx,
-	TypeParam[] callerTypeParams,
+	TypeParams outerContext,
 	ref ParamExpected paramExpected,
 	scope ref Candidates candidates,
 	size_t argIdx,
 ) {
 	foreach (ref Candidate candidate; candidates) {
-		TypeAndContext expected = getCandidateExpectedParameterType(ctx, callerTypeParams, candidate, argIdx);
+		TypeAndContext expected = getCandidateExpectedParameterType(ctx, outerContext, candidate, argIdx);
 		bool isDuplicate = !has(expected.context.args) == 0 &&
 			exists!TypeAndContext(tempAsArr(paramExpected), (in TypeAndContext x) =>
 				!has(x.context.args) && x.type == expected.type);
@@ -277,23 +279,23 @@ void getParamExpected(
 
 void inferCandidateTypeArgsFromCheckedSpecSig(
 	ref InstantiateCtx ctx,
-	TypeParam[] callerTypeParams,
+	TypeParams outerContext,
 	ref const Candidate specCandidate,
 	in SpecDeclSig specSig,
 	in ReturnAndParamTypes sigTypes,
 	scope InferringTypeArgs callInferringTypeArgs,
 ) {
 	inferTypeArgsFrom(
-		ctx, callerTypeParams,
+		ctx, outerContext,
 		sigTypes.returnType, callInferringTypeArgs,
-		const TypeAndContext(specCandidate.called.returnType, typeContextForCandidate(callerTypeParams, specCandidate)));
+		const TypeAndContext(specCandidate.called.returnType, typeContextForCandidate(outerContext, specCandidate)));
 	foreach (size_t argIdx; 0 .. specSig.params.length)
 		inferTypeArgsFrom(
 			ctx,
-			callerTypeParams,
+			outerContext,
 			sigTypes.paramTypes[argIdx],
 			callInferringTypeArgs,
-			getCandidateExpectedParameterType(ctx, callerTypeParams, specCandidate, argIdx));
+			getCandidateExpectedParameterType(ctx, outerContext, specCandidate, argIdx));
 }
 
 bool isPartiallyInferred(in MutMaxArr!(maxTypeParams, SingleInferringType) typeArgs) {

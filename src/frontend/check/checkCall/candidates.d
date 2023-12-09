@@ -38,7 +38,8 @@ import model.model :
 	typeArgs,
 	Type,
 	TypeParam,
-	TypeParamIndex;
+	TypeParamIndex,
+	TypeParams;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
@@ -81,7 +82,7 @@ struct Candidate {
 	MutMaxArr!(maxTypeParams, SingleInferringType) typeArgs;
 }
 
-@trusted inout(TypeContext) typeContextForCandidate(TypeParam[] callerTypeParams, ref inout Candidate a) {
+@trusted inout(TypeContext) typeContextForCandidate(TypeParams outerContext, ref inout Candidate a) {
 	// 'match' can't return 'inout' we must do it this way
 	if (a.called.isA!(FunDecl*))
 		return inout TypeContext(
@@ -90,7 +91,7 @@ struct Candidate {
 	else {
 		assert(a.called.isA!CalledSpecSig);
 		// Spec is instantiated using the caller's types
-		return cast(inout) nonInferringTypeContext(callerTypeParams);
+		return cast(inout) nonInferringTypeContext(outerContext);
 	}
 }
 
@@ -184,43 +185,43 @@ void eachFunInScope(in FunsInScope a, Sym funName, in void delegate(CalledDecl) 
 
 bool testCandidateForSpecSig(
 	ref InstantiateCtx ctx,
-	TypeParam[] callerTypeParams,
+	TypeParams outerContext,
 	ref Candidate specCandidate,
 	in ReturnAndParamTypes returnAndParamTypes,
 	const TypeContext callTypeContext,
 ) {
 	bool res = matchTypesNoDiagnostic(
 		ctx,
-		callerTypeParams,
-		TypeAndContext(specCandidate.called.returnType, typeContextForCandidate(callerTypeParams, specCandidate)),
+		outerContext,
+		TypeAndContext(specCandidate.called.returnType, typeContextForCandidate(outerContext, specCandidate)),
 		const TypeAndContext(returnAndParamTypes.returnType, callTypeContext));
 	return res && everyWithIndex!Type(returnAndParamTypes.paramTypes, (size_t argIdx, ref Type paramType) =>
-		testCandidateParamType(ctx, callerTypeParams, specCandidate, argIdx, const TypeAndContext(paramType, callTypeContext)));
+		testCandidateParamType(ctx, outerContext, specCandidate, argIdx, const TypeAndContext(paramType, callTypeContext)));
 }
 
 // Also does type inference on the candidate
 bool testCandidateParamType(
 	ref InstantiateCtx ctx,
-	TypeParam[] callerTypeParams,
+	TypeParams outerContext,
 	ref Candidate candidate,
 	size_t argIdx,
 	const TypeAndContext actualArgType,
 ) {
 	//TODO:INLINE-----------------------------------------------------------------------------------------------------------------
-	TypeAndContext a = getCandidateExpectedParameterType(ctx, callerTypeParams, candidate, argIdx);
+	TypeAndContext a = getCandidateExpectedParameterType(ctx, outerContext, candidate, argIdx);
 	return matchTypesNoDiagnostic(
 		ctx,
-		callerTypeParams,
+		outerContext,
 		a,
 		actualArgType);
 }
 
-@trusted inout(TypeAndContext) getCandidateExpectedParameterType(ref InstantiateCtx ctx, TypeParam[] callerTypeParams, ref inout Candidate candidate, size_t argIndex) {
+@trusted inout(TypeAndContext) getCandidateExpectedParameterType(ref InstantiateCtx ctx, TypeParams outerContext, ref inout Candidate candidate, size_t argIndex) {
 	Type declType = paramTypeAt(candidate.called, argIndex);
-	Opt!Type instantiated = tryGetDeeplyInstantiatedType(ctx, inout TypeAndContext(declType, typeContextForCandidate(callerTypeParams, candidate)));
+	Opt!Type instantiated = tryGetDeeplyInstantiatedType(ctx, inout TypeAndContext(declType, typeContextForCandidate(outerContext, candidate)));
 	return has(instantiated)
-		? inout TypeAndContext(force(instantiated), cast(inout) nonInferringTypeContext(callerTypeParams))
-		: inout TypeAndContext(declType, typeContextForCandidate(callerTypeParams, candidate));
+		? inout TypeAndContext(force(instantiated), cast(inout) nonInferringTypeContext(outerContext))
+		: inout TypeAndContext(declType, typeContextForCandidate(outerContext, candidate));
 }
 
 private Type paramTypeAt(ref CalledDecl called, size_t argIndex) =>

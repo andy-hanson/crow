@@ -15,7 +15,7 @@ import model.concreteModel :
 import frontend.showModel : ShowCtx, writeTypeArgs, writeTypeArgsGeneric;
 import model.lowModel :
 	AllLowTypes, LowFun, LowFunIndex, LowFunSource, LowProgram, LowType, PrimitiveType, symOfPrimitiveType;
-import model.model : decl, FunInst, name, Local, typeArgs;
+import model.model : decl, emptyTypeParams, FunInst, name, Local, typeArgs;
 import util.col.arr : only;
 import util.writer : Writer, writeWithCommas;
 import util.sym : writeSym;
@@ -116,7 +116,10 @@ void writeConcreteFunName(scope ref Writer writer, in ShowCtx ctx, in ConcreteFu
 	a.source.matchIn!void(
 		(in FunInst it) {
 			writeSym(writer, ctx.allSymbols, it.name);
-			writeTypeArgs(writer, ctx, typeArgs(it));
+			// TODO: below will fail since 'typeArgs' may be wrong...
+			// I think we shouldn't use 'FunInst' as the source since it's ambiguous.
+			// Just use the FunDecl and the concrete types! -----------------------------------------------------------------
+			writeTypeArgs(writer, ctx, emptyTypeParams, typeArgs(it));
 		},
 		(in ConcreteFunSource.Lambda it) {
 			writeConcreteFunName(writer, ctx, *it.containingFun);

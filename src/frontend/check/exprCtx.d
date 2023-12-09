@@ -8,7 +8,7 @@ import frontend.check.maps : FunsMap, StructsAndAliasesMap;
 import frontend.check.typeFromAst : typeFromAst;
 import frontend.lang : maxClosureFields;
 import frontend.parse.ast : ExprAst, TypeAst;
-import model.diag : Diag;
+import model.diag : Diag, TypeWithContext;
 import model.model :
 	CommonTypes,
 	Destructure,
@@ -20,6 +20,7 @@ import model.model :
 	SpecInst,
 	Type,
 	TypeParam,
+	TypeParams,
 	VariableRef;
 import util.alloc.alloc : Alloc;
 import util.col.mutMaxArr : MutMaxArr;
@@ -89,7 +90,7 @@ struct ExprCtx {
 	immutable Sym outermostFunName;
 	immutable SpecInst*[] outermostFunSpecs;
 	immutable Destructure[] outermostFunParams;
-	immutable TypeParam[] outermostFunTypeParams;
+	immutable TypeParams outermostFunTypeParams;
 	immutable FunFlags outermostFunFlags;
 	private bool isInTrusted;
 	private bool usedTrusted;
@@ -116,6 +117,11 @@ struct ExprCtx {
 	ref InstantiateCtx instantiateCtx() return scope =>
 		checkCtx.instantiateCtx;
 }
+
+TypeParams typeContext(in ExprCtx ctx) =>
+	ctx.outermostFunTypeParams;
+TypeWithContext typeWithContext(in ExprCtx ctx, Type a) =>
+	TypeWithContext(a, ctx.outermostFunTypeParams);
 
 T withTrusted(T)(ref ExprCtx ctx, ExprAst* source, in T delegate() @safe @nogc pure nothrow cb) {
 	Opt!(Diag.TrustedUnnecessary.Reason) reason = ctx.outermostFunFlags.safety != FunFlags.Safety.safe
