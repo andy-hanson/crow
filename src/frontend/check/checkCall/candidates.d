@@ -38,8 +38,7 @@ import model.model :
 	typeArgs,
 	Type,
 	TypeParam,
-	TypeParamIndex,
-	TypeParamIndexCallee;
+	TypeParamIndex;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;

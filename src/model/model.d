@@ -83,7 +83,8 @@ immutable struct TypeParam {
 	size_t index;
 }
 
-// I'm adding TypeParam* here for debugging
+// Represent type parameter as the index, so we don't generate different types for every `t list`.
+// (These are disambiguated in the type checker using `TypeAndContext`)
 immutable struct TypeParamIndex {
 	@safe @nogc pure nothrow:
 	ubyte index;
@@ -98,26 +99,12 @@ immutable struct TypeParamIndex {
 		// Need full equality since this is used in the big hash table
 		index == b.index && debugPtr == b.debugPtr;
 }
-immutable struct TypeParamIndexCallee {
-	@safe @nogc pure nothrow:
-	ubyte index;
-	TypeParam* debugPtr;
-	this(size_t i, TypeParam* p) {
-		index = safeToUbyte(i);
-		debugPtr = p;
-		assert(p.index == index);
-	}
-
-	bool opEquals(scope TypeParamIndexCallee b) scope =>
-		// Need full equality since this is used in the big hash table
-		index == b.index && debugPtr == b.debugPtr;
-}
 
 immutable struct Type {
 	@safe @nogc pure nothrow:
 	immutable struct Bogus {}
 
-	mixin Union!(Bogus, TypeParamIndex, TypeParamIndexCallee, StructInst*);
+	mixin Union!(Bogus, TypeParamIndex, StructInst*);
 
 	bool opEquals(scope Type b) scope =>
 		matchWithPointers!bool(
@@ -125,8 +112,6 @@ immutable struct Type {
 				b.isA!Bogus,
 			(TypeParamIndex x) =>
 				b.isA!TypeParamIndex && x == b.as!TypeParamIndex,
-			(TypeParamIndexCallee x) =>
-				b.isA!TypeParamIndexCallee && x == b.as!TypeParamIndexCallee,
 			(StructInst* x) =>
 				b.isA!(StructInst*) && x == b.as!(StructInst*));
 
@@ -136,8 +121,6 @@ immutable struct Type {
 				0,
 			(TypeParamIndex x) =>
 				cast(ulong) x.debugPtr,
-			(TypeParamIndexCallee x) =>
-				cast(ulong) x.debugPtr,
 			(StructInst* x) =>
 				cast(ulong) x);
 
@@ -146,14 +129,7 @@ immutable struct Type {
 	//bool opEquals(scope Type b) scope =>
 	//	taggedPointerEquals(b);
 }
-// TODO: static assert(Type.sizeof == ulong.sizeof);
-
-void assertIsCallerType(in Type a) {
-	assert(!a.isA!TypeParamIndexCallee);
-}
-void assertIsCalleeType(in Type a) {
-	assert(!a.isA!(TypeParamIndex));
-}
+// TODO: static assert(Type.sizeof == ulong.sizeof); -----------------------------------------------------------------------------
 
 PurityRange purityRange(Type a) =>
 	a.matchIn!PurityRange(
@@ -161,8 +137,6 @@ PurityRange purityRange(Type a) =>
 			PurityRange(Purity.data, Purity.data),
 		(in TypeParamIndex _) =>
 			PurityRange(Purity.data, Purity.mut),
-		(in TypeParamIndexCallee _) =>
-			unreachable!PurityRange,
 		(in StructInst x) =>
 			x.purityRange);
 
@@ -175,8 +149,6 @@ LinkageRange linkageRange(Type a) =>
 			LinkageRange(Linkage.extern_, Linkage.extern_),
 		(in TypeParamIndex _) =>
 			LinkageRange(Linkage.internal, Linkage.extern_),
-		(in TypeParamIndexCallee _) =>
-			unreachable!LinkageRange,
 		(in StructInst x) =>
 			x.linkageRange);
 
@@ -904,15 +876,6 @@ immutable struct ReturnAndParamTypes {
 
 	Type[] paramTypes() scope =>
 		returnAndParamTypes[1 .. $];
-}
-
-void assertAreCalleeTypes(in ReturnAndParamTypes a) {
-	foreach (Type x; a.returnAndParamTypes)
-		assertIsCalleeType(x);
-}
-void assertAreCallerTypes(in ReturnAndParamTypes a) {
-	foreach (Type x; a.returnAndParamTypes)
-		assertIsCallerType(x);
 }
 
 immutable struct CalledSpecSig {

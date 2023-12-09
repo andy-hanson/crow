@@ -38,7 +38,6 @@ import model.model :
 	typeArgs,
 	TypeParam,
 	TypeParamIndex,
-	TypeParamIndexCallee,
 	typeParams,
 	UnionMember;
 import util.alloc.alloc : Alloc;
@@ -117,21 +116,16 @@ private Type instantiateType(
 	Type type,
 	in TypeParamsAndArgs typeParamsAndArgs,
 	scope MayDelayStructInsts delayStructInsts,
-) {
-	Type handleTypeParam(TypeParam* p) @safe {
-		Opt!Type op = tryGetTypeArgFromTypeParamsAndArgs(typeParamsAndArgs, p);
-		return has(op) ? force(op) : type;
-	}
-	return type.matchWithPointers!Type(
+) =>
+	type.matchWithPointers!Type(
 		(Type.Bogus _) =>
 			Type(Type.Bogus()),
-		(TypeParamIndex p) =>
-			handleTypeParam(p.debugPtr),
-		(TypeParamIndexCallee p) =>
-			handleTypeParam(p.debugPtr),
+		(TypeParamIndex p) {
+			Opt!Type op = tryGetTypeArgFromTypeParamsAndArgs(typeParamsAndArgs, p.debugPtr);
+			return has(op) ? force(op) : type;
+		},
 		(StructInst* i) =>
 			Type(instantiateStructInst(ctx, *i, typeParamsAndArgs, delayStructInsts)));
-}
 
 private Type instantiateTypeNoDelay(ref InstantiateCtx ctx, Type type, in TypeParamsAndArgs typeParamsAndArgs) =>
 	instantiateType(ctx, type, typeParamsAndArgs, noDelayStructInsts);

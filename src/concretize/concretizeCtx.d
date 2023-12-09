@@ -73,7 +73,6 @@ import model.model :
 	typeArgs,
 	TypeParam,
 	TypeParamIndex,
-	TypeParamIndexCallee,
 	typeParams,
 	UnionMember,
 	VarDecl,
@@ -371,8 +370,6 @@ ConcreteType getConcreteType(ref ConcretizeCtx ctx, Type t, in TypeArgsScope typ
 			bogusType(ctx),
 		(TypeParamIndex x) =>
 			typeArgsScope.typeArgs[x.index],
-		(TypeParamIndexCallee _) =>
-			unreachable!ConcreteType,
 		(StructInst* i) =>
 			getConcreteType_forStructInst(ctx, i, typeArgsScope));
 

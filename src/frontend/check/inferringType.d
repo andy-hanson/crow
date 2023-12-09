@@ -8,7 +8,6 @@ import frontend.check.instantiate :
 import frontend.parse.ast : ExprAst;
 import model.diag : Diag, ExpectedForDiag;
 import model.model :
-	assertIsCalleeType,
 	BogusExpr,
 	CommonTypes,
 	decl,
@@ -22,8 +21,7 @@ import model.model :
 	Type,
 	typeArgs,
 	TypeParam,
-	TypeParamIndex,
-	TypeParamIndexCallee;
+	TypeParamIndex;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : only, only2;
@@ -268,8 +266,8 @@ OkSkipOrAbort!T handleExpectedLambda(T)(
 			Cell!(MutOpt!T) res = Cell!(MutOpt!T)();
 			foreach (TypeAndContext choice; choices) {
 				Opt!Type t = () {
-					if (isTypeParam(choice.type)) {
-						MutOpt!(SingleInferringType*) typeArg = tryGetInferring(choice.context, asTypeParamIndex(choice.type));
+					if (choice.type.isA!TypeParamIndex) {
+						MutOpt!(SingleInferringType*) typeArg = tryGetInferring(choice.context, choice.type.as!TypeParamIndex);
 						return has(typeArg) ? tryGetInferred(*force(typeArg)) : none!Type;
 					} else
 						return some(choice.type);
@@ -433,8 +431,6 @@ Opt!Type tryGetDeeplyInstantiatedType(ref InstantiateCtx ctx, const TypeAndConte
 			const MutOpt!(SingleInferringType*) ta = tryGetInferring(a.context, x);
 			return has(ta) ? tryGetInferred(*force(ta)) : some(a.type);
 		},
-		(TypeParamIndexCallee x) =>
-			unreachable!(Opt!Type),
 		(StructInst* i) {
 			scope TypeArgsArray newTypeArgs = typeArgsArray();
 			foreach (Type x; typeArgs(*i)) {
@@ -461,34 +457,19 @@ bool checkType(ref InstantiateCtx ctx, TypeParam[] outerContext, TypeAndContext 
 			true,
 		(TypeParamIndex pa) =>
 			checkType_TypeParam(ctx, outerContext, pa, a.context, b),
-		(TypeParamIndexCallee _) =>
-			unreachable!bool,
 		(StructInst* ai) =>
 			b.type.matchWithPointers!bool(
 				(Type.Bogus) =>
 					true,
 				(TypeParamIndex pb) =>
 					checkType_TypeParamB(ctx, outerContext, a, pb, b.context),
-				(TypeParamIndexCallee pb) =>
-					unreachable!bool,
 				(StructInst* bi) =>
 					decl(*ai) == decl(*bi) &&
 					zipEvery!(Type, Type)(typeArgs(*ai), typeArgs(*bi), (ref Type argA, ref Type argB) @safe =>
 						checkType(ctx, outerContext, TypeAndContext(argA, a.context), const TypeAndContext(argB, b.context)))));
 
-// TODO:KILL
-bool isTypeParam(in Type a) =>
-	a.isA!TypeParamIndex || a.isA!TypeParamIndexCallee;
-// TODO:KILL
-TypeParam* asTypeParam(Type a) =>
-	a.isA!TypeParamIndex ? a.as!TypeParamIndex.debugPtr :
-	a.as!TypeParamIndexCallee.debugPtr;
-TypeParamIndex asTypeParamIndex(Type a) =>
-	a.as!TypeParamIndex;
-
 bool checkType_TypeParam(ref InstantiateCtx ctx, TypeParam[] outerContext, TypeParamIndex a, TypeContext aContext, const TypeAndContext b) {
 	MutOpt!(SingleInferringType*) aInferring = tryGetInferring(aContext, a);
-	const MutOpt!(SingleInferringType*) bInferring = noneMut!(SingleInferringType*); //tryGetInferring(b.context, a); // what? -----------------------------------------
 	if (has(aInferring)) {
 		Opt!Type inferred = tryGetInferred(*force(aInferring));
 		bool ok = !has(inferred) || checkType(ctx, outerContext, TypeAndContext(force(inferred), nonInferringTypeContext(outerContext)), b);
@@ -498,37 +479,21 @@ bool checkType_TypeParam(ref InstantiateCtx ctx, TypeParam[] outerContext, TypeP
 				cellSet(force(aInferring).type, bInferred);
 		}
 		return ok;
-	} else if (has(bInferring)) {
-		assert(false);
-		//Opt!Type inferred = tryGetInferred(*force(bInferring));
-		//return has(inferred)
-		//	? checkType(ctx, force(inferred), aInferringTypeArgs, b, InferringTypeArgs())
-		//	: isTypeParam(b) && a == asTypeParam(b);
-	} else {
+	} else
 		// It's an outer type param (not in either inferring).
 		return b.type.match!bool(
 			(Type.Bogus) =>
 				true,
 			(TypeParamIndex bp) {
-				//if (typeParamEqualSameContext(bp, a)) {
-				//	assert(bp.debugPtr == a.debugPtr);
-				//	return true;
-				//} else {
-					//assert(bp.debugPtr != a.debugPtr);
-					const MutOpt!(SingleInferringType*) bInferringB = tryGetInferring(b.context, bp);
-					if (has(bInferringB)) {
-						Opt!Type inferred = tryGetInferred(*force(bInferringB));
-						return !has(inferred) || isTypeParam(force(inferred)) && typeParamEqualSameContext(asTypeParamIndex(force(inferred)), a);
-					} else {
-						return a.debugPtr == bp.debugPtr; // TODO: do without debugPtr
-					}
-				//}
+				const MutOpt!(SingleInferringType*) bInferringB = tryGetInferring(b.context, bp);
+				if (has(bInferringB)) {
+					Opt!Type inferred = tryGetInferred(*force(bInferringB));
+					return !has(inferred) || force(inferred).isA!TypeParamIndex && typeParamEqualSameContext(force(inferred).as!TypeParamIndex, a);
+				} else
+					return typeParamEqualSameContext(a, bp);
 			},
-			(TypeParamIndexCallee bp) =>
-				unreachable!bool,
 			(ref StructInst) =>
 				false);
-	}
 }
 
 bool checkType_TypeParamB(ref InstantiateCtx ctx, TypeParam[] outerContext, TypeAndContext a, TypeParamIndex b, in TypeContext bContext) {
@@ -598,8 +563,6 @@ public void inferTypeArgsFrom(
 					cellSet(aInferring.type, t);
 			}
 		},
-		(TypeParamIndexCallee ap) =>
-			unreachable!void,
 		(StructInst* ai) {
 			if (b2.type.isA!(StructInst*)) {
 				const StructInst* bi = b2.type.as!(StructInst*);
@@ -626,8 +589,8 @@ bool isTypeMatchPossible(in TypeParam[] outerContext, in TypeAndContext a, in Ty
 }
 // True for a type param with no inference yet
 bool isInferringNonInferredTypeParam(in TypeAndContext a) {
-	if (isTypeParam(a.type)) {
-		const MutOpt!(SingleInferringType*) inferring = tryGetInferring(a.context, asTypeParamIndex(a.type));
+	if (a.type.isA!TypeParamIndex) {
+		const MutOpt!(SingleInferringType*) inferring = tryGetInferring(a.context, a.type.as!TypeParamIndex);
 		if (has(inferring)) {
 			Opt!Type t = tryGetInferred(*force(inferring));
 			return !has(t);
@@ -637,8 +600,8 @@ bool isInferringNonInferredTypeParam(in TypeAndContext a) {
 		return false;
 }
 const(TypeAndContext) maybeInferred(return in TypeParam[] outerContext, return scope const TypeAndContext a) {
-	if (isTypeParam(a.type)) {
-		const MutOpt!(SingleInferringType*) inferring = tryGetInferring(a.context, asTypeParamIndex(a.type));
+	if (a.type.isA!TypeParamIndex) {
+		const MutOpt!(SingleInferringType*) inferring = tryGetInferring(a.context, a.type.as!TypeParamIndex);
 		if (has(inferring)) {
 			Opt!Type t = tryGetInferred(*force(inferring));
 			// force because we tested 'isInferringNonInferredTypeParam' before
@@ -669,9 +632,6 @@ void assertTypeContainsOnlyParams(in Type a, in TypeParam[] typeParams) {
 		(in Type.Bogus _) {},
 		(in TypeParamIndex x) {
 			assert(&typeParams[x.index] == x.debugPtr);
-		},
-		(in TypeParamIndexCallee _) {
-			assert(false);
 		},
 		(in StructInst inst) {
 			foreach (Type arg; typeArgs(inst))

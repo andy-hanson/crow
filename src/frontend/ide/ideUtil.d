@@ -73,8 +73,6 @@ Opt!T eachTypeComponent(T)(
 			none!T,
 		(in TypeParamIndex _) =>
 			none!T,
-		(in TypeParamIndexCallee _) =>
-			none!T,
 		(in StructInst x) =>
 			eachTypeArg!T(typeArgs(x), ast, cb));
 

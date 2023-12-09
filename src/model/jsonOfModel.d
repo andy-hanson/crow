@@ -73,7 +73,6 @@ import model.model :
 	typeArgs,
 	TypeParam,
 	TypeParamIndex,
-	TypeParamIndexCallee,
 	typeParams,
 	VarDecl,
 	VariableRef,
@@ -323,8 +322,6 @@ Json jsonOfType(ref Alloc alloc, in Ctx ctx, in Type a) =>
 			jsonObject(alloc, [
 				kindField!"type-param",
 				field!"index"(x.index)]),
-		(in TypeParamIndexCallee _) =>
-			unreachable!Json,
 		(in StructInst x) =>
 			jsonOfStructInst(alloc, ctx, x));
 

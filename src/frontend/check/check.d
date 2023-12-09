@@ -84,7 +84,6 @@ import model.model :
 	typeArgs,
 	TypeParam,
 	TypeParamIndex,
-	TypeParamIndexCallee,
 	typeParams,
 	VarDecl,
 	Visibility,
@@ -203,8 +202,6 @@ Params checkParams(
 					some(Type(Type.Bogus())),
 				(in TypeParamIndex _) =>
 					none!Type,
-				(in TypeParamIndexCallee _) =>
-					unreachable!(Opt!Type),
 				(in StructInst x) =>
 					decl(x) == commonTypes.array
 					? some(only(typeArgs(x)))

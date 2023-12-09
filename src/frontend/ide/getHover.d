@@ -136,8 +136,6 @@ void getHover(scope ref Writer writer, in ShowCtx ctx, in Position pos) =>
 				(in TypeParamIndex p) {
 					hoverTypeParam(writer, ctx, *p.debugPtr);
 				},
-				(in TypeParamIndexCallee _) =>
-					unreachable!void,
 				(in StructInst i) {
 					writeStructDeclHover(writer, ctx, *decl(i));
 				});

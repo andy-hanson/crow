@@ -47,7 +47,6 @@ import model.model :
 	Type,
 	TypeParam,
 	TypeParamIndex,
-	TypeParamIndexCallee,
 	typeParams,
 	UnionMember,
 	Visibility,
@@ -479,8 +478,6 @@ EnumBackingType getEnumTypeFromType(ref CheckCtx ctx, in Range range, in CommonT
 			defaultEnumBackingType(),
 		(TypeParamIndex _) =>
 			// enums can't have type params
-			unreachable!EnumBackingType(),
-		(TypeParamIndexCallee _) =>
 			unreachable!EnumBackingType(),
 		(StructInst* x) =>
 			x == integrals.int8

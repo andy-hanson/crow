@@ -52,7 +52,6 @@ import model.model :
 	toLocal,
 	TypeParam,
 	TypeParamIndex,
-	TypeParamIndexCallee,
 	VarDecl,
 	Visibility;
 import util.opt : none, Opt, some;
@@ -115,8 +114,6 @@ Opt!Target targetForPosition(in Program program, PositionKind pos) =>
 					none!Target,
 				(TypeParamIndex p) =>
 					some(Target(PositionKind.TypeParamWithContainer(x.container, p))),
-				(TypeParamIndexCallee _) =>
-					unreachable!(Opt!Target),
 				(StructInst* x) =>
 					some(Target(decl(*x)))),
 		(PositionKind.TypeParamWithContainer x) =>

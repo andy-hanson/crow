@@ -30,7 +30,6 @@ import model.model :
 	typeArgs,
 	TypeParam,
 	TypeParamIndex,
-	TypeParamIndexCallee,
 	TypeParamsAndSig;
 import util.col.arr : empty, only, only2, sizeEq;
 import util.lineAndColumnGetter : LineAndColumn, LineAndColumnRange, PosKind;
@@ -372,11 +371,9 @@ void writeTypeUnquoted(scope ref Writer writer, in ShowCtx ctx, in Type a) {
 			writer ~= "<<bogus>>";
 		},
 		(in TypeParamIndex x) {
-			todo!void("need to get this from context");
+			todo!void("need to get this from context"); // -----------------------------------------------------------------------
 			// writeSym(writer, ctx.allSymbols, x.name);
 		},
-		(in TypeParamIndexCallee _) =>
-			unreachable!void,
 		(in StructInst x) {
 			writeStructInst(writer, ctx, x);
 		});
