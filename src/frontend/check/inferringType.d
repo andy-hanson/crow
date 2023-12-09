@@ -62,10 +62,6 @@ TypeContext nonInferringTypeContext(return scope TypeParams typeParams) =>
 TypeContext withoutInferring(const TypeContext a) =>
 	nonInferringTypeContext(a.typeParams);
 
-const(TypeContext) toTypeContext(const InferringTypeArgs a) =>
-	const TypeContext(a.params, someConst!(SingleInferringType[])(a.args));
-TypeContext toTypeContext(InferringTypeArgs a) =>
-	TypeContext(a.params, someMut(a.args));
 const(MutOpt!(SingleInferringType*)) tryGetInferring(const TypeContext context, TypeParamIndex param) {
 	context.typeParams.assertIndex(param);
 	return has(context.args)
@@ -79,7 +75,6 @@ MutOpt!(SingleInferringType*) tryGetInferring(TypeContext ctx, TypeParamIndex pa
 		: noneMut!(SingleInferringType*);
 }
 
-//TODO:KILL!
 @trusted inout(InferringTypeArgs) asInferringTypeArgs(inout TypeContext a) =>
 	has(a.args) ? inout InferringTypeArgs(a.typeParams, force(a.args)) : cast(inout) InferringTypeArgs.empty;
 

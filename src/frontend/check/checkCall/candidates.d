@@ -5,12 +5,9 @@ module frontend.check.checkCall.candidates;
 import frontend.check.checkCtx : eachImportAndReExport, ImportAndReExportModules;
 import frontend.check.exprCtx : ExprCtx;
 import frontend.check.inferringType :
-	asInferringTypeArgs,
-	InferringTypeArgs,
 	matchTypesNoDiagnostic,
 	nonInferringTypeContext,
 	SingleInferringType,
-	toTypeContext,
 	tryGetDeeplyInstantiatedType,
 	tryGetInferred,
 	TypeAndContext,

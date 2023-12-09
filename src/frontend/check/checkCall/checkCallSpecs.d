@@ -5,7 +5,7 @@ module frontend.check.checkCall.checkCallSpecs;
 import frontend.check.checkCall.candidates :
 	Candidate, eachCandidate, FunsInScope, funsInScope, testCandidateForSpecSig;
 import frontend.check.exprCtx : addDiag2, ExprCtx;
-import frontend.check.inferringType : InferringTypeArgs, nonInferringTypeContext, SingleInferringType, tryGetInferred;
+import frontend.check.inferringType : nonInferringTypeContext, SingleInferringType, tryGetInferred;
 import frontend.check.instantiate :
 	InstantiateCtx,
 	instantiateFun,

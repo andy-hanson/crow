@@ -20,7 +20,6 @@ import frontend.check.exprCtx :
 	typeWithContext,
 	withTrusted;
 import frontend.check.inferringType :
-	asInferringTypeArgs,
 	bogus,
 	check,
 	Expected,
@@ -30,7 +29,6 @@ import frontend.check.inferringType :
 	getFunType,
 	handleExpectedLambda,
 	inferred,
-	InferringTypeArgs,
 	LoopInfo,
 	OkSkipOrAbort,
 	Pair,

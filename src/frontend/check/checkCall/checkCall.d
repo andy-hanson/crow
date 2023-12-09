@@ -32,7 +32,6 @@ import frontend.check.inferringType :
 	matchExpectedVsReturnTypeNoDiagnostic,
 	nonInferringTypeContext,
 	SingleInferringType,
-	toTypeContext,
 	tryGetInferred,
 	TypeAndContext,
 	TypeContext;
@@ -380,13 +379,13 @@ bool inferCandidateTypeArgsFromSpecSig(
 	in SpecDeclSig specSig,
 	in ReturnAndParamTypes returnAndParamTypes,
 ) {
-	const InferringTypeArgs constCallInferring = asInferringTypeArgs(typeContextForCandidate(ctx.outermostFunTypeParams, callCandidate));
+	TypeContext callContext = typeContextForCandidate(ctx.outermostFunTypeParams, callCandidate);
 	return withCandidates!bool(
 		funsInScope(ctx),
 		specSig.name,
 		specSig.params.length,
 		(ref Candidate x) =>
-			testCandidateForSpecSig(ctx.instantiateCtx, ctx.outermostFunTypeParams, x, returnAndParamTypes, toTypeContext(constCallInferring)),
+			testCandidateForSpecSig(ctx.instantiateCtx, ctx.outermostFunTypeParams, x, returnAndParamTypes, callContext),
 		(ref Candidates specCandidates) @safe {
 			switch (size(specCandidates)) {
 				case 0:
@@ -398,7 +397,7 @@ bool inferCandidateTypeArgsFromSpecSig(
 						only(specCandidates),
 						specSig,
 						returnAndParamTypes,
-						asInferringTypeArgs(typeContextForCandidate(ctx.outermostFunTypeParams, callCandidate)));
+						asInferringTypeArgs(callContext));
 					return true;
 				default:
 					return true;
