@@ -28,6 +28,7 @@ import util.col.hashTable : existsInHashTable, HashTable;
 import util.col.map : Map;
 import util.col.enumMap : EnumMap;
 import util.col.str : SafeCStr, safeCStr;
+import util.conv : safeToUbyte;
 import util.hash : HashCode, Hasher, hashPtrAndTaggedPointers;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : force, has, none, Opt, some;
@@ -35,7 +36,7 @@ import util.sourceRange : combineRanges, UriAndRange, Pos, rangeOfStartAndLength
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.uri : Uri;
-import util.util : max, min, typeAs, unreachable;
+import util.util : max, min, todo, typeAs, unreachable;
 
 alias Purity = immutable Purity_;
 private enum Purity_ : ubyte {
@@ -82,36 +83,101 @@ immutable struct TypeParam {
 	size_t index;
 }
 
+// I'm adding TypeParam* here for debugging
+immutable struct TypeParamIndex {
+	@safe @nogc pure nothrow:
+	ubyte index;
+	TypeParam* debugPtr;
+	this(size_t i, TypeParam* p) {
+		index = safeToUbyte(i);
+		debugPtr = p;
+		assert(p.index == index);
+	}
+
+	bool opEquals(scope TypeParamIndex b) scope =>
+		// Need full equality since this is used in the big hash table
+		index == b.index && debugPtr == b.debugPtr;
+}
+immutable struct TypeParamIndexCallee {
+	@safe @nogc pure nothrow:
+	ubyte index;
+	TypeParam* debugPtr;
+	this(size_t i, TypeParam* p) {
+		index = safeToUbyte(i);
+		debugPtr = p;
+		assert(p.index == index);
+	}
+
+	bool opEquals(scope TypeParamIndexCallee b) scope =>
+		// Need full equality since this is used in the big hash table
+		index == b.index && debugPtr == b.debugPtr;
+}
+
 immutable struct Type {
 	@safe @nogc pure nothrow:
 	immutable struct Bogus {}
 
-	mixin Union!(Bogus, TypeParam*, StructInst*);
+	mixin Union!(Bogus, TypeParamIndex, TypeParamIndexCallee, StructInst*);
 
 	bool opEquals(scope Type b) scope =>
-		taggedPointerEquals(b);
+		matchWithPointers!bool(
+			(Bogus _) =>
+				b.isA!Bogus,
+			(TypeParamIndex x) =>
+				b.isA!TypeParamIndex && x == b.as!TypeParamIndex,
+			(TypeParamIndexCallee x) =>
+				b.isA!TypeParamIndexCallee && x == b.as!TypeParamIndexCallee,
+			(StructInst* x) =>
+				b.isA!(StructInst*) && x == b.as!(StructInst*));
+
+	ulong taggedPointerValueForHash() =>
+		matchWithPointers!ulong(
+			(Bogus _) =>
+				0,
+			(TypeParamIndex x) =>
+				cast(ulong) x.debugPtr,
+			(TypeParamIndexCallee x) =>
+				cast(ulong) x.debugPtr,
+			(StructInst* x) =>
+				cast(ulong) x);
+
+
+	//TODO: --------------------------------------------------------------------------------------------------------------------
+	//bool opEquals(scope Type b) scope =>
+	//	taggedPointerEquals(b);
 }
-static assert(Type.sizeof == ulong.sizeof);
+// TODO: static assert(Type.sizeof == ulong.sizeof);
+
+void assertIsCallerType(in Type a) {
+	assert(!a.isA!TypeParamIndexCallee);
+}
+void assertIsCalleeType(in Type a) {
+	assert(!a.isA!(TypeParamIndex));
+}
 
 PurityRange purityRange(Type a) =>
-	a.match!PurityRange(
-		(Type.Bogus) =>
+	a.matchIn!PurityRange(
+		(in Type.Bogus) =>
 			PurityRange(Purity.data, Purity.data),
-		(ref TypeParam _) =>
+		(in TypeParamIndex _) =>
 			PurityRange(Purity.data, Purity.mut),
-		(ref StructInst x) =>
+		(in TypeParamIndexCallee _) =>
+			unreachable!PurityRange,
+		(in StructInst x) =>
 			x.purityRange);
 
 Purity bestCasePurity(Type a) =>
 	purityRange(a).bestCase;
 
 LinkageRange linkageRange(Type a) =>
-	a.match!LinkageRange(
-		(Type.Bogus) =>
+	a.matchIn!LinkageRange(
+		(in Type.Bogus) =>
 			LinkageRange(Linkage.extern_, Linkage.extern_),
-		(ref TypeParam _) =>
+		(in TypeParamIndex _) =>
 			LinkageRange(Linkage.internal, Linkage.extern_),
-		(ref StructInst x) =>
+		(in TypeParamIndexCallee _) =>
+			unreachable!LinkageRange,
+		(in StructInst x) =>
 			x.linkageRange);
 
 immutable struct Params {
@@ -840,6 +906,15 @@ immutable struct ReturnAndParamTypes {
 		returnAndParamTypes[1 .. $];
 }
 
+void assertAreCalleeTypes(in ReturnAndParamTypes a) {
+	foreach (Type x; a.returnAndParamTypes)
+		assertIsCalleeType(x);
+}
+void assertAreCallerTypes(in ReturnAndParamTypes a) {
+	foreach (Type x; a.returnAndParamTypes)
+		assertIsCallerType(x);
+}
+
 immutable struct CalledSpecSig {
 	@safe @nogc pure nothrow:
 
@@ -887,7 +962,7 @@ immutable struct CalledDecl {
 			(ref FunDecl f) => f.typeParams.toArray,
 			(CalledSpecSig) => typeAs!(TypeParam[])([]));
 
-	Type returnType() scope =>
+	Type returnType() =>
 		match!Type(
 			(ref FunDecl f) => f.returnType,
 			(CalledSpecSig s) => s.returnType);

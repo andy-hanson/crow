@@ -19,6 +19,7 @@ import frontend.check.exprCtx :
 	typeFromAst2,
 	withTrusted;
 import frontend.check.inferringType :
+	asInferringTypeArgs,
 	bogus,
 	check,
 	Expected,
@@ -33,9 +34,11 @@ import frontend.check.inferringType :
 	OkSkipOrAbort,
 	Pair,
 	setExpectedIfNoInferred,
-	tryGetDeeplyInstantiatedTypeWorker,
+	tryGetDeeplyInstantiatedType,
 	tryGetInferred,
 	tryGetLoop,
+	TypeAndContext,
+	TypeContext,
 	withCopyWithNewExpectedType;
 import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay, noDelayStructInsts;
 import frontend.check.maps : FunsMap, StructsAndAliasesMap;
@@ -300,7 +303,7 @@ ExprAndType checkAndExpectOrInfer(ref ExprCtx ctx, ref LocalsInfo locals, ExprAs
 		: checkAndInfer(ctx, locals, ast);
 
 Expr checkAndExpect(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, Type expected) {
-	Expected et = Expected(expected);
+	Expected et = Expected(Expected.LocalType(expected, ctx.outermostFunTypeParams));
 	return checkExpr(ctx, locals, ast, et);
 }
 
@@ -527,7 +530,7 @@ CallAst checkInterpolatedRecur(ref ExprCtx ctx, in InterpolatedPart[] parts, Pos
 }
 
 struct ExpectedLambdaType {
-	InferringTypeArgs inferringTypeArgs;
+	TypeContext typeContext;
 	StructInst* funStructInst;
 	StructDecl* funStruct;
 	FunKind kind;
@@ -545,12 +548,12 @@ MutOpt!ExpectedLambdaType getExpectedLambdaType(
 	if (has(declaredParamType) && force(declaredParamType).isA!(Type.Bogus))
 		return noneMut!ExpectedLambdaType;
 	OkSkipOrAbort!ExpectedLambdaType res = handleExpectedLambda!ExpectedLambdaType(
-		ctx.alloc, expected, (Type expectedType, InferringTypeArgs funTypeInferring) {
-			Opt!FunType optFunType = getFunType(ctx.commonTypes, expectedType);
+		ctx.alloc, expected, (TypeAndContext expectedType) {
+			Opt!FunType optFunType = getFunType(ctx.commonTypes, expectedType.type);
 			if (has(optFunType)) {
 				FunType funType = force(optFunType);
-				Opt!Type optExpectedParamType = tryGetDeeplyInstantiatedTypeWorker(
-					ctx.instantiateCtx, funType.nonInstantiatedParamType, funTypeInferring);
+				Opt!Type optExpectedParamType = tryGetDeeplyInstantiatedType(
+					ctx.instantiateCtx, TypeAndContext(funType.nonInstantiatedParamType, expectedType.context));
 				OkSkipOrAbort!Type actualParamType = () {
 					if (has(optExpectedParamType)) {
 						Type expectedParamType = force(optExpectedParamType);
@@ -569,7 +572,7 @@ MutOpt!ExpectedLambdaType getExpectedLambdaType(
 						? makeFutType(ctx.instantiateCtx, ctx.commonTypes, funType.nonInstantiatedNonFutReturnType)
 						: funType.nonInstantiatedNonFutReturnType;
 					return ExpectedLambdaType(
-						funTypeInferring,
+						expectedType.context,
 						funType.structInst, funType.structDecl, funType.kind,
 						nonInstantiatedReturnType, paramType);
 				});
@@ -965,7 +968,7 @@ immutable struct ExpectedPointee {
 }
 enum PointerMutability { immutable_, mutable }
 
-ExpectedPointee getExpectedPointee(ref ExprCtx ctx, in Expected expected) {
+ExpectedPointee getExpectedPointee(ref ExprCtx ctx, ref const Expected expected) {
 	Opt!Type expectedType = tryGetInferred(expected);
 	if (has(expectedType) && force(expectedType).isA!(StructInst*)) {
 		StructInst* inst = force(expectedType).as!(StructInst*);
@@ -1131,7 +1134,7 @@ Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref La
 	Pair!(Expr, Type) bodyAndType = withCopyWithNewExpectedType!Expr(
 		expected,
 		et.nonInstantiatedPossiblyFutReturnType,
-		et.inferringTypeArgs,
+		et.typeContext,
 		(ref Expected returnTypeInferrer) =>
 			checkExprWithDestructure(ctx, bodyLocals, param, &ast.body_, returnTypeInferrer));
 	Expr body_ = bodyAndType.a;
@@ -1309,7 +1312,7 @@ Expr checkMatchEnum(
 	bool goodCases = arrsCorrespond!(StructBody.Enum.Member, MatchAst.CaseAst)(
 		members,
 		ast.cases,
-		(in StructBody.Enum.Member member, in MatchAst.CaseAst caseAst) =>
+		(ref StructBody.Enum.Member member, ref MatchAst.CaseAst caseAst) =>
 			member.name == caseAst.memberName);
 	if (!goodCases) {
 		addDiag2(ctx, source, Diag(Diag.MatchCaseNamesDoNotMatch(
@@ -1340,7 +1343,7 @@ Expr checkMatchUnion(
 	bool goodCases = arrsCorrespond!(UnionMember, MatchAst.CaseAst)(
 		declaredMembers,
 		ast.cases,
-		(in UnionMember member, in MatchAst.CaseAst caseAst) =>
+		(ref UnionMember member, ref MatchAst.CaseAst caseAst) =>
 			member.name == caseAst.memberName);
 	if (!goodCases) {
 		addDiag2(ctx, source, Diag(Diag.MatchCaseNamesDoNotMatch(

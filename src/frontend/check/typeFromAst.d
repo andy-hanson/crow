@@ -40,6 +40,7 @@ import model.model :
 	target,
 	Type,
 	TypeParam,
+	TypeParamIndex,
 	typeParams;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : arrayOfSingle, empty, only, small;
@@ -170,7 +171,7 @@ Type typeFromAst(
 		(in NameAndRange name) {
 			Opt!(TypeParam*) typeParam = findTypeParam(typeParamsScope, name.name);
 			return has(typeParam)
-				? Type(force(typeParam))
+				? Type(TypeParamIndex(force(typeParam).index, force(typeParam)))
 				: instStructFromAst(
 					ctx,
 					commonTypes,
@@ -188,7 +189,7 @@ Type typeFromAst(
 			Opt!(TypeParam*) typeParam = findTypeParam(typeParamsScope, x.name.name);
 			if (has(typeParam)) {
 				addDiag(ctx, suffixRange(x, ctx.allSymbols), Diag(Diag.TypeParamCantHaveTypeArgs()));
-				return Type(force(typeParam));
+				return Type(TypeParamIndex(force(typeParam).index, force(typeParam)));
 			} else
 				return instStructFromAst(
 					ctx,

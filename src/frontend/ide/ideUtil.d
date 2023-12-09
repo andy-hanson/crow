@@ -71,7 +71,9 @@ Opt!T eachTypeComponent(T)(
 	type.matchIn!(Opt!T)(
 		(in Type.Bogus) =>
 			none!T,
-		(in TypeParam) =>
+		(in TypeParamIndex _) =>
+			none!T,
+		(in TypeParamIndexCallee _) =>
 			none!T,
 		(in StructInst x) =>
 			eachTypeArg!T(typeArgs(x), ast, cb));

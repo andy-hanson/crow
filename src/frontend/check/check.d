@@ -83,6 +83,8 @@ import model.model :
 	Type,
 	typeArgs,
 	TypeParam,
+	TypeParamIndex,
+	TypeParamIndexCallee,
 	typeParams,
 	VarDecl,
 	Visibility,
@@ -196,12 +198,14 @@ Params checkParams(
 		(ref ParamsAst.Varargs varargs) {
 			Destructure param = checkDestructure(
 				ctx, commonTypes, structsAndAliasesMap, typeParamsScope, delayStructInsts, varargs.param, none!Type);
-			Opt!Type elementType = param.type.match!(Opt!Type)(
-				(Type.Bogus _) =>
+			Opt!Type elementType = param.type.matchIn!(Opt!Type)(
+				(in Type.Bogus _) =>
 					some(Type(Type.Bogus())),
-				(ref TypeParam _) =>
+				(in TypeParamIndex _) =>
 					none!Type,
-				(ref StructInst x) =>
+				(in TypeParamIndexCallee _) =>
+					unreachable!(Opt!Type),
+				(in StructInst x) =>
 					decl(x) == commonTypes.array
 					? some(only(typeArgs(x)))
 					: none!Type);
@@ -698,7 +702,7 @@ FunBody.ExpressionBody getExprFunctionBody(
 	in CommonTypes commonTypes,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in FunsMap funsMap,
-	in FunDecl f,
+	ref FunDecl f,
 	ExprAst* e,
 ) =>
 	FunBody.ExpressionBody(checkFunctionBody(

@@ -83,7 +83,7 @@ bool sizeEq(T, U)(in T[] a, in U[] b) =>
 bool empty(T)(in T[] a) =>
 	a.length == 0;
 
-ref inout(T) only(T)(return scope inout T[] a) {
+ref inout(T) only(T)(scope inout T[] a) {
 	assert(a.length == 1);
 	return a[0];
 }

@@ -133,15 +133,17 @@ void getHover(scope ref Writer writer, in ShowCtx ctx, in Position pos) =>
 		(in PositionKind.TypeWithContainer x) {
 			x.type.matchIn!void(
 				(in Type.Bogus) {},
-				(in TypeParam p) {
-					hoverTypeParam(writer, ctx, p);
+				(in TypeParamIndex p) {
+					hoverTypeParam(writer, ctx, *p.debugPtr);
 				},
+				(in TypeParamIndexCallee _) =>
+					unreachable!void,
 				(in StructInst i) {
 					writeStructDeclHover(writer, ctx, *decl(i));
 				});
 		},
 		(in PositionKind.TypeParamWithContainer x) {
-			hoverTypeParam(writer, ctx, *x.typeParam);
+			hoverTypeParam(writer, ctx, *x.typeParam.debugPtr);
 		},
 		(in VarDecl x) {
 			writeSym(writer, ctx.allSymbols, symOfVarKind(x.kind));

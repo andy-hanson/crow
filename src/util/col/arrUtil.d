@@ -57,9 +57,9 @@ bool exists(T)(in T[] arr, in bool delegate(in T) @safe @nogc pure nothrow cb) =
 	has(findIndex!T(arr, cb));
 
 bool every(T)(in T[] arr, in bool delegate(in T) @safe @nogc pure nothrow cb) =>
-	everyWithIndex!T(arr, (size_t _, in T x) => cb(x));
+	everyWithIndex!T(arr, (size_t _, ref const T x) => cb(x));
 
-bool everyWithIndex(T)(in T[] arr, in bool delegate(size_t, in T) @safe @nogc pure nothrow cb) {
+bool everyWithIndex(T)(in T[] arr, in bool delegate(size_t, ref const T) @safe @nogc pure nothrow cb) {
 	foreach (size_t i, ref const T x; arr)
 		if (!cb(i, x))
 			return false;
@@ -293,7 +293,7 @@ T[] append(T)(scope ref Alloc alloc, scope T[] a, T b) =>
 T[] prepend(T)(scope ref Alloc alloc, T a, scope T[] b) =>
 	concatenateIn!T(alloc, [a], b);
 
-bool zipEvery(T, U)(in T[] a, in U[] b, in bool delegate(in T, in U) @safe @nogc pure nothrow cb) {
+bool zipEvery(T, U)(in T[] a, in U[] b, in bool delegate(ref const T, ref const U) @safe @nogc pure nothrow cb) {
 	assert(sizeEq(a, b));
 	foreach (size_t i; 0 .. a.length)
 		if (!cb(a[i], b[i]))
@@ -373,11 +373,11 @@ void zipPtrFirst(T, U)(T[] a, scope U[] b, in void delegate(T*, ref U) @safe @no
 		cb(&in0[i], &in1[i], &in2[i]));
 }
 
-bool arrsCorrespond(T, U)(in T[] a, in U[] b, in bool delegate(in T, in U) @safe @nogc pure nothrow cb) =>
+bool arrsCorrespond(T, U)(in T[] a, in U[] b, in bool delegate(ref const T, ref const U) @safe @nogc pure nothrow cb) =>
 	sizeEq(a, b) && zipEvery!(T, U)(a, b, cb);
 
 bool arrEqual(T)(in T[] a, in T[] b) =>
-	arrsCorrespond!(T, T)(a, b, (in T x, in T y) => x == y);
+	arrsCorrespond!(T, T)(a, b, (ref const T x, ref const T y) => x == y);
 
 private immutable struct MapAndFoldResult(Out, State) {
 	Out[] output;

@@ -37,6 +37,8 @@ import model.model :
 	Type,
 	typeArgs,
 	TypeParam,
+	TypeParamIndex,
+	TypeParamIndexCallee,
 	typeParams,
 	UnionMember;
 import util.alloc.alloc : Alloc;
@@ -82,6 +84,9 @@ alias TypeArgsArray = MutMaxArr!(maxTypeParams, Type);
 TypeArgsArray typeArgsArray() =>
 	mutMaxArr!(maxTypeParams, Type);
 
+void assertNoTypeArg(TypeParam[] typeParams, TypeParamIndex a) {
+	assert(!(a.index < typeParams.length && &typeParams[a.index] == a.debugPtr));
+}
 private Opt!(T*) tryGetTypeArg(T)(TypeParam[] typeParams, return scope immutable T[] typeArgs, TypeParam* typeParam) {
 	size_t index = typeParam.index;
 	bool hasTypeParam = index < typeParams.length && &typeParams[index] == typeParam;
@@ -93,7 +98,7 @@ MutOpt!(T*) tryGetTypeArg_mut(T)(TypeParam[] typeParams, return scope T[] typeAr
 	return hasTypeParam ? someMut!(T*)(&typeArgs[index]) : noneMut!(T*);
 }
 
-private Opt!Type tryGetTypeArgFromTypeParamsAndArgs(TypeParamsAndArgs typeParamsAndArgs, TypeParam* typeParam) {
+private Opt!Type tryGetTypeArgFromTypeParamsAndArgs(in TypeParamsAndArgs typeParamsAndArgs, TypeParam* typeParam) {
 	Opt!(Type*) t = tryGetTypeArg!Type(typeParamsAndArgs.typeParams, typeParamsAndArgs.typeArgs, typeParam);
 	return has(t) ? some(*force(t)) : none!Type;
 }
@@ -112,16 +117,21 @@ private Type instantiateType(
 	Type type,
 	in TypeParamsAndArgs typeParamsAndArgs,
 	scope MayDelayStructInsts delayStructInsts,
-) =>
-	type.matchWithPointers!Type(
+) {
+	Type handleTypeParam(TypeParam* p) @safe {
+		Opt!Type op = tryGetTypeArgFromTypeParamsAndArgs(typeParamsAndArgs, p);
+		return has(op) ? force(op) : type;
+	}
+	return type.matchWithPointers!Type(
 		(Type.Bogus _) =>
 			Type(Type.Bogus()),
-		(TypeParam* p) {
-			Opt!Type op = tryGetTypeArgFromTypeParamsAndArgs(typeParamsAndArgs, p);
-			return has(op) ? force(op) : type;
-		},
+		(TypeParamIndex p) =>
+			handleTypeParam(p.debugPtr),
+		(TypeParamIndexCallee p) =>
+			handleTypeParam(p.debugPtr),
 		(StructInst* i) =>
 			Type(instantiateStructInst(ctx, *i, typeParamsAndArgs, delayStructInsts)));
+}
 
 private Type instantiateTypeNoDelay(ref InstantiateCtx ctx, Type type, in TypeParamsAndArgs typeParamsAndArgs) =>
 	instantiateType(ctx, type, typeParamsAndArgs, noDelayStructInsts);

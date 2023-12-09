@@ -51,11 +51,14 @@ import model.model :
 	ThrowExpr,
 	toLocal,
 	TypeParam,
+	TypeParamIndex,
+	TypeParamIndexCallee,
 	VarDecl,
 	Visibility;
 import util.opt : none, Opt, some;
 import util.json : field;
 import util.union_ : Union;
+import util.util : unreachable;
 
 immutable struct Target {
 	mixin Union!(
@@ -110,8 +113,10 @@ Opt!Target targetForPosition(in Program program, PositionKind pos) =>
 			x.type.matchWithPointers!(Opt!Target)(
 				(Bogus) =>
 					none!Target,
-				(TypeParam* p) =>
+				(TypeParamIndex p) =>
 					some(Target(PositionKind.TypeParamWithContainer(x.container, p))),
+				(TypeParamIndexCallee _) =>
+					unreachable!(Opt!Target),
 				(StructInst* x) =>
 					some(Target(decl(*x)))),
 		(PositionKind.TypeParamWithContainer x) =>

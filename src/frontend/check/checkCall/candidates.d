@@ -5,11 +5,17 @@ module frontend.check.checkCall.candidates;
 import frontend.check.checkCtx : eachImportAndReExport, ImportAndReExportModules;
 import frontend.check.exprCtx : ExprCtx;
 import frontend.check.inferringType :
+	asInferringTypeArgs,
 	InferringTypeArgs,
 	matchTypesNoDiagnostic,
+	nonInferringTypeContext,
 	SingleInferringType,
+	toTypeContext,
+	tryGetDeeplyInstantiatedType,
 	tryGetInferred,
-	tryGetTypeArgFromInferringTypeArgs;
+	tryGetTypeArgFromInferringTypeArgs,
+	TypeAndContext,
+	TypeContext;
 import frontend.check.instantiate : InstantiateCtx, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray;
 import frontend.check.maps : FunsMap;
 import frontend.lang : maxTypeParams;
@@ -31,7 +37,9 @@ import model.model :
 	StructInst,
 	typeArgs,
 	Type,
-	TypeParam;
+	TypeParam,
+	TypeParamIndex,
+	TypeParamIndexCallee;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
@@ -49,8 +57,9 @@ import util.col.mutMaxArr :
 	mutMaxArr,
 	pushUninitialized,
 	tempAsArr;
-import util.opt : force, has, MutOpt, none, Opt;
+import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someConst, someMut;
 import util.sym : Sym;
+import util.util : typeAs, unreachable;
 
 // Max number of candidates with same return type
 size_t maxCandidates() => 64;
@@ -73,8 +82,18 @@ struct Candidate {
 	MutMaxArr!(maxTypeParams, SingleInferringType) typeArgs;
 }
 
-inout(InferringTypeArgs) inferringTypeArgs(return scope ref inout Candidate a) =>
-	inout InferringTypeArgs(a.called.typeParams, tempAsArr(a.typeArgs));
+@trusted inout(TypeContext) typeContextForCandidate(TypeParam[] callerTypeParams, ref inout Candidate a) {
+	// 'match' can't return 'inout' we must do it this way
+	if (a.called.isA!(FunDecl*))
+		return inout TypeContext(
+			a.called.as!(FunDecl*).typeParams,
+			cast(inout) someMut!(SingleInferringType[])(cast(SingleInferringType[]) tempAsArr(a.typeArgs)));
+	else {
+		assert(a.called.isA!CalledSpecSig);
+		// Spec is instantiated using the caller's types
+		return cast(inout) nonInferringTypeContext(callerTypeParams);
+	}
+}
 
 private void initializeCandidate(ref Candidate a, CalledDecl called) {
 	overwriteMemory(&a.called, called);
@@ -92,7 +111,7 @@ T withCandidates(T)(
 	Sym funName,
 	size_t actualArity,
 	// Filter candidates early to avoid a large array
-	in bool delegate(scope ref Candidate) @safe @nogc pure nothrow cbFilterCandidate,
+	in bool delegate(ref Candidate) @safe @nogc pure nothrow cbFilterCandidate,
 	in T delegate(ref Candidates) @safe @nogc pure nothrow cb,
 ) {
 	Candidates candidates = mutMaxArr!(maxCandidates, Candidate);
@@ -166,56 +185,44 @@ void eachFunInScope(in FunsInScope a, Sym funName, in void delegate(CalledDecl) 
 
 bool testCandidateForSpecSig(
 	ref InstantiateCtx ctx,
-	scope ref Candidate specCandidate,
+	TypeParam[] callerTypeParams,
+	ref Candidate specCandidate,
 	in ReturnAndParamTypes returnAndParamTypes,
-	in InferringTypeArgs callInferringTypeArgs,
+	const TypeContext callTypeContext,
 ) {
 	bool res = matchTypesNoDiagnostic(
 		ctx,
-		specCandidate.called.returnType, inferringTypeArgs(specCandidate),
-		returnAndParamTypes.returnType, callInferringTypeArgs);
-	return res && everyWithIndex!Type(returnAndParamTypes.paramTypes, (size_t argIdx, in Type paramType) =>
-		testCandidateParamType(ctx, specCandidate, paramType, argIdx, callInferringTypeArgs));
+		callerTypeParams,
+		TypeAndContext(specCandidate.called.returnType, typeContextForCandidate(callerTypeParams, specCandidate)),
+		const TypeAndContext(returnAndParamTypes.returnType, callTypeContext));
+	return res && everyWithIndex!Type(returnAndParamTypes.paramTypes, (size_t argIdx, ref Type paramType) =>
+		testCandidateParamType(ctx, callerTypeParams, specCandidate, argIdx, const TypeAndContext(paramType, callTypeContext)));
 }
 
 // Also does type inference on the candidate
 bool testCandidateParamType(
 	ref InstantiateCtx ctx,
-	scope ref Candidate candidate,
-	Type actualArgType,
+	TypeParam[] callerTypeParams,
+	ref Candidate candidate,
 	size_t argIdx,
-	in InferringTypeArgs callInferringTypeArgs,
-) =>
-	matchTypesNoDiagnostic(
+	const TypeAndContext actualArgType,
+) {
+	//TODO:INLINE-----------------------------------------------------------------------------------------------------------------
+	TypeAndContext a = getCandidateExpectedParameterType(ctx, callerTypeParams, candidate, argIdx);
+	return matchTypesNoDiagnostic(
 		ctx,
-		getCandidateExpectedParameterType(ctx, candidate, argIdx),
-		inferringTypeArgs(candidate),
-		actualArgType,
-		callInferringTypeArgs);
+		callerTypeParams,
+		a,
+		actualArgType);
+}
 
-Type getCandidateExpectedParameterType(ref InstantiateCtx ctx, in Candidate candidate, size_t argIndex) =>
-	getCandidateExpectedParameterTypeRecur(ctx, candidate, paramTypeAt(candidate.called, argIndex));
-
-private Type getCandidateExpectedParameterTypeRecur(
-	ref InstantiateCtx ctx,
-	in Candidate candidate,
-	Type candidateParamType,
-) =>
-	candidateParamType.matchWithPointers!Type(
-		(Type.Bogus _) =>
-			Type(Type.Bogus()),
-		(TypeParam* p) {
-			const InferringTypeArgs ita = inferringTypeArgs(candidate);
-			MutOpt!(const(SingleInferringType)*) sit = tryGetTypeArgFromInferringTypeArgs(ita, p);
-			Opt!Type inferred = has(sit) ? tryGetInferred(*force(sit)) : none!Type;
-			return has(inferred) ? force(inferred) : Type(p);
-		},
-		(StructInst* i) {
-			scope TypeArgsArray outTypeArgs = typeArgsArray();
-			mapTo!(maxTypeParams, Type, Type)(outTypeArgs, typeArgs(*i), (ref Type t) =>
-				getCandidateExpectedParameterTypeRecur(ctx, candidate, t));
-			return Type(instantiateStructNeverDelay(ctx, decl(*i), tempAsArr(outTypeArgs)));
-		});
+@trusted inout(TypeAndContext) getCandidateExpectedParameterType(ref InstantiateCtx ctx, TypeParam[] callerTypeParams, ref inout Candidate candidate, size_t argIndex) {
+	Type declType = paramTypeAt(candidate.called, argIndex);
+	Opt!Type instantiated = tryGetDeeplyInstantiatedType(ctx, inout TypeAndContext(declType, typeContextForCandidate(callerTypeParams, candidate)));
+	return has(instantiated)
+		? inout TypeAndContext(force(instantiated), cast(inout) nonInferringTypeContext(callerTypeParams))
+		: inout TypeAndContext(declType, typeContextForCandidate(callerTypeParams, candidate));
+}
 
 private Type paramTypeAt(ref CalledDecl called, size_t argIndex) =>
 	called.match!Type(

@@ -181,7 +181,7 @@ Opt!PositionKind positionInTypeParams(
 	Pos pos,
 ) =>
 	firstZipPointerFirst!(PositionKind, TypeParam, NameAndRange)(typeParams, asts, (TypeParam* p, NameAndRange x) =>
-		optIf(hasPos(allSymbols, x, pos), () => PositionKind(PositionKind.TypeParamWithContainer(container, p))));
+		optIf(hasPos(allSymbols, x, pos), () => PositionKind(PositionKind.TypeParamWithContainer(container, TypeParamIndex(p.index, p)))));
 
 Opt!PositionKind positionInSpec(in AllSymbols allSymbols, SpecDecl* a, Pos pos) =>
 	//TODO:visibility

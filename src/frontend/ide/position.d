@@ -16,6 +16,7 @@ import model.model :
 	StructDecl,
 	Type,
 	TypeParam,
+	TypeParamIndex,
 	VarDecl,
 	Visibility;
 import util.sym : Sym;
@@ -98,7 +99,7 @@ immutable struct PositionKind {
 	}
 	immutable struct TypeParamWithContainer {
 		TypeParamContainer container;
-		TypeParam* typeParam;
+		TypeParamIndex typeParam;
 	}
 
 	mixin Union!(

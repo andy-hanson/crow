@@ -218,7 +218,7 @@ ConcreteType type(in LocalOrConstant a) =>
 		(in TypedConstant x) =>
 			x.type);
 
-ConcreteType getConcreteType(ref ConcretizeExprCtx ctx, in Type t) =>
+ConcreteType getConcreteType(ref ConcretizeExprCtx ctx, Type t) =>
 	getConcreteType_fromConcretizeCtx(ctx.concretizeCtx, t, typeScope(ctx));
 
 ConcreteType[] typesToConcreteTypes(ref ConcretizeExprCtx ctx, in Type[] typeArgs) =>

@@ -37,6 +37,7 @@ import model.model :
 	StructDecl,
 	Type,
 	TypeParam,
+	TypeParamIndex,
 	TypeParamsAndSig,
 	Visibility;
 import util.alloc.alloc : Alloc;
@@ -182,7 +183,7 @@ immutable TypeParam[1] singleTypeParam = [
 	TypeParam(UriAndRange.empty, sym!"t", 0),
 ];
 Type singleTypeParamType() =>
-	Type(&singleTypeParam[0]);
+	Type(TypeParamIndex(0, &singleTypeParam[0]));
 
 immutable(FunDecl*[]) getFunOrActSubscriptFuns(
 	ref Alloc alloc,
@@ -271,13 +272,13 @@ bool signatureMatchesTemplate(in FunDecl actual, in TypeParamsAndSig expected) =
 		arrsCorrespond!(Destructure, ParamShort)(
 			assertNonVariadic(actual.params),
 			expected.params,
-			(in Destructure x, in ParamShort y) =>
+			(ref Destructure x, ref ParamShort y) =>
 				typesMatch(x.type, actual.typeParams, y.type, expected.typeParams));
 
 bool typesMatch(in Type a, in TypeParam[] typeParamsA, in Type b, in TypeParam[] typeParamsB) =>
 	a == b
-	|| a.isA!(TypeParam*) && b.isA!(TypeParam*) && a.as!(TypeParam*).index == b.as!(TypeParam*).index
-	|| typesAreCorrespondingStructInsts(a, b, (in Type x, in Type y) =>
+	|| a.isA!(TypeParamIndex) && b.isA!(TypeParamIndex) && a.as!(TypeParamIndex).index == b.as!(TypeParamIndex).index
+	|| typesAreCorrespondingStructInsts(a, b, (ref Type x, ref Type y) =>
 		typesMatch(x, typeParamsA, y, typeParamsB));
 
 FunDecl* getFunDecl(

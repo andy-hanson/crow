@@ -7,6 +7,11 @@ int safeIntFromUint(uint u) {
 	return cast(int) u;
 }
 
+ubyte safeToUbyte(size_t a) {
+	assert(a <= ubyte.max);
+	return cast(ubyte) a;
+}
+
 ushort safeToUshort(size_t a) {
 	assert(a <= ushort.max);
 	return cast(ushort) a;

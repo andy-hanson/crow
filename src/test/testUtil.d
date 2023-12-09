@@ -94,7 +94,7 @@ private void withShowDiagCtxForTestImpl(alias cb)(
 	bool eq = arrsCorrespond!(Operation*, ByteCodeIndex)(
 		stack,
 		expected,
-		(in Operation* a, in ByteCodeIndex b) @trusted =>
+		(ref const Operation* a, ref ByteCodeIndex b) @trusted =>
 			ByteCodeIndex(a - byteCode.byteCode.ptr) == b);
 	if (!eq) {
 		debugLogWithWriter((ref Writer writer) @trusted {

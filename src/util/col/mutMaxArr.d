@@ -123,7 +123,7 @@ void mustPopAndDrop(size_t maxSize, T)(scope ref MutMaxArr!(maxSize, T) a) {
 	a.size_--;
 }
 
-ref inout(T) only(size_t maxSize, T)(ref inout MutMaxArr!(maxSize, T) a) {
+ref inout(T) only(size_t maxSize, T)(scope ref inout MutMaxArr!(maxSize, T) a) {
 	assert(a.size_ == 1);
 	return a.values[0];
 }

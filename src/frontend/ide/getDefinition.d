@@ -72,7 +72,7 @@ public void definitionForTarget(in AllSymbols allSymbols, Uri curUri, in Target 
 			cb(nameRange(allSymbols, x));
 		},
 		(in PositionKind.TypeParamWithContainer x) {
-			cb(x.typeParam.range);
+			cb(x.typeParam.debugPtr.range);
 		},
 		(in VarDecl x) {
 			cb(nameRange(allSymbols, x));

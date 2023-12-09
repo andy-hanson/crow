@@ -72,6 +72,8 @@ import model.model :
 	Type,
 	typeArgs,
 	TypeParam,
+	TypeParamIndex,
+	TypeParamIndexCallee,
 	typeParams,
 	UnionMember,
 	VarDecl,
@@ -363,15 +365,14 @@ private ConcreteType getConcreteType_forStructInst(
 	return ConcreteType(lateGet(res.value.defaultReferenceKind_), res.value);
 }
 
-ConcreteType getConcreteType(ref ConcretizeCtx ctx, in Type t, in TypeArgsScope typeArgsScope) =>
+ConcreteType getConcreteType(ref ConcretizeCtx ctx, Type t, in TypeArgsScope typeArgsScope) =>
 	t.matchWithPointers!ConcreteType(
 		(Type.Bogus) =>
 			bogusType(ctx),
-		(TypeParam* p) {
-			// Handle calledConcreteFun first
-			assert(p == &typeArgsScope.typeParams[p.index]);
-			return typeArgsScope.typeArgs[p.index];
-		},
+		(TypeParamIndex x) =>
+			typeArgsScope.typeArgs[x.index],
+		(TypeParamIndexCallee _) =>
+			unreachable!ConcreteType,
 		(StructInst* i) =>
 			getConcreteType_forStructInst(ctx, i, typeArgsScope));
 
@@ -692,7 +693,7 @@ size_t sizeForEnumOrFlags(EnumBackingType a) {
 }
 
 ConcreteStructBody.Enum getConcreteStructBodyForEnum(ref Alloc alloc, in StructBody.Enum a) {
-	bool simple = everyWithIndex!(StructBody.Enum.Member)(a.members, (size_t index, in StructBody.Enum.Member member) =>
+	bool simple = everyWithIndex!(StructBody.Enum.Member)(a.members, (size_t index, ref StructBody.Enum.Member member) =>
 		member.value.value == index);
 	return simple
 		? ConcreteStructBody.Enum(a.backingType, EnumValues(a.members.length))

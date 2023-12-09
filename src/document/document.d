@@ -37,6 +37,8 @@ import model.model :
 	Type,
 	typeArgs,
 	TypeParam,
+	TypeParamIndex,
+	TypeParamIndexCallee,
 	typeParams,
 	UnionMember,
 	Visibility,
@@ -266,12 +268,14 @@ Json documentParam(ref Alloc alloc, in Destructure a) {
 		field!"type"(documentTypeRef(alloc, a.type))]);
 }
 
-Json documentTypeRef(ref Alloc alloc, Type a) =>
+Json documentTypeRef(ref Alloc alloc, in Type a) =>
 	a.matchIn!Json(
 		(in Type.Bogus) =>
 			unreachable!Json,
-		(in TypeParam x) =>
-			jsonObject(alloc, [kindField!"type-param", field!"name"(x.name)]),
+		(in TypeParamIndex x) =>
+			jsonObject(alloc, [kindField!"type-param", field!"name"(x.debugPtr.name)]),
+		(in TypeParamIndexCallee _) =>
+			unreachable!Json,
 		(in StructInst x) =>
 			documentStructInst(alloc, x));
 

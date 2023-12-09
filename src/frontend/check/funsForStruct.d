@@ -37,8 +37,9 @@ import model.model :
 	StructDecl,
 	StructInst,
 	Type,
-typeArgs,
+	typeArgs,
 	TypeParam,
+	TypeParamIndex,
 	typeParams,
 	UnionMember,
 	VarDecl,
@@ -238,7 +239,7 @@ FunDecl enumOrFlagsConstructor(ref Alloc alloc, Visibility visibility, Type enum
 		FunFlags.generatedBare,
 		FunBody(FunBody.CreateEnum(member)));
 
-FunDecl enumEqualFunction(ref Alloc alloc, StructDecl* struct_, Type enumType, in CommonTypes commonTypes) =>
+FunDecl enumEqualFunction(ref Alloc alloc, StructDecl* struct_, Type enumType, ref CommonTypes commonTypes) =>
 	basicFunDecl(
 		FunDeclSource(struct_),
 		struct_.visibility,
@@ -283,7 +284,7 @@ FunDecl enumToIntegralFunction(
 	StructDecl* struct_,
 	EnumBackingType enumBackingType,
 	Type enumType,
-	in CommonTypes commonTypes,
+	ref CommonTypes commonTypes,
 ) =>
 	basicFunDecl(
 		FunDeclSource(struct_),
@@ -351,8 +352,8 @@ void addFunsForRecord(
 ) {
 	TypeParam[] typeParams = struct_.typeParams;
 	scope TypeArgsArray typeArgs = typeArgsArray();
-	foreach (ref TypeParam p; typeParams)
-		push(typeArgs, Type(&p));
+	foreach (size_t i, ref TypeParam p; typeParams)
+		push(typeArgs, Type(TypeParamIndex(i, &p)));
 	Type structType = Type(instantiateStructNeverDelay(ctx.instantiateCtx, struct_, tempAsArr(typeArgs)));
 	bool byVal = recordIsAlwaysByVal(record);
 	addFunsForRecordConstructor(ctx, funsBuilder, commonTypes, struct_, record, structType, byVal);
@@ -479,8 +480,8 @@ void addFunsForUnion(
 ) {
 	TypeParam[] typeParams = struct_.typeParams;
 	scope TypeArgsArray typeArgs = typeArgsArray();
-	foreach (ref TypeParam x; typeParams)
-		push(typeArgs, Type(&x));
+	foreach (size_t i, ref TypeParam x; typeParams)
+		push(typeArgs, Type(TypeParamIndex(i, &x)));
 	Type structType = Type(instantiateStructNeverDelay(ctx.instantiateCtx, struct_, tempAsArr(typeArgs)));
 	foreach (size_t memberIndex, ref UnionMember member; union_.members) {
 		Params params = isVoid(commonTypes, member.type)

@@ -112,7 +112,7 @@ void eachSorted(K, A0, A1, A2, A3, A4)(
 			consume(nextList);
 	}
 
-	assert(everyWithIndex!size_t(indices, (size_t indexOfList, in size_t _) =>
+	assert(everyWithIndex!size_t(indices, (size_t indexOfList, ref const size_t _) =>
 		!has(getComparable(indexOfList))));
 }
 

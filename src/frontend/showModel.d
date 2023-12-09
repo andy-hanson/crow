@@ -29,6 +29,8 @@ import model.model :
 	Type,
 	typeArgs,
 	TypeParam,
+	TypeParamIndex,
+	TypeParamIndexCallee,
 	TypeParamsAndSig;
 import util.col.arr : empty, only, only2, sizeEq;
 import util.lineAndColumnGetter : LineAndColumn, LineAndColumnRange, PosKind;
@@ -36,6 +38,7 @@ import util.opt : force, has, none, Opt, some;
 import util.sourceRange : toUriAndPos, UriAndPos, UriAndRange;
 import util.sym : AllSymbols, Sym, writeSym;
 import util.uri : AllUris, Uri, UrisInfo, writeUri, writeUriPreferRelative;
+import util.util : todo, unreachable;
 import util.writer :
 	writeBold, writeHyperlink, writeNewline, writeRed, writeReset, writeWithCommas, writeWithCommasZip, Writer;
 
@@ -368,9 +371,12 @@ void writeTypeUnquoted(scope ref Writer writer, in ShowCtx ctx, in Type a) {
 		(in Type.Bogus) {
 			writer ~= "<<bogus>>";
 		},
-		(in TypeParam x) {
-			writeSym(writer, ctx.allSymbols, x.name);
+		(in TypeParamIndex x) {
+			todo!void("need to get this from context");
+			// writeSym(writer, ctx.allSymbols, x.name);
 		},
+		(in TypeParamIndexCallee _) =>
+			unreachable!void,
 		(in StructInst x) {
 			writeStructInst(writer, ctx, x);
 		});

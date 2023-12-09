@@ -5,7 +5,7 @@ module frontend.check.checkCall.checkCallSpecs;
 import frontend.check.checkCall.candidates :
 	Candidate, eachCandidate, FunsInScope, funsInScope, testCandidateForSpecSig;
 import frontend.check.exprCtx : addDiag2, ExprCtx;
-import frontend.check.inferringType : InferringTypeArgs, SingleInferringType, tryGetInferred;
+import frontend.check.inferringType : InferringTypeArgs, nonInferringTypeContext, SingleInferringType, tryGetInferred;
 import frontend.check.instantiate :
 	InstantiateCtx,
 	instantiateFun,
@@ -33,7 +33,8 @@ import model.model :
 	SpecInst,
 	StructInst,
 	Type,
-	typeArgs;
+	typeArgs,
+	TypeParam;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : only;
@@ -46,7 +47,7 @@ import util.sourceRange : Range;
 import util.union_ : Union;
 
 Opt!Called checkCallSpecs(ref ExprCtx ctx, in Range range, ref const Candidate candidate) {
-	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, funsInScope(ctx));
+	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, ctx.outermostFunTypeParams, funsInScope(ctx));
 	return getCalledFromCandidateAfterTypeChecks(checkSpecsCtx, candidate, DummyTrace()).match!(Opt!Called)(
 		(Called x) {
 			consumeArr(checkSpecsCtx.alloc, checkSpecsCtx.matchDiags, (Diag.SpecMatchError diag) {
@@ -83,6 +84,7 @@ struct CheckSpecsCtx {
 
 	Alloc* allocPtr;
 	InstantiateCtx instantiateCtx;
+	TypeParam[] callerTypeParams;
 	immutable FunsInScope funsInScope;
 	ArrBuilder!(Diag.SpecMatchError) matchDiags;
 
@@ -144,7 +146,7 @@ Trace.Result checkCandidate(Trace)(
 	ref Candidate candidate,
 	scope Trace trace,
 ) =>
-	testCandidateForSpecSig(ctx.instantiateCtx, candidate, sigType, InferringTypeArgs())
+	testCandidateForSpecSig(ctx.instantiateCtx, ctx.callerTypeParams, candidate, sigType, nonInferringTypeContext(ctx.callerTypeParams))
 		? getCalledFromCandidateAfterTypeChecks(ctx, candidate, trace)
 		: Trace.Result(specNoMatch(
 			trace,

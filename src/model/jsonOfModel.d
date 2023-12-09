@@ -72,6 +72,8 @@ import model.model :
 	Type,
 	typeArgs,
 	TypeParam,
+	TypeParamIndex,
+	TypeParamIndexCallee,
 	typeParams,
 	VarDecl,
 	VariableRef,
@@ -86,6 +88,7 @@ import util.ptr : ptrTrustMe;
 import util.sourceRange : jsonOfRange;
 import util.sym : Sym, sym;
 import util.uri : AllUris, stringOfUri;
+import util.util : unreachable;
 
 Json jsonOfModule(ref Alloc alloc, in AllUris allUris, in LineAndColumnGetter lcg, in Module a) {
 	Ctx ctx = Ctx(ptrTrustMe(a), ptrTrustMe(allUris), lcg);
@@ -316,10 +319,12 @@ Json jsonOfType(ref Alloc alloc, in Ctx ctx, in Type a) =>
 	a.matchIn!Json(
 		(in Type.Bogus) =>
 			jsonString!"bogus" ,
-		(in TypeParam x) =>
+		(in TypeParamIndex x) =>
 			jsonObject(alloc, [
 				kindField!"type-param",
-				field!"name"(x.name)]),
+				field!"index"(x.index)]),
+		(in TypeParamIndexCallee _) =>
+			unreachable!Json,
 		(in StructInst x) =>
 			jsonOfStructInst(alloc, ctx, x));
 
