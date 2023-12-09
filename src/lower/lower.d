@@ -46,6 +46,7 @@ import model.concreteModel :
 	ConcreteField,
 	ConcreteFun,
 	ConcreteFunBody,
+	ConcreteFunKey,
 	ConcreteLambdaImpl,
 	ConcreteLocal,
 	ConcreteLocalSource,
@@ -1302,7 +1303,7 @@ LowExprKind getCallBuiltinExpr(
 	LowType type,
 	ref ConcreteExprKind.Call a,
 ) {
-	Sym name = a.called.source.as!(FunInst*).name;
+	Sym name = a.called.source.as!ConcreteFunKey.decl.name;
 	LowType paramType(size_t index) {
 		return index < a.args.length
 			? lowTypeFromConcreteType(ctx.typeCtx, a.called.paramsIncludingClosure[index].type)

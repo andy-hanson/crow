@@ -11,6 +11,7 @@ import model.concreteModel :
 	ConcreteField,
 	ConcreteFun,
 	ConcreteFunBody,
+	ConcreteFunKey,
 	ConcreteFunSource,
 	ConcreteLocal,
 	ConcreteLocalSource,
@@ -138,8 +139,8 @@ Json jsonOfConcreteFun(ref Alloc alloc, in Ctx ctx, in ConcreteFun a) =>
 
 Json jsonOfConcreteFunSource(ref Alloc alloc, in ConcreteFunSource a) =>
 	a.matchIn!Json(
-		(in FunInst x) =>
-			jsonString(x.name),
+		(in ConcreteFunKey x) =>
+			jsonString(x.decl.name),
 		(in ConcreteFunSource.Lambda x) =>
 			jsonObject(alloc, [
 				kindField!"lambda",

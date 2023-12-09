@@ -69,7 +69,7 @@ StructDecl[] checkStructsInitial(ref CheckCtx ctx, in StructDeclAst[] asts) =>
 			some(ast),
 			ctx.curUri,
 			ast.name.name,
-			small(checkTypeParams(ctx, ast.typeParams)),
+			checkTypeParams(ctx, ast.typeParams),
 			visibilityFromExplicit(ast.visibility),
 			p.linkage,
 			p.purityAndForced.purity,

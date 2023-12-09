@@ -6,6 +6,7 @@ import model.concreteModel :
 	body_,
 	ConcreteFun,
 	ConcreteFunBody,
+	ConcreteFunKey,
 	ConcreteFunSource,
 	ConcreteStruct,
 	ConcreteStructSource;
@@ -59,9 +60,9 @@ MangledNames buildMangledNames(
 		fun.source.matchWithPointers!void(
 			(ConcreteFun* cf) {
 				cf.source.matchIn!void(
-					(in FunInst i) {
+					(in ConcreteFunKey x) {
 						//TODO: use temp alloc
-						addToPrevOrIndex!ConcreteFun(alloc, funNameToIndex, funToNameIndex, cf, i.name);
+						addToPrevOrIndex!ConcreteFun(alloc, funNameToIndex, funToNameIndex, cf, x.decl.name);
 					},
 					(in ConcreteFunSource.Lambda) {},
 					(in ConcreteFunSource.Test) {},
@@ -173,11 +174,11 @@ private void writeConcreteFunMangledName(
 	in ConcreteFun* source,
 ) {
 	source.source.matchIn!void(
-		(in FunInst x) {
+		(in ConcreteFunKey x) {
 			if (body_(*source).isA!(ConcreteFunBody.Extern))
-				writeSym(writer, *mangledNames.allSymbols, x.name);
+				writeSym(writer, *mangledNames.allSymbols, x.decl.name);
 			else {
-				writeMangledName(writer, mangledNames, x.name);
+				writeMangledName(writer, mangledNames, x.decl.name);
 				maybeWriteIndexSuffix(writer, mangledNames.funToNameIndex[source]);
 			}
 		},

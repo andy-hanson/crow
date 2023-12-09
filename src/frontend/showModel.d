@@ -14,6 +14,7 @@ import model.model :
 	FunDecl,
 	FunDeclAndTypeArgs,
 	FunInst,
+	isEmpty,
 	isTuple,
 	Local,
 	name,
@@ -131,10 +132,10 @@ private void writeTypeParamsAndArgs(
 	in TypeParams typeArgsContext,
 	in Type[] typeArgs,
 ) {
-	assert(sizeEq(typeParams, typeArgs));
-	if (!empty(typeParams)) {
+	assert(sizeEq(typeParams.asArray, typeArgs));
+	if (!isEmpty(typeParams)) {
 		writer ~= " with ";
-		writeWithCommasZip!(TypeParam, Type)(writer, typeParams, typeArgs, (in TypeParam param, in Type arg) {
+		writeWithCommasZip!(TypeParam, Type)(writer, typeParams.asArray, typeArgs, (in TypeParam param, in Type arg) {
 			writeSym(writer, ctx.allSymbols, param.name);
 			writer ~= '=';
 			writeTypeUnquoted(writer, ctx, TypeWithContext(arg, typeArgsContext));
@@ -213,9 +214,9 @@ void writeSig(
 
 void writeSigSimple(scope ref Writer writer, in ShowCtx ctx, Sym name, in TypeParamsAndSig sig) {
 	writeSym(writer, ctx.allSymbols, name);
-	if (!empty(sig.typeParams)) {
+	if (!isEmpty(sig.typeParams)) {
 		writer ~= '[';
-		writeWithCommas!TypeParam(writer, sig.typeParams, (in TypeParam x) {
+		writeWithCommas!TypeParam(writer, sig.typeParams.asArray, (in TypeParam x) {
 			writeSym(writer, ctx.allSymbols, x.name);
 		});
 		writer ~= ']';
@@ -378,7 +379,7 @@ void writeTypeUnquoted(scope ref Writer writer, in ShowCtx ctx, in TypeWithConte
 			writer ~= "<<bogus>>";
 		},
 		(in TypeParamIndex x) {
-			writeSym(writer, ctx.allSymbols, a.context[x.index].name);
+			writeSym(writer, ctx.allSymbols, a.context[x].name);
 		},
 		(in StructInst x) {
 			writeStructInst(writer, ctx, a.context, x);

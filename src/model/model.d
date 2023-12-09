@@ -82,9 +82,37 @@ immutable struct TypeParam {
 	Sym name;
 	size_t index;
 }
-alias TypeParams = SmallArray!TypeParam;
+immutable struct TypeParams {
+	@safe @nogc pure nothrow:
+	private SmallArray!TypeParam inner;
+
+	this(TypeParam[] x) {
+		inner = small(x);
+	}
+
+	ref TypeParam opIndex(TypeParamIndex index) {
+		TypeParam* res = &inner[index.index];
+		assert(res == index.debugPtr);
+		return *res;
+	}
+
+	void assertIndex(TypeParamIndex index) {
+		cast(void) opIndex(index);
+	}
+
+	size_t length() =>
+		inner.length;
+
+	TypeParam[] asArray() =>
+		inner;
+	
+	static TypeParams empty() =>
+		emptyTypeParams;
+}
+bool isEmpty(in TypeParams a) =>
+	empty(a.inner);
 TypeParams emptyTypeParams() =>
-	small!TypeParam([]);
+	TypeParams([]);
 
 // Represent type parameter as the index, so we don't generate different types for every `t list`.
 // (These are disambiguated in the type checker using `TypeAndContext`)
@@ -398,7 +426,7 @@ UriAndRange nameRange(in AllSymbols allSymbols, in StructDecl a) =>
 	UriAndRange(a.moduleUri, has(a.ast) ? nameRange(allSymbols, *force(a.ast)) : Range.empty);
 
 bool isTemplate(in StructDecl a) =>
-	!empty(a.typeParams);
+	!isEmpty(a.typeParams);
 
 bool bodyIsSet(in StructDecl a) =>
 	lateIsSet(a.lateBody);
@@ -801,7 +829,7 @@ bool isVariadic(in FunDecl a) =>
 	a.params.isA!(Params.Varargs*);
 
 bool isTemplate(in FunDecl a) =>
-	!empty(a.typeParams) || !empty(a.specs);
+	!isEmpty(a.typeParams) || !empty(a.specs);
 
 Arity arity(in FunDecl a) =>
 	arity(a.params);

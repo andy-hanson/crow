@@ -76,32 +76,13 @@ immutable struct TypeParamsAndArgs {
 	this(TypeParams tp, Type[] ta) {
 		typeParams = tp;
 		typeArgs = ta;
-		assert(sizeEq(typeParams, typeArgs));
+		assert(sizeEq(typeParams.asArray, typeArgs));
 	}
 }
 
 alias TypeArgsArray = MutMaxArr!(maxTypeParams, Type);
 TypeArgsArray typeArgsArray() =>
 	mutMaxArr!(maxTypeParams, Type);
-
-void assertNoTypeArg(TypeParams typeParams, TypeParamIndex a) {
-	assert(!(a.index < typeParams.length && &typeParams[a.index] == a.debugPtr));
-}
-private Opt!(T*) tryGetTypeArg(T)(TypeParams typeParams, return scope immutable T[] typeArgs, TypeParam* typeParam) {
-	size_t index = typeParam.index;
-	bool hasTypeParam = index < typeParams.length && &typeParams[index] == typeParam;
-	return hasTypeParam ? some(&typeArgs[index]) : none!(T*);
-}
-MutOpt!(T*) tryGetTypeArg_mut(T)(TypeParams typeParams, return scope T[] typeArgs, TypeParam* typeParam) {
-	size_t index = typeParam.index;
-	bool hasTypeParam = index < typeParams.length && &typeParams[index] == typeParam;
-	return hasTypeParam ? someMut!(T*)(&typeArgs[index]) : noneMut!(T*);
-}
-
-private Opt!Type tryGetTypeArgFromTypeParamsAndArgs(in TypeParamsAndArgs typeParamsAndArgs, TypeParam* typeParam) {
-	Opt!(Type*) t = tryGetTypeArg!Type(typeParamsAndArgs.typeParams, typeParamsAndArgs.typeArgs, typeParam);
-	return has(t) ? some(*force(t)) : none!Type;
-}
 
 alias DelaySpecInsts = MutArrWithAlloc!(SpecInst*);
 alias MayDelaySpecInsts = MutOpt!(DelaySpecInsts*); // delayed due to 'parents' referencing other specs
@@ -121,12 +102,12 @@ private Type instantiateType(
 	type.matchWithPointers!Type(
 		(Type.Bogus _) =>
 			Type(Type.Bogus()),
-		(TypeParamIndex p) {
-			Opt!Type op = tryGetTypeArgFromTypeParamsAndArgs(typeParamsAndArgs, p.debugPtr);
-			return has(op) ? force(op) : type;
+		(TypeParamIndex x) {
+			typeParamsAndArgs.typeParams.assertIndex(x);
+			return typeParamsAndArgs.typeArgs[x.index];
 		},
-		(StructInst* i) =>
-			Type(instantiateStructInst(ctx, *i, typeParamsAndArgs, delayStructInsts)));
+		(StructInst* x) =>
+			Type(instantiateStructInst(ctx, *x, typeParamsAndArgs, delayStructInsts)));
 
 private Type instantiateTypeNoDelay(ref InstantiateCtx ctx, Type type, in TypeParamsAndArgs typeParamsAndArgs) =>
 	instantiateType(ctx, type, typeParamsAndArgs, noDelayStructInsts);

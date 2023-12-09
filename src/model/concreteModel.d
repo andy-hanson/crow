@@ -24,10 +24,10 @@ import model.model :
 	StructInst,
 	VarDecl;
 import util.col.arr : only, PtrAndSmallNumber;
-import util.col.arrUtil : contains;
+import util.col.arrUtil : arrEqual, contains;
 import util.col.map : Map;
 import util.col.str : SafeCStr;
-import util.hash : HashCode, hashPtr;
+import util.hash : HashCode, Hasher, hashPtr;
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.opt : none, Opt, some;
 import util.sourceRange : UriAndRange;
@@ -365,9 +365,8 @@ immutable struct ConcreteFunSource {
 		UriAndRange range;
 	}
 
-	mixin Union!(FunInst*, Lambda*, Test*, WrapMain*);
+	mixin Union!(ConcreteFunKey, Lambda*, Test*, WrapMain*);
 }
-static assert(ConcreteFunSource.sizeof == ulong.sizeof);
 
 // We generate a ConcreteFun for:
 // Each instantiation of a FunDecl
@@ -379,9 +378,33 @@ immutable struct ConcreteFun {
 	Late!ConcreteFunBody _body_;
 }
 
+immutable struct ConcreteFunKey {
+	@safe @nogc pure nothrow:
+
+	FunDecl* decl;
+	ConcreteType[] typeArgs;
+	ConcreteFun*[] specImpls;
+
+	bool opEquals(scope ConcreteFunKey b) scope =>
+		decl == b.decl &&
+		arrEqual!ConcreteType(typeArgs, b.typeArgs) &&
+		arrEqual!(ConcreteFun*)(specImpls, b.specImpls);
+
+	HashCode hash() scope {
+		Hasher hasher;
+		hasher ~= decl;
+		foreach (ConcreteType t; typeArgs)
+			// Ignore 'reference', functions are unlikely to overload by that
+			hasher ~= t.struct_;
+		foreach (ConcreteFun* p; specImpls)
+			hasher ~= p;
+		return hasher.finish();
+	}
+}
+
 bool isVariadic(in ConcreteFun a) =>
 	a.source.matchIn!bool(
-		(in FunInst x) =>
+		(in ConcreteFunKey x) =>
 			x.decl.params.isA!(Params.Varargs*),
 		(in ConcreteFunSource.Lambda) =>
 			false,
@@ -391,14 +414,14 @@ bool isVariadic(in ConcreteFun a) =>
 			false);
 
 Opt!Sym name(ref ConcreteFun a) =>
-	a.source.isA!(FunInst*) ? some(a.source.as!(FunInst*).name) : none!Sym;
+	a.source.isA!ConcreteFunKey ? some(a.source.as!ConcreteFunKey.decl.name) : none!Sym;
 
 bool isSummon(ref ConcreteFun a) =>
 	a.source.matchIn!bool(
-		(in FunInst it) =>
-			isSummon(*decl(it)),
-		(in ConcreteFunSource.Lambda it) =>
-			isSummon(*it.containingFun),
+		(in ConcreteFunKey x) =>
+			isSummon(*x.decl),
+		(in ConcreteFunSource.Lambda x) =>
+			isSummon(*x.containingFun),
 		(in ConcreteFunSource.Test) =>
 			// 'isSummon' is called for direct calls, but tests are never called directly
 			unreachable!bool(),
@@ -407,8 +430,8 @@ bool isSummon(ref ConcreteFun a) =>
 
 UriAndRange concreteFunRange(in ConcreteFun a) =>
 	a.source.matchIn!UriAndRange(
-		(in FunInst x) =>
-			range(*decl(x)),
+		(in ConcreteFunKey x) =>
+			range(*x.decl),
 		(in ConcreteFunSource.Lambda x) =>
 			x.range,
 		(in ConcreteFunSource.Test x) =>
@@ -417,10 +440,10 @@ UriAndRange concreteFunRange(in ConcreteFun a) =>
 			x.range);
 
 bool isFunOrActSubscript(ref ConcreteProgram program, ref ConcreteFun a) =>
-	a.source.isA!(FunInst*) && contains(program.commonFuns.funOrActSubscriptFunDecls, decl(*a.source.as!(FunInst*)));
+	a.source.isA!ConcreteFunKey && contains(program.commonFuns.funOrActSubscriptFunDecls, a.source.as!ConcreteFunKey.decl);
 
 bool isMarkVisitFun(ref ConcreteProgram program, ref ConcreteFun a) =>
-	a.source.isA!(FunInst*) && decl(*a.source.as!(FunInst*)) == program.commonFuns.markVisitFunDecl;
+	a.source.isA!ConcreteFunKey && a.source.as!ConcreteFunKey.decl == program.commonFuns.markVisitFunDecl;
 
 ref ConcreteFunBody body_(return scope ref ConcreteFun a) =>
 	lateGet(a._body_);

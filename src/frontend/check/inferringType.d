@@ -3,8 +3,7 @@ module frontend.check.inferringType;
 @safe @nogc pure nothrow:
 
 import frontend.check.exprCtx : addDiag2, ExprCtx, typeContext, typeWithContext;
-import frontend.check.instantiate :
-	assertNoTypeArg, InstantiateCtx, instantiateStructNeverDelay, tryGetTypeArg_mut, TypeArgsArray, typeArgsArray;
+import frontend.check.instantiate : InstantiateCtx, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray;
 import frontend.parse.ast : ExprAst;
 import model.diag : Diag, ExpectedForDiag, TypeWithContext;
 import model.model :
@@ -68,13 +67,13 @@ const(TypeContext) toTypeContext(const InferringTypeArgs a) =>
 TypeContext toTypeContext(InferringTypeArgs a) =>
 	TypeContext(a.params, someMut(a.args));
 const(MutOpt!(SingleInferringType*)) tryGetInferring(const TypeContext context, TypeParamIndex param) {
-	assert(&context.typeParams[param.index] == param.debugPtr);
+	context.typeParams.assertIndex(param);
 	return has(context.args)
 		? someConst!(SingleInferringType*)(&force(context.args)[param.index])
 		: noneMut!(SingleInferringType*);
 }
 MutOpt!(SingleInferringType*) tryGetInferring(TypeContext ctx, TypeParamIndex param) {
-	assert(&ctx.typeParams[param.index] == param.debugPtr);
+	ctx.typeParams.assertIndex(param);
 	return has(ctx.args)
 		? someMut!(SingleInferringType*)(&force(ctx.args)[param.index])
 		: noneMut!(SingleInferringType*);
@@ -415,20 +414,6 @@ private bool setTypeNoDiagnostic(ref InstantiateCtx ctx, TypeParams outerContext
 		(LoopInfo* loop) =>
 			false);
 
-void assertNoTypeArgFromInferringTypeArgs(in InferringTypeArgs inferringTypeArgs, TypeParamIndex a) {
-	assertNoTypeArg(inferringTypeArgs.params, a);	
-}
-MutOpt!(SingleInferringType*) tryGetTypeArgFromInferringTypeArgs(
-	return scope ref InferringTypeArgs inferringTypeArgs,
-	TypeParam* typeParam,
-) =>
-	tryGetTypeArg_mut!SingleInferringType(inferringTypeArgs.params, inferringTypeArgs.args, typeParam);
-MutOpt!(const(SingleInferringType)*) tryGetTypeArgFromInferringTypeArgs(
-	return scope ref const InferringTypeArgs inferringTypeArgs,
-	TypeParam* typeParam,
-) =>
-	tryGetTypeArg_mut(inferringTypeArgs.params, inferringTypeArgs.args, typeParam);
-
 Opt!Type tryGetDeeplyInstantiatedType(ref InstantiateCtx ctx, const TypeAndContext a) =>
 	a.type.matchWithPointers!(Opt!Type)(
 		(Type.Bogus) =>
@@ -561,8 +546,8 @@ public void inferTypeArgsFrom(
 	a.matchWithPointers!void(
 		(Type.Bogus) {},
 		(TypeParamIndex ap) {
-			MutOpt!(SingleInferringType*) optAInferring = tryGetTypeArgFromInferringTypeArgs(aInferringTypeArgs, ap.debugPtr);
-			SingleInferringType* aInferring = force(optAInferring);
+			aInferringTypeArgs.params.assertIndex(ap);
+			SingleInferringType* aInferring = &aInferringTypeArgs.args[ap.index];
 			if (!has(tryGetInferred(*aInferring))) {
 				Opt!Type t = tryGetDeeplyInstantiatedType(ctx, b2);
 				if (has(t))
@@ -637,7 +622,7 @@ void assertTypeContainsOnlyParams(in Type a, in TypeParams typeParams) {
 	a.matchIn!void(
 		(in Type.Bogus _) {},
 		(in TypeParamIndex x) {
-			assert(&typeParams[x.index] == x.debugPtr);
+			typeParams.assertIndex(x);
 		},
 		(in StructInst inst) {
 			foreach (Type arg; typeArgs(inst))

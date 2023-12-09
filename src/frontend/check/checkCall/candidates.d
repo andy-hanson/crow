@@ -13,7 +13,6 @@ import frontend.check.inferringType :
 	toTypeContext,
 	tryGetDeeplyInstantiatedType,
 	tryGetInferred,
-	tryGetTypeArgFromInferringTypeArgs,
 	TypeAndContext,
 	TypeContext;
 import frontend.check.instantiate : InstantiateCtx, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray;

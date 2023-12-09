@@ -207,7 +207,7 @@ Json.ObjectField[3] commonDeclFields(
 	[
 		field!"visibility"(symOfVisibility(visibility)),
 		field!"name"(name),
-		optionalArrayField!("type-params", TypeParam)(alloc, typeParams, (in TypeParam x) =>
+		optionalArrayField!("type-params", TypeParam)(alloc, typeParams.asArray, (in TypeParam x) =>
 			jsonOfTypeParam(alloc, x)),
 	];
 

@@ -15,6 +15,7 @@ import model.concreteModel :
 	ConcreteField,
 	ConcreteFun,
 	ConcreteFunBody,
+	ConcreteFunKey,
 	concreteFunRange,
 	ConcreteFunSource,
 	ConcreteLambdaImpl,
@@ -108,7 +109,7 @@ immutable struct TypeArgsScope {
 	this(TypeParams tp, ConcreteType[] ta) {
 		typeParams = tp;
 		typeArgs = ta;
-		assert(sizeEq(typeParams, typeArgs));
+		assert(sizeEq(typeParams.asArray, typeArgs));
 	}
 
 	static TypeArgsScope empty() =>
@@ -141,37 +142,11 @@ private ConcreteStructKey getStructKey(return in ConcreteStruct* a) {
 private VarDecl* getVarKey(return in ConcreteVar* a) =>
 	a.source;
 
-immutable struct ConcreteFunKey {
-	@safe @nogc pure nothrow:
-
-	// We only need a FunDecl since we have the typeArgs and specImpls.
-	// FunInst is for debug info
-	FunInst* inst;
-	ConcreteType[] typeArgs;
-	ConcreteFun*[] specImpls;
-
-	bool opEquals(scope ConcreteFunKey b) scope =>
-		// Compare decls, not insts.
-		// Two different FunInsts may concretize to the same thing.
-		// (e.g. f<?t> and f<bool> if ?t = bool)
-		decl(*inst) == decl(*b.inst) &&
-		arrEqual!ConcreteType(typeArgs, b.typeArgs) &&
-		arrEqual!(ConcreteFun*)(specImpls, b.specImpls);
-
-	HashCode hash() scope {
-		Hasher hasher;
-		hasher ~= decl(*inst);
-		foreach (ConcreteType t; typeArgs)
-			// Ignore 'reference', functions are unlikely to overload by that
-			hasher ~= t.struct_;
-		foreach (ConcreteFun* p; specImpls)
-			hasher ~= p;
-		return hasher.finish();
-	}
-}
+private ConcreteFunKey getFunKey(return in ConcreteFun* a) =>
+	a.source.as!ConcreteFunKey;
 
 private ContainingFunInfo toContainingFunInfo(ConcreteFunKey a) =>
-	ContainingFunInfo(moduleUri(*decl(*a.inst)), decl(*a.inst).typeParams, a.typeArgs, a.specImpls);
+	ContainingFunInfo(moduleUri(*a.decl),a.decl.typeParams, a.typeArgs, a.specImpls);
 
 TypeArgsScope typeArgsScope(ref ConcreteFunKey a) =>
 	typeArgsScope(toContainingFunInfo(a));
@@ -228,7 +203,7 @@ struct ConcretizeCtx {
 	MutHashTable!(ConcreteStruct*, ConcreteStructKey, getStructKey) nonLambdaConcreteStructs;
 	ArrBuilder!(ConcreteStruct*) allConcreteStructs;
 	MutHashTable!(immutable ConcreteVar*, immutable VarDecl*, getVarKey) concreteVarLookup;
-	MutMap!(ConcreteFunKey, ConcreteFun*) nonLambdaConcreteFuns;
+	MutHashTable!(ConcreteFun*, ConcreteFunKey, getFunKey) nonLambdaConcreteFuns;
 	MutArr!DeferredRecordBody deferredRecords;
 	MutArr!DeferredUnionBody deferredUnions;
 	ArrBuilder!(ConcreteFun*) allConcreteFuns;
@@ -301,7 +276,7 @@ Constant constantSym(ref ConcretizeCtx a, Sym value) =>
 
 ConcreteFun* getOrAddConcreteFunAndFillBody(ref ConcretizeCtx ctx, ConcreteFunKey key) {
 	ConcreteFun* cf = getOrAddConcreteFunWithoutFillingBody(ctx, key);
-	fillInConcreteFunBody(ctx, paramsArray(decl(*key.inst).params), cf);
+	fillInConcreteFunBody(ctx, paramsArray(key.decl.params), cf);
 	return cf;
 }
 
@@ -329,8 +304,8 @@ ConcreteFun* getConcreteFunForLambdaAndFillBody(
 	return res;
 }
 
-ConcreteFun* getOrAddNonTemplateConcreteFunAndFillBody(ref ConcretizeCtx ctx, FunInst* decl) =>
-	getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(decl, [], []));
+ConcreteFun* getOrAddNonTemplateConcreteFunAndFillBody(ref ConcretizeCtx ctx, FunInst* inst) =>
+	getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(decl(*inst), [], []));
 
 private ConcreteType getConcreteType_forStructInst(
 	ref ConcretizeCtx ctx,
@@ -430,21 +405,20 @@ private void setConcreteStructRecordSize(ref Alloc alloc, DeferredRecordBody a) 
 private:
 
 ConcreteFun* getOrAddConcreteFunWithoutFillingBody(ref ConcretizeCtx ctx, ref ConcreteFunKey key) =>
-	getOrAdd!(ConcreteFunKey, ConcreteFun*)(ctx.alloc, ctx.nonLambdaConcreteFuns, key, () {
+	getOrAdd(ctx.alloc, ctx.nonLambdaConcreteFuns, key, () {
 		ConcreteFun* res = getConcreteFunFromKey(ctx, key);
 		addConcreteFun(ctx, res);
 		return res;
 	});
 
 ConcreteFun* getConcreteFunFromKey(ref ConcretizeCtx ctx, ref ConcreteFunKey key) {
-	FunDecl* decl = decl(*key.inst);
 	TypeArgsScope typeScope = typeArgsScope(key);
-	ConcreteType returnType = getConcreteType(ctx, decl.returnType, typeScope);
-	ConcreteLocal[] params = concretizeFunctionParams(ctx, paramsArray(decl.params), typeScope);
-	ConcreteFun* res = allocate(ctx.alloc, ConcreteFun(ConcreteFunSource(key.inst), returnType, params));
+	ConcreteType returnType = getConcreteType(ctx, key.decl.returnType, typeScope);
+	ConcreteLocal[] params = concretizeFunctionParams(ctx, paramsArray(key.decl.params), typeScope);
+	ConcreteFun* res = allocate(ctx.alloc, ConcreteFun(ConcreteFunSource(key), returnType, params));
 	ConcreteFunBodyInputs bodyInputs = ConcreteFunBodyInputs(
 		toContainingFunInfo(key),
-		decl.body_);
+		key.decl.body_);
 	mustAddToMutMap(ctx.alloc, ctx.concreteFunToBodyInputs, res, bodyInputs);
 	return res;
 }
@@ -504,7 +478,7 @@ public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* mo
 	ConcreteExpr callMain = ConcreteExpr(voidType(ctx), range, ConcreteExprKind(ConcreteExprKind.Call(innerMain, [])));
 	ConcreteExpr zero = ConcreteExpr(nat64Type, range, ConcreteExprKind(constantZero));
 	ConcreteFun* newNat64Future = getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
-		ctx.program.commonFuns.newNat64Future,
+		decl(*ctx.program.commonFuns.newNat64Future),
 		//TODO:avoid alloc
 		arrLiteral(ctx.alloc, [nat64Type]),
 		[]));
@@ -742,8 +716,7 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 			(FunBody.Bogus) =>
 				ConcreteFunBody(concretizeBogus(ctx, cf.returnType, concreteFunRange(*cf))),
 			(FunBody.Builtin) {
-				FunInst* inst = cf.source.as!(FunInst*);
-				switch (inst.name.value) {
+				switch (cf.source.as!ConcreteFunKey.decl.name.value) {
 					case sym!"all-tests".value:
 						return bodyForAllTests(ctx, cf.returnType);
 					case sym!"safe-value".value:

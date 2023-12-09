@@ -180,7 +180,7 @@ Opt!PositionKind positionInTypeParams(
 	in NameAndRange[] asts,
 	Pos pos,
 ) =>
-	firstZipPointerFirst!(PositionKind, TypeParam, NameAndRange)(typeParams, asts, (TypeParam* p, NameAndRange x) =>
+	firstZipPointerFirst!(PositionKind, TypeParam, NameAndRange)(typeParams.asArray, asts, (TypeParam* p, NameAndRange x) =>
 		optIf(hasPos(allSymbols, x, pos), () => PositionKind(PositionKind.TypeParamWithContainer(container, TypeParamIndex(p.index, p)))));
 
 Opt!PositionKind positionInSpec(in AllSymbols allSymbols, SpecDecl* a, Pos pos) =>

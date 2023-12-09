@@ -58,6 +58,7 @@ import model.model :
 	ImportFileType,
 	ImportOrExport,
 	ImportOrExportKind,
+	isEmpty,
 	isLinkageAlwaysCompatible,
 	Linkage,
 	linkageRange,
@@ -277,13 +278,7 @@ SpecDecl[] checkSpecDeclsInitial(
 		TypeParams typeParams = checkTypeParams(ctx, ast.typeParams);
 		SpecDeclBody body_ =
 			checkSpecDeclBody(ctx, commonTypes, typeParams, structsAndAliasesMap, ast.range, ast.name.name, ast.body_);
-		return SpecDecl(
-			ctx.curUri,
-			ast,
-			visibilityFromExplicit(ast.visibility),
-			ast.name.name,
-			small(typeParams),
-			body_);
+		return SpecDecl(ctx.curUri, ast, visibilityFromExplicit(ast.visibility), ast.name.name, typeParams, body_);
 	});
 
 void checkSpecDeclParents(
@@ -337,7 +332,7 @@ StructAlias[] checkStructAliasesInitial(ref CheckCtx ctx, scope StructAliasAst[]
 			copySafeCStr(ctx.alloc, ast.docComment),
 			visibilityFromExplicit(ast.visibility),
 			ast.name.name,
-			small(checkTypeParams(ctx, ast.typeParams))));
+			checkTypeParams(ctx, ast.typeParams)));
 
 void checkStructAliasTargets(
 	ref CheckCtx ctx,
@@ -577,7 +572,7 @@ FunsAndMap checkFuns(
 					FunDeclSource(FunDeclSource.Ast(ctx.curUri, funAst)),
 					visibilityFromExplicit(funAst.visibility),
 					funAst.name.name,
-					small(typeParams),
+					typeParams,
 					rp.returnType,
 					rp.params,
 					flagsAndSpecs.flags,
@@ -729,7 +724,7 @@ FunDecl funDeclForFileImportOrExport(
 		FunDeclSource(FunDeclSource.FileImport(ctx.curUri, a.source)),
 		visibility,
 		ast.name.name,
-		emptySmallArray!TypeParam,
+		TypeParams.empty,
 		typeForFileImport(ctx, commonTypes, structsAndAliasesMap, pathRange(ctx.allUris, *a.source), ast.type),
 		Params([]),
 		FunFlags.generatedBare,
@@ -759,7 +754,7 @@ Type typeForFileImport(
 FunBody.Extern checkExternBody(ref CheckCtx ctx, FunDecl* fun, in Opt!TypeAst typeArg) {
 	Linkage funLinkage = Linkage.extern_;
 
-	if (!empty(fun.typeParams))
+	if (!isEmpty(fun.typeParams))
 		addDiag(ctx, range(*fun), Diag(Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.hasTypeParams)));
 	if (!empty(fun.specs))
 		addDiag(ctx, range(*fun), Diag(Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.hasSpecs)));

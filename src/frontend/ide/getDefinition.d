@@ -4,7 +4,7 @@ module frontend.ide.getDefinition;
 
 import frontend.ide.getTarget : Target, targetForPosition;
 import frontend.ide.ideUtil : ReferenceCb;
-import frontend.ide.position : Position, PositionKind;
+import frontend.ide.position : Position, PositionKind, typeParams;
 import model.model :
 	FunDecl,
 	LoopExpr,
@@ -72,7 +72,7 @@ public void definitionForTarget(in AllSymbols allSymbols, Uri curUri, in Target 
 			cb(nameRange(allSymbols, x));
 		},
 		(in PositionKind.TypeParamWithContainer x) {
-			cb(x.typeParam.debugPtr.range);
+			cb(typeParams(x.container)[x.typeParam].range);
 		},
 		(in VarDecl x) {
 			cb(nameRange(allSymbols, x));

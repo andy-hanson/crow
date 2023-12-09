@@ -137,14 +137,14 @@ void getHover(scope ref Writer writer, in ShowCtx ctx, in Position pos) =>
 			x.type.matchIn!void(
 				(in Type.Bogus) {},
 				(in TypeParamIndex p) {
-					hoverTypeParam(writer, ctx, *p.debugPtr);
+					hoverTypeParam(writer, ctx, typeParams(x.container), p);
 				},
 				(in StructInst i) {
 					writeStructDeclHover(writer, ctx, *decl(i));
 				});
 		},
 		(in PositionKind.TypeParamWithContainer x) {
-			hoverTypeParam(writer, ctx, *x.typeParam.debugPtr);
+			hoverTypeParam(writer, ctx, typeParams(x.container), x.typeParam);
 		},
 		(in VarDecl x) {
 			writeSym(writer, ctx.allSymbols, symOfVarKind(x.kind));
@@ -185,9 +185,9 @@ void getImportedNameHover(scope ref Writer writer, in ShowCtx ctx, in PositionKi
 	writer ~= "TODO: getImportedNameHover";
 }
 
-void hoverTypeParam(scope ref Writer writer, in ShowCtx ctx, in TypeParam a) {
+void hoverTypeParam(scope ref Writer writer, in ShowCtx ctx, in TypeParams typeParams, in TypeParamIndex index) {
 	writer ~= "type parameter ";
-	writeSym(writer, ctx.allSymbols, a.name);
+	writeSym(writer, ctx.allSymbols, typeParams[index].name);
 }
 
 void getExprHover(scope ref Writer writer, in ShowCtx ctx, in Uri curUri, in TypeParams typeContext, in Expr a) =>

@@ -147,7 +147,7 @@ FunDecl funDeclWithBody(
 	immutable(SpecInst*)[] specInsts,
 	FunBody body_,
 ) {
-	FunDecl res = FunDecl(source, visibility, name, small(typeParams), returnType, params, flags, small(specInsts));
+	FunDecl res = FunDecl(source, visibility, name, typeParams, returnType, params, flags, small(specInsts));
 	res.setBody(body_);
 	return res;
 }
@@ -354,7 +354,7 @@ void addFunsForRecord(
 ) {
 	TypeParams typeParams = struct_.typeParams;
 	scope TypeArgsArray typeArgs = typeArgsArray();
-	foreach (size_t i, ref TypeParam p; typeParams)
+	foreach (size_t i, ref TypeParam p; typeParams.asArray)
 		push(typeArgs, Type(TypeParamIndex(i, &p)));
 	Type structType = Type(instantiateStructNeverDelay(ctx.instantiateCtx, struct_, tempAsArr(typeArgs)));
 	bool byVal = recordIsAlwaysByVal(record);
@@ -482,7 +482,7 @@ void addFunsForUnion(
 ) {
 	TypeParams typeParams = struct_.typeParams;
 	scope TypeArgsArray typeArgs = typeArgsArray();
-	foreach (size_t i, ref TypeParam x; typeParams)
+	foreach (size_t i, ref TypeParam x; typeParams.asArray)
 		push(typeArgs, Type(TypeParamIndex(i, &x)));
 	Type structType = Type(instantiateStructNeverDelay(ctx.instantiateCtx, struct_, tempAsArr(typeArgs)));
 	foreach (size_t memberIndex, ref UnionMember member; union_.members) {

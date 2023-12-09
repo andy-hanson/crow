@@ -4,6 +4,7 @@ module interpret.debugging;
 
 import model.concreteModel :
 	ConcreteFun,
+	ConcreteFunKey,
 	ConcreteFunSource,
 	ConcreteLocal,
 	ConcreteLocalSource,
@@ -12,7 +13,7 @@ import model.concreteModel :
 	ConcreteType,
 	ReferenceKind,
 	symOfReferenceKind;
-import frontend.showModel : ShowCtx, writeTypeArgs, writeTypeArgsGeneric;
+import frontend.showModel : ShowCtx, writeTypeArgsGeneric;
 import model.lowModel :
 	AllLowTypes, LowFun, LowFunIndex, LowFunSource, LowProgram, LowType, PrimitiveType, symOfPrimitiveType;
 import model.model : decl, emptyTypeParams, FunInst, name, Local, typeArgs;
@@ -114,12 +115,10 @@ void writeLowType(scope ref Writer writer, in ShowCtx ctx, in AllLowTypes lowTyp
 
 void writeConcreteFunName(scope ref Writer writer, in ShowCtx ctx, in ConcreteFun a) {
 	a.source.matchIn!void(
-		(in FunInst it) {
-			writeSym(writer, ctx.allSymbols, it.name);
-			// TODO: below will fail since 'typeArgs' may be wrong...
-			// I think we shouldn't use 'FunInst' as the source since it's ambiguous.
-			// Just use the FunDecl and the concrete types! -----------------------------------------------------------------
-			writeTypeArgs(writer, ctx, emptyTypeParams, typeArgs(it));
+		(in ConcreteFunKey x) {
+			writeSym(writer, ctx.allSymbols, x.decl.name);
+			writeConcreteTypeArgs(writer, ctx, x.typeArgs);
+			// TODO: write spec impls?
 		},
 		(in ConcreteFunSource.Lambda it) {
 			writeConcreteFunName(writer, ctx, *it.containingFun);
@@ -132,6 +131,14 @@ void writeConcreteFunName(scope ref Writer writer, in ShowCtx ctx, in ConcreteFu
 		},
 		(in ConcreteFunSource.WrapMain) {
 			writer ~= "wrap-main";
+		});
+}
+
+private void writeConcreteTypeArgs(scope ref Writer writer, in ShowCtx ctx, in ConcreteType[] a) {
+	writeTypeArgsGeneric!ConcreteType(writer, a,
+		(in ConcreteType x) => false,
+		(in ConcreteType x) {
+			writeConcreteType(writer, ctx, x);
 		});
 }
 

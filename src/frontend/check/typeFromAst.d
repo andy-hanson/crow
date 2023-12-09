@@ -140,7 +140,7 @@ TypeParams checkTypeParams(ref CheckCtx ctx, in NameAndRange[] asts) {
 		asts,
 		(size_t index, scope ref NameAndRange ast) =>
 			TypeParam(rangeInFile(ctx, rangeOfNameAndRange(ast, ctx.allSymbols)), ast.name, index));
-	eachPair!TypeParam(res, (in TypeParam a, in TypeParam b) {
+	eachPair!TypeParam(res.asArray, (in TypeParam a, in TypeParam b) {
 		if (a.name == b.name)
 			addDiag(ctx, b.range, Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.typeParam, b.name)));
 	});
@@ -268,7 +268,7 @@ private Type typeFromTupleAst(
 }
 
 private Opt!(TypeParam*) findTypeParam(TypeParams typeParamsScope, Sym name) =>
-	findPtr!TypeParam(typeParamsScope, (in TypeParam x) =>
+	findPtr!TypeParam(typeParamsScope.asArray, (in TypeParam x) =>
 		x.name == name);
 
 Opt!(Diag.TypeShouldUseSyntax.Kind) typeSyntaxKind(Sym a) {

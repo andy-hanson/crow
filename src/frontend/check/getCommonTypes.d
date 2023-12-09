@@ -11,6 +11,7 @@ import model.model :
 	CommonTypes,
 	FunKind,
 	IntegralTypes,
+	isEmpty,
 	Linkage,
 	Purity,
 	setBody,
@@ -22,6 +23,7 @@ import model.model :
 	target,
 	Type,
 	TypeParam,
+	TypeParams,
 	typeParams,
 	Visibility;
 import util.alloc.alloc : Alloc;
@@ -164,7 +166,7 @@ Opt!(StructInst*) instantiateNonTemplateStructOrAlias(
 	scope ref DelayStructInsts delayedStructInsts,
 	StructOrAlias structOrAlias,
 ) {
-	assert(empty(typeParams(structOrAlias)));
+	assert(isEmpty(typeParams(structOrAlias)));
 	return structOrAlias.matchWithPointers!(Opt!(StructInst*))(
 		(StructAlias* x) =>
 			target(*x),
@@ -188,7 +190,7 @@ StructDecl* bogusStructDecl(ref Alloc alloc, size_t nTypeParameters) {
 		none!(StructDeclAst*),
 		uriAndRange.uri,
 		sym!"bogus",
-		small(finishArr(alloc, typeParams)),
+		TypeParams(finishArr(alloc, typeParams)),
 		Visibility.public_,
 		Linkage.internal,
 		Purity.data,

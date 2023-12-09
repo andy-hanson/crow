@@ -63,6 +63,7 @@ import model.model :
 	ClosureRef,
 	ClosureReferenceKind,
 	ClosureSetExpr,
+	decl,
 	Destructure,
 	EnumFunction,
 	Expr,
@@ -292,8 +293,7 @@ ConcreteFun* getConcreteFunFromFunInst(ref ConcretizeExprCtx ctx, FunInst* funIn
 	ConcreteType[] typeArgs = typesToConcreteTypes(ctx, typeArgs(*funInst));
 	immutable ConcreteFun*[] specImpls = map!(ConcreteFun*, Called)(ctx.alloc, specImpls(*funInst), (ref Called it) =>
 		getConcreteFunFromCalled(ctx, it));
-	ConcreteFunKey key = ConcreteFunKey(funInst, typeArgs, specImpls);
-	return getOrAddConcreteFunAndFillBody(ctx.concretizeCtx, key);
+	return getOrAddConcreteFunAndFillBody(ctx.concretizeCtx, ConcreteFunKey(decl(*funInst), typeArgs, specImpls));
 }
 
 ConcreteExpr concretizeClosureGet(

@@ -136,11 +136,11 @@ CommonFuns getCommonFuns(
 		param!"value"(singleTypeParamType),
 	];
 	FunDecl* markVisit = getFunDeclInner(
-		*modules[CommonModule.alloc], sym!"mark-visit", small(singleTypeParam), voidType, castNonScope_ref(markVisitParams));
+		*modules[CommonModule.alloc], sym!"mark-visit", singleTypeParams, voidType, castNonScope_ref(markVisitParams));
 	scope ParamShort[] newTFutureParams = [param!"value"(singleTypeParamType)];
 	Type tFuture = instantiateType(commonTypes.future, [singleTypeParamType]);
 	FunDecl* newTFuture = getFunDeclInner(
-		*modules[CommonModule.future], sym!"new", small(singleTypeParam), tFuture, castNonScope_ref(newTFutureParams));
+		*modules[CommonModule.future], sym!"new", singleTypeParams, tFuture, castNonScope_ref(newTFutureParams));
 	FunInst* newNat64Future = instantiateFun(ctx, newTFuture, [nat64Type], []);
 	FunInst* rtMain = getFun(
 		CommonModule.runtimeMain,
@@ -181,9 +181,8 @@ ParamShort param(string name)(Type type) =>
 
 private:
 
-immutable TypeParam[1] singleTypeParam = [
-	TypeParam(UriAndRange.empty, sym!"t", 0),
-];
+immutable TypeParam[1] singleTypeParam = [TypeParam(UriAndRange.empty, sym!"t", 0)];
+TypeParams singleTypeParams() => TypeParams(singleTypeParam);
 Type singleTypeParamType() =>
 	Type(TypeParamIndex(0, &singleTypeParam[0]));
 
@@ -245,7 +244,7 @@ StructDecl* getStructDeclOrAddDiag(
 			none!(StructDeclAst*),
 			module_.uri,
 			name,
-			small(makeArray!TypeParam(alloc, nTypeParams, (size_t index) =>
+			TypeParams(makeArray!TypeParam(alloc, nTypeParams, (size_t index) =>
 				TypeParam(UriAndRange.empty, sym!"a", index))),
 			Visibility.public_,
 			Linkage.extern_,
@@ -269,7 +268,7 @@ if (has(optReferents)) {
 bool signatureMatchesTemplate(in FunDecl actual, in TypeParamsAndSig expected) =>
 	empty(actual.specs) &&
 		!actual.params.isA!(Params.Varargs*) &&
-		sizeEq(actual.typeParams, expected.typeParams) &&
+		sizeEq(actual.typeParams.asArray, expected.typeParams.asArray) &&
 		typesMatch(actual.returnType, actual.typeParams, expected.returnType, expected.typeParams) &&
 		arrsCorrespond!(Destructure, ParamShort)(
 			assertNonVariadic(actual.params),
@@ -344,7 +343,7 @@ FunDeclAndSigIndex getFunDeclMulti(
 			UriAndRange(module_.uri, Range.empty),
 			Diag(Diag.CommonFunMissing(name, map(alloc, expectedSigs, (ref TypeParamsAndSig sig) =>
 				TypeParamsAndSig(
-					copyArr(alloc, sig.typeParams),
+					TypeParams(copyArr(alloc, sig.typeParams.asArray)),
 					sig.returnType,
 					copyArr(alloc, sig.params)))))));
 		FunDecl* decl = allocate(alloc, funDeclWithBody(
