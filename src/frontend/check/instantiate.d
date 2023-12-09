@@ -102,19 +102,18 @@ private Type instantiateType(
 	type.matchWithPointers!Type(
 		(Type.Bogus _) =>
 			Type(Type.Bogus()),
-		(TypeParamIndex x) {
-			typeParamsAndArgs.typeParams.assertIndex(x);
-			return typeParamsAndArgs.typeArgs[x.index];
-		},
+		(TypeParamIndex x) =>
+			typeParamsAndArgs.typeArgs[x.index],
 		(StructInst* x) =>
 			Type(instantiateStructInst(ctx, *x, typeParamsAndArgs, delayStructInsts)));
 
 private Type instantiateTypeNoDelay(ref InstantiateCtx ctx, Type type, in TypeParamsAndArgs typeParamsAndArgs) =>
 	instantiateType(ctx, type, typeParamsAndArgs, noDelayStructInsts);
 
-FunInst* instantiateFun(ref InstantiateCtx ctx, FunDecl* decl, in Type[] typeArgs, in Called[] specImpls) =>
-	withMeasure!(FunInst*, () =>
+FunInst* instantiateFun(ref InstantiateCtx ctx, FunDecl* decl, in Type[] typeArgs, in Called[] specImpls) {
+	FunInst* res = withMeasure!(FunInst*, () =>
 		getOrAdd(ctx.alloc, ctx.programState.funInsts, FunDeclAndArgs(decl, small(typeArgs), small(specImpls)), () {
+			verifySpecs(decl, specImpls);
 			FunDeclAndArgs key = FunDeclAndArgs(
 				decl, small(copyArr(ctx.alloc, typeArgs)), small(copyArr(ctx.alloc, specImpls)));
 			TypeParamsAndArgs typeParamsAndArgs = TypeParamsAndArgs(decl.typeParams, key.typeArgs);
@@ -123,6 +122,34 @@ FunInst* instantiateFun(ref InstantiateCtx ctx, FunDecl* decl, in Type[] typeArg
 				instantiateReturnAndParamTypes(ctx, decl.returnType, paramsArray(decl.params), typeParamsAndArgs)));
 		})
 	)(ctx.perf, ctx.alloc, PerfMeasure.instantiateFun);
+	verifySpecs(decl, res.declAndArgs.specImpls);
+	return res;
+}
+
+//TODO:KILL---------------------------------------------------------------------------------------------------------------
+void verifySpecs(in FunDecl* decl, in Called[] specImpls) {
+	size_t i = 0;
+	foreach (SpecInst* spec; decl.specs) {
+		eachSpecSig(spec, (in SpecDeclSig sig) {
+			assert(sig.name == specImpls[i].name);
+			i++;
+		});
+	}
+	assert(i == specImpls.length);
+}
+//TODO:KILL---------------------------------------------------------------------------------------------------------------
+void eachSpecSig(SpecInst* spec, in void delegate(in SpecDeclSig) @safe @nogc pure nothrow cb) {
+	foreach (SpecInst* s; spec.parents)
+		eachSpecSig(s, cb);
+	decl(*spec).body_.matchIn!void(
+		(in SpecDeclBody.Builtin) {},
+		(in SpecDeclSig[] sigs) {
+			foreach (SpecDeclSig sig; sigs) {
+				cb(sig);
+			}
+		});
+}
+
 
 void instantiateStructTypes(ref InstantiateCtx ctx, StructInst* inst, scope MayDelayStructInsts delayStructInsts) {
 	TypeParamsAndArgs typeParamsAndArgs = TypeParamsAndArgs(decl(*inst).typeParams, typeArgs(*inst));

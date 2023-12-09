@@ -63,6 +63,7 @@ import model.model :
 	ClosureRef,
 	ClosureReferenceKind,
 	ClosureSetExpr,
+	countSigs,
 	decl,
 	Destructure,
 	EnumFunction,
@@ -96,6 +97,7 @@ import model.model :
 	range,
 	SeqExpr,
 	specImpls,
+	SpecInst,
 	ThrowExpr,
 	Type,
 	typeArgs,
@@ -125,6 +127,14 @@ ConcreteExpr concretizeFunBody(
 	in Destructure[] params,
 	ref Expr e,
 ) {
+	debug {
+		//import util.sym : writeSym;
+		//import util.writer : debugLogWithWriter, Writer;
+		//debugLogWithWriter((scope ref Writer writer) {
+		//	writer ~= "concretize fun ";
+		//	writeSym(writer, ctx.allSymbols, cf.source.as!ConcreteFunKey.decl.name); -------------------------------------------------
+		//});
+	}
 	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe(ctx), concreteFunRange(*cf).uri, containing, cf);
 	return withStackMap2!(ConcreteExpr, Local*, LocalOrConstant, LoopExpr*, LoopAndType*)((ref Locals locals) {
 		// Ignore closure param, which is never destructured.
@@ -287,7 +297,25 @@ ConcreteFun* getConcreteFunFromCalled(ref ConcretizeExprCtx ctx, ref Called call
 		(FunInst* funInst) =>
 			getConcreteFunFromFunInst(ctx, funInst),
 		(CalledSpecSig* specSig) =>
-			ctx.containing.specImpls[specSig.indexOverAllSpecUses]);
+			getSpecSigImplementation(ctx, specSig));
+
+ConcreteFun* getSpecSigImplementation(in ConcretizeExprCtx ctx, CalledSpecSig* specSig) {
+	size_t index = 0;
+	foreach (SpecInst* x; ctx.containing.specs)
+		if (searchSpecSigIndexRecur(index, x, specSig.specInst))
+			return ctx.containing.specImpls[index + specSig.sigIndex];
+	assert(false);
+}
+bool searchSpecSigIndexRecur(ref size_t index, in SpecInst* inst, in SpecInst* search) {
+	foreach (SpecInst* parent; inst.parents) {
+		if (searchSpecSigIndexRecur(index, parent, search))
+			return true;
+	}
+	if (inst == search)
+		return true;
+	index += countSigs(decl(*inst).body_);
+	return false;
+}
 
 ConcreteFun* getConcreteFunFromFunInst(ref ConcretizeExprCtx ctx, FunInst* funInst) {
 	ConcreteType[] typeArgs = typesToConcreteTypes(ctx, typeArgs(*funInst));

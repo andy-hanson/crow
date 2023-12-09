@@ -2,6 +2,7 @@ module model.diag;
 
 @safe @nogc pure nothrow:
 
+import frontend.parse.ast : NameAndRange;
 import model.model :
 	Called,
 	CalledDecl,
@@ -9,6 +10,7 @@ import model.model :
 	EnumBackingType,
 	FunDecl,
 	FunDeclAndTypeArgs,
+	FunDeclSource,
 	Local,
 	Module,
 	ReturnAndParamTypes,
@@ -17,18 +19,21 @@ import model.model :
 	SpecDeclSig,
 	StructDecl,
 	StructInst,
+	Test,
 	Type,
 	TypeParams,
 	TypeParamsAndSig,
+	VarDecl,
 	VariableRef,
 	Visibility;
 import model.parseDiag : ParseDiag;
-import util.col.arr : empty;
-import util.opt : Opt;
+import util.col.arr : empty, emptySmallArray, SmallArray;
+import util.opt : force, Opt;
 import util.sourceRange : Range, UriAndRange;
 import util.sym : Sym;
 import util.union_ : Union;
 import util.uri : RelPath, Uri;
+import util.util : typeAs;
 
 // In the CLI, we omit diagnostics if there are other more severe ones.
 // So e.g., you wouldn't see unused code errors if there are parse errors.
@@ -98,13 +103,13 @@ immutable struct Diag {
 	// We don't exclude a candidate based on not having specs.
 	immutable struct CallMultipleMatches {
 		Sym funName;
-		TypeParams typeContext;
+		TypeContainer typeContainer;
 		// Unlike CallNoMatch, these are only the ones that match
 		CalledDecl[] matches;
 	}
 
 	immutable struct CallNoMatch {
-		TypeParams typeContext;
+		TypeContainer typeContainer;
 		Sym funName;
 		Opt!Type expectedReturnType;
 		// 0 for inferred type args.
@@ -149,7 +154,7 @@ immutable struct Diag {
 		Sym name;
 	}
 	immutable struct CommonFunMissing {
-		Sym name;
+		FunDecl* dummyForContext; 
 		TypeParamsAndSig[] sigChoices;
 	}
 	immutable struct CommonTypeMissing {
@@ -158,10 +163,10 @@ immutable struct Diag {
 	immutable struct DestructureTypeMismatch {
 		immutable struct Expected {
 			immutable struct Tuple { size_t size; }
-			mixin Union!(Tuple, TypeWithContext);
+			mixin Union!(Tuple, TypeWithContainer);
 		}
 		Expected expected;
-		TypeWithContext actual;
+		TypeWithContainer actual;
 	}
 	immutable struct DuplicateDeclaration {
 		enum Kind {
@@ -194,7 +199,8 @@ immutable struct Diag {
 		Sym name;
 	}
 	immutable struct EnumBackingTypeInvalid {
-		TypeWithContext actual;
+		StructDecl* enum_;
+		Type actual;
 	}
 	immutable struct EnumDuplicateValue {
 		bool signed;
@@ -204,7 +210,7 @@ immutable struct Diag {
 		EnumBackingType backingType;
 	}
 	immutable struct ExpectedTypeIsNotALambda {
-		Opt!TypeWithContext expectedType;
+		Opt!TypeWithContainer expectedType;
 	}
 	immutable struct ExternFunForbidden {
 		enum Reason { hasSpecs, hasTypeParams, variadic }
@@ -220,7 +226,7 @@ immutable struct Diag {
 	immutable struct FunMissingBody {}
 	immutable struct FunModifierTrustedOnNonExtern {}
 	immutable struct IfNeedsOpt {
-		TypeWithContext actualType;
+		TypeWithContainer actualType;
 	}
 	immutable struct ImportFileDiag {
 		immutable struct CircularImport {
@@ -245,7 +251,7 @@ immutable struct Diag {
 		Sym name;
 		// If missing, the error is that the local itself is 'mut'.
 		// If present, the error is that the type is 'mut'.
-		Opt!TypeWithContext type;
+		Opt!TypeWithContainer type;
 	}
 	immutable struct LambdaMultipleMatch {
 		ExpectedForDiag expected;
@@ -264,11 +270,11 @@ immutable struct Diag {
 		Type referencedType;
 	}
 	immutable struct LiteralAmbiguous {
-		TypeParams typeContext;
+		TypeContainer typeContainer;
 		StructInst*[] types;
 	}
 	immutable struct LiteralOverflow {
-		TypeWithContext type;
+		TypeWithContainer type;
 	}
 	immutable struct LocalIgnoredButMutable {}
 	immutable struct LocalNotMutable {
@@ -279,7 +285,7 @@ immutable struct Diag {
 		Sym[] expectedNames;
 	}
 	immutable struct MatchOnNonUnion {
-		TypeWithContext type;
+		TypeWithContainer type;
 	}
 
 	immutable struct ModifierConflict {
@@ -346,7 +352,7 @@ immutable struct Diag {
 			}
 			mixin Union!(MultipleMatches);
 		}
-		TypeParams outermostTypeContext;
+		TypeContainer outermostTypeContainer;
 		Reason reason;
 		FunDeclAndTypeArgs[] trace;
 	}
@@ -364,7 +370,7 @@ immutable struct Diag {
 			immutable struct TooDeep {}
 			mixin Union!(BuiltinNotSatisfied, CantInferTypeArguments, SpecImplNotFound, TooDeep);
 		}
-		TypeParams outermostTypeContext;
+		TypeContainer outermostTypeContainer;
 		Reason reason;
 		FunDeclAndTypeArgs[] trace;
 	}
@@ -386,11 +392,11 @@ immutable struct Diag {
 		Reason reason;
 	}
 	immutable struct TypeAnnotationUnnecessary {
-		TypeWithContext type;
+		TypeWithContainer type;
 	}
 	immutable struct TypeConflict {
 		ExpectedForDiag expected;
-		TypeWithContext actual;
+		TypeWithContainer actual;
 	}
 	immutable struct TypeParamCantHaveTypeArgs {}
 	immutable struct TypeShouldUseSyntax {
@@ -512,10 +518,41 @@ immutable struct Diag {
 immutable struct ExpectedForDiag {
 	immutable struct Infer {}
 	immutable struct Loop {}
-	mixin Union!(TypeWithContext[], Infer, Loop);
+	mixin Union!(TypeWithContainer[], Infer, Loop);
 }
 
-immutable struct TypeWithContext {
+immutable struct TypeWithContainer {
 	Type type;
-	TypeParams context;
+	TypeContainer container;
 }
+
+// Since a type parameter is represented as its index, we need a context to know where to find it.
+immutable struct TypeContainer {
+	mixin Union!(FunDecl*, SpecDecl*, StructDecl*, Test*, VarDecl*);
+}
+
+Uri uriOfTypeContainer(in TypeContainer a) =>
+	a.matchIn!Uri(
+		(in FunDecl x) =>
+			x.source.as!(FunDeclSource.Ast).uri,
+		(in SpecDecl x) =>
+			x.moduleUri,
+		(in StructDecl x) =>
+			x.moduleUri,
+		(in Test x) =>
+			x.moduleUri,
+		(in VarDecl x) =>
+			x.moduleUri);
+
+SmallArray!NameAndRange typeParamAsts(in TypeContainer a) =>
+	a.matchIn!(SmallArray!NameAndRange)(
+		(in FunDecl x) =>
+			x.source.as!(FunDeclSource.Ast).ast.typeParams,
+		(in SpecDecl x) =>
+			x.ast.typeParams,
+		(in StructDecl x) =>
+			force(x.ast).typeParams,
+		(in Test x) =>
+			emptySmallArray!NameAndRange,
+		(in VarDecl x) =>
+			emptySmallArray!NameAndRange);

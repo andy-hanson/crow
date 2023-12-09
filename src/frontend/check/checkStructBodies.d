@@ -17,7 +17,7 @@ import frontend.parse.ast :
 	symOfModifierKind,
 	TypeAst;
 import model.concreteModel : TypeSize;
-import model.diag : Diag, TypeKind, TypeWithContext;
+import model.diag : Diag, TypeKind, TypeWithContainer;
 import model.model :
 	body_,
 	CommonTypes,
@@ -92,13 +92,13 @@ void checkStructBodies(
 			},
 			(in StructDeclAst.Body.Enum x) {
 				checkOnlyStructModifiers(ctx, TypeKind.enum_, ast.modifiers);
-				return StructBody(checkEnum(ctx, commonTypes, structsAndAliasesMap, ast.range, x, delayStructInsts));
+				return StructBody(checkEnum(ctx, commonTypes, structsAndAliasesMap, struct_, ast.range, x, delayStructInsts));
 			},
 			(in StructDeclAst.Body.Extern it) =>
 				StructBody(checkExtern(ctx, ast, it)),
 			(in StructDeclAst.Body.Flags x) {
 				checkOnlyStructModifiers(ctx, TypeKind.flags, ast.modifiers);
-				return StructBody(checkFlags(ctx, commonTypes, structsAndAliasesMap, ast.range, x, delayStructInsts));
+				return StructBody(checkFlags(ctx, commonTypes, structsAndAliasesMap, struct_, ast.range, x, delayStructInsts));
 			},
 			(in StructDeclAst.Body.Record x) =>
 				StructBody(checkRecord(
@@ -317,12 +317,13 @@ StructBody.Enum checkEnum(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesMap structsAndAliasesMap,
+	StructDecl* struct_,
 	in Range range,
 	in StructDeclAst.Body.Enum e,
 	scope ref DelayStructInsts delayStructInsts,
 ) {
 	EnumOrFlagsTypeAndMembers tm = checkEnumOrFlagsMembers(
-		ctx, commonTypes, structsAndAliasesMap, range, e.typeArg, e.members, delayStructInsts,
+		ctx, commonTypes, structsAndAliasesMap, struct_, range, e.typeArg, e.members, delayStructInsts,
 		Diag.DuplicateDeclaration.Kind.enumMember,
 		(Opt!EnumValue lastValue, EnumBackingType enumType) =>
 			has(lastValue)
@@ -335,12 +336,13 @@ StructBody.Flags checkFlags(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesMap structsAndAliasesMap,
+	StructDecl* struct_,
 	in Range range,
 	in StructDeclAst.Body.Flags f,
 	scope ref DelayStructInsts delayStructInsts,
 ) {
 	EnumOrFlagsTypeAndMembers tm = checkEnumOrFlagsMembers(
-		ctx, commonTypes, structsAndAliasesMap, range, f.typeArg, f.members, delayStructInsts,
+		ctx, commonTypes, structsAndAliasesMap, struct_, range, f.typeArg, f.members, delayStructInsts,
 		Diag.DuplicateDeclaration.Kind.flagsMember,
 		(Opt!EnumValue lastValue, EnumBackingType enumType) =>
 			has(lastValue)
@@ -366,6 +368,7 @@ EnumOrFlagsTypeAndMembers checkEnumOrFlagsMembers(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesMap structsAndAliasesMap,
+	StructDecl* struct_,
 	in Range range,
 	in Opt!(TypeAst*) typeArg,
 	in StructDeclAst.Body.Enum.Member[] memberAsts,
@@ -377,7 +380,7 @@ EnumOrFlagsTypeAndMembers checkEnumOrFlagsMembers(
 		? typeFromAst(
 			ctx, commonTypes, *force(typeArg), structsAndAliasesMap, emptyTypeParams, someMut(ptrTrustMe(delayStructInsts)))
 		: Type(commonTypes.integrals.nat32);
-	EnumBackingType enumType = getEnumTypeFromType(ctx, range, commonTypes, implementationType);
+	EnumBackingType enumType = getEnumTypeFromType(ctx, struct_, range, commonTypes, implementationType);
 
 	StructBody.Enum.Member[] members =
 		mapAndFold!(StructBody.Enum.Member, Opt!EnumValue, StructDeclAst.Body.Enum.Member)(
@@ -473,7 +476,7 @@ bool isSignedEnumBackingType(EnumBackingType a) {
 EnumBackingType defaultEnumBackingType() =>
 	EnumBackingType.nat32;
 
-EnumBackingType getEnumTypeFromType(ref CheckCtx ctx, in Range range, in CommonTypes commonTypes, in Type type) {
+EnumBackingType getEnumTypeFromType(ref CheckCtx ctx, StructDecl* struct_, in Range range, in CommonTypes commonTypes, in Type type) {
 	IntegralTypes integrals = commonTypes.integrals;
 	return type.matchWithPointers!EnumBackingType(
 		(Type.Bogus) =>
@@ -499,7 +502,7 @@ EnumBackingType getEnumTypeFromType(ref CheckCtx ctx, in Range range, in CommonT
 				: x == integrals.nat64
 				? EnumBackingType.nat64
 				: (() {
-					addDiag(ctx, range, Diag(Diag.EnumBackingTypeInvalid(TypeWithContext(Type(x), emptyTypeParams))));
+					addDiag(ctx, range, Diag(Diag.EnumBackingTypeInvalid(struct_, Type(x))));
 					return defaultEnumBackingType();
 				})());
 }

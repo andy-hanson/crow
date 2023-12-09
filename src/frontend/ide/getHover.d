@@ -2,17 +2,18 @@ module frontend.ide.getHover;
 
 @safe @nogc pure nothrow:
 
-import frontend.ide.position : Position, PositionKind, typeParams;
-import frontend.parse.ast : FieldMutabilityAst, FunModifierAst;
+import frontend.ide.position : Position, PositionKind, typeParamAsts;
+import frontend.parse.ast : FieldMutabilityAst, FunModifierAst, NameAndRange;
 import frontend.showModel :
 	ShowCtx, writeCalled, writeFile, writeFunInst, writeLineAndColumnRange, writeName, writeSpecInst, writeTypeUnquoted;
 import frontend.storage : lineAndColumnRange;
 import lib.lsp.lspTypes : Hover, MarkupContent, MarkupKind;
-import model.diag : TypeWithContext;
+import model.diag : TypeContainer, typeParamAsts, TypeWithContainer;
 import model.model;
 import util.alloc.alloc : Alloc;
 import util.col.str : SafeCStr, safeCStrIsEmpty;
 import util.opt : none, Opt, some;
+import util.ptr : ptrTrustMe;
 import util.sourceRange : UriAndRange;
 import util.sym : writeSym;
 import util.uri : Uri;
@@ -32,7 +33,7 @@ void getHover(scope ref Writer writer, in ShowCtx ctx, in Position pos) =>
 	pos.kind.matchIn!void(
 		(in PositionKind.None) {},
 		(in PositionKind.Expression x) {
-			getExprHover(writer, ctx, pos.module_.uri, x.containingFun.typeParams, *x.expr);
+			getExprHover(writer, ctx, pos.module_.uri, TypeContainer(x.containingFun), *x.expr);
 		},
 		(in FunDecl x) {
 			writer ~= "function ";
@@ -95,7 +96,7 @@ void getHover(scope ref Writer writer, in ShowCtx ctx, in Position pos) =>
 		},
 		(in PositionKind.LocalPosition x) {
 			writer ~= "local ";
-			localHover(writer, ctx, typeParams(x.container), *x.local);
+			localHover(writer, ctx, x.container.toTypeContainer, *x.local);
 		},
 		(in PositionKind.RecordFieldMutability x) {
 			writer ~= () {
@@ -113,7 +114,7 @@ void getHover(scope ref Writer writer, in ShowCtx ctx, in Position pos) =>
 			writer ~= '.';
 			writeSym(writer, ctx.allSymbols, x.field.name);
 			writer ~= " (";
-			writeTypeUnquoted(writer, ctx, TypeWithContext(x.field.type, x.struct_.typeParams));
+			writeTypeUnquoted(writer, ctx, TypeWithContainer(x.field.type, TypeContainer(x.struct_)));
 			writer ~= ')';
 		},
 		(in SpecDecl x) {
@@ -133,25 +134,25 @@ void getHover(scope ref Writer writer, in ShowCtx ctx, in Position pos) =>
 		(in StructDecl x) {
 			writeStructDeclHover(writer, ctx, x);
 		},
-		(in PositionKind.TypeWithContainer x) {
+		(in TypeWithContainer x) {
 			x.type.matchIn!void(
 				(in Type.Bogus) {},
 				(in TypeParamIndex p) {
-					hoverTypeParam(writer, ctx, typeParams(x.container), p);
+					hoverTypeParam(writer, ctx, x.container, p);
 				},
 				(in StructInst i) {
 					writeStructDeclHover(writer, ctx, *decl(i));
 				});
 		},
 		(in PositionKind.TypeParamWithContainer x) {
-			hoverTypeParam(writer, ctx, typeParams(x.container), x.typeParam);
+			hoverTypeParam(writer, ctx, x.container, x.typeParam);
 		},
 		(in VarDecl x) {
 			writeSym(writer, ctx.allSymbols, symOfVarKind(x.kind));
 			writer ~= " variable ";
 			writeName(writer, ctx, x.name);
 			writer ~= " (";
-			writeTypeUnquoted(writer, ctx, TypeWithContext(x.type, emptyTypeParams));
+			writeTypeUnquoted(writer, ctx, TypeWithContainer(x.type, TypeContainer(ptrTrustMe(x))));
 			writer ~= ')';
 		},
 		(in Visibility x) {
@@ -185,12 +186,12 @@ void getImportedNameHover(scope ref Writer writer, in ShowCtx ctx, in PositionKi
 	writer ~= "TODO: getImportedNameHover";
 }
 
-void hoverTypeParam(scope ref Writer writer, in ShowCtx ctx, in TypeParams typeParams, in TypeParamIndex index) {
+void hoverTypeParam(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in TypeParamIndex index) {
 	writer ~= "type parameter ";
-	writeSym(writer, ctx.allSymbols, typeParams[index].name);
+	writeSym(writer, ctx.allSymbols, typeParamAsts(typeContainer)[index.index].name);
 }
 
-void getExprHover(scope ref Writer writer, in ShowCtx ctx, in Uri curUri, in TypeParams typeContext, in Expr a) =>
+void getExprHover(scope ref Writer writer, in ShowCtx ctx, in Uri curUri, in TypeContainer typeContainer, in Expr a) =>
 	a.kind.matchIn!void(
 		(in AssertOrForbidExpr x) {
 			writer ~= "throws if the condition is ";
@@ -205,19 +206,19 @@ void getExprHover(scope ref Writer writer, in ShowCtx ctx, in Uri curUri, in Typ
 		},
 		(in BogusExpr _) {},
 		(in CallExpr x) {
-			writeCalled(writer, ctx, typeContext, x.called);
+			writeCalled(writer, ctx, typeContainer, x.called);
 		},
 		(in ClosureGetExpr x) {
 			writer ~= "gets ";
-			closureRefHover(writer, ctx, typeContext, x.closureRef);
+			closureRefHover(writer, ctx, typeContainer, x.closureRef);
 		},
 		(in ClosureSetExpr x) {
 			writer ~= "sets ";
-			closureRefHover(writer, ctx, typeContext, x.closureRef);
+			closureRefHover(writer, ctx, typeContainer, x.closureRef);
 		},
 		(in FunPtrExpr x) {
 			writer ~= "pointer to function ";
-			writeFunInst(writer, ctx, typeContext, *x.funInst);
+			writeFunInst(writer, ctx, typeContainer, *x.funInst);
 		},
 		(in IfExpr _) {
 			writer ~= "returns the first branch if the condition is 'true', " ~
@@ -253,11 +254,11 @@ void getExprHover(scope ref Writer writer, in ShowCtx ctx, in Uri curUri, in Typ
 			writer ~= "symbol literal";
 		},
 		(in LocalGetExpr x) {
-			localHover(writer, ctx, typeContext, *x.local);
+			localHover(writer, ctx, typeContainer, *x.local);
 		},
 		(in LocalSetExpr x) {
 			writer ~= "sets ";
-			localHover(writer, ctx, typeContext, *x.local);
+			localHover(writer, ctx, typeContainer, *x.local);
 		},
 		(in LoopExpr _) {
 			writer ~= "loop that terminates at a 'break'";
@@ -283,24 +284,24 @@ void getExprHover(scope ref Writer writer, in ShowCtx ctx, in Uri curUri, in Typ
 		},
 		(in PtrToLocalExpr x) {
 			writer ~= "pointer to ";
-			localHover(writer, ctx, typeContext, *x.local);
+			localHover(writer, ctx, typeContainer, *x.local);
 		},
 		(in SeqExpr _) {},
 		(in ThrowExpr _) {
 			writer ~= "throws an exception";
 		});
 
-void closureRefHover(scope ref Writer writer, in ShowCtx ctx, in TypeParams typeContext, in ClosureRef a) {
+void closureRefHover(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in ClosureRef a) {
 	writer ~= "closure variable ";
 	writeSym(writer, ctx.allSymbols, a.name);
 	writer ~= ' ';
-	writeTypeUnquoted(writer, ctx, TypeWithContext(a.type, typeContext));
+	writeTypeUnquoted(writer, ctx, TypeWithContainer(a.type, typeContainer));
 }
 
-void localHover(scope ref Writer writer, in ShowCtx ctx, in TypeParams typeContext, in Local a) {
+void localHover(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in Local a) {
 	writeSym(writer, ctx.allSymbols, a.name);
 	writer ~= ' ';
-	writeTypeUnquoted(writer, ctx, TypeWithContext(a.type, typeContext));
+	writeTypeUnquoted(writer, ctx, TypeWithContainer(a.type, typeContainer));
 }
 
 void writeLoop(scope ref Writer writer, in ShowCtx ctx, Uri curUri, in LoopExpr a) {

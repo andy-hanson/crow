@@ -19,7 +19,7 @@ import frontend.showModel :
 	writeTypeQuoted,
 	writeUri,
 	writeUriAndRange;
-import model.diag : Diagnostic, Diag, DiagnosticSeverity, ExpectedForDiag, ReadFileDiag, TypeKind, TypeWithContext, UriAndDiagnostic;
+import model.diag : Diagnostic, Diag, DiagnosticSeverity, ExpectedForDiag, ReadFileDiag, TypeContainer, TypeKind, TypeWithContainer, UriAndDiagnostic;
 import model.model :
 	arity,
 	arityMatches,
@@ -351,12 +351,12 @@ void showChar(scope ref Writer writer, char c) {
 	}
 }
 
-void writeSpecTrace(scope ref Writer writer, in ShowCtx ctx, TypeParams outermostTypeContext, in FunDeclAndTypeArgs[] trace) {
-	Cell!TypeParams prevTypeParams = Cell!TypeParams(outermostTypeContext);
+void writeSpecTrace(scope ref Writer writer, in ShowCtx ctx, in TypeContainer outermostTypeContainer, in FunDeclAndTypeArgs[] trace) {
+	Cell!TypeContainer prevTypeContainer = Cell!TypeContainer(outermostTypeContainer);
 	foreach (FunDeclAndTypeArgs x; trace) {
 		writer ~= "\n\t";
-		writeFunDeclAndTypeArgs(writer, ctx, cellGet(prevTypeParams), x);
-		cellSet(prevTypeParams, x.decl.typeParams);
+		writeFunDeclAndTypeArgs(writer, ctx, cellGet(prevTypeContainer), x);
+		cellSet(prevTypeContainer, TypeContainer(x.decl));
 	}
 }
 
@@ -381,7 +381,7 @@ void writeCallNoMatch(scope ref Writer writer, in ShowCtx ctx, in Diag.CallNoMat
 
 		if (d.actualArgTypes.length == 1) {
 			writer ~= "\nargument type: ";
-			writeTypeQuoted(writer, ctx, TypeWithContext(only(d.actualArgTypes), d.typeContext));
+			writeTypeQuoted(writer, ctx, TypeWithContainer(only(d.actualArgTypes), d.typeContainer));
 		}
 	} else if (!someCandidateHasCorrectArity) {
 		writer ~= "there are functions named ";
@@ -394,7 +394,7 @@ void writeCallNoMatch(scope ref Writer writer, in ShowCtx ctx, in Diag.CallNoMat
 			writer ~= " type";
 		}
 		writer ~= " arguments. candidates:";
-		writeCalledDecls(writer, ctx, d.typeContext, d.allCandidates);
+		writeCalledDecls(writer, ctx, d.typeContainer, d.allCandidates);
 	} else {
 		writer ~= "there are functions named ";
 		writeName(writer, ctx, d.funName);
@@ -408,12 +408,12 @@ void writeCallNoMatch(scope ref Writer writer, in ShowCtx ctx, in Diag.CallNoMat
 		writer ~= '.';
 		if (hasRet) {
 			writer ~= "\nexpected return type: ";
-			writeTypeQuoted(writer, ctx, TypeWithContext(force(d.expectedReturnType), d.typeContext));
+			writeTypeQuoted(writer, ctx, TypeWithContainer(force(d.expectedReturnType), d.typeContainer));
 		}
 		if (hasArgs) {
 			writer ~= "\nactual argument types: ";
 			writeWithCommas!Type(writer, d.actualArgTypes, (in Type t) {
-				writeTypeQuoted(writer, ctx, TypeWithContext(t, d.typeContext));
+				writeTypeQuoted(writer, ctx, TypeWithContainer(t, d.typeContainer));
 			});
 			if (d.actualArgTypes.length < d.actualArity)
 				writer ~= " (other arguments not checked, gave up early)";
@@ -421,7 +421,7 @@ void writeCallNoMatch(scope ref Writer writer, in ShowCtx ctx, in Diag.CallNoMat
 		writer ~= "\ncandidates (with ";
 		writer ~= d.actualArity;
 		writer ~= " arguments):";
-		writeCalledDecls(writer, ctx, d.typeContext, d.allCandidates, (in CalledDecl c) =>
+		writeCalledDecls(writer, ctx, d.typeContainer, d.allCandidates, (in CalledDecl c) =>
 			arityMatches(arity(c), d.actualArity));
 	}
 }
@@ -439,7 +439,7 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 			writer ~= "cannot choose an overload of ";
 			writeName(writer, ctx, x.funName);
 			writer ~= ". multiple functions match:";
-			writeCalledDecls(writer, ctx, x.typeContext, x.matches);
+			writeCalledDecls(writer, ctx, x.typeContainer, x.matches);
 		},
 		(in Diag.CallNoMatch x) {
 			writeCallNoMatch(writer, ctx, x);
@@ -487,7 +487,7 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 				}
 			}();
 			writer ~= ' ';
-			writeFunDecl(writer, ctx, *x.callee);
+			writeFunDecl(writer, ctx, x.callee);
 			if (x.reason == Diag.CantCall.Reason.unsafe)
 				writer ~= "\n(consider putting the call in a 'trusted' expression)";
 		},
@@ -502,7 +502,7 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 		(in Diag.CommonFunMissing x) {
 			writer ~= "module should have a function:\n\t";
 			writeWithSeparator!TypeParamsAndSig(writer, x.sigChoices, "\nor:\n\t", (in TypeParamsAndSig sig) {
-				writeSigSimple(writer, ctx, x.name, sig);
+				writeSigSimple(writer, ctx, TypeContainer(x.dummyForContext), x.dummyForContext.name, sig);
 			});
 		},
 		(in Diag.CommonTypeMissing x) {
@@ -517,7 +517,7 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 					writer ~= t.size;
 					writer ~= " elements, but got ";
 				},
-				(in TypeWithContext t) {
+				(in TypeWithContainer t) {
 					writer ~= "expected type ";
 					writeTypeQuoted(writer, ctx, t);
 					writer ~= ", but got ";
@@ -570,7 +570,7 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 		},
 		(in Diag.EnumBackingTypeInvalid x) {
 			writer ~= "type ";
-			writeTypeQuoted(writer, ctx, x.actual);
+			writeTypeQuoted(writer, ctx, TypeWithContainer(x.actual, TypeContainer(x.enum_)));
 			writer ~= " cannot be used to back an enum";
 		},
 		(in Diag.EnumDuplicateValue x) {
@@ -697,18 +697,18 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 				}
 			}
 			writer ~= " can't reference non-extern type ";
-			writeTypeQuoted(writer, ctx, TypeWithContext(x.referencedType, x.containingFun.typeParams));
+			writeTypeQuoted(writer, ctx, TypeWithContainer(x.referencedType, TypeContainer(x.containingFun)));
 		},
 		(in Diag.LinkageWorseThanContainingType x) {
 			writer ~= "extern type ";
 			writeName(writer, ctx, x.containingType.name);
 			writer ~= " can't reference non-extern type ";
-			writeTypeQuoted(writer, ctx, TypeWithContext(x.referencedType, x.containingType.typeParams));
+			writeTypeQuoted(writer, ctx, TypeWithContainer(x.referencedType, TypeContainer(x.containingType)));
 		},
 		(in Diag.LiteralAmbiguous x) {
 			writer ~= "multiple possible types for literal expression: ";
 			writeWithCommas!(StructInst*)(writer, x.types, (in StructInst* type) {
-				writeStructInst(writer, ctx, x.typeContext, *type);
+				writeStructInst(writer, ctx, x.typeContainer, *type);
 			});
 		},
 		(in Diag.LiteralOverflow x) {
@@ -808,7 +808,7 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 			writer ~= " has purity ";
 			writePurity(writer, ctx, x.parent.purity);
 			writer ~= ", but member of type ";
-			writeTypeQuoted(writer, ctx, TypeWithContext(x.child, x.parent.typeParams));
+			writeTypeQuoted(writer, ctx, TypeWithContainer(x.child, TypeContainer(x.parent)));
 			writer ~= " has purity ";
 			writePurity(writer, ctx, bestCasePurity(x.child));
 		},
@@ -823,16 +823,16 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 					writer ~= "multiple implementations found for spec signature ";
 					writeName(writer, ctx, y.sigName);
 					writer ~= ':';
-					writeCalleds(writer, ctx, x.outermostTypeContext, y.matches);
+					writeCalleds(writer, ctx, x.outermostTypeContainer, y.matches);
 				});
 			writer ~= "\n\tcalling:";
-			writeSpecTrace(writer, ctx, x.outermostTypeContext, x.trace);
+			writeSpecTrace(writer, ctx, x.outermostTypeContainer, x.trace);
 		},
 		(in Diag.SpecNoMatch x) {
 			writer ~= "a spec was not satisfied.\n\t";
 			x.reason.matchIn!void(
 				(in Diag.SpecNoMatch.Reason.BuiltinNotSatisfied y) {
-					writeTypeQuoted(writer, ctx, TypeWithContext(y.type, x.outermostTypeContext));
+					writeTypeQuoted(writer, ctx, TypeWithContainer(y.type, x.outermostTypeContainer));
 					writer ~= " is not ";
 					writeName(writer, ctx, symOfSpecBodyBuiltinKind(y.kind));
 				},
@@ -842,13 +842,13 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 				(in Diag.SpecNoMatch.Reason.SpecImplNotFound y) {
 					writer ~= "no implementation was found for spec signature ";
 					SpecDeclSig* sig = y.sigDecl;
-					writeSig(writer, ctx, x.outermostTypeContext, sig.name, sig.returnType, Params(sig.params), some(y.sigType));
+					writeSig(writer, ctx, x.outermostTypeContainer, sig.name, sig.returnType, Params(sig.params), some(y.sigType));
 				},
 				(in Diag.SpecNoMatch.Reason.TooDeep _) {
 					writer ~= "spec instantiation is too deep";
 				});
 			writer ~= " calling:";
-			writeSpecTrace(writer, ctx, x.outermostTypeContext, x.trace);
+			writeSpecTrace(writer, ctx, x.outermostTypeContainer, x.trace);
 		},
 		(in Diag.SpecNameMissing) {
 			writer ~= "spec name is missing";
@@ -953,13 +953,13 @@ void showDiagnostic(scope ref Writer writer, in ShowCtx ctx, in UriAndDiagnostic
 
 void writeExpected(scope ref Writer writer, in ShowCtx ctx, in ExpectedForDiag a) {
 	a.matchIn!void(
-		(in TypeWithContext[] types) {
+		(in TypeWithContainer[] types) {
 			if (types.length == 1) {
 				writer ~= "expected type: ";
 				writeTypeQuoted(writer, ctx, only(types));
 			} else {
 				writer ~= "expected one of these types:";
-				foreach (TypeWithContext t; types) {
+				foreach (TypeWithContainer t; types) {
 					writer ~= "\n\t";
 					writeTypeQuoted(writer, ctx, t);
 				}

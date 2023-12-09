@@ -188,7 +188,7 @@ Expr checkCallInner(
 		}
 		add(ctx.alloc, actualArgTypes, actualArgType);
 		filterCandidates(candidates, (ref Candidate candidate) =>
-			testCandidateParamType(ctx.instantiateCtx, ctx.outermostFunTypeParams, candidate, argIdx, TypeAndContext(actualArgType, nonInferringTypeContext(ctx.outermostFunTypeParams))));
+			testCandidateParamType(ctx.instantiateCtx, ctx.outermostFunTypeParams, candidate, argIdx, TypeAndContext(actualArgType, nonInferringTypeContext())));
 		return some(arg);
 	});
 
@@ -202,7 +202,7 @@ Expr checkCallInner(
 		if (isEmpty(candidates)) {
 			CalledDecl[] allCandidates = getAllCandidatesAsCalledDecls(ctx, funName);
 			addDiag2(ctx, diagRange, Diag(Diag.CallNoMatch(
-				ctx.outermostFunTypeParams,
+				ctx.typeContainer,
 				funName,
 				tryGetInferred(expected),
 				getNTypeArgsForDiagnostic(ctx.commonTypes, explicitTypeArg),
@@ -210,7 +210,7 @@ Expr checkCallInner(
 				finishArr(ctx.alloc, actualArgTypes),
 				allCandidates)));
 		} else
-			addDiag2(ctx, diagRange, Diag(Diag.CallMultipleMatches(funName, ctx.outermostFunTypeParams, candidatesForDiag(ctx.alloc, candidates))));
+			addDiag2(ctx, diagRange, Diag(Diag.CallMultipleMatches(funName, ctx.typeContainer, candidatesForDiag(ctx.alloc, candidates))));
 		return bogus(expected, source);
 	} else
 		return checkCallAfterChoosingOverload(ctx, isInLambda(locals), only(candidates), source, force(args), expected);

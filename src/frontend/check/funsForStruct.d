@@ -352,15 +352,18 @@ void addFunsForRecord(
 	StructDecl* struct_,
 	ref StructBody.Record record,
 ) {
-	TypeParams typeParams = struct_.typeParams;
 	scope TypeArgsArray typeArgs = typeArgsArray();
-	foreach (size_t i, ref TypeParam p; typeParams.asArray)
-		push(typeArgs, Type(TypeParamIndex(i, &p)));
+	typeArgsFromParams(typeArgs, struct_.typeParams);
 	Type structType = Type(instantiateStructNeverDelay(ctx.instantiateCtx, struct_, tempAsArr(typeArgs)));
 	bool byVal = recordIsAlwaysByVal(record);
 	addFunsForRecordConstructor(ctx, funsBuilder, commonTypes, struct_, record, structType, byVal);
 	foreach (size_t fieldIndex, ref RecordField field; record.fields)
 		addFunsForRecordField(ctx, funsBuilder, commonTypes, struct_, structType, byVal, fieldIndex, field);
+}
+
+void typeArgsFromParams(scope ref TypeArgsArray out_, in TypeParams typeParams) {
+	foreach (size_t i; 0 .. typeParams.length)
+		push(out_, Type(TypeParamIndex(i)));
 }
 
 void addFunsForRecordConstructor(
@@ -480,10 +483,8 @@ void addFunsForUnion(
 	StructDecl* struct_,
 	ref StructBody.Union union_,
 ) {
-	TypeParams typeParams = struct_.typeParams;
 	scope TypeArgsArray typeArgs = typeArgsArray();
-	foreach (size_t i, ref TypeParam x; typeParams.asArray)
-		push(typeArgs, Type(TypeParamIndex(i, &x)));
+	typeArgsFromParams(typeArgs, struct_.typeParams);
 	Type structType = Type(instantiateStructNeverDelay(ctx.instantiateCtx, struct_, tempAsArr(typeArgs)));
 	foreach (size_t memberIndex, ref UnionMember member; union_.members) {
 		Params params = isVoid(commonTypes, member.type)
@@ -493,7 +494,7 @@ void addFunsForUnion(
 			FunDeclSource(struct_),
 			struct_.visibility,
 			member.name,
-			typeParams,
+			struct_.typeParams,
 			structType,
 			params,
 			FunFlags.generatedBare,

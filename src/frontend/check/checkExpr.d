@@ -17,7 +17,7 @@ import frontend.check.exprCtx :
 	LocalsInfo,
 	markIsUsedSetOnStack,
 	typeFromAst2,
-	typeWithContext,
+	typeWithContainer,
 	withTrusted;
 import frontend.check.inferringType :
 	bogus,
@@ -83,7 +83,7 @@ import frontend.parse.ast :
 	UnlessAst,
 	WithAst;
 import model.constant : Constant;
-import model.diag : Diag, TypeWithContext;
+import model.diag : Diag, TypeContainer, TypeWithContainer;
 import model.model :
 	Arity,
 	arity,
@@ -170,6 +170,7 @@ Expr checkFunctionBody(
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in CommonTypes commonTypes,
 	in FunsMap funsMap,
+	TypeContainer typeContainer,
 	Type returnType,
 	Sym funName,
 	TypeParams typeParams,
@@ -183,6 +184,7 @@ Expr checkFunctionBody(
 		structsAndAliasesMap,
 		funsMap,
 		commonTypes,
+		typeContainer,
 		funName,
 		specs,
 		params,
@@ -303,7 +305,7 @@ ExprAndType checkAndExpectOrInfer(ref ExprCtx ctx, ref LocalsInfo locals, ExprAs
 		: checkAndInfer(ctx, locals, ast);
 
 Expr checkAndExpect(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, Type expected) {
-	Expected et = Expected(Expected.LocalType(expected, ctx.outermostFunTypeParams));
+	Expected et = Expected(Expected.LocalType(expected));
 	return checkExpr(ctx, locals, ast, et);
 }
 
@@ -457,7 +459,7 @@ Expr checkIfOption(
 		// Arbitrary type that's not opt
 		: ctx.commonTypes.void_;
 	if (decl(*inst) != ctx.commonTypes.opt) {
-		addDiag2(ctx, source, Diag(Diag.IfNeedsOpt(typeWithContext(ctx, option.type))));
+		addDiag2(ctx, source, Diag(Diag.IfNeedsOpt(typeWithContainer(ctx, option.type))));
 		return bogus(expected, source);
 	} else {
 		Type nonOptionalType = only(typeArgs(*inst));
@@ -548,7 +550,7 @@ MutOpt!ExpectedLambdaType getExpectedLambdaType(
 	if (has(declaredParamType) && force(declaredParamType).isA!(Type.Bogus))
 		return noneMut!ExpectedLambdaType;
 	OkSkipOrAbort!ExpectedLambdaType res = handleExpectedLambda!ExpectedLambdaType(
-		ctx.alloc, expected, (TypeAndContext expectedType) {
+		ctx, expected, (TypeAndContext expectedType) {
 			Opt!FunType optFunType = getFunType(ctx.commonTypes, expectedType.type);
 			if (has(optFunType)) {
 				FunType funType = force(optFunType);
@@ -584,7 +586,7 @@ MutOpt!ExpectedLambdaType getExpectedLambdaType(
 			someMut(x.value),
 		(OkSkipOrAbort!ExpectedLambdaType.Skip) {
 			// Skipped every lambda.
-			addDiag2(ctx, source, Diag(Diag.LambdaNotExpected(getExpectedForDiag(ctx.alloc, expected))));
+			addDiag2(ctx, source, Diag(Diag.LambdaNotExpected(getExpectedForDiag(ctx, expected))));
 			return noneMut!ExpectedLambdaType;
 		},
 		(OkSkipOrAbort!ExpectedLambdaType.Abort x) {
@@ -752,7 +754,7 @@ Expr checkLiteralFloat(ref ExprCtx ctx, ExprAst* source, in LiteralFloatAst ast,
 	if (has(opTypeIndex)) {
 		StructInst* numberType = allowedTypes[force(opTypeIndex)];
 		if (ast.overflow)
-			addDiag2(ctx, source, Diag(Diag.LiteralOverflow(typeWithContext(ctx, Type(numberType)))));
+			addDiag2(ctx, source, Diag(Diag.LiteralOverflow(typeWithContainer(ctx, Type(numberType)))));
 		return asFloat(ctx, source, numberType, ast.value, expected);
 	} else
 		return bogus(expected, source);
@@ -794,7 +796,7 @@ Expr checkLiteralInt(ref ExprCtx ctx, ExprAst* source, in LiteralIntAst ast, ref
 		else {
 			Constant constant = Constant(Constant.Integral(ast.value));
 			if (ast.overflow || !contains(ranges[typeIndex], ast.value))
-				addDiag2(ctx, source, Diag(Diag.LiteralOverflow(typeWithContext(ctx, Type(numberType)))));
+				addDiag2(ctx, source, Diag(Diag.LiteralOverflow(typeWithContainer(ctx, Type(numberType)))));
 			return check(ctx, source, expected, Type(numberType), Expr(source, ExprKind(
 				allocate(ctx.alloc, LiteralExpr(constant)))));
 		}
@@ -828,7 +830,7 @@ Expr checkLiteralNat(ref ExprCtx ctx, ExprAst* source, in LiteralNatAst ast, ref
 		else {
 			Constant constant = Constant(Constant.Integral(ast.value));
 			if (ast.overflow || ast.value > maximums[typeIndex])
-				addDiag2(ctx, source, Diag(Diag.LiteralOverflow(typeWithContext(ctx, Type(numberType)))));
+				addDiag2(ctx, source, Diag(Diag.LiteralOverflow(typeWithContainer(ctx, Type(numberType)))));
 			return check(ctx, source, expected, Type(numberType), Expr(source, ExprKind(
 				allocate(ctx.alloc, LiteralExpr(constant)))));
 		}
@@ -1171,13 +1173,13 @@ VariableRef[] checkClosure(ref ExprCtx ctx, ExprAst* source, FunKind kind, Closu
 		case FunKind.fun:
 			foreach (ref ClosureFieldBuilder cf; closureFields) {
 				if (!isPurityAlwaysCompatibleConsideringSpecs(ctx.outermostFunSpecs, cf.type, Purity.shared_))
-					addDiag2(ctx, source, Diag(Diag.LambdaClosesOverMut(cf.name, some(typeWithContext(ctx, cf.type)))));
+					addDiag2(ctx, source, Diag(Diag.LambdaClosesOverMut(cf.name, some(typeWithContainer(ctx, cf.type)))));
 				else {
 					final switch (cf.mutability) {
 						case Mutability.immut:
 							break;
 						case Mutability.mut:
-							addDiag2(ctx, source, Diag(Diag.LambdaClosesOverMut(cf.name, none!TypeWithContext)));
+							addDiag2(ctx, source, Diag(Diag.LambdaClosesOverMut(cf.name, none!TypeWithContainer)));
 					}
 				}
 			}
@@ -1197,7 +1199,7 @@ Opt!Type typeFromDestructure(ref ExprCtx ctx, in DestructureAst ast) =>
 
 Destructure checkDestructure2(ref ExprCtx ctx, ref DestructureAst ast, Type type) =>
 	.checkDestructure(
-		ctx.checkCtx, ctx.commonTypes, ctx.structsAndAliasesMap, ctx.outermostFunTypeParams,
+		ctx.checkCtx, ctx.commonTypes, ctx.structsAndAliasesMap, ctx.typeContainer, ctx.outermostFunTypeParams,
 		noDelayStructInsts, ast, some(type));
 
 Expr checkLet(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, LetAst* ast, ref Expected expected) {
@@ -1295,7 +1297,7 @@ Expr checkMatch(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, MatchAs
 			matchedType.as!(StructInst*).instantiatedTypes);
 	else {
 		if (!matchedType.isA!(Type.Bogus))
-			addDiag2(ctx, ast.matched.range, Diag(Diag.MatchOnNonUnion(typeWithContext(ctx, matchedType))));
+			addDiag2(ctx, ast.matched.range, Diag(Diag.MatchOnNonUnion(typeWithContainer(ctx, matchedType))));
 		return bogus(expected, &ast.matched);
 	}
 }
@@ -1483,7 +1485,7 @@ Expr checkTyped(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, TypedAs
 	Opt!Type inferred = tryGetInferred(expected);
 	// If inferred != type, we'll fail in 'check'
 	if (has(inferred) && force(inferred) == type)
-		addDiag2(ctx, source, Diag(Diag.TypeAnnotationUnnecessary(typeWithContext(ctx, type))));
+		addDiag2(ctx, source, Diag(Diag.TypeAnnotationUnnecessary(typeWithContainer(ctx, type))));
 	Expr expr = checkAndExpect(ctx, locals, &ast.expr, type);
 	return check(ctx, source, expected, type, expr);
 }

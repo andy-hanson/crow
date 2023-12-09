@@ -4,7 +4,7 @@ module frontend.showModel;
 
 import frontend.check.typeFromAst : typeSyntaxKind;
 import frontend.storage : lineAndColumnAtPos, LineAndColumnGetters, lineAndColumnRange;
-import model.diag : Diag, TypeWithContext;
+import model.diag : Diag, TypeContainer, typeParamAsts, TypeWithContainer;
 import model.model :
 	Called,
 	CalledDecl,
@@ -77,49 +77,49 @@ private void writeLineAndColumn(scope ref Writer writer, LineAndColumn lc) {
 	writer ~= lc.column1Indexed;
 }
 
-void writeCalled(scope ref Writer writer, in ShowCtx ctx, in TypeParams typeContext, in Called a) {
+void writeCalled(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in Called a) {
 	a.matchIn!void(
 		(in FunInst x) {
-			writeFunInst(writer, ctx, typeContext, x);
+			writeFunInst(writer, ctx, typeContainer, x);
 		},
 		(in CalledSpecSig x) {
-			writeCalledSpecSig(writer, ctx, typeContext, x);
+			writeCalledSpecSig(writer, ctx, typeContainer, x);
 		});
 }
 
-private void writeCalledDecl(scope ref Writer writer, in ShowCtx ctx, in TypeParams typeContext, in CalledDecl a) {
-	a.matchIn!void(
-		(in FunDecl x) {
+private void writeCalledDecl(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in CalledDecl a) {
+	a.matchWithPointers!void(
+		(FunDecl* x) {
 			writeFunDecl(writer, ctx, x);
 		},
-		(in CalledSpecSig x) {
-			writeCalledSpecSig(writer, ctx, typeContext, x);
+		(CalledSpecSig x) {
+			writeCalledSpecSig(writer, ctx, typeContainer, x);
 		});
 }
 
 void writeCalledDecls(
 	scope ref Writer writer,
 	in ShowCtx ctx,
-	in TypeParams typeContext,
+	in TypeContainer typeContainer,
 	in CalledDecl[] cs,
 	in bool delegate(in CalledDecl) @safe @nogc pure nothrow filter = (in _) => true,
 ) {
 	foreach (ref CalledDecl c; cs)
 		if (filter(c)) {
 			writeNewline(writer, 1);
-			writeCalledDecl(writer, ctx, typeContext, c);
+			writeCalledDecl(writer, ctx, typeContainer, c);
 		}
 }
 
-void writeCalleds(scope ref Writer writer, in ShowCtx ctx, in TypeParams typeContext, in Called[] cs) {
+void writeCalleds(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in Called[] cs) {
 	foreach (ref Called x; cs) {
 		writeNewline(writer, 1);
-		writeCalled(writer, ctx, typeContext, x);
+		writeCalled(writer, ctx, typeContainer, x);
 	}
 }
 
-private void writeCalledSpecSig(scope ref Writer writer, in ShowCtx ctx, in TypeParams typeContext, in CalledSpecSig x) {
-	writeSig(writer, ctx, typeContext, x.name, x.returnType, Params(x.nonInstantiatedSig.params), some(x.instantiatedSig));
+private void writeCalledSpecSig(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in CalledSpecSig x) {
+	writeSig(writer, ctx, typeContainer, x.name, x.returnType, Params(x.nonInstantiatedSig.params), some(x.instantiatedSig));
 	writer ~= " (from spec ";
 	writeName(writer, ctx, name(*x.specInst));
 	writer ~= ')';
@@ -129,7 +129,7 @@ private void writeTypeParamsAndArgs(
 	scope ref Writer writer,
 	in ShowCtx ctx,
 	in TypeParams typeParams,
-	in TypeParams typeArgsContext,
+	in TypeContainer typeArgsContext,
 	in Type[] typeArgs,
 ) {
 	assert(sizeEq(typeParams.asArray, typeArgs));
@@ -138,25 +138,25 @@ private void writeTypeParamsAndArgs(
 		writeWithCommasZip!(TypeParam, Type)(writer, typeParams.asArray, typeArgs, (in TypeParam param, in Type arg) {
 			writeSym(writer, ctx.allSymbols, param.name);
 			writer ~= '=';
-			writeTypeUnquoted(writer, ctx, TypeWithContext(arg, typeArgsContext));
+			writeTypeUnquoted(writer, ctx, TypeWithContainer(arg, typeArgsContext));
 		});
 	}
 }
 
-void writeFunDecl(scope ref Writer writer, in ShowCtx ctx, in FunDecl a) {
-	writeSig(writer, ctx, a.typeParams, a.name, a.returnType, a.params, none!ReturnAndParamTypes);
-	writeFunDeclLocation(writer, ctx, a);
+void writeFunDecl(scope ref Writer writer, in ShowCtx ctx, in FunDecl* a) {
+	writeSig(writer, ctx, TypeContainer(a), a.name, a.returnType, a.params, none!ReturnAndParamTypes);
+	writeFunDeclLocation(writer, ctx, *a);
 }
 
-void writeFunDeclAndTypeArgs(scope ref Writer writer, in ShowCtx ctx, in TypeParams typeContext, in FunDeclAndTypeArgs a) {
+void writeFunDeclAndTypeArgs(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in FunDeclAndTypeArgs a) {
 	writeSym(writer, ctx.allSymbols, a.decl.name);
-	writeTypeArgs(writer, ctx, typeContext, a.typeArgs);
+	writeTypeArgs(writer, ctx, typeContainer, a.typeArgs);
 	writeFunDeclLocation(writer, ctx, *a.decl);
 }
 
-void writeFunInst(scope ref Writer writer, in ShowCtx ctx, in TypeParams typeContext, in FunInst a) {
-	writeFunDecl(writer, ctx, *decl(a));
-	writeTypeParamsAndArgs(writer, ctx, decl(a).typeParams, typeContext, typeArgs(a));
+void writeFunInst(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in FunInst a) {
+	writeFunDecl(writer, ctx, decl(a));
+	writeTypeParamsAndArgs(writer, ctx, decl(a).typeParams, typeContainer, typeArgs(a));
 }
 
 private void writeFunDeclLocation(scope ref Writer writer, in ShowCtx ctx, in FunDecl funDecl) {
@@ -178,7 +178,7 @@ private void writeLineNumber(scope ref Writer writer, in ShowCtx ctx, in UriAndP
 void writeSig(
 	scope ref Writer writer,
 	in ShowCtx ctx,
-	in TypeParams typeContext,
+	in TypeContainer typeContainer,
 	Sym name,
 	in Type returnType,
 	in Params params,
@@ -186,7 +186,7 @@ void writeSig(
 ) {
 	writeSym(writer, ctx.allSymbols, name);
 	writer ~= ' ';
-	writeTypeUnquoted(writer, ctx, TypeWithContext(has(instantiated) ? force(instantiated).returnType : returnType, typeContext));
+	writeTypeUnquoted(writer, ctx, TypeWithContainer(has(instantiated) ? force(instantiated).returnType : returnType, typeContainer));
 	writer ~= '(';
 	params.matchIn!void(
 		(in Destructure[] paramsArray) {
@@ -196,23 +196,23 @@ void writeSig(
 					paramsArray,
 					force(instantiated).paramTypes,
 					(in Destructure x, in Type t) {
-						writeDestructure(writer, ctx, typeContext, x, some(t));
+						writeDestructure(writer, ctx, typeContainer, x, some(t));
 					});
 			else
 				writeWithCommas!Destructure(writer, paramsArray, (in Destructure x) {
-					writeDestructure(writer, ctx, typeContext, x, none!Type);
+					writeDestructure(writer, ctx, typeContainer, x, none!Type);
 				});
 		},
 		(in Params.Varargs varargs) {
 			writer ~= "...";
-			writeTypeUnquoted(writer, ctx, TypeWithContext(
+			writeTypeUnquoted(writer, ctx, TypeWithContainer(
 				has(instantiated) ? only(force(instantiated).paramTypes) : varargs.param.type,
-				typeContext));
+				typeContainer));
 		});
 	writer ~= ')';
 }
 
-void writeSigSimple(scope ref Writer writer, in ShowCtx ctx, Sym name, in TypeParamsAndSig sig) {
+void writeSigSimple(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, Sym name, in TypeParamsAndSig sig) {
 	writeSym(writer, ctx.allSymbols, name);
 	if (!isEmpty(sig.typeParams)) {
 		writer ~= '[';
@@ -222,12 +222,12 @@ void writeSigSimple(scope ref Writer writer, in ShowCtx ctx, Sym name, in TypePa
 		writer ~= ']';
 	}
 	writer ~= ' ';
-	writeTypeUnquoted(writer, ctx, TypeWithContext(sig.returnType, sig.typeParams));
+	writeTypeUnquoted(writer, ctx, TypeWithContainer(sig.returnType, typeContainer));
 	writer ~= '(';
 	writeWithCommas!ParamShort(writer, sig.params, (in ParamShort x) {
 		writeSym(writer, ctx.allSymbols, x.name);
 		writer ~= ' ';
-		writeTypeUnquoted(writer, ctx, TypeWithContext(x.type, sig.typeParams));
+		writeTypeUnquoted(writer, ctx, TypeWithContainer(x.type, typeContainer));
 	});
 	writer ~= ')';
 }
@@ -235,7 +235,7 @@ void writeSigSimple(scope ref Writer writer, in ShowCtx ctx, Sym name, in TypePa
 private void writeDestructure(
 	scope ref Writer writer,
 	in ShowCtx ctx,
-	in TypeParams typeContext,
+	in TypeContainer typeContainer,
 	in Destructure a,
 	in Opt!Type instantiated,
 ) {
@@ -243,46 +243,46 @@ private void writeDestructure(
 	a.matchIn!void(
 		(in Destructure.Ignore) {
 			writer ~= "_ ";
-			writeTypeUnquoted(writer, ctx, TypeWithContext(type, typeContext));
+			writeTypeUnquoted(writer, ctx, TypeWithContainer(type, typeContainer));
 		},
 		(in Local x) {
 			writeSym(writer, ctx.allSymbols, x.name);
 			writer ~= ' ';
-			writeTypeUnquoted(writer, ctx, TypeWithContext(type, typeContext));
+			writeTypeUnquoted(writer, ctx, TypeWithContainer(type, typeContainer));
 		},
 		(in Destructure.Split x) {
 			writer ~= '(';
 			writeWithCommasZip!(Destructure, Type)(
 				writer, x.parts, typeArgs(*type.as!(StructInst*)), (in Destructure part, in Type partType) {
-					writeDestructure(writer, ctx, typeContext, part, some(partType));
+					writeDestructure(writer, ctx, typeContainer, part, some(partType));
 				});
 			writer ~= ')';
 		});
 }
 
-void writeStructInst(scope ref Writer writer, in ShowCtx ctx, in TypeParams typeContext, in StructInst s) {
-	TypeWithContext withContext(Type x) =>
-		TypeWithContext(x, typeContext);
+void writeStructInst(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in StructInst s) {
+	TypeWithContainer withContainer(Type x) =>
+		TypeWithContainer(x, typeContainer);
 	void fun(string keyword) @safe {
 		writer ~= keyword;
 		writer ~= ' ';
 		Type[2] rp = only2(s.typeArgs);
-		writeTypeUnquoted(writer, ctx, withContext(rp[0]));
+		writeTypeUnquoted(writer, ctx, withContainer(rp[0]));
 		Type param = rp[1];
 		bool needParens = !(param.isA!(StructInst*) && isTuple(ctx.program.commonTypes, *param.as!(StructInst*)));
 		if (needParens) writer ~= '(';
-		writeTypeUnquoted(writer, ctx, withContext(param));
+		writeTypeUnquoted(writer, ctx, withContainer(param));
 		if (needParens) writer ~= ')';
 	}
 	void map(string open) {
 		Type[2] vk = only2(s.typeArgs);
-		writeTypeUnquoted(writer, ctx, withContext(vk[0]));
+		writeTypeUnquoted(writer, ctx, withContainer(vk[0]));
 		writer ~= open;
-		writeTypeUnquoted(writer, ctx, withContext(vk[1]));
+		writeTypeUnquoted(writer, ctx, withContainer(vk[1]));
 		writer ~= ']';
 	}
 	void suffix(string suffix) {
-		writeTypeUnquoted(writer, ctx, withContext(only(s.typeArgs)));
+		writeTypeUnquoted(writer, ctx, withContainer(only(s.typeArgs)));
 		writer ~= suffix;
 	}
 
@@ -313,18 +313,18 @@ void writeStructInst(scope ref Writer writer, in ShowCtx ctx, in TypeParams type
 			case Diag.TypeShouldUseSyntax.Kind.pointer:
 				return suffix("*");
 			case Diag.TypeShouldUseSyntax.Kind.tuple:
-				return writeTupleType(writer, ctx, typeContext, s.typeArgs);
+				return writeTupleType(writer, ctx, typeContainer, s.typeArgs);
 		}
 	} else {
 		switch (s.typeArgs.length) {
 			case 0:
 				break;
 			case 1:
-				writeTypeUnquoted(writer, ctx, withContext(only(s.typeArgs)));
+				writeTypeUnquoted(writer, ctx, withContainer(only(s.typeArgs)));
 				writer ~= ' ';
 				break;
 			default:
-				writeTupleType(writer, ctx, typeContext, s.typeArgs);
+				writeTupleType(writer, ctx, typeContainer, s.typeArgs);
 				writer ~= ' ';
 				break;
 		}
@@ -332,10 +332,10 @@ void writeStructInst(scope ref Writer writer, in ShowCtx ctx, in TypeParams type
 	}
 }
 
-private void writeTupleType(scope ref Writer writer, in ShowCtx ctx, in TypeParams typeContext, in Type[] members) {
+private void writeTupleType(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in Type[] members) {
 	writer ~= '(';
 	writeWithCommas!Type(writer, members, (in Type arg) {
-		writeTypeUnquoted(writer, ctx, TypeWithContext(arg, typeContext));
+		writeTypeUnquoted(writer, ctx, TypeWithContainer(arg, typeContainer));
 	});
 	writer ~= ')';
 }
@@ -358,31 +358,31 @@ void writeTypeArgsGeneric(T)(
 	}
 }
 
-void writeTypeArgs(scope ref Writer writer, in ShowCtx ctx, in TypeParams typeContext, in Type[] types) {
+void writeTypeArgs(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in Type[] types) {
 	writeTypeArgsGeneric!Type(writer, types,
 		(in Type x) =>
 			!x.isA!(StructInst*) || empty(typeArgs(*x.as!(StructInst*))),
 		(in Type x) {
-			writeTypeUnquoted(writer, ctx, TypeWithContext(x, typeContext));
+			writeTypeUnquoted(writer, ctx, TypeWithContainer(x, typeContainer));
 		});
 }
 
-void writeTypeQuoted(scope ref Writer writer, in ShowCtx ctx, in TypeWithContext a) {
+void writeTypeQuoted(scope ref Writer writer, in ShowCtx ctx, in TypeWithContainer a) {
 	writer ~= '\'';
 	writeTypeUnquoted(writer, ctx, a);
 	writer ~= '\'';
 }
 
-void writeTypeUnquoted(scope ref Writer writer, in ShowCtx ctx, in TypeWithContext a) {
+void writeTypeUnquoted(scope ref Writer writer, in ShowCtx ctx, in TypeWithContainer a) {
 	a.type.matchIn!void(
 		(in Type.Bogus) {
 			writer ~= "<<bogus>>";
 		},
 		(in TypeParamIndex x) {
-			writeSym(writer, ctx.allSymbols, a.context[x].name);
+			writeSym(writer, ctx.allSymbols, typeParamAsts(a.container)[x.index].name);
 		},
 		(in StructInst x) {
-			writeStructInst(writer, ctx, a.context, x);
+			writeStructInst(writer, ctx, a.container, x);
 		});
 }
 
@@ -396,9 +396,9 @@ void writeName(scope ref Writer writer, in ShowCtx ctx, Sym name) {
 	writer ~= '\'';
 }
 
-void writeSpecInst(scope ref Writer writer, in ShowCtx ctx, in TypeParams typeContext, in SpecInst a) {
+void writeSpecInst(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in SpecInst a) {
 	writeSym(writer, ctx.allSymbols, decl(a).name);
-	writeTypeArgs(writer, ctx, typeContext, typeArgs(a));
+	writeTypeArgs(writer, ctx, typeContainer, typeArgs(a));
 }
 
 void writeUriAndRange(scope ref Writer writer, in ShowCtx ctx, in UriAndRange where) {

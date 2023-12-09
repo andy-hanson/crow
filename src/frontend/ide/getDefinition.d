@@ -2,9 +2,11 @@ module frontend.ide.getDefinition;
 
 @safe @nogc pure nothrow:
 
+import frontend.parse.ast : rangeOfNameAndRange;
 import frontend.ide.getTarget : Target, targetForPosition;
 import frontend.ide.ideUtil : ReferenceCb;
-import frontend.ide.position : Position, PositionKind, typeParams;
+import frontend.ide.position : Position, PositionKind;
+import model.diag : typeParamAsts, uriOfTypeContainer;
 import model.model :
 	FunDecl,
 	LoopExpr,
@@ -72,7 +74,7 @@ public void definitionForTarget(in AllSymbols allSymbols, Uri curUri, in Target 
 			cb(nameRange(allSymbols, x));
 		},
 		(in PositionKind.TypeParamWithContainer x) {
-			cb(typeParams(x.container)[x.typeParam].range);
+			cb(UriAndRange(uriOfTypeContainer(x.container), rangeOfNameAndRange(typeParamAsts(x.container)[x.typeParam.index], allSymbols)));
 		},
 		(in VarDecl x) {
 			cb(nameRange(allSymbols, x));

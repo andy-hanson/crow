@@ -8,7 +8,7 @@ import frontend.check.maps : FunsMap, StructsAndAliasesMap;
 import frontend.check.typeFromAst : typeFromAst;
 import frontend.lang : maxClosureFields;
 import frontend.parse.ast : ExprAst, TypeAst;
-import model.diag : Diag, TypeWithContext;
+import model.diag : Diag, TypeContainer, TypeWithContainer;
 import model.model :
 	CommonTypes,
 	Destructure,
@@ -87,6 +87,7 @@ struct ExprCtx {
 	immutable StructsAndAliasesMap structsAndAliasesMap;
 	immutable FunsMap funsMap;
 	immutable CommonTypes commonTypes;
+	immutable TypeContainer typeContainer; // for diags
 	immutable Sym outermostFunName;
 	immutable SpecInst*[] outermostFunSpecs;
 	immutable Destructure[] outermostFunParams;
@@ -118,10 +119,10 @@ struct ExprCtx {
 		checkCtx.instantiateCtx;
 }
 
-TypeParams typeContext(in ExprCtx ctx) =>
+TypeParams typeContext(in ExprCtx ctx) => // TODO:USED? ---------------------------------------------------------------------------
 	ctx.outermostFunTypeParams;
-TypeWithContext typeWithContext(in ExprCtx ctx, Type a) =>
-	TypeWithContext(a, ctx.outermostFunTypeParams);
+TypeWithContainer typeWithContainer(ref const ExprCtx ctx, Type a) =>
+	TypeWithContainer(a, ctx.typeContainer);
 
 T withTrusted(T)(ref ExprCtx ctx, ExprAst* source, in T delegate() @safe @nogc pure nothrow cb) {
 	Opt!(Diag.TrustedUnnecessary.Reason) reason = ctx.outermostFunFlags.safety != FunFlags.Safety.safe

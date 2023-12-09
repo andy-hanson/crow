@@ -185,7 +185,7 @@ StructDecl* bogusStructDecl(ref Alloc alloc, size_t nTypeParameters) {
 	ArrBuilder!TypeParam typeParams;
 	UriAndRange uriAndRange = UriAndRange.empty;
 	foreach (size_t i; 0 .. nTypeParameters)
-		add(alloc, typeParams, TypeParam(uriAndRange, sym!"bogus", i));
+		add(alloc, typeParams, TypeParam(sym!"bogus"));
 	StructDecl* res = allocate(alloc, StructDecl(
 		none!(StructDeclAst*),
 		uriAndRange.uri,

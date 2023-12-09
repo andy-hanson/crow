@@ -64,18 +64,14 @@ bool isMultipleOf(T)(T a, T b) {
 	return a % b == 0;
 }
 
-void debugLog(immutable char* message) {
-	debugLog(message, 0);
-}
-
 version (WebAssembly) {
 	// WARN: 'message' must be heap allocated, not on stack
-	extern(C) void debugLog(scope immutable char* message, size_t value);
+	extern(C) void debugLog(scope immutable char* message);
 } else {
-	void debugLog(in immutable char* message, size_t value) {
+	void debugLog(in immutable char* message) {
 		// Log to stderr because LSP uses stdout
 		debug {
-			fprintf(stderr, "debug log: %s == %llu\n", message, value);
+			fprintf(stderr, "debug log: %s\n", message);
 		}
 	}
 }

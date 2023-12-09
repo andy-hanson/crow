@@ -44,7 +44,7 @@ import frontend.parse.ast :
 	VarDeclAst;
 import frontend.programState : ProgramState;
 import frontend.storage : FileContent;
-import model.diag : Diag, Diagnostic;
+import model.diag : Diag, Diagnostic, TypeContainer;
 import model.model :
 	body_,
 	CommonTypes,
@@ -95,13 +95,13 @@ import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : empty, emptySmallArray, only, ptrsRange, small;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderTempAsArr, finishArr;
-import util.col.arrUtil : concatenate, filter, map, mapOp, mapToMut, mapPointers, zip, zipPointers;
-import util.col.exactSizeArrBuilder : buildArrayExact, ExactSizeArrBuilder;
+import util.col.arrUtil : concatenate, filter, map, mapOp, mapPointers, mapToMut, mapWithResultPointer,sum, zip, zipPointers;
+import util.col.exactSizeArrBuilder : buildArrayExact, ExactSizeArrBuilder, pushUninitialized;
 import util.col.hashTable : HashTable, insertOrUpdate, mapAndMovePreservingKeys, mayAdd, moveToImmutable, MutHashTable;
 import util.col.mutArr : mustPop, mutArrIsEmpty;
 import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, mutMaxArrSize, push, pushIfUnderMaxSize, toArray;
 import util.col.str : copySafeCStr;
-import util.memory : allocate;
+import util.memory : allocate, initMemory;
 import util.opt : force, has, none, Opt, someMut, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : ptrTrustMe;
@@ -186,6 +186,7 @@ private:
 Params checkParams(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
+	TypeContainer typeContainer,
 	in ParamsAst ast,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	TypeParams typeParamsScope,
@@ -195,11 +196,11 @@ Params checkParams(
 		(DestructureAst[] asts) =>
 			Params(map!(Destructure, DestructureAst)(ctx.alloc, asts, (ref DestructureAst ast) =>
 				checkDestructure(
-					ctx, commonTypes, structsAndAliasesMap, typeParamsScope, delayStructInsts,
+					ctx, commonTypes, structsAndAliasesMap, typeContainer, typeParamsScope, delayStructInsts,
 					ast, none!Type))),
 		(ref ParamsAst.Varargs varargs) {
 			Destructure param = checkDestructure(
-				ctx, commonTypes, structsAndAliasesMap, typeParamsScope, delayStructInsts, varargs.param, none!Type);
+				ctx, commonTypes, structsAndAliasesMap, typeContainer, typeParamsScope, delayStructInsts, varargs.param, none!Type);
 			Opt!Type elementType = param.type.matchIn!(Opt!Type)(
 				(in Type.Bogus _) =>
 					some(Type(Type.Bogus())),
@@ -222,6 +223,7 @@ immutable struct ReturnTypeAndParams {
 ReturnTypeAndParams checkReturnTypeAndParams(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
+	TypeContainer typeContainer,
 	in TypeAst returnTypeAst,
 	in ParamsAst paramsAst,
 	TypeParams typeParams,
@@ -230,7 +232,7 @@ ReturnTypeAndParams checkReturnTypeAndParams(
 ) =>
 	ReturnTypeAndParams(
 		typeFromAst(ctx, commonTypes, returnTypeAst, structsAndAliasesMap, typeParams, delayStructInsts),
-		checkParams(ctx, commonTypes, paramsAst, structsAndAliasesMap, typeParams, delayStructInsts));
+		checkParams(ctx, commonTypes, typeContainer, paramsAst, structsAndAliasesMap, typeParams, delayStructInsts));
 
 SpecDeclBody.Builtin.Kind getSpecBodyBuiltinKind(ref CheckCtx ctx, in Range range, Sym name) {
 	switch (name.value) {
@@ -247,6 +249,7 @@ SpecDeclBody.Builtin.Kind getSpecBodyBuiltinKind(ref CheckCtx ctx, in Range rang
 SpecDeclBody checkSpecDeclBody(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
+	TypeContainer typeContainer,
 	TypeParams typeParams,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in Range range,
@@ -259,7 +262,7 @@ SpecDeclBody checkSpecDeclBody(
 		(SpecSigAst[] sigs) =>
 			SpecDeclBody(mapPointers(ctx.alloc, sigs, (SpecSigAst* x) {
 				ReturnTypeAndParams rp = checkReturnTypeAndParams(
-					ctx, commonTypes, x.returnType, x.params, typeParams, structsAndAliasesMap, noDelayStructInsts);
+					ctx, commonTypes, typeContainer, x.returnType, x.params, typeParams, structsAndAliasesMap, noDelayStructInsts);
 				Destructure[] params = rp.params.match!(Destructure[])(
 					(Destructure[] x) =>
 						x,
@@ -268,16 +271,16 @@ SpecDeclBody checkSpecDeclBody(
 				return SpecDeclSig(ctx.curUri, x, x.name, rp.returnType, small(params));
 			})));
 
-SpecDecl[] checkSpecDeclsInitial(
+@trusted SpecDecl[] checkSpecDeclsInitial(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesMap structsAndAliasesMap,
 	SpecDeclAst[] asts,
 ) =>
-	mapPointers(ctx.alloc, asts, (SpecDeclAst* ast) {
+	mapWithResultPointer!(SpecDecl, SpecDeclAst)(ctx.alloc, asts, (SpecDeclAst* ast, SpecDecl* out_) {
 		TypeParams typeParams = checkTypeParams(ctx, ast.typeParams);
 		SpecDeclBody body_ =
-			checkSpecDeclBody(ctx, commonTypes, typeParams, structsAndAliasesMap, ast.range, ast.name.name, ast.body_);
+			checkSpecDeclBody(ctx, commonTypes, TypeContainer(out_), typeParams, structsAndAliasesMap, ast.range, ast.name.name, ast.body_);
 		return SpecDecl(ctx.curUri, ast, visibilityFromExplicit(ast.visibility), ast.name.name, typeParams, body_);
 	});
 
@@ -309,7 +312,7 @@ void detectAndFixSpecRecursion(ref CheckCtx ctx, SpecDecl* decl) {
 	MutMaxArr!(8, immutable SpecDecl*) trace = mutMaxArr!(8, immutable SpecDecl*);
 	if (recurDetectSpecRecursion(decl, trace)) {
 		addDiag(ctx, range(*decl), Diag(Diag.SpecRecursion(toArray(ctx.alloc, trace))));
-		decl.overwriteParents([]);
+		decl.overwriteParentsToEmpty();
 	}
 }
 bool recurDetectSpecRecursion(SpecDecl* cur, ref MutMaxArr!(8, immutable SpecDecl*) trace) {
@@ -555,12 +558,14 @@ FunsAndMap checkFuns(
 	FunDecl[] funs = buildArrayExact!FunDecl(
 		ctx.alloc,
 		asts.length + fileImports.length + fileExports.length + countFunsForStructs(structs) + countFunsForVars(vars),
-		(scope ref ExactSizeArrBuilder!FunDecl funsBuilder) {
+		(scope ref ExactSizeArrBuilder!FunDecl funsBuilder) @trusted {
 			foreach (FunDeclAst* funAst; ptrsRange(asts)) {
+				FunDecl* fun = pushUninitialized(funsBuilder);
 				TypeParams typeParams = checkTypeParams(ctx, funAst.typeParams);
 				ReturnTypeAndParams rp = checkReturnTypeAndParams(
 					ctx,
 					commonTypes,
+					TypeContainer(fun),
 					funAst.returnType,
 					funAst.params,
 					typeParams,
@@ -568,7 +573,7 @@ FunsAndMap checkFuns(
 					noDelayStructInsts);
 				FunFlagsAndSpecs flagsAndSpecs = checkFunModifiers(
 					ctx, commonTypes, funAst.range, funAst.modifiers, structsAndAliasesMap, specsMap, typeParams);
-				funsBuilder ~= FunDecl(
+				initMemory(fun, FunDecl(
 					FunDeclSource(FunDeclSource.Ast(ctx.curUri, funAst)),
 					visibilityFromExplicit(funAst.visibility),
 					funAst.name.name,
@@ -576,7 +581,7 @@ FunsAndMap checkFuns(
 					rp.returnType,
 					rp.params,
 					flagsAndSpecs.flags,
-					small(flagsAndSpecs.specs));
+					small(flagsAndSpecs.specs)));
 			}
 			foreach (ref ImportOrExportFile f; fileImports)
 				funsBuilder ~= funDeclForFileImportOrExport(
@@ -607,7 +612,7 @@ FunsAndMap checkFuns(
 							commonTypes,
 							structsAndAliasesMap,
 							funsMap,
-							*fun,
+							fun,
 							&force(funAst.body_)));
 				case FunFlags.SpecialBody.builtin:
 				case FunFlags.SpecialBody.generated:
@@ -627,23 +632,26 @@ FunsAndMap checkFuns(
 	foreach (size_t i, ref ImportOrExportFile f; fileExports)
 		funs[asts.length + fileImports.length + i].setBody(getFileImportFunctionBody(f));
 
-	Test[] tests = mapPointers(ctx.alloc, testAsts, (TestAst* ast) {
-		Type voidType = Type(commonTypes.void_);
-		if (!has(ast.body_))
-			todo!void("diag: test needs body");
-		return Test(ctx.curUri, checkFunctionBody(
-			ctx,
-			structsAndAliasesMap,
-			commonTypes,
-			funsMap,
-			voidType,
-			sym!"test",
-			emptyTypeParams,
-			[],
-			[],
-			FunFlags.none.withSummon,
-			&force(ast.body_)));
-	});
+	Test[] tests = () @trusted {
+		return mapWithResultPointer!(Test, TestAst)(ctx.alloc, testAsts, (TestAst* ast, Test* out_) {
+			Type voidType = Type(commonTypes.void_);
+			if (!has(ast.body_))
+				todo!void("diag: test needs body");
+			return Test(ctx.curUri, checkFunctionBody(
+				ctx,
+				structsAndAliasesMap,
+				commonTypes,
+				funsMap,
+				TypeContainer(out_),
+				voidType,
+				sym!"test",
+				emptyTypeParams,
+				[],
+				[],
+				FunFlags.none.withSummon,
+				&force(ast.body_)));
+		});
+	}();
 
 	return FunsAndMap(funs, tests, funsMap);
 }
@@ -696,7 +704,7 @@ FunBody.ExpressionBody getExprFunctionBody(
 	in CommonTypes commonTypes,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in FunsMap funsMap,
-	ref FunDecl f,
+	FunDecl* f,
 	ExprAst* e,
 ) =>
 	FunBody.ExpressionBody(checkFunctionBody(
@@ -704,6 +712,7 @@ FunBody.ExpressionBody getExprFunctionBody(
 		structsAndAliasesMap,
 		commonTypes,
 		funsMap,
+		TypeContainer(f),
 		f.returnType,
 		f.name,
 		f.typeParams,

@@ -39,7 +39,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : everyWithIndex, map, zipPtrFirst;
+import util.col.arrUtil : everyWithIndex, map;
 import util.memory : overwriteMemory;
 import util.col.mutMaxArr :
 	copyToFrom,
@@ -82,12 +82,11 @@ struct Candidate {
 	// 'match' can't return 'inout' we must do it this way
 	if (a.called.isA!(FunDecl*))
 		return inout TypeContext(
-			a.called.as!(FunDecl*).typeParams,
 			cast(inout) someMut!(SingleInferringType[])(cast(SingleInferringType[]) tempAsArr(a.typeArgs)));
 	else {
 		assert(a.called.isA!CalledSpecSig);
 		// Spec is instantiated using the caller's types
-		return cast(inout) nonInferringTypeContext(outerContext);
+		return cast(inout) nonInferringTypeContext();
 	}
 }
 
@@ -164,9 +163,8 @@ FunsInScope funsInScope(ref const ExprCtx ctx) {
 }
 
 void eachFunInScope(in FunsInScope a, Sym funName, in void delegate(CalledDecl) @safe @nogc pure nothrow cb) {
-	size_t totalIndex = 0;
 	foreach (SpecInst* specInst; a.outermostFunSpecs)
-		eachFunInScopeForSpec(specInst, totalIndex, funName, cb);
+		eachFunInScopeForSpec(specInst, funName, cb);
 
 	Opt!(immutable FunDecl*[]) funs = a.funsMap[funName];
 	if (has(funs))
@@ -216,7 +214,7 @@ bool testCandidateParamType(
 	Type declType = paramTypeAt(candidate.called, argIndex);
 	Opt!Type instantiated = tryGetDeeplyInstantiatedType(ctx, inout TypeAndContext(declType, typeContextForCandidate(outerContext, candidate)));
 	return has(instantiated)
-		? inout TypeAndContext(force(instantiated), cast(inout) nonInferringTypeContext(outerContext))
+		? inout TypeAndContext(force(instantiated), cast(inout) nonInferringTypeContext())
 		: inout TypeAndContext(declType, typeContextForCandidate(outerContext, candidate));
 }
 
@@ -236,19 +234,17 @@ private Type paramTypeAt(in Params params, size_t argIndex) =>
 
 private void eachFunInScopeForSpec(
 	SpecInst* specInst,
-	ref size_t totalIndex,
 	Sym funName,
 	in void delegate(CalledDecl) @safe @nogc pure nothrow cb,
 ) {
 	foreach (SpecInst* parent; specInst.parents)
-		eachFunInScopeForSpec(parent, totalIndex, funName, cb);
+		eachFunInScopeForSpec(parent, funName, cb);
 	decl(*specInst).body_.match!void(
 		(SpecDeclBody.Builtin) {},
 		(SpecDeclSig[] sigs) {
-			zipPtrFirst(sigs, specInst.sigTypes, (SpecDeclSig* sig, ref ReturnAndParamTypes signatureTypes) {
+			foreach (size_t sigIndex, ref SpecDeclSig sig; sigs) {
 				if (sig.name == funName)
-					cb(CalledDecl(CalledSpecSig(specInst, signatureTypes, sig, totalIndex)));
-				totalIndex += 1;
-			});
+					cb(CalledDecl(CalledSpecSig(specInst, sigIndex)));
+			}
 		});
 }

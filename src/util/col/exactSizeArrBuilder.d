@@ -13,9 +13,7 @@ struct ExactSizeArrBuilder(T) {
 	T* cur;
 
 	@trusted void opOpAssign(string op : "~")(T value) scope {
-		assert(cur < endPtr(inner));
-		initMemory!T(cur, value);
-		cur++;
+		initMemory!T(pushUninitialized(this), value);
 	}
 }
 
@@ -27,6 +25,13 @@ T[] buildArrayExact(T)(
 	ExactSizeArrBuilder!T builder = newExactSizeArrBuilder!T(alloc, size);
 	cb(builder);
 	return finish(builder);
+}
+
+T* pushUninitialized(T)(ref ExactSizeArrBuilder!T a) @trusted {
+	assert(a.cur < endPtr(a.inner));
+	T* res = a.cur;
+	a.cur++;
+	return res;
 }
 
 @trusted T[] finish(T)(ref ExactSizeArrBuilder!T a) {

@@ -15,7 +15,7 @@ import frontend.check.instantiate :
 	typeArgsArray,
 	TypeParamsAndArgs;
 import frontend.lang : maxSpecDepth, maxSpecImpls;
-import model.diag : Diag;
+import model.diag : Diag, TypeContainer;
 import model.model :
 	Called,
 	CalledSpecSig,
@@ -49,7 +49,7 @@ import util.sourceRange : Range;
 import util.union_ : Union;
 
 Opt!Called checkCallSpecs(ref ExprCtx ctx, in Range range, ref const Candidate candidate) {
-	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, ctx.outermostFunTypeParams, funsInScope(ctx));
+	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, ctx.typeContainer, ctx.outermostFunTypeParams, funsInScope(ctx));
 	return getCalledFromCandidateAfterTypeChecks(checkSpecsCtx, candidate, DummyTrace()).match!(Opt!Called)(
 		(Called x) {
 			consumeArr(checkSpecsCtx.alloc, checkSpecsCtx.matchDiags, (Diag.SpecMatchError diag) {
@@ -86,7 +86,8 @@ struct CheckSpecsCtx {
 
 	Alloc* allocPtr;
 	InstantiateCtx instantiateCtx;
-	TypeParams outerContext;
+	TypeContainer typeContainer;
+	TypeParams outerContext; // TODO: KILL -----------------------------------------------------------------------------------------------
 	immutable FunsInScope funsInScope;
 	ArrBuilder!(Diag.SpecMatchError) matchDiags;
 
@@ -133,7 +134,7 @@ T withTrace(T)(
 DummyTrace.NoMatch specNoMatch(ref CheckSpecsCtx ctx, scope DummyTrace, Diag.SpecNoMatch.Reason) =>
 	DummyTrace.NoMatch();
 RealTrace.NoMatch specNoMatch(ref CheckSpecsCtx ctx, scope RealTrace a, Diag.SpecNoMatch.Reason reason) =>
-	Diag.SpecNoMatch(ctx.outerContext, reason, toArray(*a.alloc, *a.trace));
+	Diag.SpecNoMatch(ctx.typeContainer, reason, toArray(*a.alloc, *a.trace));
 bool isFull(DummyTrace trace) {
 	assert(trace.depth <= maxSpecDepth);
 	return trace.depth == maxSpecDepth;
@@ -148,7 +149,7 @@ Trace.Result checkCandidate(Trace)(
 	ref Candidate candidate,
 	scope Trace trace,
 ) =>
-	testCandidateForSpecSig(ctx.instantiateCtx, ctx.outerContext, candidate, sigType, nonInferringTypeContext(ctx.outerContext))
+	testCandidateForSpecSig(ctx.instantiateCtx, ctx.outerContext, candidate, sigType, nonInferringTypeContext())
 		? getCalledFromCandidateAfterTypeChecks(ctx, candidate, trace)
 		: Trace.Result(specNoMatch(
 			ctx,
@@ -221,7 +222,7 @@ Trace.Result findSpecSigImplementation(Trace)(
 		} else {
 			add(ctx.alloc, multipleMatches, force(cellGet(res)));
 			add(ctx.alloc, ctx.matchDiags, Diag.SpecMatchError(
-				ctx.outerContext,
+				ctx.typeContainer,
 				Diag.SpecMatchError.Reason(
 					Diag.SpecMatchError.Reason.MultipleMatches(sigDecl.name, finishArr(ctx.alloc, multipleMatches))),
 				// TODO: THE TRACE ------------------------------------------------------------------------------------

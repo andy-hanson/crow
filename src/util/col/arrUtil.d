@@ -117,6 +117,15 @@ Opt!Out firstWithIndex(Out, In)(in In[] a, in Opt!Out delegate(size_t, In) @safe
 	return none!Out;
 }
 
+Out mustGetFirst(Out, In)(in In[] a, in Opt!Out delegate(In) @safe @nogc pure nothrow cb) {
+	foreach (ref const In x; a) {
+		Opt!Out res = cb(x);
+		if (has(res))
+			return force(res);
+	}
+	assert(false);
+}
+
 Opt!Out first(Out, In)(in In[] a, in Opt!Out delegate(In) @safe @nogc pure nothrow cb) =>
 	firstWithIndex!(Out, In)(a, (size_t _, In x) => cb(x));
 
@@ -142,14 +151,6 @@ Opt!Out firstZipPointerFirst(Out, In0, In1)(
 	assert(sizeEq(a, b));
 	return firstWithIndex!(Out, In1)(b, (size_t i, In1 x) => cb(&a[i], x));
 }
-
-Opt!(T*) findPtr(T)(T[] arr, in bool delegate(in T) @safe @nogc pure nothrow cb) {
-	foreach (T* x; ptrsRange!T(arr))
-		if (cb(*x))
-			return some(x);
-	return none!(T*);
-}
-
 
 SmallArray!T copyArr(T)(ref Alloc alloc, scope SmallArray!T a) =>
 	small(copyArr(alloc, a.toArray));
@@ -269,6 +270,13 @@ Out[] mapWithIndex(Out, In)(
 	return res[0 .. a.length];
 }
 
+@system Out[] mapWithResultPointer(Out, In)(ref Alloc alloc, In[] a, in Out delegate(In*, Out*) @safe @nogc pure nothrow cb) {
+	Out[] res = allocateElements!Out(alloc, a.length);
+	foreach (size_t i; 0 .. a.length)
+		initMemory(&res[i], cb(&a[i], &res[i]));
+	return res[0 .. a.length];
+}
+
 Out[] mapPointersWithIndex(Out, In)(
 	ref Alloc alloc,
 	In[] a,
@@ -341,6 +349,7 @@ void zipPtrFirst(T, U)(T[] a, scope U[] b, in void delegate(T*, ref U) @safe @no
 	foreach (size_t i; 0 .. a.length)
 		cb(&a[i], b[i]);
 }
+
 
 @trusted Out[] mapZip(Out, In0, In1)(
 	ref Alloc alloc,

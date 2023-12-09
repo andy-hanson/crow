@@ -21,7 +21,7 @@ import frontend.parse.ast :
 	symForTypeAstMap,
 	symForTypeAstSuffix,
 	TypeAst;
-import model.diag : Diag, TypeWithContext;
+import model.diag : Diag, TypeContainer, TypeWithContainer;
 import model.model :
 	asTuple,
 	CommonTypes,
@@ -46,7 +46,7 @@ import model.model :
 	typeParams;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : arrayOfSingle, empty, only, small;
-import util.col.arrUtil : eachPair, findPtr, map, mapOrNone, mapWithIndex, mapZip;
+import util.col.arrUtil : eachPair, findIndex, map, mapOrNone, mapWithIndex, mapZip;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.ptr : castNonScope_ref, ptrTrustMe;
@@ -135,16 +135,12 @@ size_t getNTypeArgsForDiagnostic(in CommonTypes commonTypes, in Opt!Type explici
 }
 
 TypeParams checkTypeParams(ref CheckCtx ctx, in NameAndRange[] asts) {
-	TypeParams res = mapWithIndex!(TypeParam, NameAndRange)(
-		ctx.alloc,
-		asts,
-		(size_t index, scope ref NameAndRange ast) =>
-			TypeParam(rangeInFile(ctx, rangeOfNameAndRange(ast, ctx.allSymbols)), ast.name, index));
-	eachPair!TypeParam(res.asArray, (in TypeParam a, in TypeParam b) {
-		if (a.name == b.name)
-			addDiag(ctx, b.range, Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.typeParam, b.name)));
+	eachPair!NameAndRange(asts, (in NameAndRange x, in NameAndRange y) {
+		if (x.name == y.name)
+			addDiag(ctx, rangeOfNameAndRange(y, ctx.allSymbols), Diag(
+				Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.typeParam, y.name)));
 	});
-	return res;
+	return TypeParams(map!(TypeParam, NameAndRange)(ctx.alloc, asts, (ref NameAndRange x) => TypeParam(x.name)));
 }
 
 Type typeFromAstNoTypeParamsNeverDelay(
@@ -171,9 +167,9 @@ Type typeFromAst(
 		(in TypeAst.Map x) =>
 			typeFromMapAst(ctx, commonTypes, x, structsAndAliasesMap, typeParamsScope, delayStructInsts),
 		(in NameAndRange name) {
-			Opt!(TypeParam*) typeParam = findTypeParam(typeParamsScope, name.name);
+			Opt!TypeParamIndex typeParam = findTypeParam(typeParamsScope, name.name);
 			return has(typeParam)
-				? Type(TypeParamIndex(force(typeParam).index, force(typeParam)))
+				? Type(force(typeParam))
 				: instStructFromAst(
 					ctx,
 					commonTypes,
@@ -188,10 +184,10 @@ Type typeFromAst(
 			Opt!(Diag.TypeShouldUseSyntax.Kind) optSyntax = typeSyntaxKind(x.name.name);
 			if (has(optSyntax))
 				addDiag(ctx, suffixRange(x, ctx.allSymbols), Diag(Diag.TypeShouldUseSyntax(force(optSyntax))));
-			Opt!(TypeParam*) typeParam = findTypeParam(typeParamsScope, x.name.name);
+			Opt!TypeParamIndex typeParam = findTypeParam(typeParamsScope, x.name.name);
 			if (has(typeParam)) {
 				addDiag(ctx, suffixRange(x, ctx.allSymbols), Diag(Diag.TypeParamCantHaveTypeArgs()));
-				return Type(TypeParamIndex(force(typeParam).index, force(typeParam)));
+				return Type(force(typeParam));
 			} else
 				return instStructFromAst(
 					ctx,
@@ -267,9 +263,11 @@ private Type typeFromTupleAst(
 	return makeTupleType(ctx.instantiateCtx, commonTypes, args);
 }
 
-private Opt!(TypeParam*) findTypeParam(TypeParams typeParamsScope, Sym name) =>
-	findPtr!TypeParam(typeParamsScope.asArray, (in TypeParam x) =>
+private Opt!TypeParamIndex findTypeParam(TypeParams typeParamsScope, Sym name) {
+	Opt!size_t res = findIndex!TypeParam(typeParamsScope.asArray, (in TypeParam x) =>
 		x.name == name);
+	return has(res) ? some(TypeParamIndex(force(res))) : none!TypeParamIndex;
+}
 
 Opt!(Diag.TypeShouldUseSyntax.Kind) typeSyntaxKind(Sym a) {
 	switch (a.value) {
@@ -388,21 +386,23 @@ Destructure checkDestructure(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	in StructsAndAliasesMap structsAndAliasesMap,
+	TypeContainer typeContainer,
+	// 'typeContainer' may be uninitialized, so pass 'typeParamsScope' separately
 	TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
 	ref DestructureAst ast,
 	// This is for the type coming from the RHS of a 'let', or the expected type of a lambda
 	Opt!Type destructuredType,
 ) {
-	TypeWithContext typeWithContext(Type x) =>
-		TypeWithContext(x, typeParamsScope);
+	TypeWithContainer typeWithContainer(Type x) =>
+		TypeWithContainer(x, typeContainer);
 	Type getType(Opt!Type declaredType) {
 		if (has(declaredType)) {
 			if (has(destructuredType) && force(destructuredType) != force(declaredType))
 				addDiag(ctx, ast.range(ctx.allSymbols), Diag(
 					Diag.DestructureTypeMismatch(
-						Diag.DestructureTypeMismatch.Expected(typeWithContext(force(declaredType))),
-						typeWithContext(force(destructuredType)))));
+						Diag.DestructureTypeMismatch.Expected(typeWithContainer(force(declaredType))),
+						typeWithContainer(force(destructuredType)))));
 			return force(declaredType);
 		} else if (has(destructuredType))
 			return force(destructuredType);
@@ -443,26 +443,26 @@ Destructure checkDestructure(
 						small(mapZip!(Destructure, Type, DestructureAst)(
 							ctx.alloc, force(fieldTypes), partAsts, (ref Type fieldType, ref DestructureAst part) =>
 								checkDestructure(
-									ctx, commonTypes, structsAndAliasesMap, typeParamsScope, delayStructInsts,
+									ctx, commonTypes, structsAndAliasesMap, typeContainer, typeParamsScope, delayStructInsts,
 									part, some(fieldType)))))));
 				else {
 					addDiag(ctx, ast.range(ctx.allSymbols), Diag(
 						Diag.DestructureTypeMismatch(
 							Diag.DestructureTypeMismatch.Expected(
 								Diag.DestructureTypeMismatch.Expected.Tuple(partAsts.length)),
-							typeWithContext(tupleType))));
+							typeWithContainer(tupleType))));
 					return Destructure(allocate(ctx.alloc, Destructure.Split(
 						Type(Type.Bogus()),
 						small(map!(Destructure, DestructureAst)(
 							ctx.alloc, partAsts, (ref DestructureAst part) =>
 								checkDestructure(
-									ctx, commonTypes, structsAndAliasesMap, typeParamsScope, delayStructInsts,
+									ctx, commonTypes, structsAndAliasesMap, typeContainer, typeParamsScope, delayStructInsts,
 									part, some(Type(Type.Bogus()))))))));
 				}
 			} else {
 				Destructure[] parts = map(ctx. alloc, partAsts, (ref DestructureAst part) =>
 					checkDestructure(
-						ctx, commonTypes, structsAndAliasesMap, typeParamsScope, delayStructInsts,
+						ctx, commonTypes, structsAndAliasesMap, typeContainer, typeParamsScope, delayStructInsts,
 						part, none!Type));
 				Type type = makeTupleType(
 					ctx.instantiateCtx, commonTypes,

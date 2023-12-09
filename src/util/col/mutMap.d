@@ -6,12 +6,12 @@ import util.alloc.alloc : Alloc;
 import util.col.hashTable :
 	getOrAdd,
 	getOrAddAndDidAdd,
+	hashTableMapToArray,
 	hasKey,
 	HashTable,
 	insertOrUpdate,
 	isEmpty,
 	mapPreservingKeys,
-	mapToArray,
 	mayDelete,
 	mustAdd,
 	mustDelete,
@@ -151,21 +151,21 @@ Out[] mapToArray(Out, K, V)(
 	scope ref immutable MutMap!(K, V) a,
 	in Out delegate(immutable K, ref immutable V) @safe @nogc pure nothrow cb,
 ) =>
-	.mapToArray!(Out, KeyValuePair!(K, V), K, getKey)(alloc, a.inner, (ref immutable KeyValuePair!(K, V) x) =>
+	hashTableMapToArray!(Out, KeyValuePair!(K, V), K, getKey)(alloc, a.inner, (ref immutable KeyValuePair!(K, V) x) =>
 		cb(x.key, x.value));
 private @trusted Out[] mapToArray_const(Out, K, V)(
 	ref Alloc alloc,
 	in MutMap!(K, V) a,
 	in Out delegate(immutable K, ref const V) @safe @nogc pure nothrow cb,
 ) =>
-	mapToArray!(Out, KeyValuePair!(K, V), K, getKey)(alloc, a.inner, (ref const KeyValuePair!(K, V) x) =>
+	hashTableMapToArray!(Out, KeyValuePair!(K, V), K, getKey)(alloc, a.inner, (ref const KeyValuePair!(K, V) x) =>
 		cb(x.key, x.value));
 @trusted Out[] mapToArray_mut(Out, K, V)(
 	ref Alloc alloc,
 	scope ref MutMap!(K, V) a,
 	in Out delegate(immutable K, ref V) @safe @nogc pure nothrow cb,
 ) =>
-	mapToArray!(Out, KeyValuePair!(K, V), K, getKey)(alloc, a.inner, (ref KeyValuePair!(K, V) x) =>
+	hashTableMapToArray!(Out, KeyValuePair!(K, V), K, getKey)(alloc, a.inner, (ref KeyValuePair!(K, V) x) =>
 		cb(x.key, x.value));
 
 @trusted Map!(K, V) moveToMap(K, V)(ref Alloc alloc, ref MutMap!(K, V) a) {

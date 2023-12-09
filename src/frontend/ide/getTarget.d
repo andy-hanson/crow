@@ -3,6 +3,7 @@ module frontend.ide.getTarget;
 @safe @nogc pure nothrow:
 
 import frontend.ide.position : LocalContainer, PositionKind;
+import model.diag : TypeWithContainer;
 import model.model :
 	AssertOrForbidExpr,
 	body_,
@@ -108,12 +109,12 @@ Opt!Target targetForPosition(in Program program, PositionKind pos) =>
 			some(Target(x)),
 		(StructDecl* x) =>
 			some(Target(x)),
-		(PositionKind.TypeWithContainer x) =>
+		(TypeWithContainer x) =>
 			x.type.matchWithPointers!(Opt!Target)(
 				(Bogus) =>
 					none!Target,
 				(TypeParamIndex p) =>
-					some(Target(PositionKind.TypeParamWithContainer(x.container, p))),
+					some(Target(PositionKind.TypeParamWithContainer(p, x.container))),
 				(StructInst* x) =>
 					some(Target(decl(*x)))),
 		(PositionKind.TypeParamWithContainer x) =>

@@ -22,7 +22,7 @@ import model.concreteModel : TypeSize;
 import model.constant : Constant;
 import model.diag : Diag, Diagnostic, isFatal, UriAndDiagnostic;
 import model.parseDiag : ParseDiagnostic;
-import util.col.arr : arrayOfSingle, empty, PtrAndSmallNumber, small, SmallArray;
+import util.col.arr : arrayOfSingle, empty, emptySmallArray, PtrAndSmallNumber, small, SmallArray;
 import util.col.arrUtil : arrEqual, exists, first;
 import util.col.hashTable : existsInHashTable, HashTable;
 import util.col.map : Map;
@@ -78,10 +78,9 @@ Sym symOfPurity(Purity a) {
 }
 
 immutable struct TypeParam {
-	UriAndRange range;
 	Sym name;
-	size_t index;
 }
+//TODO:KILL-------------------------------------------------------------------------------------------------------------------------
 immutable struct TypeParams {
 	@safe @nogc pure nothrow:
 	private SmallArray!TypeParam inner;
@@ -90,15 +89,8 @@ immutable struct TypeParams {
 		inner = small(x);
 	}
 
-	ref TypeParam opIndex(TypeParamIndex index) {
-		TypeParam* res = &inner[index.index];
-		assert(res == index.debugPtr);
-		return *res;
-	}
-
-	void assertIndex(TypeParamIndex index) {
-		cast(void) opIndex(index);
-	}
+	ref TypeParam opIndex(TypeParamIndex index) =>
+		inner[index.index];
 
 	size_t length() =>
 		inner.length;
@@ -117,18 +109,7 @@ TypeParams emptyTypeParams() =>
 // Represent type parameter as the index, so we don't generate different types for every `t list`.
 // (These are disambiguated in the type checker using `TypeAndContext`)
 immutable struct TypeParamIndex {
-	@safe @nogc pure nothrow:
-	ubyte index;
-	TypeParam* debugPtr;
-	this(size_t i, TypeParam* p) {
-		index = safeToUbyte(i);
-		debugPtr = p;
-		assert(p.index == index);
-	}
-
-	bool opEquals(scope TypeParamIndex b) scope =>
-		// Need full equality since this is used in the big hash table
-		index == b.index && debugPtr == b.debugPtr;
+	size_t index;
 }
 
 immutable struct Type {
@@ -146,12 +127,13 @@ immutable struct Type {
 			(StructInst* x) =>
 				b.isA!(StructInst*) && x == b.as!(StructInst*));
 
+	//TODO:KILL---------------------------------------------------------------------------------------------------------------------
 	ulong taggedPointerValueForHash() =>
 		matchWithPointers!ulong(
 			(Bogus _) =>
 				0,
 			(TypeParamIndex x) =>
-				cast(ulong) x.debugPtr,
+				cast(ulong) x.index,
 			(StructInst* x) =>
 				cast(ulong) x);
 
@@ -510,8 +492,14 @@ immutable struct SpecDeclBody {
 		}
 		Kind kind;
 	}
-	mixin Union!(Builtin, SmallArray!SpecDeclSig);
+	mixin Union!(Builtin, SpecDeclSig[]); // TODO: use a SmallArray =============================================================
 }
+size_t countSigs(in SpecDeclBody a) =>
+	a.matchIn!size_t(
+		(in SpecDeclBody.Builtin x) =>
+			0,
+		(in SpecDeclSig[] x) =>
+			x.length);
 
 Sym symOfSpecBodyBuiltinKind(SpecDeclBody.Builtin.Kind kind) {
 	final switch (kind) {
@@ -531,7 +519,7 @@ immutable struct SpecDecl {
 	Sym name;
 	TypeParams typeParams;
 	SpecDeclBody body_;
-	Late!(SmallArray!(immutable SpecInst*)) parents_;
+	private Late!(SmallArray!(immutable SpecInst*)) parents_;
 
 	SafeCStr docComment() return scope =>
 		ast.docComment;
@@ -542,8 +530,8 @@ immutable struct SpecDecl {
 	void parents(immutable SpecInst*[] value) scope {
 		lateSet(parents_, small(value));
 	}
-	void overwriteParents(immutable SpecInst*[] value) scope =>
-		lateSetOverwrite(parents_, small(value));
+	void overwriteParentsToEmpty() scope =>
+		lateSetOverwrite(parents_, emptySmallArray!(immutable SpecInst*));
 }
 
 UriAndRange range(in SpecDecl a) =>
@@ -571,11 +559,8 @@ immutable struct SpecInst {
 
 	SpecDeclAndArgs declAndArgs;
 	// Corresponds to the signatures in decl.body_
-	SmallArray!ReturnAndParamTypes sigTypes_;
+	SmallArray!ReturnAndParamTypes sigTypes;
 	private Late!(SmallArray!(immutable SpecInst*)) parents_;
-
-	ReturnAndParamTypes[] sigTypes() return scope =>
-		sigTypes_;
 
 	immutable(SpecInst*[]) parents() return scope =>
 		lateGet(parents_);
@@ -909,28 +894,31 @@ immutable struct ReturnAndParamTypes {
 		returnAndParamTypes[1 .. $];
 }
 
+// TODO: this could be PointerAndSmallNumber!-------------------------------------------------------------------------------------
 immutable struct CalledSpecSig {
 	@safe @nogc pure nothrow:
 
 	SpecInst* specInst;
-	ReturnAndParamTypes instantiatedSig; // comes from the specInst
-	SpecDeclSig* nonInstantiatedSig;
-	size_t indexOverAllSpecUses; // this is redundant to specInst and sig
+	size_t sigIndex;
 
+	ReturnAndParamTypes instantiatedSig() return scope =>
+		specInst.sigTypes[sigIndex];
 	Type returnType() scope =>
 		instantiatedSig.returnType;
 	Type[] paramTypes() scope =>
 		instantiatedSig.paramTypes;
 
+	SpecDeclSig* nonInstantiatedSig() return scope =>
+		&decl(*specInst).body_.as!(SpecDeclSig[])[sigIndex];
+
 	private:
 
 	bool opEquals(scope CalledSpecSig b) scope =>
-		// Don't bother with indexOverAllSpecUses, it's redundant if we checked sig
-		specInst == b.specInst && nonInstantiatedSig == b.nonInstantiatedSig;
+		specInst == b.specInst && sigIndex == b.sigIndex;
 
 	void hashMix(ref Hasher hasher) scope {
 		hasher ~= specInst;
-		hasher ~= nonInstantiatedSig;
+		hasher ~= sigIndex;
 	}
 }
 

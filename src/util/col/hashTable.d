@@ -199,7 +199,7 @@ MutOpt!T popArbitrary(T, K, alias getKey)(ref MutHashTable!(T, K, getKey) a) {
 	return res;
 }
 
-@trusted Out[] mapToArray(Out, T, K, alias getKey)(
+@trusted Out[] hashTableMapToArray(Out, T, K, alias getKey)(
 	ref Alloc alloc,
 	scope ref immutable HashTable!(T, K, getKey) a,
 	in Out delegate(ref immutable T) @safe @nogc pure nothrow cb,
@@ -213,7 +213,7 @@ MutOpt!T popArbitrary(T, K, alias getKey)(ref MutHashTable!(T, K, getKey) a) {
 	assert(i == res.length);
 	return res;
 }
-@trusted Out[] mapToArray(Out, T, K, alias getKey)(
+@trusted Out[] hashTableMapToArray(Out, T, K, alias getKey)(
 	ref Alloc alloc,
 	scope ref const MutHashTable!(T, K, getKey) a,
 	in Out delegate(ref const T) @safe @nogc pure nothrow cb,
@@ -227,7 +227,7 @@ MutOpt!T popArbitrary(T, K, alias getKey)(ref MutHashTable!(T, K, getKey) a) {
 	assert(i == res.length);
 	return res;
 }
-@trusted Out[] mapToArray(Out, T, K, alias getKey)(
+@trusted Out[] hashTableMapToArray(Out, T, K, alias getKey)(
 	ref Alloc alloc,
 	scope ref MutHashTable!(T, K, getKey) a,
 	in Out delegate(ref T) @safe @nogc pure nothrow cb,

@@ -2,10 +2,12 @@ module frontend.ide.position;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast : FieldMutabilityAst, FunModifierAst;
+import frontend.parse.ast : FieldMutabilityAst, FunModifierAst, NameAndRange;
+import model.diag : TypeContainer, typeParamAsts, TypeWithContainer;
 import model.model :
 	Expr,
 	FunDecl,
+	FunDeclSource,
 	ImportOrExport,
 	Local,
 	Module,
@@ -22,6 +24,7 @@ import model.model :
 	Visibility;
 import util.sym : Sym;
 import util.union_ : Union;
+import util.uri : Uri;
 
 immutable struct Position {
 	Module* module_;
@@ -39,21 +42,8 @@ immutable struct LocalContainer {
 			(SpecDecl* x) =>
 				TypeContainer(x));
 }
-TypeParams typeParams(LocalContainer a) =>
-	typeParams(a.toTypeContainer);
-
-immutable struct TypeParamContainer {
-	mixin Union!(FunDecl*, SpecDecl*, StructDecl*);
-}
-alias TypeContainer = TypeParamContainer;
-TypeParams typeParams(in TypeParamContainer a) =>
-	a.matchIn!TypeParams(
-		(in FunDecl x) =>
-			x.typeParams,
-		(in SpecDecl x) =>
-			x.typeParams,
-		(in StructDecl x) =>
-			x.typeParams);
+NameAndRange[] typeParamAsts(LocalContainer a) =>
+	.typeParamAsts(a.toTypeContainer);
 
 immutable struct PositionKind {
 	immutable struct None {}
@@ -104,13 +94,9 @@ immutable struct PositionKind {
 		SpecDecl* spec;
 		SpecDeclSig* sig;
 	}
-	immutable struct TypeWithContainer {
-		TypeContainer container;
-		Type type;
-	}
 	immutable struct TypeParamWithContainer {
-		TypeParamContainer container;
 		TypeParamIndex typeParam;
+		TypeContainer container;
 	}
 
 	mixin Union!(

@@ -3,7 +3,7 @@ module frontend.ide.getPosition;
 @safe @nogc pure nothrow:
 
 import frontend.ide.ideUtil : eachDestructureComponent, eachSpecParent, eachTypeArg, eachTypeComponent;
-import frontend.ide.position : LocalContainer, Position, PositionKind, TypeContainer, TypeParamContainer;
+import frontend.ide.position : LocalContainer, Position, PositionKind;
 import frontend.parse.ast :
 	DestructureAst,
 	ExplicitVisibility,
@@ -23,6 +23,7 @@ import frontend.parse.ast :
 	StructDeclAst,
 	symOfFieldMutabilityAstKind,
 	TypeAst;
+import model.diag : TypeContainer, TypeWithContainer;
 import model.model;
 import model.model : paramsArray, range, TypeParams;
 import util.col.arr : ptrsRange;
@@ -65,7 +66,7 @@ Opt!PositionKind getPositionKind(in AllSymbols allSymbols, in AllUris allUris, r
 Opt!PositionKind positionInFun(in AllSymbols allSymbols, FunDecl* a, in FunDeclAst ast, Pos pos) =>
 	optOr!PositionKind(
 		optIf(hasPos(allSymbols, ast.name, pos), () => PositionKind(a)),
-		() => positionInTypeParams(allSymbols, TypeParamContainer(a), a.typeParams, ast.typeParams, pos),
+		() => positionInTypeParams(allSymbols, TypeContainer(a), ast.typeParams, pos),
 		() => positionInType(allSymbols, TypeContainer(a), a.returnType, ast.returnType, pos),
 		() => positionInParams(allSymbols, LocalContainer(a), a.params, pos),
 		() => firstWithIndex!(PositionKind, FunModifierAst)(ast.modifiers, (size_t index, FunModifierAst modifier) =>
@@ -149,7 +150,7 @@ Opt!PositionKind positionInStruct(in AllSymbols allSymbols, StructDecl* a, in St
 		() => optIf(hasPos(nameRange(allSymbols, *a).range, pos), () => PositionKind(a)),
 		() => optIf(hasPos(keywordRange(allSymbols, ast), pos), () =>
 			PositionKind(PositionKind.Keyword(keywordKindForStructBody(ast.body_)))),
-		() => positionInTypeParams(allSymbols, TypeParamContainer(a), a.typeParams, ast.typeParams, pos),
+		() => positionInTypeParams(allSymbols, TypeContainer(a), ast.typeParams, pos),
 		//TODO: positions for flags (like 'extern' or 'by-val')
 		() => positionInStructBody(allSymbols, a, body_(*a), ast.body_, pos));
 
@@ -175,20 +176,19 @@ Opt!PositionKind positionInVisibility(T, TAst)(in T a, in TAst ast, Pos pos) =>
 
 Opt!PositionKind positionInTypeParams(
 	in AllSymbols allSymbols,
-	TypeParamContainer container,
-	TypeParams typeParams,
+	TypeContainer container,
 	in NameAndRange[] asts,
 	Pos pos,
 ) =>
-	firstZipPointerFirst!(PositionKind, TypeParam, NameAndRange)(typeParams.asArray, asts, (TypeParam* p, NameAndRange x) =>
-		optIf(hasPos(allSymbols, x, pos), () => PositionKind(PositionKind.TypeParamWithContainer(container, TypeParamIndex(p.index, p)))));
+	firstWithIndex!(PositionKind, NameAndRange)(asts, (size_t index, NameAndRange x) =>
+		optIf(hasPos(allSymbols, x, pos), () => PositionKind(PositionKind.TypeParamWithContainer(TypeParamIndex(index), container))));
 
 Opt!PositionKind positionInSpec(in AllSymbols allSymbols, SpecDecl* a, Pos pos) =>
 	//TODO:visibility
 	//TODO: 'spec' keyword itself
 	optOr!PositionKind(
 		optIf(hasPos(allSymbols, a.ast.name, pos), () => PositionKind(a)),
-		() => positionInTypeParams(allSymbols, TypeParamContainer(a), a.typeParams, a.ast.typeParams, pos),
+		() => positionInTypeParams(allSymbols, TypeContainer(a), a.ast.typeParams, pos),
 		() => positionInSpecParents(allSymbols, a, pos),
 		() => positionInSpecBody(allSymbols, a, pos));
 
@@ -385,7 +385,7 @@ Opt!PositionKind positionInType(in AllSymbols allSymbols, TypeContainer containe
 		? optOr!PositionKind(
 			eachTypeComponent!PositionKind(type, ast, (in Type t, in TypeAst a) =>
 				positionInType(allSymbols, container, t, a, pos)),
-			() => some(PositionKind(PositionKind.TypeWithContainer(container, type))))
+			() => some(PositionKind(TypeWithContainer(type, container))))
 		: none!PositionKind;
 
 bool hasPos(in AllSymbols allSymbols, in NameAndRange nr, Pos pos) =>

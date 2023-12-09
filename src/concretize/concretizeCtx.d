@@ -67,6 +67,7 @@ import model.model :
 	Purity,
 	range,
 	RecordField,
+	SpecInst,
 	StructBody,
 	StructDecl,
 	StructInst,
@@ -81,7 +82,7 @@ import model.model :
 	VarDecl,
 	worsePurity;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, only, only2, sizeEq, small;
+import util.col.arr : empty, emptySmallArray, only, only2, sizeEq, small, SmallArray;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil : arrEqual, arrLiteral, arrMax, every, everyWithIndex, exists, fold, map, mapWithIndex, mapZip;
 import util.col.hashTable : getOrAdd, getOrAddAndDidAdd, moveToArray, MutHashTable;
@@ -103,7 +104,7 @@ import versionInfo : VersionInfo;
 immutable struct TypeArgsScope {
 	@safe @nogc pure nothrow:
 
-	TypeParams typeParams;
+	TypeParams typeParams; // TODO: no longer needed? -------------------------------------------------------------------------
 	ConcreteType[] typeArgs;
 
 	this(TypeParams tp, ConcreteType[] ta) {
@@ -146,15 +147,16 @@ private ConcreteFunKey getFunKey(return in ConcreteFun* a) =>
 	a.source.as!ConcreteFunKey;
 
 private ContainingFunInfo toContainingFunInfo(ConcreteFunKey a) =>
-	ContainingFunInfo(moduleUri(*a.decl),a.decl.typeParams, a.typeArgs, a.specImpls);
+	ContainingFunInfo(moduleUri(*a.decl), a.decl.typeParams, a.decl.specs, a.typeArgs, a.specImpls);
 
 TypeArgsScope typeArgsScope(ref ConcreteFunKey a) =>
 	typeArgsScope(toContainingFunInfo(a));
 
 immutable struct ContainingFunInfo {
 	Uri uri;
-	TypeParams typeParams; // TODO: get this from cf?
-	ConcreteType[] typeArgs;
+	TypeParams typeParams; // TODO: get this from cf? --------------------------------------------------------------------
+	SmallArray!(immutable SpecInst*) specs;
+	ConcreteType[] typeArgs; //TODO:SmallArray----------------------------------------------------------------------------
 	ConcreteFun*[] specImpls;
 }
 
@@ -457,7 +459,7 @@ ConcreteFun* concreteFunForTest(ref ConcretizeCtx ctx, ref Test test, size_t tes
 		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.Test(range(test), testIndex))),
 		voidType(ctx),
 		[]));
-	ContainingFunInfo containing = ContainingFunInfo(test.moduleUri, emptyTypeParams, [], []);
+	ContainingFunInfo containing = ContainingFunInfo(test.moduleUri, emptyTypeParams, emptySmallArray!(immutable SpecInst*), [], []);
 	ConcreteExpr body_ = concretizeFunBody(ctx, containing, res, [], test.body_);
 	lateSet(res._body_, ConcreteFunBody(body_));
 	addConcreteFun(ctx, res);

@@ -236,7 +236,7 @@ Prepend an element to a list.
 This is O(log n), amortized O(1).
 ###
 +~[t] t[](a t, b t[])
-	((a,)::(t array) cat-left-array-l1 b.root),
+	((a,) cat-left-array-l1 b.root),
 
 ###
 Append an element to a list.

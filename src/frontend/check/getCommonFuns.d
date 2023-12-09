@@ -181,10 +181,10 @@ ParamShort param(string name)(Type type) =>
 
 private:
 
-immutable TypeParam[1] singleTypeParam = [TypeParam(UriAndRange.empty, sym!"t", 0)];
+immutable TypeParam[1] singleTypeParam = [TypeParam(sym!"t")];
 TypeParams singleTypeParams() => TypeParams(singleTypeParam);
 Type singleTypeParamType() =>
-	Type(TypeParamIndex(0, &singleTypeParam[0]));
+	Type(TypeParamIndex(0));
 
 immutable(FunDecl*[]) getFunOrActSubscriptFuns(
 	ref Alloc alloc,
@@ -245,7 +245,7 @@ StructDecl* getStructDeclOrAddDiag(
 			module_.uri,
 			name,
 			TypeParams(makeArray!TypeParam(alloc, nTypeParams, (size_t index) =>
-				TypeParam(UriAndRange.empty, sym!"a", index))),
+				TypeParam(sym!"a"))),
 			Visibility.public_,
 			Linkage.extern_,
 			Purity.data,
@@ -339,13 +339,6 @@ FunDeclAndSigIndex getFunDeclMulti(
 	if (lateIsSet(res))
 		return lateGet(res);
 	else {
-		add(alloc, diagsBuilder, UriAndDiagnostic(
-			UriAndRange(module_.uri, Range.empty),
-			Diag(Diag.CommonFunMissing(name, map(alloc, expectedSigs, (ref TypeParamsAndSig sig) =>
-				TypeParamsAndSig(
-					TypeParams(copyArr(alloc, sig.typeParams.asArray)),
-					sig.returnType,
-					copyArr(alloc, sig.params)))))));
 		FunDecl* decl = allocate(alloc, funDeclWithBody(
 			FunDeclSource(FunDeclSource.Bogus(module_.uri)),
 			Visibility.public_,
@@ -356,6 +349,13 @@ FunDeclAndSigIndex getFunDeclMulti(
 			FunFlags.generatedBare,
 			[],
 			FunBody(FunBody.Bogus())));
+		add(alloc, diagsBuilder, UriAndDiagnostic(
+			UriAndRange(module_.uri, Range.empty),
+			Diag(Diag.CommonFunMissing(decl, map(alloc, expectedSigs, (ref TypeParamsAndSig sig) =>
+				TypeParamsAndSig(
+					TypeParams(copyArr(alloc, sig.typeParams.asArray)),
+					sig.returnType,
+					copyArr(alloc, sig.params)))))));
 		return FunDeclAndSigIndex(decl, 0);
 	}
 }
