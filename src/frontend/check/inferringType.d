@@ -119,14 +119,17 @@ private TypeAndContext localTypeAndContext(Expected.LocalType a) =>
 MutOpt!(LoopInfo*) tryGetLoop(ref Expected expected) =>
 	expected.isA!(LoopInfo*) ? someMut(expected.as!(LoopInfo*)) : noneMut!(LoopInfo*);
 
-@trusted Opt!Type tryGetInferred(ref const Expected expected) =>
+// TODO: check all uses! --------------------------------------------------------------------------------------------------------
+// WARN: returned Type may be a TypeParamIndex that refers to a called function, not the local context.
+// There's no way to disambiguoate once the context is stripped.
+Opt!Type tryGetInferredAndStripContext(ref const Expected expected) =>
 	expected.matchConst!(Opt!Type)(
 		(Expected.Infer) =>
 			none!Type,
 		(Expected.LocalType x) =>
 			some(x.type),
-		(const TypeAndContext[] ti) =>
-			ti.length == 1 ? some(only(ti).type) : none!Type,
+		(const TypeAndContext[] x) =>
+			x.length == 1 ? some(only(x).type) : none!Type,
 		(const LoopInfo*) =>
 			none!Type);
 
@@ -284,8 +287,9 @@ private const(TypeContext) getTypeContext(ref const Expected expected) =>
 		(const LoopInfo*) =>
 			unreachable!(const TypeContext));
 
+//TODO: rename or document. This can return type parameters, if they are the outer function's. -------------------------------
 private Opt!Type tryGetDeeplyInstantiatedType(ref InstantiateCtx ctx, ref const Expected expected) {
-	Opt!Type t = tryGetInferred(expected);
+	Opt!Type t = tryGetInferredAndStripContext(expected);
 	return has(t)
 		? tryGetDeeplyInstantiatedType(ctx, const TypeAndContext(force(t), getTypeContext(expected)))
 		: none!Type;
@@ -350,13 +354,23 @@ ExpectedForDiag getExpectedForDiag(ref ExprCtx ctx, ref const Expected expected)
 	expected.matchConst!ExpectedForDiag(
 		(Expected.Infer) =>
 			ExpectedForDiag(ExpectedForDiag.Infer()),
-		(Expected.LocalType x) =>
-			ExpectedForDiag(ExpectedForDiag.Choices(arrLiteral!Type(ctx.alloc, [x.type]), ctx.typeContainer)),
-		(const TypeAndContext[] xs) =>
-			ExpectedForDiag(ExpectedForDiag.Choices(
+		(Expected.LocalType x) {
+			debug {
+				import core.stdc.stdio : printf; // ----------------------------------------------------------------------------------
+				printf("IS IT HERE? I THINK NOT\n");
+			}
+			return ExpectedForDiag(ExpectedForDiag.Choices(arrLiteral!Type(ctx.alloc, [x.type]), ctx.typeContainer));
+		},
+		(const TypeAndContext[] xs) {
+			debug {
+				import core.stdc.stdio : printf;
+				printf("IT'S HERE RIGHT?\n");
+			}
+			return ExpectedForDiag(ExpectedForDiag.Choices(
 				map(ctx.alloc, xs, (ref const TypeAndContext x) =>
 					applyInferred(ctx.instantiateCtx, x)),
-				ctx.typeContainer)),
+				ctx.typeContainer));
+		},
 		(const LoopInfo*) =>
 			ExpectedForDiag(ExpectedForDiag.Loop()));
 
@@ -412,7 +426,8 @@ Opt!Type tryGetDeeplyInstantiatedType(ref InstantiateCtx ctx, const TypeAndConte
 
 private:
 
-// For diagnostics: Applies types that have been inferred, otherwise uses Bogus
+// For diagnostics. Applies types that have been inferred, otherwise uses Bogus.
+// This is like 'tryGetDeeplyInstantiatedType' but returns a type with Boguses in it instead of `none`.
 Type applyInferred(ref InstantiateCtx ctx, in TypeAndContext a) =>
 	a.type.match!Type(
 		(Type.Bogus) =>

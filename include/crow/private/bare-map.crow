@@ -174,7 +174,7 @@ find-or-insert-and-inserted[k, v] ((k, v) map-pair mut*, found-or-inserted)(
 				continue
 			else
 				# TODO: should not need type annotation
-				if &out try-add-key cur->key
+				if (&out)::((k, v) bare-map mut*) try-add-key cur->key
 					cur +:= 1
 					continue
 				else
@@ -183,7 +183,7 @@ find-or-insert-and-inserted[k, v] ((k, v) map-pair mut*, found-or-inserted)(
 			break
 		else
 			# TODO: should not need type annotation
-			&out free-table-not-values
+			(&out)::((k, v) bare-map mut*) free-table-not-values
 			continue
 
 	# Now move values

@@ -1,8 +1,5 @@
 exit code: 1
 stderr:
-test/compile-errors/pointer-expression-failed-inference.crow 3:16-3:18 can't get a pointer to this kind of expression
-test/compile-errors/pointer-expression-failed-inference.crow 3:17-3:18 expected type: 'in'
-actual:
-	'nat64'
+test/compile-errors/pointer-expression-failed-inference.crow 3:16-3:18 'pointer' expression needs an expected type
 Uncaught exception: Reached compile error
 	at main

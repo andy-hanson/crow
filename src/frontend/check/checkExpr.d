@@ -34,7 +34,7 @@ import frontend.check.inferringType :
 	Pair,
 	setExpectedIfNoInferred,
 	tryGetDeeplyInstantiatedType,
-	tryGetInferred,
+	tryGetInferredAndStripContext,
 	tryGetLoop,
 	TypeAndContext,
 	TypeContext,
@@ -252,7 +252,7 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expecte
 		(ParenthesizedAst* a) =>
 			checkExpr(ctx, locals, &a.inner, expected),
 		(PtrAst* a) =>
-			checkPtr(ctx, locals, ast, a, expected),
+			checkPointer(ctx, locals, ast, a, expected),
 		(SeqAst* a) =>
 			checkSeq(ctx, locals, ast, a, expected),
 		(ThenAst* a) =>
@@ -343,7 +343,7 @@ Expr checkIf(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, IfAst* ast
 }
 
 Expr checkThrow(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ThrowAst* ast, ref Expected expected) {
-	Opt!Type inferred = tryGetInferred(expected);
+	Opt!Type inferred = tryGetInferredAndStripContext(expected);
 	if (has(inferred)) {
 		Expr thrown = checkAndExpectCStr(ctx, locals, &ast.thrown);
 		return Expr(source, ExprKind(allocate(ctx.alloc, ThrowExpr(thrown))));
@@ -481,7 +481,7 @@ Expr checkInterpolated(
 	// TODO: NEATER (don't create a synthetic AST)
 	// "a{b}c" ==> "a" ~~ b.to ~~ "c"
 	CallAst call = checkInterpolatedRecur(ctx, ast.parts, source.range.start + 1, none!ExprAst);
-	Opt!Type inferred = tryGetInferred(expected);
+	Opt!Type inferred = tryGetInferredAndStripContext(expected);
 	CallAst callAndConvert = has(inferred) && !isString(force(inferred))
 		? CallAst(
 			//TODO: new kind (not infix)
@@ -860,7 +860,7 @@ Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, scope string value, re
 }
 
 StructInst* expectedStructOrNull(ref const Expected expected) {
-	Opt!Type expectedType = tryGetInferred(expected);
+	Opt!Type expectedType = tryGetInferredAndStripContext(expected);
 	return has(expectedType) && force(expectedType).isA!(StructInst*)
 		? force(expectedType).as!(StructInst*)
 		: null;
@@ -946,7 +946,7 @@ void addUnusedLocalDiags(ref ExprCtx ctx, Local* local, scope ref LocalNode node
 			Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.Local(local, isGot, isSet)))));
 }
 
-Expr checkPtr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, PtrAst* ast, ref Expected expected) {
+Expr checkPointer(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, PtrAst* ast, ref Expected expected) {
 	return getExpectedPointee(ctx, expected).match!Expr(
 		(ExpectedPointee.None) {
 			addDiag2(ctx, source, Diag(Diag.NeedsExpectedType(Diag.NeedsExpectedType.Kind.pointer)));
@@ -955,7 +955,7 @@ Expr checkPtr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, PtrAst* a
 		(ExpectedPointee.FunPointer) =>
 			checkFunPointer(ctx, source, *ast, expected),
 		(ExpectedPointee.Pointer x) =>
-			checkPtrInner(ctx, locals, source, ast, x.pointer, x.pointee, x.mutability, expected));
+			checkPointerInner(ctx, locals, source, ast, x.pointer, x.pointee, x.mutability, expected));
 }
 
 immutable struct ExpectedPointee {
@@ -971,7 +971,7 @@ immutable struct ExpectedPointee {
 enum PointerMutability { immutable_, mutable }
 
 ExpectedPointee getExpectedPointee(ref ExprCtx ctx, ref const Expected expected) {
-	Opt!Type expectedType = tryGetInferred(expected);
+	Opt!Type expectedType = tryGetDeeplyInstantiatedType(ctx.instantiateCtx, expected);
 	if (has(expectedType) && force(expectedType).isA!(StructInst*)) {
 		StructInst* inst = force(expectedType).as!(StructInst*);
 		if (inst.decl == ctx.commonTypes.ptrConst)
@@ -988,7 +988,7 @@ ExpectedPointee getExpectedPointee(ref ExprCtx ctx, ref const Expected expected)
 		return ExpectedPointee(ExpectedPointee.None());
 }
 
-Expr checkPtrInner(
+Expr checkPointerInner(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	ExprAst* source,
@@ -1009,14 +1009,14 @@ Expr checkPtrInner(
 			markIsUsedSetOnStack(locals, local);
 		return check(ctx, source, expected, pointerType, Expr(source, ExprKind(PtrToLocalExpr(local))));
 	} else if (inner.kind.isA!CallExpr)
-		return checkPtrOfCall(ctx, source, inner.kind.as!CallExpr, pointerType, expectedMutability, expected);
+		return checkPointerOfCall(ctx, source, inner.kind.as!CallExpr, pointerType, expectedMutability, expected);
 	else {
 		addDiag2(ctx, source, Diag(Diag.PtrUnsupported()));
 		return bogus(expected, source);
 	}
 }
 
-Expr checkPtrOfCall(
+Expr checkPointerOfCall(
 	ref ExprCtx ctx,
 	ExprAst* source,
 	ref CallExpr call,
@@ -1208,7 +1208,7 @@ Expr checkLet(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, LetAst* a
 }
 
 Expr checkLoop(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, LoopAst* ast, ref Expected expected) {
-	Opt!Type expectedType = tryGetInferred(expected);
+	Opt!Type expectedType = tryGetInferredAndStripContext(expected);
 	if (has(expectedType)) {
 		Type type = force(expectedType);
 		LoopExpr* loop = allocate(ctx.alloc, LoopExpr(
@@ -1480,7 +1480,7 @@ Expr checkThen(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref Then
 
 Expr checkTyped(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, TypedAst* ast, ref Expected expected) {
 	Type type = typeFromAst2(ctx, ast.type);
-	Opt!Type inferred = tryGetInferred(expected);
+	Opt!Type inferred = tryGetDeeplyInstantiatedType(ctx.instantiateCtx, expected);
 	// If inferred != type, we'll fail in 'check'
 	if (has(inferred) && force(inferred) == type)
 		addDiag2(ctx, source, Diag(Diag.TypeAnnotationUnnecessary(typeWithContainer(ctx, type))));

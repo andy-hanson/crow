@@ -374,7 +374,7 @@ void writeTypeQuoted(scope ref Writer writer, in ShowCtx ctx, in TypeWithContain
 void writeTypeUnquoted(scope ref Writer writer, in ShowCtx ctx, in TypeWithContainer a) {
 	a.type.matchIn!void(
 		(in Type.Bogus) {
-			writer ~= "<<bogus>>";
+			writer ~= "<<any>>";
 		},
 		(in TypeParamIndex x) {
 			writeSym(writer, ctx.allSymbols, typeParamAsts(a.container)[x.index].name);

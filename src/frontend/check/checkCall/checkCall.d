@@ -33,6 +33,7 @@ import frontend.check.inferringType :
 	nonInferringTypeContext,
 	SingleInferringType,
 	tryGetInferred,
+	tryGetInferredAndStripContext,
 	TypeAndContext,
 	TypeContext;
 import frontend.check.instantiate : InstantiateCtx;
@@ -202,7 +203,7 @@ Expr checkCallInner(
 			addDiag2(ctx, diagRange, Diag(Diag.CallNoMatch(
 				ctx.typeContainer,
 				funName,
-				tryGetInferred(expected),
+				tryGetInferredAndStripContext(expected), // not good. If we can't get a context-free type, we should replace with Bogus. Use 'applyInferred'.
 				getNTypeArgsForDiagnostic(ctx.commonTypes, explicitTypeArg),
 				arity,
 				finishArr(ctx.alloc, actualArgTypes),

@@ -411,12 +411,11 @@ SplitArgsAndOptions splitArgs(ref Alloc alloc, return scope SafeCStr[] args) {
 		return SplitArgsAndOptions(SplitArgs(args, [], []), CommandOptions());
 	else {
 		size_t firstArgIndex = force(optFirstArgIndex);
-		Opt!size_t optDashDash = findIndex!SafeCStr(args[firstArgIndex .. $], (in SafeCStr arg) =>
+		Opt!size_t dashDash = findIndex!SafeCStr(args[firstArgIndex .. $], (in SafeCStr arg) =>
 			safeCStrEq(arg, "--"));
-		size_t dashDash = has(optDashDash) ? force(optDashDash) + firstArgIndex : args.length;
-		NamedArgs namedArgs = splitNamedArgs(alloc, args[firstArgIndex .. dashDash]);
+		NamedArgs namedArgs = splitNamedArgs(alloc, has(dashDash) ? args[firstArgIndex .. firstArgIndex + force(dashDash)] : args[firstArgIndex .. $]);
 		return SplitArgsAndOptions(
-			SplitArgs(args[0 .. firstArgIndex], namedArgs.parts, args[dashDash .. $], namedArgs.help),
+			SplitArgs(args[0 .. firstArgIndex], namedArgs.parts, has(dashDash) ? args[firstArgIndex + force(dashDash) + 1 .. $] : [], namedArgs.help),
 			namedArgs.options);
 	}
 }
@@ -431,6 +430,9 @@ struct NamedArgs {
 }
 
 NamedArgs splitNamedArgs(ref Alloc alloc, in SafeCStr[] args) {
+	if (empty(args))
+		return NamedArgs([], CommandOptions(), false);
+
 	ArrBuilder!ArgsPart parts;
 	bool help = false;
 	bool perf = false;
