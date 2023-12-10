@@ -16,7 +16,7 @@ import model.concreteModel :
 import frontend.showModel : ShowCtx, writeTypeArgsGeneric;
 import model.lowModel :
 	AllLowTypes, LowFun, LowFunIndex, LowFunSource, LowProgram, LowType, PrimitiveType, symOfPrimitiveType;
-import model.model : decl, emptyTypeParams, FunInst, name, Local, typeArgs;
+import model.model : emptyTypeParams, FunInst, name, Local, typeArgs;
 import util.col.arr : only;
 import util.writer : Writer, writeWithCommas;
 import util.sym : writeSym;
@@ -172,7 +172,7 @@ void writeConcreteStruct(scope ref Writer writer, in ShowCtx ctx, in ConcreteStr
 					});
 					writer ~= ") ";
 			}
-			writeSym(writer, ctx.allSymbols, decl(*x.inst).name);
+			writeSym(writer, ctx.allSymbols, x.inst.decl.name);
 		},
 		(in ConcreteStructSource.Lambda x) {
 			writeConcreteFunName(writer, ctx, *x.containingFun);

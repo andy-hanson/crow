@@ -25,7 +25,6 @@ import model.diag : Diag, TypeContainer, TypeWithContainer;
 import model.model :
 	asTuple,
 	CommonTypes,
-	decl,
 	Destructure,
 	emptyTypeParams,
 	Local,

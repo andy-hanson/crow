@@ -11,8 +11,9 @@ import model.model :
 	assertNonVariadic,
 	CommonFuns,
 	CommonTypes,
-	decl,
 	Destructure,
+	emptySpecImpls,
+	emptyTypeArgs,
 	emptyTypeParams,
 	FunBody,
 	FunDecl,
@@ -141,7 +142,7 @@ CommonFuns getCommonFuns(
 	Type tFuture = instantiateType(commonTypes.future, [singleTypeParamType]);
 	FunDecl* newTFuture = getFunDeclInner(
 		*modules[CommonModule.future], sym!"new", singleTypeParams, tFuture, castNonScope_ref(newTFutureParams));
-	FunInst* newNat64Future = instantiateFun(ctx, newTFuture, [nat64Type], []);
+	FunInst* newNat64Future = instantiateFun(ctx, newTFuture, small([nat64Type]), emptySpecImpls);
 	FunInst* rtMain = getFun(
 		CommonModule.runtimeMain,
 		sym!"rt-main",
@@ -206,7 +207,7 @@ immutable(FunDecl*[]) getFunOrActSubscriptFuns(
 FunKind firstArgFunKind(in CommonTypes commonTypes, FunDecl* f) {
 	Destructure[] params = assertNonVariadic(f.params);
 	assert(!empty(params));
-	StructDecl* actual = decl(*params[0].type.as!(StructInst*));
+	StructDecl* actual = params[0].type.as!(StructInst*).decl;
 	foreach (FunKind kind; [FunKind.fun, FunKind.act, FunKind.pointer])
 		if (actual == commonTypes.funStructs[kind])
 			return kind;
@@ -365,4 +366,4 @@ immutable(FunDecl*[]) getFuns(ref Module a, Sym name) {
 }
 
 FunInst* instantiateNonTemplateFun(ref InstantiateCtx ctx, FunDecl* decl) =>
-	instantiateFun(ctx, decl, [], []);
+	instantiateFun(ctx, decl, emptyTypeArgs, emptySpecImpls);

@@ -13,7 +13,6 @@ import model.model :
 	CallExpr,
 	ClosureGetExpr,
 	ClosureSetExpr,
-	decl,
 	Destructure,
 	emptyTypeParams,
 	EnumFunction,
@@ -261,8 +260,8 @@ Json jsonOfDestructures(ref Alloc alloc, in Ctx ctx, in Destructure[] a) =>
 
 Json jsonOfSpecInst(ref Alloc alloc, in Ctx ctx, in SpecInst a) =>
 	jsonObject(alloc, [
-		field!"name"(decl(a).name),
-		optionalArrayField!("type-args", Type)(alloc, typeArgs(a), (in Type x) =>
+		field!"name"(a.decl.name),
+		optionalArrayField!("type-args", Type)(alloc, a.typeArgs, (in Type x) =>
 			jsonOfType(alloc, ctx, x))]);
 
 Json jsonOfFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
@@ -328,8 +327,8 @@ Json jsonOfType(ref Alloc alloc, in Ctx ctx, in Type a) =>
 
 Json jsonOfStructInst(ref Alloc alloc, in Ctx ctx, in StructInst a) =>
 	jsonObject(alloc, [
-		field!"name"(decl(a).name),
-		optionalArrayField!("type-args", Type)(alloc, typeArgs(a), (in Type x) =>
+		field!"name"(a.decl.name),
+		optionalArrayField!("type-args", Type)(alloc, a.typeArgs, (in Type x) =>
 			jsonOfType(alloc, ctx, x))]);
 
 Json jsonOfExprs(ref Alloc alloc, in Ctx ctx, in Expr[] a) =>
@@ -503,7 +502,7 @@ Json jsonOfCalled(ref Alloc alloc, in Ctx ctx, in Called a) =>
 
 Json jsonOfFunInst(ref Alloc alloc, in Ctx ctx, in FunInst a) =>
 	jsonObject(alloc, [
-		field!"name"(decl(a).name),
+		field!"name"(a.decl.name),
 		optionalArrayField!("type-args", Type)(alloc, typeArgs(a), (in Type x) =>
 			jsonOfType(alloc, ctx, x)),
 		optionalArrayField!("spec-impls", Called)(alloc, specImpls(a), (in Called x) =>
@@ -512,5 +511,5 @@ Json jsonOfFunInst(ref Alloc alloc, in Ctx ctx, in FunInst a) =>
 Json jsonOfCalledSpecSig(ref Alloc alloc, in Ctx ctx, in CalledSpecSig a) =>
 	jsonObject(alloc, [
 		kindField!"spec-sig",
-		field!"spec"(name(*a.specInst)),
-		field!"name"(name(a))]);
+		field!"spec"(a.specInst.decl.name),
+		field!"name"(a.name)]);

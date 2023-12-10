@@ -278,10 +278,10 @@ Json documentTypeRef(ref Alloc alloc, in TypeParams typeParams, in Type a) =>
 			documentStructInst(alloc, typeParams, x));
 
 Json documentSpecInst(ref Alloc alloc, in TypeParams typeParams, in SpecInst a) =>
-	documentNameAndTypeArgs(alloc, typeParams, sym!"spec", name(a), typeArgs(a));
+	documentNameAndTypeArgs(alloc, typeParams, sym!"spec", a.name, a.typeArgs);
 
 Json documentStructInst(ref Alloc alloc, in TypeParams typeParams, in StructInst a) =>
-	documentNameAndTypeArgs(alloc, typeParams, sym!"struct", name(a), typeArgs(a));
+	documentNameAndTypeArgs(alloc, typeParams, sym!"struct", name(a), a.typeArgs);
 
 Json documentNameAndTypeArgs(ref Alloc alloc, in TypeParams typeParams, Sym nodeType, Sym name, scope Type[] typeArgs) =>
 	empty(typeArgs)

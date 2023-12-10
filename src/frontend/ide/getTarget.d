@@ -13,7 +13,6 @@ import model.model :
 	CallExpr,
 	ClosureGetExpr,
 	ClosureSetExpr,
-	decl,
 	Destructure,
 	EnumFunction,
 	FlagsFunction,
@@ -103,7 +102,7 @@ Opt!Target targetForPosition(in Program program, PositionKind pos) =>
 		(SpecDecl* x) =>
 			some(Target(x)),
 		(SpecInst* x) =>
-			some(Target(decl(*x))),
+			some(Target(x.decl)),
 		(PositionKind.SpecSig x) =>
 			some(Target(x)),
 		(StructDecl* x) =>
@@ -115,7 +114,7 @@ Opt!Target targetForPosition(in Program program, PositionKind pos) =>
 				(TypeParamIndex p) =>
 					some(Target(PositionKind.TypeParamWithContainer(p, x.container))),
 				(StructInst* x) =>
-					some(Target(decl(*x)))),
+					some(Target(x.decl))),
 		(PositionKind.TypeParamWithContainer x) =>
 			some(Target(x)),
 		(VarDecl* x) =>
@@ -138,7 +137,7 @@ Opt!Target exprTarget(in Program program, PositionKind.Expression a) {
 		(ClosureSetExpr x) =>
 			local(toLocal(x.closureRef)),
 		(FunPtrExpr x) =>
-			some(Target(decl(*x.funInst))),
+			some(Target(x.funInst.decl)),
 		(ref IfExpr _) =>
 			none!Target,
 		(ref IfOptionExpr _) =>
@@ -187,7 +186,7 @@ private:
 Opt!Target calledTarget(ref Called a) =>
 	a.match!(Opt!Target)(
 		(ref FunInst funInst) {
-			FunDecl* decl = decl(funInst);
+			FunDecl* decl = funInst.decl;
 			return some(decl.body_.match!(Target)(
 				(FunBody.Bogus) =>
 					Target(decl),
@@ -228,12 +227,12 @@ Opt!Target calledTarget(ref Called a) =>
 					Target(x.var)));
 		},
 		(ref CalledSpecSig x) =>
-			some(Target(PositionKind.SpecSig(decl(*x.specInst), x.nonInstantiatedSig))));
+			some(Target(PositionKind.SpecSig(x.specInst.decl, x.nonInstantiatedSig))));
 
 Target returnTypeTarget(FunDecl* fun) =>
-	Target(decl(*fun.returnType.as!(StructInst*)));
+	Target(fun.returnType.as!(StructInst*).decl);
 
 Target recordFieldTarget(FunDecl* fun, size_t fieldIndex) {
-	StructDecl* record = decl(*fun.params.as!(Destructure[])[0].type.as!(StructInst*));
+	StructDecl* record = fun.params.as!(Destructure[])[0].type.as!(StructInst*).decl;
 	return Target(&body_(*record).as!(StructBody.Record).fields[fieldIndex]);
 }

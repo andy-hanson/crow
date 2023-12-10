@@ -43,7 +43,6 @@ import model.diag : ReadFileDiag;
 import model.model :
 	body_,
 	CommonTypes,
-	decl,
 	Destructure,
 	EnumBackingType,
 	EnumFunction,
@@ -127,7 +126,7 @@ private immutable struct ConcreteStructKey {
 
 private ConcreteStructKey getStructKey(return in ConcreteStruct* a) {
 	ConcreteStructSource.Inst inst = a.source.as!(ConcreteStructSource.Inst);
-	return ConcreteStructKey(decl(*inst.inst), inst.typeArgs);
+	return ConcreteStructKey(inst.inst.decl, inst.typeArgs);
 }
 
 private VarDecl* getVarKey(return in ConcreteVar* a) =>
@@ -296,15 +295,15 @@ ConcreteFun* getConcreteFunForLambdaAndFillBody(
 }
 
 ConcreteFun* getOrAddNonTemplateConcreteFunAndFillBody(ref ConcretizeCtx ctx, FunInst* inst) =>
-	getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(decl(*inst), emptySmallArray!ConcreteType, emptySmallArray!(immutable ConcreteFun*)));
+	getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(inst.decl, emptySmallArray!ConcreteType, emptySmallArray!(immutable ConcreteFun*)));
 
 private ConcreteType getConcreteType_forStructInst(
 	ref ConcretizeCtx ctx,
 	StructInst* i,
 	in TypeArgsScope typeArgsScope,
 ) {
-	SmallArray!ConcreteType typeArgs = typesToConcreteTypes(ctx, typeArgs(*i), typeArgsScope);
-	ConcreteStructKey key = ConcreteStructKey(decl(*i), typeArgs);
+	SmallArray!ConcreteType typeArgs = typesToConcreteTypes(ctx, i.typeArgs, typeArgsScope);
+	ConcreteStructKey key = ConcreteStructKey(i.decl, typeArgs);
 	ValueAndDidAdd!(ConcreteStruct*) res =
 		getOrAddAndDidAdd!(ConcreteStruct*, ConcreteStructKey, getStructKey)(
 			ctx.alloc, ctx.nonLambdaConcreteStructs, key, () {
@@ -465,11 +464,11 @@ public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* mo
 			0,
 	*/
 	ConcreteType nat64Type = getConcreteType_forStructInst(ctx, ctx.commonTypes.integrals.nat64, TypeArgsScope.empty);
-	UriAndRange range = range(*decl(*modelMain));
+	UriAndRange range = range(*modelMain.decl);
 	ConcreteExpr callMain = ConcreteExpr(voidType(ctx), range, ConcreteExprKind(ConcreteExprKind.Call(innerMain, [])));
 	ConcreteExpr zero = ConcreteExpr(nat64Type, range, ConcreteExprKind(constantZero));
 	ConcreteFun* newNat64Future = getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
-		decl(*ctx.program.commonFuns.newNat64Future),
+		ctx.program.commonFuns.newNat64Future.decl,
 		//TODO:avoid alloc
 		small(arrLiteral(ctx.alloc, [nat64Type])),
 		emptySmallArray!(immutable ConcreteFun*)));
@@ -558,7 +557,7 @@ void initializeConcreteStruct(
 	ConcreteStruct* res,
 	in TypeArgsScope typeArgsScope,
 ) {
-	body_(*decl(i)).match!void(
+	body_(*i.decl).match!void(
 		(StructBody.Bogus) => unreachable!void,
 		(StructBody.Builtin) {
 			BuiltinStructKind kind = getBuiltinStructKind(i.decl.name);
@@ -807,7 +806,7 @@ ConcreteFunBody bodyForEnumOrFlagsMembers(ref ConcretizeCtx ctx, ConcreteType re
 }
 
 StructBody.Enum.Member[] enumOrFlagsMembers(ConcreteType type) {
-	StructBody body_ = body_(*decl(*mustBeByVal(type).source.as!(ConcreteStructSource.Inst).inst));
+	StructBody body_ = body_(*mustBeByVal(type).source.as!(ConcreteStructSource.Inst).inst.decl);
 	return body_.match!(StructBody.Enum.Member[])(
 		(StructBody.Bogus) =>
 			unreachable!(StructBody.Enum.Member[]),

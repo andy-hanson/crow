@@ -12,14 +12,12 @@ import frontend.check.instantiate :
 	instantiateSpecInst,
 	noDelaySpecInsts,
 	TypeArgsArray,
-	typeArgsArray,
-	TypeParamsAndArgs;
+	typeArgsArray;
 import frontend.lang : maxSpecDepth, maxSpecImpls;
 import model.diag : Diag, TypeContainer;
 import model.model :
 	Called,
 	CalledSpecSig,
-	decl,
 	emptyTypeParams,
 	FunDecl,
 	FunDeclAndTypeArgs,
@@ -34,11 +32,12 @@ import model.model :
 	SpecInst,
 	StructInst,
 	Type,
+	TypeArgs,
 	typeArgs,
 	TypeParams;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : only;
+import util.col.arr : only, small;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderIsEmpty, consumeArr, finishArr;
 import util.col.arrUtil : every, exists, first, zipFirst;
 import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, only, push, tempAsArr, toArray;
@@ -74,7 +73,7 @@ bool isPurityAlwaysCompatibleConsideringSpecs(in immutable SpecInst*[] funSpecs,
 			specProvidesPurity(inst, type, expected)) ||
 		(type.isA!(StructInst*) &&
 			isPurityCompatible(expected, typePurity.bestCase) &&
-			every!Type(typeArgs(*type.as!(StructInst*)), (in Type typeArg) =>
+			every!Type(type.as!(StructInst*).typeArgs, (in Type typeArg) =>
 				isPurityAlwaysCompatibleConsideringSpecs(funSpecs, typeArg, expected)));
 }
 
@@ -176,11 +175,11 @@ Trace.Result getCalledFromCandidateAfterTypeChecks(Trace)(
 				return Trace.Result(specNoMatch(ctx, trace, Diag.SpecNoMatch.Reason(Diag.SpecNoMatch.Reason.TooDeep())));
 			else {
 				SpecImpls specImpls = mutMaxArr!(maxSpecImpls, Called);
-				Opt!(Trace.NoMatch) diag = checkSpecImpls(specImpls, ctx, f, tempAsArr(candidateTypeArgs), trace);
+				Opt!(Trace.NoMatch) diag = checkSpecImpls(specImpls, ctx, f, small(tempAsArr(candidateTypeArgs)), trace);
 				return has(diag)
 					? Trace.Result(force(diag))
 					: Trace.Result(Called(instantiateFun(
-						ctx.instantiateCtx, f, tempAsArr(candidateTypeArgs), tempAsArr(specImpls))));
+						ctx.instantiateCtx, f, small(tempAsArr(candidateTypeArgs)), small(tempAsArr(specImpls)))));
 			}
 		},
 		(CalledSpecSig s) =>
@@ -257,9 +256,9 @@ Purity purityOfBuiltinSpec(SpecDeclBody.Builtin.Kind kind) {
 bool specProvidesPurity(in SpecInst* inst, in Type type, Purity expected) =>
 	exists!(SpecInst*)(inst.parents, (in SpecInst* parent) =>
 		specProvidesPurity(parent, type, expected)) ||
-	decl(*inst).body_.matchIn!bool(
+	inst.decl.body_.matchIn!bool(
 		(in SpecDeclBody.Builtin b) =>
-			only(typeArgs(*inst)) == type && isPurityCompatible(expected, purityOfBuiltinSpec(b.kind)),
+			only(inst.typeArgs) == type && isPurityCompatible(expected, purityOfBuiltinSpec(b.kind)),
 		(in SpecDeclSig[]) =>
 			false);
 
@@ -267,14 +266,14 @@ Opt!(Trace.NoMatch) checkSpecImpls(Trace)(
 	ref SpecImpls res,
 	ref CheckSpecsCtx ctx,
 	FunDecl* called,
-	in Type[] calledTypeArgs,
+	in TypeArgs calledTypeArgs,
 	scope Trace trace,
 ) =>
 	first!(Trace.NoMatch, immutable SpecInst*)(called.specs, (SpecInst* specInst) =>
 		// specInst was instantiated potentially based on f's params.
 		// Meed to instantiate it again.
 		checkSpecImpl(res, ctx, called, trace, *instantiateSpecInst(
-			ctx.instantiateCtx, specInst, TypeParamsAndArgs(called.typeParams, calledTypeArgs), noDelaySpecInsts)));
+			ctx.instantiateCtx, specInst, calledTypeArgs, noDelaySpecInsts)));
 
 Opt!(Trace.NoMatch) checkSpecImpl(Trace)(
 	ref SpecImpls res,
@@ -283,7 +282,7 @@ Opt!(Trace.NoMatch) checkSpecImpl(Trace)(
 	scope Trace outerTrace,
 	in SpecInst specInstInstantiated,
 ) {
-	Type[] typeArgs = typeArgs(specInstInstantiated);
+	TypeArgs typeArgs = specInstInstantiated.typeArgs;
 	return withTrace!(Opt!(Trace.NoMatch))(outerTrace, FunDeclAndTypeArgs(called, typeArgs), (scope Trace trace) {
 		Opt!(Trace.NoMatch) parentDiag = first!(Trace.NoMatch, immutable SpecInst*)(
 			specInstInstantiated.parents, (SpecInst* parent) => checkSpecImpl(res, ctx, called, trace, *parent));

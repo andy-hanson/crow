@@ -9,7 +9,6 @@ import model.diag : Diag, ExpectedForDiag, TypeContainer, TypeWithContainer;
 import model.model :
 	BogusExpr,
 	CommonTypes,
-	decl,
 	emptyTypeParams,
 	Expr,
 	ExprKind,
@@ -401,14 +400,14 @@ Opt!Type tryGetDeeplyInstantiatedType(ref InstantiateCtx ctx, const TypeAndConte
 		},
 		(StructInst* i) {
 			scope TypeArgsArray newTypeArgs = typeArgsArray();
-			foreach (Type x; typeArgs(*i)) {
+			foreach (Type x; i.typeArgs) {
 				Opt!Type t = tryGetDeeplyInstantiatedType(ctx, const TypeAndContext(x, a.context));
 				if (has(t))
 					push(newTypeArgs, force(t));
 				else
 					return none!Type;
 			}
-			return some(Type(instantiateStructNeverDelay(ctx, decl(*i), tempAsArr(newTypeArgs))));
+			return some(Type(instantiateStructNeverDelay(ctx, i.decl, tempAsArr(newTypeArgs))));
 		});
 
 private:
@@ -426,9 +425,9 @@ Type applyInferred(ref InstantiateCtx ctx, in TypeAndContext a) =>
 		},
 		(ref StructInst i) @safe {
 			scope TypeArgsArray newTypeArgs = typeArgsArray();
-			foreach (Type x; typeArgs(i))
+			foreach (Type x; i.typeArgs)
 				push(newTypeArgs, applyInferred(ctx, const TypeAndContext(x, a.context)));
-			return Type(instantiateStructNeverDelay(ctx, decl(i), tempAsArr(newTypeArgs)));
+			return Type(instantiateStructNeverDelay(ctx, i.decl, tempAsArr(newTypeArgs)));
 		});
 
 /*
@@ -450,8 +449,8 @@ bool checkType(ref InstantiateCtx ctx, TypeAndContext a, const TypeAndContext b)
 				(TypeParamIndex pb) =>
 					checkType_TypeParamB(ctx, a, pb, b.context),
 				(StructInst* bi) =>
-					decl(*ai) == decl(*bi) &&
-					zipEvery!(Type, Type)(typeArgs(*ai), typeArgs(*bi), (ref Type argA, ref Type argB) @safe =>
+					ai.decl == bi.decl &&
+					zipEvery!(Type, Type)(ai.typeArgs, bi.typeArgs, (ref Type argA, ref Type argB) @safe =>
 						checkType(ctx, TypeAndContext(argA, a.context), const TypeAndContext(argB, b.context)))));
 
 bool checkType_TypeParam(ref InstantiateCtx ctx, TypeParamIndex a, TypeContext aContext, const TypeAndContext b) {
@@ -501,11 +500,11 @@ public immutable struct FunType {
 public Opt!FunType getFunType(in CommonTypes commonTypes, Type a) {
 	if (a.isA!(StructInst*)) {
 		StructInst* structInst = a.as!(StructInst*);
-		StructDecl* structDecl = decl(*structInst);
+		StructDecl* structDecl = structInst.decl;
 		Opt!FunKind kind = enumMapFindKey!(FunKind, StructDecl*)(commonTypes.funStructs, (in StructDecl* x) =>
 			x == structDecl);
 		if (has(kind)) {
-			Type[2] typeArgs = only2(typeArgs(*structInst));
+			Type[2] typeArgs = only2(structInst.typeArgs);
 			return some(FunType(force(kind), structInst, structDecl, typeArgs[0], typeArgs[1]));
 		} else
 			return none!FunType;
@@ -549,8 +548,8 @@ public void inferTypeArgsFrom(
 		(StructInst* ai) {
 			if (b2.type.isA!(StructInst*)) {
 				const StructInst* bi = b2.type.as!(StructInst*);
-				if (decl(*ai) == decl(*bi))
-					zip(typeArgs(*ai), typeArgs(*bi), (ref Type ta, ref Type tb) {
+				if (ai.decl == bi.decl)
+					zip(ai.typeArgs, bi.typeArgs, (ref Type ta, ref Type tb) {
 						inferTypeArgsFrom(ctx, ta, aInferringTypeArgs, const TypeAndContext(tb, b2.context));
 					});
 			}
@@ -603,9 +602,7 @@ public bool typesAreCorrespondingStructInsts(
 	if (a.isA!(StructInst*) && b.isA!(StructInst*)) {
 		StructInst* sa = a.as!(StructInst*);
 		StructInst* sb = b.as!(StructInst*);
-		if (decl(*sa) != decl(*sb))
-			return false;
-		return zipEvery!(Type, Type)(typeArgs(*sa), typeArgs(*sb), typesCorrespond);
+		return sa.decl == sb.decl && zipEvery!(Type, Type)(sa.typeArgs, sb.typeArgs, typesCorrespond);
 	} else
 		return false;
 }

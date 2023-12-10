@@ -5,7 +5,6 @@ module model.concreteModel;
 import model.constant : Constant;
 import model.model :
 	ClosureReferenceKind,
-	decl,
 	EnumBackingType,
 	EnumFunction,
 	EnumValue,

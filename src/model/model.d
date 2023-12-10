@@ -80,6 +80,12 @@ Sym symOfPurity(Purity a) {
 alias TypeParams = SmallArray!NameAndRange;
 TypeParams emptyTypeParams() =>
 	emptySmallArray!NameAndRange;
+alias TypeArgs = SmallArray!Type;
+TypeArgs emptyTypeArgs() =>
+	emptySmallArray!Type;
+alias SpecImpls = SmallArray!Called;
+SpecImpls emptySpecImpls() =>
+	emptySmallArray!Called;
 
 // Represent type parameter as the index, so we don't generate different types for every `t list`.
 // (These are disambiguated in the type checker using `TypeAndContext`)
@@ -425,7 +431,7 @@ immutable struct StructDeclAndArgs {
 	@safe @nogc pure nothrow:
 
 	StructDecl* decl;
-	SmallArray!Type typeArgs;
+	TypeArgs typeArgs;
 
 	bool opEquals(in StructDeclAndArgs b) scope =>
 		decl == b.decl && arrEqual!Type(typeArgs, b.typeArgs);
@@ -454,36 +460,36 @@ immutable struct StructInst {
 	void instantiatedTypes(Type[] value) {
 		lateSet(lateInstantiatedTypes, small(value));
 	}
+
+	StructDecl* decl() return scope =>
+		declAndArgs.decl;
+
+	TypeArgs typeArgs() return scope =>
+		declAndArgs.typeArgs;
 }
 
 bool isDefinitelyByRef(in StructInst a) {
-	StructBody body_ = body_(*decl(a));
+	StructBody body_ = body_(*a.decl);
 	return body_.isA!(StructBody.Record) &&
 		body_.as!(StructBody.Record).flags.forcedByValOrRef == ForcedByValOrRefOrNone.byRef;
 }
 
 bool isArray(in CommonTypes commonTypes, in StructInst a) =>
-	decl(a) == commonTypes.array;
+	a.decl == commonTypes.array;
 
 bool isTuple(in CommonTypes commonTypes, in Type a) =>
 	a.isA!(StructInst*) && isTuple(commonTypes, *a.as!(StructInst*));
 bool isTuple(in CommonTypes commonTypes, in StructInst a) =>
-	isTuple(commonTypes, decl(a));
+	isTuple(commonTypes, a.decl);
 bool isTuple(in CommonTypes commonTypes, in StructDecl* a) {
 	Opt!(StructDecl*) actual = commonTypes.tuple(a.typeParams.length);
 	return has(actual) && force(actual) == a;
 }
 Opt!(Type[]) asTuple(in CommonTypes commonTypes, Type type) =>
-	isTuple(commonTypes, type) ? some(typeArgs(*type.as!(StructInst*))) : none!(Type[]);
+	isTuple(commonTypes, type) ? some!(Type[])(type.as!(StructInst*).typeArgs) : none!(Type[]);
 
 Sym name(in StructInst a) =>
-	decl(a).name;
-
-StructDecl* decl(ref StructInst a) =>
-	a.declAndArgs.decl;
-
-Type[] typeArgs(ref StructInst a) =>
-	a.declAndArgs.typeArgs;
+	a.decl.name;
 
 immutable struct SpecDeclBody {
 	immutable struct Builtin {
@@ -547,7 +553,7 @@ immutable struct SpecDeclAndArgs {
 	@safe @nogc pure nothrow:
 
 	SpecDecl* decl;
-	SmallArray!Type typeArgs;
+	TypeArgs typeArgs;
 
 	bool opEquals(in SpecDeclAndArgs b) scope =>
 		decl == b.decl && arrEqual!Type(typeArgs, b.typeArgs);
@@ -570,16 +576,16 @@ immutable struct SpecInst {
 	void parents(immutable SpecInst*[] value) {
 		lateSet(parents_, small(value));
 	}
+
+	SpecDecl* decl() return scope =>
+		declAndArgs.decl;
+
+	TypeArgs typeArgs() return scope =>
+		declAndArgs.typeArgs;
+
+	Sym name() scope =>
+		decl.name;
 }
-
-SpecDecl* decl(return scope ref SpecInst a) =>
-	a.declAndArgs.decl;
-
-Type[] typeArgs(return scope ref SpecInst a) =>
-	a.declAndArgs.typeArgs;
-
-Sym name(in SpecInst a) =>
-	decl(a).name;
 
 alias EnumFunction = immutable EnumFunction_;
 private enum EnumFunction_ {
@@ -847,15 +853,15 @@ UriAndRange range(in Test a) =>
 
 immutable struct FunDeclAndTypeArgs {
 	FunDecl* decl;
-	Type[] typeArgs;
+	TypeArgs typeArgs;
 }
 
 immutable struct FunDeclAndArgs {
 	@safe @nogc pure nothrow:
 
 	FunDecl* decl;
-	SmallArray!Type typeArgs;
-	SmallArray!Called specImpls;
+	TypeArgs typeArgs;
+	SpecImpls specImpls;
 
 	bool opEquals(in FunDeclAndArgs b) scope =>
 		decl == b.decl && arrEqual!Type(typeArgs, b.typeArgs) && arrEqual!Called(specImpls, b.specImpls);
@@ -878,8 +884,11 @@ immutable struct FunInst {
 	FunDeclAndArgs declAndArgs;
 	ReturnAndParamTypes instantiatedSig;
 
+	FunDecl* decl() return scope =>
+		declAndArgs.decl;
+
 	Sym name() scope =>
-		decl(this).name;
+		decl.name;
 
 	Type returnType() scope =>
 		instantiatedSig.returnType;
@@ -888,17 +897,14 @@ immutable struct FunInst {
 		instantiatedSig.paramTypes;
 }
 
-FunDecl* decl(ref FunInst a) =>
-	a.declAndArgs.decl;
-
-Type[] typeArgs(ref FunInst a) =>
+TypeArgs typeArgs(ref FunInst a) =>
 	a.declAndArgs.typeArgs;
 
-Called[] specImpls(ref FunInst a) =>
+SpecImpls specImpls(ref FunInst a) =>
 	a.declAndArgs.specImpls;
 
 Arity arity(in FunInst a) =>
-	arity(*decl(a));
+	arity(*a.decl);
 
 immutable struct ReturnAndParamTypes {
 	@safe @nogc pure nothrow:
@@ -927,7 +933,10 @@ immutable struct CalledSpecSig {
 		instantiatedSig.paramTypes;
 
 	SpecDeclSig* nonInstantiatedSig() return scope =>
-		&decl(*specInst).body_.as!(SpecDeclSig[])[sigIndex];
+		&specInst.decl.body_.as!(SpecDeclSig[])[sigIndex];
+
+	Sym name() scope =>
+		nonInstantiatedSig.name;
 
 	private:
 
@@ -939,9 +948,6 @@ immutable struct CalledSpecSig {
 		hasher ~= sigIndex;
 	}
 }
-
-Sym name(ref CalledSpecSig a) =>
-	a.nonInstantiatedSig.name;
 
 Arity arity(in CalledSpecSig a) =>
 	Arity(a.nonInstantiatedSig.params.length);
@@ -1026,7 +1032,7 @@ immutable struct Called {
 Type paramTypeAt(in Called a, size_t argIndex) scope =>
 	a.matchIn!Type(
 		(in FunInst f) =>
-			decl(f).params.matchIn!Type(
+			f.decl.params.matchIn!Type(
 				(in Destructure[]) =>
 					f.paramTypes[argIndex],
 				(in Params.Varargs) =>

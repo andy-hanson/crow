@@ -48,7 +48,6 @@ import model.diag : Diag, Diagnostic, TypeContainer;
 import model.model :
 	body_,
 	CommonTypes,
-	decl,
 	Destructure,
 	emptyTypeParams,
 	FunBody,
@@ -205,8 +204,8 @@ Params checkParams(
 				(in TypeParamIndex _) =>
 					none!Type,
 				(in StructInst x) =>
-					decl(x) == commonTypes.array
-					? some(only(typeArgs(x)))
+					x.decl == commonTypes.array
+					? some(only(x.typeArgs))
 					: none!Type);
 			if (!has(elementType))
 				addDiag(ctx, varargs.param.range(ctx.allSymbols), Diag(Diag.VarargsParamMustBeArray()));
@@ -317,8 +316,8 @@ bool recurDetectSpecRecursion(SpecDecl* cur, ref MutMaxArr!(8, immutable SpecDec
 	if (!empty(cur.parents) && isFull(trace))
 		return true;
 	foreach (SpecInst* parent; cur.parents) {
-		push(trace, decl(*parent));
-		if (recurDetectSpecRecursion(decl(*parent), trace))
+		push(trace, parent.decl);
+		if (recurDetectSpecRecursion(parent.decl, trace))
 			return true;
 		else
 			mustPop(trace);

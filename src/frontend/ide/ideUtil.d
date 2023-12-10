@@ -74,7 +74,7 @@ Opt!T eachTypeComponent(T)(
 		(in TypeParamIndex _) =>
 			none!T,
 		(in StructInst x) =>
-			eachTypeArg!T(typeArgs(x), ast, cb));
+			eachTypeArg!T(x.typeArgs, ast, cb));
 
 private TypeAst[] typeAstTypeArgs(return scope TypeAst ast) =>
 	ast.match!(TypeAst[])(

@@ -64,7 +64,6 @@ import model.model :
 	ClosureReferenceKind,
 	ClosureSetExpr,
 	countSigs,
-	decl,
 	Destructure,
 	EnumFunction,
 	Expr,
@@ -313,7 +312,7 @@ bool searchSpecSigIndexRecur(ref size_t index, in SpecInst* inst, in SpecInst* s
 	}
 	if (inst == search)
 		return true;
-	index += countSigs(decl(*inst).body_);
+	index += countSigs(inst.decl.body_);
 	return false;
 }
 
@@ -321,7 +320,7 @@ ConcreteFun* getConcreteFunFromFunInst(ref ConcretizeExprCtx ctx, FunInst* funIn
 	SmallArray!ConcreteType typeArgs = typesToConcreteTypes(ctx, typeArgs(*funInst));
 	SmallArray!(immutable ConcreteFun*) specImpls = small(map!(ConcreteFun*, Called)(ctx.alloc, specImpls(*funInst), (ref Called it) =>
 		getConcreteFunFromCalled(ctx, it)));
-	return getOrAddConcreteFunAndFillBody(ctx.concretizeCtx, ConcreteFunKey(decl(*funInst), typeArgs, specImpls));
+	return getOrAddConcreteFunAndFillBody(ctx.concretizeCtx, ConcreteFunKey(funInst.decl, typeArgs, specImpls));
 }
 
 ConcreteExpr concretizeClosureGet(

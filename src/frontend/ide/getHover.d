@@ -141,7 +141,7 @@ void getHover(scope ref Writer writer, in ShowCtx ctx, in Position pos) =>
 					hoverTypeParam(writer, ctx, x.container, p);
 				},
 				(in StructInst i) {
-					writeStructDeclHover(writer, ctx, *decl(i));
+					writeStructDeclHover(writer, ctx, *i.decl);
 				});
 		},
 		(in PositionKind.TypeParamWithContainer x) {

@@ -15,7 +15,7 @@ import model.concreteModel :
 	typeSize,
 	TypeSize;
 import model.constant : Constant;
-import model.model : body_, decl, EnumValue, Local, StructBody;
+import model.model : body_, EnumValue, Local, StructBody;
 import util.col.arr : empty;
 import util.col.map : Map;
 import util.col.fullIndexMap : FullIndexMap;
@@ -46,7 +46,7 @@ immutable struct LowRecord {
 			(in ConcreteStructSource.Bogus) =>
 				false,
 			(in ConcreteStructSource.Inst it) =>
-				body_(*decl(*it.inst)).as!(StructBody.Record).flags.packed,
+				body_(*it.inst.decl).as!(StructBody.Record).flags.packed,
 			(in ConcreteStructSource.Lambda) =>
 				false);
 }

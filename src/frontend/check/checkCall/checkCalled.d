@@ -6,7 +6,7 @@ import frontend.check.checkCtx : markUsed;
 import frontend.check.exprCtx : addDiag2, checkCanDoUnsafe, ExprCtx;
 import frontend.parse.ast : ExprAst;
 import model.diag : Diag;
-import model.model : Called, CalledSpecSig, decl, FunDecl, FunInst, FunFlags, isVariadic, specImpls;
+import model.model : Called, CalledSpecSig, FunDecl, FunInst, FunFlags, isVariadic, specImpls;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range;
 
@@ -17,8 +17,8 @@ Additional checks on a call after the overload and spec impls have been chosen.
 void checkCalled(ref ExprCtx ctx, ExprAst* source, in Called called, bool isInLambda, ArgsKind argsKind) {
 	called.match!void(
 		(ref FunInst x) {
-			markUsed(ctx.checkCtx, decl(x));
-			checkCallFlags(ctx, source.range, decl(x), ctx.outermostFunFlags, isInLambda, argsKind);
+			markUsed(ctx.checkCtx, x.decl);
+			checkCallFlags(ctx, source.range, x.decl, ctx.outermostFunFlags, isInLambda, argsKind);
 			foreach (ref Called impl; specImpls(x)) {
 				checkCalled(ctx, source, impl, isInLambda, argsKind);
 			}

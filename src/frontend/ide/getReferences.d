@@ -40,7 +40,6 @@ import model.model :
 	ClosureGetExpr,
 	ClosureSetExpr,
 	Destructure,
-	decl,
 	eachImportOrReExport,
 	Expr,
 	ExprKind,
@@ -317,7 +316,7 @@ void eachTypeInFun(in FunDecl a, in TypeCb cb) {
 
 void eachTypeInSpec(in SpecDecl a, in TypeCb cb) {
 	eachSpecParent(a, (SpecInst* parent, in TypeAst ast) {
-		eachTypeArg(typeArgs(*parent), ast, cb);
+		eachTypeArg(parent.typeArgs, ast, cb);
 	});
 	a.body_.matchIn!void(
 		(in SpecDeclBody.Builtin) {},
@@ -447,10 +446,10 @@ void referencesForFunDecls(in AllSymbols allSymbols, in Program program, in FunD
 		eachExprThatMayReference(program, maxVisibility, itsModule, (in Module module_, in Expr x) {
 			if (x.kind.isA!CallExpr) {
 				Called called = x.kind.as!CallExpr.called;
-				if (called.isA!(FunInst*) && contains(decls, decl(*called.as!(FunInst*))))
+				if (called.isA!(FunInst*) && contains(decls, called.as!(FunInst*).decl))
 					cb(UriAndRange(module_.uri, callNameRange(allSymbols, x)));
 			} else if (x.kind.isA!FunPtrExpr) {
-				if (contains(decls, decl(*x.kind.as!FunPtrExpr.funInst)))
+				if (contains(decls, x.kind.as!FunPtrExpr.funInst.decl))
 					cb(UriAndRange(module_.uri, callNameRange(allSymbols, x)));
 			}
 		});
@@ -533,7 +532,7 @@ void withRecordFieldFunctions(
 		if (isRecordFieldFunction(fun.body_)) {
 			Type paramType = only(fun.params.as!(Destructure[])).type;
 			// TODO: for RecordFieldPointer we need to look for pointer to the struct
-			if (paramType.isA!(StructInst*) && decl(*paramType.as!(StructInst*)) == field.containingRecord)
+			if (paramType.isA!(StructInst*) && paramType.as!(StructInst*).decl == field.containingRecord)
 				push(res, fun);
 		}
 	}
@@ -549,7 +548,7 @@ bool isRecordFieldFunction(in FunBody a) =>
 void referencesForSpecDecl(in AllSymbols allSymbols, in Program program, in SpecDecl* a, in ReferenceCb refCb) {
 	eachModuleThatMayReference(program, a.visibility, moduleOf(program, a.moduleUri), (in Module module_) {
 		scope void delegate(in SpecInst*, in TypeAst) @safe @nogc pure nothrow cb = (spec, ast) {
-			if (decl(*spec) == a)
+			if (spec.decl == a)
 				refCb(UriAndRange(module_.uri, range(ast, allSymbols)));
 		};
 		foreach (ref SpecDecl spec; module_.specs)
@@ -562,7 +561,7 @@ void referencesForSpecDecl(in AllSymbols allSymbols, in Program program, in Spec
 void referencesForStructDecl(in AllSymbols allSymbols, in Program program, in StructDecl* a, in ReferenceCb cb) {
 	eachModuleThatMayReference(program, a.visibility, moduleOf(program, a.moduleUri), (in Module module_) {
 		eachTypeInModule(module_, (in Type t, in TypeAst ast) {
-			if (t.isA!(StructInst*) && decl(*t.as!(StructInst*)) == a)
+			if (t.isA!(StructInst*) && t.as!(StructInst*).decl == a)
 				cb(UriAndRange(module_.uri, range(ast, allSymbols)));
 		});
 	});

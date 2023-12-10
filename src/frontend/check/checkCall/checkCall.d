@@ -47,7 +47,6 @@ import model.model :
 	CalledDecl,
 	CalledSpecSig,
 	CallExpr,
-	decl,
 	Expr,
 	ExprKind,
 	FunDecl,
@@ -350,10 +349,10 @@ bool inferCandidateTypeArgsFromSpecInst(
 	ref Candidate callCandidate,
 	in FunDecl called,
 	in SpecInst spec,
-) {
-	return every!(immutable SpecInst*)(spec.parents, (in immutable SpecInst* parent) =>
+) =>
+	every!(immutable SpecInst*)(spec.parents, (in immutable SpecInst* parent) =>
 		inferCandidateTypeArgsFromSpecInst(ctx, callCandidate, called, *parent)
-	) && decl(spec).body_.match!bool(
+	) && spec.decl.body_.match!bool(
 		(SpecDeclBody.Builtin) =>
 			// figure this out at the end
 			true,
@@ -361,7 +360,6 @@ bool inferCandidateTypeArgsFromSpecInst(
 			zipEvery!(SpecDeclSig, ReturnAndParamTypes)(
 				sigs, spec.sigTypes, (ref SpecDeclSig sig, ref ReturnAndParamTypes returnAndParamTypes) =>
 					inferCandidateTypeArgsFromSpecSig(ctx, callCandidate, called, sig, returnAndParamTypes)));
-}
 
 bool inferCandidateTypeArgsFromSpecSig(
 	ref ExprCtx ctx,

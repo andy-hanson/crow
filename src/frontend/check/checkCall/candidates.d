@@ -20,7 +20,6 @@ import model.model :
 	arityMatches,
 	CalledDecl,
 	CalledSpecSig,
-	decl,
 	Destructure,
 	FunDecl,
 	NameReferents,
@@ -228,7 +227,7 @@ private void eachFunInScopeForSpec(
 ) {
 	foreach (SpecInst* parent; specInst.parents)
 		eachFunInScopeForSpec(parent, funName, cb);
-	decl(*specInst).body_.match!void(
+	specInst.decl.body_.match!void(
 		(SpecDeclBody.Builtin) {},
 		(SpecDeclSig[] sigs) {
 			foreach (size_t sigIndex, ref SpecDeclSig sig; sigs) {

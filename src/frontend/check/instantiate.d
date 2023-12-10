@@ -9,7 +9,6 @@ import model.model :
 	bodyIsSet,
 	Called,
 	CommonTypes,
-	decl,
 	Destructure,
 	combineLinkageRange,
 	combinePurityRange,
@@ -29,12 +28,14 @@ import model.model :
 	SpecDeclBody,
 	SpecDeclAndArgs,
 	SpecDeclSig,
+	SpecImpls,
 	SpecInst,
 	StructBody,
 	StructDecl,
 	StructDeclAndArgs,
 	StructInst,
 	Type,
+	TypeArgs,
 	typeArgs,
 	TypeParamIndex,
 	TypeParams,
@@ -66,19 +67,6 @@ struct InstantiateCtx {
 		*programStatePtr;
 }
 
-immutable struct TypeParamsAndArgs {
-	@safe @nogc pure nothrow:
-
-	TypeParams typeParams;
-	Type[] typeArgs;
-
-	this(TypeParams tp, Type[] ta) {
-		typeParams = tp;
-		typeArgs = ta;
-		assert(sizeEq(typeParams, typeArgs));
-	}
-}
-
 alias TypeArgsArray = MutMaxArr!(maxTypeParams, Type);
 TypeArgsArray typeArgsArray() =>
 	mutMaxArr!(maxTypeParams, Type);
@@ -95,30 +83,29 @@ MayDelayStructInsts noDelayStructInsts() =>
 private Type instantiateType(
 	ref InstantiateCtx ctx,
 	Type type,
-	in TypeParamsAndArgs typeParamsAndArgs,
+	in TypeArgs typeArgs,
 	scope MayDelayStructInsts delayStructInsts,
 ) =>
 	type.matchWithPointers!Type(
 		(Type.Bogus _) =>
 			Type(Type.Bogus()),
 		(TypeParamIndex x) =>
-			typeParamsAndArgs.typeArgs[x.index],
+			typeArgs[x.index],
 		(StructInst* x) =>
-			Type(instantiateStructInst(ctx, *x, typeParamsAndArgs, delayStructInsts)));
+			Type(instantiateStructInst(ctx, *x, typeArgs, delayStructInsts)));
 
-private Type instantiateTypeNoDelay(ref InstantiateCtx ctx, Type type, in TypeParamsAndArgs typeParamsAndArgs) =>
-	instantiateType(ctx, type, typeParamsAndArgs, noDelayStructInsts);
+private Type instantiateTypeNoDelay(ref InstantiateCtx ctx, Type type, in TypeArgs typeArgs) =>
+	instantiateType(ctx, type, typeArgs, noDelayStructInsts);
 
-FunInst* instantiateFun(ref InstantiateCtx ctx, FunDecl* decl, in Type[] typeArgs, in Called[] specImpls) {
+FunInst* instantiateFun(ref InstantiateCtx ctx, FunDecl* decl, in TypeArgs typeArgs, in SpecImpls specImpls) {
 	FunInst* res = withMeasure!(FunInst*, () =>
-		getOrAdd(ctx.alloc, ctx.programState.funInsts, FunDeclAndArgs(decl, small(typeArgs), small(specImpls)), () {
+		getOrAdd(ctx.alloc, ctx.programState.funInsts, FunDeclAndArgs(decl, small(typeArgs), specImpls), () {
 			verifySpecs(decl, specImpls);
 			FunDeclAndArgs key = FunDeclAndArgs(
 				decl, small(copyArr(ctx.alloc, typeArgs)), small(copyArr(ctx.alloc, specImpls)));
-			TypeParamsAndArgs typeParamsAndArgs = TypeParamsAndArgs(decl.typeParams, key.typeArgs);
 			return allocate(ctx.alloc, FunInst(
 				key,
-				instantiateReturnAndParamTypes(ctx, decl.returnType, paramsArray(decl.params), typeParamsAndArgs)));
+				instantiateReturnAndParamTypes(ctx, decl.returnType, paramsArray(decl.params), key.typeArgs)));
 		})
 	)(ctx.perf, ctx.alloc, PerfMeasure.instantiateFun);
 	verifySpecs(decl, res.declAndArgs.specImpls);
@@ -140,7 +127,7 @@ void verifySpecs(in FunDecl* decl, in Called[] specImpls) {
 void eachSpecSig(SpecInst* spec, in void delegate(in SpecDeclSig) @safe @nogc pure nothrow cb) {
 	foreach (SpecInst* s; spec.parents)
 		eachSpecSig(s, cb);
-	decl(*spec).body_.matchIn!void(
+	spec.decl.body_.matchIn!void(
 		(in SpecDeclBody.Builtin) {},
 		(in SpecDeclSig[] sigs) {
 			foreach (SpecDeclSig sig; sigs) {
@@ -151,8 +138,8 @@ void eachSpecSig(SpecInst* spec, in void delegate(in SpecDeclSig) @safe @nogc pu
 
 
 void instantiateStructTypes(ref InstantiateCtx ctx, StructInst* inst, scope MayDelayStructInsts delayStructInsts) {
-	TypeParamsAndArgs typeParamsAndArgs = TypeParamsAndArgs(decl(*inst).typeParams, typeArgs(*inst));
-	inst.instantiatedTypes = body_(*decl(*inst)).match!(Type[])(
+	TypeArgs typeArgs = inst.typeArgs;
+	inst.instantiatedTypes = body_(*inst.decl).match!(Type[])(
 		(StructBody.Bogus) =>
 			typeAs!(Type[])([]),
 		(StructBody.Builtin) =>
@@ -165,10 +152,10 @@ void instantiateStructTypes(ref InstantiateCtx ctx, StructInst* inst, scope MayD
 			typeAs!(Type[])([]),
 		(StructBody.Record r) =>
 			map(ctx.alloc, r.fields, (ref RecordField f) =>
-				instantiateType(ctx, f.type, typeParamsAndArgs, delayStructInsts)),
+				instantiateType(ctx, f.type, typeArgs, delayStructInsts)),
 		(StructBody.Union u) =>
 			map(ctx.alloc, u.members, (ref UnionMember x) =>
-				instantiateType(ctx, x.type, typeParamsAndArgs, delayStructInsts)));
+				instantiateType(ctx, x.type, typeArgs, delayStructInsts)));
 }
 
 StructInst* instantiateStruct(
@@ -221,13 +208,13 @@ private PurityRange combinedPurityRange(Purity declPurity, in Type[] typeArgs) =
 private StructInst* instantiateStructInst(
 	ref InstantiateCtx ctx,
 	ref StructInst structInst,
-	in TypeParamsAndArgs typeParamsAndArgs,
+	in TypeArgs typeArgs,
 	scope MayDelayStructInsts delayStructInsts,
 ) {
 	scope TypeArgsArray itsTypeArgs = typeArgsArray();
-	mapTo!(maxTypeParams, Type, Type)(itsTypeArgs, typeArgs(structInst), (ref Type x) =>
-		instantiateType(ctx, x, typeParamsAndArgs, delayStructInsts));
-	return instantiateStruct(ctx, decl(structInst), tempAsArr(itsTypeArgs), delayStructInsts);
+	mapTo!(maxTypeParams, Type, Type)(itsTypeArgs, structInst.typeArgs, (ref Type x) =>
+		instantiateType(ctx, x, typeArgs, delayStructInsts));
+	return instantiateStruct(ctx, structInst.decl, tempAsArr(itsTypeArgs), delayStructInsts);
 }
 
 StructInst* instantiateStructNeverDelay(ref InstantiateCtx ctx, StructDecl* decl, in Type[] typeArgs) =>
@@ -252,13 +239,12 @@ SpecInst* instantiateSpec(
 		ValueAndDidAdd!(SpecInst*) res = getOrAddAndDidAdd(
 			ctx.alloc, ctx.programState.specInsts, SpecDeclAndArgs(decl, small(typeArgs)), () {
 				SpecDeclAndArgs key = SpecDeclAndArgs(decl, small(copyArr(ctx.alloc, typeArgs)));
-				TypeParamsAndArgs typeParamsAndArgs = TypeParamsAndArgs(decl.typeParams, key.typeArgs);
 				return allocate(ctx.alloc, SpecInst(key, decl.body_.match!(SmallArray!ReturnAndParamTypes)(
 					(SpecDeclBody.Builtin b) =>
 						emptySmallArray!ReturnAndParamTypes,
 					(SpecDeclSig[] sigs) =>
 						small(map(ctx.alloc, sigs, (ref SpecDeclSig sig) =>
-							instantiateReturnAndParamTypes(ctx, sig.returnType, sig.params, typeParamsAndArgs))))));
+							instantiateReturnAndParamTypes(ctx, sig.returnType, sig.params, key.typeArgs))))));
 			});
 		if (res.didAdd) {
 			if (decl.parentsIsSet)
@@ -270,22 +256,21 @@ SpecInst* instantiateSpec(
 	})(ctx.perf, ctx.alloc, PerfMeasure.instantiateSpec);
 
 void instantiateSpecParents(ref InstantiateCtx ctx, SpecInst* a, scope MayDelaySpecInsts delaySpecInsts) {
-	TypeParamsAndArgs typeParamsAndArgs = TypeParamsAndArgs(decl(*a).typeParams, typeArgs(*a));
 	a.parents = map!(immutable SpecInst*, immutable SpecInst*)(
-		ctx.alloc, decl(*a).parents, (ref immutable SpecInst* parent) =>
-			instantiateSpecInst(ctx, parent, typeParamsAndArgs, delaySpecInsts));
+		ctx.alloc, a.decl.parents, (ref immutable SpecInst* parent) =>
+			instantiateSpecInst(ctx, parent, a.typeArgs, delaySpecInsts));
 }
 
 SpecInst* instantiateSpecInst(
 	ref InstantiateCtx ctx,
 	SpecInst* specInst,
-	in TypeParamsAndArgs typeParamsAndArgs,
+	in TypeArgs typeArgs,
 	scope MayDelaySpecInsts delaySpecInsts,
 ) {
 	TypeArgsArray itsTypeArgs = typeArgsArray();
-	mapTo!(maxTypeParams, Type, Type)(itsTypeArgs, typeArgs(*specInst), (ref Type x) =>
-		instantiateType(ctx, x, typeParamsAndArgs, noDelayStructInsts));
-	return instantiateSpec(ctx, decl(*specInst), tempAsArr(itsTypeArgs), delaySpecInsts);
+	mapTo!(maxTypeParams, Type, Type)(itsTypeArgs, specInst.typeArgs, (ref Type x) =>
+		instantiateType(ctx, x, typeArgs, noDelayStructInsts));
+	return instantiateSpec(ctx, specInst.decl, tempAsArr(itsTypeArgs), delaySpecInsts);
 }
 
 private:
@@ -294,11 +279,11 @@ ReturnAndParamTypes instantiateReturnAndParamTypes(
 	ref InstantiateCtx ctx,
 	Type declReturnType,
 	Destructure[] declParams,
-	in TypeParamsAndArgs typeParamsAndArgs,
+	in TypeArgs typeArgs,
 ) =>
 	ReturnAndParamTypes(small(mapWithFirst!(Type, Destructure)(
 		ctx.alloc,
-		instantiateTypeNoDelay(ctx, declReturnType, typeParamsAndArgs),
+		instantiateTypeNoDelay(ctx, declReturnType, typeArgs),
 		declParams,
 		(size_t _, ref Destructure x) =>
-			instantiateTypeNoDelay(ctx, x.type, typeParamsAndArgs))));
+			instantiateTypeNoDelay(ctx, x.type, typeArgs))));

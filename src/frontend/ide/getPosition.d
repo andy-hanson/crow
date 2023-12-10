@@ -198,7 +198,7 @@ Opt!PositionKind positionInSpecParents(in AllSymbols allSymbols, SpecDecl* a, Po
 	eachSpecParent!PositionKind(*a, (SpecInst* parent, in TypeAst ast) =>
 		optIf(hasPos(range(ast, allSymbols), pos), () =>
 			optOrDefault!PositionKind(
-				eachTypeArg!PositionKind(typeArgs(*parent), ast, (in Type typeArg, in TypeAst argAst) =>
+				eachTypeArg!PositionKind(parent.typeArgs, ast, (in Type typeArg, in TypeAst argAst) =>
 					positionInType(allSymbols, TypeContainer(a), typeArg, argAst, pos)),
 				() => PositionKind(parent))));
 

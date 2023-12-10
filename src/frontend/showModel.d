@@ -10,7 +10,6 @@ import model.model :
 	Called,
 	CalledDecl,
 	CalledSpecSig,
-	decl,
 	Destructure,
 	FunDecl,
 	FunDeclAndTypeArgs,
@@ -120,7 +119,7 @@ void writeCalleds(scope ref Writer writer, in ShowCtx ctx, in TypeContainer type
 private void writeCalledSpecSig(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in CalledSpecSig x) {
 	writeSig(writer, ctx, typeContainer, x.name, x.returnType, Params(x.nonInstantiatedSig.params), some(x.instantiatedSig));
 	writer ~= " (from spec ";
-	writeName(writer, ctx, name(*x.specInst));
+	writeName(writer, ctx, x.specInst.decl.name);
 	writer ~= ')';
 }
 
@@ -154,8 +153,8 @@ void writeFunDeclAndTypeArgs(scope ref Writer writer, in ShowCtx ctx, in TypeCon
 }
 
 void writeFunInst(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in FunInst a) {
-	writeFunDecl(writer, ctx, decl(a));
-	writeTypeParamsAndArgs(writer, ctx, decl(a).typeParams, typeContainer, typeArgs(a));
+	writeFunDecl(writer, ctx, a.decl);
+	writeTypeParamsAndArgs(writer, ctx, a.decl.typeParams, typeContainer, typeArgs(a));
 }
 
 private void writeFunDeclLocation(scope ref Writer writer, in ShowCtx ctx, in FunDecl funDecl) {
@@ -252,7 +251,7 @@ private void writeDestructure(
 		(in Destructure.Split x) {
 			writer ~= '(';
 			writeWithCommasZip!(Destructure, Type)(
-				writer, x.parts, typeArgs(*type.as!(StructInst*)), (in Destructure part, in Type partType) {
+				writer, x.parts, type.as!(StructInst*).typeArgs, (in Destructure part, in Type partType) {
 					writeDestructure(writer, ctx, typeContainer, part, some(partType));
 				});
 			writer ~= ')';
@@ -285,7 +284,7 @@ void writeStructInst(scope ref Writer writer, in ShowCtx ctx, in TypeContainer t
 		writer ~= suffix;
 	}
 
-	Sym name = decl(s).name;
+	Sym name = s.name;
 	Opt!(Diag.TypeShouldUseSyntax.Kind) kind = typeSyntaxKind(name);
 	if (has(kind)) {
 		final switch (force(kind)) {
@@ -360,7 +359,7 @@ void writeTypeArgsGeneric(T)(
 void writeTypeArgs(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in Type[] types) {
 	writeTypeArgsGeneric!Type(writer, types,
 		(in Type x) =>
-			!x.isA!(StructInst*) || empty(typeArgs(*x.as!(StructInst*))),
+			!x.isA!(StructInst*) || empty(x.as!(StructInst*).typeArgs),
 		(in Type x) {
 			writeTypeUnquoted(writer, ctx, TypeWithContainer(x, typeContainer));
 		});
@@ -396,8 +395,8 @@ void writeName(scope ref Writer writer, in ShowCtx ctx, Sym name) {
 }
 
 void writeSpecInst(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in SpecInst a) {
-	writeSym(writer, ctx.allSymbols, decl(a).name);
-	writeTypeArgs(writer, ctx, typeContainer, typeArgs(a));
+	writeSym(writer, ctx.allSymbols, a.name);
+	writeTypeArgs(writer, ctx, typeContainer, a.typeArgs);
 }
 
 void writeUriAndRange(scope ref Writer writer, in ShowCtx ctx, in UriAndRange where) {

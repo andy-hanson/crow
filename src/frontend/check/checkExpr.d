@@ -97,8 +97,9 @@ import model.model :
 	ClosureRef,
 	ClosureSetExpr,
 	CommonTypes,
-	decl,
 	Destructure,
+	emptySpecImpls,
+	emptyTypeArgs,
 	Expr,
 	ExprAndType,
 	ExprKind,
@@ -457,11 +458,11 @@ Expr checkIfOption(
 		? option.type.as!(StructInst*)
 		// Arbitrary type that's not opt
 		: ctx.commonTypes.void_;
-	if (decl(*inst) != ctx.commonTypes.opt) {
+	if (inst.decl != ctx.commonTypes.opt) {
 		addDiag2(ctx, source, Diag(Diag.IfNeedsOpt(typeWithContainer(ctx, option.type))));
 		return bogus(expected, source);
 	} else {
-		Type nonOptionalType = only(typeArgs(*inst));
+		Type nonOptionalType = only(inst.typeArgs);
 		Destructure destructure = checkDestructure2(ctx, ast.destructure, nonOptionalType);
 		Expr then = checkExprWithDestructure(ctx, locals, destructure, &ast.then, expected);
 		Expr else_ = checkExpr(ctx, locals, &ast.else_, expected);
@@ -494,7 +495,7 @@ Expr checkInterpolated(
 
 bool isString(Type a) =>
 	// TODO: better
-	a.isA!(StructInst*) && decl(*a.as!(StructInst*)).name == sym!"string";
+	a.isA!(StructInst*) && a.as!(StructInst*).decl.name == sym!"string";
 
 CallAst checkInterpolatedRecur(ref ExprCtx ctx, in InterpolatedPart[] parts, Pos pos, in Opt!ExprAst left) {
 	ExprAst right = parts[0].matchIn!ExprAst(
@@ -973,14 +974,13 @@ ExpectedPointee getExpectedPointee(ref ExprCtx ctx, ref const Expected expected)
 	Opt!Type expectedType = tryGetInferred(expected);
 	if (has(expectedType) && force(expectedType).isA!(StructInst*)) {
 		StructInst* inst = force(expectedType).as!(StructInst*);
-		StructDecl* decl = decl(*inst);
-		if (decl == ctx.commonTypes.ptrConst)
+		if (inst.decl == ctx.commonTypes.ptrConst)
 			return ExpectedPointee(ExpectedPointee.Pointer(
-				Type(inst), only(typeArgs(*inst)), PointerMutability.immutable_));
-		else if (decl == ctx.commonTypes.ptrMut)
+				Type(inst), only(inst.typeArgs), PointerMutability.immutable_));
+		else if (inst.decl == ctx.commonTypes.ptrMut)
 			return ExpectedPointee(ExpectedPointee.Pointer(
-				Type(inst), only(typeArgs(*inst)), PointerMutability.mutable));
-		else if (decl == ctx.commonTypes.funPtrStruct)
+				Type(inst), only(inst.typeArgs), PointerMutability.mutable));
+		else if (inst.decl == ctx.commonTypes.funPtrStruct)
 			return ExpectedPointee(ExpectedPointee.FunPointer());
 		else
 			return ExpectedPointee(ExpectedPointee.None());
@@ -1031,12 +1031,12 @@ Expr checkPtrOfCall(
 
 	if (call.called.isA!(FunInst*)) {
 		FunInst* getFieldFun = call.called.as!(FunInst*);
-		if (decl(*getFieldFun).body_.isA!(FunBody.RecordFieldGet)) {
-			FunBody.RecordFieldGet rfg = decl(*getFieldFun).body_.as!(FunBody.RecordFieldGet);
+		if (getFieldFun.decl.body_.isA!(FunBody.RecordFieldGet)) {
+			FunBody.RecordFieldGet rfg = getFieldFun.decl.body_.as!(FunBody.RecordFieldGet);
 			Expr target = only(call.args);
 			StructInst* recordType = only(getFieldFun.paramTypes).as!(StructInst*);
 			PointerMutability fieldMutability = pointerMutabilityFromField(
-				body_(*decl(*recordType)).as!(StructBody.Record).fields[rfg.fieldIndex].mutability);
+				body_(*recordType.decl).as!(StructBody.Record).fields[rfg.fieldIndex].mutability);
 			if (isDefinitelyByRef(*recordType)) {
 				if (fieldMutability < expectedMutability)
 					addDiag2(ctx, source, Diag(Diag.PtrMutToConst(Diag.PtrMutToConst.Kind.field)));
@@ -1048,8 +1048,7 @@ Expr checkPtrOfCall(
 				if (called.isA!(FunInst*) && isDerefFunction(ctx, called.as!(FunInst*))) {
 					FunInst* derefFun = called.as!(FunInst*);
 					Type derefedType = only(derefFun.paramTypes);
-					PointerMutability pointerMutability =
-						mutabilityForPtrDecl(ctx, decl(*derefedType.as!(StructInst*)));
+					PointerMutability pointerMutability = mutabilityForPtrDecl(ctx, derefedType.as!(StructInst*).decl);
 					Expr targetPtr = only(targetCall.args);
 					if (max(fieldMutability, pointerMutability) < expectedMutability)
 						todo!void("diag: can't get mut* to immutable field");
@@ -1076,7 +1075,7 @@ PointerMutability pointerMutabilityFromField(FieldMutability a) {
 }
 
 bool isDerefFunction(ref ExprCtx ctx, FunInst* a) =>
-	decl(*a).body_.isA!(FunBody.Builtin) && decl(*a).name == sym!"*" && arity(*a) == Arity(1);
+	a.decl.body_.isA!(FunBody.Builtin) && a.decl.name == sym!"*" && arity(*a) == Arity(1);
 
 PointerMutability mutabilityForPtrDecl(in ExprCtx ctx, in StructDecl* a) {
 	if (a == ctx.commonTypes.ptrConst)
@@ -1107,7 +1106,7 @@ Expr checkFunPointer(ref ExprCtx ctx, ExprAst* source, in PtrAst ast, ref Expect
 	FunDecl* funDecl = funs[0];
 	if (isTemplate(*funDecl))
 		todo!void("can't point to template");
-	FunInst* funInst = instantiateFun(ctx.instantiateCtx, funDecl, [], []);
+	FunInst* funInst = instantiateFun(ctx.instantiateCtx, funDecl, emptyTypeArgs, emptySpecImpls);
 	Type paramType = makeTupleType(ctx.instantiateCtx, ctx.commonTypes, funInst.paramTypes);
 	StructInst* structInst = instantiateStructNeverDelay(
 		ctx.instantiateCtx, ctx.commonTypes.funPtrStruct, [funInst.returnType, paramType]);
@@ -1162,8 +1161,8 @@ Type unwrapFutureType(Type a, in ExprCtx ctx) {
 	if (a.isA!(Type.Bogus))
 		return Type(Type.Bogus());
 	else {
-		assert(decl(*a.as!(StructInst*)) == ctx.commonTypes.future);
-		return only(typeArgs(*a.as!(StructInst*)));
+		assert(a.as!(StructInst*).decl == ctx.commonTypes.future);
+		return only(a.as!(StructInst*).typeArgs);
 	}
 }
 
@@ -1285,7 +1284,7 @@ Expr checkMatch(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, MatchAs
 	ExprAndType matchedAndType = checkAndInfer(ctx, locals, &ast.matched);
 	Type matchedType = matchedAndType.type;
 	StructBody body_ = matchedType.isA!(StructInst*)
-		? body_(*decl(*matchedType.as!(StructInst*)))
+		? body_(*matchedType.as!(StructInst*).decl)
 		: StructBody(StructBody.Bogus());
 	if (body_.isA!(StructBody.Enum))
 		return checkMatchEnum(ctx, locals, source, *ast, expected, matchedAndType, body_.as!(StructBody.Enum).members);
