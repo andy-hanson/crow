@@ -154,7 +154,7 @@ Opt!PositionKind positionInStruct(in AllSymbols allSymbols, StructDecl* a, in St
 			PositionKind(PositionKind.Keyword(keywordKindForStructBody(ast.body_)))),
 		() => positionInTypeParams(allSymbols, TypeContainer(a), ast.typeParams, pos),
 		//TODO: positions for flags (like 'extern' or 'by-val')
-		() => positionInStructBody(allSymbols, a, body_(*a), ast.body_, pos));
+		() => positionInStructBody(allSymbols, a, a.body_, ast.body_, pos));
 
 PositionKind.Keyword.Kind keywordKindForStructBody(in StructDeclAst.Body a) =>
 	a.matchIn!(PositionKind.Keyword.Kind)(

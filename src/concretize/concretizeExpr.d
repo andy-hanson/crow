@@ -24,7 +24,6 @@ import concretize.concretizeCtx :
 	voidType;
 import concretize.constantsOrExprs : asConstantsOrExprs, ConstantsOrExprs;
 import model.concreteModel :
-	body_,
 	byRef,
 	byVal,
 	ConcreteClosureRef,
@@ -359,7 +358,7 @@ immutable struct ClosureFieldInfo {
 ClosureFieldInfo getClosureFieldInfo(ref ConcretizeExprCtx ctx, in UriAndRange range, ClosureRef a) {
 	ConcreteLocal* closureParam = &ctx.currentConcreteFun.paramsIncludingClosure[0];
 	ConcreteType closureType = closureParam.type;
-	ConcreteStructBody.Record record = body_(*closureType.struct_).as!(ConcreteStructBody.Record);
+	ConcreteStructBody.Record record = closureType.struct_.body_.as!(ConcreteStructBody.Record);
 	ClosureReferenceKind referenceKind = getClosureReferenceKind(a);
 	ConcreteType fieldType = record.fields[a.index].type;
 	ConcreteType pointeeType = () {
@@ -490,7 +489,7 @@ ConcreteExpr concretizeLambda(
 	}
 	if (e.kind == FunKind.far) {
 		// For a 'far' function this is the inner 'act' type.
-		ConcreteField[] fields = body_(*concreteStruct).as!(ConcreteStructBody.Record).fields;
+		ConcreteField[] fields = concreteStruct.body_.as!(ConcreteStructBody.Record).fields;
 		assert(fields.length == 2);
 		ConcreteField exclusionField = fields[0];
 		assert(exclusionField.debugName == sym!"exclusion");
@@ -662,8 +661,7 @@ ConcreteExpr concretizeWithDestructurePartsRecur(
 	else {
 		Destructure part = parts[partIndex];
 		UriAndRange range = toUriAndRange(ctx, part.range(ctx.allSymbols));
-		ConcreteType valueType =
-			body_(*mustBeByVal(getTemp.type)).as!(ConcreteStructBody.Record).fields[partIndex].type;
+		ConcreteType valueType = mustBeByVal(getTemp.type).body_.as!(ConcreteStructBody.Record).fields[partIndex].type;
 		ConcreteType expectedType = getConcreteType(ctx, part.type);
 		if (expectedType == valueType) {
 			ConcreteExpr value = ConcreteExpr(valueType, range, isVoid(valueType)
@@ -1039,7 +1037,7 @@ Opt!Constant tryEvalConstant(
 	in Constant[] /*parameters*/,
 	in VersionInfo versionInfo,
 ) =>
-	body_(fn).matchIn!(Opt!Constant)(
+	fn.body_.matchIn!(Opt!Constant)(
 		(in ConcreteFunBody.Builtin) {
 			// TODO: don't just special-case this one..
 			Opt!Sym name = name(fn);

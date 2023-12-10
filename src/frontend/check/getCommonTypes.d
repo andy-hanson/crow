@@ -13,7 +13,6 @@ import model.model :
 	IntegralTypes,
 	Linkage,
 	Purity,
-	setBody,
 	StructAlias,
 	StructBody,
 	StructDecl,
@@ -193,6 +192,6 @@ StructDecl* bogusStructDecl(ref Alloc alloc, size_t nTypeParameters) {
 		Linkage.internal,
 		Purity.data,
 		false));
-	setBody(*res, StructBody(StructBody.Bogus()));
+	res.body_ = StructBody(StructBody.Bogus());
 	return res;
 }

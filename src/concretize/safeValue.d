@@ -7,7 +7,6 @@ import concretize.concretizeExpr : nextLambdaImplId;
 import concretize.constantsOrExprs : asConstantsOrExprs, ConstantsOrExprs;
 import concretize.allConstantsBuilder : getConstantPtr;
 import model.concreteModel :
-	body_,
 	BuiltinStructKind,
 	ConcreteExpr,
 	ConcreteExprKind,
@@ -22,9 +21,7 @@ import model.concreteModel :
 	ConcreteStructBody,
 	ConcreteStructSource,
 	ConcreteType,
-	isSelfMutable,
-	ReferenceKind,
-	setBody;
+	ReferenceKind;
 import model.constant : Constant, constantZero;
 import model.model : EnumValue;
 import util.alloc.alloc : Alloc;
@@ -86,7 +83,7 @@ ConcreteExpr safeValueForStruct(ref Ctx ctx, UriAndRange range, ConcreteStruct* 
 		return ConcreteExpr(type, range, ConcreteExprKind(constant));
 	}
 
-	return body_(*struct_).match!ConcreteExpr(
+	return struct_.body_.match!ConcreteExpr(
 		(ConcreteStructBody.Builtin it) {
 			final switch (it.kind) {
 				case BuiltinStructKind.bool_:
@@ -127,7 +124,7 @@ ConcreteExpr safeValueForStruct(ref Ctx ctx, UriAndRange range, ConcreteStruct* 
 		(ConcreteStructBody.Record it) {
 			ConcreteExpr[] fieldExprs = map(ctx.alloc, it.fields, (ref ConcreteField field) =>
 				safeValueForType(ctx, range, field.type));
-			ConstantsOrExprs fieldConstantsOrExprs = isSelfMutable(*struct_)
+			ConstantsOrExprs fieldConstantsOrExprs = struct_.isSelfMutable
 				? ConstantsOrExprs(fieldExprs)
 				: asConstantsOrExprs(ctx.alloc, fieldExprs);
 			return ConcreteExpr(type, range, fieldConstantsOrExprs.match!ConcreteExprKind(
@@ -160,7 +157,7 @@ ConcreteExpr safeFunValue(ref Ctx ctx, UriAndRange range, ConcreteStruct* struct
 		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.Lambda(range, ctx.containingFun, lambdaIndex))),
 		returnType,
 		params));
-	setBody(*fun, ConcreteFunBody(safeValueForType(ctx, range, returnType)));
+	fun.body_ = ConcreteFunBody(safeValueForType(ctx, range, returnType));
 	addConcreteFun(ctx.concretizeCtx, fun);
 	size_t id = nextLambdaImplId(ctx.concretizeCtx, struct_, ConcreteLambdaImpl(closureType, fun));
 	return ConcreteExpr(

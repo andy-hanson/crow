@@ -47,9 +47,10 @@ Opt!Type tryGetInferred(ref const SingleInferringType a) =>
 	cellGet(a.type);
 
 struct TypeContext {
-	// TODO: use small array, and somehow make it optional -------------------------------------------------------------------------
+	// TODO: use small array, and somehow make it optional but still 64 bits -------------------------------------------------------------------------
 	MutOpt!(SingleInferringType[]) args; // This may be empty if we are not inferring anything
 }
+//TODO: static assert(TypeContext.sizeof == (void*).sizeof); ----------------------------------------------------------------------------------------
 TypeContext emptyTypeContext() =>
 	nonInferringTypeContext();
 
@@ -77,7 +78,6 @@ MutOpt!(SingleInferringType*) tryGetInferring(TypeContext ctx, TypeParamIndex pa
 struct InferringTypeArgs {
 	@safe @nogc pure nothrow:
 
-	//immutable TypeParams params; // TODO: this will no longer be needed? -----------------------------------------------------
 	SingleInferringType[] args;
 
 	static InferringTypeArgs empty() =>

@@ -6,7 +6,6 @@ import frontend.parse.ast : ImportOrExportAst, NameAndRange, pathRange;
 import model.jsonOfConstant : jsonOfConstant;
 import model.model :
 	AssertOrForbidExpr,
-	body_,
 	BogusExpr,
 	Called,
 	CalledSpecSig,

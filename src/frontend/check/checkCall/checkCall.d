@@ -43,7 +43,6 @@ import frontend.parse.ast : CallAst, ExprAst, LambdaAst, nameRange, rangeOfNameA
 import model.diag : Diag;
 import model.model :
 	arity,
-	body_,
 	Called,
 	CalledDecl,
 	CalledSpecSig,

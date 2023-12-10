@@ -88,7 +88,6 @@ import model.model :
 	Arity,
 	arity,
 	AssertOrForbidExpr,
-	body_,
 	BogusExpr,
 	Called,
 	CalledDecl,
@@ -1036,7 +1035,7 @@ Expr checkPointerOfCall(
 			Expr target = only(call.args);
 			StructInst* recordType = only(getFieldFun.paramTypes).as!(StructInst*);
 			PointerMutability fieldMutability = pointerMutabilityFromField(
-				body_(*recordType.decl).as!(StructBody.Record).fields[rfg.fieldIndex].mutability);
+				recordType.decl.body_.as!(StructBody.Record).fields[rfg.fieldIndex].mutability);
 			if (isDefinitelyByRef(*recordType)) {
 				if (fieldMutability < expectedMutability)
 					addDiag2(ctx, source, Diag(Diag.PtrMutToConst(Diag.PtrMutToConst.Kind.field)));
@@ -1284,7 +1283,7 @@ Expr checkMatch(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, MatchAs
 	ExprAndType matchedAndType = checkAndInfer(ctx, locals, &ast.matched);
 	Type matchedType = matchedAndType.type;
 	StructBody body_ = matchedType.isA!(StructInst*)
-		? body_(*matchedType.as!(StructInst*).decl)
+		? matchedType.as!(StructInst*).decl.body_
 		: StructBody(StructBody.Bogus());
 	if (body_.isA!(StructBody.Enum))
 		return checkMatchEnum(ctx, locals, source, *ast, expected, matchedAndType, body_.as!(StructBody.Enum).members);

@@ -32,7 +32,6 @@ import frontend.parse.ast :
 	TypeAst;
 import model.model :
 	AssertOrForbidExpr,
-	body_,
 	BogusExpr,
 	Called,
 	CalledSpecSig,
@@ -331,7 +330,7 @@ void eachTypeInSpec(in SpecDecl a, in TypeCb cb) {
 void eachTypeInStruct(in StructDecl a, in TypeCb cb) =>
 	a.source.matchIn!void(
 		(in StructDeclAst x) {
-			eachTypeInStructBody(body_(a), x.body_, cb);
+			eachTypeInStructBody(a.body_, x.body_, cb);
 		},
 		(in StructDeclSource.Bogus) {});
 void eachTypeInStructBody(in StructBody body_, in StructDeclAst.Body ast, in TypeCb cb) {

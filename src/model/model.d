@@ -379,6 +379,16 @@ immutable struct StructDecl {
 
 	private Late!StructBody lateBody;
 
+	bool bodyIsSet() =>
+		lateIsSet(lateBody);
+
+	ref StructBody body_() return scope =>
+		lateGet(lateBody);
+
+	void body_(StructBody value) {
+		lateSet(lateBody, value);
+	}
+
 	SafeCStr docComment() return scope =>
 		source.match!SafeCStr(
 			(ref StructDeclAst x) =>
@@ -416,16 +426,6 @@ UriAndRange nameRange(in AllSymbols allSymbols, in StructDecl a) =>
 
 bool isTemplate(in StructDecl a) =>
 	!empty(a.typeParams);
-
-bool bodyIsSet(in StructDecl a) =>
-	lateIsSet(a.lateBody);
-
-ref StructBody body_(return scope ref StructDecl a) =>
-	lateGet(a.lateBody);
-
-void setBody(ref StructDecl a, StructBody value) {
-	lateSet(a.lateBody, value);
-}
 
 immutable struct StructDeclAndArgs {
 	@safe @nogc pure nothrow:
@@ -469,7 +469,7 @@ immutable struct StructInst {
 }
 
 bool isDefinitelyByRef(in StructInst a) {
-	StructBody body_ = body_(*a.decl);
+	StructBody body_ = a.decl.body_;
 	return body_.isA!(StructBody.Record) &&
 		body_.as!(StructBody.Record).flags.forcedByValOrRef == ForcedByValOrRefOrNone.byRef;
 }
@@ -487,9 +487,6 @@ bool isTuple(in CommonTypes commonTypes, in StructDecl* a) {
 }
 Opt!(Type[]) asTuple(in CommonTypes commonTypes, Type type) =>
 	isTuple(commonTypes, type) ? some!(Type[])(type.as!(StructInst*).typeArgs) : none!(Type[]);
-
-Sym name(in StructInst a) =>
-	a.decl.name;
 
 immutable struct SpecDeclBody {
 	immutable struct Builtin {
@@ -788,7 +785,7 @@ immutable struct FunDecl {
 	ref FunBody body_() return scope =>
 		lateGet(lateBody);
 
-	void setBody(FunBody b) {
+	void body_(FunBody b) {
 		lateSet(lateBody, b);
 	}
 

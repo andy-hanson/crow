@@ -27,7 +27,7 @@ import util.col.arrUtil : arrEqual, contains;
 import util.col.map : Map;
 import util.col.str : SafeCStr;
 import util.hash : HashCode, Hasher, hashPtr;
-import util.late : Late, lateGet, lateIsSet, lateSet;
+import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : none, Opt, some;
 import util.sourceRange : UriAndRange;
 import util.sym : Sym, sym;
@@ -142,8 +142,8 @@ bool isBogus(in ConcreteType a) =>
 	isBogus(*a.struct_);
 bool isVoid(in ConcreteType a) =>
 	a.reference == ReferenceKind.byVal &&
-	body_(*a.struct_).isA!(ConcreteStructBody.Builtin) &&
-	body_(*a.struct_).as!(ConcreteStructBody.Builtin).kind == BuiltinStructKind.void_;
+	a.struct_.body_.isA!(ConcreteStructBody.Builtin) &&
+	a.struct_.body_.as!(ConcreteStructBody.Builtin).kind == BuiltinStructKind.void_;
 
 alias ReferenceKind = immutable ReferenceKind_;
 private enum ReferenceKind_ { byVal, byRef, byRefRef }
@@ -205,12 +205,44 @@ immutable struct ConcreteStruct {
 	Purity purity;
 	SpecialKind specialKind;
 	ConcreteStructSource source;
-	Late!ConcreteStructInfo info_;
+	private Late!ConcreteStructInfo info_;
 	//TODO: this isn't needed outside of concretizeCtx.d
-	Late!ReferenceKind defaultReferenceKind_;
-	Late!TypeSize typeSize_;
+	private Late!ReferenceKind defaultReferenceKind_;
+	private Late!TypeSize typeSize_;
 	// Only set for records
-	Late!(immutable size_t[]) fieldOffsets_;
+	private Late!(immutable size_t[]) fieldOffsets_;
+
+	void info(ConcreteStructInfo value) {
+		lateSet(info_, value);
+	}
+	private ref ConcreteStructInfo info() return scope =>
+		lateGet(info_);
+
+	ref ConcreteStructBody body_() return scope =>
+		info.body_;
+
+	bool isSelfMutable() scope =>
+		info.isSelfMutable;
+
+	TypeSize typeSize() scope =>
+		lateGet(typeSize_);
+	void typeSize(TypeSize value) {
+		lateSet(typeSize_, value);
+	}
+
+	ReferenceKind defaultReferenceKind() scope =>
+		lateGet(defaultReferenceKind_);
+	void defaultReferenceKind(ReferenceKind value) {
+		lateSet(defaultReferenceKind_, value);
+	}
+	bool defaultReferenceKindIsSet() =>
+		lateIsSet(defaultReferenceKind_);
+
+	immutable(size_t[]) fieldOffsets() =>
+		lateGet(fieldOffsets_);
+	void fieldOffsets(immutable size_t[] value) {
+		lateSet(fieldOffsets_, value);
+	}
 }
 
 bool isArray(in ConcreteStruct a) =>
@@ -219,24 +251,6 @@ private bool isBogus(in ConcreteStruct a) =>
 	a.source.isA!(ConcreteStructSource.Bogus);
 bool isTuple(in ConcreteStruct a) =>
 	a.specialKind == ConcreteStruct.SpecialKind.tuple;
-
-private ref ConcreteStructInfo info(return scope ref ConcreteStruct a) =>
-	lateGet(a.info_);
-
-ref ConcreteStructBody body_(return scope ref ConcreteStruct a) =>
-	info(a).body_;
-
-TypeSize typeSize(in ConcreteStruct a) =>
-	lateGet(a.typeSize_);
-
-immutable(size_t[]) fieldOffsets(return ref ConcreteStruct a) =>
-	lateGet(a.fieldOffsets_);
-
-bool isSelfMutable(ref ConcreteStruct a) =>
-	info(a).isSelfMutable;
-
-ReferenceKind defaultReferenceKind(in ConcreteStruct a) =>
-	lateGet(a.defaultReferenceKind_);
 
 //TODO: this is only useful during concretize, move
 bool hasSizeOrPointerSizeBytes(in ConcreteType a) {
@@ -252,7 +266,7 @@ bool hasSizeOrPointerSizeBytes(in ConcreteType a) {
 TypeSize sizeOrPointerSizeBytes(in ConcreteType a) {
 	final switch (a.reference) {
 		case ReferenceKind.byVal:
-			return typeSize(*a.struct_);
+			return a.struct_.typeSize;
 		case ReferenceKind.byRef:
 		case ReferenceKind.byRefRef:
 			return TypeSize(8, 8);
@@ -371,10 +385,25 @@ immutable struct ConcreteFunSource {
 // Each instantiation of a FunDecl
 // Each lambda inside an instantiation of a FunDecl
 immutable struct ConcreteFun {
+	@safe @nogc pure nothrow:
+
 	ConcreteFunSource source;
 	ConcreteType returnType;
 	ConcreteLocal[] paramsIncludingClosure;
-	Late!ConcreteFunBody _body_;
+	private Late!ConcreteFunBody lateBody;
+
+	ref ConcreteFunBody body_() return scope =>
+		lateGet(lateBody);
+	bool bodyIsSet() =>
+		lateIsSet(lateBody);
+
+	void body_(ConcreteFunBody value) {
+		lateSet(lateBody, value);
+	}
+
+	void overwriteBody(ConcreteFunBody value) {
+		lateSetOverwrite(lateBody, value);
+	}
 }
 
 immutable struct ConcreteFunKey {
@@ -444,13 +473,6 @@ bool isFunOrActSubscript(ref ConcreteProgram program, ref ConcreteFun a) =>
 bool isMarkVisitFun(ref ConcreteProgram program, ref ConcreteFun a) =>
 	a.source.isA!ConcreteFunKey && a.source.as!ConcreteFunKey.decl == program.commonFuns.markVisitFunDecl;
 
-ref ConcreteFunBody body_(return scope ref ConcreteFun a) =>
-	lateGet(a._body_);
-
-void setBody(ref ConcreteFun a, ConcreteFunBody value) {
-	lateSet(a._body_, value);
-}
-
 immutable struct ConcreteExpr {
 	ConcreteType type;
 	UriAndRange range;
@@ -469,7 +491,7 @@ immutable struct ConcreteClosureRef {
 		paramAndIndex.number;
 
 	ConcreteType type() =>
-		body_(*closureParam.type.struct_).as!(ConcreteStructBody.Record).fields[fieldIndex].type;
+		closureParam.type.struct_.body_.as!(ConcreteStructBody.Record).fields[fieldIndex].type;
 }
 
 immutable struct ConcreteExprKind {

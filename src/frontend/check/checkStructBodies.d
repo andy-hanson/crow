@@ -19,7 +19,6 @@ import frontend.parse.ast :
 import model.concreteModel : TypeSize;
 import model.diag : Diag, TypeKind, TypeWithContainer;
 import model.model :
-	body_,
 	CommonTypes,
 	emptyTypeParams,
 	emptyTypeParams,
@@ -40,7 +39,6 @@ import model.model :
 	range,
 	RecordField,
 	RecordFlags,
-	setBody,
 	StructBody,
 	StructDecl,
 	StructDeclSource,
@@ -85,7 +83,7 @@ void checkStructBodies(
 	scope ref DelayStructInsts delayStructInsts,
 ) {
 	zipPtrFirst!(StructDecl, StructDeclAst)(structs, asts, (StructDecl* struct_, ref StructDeclAst ast) {
-		setBody(*struct_, ast.body_.matchIn!StructBody(
+		struct_.body_ = ast.body_.matchIn!StructBody(
 			(in StructDeclAst.Body.Builtin) {
 				checkOnlyStructModifiers(ctx, TypeKind.builtin, ast.modifiers);
 				return StructBody(StructBody.Builtin());
@@ -106,7 +104,7 @@ void checkStructBodies(
 			(in StructDeclAst.Body.Union x) {
 				checkOnlyStructModifiers(ctx, TypeKind.union_, ast.modifiers);
 				return StructBody(checkUnion(ctx, commonTypes, structsAndAliasesMap, struct_, x, delayStructInsts));
-			}));
+			});
 	});
 }
 

@@ -6,7 +6,6 @@ import frontend.ide.position : LocalContainer, PositionKind;
 import model.diag : TypeWithContainer;
 import model.model :
 	AssertOrForbidExpr,
-	body_,
 	BogusExpr,
 	Called,
 	CalledSpecSig,
@@ -234,5 +233,5 @@ Target returnTypeTarget(FunDecl* fun) =>
 
 Target recordFieldTarget(FunDecl* fun, size_t fieldIndex) {
 	StructDecl* record = fun.params.as!(Destructure[])[0].type.as!(StructInst*).decl;
-	return Target(&body_(*record).as!(StructBody.Record).fields[fieldIndex]);
+	return Target(&record.body_.as!(StructBody.Record).fields[fieldIndex]);
 }

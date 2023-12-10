@@ -4,7 +4,6 @@ module model.jsonOfConcreteModel;
 
 import frontend.storage : jsonOfRange, LineAndColumnGetters;
 import model.concreteModel :
-	body_,
 	ConcreteClosureRef,
 	ConcreteExpr,
 	ConcreteExprKind,
@@ -21,8 +20,6 @@ import model.concreteModel :
 	ConcreteStructSource,
 	ConcreteType,
 	ConcreteVar,
-	defaultReferenceKind,
-	isSelfMutable,
 	returnType,
 	symOfBuiltinStructKind,
 	symOfConcreteMutability,
@@ -58,16 +55,16 @@ const struct Ctx {
 Json jsonOfConcreteStruct(ref Alloc alloc, in ConcreteStruct a) =>
 	jsonObject(alloc, [
 		field!"name"(jsonOfConcreteStructSource(alloc, a.source)),
-		optionalFlagField!"mut"(isSelfMutable(a)),
-		field!"reference-kind"(symOfReferenceKind(defaultReferenceKind(a))),
-		field!"body"(jsonOfConcreteStructBody(alloc, body_(a)))]);
+		optionalFlagField!"mut"(a.isSelfMutable),
+		field!"reference-kind"(symOfReferenceKind(a.defaultReferenceKind)),
+		field!"body"(jsonOfConcreteStructBody(alloc, a.body_))]);
 
 Json jsonOfConcreteStructSource(ref Alloc alloc, in ConcreteStructSource a) =>
 	a.matchIn!Json(
 		(in ConcreteStructSource.Bogus) =>
 			jsonString!"BOGUS",
 		(in ConcreteStructSource.Inst x) =>
-			jsonString(name(*x.inst)),
+			jsonString(x.inst.decl.name),
 		(in ConcreteStructSource.Lambda x) =>
 			jsonObject(alloc, [
 				kindField!"lambda",
@@ -135,7 +132,7 @@ Json jsonOfConcreteFun(ref Alloc alloc, in Ctx ctx, in ConcreteFun a) =>
 		field!"return-type"(jsonOfConcreteType(alloc, a.returnType)),
 		field!"params"(jsonList!ConcreteLocal(alloc, a.paramsIncludingClosure, (in ConcreteLocal x) =>
 			jsonOfConcreteLocalDeclare(alloc, x))),
-		field!"body"(jsonOfConcreteFunBody(alloc, ctx, body_(a)))]);
+		field!"body"(jsonOfConcreteFunBody(alloc, ctx, a.body_))]);
 
 Json jsonOfConcreteFunSource(ref Alloc alloc, in ConcreteFunSource a) =>
 	a.matchIn!Json(

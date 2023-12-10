@@ -5,15 +5,7 @@ module concretize.checkConcreteModel;
 import frontend.showModel : ShowCtx;
 import interpret.debugging : writeConcreteType;
 import model.concreteModel :
-	body_,
-	ConcreteExpr,
-	ConcreteExprKind,
-	ConcreteFun,
-	ConcreteLocal,
-	ConcreteProgram,
-	ConcreteType,
-	isBogus,
-	isVoid;
+	ConcreteExpr, ConcreteExprKind, ConcreteFun, ConcreteLocal, ConcreteProgram, ConcreteType, isBogus, isVoid;
 import model.constant : Constant;
 import util.alloc.alloc : Alloc, withStackAlloc;
 import util.col.arrUtil : zip;
@@ -25,8 +17,8 @@ import util.writer : withWriter, Writer;
 void checkConcreteProgram(in ShowCtx printCtx, in ConcreteCommonTypes types, in ConcreteProgram a) {
 	Ctx ctx = Ctx(ptrTrustMe(printCtx), ptrTrustMe(types));
 	foreach (ConcreteFun* fun; a.allFuns)
-		if (body_(*fun).isA!ConcreteExpr)
-			checkExpr(ctx, fun.returnType, body_(*fun).as!ConcreteExpr);
+		if (fun.body_.isA!ConcreteExpr)
+			checkExpr(ctx, fun.returnType, fun.body_.as!ConcreteExpr);
 }
 
 immutable struct ConcreteCommonTypes {

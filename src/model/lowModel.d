@@ -12,10 +12,9 @@ import model.concreteModel :
 	isArray,
 	isTuple,
 	name,
-	typeSize,
 	TypeSize;
 import model.constant : Constant;
-import model.model : body_, EnumValue, Local, StructBody;
+import model.model :  EnumValue, Local, StructBody;
 import util.col.arr : empty;
 import util.col.map : Map;
 import util.col.fullIndexMap : FullIndexMap;
@@ -32,7 +31,7 @@ immutable struct LowExternType {
 }
 
 TypeSize typeSize(in LowExternType a) =>
-	typeSize(*a.source);
+	a.source.typeSize;
 
 immutable struct LowRecord {
 	@safe @nogc pure nothrow:
@@ -45,14 +44,14 @@ immutable struct LowRecord {
 		source.source.matchIn!bool(
 			(in ConcreteStructSource.Bogus) =>
 				false,
-			(in ConcreteStructSource.Inst it) =>
-				body_(*it.inst.decl).as!(StructBody.Record).flags.packed,
+			(in ConcreteStructSource.Inst x) =>
+				x.inst.decl.body_.as!(StructBody.Record).flags.packed,
 			(in ConcreteStructSource.Lambda) =>
 				false);
 }
 
 TypeSize typeSize(in LowRecord a) =>
-	typeSize(*a.source);
+	a.source.typeSize;
 
 bool isArray(in LowRecord a) =>
 	isArray(*a.source);
@@ -65,7 +64,7 @@ immutable struct LowUnion {
 }
 
 TypeSize typeSize(in LowUnion a) =>
-	typeSize(*a.source);
+	a.source.typeSize;
 
 immutable struct LowFunPtrType {
 	ConcreteStruct* source;

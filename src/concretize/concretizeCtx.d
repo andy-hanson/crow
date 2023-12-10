@@ -7,7 +7,6 @@ import concretize.concretizeExpr : concretizeBogus, concretizeBogusKind, concret
 import concretize.safeValue : bodyForSafeValue;
 import frontend.storage : asBytes, FileContent, ReadFileResult;
 import model.concreteModel :
-	body_,
 	BuiltinStructKind,
 	byVal,
 	ConcreteExpr,
@@ -31,17 +30,14 @@ import model.concreteModel :
 	EnumValues,
 	hasSizeOrPointerSizeBytes,
 	isBogus,
-	isSelfMutable,
 	mustBeByVal,
 	purity,
 	ReferenceKind,
-	setBody,
 	sizeOrPointerSizeBytes,
 	TypeSize;
 import model.constant : Constant, constantZero;
 import model.diag : ReadFileDiag;
 import model.model :
-	body_,
 	CommonTypes,
 	Destructure,
 	EnumBackingType,
@@ -94,7 +90,7 @@ import util.ptr : castMutable;
 import util.sourceRange : UriAndRange;
 import util.sym : AllSymbols, Sym, sym;
 import util.uri : AllUris, Uri;
-import util.util : max, roundUp, todo, unreachable;
+import util.util : max, roundUp, todo, typeAs, unreachable;
 import versionInfo : VersionInfo;
 
 immutable struct TypeArgsScope {
@@ -237,12 +233,12 @@ private ConcreteType bogusType(ref ConcretizeCtx a) =>
 			ConcreteStruct.SpecialKind.none,
 			ConcreteStructSource(ConcreteStructSource.Bogus())));
 		add(a.alloc, a.allConcreteStructs, res);
-		lateSet(res.info_, ConcreteStructInfo(
+		res.info = ConcreteStructInfo(
 			ConcreteStructBody(ConcreteStructBody.Record([])),
-			false));
-		lateSet(res.defaultReferenceKind_, ReferenceKind.byVal);
-		lateSet(res.typeSize_, TypeSize(0, 1));
-		lateSet(res.fieldOffsets_, []);
+			false);
+		res.defaultReferenceKind = ReferenceKind.byVal;
+		res.typeSize = TypeSize(0, 1);
+		res.fieldOffsets = typeAs!(immutable size_t[])([]);
 		return ConcreteType(ReferenceKind.byVal, res);
 	});
 
@@ -324,11 +320,11 @@ private ConcreteType getConcreteType_forStructInst(
 			});
 	if (res.didAdd)
 		initializeConcreteStruct(ctx, typeArgs, *i, castMutable(res.value), typeArgsScope);
-	if (!lateIsSet(res.value.defaultReferenceKind_))
+	if (!res.value.defaultReferenceKindIsSet)
 		// The only way 'defaultIsPointer' would not be set is if we are still computing the size of 's'.
 		// In that case, it's a recursive record, so it should be by-ref.
-		lateSet(castMutable(res.value).defaultReferenceKind_, ReferenceKind.byRef);
-	return ConcreteType(lateGet(res.value.defaultReferenceKind_), res.value);
+		res.value.defaultReferenceKind = ReferenceKind.byRef;
+	return ConcreteType(res.value.defaultReferenceKind, res.value);
 }
 
 ConcreteType getConcreteType(ref ConcretizeCtx ctx, Type t, in TypeArgsScope typeArgsScope) =>
@@ -358,7 +354,7 @@ ConcreteType concreteTypeFromClosure(
 			return worsePurity(p, purity(f.type));
 		});
 		ConcreteStruct* cs = allocate(ctx.alloc, ConcreteStruct(purity, ConcreteStruct.SpecialKind.none, source));
-		lateSet(cs.info_, getConcreteStructInfoForFields(closureFields));
+		cs.info = getConcreteStructInfoForFields(closureFields);
 		setConcreteStructRecordSizeOrDefer(
 			ctx, cs, false, closureFields, false, FieldsType.closure);
 		add(ctx.alloc, ctx.allConcreteStructs, cs);
@@ -384,12 +380,10 @@ private void setConcreteStructRecordSizeOrDefer(
 
 private void setConcreteStructRecordSize(ref Alloc alloc, DeferredRecordBody a) {
 	TypeSizeAndFieldOffsets size = recordSize(alloc, a.packed, a.fields);
-	if (!lateIsSet(a.struct_.defaultReferenceKind_))
-		lateSet(
-			a.struct_.defaultReferenceKind_,
-			getDefaultReferenceKindForFields(size.typeSize, a.isSelfMutable, a.fieldsType));
-	lateSet(a.struct_.typeSize_, size.typeSize);
-	lateSet(a.struct_.fieldOffsets_, size.fieldOffsets);
+	if (!a.struct_.defaultReferenceKindIsSet)
+		a.struct_.defaultReferenceKind = getDefaultReferenceKindForFields(size.typeSize, a.isSelfMutable, a.fieldsType);
+	a.struct_.typeSize = size.typeSize;
+	a.struct_.fieldOffsets = size.fieldOffsets;
 }
 
 private:
@@ -449,7 +443,7 @@ ConcreteFun* concreteFunForTest(ref ConcretizeCtx ctx, ref Test test, size_t tes
 		[]));
 	ContainingFunInfo containing = ContainingFunInfo(test.moduleUri, emptySmallArray!(immutable SpecInst*), emptySmallArray!ConcreteType, emptySmallArray!(immutable ConcreteFun*));
 	ConcreteExpr body_ = concretizeFunBody(ctx, containing, res, [], test.body_);
-	lateSet(res._body_, ConcreteFunBody(body_));
+	res.body_ = ConcreteFunBody(body_);
 	addConcreteFun(ctx, res);
 	return res;
 }
@@ -483,7 +477,7 @@ public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* mo
 		arrLiteral(ctx.alloc, [
 			ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Generated(sym!"args")), stringListType),
 		])));
-	setBody(*res, ConcreteFunBody(body_));
+	res.body_ = ConcreteFunBody(body_);
 	addConcreteFun(ctx, res);
 	return res;
 }
@@ -557,34 +551,34 @@ void initializeConcreteStruct(
 	ConcreteStruct* res,
 	in TypeArgsScope typeArgsScope,
 ) {
-	body_(*i.decl).match!void(
+	i.decl.body_.match!void(
 		(StructBody.Bogus) => unreachable!void,
 		(StructBody.Builtin) {
 			BuiltinStructKind kind = getBuiltinStructKind(i.decl.name);
-			lateSet(res.defaultReferenceKind_, ReferenceKind.byVal);
-			lateSet(res.info_, ConcreteStructInfo(
+			res.defaultReferenceKind = ReferenceKind.byVal;
+			res.info = ConcreteStructInfo(
 				ConcreteStructBody(ConcreteStructBody.Builtin(kind, typeArgs)),
-				false));
-			lateSet(res.typeSize_, getBuiltinStructSize(kind));
+				false);
+			res.typeSize = getBuiltinStructSize(kind);
 		},
 		(StructBody.Enum it) {
-			lateSet(res.defaultReferenceKind_, ReferenceKind.byVal);
-			lateSet(res.info_, ConcreteStructInfo(
+			res.defaultReferenceKind = ReferenceKind.byVal;
+			res.info = ConcreteStructInfo(
 				ConcreteStructBody(getConcreteStructBodyForEnum(ctx.alloc, it)),
-				false));
-			lateSet(res.typeSize_, typeSizeForEnumOrFlags(it.backingType));
+				false);
+			res.typeSize = typeSizeForEnumOrFlags(it.backingType);
 		},
 		(StructBody.Extern it) {
-			lateSet(res.defaultReferenceKind_, ReferenceKind.byVal);
-			lateSet(res.info_, ConcreteStructInfo(ConcreteStructBody(ConcreteStructBody.Extern()), false));
-			lateSet(res.typeSize_, has(it.size) ? force(it.size) : TypeSize(0, 0));
+			res.defaultReferenceKind = ReferenceKind.byVal;
+			res.info = ConcreteStructInfo(ConcreteStructBody(ConcreteStructBody.Extern()), false);
+			res.typeSize = has(it.size) ? force(it.size) : TypeSize(0, 0);
 		},
 		(StructBody.Flags it) {
-			lateSet(res.defaultReferenceKind_, ReferenceKind.byVal);
-			lateSet(res.info_, ConcreteStructInfo(
+			res.defaultReferenceKind = ReferenceKind.byVal;
+			res.info = ConcreteStructInfo(
 				ConcreteStructBody(getConcreteStructBodyForFlags(ctx.alloc, it)),
-				false));
-			lateSet(res.typeSize_, typeSizeForEnumOrFlags(it.backingType));
+				false);
+			res.typeSize = typeSizeForEnumOrFlags(it.backingType);
 		},
 		(StructBody.Record r) {
 			// don't set 'defaultReferenceKind' until the end, unless explicit
@@ -592,10 +586,10 @@ void initializeConcreteStruct(
 				case ForcedByValOrRefOrNone.none:
 					break;
 				case ForcedByValOrRefOrNone.byVal:
-					lateSet(res.defaultReferenceKind_, ReferenceKind.byVal);
+					res.defaultReferenceKind = ReferenceKind.byVal;
 					break;
 				case ForcedByValOrRefOrNone.byRef:
-					lateSet(res.defaultReferenceKind_, ReferenceKind.byRef);
+					res.defaultReferenceKind = ReferenceKind.byRef;
 					break;
 			}
 
@@ -607,17 +601,17 @@ void initializeConcreteStruct(
 						getConcreteType(ctx, type, typeArgsScope)));
 			bool packed = r.flags.packed;
 			ConcreteStructInfo info = getConcreteStructInfoForFields(fields);
-			lateSet(res.info_, info);
+			res.info = info;
 			setConcreteStructRecordSizeOrDefer(ctx, res, packed, fields, info.isSelfMutable, FieldsType.record);
 		},
 		(StructBody.Union u) {
-			lateSet(res.defaultReferenceKind_, ReferenceKind.byVal);
+			res.defaultReferenceKind = ReferenceKind.byVal;
 			ConcreteType[] members = mapZip(
 				ctx.alloc, u.members, i.instantiatedTypes, (ref UnionMember x, ref Type type) =>
 					getConcreteType(ctx, type, typeArgsScope));
-			lateSet(res.info_, ConcreteStructInfo(ConcreteStructBody(ConcreteStructBody.Union(members)), false));
+			res.info = ConcreteStructInfo(ConcreteStructBody(ConcreteStructBody.Union(members)), false);
 			if (canGetUnionSize(members))
-				lateSet(res.typeSize_, unionSize(members));
+				res.typeSize = unionSize(members);
 			else
 				push(ctx.alloc, ctx.deferredUnions, DeferredUnionBody(res, members));
 		});
@@ -686,7 +680,7 @@ public void deferredFillRecordAndUnionBodies(ref ConcretizeCtx ctx) {
 		filterUnordered!DeferredUnionBody(ctx.deferredUnions, (ref DeferredUnionBody deferred) {
 			bool canGet = canGetUnionSize(deferred.members);
 			if (canGet) {
-				lateSet(deferred.struct_.typeSize_, unionSize(deferred.members));
+				deferred.struct_.typeSize = unionSize(deferred.members);
 				couldGetSomething = true;
 			}
 			return !canGet;
@@ -698,9 +692,9 @@ public void deferredFillRecordAndUnionBodies(ref ConcretizeCtx ctx) {
 
 void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, ConcreteFun* cf) {
 	// TODO: just assert it's not already set?
-	if (!lateIsSet(cf._body_)) {
+	if (!cf.bodyIsSet) {
 		// set to arbitrary temporarily
-		setBody(*cf, ConcreteFunBody(ConcreteFunBody.Builtin([])));
+		cf.body_ = ConcreteFunBody(ConcreteFunBody.Builtin([]));
 		ConcreteFunBodyInputs inputs = mustDelete(ctx.concreteFunToBodyInputs, cf);
 		ConcreteFunBody body_ = inputs.body_.match!ConcreteFunBody(
 			(FunBody.Bogus) =>
@@ -742,7 +736,7 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 				ConcreteFunBody(concretizeFileImport(ctx, cf, x)),
 			(FlagsFunction it) =>
 				ConcreteFunBody(ConcreteFunBody.FlagsFn(
-					getAllValue(body_(*mustBeByVal(cf.returnType)).as!(ConcreteStructBody.Flags)),
+					getAllValue(mustBeByVal(cf.returnType).body_.as!(ConcreteStructBody.Flags)),
 					it)),
 			(FunBody.RecordFieldGet it) =>
 				ConcreteFunBody(ConcreteFunBody.RecordFieldGet(it.fieldIndex)),
@@ -754,7 +748,7 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 				ConcreteFunBody(ConcreteFunBody.VarGet(getVar(ctx, x.var))),
 			(FunBody.VarSet x) =>
 				ConcreteFunBody(ConcreteFunBody.VarSet(getVar(ctx, x.var))));
-		lateSetOverwrite(cf._body_, body_);
+		cf.overwriteBody(body_);
 	}
 }
 
@@ -805,9 +799,8 @@ ConcreteFunBody bodyForEnumOrFlagsMembers(ref ConcretizeCtx ctx, ConcreteType re
 	return ConcreteFunBody(ConcreteExpr(returnType, UriAndRange.empty, ConcreteExprKind(arr)));
 }
 
-StructBody.Enum.Member[] enumOrFlagsMembers(ConcreteType type) {
-	StructBody body_ = body_(*mustBeByVal(type).source.as!(ConcreteStructSource.Inst).inst.decl);
-	return body_.match!(StructBody.Enum.Member[])(
+StructBody.Enum.Member[] enumOrFlagsMembers(ConcreteType type) =>
+	mustBeByVal(type).source.as!(ConcreteStructSource.Inst).inst.decl.body_.match!(StructBody.Enum.Member[])(
 		(StructBody.Bogus) =>
 			unreachable!(StructBody.Enum.Member[]),
 		(StructBody.Builtin) =>
@@ -822,7 +815,6 @@ StructBody.Enum.Member[] enumOrFlagsMembers(ConcreteType type) {
 			unreachable!(StructBody.Enum.Member[]),
 		(StructBody.Union) =>
 			unreachable!(StructBody.Enum.Member[]));
-}
 
 ConcreteFunBody bodyForAllTests(ref ConcretizeCtx ctx, ConcreteType returnType) {
 	Test[] allTests = () {

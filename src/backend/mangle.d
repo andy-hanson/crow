@@ -3,7 +3,6 @@ module backend.mangle;
 @safe @nogc pure nothrow:
 
 import model.concreteModel :
-	body_,
 	ConcreteFun,
 	ConcreteFunBody,
 	ConcreteFunKey,
@@ -78,8 +77,8 @@ MangledNames buildMangledNames(
 	void build(ConcreteStruct* s) {
 		s.source.match!void(
 			(ConcreteStructSource.Bogus) {},
-			(ConcreteStructSource.Inst it) {
-				addToPrevOrIndex!ConcreteStruct(alloc, structNameToIndex, structToNameIndex, s, name(*it.inst));
+			(ConcreteStructSource.Inst x) {
+				addToPrevOrIndex!ConcreteStruct(alloc, structNameToIndex, structToNameIndex, s, x.inst.decl.name);
 			},
 			(ConcreteStructSource.Lambda) {});
 	}
@@ -124,8 +123,8 @@ void writeStructMangledName(scope ref Writer writer, in MangledNames mangledName
 		(in ConcreteStructSource.Bogus) {
 			writer ~= "__BOGUS";
 		},
-		(in ConcreteStructSource.Inst it) {
-			writeMangledName(writer, mangledNames, name(*it.inst));
+		(in ConcreteStructSource.Inst x) {
+			writeMangledName(writer, mangledNames, x.inst.decl.name);
 			maybeWriteIndexSuffix(writer, mangledNames.structToNameIndex[source]);
 		},
 		(in ConcreteStructSource.Lambda it) {
@@ -175,7 +174,7 @@ private void writeConcreteFunMangledName(
 ) {
 	source.source.matchIn!void(
 		(in ConcreteFunKey x) {
-			if (body_(*source).isA!(ConcreteFunBody.Extern))
+			if (source.body_.isA!(ConcreteFunBody.Extern))
 				writeSym(writer, *mangledNames.allSymbols, x.decl.name);
 			else {
 				writeMangledName(writer, mangledNames, x.decl.name);

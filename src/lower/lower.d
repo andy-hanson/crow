@@ -38,7 +38,6 @@ import lower.lowExprHelpers :
 import model.concreteModel :
 	AllConstantsConcrete,
 	ArrTypeAndConstantsConcrete,
-	body_,
 	BuiltinStructKind,
 	ConcreteClosureRef,
 	ConcreteExpr,
@@ -57,7 +56,6 @@ import model.concreteModel :
 	ConcreteType,
 	ConcreteVar,
 	ConcreteVariableRef,
-	fieldOffsets,
 	isFunOrActSubscript,
 	isMarkVisitFun,
 	mustBeByVal,
@@ -279,7 +277,7 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in AllSymbols allSymbols, in 
 	}
 
 	foreach (ConcreteStruct* concrete; program.allStructs) {
-		Opt!LowType lowType = body_(*concrete).matchIn!(Opt!LowType)(
+		Opt!LowType lowType = concrete.body_.matchIn!(Opt!LowType)(
 			(in ConcreteStructBody.Builtin it) {
 				final switch (it.kind) {
 					case BuiltinStructKind.bool_:
@@ -345,19 +343,19 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in AllSymbols allSymbols, in 
 
 	immutable FullIndexMap!(LowType.Record, LowRecord) allRecords =
 		fullIndexMapOfArr!(LowType.Record, LowRecord)(
-			map(alloc, finishArr(alloc, allRecordSources), (ref immutable ConcreteStruct* it) =>
+			map(alloc, finishArr(alloc, allRecordSources), (ref immutable ConcreteStruct* struct_) =>
 				LowRecord(
-					it,
+					struct_,
 					mapZipPtrFirst!(LowField, ConcreteField, immutable size_t)(
 						alloc,
-						body_(*it).as!(ConcreteStructBody.Record).fields,
-						fieldOffsets(*it),
+						struct_.body_.as!(ConcreteStructBody.Record).fields,
+						struct_.fieldOffsets,
 						(ConcreteField* field, in immutable size_t fieldOffset) =>
 							LowField(field, fieldOffset, lowTypeFromConcreteType(getLowTypeCtx, field.type))))));
 	immutable FullIndexMap!(LowType.FunPtr, LowFunPtrType) allFunPointers =
 		fullIndexMapOfArr!(LowType.FunPtr, LowFunPtrType)(
 			map(alloc, finishArr(alloc, allFunPointerSources), (ref immutable ConcreteStruct* x) {
-				ConcreteType[2] typeArgs = only2(body_(*x).as!(ConcreteStructBody.Builtin).typeArgs);
+				ConcreteType[2] typeArgs = only2(x.body_.as!(ConcreteStructBody.Builtin).typeArgs);
 				return LowFunPtrType(
 					x,
 					lowTypeFromConcreteType(getLowTypeCtx, typeArgs[0]),
@@ -424,7 +422,7 @@ PrimitiveType typeForEnum(EnumBackingType a) {
 }
 
 LowUnion getLowUnion(ref Alloc alloc, in ConcreteProgram program, ref GetLowTypeCtx getLowTypeCtx, ConcreteStruct* s) =>
-	LowUnion(s, body_(*s).matchIn!(LowType[])(
+	LowUnion(s, s.body_.matchIn!(LowType[])(
 		(in ConcreteStructBody.Builtin it) {
 			assert(it.kind == BuiltinStructKind.fun);
 			ConcreteLambdaImpl[] impls = optOrDefault!(ConcreteLambdaImpl[])(program.funStructToImpls[s], () =>
@@ -450,12 +448,12 @@ LowType getLowGcPtrType(ref GetLowTypeCtx ctx, LowType pointee) {
 	return LowType(LowType.PtrGc(allocate(ctx.alloc, pointee)));
 }
 
-LowType lowTypeFromConcreteStruct(ref GetLowTypeCtx ctx, in ConcreteStruct* it) {
-	Opt!LowType res = ctx.concreteStructToType[it];
+LowType lowTypeFromConcreteStruct(ref GetLowTypeCtx ctx, in ConcreteStruct* struct_) {
+	Opt!LowType res = ctx.concreteStructToType[struct_];
 	if (has(res))
 		return force(res);
 	else {
-		ConcreteStructBody.Builtin builtin = body_(*it).as!(ConcreteStructBody.Builtin);
+		ConcreteStructBody.Builtin builtin = struct_.body_.as!(ConcreteStructBody.Builtin);
 		//TODO: cache the creation.. don't want an allocation for every BuiltinStructKind.ptr to the same target type
 		LowType* inner = allocate(ctx.alloc, lowTypeFromConcreteType(ctx, only(builtin.typeArgs)));
 		switch (builtin.kind) {
@@ -627,7 +625,7 @@ AllLowFuns getAllLowFuns(
 	});
 
 	foreach (ConcreteFun* fun; program.allFuns) {
-		Opt!LowFunIndex opIndex = body_(*fun).match!(Opt!LowFunIndex)(
+		Opt!LowFunIndex opIndex = fun.body_.match!(Opt!LowFunIndex)(
 			(ConcreteFunBody.Builtin it) {
 				if (isFunOrActSubscript(program, *fun)) {
 					ConcreteLocal[2] params = only2(fun.paramsIncludingClosure);
@@ -738,8 +736,8 @@ AllLowFuns getAllLowFuns(
 alias VarIndices = Map!(immutable ConcreteVar*, LowVarIndex);
 
 bool concreteFunWillBecomeNonExternLowFun(in ConcreteProgram program, in ConcreteFun a) =>
-	body_(a).isA!(ConcreteExpr) || (
-		body_(a).isA!(ConcreteFunBody.Builtin) && (isFunOrActSubscript(program, a) || isMarkVisitFun(program, a)));
+	a.body_.isA!(ConcreteExpr) || (
+		a.body_.isA!(ConcreteFunBody.Builtin) && (isFunOrActSubscript(program, a) || isMarkVisitFun(program, a)));
 
 LowFun lowFunFromCause(
 	ref AllLowTypes allTypes,
@@ -867,7 +865,7 @@ LowFunBody getLowFunBody(
 	LowLocal[] params,
 	ref ConcreteFun a,
 ) =>
-	body_(a).match!LowFunBody(
+	a.body_.match!LowFunBody(
 		(ConcreteFunBody.Builtin) =>
 			unreachable!LowFunBody,
 		(Constant _) =>
@@ -1156,7 +1154,7 @@ LowExprKind getCallSpecial(
 	LowType type,
 	ref ConcreteExprKind.Call a,
 ) =>
-	body_(*a.called).match!LowExprKind(
+	a.called.body_.match!LowExprKind(
 		(ConcreteFunBody.Builtin) =>
 			getCallBuiltinExpr(ctx, locals, exprPos, range, type, a),
 		(Constant x) =>
@@ -1383,7 +1381,7 @@ LowExprKind getCallBuiltinExpr(
 		},
 		(BuiltinKind.SizeOf) {
 			LowType typeArg =
-				lowTypeFromConcreteType(ctx.typeCtx, only(body_(*a.called).as!(ConcreteFunBody.Builtin).typeArgs));
+				lowTypeFromConcreteType(ctx.typeCtx, only(a.called.body_.as!(ConcreteFunBody.Builtin).typeArgs));
 			return LowExprKind(LowExprKind.SizeOf(typeArg));
 		},
 		(BuiltinKind.StaticSymbols) =>
@@ -1508,7 +1506,7 @@ LowExprKind getMatchEnumExpr(
 	ExprPos exprPos,
 	ref ConcreteExprKind.MatchEnum a,
 ) {
-	ConcreteStructBody.Enum enum_ = body_(*mustBeByVal(a.matchedValue.type)).as!(ConcreteStructBody.Enum);
+	ConcreteStructBody.Enum enum_ = mustBeByVal(a.matchedValue.type).body_.as!(ConcreteStructBody.Enum);
 	LowExpr matchedValue = getLowExpr(ctx, locals, a.matchedValue, ExprPos.nonTail);
 	LowExpr[] cases = map(ctx.alloc, a.cases, (ref ConcreteExpr case_) =>
 		getLowExpr(ctx, locals, case_, exprPos));

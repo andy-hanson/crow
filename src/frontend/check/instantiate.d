@@ -5,8 +5,6 @@ module frontend.check.instantiate;
 import frontend.lang : maxTypeParams;
 import frontend.programState : ProgramState;
 import model.model :
-	body_,
-	bodyIsSet,
 	Called,
 	CommonTypes,
 	Destructure,
@@ -139,7 +137,7 @@ void eachSpecSig(SpecInst* spec, in void delegate(in SpecDeclSig) @safe @nogc pu
 
 void instantiateStructTypes(ref InstantiateCtx ctx, StructInst* inst, scope MayDelayStructInsts delayStructInsts) {
 	TypeArgs typeArgs = inst.typeArgs;
-	inst.instantiatedTypes = body_(*inst.decl).match!(Type[])(
+	inst.instantiatedTypes = inst.decl.body_.match!(Type[])(
 		(StructBody.Bogus) =>
 			typeAs!(Type[])([]),
 		(StructBody.Builtin) =>
@@ -177,7 +175,7 @@ StructInst* instantiateStruct(
 					combinedPurityRange(decl.purity, typeArgs))));
 
 		if (res.didAdd) {
-			if (bodyIsSet(*decl))
+			if (decl.bodyIsSet)
 				instantiateStructTypes(ctx, res.value, delayStructInsts);
 			else {
 				// We should only need to do this in the initial phase of settings struct bodies,

@@ -284,7 +284,7 @@ void writeStructInst(scope ref Writer writer, in ShowCtx ctx, in TypeContainer t
 		writer ~= suffix;
 	}
 
-	Sym name = s.name;
+	Sym name = s.decl.name;
 	Opt!(Diag.TypeShouldUseSyntax.Kind) kind = typeSyntaxKind(name);
 	if (has(kind)) {
 		final switch (force(kind)) {

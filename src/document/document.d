@@ -5,7 +5,6 @@ module document.document;
 import frontend.parse.ast : NameAndRange;
 import model.concreteModel : TypeSize;
 import model.model :
-	body_,
 	Destructure,
 	docComment,
 	FieldMutability,
@@ -136,7 +135,7 @@ DocExport documentStructAlias(ref Alloc alloc, in StructAlias a) {
 }
 
 DocExport documentStructDecl(ref Alloc alloc, in StructDecl a) =>
-	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, body_(a).matchIn!Json(
+	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, a.body_.matchIn!Json(
 		(in StructBody.Bogus) =>
 			unreachable!Json,
 		(in StructBody.Builtin) =>
@@ -281,7 +280,7 @@ Json documentSpecInst(ref Alloc alloc, in TypeParams typeParams, in SpecInst a) 
 	documentNameAndTypeArgs(alloc, typeParams, sym!"spec", a.name, a.typeArgs);
 
 Json documentStructInst(ref Alloc alloc, in TypeParams typeParams, in StructInst a) =>
-	documentNameAndTypeArgs(alloc, typeParams, sym!"struct", name(a), a.typeArgs);
+	documentNameAndTypeArgs(alloc, typeParams, sym!"struct", a.decl.name, a.typeArgs);
 
 Json documentNameAndTypeArgs(ref Alloc alloc, in TypeParams typeParams, Sym nodeType, Sym name, scope Type[] typeArgs) =>
 	empty(typeArgs)

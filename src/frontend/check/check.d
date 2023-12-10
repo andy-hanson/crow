@@ -46,7 +46,6 @@ import frontend.programState : ProgramState;
 import frontend.storage : FileContent;
 import model.diag : Diag, Diagnostic, TypeContainer;
 import model.model :
-	body_,
 	CommonTypes,
 	Destructure,
 	emptyTypeParams,
@@ -67,7 +66,6 @@ import model.model :
 	Params,
 	paramsArray,
 	range,
-	setBody,
 	setTarget,
 	SpecDecl,
 	SpecDeclBody,
@@ -597,7 +595,7 @@ FunsAndMap checkFuns(
 
 	FunDecl[] funsWithAsts = funs[0 .. asts.length];
 	zipPointers!(FunDecl, FunDeclAst)(funsWithAsts, asts, (FunDecl* fun, FunDeclAst* funAst) {
-		fun.setBody(() {
+		fun.body_ = () {
 			final switch (fun.flags.specialBody) {
 				case FunFlags.SpecialBody.none:
 					if (!has(funAst.body_)) {
@@ -622,12 +620,12 @@ FunsAndMap checkFuns(
 					return FunBody(checkExternBody(
 						ctx, fun, getExternTypeArg(*funAst, FunModifierAst.Special.Flags.extern_)));
 			}
-		}());
+		}();
 	});
 	foreach (size_t i, ref ImportOrExportFile f; fileImports)
-		funs[asts.length + i].setBody(getFileImportFunctionBody(f));
+		funs[asts.length + i].body_ = getFileImportFunctionBody(f);
 	foreach (size_t i, ref ImportOrExportFile f; fileExports)
-		funs[asts.length + fileImports.length + i].setBody(getFileImportFunctionBody(f));
+		funs[asts.length + fileImports.length + i].body_ = getFileImportFunctionBody(f);
 
 	Test[] tests = () @trusted {
 		return mapWithResultPointer!(Test, TestAst)(ctx.alloc, testAsts, (TestAst* ast, Test* out_) {

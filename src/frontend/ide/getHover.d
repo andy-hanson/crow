@@ -164,7 +164,7 @@ void getHover(scope ref Writer writer, in ShowCtx ctx, in Position pos) =>
 private:
 
 void writeStructDeclHover(scope ref Writer writer, in ShowCtx ctx, in StructDecl a) {
-	writer ~= body_(a).matchIn!string(
+	writer ~= a.body_.matchIn!string(
 		(in StructBody.Bogus) =>
 			"type ",
 		(in StructBody.Builtin) =>

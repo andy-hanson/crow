@@ -14,7 +14,6 @@ import frontend.check.instantiate :
 	typeArgsArray;
 import frontend.check.typeFromAst : makeTupleType;
 import model.model :
-	body_,
 	CommonTypes,
 	emptyTypeParams,
 	EnumBackingType,
@@ -33,7 +32,6 @@ import model.model :
 	ParamShort,
 	RecordField,
 	SpecInst,
-	setBody,
 	StructBody,
 	StructDecl,
 	StructInst,
@@ -58,7 +56,7 @@ size_t countFunsForStructs(in StructDecl[] structs) =>
 	sum!StructDecl(structs, (in StructDecl x) => countFunsForStruct(x));
 
 private size_t countFunsForStruct(in StructDecl a) =>
-	body_(a).matchIn!size_t(
+	a.body_.matchIn!size_t(
 		(in StructBody.Bogus) =>
 			0,
 		(in StructBody.Builtin) =>
@@ -90,7 +88,7 @@ void addFunsForStruct(
 	ref CommonTypes commonTypes,
 	StructDecl* struct_,
 ) {
-	body_(*struct_).match!void(
+	struct_.body_.match!void(
 		(StructBody.Bogus) {},
 		(StructBody.Builtin) {},
 		(StructBody.Enum x) {
@@ -146,7 +144,7 @@ FunDecl funDeclWithBody(
 	FunBody body_,
 ) {
 	FunDecl res = FunDecl(source, visibility, name, returnType, params, flags, small(specInsts));
-	res.setBody(body_);
+	res.body_ = body_;
 	return res;
 }
 

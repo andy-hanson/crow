@@ -337,7 +337,7 @@ void toDynCallTypes(in LowProgram program, in LowType a, in void delegate(DynCal
 	} else if (a.isA!(LowType.Union)) {
 		// This should only happen for the 'str[]' in 'main'
 		LowUnion u = program.allUnions[a.as!(LowType.Union)];
-		assert(name(*u.source.source.as!(ConcreteStructSource.Inst).inst) == sym!"node");
+		assert(u.source.source.as!(ConcreteStructSource.Inst).inst.decl.name == sym!"node");
 		size_t sizeWords = 3;
 		assert(typeSize(u).sizeBytes == ulong.sizeof * sizeWords);
 		foreach (size_t i; 0 .. sizeWords)

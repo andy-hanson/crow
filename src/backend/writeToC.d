@@ -17,7 +17,7 @@ import backend.writeTypes : ElementAndCount, TypeWriters, writeTypes;
 import frontend.showModel : ShowCtx;
 import interpret.debugging : writeFunName, writeFunSig;
 import lower.lowExprHelpers : boolType;
-import model.concreteModel : body_, BuiltinStructKind, ConcreteStruct, ConcreteStructBody, TypeSize, typeSize;
+import model.concreteModel : BuiltinStructKind, ConcreteStruct, ConcreteStructBody, TypeSize;
 import model.constant : Constant;
 import model.lowModel :
 	AllConstantsLow,
@@ -306,7 +306,7 @@ void writeStructEnd(ref Writer writer) {
 }
 
 bool isEmptyType(in ConcreteStruct a) =>
-	typeSize(a).sizeBytes == 0;
+	a.typeSize.sizeBytes == 0;
 bool isEmptyType(in Ctx ctx, in LowType a) =>
 	sizeOfType(ctx.program, a).sizeBytes == 0;
 bool isEmptyType(in FunBodyCtx ctx, in LowType a) =>
@@ -342,8 +342,8 @@ void writeRecord(scope ref Writer writer, scope ref Ctx ctx, in LowRecord a) {
 void writeUnion(scope ref Writer writer, scope ref Ctx ctx, in LowUnion a) {
 	writeStructHead(writer, ctx, a.source);
 	writer ~= "\n\tuint64_t kind;";
-	bool isBuiltin = body_(*a.source).isA!(ConcreteStructBody.Builtin);
-	if (isBuiltin) assert(body_(*a.source).as!(ConcreteStructBody.Builtin).kind == BuiltinStructKind.fun);
+	bool isBuiltin = a.source.body_.isA!(ConcreteStructBody.Builtin);
+	if (isBuiltin) assert(a.source.body_.as!(ConcreteStructBody.Builtin).kind == BuiltinStructKind.fun);
 	if (isBuiltin || exists!LowType(a.members, (in LowType member) => !isEmptyType(ctx, member))) {
 		writer ~= "\n\tunion {";
 		foreach (size_t memberIndex, LowType member; a.members) {
