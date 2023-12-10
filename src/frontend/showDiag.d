@@ -953,15 +953,15 @@ void showDiagnostic(scope ref Writer writer, in ShowCtx ctx, in UriAndDiagnostic
 
 void writeExpected(scope ref Writer writer, in ShowCtx ctx, in ExpectedForDiag a) {
 	a.matchIn!void(
-		(in TypeWithContainer[] types) {
-			if (types.length == 1) {
+		(in ExpectedForDiag.Choices choices) {
+			if (choices.types.length == 1) {
 				writer ~= "expected type: ";
-				writeTypeQuoted(writer, ctx, only(types));
+				writeTypeQuoted(writer, ctx, TypeWithContainer(only(choices.types), choices.typeContainer));
 			} else {
 				writer ~= "expected one of these types:";
-				foreach (TypeWithContainer t; types) {
+				foreach (Type t; choices.types) {
 					writer ~= "\n\t";
-					writeTypeQuoted(writer, ctx, t);
+					writeTypeQuoted(writer, ctx, TypeWithContainer(t, choices.typeContainer));
 				}
 			}
 		},

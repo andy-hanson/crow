@@ -35,7 +35,6 @@ import model.model :
 	StructInst,
 	Type,
 	typeArgs,
-	TypeParam,
 	TypeParams;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
@@ -49,7 +48,7 @@ import util.sourceRange : Range;
 import util.union_ : Union;
 
 Opt!Called checkCallSpecs(ref ExprCtx ctx, in Range range, ref const Candidate candidate) {
-	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, ctx.typeContainer, ctx.outermostFunTypeParams, funsInScope(ctx));
+	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, ctx.typeContainer, funsInScope(ctx));
 	return getCalledFromCandidateAfterTypeChecks(checkSpecsCtx, candidate, DummyTrace()).match!(Opt!Called)(
 		(Called x) {
 			consumeArr(checkSpecsCtx.alloc, checkSpecsCtx.matchDiags, (Diag.SpecMatchError diag) {
@@ -87,7 +86,6 @@ struct CheckSpecsCtx {
 	Alloc* allocPtr;
 	InstantiateCtx instantiateCtx;
 	TypeContainer typeContainer;
-	TypeParams outerContext; // TODO: KILL -----------------------------------------------------------------------------------------------
 	immutable FunsInScope funsInScope;
 	ArrBuilder!(Diag.SpecMatchError) matchDiags;
 
@@ -149,7 +147,7 @@ Trace.Result checkCandidate(Trace)(
 	ref Candidate candidate,
 	scope Trace trace,
 ) =>
-	testCandidateForSpecSig(ctx.instantiateCtx, ctx.outerContext, candidate, sigType, nonInferringTypeContext())
+	testCandidateForSpecSig(ctx.instantiateCtx, candidate, sigType, nonInferringTypeContext())
 		? getCalledFromCandidateAfterTypeChecks(ctx, candidate, trace)
 		: Trace.Result(specNoMatch(
 			ctx,

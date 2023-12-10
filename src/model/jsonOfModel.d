@@ -2,7 +2,7 @@ module model.jsonOfModel;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast : ImportOrExportAst, pathRange;
+import frontend.parse.ast : ImportOrExportAst, NameAndRange, pathRange;
 import model.jsonOfConstant : jsonOfConstant;
 import model.model :
 	AssertOrForbidExpr,
@@ -72,7 +72,6 @@ import model.model :
 	ThrowExpr,
 	Type,
 	typeArgs,
-	TypeParam,
 	TypeParamIndex,
 	TypeParams,
 	typeParams,
@@ -207,7 +206,7 @@ Json.ObjectField[3] commonDeclFields(
 	[
 		field!"visibility"(symOfVisibility(visibility)),
 		field!"name"(name),
-		optionalArrayField!("type-params", TypeParam)(alloc, typeParams.asArray, (in TypeParam x) =>
+		optionalArrayField!("type-params", NameAndRange)(alloc, typeParams, (in NameAndRange x) =>
 			jsonOfTypeParam(alloc, x)),
 	];
 
@@ -244,7 +243,7 @@ Json funFlags(ref Alloc alloc, in FunFlags a) {
 Opt!Sym flag(string name)(bool a) =>
 	a ? some(sym!name) : none!Sym;
 
-Json jsonOfTypeParam(ref Alloc alloc, in TypeParam a) =>
+Json jsonOfTypeParam(ref Alloc alloc, in NameAndRange a) =>
 	jsonObject(alloc, [field!"name"(a.name)]);
 
 Json jsonOfParams(ref Alloc alloc, in Ctx ctx, in Params a) =>

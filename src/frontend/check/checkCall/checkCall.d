@@ -57,7 +57,6 @@ import model.model :
 	SpecDeclSig,
 	SpecInst,
 	Type,
-	TypeParam,
 	TypeParams;
 import util.col.arr : empty, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
@@ -129,7 +128,7 @@ private Expr checkCallCommon(
 		(ref Candidate candidate) =>
 			(!has(typeArg) || filterCandidateByExplicitTypeArg(ctx, candidate, force(typeArg))) &&
 			matchExpectedVsReturnTypeNoDiagnostic(
-				ctx.instantiateCtx, ctx.outermostFunTypeParams, expected, TypeAndContext(candidate.called.returnType, typeContextForCandidate(ctx.outermostFunTypeParams, candidate))),
+				ctx.instantiateCtx, expected, TypeAndContext(candidate.called.returnType, typeContextForCandidate(candidate))),
 		(ref Candidates candidates) =>
 			checkCallInner(
 				ctx, locals, source, diagRange, funName, args, typeArg, perfMeasurer, candidates, expected));
@@ -173,7 +172,7 @@ Expr checkCallInner(
 			inferCandidateTypeArgsFromSpecs(ctx, x));
 
 		ParamExpected paramExpected = mutMaxArr!(maxCandidates, TypeAndContext);
-		getParamExpected(ctx.instantiateCtx, ctx.outermostFunTypeParams, paramExpected, candidates, argIdx);
+		getParamExpected(ctx.instantiateCtx, paramExpected, candidates, argIdx);
 		Expected expected = Expected(tempAsArr(castNonScope_ref(paramExpected)));
 
 		pauseMeasure(ctx.perf, ctx.alloc, perfMeasurer);
@@ -188,7 +187,7 @@ Expr checkCallInner(
 		}
 		add(ctx.alloc, actualArgTypes, actualArgType);
 		filterCandidates(candidates, (ref Candidate candidate) =>
-			testCandidateParamType(ctx.instantiateCtx, ctx.outermostFunTypeParams, candidate, argIdx, TypeAndContext(actualArgType, nonInferringTypeContext())));
+			testCandidateParamType(ctx.instantiateCtx, candidate, argIdx, TypeAndContext(actualArgType, nonInferringTypeContext())));
 		return some(arg);
 	});
 
@@ -261,13 +260,12 @@ alias ParamExpected = MutMaxArr!(maxCandidates, TypeAndContext);
 
 void getParamExpected(
 	ref InstantiateCtx ctx,
-	TypeParams outerContext,
 	ref ParamExpected paramExpected,
 	scope ref Candidates candidates,
 	size_t argIdx,
 ) {
 	foreach (ref Candidate candidate; candidates) {
-		TypeAndContext expected = getCandidateExpectedParameterType(ctx, outerContext, candidate, argIdx);
+		TypeAndContext expected = getCandidateExpectedParameterType(ctx, candidate, argIdx);
 		bool isDuplicate = !has(expected.context.args) == 0 &&
 			exists!TypeAndContext(tempAsArr(paramExpected), (in TypeAndContext x) =>
 				!has(x.context.args) && x.type == expected.type);
@@ -278,23 +276,16 @@ void getParamExpected(
 
 void inferCandidateTypeArgsFromCheckedSpecSig(
 	ref InstantiateCtx ctx,
-	TypeParams outerContext,
 	ref const Candidate specCandidate,
 	in SpecDeclSig specSig,
 	in ReturnAndParamTypes sigTypes,
 	scope InferringTypeArgs callInferringTypeArgs,
 ) {
 	inferTypeArgsFrom(
-		ctx, outerContext,
-		sigTypes.returnType, callInferringTypeArgs,
-		const TypeAndContext(specCandidate.called.returnType, typeContextForCandidate(outerContext, specCandidate)));
+		ctx, sigTypes.returnType, callInferringTypeArgs,
+		const TypeAndContext(specCandidate.called.returnType, typeContextForCandidate(specCandidate)));
 	foreach (size_t argIdx; 0 .. specSig.params.length)
-		inferTypeArgsFrom(
-			ctx,
-			outerContext,
-			sigTypes.paramTypes[argIdx],
-			callInferringTypeArgs,
-			getCandidateExpectedParameterType(ctx, outerContext, specCandidate, argIdx));
+		inferTypeArgsFrom(ctx, sigTypes.paramTypes[argIdx], callInferringTypeArgs, getCandidateExpectedParameterType(ctx, specCandidate, argIdx));
 }
 
 bool isPartiallyInferred(in MutMaxArr!(maxTypeParams, SingleInferringType) typeArgs) {
@@ -327,10 +318,10 @@ ContinueOrAbort inferCandidateTypeArgsFromExplicitlyTypedArgument(
 				return ContinueOrAbort.abort;
 			else {
 				foreach (ref Candidate candidate; candidates) {
-					TypeAndContext paramType = getCandidateExpectedParameterType(ctx.instantiateCtx, ctx.outermostFunTypeParams, candidate, argIndex);
+					TypeAndContext paramType = getCandidateExpectedParameterType(ctx.instantiateCtx, candidate, argIndex);
 					inferTypeArgsFromLambdaParameterType(
-						ctx.instantiateCtx, ctx.commonTypes, ctx.outermostFunTypeParams,
-						paramType.type, asInferringTypeArgs(typeContextForCandidate(ctx.outermostFunTypeParams, candidate)),
+						ctx.instantiateCtx, ctx.commonTypes,
+						paramType.type, asInferringTypeArgs(typeContextForCandidate(candidate)),
 						lambdaParamType);
 				}
 				return ContinueOrAbort.continue_;
@@ -379,13 +370,13 @@ bool inferCandidateTypeArgsFromSpecSig(
 	in SpecDeclSig specSig,
 	in ReturnAndParamTypes returnAndParamTypes,
 ) {
-	TypeContext callContext = typeContextForCandidate(ctx.outermostFunTypeParams, callCandidate);
+	TypeContext callContext = typeContextForCandidate(callCandidate);
 	return withCandidates!bool(
 		funsInScope(ctx),
 		specSig.name,
 		specSig.params.length,
 		(ref Candidate x) =>
-			testCandidateForSpecSig(ctx.instantiateCtx, ctx.outermostFunTypeParams, x, returnAndParamTypes, callContext),
+			testCandidateForSpecSig(ctx.instantiateCtx, x, returnAndParamTypes, callContext),
 		(ref Candidates specCandidates) @safe {
 			switch (size(specCandidates)) {
 				case 0:
@@ -393,7 +384,6 @@ bool inferCandidateTypeArgsFromSpecSig(
 				case 1:
 					inferCandidateTypeArgsFromCheckedSpecSig(
 						ctx.instantiateCtx,
-						ctx.outermostFunTypeParams,
 						only(specCandidates),
 						specSig,
 						returnAndParamTypes,

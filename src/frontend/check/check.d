@@ -58,7 +58,6 @@ import model.model :
 	ImportFileType,
 	ImportOrExport,
 	ImportOrExportKind,
-	isEmpty,
 	isLinkageAlwaysCompatible,
 	Linkage,
 	linkageRange,
@@ -84,7 +83,6 @@ import model.model :
 	Test,
 	Type,
 	typeArgs,
-	TypeParam,
 	TypeParamIndex,
 	TypeParams,
 	typeParams,
@@ -278,10 +276,10 @@ SpecDeclBody checkSpecDeclBody(
 	SpecDeclAst[] asts,
 ) =>
 	mapWithResultPointer!(SpecDecl, SpecDeclAst)(ctx.alloc, asts, (SpecDeclAst* ast, SpecDecl* out_) {
-		TypeParams typeParams = checkTypeParams(ctx, ast.typeParams);
+		checkTypeParams(ctx, ast.typeParams);
 		SpecDeclBody body_ =
-			checkSpecDeclBody(ctx, commonTypes, TypeContainer(out_), typeParams, structsAndAliasesMap, ast.range, ast.name.name, ast.body_);
-		return SpecDecl(ctx.curUri, ast, visibilityFromExplicit(ast.visibility), ast.name.name, typeParams, body_);
+			checkSpecDeclBody(ctx, commonTypes, TypeContainer(out_), ast.typeParams, structsAndAliasesMap, ast.range, ast.name.name, ast.body_);
+		return SpecDecl(ctx.curUri, ast, visibilityFromExplicit(ast.visibility), ast.name.name, body_);
 	});
 
 void checkSpecDeclParents(
@@ -297,7 +295,7 @@ void checkSpecDeclParents(
 	zip!(SpecDeclAst, SpecDecl)(asts, specs, (ref SpecDeclAst ast, ref SpecDecl spec) {
 		spec.parents = mapOp!(immutable SpecInst*, TypeAst)(ctx.alloc, ast.parents, (ref TypeAst parent) =>
 			checkFunModifierNonSpecial(
-				ctx, commonTypes, structsAndAliasesMap, specsMap, spec.typeParams, parent,
+				ctx, commonTypes, structsAndAliasesMap, specsMap, ast.typeParams, parent,
 				someMut(ptrTrustMe(delaySpecInsts))));
 	});
 
@@ -329,13 +327,14 @@ bool recurDetectSpecRecursion(SpecDecl* cur, ref MutMaxArr!(8, immutable SpecDec
 }
 
 StructAlias[] checkStructAliasesInitial(ref CheckCtx ctx, scope StructAliasAst[] asts) =>
-	mapToMut!(StructAlias, StructAliasAst)(ctx.alloc, asts, (ref StructAliasAst ast) =>
-		StructAlias(
+	mapToMut!(StructAlias, StructAliasAst)(ctx.alloc, asts, (ref StructAliasAst ast) {
+		checkTypeParams(ctx, ast.typeParams);
+		return StructAlias(
 			rangeInFile(ctx, ast.range),
 			copySafeCStr(ctx.alloc, ast.docComment),
 			visibilityFromExplicit(ast.visibility),
-			ast.name.name,
-			checkTypeParams(ctx, ast.typeParams)));
+			ast.name.name);
+	});
 
 void checkStructAliasTargets(
 	ref CheckCtx ctx,
@@ -351,7 +350,7 @@ void checkStructAliasTargets(
 			commonTypes,
 			ast.target,
 			structsAndAliasesMap,
-			structAlias.typeParams,
+			ast.typeParams,
 			someMut(ptrTrustMe(delayStructInsts)));
 		if (type.isA!(StructInst*))
 			setTarget(structAlias, some(type.as!(StructInst*)));
@@ -561,23 +560,22 @@ FunsAndMap checkFuns(
 		(scope ref ExactSizeArrBuilder!FunDecl funsBuilder) @trusted {
 			foreach (FunDeclAst* funAst; ptrsRange(asts)) {
 				FunDecl* fun = pushUninitialized(funsBuilder);
-				TypeParams typeParams = checkTypeParams(ctx, funAst.typeParams);
+				checkTypeParams(ctx, funAst.typeParams);
 				ReturnTypeAndParams rp = checkReturnTypeAndParams(
 					ctx,
 					commonTypes,
 					TypeContainer(fun),
 					funAst.returnType,
 					funAst.params,
-					typeParams,
+					funAst.typeParams,
 					structsAndAliasesMap,
 					noDelayStructInsts);
 				FunFlagsAndSpecs flagsAndSpecs = checkFunModifiers(
-					ctx, commonTypes, funAst.range, funAst.modifiers, structsAndAliasesMap, specsMap, typeParams);
+					ctx, commonTypes, funAst.range, funAst.modifiers, structsAndAliasesMap, specsMap, funAst.typeParams);
 				initMemory(fun, FunDecl(
 					FunDeclSource(FunDeclSource.Ast(ctx.curUri, funAst)),
 					visibilityFromExplicit(funAst.visibility),
 					funAst.name.name,
-					typeParams,
 					rp.returnType,
 					rp.params,
 					flagsAndSpecs.flags,
@@ -733,7 +731,6 @@ FunDecl funDeclForFileImportOrExport(
 		FunDeclSource(FunDeclSource.FileImport(ctx.curUri, a.source)),
 		visibility,
 		ast.name.name,
-		TypeParams.empty,
 		typeForFileImport(ctx, commonTypes, structsAndAliasesMap, pathRange(ctx.allUris, *a.source), ast.type),
 		Params([]),
 		FunFlags.generatedBare,
@@ -763,7 +760,7 @@ Type typeForFileImport(
 FunBody.Extern checkExternBody(ref CheckCtx ctx, FunDecl* fun, in Opt!TypeAst typeArg) {
 	Linkage funLinkage = Linkage.extern_;
 
-	if (!isEmpty(fun.typeParams))
+	if (!empty(fun.typeParams))
 		addDiag(ctx, range(*fun), Diag(Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.hasTypeParams)));
 	if (!empty(fun.specs))
 		addDiag(ctx, range(*fun), Diag(Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.hasSpecs)));

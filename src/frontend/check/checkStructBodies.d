@@ -43,11 +43,11 @@ import model.model :
 	setBody,
 	StructBody,
 	StructDecl,
+	StructDeclSource,
 	StructInst,
 	symOfForcedByValOrRefOrNone,
 	symOfLinkage,
 	Type,
-	TypeParam,
 	TypeParamIndex,
 	typeParams,
 	UnionMember,
@@ -64,12 +64,12 @@ import util.util : isMultipleOf, todo, unreachable;
 
 StructDecl[] checkStructsInitial(ref CheckCtx ctx, in StructDeclAst[] asts) =>
 	mapPointers!(StructDecl, StructDeclAst)(ctx.alloc, asts, (StructDeclAst* ast) {
+		checkTypeParams(ctx, ast.typeParams);
 		LinkageAndPurity p = getStructModifiers(ctx, getTypeKind(ast.body_), ast.modifiers);
 		return StructDecl(
-			some(ast),
+			StructDeclSource(ast),
 			ctx.curUri,
 			ast.name.name,
-			checkTypeParams(ctx, ast.typeParams),
 			visibilityFromExplicit(ast.visibility),
 			p.linkage,
 			p.purityAndForced.purity,

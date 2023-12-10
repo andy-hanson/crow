@@ -45,7 +45,6 @@ import model.model :
 	CommonTypes,
 	decl,
 	Destructure,
-	emptyTypeParams,
 	EnumBackingType,
 	EnumFunction,
 	Expr,
@@ -74,9 +73,7 @@ import model.model :
 	Test,
 	Type,
 	typeArgs,
-	TypeParam,
 	TypeParamIndex,
-	TypeParams,
 	typeParams,
 	UnionMember,
 	VarDecl,
@@ -104,17 +101,10 @@ import versionInfo : VersionInfo;
 immutable struct TypeArgsScope {
 	@safe @nogc pure nothrow:
 
-	TypeParams typeParams; // TODO: no longer needed? -------------------------------------------------------------------------
 	ConcreteType[] typeArgs;
 
-	this(TypeParams tp, ConcreteType[] ta) {
-		typeParams = tp;
-		typeArgs = ta;
-		assert(sizeEq(typeParams.asArray, typeArgs));
-	}
-
 	static TypeArgsScope empty() =>
-		TypeArgsScope(emptyTypeParams, []);
+		TypeArgsScope([]);
 }
 
 private immutable struct ConcreteStructKey {
@@ -147,21 +137,20 @@ private ConcreteFunKey getFunKey(return in ConcreteFun* a) =>
 	a.source.as!ConcreteFunKey;
 
 private ContainingFunInfo toContainingFunInfo(ConcreteFunKey a) =>
-	ContainingFunInfo(moduleUri(*a.decl), a.decl.typeParams, a.decl.specs, a.typeArgs, a.specImpls);
+	ContainingFunInfo(moduleUri(*a.decl), a.decl.specs, a.typeArgs, a.specImpls);
 
 TypeArgsScope typeArgsScope(ref ConcreteFunKey a) =>
 	typeArgsScope(toContainingFunInfo(a));
 
 immutable struct ContainingFunInfo {
 	Uri uri;
-	TypeParams typeParams; // TODO: get this from cf? --------------------------------------------------------------------
 	SmallArray!(immutable SpecInst*) specs;
-	ConcreteType[] typeArgs; //TODO:SmallArray----------------------------------------------------------------------------
-	ConcreteFun*[] specImpls;
+	SmallArray!ConcreteType typeArgs;
+	SmallArray!(immutable ConcreteFun*) specImpls;
 }
 
 TypeArgsScope typeArgsScope(ContainingFunInfo a) =>
-	TypeArgsScope(a.typeParams, a.typeArgs);
+	TypeArgsScope(a.typeArgs);
 
 private immutable struct ConcreteFunBodyInputs {
 	// NOTE: for a lambda, these are for the *outermost* fun (the one with type args and spec impls).
@@ -307,14 +296,14 @@ ConcreteFun* getConcreteFunForLambdaAndFillBody(
 }
 
 ConcreteFun* getOrAddNonTemplateConcreteFunAndFillBody(ref ConcretizeCtx ctx, FunInst* inst) =>
-	getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(decl(*inst), [], []));
+	getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(decl(*inst), emptySmallArray!ConcreteType, emptySmallArray!(immutable ConcreteFun*)));
 
 private ConcreteType getConcreteType_forStructInst(
 	ref ConcretizeCtx ctx,
 	StructInst* i,
 	in TypeArgsScope typeArgsScope,
 ) {
-	ConcreteType[] typeArgs = typesToConcreteTypes(ctx, typeArgs(*i), typeArgsScope);
+	SmallArray!ConcreteType typeArgs = typesToConcreteTypes(ctx, typeArgs(*i), typeArgsScope);
 	ConcreteStructKey key = ConcreteStructKey(decl(*i), typeArgs);
 	ValueAndDidAdd!(ConcreteStruct*) res =
 		getOrAddAndDidAdd!(ConcreteStruct*, ConcreteStructKey, getStructKey)(
@@ -352,9 +341,9 @@ ConcreteType getConcreteType(ref ConcretizeCtx ctx, Type t, in TypeArgsScope typ
 		(StructInst* i) =>
 			getConcreteType_forStructInst(ctx, i, typeArgsScope));
 
-ConcreteType[] typesToConcreteTypes(ref ConcretizeCtx ctx, in Type[] types, in TypeArgsScope typeArgsScope) =>
-	map(ctx.alloc, types, (ref Type t) =>
-		getConcreteType(ctx, t, typeArgsScope));
+SmallArray!ConcreteType typesToConcreteTypes(ref ConcretizeCtx ctx, in Type[] types, in TypeArgsScope typeArgsScope) =>
+	small(map(ctx.alloc, types, (ref Type t) =>
+		getConcreteType(ctx, t, typeArgsScope)));
 
 ConcreteType concreteTypeFromClosure(
 	ref ConcretizeCtx ctx,
@@ -459,7 +448,7 @@ ConcreteFun* concreteFunForTest(ref ConcretizeCtx ctx, ref Test test, size_t tes
 		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.Test(range(test), testIndex))),
 		voidType(ctx),
 		[]));
-	ContainingFunInfo containing = ContainingFunInfo(test.moduleUri, emptyTypeParams, emptySmallArray!(immutable SpecInst*), [], []);
+	ContainingFunInfo containing = ContainingFunInfo(test.moduleUri, emptySmallArray!(immutable SpecInst*), emptySmallArray!ConcreteType, emptySmallArray!(immutable ConcreteFun*));
 	ConcreteExpr body_ = concretizeFunBody(ctx, containing, res, [], test.body_);
 	lateSet(res._body_, ConcreteFunBody(body_));
 	addConcreteFun(ctx, res);
@@ -482,8 +471,8 @@ public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* mo
 	ConcreteFun* newNat64Future = getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
 		decl(*ctx.program.commonFuns.newNat64Future),
 		//TODO:avoid alloc
-		arrLiteral(ctx.alloc, [nat64Type]),
-		[]));
+		small(arrLiteral(ctx.alloc, [nat64Type])),
+		emptySmallArray!(immutable ConcreteFun*)));
 	ConcreteExpr callNewNatFuture = ConcreteExpr(newNat64Future.returnType, range, ConcreteExprKind(
 		ConcreteExprKind.Call(newNat64Future, arrLiteral(ctx.alloc, [zero]))));
 	ConcreteExpr body_ = ConcreteExpr(newNat64Future.returnType, range, ConcreteExprKind(

@@ -5,7 +5,7 @@ module frontend.check.getCommonFuns;
 import frontend.check.funsForStruct : funDeclWithBody;
 import frontend.check.inferringType : typesAreCorrespondingStructInsts;
 import frontend.check.instantiate : InstantiateCtx, instantiateFun, instantiateStructNeverDelay;
-import frontend.parse.ast : StructDeclAst;
+import frontend.parse.ast : NameAndRange, StructDeclAst;
 import model.diag : Diag, UriAndDiagnostic;
 import model.model :
 	assertNonVariadic,
@@ -36,8 +36,8 @@ import model.model :
 	StructInst,
 	StructOrAlias,
 	StructDecl,
+	StructDeclSource,
 	Type,
-	TypeParam,
 	TypeParamIndex,
 	TypeParams,
 	TypeParamsAndSig,
@@ -181,7 +181,7 @@ ParamShort param(string name)(Type type) =>
 
 private:
 
-immutable TypeParam[1] singleTypeParam = [TypeParam(sym!"t")];
+immutable NameAndRange[1] singleTypeParam = [NameAndRange(0, sym!"t")];
 TypeParams singleTypeParams() => TypeParams(singleTypeParam);
 Type singleTypeParamType() =>
 	Type(TypeParamIndex(0));
@@ -241,11 +241,11 @@ StructDecl* getStructDeclOrAddDiag(
 			UriAndRange(module_.uri, Range.empty),
 			Diag(Diag.CommonTypeMissing(name))));
 		return allocate(alloc, StructDecl(
-			none!(StructDeclAst*),
+			StructDeclSource(allocate(alloc, StructDeclSource.Bogus(
+				TypeParams(makeArray!NameAndRange(alloc, nTypeParams, (size_t index) =>
+					NameAndRange(0, sym!"a")))))),
 			module_.uri,
 			name,
-			TypeParams(makeArray!TypeParam(alloc, nTypeParams, (size_t index) =>
-				TypeParam(sym!"a"))),
 			Visibility.public_,
 			Linkage.extern_,
 			Purity.data,
@@ -268,7 +268,7 @@ if (has(optReferents)) {
 bool signatureMatchesTemplate(in FunDecl actual, in TypeParamsAndSig expected) =>
 	empty(actual.specs) &&
 		!actual.params.isA!(Params.Varargs*) &&
-		sizeEq(actual.typeParams.asArray, expected.typeParams.asArray) &&
+		sizeEq(actual.typeParams, expected.typeParams) &&
 		typesMatch(actual.returnType, actual.typeParams, expected.returnType, expected.typeParams) &&
 		arrsCorrespond!(Destructure, ParamShort)(
 			assertNonVariadic(actual.params),
@@ -340,10 +340,9 @@ FunDeclAndSigIndex getFunDeclMulti(
 		return lateGet(res);
 	else {
 		FunDecl* decl = allocate(alloc, funDeclWithBody(
-			FunDeclSource(FunDeclSource.Bogus(module_.uri)),
+			FunDeclSource(FunDeclSource.Bogus(module_.uri, expectedSigs[0].typeParams)),
 			Visibility.public_,
 			name,
-			expectedSigs[0].typeParams,
 			expectedSigs[0].returnType,
 			makeParams(alloc, expectedSigs[0].params),
 			FunFlags.generatedBare,
@@ -353,7 +352,7 @@ FunDeclAndSigIndex getFunDeclMulti(
 			UriAndRange(module_.uri, Range.empty),
 			Diag(Diag.CommonFunMissing(decl, map(alloc, expectedSigs, (ref TypeParamsAndSig sig) =>
 				TypeParamsAndSig(
-					TypeParams(copyArr(alloc, sig.typeParams.asArray)),
+					TypeParams(copyArr(alloc, sig.typeParams)),
 					sig.returnType,
 					copyArr(alloc, sig.params)))))));
 		return FunDeclAndSigIndex(decl, 0);

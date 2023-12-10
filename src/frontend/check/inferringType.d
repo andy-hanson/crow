@@ -20,7 +20,6 @@ import model.model :
 	StructInst,
 	Type,
 	typeArgs,
-	TypeParam,
 	TypeParamIndex,
 	TypeParams;
 import util.alloc.alloc : Alloc;
@@ -30,7 +29,7 @@ import util.col.arrBuilder : add, ArrBuilder, arrBuilderIsEmpty, arrBuilderTempA
 import util.col.arrUtil : arrLiteral, contains, exists, indexOf, map, zip, zipEvery;
 import util.col.enumMap : enumMapFindKey;
 import util.col.mutMaxArr : push, tempAsArr;
-import util.opt : has, force, MutOpt, none, noneMut, Opt, some, someConst, someMut;
+import util.opt : has, force, MutOpt, none, noneMut, Opt, optOrDefault, some, someConst, someMut;
 import util.ptr : castNonScope, castNonScope_ref;
 import util.union_ : UnionMutable;
 import util.util : todo, unreachable;
@@ -87,8 +86,8 @@ struct InferringTypeArgs {
 }
 
 // We can infer type args of 'a' but can't change inferred type args for 'b'
-bool matchTypesNoDiagnostic(ref InstantiateCtx ctx, TypeParams outerContext, TypeAndContext expectedType, const TypeAndContext actualType) =>
-	checkType(ctx, outerContext, expectedType, actualType);
+bool matchTypesNoDiagnostic(ref InstantiateCtx ctx, TypeAndContext expectedType, const TypeAndContext actualType) =>
+	checkType(ctx, expectedType, actualType);
 
 struct LoopInfo {
 	immutable Type voidType;
@@ -293,22 +292,22 @@ private Opt!Type tryGetDeeplyInstantiatedType(ref InstantiateCtx ctx, ref const 
 		: none!Type;
 }
 
-bool matchExpectedVsReturnTypeNoDiagnostic(ref InstantiateCtx ctx, TypeParams outerContext, ref const Expected expected, TypeAndContext candidateReturnType) =>
+bool matchExpectedVsReturnTypeNoDiagnostic(ref InstantiateCtx ctx, ref const Expected expected, TypeAndContext candidateReturnType) =>
 	expected.matchConst!bool(
 		(Expected.Infer) =>
 			true,
 		(Expected.LocalType x) =>
 			// We have a particular expected type, so infer its type args
-			matchTypesNoDiagnostic(ctx, outerContext, candidateReturnType, localTypeAndContext(x)),
+			matchTypesNoDiagnostic(ctx, candidateReturnType, localTypeAndContext(x)),
 		(const TypeAndContext[] choices) @safe {
 			if (choices.length == 1) {
 				Opt!Type t = tryGetDeeplyInstantiatedType(ctx, expected);
 				if (has(t))
-					return matchTypesNoDiagnostic(ctx, outerContext, candidateReturnType, TypeAndContext(force(t), nonInferringTypeContext));
+					return matchTypesNoDiagnostic(ctx, candidateReturnType, TypeAndContext(force(t), nonInferringTypeContext));
 			}
 			// Don't infer any type args here; multiple candidates and multiple possible return types.
 			return exists!(const TypeAndContext)(choices, (in TypeAndContext x) =>
-				isTypeMatchPossible(outerContext, x, candidateReturnType));
+				isTypeMatchPossible(x, candidateReturnType));
 		},
 		(const LoopInfo*) =>
 			false);
@@ -340,7 +339,7 @@ Type inferred(ref const Expected expected) =>
 			x.voidType);
 
 Expr check(ref ExprCtx ctx, ExprAst* source, ref Expected expected, Type exprType, Expr expr) {
-	if (setTypeNoDiagnostic(ctx.instantiateCtx, ctx.outermostFunTypeParams, expected, Expected.LocalType(exprType)))
+	if (setTypeNoDiagnostic(ctx.instantiateCtx, expected, Expected.LocalType(exprType)))
 		return expr;
 	else {
 		addDiag2(ctx, expr.range, Diag(Diag.TypeConflict(getExpectedForDiag(ctx, expected), typeWithContainer(ctx, exprType))));
@@ -353,13 +352,12 @@ ExpectedForDiag getExpectedForDiag(ref ExprCtx ctx, ref const Expected expected)
 		(Expected.Infer) =>
 			ExpectedForDiag(ExpectedForDiag.Infer()),
 		(Expected.LocalType x) =>
-			ExpectedForDiag(arrLiteral!TypeWithContainer(ctx.alloc, [TypeWithContainer(x.type, ctx.typeContainer)])),
+			ExpectedForDiag(ExpectedForDiag.Choices(arrLiteral!Type(ctx.alloc, [x.type]), ctx.typeContainer)),
 		(const TypeAndContext[] xs) =>
-			// TODO: this should instantiate types as much as possible to reflect inference up to this point
-			// TODO: restore below-----------------------------------------------------------------------------------------------------------
-			todo!ExpectedForDiag("!"),
-			//ExpectedForDiag(map(ctx.alloc, xs, (scope ref const TypeAndContext x) =>
-			//	TypeWithContainer(x.type, x.context.typeParams))),
+			ExpectedForDiag(ExpectedForDiag.Choices(
+				map(ctx.alloc, xs, (ref const TypeAndContext x) =>
+					applyInferred(ctx.instantiateCtx, x)),
+				ctx.typeContainer)),
 		(const LoopInfo*) =>
 			ExpectedForDiag(ExpectedForDiag.Loop()));
 
@@ -374,18 +372,18 @@ void setExpectedIfNoInferred(ref Expected expected, in Type delegate() @safe @no
 }
 
 // Note: this may infer type parameters
-private bool setTypeNoDiagnostic(ref InstantiateCtx ctx, TypeParams outerContext, ref Expected expected, Expected.LocalType actual) =>
+private bool setTypeNoDiagnostic(ref InstantiateCtx ctx, ref Expected expected, Expected.LocalType actual) =>
 	expected.match!bool(
 		(Expected.Infer) {
 			setToType(expected, actual);
 			return true;
 		},
 		(Expected.LocalType x) =>
-			checkType(ctx, outerContext, localTypeAndContext(x), localTypeAndContext(actual)),
+			checkType(ctx, localTypeAndContext(x), localTypeAndContext(actual)),
 		(TypeAndContext[] choices) {
 			bool anyOk = false;
 			foreach (ref TypeAndContext x; choices)
-				if (checkType(ctx, outerContext, x, localTypeAndContext(actual)))
+				if (checkType(ctx, x, localTypeAndContext(actual)))
 					anyOk = true;
 			if (anyOk) setToType(expected, actual);
 			return anyOk;
@@ -415,34 +413,52 @@ Opt!Type tryGetDeeplyInstantiatedType(ref InstantiateCtx ctx, const TypeAndConte
 
 private:
 
+// For diagnostics: Applies types that have been inferred, otherwise uses Bogus
+Type applyInferred(ref InstantiateCtx ctx, in TypeAndContext a) =>
+	a.type.match!Type(
+		(Type.Bogus) =>
+			Type(Type.Bogus()),
+		(TypeParamIndex x) {
+			const MutOpt!(SingleInferringType*) ta = tryGetInferring(a.context, x);
+			return optOrDefault!Type(
+				has(ta) ? tryGetInferred(*force(ta)) : none!Type,
+				() => Type(Type.Bogus()));
+		},
+		(ref StructInst i) @safe {
+			scope TypeArgsArray newTypeArgs = typeArgsArray();
+			foreach (Type x; typeArgs(i))
+				push(newTypeArgs, applyInferred(ctx, const TypeAndContext(x, a.context)));
+			return Type(instantiateStructNeverDelay(ctx, decl(i), tempAsArr(newTypeArgs)));
+		});
+
 /*
 Tries to find a way for 'a' and 'b' to be the same type.
 It can fill in type arguments for 'a'. But unknown types in 'b' it will assume compatibility.
 Returns true if it succeeds.
 */
-bool checkType(ref InstantiateCtx ctx, TypeParams outerContext, TypeAndContext a, const TypeAndContext b) =>
+bool checkType(ref InstantiateCtx ctx, TypeAndContext a, const TypeAndContext b) =>
 	a.type.matchWithPointers!bool(
 		(Type.Bogus) =>
 			// TODO: make sure to infer type params in this case!
 			true,
 		(TypeParamIndex pa) =>
-			checkType_TypeParam(ctx, outerContext, pa, a.context, b),
+			checkType_TypeParam(ctx, pa, a.context, b),
 		(StructInst* ai) =>
 			b.type.matchWithPointers!bool(
 				(Type.Bogus) =>
 					true,
 				(TypeParamIndex pb) =>
-					checkType_TypeParamB(ctx, outerContext, a, pb, b.context),
+					checkType_TypeParamB(ctx, a, pb, b.context),
 				(StructInst* bi) =>
 					decl(*ai) == decl(*bi) &&
 					zipEvery!(Type, Type)(typeArgs(*ai), typeArgs(*bi), (ref Type argA, ref Type argB) @safe =>
-						checkType(ctx, outerContext, TypeAndContext(argA, a.context), const TypeAndContext(argB, b.context)))));
+						checkType(ctx, TypeAndContext(argA, a.context), const TypeAndContext(argB, b.context)))));
 
-bool checkType_TypeParam(ref InstantiateCtx ctx, TypeParams outerContext, TypeParamIndex a, TypeContext aContext, const TypeAndContext b) {
+bool checkType_TypeParam(ref InstantiateCtx ctx, TypeParamIndex a, TypeContext aContext, const TypeAndContext b) {
 	MutOpt!(SingleInferringType*) aInferring = tryGetInferring(aContext, a);
 	if (has(aInferring)) {
 		Opt!Type inferred = tryGetInferred(*force(aInferring));
-		bool ok = !has(inferred) || checkType(ctx, outerContext, TypeAndContext(force(inferred), nonInferringTypeContext()), b);
+		bool ok = !has(inferred) || checkType(ctx, TypeAndContext(force(inferred), nonInferringTypeContext()), b);
 		if (ok) {
 			Opt!Type bInferred = tryGetDeeplyInstantiatedType(ctx, b);
 			if (has(bInferred))
@@ -466,11 +482,11 @@ bool checkType_TypeParam(ref InstantiateCtx ctx, TypeParams outerContext, TypePa
 				false);
 }
 
-bool checkType_TypeParamB(ref InstantiateCtx ctx, TypeParams outerContext, TypeAndContext a, TypeParamIndex b, in TypeContext bContext) {
+bool checkType_TypeParamB(ref InstantiateCtx ctx, TypeAndContext a, TypeParamIndex b, in TypeContext bContext) {
 	const MutOpt!(SingleInferringType*) bInferred = tryGetInferring(bContext, b);
 	if (has(bInferred)) {
 		Opt!Type inferred = tryGetInferred(*force(bInferred));
-		return !has(inferred) || checkType(ctx, outerContext, a, TypeAndContext(force(inferred), nonInferringTypeContext()));
+		return !has(inferred) || checkType(ctx, a, TypeAndContext(force(inferred), nonInferringTypeContext()));
 	} else
 		return false;
 }
@@ -500,7 +516,6 @@ public Opt!FunType getFunType(in CommonTypes commonTypes, Type a) {
 public void inferTypeArgsFromLambdaParameterType(
 	ref InstantiateCtx ctx,
 	in CommonTypes commonTypes,
-	TypeParams outerContext,
 	Type a,
 	scope InferringTypeArgs aInferringTypeArgs,
 	Type lambdaParameterType,
@@ -508,20 +523,19 @@ public void inferTypeArgsFromLambdaParameterType(
 	Opt!FunType funType = getFunType(commonTypes, a);
 	if (has(funType)) {
 		Type paramType = force(funType).nonInstantiatedParamType;
-		inferTypeArgsFrom(ctx, outerContext, paramType, aInferringTypeArgs, TypeAndContext(lambdaParameterType, nonInferringTypeContext()));
+		inferTypeArgsFrom(ctx, paramType, aInferringTypeArgs, TypeAndContext(lambdaParameterType, nonInferringTypeContext()));
 	}
 }
 
 public void inferTypeArgsFrom(
 	ref InstantiateCtx ctx,
-	TypeParams outerContext,
 	Type a,
 	scope InferringTypeArgs aInferringTypeArgs,
 	const TypeAndContext b,
 ) {
 	if (isInferringNonInferredTypeParam(b))
 		return;
-	const TypeAndContext b2 = maybeInferred(outerContext, b);
+	const TypeAndContext b2 = maybeInferred(b);
 	a.matchWithPointers!void(
 		(Type.Bogus) {},
 		(TypeParamIndex ap) {
@@ -537,23 +551,23 @@ public void inferTypeArgsFrom(
 				const StructInst* bi = b2.type.as!(StructInst*);
 				if (decl(*ai) == decl(*bi))
 					zip(typeArgs(*ai), typeArgs(*bi), (ref Type ta, ref Type tb) {
-						inferTypeArgsFrom(ctx, outerContext, ta, aInferringTypeArgs, const TypeAndContext(tb, b2.context));
+						inferTypeArgsFrom(ctx, ta, aInferringTypeArgs, const TypeAndContext(tb, b2.context));
 					});
 			}
 		});
 }
 
-bool isTypeMatchPossible(in TypeParams outerContext, in TypeAndContext a, in TypeAndContext b) {
+bool isTypeMatchPossible(in TypeAndContext a, in TypeAndContext b) {
 	if (isInferringNonInferredTypeParam(a) || isInferringNonInferredTypeParam(b))
 		return true;
 	else {
-		const TypeAndContext a2 = maybeInferred(outerContext, a);
-		const TypeAndContext b2 = maybeInferred(outerContext, b);
+		const TypeAndContext a2 = maybeInferred(a);
+		const TypeAndContext b2 = maybeInferred(b);
 		return (a2.type == b2.type && isNonInferringContext(a2.context) && isNonInferringContext(b2.context)) ||
 			a2.type.isA!(Type.Bogus) ||
 			b2.type.isA!(Type.Bogus) ||
 			typesAreCorrespondingStructInsts(a2.type, b2.type, (ref Type x, ref Type y) =>
-				isTypeMatchPossible(outerContext, const TypeAndContext(x, a2.context), const TypeAndContext(y, b2.context)));
+				isTypeMatchPossible(const TypeAndContext(x, a2.context), const TypeAndContext(y, b2.context)));
 	}
 }
 // True for a type param with no inference yet
@@ -568,7 +582,7 @@ bool isInferringNonInferredTypeParam(in TypeAndContext a) {
 	} else
 		return false;
 }
-const(TypeAndContext) maybeInferred(return in TypeParams outerContext, return scope const TypeAndContext a) {
+const(TypeAndContext) maybeInferred(return scope const TypeAndContext a) {
 	if (a.type.isA!TypeParamIndex) {
 		const MutOpt!(SingleInferringType*) inferring = tryGetInferring(a.context, a.type.as!TypeParamIndex);
 		if (has(inferring)) {

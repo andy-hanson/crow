@@ -3,6 +3,7 @@ module frontend.showModel;
 @safe @nogc pure nothrow:
 
 import frontend.check.typeFromAst : typeSyntaxKind;
+import frontend.parse.ast : NameAndRange;
 import frontend.storage : lineAndColumnAtPos, LineAndColumnGetters, lineAndColumnRange;
 import model.diag : Diag, TypeContainer, typeParamAsts, TypeWithContainer;
 import model.model :
@@ -14,7 +15,6 @@ import model.model :
 	FunDecl,
 	FunDeclAndTypeArgs,
 	FunInst,
-	isEmpty,
 	isTuple,
 	Local,
 	name,
@@ -29,7 +29,6 @@ import model.model :
 	symOfPurity,
 	Type,
 	typeArgs,
-	TypeParam,
 	TypeParamIndex,
 	TypeParams,
 	TypeParamsAndSig;
@@ -132,10 +131,10 @@ private void writeTypeParamsAndArgs(
 	in TypeContainer typeArgsContext,
 	in Type[] typeArgs,
 ) {
-	assert(sizeEq(typeParams.asArray, typeArgs));
-	if (!isEmpty(typeParams)) {
+	assert(sizeEq(typeParams, typeArgs));
+	if (!empty(typeParams)) {
 		writer ~= " with ";
-		writeWithCommasZip!(TypeParam, Type)(writer, typeParams.asArray, typeArgs, (in TypeParam param, in Type arg) {
+		writeWithCommasZip!(NameAndRange, Type)(writer, typeParams, typeArgs, (in NameAndRange param, in Type arg) {
 			writeSym(writer, ctx.allSymbols, param.name);
 			writer ~= '=';
 			writeTypeUnquoted(writer, ctx, TypeWithContainer(arg, typeArgsContext));
@@ -214,9 +213,9 @@ void writeSig(
 
 void writeSigSimple(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, Sym name, in TypeParamsAndSig sig) {
 	writeSym(writer, ctx.allSymbols, name);
-	if (!isEmpty(sig.typeParams)) {
+	if (!empty(sig.typeParams)) {
 		writer ~= '[';
-		writeWithCommas!TypeParam(writer, sig.typeParams.asArray, (in TypeParam x) {
+		writeWithCommas!NameAndRange(writer, sig.typeParams, (in NameAndRange x) {
 			writeSym(writer, ctx.allSymbols, x.name);
 		});
 		writer ~= ']';

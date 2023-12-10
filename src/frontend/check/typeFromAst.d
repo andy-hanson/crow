@@ -40,12 +40,11 @@ import model.model :
 	StructOrAlias,
 	target,
 	Type,
-	TypeParam,
 	TypeParamIndex,
 	TypeParams,
 	typeParams;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : arrayOfSingle, empty, only, small;
+import util.col.arr : arrayOfSingle, empty, only, small, SmallArray;
 import util.col.arrUtil : eachPair, findIndex, map, mapOrNone, mapWithIndex, mapZip;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault, some;
@@ -134,13 +133,12 @@ size_t getNTypeArgsForDiagnostic(in CommonTypes commonTypes, in Opt!Type explici
 		return 0;
 }
 
-TypeParams checkTypeParams(ref CheckCtx ctx, in NameAndRange[] asts) {
+void checkTypeParams(ref CheckCtx ctx, in NameAndRange[] asts) {
 	eachPair!NameAndRange(asts, (in NameAndRange x, in NameAndRange y) {
 		if (x.name == y.name)
 			addDiag(ctx, rangeOfNameAndRange(y, ctx.allSymbols), Diag(
 				Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.typeParam, y.name)));
 	});
-	return TypeParams(map!(TypeParam, NameAndRange)(ctx.alloc, asts, (ref NameAndRange x) => TypeParam(x.name)));
 }
 
 Type typeFromAstNoTypeParamsNeverDelay(
@@ -264,7 +262,7 @@ private Type typeFromTupleAst(
 }
 
 private Opt!TypeParamIndex findTypeParam(TypeParams typeParamsScope, Sym name) {
-	Opt!size_t res = findIndex!TypeParam(typeParamsScope.asArray, (in TypeParam x) =>
+	Opt!size_t res = findIndex!NameAndRange(typeParamsScope, (in NameAndRange x) =>
 		x.name == name);
 	return has(res) ? some(TypeParamIndex(force(res))) : none!TypeParamIndex;
 }

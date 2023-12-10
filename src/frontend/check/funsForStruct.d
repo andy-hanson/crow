@@ -39,7 +39,6 @@ import model.model :
 	StructInst,
 	Type,
 	typeArgs,
-	TypeParam,
 	TypeParamIndex,
 	TypeParams,
 	typeParams,
@@ -140,14 +139,13 @@ FunDecl funDeclWithBody(
 	FunDeclSource source,
 	Visibility visibility,
 	Sym name,
-	TypeParams typeParams,
 	Type returnType,
 	Params params,
 	FunFlags flags,
 	immutable(SpecInst*)[] specInsts,
 	FunBody body_,
 ) {
-	FunDecl res = FunDecl(source, visibility, name, typeParams, returnType, params, flags, small(specInsts));
+	FunDecl res = FunDecl(source, visibility, name, returnType, params, flags, small(specInsts));
 	res.setBody(body_);
 	return res;
 }
@@ -163,7 +161,7 @@ FunDecl basicFunDecl(
 	FunFlags flags,
 	FunBody body_,
 ) =>
-	funDeclWithBody(source, visibility, name, emptyTypeParams, returnType, params, flags, [], body_);
+	funDeclWithBody(source, visibility, name, returnType, params, flags, [], body_);
 
 FunDecl newExtern(ref InstantiateCtx ctx, StructDecl* struct_) =>
 	basicFunDecl(
@@ -379,7 +377,6 @@ void addFunsForRecordConstructor(
 		FunDeclSource(struct_),
 		record.flags.newVisibility,
 		sym!"new",
-		struct_.typeParams,
 		structType,
 		Params(map(ctx.alloc, record.fields, (ref RecordField x) =>
 			makeParam(ctx.alloc, x.name, x.type))),
@@ -403,7 +400,6 @@ void addFunsForRecordField(
 		FunDeclSource(struct_),
 		fieldVisibility,
 		field.name,
-		struct_.typeParams,
 		field.type,
 		makeParams(ctx.alloc, [param!"a"(structType)]),
 		FunFlags.generatedBare,
@@ -415,7 +411,6 @@ void addFunsForRecordField(
 			FunDeclSource(struct_),
 			visibility,
 			field.name,
-			struct_.typeParams,
 			fieldPointer,
 			makeParams(ctx.alloc, [param!"a"(recordPointer)]),
 			FunFlags.generatedBareUnsafe,
@@ -438,7 +433,6 @@ void addFunsForRecordField(
 				FunDeclSource(struct_),
 				setVisibility,
 				prependSetDeref(ctx.allSymbols, field.name),
-				struct_.typeParams,
 				Type(commonTypes.void_),
 				makeParams(ctx.alloc, [
 					param!"a"(recordMutPointer),
@@ -456,7 +450,6 @@ void addFunsForRecordField(
 				FunDeclSource(struct_),
 				setVisibility,
 				prependSet(ctx.allSymbols, field.name),
-				struct_.typeParams,
 				Type(commonTypes.void_),
 				makeParams(ctx.alloc, [param!"a"(structType), ParamShort(field.name, field.type)]),
 				FunFlags.generatedBare,
@@ -494,7 +487,6 @@ void addFunsForUnion(
 			FunDeclSource(struct_),
 			struct_.visibility,
 			member.name,
-			struct_.typeParams,
 			structType,
 			params,
 			FunFlags.generatedBare,

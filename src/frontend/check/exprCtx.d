@@ -19,7 +19,6 @@ import model.model :
 	range,
 	SpecInst,
 	Type,
-	TypeParam,
 	TypeParams,
 	VariableRef;
 import util.alloc.alloc : Alloc;

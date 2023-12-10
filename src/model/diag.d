@@ -7,6 +7,7 @@ import model.model :
 	Called,
 	CalledDecl,
 	Destructure,
+	emptyTypeParams,
 	EnumBackingType,
 	FunDecl,
 	FunDeclAndTypeArgs,
@@ -516,9 +517,13 @@ immutable struct Diag {
 }
 
 immutable struct ExpectedForDiag {
+	immutable struct Choices {
+		Type[] types;
+		TypeContainer typeContainer;
+	}
 	immutable struct Infer {}
 	immutable struct Loop {}
-	mixin Union!(TypeWithContainer[], Infer, Loop);
+	mixin Union!(Choices, Infer, Loop);
 }
 
 immutable struct TypeWithContainer {
@@ -544,15 +549,15 @@ Uri uriOfTypeContainer(in TypeContainer a) =>
 		(in VarDecl x) =>
 			x.moduleUri);
 
-SmallArray!NameAndRange typeParamAsts(in TypeContainer a) =>
-	a.matchIn!(SmallArray!NameAndRange)(
+TypeParams typeParamAsts(in TypeContainer a) =>
+	a.matchIn!TypeParams(
 		(in FunDecl x) =>
-			x.source.as!(FunDeclSource.Ast).ast.typeParams,
+			x.typeParams,
 		(in SpecDecl x) =>
-			x.ast.typeParams,
+			x.typeParams,
 		(in StructDecl x) =>
-			force(x.ast).typeParams,
+			x.typeParams,
 		(in Test x) =>
-			emptySmallArray!NameAndRange,
+			emptyTypeParams,
 		(in VarDecl x) =>
-			emptySmallArray!NameAndRange);
+			emptyTypeParams);

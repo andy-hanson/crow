@@ -2,6 +2,7 @@ module document.document;
 
 @safe @nogc pure nothrow:
 
+import frontend.parse.ast : NameAndRange;
 import model.concreteModel : TypeSize;
 import model.model :
 	body_,
@@ -36,7 +37,6 @@ import model.model :
 	target,
 	Type,
 	typeArgs,
-	TypeParam,
 	TypeParamIndex,
 	TypeParams,
 	typeParams,
@@ -117,7 +117,7 @@ DocExport documentExport(
 	DocExport(range, jsonObject(alloc, [
 		field!"name"(name),
 		optionalStringField!"doc"(alloc, docComment),
-		optionalArrayField!("type-params", TypeParam)(alloc, typeParams.asArray, (in TypeParam x) =>
+		optionalArrayField!("type-params", NameAndRange)(alloc, typeParams, (in NameAndRange x) =>
 			jsonObject(alloc, [field!"name"(x.name)])),
 		field!"value"(value)]));
 
@@ -273,7 +273,7 @@ Json documentTypeRef(ref Alloc alloc, in TypeParams typeParams, in Type a) =>
 		(in Type.Bogus) =>
 			unreachable!Json,
 		(in TypeParamIndex x) =>
-			jsonObject(alloc, [kindField!"type-param", field!"name"(typeParams[x].name)]),
+			jsonObject(alloc, [kindField!"type-param", field!"name"(typeParams[x.index].name)]),
 		(in StructInst x) =>
 			documentStructInst(alloc, typeParams, x));
 

@@ -83,6 +83,7 @@ import model.model :
 	StructAlias,
 	StructBody,
 	StructDecl,
+	StructDeclSource,
 	StructInst,
 	Test,
 	ThrowExpr,
@@ -328,37 +329,40 @@ void eachTypeInSpec(in SpecDecl a, in TypeCb cb) {
 		});
 }
 
-void eachTypeInStruct(in StructDecl a, in TypeCb cb) {
-	if (has(a.ast)) {
-		StructDeclAst* ast = force(a.ast);
-		body_(a).matchIn!void(
-			(in StructBody.Bogus) {},
-			(in StructBody.Builtin) {},
-			(in StructBody.Enum) {
-				// TODO: references for backingType
-			},
-			(in StructBody.Extern) {},
-			(in StructBody.Flags) {
-				// TODO: references for backingType
-			},
-			(in StructBody.Record x) {
-				zip!(RecordField, StructDeclAst.Body.Record.Field)(
-					x.fields,
-					ast.body_.as!(StructDeclAst.Body.Record).fields,
-					(ref RecordField field, ref StructDeclAst.Body.Record.Field fieldAst) {
-						eachTypeInType(field.type, fieldAst.type, cb);
-					});
-			},
-			(in StructBody.Union x) {
-				zip!(UnionMember, StructDeclAst.Body.Union.Member)(
-					x.members,
-					ast.body_.as!(StructDeclAst.Body.Union).members,
-					(ref UnionMember member, ref StructDeclAst.Body.Union.Member memberAst) {
-						if (has(memberAst.type))
-							eachTypeInType(member.type, force(memberAst.type), cb);
-					});
-			});
-	}
+void eachTypeInStruct(in StructDecl a, in TypeCb cb) =>
+	a.source.matchIn!void(
+		(in StructDeclAst x) {
+			eachTypeInStructBody(body_(a), x.body_, cb);
+		},
+		(in StructDeclSource.Bogus) {});
+void eachTypeInStructBody(in StructBody body_, in StructDeclAst.Body ast, in TypeCb cb) {
+	body_.matchIn!void(
+		(in StructBody.Bogus) {},
+		(in StructBody.Builtin) {},
+		(in StructBody.Enum) {
+			// TODO: references for backingType
+		},
+		(in StructBody.Extern) {},
+		(in StructBody.Flags) {
+			// TODO: references for backingType
+		},
+		(in StructBody.Record x) {
+			zip!(RecordField, StructDeclAst.Body.Record.Field)(
+				x.fields,
+				ast.as!(StructDeclAst.Body.Record).fields,
+				(ref RecordField field, ref StructDeclAst.Body.Record.Field fieldAst) {
+					eachTypeInType(field.type, fieldAst.type, cb);
+				});
+		},
+		(in StructBody.Union x) {
+			zip!(UnionMember, StructDeclAst.Body.Union.Member)(
+				x.members,
+				ast.as!(StructDeclAst.Body.Union).members,
+				(ref UnionMember member, ref StructDeclAst.Body.Union.Member memberAst) {
+					if (has(memberAst.type))
+						eachTypeInType(member.type, force(memberAst.type), cb);
+				});
+		});
 }
 
 void eachTypeInType(in Type a, in TypeAst ast, in TypeCb cb) {

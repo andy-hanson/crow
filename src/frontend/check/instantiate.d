@@ -36,7 +36,6 @@ import model.model :
 	StructInst,
 	Type,
 	typeArgs,
-	TypeParam,
 	TypeParamIndex,
 	TypeParams,
 	typeParams,
@@ -76,7 +75,7 @@ immutable struct TypeParamsAndArgs {
 	this(TypeParams tp, Type[] ta) {
 		typeParams = tp;
 		typeArgs = ta;
-		assert(sizeEq(typeParams.asArray, typeArgs));
+		assert(sizeEq(typeParams, typeArgs));
 	}
 }
 

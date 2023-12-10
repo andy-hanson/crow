@@ -5,24 +5,23 @@ module frontend.check.getCommonTypes;
 import frontend.check.checkCtx : addDiag, CheckCtx;
 import frontend.check.instantiate : DelayStructInsts, InstantiateCtx, instantiateStruct;
 import frontend.check.maps : StructsAndAliasesMap;
-import frontend.parse.ast : StructDeclAst;
+import frontend.parse.ast : NameAndRange, StructDeclAst;
 import model.diag : Diag;
 import model.model :
 	CommonTypes,
 	FunKind,
 	IntegralTypes,
-	isEmpty,
 	Linkage,
 	Purity,
 	setBody,
 	StructAlias,
 	StructBody,
 	StructDecl,
+	StructDeclSource,
 	StructInst,
 	StructOrAlias,
 	target,
 	Type,
-	TypeParam,
 	TypeParams,
 	typeParams,
 	Visibility;
@@ -166,7 +165,7 @@ Opt!(StructInst*) instantiateNonTemplateStructOrAlias(
 	scope ref DelayStructInsts delayedStructInsts,
 	StructOrAlias structOrAlias,
 ) {
-	assert(isEmpty(typeParams(structOrAlias)));
+	assert(empty(typeParams(structOrAlias)));
 	return structOrAlias.matchWithPointers!(Opt!(StructInst*))(
 		(StructAlias* x) =>
 			target(*x),
@@ -182,15 +181,14 @@ StructInst* instantiateNonTemplateStructDecl(
 	instantiateStruct(ctx, structDecl, [], someMut(ptrTrustMe(delayedStructInsts)));
 
 StructDecl* bogusStructDecl(ref Alloc alloc, size_t nTypeParameters) {
-	ArrBuilder!TypeParam typeParams;
+	ArrBuilder!NameAndRange typeParams;
 	UriAndRange uriAndRange = UriAndRange.empty;
 	foreach (size_t i; 0 .. nTypeParameters)
-		add(alloc, typeParams, TypeParam(sym!"bogus"));
+		add(alloc, typeParams, NameAndRange(0, sym!"bogus"));
 	StructDecl* res = allocate(alloc, StructDecl(
-		none!(StructDeclAst*),
+		StructDeclSource(allocate(alloc, StructDeclSource.Bogus(TypeParams(finishArr(alloc, typeParams))))),
 		uriAndRange.uri,
 		sym!"bogus",
-		TypeParams(finishArr(alloc, typeParams)),
 		Visibility.public_,
 		Linkage.internal,
 		Purity.data,

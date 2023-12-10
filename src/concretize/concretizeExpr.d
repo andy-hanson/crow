@@ -104,7 +104,7 @@ import model.model :
 	VariableRef,
 	variableRefType;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, only, PtrAndSmallNumber, sizeEq;
+import util.col.arr : empty, only, PtrAndSmallNumber, sizeEq, small, SmallArray;
 import util.col.arrUtil : arrLiteral, map, mapZip;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : getOrAdd;
@@ -232,7 +232,7 @@ ConcreteType type(in LocalOrConstant a) =>
 ConcreteType getConcreteType(ref ConcretizeExprCtx ctx, Type t) =>
 	getConcreteType_fromConcretizeCtx(ctx.concretizeCtx, t, typeScope(ctx));
 
-ConcreteType[] typesToConcreteTypes(ref ConcretizeExprCtx ctx, in Type[] typeArgs) =>
+SmallArray!ConcreteType typesToConcreteTypes(ref ConcretizeExprCtx ctx, in Type[] typeArgs) =>
 	typesToConcreteTypes_fromConcretizeCtx(ctx.concretizeCtx, typeArgs, typeScope(ctx));
 
 TypeArgsScope typeScope(ref ConcretizeExprCtx ctx) =>
@@ -318,9 +318,9 @@ bool searchSpecSigIndexRecur(ref size_t index, in SpecInst* inst, in SpecInst* s
 }
 
 ConcreteFun* getConcreteFunFromFunInst(ref ConcretizeExprCtx ctx, FunInst* funInst) {
-	ConcreteType[] typeArgs = typesToConcreteTypes(ctx, typeArgs(*funInst));
-	immutable ConcreteFun*[] specImpls = map!(ConcreteFun*, Called)(ctx.alloc, specImpls(*funInst), (ref Called it) =>
-		getConcreteFunFromCalled(ctx, it));
+	SmallArray!ConcreteType typeArgs = typesToConcreteTypes(ctx, typeArgs(*funInst));
+	SmallArray!(immutable ConcreteFun*) specImpls = small(map!(ConcreteFun*, Called)(ctx.alloc, specImpls(*funInst), (ref Called it) =>
+		getConcreteFunFromCalled(ctx, it)));
 	return getOrAddConcreteFunAndFillBody(ctx.concretizeCtx, ConcreteFunKey(decl(*funInst), typeArgs, specImpls));
 }
 

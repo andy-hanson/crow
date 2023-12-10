@@ -77,34 +77,9 @@ Sym symOfPurity(Purity a) {
 	}
 }
 
-immutable struct TypeParam {
-	Sym name;
-}
-//TODO:KILL-------------------------------------------------------------------------------------------------------------------------
-immutable struct TypeParams {
-	@safe @nogc pure nothrow:
-	private SmallArray!TypeParam inner;
-
-	this(TypeParam[] x) {
-		inner = small(x);
-	}
-
-	ref TypeParam opIndex(TypeParamIndex index) =>
-		inner[index.index];
-
-	size_t length() =>
-		inner.length;
-
-	TypeParam[] asArray() =>
-		inner;
-	
-	static TypeParams empty() =>
-		emptyTypeParams;
-}
-bool isEmpty(in TypeParams a) =>
-	empty(a.inner);
+alias TypeParams = SmallArray!NameAndRange;
 TypeParams emptyTypeParams() =>
-	TypeParams([]);
+	emptySmallArray!NameAndRange;
 
 // Represent type parameter as the index, so we don't generate different types for every `t list`.
 // (These are disambiguated in the type checker using `TypeAndContext`)
@@ -329,16 +304,18 @@ UriAndRange nameRange(in AllSymbols allSymbols, in StructBody.Enum.Member a) =>
 	UriAndRange(a.range.uri, rangeOfNameAndRange(NameAndRange(a.range.range.start, a.name), allSymbols));
 
 immutable struct StructAlias {
+	@safe @nogc pure nothrow:
+
 	// TODO: use NameAndRange (more compact)
 	UriAndRange range_;
 	SafeCStr docComment;
 	Visibility visibility;
 	Sym name;
-	TypeParams typeParams;
-
-	private:
 	// This will be none if the alias target is not found
-	Late!(Opt!(StructInst*)) target_;
+	private Late!(Opt!(StructInst*)) target_;
+
+	TypeParams typeParams() return scope =>
+		emptyTypeParams;
 }
 
 UriAndRange range(in StructAlias a) =>
@@ -385,10 +362,9 @@ bool isLinkageAlwaysCompatible(Linkage referencer, LinkageRange referenced) =>
 immutable struct StructDecl {
 	@safe @nogc pure nothrow:
 
-	Opt!(StructDeclAst*) ast;
+	StructDeclSource source;
 	Uri moduleUri;
 	Sym name;
-	TypeParams typeParams;
 	Visibility visibility;
 	Linkage linkage;
 	// Note: purity on the decl does not take type args into account
@@ -397,18 +373,43 @@ immutable struct StructDecl {
 
 	private Late!StructBody lateBody;
 
-	SafeCStr docComment() scope =>
-		has(ast) ? force(ast).docComment : safeCStr!"";
+	SafeCStr docComment() return scope =>
+		source.match!SafeCStr(
+			(ref StructDeclAst x) =>
+				x.docComment,
+			(ref StructDeclSource.Bogus) =>
+				safeCStr!"");
+	TypeParams typeParams() return scope =>
+		source.match!TypeParams(
+			(ref StructDeclAst x) =>
+				x.typeParams,
+			(ref StructDeclSource.Bogus x) =>
+				x.typeParams);
+}
+
+immutable struct StructDeclSource {
+	immutable struct Bogus {
+		TypeParams typeParams;
+	}
+	mixin Union!(StructDeclAst*, Bogus*);
 }
 
 UriAndRange range(in StructDecl a) =>
-	UriAndRange(a.moduleUri, has(a.ast) ? force(a.ast).range : Range.empty);
+	UriAndRange(a.moduleUri, a.source.matchIn!Range(
+		(in StructDeclAst x) =>
+			x.range,
+		(in StructDeclSource.Bogus) =>
+			Range.empty));
 
 UriAndRange nameRange(in AllSymbols allSymbols, in StructDecl a) =>
-	UriAndRange(a.moduleUri, has(a.ast) ? nameRange(allSymbols, *force(a.ast)) : Range.empty);
+	UriAndRange(a.moduleUri, a.source.matchIn!Range(
+		(in StructDeclAst x) =>
+			nameRange(allSymbols, x),
+		(in StructDeclSource.Bogus) =>
+			Range.empty));
 
 bool isTemplate(in StructDecl a) =>
-	!isEmpty(a.typeParams);
+	!empty(a.typeParams);
 
 bool bodyIsSet(in StructDecl a) =>
 	lateIsSet(a.lateBody);
@@ -517,12 +518,14 @@ immutable struct SpecDecl {
 	SpecDeclAst* ast;
 	Visibility visibility;
 	Sym name;
-	TypeParams typeParams;
 	SpecDeclBody body_;
 	private Late!(SmallArray!(immutable SpecInst*)) parents_;
 
 	SafeCStr docComment() return scope =>
 		ast.docComment;
+	TypeParams typeParams() return scope =>
+		ast.typeParams;
+
 	bool parentsIsSet() scope =>
 		lateIsSet(parents_);
 	immutable(SpecInst*[]) parents() scope =>
@@ -720,6 +723,7 @@ immutable struct FunDeclSource {
 
 	immutable struct Bogus {
 		Uri uri;
+		TypeParams typeParams;
 	}
 	immutable struct Ast {
 		Uri uri;
@@ -769,7 +773,6 @@ immutable struct FunDecl {
 	FunDeclSource source;
 	Visibility visibility;
 	Sym name;
-	TypeParams typeParams;
 	Type returnType;
 	Params params;
 	FunFlags flags;
@@ -782,6 +785,21 @@ immutable struct FunDecl {
 	void setBody(FunBody b) {
 		lateSet(lateBody, b);
 	}
+
+	TypeParams typeParams() scope =>
+		source.match!TypeParams(
+			(FunDeclSource.Bogus x) =>
+				x.typeParams,
+			(FunDeclSource.Ast x) =>
+				x.ast.typeParams,
+			(FunDeclSource.FileImport _) =>
+				emptySmallArray!NameAndRange,
+			(ref StructBody.Enum.Member _) =>
+				emptySmallArray!NameAndRange,
+			(ref StructDecl x) =>
+				x.typeParams,
+			(ref VarDecl x) =>
+				x.typeParams);
 }
 
 Uri moduleUri(in FunDecl a) =>
@@ -814,7 +832,7 @@ bool isVariadic(in FunDecl a) =>
 	a.params.isA!(Params.Varargs*);
 
 bool isTemplate(in FunDecl a) =>
-	!isEmpty(a.typeParams) || !empty(a.specs);
+	!empty(a.typeParams) || !empty(a.specs);
 
 Arity arity(in FunDecl a) =>
 	arity(a.params);
@@ -1066,6 +1084,9 @@ immutable struct VarDecl {
 	VarKind kind;
 	Type type;
 	Opt!Sym externLibraryName;
+
+	TypeParams typeParams() return scope =>
+		emptyTypeParams;
 }
 
 UriAndRange range(in VarDecl a) =>

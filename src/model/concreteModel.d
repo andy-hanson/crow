@@ -23,7 +23,7 @@ import model.model :
 	range,
 	StructInst,
 	VarDecl;
-import util.col.arr : only, PtrAndSmallNumber;
+import util.col.arr : only, PtrAndSmallNumber, SmallArray;
 import util.col.arrUtil : arrEqual, contains;
 import util.col.map : Map;
 import util.col.str : SafeCStr;
@@ -382,8 +382,8 @@ immutable struct ConcreteFunKey {
 	@safe @nogc pure nothrow:
 
 	FunDecl* decl;
-	ConcreteType[] typeArgs;
-	ConcreteFun*[] specImpls;
+	SmallArray!(ConcreteType) typeArgs;
+	SmallArray!(immutable ConcreteFun*) specImpls;
 
 	bool opEquals(scope ConcreteFunKey b) scope =>
 		decl == b.decl &&

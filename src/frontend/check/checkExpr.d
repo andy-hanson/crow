@@ -146,7 +146,6 @@ import model.model :
 	toMutability,
 	Type,
 	typeArgs,
-	TypeParam,
 	TypeParams,
 	UnionMember,
 	VariableRef;

@@ -25,7 +25,7 @@ import frontend.parse.ast :
 	TypeAst;
 import model.diag : TypeContainer, TypeWithContainer;
 import model.model;
-import model.model : paramsArray, range, TypeParams;
+import model.model : paramsArray, range, StructDeclSource, TypeParams;
 import util.col.arr : ptrsRange;
 import util.col.arrUtil : first, firstPointer, firstWithIndex, firstZipPointerFirst;
 import util.opt : force, has, none, Opt, optIf, optOr, optOr, optOrDefault, some;
@@ -140,9 +140,11 @@ Opt!PositionKind positionInVar(in AllSymbols allSymbols, VarDecl* a, Pos pos) =>
 		//TODO: type range
 
 Opt!PositionKind positionInStruct(in AllSymbols allSymbols, StructDecl* a, Pos pos) =>
-	has(a.ast)
-		? positionInStruct(allSymbols, a, *force(a.ast), pos)
-		: none!PositionKind;
+	a.source.matchIn!(Opt!PositionKind)(
+		(in StructDeclAst x) =>
+			positionInStruct(allSymbols, a, x, pos),
+		(in StructDeclSource.Bogus) =>
+			none!PositionKind);
 
 Opt!PositionKind positionInStruct(in AllSymbols allSymbols, StructDecl* a, in StructDeclAst ast, Pos pos) =>
 	optOr!PositionKind(

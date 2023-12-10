@@ -51,7 +51,6 @@ import model.model :
 	StructInst,
 	ThrowExpr,
 	toLocal,
-	TypeParam,
 	TypeParamIndex,
 	VarDecl,
 	Visibility;

@@ -17,7 +17,6 @@ import model.model :
 	SpecInst,
 	StructDecl,
 	Type,
-	TypeParam,
 	TypeParamIndex,
 	TypeParams,
 	VarDecl,
