@@ -3,9 +3,10 @@ stderr:
 test/compile-errors/lambda-errors.crow 2:9-2:16 lambda expression needs an expected type
 test/compile-errors/lambda-errors.crow 3:11-3:27 the lambda doesn't match the expected type at this location.
 expected type: 'act void(nat64)'
-test/compile-errors/lambda-errors.crow 4:11-4:18 multiple lambda types are possible.
+test/compile-errors/lambda-errors.crow 4:11-4:18 Multiple lambda types are possible.
 expected one of these types:
 	'act void(nat64)'
-	'act void(string)'consider explicitly typing the lambda's parameter.
+	'act void(string)'
+Consider explicitly typing the lambda's parameter.
 Uncaught exception: Reached compile error
 	at main

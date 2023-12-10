@@ -4,7 +4,7 @@ module util.union_;
 
 import std.traits : isMutable, Unqual;
 import std.meta : staticMap;
-import util.col.arr : SmallArray;
+import util.col.arr : MutSmallArray, SmallArray;
 
 mixin template Union(ReprTypes...) {
 	@safe @nogc nothrow:
@@ -35,8 +35,8 @@ mixin template Union(ReprTypes...) {
 					static if (usesTaggedPointer) {
 						static if (isEmptyStruct!T)
 							return handlers[i](T());
-						else static if (is(T == SmallArray!U, U))
-							return handlers[i](SmallArray!U.fromTagged(ptrValue));
+						else static if (is(T == MutSmallArray!U, U))
+							return handlers[i](MutSmallArray!U.fromTagged(ptrValue));
 						else static if (is(T == P*, P))
 							return handlers[i](*(cast(immutable P*) ptrValue));
 						else
@@ -329,7 +329,6 @@ ulong getAsTaggable(T)(const T a) {
 		return a.asTaggable;
 }
 
-
 ulong getTaggedPointerValue(size_t i, T)(T a) {
 	ulong ptr = getAsTaggable!T(a);
 	assert((ptr & 0b11) == 0);
@@ -350,7 +349,7 @@ static assert(!isEmptyStruct!TestNonEmptyStruct);
 static assert(!isEmptyStruct!bool);
 
 template toMemberType(T) {
-	static if (is(T == SmallArray!U, U))
+	static if (is(T == MutSmallArray!U, U))
 		alias toMemberType = immutable U[];
 	else
 		alias toMemberType = immutable T;

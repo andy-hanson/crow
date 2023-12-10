@@ -112,7 +112,7 @@ immutable struct Diag {
 	immutable struct CallNoMatch {
 		TypeContainer typeContainer;
 		Sym funName;
-		Opt!Type expectedReturnType;
+		ExpectedForDiag expectedReturnType;
 		// 0 for inferred type args.
 		// This is the unpacked tuple, actualNTypeArgs > 1 may match candidates with 1 type arg.
 		size_t actualNTypeArgs;

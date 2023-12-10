@@ -25,6 +25,7 @@ import frontend.check.inferringType :
 	bogus,
 	check,
 	Expected,
+	getExpectedForDiag,
 	inferred,
 	InferringTypeArgs,
 	inferTypeArgsFrom,
@@ -33,7 +34,6 @@ import frontend.check.inferringType :
 	nonInferringTypeContext,
 	SingleInferringType,
 	tryGetInferred,
-	tryGetInferredAndStripContext,
 	TypeAndContext,
 	TypeContext;
 import frontend.check.instantiate : InstantiateCtx;
@@ -57,7 +57,7 @@ import model.model :
 	SpecInst,
 	Type,
 	TypeParams;
-import util.col.arr : empty, only;
+import util.col.arr : empty, only, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrLiteral, every, exists, makeArrayOrFail, zipEvery;
 import util.col.mutMaxArr :
@@ -172,7 +172,7 @@ Expr checkCallInner(
 
 		ParamExpected paramExpected = mutMaxArr!(maxCandidates, TypeAndContext);
 		getParamExpected(ctx.instantiateCtx, paramExpected, candidates, argIdx);
-		Expected expected = Expected(tempAsArr(castNonScope_ref(paramExpected)));
+		Expected expected = Expected(small(tempAsArr(castNonScope_ref(paramExpected))));
 
 		pauseMeasure(ctx.perf, ctx.alloc, perfMeasurer);
 		Expr arg = checkExpr(ctx, locals, &argAsts[argIdx], expected);
@@ -202,7 +202,7 @@ Expr checkCallInner(
 			addDiag2(ctx, diagRange, Diag(Diag.CallNoMatch(
 				ctx.typeContainer,
 				funName,
-				tryGetInferredAndStripContext(expected), // not good. If we can't get a context-free type, we should replace with Bogus. Use 'applyInferred'.
+				getExpectedForDiag(ctx, expected),
 				getNTypeArgsForDiagnostic(ctx.commonTypes, explicitTypeArg),
 				arity,
 				finishArr(ctx.alloc, actualArgTypes),

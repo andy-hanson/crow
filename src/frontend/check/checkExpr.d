@@ -29,17 +29,17 @@ import frontend.check.inferringType :
 	getFunType,
 	handleExpectedLambda,
 	inferred,
+	isPurelyInferring,
 	LoopInfo,
 	OkSkipOrAbort,
 	Pair,
 	setExpectedIfNoInferred,
 	tryGetDeeplyInstantiatedType,
-	tryGetInferredAndStripContext,
 	tryGetLoop,
 	TypeAndContext,
 	TypeContext,
 	withCopyWithNewExpectedType;
-import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay, noDelayStructInsts;
+import frontend.check.instantiate : InstantiateCtx, instantiateFun, instantiateStructNeverDelay, noDelayStructInsts;
 import frontend.check.maps : FunsMap, StructsAndAliasesMap;
 import frontend.check.typeFromAst : checkDestructure, makeFutType, makeTupleType, typeFromDestructure;
 import frontend.parse.ast :
@@ -342,13 +342,12 @@ Expr checkIf(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, IfAst* ast
 }
 
 Expr checkThrow(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ThrowAst* ast, ref Expected expected) {
-	Opt!Type inferred = tryGetInferredAndStripContext(expected);
-	if (has(inferred)) {
-		Expr thrown = checkAndExpectCStr(ctx, locals, &ast.thrown);
-		return Expr(source, ExprKind(allocate(ctx.alloc, ThrowExpr(thrown))));
-	} else {
+	if (isPurelyInferring(expected)) {
 		addDiag2(ctx, source, Diag(Diag.NeedsExpectedType(Diag.NeedsExpectedType.Kind.throw_)));
 		return bogus(expected, source);
+	} else {
+		Expr thrown = checkAndExpectCStr(ctx, locals, &ast.thrown);
+		return Expr(source, ExprKind(allocate(ctx.alloc, ThrowExpr(thrown))));
 	}
 }
 
@@ -480,7 +479,7 @@ Expr checkInterpolated(
 	// TODO: NEATER (don't create a synthetic AST)
 	// "a{b}c" ==> "a" ~~ b.to ~~ "c"
 	CallAst call = checkInterpolatedRecur(ctx, ast.parts, source.range.start + 1, none!ExprAst);
-	Opt!Type inferred = tryGetInferredAndStripContext(expected);
+	Opt!Type inferred = tryGetDeeplyInstantiatedType(ctx.instantiateCtx, expected);
 	CallAst callAndConvert = has(inferred) && !isString(force(inferred))
 		? CallAst(
 			//TODO: new kind (not infix)
@@ -838,7 +837,7 @@ Expr checkLiteralNat(ref ExprCtx ctx, ExprAst* source, in LiteralNatAst ast, ref
 }
 
 Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, scope string value, ref Expected expected) {
-	StructInst* expectedStruct = expectedStructOrNull(expected);
+	StructInst* expectedStruct = expectedStructOrNull(ctx.instantiateCtx, expected);
 	if (expectedStruct == ctx.commonTypes.char8) {
 		char char_ = () {
 			if (value.length != 1) {
@@ -858,8 +857,8 @@ Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, scope string value, re
 	}
 }
 
-StructInst* expectedStructOrNull(ref const Expected expected) {
-	Opt!Type expectedType = tryGetInferredAndStripContext(expected);
+StructInst* expectedStructOrNull(ref InstantiateCtx ctx, ref const Expected expected) {
+	Opt!Type expectedType = tryGetDeeplyInstantiatedType(ctx, expected);
 	return has(expectedType) && force(expectedType).isA!(StructInst*)
 		? force(expectedType).as!(StructInst*)
 		: null;
@@ -1207,7 +1206,7 @@ Expr checkLet(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, LetAst* a
 }
 
 Expr checkLoop(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, LoopAst* ast, ref Expected expected) {
-	Opt!Type expectedType = tryGetInferredAndStripContext(expected);
+	Opt!Type expectedType = tryGetDeeplyInstantiatedType(ctx.instantiateCtx, expected);
 	if (has(expectedType)) {
 		Type type = force(expectedType);
 		LoopExpr* loop = allocate(ctx.alloc, LoopExpr(

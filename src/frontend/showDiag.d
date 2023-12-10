@@ -399,17 +399,16 @@ void writeCallNoMatch(scope ref Writer writer, in ShowCtx ctx, in Diag.CallNoMat
 		writer ~= "there are functions named ";
 		writeName(writer, ctx, d.funName);
 		writer ~= ", but they do not match the ";
-		bool hasRet = has(d.expectedReturnType);
+		bool hasRet = d.expectedReturnType.isA!(ExpectedForDiag.Choices);
 		bool hasArgs = empty(d.actualArgTypes);
 		string descr = hasRet
 			? hasArgs ? "expected return type and actual argument types" : "expected return type"
 			: "actual argument types";
 		writer ~= descr;
 		writer ~= '.';
-		if (hasRet) {
-			writer ~= "\nexpected return type: ";
-			writeTypeQuoted(writer, ctx, TypeWithContainer(force(d.expectedReturnType), d.typeContainer));
-		}
+		writeNewline(writer, 0);
+		if (hasRet)
+			writeExpected(writer, ctx, d.expectedReturnType, ExpectedKind.return_);
 		if (hasArgs) {
 			writer ~= "\nactual argument types: ";
 			writeWithCommas!Type(writer, d.actualArgTypes, (in Type t) {
@@ -674,16 +673,17 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 			writer ~= " (should it be an 'act' or 'ref' fun?)";
 		},
 		(in Diag.LambdaMultipleMatch x) {
-			writer ~= "multiple lambda types are possible.\n";
-			writeExpected(writer, ctx, x.expected);
-			writer ~= "consider explicitly typing the lambda's parameter.";
+			writer ~= "Multiple lambda types are possible.\n";
+			writeExpected(writer, ctx, x.expected, ExpectedKind.lambda);
+			writeNewline(writer, 0);
+			writer ~= "Consider explicitly typing the lambda's parameter.";
 		},
 		(in Diag.LambdaNotExpected x) {
 			if (x.expected.isA!(ExpectedForDiag.Infer))
 				writer ~= "lambda expression needs an expected type";
 			else {
 				writer ~= "the lambda doesn't match the expected type at this location.\n";
-				writeExpected(writer, ctx, x.expected);
+				writeExpected(writer, ctx, x.expected, ExpectedKind.lambda);
 			}
 		},
 		(in Diag.LinkageWorseThanContainingFun x) {
@@ -893,7 +893,7 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 			writer ~= " was already inferred";
 		},
 		(in Diag.TypeConflict x) {
-			writeExpected(writer, ctx, x.expected);
+			writeExpected(writer, ctx, x.expected, ExpectedKind.generic);
 			writer ~= "\nactual:\n\t";
 			writeTypeQuoted(writer, ctx, x.actual);
 		},
@@ -951,22 +951,37 @@ void showDiagnostic(scope ref Writer writer, in ShowCtx ctx, in UriAndDiagnostic
 	writeDiag(writer, ctx, a.kind);
 }
 
-void writeExpected(scope ref Writer writer, in ShowCtx ctx, in ExpectedForDiag a) {
+enum ExpectedKind {
+	generic,
+	lambda,
+	return_,
+}
+
+void writeExpected(scope ref Writer writer, in ShowCtx ctx, in ExpectedForDiag a, ExpectedKind kind) {
+	void writeType() {
+		if (kind == ExpectedKind.return_) writer ~= "return ";
+		writer ~= "type";
+	}
 	a.matchIn!void(
 		(in ExpectedForDiag.Choices choices) {
 			if (choices.types.length == 1) {
-				writer ~= "expected type: ";
+				writer ~= "expected ";
+				writeType();
+				writer ~= ": ";
 				writeTypeQuoted(writer, ctx, TypeWithContainer(only(choices.types), choices.typeContainer));
 			} else {
-				writer ~= "expected one of these types:";
+				writer ~= "expected one of these ";
+				writeType();
+				writer ~= "s:";
 				foreach (Type t; choices.types) {
-					writer ~= "\n\t";
+					writeNewline(writer, 1);
 					writeTypeQuoted(writer, ctx, TypeWithContainer(t, choices.typeContainer));
 				}
 			}
 		},
 		(in ExpectedForDiag.Infer) {
-			writer ~= "this location has no expected type";
+			writer ~= "this location has no expected ";
+			writeType();
 		},
 		(in ExpectedForDiag.Loop) {
 			writer ~= "expected a loop 'break' or 'continue'";

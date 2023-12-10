@@ -90,7 +90,14 @@ SpecImpls emptySpecImpls() =>
 // Represent type parameter as the index, so we don't generate different types for every `t list`.
 // (These are disambiguated in the type checker using `TypeAndContext`)
 immutable struct TypeParamIndex {
+	@safe @nogc pure nothrow:
+
 	size_t index;
+
+	ulong asTaggable() =>
+		index << 2;
+	static TypeParamIndex fromTagged(ulong x) =>
+		TypeParamIndex(x >> 2);
 }
 
 immutable struct Type {
@@ -100,30 +107,9 @@ immutable struct Type {
 	mixin Union!(Bogus, TypeParamIndex, StructInst*);
 
 	bool opEquals(scope Type b) scope =>
-		matchWithPointers!bool(
-			(Bogus _) =>
-				b.isA!Bogus,
-			(TypeParamIndex x) =>
-				b.isA!TypeParamIndex && x == b.as!TypeParamIndex,
-			(StructInst* x) =>
-				b.isA!(StructInst*) && x == b.as!(StructInst*));
-
-	//TODO:KILL---------------------------------------------------------------------------------------------------------------------
-	ulong taggedPointerValueForHash() =>
-		matchWithPointers!ulong(
-			(Bogus _) =>
-				0,
-			(TypeParamIndex x) =>
-				cast(ulong) x.index,
-			(StructInst* x) =>
-				cast(ulong) x);
-
-
-	//TODO: --------------------------------------------------------------------------------------------------------------------
-	//bool opEquals(scope Type b) scope =>
-	//	taggedPointerEquals(b);
+		taggedPointerEquals(b);
 }
-// TODO: static assert(Type.sizeof == ulong.sizeof); -----------------------------------------------------------------------------
+static assert(Type.sizeof == ulong.sizeof);
 
 PurityRange purityRange(Type a) =>
 	a.matchIn!PurityRange(

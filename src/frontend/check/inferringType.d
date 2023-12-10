@@ -23,7 +23,7 @@ import model.model :
 	TypeParams;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : only, only2;
+import util.col.arr : MutSmallArray, only, only2, small;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderIsEmpty, arrBuilderTempAsArr, finishArr;
 import util.col.arrUtil : arrLiteral, contains, exists, indexOf, map, zip, zipEvery;
 import util.col.enumMap : enumMapFindKey;
@@ -101,17 +101,15 @@ struct TypeAndContext {
 }
 
 struct Expected {
-	// Type in the context of the current function
-	immutable struct LocalType {
-		@safe @nogc pure nothrow:
-		Type type;
-	}
 	immutable struct Infer {}
-	mixin UnionMutable!(Infer, LocalType, TypeAndContext[], LoopInfo*);
+	// Type in the context of the function being checked
+	immutable struct LocalType { Type type; }
+	mixin UnionMutable!(Infer, LocalType, MutSmallArray!TypeAndContext, LoopInfo*);
 }
-// TODO: static assert(Expected.sizeof == ulong.sizeof + size_t.sizeof * 2); // TODO: could probably be ulong.sizeof * 1! -------------------
+// TODO: I could probably get this to just ulong.sizeof
+static assert(Expected.sizeof == ulong.sizeof * 2);
 
-private TypeContext localTypeContext(Expected.LocalType a) =>
+private TypeContext localTypeContext(Expected.LocalType a) => //TODO:KILL----------------------------------------------------------------
 	nonInferringTypeContext();
 private TypeAndContext localTypeAndContext(Expected.LocalType a) =>
 	TypeAndContext(a.type, localTypeContext(a));
@@ -119,19 +117,8 @@ private TypeAndContext localTypeAndContext(Expected.LocalType a) =>
 MutOpt!(LoopInfo*) tryGetLoop(ref Expected expected) =>
 	expected.isA!(LoopInfo*) ? someMut(expected.as!(LoopInfo*)) : noneMut!(LoopInfo*);
 
-// TODO: check all uses! --------------------------------------------------------------------------------------------------------
-// WARN: returned Type may be a TypeParamIndex that refers to a called function, not the local context.
-// There's no way to disambiguoate once the context is stripped.
-Opt!Type tryGetInferredAndStripContext(ref const Expected expected) =>
-	expected.matchConst!(Opt!Type)(
-		(Expected.Infer) =>
-			none!Type,
-		(Expected.LocalType x) =>
-			some(x.type),
-		(const TypeAndContext[] x) =>
-			x.length == 1 ? some(only(x).type) : none!Type,
-		(const LoopInfo*) =>
-			none!Type);
+bool isPurelyInferring(in Expected expected) =>
+	expected.isA!(Expected.Infer);
 
 /**
 Returns an index into 'choices' if it is the only allowed choice.
@@ -155,7 +142,7 @@ Opt!size_t findExpectedStructForLiteral(
 			} else
 				return some(defaultChoice);
 		},
-		(const TypeAndContext[] xs) {
+		(const MutSmallArray!TypeAndContext xs) {
 			// This function will only be used with types like nat8 with no type arguments, so don't worry about those
 			Cell!(Opt!size_t) rslt;
 			ArrBuilder!(immutable StructInst*) multiple; // for diag
@@ -203,7 +190,7 @@ Pair!(T, Type) withCopyWithNewExpectedType(T)(
 	in T delegate(ref Expected) @safe @nogc pure nothrow cb,
 ) {
 	TypeAndContext[1] t = [TypeAndContext(newExpectedType, newTypeContext)];
-	Expected newExpected = Expected(castNonScope_ref(t));
+	Expected newExpected = Expected(small(castNonScope_ref(t)));
 	T res = cb(newExpected);
 	return Pair!(T, Type)(castNonScope_ref(res), inferred(newExpected));
 }
@@ -244,7 +231,7 @@ OkSkipOrAbort!T handleExpectedLambda(T)(
 			OkSkipOrAbort!T.skip,
 		(Expected.LocalType x) =>
 			cb(localTypeAndContext(x)),
-		(TypeAndContext[] choices) {
+		(ref MutSmallArray!TypeAndContext choices) {
 			Cell!(MutOpt!T) res = Cell!(MutOpt!T)();
 			foreach (TypeAndContext choice; choices) {
 				Opt!Type t = () {
@@ -276,24 +263,17 @@ OkSkipOrAbort!T handleExpectedLambda(T)(
 		},
 		(const LoopInfo*) => OkSkipOrAbort!T.skip);
 
-private const(TypeContext) getTypeContext(ref const Expected expected) =>
-	expected.matchConst!(const TypeContext)(
-		(Expected.Infer) =>
-			unreachable!(const TypeContext),
-		(Expected.LocalType x) =>
-			localTypeContext(x),
-		(const TypeAndContext[] choices) =>
-			only(choices).context,
-		(const LoopInfo*) =>
-			unreachable!(const TypeContext));
-
 //TODO: rename or document. This can return type parameters, if they are the outer function's. -------------------------------
-private Opt!Type tryGetDeeplyInstantiatedType(ref InstantiateCtx ctx, ref const Expected expected) {
-	Opt!Type t = tryGetInferredAndStripContext(expected);
-	return has(t)
-		? tryGetDeeplyInstantiatedType(ctx, const TypeAndContext(force(t), getTypeContext(expected)))
-		: none!Type;
-}
+private Opt!Type tryGetDeeplyInstantiatedType(ref InstantiateCtx ctx, ref const Expected expected) =>
+	expected.matchConst!(Opt!Type)(
+		(Expected.Infer) =>
+			none!Type,
+		(Expected.LocalType x) =>
+			some(x.type),
+		(const MutSmallArray!TypeAndContext choices) =>
+			choices.length == 1 ? tryGetDeeplyInstantiatedType(ctx, only(choices)) : none!Type,
+		(const LoopInfo*) =>
+			none!Type);
 
 bool matchExpectedVsReturnTypeNoDiagnostic(ref InstantiateCtx ctx, ref const Expected expected, TypeAndContext candidateReturnType) =>
 	expected.matchConst!bool(
@@ -302,7 +282,7 @@ bool matchExpectedVsReturnTypeNoDiagnostic(ref InstantiateCtx ctx, ref const Exp
 		(Expected.LocalType x) =>
 			// We have a particular expected type, so infer its type args
 			matchTypesNoDiagnostic(ctx, candidateReturnType, localTypeAndContext(x)),
-		(const TypeAndContext[] choices) @safe {
+		(const MutSmallArray!TypeAndContext choices) {
 			if (choices.length == 1) {
 				Opt!Type t = tryGetDeeplyInstantiatedType(ctx, expected);
 				if (has(t))
@@ -321,7 +301,7 @@ Expr bogus(ref Expected expected, ExprAst* ast) {
 			setToBogus(expected);
 		},
 		(Expected.LocalType) {},
-		(TypeAndContext[]) {
+		(ref MutSmallArray!TypeAndContext) {
 			setToBogus(expected);
 		},
 		(LoopInfo*) {});
@@ -334,7 +314,7 @@ Type inferred(ref const Expected expected) =>
 			unreachable!Type,
 		(Expected.LocalType x) =>
 			x.type,
-		(const TypeAndContext[] choices) =>
+		(const MutSmallArray!TypeAndContext choices) =>
 			// If there were multiple, we should have set the expected.
 			only(choices).type,
 		(const LoopInfo* x) =>
@@ -354,23 +334,12 @@ ExpectedForDiag getExpectedForDiag(ref ExprCtx ctx, ref const Expected expected)
 	expected.matchConst!ExpectedForDiag(
 		(Expected.Infer) =>
 			ExpectedForDiag(ExpectedForDiag.Infer()),
-		(Expected.LocalType x) {
-			debug {
-				import core.stdc.stdio : printf; // ----------------------------------------------------------------------------------
-				printf("IS IT HERE? I THINK NOT\n");
-			}
-			return ExpectedForDiag(ExpectedForDiag.Choices(arrLiteral!Type(ctx.alloc, [x.type]), ctx.typeContainer));
-		},
-		(const TypeAndContext[] xs) {
-			debug {
-				import core.stdc.stdio : printf;
-				printf("IT'S HERE RIGHT?\n");
-			}
-			return ExpectedForDiag(ExpectedForDiag.Choices(
-				map(ctx.alloc, xs, (ref const TypeAndContext x) =>
-					applyInferred(ctx.instantiateCtx, x)),
-				ctx.typeContainer));
-		},
+		(Expected.LocalType x) =>
+			ExpectedForDiag(ExpectedForDiag.Choices(arrLiteral!Type(ctx.alloc, [x.type]), ctx.typeContainer)),
+		(const MutSmallArray!TypeAndContext choices) =>
+			ExpectedForDiag(ExpectedForDiag.Choices(
+				map(ctx.alloc, choices, (ref const TypeAndContext x) => applyInferred(ctx.instantiateCtx, x)),
+				ctx.typeContainer)),
 		(const LoopInfo*) =>
 			ExpectedForDiag(ExpectedForDiag.Loop()));
 
@@ -380,7 +349,7 @@ void setExpectedIfNoInferred(ref Expected expected, in Type delegate() @safe @no
 			setToType(expected, Expected.LocalType(getType()));
 		},
 		(Expected.LocalType) {},
-		(const TypeAndContext[]) {},
+		(const MutSmallArray!TypeAndContext) {},
 		(const LoopInfo*) {});
 }
 
@@ -393,7 +362,7 @@ private bool setTypeNoDiagnostic(ref InstantiateCtx ctx, ref Expected expected, 
 		},
 		(Expected.LocalType x) =>
 			checkType(ctx, localTypeAndContext(x), localTypeAndContext(actual)),
-		(TypeAndContext[] choices) {
+		(ref MutSmallArray!TypeAndContext choices) {
 			bool anyOk = false;
 			foreach (ref TypeAndContext x; choices)
 				if (checkType(ctx, x, localTypeAndContext(actual)))

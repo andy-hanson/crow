@@ -270,7 +270,11 @@ Out[] mapWithIndex(Out, In)(
 	return res[0 .. a.length];
 }
 
-@system Out[] mapWithResultPointer(Out, In)(ref Alloc alloc, In[] a, in Out delegate(In*, Out*) @safe @nogc pure nothrow cb) {
+@system Out[] mapWithResultPointer(Out, In)(
+	ref Alloc alloc,
+	scope In[] a,
+	in Out delegate(In*, Out*) @safe @nogc pure nothrow cb,
+) {
 	Out[] res = allocateElements!Out(alloc, a.length);
 	foreach (size_t i; 0 .. a.length)
 		initMemory(&res[i], cb(&a[i], &res[i]));

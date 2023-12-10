@@ -5,7 +5,7 @@ module util.col.arr;
 import util.conv : safeToUshort;
 
 // Like SmallArray but without implying that it's an array
-immutable struct PtrAndSmallNumber(T) {
+struct PtrAndSmallNumber(T) {
 	@safe @nogc pure nothrow:
 
 	private ulong value;
@@ -13,26 +13,26 @@ immutable struct PtrAndSmallNumber(T) {
 	private this(ulong v) {
 		value = v;
 	}
-	this(immutable T* ptr, ushort number) {
+	this(inout T* ptr, ushort number) inout {
 		static assert(ushort.max == 0xffff);
 		ulong val = cast(ulong) ptr;
 		assert((val & 0xffff_0000_0000_0000) == 0);
 		value = ((cast(ulong) number) << 48) | val;
 	}
 
-	ulong asTaggable() =>
+	ulong asTaggable() const =>
 		value;
 	static PtrAndSmallNumber!T fromTagged(ulong x) =>
 		PtrAndSmallNumber!T(x);
 
-	@trusted immutable(T*) ptr() =>
-		cast(immutable T*) (value & 0x0000_ffff_ffff_ffff);
+	@trusted inout(T*) ptr() inout =>
+		cast(inout T*) (value & 0x0000_ffff_ffff_ffff);
 
-	ushort number() =>
+	ushort number() const =>
 		(value & 0xffff_0000_0000_0000) >> 48;
 }
 
-immutable struct SmallArray(T) {
+struct MutSmallArray(T) {
 	@safe @nogc pure nothrow:
 	alias toArray this;
 
@@ -41,16 +41,16 @@ immutable struct SmallArray(T) {
 		sizeAndBegin = v;
 	}
 
-	ulong asTaggable() =>
+	ulong asTaggable() const =>
 		sizeAndBegin.asTaggable;
 	static SmallArray!T fromTagged(ulong x) =>
 		SmallArray!T(PtrAndSmallNumber!T.fromTagged(x));
 
-	@trusted this(immutable T[] values) {
-		sizeAndBegin = PtrAndSmallNumber!T(values.ptr, safeToUshort(values.length));
+	@trusted this(inout T[] values) inout {
+		sizeAndBegin = inout PtrAndSmallNumber!T(values.ptr, safeToUshort(values.length));
 	}
 
-	@trusted immutable(T[]) toArray() {
+	@trusted inout(T[]) toArray() inout {
 		size_t length = sizeAndBegin.number;
 		assert(length < 0xffff); // sanity check
 		return sizeAndBegin.ptr()[0 .. length];
@@ -59,9 +59,10 @@ immutable struct SmallArray(T) {
 	private:
 	PtrAndSmallNumber!T sizeAndBegin;
 }
+alias SmallArray(T) = immutable MutSmallArray!T;
 
-SmallArray!(immutable T) small(T)(immutable T[] values) =>
-	SmallArray!(immutable T)(values);
+SmallArray!T small(T)(T[] values) =>
+	SmallArray!T(values);
 
 SmallArray!T emptySmallArray(T)() =>
 	small!T([]);
