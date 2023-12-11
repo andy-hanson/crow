@@ -19,7 +19,16 @@ import frontend.showModel :
 	writeTypeQuoted,
 	writeUri,
 	writeUriAndRange;
-import model.diag : Diagnostic, Diag, DiagnosticSeverity, ExpectedForDiag, ReadFileDiag, TypeContainer, TypeKind, TypeWithContainer, UriAndDiagnostic;
+import model.diag :
+	Diagnostic,
+	Diag,
+	DiagnosticSeverity,
+	ExpectedForDiag,
+	ReadFileDiag,
+	TypeContainer,
+	TypeKind,
+	TypeWithContainer,
+	UriAndDiagnostic;
 import model.model :
 	arity,
 	arityMatches,
@@ -38,10 +47,9 @@ import model.model :
 	SpecDecl,
 	SpecDeclSig,
 	StructInst,
-	symOfSpecBodyBuiltinKind,
-	symOfVisibility,
+	stringOfSpecBodyBuiltinKind,
+	stringOfVisibility,
 	Type,
-	TypeParams,
 	TypeParamsAndSig;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
@@ -351,7 +359,12 @@ void showChar(scope ref Writer writer, char c) {
 	}
 }
 
-void writeSpecTrace(scope ref Writer writer, in ShowCtx ctx, in TypeContainer outermostTypeContainer, in FunDeclAndTypeArgs[] trace) {
+void writeSpecTrace(
+	scope ref Writer writer,
+	in ShowCtx ctx,
+	in TypeContainer outermostTypeContainer,
+	in FunDeclAndTypeArgs[] trace,
+) {
 	Cell!TypeContainer prevTypeContainer = Cell!TypeContainer(outermostTypeContainer);
 	foreach (FunDeclAndTypeArgs x; trace) {
 		writer ~= "\n\t";
@@ -660,10 +673,10 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 			writer ~= " does not refer to anything";
 		},
 		(in Diag.LambdaCantInferParamType x) {
-			writer ~= "can't infer the lambda parameter's type.";
+			writer ~= "Can't infer the lambda parameter's type.";
 		},
 		(in Diag.LambdaClosesOverMut x) {
-			writer ~= "this lambda is a 'fun' but references ";
+			writer ~= "This lambda is a 'fun' but references ";
 			writeName(writer, ctx, x.name);
 			if (has(x.type)) {
 				writer ~= " of 'mut' type ";
@@ -813,14 +826,14 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 			writePurity(writer, ctx, bestCasePurity(x.child));
 		},
 		(in Diag.RecordNewVisibilityIsRedundant x) {
-			writer ~= "the 'new' function for this record is already ";
-			writeName(writer, ctx, symOfVisibility(x.visibility));
-			writer ~= " by default";
+			writer ~= "the 'new' function for this record is already '";
+			writer ~= stringOfVisibility(x.visibility);
+			writer ~= "' by default";
 		},
 		(in Diag.SpecMatchError x) {
 			x.reason.matchIn!void(
 				(in Diag.SpecMatchError.Reason.MultipleMatches y) {
-					writer ~= "multiple implementations found for spec signature ";
+					writer ~= "Multiple implementations found for spec signature ";
 					writeName(writer, ctx, y.sigName);
 					writer ~= ':';
 					writeCalleds(writer, ctx, x.outermostTypeContainer, y.matches);
@@ -833,16 +846,19 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 			x.reason.matchIn!void(
 				(in Diag.SpecNoMatch.Reason.BuiltinNotSatisfied y) {
 					writeTypeQuoted(writer, ctx, TypeWithContainer(y.type, x.outermostTypeContainer));
-					writer ~= " is not ";
-					writeName(writer, ctx, symOfSpecBodyBuiltinKind(y.kind));
+					writer ~= " is not '";
+					writer ~= stringOfSpecBodyBuiltinKind(y.kind);
+					writer ~= "'";
 				},
 				(in Diag.SpecNoMatch.Reason.CantInferTypeArguments _) {
-					writer ~= "can't infer type arguments";
+					writer ~= "Can't infer type arguments";
 				},
 				(in Diag.SpecNoMatch.Reason.SpecImplNotFound y) {
 					writer ~= "no implementation was found for spec signature ";
 					SpecDeclSig* sig = y.sigDecl;
-					writeSig(writer, ctx, x.outermostTypeContainer, sig.name, sig.returnType, Params(sig.params), some(y.sigType));
+					writeSig(
+						writer, ctx, x.outermostTypeContainer, sig.name, sig.returnType,
+						Params(sig.params), some(y.sigType));
 				},
 				(in Diag.SpecNoMatch.Reason.TooDeep _) {
 					writer ~= "spec instantiation is too deep";

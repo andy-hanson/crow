@@ -41,18 +41,6 @@ enum ExplicitVisibility {
 	internal,
 	public_,
 }
-Sym symOfExplicitVisibility(ExplicitVisibility a) {
-	final switch (a) {
-		case ExplicitVisibility.default_:
-			return sym!"default";
-		case ExplicitVisibility.private_:
-			return sym!"private";
-		case ExplicitVisibility.internal:
-			return sym!"internal";
-		case ExplicitVisibility.public_:
-			return sym!"public";
-	}
-}
 
 immutable struct FieldMutabilityAst {
 	enum Kind {
@@ -64,12 +52,12 @@ immutable struct FieldMutabilityAst {
 	Kind kind;
 }
 
-Sym symOfFieldMutabilityAstKind(FieldMutabilityAst.Kind a) {
+string stringOfFieldMutabilityAstKind(FieldMutabilityAst.Kind a) {
 	final switch (a) {
 		case FieldMutabilityAst.Kind.private_:
-			return sym!"-mut";
+			return "-mut";
 		case FieldMutabilityAst.Kind.public_:
-			return sym!"mut";
+			return "mut";
 	}
 }
 
@@ -722,8 +710,8 @@ immutable struct FunModifierAst {
 		Pos pos;
 		Flags flag;
 
-		Range range(in AllSymbols allSymbols) =>
-			rangeOfNameAndRange(NameAndRange(pos, symOfSpecialFlag(flag)), allSymbols);
+		Range range() =>
+			rangeOfStartAndLength(pos, stringOfSpecialFlag(flag).length);
 	}
 
 	immutable struct Extern {
@@ -733,11 +721,9 @@ immutable struct FunModifierAst {
 		Pos externPos;
 
 		Range range(in AllSymbols allSymbols) scope =>
-			Range(
-				.range(*left, allSymbols).start,
-				suffixRange(allSymbols).end);
-		Range suffixRange(in AllSymbols allSymbols) scope =>
-			rangeOfNameAndRange(NameAndRange(externPos, sym!"extern"), allSymbols);
+			Range(.range(*left, allSymbols).start, suffixRange.end);
+		Range suffixRange() scope =>
+			rangeOfStartAndLength(externPos, "extern".length);
 	}
 
 	// TypeAst will be interpreted as a spec inst
@@ -747,30 +733,30 @@ immutable struct FunModifierAst {
 Range range(in FunModifierAst a, in AllSymbols allSymbols) =>
 	a.matchIn!Range(
 		(in FunModifierAst.Special x) =>
-			x.range(allSymbols),
+			x.range,
 		(in FunModifierAst.Extern x) =>
 			x.range(allSymbols),
 		(in TypeAst x) =>
 			x.range(allSymbols));
 
-Sym symOfSpecialFlag(FunModifierAst.Special.Flags a) {
+string stringOfSpecialFlag(FunModifierAst.Special.Flags a) {
 	switch (a) {
 		case FunModifierAst.Special.Flags.bare:
-			return sym!"bare";
+			return "bare";
 		case FunModifierAst.Special.Flags.builtin:
-			return sym!"builtin";
+			return "builtin";
 		case FunModifierAst.Special.Flags.extern_:
-			return sym!"extern";
+			return "extern";
 		case FunModifierAst.Special.Flags.summon:
-			return sym!"summon";
+			return "summon";
 		case FunModifierAst.Special.Flags.trusted:
-			return sym!"trusted";
+			return "trusted";
 		case FunModifierAst.Special.Flags.unsafe:
-			return sym!"unsafe";
+			return "unsafe";
 		case FunModifierAst.Special.Flags.forceCtx:
-			return sym!"force-ctx";
+			return "force-ctx";
 		default:
-			return unreachable!Sym;
+			return unreachable!string;
 	}
 }
 

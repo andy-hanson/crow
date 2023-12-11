@@ -5,7 +5,7 @@ module frontend.check.getCommonTypes;
 import frontend.check.checkCtx : addDiag, CheckCtx;
 import frontend.check.instantiate : DelayStructInsts, InstantiateCtx, instantiateStruct;
 import frontend.check.maps : StructsAndAliasesMap;
-import frontend.parse.ast : NameAndRange, StructDeclAst;
+import frontend.parse.ast : NameAndRange;
 import model.diag : Diag;
 import model.model :
 	CommonTypes,
@@ -25,7 +25,7 @@ import model.model :
 	typeParams,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, small;
+import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.enumMap : EnumMap;
 import util.memory : allocate;

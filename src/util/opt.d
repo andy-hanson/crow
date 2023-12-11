@@ -53,6 +53,9 @@ Opt!T some(T)(immutable T value) =>
 ConstOpt!T someConst(T)(const T value) =>
 	ConstOpt!T(value);
 
+inout(Option!T) someInout(T)(inout T value) =>
+	inout Option!T(value);
+
 MutOpt!T someMut(T)(T value) =>
 	MutOpt!T(value);
 

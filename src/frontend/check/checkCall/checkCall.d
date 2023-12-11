@@ -31,7 +31,7 @@ import frontend.check.inferringType :
 	inferTypeArgsFrom,
 	inferTypeArgsFromLambdaParameterType,
 	matchExpectedVsReturnTypeNoDiagnostic,
-	nonInferringTypeContext,
+	nonInferring,
 	SingleInferringType,
 	tryGetInferred,
 	TypeAndContext,
@@ -55,8 +55,7 @@ import model.model :
 	SpecDeclBody,
 	SpecDeclSig,
 	SpecInst,
-	Type,
-	TypeParams;
+	Type;
 import util.col.arr : empty, only, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrLiteral, every, exists, makeArrayOrFail, zipEvery;
@@ -127,7 +126,8 @@ private Expr checkCallCommon(
 		(ref Candidate candidate) =>
 			(!has(typeArg) || filterCandidateByExplicitTypeArg(ctx, candidate, force(typeArg))) &&
 			matchExpectedVsReturnTypeNoDiagnostic(
-				ctx.instantiateCtx, expected, TypeAndContext(candidate.called.returnType, typeContextForCandidate(candidate))),
+				ctx.instantiateCtx, expected,
+				TypeAndContext(candidate.called.returnType, typeContextForCandidate(candidate))),
 		(ref Candidates candidates) =>
 			checkCallInner(
 				ctx, locals, source, diagRange, funName, args, typeArg, perfMeasurer, candidates, expected));
@@ -172,7 +172,7 @@ Expr checkCallInner(
 
 		ParamExpected paramExpected = mutMaxArr!(maxCandidates, TypeAndContext);
 		getParamExpected(ctx.instantiateCtx, paramExpected, candidates, argIdx);
-		Expected expected = Expected(small(tempAsArr(castNonScope_ref(paramExpected))));
+		Expected expected = Expected(small!TypeAndContext(tempAsArr(castNonScope_ref(paramExpected))));
 
 		pauseMeasure(ctx.perf, ctx.alloc, perfMeasurer);
 		Expr arg = checkExpr(ctx, locals, &argAsts[argIdx], expected);
@@ -186,7 +186,7 @@ Expr checkCallInner(
 		}
 		add(ctx.alloc, actualArgTypes, actualArgType);
 		filterCandidates(candidates, (ref Candidate candidate) =>
-			testCandidateParamType(ctx.instantiateCtx, candidate, argIdx, TypeAndContext(actualArgType, nonInferringTypeContext())));
+			testCandidateParamType(ctx.instantiateCtx, candidate, argIdx, nonInferring(actualArgType)));
 		return some(arg);
 	});
 
@@ -208,7 +208,8 @@ Expr checkCallInner(
 				finishArr(ctx.alloc, actualArgTypes),
 				allCandidates)));
 		} else
-			addDiag2(ctx, diagRange, Diag(Diag.CallMultipleMatches(funName, ctx.typeContainer, candidatesForDiag(ctx.alloc, candidates))));
+			addDiag2(ctx, diagRange, Diag(
+				Diag.CallMultipleMatches(funName, ctx.typeContainer, candidatesForDiag(ctx.alloc, candidates))));
 		return bogus(expected, source);
 	} else
 		return checkCallAfterChoosingOverload(ctx, isInLambda(locals), only(candidates), source, force(args), expected);
@@ -265,9 +266,9 @@ void getParamExpected(
 ) {
 	foreach (ref Candidate candidate; candidates) {
 		TypeAndContext expected = getCandidateExpectedParameterType(ctx, candidate, argIdx);
-		bool isDuplicate = !has(expected.context.args) == 0 &&
+		bool isDuplicate = !expected.context.isInferring &&
 			exists!TypeAndContext(tempAsArr(paramExpected), (in TypeAndContext x) =>
-				!has(x.context.args) && x.type == expected.type);
+				!x.context.isInferring && x.type == expected.type);
 		if (!isDuplicate)
 			push(paramExpected, expected);
 	}
@@ -284,7 +285,9 @@ void inferCandidateTypeArgsFromCheckedSpecSig(
 		ctx, sigTypes.returnType, callInferringTypeArgs,
 		const TypeAndContext(specCandidate.called.returnType, typeContextForCandidate(specCandidate)));
 	foreach (size_t argIdx; 0 .. specSig.params.length)
-		inferTypeArgsFrom(ctx, sigTypes.paramTypes[argIdx], callInferringTypeArgs, getCandidateExpectedParameterType(ctx, specCandidate, argIdx));
+		inferTypeArgsFrom(
+			ctx, sigTypes.paramTypes[argIdx], callInferringTypeArgs,
+			getCandidateExpectedParameterType(ctx, specCandidate, argIdx));
 }
 
 bool isPartiallyInferred(in MutMaxArr!(maxTypeParams, SingleInferringType) typeArgs) {
@@ -317,7 +320,8 @@ ContinueOrAbort inferCandidateTypeArgsFromExplicitlyTypedArgument(
 				return ContinueOrAbort.abort;
 			else {
 				foreach (ref Candidate candidate; candidates) {
-					TypeAndContext paramType = getCandidateExpectedParameterType(ctx.instantiateCtx, candidate, argIndex);
+					TypeAndContext paramType = getCandidateExpectedParameterType(
+						ctx.instantiateCtx, candidate, argIndex);
 					inferTypeArgsFromLambdaParameterType(
 						ctx.instantiateCtx, ctx.commonTypes,
 						paramType.type, asInferringTypeArgs(typeContextForCandidate(candidate)),

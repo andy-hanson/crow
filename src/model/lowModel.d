@@ -14,7 +14,7 @@ import model.concreteModel :
 	name,
 	TypeSize;
 import model.constant : Constant;
-import model.model :  EnumValue, Local, StructBody;
+import model.model : EnumValue, Local, StructBody;
 import util.col.arr : empty;
 import util.col.map : Map;
 import util.col.fullIndexMap : FullIndexMap;

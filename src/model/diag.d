@@ -2,7 +2,6 @@ module model.diag;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast : NameAndRange;
 import model.model :
 	Called,
 	CalledDecl,
@@ -28,13 +27,12 @@ import model.model :
 	VariableRef,
 	Visibility;
 import model.parseDiag : ParseDiag;
-import util.col.arr : empty, emptySmallArray, SmallArray;
+import util.col.arr : empty;
 import util.opt : force, Opt;
 import util.sourceRange : Range, UriAndRange;
 import util.sym : Sym;
 import util.union_ : Union;
 import util.uri : RelPath, Uri;
-import util.util : typeAs;
 
 // In the CLI, we omit diagnostics if there are other more severe ones.
 // So e.g., you wouldn't see unused code errors if there are parse errors.
@@ -155,7 +153,7 @@ immutable struct Diag {
 		Sym name;
 	}
 	immutable struct CommonFunMissing {
-		FunDecl* dummyForContext; 
+		FunDecl* dummyForContext;
 		TypeParamsAndSig[] sigChoices;
 	}
 	immutable struct CommonTypeMissing {
@@ -360,7 +358,7 @@ immutable struct Diag {
 	immutable struct SpecNoMatch {
 		immutable struct Reason {
 			immutable struct BuiltinNotSatisfied {
-				SpecDeclBody.Builtin.Kind kind;
+				SpecDeclBody.Builtin kind;
 				Type type;
 			}
 			immutable struct CantInferTypeArguments {}

@@ -3,7 +3,7 @@ module util.col.arrBuilder;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.mutArr : moveToArr, MutArr, mutArrClear, mutArrIsEmpty, mutArrSize, mustPop, push, pushAll, tempAsArr;
+import util.col.mutArr : moveToArr, MutArr, mutArrIsEmpty, mutArrSize, mustPop, push, pushAll, tempAsArr;
 import util.col.sortUtil : sortInPlace;
 import util.comparison : Comparer;
 
@@ -33,10 +33,6 @@ void addAll(T)(ref Alloc alloc, ref ArrBuilder!(immutable T) a, in immutable T[]
 	pushAll(alloc, a.data, value);
 }
 
-private void arrBuilderClear(T)(ref ArrBuilder!T a) {
-	mutArrClear(a.data);
-}
-
 const(T[]) arrBuilderTempAsArr(T)(ref const ArrBuilder!T a) =>
 	tempAsArr(a.data);
 
@@ -46,12 +42,6 @@ void arrBuilderSort(T)(scope ref ArrBuilder!T a, in Comparer!T compare) {
 
 immutable(T[]) finishArr(T)(ref Alloc alloc, scope ref ArrBuilder!T a) =>
 	moveToArr(alloc, a.data);
-
-void consumeArr(T)(ref Alloc alloc, scope ref ArrBuilder!T a, in void delegate(T) @safe @nogc pure nothrow cb) {
-	foreach (T x; arrBuilderTempAsArr(a))
-		cb(x);
-	arrBuilderClear(a);
-}
 
 size_t arrBuilderSize(T)(in ArrBuilder!T a) =>
 	mutArrSize(a.data);

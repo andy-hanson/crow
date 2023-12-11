@@ -17,7 +17,7 @@ import frontend.parse.ast :
 	symOfModifierKind,
 	TypeAst;
 import model.concreteModel : TypeSize;
-import model.diag : Diag, TypeKind, TypeWithContainer;
+import model.diag : Diag, TypeKind;
 import model.model :
 	CommonTypes,
 	emptyTypeParams,
@@ -51,7 +51,7 @@ import model.model :
 	UnionMember,
 	Visibility,
 	visibility;
-import util.col.arr : empty, small;
+import util.col.arr : empty;
 import util.col.arrUtil : eachPair, fold, map, mapAndFold, MapAndFold, mapPointers, zipPtrFirst;
 import util.conv : safeToSizeT;
 import util.opt : force, has, none, Opt, optOrDefault, some, someMut;
@@ -90,13 +90,15 @@ void checkStructBodies(
 			},
 			(in StructDeclAst.Body.Enum x) {
 				checkOnlyStructModifiers(ctx, TypeKind.enum_, ast.modifiers);
-				return StructBody(checkEnum(ctx, commonTypes, structsAndAliasesMap, struct_, ast.range, x, delayStructInsts));
+				return StructBody(checkEnum(
+					ctx, commonTypes, structsAndAliasesMap, struct_, ast.range, x, delayStructInsts));
 			},
 			(in StructDeclAst.Body.Extern it) =>
 				StructBody(checkExtern(ctx, ast, it)),
 			(in StructDeclAst.Body.Flags x) {
 				checkOnlyStructModifiers(ctx, TypeKind.flags, ast.modifiers);
-				return StructBody(checkFlags(ctx, commonTypes, structsAndAliasesMap, struct_, ast.range, x, delayStructInsts));
+				return StructBody(checkFlags(
+					ctx, commonTypes, structsAndAliasesMap, struct_, ast.range, x, delayStructInsts));
 			},
 			(in StructDeclAst.Body.Record x) =>
 				StructBody(checkRecord(
@@ -376,7 +378,8 @@ EnumOrFlagsTypeAndMembers checkEnumOrFlagsMembers(
 ) {
 	Type implementationType = has(typeArg)
 		? typeFromAst(
-			ctx, commonTypes, *force(typeArg), structsAndAliasesMap, emptyTypeParams, someMut(ptrTrustMe(delayStructInsts)))
+			ctx, commonTypes, *force(typeArg), structsAndAliasesMap, emptyTypeParams,
+			someMut(ptrTrustMe(delayStructInsts)))
 		: Type(commonTypes.integrals.nat32);
 	EnumBackingType enumType = getEnumTypeFromType(ctx, struct_, range, commonTypes, implementationType);
 
@@ -474,7 +477,13 @@ bool isSignedEnumBackingType(EnumBackingType a) {
 EnumBackingType defaultEnumBackingType() =>
 	EnumBackingType.nat32;
 
-EnumBackingType getEnumTypeFromType(ref CheckCtx ctx, StructDecl* struct_, in Range range, in CommonTypes commonTypes, in Type type) {
+EnumBackingType getEnumTypeFromType(
+	ref CheckCtx ctx,
+	StructDecl* struct_,
+	in Range range,
+	in CommonTypes commonTypes,
+	in Type type,
+) {
 	IntegralTypes integrals = commonTypes.integrals;
 	return type.matchWithPointers!EnumBackingType(
 		(Type.Bogus) =>

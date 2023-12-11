@@ -10,7 +10,6 @@ import model.model :
 	EnumValue,
 	FlagsFunction,
 	FunDecl,
-	FunInst,
 	isArray,
 	isSummon,
 	isTuple,
@@ -468,7 +467,8 @@ UriAndRange concreteFunRange(in ConcreteFun a) =>
 			x.range);
 
 bool isFunOrActSubscript(ref ConcreteProgram program, ref ConcreteFun a) =>
-	a.source.isA!ConcreteFunKey && contains(program.commonFuns.funOrActSubscriptFunDecls, a.source.as!ConcreteFunKey.decl);
+	a.source.isA!ConcreteFunKey &&
+	contains(program.commonFuns.funOrActSubscriptFunDecls, a.source.as!ConcreteFunKey.decl);
 
 bool isMarkVisitFun(ref ConcreteProgram program, ref ConcreteFun a) =>
 	a.source.isA!ConcreteFunKey && a.source.as!ConcreteFunKey.decl == program.commonFuns.markVisitFunDecl;

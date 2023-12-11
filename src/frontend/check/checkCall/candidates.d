@@ -6,13 +6,12 @@ import frontend.check.checkCtx : eachImportAndReExport, ImportAndReExportModules
 import frontend.check.exprCtx : ExprCtx;
 import frontend.check.inferringType :
 	matchTypesNoDiagnostic,
-	nonInferringTypeContext,
+	nonInferring,
 	SingleInferringType,
-	tryGetDeeplyInstantiatedType,
-	tryGetInferred,
+	tryGetNonInferringType,
 	TypeAndContext,
 	TypeContext;
-import frontend.check.instantiate : InstantiateCtx, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray;
+import frontend.check.instantiate : InstantiateCtx;
 import frontend.check.maps : FunsMap;
 import frontend.lang : maxTypeParams;
 import model.model :
@@ -29,15 +28,13 @@ import model.model :
 	SpecDeclBody,
 	SpecDeclSig,
 	SpecInst,
-	StructInst,
 	typeArgs,
-	Type,
-	TypeParamIndex,
-	TypeParams;
+	Type;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty;
+import util.col.arr : empty, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : everyWithIndex, map;
+import util.conv : safeToUshort;
 import util.memory : overwriteMemory;
 import util.col.mutMaxArr :
 	copyToFrom,
@@ -45,15 +42,13 @@ import util.col.mutMaxArr :
 	filterUnordered,
 	filterUnorderedButDontRemoveAll,
 	initializeMutMaxArr,
-	mapTo,
 	mustPopAndDrop,
 	MutMaxArr,
 	mutMaxArr,
 	pushUninitialized,
 	tempAsArr;
-import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someConst, someMut;
+import util.opt : force, has, Opt;
 import util.sym : Sym;
-import util.util : typeAs, unreachable;
 
 // Max number of candidates with same return type
 size_t maxCandidates() => 64;
@@ -76,15 +71,14 @@ struct Candidate {
 	MutMaxArr!(maxTypeParams, SingleInferringType) typeArgs;
 }
 
-@trusted inout(TypeContext) typeContextForCandidate(ref inout Candidate a) {
+inout(TypeContext) typeContextForCandidate(ref inout Candidate a) {
 	// 'match' can't return 'inout' we must do it this way
 	if (a.called.isA!(FunDecl*))
-		return inout TypeContext(
-			cast(inout) someMut!(SingleInferringType[])(cast(SingleInferringType[]) tempAsArr(a.typeArgs)));
+		return TypeContext(small!SingleInferringType(cast(inout SingleInferringType[]) tempAsArr(a.typeArgs)));
 	else {
 		assert(a.called.isA!CalledSpecSig);
 		// Spec is instantiated using the caller's types
-		return cast(inout) nonInferringTypeContext();
+		return TypeContext.nonInferring;
 	}
 }
 
@@ -198,11 +192,16 @@ bool testCandidateParamType(
 ) =>
 	matchTypesNoDiagnostic(ctx, getCandidateExpectedParameterType(ctx, candidate, argIdx), actualArgType);
 
-@trusted inout(TypeAndContext) getCandidateExpectedParameterType(ref InstantiateCtx ctx, ref inout Candidate candidate, size_t argIndex) {
+@trusted inout(TypeAndContext) getCandidateExpectedParameterType(
+	ref InstantiateCtx ctx,
+	ref inout Candidate candidate,
+	size_t argIndex,
+) {
 	Type declType = paramTypeAt(candidate.called, argIndex);
-	Opt!Type instantiated = tryGetDeeplyInstantiatedType(ctx, inout TypeAndContext(declType, typeContextForCandidate(candidate)));
+	Opt!Type instantiated = tryGetNonInferringType(
+		ctx, inout TypeAndContext(declType, typeContextForCandidate(candidate)));
 	return has(instantiated)
-		? inout TypeAndContext(force(instantiated), cast(inout) nonInferringTypeContext())
+		? nonInferring(force(instantiated))
 		: inout TypeAndContext(declType, typeContextForCandidate(candidate));
 }
 
@@ -232,7 +231,7 @@ private void eachFunInScopeForSpec(
 		(SpecDeclSig[] sigs) {
 			foreach (size_t sigIndex, ref SpecDeclSig sig; sigs) {
 				if (sig.name == funName)
-					cb(CalledDecl(CalledSpecSig(specInst, sigIndex)));
+					cb(CalledDecl(CalledSpecSig(specInst, safeToUshort(sigIndex))));
 			}
 		});
 }

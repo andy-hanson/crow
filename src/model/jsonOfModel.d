@@ -59,13 +59,8 @@ import model.model :
 	SpecInst,
 	StructDecl,
 	StructInst,
-	symOfAssertOrForbidKind,
-	symOfFunKind,
-	symOfLocalMutability,
-	symOfPurity,
-	symOfSpecBodyBuiltinKind,
-	symOfVarKind,
-	symOfVisibility,
+	stringOfSpecBodyBuiltinKind,
+	stringOfVisibility,
 	Test,
 	ThrowExpr,
 	Type,
@@ -86,7 +81,7 @@ import util.ptr : ptrTrustMe;
 import util.sourceRange : jsonOfRange;
 import util.sym : Sym, sym;
 import util.uri : AllUris, stringOfUri;
-import util.util : unreachable;
+import util.util : stringOfEnum;
 
 Json jsonOfModule(ref Alloc alloc, in AllUris allUris, in LineAndColumnGetter lcg, in Module a) {
 	Ctx ctx = Ctx(ptrTrustMe(a), ptrTrustMe(allUris), lcg);
@@ -141,7 +136,7 @@ Json jsonOfStructDecl(ref Alloc alloc, in Ctx ctx, in StructDecl a) =>
 	jsonObject(alloc,
 		commonDeclFields(alloc, ctx, a.visibility, a.name, a.typeParams),
 		[
-			optionalField!"purity"(a.purity != Purity.data, () => jsonString(symOfPurity(a.purity))),
+			optionalField!"purity"(a.purity != Purity.data, () => jsonString(stringOfEnum(a.purity))),
 			optionalFlagField!"forced"(a.purityIsForced),
 		]);
 
@@ -149,7 +144,7 @@ Json jsonOfVarDecl(ref Alloc alloc, in Ctx ctx, in VarDecl a) =>
 	jsonObject(alloc,
 		commonDeclFields(alloc, ctx, a.visibility, a.name, emptyTypeParams),
 		[
-			field!"var-kind"(symOfVarKind(a.kind)),
+			field!"var-kind"(stringOfEnum(a.kind)),
 			field!"type"(jsonOfType(alloc, ctx, a.type)),
 			optionalField!("library-name", Sym)(a.externLibraryName, (in Sym x) => jsonString(x)),
 		]);
@@ -166,7 +161,7 @@ Json jsonOfSpecDecl(ref Alloc alloc, in Ctx ctx, in SpecDecl a) =>
 Json jsonOfSpecDeclBody(ref Alloc alloc, in Ctx ctx, in SpecDeclBody a) =>
 	a.matchIn!Json(
 		(in SpecDeclBody.Builtin x) =>
-			jsonString(symOfSpecBodyBuiltinKind(x.kind)),
+			jsonString(stringOfSpecBodyBuiltinKind(x)),
 		(in SpecDeclSig[] xs) =>
 			jsonList!SpecDeclSig(alloc, xs, (in SpecDeclSig x) =>
 				jsonOfSpecDeclSig(alloc, ctx, x)));
@@ -202,7 +197,7 @@ Json.ObjectField[3] commonDeclFields(
 	in TypeParams typeParams,
 ) =>
 	[
-		field!"visibility"(symOfVisibility(visibility)),
+		field!"visibility"(stringOfVisibility(visibility)),
 		field!"name"(name),
 		optionalArrayField!("type-params", NameAndRange)(alloc, typeParams, (in NameAndRange x) =>
 			jsonOfTypeParam(alloc, x)),
@@ -343,7 +338,7 @@ Json jsonOfExpr(ref Alloc alloc, in Ctx ctx, in Expr a) =>
 	a.kind.matchIn!Json(
 		(in AssertOrForbidExpr x) =>
 			jsonObject(alloc, [
-				kindField(symOfAssertOrForbidKind(x.kind)),
+				kindField(stringOfEnum(x.kind)),
 				field!"condition"(jsonOfExpr(alloc, ctx, *x.condition)),
 				optionalField!("thrown", Expr*)(x.thrown, (in Expr* thrown) =>
 					jsonOfExpr(alloc, ctx, *thrown))]),
@@ -386,7 +381,7 @@ Json jsonOfExpr(ref Alloc alloc, in Ctx ctx, in Expr a) =>
 				field!"body"(jsonOfExpr(alloc, ctx, x.body_)),
 				field!"closure"(jsonList!VariableRef(alloc, x.closure, (in VariableRef v) =>
 					jsonString(v.name))),
-				field!"fun-kind"(symOfFunKind(x.kind)),
+				field!"fun-kind"(stringOfEnum(x.kind)),
 				field!"return-type"(jsonOfType(alloc, ctx, x.returnType))]),
 		(in LetExpr x) =>
 			jsonObject(alloc, [
@@ -489,7 +484,7 @@ Json jsonOfLocal(ref Alloc alloc, in Ctx ctx, in Local a) =>
 	jsonObject(alloc, [
 		kindField!"local",
 		field!"name"(a.name),
-		field!"mutability"(symOfLocalMutability(a.mutability)),
+		field!"mutability"(stringOfEnum(a.mutability)),
 		field!"type"(jsonOfType(alloc, ctx, a.type))]);
 
 Json jsonOfCalled(ref Alloc alloc, in Ctx ctx, in Called a) =>

@@ -2,14 +2,13 @@ module frontend.check.inferringType;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.exprCtx : addDiag2, ExprCtx, typeContext, typeWithContainer;
+import frontend.check.exprCtx : addDiag2, ExprCtx, typeWithContainer;
 import frontend.check.instantiate : InstantiateCtx, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray;
 import frontend.parse.ast : ExprAst;
-import model.diag : Diag, ExpectedForDiag, TypeContainer, TypeWithContainer;
+import model.diag : Diag, ExpectedForDiag;
 import model.model :
 	BogusExpr,
 	CommonTypes,
-	emptyTypeParams,
 	Expr,
 	ExprKind,
 	FunKind,
@@ -19,19 +18,17 @@ import model.model :
 	StructInst,
 	Type,
 	typeArgs,
-	TypeParamIndex,
-	TypeParams;
-import util.alloc.alloc : Alloc;
+	TypeParamIndex;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : MutSmallArray, only, only2, small;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderIsEmpty, arrBuilderTempAsArr, finishArr;
 import util.col.arrUtil : arrLiteral, contains, exists, indexOf, map, zip, zipEvery;
 import util.col.enumMap : enumMapFindKey;
 import util.col.mutMaxArr : push, tempAsArr;
-import util.opt : has, force, MutOpt, none, noneMut, Opt, optOrDefault, some, someConst, someMut;
-import util.ptr : castNonScope, castNonScope_ref;
+import util.opt : has, force, MutOpt, none, noneMut, Opt, optOrDefault, some, someInout, someMut;
+import util.ptr : castNonScope_ref;
 import util.union_ : UnionMutable;
-import util.util : todo, unreachable;
+import util.util : unreachable;
 
 struct SingleInferringType {
 	@safe @nogc pure nothrow:
@@ -47,33 +44,33 @@ Opt!Type tryGetInferred(ref const SingleInferringType a) =>
 	cellGet(a.type);
 
 struct TypeContext {
-	// TODO: use small array, and somehow make it optional but still 64 bits -------------------------------------------------------------------------
-	MutOpt!(SingleInferringType[]) args; // This may be empty if we are not inferring anything
+	@safe @nogc pure nothrow:
+
+	struct NonInferring {}
+	mixin UnionMutable!(NonInferring, MutSmallArray!SingleInferringType) args;
+
+	static TypeContext nonInferring() =>
+		TypeContext(NonInferring());
+
+	bool isInferring() scope const =>
+		isA!(MutSmallArray!SingleInferringType);
 }
-//TODO: static assert(TypeContext.sizeof == (void*).sizeof); ----------------------------------------------------------------------------------------
-TypeContext emptyTypeContext() =>
-	nonInferringTypeContext();
-
-private bool isNonInferringContext(in TypeContext a) =>
-	!has(a.args);
-
-TypeContext nonInferringTypeContext() =>
-	TypeContext(noneMut!(SingleInferringType[]));
-// TODO:KILL ------------------------------------------------------------------------------------------------------------------------------
-TypeContext withoutInferring(const TypeContext a) =>
-	nonInferringTypeContext();
-
-const(MutOpt!(SingleInferringType*)) tryGetInferring(const TypeContext context, TypeParamIndex param) =>
-	has(context.args)
-		? someConst!(SingleInferringType*)(&force(context.args)[param.index])
-		: noneMut!(SingleInferringType*);
-MutOpt!(SingleInferringType*) tryGetInferring(TypeContext ctx, TypeParamIndex param) =>
-	has(ctx.args)
-		? someMut!(SingleInferringType*)(&force(ctx.args)[param.index])
-		: noneMut!(SingleInferringType*);
+static assert(TypeContext.sizeof == ulong.sizeof);
 
 @trusted inout(InferringTypeArgs) asInferringTypeArgs(inout TypeContext a) =>
-	has(a.args) ? inout InferringTypeArgs(force(a.args)) : cast(inout) InferringTypeArgs.empty;
+	a.isInferring
+		? inout InferringTypeArgs(a.as!(MutSmallArray!SingleInferringType))
+		: cast(inout) InferringTypeArgs.empty;
+
+private inout(MutOpt!(SingleInferringType*)) tryGetInferring(inout TypeContext context, TypeParamIndex param) =>
+	context.isInferring
+		? someInout!(SingleInferringType*)(&context.as!(MutSmallArray!SingleInferringType)[param.index])
+		: noneMut!(SingleInferringType*);
+
+private Opt!Type tryGetInferred(const TypeContext a, TypeParamIndex param) {
+	const MutOpt!(SingleInferringType*) sit = tryGetInferring(a, param);
+	return has(sit) ? tryGetInferred(*force(sit)) : none!Type;
+}
 
 struct InferringTypeArgs {
 	@safe @nogc pure nothrow:
@@ -100,6 +97,9 @@ struct TypeAndContext {
 	TypeContext context;
 }
 
+TypeAndContext nonInferring(Type a) =>
+	TypeAndContext(a, TypeContext.nonInferring);
+
 struct Expected {
 	immutable struct Infer {}
 	// Type in the context of the function being checked
@@ -109,10 +109,8 @@ struct Expected {
 // TODO: I could probably get this to just ulong.sizeof
 static assert(Expected.sizeof == ulong.sizeof * 2);
 
-private TypeContext localTypeContext(Expected.LocalType a) => //TODO:KILL----------------------------------------------------------------
-	nonInferringTypeContext();
 private TypeAndContext localTypeAndContext(Expected.LocalType a) =>
-	TypeAndContext(a.type, localTypeContext(a));
+	nonInferring(a.type);
 
 MutOpt!(LoopInfo*) tryGetLoop(ref Expected expected) =>
 	expected.isA!(LoopInfo*) ? someMut(expected.as!(LoopInfo*)) : noneMut!(LoopInfo*);
@@ -142,7 +140,7 @@ Opt!size_t findExpectedStructForLiteral(
 			} else
 				return some(defaultChoice);
 		},
-		(const MutSmallArray!TypeAndContext xs) {
+		(const TypeAndContext[] xs) {
 			// This function will only be used with types like nat8 with no type arguments, so don't worry about those
 			Cell!(Opt!size_t) rslt;
 			ArrBuilder!(immutable StructInst*) multiple; // for diag
@@ -190,7 +188,7 @@ Pair!(T, Type) withCopyWithNewExpectedType(T)(
 	in T delegate(ref Expected) @safe @nogc pure nothrow cb,
 ) {
 	TypeAndContext[1] t = [TypeAndContext(newExpectedType, newTypeContext)];
-	Expected newExpected = Expected(small(castNonScope_ref(t)));
+	Expected newExpected = Expected(small!TypeAndContext(castNonScope_ref(t)));
 	T res = cb(newExpected);
 	return Pair!(T, Type)(castNonScope_ref(res), inferred(newExpected));
 }
@@ -231,16 +229,12 @@ OkSkipOrAbort!T handleExpectedLambda(T)(
 			OkSkipOrAbort!T.skip,
 		(Expected.LocalType x) =>
 			cb(localTypeAndContext(x)),
-		(ref MutSmallArray!TypeAndContext choices) {
+		(TypeAndContext[] choices) {
 			Cell!(MutOpt!T) res = Cell!(MutOpt!T)();
 			foreach (TypeAndContext choice; choices) {
-				Opt!Type t = () {
-					if (choice.type.isA!TypeParamIndex) {
-						MutOpt!(SingleInferringType*) typeArg = tryGetInferring(choice.context, choice.type.as!TypeParamIndex);
-						return has(typeArg) ? tryGetInferred(*force(typeArg)) : none!Type;
-					} else
-						return some(choice.type);
-				}();
+				Opt!Type t = choice.type.isA!TypeParamIndex
+					? tryGetInferred(choice.context, choice.type.as!TypeParamIndex)
+					: some(choice.type);
 				if (!has(t))
 					return OkSkipOrAbort!T.abort(Diag(Diag.LambdaCantInferParamType()));
 				Opt!Diag abort = cb(TypeAndContext(force(t), choice.context)).match!(Opt!Diag)(
@@ -263,30 +257,35 @@ OkSkipOrAbort!T handleExpectedLambda(T)(
 		},
 		(const LoopInfo*) => OkSkipOrAbort!T.skip);
 
-//TODO: rename or document. This can return type parameters, if they are the outer function's. -------------------------------
-private Opt!Type tryGetDeeplyInstantiatedType(ref InstantiateCtx ctx, ref const Expected expected) =>
+// This will return a result if there are no references to inferring type parameters.
+// (There may be references to the current function's type parameters.)
+private Opt!Type tryGetNonInferringType(ref InstantiateCtx ctx, ref const Expected expected) =>
 	expected.matchConst!(Opt!Type)(
 		(Expected.Infer) =>
 			none!Type,
 		(Expected.LocalType x) =>
 			some(x.type),
-		(const MutSmallArray!TypeAndContext choices) =>
-			choices.length == 1 ? tryGetDeeplyInstantiatedType(ctx, only(choices)) : none!Type,
+		(const TypeAndContext[] choices) =>
+			choices.length == 1 ? tryGetNonInferringType(ctx, only(choices)) : none!Type,
 		(const LoopInfo*) =>
 			none!Type);
 
-bool matchExpectedVsReturnTypeNoDiagnostic(ref InstantiateCtx ctx, ref const Expected expected, TypeAndContext candidateReturnType) =>
+bool matchExpectedVsReturnTypeNoDiagnostic(
+	ref InstantiateCtx ctx,
+	ref const Expected expected,
+	TypeAndContext candidateReturnType,
+) =>
 	expected.matchConst!bool(
 		(Expected.Infer) =>
 			true,
 		(Expected.LocalType x) =>
 			// We have a particular expected type, so infer its type args
 			matchTypesNoDiagnostic(ctx, candidateReturnType, localTypeAndContext(x)),
-		(const MutSmallArray!TypeAndContext choices) {
+		(const TypeAndContext[] choices) {
 			if (choices.length == 1) {
-				Opt!Type t = tryGetDeeplyInstantiatedType(ctx, expected);
+				Opt!Type t = tryGetNonInferringType(ctx, expected);
 				if (has(t))
-					return matchTypesNoDiagnostic(ctx, candidateReturnType, TypeAndContext(force(t), nonInferringTypeContext));
+					return matchTypesNoDiagnostic(ctx, candidateReturnType, nonInferring(force(t)));
 			}
 			// Don't infer any type args here; multiple candidates and multiple possible return types.
 			return exists!(const TypeAndContext)(choices, (in TypeAndContext x) =>
@@ -301,7 +300,7 @@ Expr bogus(ref Expected expected, ExprAst* ast) {
 			setToBogus(expected);
 		},
 		(Expected.LocalType) {},
-		(ref MutSmallArray!TypeAndContext) {
+		(TypeAndContext[]) {
 			setToBogus(expected);
 		},
 		(LoopInfo*) {});
@@ -314,7 +313,7 @@ Type inferred(ref const Expected expected) =>
 			unreachable!Type,
 		(Expected.LocalType x) =>
 			x.type,
-		(const MutSmallArray!TypeAndContext choices) =>
+		(const TypeAndContext[] choices) =>
 			// If there were multiple, we should have set the expected.
 			only(choices).type,
 		(const LoopInfo* x) =>
@@ -325,7 +324,8 @@ Expr check(ref ExprCtx ctx, ExprAst* source, ref Expected expected, Type exprTyp
 	if (setTypeNoDiagnostic(ctx.instantiateCtx, expected, Expected.LocalType(exprType)))
 		return expr;
 	else {
-		addDiag2(ctx, expr.range, Diag(Diag.TypeConflict(getExpectedForDiag(ctx, expected), typeWithContainer(ctx, exprType))));
+		addDiag2(ctx, expr.range, Diag(
+			Diag.TypeConflict(getExpectedForDiag(ctx, expected), typeWithContainer(ctx, exprType))));
 		return bogus(expected, source);
 	}
 }
@@ -336,7 +336,7 @@ ExpectedForDiag getExpectedForDiag(ref ExprCtx ctx, ref const Expected expected)
 			ExpectedForDiag(ExpectedForDiag.Infer()),
 		(Expected.LocalType x) =>
 			ExpectedForDiag(ExpectedForDiag.Choices(arrLiteral!Type(ctx.alloc, [x.type]), ctx.typeContainer)),
-		(const MutSmallArray!TypeAndContext choices) =>
+		(const TypeAndContext[] choices) =>
 			ExpectedForDiag(ExpectedForDiag.Choices(
 				map(ctx.alloc, choices, (ref const TypeAndContext x) => applyInferred(ctx.instantiateCtx, x)),
 				ctx.typeContainer)),
@@ -349,7 +349,7 @@ void setExpectedIfNoInferred(ref Expected expected, in Type delegate() @safe @no
 			setToType(expected, Expected.LocalType(getType()));
 		},
 		(Expected.LocalType) {},
-		(const MutSmallArray!TypeAndContext) {},
+		(const TypeAndContext[]) {},
 		(const LoopInfo*) {});
 }
 
@@ -362,7 +362,7 @@ private bool setTypeNoDiagnostic(ref InstantiateCtx ctx, ref Expected expected, 
 		},
 		(Expected.LocalType x) =>
 			checkType(ctx, localTypeAndContext(x), localTypeAndContext(actual)),
-		(ref MutSmallArray!TypeAndContext choices) {
+		(TypeAndContext[] choices) {
 			bool anyOk = false;
 			foreach (ref TypeAndContext x; choices)
 				if (checkType(ctx, x, localTypeAndContext(actual)))
@@ -373,7 +373,7 @@ private bool setTypeNoDiagnostic(ref InstantiateCtx ctx, ref Expected expected, 
 		(LoopInfo* loop) =>
 			false);
 
-Opt!Type tryGetDeeplyInstantiatedType(ref InstantiateCtx ctx, const TypeAndContext a) =>
+Opt!Type tryGetNonInferringType(ref InstantiateCtx ctx, const TypeAndContext a) =>
 	a.type.matchWithPointers!(Opt!Type)(
 		(Type.Bogus) =>
 			some(Type(Type.Bogus())),
@@ -384,7 +384,7 @@ Opt!Type tryGetDeeplyInstantiatedType(ref InstantiateCtx ctx, const TypeAndConte
 		(StructInst* i) {
 			scope TypeArgsArray newTypeArgs = typeArgsArray();
 			foreach (Type x; i.typeArgs) {
-				Opt!Type t = tryGetDeeplyInstantiatedType(ctx, const TypeAndContext(x, a.context));
+				Opt!Type t = tryGetNonInferringType(ctx, const TypeAndContext(x, a.context));
 				if (has(t))
 					push(newTypeArgs, force(t));
 				else
@@ -396,7 +396,7 @@ Opt!Type tryGetDeeplyInstantiatedType(ref InstantiateCtx ctx, const TypeAndConte
 private:
 
 // For diagnostics. Applies types that have been inferred, otherwise uses Bogus.
-// This is like 'tryGetDeeplyInstantiatedType' but returns a type with Boguses in it instead of `none`.
+// This is like 'tryGetNonInferringType' but returns a type with Boguses in it instead of `none`.
 Type applyInferred(ref InstantiateCtx ctx, in TypeAndContext a) =>
 	a.type.match!Type(
 		(Type.Bogus) =>
@@ -441,9 +441,9 @@ bool checkType_TypeParam(ref InstantiateCtx ctx, TypeParamIndex a, TypeContext a
 	MutOpt!(SingleInferringType*) aInferring = tryGetInferring(aContext, a);
 	if (has(aInferring)) {
 		Opt!Type inferred = tryGetInferred(*force(aInferring));
-		bool ok = !has(inferred) || checkType(ctx, TypeAndContext(force(inferred), nonInferringTypeContext()), b);
+		bool ok = !has(inferred) || checkType(ctx, TypeAndContext(force(inferred), TypeContext.nonInferring), b);
 		if (ok) {
-			Opt!Type bInferred = tryGetDeeplyInstantiatedType(ctx, b);
+			Opt!Type bInferred = tryGetNonInferringType(ctx, b);
 			if (has(bInferred))
 				cellSet(force(aInferring).type, bInferred);
 		}
@@ -457,7 +457,8 @@ bool checkType_TypeParam(ref InstantiateCtx ctx, TypeParamIndex a, TypeContext a
 				const MutOpt!(SingleInferringType*) bInferringB = tryGetInferring(b.context, bp);
 				if (has(bInferringB)) {
 					Opt!Type inferred = tryGetInferred(*force(bInferringB));
-					return !has(inferred) || force(inferred).isA!TypeParamIndex && force(inferred).as!TypeParamIndex == a;
+					return !has(inferred) ||
+						(force(inferred).isA!TypeParamIndex && force(inferred).as!TypeParamIndex == a);
 				} else
 					return a == bp;
 			},
@@ -469,7 +470,7 @@ bool checkType_TypeParamB(ref InstantiateCtx ctx, TypeAndContext a, TypeParamInd
 	const MutOpt!(SingleInferringType*) bInferred = tryGetInferring(bContext, b);
 	if (has(bInferred)) {
 		Opt!Type inferred = tryGetInferred(*force(bInferred));
-		return !has(inferred) || checkType(ctx, a, TypeAndContext(force(inferred), nonInferringTypeContext()));
+		return !has(inferred) || checkType(ctx, a, nonInferring(force(inferred)));
 	} else
 		return false;
 }
@@ -506,7 +507,7 @@ public void inferTypeArgsFromLambdaParameterType(
 	Opt!FunType funType = getFunType(commonTypes, a);
 	if (has(funType)) {
 		Type paramType = force(funType).nonInstantiatedParamType;
-		inferTypeArgsFrom(ctx, paramType, aInferringTypeArgs, TypeAndContext(lambdaParameterType, nonInferringTypeContext()));
+		inferTypeArgsFrom(ctx, paramType, aInferringTypeArgs, nonInferring(lambdaParameterType));
 	}
 }
 
@@ -524,7 +525,7 @@ public void inferTypeArgsFrom(
 		(TypeParamIndex ap) {
 			SingleInferringType* aInferring = &aInferringTypeArgs.args[ap.index];
 			if (!has(tryGetInferred(*aInferring))) {
-				Opt!Type t = tryGetDeeplyInstantiatedType(ctx, b2);
+				Opt!Type t = tryGetNonInferringType(ctx, b2);
 				if (has(t))
 					cellSet(aInferring.type, t);
 			}
@@ -546,7 +547,7 @@ bool isTypeMatchPossible(in TypeAndContext a, in TypeAndContext b) {
 	else {
 		const TypeAndContext a2 = maybeInferred(a);
 		const TypeAndContext b2 = maybeInferred(b);
-		return (a2.type == b2.type && isNonInferringContext(a2.context) && isNonInferringContext(b2.context)) ||
+		return (a2.type == b2.type && !a2.context.isInferring && !b2.context.isInferring) ||
 			a2.type.isA!(Type.Bogus) ||
 			b2.type.isA!(Type.Bogus) ||
 			typesAreCorrespondingStructInsts(a2.type, b2.type, (ref Type x, ref Type y) =>
@@ -569,9 +570,9 @@ const(TypeAndContext) maybeInferred(return scope const TypeAndContext a) {
 	if (a.type.isA!TypeParamIndex) {
 		const MutOpt!(SingleInferringType*) inferring = tryGetInferring(a.context, a.type.as!TypeParamIndex);
 		if (has(inferring)) {
-			Opt!Type t = tryGetInferred(*force(inferring));
 			// force because we tested 'isInferringNonInferredTypeParam' before
-			return TypeAndContext(force(t), nonInferringTypeContext());
+			Opt!Type t = tryGetInferred(*force(inferring));
+			return nonInferring(force(t));
 		} else
 			return a;
 	} else

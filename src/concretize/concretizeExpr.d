@@ -125,14 +125,6 @@ ConcreteExpr concretizeFunBody(
 	in Destructure[] params,
 	ref Expr e,
 ) {
-	debug {
-		//import util.sym : writeSym;
-		//import util.writer : debugLogWithWriter, Writer;
-		//debugLogWithWriter((scope ref Writer writer) {
-		//	writer ~= "concretize fun ";
-		//	writeSym(writer, ctx.allSymbols, cf.source.as!ConcreteFunKey.decl.name); -------------------------------------------------
-		//});
-	}
 	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe(ctx), concreteFunRange(*cf).uri, containing, cf);
 	return withStackMap2!(ConcreteExpr, Local*, LocalOrConstant, LoopExpr*, LoopAndType*)((ref Locals locals) {
 		// Ignore closure param, which is never destructured.
@@ -294,10 +286,10 @@ ConcreteFun* getConcreteFunFromCalled(ref ConcretizeExprCtx ctx, ref Called call
 	called.matchWithPointers!(ConcreteFun*)(
 		(FunInst* funInst) =>
 			getConcreteFunFromFunInst(ctx, funInst),
-		(CalledSpecSig* specSig) =>
+		(CalledSpecSig specSig) =>
 			getSpecSigImplementation(ctx, specSig));
 
-ConcreteFun* getSpecSigImplementation(in ConcretizeExprCtx ctx, CalledSpecSig* specSig) {
+ConcreteFun* getSpecSigImplementation(in ConcretizeExprCtx ctx, CalledSpecSig specSig) {
 	size_t index = 0;
 	foreach (SpecInst* x; ctx.containing.specs)
 		if (searchSpecSigIndexRecur(index, x, specSig.specInst))
@@ -317,9 +309,10 @@ bool searchSpecSigIndexRecur(ref size_t index, in SpecInst* inst, in SpecInst* s
 
 ConcreteFun* getConcreteFunFromFunInst(ref ConcretizeExprCtx ctx, FunInst* funInst) {
 	SmallArray!ConcreteType typeArgs = typesToConcreteTypes(ctx, typeArgs(*funInst));
-	SmallArray!(immutable ConcreteFun*) specImpls = small(map!(ConcreteFun*, Called)(ctx.alloc, specImpls(*funInst), (ref Called it) =>
-		getConcreteFunFromCalled(ctx, it)));
-	return getOrAddConcreteFunAndFillBody(ctx.concretizeCtx, ConcreteFunKey(funInst.decl, typeArgs, specImpls));
+	immutable ConcreteFun*[] specImpls = map!(ConcreteFun*, Called)(ctx.alloc, specImpls(*funInst), (ref Called it) =>
+		getConcreteFunFromCalled(ctx, it));
+	return getOrAddConcreteFunAndFillBody(
+		ctx.concretizeCtx, ConcreteFunKey(funInst.decl, typeArgs, small!(immutable ConcreteFun*)(specImpls)));
 }
 
 ConcreteExpr concretizeClosureGet(

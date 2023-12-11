@@ -60,6 +60,16 @@ struct Hasher {
 	return hasher.finish();
 }
 
+@trusted HashCode hashPtrAndTaggedPointersX2(T, U, V)(T* ptr, U[] taggedPointers, V[] taggedPointers2) {
+	Hasher hasher;
+	hasher ~= ptr;
+	foreach (U x; taggedPointers)
+		hasher ~= x.taggedPointerValueForHash;
+	foreach (V x; taggedPointers2)
+		hasher ~= x.taggedPointerValueForHash;
+	return hasher.finish();
+}
+
 HashCode hash2(ulong a, HashCode b) =>
 	murmurFinish([a, b.hashCode]);
 

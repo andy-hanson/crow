@@ -117,15 +117,6 @@ Opt!Out firstWithIndex(Out, In)(in In[] a, in Opt!Out delegate(size_t, In) @safe
 	return none!Out;
 }
 
-Out mustGetFirst(Out, In)(in In[] a, in Opt!Out delegate(In) @safe @nogc pure nothrow cb) {
-	foreach (ref const In x; a) {
-		Opt!Out res = cb(x);
-		if (has(res))
-			return force(res);
-	}
-	assert(false);
-}
-
 Opt!Out first(Out, In)(in In[] a, in Opt!Out delegate(In) @safe @nogc pure nothrow cb) =>
 	firstWithIndex!(Out, In)(a, (size_t _, In x) => cb(x));
 

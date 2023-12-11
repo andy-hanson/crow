@@ -37,7 +37,6 @@ import util.opt : force, has, none, Opt, some;
 import util.sourceRange : toUriAndPos, UriAndPos, UriAndRange;
 import util.sym : AllSymbols, Sym, writeSym;
 import util.uri : AllUris, Uri, UrisInfo, writeUri, writeUriPreferRelative;
-import util.util : todo, unreachable;
 import util.writer :
 	writeBold, writeHyperlink, writeNewline, writeRed, writeReset, writeWithCommas, writeWithCommasZip, Writer;
 
@@ -116,8 +115,14 @@ void writeCalleds(scope ref Writer writer, in ShowCtx ctx, in TypeContainer type
 	}
 }
 
-private void writeCalledSpecSig(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in CalledSpecSig x) {
-	writeSig(writer, ctx, typeContainer, x.name, x.returnType, Params(x.nonInstantiatedSig.params), some(x.instantiatedSig));
+private void writeCalledSpecSig(
+	scope ref Writer writer,
+	in ShowCtx ctx,
+	in TypeContainer typeContainer,
+	in CalledSpecSig x,
+) {
+	writeSig(
+		writer, ctx, typeContainer, x.name, x.returnType, Params(x.nonInstantiatedSig.params), some(x.instantiatedSig));
 	writer ~= " (from spec ";
 	writeName(writer, ctx, x.specInst.decl.name);
 	writer ~= ')';
@@ -146,7 +151,12 @@ void writeFunDecl(scope ref Writer writer, in ShowCtx ctx, in FunDecl* a) {
 	writeFunDeclLocation(writer, ctx, *a);
 }
 
-void writeFunDeclAndTypeArgs(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in FunDeclAndTypeArgs a) {
+void writeFunDeclAndTypeArgs(
+	scope ref Writer writer,
+	in ShowCtx ctx,
+	in TypeContainer typeContainer,
+	in FunDeclAndTypeArgs a,
+) {
 	writeSym(writer, ctx.allSymbols, a.decl.name);
 	writeTypeArgs(writer, ctx, typeContainer, a.typeArgs);
 	writeFunDeclLocation(writer, ctx, *a.decl);
@@ -184,7 +194,9 @@ void writeSig(
 ) {
 	writeSym(writer, ctx.allSymbols, name);
 	writer ~= ' ';
-	writeTypeUnquoted(writer, ctx, TypeWithContainer(has(instantiated) ? force(instantiated).returnType : returnType, typeContainer));
+	writeTypeUnquoted(writer, ctx, TypeWithContainer(
+		has(instantiated) ? force(instantiated).returnType : returnType,
+		typeContainer));
 	writer ~= '(';
 	params.matchIn!void(
 		(in Destructure[] paramsArray) {
@@ -210,7 +222,13 @@ void writeSig(
 	writer ~= ')';
 }
 
-void writeSigSimple(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, Sym name, in TypeParamsAndSig sig) {
+void writeSigSimple(
+	scope ref Writer writer,
+	in ShowCtx ctx,
+	in TypeContainer typeContainer,
+	Sym name,
+	in TypeParamsAndSig sig,
+) {
 	writeSym(writer, ctx.allSymbols, name);
 	if (!empty(sig.typeParams)) {
 		writer ~= '[';
@@ -330,7 +348,12 @@ void writeStructInst(scope ref Writer writer, in ShowCtx ctx, in TypeContainer t
 	}
 }
 
-private void writeTupleType(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in Type[] members) {
+private void writeTupleType(
+	scope ref Writer writer,
+	in ShowCtx ctx,
+	in TypeContainer typeContainer,
+	in Type[] members,
+) {
 	writer ~= '(';
 	writeWithCommas!Type(writer, members, (in Type arg) {
 		writeTypeUnquoted(writer, ctx, TypeWithContainer(arg, typeContainer));
@@ -356,7 +379,7 @@ void writeTypeArgsGeneric(T)(
 	}
 }
 
-void writeTypeArgs(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in Type[] types) {
+private void writeTypeArgs(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in Type[] types) {
 	writeTypeArgsGeneric!Type(writer, types,
 		(in Type x) =>
 			!x.isA!(StructInst*) || empty(x.as!(StructInst*).typeArgs),

@@ -90,7 +90,8 @@ import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : empty, emptySmallArray, only, ptrsRange, small;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderTempAsArr, finishArr;
-import util.col.arrUtil : concatenate, filter, map, mapOp, mapPointers, mapToMut, mapWithResultPointer,sum, zip, zipPointers;
+import util.col.arrUtil :
+	concatenate, filter, map, mapOp, mapPointers, mapToMut, mapWithResultPointer, zip, zipPointers;
 import util.col.exactSizeArrBuilder : buildArrayExact, ExactSizeArrBuilder, pushUninitialized;
 import util.col.hashTable : HashTable, insertOrUpdate, mapAndMovePreservingKeys, mayAdd, moveToImmutable, MutHashTable;
 import util.col.mutArr : mustPop, mutArrIsEmpty;
@@ -195,7 +196,8 @@ Params checkParams(
 					ast, none!Type))),
 		(ref ParamsAst.Varargs varargs) {
 			Destructure param = checkDestructure(
-				ctx, commonTypes, structsAndAliasesMap, typeContainer, typeParamsScope, delayStructInsts, varargs.param, none!Type);
+				ctx, commonTypes, structsAndAliasesMap, typeContainer, typeParamsScope,
+				delayStructInsts, varargs.param, none!Type);
 			Opt!Type elementType = param.type.matchIn!(Opt!Type)(
 				(in Type.Bogus _) =>
 					some(Type(Type.Bogus())),
@@ -229,15 +231,15 @@ ReturnTypeAndParams checkReturnTypeAndParams(
 		typeFromAst(ctx, commonTypes, returnTypeAst, structsAndAliasesMap, typeParams, delayStructInsts),
 		checkParams(ctx, commonTypes, typeContainer, paramsAst, structsAndAliasesMap, typeParams, delayStructInsts));
 
-SpecDeclBody.Builtin.Kind getSpecBodyBuiltinKind(ref CheckCtx ctx, in Range range, Sym name) {
+SpecDeclBody.Builtin getSpecBodyBuiltinKind(ref CheckCtx ctx, in Range range, Sym name) {
 	switch (name.value) {
 		case sym!"data".value:
-			return SpecDeclBody.Builtin.Kind.data;
+			return SpecDeclBody.Builtin.data;
 		case sym!"shared".value:
-			return SpecDeclBody.Builtin.Kind.shared_;
+			return SpecDeclBody.Builtin.shared_;
 		default:
 			addDiag(ctx, range, Diag(Diag.BuiltinUnsupported(name)));
-			return SpecDeclBody.Builtin.Kind.data;
+			return SpecDeclBody.Builtin.data;
 	}
 }
 
@@ -257,13 +259,14 @@ SpecDeclBody checkSpecDeclBody(
 		(SpecSigAst[] sigs) =>
 			SpecDeclBody(mapPointers(ctx.alloc, sigs, (SpecSigAst* x) {
 				ReturnTypeAndParams rp = checkReturnTypeAndParams(
-					ctx, commonTypes, typeContainer, x.returnType, x.params, typeParams, structsAndAliasesMap, noDelayStructInsts);
+					ctx, commonTypes, typeContainer, x.returnType, x.params,
+					typeParams, structsAndAliasesMap, noDelayStructInsts);
 				Destructure[] params = rp.params.match!(Destructure[])(
 					(Destructure[] x) =>
 						x,
 					(ref Params.Varargs _) =>
 						todo!(Destructure[])("diag: no varargs in spec"));
-				return SpecDeclSig(ctx.curUri, x, x.name, rp.returnType, small(params));
+				return SpecDeclSig(ctx.curUri, x, x.name, rp.returnType, small!Destructure(params));
 			})));
 
 @trusted SpecDecl[] checkSpecDeclsInitial(
@@ -274,8 +277,9 @@ SpecDeclBody checkSpecDeclBody(
 ) =>
 	mapWithResultPointer!(SpecDecl, SpecDeclAst)(ctx.alloc, asts, (SpecDeclAst* ast, SpecDecl* out_) {
 		checkTypeParams(ctx, ast.typeParams);
-		SpecDeclBody body_ =
-			checkSpecDeclBody(ctx, commonTypes, TypeContainer(out_), ast.typeParams, structsAndAliasesMap, ast.range, ast.name.name, ast.body_);
+		SpecDeclBody body_ = checkSpecDeclBody(
+			ctx, commonTypes, TypeContainer(out_),
+			ast.typeParams, structsAndAliasesMap, ast.range, ast.name.name, ast.body_);
 		return SpecDecl(ctx.curUri, ast, visibilityFromExplicit(ast.visibility), ast.name.name, body_);
 	});
 
@@ -401,8 +405,7 @@ Opt!Sym checkVarModifiers(ref CheckCtx ctx, in FunModifierAst[] modifiers) {
 			(in FunModifierAst.Extern x) {
 				if (has(cellGet(externLibraryName)))
 					todo!void("diag: duplicate modifier");
-				cellSet(externLibraryName, some(
-					externLibraryNameFromTypeArg(ctx, x.suffixRange(ctx.allSymbols), some(*x.left))));
+				cellSet(externLibraryName, some(externLibraryNameFromTypeArg(ctx, x.suffixRange, some(*x.left))));
 			},
 			(in TypeAst _) {
 				todo!void("diag: unsupported modifier");
@@ -568,7 +571,8 @@ FunsAndMap checkFuns(
 					structsAndAliasesMap,
 					noDelayStructInsts);
 				FunFlagsAndSpecs flagsAndSpecs = checkFunModifiers(
-					ctx, commonTypes, funAst.range, funAst.modifiers, structsAndAliasesMap, specsMap, funAst.typeParams);
+					ctx, commonTypes, funAst.range, funAst.modifiers,
+					structsAndAliasesMap, specsMap, funAst.typeParams);
 				initMemory(fun, FunDecl(
 					FunDeclSource(FunDeclSource.Ast(ctx.curUri, funAst)),
 					visibilityFromExplicit(funAst.visibility),
@@ -576,7 +580,7 @@ FunsAndMap checkFuns(
 					rp.returnType,
 					rp.params,
 					flagsAndSpecs.flags,
-					small(flagsAndSpecs.specs)));
+					small!(immutable SpecInst*)(flagsAndSpecs.specs)));
 			}
 			foreach (ref ImportOrExportFile f; fileImports)
 				funsBuilder ~= funDeclForFileImportOrExport(

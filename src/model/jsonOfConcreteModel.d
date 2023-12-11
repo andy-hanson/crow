@@ -26,7 +26,7 @@ import model.concreteModel :
 	symOfReferenceKind;
 import model.constant : Constant;
 import model.jsonOfConstant : jsonOfConstant;
-import model.model : EnumFunction, enumFunctionName, flagsFunctionName, FunInst, Local, name, symOfClosureReferenceKind;
+import model.model : EnumFunction, enumFunctionName, flagsFunctionName, Local, name, symOfClosureReferenceKind;
 import util.alloc.alloc : Alloc;
 import util.json :
 	field, Json, jsonObject, optionalArrayField, optionalField, optionalFlagField, jsonList, jsonString, kindField;

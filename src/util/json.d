@@ -32,9 +32,9 @@ immutable struct Json {
 		matchIn!bool(
 			(in Null _) =>
 				b.isA!Null,
-			(bool x) =>
+			(in bool x) =>
 				b.isA!bool && b.as!bool == x,
-			(double x) =>
+			(in double x) =>
 				b.isA!double && b.as!double == x,
 			(in string x) =>
 				b.isA!string && strEq(x, b.as!string),
@@ -96,8 +96,8 @@ Json.ObjectField optionalStringField(string name)(ref Alloc alloc, in SafeCStr v
 	optionalField!name(!safeCStrIsEmpty(value), () => jsonString(alloc, value));
 
 Json.ObjectField kindField(string kindName)() =>
-	.kindField(sym!kindName);
-Json.ObjectField kindField(Sym kindName) =>
+	.kindField(kindName);
+Json.ObjectField kindField(string kindName) =>
 	field!"kind"(kindName);
 
 Json jsonList(Json[] xs) =>
@@ -160,10 +160,10 @@ void writeJson(ref Writer writer, in AllSymbols allSymbols, in Json a) =>
 		(in Json.Null _) {
 			writer ~= "null";
 		},
-		(bool x) {
+		(in bool x) {
 			writer ~= x ? "true" : "false";
 		},
-		(double x) {
+		(in double x) {
 			writeFloatLiteral(writer, x);
 		},
 		(in string x) {

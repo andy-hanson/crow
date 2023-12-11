@@ -16,7 +16,7 @@ import model.concreteModel :
 import frontend.showModel : ShowCtx, writeTypeArgsGeneric;
 import model.lowModel :
 	AllLowTypes, LowFun, LowFunIndex, LowFunSource, LowProgram, LowType, PrimitiveType, symOfPrimitiveType;
-import model.model : emptyTypeParams, FunInst, name, Local, typeArgs;
+import model.model : name, Local, typeArgs;
 import util.col.arr : only;
 import util.writer : Writer, writeWithCommas;
 import util.sym : writeSym;

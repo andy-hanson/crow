@@ -15,7 +15,6 @@ import frontend.check.instantiate :
 import frontend.check.typeFromAst : makeTupleType;
 import model.model :
 	CommonTypes,
-	emptyTypeParams,
 	EnumBackingType,
 	EnumFunction,
 	FieldMutability,
@@ -143,7 +142,7 @@ FunDecl funDeclWithBody(
 	immutable(SpecInst*)[] specInsts,
 	FunBody body_,
 ) {
-	FunDecl res = FunDecl(source, visibility, name, returnType, params, flags, small(specInsts));
+	FunDecl res = FunDecl(source, visibility, name, returnType, params, flags, small!(immutable SpecInst*)(specInsts));
 	res.body_ = body_;
 	return res;
 }

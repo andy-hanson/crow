@@ -1,0 +1,9 @@
+# Redundant function
+to json(a string)
+	a json-string
+
+to-json-string[t] string(a t) (json, t) to
+	a.to::json to
+
+main void()
+	info log ("a",)::string[].to-json-string

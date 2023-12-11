@@ -374,11 +374,11 @@ void addFunModifierTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbo
 	foreach (ref FunModifierAst mod; a) {
 		mod.matchIn!void(
 			(in FunModifierAst.Special x) {
-				keyword(tokens, x.range(allSymbols));
+				keyword(tokens, x.range);
 			},
 			(in FunModifierAst.Extern x) {
 				addTypeTokens(tokens, allSymbols, *x.left);
-				keyword(tokens, x.suffixRange(allSymbols));
+				keyword(tokens, x.suffixRange);
 			},
 			(in TypeAst x) {
 				if (x.isA!NameAndRange)

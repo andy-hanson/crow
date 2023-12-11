@@ -24,7 +24,7 @@ void checkCalled(ref ExprCtx ctx, ExprAst* source, in Called called, bool isInLa
 			}
 		},
 		// For a spec, we do checks when providing the spec impl
-		(ref CalledSpecSig _) {});
+		(CalledSpecSig _) {});
 }
 
 enum ArgsKind { empty, nonEmpty }

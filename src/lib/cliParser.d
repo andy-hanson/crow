@@ -413,9 +413,14 @@ SplitArgsAndOptions splitArgs(ref Alloc alloc, return scope SafeCStr[] args) {
 		size_t firstArgIndex = force(optFirstArgIndex);
 		Opt!size_t dashDash = findIndex!SafeCStr(args[firstArgIndex .. $], (in SafeCStr arg) =>
 			safeCStrEq(arg, "--"));
-		NamedArgs namedArgs = splitNamedArgs(alloc, has(dashDash) ? args[firstArgIndex .. firstArgIndex + force(dashDash)] : args[firstArgIndex .. $]);
+		NamedArgs namedArgs = splitNamedArgs(
+			alloc, has(dashDash) ? args[firstArgIndex .. firstArgIndex + force(dashDash)] : args[firstArgIndex .. $]);
 		return SplitArgsAndOptions(
-			SplitArgs(args[0 .. firstArgIndex], namedArgs.parts, has(dashDash) ? args[firstArgIndex + force(dashDash) + 1 .. $] : [], namedArgs.help),
+			SplitArgs(
+				args[0 .. firstArgIndex],
+				namedArgs.parts,
+				has(dashDash) ? args[firstArgIndex + force(dashDash) + 1 .. $] : [],
+				namedArgs.help),
 			namedArgs.options);
 	}
 }

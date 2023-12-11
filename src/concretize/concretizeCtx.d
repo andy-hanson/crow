@@ -47,7 +47,6 @@ import model.model :
 	FlagsFunction,
 	ForcedByValOrRefOrNone,
 	FunBody,
-	FunDecl,
 	FunInst,
 	ImportFileType,
 	isArray,
@@ -69,12 +68,11 @@ import model.model :
 	Type,
 	typeArgs,
 	TypeParamIndex,
-	typeParams,
 	UnionMember,
 	VarDecl,
 	worsePurity;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, emptySmallArray, only, only2, sizeEq, small, SmallArray;
+import util.col.arr : empty, emptySmallArray, only, only2, small, SmallArray;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil : arrEqual, arrLiteral, arrMax, every, everyWithIndex, exists, fold, map, mapWithIndex, mapZip;
 import util.col.hashTable : getOrAdd, getOrAddAndDidAdd, moveToArray, MutHashTable;
@@ -83,7 +81,7 @@ import util.col.mutArr : filterUnordered, MutArr, mutArrIsEmpty, push;
 import util.col.mutMap : getOrAdd, getOrAddAndDidAdd, mustAddToMutMap, mustDelete, MutMap, ValueAndDidAdd;
 import util.col.str : SafeCStr;
 import util.hash : HashCode, Hasher;
-import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite, lazilySet;
+import util.late : Late, lateGet, lazilySet;
 import util.memory : allocate;
 import util.opt : force, has, none;
 import util.ptr : castMutable;
@@ -291,7 +289,8 @@ ConcreteFun* getConcreteFunForLambdaAndFillBody(
 }
 
 ConcreteFun* getOrAddNonTemplateConcreteFunAndFillBody(ref ConcretizeCtx ctx, FunInst* inst) =>
-	getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(inst.decl, emptySmallArray!ConcreteType, emptySmallArray!(immutable ConcreteFun*)));
+	getOrAddConcreteFunAndFillBody(
+		ctx, ConcreteFunKey(inst.decl, emptySmallArray!ConcreteType, emptySmallArray!(immutable ConcreteFun*)));
 
 private ConcreteType getConcreteType_forStructInst(
 	ref ConcretizeCtx ctx,
@@ -337,7 +336,7 @@ ConcreteType getConcreteType(ref ConcretizeCtx ctx, Type t, in TypeArgsScope typ
 			getConcreteType_forStructInst(ctx, i, typeArgsScope));
 
 SmallArray!ConcreteType typesToConcreteTypes(ref ConcretizeCtx ctx, in Type[] types, in TypeArgsScope typeArgsScope) =>
-	small(map(ctx.alloc, types, (ref Type t) =>
+	small!ConcreteType(map(ctx.alloc, types, (ref Type t) =>
 		getConcreteType(ctx, t, typeArgsScope)));
 
 ConcreteType concreteTypeFromClosure(
@@ -441,7 +440,11 @@ ConcreteFun* concreteFunForTest(ref ConcretizeCtx ctx, ref Test test, size_t tes
 		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.Test(range(test), testIndex))),
 		voidType(ctx),
 		[]));
-	ContainingFunInfo containing = ContainingFunInfo(test.moduleUri, emptySmallArray!(immutable SpecInst*), emptySmallArray!ConcreteType, emptySmallArray!(immutable ConcreteFun*));
+	ContainingFunInfo containing = ContainingFunInfo(
+		test.moduleUri,
+		emptySmallArray!(immutable SpecInst*),
+		emptySmallArray!ConcreteType,
+		emptySmallArray!(immutable ConcreteFun*));
 	ConcreteExpr body_ = concretizeFunBody(ctx, containing, res, [], test.body_);
 	res.body_ = ConcreteFunBody(body_);
 	addConcreteFun(ctx, res);
@@ -464,7 +467,7 @@ public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* mo
 	ConcreteFun* newNat64Future = getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
 		ctx.program.commonFuns.newNat64Future.decl,
 		//TODO:avoid alloc
-		small(arrLiteral(ctx.alloc, [nat64Type])),
+		small!ConcreteType(arrLiteral(ctx.alloc, [nat64Type])),
 		emptySmallArray!(immutable ConcreteFun*)));
 	ConcreteExpr callNewNatFuture = ConcreteExpr(newNat64Future.returnType, range, ConcreteExprKind(
 		ConcreteExprKind.Call(newNat64Future, arrLiteral(ctx.alloc, [zero]))));
@@ -650,8 +653,9 @@ size_t sizeForEnumOrFlags(EnumBackingType a) {
 }
 
 ConcreteStructBody.Enum getConcreteStructBodyForEnum(ref Alloc alloc, in StructBody.Enum a) {
-	bool simple = everyWithIndex!(StructBody.Enum.Member)(a.members, (size_t index, ref StructBody.Enum.Member member) =>
-		member.value.value == index);
+	bool simple = everyWithIndex!(StructBody.Enum.Member)(
+		a.members, (size_t index, ref StructBody.Enum.Member member) =>
+			member.value.value == index);
 	return simple
 		? ConcreteStructBody.Enum(a.backingType, EnumValues(a.members.length))
 		: ConcreteStructBody.Enum(

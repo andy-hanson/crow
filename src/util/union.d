@@ -2,9 +2,10 @@ module util.union_;
 
 @safe @nogc nothrow: // not pure
 
-import std.traits : isMutable, Unqual;
+import std.traits : EnumMembers, isMutable, Unqual;
 import std.meta : staticMap;
 import util.col.arr : MutSmallArray, SmallArray;
+import util.util : assertNormalEnum;
 
 mixin template Union(ReprTypes...) {
 	@safe @nogc nothrow:
@@ -23,7 +24,7 @@ mixin template Union(ReprTypes...) {
 		toMemberType;
 
 	static foreach (T; ReprTypes)
-		static assert(isImmutable!T, "Union types must be immutable (otherwise use UnionMutable)");
+		static assert(is(T == enum) || isImmutable!T, "Union types must be immutable (otherwise use UnionMutable)");
 
 	enum usesTaggedPointer = canUseTaggedPointers!ReprTypes;
 	alias MemberTypes = staticMap!(toMemberType, ReprTypes);
@@ -94,6 +95,8 @@ mixin template Union(ReprTypes...) {
 							return handlers[i](T());
 						else static if (is(T == P*, P))
 							return handlers[i](*(cast(immutable P*) ptrValue));
+						else static if (is(T == enum))
+							return handlers[i](cast(T) (ptrValue >> 2));
 						else
 							return handlers[i](T.fromTagged(ptrValue));
 					} else {
@@ -116,6 +119,8 @@ mixin template Union(ReprTypes...) {
 							return handlers[i](T());
 						else static if (is(T == P*, P))
 							return handlers[i](*(cast(immutable P*) ptrValue));
+						else static if (is(T == enum))
+							return handlers[i](cast(T) (ptrValue >> 2));
 						else
 							return handlers[i](T.fromTagged(ptrValue));
 					} else {
@@ -195,6 +200,7 @@ bool isSimple(T)() =>
 mixin template UnionMutable(Types...) {
 	@safe @nogc pure nothrow:
 
+	import std.traits : isMutable;
 	import util.memory : overwriteMemory;
 	import util.union_ : canUseTaggedPointers, getTaggedPointerValue, isEmptyStruct, toHandlersConst, toHandlersMutable;
 
@@ -217,14 +223,27 @@ mixin template UnionMutable(Types...) {
 
 	@disable this();
 	static foreach (i, T; Types) {
-		this(return T a) {
-			static if (is(T == P*, P))
-				assert(a != null);
-			static if (usesTaggedPointer) {
-				value = getTaggedPointerValue!i(a);
-			} else {
-				kind = i;
-				mixin("as", i, " = a;");
+		static if (isMutable!T) {
+			this(return inout T a) inout {
+				static if (is(T == P*, P))
+					assert(a != null);
+				static if (usesTaggedPointer) {
+					value = getTaggedPointerValue!i(a);
+				} else {
+					kind = i;
+					mixin("as", i, " = a;");
+				}
+			}
+		} else {
+			this(return T a) {
+				static if (is(T == P*, P))
+					assert(a != null);
+				static if (usesTaggedPointer) {
+					value = getTaggedPointerValue!i(a);
+				} else {
+					kind = i;
+					mixin("as", i, " = a;");
+				}
 			}
 		}
 	}
@@ -247,8 +266,12 @@ mixin template UnionMutable(Types...) {
 					static if (usesTaggedPointer) {
 						static if (isEmptyStruct!T)
 							return handlers[i](T());
-						else
+						else static if (is(T == P*, P))
 							return handlers[i](cast(P*) ptrValue);
+						else static if (is(T == MutSmallArray!U, U))
+							return handlers[i](MutSmallArray!U.fromTagged(ptrValue).toArray);
+						else
+							static assert(false);
 					} else {
 						mixin("return handlers[", i, "](as", i, ");");
 					}
@@ -265,6 +288,8 @@ mixin template UnionMutable(Types...) {
 							return handlers[i](T());
 						else static if (is(T == P*, P))
 							return handlers[i](cast(const P*) ptrValue);
+						else static if (is(T == MutSmallArray!U, U))
+							return handlers[i](MutSmallArray!U.fromTagged(ptrValue));
 						else
 							static assert(false);
 					} else {
@@ -315,8 +340,15 @@ bool canUseTaggedPointers(Types...)() {
 	else
 		return false;
 }
-private bool canUseTaggedPointer(T)() =>
-	isEmptyStruct!T || is(T == U*, U) || __traits(compiles, T.fromTagged(0));
+private bool canUseTaggedPointer(T)() {
+	static if (isEmptyStruct!T || is(T == U*, U) || __traits(compiles, T.fromTagged(0))) {
+		return true;
+	} else static if (is(T == enum)) {
+		assertNormalEnum!T;
+		return true;
+	} else
+		return false;
+}
 
 ulong getAsTaggable(T)(const T a) {
 	static if (isEmptyStruct!T)
@@ -325,7 +357,9 @@ ulong getAsTaggable(T)(const T a) {
 		return cast(ulong) a;
 	else static if (is(T == U[], U))
 		return SmallArray!U(a).asTaggable;
-	else
+	else static if (is(T == enum)) {
+		return (cast(ulong) a) << 2;
+	} else
 		return a.asTaggable;
 }
 
@@ -362,7 +396,7 @@ template toHandlers(R, Types...) {
 		else static if (isSimple!(Unqual!P))
 			alias toHandler = R delegate(Unqual!P) @safe @nogc pure nothrow;
 		else
-			alias toHandler = R delegate(immutable P) @safe @nogc pure nothrow;
+			alias toHandler = R delegate(P) @safe @nogc pure nothrow;
 	}
 	alias toHandlers = staticMap!(toHandler, Types);
 }
@@ -375,7 +409,7 @@ template toHandlersIn(R, Types...) {
 			// This makes it 'immutable(T)[]' instead of 'immutable T[]'
 			alias toHandlerIn = R delegate(in U[]) @safe @nogc pure nothrow;
 		else static if (isSimple!(Unqual!P))
-			alias toHandlerIn = R delegate(Unqual!P) @safe @nogc pure nothrow;
+			alias toHandlerIn = R delegate(in Unqual!P) @safe @nogc pure nothrow;
 		else
 			alias toHandlerIn = R delegate(in P) @safe @nogc pure nothrow;
 	}
@@ -393,15 +427,27 @@ template toHandlersImpure(R, Types...) {
 }
 
 template toHandlersConst(R, Types...) {
-	alias toHandlerConst(P) = R delegate(const P) @safe @nogc pure nothrow;
+	template toHandlerConst(P) {
+		static if (isMutable!P) {
+			static if (isEmptyStruct!P || is(P == U[], U) || is(P == U*, U))
+				alias toHandlerConst = R delegate(const P) @safe @nogc pure nothrow;
+			else static if (is(P == MutSmallArray!U, U))
+				alias toHandlerConst = R delegate(const U[]) @safe @nogc pure nothrow;
+			else
+				alias toHandlerConst = R delegate(ref const P) @safe @nogc pure nothrow;
+		} else
+			alias toHandlerConst = R delegate(immutable P) @safe @nogc pure nothrow;
+	}
 	alias toHandlersConst = staticMap!(toHandlerConst, Types);
 }
 
 template toHandlersMutable(R, Types...) {
 	template toHandlerMutable(P) {
 		static if (isMutable!P) {
-			static if (is(P == U[], U) || is(P == U*, U))
+			static if (isEmptyStruct!P || is(P == U[], U) || is(P == U*, U))
 				alias toHandlerMutable = R delegate(P) @safe @nogc pure nothrow;
+			else static if (is(P == MutSmallArray!U, U))
+				alias toHandlerMutable = R delegate(U[]) @safe @nogc pure nothrow;
 			else
 				alias toHandlerMutable = R delegate(ref P) @safe @nogc pure nothrow;
 		} else

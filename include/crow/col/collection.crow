@@ -233,6 +233,15 @@ and return an output collection of the elements for which `f` was `true`.
 			if f[x]
 				out ~= x
 
++reduce[col, elem] elem?(a col, f act elem(elem, elem)) (col, elem) iterate
+	res mut elem? = ()
+	for x : a
+		res := if cur ?= res
+			f[cur, x],
+		else
+			x,
+	res
+
 sequence-equal[col, iter, elem] bool(
 	a col,
 	b col,

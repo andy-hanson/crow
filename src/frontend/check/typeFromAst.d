@@ -2,7 +2,7 @@ module frontend.check.typeFromAst;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCtx : addDiag, CheckCtx, eachImportAndReExport, markUsed, rangeInFile;
+import frontend.check.checkCtx : addDiag, CheckCtx, eachImportAndReExport, markUsed;
 import frontend.check.instantiate :
 	InstantiateCtx,
 	instantiateSpec,
@@ -43,8 +43,8 @@ import model.model :
 	TypeParams,
 	typeParams;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : arrayOfSingle, empty, only, small, SmallArray;
-import util.col.arrUtil : eachPair, findIndex, map, mapOrNone, mapWithIndex, mapZip;
+import util.col.arr : arrayOfSingle, empty, only, small;
+import util.col.arrUtil : eachPair, findIndex, map, mapOrNone, mapZip;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.ptr : castNonScope_ref, ptrTrustMe;
@@ -437,10 +437,11 @@ Destructure checkDestructure(
 				if (has(fieldTypes) && force(fieldTypes).length == partAsts.length)
 					return Destructure(allocate(ctx.alloc, Destructure.Split(
 						tupleType,
-						small(mapZip!(Destructure, Type, DestructureAst)(
+						small!Destructure(mapZip!(Destructure, Type, DestructureAst)(
 							ctx.alloc, force(fieldTypes), partAsts, (ref Type fieldType, ref DestructureAst part) =>
 								checkDestructure(
-									ctx, commonTypes, structsAndAliasesMap, typeContainer, typeParamsScope, delayStructInsts,
+									ctx, commonTypes, structsAndAliasesMap,
+									typeContainer, typeParamsScope, delayStructInsts,
 									part, some(fieldType)))))));
 				else {
 					addDiag(ctx, ast.range(ctx.allSymbols), Diag(
@@ -450,10 +451,11 @@ Destructure checkDestructure(
 							typeWithContainer(tupleType))));
 					return Destructure(allocate(ctx.alloc, Destructure.Split(
 						Type(Type.Bogus()),
-						small(map!(Destructure, DestructureAst)(
+						small!Destructure(map!(Destructure, DestructureAst)(
 							ctx.alloc, partAsts, (ref DestructureAst part) =>
 								checkDestructure(
-									ctx, commonTypes, structsAndAliasesMap, typeContainer, typeParamsScope, delayStructInsts,
+									ctx, commonTypes, structsAndAliasesMap,
+									typeContainer, typeParamsScope, delayStructInsts,
 									part, some(Type(Type.Bogus()))))))));
 				}
 			} else {
@@ -465,7 +467,7 @@ Destructure checkDestructure(
 					ctx.instantiateCtx, commonTypes,
 					//TODO:PERF Use temp alloc
 					map(ctx.alloc, parts, (ref Destructure part) => part.type));
-				return Destructure(allocate(ctx.alloc, Destructure.Split(type, small(parts))));
+				return Destructure(allocate(ctx.alloc, Destructure.Split(type, small!Destructure(parts))));
 			}
 		});
 }

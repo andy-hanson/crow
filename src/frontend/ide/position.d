@@ -7,7 +7,6 @@ import model.diag : TypeContainer, typeParamAsts, TypeWithContainer;
 import model.model :
 	Expr,
 	FunDecl,
-	FunDeclSource,
 	ImportOrExport,
 	Local,
 	Module,
@@ -16,14 +15,11 @@ import model.model :
 	SpecDeclSig,
 	SpecInst,
 	StructDecl,
-	Type,
 	TypeParamIndex,
-	TypeParams,
 	VarDecl,
 	Visibility;
 import util.sym : Sym;
 import util.union_ : Union;
-import util.uri : Uri;
 
 immutable struct Position {
 	Module* module_;
@@ -93,6 +89,10 @@ immutable struct PositionKind {
 		SpecDecl* spec;
 		SpecDeclSig* sig;
 	}
+	immutable struct SpecUse {
+		TypeContainer container;
+		SpecInst* spec;
+	}
 	immutable struct TypeParamWithContainer {
 		TypeParamIndex typeParam;
 		TypeContainer container;
@@ -111,8 +111,8 @@ immutable struct PositionKind {
 		RecordFieldMutability,
 		RecordFieldPosition,
 		SpecDecl*,
-		SpecInst*,
 		SpecSig,
+		SpecUse,
 		StructDecl*,
 		TypeWithContainer,
 		TypeParamWithContainer,

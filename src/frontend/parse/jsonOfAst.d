@@ -51,11 +51,10 @@ import frontend.parse.ast :
 	SpecSigAst,
 	StructAliasAst,
 	StructDeclAst,
+	stringOfFieldMutabilityAstKind,
+	stringOfSpecialFlag,
 	symForTypeAstSuffix,
-	symOfExplicitVisibility,
-	symOfFieldMutabilityAstKind,
 	symOfModifierKind,
-	symOfSpecialFlag,
 	ThenAst,
 	ThrowAst,
 	TrustedAst,
@@ -63,7 +62,6 @@ import frontend.parse.ast :
 	TypedAst,
 	UnlessAst,
 	WithAst;
-import model.model : symOfAssertOrForbidKind, symOfFunKind, symOfImportFileType;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.json :
@@ -83,9 +81,9 @@ import util.lineAndColumnGetter : LineAndColumnGetter, PosKind;
 import util.opt : Opt;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : jsonOfPosWithinFile, jsonOfRange, Pos, Range;
-import util.sym : Sym, sym;
 import util.union_ : Union;
 import util.uri : AllUris, Path, pathToSafeCStr, RelPath;
+import util.util : stringOfEnum;
 
 Json jsonOfAst(ref Alloc alloc, in AllUris allUris, in LineAndColumnGetter lineAndColumnGetter, in FileAst ast) {
 	Ctx ctx = Ctx(ptrTrustMe(allUris), lineAndColumnGetter);
@@ -139,7 +137,7 @@ Json jsonOfImportOrExportAst(ref Alloc alloc, scope ref Ctx ctx, in ImportOrExpo
 			(in ImportOrExportAstKind.File f) =>
 				jsonObject(alloc, [
 					field!"name"(jsonOfNameAndRange(alloc, ctx, f.name)),
-					field!"file-type"(symOfImportFileType(f.type))])))]);
+					field!"file-type"(stringOfEnum(f.type))])))]);
 
 Json pathOrRelPathToJson(ref Alloc alloc, in AllUris allUris, PathOrRelPath a) =>
 	a.match!Json(
@@ -154,7 +152,7 @@ Json jsonOfSpecDeclAst(ref Alloc alloc, scope ref Ctx ctx, in SpecDeclAst a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		field!"comment"(jsonString(alloc, a.docComment)),
-		field!"visibility"(symOfExplicitVisibility(a.visibility)),
+		field!"visibility"(stringOfEnum(a.visibility)),
 		field!"name"(jsonOfNameAndRange(alloc, ctx, a.name)),
 		field!"parents"(jsonOfTypeAsts(alloc, ctx, a.parents)),
 		maybeTypeParams(alloc, ctx, a.typeParams),
@@ -180,7 +178,7 @@ Json jsonOfStructAliasAst(ref Alloc alloc, scope ref Ctx ctx, in StructAliasAst 
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		optionalStringField!"doc"(alloc, a.docComment),
-		field!"visibility"(symOfExplicitVisibility(a.visibility)),
+		field!"visibility"(stringOfEnum(a.visibility)),
 		field!"name"(jsonOfNameAndRange(alloc, ctx, a.name)),
 		maybeTypeParams(alloc, ctx, a.typeParams),
 		field!"target"(jsonOfTypeAst(alloc, ctx, a.target))]);
@@ -188,7 +186,7 @@ Json jsonOfStructAliasAst(ref Alloc alloc, scope ref Ctx ctx, in StructAliasAst 
 Json jsonOfEnumOrFlags(
 	ref Alloc alloc,
 	scope ref Ctx ctx,
-	Sym name,
+	string name,
 	in Opt!(TypeAst*) typeArg,
 	in StructDeclAst.Body.Enum.Member[] members,
 ) =>
@@ -235,12 +233,12 @@ Json jsonOfLiteralIntOrNat(ref Alloc alloc, in LiteralIntOrNat a) =>
 Json jsonOfField(ref Alloc alloc, scope ref Ctx ctx, in StructDeclAst.Body.Record.Field a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
-		field!"visibility"(symOfExplicitVisibility(a.visibility)),
+		field!"visibility"(stringOfEnum(a.visibility)),
 		field!"name"(jsonOfNameAndRange(alloc, ctx, a.name)),
 		optionalField!("mutability", FieldMutabilityAst)(a.mutability, (in FieldMutabilityAst x) =>
 			jsonObject(alloc, [
 				field!"pos"(x.pos),
-				field!"kind"(symOfFieldMutabilityAstKind(x.kind))])),
+				field!"kind"(stringOfFieldMutabilityAstKind(x.kind))])),
 		field!"type"(jsonOfTypeAst(alloc, ctx, a.type))]);
 
 Json jsonOfRecordAst(ref Alloc alloc, scope ref Ctx ctx, in StructDeclAst.Body.Record a) =>
@@ -269,11 +267,11 @@ Json jsonOfStructBodyAst(ref Alloc alloc, scope ref Ctx ctx, in StructDeclAst.Bo
 		(in StructDeclAst.Body.Builtin) =>
 			jsonString!"builtin" ,
 		(in StructDeclAst.Body.Enum e) =>
-			jsonOfEnumOrFlags(alloc, ctx, sym!"enum", e.typeArg, e.members),
+			jsonOfEnumOrFlags(alloc, ctx, "enum", e.typeArg, e.members),
 		(in StructDeclAst.Body.Extern) =>
 			jsonString!"extern",
 		(in StructDeclAst.Body.Flags e) =>
-			jsonOfEnumOrFlags(alloc, ctx, sym!"flags", e.typeArg, e.members),
+			jsonOfEnumOrFlags(alloc, ctx, "flags", e.typeArg, e.members),
 		(in StructDeclAst.Body.Record a) =>
 			jsonOfRecordAst(alloc, ctx, a),
 		(in StructDeclAst.Body.Union a) =>
@@ -283,7 +281,7 @@ Json jsonOfStructDeclAst(ref Alloc alloc, scope ref Ctx ctx, in StructDeclAst a)
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		field!"doc"(jsonString(alloc, a.docComment)),
-		field!"visibility"(symOfExplicitVisibility(a.visibility)),
+		field!"visibility"(stringOfEnum(a.visibility)),
 		maybeTypeParams(alloc, ctx, a.typeParams),
 		optionalArrayField!("modifiers", ModifierAst)(alloc, a.modifiers, (in ModifierAst x) =>
 			jsonOfModifierAst(alloc, x)),
@@ -301,7 +299,7 @@ Json jsonOfModifierAst(ref Alloc alloc, in ModifierAst a) =>
 Json jsonOfFunDeclAst(ref Alloc alloc, scope ref Ctx ctx, in FunDeclAst a) =>
 	jsonObject(alloc, [
 		optionalStringField!"doc"(alloc, a.docComment),
-		field!"visibility"(symOfExplicitVisibility(a.visibility)),
+		field!"visibility"(stringOfEnum(a.visibility)),
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		field!"name"(jsonOfNameAndRange(alloc, ctx, a.name)),
 		maybeTypeParams(alloc, ctx, a.typeParams),
@@ -326,7 +324,7 @@ Json jsonOfFunModifierAst(ref Alloc alloc, scope ref Ctx ctx, in FunModifierAst 
 			jsonObject(alloc, [
 				kindField!"special",
 				field!"pos"(x.pos),
-				field!"flag"(symOfSpecialFlag(x.flag))]),
+				field!"flag"(stringOfSpecialFlag(x.flag))]),
 		(in FunModifierAst.Extern x) =>
 			jsonObject(alloc, [
 				kindField!"extern",
@@ -345,7 +343,7 @@ Json jsonOfTypeAst(ref Alloc alloc, scope ref Ctx ctx, in TypeAst a) =>
 			jsonObject(alloc, [
 				kindField!"fun",
 				field!"range"(jsonOfRange(alloc, ctx, x.range)),
-				field!"fun-kind"(symOfFunKind(x.kind)),
+				field!"fun-kind"(stringOfEnum(x.kind)),
 				field!"return-type"(jsonOfTypeAst(alloc, ctx, x.returnType)),
 				field!"param-types"(jsonOfTypeAsts(alloc, ctx, x.paramTypes))]),
 		(in TypeAst.Map x) =>
@@ -416,7 +414,7 @@ Json jsonOfExprAstKind(ref Alloc alloc, scope ref Ctx ctx, in ExprAstKind ast) =
 				field!"name"(jsonOfNameAndRange(alloc, ctx, e.name))]),
 		(in AssertOrForbidAst e) =>
 			jsonObject(alloc, [
-				kindField(symOfAssertOrForbidKind(e.kind)),
+				kindField(stringOfEnum(e.kind)),
 				field!"condition"(jsonOfExprAst(alloc, ctx, e.condition)),
 				optionalField!("thrown", ExprAst)(e.thrown, (in ExprAst thrown) =>
 					jsonOfExprAst(alloc, ctx, thrown))]),
@@ -436,7 +434,7 @@ Json jsonOfExprAstKind(ref Alloc alloc, scope ref Ctx ctx, in ExprAstKind ast) =
 		(in CallAst e) =>
 			jsonObject(alloc, [
 				kindField!"call",
-				field!"style"(symOfCallAstStyle(e.style)),
+				field!"style"(stringOfEnum(e.style)),
 				field!"fun-name"(jsonOfNameAndRange(alloc, ctx, e.funName)),
 				optionalField!("type-arg", TypeAst*)(e.typeArg, (in TypeAst* x) =>
 					jsonOfTypeAst(alloc, ctx, *x)),
@@ -569,26 +567,3 @@ Json jsonOfInterpolatedPart(ref Alloc alloc, scope ref Ctx ctx, in InterpolatedP
 	a.matchIn!Json(
 		(in string x) => jsonString(alloc, x),
 		(in ExprAst x) => jsonOfExprAst(alloc, ctx, x));
-
-Sym symOfCallAstStyle(CallAst.Style a) {
-	final switch (a) {
-		case CallAst.Style.comma:
-			return sym!"comma";
-		case CallAst.Style.dot:
-			return sym!"dot";
-		case CallAst.Style.emptyParens:
-			return sym!"empty-parens";
-		case CallAst.Style.infix:
-			return sym!"infix";
-		case CallAst.Style.prefixBang:
-			return sym!"prefix-bang";
-		case CallAst.Style.prefixOperator:
-			return sym!"prefix-op";
-		case CallAst.Style.single:
-			return sym!"single";
-		case CallAst.Style.subscript:
-			return sym!"subscript";
-		case CallAst.Style.suffixBang:
-			return sym!"suffix-bang";
-	}
-}

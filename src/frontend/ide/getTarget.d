@@ -44,7 +44,6 @@ import model.model :
 	SeqExpr,
 	StructBody,
 	SpecDecl,
-	SpecInst,
 	StructDecl,
 	StructInst,
 	ThrowExpr,
@@ -55,7 +54,6 @@ import model.model :
 import util.opt : none, Opt, some;
 import util.json : field;
 import util.union_ : Union;
-import util.util : unreachable;
 
 immutable struct Target {
 	mixin Union!(
@@ -100,10 +98,10 @@ Opt!Target targetForPosition(in Program program, PositionKind pos) =>
 			some(Target(x.field)),
 		(SpecDecl* x) =>
 			some(Target(x)),
-		(SpecInst* x) =>
-			some(Target(x.decl)),
 		(PositionKind.SpecSig x) =>
 			some(Target(x)),
+		(PositionKind.SpecUse x) =>
+			some(Target(x.spec.decl)),
 		(StructDecl* x) =>
 			some(Target(x)),
 		(TypeWithContainer x) =>
@@ -225,7 +223,7 @@ Opt!Target calledTarget(ref Called a) =>
 				(FunBody.VarSet x) =>
 					Target(x.var)));
 		},
-		(ref CalledSpecSig x) =>
+		(CalledSpecSig x) =>
 			some(Target(PositionKind.SpecSig(x.specInst.decl, x.nonInstantiatedSig))));
 
 Target returnTypeTarget(FunDecl* fun) =>

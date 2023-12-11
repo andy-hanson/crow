@@ -5,7 +5,7 @@ module frontend.check.getCommonFuns;
 import frontend.check.funsForStruct : funDeclWithBody;
 import frontend.check.inferringType : typesAreCorrespondingStructInsts;
 import frontend.check.instantiate : InstantiateCtx, instantiateFun, instantiateStructNeverDelay;
-import frontend.parse.ast : NameAndRange, StructDeclAst;
+import frontend.parse.ast : NameAndRange;
 import model.diag : Diag, UriAndDiagnostic;
 import model.model :
 	assertNonVariadic,
@@ -142,7 +142,7 @@ CommonFuns getCommonFuns(
 	Type tFuture = instantiateType(commonTypes.future, [singleTypeParamType]);
 	FunDecl* newTFuture = getFunDeclInner(
 		*modules[CommonModule.future], sym!"new", singleTypeParams, tFuture, castNonScope_ref(newTFutureParams));
-	FunInst* newNat64Future = instantiateFun(ctx, newTFuture, small([nat64Type]), emptySpecImpls);
+	FunInst* newNat64Future = instantiateFun(ctx, newTFuture, small!Type([nat64Type]), emptySpecImpls);
 	FunInst* rtMain = getFun(
 		CommonModule.runtimeMain,
 		sym!"rt-main",

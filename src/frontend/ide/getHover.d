@@ -3,7 +3,7 @@ module frontend.ide.getHover;
 @safe @nogc pure nothrow:
 
 import frontend.ide.position : Position, PositionKind, typeParamAsts;
-import frontend.parse.ast : FieldMutabilityAst, FunModifierAst, NameAndRange;
+import frontend.parse.ast : FieldMutabilityAst, FunModifierAst;
 import frontend.showModel :
 	ShowCtx, writeCalled, writeFile, writeFunInst, writeLineAndColumnRange, writeName, writeSpecInst, writeTypeUnquoted;
 import frontend.storage : lineAndColumnRange;
@@ -17,7 +17,7 @@ import util.ptr : ptrTrustMe;
 import util.sourceRange : UriAndRange;
 import util.sym : writeSym;
 import util.uri : Uri;
-import util.util : todo, unreachable;
+import util.util : unreachable;
 import util.writer : withWriter, Writer;
 
 Opt!Hover getHover(ref Alloc alloc, in ShowCtx ctx, in Position pos) {
@@ -121,15 +121,13 @@ void getHover(scope ref Writer writer, in ShowCtx ctx, in Position pos) =>
 			writer ~= "spec ";
 			writeName(writer, ctx, x.name);
 		},
-		(in SpecInst x) {
-			// TODO: we need PositionKind.SpecInst that has the outer fundecl too ------------------------------------------------------
-			todo!void("!");
-			// writer ~= "spec ";
-			// writeSpecInst(writer, ctx, x);
-		},
 		(in PositionKind.SpecSig x) {
 			writer ~= "spec signature ";
 			writeName(writer, ctx, x.sig.name);
+		},
+		(in PositionKind.SpecUse x) {
+			writer ~= "spec ";
+			writeSpecInst(writer, ctx, x.container, *x.spec);
 		},
 		(in StructDecl x) {
 			writeStructDeclHover(writer, ctx, x);
@@ -157,7 +155,7 @@ void getHover(scope ref Writer writer, in ShowCtx ctx, in Position pos) =>
 		},
 		(in Visibility x) {
 			writer ~= "The declaration is ";
-			writeSym(writer, ctx.allSymbols, symOfVisibility(x));
+			writer ~= stringOfVisibility(x);
 			writer ~= '.';
 		});
 

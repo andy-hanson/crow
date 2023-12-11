@@ -118,8 +118,7 @@ struct ExprCtx {
 		checkCtx.instantiateCtx;
 }
 
-TypeParams typeContext(in ExprCtx ctx) => // TODO:USED? ---------------------------------------------------------------------------
-	ctx.outermostFunTypeParams;
+
 TypeWithContainer typeWithContainer(ref const ExprCtx ctx, Type a) =>
 	TypeWithContainer(a, ctx.typeContainer);
 

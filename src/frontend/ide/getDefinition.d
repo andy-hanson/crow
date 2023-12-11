@@ -74,7 +74,9 @@ public void definitionForTarget(in AllSymbols allSymbols, Uri curUri, in Target 
 			cb(nameRange(allSymbols, x));
 		},
 		(in PositionKind.TypeParamWithContainer x) {
-			cb(UriAndRange(uriOfTypeContainer(x.container), rangeOfNameAndRange(typeParamAsts(x.container)[x.typeParam.index], allSymbols)));
+			cb(UriAndRange(
+				uriOfTypeContainer(x.container),
+				rangeOfNameAndRange(typeParamAsts(x.container)[x.typeParam.index], allSymbols)));
 		},
 		(in VarDecl x) {
 			cb(nameRange(allSymbols, x));

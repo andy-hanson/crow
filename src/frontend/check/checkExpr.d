@@ -34,7 +34,7 @@ import frontend.check.inferringType :
 	OkSkipOrAbort,
 	Pair,
 	setExpectedIfNoInferred,
-	tryGetDeeplyInstantiatedType,
+	tryGetNonInferringType,
 	tryGetLoop,
 	TypeAndContext,
 	TypeContext,
@@ -479,7 +479,7 @@ Expr checkInterpolated(
 	// TODO: NEATER (don't create a synthetic AST)
 	// "a{b}c" ==> "a" ~~ b.to ~~ "c"
 	CallAst call = checkInterpolatedRecur(ctx, ast.parts, source.range.start + 1, none!ExprAst);
-	Opt!Type inferred = tryGetDeeplyInstantiatedType(ctx.instantiateCtx, expected);
+	Opt!Type inferred = tryGetNonInferringType(ctx.instantiateCtx, expected);
 	CallAst callAndConvert = has(inferred) && !isString(force(inferred))
 		? CallAst(
 			//TODO: new kind (not infix)
@@ -552,7 +552,7 @@ MutOpt!ExpectedLambdaType getExpectedLambdaType(
 			Opt!FunType optFunType = getFunType(ctx.commonTypes, expectedType.type);
 			if (has(optFunType)) {
 				FunType funType = force(optFunType);
-				Opt!Type optExpectedParamType = tryGetDeeplyInstantiatedType(
+				Opt!Type optExpectedParamType = tryGetNonInferringType(
 					ctx.instantiateCtx, TypeAndContext(funType.nonInstantiatedParamType, expectedType.context));
 				OkSkipOrAbort!Type actualParamType = () {
 					if (has(optExpectedParamType)) {
@@ -858,7 +858,7 @@ Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, scope string value, re
 }
 
 StructInst* expectedStructOrNull(ref InstantiateCtx ctx, ref const Expected expected) {
-	Opt!Type expectedType = tryGetDeeplyInstantiatedType(ctx, expected);
+	Opt!Type expectedType = tryGetNonInferringType(ctx, expected);
 	return has(expectedType) && force(expectedType).isA!(StructInst*)
 		? force(expectedType).as!(StructInst*)
 		: null;
@@ -969,7 +969,7 @@ immutable struct ExpectedPointee {
 enum PointerMutability { immutable_, mutable }
 
 ExpectedPointee getExpectedPointee(ref ExprCtx ctx, ref const Expected expected) {
-	Opt!Type expectedType = tryGetDeeplyInstantiatedType(ctx.instantiateCtx, expected);
+	Opt!Type expectedType = tryGetNonInferringType(ctx.instantiateCtx, expected);
 	if (has(expectedType) && force(expectedType).isA!(StructInst*)) {
 		StructInst* inst = force(expectedType).as!(StructInst*);
 		if (inst.decl == ctx.commonTypes.ptrConst)
@@ -1169,7 +1169,8 @@ VariableRef[] checkClosure(ref ExprCtx ctx, ExprAst* source, FunKind kind, Closu
 		case FunKind.fun:
 			foreach (ref ClosureFieldBuilder cf; closureFields) {
 				if (!isPurityAlwaysCompatibleConsideringSpecs(ctx.outermostFunSpecs, cf.type, Purity.shared_))
-					addDiag2(ctx, source, Diag(Diag.LambdaClosesOverMut(cf.name, some(typeWithContainer(ctx, cf.type)))));
+					addDiag2(ctx, source, Diag(
+						Diag.LambdaClosesOverMut(cf.name, some(typeWithContainer(ctx, cf.type)))));
 				else {
 					final switch (cf.mutability) {
 						case Mutability.immut:
@@ -1206,7 +1207,7 @@ Expr checkLet(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, LetAst* a
 }
 
 Expr checkLoop(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, LoopAst* ast, ref Expected expected) {
-	Opt!Type expectedType = tryGetDeeplyInstantiatedType(ctx.instantiateCtx, expected);
+	Opt!Type expectedType = tryGetNonInferringType(ctx.instantiateCtx, expected);
 	if (has(expectedType)) {
 		Type type = force(expectedType);
 		LoopExpr* loop = allocate(ctx.alloc, LoopExpr(
@@ -1478,7 +1479,7 @@ Expr checkThen(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref Then
 
 Expr checkTyped(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, TypedAst* ast, ref Expected expected) {
 	Type type = typeFromAst2(ctx, ast.type);
-	Opt!Type inferred = tryGetDeeplyInstantiatedType(ctx.instantiateCtx, expected);
+	Opt!Type inferred = tryGetNonInferringType(ctx.instantiateCtx, expected);
 	// If inferred != type, we'll fail in 'check'
 	if (has(inferred) && force(inferred) == type)
 		addDiag2(ctx, source, Diag(Diag.TypeAnnotationUnnecessary(typeWithContainer(ctx, type))));

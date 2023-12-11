@@ -684,7 +684,7 @@ ExprResult emitWithBranching(
 		},
 		(ExprEmit.Void) =>
 			ExprResult(ExprResult.Void()),
-		(const ExprEmit.WriteTo) =>
+		(ref const ExprEmit.WriteTo) =>
 			ExprResult(ExprResult.Void()));
 
 	cb(originalBlock, endBlock, local, expectedResult);

@@ -491,7 +491,7 @@ void referencesForSpecSig(in AllSymbols allSymbols, in Program program, in Posit
 	eachExprThatMayReference(program, a.spec.visibility, itsModule, (in Module module_, in Expr x) {
 		if (x.kind.isA!CallExpr) {
 			Called called = x.kind.as!CallExpr.called;
-			if (called.isA!(CalledSpecSig*) && called.as!(CalledSpecSig*).nonInstantiatedSig == a.sig)
+			if (called.isA!(CalledSpecSig) && called.as!(CalledSpecSig).nonInstantiatedSig == a.sig)
 				cb(UriAndRange(module_.uri, x.range));
 		} else if (x.kind.isA!FunPtrExpr) {
 			// Currently doesn't support specs

@@ -103,7 +103,6 @@ import model.model :
 	EnumFunction,
 	EnumValue,
 	FlagsFunction,
-	FunInst,
 	Local,
 	name,
 	Program,

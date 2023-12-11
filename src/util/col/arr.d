@@ -43,8 +43,8 @@ struct MutSmallArray(T) {
 
 	ulong asTaggable() const =>
 		sizeAndBegin.asTaggable;
-	static SmallArray!T fromTagged(ulong x) =>
-		SmallArray!T(PtrAndSmallNumber!T.fromTagged(x));
+	static MutSmallArray!T fromTagged(ulong x) =>
+		MutSmallArray!T(PtrAndSmallNumber!T.fromTagged(x));
 
 	@trusted this(inout T[] values) inout {
 		sizeAndBegin = inout PtrAndSmallNumber!T(values.ptr, safeToUshort(values.length));
@@ -61,11 +61,18 @@ struct MutSmallArray(T) {
 }
 alias SmallArray(T) = immutable MutSmallArray!T;
 
-SmallArray!T small(T)(T[] values) =>
-	SmallArray!T(values);
+template small(T) {
+	static if (is(T == immutable)) {
+		SmallArray!T small(T)(T[] values) =>
+			SmallArray!T(values);
+	} else {
+		inout(MutSmallArray!T) small(T)(inout T[] values) =>
+			SmallArray!T(values);
+	}
+}
 
 SmallArray!T emptySmallArray(T)() =>
-	small!T([]);
+	SmallArray!T([]);
 
 @trusted T[] castMutable(T)(immutable T[] a) =>
 	cast(T[]) a;

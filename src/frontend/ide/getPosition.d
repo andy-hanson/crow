@@ -20,16 +20,16 @@ import frontend.parse.ast :
 	rangeOfMutKeyword,
 	rangeOfNameAndRange,
 	SpecSigAst,
+	stringOfFieldMutabilityAstKind,
 	StructDeclAst,
-	symOfFieldMutabilityAstKind,
 	TypeAst;
 import model.diag : TypeContainer, TypeWithContainer;
 import model.model;
-import model.model : paramsArray, range, StructDeclSource, TypeParams;
+import model.model : paramsArray, range, StructDeclSource;
 import util.col.arr : ptrsRange;
 import util.col.arrUtil : first, firstPointer, firstWithIndex, firstZipPointerFirst;
 import util.opt : force, has, none, Opt, optIf, optOr, optOr, optOrDefault, some;
-import util.sourceRange : hasPos, Pos, Range;
+import util.sourceRange : hasPos, Pos, Range, rangeOfStartAndLength;
 import util.sym : AllSymbols;
 import util.union_ : Union;
 import util.uri : AllUris;
@@ -92,7 +92,7 @@ PositionKind positionForModifier(FunDecl* a, in FunDeclAst ast, size_t index, in
 			foreach (ref FunModifierAst prevModifier; ast.modifiers[0 .. index])
 				if (prevModifier.isA!TypeAst)
 					specIndex++;
-			return PositionKind(a.specs[specIndex]);
+			return PositionKind(PositionKind.SpecUse(TypeContainer(a), a.specs[specIndex]));
 		});
 
 Opt!PositionKind positionInDestructure(in AllSymbols allSymbols, LocalContainer container, in Destructure a, Pos pos) =>
@@ -183,7 +183,8 @@ Opt!PositionKind positionInTypeParams(
 	Pos pos,
 ) =>
 	firstWithIndex!(PositionKind, NameAndRange)(asts, (size_t index, NameAndRange x) =>
-		optIf(hasPos(allSymbols, x, pos), () => PositionKind(PositionKind.TypeParamWithContainer(TypeParamIndex(index), container))));
+		optIf(hasPos(allSymbols, x, pos), () =>
+			PositionKind(PositionKind.TypeParamWithContainer(TypeParamIndex(index), container))));
 
 Opt!PositionKind positionInSpec(in AllSymbols allSymbols, SpecDecl* a, Pos pos) =>
 	//TODO:visibility
@@ -200,7 +201,7 @@ Opt!PositionKind positionInSpecParents(in AllSymbols allSymbols, SpecDecl* a, Po
 			optOrDefault!PositionKind(
 				eachTypeArg!PositionKind(parent.typeArgs, ast, (in Type typeArg, in TypeAst argAst) =>
 					positionInType(allSymbols, TypeContainer(a), typeArg, argAst, pos)),
-				() => PositionKind(parent))));
+				() => PositionKind(PositionKind.SpecUse(TypeContainer(a), parent)))));
 
 Opt!PositionKind positionInSpecBody(in AllSymbols allSymbols, SpecDecl* a, Pos pos) =>
 	a.body_.matchIn!(Opt!PositionKind)(
@@ -275,7 +276,7 @@ Opt!PositionKind positionInRecordField(
 
 Opt!PositionKind positionInFieldMutability(in AllSymbols allSymbols, in FieldMutabilityAst ast, Pos pos) =>
 	optIf(
-		hasPos(allSymbols, NameAndRange(ast.pos, symOfFieldMutabilityAstKind(ast.kind)), pos),
+		hasPos(rangeOfStartAndLength(ast.pos, stringOfFieldMutabilityAstKind(ast.kind).length), pos),
 		() => PositionKind(PositionKind.RecordFieldMutability(ast.kind)));
 
 Opt!PositionKind positionInExpr(in AllSymbols allSymbols, FunDecl* containingFun, ref Expr a, Pos pos) {

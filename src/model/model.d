@@ -22,21 +22,21 @@ import model.concreteModel : TypeSize;
 import model.constant : Constant;
 import model.diag : Diag, Diagnostic, isFatal, UriAndDiagnostic;
 import model.parseDiag : ParseDiagnostic;
-import util.col.arr : arrayOfSingle, empty, emptySmallArray, PtrAndSmallNumber, small, SmallArray;
+import util.col.arr : arrayOfSingle, empty, emptySmallArray, only, PtrAndSmallNumber, small, SmallArray;
 import util.col.arrUtil : arrEqual, exists, first;
 import util.col.hashTable : existsInHashTable, HashTable;
 import util.col.map : Map;
 import util.col.enumMap : EnumMap;
 import util.col.str : SafeCStr, safeCStr;
-import util.conv : safeToUbyte;
-import util.hash : HashCode, Hasher, hashPtrAndTaggedPointers;
+import util.conv : safeToSizeT;
+import util.hash : HashCode, hashPtrAndTaggedPointers, hashPtrAndTaggedPointersX2;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : combineRanges, UriAndRange, Pos, rangeOfStartAndLength, Range;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.uri : Uri;
-import util.util : max, min, todo, typeAs, unreachable;
+import util.util : max, min, stringOfEnum, typeAs, unreachable;
 
 alias Purity = immutable Purity_;
 private enum Purity_ : ubyte {
@@ -97,7 +97,7 @@ immutable struct TypeParamIndex {
 	ulong asTaggable() =>
 		index << 2;
 	static TypeParamIndex fromTagged(ulong x) =>
-		TypeParamIndex(x >> 2);
+		TypeParamIndex(safeToSizeT(x >> 2));
 }
 
 immutable struct Type {
@@ -444,7 +444,7 @@ immutable struct StructInst {
 		lateGet(lateInstantiatedTypes);
 
 	void instantiatedTypes(Type[] value) {
-		lateSet(lateInstantiatedTypes, small(value));
+		lateSet(lateInstantiatedTypes, small!Type(value));
 	}
 
 	StructDecl* decl() return scope =>
@@ -475,15 +475,13 @@ Opt!(Type[]) asTuple(in CommonTypes commonTypes, Type type) =>
 	isTuple(commonTypes, type) ? some!(Type[])(type.as!(StructInst*).typeArgs) : none!(Type[]);
 
 immutable struct SpecDeclBody {
-	immutable struct Builtin {
-		enum Kind {
-			data,
-			shared_,
-		}
-		Kind kind;
-	}
-	mixin Union!(Builtin, SpecDeclSig[]); // TODO: use a SmallArray =============================================================
+	@safe @nogc pure nothrow:
+
+	private enum Builtin_ { data, shared_ }
+	alias Builtin = immutable Builtin_;
+	mixin Union!(Builtin, SmallArray!SpecDeclSig);
 }
+static assert(SpecDeclBody.sizeof == ulong.sizeof);
 size_t countSigs(in SpecDeclBody a) =>
 	a.matchIn!size_t(
 		(in SpecDeclBody.Builtin x) =>
@@ -491,14 +489,8 @@ size_t countSigs(in SpecDeclBody a) =>
 		(in SpecDeclSig[] x) =>
 			x.length);
 
-Sym symOfSpecBodyBuiltinKind(SpecDeclBody.Builtin.Kind kind) {
-	final switch (kind) {
-		case SpecDeclBody.Builtin.Kind.data:
-			return sym!"data";
-		case SpecDeclBody.Builtin.Kind.shared_:
-			return sym!"shared";
-	}
-}
+string stringOfSpecBodyBuiltinKind(SpecDeclBody.Builtin a) =>
+	stringOfEnum(a);
 
 immutable struct SpecDecl {
 	@safe @nogc pure nothrow:
@@ -520,7 +512,7 @@ immutable struct SpecDecl {
 	immutable(SpecInst*[]) parents() scope =>
 		lateGet(parents_);
 	void parents(immutable SpecInst*[] value) scope {
-		lateSet(parents_, small(value));
+		lateSet(parents_, small!(immutable SpecInst*)(value));
 	}
 	void overwriteParentsToEmpty() scope =>
 		lateSetOverwrite(parents_, emptySmallArray!(immutable SpecInst*));
@@ -545,7 +537,7 @@ immutable struct SpecDeclAndArgs {
 		hashPtrAndTaggedPointers(decl, typeArgs);
 }
 
-// The SpecInst and constents are allocated using the ProgramState alloc.
+// The SpecInst and contents are allocated using the ProgramState alloc.
 immutable struct SpecInst {
 	@safe @nogc pure nothrow:
 
@@ -557,7 +549,7 @@ immutable struct SpecInst {
 	immutable(SpecInst*[]) parents() return scope =>
 		lateGet(parents_);
 	void parents(immutable SpecInst*[] value) {
-		lateSet(parents_, small(value));
+		lateSet(parents_, small!(immutable SpecInst*)(value));
 	}
 
 	SpecDecl* decl() return scope =>
@@ -849,15 +841,8 @@ immutable struct FunDeclAndArgs {
 	bool opEquals(in FunDeclAndArgs b) scope =>
 		decl == b.decl && arrEqual!Type(typeArgs, b.typeArgs) && arrEqual!Called(specImpls, b.specImpls);
 
-	HashCode hash() scope {
-		Hasher hasher = Hasher();
-		hasher ~= decl;
-		foreach (Type t; typeArgs)
-			hasher ~= t.taggedPointerValueForHash;
-		foreach (ref Called c; specImpls)
-			c.hashMix(hasher);
-		return hasher.finish();
-	}
+	HashCode hash() scope =>
+		hashPtrAndTaggedPointersX2(decl, typeArgs, specImpls);
 }
 
 // The FunInst and its contents are allocated using the ProgramState alloc.
@@ -901,12 +886,27 @@ immutable struct ReturnAndParamTypes {
 		returnAndParamTypes[1 .. $];
 }
 
-// TODO: this could be PointerAndSmallNumber!-------------------------------------------------------------------------------------
 immutable struct CalledSpecSig {
 	@safe @nogc pure nothrow:
 
-	SpecInst* specInst;
-	size_t sigIndex;
+	private PtrAndSmallNumber!SpecInst inner;
+
+	private this(PtrAndSmallNumber!SpecInst i) {
+		inner = i;
+	}
+	this(SpecInst* s, ushort i) {
+		inner = PtrAndSmallNumber!SpecInst(s, i);
+	}
+
+	ulong asTaggable() =>
+		inner.asTaggable;
+	static CalledSpecSig fromTagged(ulong x) =>
+		CalledSpecSig(PtrAndSmallNumber!SpecInst.fromTagged(x));
+
+	SpecInst* specInst() =>
+		inner.ptr;
+	size_t sigIndex() =>
+		inner.number;
 
 	ReturnAndParamTypes instantiatedSig() return scope =>
 		specInst.sigTypes[sigIndex];
@@ -920,16 +920,6 @@ immutable struct CalledSpecSig {
 
 	Sym name() scope =>
 		nonInstantiatedSig.name;
-
-	private:
-
-	bool opEquals(scope CalledSpecSig b) scope =>
-		specInst == b.specInst && sigIndex == b.sigIndex;
-
-	void hashMix(ref Hasher hasher) scope {
-		hasher ~= specInst;
-		hasher ~= sigIndex;
-	}
 }
 
 Arity arity(in CalledSpecSig a) =>
@@ -956,6 +946,7 @@ immutable struct CalledDecl {
 			(ref FunDecl f) => f.returnType,
 			(CalledSpecSig s) => s.returnType);
 }
+static assert(CalledDecl.sizeof == ulong.sizeof);
 
 Arity arity(in CalledDecl a) =>
 	a.matchIn!Arity(
@@ -970,32 +961,7 @@ size_t nTypeParams(in CalledDecl a) =>
 immutable struct Called {
 	@safe @nogc pure nothrow:
 
-	mixin Union!(FunInst*, CalledSpecSig*);
-
-	bool opEquals(scope Called b) scope =>
-		matchWithPointers!bool(
-			(FunInst* fa) =>
-				b.matchWithPointers!bool(
-					(FunInst* fb) =>
-						fa == fb,
-					(CalledSpecSig*) =>
-						false),
-			(CalledSpecSig* sa) =>
-				b.matchWithPointers!bool(
-					(FunInst*) =>
-						false,
-					(CalledSpecSig* sb) =>
-						*sa == *sb));
-
-	void hashMix(ref Hasher hasher) scope {
-		matchWithPointers!void(
-			(FunInst* f) {
-				hasher ~= f;
-			},
-			(CalledSpecSig* s) {
-				s.hashMix(hasher);
-			});
-	}
+	mixin Union!(FunInst*, CalledSpecSig);
 
 	Sym name() scope =>
 		matchIn!Sym(
@@ -1008,9 +974,10 @@ immutable struct Called {
 		match!Type(
 			(ref FunInst f) =>
 				f.returnType,
-			(ref CalledSpecSig s) =>
+			(CalledSpecSig s) =>
 				s.instantiatedSig.returnType);
 }
+static assert(Called.sizeof == ulong.sizeof);
 
 Type paramTypeAt(in Called a, size_t argIndex) scope =>
 	a.matchIn!Type(
@@ -1019,7 +986,7 @@ Type paramTypeAt(in Called a, size_t argIndex) scope =>
 				(in Destructure[]) =>
 					f.paramTypes[argIndex],
 				(in Params.Varargs) =>
-					f.paramTypes[0]),
+					only(f.paramTypes)),
 		(in CalledSpecSig s) =>
 			s.paramTypes[argIndex]);
 
@@ -1027,7 +994,7 @@ Arity arity(in Called a) =>
 	a.match!Arity(
 		(ref FunInst f) =>
 			arity(f),
-		(ref CalledSpecSig s) =>
+		(CalledSpecSig s) =>
 			arity(s));
 
 immutable struct StructOrAlias {
@@ -1176,15 +1143,6 @@ static assert(ImportOrExportKind.sizeof == ulong.sizeof * 2);
 
 enum ImportFileType { nat8Array, string }
 
-Sym symOfImportFileType(ImportFileType a) {
-	final switch (a) {
-		case ImportFileType.nat8Array:
-			return sym!"nat8Array";
-		case ImportFileType.string:
-			return sym!"string";
-	}
-}
-
 immutable struct NameReferents {
 	Opt!StructOrAlias structOrAlias;
 	Opt!(SpecDecl*) spec;
@@ -1202,19 +1160,6 @@ enum FunKind {
 	act,
 	far,
 	pointer,
-}
-
-Sym symOfFunKind(FunKind a) {
-	final switch (a) {
-		case FunKind.fun:
-			return sym!"fun";
-		case FunKind.act:
-			return sym!"act";
-		case FunKind.far:
-			return sym!"far";
-		case FunKind.pointer:
-			return sym!"pointer";
-	}
 }
 
 immutable struct MainFun {
@@ -1399,17 +1344,6 @@ enum LocalMutability {
 	mutAllocated, // Mutable and must be heap-allocated since it's used in a closure
 }
 
-Sym symOfLocalMutability(LocalMutability a) {
-	final switch (a) {
-		case LocalMutability.immut:
-			return sym!"immut";
-		case LocalMutability.mutOnStack:
-			return sym!"mutOnStack";
-		case LocalMutability.mutAllocated:
-			return sym!"mutAllocated";
-	}
-}
-
 enum Mutability { immut, mut }
 Mutability toMutability(LocalMutability a) {
 	final switch (a) {
@@ -1590,15 +1524,6 @@ immutable struct AssertOrForbidExpr {
 
 enum AssertOrForbidKind { assert_, forbid }
 
-Sym symOfAssertOrForbidKind(AssertOrForbidKind a) {
-	final switch (a) {
-		case AssertOrForbidKind.assert_:
-			return sym!"assert";
-		case AssertOrForbidKind.forbid:
-			return sym!"forbid";
-	}
-}
-
 immutable struct BogusExpr {}
 
 immutable struct CallExpr {
@@ -1734,17 +1659,8 @@ private enum Visibility_ : ubyte {
 	internal,
 	public_,
 }
-
-Sym symOfVisibility(Visibility a) {
-	final switch (a) {
-		case Visibility.internal:
-			return sym!"internal";
-		case Visibility.public_:
-			return sym!"public";
-		case Visibility.private_:
-			return sym!"private";
-	}
-}
+string stringOfVisibility(Visibility a) =>
+	stringOfEnum(a);
 
 Visibility leastVisibility(Visibility a, Visibility b) =>
 	min(a, b);
