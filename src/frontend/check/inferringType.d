@@ -17,7 +17,6 @@ import model.model :
 	StructDecl,
 	StructInst,
 	Type,
-	typeArgs,
 	TypeParamIndex;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : MutSmallArray, only, only2, small;

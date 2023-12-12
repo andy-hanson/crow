@@ -35,7 +35,6 @@ import model.model :
 	StructDecl,
 	StructInst,
 	Type,
-	typeArgs,
 	TypeParamIndex,
 	TypeParams,
 	typeParams,

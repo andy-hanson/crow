@@ -52,7 +52,7 @@ struct Hasher {
 	}
 }
 
-@trusted HashCode hashPtrAndTaggedPointers(T, U)(T* ptr, U[] taggedPointers) {
+@trusted HashCode hashPointerAndTaggedPointers(T, U)(T* ptr, U[] taggedPointers) {
 	Hasher hasher;
 	hasher ~= ptr;
 	foreach (U x; taggedPointers)
@@ -60,7 +60,7 @@ struct Hasher {
 	return hasher.finish();
 }
 
-@trusted HashCode hashPtrAndTaggedPointersX2(T, U, V)(T* ptr, U[] taggedPointers, V[] taggedPointers2) {
+@trusted HashCode hashPointerAndTaggedPointersX2(T, U, V)(T* ptr, U[] taggedPointers, V[] taggedPointers2) {
 	Hasher hasher;
 	hasher ~= ptr;
 	foreach (U x; taggedPointers)

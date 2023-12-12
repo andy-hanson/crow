@@ -6,7 +6,7 @@ import frontend.check.checkCtx : markUsed;
 import frontend.check.exprCtx : addDiag2, checkCanDoUnsafe, ExprCtx;
 import frontend.parse.ast : ExprAst;
 import model.diag : Diag;
-import model.model : Called, CalledSpecSig, FunDecl, FunInst, FunFlags, isVariadic, specImpls;
+import model.model : Called, CalledSpecSig, FunDecl, FunInst, FunFlags, isVariadic;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range;
 
@@ -19,7 +19,7 @@ void checkCalled(ref ExprCtx ctx, ExprAst* source, in Called called, bool isInLa
 		(ref FunInst x) {
 			markUsed(ctx.checkCtx, x.decl);
 			checkCallFlags(ctx, source.range, x.decl, ctx.outermostFunFlags, isInLambda, argsKind);
-			foreach (ref Called impl; specImpls(x)) {
+			foreach (ref Called impl; x.specImpls) {
 				checkCalled(ctx, source, impl, isInLambda, argsKind);
 			}
 		},

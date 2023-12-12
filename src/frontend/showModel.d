@@ -27,7 +27,6 @@ import model.model :
 	StructInst,
 	symOfPurity,
 	Type,
-	typeArgs,
 	TypeParamIndex,
 	TypeParams,
 	TypeParamsAndSig;
@@ -164,7 +163,7 @@ void writeFunDeclAndTypeArgs(
 
 void writeFunInst(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in FunInst a) {
 	writeFunDecl(writer, ctx, a.decl);
-	writeTypeParamsAndArgs(writer, ctx, a.decl.typeParams, typeContainer, typeArgs(a));
+	writeTypeParamsAndArgs(writer, ctx, a.decl.typeParams, typeContainer, a.typeArgs);
 }
 
 private void writeFunDeclLocation(scope ref Writer writer, in ShowCtx ctx, in FunDecl funDecl) {

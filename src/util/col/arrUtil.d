@@ -144,7 +144,7 @@ Opt!Out firstZipPointerFirst(Out, In0, In1)(
 }
 
 SmallArray!T copyArr(T)(ref Alloc alloc, scope SmallArray!T a) =>
-	small(copyArr(alloc, a.toArray));
+	small!T(copyArr(alloc, a.toArray));
 T[] copyArr(T)(ref Alloc alloc, scope T[] a) =>
 	map!(T, T)(alloc, a, (ref T x) => x);
 

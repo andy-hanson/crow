@@ -35,7 +35,6 @@ import model.model :
 	symOfPurity,
 	target,
 	Type,
-	typeArgs,
 	TypeParamIndex,
 	TypeParams,
 	typeParams,

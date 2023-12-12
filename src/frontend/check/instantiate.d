@@ -5,13 +5,11 @@ module frontend.check.instantiate;
 import frontend.lang : maxTypeParams;
 import frontend.programState : getOrAddFunInst, getOrAddSpecInst, getOrAddStructInst, ProgramState;
 import model.model :
-	Called,
 	CommonTypes,
 	Destructure,
 	combineLinkageRange,
 	combinePurityRange,
 	FunDecl,
-	FunDeclAndArgs,
 	FunInst,
 	Linkage,
 	LinkageRange,
@@ -24,26 +22,22 @@ import model.model :
 	ReturnAndParamTypes,
 	SpecDecl,
 	SpecDeclBody,
-	SpecDeclAndArgs,
 	SpecDeclSig,
 	SpecImpls,
 	SpecInst,
 	StructBody,
 	StructDecl,
-	StructDeclAndArgs,
 	StructInst,
 	Type,
 	TypeArgs,
-	typeArgs,
 	TypeParamIndex,
 	UnionMember;
 import util.alloc.alloc : Alloc;
 import util.col.arr : emptySmallArray, small, SmallArray;
-import util.col.arrUtil : copyArr, fold, map, mapWithFirst;
-import util.col.hashTable : getOrAddAndDidAdd, ValueAndDidAdd;
+import util.col.arrUtil : fold, map, mapWithFirst;
+import util.col.hashTable : ValueAndDidAdd;
 import util.col.mutArr : MutArrWithAlloc, push;
 import util.col.mutMaxArr : mapTo, MutMaxArr, mutMaxArr, push, tempAsArr;
-import util.memory : allocate;
 import util.opt : force, MutOpt, noneMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.util : typeAs;

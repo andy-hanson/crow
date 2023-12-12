@@ -31,8 +31,7 @@ import model.model :
 	SpecInst,
 	StructInst,
 	Type,
-	TypeArgs,
-	typeArgs;
+	TypeArgs;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : only, small;

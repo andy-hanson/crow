@@ -145,7 +145,6 @@ import model.model :
 	ThrowExpr,
 	toMutability,
 	Type,
-	typeArgs,
 	TypeParams,
 	UnionMember,
 	VariableRef;

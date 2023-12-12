@@ -79,7 +79,6 @@ import model.model :
 	target,
 	Test,
 	Type,
-	typeArgs,
 	TypeParamIndex,
 	TypeParams,
 	typeParams,

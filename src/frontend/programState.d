@@ -5,24 +5,22 @@ module frontend.programState;
 import model.model :
 	Called,
 	FunDecl,
-	FunDeclAndArgs,
 	FunInst,
 	LinkageRange,
 	PurityRange,
 	ReturnAndParamTypes,
 	SpecDecl,
-	SpecDeclAndArgs,
 	SpecImpls,
 	SpecInst,
 	StructDecl,
-	StructDeclAndArgs,
 	StructInst,
 	Type,
 	TypeArgs;
 import util.alloc.alloc : Alloc;
-import util.col.arr : small, SmallArray;
-import util.col.arrUtil : copyArr;
+import util.col.arr : SmallArray;
+import util.col.arrUtil : arrEqual, copyArr;
 import util.col.hashTable : getOrAdd, getOrAddAndDidAdd, MutHashTable, ValueAndDidAdd;
+import util.hash : HashCode, hashPointerAndTaggedPointers, hashPointerAndTaggedPointersX2;
 import util.memory : allocate;
 
 struct ProgramState {
@@ -40,12 +38,12 @@ struct ProgramState {
 ValueAndDidAdd!(StructInst*) getOrAddStructInst(
 	ref ProgramState a,
 	StructDecl* decl,
-	in Type[] typeArgs,
+	in TypeArgs typeArgs,
 	in LinkageRange delegate() @safe @nogc pure nothrow cbLinkageRange,
 	in PurityRange delegate() @safe @nogc pure nothrow cbPurityRange,
 ) =>
-	getOrAddAndDidAdd(a.alloc, a.structInsts, StructDeclAndArgs(decl, small!Type(typeArgs)), () =>
-		allocate(a.alloc, StructInst(StructDeclAndArgs(decl, small!Type(copyArr(a.alloc, typeArgs))), cbLinkageRange(), cbPurityRange())));
+	getOrAddAndDidAdd(a.alloc, a.structInsts, StructDeclAndArgs(decl, typeArgs), () =>
+		allocate(a.alloc, StructInst(decl, copyArr!Type(a.alloc, typeArgs), cbLinkageRange(), cbPurityRange())));
 
 ValueAndDidAdd!(SpecInst*) getOrAddSpecInst(
 	ref ProgramState a,
@@ -54,10 +52,8 @@ ValueAndDidAdd!(SpecInst*) getOrAddSpecInst(
 	in SmallArray!ReturnAndParamTypes delegate() @safe @nogc pure nothrow cbInstantiatedSigs,
 ) =>
 	getOrAddAndDidAdd(
-		a.alloc, a.specInsts, SpecDeclAndArgs(decl, typeArgs), () {
-			SpecDeclAndArgs key = SpecDeclAndArgs(decl, small!Type(copyArr(a.alloc, typeArgs)));
-			return allocate(a.alloc, SpecInst(key, cbInstantiatedSigs()));
-		});
+		a.alloc, a.specInsts, SpecDeclAndArgs(decl, typeArgs), () =>
+			allocate(a.alloc, SpecInst(decl, copyArr!Type(a.alloc, typeArgs), cbInstantiatedSigs())));
 
 FunInst* getOrAddFunInst(
 	ref ProgramState a,
@@ -66,19 +62,57 @@ FunInst* getOrAddFunInst(
 	in SpecImpls specImpls,
 	in ReturnAndParamTypes delegate() @safe @nogc pure nothrow cbReturnAndParamTypes,
 ) =>
-	getOrAdd(a.alloc, a.funInsts, FunDeclAndArgs(decl, typeArgs, specImpls), () {
-		FunDeclAndArgs key = FunDeclAndArgs(
-			decl, small!Type(copyArr(a.alloc, typeArgs)), small!Called(copyArr(a.alloc, specImpls)));
-		return allocate(a.alloc, FunInst(key, cbReturnAndParamTypes()));
-	});
+	getOrAdd(a.alloc, a.funInsts, FunDeclAndArgs(decl, typeArgs, specImpls), () =>
+		allocate(a.alloc, FunInst(
+			decl, copyArr!Type(a.alloc, typeArgs), copyArr!Called(a.alloc, specImpls), cbReturnAndParamTypes())));
 
 private:
 
+immutable struct StructDeclAndArgs {
+	@safe @nogc pure nothrow:
+
+	StructDecl* decl;
+	TypeArgs typeArgs;
+
+	bool opEquals(in StructDeclAndArgs b) scope =>
+		decl == b.decl && arrEqual!Type(typeArgs, b.typeArgs);
+
+	HashCode hash() scope =>
+		hashPointerAndTaggedPointers(decl, typeArgs);
+}
+
 StructDeclAndArgs getStructDeclAndArgs(in StructInst* a) =>
-	a.declAndArgs;
+	StructDeclAndArgs(a.decl, a.typeArgs);
+
+immutable struct SpecDeclAndArgs {
+	@safe @nogc pure nothrow:
+
+	SpecDecl* decl;
+	TypeArgs typeArgs;
+
+	bool opEquals(in SpecDeclAndArgs b) scope =>
+		decl == b.decl && arrEqual!Type(typeArgs, b.typeArgs);
+
+	HashCode hash() scope =>
+		hashPointerAndTaggedPointers(decl, typeArgs);
+}
 
 SpecDeclAndArgs getSpecDeclAndArgs(in SpecInst* a) =>
-	a.declAndArgs;
+	SpecDeclAndArgs(a.decl, a.typeArgs);
+
+immutable struct FunDeclAndArgs {
+	@safe @nogc pure nothrow:
+
+	FunDecl* decl;
+	TypeArgs typeArgs;
+	SpecImpls specImpls;
+
+	bool opEquals(in FunDeclAndArgs b) scope =>
+		decl == b.decl && arrEqual!Type(typeArgs, b.typeArgs) && arrEqual!Called(specImpls, b.specImpls);
+
+	HashCode hash() scope =>
+		hashPointerAndTaggedPointersX2(decl, typeArgs, specImpls);
+}
 
 FunDeclAndArgs getFunDeclAndArgs(in FunInst* a) =>
-	a.declAndArgs;
+	FunDeclAndArgs(a.decl, a.typeArgs, a.specImpls);

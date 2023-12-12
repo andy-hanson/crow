@@ -55,7 +55,6 @@ import model.model :
 	SpecDecl,
 	SpecDeclBody,
 	SpecDeclSig,
-	specImpls,
 	SpecInst,
 	StructDecl,
 	StructInst,
@@ -64,7 +63,6 @@ import model.model :
 	Test,
 	ThrowExpr,
 	Type,
-	typeArgs,
 	TypeParamIndex,
 	TypeParams,
 	typeParams,
@@ -497,9 +495,9 @@ Json jsonOfCalled(ref Alloc alloc, in Ctx ctx, in Called a) =>
 Json jsonOfFunInst(ref Alloc alloc, in Ctx ctx, in FunInst a) =>
 	jsonObject(alloc, [
 		field!"name"(a.decl.name),
-		optionalArrayField!("type-args", Type)(alloc, typeArgs(a), (in Type x) =>
+		optionalArrayField!("type-args", Type)(alloc, a.typeArgs, (in Type x) =>
 			jsonOfType(alloc, ctx, x)),
-		optionalArrayField!("spec-impls", Called)(alloc, specImpls(a), (in Called x) =>
+		optionalArrayField!("spec-impls", Called)(alloc, a.specImpls, (in Called x) =>
 			jsonOfCalled(alloc, ctx, x))]);
 
 Json jsonOfCalledSpecSig(ref Alloc alloc, in Ctx ctx, in CalledSpecSig a) =>

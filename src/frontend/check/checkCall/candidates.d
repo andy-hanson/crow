@@ -28,7 +28,6 @@ import model.model :
 	SpecDeclBody,
 	SpecDeclSig,
 	SpecInst,
-	typeArgs,
 	Type;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, small;

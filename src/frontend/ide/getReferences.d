@@ -86,7 +86,6 @@ import model.model :
 	Test,
 	ThrowExpr,
 	Type,
-	typeArgs,
 	UnionMember,
 	VarDecl,
 	Visibility;

@@ -66,7 +66,6 @@ import model.model :
 	StructInst,
 	Test,
 	Type,
-	typeArgs,
 	TypeParamIndex,
 	UnionMember,
 	VarDecl,
@@ -152,7 +151,7 @@ private immutable struct ConcreteFunBodyInputs {
 	FunBody body_;
 }
 
-ConcreteType[] typeArgs(ref ConcreteFunBodyInputs a) =>
+private ConcreteType[] typeArgs(ref ConcreteFunBodyInputs a) =>
 	a.containing.typeArgs;
 
 TypeArgsScope typeArgsScope(ref ConcreteFunBodyInputs a) =>

@@ -94,11 +94,9 @@ import model.model :
 	PtrToLocalExpr,
 	range,
 	SeqExpr,
-	specImpls,
 	SpecInst,
 	ThrowExpr,
 	Type,
-	typeArgs,
 	VariableRef,
 	variableRefType;
 import util.alloc.alloc : Alloc;
@@ -308,9 +306,9 @@ bool searchSpecSigIndexRecur(ref size_t index, in SpecInst* inst, in SpecInst* s
 }
 
 ConcreteFun* getConcreteFunFromFunInst(ref ConcretizeExprCtx ctx, FunInst* funInst) {
-	SmallArray!ConcreteType typeArgs = typesToConcreteTypes(ctx, typeArgs(*funInst));
-	immutable ConcreteFun*[] specImpls = map!(ConcreteFun*, Called)(ctx.alloc, specImpls(*funInst), (ref Called it) =>
-		getConcreteFunFromCalled(ctx, it));
+	SmallArray!ConcreteType typeArgs = typesToConcreteTypes(ctx, funInst.typeArgs);
+	immutable ConcreteFun*[] specImpls = map!(ConcreteFun*, Called)(ctx.alloc, funInst.specImpls, (ref Called x) =>
+		getConcreteFunFromCalled(ctx, x));
 	return getOrAddConcreteFunAndFillBody(
 		ctx.concretizeCtx, ConcreteFunKey(funInst.decl, typeArgs, small!(immutable ConcreteFun*)(specImpls)));
 }

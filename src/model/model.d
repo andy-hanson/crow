@@ -23,13 +23,12 @@ import model.constant : Constant;
 import model.diag : Diag, Diagnostic, isFatal, UriAndDiagnostic;
 import model.parseDiag : ParseDiagnostic;
 import util.col.arr : arrayOfSingle, empty, emptySmallArray, only, PtrAndSmallNumber, small, SmallArray;
-import util.col.arrUtil : arrEqual, exists, first;
+import util.col.arrUtil : exists, first;
 import util.col.hashTable : existsInHashTable, HashTable;
 import util.col.map : Map;
 import util.col.enumMap : EnumMap;
 import util.col.str : SafeCStr, safeCStr;
 import util.conv : safeToSizeT;
-import util.hash : HashCode, hashPtrAndTaggedPointers, hashPtrAndTaggedPointersX2;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : combineRanges, UriAndRange, Pos, rangeOfStartAndLength, Range;
@@ -413,25 +412,12 @@ UriAndRange nameRange(in AllSymbols allSymbols, in StructDecl a) =>
 bool isTemplate(in StructDecl a) =>
 	!empty(a.typeParams);
 
-immutable struct StructDeclAndArgs {
-	@safe @nogc pure nothrow:
-
-	StructDecl* decl;
-	TypeArgs typeArgs;
-
-	bool opEquals(in StructDeclAndArgs b) scope =>
-		decl == b.decl && arrEqual!Type(typeArgs, b.typeArgs);
-
-	HashCode hash() scope =>
-		hashPtrAndTaggedPointers(decl, typeArgs);
-}
-
 // The StructInst and its contents are allocated using the ProgramState alloc.
 immutable struct StructInst {
 	@safe @nogc pure nothrow:
 
-	StructDeclAndArgs declAndArgs;
-
+	StructDecl* decl;
+	TypeArgs typeArgs;
 	// these are inferred from declAndArgs:
 	LinkageRange linkageRange;
 	PurityRange purityRange;
@@ -446,12 +432,6 @@ immutable struct StructInst {
 	void instantiatedTypes(Type[] value) {
 		lateSet(lateInstantiatedTypes, small!Type(value));
 	}
-
-	StructDecl* decl() return scope =>
-		declAndArgs.decl;
-
-	TypeArgs typeArgs() return scope =>
-		declAndArgs.typeArgs;
 }
 
 bool isDefinitelyByRef(in StructInst a) {
@@ -524,24 +504,12 @@ UriAndRange range(in SpecDecl a) =>
 UriAndRange nameRange(in AllSymbols allSymbols, in SpecDecl a) =>
 	UriAndRange(a.moduleUri, nameRange(allSymbols, *a.ast));
 
-immutable struct SpecDeclAndArgs {
-	@safe @nogc pure nothrow:
-
-	SpecDecl* decl;
-	TypeArgs typeArgs;
-
-	bool opEquals(in SpecDeclAndArgs b) scope =>
-		decl == b.decl && arrEqual!Type(typeArgs, b.typeArgs);
-
-	HashCode hash() scope =>
-		hashPtrAndTaggedPointers(decl, typeArgs);
-}
-
 // The SpecInst and contents are allocated using the ProgramState alloc.
 immutable struct SpecInst {
 	@safe @nogc pure nothrow:
 
-	SpecDeclAndArgs declAndArgs;
+	SpecDecl* decl;
+	TypeArgs typeArgs;
 	// Corresponds to the signatures in decl.body_
 	SmallArray!ReturnAndParamTypes sigTypes;
 	private Late!(SmallArray!(immutable SpecInst*)) parents_;
@@ -551,12 +519,6 @@ immutable struct SpecInst {
 	void parents(immutable SpecInst*[] value) {
 		lateSet(parents_, small!(immutable SpecInst*)(value));
 	}
-
-	SpecDecl* decl() return scope =>
-		declAndArgs.decl;
-
-	TypeArgs typeArgs() return scope =>
-		declAndArgs.typeArgs;
 
 	Sym name() scope =>
 		decl.name;
@@ -831,29 +793,14 @@ immutable struct FunDeclAndTypeArgs {
 	TypeArgs typeArgs;
 }
 
-immutable struct FunDeclAndArgs {
+// The FunInst and its contents are allocated using the ProgramState alloc.
+immutable struct FunInst {
 	@safe @nogc pure nothrow:
 
 	FunDecl* decl;
 	TypeArgs typeArgs;
 	SpecImpls specImpls;
-
-	bool opEquals(in FunDeclAndArgs b) scope =>
-		decl == b.decl && arrEqual!Type(typeArgs, b.typeArgs) && arrEqual!Called(specImpls, b.specImpls);
-
-	HashCode hash() scope =>
-		hashPtrAndTaggedPointersX2(decl, typeArgs, specImpls);
-}
-
-// The FunInst and its contents are allocated using the ProgramState alloc.
-immutable struct FunInst {
-	@safe @nogc pure nothrow:
-
-	FunDeclAndArgs declAndArgs;
 	ReturnAndParamTypes instantiatedSig;
-
-	FunDecl* decl() return scope =>
-		declAndArgs.decl;
 
 	Sym name() scope =>
 		decl.name;
@@ -864,12 +811,6 @@ immutable struct FunInst {
 	Type[] paramTypes() scope =>
 		instantiatedSig.paramTypes;
 }
-
-TypeArgs typeArgs(ref FunInst a) =>
-	a.declAndArgs.typeArgs;
-
-SpecImpls specImpls(ref FunInst a) =>
-	a.declAndArgs.specImpls;
 
 Arity arity(in FunInst a) =>
 	arity(*a.decl);
