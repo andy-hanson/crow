@@ -39,6 +39,7 @@ import model.model :
 	StructOrAlias,
 	target,
 	Type,
+	TypeArgs,
 	TypeParamIndex,
 	TypeParams,
 	typeParams;
@@ -72,7 +73,7 @@ private Type instStructFromAst(
 		StructOrAlias sOrA = force(opDecl);
 		Opt!Type typeArg = optTypeFromOptAst(
 			ctx, commonTypes, typeArgsAst, structsAndAliasesMap, typeParamsScope, delayStructInsts);
-		Opt!(Type[]) typeArgs = getTypeArgsIfNumberMatches(
+		Opt!TypeArgs typeArgs = getTypeArgsIfNumberMatches(
 			ctx, commonTypes, suffixRange, name, typeParams(sOrA).length, &typeArg);
 		return has(typeArgs)
 			? sOrA.matchWithPointers!Type(
@@ -99,7 +100,7 @@ Type makeTupleType(ref InstantiateCtx ctx, ref CommonTypes commonTypes, in Type[
 	}
 }
 
-private Opt!(Type[]) getTypeArgsIfNumberMatches(
+private Opt!TypeArgs getTypeArgsIfNumberMatches(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	in Range range,
@@ -111,10 +112,10 @@ private Opt!(Type[]) getTypeArgsIfNumberMatches(
 		? unpackTupleIfNeeded(commonTypes, nExpectedTypeArgs, &force(*type))
 		: [];
 	if (res.length == nExpectedTypeArgs)
-		return some(res);
+		return some(small!Type(res));
 	else {
 		addDiag(ctx, range, Diag(Diag.WrongNumberTypeArgs(name, nExpectedTypeArgs, res.length)));
-		return none!(Type[]);
+		return none!TypeArgs;
 	}
 }
 
@@ -236,7 +237,7 @@ Opt!(SpecInst*) specFromAst(
 		SpecDecl* spec = force(opSpec);
 		Opt!Type typeArg = optTypeFromOptAst(
 			ctx, commonTypes, suffixLeft, structsAndAliasesMap, typeParamsScope, noDelayStructInsts);
-		Opt!(Type[]) typeArgs = getTypeArgsIfNumberMatches(
+		Opt!TypeArgs typeArgs = getTypeArgsIfNumberMatches(
 			ctx, commonTypes,
 			rangeOfNameAndRange(specName, ctx.allSymbols), spec.name, spec.typeParams.length, &typeArg);
 		return has(typeArgs)
@@ -320,7 +321,7 @@ private Type typeFromFunAst(
 	Type paramType = typeFromTupleAst(
 		ctx, commonTypes, ast.paramTypes, structsAndAliasesMap, typeParamsScope, delayStructInsts);
 	return Type(instantiateStruct(
-		ctx.instantiateCtx, commonTypes.funStructs[ast.kind], [returnType, paramType], delayStructInsts));
+		ctx.instantiateCtx, commonTypes.funStructs[ast.kind], small!Type([returnType, paramType]), delayStructInsts));
 }
 
 private Type typeFromMapAst(

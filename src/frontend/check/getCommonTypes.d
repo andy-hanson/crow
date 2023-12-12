@@ -9,6 +9,7 @@ import frontend.parse.ast : NameAndRange;
 import model.diag : Diag;
 import model.model :
 	CommonTypes,
+	emptyTypeArgs,
 	FunKind,
 	IntegralTypes,
 	Linkage,
@@ -25,7 +26,7 @@ import model.model :
 	typeParams,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty;
+import util.col.arr : empty, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.enumMap : EnumMap;
 import util.memory : allocate;
@@ -98,7 +99,7 @@ CommonTypes* getCommonTypes(
 
 	StructDecl* constPointer = getDecl!"const-pointer"(1);
 	StructInst* cStr = instantiateStruct(
-		ctx.instantiateCtx, constPointer, [Type(char8)], someMut(ptrTrustMe(delayedStructInsts)));
+		ctx.instantiateCtx, constPointer, small!Type([Type(char8)]), someMut(ptrTrustMe(delayedStructInsts)));
 
 	StructDecl*[8] tuples = [
 		getDecl!"tuple2"(2),
@@ -177,7 +178,7 @@ StructInst* instantiateNonTemplateStructDecl(
 	scope ref DelayStructInsts delayedStructInsts,
 	StructDecl* structDecl,
 ) =>
-	instantiateStruct(ctx, structDecl, [], someMut(ptrTrustMe(delayedStructInsts)));
+	instantiateStruct(ctx, structDecl, emptyTypeArgs, someMut(ptrTrustMe(delayedStructInsts)));
 
 StructDecl* bogusStructDecl(ref Alloc alloc, size_t nTypeParameters) {
 	ArrBuilder!NameAndRange typeParams;
