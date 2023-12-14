@@ -3,7 +3,7 @@ module frontend.check.instantiate;
 @safe @nogc pure nothrow:
 
 import frontend.lang : maxTypeParams;
-import frontend.programState : getOrAddFunInst, getOrAddSpecInst, getOrAddStructInst, ProgramState;
+import frontend.allInsts : getOrAddFunInst, getOrAddSpecInst, getOrAddStructInst, AllInsts;
 import model.model :
 	CommonTypes,
 	Destructure,
@@ -47,14 +47,14 @@ struct InstantiateCtx {
 	@safe @nogc pure nothrow:
 
 	Perf* perfPtr;
-	ProgramState* programStatePtr;
+	AllInsts* allInstsPtr;
 
 	ref Perf perf() return scope =>
 		*perfPtr;
 	ref Alloc alloc() =>
-		programState.alloc;
-	ref ProgramState programState() return scope =>
-		*programStatePtr;
+		allInsts.alloc;
+	ref AllInsts allInsts() return scope =>
+		*allInstsPtr;
 }
 
 alias TypeArgsArray = MutMaxArr!(maxTypeParams, Type);
@@ -89,7 +89,7 @@ private Type instantiateTypeNoDelay(ref InstantiateCtx ctx, Type type, in TypeAr
 
 FunInst* instantiateFun(ref InstantiateCtx ctx, FunDecl* decl, in TypeArgs typeArgs, in SpecImpls specImpls) =>
 	withMeasure!(FunInst*, () =>
-		getOrAddFunInst(ctx.programState, decl, typeArgs, specImpls, () =>
+		getOrAddFunInst(ctx.allInsts, decl, typeArgs, specImpls, () =>
 			instantiateReturnAndParamTypes(ctx, decl.returnType, paramsArray(decl.params), typeArgs))
 	)(ctx.perf, ctx.alloc, PerfMeasure.instantiateFun);
 
@@ -122,7 +122,7 @@ StructInst* instantiateStruct(
 ) =>
 	withMeasure!(StructInst*, () {
 		ValueAndDidAdd!(StructInst*) res = getOrAddStructInst(
-			ctx.programState, decl, typeArgs,
+			ctx.allInsts, decl, typeArgs,
 			() => combinedLinkageRange(decl.linkage, typeArgs),
 			() => combinedPurityRange(decl.purity, typeArgs));
 		if (res.didAdd) {
@@ -184,7 +184,7 @@ SpecInst* instantiateSpec(
 	scope MayDelaySpecInsts delaySpecInsts,
 ) =>
 	withMeasure!(SpecInst*, () {
-		ValueAndDidAdd!(SpecInst*) res = getOrAddSpecInst(ctx.programState, decl, typeArgs, () =>
+		ValueAndDidAdd!(SpecInst*) res = getOrAddSpecInst(ctx.allInsts, decl, typeArgs, () =>
 			decl.body_.match!(SmallArray!ReturnAndParamTypes)(
 				(SpecDeclBody.Builtin b) =>
 					emptySmallArray!ReturnAndParamTypes,

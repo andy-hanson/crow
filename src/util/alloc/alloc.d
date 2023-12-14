@@ -21,6 +21,7 @@ import util.alloc.doubleLink :
 	assertDoubleLink;
 import util.col.arr : arrayOfRange, arrayOfSingle, endPtr;
 import util.col.enumMap : EnumMap;
+import util.memory : memset;
 import util.opt : ConstOpt, force, has, MutOpt, noneMut, someMut;
 import util.ptr : ptrTrustMe;
 import util.union_ : UnionMutable;
@@ -166,6 +167,7 @@ struct MetaAlloc {
 
 // This is not unique; e.g. there is a 'storage' alloc for each file
 enum AllocKind {
+	allInsts,
 	allSymbols,
 	allUris,
 	buildToLowProgram,
@@ -174,7 +176,7 @@ enum AllocKind {
 	interpreter,
 	lspState,
 	main,
-	programState,
+	module_,
 	static_,
 	storage,
 	storageFileInfo,
@@ -209,6 +211,10 @@ alias TempAlloc = Alloc;
 
 @system T[] allocateElements(T)(ref Alloc a, size_t count) =>
 	(cast(T*) allocateBytes(a, T.sizeof * count).ptr)[0 .. count];
+
+@system void free(T)(ref Alloc a, T* value) {
+	freeElements!T(a, value[0 .. 1]);
+}
 
 @system void freeElements(T)(ref Alloc a, in T[] range) {
 	freeWords(a, innerWordRange(range));
@@ -296,6 +302,12 @@ AllocAndValue!T withAlloc(T)(AllocKind kind, MetaAlloc* a, in T delegate(ref All
 	Alloc* alloc = newAlloc(kind, a);
 	T value = cb(*alloc);
 	return AllocAndValue!T(finishAlloc(alloc), value);
+}
+
+@system void freeAllocAndValue(T)(ref AllocAndValue!T x) {
+	freeAlloc(x.alloc);
+	x.alloc = null;
+	memset(cast(ubyte*) &x.value, 0, T.sizeof);
 }
 
 alias word = ulong;

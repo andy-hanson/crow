@@ -42,7 +42,7 @@ import frontend.parse.ast :
 	TestAst,
 	TypeAst,
 	VarDeclAst;
-import frontend.programState : ProgramState;
+import frontend.allInsts : AllInsts;
 import frontend.storage : FileContent;
 import model.diag : Diag, Diagnostic, TypeContainer;
 import model.model :
@@ -126,7 +126,7 @@ BootstrapCheck checkBootstrap(
 	ref Alloc alloc,
 	scope ref AllSymbols allSymbols,
 	in AllUris allUris,
-	ref ProgramState programState,
+	ref AllInsts allInsts,
 	ref FileAndAst fileAndAst,
 ) =>
 	checkWorker(
@@ -134,7 +134,7 @@ BootstrapCheck checkBootstrap(
 		perf,
 		allSymbols,
 		allUris,
-		programState,
+		allInsts,
 		[],
 		fileAndAst,
 		(ref CheckCtx ctx,
@@ -147,7 +147,7 @@ Module* check(
 	ref Alloc alloc,
 	scope ref AllSymbols allSymbols,
 	in AllUris allUris,
-	ref ProgramState programState,
+	ref AllInsts allInsts,
 	ref FileAndAst fileAndAst,
 	in ResolvedImport[] imports,
 	CommonTypes* commonTypes,
@@ -157,7 +157,7 @@ Module* check(
 		perf,
 		allSymbols,
 		allUris,
-		programState,
+		allInsts,
 		imports,
 		fileAndAst,
 		(ref CheckCtx _, in StructsAndAliasesMap _2, scope ref DelayStructInsts _3) => commonTypes,
@@ -916,7 +916,7 @@ BootstrapCheck checkWorker(
 	scope ref Perf perf,
 	scope ref AllSymbols allSymbols,
 	in AllUris allUris,
-	ref ProgramState programState,
+	ref AllInsts allInsts,
 	in ResolvedImport[] resolvedImports,
 	ref FileAndAst fileAndAst,
 	in CommonTypes* delegate(
@@ -932,7 +932,7 @@ BootstrapCheck checkWorker(
 		FileAst* ast = fileAndAst.ast;
 		CheckCtx ctx = CheckCtx(
 			ptrTrustMe(alloc),
-			InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(programState)),
+			InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(allInsts)),
 			ptrTrustMe(allSymbols),
 			ptrTrustMe(allUris),
 			fileAndAst.uri,

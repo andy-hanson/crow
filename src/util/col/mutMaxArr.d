@@ -34,6 +34,16 @@ struct MutMaxArr(size_t maxSize, T) {
 	T[maxSize] values = void;
 }
 
+@trusted MutMaxArr!(maxSize, T) mutMaxArr(size_t maxSize, T)() {
+	MutMaxArr!(maxSize, T) res = void;
+	initializeMutMaxArr(res);
+	return res;
+}
+
+void initializeMutMaxArr(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) {
+	a.size_ = 0;
+}
+
 size_t size(size_t maxSize, T)(in MutMaxArr!(maxSize, T) a) =>
 	a.size_;
 
@@ -59,16 +69,6 @@ bool isFull(size_t maxSize, T)(in MutMaxArr!(maxSize, T) a) =>
 
 size_t mutMaxArrSize(size_t maxSize, T)(in MutMaxArr!(maxSize, T) a) =>
 	a.size_;
-
-void initializeMutMaxArr(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) {
-	a.size_ = 0;
-}
-
-@trusted MutMaxArr!(maxSize, T) mutMaxArr(size_t maxSize, T)() {
-	MutMaxArr!(maxSize, T) res = void;
-	initializeMutMaxArr(res);
-	return res;
-}
 
 @system T* pushUninitialized(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) {
 	assert(a.size_ != maxSize);

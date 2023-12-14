@@ -2,14 +2,12 @@ module frontend.frontendCompile;
 
 @safe @nogc pure nothrow:
 
-import model.diag : Diag, ReadFileDiag;
-import model.model : CommonTypes, Config, emptyConfig, getConfigUri, getModuleUri, Module, Program;
 import frontend.check.check : BootstrapCheck, check, checkBootstrap, FileAndAst, ResolvedImport;
 import frontend.check.getCommonFuns : CommonModule, getCommonFuns;
 import frontend.check.instantiate : InstantiateCtx;
 import frontend.lang : crowConfigBaseName, crowExtension;
 import frontend.parse.ast : FileAst, fileAstForReadFileDiag, ImportOrExportAst, ImportOrExportAstKind, NameAndRange;
-import frontend.programState : ProgramState;
+import frontend.allInsts : freeInstantiationsForModule, AllInsts;
 import frontend.storage :
 	FileContent,
 	FilesState,
@@ -22,7 +20,10 @@ import frontend.storage :
 	ParseResult,
 	ReadFileResult,
 	Storage;
-import util.alloc.alloc : Alloc, allocateUninitialized, AllocKind, MetaAlloc, newAlloc;
+import model.diag : Diag, ReadFileDiag;
+import model.model : CommonTypes, Config, emptyConfig, getConfigUri, getModuleUri, Module, Program;
+import util.alloc.alloc :
+	Alloc, AllocAndValue, allocateUninitialized, AllocKind, freeAllocAndValue, MetaAlloc, newAlloc, withAlloc;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderTempAsArr, finishArr;
 import util.col.arrUtil : contains, exists, every, findIndex, map;
 import util.col.exactSizeArrBuilder : buildArrayExact, ExactSizeArrBuilder;
@@ -30,14 +31,8 @@ import util.col.hashTable : getOrAdd, HashTable, mapPreservingKeys, moveToImmuta
 import util.col.map : Map;
 import util.col.mapBuilder : finishMap, MapBuilder, mustAddToMap;
 import util.col.enumMap : EnumMap, enumMapMapValues, makeEnumMap;
-import util.col.mutSet :
-	mayAddToMutSet,
-	mustAddToMutSet,
-	MutSet,
-	mutSetClearAndKeepMemory,
-	mutSetMayDelete,
-	mutSetMustDelete,
-	mutSetPopArbitrary;
+import util.col.mutMaxSet : clear, mayDelete, mustAdd, MutMaxSet, popArbitrary;
+import util.col.mutSet : mayAddToMutSet, MutSet, mutSetMayDelete, mutSetMustDelete;
 import util.memory : allocate, initMemory;
 import util.opt : ConstOpt, force, has, MutOpt, Opt, none, noneMut, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
@@ -63,13 +58,14 @@ import util.util : todo;
 struct FrontendCompiler {
 	@safe @nogc pure nothrow:
 	private:
+	MetaAlloc* metaAlloc;
 	Alloc* allocPtr;
 	AllSymbols* allSymbolsPtr;
 	AllUris* allUrisPtr;
 	Storage* storagePtr;
 	Uri crowIncludeDir;
 	EnumMap!(CommonModule, CrowFile*) commonFiles;
-	ProgramState programState;
+	AllInsts allInsts;
 	// Set after 'bootstrap' is compiled
 	MutOpt!(CommonTypes*) commonTypes;
 	MutHashTable!(CrowFile*, Uri, getCrowFileUri) crowFiles;
@@ -79,7 +75,7 @@ struct FrontendCompiler {
 	// (Parsing and resolving imports is always done immediately.)
 	// This doesn't include files whose imports are not yet compiled.
 	// If all Uris are resolved but nothing is workable, there must be a circular import.
-	MutSet!(CrowFile*) workable;
+	MutMaxSet!(0x100, CrowFile*) workable;
 
 	ref inout(Alloc) alloc() return scope inout =>
 		*allocPtr;
@@ -102,9 +98,9 @@ FrontendCompiler* initFrontend(
 		Alloc* alloc = newAlloc(AllocKind.frontend, metaAlloc);
 		FrontendCompiler* res = allocateUninitialized!FrontendCompiler(*alloc);
 		initMemory(res, FrontendCompiler(
-			alloc, allSymbols, allUris, storage, crowIncludeDir,
+			metaAlloc, alloc, allSymbols, allUris, storage, crowIncludeDir,
 			makeEnumMap!(CommonModule, CrowFile*)((CommonModule _) => null),
-			ProgramState(newAlloc(AllocKind.programState, metaAlloc))));
+			AllInsts(newAlloc(AllocKind.allInsts, metaAlloc))));
 		res.commonFiles = enumMapMapValues!(CommonModule, CrowFile*, Uri)(
 			commonUris(*allUris, crowIncludeDir), (in Uri uri) =>
 				ensureCrowFile(*res, uri));
@@ -113,6 +109,8 @@ FrontendCompiler* initFrontend(
 }
 
 private struct CrowFile {
+	@safe @nogc pure nothrow:
+
 	immutable Uri uri;
 	// This needs to be filled in in 3 steps: ast/config, resolvedImports/referencedBy, module
 
@@ -123,7 +121,13 @@ private struct CrowFile {
 	MutSet!(CrowFile*) referencedBy;
 
 	// This will be compiled only after all imports are compiled
-	MutOpt!(Module*) module_;
+	MutOpt!(AllocAndValue!(Module*)) moduleAndAlloc;
+
+	bool hasModule() scope const =>
+		has(moduleAndAlloc);
+
+	Module* mustHaveModule() return scope const =>
+		force(moduleAndAlloc).value;
 }
 private Uri getCrowFileUri(in CrowFile* a) =>
 	a.uri;
@@ -153,18 +157,17 @@ private Program makeProgramCommon(
 	MutOpt!(CrowFile*) mainFile = has(mainUri)
 		? someMut(mustGet(a.crowFiles, force(mainUri)))
 		: noneMut!(CrowFile*);
-	Opt!(Module*) mainModule = has(mainFile) ? some(force(force(mainFile).module_)) : none!(Module*);
+	Opt!(Module*) mainModule = has(mainFile) ? some(force(mainFile).mustHaveModule) : none!(Module*);
+	if (has(mainFile)) assert(has(mainModule));
 	EnumMap!(CommonModule, Module*) commonModules = enumMapMapValues!(CommonModule, Module*, CrowFile*)(
-		a.commonFiles, (in CrowFile* x) =>
-			force(x.module_));
-	InstantiateCtx ctx = InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(a.programState));
+		a.commonFiles, (in CrowFile* x) => x.mustHaveModule);
+	InstantiateCtx ctx = InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(a.allInsts));
 	return Program(
 		has(mainFile) ? some(force(force(mainFile).config)) : none!(Config*),
 		getAllConfigs(alloc, a),
 		mapPreservingKeys!(immutable Module*, getModuleUri, CrowFile*, Uri, getCrowFileUri)(
-			alloc, a.crowFiles, (ref const CrowFile* file) =>
-				force(file.module_)),
-		map!(Module*, Uri)(alloc, roots, (ref Uri uri) => force(mustGet(a.crowFiles, uri).module_)),
+			alloc, a.crowFiles, (ref const CrowFile* file) => file.mustHaveModule),
+		map!(Module*, Uri)(alloc, roots, (ref Uri uri) => mustGet(a.crowFiles, uri).mustHaveModule),
 		getCommonFuns(a.alloc, ctx, *force(a.commonTypes), mainModule, commonModules),
 		*force(a.commonTypes));
 }
@@ -236,12 +239,13 @@ OtherFile* ensureOtherFile(ref FrontendCompiler a, Uri uri) =>
 
 void doDirtyWork(scope ref Perf perf, ref FrontendCompiler a) {
 	CrowFile* bootstrap = a.commonFiles[CommonModule.bootstrap];
-	if (mutSetMayDelete(a.workable, bootstrap)) {
+	if (mayDelete(a.workable, bootstrap)) {
 		FileAndAst fa = FileAndAst(bootstrap.uri, force(bootstrap.ast));
-		BootstrapCheck bs = checkBootstrap(perf, a.alloc, a.allSymbols, a.allUris, a.programState, fa);
-		// TODO: free old commonTypes
-		a.commonTypes = someMut(bs.commonTypes);
-		bootstrap.module_ = someMut(bs.module_);
+		bootstrap.moduleAndAlloc = someMut(withAlloc!(Module*)(AllocKind.module_, a.metaAlloc, (ref Alloc alloc) {
+			BootstrapCheck bs = checkBootstrap(perf, alloc, a.allSymbols, a.allUris, a.allInsts, fa);
+			a.commonTypes = someMut(bs.commonTypes);
+			return bs.module_;
+		}));
 		assert(a.countUncompiledCrowFiles > 0);
 		a.countUncompiledCrowFiles--;
 		markAllNonBootstrapModulesDirty(a, bootstrap); // Since they all use commonTypes
@@ -249,10 +253,11 @@ void doDirtyWork(scope ref Perf perf, ref FrontendCompiler a) {
 
 	if (has(a.commonTypes)) {
 		while (true) {
-			MutOpt!(CrowFile*) opt = mutSetPopArbitrary(a.workable);
+			MutOpt!(CrowFile*) opt = popArbitrary(a.workable);
 			if (has(opt)) {
 				CrowFile* file = force(opt);
-				file.module_ = someMut(compileNonBootstrapModule(perf, a, file));
+				file.moduleAndAlloc = someMut(withAlloc(AllocKind.module_, a.metaAlloc, (ref Alloc alloc) =>
+					compileNonBootstrapModule(perf, alloc, a, file)));
 				assert(a.countUncompiledCrowFiles > 0);
 				a.countUncompiledCrowFiles--;
 				foreach (CrowFile* importer; file.referencedBy)
@@ -268,14 +273,14 @@ void doDirtyWork(scope ref Perf perf, ref FrontendCompiler a) {
 // This may not fix all circular imports, but it's run in a loop
 void fixCircularImports(ref FrontendCompiler a) {
 	foreach (CrowFile* x; a.crowFiles)
-		if (!has(x.module_)) {
+		if (!x.hasModule) {
 			ArrBuilder!Uri cycleBuilder;
 			fixCircularImportsRecur(a, cycleBuilder, x);
 			return;
 		}
 }
 Uri[] fixCircularImportsRecur(ref FrontendCompiler a, scope ref ArrBuilder!Uri cycleBuilder, CrowFile* file) {
-	assert(!has(file.module_));
+	assert(!file.hasModule);
 	add(a.alloc, cycleBuilder, file.uri);
 	Opt!size_t optImportIndex = findIndex!MostlyResolvedImport(
 		force(file.resolvedImports), (in MostlyResolvedImport x) =>
@@ -292,12 +297,12 @@ Uri[] fixCircularImportsRecur(ref FrontendCompiler a, scope ref ArrBuilder!Uri c
 	return cycle;
 }
 
-Module* compileNonBootstrapModule(scope ref Perf perf, ref FrontendCompiler a, CrowFile* file) {
+Module* compileNonBootstrapModule(scope ref Perf perf, ref Alloc alloc, ref FrontendCompiler a, CrowFile* file) {
 	assert(isWorkable(a.allUris, *file));
 	assert(has(a.commonTypes)); // bootstrap is always compiled first
 	FileAndAst ast = FileAndAst(file.uri, force(file.ast));
 	return check(
-		perf, a.alloc, a.allSymbols, a.allUris, a.programState, ast,
+		perf, alloc, a.allSymbols, a.allUris, a.allInsts, ast,
 		fullyResolveImports(a, force(file.resolvedImports)),
 		force(a.commonTypes));
 }
@@ -316,7 +321,7 @@ void updatedAstOrConfig(ref FrontendCompiler a, CrowFile* file) {
 	if (has(file.ast) && has(file.config))
 		recomputeResolvedImports(a, file);
 	else
-		assert(!has(file.resolvedImports) && !has(file.module_));
+		assert(!has(file.resolvedImports) && !file.hasModule);
 }
 
 void recomputeResolvedImports(ref FrontendCompiler a, CrowFile* file) {
@@ -368,12 +373,12 @@ MutOpt!(Uri[]) asCircularImport(MostlyResolvedImport a) =>
 
 void addToWorkableIfSo(ref FrontendCompiler a, CrowFile* file) {
 	if (isWorkable(a.allUris, *file))
-		mustAddToMutSet!(CrowFile*)(a.alloc, a.workable, file);
+		mustAdd(a.workable, file);
 }
 
 // Note: File won't actually be worked on until 'CommonTypes' is set, but it still gets marked here.
 bool isWorkable(scope ref AllUris allUris, in CrowFile a) {
-	assert(!has(a.module_));
+	assert(!a.hasModule);
 	return has(a.ast) &&
 		has(a.config) &&
 		every!MostlyResolvedImport(force(a.resolvedImports), (in MostlyResolvedImport x) =>
@@ -383,7 +388,7 @@ bool isWorkable(scope ref AllUris allUris, in CrowFile a) {
 bool isImportWorkable(scope ref AllUris allUris, in MostlyResolvedImport a) =>
 	a.matchConst!bool(
 		(const CrowFile* x) =>
-			has(x.module_),
+			x.hasModule,
 		(const OtherFile* x) =>
 			x.loaded,
 		(Diag.ImportFileDiag x) {
@@ -430,16 +435,19 @@ void markAllNonBootstrapModulesDirty(ref FrontendCompiler a, CrowFile* bootstrap
 	foreach (CrowFile* x; a.crowFiles)
 		if (x != bootstrap)
 			markModuleDirty(a, *x);
-	mutSetClearAndKeepMemory(a.workable);
+	clear(a.workable);
 	foreach (CrowFile* x; a.crowFiles)
 		if (x != bootstrap)
 			addToWorkableIfSo(a, x);
 }
 
 void markModuleDirty(scope ref FrontendCompiler a, scope ref CrowFile file) {
-	if (has(file.module_)) {
-		// TODO: free the old module (but programState may reference!)
-		file.module_ = noneMut!(Module*);
+	if (file.hasModule) {
+		freeInstantiationsForModule(a.allInsts, *file.mustHaveModule);
+		() @trusted {
+			freeAllocAndValue(force(file.moduleAndAlloc));
+		}();
+		file.moduleAndAlloc = noneMut!(AllocAndValue!(Module*));
 		a.countUncompiledCrowFiles++;
 		foreach (CrowFile* x; file.referencedBy)
 			markModuleDirty(a, *x);
@@ -450,7 +458,7 @@ ResolvedImport[] fullyResolveImports(ref FrontendCompiler a, MostlyResolvedImpor
 	map(a.alloc, imports, (ref MostlyResolvedImport x) =>
 		x.match!ResolvedImport(
 			(CrowFile* x) =>
-				ResolvedImport(force(x.module_)),
+				ResolvedImport(x.mustHaveModule),
 			(OtherFile* file) =>
 				getFileContentOrDiag(a.storage, file.uri).match!ResolvedImport(
 					(FileContent content) =>

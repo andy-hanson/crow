@@ -63,6 +63,8 @@ mixin template Union(ReprTypes...) {
 			value == other.value;
 		ulong taggedPointerValueForHash() =>
 			value;
+		@trusted immutable(void*) asVoidPointer() return scope =>
+			cast(immutable void*) ptrValue;
 	} else {
 		private immutable uint kind;
 		union {

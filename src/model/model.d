@@ -412,7 +412,7 @@ UriAndRange nameRange(in AllSymbols allSymbols, in StructDecl a) =>
 bool isTemplate(in StructDecl a) =>
 	!empty(a.typeParams);
 
-// The StructInst and its contents are allocated using the ProgramState alloc.
+// The StructInst and its contents are allocated using the AllInsts alloc.
 immutable struct StructInst {
 	@safe @nogc pure nothrow:
 
@@ -504,7 +504,7 @@ UriAndRange range(in SpecDecl a) =>
 UriAndRange nameRange(in AllSymbols allSymbols, in SpecDecl a) =>
 	UriAndRange(a.moduleUri, nameRange(allSymbols, *a.ast));
 
-// The SpecInst and contents are allocated using the ProgramState alloc.
+// The SpecInst and contents are allocated using the AllInsts alloc.
 immutable struct SpecInst {
 	@safe @nogc pure nothrow:
 
@@ -793,7 +793,7 @@ immutable struct FunDeclAndTypeArgs {
 	TypeArgs typeArgs;
 }
 
-// The FunInst and its contents are allocated using the ProgramState alloc.
+// The FunInst and its contents are allocated using the AllInsts alloc.
 immutable struct FunInst {
 	@safe @nogc pure nothrow:
 

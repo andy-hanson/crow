@@ -64,12 +64,6 @@ struct MutHashTable(T, K, alias getKey) {
 	}
 }
 
-void clearAndKeepMemory(T, K, alias getKey)(scope ref MutHashTable!(T, K, getKey) a) {
-	a.size_ = 0;
-	foreach (ref MutOpt!T x; a.values)
-		overwriteMemory(&x, noneMut!T);
-}
-
 bool isEmpty(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a) =>
 	size(a) == 0;
 
@@ -105,17 +99,21 @@ ref T mustAdd(T, K, alias getKey)(ref Alloc alloc, return scope ref MutHashTable
 	if (shouldExpandBeforeAdd(a))
 		doExpand(alloc, a);
 	assert(a.size_ < a.values.length);
+	a.size_++;
+	return mustAddToHashTable!(T, K, getKey)(a.values, value);
+}
 
+// Exported for use by 'MutMaxSet'
+ref T mustAddToHashTable(T, K, alias getKey)(MutOpt!T[] values, T value) {
 	K key = getKey(value);
-	size_t i = getHash!K(key).hashCode % a.values.length;
+	size_t i = getHash!K(key).hashCode % values.length;
 	while (true) {
-		if (!has(a.values[i])) {
-			a.size_++;
-			overwriteMemory(&a.values[i], someMut!T(value));
-			return force(a.values[i]);
+		if (!has(values[i])) {
+			overwriteMemory(&values[i], someMut!T(value));
+			return force(values[i]);
 		} else {
-			assert(!eq!K(key, getKey(force(a.values[i]))));
-			i = nextI(a, i);
+			assert(!eq!K(key, getKey(force(values[i]))));
+			i = nextI!T(values, i);
 		}
 	}
 }
@@ -136,42 +134,60 @@ ref T getOrAdd(T, K, alias getKey)(
 	}
 }
 
+ref T addOrChange(T, K, alias getKey)(
+	ref Alloc alloc,
+	ref MutHashTable!(T, K, getKey) a,
+	in K key,
+	in T delegate() @safe @nogc pure nothrow cbAdd,
+	in void delegate(ref T) @safe @nogc pure nothrow cbChange,
+) {
+	Opt!size_t i = getIndex(a, key);
+	if (has(i)) {
+		cbChange(force(a.values[force(i)]));
+		assert(getKey(force(a.values[force(i)])) == key);
+		return force(a.values[force(i)]);
+	} else {
+		T value = cbAdd();
+		assert(getKey(value) == key);
+		return mustAdd(alloc, a, value);
+	}
+}
+
 ref T insertOrUpdate(T, K, alias getKey)(
 	ref Alloc alloc,
 	ref MutHashTable!(T, K, getKey) a,
 	in K key,
 	in T delegate() @safe @nogc pure nothrow cbInsert,
 	in T delegate(ref T) @safe @nogc pure nothrow cbUpdate,
-) {
-	Opt!size_t i = getIndex(a, key);
-	if (has(i)) {
-		T newValue = cbUpdate(force(a.values[force(i)]));
-		assert(getKey(newValue) == key);
-		overwriteMemory(&a.values[force(i)], someMut(newValue));
-		return force(a.values[force(i)]);
-	} else {
-		T value = cbInsert();
-		assert(getKey(value) == key);
-		return mustAdd(alloc, a, value);
-	}
-}
+) =>
+	addOrChange(alloc, a, key, cbInsert, (ref T x) {
+		overwriteMemory(&x, cbUpdate(x));
+	});
 
 MutOpt!T mayDelete(T, K, alias getKey)(ref MutHashTable!(T, K, getKey) a, in K key) {
-	Opt!size_t index = getIndex(a, key);
-	return has(index) ? someMut(deleteAtIndex(a, force(index))) : noneMut!T;
+	MutOpt!T res = mayDeleteFromHashTable!(T, K, getKey)(a.values, key);
+	if (has(res))
+		a.size_--;
+	return res;
 }
 
-T mustDelete(T, K, alias getKey)(ref MutHashTable!(T, K, getKey) a, in K key) =>
-	deleteAtIndex(a, mustGetIndex(a, key));
+void mayDeleteValue(T, K, alias getKey)(ref MutHashTable!(T, K, getKey) a, T value) {
+	mayDelete(a, getKey(value));
+}
 
-MutOpt!T popArbitrary(T, K, alias getKey)(ref MutHashTable!(T, K, getKey) a) {
-	foreach (size_t index, ref MutOpt!T x; a.values)
-		if (has(x)) {
-			T res = force(x);
-			deleteAtIndex(a, index);
-			return someMut(res);
-		}
-	return noneMut!T;
+MutOpt!T mayDeleteFromHashTable(T, K, alias getKey)(scope MutOpt!T[] values, in K key) {
+	Opt!size_t index = getIndexInHashTable!(T, K, getKey)(values, key);
+	return has(index) ? someMut(deleteFromHashTableAtIndex!(T, K, getKey)(values, force(index))) : noneMut!T;
+}
+
+T mustDelete(T, K, alias getKey)(ref MutHashTable!(T, K, getKey) a, in K key) {
+	a.size_--;
+	return mustDeleteFromHashTable!(T, K, getKey)(a.values, key);
+}
+
+private T mustDeleteFromHashTable(T, K, alias getKey)(scope MutOpt!T[] values, in K key) {
+	Opt!size_t index = getIndexInHashTable!(T, K, getKey)(values, key);
+	return deleteFromHashTableAtIndex!(T, K, getKey)(values, force(index));
 }
 
 @trusted HashTable!(T, K, getKey) moveToImmutable(T, K, alias getKey)(ref MutHashTable!(T, K, getKey) a) {
@@ -310,19 +326,23 @@ size_t mustGetIndex(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a, in K k
 	return force(res);
 }
 
-Opt!size_t getIndex(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a, in K key) {
-	if (empty(a.values))
+Opt!size_t getIndex(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a, in K key) =>
+	getIndexInHashTable!(T, K, getKey)(a.values, key);
+
+// For use by 'mutMaxSet.d'
+public Opt!size_t getIndexInHashTable(T, K, alias getKey)(in MutOpt!T[] values, in K key) {
+	if (empty(values))
 		return none!size_t;
 
-	size_t startI = getHash!K(key).hashCode % a.values.length;
+	size_t startI = getHash!K(key).hashCode % values.length;
 	size_t i = startI;
 	while (true) {
-		if (!has(a.values[i]))
+		if (!has(values[i]))
 			return none!size_t;
-		else if (eq!K(key, getKey(force(a.values[i]))))
+		else if (eq!K(key, getKey(force(values[i]))))
 			return some(i);
 		else {
-			i = nextI(a, i);
+			i = nextI!T(values, i);
 			if (i == startI)
 				return none!size_t;
 		}
@@ -346,36 +366,35 @@ bool shouldExpandBeforeAdd(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a)
 	a.values = bigger.values;
 }
 
-T deleteAtIndex(T, K, alias getKey)(scope ref MutHashTable!(T, K, getKey) a, size_t i) {
-	T res = force(a.values[i]);
-	a.size_--;
+public T deleteFromHashTableAtIndex(T, K, alias getKey)(scope MutOpt!T[] values, size_t i) {
+	T res = force(values[i]);
 
 	// When there is a hole, move values closer to where they should be.
 	size_t holeI = i;
-	overwriteMemory(&a.values[holeI], noneMut!T);
-	size_t fromI = nextI(a, i);
-	while (has(a.values[fromI])) {
-		size_t desiredI = getHash!K(getKey(force(a.values[fromI]))).hashCode % a.values.length;
-		if (walkDistance(a, desiredI, holeI) < walkDistance(a, desiredI, fromI)) {
-			overwriteMemory(&a.values[holeI], a.values[fromI]);
-			overwriteMemory(&a.values[fromI], noneMut!T);
+	overwriteMemory(&values[holeI], noneMut!T);
+	size_t fromI = nextI!T(values, i);
+	while (has(values[fromI])) {
+		size_t desiredI = getHash!K(getKey(force(values[fromI]))).hashCode % values.length;
+		if (walkDistance!T(values, desiredI, holeI) < walkDistance!T(values, desiredI, fromI)) {
+			overwriteMemory(&values[holeI], values[fromI]);
+			overwriteMemory(&values[fromI], noneMut!T);
 			holeI = fromI;
 		}
-		fromI = nextI(a, fromI);
+		fromI = nextI!T(values, fromI);
 	}
 
 	return res;
 }
 
-size_t nextI(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a, size_t i) {
+size_t nextI(T)(in MutOpt!T[] values, size_t i) {
 	size_t res = i + 1;
-	return res == a.values.length ? 0 : res;
+	return res == values.length ? 0 : res;
 }
 
-size_t walkDistance(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a, size_t i0, size_t i1) =>
+size_t walkDistance(T)(in MutOpt!T[] values, size_t i0, size_t i1) =>
 	i0 <= i1
 		? i1 - i0
-		: a.values.length + i1 - i0;
+		: values.length + i1 - i0;
 
 bool eq(K)(in K a, in K b) {
 	static if (is(K == string))

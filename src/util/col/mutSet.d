@@ -3,8 +3,7 @@ module util.col.mutSet;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.hashTable :
-	clearAndKeepMemory, hasKey, mayAdd, mayDelete, mustAdd, mustDelete, MutHashTable, popArbitrary;
+import util.col.hashTable : hasKey, mayAdd, mayDelete, mustDelete, MutHashTable;
 import util.opt : has, MutOpt;
 
 struct MutSet(T) {
@@ -18,22 +17,11 @@ struct MutSet(T) {
 
 private ref T getKey(T)(ref T x) => x;
 
-void mutSetClearAndKeepMemory(T)(scope ref MutSet!T a) {
-	clearAndKeepMemory(a.inner);
-}
-
 bool mutSetHas(T)(in MutSet!T a, in T value) =>
 	hasKey(a.inner, value);
 
-MutOpt!T mutSetPopArbitrary(T)(ref MutSet!T a) =>
-	popArbitrary(a.inner);
-
 void mayAddToMutSet(T)(ref Alloc alloc, scope ref MutSet!T a, T value) {
 	mayAdd(alloc, a.inner, value);
-}
-
-void mustAddToMutSet(T)(ref Alloc alloc, scope ref MutSet!T a, T value) {
-	mustAdd(alloc, a.inner, value);
 }
 
 bool mutSetMayDelete(T)(scope ref MutSet!T a, T value) {

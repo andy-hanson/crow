@@ -82,11 +82,11 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\frontend\parse\parseImport.d \
 	src\frontend\parse\parseType.d \
 	src\frontend\parse\parseUtil.d \
+	src\frontend\allInsts.d \
 	src\frontend\config.d \
 	src\frontend\frontendCompile.d \
 	src\frontend\getDiagnosticSeverity.d \
 	src\frontend\lang.d \
-	src\frontend\programState.d \
 	src\frontend\showDiag.d \
 	src\frontend\showModel.d \
 	src\frontend\storage.d \
@@ -141,6 +141,7 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\col\mutIndexMap.d \
 	src\util\col\mutMap.d \
 	src\util\col\mutMaxArr.d \
+	src\util\col\mutMultiMap.d \
 	src\util\col\mutSet.d \
 	src\util\col\sortUtil.d \
 	src\util\col\stackMap.d \
