@@ -3,7 +3,18 @@ module frontend.parse.parseType;
 @safe @nogc pure nothrow:
 
 import frontend.parse.lexer :
-	addDiag, addDiagUnexpectedCurToken, alloc, curPos, Lexer, range, rangeAtChar, takeNextToken, Token, TokenAndData;
+	addDiag,
+	addDiagUnexpectedCurToken,
+	alloc,
+	curPos,
+	getPeekToken,
+	getPeekTokenAndData,
+	Lexer,
+	range,
+	rangeAtChar,
+	takeNextToken,
+	Token,
+	TokenAndData;
 import frontend.parse.parseUtil :
 	addDiagExpected, takeOrAddDiagExpectedToken, tryTakeNameAndRange, tryTakeOperator, tryTakeToken;
 import model.ast : NameAndRange, range, TypeAst;
@@ -62,20 +73,23 @@ private:
 
 TypeAst parseTypeBeforeSuffixes(ref Lexer lexer) {
 	Pos start = curPos(lexer);
-	TokenAndData token = takeNextToken(lexer);
-	switch (token.token) {
+	switch (getPeekToken(lexer)) {
 		case Token.name:
-			return TypeAst(NameAndRange(start, token.asSym()));
+			return TypeAst(NameAndRange(start, takeNextToken(lexer).asSym()));
 		case Token.parenLeft:
+			takeNextToken(lexer);
 			return parseTupleType(lexer, start);
 		case Token.act:
+			takeNextToken(lexer);
 			return parseFunType(lexer, start, FunKind.act);
 		case Token.far:
+			takeNextToken(lexer);
 			return parseFunType(lexer, start, FunKind.far);
 		case Token.fun:
+			takeNextToken(lexer);
 			return parseFunType(lexer, start, tryTakeOperator(lexer, sym!"*") ? FunKind.pointer : FunKind.fun);
 		default:
-			addDiagUnexpectedCurToken(lexer, start, token);
+			addDiagUnexpectedCurToken(lexer, start, getPeekTokenAndData(lexer));
 			return TypeAst(TypeAst.Bogus(range(lexer, start)));
 	}
 }

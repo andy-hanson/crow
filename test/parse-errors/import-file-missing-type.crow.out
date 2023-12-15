@@ -1,0 +1,4 @@
+exit code: 1
+stderr:
+test/parse-errors/import-file-missing-type.crow 2:20-2:20 Unexpected newline.
+test/parse-errors/import-file-missing-type.crow 2:20-2:20 Import file type not allowed; the only supported types are 'nat8 array' and 'string'.

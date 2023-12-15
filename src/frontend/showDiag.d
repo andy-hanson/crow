@@ -65,7 +65,7 @@ import util.sym : AllSymbols, Sym, writeSym;
 import util.uri : AllUris, baseName, compareUriAlphabetically, Uri, writeRelPath, writeUri;
 import util.util : stringOfEnum, max, unreachable;
 import util.writer :
-	withWriter, writeEscapedChar, writeNewline, writeQuotedString, writeWithCommas, writeWithSeparator, Writer;
+	withWriter, writeEscapedChar, writeNewline, writeQuotedString, writeWithCommas, writeWithNewlines, writeWithSeparator, Writer;
 
 SafeCStr stringOfDiagnostics(ref Alloc alloc, in ShowCtx ctx, in Program program) =>
 	withWriter(alloc, (scope ref Writer writer) {
@@ -97,11 +97,11 @@ SafeCStr stringOfParseDiagnostics(
 	in ParseDiagnostic[] diagnostics,
 ) =>
 	withWriter(alloc, (scope ref Writer writer) {
-		foreach (ref ParseDiagnostic x; diagnostics) {
+		writeWithNewlines!ParseDiagnostic(writer, diagnostics, (in ParseDiagnostic x) {
 			writeLineAndColumnRange(writer, lineAndColumnRange(lcg, x.range));
 			writer ~= ' ';
 			writeParseDiag(writer, allSymbols, allUris, x.kind);
-		}
+		});
 	});
 
 immutable struct UriAndDiagnostics {
