@@ -6,7 +6,7 @@ import backend.writeToC : writeToC;
 import concretize.concretize : concretize;
 import document.document : documentJSON;
 import frontend.frontendCompile :
-	FrontendCompiler, getFileContents, initFrontend, makeProgramForRoots, makeProgramForMain, onFileChanged;
+	FrontendCompiler, getFileContents, initFrontend, makeProgramForRoots, makeProgramForMain, onFileChanged, perfStats;
 import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
 import frontend.ide.getDefinition : getDefinitionForPosition;
 import frontend.ide.getHover : getHover;
@@ -100,7 +100,7 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrLiteral, concatenate, contains, map, mapOp;
 import util.col.str : copyStr, SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
 import util.exitCode : ExitCode;
-import util.json : Json, jsonNull;
+import util.json : field, Json, jsonNull, jsonObject;
 import util.late : Late, lateGet, lateSet, MutLate;
 import util.lineAndColumnGetter : UriLineAndColumn;
 import util.opt : force, has, none, Opt, some;
@@ -307,6 +307,10 @@ struct Server {
 	LineAndColumnGetters lineAndColumnGetters() return scope const =>
 		LineAndColumnGetters(&castNonScope_ref(storage));
 }
+
+Json perfStats(ref Alloc alloc, in Server a) =>
+	jsonObject(alloc, [
+		field!"frontend"(perfStats(alloc, a.frontend))]);
 
 private struct LspState {
 	@safe @nogc pure nothrow:

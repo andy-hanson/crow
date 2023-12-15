@@ -215,6 +215,9 @@ private T mustDeleteFromHashTable(T, K, alias getKey)(scope MutOpt!T[] values, i
 	return res;
 }
 
+immutable(T[]) hashTableToArray(T, K, alias getKey)(ref Alloc alloc, in MutHashTable!(T, K, getKey) a) =>
+	hashTableMapToArray!(immutable T, T, K, getKey)(alloc, a, (ref const T x) => x);
+
 @trusted Out[] hashTableMapToArray(Out, T, K, alias getKey)(
 	ref Alloc alloc,
 	scope ref immutable HashTable!(T, K, getKey) a,

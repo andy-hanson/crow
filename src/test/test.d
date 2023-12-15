@@ -2,6 +2,7 @@ module test.test;
 
 @safe @nogc nothrow: // not pure
 
+import test.testAllInsts : testAllInsts;
 import test.testAlloc : testAlloc;
 import test.testApplyFn : testApplyFn;
 import test.testMap : testMap;
@@ -11,6 +12,7 @@ import test.testInterpreter : testInterpreter;
 import test.testJson : testJson;
 import test.testLineAndColumnGetter : testLineAndColumnGetter;
 import test.testMemory : testMemory;
+import test.testMutMultiMap : testMutMultiMap;
 import test.testServer : testServer;
 import test.testSortUtil : testSortUtil;
 import test.testStack : testStack;
@@ -47,6 +49,7 @@ private:
 
 NameAndTest[] allTests = [
 	NameAndTest("alloc", &testAlloc),
+	NameAndTest("all-insts", &testAllInsts),
 	NameAndTest("apply-fn", &testApplyFn),
 	NameAndTest("fake-extern", &testFakeExtern),
 	NameAndTest("hover", &testHover),
@@ -55,6 +58,7 @@ NameAndTest[] allTests = [
 	NameAndTest("line-and-column-getter", &testLineAndColumnGetter),
 	NameAndTest("map", &testMap),
 	NameAndTest("memory", &testMemory),
+	NameAndTest("mut-multi-map", &testMutMultiMap),
 	NameAndTest("server", &testServer),
 	NameAndTest("sort-util", &testSortUtil),
 	NameAndTest("stack", &testStack),

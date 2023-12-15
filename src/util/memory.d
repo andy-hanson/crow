@@ -49,3 +49,8 @@ void overwriteMemory(T)(T* ptr, scope T value) {
 	assert(dest.length == source.length);
 	cast(void) memcpy(cast(ubyte*) dest.ptr, cast(ubyte*) source.ptr, T.sizeof * dest.length);
 }
+
+// For clearing memory which should now be unused
+@system void ensureMemoryClear(T)(T* ptr) {
+	cast(void) memset(cast(ubyte*) ptr, 0xff, T.sizeof);
+}

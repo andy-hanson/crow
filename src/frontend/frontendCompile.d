@@ -7,7 +7,7 @@ import frontend.check.getCommonFuns : CommonModule, getCommonFuns;
 import frontend.check.instantiate : InstantiateCtx;
 import frontend.lang : crowConfigBaseName, crowExtension;
 import frontend.parse.ast : FileAst, fileAstForReadFileDiag, ImportOrExportAst, ImportOrExportAstKind, NameAndRange;
-import frontend.allInsts : freeInstantiationsForModule, AllInsts;
+import frontend.allInsts : AllInsts, freeInstantiationsForModule, perfStats;
 import frontend.storage :
 	FileContent,
 	FilesState,
@@ -33,6 +33,7 @@ import util.col.mapBuilder : finishMap, MapBuilder, mustAddToMap;
 import util.col.enumMap : EnumMap, enumMapMapValues, makeEnumMap;
 import util.col.mutMaxSet : clear, mayDelete, mustAdd, MutMaxSet, popArbitrary;
 import util.col.mutSet : mayAddToMutSet, MutSet, mutSetMayDelete, mutSetMustDelete;
+import util.json : field, Json, jsonObject;
 import util.memory : allocate, initMemory;
 import util.opt : ConstOpt, force, has, MutOpt, Opt, none, noneMut, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
@@ -107,6 +108,10 @@ FrontendCompiler* initFrontend(
 		return res;
 	}();
 }
+
+Json perfStats(ref Alloc alloc, in FrontendCompiler a) =>
+	jsonObject(alloc, [
+		field!"allInsts"(perfStats(alloc, a.allInsts))]);
 
 private struct CrowFile {
 	@safe @nogc pure nothrow:

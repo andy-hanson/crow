@@ -394,6 +394,7 @@ immutable struct StructDeclSource {
 	}
 	mixin Union!(StructDeclAst*, Bogus*);
 }
+static assert(StructDeclSource.sizeof == ulong.sizeof);
 
 UriAndRange range(in StructDecl a) =>
 	UriAndRange(a.moduleUri, a.source.matchIn!Range(

@@ -72,7 +72,8 @@ template small(T) {
 }
 
 SmallArray!T emptySmallArray(T)() =>
-	SmallArray!T([]);
+	// Don't use `SmallArray!T([])` because that can't be evaluated at compile time
+	SmallArray!T(PtrAndSmallNumber!T(0));
 
 @trusted T[] castMutable(T)(immutable T[] a) =>
 	cast(T[]) a;

@@ -9,7 +9,7 @@ HashCode getHash(T)(in T a) {
 		return hashPtr(a);
 	else static if (is(T == immutable string))
 		return hashString(a);
-	else static if (is(T == size_t))
+	else static if (is(T == uint) || is(T == size_t))
 		return hashSizeT(a);
 	else
 		return a.hash();
@@ -53,7 +53,14 @@ struct Hasher {
 }
 
 HashCode hashTaggedPointer(T)(in T taggedPointer) =>
-	hashSizeT(taggedPointer.taggedPointerValueForHash);
+	hashUlong(taggedPointer.taggedPointerValueForHash);
+
+HashCode hashPointerAndTaggedPointer(T, U)(T* a, U b) {
+	Hasher hasher;
+	hasher ~= a;
+	hasher ~= b.taggedPointerValueForHash;
+	return hasher.finish();
+}
 
 HashCode hashPointerAndTaggedPointers(T, U)(in T* pointer, in U[] taggedPointers) {
 	Hasher hasher;

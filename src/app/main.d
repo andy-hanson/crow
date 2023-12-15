@@ -38,6 +38,7 @@ import lib.server :
 	getDocumentation,
 	handleLspMessage,
 	getProgramForMain,
+	perfStats,
 	printAst,
 	printConcreteModel,
 	printIde,
@@ -86,7 +87,10 @@ import versionInfo : versionInfoForJIT;
 		disablePerf(perf);
 	int res = go(perf, *alloc, server, command.kind).value;
 	if (isEnabled(perf)) {
-		printf("%s\n", jsonToString(*alloc, server.allSymbols, perfReport(*alloc, perf, *server.metaAlloc)).ptr);
+		withTempAllocImpure!void(server.metaAlloc, (ref Alloc alloc) @trusted {
+			Json report = perfReport(alloc, perf, *server.metaAlloc, perfStats(alloc, server));
+			printf("%s\n", jsonToString(alloc, server.allSymbols, report).ptr);
+		});
 	}
 	return res;
 }

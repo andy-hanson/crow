@@ -24,10 +24,11 @@ import util.perf : Perf, PerfMeasure, PerfMeasureResult, PerfResult, perfResult;
 import util.util : stringOfEnum;
 import util.writer : withWriter, Writer;
 
-Json perfReport(ref Alloc alloc, in Perf perf, in MetaAlloc metaAlloc) =>
+Json perfReport(ref Alloc alloc, in Perf perf, in MetaAlloc metaAlloc, Json stats) =>
 	jsonObject(alloc, [
 		field!"memory"(showMemorySummary(alloc, summarizeMemory(metaAlloc))),
-		field!"time"(showTimeSummary(alloc, perfResult(perf)))]);
+		field!"time"(showTimeSummary(alloc, perfResult(perf))),
+		field!"stats"(stats)]);
 
 private:
 
