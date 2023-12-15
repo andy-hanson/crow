@@ -1,6 +1,6 @@
 exit code: 1
 stderr:
-test/compile-errors/main-missing.crow 1:1-1:1 module should have a function:
+test/compile-errors/main-missing.crow 1:1-1:1 Module should have a function:
 	main void()
-or:
+Or:
 	main nat64^(args string[])

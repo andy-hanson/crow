@@ -1,5 +1,5 @@
 exit code: 1
 stderr:
-test/parse-errors/unfinished-string-interpolation.crow 2:7-2:7 unexpected newline
-test/parse-errors/unfinished-string-interpolation.crow 2:7-2:7 expected '}'
-test/parse-errors/unfinished-string-interpolation.crow 2:7-2:7 expected '"'
+test/parse-errors/unfinished-string-interpolation.crow 2:7-2:7 Unexpected newline.
+test/parse-errors/unfinished-string-interpolation.crow 2:7-2:7 Expected '}'.
+test/parse-errors/unfinished-string-interpolation.crow 2:7-2:7 Expected '"'.

@@ -9,7 +9,50 @@ import frontend.storage : lineAndColumnRange;
 import lib.lsp.lspTypes : Hover, MarkupContent, MarkupKind;
 import model.ast : FieldMutabilityAst, FunModifierAst;
 import model.diag : TypeContainer, typeParamAsts, TypeWithContainer;
-import model.model;
+import model.model :
+	AssertOrForbidExpr,
+	AssertOrForbidKind,
+	BogusExpr,
+	CallExpr,
+	ClosureGetExpr,
+	ClosureRef,
+	ClosureSetExpr,
+	Expr,
+	FunDecl,
+	FunKind,
+	FunPtrExpr,
+	IfExpr,
+	IfOptionExpr,
+	LambdaExpr,
+	LetExpr,
+	LiteralCStringExpr,
+	LiteralExpr,
+	LiteralSymbolExpr,
+	Local,
+	LocalGetExpr,
+	LocalSetExpr,
+	LoopBreakExpr,
+	LoopContinueExpr,
+	LoopExpr,
+	LoopUntilExpr,
+	LoopWhileExpr,
+	MatchEnumExpr,
+	MatchUnionExpr,
+	PtrToFieldExpr,
+	PtrToLocalExpr,
+	RecordField,
+	SeqExpr,
+	StructBody,
+	SpecDecl,
+	stringOfVisibility,
+	StructDecl,
+	StructInst,
+	symOfVarKind,
+	ThrowExpr,
+	Type,
+	TypeParamIndex,
+	VarDecl,
+	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.str : SafeCStr, safeCStrIsEmpty;
 import util.opt : none, Opt, some;

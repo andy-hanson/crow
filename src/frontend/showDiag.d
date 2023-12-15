@@ -144,16 +144,16 @@ void writeUnusedDiag(scope ref Writer writer, in ShowCtx ctx, in Diag.Unused a) 
 	a.kind.matchIn!void(
 		(in Diag.Unused.Kind.Import x) {
 			if (has(x.importedName)) {
-				writer ~= "imported name ";
+				writer ~= "Imported name ";
 				writeName(writer, ctx, force(x.importedName));
 			} else {
-				writer ~= "imported module ";
+				writer ~= "Imported module ";
 				writeName(writer, ctx, baseName(ctx.allUris, x.importedModule.uri));
 			}
 			writer ~= " is unused";
 		},
 		(in Diag.Unused.Kind.Local x) {
-			writer ~= "local ";
+			writer ~= "Local ";
 			writeName(writer, ctx, x.local.name);
 			writer ~= (x.local.mutability == LocalMutability.immut)
 				? " is unused"
@@ -172,124 +172,42 @@ void writeUnusedDiag(scope ref Writer writer, in ShowCtx ctx, in Diag.Unused a) 
 void writeParseDiag(scope ref Writer writer, in AllSymbols allSymbols, in AllUris allUris, in ParseDiag d) {
 	d.matchIn!void(
 		(in ParseDiag.Expected x) {
-			final switch (x.kind) {
-				case ParseDiag.Expected.Kind.afterMut:
-					writer ~= "expected '[' or '*' after 'mut'";
-					break;
-				case ParseDiag.Expected.Kind.blockCommentEnd:
-					writer ~= "Expected '###' (then a newline)";
-					break;
-				case ParseDiag.Expected.Kind.closeInterpolated:
-					writer ~= "expected '}'";
-					break;
-				case ParseDiag.Expected.Kind.closingBracket:
-					writer ~= "expected ']'";
-					break;
-				case ParseDiag.Expected.Kind.closingParen:
-					writer ~= "expected ')'";
-					break;
-				case ParseDiag.Expected.Kind.colon:
-					writer ~= "expected ':'";
-					break;
-				case ParseDiag.Expected.Kind.comma:
-					writer ~= "expected ', '";
-					break;
-				case ParseDiag.Expected.Kind.dedent:
-					writer ~= "expected a dedent";
-					break;
-				case ParseDiag.Expected.Kind.endOfLine:
-					writer ~= "expected end of line";
-					break;
-				case ParseDiag.Expected.Kind.equals:
-					writer ~= "expected '='";
-					break;
-				case ParseDiag.Expected.Kind.indent:
-					writer ~= "expected an indent";
-					break;
-				case ParseDiag.Expected.Kind.lambdaArrow:
-					writer ~= "expected ' =>' after lambda parameters";
-					break;
-				case ParseDiag.Expected.Kind.less:
-					writer ~= "expected '<'";
-					break;
-				case ParseDiag.Expected.Kind.literalIntOrNat:
-					writer ~= "expected an integer";
-					break;
-				case ParseDiag.Expected.Kind.literalNat:
-					writer ~= "expected a natural number";
-					break;
-				case ParseDiag.Expected.Kind.modifier:
-					writer ~= "expected a valid modifier";
-					break;
-				case ParseDiag.Expected.Kind.name:
-					writer ~= "expected a name (non-operator)";
-					break;
-				case ParseDiag.Expected.Kind.nameOrOperator:
-					writer ~= "expected a name or operator";
-					break;
-				case ParseDiag.Expected.Kind.newline:
-					writer ~= "expected a newline";
-					break;
-				case ParseDiag.Expected.Kind.newlineOrDedent:
-					writer ~= "expected a newline or dedent";
-					break;
-				case ParseDiag.Expected.Kind.openParen:
-					writer ~= "expected '('";
-					break;
-				case ParseDiag.Expected.Kind.then:
-					writer ~= "expected '<-'";
-					break;
-				case ParseDiag.Expected.Kind.questionEqual:
-					writer ~= "expected '?='";
-					break;
-				case ParseDiag.Expected.Kind.quoteDouble:
-					writer ~= "expected '\"'";
-					break;
-				case ParseDiag.Expected.Kind.quoteDouble3:
-					writer ~= "expected '\"\"\"'";
-					break;
-				case ParseDiag.Expected.Kind.slash:
-					writer ~= "expected '/'";
-					break;
-				case ParseDiag.Expected.Kind.typeArgsEnd:
-					writer ~= "expected '>'";
-					break;
-			}
+			writer ~= showParseDiagExpected(x.kind);
 		},
 		(in ParseDiag.FunctionTypeMissingParens) {
-			writer ~= "function type missing parentheses";
+			writer ~= "Function type is missing parentheses.";
 		},
 		(in ParseDiag.ImportFileTypeNotSupported) {
-			writer ~= "import file type not allowed; the only supported types are 'nat8 array' and 'string'";
+			writer ~= "Import file type not allowed; the only supported types are 'nat8 array' and 'string'.";
 		},
 		(in ParseDiag.IndentNotDivisible d) {
-			writer ~= "expected indentation by ";
+			writer ~= "Expected indentation by ";
 			writer ~= d.nSpacesPerIndent;
 			writer ~= " spaces per level, but got ";
 			writer ~= d.nSpaces;
-			writer ~= " which is not divisible";
+			writer ~= " which is not divisible.";
 		},
 		(in ParseDiag.IndentTooMuch x) {
-			writer ~= "indented too far";
+			writer ~= "Indented too far.";
 		},
 		(in ParseDiag.IndentWrongCharacter d) {
-			writer ~= "expected indentation by ";
+			writer ~= "Expected indentation by ";
 			writer ~= d.expectedTabs ? "tabs" : "spaces";
 			writer ~= " (based on first indented line), but here there is a ";
-			writer ~= d.expectedTabs ? "space" : "tab";
+			writer ~= d.expectedTabs ? "space" : "tab.";
 		},
 		(in ParseDiag.InvalidName x) {
 			writeQuotedString(writer, x.actual);
-			writer ~= " is not a valid name";
+			writer ~= " is not a valid name.";
 		},
 		(in ParseDiag.InvalidStringEscape x) {
-			writer ~= "invalid escape character '";
+			writer ~= "Invalid escape character '";
 			writeEscapedChar(writer, x.actual);
-			writer ~= '\'';
+			writer ~= "'.";
 		},
 		(in ParseDiag.NeedsBlockCtx x) {
 			if (x.kind == ParseDiag.NeedsBlockCtx.Kind.lambda)
-				writer ~= "lambda";
+				writer ~= "Lambda";
 			else {
 				writer ~= '\'';
 				writer ~= stringOfEnum(x.kind);
@@ -297,44 +215,100 @@ void writeParseDiag(scope ref Writer writer, in AllSymbols allSymbols, in AllUri
 			}
 			writer ~= " expression must appear ";
 			writer ~= x.kind == ParseDiag.NeedsBlockCtx.Kind.break_
-				? "on its own line"
-				: "in a context where it can be followed by an indented block";
+				? "on its own line."
+				: "in a context where it can be followed by an indented block.";
 		},
 		(in ReadFileDiag x) {
 			showReadFileDiag(writer, x);
 		},
 		(in ParseDiag.TrailingComma) {
-			writer ~= "trailing comma";
+			writer ~= "Remove this trailing comma.";
 		},
 		(in ParseDiag.UnexpectedCharacter u) {
-			writer ~= "unexpected character '";
+			writer ~= "Unexpected character '";
 			showChar(writer, u.ch);
-			writer ~= "'";
+			writer ~= "'.";
 		},
 		(in ParseDiag.UnexpectedOperator x) {
-			writer ~= "unexpected '";
+			writer ~= "Unexpected '";
 			writeSym(writer, allSymbols, x.operator);
-			writer ~= '\'';
+			writer ~= "'.";
 		},
 		(in ParseDiag.UnexpectedToken u) {
 			writer ~= describeTokenForUnexpected(u.token);
-		},
-		(in ParseDiag.WhenMustHaveElse) {
-			writer ~= "'if' expression must end in 'else'";
 		});
+}
+
+string showParseDiagExpected(ParseDiag.Expected.Kind kind) {
+	final switch (kind) {
+		case ParseDiag.Expected.Kind.afterMut:
+			return "Expected '[' or '*' after 'mut'.";
+		case ParseDiag.Expected.Kind.blockCommentEnd:
+			return "Expected '###' (then a newline).";
+		case ParseDiag.Expected.Kind.closeInterpolated:
+			return "Expected '}'.";
+		case ParseDiag.Expected.Kind.closingBracket:
+			return "Expected ']'.";
+		case ParseDiag.Expected.Kind.closingParen:
+			return "Expected ')'.";
+		case ParseDiag.Expected.Kind.colon:
+			return "Expected ':'.";
+		case ParseDiag.Expected.Kind.comma:
+			return "Expected ','.";
+		case ParseDiag.Expected.Kind.dedent:
+			return "Expected a dedent.";
+		case ParseDiag.Expected.Kind.endOfLine:
+			return "Expected end of line.";
+		case ParseDiag.Expected.Kind.equals:
+			return "Expected '='.";
+		case ParseDiag.Expected.Kind.indent:
+			return "Expected an indent.";
+		case ParseDiag.Expected.Kind.lambdaArrow:
+			return "Expected ' =>' after lambda parameters.";
+		case ParseDiag.Expected.Kind.less:
+			return "Expected '<'.";
+		case ParseDiag.Expected.Kind.literalIntOrNat:
+			return "Expected an integer.";
+		case ParseDiag.Expected.Kind.literalNat:
+			return "Expected a natural number.";
+		case ParseDiag.Expected.Kind.modifier:
+			return "Expected a valid modifier.";
+		case ParseDiag.Expected.Kind.name:
+			return "Expected a name (non-operator).";
+		case ParseDiag.Expected.Kind.nameOrOperator:
+			return "Expected a name or operator.";
+		case ParseDiag.Expected.Kind.newline:
+			return "Expected a newline.";
+		case ParseDiag.Expected.Kind.newlineOrDedent:
+			return "Expected a newline or dedent.";
+		case ParseDiag.Expected.Kind.openParen:
+			return "Expected '('.";
+		case ParseDiag.Expected.Kind.then:
+			return "Expected '<-'.";
+		case ParseDiag.Expected.Kind.questionEqual:
+			return "Expected '?='.";
+		case ParseDiag.Expected.Kind.quoteDouble:
+			return "Expected '\"'.";
+		case ParseDiag.Expected.Kind.quoteDouble3:
+			return "Expected '\"\"\"'.";
+		case ParseDiag.Expected.Kind.slash:
+			return "Expected '/'.";
+		case ParseDiag.Expected.Kind.typeArgsEnd:
+			return "Expected '>'.";
+	}
 }
 
 void showReadFileDiag(scope ref Writer writer, ReadFileDiag a) {
 	writer ~= () {
 		final switch (a) {
 			case ReadFileDiag.notFound:
-				return "File does not exist";
+				return "File does not exist.";
 			case ReadFileDiag.error:
-				return "Unable to read file";
+				return "Unable to read file.";
 			case ReadFileDiag.loading:
-				return "IDE is still loading file";
+				return "IDE is still loading file.";
 			case ReadFileDiag.unknown:
-				return "IDE has not started loading file";
+				return "IDE has not started loading file.";
 		}
 	}();
 }
@@ -381,20 +355,21 @@ void writeCallNoMatch(scope ref Writer writer, in ShowCtx ctx, in Diag.CallNoMat
 			arityMatches(c.arity, d.actualArity));
 
 	if (empty(d.allCandidates)) {
-		writer ~= "there is no function ";
+		writer ~= "There is no function ";
 		if (d.actualArity == 0)
 			// If there is no local variable by that name we try a call,
 			// but message should reflect that the user might not have wanted a call.
 			writer ~= "or variable ";
 		writer ~= "named ";
 		writeName(writer, ctx, d.funName);
+		writer ~= '.';
 
 		if (d.actualArgTypes.length == 1) {
-			writer ~= "\nargument type: ";
+			writer ~= "\nArgument type: ";
 			writeTypeQuoted(writer, ctx, TypeWithContainer(only(d.actualArgTypes), d.typeContainer));
 		}
 	} else if (!someCandidateHasCorrectArity) {
-		writer ~= "there are functions named ";
+		writer ~= "There are functions named ";
 		writeName(writer, ctx, d.funName);
 		writer ~= ", but none takes ";
 		if (someCandidateHasCorrectNTypeArgs) {
@@ -406,7 +381,7 @@ void writeCallNoMatch(scope ref Writer writer, in ShowCtx ctx, in Diag.CallNoMat
 		writer ~= " arguments. candidates:";
 		writeCalledDecls(writer, ctx, d.typeContainer, d.allCandidates);
 	} else {
-		writer ~= "there are functions named ";
+		writer ~= "There are functions named ";
 		writeName(writer, ctx, d.funName);
 		writer ~= ", but they do not match the ";
 		bool hasRet = d.expectedReturnType.isA!(ExpectedForDiag.Choices);
@@ -420,14 +395,14 @@ void writeCallNoMatch(scope ref Writer writer, in ShowCtx ctx, in Diag.CallNoMat
 		if (hasRet)
 			writeExpected(writer, ctx, d.expectedReturnType, ExpectedKind.return_);
 		if (hasArgs) {
-			writer ~= "\nactual argument types: ";
+			writer ~= "\nActual argument types: ";
 			writeWithCommas!Type(writer, d.actualArgTypes, (in Type t) {
 				writeTypeQuoted(writer, ctx, TypeWithContainer(t, d.typeContainer));
 			});
 			if (d.actualArgTypes.length < d.actualArity)
-				writer ~= " (other arguments not checked, gave up early)";
+				writer ~= " (Other arguments not checked; gave up early.)";
 		}
-		writer ~= "\ncandidates (with ";
+		writer ~= "\nCandidates (with ";
 		writer ~= d.actualArity;
 		writer ~= " arguments):";
 		writeCalledDecls(writer, ctx, d.typeContainer, d.allCandidates, (in CalledDecl c) =>
@@ -438,16 +413,17 @@ void writeCallNoMatch(scope ref Writer writer, in ShowCtx ctx, in Diag.CallNoMat
 void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 	diag.matchIn!void(
 		(in Diag.AssignmentNotAllowed) {
-			writer ~= "can't assign to this kind of expression";
+			writer ~= "Can't assign to this kind of expression.";
 		},
 		(in Diag.BuiltinUnsupported x) {
-			writer ~= "the compiler does not implement a builtin named ";
+			writer ~= "The compiler does not implement a builtin named ";
 			writeName(writer, ctx, x.name);
+			writer ~= '.';
 		},
 		(in Diag.CallMultipleMatches x) {
-			writer ~= "cannot choose an overload of ";
+			writer ~= "Cannot choose an overload of ";
 			writeName(writer, ctx, x.funName);
-			writer ~= ". multiple functions match:";
+			writer ~= ". Multiple functions match:";
 			writeCalledDecls(writer, ctx, x.typeContainer, x.matches);
 		},
 		(in Diag.CallNoMatch x) {
@@ -457,28 +433,28 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 			writer ~= () {
 				final switch (x.kind) {
 					case Diag.CallShouldUseSyntax.Kind.for_break:
-						return "prefer to write a 'for' loop instead of calling 'for-break'";
+						return "Prefer to write a 'for' loop instead of calling 'for-break'.";
 					case Diag.CallShouldUseSyntax.Kind.force:
-						return "prefer to write 'x!' instead of 'x.force'";
+						return "Prefer to write 'x!' instead of 'x.force'.";
 					case Diag.CallShouldUseSyntax.Kind.for_loop:
-						return "prefer to write a 'for' loop instead of calling 'for-loop'";
+						return "Prefer to write a 'for' loop instead of calling 'for-loop'.";
 					case Diag.CallShouldUseSyntax.Kind.new_:
 						switch (x.arity) {
 							case 0:
-								return "prefer to write '()' instead of 'new'";
+								return "Prefer to write '()' instead of 'new'.";
 							case 1:
-								return "prefer to write '(x,)' instead of 'x.new'";
+								return "Prefer to write '(x,)' instead of 'x.new'.";
 							default:
-								return "prefer to write 'x, y' instead of 'x new y'";
+								return "Prefer to write 'x, y' instead of 'x new y'.";
 						}
 					case Diag.CallShouldUseSyntax.Kind.not:
-						return "prefer to write '!x' instead of 'x.not'";
+						return "Prefer to write '!x' instead of 'x.not'";
 					case Diag.CallShouldUseSyntax.Kind.set_subscript:
-						return "prefer to write 'x[i] := y' instead of 'x set-subscript i, y'";
+						return "Prefer to write 'x[i] := y' instead of 'x set-subscript i, y'.";
 					case Diag.CallShouldUseSyntax.Kind.subscript:
-						return "prefer to write 'x[i]' instead of 'x subscript i'";
+						return "Prefer to write 'x[i]' instead of 'x subscript i'.";
 					case Diag.CallShouldUseSyntax.Kind.with_block:
-						return "prefer to write a 'with' block instead of calling 'with-block'";
+						return "Prefer to write a 'with' block instead of calling 'with-block'.";
 				}
 			}();
 		},
@@ -486,80 +462,82 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 			writer ~= () {
 				final switch (x.reason) {
 					case Diag.CantCall.Reason.nonBare:
-						return "a 'bare' function can't call a non-'bare' function";
+						return "A 'bare' function can't call non-'bare' function";
 					case Diag.CantCall.Reason.summon:
-						return "a non-'summon' function can't call a 'summon' function";
+						return "A non-'summon' function can't call 'summon' function";
 					case Diag.CantCall.Reason.unsafe:
-						return "a non-'unsafe' function can't call an 'unsafe' function";
+						return "A non-'unsafe' function can't call 'unsafe' function";
 					case Diag.CantCall.Reason.variadicFromBare:
-						return "a 'bare' function can't call a variadic function";
+						return "A 'bare' function can't call variadic function";
 				}
 			}();
 			writer ~= ' ';
 			writeFunDecl(writer, ctx, x.callee);
+			writer ~= '.';
 			if (x.reason == Diag.CantCall.Reason.unsafe)
-				writer ~= "\n(consider putting the call in a 'trusted' expression)";
+				writer ~= "\n(Consider putting the call in a 'trusted' expression.)";
 		},
 		(in Diag.CharLiteralMustBeOneChar) {
-			writer ~= "value of 'char' type must be a single character";
+			writer ~= "Value of 'char' type must be a single character";
 		},
 		(in Diag.CommonFunDuplicate x) {
-			writer ~= "module contains multiple valid ";
+			writer ~= "Module contains multiple valid ";
 			writeName(writer, ctx, x.name);
-			writer ~= " functions";
+			writer ~= " functions.";
 		},
 		(in Diag.CommonFunMissing x) {
-			writer ~= "module should have a function:\n\t";
-			writeWithSeparator!TypeParamsAndSig(writer, x.sigChoices, "\nor:\n\t", (in TypeParamsAndSig sig) {
+			writer ~= "Module should have a function:\n\t";
+			writeWithSeparator!TypeParamsAndSig(writer, x.sigChoices, "\nOr:\n\t", (in TypeParamsAndSig sig) {
 				writeSigSimple(writer, ctx, TypeContainer(x.dummyForContext), x.dummyForContext.name, sig);
 			});
 		},
 		(in Diag.CommonTypeMissing x) {
-			writer ~= "expected to find a type named ";
+			writer ~= "Expected to find a type named ";
 			writeName(writer, ctx, x.name);
-			writer ~= " in this module";
+			writer ~= " in this module.";
 		},
 		(in Diag.DestructureTypeMismatch x) {
 			x.expected.matchIn!void(
 				(in Diag.DestructureTypeMismatch.Expected.Tuple t) {
-					writer ~= "expected a tuple with ";
+					writer ~= "Expected a tuple with ";
 					writer ~= t.size;
 					writer ~= " elements, but got ";
 				},
 				(in TypeWithContainer t) {
-					writer ~= "expected type ";
+					writer ~= "Expected type ";
 					writeTypeQuoted(writer, ctx, t);
 					writer ~= ", but got ";
 				});
 			writeTypeQuoted(writer, ctx, x.actual);
+			writer ~= '.';
 		},
 		(in Diag.DuplicateDeclaration x) {
 			writer ~= () {
 				final switch (x.kind) {
 					case Diag.DuplicateDeclaration.Kind.enumMember:
-						return "enum member";
+						return "Enum member";
 					case Diag.DuplicateDeclaration.Kind.flagsMember:
-						return "flags member";
+						return "Flags member";
 					case Diag.DuplicateDeclaration.Kind.paramOrLocal:
-						return "local";
+						return "Local";
 					case Diag.DuplicateDeclaration.Kind.recordField:
-						return "record field";
+						return "Record field";
 					case Diag.DuplicateDeclaration.Kind.spec:
-						return "spec";
+						return "Spec";
 					case Diag.DuplicateDeclaration.Kind.structOrAlias:
-						return "type";
+						return "Type";
 					case Diag.DuplicateDeclaration.Kind.typeParam:
-						return "type parameter";
+						return "Type parameter";
 					case Diag.DuplicateDeclaration.Kind.unionMember:
-						return "union member";
+						return "Union member";
 				}
 			}();
 			writer ~= " name ";
 			writeName(writer, ctx, x.name);
-			writer ~= " is already used";
+			writer ~= " is already used.";
 		},
 		(in Diag.DuplicateExports x) {
-			writer ~= "there are multiple exported ";
+			writer ~= "There are multiple exported ";
 			writer ~= () {
 				final switch (x.kind) {
 					case Diag.DuplicateExports.Kind.spec:
@@ -570,38 +548,41 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 			}();
 			writer ~= " named ";
 			writeName(writer, ctx, x.name);
+			writer ~= '.';
 		},
 		(in Diag.DuplicateImports x) {
 			//TODO: use x.kind
-			writer ~= "the symbol ";
+			writer ~= "The symbol ";
 			writeName(writer, ctx, x.name);
-			writer ~= " appears in multiple modules";
+			writer ~= " appears in multiple modules.";
 		},
 		(in Diag.EnumBackingTypeInvalid x) {
-			writer ~= "type ";
+			writer ~= "Type ";
 			writeTypeQuoted(writer, ctx, TypeWithContainer(x.actual, TypeContainer(x.enum_)));
-			writer ~= " cannot be used to back an enum";
+			writer ~= " cannot be used to back an enum.";
 		},
 		(in Diag.EnumDuplicateValue x) {
-			writer ~= "duplicate enum value ";
+			writer ~= "Duplicate enum value ";
 			if (x.signed)
 				writer ~= x.value;
 			else
 				writer ~= cast(ulong) x.value;
+			writer ~= '.';
 		},
 		(in Diag.EnumMemberOverflows x) {
-			writer ~= "enum member is not in the allowed range ";
+			writer ~= "Enum member is not in the allowed range from ";
 			writer ~= minValue(x.backingType);
 			writer ~= " to ";
 			writer ~= maxValue(x.backingType);
+			writer ~= '.';
 		},
 		(in Diag.ExpectedTypeIsNotALambda x) {
 			if (has(x.expectedType)) {
-				writer ~= "the expected type at the lambda is ";
+				writer ~= "The expected type at the lambda is ";
 				writeTypeQuoted(writer, ctx, force(x.expectedType));
-				writer ~= ", which is not a lambda type";
+				writer ~= ", which is not a lambda type.";
 			} else
-				writer ~= "there is no expected type at this location; lambdas need an expected type";
+				writer ~= "There is no expected type at this location; lambdas need an expected type.";
 		},
 		(in Diag.ExternFunForbidden x) {
 			writer ~= "'extern' function ";
@@ -609,42 +590,43 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 			writer ~= () {
 				final switch (x.reason) {
 					case Diag.ExternFunForbidden.Reason.hasSpecs:
-						return " can't have specs";
+						return " can't have specs.";
 					case Diag.ExternFunForbidden.Reason.hasTypeParams:
-						return " can't have type parameters";
+						return " can't have type parameters.";
 					case Diag.ExternFunForbidden.Reason.variadic:
-						return " can't be variadic";
+						return " can't be variadic.";
 				}
 			}();
 		},
 		(in Diag.ExternHasTypeParams) {
-			writer ~= "an 'extern' type should not be a template";
+			writer ~= "An 'extern' type should not be a template.";
 		},
 		(in Diag.ExternMissingLibraryName) {
-			writer ~= "expected 'extern' to be preceded by the library name";
+			writer ~= "Expected 'extern' to be preceded by the library name.";
 		},
 		(in Diag.ExternRecordImplicitlyByVal x) {
 			writer ~= "'extern' record ";
 			writeName(writer, ctx, x.struct_.name);
-			writer ~= " is implicitly 'by-val'";
+			writer ~= " is implicitly 'by-val'.";
 		},
 		(in Diag.ExternUnion) {
-			writer ~= "a union can't be 'extern'";
+			writer ~= "A union can't be 'extern'.";
 		},
 		(in Diag.FunMissingBody) {
-			writer ~= "this function needs a body";
+			writer ~= "This function needs a body.";
 		},
 		(in Diag.FunModifierTrustedOnNonExtern) {
-			writer ~= "only 'extern' functions can be 'trusted'; otherwise 'trusted' should be used as an expression";
+			writer ~= "Only 'extern' functions can be 'trusted'; otherwise 'trusted' should be used as an expression.";
 		},
 		(in Diag.IfNeedsOpt x) {
 			writer ~= "Expected an option type, but got ";
 			writeTypeQuoted(writer, ctx, x.actualType);
+			writer ~= '.';
 		},
 		(in Diag.ImportFileDiag x) {
 			x.matchIn!void(
 				(in Diag.ImportFileDiag.CircularImport y) {
-					writer ~= "this is part of a circular import:";
+					writer ~= "This is part of a circular import:";
 					foreach (Uri uri; y.cycle) {
 						writeNewline(writer, 1);
 						writeUri(writer, ctx, uri);
@@ -659,15 +641,15 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 					writeUri(writer, ctx, y.uri);
 				},
 				(in Diag.ImportFileDiag.RelativeImportReachesPastRoot y) {
-					writer ~= "relative path ";
+					writer ~= "Relative path ";
 					writeRelPath(writer, ctx.allUris, y.imported);
-					writer ~= " reaches above the root directory";
+					writer ~= " reaches above the root directory.";
 				});
 		},
 		(in Diag.ImportRefersToNothing x) {
-			writer ~= "imported name ";
+			writer ~= "Imported name ";
 			writeName(writer, ctx, x.name);
-			writer ~= " does not refer to anything";
+			writer ~= " does not refer to anything.";
 		},
 		(in Diag.LambdaCantInferParamType x) {
 			writer ~= "Can't infer the lambda parameter's type.";
@@ -678,9 +660,10 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 			if (has(x.type)) {
 				writer ~= " of 'mut' type ";
 				writeTypeQuoted(writer, ctx, force(x.type));
+				writer ~= '.';
 			} else
-				writer ~= " which is 'mut'";
-			writer ~= " (should it be an 'act' or 'ref' fun?)";
+				writer ~= " which is 'mut'.";
+			writer ~= " (Should it be an 'act' or 'ref' fun?)";
 		},
 		(in Diag.LambdaMultipleMatch x) {
 			writer ~= "Multiple lambda types are possible.\n";
@@ -690,9 +673,9 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 		},
 		(in Diag.LambdaNotExpected x) {
 			if (x.expected.isA!(ExpectedForDiag.Infer))
-				writer ~= "lambda expression needs an expected type";
+				writer ~= "Lambda expression needs an expected type.";
 			else {
-				writer ~= "the lambda doesn't match the expected type at this location.\n";
+				writer ~= "The lambda doesn't match the expected type at this location.\n";
 				writeExpected(writer, ctx, x.expected, ExpectedKind.lambda);
 			}
 		},
@@ -708,112 +691,116 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 			}
 			writer ~= " can't reference non-extern type ";
 			writeTypeQuoted(writer, ctx, TypeWithContainer(x.referencedType, TypeContainer(x.containingFun)));
+			writer ~= '.';
 		},
 		(in Diag.LinkageWorseThanContainingType x) {
-			writer ~= "extern type ";
+			writer ~= "Extern type ";
 			writeName(writer, ctx, x.containingType.name);
 			writer ~= " can't reference non-extern type ";
 			writeTypeQuoted(writer, ctx, TypeWithContainer(x.referencedType, TypeContainer(x.containingType)));
+			writer ~= '.';
 		},
 		(in Diag.LiteralAmbiguous x) {
-			writer ~= "multiple possible types for literal expression: ";
+			writer ~= "Multiple possible types for literal expression: ";
 			writeWithCommas!(StructInst*)(writer, x.types, (in StructInst* type) {
 				writeStructInst(writer, ctx, x.typeContainer, *type);
 			});
 		},
 		(in Diag.LiteralOverflow x) {
-			writer ~= "literal exceeds the range of a ";
+			writer ~= "Literal exceeds the range of a ";
 			writeTypeQuoted(writer, ctx, x.type);
+			writer ~= '.';
 		},
 		(in Diag.LocalIgnoredButMutable) {
-			writer ~= "unnecessary 'mut' on ignored local variable";
+			writer ~= "Unnecessary 'mut' on ignored local variable.";
 		},
 		(in Diag.LocalNotMutable x) {
-			writer ~= "local variable ";
+			writer ~= "Local variable ";
 			writeName(writer, ctx, x.local.name);
-			writer ~= " was not marked 'mut'";
+			writer ~= " was not marked 'mut'.";
 		},
 		(in Diag.LoopWithoutBreak) {
-			writer ~= "'loop' has no 'break'";
+			writer ~= "'loop' has no 'break'.";
 		},
 		(in Diag.MatchCaseNamesDoNotMatch x) {
-			writer ~= "expected the case names to be: ";
+			writer ~= "Expected the case names to be: ";
 			writeWithCommas!Sym(writer, x.expectedNames, (in Sym name) {
 				writeName(writer, ctx, name);
 			});
 		},
 		(in Diag.MatchOnNonUnion x) {
-			writer ~= "can't match on non-union type ";
+			writer ~= "Can't match on non-'enum', non-'union' type ";
 			writeTypeQuoted(writer, ctx, x.type);
+			writer ~= '.';
 		},
 		(in Diag.ModifierConflict x) {
 			writeName(writer, ctx, x.curModifier);
 			writer ~= " conflicts with ";
 			writeName(writer, ctx, x.prevModifier);
+			writer ~= '.';
 		},
 		(in Diag.ModifierDuplicate x) {
-			writer ~= "redundant ";
+			writer ~= "Redundant ";
 			writeName(writer, ctx, x.modifier);
+			writer ~= '.';
 		},
 		(in Diag.ModifierInvalid x) {
 			writeName(writer, ctx, x.modifier);
 			writer ~= " is not supported for ";
 			writer ~= aOrAnTypeKind(x.typeKind);
+			writer ~= '.';
 		},
 		(in Diag.ModifierRedundantDueToModifier x) {
 			writeName(writer, ctx, x.redundantModifier);
 			writer ~= " is redundant given ";
 			writeName(writer, ctx, x.modifier);
+			writer ~= '.';
 		},
 		(in Diag.ModifierRedundantDueToTypeKind x) {
 			writeName(writer, ctx, x.modifier);
 			writer ~= " is already the default for ";
 			writer ~= aOrAnTypeKind(x.typeKind);
-			writer ~= " type";
+			writer ~= " type.";
 		},
 		(in Diag.MutFieldNotAllowed) {
-			writer ~= "field is mut, but containing record was not marked mut";
+			writer ~= "This field is 'mut', so the record must be 'mut'.";
 		},
 		(in Diag.NameNotFound x) {
+			writer ~= "There is no ";
 			writer ~= stringOfEnum(x.kind);
-			writer ~= " name not found: ";
+			writer ~= " in scope named ";
 			writeName(writer, ctx, x.name);
+			writer ~= '.';
 		},
 		(in Diag.NeedsExpectedType x) {
 			writer ~= '\'';
 			writer ~= stringOfEnum(x.kind);
-			writer ~= "' expression needs an expected type";
-		},
-		(in Diag.ParamCantBeMutable) {
-			writer ~= "mutable parameters are not supported";
+			writer ~= "' expression needs an expected type.";
 		},
 		(in Diag.ParamMissingType) {
-			writer ~= "parameter needs a type";
-		},
-		(in Diag.ParamNotMutable) {
-			writer ~= "can't change the value of a parameter; consider introducing a mutable local instead";
+			writer ~= "This parameter needs a type.";
 		},
 		(in ParseDiag x) {
 			writeParseDiag(writer, ctx.allSymbols, ctx.allUris, x);
 		},
-		(in Diag.PtrIsUnsafe) {
-			writer ~= "getting a pointer is unsafe";
+		(in Diag.PointerIsUnsafe) {
+			writer ~= "Getting a pointer can only be done in an 'unsafe' function or 'trusted' expression.";
 		},
-		(in Diag.PtrMutToConst x) {
+		(in Diag.PointerMutToConst x) {
 			writer ~= () {
 				final switch (x.kind) {
-					case Diag.PtrMutToConst.Kind.field:
-						return "can't get a mutable pointer to a non-'mut' field";
-					case Diag.PtrMutToConst.Kind.local:
-						return "can't get a mutable pointer to a non-'mut' local";
+					case Diag.PointerMutToConst.Kind.field:
+						return "Can't get a mutable pointer to a non-'mut' field.";
+					case Diag.PointerMutToConst.Kind.local:
+						return "Can't get a mutable pointer to a non-'mut' local.";
 				}
 			}();
 		},
-		(in Diag.PtrUnsupported) {
-			writer ~= "can't get a pointer to this kind of expression";
+		(in Diag.PointerUnsupported) {
+			writer ~= "Can't get a pointer to this kind of expression.";
 		},
 		(in Diag.PurityWorseThanParent x) {
-			writer ~= "struct ";
+			writer ~= "Type ";
 			writeName(writer, ctx, x.parent.name);
 			writer ~= " has purity ";
 			writePurity(writer, ctx, x.parent.purity);
@@ -821,11 +808,12 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 			writeTypeQuoted(writer, ctx, TypeWithContainer(x.child, TypeContainer(x.parent)));
 			writer ~= " has purity ";
 			writePurity(writer, ctx, bestCasePurity(x.child));
+			writer ~= '.';
 		},
 		(in Diag.RecordNewVisibilityIsRedundant x) {
-			writer ~= "the 'new' function for this record is already '";
+			writer ~= "The 'new' function for this record is already '";
 			writer ~= stringOfVisibility(x.visibility);
-			writer ~= "' by default";
+			writer ~= "' by default.";
 		},
 		(in Diag.SpecMatchError x) {
 			x.reason.matchIn!void(
@@ -835,111 +823,102 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 					writer ~= ':';
 					writeCalleds(writer, ctx, x.outermostTypeContainer, y.matches);
 				});
-			writer ~= "\n\tcalling:";
+			writeNewline(writer, 1);
+			writer ~= "Calling:";
 			writeSpecTrace(writer, ctx, x.outermostTypeContainer, x.trace);
 		},
 		(in Diag.SpecNoMatch x) {
-			writer ~= "a spec was not satisfied.\n\t";
+			writer ~= "A spec was not satisfied.\n\t";
 			x.reason.matchIn!void(
 				(in Diag.SpecNoMatch.Reason.BuiltinNotSatisfied y) {
 					writeTypeQuoted(writer, ctx, TypeWithContainer(y.type, x.outermostTypeContainer));
 					writer ~= " is not '";
 					writer ~= stringOfSpecBodyBuiltinKind(y.kind);
-					writer ~= "'";
+					writer ~= "'.";
 				},
 				(in Diag.SpecNoMatch.Reason.CantInferTypeArguments _) {
-					writer ~= "Can't infer type arguments";
+					writer ~= "Can't infer type arguments.";
 				},
 				(in Diag.SpecNoMatch.Reason.SpecImplNotFound y) {
-					writer ~= "no implementation was found for spec signature ";
+					writer ~= "No implementation was found for spec signature ";
 					SpecDeclSig* sig = y.sigDecl;
 					writeSig(
 						writer, ctx, x.outermostTypeContainer, sig.name, sig.returnType,
 						Params(sig.params), some(y.sigType));
+					writer ~= '.';
 				},
 				(in Diag.SpecNoMatch.Reason.TooDeep _) {
-					writer ~= "spec instantiation is too deep";
+					writer ~= "Spec instantiation is too deep.";
 				});
-			writer ~= " calling:";
+			writeNewline(writer, 1);
+			writer ~= "Calling:";
 			writeSpecTrace(writer, ctx, x.outermostTypeContainer, x.trace);
 		},
 		(in Diag.SpecNameMissing) {
-			writer ~= "spec name is missing";
+			writer ~= "Spec name is missing.";
 		},
 		(in Diag.SpecRecursion x) {
-			writer ~= "spec's parents tree is too deep. trace: ";
+			writer ~= "Spec's parents tree is too deep.";
+			writeNewline(writer, 1);
+			writer ~= "Trace: ";
 			writeWithCommas!(immutable SpecDecl*)(writer, x.trace, (in SpecDecl* spec) {
 				writeName(writer, ctx, spec.name);
 			});
-		},
-		(in Diag.ThreadLocalError x) {
-			writer ~= "thread-local ";
-			writeName(writer, ctx, x.fun.name);
-			writer ~= () {
-				final switch (x.kind) {
-					case Diag.ThreadLocalError.Kind.hasParams:
-						return " can't have parameters";
-					case Diag.ThreadLocalError.Kind.hasSpecs:
-						return "can't have specs";
-					case Diag.ThreadLocalError.Kind.hasTypeParams:
-						return " can't have type parameters";
-					case Diag.ThreadLocalError.Kind.mustReturnPtrMut:
-						return " return type must be a 'mut*'";
-				}
-			}();
 		},
 		(in Diag.TrustedUnnecessary x) {
 			writer ~= () {
 				final switch (x.reason) {
 					case Diag.TrustedUnnecessary.Reason.inTrusted:
-						return "'trusted' is redundant inside another 'trusted'";
+						return "'trusted' expression is redundant inside another 'trusted' expression.";
 					case Diag.TrustedUnnecessary.Reason.inUnsafeFunction:
-						return "'trusted' has no effect inside an 'unsafe' function";
+						return "'trusted' expression is redundant inside an 'unsafe' function.";
 					case Diag.TrustedUnnecessary.Reason.unused:
-						return "there is no unsafe code inside this 'trusted'";
+						return "There is no unsafe code in this expression; you could remove 'trusted'.";
 				}
 			}();
 		},
 		(in Diag.TypeAnnotationUnnecessary x) {
-			writer ~= "type ";
+			writer ~= "Type annotation is unnecessary; type ";
 			writeTypeQuoted(writer, ctx, x.type);
-			writer ~= " was already inferred";
+			writer ~= " was already inferred.";
 		},
 		(in Diag.TypeConflict x) {
 			writeExpected(writer, ctx, x.expected, ExpectedKind.generic);
-			writer ~= "\nactual:\n\t";
+			writeNewline(writer, 0);
+			writer ~= "Actual:";
+			writeNewline(writer, 1);
 			writeTypeQuoted(writer, ctx, x.actual);
 		},
 		(in Diag.TypeParamCantHaveTypeArgs) {
-			writer ~= "a type parameter can't take type arguments";
+			writer ~= "Can't provide type arguments to a type parameter.";
 		},
 		(in Diag.TypeShouldUseSyntax x) {
 			writer ~= () {
 				final switch (x.kind) {
 					case Diag.TypeShouldUseSyntax.Kind.funAct:
-						return "prefer to write 'act r(p)' instead of '(r, p) fun-act'";
+						return "Prefer to write 'act r(p)' instead of '(r, p) fun-act'.";
 					case Diag.TypeShouldUseSyntax.Kind.funFar:
-						return "prefer to write 'far r(p)' instead of '(r, p) fun-far'";
+						return "Prefer to write 'far r(p)' instead of '(r, p) fun-far'.";
 					case Diag.TypeShouldUseSyntax.Kind.funFun:
-						return "prefer to write 'fun r(p)' instead of '(r, p) fun-fun'";
+						return "Prefer to write 'fun r(p)' instead of '(r, p) fun-fun'.";
 					case Diag.TypeShouldUseSyntax.Kind.future:
-						return "prefer to write 'a$' instead of 'a future";
+						return "Prefer to write 'a$' instead of 'a future'.";
 					case Diag.TypeShouldUseSyntax.Kind.list:
-						return "prefer to write 'a[]' instead of 'a list'";
+						return "Prefer to write 'a[]' instead of 'a list'.";
 					case Diag.TypeShouldUseSyntax.Kind.map:
-						return "prefer to write 'v[k]' instead of '(k, v) map'";
+						return "Prefer to write 'v[k]' instead of '(k, v) map'.";
 					case Diag.TypeShouldUseSyntax.Kind.mutMap:
-						return "prefer to write 'v mut[k]' instead of '(k, v) mut-map'";
+						return "Prefer to write 'v mut[k]' instead of '(k, v) mut-map'.";
 					case Diag.TypeShouldUseSyntax.Kind.mutList:
-						return "prefer to write 'a mut[]' instead of 'a mut-list'";
+						return "Prefer to write 'a mut[]' instead of 'a mut-list'.";
 					case Diag.TypeShouldUseSyntax.Kind.mutPointer:
-						return "prefer to write 'a mut*' instead of 'a mut-pointer'";
+						return "Prefer to write 'a mut*' instead of 'a mut-pointer'.";
 					case Diag.TypeShouldUseSyntax.Kind.opt:
-						return "prefer to write 'a?' instead of 'a option'";
+						return "Prefer to write 'a?' instead of 'a option'.";
 					case Diag.TypeShouldUseSyntax.Kind.pointer:
-						return "prefer to write 'a*' instead of 'a const-pointer'";
+						return "Prefer to write 'a*' instead of 'a const-pointer'.";
 					case Diag.TypeShouldUseSyntax.Kind.tuple:
-						return "prefer to write '(a, b)' instead of '(a, b) tuple2'";
+						return "Prefer to write '(a, b)' instead of '(a, b) tuple2'.";
 				}
 			}();
 		},
@@ -947,14 +926,15 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 			writeUnusedDiag(writer, ctx, x);
 		},
 		(in Diag.VarargsParamMustBeArray _) {
-			writer ~= "variadic parameter must be an 'array'";
+			writer ~= "Variadic parameter must be an 'array'.";
 		},
 		(in Diag.WrongNumberTypeArgs x) {
 			writeName(writer, ctx, x.name);
 			writer ~= " expected to get ";
 			writer ~= x.nExpectedTypeArgs;
-			writer ~= " type args, but got ";
+			writer ~= " type arguments, but got ";
 			writer ~= x.nActualTypeArgs;
+			writer ~= '.';
 		});
 }
 
@@ -1060,154 +1040,154 @@ ulong maxValue(EnumBackingType type) {
 string describeTokenForUnexpected(Token token) {
 	final switch (token) {
 		case Token.act:
-			return "unexpected keyword 'act'";
+			return "Unexpected keyword 'act'.";
 		case Token.alias_:
-			return "unexpected keyword 'alias'";
+			return "Unexpected keyword 'alias'.";
 		case Token.arrowAccess:
-			return "unexpected '->'";
+			return "Unexpected '->'.";
 		case Token.arrowLambda:
-			return "unexpected '=>'";
+			return "Unexpected '=>'.";
 		case Token.arrowThen:
-			return "unexpected '<-'";
+			return "Unexpected '<-'.";
 		case Token.as:
-			return "unexpected keyword 'as'";
+			return "Unexpected keyword 'as'.";
 		case Token.assert_:
-			return "unexpected keyword 'assert'";
+			return "Unexpected keyword 'assert'.";
 		case Token.at:
-			return "unexpected '@'";
+			return "Unexpected '@'.";
 		case Token.bang:
-			return "unexpected '!'";
+			return "Unexpected '!'.";
 		case Token.bare:
-			return "unexpected keyword 'bare'";
+			return "Unexpected keyword 'bare'.";
 		case Token.break_:
-			return "unexpected keyword 'break'";
+			return "Unexpected keyword 'break'.";
 		case Token.builtin:
-			return "unexpected keyword 'builtin'";
+			return "Unexpected keyword 'builtin'.";
 		case Token.builtinSpec:
-			return "unexpected keyword 'builtin-spec'";
+			return "Unexpected keyword 'builtin-spec'.";
 		case Token.braceLeft:
-			return "unexpected '{'";
+			return "Unexpected '{'.";
 		case Token.braceRight:
-			return "unexpected '}'";
+			return "Unexpected '}'.";
 		case Token.bracketLeft:
-			return "unexpected '['";
+			return "Unexpected '['.";
 		case Token.bracketRight:
-			return "unexpected ']'";
+			return "Unexpected ']'.";
 		case Token.colon:
-			return "unexpected ':'";
+			return "Unexpected ':'.";
 		case Token.colon2:
-			return "unexpected '::'";
+			return "Unexpected '::'.";
 		case Token.colonEqual:
-			return "unexpected ':='";
+			return "Unexpected ':='.";
 		case Token.comma:
-			return "unexpected ','";
+			return "Unexpected ','.";
 		case Token.continue_:
-			return "unexpected keyword 'continue'";
+			return "Unexpected keyword 'continue'.";
 		case Token.dot:
-			return "unexpected '.'";
+			return "Unexpected '.'.";
 		case Token.dot3:
-			return "unexpected '...'";
+			return "Unexpected '...'.";
 		case Token.elif:
-			return "unexpected keyword 'elif'";
+			return "Unexpected keyword 'elif'.";
 		case Token.else_:
-			return "unexpected keyword 'else'";
+			return "Unexpected keyword 'else'.";
 		case Token.enum_:
-			return "unexpected keyword 'enum'";
+			return "Unexpected keyword 'enum'.";
 		case Token.export_:
-			return "unexpected keyword 'export'";
+			return "Unexpected keyword 'export'.";
 		case Token.equal:
-			return "unexpected '='";
+			return "Unexpected '='.";
 		case Token.extern_:
-			return "unexpected keyword 'extern'";
+			return "Unexpected keyword 'extern'.";
 		case Token.EOF:
-			return "unexpected end of file";
+			return "Unexpected end of file.";
 		case Token.far:
-			return "unexpected keyword 'far'";
+			return "Unexpected keyword 'far'.";
 		case Token.flags:
-			return "unexpected keyword 'flags'";
+			return "Unexpected keyword 'flags'.";
 		case Token.for_:
-			return "unexpected keyword 'for'";
+			return "Unexpected keyword 'for'.";
 		case Token.forbid:
-			return "unexpected keyword 'forbid'";
+			return "Unexpected keyword 'forbid'.";
 		case Token.forceCtx:
-			return "unexpected keyword 'force-ctx'";
+			return "Unexpected keyword 'force-ctx'.";
 		case Token.fun:
-			return "unexpected keyword 'fun'";
+			return "Unexpected keyword 'fun'.";
 		case Token.global:
-			return "unexpected keyword 'global'";
+			return "Unexpected keyword 'global'.";
 		case Token.if_:
-			return "unexpected keyword 'if'";
+			return "Unexpected keyword 'if'.";
 		case Token.import_:
-			return "unexpected keyword 'import'";
+			return "Unexpected keyword 'import'.";
 		case Token.invalid:
 			// This is UnexpectedCharacter instead
 			return unreachable!string;
 		case Token.literalFloat:
 		case Token.literalInt:
 		case Token.literalNat:
-			return "unexpected number literal expression";
+			return "Unexpected number literal expression.";
 		case Token.loop:
-			return "unexpected keyword 'loop'";
+			return "Unexpected keyword 'loop'.";
 		case Token.match:
-			return "unexpected keyword 'match'";
+			return "Unexpected keyword 'match'.";
 		case Token.mut:
-			return "unexpected keyword 'mut'";
+			return "Unexpected keyword 'mut'.";
 		case Token.name:
 		case Token.nameOrOperatorColonEquals:
 		case Token.nameOrOperatorEquals:
-			return "did not expect a name here";
+			return "Did not expect a name here.";
 		case Token.newlineDedent:
 		case Token.newlineIndent:
 		case Token.newlineSameIndent:
-			return "unexpected newline";
+			return "Unexpected newline.";
 		case Token.noStd:
-			return "unexpected keyword 'no-std'";
+			return "Unexpected keyword 'no-std'.";
 		case Token.operator:
 			// This is UnexpectedOperator instead
 			return unreachable!string;
 		case Token.parenLeft:
-			return "unexpected '('";
+			return "Unexpected '('.";
 		case Token.parenRight:
-			return "unexpected ')'";
+			return "Unexpected ')'.";
 		case Token.question:
-			return "unexpected '?'";
+			return "Unexpected '?'.";
 		case Token.questionEqual:
-			return "unexpected '?='";
+			return "Unexpected '?='.";
 		case Token.quoteDouble:
-			return "unexpected '\"'";
+			return "Unexpected '\"'.";
 		case Token.quoteDouble3:
-			return "unexpected '\"\"\"'";
+			return "Unexpected '\"\"\"'.";
 		case Token.quotedText:
 			return unreachable!string;
 		case Token.record:
-			return "unexpected keyword 'record'";
+			return "Unexpected keyword 'record'.";
 		case Token.semicolon:
-			return "unexpected ';'";
+			return "Unexpected ';'.";
 		case Token.spec:
-			return "unexpected keyword 'spec'";
+			return "Unexpected keyword 'spec'.";
 		case Token.summon:
-			return "unexpected keyword 'summon'";
+			return "Unexpected keyword 'summon'.";
 		case Token.test:
-			return "unexpected keyword 'test'";
+			return "Unexpected keyword 'test'.";
 		case Token.thread_local:
-			return "unexpected keyword 'thread-local'";
+			return "Unexpected keyword 'thread-local'.";
 		case Token.throw_:
-			return "unexpected keyword 'throw'";
+			return "Unexpected keyword 'throw'.";
 		case Token.trusted:
-			return "unexpected keyword 'trusted'";
+			return "Unexpected keyword 'trusted'.";
 		case Token.underscore:
-			return "unexpected '_'";
+			return "Unexpected '_'.";
 		case Token.union_:
-			return "unexpected keyword 'union'";
+			return "Unexpected keyword 'union'.";
 		case Token.unless:
-			return "unexpected keyword 'unless'";
+			return "Unexpected keyword 'unless'.";
 		case Token.unsafe:
-			return "unexpected keyword 'unsafe'";
+			return "Unexpected keyword 'unsafe'.";
 		case Token.until:
-			return "unexpected keyword 'until'";
+			return "Unexpected keyword 'until'.";
 		case Token.while_:
-			return "unexpected keyword 'while'";
+			return "Unexpected keyword 'while'.";
 		case Token.with_:
-			return "unexpected keyword 'with'";
+			return "Unexpected keyword 'with'.";
 	}
 }

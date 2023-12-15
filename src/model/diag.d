@@ -326,15 +326,13 @@ immutable struct Diag {
 		}
 		Kind kind;
 	}
-	immutable struct ParamCantBeMutable {}
 	immutable struct ParamMissingType {}
-	immutable struct ParamNotMutable {}
-	immutable struct PtrIsUnsafe {}
-	immutable struct PtrMutToConst {
+	immutable struct PointerIsUnsafe {}
+	immutable struct PointerMutToConst {
 		enum Kind { field, local }
 		Kind kind;
 	}
-	immutable struct PtrUnsupported {}
+	immutable struct PointerUnsupported {}
 	immutable struct PurityWorseThanParent {
 		StructDecl* parent;
 		Type child;
@@ -490,20 +488,17 @@ immutable struct Diag {
 		MutFieldNotAllowed,
 		NameNotFound,
 		NeedsExpectedType,
-		ParamCantBeMutable,
 		ParamMissingType,
-		ParamNotMutable,
 		ParseDiag,
-		PtrIsUnsafe,
-		PtrMutToConst,
-		PtrUnsupported,
+		PointerIsUnsafe,
+		PointerMutToConst,
+		PointerUnsupported,
 		PurityWorseThanParent,
 		RecordNewVisibilityIsRedundant,
 		SpecMatchError,
 		SpecNoMatch,
 		SpecNameMissing,
 		SpecRecursion,
-		ThreadLocalError,
 		TrustedUnnecessary,
 		TypeAnnotationUnnecessary,
 		TypeConflict,

@@ -90,7 +90,6 @@ immutable struct ParseDiag {
 	immutable struct UnexpectedToken {
 		Token token;
 	}
-	immutable struct WhenMustHaveElse {}
 
 	mixin Union!(
 		Expected,
@@ -106,7 +105,6 @@ immutable struct ParseDiag {
 		TrailingComma,
 		UnexpectedCharacter,
 		UnexpectedOperator,
-		UnexpectedToken,
-		WhenMustHaveElse);
+		UnexpectedToken);
 }
 static assert(ParseDiag.sizeof <= 32);

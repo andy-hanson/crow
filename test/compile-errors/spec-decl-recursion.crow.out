@@ -1,3 +1,4 @@
 exit code: 0
 stderr:
-test/compile-errors/spec-decl-recursion.crow 4:1-4:9 spec's parents tree is too deep. trace: 'b', 'a', 'b', 'a', 'b', 'a', 'b', 'a'
+test/compile-errors/spec-decl-recursion.crow 4:1-4:9 Spec's parents tree is too deep.
+	Trace: 'b', 'a', 'b', 'a', 'b', 'a', 'b', 'a'

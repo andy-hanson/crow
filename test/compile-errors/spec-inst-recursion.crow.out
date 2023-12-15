@@ -1,7 +1,8 @@
 exit code: 1
 stderr:
-test/compile-errors/spec-inst-recursion.crow 2:5-2:11 a spec was not satisfied.
-	spec instantiation is too deep calling:
+test/compile-errors/spec-inst-recursion.crow 2:5-2:11 A spec was not satisfied.
+	Spec instantiation is too deep.
+	Calling:
 	foo@string (from test/compile-errors/spec-inst-recursion.crow line 10)
 	bar@string (from test/compile-errors/spec-inst-recursion.crow line 13)
 	foo@string (from test/compile-errors/spec-inst-recursion.crow line 10)

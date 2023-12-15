@@ -1,3 +1,3 @@
 exit code: 0
 stderr:
-test/compile-errors/record-privacy-a.crow 7:1-8:11 the 'new' function for this record is already 'private' by default
+test/compile-errors/record-privacy-a.crow 7:1-8:11 The 'new' function for this record is already 'private' by default.

@@ -105,19 +105,15 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.nameNotFound,
 		(in Diag.NeedsExpectedType) =>
 			DiagnosticSeverity.checkError,
-		(in Diag.ParamCantBeMutable) =>
-			DiagnosticSeverity.checkError,
 		(in Diag.ParamMissingType) =>
-			DiagnosticSeverity.checkError,
-		(in Diag.ParamNotMutable) =>
 			DiagnosticSeverity.checkError,
 		(in ParseDiag _) =>
 			DiagnosticSeverity.parseError,
-		(in Diag.PtrIsUnsafe) =>
+		(in Diag.PointerIsUnsafe) =>
 			DiagnosticSeverity.checkError,
-		(in Diag.PtrMutToConst) =>
+		(in Diag.PointerMutToConst) =>
 			DiagnosticSeverity.checkError,
-		(in Diag.PtrUnsupported) =>
+		(in Diag.PointerUnsupported) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.PurityWorseThanParent) =>
 			DiagnosticSeverity.checkError,
@@ -130,8 +126,6 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 		(in Diag.SpecNameMissing) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.SpecRecursion) =>
-			DiagnosticSeverity.checkError,
-		(in Diag.ThreadLocalError) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.TrustedUnnecessary) =>
 			DiagnosticSeverity.checkWarning,

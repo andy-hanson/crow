@@ -1,9 +1,9 @@
 exit code: 0
 stderr:
-test/compile-errors/record-privacy-b.crow 8:22-8:24 there are functions named 'new', but they do not match the expected return type and actual argument types.
+test/compile-errors/record-privacy-b.crow 8:22-8:24 There are functions named 'new', but they do not match the expected return type and actual argument types.
 expected return type: 'private-ctor'
-actual argument types:  (other arguments not checked, gave up early)
-candidates (with 1 arguments):
+Actual argument types:  (Other arguments not checked; gave up early.)
+Candidates (with 1 arguments):
 	new t array(...t array) (from include/crow/col/array.crow line 18)
 	new build-options(size-hint nat64) (from include/crow/col/private/build.crow line 9)
 	new index-relative-to-end(subtract nat64) (from include/crow/col/collection.crow line 58)
@@ -20,7 +20,7 @@ candidates (with 1 arguments):
 	new t mut-array(inner t array) (from include/crow/private/bootstrap.crow line 117)
 	new symbol(symbol-to-c-string char8*) (from include/crow/private/bootstrap.crow line 165)
 	new backtrace(entries backtrace-entry array) (from include/crow/private/bootstrap.crow line 373)
-test/compile-errors/record-privacy-b.crow 12:11-12:12 there is no function named 'j'
-test/compile-errors/record-privacy-b.crow 13:5-13:13 there is no function named 'set-k'
-test/compile-errors/record-privacy-b.crow 15:5-15:13 there is no function named 'set-l'
-test/compile-errors/record-privacy-b.crow 16:11-16:12 there is no function named 'l'
+test/compile-errors/record-privacy-b.crow 12:11-12:12 There is no function named 'j'.
+test/compile-errors/record-privacy-b.crow 13:5-13:13 There is no function named 'set-k'.
+test/compile-errors/record-privacy-b.crow 15:5-15:13 There is no function named 'set-l'.
+test/compile-errors/record-privacy-b.crow 16:11-16:12 There is no function named 'l'.

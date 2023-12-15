@@ -3,7 +3,44 @@ module frontend.ide.ideUtil;
 @safe @nogc pure nothrow:
 
 import model.ast : FunModifierAst, NameAndRange, TypeAst;
-import model.model;
+import model.model :
+	AssertOrForbidExpr,
+	BogusExpr,
+	CallExpr,
+	ClosureGetExpr,
+	ClosureSetExpr,
+	Destructure,
+	Expr,
+	ExprKind,
+	FunDecl,
+	FunDeclSource,
+	FunPtrExpr,
+	IfExpr,
+	IfOptionExpr,
+	LambdaExpr,
+	LetExpr,
+	LiteralCStringExpr,
+	LiteralExpr,
+	LiteralSymbolExpr,
+	Local,
+	LocalGetExpr,
+	LocalSetExpr,
+	LoopBreakExpr,
+	LoopContinueExpr,
+	LoopExpr,
+	LoopUntilExpr,
+	LoopWhileExpr,
+	MatchEnumExpr,
+	MatchUnionExpr,
+	PtrToFieldExpr,
+	PtrToLocalExpr,
+	SeqExpr,
+	SpecInst,
+	SpecDecl,
+	StructInst,
+	ThrowExpr,
+	Type,
+	TypeParamIndex;
 import util.col.arr : arrayOfSingle, empty, only;
 import util.col.arrBuilder : ArrBuilderCb;
 import util.col.arrUtil : count, first, firstZip;

@@ -216,7 +216,7 @@ void writeSig(
 				has(instantiated) ? only(force(instantiated).paramTypes) : varargs.param.type,
 				typeContainer));
 		});
-	writer ~= ')';
+	writer ~= ")";
 }
 
 void writeSigSimple(

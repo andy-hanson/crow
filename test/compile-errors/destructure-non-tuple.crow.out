@@ -1,10 +1,10 @@
 exit code: 1
 stderr:
-test/compile-errors/destructure-non-tuple.crow 2:6-2:10 expected a tuple with 2 elements, but got 'nat64'
-test/compile-errors/destructure-non-tuple.crow 3:5-3:7 there are functions named 'new', but they do not match the expected return type and actual argument types.
+test/compile-errors/destructure-non-tuple.crow 2:6-2:10 Expected a tuple with 2 elements, but got 'nat64'.
+test/compile-errors/destructure-non-tuple.crow 3:5-3:7 There are functions named 'new', but they do not match the expected return type and actual argument types.
 expected return type: 'void'
-actual argument types:  (other arguments not checked, gave up early)
-candidates (with 1 arguments):
+Actual argument types:  (Other arguments not checked; gave up early.)
+Candidates (with 1 arguments):
 	new t array(...t array) (from include/crow/col/array.crow line 18)
 	new build-options(size-hint nat64) (from include/crow/col/private/build.crow line 9)
 	new index-relative-to-end(subtract nat64) (from include/crow/col/collection.crow line 58)

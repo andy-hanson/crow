@@ -3,7 +3,7 @@ stderr:
 test/compile-errors/spec-multiple-impls.crow 9:30-9:45 Multiple implementations found for spec signature 'to':
 	to json(a string) (from include/crow/json.crow line 61)
 	to json(a string) (from test/compile-errors/spec-multiple-impls.crow line 2)
-	calling:
+	Calling:
 	to-json-string@(json, string[]) (from test/compile-errors/spec-multiple-impls.crow line 5)
 	to@(json, string) (from include/crow/json.crow line 67)
 Uncaught exception: Reached compile error

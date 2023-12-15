@@ -989,19 +989,19 @@ Expr checkPointerInner(
 	ref Expected expected,
 ) {
 	if (!checkCanDoUnsafe(ctx))
-		addDiag2(ctx, source, Diag(Diag.PtrIsUnsafe()));
+		addDiag2(ctx, source, Diag(Diag.PointerIsUnsafe()));
 	Expr inner = checkAndExpect(ctx, locals, &ast.inner, pointeeType);
 	if (inner.kind.isA!LocalGetExpr) {
 		Local* local = inner.kind.as!LocalGetExpr.local;
 		if (local.mutability < expectedMutability)
-			addDiag2(ctx, source, Diag(Diag.PtrMutToConst(Diag.PtrMutToConst.Kind.local)));
+			addDiag2(ctx, source, Diag(Diag.PointerMutToConst(Diag.PointerMutToConst.Kind.local)));
 		if (expectedMutability == PointerMutability.mutable)
 			markIsUsedSetOnStack(locals, local);
 		return check(ctx, source, expected, pointerType, Expr(source, ExprKind(PtrToLocalExpr(local))));
 	} else if (inner.kind.isA!CallExpr)
 		return checkPointerOfCall(ctx, source, inner.kind.as!CallExpr, pointerType, expectedMutability, expected);
 	else {
-		addDiag2(ctx, source, Diag(Diag.PtrUnsupported()));
+		addDiag2(ctx, source, Diag(Diag.PointerUnsupported()));
 		return bogus(expected, source);
 	}
 }
@@ -1015,7 +1015,7 @@ Expr checkPointerOfCall(
 	ref Expected expected,
 ) {
 	Expr fail() {
-		addDiag2(ctx, source, Diag(Diag.PtrUnsupported()));
+		addDiag2(ctx, source, Diag(Diag.PointerUnsupported()));
 		return bogus(expected, source);
 	}
 
@@ -1029,7 +1029,7 @@ Expr checkPointerOfCall(
 				recordType.decl.body_.as!(StructBody.Record).fields[rfg.fieldIndex].mutability);
 			if (isDefinitelyByRef(*recordType)) {
 				if (fieldMutability < expectedMutability)
-					addDiag2(ctx, source, Diag(Diag.PtrMutToConst(Diag.PtrMutToConst.Kind.field)));
+					addDiag2(ctx, source, Diag(Diag.PointerMutToConst(Diag.PointerMutToConst.Kind.field)));
 				return check(ctx, source, expected, pointerType, Expr(source, ExprKind(allocate(ctx.alloc,
 					PtrToFieldExpr(ExprAndType(target, Type(recordType)), rfg.fieldIndex)))));
 			} else if (target.kind.isA!CallExpr) {
