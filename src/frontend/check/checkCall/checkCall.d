@@ -40,9 +40,8 @@ import frontend.check.instantiate : InstantiateCtx;
 import frontend.check.typeFromAst : getNTypeArgsForDiagnostic, unpackTupleIfNeeded;
 import frontend.lang : maxTypeParams;
 import model.ast : CallAst, ExprAst, LambdaAst, nameRange, rangeOfNameAndRange;
-import model.diag : Diag;
+import model.diag : Diag, TypeContainer;
 import model.model :
-	arity,
 	Called,
 	CalledDecl,
 	CalledSpecSig,
@@ -216,15 +215,15 @@ Expr checkCallInner(
 }
 
 void checkCallShouldUseSyntax(ref ExprCtx ctx, in Range range, Sym funName, size_t arity) {
-	Opt!(Diag.CallShouldUseSyntax.Kind) kind = shouldUseSyntaxKind(funName, ctx.outermostFunName);
+	Opt!(Diag.CallShouldUseSyntax.Kind) kind = shouldUseSyntaxKind(funName, ctx.typeContainer);
 	if (has(kind))
 		addDiag2(ctx, range, Diag(Diag.CallShouldUseSyntax(arity, force(kind))));
 }
 
-Opt!(Diag.CallShouldUseSyntax.Kind) shouldUseSyntaxKind(Sym calledFunName, Sym outermostFunName) {
+Opt!(Diag.CallShouldUseSyntax.Kind) shouldUseSyntaxKind(Sym calledFunName, in TypeContainer container) {
 	switch (calledFunName.value) {
 		case sym!"for-break".value:
-			return outermostFunName == sym!"for-break"
+			return container.isA!(FunDecl*) && container.as!(FunDecl*).name == sym!"for-break"
 				? none!(Diag.CallShouldUseSyntax.Kind)
 				: some(Diag.CallShouldUseSyntax.Kind.for_break);
 		case sym!"force".value:

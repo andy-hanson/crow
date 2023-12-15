@@ -15,7 +15,6 @@ import frontend.check.instantiate : InstantiateCtx;
 import frontend.check.maps : FunsMap;
 import frontend.lang : maxTypeParams;
 import model.model :
-	arity,
 	arityMatches,
 	CalledDecl,
 	CalledSpecSig,
@@ -102,7 +101,7 @@ T withCandidates(T)(
 ) {
 	Candidates candidates = mutMaxArr!(maxCandidates, Candidate);
 	eachFunInScope(funs, funName, (CalledDecl called) @trusted {
-		if (arityMatches(arity(called), actualArity)) {
+		if (arityMatches(called.arity, actualArity)) {
 			Candidate* candidate = pushUninitialized(candidates);
 			initializeCandidate(*candidate, called);
 			if (!cbFilterCandidate(*candidate))
@@ -119,7 +118,7 @@ void eachCandidate(
 	in void delegate(ref Candidate) @safe @nogc pure nothrow cb,
 ) {
 	eachFunInScope(funs, funName, (CalledDecl called) @trusted {
-		if (arityMatches(arity(called), actualArity)) {
+		if (arityMatches(called.arity, actualArity)) {
 			Candidate candidate = void;
 			initializeCandidate(candidate, called);
 			cb(candidate);

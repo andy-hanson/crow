@@ -30,7 +30,6 @@ import model.diag :
 	TypeWithContainer,
 	UriAndDiagnostic;
 import model.model :
-	arity,
 	arityMatches,
 	bestCasePurity,
 	CalledDecl,
@@ -39,11 +38,9 @@ import model.model :
 	FunDeclAndTypeArgs,
 	Local,
 	LocalMutability,
-	name,
 	nTypeParams,
 	Params,
 	Program,
-	range,
 	SpecDecl,
 	SpecDeclSig,
 	StructInst,
@@ -381,7 +378,7 @@ void writeCallNoMatch(scope ref Writer writer, in ShowCtx ctx, in Diag.CallNoMat
 	bool someCandidateHasCorrectArity =
 		exists!CalledDecl(d.allCandidates, (in CalledDecl c) =>
 			(d.actualNTypeArgs == 0 || nTypeParams(c) == d.actualNTypeArgs) &&
-			arityMatches(arity(c), d.actualArity));
+			arityMatches(c.arity, d.actualArity));
 
 	if (empty(d.allCandidates)) {
 		writer ~= "there is no function ";
@@ -434,7 +431,7 @@ void writeCallNoMatch(scope ref Writer writer, in ShowCtx ctx, in Diag.CallNoMat
 		writer ~= d.actualArity;
 		writer ~= " arguments):";
 		writeCalledDecls(writer, ctx, d.typeContainer, d.allCandidates, (in CalledDecl c) =>
-			arityMatches(arity(c), d.actualArity));
+			arityMatches(c.arity, d.actualArity));
 	}
 }
 
@@ -733,7 +730,7 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 		},
 		(in Diag.LocalNotMutable x) {
 			writer ~= "local variable ";
-			writeName(writer, ctx, name(x.local));
+			writeName(writer, ctx, x.local.name);
 			writer ~= " was not marked 'mut'";
 		},
 		(in Diag.LoopWithoutBreak) {

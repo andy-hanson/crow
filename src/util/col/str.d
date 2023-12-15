@@ -59,9 +59,6 @@ bool safeCStrIsEmpty(SafeCStr a) =>
 string copyStr(ref Alloc alloc, in string a) =>
 	map!(char, immutable char)(alloc, a, (ref immutable char x) => x);
 
-SafeCStr copySafeCStr(ref Alloc alloc, in SafeCStr a) =>
-	copyToSafeCStr(alloc, strOfSafeCStr(a));
-
 bool safeCStrEq(SafeCStr a, string b) =>
 	strEq(strOfSafeCStr(a), b);
 

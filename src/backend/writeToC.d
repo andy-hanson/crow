@@ -47,7 +47,7 @@ import model.lowModel :
 	targetIsPointer,
 	targetRecordType,
 	UpdateParam;
-import model.model : EnumValue, name;
+import model.model : EnumValue;
 import model.typeLayout : sizeOfType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : empty, only, sizeEq;

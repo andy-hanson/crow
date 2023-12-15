@@ -37,12 +37,10 @@ import model.model :
 	StructDecl,
 	StructInst,
 	StructOrAlias,
-	target,
 	Type,
 	TypeArgs,
 	TypeParamIndex,
-	TypeParams,
-	typeParams;
+	TypeParams;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : arrayOfSingle, empty, only, small;
 import util.col.arrUtil : eachPair, findIndex, map, mapOrNone, mapZip;
@@ -73,13 +71,13 @@ private Type instStructFromAst(
 		Opt!Type typeArg = optTypeFromOptAst(
 			ctx, commonTypes, typeArgsAst, structsAndAliasesMap, typeParamsScope, delayStructInsts);
 		Opt!TypeArgs typeArgs = getTypeArgsIfNumberMatches(
-			ctx, commonTypes, suffixRange, name, typeParams(sOrA).length, &typeArg);
+			ctx, commonTypes, suffixRange, name, sOrA.typeParams.length, &typeArg);
 		return has(typeArgs)
 			? sOrA.matchWithPointers!Type(
 				(StructAlias* a) =>
-					typeParams(sOrA).length != 0
+					sOrA.typeParams.length != 0
 						? todo!Type("alias with type params")
-						: typeFromOptInst(target(*a)),
+						: typeFromOptInst(a.target),
 				(StructDecl* decl) =>
 					Type(instantiateStruct(ctx.instantiateCtx, decl, force(typeArgs), delayStructInsts)))
 			: Type(Type.Bogus());

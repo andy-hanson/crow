@@ -6,22 +6,14 @@ import model.ast : NameAndRange;
 import model.concreteModel : TypeSize;
 import model.model :
 	Destructure,
-	docComment,
 	FieldMutability,
 	FunDecl,
-	isBare,
-	isGenerated,
-	isSummon,
-	isUnsafe,
-	isVariadic,
 	Module,
-	name,
 	NameReferents,
 	Params,
 	paramsArray,
 	Program,
 	Purity,
-	range,
 	RecordField,
 	SpecDecl,
 	SpecDeclBody,
@@ -33,14 +25,11 @@ import model.model :
 	StructInst,
 	StructOrAlias,
 	symOfPurity,
-	target,
 	Type,
 	TypeParamIndex,
 	TypeParams,
-	typeParams,
 	UnionMember,
-	Visibility,
-	visibility;
+	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSort, finishArr;
@@ -83,12 +72,12 @@ Json documentModule(
 ) {
 	ArrBuilder!DocExport exports; // TODO: no alloc
 	foreach (NameReferents referents; a.allExportedNames) {
-		if (has(referents.structOrAlias) && visibility(force(referents.structOrAlias)) == Visibility.public_)
+		if (has(referents.structOrAlias) && force(referents.structOrAlias).visibility == Visibility.public_)
 			add(alloc, exports, documentStructOrAlias(alloc, force(referents.structOrAlias)));
 		if (has(referents.spec) && force(referents.spec).visibility == Visibility.public_)
 			add(alloc, exports, documentSpec(alloc, *force(referents.spec)));
 		foreach (FunDecl* fun; referents.funs)
-			if (fun.visibility == Visibility.public_ && !isGenerated(*fun))
+			if (fun.visibility == Visibility.public_ && !fun.isGenerated)
 				add(alloc, exports, documentFun(alloc, *fun));
 	}
 	arrBuilderSort!DocExport(exports, (in DocExport x, in DocExport y) =>
@@ -127,8 +116,8 @@ DocExport documentStructOrAlias(ref Alloc alloc, in StructOrAlias a) =>
 			documentStructDecl(alloc, x));
 
 DocExport documentStructAlias(ref Alloc alloc, in StructAlias a) {
-	Opt!(StructInst*) optTarget = target(a);
-	return documentExport(alloc, range(a), a.name, a.docComment, a.typeParams, jsonObject(alloc, [
+	Opt!(StructInst*) optTarget = a.target;
+	return documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, jsonObject(alloc, [
 		kindField!"alias",
 		field!"target"(documentStructInst(alloc, a.typeParams, *force(optTarget)))]));
 }
@@ -229,20 +218,20 @@ Json documentSpecDeclSig(ref Alloc alloc, in TypeParams typeParams, in SpecDeclS
 		field!"params"(documentParamDestructures(alloc, typeParams, a.params))]);
 
 DocExport documentFun(ref Alloc alloc, in FunDecl a) =>
-	documentExport(alloc, a.range, a.name, docComment(a), a.typeParams, jsonObject(alloc, [
+	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, jsonObject(alloc, [
 		kindField!"fun",
 		field!"return-type"(documentTypeRef(alloc, a.typeParams, a.returnType)),
 		documentParams(alloc, a.typeParams, a.params),
-		optionalFlagField!"variadic"(isVariadic(a)),
+		optionalFlagField!"variadic"(a.isVariadic),
 		optionalArrayField!"specs"(documentSpecs(alloc, a))]));
 
 Json[] documentSpecs(ref Alloc alloc, in FunDecl a) {
 	ArrBuilder!Json res;
-	if (isBare(a))
+	if (a.isBare)
 		add(alloc, res, jsonOfSpecialSpec(alloc, sym!"bare"));
-	if (isSummon(a))
+	if (a.isSummon)
 		add(alloc, res, jsonOfSpecialSpec(alloc, sym!"summon"));
-	if (isUnsafe(a))
+	if (a.isUnsafe)
 		add(alloc, res, jsonOfSpecialSpec(alloc, sym!"unsafe"));
 	foreach (SpecInst* spec; a.specs)
 		add(alloc, res, documentSpecInst(alloc, a.typeParams, *spec));

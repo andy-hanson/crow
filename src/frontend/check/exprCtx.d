@@ -9,18 +9,7 @@ import frontend.check.typeFromAst : typeFromAst;
 import frontend.lang : maxClosureFields;
 import model.ast : ExprAst, TypeAst;
 import model.diag : Diag, TypeContainer, TypeWithContainer;
-import model.model :
-	CommonTypes,
-	Destructure,
-	FunFlags,
-	LambdaExpr,
-	Local,
-	Mutability,
-	range,
-	SpecInst,
-	Type,
-	TypeParams,
-	VariableRef;
+import model.model : CommonTypes, FunFlags, LambdaExpr, Local, Mutability, SpecInst, Type, TypeParams, VariableRef;
 import util.alloc.alloc : Alloc;
 import util.col.mutMaxArr : MutMaxArr;
 import util.opt : has, force, MutOpt, none, Opt, some;
@@ -86,10 +75,8 @@ struct ExprCtx {
 	immutable StructsAndAliasesMap structsAndAliasesMap;
 	immutable FunsMap funsMap;
 	immutable CommonTypes commonTypes;
-	immutable TypeContainer typeContainer; // for diags
-	immutable Sym outermostFunName;
+	immutable TypeContainer typeContainer; // for diags. This will be a FunDecl* or Test*.
 	immutable SpecInst*[] outermostFunSpecs;
-	immutable Destructure[] outermostFunParams;
 	immutable TypeParams outermostFunTypeParams;
 	immutable FunFlags outermostFunFlags;
 	private bool isInTrusted;

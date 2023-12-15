@@ -45,12 +45,10 @@ import model.model :
 	MatchEnumExpr,
 	MatchUnionExpr,
 	Module,
-	name,
 	Params,
 	PtrToFieldExpr,
 	PtrToLocalExpr,
 	Purity,
-	range,
 	SeqExpr,
 	SpecDecl,
 	SpecDeclBody,
@@ -65,7 +63,6 @@ import model.model :
 	Type,
 	TypeParamIndex,
 	TypeParams,
-	typeParams,
 	VarDecl,
 	VariableRef,
 	Visibility;
@@ -165,7 +162,7 @@ Json jsonOfSpecDeclBody(ref Alloc alloc, in Ctx ctx, in SpecDeclBody a) =>
 
 Json jsonOfSpecDeclSig(ref Alloc alloc, in Ctx ctx, in SpecDeclSig a) =>
 	jsonObject(alloc, [
-		field!"where"(jsonOfRange(alloc, ctx.lineAndColumnGetter, range(a).range)),
+		field!"where"(jsonOfRange(alloc, ctx.lineAndColumnGetter, a.range.range)),
 		field!"name"(a.name),
 		field!"return-type"(jsonOfType(alloc, ctx, a.returnType)),
 		field!"params"(jsonOfDestructures(alloc, ctx, a.params))]);

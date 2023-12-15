@@ -6,7 +6,7 @@ import frontend.check.checkCtx : markUsed;
 import frontend.check.exprCtx : addDiag2, checkCanDoUnsafe, ExprCtx;
 import model.ast : ExprAst;
 import model.diag : Diag;
-import model.model : Called, CalledSpecSig, FunDecl, FunInst, FunFlags, isVariadic;
+import model.model : Called, CalledSpecSig, FunDecl, FunInst, FunFlags;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range;
 
@@ -41,7 +41,7 @@ void checkCallFlags(
 ) {
 	Opt!(Diag.CantCall.Reason) reason = getCantCallReason(
 		ctx,
-		isVariadic(*called) && argsKind == ArgsKind.nonEmpty,
+		called.isVariadic && argsKind == ArgsKind.nonEmpty,
 		called.flags,
 		caller,
 		isCallerInLambda);

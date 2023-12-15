@@ -13,7 +13,6 @@ import model.model :
 	ExprKind,
 	FunKind,
 	LoopExpr,
-	range,
 	StructDecl,
 	StructInst,
 	Type,

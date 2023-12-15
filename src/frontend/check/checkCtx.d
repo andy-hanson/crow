@@ -12,8 +12,6 @@ import model.model :
 	Module,
 	nameFromNameReferents,
 	NameReferents,
-	okIfUnused,
-	range,
 	SpecDecl,
 	StructAlias,
 	StructDecl,
@@ -82,7 +80,7 @@ void checkForUnused(ref CheckCtx ctx, StructAlias[] aliases, StructDecl[] struct
 	checkUnusedImports(ctx);
 	void checkUnusedDecl(T)(T* decl) {
 		if (decl.visibility == Visibility.private_ && !isUsed(ctx.used, decl))
-			addDiag(ctx, range(*decl), Diag(Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.PrivateDecl(decl.name)))));
+			addDiag(ctx, decl.range, Diag(Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.PrivateDecl(decl.name)))));
 	}
 	foreach (StructAlias* alias_; ptrsRange(aliases))
 		checkUnusedDecl(alias_);
@@ -91,7 +89,7 @@ void checkForUnused(ref CheckCtx ctx, StructAlias[] aliases, StructDecl[] struct
 	foreach (SpecDecl* spec; ptrsRange(specs))
 		checkUnusedDecl(spec);
 	foreach (FunDecl* fun; ptrsRange(funs))
-		if (!okIfUnused(*fun))
+		if (!fun.okIfUnused)
 			checkUnusedDecl(fun);
 }
 

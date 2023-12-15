@@ -104,9 +104,7 @@ import model.model :
 	EnumValue,
 	FlagsFunction,
 	Local,
-	name,
 	Program,
-	range,
 	VarKind;
 import model.typeLayout : isEmptyType;
 import util.alloc.alloc : Alloc;

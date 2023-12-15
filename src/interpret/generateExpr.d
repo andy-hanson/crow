@@ -131,7 +131,7 @@ import model.lowModel :
 	targetIsPointer,
 	targetRecordType,
 	UpdateParam;
-import model.model : Program, range;
+import model.model : Program;
 import model.typeLayout : nStackEntriesForType, optPack, Pack, typeSizeBytes;
 import util.alloc.alloc : TempAlloc;
 import util.col.arr : empty;

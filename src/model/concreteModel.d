@@ -11,14 +11,11 @@ import model.model :
 	FlagsFunction,
 	FunDecl,
 	isArray,
-	isSummon,
 	isTuple,
 	Local,
 	localIsAllocated,
-	name,
 	Params,
 	Purity,
-	range,
 	StructInst,
 	VarDecl;
 import util.col.arr : only, PtrAndSmallNumber, SmallArray;
@@ -446,7 +443,7 @@ Opt!Sym name(ref ConcreteFun a) =>
 bool isSummon(ref ConcreteFun a) =>
 	a.source.matchIn!bool(
 		(in ConcreteFunKey x) =>
-			isSummon(*x.decl),
+			x.decl.isSummon,
 		(in ConcreteFunSource.Lambda x) =>
 			isSummon(*x.containingFun),
 		(in ConcreteFunSource.Test) =>
@@ -458,7 +455,7 @@ bool isSummon(ref ConcreteFun a) =>
 UriAndRange concreteFunRange(in ConcreteFun a) =>
 	a.source.matchIn!UriAndRange(
 		(in ConcreteFunKey x) =>
-			range(*x.decl),
+			x.decl.range,
 		(in ConcreteFunSource.Lambda x) =>
 			x.range,
 		(in ConcreteFunSource.Test x) =>

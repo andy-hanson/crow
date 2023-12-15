@@ -25,7 +25,7 @@ import model.ast :
 	TypeAst;
 import model.diag : TypeContainer, TypeWithContainer;
 import model.model;
-import model.model : paramsArray, range, StructDeclSource;
+import model.model : paramsArray, StructDeclSource;
 import util.col.arr : ptrsRange;
 import util.col.arrUtil : first, firstPointer, firstWithIndex, firstZipPointerFirst;
 import util.opt : force, has, none, Opt, optIf, optOr, optOr, optOrDefault, some;
@@ -46,15 +46,15 @@ Opt!PositionKind getPositionKind(in AllSymbols allSymbols, in AllUris allUris, r
 		positionInImportsOrExports(allSymbols, allUris, module_.imports, pos),
 		() => positionInImportsOrExports(allSymbols, allUris, module_.reExports, pos),
 		() => firstPointer!(PositionKind, StructDecl)(module_.structs, (StructDecl* x) =>
-			hasPos(range(*x).range, pos)
+			hasPos(x.range.range, pos)
 				? positionInStruct(allSymbols, x, pos)
 				: none!PositionKind),
 		() => firstPointer!(PositionKind, VarDecl)(module_.vars, (VarDecl* x) =>
-			hasPos(range(*x).range, pos)
+			hasPos(x.range.range, pos)
 				? positionInVar(allSymbols, x, pos)
 				: none!PositionKind),
 		() => firstPointer!(PositionKind, SpecDecl)(module_.specs, (SpecDecl* x) =>
-			hasPos(range(*x).range, pos)
+			hasPos(x.range.range, pos)
 				? positionInSpec(allSymbols, x, pos)
 				: none!PositionKind),
 		() => firstPointer!(PositionKind, FunDecl)(module_.funs, (FunDecl* x) =>

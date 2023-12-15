@@ -16,7 +16,6 @@ import model.model :
 	nameRange,
 	NameReferents,
 	Program,
-	range,
 	RecordField,
 	SpecDecl,
 	StructBody,
@@ -86,9 +85,9 @@ void definitionForImportedName(in PositionKind.ImportedName a, in ReferenceCb cb
 	NameReferents nr = optOrDefault!NameReferents(a.import_.modulePtr.allExportedNames[a.name], () =>
 		NameReferents());
 	if (has(nr.structOrAlias))
-		cb(range(force(nr.structOrAlias)));
+		cb(force(nr.structOrAlias).range);
 	if (has(nr.spec))
-		cb(range(*force(nr.spec)));
+		cb(force(nr.spec).range);
 	foreach (FunDecl* f; nr.funs)
-		cb(range(*f));
+		cb(f.range);
 }

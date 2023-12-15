@@ -26,7 +26,6 @@ import model.model :
 	FunFlags,
 	IntegralTypes,
 	leastVisibility,
-	name,
 	Params,
 	ParamShort,
 	RecordField,
@@ -37,11 +36,9 @@ import model.model :
 	Type,
 	TypeParamIndex,
 	TypeParams,
-	typeParams,
 	UnionMember,
 	VarDecl,
-	Visibility,
-	visibility;
+	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, small;
 import util.col.arrUtil : map, sum;

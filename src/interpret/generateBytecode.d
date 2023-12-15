@@ -49,7 +49,7 @@ import model.lowModel :
 	name,
 	PrimitiveType,
 	typeSize;
-import model.model : name, Program, range, VarKind;
+import model.model : Program, VarKind;
 import model.typeLayout : nStackEntriesForType;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : castImmutable;

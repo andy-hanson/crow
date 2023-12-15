@@ -16,6 +16,7 @@ import model.ast :
 	rangeOfNameAndRange,
 	SpecDeclAst,
 	SpecSigAst,
+	StructAliasAst,
 	StructDeclAst,
 	VarDeclAst;
 import model.concreteModel : TypeSize;
@@ -132,12 +133,21 @@ LinkageRange linkageRange(Type a) =>
 			x.linkageRange);
 
 immutable struct Params {
+	@safe @nogc pure nothrow:
+
 	immutable struct Varargs {
 		Destructure param;
 		Type elementType;
 	}
 
 	mixin Union!(SmallArray!Destructure, Varargs*);
+
+	Arity arity() scope =>
+		matchIn!Arity(
+			(in Destructure[] params) =>
+				Arity(params.length),
+			(in Params.Varargs) =>
+				Arity(Arity.Varargs()));
 }
 static assert(Params.sizeof == ulong.sizeof);
 
@@ -163,26 +173,21 @@ bool arityMatches(Arity sigArity, size_t nArgs) =>
 		(Arity.Varargs) =>
 			true);
 
-Arity arity(in Params a) =>
-	a.matchIn!Arity(
-		(in Destructure[] params) =>
-			Arity(params.length),
-		(in Params.Varargs) =>
-			Arity(Arity.Varargs()));
-
 immutable struct SpecDeclSig {
-	Uri uri;
+	@safe @nogc pure nothrow:
+
+	Uri moduleUri;
 	SpecSigAst* ast;
 	Sym name;
 	Type returnType;
 	SmallArray!Destructure params;
+
+	UriAndRange range() scope =>
+		UriAndRange(moduleUri, ast.range);
 }
 
-UriAndRange range(in SpecDeclSig a) scope =>
-	UriAndRange(a.uri, a.ast.range);
-
 UriAndRange nameRange(in AllSymbols allSymbols, in SpecDeclSig a) =>
-	UriAndRange(a.uri, rangeOfNameAndRange(a.ast.nameAndRange, allSymbols));
+	UriAndRange(a.moduleUri, rangeOfNameAndRange(a.ast.nameAndRange, allSymbols));
 
 immutable struct TypeParamsAndSig {
 	TypeParams typeParams;
@@ -201,16 +206,18 @@ enum FieldMutability {
 }
 
 immutable struct RecordField {
+	@safe @nogc pure nothrow:
+
 	StructDeclAst.Body.Record.Field* ast;
 	StructDecl* containingRecord;
 	Visibility visibility;
 	Sym name;
 	FieldMutability mutability;
 	Type type;
-}
 
-Range range(in RecordField a) =>
-	a.ast.range;
+	Range range() scope =>
+		ast.range;
+}
 
 UriAndRange nameRange(in AllSymbols allSymbols, in RecordField a) =>
 	UriAndRange(a.containingRecord.moduleUri, rangeOfNameAndRange(a.ast.name, allSymbols));
@@ -297,25 +304,27 @@ UriAndRange nameRange(in AllSymbols allSymbols, in StructBody.Enum.Member a) =>
 immutable struct StructAlias {
 	@safe @nogc pure nothrow:
 
-	// TODO: use NameAndRange (more compact)
-	UriAndRange range_;
-	SafeCStr docComment;
+	StructAliasAst* ast;
+	Uri moduleUri;
 	Visibility visibility;
 	Sym name;
 	// This will be none if the alias target is not found
 	private Late!(Opt!(StructInst*)) target_;
 
+	SafeCStr docComment() return scope =>
+		ast.docComment;
+
 	TypeParams typeParams() return scope =>
 		emptyTypeParams;
-}
 
-UriAndRange range(in StructAlias a) =>
-	a.range_;
+	UriAndRange range() scope =>
+		UriAndRange(moduleUri, ast.range);
 
-Opt!(StructInst*) target(ref StructAlias a) =>
-	lateGet(a.target_);
-void setTarget(ref StructAlias a, Opt!(StructInst*) value) {
-	lateSet(a.target_, value);
+	Opt!(StructInst*) target() return scope =>
+		lateGet(target_);
+	void target(Opt!(StructInst*) value) {
+		lateSet(target_, value);
+	}
 }
 
 // sorted least strict to most strict
@@ -386,6 +395,13 @@ immutable struct StructDecl {
 				x.typeParams,
 			(ref StructDeclSource.Bogus x) =>
 				x.typeParams);
+
+	UriAndRange range() scope =>
+		UriAndRange(moduleUri, source.matchIn!Range(
+			(in StructDeclAst x) =>
+				x.range,
+			(in StructDeclSource.Bogus) =>
+				Range.empty));
 }
 
 immutable struct StructDeclSource {
@@ -395,13 +411,6 @@ immutable struct StructDeclSource {
 	mixin Union!(StructDeclAst*, Bogus*);
 }
 static assert(StructDeclSource.sizeof == ulong.sizeof);
-
-UriAndRange range(in StructDecl a) =>
-	UriAndRange(a.moduleUri, a.source.matchIn!Range(
-		(in StructDeclAst x) =>
-			x.range,
-		(in StructDeclSource.Bogus) =>
-			Range.empty));
 
 UriAndRange nameRange(in AllSymbols allSymbols, in StructDecl a) =>
 	UriAndRange(a.moduleUri, a.source.matchIn!Range(
@@ -497,10 +506,10 @@ immutable struct SpecDecl {
 	}
 	void overwriteParentsToEmpty() scope =>
 		lateSetOverwrite(parents_, emptySmallArray!(immutable SpecInst*));
-}
 
-UriAndRange range(in SpecDecl a) =>
-	UriAndRange(a.moduleUri, a.ast.range);
+	UriAndRange range() scope =>
+		UriAndRange(moduleUri, ast.range);
+}
 
 UriAndRange nameRange(in AllSymbols allSymbols, in SpecDecl a) =>
 	UriAndRange(a.moduleUri, nameRange(allSymbols, *a.ast));
@@ -679,22 +688,22 @@ immutable struct FunDeclSource {
 	}
 
 	mixin Union!(Bogus, Ast, FileImport, StructBody.Enum.Member*, StructDecl*, VarDecl*);
-}
 
-UriAndRange range(in FunDeclSource a) =>
-	a.matchIn!UriAndRange(
-		(in FunDeclSource.Bogus x) =>
-			UriAndRange(x.uri, Range.empty),
-		(in FunDeclSource.Ast x) =>
-			UriAndRange(x.uri, x.ast.range),
-		(in FunDeclSource.FileImport x) =>
-			UriAndRange(x.uri, x.ast.range),
-		(in StructBody.Enum.Member x) =>
-			x.range,
-		(in StructDecl x) =>
-			x.range,
-		(in VarDecl x) =>
-			x.range);
+	UriAndRange range() scope =>
+		matchIn!UriAndRange(
+			(in FunDeclSource.Bogus x) =>
+				UriAndRange(x.uri, Range.empty),
+			(in FunDeclSource.Ast x) =>
+				UriAndRange(x.uri, x.ast.range),
+			(in FunDeclSource.FileImport x) =>
+				UriAndRange(x.uri, x.ast.range),
+			(in StructBody.Enum.Member x) =>
+				x.range,
+			(in StructDecl x) =>
+				x.range,
+			(in VarDecl x) =>
+				x.range);
+}
 
 UriAndRange nameRange(in AllSymbols allSymbols, in FunDeclSource a) =>
 	a.matchIn!UriAndRange(
@@ -744,50 +753,52 @@ immutable struct FunDecl {
 				x.typeParams,
 			(ref VarDecl x) =>
 				x.typeParams);
+
+	Uri moduleUri() scope =>
+		range.uri;
+
+	UriAndRange range() scope =>
+		source.range;
+
+	SafeCStr docComment() scope =>
+		source.as!(FunDeclSource.Ast).ast.docComment;
+
+	Linkage linkage() scope =>
+		body_.isA!(FunBody.Extern) ? Linkage.extern_ : Linkage.internal;
+
+	bool isBare() scope =>
+		flags.bare;
+	bool isGenerated() scope =>
+		flags.specialBody == FunFlags.SpecialBody.generated;
+	bool isSummon() scope =>
+		flags.summon;
+	bool isUnsafe() scope =>
+		flags.safety == FunFlags.Safety.unsafe;
+	bool okIfUnused() scope =>
+		flags.okIfUnused;
+
+	bool isVariadic() scope =>
+		params.isA!(Params.Varargs*);
+
+	bool isTemplate() scope =>
+		!empty(typeParams) || !empty(specs);
+
+	Arity arity() scope =>
+		params.arity;
 }
-
-Uri moduleUri(in FunDecl a) =>
-	range(a).uri;
-
-UriAndRange range(in FunDecl a) scope =>
-	range(a.source);
 
 UriAndRange nameRange(in AllSymbols allSymbols, in FunDecl a) scope =>
 	nameRange(allSymbols, a.source);
 
-SafeCStr docComment(in FunDecl a) =>
-	a.source.as!(FunDeclSource.Ast).ast.docComment;
-
-Linkage linkage(in FunDecl a) =>
-	a.body_.isA!(FunBody.Extern) ? Linkage.extern_ : Linkage.internal;
-
-bool isBare(in FunDecl a) =>
-	a.flags.bare;
-bool isGenerated(in FunDecl a) =>
-	a.flags.specialBody == FunFlags.SpecialBody.generated;
-bool isSummon(in FunDecl a) =>
-	a.flags.summon;
-bool isUnsafe(in FunDecl a) =>
-	a.flags.safety == FunFlags.Safety.unsafe;
-bool okIfUnused(in FunDecl a) =>
-	a.flags.okIfUnused;
-
-bool isVariadic(in FunDecl a) =>
-	a.params.isA!(Params.Varargs*);
-
-bool isTemplate(in FunDecl a) =>
-	!empty(a.typeParams) || !empty(a.specs);
-
-Arity arity(in FunDecl a) =>
-	arity(a.params);
-
 immutable struct Test {
+	@safe @nogc pure nothrow:
+
 	Uri moduleUri;
 	Expr body_;
-}
 
-UriAndRange range(in Test a) =>
-	UriAndRange(a.moduleUri, a.body_.range);
+	UriAndRange range() =>
+		UriAndRange(moduleUri, body_.range);
+}
 
 immutable struct FunDeclAndTypeArgs {
 	FunDecl* decl;
@@ -811,10 +822,10 @@ immutable struct FunInst {
 
 	Type[] paramTypes() scope =>
 		instantiatedSig.paramTypes;
-}
 
-Arity arity(in FunInst a) =>
-	arity(*a.decl);
+	Arity arity() scope =>
+		decl.arity;
+}
 
 immutable struct ReturnAndParamTypes {
 	@safe @nogc pure nothrow:
@@ -862,10 +873,10 @@ immutable struct CalledSpecSig {
 
 	Sym name() scope =>
 		nonInstantiatedSig.name;
-}
 
-Arity arity(in CalledSpecSig a) =>
-	Arity(a.nonInstantiatedSig.params.length);
+	Arity arity() scope =>
+		Arity(nonInstantiatedSig.params.length);
+}
 
 // Like 'Called', but we haven't fully instantiated yet. (This is used for Candidate when checking a call expr.)
 immutable struct CalledDecl {
@@ -887,15 +898,16 @@ immutable struct CalledDecl {
 		match!Type(
 			(ref FunDecl f) => f.returnType,
 			(CalledSpecSig s) => s.returnType);
+
+	Arity arity() scope =>
+		matchIn!Arity(
+			(in FunDecl x) =>
+				x.arity,
+			(in CalledSpecSig x) =>
+				x.arity);
+
 }
 static assert(CalledDecl.sizeof == ulong.sizeof);
-
-Arity arity(in CalledDecl a) =>
-	a.matchIn!Arity(
-		(in FunDecl x) =>
-			arity(x.params),
-		(in CalledSpecSig x) =>
-			arity(x));
 
 size_t nTypeParams(in CalledDecl a) =>
 	a.typeParams.length;
@@ -918,6 +930,13 @@ immutable struct Called {
 				f.returnType,
 			(CalledSpecSig s) =>
 				s.instantiatedSig.returnType);
+
+	Arity arity() scope =>
+		matchIn!Arity(
+			(in FunInst x) =>
+				x.arity,
+			(in CalledSpecSig x) =>
+				x.arity);
 }
 static assert(Called.sizeof == ulong.sizeof);
 
@@ -932,13 +951,6 @@ Type paramTypeAt(in Called a, size_t argIndex) scope =>
 		(in CalledSpecSig s) =>
 			s.paramTypes[argIndex]);
 
-Arity arity(in Called a) =>
-	a.match!Arity(
-		(ref FunInst f) =>
-			arity(f),
-		(CalledSpecSig s) =>
-			arity(s));
-
 immutable struct StructOrAlias {
 	@safe @nogc pure nothrow:
 
@@ -948,28 +960,28 @@ immutable struct StructOrAlias {
 		matchWithPointers!(immutable void*)(
 			(StructAlias* x) => typeAs!(immutable void*)(x),
 			(StructDecl* x) => typeAs!(immutable void*)(x));
+
+	UriAndRange range() scope =>
+		matchIn!UriAndRange(
+			(in StructAlias x) => x.range,
+			(in StructDecl x) => x.range);
+
+	Visibility visibility() scope =>
+		matchIn!Visibility(
+			(in StructAlias x) => x.visibility,
+			(in StructDecl x) => x.visibility);
+
+	Sym name() scope =>
+		matchIn!Sym(
+			(in StructAlias x) => x.name,
+			(in StructDecl x) => x.name);
+
+	TypeParams typeParams() =>
+		match!TypeParams(
+			(ref StructAlias x) => x.typeParams,
+			(ref StructDecl x) => x.typeParams);
 }
 static assert(StructOrAlias.sizeof == ulong.sizeof);
-
-TypeParams typeParams(ref StructOrAlias a) =>
-	a.match!TypeParams(
-		(ref StructAlias x) => x.typeParams,
-		(ref StructDecl x) => x.typeParams);
-
-UriAndRange range(ref StructOrAlias a) =>
-	a.match!UriAndRange(
-		(ref StructAlias x) => x.range,
-		(ref StructDecl x) => x.range);
-
-Visibility visibility(ref StructOrAlias a) =>
-	a.match!Visibility(
-		(ref StructAlias x) => x.visibility,
-		(ref StructDecl x) => x.visibility);
-
-Sym structOrAliasName(ref StructOrAlias a) =>
-	a.match!Sym(
-		(ref StructAlias x) => x.name,
-		(ref StructDecl x) => x.name);
 
 // No VarInst since these can't be templates
 immutable struct VarDecl {
@@ -985,10 +997,10 @@ immutable struct VarDecl {
 
 	TypeParams typeParams() return scope =>
 		emptyTypeParams;
-}
 
-UriAndRange range(in VarDecl a) =>
-	UriAndRange(a.moduleUri, a.ast.range);
+	UriAndRange range() scope =>
+		UriAndRange(moduleUri, ast.range);
+}
 
 UriAndRange nameRange(in AllSymbols allSymbols, in VarDecl a) =>
 	UriAndRange(a.moduleUri, rangeOfNameAndRange(a.ast.name, allSymbols));
@@ -1092,7 +1104,7 @@ immutable struct NameReferents {
 }
 Sym nameFromNameReferents(in NameReferents a) =>
 	has(a.structOrAlias)
-		? structOrAliasName(force(a.structOrAlias))
+		? force(a.structOrAlias).name
 		: has(a.spec)
 		? force(a.spec).name
 		: a.funs[0].name;
@@ -1349,14 +1361,16 @@ private ClosureReferenceKind getClosureReferenceKind(VariableRef a) {
 }
 
 immutable struct VariableRef {
+	@safe @nogc pure nothrow:
+
 	mixin Union!(Local*, ClosureRef);
+
+	Sym name() =>
+		toLocal(this).name;
+	Type type() =>
+		toLocal(this).type;
 }
 static assert(VariableRef.sizeof == ulong.sizeof);
-
-Sym name(VariableRef a) =>
-	toLocal(a).name;
-Type variableRefType(VariableRef a) =>
-	toLocal(a).type;
 
 private Local* toLocal(VariableRef a) =>
 	a.matchWithPointers!(Local*)(

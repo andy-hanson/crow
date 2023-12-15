@@ -88,17 +88,14 @@ import model.model :
 	LoopWhileExpr,
 	MatchEnumExpr,
 	MatchUnionExpr,
-	name,
 	Purity,
 	PtrToFieldExpr,
 	PtrToLocalExpr,
-	range,
 	SeqExpr,
 	SpecInst,
 	ThrowExpr,
 	Type,
-	VariableRef,
-	variableRefType;
+	VariableRef;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only, PtrAndSmallNumber, sizeEq, small, SmallArray;
 import util.col.arrUtil : arrLiteral, map, mapZip;
@@ -378,7 +375,7 @@ ConcreteExpr getCurExclusion(ref ConcretizeExprCtx ctx, ConcreteType type, UriAn
 
 ConcreteField[] concretizeClosureFields(ref ConcretizeCtx ctx, VariableRef[] closure, TypeArgsScope typeArgsScope) =>
 	map(ctx.alloc, closure, (ref VariableRef x) {
-		ConcreteType baseType = getConcreteType_fromConcretizeCtx(ctx, variableRefType(x), typeArgsScope);
+		ConcreteType baseType = getConcreteType_fromConcretizeCtx(ctx, x.type, typeArgsScope);
 		ConcreteType type = () {
 			final switch (getClosureReferenceKind(x)) {
 				case ClosureReferenceKind.direct:
@@ -388,7 +385,7 @@ ConcreteField[] concretizeClosureFields(ref ConcretizeCtx ctx, VariableRef[] clo
 			}
 		}();
 		// Even if the variable is mutable, it's a const field holding a mut pointer
-		return ConcreteField(name(x), ConcreteMutability.const_, type);
+		return ConcreteField(x.name, ConcreteMutability.const_, type);
 	});
 
 ConcreteType addIndirection(ConcreteType a) =>

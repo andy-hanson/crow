@@ -23,7 +23,7 @@ import model.lowModel :
 	LowUnion,
 	LowVar,
 	LowVarIndex;
-import model.model : Local, name;
+import model.model : Local;
 import util.alloc.alloc : Alloc;
 import util.col.map : Map;
 import util.col.mapBuilder : finishMap, mustAddToMap, MapBuilder;

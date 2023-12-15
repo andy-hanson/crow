@@ -64,14 +64,12 @@ import model.model :
 	MatchEnumExpr,
 	MatchUnionExpr,
 	Module,
-	moduleUri,
 	NameReferents,
 	Params,
 	paramsArray,
 	Program,
 	PtrToFieldExpr,
 	PtrToLocalExpr,
-	range,
 	RecordField,
 	SeqExpr,
 	SpecDecl,
@@ -438,8 +436,8 @@ void referencesForFunDecls(in AllSymbols allSymbols, in Program program, in FunD
 	if (!empty(decls)) {
 		Visibility maxVisibility = fold(Visibility.private_, decls, (Visibility a, in FunDecl* b) =>
 			greatestVisibility(a, b.visibility));
-		assert(allSame!(Uri, FunDecl*)(decls, (in FunDecl* x) => moduleUri(*x)));
-		Module* itsModule = moduleOf(program, moduleUri(*decls[0]));
+		assert(allSame!(Uri, FunDecl*)(decls, (in FunDecl* x) => x.moduleUri));
+		Module* itsModule = moduleOf(program, decls[0].moduleUri);
 		eachExprThatMayReference(program, maxVisibility, itsModule, (in Module module_, in Expr x) {
 			if (x.kind.isA!CallExpr) {
 				Called called = x.kind.as!CallExpr.called;

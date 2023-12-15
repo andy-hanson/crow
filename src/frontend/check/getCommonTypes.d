@@ -20,10 +20,8 @@ import model.model :
 	StructDeclSource,
 	StructInst,
 	StructOrAlias,
-	target,
 	Type,
 	TypeParams,
-	typeParams,
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, small;
@@ -164,10 +162,10 @@ Opt!(StructInst*) instantiateNonTemplateStructOrAlias(
 	scope ref DelayStructInsts delayedStructInsts,
 	StructOrAlias structOrAlias,
 ) {
-	assert(empty(typeParams(structOrAlias)));
+	assert(empty(structOrAlias.typeParams));
 	return structOrAlias.matchWithPointers!(Opt!(StructInst*))(
 		(StructAlias* x) =>
-			target(*x),
+			x.target,
 		(StructDecl* x) =>
 			some(instantiateNonTemplateStructDecl(ctx, delayedStructInsts, x)));
 }

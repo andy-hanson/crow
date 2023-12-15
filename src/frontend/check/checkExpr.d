@@ -86,7 +86,6 @@ import model.constant : Constant;
 import model.diag : Diag, TypeContainer, TypeWithContainer;
 import model.model :
 	Arity,
-	arity,
 	AssertOrForbidExpr,
 	BogusExpr,
 	Called,
@@ -132,11 +131,9 @@ import model.model :
 	MatchEnumExpr,
 	MatchUnionExpr,
 	Mutability,
-	name,
 	PtrToFieldExpr,
 	PtrToLocalExpr,
 	Purity,
-	range,
 	SeqExpr,
 	SpecInst,
 	StructBody,
@@ -169,7 +166,6 @@ Expr checkFunctionBody(
 	in FunsMap funsMap,
 	TypeContainer typeContainer,
 	Type returnType,
-	Sym funName,
 	TypeParams typeParams,
 	Destructure[] params,
 	in immutable SpecInst*[] specs,
@@ -182,9 +178,7 @@ Expr checkFunctionBody(
 		funsMap,
 		commonTypes,
 		typeContainer,
-		funName,
 		specs,
-		params,
 		typeParams,
 		flags);
 	// leave funInfo.closureFields uninitialized, it won't be used
@@ -1071,7 +1065,7 @@ PointerMutability pointerMutabilityFromField(FieldMutability a) {
 }
 
 bool isDerefFunction(ref ExprCtx ctx, FunInst* a) =>
-	a.decl.body_.isA!(FunBody.Builtin) && a.decl.name == sym!"*" && arity(*a) == Arity(1);
+	a.decl.body_.isA!(FunBody.Builtin) && a.decl.name == sym!"*" && a.arity == Arity(1);
 
 PointerMutability mutabilityForPtrDecl(in ExprCtx ctx, in StructDecl* a) {
 	if (a == ctx.commonTypes.ptrConst)
@@ -1100,7 +1094,7 @@ Expr checkFunPointer(ref ExprCtx ctx, ExprAst* source, in PtrAst ast, ref Expect
 	if (mutArrSize(funs) != 1)
 		todo!void("did not find or found too many");
 	FunDecl* funDecl = funs[0];
-	if (isTemplate(*funDecl))
+	if (funDecl.isTemplate)
 		todo!void("can't point to template");
 	FunInst* funInst = instantiateFun(ctx.instantiateCtx, funDecl, emptyTypeArgs, emptySpecImpls);
 	Type paramType = makeTupleType(ctx.instantiateCtx, ctx.commonTypes, funInst.paramTypes);

@@ -53,12 +53,9 @@ import model.model :
 	isTuple,
 	Local,
 	Module,
-	moduleUri,
-	name,
 	paramsArray,
 	Program,
 	Purity,
-	range,
 	RecordField,
 	SpecInst,
 	StructBody,
@@ -128,7 +125,7 @@ private ConcreteFunKey getFunKey(return in ConcreteFun* a) =>
 	a.source.as!ConcreteFunKey;
 
 private ContainingFunInfo toContainingFunInfo(ConcreteFunKey a) =>
-	ContainingFunInfo(moduleUri(*a.decl), a.decl.specs, a.typeArgs, a.specImpls);
+	ContainingFunInfo(a.decl.moduleUri, a.decl.specs, a.typeArgs, a.specImpls);
 
 TypeArgsScope typeArgsScope(ref ConcreteFunKey a) =>
 	typeArgsScope(toContainingFunInfo(a));
@@ -435,7 +432,7 @@ void addConcreteFun(ref ConcretizeCtx ctx, ConcreteFun* fun) {
 
 ConcreteFun* concreteFunForTest(ref ConcretizeCtx ctx, ref Test test, size_t testIndex) {
 	ConcreteFun* res = allocate(ctx.alloc, ConcreteFun(
-		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.Test(range(test), testIndex))),
+		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.Test(test.range, testIndex))),
 		voidType(ctx),
 		[]));
 	ContainingFunInfo containing = ContainingFunInfo(
@@ -459,7 +456,7 @@ public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* mo
 			0,
 	*/
 	ConcreteType nat64Type = getConcreteType_forStructInst(ctx, ctx.commonTypes.integrals.nat64, TypeArgsScope.empty);
-	UriAndRange range = range(*modelMain.decl);
+	UriAndRange range = modelMain.decl.range;
 	ConcreteExpr callMain = ConcreteExpr(voidType(ctx), range, ConcreteExprKind(ConcreteExprKind.Call(innerMain, [])));
 	ConcreteExpr zero = ConcreteExpr(nat64Type, range, ConcreteExprKind(constantZero));
 	ConcreteFun* newNat64Future = getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
