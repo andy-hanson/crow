@@ -83,11 +83,10 @@ import util.hash : HashCode, Hasher;
 import util.late : Late, lateGet, lazilySet;
 import util.memory : allocate;
 import util.opt : force, has, none;
-import util.ptr : castMutable;
 import util.sourceRange : UriAndRange;
 import util.sym : AllSymbols, Sym, sym;
 import util.uri : AllUris, Uri;
-import util.util : max, roundUp, todo, typeAs, unreachable;
+import util.util : castMutable, max, roundUp, todo, typeAs, unreachable;
 import versionInfo : VersionInfo;
 
 immutable struct TypeArgsScope {

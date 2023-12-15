@@ -37,7 +37,6 @@ import util.json : field, Json, jsonObject;
 import util.memory : allocate, initMemory;
 import util.opt : ConstOpt, force, has, MutOpt, Opt, none, noneMut, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols, sym;
 import util.union_ : Union, UnionMutable;
 import util.uri :
@@ -54,7 +53,7 @@ import util.uri :
 	PathFirstAndRest,
 	RelPath,
 	resolveUri;
-import util.util : todo;
+import util.util : ptrTrustMe, todo;
 
 struct FrontendCompiler {
 	@safe @nogc pure nothrow:

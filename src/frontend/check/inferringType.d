@@ -25,9 +25,8 @@ import util.col.arrUtil : arrLiteral, contains, exists, indexOf, map, zip, zipEv
 import util.col.enumMap : enumMapFindKey;
 import util.col.mutMaxArr : push, tempAsArr;
 import util.opt : has, force, MutOpt, none, noneMut, Opt, optOrDefault, some, someInout, someMut;
-import util.ptr : castNonScope_ref;
 import util.union_ : UnionMutable;
-import util.util : unreachable;
+import util.util : castNonScope_ref, unreachable;
 
 struct SingleInferringType {
 	@safe @nogc pure nothrow:

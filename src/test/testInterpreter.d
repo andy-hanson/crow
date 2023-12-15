@@ -75,9 +75,9 @@ import util.alloc.alloc : Alloc;
 import util.col.enumMap : EnumMap;
 import util.col.fullIndexMap : emptyFullIndexMap, fullIndexMapOfArr;
 import util.memory : allocate;
-import util.ptr : castNonScope, ptrTrustMe;
 import util.sourceRange : Pos;
 import util.sym : sym;
+import util.util : castNonScope, ptrTrustMe;
 
 void testInterpreter(ref Test test) {
 	testCall(test);

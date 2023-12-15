@@ -105,10 +105,10 @@ import util.late : Late, lateGet, lateSet, MutLate;
 import util.lineAndColumnGetter : UriLineAndColumn;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
-import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
 import util.sourceRange : UriAndRange;
 import util.sym : AllSymbols;
 import util.uri : AllUris, getExtension, Uri, UrisInfo;
+import util.util : castNonScope, castNonScope_ref, ptrTrustMe;
 import util.writer : withWriter, Writer;
 import versionInfo : VersionInfo, versionInfoForBuildToC, versionInfoForInterpret;
 

@@ -18,8 +18,8 @@ import util.col.mutMap : getOrAdd, MutMap, mutMapSize, values, valuesArray;
 import util.col.str : SafeCStr;
 import util.memory : initMemory;
 import util.opt : force, has, Opt;
-import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols, safeCStrOfSym, Sym;
+import util.util : ptrTrustMe;
 
 struct AllConstantsBuilder {
 	private:

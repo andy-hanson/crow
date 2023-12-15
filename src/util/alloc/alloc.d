@@ -23,9 +23,8 @@ import util.col.arr : arrayOfRange, arrayOfSingle, endPtr;
 import util.col.enumMap : EnumMap;
 import util.memory : memset;
 import util.opt : ConstOpt, force, has, MutOpt, noneMut, someMut;
-import util.ptr : ptrTrustMe;
 import util.union_ : UnionMutable;
-import util.util : clamp, divRoundUp, max;
+import util.util : clamp, divRoundUp, max, ptrTrustMe;
 
 T withStaticAlloc(T, alias cb)(word[] memory) {
 	scope MetaAlloc metaAlloc = MetaAlloc((size_t sizeWords, size_t timesCalled) {

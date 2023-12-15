@@ -48,10 +48,9 @@ import util.col.arr : arrayOfSingle, empty, only, small;
 import util.col.arrUtil : eachPair, findIndex, map, mapOrNone, mapZip;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault, some;
-import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.sourceRange : Range;
 import util.sym : Sym, sym;
-import util.util : todo;
+import util.util : castNonScope_ref, ptrTrustMe, todo;
 
 private Type instStructFromAst(
 	ref CheckCtx ctx,

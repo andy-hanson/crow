@@ -79,11 +79,10 @@ import util.json :
 	kindField;
 import util.lineAndColumnGetter : LineAndColumnGetter, PosKind;
 import util.opt : Opt;
-import util.ptr : ptrTrustMe;
 import util.sourceRange : jsonOfPosWithinFile, jsonOfRange, Pos, Range;
 import util.union_ : Union;
 import util.uri : AllUris, Path, pathToSafeCStr, RelPath;
-import util.util : stringOfEnum;
+import util.util : ptrTrustMe, stringOfEnum;
 
 Json jsonOfAst(ref Alloc alloc, in AllUris allUris, in LineAndColumnGetter lineAndColumnGetter, in FileAst ast) {
 	Ctx ctx = Ctx(ptrTrustMe(allUris), lineAndColumnGetter);

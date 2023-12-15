@@ -157,11 +157,10 @@ import util.col.str : copyToSafeCStr;
 import util.conv : safeToUshort, safeToUint;
 import util.memory : allocate, initMemory, overwriteMemory;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, someMut, some;
-import util.ptr : castImmutable, castNonScope_ref, ptrTrustMe;
 import util.sourceRange : Pos, Range;
 import util.sym : prependSet, prependSetDeref, Sym, sym, symOfStr;
 import util.union_ : Union;
-import util.util : max, todo, unreachable;
+import util.util : castImmutable, castNonScope_ref, max, ptrTrustMe, todo, unreachable;
 
 Expr checkFunctionBody(
 	ref CheckCtx checkCtx,

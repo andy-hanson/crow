@@ -28,10 +28,9 @@ import util.alloc.alloc : Alloc;
 import util.col.arrUtil : map;
 import util.memory : allocate;
 import util.opt : none;
-import util.ptr : ptrTrustMe;
 import util.sourceRange : UriAndRange;
 import util.sym : sym;
-import util.util : todo;
+import util.util : ptrTrustMe, todo;
 
 ConcreteFunBody bodyForSafeValue(
 	ref ConcretizeCtx concretizeCtx,

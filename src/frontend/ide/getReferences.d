@@ -96,11 +96,10 @@ import util.col.arrUtil : allSame, contains, find, fold, zip, zipIn;
 import util.col.hashTable : mustGet;
 import util.col.mutMaxArr : mutMaxArr, MutMaxArr, push, tempAsArr;
 import util.opt : force, has, none, Opt, optEqual, some;
-import util.ptr : ptrTrustMe;
 import util.sourceRange : Range, UriAndRange;
 import util.sym : AllSymbols, prependSet, Sym;
 import util.uri : AllUris, Uri;
-import util.util : todo, unreachable;
+import util.util : ptrTrustMe, todo, unreachable;
 
 UriAndRange[] getReferencesForPosition(
 	ref Alloc alloc,

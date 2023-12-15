@@ -14,11 +14,10 @@ import util.col.str : SafeCStr, safeCStr, safeCStrEq, strOfSafeCStr;
 import util.conv : isUint, safeToUint;
 import util.lineAndColumnGetter : LineAndColumn;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
-import util.ptr : castNonScope;
 import util.sym : Sym, sym;
 import util.union_ : Union;
 import util.uri : addExtension, alterExtension, AllUris, getExtension, parseUriWithCwd, Uri;
-import util.util : optEnumOfString, todo;
+import util.util : castNonScope, optEnumOfString, todo;
 
 immutable struct Command {
 	CommandKind kind;

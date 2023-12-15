@@ -51,10 +51,9 @@ import util.col.enumMap : EnumMap;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : castNonScope_ref;
 import util.sourceRange : Range, UriAndRange;
 import util.sym : Sym, sym;
-import util.util : todo, unreachable;
+import util.util : castNonScope_ref, todo, unreachable;
 
 enum CommonModule {
 	bootstrap,

@@ -68,11 +68,10 @@ import util.col.str : SafeCStr, safeCStr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.sourceRange : Pos, Range;
 import util.sym : AllSymbols, Sym, sym;
 import util.uri : AllUris;
-import util.util : typeAs;
+import util.util : castNonScope_ref, ptrTrustMe, typeAs;
 
 FileAst* parseFile(
 	scope ref Perf perf,

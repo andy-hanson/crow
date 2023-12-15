@@ -46,8 +46,8 @@ import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
 import util.col.fullIndexMap : fullIndexMapEachValue;
 import util.json : field, Json, jsonObject, jsonString, kindField, writeJson;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols;
+import util.util : ptrTrustMe;
 import util.writer : debugLogWithWriter, Writer;
 
 void checkLowProgram(in AllSymbols allSymbols, in Program program, in LowProgram a) {

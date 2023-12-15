@@ -5,7 +5,7 @@ module util.col.mutMaxArr;
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : arrLiteral, exists;
 import util.memory : overwriteMemory;
-import util.ptr : castNonScope;
+import util.util : castNonScope;
 
 struct MutMaxArr(size_t maxSize, T) {
 	// Current compilers will initialize 'values' even though it is marked '= void'.

@@ -99,12 +99,11 @@ import util.col.str : copySafeCStr;
 import util.memory : allocate, initMemory;
 import util.opt : force, has, none, Opt, someMut, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : ptrTrustMe;
 import util.sourceRange : Range, UriAndRange;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.uri : AllUris, Uri;
-import util.util : unreachable, todo;
+import util.util : ptrTrustMe, unreachable, todo;
 
 immutable struct FileAndAst {
 	Uri uri;

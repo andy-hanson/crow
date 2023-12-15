@@ -66,9 +66,8 @@ import util.col.fullIndexMap :
 import util.col.str : CStr;
 import util.conv : safeToInt;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
-import util.ptr : castImmutable, castNonScope_ref;
 import util.sym : AllSymbols, writeSym;
-import util.util : typeAs;
+import util.util : castImmutable, castNonScope_ref, typeAs;
 import util.writer : withWriter, Writer;
 
 immutable struct GccTypes {

@@ -108,12 +108,11 @@ import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2Mus
 import util.col.str : SafeCStr, safeCStr;
 import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
 import util.sourceRange : Range, UriAndRange;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.uri : Uri;
-import util.util : todo, unreachable;
+import util.util : castNonScope, castNonScope_ref, ptrTrustMe, todo, unreachable;
 import versionInfo : VersionInfo;
 
 ConcreteExpr concretizeFunBody(

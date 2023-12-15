@@ -75,11 +75,10 @@ import util.json :
 	field, Json, jsonList, jsonObject, jsonString, optionalArrayField, optionalFlagField, optionalField, kindField;
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : ptrTrustMe;
 import util.sourceRange : jsonOfRange;
 import util.sym : Sym, sym;
 import util.uri : AllUris, stringOfUri;
-import util.util : stringOfEnum;
+import util.util : ptrTrustMe, stringOfEnum;
 
 Json jsonOfModule(ref Alloc alloc, in AllUris allUris, in LineAndColumnGetter lcg, in Module a) {
 	Ctx ctx = Ctx(ptrTrustMe(a), ptrTrustMe(allUris), lcg);

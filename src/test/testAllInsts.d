@@ -34,9 +34,9 @@ import util.col.hashTable : ValueAndDidAdd;
 import util.col.mutMultiMap : countKeys, eachValueForKey, MutMultiMap;
 import util.memory : allocate;
 import util.opt : force, Opt;
-import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols, Sym, sym, writeSym;
 import util.uri : parseUri, Uri;
+import util.util : ptrTrustMe;
 import util.writer : debugLogWithWriter, writeNewline, Writer;
 
 void testAllInsts(ref Test test) {

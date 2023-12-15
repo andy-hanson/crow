@@ -26,8 +26,8 @@ import util.col.mutMap : mapToMap, mutMapIsEmpty;
 import util.late : lateSet;
 import util.opt : force;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : castNonScope, ptrTrustMe;
 import util.uri : Uri;
+import util.util : castNonScope, ptrTrustMe;
 import versionInfo : VersionInfo;
 
 ConcreteProgram concretize(

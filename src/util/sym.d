@@ -11,7 +11,7 @@ import util.col.str : copyToSafeCStr, eachChar, SafeCStr, strEq, strOfSafeCStr;
 import util.conv : safeToSizeT;
 import util.hash : HashCode, hashUlong;
 import util.opt : force, has, Opt, none, some;
-import util.ptr : castNonScope_ref;
+import util.util : castNonScope_ref;
 import util.writer : digitChar, withWriter, writeEscapedChar, Writer;
 
 immutable struct Sym {

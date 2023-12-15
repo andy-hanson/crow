@@ -39,9 +39,9 @@ import util.col.arrBuilder : add, ArrBuilder, arrBuilderIsEmpty, finishArr;
 import util.col.arrUtil : every, exists, first, zipFirst;
 import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, only, push, tempAsArr, toArray;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : ptrTrustMe;
 import util.sourceRange : Range;
 import util.union_ : Union;
+import util.util : ptrTrustMe;
 
 bool isPurityAlwaysCompatibleConsideringSpecs(in immutable SpecInst*[] funSpecs, Type type, Purity expected) {
 	PurityRange typePurity = purityRange(type);

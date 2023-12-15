@@ -11,7 +11,7 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach_const, makeFullIndexMap_mut;
 import util.memory : allocate;
 import util.opt : force, has, MutOpt, none, some, someMut;
-import util.ptr : castNonScope_ref;
+import util.util : castNonScope_ref;
 
 struct FunToReferences {
 	immutable FunPtrTypeToDynCallSig funPtrTypeToDynCallSig;

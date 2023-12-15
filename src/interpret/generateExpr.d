@@ -143,10 +143,9 @@ import util.col.mutMaxArr : push, tempAsArr;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.opt : force, has, Opt;
-import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
 import util.sym : AllSymbols, Sym;
 import util.union_ : UnionMutable;
-import util.util : divRoundUp, unreachable;
+import util.util : castNonScope, castNonScope_ref, divRoundUp, ptrTrustMe, unreachable;
 
 void generateFunFromExpr(
 	ref TempAlloc tempAlloc,

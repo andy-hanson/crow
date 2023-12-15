@@ -19,10 +19,10 @@ import util.col.arrUtil : arrEqual, arrsCorrespond, indexOf, makeArray, map;
 import util.col.str : SafeCStr, safeCStrEq, strOfSafeCStr;
 import util.opt : force, has, none, Opt;
 import util.perf : Perf;
-import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols;
 import util.uri :
 	AllUris, concatUriAndPath, getExtension, isAncestor, parsePath, parseUri, safeCStrOfUri, Uri, UrisInfo;
+import util.util : ptrTrustMe;
 import util.writer : debugLogWithWriter, Writer;
 
 struct Test {

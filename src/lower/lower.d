@@ -134,11 +134,10 @@ import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.sourceRange : UriAndRange;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
-import util.util : todo, typeAs, unreachable;
+import util.util : castNonScope_ref, ptrTrustMe, todo, typeAs, unreachable;
 
 LowProgram lower(
 	scope ref Perf perf,

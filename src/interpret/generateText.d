@@ -39,8 +39,7 @@ import util.col.exactSizeArrBuilder :
 import util.col.fullIndexMap : FullIndexMap, mapFullIndexMap;
 import util.col.str : SafeCStr, safeCStrSize;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
-import util.ptr : castNonScope, ptrTrustMe;
-import util.util : todo, unreachable;
+import util.util : castNonScope, ptrTrustMe, todo, unreachable;
 
 immutable struct VarsInfo {
 	// Thread-locals and globals offsets are in different buffers.

@@ -31,10 +31,9 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.enumMap : EnumMap;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, someMut, some;
-import util.ptr : ptrTrustMe;
 import util.sourceRange : Range, UriAndRange;
 import util.sym : Sym, sym;
-import util.util : todo;
+import util.util : ptrTrustMe, todo;
 
 CommonTypes* getCommonTypes(
 	ref CheckCtx ctx,

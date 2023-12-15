@@ -131,11 +131,10 @@ import util.col.str : CStr, SafeCStr;
 import util.conv : safeToInt;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : castImmutable, castNonScope, castNonScope_ref, ptrTrustMe;
 import util.sourceRange : UriAndRange;
 import util.sym : AllSymbols, writeSym;
 import util.union_ : Union, UnionMutable;
-import util.util : todo, unreachable;
+import util.util : castImmutable, castNonScope, castNonScope_ref, ptrTrustMe, todo, unreachable;
 import util.writer : debugLogWithWriter, withWriter, Writer;
 
 @trusted int jitAndRun(

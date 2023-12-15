@@ -2,7 +2,7 @@ module util.col.stackMap;
 
 @safe @nogc pure nothrow:
 
-import util.ptr : castNonScope_ref, ptrTrustMe;
+import util.util : castNonScope_ref, ptrTrustMe;
 
 struct StackMap(K, V) {
 	private:

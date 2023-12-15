@@ -31,8 +31,7 @@ import model.model : EnumValue, Local;
 import model.jsonOfConcreteModel : jsonOfConcreteFunRef, jsonOfConcreteStructRef;
 import util.alloc.alloc : Alloc;
 import util.json : field, jsonObject, optionalField, Json, jsonInt, jsonList, jsonString, kindField;
-import util.ptr : castNonScope_ref;
-import util.util : stringOfEnum;
+import util.util : castNonScope_ref, stringOfEnum;
 
 Json jsonOfLowProgram(ref Alloc alloc, in LineAndColumnGetters lineAndColumnGetters, in LowProgram a) {
 	Ctx ctx = Ctx(lineAndColumnGetters);

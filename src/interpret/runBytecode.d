@@ -38,8 +38,7 @@ import util.conv : safeToSizeT;
 import util.memory : memcpy, memmove, overwriteMemory;
 import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasureNoAlloc;
-import util.ptr : castNonScope_ref, ptrTrustMe;
-import util.util : debugLog, divRoundUp, unreachable;
+import util.util : castNonScope_ref, debugLog, divRoundUp, ptrTrustMe, unreachable;
 
 @safe int runBytecode(
 	scope ref Perf perf,

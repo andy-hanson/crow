@@ -10,8 +10,7 @@ import model.constant : Constant;
 import util.alloc.alloc : Alloc, withStackAlloc;
 import util.col.arrUtil : zip;
 import util.opt : force, has;
-import util.ptr : ptrTrustMe;
-import util.util : debugLog;
+import util.util : debugLog, ptrTrustMe;
 import util.writer : withWriter, Writer;
 
 void checkConcreteProgram(in ShowCtx printCtx, in ConcreteCommonTypes types, in ConcreteProgram a) {

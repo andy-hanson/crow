@@ -55,10 +55,9 @@ import util.col.arr : empty;
 import util.col.arrUtil : eachPair, fold, map, mapAndFold, MapAndFold, mapPointers, zipPtrFirst;
 import util.conv : safeToSizeT;
 import util.opt : force, has, none, Opt, optOrDefault, some, someMut;
-import util.ptr : ptrTrustMe;
 import util.sourceRange : Range;
 import util.sym : Sym, sym;
-import util.util : isMultipleOf, todo, unreachable;
+import util.util : isMultipleOf, ptrTrustMe, todo, unreachable;
 
 StructDecl[] checkStructsInitial(ref CheckCtx ctx, in StructDeclAst[] asts) =>
 	mapPointers!(StructDecl, StructDeclAst)(ctx.alloc, asts, (StructDeclAst* ast) {

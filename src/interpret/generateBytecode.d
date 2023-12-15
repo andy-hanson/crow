@@ -60,9 +60,8 @@ import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach, fullIndexMapSize,
 import util.col.mutMaxArr : initializeMutMaxArr, MutMaxArr, push, tempAsArr;
 import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols, Sym, sym;
-import util.util : todo, unreachable;
+import util.util : ptrTrustMe, todo, unreachable;
 
 ByteCode generateBytecode(
 	scope ref Perf perf,

@@ -4,7 +4,7 @@ module util.late;
 
 import util.memory : initMemory;
 import util.opt : force, has, MutOpt, Opt, none, some, someMut;
-import util.ptr : castNonScope_ref;
+import util.util : castNonScope_ref;
 
 struct MutLate(T) {
 	private MutOpt!T value_;

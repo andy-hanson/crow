@@ -27,7 +27,7 @@ import util.col.str : SafeCStr, strOfSafeCStr, strEq;
 import util.exitCode : ExitCode;
 import util.opt : force, Opt;
 import util.perf : Perf, withNullPerf;
-import util.ptr : ptrTrustMe;
+import util.util : ptrTrustMe;
 
 ExitCode test(MetaAlloc* alloc, in SafeCStr[] names) =>
 	withNullPerf!(ExitCode, (scope ref Perf perf) {

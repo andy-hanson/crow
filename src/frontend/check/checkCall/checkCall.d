@@ -63,9 +63,9 @@ import util.col.mutMaxArr :
 	exists, isEmpty, fillMutMaxArr, MutMaxArr, mutMaxArr, mutMaxArrSize, only, push, size, tempAsArr;
 import util.opt : force, has, none, noneMut, Opt, some, some;
 import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMeasure, startMeasure;
-import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.sourceRange : Range;
 import util.sym : Sym, sym;
+import util.util : castNonScope_ref, ptrTrustMe;
 
 Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref CallAst ast, ref Expected expected) {
 	switch (ast.style) {

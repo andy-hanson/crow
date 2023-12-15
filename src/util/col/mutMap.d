@@ -21,7 +21,7 @@ import util.col.hashTable :
 	size;
 import util.col.map : Map;
 import util.opt : ConstOpt, force, has, MutOpt, none, noneMut, Opt, some, someConst, someMut;
-import util.ptr : ptrTrustMe;
+import util.util : ptrTrustMe;
 
 public import util.col.hashTable : ValueAndDidAdd;
 
