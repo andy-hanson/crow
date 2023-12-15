@@ -2,7 +2,7 @@ module frontend.ide.position;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast : FieldMutabilityAst, FunModifierAst, NameAndRange;
+import model.ast : FieldMutabilityAst, FunModifierAst, NameAndRange;
 import model.diag : TypeContainer, typeParamAsts, TypeWithContainer;
 import model.model :
 	Expr,

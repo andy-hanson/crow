@@ -7,7 +7,7 @@ import frontend.check.checkCtx : addDiag, CheckCtx, rangeInFile;
 import frontend.check.instantiate : DelayStructInsts;
 import frontend.check.maps : StructsAndAliasesMap;
 import frontend.check.typeFromAst : checkTypeParams, typeFromAst;
-import frontend.parse.ast :
+import model.ast :
 	FieldMutabilityAst,
 	LiteralIntAst,
 	LiteralNatAst,

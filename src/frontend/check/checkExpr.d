@@ -42,7 +42,7 @@ import frontend.check.inferringType :
 import frontend.check.instantiate : InstantiateCtx, instantiateFun, instantiateStructNeverDelay, noDelayStructInsts;
 import frontend.check.maps : FunsMap, StructsAndAliasesMap;
 import frontend.check.typeFromAst : checkDestructure, makeFutType, makeTupleType, typeFromDestructure;
-import frontend.parse.ast :
+import model.ast :
 	ArrowAccessAst,
 	AssertOrForbidAst,
 	AssignmentAst,

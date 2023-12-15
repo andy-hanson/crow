@@ -2,10 +2,10 @@ module frontend.ide.getDefinition;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast : rangeOfNameAndRange;
 import frontend.ide.getTarget : Target, targetForPosition;
 import frontend.ide.ideUtil : ReferenceCb;
 import frontend.ide.position : Position, PositionKind;
+import model.ast : rangeOfNameAndRange;
 import model.diag : typeParamAsts, uriOfTypeContainer;
 import model.model :
 	FunDecl,

@@ -2,7 +2,7 @@ module frontend.ide.ideUtil;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast : FunModifierAst, NameAndRange, TypeAst;
+import model.ast : FunModifierAst, NameAndRange, TypeAst;
 import model.model;
 import util.col.arr : arrayOfSingle, empty, only;
 import util.col.arrBuilder : ArrBuilderCb;

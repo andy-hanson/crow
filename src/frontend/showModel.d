@@ -3,8 +3,8 @@ module frontend.showModel;
 @safe @nogc pure nothrow:
 
 import frontend.check.typeFromAst : typeSyntaxKind;
-import frontend.parse.ast : NameAndRange;
 import frontend.storage : lineAndColumnAtPos, LineAndColumnGetters, lineAndColumnRange;
+import model.ast : NameAndRange;
 import model.diag : Diag, TypeContainer, typeParamAsts, TypeWithContainer;
 import model.model :
 	Called,

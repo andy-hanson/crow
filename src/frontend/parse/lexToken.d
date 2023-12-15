@@ -2,9 +2,9 @@ module frontend.parse.lexToken;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast : LiteralFloatAst, LiteralIntAst, LiteralNatAst;
 import frontend.parse.lexUtil : isDecimalDigit, startsWith, tryTakeChar, tryTakeChars;
 import frontend.parse.lexWhitespace : DocCommentAndIndentDelta, IndentKind, skipBlankLinesAndGetIndentDelta;
+import model.ast : LiteralFloatAst, LiteralIntAst, LiteralNatAst;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.col.arr : arrayOfRange, empty;

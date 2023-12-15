@@ -14,7 +14,7 @@ import frontend.ide.ideUtil :
 	eachTypeArg,
 	ReferenceCb;
 import frontend.ide.position : Position, PositionKind;
-import frontend.parse.ast :
+import model.ast :
 	AssignmentAst,
 	AssignmentCallAst,
 	CallAst,

@@ -2,8 +2,6 @@ module frontend.parse.parseImport;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast :
-	ImportOrExportAst, ImportOrExportAstKind, ImportsOrExportsAst, NameAndRange, PathOrRelPath, TypeAst;
 import frontend.parse.lexer : addDiag, addDiagAtChar, alloc, allSymbols, curPos, Lexer, range, Token;
 import frontend.parse.parseType : parseType;
 import frontend.parse.parseUtil :
@@ -18,6 +16,8 @@ import frontend.parse.parseUtil :
 	takeOrAddDiagExpectedOperator,
 	tryTakeOperator,
 	tryTakeToken;
+import model.ast :
+	ImportOrExportAst, ImportOrExportAstKind, ImportsOrExportsAst, NameAndRange, PathOrRelPath, TypeAst;
 import model.model : ImportFileType;
 import model.parseDiag : ParseDiag;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;

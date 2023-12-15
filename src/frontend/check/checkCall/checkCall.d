@@ -39,7 +39,7 @@ import frontend.check.inferringType :
 import frontend.check.instantiate : InstantiateCtx;
 import frontend.check.typeFromAst : getNTypeArgsForDiagnostic, unpackTupleIfNeeded;
 import frontend.lang : maxTypeParams;
-import frontend.parse.ast : CallAst, ExprAst, LambdaAst, nameRange, rangeOfNameAndRange;
+import model.ast : CallAst, ExprAst, LambdaAst, nameRange, rangeOfNameAndRange;
 import model.diag : Diag;
 import model.model :
 	arity,

@@ -2,11 +2,11 @@ module frontend.parse.parseType;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast : NameAndRange, range, TypeAst;
 import frontend.parse.lexer :
 	addDiag, addDiagUnexpectedCurToken, alloc, curPos, Lexer, range, rangeAtChar, takeNextToken, Token, TokenAndData;
 import frontend.parse.parseUtil :
 	addDiagExpected, takeOrAddDiagExpectedToken, tryTakeNameAndRange, tryTakeOperator, tryTakeToken;
+import model.ast : NameAndRange, range, TypeAst;
 import model.model : FunKind;
 import model.parseDiag : ParseDiag;
 import util.col.arr : only;

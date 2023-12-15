@@ -5,7 +5,7 @@ module frontend.check.getCommonFuns;
 import frontend.check.funsForStruct : funDeclWithBody;
 import frontend.check.inferringType : typesAreCorrespondingStructInsts;
 import frontend.check.instantiate : InstantiateCtx, instantiateFun, instantiateStructNeverDelay;
-import frontend.parse.ast : NameAndRange;
+import model.ast : NameAndRange;
 import model.diag : Diag, UriAndDiagnostic;
 import model.model :
 	assertNonVariadic,

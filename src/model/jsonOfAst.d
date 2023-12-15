@@ -1,8 +1,8 @@
-module frontend.parse.jsonOfAst;
+module model.jsonOfAst;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast :
+import model.ast :
 	ArrowAccessAst,
 	AssertOrForbidAst,
 	AssignmentAst,

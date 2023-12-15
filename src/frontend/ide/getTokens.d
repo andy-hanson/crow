@@ -5,7 +5,8 @@ module frontend.ide.getTokens;
 import std.range : iota;
 import std.traits : EnumMembers, staticMap;
 
-import frontend.parse.ast :
+import lib.lsp.lspTypes : SemanticTokens;
+import model.ast :
 	ArrowAccessAst,
 	AssertOrForbidAst,
 	AssignmentAst,
@@ -62,7 +63,6 @@ import frontend.parse.ast :
 	UnlessAst,
 	VarDeclAst,
 	WithAst;
-import lib.lsp.lspTypes : SemanticTokens;
 import model.model : symOfVarKind;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;

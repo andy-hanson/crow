@@ -12,7 +12,7 @@ import frontend.check.instantiate :
 	MayDelayStructInsts,
 	noDelayStructInsts;
 import frontend.check.maps : SpecsMap, StructsAndAliasesMap;
-import frontend.parse.ast :
+import model.ast :
 	DestructureAst,
 	NameAndRange,
 	range,

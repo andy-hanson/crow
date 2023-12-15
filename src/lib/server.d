@@ -16,8 +16,6 @@ import frontend.ide.getReferences : getReferencesForPosition;
 import frontend.ide.getTokens : jsonOfDecodedTokens, tokensOfAst;
 import frontend.ide.position : Position;
 import frontend.lang : crowExtension;
-import frontend.parse.ast : fileAstForReadFileDiag, FileAst;
-import frontend.parse.jsonOfAst : jsonOfAst;
 import frontend.showDiag :
 	sortedDiagnostics, stringOfDiag, stringOfDiagnostics, stringOfParseDiagnostics, UriAndDiagnostics;
 import frontend.showModel : ShowCtx, ShowOptions;
@@ -87,8 +85,10 @@ import lib.lsp.lspTypes :
 	WorkspaceEdit,
 	Write;
 import lower.lower : lower;
+import model.ast : fileAstForReadFileDiag, FileAst;
 import model.concreteModel : ConcreteProgram;
 import model.diag : Diagnostic, DiagnosticSeverity, ReadFileDiag;
+import model.jsonOfAst : jsonOfAst;
 import model.jsonOfConcreteModel : jsonOfConcreteProgram;
 import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;

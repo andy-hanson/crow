@@ -4,7 +4,7 @@ module frontend.check.checkCall.checkCalled;
 
 import frontend.check.checkCtx : markUsed;
 import frontend.check.exprCtx : addDiag2, checkCanDoUnsafe, ExprCtx;
-import frontend.parse.ast : ExprAst;
+import model.ast : ExprAst;
 import model.diag : Diag;
 import model.model : Called, CalledSpecSig, FunDecl, FunInst, FunFlags, isVariadic;
 import util.opt : force, has, none, Opt, some;

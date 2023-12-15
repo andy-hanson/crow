@@ -4,7 +4,7 @@ module frontend.check.inferringType;
 
 import frontend.check.exprCtx : addDiag2, ExprCtx, typeWithContainer;
 import frontend.check.instantiate : InstantiateCtx, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray;
-import frontend.parse.ast : ExprAst;
+import model.ast : ExprAst;
 import model.diag : Diag, ExpectedForDiag;
 import model.model :
 	BogusExpr,

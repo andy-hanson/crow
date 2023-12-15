@@ -2,7 +2,7 @@ module model.jsonOfModel;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast : ImportOrExportAst, NameAndRange, pathRange;
+import model.ast : ImportOrExportAst, NameAndRange, pathRange;
 import model.jsonOfConstant : jsonOfConstant;
 import model.model :
 	AssertOrForbidExpr,

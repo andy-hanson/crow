@@ -3,9 +3,9 @@ module lib.cliParser;
 @safe @nogc pure nothrow:
 
 import frontend.lang : cExtension, crowExtension, JitOptions, OptimizationLevel;
-import frontend.parse.ast : LiteralNatAst;
 import frontend.parse.lexToken : takeNat;
 import frontend.parse.lexUtil : isDecimalDigit, tryTakeChar;
+import model.ast : LiteralNatAst;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;

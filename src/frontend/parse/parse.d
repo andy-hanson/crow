@@ -2,28 +2,6 @@ module frontend.parse.parse;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast :
-	DestructureAst,
-	ExplicitVisibility,
-	ExprAst,
-	FieldMutabilityAst,
-	FileAst,
-	FunDeclAst,
-	FunModifierAst,
-	ImportsOrExportsAst,
-	LiteralIntOrNat,
-	LiteralNatAst,
-	ModifierAst,
-	NameAndRange,
-	ParamsAst,
-	SpecBodyAst,
-	SpecDeclAst,
-	SpecSigAst,
-	StructAliasAst,
-	StructDeclAst,
-	TestAst,
-	TypeAst,
-	VarDeclAst;
 import frontend.parse.lexer :
 	addDiagUnexpectedCurToken,
 	alloc,
@@ -58,6 +36,28 @@ import frontend.parse.parseUtil :
 	tryTakeName,
 	tryTakeOperator,
 	tryTakeToken;
+import model.ast :
+	DestructureAst,
+	ExplicitVisibility,
+	ExprAst,
+	FieldMutabilityAst,
+	FileAst,
+	FunDeclAst,
+	FunModifierAst,
+	ImportsOrExportsAst,
+	LiteralIntOrNat,
+	LiteralNatAst,
+	ModifierAst,
+	NameAndRange,
+	ParamsAst,
+	SpecBodyAst,
+	SpecDeclAst,
+	SpecSigAst,
+	StructAliasAst,
+	StructDeclAst,
+	TestAst,
+	TypeAst,
+	VarDeclAst;
 import model.model : TypeParams, VarKind;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;

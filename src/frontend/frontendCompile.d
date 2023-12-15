@@ -6,7 +6,6 @@ import frontend.check.check : BootstrapCheck, check, checkBootstrap, FileAndAst,
 import frontend.check.getCommonFuns : CommonModule, getCommonFuns;
 import frontend.check.instantiate : InstantiateCtx;
 import frontend.lang : crowConfigBaseName, crowExtension;
-import frontend.parse.ast : FileAst, fileAstForReadFileDiag, ImportOrExportAst, ImportOrExportAstKind, NameAndRange;
 import frontend.allInsts : AllInsts, freeInstantiationsForModule, perfStats;
 import frontend.storage :
 	FileContent,
@@ -20,6 +19,7 @@ import frontend.storage :
 	ParseResult,
 	ReadFileResult,
 	Storage;
+import model.ast : FileAst, fileAstForReadFileDiag, ImportOrExportAst, ImportOrExportAstKind, NameAndRange;
 import model.diag : Diag, ReadFileDiag;
 import model.model : CommonTypes, Config, emptyConfig, getConfigUri, getModuleUri, Module, Program;
 import util.alloc.alloc :

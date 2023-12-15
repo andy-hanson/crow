@@ -4,9 +4,9 @@ module frontend.storage;
 
 import frontend.config : parseConfig;
 import frontend.lang : crowConfigBaseName, crowExtension;
-import frontend.parse.ast : FileAst;
 import frontend.parse.parse : parseFile;
 import lib.lsp.lspTypes : TextDocumentContentChangeEvent, TextDocumentPositionParams;
+import model.ast : FileAst;
 import model.diag : ReadFileDiag;
 import model.model : Config;
 import util.alloc.alloc :

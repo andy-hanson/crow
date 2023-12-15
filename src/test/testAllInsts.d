@@ -11,7 +11,7 @@ import frontend.allInsts :
 	getOrAddStructInst,
 	TEST_getAllInstsArrays,
 	TEST_getReferencedBy;
-import frontend.parse.ast : NameAndRange;
+import model.ast : NameAndRange;
 import model.model :
 	emptyTypeArgs,
 	FunInst,

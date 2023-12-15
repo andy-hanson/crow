@@ -7,7 +7,7 @@ import frontend.check.instantiate : InstantiateCtx, noDelayStructInsts;
 import frontend.check.maps : FunsMap, StructsAndAliasesMap;
 import frontend.check.typeFromAst : typeFromAst;
 import frontend.lang : maxClosureFields;
-import frontend.parse.ast : ExprAst, TypeAst;
+import model.ast : ExprAst, TypeAst;
 import model.diag : Diag, TypeContainer, TypeWithContainer;
 import model.model :
 	CommonTypes,

@@ -2,7 +2,6 @@ module frontend.parse.parseUtil;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast : NameAndRange;
 import frontend.parse.lexer :
 	addDiag,
 	addDiagAtChar,
@@ -17,6 +16,7 @@ import frontend.parse.lexer :
 	Token,
 	TokenAndData;
 import frontend.parse.lexToken : isSymToken;
+import model.ast : NameAndRange;
 import model.parseDiag : ParseDiag;
 import util.col.arrUtil : contains;
 import util.col.str : copyToSafeCStr, SafeCStr, safeCStr;

@@ -21,7 +21,7 @@ import frontend.check.instantiate :
 	noDelayStructInsts;
 import frontend.check.typeFromAst :
 	checkDestructure, checkTypeParams, specFromAst, typeFromAst, typeFromAstNoTypeParamsNeverDelay;
-import frontend.parse.ast :
+import model.ast :
 	DestructureAst,
 	ExplicitVisibility,
 	ExprAst,

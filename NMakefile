@@ -72,8 +72,6 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\frontend\ide\getTokens.d \
 	src\frontend\ide\ideUtil.d \
 	src\frontend\ide\position.d \
-	src\frontend\parse\ast.d \
-	src\frontend\parse\jsonOfAst.d \
 	src\frontend\parse\lexer.d \
 	src\frontend\parse\lexToken.d \
 	src\frontend\parse\lexWhitespace.d \
@@ -114,9 +112,11 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\lower\getBuiltinCall.d \
 	src\lower\lower.d \
 	src\lower\lowExprHelpers.d \
+	src\model\ast.d \
 	src\model\concreteModel.d \
 	src\model\constant.d \
 	src\model\diag.d \
+	src\model\jsonOfAst.d \
 	src\model\jsonOfConcreteModel.d \
 	src\model\jsonOfConstant.d \
 	src\model\jsonOfLowModel.d \

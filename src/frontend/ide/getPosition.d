@@ -4,7 +4,7 @@ module frontend.ide.getPosition;
 
 import frontend.ide.ideUtil : eachDestructureComponent, eachSpecParent, eachTypeArg, eachTypeComponent;
 import frontend.ide.position : LocalContainer, Position, PositionKind;
-import frontend.parse.ast :
+import model.ast :
 	DestructureAst,
 	ExplicitVisibility,
 	FieldMutabilityAst,

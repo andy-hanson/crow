@@ -5,7 +5,7 @@ module frontend.check.getCommonTypes;
 import frontend.check.checkCtx : addDiag, CheckCtx;
 import frontend.check.instantiate : DelayStructInsts, InstantiateCtx, instantiateStruct;
 import frontend.check.maps : StructsAndAliasesMap;
-import frontend.parse.ast : NameAndRange;
+import model.ast : NameAndRange;
 import model.diag : Diag;
 import model.model :
 	CommonTypes,

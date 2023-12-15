@@ -3,7 +3,7 @@ module model.model;
 @safe @nogc pure nothrow:
 
 import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
-import frontend.parse.ast :
+import model.ast :
 	DestructureAst,
 	ExprAst,
 	FileAst,

@@ -2,7 +2,7 @@ module document.document;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast : NameAndRange;
+import model.ast : NameAndRange;
 import model.concreteModel : TypeSize;
 import model.model :
 	Destructure,

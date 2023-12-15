@@ -3,7 +3,7 @@ module frontend.check.checkCtx;
 @safe @nogc pure nothrow:
 
 import frontend.check.instantiate : InstantiateCtx;
-import frontend.parse.ast : pathRange;
+import model.ast : pathRange;
 import model.diag : Diag, Diagnostic;
 import model.model :
 	FunDecl,

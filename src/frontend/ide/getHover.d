@@ -3,11 +3,11 @@ module frontend.ide.getHover;
 @safe @nogc pure nothrow:
 
 import frontend.ide.position : Position, PositionKind, typeParamAsts;
-import frontend.parse.ast : FieldMutabilityAst, FunModifierAst;
 import frontend.showModel :
 	ShowCtx, writeCalled, writeFile, writeFunInst, writeLineAndColumnRange, writeName, writeSpecInst, writeTypeUnquoted;
 import frontend.storage : lineAndColumnRange;
 import lib.lsp.lspTypes : Hover, MarkupContent, MarkupKind;
+import model.ast : FieldMutabilityAst, FunModifierAst;
 import model.diag : TypeContainer, typeParamAsts, TypeWithContainer;
 import model.model;
 import util.alloc.alloc : Alloc;

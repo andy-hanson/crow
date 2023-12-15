@@ -1,4 +1,4 @@
-module frontend.parse.ast;
+module model.ast;
 
 @safe @nogc pure nothrow:
 
