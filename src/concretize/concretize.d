@@ -22,7 +22,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : finishArr;
 import util.col.map : Map;
 import util.col.mutArr : moveToArr, MutArr;
-import util.col.mutMap : mapToMap, mutMapIsEmpty;
+import util.col.mutMap : isEmpty, mapToMap;
 import util.late : lateSet;
 import util.opt : force;
 import util.perf : Perf, PerfMeasure, withMeasure;
@@ -67,13 +67,13 @@ ConcreteProgram concretizeInner(
 	ConcreteFun* markFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.mark);
 	ConcreteFun* rtMainConcreteFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.rtMain);
 	// We remove items from these maps when we process them.
-	assert(mutMapIsEmpty(ctx.concreteFunToBodyInputs));
+	assert(isEmpty(ctx.concreteFunToBodyInputs));
 	ConcreteFun* userMainConcreteFun = concretizeMainFun(ctx, force(commonFuns.main));
 	ConcreteFun* allocFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.alloc);
 	ConcreteFun* throwImplFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.throwImpl);
 	ConcreteFun* staticSymbolsFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.staticSymbols);
 	// We remove items from these maps when we process them.
-	assert(mutMapIsEmpty(ctx.concreteFunToBodyInputs));
+	assert(isEmpty(ctx.concreteFunToBodyInputs));
 
 	immutable ConcreteFun*[] allConcreteFuns = finishArr(alloc, ctx.allConcreteFuns);
 

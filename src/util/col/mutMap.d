@@ -88,23 +88,22 @@ struct KeyValuePair(K, V) {
 	V value;
 }
 
-bool mutMapIsEmpty(K, V)(in MutMap!(K, V) a) =>
-	isEmpty(a.inner);
+bool isEmpty(K, V)(in MutMap!(K, V) a) =>
+	.isEmpty(a.inner);
 
-size_t mutMapSize(K, V)(in MutMap!(K, V) a) =>
-	size(a.inner);
+size_t size(K, V)(in MutMap!(K, V) a) =>
+	.size(a.inner);
 
-bool mutMapHasKey(K, V)(in MutMap!(K, V) a, in K key) =>
-	hasKey(a.inner, key);
+bool hasKey(K, V)(in MutMap!(K, V) a, in K key) =>
+	.hasKey(a.inner, key);
 
-ref inout(V) mutMapMustGet(K, V)(ref inout MutMap!(K, V) a, in K key) =>
+ref inout(V) mustGet(K, V)(ref inout MutMap!(K, V) a, in K key) =>
 	.mustGet(a.inner, key).value;
 
-void mustAddToMutMap(K, V)(ref Alloc alloc, scope ref MutMap!(K, V) a, K key, V value) {
-	mustAdd(alloc, a.inner, KeyValuePair!(K, V)(key, value));
+void mustAdd(K, V)(ref Alloc alloc, scope ref MutMap!(K, V) a, K key, V value) {
+	.mustAdd(alloc, a.inner, KeyValuePair!(K, V)(key, value));
 }
 
-// TODO: opIndexAssign
 ref KeyValuePair!(K, V) setInMap(K, V)(ref Alloc alloc, scope ref MutMap!(K, V) a, K key, V value) =>
 	insertOrUpdate!(K, V)(alloc, a, key, () => value, (in V _) => value);
 
@@ -169,14 +168,14 @@ Out[] mapToArray(Out, K, V)(
 ) =>
 	hashTableMapToArray!(Out, KeyValuePair!(K, V), K, getKey)(alloc, a.inner, (ref immutable KeyValuePair!(K, V) x) =>
 		cb(x.key, x.value));
-private @trusted Out[] mapToArray_const(Out, K, V)(
+private @trusted Out[] mapToArray(Out, K, V)(
 	ref Alloc alloc,
 	in MutMap!(K, V) a,
 	in Out delegate(immutable K, ref const V) @safe @nogc pure nothrow cb,
 ) =>
 	hashTableMapToArray!(Out, KeyValuePair!(K, V), K, getKey)(alloc, a.inner, (ref const KeyValuePair!(K, V) x) =>
 		cb(x.key, x.value));
-@trusted Out[] mapToArray_mut(Out, K, V)(
+@trusted Out[] mapToArray(Out, K, V)(
 	ref Alloc alloc,
 	scope ref MutMap!(K, V) a,
 	in Out delegate(immutable K, ref V) @safe @nogc pure nothrow cb,
@@ -204,4 +203,4 @@ private @trusted Out[] mapToArray_const(Out, K, V)(
 }
 
 V[] valuesArray(K, V)(ref Alloc alloc, in MutMap!(K, V) a) =>
-	mapToArray_const!(V, K, V)(alloc, a, (immutable(K) _, ref V v) => v);
+	mapToArray!(V, K, V)(alloc, a, (immutable(K) _, ref V v) => v);

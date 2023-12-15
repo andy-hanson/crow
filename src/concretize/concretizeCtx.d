@@ -72,9 +72,9 @@ import util.col.arr : empty, emptySmallArray, only, only2, small, SmallArray;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil : arrEqual, arrLiteral, arrMax, every, everyWithIndex, exists, fold, map, mapWithIndex, mapZip;
 import util.col.hashTable : getOrAdd, getOrAddAndDidAdd, moveToArray, MutHashTable;
-import util.col.map : Map, mustGetAt, values;
+import util.col.map : Map, mustGet, values;
 import util.col.mutArr : filterUnordered, MutArr, mutArrIsEmpty, push;
-import util.col.mutMap : getOrAdd, getOrAddAndDidAdd, mustAddToMutMap, mustDelete, MutMap, ValueAndDidAdd;
+import util.col.mutMap : getOrAdd, getOrAddAndDidAdd, mustAdd, mustDelete, MutMap, ValueAndDidAdd;
 import util.col.str : SafeCStr;
 import util.hash : HashCode, Hasher;
 import util.late : Late, lateGet, lazilySet;
@@ -277,7 +277,7 @@ ConcreteFun* getConcreteFunForLambdaAndFillBody(
 		returnType,
 		paramsIncludingClosure));
 	ConcreteFunBodyInputs bodyInputs = ConcreteFunBodyInputs(containing, FunBody(FunBody.ExpressionBody(body_)));
-	mustAddToMutMap(ctx.alloc, ctx.concreteFunToBodyInputs, res, bodyInputs);
+	mustAdd(ctx.alloc, ctx.concreteFunToBodyInputs, res, bodyInputs);
 	fillInConcreteFunBody(ctx, [modelParam], res);
 	addConcreteFun(ctx, res);
 	return res;
@@ -397,7 +397,7 @@ ConcreteFun* getConcreteFunFromKey(ref ConcretizeCtx ctx, ref ConcreteFunKey key
 	ConcreteFunBodyInputs bodyInputs = ConcreteFunBodyInputs(
 		toContainingFunInfo(key),
 		key.decl.body_);
-	mustAddToMutMap(ctx.alloc, ctx.concreteFunToBodyInputs, res, bodyInputs);
+	mustAdd(ctx.alloc, ctx.concreteFunToBodyInputs, res, bodyInputs);
 	return res;
 }
 
@@ -754,7 +754,7 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 ConcreteExpr concretizeFileImport(ref ConcretizeCtx ctx, ConcreteFun* cf, in FunBody.FileImport import_) {
 	ConcreteType type = cf.returnType;
 	UriAndRange range = concreteFunRange(*cf);
-	ConcreteExprKind exprKind = mustGetAt(ctx.fileContents, import_.uri).match!ConcreteExprKind(
+	ConcreteExprKind exprKind = mustGet(ctx.fileContents, import_.uri).match!ConcreteExprKind(
 		(FileContent content) {
 			//TODO:PERF creating a Constant per byte is expensive
 			Constant[] bytes = map(ctx.alloc, asBytes(content), (ref immutable ubyte a) =>

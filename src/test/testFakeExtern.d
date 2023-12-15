@@ -8,7 +8,7 @@ import interpret.fakeExtern : unreachableWriteCb, withFakeExtern, WriteCb;
 import lib.lsp.lspTypes : Pipe;
 import model.lowModel : ExternLibrary;
 import test.testUtil : Test;
-import util.col.map : mustGetAt;
+import util.col.map : mustGet;
 import util.col.mutArr : moveToArr, MutArr, pushAll;
 import util.col.str : CStr, SafeCStr, strEq;
 import util.exitCode : ExitCode;
@@ -32,9 +32,9 @@ private:
 			extern_.loadExternFunPtrs(externLibraries, (in SafeCStr _) =>
 				unreachable!void());
 		ExternFunPtrsForAllLibraries funPtrs = force(funPtrsOpt);
-		ExternFunPtrsForLibrary forCrow = mustGetAt(funPtrs, sym!"c");
-		FunPtr free = mustGetAt(forCrow, sym!"free");
-		FunPtr malloc = mustGetAt(forCrow, sym!"malloc");
+		ExternFunPtrsForLibrary forCrow = mustGet(funPtrs, sym!"c");
+		FunPtr free = mustGet(forCrow, sym!"free");
+		FunPtr malloc = mustGet(forCrow, sym!"malloc");
 
 		ulong[1] args8 = [8];
 		DynCallType[2] mallocSigTypes = [DynCallType.pointer, DynCallType.nat64];
@@ -76,8 +76,8 @@ void testWrite(ref Test test) {
 				extern_.loadExternFunPtrs(externLibraries, (in SafeCStr _) =>
 					unreachable!void());
 			ExternFunPtrsForAllLibraries funPtrs = force(funPtrsOpt);
-			ExternFunPtrsForLibrary forCrow = mustGetAt(funPtrs, sym!"c");
-			FunPtr write = mustGetAt(forCrow, sym!"write");
+			ExternFunPtrsForLibrary forCrow = mustGet(funPtrs, sym!"c");
+			FunPtr write = mustGet(forCrow, sym!"write");
 
 			DynCallType[4] sigTypes = [DynCallType.pointer, DynCallType.int32, DynCallType.pointer, DynCallType.nat64];
 			DynCallSig sig = DynCallSig(sigTypes);

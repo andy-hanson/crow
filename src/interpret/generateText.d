@@ -22,7 +22,7 @@ import model.typeLayout : nStackEntriesForType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : castImmutable, empty;
 import util.col.arrUtil : map, mapToMut, sum, zip;
-import util.col.map : mustGetAt;
+import util.col.map : mustGet;
 import util.col.enumMap : EnumMap;
 import util.col.exactSizeArrBuilder :
 	add0Bytes,
@@ -317,7 +317,7 @@ void writeConstant(ref Alloc alloc, ref TempAlloc tempAlloc, ref Ctx ctx, in Low
 			}
 		},
 		(in Constant.FunPtr x) {
-			LowFunIndex fun = mustGetAt(ctx.program.concreteFunToLowFunIndex, x.fun);
+			LowFunIndex fun = mustGet(ctx.program.concreteFunToLowFunIndex, x.fun);
 			registerTextReference(
 				tempAlloc,
 				ctx.funToReferences,

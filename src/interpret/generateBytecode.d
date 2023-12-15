@@ -55,7 +55,7 @@ import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : castImmutable;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : map;
-import util.col.map : Map, KeyValuePair, mustGetAt, zipToMap;
+import util.col.map : Map, KeyValuePair, mustGet, zipToMap;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach, fullIndexMapSize, mapFullIndexMap;
 import util.col.mutMaxArr : initializeMutMaxArr, MutMaxArr, push, tempAsArr;
 import util.opt : force, has, Opt;
@@ -135,7 +135,7 @@ private ByteCode generateBytecodeInner(
 				fillDelayedCall(operations, reference, definition);
 			if (has(references.ptrRefs)) {
 				FunPtrReferences ptrRefs = force(references.ptrRefs);
-				FunPtr funPtr = mustGetAt(syntheticFunPtrs.funToFunPtr, funIndex);
+				FunPtr funPtr = mustGet(syntheticFunPtrs.funToFunPtr, funIndex);
 				foreach (TextIndex reference; ptrRefs.textRefs)
 					*(cast(ulong*) &text.text[reference.index]) = cast(ulong) funPtr.fn;
 				foreach (ByteCodeIndex reference; ptrRefs.funPtrRefs)
@@ -256,7 +256,7 @@ void generateExternCall(
 			break;
 		default:
 			generateExternCallFunPtr(
-				writer, source, program, fun, mustGetAt(mustGetAt(externFunPtrs, a.libraryName), name));
+				writer, source, program, fun, mustGet(mustGet(externFunPtrs, a.libraryName), name));
 			break;
 	}
 	writeReturn(writer, source);

@@ -18,7 +18,7 @@ struct MutIndexMap(K, V) {
 MutIndexMap!(K, V) newMutIndexMap(K, V)(ref Alloc alloc, size_t size) =>
 	MutIndexMap!(K, V)(fillArray!(MutOpt!V)(alloc, size, noneMut!V));
 
-ref const(V) mustGetAt(K, V)(ref const MutIndexMap!(K, V) a, immutable K key) =>
+ref const(V) mustGet(K, V)(ref const MutIndexMap!(K, V) a, immutable K key) =>
 	force(getAt(a, key));
 
 immutable(ValueAndDidAdd!V) getOrAddAndDidAdd(K, V)(

@@ -121,12 +121,12 @@ import util.col.arrUtil :
 	mapZip,
 	mapZipPtrFirst,
 	zipPtrFirst;
-import util.col.map : KeyValuePair, makeMapWithIndex, mustGetAt, Map;
+import util.col.map : KeyValuePair, makeMapWithIndex, mustGet, Map;
 import util.col.mapBuilder : finishMap, mustAddToMap, MapBuilder;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapEachValue, fullIndexMapOfArr, fullIndexMapSize;
-import util.col.mutIndexMap : getOrAddAndDidAdd, mustGetAt, MutIndexMap, newMutIndexMap;
+import util.col.mutIndexMap : getOrAddAndDidAdd, mustGet, MutIndexMap, newMutIndexMap;
 import util.col.mutArr : moveToArr, MutArr, push;
-import util.col.mutMap : getOrAdd, mapToArray_mut, MutMap, MutMap, ValueAndDidAdd;
+import util.col.mutMap : getOrAdd, mapToArray, MutMap, MutMap, ValueAndDidAdd;
 import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2MustGet0, stackMap2MustGet1, withStackMap2;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate, overwriteMemory;
@@ -687,9 +687,9 @@ AllLowFuns getAllLowFuns(
 		getLowTypeCtx.alloc, program.allVars, (size_t i, in immutable ConcreteVar* x) =>
 			immutable KeyValuePair!(immutable ConcreteVar*, LowVarIndex)(x, LowVarIndex(i)));
 
-	LowFunIndex markFunIndex = mustGetAt(concreteFunToLowFunIndex, program.markFun);
-	LowFunIndex allocFunIndex = mustGetAt(concreteFunToLowFunIndex, program.allocFun);
-	LowFunIndex throwImplFunIndex = mustGetAt(concreteFunToLowFunIndex, program.throwImplFun);
+	LowFunIndex markFunIndex = mustGet(concreteFunToLowFunIndex, program.markFun);
+	LowFunIndex allocFunIndex = mustGet(concreteFunToLowFunIndex, program.allocFun);
+	LowFunIndex throwImplFunIndex = mustGet(concreteFunToLowFunIndex, program.throwImplFun);
 	FullIndexMap!(LowFunIndex, LowFun) allLowFuns = fullIndexMapOfArr!(LowFunIndex, LowFun)(
 		mapWithIndexAndConcatOne(
 			getLowTypeCtx.alloc,
@@ -711,7 +711,7 @@ AllLowFuns getAllLowFuns(
 					cause),
 			mainFun(
 				getLowTypeCtx,
-				mustGetAt(concreteFunToLowFunIndex, program.rtMain),
+				mustGet(concreteFunToLowFunIndex, program.rtMain),
 				program.userMain,
 				userMainFunPtrType)));
 
@@ -719,7 +719,7 @@ AllLowFuns getAllLowFuns(
 		concreteFunToLowFunIndex,
 		allLowFuns,
 		LowFunIndex(lowFunCauses.length),
-		mapToArray_mut!(ExternLibrary, Sym, MutArr!Sym)(
+		mapToArray!(ExternLibrary, Sym, MutArr!Sym)(
 			getLowTypeCtx.alloc,
 			allExternSymbols,
 			(Sym libraryName, ref MutArr!Sym xs) =>
@@ -1206,10 +1206,10 @@ LowExprKind getCallSpecial(
 				getLowExpr(ctx, locals, a.args[1], ExprPos.nonTail))));
 		},
 		(ConcreteFunBody.VarGet x) =>
-			LowExprKind(LowExprKind.VarGet(mustGetAt(ctx.varIndices, x.var))),
+			LowExprKind(LowExprKind.VarGet(mustGet(ctx.varIndices, x.var))),
 		(ConcreteFunBody.VarSet x) =>
 			LowExprKind(LowExprKind.VarSet(
-				mustGetAt(ctx.varIndices, x.var),
+				mustGet(ctx.varIndices, x.var),
 				allocate(ctx.alloc, getLowExpr(ctx, locals, only(a.args), ExprPos.nonTail)))));
 
 LowExprKind getRecordFieldGet(ref GetLowExprCtx ctx, in Locals locals, ref ConcreteExpr record, size_t fieldIndex) =>

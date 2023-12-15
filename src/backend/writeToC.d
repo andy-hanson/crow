@@ -52,7 +52,7 @@ import model.typeLayout : sizeOfType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : empty, only, sizeEq;
 import util.col.arrUtil : every, exists, map, zip;
-import util.col.map : mustGetAt;
+import util.col.map : mustGet;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach, fullIndexMapEachKey;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
 import util.col.str : eachChar, SafeCStr;
@@ -1226,7 +1226,7 @@ void writeConstantRef(
 				(LowType.Union) => unreachable!bool);
 			if (isRawPtr)
 				writer ~= "((uint8_t*)";
-			writeFunPtr(writer, ctx, mustGetAt(ctx.program.concreteFunToLowFunIndex, it.fun));
+			writeFunPtr(writer, ctx, mustGet(ctx.program.concreteFunToLowFunIndex, it.fun));
 			if (isRawPtr)
 				writer ~= ')';
 		},

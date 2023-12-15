@@ -124,7 +124,7 @@ import model.typeLayout : typeSizeBytes;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrUtil : fillArray, indexOfPointer, makeArray, map, mapToMut, mapWithIndex, zip;
-import util.col.map : mustGetAt;
+import util.col.map : mustGet;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapZip, mapFullIndexMap_mut;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
 import util.col.str : CStr, SafeCStr;
@@ -1261,7 +1261,7 @@ ExprResult constantToGcc(ref ExprCtx ctx, ref ExprEmit emit, in LowType type, in
 				gcc_jit_context_new_rvalue_from_double(ctx.gcc, getGccType(ctx.types, type), it.value)),
 		(in Constant.FunPtr it) {
 			gcc_jit_rvalue* value = gcc_jit_function_get_address(
-				ctx.gccFuns[mustGetAt(ctx.program.concreteFunToLowFunIndex, it.fun)],
+				ctx.gccFuns[mustGet(ctx.program.concreteFunToLowFunIndex, it.fun)],
 				null);
 			gcc_jit_rvalue* castValue = () {
 				if (type.isA!(LowType.PtrRawConst))

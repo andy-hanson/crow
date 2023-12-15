@@ -21,7 +21,7 @@ import util.alloc.alloc :
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : append, contains;
-import util.col.mutMap : getOrAdd, keys, mayDelete, mustAddToMutMap, MutMap, values;
+import util.col.mutMap : getOrAdd, keys, mayDelete, mustAdd, MutMap, values;
 import util.col.str : SafeCStr, safeCStrSize, strOfSafeCStr;
 import util.json : field, Json, jsonObject;
 import util.lineAndColumnGetter :
@@ -96,11 +96,11 @@ void setFile(scope ref Perf perf, ref Storage a, Uri uri, in ReadFileResult resu
 }
 void setFile(scope ref Perf perf, ref Storage a, Uri uri, in ubyte[] content) {
 	prepareSetFile(a, uri);
-	mustAddToMutMap(a.mapAlloc, a.successes, uri, getFileInfo(perf, a, uri, content));
+	mustAdd(a.mapAlloc, a.successes, uri, getFileInfo(perf, a, uri, content));
 }
 void setFile(scope ref Perf perf, ref Storage a, Uri uri, ReadFileDiag diag) {
 	prepareSetFile(a, uri);
-	mustAddToMutMap(a.mapAlloc, a.diags, uri, diag);
+	mustAdd(a.mapAlloc, a.diags, uri, diag);
 }
 private @trusted void prepareSetFile(ref Storage a, Uri uri) {
 	mayDelete(a.diags, uri);

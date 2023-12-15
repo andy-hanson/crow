@@ -137,7 +137,7 @@ import util.alloc.alloc : TempAlloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add;
 import util.col.arrUtil : indexOfPointer;
-import util.col.map : mustGetAt;
+import util.col.map : mustGet;
 import util.col.mutArr : clearAndFree, MutArr, push, tempAsArr;
 import util.col.mutMaxArr : push, tempAsArr;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
@@ -433,7 +433,7 @@ void writeVarPtr(
 			Opt!Sym libName = var.externLibraryName;
 			writePushConstant(
 				writer, source,
-				cast(ulong) mustGetAt(mustGetAt(ctx.externFunPtrs, force(libName)), var.name).fn);
+				cast(ulong) mustGet(mustGet(ctx.externFunPtrs, force(libName)), var.name).fn);
 			break;
 		case LowVar.Kind.global:
 			writePushConstant(writer, source, cast(ulong) getGlobalsPointer(ctx.varsInfo.offsetsInWords[varIndex]));
@@ -786,7 +786,7 @@ void generateConstant(
 			}
 		},
 		(in Constant.FunPtr it) {
-			LowFunIndex fun = mustGetAt(ctx.program.concreteFunToLowFunIndex, it.fun);
+			LowFunIndex fun = mustGet(ctx.program.concreteFunToLowFunIndex, it.fun);
 			ByteCodeIndex where = writePushFunPtrDelayed(writer, source);
 			registerFunPtrReference(ctx.tempAlloc, ctx.funToReferences, type.as!(LowType.FunPtr), fun, where);
 		},

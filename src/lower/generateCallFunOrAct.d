@@ -17,7 +17,7 @@ import model.lowModel :
 	LowType;
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : arrLiteral, mapZip;
-import util.col.map : mustGetAt;
+import util.col.map : mustGet;
 import util.memory : allocate;
 import util.opt : some;
 import util.sourceRange : UriAndRange;
@@ -47,7 +47,7 @@ LowFun generateCallFunOrAct(
 			localIndex = localIndex + 1;
 			LowExpr then = LowExpr(a.returnType, range, LowExprKind(
 				LowExprKind.Call(
-					mustGetAt(concreteFunToLowFunIndex, impl.impl),
+					mustGet(concreteFunToLowFunIndex, impl.impl),
 					arrLiteral(alloc, [genLocalGet(range, closureLocal), argParamGet]))));
 			return LowExprKind.MatchUnion.Case(some(closureLocal), then);
 		});

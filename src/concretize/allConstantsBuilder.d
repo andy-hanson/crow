@@ -14,7 +14,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
 import util.col.arrUtil : arrEqual, arrLiteral, fillArray, findIndex;
 import util.col.mutArr : moveToArr, MutArr, mutArrSize, push, tempAsArr;
-import util.col.mutMap : getOrAdd, MutMap, mutMapSize, values, valuesArray;
+import util.col.mutMap : getOrAdd, MutMap, size, values, valuesArray;
 import util.col.str : SafeCStr;
 import util.memory : initMemory;
 import util.opt : force, has, Opt;
@@ -51,7 +51,7 @@ AllConstantsConcrete finishAllConstants(
 	Constant staticSymbols = getConstantArr(alloc, a, arrSymStruct, valuesArray(alloc, a.syms));
 
 	ArrTypeAndConstantsConcrete[] arrays = fillArray!ArrTypeAndConstantsConcrete(
-		alloc, mutMapSize(a.arrs), ArrTypeAndConstantsConcrete(null));
+		alloc, size(a.arrs), ArrTypeAndConstantsConcrete(null));
 	foreach (ArrTypeAndConstants x; values(a.arrs))
 		initMemory(&arrays[x.typeIndex], ArrTypeAndConstantsConcrete(
 			x.arrType,
@@ -59,7 +59,7 @@ AllConstantsConcrete finishAllConstants(
 			moveToArr!(immutable Constant[])(alloc, x.constants)));
 
 	PointerTypeAndConstantsConcrete[] pointers = fillArray!PointerTypeAndConstantsConcrete(
-		alloc, mutMapSize(a.pointers), PointerTypeAndConstantsConcrete(null));
+		alloc, size(a.pointers), PointerTypeAndConstantsConcrete(null));
 	foreach (ConcreteStruct* pointerType, PointerTypeAndConstants x; a.pointers)
 		initMemory(&pointers[x.typeIndex], PointerTypeAndConstantsConcrete(pointerType, moveToArr(alloc, x.constants)));
 
@@ -69,7 +69,7 @@ AllConstantsConcrete finishAllConstants(
 // TODO: this will be used when creating constant records by-ref.
 Constant getConstantPtr(ref Alloc alloc, ref AllConstantsBuilder constants, ConcreteStruct* pointee, Constant value) {
 	PointerTypeAndConstants* d = ptrTrustMe(getOrAdd(alloc, constants.pointers, pointee, () =>
-		PointerTypeAndConstants(mutMapSize(constants.pointers), MutArr!(immutable Constant)())));
+		PointerTypeAndConstants(size(constants.pointers), MutArr!(immutable Constant)())));
 	return Constant(Constant.Pointer(
 		d.typeIndex,
 		findOrPush!Constant(alloc, d.constants, (in Constant a) => a == value, () => value)));
@@ -90,7 +90,7 @@ Constant getConstantArr(
 			ArrTypeAndConstants(
 				arrStruct,
 				elementType,
-				mutMapSize(allConstants.arrs), MutArr!(immutable Constant[])())));
+				size(allConstants.arrs), MutArr!(immutable Constant[])())));
 		size_t index = findOrPush!(immutable Constant[])(
 			alloc,
 			d.constants,
@@ -120,7 +120,7 @@ Constant getConstantCStr(ref Alloc alloc, ref AllConstantsBuilder allConstants, 
 		value,
 		() {
 			size_t index = mutArrSize(allConstants.cStringValues);
-			assert(mutMapSize(allConstants.cStrings) == index);
+			assert(size(allConstants.cStrings) == index);
 			push(alloc, allConstants.cStringValues, value);
 			return Constant.CString(index);
 		}));

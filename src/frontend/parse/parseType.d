@@ -13,8 +13,7 @@ import frontend.parse.lexer :
 	range,
 	rangeAtChar,
 	takeNextToken,
-	Token,
-	TokenAndData;
+	Token;
 import frontend.parse.parseUtil :
 	addDiagExpected, takeOrAddDiagExpectedToken, tryTakeNameAndRange, tryTakeOperator, tryTakeToken;
 import model.ast : NameAndRange, range, TypeAst;
