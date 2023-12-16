@@ -60,7 +60,7 @@ import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach, fullIndexMapSize,
 import util.col.mutMaxArr : initializeMutMaxArr, MutMaxArr, push, tempAsArr;
 import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.sym : AllSymbols, Sym, sym;
+import util.symbol : AllSymbols, Symbol, symbol;
 import util.util : ptrTrustMe, todo, unreachable;
 
 ByteCode generateBytecode(
@@ -245,13 +245,13 @@ void generateExternCall(
 	ExternFunPtrsForAllLibraries externFunPtrs,
 ) {
 	ByteCodeSource source = ByteCodeSource(funIndex, lowFunRange(fun).range.start);
-	Opt!Sym optName = name(fun);
-	Sym name = force(optName);
+	Opt!Symbol optName = name(fun);
+	Symbol name = force(optName);
 	switch (name.value) {
-		case sym!"longjmp".value:
+		case symbol!"longjmp".value:
 			writeLongjmp(writer, source);
 			break;
-		case sym!"setjmp".value:
+		case symbol!"setjmp".value:
 			writeSetjmp(writer, source);
 			break;
 		default:
@@ -336,7 +336,7 @@ void toDynCallTypes(in LowProgram program, in LowType a, in void delegate(DynCal
 	} else if (a.isA!(LowType.Union)) {
 		// This should only happen for the 'str[]' in 'main'
 		LowUnion u = program.allUnions[a.as!(LowType.Union)];
-		assert(u.source.source.as!(ConcreteStructSource.Inst).inst.decl.name == sym!"node");
+		assert(u.source.source.as!(ConcreteStructSource.Inst).inst.decl.name == symbol!"node");
 		size_t sizeWords = 3;
 		assert(typeSize(u).sizeBytes == ulong.sizeof * sizeWords);
 		foreach (size_t i; 0 .. sizeWords)

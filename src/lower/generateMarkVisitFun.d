@@ -47,7 +47,7 @@ import util.col.arrUtil : mapWithIndex, newArray;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : UriAndRange;
-import util.sym : sym;
+import util.symbol : symbol;
 import util.util : unreachable;
 
 LowFun generateMarkVisitGcPtr(
@@ -61,8 +61,8 @@ LowFun generateMarkVisitGcPtr(
 	LowType pointeeType = *pointerTypePtrGc.pointee;
 	UriAndRange range = UriAndRange.empty;
 	LowLocal[] params = newArray!LowLocal(alloc, [
-		genLocalByValue(alloc, sym!"mark-ctx", 0, markCtxType),
-		genLocalByValue(alloc, sym!"value", 1, pointerType)]);
+		genLocalByValue(alloc, symbol!"mark-ctx", 0, markCtxType),
+		genLocalByValue(alloc, symbol!"value", 1, pointerType)]);
 	LowExpr markCtx = genLocalGet(range, &params[0]);
 	LowExpr value = genLocalGet(range, &params[1]);
 	LowExpr sizeExpr = genSizeOf(range, pointeeType);
@@ -89,7 +89,7 @@ LowFun generateMarkVisitGcPtr(
 	LowFunExprBody body_ = LowFunExprBody(false, expr);
 	return LowFun(
 		LowFunSource(allocate(alloc, LowFunSource.Generated(
-			sym!"mark-visit",
+			symbol!"mark-visit",
 			newArray!LowType(alloc, [pointerType])))),
 		voidType,
 		params,
@@ -105,8 +105,8 @@ LowFun generateMarkVisitNonArr(
 ) {
 	UriAndRange range = UriAndRange.empty;
 	LowLocal[] params = newArray!LowLocal(alloc, [
-		genLocalByValue(alloc, sym!"mark-ctx", 0, markCtxType),
-		genLocalByValue(alloc, sym!"value", 1, paramType)]);
+		genLocalByValue(alloc, symbol!"mark-ctx", 0, markCtxType),
+		genLocalByValue(alloc, symbol!"value", 1, paramType)]);
 	LowExpr markCtx = genLocalGet(range, &params[0]);
 	LowExpr value = genLocalGet(range, &params[1]);
 	LowFunExprBody body_ = paramType.isA!(LowType.Record)
@@ -117,7 +117,8 @@ LowFun generateMarkVisitNonArr(
 			alloc, range, markVisitFuns, allTypes.allUnions[paramType.as!(LowType.Union)].members, markCtx, value)
 		: unreachable!LowFunExprBody;
 	return LowFun(
-		LowFunSource(allocate(alloc, LowFunSource.Generated(sym!"mark-visit", newArray!LowType(alloc, [paramType])))),
+		LowFunSource(allocate(alloc, LowFunSource.Generated(
+			symbol!"mark-visit", newArray!LowType(alloc, [paramType])))),
 		voidType,
 		params,
 		LowFunBody(body_));
@@ -148,8 +149,8 @@ LowFun generateMarkVisitArr(
 	LowType elementType = *elementPointerType.pointee;
 	UriAndRange range = UriAndRange.empty;
 	LowLocal[] params = newArray!LowLocal(alloc, [
-		genLocalByValue(alloc, sym!"mark-ctx", 0, markCtxType),
-		genLocalByValue(alloc, sym!"a", 1, LowType(arrType))]);
+		genLocalByValue(alloc, symbol!"mark-ctx", 0, markCtxType),
+		genLocalByValue(alloc, symbol!"a", 1, LowType(arrType))]);
 	LowExpr getMarkCtx = genLocalGet(range, &params[0]);
 	LowExpr getA = genLocalGet(range, &params[1]);
 	LowExpr getData = genGetArrData(alloc, range, getA, elementPointerType);
@@ -167,9 +168,9 @@ LowFun generateMarkVisitArr(
 	LowExpr expr = () {
 		if (has(markVisitElementFun)) {
 			LowExpr voidValue = genVoid(range);
-			LowLocal* cur = genLocal(alloc, sym!"cur", 2, LowType(elementPointerType));
+			LowLocal* cur = genLocal(alloc, symbol!"cur", 2, LowType(elementPointerType));
 			LowExpr getCur = genLocalGet(range, cur);
-			LowLocal* end = genLocal(alloc, sym!"end", 3, LowType(elementPointerType));
+			LowLocal* end = genLocal(alloc, symbol!"end", 3, LowType(elementPointerType));
 			LowExpr getEnd = genLocalGet(range, end);
 			LowExpr theLoop = genLoop(alloc, range, voidType, (LowExprKind.Loop* loop) {
 				// mark-ctx mark-visit *cur
@@ -199,7 +200,8 @@ LowFun generateMarkVisitArr(
 			return genDrop(alloc, range, callMark);
 	}();
 	return LowFun(
-		LowFunSource(allocate(alloc, LowFunSource.Generated(sym!"mark-arr", newArray!LowType(alloc, [elementType])))),
+		LowFunSource(allocate(alloc, LowFunSource.Generated(
+			symbol!"mark-arr", newArray!LowType(alloc, [elementType])))),
 		voidType,
 		params,
 		LowFunBody(LowFunExprBody(false, expr)));
@@ -255,7 +257,7 @@ LowFunExprBody visitUnionBody(
 			if (has(visitMember)) {
 				LowLocal* local = genLocal(
 					alloc,
-					sym!"x",
+					symbol!"x",
 					memberIndex,
 					memberType);
 				LowExpr getLocal = genLocalGet(range, local);

@@ -63,7 +63,7 @@ import model.ast :
 	UnlessAst,
 	VarDeclAst,
 	WithAst;
-import model.model : symOfVarKind;
+import model.model : symbolOfVarKind;
 import util.alloc.alloc : Alloc;
 import util.col.arr : isEmpty;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
@@ -75,7 +75,7 @@ import util.lineAndColumnGetter :
 	LineAndCharacter, LineAndCharacterRange, lineAndCharacterRange, LineAndColumnGetter, lineLengthInCharacters;
 import util.opt : force, has, Opt;
 import util.sourceRange : compareRange, Pos, rangeOfStartAndLength, rangeOfStartAndName, Range;
-import util.sym : AllSymbols, Sym, sym, symSize;
+import util.symbol : AllSymbols, Symbol, symbol, symSize;
 import util.uri : AllUris;
 import util.util : stringOfEnum;
 
@@ -256,7 +256,7 @@ void stringLiteral(scope ref TokensBuilder a, in Range range) {
 	reference(a, TokenType.string, range);
 }
 
-Range rangeAtName(in AllSymbols allSymbols, Pos start, Sym name) =>
+Range rangeAtName(in AllSymbols allSymbols, Pos start, Symbol name) =>
 	Range(start, start + symSize(allSymbols, name));
 
 void addImportTokens(
@@ -310,7 +310,7 @@ void addTypeTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in 
 	a.matchIn!void(
 		(in TypeAst.Bogus) {},
 		(in TypeAst.Fun x) {
-			keyword(tokens, rangeOfStartAndName(x.range.start, sym!"fun", allSymbols));
+			keyword(tokens, rangeOfStartAndName(x.range.start, symbol!"fun", allSymbols));
 			foreach (TypeAst t; x.returnAndParamTypes)
 				addTypeTokens(tokens, allSymbols, t);
 		},
@@ -431,7 +431,7 @@ void addEnumOrFlagsTokens(
 void addVarDeclTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in VarDeclAst a) {
 	declare(tokens, TokenType.variable, rangeOfNameAndRange(a.name, allSymbols));
 	addTypeParamsTokens(tokens, allSymbols, a.typeParams);
-	keyword(tokens, rangeOfStartAndLength(a.kindPos, symSize(allSymbols, symOfVarKind(a.kind))));
+	keyword(tokens, rangeOfStartAndLength(a.kindPos, symSize(allSymbols, symbolOfVarKind(a.kind))));
 	addTypeTokens(tokens, allSymbols, a.type);
 	addFunModifierTokens(tokens, allSymbols, a.modifiers);
 }
@@ -453,7 +453,7 @@ void addExprTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in 
 		},
 		(in AssertOrForbidAst x) {
 			// Only the length matters, and "assert" is same length as "forbid"
-			keyword(tokens, rangeOfNameAndRange(NameAndRange(a.range.start, sym!"assert"), allSymbols));
+			keyword(tokens, rangeOfNameAndRange(NameAndRange(a.range.start, symbol!"assert"), allSymbols));
 			addExprTokens(tokens, allSymbols, x.condition);
 			if (has(x.thrown))
 				addExprTokens(tokens, allSymbols, force(x.thrown));
@@ -649,7 +649,7 @@ void addDestructureTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbo
 		(in DestructureAst.Single x) {
 			declare(
 				tokens,
-				x.name.name == sym!"_" ? TokenType.comment : TokenType.parameter,
+				x.name.name == symbol!"_" ? TokenType.comment : TokenType.parameter,
 				rangeOfNameAndRange(x.name, allSymbols));
 			//TODO: add 'mut' keyword
 			if (has(x.type))

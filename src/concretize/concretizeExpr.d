@@ -106,7 +106,7 @@ import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range, UriAndRange;
 import util.string : CString, cString;
-import util.sym : AllSymbols, Sym, sym;
+import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : Union;
 import util.uri : Uri;
 import util.util : castNonScope, castNonScope_ref, ptrTrustMe, todo, unreachable;
@@ -479,9 +479,9 @@ ConcreteExpr concretizeLambda(
 		ConcreteField[] fields = concreteStruct.body_.as!(ConcreteStructBody.Record).fields;
 		assert(fields.length == 2);
 		ConcreteField exclusionField = fields[0];
-		assert(exclusionField.debugName == sym!"exclusion");
+		assert(exclusionField.debugName == symbol!"exclusion");
 		ConcreteField actionField = fields[1];
-		assert(actionField.debugName == sym!"action");
+		assert(actionField.debugName == symbol!"action");
 		ConcreteType funType = actionField.type;
 		ConcreteExpr exclusion = getCurExclusion(ctx, exclusionField.type, range);
 		return ConcreteExpr(type, range, ConcreteExprKind(
@@ -612,7 +612,7 @@ RootLocalAndExpr concretizeWithDestructure(
 				return RootLocalAndExpr(none!(ConcreteLocal*), concretizeBogus(ctx.concretizeCtx, type, range));
 			else {
 				ConcreteLocal* temp = allocate(ctx.alloc, ConcreteLocal(
-					ConcreteLocalSource(ConcreteLocalSource.Generated(sym!"destructure")),
+					ConcreteLocalSource(ConcreteLocalSource.Generated(symbol!"destructure")),
 					getConcreteType(ctx, destructure.type)));
 				return RootLocalAndExpr(
 					some(temp),
@@ -1027,7 +1027,7 @@ Opt!Constant tryEvalConstant(
 	fn.body_.matchIn!(Opt!Constant)(
 		(in ConcreteFunBody.Builtin) {
 			// TODO: don't just special-case this one..
-			Opt!Sym name = name(fn);
+			Opt!Symbol name = name(fn);
 			return has(name) ? tryEvalConstantBuiltin(force(name), versionInfo) : none!Constant;
 		},
 		(in Constant x) =>
@@ -1047,19 +1047,19 @@ Opt!Constant tryEvalConstant(
 		(in ConcreteFunBody.VarGet) => none!Constant,
 		(in ConcreteFunBody.VarSet) => none!Constant);
 
-Opt!Constant tryEvalConstantBuiltin(Sym name, in VersionInfo versionInfo) {
+Opt!Constant tryEvalConstantBuiltin(Symbol name, in VersionInfo versionInfo) {
 	switch (name.value) {
-		case sym!"is-big-endian".value:
+		case symbol!"is-big-endian".value:
 			return some(constantBool(versionInfo.isBigEndian));
-		case sym!"is-interpreted".value:
+		case symbol!"is-interpreted".value:
 			return some(constantBool(versionInfo.isInterpreted));
-		case sym!"is-jit".value:
+		case symbol!"is-jit".value:
 			return some(constantBool(versionInfo.isJit));
-		case sym!"is-single-threaded".value:
+		case symbol!"is-single-threaded".value:
 			return some(constantBool(versionInfo.isSingleThreaded));
-		case sym!"is-wasm".value:
+		case symbol!"is-wasm".value:
 			return some(constantBool(versionInfo.isWasm));
-		case sym!"is-windows".value:
+		case symbol!"is-windows".value:
 			return some(constantBool(versionInfo.isWindows));
 		default:
 			return none!Constant;

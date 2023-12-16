@@ -94,7 +94,7 @@ import util.col.hashTable : mustGet;
 import util.col.mutMaxArr : mutMaxArr, MutMaxArr, push, tempAsArr;
 import util.opt : force, has, none, Opt, optEqual, some;
 import util.sourceRange : Range, UriAndRange;
-import util.sym : AllSymbols, prependSet, Sym;
+import util.symbol : AllSymbols, prependSet, Symbol;
 import util.uri : AllUris, Uri;
 import util.util : ptrTrustMe, todo, unreachable;
 
@@ -204,7 +204,7 @@ void eachImportForName(
 	in AllSymbols allSymbols,
 	in Program program,
 	in Module* exportingModule,
-	Sym name,
+	Symbol name,
 	in ReferenceCb cb,
 ) {
 	eachModuleReferencing(program, exportingModule, (in Module importingModule, in ImportOrExport x) {
@@ -215,7 +215,7 @@ void eachImportForName(
 	in AllSymbols allSymbols,
 	in Module importingModule,
 	in ImportOrExport a,
-	Sym name,
+	Symbol name,
 	in ReferenceCb cb,
 ) {
 	if (has(a.source)) {
@@ -531,7 +531,7 @@ void withRecordFieldFunctions(
 	cb(tempAsArr(res));
 }
 
-immutable(FunDecl*)[] funsNamed(in Module* module_, Sym name) =>
+immutable(FunDecl*)[] funsNamed(in Module* module_, Symbol name) =>
 	mustGet(module_.allExportedNames, name).funs;
 
 bool isRecordFieldFunction(in FunBody a) =>

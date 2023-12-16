@@ -11,15 +11,15 @@ import model.concreteModel :
 	ConcreteStruct,
 	ConcreteStructSource,
 	ConcreteType,
-	ReferenceKind,
-	symOfReferenceKind;
+	ReferenceKind;
 import frontend.showModel : ShowCtx, writeTypeArgsGeneric;
 import model.lowModel :
-	AllLowTypes, LowFun, LowFunIndex, LowFunSource, LowProgram, LowType, PrimitiveType, symOfPrimitiveType;
+	AllLowTypes, LowFun, LowFunIndex, LowFunSource, LowProgram, LowType, PrimitiveType;
 import model.model : Local;
 import util.col.arr : only;
 import util.writer : Writer, writeWithCommas;
-import util.sym : writeSym;
+import util.symbol : writeSym;
+import util.util : stringOfEnum;
 
 void writeFunName(scope ref Writer writer, in ShowCtx ctx, in LowProgram lowProgram, LowFunIndex fun) {
 	writeFunName(writer, ctx, lowProgram, lowProgram.allFuns[fun]);
@@ -88,7 +88,7 @@ void writeLowType(scope ref Writer writer, in ShowCtx ctx, in AllLowTypes lowTyp
 			writer ~= "some fun ptr type"; // TODO: more detail
 		},
 		(in PrimitiveType x) {
-			writeSym(writer, ctx.allSymbols, symOfPrimitiveType(x));
+			writer ~= stringOfEnum(x);
 		},
 		(in LowType.PtrGc x) {
 			writer ~= "gc-ptr(";
@@ -146,7 +146,7 @@ void writeConcreteType(scope ref Writer writer, in ShowCtx ctx, in ConcreteType 
 	writeConcreteStruct(writer, ctx, *a.struct_);
 	if (a.reference != ReferenceKind.byVal) {
 		writer ~= ' ';
-		writeSym(writer, ctx.allSymbols, symOfReferenceKind(a.reference));
+		writer ~= stringOfEnum(a.reference);
 	}
 }
 

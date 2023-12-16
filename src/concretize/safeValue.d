@@ -29,7 +29,7 @@ import util.col.arrUtil : map;
 import util.memory : allocate;
 import util.opt : none;
 import util.sourceRange : UriAndRange;
-import util.sym : sym;
+import util.symbol : symbol;
 import util.util : ptrTrustMe, todo;
 
 ConcreteFunBody bodyForSafeValue(
@@ -148,7 +148,7 @@ ConcreteExpr safeFunValue(ref Ctx ctx, UriAndRange range, ConcreteStruct* struct
 	ConcreteType returnType = typeArgs[0];
 	ConcreteLocal[] params =
 		map!(ConcreteLocal, ConcreteType)(ctx.alloc, typeArgs[1 .. $], (ref ConcreteType paramType) =>
-			ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Generated(sym!"arg")), paramType));
+			ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Generated(symbol!"arg")), paramType));
 	size_t lambdaIndex = ctx.nextLambdaIndex;
 	ctx.nextLambdaIndex++;
 	ConcreteType closureType = voidType(ctx.concretizeCtx);

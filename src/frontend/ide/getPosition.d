@@ -78,7 +78,7 @@ import util.col.arr : ptrsRange;
 import util.col.arrUtil : first, firstPointer, firstWithIndex, firstZipPointerFirst;
 import util.opt : force, has, none, Opt, optIf, optOr, optOr, optOrDefault, some;
 import util.sourceRange : hasPos, Pos, Range, rangeOfStartAndLength;
-import util.sym : AllSymbols;
+import util.symbol : AllSymbols;
 import util.union_ : Union;
 import util.uri : AllUris;
 

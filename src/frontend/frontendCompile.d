@@ -38,7 +38,7 @@ import util.json : field, Json, jsonObject;
 import util.memory : allocate, initMemory;
 import util.opt : ConstOpt, force, has, MutOpt, Opt, none, noneMut, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.sym : AllSymbols, sym;
+import util.symbol : AllSymbols, symbol;
 import util.union_ : Union, UnionMutable;
 import util.uri :
 	addExtension,
@@ -501,20 +501,20 @@ MutOpt!(Config*) tryFindConfig(scope ref Storage storage, scope ref AllUris allU
 }
 
 immutable(EnumMap!(CommonModule, Uri)) commonUris(ref AllUris allUris, Uri includeDir) {
-	Uri includeCrow = childUri(allUris, includeDir, sym!"crow");
-	Uri private_ = childUri(allUris, includeCrow, sym!"private");
-	Uri col = childUri(allUris, includeCrow, sym!"col");
+	Uri includeCrow = childUri(allUris, includeDir, symbol!"crow");
+	Uri private_ = childUri(allUris, includeCrow, symbol!"private");
+	Uri col = childUri(allUris, includeCrow, symbol!"col");
 	return enumMapMapValues!(CommonModule, Uri, Uri)(immutable EnumMap!(CommonModule, Uri)([
-		childUri(allUris, private_, sym!"bootstrap"),
-		childUri(allUris, private_, sym!"alloc"),
-		childUri(allUris, private_, sym!"exception-low-level"),
-		childUri(allUris, includeCrow, sym!"fun-util"),
-		childUri(allUris, includeCrow, sym!"future"),
-		childUri(allUris, col, sym!"list"),
-		childUri(allUris, includeCrow, sym!"std"),
-		childUri(allUris, includeCrow, sym!"string"),
-		childUri(allUris, private_, sym!"runtime"),
-		childUri(allUris, private_, sym!"rt-main"),
+		childUri(allUris, private_, symbol!"bootstrap"),
+		childUri(allUris, private_, symbol!"alloc"),
+		childUri(allUris, private_, symbol!"exception-low-level"),
+		childUri(allUris, includeCrow, symbol!"fun-util"),
+		childUri(allUris, includeCrow, symbol!"future"),
+		childUri(allUris, col, symbol!"list"),
+		childUri(allUris, includeCrow, symbol!"std"),
+		childUri(allUris, includeCrow, symbol!"string"),
+		childUri(allUris, private_, symbol!"runtime"),
+		childUri(allUris, private_, symbol!"rt-main"),
 	]), (in Uri x) => addExtension!crowExtension(allUris, x));
 }
 

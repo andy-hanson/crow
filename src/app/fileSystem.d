@@ -52,7 +52,7 @@ import util.exitCode : ExitCode;
 import util.memory : memset;
 import util.opt : force, has, Opt, some;
 import util.string : CString, cStringSize;
-import util.sym : Sym;
+import util.symbol : Symbol;
 import util.uri :
 	AllUris,
 	alterExtensionWithHex,
@@ -111,7 +111,7 @@ private @trusted void removeFile(in AllUris allUris, FileUri uri) {
 This doesn't create the path, 'cb' should do that.
 But if it is a temp path, this deletes it after the callback finishes.
 */
-ExitCode withUriOrTemp(Sym extension)(
+ExitCode withUriOrTemp(Symbol extension)(
 	ref AllUris allUris,
 	Opt!Uri uri,
 	Uri tempBasePath,

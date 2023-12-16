@@ -13,7 +13,7 @@ import util.json : Json;
 import util.opt : force, has, none, Opt, some;
 import util.jsonParse : parseJson;
 import util.string : CString;
-import util.sym : AllSymbols, Sym, sym;
+import util.symbol : AllSymbols, Symbol, symbol;
 import util.uri : AllUris, bogusUri, parentOrEmpty, parseUriWithCwd, Uri;
 import util.util : todo;
 
@@ -61,11 +61,11 @@ ConfigContent parseConfigRecur(
 	fold!(ConfigContent, Json.ObjectField)(emptyConfigContent, fields, (ConfigContent cur, in Json.ObjectField field) {
 		Json value = field.value;
 		switch (field.key.value) {
-			case sym!"include".value:
+			case symbol!"include".value:
 				return withInclude(
 					cur,
 					parseIncludeOrExtern(alloc, allSymbols, allUris, dirContainingConfig, diags, value));
-			case sym!"extern".value:
+			case symbol!"extern".value:
 				return withExtern(
 					cur,
 					parseIncludeOrExtern(alloc, allSymbols, allUris, dirContainingConfig, diags, value));
@@ -75,7 +75,7 @@ ConfigContent parseConfigRecur(
 		}
 	});
 
-Map!(Sym, Uri) parseIncludeOrExtern(
+Map!(Symbol, Uri) parseIncludeOrExtern(
 	ref Alloc alloc,
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
@@ -102,14 +102,14 @@ Opt!Uri parseUri(
 	}
 }
 
-Map!(Sym, T) parseSymMap(T)(
+Map!(Symbol, T) parseSymMap(T)(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	scope ref ArrBuilder!Diagnostic diags,
 	in Json json,
 	in T delegate(in Json) @safe @nogc pure nothrow cbValue,
 ) {
-	MapBuilder!(Sym, T) res;
+	MapBuilder!(Symbol, T) res;
 	if (json.isA!(Json.Object)) {
 		foreach (ref Json.ObjectField field; json.as!(Json.Object)) {
 			T value = cbValue(field.value);

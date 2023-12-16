@@ -20,18 +20,15 @@ import model.concreteModel :
 	ConcreteStructSource,
 	ConcreteType,
 	ConcreteVar,
-	returnType,
-	symOfBuiltinStructKind,
-	symOfConcreteMutability,
-	symOfReferenceKind;
+	returnType;
 import model.constant : Constant;
 import model.jsonOfConstant : jsonOfConstant;
-import model.model : EnumFunction, enumFunctionName, flagsFunctionName, Local, symOfClosureReferenceKind;
+import model.model : EnumFunction, enumFunctionName, flagsFunctionName, Local;
 import util.alloc.alloc : Alloc;
 import util.json :
 	field, Json, jsonObject, optionalArrayField, optionalField, optionalFlagField, jsonList, jsonString, kindField;
-import util.sym : Sym, sym;
-import util.util : todo;
+import util.symbol : Symbol, symbol;
+import util.util : stringOfEnum, todo;
 
 Json jsonOfConcreteProgram(ref Alloc alloc, in LineAndColumnGetters lcg, in ConcreteProgram a) {
 	Ctx ctx = Ctx(lcg);
@@ -56,7 +53,7 @@ Json jsonOfConcreteStruct(ref Alloc alloc, in ConcreteStruct a) =>
 	jsonObject(alloc, [
 		field!"name"(jsonOfConcreteStructSource(alloc, a.source)),
 		optionalFlagField!"mut"(a.isSelfMutable),
-		field!"reference-kind"(symOfReferenceKind(a.defaultReferenceKind)),
+		field!"reference-kind"(stringOfEnum(a.defaultReferenceKind)),
 		field!"body"(jsonOfConcreteStructBody(alloc, a.body_))]);
 
 Json jsonOfConcreteStructSource(ref Alloc alloc, in ConcreteStructSource a) =>
@@ -94,13 +91,13 @@ Json jsonOfConcreteStructBody(ref Alloc alloc, in ConcreteStructBody a) =>
 Json jsonOfConcreteStructBodyBuiltin(ref Alloc alloc, in ConcreteStructBody.Builtin a) =>
 	jsonObject(alloc, [
 		kindField!"builtin",
-		field!"name"(symOfBuiltinStructKind(a.kind)),
+		field!"name"(stringOfEnum(a.kind)),
 		optionalArrayField!("type-args", ConcreteType)(alloc, a.typeArgs, (in ConcreteType x) =>
 			jsonOfConcreteType(alloc, x))]);
 
 Json jsonOfConcreteType(ref Alloc alloc, in ConcreteType a) =>
 	jsonObject(alloc, [
-		field!"reference-kind"(symOfReferenceKind(a.reference)),
+		field!"reference-kind"(stringOfEnum(a.reference)),
 		field!"struct"(jsonOfConcreteStructRef(alloc, *a.struct_))]);
 
 Json jsonOfConcreteStructBodyRecord(ref Alloc alloc, in ConcreteStructBody.Record a) =>
@@ -112,7 +109,7 @@ Json jsonOfConcreteStructBodyRecord(ref Alloc alloc, in ConcreteStructBody.Recor
 Json jsonOfConcreteField(ref Alloc alloc, in ConcreteField a) =>
 	jsonObject(alloc, [
 		field!"name"(a.debugName),
-		field!"mutability"(symOfConcreteMutability(a.mutability)),
+		field!"mutability"(stringOfEnum(a.mutability)),
 		field!"type"(jsonOfConcreteType(alloc, a.type))]);
 
 Json jsonOfConcreteStructBodyUnion(ref Alloc alloc, in ConcreteStructBody.Union a) =>
@@ -208,12 +205,12 @@ Json jsonOfConcreteLocalDeclare(ref Alloc alloc, in ConcreteLocal a) =>
 Json jsonOfConcreteLocalRef(in ConcreteLocal a) =>
 	jsonString(name(a.source));
 
-Sym name(in ConcreteLocalSource a) =>
-	a.matchIn!Sym(
+Symbol name(in ConcreteLocalSource a) =>
+	a.matchIn!Symbol(
 		(in Local x) =>
 			x.name,
 		(in ConcreteLocalSource.Closure) =>
-			sym!"closure",
+			symbol!"closure",
 		(in ConcreteLocalSource.Generated x) =>
 			x.name);
 
@@ -244,7 +241,7 @@ Json jsonOfConcreteExprKind(ref Alloc alloc, in Ctx ctx, in ConcreteExprKind a) 
 			jsonObject(alloc, [
 				kindField!"closure-get",
 				field!"closure-ref"(jsonOfConcreteClosureRef(alloc, x.closureRef)),
-				field!"reference-kind"(symOfClosureReferenceKind(x.referenceKind))]),
+				field!"reference-kind"(stringOfEnum(x.referenceKind))]),
 		(in ConcreteExprKind.ClosureSet x) =>
 			jsonObject(alloc, [
 				kindField!"closure-set",

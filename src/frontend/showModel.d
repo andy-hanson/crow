@@ -23,7 +23,6 @@ import model.model :
 	ReturnAndParamTypes,
 	SpecInst,
 	StructInst,
-	symOfPurity,
 	Type,
 	TypeParamIndex,
 	TypeParams,
@@ -32,8 +31,9 @@ import util.col.arr : isEmpty, only, only2, sizeEq;
 import util.lineAndColumnGetter : LineAndColumn, LineAndColumnRange, PosKind;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : toUriAndPos, UriAndPos, UriAndRange;
-import util.sym : AllSymbols, Sym, writeSym;
+import util.symbol : AllSymbols, Symbol, writeSym;
 import util.uri : AllUris, Uri, UrisInfo, writeUri, writeUriPreferRelative;
+import util.util : stringOfEnum;
 import util.writer :
 	writeBold, writeHyperlink, writeNewline, writeRed, writeReset, writeWithCommas, writeWithCommasZip, Writer;
 
@@ -184,7 +184,7 @@ void writeSig(
 	scope ref Writer writer,
 	in ShowCtx ctx,
 	in TypeContainer typeContainer,
-	Sym name,
+	Symbol name,
 	in Type returnType,
 	in Params params,
 	in Opt!ReturnAndParamTypes instantiated,
@@ -223,7 +223,7 @@ void writeSigSimple(
 	scope ref Writer writer,
 	in ShowCtx ctx,
 	in TypeContainer typeContainer,
-	Sym name,
+	Symbol name,
 	in TypeParamsAndSig sig,
 ) {
 	writeSym(writer, ctx.allSymbols, name);
@@ -299,7 +299,7 @@ void writeStructInst(scope ref Writer writer, in ShowCtx ctx, in TypeContainer t
 		writer ~= suffix;
 	}
 
-	Sym name = s.decl.name;
+	Symbol name = s.decl.name;
 	Opt!(Diag.TypeShouldUseSyntax.Kind) kind = typeSyntaxKind(name);
 	if (has(kind)) {
 		final switch (force(kind)) {
@@ -404,11 +404,13 @@ void writeTypeUnquoted(scope ref Writer writer, in ShowCtx ctx, in TypeWithConta
 		});
 }
 
-void writePurity(scope ref Writer writer, in ShowCtx ctx, Purity p) {
-	writeName(writer, ctx, symOfPurity(p));
+void writePurity(scope ref Writer writer, in ShowCtx ctx, Purity a) {
+	writer ~= '\'';
+	writer ~= stringOfEnum(a);
+	writer ~= '\'';
 }
 
-void writeName(scope ref Writer writer, in ShowCtx ctx, Sym name) {
+void writeName(scope ref Writer writer, in ShowCtx ctx, Symbol name) {
 	writer ~= '\'';
 	writeSym(writer, ctx.allSymbols, name);
 	writer ~= '\'';

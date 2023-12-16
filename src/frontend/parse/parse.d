@@ -69,7 +69,7 @@ import util.opt : force, has, none, Opt, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : Pos, Range;
 import util.string : CString, cString;
-import util.sym : AllSymbols, Sym, sym;
+import util.symbol : AllSymbols, Symbol, symbol;
 import util.uri : AllUris;
 import util.util : castNonScope_ref, ptrTrustMe, typeAs;
 
@@ -162,7 +162,7 @@ SmallArray!(StructDeclAst.Body.Enum.Member) parseEnumOrFlagsMembers(ref Lexer le
 		ArrBuilder!(StructDeclAst.Body.Enum.Member) res;
 		SmallArray!(StructDeclAst.Body.Enum.Member) recur() {
 			Pos start = curPos(lexer);
-			Sym name = takeName(lexer);
+			Symbol name = takeName(lexer);
 			Opt!LiteralIntOrNat value = () {
 				if (tryTakeToken(lexer, Token.equal)) {
 					switch (getPeekToken(lexer)) {
@@ -217,7 +217,7 @@ StructDeclAst.Body.Record.Field[] parseRecordFields(ref Lexer lexer) {
 Opt!FieldMutabilityAst parseFieldMutability(ref Lexer lexer) {
 	Pos pos = curPos(lexer);
 	TokenAndData peek = getPeekTokenAndData(lexer);
-	if (tryTakeOperator(lexer, sym!"-")) {
+	if (tryTakeOperator(lexer, symbol!"-")) {
 		if (tryTakeToken(lexer, Token.mut))
 			return some(FieldMutabilityAst(pos, FieldMutabilityAst.Kind.private_));
 		else {
@@ -234,7 +234,7 @@ StructDeclAst.Body.Union.Member[] parseUnionMembers(ref Lexer lexer) {
 	ArrBuilder!(StructDeclAst.Body.Union.Member) res;
 	do {
 		Pos start = curPos(lexer);
-		Sym name = takeName(lexer);
+		Symbol name = takeName(lexer);
 		Opt!TypeAst type = peekEndOfLine(lexer) ? none!TypeAst : some(parseType(lexer));
 		add(lexer.alloc, res, StructDeclAst.Body.Union.Member(range(lexer, start), name, type));
 	} while (takeNewlineOrDedent(lexer) == NewlineOrDedent.newline);
@@ -509,12 +509,12 @@ ModifierAst.Kind parseModifierKind(ref Lexer lexer) {
 			return has(kind) ? force(kind) : fail();
 		case Token.operator:
 			switch (token.asSym().value) {
-				case sym!"-".value:
-					Opt!Sym name = tryTakeName(lexer);
-					return has(name) && force(name) == sym!"new" ? ModifierAst.Kind.newPrivate : fail();
-				case sym!"+".value:
-					Opt!Sym name = tryTakeName(lexer);
-					return has(name) && force(name) == sym!"new" ? ModifierAst.Kind.newPublic : fail();
+				case symbol!"-".value:
+					Opt!Symbol name = tryTakeName(lexer);
+					return has(name) && force(name) == symbol!"new" ? ModifierAst.Kind.newPrivate : fail();
+				case symbol!"+".value:
+					Opt!Symbol name = tryTakeName(lexer);
+					return has(name) && force(name) == symbol!"new" ? ModifierAst.Kind.newPublic : fail();
 				default:
 					return fail();
 			}
@@ -523,19 +523,19 @@ ModifierAst.Kind parseModifierKind(ref Lexer lexer) {
 	}
 }
 
-Opt!(ModifierAst.Kind) modifierKindFromSym(Sym a) {
+Opt!(ModifierAst.Kind) modifierKindFromSym(Symbol a) {
 	switch (a.value) {
-		case sym!"by-val".value:
+		case symbol!"by-val".value:
 			return some(ModifierAst.Kind.byVal);
-		case sym!"by-ref".value:
+		case symbol!"by-ref".value:
 			return some(ModifierAst.Kind.byRef);
-		case sym!"data".value:
+		case symbol!"data".value:
 			return some(ModifierAst.Kind.data);
-		case sym!"force-shared".value:
+		case symbol!"force-shared".value:
 			return some(ModifierAst.Kind.forceShared);
-		case sym!"packed".value:
+		case symbol!"packed".value:
 			return some(ModifierAst.Kind.packed);
-		case sym!"shared".value:
+		case symbol!"shared".value:
 			return some(ModifierAst.Kind.shared_);
 		default:
 			return none!(ModifierAst.Kind);
@@ -543,11 +543,11 @@ Opt!(ModifierAst.Kind) modifierKindFromSym(Sym a) {
 }
 
 ExplicitVisibility tryTakeVisibility(ref Lexer lexer) =>
-	tryTakeOperator(lexer, sym!"-")
+	tryTakeOperator(lexer, symbol!"-")
 		? ExplicitVisibility.private_
-		: tryTakeOperator(lexer, sym!"+")
+		: tryTakeOperator(lexer, symbol!"+")
 		? ExplicitVisibility.public_
-		: tryTakeOperator(lexer, sym!"~")
+		: tryTakeOperator(lexer, symbol!"~")
 		? ExplicitVisibility.internal
 		: ExplicitVisibility.default_;
 

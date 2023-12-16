@@ -24,7 +24,6 @@ import model.model :
 	StructDecl,
 	StructInst,
 	StructOrAlias,
-	symOfPurity,
 	Type,
 	TypeParamIndex,
 	TypeParams,
@@ -49,9 +48,9 @@ import util.json :
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : compareUriAndRange, UriAndRange;
 import util.string : CString;
-import util.sym : AllSymbols, Sym, sym;
+import util.symbol : AllSymbols, Symbol, symbol;
 import util.uri : AllUris, stringOfUri;
-import util.util : unreachable;
+import util.util : stringOfEnum, unreachable;
 
 CString documentJSON(ref Alloc alloc, in AllSymbols allSymbols, in AllUris allUris, in Program program) =>
 	jsonToString(alloc, allSymbols, documentRootModules(alloc, allSymbols, allUris, program));
@@ -96,7 +95,7 @@ immutable struct DocExport {
 DocExport documentExport(
 	ref Alloc alloc,
 	UriAndRange range,
-	Sym name,
+	Symbol name,
 	in CString docComment,
 	in TypeParams typeParams,
 	Json value,
@@ -158,7 +157,7 @@ Json documentRecord(ref Alloc alloc, in StructDecl decl, in StructBody.Record a)
 				documentRecordField(alloc, decl.typeParams, field))))]);
 
 Json.ObjectField maybePurity(ref Alloc alloc, in StructDecl decl) =>
-	optionalField!"purity"(decl.purity != Purity.data, () => jsonString(symOfPurity(decl.purity)));
+	optionalField!"purity"(decl.purity != Purity.data, () => jsonString(stringOfEnum(decl.purity)));
 
 bool hasNonPublicFields(in StructBody.Record a) =>
 	exists!RecordField(a.fields, (in RecordField x) {
@@ -228,17 +227,17 @@ DocExport documentFun(ref Alloc alloc, in FunDecl a) =>
 Json[] documentSpecs(ref Alloc alloc, in FunDecl a) {
 	ArrBuilder!Json res;
 	if (a.isBare)
-		add(alloc, res, jsonOfSpecialSpec(alloc, sym!"bare"));
+		add(alloc, res, jsonOfSpecialSpec(alloc, symbol!"bare"));
 	if (a.isSummon)
-		add(alloc, res, jsonOfSpecialSpec(alloc, sym!"summon"));
+		add(alloc, res, jsonOfSpecialSpec(alloc, symbol!"summon"));
 	if (a.isUnsafe)
-		add(alloc, res, jsonOfSpecialSpec(alloc, sym!"unsafe"));
+		add(alloc, res, jsonOfSpecialSpec(alloc, symbol!"unsafe"));
 	foreach (SpecInst* spec; a.specs)
 		add(alloc, res, documentSpecInst(alloc, a.typeParams, *spec));
 	return finishArr(alloc, res);
 }
 
-Json jsonOfSpecialSpec(ref Alloc alloc, Sym name) =>
+Json jsonOfSpecialSpec(ref Alloc alloc, Symbol name) =>
 	jsonObject(alloc, [kindField!"special", field!"name"(name)]);
 
 Json.ObjectField documentParams(ref Alloc alloc, in TypeParams typeParams, in Params params) =>
@@ -249,9 +248,9 @@ Json documentParamDestructures(ref Alloc alloc, in TypeParams typeParams, in Des
 		documentParam(alloc, typeParams, x));
 
 Json documentParam(ref Alloc alloc, in TypeParams typeParams, in Destructure a) {
-	Opt!Sym name = a.name;
+	Opt!Symbol name = a.name;
 	return jsonObject(alloc, [
-		field!"name"(has(name) ? force(name) : sym!"anonymous"),
+		field!"name"(has(name) ? force(name) : symbol!"anonymous"),
 		field!"type"(documentTypeRef(alloc, typeParams, a.type))]);
 }
 
@@ -274,7 +273,7 @@ Json documentNameAndTypeArgs(
 	ref Alloc alloc,
 	in TypeParams typeParams,
 	string nodeType,
-	Sym name,
+	Symbol name,
 	in Type[] typeArgs,
 ) =>
 	isEmpty(typeArgs)

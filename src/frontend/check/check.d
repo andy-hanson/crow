@@ -92,7 +92,7 @@ import util.memory : allocate, initMemory;
 import util.opt : force, has, none, Opt, someMut, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : Range, UriAndRange;
-import util.sym : AllSymbols, Sym, sym;
+import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : Union;
 import util.uri : AllUris, Uri;
 import util.util : ptrTrustMe, unreachable, todo;
@@ -221,11 +221,11 @@ ReturnTypeAndParams checkReturnTypeAndParams(
 		typeFromAst(ctx, commonTypes, returnTypeAst, structsAndAliasesMap, typeParams, delayStructInsts),
 		checkParams(ctx, commonTypes, typeContainer, paramsAst, structsAndAliasesMap, typeParams, delayStructInsts));
 
-SpecDeclBody.Builtin getSpecBodyBuiltinKind(ref CheckCtx ctx, in Range range, Sym name) {
+SpecDeclBody.Builtin getSpecBodyBuiltinKind(ref CheckCtx ctx, in Range range, Symbol name) {
 	switch (name.value) {
-		case sym!"data".value:
+		case symbol!"data".value:
 			return SpecDeclBody.Builtin.data;
-		case sym!"shared".value:
+		case symbol!"shared".value:
 			return SpecDeclBody.Builtin.shared_;
 		default:
 			addDiag(ctx, range, Diag(Diag.BuiltinUnsupported(name)));
@@ -240,7 +240,7 @@ SpecDeclBody checkSpecDeclBody(
 	TypeParams typeParams,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in Range range,
-	Sym name,
+	Symbol name,
 	SpecBodyAst ast,
 ) =>
 	ast.match!SpecDeclBody(
@@ -350,7 +350,7 @@ void checkStructAliasTargets(
 }
 
 StructsAndAliasesMap buildStructsAndAliasesMap(ref CheckCtx ctx, StructDecl[] structs, StructAlias[] aliases) {
-	MutHashTable!(StructOrAlias, Sym, structOrAliasName) builder;
+	MutHashTable!(StructOrAlias, Symbol, structOrAliasName) builder;
 	foreach (StructDecl* decl; ptrsRange(structs))
 		addToDeclsMap!StructOrAlias(
 			ctx, builder, StructOrAlias(decl), Diag.DuplicateDeclaration.Kind.structOrAlias, () => decl.range);
@@ -378,8 +378,8 @@ VarDecl checkVarDecl(
 		checkVarModifiers(ctx, ast.modifiers));
 }
 
-Opt!Sym checkVarModifiers(ref CheckCtx ctx, in FunModifierAst[] modifiers) {
-	Cell!(Opt!Sym) externLibraryName;
+Opt!Symbol checkVarModifiers(ref CheckCtx ctx, in FunModifierAst[] modifiers) {
+	Cell!(Opt!Symbol) externLibraryName;
 	foreach (ref FunModifierAst modifier; modifiers) {
 		modifier.matchIn!void(
 			(in FunModifierAst.Special x) {
@@ -402,7 +402,7 @@ Opt!Sym checkVarModifiers(ref CheckCtx ctx, in FunModifierAst[] modifiers) {
 
 void addToDeclsMap(T, alias getName)(
 	ref CheckCtx ctx,
-	scope ref MutHashTable!(T, Sym, getName) builder,
+	scope ref MutHashTable!(T, Symbol, getName) builder,
 	T added,
 	Diag.DuplicateDeclaration.Kind kind,
 	in UriAndRange delegate() @safe @nogc pure nothrow getRange,
@@ -477,7 +477,7 @@ Opt!(SpecInst*) checkFunModifierNonSpecial(
 }
 
 FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, FunModifierAst.Special.Flags flags) {
-	void warnRedundant(Sym modifier, Sym redundantModifier) {
+	void warnRedundant(Symbol modifier, Symbol redundantModifier) {
 		addDiag(ctx, range, Diag(Diag.ModifierRedundantDueToModifier(modifier, redundantModifier)));
 	}
 
@@ -494,12 +494,12 @@ FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, FunModifierAst.Special.
 	bool implicitBare = extern_;
 	bool bare = explicitBare || implicitBare;
 
-	Sym bodyModifier() {
+	Symbol bodyModifier() {
 		return builtin
-			? sym!"builtin"
+			? symbol!"builtin"
 			: extern_
-			? sym!"extern"
-			: unreachable!Sym;
+			? symbol!"extern"
+			: unreachable!Symbol;
 	}
 
 	FunFlags.Safety safety = !unsafe
@@ -508,9 +508,9 @@ FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, FunModifierAst.Special.
 		? FunFlags.Safety.safe
 		: FunFlags.Safety.unsafe;
 	if (implicitBare && explicitBare)
-		warnRedundant(bodyModifier(), sym!"bare");
+		warnRedundant(bodyModifier(), symbol!"bare");
 	if (implicitUnsafe && explicitUnsafe)
-		warnRedundant(bodyModifier(), sym!"unsafe");
+		warnRedundant(bodyModifier(), symbol!"unsafe");
 	if (trusted && !extern_)
 		addDiag(ctx, range, Diag(Diag.FunModifierTrustedOnNonExtern()));
 	FunFlags.SpecialBody specialBody = builtin
@@ -519,9 +519,9 @@ FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, FunModifierAst.Special.
 		? FunFlags.SpecialBody.extern_
 		: FunFlags.SpecialBody.none;
 	if (builtin + extern_ > 1) {
-		MutMaxArr!(2, Sym) bodyModifiers = mutMaxArr!(2, Sym);
-		if (builtin) pushIfUnderMaxSize(bodyModifiers, sym!"builtin");
-		if (extern_) pushIfUnderMaxSize(bodyModifiers, sym!"extern");
+		MutMaxArr!(2, Symbol) bodyModifiers = mutMaxArr!(2, Symbol);
+		if (builtin) pushIfUnderMaxSize(bodyModifiers, symbol!"builtin");
+		if (extern_) pushIfUnderMaxSize(bodyModifiers, symbol!"extern");
 		assert(mutMaxArrSize(bodyModifiers) == 2);
 		addDiag(ctx, range, Diag(Diag.ModifierConflict(bodyModifiers[0], bodyModifiers[1])));
 	}
@@ -641,7 +641,7 @@ FunsAndMap checkFuns(
 }
 
 FunsMap buildFunsMap(ref Alloc alloc, in immutable FunDecl[] funs) {
-	MutHashTable!(ArrBuilder!(immutable FunDecl*), Sym, funDeclsBuilderName) res;
+	MutHashTable!(ArrBuilder!(immutable FunDecl*), Symbol, funDeclsBuilderName) res;
 	foreach (FunDecl* fun; ptrsRange(funs)) {
 		insertOrUpdate(
 			alloc,
@@ -658,11 +658,11 @@ FunsMap buildFunsMap(ref Alloc alloc, in immutable FunDecl[] funs) {
 			});
 	}
 	return mapAndMovePreservingKeys!(
-		immutable FunDecl*[], funDeclsName, ArrBuilder!(immutable FunDecl*), Sym, funDeclsBuilderName,
+		immutable FunDecl*[], funDeclsName, ArrBuilder!(immutable FunDecl*), Symbol, funDeclsBuilderName,
 	)(alloc, res, (ref ArrBuilder!(immutable FunDecl*) x) =>
 		finishArr(alloc, x));
 }
-Sym funDeclsBuilderName(in ArrBuilder!(immutable FunDecl*) a) =>
+Symbol funDeclsBuilderName(in ArrBuilder!(immutable FunDecl*) a) =>
 	arrBuilderTempAsArr(a)[0].name;
 
 Opt!TypeAst getExternTypeArg(ref FunDeclAst a, FunModifierAst.Special.Flags externOrGlobalFlag) {
@@ -731,13 +731,13 @@ Type typeForFileImport(
 ) {
 	final switch (type) {
 		case ImportFileType.nat8Array:
-			TypeAst nat8 = TypeAst(NameAndRange(range.start, sym!"nat8"));
-			TypeAst.SuffixName suffixName = TypeAst.SuffixName(nat8, NameAndRange(range.start, sym!"array"));
+			TypeAst nat8 = TypeAst(NameAndRange(range.start, symbol!"nat8"));
+			TypeAst.SuffixName suffixName = TypeAst.SuffixName(nat8, NameAndRange(range.start, symbol!"array"));
 			scope TypeAst arrayNat8 = TypeAst(&suffixName);
 			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, arrayNat8, structsAndAliasesMap);
 		case ImportFileType.string:
 			//TODO: this sort of duplicates 'getStrType'
-			TypeAst ast = TypeAst(NameAndRange(range.start, sym!"string"));
+			TypeAst ast = TypeAst(NameAndRange(range.start, symbol!"string"));
 			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, ast, structsAndAliasesMap);
 	}
 }
@@ -765,17 +765,17 @@ FunBody.Extern checkExternBody(ref CheckCtx ctx, FunDecl* fun, in Opt!TypeAst ty
 	return FunBody.Extern(externLibraryNameFromTypeArg(ctx, fun.range.range, typeArg));
 }
 
-Sym externLibraryNameFromTypeArg(ref CheckCtx ctx, in Range range, in Opt!TypeAst typeArg) {
+Symbol externLibraryNameFromTypeArg(ref CheckCtx ctx, in Range range, in Opt!TypeAst typeArg) {
 	if (has(typeArg) && force(typeArg).isA!NameAndRange)
 		return force(typeArg).as!NameAndRange.name;
 	else {
 		addDiag(ctx, range, Diag(Diag.ExternMissingLibraryName()));
-		return sym!"bogus";
+		return symbol!"bogus";
 	}
 }
 
 SpecsMap buildSpecsMap(ref CheckCtx ctx, SpecDecl[] specs) {
-	MutHashTable!(immutable SpecDecl*, Sym, specDeclName) builder;
+	MutHashTable!(immutable SpecDecl*, Symbol, specDeclName) builder;
 	foreach (SpecDecl* spec; ptrsRange(specs))
 		addToDeclsMap(ctx, builder, spec, Diag.DuplicateDeclaration.Kind.spec, () => spec.range);
 	return moveToImmutable(builder);
@@ -825,16 +825,16 @@ Module* checkWorkerAfterCommonTypes(
 			ctx, importsAndReExports.moduleReExports, structsAndAliasesMap, specsMap, funsAndMap.funsMap)));
 }
 
-HashTable!(NameReferents, Sym, nameFromNameReferents) getAllExportedNames(
+HashTable!(NameReferents, Symbol, nameFromNameReferents) getAllExportedNames(
 	ref CheckCtx ctx,
 	in ImportOrExport[] reExports,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in SpecsMap specsMap,
 	in FunsMap funsMap,
 ) {
-	MutHashTable!(NameReferents, Sym, nameFromNameReferents) res;
+	MutHashTable!(NameReferents, Symbol, nameFromNameReferents) res;
 	void addExport(NameReferents toAdd, Range delegate() @safe @nogc pure nothrow range) {
-		insertOrUpdate!(NameReferents, Sym, nameFromNameReferents)(
+		insertOrUpdate!(NameReferents, Symbol, nameFromNameReferents)(
 			ctx.alloc,
 			res,
 			nameFromNameReferents(toAdd),
@@ -1068,7 +1068,7 @@ Opt!(NameReferents*)[] checkNamedImports(
 	in NameAndRange[] names,
 ) =>
 	map(alloc, names, (ref NameAndRange name) {
-		Opt!(NameReferents*) referents = getPointer!(NameReferents, Sym, nameFromNameReferents)(
+		Opt!(NameReferents*) referents = getPointer!(NameReferents, Symbol, nameFromNameReferents)(
 			module_.allExportedNames, name.name);
 		if (!has(referents))
 			add(alloc, diagsBuilder, Diagnostic(

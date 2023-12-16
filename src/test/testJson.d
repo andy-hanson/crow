@@ -7,7 +7,7 @@ import util.json : Json, writeJson;
 import util.jsonParse : parseJson;
 import util.opt : force, has, Opt;
 import util.string : CString, cString;
-import util.sym : sym;
+import util.symbol : symbol;
 import util.util : typeAs;
 import util.writer : debugLogWithWriter, Writer;
 
@@ -52,12 +52,12 @@ void testString(ref Test test) {
 
 @trusted void testObject(ref Test test) {
 	verifyParseJson(test, cString!"{ }", Json(typeAs!(Json.Object)([])));
-	scope Json.ObjectField[1] fieldsA = [Json.ObjectField(sym!"x", Json(false))];
+	scope Json.ObjectField[1] fieldsA = [Json.ObjectField(symbol!"x", Json(false))];
 	verifyParseJson(test, cString!"{ \"x\": false }", Json(fieldsA));
 	scope Json[1] values = [Json(true)];
 	scope Json.ObjectField[2] fieldsB = [
-		Json.ObjectField(sym!"a", Json(fieldsA)),
-		Json.ObjectField(sym!"b", Json(values)),
+		Json.ObjectField(symbol!"a", Json(fieldsA)),
+		Json.ObjectField(symbol!"b", Json(values)),
 	];
 	verifyParseJson(test, cString!"{\"a\":{\"x\":false}, \"b\":[true]}", Json(fieldsB));
 }

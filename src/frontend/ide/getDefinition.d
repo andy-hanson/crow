@@ -24,7 +24,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : buildArray;
 import util.opt : force, has, Opt;
 import util.sourceRange : UriAndRange;
-import util.sym : AllSymbols;
+import util.symbol : AllSymbols;
 import util.uri : Uri;
 
 UriAndRange[] getDefinitionForPosition(ref Alloc alloc, in AllSymbols allSymbols, in Program program, in Position pos) {

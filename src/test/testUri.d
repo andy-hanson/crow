@@ -6,7 +6,7 @@ import test.testUtil : Test;
 import util.comparison : Comparison;
 import util.opt : none, optEqual, some;
 import util.string : CString, cString;
-import util.sym : Sym, sym, symAsTempBuffer, symOfStr;
+import util.symbol : Symbol, symbol, symAsTempBuffer, symbolOfString;
 import util.uri :
 	AllUris,
 	asFileUri,
@@ -43,10 +43,10 @@ void testUri(ref Test test) {
 
 	assert(cStringOfUri(test.alloc, allUris, a) == "file:///a");
 
-	Uri aX = childUri(allUris, a, sym!"x");
+	Uri aX = childUri(allUris, a, symbol!"x");
 	verifyUri(test, allUris, aX, ["file://", "a", "x"]);
-	assert(childUri(allUris, a, sym!"x") == aX);
-	Uri aY = childUri(allUris, a, sym!"y");
+	assert(childUri(allUris, a, symbol!"x") == aX);
+	Uri aY = childUri(allUris, a, symbol!"y");
 	verifyUri(test, allUris, aY, ["file://", "a", "y"]);
 	assert(aX != aY);
 	assert(cStringOfUri(test.alloc, allUris, aX) == "file:///a/x");
@@ -54,9 +54,9 @@ void testUri(ref Test test) {
 
 	Uri zW = parseUriWithCwd(allUris, aX, cString!"/z/w.crow");
 	verifyUri(test, allUris, zW, ["file://", "z", "w.crow"]);
-	assert(baseName(allUris, zW) == symOfStr(test.allSymbols, "w.crow"));
+	assert(baseName(allUris, zW) == symbolOfString(test.allSymbols, "w.crow"));
 	assert(cStringOfUri(test.alloc, allUris, zW) == "file:///z/w.crow");
-	assert(getExtension(allUris, zW) == sym!".crow");
+	assert(getExtension(allUris, zW) == symbol!".crow");
 	Uri aXZW = parseUriWithCwd(allUris, aX, cString!"./z/w");
 	assert(cStringOfUri(test.alloc, allUris, aXZW) == "file:///a/x/z/w");
 	assert(aXZW == parseUriWithCwd(allUris, aX, cString!"z/w"));
@@ -71,7 +71,7 @@ void testUri(ref Test test) {
 	assert(optEqual!Uri(commonAncestor(allUris, [aX, crowLang]), none!Uri));
 
 	assert(optEqual!Uri(parent(allUris, crowLang), none!Uri));
-	assert(getExtension(allUris, crowLang) == sym!"");
+	assert(getExtension(allUris, crowLang) == symbol!"");
 
 	testFileUri(test);
 }
@@ -103,15 +103,15 @@ void verifyUri(ref Test test, in AllUris allUris, Uri a, in string[] expectedPar
 
 void verifyPath(ref Test test, in AllUris allUris, Path a, in string[] expectedParts) {
 	size_t i = 0;
-	TEST_eachPart(allUris, a, (Sym x) {
+	TEST_eachPart(allUris, a, (Symbol x) {
 		assert(i < expectedParts.length);
-		verifyEq(test, x, symOfStr(test.allSymbols, expectedParts[i]));
+		verifyEq(test, x, symbolOfString(test.allSymbols, expectedParts[i]));
 		i++;
 	});
 	assert(i == expectedParts.length);
 }
 
-void verifyEq(ref Test test, Sym a, Sym b) {
+void verifyEq(ref Test test, Symbol a, Symbol b) {
 	if (a != b) {
 		debug {
 			debugLog("Symbols not equal:");

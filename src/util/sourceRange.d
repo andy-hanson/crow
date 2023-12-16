@@ -6,7 +6,7 @@ import util.alloc.alloc : Alloc;
 import util.comparison : compareNat32, Comparison;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonObject;
-import util.sym : AllSymbols, Sym, symSize;
+import util.symbol : AllSymbols, Symbol, symSize;
 import util.lineAndColumnGetter :
 	LineAndCharacter, lineAndCharacterAtPos, LineAndCharacterRange, LineAndColumnGetter, PosKind;
 import util.uri : AllUris, compareUriAlphabetically, Uri;
@@ -51,7 +51,7 @@ Range combineRanges(in Range a, in Range b) {
 bool hasPos(in Range a, Pos p) =>
 	a.start <= p && p <= a.end;
 
-Range rangeOfStartAndName(Pos start, Sym name, in AllSymbols allSymbols) =>
+Range rangeOfStartAndName(Pos start, Symbol name, in AllSymbols allSymbols) =>
 	rangeOfStartAndLength(start, symSize(allSymbols, name));
 
 Range rangeOfStartAndLength(Pos start, size_t length) =>

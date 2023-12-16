@@ -143,7 +143,7 @@ import util.col.mutMaxArr : push, tempAsArr;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.opt : force, has, Opt;
-import util.sym : AllSymbols, Sym;
+import util.symbol : AllSymbols, Symbol;
 import util.union_ : UnionMutable;
 import util.util : castNonScope, castNonScope_ref, divRoundUp, ptrTrustMe, unreachable;
 
@@ -430,7 +430,7 @@ void writeVarPtr(
 ) {
 	final switch (var.kind) {
 		case LowVar.Kind.externGlobal:
-			Opt!Sym libName = var.externLibraryName;
+			Opt!Symbol libName = var.externLibraryName;
 			writePushConstant(
 				writer, source,
 				cast(ulong) mustGet(mustGet(ctx.externFunPtrs, force(libName)), var.name).fn);

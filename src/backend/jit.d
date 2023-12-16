@@ -132,7 +132,7 @@ import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : UriAndRange;
 import util.string : CString;
-import util.sym : AllSymbols, writeSym;
+import util.symbol : AllSymbols, writeSym;
 import util.union_ : Union, UnionMutable;
 import util.util : castImmutable, castNonScope, castNonScope_ref, ptrTrustMe, todo, unreachable;
 import util.writer : debugLogWithWriter, withWriter, Writer;

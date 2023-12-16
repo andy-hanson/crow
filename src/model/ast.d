@@ -13,7 +13,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.sourceRange : Pos, Range, rangeOfStartAndLength, rangeOfStartAndName;
 import util.string : CString, cString;
-import util.sym : AllSymbols, Sym, sym;
+import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : Union;
 import util.uri : AllUris, Path, pathLength, RelPath, relPathLength;
 import util.util : unreachable;
@@ -21,11 +21,11 @@ import util.util : unreachable;
 immutable struct NameAndRange {
 	@safe @nogc pure nothrow:
 
-	Sym name;
+	Symbol name;
 	// Range length is given by size of name
 	Pos start;
 
-	this(Pos s, Sym n) {
+	this(Pos s, Symbol n) {
 		name = n;
 		start = s;
 	}
@@ -170,29 +170,29 @@ private uint suffixLength(TypeAst.SuffixSpecial.Kind a) {
 	}
 }
 
-Sym symForTypeAstMap(TypeAst.Map.Kind a) {
+Symbol symForTypeAstMap(TypeAst.Map.Kind a) {
 	final switch (a) {
 		case TypeAst.Map.Kind.data:
-			return sym!"map";
+			return symbol!"map";
 		case TypeAst.Map.Kind.mut:
-			return sym!"mut-map";
+			return symbol!"mut-map";
 	}
 }
 
-Sym symForTypeAstSuffix(TypeAst.SuffixSpecial.Kind a) {
+Symbol symForTypeAstSuffix(TypeAst.SuffixSpecial.Kind a) {
 	final switch (a) {
 		case TypeAst.SuffixSpecial.Kind.future:
-			return sym!"future";
+			return symbol!"future";
 		case TypeAst.SuffixSpecial.Kind.list:
-			return sym!"list";
+			return symbol!"list";
 		case TypeAst.SuffixSpecial.Kind.mutList:
-			return sym!"mut-list";
+			return symbol!"mut-list";
 		case TypeAst.SuffixSpecial.Kind.mutPtr:
-			return sym!"mut-pointer";
+			return symbol!"mut-pointer";
 		case TypeAst.SuffixSpecial.Kind.option:
-			return sym!"option";
+			return symbol!"option";
 		case TypeAst.SuffixSpecial.Kind.ptr:
-			return sym!"const-pointer";
+			return symbol!"const-pointer";
 	}
 }
 
@@ -241,7 +241,7 @@ immutable struct CallAst {
 	}
 	// For some reason we have to break this up to get the struct size lower
 	//immutable NameAndRange funName;
-	Sym funNameName;
+	Symbol funNameName;
 	Pos funNameStart;
 	Style style;
 	Opt!(TypeAst*) typeArg;
@@ -276,7 +276,7 @@ immutable struct ForAst {
 }
 
 immutable struct IdentifierAst {
-	Sym name;
+	Symbol name;
 }
 
 immutable struct IfAst {
@@ -415,7 +415,7 @@ immutable struct MatchAst {
 		@safe @nogc pure nothrow:
 
 		Range range;
-		Sym memberName;
+		Symbol memberName;
 		Opt!DestructureAst destructure;
 		ExprAst then;
 
@@ -536,7 +536,7 @@ immutable struct SpecSigAst {
 
 	CString docComment;
 	Range range;
-	Sym name;
+	Symbol name;
 	TypeAst returnType;
 	ParamsAst params;
 
@@ -572,7 +572,7 @@ immutable struct ModifierAst {
 }
 
 Range rangeOfModifierAst(ModifierAst a, ref const AllSymbols allSymbols) =>
-	rangeOfStartAndName(a.pos, symOfModifierKind(a.kind), allSymbols);
+	rangeOfStartAndName(a.pos, symbolOfModifierKind(a.kind), allSymbols);
 
 immutable struct LiteralIntOrNat {
 	mixin Union!(LiteralIntAst, LiteralNatAst);
@@ -584,7 +584,7 @@ immutable struct StructDeclAst {
 		immutable struct Enum {
 			immutable struct Member {
 				Range range;
-				Sym name;
+				Symbol name;
 				Opt!LiteralIntOrNat value;
 			}
 
@@ -613,7 +613,7 @@ immutable struct StructDeclAst {
 		immutable struct Union {
 			immutable struct Member {
 				Range range;
-				Sym name;
+				Symbol name;
 				Opt!TypeAst type;
 			}
 			Member[] members;
@@ -640,20 +640,20 @@ Range keywordRange(in AllSymbols allSymbols, in StructDeclAst a) =>
 Range nameRange(in AllSymbols allSymbols, in StructDeclAst a) =>
 	rangeOfNameAndRange(a.name, allSymbols);
 
-private Sym keywordForStructBody(in StructDeclAst.Body a) =>
-	a.matchIn!Sym(
+private Symbol keywordForStructBody(in StructDeclAst.Body a) =>
+	a.matchIn!Symbol(
 		(in StructDeclAst.Body.Builtin) =>
-			sym!"builtin",
+			symbol!"builtin",
 		(in StructDeclAst.Body.Enum) =>
-			sym!"enum",
+			symbol!"enum",
 		(in StructDeclAst.Body.Extern) =>
-			sym!"extern",
+			symbol!"extern",
 		(in StructDeclAst.Body.Flags) =>
-			sym!"flags",
+			symbol!"flags",
 		(in StructDeclAst.Body.Record) =>
-			sym!"record",
+			symbol!"record",
 		(in StructDeclAst.Body.Union) =>
-			sym!"union");
+			symbol!"union");
 
 immutable struct SpecBodyAst {
 	immutable struct Builtin {}
@@ -837,27 +837,27 @@ private FileAst* fileAstForDiags(ref Alloc alloc, ParseDiagnostic[] diags) =>
 FileAst* fileAstForReadFileDiag(ref Alloc alloc, ReadFileDiag a) =>
 	fileAstForDiags(alloc, newArray(alloc, [ParseDiagnostic(Range.empty, ParseDiag(a))]));
 
-Sym symOfModifierKind(ModifierAst.Kind a) {
+Symbol symbolOfModifierKind(ModifierAst.Kind a) {
 	final switch (a) {
 		case ModifierAst.Kind.byRef:
-			return sym!"by-ref";
+			return symbol!"by-ref";
 		case ModifierAst.Kind.byVal:
-			return sym!"by-val";
+			return symbol!"by-val";
 		case ModifierAst.Kind.data:
-			return sym!"data";
+			return symbol!"data";
 		case ModifierAst.Kind.extern_:
-			return sym!"extern";
+			return symbol!"extern";
 		case ModifierAst.Kind.forceShared:
-			return sym!"force-shared";
+			return symbol!"force-shared";
 		case ModifierAst.Kind.mut:
-			return sym!"mut";
+			return symbol!"mut";
 		case ModifierAst.Kind.newPrivate:
-			return sym!"-new";
+			return symbol!"-new";
 		case ModifierAst.Kind.newPublic:
-			return sym!"+new";
+			return symbol!"+new";
 		case ModifierAst.Kind.packed:
-			return sym!"packed";
+			return symbol!"packed";
 		case ModifierAst.Kind.shared_:
-			return sym!"shared";
+			return symbol!"shared";
 	}
 }

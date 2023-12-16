@@ -23,7 +23,7 @@ import util.col.mutArr : MutArr, mutArrIsEmpty, push, tempAsArr;
 import util.memory : memmove, memset;
 import util.opt : force, has, none, Opt, some;
 import util.string : cString;
-import util.sym : AllSymbols, Sym, sym;
+import util.symbol : AllSymbols, Symbol, symbol;
 import util.util : debugLog, todo, unreachable;
 
 alias WriteCb = void delegate(Pipe, in string);
@@ -59,13 +59,13 @@ Opt!ExternFunPtrsForAllLibraries getAllFakeExternFuns(
 	in ExternLibraries libraries,
 	scope WriteError writeError,
 ) {
-	MutArr!(immutable KeyValuePair!(Sym, Sym)) failures;
-	ExternFunPtrsForAllLibraries res = makeMap!(Sym, ExternFunPtrsForLibrary, ExternLibrary)(
+	MutArr!(immutable KeyValuePair!(Symbol, Symbol)) failures;
+	ExternFunPtrsForAllLibraries res = makeMap!(Symbol, ExternFunPtrsForLibrary, ExternLibrary)(
 		alloc, libraries, (in ExternLibrary x) =>
-			immutable KeyValuePair!(Sym, ExternFunPtrsForLibrary)(
+			immutable KeyValuePair!(Symbol, ExternFunPtrsForLibrary)(
 				x.libraryName,
 				fakeExternFunsForLibrary(alloc, failures, allSymbols, x)));
-	foreach (KeyValuePair!(Sym, Sym) x; tempAsArr(failures)) {
+	foreach (KeyValuePair!(Symbol, Symbol) x; tempAsArr(failures)) {
 		writeError(cString!"Could not load extern function ");
 		writeSymToCb(writeError, allSymbols, x.value);
 		writeError(cString!" from library ");
@@ -113,43 +113,43 @@ pure:
 
 ExternFunPtrsForLibrary fakeExternFunsForLibrary(
 	ref Alloc alloc,
-	ref MutArr!(immutable KeyValuePair!(Sym, Sym)) failures,
+	ref MutArr!(immutable KeyValuePair!(Symbol, Symbol)) failures,
 	in AllSymbols allSymbols,
 	in ExternLibrary lib,
 ) =>
-	makeMap!(Sym, FunPtr, Sym)(alloc, lib.importNames, (in Sym importName) {
+	makeMap!(Symbol, FunPtr, Symbol)(alloc, lib.importNames, (in Symbol importName) {
 		Opt!FunPtr res = getFakeExternFun(lib.libraryName, importName);
 		if (!has(res))
-			push(alloc, failures, KeyValuePair!(Sym, Sym)(lib.libraryName, importName));
-		return immutable KeyValuePair!(Sym, FunPtr)(importName, has(res) ? force(res) : FunPtr(null));
+			push(alloc, failures, KeyValuePair!(Symbol, Symbol)(lib.libraryName, importName));
+		return immutable KeyValuePair!(Symbol, FunPtr)(importName, has(res) ? force(res) : FunPtr(null));
 	});
 
-Opt!FunPtr getFakeExternFun(Sym libraryName, Sym name) =>
-	libraryName == sym!"c"
+Opt!FunPtr getFakeExternFun(Symbol libraryName, Symbol name) =>
+	libraryName == symbol!"c"
 		? getFakeExternFunC(name)
 		: none!FunPtr;
 
-Opt!FunPtr getFakeExternFunC(Sym name) {
+Opt!FunPtr getFakeExternFunC(Symbol name) {
 	switch (name.value) {
-		case sym!"abort".value:
+		case symbol!"abort".value:
 			return some(FunPtr(&abort));
-		case sym!"clock_gettime".value:
+		case symbol!"clock_gettime".value:
 			return some(FunPtr(&clockGetTime));
-		case sym!"free".value:
+		case symbol!"free".value:
 			return some(FunPtr(&free));
-		case sym!"nanosleep".value:
+		case symbol!"nanosleep".value:
 			return some(FunPtr(&nanosleep));
-		case sym!"malloc".value:
+		case symbol!"malloc".value:
 			return some(FunPtr(&malloc));
-		case sym!"memcpy".value:
-		case sym!"memmove".value:
+		case symbol!"memcpy".value:
+		case symbol!"memmove".value:
 			return some(FunPtr(&memmove));
-		case sym!"memset".value:
+		case symbol!"memset".value:
 			return some(FunPtr(&memset));
-		case sym!"write".value:
+		case symbol!"write".value:
 			return some(FunPtr(&write));
-		case sym!"longjmp".value:
-		case sym!"setjmp".value:
+		case symbol!"longjmp".value:
+		case symbol!"setjmp".value:
 			// these are treated specially by the interpreter
 			return some(FunPtr(&unreachable!void));
 		default:

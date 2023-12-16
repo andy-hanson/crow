@@ -20,7 +20,7 @@ import model.model :
 	VarDecl,
 	Visibility;
 import util.opt : Opt;
-import util.sym : Sym;
+import util.symbol : Symbol;
 import util.union_ : Union;
 import util.uri : Uri;
 
@@ -72,7 +72,7 @@ immutable struct PositionKind {
 	}
 	immutable struct ImportedName {
 		Module* exportingModule;
-		Sym name;
+		Symbol name;
 		Opt!(NameReferents*) referents;
 	}
 	immutable struct Keyword {

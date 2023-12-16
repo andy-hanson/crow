@@ -33,7 +33,7 @@ import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : combineRanges, UriAndRange, Pos, rangeOfStartAndLength, Range;
 import util.string : CString, cString;
-import util.sym : AllSymbols, Sym, sym;
+import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : Union;
 import util.uri : Uri;
 import util.util : max, min, stringOfEnum, typeAs, unreachable;
@@ -65,17 +65,6 @@ bool isPurityPossiblyCompatible(Purity referencer, PurityRange referenced) =>
 
 Purity worsePurity(Purity a, Purity b) =>
 	max(a, b);
-
-Sym symOfPurity(Purity a) {
-	final switch (a) {
-		case Purity.data:
-			return sym!"data";
-		case Purity.shared_:
-			return sym!"shared";
-		case Purity.mut:
-			return sym!"mut";
-	}
-}
 
 alias TypeParams = SmallArray!NameAndRange;
 TypeParams emptyTypeParams() =>
@@ -178,7 +167,7 @@ immutable struct SpecDeclSig {
 
 	Uri moduleUri;
 	SpecSigAst* ast;
-	Sym name;
+	Symbol name;
 	Type returnType;
 	SmallArray!Destructure params;
 
@@ -195,7 +184,7 @@ immutable struct TypeParamsAndSig {
 	ParamShort[] params;
 }
 immutable struct ParamShort {
-	Sym name;
+	Symbol name;
 	Type type;
 }
 
@@ -211,7 +200,7 @@ immutable struct RecordField {
 	StructDeclAst.Body.Record.Field* ast;
 	StructDecl* containingRecord;
 	Visibility visibility;
-	Sym name;
+	Symbol name;
 	FieldMutability mutability;
 	Type type;
 
@@ -225,7 +214,7 @@ UriAndRange nameRange(in AllSymbols allSymbols, in RecordField a) =>
 immutable struct UnionMember {
 	//TODO: use NameAndRange (more compact)
 	UriAndRange range;
-	Sym name;
+	Symbol name;
 	Type type;
 }
 
@@ -235,14 +224,14 @@ enum ForcedByValOrRefOrNone {
 	byRef,
 }
 
-Sym symOfForcedByValOrRefOrNone(ForcedByValOrRefOrNone a) {
+Symbol symbolOfForcedByValOrRefOrNone(ForcedByValOrRefOrNone a) {
 	final switch (a) {
 		case ForcedByValOrRefOrNone.none:
-			return sym!"none";
+			return symbol!"none";
 		case ForcedByValOrRefOrNone.byVal:
-			return sym!"by-val";
+			return symbol!"by-val";
 		case ForcedByValOrRefOrNone.byRef:
-			return sym!"by-ref";
+			return symbol!"by-ref";
 	}
 }
 
@@ -271,7 +260,7 @@ immutable struct StructBody {
 	immutable struct Enum {
 		immutable struct Member {
 			UriAndRange range;
-			Sym name;
+			Symbol name;
 			EnumValue value;
 		}
 		EnumBackingType backingType;
@@ -307,7 +296,7 @@ immutable struct StructAlias {
 	StructAliasAst* ast;
 	Uri moduleUri;
 	Visibility visibility;
-	Sym name;
+	Symbol name;
 	// This will be none if the alias target is not found
 	private Late!(Opt!(StructInst*)) target_;
 
@@ -330,12 +319,12 @@ immutable struct StructAlias {
 // sorted least strict to most strict
 enum Linkage : ubyte { internal, extern_ }
 
-Sym symOfLinkage(Linkage a) {
+Symbol symbolOfLinkage(Linkage a) {
 	final switch (a) {
 		case Linkage.internal:
-			return sym!"internal";
+			return symbol!"internal";
 		case Linkage.extern_:
-			return sym!"extern";
+			return symbol!"extern";
 	}
 }
 
@@ -364,7 +353,7 @@ immutable struct StructDecl {
 
 	StructDeclSource source;
 	Uri moduleUri;
-	Sym name;
+	Symbol name;
 	Visibility visibility;
 	Linkage linkage;
 	// Note: purity on the decl does not take type args into account
@@ -488,7 +477,7 @@ immutable struct SpecDecl {
 	Uri moduleUri;
 	SpecDeclAst* ast;
 	Visibility visibility;
-	Sym name;
+	Symbol name;
 	SpecDeclBody body_;
 	private Late!(SmallArray!(immutable SpecInst*)) parents_;
 
@@ -530,7 +519,7 @@ immutable struct SpecInst {
 		lateSet(parents_, small!(immutable SpecInst*)(value));
 	}
 
-	Sym name() scope =>
+	Symbol name() scope =>
 		decl.name;
 }
 
@@ -543,18 +532,18 @@ private enum EnumFunction_ {
 	union_,
 }
 
-Sym enumFunctionName(EnumFunction a) {
+Symbol enumFunctionName(EnumFunction a) {
 	final switch (a) {
 		case EnumFunction.equal:
-			return sym!"==";
+			return symbol!"==";
 		case EnumFunction.intersect:
-			return sym!"&";
+			return symbol!"&";
 		case EnumFunction.members:
-			return sym!"members";
+			return symbol!"members";
 		case EnumFunction.toIntegral:
-			return sym!"to-integral";
+			return symbol!"to-integral";
 		case EnumFunction.union_:
-			return sym!"|";
+			return symbol!"|";
 	}
 }
 
@@ -565,25 +554,25 @@ private enum FlagsFunction_ {
 	new_,
 }
 
-Sym flagsFunctionName(FlagsFunction a) {
+Symbol flagsFunctionName(FlagsFunction a) {
 	final switch (a) {
 		case FlagsFunction.all:
-			return sym!"all";
+			return symbol!"all";
 		case FlagsFunction.negate:
-			return sym!"~";
+			return symbol!"~";
 		case FlagsFunction.new_:
-			return sym!"new";
+			return symbol!"new";
 	}
 }
 
 enum VarKind { global, threadLocal }
 
-Sym symOfVarKind(in VarKind a) {
+Symbol symbolOfVarKind(in VarKind a) {
 	final switch (a) {
 		case VarKind.global:
-			return sym!"global";
+			return symbol!"global";
 		case VarKind.threadLocal:
-			return sym!"thread-local";
+			return symbol!"thread-local";
 	}
 }
 
@@ -602,7 +591,7 @@ immutable struct FunBody {
 		Expr expr;
 	}
 	immutable struct Extern {
-		Sym libraryName;
+		Symbol libraryName;
 	}
 	immutable struct FileImport {
 		ImportFileType type;
@@ -725,7 +714,7 @@ immutable struct FunDecl {
 
 	FunDeclSource source;
 	Visibility visibility;
-	Sym name;
+	Symbol name;
 	Type returnType;
 	Params params;
 	FunFlags flags;
@@ -814,7 +803,7 @@ immutable struct FunInst {
 	SpecImpls specImpls;
 	ReturnAndParamTypes instantiatedSig;
 
-	Sym name() scope =>
+	Symbol name() scope =>
 		decl.name;
 
 	Type returnType() scope =>
@@ -871,7 +860,7 @@ immutable struct CalledSpecSig {
 	SpecDeclSig* nonInstantiatedSig() return scope =>
 		&specInst.decl.body_.as!(SpecDeclSig[])[sigIndex];
 
-	Sym name() scope =>
+	Symbol name() scope =>
 		nonInstantiatedSig.name;
 
 	Arity arity() scope =>
@@ -884,8 +873,8 @@ immutable struct CalledDecl {
 
 	mixin Union!(FunDecl*, CalledSpecSig);
 
-	Sym name() scope =>
-		matchIn!Sym(
+	Symbol name() scope =>
+		matchIn!Symbol(
 			(in FunDecl f) => f.name,
 			(in CalledSpecSig s) => s.name);
 
@@ -917,8 +906,8 @@ immutable struct Called {
 
 	mixin Union!(FunInst*, CalledSpecSig);
 
-	Sym name() scope =>
-		matchIn!Sym(
+	Symbol name() scope =>
+		matchIn!Symbol(
 			(in FunInst f) =>
 				f.name,
 			(in CalledSpecSig s) =>
@@ -971,8 +960,8 @@ immutable struct StructOrAlias {
 			(in StructAlias x) => x.visibility,
 			(in StructDecl x) => x.visibility);
 
-	Sym name() scope =>
-		matchIn!Sym(
+	Symbol name() scope =>
+		matchIn!Symbol(
 			(in StructAlias x) => x.name,
 			(in StructDecl x) => x.name);
 
@@ -990,10 +979,10 @@ immutable struct VarDecl {
 	VarDeclAst* ast;
 	Uri moduleUri;
 	Visibility visibility;
-	Sym name;
+	Symbol name;
 	VarKind kind;
 	Type type;
-	Opt!Sym externLibraryName;
+	Opt!Symbol externLibraryName;
 
 	TypeParams typeParams() return scope =>
 		emptyTypeParams;
@@ -1019,7 +1008,7 @@ immutable struct Module {
 	FunDecl[] funs;
 	Test[] tests;
 	// Includes re-exports
-	HashTable!(NameReferents, Sym, nameFromNameReferents) allExportedNames;
+	HashTable!(NameReferents, Symbol, nameFromNameReferents) allExportedNames;
 
 	UriAndRange range() scope =>
 		UriAndRange.topOfFile(uri);
@@ -1069,14 +1058,14 @@ immutable struct NameReferents {
 		assert(has(structOrAlias) || has(spec) || !isEmpty(funs));
 	}
 
-	Sym name() scope =>
+	Symbol name() scope =>
 		has(structOrAlias)
 			? force(structOrAlias).name
 			: has(spec)
 			? force(spec).name
 			: funs[0].name;
 }
-Sym nameFromNameReferents(in NameReferents a) =>
+Symbol nameFromNameReferents(in NameReferents a) =>
 	a.name;
 
 enum FunKind {
@@ -1226,8 +1215,8 @@ Uri getConfigUri(in Config* a) =>
 	force(a.configUri);
 Config emptyConfig = Config(none!Uri, [], ConfigImportUris(), ConfigExternUris());
 
-alias ConfigImportUris = Map!(Sym, Uri);
-alias ConfigExternUris = Map!(Sym, Uri);
+alias ConfigImportUris = Map!(Symbol, Uri);
+alias ConfigExternUris = Map!(Symbol, Uri);
 
 immutable struct LocalSource {
 	immutable struct Generated {}
@@ -1239,7 +1228,7 @@ immutable struct Local {
 	@safe @nogc pure nothrow:
 
 	LocalSource source;
-	Sym name;
+	Symbol name;
 	LocalMutability mutability;
 	Type type;
 }
@@ -1296,7 +1285,7 @@ immutable struct ClosureRef {
 	VariableRef variableRef() =>
 		lambda.closure[index];
 
-	Sym name() =>
+	Symbol name() =>
 		toLocal(this).name;
 
 	Type type() =>
@@ -1307,14 +1296,7 @@ Local* toLocal(in ClosureRef a) =>
 	toLocal(a.variableRef);
 
 enum ClosureReferenceKind { direct, allocated }
-Sym symOfClosureReferenceKind(ClosureReferenceKind a) {
-	final switch (a) {
-		case ClosureReferenceKind.direct:
-			return sym!"direct";
-		case ClosureReferenceKind.allocated:
-			return sym!"allocated";
-	}
-}
+
 ClosureReferenceKind getClosureReferenceKind(ClosureRef a) =>
 	getClosureReferenceKind(a.variableRef);
 private ClosureReferenceKind getClosureReferenceKind(VariableRef a) {
@@ -1333,7 +1315,7 @@ immutable struct VariableRef {
 
 	mixin Union!(Local*, ClosureRef);
 
-	Sym name() =>
+	Symbol name() =>
 		toLocal(this).name;
 	Type type() =>
 		toLocal(this).type;
@@ -1360,17 +1342,17 @@ immutable struct Destructure {
 	}
 	mixin Union!(Ignore*, Local*, Split*);
 
-	Opt!Sym name() scope =>
-		matchIn!(Opt!Sym)(
+	Opt!Symbol name() scope =>
+		matchIn!(Opt!Symbol)(
 			(in Destructure.Ignore _) =>
-				none!Sym,
+				none!Symbol,
 			(in Local x) =>
 				some(x.name),
 			(in Destructure.Split _) =>
-				none!Sym);
+				none!Symbol);
 
 	Opt!Range nameRange(in AllSymbols allSymbols) scope {
-		Opt!Sym name = name;
+		Opt!Symbol name = name;
 		return has(name)
 			? some(rangeOfNameAndRange(NameAndRange(range(allSymbols).start, force(name)), allSymbols))
 			: none!Range;
@@ -1505,7 +1487,7 @@ immutable struct LiteralCStringExpr {
 }
 
 immutable struct LiteralSymbolExpr {
-	Sym value;
+	Symbol value;
 }
 
 immutable struct LocalGetExpr {

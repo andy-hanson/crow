@@ -43,7 +43,7 @@ import util.opt : ConstOpt, force, has, MutOpt;
 import util.perf : Perf;
 import util.sourceRange : jsonOfRange, lineAndCharacterRange, Pos, Range, UriAndPos, UriAndRange;
 import util.string : CString, cStringSize, stringOfCString;
-import util.sym : AllSymbols;
+import util.symbol : AllSymbols;
 import util.union_ : Union;
 import util.uri : AllUris, baseName, getExtension, Uri, stringOfUri;
 import util.writer : withWriter, Writer;

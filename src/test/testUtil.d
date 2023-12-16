@@ -19,7 +19,7 @@ import util.col.arrUtil : arraysEqual, arraysCorrespond, indexOf, makeArray, map
 import util.opt : force, has, none, Opt;
 import util.perf : Perf;
 import util.string : CString, stringOfCString;
-import util.sym : AllSymbols;
+import util.symbol : AllSymbols;
 import util.uri : AllUris, concatUriAndPath, cStringOfUri, getExtension, isAncestor, parsePath, parseUri, Uri, UrisInfo;
 import util.util : ptrTrustMe;
 import util.writer : debugLogWithWriter, Writer;

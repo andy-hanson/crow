@@ -34,7 +34,7 @@ import util.col.hashTable : ValueAndDidAdd;
 import util.col.mutMultiMap : countKeys, eachValueForKey, MutMultiMap;
 import util.memory : allocate;
 import util.opt : force, Opt;
-import util.sym : AllSymbols, Sym, sym, writeSym;
+import util.symbol : AllSymbols, Symbol, symbol, writeSym;
 import util.uri : parseUri, Uri;
 import util.util : ptrTrustMe;
 import util.writer : debugLogWithWriter, writeNewline, Writer;
@@ -58,8 +58,8 @@ void testFreeInstantiationsForModule(ref Test test, ref Alloc alloc) {
 	*/
 	Uri uriA = parseUri(test.allUris, "test://a.crow");
 	Module moduleA = makeModule(alloc, uriA, [
-		dummyStruct(test.alloc, uriA, sym!"a0", 0),
-		dummyStruct(alloc, uriA, sym!"a1", 1)]);
+		dummyStruct(test.alloc, uriA, symbol!"a0", 0),
+		dummyStruct(alloc, uriA, symbol!"a1", 1)]);
 	StructDecl* a0 = &moduleA.structs[0];
 	StructDecl* a1 = &moduleA.structs[1];
 	StructInst* a0Inst = mustDidAdd(getStruct(insts, a0, []));
@@ -85,8 +85,8 @@ void testFreeInstantiationsForModule(ref Test test, ref Alloc alloc) {
 	*/
 	Uri uriB = parseUri(test.allUris, "test://b.crow");
 	Module moduleB = makeModule(alloc, uriB, [
-		dummyStruct(alloc, uriB, sym!"b0", 0),
-		dummyStruct(alloc, uriB, sym!"b1", 1)]);
+		dummyStruct(alloc, uriB, symbol!"b0", 0),
+		dummyStruct(alloc, uriB, symbol!"b1", 1)]);
 	StructDecl* b0 = &moduleB.structs[0];
 	StructDecl* b1 = &moduleB.structs[1];
 	StructInst* b0Inst = mustDidAdd(getStruct(insts, b0, []));
@@ -207,7 +207,7 @@ T mustNotDidAdd(T)(ValueAndDidAdd!T a) {
 Module makeModule(ref Alloc alloc, Uri uri, in StructDecl[] structs) =>
 	Module(uri, structs: newArray(alloc, structs));
 
-StructDecl dummyStruct(ref Alloc alloc, Uri uri, Sym name, size_t nTypeParams) =>
+StructDecl dummyStruct(ref Alloc alloc, Uri uri, Symbol name, size_t nTypeParams) =>
 	StructDecl(
 		StructDeclSource(allocate(alloc, StructDeclSource.Bogus(
 			small!NameAndRange(typeParams[0 .. nTypeParams])))),
@@ -218,4 +218,4 @@ StructDecl dummyStruct(ref Alloc alloc, Uri uri, Sym name, size_t nTypeParams) =
 		Purity.data,
 		false);
 
-NameAndRange[2] typeParams = [NameAndRange(0, sym!"a"), NameAndRange(0, sym!"b")];
+NameAndRange[2] typeParams = [NameAndRange(0, symbol!"a"), NameAndRange(0, symbol!"b")];

@@ -2,12 +2,12 @@ module frontend.lang;
 
 @safe @nogc pure nothrow:
 
-import util.sym : Sym, sym;
+import util.symbol : Symbol, symbol;
 
-Sym cExtension() => sym!".c";
-Sym crowExtension() => sym!".crow";
+Symbol cExtension() => symbol!".c";
+Symbol crowExtension() => symbol!".crow";
 
-Sym crowConfigBaseName() => sym!"crow-config.json";
+Symbol crowConfigBaseName() => symbol!"crow-config.json";
 
 immutable struct JitOptions {
 	OptimizationLevel optimization;

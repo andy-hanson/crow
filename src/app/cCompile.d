@@ -16,7 +16,7 @@ import util.exitCode : ExitCode;
 import util.opt : force, has, none;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.string : CString, cString;
-import util.sym : AllSymbols, concatSyms, cStringOfSym, Sym, sym, writeSym;
+import util.symbol : AllSymbols, concatSyms, cStringOfSymbol, Symbol, symbol, writeSym;
 import util.uri : AllUris, asFileUri, childFileUri, FileUri, cStringOfFileUri, isFileUri, Uri, writeFileUri;
 import util.util : todo;
 import util.writer : withWriter, Writer;
@@ -70,17 +70,17 @@ CString[] cCompileArgs(
 	}
 	foreach (ExternLibrary x; externLibraries) {
 		version (Windows) {
-			Sym xDotLib = concatSyms(allSymbols, [x.libraryName, sym!".lib"]);
+			Symbol xDotLib = concatSyms(allSymbols, [x.libraryName, symbol!".lib"]);
 			if (has(x.configuredDir)) {
 				FileUri path = childFileUri(allUris, force(x.configuredDir), xDotLib);
 				add(alloc, args, cStringOfFileUri(alloc, allUris, path));
 			} else
 				switch (x.libraryName.value) {
-					case sym!"c".value:
-					case sym!"m".value:
+					case symbol!"c".value:
+					case symbol!"m".value:
 						break;
 					default:
-						add(alloc, args, cStringOfSym(alloc, allSymbols, xDotLib));
+						add(alloc, args, cStringOfSymbol(alloc, allSymbols, xDotLib));
 						break;
 				}
 		} else {

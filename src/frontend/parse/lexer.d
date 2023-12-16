@@ -24,7 +24,7 @@ import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
 import util.string : CString;
-import util.sym : AllSymbols;
+import util.symbol : AllSymbols;
 
 public import frontend.parse.lexToken : ElifOrElse, EqualsOrThen, QuoteKind, StringPart, Token, TokenAndData;
 

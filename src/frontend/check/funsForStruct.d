@@ -45,7 +45,7 @@ import util.col.arrUtil : map, sum;
 import util.col.exactSizeArrBuilder : ExactSizeArrBuilder;
 import util.col.mutMaxArr : push, tempAsArr;
 import util.opt : force, has, none, Opt, some;
-import util.sym : prependSet, prependSetDeref, Sym, sym;
+import util.symbol : prependSet, prependSetDeref, Symbol, symbol;
 
 size_t countFunsForStructs(in StructDecl[] structs) =>
 	sum!StructDecl(structs, (in StructDecl x) => countFunsForStruct(x));
@@ -131,7 +131,7 @@ void addFunsForVar(
 FunDecl funDeclWithBody(
 	FunDeclSource source,
 	Visibility visibility,
-	Sym name,
+	Symbol name,
 	Type returnType,
 	Params params,
 	FunFlags flags,
@@ -148,7 +148,7 @@ private:
 FunDecl basicFunDecl(
 	FunDeclSource source,
 	Visibility visibility,
-	Sym name,
+	Symbol name,
 	Type returnType,
 	Params params,
 	FunFlags flags,
@@ -160,7 +160,7 @@ FunDecl newExtern(ref InstantiateCtx ctx, StructDecl* struct_) =>
 	basicFunDecl(
 		FunDeclSource(struct_),
 		struct_.visibility,
-		sym!"new",
+		symbol!"new",
 		Type(instantiateNonTemplateStructDeclNeverDelay(ctx, struct_)),
 		Params([]),
 		FunFlags.generatedBareUnsafe,
@@ -183,7 +183,7 @@ void addFunsForEnum(
 	Visibility visibility = struct_.visibility;
 	addEnumFlagsCommonFunctions(
 		ctx.alloc, funsBuilder, ctx.instantiateCtx,
-		struct_, enumType, enum_.backingType, commonTypes, sym!"enum-members");
+		struct_, enumType, enum_.backingType, commonTypes, symbol!"enum-members");
 	foreach (ref StructBody.Enum.Member member; enum_.members)
 		funsBuilder ~= enumOrFlagsConstructor(ctx.alloc, visibility, enumType, &member);
 }
@@ -197,12 +197,13 @@ void addFunsForFlags(
 ) {
 	Type type = Type(instantiateNonTemplateStructDeclNeverDelay(ctx.instantiateCtx, struct_));
 	addEnumFlagsCommonFunctions(
-		ctx.alloc, funsBuilder, ctx.instantiateCtx, struct_, type, flags.backingType, commonTypes, sym!"flags-members");
+		ctx.alloc, funsBuilder, ctx.instantiateCtx, struct_, type,
+		flags.backingType, commonTypes, symbol!"flags-members");
 	funsBuilder ~= flagsNewFunction(ctx.alloc, struct_, type);
 	funsBuilder ~= flagsAllFunction(ctx.alloc, struct_, type);
 	funsBuilder ~= flagsNegateFunction(ctx.alloc, struct_, type);
-	funsBuilder ~= flagsUnionOrIntersectFunction(ctx.alloc, struct_, type, sym!"|", EnumFunction.union_);
-	funsBuilder ~= flagsUnionOrIntersectFunction(ctx.alloc, struct_, type, sym!"&", EnumFunction.intersect);
+	funsBuilder ~= flagsUnionOrIntersectFunction(ctx.alloc, struct_, type, symbol!"|", EnumFunction.union_);
+	funsBuilder ~= flagsUnionOrIntersectFunction(ctx.alloc, struct_, type, symbol!"&", EnumFunction.intersect);
 	foreach (ref StructBody.Enum.Member member; flags.members)
 		funsBuilder ~= enumOrFlagsConstructor(ctx.alloc, struct_.visibility, type, &member);
 }
@@ -215,7 +216,7 @@ void addEnumFlagsCommonFunctions(
 	Type type,
 	EnumBackingType backingType,
 	ref CommonTypes commonTypes,
-	Sym membersName,
+	Symbol membersName,
 ) {
 	funsBuilder ~= enumEqualFunction(alloc, struct_, type, commonTypes);
 	funsBuilder ~= enumToIntegralFunction(alloc, struct_, backingType, type, commonTypes);
@@ -236,7 +237,7 @@ FunDecl enumEqualFunction(ref Alloc alloc, StructDecl* struct_, Type enumType, r
 	basicFunDecl(
 		FunDeclSource(struct_),
 		struct_.visibility,
-		sym!"==",
+		symbol!"==",
 		Type(commonTypes.bool_),
 		makeParams(alloc, [param!"a"(enumType), param!"b"(enumType)]),
 		FunFlags.generatedBare.withOkIfUnused(),
@@ -246,7 +247,7 @@ FunDecl flagsNewFunction(ref Alloc alloc, StructDecl* struct_, Type enumType) =>
 	basicFunDecl(
 		FunDeclSource(struct_),
 		struct_.visibility,
-		sym!"new",
+		symbol!"new",
 		enumType,
 		Params([]),
 		FunFlags.generatedBare.withOkIfUnused(),
@@ -256,7 +257,7 @@ FunDecl flagsAllFunction(ref Alloc alloc, StructDecl* struct_, Type enumType) =>
 	basicFunDecl(
 		FunDeclSource(struct_),
 		struct_.visibility,
-		sym!"all",
+		symbol!"all",
 		enumType,
 		Params([]),
 		FunFlags.generatedBare.withOkIfUnused(),
@@ -266,7 +267,7 @@ FunDecl flagsNegateFunction(ref Alloc alloc, StructDecl* struct_, Type enumType)
 	basicFunDecl(
 		FunDeclSource(struct_),
 		struct_.visibility,
-		sym!"~",
+		symbol!"~",
 		enumType,
 		makeParams(alloc, [param!"a"(enumType)]),
 		FunFlags.generatedBare.withOkIfUnused(),
@@ -282,7 +283,7 @@ FunDecl enumToIntegralFunction(
 	basicFunDecl(
 		FunDeclSource(struct_),
 		struct_.visibility,
-		sym!"to",
+		symbol!"to",
 		Type(getBackingTypeFromEnumType(enumBackingType, commonTypes)),
 		makeParams(alloc, [param!"a"(enumType)]),
 		FunFlags.generatedBare.withOkIfUnused(),
@@ -313,7 +314,7 @@ StructInst* getBackingTypeFromEnumType(EnumBackingType a, ref CommonTypes common
 FunDecl enumOrFlagsMembersFunction(
 	ref InstantiateCtx ctx,
 	StructDecl* struct_,
-	Sym name,
+	Symbol name,
 	Type enumType,
 	ref CommonTypes commonTypes,
 ) =>
@@ -326,7 +327,13 @@ FunDecl enumOrFlagsMembersFunction(
 		FunFlags.generatedBare.withOkIfUnused(),
 		FunBody(EnumFunction.members));
 
-FunDecl flagsUnionOrIntersectFunction(ref Alloc alloc, StructDecl* struct_, Type enumType, Sym name, EnumFunction fn) =>
+FunDecl flagsUnionOrIntersectFunction(
+	ref Alloc alloc,
+	StructDecl* struct_,
+	Type enumType,
+	Symbol name,
+	EnumFunction fn,
+) =>
 	basicFunDecl(
 		FunDeclSource(struct_),
 		struct_.visibility,
@@ -369,7 +376,7 @@ void addFunsForRecordConstructor(
 	funsBuilder ~= funDeclWithBody(
 		FunDeclSource(struct_),
 		record.flags.newVisibility,
-		sym!"new",
+		symbol!"new",
 		structType,
 		Params(map(ctx.alloc, record.fields, (ref RecordField x) =>
 			makeParam(ctx.alloc, x.name, x.type))),

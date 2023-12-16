@@ -133,7 +133,7 @@ import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : UriAndRange;
-import util.sym : AllSymbols, Sym, sym;
+import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : Union;
 import util.util : castNonScope_ref, ptrTrustMe, todo, typeAs, unreachable;
 
@@ -606,16 +606,16 @@ AllLowFuns getAllLowFuns(
 
 	Late!LowType markCtxTypeLate = late!LowType;
 
-	MutMap!(Sym, MutArr!Sym) allExternSymbols; // Fun and Var combined
-	void addExternSymbol(Sym libraryName, Sym symbolName) {
+	MutMap!(Symbol, MutArr!Symbol) allExternSymbols; // Fun and Var combined
+	void addExternSymbol(Symbol libraryName, Symbol symbolName) {
 		push(
 			getLowTypeCtx.alloc,
-			getOrAdd(getLowTypeCtx.alloc, allExternSymbols, libraryName, () => MutArr!Sym()),
+			getOrAdd(getLowTypeCtx.alloc, allExternSymbols, libraryName, () => MutArr!Symbol()),
 			symbolName);
 	}
 
 	fullIndexMapEachValue!(LowVarIndex, LowVar)(allVars, (ref LowVar x) {
-		Opt!Sym libraryName = x.externLibraryName;
+		Opt!Symbol libraryName = x.externLibraryName;
 		if (has(libraryName))
 			addExternSymbol(force(libraryName), x.name);
 	});
@@ -649,7 +649,7 @@ AllLowFuns getAllLowFuns(
 			(EnumFunction _) =>
 				none!LowFunIndex,
 			(ConcreteFunBody.Extern x) {
-				Opt!Sym optName = name(*fun);
+				Opt!Symbol optName = name(*fun);
 				addExternSymbol(x.libraryName, force(optName));
 				return some(addLowFun(LowFunCause(fun)));
 			},
@@ -719,14 +719,14 @@ AllLowFuns getAllLowFuns(
 		concreteFunToLowFunIndex,
 		allLowFuns,
 		LowFunIndex(lowFunCauses.length),
-		mapToArray!(ExternLibrary, Sym, MutArr!Sym)(
+		mapToArray!(ExternLibrary, Symbol, MutArr!Symbol)(
 			getLowTypeCtx.alloc,
 			allExternSymbols,
-			(Sym libraryName, ref MutArr!Sym xs) =>
+			(Symbol libraryName, ref MutArr!Symbol xs) =>
 				ExternLibrary(
 					libraryName,
 					configExtern[libraryName],
-					moveToArr!Sym(getLowTypeCtx.alloc, xs))));
+					moveToArr!Symbol(getLowTypeCtx.alloc, xs))));
 }
 
 alias VarIndices = Map!(immutable ConcreteVar*, LowVarIndex);
@@ -784,8 +784,8 @@ LowFun lowFunFromCause(
 
 LowFun mainFun(ref GetLowTypeCtx ctx, LowFunIndex rtMainIndex, ConcreteFun* userMain, LowType userMainFunPtrType) {
 	LowLocal[] params = newArray!LowLocal(ctx.alloc, [
-		genLocalByValue(ctx.alloc, sym!"argc", 0, int32Type),
-		genLocalByValue(ctx.alloc, sym!"argv", 1, char8PtrPtrConstType)]);
+		genLocalByValue(ctx.alloc, symbol!"argc", 0, int32Type),
+		genLocalByValue(ctx.alloc, symbol!"argv", 1, char8PtrPtrConstType)]);
 	LowExpr userMainFunPtr =
 		LowExpr(userMainFunPtrType, UriAndRange.empty, LowExprKind(Constant(Constant.FunPtr(userMain))));
 	LowExpr call = LowExpr(
@@ -799,7 +799,7 @@ LowFun mainFun(ref GetLowTypeCtx ctx, LowFunIndex rtMainIndex, ConcreteFun* user
 				userMainFunPtr]))));
 	LowFunBody body_ = LowFunBody(LowFunExprBody(false, call));
 	return LowFun(
-		LowFunSource(allocate(ctx.alloc, LowFunSource.Generated(sym!"main", []))),
+		LowFunSource(allocate(ctx.alloc, LowFunSource.Generated(symbol!"main", []))),
 		int32Type,
 		params,
 		body_);
@@ -822,7 +822,7 @@ LowLocalSource getLowLocalSource(
 		(Local* x) =>
 			LowLocalSource(x),
 		(ConcreteLocalSource.Closure x) =>
-			LowLocalSource(allocate(alloc, LowLocalSource.Generated(sym!"closure", getIndex()))),
+			LowLocalSource(allocate(alloc, LowLocalSource.Generated(symbol!"closure", getIndex()))),
 		(ConcreteLocalSource.Generated x) =>
 			LowLocalSource(allocate(alloc, LowLocalSource.Generated(x.name, getIndex()))));
 
@@ -955,7 +955,7 @@ size_t nextTempLocalIndex(ref GetLowExprCtx ctx) {
 }
 
 LowLocal* addTempLocal(ref GetLowExprCtx ctx, LowType type) =>
-	genLocal(ctx.alloc, sym!"temp", nextTempLocalIndex(ctx), type);
+	genLocal(ctx.alloc, symbol!"temp", nextTempLocalIndex(ctx), type);
 
 enum ExprPos {
 	tail,
@@ -1297,7 +1297,7 @@ LowExprKind getCallBuiltinExpr(
 	LowType type,
 	ref ConcreteExprKind.Call a,
 ) {
-	Sym name = a.called.source.as!ConcreteFunKey.decl.name;
+	Symbol name = a.called.source.as!ConcreteFunKey.decl.name;
 	LowType paramType(size_t index) {
 		return index < a.args.length
 			? lowTypeFromConcreteType(ctx.typeCtx, a.called.paramsIncludingClosure[index].type)

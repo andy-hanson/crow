@@ -54,7 +54,7 @@ import model.ast :
 	stringOfFieldMutabilityAstKind,
 	stringOfSpecialFlag,
 	symForTypeAstSuffix,
-	symOfModifierKind,
+	symbolOfModifierKind,
 	ThenAst,
 	ThrowAst,
 	TrustedAst,
@@ -292,7 +292,7 @@ Json.ObjectField maybeTypeParams(ref Alloc alloc, scope ref Ctx ctx, in NameAndR
 Json jsonOfModifierAst(ref Alloc alloc, in ModifierAst a) =>
 	jsonObject(alloc, [
 		field!"pos"(a.pos),
-		field!"modifier"(symOfModifierKind(a.kind))]);
+		field!"modifier"(symbolOfModifierKind(a.kind))]);
 
 Json jsonOfFunDeclAst(ref Alloc alloc, scope ref Ctx ctx, in FunDeclAst a) =>
 	jsonObject(alloc, [

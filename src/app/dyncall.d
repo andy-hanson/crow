@@ -28,7 +28,7 @@ import util.late : Late, late, lateGet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
 import util.string : CString, cString;
-import util.sym : AllSymbols, concatSyms, Sym, sym, symAsTempBuffer;
+import util.symbol : AllSymbols, concatSyms, Symbol, symbol, symAsTempBuffer;
 import util.uri : AllUris, asFileUri, childUri, fileUriToTempStr, isFileUri, TempStrForPath, Uri;
 import util.util : todo, unreachable;
 
@@ -54,7 +54,7 @@ import util.util : todo, unreachable;
 
 private:
 
-alias DebugNames = Map!(FunPtr, Sym);
+alias DebugNames = Map!(FunPtr, Symbol);
 
 immutable struct LoadedLibraries {
 	DebugNames debugNames;
@@ -88,11 +88,11 @@ immutable struct LibraryAndError {
 LibraryAndError getLibrary(
 	ref AllSymbols allSymbols,
 	ref AllUris allUris,
-	Sym libraryName,
+	Symbol libraryName,
 	Opt!Uri configuredDir,
 	in WriteError writeError,
 ) {
-	Sym fileName = dllOrSoName(allSymbols, libraryName);
+	Symbol fileName = dllOrSoName(allSymbols, libraryName);
 	Opt!(DLLib*) fromUri = has(configuredDir)
 		? tryLoadLibraryFromUri(allUris, childUri(allUris, force(configuredDir), fileName))
 		: none!(DLLib*);
@@ -100,14 +100,14 @@ LibraryAndError getLibrary(
 		return LibraryAndError(force(fromUri), false);
 	else {
 		switch (libraryName.value) {
-			case sym!"c".value:
-			case sym!"m".value:
+			case symbol!"c".value:
+			case symbol!"m".value:
 				version (Windows) {
 					return loadLibraryFromName(cString!"ucrtbase.dll", writeError);
 				} else {
 					return LibraryAndError(null, false);
 				}
-			case sym!"pthread".value:
+			case symbol!"pthread".value:
 				// TODO: understand why this is different
 				return loadLibraryFromName(cString!"libpthread.so.0", writeError);
 			default:
@@ -116,11 +116,11 @@ LibraryAndError getLibrary(
 	}
 }
 
-Sym dllOrSoName(ref AllSymbols allSymbols, immutable Sym libraryName) {
+Symbol dllOrSoName(ref AllSymbols allSymbols, immutable Symbol libraryName) {
 	version (Windows) {
-		return concatSyms(allSymbols, [libraryName, sym!".dll"]);
+		return concatSyms(allSymbols, [libraryName, symbol!".dll"]);
 	} else {
-		return concatSyms(allSymbols, [sym!"lib", libraryName, sym!".so"]);
+		return concatSyms(allSymbols, [symbol!"lib", libraryName, symbol!".so"]);
 	}
 }
 
@@ -134,7 +134,7 @@ Sym dllOrSoName(ref AllSymbols allSymbols, immutable Sym libraryName) {
 		return none!(DLLib*);
 }
 
-@trusted LibraryAndError loadLibraryFromName(in AllSymbols allSymbols, Sym name, in WriteError writeError) {
+@trusted LibraryAndError loadLibraryFromName(in AllSymbols allSymbols, Symbol name, in WriteError writeError) {
 	char[256] buf = symAsTempBuffer!256(allSymbols, name);
 	return loadLibraryFromName(CString(cast(immutable) buf.ptr), writeError);
 }
@@ -157,30 +157,30 @@ LoadedLibraries loadLibrariesInner(
 	immutable DLLib*[] libs,
 	in WriteError writeError,
 ) {
-	MapBuilder!(FunPtr, Sym) debugNames;
-	MutArr!(KeyValuePair!(Sym, Sym)) failures;
-	ExternFunPtrsForAllLibraries res = zipToMap!(Sym, Map!(Sym, FunPtr), ExternLibrary, DLLib*)(
+	MapBuilder!(FunPtr, Symbol) debugNames;
+	MutArr!(KeyValuePair!(Symbol, Symbol)) failures;
+	ExternFunPtrsForAllLibraries res = zipToMap!(Symbol, Map!(Symbol, FunPtr), ExternLibrary, DLLib*)(
 		alloc,
 		libraries,
 		libs,
 		(ref ExternLibrary x, ref DLLib* lib) {
-			ExternFunPtrsForLibrary funPtrs = makeMapFromKeys!(Sym, FunPtr)(
+			ExternFunPtrsForLibrary funPtrs = makeMapFromKeys!(Symbol, FunPtr)(
 				alloc,
 				x.importNames,
-				(Sym importName) {
+				(Symbol importName) {
 					Opt!FunPtr p = getExternFunPtr(allSymbols, lib, importName);
 					if (has(p)) {
 						// sometimes two names refer to the same function -- just go with the first name
-						tryAddToMap!(FunPtr, Sym)(alloc, debugNames, force(p), importName);
+						tryAddToMap!(FunPtr, Symbol)(alloc, debugNames, force(p), importName);
 						return force(p);
 					} else {
-						push(alloc, failures, KeyValuePair!(Sym, Sym)(x.libraryName, importName));
+						push(alloc, failures, KeyValuePair!(Symbol, Symbol)(x.libraryName, importName));
 						return FunPtr(null);
 					}
 				});
-			return immutable KeyValuePair!(Sym, ExternFunPtrsForLibrary)(x.libraryName, funPtrs);
+			return immutable KeyValuePair!(Symbol, ExternFunPtrsForLibrary)(x.libraryName, funPtrs);
 		});
-	foreach (KeyValuePair!(Sym, Sym) x; tempAsArr(failures)) {
+	foreach (KeyValuePair!(Symbol, Symbol) x; tempAsArr(failures)) {
 		writeError(cString!"Could not load extern function ");
 		writeSymToCb(writeError, allSymbols, x.value);
 		writeError(cString!" from library ");
@@ -192,7 +192,7 @@ LoadedLibraries loadLibrariesInner(
 		mutArrIsEmpty(failures) ? some(res) : none!ExternFunPtrsForAllLibraries);
 }
 
-@trusted pure Opt!FunPtr getExternFunPtr(in AllSymbols allSymbols, DLLib* library, Sym name) {
+@trusted pure Opt!FunPtr getExternFunPtr(in AllSymbols allSymbols, DLLib* library, Symbol name) {
 	immutable char[256] nameBuffer = symAsTempBuffer!256(allSymbols, name);
 	DCpointer ptr = dlFindSymbol(library, nameBuffer.ptr);
 	return ptr == null ? none!FunPtr : some(FunPtr(cast(immutable) ptr));
@@ -201,7 +201,7 @@ LoadedLibraries loadLibrariesInner(
 @system ulong dynamicCallFunPtr(
 	FunPtr funPtr,
 	in AllSymbols allSymbols,
-	Opt!Sym /*debugName*/,
+	Opt!Symbol /*debugName*/,
 	in DynCallSig sig,
 	in ulong[] parameters,
 ) {

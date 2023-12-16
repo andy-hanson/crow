@@ -154,7 +154,7 @@ import util.memory : allocate, initMemory, overwriteMemory;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, someMut, some;
 import util.sourceRange : Pos, Range;
 import util.string : copyToCString;
-import util.sym : prependSet, prependSetDeref, Sym, sym, symOfStr;
+import util.symbol : prependSet, prependSetDeref, Symbol, symbol, symbolOfString;
 import util.union_ : Union;
 import util.util : castImmutable, castNonScope_ref, max, ptrTrustMe, todo, unreachable;
 
@@ -320,7 +320,7 @@ Expr checkArrowAccess(
 ) {
 	// TODO: NO ALLOC
 	ExprAst[] derefArgs = arrayOfSingle(ast.left);
-	CallAst callDeref = CallAst(CallAst.style.single, NameAndRange(source.range.start, sym!"*"), derefArgs);
+	CallAst callDeref = CallAst(CallAst.style.single, NameAndRange(source.range.start, symbol!"*"), derefArgs);
 	return checkCallSpecial(
 		ctx, locals, source, ast.name.name, [ExprAst(source.range, ExprAstKind(callDeref))], expected);
 }
@@ -370,16 +370,16 @@ Expr checkAssignment(
 		return checkAssignIdentifier(ctx, locals, source, left.kind.as!IdentifierAst.name, right, expected);
 	else if (left.kind.isA!CallAst) {
 		CallAst leftCall = left.kind.as!CallAst;
-		Opt!Sym name = () {
+		Opt!Symbol name = () {
 			switch (leftCall.style) {
 				case CallAst.Style.dot:
 					return some(prependSet(ctx.allSymbols, leftCall.funNameName));
 				case CallAst.Style.prefixOperator:
-					return leftCall.funNameName == sym!"*" ? some(sym!"set-deref") : none!Sym;
+					return leftCall.funNameName == symbol!"*" ? some(symbol!"set-deref") : none!Symbol;
 				case CallAst.Style.subscript:
-					return some(sym!"set-subscript");
+					return some(symbol!"set-subscript");
 				default:
-					return none!Sym;
+					return none!Symbol;
 			}
 		}();
 		if (has(name)) {
@@ -432,7 +432,7 @@ Expr checkUnless(
 }
 
 Expr checkEmptyNew(ref ExprCtx ctx, ExprAst* source, ref Expected expected) =>
-	checkCallSpecialNoLocals(ctx, source, sym!"new", [], expected);
+	checkCallSpecialNoLocals(ctx, source, symbol!"new", [], expected);
 
 Expr checkIfOption(
 	ref ExprCtx ctx,
@@ -475,7 +475,7 @@ Expr checkInterpolated(
 		? CallAst(
 			//TODO: new kind (not infix)
 			CallAst.Style.infix,
-			NameAndRange(source.range.start, sym!"to"),
+			NameAndRange(source.range.start, symbol!"to"),
 			// TODO: NO ALLOC
 			newArray!ExprAst(ctx.alloc, [ExprAst(source.range, ExprAstKind(call))]))
 		: call;
@@ -484,7 +484,7 @@ Expr checkInterpolated(
 
 bool isString(Type a) =>
 	// TODO: better
-	a.isA!(StructInst*) && a.as!(StructInst*).decl.name == sym!"string";
+	a.isA!(StructInst*) && a.as!(StructInst*).decl.name == symbol!"string";
 
 CallAst checkInterpolatedRecur(ref ExprCtx ctx, in InterpolatedPart[] parts, Pos pos, in Opt!ExprAst left) {
 	ExprAst right = parts[0].matchIn!ExprAst(
@@ -495,7 +495,7 @@ CallAst checkInterpolatedRecur(ref ExprCtx ctx, in InterpolatedPart[] parts, Pos
 			ExprAst(e.range, ExprAstKind(CallAst(
 				//TODO: new kind (not infix)
 				CallAst.Style.infix,
-				NameAndRange(pos, sym!"to"),
+				NameAndRange(pos, symbol!"to"),
 				// TODO: NO ALLOC
 				newArray!ExprAst(ctx.alloc, [e])))));
 	Pos newPos = parts[0].matchIn!Pos(
@@ -510,7 +510,7 @@ CallAst checkInterpolatedRecur(ref ExprCtx ctx, in InterpolatedPart[] parts, Pos
 			ExprAstKind(CallAst(
 				//TODO: new kind (not infix)
 				CallAst.Style.infix,
-				NameAndRange(pos, sym!"~~"),
+				NameAndRange(pos, symbol!"~~"),
 				// TODO: NO ALLOC
 				newArray!ExprAst(ctx.alloc, [force(left), right]))))
 		: right;
@@ -602,7 +602,7 @@ struct VariableRefAndType {
 MutOpt!VariableRefAndType getIdentifierNonCall(
 	ref Alloc alloc,
 	ref LocalsInfo locals,
-	Sym name,
+	Symbol name,
 	LocalAccessKind accessKind,
 ) {
 	MutOpt!(LocalNode*) fromLocals = has(locals.locals)
@@ -620,7 +620,7 @@ MutOpt!VariableRefAndType getIdentifierNonCall(
 		return getIdentifierFromFunOrLambda(alloc, name, *locals.funOrLambda, accessKind);
 }
 
-MutOpt!(LocalNode*) getIdentifierInLocals(LocalNode* node, Sym name, LocalAccessKind accessKind) {
+MutOpt!(LocalNode*) getIdentifierInLocals(LocalNode* node, Symbol name, LocalAccessKind accessKind) {
 	return node.local.name == name
 		? someMut(node)
 		: has(node.prev)
@@ -630,7 +630,7 @@ MutOpt!(LocalNode*) getIdentifierInLocals(LocalNode* node, Sym name, LocalAccess
 
 MutOpt!VariableRefAndType getIdentifierFromFunOrLambda(
 	ref Alloc alloc,
-	Sym name,
+	Symbol name,
 	ref FunOrLambdaInfo info,
 	LocalAccessKind accessKind,
 ) {
@@ -673,7 +673,7 @@ LocalAccessKind accessKindInClosure(LocalAccessKind a) {
 	}
 }
 
-bool nameIsParameterOrLocalInScope(ref Alloc alloc, ref LocalsInfo locals, Sym name) =>
+bool nameIsParameterOrLocalInScope(ref Alloc alloc, ref LocalsInfo locals, Symbol name) =>
 	has(getIdentifierNonCall(alloc, locals, name, LocalAccessKind.getOnStack));
 
 Expr checkIdentifier(
@@ -693,7 +693,7 @@ Expr checkAssignIdentifier(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	ExprAst* source,
-	in Sym left,
+	in Symbol left,
 	ExprAst* right,
 	ref Expected expected,
 ) {
@@ -714,7 +714,7 @@ Expr checkAssignIdentifier(
 		return checkCallSpecial(ctx, locals, source, prependSet(ctx.allSymbols, left), [*right], expected);
 }
 
-MutOpt!VariableRefAndType getVariableRefForSet(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Sym name) {
+MutOpt!VariableRefAndType getVariableRefForSet(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Symbol name) {
 	MutOpt!VariableRefAndType opVar = getIdentifierNonCall(ctx.alloc, locals, name, LocalAccessKind.setOnStack);
 	if (has(opVar)) {
 		VariableRefAndType var = force(opVar);
@@ -839,12 +839,12 @@ Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, scope string value, re
 		}();
 		return Expr(source, ExprKind(allocate(ctx.alloc, LiteralExpr(Constant(Constant.Integral(char_))))));
 	} else if (expectedStruct == ctx.commonTypes.symbol)
-		return Expr(source, ExprKind(LiteralSymbolExpr(symOfStr(ctx.allSymbols, value))));
+		return Expr(source, ExprKind(LiteralSymbolExpr(symbolOfString(ctx.allSymbols, value))));
 	else if (expectedStruct == ctx.commonTypes.cString)
 		return Expr(source, ExprKind(LiteralCStringExpr(copyToCString(ctx.alloc, value))));
 	else {
 		defaultExpectedToString(ctx, source, expected);
-		return checkCallSpecialNoLocals(ctx, source, sym!"literal", arrayOfSingle(source), expected);
+		return checkCallSpecialNoLocals(ctx, source, symbol!"literal", arrayOfSingle(source), expected);
 	}
 }
 
@@ -860,7 +860,7 @@ void defaultExpectedToString(ref ExprCtx ctx, ExprAst* source, ref Expected expe
 }
 
 Type getStringType(ref ExprCtx ctx, ExprAst* source) =>
-	typeFromAst2(ctx, TypeAst(NameAndRange(source.range.start, sym!"string")));
+	typeFromAst2(ctx, TypeAst(NameAndRange(source.range.start, symbol!"string")));
 
 Expr checkExprWithDestructure(
 	ref ExprCtx ctx,
@@ -1064,7 +1064,7 @@ PointerMutability pointerMutabilityFromField(FieldMutability a) {
 }
 
 bool isDerefFunction(ref ExprCtx ctx, FunInst* a) =>
-	a.decl.body_.isA!(FunBody.Builtin) && a.decl.name == sym!"*" && a.arity == Arity(1);
+	a.decl.body_.isA!(FunBody.Builtin) && a.decl.name == symbol!"*" && a.arity == Arity(1);
 
 PointerMutability mutabilityForPtrDecl(in ExprCtx ctx, in StructDecl* a) {
 	if (a == ctx.commonTypes.ptrConst)
@@ -1078,7 +1078,7 @@ PointerMutability mutabilityForPtrDecl(in ExprCtx ctx, in StructDecl* a) {
 Expr checkFunPointer(ref ExprCtx ctx, ExprAst* source, in PtrAst ast, ref Expected expected) {
 	if (!ast.inner.kind.isA!IdentifierAst)
 		todo!void("diag: fun-pointer ast should just be an identifier");
-	Sym name = ast.inner.kind.as!IdentifierAst.name;
+	Symbol name = ast.inner.kind.as!IdentifierAst.name;
 	MutArr!(FunDecl*) funs = MutArr!(FunDecl*)();
 	eachFunInScope(funsInScope(ctx), name, (CalledDecl cd) {
 		cd.matchWithPointers!void(
@@ -1226,7 +1226,7 @@ Expr checkLoopBreak(
 ) {
 	MutOpt!(LoopInfo*) optLoop = tryGetLoop(expected);
 	if (!has(optLoop))
-		return checkCallSpecial(ctx, locals, source, sym!"loop-break", [ast.value], expected);
+		return checkCallSpecial(ctx, locals, source, symbol!"loop-break", [ast.value], expected);
 	else {
 		LoopInfo* loop = force(optLoop);
 		loop.hasBreak = true;
@@ -1241,7 +1241,7 @@ Expr checkLoopContinue(ref ExprCtx ctx, ExprAst* source, ref Expected expected) 
 	MutOpt!(LoopInfo*) optLoop = tryGetLoop(expected);
 	return has(optLoop)
 		? Expr(source, ExprKind(LoopContinueExpr(force(optLoop).loop)))
-		: checkCallSpecialNoLocals(ctx, source, sym!"loop-continue", [], expected);
+		: checkCallSpecialNoLocals(ctx, source, symbol!"loop-continue", [], expected);
 }
 
 Expr checkLoopUntil(
@@ -1444,7 +1444,7 @@ bool hasBreakOrContinue(in ExprAst a) =>
 Expr checkFor(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref ForAst ast, ref Expected expected) {
 	// TODO: NO ALLOC
 	ExprAst lambdaBody = ExprAst(source.range, ExprAstKind(allocate(ctx.alloc, LambdaAst(ast.param, ast.body_))));
-	Sym funName = hasBreakOrContinue(ast.body_) ? sym!"for-break" : sym!"for-loop";
+	Symbol funName = hasBreakOrContinue(ast.body_) ? symbol!"for-break" : symbol!"for-loop";
 	if (!ast.else_.kind.isA!EmptyAst) {
 		// TODO: NO ALLOC
 		ExprAst lambdaElse_ = ExprAst(ast.else_.range, ExprAstKind(
@@ -1459,13 +1459,13 @@ Expr checkWith(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref With
 		todo!void("diag: no 'else' for 'with'");
 	// TODO: NO ALLOC
 	ExprAst lambda = ExprAst(source.range, ExprAstKind(allocate(ctx.alloc, LambdaAst(ast.param, ast.body_))));
-	return checkCallSpecial(ctx, locals, source, sym!"with-block", [ast.arg, lambda], expected);
+	return checkCallSpecial(ctx, locals, source, symbol!"with-block", [ast.arg, lambda], expected);
 }
 
 Expr checkThen(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref ThenAst ast, ref Expected expected) {
 	// TODO: NO ALLOC
 	ExprAst lambda = ExprAst(source.range, ExprAstKind(allocate(ctx.alloc, LambdaAst(ast.left, ast.then))));
-	return checkCallSpecial(ctx, locals, source, sym!"then", [ast.futExpr, lambda], expected);
+	return checkCallSpecial(ctx, locals, source, symbol!"then", [ast.futExpr, lambda], expected);
 }
 
 Expr checkTyped(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, TypedAst* ast, ref Expected expected) {

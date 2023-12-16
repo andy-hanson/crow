@@ -26,7 +26,7 @@ import util.col.mutSet : mayAddToMutSet, MutSet, mutSetHas;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.sourceRange : Range, UriAndRange;
-import util.sym : AllSymbols, Sym;
+import util.symbol : AllSymbols, Symbol;
 import util.uri : AllUris, Uri;
 
 struct CheckCtx {
@@ -95,7 +95,7 @@ void checkForUnused(ref CheckCtx ctx, StructAlias[] aliases, StructDecl[] struct
 
 private void checkUnusedImports(ref CheckCtx ctx) {
 	foreach (ref ImportOrExport import_; ctx.importsAndReExports.imports) {
-		void addDiagUnused(Module* module_, Opt!Sym name) {
+		void addDiagUnused(Module* module_, Opt!Symbol name) {
 			addDiag(
 				ctx,
 				pathRange(ctx.allUris, *force(import_.source)),
@@ -104,7 +104,7 @@ private void checkUnusedImports(ref CheckCtx ctx) {
 		import_.kind.match!void(
 			(ImportOrExportKind.ModuleWhole) {
 				if (!isUsedModuleWhole(ctx, import_.module_) && has(import_.source))
-					addDiagUnused(import_.modulePtr, none!Sym);
+					addDiagUnused(import_.modulePtr, none!Symbol);
 			},
 			(Opt!(NameReferents*)[] referents) {
 				foreach (Opt!(NameReferents*) x; referents)
@@ -115,7 +115,7 @@ private void checkUnusedImports(ref CheckCtx ctx) {
 }
 
 private bool isUsedModuleWhole(in CheckCtx ctx, in Module module_) =>
-	existsInHashTable!(NameReferents, Sym, nameFromNameReferents)(module_.allExportedNames, (in NameReferents x) =>
+	existsInHashTable!(NameReferents, Symbol, nameFromNameReferents)(module_.allExportedNames, (in NameReferents x) =>
 		containsUsed(x, ctx.used));
 
 private bool containsUsed(in NameReferents a, in UsedSet used) =>
@@ -131,7 +131,7 @@ immutable struct ImportAndReExportModules {
 
 void eachImportAndReExport(
 	in ImportAndReExportModules a,
-	Sym name,
+	Symbol name,
 	in void delegate(in NameReferents) @safe @nogc pure nothrow cb,
 ) {
 	void inner(ref ImportOrExport import_) {

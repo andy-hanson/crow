@@ -18,14 +18,14 @@ import util.col.mutMap : getOrAdd, MutMap, size, values, valuesArray;
 import util.memory : initMemory;
 import util.opt : force, has, Opt;
 import util.string : CString;
-import util.sym : AllSymbols, cStringOfSym, Sym;
+import util.symbol : AllSymbols, cStringOfSymbol, Symbol;
 import util.util : ptrTrustMe;
 
 struct AllConstantsBuilder {
 	private:
 	@disable this(ref const AllConstantsBuilder);
 	MutMap!(CString, Constant.CString) cStrings;
-	MutMap!(Sym, Constant) syms;
+	MutMap!(Symbol, Constant) syms;
 	MutArr!CString cStringValues;
 	MutMap!(ConcreteType, ArrTypeAndConstants) arrs;
 	MutMap!(ConcreteStruct*, PointerTypeAndConstants) pointers;
@@ -109,9 +109,9 @@ private Constant getConstantCStrForSym(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
 	ref const AllSymbols allSymbols,
-	Sym value,
+	Symbol value,
 ) =>
-	getConstantCStr(alloc, allConstants, cStringOfSym(alloc, allSymbols, value));
+	getConstantCStr(alloc, allConstants, cStringOfSymbol(alloc, allSymbols, value));
 
 Constant getConstantCStr(ref Alloc alloc, ref AllConstantsBuilder allConstants, CString value) =>
 	Constant(getOrAdd!(CString, Constant.CString)(
@@ -129,9 +129,9 @@ Constant getConstantSym(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
 	ref const AllSymbols allSymbols,
-	Sym value,
+	Symbol value,
 ) =>
-	getOrAdd!(Sym, Constant)(alloc, allConstants.syms, value, () =>
+	getOrAdd!(Symbol, Constant)(alloc, allConstants.syms, value, () =>
 		Constant(Constant.Record(newArray!Constant(alloc, [
 			getConstantCStrForSym(alloc, allConstants, allSymbols, value)]))));
 

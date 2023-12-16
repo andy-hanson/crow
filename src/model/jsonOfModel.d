@@ -83,7 +83,7 @@ import util.json :
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : jsonOfRange;
-import util.sym : Sym, sym;
+import util.symbol : Symbol, symbol;
 import util.uri : AllUris, stringOfUri;
 import util.util : ptrTrustMe, stringOfEnum;
 
@@ -149,7 +149,7 @@ Json jsonOfVarDecl(ref Alloc alloc, in Ctx ctx, in VarDecl a) =>
 		[
 			field!"var-kind"(stringOfEnum(a.kind)),
 			field!"type"(jsonOfType(alloc, ctx, a.type)),
-			optionalField!("library-name", Sym)(a.externLibraryName, (in Sym x) => jsonString(x)),
+			optionalField!("library-name", Symbol)(a.externLibraryName, (in Symbol x) => jsonString(x)),
 		]);
 
 Json jsonOfSpecDecl(ref Alloc alloc, in Ctx ctx, in SpecDecl a) =>
@@ -196,7 +196,7 @@ Json.ObjectField[3] commonDeclFields(
 	ref Alloc alloc,
 	in Ctx ctx,
 	Visibility visibility,
-	Sym name,
+	Symbol name,
 	in TypeParams typeParams,
 ) =>
 	[
@@ -207,37 +207,37 @@ Json.ObjectField[3] commonDeclFields(
 	];
 
 Json funFlags(ref Alloc alloc, in FunFlags a) {
-	Opt!Sym[5] syms = [
+	Opt!Symbol[5] syms = [
 		flag!"bare"(a.bare),
 		flag!"summon"(a.summon),
 		() {
 			final switch (a.safety) {
 				case FunFlags.Safety.safe:
-					return none!Sym;
+					return none!Symbol;
 				case FunFlags.Safety.unsafe:
-					return some(sym!"unsafe");
+					return some(symbol!"unsafe");
 			}
 		}(),
 		flag!"ok-if-unused"(a.okIfUnused),
 		() {
 			final switch (a.specialBody) {
 				case FunFlags.SpecialBody.none:
-					return none!Sym;
+					return none!Symbol;
 				case FunFlags.SpecialBody.builtin:
-					return some(sym!"builtin");
+					return some(symbol!"builtin");
 				case FunFlags.SpecialBody.extern_:
-					return some(sym!"extern");
+					return some(symbol!"extern");
 				case FunFlags.SpecialBody.generated:
-					return some(sym!"generated");
+					return some(symbol!"generated");
 			}
 		}(),
 	];
-	return jsonList(mapOp!(Json, Opt!Sym)(alloc, syms, (ref Opt!Sym x) =>
+	return jsonList(mapOp!(Json, Opt!Symbol)(alloc, syms, (ref Opt!Symbol x) =>
 		has(x) ? some(jsonString(force(x))) : none!Json));
 }
 
-Opt!Sym flag(string name)(bool a) =>
-	a ? some(sym!name) : none!Sym;
+Opt!Symbol flag(string name)(bool a) =>
+	a ? some(symbol!name) : none!Symbol;
 
 Json jsonOfTypeParam(ref Alloc alloc, in NameAndRange a) =>
 	jsonObject(alloc, [field!"name"(a.name)]);

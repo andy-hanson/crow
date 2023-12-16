@@ -8,7 +8,7 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.json : Json;
 import util.opt : force, has, none, Opt, some;
 import util.string : CString, stringOfCString;
-import util.sym : AllSymbols, symOfStr;
+import util.symbol : AllSymbols, symbolOfString;
 import util.writer : withWriter, Writer;
 
 Json mustParseJson(ref Alloc alloc, scope ref AllSymbols allSymbols, in CString source) {
@@ -170,7 +170,7 @@ Opt!Json parseObjectRecur(
 		if (has(keyString) && tryTakePunctuation(ptr, ':')) {
 			Opt!Json value = parseValue(alloc, allSymbols, ptr);
 			if (has(value)) {
-				add(alloc, res, Json.ObjectField(symOfStr(allSymbols, force(keyString)), force(value)));
+				add(alloc, res, Json.ObjectField(symbolOfString(allSymbols, force(keyString)), force(value)));
 				return tryTakePunctuation(ptr, ',')
 					? parseObjectRecur(alloc, allSymbols, res, ptr)
 					: tryTakePunctuation(ptr, '}')

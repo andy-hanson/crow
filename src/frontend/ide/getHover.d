@@ -47,7 +47,7 @@ import model.model :
 	stringOfVisibility,
 	StructDecl,
 	StructInst,
-	symOfVarKind,
+	symbolOfVarKind,
 	ThrowExpr,
 	Type,
 	TypeParamIndex,
@@ -57,7 +57,7 @@ import util.alloc.alloc : Alloc;
 import util.opt : none, Opt, some;
 import util.sourceRange : UriAndRange;
 import util.string : CString, cStringIsEmpty;
-import util.sym : writeSym;
+import util.symbol : writeSym;
 import util.uri : Uri;
 import util.util : ptrTrustMe, unreachable;
 import util.writer : withWriter, Writer;
@@ -188,7 +188,7 @@ void getHover(scope ref Writer writer, in ShowCtx ctx, in Position pos) =>
 			hoverTypeParam(writer, ctx, x.container, x.typeParam);
 		},
 		(in VarDecl x) {
-			writeSym(writer, ctx.allSymbols, symOfVarKind(x.kind));
+			writeSym(writer, ctx.allSymbols, symbolOfVarKind(x.kind));
 			writer ~= " variable ";
 			writeName(writer, ctx, x.name);
 			writer ~= " (";

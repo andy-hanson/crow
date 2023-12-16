@@ -17,7 +17,7 @@ import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : UriAndPos;
 import util.string : CString;
-import util.sym : AllSymbols;
+import util.symbol : AllSymbols;
 import util.uri : AllUris, cStringOfUriPreferRelative, Uri, UrisInfo;
 import util.util : min;
 import util.writer : debugLogWithWriter, withWriter, writeHex, Writer;

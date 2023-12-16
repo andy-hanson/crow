@@ -13,7 +13,7 @@ import util.col.multiMap : makeMultiMap, MultiMapCb;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : UriAndRange;
 import util.string : copyString;
-import util.sym : AllSymbols;
+import util.symbol : AllSymbols;
 import util.uri : AllUris, Uri;
 
 Opt!WorkspaceEdit getRenameForPosition(

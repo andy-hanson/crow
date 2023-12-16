@@ -14,7 +14,7 @@ import model.ast :
 	ModifierAst,
 	rangeOfModifierAst,
 	StructDeclAst,
-	symOfModifierKind,
+	symbolOfModifierKind,
 	TypeAst;
 import model.concreteModel : TypeSize;
 import model.diag : Diag, TypeKind;
@@ -39,8 +39,8 @@ import model.model :
 	StructDecl,
 	StructDeclSource,
 	StructInst,
-	symOfForcedByValOrRefOrNone,
-	symOfLinkage,
+	symbolOfForcedByValOrRefOrNone,
+	symbolOfLinkage,
 	Type,
 	TypeParamIndex,
 	UnionMember,
@@ -50,7 +50,7 @@ import util.col.arrUtil : eachPair, fold, map, mapAndFold, MapAndFold, mapPointe
 import util.conv : safeToSizeT;
 import util.opt : force, has, none, Opt, optOrDefault, some, someMut;
 import util.sourceRange : Range;
-import util.sym : Sym, sym;
+import util.symbol : Symbol, symbol;
 import util.util : isMultipleOf, ptrTrustMe, todo, unreachable;
 
 StructDecl[] checkStructsInitial(ref CheckCtx ctx, in StructDeclAst[] asts) =>
@@ -175,21 +175,21 @@ LinkageAndPurity getStructModifiers(ref CheckCtx ctx, TypeKind typeKind, in Modi
 		OptLinkageAndPurity(),
 		modifiers,
 		(OptLinkageAndPurity cur, in ModifierAst mod) {
-			void addDiagConflictOrDuplicate(Sym prev) {
+			void addDiagConflictOrDuplicate(Symbol prev) {
 				addDiag(
 					ctx,
 					rangeOfModifierAst(mod, ctx.allSymbols),
-					modifierConflictOrDuplicate(prev, symOfModifierKind(mod.kind)));
+					modifierConflictOrDuplicate(prev, symbolOfModifierKind(mod.kind)));
 			}
 			void addDiagRedundant() {
 				addDiag(ctx, rangeOfModifierAst(mod, ctx.allSymbols), Diag(Diag.ModifierRedundantDueToTypeKind(
-					symOfModifierKind(mod.kind),
+					symbolOfModifierKind(mod.kind),
 					typeKind)));
 			}
 
 			if (mod.kind == ModifierAst.Kind.extern_) {
 				if (has(cur.linkage))
-					addDiagConflictOrDuplicate(symOfLinkage(force(cur.linkage)));
+					addDiagConflictOrDuplicate(symbolOfLinkage(force(cur.linkage)));
 				else if (Linkage.extern_ == defaultLinkage)
 					addDiagRedundant();
 				return OptLinkageAndPurity(some(Linkage.extern_), cur.purityAndForced);
@@ -197,7 +197,7 @@ LinkageAndPurity getStructModifiers(ref CheckCtx ctx, TypeKind typeKind, in Modi
 				Opt!PurityAndForced op = purityAndForcedFromModifier(mod.kind);
 				if (has(op)) {
 					if (has(cur.purityAndForced))
-						addDiagConflictOrDuplicate(symOfPurityAndForced(force(cur.purityAndForced)));
+						addDiagConflictOrDuplicate(symbolOfPurityAndForced(force(cur.purityAndForced)));
 					else if (force(op) == defaultPurity)
 						addDiagRedundant();
 					return OptLinkageAndPurity(cur.linkage, op);
@@ -210,7 +210,7 @@ LinkageAndPurity getStructModifiers(ref CheckCtx ctx, TypeKind typeKind, in Modi
 		optOrDefault!PurityAndForced(opts.purityAndForced, () => defaultPurity));
 }
 
-Diag modifierConflictOrDuplicate(Sym a, Sym b) =>
+Diag modifierConflictOrDuplicate(Symbol a, Symbol b) =>
 	a == b ? Diag(Diag.ModifierDuplicate(a)) : Diag(Diag.ModifierConflict(a, b));
 
 Linkage defaultLinkage(TypeKind a) {
@@ -274,26 +274,26 @@ Opt!PurityAndForced purityAndForcedFromModifier(ModifierAst.Kind a) {
 	}
 }
 
-Sym symOfPurityAndForced(PurityAndForced a) {
+Symbol symbolOfPurityAndForced(PurityAndForced a) {
 	final switch (a.purity) {
 		case Purity.data:
 			assert(!a.forced);
-			return sym!"data";
+			return symbol!"data";
 		case Purity.shared_:
-			return a.forced ? sym!"force-shared" : sym!"shared";
+			return a.forced ? symbol!"force-shared" : symbol!"shared";
 		case Purity.mut:
 			assert(!a.forced);
-			return sym!"mut";
+			return symbol!"mut";
 	}
 }
 
 void checkOnlyStructModifiers(ref CheckCtx ctx, TypeKind typeKind, in ModifierAst[] modifiers) {
 	foreach (ref ModifierAst modifier; modifiers)
 		if (!isStructModifier(modifier.kind)) {
-			Sym sym = symOfModifierKind(modifier.kind);
+			Symbol symbol = symbolOfModifierKind(modifier.kind);
 			addDiag(ctx, rangeOfModifierAst(modifier, ctx.allSymbols), modifier.kind == ModifierAst.Kind.byVal
-				? Diag(Diag.ModifierRedundantDueToTypeKind(sym, typeKind))
-				: Diag(Diag.ModifierInvalid(sym, typeKind)));
+				? Diag(Diag.ModifierRedundantDueToTypeKind(symbol, typeKind))
+				: Diag(Diag.ModifierInvalid(symbol, typeKind)));
 		}
 }
 
@@ -623,38 +623,38 @@ RecordModifiers withByValOrRef(
 	in Range range,
 	ForcedByValOrRefOrNone value) {
 	if (cur.byValOrRefOrNone != ForcedByValOrRefOrNone.none) {
-		Sym valueSym = symOfForcedByValOrRefOrNone(value);
+		Symbol valueSym = symbolOfForcedByValOrRefOrNone(value);
 		addDiag(ctx, range, value == cur.byValOrRefOrNone
 			? Diag(Diag.ModifierDuplicate(valueSym))
-			: Diag(Diag.ModifierConflict(symOfForcedByValOrRefOrNone(cur.byValOrRefOrNone), valueSym)));
+			: Diag(Diag.ModifierConflict(symbolOfForcedByValOrRefOrNone(cur.byValOrRefOrNone), valueSym)));
 	}
 	return RecordModifiers(value, cur.newVisibility, cur.packed);
 }
 
 RecordModifiers withNewVisibility(ref CheckCtx ctx, RecordModifiers cur, in Range range, Visibility value) {
 	if (has(cur.newVisibility)) {
-		Sym valueSym = symOfNewVisibility(value);
+		Symbol valueSym = symbolOfNewVisibility(value);
 		addDiag(ctx, range, value == force(cur.newVisibility)
 			? Diag(Diag.ModifierDuplicate(valueSym))
-			: Diag(Diag.ModifierConflict(symOfNewVisibility(force(cur.newVisibility)), valueSym)));
+			: Diag(Diag.ModifierConflict(symbolOfNewVisibility(force(cur.newVisibility)), valueSym)));
 	}
 	return RecordModifiers(cur.byValOrRefOrNone, some(value), cur.packed);
 }
 
-Sym symOfNewVisibility(Visibility a) {
+Symbol symbolOfNewVisibility(Visibility a) {
 	final switch (a) {
 		case Visibility.private_:
-			return sym!"-new";
+			return symbol!"-new";
 		case Visibility.internal:
-			return sym!"~new";
+			return symbol!"~new";
 		case Visibility.public_:
-			return sym!"+new";
+			return symbol!"+new";
 	}
 }
 
 RecordModifiers withPacked(ref CheckCtx ctx, RecordModifiers cur, in Range range) {
 	if (cur.packed)
-		addDiag(ctx, range, Diag(Diag.ModifierDuplicate(sym!"packed")));
+		addDiag(ctx, range, Diag(Diag.ModifierDuplicate(symbol!"packed")));
 	return RecordModifiers(cur.byValOrRefOrNone, cur.newVisibility, true);
 }
 

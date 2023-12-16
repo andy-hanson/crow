@@ -161,7 +161,7 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\perfReport.d \
 	src\util\sourceRange.d \
 	src\util\string.d \
-	src\util\sym.d \
+	src\util\symbol.d \
 	src\util\union.d \
 	src\util\uri.d \
 	src\util\util.d \
@@ -191,7 +191,7 @@ app_src_with_test = $(app_src_no_test) \
 	src\test\testSortUtil.d \
 	src\test\testStack.d \
 	src\test\testServer.d \
-	src\test\testSym.d \
+	src\test\testSymbol.d \
 	src\test\testUtil.d \
 	src\test\testWriter.d
 other_deps = bin\d-imports\date.txt bin\d-imports\commit-hash.txt

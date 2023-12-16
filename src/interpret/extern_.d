@@ -8,7 +8,7 @@ import util.col.map : Map;
 import util.hash : HashCode, hashPtr;
 import util.opt : Opt;
 import util.string : CString;
-import util.sym : AllSymbols, Sym, symAsTempBuffer;
+import util.symbol : AllSymbols, Symbol, symAsTempBuffer;
 
 immutable struct Extern {
 	// 'none' if anything failed to load
@@ -30,13 +30,13 @@ alias MakeSyntheticFunPtrs = immutable FunPtr[] delegate(in FunPtrInputs[] input
 alias DoDynCall = immutable ulong delegate(FunPtr, in DynCallSig, in ulong[] args) @system @nogc nothrow;
 alias WriteError = immutable void delegate(in CString) @safe @nogc nothrow;
 
-@trusted void writeSymToCb(scope WriteError writeError, in AllSymbols allSymbols, Sym a) {
+@trusted void writeSymToCb(scope WriteError writeError, in AllSymbols allSymbols, Symbol a) {
 	immutable char[256] buf = symAsTempBuffer!256(allSymbols, a);
 	writeError(CString(buf.ptr));
 }
 
-alias ExternFunPtrsForAllLibraries = Map!(Sym, ExternFunPtrsForLibrary);
-alias ExternFunPtrsForLibrary = Map!(Sym, FunPtr);
+alias ExternFunPtrsForAllLibraries = Map!(Symbol, ExternFunPtrsForLibrary);
+alias ExternFunPtrsForLibrary = Map!(Symbol, FunPtr);
 
 immutable struct FunPtr {
 	@safe @nogc pure nothrow:

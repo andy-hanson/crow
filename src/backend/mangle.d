@@ -30,7 +30,7 @@ import util.col.mapBuilder : finishMap, mustAddToMap, MapBuilder;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapEachValue, mapFullIndexMap;
 import util.col.mutMap : getOrAdd, insertOrUpdate, MutMap, setInMap;
 import util.opt : force, has, none, Opt, some;
-import util.sym : AllSymbols, eachCharInSym, Sym, sym, writeSym;
+import util.symbol : AllSymbols, eachCharInSym, Symbol, symbol, writeSym;
 import util.union_ : Union;
 import util.util : todo;
 import util.writer : Writer;
@@ -50,11 +50,11 @@ MangledNames buildMangledNames(
 ) {
 	// First time we see a fun with a name, we'll store the fun-pointer here in case it's not overloaded.
 	// After that, we'll start putting them in funToNameIndex, and store the next index here.
-	MutMap!(Sym, PrevOrIndex!ConcreteFun) funNameToIndex;
+	MutMap!(Symbol, PrevOrIndex!ConcreteFun) funNameToIndex;
 	// This will not have an entry for non-overloaded funs.
 	MapBuilder!(ConcreteFun*, size_t) funToNameIndex;
 	// HAX: Ensure "main" has that name.
-	setInMap(alloc, funNameToIndex, sym!"main", PrevOrIndex!ConcreteFun(0));
+	setInMap(alloc, funNameToIndex, symbol!"main", PrevOrIndex!ConcreteFun(0));
 	fullIndexMapEachValue!(LowFunIndex, LowFun)(program.allFuns, (ref LowFun fun) {
 		fun.source.matchWithPointers!void(
 			(ConcreteFun* cf) {
@@ -70,7 +70,7 @@ MangledNames buildMangledNames(
 			(LowFunSource.Generated*) {});
 	});
 
-	MutMap!(Sym, PrevOrIndex!ConcreteStruct) structNameToIndex;
+	MutMap!(Symbol, PrevOrIndex!ConcreteStruct) structNameToIndex;
 	// This will not have an entry for non-overloaded structs.
 	MapBuilder!(ConcreteStruct*, size_t) structToNameIndex;
 
@@ -106,10 +106,10 @@ private immutable(FullIndexMap!(LowVarIndex, size_t)) makeVarToNameIndex(
 	ref Alloc alloc,
 	in immutable FullIndexMap!(LowVarIndex, LowVar) vars,
 ) {
-	MutMap!(Sym, size_t) counts;
+	MutMap!(Symbol, size_t) counts;
 	return mapFullIndexMap!(LowVarIndex, size_t, LowVar)(alloc, vars, (LowVarIndex _, in LowVar x) {
 		//TODO:PERF use temp alloc
-		size_t* index = &getOrAdd!(Sym, size_t)(alloc, counts, x.name, () => 0);
+		size_t* index = &getOrAdd!(Symbol, size_t)(alloc, counts, x.name, () => 0);
 		size_t res = *index;
 		(*index)++;
 		if (x.isExtern && res != 0)
@@ -160,7 +160,7 @@ void writeLowFunMangledName(
 		},
 		(LowFunSource.Generated* x) {
 			writeMangledName(writer, mangledNames, x.name);
-			if (x.name != sym!"main") {
+			if (x.name != symbol!"main") {
 				writer ~= '_';
 				writer ~= funIndex.index;
 			}
@@ -253,12 +253,12 @@ immutable struct PrevOrIndex(T) {
 
 void addToPrevOrIndex(T)(
 	ref Alloc alloc,
-	ref MutMap!(Sym, PrevOrIndex!T) nameToIndex,
+	ref MutMap!(Symbol, PrevOrIndex!T) nameToIndex,
 	ref MapBuilder!(T*, size_t) toNameIndex,
 	immutable T* cur,
-	Sym name,
+	Symbol name,
 ) {
-	insertOrUpdate!(Sym, PrevOrIndex!T)(
+	insertOrUpdate!(Symbol, PrevOrIndex!T)(
 		alloc,
 		nameToIndex,
 		name,
@@ -277,9 +277,9 @@ void addToPrevOrIndex(T)(
 				})));
 }
 
-public void writeMangledName(ref Writer writer, in MangledNames mangledNames, Sym a) {
+public void writeMangledName(ref Writer writer, in MangledNames mangledNames, Symbol a) {
 	//TODO: this applies to any C function. Maybe crow functions should have a common prefix.
-	if (a == sym!"errno") {
+	if (a == symbol!"errno") {
 		writer ~= "_crow_errno";
 		return;
 	}
@@ -332,20 +332,20 @@ Opt!string mangleChar(char a) {
 	}
 }
 
-bool conflictsWithCName(Sym a) {
+bool conflictsWithCName(Symbol a) {
 	switch (a.value) {
-		case sym!"atomic-bool".value: // avoid conflicting with c's "atomic_bool" type
-		case sym!"break".value:
-		case sym!"continue".value:
-		case sym!"default".value:
-		case sym!"do".value:
-		case sym!"double".value:
-		case sym!"float".value:
-		case sym!"for".value:
-		case sym!"int".value:
-		case sym!"log".value: // defined by tgmath.h
-		case sym!"void".value:
-		case sym!"while".value:
+		case symbol!"atomic-bool".value: // avoid conflicting with c's "atomic_bool" type
+		case symbol!"break".value:
+		case symbol!"continue".value:
+		case symbol!"default".value:
+		case symbol!"do".value:
+		case symbol!"double".value:
+		case symbol!"float".value:
+		case symbol!"for".value:
+		case symbol!"int".value:
+		case symbol!"log".value: // defined by tgmath.h
+		case symbol!"void".value:
+		case symbol!"while".value:
 			return true;
 		default:
 			return false;

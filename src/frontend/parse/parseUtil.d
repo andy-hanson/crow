@@ -23,7 +23,7 @@ import util.col.arrUtil : contains;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
 import util.string : copyToCString, CString, cString;
-import util.sym : Sym, sym;
+import util.symbol : Symbol, symbol;
 import util.util : unreachable;
 
 bool peekToken(ref Lexer lexer, Token expected) =>
@@ -41,7 +41,7 @@ bool tryTakeToken(ref Lexer lexer, in Token[] expected) {
 		return false;
 }
 
-bool tryTakeOperator(ref Lexer lexer, Sym expected) =>
+bool tryTakeOperator(ref Lexer lexer, Symbol expected) =>
 	tryTakeTokenIf(lexer, (TokenAndData x) =>
 		x.token == Token.operator && x.asSym() == expected);
 
@@ -85,7 +85,7 @@ void addDiagExpected(ref Lexer lexer, ParseDiag.Expected.Kind kind) {
 	addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(kind)));
 }
 
-bool takeOrAddDiagExpectedOperator(ref Lexer lexer, Sym operator, ParseDiag.Expected.Kind kind) {
+bool takeOrAddDiagExpectedOperator(ref Lexer lexer, Symbol operator, ParseDiag.Expected.Kind kind) {
 	bool res = tryTakeOperator(lexer, operator);
 	if (!res)
 		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(kind)));
@@ -94,7 +94,7 @@ bool takeOrAddDiagExpectedOperator(ref Lexer lexer, Sym operator, ParseDiag.Expe
 
 Opt!NameAndRange tryTakeNameAndRange(ref Lexer lexer) {
 	Pos start = curPos(lexer);
-	Opt!Sym name = tryTakeName(lexer);
+	Opt!Symbol name = tryTakeName(lexer);
 	return has(name)
 		? some(NameAndRange(start, force(name)))
 		: none!NameAndRange;
@@ -107,36 +107,36 @@ NameAndRange takeNameAndRange(ref Lexer lexer) {
 		return force(name);
 	else {
 		addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.name)));
-		return NameAndRange(start, sym!"");
+		return NameAndRange(start, symbol!"");
 	}
 }
 
 NameAndRange takeNameAndRangeAllowUnderscore(ref Lexer lexer) {
 	Pos start = curPos(lexer);
 	return tryTakeToken(lexer, Token.underscore)
-		? NameAndRange(start, sym!"_")
+		? NameAndRange(start, symbol!"_")
 		: takeNameAndRange(lexer);
 }
 
-Opt!Sym tryTakeName(ref Lexer lexer) =>
-	tryTakeToken!Sym(lexer, (TokenAndData x) =>
-		x.token == Token.name ? some(x.asSym()) : none!Sym);
+Opt!Symbol tryTakeName(ref Lexer lexer) =>
+	tryTakeToken!Symbol(lexer, (TokenAndData x) =>
+		x.token == Token.name ? some(x.asSym()) : none!Symbol);
 
-Sym takeName(ref Lexer lexer) =>
+Symbol takeName(ref Lexer lexer) =>
 	takeNameAndRange(lexer).name;
 
 NameAndRange takeNameOrOperator(ref Lexer lexer) {
 	Pos start = curPos(lexer);
-	Opt!Sym res = tryTakeToken!Sym(lexer, (TokenAndData x) =>
+	Opt!Symbol res = tryTakeToken!Symbol(lexer, (TokenAndData x) =>
 		isSymToken(x.token) && x.token != Token.nameOrOperatorColonEquals
 			? some(x.asSym())
-			: none!Sym);
+			: none!Symbol);
 	if (has(res))
 		return NameAndRange(start, force(res));
 	else {
 		addDiag(lexer, rangeEnsureAtLeastOne(lexer, start), ParseDiag(
 			ParseDiag.Expected(ParseDiag.Expected.Kind.nameOrOperator)));
-		return NameAndRange(start, sym!"bogus");
+		return NameAndRange(start, symbol!"bogus");
 	}
 }
 

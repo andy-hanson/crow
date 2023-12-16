@@ -50,7 +50,7 @@ import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range, UriAndRange;
-import util.sym : Sym, sym;
+import util.symbol : Symbol, symbol;
 import util.util : castNonScope_ref, todo, unreachable;
 
 enum CommonModule {
@@ -80,30 +80,30 @@ CommonFunsAndMain getCommonFuns(
 ) {
 	ArrBuilder!UriAndDiagnostic diagsBuilder;
 
-	Type getType(CommonModule module_, Sym name) {
+	Type getType(CommonModule module_, Symbol name) {
 		return getNonTemplateType(alloc, ctx, diagsBuilder, *modules[module_], name);
 	}
 	Type instantiateType(StructDecl* decl, in Type[] typeArgs) {
 		return Type(instantiateStructNeverDelay(ctx, decl, typeArgs));
 	}
 	FunDecl* getFunDeclInner(
-		ref Module module_, Sym name, TypeParams typeParams, Type returnType, in ParamShort[] params,
+		ref Module module_, Symbol name, TypeParams typeParams, Type returnType, in ParamShort[] params,
 	) {
 		return getFunDecl(alloc, diagsBuilder, module_, name, TypeParamsAndSig(typeParams, returnType, params));
 	}
-	FunInst* getFunInner(ref Module module_, Sym name, Type returnType, in ParamShort[] params) {
+	FunInst* getFunInner(ref Module module_, Symbol name, Type returnType, in ParamShort[] params) {
 		return instantiateNonTemplateFun(ctx, getFunDeclInner(module_, name, emptyTypeParams, returnType, params));
 	}
-	FunInst* getFun(CommonModule module_, Sym name, Type returnType, in ParamShort[] params) {
+	FunInst* getFun(CommonModule module_, Symbol name, Type returnType, in ParamShort[] params) {
 		return getFunInner(*modules[module_], name, returnType, params);
 	}
 
 	StructDecl* arrayDecl = getStructDeclOrAddDiag(
-		alloc, diagsBuilder, *modules[CommonModule.bootstrap], sym!"array", 1);
-	StructDecl* listDecl = getStructDeclOrAddDiag(alloc, diagsBuilder, *modules[CommonModule.list], sym!"list", 1);
-	Type stringType = getType(CommonModule.string_, sym!"string");
-	Type markCtxType = getType(CommonModule.alloc, sym!"mark-ctx");
-	Type symbolType = getType(CommonModule.bootstrap, sym!"symbol");
+		alloc, diagsBuilder, *modules[CommonModule.bootstrap], symbol!"array", 1);
+	StructDecl* listDecl = getStructDeclOrAddDiag(alloc, diagsBuilder, *modules[CommonModule.list], symbol!"list", 1);
+	Type stringType = getType(CommonModule.string_, symbol!"string");
+	Type markCtxType = getType(CommonModule.alloc, symbol!"mark-ctx");
+	Type symbolType = getType(CommonModule.bootstrap, symbol!"symbol");
 	Type int32Type = Type(commonTypes.integrals.int32);
 	Type nat8Type = Type(commonTypes.integrals.nat8);
 	Type nat64Type = Type(commonTypes.integrals.nat64);
@@ -118,19 +118,19 @@ CommonFunsAndMain getCommonFuns(
 	Type cStringConstPointerType = instantiateType(commonTypes.ptrConst, [cStringType]);
 	Type mainPointerType = instantiateType(commonTypes.funPtrStruct, [nat64FutureType, stringListType]);
 
-	FunInst* allocFun = getFun(CommonModule.alloc, sym!"alloc", nat8MutPointerType, [param!"size-bytes"(nat64Type)]);
+	FunInst* allocFun = getFun(CommonModule.alloc, symbol!"alloc", nat8MutPointerType, [param!"size-bytes"(nat64Type)]);
 	immutable FunDecl*[] funOrActSubscriptFunDecls =
 		// TODO: check signatures
-		getFunOrActSubscriptFuns(alloc, commonTypes, getFuns(*modules[CommonModule.funUtil], sym!"subscript"));
+		getFunOrActSubscriptFuns(alloc, commonTypes, getFuns(*modules[CommonModule.funUtil], symbol!"subscript"));
 	FunInst* curExclusion =
-		getFun(CommonModule.runtime, sym!"cur-exclusion", nat64Type, []);
+		getFun(CommonModule.runtime, symbol!"cur-exclusion", nat64Type, []);
 	Opt!MainFun main = has(mainModule)
 		? some(getMainFun(
 			alloc, ctx, diagsBuilder, *force(mainModule), nat64FutureType, stringListType, voidType))
 		: none!MainFun;
 	FunInst* mark = getFun(
 		CommonModule.alloc,
-		sym!"mark",
+		symbol!"mark",
 		Type(commonTypes.bool_),
 		[param!"ctx"(markCtxType), param!"pointer"(nat8ConstPointerType), param!"size-bytes"(nat64Type)]);
 
@@ -139,15 +139,15 @@ CommonFunsAndMain getCommonFuns(
 		param!"value"(singleTypeParamType),
 	];
 	FunDecl* markVisit = getFunDeclInner(
-		*modules[CommonModule.alloc], sym!"mark-visit", singleTypeParams, voidType, castNonScope_ref(markVisitParams));
+		*modules[CommonModule.alloc], symbol!"mark-visit", singleTypeParams, voidType, markVisitParams);
 	scope ParamShort[] newTFutureParams = [param!"value"(singleTypeParamType)];
 	Type tFuture = instantiateType(commonTypes.future, [singleTypeParamType]);
 	FunDecl* newTFuture = getFunDeclInner(
-		*modules[CommonModule.future], sym!"new", singleTypeParams, tFuture, castNonScope_ref(newTFutureParams));
+		*modules[CommonModule.future], symbol!"new", singleTypeParams, tFuture, newTFutureParams);
 	FunInst* newNat64Future = instantiateFun(ctx, newTFuture, small!Type([nat64Type]), emptySpecImpls);
 	FunInst* rtMain = getFun(
 		CommonModule.runtimeMain,
-		sym!"rt-main",
+		symbol!"rt-main",
 		int32Type,
 		[
 			param!"argc"(int32Type),
@@ -155,15 +155,15 @@ CommonFunsAndMain getCommonFuns(
 			param!"main"(mainPointerType),
 		]);
 	FunInst* staticSymbols =
-		getFun(CommonModule.bootstrap, sym!"static-symbols", symbolArrayType, []);
+		getFun(CommonModule.bootstrap, symbol!"static-symbols", symbolArrayType, []);
 	FunInst* throwImpl = getFun(
 		CommonModule.exceptionLowLevel,
-		sym!"throw-impl",
+		symbol!"throw-impl",
 		voidType,
 		[param!"message"(cStringType)]);
 	FunInst* char8ArrayAsString = getFun(
 		CommonModule.string_,
-		sym!"as-string",
+		symbol!"as-string",
 		stringType,
 		[param!"a"(char8ArrayType)]);
 	return CommonFunsAndMain(
@@ -174,7 +174,7 @@ CommonFunsAndMain getCommonFuns(
 		main);
 }
 
-Destructure makeParam(ref Alloc alloc, Sym name, Type type) =>
+Destructure makeParam(ref Alloc alloc, Symbol name, Type type) =>
 	Destructure(allocate(alloc, Local(LocalSource(LocalSource.Generated()), name, LocalMutability.immut, type)));
 
 Params makeParams(ref Alloc alloc, in ParamShort[] params) =>
@@ -182,11 +182,11 @@ Params makeParams(ref Alloc alloc, in ParamShort[] params) =>
 		makeParam(alloc, x.name, x.type)));
 
 ParamShort param(string name)(Type type) =>
-	ParamShort(sym!name, type);
+	ParamShort(symbol!name, type);
 
 private:
 
-immutable NameAndRange[1] singleTypeParam = [NameAndRange(0, sym!"t")];
+immutable NameAndRange[1] singleTypeParam = [NameAndRange(0, symbol!"t")];
 TypeParams singleTypeParams() => TypeParams(singleTypeParam);
 Type singleTypeParamType() =>
 	Type(TypeParamIndex(0));
@@ -223,7 +223,7 @@ Type getNonTemplateType(
 	ref InstantiateCtx ctx,
 	scope ref ArrBuilder!UriAndDiagnostic diagsBuilder,
 	ref Module module_,
-	Sym name,
+	Symbol name,
 ) {
 	StructDecl* decl = getStructDeclOrAddDiag(alloc, diagsBuilder, module_, name, 0);
 	if (decl.isTemplate)
@@ -235,7 +235,7 @@ StructDecl* getStructDeclOrAddDiag(
 	ref Alloc alloc,
 	scope ref ArrBuilder!UriAndDiagnostic diagsBuilder,
 	ref Module module_,
-	Sym name,
+	Symbol name,
 	size_t nTypeParams,
 ) {
 	Opt!(StructDecl*) res = getStructDecl(module_, name);
@@ -248,7 +248,7 @@ StructDecl* getStructDeclOrAddDiag(
 		return allocate(alloc, StructDecl(
 			StructDeclSource(allocate(alloc, StructDeclSource.Bogus(
 				TypeParams(makeArray!NameAndRange(alloc, nTypeParams, (size_t index) =>
-					NameAndRange(0, sym!"a")))))),
+					NameAndRange(0, symbol!"a")))))),
 			module_.uri,
 			name,
 			Visibility.public_,
@@ -259,7 +259,7 @@ StructDecl* getStructDeclOrAddDiag(
 	}
 }
 
-Opt!(StructDecl*) getStructDecl(in Module a, Sym name) {
+Opt!(StructDecl*) getStructDecl(in Module a, Symbol name) {
 Opt!NameReferents optReferents = a.allExportedNames[name];
 if (has(optReferents)) {
 		Opt!StructOrAlias sa = force(optReferents).structOrAlias;
@@ -291,7 +291,7 @@ FunDecl* getFunDecl(
 	ref Alloc alloc,
 	scope ref ArrBuilder!UriAndDiagnostic diagsBuilder,
 	ref Module module_,
-	Sym name,
+	Symbol name,
 	in TypeParamsAndSig expectedSig,
 ) =>
 	getFunDeclMulti(alloc, diagsBuilder, module_, name, [castNonScope_ref(expectedSig)]).decl;
@@ -306,7 +306,7 @@ MainFun getMainFun(
 	Type voidType,
 ) {
 	scope ParamShort[] params = [param!"args"(stringListType)];
-	FunDeclAndSigIndex decl = getFunDeclMulti(alloc, diagsBuilder, mainModule, sym!"main", [
+	FunDeclAndSigIndex decl = getFunDeclMulti(alloc, diagsBuilder, mainModule, symbol!"main", [
 		TypeParamsAndSig(emptyTypeParams, voidType, []),
 		TypeParamsAndSig(emptyTypeParams, nat64FutureType, castNonScope_ref(params))]);
 	FunInst* inst = instantiateNonTemplateFun(ctx, decl.decl);
@@ -327,7 +327,7 @@ FunDeclAndSigIndex getFunDeclMulti(
 	ref Alloc alloc,
 	scope ref ArrBuilder!UriAndDiagnostic diagsBuilder,
 	ref Module module_,
-	Sym name,
+	Symbol name,
 	in TypeParamsAndSig[] expectedSigs,
 ) {
 	Late!FunDeclAndSigIndex res = late!FunDeclAndSigIndex();
@@ -364,7 +364,7 @@ FunDeclAndSigIndex getFunDeclMulti(
 	}
 }
 
-immutable(FunDecl*[]) getFuns(ref Module a, Sym name) {
+immutable(FunDecl*[]) getFuns(ref Module a, Symbol name) {
 	Opt!NameReferents optReferents = a.allExportedNames[name];
 	return has(optReferents) ? force(optReferents).funs : [];
 }

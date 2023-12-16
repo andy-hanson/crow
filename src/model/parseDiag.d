@@ -5,7 +5,7 @@ module model.parseDiag;
 import frontend.parse.lexer : Token;
 import model.diag : ReadFileDiag;
 import util.sourceRange : Range;
-import util.sym : Sym;
+import util.symbol : Symbol;
 import util.union_ : Union;
 
 immutable struct ParseDiagnostic {
@@ -86,7 +86,7 @@ immutable struct ParseDiag {
 		char ch;
 	}
 	immutable struct UnexpectedOperator {
-		Sym operator;
+		Symbol operator;
 	}
 	immutable struct UnexpectedToken {
 		Token token;

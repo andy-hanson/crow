@@ -12,7 +12,7 @@ import util.hash : HashCode;
 import util.opt : has, force, none, Opt, some;
 import util.sourceRange : Range;
 import util.string : compareCStringAlphabetically, CString, cString, stringOfCString;
-import util.sym :
+import util.symbol :
 	addExtension,
 	alterExtension,
 	AllSymbols,
@@ -21,9 +21,9 @@ import util.sym :
 	getExtension,
 	hasExtension,
 	removeExtension,
-	Sym,
-	sym,
-	symOfStr,
+	Symbol,
+	symbol,
+	symbolOfString,
 	symSize,
 	writeSym;
 import util.util : todo;
@@ -37,7 +37,7 @@ struct AllUris {
 
 	// Root path at index 0 will have children, but they won't have it as a parent
 	MutArr!(Opt!Path) pathToParent;
-	MutArr!Sym pathToBaseName;
+	MutArr!Symbol pathToBaseName;
 	MutArr!(MutArr!Path) pathToChildren;
 
 	public this(Alloc* a, AllSymbols* as) {
@@ -46,7 +46,7 @@ struct AllUris {
 
 		// 0 must be the empty URI
 		push(alloc, pathToParent, none!Path);
-		push(alloc, pathToBaseName, sym!"");
+		push(alloc, pathToBaseName, symbol!"");
 		push(alloc, pathToChildren, MutArr!Path());
 	}
 
@@ -62,7 +62,7 @@ struct AllUris {
 immutable struct Uri {
 	@safe @nogc pure nothrow:
 
-	// The first component is the scheme + authority packed into a Sym
+	// The first component is the scheme + authority packed into a Symbol
 	private Path path;
 
 	Path pathIncludingScheme() =>
@@ -78,8 +78,8 @@ immutable struct Uri {
 private bool isRootUri(in AllUris allUris, Uri a) =>
 	!has(parent(allUris, a));
 
-private Sym fileScheme() =>
-	sym!"file://";
+private Symbol fileScheme() =>
+	symbol!"file://";
 
 bool isFileUri(in AllUris allUris, Uri a) =>
 	firstComponent(allUris, a.path) == fileScheme;
@@ -89,7 +89,7 @@ FileUri asFileUri(ref AllUris allUris, Uri a) {
 	return FileUri(skipFirstComponent(allUris, a.path));
 }
 
-private Sym firstComponent(in AllUris allUris, Path a) {
+private Symbol firstComponent(in AllUris allUris, Path a) {
 	Opt!Path parent = parent(allUris, a);
 	return has(parent)
 		? firstComponent(allUris, force(parent))
@@ -105,7 +105,7 @@ private Path skipFirstComponent(ref AllUris allUris, Path a) {
 
 private Path skipFirstComponent(ref AllUris allUris, Path aParent, Path a) {
 	Opt!Path grandParent = parent(allUris, aParent);
-	Sym name = baseName(allUris, a);
+	Symbol name = baseName(allUris, a);
 	return has(grandParent)
 		? childPath(allUris, skipFirstComponent(allUris, force(grandParent), aParent), name)
 		: rootPath(allUris, name);
@@ -150,24 +150,24 @@ Uri parentOrEmpty(ref AllUris allUris, Uri a) {
 }
 
 // Removes an existing extension and adds a new one.
-Uri alterExtension(Sym newExtension)(ref AllUris allUris, Uri a) =>
+Uri alterExtension(Symbol newExtension)(ref AllUris allUris, Uri a) =>
 	Uri(alterExtension!newExtension(allUris, a.path));
-Path alterExtension(Sym newExtension)(ref AllUris allUris, Path a) =>
-	modifyBaseName(allUris, a, (Sym name) =>
+Path alterExtension(Symbol newExtension)(ref AllUris allUris, Path a) =>
+	modifyBaseName(allUris, a, (Symbol name) =>
 		.alterExtension!newExtension(allUris.allSymbols, name));
 
 // Adds an extension after any already existing extension.
-Uri addExtension(Sym extension)(ref AllUris allUris, Uri a) =>
+Uri addExtension(Symbol extension)(ref AllUris allUris, Uri a) =>
 	Uri(addExtension!extension(allUris, a.path));
-Path addExtension(Sym extension)(ref AllUris allUris, Path a) =>
-	modifyBaseName(allUris, a, (Sym name) =>
+Path addExtension(Symbol extension)(ref AllUris allUris, Path a) =>
+	modifyBaseName(allUris, a, (Symbol name) =>
 		.addExtension!extension(allUris.allSymbols, name));
 
 // E.g., changes 'foo.crow' to 'foo.deadbeef.c'
-FileUri alterExtensionWithHex(Sym newExtension)(ref AllUris allUris, FileUri a, in ubyte[] bytes) =>
+FileUri alterExtensionWithHex(Symbol newExtension)(ref AllUris allUris, FileUri a, in ubyte[] bytes) =>
 	FileUri(alterExtensionWithHexForPath!newExtension(allUris, a.path, bytes));
-private Path alterExtensionWithHexForPath(Sym newExtension)(ref AllUris allUris, Path a, in ubyte[] bytes) =>
-	modifyBaseName(allUris, a, (Sym name) =>
+private Path alterExtensionWithHexForPath(Symbol newExtension)(ref AllUris allUris, Path a, in ubyte[] bytes) =>
+	modifyBaseName(allUris, a, (Symbol name) =>
 		addExtension!newExtension(
 			allUris.allSymbols,
 			appendHexExtension(allUris.allSymbols, removeExtension(allUris.allSymbols, name), bytes)));
@@ -175,34 +175,34 @@ private Path alterExtensionWithHexForPath(Sym newExtension)(ref AllUris allUris,
 private bool hasExtension(in AllUris allUris, Path a) =>
 	hasExtension(allUris.allSymbols, baseName(allUris, a));
 
-private Path modifyBaseName(ref AllUris allUris, Path a, in Sym delegate(Sym) @safe @nogc pure nothrow cb) {
-	Sym newBaseName = cb(baseName(allUris, a));
+private Path modifyBaseName(ref AllUris allUris, Path a, in Symbol delegate(Symbol) @safe @nogc pure nothrow cb) {
+	Symbol newBaseName = cb(baseName(allUris, a));
 	Opt!Path parent = parent(allUris, a);
 	return has(parent) ? childPath(allUris, force(parent), newBaseName) : rootPath(allUris, newBaseName);
 }
 
-Sym getExtension(scope ref AllUris allUris, Uri a) =>
+Symbol getExtension(scope ref AllUris allUris, Uri a) =>
 	isRootUri(allUris, a)
-		? sym!""
+		? symbol!""
 		: getExtension(allUris, a.path);
-Sym getExtension(scope ref AllUris allUris, Path a) =>
+Symbol getExtension(scope ref AllUris allUris, Path a) =>
 	getExtension(allUris.allSymbols, baseName(allUris, a));
 
-Sym baseName(in AllUris allUris, Uri a) =>
+Symbol baseName(in AllUris allUris, Uri a) =>
 	isRootUri(allUris, a)
-		? sym!""
+		? symbol!""
 		: baseName(allUris, a.path);
-Sym baseName(in AllUris allUris, Path a) =>
+Symbol baseName(in AllUris allUris, Path a) =>
 	allUris.pathToBaseName[a.index];
 
 immutable struct PathFirstAndRest {
-	Sym first;
+	Symbol first;
 	Opt!Path rest;
 }
 
 PathFirstAndRest firstAndRest(ref AllUris allUris, Path a) {
 	Opt!Path par = parent(allUris, a);
-	Sym baseName = baseName(allUris, a);
+	Symbol baseName = baseName(allUris, a);
 	if (has(par)) {
 		PathFirstAndRest parentRes = firstAndRest(allUris, force(par));
 		Path rest = has(parentRes.rest)
@@ -213,7 +213,7 @@ PathFirstAndRest firstAndRest(ref AllUris allUris, Path a) {
 		return PathFirstAndRest(baseName, none!Path);
 }
 
-private Path getOrAddChild(ref AllUris allUris, ref MutArr!Path children, Opt!Path parent, Sym name) {
+private Path getOrAddChild(ref AllUris allUris, ref MutArr!Path children, Opt!Path parent, Symbol name) {
 	foreach (Path child; tempAsArr(children))
 		if (baseName(allUris, child) == name)
 			return child;
@@ -226,19 +226,19 @@ private Path getOrAddChild(ref AllUris allUris, ref MutArr!Path children, Opt!Pa
 	return res;
 }
 
-Path rootPath(ref AllUris allUris, Sym name) =>
+Path rootPath(ref AllUris allUris, Symbol name) =>
 	getOrAddChild(allUris, allUris.pathToChildren[Path.empty.index], none!Path, name);
 
-Uri childUri(ref AllUris allUris, Uri parent, Sym name) =>
+Uri childUri(ref AllUris allUris, Uri parent, Symbol name) =>
 	Uri(childPath(allUris, parent.path, name));
 
-FileUri childFileUri(ref AllUris allUris, FileUri parent, Sym name) =>
+FileUri childFileUri(ref AllUris allUris, FileUri parent, Symbol name) =>
 	FileUri(childPath(allUris, parent.path, name));
 
 Uri bogusUri(ref AllUris allUris) =>
 	parseUri(allUris, cString!"bogus:bogus");
 
-Path childPath(ref AllUris allUris, Path parent, Sym name) =>
+Path childPath(ref AllUris allUris, Path parent, Symbol name) =>
 	getOrAddChild(allUris, allUris.pathToChildren[parent.index], some(parent), name);
 
 immutable struct RelPath {
@@ -267,7 +267,7 @@ private Path concatPaths(ref AllUris allUris, Path a, Path b) {
 private void walkPathBackwards(
 	in AllUris allUris,
 	Path a,
-	in void delegate(Sym, bool isFirstPart) @safe @nogc pure nothrow cb,
+	in void delegate(Symbol, bool isFirstPart) @safe @nogc pure nothrow cb,
 ) {
 	Opt!Path par = parent(allUris, a);
 	cb(baseName(allUris, a), !has(par));
@@ -279,7 +279,7 @@ size_t pathLength(in AllUris allUris, Path path) =>
 	pathToStrLength(allUris, path, StringOfPathOptions(false, false));
 private size_t pathToStrLength(in AllUris allUris, Path path, in StringOfPathOptions options) {
 	size_t res = 0;
-	walkPathBackwards(allUris, path, (Sym part, bool _) {
+	walkPathBackwards(allUris, path, (Symbol part, bool _) {
 		// 1 for '/'
 		res += 1 + symSize(allUris.allSymbols, part);
 	});
@@ -317,7 +317,7 @@ private @system void stringOfPathWorker(in AllUris allUris, Path path, char[] ou
 		cur--;
 		*cur = '\0';
 	}
-	walkPathBackwards(allUris, path, (Sym part, bool isFirstPart) @trusted {
+	walkPathBackwards(allUris, path, (Symbol part, bool isFirstPart) @trusted {
 		char* partEnd = cur;
 		cur -= symSize(allUris.allSymbols, part);
 		char* j = cur;
@@ -371,7 +371,7 @@ Uri parseUri(ref AllUris allUris, in string uri) {
 		return toUri(allUris, FileUri(parsePath(allUris, uri)));
 }
 private Uri rootUri(ref AllUris allUris, in string schemeAndAuthority) =>
-	Uri(rootPath(allUris, symOfStr(allUris.allSymbols, schemeAndAuthority)));
+	Uri(rootPath(allUris, symbolOfString(allUris.allSymbols, schemeAndAuthority)));
 
 Path parsePath(ref AllUris allUris, in CString str) =>
 	parsePath(allUris, stringOfCString(str));
@@ -379,7 +379,7 @@ private Path parsePath(ref AllUris allUris, in string str) {
 	StringIter iter = StringIter(str);
 	skipWhile(iter, (char x) => x == '/');
 	string part = parsePathPart(allUris, iter);
-	return parsePathRecur(allUris, iter, rootPath(allUris, symOfStr(allUris.allSymbols, part)));
+	return parsePathRecur(allUris, iter, rootPath(allUris, symbolOfString(allUris.allSymbols, part)));
 }
 private Path parsePathRecur(ref AllUris allUris, scope ref StringIter iter, Path path) {
 	skipWhile(iter, (char x) => isSlash(x));
@@ -387,7 +387,7 @@ private Path parsePathRecur(ref AllUris allUris, scope ref StringIter iter, Path
 		return path;
 	else {
 		string part = parsePathPart(allUris, iter);
-		return parsePathRecur(allUris, iter, childPath(allUris, path, symOfStr(allUris.allSymbols, part)));
+		return parsePathRecur(allUris, iter, childPath(allUris, path, symbolOfString(allUris.allSymbols, part)));
 	}
 }
 private @trusted string parsePathPart(ref AllUris allUris, return scope ref StringIter iter) {
@@ -502,7 +502,7 @@ void eachPartPreferRelative(
 	in AllUris allUris,
 	ref UrisInfo urisInfo,
 	Uri a,
-	in void delegate(Sym, bool) @safe @nogc pure nothrow cb,
+	in void delegate(Symbol, bool) @safe @nogc pure nothrow cb,
 ) {
 	size_t maxParts = () {
 		if (has(urisInfo.cwd)) {
@@ -540,9 +540,9 @@ Uri removeLastNParts(in AllUris allUris, Uri a, size_t nToRemove) {
 public void TEST_eachPart(
 	in AllUris allUris,
 	Path a,
-	in void delegate(Sym) @safe @nogc pure nothrow cb,
+	in void delegate(Symbol) @safe @nogc pure nothrow cb,
 ) {
-	eachPart(allUris, a, size_t.max, (Sym x, bool _) {
+	eachPart(allUris, a, size_t.max, (Symbol x, bool _) {
 		cb(x);
 	});
 }
@@ -551,7 +551,7 @@ void eachPart(
 	in AllUris allUris,
 	Path a,
 	size_t maxParts,
-	in void delegate(Sym, bool) @safe @nogc pure nothrow cb,
+	in void delegate(Symbol, bool) @safe @nogc pure nothrow cb,
 ) {
 	assert(maxParts > 0);
 	Opt!Path par = parent(allUris, a);
@@ -564,7 +564,7 @@ void eachPartRecur(
 	in AllUris allUris,
 	Path a,
 	size_t maxParts,
-	in void delegate(Sym, bool) @safe @nogc pure nothrow cb,
+	in void delegate(Symbol, bool) @safe @nogc pure nothrow cb,
 ) {
 	if (maxParts != 0) {
 		Opt!Path par = parent(allUris, a);
@@ -592,7 +592,7 @@ void writePathPlain(ref Writer writer, in AllUris allUris, Path p) {
 }
 
 public void writeUriPreferRelative(ref Writer writer, in AllUris allUris, in UrisInfo urisInfo, Uri a) {
-	eachPartPreferRelative(allUris, urisInfo, a, (Sym part, bool isLast) {
+	eachPartPreferRelative(allUris, urisInfo, a, (Symbol part, bool isLast) {
 		writeSym(writer, allUris.allSymbols, part);
 		if (!isLast)
 			writer ~= '/';

@@ -57,7 +57,7 @@ import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach, fullIndexMapEachK
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
 import util.opt : force, has, Opt, some;
 import util.string : eachChar, CString;
-import util.sym : AllSymbols;
+import util.symbol : AllSymbols;
 import util.union_ : Union;
 import util.util : abs, castNonScope, castNonScope_ref, ptrTrustMe, unreachable;
 import util.writer :

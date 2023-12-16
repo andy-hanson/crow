@@ -34,7 +34,6 @@ import model.lowModel :
 	LowProgram,
 	LowType,
 	PrimitiveType,
-	symOfPrimitiveType,
 	targetIsPointer,
 	targetRecordType,
 	UpdateParam;
@@ -46,8 +45,8 @@ import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
 import util.col.fullIndexMap : fullIndexMapEachValue;
 import util.json : field, Json, jsonObject, jsonString, kindField, writeJson;
 import util.opt : force, has, none, Opt, some;
-import util.sym : AllSymbols;
-import util.util : ptrTrustMe;
+import util.symbol : AllSymbols;
+import util.util : ptrTrustMe, stringOfEnum;
 import util.writer : debugLogWithWriter, Writer;
 
 void checkLowProgram(in AllSymbols allSymbols, in Program program, in LowProgram a) {
@@ -514,7 +513,7 @@ Json jsonOfLowType2(ref Alloc alloc, in LowProgram program, in LowType a) =>
 		(in LowType.FunPtr) =>
 			jsonString!"some-fun-ptr", //TODO: more detail
 		(in PrimitiveType x) =>
-			jsonString(symOfPrimitiveType(x)),
+			jsonString(stringOfEnum(x)),
 		(in LowType.PtrGc x) =>
 			jsonObject(alloc, [
 				kindField!"gc-pointer",

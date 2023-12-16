@@ -61,7 +61,7 @@ import util.comparison : Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : compareRange;
 import util.string : CString;
-import util.sym : AllSymbols, Sym, writeSym;
+import util.symbol : AllSymbols, Symbol, writeSym;
 import util.uri : AllUris, baseName, compareUriAlphabetically, Uri, writeRelPath, writeUri;
 import util.util : stringOfEnum, max, unreachable;
 import util.writer :
@@ -693,7 +693,7 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 			writer ~= "'extern' function ";
 			writeName(writer, ctx, x.containingFun.name);
 			if (has(x.param)) {
-				Opt!Sym paramName = force(x.param).name;
+				Opt!Symbol paramName = force(x.param).name;
 				if (has(paramName)) {
 					writer ~= " parameter ";
 					writeName(writer, ctx, force(paramName));
@@ -734,7 +734,7 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 		},
 		(in Diag.MatchCaseNamesDoNotMatch x) {
 			writer ~= "Expected the case names to be: ";
-			writeWithCommas!Sym(writer, x.expectedNames, (in Sym name) {
+			writeWithCommas!Symbol(writer, x.expectedNames, (in Symbol name) {
 				writeName(writer, ctx, name);
 			});
 		},

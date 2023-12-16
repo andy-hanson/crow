@@ -14,7 +14,7 @@ import util.conv : isUint, safeToUint;
 import util.lineAndColumnGetter : LineAndColumn;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.string : CString, cString, stringOfCString;
-import util.sym : Sym, sym;
+import util.symbol : Symbol, symbol;
 import util.union_ : Union;
 import util.uri : addExtension, alterExtension, AllUris, getExtension, parseUriWithCwd, Uri;
 import util.util : castNonScope, optEnumOfString, todo;
@@ -152,11 +152,11 @@ CommandKind parseCommandKind(
 	}
 }
 
-Sym defaultExeExtension() {
+Symbol defaultExeExtension() {
 	version (Windows) {
-		return sym!".exe";
+		return symbol!".exe";
 	} else {
-		return sym!"";
+		return symbol!"";
 	}
 }
 
@@ -188,7 +188,7 @@ CommandKind withRootUris(
 Opt!Uri tryParseCrowUri(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in CString arg) {
 	Uri uri = parseUriWithCwd(allUris, cwd, arg);
 	switch (getExtension(allUris, uri).value) {
-		case sym!"".value:
+		case symbol!"".value:
 			return some(addExtension!crowExtension(allUris, uri));
 		case crowExtension.value:
 			return some(uri);
@@ -369,7 +369,7 @@ Opt!BuildOut parseBuildOut(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, 
 		(BuildOut o, ref CString arg) {
 			Uri uri = parseUriWithCwd(allUris, cwd, arg);
 			switch (getExtension(allUris, uri).value) {
-				case sym!"".value:
+				case symbol!"".value:
 					return has(o.outExecutable)
 						? none!BuildOut
 						: some(BuildOut(o.outC, some(uri)));

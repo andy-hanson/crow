@@ -9,7 +9,7 @@ import util.col.fullIndexMap : FullIndexMap;
 import util.col.map : KeyValuePair;
 import util.opt : force, has, Opt;
 import util.string : copyString, CString, cStringIsEmpty, stringsEqual, stringOfCString;
-import util.sym : AllSymbols, Sym, sym, writeQuotedSym;
+import util.symbol : AllSymbols, Symbol, symbol, writeQuotedSym;
 import util.union_ : Union;
 import util.util : todo;
 import util.writer :
@@ -20,14 +20,14 @@ immutable struct Json {
 
 	immutable struct Null {}
 	alias List = immutable Json[];
-	alias ObjectField = immutable KeyValuePair!(Sym, Json);
+	alias ObjectField = immutable KeyValuePair!(Symbol, Json);
 	alias Object = immutable ObjectField[];
 	alias StringObjectField = immutable KeyValuePair!(string, Json);
 	alias StringObject = immutable StringObjectField[];
-	// string and Sym cases should be treated as equivalent.
-	mixin Union!(Null, bool, double, string, Sym, List, Object, StringObject);
+	// string and Symbol cases should be treated as equivalent.
+	mixin Union!(Null, bool, double, string, Symbol, List, Object, StringObject);
 
-	// Distinguishes CString / string / Sym. Use only for tests.
+	// Distinguishes CString / string / Symbol. Use only for tests.
 	bool opEquals(in Json b) scope =>
 		matchIn!bool(
 			(in Null _) =>
@@ -38,8 +38,8 @@ immutable struct Json {
 				b.isA!double && b.as!double == x,
 			(in string x) =>
 				b.isA!string && stringsEqual(x, b.as!string),
-			(in Sym x) =>
-				b.isA!Sym && x == b.as!Sym,
+			(in Symbol x) =>
+				b.isA!Symbol && x == b.as!Symbol,
 			(in Json[] x) =>
 				b.isA!(Json[]) && arraysEqual!Json(x, b.as!(Json[])),
 			(in Json.Object oa) =>
@@ -50,12 +50,12 @@ immutable struct Json {
 
 Json get(string key)(in Json a) {
 	Opt!(Json.ObjectField) pair = find!(Json.ObjectField)(a.as!(Json.Object), (in Json.ObjectField pair) =>
-		pair.key == sym!key);
+		pair.key == symbol!key);
 	return has(pair) ? force(pair).value : jsonNull;
 }
 bool hasKey(string key)(in Json a) =>
 	a.isA!(Json.Object) && exists!(Json.ObjectField)(a.as!(Json.Object), (in Json.ObjectField pair) =>
-		pair.key == sym!key);
+		pair.key == symbol!key);
 
 Json jsonObject(return scope Json.ObjectField[] fields) =>
 	Json(fields);
@@ -128,21 +128,21 @@ Json jsonString(ref Alloc alloc, in string a) =>
 Json jsonString(ref Alloc alloc, in CString a) =>
 	jsonString(alloc, stringOfCString(a));
 
-Json jsonString(Sym a) =>
+Json jsonString(Symbol a) =>
 	Json(a);
 
 Json jsonString(string a)() =>
 	jsonString(a);
 
 Json.ObjectField field(string name)(return scope Json value) =>
-	Json.ObjectField(sym!name, value);
+	Json.ObjectField(symbol!name, value);
 Json.ObjectField field(string name)(double value) =>
 	field!name(Json(value));
 Json.ObjectField field(string name)(CString value) =>
 	field!name(stringOfCString(value));
 Json.ObjectField field(string name)(string value) =>
 	field!name(Json(value));
-Json.ObjectField field(string name)(Sym value) =>
+Json.ObjectField field(string name)(Symbol value) =>
 	field!name(Json(value));
 
 CString jsonToString(ref Alloc alloc, in AllSymbols allSymbols, in Json a) =>
@@ -169,7 +169,7 @@ void writeJson(ref Writer writer, in AllSymbols allSymbols, in Json a) =>
 		(in string x) {
 			writeQuotedString(writer, x);
 		},
-		(in Sym it) {
+		(in Symbol it) {
 			writeQuotedSym(writer, allSymbols, it);
 		},
 		(in Json[] x) {
@@ -180,7 +180,7 @@ void writeJson(ref Writer writer, in AllSymbols allSymbols, in Json a) =>
 			writer ~= ']';
 		},
 		(in Json.Object x) {
-			writeObjectCompact!Sym(writer, allSymbols, x, (in Sym key) {
+			writeObjectCompact!Symbol(writer, allSymbols, x, (in Symbol key) {
 				writeQuotedSym(writer, allSymbols, key);
 			});
 		},

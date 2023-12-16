@@ -6,7 +6,7 @@ import model.concreteModel : name;
 import model.constant : Constant;
 import util.alloc.alloc : Alloc;
 import util.json : field, jsonObject, optionalField, Json, jsonList, jsonString, kindField;
-import util.sym : Sym;
+import util.symbol : Symbol;
 
 Json jsonOfConstant(ref Alloc alloc, in Constant a) =>
 	a.matchIn!Json(
@@ -26,7 +26,7 @@ Json jsonOfConstant(ref Alloc alloc, in Constant a) =>
 		(in Constant.FunPtr x) =>
 			jsonObject(alloc, [
 				kindField!"fun-pointer",
-				optionalField!("fun-name", Sym)(name(*x.fun), (in Sym name) => jsonString(name))]),
+				optionalField!("fun-name", Symbol)(name(*x.fun), (in Symbol name) => jsonString(name))]),
 		(in Constant.Integral x) =>
 			jsonObject(alloc, [
 				kindField!"integral",

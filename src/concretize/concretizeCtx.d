@@ -81,7 +81,7 @@ import util.memory : allocate;
 import util.opt : force, has, none;
 import util.sourceRange : UriAndRange;
 import util.string : CString;
-import util.sym : AllSymbols, Sym, sym;
+import util.symbol : AllSymbols, Symbol, symbol;
 import util.uri : AllUris, Uri;
 import util.util : castMutable, max, roundUp, todo, typeAs, unreachable;
 import versionInfo : VersionInfo;
@@ -250,7 +250,7 @@ ConcreteType cStrType(ref ConcretizeCtx a) =>
 Constant constantCStr(ref ConcretizeCtx a, CString value) =>
 	getConstantCStr(a.alloc, a.allConstants, value);
 
-Constant constantSym(ref ConcretizeCtx a, Sym value) =>
+Constant constantSym(ref ConcretizeCtx a, Symbol value) =>
 	getConstantSym(a.alloc, a.allConstants, a.allSymbols, value);
 
 ConcreteFun* getOrAddConcreteFunAndFillBody(ref ConcretizeCtx ctx, ConcreteFunKey key) {
@@ -419,11 +419,11 @@ ConcreteLocal concretizeParamDestructure(ref ConcretizeCtx ctx, ref Destructure 
 	ConcreteLocal(
 		x.matchWithPointers!ConcreteLocalSource(
 			(Destructure.Ignore*) =>
-				ConcreteLocalSource(ConcreteLocalSource.Generated(sym!"ignore")),
+				ConcreteLocalSource(ConcreteLocalSource.Generated(symbol!"ignore")),
 			(Local* x) =>
 				ConcreteLocalSource(x),
 			(Destructure.Split*) =>
-				ConcreteLocalSource(ConcreteLocalSource.Generated(sym!"destruct"))),
+				ConcreteLocalSource(ConcreteLocalSource.Generated(symbol!"destruct"))),
 		getConcreteType(ctx, x.type, typeArgsScope));
 
 void addConcreteFun(ref ConcretizeCtx ctx, ConcreteFun* fun) {
@@ -473,7 +473,7 @@ public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* mo
 		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.WrapMain(range))),
 		getConcreteType(ctx, ctx.program.commonFuns.newNat64Future.returnType, TypeArgsScope.empty),
 		newArray(ctx.alloc, [
-			ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Generated(sym!"args")), stringListType),
+			ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Generated(symbol!"args")), stringListType),
 		])));
 	res.body_ = ConcreteFunBody(body_);
 	addConcreteFun(ctx, res);
@@ -700,9 +700,9 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 				ConcreteFunBody(concretizeBogus(ctx, cf.returnType, concreteFunRange(*cf))),
 			(FunBody.Builtin) {
 				switch (cf.source.as!ConcreteFunKey.decl.name.value) {
-					case sym!"all-tests".value:
+					case symbol!"all-tests".value:
 						return bodyForAllTests(ctx, cf.returnType);
-					case sym!"safe-value".value:
+					case symbol!"safe-value".value:
 						return bodyForSafeValue(ctx, cf, concreteFunRange(*cf), cf.returnType);
 					default:
 						return ConcreteFunBody(ConcreteFunBody.Builtin(typeArgs(inputs)));
@@ -831,42 +831,42 @@ ConcreteFunBody bodyForAllTests(ref ConcretizeCtx ctx, ConcreteType returnType) 
 	return ConcreteFunBody(ConcreteExpr(returnType, UriAndRange.empty, ConcreteExprKind(arr)));
 }
 
-BuiltinStructKind getBuiltinStructKind(Sym name) {
+BuiltinStructKind getBuiltinStructKind(Symbol name) {
 	switch (name.value) {
-		case sym!"bool".value:
+		case symbol!"bool".value:
 			return BuiltinStructKind.bool_;
-		case sym!"char8".value:
+		case symbol!"char8".value:
 			return BuiltinStructKind.char8;
-		case sym!"float32".value:
+		case symbol!"float32".value:
 			return BuiltinStructKind.float32;
-		case sym!"float64".value:
+		case symbol!"float64".value:
 			return BuiltinStructKind.float64;
-		case sym!"fun-act".value:
-		case sym!"fun-fun".value:
+		case symbol!"fun-act".value:
+		case symbol!"fun-fun".value:
 			return BuiltinStructKind.fun;
-		case sym!"fun-pointer".value:
+		case symbol!"fun-pointer".value:
 			return BuiltinStructKind.funPointer;
-		case sym!"int8".value:
+		case symbol!"int8".value:
 			return BuiltinStructKind.int8;
-		case sym!"int16".value:
+		case symbol!"int16".value:
 			return BuiltinStructKind.int16;
-		case sym!"int32".value:
+		case symbol!"int32".value:
 			return BuiltinStructKind.int32;
-		case sym!"int64".value:
+		case symbol!"int64".value:
 			return BuiltinStructKind.int64;
-		case sym!"nat8".value:
+		case symbol!"nat8".value:
 			return BuiltinStructKind.nat8;
-		case sym!"nat16".value:
+		case symbol!"nat16".value:
 			return BuiltinStructKind.nat16;
-		case sym!"nat32".value:
+		case symbol!"nat32".value:
 			return BuiltinStructKind.nat32;
-		case sym!"nat64".value:
+		case symbol!"nat64".value:
 			return BuiltinStructKind.nat64;
-		case sym!"const-pointer".value:
+		case symbol!"const-pointer".value:
 			return BuiltinStructKind.pointerConst;
-		case sym!"mut-pointer".value:
+		case symbol!"mut-pointer".value:
 			return BuiltinStructKind.pointerMut;
-		case sym!"void".value:
+		case symbol!"void".value:
 			return BuiltinStructKind.void_;
 		default:
 			return todo!BuiltinStructKind("not a builtin struct");

@@ -21,7 +21,7 @@ import util.hash : hash2, HashCode, hashEnum, hashSizeT;
 import util.opt : has, none, Opt;
 import util.sourceRange : UriAndRange;
 import util.string : CString;
-import util.sym : Sym, sym;
+import util.symbol : Symbol, symbol;
 import util.union_ : Union;
 import util.uri : Uri;
 
@@ -86,37 +86,6 @@ private enum PrimitiveType_ {
 	nat32,
 	nat64,
 	void_,
-}
-
-Sym symOfPrimitiveType(PrimitiveType a) {
-	final switch (a) {
-		case PrimitiveType.bool_:
-			return sym!"bool";
-		case PrimitiveType.char8:
-			return sym!"char8";
-		case PrimitiveType.float32:
-			return sym!"float-32";
-		case PrimitiveType.float64:
-			return sym!"float-64";
-		case PrimitiveType.int8:
-			return sym!"int-8";
-		case PrimitiveType.int16:
-			return sym!"int-16";
-		case PrimitiveType.int32:
-			return sym!"int-32";
-		case PrimitiveType.int64:
-			return sym!"int-64";
-		case PrimitiveType.nat8:
-			return sym!"nat-8";
-		case PrimitiveType.nat16:
-			return sym!"nat-16";
-		case PrimitiveType.nat32:
-			return sym!"nat-32";
-		case PrimitiveType.nat64:
-			return sym!"nat-64";
-		case PrimitiveType.void_:
-			return sym!"void";
-	}
 }
 
 immutable struct LowType {
@@ -257,12 +226,12 @@ immutable struct LowField {
 	LowType type;
 }
 
-Sym debugName(in LowField a) =>
+Symbol debugName(in LowField a) =>
 	a.source.debugName;
 
 immutable struct LowLocalSource {
 	immutable struct Generated {
-		Sym name;
+		Symbol name;
 		size_t index;
 	}
 	mixin Union!(Local*, Generated*);
@@ -289,7 +258,7 @@ immutable struct LowFunExprBody {
 // Unlike ConcreteFunBody, this is always an expr or extern.
 immutable struct LowFunBody {
 	immutable struct Extern {
-		Sym libraryName;
+		Symbol libraryName;
 	}
 
 	mixin Union!(Extern, LowFunExprBody);
@@ -297,7 +266,7 @@ immutable struct LowFunBody {
 
 immutable struct LowFunSource {
 	immutable struct Generated {
-		Sym name;
+		Symbol name;
 		LowType[] typeArgs;
 	}
 
@@ -320,12 +289,12 @@ bool isGeneratedMain(in LowFun a) =>
 		(in ConcreteFun _) =>
 			false,
 		(in LowFunSource.Generated x) =>
-			x.name == sym!"main");
+			x.name == symbol!"main");
 
-Opt!Sym name(in LowFun a) =>
-	a.source.matchIn!(Opt!Sym)(
+Opt!Symbol name(in LowFun a) =>
+	a.source.matchIn!(Opt!Symbol)(
 		(in ConcreteFun x) => name(x),
-		(in LowFunSource.Generated) => none!Sym);
+		(in LowFunSource.Generated) => none!Symbol);
 
 UriAndRange lowFunRange(in LowFun a) =>
 	a.source.matchIn!UriAndRange(
@@ -752,9 +721,9 @@ immutable struct LowVar {
 
 	bool isExtern() scope =>
 		has(externLibraryName);
-	Opt!Sym externLibraryName() scope =>
+	Opt!Symbol externLibraryName() scope =>
 		source.source.externLibraryName;
-	Sym name() scope =>
+	Symbol name() scope =>
 		source.source.name;
 }
 
@@ -785,9 +754,9 @@ immutable struct LowProgram {
 alias ExternLibraries = immutable ExternLibrary[];
 
 immutable struct ExternLibrary {
-	Sym libraryName;
+	Symbol libraryName;
 	Opt!Uri configuredDir;
-	Sym[] importNames;
+	Symbol[] importNames;
 }
 
 immutable struct AllLowTypes {

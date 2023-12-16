@@ -13,7 +13,7 @@ import util.col.mutArr : moveToArr, MutArr, pushAll;
 import util.exitCode : ExitCode;
 import util.opt : force, none, Opt;
 import util.string : CString, cString, stringsEqual;
-import util.sym : Sym, sym;
+import util.symbol : Symbol, symbol;
 import util.uri : Uri;
 import util.util : unreachable;
 
@@ -26,15 +26,15 @@ private:
 
 @trusted void testMallocAndFree(ref Test test) {
 	withFakeExtern(test.alloc, test.allSymbols, unreachableWriteCb, (scope ref Extern extern_) @trusted {
-		Sym[2] exportNames = [sym!"free", sym!"malloc"];
-		ExternLibrary[1] externLibraries = [ExternLibrary(sym!"c", none!Uri, exportNames)];
+		Symbol[2] exportNames = [symbol!"free", symbol!"malloc"];
+		ExternLibrary[1] externLibraries = [ExternLibrary(symbol!"c", none!Uri, exportNames)];
 		Opt!ExternFunPtrsForAllLibraries funPtrsOpt =
 			extern_.loadExternFunPtrs(externLibraries, (in CString _) =>
 				unreachable!void());
 		ExternFunPtrsForAllLibraries funPtrs = force(funPtrsOpt);
-		ExternFunPtrsForLibrary forCrow = mustGet(funPtrs, sym!"c");
-		FunPtr free = mustGet(forCrow, sym!"free");
-		FunPtr malloc = mustGet(forCrow, sym!"malloc");
+		ExternFunPtrsForLibrary forCrow = mustGet(funPtrs, symbol!"c");
+		FunPtr free = mustGet(forCrow, symbol!"free");
+		FunPtr malloc = mustGet(forCrow, symbol!"malloc");
 
 		ulong[1] args8 = [8];
 		DynCallType[2] mallocSigTypes = [DynCallType.pointer, DynCallType.nat64];
@@ -70,14 +70,14 @@ void testWrite(ref Test test) {
 	};
 	ExitCode result =
 		withFakeExtern(test.alloc, test.allSymbols, fakeWrite, (scope ref Extern extern_) @trusted {
-			Sym[1] exportNames = [sym!"write"];
-			ExternLibrary[1] externLibraries = [ExternLibrary(sym!"c", none!Uri, exportNames)];
+			Symbol[1] exportNames = [symbol!"write"];
+			ExternLibrary[1] externLibraries = [ExternLibrary(symbol!"c", none!Uri, exportNames)];
 			Opt!ExternFunPtrsForAllLibraries funPtrsOpt =
 				extern_.loadExternFunPtrs(externLibraries, (in CString _) =>
 					unreachable!void());
 			ExternFunPtrsForAllLibraries funPtrs = force(funPtrsOpt);
-			ExternFunPtrsForLibrary forCrow = mustGet(funPtrs, sym!"c");
-			FunPtr write = mustGet(forCrow, sym!"write");
+			ExternFunPtrsForLibrary forCrow = mustGet(funPtrs, symbol!"c");
+			FunPtr write = mustGet(forCrow, symbol!"write");
 
 			DynCallType[4] sigTypes = [DynCallType.pointer, DynCallType.int32, DynCallType.pointer, DynCallType.nat64];
 			DynCallSig sig = DynCallSig(sigTypes);

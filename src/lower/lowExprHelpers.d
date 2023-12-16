@@ -18,7 +18,7 @@ import model.lowModel :
 import util.alloc.alloc : Alloc;
 import util.memory : allocate, overwriteMemory;
 import util.sourceRange : UriAndRange;
-import util.sym : Sym, sym;
+import util.symbol : Symbol, symbol;
 import util.util : unreachable;
 
 LowType boolType = LowType(PrimitiveType.bool_);
@@ -259,9 +259,9 @@ LowExprKind genWriteToPtr(ref Alloc alloc, LowExpr ptr, LowExpr value) =>
 LowExpr genVoid(UriAndRange source) =>
 	LowExpr(voidType, source, LowExprKind(constantZero));
 
-LowLocal* genLocal(ref Alloc alloc, Sym name, size_t index, LowType type) =>
+LowLocal* genLocal(ref Alloc alloc, Symbol name, size_t index, LowType type) =>
 	allocate(alloc, genLocalByValue(alloc, name, index, type));
-LowLocal genLocalByValue(ref Alloc alloc, Sym name, size_t index, LowType type) =>
+LowLocal genLocalByValue(ref Alloc alloc, Symbol name, size_t index, LowType type) =>
 	LowLocal(LowLocalSource(allocate(alloc, LowLocalSource.Generated(name, index))), type);
 
 LowExpr genLet(ref Alloc alloc, UriAndRange range, LowLocal* local, LowExpr init, LowExpr then) =>
@@ -274,7 +274,7 @@ LowExpr genLetTemp(
 	LowExpr value,
 	in LowExpr delegate(LowExpr) @safe @nogc pure nothrow cbThen,
 ) {
-	LowLocal* local = genLocal(alloc, sym!"temp", localIndex, value.type);
+	LowLocal* local = genLocal(alloc, symbol!"temp", localIndex, value.type);
 	return genLet(alloc, range, local, value, cbThen(genLocalGet(range, local)));
 }
 
@@ -287,8 +287,8 @@ LowExpr genGetArrData(ref Alloc alloc, UriAndRange range, LowExpr arr, LowType.P
 LowType.PtrRawConst getElementPtrTypeFromArrType(ref AllLowTypes allTypes, LowType.Record arrType) {
 	LowRecord arrRecord = allTypes.allRecords[arrType];
 	assert(arrRecord.fields.length == 2);
-	assert(debugName(arrRecord.fields[0]) == sym!"size");
-	assert(debugName(arrRecord.fields[1]) == sym!"pointer");
+	assert(debugName(arrRecord.fields[0]) == symbol!"size");
+	assert(debugName(arrRecord.fields[1]) == symbol!"pointer");
 	return arrRecord.fields[1].type.as!(LowType.PtrRawConst);
 }
 

@@ -10,7 +10,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : arrayOfRange, isEmpty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.opt : force, has, none, Opt, some;
-import util.sym : AllSymbols, appendEquals, Sym, sym, symOfStr;
+import util.symbol : AllSymbols, appendEquals, Symbol, symbol, symbolOfString;
 import util.util : todo, unreachable;
 
 immutable struct DocCommentAndExtraDedents {
@@ -24,7 +24,7 @@ immutable struct TokenAndData {
 	Token token;
 	private:
 	union {
-		Sym sym = void; // For Token.name or Token.operator
+		Symbol symbol = void; // For Token.name or Token.operator
 		// For Token.newline or Token.EOF. WARN: The string is temporary.
 		DocCommentAndExtraDedents docComment = void;
 		LiteralFloatAst literalFloat = void; // for Token.literalFloat
@@ -41,10 +41,10 @@ immutable struct TokenAndData {
 			t != Token.literalNat);
 		token = t;
 	}
-	this(Token t, Sym s) {
+	this(Token t, Symbol s) {
 		assert(isSymToken(t));
 		token = t;
-		sym = s;
+		symbol = s;
 	}
 	this(Token t, DocCommentAndExtraDedents d) {
 		assert(isNewlineToken(t));
@@ -70,9 +70,9 @@ immutable struct TokenAndData {
 	bool isSym() =>
 		isSymToken(token);
 
-	Sym asSym() {
+	Symbol asSym() {
 		assert(isSym());
-		return sym;
+		return symbol;
 	}
 	// WARN: The docComment string is temporary.
 	@trusted DocCommentAndExtraDedents asDocComment() {
@@ -240,21 +240,21 @@ Possibly writes to 'data' depending on the kind of token returned.
 		case '\n':
 			return newlineToken(ptr, Token.newlineSameIndent, indentKind, curIndent, addDiag);
 		case '~':
-			return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '~') ? sym!"~~" : sym!"~");
+			return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '~') ? symbol!"~~" : symbol!"~");
 		case '@':
 			return plainToken(Token.at);
 		case '!':
 			return !peekChars(ptr, "==") && tryTakeChar(ptr, '=')
-				? operatorToken(ptr, allSymbols, sym!"!=")
+				? operatorToken(ptr, allSymbols, symbol!"!=")
 				: plainToken(Token.bang);
 		case '%':
-			return operatorToken(ptr, allSymbols, sym!"%");
+			return operatorToken(ptr, allSymbols, symbol!"%");
 		case '^':
-			return operatorToken(ptr, allSymbols, sym!"^");
+			return operatorToken(ptr, allSymbols, symbol!"^");
 		case '&':
-			return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '&') ? sym!"&&" : sym!"&");
+			return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '&') ? symbol!"&&" : symbol!"&");
 		case '*':
-			return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '*') ? sym!"**" : sym!"*");
+			return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '*') ? symbol!"**" : symbol!"*");
 		case '(':
 			return plainToken(Token.parenLeft);
 		case ')':
@@ -272,19 +272,19 @@ Possibly writes to 'data' depending on the kind of token returned.
 				? takeNumberAfterSign(ptr, some(Sign.minus))
 				: tryTakeChar(ptr, '>')
 				? plainToken(Token.arrowAccess)
-				: operatorToken(ptr, allSymbols, sym!"-");
+				: operatorToken(ptr, allSymbols, symbol!"-");
 		case '=':
 			return tryTakeChar(ptr, '>')
 				? plainToken(Token.arrowLambda)
 				: tryTakeChar(ptr, '=')
-				? operatorToken(ptr, allSymbols, sym!"==")
+				? operatorToken(ptr, allSymbols, symbol!"==")
 				: plainToken(Token.equal);
 		case '+':
 			return isDecimalDigit(*ptr)
 				? takeNumberAfterSign(ptr, some(Sign.plus))
-				: operatorToken(ptr, allSymbols, sym!"+");
+				: operatorToken(ptr, allSymbols, symbol!"+");
 		case '|':
-			return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '|') ? sym!"||" : sym!"|");
+			return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '|') ? symbol!"||" : symbol!"|");
 		case ':':
 			return tryTakeChar(ptr, '=')
 				? plainToken(Token.colonEqual)
@@ -303,35 +303,35 @@ Possibly writes to 'data' depending on the kind of token returned.
 			return tryTakeChar(ptr, '-')
 				? plainToken(Token.arrowThen)
 				: operatorToken(ptr, allSymbols, tryTakeChar(ptr, '=')
-					? tryTakeChar(ptr, '>') ? sym!"<=>" : sym!"<="
+					? tryTakeChar(ptr, '>') ? symbol!"<=>" : symbol!"<="
 					: tryTakeChar(ptr, '<')
-					? sym!"<<"
-					: sym!"<");
+					? symbol!"<<"
+					: symbol!"<");
 		case '>':
 			return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '=')
-				? sym!">="
+				? symbol!">="
 				: tryTakeChar(ptr, '>')
-				? sym!">>"
-				: sym!">");
+				? symbol!">>"
+				: symbol!">");
 		case '.':
 			return tryTakeChar(ptr, '.')
-				? tryTakeChar(ptr, '.') ? plainToken(Token.dot3) : operatorToken(ptr, allSymbols, sym!"..")
+				? tryTakeChar(ptr, '.') ? plainToken(Token.dot3) : operatorToken(ptr, allSymbols, symbol!"..")
 				: plainToken(Token.dot);
 		case '/':
-			return operatorToken(ptr, allSymbols, sym!"/");
+			return operatorToken(ptr, allSymbols, symbol!"/");
 		case '?':
 			return tryTakeChar(ptr, '=')
 				? plainToken(Token.questionEqual)
 				: tryTakeChar(ptr, '?')
-				? operatorToken(ptr, allSymbols, sym!"??")
+				? operatorToken(ptr, allSymbols, symbol!"??")
 				: plainToken(Token.question);
 		default:
 			if (isAlphaIdentifierStart(c)) {
 				string nameStr = takeNameRest(ptr, ptr - 1);
-				Sym sym = symOfStr(allSymbols, nameStr);
-				Token token = tokenForSym(sym);
+				Symbol symbol = symbolOfString(allSymbols, nameStr);
+				Token token = tokenForSym(symbol);
 				return token == Token.name
-					? nameLikeToken(ptr, allSymbols, sym, Token.name)
+					? nameLikeToken(ptr, allSymbols, symbol, Token.name)
 					: plainToken(token);
 			} else if (isDecimalDigit(c)) {
 				ptr--;
@@ -552,97 +552,97 @@ private:
 @trusted bool peekChars(immutable(char*) ptr, in string chars) =>
 	isEmpty(chars) || (*ptr == chars[0] && peekChars(ptr + 1, chars[1 .. $]));
 
-TokenAndData operatorToken(ref immutable(char)* ptr, ref AllSymbols allSymbols, Sym a) =>
+TokenAndData operatorToken(ref immutable(char)* ptr, ref AllSymbols allSymbols, Symbol a) =>
 	nameLikeToken(ptr, allSymbols, a, Token.operator);
 
-TokenAndData nameLikeToken(ref immutable(char)* ptr, ref AllSymbols allSymbols, Sym a, Token regularToken) =>
+TokenAndData nameLikeToken(ref immutable(char)* ptr, ref AllSymbols allSymbols, Symbol a, Token regularToken) =>
 	!peekChars(ptr, "==") && tryTakeChar(ptr, '=')
 		? TokenAndData(Token.nameOrOperatorEquals, appendEquals(allSymbols, a))
 		: TokenAndData(tryTakeChars(ptr, ":=") ? Token.nameOrOperatorColonEquals : regularToken, a);
 
-Token tokenForSym(Sym a) {
+Token tokenForSym(Symbol a) {
 	switch (a.value) {
-		case sym!"act".value:
+		case symbol!"act".value:
 			return Token.act;
-		case sym!"alias".value:
+		case symbol!"alias".value:
 			return Token.alias_;
-		case sym!"as".value:
+		case symbol!"as".value:
 			return Token.as;
-		case sym!"assert".value:
+		case symbol!"assert".value:
 			return Token.assert_;
-		case sym!"bare".value:
+		case symbol!"bare".value:
 			return Token.bare;
-		case sym!"break".value:
+		case symbol!"break".value:
 			return Token.break_;
-		case sym!"builtin".value:
+		case symbol!"builtin".value:
 			return Token.builtin;
-		case sym!"builtin-spec".value:
+		case symbol!"builtin-spec".value:
 			return Token.builtinSpec;
-		case sym!"continue".value:
+		case symbol!"continue".value:
 			return Token.continue_;
-		case sym!"elif".value:
+		case symbol!"elif".value:
 			return Token.elif;
-		case sym!"else".value:
+		case symbol!"else".value:
 			return Token.else_;
-		case sym!"enum".value:
+		case symbol!"enum".value:
 			return Token.enum_;
-		case sym!"export".value:
+		case symbol!"export".value:
 			return Token.export_;
-		case sym!"extern".value:
+		case symbol!"extern".value:
 			return Token.extern_;
-		case sym!"far".value:
+		case symbol!"far".value:
 			return Token.far;
-		case sym!"flags".value:
+		case symbol!"flags".value:
 			return Token.flags;
-		case sym!"for".value:
+		case symbol!"for".value:
 			return Token.for_;
-		case sym!"forbid".value:
+		case symbol!"forbid".value:
 			return Token.forbid;
-		case sym!"force-ctx".value:
+		case symbol!"force-ctx".value:
 			return Token.forceCtx;
-		case sym!"fun".value:
+		case symbol!"fun".value:
 			return Token.fun;
-		case sym!"global".value:
+		case symbol!"global".value:
 			return Token.global;
-		case sym!"if".value:
+		case symbol!"if".value:
 			return Token.if_;
-		case sym!"import".value:
+		case symbol!"import".value:
 			return Token.import_;
-		case sym!"loop".value:
+		case symbol!"loop".value:
 			return Token.loop;
-		case sym!"match".value:
+		case symbol!"match".value:
 			return Token.match;
-		case sym!"mut".value:
+		case symbol!"mut".value:
 			return Token.mut;
-		case sym!"no-std".value:
+		case symbol!"no-std".value:
 			return Token.noStd;
-		case sym!"record".value:
+		case symbol!"record".value:
 			return Token.record;
-		case sym!"spec".value:
+		case symbol!"spec".value:
 			return Token.spec;
-		case sym!"summon".value:
+		case symbol!"summon".value:
 			return Token.summon;
-		case sym!"test".value:
+		case symbol!"test".value:
 			return Token.test;
-		case sym!"thread-local".value:
+		case symbol!"thread-local".value:
 			return Token.thread_local;
-		case sym!"throw".value:
+		case symbol!"throw".value:
 			return Token.throw_;
-		case sym!"trusted".value:
+		case symbol!"trusted".value:
 			return Token.trusted;
-		case sym!"unless".value:
+		case symbol!"unless".value:
 			return Token.unless;
-		case sym!"union".value:
+		case symbol!"union".value:
 			return Token.union_;
-		case sym!"unsafe".value:
+		case symbol!"unsafe".value:
 			return Token.unsafe;
-		case sym!"until".value:
+		case symbol!"until".value:
 			return Token.until;
-		case sym!"while".value:
+		case symbol!"while".value:
 			return Token.while_;
-		case sym!"with".value:
+		case symbol!"with".value:
 			return Token.with_;
-		case sym!"_".value:
+		case symbol!"_".value:
 			return Token.underscore;
 		default:
 			return Token.name;

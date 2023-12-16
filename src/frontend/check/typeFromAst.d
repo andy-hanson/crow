@@ -47,13 +47,13 @@ import util.col.arrUtil : eachPair, findIndex, map, mapOrNone, mapZip;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.sourceRange : Range;
-import util.sym : Sym, sym;
+import util.symbol : Symbol, symbol;
 import util.util : castNonScope_ref, ptrTrustMe, todo;
 
 private Type instStructFromAst(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	Sym name,
+	Symbol name,
 	in Range suffixRange,
 	in Opt!(TypeAst*) typeArgsAst,
 	in StructsAndAliasesMap structsAndAliasesMap,
@@ -101,7 +101,7 @@ private Opt!TypeArgs getTypeArgsIfNumberMatches(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	in Range range,
-	Sym name,
+	Symbol name,
 	size_t nExpectedTypeArgs,
 	return in Opt!Type* type,
 ) {
@@ -258,44 +258,44 @@ private Type typeFromTupleAst(
 	return makeTupleType(ctx.instantiateCtx, commonTypes, args);
 }
 
-private Opt!TypeParamIndex findTypeParam(TypeParams typeParamsScope, Sym name) {
+private Opt!TypeParamIndex findTypeParam(TypeParams typeParamsScope, Symbol name) {
 	Opt!size_t res = findIndex!NameAndRange(typeParamsScope, (in NameAndRange x) =>
 		x.name == name);
 	return has(res) ? some(TypeParamIndex(force(res))) : none!TypeParamIndex;
 }
 
-Opt!(Diag.TypeShouldUseSyntax.Kind) typeSyntaxKind(Sym a) {
+Opt!(Diag.TypeShouldUseSyntax.Kind) typeSyntaxKind(Symbol a) {
 	switch (a.value) {
-		case sym!"fun-act".value:
+		case symbol!"fun-act".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.funAct);
-		case sym!"fun-far".value:
+		case symbol!"fun-far".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.funFar);
-		case sym!"fun-fun".value:
+		case symbol!"fun-fun".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.funFun);
-		case sym!"const-pointer".value:
+		case symbol!"const-pointer".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.pointer);
-		case sym!"map".value:
+		case symbol!"map".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.map);
-		case sym!"future".value:
+		case symbol!"future".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.future);
-		case sym!"list".value:
+		case symbol!"list".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.list);
-		case sym!"mut-map".value:
+		case symbol!"mut-map".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.mutMap);
-		case sym!"mut-list".value:
+		case symbol!"mut-list".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.mutList);
-		case sym!"mut-pointer".value:
+		case symbol!"mut-pointer".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.mutPointer);
-		case sym!"option".value:
+		case symbol!"option".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.opt);
-		case sym!"tuple2".value:
-		case sym!"tuple3".value:
-		case sym!"tuple4".value:
-		case sym!"tuple5".value:
-		case sym!"tuple6".value:
-		case sym!"tuple7".value:
-		case sym!"tuple8".value:
-		case sym!"tuple9".value:
+		case symbol!"tuple2".value:
+		case symbol!"tuple3".value:
+		case symbol!"tuple4".value:
+		case symbol!"tuple5".value:
+		case symbol!"tuple6".value:
+		case symbol!"tuple7".value:
+		case symbol!"tuple8".value:
+		case symbol!"tuple9".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.tuple);
 		default:
 			return none!(Diag.TypeShouldUseSyntax.Kind);
@@ -413,7 +413,7 @@ Destructure checkDestructure(
 					ctx, commonTypes, *force(x.type), structsAndAliasesMap, typeParamsScope, delayStructInsts))
 				: none!Type;
 			Type type = getType(declaredType);
-			if (x.name.name == sym!"_") {
+			if (x.name.name == symbol!"_") {
 				if (has(x.mut))
 					addDiag(ctx, ast.range(ctx.allSymbols), Diag(Diag.LocalIgnoredButMutable()));
 				return Destructure(allocate(ctx.alloc, Destructure.Ignore(x.name.start, type)));
@@ -474,7 +474,7 @@ private:
 
 Opt!T tryFindT(T)(
 	ref CheckCtx ctx,
-	Sym name,
+	Symbol name,
 	in Range range,
 	Opt!T fromThisModule,
 	Diag.DuplicateImports.Kind duplicateImportKind,

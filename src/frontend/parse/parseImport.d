@@ -25,7 +25,7 @@ import util.conv : safeToUshort;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
-import util.sym : concatSymsWithDot, Sym, sym;
+import util.symbol : concatSymsWithDot, Symbol, symbol;
 import util.uri : AllUris, childPath, Path, RelPath, rootPath;
 import util.util : todo, typeAs;
 
@@ -59,10 +59,10 @@ ImportOrExportAst[] parseImportLines(scope ref AllUris allUris, ref Lexer lexer)
 PathOrRelPath parseImportPath(scope ref AllUris allUris, ref Lexer lexer) {
 	Opt!ushort nParents = () {
 		if (tryTakeToken(lexer, Token.dot)) {
-			takeOrAddDiagExpectedOperator(lexer, sym!"/", ParseDiag.Expected.Kind.slash);
+			takeOrAddDiagExpectedOperator(lexer, symbol!"/", ParseDiag.Expected.Kind.slash);
 			return some!ushort(0);
-		} else if (tryTakeOperator(lexer, sym!"..")) {
-			takeOrAddDiagExpectedOperator(lexer, sym!"/", ParseDiag.Expected.Kind.slash);
+		} else if (tryTakeOperator(lexer, symbol!"..")) {
+			takeOrAddDiagExpectedOperator(lexer, symbol!"/", ParseDiag.Expected.Kind.slash);
 			return some(safeToUshort(takeDotDotSlashes(lexer, 1)));
 		} else
 			return none!ushort;
@@ -72,15 +72,15 @@ PathOrRelPath parseImportPath(scope ref AllUris allUris, ref Lexer lexer) {
 }
 
 size_t takeDotDotSlashes(ref Lexer lexer, size_t acc) {
-	if (tryTakeOperator(lexer, sym!"..")) {
-		takeOrAddDiagExpectedOperator(lexer, sym!"/", ParseDiag.Expected.Kind.slash);
+	if (tryTakeOperator(lexer, symbol!"..")) {
+		takeOrAddDiagExpectedOperator(lexer, symbol!"/", ParseDiag.Expected.Kind.slash);
 		return takeDotDotSlashes(lexer, acc + 1);
 	} else
 		return acc;
 }
 
 Path addPathComponents(scope ref AllUris allUris, ref Lexer lexer, Path acc) =>
-	tryTakeOperator(lexer, sym!"/")
+	tryTakeOperator(lexer, symbol!"/")
 		? addPathComponents(allUris, lexer, childPath(allUris, acc, takePathComponent(lexer)))
 		: acc;
 
@@ -120,16 +120,16 @@ ImportFileType parseImportFileType(ref Lexer lexer) {
 }
 
 Opt!ImportFileType toImportFileType(in TypeAst a) =>
-	isSimpleName(a, sym!"string")
+	isSimpleName(a, symbol!"string")
 	? some(ImportFileType.string)
-	: isInstStructOneArg(a, sym!"nat8", sym!"array")
+	: isInstStructOneArg(a, symbol!"nat8", symbol!"array")
 	? some(ImportFileType.nat8Array)
 	: none!ImportFileType;
 
-bool isSimpleName(TypeAst a, Sym name) =>
+bool isSimpleName(TypeAst a, Symbol name) =>
 	a.isA!NameAndRange && a.as!NameAndRange.name == name;
 
-bool isInstStructOneArg(TypeAst a, Sym typeArgName, Sym name) {
+bool isInstStructOneArg(TypeAst a, Symbol typeArgName, Symbol name) {
 	if (a.isA!(TypeAst.SuffixName*)) {
 		TypeAst.SuffixName* s = a.as!(TypeAst.SuffixName*);
 		return isSimpleName(s.left, typeArgName) && s.name.name == name;
@@ -188,11 +188,11 @@ TrailingComma takeCommaSeparatedNames(ref Lexer lexer, ref ArrBuilder!NameAndRan
 		: TrailingComma.no;
 }
 
-Sym takePathComponent(ref Lexer lexer) =>
+Symbol takePathComponent(ref Lexer lexer) =>
 	takePathComponentRest(lexer, takeName(lexer));
-Sym takePathComponentRest(ref Lexer lexer, Sym cur) {
+Symbol takePathComponentRest(ref Lexer lexer, Symbol cur) {
 	if (tryTakeToken(lexer, Token.dot)) {
-		Sym extension = takeName(lexer);
+		Symbol extension = takeName(lexer);
 		return takePathComponentRest(lexer, concatSymsWithDot(lexer.allSymbols, cur, extension));
 	} else
 		return cur;

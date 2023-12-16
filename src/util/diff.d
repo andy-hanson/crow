@@ -7,7 +7,7 @@ import util.col.arr : only;
 import util.col.arrUtil : contains, indexOfMax, max;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.comparison : compareSizeT;
-import util.sym : AllSymbols, Sym, sym, symSize, writeSym, writeSymAndGetSize;
+import util.symbol : AllSymbols, Symbol, symbol, symSize, writeSym, writeSymAndGetSize;
 import util.writer : writeNewline, Writer, writeRed, writeReset, writeSpaces;
 import util.util : max, todo;
 
@@ -16,8 +16,8 @@ void diffSymbols(
 	ref Writer writer,
 	in AllSymbols allSymbols,
 	bool color,
-	in Sym[] a,
-	in Sym[] b
+	in Symbol[] a,
+	in Symbol[] b
 ) {
 	printDiff(writer, allSymbols, color, a, b, longestCommonSubsequence(tempAlloc, a, b));
 }
@@ -80,8 +80,8 @@ void getMaximumCommonSubsequenceLengths(T)(
 // Then the maximum common subsequence is where a prefix and suffix of b meet with the greatest sum of those sizes.
 // Returns index to split 'b' at.
 size_t findBestSplitIndex(
-	in Sym[] a,
-	in Sym[] b,
+	in Symbol[] a,
+	in Symbol[] b,
 	ref size_t[] scratch,
 ) {
 	size_t i = a.length / 2;
@@ -90,8 +90,8 @@ size_t findBestSplitIndex(
 	assert(scratch.length >= subseqsSize * 2);
 	size_t[] leftSubsequenceLengths = scratch[0 .. subseqsSize];
 	size_t[] rightSubsequenceLengths = scratch[subseqsSize .. subseqsSize * 2];
-	getMaximumCommonSubsequenceLengths!Sym(a[0 .. i], b, leftSubsequenceLengths, false);
-	getMaximumCommonSubsequenceLengths!Sym(a[i + 1 .. $], b, rightSubsequenceLengths, true);
+	getMaximumCommonSubsequenceLengths!Symbol(a[0 .. i], b, leftSubsequenceLengths, false);
+	getMaximumCommonSubsequenceLengths!Symbol(a[i + 1 .. $], b, rightSubsequenceLengths, true);
 	return indexOfMax!(size_t, size_t)(
 		leftSubsequenceLengths,
 		(size_t j, in size_t leftLength) =>
@@ -102,15 +102,15 @@ size_t findBestSplitIndex(
 
 void longestCommonSubsequenceRecur(
 	ref Alloc alloc,
-	in Sym[] a,
-	in Sym[] b,
+	in Symbol[] a,
+	in Symbol[] b,
 	ref size_t[] scratch,
-	ref ArrBuilder!Sym res,
+	ref ArrBuilder!Symbol res,
 ) {
 	if (b.length == 0) {
 		// No output
 	} else if (a.length == 1) {
-		Sym sa = only(a);
+		Symbol sa = only(a);
 		if (contains(b, sa))
 			add(alloc, res, sa);
 	} else {
@@ -122,9 +122,9 @@ void longestCommonSubsequenceRecur(
 	}
 }
 
-@trusted Sym[] longestCommonSubsequence(ref Alloc alloc, in Sym[] a, in Sym[] b) {
+@trusted Symbol[] longestCommonSubsequence(ref Alloc alloc, in Symbol[] a, in Symbol[] b) {
 	size_t[] scratch = allocateElements!size_t(alloc, (b.length + 1) * 2);
-	ArrBuilder!Sym res;
+	ArrBuilder!Symbol res;
 	longestCommonSubsequenceRecur(alloc, a, b, scratch, res);
 	return finishArr(alloc, res);
 }
@@ -133,14 +133,14 @@ void printDiff(
 	ref Writer writer,
 	in AllSymbols allSymbols,
 	bool color,
-	in Sym[] a,
-	in Sym[] b,
-	in Sym[] commonSyms,
+	in Symbol[] a,
+	in Symbol[] b,
+	in Symbol[] commonSyms,
 ) {
-	Sym expected = sym!"expected";
+	Symbol expected = symbol!"expected";
 	// + 2 for a margin
 	size_t columnSize = 2 + max(
-		max!(size_t, Sym)(0, a, (in Sym s) => symSize(allSymbols, s)),
+		max!(size_t, Symbol)(0, a, (in Symbol s) => symSize(allSymbols, s)),
 		symSize(allSymbols, expected));
 
 	writeNewline(writer, 1);
@@ -190,7 +190,7 @@ void printDiff(
 		bi++;
 	}
 
-	foreach (Sym commonSym; commonSyms) {
+	foreach (Symbol commonSym; commonSyms) {
 		while (a[ai] != commonSym && b[bi] != commonSym)
 			misspelling();
 		while (a[ai] != commonSym)
@@ -207,7 +207,7 @@ void printDiff(
 		extraB();
 }
 
-void writeSymPadded(scope ref Writer writer, in AllSymbols allSymbols, Sym name, size_t size) {
+void writeSymPadded(scope ref Writer writer, in AllSymbols allSymbols, Symbol name, size_t size) {
 	size_t symSize = writeSymAndGetSize(writer, allSymbols, name);
 	if (symSize >= size) todo!void("??");
 	writeSpaces(writer, size - symSize);

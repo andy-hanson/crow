@@ -15,12 +15,12 @@ import util.col.mutMaxArr : MutMaxArr;
 import util.opt : has, force, MutOpt, none, Opt, some;
 import util.perf : Perf;
 import util.sourceRange : Range, UriAndRange;
-import util.sym : AllSymbols, Sym;
+import util.symbol : AllSymbols, Symbol;
 
 struct ClosureFieldBuilder {
 	@safe @nogc pure nothrow:
 
-	immutable Sym name; // Redundant to the variableRef, but it's faster to keep this close
+	immutable Symbol name; // Redundant to the variableRef, but it's faster to keep this close
 	immutable Mutability mutability;
 	bool[4]* isUsed; // points to isUsed for the outer variable. Null for Param.
 	immutable Type type; // Same as above

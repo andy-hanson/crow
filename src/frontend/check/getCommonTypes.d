@@ -30,7 +30,7 @@ import util.col.enumMap : EnumMap;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, someMut, some;
 import util.sourceRange : Range, UriAndRange;
-import util.sym : Sym, sym;
+import util.symbol : Symbol, symbol;
 import util.util : ptrTrustMe, todo;
 
 CommonTypes* getCommonTypes(
@@ -38,11 +38,11 @@ CommonTypes* getCommonTypes(
 	in StructsAndAliasesMap structsAndAliasesMap,
 	scope ref DelayStructInsts delayedStructInsts,
 ) {
-	void addDiagMissing(Sym name) {
+	void addDiagMissing(Symbol name) {
 		addDiag(ctx, UriAndRange(ctx.curUri, Range.empty), Diag(Diag.CommonTypeMissing(name)));
 	}
 
-	StructInst* nonTemplateFromSym(Sym name) {
+	StructInst* nonTemplateFromSym(Symbol name) {
 		Opt!(StructInst*) res =
 			getCommonNonTemplateType(ctx.instantiateCtx, structsAndAliasesMap, name, delayedStructInsts);
 		if (has(res))
@@ -54,7 +54,7 @@ CommonTypes* getCommonTypes(
 		}
 	}
 	StructInst* nonTemplate(string name)() {
-		return nonTemplateFromSym(sym!name);
+		return nonTemplateFromSym(symbol!name);
 	}
 
 	StructInst* bool_ = nonTemplate!"bool";
@@ -69,10 +69,10 @@ CommonTypes* getCommonTypes(
 	StructInst* nat16 = nonTemplate!"nat16";
 	StructInst* nat32 = nonTemplate!"nat32";
 	StructInst* nat64 = nonTemplate!"nat64";
-	StructInst* symbol = nonTemplate!"symbol";
+	StructInst* symbolType = nonTemplate!"symbol";
 	StructInst* void_ = nonTemplate!"void";
 
-	StructDecl* getDeclFromSym(Sym name, size_t nTypeParameters) {
+	StructDecl* getDeclFromSym(Symbol name, size_t nTypeParameters) {
 		Opt!(StructDecl*) res = getCommonTemplateType(structsAndAliasesMap, name, nTypeParameters);
 		if (has(res))
 			return force(res);
@@ -82,7 +82,7 @@ CommonTypes* getCommonTypes(
 		}
 	}
 	StructDecl* getDecl(string name)(size_t nTypeParameters) {
-		return getDeclFromSym(sym!name, nTypeParameters);
+		return getDeclFromSym(symbol!name, nTypeParameters);
 	}
 
 	StructDecl* array = getDecl!"array"(1);
@@ -116,7 +116,7 @@ CommonTypes* getCommonTypes(
 		float32,
 		float64,
 		IntegralTypes(int8, int16, int32, int64, nat8, nat16, nat32, nat64),
-		symbol,
+		symbolType,
 		void_,
 		array,
 		future,
@@ -131,7 +131,7 @@ private:
 
 Opt!(StructDecl*) getCommonTemplateType(
 	in StructsAndAliasesMap structsAndAliasesMap,
-	Sym name,
+	Symbol name,
 	size_t expectedTypeParams,
 ) {
 	Opt!StructOrAlias res = structsAndAliasesMap[name];
@@ -148,7 +148,7 @@ Opt!(StructDecl*) getCommonTemplateType(
 Opt!(StructInst*) getCommonNonTemplateType(
 	ref InstantiateCtx ctx,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	Sym name,
+	Symbol name,
 	scope ref DelayStructInsts delayedStructInsts,
 ) {
 	Opt!StructOrAlias opStructOrAlias = structsAndAliasesMap[name];
@@ -181,11 +181,11 @@ StructDecl* bogusStructDecl(ref Alloc alloc, size_t nTypeParameters) {
 	ArrBuilder!NameAndRange typeParams;
 	UriAndRange uriAndRange = UriAndRange.empty;
 	foreach (size_t i; 0 .. nTypeParameters)
-		add(alloc, typeParams, NameAndRange(0, sym!"bogus"));
+		add(alloc, typeParams, NameAndRange(0, symbol!"bogus"));
 	StructDecl* res = allocate(alloc, StructDecl(
 		StructDeclSource(allocate(alloc, StructDeclSource.Bogus(TypeParams(finishArr(alloc, typeParams))))),
 		uriAndRange.uri,
-		sym!"bogus",
+		symbol!"bogus",
 		Visibility.public_,
 		Linkage.internal,
 		Purity.data,

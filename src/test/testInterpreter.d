@@ -76,7 +76,7 @@ import util.col.enumMap : EnumMap;
 import util.col.fullIndexMap : emptyFullIndexMap, fullIndexMapOfArr;
 import util.memory : allocate;
 import util.sourceRange : Pos;
-import util.sym : sym;
+import util.symbol : symbol;
 import util.util : castNonScope, ptrTrustMe;
 
 void testInterpreter(ref Test test) {
@@ -120,10 +120,10 @@ void doInterpret(
 	in void delegate(ref Stacks stacks, Operation*) @system @nogc nothrow runInterpreter,
 ) {
 	LowFun[1] lowFun = [LowFun(
-		LowFunSource(allocate(test.alloc, LowFunSource.Generated(sym!"test", []))),
+		LowFunSource(allocate(test.alloc, LowFunSource.Generated(symbol!"test", []))),
 		nat64Type,
 		[],
-		LowFunBody(LowFunBody.Extern(sym!"bogus")))];
+		LowFunBody(LowFunBody.Extern(symbol!"bogus")))];
 	LowProgram lowProgram = LowProgram(
 		ConcreteFunToLowFunIndex(),
 		AllConstantsLow([], [], []),

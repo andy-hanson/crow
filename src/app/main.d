@@ -67,7 +67,7 @@ import util.opt : force, has, Opt, some;
 import util.perf : disablePerf, isEnabled, Perf, withNullPerf;
 import util.perfReport : perfReport;
 import util.string : mustStripPrefix, CString, cString, cStringIsEmpty, cStringSize;
-import util.sym : AllSymbols, sym;
+import util.symbol : AllSymbols, symbol;
 import util.uri : AllUris, childUri, cStringOfUri, FileUri, Uri, parentOrEmpty, toUri;
 import versionInfo : versionInfoForJIT;
 
@@ -78,7 +78,7 @@ import versionInfo : versionInfoForJIT;
 	Server server = Server((size_t sizeWords, size_t _) =>
 		(cast(word*) pureMalloc(sizeWords * word.sizeof))[0 .. sizeWords]);
 	Uri cwd = toUri(server.allUris, getCwd(server.allUris));
-	setIncludeDir(&server, childUri(server.allUris, getCrowDir(server.allUris), sym!"include"));
+	setIncludeDir(&server, childUri(server.allUris, getCrowDir(server.allUris), symbol!"include"));
 	setCwd(server, cwd);
 	setShowOptions(server, ShowOptions(true));
 	Alloc* alloc = newAlloc(AllocKind.main, server.metaAlloc);

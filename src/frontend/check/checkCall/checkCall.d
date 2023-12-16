@@ -63,7 +63,7 @@ import util.col.mutMaxArr :
 import util.opt : force, has, none, noneMut, Opt, some, some;
 import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMeasure, startMeasure;
 import util.sourceRange : Range;
-import util.sym : Sym, sym;
+import util.symbol : Symbol, symbol;
 import util.util : castNonScope_ref, ptrTrustMe;
 
 Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref CallAst ast, ref Expected expected) {
@@ -90,7 +90,7 @@ Expr checkCallSpecial(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	ExprAst* source,
-	Sym funName,
+	Symbol funName,
 	in ExprAst[] args,
 	ref Expected expected,
 ) =>
@@ -100,7 +100,7 @@ Expr checkCallSpecial(
 Expr checkCallSpecialNoLocals(
 	ref ExprCtx ctx,
 	ExprAst* source,
-	Sym funName,
+	Symbol funName,
 	in ExprAst[] args,
 	ref Expected expected,
 ) {
@@ -114,7 +114,7 @@ private Expr checkCallCommon(
 	ref LocalsInfo locals,
 	ExprAst* source,
 	in Range diagRange,
-	Sym funName,
+	Symbol funName,
 	Opt!Type typeArg,
 	ExprAst[] args,
 	ref Expected expected,
@@ -134,7 +134,7 @@ private Expr checkCallCommon(
 	return res;
 }
 
-Expr checkCallIdentifier(ref ExprCtx ctx, ExprAst* source, Sym name, ref Expected expected) {
+Expr checkCallIdentifier(ref ExprCtx ctx, ExprAst* source, Symbol name, ref Expected expected) {
 	checkCallShouldUseSyntax(ctx, source.range, name, 0);
 	return checkCallSpecialNoLocals(ctx, source, name, [], expected);
 }
@@ -146,7 +146,7 @@ Expr checkCallInner(
 	ref LocalsInfo locals,
 	ExprAst* source,
 	in Range diagRange,
-	Sym funName,
+	Symbol funName,
 	ExprAst[] argAsts,
 	in Opt!Type explicitTypeArg,
 	scope ref PerfMeasurer perfMeasurer,
@@ -214,31 +214,31 @@ Expr checkCallInner(
 		return checkCallAfterChoosingOverload(ctx, isInLambda(locals), only(candidates), source, force(args), expected);
 }
 
-void checkCallShouldUseSyntax(ref ExprCtx ctx, in Range range, Sym funName, size_t arity) {
+void checkCallShouldUseSyntax(ref ExprCtx ctx, in Range range, Symbol funName, size_t arity) {
 	Opt!(Diag.CallShouldUseSyntax.Kind) kind = shouldUseSyntaxKind(funName, ctx.typeContainer);
 	if (has(kind))
 		addDiag2(ctx, range, Diag(Diag.CallShouldUseSyntax(arity, force(kind))));
 }
 
-Opt!(Diag.CallShouldUseSyntax.Kind) shouldUseSyntaxKind(Sym calledFunName, in TypeContainer container) {
+Opt!(Diag.CallShouldUseSyntax.Kind) shouldUseSyntaxKind(Symbol calledFunName, in TypeContainer container) {
 	switch (calledFunName.value) {
-		case sym!"for-break".value:
-			return container.isA!(FunDecl*) && container.as!(FunDecl*).name == sym!"for-break"
+		case symbol!"for-break".value:
+			return container.isA!(FunDecl*) && container.as!(FunDecl*).name == symbol!"for-break"
 				? none!(Diag.CallShouldUseSyntax.Kind)
 				: some(Diag.CallShouldUseSyntax.Kind.for_break);
-		case sym!"force".value:
+		case symbol!"force".value:
 			return some(Diag.CallShouldUseSyntax.Kind.force);
-		case sym!"for_loop".value:
+		case symbol!"for_loop".value:
 			return some(Diag.CallShouldUseSyntax.Kind.for_loop);
-		case sym!"new".value:
+		case symbol!"new".value:
 			return some(Diag.CallShouldUseSyntax.Kind.new_);
-		case sym!"not".value:
+		case symbol!"not".value:
 			return some(Diag.CallShouldUseSyntax.Kind.not);
-		case sym!"set-subscript".value:
+		case symbol!"set-subscript".value:
 			return some(Diag.CallShouldUseSyntax.Kind.set_subscript);
-		case sym!"subscript".value:
+		case symbol!"subscript".value:
 			return some(Diag.CallShouldUseSyntax.Kind.subscript);
-		case sym!"with-block".value:
+		case symbol!"with-block".value:
 			return some(Diag.CallShouldUseSyntax.Kind.with_block);
 		default:
 			return none!(Diag.CallShouldUseSyntax.Kind);

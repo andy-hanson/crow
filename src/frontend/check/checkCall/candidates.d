@@ -46,7 +46,7 @@ import util.col.mutMaxArr :
 	pushUninitialized,
 	tempAsArr;
 import util.opt : force, has, Opt;
-import util.sym : Sym;
+import util.symbol : Symbol;
 
 // Max number of candidates with same return type
 size_t maxCandidates() => 64;
@@ -55,7 +55,7 @@ alias Candidates = MutMaxArr!(maxCandidates, Candidate);
 CalledDecl[] candidatesForDiag(ref Alloc alloc, in Candidates candidates) =>
 	map(alloc, tempAsArr(candidates), (ref const Candidate c) => c.called);
 
-CalledDecl[] getAllCandidatesAsCalledDecls(ref ExprCtx ctx, Sym funName) {
+CalledDecl[] getAllCandidatesAsCalledDecls(ref ExprCtx ctx, Symbol funName) {
 	ArrBuilder!CalledDecl res = ArrBuilder!CalledDecl();
 	eachFunInScope(funsInScope(ctx), funName, (CalledDecl called) {
 		add(ctx.alloc, res, called);
@@ -93,7 +93,7 @@ private void overwriteCandidate(ref Candidate a, ref const Candidate b) {
 
 T withCandidates(T)(
 	in FunsInScope funs,
-	Sym funName,
+	Symbol funName,
 	size_t actualArity,
 	// Filter candidates early to avoid a large array
 	in bool delegate(ref Candidate) @safe @nogc pure nothrow cbFilterCandidate,
@@ -113,7 +113,7 @@ T withCandidates(T)(
 
 void eachCandidate(
 	in FunsInScope funs,
-	Sym funName,
+	Symbol funName,
 	size_t actualArity,
 	in void delegate(ref Candidate) @safe @nogc pure nothrow cb,
 ) {
@@ -152,7 +152,7 @@ FunsInScope funsInScope(ref const ExprCtx ctx) {
 	return FunsInScope(ctx.outermostFunSpecs, ctx.funsMap, ctx.checkCtx.importsAndReExports);
 }
 
-void eachFunInScope(in FunsInScope a, Sym funName, in void delegate(CalledDecl) @safe @nogc pure nothrow cb) {
+void eachFunInScope(in FunsInScope a, Symbol funName, in void delegate(CalledDecl) @safe @nogc pure nothrow cb) {
 	foreach (SpecInst* specInst; a.outermostFunSpecs)
 		eachFunInScopeForSpec(specInst, funName, cb);
 
@@ -219,7 +219,7 @@ private Type paramTypeAt(in Params params, size_t argIndex) =>
 
 private void eachFunInScopeForSpec(
 	SpecInst* specInst,
-	Sym funName,
+	Symbol funName,
 	in void delegate(CalledDecl) @safe @nogc pure nothrow cb,
 ) {
 	foreach (SpecInst* parent; specInst.parents)

@@ -26,7 +26,7 @@ import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : none, Opt, some;
 import util.sourceRange : UriAndRange;
 import util.string : CString;
-import util.sym : Sym, sym;
+import util.symbol : Symbol;
 import util.union_ : Union;
 import util.util : unreachable;
 
@@ -48,45 +48,6 @@ enum BuiltinStructKind {
 	pointerConst,
 	pointerMut,
 	void_,
-}
-
-Sym symOfBuiltinStructKind(BuiltinStructKind a) {
-	final switch (a) {
-		case BuiltinStructKind.bool_:
-			return sym!"bool";
-		case BuiltinStructKind.char8:
-			return sym!"char8";
-		case BuiltinStructKind.float32:
-			return sym!"float-32";
-		case BuiltinStructKind.float64:
-			return sym!"float-64";
-		case BuiltinStructKind.fun:
-			return sym!"fun";
-		case BuiltinStructKind.funPointer:
-			return sym!"fun-pointer";
-		case BuiltinStructKind.int8:
-			return sym!"int-8";
-		case BuiltinStructKind.int16:
-			return sym!"int-16";
-		case BuiltinStructKind.int32:
-			return sym!"int-32";
-		case BuiltinStructKind.int64:
-			return sym!"int-64";
-		case BuiltinStructKind.nat8:
-			return sym!"nat-8";
-		case BuiltinStructKind.nat16:
-			return sym!"nat-16";
-		case BuiltinStructKind.nat32:
-			return sym!"nat-32";
-		case BuiltinStructKind.nat64:
-			return sym!"nat-64";
-		case BuiltinStructKind.pointerConst:
-			return sym!"const-pointer";
-		case BuiltinStructKind.pointerMut:
-			return sym!"pointer-mut";
-		case BuiltinStructKind.void_:
-			return sym!"void";
-	}
 }
 
 immutable struct EnumValues {
@@ -143,17 +104,6 @@ bool isVoid(in ConcreteType a) =>
 
 alias ReferenceKind = immutable ReferenceKind_;
 private enum ReferenceKind_ { byVal, byRef, byRefRef }
-
-Sym symOfReferenceKind(ReferenceKind a) {
-	final switch (a) {
-		case ReferenceKind.byVal:
-			return sym!"by-val";
-		case ReferenceKind.byRef:
-			return sym!"by-ref";
-		case ReferenceKind.byRefRef:
-			return sym!"by-ref-ref";
-	}
-}
 
 immutable struct TypeSize {
 	size_t sizeBytes;
@@ -280,24 +230,15 @@ enum ConcreteMutability {
 	mutable,
 }
 
-Sym symOfConcreteMutability(ConcreteMutability a) {
-	final switch (a) {
-		case ConcreteMutability.const_:
-			return sym!"const";
-		case ConcreteMutability.mutable:
-			return sym!"mutable";
-	}
-}
-
 immutable struct ConcreteField {
-	Sym debugName;
+	Symbol debugName;
 	ConcreteMutability mutability;
 	ConcreteType type;
 }
 
 immutable struct ConcreteLocalSource {
 	immutable struct Closure {}
-	immutable struct Generated { Sym name; }
+	immutable struct Generated { Symbol name; }
 	mixin Union!(Local*, Closure, Generated);
 }
 
@@ -323,7 +264,7 @@ immutable struct ConcreteFunBody {
 		size_t memberIndex;
 	}
 	immutable struct Extern {
-		Sym libraryName;
+		Symbol libraryName;
 	}
 	immutable struct FlagsFn {
 		ulong allValue;
@@ -437,8 +378,8 @@ bool isVariadic(in ConcreteFun a) =>
 		(in ConcreteFunSource.WrapMain) =>
 			false);
 
-Opt!Sym name(ref ConcreteFun a) =>
-	a.source.isA!ConcreteFunKey ? some(a.source.as!ConcreteFunKey.decl.name) : none!Sym;
+Opt!Symbol name(ref ConcreteFun a) =>
+	a.source.isA!ConcreteFunKey ? some(a.source.as!ConcreteFunKey.decl.name) : none!Symbol;
 
 bool isSummon(ref ConcreteFun a) =>
 	a.source.matchIn!bool(

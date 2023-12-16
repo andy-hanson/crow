@@ -24,7 +24,7 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos;
-import util.sym : sym;
+import util.symbol : symbol;
 import util.util : todo;
 
 Opt!(TypeAst*) tryParseTypeArgForEnumOrFlags(ref Lexer lexer) {
@@ -86,7 +86,7 @@ TypeAst parseTypeBeforeSuffixes(ref Lexer lexer) {
 			return parseFunType(lexer, start, FunKind.far);
 		case Token.fun:
 			takeNextToken(lexer);
-			return parseFunType(lexer, start, tryTakeOperator(lexer, sym!"*") ? FunKind.pointer : FunKind.fun);
+			return parseFunType(lexer, start, tryTakeOperator(lexer, symbol!"*") ? FunKind.pointer : FunKind.fun);
 		default:
 			addDiagUnexpectedCurToken(lexer, start, getPeekTokenAndData(lexer));
 			return TypeAst(TypeAst.Bogus(range(lexer, start)));
@@ -167,20 +167,20 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, TypeAst left) {
 		return tryTakeToken(lexer, Token.bracketRight)
 			? suffix(TypeAst.SuffixSpecial.Kind.list)
 			: mapLike(TypeAst.Map.Kind.data);
-	else if (tryTakeOperator(lexer, sym!"^"))
+	else if (tryTakeOperator(lexer, symbol!"^"))
 		return suffix(TypeAst.SuffixSpecial.Kind.future);
-	else if (tryTakeOperator(lexer, sym!"*"))
+	else if (tryTakeOperator(lexer, symbol!"*"))
 		return suffix(TypeAst.SuffixSpecial.Kind.ptr);
-	else if (tryTakeOperator(lexer, sym!"**"))
+	else if (tryTakeOperator(lexer, symbol!"**"))
 		return doubleSuffix(TypeAst.SuffixSpecial.Kind.ptr, TypeAst.SuffixSpecial.Kind.ptr);
 	else if (tryTakeToken(lexer, Token.mut)) {
 		if (tryTakeToken(lexer, Token.bracketLeft))
 			return tryTakeToken(lexer, Token.bracketRight)
 				? suffix(TypeAst.SuffixSpecial.Kind.mutList)
 				: mapLike(TypeAst.Map.Kind.mut);
-		else if (tryTakeOperator(lexer, sym!"*"))
+		else if (tryTakeOperator(lexer, symbol!"*"))
 			return suffix(TypeAst.SuffixSpecial.Kind.mutPtr);
-		else if (tryTakeOperator(lexer, sym!"**"))
+		else if (tryTakeOperator(lexer, symbol!"**"))
 			return doubleSuffix(TypeAst.SuffixSpecial.Kind.mutPtr, TypeAst.SuffixSpecial.Kind.ptr);
 		else {
 			addDiagExpected(lexer, ParseDiag.Expected.Kind.afterMut);

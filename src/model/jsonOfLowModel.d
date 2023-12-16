@@ -25,7 +25,6 @@ import model.lowModel :
 	LowType,
 	LowUnion,
 	PrimitiveType,
-	symOfPrimitiveType,
 	UpdateParam;
 import model.model : EnumValue, Local;
 import model.jsonOfConcreteModel : jsonOfConcreteFunRef, jsonOfConcreteStructRef;
@@ -63,7 +62,7 @@ Json jsonOfLowType(ref Alloc alloc, in LowType a) =>
 		(in LowType.FunPtr x) =>
 			jsonObject(alloc, [kindField!"fun-pointer", field!"index"(x.index)]),
 		(in PrimitiveType x) =>
-			jsonString(symOfPrimitiveType(x)),
+			jsonString(stringOfEnum(x)),
 		(in LowType.PtrGc x) =>
 			jsonObject(alloc, [kindField!"gc-ptr", field!"pointee"(jsonOfLowType(alloc, *x.pointee))]),
 		(in LowType.PtrRawConst x) =>

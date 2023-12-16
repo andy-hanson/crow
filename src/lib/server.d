@@ -106,7 +106,7 @@ import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.sourceRange : UriAndRange;
 import util.string : copyString, CString, cString, cStringIsEmpty, stringOfCString;
-import util.sym : AllSymbols;
+import util.symbol : AllSymbols;
 import util.uri : AllUris, getExtension, Uri, UrisInfo;
 import util.util : castNonScope, castNonScope_ref, ptrTrustMe;
 import util.writer : withWriter, Writer;

@@ -21,7 +21,7 @@ import util.col.map : mustGet;
 import util.memory : allocate;
 import util.opt : some;
 import util.sourceRange : UriAndRange;
-import util.sym : sym;
+import util.symbol : symbol;
 
 LowFun generateCallFunOrAct(
 	ref Alloc alloc,
@@ -31,8 +31,8 @@ LowFun generateCallFunOrAct(
 ) {
 	UriAndRange range = UriAndRange.empty;
 	LowLocal[] params = newArray(alloc, [
-		genLocalByValue(alloc, sym!"fun", 0, a.funType),
-		genLocalByValue(alloc, sym!"arg", 1, a.funParamType),
+		genLocalByValue(alloc, symbol!"fun", 0, a.funType),
+		genLocalByValue(alloc, symbol!"arg", 1, a.funParamType),
 	]);
 	LowExpr funParamGet = genLocalGet(range, &params[0]);
 	LowExpr argParamGet = genLocalGet(range, &params[1]);
@@ -43,7 +43,7 @@ LowFun generateCallFunOrAct(
 		a.impls,
 		allTypes.allUnions[a.funType.as!(LowType.Union)].members,
 		(ref ConcreteLambdaImpl impl, ref LowType closureType) {
-			LowLocal* closureLocal = genLocal(alloc, sym!"closure", localIndex, closureType);
+			LowLocal* closureLocal = genLocal(alloc, symbol!"closure", localIndex, closureType);
 			localIndex = localIndex + 1;
 			LowExpr then = LowExpr(a.returnType, range, LowExprKind(
 				LowExprKind.Call(
@@ -56,7 +56,7 @@ LowFun generateCallFunOrAct(
 		allocate(alloc, LowExprKind.MatchUnion(funParamGet, cases))));
 	return LowFun(
 		LowFunSource(
-			allocate(alloc, LowFunSource.Generated(sym!"call", newArray(alloc, [a.returnType, a.funParamType])))),
+			allocate(alloc, LowFunSource.Generated(symbol!"call", newArray(alloc, [a.returnType, a.funParamType])))),
 		a.returnType,
 		params,
 		LowFunBody(LowFunExprBody(false, expr)));

@@ -28,7 +28,7 @@ import model.model :
 import model.parseDiag : ParseDiag;
 import util.opt : force, Opt;
 import util.sourceRange : Range, UriAndRange;
-import util.sym : Sym;
+import util.symbol : Symbol;
 import util.union_ : Union;
 import util.uri : RelPath, Uri;
 
@@ -98,13 +98,13 @@ immutable struct Diag {
 	immutable struct AssignmentNotAllowed {}
 
 	immutable struct BuiltinUnsupported {
-		Sym name;
+		Symbol name;
 	}
 
 	// Note: this error is issued *before* resolving specs.
 	// We don't exclude a candidate based on not having specs.
 	immutable struct CallMultipleMatches {
-		Sym funName;
+		Symbol funName;
 		TypeContainer typeContainer;
 		// Unlike CallNoMatch, these are only the ones that match
 		CalledDecl[] matches;
@@ -112,7 +112,7 @@ immutable struct Diag {
 
 	immutable struct CallNoMatch {
 		TypeContainer typeContainer;
-		Sym funName;
+		Symbol funName;
 		ExpectedForDiag expectedReturnType;
 		// 0 for inferred type args.
 		// This is the unpacked tuple, actualNTypeArgs > 1 may match candidates with 1 type arg.
@@ -153,14 +153,14 @@ immutable struct Diag {
 
 	immutable struct CharLiteralMustBeOneChar {}
 	immutable struct CommonFunDuplicate {
-		Sym name;
+		Symbol name;
 	}
 	immutable struct CommonFunMissing {
 		FunDecl* dummyForContext;
 		TypeParamsAndSig[] sigChoices;
 	}
 	immutable struct CommonTypeMissing {
-		Sym name;
+		Symbol name;
 	}
 	immutable struct DestructureTypeMismatch {
 		immutable struct Expected {
@@ -182,7 +182,7 @@ immutable struct Diag {
 			unionMember,
 		}
 		Kind kind;
-		Sym name;
+		Symbol name;
 	}
 	immutable struct DuplicateExports {
 		enum Kind {
@@ -190,7 +190,7 @@ immutable struct Diag {
 			type,
 		}
 		Kind kind;
-		Sym name;
+		Symbol name;
 	}
 	immutable struct DuplicateImports {
 		enum Kind {
@@ -198,7 +198,7 @@ immutable struct Diag {
 			type,
 		}
 		Kind kind;
-		Sym name;
+		Symbol name;
 	}
 	immutable struct EnumBackingTypeInvalid {
 		StructDecl* enum_;
@@ -246,11 +246,11 @@ immutable struct Diag {
 		mixin Union!(CircularImport, ReadError, RelativeImportReachesPastRoot);
 	}
 	immutable struct ImportRefersToNothing {
-		Sym name;
+		Symbol name;
 	}
 	immutable struct LambdaCantInferParamType {}
 	immutable struct LambdaClosesOverMut {
-		Sym name;
+		Symbol name;
 		// If missing, the error is that the local itself is 'mut'.
 		// If present, the error is that the type is 'mut'.
 		Opt!TypeWithContainer type;
@@ -284,32 +284,32 @@ immutable struct Diag {
 	}
 	immutable struct LoopWithoutBreak {}
 	immutable struct MatchCaseNamesDoNotMatch {
-		Sym[] expectedNames;
+		Symbol[] expectedNames;
 	}
 	immutable struct MatchOnNonUnion {
 		TypeWithContainer type;
 	}
 
 	immutable struct ModifierConflict {
-		Sym prevModifier;
-		Sym curModifier;
+		Symbol prevModifier;
+		Symbol curModifier;
 	}
 	immutable struct ModifierDuplicate {
-		Sym modifier;
+		Symbol modifier;
 	}
 	immutable struct ModifierInvalid {
-		Sym modifier;
+		Symbol modifier;
 		TypeKind typeKind;
 	}
 	// This is like 'ModifierDuplicate' but the modifiers are not identical.
 	// E.g., 'extern unsafe', since 'extern' implies 'unsafe'.
 	immutable struct ModifierRedundantDueToModifier {
-		Sym modifier;
+		Symbol modifier;
 		// This is implied by the first modifier
-		Sym redundantModifier;
+		Symbol redundantModifier;
 	}
 	immutable struct ModifierRedundantDueToTypeKind {
-		Sym modifier;
+		Symbol modifier;
 		TypeKind typeKind;
 	}
 	immutable struct MutFieldNotAllowed {}
@@ -319,7 +319,7 @@ immutable struct Diag {
 			type,
 		}
 		Kind kind;
-		Sym name;
+		Symbol name;
 	}
 	immutable struct NeedsExpectedType {
 		enum Kind {
@@ -347,7 +347,7 @@ immutable struct Diag {
 	immutable struct SpecMatchError {
 		immutable struct Reason {
 			immutable struct MultipleMatches {
-				Sym sigName;
+				Symbol sigName;
 				Called[] matches;
 			}
 			mixin Union!(MultipleMatches);
@@ -420,7 +420,7 @@ immutable struct Diag {
 		immutable struct Kind {
 			immutable struct Import {
 				Module* importedModule;
-				Opt!Sym importedName;
+				Opt!Symbol importedName;
 			}
 			immutable struct Local {
 				.Local* local;
@@ -428,7 +428,7 @@ immutable struct Diag {
 				bool usedSet;
 			}
 			immutable struct PrivateDecl {
-				Sym name;
+				Symbol name;
 			}
 			mixin Union!(Import, Local, PrivateDecl);
 		}
@@ -436,7 +436,7 @@ immutable struct Diag {
 	}
 	immutable struct VarargsParamMustBeArray {}
 	immutable struct WrongNumberTypeArgs {
-		Sym name;
+		Symbol name;
 		size_t nExpectedTypeArgs;
 		size_t nActualTypeArgs;
 	}

@@ -62,7 +62,7 @@ NameAndTest[] allTests = [
 	NameAndTest("server", &testServer),
 	NameAndTest("sort-util", &testSortUtil),
 	NameAndTest("stack", &testStack),
-	NameAndTest("sym", &testSym),
+	NameAndTest("symbol", &testSym),
 	NameAndTest("path", &testUri),
 	NameAndTest("writer", &testWriter),
 ];

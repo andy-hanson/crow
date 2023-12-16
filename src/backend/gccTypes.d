@@ -66,7 +66,7 @@ import util.col.fullIndexMap :
 import util.conv : safeToInt;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.string : CString;
-import util.sym : AllSymbols, writeSym;
+import util.symbol : AllSymbols, writeSym;
 import util.util : castImmutable, castNonScope_ref, typeAs;
 import util.writer : withWriter, Writer;
 
