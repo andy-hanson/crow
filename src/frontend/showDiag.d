@@ -212,6 +212,9 @@ void writeParseDiag(scope ref Writer writer, in AllSymbols allSymbols, in AllUri
 			writeEscapedChar(writer, x.actual);
 			writer ~= "'.";
 		},
+		(in ParseDiag.MissingExpression x) {
+			writer ~= "Expected an expression here.";
+		},
 		(in ParseDiag.NeedsBlockCtx x) {
 			if (x.kind == ParseDiag.NeedsBlockCtx.Kind.lambda)
 				writer ~= "Lambda";

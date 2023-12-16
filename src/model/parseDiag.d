@@ -63,6 +63,7 @@ immutable struct ParseDiag {
 	immutable struct InvalidStringEscape {
 		char actual;
 	}
+	immutable struct MissingExpression {}
 	immutable struct NeedsBlockCtx {
 		enum Kind {
 			break_,
@@ -100,6 +101,7 @@ immutable struct ParseDiag {
 		IndentWrongCharacter,
 		InvalidName,
 		InvalidStringEscape,
+		MissingExpression,
 		NeedsBlockCtx,
 		ReadFileDiag,
 		TrailingComma,

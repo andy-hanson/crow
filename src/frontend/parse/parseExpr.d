@@ -33,6 +33,7 @@ import frontend.parse.lexToken : isNewlineToken;
 import frontend.parse.parseType : parseType, parseTypeForTypedExpr, tryParseTypeArgForExpr;
 import frontend.parse.parseUtil :
 	peekEndOfLine,
+	peekToken,
 	takeDedent,
 	takeIndentOrFailGeneric,
 	takeName,
@@ -836,7 +837,13 @@ ExprAst takeInterpolated(ref Lexer lexer, Pos start, string firstText, QuoteKind
 }
 
 ExprAst takeInterpolatedRecur(ref Lexer lexer, Pos start, ref ArrBuilder!InterpolatedPart parts, QuoteKind quoteKind) {
-	ExprAst e = parseExprNoBlock(lexer);
+	ExprAst e = () {
+		if (peekToken(lexer, Token.braceRight)) {
+			addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.MissingExpression()));
+			return bogusExpr(range(lexer, start));
+		} else
+			return parseExprNoBlock(lexer);
+	}();
 	add(lexer.alloc, parts, InterpolatedPart(e));
 	StringPart part = takeClosingBraceThenStringPart(lexer, quoteKind);
 	if (!empty(part.text))
