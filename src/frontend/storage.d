@@ -303,7 +303,7 @@ LineAndCharacterRange lineAndCharacterRange(in LineAndColumnGetters a, in UriAnd
 LineAndColumnRange lineAndColumnRange(in LineAndColumnGetters a, in UriAndRange range) =>
 	lineAndColumnRange(a[range.uri], range.range);
 
-Json jsonOfUriAndRange(ref Alloc alloc, in AllUris allUris, in LineAndColumnGetters lcg, UriAndRange a) =>
+Json jsonOfUriAndRange(ref Alloc alloc, in AllUris allUris, in LineAndColumnGetters lcg, in UriAndRange a) =>
 	jsonObject(alloc, [
 		field!"uri"(stringOfUri(alloc, allUris, a.uri)),
 		field!"range"(jsonOfRange(alloc, lcg, a))]);

@@ -5,7 +5,7 @@ module frontend.check.checkCall.candidates;
 import frontend.check.checkCtx : eachImportAndReExport, ImportAndReExportModules;
 import frontend.check.exprCtx : ExprCtx;
 import frontend.check.inferringType :
-	matchTypesNoDiagnostic,
+	matchTypes,
 	nonInferring,
 	SingleInferringType,
 	tryGetNonInferringType,
@@ -173,7 +173,7 @@ bool testCandidateForSpecSig(
 	in ReturnAndParamTypes returnAndParamTypes,
 	const TypeContext callTypeContext,
 ) {
-	bool res = matchTypesNoDiagnostic(
+	bool res = matchTypes(
 		ctx,
 		TypeAndContext(specCandidate.called.returnType, typeContextForCandidate(specCandidate)),
 		const TypeAndContext(returnAndParamTypes.returnType, callTypeContext));
@@ -188,7 +188,7 @@ bool testCandidateParamType(
 	size_t argIdx,
 	const TypeAndContext actualArgType,
 ) =>
-	matchTypesNoDiagnostic(ctx, getCandidateExpectedParameterType(ctx, candidate, argIdx), actualArgType);
+	matchTypes(ctx, getCandidateExpectedParameterType(ctx, candidate, argIdx), actualArgType);
 
 @trusted inout(TypeAndContext) getCandidateExpectedParameterType(
 	ref InstantiateCtx ctx,
