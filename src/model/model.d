@@ -23,7 +23,7 @@ import model.concreteModel : TypeSize;
 import model.constant : Constant;
 import model.diag : Diag, Diagnostic, isFatal, UriAndDiagnostic;
 import model.parseDiag : ParseDiagnostic;
-import util.col.arr : arrayOfSingle, empty, emptySmallArray, only, PtrAndSmallNumber, small, SmallArray;
+import util.col.arr : arrayOfSingle, emptySmallArray, isEmpty, only, PtrAndSmallNumber, small, SmallArray;
 import util.col.arrUtil : exists, first;
 import util.col.hashTable : existsInHashTable, HashTable;
 import util.col.map : Map;
@@ -402,6 +402,9 @@ immutable struct StructDecl {
 				x.range,
 			(in StructDeclSource.Bogus) =>
 				Range.empty));
+
+	bool isTemplate() scope =>
+		!isEmpty(typeParams);
 }
 
 immutable struct StructDeclSource {
@@ -418,9 +421,6 @@ UriAndRange nameRange(in AllSymbols allSymbols, in StructDecl a) =>
 			nameRange(allSymbols, x),
 		(in StructDeclSource.Bogus) =>
 			Range.empty));
-
-bool isTemplate(in StructDecl a) =>
-	!empty(a.typeParams);
 
 // The StructInst and its contents are allocated using the AllInsts alloc.
 immutable struct StructInst {
@@ -781,7 +781,7 @@ immutable struct FunDecl {
 		params.isA!(Params.Varargs*);
 
 	bool isTemplate() scope =>
-		!empty(typeParams) || !empty(specs);
+		!isEmpty(typeParams) || !isEmpty(specs);
 
 	Arity arity() scope =>
 		params.arity;
@@ -1066,7 +1066,7 @@ immutable struct NameReferents {
 		structOrAlias = sa;
 		spec = sp;
 		funs = fs;
-		assert(has(structOrAlias) || has(spec) || !empty(funs));
+		assert(has(structOrAlias) || has(spec) || !isEmpty(funs));
 	}
 
 	Sym name() scope =>

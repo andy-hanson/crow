@@ -28,7 +28,7 @@ import model.model :
 	TypeParamIndex,
 	TypeParams,
 	TypeParamsAndSig;
-import util.col.arr : empty, only, only2, sizeEq;
+import util.col.arr : isEmpty, only, only2, sizeEq;
 import util.lineAndColumnGetter : LineAndColumn, LineAndColumnRange, PosKind;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : toUriAndPos, UriAndPos, UriAndRange;
@@ -133,7 +133,7 @@ private void writeTypeParamsAndArgs(
 	in Type[] typeArgs,
 ) {
 	assert(sizeEq(typeParams, typeArgs));
-	if (!empty(typeParams)) {
+	if (!isEmpty(typeParams)) {
 		writer ~= " with ";
 		writeWithCommasZip!(NameAndRange, Type)(writer, typeParams, typeArgs, (in NameAndRange param, in Type arg) {
 			writeSym(writer, ctx.allSymbols, param.name);
@@ -227,7 +227,7 @@ void writeSigSimple(
 	in TypeParamsAndSig sig,
 ) {
 	writeSym(writer, ctx.allSymbols, name);
-	if (!empty(sig.typeParams)) {
+	if (!isEmpty(sig.typeParams)) {
 		writer ~= '[';
 		writeWithCommas!NameAndRange(writer, sig.typeParams, (in NameAndRange x) {
 			writeSym(writer, ctx.allSymbols, x.name);
@@ -364,7 +364,7 @@ void writeTypeArgsGeneric(T)(
 	in bool delegate(in T) @safe @nogc pure nothrow isSimpleType,
 	in void delegate(in T) @safe @nogc pure nothrow cbWriteType,
 ) {
-	if (!empty(typeArgs)) {
+	if (!isEmpty(typeArgs)) {
 		writer ~= '@';
 		if (typeArgs.length == 1 && isSimpleType(only(typeArgs)))
 			cbWriteType(only(typeArgs));
@@ -379,7 +379,7 @@ void writeTypeArgsGeneric(T)(
 private void writeTypeArgs(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in Type[] types) {
 	writeTypeArgsGeneric!Type(writer, types,
 		(in Type x) =>
-			!x.isA!(StructInst*) || empty(x.as!(StructInst*).typeArgs),
+			!x.isA!(StructInst*) || isEmpty(x.as!(StructInst*).typeArgs),
 		(in Type x) {
 			writeTypeUnquoted(writer, ctx, TypeWithContainer(x, typeContainer));
 		});

@@ -51,7 +51,7 @@ import interpret.runBytecode :
 import model.model : EnumValue;
 import model.typeLayout : Pack;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty;
+import util.col.arr : isEmpty;
 import util.col.arrBuilder : add, ArrBuilder, backUp, finishArr;
 import util.col.fullIndexMap : fullIndexMapOfArr;
 import util.col.mutArr : moveToArr_mut, mustPop, MutArr, mutArrEnd, mutArrSize, push;
@@ -563,7 +563,7 @@ void writeLongjmp(scope ref ByteCodeWriter writer, ByteCodeSource source) {
 
 private @trusted void writeArray(T)(scope ref ByteCodeWriter writer, ByteCodeSource source, in T[] values) {
 	pushSizeT(writer, source, values.length);
-	if (!empty(values)) {
+	if (!isEmpty(values)) {
 		size_t nOperations = divRoundUp(values.length * T.sizeof, Operation.sizeof);
 		foreach (size_t i; 0 .. nOperations)
 			pushOperation(writer, source, Operation(ulong(0)));

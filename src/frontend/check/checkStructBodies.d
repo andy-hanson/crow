@@ -21,7 +21,6 @@ import model.diag : Diag, TypeKind;
 import model.model :
 	CommonTypes,
 	emptyTypeParams,
-	emptyTypeParams,
 	EnumBackingType,
 	EnumValue,
 	FieldMutability,
@@ -46,7 +45,7 @@ import model.model :
 	TypeParamIndex,
 	UnionMember,
 	Visibility;
-import util.col.arr : empty;
+import util.col.arr : isEmpty;
 import util.col.arrUtil : eachPair, fold, map, mapAndFold, MapAndFold, mapPointers, zipPtrFirst;
 import util.conv : safeToSizeT;
 import util.opt : force, has, none, Opt, optOrDefault, some, someMut;
@@ -108,7 +107,7 @@ private:
 
 StructBody.Extern checkExtern(ref CheckCtx ctx, in StructDeclAst declAst, in StructDeclAst.Body.Extern bodyAst) {
 	checkOnlyStructModifiers(ctx, TypeKind.extern_, declAst.modifiers);
-	if (!empty(declAst.typeParams))
+	if (!isEmpty(declAst.typeParams))
 		addDiag(ctx, declAst.range, Diag(Diag.ExternHasTypeParams()));
 	Opt!size_t optNat(Opt!(LiteralNatAst*) value) {
 		if (has(value)) {

@@ -50,7 +50,7 @@ import model.lowModel :
 import model.model : EnumValue;
 import model.typeLayout : sizeOfType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.col.arr : empty, only, sizeEq;
+import util.col.arr : isEmpty, only, sizeEq;
 import util.col.arrUtil : every, exists, map, zip;
 import util.col.map : mustGet;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach, fullIndexMapEachKey;
@@ -410,7 +410,7 @@ void writeStructs(ref Alloc alloc, scope ref Writer writer, scope ref Ctx ctx) {
 			writer ~= " (*";
 			writeStructMangledName(writer, ctx.mangledNames, funPtr.source);
 			writer ~= ")(";
-			if (empty(funPtr.paramTypes))
+			if (isEmpty(funPtr.paramTypes))
 				writer ~= "void";
 			else
 				writeWithCommas!LowType(
@@ -568,7 +568,7 @@ void writeTempOrInline(
 		(in WriteExprResult.Done it) {
 			WriteKind writeKind = WriteKind(WriteKind.Inline(it.args));
 			WriteExprResult res = writeExpr(writer, 0, ctx, locals, writeKind, e);
-			assert(empty(res.as!(WriteExprResult.Done).args));
+			assert(isEmpty(res.as!(WriteExprResult.Done).args));
 		},
 		(in Temp it) {
 			writeTempRef(writer, it);

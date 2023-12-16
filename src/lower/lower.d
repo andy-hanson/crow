@@ -108,7 +108,7 @@ import model.model :
 	VarKind;
 import model.typeLayout : isEmptyType;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, only, only2;
+import util.col.arr : isEmpty, only, only2;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.col.arrUtil :
 	exists,
@@ -1169,7 +1169,7 @@ LowExprKind getCallSpecial(
 			}
 		},
 		(ConcreteFunBody.CreateUnion x) {
-			LowExpr arg = empty(a.args)
+			LowExpr arg = isEmpty(a.args)
 				? genVoid(range)
 				: getLowExpr(ctx, locals, only(a.args), ExprPos.nonTail);
 			return LowExprKind(allocate(ctx.alloc, LowExprKind.CreateUnion(x.memberIndex, arg)));

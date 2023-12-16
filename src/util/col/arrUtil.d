@@ -1,7 +1,7 @@
 module util.col.arrUtil;
 
 import util.alloc.alloc : Alloc, allocateElements, freeElements;
-import util.col.arr : empty, endPtr, ptrsRange, sizeEq, small, SmallArray;
+import util.col.arr : endPtr, isEmpty, ptrsRange, sizeEq, small, SmallArray;
 import util.comparison : Comparer, Comparison;
 import util.memory : copyToFrom, initMemory;
 import util.opt : force, has, none, Opt, some;
@@ -67,7 +67,7 @@ bool everyWithIndex(T)(in T[] arr, in bool delegate(size_t, ref const T) @safe @
 }
 
 bool allSame(Out, T)(in T[] arr, in Out delegate(in T) @safe @nogc pure nothrow cb) {
-	if (empty(arr))
+	if (isEmpty(arr))
 		return true;
 	else {
 		Out value = cb(arr[0]);
@@ -271,9 +271,9 @@ Out[] mapPointersWithIndex(Out, In)(
 	mapPointers!(Out, In)(alloc, a, (In* x) @trusted => cb(x - a.ptr, x));
 
 T[] concatenate(T)(ref Alloc alloc, T[] a, T[] b) =>
-	empty(a)
+	isEmpty(a)
 		? b
-		: empty(b)
+		: isEmpty(b)
 		? a
 		: concatenateIn!T(alloc, a, b);
 
@@ -418,12 +418,12 @@ private @system State mapAndFoldRecur(Out, State, In)(
 }
 
 T fold(T, U)(T start, in U[] arr, in T delegate(T a, in U b) @safe @nogc pure nothrow cb) =>
-	empty(arr)
+	isEmpty(arr)
 		? start
 		: fold!(T, U)(cb(start, arr[0]), arr[1 .. $], cb);
 
 Opt!T foldOrStop(T, U)(T start, in U[] arr, in Opt!T delegate(T a, ref U b) @safe @nogc pure nothrow cb) {
-	if (empty(arr))
+	if (isEmpty(arr))
 		return some(start);
 	else {
 		Opt!T next = cb(start, arr[0]);

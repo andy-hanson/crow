@@ -134,7 +134,7 @@ import model.lowModel :
 import model.model : Program;
 import model.typeLayout : nStackEntriesForType, optPack, Pack, typeSizeBytes;
 import util.alloc.alloc : TempAlloc;
-import util.col.arr : empty;
+import util.col.arr : isEmpty;
 import util.col.arrBuilder : add;
 import util.col.arrUtil : indexOfPointer;
 import util.col.map : mustGet;
@@ -548,7 +548,7 @@ void generateMatchUnion(
 	StackEntries matchedEntriesWithoutKind = StackEntries(startStack, (stackAfterMatched.entry - startStack.entry));
 
 	// TODO: this should throw on invalid union value.
-	if (empty(a.cases)) {
+	if (isEmpty(a.cases)) {
 		writeZeroed(writer, source, typeSizeBytes(ctx, type));
 		handleAfter(writer, ctx, source, after);
 	} else
@@ -650,7 +650,7 @@ void generateTailRecur(
 	// Delete anything on the stack besides parameters
 	assert(after.kind.isA!(ExprAfterKind.Return));
 	assert(after.returnValueStackEntries.start.entry == 0);
-	StackEntry parametersEnd = empty(ctx.parameterEntries)
+	StackEntry parametersEnd = isEmpty(ctx.parameterEntries)
 		? StackEntry(0)
 		: stackEntriesEnd(ctx.parameterEntries[$ - 1]);
 	StackEntry localsEnd = getNextStackEntry(writer);

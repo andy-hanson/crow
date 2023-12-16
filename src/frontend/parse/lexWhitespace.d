@@ -4,7 +4,7 @@ module frontend.parse.lexWhitespace;
 
 import frontend.parse.lexUtil : isWhitespace, tryTakeChar, tryTakeChars;
 import model.parseDiag : ParseDiag;
-import util.col.arr : arrayOfRange, empty;
+import util.col.arr : arrayOfRange, isEmpty;
 import util.col.str : SafeCStr;
 import util.conv : safeIntFromUint, safeToUint;
 
@@ -172,9 +172,9 @@ uint takeIndentAmountAfterNewlineSpaces(ref immutable(char)* ptr, uint nSpacesPe
 }
 
 string stripWhitespace(string a) {
-	while (!empty(a) && isWhitespace(a[0]))
+	while (!isEmpty(a) && isWhitespace(a[0]))
 		a = a[1 .. $];
-	while (!empty(a) && isWhitespace(a[$ - 1]))
+	while (!isEmpty(a) && isWhitespace(a[$ - 1]))
 		a = a[0 .. $ - 1];
 	return a;
 }

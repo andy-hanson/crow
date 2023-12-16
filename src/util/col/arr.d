@@ -89,7 +89,7 @@ SmallArray!T emptySmallArray(T)() =>
 bool sizeEq(T, U)(in T[] a, in U[] b) =>
 	a.length == b.length;
 
-bool empty(T)(in T[] a) =>
+bool isEmpty(T)(in T[] a) =>
 	a.length == 0;
 
 ref inout(T) only(T)(scope inout T[] a) {

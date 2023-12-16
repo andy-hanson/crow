@@ -3,7 +3,7 @@ module util.json;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty;
+import util.col.arr : isEmpty;
 import util.col.arrUtil : arraysEqual, concatenateIn, copyArray, every, exists, find, map;
 import util.col.fullIndexMap : FullIndexMap;
 import util.col.map : KeyValuePair;
@@ -83,13 +83,13 @@ Json.ObjectField optionalFlagField(string name)(bool value) =>
 	field!name(value ? jsonBool(true) : jsonNull);
 
 Json.ObjectField optionalArrayField(string name)(Json[] array) =>
-	optionalField!name(!empty(array), () => jsonList(array));
+	optionalField!name(!isEmpty(array), () => jsonList(array));
 Json.ObjectField optionalArrayField(string name, T)(
 	ref Alloc alloc,
 	in T[] array,
 	in Json delegate(in T) @safe @nogc pure nothrow cb,
 ) =>
-	optionalField!name(!empty(array), () =>
+	optionalField!name(!isEmpty(array), () =>
 		jsonList(map!(Json, const T)(alloc, array, (ref const T x) => cb(x))));
 
 Json.ObjectField optionalStringField(string name)(ref Alloc alloc, in SafeCStr value) =>

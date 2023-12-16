@@ -53,7 +53,7 @@ import model.lowModel :
 	PrimitiveType,
 	typeSize;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty;
+import util.col.arr : isEmpty;
 import util.col.arrUtil : map, mapWithIndex, zip;
 import util.col.enumMap : EnumMap, makeEnumMap;
 import util.col.fullIndexMap :
@@ -366,7 +366,7 @@ struct GccTypesWip {
 		}).ptr;
 		return gcc_jit_context_new_field(ctx, null, getGccType(typesWip, field.type), name);
 	});
-	assert(empty(typesWip.recordFields[recordIndex]));
+	assert(isEmpty(typesWip.recordFields[recordIndex]));
 	typesWip.recordFields[recordIndex] = fields;
 	gcc_jit_struct_set_fields(struct_, null, cast(int) fields.length, fields.ptr);
 }

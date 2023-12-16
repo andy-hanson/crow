@@ -24,7 +24,7 @@ import model.model :
 	TypeParams,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, small;
+import util.col.arr : isEmpty, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.enumMap : EnumMap;
 import util.memory : allocate;
@@ -162,7 +162,7 @@ Opt!(StructInst*) instantiateNonTemplateStructOrAlias(
 	scope ref DelayStructInsts delayedStructInsts,
 	StructOrAlias structOrAlias,
 ) {
-	assert(empty(structOrAlias.typeParams));
+	assert(isEmpty(structOrAlias.typeParams));
 	return structOrAlias.matchWithPointers!(Opt!(StructInst*))(
 		(StructAlias* x) =>
 			x.target,

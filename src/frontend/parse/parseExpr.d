@@ -81,7 +81,7 @@ import model.ast :
 import model.model : AssertOrForbidKind;
 import model.parseDiag : ParseDiag;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : empty, only;
+import util.col.arr : isEmpty, only;
 import util.col.arrUtil : newArray, prepend;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.memory : allocate;
@@ -831,7 +831,7 @@ ExprAst handleName(ref Lexer lexer, Pos start, NameAndRange name) {
 
 ExprAst takeInterpolated(ref Lexer lexer, Pos start, string firstText, QuoteKind quoteKind) {
 	ArrBuilder!InterpolatedPart parts;
-	if (!empty(firstText))
+	if (!isEmpty(firstText))
 		add(lexer.alloc, parts, InterpolatedPart(firstText));
 	return takeInterpolatedRecur(lexer, start, parts, quoteKind);
 }
@@ -846,7 +846,7 @@ ExprAst takeInterpolatedRecur(ref Lexer lexer, Pos start, ref ArrBuilder!Interpo
 	}();
 	add(lexer.alloc, parts, InterpolatedPart(e));
 	StringPart part = takeClosingBraceThenStringPart(lexer, quoteKind);
-	if (!empty(part.text))
+	if (!isEmpty(part.text))
 		add(lexer.alloc, parts, InterpolatedPart(part.text));
 	final switch (part.after) {
 		case StringPart.After.quote:

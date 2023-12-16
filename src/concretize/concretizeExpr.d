@@ -97,7 +97,7 @@ import model.model :
 	Type,
 	VariableRef;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, only, PtrAndSmallNumber, sizeEq, small, SmallArray;
+import util.col.arr : isEmpty, only, PtrAndSmallNumber, sizeEq, small, SmallArray;
 import util.col.arrUtil : map, mapZip, newArray;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : getOrAdd;
@@ -145,7 +145,7 @@ ConcreteExpr concretizeWithParamDestructures(
 	ref Expr expr,
 ) {
 	assert(sizeEq(params, concreteParams));
-	if (empty(params))
+	if (isEmpty(params))
 		return concretizeExpr(ctx, type, locals, expr);
 	else {
 		ConcreteExpr rest(in Locals innerLocals) {
@@ -234,7 +234,7 @@ ConcreteExpr concretizeCall(
 		return concretizeBogus(ctx.concretizeCtx, type, range);
 	assert(concreteCalled.returnType == type);
 	bool argsMayBeConstants =
-		empty(e.args) || (!isSummon(*concreteCalled) && purity(concreteCalled.returnType) == Purity.data);
+		isEmpty(e.args) || (!isSummon(*concreteCalled) && purity(concreteCalled.returnType) == Purity.data);
 	ConstantsOrExprs args = () {
 		if (isVariadic(*concreteCalled)) {
 			ConcreteType arrayType = only(concreteCalled.paramsIncludingClosure).type;
@@ -450,7 +450,7 @@ ConcreteExpr concretizeLambda(
 
 	ConcreteVariableRef[] closureArgs = map(ctx.alloc, e.closure, (ref VariableRef x) =>
 		concretizeVariableRefForClosure(ctx, range, locals, x));
-	Opt!(ConcreteExpr*) closure = empty(closureArgs)
+	Opt!(ConcreteExpr*) closure = isEmpty(closureArgs)
 		? none!(ConcreteExpr*)
 		: some(allocate(ctx.alloc, createAllocExpr(ctx.alloc, ConcreteExpr(
 			byVal(closureType),

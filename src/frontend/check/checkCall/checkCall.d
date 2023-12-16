@@ -55,7 +55,7 @@ import model.model :
 	SpecDeclSig,
 	SpecInst,
 	Type;
-import util.col.arr : empty, only, small;
+import util.col.arr : isEmpty, only, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : every, exists, makeArrayOrFail, newArray, zipEvery;
 import util.col.mutMaxArr :
@@ -407,7 +407,7 @@ Expr checkCallAfterChoosingOverload(
 	Opt!Called opCalled = checkCallSpecs(ctx, source.range, candidate);
 	if (has(opCalled)) {
 		Called called = force(opCalled);
-		checkCalled(ctx, source, called, isInLambda, empty(args) ? ArgsKind.empty : ArgsKind.nonEmpty);
+		checkCalled(ctx, source, called, isInLambda, isEmpty(args) ? ArgsKind.empty : ArgsKind.nonEmpty);
 		Expr calledExpr = Expr(source, ExprKind(CallExpr(called, args)));
 		//TODO: PERF second return type check may be unnecessary
 		// if we already filtered by return type at the beginning

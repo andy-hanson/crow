@@ -65,7 +65,7 @@ import model.ast :
 	WithAst;
 import model.model : symOfVarKind;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty;
+import util.col.arr : isEmpty;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil : newArray;
 import util.col.sortUtil : eachSorted;
@@ -527,7 +527,7 @@ void addExprTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in 
 		},
 		(in InterpolatedAst x) {
 			Pos pos = a.range.start;
-			if (!empty(x.parts)) {
+			if (!isEmpty(x.parts)) {
 				// Ensure opening quote is highlighted
 				x.parts[0].matchIn!void(
 					(in string) {},

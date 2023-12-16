@@ -14,7 +14,7 @@ import model.model : Module, Program;
 import test.testUtil : setupTestServer, Test, withTestServer;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : empty;
+import util.col.arr : isEmpty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arraysEqual;
 import util.col.hashTable : mustGet;
@@ -70,7 +70,7 @@ immutable struct InfoAtPos {
 	UriAndRange[] definition;
 
 	bool isEmpty() scope =>
-		safeCStrIsEmpty(hover) && empty(definition);
+		safeCStrIsEmpty(hover) && .isEmpty(definition);
 
 	bool opEquals(in InfoAtPos b) scope =>
 		safeCStrEq(hover, b.hover) && arraysEqual(definition, b.definition);
@@ -87,7 +87,7 @@ Json hoverResult(ref Alloc alloc, in string content, in ShowCtx ctx, Module* mai
 
 	void endRange(Pos end) {
 		InfoAtPos info = cellGet(curInfo);
-		if (!info.isEmpty()) {
+		if (!info.isEmpty) {
 			add(alloc, parts, jsonObject(alloc, [
 				field!"start"(jsonOfPosWithinFile(alloc, lcg, curRangeStart, PosKind.startOfRange)),
 				field!"end"(jsonOfPosWithinFile(alloc, lcg, end, PosKind.endOfRange)),

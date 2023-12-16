@@ -68,7 +68,7 @@ import model.model :
 	VarDecl,
 	worsePurity;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, emptySmallArray, only, only2, small, SmallArray;
+import util.col.arr : emptySmallArray, isEmpty, only, only2, small, SmallArray;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil : arraysEqual, every, everyWithIndex, exists, fold, map, mapWithIndex, mapZip, max, newArray;
 import util.col.hashTable : getOrAdd, getOrAddAndDidAdd, moveToArray, MutHashTable;
@@ -339,7 +339,7 @@ ConcreteType concreteTypeFromClosure(
 	ConcreteField[] closureFields,
 	ConcreteStructSource source,
 ) {
-	if (empty(closureFields))
+	if (isEmpty(closureFields))
 		return voidType(ctx);
 	else {
 		Purity purity = fold!(Purity, ConcreteField)(Purity.data, closureFields, (Purity p, in ConcreteField f) {

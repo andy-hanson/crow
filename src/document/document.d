@@ -31,7 +31,7 @@ import model.model :
 	UnionMember,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty;
+import util.col.arr : isEmpty;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSort, finishArr;
 import util.col.arrUtil : exists, indexOf, map, mapOp;
 import util.col.str : SafeCStr;
@@ -277,7 +277,7 @@ Json documentNameAndTypeArgs(
 	Sym name,
 	in Type[] typeArgs,
 ) =>
-	empty(typeArgs)
+	isEmpty(typeArgs)
 		? jsonObject(alloc, [kindField(nodeType), field!"name"(name)])
 		: jsonObject(alloc, [
 			kindField(nodeType),

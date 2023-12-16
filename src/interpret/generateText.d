@@ -20,7 +20,7 @@ import model.lowModel :
 import model.model : VarKind;
 import model.typeLayout : nStackEntriesForType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.col.arr : castImmutable, empty;
+import util.col.arr : castImmutable, isEmpty;
 import util.col.arrUtil : map, sum, zip;
 import util.col.map : mustGet;
 import util.col.enumMap : EnumMap;
@@ -247,7 +247,7 @@ void recurWriteArr(
 	size_t index, // constant index within the same type
 	in Constant[] elements,
 ) {
-	assert(!empty(elements));
+	assert(!isEmpty(elements));
 	size_t[] indexToTextIndex = ctx.arrTypeIndexToConstantIndexToTextIndex[arrTypeIndex];
 	if (indexToTextIndex[index] == 0) {
 		foreach (Constant it; elements)

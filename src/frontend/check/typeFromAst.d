@@ -42,7 +42,7 @@ import model.model :
 	TypeParamIndex,
 	TypeParams;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : arrayOfSingle, empty, only, small;
+import util.col.arr : arrayOfSingle, only, small;
 import util.col.arrUtil : eachPair, findIndex, map, mapOrNone, mapZip;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault, some;

@@ -122,7 +122,7 @@ import model.lowModel :
 	UpdateParam;
 import model.typeLayout : typeSizeBytes;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty;
+import util.col.arr : isEmpty;
 import util.col.arrUtil : fillArray, indexOfPointer, makeArray, map, mapWithIndex, zip;
 import util.col.map : mustGet;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapZip, mapFullIndexMap_mut;
@@ -1721,7 +1721,7 @@ ExprResult zeroedToGcc(ref ExprCtx ctx, ref ExprEmit emit, in LowType type) {
 		},
 		(in LowType.Union union_) {
 			LowType[] members = ctx.program.allUnions[union_].members;
-			return empty(members)
+			return isEmpty(members)
 				// No legal value of this type, so leave uninitialized.
 				? emitWriteToLValue(ctx, emit, type, (gcc_jit_lvalue* lvalue) {})
 				: emitUnion(ctx, emit, type, 0, (ref ExprEmit emitArg) =>
@@ -1803,7 +1803,7 @@ ExprResult initConstantsToGcc(ref ExprCtx ctx, ref ExprEmit emit) {
 				globals,
 				tc.constants,
 				(ref immutable gcc_jit_rvalue* global, ref Constant[] elements) {
-					assert(!empty(elements)); // Not sure how GCC would handle an empty global
+					assert(!isEmpty(elements)); // Not sure how GCC would handle an empty global
 					foreach (size_t index, Constant elementValue; elements) {
 						gcc_jit_lvalue* elementLValue = gcc_jit_context_new_array_access(
 							ctx.gcc,

@@ -21,7 +21,7 @@ import test.testUri : testUri;
 import test.testUtil : Test;
 import test.testWriter : testWriter;
 import util.alloc.alloc : MetaAlloc;
-import util.col.arr : empty;
+import util.col.arr : isEmpty;
 import util.col.arrUtil : find;
 import util.col.str : SafeCStr, strOfSafeCStr, strEq;
 import util.exitCode : ExitCode;
@@ -32,7 +32,7 @@ import util.util : ptrTrustMe;
 ExitCode test(MetaAlloc* alloc, in SafeCStr[] names) =>
 	withNullPerf!(ExitCode, (scope ref Perf perf) {
 		Test test = Test(alloc, ptrTrustMe(perf));
-		if (empty(names)) {
+		if (isEmpty(names)) {
 			foreach (ref NameAndTest x; allTests)
 				x.test(test);
 		} else {

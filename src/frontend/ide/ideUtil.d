@@ -41,7 +41,7 @@ import model.model :
 	ThrowExpr,
 	Type,
 	TypeParamIndex;
-import util.col.arr : arrayOfSingle, empty, only;
+import util.col.arr : arrayOfSingle, isEmpty, only;
 import util.col.arrBuilder : ArrBuilderCb;
 import util.col.arrUtil : count, first, firstZip;
 import util.opt : force, has, none, Opt, optOr, some;
@@ -161,7 +161,7 @@ Opt!T eachDestructureComponent(T)(Destructure a, in Opt!T delegate(Local*) @safe
 		(Local* x) =>
 			cb(x),
 		(Destructure.Split* x) =>
-			empty(x.parts)
+			isEmpty(x.parts)
 				? none!T
 				: first!(T, Destructure)(x.parts, (Destructure part) =>
 					eachDestructureComponent!T(part, cb)));

@@ -112,7 +112,6 @@ import model.model :
 	IfOptionExpr,
 	IntegralTypes,
 	isDefinitelyByRef,
-	isTemplate,
 	LambdaExpr,
 	LetExpr,
 	LiteralCStringExpr,
@@ -146,7 +145,7 @@ import model.model :
 	UnionMember,
 	VariableRef;
 import util.alloc.alloc : Alloc, allocateUninitialized;
-import util.col.arr : arrayOfSingle, empty, only, PtrAndSmallNumber;
+import util.col.arr : arrayOfSingle, isEmpty, only, PtrAndSmallNumber;
 import util.col.arrUtil : append, arraysCorrespond, contains, exists, map, mapPointers, mapZipPointers3, newArray;
 import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
 import util.col.mutMaxArr : initializeMutMaxArr, mutMaxArrSize, push, tempAsArr;
@@ -279,7 +278,7 @@ Opt!Expr checkWithParamDestructuresRecur(
 	Destructure[] params,
 	in Opt!Expr delegate(ref LocalsInfo) @safe @nogc pure nothrow cb,
 ) =>
-	empty(params)
+	isEmpty(params)
 		? cb(locals)
 		: checkWithDestructure(ctx, locals, params[0], (ref LocalsInfo innerLocals) =>
 			checkWithParamDestructuresRecur(ctx, innerLocals, params[1 .. $], cb));
@@ -516,7 +515,7 @@ CallAst checkInterpolatedRecur(ref ExprCtx ctx, in InterpolatedPart[] parts, Pos
 				newArray!ExprAst(ctx.alloc, [force(left), right]))))
 		: right;
 	scope InterpolatedPart[] rest = parts[1 .. $];
-	return empty(rest)
+	return isEmpty(rest)
 		? newLeft.kind.as!CallAst
 		: checkInterpolatedRecur(ctx, rest, newPos, some(newLeft));
 }

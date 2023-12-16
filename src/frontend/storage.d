@@ -18,7 +18,7 @@ import util.alloc.alloc :
 	newAlloc,
 	withAlloc,
 	withTempAlloc;
-import util.col.arr : empty;
+import util.col.arr : isEmpty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : append, contains;
 import util.col.mutMap : getOrAdd, keys, mayDelete, mustAdd, MutMap, values;
@@ -254,7 +254,7 @@ immutable struct FileContent {
 
 	this(immutable ubyte[] a) {
 		bytes = a;
-		assert(!empty(bytes) && bytes[$ - 1] == '\0');
+		assert(!isEmpty(bytes) && bytes[$ - 1] == '\0');
 	}
 	@trusted this(SafeCStr a) {
 		static assert(char.sizeof == ubyte.sizeof);

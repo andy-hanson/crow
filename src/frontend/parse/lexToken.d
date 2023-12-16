@@ -7,7 +7,7 @@ import frontend.parse.lexWhitespace : DocCommentAndIndentDelta, IndentKind, skip
 import model.ast : LiteralFloatAst, LiteralIntAst, LiteralNatAst;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
-import util.col.arr : arrayOfRange, empty;
+import util.col.arr : arrayOfRange, isEmpty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.opt : force, has, none, Opt, some;
 import util.sym : AllSymbols, appendEquals, Sym, sym, symOfStr;
@@ -550,7 +550,7 @@ private:
 }
 
 @trusted bool peekChars(immutable(char*) ptr, in string chars) =>
-	empty(chars) || (*ptr == chars[0] && peekChars(ptr + 1, chars[1 .. $]));
+	isEmpty(chars) || (*ptr == chars[0] && peekChars(ptr + 1, chars[1 .. $]));
 
 TokenAndData operatorToken(ref immutable(char)* ptr, ref AllSymbols allSymbols, Sym a) =>
 	nameLikeToken(ptr, allSymbols, a, Token.operator);

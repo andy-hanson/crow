@@ -87,7 +87,7 @@ import model.model :
 	VarDecl,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, only;
+import util.col.arr : isEmpty, only;
 import util.col.arrBuilder : buildArray;
 import util.col.arrUtil : allSame, contains, find, fold, zip, zipIn;
 import util.col.hashTable : mustGet;
@@ -430,7 +430,7 @@ void eachTypeDirectlyInExpr(in Expr a, in TypeCb cb) {
 }
 
 void referencesForFunDecls(in AllSymbols allSymbols, in Program program, in FunDecl*[] decls, in ReferenceCb cb) {
-	if (!empty(decls)) {
+	if (!isEmpty(decls)) {
 		Visibility maxVisibility = fold(Visibility.private_, decls, (Visibility a, in FunDecl* b) =>
 			greatestVisibility(a, b.visibility));
 		assert(allSame!(Uri, FunDecl*)(decls, (in FunDecl* x) => x.moduleUri));

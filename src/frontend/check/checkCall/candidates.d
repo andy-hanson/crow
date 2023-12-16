@@ -29,7 +29,7 @@ import model.model :
 	SpecInst,
 	Type;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, small;
+import util.col.arr : small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : everyWithIndex, map;
 import util.conv : safeToUshort;

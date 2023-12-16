@@ -4,7 +4,7 @@ module util.col.str;
 
 import util.alloc.alloc : Alloc;
 import util.comparison : Comparison;
-import util.col.arr : empty;
+import util.col.arr : isEmpty;
 import util.col.arrUtil : append, arraysEqual, copyArray;
 import util.hash : HashCode, hashString;
 
@@ -37,7 +37,7 @@ private @trusted CStr cstrEnd(CStr c) {
 }
 
 @trusted SafeCStr copyToSafeCStr(ref Alloc alloc, in char[] s) =>
-	empty(s)
+	isEmpty(s)
 		? safeCStr!""
 		: SafeCStr(cast(immutable) append(alloc, s, '\0').ptr);
 

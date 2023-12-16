@@ -63,7 +63,6 @@ import model.ast :
 	UnlessAst,
 	WithAst;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty;
 import util.json :
 	field,
 	Json,

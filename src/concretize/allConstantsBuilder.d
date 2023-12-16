@@ -11,7 +11,7 @@ import model.concreteModel :
 	PointerTypeAndConstantsConcrete;
 import model.constant : Constant, constantZero;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, only;
+import util.col.arr : isEmpty, only;
 import util.col.arrUtil : arraysEqual, fillArray, findIndex, newArray;
 import util.col.mutArr : moveToArr, MutArr, mutArrSize, push, tempAsArr;
 import util.col.mutMap : getOrAdd, MutMap, size, values, valuesArray;
@@ -82,7 +82,7 @@ Constant getConstantArr(
 	// TODO:PERF take this 'in', only allocate if necessary.
 	Constant[] elements,
 ) {
-	if (empty(elements))
+	if (isEmpty(elements))
 		return constantEmptyArr();
 	else {
 		ConcreteType elementType = only(arrStruct.source.as!(ConcreteStructSource.Inst).typeArgs);

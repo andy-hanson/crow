@@ -14,7 +14,7 @@ import lib.server : allUnknownUris, Server, setCwd, setFile, setIncludeDir;
 import model.diag : ReadFileDiag;
 import model.model : Program;
 import util.alloc.alloc : Alloc, allocateElements, AllocKind, MetaAlloc, newAlloc, withTempAlloc, word;
-import util.col.arr : empty;
+import util.col.arr : isEmpty;
 import util.col.arrUtil : arraysEqual, arraysCorrespond, indexOf, makeArray, map;
 import util.col.str : SafeCStr, safeCStrEq, strOfSafeCStr;
 import util.opt : force, has, none, Opt;
@@ -148,7 +148,7 @@ void setupTestServer(ref Test test, ref Alloc alloc, ref Server server, Uri main
 		concatUriAndPath(server.allUris, server.includeDir, parsePath(server.allUris, path)));
 	while (true) {
 		Uri[] unknowns = allUnknownUris(alloc, server);
-		if (empty(unknowns))
+		if (isEmpty(unknowns))
 			break;
 		else
 			foreach (Uri unknown; unknowns)

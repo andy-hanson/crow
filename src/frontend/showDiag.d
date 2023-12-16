@@ -51,7 +51,7 @@ import model.model :
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : empty, only;
+import util.col.arr : isEmpty, only;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSort, finishArr;
 import util.col.arrUtil : exists;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnRange;
@@ -364,7 +364,7 @@ void writeCallNoMatch(scope ref Writer writer, in ShowCtx ctx, in Diag.CallNoMat
 			(d.actualNTypeArgs == 0 || nTypeParams(c) == d.actualNTypeArgs) &&
 			arityMatches(c.arity, d.actualArity));
 
-	if (empty(d.allCandidates)) {
+	if (isEmpty(d.allCandidates)) {
 		writer ~= "There is no function ";
 		if (d.actualArity == 0)
 			// If there is no local variable by that name we try a call,
@@ -395,7 +395,7 @@ void writeCallNoMatch(scope ref Writer writer, in ShowCtx ctx, in Diag.CallNoMat
 		writeName(writer, ctx, d.funName);
 		writer ~= ", but they do not match the ";
 		bool hasRet = d.expectedReturnType.isA!(ExpectedForDiag.Choices);
-		bool hasArgs = empty(d.actualArgTypes);
+		bool hasArgs = isEmpty(d.actualArgTypes);
 		string descr = hasRet
 			? hasArgs ? "expected return type and actual argument types" : "expected return type"
 			: "actual argument types";

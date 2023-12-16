@@ -80,7 +80,7 @@ import model.model :
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : empty, emptySmallArray, only, ptrsRange, small;
+import util.col.arr : emptySmallArray, isEmpty, only, ptrsRange, small;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderTempAsArr, finishArr;
 import util.col.arrUtil : concatenate, filter, map, mapOp, mapPointers, mapWithResultPointer, zip, zipPointers;
 import util.col.exactSizeArrBuilder : buildArrayExact, ExactSizeArrBuilder, pushUninitialized;
@@ -305,7 +305,7 @@ void detectAndFixSpecRecursion(ref CheckCtx ctx, SpecDecl* decl) {
 	}
 }
 bool recurDetectSpecRecursion(SpecDecl* cur, ref MutMaxArr!(8, immutable SpecDecl*) trace) {
-	if (!empty(cur.parents) && isFull(trace))
+	if (!isEmpty(cur.parents) && isFull(trace))
 		return true;
 	foreach (SpecInst* parent; cur.parents) {
 		push(trace, parent.decl);
@@ -366,7 +366,7 @@ VarDecl checkVarDecl(
 	in StructsAndAliasesMap structsAndAliasesMap,
 	VarDeclAst* ast,
 ) {
-	if (!empty(ast.typeParams))
+	if (!isEmpty(ast.typeParams))
 		todo!void("diag");
 	return VarDecl(
 		ast,
@@ -745,9 +745,9 @@ Type typeForFileImport(
 FunBody.Extern checkExternBody(ref CheckCtx ctx, FunDecl* fun, in Opt!TypeAst typeArg) {
 	Linkage funLinkage = Linkage.extern_;
 
-	if (!empty(fun.typeParams))
+	if (!isEmpty(fun.typeParams))
 		addDiag(ctx, fun.range, Diag(Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.hasTypeParams)));
-	if (!empty(fun.specs))
+	if (!isEmpty(fun.specs))
 		addDiag(ctx, fun.range, Diag(Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.hasSpecs)));
 
 	if (!isLinkageAlwaysCompatible(funLinkage, linkageRange(fun.returnType)))
@@ -886,7 +886,7 @@ HashTable!(NameReferents, Sym, nameFromNameReferents) getAllExportedNames(
 	foreach (immutable FunDecl*[] funs; funsMap) {
 		immutable FunDecl*[] funDecls = filter!(immutable FunDecl*)(ctx.alloc, funs, (in immutable FunDecl* x) =>
 			x.visibility != Visibility.private_);
-		if (!empty(funDecls))
+		if (!isEmpty(funDecls))
 			// Last argument doesn't matter because a function never results in a duplicate export error
 			addExport(NameReferents(none!StructOrAlias, none!(SpecDecl*), funDecls), () => Range.empty);
 	}
@@ -985,7 +985,7 @@ ImportsAndReExports checkImportsAndReExports(
 		alloc, allSymbols, allUris, diagsBuilder, ast.imports, resolvedImportsLeft, !ast.noStd);
 	ImportsOrReExports reExports = checkImportsOrReExports(
 		alloc, allSymbols, allUris, diagsBuilder, ast.reExports, resolvedImportsLeft, false);
-	assert(empty(resolvedImportsLeft));
+	assert(isEmpty(resolvedImportsLeft));
 	return ImportsAndReExports(imports.modules, reExports.modules, imports.files, reExports.files);
 }
 

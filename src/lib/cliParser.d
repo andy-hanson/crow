@@ -7,7 +7,7 @@ import frontend.parse.lexToken : takeNat;
 import frontend.parse.lexUtil : isDecimalDigit, tryTakeChar;
 import model.ast : LiteralNatAst;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, only;
+import util.col.arr : isEmpty, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : copyArray, findIndex, foldOrStop, mapOrNone;
 import util.col.str : SafeCStr, safeCStr, safeCStrEq, strOfSafeCStr;
@@ -107,7 +107,7 @@ bool hasAnyOut(in BuildOut a) =>
 	has(a.outC) || has(a.outExecutable);
 
 Command parseCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in SafeCStr[] args) {
-	if (empty(args))
+	if (isEmpty(args))
 		return Command(CommandKind(CommandKind.Help(helpAllText)));
 	else {
 		SplitArgsAndOptions split = splitArgs(alloc, args[1 .. $]);
@@ -140,7 +140,7 @@ CommandKind parseCommandKind(
 		case "run":
 			return parseRunCommand(alloc, allUris, cwd, args);
 		case "test":
-			return !args.help && empty(args.parts) && empty(args.afterDashDash)
+			return !args.help && isEmpty(args.parts) && isEmpty(args.afterDashDash)
 				? CommandKind(CommandKind.Test(copyArray(alloc, args.beforeFirstPart)))
 				: todo!CommandKind("help for 'test'");
 		case "version":
@@ -198,13 +198,13 @@ Opt!Uri tryParseCrowUri(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in 
 }
 
 Opt!(Uri[]) tryParseRootUris(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in SafeCStr[] args) {
-	assert(!empty(args));
+	assert(!isEmpty(args));
 	return mapOrNone!(Uri, SafeCStr)(alloc, args, (ref SafeCStr arg) =>
 		tryParseCrowUri(alloc, allUris, cwd, arg));
 }
 
 CommandKind parsePrintCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in SplitArgs args) {
-	Opt!PrintKind kind = args.beforeFirstPart.length >= 2 && empty(args.parts) && empty(args.afterDashDash)
+	Opt!PrintKind kind = args.beforeFirstPart.length >= 2 && isEmpty(args.parts) && isEmpty(args.afterDashDash)
 		? parsePrintKind(args.beforeFirstPart[0], args.beforeFirstPart[2 .. $])
 		: none!PrintKind;
 	return !args.help && has(kind)
@@ -215,7 +215,7 @@ CommandKind parsePrintCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cw
 
 Opt!PrintKind parsePrintKind(in SafeCStr a, in SafeCStr[] args) {
 	Opt!PrintKind expectEmptyArgs(PrintKind x) =>
-		empty(args) ? some(x) : none!PrintKind;
+		isEmpty(args) ? some(x) : none!PrintKind;
 
 	Opt!PrintKind expectLineAndColumn(in PrintKind delegate(in LineAndColumn) @safe @nogc pure nothrow cb) {
 		Opt!LineAndColumn lc = args.length == 1 ? parseLineAndColumn(args[0]) : none!LineAndColumn;
@@ -274,7 +274,7 @@ CommandKind parseDocumentCommand(ref Alloc alloc, scope ref AllUris allUris, Uri
 		cwd,
 		args.beforeFirstPart,
 		(Uri[] x) =>
-			!args.help && empty(args.parts) && empty(args.afterDashDash)
+			!args.help && isEmpty(args.parts) && isEmpty(args.afterDashDash)
 				? CommandKind(CommandKind.Document(x))
 				: helpDocument);
 }
@@ -290,7 +290,7 @@ CommandKind parseBuildCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cw
 			only(args.beforeFirstPart),
 			(Uri main) {
 				Opt!BuildOptions options = parseBuildOptions(alloc, allUris, cwd, args.parts, main);
-				return has(options) && empty(args.afterDashDash)
+				return has(options) && isEmpty(args.afterDashDash)
 					? CommandKind(CommandKind.Build(main, force(options)))
 					: helpBuild;
 			});
@@ -350,11 +350,11 @@ Opt!BuildOptions parseBuildOptions(
 					Opt!BuildOut buildOut = parseBuildOut(alloc, allUris, cwd, part.args);
 					return has(buildOut) ? some(withBuildOut(cur, force(buildOut))) : none!BuildOptions;
 				case "--no-out":
-					return empty(part.args)
+					return isEmpty(part.args)
 						? some(withBuildOut(cur, BuildOut(none!Uri, none!Uri)))
 						: none!BuildOptions;
 				case "--optimize":
-					return empty(part.args)
+					return isEmpty(part.args)
 						? some(withCCompileOptions(cur, CCompileOptions(OptimizationLevel.o2)))
 						: none!BuildOptions;
 				default:
@@ -395,8 +395,7 @@ immutable struct SplitArgs {
 	bool help;
 }
 bool isEmpty(in SplitArgs a) =>
-	empty(a.beforeFirstPart) && empty(a.parts) && empty(a.afterDashDash) && !a.help;
-
+	isEmpty(a.beforeFirstPart) && isEmpty(a.parts) && isEmpty(a.afterDashDash) && !a.help;
 
 immutable struct SplitArgsAndOptions {
 	SplitArgs args;
@@ -434,7 +433,7 @@ struct NamedArgs {
 }
 
 NamedArgs splitNamedArgs(ref Alloc alloc, in SafeCStr[] args) {
-	if (empty(args))
+	if (isEmpty(args))
 		return NamedArgs([], CommandOptions(), false);
 
 	ArrBuilder!ArgsPart parts;

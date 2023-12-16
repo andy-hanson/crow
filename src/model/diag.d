@@ -26,7 +26,6 @@ import model.model :
 	VariableRef,
 	Visibility;
 import model.parseDiag : ParseDiag;
-import util.col.arr : empty;
 import util.opt : force, Opt;
 import util.sourceRange : Range, UriAndRange;
 import util.sym : Sym;

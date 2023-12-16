@@ -21,7 +21,6 @@ import model.model :
 	FunFlags,
 	FunInst,
 	FunKind,
-	isTemplate,
 	Linkage,
 	Local,
 	LocalMutability,
@@ -43,7 +42,7 @@ import model.model :
 	TypeParamsAndSig,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, sizeEq, small;
+import util.col.arr : isEmpty, sizeEq, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arraysCorrespond, copyArray, filter, findIndex, makeArray, map;
 import util.col.enumMap : EnumMap;
@@ -211,7 +210,7 @@ immutable(FunDecl*[]) getFunOrActSubscriptFuns(
 
 FunKind firstArgFunKind(in CommonTypes commonTypes, FunDecl* f) {
 	Destructure[] params = assertNonVariadic(f.params);
-	assert(!empty(params));
+	assert(!isEmpty(params));
 	StructDecl* actual = params[0].type.as!(StructInst*).decl;
 	foreach (FunKind kind; [FunKind.fun, FunKind.act, FunKind.pointer])
 		if (actual == commonTypes.funStructs[kind])
@@ -227,7 +226,7 @@ Type getNonTemplateType(
 	Sym name,
 ) {
 	StructDecl* decl = getStructDeclOrAddDiag(alloc, diagsBuilder, module_, name, 0);
-	if (isTemplate(*decl))
+	if (decl.isTemplate)
 		todo!void("diag");
 	return Type(instantiateStructNeverDelay(ctx, decl, []));
 }
@@ -272,7 +271,7 @@ if (has(optReferents)) {
 }
 
 bool signatureMatchesTemplate(in FunDecl actual, in TypeParamsAndSig expected) =>
-	empty(actual.specs) &&
+	isEmpty(actual.specs) &&
 		!actual.params.isA!(Params.Varargs*) &&
 		sizeEq(actual.typeParams, expected.typeParams) &&
 		typesMatch(actual.returnType, actual.typeParams, expected.returnType, expected.typeParams) &&

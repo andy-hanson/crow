@@ -40,7 +40,7 @@ import model.model :
 	VarDecl,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, small;
+import util.col.arr : isEmpty, small;
 import util.col.arrUtil : map, sum;
 import util.col.exactSizeArrBuilder : ExactSizeArrBuilder;
 import util.col.mutMaxArr : push, tempAsArr;
@@ -170,7 +170,7 @@ StructInst* instantiateNonTemplateStructDeclNeverDelay(ref InstantiateCtx ctx, S
 	instantiateStructNeverDelay(ctx, structDecl, []);
 
 bool recordIsAlwaysByVal(in StructBody.Record record) =>
-	empty(record.fields) || record.flags.forcedByValOrRef == ForcedByValOrRefOrNone.byVal;
+	isEmpty(record.fields) || record.flags.forcedByValOrRef == ForcedByValOrRefOrNone.byVal;
 
 void addFunsForEnum(
 	ref CheckCtx ctx,

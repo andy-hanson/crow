@@ -3,7 +3,7 @@ module util.col.hashTable;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateElements, freeElements;
-import util.col.arr : arrayOfRange, empty, endPtr;
+import util.col.arr : arrayOfRange, endPtr, isEmpty;
 import util.col.arrUtil : fillArray, map;
 import util.hash : getHash;
 import util.memory : initMemory, overwriteMemory;
@@ -339,7 +339,7 @@ Opt!size_t getIndex(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a, in K k
 
 // For use by 'mutMaxSet.d'
 public Opt!size_t getIndexInHashTable(T, K, alias getKey)(in MutOpt!T[] values, in K key) {
-	if (empty(values))
+	if (isEmpty(values))
 		return none!size_t;
 
 	size_t startI = getHash!K(key).hashCode % values.length;
