@@ -45,7 +45,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, sizeEq, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : arrsCorrespond, copyArr, filter, findIndex, makeArray, map;
+import util.col.arrUtil : arraysCorrespond, copyArray, filter, findIndex, makeArray, map;
 import util.col.enumMap : EnumMap;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
@@ -276,7 +276,7 @@ bool signatureMatchesTemplate(in FunDecl actual, in TypeParamsAndSig expected) =
 		!actual.params.isA!(Params.Varargs*) &&
 		sizeEq(actual.typeParams, expected.typeParams) &&
 		typesMatch(actual.returnType, actual.typeParams, expected.returnType, expected.typeParams) &&
-		arrsCorrespond!(Destructure, ParamShort)(
+		arraysCorrespond!(Destructure, ParamShort)(
 			assertNonVariadic(actual.params),
 			expected.params,
 			(ref Destructure x, ref ParamShort y) =>
@@ -358,9 +358,9 @@ FunDeclAndSigIndex getFunDeclMulti(
 			UriAndRange(module_.uri, Range.empty),
 			Diag(Diag.CommonFunMissing(decl, map(alloc, expectedSigs, (ref TypeParamsAndSig sig) =>
 				TypeParamsAndSig(
-					TypeParams(copyArr(alloc, sig.typeParams)),
+					TypeParams(copyArray(alloc, sig.typeParams)),
 					sig.returnType,
-					copyArr(alloc, sig.params)))))));
+					copyArray(alloc, sig.params)))))));
 		return FunDeclAndSigIndex(decl, 0);
 	}
 }

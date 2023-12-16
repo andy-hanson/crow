@@ -111,7 +111,6 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only, only2;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.col.arrUtil :
-	arrLiteral,
 	exists,
 	indexOfPointer,
 	map,
@@ -120,6 +119,7 @@ import util.col.arrUtil :
 	mapWithIndexAndConcatOne,
 	mapZip,
 	mapZipPtrFirst,
+	newArray,
 	zipPtrFirst;
 import util.col.map : KeyValuePair, makeMapWithIndex, mustGet, Map;
 import util.col.mapBuilder : finishMap, mustAddToMap, MapBuilder;
@@ -377,7 +377,7 @@ LowType[] maybeUnpackTuple(
 	LowType a,
 ) {
 	Opt!(LowType[]) res = tryUnpackTuple(alloc, allRecords, a);
-	return has(res) ? force(res) : arrLiteral!LowType(alloc, [a]);
+	return has(res) ? force(res) : newArray!LowType(alloc, [a]);
 }
 
 Opt!(LowType[]) tryUnpackTuple(
@@ -783,7 +783,7 @@ LowFun lowFunFromCause(
 			generateMarkVisitGcPtr(getLowTypeCtx.alloc, markCtxType, markFun, it.pointerType, it.visitPointee));
 
 LowFun mainFun(ref GetLowTypeCtx ctx, LowFunIndex rtMainIndex, ConcreteFun* userMain, LowType userMainFunPtrType) {
-	LowLocal[] params = arrLiteral!LowLocal(ctx.alloc, [
+	LowLocal[] params = newArray!LowLocal(ctx.alloc, [
 		genLocalByValue(ctx.alloc, sym!"argc", 0, int32Type),
 		genLocalByValue(ctx.alloc, sym!"argv", 1, char8PtrPtrConstType)]);
 	LowExpr userMainFunPtr =
@@ -793,7 +793,7 @@ LowFun mainFun(ref GetLowTypeCtx ctx, LowFunIndex rtMainIndex, ConcreteFun* user
 		UriAndRange.empty,
 		LowExprKind(LowExprKind.Call(
 			rtMainIndex,
-			arrLiteral!LowExpr(ctx.alloc, [
+			newArray!LowExpr(ctx.alloc, [
 				genLocalGet(UriAndRange.empty, &params[0]),
 				genLocalGet(UriAndRange.empty, &params[1]),
 				userMainFunPtr]))));
@@ -1050,7 +1050,7 @@ LowExpr getAllocateExpr(
 	LowExpr allocate = LowExpr(
 		anyPtrMutType, //TODO: ensure this will definitely be the return type of allocFunIndex
 		range,
-		LowExprKind(LowExprKind.Call(allocFunIndex, arrLiteral!LowExpr(alloc, [size]))));
+		LowExprKind(LowExprKind.Call(allocFunIndex, newArray!LowExpr(alloc, [size]))));
 	return genPtrCast(alloc, ptrType, range, allocate);
 }
 
@@ -1286,7 +1286,7 @@ LowExprKind callFunPtr(
 						ctx.alloc, argTypes, (size_t argIndex, ref LowType argType) =>
 							genRecordFieldGet(ctx.alloc, range, getArg, argType, argIndex))))).kind;
 	} else
-		return doCall(funPtr, arrLiteral!LowExpr(ctx.alloc, [arg]));
+		return doCall(funPtr, newArray!LowExpr(ctx.alloc, [arg]));
 }
 
 LowExprKind getCallBuiltinExpr(
@@ -1358,7 +1358,7 @@ LowExprKind getCallBuiltinExpr(
 				getArg(a.args[0], ExprPos.nonTail),
 				LowExpr(p0, range, LowExprKind(allocate(ctx.alloc, LowExprKind.MatchUnion(
 					lhsRef,
-					arrLiteral!(LowExprKind.MatchUnion.Case)(ctx.alloc, [
+					newArray!(LowExprKind.MatchUnion.Case)(ctx.alloc, [
 						LowExprKind.MatchUnion.Case(none!(LowLocal*), getArg(a.args[1], ExprPos.tail)),
 						LowExprKind.MatchUnion.Case(none!(LowLocal*), lhsRef)]))))))));
 		},
@@ -1367,7 +1367,7 @@ LowExprKind getCallBuiltinExpr(
 			LowLocal* valueLocal = addTempLocal(ctx, p1);
 			return LowExprKind(allocate(ctx.alloc, LowExprKind.MatchUnion(
 				getArg(a.args[0], ExprPos.nonTail),
-				arrLiteral!(LowExprKind.MatchUnion.Case)(ctx.alloc, [
+				newArray!(LowExprKind.MatchUnion.Case)(ctx.alloc, [
 					LowExprKind.MatchUnion.Case(none!(LowLocal*), getArg(a.args[1], ExprPos.tail)),
 					LowExprKind.MatchUnion.Case(some(valueLocal), genLocalGet(range, valueLocal))]))));
 		},
@@ -1423,7 +1423,7 @@ LowExprKind getCreateArrExpr(
 		}
 	}
 	LowExpr createArr = LowExpr(arrType, range, LowExprKind(
-		LowExprKind.CreateRecord(arrLiteral!LowExpr(ctx.alloc, [nElements, genLocalGet(range, temp)]))));
+		LowExprKind.CreateRecord(newArray!LowExpr(ctx.alloc, [nElements, genLocalGet(range, temp)]))));
 	LowExpr writeAndGetArr = recur(createArr, a.args.length);
 	return LowExprKind(allocate(ctx.alloc, LowExprKind.Let(temp, allocatePtr, writeAndGetArr)));
 }
@@ -1608,7 +1608,7 @@ LowExprKind getThrowExpr(
 ) {
 	LowExprKind callThrow = LowExprKind(LowExprKind.Call(
 		ctx.throwImplFunIndex,
-		arrLiteral!LowExpr(ctx.alloc, [getLowExpr(ctx, locals, a.thrown, ExprPos.nonTail)])));
+		newArray!LowExpr(ctx.alloc, [getLowExpr(ctx, locals, a.thrown, ExprPos.nonTail)])));
 	return type == voidType
 		? callThrow
 		: genSeqKind(

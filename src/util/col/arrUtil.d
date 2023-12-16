@@ -3,7 +3,7 @@ module util.col.arrUtil;
 import util.alloc.alloc : Alloc, allocateElements, freeElements;
 import util.col.arr : empty, endPtr, ptrsRange, sizeEq, small, SmallArray;
 import util.comparison : Comparer, Comparison;
-import util.memory : copyToFrom, initMemory, initMemory_mut;
+import util.memory : copyToFrom, initMemory;
 import util.opt : force, has, none, Opt, some;
 import util.util : max;
 
@@ -18,7 +18,7 @@ import util.util : max;
 
 pure:
 
-@trusted T[] arrLiteral(T)(scope ref Alloc alloc, scope T[] values) {
+@trusted T[] newArray(T)(scope ref Alloc alloc, scope T[] values) {
 	T[] res = allocateElements!T(alloc, values.length);
 	foreach (size_t i, ref T x; values)
 		initMemory!T(&res[i], x);
@@ -143,28 +143,19 @@ Opt!Out firstZipPointerFirst(Out, In0, In1)(
 	return firstWithIndex!(Out, In1)(b, (size_t i, In1 x) => cb(&a[i], x));
 }
 
-SmallArray!T copyArr(T)(ref Alloc alloc, scope SmallArray!T a) =>
-	small!T(copyArr(alloc, a.toArray));
-T[] copyArr(T)(ref Alloc alloc, scope T[] a) =>
+SmallArray!T copyArray(T)(ref Alloc alloc, scope SmallArray!T a) =>
+	small!T(copyArray(alloc, a.toArray));
+T[] copyArray(T)(ref Alloc alloc, scope T[] a) =>
 	map!(T, T)(alloc, a, (ref T x) => x);
 
-@trusted immutable(Out[]) map(Out, In)(
+@trusted Out[] map(Out, In)(
 	ref Alloc alloc,
 	scope In[] a,
-	in immutable(Out) delegate(ref In) @safe @nogc pure nothrow cb,
+	in Out delegate(ref In) @safe @nogc pure nothrow cb,
 ) {
 	Out[] res = allocateElements!Out(alloc, a.length);
 	foreach (size_t i, ref In x; a)
 		initMemory(&res[i], cb(x));
-	return cast(immutable) res;
-}
-
-@trusted Out[] mapToMut(Out, In)(ref Alloc alloc, scope In[] a, in Out delegate(ref In) @safe @nogc pure nothrow cb) {
-	Out[] res = allocateElements!Out(alloc, a.length);
-	foreach (size_t i, ref In x; a) {
-		Out value = cb(x);
-		initMemory_mut(&res[i], value);
-	}
 	return res;
 }
 
@@ -380,11 +371,15 @@ void zipPtrFirst(T, U)(T[] a, scope U[] b, in void delegate(T*, ref U) @safe @no
 		cb(&in0[i], &in1[i], &in2[i]));
 }
 
-bool arrsCorrespond(T, U)(in T[] a, in U[] b, in bool delegate(ref const T, ref const U) @safe @nogc pure nothrow cb) =>
+bool arraysCorrespond(T, U)(
+	in T[] a,
+	in U[] b,
+	in bool delegate(ref const T, ref const U) @safe @nogc pure nothrow cb,
+) =>
 	sizeEq(a, b) && zipEvery!(T, U)(a, b, cb);
 
-bool arrEqual(T)(in T[] a, in T[] b) =>
-	arrsCorrespond!(T, T)(a, b, (ref const T x, ref const T y) => x == y);
+bool arraysEqual(T)(in T[] a, in T[] b) =>
+	arraysCorrespond!(T, T)(a, b, (ref const T x, ref const T y) => x == y);
 
 private immutable struct MapAndFoldResult(Out, State) {
 	Out[] output;
@@ -436,32 +431,32 @@ Opt!T foldOrStop(T, U)(T start, in U[] arr, in Opt!T delegate(T a, ref U b) @saf
 	}
 }
 
-N arrMax(N, T)(N start, in T[] a, in N delegate(in T) @safe @nogc pure nothrow cb) =>
-	fold!(N, T)(start, a, (N curMax, in T x) => max(curMax, cb(x)));
+N max(N, T)(N start, in T[] a, in N delegate(in T) @safe @nogc pure nothrow cb) =>
+	fold!(N, T)(start, a, (N curMax, in T x) => .max(curMax, cb(x)));
 
 size_t sum(T)(in T[] a, in size_t delegate(in T) @safe @nogc pure nothrow cb) =>
 	fold!(size_t, T)(0, a, (size_t l, in T t) =>
 		size_t(l + cb(t)));
 
-size_t arrMaxIndex(T, U)(in U[] a, in T delegate(in U, size_t) @safe @nogc pure nothrow cb, Comparer!T compare) =>
-	arrMaxIndexRecur!(T, U)(0, cb(a[0], 0), a, 1, cb, compare);
+size_t indexOfMax(T, U)(in U[] a, in T delegate(size_t, in U) @safe @nogc pure nothrow cb, Comparer!T compare) =>
+	indexOfMaxRecur!(T, U)(0, cb(0, a[0]), a, 1, cb, compare);
 
-private size_t arrMaxIndexRecur(T, U)(
+private size_t indexOfMaxRecur(T, U)(
 	size_t indexOfMax,
 	in T maxValue,
 	in U[] a,
 	size_t index,
-	in immutable(T) delegate(in U, size_t) @safe @nogc pure nothrow cb,
+	in immutable(T) delegate(size_t, in U) @safe @nogc pure nothrow cb,
 	in Comparer!T compare,
 ) {
 	if (index == a.length)
 		return indexOfMax;
 	else {
-		T valueHere = cb(a[index], index);
+		T valueHere = cb(index, a[index]);
 		return compare(valueHere, maxValue) == Comparison.greater
 			// Using `index + 0` to avoid dscanner warning about 'index' not being the 0th parameter
-			? arrMaxIndexRecur!(T, U)(index + 0, valueHere, a, index + 1, cb, compare)
-			: arrMaxIndexRecur!(T, U)(indexOfMax, maxValue, a, index + 1, cb, compare);
+			? indexOfMaxRecur!(T, U)(index + 0, valueHere, a, index + 1, cb, compare)
+			: indexOfMaxRecur!(T, U)(indexOfMax, maxValue, a, index + 1, cb, compare);
 	}
 }
 

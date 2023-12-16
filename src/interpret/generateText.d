@@ -21,7 +21,7 @@ import model.model : VarKind;
 import model.typeLayout : nStackEntriesForType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : castImmutable, empty;
-import util.col.arrUtil : map, mapToMut, sum, zip;
+import util.col.arrUtil : map, sum, zip;
 import util.col.map : mustGet;
 import util.col.enumMap : EnumMap;
 import util.col.exactSizeArrBuilder :
@@ -117,16 +117,16 @@ TextAndInfo generateText(
 		newExactSizeArrBuilder!ubyte(alloc, 1 + getAllConstantsSize(program)),
 		ptrTrustMe(funToReferences),
 		[], // cStringIndexToTextIndex will be overwritten just below this
-		mapToMut!(size_t[], ArrTypeAndConstantsLow)(
+		map!(size_t[], ArrTypeAndConstantsLow)(
 			alloc,
 			program.allConstants.arrs,
 			(ref ArrTypeAndConstantsLow it) =>
-				mapToMut!(size_t, immutable Constant[])(alloc, it.constants, (ref Constant[]) => size_t(0))),
-	 	mapToMut!(size_t[], PointerTypeAndConstantsLow)(
+				map!(size_t, immutable Constant[])(alloc, it.constants, (ref Constant[]) => size_t(0))),
+	 	map!(size_t[], PointerTypeAndConstantsLow)(
 			alloc,
 			program.allConstants.pointers,
 			(ref PointerTypeAndConstantsLow x) =>
-				mapToMut!(size_t, Constant)(alloc, x.constants, (ref Constant) => size_t(0))));
+				map!(size_t, Constant)(alloc, x.constants, (ref Constant) => size_t(0))));
 
 	// Ensure 0 is not a valid text index
 	ctx.text ~= 0;

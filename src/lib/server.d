@@ -97,7 +97,7 @@ import model.model : hasFatalDiagnostics, Module, Program, ProgramWithMain;
 import util.alloc.alloc : Alloc, AllocKind, FetchMemoryCb, freeElements, MetaAlloc, newAlloc, withTempAllocImpure;
 import util.col.arr : only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : arrLiteral, concatenate, contains, map, mapOp;
+import util.col.arrUtil : concatenate, contains, map, mapOp, newArray;
 import util.col.str : copyStr, SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
 import util.exitCode : ExitCode;
 import util.json : field, Json, jsonNull, jsonObject;
@@ -163,7 +163,7 @@ LspOutAction handleLspMessage(
 			handleLspNotification(perf, alloc, server, x, cb),
 		(in LspInRequest x) =>
 			LspOutAction(
-				arrLiteral!LspOutMessage(alloc, [
+				newArray!LspOutMessage(alloc, [
 					LspOutMessage(LspOutResponse(x.id, handleLspRequest(perf, alloc, server, x.params)))]),
 				none!ExitCode));
 
@@ -215,7 +215,7 @@ private LspOutAction handleFileChanged(
 			Uri[] unknown = allUnknownUris(alloc, server);
 			foreach (Uri uri; unknown)
 				setFile(perf, server, uri, ReadFileDiag.loading);
-			return LspOutAction(arrLiteral!LspOutMessage(alloc, [notification(UnknownUris(unknown))]));
+			return LspOutAction(newArray!LspOutMessage(alloc, [notification(UnknownUris(unknown))]));
 		case FilesState.hasLoading:
 			return LspOutAction([]);
 		case FilesState.allLoaded:
@@ -711,7 +711,7 @@ LspDiagnosticSeverity toLspDiagnosticSeverity(DiagnosticSeverity a) {
 }
 
 LspOutAction initializedAction(ref Alloc alloc) =>
-	LspOutAction(arrLiteral!LspOutMessage(alloc, [
+	LspOutAction(newArray!LspOutMessage(alloc, [
 		register("textDocument/definition"),
 		register("textDocument/hover"),
 		register("textDocument/rename"),

@@ -67,7 +67,7 @@ import model.model : symOfVarKind;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
-import util.col.arrUtil : arrLiteral;
+import util.col.arrUtil : newArray;
 import util.col.sortUtil : eachSorted;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonList, jsonObject;
@@ -126,7 +126,7 @@ Json jsonOfDecodedTokens(ref Alloc alloc, in SemanticTokens a) {
 			field!"type"(stringOfTokenType(type)),
 			field!"modifiers"(jsonList(modifiers == noTokenModifiers
 				? []
-				: arrLiteral(alloc, [Json(stringOfTokenModifier(modifiers))])))]));
+				: newArray(alloc, [Json(stringOfTokenModifier(modifiers))])))]));
 	});
 	return jsonList(finishArr(alloc, res));
 }

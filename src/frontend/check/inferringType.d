@@ -20,7 +20,7 @@ import model.model :
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : MutSmallArray, only, only2, small;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderIsEmpty, arrBuilderTempAsArr, finishArr;
-import util.col.arrUtil : arrLiteral, contains, exists, indexOf, map, zip, zipEvery;
+import util.col.arrUtil : contains, exists, indexOf, map, newArray, zip, zipEvery;
 import util.col.enumMap : enumMapFindKey;
 import util.col.mutMaxArr : push, tempAsArr;
 import util.opt : has, force, MutOpt, none, noneMut, Opt, optOrDefault, some, someInout, someMut;
@@ -328,7 +328,7 @@ ExpectedForDiag getExpectedForDiag(ref ExprCtx ctx, ref const Expected expected)
 		(Expected.Infer) =>
 			ExpectedForDiag(ExpectedForDiag.Infer()),
 		(Expected.LocalType x) =>
-			ExpectedForDiag(ExpectedForDiag.Choices(arrLiteral!Type(ctx.alloc, [x.type]), ctx.typeContainer)),
+			ExpectedForDiag(ExpectedForDiag.Choices(newArray!Type(ctx.alloc, [x.type]), ctx.typeContainer)),
 		(const TypeAndContext[] choices) =>
 			ExpectedForDiag(ExpectedForDiag.Choices(
 				map(ctx.alloc, choices, (ref const TypeAndContext x) => applyInferred(ctx.instantiateCtx, x)),

@@ -147,7 +147,7 @@ import model.model :
 	VariableRef;
 import util.alloc.alloc : Alloc, allocateUninitialized;
 import util.col.arr : arrayOfSingle, empty, only, PtrAndSmallNumber;
-import util.col.arrUtil : append, arrLiteral, arrsCorrespond, contains, exists, map, mapPointers, mapZipPointers3;
+import util.col.arrUtil : append, arraysCorrespond, contains, exists, map, mapPointers, mapZipPointers3, newArray;
 import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
 import util.col.mutMaxArr : initializeMutMaxArr, mutMaxArrSize, push, tempAsArr;
 import util.col.str : copyToSafeCStr;
@@ -478,7 +478,7 @@ Expr checkInterpolated(
 			CallAst.Style.infix,
 			NameAndRange(source.range.start, sym!"to"),
 			// TODO: NO ALLOC
-			arrLiteral!ExprAst(ctx.alloc, [ExprAst(source.range, ExprAstKind(call))]))
+			newArray!ExprAst(ctx.alloc, [ExprAst(source.range, ExprAstKind(call))]))
 		: call;
 	return checkCall(ctx, locals, source, callAndConvert, expected);
 }
@@ -498,7 +498,7 @@ CallAst checkInterpolatedRecur(ref ExprCtx ctx, in InterpolatedPart[] parts, Pos
 				CallAst.Style.infix,
 				NameAndRange(pos, sym!"to"),
 				// TODO: NO ALLOC
-				arrLiteral!ExprAst(ctx.alloc, [e])))));
+				newArray!ExprAst(ctx.alloc, [e])))));
 	Pos newPos = parts[0].matchIn!Pos(
 		(in string x) =>
 			// TODO: this length may be wrong in the presence of escapes
@@ -513,7 +513,7 @@ CallAst checkInterpolatedRecur(ref ExprCtx ctx, in InterpolatedPart[] parts, Pos
 				CallAst.Style.infix,
 				NameAndRange(pos, sym!"~~"),
 				// TODO: NO ALLOC
-				arrLiteral!ExprAst(ctx.alloc, [force(left), right]))))
+				newArray!ExprAst(ctx.alloc, [force(left), right]))))
 		: right;
 	scope InterpolatedPart[] rest = parts[1 .. $];
 	return empty(rest)
@@ -1300,7 +1300,7 @@ Expr checkMatchEnum(
 	ref ExprAndType matched,
 	in StructBody.Enum.Member[] members,
 ) {
-	bool goodCases = arrsCorrespond!(StructBody.Enum.Member, MatchAst.CaseAst)(
+	bool goodCases = arraysCorrespond!(StructBody.Enum.Member, MatchAst.CaseAst)(
 		members,
 		ast.cases,
 		(ref StructBody.Enum.Member member, ref MatchAst.CaseAst caseAst) =>
@@ -1331,7 +1331,7 @@ Expr checkMatchUnion(
 	in UnionMember[] declaredMembers,
 	in Type[] instantiatedTypes,
 ) {
-	bool goodCases = arrsCorrespond!(UnionMember, MatchAst.CaseAst)(
+	bool goodCases = arraysCorrespond!(UnionMember, MatchAst.CaseAst)(
 		declaredMembers,
 		ast.cases,
 		(ref UnionMember member, ref MatchAst.CaseAst caseAst) =>

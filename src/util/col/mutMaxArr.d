@@ -3,7 +3,7 @@ module util.col.mutMaxArr;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.arrUtil : arrLiteral, exists;
+import util.col.arrUtil : newArray, exists;
 import util.memory : overwriteMemory;
 import util.util : castNonScope;
 
@@ -59,7 +59,7 @@ void copyToFrom(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a, ref const MutMa
 }
 
 immutable(T[]) toArray(size_t maxSize, T)(ref Alloc alloc, scope ref MutMaxArr!(maxSize, T) a) =>
-	arrLiteral!T(alloc, tempAsArr(a));
+	newArray!T(alloc, tempAsArr(a));
 
 bool isEmpty(size_t maxSize, T)(in MutMaxArr!(maxSize, T) a) =>
 	a.size_ == 0;

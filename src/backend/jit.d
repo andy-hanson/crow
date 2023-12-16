@@ -123,7 +123,7 @@ import model.lowModel :
 import model.typeLayout : typeSizeBytes;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
-import util.col.arrUtil : fillArray, indexOfPointer, makeArray, map, mapToMut, mapWithIndex, zip;
+import util.col.arrUtil : fillArray, indexOfPointer, makeArray, map, mapWithIndex, zip;
 import util.col.map : mustGet;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapZip, mapFullIndexMap_mut;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
@@ -432,7 +432,7 @@ GlobalsForConstants generateGlobalsForConstants(
 				});
 		});
 
-	gcc_jit_lvalue*[][] ptrGlobals = mapToMut!(gcc_jit_lvalue*[], PointerTypeAndConstantsLow)(
+	gcc_jit_lvalue*[][] ptrGlobals = map!(gcc_jit_lvalue*[], PointerTypeAndConstantsLow)(
 		alloc, program.allConstants.pointers, (ref PointerTypeAndConstantsLow tc) {
 			immutable gcc_jit_type* gccPointeeType = getGccType(types, tc.pointeeType);
 			return mapWithIndex!(gcc_jit_lvalue*, Constant)(
@@ -946,7 +946,7 @@ void emitToVoid(ref ExprCtx ctx, ref Locals locals, in LowExpr a) {
 
 	// We need to be sure to generate all the new parameter values before overwriting any,
 	gcc_jit_lvalue*[] updateParamLocals =
-		mapToMut!(gcc_jit_lvalue*, UpdateParam)(ctx.alloc, a.updateParams, (ref UpdateParam updateParam) {
+		map!(gcc_jit_lvalue*, UpdateParam)(ctx.alloc, a.updateParams, (ref UpdateParam updateParam) {
 			gcc_jit_lvalue* local =
 				gcc_jit_function_new_local(ctx.curFun, null, getGccType(ctx.types, updateParam.newValue.type), "temp");
 			emitToLValue(ctx, locals, castNonScope(local), updateParam.newValue);

@@ -5,7 +5,7 @@ module util.col.str;
 import util.alloc.alloc : Alloc;
 import util.comparison : Comparison;
 import util.col.arr : empty;
-import util.col.arrUtil : append, arrEqual, map;
+import util.col.arrUtil : append, arraysEqual, copyArray;
 import util.hash : HashCode, hashString;
 
 alias CStr = immutable char*;
@@ -42,7 +42,7 @@ private @trusted CStr cstrEnd(CStr c) {
 		: SafeCStr(cast(immutable) append(alloc, s, '\0').ptr);
 
 bool strEq(string a, string b) =>
-	arrEqual(a, b);
+	arraysEqual(a, b);
 
 @trusted SafeCStr safeCStr(immutable char* content)() =>
 	SafeCStr(content);
@@ -57,7 +57,7 @@ bool safeCStrIsEmpty(SafeCStr a) =>
 	a.ptr[0 .. (cstrEnd(a.ptr) - a.ptr)];
 
 string copyStr(ref Alloc alloc, in string a) =>
-	map!(char, immutable char)(alloc, a, (ref immutable char x) => x);
+	copyArray(alloc, a);
 
 bool safeCStrEq(SafeCStr a, string b) =>
 	strEq(strOfSafeCStr(a), b);

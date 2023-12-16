@@ -3,7 +3,7 @@ module util.col.mutArr;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateElements, freeElements;
-import util.memory : copyToFrom, initMemory_mut, overwriteMemory;
+import util.memory : copyToFrom, initMemory, overwriteMemory;
 
 struct MutArr(T) {
 	private:
@@ -46,7 +46,7 @@ immutable(bool) mutArrIsEmpty(T)(ref const MutArr!T a) =>
 		a.inner = newInner;
 	}
 
-	initMemory_mut!T(&a.inner[a.size_], value);
+	initMemory!T(&a.inner[a.size_], value);
 	a.size_++;
 	assert(a.size_ <= a.inner.length);
 }

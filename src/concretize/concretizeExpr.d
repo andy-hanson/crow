@@ -98,7 +98,7 @@ import model.model :
 	VariableRef;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only, PtrAndSmallNumber, sizeEq, small, SmallArray;
-import util.col.arrUtil : arrLiteral, map, mapZip;
+import util.col.arrUtil : map, mapZip, newArray;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : getOrAdd;
 import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2MustGet0, stackMap2MustGet1, withStackMap2;
@@ -303,10 +303,10 @@ bool searchSpecSigIndexRecur(ref size_t index, in SpecInst* inst, in SpecInst* s
 
 ConcreteFun* getConcreteFunFromFunInst(ref ConcretizeExprCtx ctx, FunInst* funInst) {
 	SmallArray!ConcreteType typeArgs = typesToConcreteTypes(ctx, funInst.typeArgs);
-	immutable ConcreteFun*[] specImpls = map!(ConcreteFun*, Called)(ctx.alloc, funInst.specImpls, (ref Called x) =>
-		getConcreteFunFromCalled(ctx, x));
-	return getOrAddConcreteFunAndFillBody(
-		ctx.concretizeCtx, ConcreteFunKey(funInst.decl, typeArgs, small!(immutable ConcreteFun*)(specImpls)));
+	SmallArray!(immutable ConcreteFun*) specImpls = small!(immutable ConcreteFun*)(map!(immutable ConcreteFun*, Called)(
+		ctx.alloc, funInst.specImpls, (ref Called x) =>
+			getConcreteFunFromCalled(ctx, x)));
+	return getOrAddConcreteFunAndFillBody(ctx.concretizeCtx, ConcreteFunKey(funInst.decl, typeArgs, specImpls));
 }
 
 ConcreteExpr concretizeClosureGet(
@@ -485,7 +485,7 @@ ConcreteExpr concretizeLambda(
 		ConcreteType funType = actionField.type;
 		ConcreteExpr exclusion = getCurExclusion(ctx, exclusionField.type, range);
 		return ConcreteExpr(type, range, ConcreteExprKind(
-			ConcreteExprKind.CreateRecord(arrLiteral!ConcreteExpr(ctx.alloc, [
+			ConcreteExprKind.CreateRecord(newArray!ConcreteExpr(ctx.alloc, [
 				exclusion,
 				ConcreteExpr(funType, range, lambda(mustBeByVal(funType)))]))));
 	} else
@@ -696,7 +696,7 @@ ConcreteExpr concretizeIfOption(
 		return ConcreteExpr(type, range, ConcreteExprKind(
 			allocate(ctx.alloc, ConcreteExprKind.MatchUnion(
 				option,
-				arrLiteral!(ConcreteExprKind.MatchUnion.Case)(ctx.alloc, [noneCase, someCase])))));
+				newArray!(ConcreteExprKind.MatchUnion.Case)(ctx.alloc, [noneCase, someCase])))));
 	}
 }
 
@@ -1012,10 +1012,10 @@ ConstantsOrExprs constantsOrExprsArr(
 ) =>
 	args.match!ConstantsOrExprs(
 		(Constant[] constants) =>
-			ConstantsOrExprs(arrLiteral!Constant(ctx.alloc, [
+			ConstantsOrExprs(newArray!Constant(ctx.alloc, [
 				getConstantArr(ctx.alloc, ctx.allConstants, mustBeByVal(arrayType), constants)])),
 		(ConcreteExpr[] exprs) =>
-			ConstantsOrExprs(arrLiteral!ConcreteExpr(ctx.alloc, [
+			ConstantsOrExprs(newArray!ConcreteExpr(ctx.alloc, [
 				ConcreteExpr(arrayType, range, ConcreteExprKind(
 					allocate(ctx.alloc, ConcreteExprKind.CreateArr(exprs))))])));
 

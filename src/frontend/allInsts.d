@@ -20,7 +20,7 @@ import model.model :
 	TypeArgs;
 import util.alloc.alloc : Alloc, free;
 import util.col.arr : ptrsRange, SmallArray;
-import util.col.arrUtil : arrEqual, copyArr;
+import util.col.arrUtil : arraysEqual, copyArray;
 import util.col.hashTable :
 	getOrAdd, getOrAddAndDidAdd, hashTableToArray, mayDeleteValue, MutHashTable, size, ValueAndDidAdd;
 import util.col.mutMap : getOrAdd, getOrAddAndDidAdd;
@@ -63,7 +63,7 @@ ValueAndDidAdd!(StructInst*) getOrAddStructInst(
 ) =>
 	getOrAddAndDidAdd!(StructInst*, StructArgs, getStructArgs)(a.alloc, a.structInsts, StructArgs(decl, typeArgs), () {
 		StructInst* res = allocate(a.alloc, StructInst(
-			decl, copyArr!Type(a.alloc, typeArgs), cbLinkageRange(), cbPurityRange()));
+			decl, copyArray!Type(a.alloc, typeArgs), cbLinkageRange(), cbPurityRange()));
 		addEachReferenced(a, res);
 		return res;
 	});
@@ -75,7 +75,7 @@ ValueAndDidAdd!(SpecInst*) getOrAddSpecInst(
 	in SmallArray!ReturnAndParamTypes delegate() @safe @nogc pure nothrow cbInstantiatedSigs,
 ) =>
 	getOrAddAndDidAdd(a.alloc, a.specInsts, SpecArgs(decl, typeArgs), () {
-		SpecInst* res = allocate(a.alloc, SpecInst(decl, copyArr!Type(a.alloc, typeArgs), cbInstantiatedSigs()));
+		SpecInst* res = allocate(a.alloc, SpecInst(decl, copyArray!Type(a.alloc, typeArgs), cbInstantiatedSigs()));
 		addEachReferenced(a, res);
 		return res;
 	});
@@ -89,7 +89,7 @@ FunInst* getOrAddFunInst(
 ) =>
 	getOrAdd(a.alloc, a.funInsts, FunArgs(decl, typeArgs, specImpls), () {
 		FunInst* res = allocate(a.alloc, FunInst(
-			decl, copyArr!Type(a.alloc, typeArgs), copyArr!Called(a.alloc, specImpls), cbReturnAndParamTypes()));
+			decl, copyArray!Type(a.alloc, typeArgs), copyArray!Called(a.alloc, specImpls), cbReturnAndParamTypes()));
 		addEachReferenced(a, res);
 		return res;
 	});
@@ -261,7 +261,7 @@ immutable struct StructArgs {
 	StructDecl* decl;
 	TypeArgs typeArgs;
 	bool opEquals(in StructArgs b) scope =>
-		decl == b.decl && arrEqual!Type(typeArgs, b.typeArgs);
+		decl == b.decl && arraysEqual!Type(typeArgs, b.typeArgs);
 	HashCode hash() scope =>
 		hashPointerAndTaggedPointers!(StructDecl, Type)(decl, typeArgs);
 }
@@ -273,7 +273,7 @@ immutable struct SpecArgs {
 	SpecDecl* decl;
 	TypeArgs typeArgs;
 	bool opEquals(in SpecArgs b) scope =>
-		decl == b.decl && arrEqual!Type(typeArgs, b.typeArgs);
+		decl == b.decl && arraysEqual!Type(typeArgs, b.typeArgs);
 	HashCode hash() scope =>
 		hashPointerAndTaggedPointers!(SpecDecl, Type)(decl, typeArgs);
 }
@@ -286,7 +286,7 @@ immutable struct FunArgs {
 	TypeArgs typeArgs;
 	SpecImpls specImpls;
 	bool opEquals(in FunArgs b) scope =>
-		decl == b.decl && arrEqual!Type(typeArgs, b.typeArgs) && arrEqual!Called(specImpls, b.specImpls);
+		decl == b.decl && arraysEqual!Type(typeArgs, b.typeArgs) && arraysEqual!Called(specImpls, b.specImpls);
 	HashCode hash() scope =>
 		hashPointerAndTaggedPointersX2!(FunDecl, Type, Called)(decl, typeArgs, specImpls);
 }

@@ -4,7 +4,7 @@ module util.diff;
 
 import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
 import util.col.arr : only;
-import util.col.arrUtil : arrMax, arrMaxIndex, contains;
+import util.col.arrUtil : contains, indexOfMax, max;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.comparison : compareSizeT;
 import util.sym : AllSymbols, Sym, sym, symSize, writeSym, writeSymAndGetSize;
@@ -92,9 +92,9 @@ size_t findBestSplitIndex(
 	size_t[] rightSubsequenceLengths = scratch[subseqsSize .. subseqsSize * 2];
 	getMaximumCommonSubsequenceLengths!Sym(a[0 .. i], b, leftSubsequenceLengths, false);
 	getMaximumCommonSubsequenceLengths!Sym(a[i + 1 .. $], b, rightSubsequenceLengths, true);
-	return arrMaxIndex!(size_t, size_t)(
+	return indexOfMax!(size_t, size_t)(
 		leftSubsequenceLengths,
-		(in size_t leftLength, size_t j) =>
+		(size_t j, in size_t leftLength) =>
 			// Note: rightSubsequenceLengths was computed in reverse, so 'j' is from the right here.
 			leftLength + rightSubsequenceLengths[j],
 		(in size_t x, in size_t y) => compareSizeT(x, y));
@@ -140,7 +140,7 @@ void printDiff(
 	Sym expected = sym!"expected";
 	// + 2 for a margin
 	size_t columnSize = 2 + max(
-		arrMax!(size_t, Sym)(0, a, (in Sym s) => symSize(allSymbols, s)),
+		max!(size_t, Sym)(0, a, (in Sym s) => symSize(allSymbols, s)),
 		symSize(allSymbols, expected));
 
 	writeNewline(writer, 1);

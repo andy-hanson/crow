@@ -19,7 +19,7 @@ import model.model :
 	StructInst,
 	VarDecl;
 import util.col.arr : only, PtrAndSmallNumber, SmallArray;
-import util.col.arrUtil : arrEqual, contains;
+import util.col.arrUtil : arraysEqual, contains;
 import util.col.map : Map;
 import util.col.str : SafeCStr;
 import util.hash : HashCode, Hasher, hashPtr;
@@ -411,8 +411,8 @@ immutable struct ConcreteFunKey {
 
 	bool opEquals(scope ConcreteFunKey b) scope =>
 		decl == b.decl &&
-		arrEqual!ConcreteType(typeArgs, b.typeArgs) &&
-		arrEqual!(ConcreteFun*)(specImpls, b.specImpls);
+		arraysEqual!ConcreteType(typeArgs, b.typeArgs) &&
+		arraysEqual!(ConcreteFun*)(specImpls, b.specImpls);
 
 	HashCode hash() scope {
 		Hasher hasher;

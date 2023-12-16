@@ -29,7 +29,7 @@ import model.model :
 import test.testUtil : Test;
 import util.alloc.alloc : Alloc, withTempAlloc;
 import util.col.arr : small;
-import util.col.arrUtil : arrLiteral, contains, indexOf;
+import util.col.arrUtil : contains, indexOf, newArray;
 import util.col.hashTable : ValueAndDidAdd;
 import util.col.mutMultiMap : countKeys, eachValueForKey, MutMultiMap;
 import util.memory : allocate;
@@ -186,7 +186,7 @@ struct ExpectedReferences {
 	AnyInst[] referencers;
 }
 ExpectedReferences referenced(ref Alloc alloc, return scope AnyDeclOrInst a, in AnyInst[] b) =>
-	ExpectedReferences(AnyDeclOrInst(a), arrLiteral(alloc, b));
+	ExpectedReferences(AnyDeclOrInst(a), newArray(alloc, b));
 
 ValueAndDidAdd!(StructInst*) getStruct(ref AllInsts a, StructDecl* decl, in Type[] typeArgs) =>
 	getOrAddStructInst(
@@ -205,7 +205,7 @@ T mustNotDidAdd(T)(ValueAndDidAdd!T a) {
 }
 
 Module makeModule(ref Alloc alloc, Uri uri, in StructDecl[] structs) =>
-	Module(uri, structs: arrLiteral(alloc, structs));
+	Module(uri, structs: newArray(alloc, structs));
 
 StructDecl dummyStruct(ref Alloc alloc, Uri uri, Sym name, size_t nTypeParams) =>
 	StructDecl(

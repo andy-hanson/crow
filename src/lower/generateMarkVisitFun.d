@@ -43,7 +43,7 @@ import lower.lowExprHelpers :
 	genWrapMulNat64,
 	voidType;
 import util.alloc.alloc : Alloc;
-import util.col.arrUtil : arrLiteral, mapWithIndex;
+import util.col.arrUtil : mapWithIndex, newArray;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : UriAndRange;
@@ -60,7 +60,7 @@ LowFun generateMarkVisitGcPtr(
 	LowType pointerType = LowType(pointerTypePtrGc);
 	LowType pointeeType = *pointerTypePtrGc.pointee;
 	UriAndRange range = UriAndRange.empty;
-	LowLocal[] params = arrLiteral!LowLocal(alloc, [
+	LowLocal[] params = newArray!LowLocal(alloc, [
 		genLocalByValue(alloc, sym!"mark-ctx", 0, markCtxType),
 		genLocalByValue(alloc, sym!"value", 1, pointerType)]);
 	LowExpr markCtx = genLocalGet(range, &params[0]);
@@ -72,7 +72,7 @@ LowFun generateMarkVisitGcPtr(
 		range,
 		markFun,
 		boolType,
-		arrLiteral!LowExpr(alloc, [markCtx, valueAsAnyPtrConst, sizeExpr]));
+		newArray!LowExpr(alloc, [markCtx, valueAsAnyPtrConst, sizeExpr]));
 	LowExpr expr = () {
 		if (has(visitPointee)) {
 			LowExpr valueDeref = genDerefGcPtr(alloc, range, value);
@@ -81,7 +81,7 @@ LowFun generateMarkVisitGcPtr(
 				range,
 				force(visitPointee),
 				voidType,
-				arrLiteral!LowExpr(alloc, [markCtx, valueDeref]));
+				newArray!LowExpr(alloc, [markCtx, valueDeref]));
 			return genIf(alloc, range, mark, recur, genVoid(range));
 		} else
 			return genDrop(alloc, range, mark);
@@ -90,7 +90,7 @@ LowFun generateMarkVisitGcPtr(
 	return LowFun(
 		LowFunSource(allocate(alloc, LowFunSource.Generated(
 			sym!"mark-visit",
-			arrLiteral!LowType(alloc, [pointerType])))),
+			newArray!LowType(alloc, [pointerType])))),
 		voidType,
 		params,
 		LowFunBody(body_));
@@ -104,7 +104,7 @@ LowFun generateMarkVisitNonArr(
 	LowType paramType,
 ) {
 	UriAndRange range = UriAndRange.empty;
-	LowLocal[] params = arrLiteral!LowLocal(alloc, [
+	LowLocal[] params = newArray!LowLocal(alloc, [
 		genLocalByValue(alloc, sym!"mark-ctx", 0, markCtxType),
 		genLocalByValue(alloc, sym!"value", 1, paramType)]);
 	LowExpr markCtx = genLocalGet(range, &params[0]);
@@ -117,7 +117,7 @@ LowFun generateMarkVisitNonArr(
 			alloc, range, markVisitFuns, allTypes.allUnions[paramType.as!(LowType.Union)].members, markCtx, value)
 		: unreachable!LowFunExprBody;
 	return LowFun(
-		LowFunSource(allocate(alloc, LowFunSource.Generated(sym!"mark-visit", arrLiteral!LowType(alloc, [paramType])))),
+		LowFunSource(allocate(alloc, LowFunSource.Generated(sym!"mark-visit", newArray!LowType(alloc, [paramType])))),
 		voidType,
 		params,
 		LowFunBody(body_));
@@ -147,7 +147,7 @@ LowFun generateMarkVisitArr(
 ) {
 	LowType elementType = *elementPointerType.pointee;
 	UriAndRange range = UriAndRange.empty;
-	LowLocal[] params = arrLiteral!LowLocal(alloc, [
+	LowLocal[] params = newArray!LowLocal(alloc, [
 		genLocalByValue(alloc, sym!"mark-ctx", 0, markCtxType),
 		genLocalByValue(alloc, sym!"a", 1, LowType(arrType))]);
 	LowExpr getMarkCtx = genLocalGet(range, &params[0]);
@@ -160,7 +160,7 @@ LowFun generateMarkVisitArr(
 		range,
 		markFun,
 		boolType,
-		arrLiteral!LowExpr(alloc, [
+		newArray!LowExpr(alloc, [
 			getMarkCtx,
 			genAsAnyPtrConst(alloc, range, getData),
 			genWrapMulNat64(alloc, range, getSize, genSizeOf(range, elementType))]));
@@ -178,7 +178,7 @@ LowFun generateMarkVisitArr(
 					range,
 					force(markVisitElementFun),
 					voidType,
-					arrLiteral!LowExpr(alloc, [getMarkCtx, genDerefRawPtr(alloc, range, getCur)]));
+					newArray!LowExpr(alloc, [getMarkCtx, genDerefRawPtr(alloc, range, getCur)]));
 				// cur := cur + 1
 				LowExpr incrCur = genLocalSet(alloc, range, cur,
 					genIncrPointer(alloc, range, elementPointerType, getCur));
@@ -199,7 +199,7 @@ LowFun generateMarkVisitArr(
 			return genDrop(alloc, range, callMark);
 	}();
 	return LowFun(
-		LowFunSource(allocate(alloc, LowFunSource.Generated(sym!"mark-arr", arrLiteral!LowType(alloc, [elementType])))),
+		LowFunSource(allocate(alloc, LowFunSource.Generated(sym!"mark-arr", newArray!LowType(alloc, [elementType])))),
 		voidType,
 		params,
 		LowFunBody(LowFunExprBody(false, expr)));
@@ -229,7 +229,7 @@ LowFunExprBody visitRecordBody(
 						range,
 						force(fun),
 						voidType,
-						arrLiteral!LowExpr(alloc, [markCtx, fieldGet]));
+						newArray!LowExpr(alloc, [markCtx, fieldGet]));
 					return some(has(accum) ? genSeq(alloc, range, force(accum), call) : call);
 				} else
 					return accum;
@@ -264,7 +264,7 @@ LowFunExprBody visitUnionBody(
 					range,
 					force(visitMember),
 					voidType,
-					arrLiteral!LowExpr(alloc, [markCtx, getLocal]));
+					newArray!LowExpr(alloc, [markCtx, getLocal]));
 				return LowExprKind.MatchUnion.Case(some(local), then);
 			} else
 				return LowExprKind.MatchUnion.Case(none!(LowLocal*), genVoid(range));

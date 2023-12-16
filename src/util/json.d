@@ -4,7 +4,7 @@ module util.json;
 
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
-import util.col.arrUtil : arrEqual, concatenateIn, copyArr, every, exists, find, map;
+import util.col.arrUtil : arraysEqual, concatenateIn, copyArray, every, exists, find, map;
 import util.col.fullIndexMap : FullIndexMap;
 import util.col.map : KeyValuePair;
 import util.col.str : copyStr, SafeCStr, safeCStrIsEmpty, strEq, strOfSafeCStr;
@@ -41,9 +41,9 @@ immutable struct Json {
 			(in Sym x) =>
 				b.isA!Sym && x == b.as!Sym,
 			(in Json[] x) =>
-				b.isA!(Json[]) && arrEqual!Json(x, b.as!(Json[])),
+				b.isA!(Json[]) && arraysEqual!Json(x, b.as!(Json[])),
 			(in Json.Object oa) =>
-				b.isA!Object && arrEqual(oa, b.as!Object),
+				b.isA!Object && arraysEqual(oa, b.as!Object),
 			(in Json.StringObject ob) =>
 				todo!bool(""));
 }
@@ -60,7 +60,7 @@ bool hasKey(string key)(in Json a) =>
 Json jsonObject(return scope Json.ObjectField[] fields) =>
 	Json(fields);
 Json jsonObject(ref Alloc alloc, in Json.ObjectField[] fields) =>
-	jsonObject(copyArr(alloc, fields));
+	jsonObject(copyArray(alloc, fields));
 
 // TODO: should be possible to concatenate in the caller (assuming array sizes are compile-time constants).
 // But a D bug prevents this: https://issues.dlang.org/show_bug.cgi?id=1654

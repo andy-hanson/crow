@@ -16,7 +16,7 @@ import model.lowModel :
 	LowLocal,
 	LowType;
 import util.alloc.alloc : Alloc;
-import util.col.arrUtil : arrLiteral, mapZip;
+import util.col.arrUtil : mapZip, newArray;
 import util.col.map : mustGet;
 import util.memory : allocate;
 import util.opt : some;
@@ -30,7 +30,7 @@ LowFun generateCallFunOrAct(
 	LowFunCause.CallFunOrAct a,
 ) {
 	UriAndRange range = UriAndRange.empty;
-	LowLocal[] params = arrLiteral(alloc, [
+	LowLocal[] params = newArray(alloc, [
 		genLocalByValue(alloc, sym!"fun", 0, a.funType),
 		genLocalByValue(alloc, sym!"arg", 1, a.funParamType),
 	]);
@@ -48,7 +48,7 @@ LowFun generateCallFunOrAct(
 			LowExpr then = LowExpr(a.returnType, range, LowExprKind(
 				LowExprKind.Call(
 					mustGet(concreteFunToLowFunIndex, impl.impl),
-					arrLiteral(alloc, [genLocalGet(range, closureLocal), argParamGet]))));
+					newArray(alloc, [genLocalGet(range, closureLocal), argParamGet]))));
 			return LowExprKind.MatchUnion.Case(some(closureLocal), then);
 		});
 
@@ -56,7 +56,7 @@ LowFun generateCallFunOrAct(
 		allocate(alloc, LowExprKind.MatchUnion(funParamGet, cases))));
 	return LowFun(
 		LowFunSource(
-			allocate(alloc, LowFunSource.Generated(sym!"call", arrLiteral(alloc, [a.returnType, a.funParamType])))),
+			allocate(alloc, LowFunSource.Generated(sym!"call", newArray(alloc, [a.returnType, a.funParamType])))),
 		a.returnType,
 		params,
 		LowFunBody(LowFunExprBody(false, expr)));

@@ -9,7 +9,7 @@ import model.ast : LiteralNatAst;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : copyArr, findIndex, foldOrStop, mapOrNone;
+import util.col.arrUtil : copyArray, findIndex, foldOrStop, mapOrNone;
 import util.col.str : SafeCStr, safeCStr, safeCStrEq, strOfSafeCStr;
 import util.conv : isUint, safeToUint;
 import util.lineAndColumnGetter : LineAndColumn;
@@ -141,7 +141,7 @@ CommandKind parseCommandKind(
 			return parseRunCommand(alloc, allUris, cwd, args);
 		case "test":
 			return !args.help && empty(args.parts) && empty(args.afterDashDash)
-				? CommandKind(CommandKind.Test(copyArr(alloc, args.beforeFirstPart)))
+				? CommandKind(CommandKind.Test(copyArray(alloc, args.beforeFirstPart)))
 				: todo!CommandKind("help for 'test'");
 		case "version":
 			return isEmpty(args)

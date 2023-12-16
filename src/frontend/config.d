@@ -6,7 +6,7 @@ import model.diag : Diagnostic;
 import model.model : Config, ConfigExternUris, ConfigImportUris;
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : ArrBuilder, finishArr;
-import util.col.arrUtil : arrLiteral, fold;
+import util.col.arrUtil : fold, newArray;
 import util.col.map : Map;
 import util.col.mapBuilder : finishMap, MapBuilder, tryAddToMap;
 import util.col.str : SafeCStr;
@@ -31,7 +31,7 @@ Config parseConfig(
 			alloc, allSymbols, allUris, parentOrEmpty(allUris, configUri), diagsBuilder, force(json).as!(Json.Object));
 		return Config(some(configUri), finishArr(alloc, diagsBuilder), content.include, content.extern_);
 	} else
-		return Config(some(configUri), arrLiteral(alloc, [todo!Diagnostic("diag -- bad JSON")]));
+		return Config(some(configUri), newArray(alloc, [todo!Diagnostic("diag -- bad JSON")]));
 }
 
 private:

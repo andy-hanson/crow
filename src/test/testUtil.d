@@ -15,7 +15,7 @@ import model.diag : ReadFileDiag;
 import model.model : Program;
 import util.alloc.alloc : Alloc, allocateElements, AllocKind, MetaAlloc, newAlloc, withTempAlloc, word;
 import util.col.arr : empty;
-import util.col.arrUtil : arrEqual, arrsCorrespond, indexOf, makeArray, map;
+import util.col.arrUtil : arraysEqual, arraysCorrespond, indexOf, makeArray, map;
 import util.col.str : SafeCStr, safeCStrEq, strOfSafeCStr;
 import util.opt : force, has, none, Opt;
 import util.perf : Perf;
@@ -72,7 +72,7 @@ private void withShowDiagCtxForTestImpl(alias cb)(
 
 @trusted void expectDataStack(ref Test test, in Stacks stacks, in immutable ulong[] expected) {
 	scope immutable ulong[] stack = dataTempAsArr(stacks);
-	if (!arrEqual(stack, expected)) {
+	if (!arraysEqual(stack, expected)) {
 		debugLogWithWriter((ref Writer writer) {
 			writer ~= "expected:\n";
 			showDataArr(writer, expected);
@@ -91,7 +91,7 @@ private void withShowDiagCtxForTestImpl(alias cb)(
 ) {
 	// Ignore first entry (which is opStopInterpretation)
 	scope immutable(Operation*)[] stack = reverse(test.alloc, returnTempAsArrReverse(stacks)[0 .. $ - 1]);
-	bool eq = arrsCorrespond!(Operation*, ByteCodeIndex)(
+	bool eq = arraysCorrespond!(Operation*, ByteCodeIndex)(
 		stack,
 		expected,
 		(ref const Operation* a, ref ByteCodeIndex b) @trusted =>

@@ -12,7 +12,7 @@ import model.concreteModel :
 import model.constant : Constant, constantZero;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
-import util.col.arrUtil : arrEqual, arrLiteral, fillArray, findIndex;
+import util.col.arrUtil : arraysEqual, fillArray, findIndex, newArray;
 import util.col.mutArr : moveToArr, MutArr, mutArrSize, push, tempAsArr;
 import util.col.mutMap : getOrAdd, MutMap, size, values, valuesArray;
 import util.col.str : SafeCStr;
@@ -94,7 +94,7 @@ Constant getConstantArr(
 		size_t index = findOrPush!(immutable Constant[])(
 			alloc,
 			d.constants,
-			(in Constant[] it) => arrEqual!Constant(it, elements),
+			(in Constant[] it) => arraysEqual!Constant(it, elements),
 			() => elements);
 		return Constant(Constant.ArrConstant(d.typeIndex, index));
 	}
@@ -132,7 +132,7 @@ Constant getConstantSym(
 	Sym value,
 ) =>
 	getOrAdd!(Sym, Constant)(alloc, allConstants.syms, value, () =>
-		Constant(Constant.Record(arrLiteral!Constant(alloc, [
+		Constant(Constant.Record(newArray!Constant(alloc, [
 			getConstantCStrForSym(alloc, allConstants, allSymbols, value)]))));
 
 private:

@@ -3,7 +3,7 @@ module model.constant;
 @safe @nogc pure nothrow:
 
 import model.concreteModel : ConcreteFun;
-import util.col.arrUtil : arrEqual;
+import util.col.arrUtil : arraysEqual;
 import util.union_ : Union;
 
 // WARN: The type of a constant is implicit (given by context).
@@ -69,7 +69,7 @@ immutable struct Constant {
 			(in Constant.Pointer x) =>
 				b.as!(Constant.Pointer).index == x.index,
 			(in Constant.Record ra) =>
-				arrEqual!Constant(ra.args, b.as!(Constant.Record).args),
+				arraysEqual!Constant(ra.args, b.as!(Constant.Record).args),
 			(in Constant.Union ua) =>
 				ua.memberIndex == b.as!(Constant.Union*).memberIndex && ua.arg == b.as!(Constant.Union*).arg,
 			(in Constant.Zero) =>

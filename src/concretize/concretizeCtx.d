@@ -70,7 +70,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptySmallArray, only, only2, small, SmallArray;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
-import util.col.arrUtil : arrEqual, arrLiteral, arrMax, every, everyWithIndex, exists, fold, map, mapWithIndex, mapZip;
+import util.col.arrUtil : arraysEqual, every, everyWithIndex, exists, fold, map, mapWithIndex, mapZip, max, newArray;
 import util.col.hashTable : getOrAdd, getOrAddAndDidAdd, moveToArray, MutHashTable;
 import util.col.map : Map, mustGet, values;
 import util.col.mutArr : filterUnordered, MutArr, mutArrIsEmpty, push;
@@ -102,7 +102,7 @@ private immutable struct ConcreteStructKey {
 	ConcreteType[] typeArgs;
 
 	bool opEquals(scope ref ConcreteStructKey b) scope =>
-		decl == b.decl && arrEqual!ConcreteType(typeArgs, b.typeArgs);
+		decl == b.decl && arraysEqual!ConcreteType(typeArgs, b.typeArgs);
 
 	HashCode hash() scope {
 		Hasher hasher;
@@ -410,7 +410,7 @@ public ConcreteLocal[] concretizeLambdaParams(
 	Destructure param,
 	TypeArgsScope typeArgsScope,
 ) =>
-	arrLiteral!ConcreteLocal(ctx.alloc, [
+	newArray!ConcreteLocal(ctx.alloc, [
 		ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Closure()), closureType),
 		concretizeParamDestructure(ctx, param, typeArgsScope),
 	]);
@@ -462,17 +462,17 @@ public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* mo
 	ConcreteFun* newNat64Future = getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
 		ctx.program.commonFuns.newNat64Future.decl,
 		//TODO:avoid alloc
-		small!ConcreteType(arrLiteral(ctx.alloc, [nat64Type])),
+		small!ConcreteType(newArray(ctx.alloc, [nat64Type])),
 		emptySmallArray!(immutable ConcreteFun*)));
 	ConcreteExpr callNewNatFuture = ConcreteExpr(newNat64Future.returnType, range, ConcreteExprKind(
-		ConcreteExprKind.Call(newNat64Future, arrLiteral(ctx.alloc, [zero]))));
+		ConcreteExprKind.Call(newNat64Future, newArray(ctx.alloc, [zero]))));
 	ConcreteExpr body_ = ConcreteExpr(newNat64Future.returnType, range, ConcreteExprKind(
 		allocate(ctx.alloc, ConcreteExprKind.Seq(callMain, callNewNatFuture))));
 
 	ConcreteFun* res = allocate(ctx.alloc, ConcreteFun(
 		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.WrapMain(range))),
 		getConcreteType(ctx, ctx.program.commonFuns.newNat64Future.returnType, TypeArgsScope.empty),
-		arrLiteral(ctx.alloc, [
+		newArray(ctx.alloc, [
 			ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Generated(sym!"args")), stringListType),
 		])));
 	res.body_ = ConcreteFunBody(body_);
@@ -486,7 +486,7 @@ bool canGetUnionSize(in ConcreteType[] members) =>
 
 TypeSize unionSize(in ConcreteType[] members) {
 	size_t unionAlign = 8;
-	size_t maxMember = arrMax!(size_t, ConcreteType)(0, members, (in ConcreteType x) =>
+	size_t maxMember = max!(size_t, ConcreteType)(0, members, (in ConcreteType x) =>
 		sizeOrPointerSizeBytes(x).sizeBytes);
 	size_t sizeBytes = roundUp(8 + maxMember, unionAlign);
 	return TypeSize(sizeBytes, unionAlign);
@@ -525,7 +525,7 @@ TypeSizeAndFieldOffsets recordSize(ref Alloc alloc, bool packed, in ConcreteFiel
 	size_t maxFieldSize = 1;
 	size_t maxFieldAlignment = 1;
 	size_t offsetBytes = 0;
-	immutable size_t[] fieldOffsets = map!(size_t, ConcreteField)(alloc, fields, (ref ConcreteField field) {
+	immutable size_t[] fieldOffsets = map!(immutable size_t, ConcreteField)(alloc, fields, (ref ConcreteField field) {
 		TypeSize fieldSize = sizeOrPointerSizeBytes(field.type);
 		maxFieldSize = max(maxFieldSize, fieldSize.sizeBytes);
 		if (!packed) {
@@ -662,7 +662,7 @@ ConcreteStructBody.Enum getConcreteStructBodyForEnum(ref Alloc alloc, in StructB
 ConcreteStructBody.Flags getConcreteStructBodyForFlags(ref Alloc alloc, in StructBody.Flags a) =>
 	ConcreteStructBody.Flags(
 		a.backingType,
-		map!(ulong, StructBody.Enum.Member)(alloc, a.members, (ref StructBody.Enum.Member member) =>
+		map!(immutable ulong, StructBody.Enum.Member)(alloc, a.members, (ref StructBody.Enum.Member member) =>
 			member.value.asUnsigned()));
 
 public void deferredFillRecordAndUnionBodies(ref ConcretizeCtx ctx) {
@@ -767,7 +767,7 @@ ConcreteExpr concretizeFileImport(ref ConcretizeCtx ctx, ConcreteFun* cf, in Fun
 					ConcreteExpr char8s = ConcreteExpr(char8ArrayType, range, ConcreteExprKind(
 						getConstantArr(ctx.alloc, ctx.allConstants, mustBeByVal(char8ArrayType), bytes)));
 					return ConcreteExprKind(ConcreteExprKind.Call(
-						ctx.char8ArrayAsString, arrLiteral(ctx.alloc, [char8s])));
+						ctx.char8ArrayAsString, newArray(ctx.alloc, [char8s])));
 			}
 		},
 		(ReadFileDiag diag) =>
@@ -791,7 +791,7 @@ ConcreteFunBody bodyForEnumOrFlagsMembers(ref ConcretizeCtx ctx, ConcreteType re
 	ConcreteType enumOrFlagsType =
 		only2(mustBeByVal(arrayElementType(returnType)).source.as!(ConcreteStructSource.Inst).typeArgs)[1];
 	Constant[] elements = map(ctx.alloc, enumOrFlagsMembers(enumOrFlagsType), (ref StructBody.Enum.Member member) =>
-		Constant(Constant.Record(arrLiteral!Constant(ctx.alloc, [
+		Constant(Constant.Record(newArray!Constant(ctx.alloc, [
 			constantSym(ctx, member.name),
 			Constant(Constant.Integral(member.value.value))]))));
 	Constant arr = getConstantArr(ctx.alloc, ctx.allConstants, mustBeByVal(returnType), elements);

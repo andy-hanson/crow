@@ -11,10 +11,6 @@ import util.alloc.alloc : Alloc, allocateUninitialized;
 	*(cast(byte[T.sizeof]*) ptr) = *(cast(const byte[T.sizeof]*) &value);
 }
 
-@trusted void initMemory_mut(T)(T* ptr, scope ref T value) {
-	*(cast(byte[T.sizeof]*) ptr) = *(cast(const byte[T.sizeof]*) &value);
-}
-
 @system ubyte* memcpy(return scope ubyte* dest, scope const ubyte* src, size_t length) =>
 	memmove(dest, src, length);
 
@@ -35,8 +31,8 @@ import util.alloc.alloc : Alloc, allocateUninitialized;
 	return dest;
 }
 
-void overwriteMemory(T)(T* ptr, scope T value) {
-	initMemory_mut!T(ptr, value);
+void overwriteMemory(T)(T* ptr, T value) {
+	initMemory!T(ptr, value);
 }
 
 @trusted T* allocate(T)(scope ref Alloc alloc, T value) {

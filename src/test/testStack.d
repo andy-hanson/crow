@@ -16,7 +16,7 @@ import interpret.stacks :
 	Stacks,
 	withStacks;
 import test.testUtil : expectDataStack, Test;
-import util.col.arrUtil : arrEqual;
+import util.col.arrUtil : arraysEqual;
 
 void testStack(ref Test test) {
 	testPushPop(test);
@@ -49,7 +49,7 @@ private:
 	assert(dataEnd(a) == begin + 3);
 
 	scope immutable ulong[] popped = dataPopN(a, 2);
-	assert(arrEqual(popped, [6, 7]));
+	assert(arraysEqual(popped, [6, 7]));
 	expectDataStack(test, a, [5]);
 
 	dataPush(a, 8);

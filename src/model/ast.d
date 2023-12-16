@@ -7,7 +7,7 @@ import model.model : AssertOrForbidKind, FunKind, ImportFileType, VarKind;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.col.arr : arrayOfSingle, SmallArray;
-import util.col.arrUtil : arrLiteral, exists;
+import util.col.arrUtil : exists, newArray;
 import util.col.str : SafeCStr, safeCStr;
 import util.conv : safeToUint;
 import util.memory : allocate;
@@ -835,7 +835,7 @@ private FileAst* fileAstForDiags(ref Alloc alloc, ParseDiagnostic[] diags) =>
 		[], [], [], [], [], []));
 
 FileAst* fileAstForReadFileDiag(ref Alloc alloc, ReadFileDiag a) =>
-	fileAstForDiags(alloc, arrLiteral(alloc, [ParseDiagnostic(Range.empty, ParseDiag(a))]));
+	fileAstForDiags(alloc, newArray(alloc, [ParseDiagnostic(Range.empty, ParseDiag(a))]));
 
 Sym symOfModifierKind(ModifierAst.Kind a) {
 	final switch (a) {

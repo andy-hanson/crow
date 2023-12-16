@@ -47,7 +47,7 @@ import model.diag : ReadFileDiag;
 import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
 import util.col.arr : endPtr;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : arrLiteral;
+import util.col.arrUtil : newArray;
 import util.col.str : CStr, SafeCStr, safeCStrSize;
 import util.exitCode : ExitCode;
 import util.memory : memset;
@@ -208,7 +208,7 @@ version (Windows) {
 		todo!void("ftell failed");
 	size_t fileSize = cast(size_t) ftellResult;
 	if (fileSize == 0)
-		return ReadFileResult(FileContent(arrLiteral!(immutable ubyte)(alloc, [0])));
+		return ReadFileResult(FileContent(newArray!(immutable ubyte)(alloc, [0])));
 	else {
 		ubyte[] result = allocateElements!ubyte(alloc, fileSize + 1);
 

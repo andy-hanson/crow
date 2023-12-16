@@ -16,7 +16,7 @@ import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : arrEqual;
+import util.col.arrUtil : arraysEqual;
 import util.col.hashTable : mustGet;
 import util.col.str : SafeCStr, safeCStr, safeCStrEq, safeCStrIsEmpty, strOfSafeCStr;
 import util.conv : safeToUint;
@@ -73,7 +73,7 @@ immutable struct InfoAtPos {
 		safeCStrIsEmpty(hover) && empty(definition);
 
 	bool opEquals(in InfoAtPos b) scope =>
-		safeCStrEq(hover, b.hover) && arrEqual(definition, b.definition);
+		safeCStrEq(hover, b.hover) && arraysEqual(definition, b.definition);
 }
 
 Json hoverResult(ref Alloc alloc, in string content, in ShowCtx ctx, Module* mainModule) {
