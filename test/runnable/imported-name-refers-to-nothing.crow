@@ -1,0 +1,5 @@
+import
+	crow/parse: foo
+
+main void()
+	info log "hello"

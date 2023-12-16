@@ -34,6 +34,7 @@ import model.ast :
 	ParamsAst,
 	pathRange,
 	range,
+	rangeOfNameAndRange,
 	SpecBodyAst,
 	SpecDeclAst,
 	SpecSigAst,
@@ -83,7 +84,8 @@ import util.col.arr : empty, emptySmallArray, only, ptrsRange, small;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderTempAsArr, finishArr;
 import util.col.arrUtil : concatenate, filter, map, mapOp, mapPointers, mapWithResultPointer, zip, zipPointers;
 import util.col.exactSizeArrBuilder : buildArrayExact, ExactSizeArrBuilder, pushUninitialized;
-import util.col.hashTable : HashTable, insertOrUpdate, mapAndMovePreservingKeys, mayAdd, moveToImmutable, MutHashTable;
+import util.col.hashTable :
+	getPointer, HashTable, insertOrUpdate, mapAndMovePreservingKeys, mayAdd, moveToImmutable, MutHashTable;
 import util.col.mutArr : mustPop, mutArrIsEmpty;
 import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, mutMaxArrSize, push, pushIfUnderMaxSize, toArray;
 import util.memory : allocate, initMemory;
@@ -855,15 +857,13 @@ HashTable!(NameReferents, Sym, nameFromNameReferents) getAllExportedNames(
 	foreach (ref ImportOrExport e; reExports)
 		e.kind.matchIn!void(
 			(in ImportOrExportKind.ModuleWhole m) {
-				foreach (NameReferents referents; m.module_.allExportedNames)
+				foreach (NameReferents referents; e.module_.allExportedNames)
 					addExport(referents, () => pathRange(ctx.allUris, *force(e.source)));
 			},
-			(in ImportOrExportKind.ModuleNamed m) {
-				foreach (Sym name; m.names) {
-					Opt!NameReferents value = m.module_.allExportedNames[name];
-					if (has(value))
-						addExport(force(value), () => pathRange(ctx.allUris, *force(e.source)));
-				}
+			(in Opt!(NameReferents*)[] referents) {
+				foreach (Opt!(NameReferents*) x; referents)
+					if (has(x))
+						addExport(*force(x), () => pathRange(ctx.allUris, *force(e.source)));
 			});
 	foreach (StructOrAlias x; structsAndAliasesMap)
 		final switch (x.visibility) {
@@ -911,7 +911,7 @@ BootstrapCheck checkWorker(
 	withMeasure!(BootstrapCheck, () {
 		ArrBuilder!Diagnostic diagsBuilder;
 		ImportsAndReExports importsAndReExports = checkImportsAndReExports(
-			alloc, allUris, diagsBuilder, fileAndAst.ast, resolvedImports);
+			alloc, allSymbols, allUris, diagsBuilder, fileAndAst.ast, resolvedImports);
 		FileAst* ast = fileAndAst.ast;
 		CheckCtx ctx = CheckCtx(
 			ptrTrustMe(alloc),
@@ -974,6 +974,7 @@ immutable struct ImportOrExportFile {
 
 ImportsAndReExports checkImportsAndReExports(
 	ref Alloc alloc,
+	in AllSymbols allSymbols,
 	in AllUris allUris,
 	scope ref ArrBuilder!Diagnostic diagsBuilder,
 	FileAst* ast,
@@ -981,9 +982,9 @@ ImportsAndReExports checkImportsAndReExports(
 ) {
 	scope ResolvedImport[] resolvedImportsLeft = resolvedImports;
 	ImportsOrReExports imports = checkImportsOrReExports(
-		alloc, allUris, diagsBuilder, ast.imports, resolvedImportsLeft, !ast.noStd);
+		alloc, allSymbols, allUris, diagsBuilder, ast.imports, resolvedImportsLeft, !ast.noStd);
 	ImportsOrReExports reExports = checkImportsOrReExports(
-		alloc, allUris, diagsBuilder, ast.reExports, resolvedImportsLeft, false);
+		alloc, allSymbols, allUris, diagsBuilder, ast.reExports, resolvedImportsLeft, false);
 	assert(empty(resolvedImportsLeft));
 	return ImportsAndReExports(imports.modules, reExports.modules, imports.files, reExports.files);
 }
@@ -994,6 +995,7 @@ struct ImportsOrReExports {
 }
 ImportsOrReExports checkImportsOrReExports(
 	ref Alloc alloc,
+	in AllSymbols allSymbols,
 	in AllUris allUris,
 	scope ref ArrBuilder!Diagnostic diagsBuilder,
 	in Opt!ImportsOrExportsAst ast,
@@ -1015,7 +1017,7 @@ ImportsOrReExports checkImportsOrReExports(
 	) {
 		nextResolvedImport().matchWithPointers!void(
 			(Module* x) {
-				add(alloc, imports, ImportOrExport(source, cb(x)));
+				add(alloc, imports, ImportOrExport(source, x, cb(x)));
 			},
 			(FileContent) {
 				unreachable!void();
@@ -1028,20 +1030,19 @@ ImportsOrReExports checkImportsOrReExports(
 	}
 
 	if (includeStd)
-		handleModuleImport(none!(ImportOrExportAst*), (Module* x) =>
-			ImportOrExportKind(ImportOrExportKind.ModuleWhole(x)));
+		handleModuleImport(none!(ImportOrExportAst*), (Module*) =>
+			ImportOrExportKind(ImportOrExportKind.ModuleWhole()));
 
 	if (has(ast))
 		foreach (ImportOrExportAst* importAst; ptrsRange(force(ast).paths)) {
 			Opt!(ImportOrExportAst*) source = some(importAst);
 			importAst.kind.match!void(
 				(ImportOrExportAstKind.ModuleWhole) {
-					handleModuleImport(source, (Module* x) => ImportOrExportKind(ImportOrExportKind.ModuleWhole(x)));
+					handleModuleImport(source, (Module*) => ImportOrExportKind(ImportOrExportKind.ModuleWhole()));
 				},
 				(NameAndRange[] names) {
-					handleModuleImport(source, (Module* x) =>
-						ImportOrExportKind(ImportOrExportKind.ModuleNamed(x, map(alloc, names, (ref NameAndRange x) =>
-							x.name))));
+					handleModuleImport(source, (Module* module_) =>
+						ImportOrExportKind(checkNamedImports(alloc, allSymbols, diagsBuilder, module_, names)));
 				},
 				(ref ImportOrExportAstKind.File x) {
 					nextResolvedImport().matchWithPointers!void(
@@ -1058,3 +1059,20 @@ ImportsOrReExports checkImportsOrReExports(
 		}
 	return ImportsOrReExports(finishArr(alloc, imports), finishArr(alloc, fileImports));
 }
+
+Opt!(NameReferents*)[] checkNamedImports(
+	ref Alloc alloc,
+	in AllSymbols allSymbols,
+	scope ref ArrBuilder!Diagnostic diagsBuilder,
+	Module* module_,
+	in NameAndRange[] names,
+) =>
+	map(alloc, names, (ref NameAndRange name) {
+		Opt!(NameReferents*) referents = getPointer!(NameReferents, Sym, nameFromNameReferents)(
+			module_.allExportedNames, name.name);
+		if (!has(referents))
+			add(alloc, diagsBuilder, Diagnostic(
+				rangeOfNameAndRange(name, allSymbols),
+				Diag(Diag.ImportRefersToNothing(name.name))));
+		return referents;
+	});

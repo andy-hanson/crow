@@ -23,7 +23,7 @@ import model.model :
 	VarDecl;
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : buildArray;
-import util.opt : force, has, Opt, optOrDefault;
+import util.opt : force, has, Opt;
 import util.sourceRange : UriAndRange;
 import util.sym : AllSymbols;
 import util.uri : Uri;
@@ -82,12 +82,13 @@ public void definitionForTarget(in AllSymbols allSymbols, Uri curUri, in Target 
 		});
 
 void definitionForImportedName(in PositionKind.ImportedName a, in ReferenceCb cb) {
-	NameReferents nr = optOrDefault!NameReferents(a.import_.modulePtr.allExportedNames[a.name], () =>
-		NameReferents());
-	if (has(nr.structOrAlias))
-		cb(force(nr.structOrAlias).range);
-	if (has(nr.spec))
-		cb(force(nr.spec).range);
-	foreach (FunDecl* f; nr.funs)
-		cb(f.range);
+	if (has(a.referents)) {
+		NameReferents nr = *force(a.referents);
+		if (has(nr.structOrAlias))
+			cb(force(nr.structOrAlias).range);
+		if (has(nr.spec))
+			cb(force(nr.spec).range);
+		foreach (FunDecl* f; nr.funs)
+			cb(f.range);
+	}
 }

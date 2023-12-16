@@ -64,6 +64,11 @@ struct MutHashTable(T, K, alias getKey) {
 	}
 }
 
+Opt!(T*) getPointer(T, K, alias getKey)(ref HashTable!(T, K, getKey) a, in K key) {
+	Opt!size_t i = getIndex(a, key);
+	return has(i) ? some(&force(a.values[force(i)])) : none!(T*);
+}
+
 bool isEmpty(T, K, alias getKey)(in MutHashTable!(T, K, getKey) a) =>
 	size(a) == 0;
 

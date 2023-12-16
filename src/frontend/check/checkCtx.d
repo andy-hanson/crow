@@ -20,7 +20,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.arr : ptrsRange;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : contains, exists;
+import util.col.arrUtil : exists;
 import util.col.hashTable : existsInHashTable;
 import util.col.mutSet : mayAddToMutSet, MutSet, mutSetHas;
 import util.opt : force, has, none, Opt, some;
@@ -94,22 +94,22 @@ void checkForUnused(ref CheckCtx ctx, StructAlias[] aliases, StructDecl[] struct
 }
 
 private void checkUnusedImports(ref CheckCtx ctx) {
-	foreach (ref ImportOrExport x; ctx.importsAndReExports.imports) {
+	foreach (ref ImportOrExport import_; ctx.importsAndReExports.imports) {
 		void addDiagUnused(Module* module_, Opt!Sym name) {
 			addDiag(
 				ctx,
-				pathRange(ctx.allUris, *force(x.source)),
+				pathRange(ctx.allUris, *force(import_.source)),
 				Diag(Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.Import(module_, name)))));
 		}
-		x.kind.match!void(
-			(ImportOrExportKind.ModuleWhole m) {
-				if (!isUsedModuleWhole(ctx, m.module_) && has(x.source))
-					addDiagUnused(m.modulePtr, none!Sym);
+		import_.kind.match!void(
+			(ImportOrExportKind.ModuleWhole) {
+				if (!isUsedModuleWhole(ctx, import_.module_) && has(import_.source))
+					addDiagUnused(import_.modulePtr, none!Sym);
 			},
-			(ImportOrExportKind.ModuleNamed m) {
-				foreach (Sym name; m.names)
-					if (!isUsedNamedImport(ctx, m.module_, name))
-						addDiagUnused(m.modulePtr, some(name));
+			(Opt!(NameReferents*)[] referents) {
+				foreach (Opt!(NameReferents*) x; referents)
+					if (has(x) && !containsUsed(*force(x), ctx.used))
+						addDiagUnused(import_.modulePtr, some(force(x).name));
 			});
 	}
 }
@@ -117,11 +117,6 @@ private void checkUnusedImports(ref CheckCtx ctx) {
 private bool isUsedModuleWhole(in CheckCtx ctx, in Module module_) =>
 	existsInHashTable!(NameReferents, Sym, nameFromNameReferents)(module_.allExportedNames, (in NameReferents x) =>
 		containsUsed(x, ctx.used));
-
-private bool isUsedNamedImport(in CheckCtx ctx, in Module module_, Sym name) {
-	Opt!NameReferents opt = module_.allExportedNames[name];
-	return has(opt) && containsUsed(force(opt), ctx.used);
-}
 
 private bool containsUsed(in NameReferents a, in UsedSet used) =>
 	(has(a.structOrAlias) && isUsed(used, force(a.structOrAlias).asVoidPointer())) ||
@@ -139,14 +134,17 @@ void eachImportAndReExport(
 	Sym name,
 	in void delegate(in NameReferents) @safe @nogc pure nothrow cb,
 ) {
-	void inner(ref ImportOrExport m) {
-		Opt!NameReferents imported = m.kind.match!(Opt!NameReferents)(
-			(ImportOrExportKind.ModuleWhole m) =>
-				m.module_.allExportedNames[name],
-			(ImportOrExportKind.ModuleNamed m) =>
-				contains(m.names, name) ? m.module_.allExportedNames[name] : none!NameReferents);
-		if (has(imported))
-			cb(force(imported));
+	void inner(ref ImportOrExport import_) {
+		import_.kind.match!void(
+			(ImportOrExportKind.ModuleWhole) {
+				Opt!NameReferents x = import_.module_.allExportedNames[name];
+				if (has(x)) cb(force(x));
+			},
+			(Opt!(NameReferents*)[] referents) {
+				foreach (Opt!(NameReferents*) x; referents)
+					if (has(x) && force(x).name == name)
+						cb(*force(x));
+			});
 	}
 	foreach (ref ImportOrExport m; a.imports)
 		inner(m);

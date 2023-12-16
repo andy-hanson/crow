@@ -85,7 +85,7 @@ Opt!Target targetForPosition(in Program program, PositionKind pos) =>
 		(PositionKind.FunSpecialModifier) =>
 			none!Target,
 		(PositionKind.ImportedModule x) =>
-			some(Target(x.module_)),
+			some(Target(x.modulePtr)),
 		(PositionKind.ImportedName x) =>
 			some(Target(x)),
 		(PositionKind.Keyword _) =>

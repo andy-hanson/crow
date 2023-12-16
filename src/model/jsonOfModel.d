@@ -45,6 +45,7 @@ import model.model :
 	MatchEnumExpr,
 	MatchUnionExpr,
 	Module,
+	NameReferents,
 	Params,
 	PtrToFieldExpr,
 	PtrToLocalExpr,
@@ -69,7 +70,16 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : mapOp;
 import util.json :
-	field, Json, jsonList, jsonObject, jsonString, optionalArrayField, optionalFlagField, optionalField, kindField;
+	field,
+	Json,
+	jsonList,
+	jsonNull,
+	jsonObject,
+	jsonString,
+	optionalArrayField,
+	optionalFlagField,
+	optionalField,
+	kindField;
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : jsonOfRange;
@@ -103,17 +113,16 @@ Json jsonOfImportOrExport(ref Alloc alloc, in Ctx ctx, in ImportOrExport a) =>
 	jsonObject(alloc, [
 		optionalField!("source", ImportOrExportAst*)(a.source, (in ImportOrExportAst* x) =>
 			jsonOfRange(alloc, ctx.lineAndColumnGetter, pathRange(ctx.allUris, *x))),
-		field!"import-kind"(jsonOfImportOrExportKind(alloc, ctx.allUris, a.kind))]);
+		field!"module"(stringOfUri(alloc, ctx.allUris, a.module_.uri)),
+		field!"import-kind"(jsonOfImportOrExportKind(alloc, a.kind))]);
 
-Json jsonOfImportOrExportKind(ref Alloc alloc, in AllUris allUris, in ImportOrExportKind a) =>
+Json jsonOfImportOrExportKind(ref Alloc alloc, in ImportOrExportKind a) =>
 	a.matchIn!Json(
-		(in ImportOrExportKind.ModuleWhole m) =>
-			jsonObject(alloc, [field!"module"(stringOfUri(alloc, allUris, m.module_.uri))]),
-		(in ImportOrExportKind.ModuleNamed m) =>
-			jsonObject(alloc, [
-				field!"module"(stringOfUri(alloc, allUris, m.module_.uri)),
-				field!"names"(jsonList!Sym(alloc, m.names, (in Sym name) =>
-					jsonString(name)))]));
+		(in ImportOrExportKind.ModuleWhole) =>
+			jsonString("whole"),
+		(in Opt!(NameReferents*)[] referents) =>
+			jsonList!(Opt!(NameReferents*))(alloc, referents, (in Opt!(NameReferents*) x) =>
+				has(x) ? jsonString(force(x).name) : jsonNull));
 
 const struct Ctx {
 	@safe @nogc pure nothrow:

@@ -58,6 +58,7 @@ import model.model :
 	MatchUnionExpr,
 	Module,
 	nameRange,
+	NameReferents,
 	Params,
 	PtrToFieldExpr,
 	PtrToLocalExpr,
@@ -167,16 +168,28 @@ Opt!PositionKind positionInImportsOrExports(
 	foreach (ImportOrExport* im; ptrsRange(importsOrExports))
 		if (has(im.source) && hasPos(force(im.source).range, pos)) {
 			ImportOrExportAst* source = force(im.source);
-			return im.kind.match!(Opt!PositionKind)(
-				(ImportOrExportKind.ModuleWhole m) =>
-					some(PositionKind(PositionKind.ImportedModule(im, m.modulePtr))),
-				(ImportOrExportKind.ModuleNamed m) =>
+			return im.kind.matchIn!(Opt!PositionKind)(
+				(in ImportOrExportKind.ModuleWhole) =>
+					some(PositionKind(PositionKind.ImportedModule(im))),
+				(in Opt!(NameReferents*)[] referents) =>
 					hasPos(pathRange(allUris, *force(im.source)), pos)
-						? some(PositionKind(PositionKind.ImportedModule(im, m.modulePtr)))
-						: first!(PositionKind, NameAndRange)(source.kind.as!(NameAndRange[]), (NameAndRange x) =>
-							optIf(hasPos(allSymbols, x, pos), () =>
-								PositionKind(PositionKind.ImportedName(im, x.name)))));
+						? some(PositionKind(PositionKind.ImportedModule(im)))
+						: positionInImportedNames(
+							allSymbols, im.modulePtr, source.kind.as!(NameAndRange[]), referents, pos));
 		}
+	return none!PositionKind;
+}
+
+Opt!PositionKind positionInImportedNames(
+	in AllSymbols allSymbols,
+	Module* module_,
+	in NameAndRange[] names,
+	in Opt!(NameReferents*)[] referents,
+	Pos pos,
+) {
+	foreach (size_t index, NameAndRange x; names)
+		if (hasPos(allSymbols, x, pos))
+			return some(PositionKind(PositionKind.ImportedName(module_, x.name, referents[index])));
 	return none!PositionKind;
 }
 

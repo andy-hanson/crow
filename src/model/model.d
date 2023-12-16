@@ -1039,75 +1039,45 @@ immutable struct ImportOrExport {
 
 	// none for an automatic import of std
 	Opt!(ImportOrExportAst*) source;
+	Module* modulePtr;
 	ImportOrExportKind kind;
 
-	Module* modulePtr() return scope =>
-		kind.modulePtr;
+	ref Module module_() return scope =>
+		*modulePtr;
 }
 
 // No File option since those become FunDecls
 immutable struct ImportOrExportKind {
-	@safe @nogc pure nothrow:
-
-	immutable struct ModuleWhole {
-		@safe @nogc pure nothrow:
-		Module* modulePtr;
-
-		ref Module module_() return scope =>
-			*modulePtr;
-	}
-	immutable struct ModuleNamed {
-		@safe @nogc pure nothrow:
-		Module* modulePtr;
-		Sym[] names;
-
-		ref Module module_() return scope =>
-			*modulePtr;
-	}
-
-	this(ModuleWhole a) {
-		modulePtr = a.modulePtr;
-		names = [];
-	}
-	this(ModuleNamed a) {
-		assert(a.names.length != 0);
-		modulePtr = a.modulePtr;
-		names = a.names;
-	}
-
-	T match(T)(
-		in T delegate(ModuleWhole) @safe @nogc pure nothrow cbWhole,
-		in T delegate(ModuleNamed) @safe @nogc pure nothrow cbNamed,
-	) =>
-		names.length == 0
-			? cbWhole(ModuleWhole(modulePtr))
-			: cbNamed(ModuleNamed(modulePtr, names));
-	T matchIn(T)(
-		in T delegate(in ModuleWhole) @safe @nogc pure nothrow cbWhole,
-		in T delegate(in ModuleNamed) @safe @nogc pure nothrow cbNamed,
-	) scope =>
-		names.length == 0
-			? cbWhole(ModuleWhole(modulePtr))
-			: cbNamed(ModuleNamed(modulePtr, names));
-
-	Module* modulePtr;
-	private SmallArray!Sym names;
+	immutable struct ModuleWhole {}
+	mixin Union!(ModuleWhole, SmallArray!(Opt!(NameReferents*)));
 }
-static assert(ImportOrExportKind.sizeof == ulong.sizeof * 2);
+static assert(ImportOrExportKind.sizeof == ulong.sizeof);
 
 enum ImportFileType { nat8Array, string }
 
 immutable struct NameReferents {
+	@safe @nogc pure nothrow:
+
 	Opt!StructOrAlias structOrAlias;
 	Opt!(SpecDecl*) spec;
-	FunDecl*[] funs;
+	SmallArray!(FunDecl*) funs;
+
+	this(Opt!StructOrAlias sa, Opt!(SpecDecl*) sp, immutable FunDecl*[] fs) {
+		structOrAlias = sa;
+		spec = sp;
+		funs = fs;
+		assert(has(structOrAlias) || has(spec) || !empty(funs));
+	}
+
+	Sym name() scope =>
+		has(structOrAlias)
+			? force(structOrAlias).name
+			: has(spec)
+			? force(spec).name
+			: funs[0].name;
 }
 Sym nameFromNameReferents(in NameReferents a) =>
-	has(a.structOrAlias)
-		? force(a.structOrAlias).name
-		: has(a.spec)
-		? force(a.spec).name
-		: a.funs[0].name;
+	a.name;
 
 enum FunKind {
 	fun,

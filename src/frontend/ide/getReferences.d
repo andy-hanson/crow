@@ -184,11 +184,9 @@ void referencesForImportedName(
 	in PositionKind.ImportedName a,
 	in ReferenceCb cb,
 ) {
-	Module* module_ = a.import_.modulePtr;
-	eachImportForName(allSymbols, program, module_, a.name, cb);
-	Opt!NameReferents onr = module_.allExportedNames[a.name];
-	if (has(onr)) {
-		NameReferents nr = force(onr);
+	eachImportForName(allSymbols, program, a.exportingModule, a.name, cb);
+	if (has(a.referents)) {
+		NameReferents nr = *force(a.referents);
 		if (has(nr.structOrAlias))
 			force(nr.structOrAlias).matchWithPointers!void(
 				(StructAlias* x) {

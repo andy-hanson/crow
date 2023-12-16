@@ -10,6 +10,7 @@ import model.model :
 	ImportOrExport,
 	Local,
 	Module,
+	NameReferents,
 	RecordField,
 	SpecDecl,
 	SpecDeclSig,
@@ -18,6 +19,7 @@ import model.model :
 	TypeParamIndex,
 	VarDecl,
 	Visibility;
+import util.opt : Opt;
 import util.sym : Sym;
 import util.union_ : Union;
 
@@ -55,12 +57,18 @@ immutable struct PositionKind {
 		Expr* expr;
 	}
 	immutable struct ImportedModule {
+		@safe @nogc pure nothrow:
 		ImportOrExport* import_;
-		Module* module_;
+
+		Module* modulePtr() =>
+			import_.modulePtr;
+		ref Module module_() scope =>
+			import_.module_;
 	}
 	immutable struct ImportedName {
-		ImportOrExport* import_;
+		Module* exportingModule;
 		Sym name;
+		Opt!(NameReferents*) referents;
 	}
 	immutable struct Keyword {
 		enum Kind {
