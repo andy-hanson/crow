@@ -11,7 +11,7 @@ import frontend.parse.lexer :
 	getPeekTokenAndData,
 	Lexer,
 	range,
-	rangeAtChar,
+	rangeEnsureAtLeastOne,
 	skipUntilNewlineNoDiag,
 	takeNextToken,
 	Token,
@@ -134,7 +134,8 @@ NameAndRange takeNameOrOperator(ref Lexer lexer) {
 	if (has(res))
 		return NameAndRange(start, force(res));
 	else {
-		addDiag(lexer, rangeAtChar(lexer), ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.nameOrOperator)));
+		addDiag(lexer, rangeEnsureAtLeastOne(lexer, start), ParseDiag(
+			ParseDiag.Expected(ParseDiag.Expected.Kind.nameOrOperator)));
 		return NameAndRange(start, sym!"bogus");
 	}
 }
