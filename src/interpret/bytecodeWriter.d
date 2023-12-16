@@ -51,8 +51,8 @@ import interpret.runBytecode :
 import model.model : EnumValue;
 import model.typeLayout : Pack;
 import util.alloc.alloc : Alloc;
-import util.col.arr : isEmpty;
-import util.col.arrBuilder : add, ArrBuilder, backUp, finishArr;
+import util.col.array : isEmpty;
+import util.col.arrayBuilder : add, ArrayBuilder, backUp, finish;
 import util.col.fullIndexMap : fullIndexMapOfArr;
 import util.col.mutArr : moveToArr_mut, mustPop, MutArr, mutArrEnd, mutArrSize, push;
 import util.memory : initMemory, overwriteMemory;
@@ -63,7 +63,7 @@ struct ByteCodeWriter {
 	Alloc* alloc;
 	// NOTE: sometimes we will write operation arguments here and cast to Operation
 	MutArr!Operation operations;
-	ArrBuilder!ByteCodeSource sources; // parallel to operations
+	ArrayBuilder!ByteCodeSource sources; // parallel to operations
 	size_t nextStackEntry = 0;
 }
 
@@ -85,7 +85,7 @@ StackEntry stackEntriesEnd(StackEntries a) =>
 Operations finishOperations(ref ByteCodeWriter writer) =>
 	Operations(
 		moveToArr_mut!Operation(*writer.alloc, writer.operations),
-		fullIndexMapOfArr!(ByteCodeIndex, ByteCodeSource)(finishArr(*writer.alloc, writer.sources)));
+		fullIndexMapOfArr!(ByteCodeIndex, ByteCodeSource)(finish(*writer.alloc, writer.sources)));
 
 StackEntry getNextStackEntry(in ByteCodeWriter writer) =>
 	StackEntry(writer.nextStackEntry);

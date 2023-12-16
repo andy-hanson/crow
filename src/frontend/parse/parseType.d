@@ -19,8 +19,8 @@ import frontend.parse.parseUtil :
 import model.ast : NameAndRange, range, TypeAst;
 import model.model : FunKind;
 import model.parseDiag : ParseDiag;
-import util.col.arr : only;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.array : only;
+import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos;
@@ -50,16 +50,16 @@ Opt!(TypeAst*) tryParseTypeArgForExpr(ref Lexer lexer) =>
 		? some(allocate(lexer.alloc, parseTypeForTypedExpr(lexer)))
 		: none!(TypeAst*);
 
-private void parseTypesWithCommas(ref Lexer lexer, ref ArrBuilder!TypeAst output) {
+private void parseTypesWithCommas(ref Lexer lexer, ref ArrayBuilder!TypeAst output) {
 	do {
 		add(lexer.alloc, output, parseType(lexer));
 	} while (tryTakeToken(lexer, Token.comma));
 }
 
 private TypeAst[] parseTypesWithCommas(ref Lexer lexer) {
-	ArrBuilder!TypeAst res;
+	ArrayBuilder!TypeAst res;
 	parseTypesWithCommas(lexer, res);
-	return finishArr(lexer.alloc, res);
+	return finish(lexer.alloc, res);
 }
 
 TypeAst parseType(ref Lexer lexer) =>
@@ -108,7 +108,7 @@ TypeAst parseTupleType(ref Lexer lexer, Pos start) {
 }
 
 TypeAst parseFunType(ref Lexer lexer, Pos start, FunKind kind) {
-	ArrBuilder!TypeAst returnAndParamTypes;
+	ArrayBuilder!TypeAst returnAndParamTypes;
 	add(lexer.alloc, returnAndParamTypes, parseType(lexer));
 	if (tryTakeToken(lexer, Token.parenLeft)) {
 		if (!tryTakeToken(lexer, Token.parenRight)) {
@@ -117,7 +117,7 @@ TypeAst parseFunType(ref Lexer lexer, Pos start, FunKind kind) {
 		}
 	} else
 		addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.FunctionTypeMissingParens()));
-	TypeAst[] types = finishArr(lexer.alloc, returnAndParamTypes);
+	TypeAst[] types = finish(lexer.alloc, returnAndParamTypes);
 	return TypeAst(allocate(lexer.alloc, TypeAst.Fun(range(lexer, start), kind, types)));
 }
 

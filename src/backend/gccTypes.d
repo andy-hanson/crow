@@ -53,8 +53,7 @@ import model.lowModel :
 	PrimitiveType,
 	typeSize;
 import util.alloc.alloc : Alloc;
-import util.col.arr : isEmpty;
-import util.col.arrUtil : map, mapWithIndex, zip;
+import util.col.array : isEmpty, map, mapWithIndex, zip;
 import util.col.enumMap : EnumMap, makeEnumMap;
 import util.col.fullIndexMap :
 	FullIndexMap,

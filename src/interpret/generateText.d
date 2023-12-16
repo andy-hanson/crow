@@ -20,18 +20,17 @@ import model.lowModel :
 import model.model : VarKind;
 import model.typeLayout : nStackEntriesForType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.col.arr : castImmutable, isEmpty;
-import util.col.arrUtil : map, sum, zip;
+import util.col.array : castImmutable, isEmpty, map, sum, zip;
 import util.col.map : mustGet;
 import util.col.enumMap : EnumMap;
-import util.col.exactSizeArrBuilder :
+import util.col.exactSizeArrayBuilder :
 	add0Bytes,
 	add16,
 	add32,
 	add64,
 	add64TextPtr,
 	addStringAndNulTerminate,
-	ExactSizeArrBuilder,
+	ExactSizeArrayBuilder,
 	exactSizeArrBuilderCurSize,
 	finish,
 	newExactSizeArrBuilder,
@@ -177,7 +176,7 @@ struct Ctx {
 	@safe @nogc pure nothrow:
 
 	immutable LowProgram* programPtr;
-	ExactSizeArrBuilder!ubyte text;
+	ExactSizeArrayBuilder!ubyte text;
 	FunToReferences* funToReferencesPtr;
 	immutable(size_t)[] cStringIndexToTextIndex;
 	size_t[][] arrTypeIndexToConstantIndexToTextIndex;

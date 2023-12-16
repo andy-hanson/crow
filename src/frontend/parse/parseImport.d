@@ -20,7 +20,7 @@ import model.ast :
 	ImportOrExportAst, ImportOrExportAstKind, ImportsOrExportsAst, NameAndRange, PathOrRelPath, TypeAst;
 import model.model : ImportFileType;
 import model.parseDiag : ParseDiag;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.conv : safeToUshort;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
@@ -44,14 +44,14 @@ Opt!ImportsOrExportsAst parseImportsOrExports(scope ref AllUris allUris, ref Lex
 private:
 
 ImportOrExportAst[] parseImportLines(scope ref AllUris allUris, ref Lexer lexer) {
-	ArrBuilder!ImportOrExportAst res;
+	ArrayBuilder!ImportOrExportAst res;
 	while (true) {
 		add(lexer.alloc, res, parseSingleModuleImportOnOwnLine(allUris, lexer));
 		final switch (takeNewlineOrDedent(lexer)) {
 			case NewlineOrDedent.newline:
 				continue;
 			case NewlineOrDedent.dedent:
-				return finishArr(lexer.alloc, res);
+				return finish(lexer.alloc, res);
 		}
 	}
 }
@@ -138,7 +138,7 @@ bool isInstStructOneArg(TypeAst a, Symbol typeArgName, Symbol name) {
 }
 
 ImportOrExportAstKind parseIndentedImportNames(ref Lexer lexer, Pos start) {
-	ArrBuilder!NameAndRange names;
+	ArrayBuilder!NameAndRange names;
 	while (true) {
 		TrailingComma trailingComma = takeCommaSeparatedNames(lexer, names);
 		final switch (takeNewlineOrDedent(lexer)) {
@@ -160,13 +160,13 @@ ImportOrExportAstKind parseIndentedImportNames(ref Lexer lexer, Pos start) {
 						todo!void("!");
 						break;
 				}
-				return ImportOrExportAstKind(finishArr(lexer.alloc, names));
+				return ImportOrExportAstKind(finish(lexer.alloc, names));
 		}
 	}
 }
 
 NameAndRange[] parseSingleImportNamesOnSingleLine(ref Lexer lexer) {
-	ArrBuilder!NameAndRange names;
+	ArrayBuilder!NameAndRange names;
 	final switch (takeCommaSeparatedNames(lexer, names)) {
 		case TrailingComma.no:
 			break;
@@ -174,12 +174,12 @@ NameAndRange[] parseSingleImportNamesOnSingleLine(ref Lexer lexer) {
 			addDiagAtChar(lexer, ParseDiag(ParseDiag.TrailingComma()));
 			break;
 	}
-	return finishArr(lexer.alloc, names);
+	return finish(lexer.alloc, names);
 }
 
 enum TrailingComma { no, yes }
 
-TrailingComma takeCommaSeparatedNames(ref Lexer lexer, ref ArrBuilder!NameAndRange names) {
+TrailingComma takeCommaSeparatedNames(ref Lexer lexer, ref ArrayBuilder!NameAndRange names) {
 	add(lexer.alloc, names, takeNameOrOperator(lexer));
 	return tryTakeToken(lexer, Token.comma)
 		? peekEndOfLine(lexer)

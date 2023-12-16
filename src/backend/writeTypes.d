@@ -15,7 +15,7 @@ import model.lowModel :
 	PrimitiveType,
 	typeSize;
 import util.alloc.alloc : Alloc;
-import util.col.arrUtil : every;
+import util.col.array : every;
 import util.col.fullIndexMap :
 	FullIndexMap, fullIndexMapEachKey, fullIndexMapEachValue, fullIndexMapSize, makeFullIndexMap_mut;
 import util.opt : none, Opt, some;

@@ -3,15 +3,15 @@ module util.writer;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, withStackAlloc;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : zip;
+import util.col.arrayBuilder : add, ArrayBuilder, finish;
+import util.col.array : zip;
 import util.string : eachChar, CString;
 import util.util : abs, debugLog;
 
 struct Writer {
 	private:
 	Alloc* alloc;
-	ArrBuilder!char res;
+	ArrayBuilder!char res;
 
 	void opOpAssign(string op, T)(in T a) scope if (op == "~") {
 		static if (is(T == char))
@@ -55,7 +55,7 @@ void debugLogWithWriter(in void delegate(scope ref Alloc, scope ref Writer) @saf
 	scope Writer writer = Writer(&alloc);
 	cb(writer);
 	writer ~= '\0';
-	return CString(finishArr(*writer.alloc, writer.res).ptr);
+	return CString(finish(*writer.alloc, writer.res).ptr);
 }
 
 void writeHex(scope ref Writer writer, ulong a) {

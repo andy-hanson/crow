@@ -3,7 +3,7 @@ module util.symbol;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.arr : only;
+import util.col.array : only;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : mustAdd, MutMap, size;
 import util.col.mutMaxArr : clear, MutMaxArr, mutMaxArr, push, pushAll, tempAsArr;

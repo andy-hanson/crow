@@ -34,9 +34,8 @@ import model.model :
 	TypeArgs;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : only, small;
-import util.col.arrBuilder : add, ArrBuilder, arrBuilderIsEmpty, finishArr;
-import util.col.arrUtil : every, exists, first, zipFirst;
+import util.col.array : every, exists, first, only, small, zipFirst;
+import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, finish;
 import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, only, push, tempAsArr, toArray;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range;
@@ -112,7 +111,7 @@ struct RealTrace {
 	Range range;
 	MutMaxArr!(maxSpecDepth, FunDeclAndTypeArgs) trace;
 
-	alias MultipleMatches = ArrBuilder!Called;
+	alias MultipleMatches = ArrayBuilder!Called;
 
 	this(return scope ExprCtx* c, Range r) {
 		ctx = c;
@@ -216,13 +215,13 @@ bool hasMultipleMatches(DummyTrace, bool b) =>
 Called[] finishMultipleMatches(ref CheckSpecsCtx ctx, scope DummyTrace, bool) =>
 	[];
 
-void addMultipleMatch(ref CheckSpecsCtx ctx, scope RealTrace* trace, ref ArrBuilder!Called builder, Called match) {
+void addMultipleMatch(ref CheckSpecsCtx ctx, scope RealTrace* trace, ref ArrayBuilder!Called builder, Called match) {
 	add(ctx.alloc, builder, match);
 }
-bool hasMultipleMatches(scope RealTrace*, in ArrBuilder!Called builder) =>
+bool hasMultipleMatches(scope RealTrace*, in ArrayBuilder!Called builder) =>
 	!arrBuilderIsEmpty(builder);
-Called[] finishMultipleMatches(ref CheckSpecsCtx ctx, scope RealTrace*, ref ArrBuilder!Called builder) =>
-	finishArr(ctx.alloc, builder);
+Called[] finishMultipleMatches(ref CheckSpecsCtx ctx, scope RealTrace*, ref ArrayBuilder!Called builder) =>
+	finish(ctx.alloc, builder);
 
 Trace.Result findSpecSigImplementation(Trace)(
 	ref CheckSpecsCtx ctx,

@@ -3,8 +3,7 @@ module util.col.hashTable;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateElements, freeElements;
-import util.col.arr : arrayOfRange, endPtr, isEmpty;
-import util.col.arrUtil : fillArray, map;
+import util.col.array : arrayOfRange, endPtr, fillArray, isEmpty, map;
 import util.hash : getHash;
 import util.memory : initMemory, overwriteMemory;
 import util.opt : ConstOpt, force, has, MutOpt, none, noneMut, Opt, some, someConst, someMut;

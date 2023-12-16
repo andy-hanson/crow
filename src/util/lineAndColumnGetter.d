@@ -3,7 +3,7 @@ module util.lineAndColumnGetter;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.conv : safeToUint;
 import util.sourceRange : Pos, Range;
 import util.string : CString;
@@ -98,8 +98,8 @@ LineAndCharacter toLineAndCharacter(in LineAndColumnGetter a, in LineAndColumn l
 			lc.line0Indexed < a.lineToNTabs.length ? a.lineToNTabs[lc.line0Indexed] : 0));
 
 @trusted LineAndColumnGetter lineAndColumnGetterForText(ref Alloc alloc, scope CString text) {
-	ArrBuilder!Pos lineToPos;
-	ArrBuilder!ubyte lineToNTabs;
+	ArrayBuilder!Pos lineToPos;
+	ArrayBuilder!ubyte lineToNTabs;
 
 	immutable(char)* ptr = text.ptr;
 
@@ -120,8 +120,8 @@ LineAndCharacter toLineAndCharacter(in LineAndColumnGetter a, in LineAndColumn l
 	return LineAndColumnGetter(
 		usesCRLF,
 		safeToUint(ptr - text.ptr),
-		finishArr(alloc, lineToPos),
-		finishArr(alloc, lineToNTabs));
+		finish(alloc, lineToPos),
+		finish(alloc, lineToNTabs));
 }
 
 LineAndColumnGetter lineAndColumnGetterForEmptyFile() {

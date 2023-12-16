@@ -58,7 +58,7 @@ version (Test) {
 	import test.test : test;
 }
 import util.alloc.alloc : Alloc, AllocKind, newAlloc, withTempAllocImpure, word;
-import util.col.arrUtil : prepend;
+import util.col.array : prepend;
 import util.exitCode : ExitCode;
 import util.json : Json, jsonToString;
 import util.jsonParse : mustParseJson, mustParseUint, skipWhitespace;

@@ -95,9 +95,9 @@ import model.jsonOfModel : jsonOfModule;
 import model.lowModel : ExternLibraries, LowProgram;
 import model.model : hasFatalDiagnostics, Module, Program, ProgramWithMain;
 import util.alloc.alloc : Alloc, AllocKind, FetchMemoryCb, freeElements, MetaAlloc, newAlloc, withTempAllocImpure;
-import util.col.arr : only;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : concatenate, contains, map, mapOp, newArray;
+import util.col.array : only;
+import util.col.arrayBuilder : add, ArrayBuilder, finish;
+import util.col.array : concatenate, contains, map, mapOp, newArray;
 import util.exitCode : ExitCode;
 import util.json : field, Json, jsonNull, jsonObject;
 import util.late : Late, lateGet, lateSet, MutLate;
@@ -243,11 +243,11 @@ private LspOutResult handleLspRequest(
 		(in RenameParams x) =>
 			LspOutResult(getRenameForProgram(alloc, server, getProgramForAll(perf, alloc, server), x)),
 		(in RunParams x) {
-			ArrBuilder!Write writes;
+			ArrayBuilder!Write writes;
 			ExitCode exitCode = run(perf, alloc, server, x.uri, (Pipe pipe, in string x) {
 				add(alloc, writes, Write(pipe, copyString(alloc, x)));
 			});
-			return LspOutResult(RunResult(exitCode, finishArr(alloc, writes)));
+			return LspOutResult(RunResult(exitCode, finish(alloc, writes)));
 		},
 		(in SemanticTokensParams x) {
 			Uri uri = x.textDocument.uri;

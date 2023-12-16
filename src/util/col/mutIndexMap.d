@@ -3,7 +3,7 @@ module util.col.mutIndexMap;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.arrUtil : fillArray;
+import util.col.array : fillArray;
 import util.col.mutMap : ValueAndDidAdd;
 import util.memory : overwriteMemory;
 import util.opt : force, has, MutOpt, noneMut, someMut;

@@ -7,7 +7,7 @@ import interpret.extern_ : DynCallSig;
 import interpret.generateText : TextIndex;
 import model.lowModel : LowFunIndex, LowType;
 import util.alloc.alloc : TempAlloc;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach_const, makeFullIndexMap_mut;
 import util.memory : allocate;
 import util.opt : force, has, MutOpt, none, some, someMut;
@@ -55,15 +55,15 @@ FunToReferences initFunToReferences(
 
 FunReferences finishAt(ref TempAlloc tempAlloc, ref FunToReferences a, LowFunIndex index) {
 	ref FunReferencesBuilder builder() { return a.inner[index]; }
-	ByteCodeIndex[] calls = finishArr(tempAlloc, builder.calls);
+	ByteCodeIndex[] calls = finish(tempAlloc, builder.calls);
 	if (has(builder.ptrRefs)) {
 		FunPtrReferencesBuilder* ptrs = force(builder.ptrRefs);
 		return FunReferences(
 			calls,
 			some(FunPtrReferences(
 				ptrs.sig,
-				finishArr(tempAlloc, ptrs.funPtrRefs),
-				finishArr(tempAlloc, ptrs.textReferences))));
+				finish(tempAlloc, ptrs.funPtrRefs),
+				finish(tempAlloc, ptrs.textReferences))));
 	} else
 		return FunReferences(calls, none!FunPtrReferences);
 }
@@ -107,12 +107,12 @@ ref FunPtrReferencesBuilder ptrRefs(
 }
 
 struct FunReferencesBuilder {
-	ArrBuilder!ByteCodeIndex calls;
+	ArrayBuilder!ByteCodeIndex calls;
 	MutOpt!(FunPtrReferencesBuilder*) ptrRefs;
 }
 
 struct FunPtrReferencesBuilder {
 	immutable DynCallSig sig;
-	ArrBuilder!ByteCodeIndex funPtrRefs; // appearing as a fun-pointer directly in code
-	ArrBuilder!TextIndex textReferences; // these are fun ptrs too, that appear in text
+	ArrayBuilder!ByteCodeIndex funPtrRefs; // appearing as a fun-pointer directly in code
+	ArrayBuilder!TextIndex textReferences; // these are fun ptrs too, that appear in text
 }

@@ -23,8 +23,8 @@ import model.concreteModel : TypeSize;
 import model.constant : Constant;
 import model.diag : Diag, Diagnostic, isFatal, UriAndDiagnostic;
 import model.parseDiag : ParseDiagnostic;
-import util.col.arr : arrayOfSingle, emptySmallArray, isEmpty, only, PtrAndSmallNumber, small, SmallArray;
-import util.col.arrUtil : exists, first;
+import util.col.array :
+	arrayOfSingle, emptySmallArray, exists, first, isEmpty, only, PtrAndSmallNumber, small, SmallArray;
 import util.col.hashTable : existsInHashTable, HashTable;
 import util.col.map : Map;
 import util.col.enumMap : EnumMap;

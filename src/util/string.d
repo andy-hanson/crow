@@ -4,8 +4,7 @@ module util.string;
 
 import util.alloc.alloc : Alloc;
 import util.comparison : Comparison;
-import util.col.arr : isEmpty;
-import util.col.arrUtil : append, arraysEqual, copyArray;
+import util.col.array : append, arraysEqual, copyArray, isEmpty;
 import util.hash : HashCode, hashString;
 
 // Like 'immutable char*' but guaranteed to have a terminating '\0'

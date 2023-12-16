@@ -27,7 +27,7 @@ import model.model :
 	TypeParamIndex,
 	TypeParams,
 	TypeParamsAndSig;
-import util.col.arr : isEmpty, only, only2, sizeEq;
+import util.col.array : isEmpty, only, only2, sizeEq;
 import util.lineAndColumnGetter : LineAndColumn, LineAndColumnRange, PosKind;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : toUriAndPos, UriAndPos, UriAndRange;

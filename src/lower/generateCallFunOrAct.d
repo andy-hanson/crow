@@ -16,7 +16,7 @@ import model.lowModel :
 	LowLocal,
 	LowType;
 import util.alloc.alloc : Alloc;
-import util.col.arrUtil : mapZip, newArray;
+import util.col.array : mapZip, newArray;
 import util.col.map : mustGet;
 import util.memory : allocate;
 import util.opt : some;

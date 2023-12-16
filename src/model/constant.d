@@ -3,7 +3,7 @@ module model.constant;
 @safe @nogc pure nothrow:
 
 import model.concreteModel : ConcreteFun;
-import util.col.arrUtil : arraysEqual;
+import util.col.array : arraysEqual;
 import util.union_ : Union;
 
 // WARN: The type of a constant is implicit (given by context).

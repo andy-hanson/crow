@@ -5,7 +5,7 @@ module model.typeLayout;
 import interpret.bytecode : stackEntrySize;
 import model.concreteModel : TypeSize;
 import model.lowModel : AllLowTypes, LowField, LowProgram, LowPtrCombine, LowRecord, LowType, PrimitiveType, typeSize;
-import util.col.arrUtil : every, map;
+import util.col.array : every, map;
 import util.opt : none, Opt, some;
 import util.util : divRoundUp, isMultipleOf;
 

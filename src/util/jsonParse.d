@@ -4,7 +4,7 @@ module util.jsonParse;
 
 import frontend.parse.lexUtil : isDecimalDigit, isWhitespace, tryTakeChar, tryTakeChars;
 import util.alloc.alloc : Alloc;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.json : Json;
 import util.opt : force, has, none, Opt, some;
 import util.string : CString, stringOfCString;
@@ -129,17 +129,17 @@ Opt!char escapedChar(char escape) {
 
 
 Opt!Json parseArray(ref Alloc alloc, scope ref AllSymbols allSymbols, scope ref immutable(char)* ptr) {
-	ArrBuilder!Json res;
+	ArrayBuilder!Json res;
 	return parseArrayRecur(alloc, allSymbols, res, ptr);
 }
 Opt!Json parseArrayRecur(
 	ref Alloc alloc,
 	scope ref AllSymbols allSymbols,
-	scope ref ArrBuilder!Json res,
+	scope ref ArrayBuilder!Json res,
 	scope ref immutable(char)* ptr,
 ) {
 	if (tryTakePunctuation(ptr, ']'))
-		return some(Json(finishArr(alloc, res)));
+		return some(Json(finish(alloc, res)));
 	else {
 		Opt!Json value = parseValue(alloc, allSymbols, ptr);
 		if (has(value)) {
@@ -147,7 +147,7 @@ Opt!Json parseArrayRecur(
 			return tryTakePunctuation(ptr, ',')
 				? parseArrayRecur(alloc, allSymbols, res, ptr)
 				: tryTakePunctuation(ptr, ']')
-				? some(Json(finishArr(alloc, res)))
+				? some(Json(finish(alloc, res)))
 				: none!Json;
 		} else
 			return none!Json;
@@ -155,14 +155,14 @@ Opt!Json parseArrayRecur(
 }
 
 Opt!Json parseObject(ref Alloc alloc, scope ref AllSymbols allSymbols, scope ref immutable(char)* ptr) {
-	ArrBuilder!(Json.ObjectField) res;
+	ArrayBuilder!(Json.ObjectField) res;
 	return parseObjectRecur(alloc, allSymbols, res, ptr);
 }
 
 Opt!Json parseObjectRecur(
 	ref Alloc alloc,
 	scope ref AllSymbols allSymbols,
-	scope ref ArrBuilder!(Json.ObjectField) res,
+	scope ref ArrayBuilder!(Json.ObjectField) res,
 	scope ref immutable(char)* ptr,
 ) {
 	if (tryTakePunctuation(ptr, '"')) {
@@ -174,14 +174,14 @@ Opt!Json parseObjectRecur(
 				return tryTakePunctuation(ptr, ',')
 					? parseObjectRecur(alloc, allSymbols, res, ptr)
 					: tryTakePunctuation(ptr, '}')
-					? some(Json(finishArr(alloc, res)))
+					? some(Json(finish(alloc, res)))
 					: none!Json;
 			} else
 				return none!Json;
 		} else
 			return none!Json;
 	} else if (tryTakePunctuation(ptr, '}'))
-		return some(Json(finishArr(alloc, res)));
+		return some(Json(finish(alloc, res)));
 	else
 		return none!Json;
 }

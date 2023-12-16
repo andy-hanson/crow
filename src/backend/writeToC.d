@@ -50,8 +50,7 @@ import model.lowModel :
 import model.model : EnumValue;
 import model.typeLayout : sizeOfType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.col.arr : isEmpty, only, sizeEq;
-import util.col.arrUtil : every, exists, map, zip;
+import util.col.array : every, exists, isEmpty, map, only, sizeEq, zip;
 import util.col.map : mustGet;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach, fullIndexMapEachKey;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;

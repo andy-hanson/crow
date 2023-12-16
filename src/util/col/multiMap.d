@@ -3,7 +3,7 @@ module util.col.multiMap;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.map : Map, mapToArray, values;
 import util.col.mutMap : getOrAdd, mapToMap, MutMap, MutMapValues;
 import util.opt : force, has, Opt;
@@ -31,17 +31,17 @@ MultiMap!(K, V) makeMultiMap(K, V)(
 	ref Alloc alloc,
 	in void delegate(in MultiMapCb!(K, V) add) @safe @nogc pure nothrow cb,
 ) {
-	MutMap!(K, ArrBuilder!(immutable V)) builder;
+	MutMap!(K, ArrayBuilder!(immutable V)) builder;
 	cb((K key, V value) {
-		add(alloc, getOrAdd(alloc, builder, key, () => ArrBuilder!(immutable V)()), value);
+		add(alloc, getOrAdd(alloc, builder, key, () => ArrayBuilder!(immutable V)()), value);
 	});
 	return toMultiMap!(K, V)(alloc, builder);
 }
 
-private MultiMap!(K, V) toMultiMap(K, V)(ref Alloc alloc, ref MutMap!(K, ArrBuilder!V) builder) =>
+private MultiMap!(K, V) toMultiMap(K, V)(ref Alloc alloc, ref MutMap!(K, ArrayBuilder!V) builder) =>
 	MultiMap!(K, V)(
-		mapToMap!(K, V[], ArrBuilder!(immutable V))(alloc, builder, (ref ArrBuilder!(immutable V) arr) =>
-			finishArr!V(alloc, arr)));
+		mapToMap!(K, V[], ArrayBuilder!(immutable V))(alloc, builder, (ref ArrayBuilder!(immutable V) arr) =>
+			finish!V(alloc, arr)));
 
 Out[] mapToArray(Out, K, V)(
 	ref Alloc alloc,

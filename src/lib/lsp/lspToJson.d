@@ -24,7 +24,7 @@ import lib.lsp.lspTypes :
 	WorkspaceEdit,
 	Write;
 import util.alloc.alloc : Alloc;
-import util.col.arrUtil : map;
+import util.col.array : map;
 import util.col.multiMap : mapToArray, MultiMap;
 import util.exitCode : ExitCode;
 import util.json : field, Json, jsonBool, jsonList, jsonNull, jsonObject, jsonString, optionalField;

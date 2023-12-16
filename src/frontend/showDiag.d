@@ -51,9 +51,8 @@ import model.model :
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : isEmpty, only;
-import util.col.arrBuilder : add, ArrBuilder, arrBuilderSort, finishArr;
-import util.col.arrUtil : exists;
+import util.col.array : exists, isEmpty, only;
+import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderSort, finish;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnRange;
 import util.col.multiMap : makeMultiMap, MultiMap, MultiMapCb;
 import util.col.sortUtil : sorted;
@@ -123,7 +122,7 @@ UriAndDiagnostics[] sortedDiagnostics(ref Alloc alloc, in AllUris allUris, in Pr
 		});
 	});
 
-	ArrBuilder!UriAndDiagnostics res; // TODO:PERF ExactSizeArrBuilder
+	ArrayBuilder!UriAndDiagnostics res; // TODO:PERF ExactSizeArrayBuilder
 	foreach (Uri uri, immutable Diagnostic[] diags; map) {
 		Diagnostic[] sortedDiags = sorted!Diagnostic(alloc, diags, (in Diagnostic x, in Diagnostic y) =>
 			compareDiagnostic(x, y));
@@ -131,7 +130,7 @@ UriAndDiagnostics[] sortedDiagnostics(ref Alloc alloc, in AllUris allUris, in Pr
 	}
 	arrBuilderSort!UriAndDiagnostics(res, (in UriAndDiagnostics x, in UriAndDiagnostics y) =>
 		compareUriAlphabetically(allUris, x.uri, y.uri));
-	return finishArr(alloc, res);
+	return finish(alloc, res);
 }
 
 private:

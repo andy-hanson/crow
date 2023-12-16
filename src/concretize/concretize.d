@@ -19,7 +19,7 @@ import model.concreteModel :
 	ConcreteCommonFuns, ConcreteFun, ConcreteLambdaImpl, ConcreteProgram, ConcreteStruct, mustBeByVal;
 import model.model : CommonFuns, MainFun, ProgramWithMain;
 import util.alloc.alloc : Alloc;
-import util.col.arrBuilder : finishArr;
+import util.col.arrayBuilder : finish;
 import util.col.map : Map;
 import util.col.mutArr : moveToArr, MutArr;
 import util.col.mutMap : isEmpty, mapToMap;
@@ -74,13 +74,13 @@ ConcreteProgram concretizeInner(
 	// We remove items from these maps when we process them.
 	assert(isEmpty(ctx.concreteFunToBodyInputs));
 
-	immutable ConcreteFun*[] allConcreteFuns = finishArr(alloc, ctx.allConcreteFuns);
+	immutable ConcreteFun*[] allConcreteFuns = finish(alloc, ctx.allConcreteFuns);
 
 	deferredFillRecordAndUnionBodies(ctx);
 
 	ConcreteProgram res = ConcreteProgram(
 		finishAllConstants(alloc, ctx.allConstants, mustBeByVal(staticSymbolsFun.returnType)),
-		finishArr(alloc, ctx.allConcreteStructs),
+		finish(alloc, ctx.allConcreteStructs),
 		finishConcreteVars(ctx),
 		allConcreteFuns,
 		mapToMap!(ConcreteStruct*, ConcreteLambdaImpl[], MutArr!ConcreteLambdaImpl)(

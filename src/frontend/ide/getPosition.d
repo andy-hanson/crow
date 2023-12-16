@@ -74,8 +74,7 @@ import model.model :
 	TypeParamIndex,
 	VarDecl;
 import model.model : paramsArray, StructDeclSource;
-import util.col.arr : ptrsRange;
-import util.col.arrUtil : first, firstPointer, firstWithIndex, firstZipPointerFirst;
+import util.col.array : first, firstPointer, firstWithIndex, firstZipPointerFirst, ptrsRange;
 import util.opt : force, has, none, Opt, optIf, optOr, optOr, optOrDefault, some;
 import util.sourceRange : hasPos, Pos, Range, rangeOfStartAndLength;
 import util.symbol : AllSymbols;

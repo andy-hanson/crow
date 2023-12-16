@@ -19,7 +19,7 @@ import util.alloc.doubleLink :
 	removeFromList,
 	replaceInList,
 	assertDoubleLink;
-import util.col.arr : arrayOfRange, arrayOfSingle, endPtr;
+import util.col.array : arrayOfRange, arrayOfSingle, endPtr;
 import util.col.enumMap : EnumMap;
 import util.memory : memset;
 import util.opt : ConstOpt, force, has, MutOpt, noneMut, someMut;

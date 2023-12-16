@@ -55,9 +55,8 @@ import model.model :
 	SpecDeclSig,
 	SpecInst,
 	Type;
-import util.col.arr : isEmpty, only, small;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : every, exists, makeArrayOrFail, newArray, zipEvery;
+import util.col.array : every, exists, isEmpty, makeArrayOrFail, newArray, only, small, zipEvery;
+import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.mutMaxArr :
 	exists, isEmpty, fillMutMaxArr, MutMaxArr, mutMaxArr, mutMaxArrSize, only, push, size, tempAsArr;
 import util.opt : force, has, none, noneMut, Opt, some, some;
@@ -160,7 +159,7 @@ Expr checkCallInner(
 		if (inferCandidateTypeArgsFromExplicitlyTypedArgument(ctx, candidates, argIdx, arg) == ContinueOrAbort.abort)
 			return bogus(expected, source);
 
-	ArrBuilder!Type actualArgTypes;
+	ArrayBuilder!Type actualArgTypes;
 	bool someArgIsBogus = false;
 	Opt!(Expr[]) args = makeArrayOrFail!Expr(ctx.alloc, arity, (size_t argIdx) @safe {
 		if (isEmpty(candidates))
@@ -204,7 +203,7 @@ Expr checkCallInner(
 				getExpectedForDiag(ctx, expected),
 				getNTypeArgsForDiagnostic(ctx.commonTypes, explicitTypeArg),
 				arity,
-				finishArr(ctx.alloc, actualArgTypes),
+				finish(ctx.alloc, actualArgTypes),
 				allCandidates)));
 		} else
 			addDiag2(ctx, diagRange, Diag(

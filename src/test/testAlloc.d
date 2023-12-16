@@ -25,7 +25,7 @@ import util.alloc.alloc :
 	withAlloc,
 	withTempAlloc,
 	word;
-import util.col.arrUtil : every, makeArray;
+import util.col.array : every, makeArray;
 import util.util : ptrTrustMe;
 
 void testAlloc(ref Test test) {

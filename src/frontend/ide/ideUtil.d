@@ -41,9 +41,8 @@ import model.model :
 	ThrowExpr,
 	Type,
 	TypeParamIndex;
-import util.col.arr : arrayOfSingle, isEmpty, only;
-import util.col.arrBuilder : ArrBuilderCb;
-import util.col.arrUtil : count, first, firstZip;
+import util.col.array : arrayOfSingle, count, first, firstZip, isEmpty, only;
+import util.col.arrayBuilder : ArrBuilderCb;
 import util.opt : force, has, none, Opt, optOr, some;
 import util.sourceRange : UriAndRange;
 import util.util : typeAs;

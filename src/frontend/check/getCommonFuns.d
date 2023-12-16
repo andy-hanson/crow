@@ -42,9 +42,8 @@ import model.model :
 	TypeParamsAndSig,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : isEmpty, sizeEq, small;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : arraysCorrespond, copyArray, filter, findIndex, makeArray, map;
+import util.col.array : arraysCorrespond, copyArray, filter, findIndex, isEmpty, makeArray, map, sizeEq, small;
+import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.enumMap : EnumMap;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
@@ -78,7 +77,7 @@ CommonFunsAndMain getCommonFuns(
 	in EnumMap!(CommonModule, Module*) modules,
 	Opt!(Module*) mainModule,
 ) {
-	ArrBuilder!UriAndDiagnostic diagsBuilder;
+	ArrayBuilder!UriAndDiagnostic diagsBuilder;
 
 	Type getType(CommonModule module_, Symbol name) {
 		return getNonTemplateType(alloc, ctx, diagsBuilder, *modules[module_], name);
@@ -168,7 +167,7 @@ CommonFunsAndMain getCommonFuns(
 		[param!"a"(char8ArrayType)]);
 	return CommonFunsAndMain(
 		CommonFuns(
-			finishArr(alloc, diagsBuilder),
+			finish(alloc, diagsBuilder),
 			allocFun, funOrActSubscriptFunDecls, curExclusion, mark,
 			markVisit, newNat64Future, rtMain, staticSymbols, throwImpl, char8ArrayAsString),
 		main);
@@ -221,7 +220,7 @@ FunKind firstArgFunKind(in CommonTypes commonTypes, FunDecl* f) {
 Type getNonTemplateType(
 	ref Alloc alloc,
 	ref InstantiateCtx ctx,
-	scope ref ArrBuilder!UriAndDiagnostic diagsBuilder,
+	scope ref ArrayBuilder!UriAndDiagnostic diagsBuilder,
 	ref Module module_,
 	Symbol name,
 ) {
@@ -233,7 +232,7 @@ Type getNonTemplateType(
 
 StructDecl* getStructDeclOrAddDiag(
 	ref Alloc alloc,
-	scope ref ArrBuilder!UriAndDiagnostic diagsBuilder,
+	scope ref ArrayBuilder!UriAndDiagnostic diagsBuilder,
 	ref Module module_,
 	Symbol name,
 	size_t nTypeParams,
@@ -289,7 +288,7 @@ bool typesMatch(in Type a, in TypeParams typeParamsA, in Type b, in TypeParams t
 
 FunDecl* getFunDecl(
 	ref Alloc alloc,
-	scope ref ArrBuilder!UriAndDiagnostic diagsBuilder,
+	scope ref ArrayBuilder!UriAndDiagnostic diagsBuilder,
 	ref Module module_,
 	Symbol name,
 	in TypeParamsAndSig expectedSig,
@@ -299,7 +298,7 @@ FunDecl* getFunDecl(
 MainFun getMainFun(
 	ref Alloc alloc,
 	ref InstantiateCtx ctx,
-	scope ref ArrBuilder!UriAndDiagnostic diagsBuilder,
+	scope ref ArrayBuilder!UriAndDiagnostic diagsBuilder,
 	ref Module mainModule,
 	Type nat64FutureType,
 	Type stringListType,
@@ -325,7 +324,7 @@ immutable struct FunDeclAndSigIndex {
 
 FunDeclAndSigIndex getFunDeclMulti(
 	ref Alloc alloc,
-	scope ref ArrBuilder!UriAndDiagnostic diagsBuilder,
+	scope ref ArrayBuilder!UriAndDiagnostic diagsBuilder,
 	ref Module module_,
 	Symbol name,
 	in TypeParamsAndSig[] expectedSigs,

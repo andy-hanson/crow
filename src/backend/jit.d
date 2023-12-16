@@ -122,8 +122,7 @@ import model.lowModel :
 	UpdateParam;
 import model.typeLayout : typeSizeBytes;
 import util.alloc.alloc : Alloc;
-import util.col.arr : isEmpty;
-import util.col.arrUtil : fillArray, indexOfPointer, makeArray, map, mapWithIndex, zip;
+import util.col.array : fillArray, indexOfPointer, isEmpty, makeArray, map, mapWithIndex, zip;
 import util.col.map : mustGet;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapZip, mapFullIndexMap_mut;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;

@@ -108,11 +108,11 @@ import model.model :
 	VarKind;
 import model.typeLayout : isEmptyType;
 import util.alloc.alloc : Alloc;
-import util.col.arr : isEmpty, only, only2;
-import util.col.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
-import util.col.arrUtil :
+import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderSize, finish;
+import util.col.array :
 	exists,
 	indexOfPointer,
+	isEmpty,
 	map,
 	mapPointersWithIndex,
 	mapWithIndex,
@@ -120,6 +120,8 @@ import util.col.arrUtil :
 	mapZip,
 	mapZipPtrFirst,
 	newArray,
+	only,
+	only2,
 	zipPtrFirst;
 import util.col.map : KeyValuePair, makeMapWithIndex, mustGet, Map;
 import util.col.mapBuilder : finishMap, mustAddToMap, MapBuilder;
@@ -261,10 +263,10 @@ struct GetLowTypeCtx {
 
 AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in AllSymbols allSymbols, in ConcreteProgram program) {
 	MapBuilder!(ConcreteStruct*, LowType) concreteStructToTypeBuilder;
-	ArrBuilder!(ConcreteStruct*) allFunPointerSources;
-	ArrBuilder!LowExternType allExternTypes;
-	ArrBuilder!(ConcreteStruct*) allRecordSources;
-	ArrBuilder!(ConcreteStruct*) allUnionSources;
+	ArrayBuilder!(ConcreteStruct*) allFunPointerSources;
+	ArrayBuilder!LowExternType allExternTypes;
+	ArrayBuilder!(ConcreteStruct*) allRecordSources;
+	ArrayBuilder!(ConcreteStruct*) allUnionSources;
 
 	LowType addUnion(ConcreteStruct* s) {
 		size_t i = arrBuilderSize(allUnionSources);
@@ -339,7 +341,7 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in AllSymbols allSymbols, in 
 
 	immutable FullIndexMap!(LowType.Record, LowRecord) allRecords =
 		fullIndexMapOfArr!(LowType.Record, LowRecord)(
-			map(alloc, finishArr(alloc, allRecordSources), (ref immutable ConcreteStruct* struct_) =>
+			map(alloc, finish(alloc, allRecordSources), (ref immutable ConcreteStruct* struct_) =>
 				LowRecord(
 					struct_,
 					mapZipPtrFirst!(LowField, ConcreteField, immutable size_t)(
@@ -350,7 +352,7 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in AllSymbols allSymbols, in 
 							LowField(field, fieldOffset, lowTypeFromConcreteType(getLowTypeCtx, field.type))))));
 	immutable FullIndexMap!(LowType.FunPtr, LowFunPtrType) allFunPointers =
 		fullIndexMapOfArr!(LowType.FunPtr, LowFunPtrType)(
-			map(alloc, finishArr(alloc, allFunPointerSources), (ref immutable ConcreteStruct* x) {
+			map(alloc, finish(alloc, allFunPointerSources), (ref immutable ConcreteStruct* x) {
 				ConcreteType[2] typeArgs = only2(x.body_.as!(ConcreteStructBody.Builtin).typeArgs);
 				return LowFunPtrType(
 					x,
@@ -359,12 +361,12 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in AllSymbols allSymbols, in 
 			}));
 	immutable FullIndexMap!(LowType.Union, LowUnion) allUnions =
 		fullIndexMapOfArr!(LowType.Union, LowUnion)(
-			map(alloc, finishArr(alloc, allUnionSources), (ref immutable ConcreteStruct* it) =>
+			map(alloc, finish(alloc, allUnionSources), (ref immutable ConcreteStruct* it) =>
 				getLowUnion(alloc, program, getLowTypeCtx, it)));
 
 	return AllLowTypesWithCtx(
 		AllLowTypes(
-			fullIndexMapOfArr!(LowType.Extern, LowExternType)(finishArr(alloc, allExternTypes)),
+			fullIndexMapOfArr!(LowType.Extern, LowExternType)(finish(alloc, allExternTypes)),
 			allFunPointers,
 			allRecords,
 			allUnions),
@@ -533,7 +535,7 @@ AllLowFuns getAllLowFuns(
 	in immutable FullIndexMap!(LowVarIndex, LowVar) allVars,
 ) {
 	MapBuilder!(ConcreteFun*, LowFunIndex) concreteFunToLowFunIndexBuilder;
-	ArrBuilder!LowFunCause lowFunCausesBuilder;
+	ArrayBuilder!LowFunCause lowFunCausesBuilder;
 
 	MarkVisitFuns markVisitFuns = MarkVisitFuns(
 		newMutIndexMap!(LowType.Record, LowFunIndex)(getLowTypeCtx.alloc, fullIndexMapSize(allTypes.allRecords)),
@@ -675,7 +677,7 @@ AllLowFuns getAllLowFuns(
 
 	LowType markCtxType = lateIsSet(markCtxTypeLate) ? lateGet(markCtxTypeLate) : voidType;
 
-	LowFunCause[] lowFunCauses = finishArr(getLowTypeCtx.alloc, lowFunCausesBuilder);
+	LowFunCause[] lowFunCauses = finish(getLowTypeCtx.alloc, lowFunCausesBuilder);
 	ConcreteFunToLowFunIndex concreteFunToLowFunIndex =
 		finishMap(getLowTypeCtx.alloc, concreteFunToLowFunIndexBuilder);
 
@@ -1130,13 +1132,13 @@ LowExprKind getCallRegular(
 ) {
 	if (called == ctx.currentFun && exprPos == ExprPos.tail) {
 		ctx.hasTailRecur = true;
-		ArrBuilder!UpdateParam updateParams;
+		ArrayBuilder!UpdateParam updateParams;
 		zipPtrFirst(ctx.lowParams, a.args, (LowLocal* param, ref ConcreteExpr concreteArg) {
 			LowExpr arg = getLowExpr(ctx, locals, concreteArg, ExprPos.nonTail);
 			if (!(arg.kind.isA!(LowExprKind.LocalGet) && arg.kind.as!(LowExprKind.LocalGet).local == param))
 				add(ctx.alloc, updateParams, UpdateParam(param, arg));
 		});
-		return LowExprKind(LowExprKind.TailRecur(finishArr(ctx.alloc, updateParams)));
+		return LowExprKind(LowExprKind.TailRecur(finish(ctx.alloc, updateParams)));
 	} else
 		return LowExprKind(LowExprKind.Call(called, map(ctx.alloc, a.args, (ref ConcreteExpr it) =>
 			getLowExpr(ctx, locals, it, ExprPos.nonTail))));

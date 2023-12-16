@@ -11,8 +11,7 @@ import model.concreteModel :
 	PointerTypeAndConstantsConcrete;
 import model.constant : Constant, constantZero;
 import util.alloc.alloc : Alloc;
-import util.col.arr : isEmpty, only;
-import util.col.arrUtil : arraysEqual, fillArray, findIndex, newArray;
+import util.col.array : arraysEqual, fillArray, findIndex, isEmpty, newArray, only;
 import util.col.mutArr : moveToArr, MutArr, mutArrSize, push, tempAsArr;
 import util.col.mutMap : getOrAdd, MutMap, size, values, valuesArray;
 import util.memory : initMemory;

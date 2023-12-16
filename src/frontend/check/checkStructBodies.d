@@ -45,8 +45,7 @@ import model.model :
 	TypeParamIndex,
 	UnionMember,
 	Visibility;
-import util.col.arr : isEmpty;
-import util.col.arrUtil : eachPair, fold, map, mapAndFold, MapAndFold, mapPointers, zipPtrFirst;
+import util.col.array : eachPair, fold, isEmpty, map, mapAndFold, MapAndFold, mapPointers, zipPtrFirst;
 import util.conv : safeToSizeT;
 import util.opt : force, has, none, Opt, optOrDefault, some, someMut;
 import util.sourceRange : Range;

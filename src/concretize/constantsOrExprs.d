@@ -5,8 +5,7 @@ module concretize.constantsOrExprs;
 import model.concreteModel : ConcreteExpr;
 import model.constant : Constant;
 import util.alloc.alloc : Alloc;
-import util.col.arr : SmallArray;
-import util.col.arrUtil : every, map;
+import util.col.array : every, map, SmallArray;
 import util.union_ : Union;
 
 immutable struct ConstantsOrExprs {

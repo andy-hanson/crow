@@ -12,7 +12,7 @@ import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.lowModel : LowFunIndex, LowFunSource, LowProgram;
 import util.alloc.alloc : Alloc, withStaticAlloc;
 import util.lineAndColumnGetter : LineAndColumn, PosKind;
-import util.col.arr : isPointerInRange;
+import util.col.array : isPointerInRange;
 import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : UriAndPos;

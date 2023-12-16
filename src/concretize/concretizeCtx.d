@@ -68,9 +68,24 @@ import model.model :
 	VarDecl,
 	worsePurity;
 import util.alloc.alloc : Alloc;
-import util.col.arr : emptySmallArray, isEmpty, only, only2, small, SmallArray;
-import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
-import util.col.arrUtil : arraysEqual, every, everyWithIndex, exists, fold, map, mapWithIndex, mapZip, max, newArray;
+import util.col.array :
+	arraysEqual,
+	emptySmallArray,
+	every,
+	everyWithIndex,
+	exists,
+	fold,
+	isEmpty,
+	map,
+	mapWithIndex,
+	mapZip,
+	max,
+	newArray,
+	only,
+	only2,
+	small,
+	SmallArray;
+import util.col.arrayBuilder : add, addAll, ArrayBuilder, finish;
 import util.col.hashTable : getOrAdd, getOrAddAndDidAdd, moveToArray, MutHashTable;
 import util.col.map : Map, mustGet, values;
 import util.col.mutArr : filterUnordered, MutArr, mutArrIsEmpty, push;
@@ -83,7 +98,7 @@ import util.sourceRange : UriAndRange;
 import util.string : CString;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.uri : AllUris, Uri;
-import util.util : castMutable, max, roundUp, todo, typeAs, unreachable;
+import util.util : max, roundUp, todo, typeAs, unreachable;
 import versionInfo : VersionInfo;
 
 immutable struct TypeArgsScope {
@@ -180,12 +195,12 @@ struct ConcretizeCtx {
 	Late!(ConcreteFun*) char8ArrayAsString_;
 	AllConstantsBuilder allConstants;
 	MutHashTable!(ConcreteStruct*, ConcreteStructKey, getStructKey) nonLambdaConcreteStructs;
-	ArrBuilder!(ConcreteStruct*) allConcreteStructs;
+	ArrayBuilder!(ConcreteStruct*) allConcreteStructs;
 	MutHashTable!(immutable ConcreteVar*, immutable VarDecl*, getVarKey) concreteVarLookup;
 	MutHashTable!(ConcreteFun*, ConcreteFunKey, getFunKey) nonLambdaConcreteFuns;
 	MutArr!DeferredRecordBody deferredRecords;
 	MutArr!DeferredUnionBody deferredUnions;
-	ArrBuilder!(ConcreteFun*) allConcreteFuns;
+	ArrayBuilder!(ConcreteFun*) allConcreteFuns;
 
 	// This will only have an entry while a ConcreteFun hasn't had it's body filled in yet.
 	MutMap!(ConcreteFun*, ConcreteFunBodyInputs) concreteFunToBodyInputs;
@@ -313,7 +328,7 @@ private ConcreteType getConcreteType_forStructInst(
 				return res;
 			});
 	if (res.didAdd)
-		initializeConcreteStruct(ctx, typeArgs, *i, castMutable(res.value), typeArgsScope);
+		initializeConcreteStruct(ctx, typeArgs, *i, res.value, typeArgsScope);
 	if (!res.value.defaultReferenceKindIsSet)
 		// The only way 'defaultIsPointer' would not be set is if we are still computing the size of 's'.
 		// In that case, it's a recursive record, so it should be by-ref.
@@ -817,10 +832,10 @@ StructBody.Enum.Member[] enumOrFlagsMembers(ConcreteType type) =>
 
 ConcreteFunBody bodyForAllTests(ref ConcretizeCtx ctx, ConcreteType returnType) {
 	Test[] allTests = () {
-		ArrBuilder!Test allTestsBuilder;
+		ArrayBuilder!Test allTestsBuilder;
 		foreach (immutable Module* m; ctx.program.allModules)
 			addAll(ctx.alloc, allTestsBuilder, m.tests);
-		return finishArr(ctx.alloc, allTestsBuilder);
+		return finish(ctx.alloc, allTestsBuilder);
 	}();
 	Constant arr = getConstantArr(
 		ctx.alloc,

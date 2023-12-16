@@ -3,7 +3,7 @@ module frontend.check.maps;
 @safe @nogc pure nothrow:
 
 import model.model : FunDecl, SpecDecl, StructOrAlias;
-import util.col.arrUtil : allSame;
+import util.col.array : allSame;
 import util.col.hashTable : HashTable;
 import util.symbol : Symbol;
 

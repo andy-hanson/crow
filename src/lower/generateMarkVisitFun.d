@@ -43,7 +43,7 @@ import lower.lowExprHelpers :
 	genWrapMulNat64,
 	voidType;
 import util.alloc.alloc : Alloc;
-import util.col.arrUtil : mapWithIndex, newArray;
+import util.col.array : mapWithIndex, newArray;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : UriAndRange;

@@ -19,7 +19,7 @@ import frontend.parse.lexWhitespace : detectIndentKind, IndentKind, skipSpacesAn
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
@@ -41,7 +41,7 @@ struct Lexer {
 	// This is after 'nextToken'.
 	immutable(char)* ptr;
 	immutable(char)* prevTokenEnd;
-	ArrBuilder!ParseDiagnostic diagnosticsBuilder;
+	ArrayBuilder!ParseDiagnostic diagnosticsBuilder;
 	// Position at start of 'nextToken'.
 	Pos nextTokenPos = void;
 	Cell!TokenAndData nextToken = void;
@@ -76,7 +76,7 @@ void addDiag(ref Lexer lexer, in Range range, ParseDiag diag) {
 }
 
 ParseDiagnostic[] finishDiagnostics(ref Lexer lexer) =>
-	finishArr(lexer.alloc, lexer.diagnosticsBuilder);
+	finish(lexer.alloc, lexer.diagnosticsBuilder);
 
 void addDiagAtChar(ref Lexer lexer, ParseDiag diag) {
 	addDiag(lexer, rangeAtChar(lexer), diag);

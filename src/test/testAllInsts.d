@@ -28,8 +28,7 @@ import model.model :
 	Visibility;
 import test.testUtil : Test;
 import util.alloc.alloc : Alloc, withTempAlloc;
-import util.col.arr : small;
-import util.col.arrUtil : contains, indexOf, newArray;
+import util.col.array : contains, indexOf, newArray, small;
 import util.col.hashTable : ValueAndDidAdd;
 import util.col.mutMultiMap : countKeys, eachValueForKey, MutMultiMap;
 import util.memory : allocate;

@@ -19,8 +19,7 @@ import model.model :
 	Type,
 	TypeArgs;
 import util.alloc.alloc : Alloc, free;
-import util.col.arr : ptrsRange, SmallArray;
-import util.col.arrUtil : arraysEqual, copyArray;
+import util.col.array : arraysEqual, copyArray, ptrsRange, SmallArray;
 import util.col.hashTable :
 	getOrAdd, getOrAddAndDidAdd, hashTableToArray, mayDeleteValue, MutHashTable, size, ValueAndDidAdd;
 import util.col.mutMap : getOrAdd, getOrAddAndDidAdd;

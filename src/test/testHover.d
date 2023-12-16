@@ -14,9 +14,8 @@ import model.model : Module, Program;
 import test.testUtil : setupTestServer, Test, withTestServer;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : isEmpty;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : arraysEqual;
+import util.col.array : arraysEqual, isEmpty;
+import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.hashTable : mustGet;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonList, jsonObject, jsonToStringPretty, optionalArrayField;
@@ -77,7 +76,7 @@ immutable struct InfoAtPos {
 }
 
 Json hoverResult(ref Alloc alloc, in string content, in ShowCtx ctx, Module* mainModule) {
-	ArrBuilder!Json parts;
+	ArrayBuilder!Json parts;
 
 	// We combine ranges that have the same info.
 	Pos curRangeStart = 0;
@@ -113,5 +112,5 @@ Json hoverResult(ref Alloc alloc, in string content, in ShowCtx ctx, Module* mai
 	}
 	endRange(endOfFile);
 
-	return jsonList(finishArr(alloc, parts));
+	return jsonList(finish(alloc, parts));
 }

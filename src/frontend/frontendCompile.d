@@ -25,9 +25,9 @@ import model.model :
 	CommonTypes, Config, emptyConfig, getConfigUri, getModuleUri, MainFun, Module, Program, ProgramWithMain;
 import util.alloc.alloc :
 	Alloc, AllocAndValue, allocateUninitialized, AllocKind, freeAllocAndValue, MetaAlloc, newAlloc, withAlloc;
-import util.col.arrBuilder : add, ArrBuilder, arrBuilderTempAsArr, finishArr;
-import util.col.arrUtil : contains, exists, every, findIndex, map;
-import util.col.exactSizeArrBuilder : buildArrayExact, ExactSizeArrBuilder;
+import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderTempAsArr, finish;
+import util.col.array : contains, exists, every, findIndex, map;
+import util.col.exactSizeArrayBuilder : buildArrayExact, ExactSizeArrayBuilder;
 import util.col.hashTable : getOrAdd, HashTable, mapPreservingKeys, moveToImmutable, mustGet, MutHashTable;
 import util.col.map : Map;
 import util.col.mapBuilder : finishMap, MapBuilder, mustAddToMap;
@@ -282,12 +282,12 @@ void doDirtyWork(scope ref Perf perf, ref FrontendCompiler a) {
 void fixCircularImports(ref FrontendCompiler a) {
 	foreach (CrowFile* x; a.crowFiles)
 		if (!x.hasModule) {
-			ArrBuilder!Uri cycleBuilder;
+			ArrayBuilder!Uri cycleBuilder;
 			fixCircularImportsRecur(a, cycleBuilder, x);
 			return;
 		}
 }
-Uri[] fixCircularImportsRecur(ref FrontendCompiler a, scope ref ArrBuilder!Uri cycleBuilder, CrowFile* file) {
+Uri[] fixCircularImportsRecur(ref FrontendCompiler a, scope ref ArrayBuilder!Uri cycleBuilder, CrowFile* file) {
 	assert(!file.hasModule);
 	add(a.alloc, cycleBuilder, file.uri);
 	Opt!size_t optImportIndex = findIndex!MostlyResolvedImport(
@@ -296,7 +296,7 @@ Uri[] fixCircularImportsRecur(ref FrontendCompiler a, scope ref ArrBuilder!Uri c
 	size_t importIndex = force(optImportIndex);
 	CrowFile* next = force(file.resolvedImports)[importIndex].as!(CrowFile*);
 	Uri[] cycle = contains(arrBuilderTempAsArr(cycleBuilder), next.uri)
-		? finishArr(a.alloc, cycleBuilder)
+		? finish(a.alloc, cycleBuilder)
 		: fixCircularImportsRecur(a, cycleBuilder, next);
 	force(file.resolvedImports)[importIndex] = MostlyResolvedImport(
 		Diag.ImportFileDiag(Diag.ImportFileDiag.CircularImport(cycle)));
@@ -423,7 +423,7 @@ MostlyResolvedImport[] resolveImports(ref FrontendCompiler a, in FileAst ast, in
 	buildArrayExact!MostlyResolvedImport(
 		a.alloc,
 		countImportsAndReExports(ast),
-		(scope ref ExactSizeArrBuilder!MostlyResolvedImport res) {
+		(scope ref ExactSizeArrayBuilder!MostlyResolvedImport res) {
 			if (!ast.noStd)
 				res ~= MostlyResolvedImport(a.commonFiles[CommonModule.std]);
 			if (has(ast.imports))

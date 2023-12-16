@@ -18,8 +18,7 @@ import model.model :
 	Purity,
 	StructInst,
 	VarDecl;
-import util.col.arr : only, PtrAndSmallNumber, SmallArray;
-import util.col.arrUtil : arraysEqual, contains;
+import util.col.array : arraysEqual, contains, only, PtrAndSmallNumber, SmallArray;
 import util.col.map : Map;
 import util.hash : HashCode, Hasher, hashPtr;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;

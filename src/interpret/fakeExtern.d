@@ -17,7 +17,7 @@ import interpret.runBytecode : syntheticCall;
 import interpret.stacks : dataPush, Stacks;
 import model.lowModel : ExternLibraries, ExternLibrary;
 import util.alloc.alloc : Alloc, allocateBytes;
-import util.col.arrUtil : map;
+import util.col.array : map;
 import util.col.map : KeyValuePair, makeMap;
 import util.col.mutArr : MutArr, mutArrIsEmpty, push, tempAsArr;
 import util.memory : memmove, memset;

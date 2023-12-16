@@ -31,7 +31,7 @@ import lib.lsp.lspTypes :
 	TraceValue,
 	UnloadedUrisParams;
 import util.alloc.alloc : Alloc;
-import util.col.arrUtil : map;
+import util.col.array : map;
 import util.json : get, hasKey, Json;
 import util.jsonParse : asUint;
 import util.lineAndColumnGetter : LineAndCharacter, LineAndCharacterRange;

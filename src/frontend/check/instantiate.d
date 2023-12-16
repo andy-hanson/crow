@@ -33,8 +33,7 @@ import model.model :
 	TypeParamIndex,
 	UnionMember;
 import util.alloc.alloc : Alloc;
-import util.col.arr : emptySmallArray, small, SmallArray;
-import util.col.arrUtil : fold, map, mapWithFirst;
+import util.col.array : emptySmallArray, fold, map, mapWithFirst, small, SmallArray;
 import util.col.hashTable : ValueAndDidAdd;
 import util.col.mutArr : MutArrWithAlloc, push;
 import util.col.mutMaxArr : mapTo, MutMaxArr, mutMaxArr, push, tempAsArr;

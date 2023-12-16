@@ -40,9 +40,8 @@ import model.model :
 	VarDecl,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : isEmpty, small;
-import util.col.arrUtil : map, sum;
-import util.col.exactSizeArrBuilder : ExactSizeArrBuilder;
+import util.col.array : isEmpty, map, small, sum;
+import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder;
 import util.col.mutMaxArr : push, tempAsArr;
 import util.opt : force, has, none, Opt, some;
 import util.symbol : prependSet, prependSetDeref, Symbol, symbol;
@@ -79,7 +78,7 @@ size_t countFunsForVars(in VarDecl[] vars) =>
 
 void addFunsForStruct(
 	ref CheckCtx ctx,
-	scope ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	scope ref ExactSizeArrayBuilder!FunDecl funsBuilder,
 	ref CommonTypes commonTypes,
 	StructDecl* struct_,
 ) {
@@ -106,7 +105,7 @@ void addFunsForStruct(
 
 void addFunsForVar(
 	ref CheckCtx ctx,
-	scope ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	scope ref ExactSizeArrayBuilder!FunDecl funsBuilder,
 	in CommonTypes commonTypes,
 	VarDecl* var,
 ) {
@@ -174,7 +173,7 @@ bool recordIsAlwaysByVal(in StructBody.Record record) =>
 
 void addFunsForEnum(
 	ref CheckCtx ctx,
-	scope ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	scope ref ExactSizeArrayBuilder!FunDecl funsBuilder,
 	ref CommonTypes commonTypes,
 	StructDecl* struct_,
 	ref StructBody.Enum enum_,
@@ -190,7 +189,7 @@ void addFunsForEnum(
 
 void addFunsForFlags(
 	ref CheckCtx ctx,
-	scope ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	scope ref ExactSizeArrayBuilder!FunDecl funsBuilder,
 	ref CommonTypes commonTypes,
 	StructDecl* struct_,
 	ref StructBody.Flags flags,
@@ -210,7 +209,7 @@ void addFunsForFlags(
 
 void addEnumFlagsCommonFunctions(
 	ref Alloc alloc,
-	scope ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	scope ref ExactSizeArrayBuilder!FunDecl funsBuilder,
 	ref InstantiateCtx ctx,
 	StructDecl* struct_,
 	Type type,
@@ -345,7 +344,7 @@ FunDecl flagsUnionOrIntersectFunction(
 
 void addFunsForRecord(
 	ref CheckCtx ctx,
-	scope ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	scope ref ExactSizeArrayBuilder!FunDecl funsBuilder,
 	ref CommonTypes commonTypes,
 	StructDecl* struct_,
 	ref StructBody.Record record,
@@ -366,7 +365,7 @@ void typeArgsFromParams(scope ref TypeArgsArray out_, in TypeParams typeParams) 
 
 void addFunsForRecordConstructor(
 	ref CheckCtx ctx,
-	scope ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	scope ref ExactSizeArrayBuilder!FunDecl funsBuilder,
 	ref CommonTypes commonTypes,
 	StructDecl* struct_,
 	ref StructBody.Record record,
@@ -387,7 +386,7 @@ void addFunsForRecordConstructor(
 
 void addFunsForRecordField(
 	ref CheckCtx ctx,
-	scope ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	scope ref ExactSizeArrayBuilder!FunDecl funsBuilder,
 	ref CommonTypes commonTypes,
 	StructDecl* struct_,
 	Type structType,
@@ -471,7 +470,7 @@ Opt!Visibility visibilityOfFieldMutability(FieldMutability a) {
 
 void addFunsForUnion(
 	ref CheckCtx ctx,
-	scope ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	scope ref ExactSizeArrayBuilder!FunDecl funsBuilder,
 	in CommonTypes commonTypes,
 	StructDecl* struct_,
 	ref StructBody.Union union_,

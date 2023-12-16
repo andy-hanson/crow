@@ -45,9 +45,8 @@ version (Windows) {
 import frontend.storage : FileContent, ReadFileResult;
 import model.diag : ReadFileDiag;
 import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
-import util.col.arr : endPtr;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : newArray;
+import util.col.array : endPtr, newArray;
+import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.exitCode : ExitCode;
 import util.memory : memset;
 import util.opt : force, has, Opt, some;
@@ -482,12 +481,12 @@ version (Windows) {
 }
 
 @system immutable(char**) convertArgs(ref Alloc alloc, in CString executable, in CString[] args) {
-	ArrBuilder!(immutable char*) cArgs;
+	ArrayBuilder!(immutable char*) cArgs;
 	add(alloc, cArgs, executable.ptr);
 	foreach (CString arg; args)
 		add(alloc, cArgs, arg.ptr);
 	add(alloc, cArgs, null);
-	return finishArr(alloc, cArgs).ptr;
+	return finish(alloc, cArgs).ptr;
 }
 
 // D doesn't declare this anywhere for some reason

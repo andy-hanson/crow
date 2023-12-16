@@ -29,9 +29,8 @@ import model.model :
 	SpecInst,
 	Type;
 import util.alloc.alloc : Alloc;
-import util.col.arr : small;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : everyWithIndex, map;
+import util.col.array : everyWithIndex, map, small;
+import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.conv : safeToUshort;
 import util.memory : overwriteMemory;
 import util.col.mutMaxArr :
@@ -56,11 +55,11 @@ CalledDecl[] candidatesForDiag(ref Alloc alloc, in Candidates candidates) =>
 	map(alloc, tempAsArr(candidates), (ref const Candidate c) => c.called);
 
 CalledDecl[] getAllCandidatesAsCalledDecls(ref ExprCtx ctx, Symbol funName) {
-	ArrBuilder!CalledDecl res = ArrBuilder!CalledDecl();
+	ArrayBuilder!CalledDecl res = ArrayBuilder!CalledDecl();
 	eachFunInScope(funsInScope(ctx), funName, (CalledDecl called) {
 		add(ctx.alloc, res, called);
 	});
-	return finishArr(ctx.alloc, res);
+	return finish(ctx.alloc, res);
 }
 
 struct Candidate {

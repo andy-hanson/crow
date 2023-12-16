@@ -4,14 +4,14 @@ module util.union_;
 
 import std.traits : EnumMembers, isMutable, Unqual;
 import std.meta : staticMap;
-import util.col.arr : MutSmallArray, SmallArray;
+import util.col.array : MutSmallArray, SmallArray;
 import util.util : assertNormalEnum;
 
 mixin template Union(ReprTypes...) {
 	@safe @nogc nothrow:
 
 	import std.meta : staticMap;
-	import util.col.arr : SmallArray;
+	import util.col.array : SmallArray;
 	import util.union_ :
 		canUseTaggedPointers,
 		getTaggedPointerValue,

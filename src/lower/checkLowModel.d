@@ -39,8 +39,8 @@ import model.lowModel :
 	UpdateParam;
 import model.model : Program;
 import util.alloc.alloc : Alloc;
-import util.col.arr : sizeEq;
-import util.col.arrUtil : zip;
+import util.col.array : sizeEq;
+import util.col.array : zip;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
 import util.col.fullIndexMap : fullIndexMapEachValue;
 import util.json : field, Json, jsonObject, jsonString, kindField, writeJson;

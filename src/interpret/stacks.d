@@ -3,7 +3,7 @@ module interpret.stacks;
 @nogc nothrow: // not @safe, not pure
 
 import interpret.bytecode : Operation;
-import util.col.arr : endPtr;
+import util.col.array : endPtr;
 
 private size_t stacksStorageSize() =>
 	0x10000;

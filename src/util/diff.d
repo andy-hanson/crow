@@ -3,9 +3,8 @@ module util.diff;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
-import util.col.arr : only;
-import util.col.arrUtil : contains, indexOfMax, max;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.array : contains, indexOfMax, max, only;
+import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.comparison : compareSizeT;
 import util.symbol : AllSymbols, Symbol, symbol, symSize, writeSym, writeSymAndGetSize;
 import util.writer : writeNewline, Writer, writeRed, writeReset, writeSpaces;
@@ -105,7 +104,7 @@ void longestCommonSubsequenceRecur(
 	in Symbol[] a,
 	in Symbol[] b,
 	ref size_t[] scratch,
-	ref ArrBuilder!Symbol res,
+	ref ArrayBuilder!Symbol res,
 ) {
 	if (b.length == 0) {
 		// No output
@@ -124,9 +123,9 @@ void longestCommonSubsequenceRecur(
 
 @trusted Symbol[] longestCommonSubsequence(ref Alloc alloc, in Symbol[] a, in Symbol[] b) {
 	size_t[] scratch = allocateElements!size_t(alloc, (b.length + 1) * 2);
-	ArrBuilder!Symbol res;
+	ArrayBuilder!Symbol res;
 	longestCommonSubsequenceRecur(alloc, a, b, scratch, res);
-	return finishArr(alloc, res);
+	return finish(alloc, res);
 }
 
 void printDiff(

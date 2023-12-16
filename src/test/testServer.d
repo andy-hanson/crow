@@ -7,7 +7,7 @@ import lib.server : getProgramForMain, Server, setFile, showDiagnostics;
 import model.diag : ReadFileDiag;
 import test.testUtil : assertEqual, defaultIncludeResult, setupTestServer, Test, withTestServer;
 import util.alloc.alloc : Alloc;
-import util.col.arrUtil : concatenate;
+import util.col.array : concatenate;
 import util.string : CString, cString;
 import util.uri : concatUriAndPath, parsePath, parseUri, Uri;
 

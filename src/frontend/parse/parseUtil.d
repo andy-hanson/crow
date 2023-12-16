@@ -19,7 +19,7 @@ import frontend.parse.lexer :
 import frontend.parse.lexToken : isSymToken;
 import model.ast : NameAndRange;
 import model.parseDiag : ParseDiag;
-import util.col.arrUtil : contains;
+import util.col.array : contains;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
 import util.string : copyToCString, CString, cString;

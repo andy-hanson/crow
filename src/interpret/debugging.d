@@ -16,7 +16,7 @@ import frontend.showModel : ShowCtx, writeTypeArgsGeneric;
 import model.lowModel :
 	AllLowTypes, LowFun, LowFunIndex, LowFunSource, LowProgram, LowType, PrimitiveType;
 import model.model : Local;
-import util.col.arr : only;
+import util.col.array : only;
 import util.writer : Writer, writeWithCommas;
 import util.symbol : writeSym;
 import util.util : stringOfEnum;

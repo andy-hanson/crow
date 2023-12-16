@@ -18,9 +18,8 @@ import model.model :
 	StructOrAlias,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : ptrsRange;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : exists;
+import util.col.array : exists, ptrsRange;
+import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.hashTable : existsInHashTable;
 import util.col.mutSet : mayAddToMutSet, MutSet, mutSetHas;
 import util.opt : force, has, none, Opt, some;
@@ -40,7 +39,7 @@ struct CheckCtx {
 	const AllUris* allUrisPtr;
 	public immutable Uri curUri;
 	public ImportAndReExportModules importsAndReExports;
-	ArrBuilder!Diagnostic* diagnosticsBuilder;
+	ArrayBuilder!Diagnostic* diagnosticsBuilder;
 	UsedSet used;
 
 	public:
@@ -165,4 +164,4 @@ void addDiag(ref CheckCtx ctx, in Range range, Diag diag) {
 }
 
 Diagnostic[] finishDiagnostics(ref CheckCtx ctx) =>
-	finishArr(ctx.alloc, *ctx.diagnosticsBuilder);
+	finish(ctx.alloc, *ctx.diagnosticsBuilder);

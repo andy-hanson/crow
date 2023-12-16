@@ -3,7 +3,7 @@ module util.col.mutMaxArr;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.arrUtil : newArray, exists;
+import util.col.array : newArray, exists;
 import util.memory : overwriteMemory;
 import util.util : castNonScope;
 

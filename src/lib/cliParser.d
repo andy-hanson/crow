@@ -7,9 +7,8 @@ import frontend.parse.lexToken : takeNat;
 import frontend.parse.lexUtil : isDecimalDigit, tryTakeChar;
 import model.ast : LiteralNatAst;
 import util.alloc.alloc : Alloc;
-import util.col.arr : isEmpty, only;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : copyArray, findIndex, foldOrStop, mapOrNone;
+import util.col.array : copyArray, findIndex, foldOrStop, isEmpty, mapOrNone, only;
+import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.conv : isUint, safeToUint;
 import util.lineAndColumnGetter : LineAndColumn;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
@@ -436,7 +435,7 @@ NamedArgs splitNamedArgs(ref Alloc alloc, in CString[] args) {
 	if (isEmpty(args))
 		return NamedArgs([], CommandOptions(), false);
 
-	ArrBuilder!ArgsPart parts;
+	ArrayBuilder!ArgsPart parts;
 	bool help = false;
 	bool perf = false;
 	assert(startsWithDashDash(args[0]));
@@ -462,7 +461,7 @@ NamedArgs splitNamedArgs(ref Alloc alloc, in CString[] args) {
 	}
 	finishPart(args.length);
 
-	return NamedArgs(finishArr(alloc, parts), CommandOptions(perf), help);
+	return NamedArgs(finish(alloc, parts), CommandOptions(perf), help);
 }
 
 CString helpAllText() =>

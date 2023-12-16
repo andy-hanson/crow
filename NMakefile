@@ -127,11 +127,10 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\model\typeLayout.d \
 	src\util\alloc\alloc.d \
 	src\util\alloc\doubleLink.d \
-	src\util\col\arr.d \
-	src\util\col\arrBuilder.d \
-	src\util\col\arrUtil.d \
+	src\util\col\array.d \
+	src\util\col\arrayBuilder.d \
 	src\util\col\enumMap.d \
-	src\util\col\exactSizeArrBuilder.d \
+	src\util\col\exactSizeArrayBuilder.d \
 	src\util\col\fullIndexMap.d \
 	src\util\col\hashTable.d \
 	src\util\col\map.d \

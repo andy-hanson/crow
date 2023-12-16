@@ -5,8 +5,8 @@ module frontend.config;
 import model.diag : Diagnostic;
 import model.model : Config, ConfigExternUris, ConfigImportUris;
 import util.alloc.alloc : Alloc;
-import util.col.arrBuilder : ArrBuilder, finishArr;
-import util.col.arrUtil : fold, newArray;
+import util.col.arrayBuilder : ArrayBuilder, finish;
+import util.col.array : fold, newArray;
 import util.col.map : Map;
 import util.col.mapBuilder : finishMap, MapBuilder, tryAddToMap;
 import util.json : Json;
@@ -24,12 +24,12 @@ Config parseConfig(
 	Uri configUri,
 	in CString text,
 ) {
-	ArrBuilder!Diagnostic diagsBuilder;
+	ArrayBuilder!Diagnostic diagsBuilder;
 	Opt!Json json = parseJson(alloc, allSymbols, text); // TODO: this should take diagsBuilder
 	if (has(json) && force(json).isA!(Json.Object)) {
 		ConfigContent content = parseConfigRecur(
 			alloc, allSymbols, allUris, parentOrEmpty(allUris, configUri), diagsBuilder, force(json).as!(Json.Object));
-		return Config(some(configUri), finishArr(alloc, diagsBuilder), content.include, content.extern_);
+		return Config(some(configUri), finish(alloc, diagsBuilder), content.include, content.extern_);
 	} else
 		return Config(some(configUri), newArray(alloc, [todo!Diagnostic("diag -- bad JSON")]));
 }
@@ -55,7 +55,7 @@ ConfigContent parseConfigRecur(
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
 	Uri dirContainingConfig,
-	scope ref ArrBuilder!Diagnostic diags,
+	scope ref ArrayBuilder!Diagnostic diags,
 	in Json.Object fields,
 ) =>
 	fold!(ConfigContent, Json.ObjectField)(emptyConfigContent, fields, (ConfigContent cur, in Json.ObjectField field) {
@@ -80,7 +80,7 @@ Map!(Symbol, Uri) parseIncludeOrExtern(
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
 	Uri dirContainingConfig,
-	scope ref ArrBuilder!Diagnostic diags,
+	scope ref ArrayBuilder!Diagnostic diags,
 	in Json json,
 ) =>
 	parseSymMap!Uri(alloc, allSymbols, diags, json, (in Json value) {
@@ -91,7 +91,7 @@ Map!(Symbol, Uri) parseIncludeOrExtern(
 Opt!Uri parseUri(
 	scope ref AllUris allUris,
 	Uri dirContainingConfig,
-	scope ref ArrBuilder!Diagnostic diags,
+	scope ref ArrayBuilder!Diagnostic diags,
 	in Json json,
 ) {
 	if (json.isA!string)
@@ -105,7 +105,7 @@ Opt!Uri parseUri(
 Map!(Symbol, T) parseSymMap(T)(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
-	scope ref ArrBuilder!Diagnostic diags,
+	scope ref ArrayBuilder!Diagnostic diags,
 	in Json json,
 	in T delegate(in Json) @safe @nogc pure nothrow cbValue,
 ) {

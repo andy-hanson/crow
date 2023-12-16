@@ -25,7 +25,7 @@ import model.concreteModel :
 import model.constant : Constant, constantZero;
 import model.model : EnumValue;
 import util.alloc.alloc : Alloc;
-import util.col.arrUtil : map;
+import util.col.array : map;
 import util.memory : allocate;
 import util.opt : none;
 import util.sourceRange : UriAndRange;

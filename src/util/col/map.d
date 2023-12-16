@@ -3,7 +3,7 @@ module util.col.map;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.arrUtil : zip;
+import util.col.array : zip;
 import util.col.mutMap : hasKey, mapToArray, moveToMap, mustAdd, mustGet, MutMap, MutMapValues, size, values;
 public import util.col.mutMap : KeyValuePair;
 import util.opt : Opt;

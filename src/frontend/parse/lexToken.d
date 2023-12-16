@@ -7,8 +7,8 @@ import frontend.parse.lexWhitespace : DocCommentAndIndentDelta, IndentKind, skip
 import model.ast : LiteralFloatAst, LiteralIntAst, LiteralNatAst;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
-import util.col.arr : arrayOfRange, isEmpty;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.array : arrayOfRange, isEmpty;
+import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.opt : force, has, none, Opt, some;
 import util.symbol : AllSymbols, appendEquals, Symbol, symbol, symbolOfString;
 import util.util : todo, unreachable;
@@ -440,7 +440,7 @@ StringPart takeStringPart(
 	QuoteKind quoteKind,
 	in AddDiag addDiag,
 ) {
-	ArrBuilder!char res;
+	ArrayBuilder!char res;
 	StringPart.After after = () {
 		while (true) {
 			switch (peekChar(ptr)) {
@@ -518,7 +518,7 @@ StringPart takeStringPart(
 			}
 		}
 	}();
-	return StringPart(finishArr(alloc, res), after);
+	return StringPart(finish(alloc, res), after);
 }
 
 private:

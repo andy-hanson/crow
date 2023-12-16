@@ -18,9 +18,8 @@ import util.alloc.alloc :
 	newAlloc,
 	withAlloc,
 	withTempAlloc;
-import util.col.arr : isEmpty;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : append, contains;
+import util.col.array : append, contains, isEmpty;
+import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.mutMap : getOrAdd, keys, mayDelete, mustAdd, MutMap, values;
 import util.json : field, Json, jsonObject;
 import util.lineAndColumnGetter :
@@ -189,28 +188,28 @@ FilesState filesState(in Storage a) {
 }
 
 Uri[] allStorageUris(ref Alloc alloc, in Storage a) {
-	ArrBuilder!Uri res;
+	ArrayBuilder!Uri res;
 	foreach (Uri uri; keys(a.successes))
 		add(alloc, res, uri);
 	foreach (Uri uri; keys(a.diags))
 		add(alloc, res, uri);
-	return finishArr(alloc, res);
+	return finish(alloc, res);
 }
 
 Uri[] allKnownGoodCrowUris(ref Alloc alloc, scope ref Storage a) {
-	ArrBuilder!Uri res;
+	ArrayBuilder!Uri res;
 	foreach (Uri uri; keys(a.successes))
 		if (fileType(*a.allUris, uri) == FileType.crow)
 			add(alloc, res, uri);
-	return finishArr(alloc, res);
+	return finish(alloc, res);
 }
 
 Uri[] allUrisWithFileDiag(ref Alloc alloc, in Storage a, in ReadFileDiag[] searchDiags) {
-	ArrBuilder!Uri res;
+	ArrayBuilder!Uri res;
 	foreach (Uri uri, ReadFileDiag diag; a.diags)
 		if (contains(searchDiags, diag))
 			add(alloc, res, uri);
-	return finishArr(alloc, res);
+	return finish(alloc, res);
 }
 
 private immutable struct FileInfoOrDiag {

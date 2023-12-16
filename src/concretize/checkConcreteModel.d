@@ -8,7 +8,7 @@ import model.concreteModel :
 	ConcreteExpr, ConcreteExprKind, ConcreteFun, ConcreteLocal, ConcreteProgram, ConcreteType, isBogus, isVoid;
 import model.constant : Constant;
 import util.alloc.alloc : Alloc, withStackAlloc;
-import util.col.arrUtil : zip;
+import util.col.array : zip;
 import util.opt : force, has;
 import util.util : debugLog, ptrTrustMe;
 import util.writer : withWriter, Writer;

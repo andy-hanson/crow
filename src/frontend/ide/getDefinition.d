@@ -21,7 +21,7 @@ import model.model :
 	StructDecl,
 	VarDecl;
 import util.alloc.alloc : Alloc;
-import util.col.arrBuilder : buildArray;
+import util.col.arrayBuilder : buildArray;
 import util.opt : force, has, Opt;
 import util.sourceRange : UriAndRange;
 import util.symbol : AllSymbols;

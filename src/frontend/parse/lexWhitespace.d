@@ -4,7 +4,7 @@ module frontend.parse.lexWhitespace;
 
 import frontend.parse.lexUtil : isWhitespace, tryTakeChar, tryTakeChars;
 import model.parseDiag : ParseDiag;
-import util.col.arr : arrayOfRange, isEmpty;
+import util.col.array : arrayOfRange, isEmpty;
 import util.conv : safeIntFromUint, safeToUint;
 import util.string : CString;
 

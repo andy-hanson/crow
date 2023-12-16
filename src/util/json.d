@@ -3,8 +3,7 @@ module util.json;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.arr : isEmpty;
-import util.col.arrUtil : arraysEqual, concatenateIn, copyArray, every, exists, find, map;
+import util.col.array : arraysEqual, concatenateIn, copyArray, every, exists, find, isEmpty, map;
 import util.col.fullIndexMap : FullIndexMap;
 import util.col.map : KeyValuePair;
 import util.opt : force, has, Opt;

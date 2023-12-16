@@ -97,8 +97,7 @@ import model.model :
 	Type,
 	VariableRef;
 import util.alloc.alloc : Alloc;
-import util.col.arr : isEmpty, only, PtrAndSmallNumber, sizeEq, small, SmallArray;
-import util.col.arrUtil : map, mapZip, newArray;
+import util.col.array : isEmpty, map, mapZip, newArray, only, PtrAndSmallNumber, sizeEq, small, SmallArray;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : getOrAdd;
 import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2MustGet0, stackMap2MustGet1, withStackMap2;

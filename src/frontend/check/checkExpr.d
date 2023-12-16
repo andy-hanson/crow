@@ -145,8 +145,19 @@ import model.model :
 	UnionMember,
 	VariableRef;
 import util.alloc.alloc : Alloc, allocateUninitialized;
-import util.col.arr : arrayOfSingle, isEmpty, only, PtrAndSmallNumber;
-import util.col.arrUtil : append, arraysCorrespond, contains, exists, map, mapPointers, mapZipPointers3, newArray;
+import util.col.array :
+	append,
+	arrayOfSingle,
+	arraysCorrespond,
+	contains,
+	exists,
+	isEmpty,
+	map,
+	mapPointers,
+	mapZipPointers3,
+	newArray,
+	only,
+	PtrAndSmallNumber;
 import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
 import util.col.mutMaxArr : initializeMutMaxArr, mutMaxArrSize, push, tempAsArr;
 import util.conv : safeToUshort, safeToUint;

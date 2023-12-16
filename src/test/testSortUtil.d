@@ -3,7 +3,7 @@ module test.testSortUtil;
 @safe @nogc pure nothrow:
 
 import test.testUtil : Test;
-import util.col.arrUtil : arraysEqual;
+import util.col.array : arraysEqual;
 import util.col.sortUtil : sortInPlace;
 import util.comparison : compareNat32;
 

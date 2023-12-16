@@ -65,9 +65,8 @@ import model.ast :
 	WithAst;
 import model.model : symbolOfVarKind;
 import util.alloc.alloc : Alloc;
-import util.col.arr : isEmpty;
-import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
-import util.col.arrUtil : newArray;
+import util.col.array : isEmpty, newArray;
+import util.col.arrayBuilder : add, addAll, ArrayBuilder, finish;
 import util.col.sortUtil : eachSorted;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonList, jsonObject;
@@ -113,11 +112,11 @@ SemanticTokens tokensOfAst(
 		ast.vars, (in VarDeclAst x) => x.range, (in VarDeclAst x) {
 			addVarDeclTokens( tokens, allSymbols, x);
 		});
-	return SemanticTokens(finishArr(alloc, tokens.encoded));
+	return SemanticTokens(finish(alloc, tokens.encoded));
 }
 
 Json jsonOfDecodedTokens(ref Alloc alloc, in SemanticTokens a) {
-	ArrBuilder!Json res;
+	ArrayBuilder!Json res;
 	decodeTokens(a, (in LineAndCharacter lc, size_t length, TokenType type, TokenModifiers modifiers) {
 		add(alloc, res, jsonObject(alloc, [
 			field!"line"(lc.line),
@@ -128,7 +127,7 @@ Json jsonOfDecodedTokens(ref Alloc alloc, in SemanticTokens a) {
 				? []
 				: newArray(alloc, [Json(stringOfTokenModifier(modifiers))])))]));
 	});
-	return jsonList(finishArr(alloc, res));
+	return jsonList(finish(alloc, res));
 }
 
 Json getTokensLegend() {
@@ -205,7 +204,7 @@ string stringOfTokenModifier(TokenModifiers a) {
 struct TokensBuilder {
 	Alloc* alloc;
 	LineAndColumnGetter lineAndColumnGetter; //TODO:PERF this could just be a LineAndCharacterGetter
-	ArrBuilder!(immutable uint) encoded;
+	ArrayBuilder!(immutable uint) encoded;
 	uint prevLine;
 	uint prevCharacter;
 }

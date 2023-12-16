@@ -52,9 +52,8 @@ import model.lowModel :
 import model.model : Program, VarKind;
 import model.typeLayout : nStackEntriesForType;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.col.arr : castImmutable;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : map;
+import util.col.array : castImmutable, map;
+import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.map : Map, KeyValuePair, mustGet, zipToMap;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach, fullIndexMapSize, mapFullIndexMap;
 import util.col.mutMaxArr : initializeMutMaxArr, MutMaxArr, push, tempAsArr;
@@ -162,11 +161,11 @@ SyntheticFunPtrs makeSyntheticFunPtrs(
 	in FunToReferences funToReferences,
 	in MakeSyntheticFunPtrs cbMakeSyntheticFunPtrs,
 ) {
-	ArrBuilder!FunPtrInputs inputsBuilder;
+	ArrayBuilder!FunPtrInputs inputsBuilder;
 	eachFunPtr(funToReferences, (LowFunIndex funIndex, DynCallSig sig) {
 		add(alloc, inputsBuilder, FunPtrInputs(funIndex, sig, &byteCode[funToDefinition[funIndex].index]));
 	});
-	FunPtrInputs[] inputs = finishArr(alloc, inputsBuilder);
+	FunPtrInputs[] inputs = finish(alloc, inputsBuilder);
 	FunPtr[] funPtrs = cbMakeSyntheticFunPtrs(inputs);
 	FunToFunPtr funToFunPtr = zipToMap!(LowFunIndex, FunPtr, FunPtrInputs, FunPtr)(
 		alloc, inputs, funPtrs, (ref FunPtrInputs inputs, ref FunPtr funPtr) =>
@@ -185,13 +184,13 @@ alias FunToFunPtr = Map!(LowFunIndex, FunPtr);
 alias FunToDefinition = immutable FullIndexMap!(LowFunIndex, ByteCodeIndex);
 
 DynCallSig funPtrDynCallSig(ref Alloc alloc, in LowProgram program, in LowFunPtrType a) {
-	ArrBuilder!DynCallType sigTypes;
+	ArrayBuilder!DynCallType sigTypes;
 	add(alloc, sigTypes, toDynCallType(a.returnType));
 	foreach (ref LowType x; a.paramTypes)
 		toDynCallTypes(program, x, (DynCallType x) {
 			add(alloc, sigTypes, x);
 		});
-	return DynCallSig(finishArr(alloc, sigTypes));
+	return DynCallSig(finish(alloc, sigTypes));
 }
 
 void generateBytecodeForFun(

@@ -87,9 +87,8 @@ import model.model :
 	VarDecl,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : isEmpty, only;
-import util.col.arrBuilder : buildArray;
-import util.col.arrUtil : allSame, contains, find, fold, zip, zipIn;
+import util.col.array : allSame, contains, find, fold, isEmpty, only, zip, zipIn;
+import util.col.arrayBuilder : buildArray;
 import util.col.hashTable : mustGet;
 import util.col.mutMaxArr : mutMaxArr, MutMaxArr, push, tempAsArr;
 import util.opt : force, has, none, Opt, optEqual, some;

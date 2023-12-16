@@ -42,8 +42,7 @@ import model.model :
 	TypeParamIndex,
 	TypeParams;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : arrayOfSingle, only, small;
-import util.col.arrUtil : eachPair, findIndex, map, mapOrNone, mapZip;
+import util.col.array : arrayOfSingle, eachPair, findIndex, map, mapOrNone, mapZip, only, small;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.sourceRange : Range;

@@ -134,9 +134,8 @@ import model.lowModel :
 import model.model : Program;
 import model.typeLayout : nStackEntriesForType, optPack, Pack, typeSizeBytes;
 import util.alloc.alloc : TempAlloc;
-import util.col.arr : isEmpty;
-import util.col.arrBuilder : add;
-import util.col.arrUtil : indexOfPointer;
+import util.col.array : indexOfPointer, isEmpty;
+import util.col.arrayBuilder : add;
 import util.col.map : mustGet;
 import util.col.mutArr : clearAndFree, MutArr, push, tempAsArr;
 import util.col.mutMaxArr : push, tempAsArr;

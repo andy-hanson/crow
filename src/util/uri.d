@@ -3,8 +3,7 @@ module util.uri;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateElements;
-import util.col.arr : endPtr;
-import util.col.arrUtil : indexOf, indexOfStartingAt;
+import util.col.array : endPtr, indexOf, indexOfStartingAt;
 import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
 import util.comparison : Comparison;
 import util.conv : safeToUshort;

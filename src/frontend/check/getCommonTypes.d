@@ -24,8 +24,8 @@ import model.model :
 	TypeParams,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : isEmpty, small;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.array : isEmpty, small;
+import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.enumMap : EnumMap;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, someMut, some;
@@ -178,12 +178,12 @@ StructInst* instantiateNonTemplateStructDecl(
 	instantiateStruct(ctx, structDecl, emptyTypeArgs, someMut(ptrTrustMe(delayedStructInsts)));
 
 StructDecl* bogusStructDecl(ref Alloc alloc, size_t nTypeParameters) {
-	ArrBuilder!NameAndRange typeParams;
+	ArrayBuilder!NameAndRange typeParams;
 	UriAndRange uriAndRange = UriAndRange.empty;
 	foreach (size_t i; 0 .. nTypeParameters)
 		add(alloc, typeParams, NameAndRange(0, symbol!"bogus"));
 	StructDecl* res = allocate(alloc, StructDecl(
-		StructDeclSource(allocate(alloc, StructDeclSource.Bogus(TypeParams(finishArr(alloc, typeParams))))),
+		StructDeclSource(allocate(alloc, StructDeclSource.Bogus(TypeParams(finish(alloc, typeParams))))),
 		uriAndRange.uri,
 		symbol!"bogus",
 		Visibility.public_,

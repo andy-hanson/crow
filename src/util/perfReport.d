@@ -11,10 +11,10 @@ import util.alloc.alloc :
 	MetaMemorySummary,
 	summarizeMemory,
 	totalBytes;
-import util.col.arrBuilder : add, ArrBuilder, arrBuilderSort, finishArr;
-import util.col.arrUtil : map;
+import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderSort, finish;
+import util.col.array : map;
 import util.col.enumMap : EnumMap;
-import util.col.exactSizeArrBuilder : buildArrayExact, ExactSizeArrBuilder;
+import util.col.exactSizeArrayBuilder : buildArrayExact, ExactSizeArrayBuilder;
 import util.col.map : KeyValuePair;
 import util.comparison : compareUlong, oppositeComparison;
 import util.json : field, Json, jsonObject;
@@ -65,13 +65,13 @@ Json jsonOfEnumMap(E, V)(
 	in Json delegate(in V) @safe @nogc pure nothrow cb,
 ) {
 	alias Pair = immutable KeyValuePair!(E, V);
-	ArrBuilder!(Pair) sorted;
+	ArrayBuilder!(Pair) sorted;
 	foreach (E key, ref immutable V value; a)
 		if (getQuantity(value) != 0)
 			add(alloc, sorted, Pair(key, value));
 	arrBuilderSort!(Pair)(sorted, (in Pair x, in Pair y) =>
 		oppositeComparison(compareUlong(getQuantity(x.value), getQuantity(y.value))));
-	return Json(map(alloc, finishArr(alloc, sorted), (ref Pair pair) =>
+	return Json(map(alloc, finish(alloc, sorted), (ref Pair pair) =>
 		Json.StringObjectField(stringOfEnum(pair.key), cb(pair.value))));
 }
 
@@ -85,7 +85,7 @@ Json showMemoryCommon(ref Alloc alloc, Opt!size_t countAllocs, in MemorySummary 
 	Json(buildArrayExact!(Json.ObjectField)(
 		alloc,
 		has(countAllocs) ? 6 : 5,
-		(scope ref ExactSizeArrBuilder!(Json.ObjectField) res) {
+		(scope ref ExactSizeArrayBuilder!(Json.ObjectField) res) {
 			res ~= field!"total"(showMemoryAmount(alloc, totalBytes(a)));
 			res ~= field!"used"(showMemoryAmount(alloc, a.usedBytes));
 			res ~= field!"free"(showMemoryAmount(alloc, a.freeBytes));

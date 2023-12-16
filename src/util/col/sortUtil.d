@@ -3,7 +3,7 @@ module util.col.sortUtil;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.arrUtil : everyWithIndex, map;
+import util.col.array : everyWithIndex, map;
 import util.comparison : Comparer, Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.memory : overwriteMemory;

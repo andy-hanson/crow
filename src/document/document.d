@@ -30,9 +30,8 @@ import model.model :
 	UnionMember,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : isEmpty;
-import util.col.arrBuilder : add, ArrBuilder, arrBuilderSort, finishArr;
-import util.col.arrUtil : exists, indexOf, map, mapOp;
+import util.col.array : exists, indexOf, isEmpty, map, mapOp;
+import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderSort, finish;
 import util.json :
 	field,
 	Json,
@@ -69,7 +68,7 @@ Json documentModule(
 	in Program program,
 	in Module a,
 ) {
-	ArrBuilder!DocExport exports; // TODO: no alloc
+	ArrayBuilder!DocExport exports; // TODO: no alloc
 	foreach (NameReferents referents; a.allExportedNames) {
 		if (has(referents.structOrAlias) && force(referents.structOrAlias).visibility == Visibility.public_)
 			add(alloc, exports, documentStructOrAlias(alloc, force(referents.structOrAlias)));
@@ -84,7 +83,7 @@ Json documentModule(
 	return jsonObject(alloc, [
 		field!"uri"(stringOfUri(alloc, allUris, a.uri)),
 		optionalStringField!"doc"(alloc, a.ast.docComment),
-		field!"exports"(jsonList!DocExport(alloc, finishArr(alloc, exports), (in DocExport x) => x.json))]);
+		field!"exports"(jsonList!DocExport(alloc, finish(alloc, exports), (in DocExport x) => x.json))]);
 }
 
 immutable struct DocExport {
@@ -225,7 +224,7 @@ DocExport documentFun(ref Alloc alloc, in FunDecl a) =>
 		optionalArrayField!"specs"(documentSpecs(alloc, a))]));
 
 Json[] documentSpecs(ref Alloc alloc, in FunDecl a) {
-	ArrBuilder!Json res;
+	ArrayBuilder!Json res;
 	if (a.isBare)
 		add(alloc, res, jsonOfSpecialSpec(alloc, symbol!"bare"));
 	if (a.isSummon)
@@ -234,7 +233,7 @@ Json[] documentSpecs(ref Alloc alloc, in FunDecl a) {
 		add(alloc, res, jsonOfSpecialSpec(alloc, symbol!"unsafe"));
 	foreach (SpecInst* spec; a.specs)
 		add(alloc, res, documentSpecInst(alloc, a.typeParams, *spec));
-	return finishArr(alloc, res);
+	return finish(alloc, res);
 }
 
 Json jsonOfSpecialSpec(ref Alloc alloc, Symbol name) =>

@@ -11,7 +11,7 @@ import frontend.lang : OptimizationLevel;
 import lib.cliParser : CCompileOptions;
 import model.lowModel : ExternLibrary;
 import util.alloc.alloc : Alloc;
-import util.col.arrBuilder : add, addAll, finishArr, ArrBuilder;
+import util.col.arrayBuilder : add, addAll, finish, ArrayBuilder;
 import util.exitCode : ExitCode;
 import util.opt : force, has, none;
 import util.perf : Perf, PerfMeasure, withMeasure;
@@ -62,7 +62,7 @@ CString[] cCompileArgs(
 	in ExternLibrary[] externLibraries,
 	in CCompileOptions options,
 ) {
-	ArrBuilder!CString args;
+	ArrayBuilder!CString args;
 	addAll(alloc, args, cCompilerArgs(options));
 	add(alloc, args, cStringOfFileUri(alloc, allUris, cPath));
 	version (Windows) {
@@ -112,7 +112,7 @@ CString[] cCompileArgs(
 			cStringOfFileUri(alloc, allUris, exePath),
 		]);
 	}
-	return finishArr(alloc, args);
+	return finish(alloc, args);
 }
 
 CString[] cCompilerArgs(in CCompileOptions options) {

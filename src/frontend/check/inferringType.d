@@ -18,9 +18,8 @@ import model.model :
 	Type,
 	TypeParamIndex;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : MutSmallArray, only, only2, small;
-import util.col.arrBuilder : add, ArrBuilder, arrBuilderIsEmpty, arrBuilderTempAsArr, finishArr;
-import util.col.arrUtil : contains, exists, indexOf, map, newArray, zip, zipEvery;
+import util.col.array : contains, exists, indexOf, map, MutSmallArray, newArray, only, only2, small, zip, zipEvery;
+import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, arrBuilderTempAsArr, finish;
 import util.col.enumMap : enumMapFindKey;
 import util.col.mutMaxArr : push, tempAsArr;
 import util.opt : has, force, MutOpt, none, noneMut, Opt, optOrDefault, some, someInout, someMut;
@@ -136,7 +135,7 @@ Opt!size_t findExpectedStructForLiteral(
 		(const TypeAndContext[] xs) {
 			// This function will only be used with types like nat8 with no type arguments, so don't worry about those
 			Cell!(Opt!size_t) rslt;
-			ArrBuilder!(immutable StructInst*) multiple; // for diag
+			ArrayBuilder!(immutable StructInst*) multiple; // for diag
 			foreach (ref const TypeAndContext x; xs)
 				if (x.type.isA!(StructInst*)) {
 					StructInst* struct_ = x.type.as!(StructInst*);
@@ -155,7 +154,7 @@ Opt!size_t findExpectedStructForLiteral(
 					}
 				}
 			if (!arrBuilderIsEmpty(multiple)) {
-				addDiag2(ctx, source, Diag(Diag.LiteralAmbiguous(ctx.typeContainer, finishArr(ctx.alloc, multiple))));
+				addDiag2(ctx, source, Diag(Diag.LiteralAmbiguous(ctx.typeContainer, finish(ctx.alloc, multiple))));
 				return none!size_t;
 			} else
 				return has(cellGet(rslt)) ? cellGet(rslt) : some(defaultChoice);

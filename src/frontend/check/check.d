@@ -80,10 +80,22 @@ import model.model :
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : emptySmallArray, isEmpty, only, ptrsRange, small;
-import util.col.arrBuilder : add, ArrBuilder, arrBuilderTempAsArr, finishArr;
-import util.col.arrUtil : concatenate, filter, map, mapOp, mapPointers, mapWithResultPointer, zip, zipPointers;
-import util.col.exactSizeArrBuilder : buildArrayExact, ExactSizeArrBuilder, pushUninitialized;
+import util.col.array :
+	concatenate,
+	emptySmallArray,
+	filter,
+	isEmpty,
+	map,
+	mapOp,
+	mapPointers,
+	mapWithResultPointer,
+	only,
+	ptrsRange,
+	small,
+	zip,
+	zipPointers;
+import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderTempAsArr, finish;
+import util.col.exactSizeArrayBuilder : buildArrayExact, ExactSizeArrayBuilder, pushUninitialized;
 import util.col.hashTable :
 	getPointer, HashTable, insertOrUpdate, mapAndMovePreservingKeys, mayAdd, moveToImmutable, MutHashTable;
 import util.col.mutArr : mustPop, mutArrIsEmpty;
@@ -543,7 +555,7 @@ FunsAndMap checkFuns(
 	FunDecl[] funs = buildArrayExact!FunDecl(
 		ctx.alloc,
 		asts.length + fileImports.length + fileExports.length + countFunsForStructs(structs) + countFunsForVars(vars),
-		(scope ref ExactSizeArrBuilder!FunDecl funsBuilder) @trusted {
+		(scope ref ExactSizeArrayBuilder!FunDecl funsBuilder) @trusted {
 			foreach (FunDeclAst* funAst; ptrsRange(asts)) {
 				FunDecl* fun = pushUninitialized(funsBuilder);
 				checkTypeParams(ctx, funAst.typeParams);
@@ -641,28 +653,28 @@ FunsAndMap checkFuns(
 }
 
 FunsMap buildFunsMap(ref Alloc alloc, in immutable FunDecl[] funs) {
-	MutHashTable!(ArrBuilder!(immutable FunDecl*), Symbol, funDeclsBuilderName) res;
+	MutHashTable!(ArrayBuilder!(immutable FunDecl*), Symbol, funDeclsBuilderName) res;
 	foreach (FunDecl* fun; ptrsRange(funs)) {
 		insertOrUpdate(
 			alloc,
 			res,
 			fun.name,
 			() {
-				ArrBuilder!(immutable FunDecl*) builder;
+				ArrayBuilder!(immutable FunDecl*) builder;
 				add(alloc, builder, fun);
 				return builder;
 			},
-			(ref ArrBuilder!(immutable FunDecl*) builder) {
+			(ref ArrayBuilder!(immutable FunDecl*) builder) {
 				add(alloc, builder, fun);
 				return builder;
 			});
 	}
 	return mapAndMovePreservingKeys!(
-		immutable FunDecl*[], funDeclsName, ArrBuilder!(immutable FunDecl*), Symbol, funDeclsBuilderName,
-	)(alloc, res, (ref ArrBuilder!(immutable FunDecl*) x) =>
-		finishArr(alloc, x));
+		immutable FunDecl*[], funDeclsName, ArrayBuilder!(immutable FunDecl*), Symbol, funDeclsBuilderName,
+	)(alloc, res, (ref ArrayBuilder!(immutable FunDecl*) x) =>
+		finish(alloc, x));
 }
-Symbol funDeclsBuilderName(in ArrBuilder!(immutable FunDecl*) a) =>
+Symbol funDeclsBuilderName(in ArrayBuilder!(immutable FunDecl*) a) =>
 	arrBuilderTempAsArr(a)[0].name;
 
 Opt!TypeAst getExternTypeArg(ref FunDeclAst a, FunModifierAst.Special.Flags externOrGlobalFlag) {
@@ -909,7 +921,7 @@ BootstrapCheck checkWorker(
 	) @safe @nogc pure nothrow getCommonTypes,
 ) =>
 	withMeasure!(BootstrapCheck, () {
-		ArrBuilder!Diagnostic diagsBuilder;
+		ArrayBuilder!Diagnostic diagsBuilder;
 		ImportsAndReExports importsAndReExports = checkImportsAndReExports(
 			alloc, allSymbols, allUris, diagsBuilder, fileAndAst.ast, resolvedImports);
 		FileAst* ast = fileAndAst.ast;
@@ -976,7 +988,7 @@ ImportsAndReExports checkImportsAndReExports(
 	ref Alloc alloc,
 	in AllSymbols allSymbols,
 	in AllUris allUris,
-	scope ref ArrBuilder!Diagnostic diagsBuilder,
+	scope ref ArrayBuilder!Diagnostic diagsBuilder,
 	FileAst* ast,
 	in ResolvedImport[] resolvedImports,
 ) {
@@ -997,13 +1009,13 @@ ImportsOrReExports checkImportsOrReExports(
 	ref Alloc alloc,
 	in AllSymbols allSymbols,
 	in AllUris allUris,
-	scope ref ArrBuilder!Diagnostic diagsBuilder,
+	scope ref ArrayBuilder!Diagnostic diagsBuilder,
 	in Opt!ImportsOrExportsAst ast,
 	scope ref ResolvedImport[] resolvedImports,
 	bool includeStd,
 ) {
-	ArrBuilder!ImportOrExport imports;
-	ArrBuilder!ImportOrExportFile fileImports;
+	ArrayBuilder!ImportOrExport imports;
+	ArrayBuilder!ImportOrExportFile fileImports;
 
 	ResolvedImport nextResolvedImport() {
 		ResolvedImport res = resolvedImports[0];
@@ -1057,13 +1069,13 @@ ImportsOrReExports checkImportsOrReExports(
 						});
 				});
 		}
-	return ImportsOrReExports(finishArr(alloc, imports), finishArr(alloc, fileImports));
+	return ImportsOrReExports(finish(alloc, imports), finish(alloc, fileImports));
 }
 
 Opt!(NameReferents*)[] checkNamedImports(
 	ref Alloc alloc,
 	in AllSymbols allSymbols,
-	scope ref ArrBuilder!Diagnostic diagsBuilder,
+	scope ref ArrayBuilder!Diagnostic diagsBuilder,
 	Module* module_,
 	in NameAndRange[] names,
 ) =>

@@ -68,7 +68,7 @@ import model.model :
 	VariableRef,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arrUtil : mapOp;
+import util.col.array : mapOp;
 import util.json :
 	field,
 	Json,

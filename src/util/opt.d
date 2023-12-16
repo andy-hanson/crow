@@ -2,7 +2,7 @@ module util.opt;
 
 @safe @nogc pure nothrow:
 
-import util.col.arr : SmallArray;
+import util.col.array : SmallArray;
 
 private struct Option(T) {
 	@safe @nogc pure nothrow:

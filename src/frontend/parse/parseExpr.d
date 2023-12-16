@@ -81,9 +81,8 @@ import model.ast :
 import model.model : AssertOrForbidKind;
 import model.parseDiag : ParseDiag;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : isEmpty, only;
-import util.col.arrUtil : newArray, prepend;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.array : isEmpty, newArray, only, prepend;
+import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some, some;
 import util.sourceRange : Pos, Range;
@@ -128,7 +127,7 @@ ExprAst[] parseArgsForOperator(ref Lexer lexer, ArgCtx ctx) =>
 
 ExprAst[] parseArgs(ref Lexer lexer, ArgCtx ctx) {
 	if (peekTokenExpression(lexer)) {
-		ArrBuilder!ExprAst builder;
+		ArrayBuilder!ExprAst builder;
 		return parseArgsRecur(lexer, ctx, builder);
 	} else
 		return [];
@@ -221,12 +220,12 @@ bool isExpressionStartToken(Token a) {
 	}
 }
 
-ExprAst[] parseArgsRecur(ref Lexer lexer, ArgCtx ctx, ref ArrBuilder!ExprAst args) {
+ExprAst[] parseArgsRecur(ref Lexer lexer, ArgCtx ctx, ref ArrayBuilder!ExprAst args) {
 	assert(ctx.allowedCalls.minPrecedenceExclusive >= commaPrecedence);
 	add(lexer.alloc, args, parseExprAndCalls(lexer, ctx));
 	return tryTakeToken(lexer, Token.comma)
 		? parseArgsRecur(lexer, ctx, args)
-		: finishArr(lexer.alloc, args);
+		: finish(lexer.alloc, args);
 }
 
 ExprAst parseAssignment(ref Lexer lexer, Pos start, ref ExprAst left, Pos assignmentPos) {
@@ -276,11 +275,11 @@ bool canParseCommaExpr(in ArgCtx argCtx) =>
 	commaPrecedence > argCtx.allowedCalls.minPrecedenceExclusive;
 
 ExprAst parseCallsAfterComma(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) {
-	ArrBuilder!ExprAst builder;
+	ArrayBuilder!ExprAst builder;
 	add(lexer.alloc, builder, lhs);
 	ExprAst[] args = peekTokenExpression(lexer)
 		? parseArgsRecur(lexer, requirePrecedenceGtComma(argCtx), builder)
-		: finishArr(lexer.alloc, builder);
+		: finish(lexer.alloc, builder);
 	Range range = range(lexer, start);
 	return ExprAst(range, ExprAstKind(
 		//TODO: range is wrong..
@@ -456,7 +455,7 @@ ExprAst parseSubscript(ref Lexer lexer, ExprAst initial, Pos start) {
 
 ExprAst parseMatch(ref Lexer lexer, Pos start) {
 	ExprAst matched = parseExprNoBlock(lexer);
-	ArrBuilder!(MatchAst.CaseAst) cases;
+	ArrayBuilder!(MatchAst.CaseAst) cases;
 	while (true) {
 		Pos startCase = curPos(lexer);
 		if (tryTakeNewlineThenAs(lexer)) {
@@ -471,7 +470,7 @@ ExprAst parseMatch(ref Lexer lexer, Pos start) {
 	}
 	return ExprAst(
 		range(lexer, start),
-		ExprAstKind(allocate(lexer.alloc, MatchAst(matched, finishArr(lexer.alloc, cases)))));
+		ExprAstKind(allocate(lexer.alloc, MatchAst(matched, finish(lexer.alloc, cases)))));
 }
 
 ExprAst parseIf(ref Lexer lexer, Pos start) =>
@@ -830,13 +829,18 @@ ExprAst handleName(ref Lexer lexer, Pos start, NameAndRange name) {
 }
 
 ExprAst takeInterpolated(ref Lexer lexer, Pos start, string firstText, QuoteKind quoteKind) {
-	ArrBuilder!InterpolatedPart parts;
+	ArrayBuilder!InterpolatedPart parts;
 	if (!isEmpty(firstText))
 		add(lexer.alloc, parts, InterpolatedPart(firstText));
 	return takeInterpolatedRecur(lexer, start, parts, quoteKind);
 }
 
-ExprAst takeInterpolatedRecur(ref Lexer lexer, Pos start, ref ArrBuilder!InterpolatedPart parts, QuoteKind quoteKind) {
+ExprAst takeInterpolatedRecur(
+	ref Lexer lexer,
+	Pos start,
+	ref ArrayBuilder!InterpolatedPart parts,
+	QuoteKind quoteKind,
+) {
 	ExprAst e = () {
 		if (peekToken(lexer, Token.braceRight)) {
 			addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.MissingExpression()));
@@ -850,7 +854,7 @@ ExprAst takeInterpolatedRecur(ref Lexer lexer, Pos start, ref ArrBuilder!Interpo
 		add(lexer.alloc, parts, InterpolatedPart(part.text));
 	final switch (part.after) {
 		case StringPart.After.quote:
-			return ExprAst(range(lexer, start), ExprAstKind(InterpolatedAst(finishArr(lexer.alloc, parts))));
+			return ExprAst(range(lexer, start), ExprAstKind(InterpolatedAst(finish(lexer.alloc, parts))));
 		case StringPart.After.lbrace:
 			return takeInterpolatedRecur(lexer, start, parts, quoteKind);
 	}
@@ -922,12 +926,12 @@ public DestructureAst parseDestructureRequireParens(ref Lexer lexer) {
 DestructureAst parseDestructureNoRequireParens(ref Lexer lexer) {
 	DestructureAst first = parseDestructureRequireParens(lexer);
 	if (tryTakeToken(lexer, Token.comma)) {
-		ArrBuilder!DestructureAst parts;
+		ArrayBuilder!DestructureAst parts;
 		add(lexer.alloc, parts, first);
 		do {
 			add(lexer.alloc, parts, parseDestructureRequireParens(lexer));
 		} while (tryTakeToken(lexer, Token.comma));
-		return DestructureAst(finishArr(lexer.alloc, parts));
+		return DestructureAst(finish(lexer.alloc, parts));
 	} else
 		return first;
 }
