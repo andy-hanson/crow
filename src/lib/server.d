@@ -98,7 +98,6 @@ import util.alloc.alloc : Alloc, AllocKind, FetchMemoryCb, freeElements, MetaAll
 import util.col.arr : only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : concatenate, contains, map, mapOp, newArray;
-import util.col.str : copyStr, SafeCStr, safeCStr, safeCStrIsEmpty, strOfSafeCStr;
 import util.exitCode : ExitCode;
 import util.json : field, Json, jsonNull, jsonObject;
 import util.late : Late, lateGet, lateSet, MutLate;
@@ -106,6 +105,7 @@ import util.lineAndColumnGetter : UriLineAndColumn;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.sourceRange : UriAndRange;
+import util.string : copyString, CString, cString, cStringIsEmpty, stringOfCString;
 import util.sym : AllSymbols;
 import util.uri : AllUris, getExtension, Uri, UrisInfo;
 import util.util : castNonScope, castNonScope_ref, ptrTrustMe;
@@ -118,13 +118,13 @@ ExitCode buildAndInterpret(
 	in Extern extern_,
 	in WriteError writeError,
 	Uri main,
-	in SafeCStr[] allArgs,
+	in CString[] allArgs,
 ) {
 	assert(filesState(server) == FilesState.allLoaded);
 	return withTempAllocImpure!ExitCode(server.metaAlloc, AllocKind.buildToLowProgram, (ref Alloc buildAlloc) {
 		Programs programs = buildToLowProgram(perf, buildAlloc, server, versionInfoForInterpret, main);
-		SafeCStr diags = showDiagnostics(buildAlloc, server, programs.program);
-		if (!safeCStrIsEmpty(diags))
+		CString diags = showDiagnostics(buildAlloc, server, programs.program);
+		if (!cStringIsEmpty(diags))
 			writeError(diags);
 		if (!has(programs.lowProgram))
 			return ExitCode.error;
@@ -142,7 +142,7 @@ ExitCode buildAndInterpret(
 						perf, bytecodeAlloc, printCtx, extern_.doDynCall, lowProgram, byteCode, allArgs));
 				});
 			else {
-				writeError(safeCStr!"Failed to load external libraries\n");
+				writeError(cString!"Failed to load external libraries\n");
 				return ExitCode.error;
 			}
 		}
@@ -245,7 +245,7 @@ private LspOutResult handleLspRequest(
 		(in RunParams x) {
 			ArrBuilder!Write writes;
 			ExitCode exitCode = run(perf, alloc, server, x.uri, (Pipe pipe, in string x) {
-				add(alloc, writes, Write(pipe, copyStr(alloc, x)));
+				add(alloc, writes, Write(pipe, copyString(alloc, x)));
 			});
 			return LspOutResult(RunResult(exitCode, finishArr(alloc, writes)));
 		},
@@ -261,12 +261,12 @@ private LspOutResult handleLspRequest(
 private ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri main, in WriteCb writeCb) {
 	// TODO: use an arena so anything allocated during interpretation is cleaned up.
 	// Or just have interpreter free things.
-	SafeCStr[1] allArgs = [safeCStr!"/usr/bin/fakeExecutable"];
+	CString[1] allArgs = [cString!"/usr/bin/fakeExecutable"];
 	return withFakeExtern(alloc, server.allSymbols, writeCb, (scope ref Extern extern_) =>
 		buildAndInterpret(
 			perf, server, extern_,
-			(in SafeCStr x) {
-				writeCb(Pipe.stderr, strOfSafeCStr(x));
+			(in CString x) {
+				writeCb(Pipe.stderr, stringOfCString(x));
 			},
 			main, allArgs));
 }
@@ -322,7 +322,7 @@ private struct LspState {
 		*stateAllocPtr;
 }
 
-SafeCStr version_(ref Alloc alloc, in Server server) =>
+CString version_(ref Alloc alloc, in Server server) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		static immutable string date = import("date.txt")[0 .. "2020-02-02".length];
 		static immutable string commitHash = import("commit-hash.txt")[0 .. 8];
@@ -402,14 +402,14 @@ Uri[] allUnknownUris(ref Alloc alloc, in Server server) =>
 private Uri[] allUnloadedUris(ref Alloc alloc, in Server server) =>
 	allUrisWithFileDiag(alloc, server.storage, [ReadFileDiag.unknown, ReadFileDiag.loading]);
 
-SafeCStr showDiagnostics(ref Alloc alloc, scope ref Server server, in Program program) {
+CString showDiagnostics(ref Alloc alloc, scope ref Server server, in Program program) {
 	ShowCtx ctx = getShowDiagCtx(server, program);
 	return stringOfDiagnostics(alloc, ctx, program);
 }
 
 immutable struct DocumentResult {
-	SafeCStr document;
-	SafeCStr diagnostics;
+	CString document;
+	CString diagnostics;
 }
 
 DocumentResult getDocumentation(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] uris) {
@@ -485,7 +485,7 @@ private Opt!Position getPosition(scope ref Server server, in Program program, in
 }
 
 struct DiagsAndResultJson {
-	SafeCStr diagnostics;
+	CString diagnostics;
 	Json result;
 }
 
@@ -631,8 +631,8 @@ Programs buildToLowProgram(
 }
 
 immutable struct BuildToCResult {
-	SafeCStr cSource;
-	SafeCStr diagnostics;
+	CString cSource;
+	CString diagnostics;
 	ExternLibraries externLibraries;
 }
 BuildToCResult buildToC(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri main) {
@@ -641,7 +641,7 @@ BuildToCResult buildToC(scope ref Perf perf, ref Alloc alloc, ref Server server,
 	return BuildToCResult(
 		has(programs.lowProgram)
 			? writeToC(alloc, alloc, ctx, force(programs.lowProgram))
-			: safeCStr!"",
+			: cString!"",
 		showDiagnostics(alloc, server, programs.program),
 		has(programs.lowProgram) ? force(programs.lowProgram).externLibraries : []);
 }

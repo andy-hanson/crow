@@ -34,7 +34,6 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : isEmpty;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSort, finishArr;
 import util.col.arrUtil : exists, indexOf, map, mapOp;
-import util.col.str : SafeCStr;
 import util.json :
 	field,
 	Json,
@@ -49,11 +48,12 @@ import util.json :
 	kindField;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : compareUriAndRange, UriAndRange;
+import util.string : CString;
 import util.sym : AllSymbols, Sym, sym;
 import util.uri : AllUris, stringOfUri;
 import util.util : unreachable;
 
-SafeCStr documentJSON(ref Alloc alloc, in AllSymbols allSymbols, in AllUris allUris, in Program program) =>
+CString documentJSON(ref Alloc alloc, in AllSymbols allSymbols, in AllUris allUris, in Program program) =>
 	jsonToString(alloc, allSymbols, documentRootModules(alloc, allSymbols, allUris, program));
 
 private:
@@ -97,7 +97,7 @@ DocExport documentExport(
 	ref Alloc alloc,
 	UriAndRange range,
 	Sym name,
-	in SafeCStr docComment,
+	in CString docComment,
 	in TypeParams typeParams,
 	Json value,
 ) =>

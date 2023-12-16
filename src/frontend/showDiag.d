@@ -57,10 +57,10 @@ import util.col.arrUtil : exists;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnRange;
 import util.col.multiMap : makeMultiMap, MultiMap, MultiMapCb;
 import util.col.sortUtil : sorted;
-import util.col.str : SafeCStr;
 import util.comparison : Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : compareRange;
+import util.string : CString;
 import util.sym : AllSymbols, Sym, writeSym;
 import util.uri : AllUris, baseName, compareUriAlphabetically, Uri, writeRelPath, writeUri;
 import util.util : stringOfEnum, max, unreachable;
@@ -74,7 +74,7 @@ import util.writer :
 	writeWithSeparator,
 	Writer;
 
-SafeCStr stringOfDiagnostics(ref Alloc alloc, in ShowCtx ctx, in Program program) =>
+CString stringOfDiagnostics(ref Alloc alloc, in ShowCtx ctx, in Program program) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		DiagnosticSeverity severity = maxDiagnosticSeverity(program);
 		bool first = true;
@@ -91,12 +91,12 @@ SafeCStr stringOfDiagnostics(ref Alloc alloc, in ShowCtx ctx, in Program program
 		}
 	});
 
-SafeCStr stringOfDiag(ref Alloc alloc, in ShowCtx ctx, in Diag diag) =>
+CString stringOfDiag(ref Alloc alloc, in ShowCtx ctx, in Diag diag) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		writeDiag(writer, ctx, diag);
 	});
 
-SafeCStr stringOfParseDiagnostics(
+CString stringOfParseDiagnostics(
 	ref Alloc alloc,
 	in AllSymbols allSymbols,
 	in AllUris allUris,

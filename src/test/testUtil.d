@@ -16,12 +16,11 @@ import model.model : Program;
 import util.alloc.alloc : Alloc, allocateElements, AllocKind, MetaAlloc, newAlloc, withTempAlloc, word;
 import util.col.arr : isEmpty;
 import util.col.arrUtil : arraysEqual, arraysCorrespond, indexOf, makeArray, map;
-import util.col.str : SafeCStr, safeCStrEq, strOfSafeCStr;
 import util.opt : force, has, none, Opt;
 import util.perf : Perf;
+import util.string : CString, stringOfCString;
 import util.sym : AllSymbols;
-import util.uri :
-	AllUris, concatUriAndPath, getExtension, isAncestor, parsePath, parseUri, safeCStrOfUri, Uri, UrisInfo;
+import util.uri : AllUris, concatUriAndPath, cStringOfUri, getExtension, isAncestor, parsePath, parseUri, Uri, UrisInfo;
 import util.util : ptrTrustMe;
 import util.writer : debugLogWithWriter, Writer;
 
@@ -116,8 +115,8 @@ private void withShowDiagCtxForTestImpl(alias cb)(
 
 pure:
 
-void assertEqual(in SafeCStr actual, in SafeCStr expected) {
-	if (!safeCStrEq(actual, expected)) {
+void assertEqual(in CString actual, in CString expected) {
+	if (actual != expected) {
 		debugLogWithWriter((scope ref Writer writer) {
 			writer ~= "Actual: ";
 			writer ~= actual;
@@ -158,7 +157,7 @@ void setupTestServer(ref Test test, ref Alloc alloc, ref Server server, Uri main
 
 string defaultIncludeResult(string path) {
 	Opt!size_t index = indexOf(testIncludePaths, path);
-	return strOfSafeCStr(testIncludeContents[force(index)]);
+	return stringOfCString(testIncludeContents[force(index)]);
 }
 
 private:
@@ -172,7 +171,7 @@ ReadFileResult defaultFileResult(ref Alloc alloc, scope ref Server server, in Ur
 			else if (isAncestor(server.allUris, server.includeDir, uri)) {
 				debug {
 					import core.stdc.stdio : printf;
-					printf("Missing URI: %s\n", safeCStrOfUri(alloc, server.allUris, uri).ptr);
+					printf("Missing URI: %s\n", cStringOfUri(alloc, server.allUris, uri).ptr);
 				}
 				assert(false);
 			} else
@@ -263,8 +262,8 @@ alias testIncludePathsSeq = AliasSeq!(
 	"windows/DbgHelp.crow",
 );
 immutable string[] testIncludePaths = [testIncludePathsSeq];
-immutable SafeCStr[testIncludePaths.length] testIncludeContents = [staticMap!(getIncludeText, testIncludePathsSeq)];
-enum getIncludeText(string path) = SafeCStr(import(path));
+immutable CString[testIncludePaths.length] testIncludeContents = [staticMap!(getIncludeText, testIncludePathsSeq)];
+enum getIncludeText(string path) = CString(import(path));
 
 T[] reverse(T)(ref Alloc alloc, scope T[] xs) =>
 	makeArray(alloc, xs.length, (size_t i) =>

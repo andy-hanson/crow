@@ -22,7 +22,6 @@ import util.col.arr : isEmpty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : append, contains;
 import util.col.mutMap : getOrAdd, keys, mayDelete, mustAdd, MutMap, values;
-import util.col.str : SafeCStr, safeCStrSize, strOfSafeCStr;
 import util.json : field, Json, jsonObject;
 import util.lineAndColumnGetter :
 	LineAndCharacter,
@@ -43,6 +42,7 @@ import util.memory : allocate;
 import util.opt : ConstOpt, force, has, MutOpt;
 import util.perf : Perf;
 import util.sourceRange : jsonOfRange, lineAndCharacterRange, Pos, Range, UriAndPos, UriAndRange;
+import util.string : CString, cStringSize, stringOfCString;
 import util.sym : AllSymbols;
 import util.union_ : Union;
 import util.uri : AllUris, baseName, getExtension, Uri, stringOfUri;
@@ -117,10 +117,10 @@ void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentCont
 void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentContentChangeEvent change) {
 	FileInfo info = fileOrDiag(a, uri).as!FileInfo;
 	withTempAlloc(a.metaAlloc, (ref Alloc alloc) {
-		SafeCStr newContent = applyChange(alloc, asString(info.content), info.lineAndColumnGetter, change);
+		CString newContent = applyChange(alloc, asString(info.content), info.lineAndColumnGetter, change);
 		// TODO:PERF This means an unnecessary copy in 'setFile'.
 		// Would be better to modify the array in place and force re-parse.
-		setFile(perf, a, uri, strOfSafeCStr(newContent));
+		setFile(perf, a, uri, stringOfCString(newContent));
 	});
 }
 
@@ -130,8 +130,8 @@ private AllocAndValue!FileInfo getFileInfo(scope ref Perf perf, ref Storage stor
 		return FileInfo(
 			content,
 			// TODO: only needed for CrowFile or CrowConfig
-			lineAndColumnGetterForText(alloc, asSafeCStr(content)),
-			parseContent(perf, alloc, *storage.allSymbols, *storage.allUris, uri, asSafeCStr(content)));
+			lineAndColumnGetterForText(alloc, asCString(content)),
+			parseContent(perf, alloc, *storage.allSymbols, *storage.allUris, uri, asCString(content)));
 	});
 
 private ParseResult parseContent(
@@ -140,7 +140,7 @@ private ParseResult parseContent(
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
 	Uri uri,
-	in SafeCStr content,
+	in CString content,
 ) {
 	final switch (fileType(allUris, uri)) {
 		case FileType.crow:
@@ -256,9 +256,9 @@ immutable struct FileContent {
 		bytes = a;
 		assert(!isEmpty(bytes) && bytes[$ - 1] == '\0');
 	}
-	@trusted this(SafeCStr a) {
+	@trusted this(CString a) {
 		static assert(char.sizeof == ubyte.sizeof);
-		this((cast(immutable ubyte*) a.ptr)[0 .. safeCStrSize(a) + 1]);
+		this((cast(immutable ubyte*) a.ptr)[0 .. cStringSize(a) + 1]);
 	}
 
 	// This ends with '\0'
@@ -268,8 +268,8 @@ immutable struct FileContent {
 immutable(ubyte[]) asBytes(return scope FileContent a) =>
 	a.bytes[0 .. $ - 1];
 
-private @trusted SafeCStr asSafeCStr(return scope FileContent a) =>
-	SafeCStr(cast(immutable char*) a.bytes.ptr);
+private @trusted CString asCString(return scope FileContent a) =>
+	CString(cast(immutable char*) a.bytes.ptr);
 
 private string asString(return scope FileContent a) =>
 	cast(string) asBytes(a);
@@ -311,7 +311,7 @@ Json jsonOfUriAndRange(ref Alloc alloc, in AllUris allUris, in LineAndColumnGett
 Json jsonOfRange(ref Alloc alloc, in LineAndColumnGetters lcg, in UriAndRange a) =>
 	jsonOfRange(alloc, lcg[a.uri], a.range);
 
-private SafeCStr applyChange(
+private CString applyChange(
 	ref Alloc alloc,
 	in string input,
 	in LineAndColumnGetter lc,

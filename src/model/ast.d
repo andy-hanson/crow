@@ -8,11 +8,11 @@ import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.col.arr : arrayOfSingle, SmallArray;
 import util.col.arrUtil : exists, newArray;
-import util.col.str : SafeCStr, safeCStr;
 import util.conv : safeToUint;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.sourceRange : Pos, Range, rangeOfStartAndLength, rangeOfStartAndName;
+import util.string : CString, cString;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.uri : AllUris, Path, pathLength, RelPath, relPathLength;
@@ -534,7 +534,7 @@ DestructureAst[] paramsArray(return scope ParamsAst a) =>
 immutable struct SpecSigAst {
 	@safe @nogc pure nothrow:
 
-	SafeCStr docComment;
+	CString docComment;
 	Range range;
 	Sym name;
 	TypeAst returnType;
@@ -545,7 +545,7 @@ immutable struct SpecSigAst {
 }
 
 immutable struct StructAliasAst {
-	SafeCStr docComment;
+	CString docComment;
 	Range range;
 	ExplicitVisibility visibility;
 	NameAndRange name;
@@ -623,7 +623,7 @@ immutable struct StructDeclAst {
 	}
 	static assert(Body.sizeof <= 24);
 
-	SafeCStr docComment;
+	CString docComment;
 	// Range starts at the visibility
 	Range range;
 	ExplicitVisibility visibility;
@@ -663,7 +663,7 @@ static assert(SpecBodyAst.sizeof == ulong.sizeof);
 
 immutable struct SpecDeclAst {
 	Range range;
-	SafeCStr docComment;
+	CString docComment;
 	ExplicitVisibility visibility;
 	NameAndRange name;
 	SmallArray!NameAndRange typeParams;
@@ -676,7 +676,7 @@ Range nameRange(in AllSymbols allSymbols, in SpecDeclAst a) =>
 
 immutable struct FunDeclAst {
 	Range range;
-	SafeCStr docComment;
+	CString docComment;
 	ExplicitVisibility visibility;
 	NameAndRange name;
 	SmallArray!NameAndRange typeParams;
@@ -767,7 +767,7 @@ immutable struct TestAst {
 // 'extern' or 'thread-local'
 immutable struct VarDeclAst {
 	Range range;
-	SafeCStr docComment;
+	CString docComment;
 	ExplicitVisibility visibility;
 	NameAndRange name;
 	NameAndRange[] typeParams; // This will be a compile error
@@ -813,7 +813,7 @@ immutable struct ImportsOrExportsAst {
 
 immutable struct FileAst {
 	ParseDiagnostic[] parseDiagnostics;
-	SafeCStr docComment;
+	CString docComment;
 	bool noStd;
 	Opt!ImportsOrExportsAst imports;
 	Opt!ImportsOrExportsAst reExports;
@@ -828,7 +828,7 @@ immutable struct FileAst {
 private FileAst* fileAstForDiags(ref Alloc alloc, ParseDiagnostic[] diags) =>
 	allocate(alloc, FileAst(
 		diags,
-		safeCStr!"",
+		cString!"",
 		false,
 		none!ImportsOrExportsAst,
 		none!ImportsOrExportsAst,

@@ -48,10 +48,10 @@ import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
 import util.col.arr : endPtr;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : newArray;
-import util.col.str : CStr, SafeCStr, safeCStrSize;
 import util.exitCode : ExitCode;
 import util.memory : memset;
 import util.opt : force, has, Opt, some;
+import util.string : CString, cStringSize;
 import util.sym : Sym;
 import util.uri :
 	AllUris,
@@ -93,12 +93,12 @@ FILE* stderr() {
 
 private @trusted void removeFile(in AllUris allUris, FileUri uri) {
 	TempStrForPath buf = void;
-	CStr cStr = fileUriToTempStr(buf, allUris, uri).ptr;
+	CString cStr = fileUriToTempStr(buf, allUris, uri);
 	version (Windows) {
-		int res = DeleteFileA(cStr);
+		int res = DeleteFileA(cStr.ptr);
 		if (!res) todo!void("error removing file");
 	} else {
-		final switch (unlink(cStr)) {
+		final switch (unlink(cStr.ptr)) {
 			case 0:
 				break;
 			case -1:
@@ -191,9 +191,7 @@ version (Windows) {
 		return ReadFileResult(ReadFileDiag.notFound);
 
 	TempStrForPath pathBuf = void;
-	CStr pathCStr = fileUriToTempStr(pathBuf, allUris, asFileUri(allUris, uri)).ptr;
-
-	FILE* fd = fopen(pathCStr, "rb");
+	FILE* fd = fopen(fileUriToTempStr(pathBuf, allUris, asFileUri(allUris, uri)).ptr, "rb");
 	if (fd == null)
 		return errno == ENOENT
 			? ReadFileResult(ReadFileDiag.notFound)
@@ -226,14 +224,14 @@ version (Windows) {
 	}
 }
 
-@trusted ExitCode writeFile(in AllUris allUris, FileUri uri, in SafeCStr content) {
+@trusted ExitCode writeFile(in AllUris allUris, FileUri uri, in CString content) {
 	FILE* fd = tryOpenFileForWrite(allUris, uri);
 	if (fd == null)
 		return ExitCode.error;
 	else {
 		scope(exit) fclose(fd);
 
-		size_t size = safeCStrSize(content);
+		size_t size = cStringSize(content);
 		long wroteBytes = fwrite(content.ptr, char.sizeof, size, fd);
 		if (wroteBytes != size) {
 			if (wroteBytes == -1)
@@ -247,18 +245,18 @@ version (Windows) {
 
 private @system FILE* tryOpenFileForWrite(in AllUris allUris, FileUri uri) {
 	TempStrForPath buf = void;
-	CStr pathCStr = fileUriToTempStr(buf, allUris, uri).ptr;
-	FILE* fd = fopen(pathCStr, "w");
+	CString pathStr = fileUriToTempStr(buf, allUris, uri);
+	FILE* fd = fopen(pathStr.ptr, "w");
 	if (fd == null) {
 		if (errno == ENOENT) {
 			Opt!FileUri par = parent(allUris, uri);
 			if (has(par)) {
 				ExitCode res = mkdirRecur(allUris, force(par));
 				if (res == ExitCode.ok)
-					return fopen(pathCStr, "w");
+					return fopen(pathStr.ptr, "w");
 			}
 		} else {
-			fprintf(stderr, "Failed to write file %s: %s\n", pathCStr, strerror(errno));
+			fprintf(stderr, "Failed to write file %s: %s\n", pathStr.ptr, strerror(errno));
 		}
 	}
 	return fd;
@@ -269,7 +267,7 @@ private @system FILE* tryOpenFileForWrite(in AllUris allUris, FileUri uri) {
 	const char* cwd = getcwd(res.ptr, res.length);
 	return cwd == null
 		? todo!FileUri("getcwd failed")
-		: parseAbsoluteFilePathAsUri(allUris, SafeCStr(cast(immutable) cwd));
+		: parseAbsoluteFilePathAsUri(allUris, CString(cast(immutable) cwd));
 }
 
 @trusted FileUri getPathToThisExecutable(ref AllUris allUris) {
@@ -283,7 +281,7 @@ private @system FILE* tryOpenFileForWrite(in AllUris allUris, FileUri uri) {
 	}
 	assert(size > 0 && size < res.length);
 	res[size] = '\0';
-	return parseAbsoluteFilePathAsUri(allUris, SafeCStr(cast(immutable) res.ptr));
+	return parseAbsoluteFilePathAsUri(allUris, CString(cast(immutable) res.ptr));
 }
 
 // Returns the child process' error code.
@@ -291,11 +289,11 @@ private @system FILE* tryOpenFileForWrite(in AllUris allUris, FileUri uri) {
 @trusted ExitCode spawnAndWait(
 	ref TempAlloc tempAlloc,
 	in AllUris allUris,
-	in SafeCStr executablePath,
-	in SafeCStr[] args,
+	in CString executablePath,
+	in CString[] args,
 ) {
 	version (Windows) {
-		CStr argsCStr = windowsArgsCStr(tempAlloc, executablePath, args);
+		CString argsCStr = windowsArgsCStr(tempAlloc, executablePath, args);
 
 		HANDLE stdoutRead;
 		HANDLE stdoutWrite;
@@ -411,45 +409,45 @@ version (Windows) {
 		return todo!ExitCode("!");
 	} else {
 		TempStrForPath buf = void;
-		CStr dirCStr = fileUriToTempStr(buf, allUris, dir).ptr;
-		int err = mkdir(dirCStr, S_IRWXU);
+		CString dirStr = fileUriToTempStr(buf, allUris, dir);
+		int err = mkdir(dirStr.ptr, S_IRWXU);
 		if (err == ENOENT) {
 			Opt!FileUri par = parent(allUris, dir);
 			if (has(par)) {
 				ExitCode res = mkdirRecur(allUris, force(par));
 				return res == ExitCode.ok
-					? handleMkdirErr(mkdir(dirCStr, S_IRWXU), dirCStr)
+					? handleMkdirErr(mkdir(dirStr.ptr, S_IRWXU), dirStr)
 					: res;
 			}
 		}
-		return handleMkdirErr(err, dirCStr);
+		return handleMkdirErr(err, dirStr);
 	}
 }
 
 version (Windows) {
 } else {
-	@system ExitCode handleMkdirErr(int err, CStr dir) {
+	@system ExitCode handleMkdirErr(int err, CString dir) {
 		if (err != 0)
-			fprintf(stderr, "Error making directory %s: %s\n", dir, strerror(errno));
+			fprintf(stderr, "Error making directory %s: %s\n", dir.ptr, strerror(errno));
 		return ExitCode(err);
 	}
 }
 
 version (Windows) {
-	CStr windowsArgsCStr(
+	CString windowsArgsCStr(
 		ref Alloc alloc,
-		in SafeCStr executablePath,
-		in SafeCStr[] args,
+		in CString executablePath,
+		in CString[] args,
 	) =>
 		withWriter(tempAlloc, (scope ref Writer writer) {
 			writer ~= '"';
 			writer ~= executablePath;
 			writer ~= '"';
-			foreach (SafeCStr arg; args) {
+			foreach (CString arg; args) {
 				writer ~= ' ';
 				writer ~= arg;
 			}
-		}).ptr;
+		});
 }
 
 void verifyOk(int ok) {
@@ -483,10 +481,10 @@ version (Windows) {
 	}
 }
 
-@system CStr* convertArgs(ref Alloc alloc, in SafeCStr executable, in SafeCStr[] args) {
-	ArrBuilder!CStr cArgs;
+@system immutable(char**) convertArgs(ref Alloc alloc, in CString executable, in CString[] args) {
+	ArrBuilder!(immutable char*) cArgs;
 	add(alloc, cArgs, executable.ptr);
-	foreach (SafeCStr arg; args)
+	foreach (CString arg; args)
 		add(alloc, cArgs, arg.ptr);
 	add(alloc, cArgs, null);
 	return finishArr(alloc, cArgs).ptr;

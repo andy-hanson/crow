@@ -23,22 +23,22 @@ import test.testWriter : testWriter;
 import util.alloc.alloc : MetaAlloc;
 import util.col.arr : isEmpty;
 import util.col.arrUtil : find;
-import util.col.str : SafeCStr, strOfSafeCStr, strEq;
 import util.exitCode : ExitCode;
 import util.opt : force, Opt;
 import util.perf : Perf, withNullPerf;
+import util.string : CString, stringOfCString, stringsEqual;
 import util.util : ptrTrustMe;
 
-ExitCode test(MetaAlloc* alloc, in SafeCStr[] names) =>
+ExitCode test(MetaAlloc* alloc, in CString[] names) =>
 	withNullPerf!(ExitCode, (scope ref Perf perf) {
 		Test test = Test(alloc, ptrTrustMe(perf));
 		if (isEmpty(names)) {
 			foreach (ref NameAndTest x; allTests)
 				x.test(test);
 		} else {
-			foreach (SafeCStr name; names) {
+			foreach (CString name; names) {
 				Opt!NameAndTest found = find!NameAndTest(allTests, (in NameAndTest x) =>
-					strEq(x.name, strOfSafeCStr(name)));
+					stringsEqual(x.name, stringOfCString(name)));
 				force(found).test(test);
 			}
 		}

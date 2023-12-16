@@ -15,18 +15,18 @@ import util.col.arr : isEmpty, only;
 import util.col.arrUtil : arraysEqual, fillArray, findIndex, newArray;
 import util.col.mutArr : moveToArr, MutArr, mutArrSize, push, tempAsArr;
 import util.col.mutMap : getOrAdd, MutMap, size, values, valuesArray;
-import util.col.str : SafeCStr;
 import util.memory : initMemory;
 import util.opt : force, has, Opt;
-import util.sym : AllSymbols, safeCStrOfSym, Sym;
+import util.string : CString;
+import util.sym : AllSymbols, cStringOfSym, Sym;
 import util.util : ptrTrustMe;
 
 struct AllConstantsBuilder {
 	private:
 	@disable this(ref const AllConstantsBuilder);
-	MutMap!(SafeCStr, Constant.CString) cStrings;
+	MutMap!(CString, Constant.CString) cStrings;
 	MutMap!(Sym, Constant) syms;
-	MutArr!SafeCStr cStringValues;
+	MutArr!CString cStringValues;
 	MutMap!(ConcreteType, ArrTypeAndConstants) arrs;
 	MutMap!(ConcreteStruct*, PointerTypeAndConstants) pointers;
 }
@@ -111,10 +111,10 @@ private Constant getConstantCStrForSym(
 	ref const AllSymbols allSymbols,
 	Sym value,
 ) =>
-	getConstantCStr(alloc, allConstants, safeCStrOfSym(alloc, allSymbols, value));
+	getConstantCStr(alloc, allConstants, cStringOfSym(alloc, allSymbols, value));
 
-Constant getConstantCStr(ref Alloc alloc, ref AllConstantsBuilder allConstants, SafeCStr value) =>
-	Constant(getOrAdd!(SafeCStr, Constant.CString)(
+Constant getConstantCStr(ref Alloc alloc, ref AllConstantsBuilder allConstants, CString value) =>
+	Constant(getOrAdd!(CString, Constant.CString)(
 		alloc,
 		allConstants.cStrings,
 		value,

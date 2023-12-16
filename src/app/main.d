@@ -59,7 +59,6 @@ version (Test) {
 }
 import util.alloc.alloc : Alloc, AllocKind, newAlloc, withTempAllocImpure, word;
 import util.col.arrUtil : prepend;
-import util.col.str : CStr, mustStripPrefix, SafeCStr, safeCStr, safeCStrIsEmpty, safeCStrSize;
 import util.exitCode : ExitCode;
 import util.json : Json, jsonToString;
 import util.jsonParse : mustParseJson, mustParseUint, skipWhitespace;
@@ -67,11 +66,12 @@ import util.lineAndColumnGetter : UriLineAndColumn;
 import util.opt : force, has, Opt, some;
 import util.perf : disablePerf, isEnabled, Perf, withNullPerf;
 import util.perfReport : perfReport;
+import util.string : mustStripPrefix, CString, cString, cStringIsEmpty, cStringSize;
 import util.sym : AllSymbols, sym;
-import util.uri : AllUris, childUri, FileUri, Uri, parentOrEmpty, safeCStrOfUri, toUri;
+import util.uri : AllUris, childUri, cStringOfUri, FileUri, Uri, parentOrEmpty, toUri;
 import versionInfo : versionInfoForJIT;
 
-@system extern(C) int main(int argc, CStr* argv) {
+@system extern(C) int main(int argc, immutable char** argv) {
 	ulong function() @safe @nogc pure nothrow getTimeNanosPure =
 		cast(ulong function() @safe @nogc pure nothrow) &getTimeNanos;
 	scope Perf perf = Perf(() => getTimeNanosPure());
@@ -82,7 +82,7 @@ import versionInfo : versionInfoForJIT;
 	setCwd(server, cwd);
 	setShowOptions(server, ShowOptions(true));
 	Alloc* alloc = newAlloc(AllocKind.main, server.metaAlloc);
-	Command command = parseCommand(*alloc, server.allUris, cwd, cast(SafeCStr[]) argv[1 .. argc]);
+	Command command = parseCommand(*alloc, server.allUris, cwd, cast(CString[]) argv[1 .. argc]);
 	if (!command.options.perf)
 		disablePerf(perf);
 	int res = go(perf, *alloc, server, command.kind).value;
@@ -131,7 +131,7 @@ private:
 	char[0x10000] buffer;
 	immutable(char)* line0 = cast(immutable) fgets(buffer.ptr, buffer.length, stdin);
 	assert(line0 != null);
-	SafeCStr stripped = mustStripPrefix(SafeCStr(cast(immutable) line0), "Content-Length: ");
+	CString stripped = mustStripPrefix(CString(cast(immutable) line0), "Content-Length: ");
 	uint contentLength = mustParseUint(stripped);
 	assert(contentLength < buffer.length);
 
@@ -144,12 +144,12 @@ private:
 	assert(n == contentLength);
 	buffer[n] = '\0';
 
-	return parseLspInMessage(alloc, allUris, mustParseJson(alloc, allSymbols, SafeCStr(cast(immutable) buffer.ptr)));
+	return parseLspInMessage(alloc, allUris, mustParseJson(alloc, allSymbols, CString(cast(immutable) buffer.ptr)));
 }
 
 @trusted void writeOut(ref Alloc alloc, in AllSymbols allSymbols, in Json contentJson) {
-	SafeCStr content = jsonToString(alloc, allSymbols, contentJson);
-	printf("Content-Length: %lu\r\n\r\n%s", safeCStrSize(content), content.ptr);
+	CString content = jsonToString(alloc, allSymbols, contentJson);
+	printf("Content-Length: %lu\r\n\r\n%s", cStringSize(content), content.ptr);
 	fflush(stdout);
 }
 
@@ -191,7 +191,7 @@ ExitCode go(scope ref Perf perf, ref Alloc alloc, ref Server server, in CommandK
 		(in CommandKind.Document x) {
 			loadAllFiles(perf, server, x.rootUris);
 			DocumentResult result = getDocumentation(perf, alloc, server, x.rootUris);
-			return safeCStrIsEmpty(result.diagnostics) ? print(result.document) : printError(result.diagnostics);
+			return cStringIsEmpty(result.diagnostics) ? print(result.document) : printError(result.diagnostics);
 		},
 		(in CommandKind.Help x) =>
 			help(x),
@@ -212,17 +212,17 @@ ExitCode go(scope ref Perf perf, ref Alloc alloc, ref Server server, in CommandK
 								perf,
 								server,
 								extern_,
-								(in SafeCStr x) {
+								(in CString x) {
 									printError(x);
 								},
 								run.mainUri,
 								getAllArgs(alloc, server.allUris, run.mainUri, run.programArgs))),
 				(in RunOptions.Jit x) {
 					version (GccJitAvailable) {
-						SafeCStr[] args = getAllArgs(alloc, server.allUris, run.mainUri, run.programArgs);
+						CString[] args = getAllArgs(alloc, server.allUris, run.mainUri, run.programArgs);
 						return buildAndJit(perf, alloc, server, x.options, run.mainUri, args);
 					} else {
-						printError(safeCStr!"'--jit' is not supported on Windows");
+						printError(cString!"'--jit' is not supported on Windows");
 						return ExitCode.error;
 					}
 				});
@@ -231,7 +231,7 @@ ExitCode go(scope ref Perf perf, ref Alloc alloc, ref Server server, in CommandK
 			version (Test) {
 				return test(server.metaAlloc, x.names);
 			} else
-				return printError(safeCStr!"Did not compile with tests");
+				return printError(cString!"Did not compile with tests");
 		},
 		(in CommandKind.Version) =>
 			print(version_(alloc, server)));
@@ -239,8 +239,8 @@ ExitCode go(scope ref Perf perf, ref Alloc alloc, ref Server server, in CommandK
 Uri getCrowDir(ref AllUris allUris) =>
 	parentOrEmpty(allUris, parentOrEmpty(allUris, toUri(allUris, getPathToThisExecutable(allUris))));
 
-SafeCStr[] getAllArgs(ref Alloc alloc, in AllUris allUris, Uri main, in SafeCStr[] programArgs) =>
-	prepend(alloc, safeCStrOfUri(alloc, allUris, main), programArgs);
+CString[] getAllArgs(ref Alloc alloc, in AllUris allUris, Uri main, in CString[] programArgs) =>
+	prepend(alloc, cStringOfUri(alloc, allUris, main), programArgs);
 
 ExitCode doPrint(scope ref Perf perf, ref Alloc alloc, ref Server server, in CommandKind.Print command) {
 	Uri mainUri = command.mainUri;
@@ -269,10 +269,10 @@ ExitCode doPrint(scope ref Perf perf, ref Alloc alloc, ref Server server, in Com
 			loadAllFiles(perf, server, [mainUri]);
 			return printIde(perf, alloc, server, UriLineAndColumn(mainUri, x.lineAndColumn), x.kind);
 		});
-	if (!safeCStrIsEmpty(printed.diagnostics))
+	if (!cStringIsEmpty(printed.diagnostics))
 		printError(printed.diagnostics);
 	print(jsonToString(alloc, server.allSymbols, printed.result));
-	return safeCStrIsEmpty(printed.diagnostics) ? ExitCode.ok : ExitCode.error;
+	return cStringIsEmpty(printed.diagnostics) ? ExitCode.ok : ExitCode.error;
 }
 
 ExitCode runBuild(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri main, in BuildOptions options) {
@@ -283,14 +283,14 @@ ExitCode runBuild(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri m
 		ProgramWithMain program = getProgramForMain(perf, alloc, server, main);
 		return hasAnyDiagnostics(program)
 			? printError(showDiagnostics(alloc, server, program.program))
-			: print(safeCStr!"OK");
+			: print(cString!"OK");
 	}
 }
 
 ExitCode buildToCAndCompile(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri main, BuildOptions options) {
 	loadAllFiles(perf, server, [main]);
 	BuildToCResult result = buildToC(perf, alloc, server, main);
-	if (!safeCStrIsEmpty(result.diagnostics))
+	if (!cStringIsEmpty(result.diagnostics))
 		printError(result.diagnostics);
 	return withUriOrTemp!cExtension(server.allUris, options.out_.outC, main, (FileUri cUri) {
 		ExitCode res = writeFile(server.allUris, cUri, result.cSource);
@@ -308,7 +308,7 @@ version (GccJitAvailable) { ExitCode buildAndJit(
 	ref Server server,
 	in JitOptions jitOptions,
 	Uri main,
-	in SafeCStr[] programArgs,
+	in CString[] programArgs,
 ) {
 	Programs programs = buildToLowProgram(perf, alloc, server, versionInfoForJIT(), main);
 	if (hasAnyDiagnostics(programs.program))

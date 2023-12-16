@@ -20,9 +20,9 @@ import frontend.parse.lexToken : isSymToken;
 import model.ast : NameAndRange;
 import model.parseDiag : ParseDiag;
 import util.col.arrUtil : contains;
-import util.col.str : copyToSafeCStr, SafeCStr, safeCStr;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
+import util.string : copyToCString, CString, cString;
 import util.sym : Sym, sym;
 import util.util : unreachable;
 
@@ -148,15 +148,15 @@ private immutable Token[] endOfLineTokens =
 bool peekEndOfLine(ref Lexer lexer) =>
 	peekToken(lexer, endOfLineTokens);
 
-SafeCStr takeNewline_topLevel(ref Lexer lexer) {
+CString takeNewline_topLevel(ref Lexer lexer) {
 	TokenAndData token = takeNextToken(lexer);
 	if (token.token == Token.newlineSameIndent)
-		return copyToSafeCStr(lexer.alloc, token.asDocComment().docComment);
+		return copyToCString(lexer.alloc, token.asDocComment().docComment);
 	else {
 		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.newline)));
 		NewlineOrDedent nl = skipToNextNewlineOrDedent(lexer);
 		assert(nl == NewlineOrDedent.newline);
-		return safeCStr!"";
+		return cString!"";
 	}
 }
 

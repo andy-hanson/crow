@@ -18,13 +18,13 @@ import util.col.arr : isEmpty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arraysEqual;
 import util.col.hashTable : mustGet;
-import util.col.str : SafeCStr, safeCStr, safeCStrEq, safeCStrIsEmpty, strOfSafeCStr;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonList, jsonObject, jsonToStringPretty, optionalArrayField;
 import util.lineAndColumnGetter : LineAndColumnGetter, PosKind;
 import util.opt : force, has, Opt;
 import util.uri : parseUri, Uri;
 import util.sourceRange : jsonOfPosWithinFile, Pos, UriAndRange;
+import util.string : CString, cString, cStringIsEmpty, stringOfCString;
 import util.util : debugLog;
 
 @trusted void testHover(ref Test test) {
@@ -38,9 +38,9 @@ void hoverTest(string crowFileName, string outputFileName)(ref Test test) {
 	string content = import("hover/" ~ crowFileName);
 	string expected = import(outputFileName);
 	withHoverTest!crowFileName(test, content, (in ShowCtx ctx, Module* module_) {
-		SafeCStr actual = jsonToStringPretty(
+		CString actual = jsonToStringPretty(
 			test.alloc, test.allSymbols, hoverResult(test.alloc, content, ctx, module_));
-		if (strOfSafeCStr(actual) != expected) {
+		if (stringOfCString(actual) != expected) {
 			debugLog("Test output was not as expected. File is:");
 			debugLog(outputFileName);
 			debugLog("Actual is:");
@@ -66,14 +66,14 @@ void withHoverTest(string fileName)(
 immutable struct InfoAtPos {
 	@safe @nogc pure nothrow:
 
-	SafeCStr hover;
+	CString hover;
 	UriAndRange[] definition;
 
 	bool isEmpty() scope =>
-		safeCStrIsEmpty(hover) && .isEmpty(definition);
+		cStringIsEmpty(hover) && .isEmpty(definition);
 
 	bool opEquals(in InfoAtPos b) scope =>
-		safeCStrEq(hover, b.hover) && arraysEqual(definition, b.definition);
+		hover == b.hover && arraysEqual(definition, b.definition);
 }
 
 Json hoverResult(ref Alloc alloc, in string content, in ShowCtx ctx, Module* mainModule) {
@@ -81,7 +81,7 @@ Json hoverResult(ref Alloc alloc, in string content, in ShowCtx ctx, Module* mai
 
 	// We combine ranges that have the same info.
 	Pos curRangeStart = 0;
-	Cell!(InfoAtPos) curInfo = Cell!(InfoAtPos)(InfoAtPos(safeCStr!"", []));
+	Cell!(InfoAtPos) curInfo = Cell!(InfoAtPos)(InfoAtPos(cString!"", []));
 
 	LineAndColumnGetter lcg = ctx.lineAndColumnGetters[mainModule.uri];
 
@@ -103,7 +103,7 @@ Json hoverResult(ref Alloc alloc, in string content, in ShowCtx ctx, Module* mai
 		Position position = getPosition(ctx.allSymbols, ctx.allUris, mainModule, pos);
 		Opt!Hover hover = getHover(alloc, ctx, position);
 		InfoAtPos here = InfoAtPos(
-			has(hover) ? force(hover).contents.value : safeCStr!"",
+			has(hover) ? force(hover).contents.value : cString!"",
 			getDefinitionForPosition(alloc, ctx.allSymbols, ctx.program, position));
 		if (here != cellGet(curInfo)) {
 			endRange(pos - 1);

@@ -3,9 +3,9 @@ module test.testUri;
 @safe @nogc pure nothrow:
 
 import test.testUtil : Test;
-import util.col.str : SafeCStr, safeCStr, safeCStrEq;
 import util.comparison : Comparison;
 import util.opt : none, optEqual, some;
+import util.string : CString, cString;
 import util.sym : Sym, sym, symAsTempBuffer, symOfStr;
 import util.uri :
 	AllUris,
@@ -14,6 +14,7 @@ import util.uri :
 	childUri,
 	commonAncestor,
 	compareUriAlphabetically,
+	cStringOfUri,
 	FileUri,
 	fileUriToTempStr,
 	getExtension,
@@ -23,7 +24,6 @@ import util.uri :
 	parseUri,
 	parseUriWithCwd,
 	Path,
-	safeCStrOfUri,
 	TempStrForPath,
 	TEST_eachPart,
 	toUri,
@@ -41,7 +41,7 @@ void testUri(ref Test test) {
 	assert(compareUriAlphabetically(allUris, a, a) == Comparison.equal);
 	assert(compareUriAlphabetically(allUris, a, b) == Comparison.less);
 
-	assert(safeCStrEq(safeCStrOfUri(test.alloc, allUris, a), safeCStr!"file:///a"));
+	assert(cStringOfUri(test.alloc, allUris, a) == "file:///a");
 
 	Uri aX = childUri(allUris, a, sym!"x");
 	verifyUri(test, allUris, aX, ["file://", "a", "x"]);
@@ -49,18 +49,18 @@ void testUri(ref Test test) {
 	Uri aY = childUri(allUris, a, sym!"y");
 	verifyUri(test, allUris, aY, ["file://", "a", "y"]);
 	assert(aX != aY);
-	assert(safeCStrEq(safeCStrOfUri(test.alloc, allUris, aX), safeCStr!"file:///a/x"));
-	assert(safeCStrEq(safeCStrOfUri(test.alloc, allUris, aY), safeCStr!"file:///a/y"));
+	assert(cStringOfUri(test.alloc, allUris, aX) == "file:///a/x");
+	assert(cStringOfUri(test.alloc, allUris, aY) == "file:///a/y");
 
-	Uri zW = parseUriWithCwd(allUris, aX, safeCStr!"/z/w.crow");
+	Uri zW = parseUriWithCwd(allUris, aX, cString!"/z/w.crow");
 	verifyUri(test, allUris, zW, ["file://", "z", "w.crow"]);
 	assert(baseName(allUris, zW) == symOfStr(test.allSymbols, "w.crow"));
-	assert(safeCStrEq(safeCStrOfUri(test.alloc, allUris, zW), safeCStr!"file:///z/w.crow"));
+	assert(cStringOfUri(test.alloc, allUris, zW) == "file:///z/w.crow");
 	assert(getExtension(allUris, zW) == sym!".crow");
-	Uri aXZW = parseUriWithCwd(allUris, aX, safeCStr!"./z/w");
-	assert(safeCStrEq(safeCStrOfUri(test.alloc, allUris, aXZW), safeCStr!"file:///a/x/z/w"));
-	assert(aXZW == parseUriWithCwd(allUris, aX, safeCStr!"z/w"));
-	assert(aY == parseUriWithCwd(allUris, aX, safeCStr!"../y"));
+	Uri aXZW = parseUriWithCwd(allUris, aX, cString!"./z/w");
+	assert(cStringOfUri(test.alloc, allUris, aXZW) == "file:///a/x/z/w");
+	assert(aXZW == parseUriWithCwd(allUris, aX, cString!"z/w"));
+	assert(aY == parseUriWithCwd(allUris, aX, cString!"../y"));
 
 	Uri crowLang = parseUri(allUris, "http://crow-lang.org");
 	assert(parseUriWithCwd(allUris, aX, "http://crow-lang.org") == crowLang);
@@ -88,8 +88,8 @@ private:
 	TempStrForPath pathBuf = void;
 	FileUri fileUri = asFileUri(allUris, uri);
 	fileUriToTempStr(pathBuf, allUris, fileUri);
-	SafeCStr actual = SafeCStr(cast(immutable) pathBuf.ptr);
-	assert(safeCStrEq(actual, "/home/crow/a.txt"));
+	CString actual = CString(cast(immutable) pathBuf.ptr);
+	assert(actual == "/home/crow/a.txt");
 
 	FileUri ab = parseAbsoluteFilePathAsUri(allUris, "/a/b");
 	verifyPath(test, allUris, ab.path, ["a", "b"]);

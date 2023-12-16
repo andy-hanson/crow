@@ -7,8 +7,8 @@ import util.col.arr : isEmpty;
 import util.col.arrUtil : arraysEqual, concatenateIn, copyArray, every, exists, find, map;
 import util.col.fullIndexMap : FullIndexMap;
 import util.col.map : KeyValuePair;
-import util.col.str : copyStr, SafeCStr, safeCStrIsEmpty, strEq, strOfSafeCStr;
 import util.opt : force, has, Opt;
+import util.string : copyString, CString, cStringIsEmpty, stringsEqual, stringOfCString;
 import util.sym : AllSymbols, Sym, sym, writeQuotedSym;
 import util.union_ : Union;
 import util.util : todo;
@@ -27,7 +27,7 @@ immutable struct Json {
 	// string and Sym cases should be treated as equivalent.
 	mixin Union!(Null, bool, double, string, Sym, List, Object, StringObject);
 
-	// Distinguishes SafeCStr / string / Sym. Use only for tests.
+	// Distinguishes CString / string / Sym. Use only for tests.
 	bool opEquals(in Json b) scope =>
 		matchIn!bool(
 			(in Null _) =>
@@ -37,7 +37,7 @@ immutable struct Json {
 			(in double x) =>
 				b.isA!double && b.as!double == x,
 			(in string x) =>
-				b.isA!string && strEq(x, b.as!string),
+				b.isA!string && stringsEqual(x, b.as!string),
 			(in Sym x) =>
 				b.isA!Sym && x == b.as!Sym,
 			(in Json[] x) =>
@@ -92,8 +92,8 @@ Json.ObjectField optionalArrayField(string name, T)(
 	optionalField!name(!isEmpty(array), () =>
 		jsonList(map!(Json, const T)(alloc, array, (ref const T x) => cb(x))));
 
-Json.ObjectField optionalStringField(string name)(ref Alloc alloc, in SafeCStr value) =>
-	optionalField!name(!safeCStrIsEmpty(value), () => jsonString(alloc, value));
+Json.ObjectField optionalStringField(string name)(ref Alloc alloc, in CString value) =>
+	optionalField!name(!cStringIsEmpty(value), () => jsonString(alloc, value));
 
 Json.ObjectField kindField(string kindName)() =>
 	.kindField(kindName);
@@ -119,14 +119,14 @@ Json jsonInt(long a) =>
 Json jsonString(string a) =>
 	Json(a);
 
-Json jsonString(SafeCStr a) =>
-	jsonString(strOfSafeCStr(a));
+Json jsonString(CString a) =>
+	jsonString(stringOfCString(a));
 
 Json jsonString(ref Alloc alloc, in string a) =>
-	jsonString(copyStr(alloc, a));
+	jsonString(copyString(alloc, a));
 
-Json jsonString(ref Alloc alloc, in SafeCStr a) =>
-	jsonString(alloc, strOfSafeCStr(a));
+Json jsonString(ref Alloc alloc, in CString a) =>
+	jsonString(alloc, stringOfCString(a));
 
 Json jsonString(Sym a) =>
 	Json(a);
@@ -138,19 +138,19 @@ Json.ObjectField field(string name)(return scope Json value) =>
 	Json.ObjectField(sym!name, value);
 Json.ObjectField field(string name)(double value) =>
 	field!name(Json(value));
-Json.ObjectField field(string name)(SafeCStr value) =>
-	field!name(strOfSafeCStr(value));
+Json.ObjectField field(string name)(CString value) =>
+	field!name(stringOfCString(value));
 Json.ObjectField field(string name)(string value) =>
 	field!name(Json(value));
 Json.ObjectField field(string name)(Sym value) =>
 	field!name(Json(value));
 
-SafeCStr jsonToString(ref Alloc alloc, in AllSymbols allSymbols, in Json a) =>
+CString jsonToString(ref Alloc alloc, in AllSymbols allSymbols, in Json a) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		writeJson(writer, allSymbols, a);
 	});
 
-SafeCStr jsonToStringPretty(ref Alloc alloc, in AllSymbols allSymbols, in Json a) =>
+CString jsonToStringPretty(ref Alloc alloc, in AllSymbols allSymbols, in Json a) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		writeJsonPretty(writer, allSymbols, a, 0);
 	});

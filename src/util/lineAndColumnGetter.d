@@ -4,9 +4,9 @@ module util.lineAndColumnGetter;
 
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.str : SafeCStr;
 import util.conv : safeToUint;
 import util.sourceRange : Pos, Range;
+import util.string : CString;
 import util.uri : Uri;
 import util.util : min;
 
@@ -97,7 +97,7 @@ LineAndCharacter toLineAndCharacter(in LineAndColumnGetter a, in LineAndColumn l
 			lc.column0Indexed,
 			lc.line0Indexed < a.lineToNTabs.length ? a.lineToNTabs[lc.line0Indexed] : 0));
 
-@trusted LineAndColumnGetter lineAndColumnGetterForText(ref Alloc alloc, scope SafeCStr text) {
+@trusted LineAndColumnGetter lineAndColumnGetterForText(ref Alloc alloc, scope CString text) {
 	ArrBuilder!Pos lineToPos;
 	ArrBuilder!ubyte lineToNTabs;
 

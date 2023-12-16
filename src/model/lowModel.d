@@ -17,10 +17,10 @@ import model.constant : Constant;
 import model.model : EnumValue, Local, StructBody;
 import util.col.map : Map;
 import util.col.fullIndexMap : FullIndexMap;
-import util.col.str : SafeCStr;
 import util.hash : hash2, HashCode, hashEnum, hashSizeT;
 import util.opt : has, none, Opt;
 import util.sourceRange : UriAndRange;
+import util.string : CString;
 import util.sym : Sym, sym;
 import util.union_ : Union;
 import util.uri : Uri;
@@ -724,7 +724,7 @@ immutable struct PointerTypeAndConstantsLow {
 
 // TODO: rename -- this is not all constants, just the ones by-ref
 immutable struct AllConstantsLow {
-	SafeCStr[] cStrings;
+	CString[] cStrings;
 	//TODO:FullIndexMap
 	ArrTypeAndConstantsLow[] arrs;
 	//TODO:FullIndexMap

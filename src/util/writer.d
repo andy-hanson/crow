@@ -5,7 +5,7 @@ module util.writer;
 import util.alloc.alloc : Alloc, withStackAlloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : zip;
-import util.col.str : eachChar, SafeCStr;
+import util.string : eachChar, CString;
 import util.util : abs, debugLog;
 
 struct Writer {
@@ -19,7 +19,7 @@ struct Writer {
 		else static if (is(T == string)) {
 			foreach (char c; a)
 				this ~= c;
-		} else static if (is(immutable T == SafeCStr))
+		} else static if (is(immutable T == CString))
 			eachChar(a, (char c) {
 				this ~= c;
 			});
@@ -51,11 +51,11 @@ void debugLogWithWriter(in void delegate(scope ref Alloc, scope ref Writer) @saf
 	}
 }
 
-@trusted SafeCStr withWriter(ref Alloc alloc, in void delegate(scope ref Writer writer) @safe @nogc pure nothrow cb) {
+@trusted CString withWriter(ref Alloc alloc, in void delegate(scope ref Writer writer) @safe @nogc pure nothrow cb) {
 	scope Writer writer = Writer(&alloc);
 	cb(writer);
 	writer ~= '\0';
-	return SafeCStr(finishArr(*writer.alloc, writer.res).ptr);
+	return CString(finishArr(*writer.alloc, writer.res).ptr);
 }
 
 void writeHex(scope ref Writer writer, ulong a) {

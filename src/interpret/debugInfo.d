@@ -13,12 +13,12 @@ import model.lowModel : LowFunIndex, LowFunSource, LowProgram;
 import util.alloc.alloc : Alloc, withStaticAlloc;
 import util.lineAndColumnGetter : LineAndColumn, PosKind;
 import util.col.arr : isPointerInRange;
-import util.col.str : CStr;
 import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : UriAndPos;
+import util.string : CString;
 import util.sym : AllSymbols;
-import util.uri : AllUris, Uri, UrisInfo, uriToSafeCStrPreferRelative;
+import util.uri : AllUris, cStringOfUriPreferRelative, Uri, UrisInfo;
 import util.util : min;
 import util.writer : debugLogWithWriter, withWriter, writeHex, Writer;
 
@@ -48,7 +48,7 @@ struct InterpreterDebugInfo {
 immutable struct BacktraceEntry {
 	@safe @nogc pure nothrow:
 
-	this(CStr fn, CStr fp, uint ln, uint cn) {
+	this(immutable char* fn, immutable char* fp, uint ln, uint cn) {
 		functionName = fn;
 		fileUri = fp;
 		lineNumber = ln;
@@ -106,18 +106,18 @@ private @trusted BacktraceEntry backtraceEntryFromSource(
 	scope ref InterpreterDebugInfo info,
 	ByteCodeSource source,
 ) {
-	CStr funName = withWriter(alloc, (scope ref Writer writer) {
+	CString funName = withWriter(alloc, (scope ref Writer writer) {
 		writeFunName(writer, info.showDiag, info.lowProgram, source.fun);
-	}).ptr;
+	});
 	Opt!Uri opUri = getUri(info.lowProgram, source.fun);
 	if (has(opUri)) {
 		Uri uri = force(opUri);
-		CStr fileUri = uriToSafeCStrPreferRelative(alloc, info.allUris, info.urisInfo, uri).ptr;
+		CString fileUri = cStringOfUriPreferRelative(alloc, info.allUris, info.urisInfo, uri);
 		LineAndColumn lc = lineAndColumnAtPos(
 			info.lineAndColumnGetters, UriAndPos(uri, source.pos), PosKind.startOfRange);
-		return BacktraceEntry(funName, fileUri, lc.line1Indexed, 0);
+		return BacktraceEntry(funName.ptr, fileUri.ptr, lc.line1Indexed, 0);
 	} else
-		return BacktraceEntry(funName, "", 0, 0);
+		return BacktraceEntry(funName.ptr, "", 0, 0);
 }
 
 

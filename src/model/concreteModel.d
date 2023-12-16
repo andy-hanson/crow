@@ -21,11 +21,11 @@ import model.model :
 import util.col.arr : only, PtrAndSmallNumber, SmallArray;
 import util.col.arrUtil : arraysEqual, contains;
 import util.col.map : Map;
-import util.col.str : SafeCStr;
 import util.hash : HashCode, Hasher, hashPtr;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : none, Opt, some;
 import util.sourceRange : UriAndRange;
+import util.string : CString;
 import util.sym : Sym, sym;
 import util.union_ : Union;
 import util.util : unreachable;
@@ -665,7 +665,7 @@ immutable struct PointerTypeAndConstantsConcrete {
 
 // TODO: rename -- this is not all constants, just the ones by-ref
 immutable struct AllConstantsConcrete {
-	SafeCStr[] cStrings;
+	CString[] cStrings;
 	Constant staticSymbols;
 	ArrTypeAndConstantsConcrete[] arrs;
 	// These are just the by-ref records

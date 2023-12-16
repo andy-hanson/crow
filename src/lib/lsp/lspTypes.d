@@ -7,10 +7,10 @@ module lib.lsp.lspTypes;
 
 import util.exitCode : ExitCode;
 import util.lineAndColumnGetter : LineAndCharacter, LineAndCharacterRange;
-import util.col.str : SafeCStr;
 import util.col.multiMap : MultiMap;
 import util.opt : Opt;
 import util.sourceRange : Range, UriAndRange;
+import util.string : CString;
 import util.union_ : Union;
 import util.uri : Uri;
 
@@ -170,7 +170,7 @@ immutable struct Hover {
 }
 immutable struct MarkupContent {
 	MarkupKind kind;
-	SafeCStr value;
+	CString value;
 }
 enum MarkupKind {
 	plaintext,
@@ -195,7 +195,7 @@ immutable struct TextDocumentPositionParams {
 immutable struct LspDiagnostic {
 	Range range;
 	LspDiagnosticSeverity severity;
-	SafeCStr message;
+	CString message;
 }
 
 enum LspDiagnosticSeverity {

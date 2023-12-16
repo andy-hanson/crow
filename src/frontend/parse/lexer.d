@@ -20,10 +20,10 @@ import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.str : CStr, SafeCStr;
 import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
+import util.string : CString;
 import util.sym : AllSymbols;
 
 public import frontend.parse.lexToken : ElifOrElse, EqualsOrThen, QuoteKind, StringPart, Token, TokenAndData;
@@ -32,7 +32,7 @@ struct Lexer {
 	private:
 	Alloc* allocPtr;
 	AllSymbols* allSymbolsPtr;
-	immutable CStr sourceBegin;
+	immutable CString sourceBegin;
 	immutable IndentKind indentKind;
 
 	// Lexer state:
@@ -56,9 +56,9 @@ ref AllSymbols allSymbols(return ref Lexer lexer) =>
 @trusted Lexer createLexer(
 	Alloc* alloc,
 	AllSymbols* allSymbols,
-	SafeCStr source,
+	CString source,
 ) {
-	Lexer lexer = Lexer(alloc, allSymbols, source.ptr, detectIndentKind(source), 0, source.ptr, source.ptr);
+	Lexer lexer = Lexer(alloc, allSymbols, source, detectIndentKind(source), 0, source.ptr, source.ptr);
 	cellSet(lexer.nextToken,
 		lexInitialToken(lexer.ptr, lexer.allSymbols, lexer.indentKind, lexer.curIndent, (ParseDiag x) =>
 			addDiagAtChar(lexer, x)));
@@ -67,6 +67,9 @@ ref AllSymbols allSymbols(return ref Lexer lexer) =>
 
 Pos curPos(in Lexer lexer) =>
 	lexer.nextTokenPos;
+
+private Pos posOf(in Lexer lexer, in immutable char* ptr) =>
+	safeToUint(ptr - lexer.sourceBegin.ptr);
 
 void addDiag(ref Lexer lexer, in Range range, ParseDiag diag) {
 	add(lexer.alloc, lexer.diagnosticsBuilder, ParseDiagnostic(range, diag));
@@ -114,10 +117,8 @@ Range rangeEnsureAtLeastOne(in Lexer lexer, Pos begin) {
 	return res.end == res.start ? Range(res.start, res.end + 1) : res;
 }
 
-Range range(in Lexer lexer, Pos begin) {
-	assert(begin <= curPos(lexer));
-	return Range(begin, safeToUint(lexer.prevTokenEnd - lexer.sourceBegin));
-}
+Range range(in Lexer lexer, Pos begin) =>
+	Range(begin, posOf(lexer, lexer.prevTokenEnd));
 
 void skipUntilNewlineNoDiag(ref Lexer lexer) {
 	if (!isNewlineToken(getPeekToken(lexer))) {
@@ -150,7 +151,7 @@ TokenAndData takeNextToken(ref Lexer lexer) {
 private void readNextToken(ref Lexer lexer) {
 	lexer.prevTokenEnd = lexer.ptr;
 	skipSpacesAndComments(lexer.ptr);
-	lexer.nextTokenPos = safeToUint(lexer.ptr - lexer.sourceBegin);
+	lexer.nextTokenPos = posOf(lexer, lexer.ptr);
 	cellSet(lexer.nextToken, lexToken(lexer.ptr, lexer.allSymbols, lexer.indentKind, lexer.curIndent, (ParseDiag x) =>
 		addDiagAtChar(lexer, x)));
 }
@@ -160,10 +161,8 @@ TokenAndData getPeekTokenAndData(return scope ref const Lexer lexer) =>
 Token getPeekToken(in Lexer lexer) =>
 	getPeekTokenAndData(lexer).token;
 
-private Range range(in Lexer lexer, CStr begin) {
-	assert(begin >= lexer.sourceBegin);
-	return range(lexer, safeToUint(begin - lexer.sourceBegin));
-}
+private Range range(in Lexer lexer, CString begin) =>
+	range(lexer, posOf(lexer, begin.ptr));
 
 StringPart takeClosingBraceThenStringPart(ref Lexer lexer, QuoteKind quoteKind) {
 	if (getPeekToken(lexer) != Token.braceRight)

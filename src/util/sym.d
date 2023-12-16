@@ -7,10 +7,10 @@ import util.col.arr : only;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : mustAdd, MutMap, size;
 import util.col.mutMaxArr : clear, MutMaxArr, mutMaxArr, push, pushAll, tempAsArr;
-import util.col.str : copyToSafeCStr, eachChar, SafeCStr, strEq, strOfSafeCStr;
 import util.conv : safeToSizeT;
 import util.hash : HashCode, hashUlong;
 import util.opt : force, has, Opt, none, some;
+import util.string : copyToCString, eachChar, CString, stringsEqual, stringOfCString;
 import util.util : castNonScope_ref;
 import util.writer : digitChar, withWriter, writeEscapedChar, Writer;
 
@@ -33,9 +33,9 @@ struct AllSymbols {
 	@trusted this(return scope Alloc* a) {
 		allocPtr = a;
 		foreach (string s; specialSyms) { {
-			SafeCStr str = SafeCStr(s.ptr);
+			CString str = CString(s.ptr);
 			debug {
-				Opt!Sym packed = tryPackShortSym(strOfSafeCStr(str));
+				Opt!Sym packed = tryPackShortSym(stringOfCString(str));
 				assert(!has(packed));
 			}
 			cast(void) addLargeString(this, str);
@@ -45,18 +45,18 @@ struct AllSymbols {
 	private:
 	Alloc* allocPtr;
 	MutMap!(immutable string, Sym) largeStringToIndex;
-	MutArr!SafeCStr largeStringFromIndex;
+	MutArr!CString largeStringFromIndex;
 
 	ref inout(Alloc) alloc() return scope inout =>
 		*allocPtr;
 }
 
 // WARN: 'value' must have been allocated by a.alloc
-private Sym addLargeString(ref AllSymbols a, SafeCStr value) {
+private Sym addLargeString(ref AllSymbols a, CString value) {
 	size_t index = mutArrSize(a.largeStringFromIndex);
 	assert(size(a.largeStringToIndex) == index);
 	Sym res = Sym(index);
-	mustAdd(a.alloc, a.largeStringToIndex, strOfSafeCStr(value), res);
+	mustAdd(a.alloc, a.largeStringToIndex, stringOfCString(value), res);
 	push(a.alloc, a.largeStringFromIndex, value);
 	return res;
 }
@@ -199,13 +199,13 @@ uint symSize(in AllSymbols allSymbols, Sym a) {
 enum sym(string name) = getSym(name);
 private Sym getSym(string name) {
 	foreach (size_t i, string s; specialSyms)
-		if (strEq(s[0 .. $ - 1], name))
+		if (stringsEqual(s[0 .. $ - 1], name))
 			return Sym(i);
 	Opt!Sym opt = tryPackShortSym(name);
 	return force(opt);
 }
 
-SafeCStr safeCStrOfSym(ref Alloc alloc, return scope ref const AllSymbols allSymbols, Sym a) =>
+CString cStringOfSym(ref Alloc alloc, return scope ref const AllSymbols allSymbols, Sym a) =>
 	isLongSym(a)
 		? asLongSym(allSymbols, a)
 		: withWriter(alloc, (scope ref Writer writer) {
@@ -367,14 +367,14 @@ public bool isShortSym(Sym a) =>
 public bool isLongSym(Sym a) =>
 	!isShortSym(a);
 
-@trusted SafeCStr asLongSym(return scope ref const AllSymbols allSymbols, Sym a) {
+@trusted CString asLongSym(return scope ref const AllSymbols allSymbols, Sym a) {
 	assert(isLongSym(a));
 	return allSymbols.largeStringFromIndex[safeToSizeT(a.value)];
 }
 
 Sym getSymFromLongStr(ref AllSymbols allSymbols, in string str) {
 	Opt!Sym value = allSymbols.largeStringToIndex[str];
-	return has(value) ? force(value) : addLargeString(allSymbols, copyToSafeCStr(allSymbols.alloc, str));
+	return has(value) ? force(value) : addLargeString(allSymbols, copyToCString(allSymbols.alloc, str));
 }
 
 immutable string[] specialSyms = [

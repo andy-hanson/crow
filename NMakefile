@@ -145,7 +145,6 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\col\mutSet.d \
 	src\util\col\sortUtil.d \
 	src\util\col\stackMap.d \
-	src\util\col\str.d \
 	src\util\cell.d \
 	src\util\comparison.d \
 	src\util\conv.d \
@@ -161,6 +160,7 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\perf.d \
 	src\util\perfReport.d \
 	src\util\sourceRange.d \
+	src\util\string.d \
 	src\util\sym.d \
 	src\util\union.d \
 	src\util\uri.d \

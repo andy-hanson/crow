@@ -4,7 +4,7 @@ module util.col.exactSizeArrBuilder;
 
 import util.alloc.alloc : Alloc, allocateElements;
 import util.col.arr : endPtr;
-import util.col.str : eachChar, SafeCStr, safeCStrSize;
+import util.string : eachChar, CString, cStringSize;
 import util.memory : initMemory, memset;
 
 struct ExactSizeArrBuilder(T) {
@@ -85,8 +85,8 @@ void padTo(scope ref ExactSizeArrBuilder!ubyte a, size_t desiredSize) {
 	add64(a, cast(immutable ulong) &a.inner[textIndex]);
 }
 
-@trusted void addStringAndNulTerminate(scope ref ExactSizeArrBuilder!ubyte a, SafeCStr value) {
-	assert(a.cur + safeCStrSize(value) < endPtr(a.inner));
+@trusted void addStringAndNulTerminate(scope ref ExactSizeArrBuilder!ubyte a, CString value) {
+	assert(a.cur + cStringSize(value) < endPtr(a.inner));
 	eachChar(value, (char c) @trusted {
 		*a.cur = c;
 		a.cur++;

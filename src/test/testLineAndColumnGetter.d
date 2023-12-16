@@ -3,11 +3,11 @@ module test.testLineAndColumnGetter;
 @safe @nogc pure nothrow:
 
 import test.testUtil : Test;
-import util.col.str : safeCStr;
 import util.lineAndColumnGetter :
 	LineAndColumn, lineAndColumnAtPos, LineAndColumnGetter, lineAndColumnGetterForText, PosKind;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos;
+import util.string : cString;
 
 void testLineAndColumnGetter(ref Test test) {
 	testLF(test);
@@ -18,12 +18,12 @@ void testLineAndColumnGetter(ref Test test) {
 private:
 
 void testLF(ref Test test) {
-	LineAndColumnGetter lcg = lineAndColumnGetterForText(test.alloc, safeCStr!"a\n\tbb\nc\n");
+	LineAndColumnGetter lcg = lineAndColumnGetterForText(test.alloc, cString!"a\n\tbb\nc\n");
 	testLFOrCR(lcg);
 }
 
 void testCR(ref Test test) {
-	LineAndColumnGetter lcg = lineAndColumnGetterForText(test.alloc, safeCStr!"a\r\tbb\rc\r");
+	LineAndColumnGetter lcg = lineAndColumnGetterForText(test.alloc, cString!"a\r\tbb\rc\r");
 	testLFOrCR(lcg);
 }
 
@@ -44,7 +44,7 @@ void testLFOrCR(in LineAndColumnGetter lcg) {
 }
 
 void testCRLF(ref Test test) {
-	LineAndColumnGetter lcg = lineAndColumnGetterForText(test.alloc, safeCStr!"a\r\n\tbb\r\nc\r\n");
+	LineAndColumnGetter lcg = lineAndColumnGetterForText(test.alloc, cString!"a\r\n\tbb\r\nc\r\n");
 	verifyConvert(lcg, Pos(0), PosKind.startOfRange, LineAndColumn(0, 0)); // a
 	verifyConvert(lcg, Pos(1), PosKind.startOfRange, LineAndColumn(0, 1)); // \r
 	verifyConvert(lcg, Pos(2), PosKind.startOfRange, LineAndColumn(0, 1), some(Pos(1))); // \n

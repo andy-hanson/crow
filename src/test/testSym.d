@@ -4,8 +4,7 @@ module test.testSym;
 
 import test.testUtil : Test;
 import util.alloc.alloc : Alloc, withTempAlloc;
-import util.col.str : safeCStr, safeCStrEq;
-import util.sym : AllSymbols, appendHexExtension, isShortSym, isLongSym, prependSet, safeCStrOfSym, Sym, sym, symOfStr;
+import util.sym : AllSymbols, appendHexExtension, cStringOfSym, isShortSym, isLongSym, prependSet, Sym, sym, symOfStr;
 
 void testSym(ref Test test) {
 	withTempAlloc!void(test.metaAlloc, (ref Alloc alloc) @safe {
@@ -24,7 +23,7 @@ void inner(ref Test test, scope ref AllSymbols allSymbols) {
 
 	Sym nonStaticSym(string a)() @safe {
 		Sym res = symOfStr(allSymbols, a);
-		assert(safeCStrEq(safeCStrOfSym(test.alloc, allSymbols, res), safeCStr!a));
+		assert(cStringOfSym(test.alloc, allSymbols, res) == a);
 		return res;
 	}
 

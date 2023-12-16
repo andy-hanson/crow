@@ -6,12 +6,12 @@ import util.alloc.alloc : Alloc, allocateElements;
 import util.col.arr : endPtr;
 import util.col.arrUtil : indexOf, indexOfStartingAt;
 import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
-import util.col.str : compareSafeCStrAlphabetically, SafeCStr, safeCStr, strOfSafeCStr;
 import util.comparison : Comparison;
 import util.conv : safeToUshort;
 import util.hash : HashCode;
 import util.opt : has, force, none, Opt, some;
 import util.sourceRange : Range;
+import util.string : compareCStringAlphabetically, CString, cString, stringOfCString;
 import util.sym :
 	addExtension,
 	alterExtension,
@@ -236,7 +236,7 @@ FileUri childFileUri(ref AllUris allUris, FileUri parent, Sym name) =>
 	FileUri(childPath(allUris, parent.path, name));
 
 Uri bogusUri(ref AllUris allUris) =>
-	parseUri(allUris, safeCStr!"bogus:bogus");
+	parseUri(allUris, cString!"bogus:bogus");
 
 Path childPath(ref AllUris allUris, Path parent, Sym name) =>
 	getOrAddChild(allUris, allUris.pathToChildren[parent.index], some(parent), name);
@@ -276,8 +276,8 @@ private void walkPathBackwards(
 }
 
 size_t pathLength(in AllUris allUris, Path path) =>
-	pathToStrLength(allUris, path, PathToStrOptions(false, false));
-private size_t pathToStrLength(in AllUris allUris, Path path, in PathToStrOptions options) {
+	pathToStrLength(allUris, path, StringOfPathOptions(false, false));
+private size_t pathToStrLength(in AllUris allUris, Path path, in StringOfPathOptions options) {
 	size_t res = 0;
 	walkPathBackwards(allUris, path, (Sym part, bool _) {
 		// 1 for '/'
@@ -290,28 +290,28 @@ private size_t pathToStrLength(in AllUris allUris, Path path, in PathToStrOption
 
 alias TempStrForPath = char[0x1000];
 
-private @trusted SafeCStr uriToTempStr(return ref TempStrForPath temp, in AllUris allUris, Uri uri) =>
+private @trusted CString uriToTempStr(return ref TempStrForPath temp, in AllUris allUris, Uri uri) =>
 	pathToTempStr(temp, allUris, uri.path, false);
-@trusted SafeCStr fileUriToTempStr(return ref TempStrForPath temp, in AllUris allUris, FileUri uri) =>
+@trusted CString fileUriToTempStr(return ref TempStrForPath temp, in AllUris allUris, FileUri uri) =>
 	pathToTempStr(temp, allUris, uri.path, true);
-private @trusted SafeCStr pathToTempStr(
+private @trusted CString pathToTempStr(
 	return ref TempStrForPath temp,
 	in AllUris allUris,
 	Path path,
 	bool leadingSlash,
 ) {
-	PathToStrOptions options = PathToStrOptions(true, true);
+	StringOfPathOptions options = StringOfPathOptions(true, true);
 	size_t length = pathToStrLength(allUris, path, options);
 	assert(length <= temp.length);
-	pathToStrWorker(allUris, path, temp[0 .. length], options);
-	return SafeCStr(cast(immutable) temp.ptr);
+	stringOfPathWorker(allUris, path, temp[0 .. length], options);
+	return CString(cast(immutable) temp.ptr);
 }
 
-private immutable struct PathToStrOptions {
+private immutable struct StringOfPathOptions {
 	bool leadingSlash;
 	bool nulTerminate;
 }
-private @system void pathToStrWorker(in AllUris allUris, Path path, char[] outBuf, in PathToStrOptions options) {
+private @system void stringOfPathWorker(in AllUris allUris, Path path, char[] outBuf, in StringOfPathOptions options) {
 	char* cur = endPtr(outBuf);
 	if (options.nulTerminate) {
 		cur--;
@@ -334,27 +334,27 @@ private @system void pathToStrWorker(in AllUris allUris, Path path, char[] outBu
 	assert(cur == &outBuf[0]);
 }
 
-SafeCStr safeCStrOfUri(ref Alloc alloc, in AllUris allUris, Uri a) =>
-	pathToSafeCStr(alloc, allUris, a.path, false);
+CString cStringOfUri(ref Alloc alloc, in AllUris allUris, Uri a) =>
+	cStringOfPath(alloc, allUris, a.path, false);
 string stringOfUri(ref Alloc alloc, in AllUris allUris, Uri a) =>
-	strOfSafeCStr(safeCStrOfUri(alloc, allUris, a));
-SafeCStr fileUriToSafeCStr(ref Alloc alloc, in AllUris allUris, FileUri a) =>
-	pathToSafeCStr(alloc, allUris, a.path, true);
-@trusted SafeCStr pathToSafeCStr(ref Alloc alloc, in AllUris allUris, Path path, bool leadingSlash) {
-	PathToStrOptions options = PathToStrOptions(leadingSlash, true);
+	stringOfCString(cStringOfUri(alloc, allUris, a));
+CString cStringOfFileUri(ref Alloc alloc, in AllUris allUris, FileUri a) =>
+	cStringOfPath(alloc, allUris, a.path, true);
+@trusted CString cStringOfPath(ref Alloc alloc, in AllUris allUris, Path path, bool leadingSlash) {
+	StringOfPathOptions options = StringOfPathOptions(leadingSlash, true);
 	size_t length = pathToStrLength(allUris, path, options);
 	char[] res = allocateElements!char(alloc, length);
-	pathToStrWorker(allUris, path, res, options);
-	return SafeCStr(cast(immutable) res.ptr);
+	stringOfPathWorker(allUris, path, res, options);
+	return CString(cast(immutable) res.ptr);
 }
 
-public SafeCStr uriToSafeCStrPreferRelative(ref Alloc alloc, in AllUris allUris, ref UrisInfo urisInfo, Uri a) =>
+public CString cStringOfUriPreferRelative(ref Alloc alloc, in AllUris allUris, ref UrisInfo urisInfo, Uri a) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		writeUriPreferRelative(writer, allUris, urisInfo, a);
 	});
 
-Uri parseUri(ref AllUris allUris, in SafeCStr str) =>
-	parseUri(allUris, strOfSafeCStr(str));
+Uri parseUri(ref AllUris allUris, in CString str) =>
+	parseUri(allUris, stringOfCString(str));
 Uri parseUri(ref AllUris allUris, in string uri) {
 	Opt!size_t optColon = indexOf(uri, ':');
 	if (has(optColon)) {
@@ -373,8 +373,8 @@ Uri parseUri(ref AllUris allUris, in string uri) {
 private Uri rootUri(ref AllUris allUris, in string schemeAndAuthority) =>
 	Uri(rootPath(allUris, symOfStr(allUris.allSymbols, schemeAndAuthority)));
 
-Path parsePath(ref AllUris allUris, in SafeCStr str) =>
-	parsePath(allUris, strOfSafeCStr(str));
+Path parsePath(ref AllUris allUris, in CString str) =>
+	parsePath(allUris, stringOfCString(str));
 private Path parsePath(ref AllUris allUris, in string str) {
 	StringIter iter = StringIter(str);
 	skipWhile(iter, (char x) => x == '/');
@@ -405,13 +405,13 @@ private @system RelPath parseRelPathRecur(ref AllUris allUris, size_t nParents, 
 		? parseRelPathRecur(allUris, nParents + 1, a[3 .. $])
 		: RelPath(safeToUshort(nParents), parsePath(allUris, a));
 
-FileUri parseAbsoluteFilePathAsUri(ref AllUris allUris, in SafeCStr a) =>
+FileUri parseAbsoluteFilePathAsUri(ref AllUris allUris, in CString a) =>
 	FileUri(parsePath(allUris, a));
 FileUri parseAbsoluteFilePathAsUri(ref AllUris allUris, in string a) =>
 	FileUri(parsePath(allUris, a));
 
-Uri parseUriWithCwd(ref AllUris allUris, Uri cwd, in SafeCStr a) =>
-	parseUriWithCwd(allUris, cwd, strOfSafeCStr(a));
+Uri parseUriWithCwd(ref AllUris allUris, Uri cwd, in CString a) =>
+	parseUriWithCwd(allUris, cwd, stringOfCString(a));
 Uri parseUriWithCwd(ref AllUris allUris, Uri cwd, in string a) {
 	//TODO: handle actual URIs...
 	if (looksLikeAbsolutePath(a))
@@ -444,7 +444,7 @@ private bool containsSubstring(in string a, in string b) =>
 	TempStrForPath bBuf;
 	uriToTempStr(aBuf, allUris, a);
 	uriToTempStr(bBuf, allUris, b);
-	return compareSafeCStrAlphabetically(SafeCStr(cast(immutable) aBuf.ptr), SafeCStr(cast(immutable) bBuf.ptr));
+	return compareCStringAlphabetically(CString(cast(immutable) aBuf.ptr), CString(cast(immutable) bBuf.ptr));
 }
 
 immutable struct UriAndRange {

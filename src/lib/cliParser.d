@@ -10,10 +10,10 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : isEmpty, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : copyArray, findIndex, foldOrStop, mapOrNone;
-import util.col.str : SafeCStr, safeCStr, safeCStrEq, strOfSafeCStr;
 import util.conv : isUint, safeToUint;
 import util.lineAndColumnGetter : LineAndColumn;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
+import util.string : CString, cString, stringOfCString;
 import util.sym : Sym, sym;
 import util.union_ : Union;
 import util.uri : addExtension, alterExtension, AllUris, getExtension, parseUriWithCwd, Uri;
@@ -38,7 +38,7 @@ immutable struct CommandKind {
 		Uri[] rootUris;
 	}
 	immutable struct Help {
-		SafeCStr helpText;
+		CString helpText;
 		bool requested;
 	}
 	immutable struct Lsp {}
@@ -50,10 +50,10 @@ immutable struct CommandKind {
 		Uri mainUri;
 		RunOptions options;
 		// Does not include executable path
-		SafeCStr[] programArgs;
+		CString[] programArgs;
 	}
 	immutable struct Test {
-		SafeCStr[] names;
+		CString[] names;
 	}
 	immutable struct Version {}
 
@@ -106,13 +106,13 @@ private immutable struct BuildOut {
 bool hasAnyOut(in BuildOut a) =>
 	has(a.outC) || has(a.outExecutable);
 
-Command parseCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in SafeCStr[] args) {
+Command parseCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in CString[] args) {
 	if (isEmpty(args))
 		return Command(CommandKind(CommandKind.Help(helpAllText)));
 	else {
 		SplitArgsAndOptions split = splitArgs(alloc, args[1 .. $]);
 		return Command(
-			parseCommandKind(alloc, allUris, cwd, strOfSafeCStr(args[0]), split.args),
+			parseCommandKind(alloc, allUris, cwd, stringOfCString(args[0]), split.args),
 			split.options);
 	}
 }
@@ -134,7 +134,7 @@ CommandKind parseCommandKind(
 		case "lsp":
 			return isEmpty(args)
 				? CommandKind(CommandKind.Lsp())
-				: CommandKind(CommandKind.Help(safeCStr!"Usage: 'crow lsp' (no args)", args.help));
+				: CommandKind(CommandKind.Help(cString!"Usage: 'crow lsp' (no args)", args.help));
 		case "print":
 			return parsePrintCommand(alloc, allUris, cwd, args);
 		case "run":
@@ -146,7 +146,7 @@ CommandKind parseCommandKind(
 		case "version":
 			return isEmpty(args)
 				? CommandKind(CommandKind.Version())
-				: CommandKind(CommandKind.Help(safeCStr!"Usage: 'crow version' (no args)", args.help));
+				: CommandKind(CommandKind.Help(cString!"Usage: 'crow version' (no args)", args.help));
 		default:
 			return CommandKind(CommandKind.Help(helpAllText, args.help));
 	}
@@ -167,25 +167,25 @@ CommandKind withMainUri(
 	ref Alloc alloc,
 	scope ref AllUris allUris,
 	Uri cwd,
-	in SafeCStr arg,
+	in CString arg,
 	in CommandKind delegate(Uri) @safe pure @nogc nothrow cb,
 ) {
 	Opt!Uri p = tryParseCrowUri(alloc, allUris, cwd, arg);
-	return has(p) ? cb(force(p)) : CommandKind(CommandKind.Help(safeCStr!"Invalid path"));
+	return has(p) ? cb(force(p)) : CommandKind(CommandKind.Help(cString!"Invalid path"));
 }
 
 CommandKind withRootUris(
 	ref Alloc alloc,
 	scope ref AllUris allUris,
 	Uri cwd,
-	in SafeCStr[] args,
+	in CString[] args,
 	in CommandKind delegate(Uri[]) @safe pure @nogc nothrow cb,
 ) {
 	Opt!(Uri[]) p = tryParseRootUris(alloc, allUris, cwd, args);
-	return has(p) ? cb(force(p)) : CommandKind(CommandKind.Help(safeCStr!"Invalid path"));
+	return has(p) ? cb(force(p)) : CommandKind(CommandKind.Help(cString!"Invalid path"));
 }
 
-Opt!Uri tryParseCrowUri(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in SafeCStr arg) {
+Opt!Uri tryParseCrowUri(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in CString arg) {
 	Uri uri = parseUriWithCwd(allUris, cwd, arg);
 	switch (getExtension(allUris, uri).value) {
 		case sym!"".value:
@@ -197,9 +197,9 @@ Opt!Uri tryParseCrowUri(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in 
 	}
 }
 
-Opt!(Uri[]) tryParseRootUris(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in SafeCStr[] args) {
+Opt!(Uri[]) tryParseRootUris(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in CString[] args) {
 	assert(!isEmpty(args));
-	return mapOrNone!(Uri, SafeCStr)(alloc, args, (ref SafeCStr arg) =>
+	return mapOrNone!(Uri, CString)(alloc, args, (ref CString arg) =>
 		tryParseCrowUri(alloc, allUris, cwd, arg));
 }
 
@@ -213,7 +213,7 @@ CommandKind parsePrintCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cw
 		: todo!CommandKind("CommandKind.HelpPrint");
 }
 
-Opt!PrintKind parsePrintKind(in SafeCStr a, in SafeCStr[] args) {
+Opt!PrintKind parsePrintKind(in CString a, in CString[] args) {
 	Opt!PrintKind expectEmptyArgs(PrintKind x) =>
 		isEmpty(args) ? some(x) : none!PrintKind;
 
@@ -222,7 +222,7 @@ Opt!PrintKind parsePrintKind(in SafeCStr a, in SafeCStr[] args) {
 		return has(lc) ? some(cb(force(lc))) : none!PrintKind;
 	}
 
-	switch (strOfSafeCStr(a)) {
+	switch (stringOfCString(a)) {
 		case "tokens":
 			return expectEmptyArgs(PrintKind(PrintKind.Tokens()));
 		case "ast":
@@ -234,14 +234,14 @@ Opt!PrintKind parsePrintKind(in SafeCStr a, in SafeCStr[] args) {
 		case "low-model":
 			return expectEmptyArgs(PrintKind(PrintKind.LowModel()));
 		default:
-			Opt!(PrintKind.Ide.Kind) kind = optEnumOfString!(PrintKind.Ide.Kind)(strOfSafeCStr(a));
+			Opt!(PrintKind.Ide.Kind) kind = optEnumOfString!(PrintKind.Ide.Kind)(stringOfCString(a));
 			return has(kind)
 				? expectLineAndColumn((in LineAndColumn lc) => PrintKind(PrintKind.Ide(force(kind), lc)))
 				: none!PrintKind;
 	}
 }
 
-@trusted Opt!LineAndColumn parseLineAndColumn(in SafeCStr a) {
+@trusted Opt!LineAndColumn parseLineAndColumn(in CString a) {
 	immutable(char)* ptr = a.ptr;
 	Opt!uint line = convertFrom1Indexed(tryTakeNat(ptr));
 	bool colon = tryTakeChar(ptr, ':');
@@ -313,7 +313,7 @@ Opt!RunOptions parseRunOptions(ref Alloc alloc, scope ref AllUris allUris, in Ar
 	bool jit = false;
 	bool optimize = false;
 	foreach (ArgsPart part; argParts) {
-		switch (strOfSafeCStr(part.tag)) {
+		switch (stringOfCString(part.tag)) {
 			case "--jit":
 				jit = true;
 				break;
@@ -345,7 +345,7 @@ Opt!BuildOptions parseBuildOptions(
 			CCompileOptions(OptimizationLevel.none)),
 		argParts,
 		(BuildOptions cur, ref ArgsPart part) {
-			switch (strOfSafeCStr(part.tag)) {
+			switch (stringOfCString(part.tag)) {
 				case "--out":
 					Opt!BuildOut buildOut = parseBuildOut(alloc, allUris, cwd, part.args);
 					return has(buildOut) ? some(withBuildOut(cur, force(buildOut))) : none!BuildOptions;
@@ -362,11 +362,11 @@ Opt!BuildOptions parseBuildOptions(
 			}
 		});
 
-Opt!BuildOut parseBuildOut(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in SafeCStr[] args) =>
-	foldOrStop!(BuildOut, SafeCStr)(
+Opt!BuildOut parseBuildOut(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in CString[] args) =>
+	foldOrStop!(BuildOut, CString)(
 		emptyBuildOut(),
 		args,
-		(BuildOut o, ref SafeCStr arg) {
+		(BuildOut o, ref CString arg) {
 			Uri uri = parseUriWithCwd(allUris, cwd, arg);
 			switch (getExtension(allUris, uri).value) {
 				case sym!"".value:
@@ -383,15 +383,15 @@ Opt!BuildOut parseBuildOut(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, 
 		});
 
 immutable struct ArgsPart {
-	SafeCStr tag; // includes the "--"
-	SafeCStr[] args;
+	CString tag; // includes the "--"
+	CString[] args;
 }
 
 immutable struct SplitArgs {
-	SafeCStr[] beforeFirstPart;
+	CString[] beforeFirstPart;
 	ArgsPart[] parts;
 	// After seeing a '--' we stop parsing and just return the rest raw.
-	SafeCStr[] afterDashDash;
+	CString[] afterDashDash;
 	bool help;
 }
 bool isEmpty(in SplitArgs a) =>
@@ -402,15 +402,15 @@ immutable struct SplitArgsAndOptions {
 	CommandOptions options;
 }
 
-SplitArgsAndOptions splitArgs(ref Alloc alloc, return scope SafeCStr[] args) {
-	Opt!size_t optFirstArgIndex = findIndex!SafeCStr(args, (in SafeCStr arg) =>
+SplitArgsAndOptions splitArgs(ref Alloc alloc, return scope CString[] args) {
+	Opt!size_t optFirstArgIndex = findIndex!CString(args, (in CString arg) =>
 		startsWithDashDash(arg));
 	if (!has(optFirstArgIndex))
 		return SplitArgsAndOptions(SplitArgs(args, [], []), CommandOptions());
 	else {
 		size_t firstArgIndex = force(optFirstArgIndex);
-		Opt!size_t dashDash = findIndex!SafeCStr(args[firstArgIndex .. $], (in SafeCStr arg) =>
-			safeCStrEq(arg, "--"));
+		Opt!size_t dashDash = findIndex!CString(args[firstArgIndex .. $], (in CString arg) =>
+			arg == "--");
 		NamedArgs namedArgs = splitNamedArgs(
 			alloc, has(dashDash) ? args[firstArgIndex .. firstArgIndex + force(dashDash)] : args[firstArgIndex .. $]);
 		return SplitArgsAndOptions(
@@ -423,7 +423,7 @@ SplitArgsAndOptions splitArgs(ref Alloc alloc, return scope SafeCStr[] args) {
 	}
 }
 
-@trusted bool startsWithDashDash(in SafeCStr a) =>
+@trusted bool startsWithDashDash(in CString a) =>
 	a.ptr[0] == '-' && a.ptr[1] == '-';
 
 struct NamedArgs {
@@ -432,7 +432,7 @@ struct NamedArgs {
 	bool help;
 }
 
-NamedArgs splitNamedArgs(ref Alloc alloc, in SafeCStr[] args) {
+NamedArgs splitNamedArgs(ref Alloc alloc, in CString[] args) {
 	if (isEmpty(args))
 		return NamedArgs([], CommandOptions(), false);
 
@@ -449,12 +449,12 @@ NamedArgs splitNamedArgs(ref Alloc alloc, in SafeCStr[] args) {
 		}
 	}
 
-	foreach (size_t i, SafeCStr arg; args) {
+	foreach (size_t i, CString arg; args) {
 		if (startsWithDashDash(arg)) {
 			finishPart(i);
-			if (safeCStrEq(arg, "--help"))
+			if (arg == "--help")
 				help = true;
-			else if (safeCStrEq(arg, "--perf"))
+			else if (arg == "--perf")
 				perf = true;
 			else
 				curPartStart = someMut(i);
@@ -465,25 +465,25 @@ NamedArgs splitNamedArgs(ref Alloc alloc, in SafeCStr[] args) {
 	return NamedArgs(finishArr(alloc, parts), CommandOptions(perf), help);
 }
 
-SafeCStr helpAllText() =>
-	safeCStr!("Commands: (type a command then '--help' to see more)\n" ~
+CString helpAllText() =>
+	cString!("Commands: (type a command then '--help' to see more)\n" ~
 	"\t'crow build'\n" ~
 	"\t'crow run'\n" ~
 	"\t'crow version'");
 
-SafeCStr helpDocumentText() =>
-	safeCStr!("Command: crow document PATH\n" ~
+CString helpDocumentText() =>
+	cString!("Command: crow document PATH\n" ~
 	"\tGenerates JSON documentation for the module at PATH.\n");
 
-SafeCStr helpBuildText() =>
-	safeCStr!("Command: crow build PATH --out OUT [options]\n" ~
+CString helpBuildText() =>
+	cString!("Command: crow build PATH --out OUT [options]\n" ~
 	"Compiles the program at PATH. The '.crow' extension is optional.\n" ~
 	"Writes an executable to OUT. If OUT has a '.c' extension, it will be C source code instead.\n" ~
 	"Options are:\n" ~
 	"\t--optimize : Enables optimizations.\n");
 
-SafeCStr helpRunText() =>
-	safeCStr!("Command: crow run PATH [options] -- [program-args]\n" ~
+CString helpRunText() =>
+	cString!("Command: crow run PATH [options] -- [program-args]\n" ~
 	"Runs the program at PATH. The '.crow' extension is optional." ~
 	"Arguments after '--' will be sent to the program.\n" ~
 	"Options are:\n" ~

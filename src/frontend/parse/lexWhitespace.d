@@ -5,8 +5,8 @@ module frontend.parse.lexWhitespace;
 import frontend.parse.lexUtil : isWhitespace, tryTakeChar, tryTakeChars;
 import model.parseDiag : ParseDiag;
 import util.col.arr : arrayOfRange, isEmpty;
-import util.col.str : SafeCStr;
 import util.conv : safeIntFromUint, safeToUint;
+import util.string : CString;
 
 private alias AddDiag = void delegate(ParseDiag) @safe @nogc pure nothrow;
 
@@ -17,7 +17,7 @@ enum IndentKind {
 }
 
 // Note: Not issuing any diagnostics here. We'll fail later if we detect the wrong indent kind.
-@trusted IndentKind detectIndentKind(SafeCStr a) {
+@trusted IndentKind detectIndentKind(CString a) {
 	immutable(char)* ptr = a.ptr;
 	while (true) {
 		switch (*ptr) {

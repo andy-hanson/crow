@@ -5,14 +5,14 @@ import lib.lsp.lspToJson : jsonOfLspOutAction;
 import lib.lsp.lspTypes : LspInMessage, LspOutAction;
 import lib.server : CbHandleUnknownUris, handleLspMessage, Server, setCwd, setIncludeDir;
 import util.alloc.alloc : Alloc, FetchMemoryCb, withTempAlloc, withTempAllocImpure;
-import util.col.str : CStr, SafeCStr;
 import util.json : get, Json, jsonToString;
 import util.jsonParse : mustParseJson;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
 import util.opt : none;
 import util.perf : Perf, PerfMeasure, PerfMeasureResult, PerfResult, perfResult, withNullPerf;
+import util.string : CString;
 import util.uri : parseUri;
-import util.util : safeCStrOfEnum;
+import util.util : cStringOfEnum;
 
 extern(C) void _start() {}
 
@@ -49,14 +49,14 @@ extern(C) size_t getParameterBufferLength() => parameterBuffer.length;
 // Like FetchMemoryCb but not pure
 alias FetchMemoryCbImpure = ulong[] delegate(size_t sizeWords, size_t timesCalled) @system @nogc nothrow;
 
-@system extern(C) Server* newServer(scope CStr paramsCStr) {
+@system extern(C) Server* newServer(scope immutable char* paramsCStr) {
 	Server* server = &serverStorage;
 	FetchMemoryCbImpure fetchMemoryCb = (size_t sizeWords, size_t timesCalled) {
 		assert(timesCalled == 0);
 		return serverBuffer;
 	};
 	server.__ctor(cast(FetchMemoryCb) fetchMemoryCb);
-	SafeCStr paramsStr = SafeCStr(paramsCStr);
+	CString paramsStr = CString(paramsCStr);
 	withTempAlloc!void(server.metaAlloc, (ref Alloc alloc) {
 		Json params = mustParseJson(alloc, server.allSymbols, paramsStr);
 		setIncludeDir(server, parseUri(server.allUris, get!"includeDir"(params).as!string));
@@ -66,10 +66,10 @@ alias FetchMemoryCbImpure = ulong[] delegate(size_t sizeWords, size_t timesCalle
 }
 
 // Input and output are both temporary, should be parsed immediately
-@system extern(C) CStr handleLspMessage(Server* server, scope CStr input) {
-	SafeCStr inputStr = SafeCStr(input);
-	return withWebPerf!(SafeCStr, (scope ref Perf perf) =>
-		withTempAllocImpure!SafeCStr(server.metaAlloc, (ref Alloc resultAlloc) {
+@system extern(C) immutable(char*) handleLspMessage(Server* server, scope immutable char* input) {
+	CString inputStr = CString(input);
+	return withWebPerf!(CString, (scope ref Perf perf) =>
+		withTempAllocImpure!CString(server.metaAlloc, (ref Alloc resultAlloc) {
 			Json inputJson = mustParseJson(resultAlloc, server.allSymbols, inputStr);
 			LspInMessage inputMessage = parseLspInMessage(resultAlloc, server.allUris, inputJson);
 			LspOutAction output = handleLspMessage(perf, resultAlloc, *server, inputMessage, none!CbHandleUnknownUris);
@@ -80,8 +80,8 @@ alias FetchMemoryCbImpure = ulong[] delegate(size_t sizeWords, size_t timesCalle
 
 // Not really pure, but JS doesn't know that
 extern(C) pure ulong getTimeNanos();
-extern(C) void perfLogMeasure(scope CStr name, uint count, ulong nanoseconds, uint bytesAllocated);
-extern(C) void perfLogFinish(scope CStr name, ulong totalNanoseconds);
+extern(C) void perfLogMeasure(scope immutable char* name, uint count, ulong nanoseconds, uint bytesAllocated);
+extern(C) void perfLogFinish(scope immutable char* name, ulong totalNanoseconds);
 
 private:
 
@@ -97,7 +97,7 @@ T withWebPerf(T, alias cb)() {
 		}
 		PerfResult result = perfResult(perf);
 		foreach (PerfMeasure measure, ref immutable PerfMeasureResult m; result.byMeasure)
-			perfLogMeasure(safeCStrOfEnum(measure).ptr, m.count, m.nanoseconds, m.bytesAllocated);
+			perfLogMeasure(cStringOfEnum(measure).ptr, m.count, m.nanoseconds, m.bytesAllocated);
 		perfLogFinish("Total", result.totalNanoseconds);
 		static if (!is(T == void)) {
 			return res;

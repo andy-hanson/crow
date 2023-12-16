@@ -149,11 +149,11 @@ import util.col.arr : arrayOfSingle, isEmpty, only, PtrAndSmallNumber;
 import util.col.arrUtil : append, arraysCorrespond, contains, exists, map, mapPointers, mapZipPointers3, newArray;
 import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
 import util.col.mutMaxArr : initializeMutMaxArr, mutMaxArrSize, push, tempAsArr;
-import util.col.str : copyToSafeCStr;
 import util.conv : safeToUshort, safeToUint;
 import util.memory : allocate, initMemory, overwriteMemory;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, someMut, some;
 import util.sourceRange : Pos, Range;
+import util.string : copyToCString;
 import util.sym : prependSet, prependSetDeref, Sym, sym, symOfStr;
 import util.union_ : Union;
 import util.util : castImmutable, castNonScope_ref, max, ptrTrustMe, todo, unreachable;
@@ -841,7 +841,7 @@ Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, scope string value, re
 	} else if (expectedStruct == ctx.commonTypes.symbol)
 		return Expr(source, ExprKind(LiteralSymbolExpr(symOfStr(ctx.allSymbols, value))));
 	else if (expectedStruct == ctx.commonTypes.cString)
-		return Expr(source, ExprKind(LiteralCStringExpr(copyToSafeCStr(ctx.alloc, value))));
+		return Expr(source, ExprKind(LiteralCStringExpr(copyToCString(ctx.alloc, value))));
 	else {
 		defaultExpectedToString(ctx, source, expected);
 		return checkCallSpecialNoLocals(ctx, source, sym!"literal", arrayOfSingle(source), expected);

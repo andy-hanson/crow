@@ -22,12 +22,12 @@ import util.col.arrUtil : map, mapImpure;
 import util.col.map : Map, KeyValuePair, makeMapFromKeys, zipToMap;
 import util.col.mapBuilder : MapBuilder, finishMap, tryAddToMap;
 import util.col.mutArr : MutArr, mutArrIsEmpty, push, tempAsArr;
-import util.col.str : CStr, SafeCStr, safeCStr;
 import util.conv : bitsOfFloat32, bitsOfFloat64, float32OfBits, float64OfBits, safeToUshort;
 import util.exitCode : ExitCode;
 import util.late : Late, late, lateGet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
+import util.string : CString, cString;
 import util.sym : AllSymbols, concatSyms, Sym, sym, symAsTempBuffer;
 import util.uri : AllUris, asFileUri, childUri, fileUriToTempStr, isFileUri, TempStrForPath, Uri;
 import util.util : todo, unreachable;
@@ -103,13 +103,13 @@ LibraryAndError getLibrary(
 			case sym!"c".value:
 			case sym!"m".value:
 				version (Windows) {
-					return loadLibraryFromName(safeCStr!"ucrtbase.dll", writeError);
+					return loadLibraryFromName(cString!"ucrtbase.dll", writeError);
 				} else {
 					return LibraryAndError(null, false);
 				}
 			case sym!"pthread".value:
 				// TODO: understand why this is different
-				return loadLibraryFromName(safeCStr!"libpthread.so.0", writeError);
+				return loadLibraryFromName(cString!"libpthread.so.0", writeError);
 			default:
 				return loadLibraryFromName(allSymbols, fileName, writeError);
 		}
@@ -127,7 +127,7 @@ Sym dllOrSoName(ref AllSymbols allSymbols, immutable Sym libraryName) {
 @trusted Opt!(DLLib*) tryLoadLibraryFromUri(ref AllUris allUris, Uri uri) {
 	if (isFileUri(allUris, uri)) {
 		TempStrForPath buf = void;
-		SafeCStr file = fileUriToTempStr(buf, allUris, asFileUri(allUris, uri));
+		CString file = fileUriToTempStr(buf, allUris, asFileUri(allUris, uri));
 		DLLib* res = dlLoadLibrary(file.ptr);
 		return res == null ? none!(DLLib*) : some(res);
 	} else
@@ -136,16 +136,16 @@ Sym dllOrSoName(ref AllSymbols allSymbols, immutable Sym libraryName) {
 
 @trusted LibraryAndError loadLibraryFromName(in AllSymbols allSymbols, Sym name, in WriteError writeError) {
 	char[256] buf = symAsTempBuffer!256(allSymbols, name);
-	return loadLibraryFromName(SafeCStr(cast(immutable) buf.ptr), writeError);
+	return loadLibraryFromName(CString(cast(immutable) buf.ptr), writeError);
 }
 
-LibraryAndError loadLibraryFromName(in SafeCStr name, in WriteError writeError) {
+LibraryAndError loadLibraryFromName(in CString name, in WriteError writeError) {
 	DLLib* res = dlLoadLibrary(name.ptr);
 	if (res == null) {
 		// TODO: use a Diagnostic
-		writeError(safeCStr!"Could not load library ");
+		writeError(cString!"Could not load library ");
 		writeError(name);
-		writeError(safeCStr!"\n");
+		writeError(cString!"\n");
 	}
 	return LibraryAndError(res, res == null);
 }
@@ -181,11 +181,11 @@ LoadedLibraries loadLibrariesInner(
 			return immutable KeyValuePair!(Sym, ExternFunPtrsForLibrary)(x.libraryName, funPtrs);
 		});
 	foreach (KeyValuePair!(Sym, Sym) x; tempAsArr(failures)) {
-		writeError(safeCStr!"Could not load extern function ");
+		writeError(cString!"Could not load extern function ");
 		writeSymToCb(writeError, allSymbols, x.value);
-		writeError(safeCStr!" from library ");
+		writeError(cString!" from library ");
 		writeSymToCb(writeError, allSymbols, x.key);
-		writeError(safeCStr!"\n");
+		writeError(cString!"\n");
 	}
 	return LoadedLibraries(
 		finishMap(alloc, debugNames),
@@ -194,8 +194,7 @@ LoadedLibraries loadLibrariesInner(
 
 @trusted pure Opt!FunPtr getExternFunPtr(in AllSymbols allSymbols, DLLib* library, Sym name) {
 	immutable char[256] nameBuffer = symAsTempBuffer!256(allSymbols, name);
-	CStr nameCStr = nameBuffer.ptr;
-	DCpointer ptr = dlFindSymbol(library, nameCStr);
+	DCpointer ptr = dlFindSymbol(library, nameBuffer.ptr);
 	return ptr == null ? none!FunPtr : some(FunPtr(cast(immutable) ptr));
 }
 

@@ -55,8 +55,8 @@ import util.col.arrUtil : every, exists, map, zip;
 import util.col.map : mustGet;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach, fullIndexMapEachKey;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
-import util.col.str : eachChar, SafeCStr;
 import util.opt : force, has, Opt, some;
+import util.string : eachChar, CString;
 import util.sym : AllSymbols;
 import util.union_ : Union;
 import util.util : abs, castNonScope, castNonScope_ref, ptrTrustMe, unreachable;
@@ -69,7 +69,7 @@ import util.writer :
 	writeWithCommas,
 	writeWithCommasZip;
 
-SafeCStr writeToC(ref Alloc alloc, ref TempAlloc tempAlloc, in ShowCtx printCtx, in LowProgram program) =>
+CString writeToC(ref Alloc alloc, ref TempAlloc tempAlloc, in ShowCtx printCtx, in LowProgram program) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		writer ~= "#include <tgmath.h>\n"; // Implements functions in 'tgmath.crow'
 		writer ~= "#include <stddef.h>\n"; // for NULL
@@ -1283,7 +1283,7 @@ void writeConstantRef(
 		});
 }
 
-void writeStringLiteral(scope ref Writer writer, in SafeCStr a) {
+void writeStringLiteral(scope ref Writer writer, in CString a) {
 	writer ~= '"';
 	size_t chunk = 0;
 	eachChar(a, (char c) {

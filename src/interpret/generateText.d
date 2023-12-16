@@ -37,8 +37,8 @@ import util.col.exactSizeArrBuilder :
 	newExactSizeArrBuilder,
 	padTo;
 import util.col.fullIndexMap : FullIndexMap, mapFullIndexMap;
-import util.col.str : SafeCStr, safeCStrSize;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
+import util.string : CString, cStringSize;
 import util.util : castNonScope, ptrTrustMe, todo, unreachable;
 
 immutable struct VarsInfo {
@@ -131,7 +131,7 @@ TextAndInfo generateText(
 	// Ensure 0 is not a valid text index
 	ctx.text ~= 0;
 
-	ctx.cStringIndexToTextIndex = map(alloc, program.allConstants.cStrings, (ref SafeCStr value) {
+	ctx.cStringIndexToTextIndex = map(alloc, program.allConstants.cStrings, (ref CString value) {
 		immutable size_t textIndex = exactSizeArrBuilderCurSize(ctx.text);
 		addStringAndNulTerminate(ctx.text, value);
 		return textIndex;
@@ -277,8 +277,8 @@ void recurWritePointer(
 
 //TODO: should we align things?
 size_t getAllConstantsSize(in LowProgram program) {
-	size_t cStringsSize = sum!SafeCStr(program.allConstants.cStrings, (in SafeCStr x) =>
-		safeCStrSize(x) + 1);
+	size_t cStringsSize = sum!CString(program.allConstants.cStrings, (in CString x) =>
+		cStringSize(x) + 1);
 	size_t arrsSize = sum!ArrTypeAndConstantsLow(program.allConstants.arrs, (in ArrTypeAndConstantsLow arrs) =>
 		typeSizeBytes(program, arrs.elementType) *
 		sum!(immutable Constant[])(arrs.constants, (in Constant[] elements) => elements.length));

@@ -102,10 +102,10 @@ import util.col.arrUtil : map, mapZip, newArray;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : getOrAdd;
 import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2MustGet0, stackMap2MustGet1, withStackMap2;
-import util.col.str : SafeCStr, safeCStr;
 import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range, UriAndRange;
+import util.string : CString, cString;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.uri : Uri;
@@ -132,7 +132,7 @@ ConcreteExpr concretizeBogus(ref ConcretizeCtx ctx, ConcreteType type, UriAndRan
 	ConcreteExpr(type, range, concretizeBogusKind(ctx, range));
 ConcreteExprKind concretizeBogusKind(ref ConcretizeCtx ctx, in UriAndRange range) =>
 	ConcreteExprKind(allocate(ctx.alloc, ConcreteExprKind.Throw(
-		cStrConcreteExpr(ctx, range, safeCStr!"Reached compile error"))));
+		cStrConcreteExpr(ctx, range, cString!"Reached compile error"))));
 
 private:
 
@@ -891,9 +891,9 @@ ConcreteVariableRef concretizeVariableRefForClosure(
 		(ClosureRef x) =>
 			ConcreteVariableRef(getClosureFieldInfo(ctx, range, x).closureRef));
 
-ConcreteExpr cStrConcreteExpr(ref ConcretizeCtx ctx, in UriAndRange range, SafeCStr value) =>
+ConcreteExpr cStrConcreteExpr(ref ConcretizeCtx ctx, in UriAndRange range, CString value) =>
 	cStrConcreteExpr(ctx, cStrType(ctx), range, value);
-ConcreteExpr cStrConcreteExpr(ref ConcretizeCtx ctx, ConcreteType type, in UriAndRange range, SafeCStr value) =>
+ConcreteExpr cStrConcreteExpr(ref ConcretizeCtx ctx, ConcreteType type, in UriAndRange range, CString value) =>
 	ConcreteExpr(type, range, ConcreteExprKind(constantCStr(ctx, value)));
 
 ConcreteExpr concretizeAssertOrForbid(
@@ -925,12 +925,12 @@ ConcreteExpr concretizeAssertOrForbid(
 	return ConcreteExpr(type, range, ConcreteExprKind(allocate(ctx.alloc, if_)));
 }
 
-SafeCStr defaultAssertOrForbidMessage(AssertOrForbidKind a) {
+CString defaultAssertOrForbidMessage(AssertOrForbidKind a) {
 	final switch (a) {
 		case AssertOrForbidKind.assert_:
-			return safeCStr!"assert failed";
+			return cString!"assert failed";
 		case AssertOrForbidKind.forbid:
-			return safeCStr!"forbid failed";
+			return cString!"forbid failed";
 	}
 }
 

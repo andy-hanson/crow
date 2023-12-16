@@ -80,7 +80,7 @@ import util.lineAndColumnGetter : LineAndColumnGetter, PosKind;
 import util.opt : Opt;
 import util.sourceRange : jsonOfPosWithinFile, jsonOfRange, Pos, Range;
 import util.union_ : Union;
-import util.uri : AllUris, Path, pathToSafeCStr, RelPath;
+import util.uri : AllUris, cStringOfPath, Path, RelPath;
 import util.util : ptrTrustMe, stringOfEnum;
 
 Json jsonOfAst(ref Alloc alloc, in AllUris allUris, in LineAndColumnGetter lineAndColumnGetter, in FileAst ast) {
@@ -140,11 +140,11 @@ Json jsonOfImportOrExportAst(ref Alloc alloc, scope ref Ctx ctx, in ImportOrExpo
 Json pathOrRelPathToJson(ref Alloc alloc, in AllUris allUris, PathOrRelPath a) =>
 	a.match!Json(
 		(Path global) =>
-			jsonString(pathToSafeCStr(alloc, allUris, global, false)),
+			jsonString(cStringOfPath(alloc, allUris, global, false)),
 		(RelPath relPath) =>
 			jsonObject(alloc, [
 				field!"nParents"(relPath.nParents),
-				field!"path"(pathToSafeCStr(alloc, allUris, relPath.path, false))]));
+				field!"path"(cStringOfPath(alloc, allUris, relPath.path, false))]));
 
 Json jsonOfSpecDeclAst(ref Alloc alloc, scope ref Ctx ctx, in SpecDeclAst a) =>
 	jsonObject(alloc, [

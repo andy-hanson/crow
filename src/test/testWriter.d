@@ -3,15 +3,15 @@ module test.testWriter;
 @safe @nogc pure nothrow:
 
 import test.testUtil : Test;
-import util.col.str : SafeCStr, strEq, strOfSafeCStr;
+import util.string : CString, stringsEqual, stringOfCString;
 import util.writer : withWriter, writeFloatLiteral, Writer;
 
 @trusted void testWriter(ref Test test) {
 	void writes(double value, string expected) {
-		SafeCStr actual = withWriter(test.alloc, (scope ref Writer writer) {
+		CString actual = withWriter(test.alloc, (scope ref Writer writer) {
 			writeFloatLiteral(writer, value);
 		});
-		assert(strEq(strOfSafeCStr(actual), expected));
+		assert(stringsEqual(stringOfCString(actual), expected));
 	}
 
 	writes(-0.0, "-0");

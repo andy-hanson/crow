@@ -12,12 +12,12 @@ import lib.cliParser : CCompileOptions;
 import model.lowModel : ExternLibrary;
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : add, addAll, finishArr, ArrBuilder;
-import util.col.str : SafeCStr, safeCStr;
 import util.exitCode : ExitCode;
 import util.opt : force, has, none;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.sym : AllSymbols, concatSyms, safeCStrOfSym, Sym, sym, writeSym;
-import util.uri : AllUris, asFileUri, childFileUri, FileUri, fileUriToSafeCStr, isFileUri, Uri, writeFileUri;
+import util.string : CString, cString;
+import util.sym : AllSymbols, concatSyms, cStringOfSym, Sym, sym, writeSym;
+import util.uri : AllUris, asFileUri, childFileUri, FileUri, cStringOfFileUri, isFileUri, Uri, writeFileUri;
 import util.util : todo;
 import util.writer : withWriter, Writer;
 
@@ -32,18 +32,18 @@ import util.writer : withWriter, Writer;
 	in CCompileOptions options,
 ) {
 	if (!isFileUri(allUris, exePath))
-		return printError(safeCStr!"Can't compile to non-file path\n");
+		return printError(cString!"Can't compile to non-file path\n");
 
-	SafeCStr[] args = cCompileArgs(
+	CString[] args = cCompileArgs(
 		alloc, allSymbols, allUris, cPath, asFileUri(allUris, exePath), externLibraries, options);
 	version (Windows) {
 		TempStrForPath clPath = void;
 		ExitCode clErr = findPathToCl(clPath);
 		if (clErr != ExitCode.ok)
 			return clErr;
-		scope SafeCStr executable = SafeCStr(cast(immutable) clPath.ptr);
+		scope CString executable = CString(cast(immutable) clPath.ptr);
 	} else {
-		scope SafeCStr executable = safeCStr!"/usr/bin/cc";
+		scope CString executable = cString!"/usr/bin/cc";
 	}
 	return withMeasure!(ExitCode, () =>
 		spawnAndWait(alloc, allUris, executable, args)
@@ -53,7 +53,7 @@ import util.writer : withWriter, Writer;
 pure:
 private:
 
-SafeCStr[] cCompileArgs(
+CString[] cCompileArgs(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	ref AllUris allUris,
@@ -62,25 +62,25 @@ SafeCStr[] cCompileArgs(
 	in ExternLibrary[] externLibraries,
 	in CCompileOptions options,
 ) {
-	ArrBuilder!SafeCStr args;
+	ArrBuilder!CString args;
 	addAll(alloc, args, cCompilerArgs(options));
-	add(alloc, args, fileUriToSafeCStr(alloc, allUris, cPath));
+	add(alloc, args, cStringOfFileUri(alloc, allUris, cPath));
 	version (Windows) {
-		add(alloc, args, safeCStr!"/link");
+		add(alloc, args, cString!"/link");
 	}
 	foreach (ExternLibrary x; externLibraries) {
 		version (Windows) {
 			Sym xDotLib = concatSyms(allSymbols, [x.libraryName, sym!".lib"]);
 			if (has(x.configuredDir)) {
 				FileUri path = childFileUri(allUris, force(x.configuredDir), xDotLib);
-				add(alloc, args, fileUriToSafeCStr(alloc, allUris, path));
+				add(alloc, args, cStringOfFileUri(alloc, allUris, path));
 			} else
 				switch (x.libraryName.value) {
 					case sym!"c".value:
 					case sym!"m".value:
 						break;
 					default:
-						add(alloc, args, safeCStrOfSym(alloc, allSymbols, xDotLib));
+						add(alloc, args, cStringOfSym(alloc, allSymbols, xDotLib));
 						break;
 				}
 		} else {
@@ -100,55 +100,55 @@ SafeCStr[] cCompileArgs(
 		}
 	}
 	version (Windows) {
-		add(alloc, args, safeCStr!"/DEBUG");
+		add(alloc, args, cString!"/DEBUG");
 		add(alloc, args, withWriter(writer, (scope ref Writer writer) {
 			writer ~= "/out:";
 			writeFileUri(writer, allUris, exePath);
 		}));
 	} else {
-		add(alloc, args, safeCStr!"-lm");
+		add(alloc, args, cString!"-lm");
 		addAll(alloc, args, [
-			safeCStr!"-o",
-			fileUriToSafeCStr(alloc, allUris, exePath),
+			cString!"-o",
+			cStringOfFileUri(alloc, allUris, exePath),
 		]);
 	}
 	return finishArr(alloc, args);
 }
 
-SafeCStr[] cCompilerArgs(in CCompileOptions options) {
+CString[] cCompilerArgs(in CCompileOptions options) {
 	version (Windows) {
-		static immutable SafeCStr[] optimizedArgs = [
-			safeCStr!"/Zi",
-			safeCStr!"/std:c17",
-			safeCStr!"/Wall",
-			safeCStr!"/wd4034",
-			safeCStr!"/wd4098",
-			safeCStr!"/wd4100",
-			safeCStr!"/wd4295",
-			safeCStr!"/wd4820",
-			safeCStr!"/WX",
-			safeCStr!"/O2",
+		static immutable CString[] optimizedArgs = [
+			cString!"/Zi",
+			cString!"/std:c17",
+			cString!"/Wall",
+			cString!"/wd4034",
+			cString!"/wd4098",
+			cString!"/wd4100",
+			cString!"/wd4295",
+			cString!"/wd4820",
+			cString!"/WX",
+			cString!"/O2",
 		];
-		static immutable SafeCStr[] regularArgs = optimizedArgs[0 .. $ - 1];
+		static immutable CString[] regularArgs = optimizedArgs[0 .. $ - 1];
 	} else {
-		static immutable SafeCStr[] optimizedArgs = [
-			safeCStr!"-Werror",
-			safeCStr!"-Wextra",
-			safeCStr!"-Wall",
-			safeCStr!"-ansi",
-			safeCStr!"-std=c17",
-			safeCStr!"-Wno-maybe-uninitialized",
-			safeCStr!"-Wno-missing-field-initializers",
-			safeCStr!"-Wno-unused-function",
-			safeCStr!"-Wno-unused-parameter",
-			safeCStr!"-Wno-unused-but-set-variable",
-			safeCStr!"-Wno-unused-variable",
-			safeCStr!"-Wno-unused-value",
-			safeCStr!"-Wno-builtin-declaration-mismatch",
-			safeCStr!"-Wno-address-of-packed-member",
-			safeCStr!"-Ofast",
+		static immutable CString[] optimizedArgs = [
+			cString!"-Werror",
+			cString!"-Wextra",
+			cString!"-Wall",
+			cString!"-ansi",
+			cString!"-std=c17",
+			cString!"-Wno-maybe-uninitialized",
+			cString!"-Wno-missing-field-initializers",
+			cString!"-Wno-unused-function",
+			cString!"-Wno-unused-parameter",
+			cString!"-Wno-unused-but-set-variable",
+			cString!"-Wno-unused-variable",
+			cString!"-Wno-unused-value",
+			cString!"-Wno-builtin-declaration-mismatch",
+			cString!"-Wno-address-of-packed-member",
+			cString!"-Ofast",
 		];
-		static immutable SafeCStr[] regularArgs = optimizedArgs[0 .. $ - 1] ~ [safeCStr!"-g"];
+		static immutable CString[] regularArgs = optimizedArgs[0 .. $ - 1] ~ [cString!"-g"];
 	}
 	final switch (options.optimizationLevel) {
 		case OptimizationLevel.none:

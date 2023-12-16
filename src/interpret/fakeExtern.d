@@ -20,9 +20,9 @@ import util.alloc.alloc : Alloc, allocateBytes;
 import util.col.arrUtil : map;
 import util.col.map : KeyValuePair, makeMap;
 import util.col.mutArr : MutArr, mutArrIsEmpty, push, tempAsArr;
-import util.col.str : safeCStr;
 import util.memory : memmove, memset;
 import util.opt : force, has, none, Opt, some;
+import util.string : cString;
 import util.sym : AllSymbols, Sym, sym;
 import util.util : debugLog, todo, unreachable;
 
@@ -66,11 +66,11 @@ Opt!ExternFunPtrsForAllLibraries getAllFakeExternFuns(
 				x.libraryName,
 				fakeExternFunsForLibrary(alloc, failures, allSymbols, x)));
 	foreach (KeyValuePair!(Sym, Sym) x; tempAsArr(failures)) {
-		writeError(safeCStr!"Could not load extern function ");
+		writeError(cString!"Could not load extern function ");
 		writeSymToCb(writeError, allSymbols, x.value);
-		writeError(safeCStr!" from library ");
+		writeError(cString!" from library ");
 		writeSymToCb(writeError, allSymbols, x.key);
-		writeError(safeCStr!"\n");
+		writeError(cString!"\n");
 	}
 	return mutArrIsEmpty(failures) ? some(res) : none!ExternFunPtrsForAllLibraries;
 }

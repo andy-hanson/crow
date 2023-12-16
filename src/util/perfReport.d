@@ -16,11 +16,11 @@ import util.col.arrUtil : map;
 import util.col.enumMap : EnumMap;
 import util.col.exactSizeArrBuilder : buildArrayExact, ExactSizeArrBuilder;
 import util.col.map : KeyValuePair;
-import util.col.str : SafeCStr;
 import util.comparison : compareUlong, oppositeComparison;
 import util.json : field, Json, jsonObject;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf, PerfMeasure, PerfMeasureResult, PerfResult, perfResult;
+import util.string : CString;
 import util.util : stringOfEnum;
 import util.writer : withWriter, Writer;
 
@@ -95,7 +95,7 @@ Json showMemoryCommon(ref Alloc alloc, Opt!size_t countAllocs, in MemorySummary 
 				res ~= field!"countAllocs"(force(countAllocs));
 		}));
 
-SafeCStr showMemoryAmount(ref Alloc alloc, size_t bytes) =>
+CString showMemoryAmount(ref Alloc alloc, size_t bytes) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		size_t KB = 0x400;
 		size_t MB = KB * KB;
@@ -111,7 +111,7 @@ SafeCStr showMemoryAmount(ref Alloc alloc, size_t bytes) =>
 		writer ~= "B";
 	});
 
-SafeCStr showTimeAmount(ref Alloc alloc, ulong nanoseconds) =>
+CString showTimeAmount(ref Alloc alloc, ulong nanoseconds) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		writer ~= divRound(nanoseconds, 1_000_000);
 		writer ~= "ms";

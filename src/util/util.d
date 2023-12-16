@@ -4,8 +4,8 @@ module util.util;
 
 import std.meta : staticMap;
 
-import util.col.str : SafeCStr, safeCStr;
 import util.opt : none, Opt, some;
+import util.string : CString, cString;
 
 version (WebAssembly) { } else {
 	import core.stdc.stdio : fprintf;
@@ -108,10 +108,10 @@ string stringOfEnum(E)(E value) {
 	return strings[value];
 }
 
-SafeCStr safeCStrOfEnum(E)(E value) {
+CString cStringOfEnum(E)(E value) {
 	assertNormalEnum!E();
-	static immutable SafeCStr[] strings =
-		[staticMap!(safeCStrOfString, staticMap!(stripUnderscore, __traits(allMembers, E)))];
+	static immutable CString[] strings =
+		[staticMap!(cStringOfString, staticMap!(stripUnderscore, __traits(allMembers, E)))];
 	return strings[value];
 }
 
@@ -125,8 +125,8 @@ void assertNormalEnum(E)() {
 private enum stripUnderscore(string s) =
 	s[$ - 1] == '_' ? s[0 .. $ - 1] : s;
 
-private enum safeCStrOfString(string s) =
-	safeCStr!(s ~ "\0");
+private enum cStringOfString(string s) =
+	cString!(s ~ "\0");
 
 @trusted T* ptrTrustMe(T)(scope ref T t) =>
 	castNonScope(&t);

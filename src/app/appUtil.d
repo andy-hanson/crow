@@ -4,15 +4,15 @@ module app.appUtil;
 
 import app.fileSystem : stderr;
 import core.stdc.stdio : fprintf, printf;
-import util.col.str : SafeCStr;
 import util.exitCode : ExitCode;
+import util.string : CString;
 
-@trusted ExitCode print(in SafeCStr a) {
+@trusted ExitCode print(in CString a) {
 	printf("%s\n", a.ptr);
 	return ExitCode.ok;
 }
 
-@trusted ExitCode printError(in SafeCStr a) {
+@trusted ExitCode printError(in CString a) {
 	fprintf(stderr, "%s\n", a.ptr);
 	return ExitCode.error;
 }

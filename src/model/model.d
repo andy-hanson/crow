@@ -28,11 +28,11 @@ import util.col.arrUtil : exists, first;
 import util.col.hashTable : existsInHashTable, HashTable;
 import util.col.map : Map;
 import util.col.enumMap : EnumMap;
-import util.col.str : SafeCStr, safeCStr;
 import util.conv : safeToSizeT;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : combineRanges, UriAndRange, Pos, rangeOfStartAndLength, Range;
+import util.string : CString, cString;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.uri : Uri;
@@ -311,7 +311,7 @@ immutable struct StructAlias {
 	// This will be none if the alias target is not found
 	private Late!(Opt!(StructInst*)) target_;
 
-	SafeCStr docComment() return scope =>
+	CString docComment() return scope =>
 		ast.docComment;
 
 	TypeParams typeParams() return scope =>
@@ -383,12 +383,12 @@ immutable struct StructDecl {
 		lateSet(lateBody, value);
 	}
 
-	SafeCStr docComment() return scope =>
-		source.match!SafeCStr(
+	CString docComment() return scope =>
+		source.match!CString(
 			(ref StructDeclAst x) =>
 				x.docComment,
 			(ref StructDeclSource.Bogus) =>
-				safeCStr!"");
+				cString!"");
 	TypeParams typeParams() return scope =>
 		source.match!TypeParams(
 			(ref StructDeclAst x) =>
@@ -492,7 +492,7 @@ immutable struct SpecDecl {
 	SpecDeclBody body_;
 	private Late!(SmallArray!(immutable SpecInst*)) parents_;
 
-	SafeCStr docComment() return scope =>
+	CString docComment() return scope =>
 		ast.docComment;
 	TypeParams typeParams() return scope =>
 		ast.typeParams;
@@ -760,7 +760,7 @@ immutable struct FunDecl {
 	UriAndRange range() scope =>
 		source.range;
 
-	SafeCStr docComment() scope =>
+	CString docComment() scope =>
 		source.as!(FunDeclSource.Ast).ast.docComment;
 
 	Linkage linkage() scope =>
@@ -1501,7 +1501,7 @@ immutable struct LiteralExpr {
 }
 
 immutable struct LiteralCStringExpr {
-	SafeCStr value;
+	CString value;
 }
 
 immutable struct LiteralSymbolExpr {

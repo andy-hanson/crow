@@ -54,19 +54,19 @@ import model.model :
 	VarDecl,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.str : SafeCStr, safeCStrIsEmpty;
 import util.opt : none, Opt, some;
 import util.sourceRange : UriAndRange;
+import util.string : CString, cStringIsEmpty;
 import util.sym : writeSym;
 import util.uri : Uri;
 import util.util : ptrTrustMe, unreachable;
 import util.writer : withWriter, Writer;
 
 Opt!Hover getHover(ref Alloc alloc, in ShowCtx ctx, in Position pos) {
-	SafeCStr content = withWriter(alloc, (scope ref Writer writer) {
+	CString content = withWriter(alloc, (scope ref Writer writer) {
 		getHover(writer, ctx, pos);
 	});
-	return safeCStrIsEmpty(content)
+	return cStringIsEmpty(content)
 		? none!Hover
 		: some(Hover(MarkupContent(MarkupKind.plaintext, content)));
 }

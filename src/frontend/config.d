@@ -9,10 +9,10 @@ import util.col.arrBuilder : ArrBuilder, finishArr;
 import util.col.arrUtil : fold, newArray;
 import util.col.map : Map;
 import util.col.mapBuilder : finishMap, MapBuilder, tryAddToMap;
-import util.col.str : SafeCStr;
 import util.json : Json;
 import util.opt : force, has, none, Opt, some;
 import util.jsonParse : parseJson;
+import util.string : CString;
 import util.sym : AllSymbols, Sym, sym;
 import util.uri : AllUris, bogusUri, parentOrEmpty, parseUriWithCwd, Uri;
 import util.util : todo;
@@ -22,7 +22,7 @@ Config parseConfig(
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
 	Uri configUri,
-	in SafeCStr text,
+	in CString text,
 ) {
 	ArrBuilder!Diagnostic diagsBuilder;
 	Opt!Json json = parseJson(alloc, allSymbols, text); // TODO: this should take diagsBuilder

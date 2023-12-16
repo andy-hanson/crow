@@ -10,12 +10,12 @@ import model.lowModel : ExternLibrary;
 import test.testUtil : Test;
 import util.col.map : mustGet;
 import util.col.mutArr : moveToArr, MutArr, pushAll;
-import util.col.str : CStr, SafeCStr, strEq;
 import util.exitCode : ExitCode;
 import util.opt : force, none, Opt;
+import util.string : CString, cString, stringsEqual;
 import util.sym : Sym, sym;
 import util.uri : Uri;
-import util.util : typeAs, unreachable;
+import util.util : unreachable;
 
 void testFakeExtern(ref Test test) {
 	testMallocAndFree(test);
@@ -29,7 +29,7 @@ private:
 		Sym[2] exportNames = [sym!"free", sym!"malloc"];
 		ExternLibrary[1] externLibraries = [ExternLibrary(sym!"c", none!Uri, exportNames)];
 		Opt!ExternFunPtrsForAllLibraries funPtrsOpt =
-			extern_.loadExternFunPtrs(externLibraries, (in SafeCStr _) =>
+			extern_.loadExternFunPtrs(externLibraries, (in CString _) =>
 				unreachable!void());
 		ExternFunPtrsForAllLibraries funPtrs = force(funPtrsOpt);
 		ExternFunPtrsForLibrary forCrow = mustGet(funPtrs, sym!"c");
@@ -73,7 +73,7 @@ void testWrite(ref Test test) {
 			Sym[1] exportNames = [sym!"write"];
 			ExternLibrary[1] externLibraries = [ExternLibrary(sym!"c", none!Uri, exportNames)];
 			Opt!ExternFunPtrsForAllLibraries funPtrsOpt =
-				extern_.loadExternFunPtrs(externLibraries, (in SafeCStr _) =>
+				extern_.loadExternFunPtrs(externLibraries, (in CString _) =>
 					unreachable!void());
 			ExternFunPtrsForAllLibraries funPtrs = force(funPtrsOpt);
 			ExternFunPtrsForLibrary forCrow = mustGet(funPtrs, sym!"c");
@@ -81,15 +81,15 @@ void testWrite(ref Test test) {
 
 			DynCallType[4] sigTypes = [DynCallType.pointer, DynCallType.int32, DynCallType.pointer, DynCallType.nat64];
 			DynCallSig sig = DynCallSig(sigTypes);
-			ulong[3] args1 = [1, cast(ulong) typeAs!CStr("gnarly"), 4];
+			ulong[3] args1 = [1, cast(ulong) cString!"gnarly".ptr, 4];
 			extern_.doDynCall(write, sig, args1);
-			ulong[3] args2 = [2, cast(ulong) typeAs!CStr("tubular"), 2];
+			ulong[3] args2 = [2, cast(ulong) cString!"tubular".ptr, 2];
 			extern_.doDynCall(write, sig, args2);
-			ulong[3] args3 = [1, cast(ulong) typeAs!CStr("way cool"), 5];
+			ulong[3] args3 = [1, cast(ulong) cString!"way cool".ptr, 5];
 			extern_.doDynCall(write, sig, args3);
 			return ExitCode(42);
 		});
 	assert(result.value == 42);
-	assert(strEq(moveToArr(test.alloc, stdout), "gnarway c"));
-	assert(strEq(moveToArr(test.alloc, stderr), "tu"));
+	assert(stringsEqual(moveToArr(test.alloc, stdout), "gnarway c"));
+	assert(stringsEqual(moveToArr(test.alloc, stderr), "tu"));
 }

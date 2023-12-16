@@ -5,25 +5,25 @@ module util.jsonParse;
 import frontend.parse.lexUtil : isDecimalDigit, isWhitespace, tryTakeChar, tryTakeChars;
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.str : SafeCStr, strOfSafeCStr;
 import util.json : Json;
 import util.opt : force, has, none, Opt, some;
+import util.string : CString, stringOfCString;
 import util.sym : AllSymbols, symOfStr;
 import util.writer : withWriter, Writer;
 
-Json mustParseJson(ref Alloc alloc, scope ref AllSymbols allSymbols, in SafeCStr source) {
+Json mustParseJson(ref Alloc alloc, scope ref AllSymbols allSymbols, in CString source) {
 	Opt!Json res = parseJson(alloc, allSymbols, source);
 	return force(res);
 }
 
-Opt!Json parseJson(ref Alloc alloc, scope ref AllSymbols allSymbols, in SafeCStr source) {
+Opt!Json parseJson(ref Alloc alloc, scope ref AllSymbols allSymbols, in CString source) {
 	immutable(char)* ptr = source.ptr;
 	Opt!Json res = parseValue(alloc, allSymbols, ptr);
 	skipWhitespace(ptr);
 	return *ptr == '\0' ? res : none!Json;
 }
 
-uint mustParseUint(SafeCStr s) {
+uint mustParseUint(CString s) {
 	immutable(char)* ptr = s.ptr;
 	skipWhitespace(ptr);
 	Json res = parseNumber(0, ptr);
@@ -83,7 +83,7 @@ Json parseNumber(double value, scope ref immutable(char)* ptr) {
 
 Opt!string parseString(ref Alloc alloc, scope ref immutable(char)* ptr) {
 	bool ok = false;
-	SafeCStr res = withWriter(alloc, (scope ref Writer writer) {
+	CString res = withWriter(alloc, (scope ref Writer writer) {
 		//TODO: escaping
 		while (true) {
 			char x = next(ptr);
@@ -108,7 +108,7 @@ Opt!string parseString(ref Alloc alloc, scope ref immutable(char)* ptr) {
 			}
 		}
 	});
-	return ok ? some(strOfSafeCStr(res)) : none!string;
+	return ok ? some(stringOfCString(res)) : none!string;
 }
 
 // TODO: share code with crow lexer?

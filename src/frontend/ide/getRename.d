@@ -10,9 +10,9 @@ import lib.lsp.lspTypes : TextEdit, WorkspaceEdit;
 import model.model : Program;
 import util.alloc.alloc : Alloc;
 import util.col.multiMap : makeMultiMap, MultiMapCb;
-import util.col.str : copyStr;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : UriAndRange;
+import util.string : copyString;
 import util.sym : AllSymbols;
 import util.uri : AllUris, Uri;
 
@@ -27,7 +27,7 @@ Opt!WorkspaceEdit getRenameForPosition(
 	Opt!Target target = targetForPosition(program, pos.kind);
 	return has(target)
 		? some(WorkspaceEdit(makeMultiMap!(Uri, TextEdit)(alloc, (in MultiMapCb!(Uri, TextEdit) cb) {
-			string newNameOut = copyStr(alloc, newName);
+			string newNameOut = copyString(alloc, newName);
 			eachRenameLocation(allSymbols, allUris, program, pos.module_.uri, force(target), (in UriAndRange x) {
 				cb(x.uri, TextEdit(x.range, newNameOut));
 			});

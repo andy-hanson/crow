@@ -64,11 +64,11 @@ import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : emptySmallArray, small, SmallArray;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.str : SafeCStr, safeCStr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : Pos, Range;
+import util.string : CString, cString;
 import util.sym : AllSymbols, Sym, sym;
 import util.uri : AllUris;
 import util.util : castNonScope_ref, ptrTrustMe, typeAs;
@@ -78,7 +78,7 @@ FileAst* parseFile(
 	ref Alloc alloc,
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
-	scope SafeCStr source,
+	scope CString source,
 ) =>
 	withMeasure!(FileAst*, () {
 		Lexer lexer = createLexer(ptrTrustMe(alloc), ptrTrustMe(allSymbols), castNonScope_ref(source));
@@ -131,7 +131,7 @@ ParamsAst parseParams(ref Lexer lexer) {
 
 SpecSigAst parseSpecSig(ref Lexer lexer) {
 	// TODO: get doc comment
-	SafeCStr comment = safeCStr!"";
+	CString comment = cString!"";
 	Pos start = curPos(lexer);
 	NameAndRange name = takeNameOrOperator(lexer);
 	assert(name.start == start);
@@ -243,7 +243,7 @@ StructDeclAst.Body.Union.Member[] parseUnionMembers(ref Lexer lexer) {
 
 FunDeclAst parseFun(
 	ref Lexer lexer,
-	SafeCStr docComment,
+	CString docComment,
 	ExplicitVisibility visibility,
 	Pos start,
 	NameAndRange name,
@@ -334,7 +334,7 @@ void parseSpecOrStructOrFunOrTest(
 	scope ref ArrBuilder!FunDeclAst funs,
 	scope ref ArrBuilder!TestAst tests,
 	scope ref ArrBuilder!VarDeclAst vars,
-	SafeCStr docComment,
+	CString docComment,
 ) {
 	if (tryTakeToken(lexer, Token.test))
 		add(lexer.alloc, tests, TestAst(parseFunExprBody(lexer)));
@@ -349,7 +349,7 @@ void parseSpecOrStructOrFun(
 	scope ref ArrBuilder!StructDeclAst structs,
 	scope ref ArrBuilder!FunDeclAst funs,
 	scope ref ArrBuilder!VarDeclAst varDecls,
-	SafeCStr docComment,
+	CString docComment,
 ) {
 	Pos start = curPos(lexer);
 	ExplicitVisibility visibility = tryTakeVisibility(lexer);
@@ -458,7 +458,7 @@ Opt!(LiteralNatAst*) parseNat(ref Lexer lexer) =>
 VarDeclAst parseVarDecl(
 	ref Lexer lexer,
 	Pos start,
-	SafeCStr docComment,
+	CString docComment,
 	ExplicitVisibility visibility,
 	NameAndRange name,
 	NameAndRange[] typeParams,
@@ -552,8 +552,8 @@ ExplicitVisibility tryTakeVisibility(ref Lexer lexer) =>
 		: ExplicitVisibility.default_;
 
 FileAst* parseFileInner(scope ref AllUris allUris, ref Lexer lexer) {
-	SafeCStr moduleDocComment = takeNewline_topLevel(lexer);
-	Cell!(Opt!SafeCStr) firstDocComment = Cell!(Opt!SafeCStr)(some(safeCStr!""));
+	CString moduleDocComment = takeNewline_topLevel(lexer);
+	Cell!(Opt!CString) firstDocComment = Cell!(Opt!CString)(some(cString!""));
 	bool noStd = tryTakeToken(lexer, Token.noStd);
 	if (noStd)
 		cellSet(firstDocComment, some(takeNewline_topLevel(lexer)));
@@ -572,10 +572,10 @@ FileAst* parseFileInner(scope ref AllUris allUris, ref Lexer lexer) {
 	ArrBuilder!VarDeclAst vars;
 
 	while (!tryTakeToken(lexer, Token.EOF)) {
-		SafeCStr docComment = () {
+		CString docComment = () {
 			if (has(cellGet(firstDocComment))) {
-				SafeCStr res = force(cellGet(firstDocComment));
-				cellSet(firstDocComment, none!SafeCStr);
+				CString res = force(cellGet(firstDocComment));
+				cellSet(firstDocComment, none!CString);
 				return res;
 			} else
 				return takeNewline_topLevel(lexer);

@@ -75,12 +75,12 @@ import util.col.hashTable : getOrAdd, getOrAddAndDidAdd, moveToArray, MutHashTab
 import util.col.map : Map, mustGet, values;
 import util.col.mutArr : filterUnordered, MutArr, mutArrIsEmpty, push;
 import util.col.mutMap : getOrAdd, getOrAddAndDidAdd, mustAdd, mustDelete, MutMap, ValueAndDidAdd;
-import util.col.str : SafeCStr;
 import util.hash : HashCode, Hasher;
 import util.late : Late, lateGet, lazilySet;
 import util.memory : allocate;
 import util.opt : force, has, none;
 import util.sourceRange : UriAndRange;
+import util.string : CString;
 import util.sym : AllSymbols, Sym, sym;
 import util.uri : AllUris, Uri;
 import util.util : castMutable, max, roundUp, todo, typeAs, unreachable;
@@ -247,7 +247,7 @@ ConcreteType cStrType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._cStrType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.cString, TypeArgsScope.empty));
 
-Constant constantCStr(ref ConcretizeCtx a, SafeCStr value) =>
+Constant constantCStr(ref ConcretizeCtx a, CString value) =>
 	getConstantCStr(a.alloc, a.allConstants, value);
 
 Constant constantSym(ref ConcretizeCtx a, Sym value) =>

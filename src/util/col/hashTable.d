@@ -8,7 +8,7 @@ import util.col.arrUtil : fillArray, map;
 import util.hash : getHash;
 import util.memory : initMemory, overwriteMemory;
 import util.opt : ConstOpt, force, has, MutOpt, none, noneMut, Opt, some, someConst, someMut;
-import util.col.str : strEq;
+import util.string : stringsEqual;
 
 alias HashTable(T, K, alias getKey) = immutable MutHashTable!(T, K, getKey);
 
@@ -406,7 +406,7 @@ size_t walkDistance(T)(in MutOpt!T[] values, size_t i0, size_t i1) =>
 
 bool eq(K)(in K a, in K b) {
 	static if (is(K == string))
-		return strEq(a, b);
+		return stringsEqual(a, b);
 	else
 		return a == b;
 }

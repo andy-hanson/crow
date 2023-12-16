@@ -127,11 +127,11 @@ import util.col.arrUtil : fillArray, indexOfPointer, makeArray, map, mapWithInde
 import util.col.map : mustGet;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapZip, mapFullIndexMap_mut;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
-import util.col.str : CStr, SafeCStr;
 import util.conv : safeToInt;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : UriAndRange;
+import util.string : CString;
 import util.sym : AllSymbols, writeSym;
 import util.union_ : Union, UnionMutable;
 import util.util : castImmutable, castNonScope, castNonScope_ref, ptrTrustMe, todo, unreachable;
@@ -143,7 +143,7 @@ import util.writer : debugLogWithWriter, withWriter, Writer;
 	in AllSymbols allSymbols,
 	in LowProgram program,
 	in JitOptions options,
-	in SafeCStr[] allArgs,
+	in CString[] allArgs,
 ) {
 	GccProgram gccProgram = getGccProgram(perf, alloc, allSymbols, program, options);
 
@@ -176,9 +176,9 @@ import util.writer : debugLogWithWriter, withWriter, Writer;
 
 private:
 
-int runMain(scope ref Perf perf, ref Alloc alloc, in SafeCStr[] allArgs, MainType main) =>
+int runMain(scope ref Perf perf, ref Alloc alloc, in CString[] allArgs, MainType main) =>
 	withMeasure!(int, () @trusted =>
-		main(cast(int) allArgs.length, cast(CStr*) allArgs.ptr)
+		main(cast(int) allArgs.length, cast(immutable char**) allArgs.ptr)
 	)(perf, alloc, PerfMeasure.run);
 
 pure:
@@ -231,7 +231,7 @@ GccProgram getGccProgram(
 }
 
 extern(C) {
-	alias MainType = immutable int function(int, CStr*) @nogc nothrow;
+	alias MainType = immutable int function(int, immutable char**) @nogc nothrow;
 }
 
 void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in AllSymbols allSymbols, in LowProgram program) {
@@ -329,7 +329,7 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in AllSymbols all
 				if (err != null)
 					debugLogWithWriter((ref Writer writer) @trusted {
 						writer ~= "Error: ";
-						writer ~= SafeCStr(err);
+						writer ~= CString(err);
 					});
 				assert(err == null);
 			});
@@ -360,7 +360,7 @@ immutable struct ConversionFunctions {
 
 @trusted immutable(gcc_jit_function*) makeConversionFunction(
 	ref gcc_jit_context ctx,
-	CStr name,
+	immutable char* name,
 	immutable gcc_jit_type* converterType,
 	immutable gcc_jit_type* inType,
 	immutable gcc_jit_field* inField,
@@ -420,15 +420,15 @@ GlobalsForConstants generateGlobalsForConstants(
 						gccElementType,
 						cast(int) values.length);
 					//TODO:NO ALLOC
-					CStr name = withWriter(alloc, (scope ref Writer writer) {
+					CString name = withWriter(alloc, (scope ref Writer writer) {
 						writeConstantArrStorageName(writer, mangledNames, program, tc.arrType, index);
-					}).ptr;
+					});
 					return gcc_jit_lvalue_as_rvalue(gcc_jit_context_new_global(
 						ctx,
 						null,
 						gcc_jit_global_kind.GCC_JIT_GLOBAL_INTERNAL,
 						arrayType,
-						name));
+						name.ptr));
 				});
 		});
 
@@ -440,15 +440,15 @@ GlobalsForConstants generateGlobalsForConstants(
 				tc.constants,
 				(size_t index, scope ref Constant) {
 					//TODO:NO ALLOC
-					CStr name = withWriter(alloc, (scope ref Writer writer) {
+					CString name = withWriter(alloc, (scope ref Writer writer) {
 						writeConstantPointerStorageName(writer, mangledNames, program, tc.pointeeType, index);
-					}).ptr;
+					});
 					return gcc_jit_context_new_global(
 						ctx,
 						null,
 						gcc_jit_global_kind.GCC_JIT_GLOBAL_INTERNAL,
 						gccPointeeType,
-						name);
+						name.ptr);
 				});
 		});
 
@@ -468,15 +468,15 @@ GccVars generateGccVars(
 		alloc, program.vars, (LowVarIndex varIndex, in LowVar var) {
 			immutable gcc_jit_type* type = getGccType(types, var.type);
 			//TODO:NO ALLOC
-			CStr name = withWriter(alloc, (scope ref Writer writer) {
+			CString name = withWriter(alloc, (scope ref Writer writer) {
 				writeLowVarMangledName(writer, mangledNames, varIndex, var);
-			}).ptr;
+			});
 			gcc_jit_lvalue* res = gcc_jit_context_new_global(
 				ctx, null,
 				var.isExtern
 					? gcc_jit_global_kind.GCC_JIT_GLOBAL_IMPORTED
 					: gcc_jit_global_kind.GCC_JIT_GLOBAL_INTERNAL,
-				type, name);
+				type, name.ptr);
 			final switch (var.kind) {
 				case LowVar.Kind.externGlobal:
 				case LowVar.Kind.global:
@@ -510,16 +510,17 @@ GccVars generateGccVars(
 	//TODO:NO ALLOC
 	immutable gcc_jit_param*[] params = map(alloc, fun.params, (ref LowLocal param) {
 		//TODO:NO ALLOC
-		CStr name = withWriter(alloc, (scope ref Writer writer) {
+		CString name = withWriter(alloc, (scope ref Writer writer) {
 			writeLowLocalName(writer, mangledNames, param);
-		}).ptr;
-		return gcc_jit_context_new_param(ctx, null, getGccType(gccTypes, param.type), name);
+		});
+		return gcc_jit_context_new_param(ctx, null, getGccType(gccTypes, param.type), name.ptr);
 	});
 	//TODO:NO ALLOC
-	CStr name = withWriter(alloc, (scope ref Writer writer) {
+	CString name = withWriter(alloc, (scope ref Writer writer) {
 		writeLowFunMangledName(writer, mangledNames, funIndex, fun);
-	}).ptr;
-	return gcc_jit_context_new_function(ctx, null, kind, returnType, name, cast(int) params.length, params.ptr, false);
+	});
+	return gcc_jit_context_new_function(
+		ctx, null, kind, returnType, name.ptr, cast(int) params.length, params.ptr, false);
 }
 
 struct ExprEmit {
@@ -656,7 +657,7 @@ ExprResult emitWithBranching(
 	ref ExprCtx ctx,
 	ref ExprEmit emit,
 	in LowType type,
-	in CStr endBlockName,
+	immutable char* endBlockName,
 	in void delegate(
 		gcc_jit_block* originalBlock,
 		MutOpt!(gcc_jit_block*) endBlock,
@@ -1053,10 +1054,11 @@ ExprResult emitWithLocal(
 	in ExprResult delegate(ref ExprEmit) @safe @nogc pure nothrow cbValue,
 ) {
 	//TODO:NO ALLOC
-	CStr name = withWriter(ctx.alloc, (scope ref Writer writer) {
+	CString name = withWriter(ctx.alloc, (scope ref Writer writer) {
 		writeLowLocalName(writer, ctx.mangledNames, *lowLocal);
-	}).ptr;
-	gcc_jit_lvalue* gccLocal = gcc_jit_function_new_local(ctx.curFun, null, getGccType(ctx.types, lowLocal.type), name);
+	});
+	gcc_jit_lvalue* gccLocal = gcc_jit_function_new_local(
+		ctx.curFun, null, getGccType(ctx.types, lowLocal.type), name.ptr);
 	emitToLValueCb(gccLocal, (ref ExprEmit valueEmit) =>
 		cbValue(valueEmit));
 	Locals newLocals = addLocal(locals, lowLocal, gccLocal);

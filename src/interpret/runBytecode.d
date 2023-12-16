@@ -33,11 +33,11 @@ import interpret.stacks :
 import model.lowModel : LowProgram;
 import model.typeLayout : PackField;
 import util.alloc.alloc : Alloc;
-import util.col.str : SafeCStr;
 import util.conv : safeToSizeT;
 import util.memory : memcpy, memmove, overwriteMemory;
 import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasureNoAlloc;
+import util.string : CString;
 import util.util : castNonScope_ref, debugLog, divRoundUp, ptrTrustMe, unreachable;
 
 @safe int runBytecode(
@@ -47,7 +47,7 @@ import util.util : castNonScope_ref, debugLog, divRoundUp, ptrTrustMe, unreachab
 	in DoDynCall doDynCall,
 	in LowProgram lowProgram,
 	in ByteCode byteCode,
-	in SafeCStr[] allArgs,
+	in CString[] allArgs,
 ) =>
 	withInterpreter!int(alloc, doDynCall, printCtx, lowProgram, byteCode, (ref Stacks stacks) {
 		dataPush(stacks, allArgs.length);

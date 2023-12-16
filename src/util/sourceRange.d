@@ -19,6 +19,12 @@ immutable struct Range {
 	Pos start;
 	Pos end;
 
+	this(Pos s, Pos e) {
+		start = s;
+		end = e;
+		assert(start <= end);
+	}
+
 	static Range max() =>
 		Range(Pos.max, Pos.max);
 	static Range empty() =>

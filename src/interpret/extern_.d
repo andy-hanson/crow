@@ -5,9 +5,9 @@ module interpret.extern_;
 import interpret.bytecode : Operation;
 import model.lowModel : ExternLibraries, LowFunIndex;
 import util.col.map : Map;
-import util.col.str : SafeCStr;
 import util.hash : HashCode, hashPtr;
 import util.opt : Opt;
+import util.string : CString;
 import util.sym : AllSymbols, Sym, symAsTempBuffer;
 
 immutable struct Extern {
@@ -28,11 +28,11 @@ immutable struct FunPtrInputs {
 
 alias MakeSyntheticFunPtrs = immutable FunPtr[] delegate(in FunPtrInputs[] inputs) @safe @nogc pure nothrow;
 alias DoDynCall = immutable ulong delegate(FunPtr, in DynCallSig, in ulong[] args) @system @nogc nothrow;
-alias WriteError = immutable void delegate(in SafeCStr) @safe @nogc nothrow;
+alias WriteError = immutable void delegate(in CString) @safe @nogc nothrow;
 
 @trusted void writeSymToCb(scope WriteError writeError, in AllSymbols allSymbols, Sym a) {
 	immutable char[256] buf = symAsTempBuffer!256(allSymbols, a);
-	writeError(SafeCStr(buf.ptr));
+	writeError(CString(buf.ptr));
 }
 
 alias ExternFunPtrsForAllLibraries = Map!(Sym, ExternFunPtrsForLibrary);

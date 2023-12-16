@@ -26,12 +26,12 @@ import lib.lsp.lspTypes :
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : map;
 import util.col.multiMap : mapToArray, MultiMap;
-import util.col.str : strOfSafeCStr;
 import util.exitCode : ExitCode;
 import util.json : field, Json, jsonBool, jsonList, jsonNull, jsonObject, jsonString, optionalField;
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : force, has, Opt;
 import util.sourceRange : jsonOfRange, UriAndRange;
+import util.string : stringOfCString;
 import util.uri : AllUris, stringOfUri, Uri;
 import util.util : stringOfEnum;
 
@@ -157,7 +157,7 @@ Json jsonOfDiagnostic(ref Alloc alloc, in LineAndColumnGetter lcg, LspDiagnostic
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, lcg, a.range)),
 		field!"severity"(cast(uint) a.severity),
-		field!"message"(strOfSafeCStr(a.message))]);
+		field!"message"(stringOfCString(a.message))]);
 
 Json jsonOfWorkspaceEdit(ref Alloc alloc, in AllUris allUris, in LineAndColumnGetters lcg, in WorkspaceEdit a) =>
 	jsonObject(alloc, [field!"changes"(jsonOfWorkspaceEditChanges(alloc, allUris, lcg, a.changes))]);
