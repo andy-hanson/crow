@@ -55,7 +55,6 @@ import model.model :
 	LetExpr,
 	Local,
 	LocalSetExpr,
-	LocalSource,
 	LoopBreakExpr,
 	LoopContinueExpr,
 	LoopExpr,
@@ -374,7 +373,7 @@ void eachTypeInParams(in Params a, in ParamsAst asts, in TypeCb cb) {
 
 void eachTypeInDestructure(in Destructure a, in TypeCb cb) {
 	Opt!bool res = eachDestructureComponent!bool(a, (Local* x) {
-		DestructureAst.Single* ast = x.source.as!(LocalSource.Ast).ast;
+		DestructureAst.Single* ast = x.source.as!(DestructureAst.Single*);
 		if (has(ast.type))
 			cb(x.type, *force(ast.type));
 		return none!bool;

@@ -419,7 +419,7 @@ Destructure checkDestructure(
 				return Destructure(allocate(ctx.alloc, Destructure.Ignore(x.name.start, type)));
 			} else
 				return Destructure(allocate(ctx.alloc, Local(
-					LocalSource(LocalSource.Ast(ctx.curUri, &ast.as!(DestructureAst.Single)())),
+					LocalSource(&ast.as!(DestructureAst.Single)()),
 					x.name.name,
 					has(x.mut) ? LocalMutability.mutOnStack : LocalMutability.immut,
 					type)));

@@ -5,7 +5,7 @@ module frontend.showModel;
 import frontend.check.typeFromAst : typeSyntaxKind;
 import frontend.storage : lineAndColumnAtPos, LineAndColumnGetters, lineAndColumnRange;
 import model.ast : NameAndRange;
-import model.diag : Diag, TypeContainer, typeParamAsts, TypeWithContainer;
+import model.diag : Diag, TypeContainer, TypeWithContainer;
 import model.model :
 	Called,
 	CalledDecl,
@@ -397,7 +397,7 @@ void writeTypeUnquoted(scope ref Writer writer, in ShowCtx ctx, in TypeWithConta
 			writer ~= "<<any>>";
 		},
 		(in TypeParamIndex x) {
-			writeSym(writer, ctx.allSymbols, typeParamAsts(a.container)[x.index].name);
+			writeSym(writer, ctx.allSymbols, a.container.typeParams[x.index].name);
 		},
 		(in StructInst x) {
 			writeStructInst(writer, ctx, a.container, x);

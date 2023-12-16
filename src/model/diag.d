@@ -10,7 +10,6 @@ import model.model :
 	EnumBackingType,
 	FunDecl,
 	FunDeclAndTypeArgs,
-	FunDeclSource,
 	Local,
 	Module,
 	ReturnAndParamTypes,
@@ -526,31 +525,33 @@ immutable struct TypeWithContainer {
 
 // Since a type parameter is represented as its index, we need a context to know where to find it.
 immutable struct TypeContainer {
+	@safe @nogc pure nothrow:
+
 	mixin Union!(FunDecl*, SpecDecl*, StructDecl*, Test*, VarDecl*);
+
+	Uri moduleUri() scope =>
+		matchIn!Uri(
+			(in FunDecl x) =>
+				x.moduleUri,
+			(in SpecDecl x) =>
+				x.moduleUri,
+			(in StructDecl x) =>
+				x.moduleUri,
+			(in Test x) =>
+				x.moduleUri,
+			(in VarDecl x) =>
+				x.moduleUri);
+
+	TypeParams typeParams() scope =>
+		matchIn!TypeParams(
+			(in FunDecl x) =>
+				x.typeParams,
+			(in SpecDecl x) =>
+				x.typeParams,
+			(in StructDecl x) =>
+				x.typeParams,
+			(in Test x) =>
+				emptyTypeParams,
+			(in VarDecl x) =>
+				emptyTypeParams);
 }
-
-Uri uriOfTypeContainer(in TypeContainer a) =>
-	a.matchIn!Uri(
-		(in FunDecl x) =>
-			x.source.as!(FunDeclSource.Ast).uri,
-		(in SpecDecl x) =>
-			x.moduleUri,
-		(in StructDecl x) =>
-			x.moduleUri,
-		(in Test x) =>
-			x.moduleUri,
-		(in VarDecl x) =>
-			x.moduleUri);
-
-TypeParams typeParamAsts(in TypeContainer a) =>
-	a.matchIn!TypeParams(
-		(in FunDecl x) =>
-			x.typeParams,
-		(in SpecDecl x) =>
-			x.typeParams,
-		(in StructDecl x) =>
-			x.typeParams,
-		(in Test x) =>
-			emptyTypeParams,
-		(in VarDecl x) =>
-			emptyTypeParams);

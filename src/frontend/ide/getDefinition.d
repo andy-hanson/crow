@@ -6,7 +6,6 @@ import frontend.ide.getTarget : Target, targetForPosition;
 import frontend.ide.ideUtil : ReferenceCb;
 import frontend.ide.position : Position, PositionKind;
 import model.ast : rangeOfNameAndRange;
-import model.diag : typeParamAsts, uriOfTypeContainer;
 import model.model :
 	FunDecl,
 	LoopExpr,
@@ -52,7 +51,7 @@ public void definitionForTarget(in AllSymbols allSymbols, Uri curUri, in Target 
 			definitionForImportedName(x, cb);
 		},
 		(in PositionKind.LocalPosition x) {
-			cb(localMustHaveNameRange(*x.local, allSymbols));
+			cb(UriAndRange(x.container.moduleUri, localMustHaveNameRange(*x.local, allSymbols)));
 		},
 		(in LoopExpr x) {
 			cb(UriAndRange(curUri, loopKeywordRange(x)));
@@ -74,8 +73,8 @@ public void definitionForTarget(in AllSymbols allSymbols, Uri curUri, in Target 
 		},
 		(in PositionKind.TypeParamWithContainer x) {
 			cb(UriAndRange(
-				uriOfTypeContainer(x.container),
-				rangeOfNameAndRange(typeParamAsts(x.container)[x.typeParam.index], allSymbols)));
+				x.container.moduleUri,
+				rangeOfNameAndRange(x.container.typeParams[x.typeParam.index], allSymbols)));
 		},
 		(in VarDecl x) {
 			cb(nameRange(allSymbols, x));

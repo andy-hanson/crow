@@ -679,11 +679,11 @@ immutable struct FunDeclSource {
 		TypeParams typeParams;
 	}
 	immutable struct Ast {
-		Uri uri;
+		Uri moduleUri;
 		FunDeclAst* ast;
 	}
 	immutable struct FileImport {
-		Uri uri;
+		Uri moduleUri; // This is the importing module, not imported
 		ImportOrExportAst* ast;
 	}
 
@@ -694,9 +694,9 @@ immutable struct FunDeclSource {
 			(in FunDeclSource.Bogus x) =>
 				UriAndRange(x.uri, Range.empty),
 			(in FunDeclSource.Ast x) =>
-				UriAndRange(x.uri, x.ast.range),
+				UriAndRange(x.moduleUri, x.ast.range),
 			(in FunDeclSource.FileImport x) =>
-				UriAndRange(x.uri, x.ast.range),
+				UriAndRange(x.moduleUri, x.ast.range),
 			(in StructBody.Enum.Member x) =>
 				x.range,
 			(in StructDecl x) =>
@@ -710,9 +710,9 @@ UriAndRange nameRange(in AllSymbols allSymbols, in FunDeclSource a) =>
 		(in FunDeclSource.Bogus x) =>
 			UriAndRange(x.uri, Range.empty),
 		(in FunDeclSource.Ast x) =>
-			UriAndRange(x.uri, nameRange(allSymbols, *x.ast)),
+			UriAndRange(x.moduleUri, nameRange(allSymbols, *x.ast)),
 		(in FunDeclSource.FileImport x) =>
-			UriAndRange(x.uri, x.ast.range),
+			UriAndRange(x.moduleUri, x.ast.range),
 		(in StructBody.Enum.Member x) =>
 			nameRange(allSymbols, x),
 		(in StructDecl x) =>
@@ -1230,13 +1230,10 @@ alias ConfigImportUris = Map!(Sym, Uri);
 alias ConfigExternUris = Map!(Sym, Uri);
 
 immutable struct LocalSource {
-	immutable struct Ast {
-		Uri uri;
-		DestructureAst.Single* ast;
-	}
 	immutable struct Generated {}
-	mixin Union!(Ast, Generated);
+	mixin Union!(DestructureAst.Single*, Generated);
 }
+static assert(LocalSource.sizeof == ulong.sizeof);
 
 immutable struct Local {
 	@safe @nogc pure nothrow:
@@ -1257,15 +1254,11 @@ bool localIsAllocated(in Local a) scope {
 	}
 }
 
-UriAndRange localMustHaveNameRange(in Local a, in AllSymbols allSymbols) =>
-	UriAndRange(
-		a.source.as!(LocalSource.Ast).uri,
-		nameRangeOfDestructureSingle(*a.source.as!(LocalSource.Ast).ast, allSymbols));
+Range localMustHaveNameRange(in Local a, in AllSymbols allSymbols) =>
+	nameRangeOfDestructureSingle(*a.source.as!(DestructureAst.Single*), allSymbols);
 
-private UriAndRange localMustHaveRange(in Local a, in AllSymbols allSymbols) =>
-	UriAndRange(
-		a.source.as!(LocalSource.Ast).uri,
-		rangeOfDestructureSingle(*a.source.as!(LocalSource.Ast).ast, allSymbols));
+private Range localMustHaveRange(in Local a, in AllSymbols allSymbols) =>
+	rangeOfDestructureSingle(*a.source.as!(DestructureAst.Single*), allSymbols);
 
 enum LocalMutability {
 	immut,
@@ -1388,7 +1381,7 @@ immutable struct Destructure {
 			(in Ignore x) =>
 				Range(x.pos, x.pos + 1),
 			(in Local x) =>
-				localMustHaveRange(x, allSymbols).range,
+				localMustHaveRange(x, allSymbols),
 			(in Split x) =>
 				combineRanges(x.parts[0].range(allSymbols), x.parts[$ - 1].range(allSymbols)));
 

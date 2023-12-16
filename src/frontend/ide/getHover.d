@@ -2,13 +2,13 @@ module frontend.ide.getHover;
 
 @safe @nogc pure nothrow:
 
-import frontend.ide.position : Position, PositionKind, typeParamAsts;
+import frontend.ide.position : Position, PositionKind;
 import frontend.showModel :
 	ShowCtx, writeCalled, writeFile, writeFunInst, writeLineAndColumnRange, writeName, writeSpecInst, writeTypeUnquoted;
 import frontend.storage : lineAndColumnRange;
 import lib.lsp.lspTypes : Hover, MarkupContent, MarkupKind;
 import model.ast : FieldMutabilityAst, FunModifierAst;
-import model.diag : TypeContainer, typeParamAsts, TypeWithContainer;
+import model.diag : TypeContainer, TypeWithContainer;
 import model.model :
 	AssertOrForbidExpr,
 	AssertOrForbidKind,
@@ -228,7 +228,7 @@ void getImportedNameHover(scope ref Writer writer, in ShowCtx ctx, in PositionKi
 
 void hoverTypeParam(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in TypeParamIndex index) {
 	writer ~= "type parameter ";
-	writeSym(writer, ctx.allSymbols, typeParamAsts(typeContainer)[index.index].name);
+	writeSym(writer, ctx.allSymbols, typeContainer.typeParams[index.index].name);
 }
 
 void getExprHover(scope ref Writer writer, in ShowCtx ctx, in Uri curUri, in TypeContainer typeContainer, in Expr a) =>

@@ -3,7 +3,7 @@ module frontend.ide.position;
 @safe @nogc pure nothrow:
 
 import model.ast : FieldMutabilityAst, FunModifierAst, NameAndRange;
-import model.diag : TypeContainer, typeParamAsts, TypeWithContainer;
+import model.diag : TypeContainer, TypeWithContainer;
 import model.model :
 	Expr,
 	FunDecl,
@@ -22,6 +22,7 @@ import model.model :
 import util.opt : Opt;
 import util.sym : Sym;
 import util.union_ : Union;
+import util.uri : Uri;
 
 immutable struct Position {
 	Module* module_;
@@ -38,9 +39,13 @@ immutable struct LocalContainer {
 				TypeContainer(x),
 			(SpecDecl* x) =>
 				TypeContainer(x));
+
+	Uri moduleUri() =>
+		toTypeContainer.moduleUri;
+
+	NameAndRange[] typeParams() =>
+		toTypeContainer.typeParams;
 }
-NameAndRange[] typeParamAsts(LocalContainer a) =>
-	.typeParamAsts(a.toTypeContainer);
 
 immutable struct PositionKind {
 	immutable struct None {}

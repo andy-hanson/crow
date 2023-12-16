@@ -48,7 +48,6 @@ import model.model :
 	Local,
 	LocalGetExpr,
 	LocalSetExpr,
-	LocalSource,
 	LoopBreakExpr,
 	LoopContinueExpr,
 	LoopExpr,
@@ -146,7 +145,7 @@ PositionKind positionForModifier(FunDecl* a, in FunDeclAst ast, size_t index, in
 
 Opt!PositionKind positionInDestructure(in AllSymbols allSymbols, LocalContainer container, in Destructure a, Pos pos) =>
 	eachDestructureComponent!PositionKind(a, (Local* x) {
-		DestructureAst.Single* ast = x.source.as!(LocalSource.Ast).ast;
+		DestructureAst.Single* ast = x.source.as!(DestructureAst.Single*);
 		return hasPos(rangeOfDestructureSingle(*ast, allSymbols), pos)
 			? optOr!PositionKind(
 				optIf(hasPos(rangeOfNameAndRange(ast.name, allSymbols), pos), () =>
