@@ -93,7 +93,7 @@ import model.jsonOfConcreteModel : jsonOfConcreteProgram;
 import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
 import model.lowModel : ExternLibraries, LowProgram;
-import model.model : hasFatalDiagnostics, Module, Program;
+import model.model : hasFatalDiagnostics, Module, Program, ProgramWithMain;
 import util.alloc.alloc : Alloc, AllocKind, FetchMemoryCb, freeElements, MetaAlloc, newAlloc, withTempAllocImpure;
 import util.col.arr : only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
@@ -471,7 +471,7 @@ private Opt!Hover getHoverForProgram(
 private Program getProgram(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] roots) =>
 	makeProgramForRoots(perf, alloc, server.frontend, roots);
 
-Program getProgramForMain(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri mainUri) =>
+ProgramWithMain getProgramForMain(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri mainUri) =>
 	makeProgramForMain(perf, alloc, server.frontend, mainUri);
 
 Program getProgramForAll(scope ref Perf perf, ref Alloc alloc, ref Server server) =>
@@ -600,9 +600,14 @@ private Json getPrinted(
 }
 
 immutable struct Programs {
-	Program program;
+	@safe @nogc pure nothrow:
+
+	ProgramWithMain programWithMain;
 	Opt!ConcreteProgram concreteProgram;
 	Opt!LowProgram lowProgram;
+
+	ref Program program() return =>
+		programWithMain.program;
 }
 
 Programs buildToLowProgram(
@@ -612,15 +617,15 @@ Programs buildToLowProgram(
 	in VersionInfo versionInfo,
 	Uri main,
 ) {
-	Program program = getProgramForMain(perf, alloc, server, main);
-	ShowCtx ctx = getShowDiagCtx(server, program);
+	ProgramWithMain program = getProgramForMain(perf, alloc, server, main);
+	ShowCtx ctx = getShowDiagCtx(server, program.program);
 	if (hasFatalDiagnostics(program))
 		return Programs(program, none!ConcreteProgram, none!LowProgram);
 	else {
 		ConcreteProgram concreteProgram = concretize(
 			perf, alloc, ctx, versionInfo, program, getFileContents(alloc, server.frontend));
 		LowProgram lowProgram = lower(
-			perf, alloc, server.allSymbols, force(program.mainConfig).extern_, program, concreteProgram);
+			perf, alloc, server.allSymbols, program.mainConfig.extern_, program.program, concreteProgram);
 		return Programs(program, some(concreteProgram), some(lowProgram));
 	}
 }

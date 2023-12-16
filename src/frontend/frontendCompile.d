@@ -3,7 +3,7 @@ module frontend.frontendCompile;
 @safe @nogc pure nothrow:
 
 import frontend.check.check : BootstrapCheck, check, checkBootstrap, FileAndAst, ResolvedImport;
-import frontend.check.getCommonFuns : CommonModule, getCommonFuns;
+import frontend.check.getCommonFuns : CommonFunsAndMain, CommonModule, getCommonFuns;
 import frontend.check.instantiate : InstantiateCtx;
 import frontend.lang : crowConfigBaseName, crowExtension;
 import frontend.allInsts : AllInsts, freeInstantiationsForModule, perfStats;
@@ -21,7 +21,8 @@ import frontend.storage :
 	Storage;
 import model.ast : FileAst, fileAstForReadFileDiag, ImportOrExportAst, ImportOrExportAstKind, NameAndRange;
 import model.diag : Diag, ReadFileDiag;
-import model.model : CommonTypes, Config, emptyConfig, getConfigUri, getModuleUri, Module, Program;
+import model.model :
+	CommonTypes, Config, emptyConfig, getConfigUri, getModuleUri, MainFun, Module, Program, ProgramWithMain;
 import util.alloc.alloc :
 	Alloc, AllocAndValue, allocateUninitialized, AllocKind, freeAllocAndValue, MetaAlloc, newAlloc, withAlloc;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderTempAsArr, finishArr;
@@ -144,36 +145,39 @@ private struct OtherFile {
 private Uri getOtherFileUri(in OtherFile* a) =>
 	a.uri;
 
-Program makeProgramForMain(scope ref Perf perf, ref Alloc alloc, ref FrontendCompiler a, Uri mainUri) =>
-	makeProgramCommon(perf, alloc, a, some(mainUri), [mainUri]);
+ProgramWithMain makeProgramForMain(scope ref Perf perf, ref Alloc alloc, ref FrontendCompiler a, Uri mainUri) {
+	CrowFile* mainFile = mustGet(a.crowFiles, mainUri);
+	Common res = makeProgramCommon(perf, alloc, a, [mainUri], some(mainFile.mustHaveModule));
+	return ProgramWithMain(force(mainFile.config), force(res.mainFun), res.program);
+}
 
 Program makeProgramForRoots(scope ref Perf perf, ref Alloc alloc, ref FrontendCompiler a, in Uri[] roots) =>
-	makeProgramCommon(perf, alloc, a, none!Uri, roots);
+	makeProgramCommon(perf, alloc, a, roots, none!(Module*)).program;
 
-private Program makeProgramCommon(
+private struct Common {
+	Program program;
+	Opt!MainFun mainFun;
+}
+private Common makeProgramCommon(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref FrontendCompiler a,
-	in Opt!Uri mainUri,
 	in Uri[] roots,
+	Opt!(Module*) mainModule,
 ) {
 	assert(filesState(a.storage) == FilesState.allLoaded);
-	MutOpt!(CrowFile*) mainFile = has(mainUri)
-		? someMut(mustGet(a.crowFiles, force(mainUri)))
-		: noneMut!(CrowFile*);
-	Opt!(Module*) mainModule = has(mainFile) ? some(force(mainFile).mustHaveModule) : none!(Module*);
-	if (has(mainFile)) assert(has(mainModule));
 	EnumMap!(CommonModule, Module*) commonModules = enumMapMapValues!(CommonModule, Module*, CrowFile*)(
 		a.commonFiles, (in CrowFile* x) => x.mustHaveModule);
 	InstantiateCtx ctx = InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(a.allInsts));
-	return Program(
-		has(mainFile) ? some(force(force(mainFile).config)) : none!(Config*),
+	CommonFunsAndMain commonFuns = getCommonFuns(a.alloc, ctx, *force(a.commonTypes), commonModules, mainModule);
+	Program program = Program(
 		getAllConfigs(alloc, a),
 		mapPreservingKeys!(immutable Module*, getModuleUri, CrowFile*, Uri, getCrowFileUri)(
 			alloc, a.crowFiles, (ref const CrowFile* file) => file.mustHaveModule),
 		map!(Module*, Uri)(alloc, roots, (ref Uri uri) => mustGet(a.crowFiles, uri).mustHaveModule),
-		getCommonFuns(a.alloc, ctx, *force(a.commonTypes), mainModule, commonModules),
+		commonFuns.commonFuns,
 		*force(a.commonTypes));
+	return Common(program, commonFuns.mainFun);
 }
 
 Map!(Uri, ReadFileResult) getFileContents(ref Alloc alloc, scope ref FrontendCompiler a) {

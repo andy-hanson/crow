@@ -53,7 +53,7 @@ import lib.server :
 	setShowOptions,
 	showDiagnostics,
 	version_;
-import model.model : hasAnyDiagnostics, Program;
+import model.model : hasAnyDiagnostics, ProgramWithMain;
 version (Test) {
 	import test.test : test;
 }
@@ -280,9 +280,9 @@ ExitCode runBuild(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri m
 	if (hasAnyOut(options.out_))
 		return buildToCAndCompile(perf, alloc, server, main, options);
 	else {
-		Program program = getProgramForMain(perf, alloc, server, main);
+		ProgramWithMain program = getProgramForMain(perf, alloc, server, main);
 		return hasAnyDiagnostics(program)
-			? printError(showDiagnostics(alloc, server, program))
+			? printError(showDiagnostics(alloc, server, program.program))
 			: print(safeCStr!"OK");
 	}
 }

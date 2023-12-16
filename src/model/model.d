@@ -1086,27 +1086,11 @@ enum FunKind {
 	pointer,
 }
 
-immutable struct MainFun {
-	immutable struct Nat64Future {
-		FunInst* fun;
-	}
-
-	immutable struct Void {
-		// Needed to wrap it to the natFuture signature
-		StructInst* stringList;
-		FunInst* fun;
-	}
-
-	mixin Union!(Nat64Future, Void);
-}
-
 immutable struct CommonFuns {
 	UriAndDiagnostic[] diagnostics;
 	FunInst* alloc;
 	FunDecl*[] funOrActSubscriptFunDecls;
 	FunInst* curExclusion;
-	// Missing for the 'doc' command which has no 'main' module
-	Opt!MainFun main;
 	FunInst* mark;
 	FunDecl* markVisitFunDecl;
 	FunInst* newNat64Future;
@@ -1167,8 +1151,34 @@ private enum EnumBackingType_ {
 	nat64,
 }
 
+immutable struct ProgramWithMain {
+	Config* mainConfig;
+	MainFun mainFun;
+	Program program;
+}
+
+immutable struct MainFun {
+	immutable struct Nat64Future {
+		FunInst* fun;
+	}
+
+	immutable struct Void {
+		// Needed to wrap it to the natFuture signature
+		StructInst* stringList;
+		FunInst* fun;
+	}
+
+	mixin Union!(Nat64Future, Void);
+}
+
+bool hasAnyDiagnostics(in ProgramWithMain a) =>
+	hasAnyDiagnostics(a.program);
+
+bool hasFatalDiagnostics(in ProgramWithMain a) =>
+	existsDiagnostic(a.program, (in UriAndDiagnostic x) =>
+		isFatal(getDiagnosticSeverity(x.kind)));
+
 immutable struct Program {
-	Opt!(Config*) mainConfig; // Only if this program has "main"
 	HashTable!(immutable Config*, Uri, getConfigUri) allConfigs;
 	HashTable!(immutable Module*, Uri, getModuleUri) allModules;
 	Module*[] rootModules;
@@ -1177,7 +1187,6 @@ immutable struct Program {
 }
 Program fakeProgramForTest() =>
 	Program(
-		none!(Config*),
 		HashTable!(immutable Config*, Uri, getConfigUri)(),
 		HashTable!(immutable Module*, Uri, getModuleUri)(),
 		[],
@@ -1186,10 +1195,6 @@ Program fakeProgramForTest() =>
 
 bool hasAnyDiagnostics(in Program a) =>
 	existsDiagnostic(a, (in UriAndDiagnostic _) => true);
-
-bool hasFatalDiagnostics(in Program a) =>
-	existsDiagnostic(a, (in UriAndDiagnostic x) =>
-		isFatal(getDiagnosticSeverity(x.kind)));
 
 // Iterates in no particular order
 void eachDiagnostic(in Program a, in void delegate(in UriAndDiagnostic) @safe @nogc pure nothrow cb) {

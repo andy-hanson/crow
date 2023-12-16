@@ -17,14 +17,13 @@ import frontend.showModel : ShowCtx;
 import frontend.storage : ReadFileResult;
 import model.concreteModel :
 	ConcreteCommonFuns, ConcreteFun, ConcreteLambdaImpl, ConcreteProgram, ConcreteStruct, mustBeByVal;
-import model.model : CommonFuns, MainFun, Program;
+import model.model : CommonFuns, MainFun, ProgramWithMain;
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : finishArr;
 import util.col.map : Map;
 import util.col.mutArr : moveToArr, MutArr;
 import util.col.mutMap : isEmpty, mapToMap;
 import util.late : lateSet;
-import util.opt : force;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.uri : Uri;
 import util.util : castNonScope, ptrTrustMe;
@@ -35,7 +34,7 @@ ConcreteProgram concretize(
 	ref Alloc alloc,
 	in ShowCtx printCtx,
 	in VersionInfo versionInfo,
-	ref Program program,
+	ref ProgramWithMain program,
 	Map!(Uri, ReadFileResult) fileContents,
 ) =>
 	withMeasure!(ConcreteProgram, () =>
@@ -48,7 +47,7 @@ ConcreteProgram concretizeInner(
 	Alloc* allocPtr,
 	in ShowCtx printCtx,
 	in VersionInfo versionInfo,
-	ref Program program,
+	ref ProgramWithMain program,
 	Map!(Uri, ReadFileResult) fileContents,
 ) {
 	ref Alloc alloc() =>
@@ -58,17 +57,17 @@ ConcreteProgram concretizeInner(
 		versionInfo,
 		castNonScope(printCtx.allSymbolsPtr),
 		castNonScope(printCtx.allUrisPtr),
-		ptrTrustMe(program.commonTypes),
-		ptrTrustMe(program),
+		ptrTrustMe(program.program.commonTypes),
+		ptrTrustMe(program.program),
 		fileContents);
-	CommonFuns commonFuns = program.commonFuns;
+	CommonFuns commonFuns = program.program.commonFuns;
 	lateSet(ctx.curExclusionFun_, getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.curExclusion));
 	lateSet(ctx.char8ArrayAsString_, getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.char8ArrayAsString));
 	ConcreteFun* markFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.mark);
 	ConcreteFun* rtMainConcreteFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.rtMain);
 	// We remove items from these maps when we process them.
 	assert(isEmpty(ctx.concreteFunToBodyInputs));
-	ConcreteFun* userMainConcreteFun = concretizeMainFun(ctx, force(commonFuns.main));
+	ConcreteFun* userMainConcreteFun = concretizeMainFun(ctx, program.mainFun);
 	ConcreteFun* allocFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.alloc);
 	ConcreteFun* throwImplFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.throwImpl);
 	ConcreteFun* staticSymbolsFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.staticSymbols);

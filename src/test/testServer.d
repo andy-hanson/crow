@@ -26,7 +26,7 @@ void testCircularImportFixed(ref Test test) {
 		setupTestServer(test, alloc, server, uriA, "");
 
 		SafeCStr showDiags() =>
-			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA));
+			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA).program);
 
 		assertEqual(showDiags(), safeCStr!expectedDiags1);
 
@@ -50,7 +50,7 @@ void testFileNotFoundThenAdded(ref Test test) {
 		Uri uriB = parseUri(server.allUris, "test:///b.crow");
 		setupTestServer(test, alloc, server, uriA, "import\n\t./b\n\nmain void()\n\tinfo log hello");
 		SafeCStr showDiags() =>
-			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA));
+			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA).program);
 
 		assertEqual(showDiags(), safeCStr!"test:///b.crow 1:1-1:1 File does not exist.");
 
@@ -67,7 +67,7 @@ void testChangeBootstrap(ref Test test) {
 		Uri uriA = parseUri(server.allUris, "test:///a.crow");
 		setupTestServer(test, alloc, server, uriA, "main void()\n\t()");
 		SafeCStr showDiags() =>
-			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA));
+			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA).program);
 
 		assertEqual(showDiags(), safeCStr!"");
 

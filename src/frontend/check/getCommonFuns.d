@@ -67,12 +67,17 @@ enum CommonModule {
 	runtimeMain,
 }
 
-CommonFuns getCommonFuns(
+struct CommonFunsAndMain {
+	CommonFuns commonFuns;
+	Opt!MainFun mainFun;
+}
+
+CommonFunsAndMain getCommonFuns(
 	ref Alloc alloc,
-	ref InstantiateCtx ctx,
+	InstantiateCtx ctx,
 	ref CommonTypes commonTypes,
-	Opt!(Module*) mainModule,
 	in EnumMap!(CommonModule, Module*) modules,
+	Opt!(Module*) mainModule,
 ) {
 	ArrBuilder!UriAndDiagnostic diagsBuilder;
 
@@ -162,10 +167,12 @@ CommonFuns getCommonFuns(
 		sym!"as-string",
 		stringType,
 		[param!"a"(char8ArrayType)]);
-	return CommonFuns(
-		finishArr(alloc, diagsBuilder),
-		allocFun, funOrActSubscriptFunDecls, curExclusion, main, mark,
-		markVisit, newNat64Future, rtMain, staticSymbols, throwImpl, char8ArrayAsString);
+	return CommonFunsAndMain(
+		CommonFuns(
+			finishArr(alloc, diagsBuilder),
+			allocFun, funOrActSubscriptFunDecls, curExclusion, mark,
+			markVisit, newNat64Future, rtMain, staticSymbols, throwImpl, char8ArrayAsString),
+		main);
 }
 
 Destructure makeParam(ref Alloc alloc, Sym name, Type type) =>
