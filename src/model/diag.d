@@ -85,7 +85,12 @@ enum TypeKind {
 	union_,
 }
 
-private enum ReadFileDiag_ { unknown, loading, notFound, error }
+private enum ReadFileDiag_ {
+	unknown, // We've just encountered the file and haven't notified the environment.
+	loading, // We've notified the environment that we want this file, but haven't received a response.
+	notFound, // The file is known to not exist.
+	error, // There was some error trying read the file.
+}
 alias ReadFileDiag = immutable ReadFileDiag_;
 
 immutable struct Diag {

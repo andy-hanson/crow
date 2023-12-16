@@ -71,7 +71,8 @@ import util.col.arrUtil : arrLiteral;
 import util.col.sortUtil : eachSorted;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonList, jsonObject;
-import util.lineAndColumnGetter : LineAndCharacter, LineAndCharacterRange, lineAndCharacterRange, LineAndColumnGetter;
+import util.lineAndColumnGetter :
+	LineAndCharacter, LineAndCharacterRange, lineAndCharacterRange, LineAndColumnGetter, lineLengthInCharacters;
 import util.opt : force, has, Opt;
 import util.sourceRange : compareRange, Pos, rangeOfStartAndLength, rangeOfStartAndName, Range;
 import util.sym : AllSymbols, Sym, sym, symSize;
@@ -210,10 +211,24 @@ struct TokensBuilder {
 }
 void add(scope ref TokensBuilder a, Range range, TokenType type, TokenModifiers modifiers) {
 	LineAndCharacterRange lcRange = lineAndCharacterRange(a.lineAndColumnGetter, range);
-	assert(lcRange.start.line == lcRange.end.line);
-	LineAndCharacter pos = lcRange.start;
-	uint length = lcRange.end.character - lcRange.start.character;
-
+	if (lcRange.start.line == lcRange.end.line)
+		addSingleLineToken(a, lcRange.start, range.length, type, modifiers);
+	else {
+		uint firstLength = lineLengthInCharacters(a.lineAndColumnGetter, lcRange.start.line) - lcRange.start.character;
+		addSingleLineToken(a, lcRange.start, firstLength, type, modifiers);
+		foreach (uint line; lcRange.start.line + 1 .. lcRange.end.line)
+			addSingleLineToken(
+				a, LineAndCharacter(line, 0), lineLengthInCharacters(a.lineAndColumnGetter, line), type, modifiers);
+		addSingleLineToken(a, LineAndCharacter(lcRange.end.line, 0), lcRange.end.character, type, modifiers);
+	}
+}
+void addSingleLineToken(
+	scope ref TokensBuilder a,
+	in LineAndCharacter pos,
+	uint length,
+	TokenType type,
+	TokenModifiers modifiers,
+) {
 	assert(a.prevLine < pos.line ||
 		(a.prevLine == pos.line && a.prevCharacter < pos.character) ||
 		(a.prevLine == 0 && a.prevCharacter == 0));
@@ -535,7 +550,7 @@ void addExprTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in 
 				x.parts[$ - 1].matchIn!void(
 					(in string) {},
 					(in ExprAst _) {
-						stringLiteral(tokens, Range(a.range.end - 1, a.range.end));
+						stringLiteral(tokens, a.range[$ - 1 .. $]);
 					});
 			}
 		},

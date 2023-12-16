@@ -157,6 +157,13 @@ LineAndCharacter lineAndCharacterAtPos(in LineAndColumnGetter lc, Pos pos, PosKi
 	return LineAndCharacter(line, character);
 }
 
+uint lineLengthInCharacters(in LineAndColumnGetter a, uint line) =>
+	line < a.lineToPos.length - 1
+		? a.lineToPos[line + 1] - a.lineToPos[line]
+		: line == a.lineToPos.length - 1
+		? a.maxPos - a.lineToPos[line]
+		: 0;
+
 private:
 
 Pos columnToCharacter(uint column, ubyte nTabs) =>

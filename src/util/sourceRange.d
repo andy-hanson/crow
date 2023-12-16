@@ -24,6 +24,12 @@ immutable struct Range {
 	static Range empty() =>
 		Range(0, 0);
 
+	uint opDollar(size_t i : 0)() =>
+		length;
+
+	uint length() =>
+		end - start;
+
 	Range opSlice(uint low, uint high) =>
 		Range(start + low, start + high);
 }
