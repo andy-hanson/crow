@@ -106,7 +106,12 @@ void addDiagUnexpectedCurToken(ref Lexer lexer, Pos start, TokenAndData token) {
 				return ParseDiag(ParseDiag.UnexpectedToken(token.token));
 		}
 	}();
-	addDiag(lexer, range(lexer, start), diag);
+	addDiag(lexer, rangeEnsureAtLeastOne(lexer, start), diag);
+}
+
+Range rangeEnsureAtLeastOne(in Lexer lexer, Pos begin) {
+	Range res = range(lexer, begin);
+	return res.end == res.start ? Range(res.start, res.end + 1) : res;
 }
 
 Range range(in Lexer lexer, Pos begin) {
