@@ -17,6 +17,7 @@ import interpret.applyFn :
 	fnBitwiseOr,
 	fnBitwiseXor,
 	fnCountOnesNat64,
+	fnCosFloat32,
 	fnCosFloat64,
 	fnCoshFloat64,
 	fnEqBits,
@@ -42,6 +43,7 @@ import interpret.applyFn :
 	fnMulFloat32,
 	fnMulFloat64,
 	fnRoundFloat64,
+	fnSinFloat32,
 	fnSinFloat64,
 	fnSinhFloat64,
 	fnSubFloat32,
@@ -894,6 +896,9 @@ void generateSpecialUnary(
 		case LowExprKind.SpecialUnary.Kind.countOnesNat64:
 			fn!fnCountOnesNat64();
 			break;
+		case LowExprKind.SpecialUnary.Kind.cosFloat32:
+			fn!fnCosFloat32();
+			break;
 		case LowExprKind.SpecialUnary.Kind.cosFloat64:
 			fn!fnCosFloat64();
 			break;
@@ -906,6 +911,9 @@ void generateSpecialUnary(
 			break;
 		case LowExprKind.SpecialUnary.Kind.roundFloat64:
 			fn!fnRoundFloat64();
+			break;
+		case LowExprKind.SpecialUnary.Kind.sinFloat32:
+			fn!fnSinFloat32();
 			break;
 		case LowExprKind.SpecialUnary.Kind.sinFloat64:
 			fn!fnSinFloat64();

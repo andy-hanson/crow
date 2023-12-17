@@ -266,6 +266,9 @@ ExpectUnary unaryExpected(
 			return ExpectUnary(some(asGcOrRawPointee(argType)), none!LowType);
 		case LowExprKind.SpecialUnary.Kind.drop:
 			return ExpectUnary(some(voidType), none!LowType);
+		case LowExprKind.SpecialUnary.Kind.cosFloat32:
+		case LowExprKind.SpecialUnary.Kind.sinFloat32:
+			return expect(float32Type, float32Type);
 		case LowExprKind.SpecialUnary.Kind.acosFloat64:
 		case LowExprKind.SpecialUnary.Kind.acoshFloat64:
 		case LowExprKind.SpecialUnary.Kind.asinFloat64:

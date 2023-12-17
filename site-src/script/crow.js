@@ -78,6 +78,8 @@ const imports = {
 		console.log(readCString(str), value)
 	},
 	...Object.fromEntries(mathKeys.map(name => [name, Math[name]])),
+	cosf: Math.cos,
+	sinf: Math.sin,
 	/** @type {function(CStr, CStr, number): void} */
 	__assert: (asserted, file, line) => {
 		throw new Error(`Assertion '${readCString(asserted)}' failed on ${readCString(file)} line ${line}`)

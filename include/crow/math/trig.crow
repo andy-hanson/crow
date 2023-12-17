@@ -1,6 +1,6 @@
 no-std
 import
-	../number: float32, to
+	../number: float32
 export
 	tgmath: cos, sin
 
@@ -8,8 +8,5 @@ export
 	# TODO: more digits
 	3.14159
 
-+cos float32(a float32) bare
-	a.to.cos to
-
-+sin float32(a float32) bare
-	a.to.sin to
++cos float32(a float32) builtin
++sin float32(a float32) builtin

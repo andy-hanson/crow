@@ -10,6 +10,9 @@ private ulong binaryFloat32s(alias cb)(ulong a, ulong b) =>
 private ulong binaryFloat64s(alias cb)(ulong a, ulong b) =>
 	bitsOfFloat64(cb(float64OfBits(a), float64OfBits(b)));
 
+private ulong unaryFloat32(alias cb)(ulong a) =>
+	bitsOfFloat32(cb(float32OfBits(a)));
+
 private ulong unaryFloat64(alias cb)(ulong a) =>
 	bitsOfFloat64(cb(float64OfBits(a)));
 
@@ -21,8 +24,10 @@ alias fnAsinFloat64 = unaryFloat64!((double a) => asin(a));
 alias fnAsinhFloat64 = unaryFloat64!((double a) => asinh(a));
 alias fnAtanFloat64 = unaryFloat64!((double a) => atan(a));
 alias fnAtanhFloat64 = unaryFloat64!((double a) => atanh(a));
+alias fnCosFloat32 = unaryFloat32!((float a) => cosf(a));
 alias fnCosFloat64 = unaryFloat64!((double a) => cos(a));
 alias fnCoshFloat64 = unaryFloat64!((double a) => cosh(a));
+alias fnSinFloat32 = unaryFloat32!((float a) => sinf(a));
 alias fnSinFloat64 = unaryFloat64!((double a) => sin(a));
 alias fnSinhFloat64 = unaryFloat64!((double a) => sinh(a));
 alias fnTanFloat64 = unaryFloat64!((double a) => tan(a));
@@ -141,9 +146,11 @@ extern(C) {
 	double atanh(double x);
 	double atan2(double x, double y);
 	double cos(double x);
+	float cosf(float x);
 	double cosh(double x);
 	double round(double x);
 	double sin(double x);
+	float sinf(float x);
 	double sinh(double x);
 	double sqrt(double x);
 	double tan(double x);

@@ -67,17 +67,19 @@ BuiltinKind getBuiltinKind(
 		return failT!(LowExprKind.SpecialBinary.Kind);
 	}
 
+	bool isUnaryFloat32() =>
+		arity == 1 && isFloat32(rt) && isFloat32(p0);
 	bool isUnaryFloat64() =>
 		arity == 1 && isFloat64(rt) && isFloat64(p0);
 	bool isBinaryFloat64() =>
 		arity == 2 && isFloat64(rt) && isFloat64(p0) && isFloat64(p1);
 
-	BuiltinKind unaryFloat64(LowExprKind.SpecialUnary.Kind kind) {
-		return unary(isUnaryFloat64() ? kind : failUnary());
-	}
-	BuiltinKind binaryFloat64(LowExprKind.SpecialBinary.Kind kind) {
-		return binary(isBinaryFloat64() ? kind : failBinary());
-	}
+	BuiltinKind unaryFloat64(LowExprKind.SpecialUnary.Kind kind) =>
+		unary(isUnaryFloat64() ? kind : failUnary());
+	BuiltinKind unaryFloat32Or64(LowExprKind.SpecialUnary.Kind kind32, LowExprKind.SpecialUnary.Kind kind64) =>
+		unary(isUnaryFloat32() ? kind32 : isUnaryFloat64() ? kind64 : failUnary());
+	BuiltinKind binaryFloat64(LowExprKind.SpecialBinary.Kind kind) =>
+		binary(isBinaryFloat64() ? kind : failBinary());
 
 	switch (name.value) {
 		case symbol!"+".value:
@@ -214,7 +216,7 @@ BuiltinKind getBuiltinKind(
 				? LowExprKind.SpecialUnary.Kind.countOnesNat64
 				: failUnary());
 		case symbol!"cos".value:
-			return unaryFloat64(LowExprKind.SpecialUnary.Kind.cosFloat64);
+			return unaryFloat32Or64(LowExprKind.SpecialUnary.Kind.cosFloat32, LowExprKind.SpecialUnary.Kind.cosFloat64);
 		case symbol!"cosh".value:
 			return unaryFloat64(LowExprKind.SpecialUnary.Kind.coshFloat64);
 		case symbol!"false".value:
@@ -244,11 +246,11 @@ BuiltinKind getBuiltinKind(
 		case symbol!"reference-equal".value:
 			return binary(LowExprKind.SpecialBinary.Kind.eqPtr);
 		case symbol!"round".value:
-			return unary(isUnaryFloat64() ? LowExprKind.SpecialUnary.Kind.roundFloat64 : failUnary());
+			return unaryFloat64(LowExprKind.SpecialUnary.Kind.roundFloat64);
 		case symbol!"set-deref".value:
 			return binary(p0.isA!(LowType.PtrRawMut) ? LowExprKind.SpecialBinary.Kind.writeToPtr : failBinary());
 		case symbol!"sin".value:
-			return unaryFloat64(LowExprKind.SpecialUnary.Kind.sinFloat64);
+			return unaryFloat32Or64(LowExprKind.SpecialUnary.Kind.sinFloat32, LowExprKind.SpecialUnary.Kind.sinFloat64);
 		case symbol!"sinh".value:
 			return unaryFloat64(LowExprKind.SpecialUnary.Kind.sinhFloat64);
 		case symbol!"size-of".value:
@@ -259,7 +261,7 @@ BuiltinKind getBuiltinKind(
 				// 'subscript' for fun / act is handled elsewhere, see concreteFunWillBecomeNonExternLowFun
 				: fail();
 		case symbol!"sqrt".value:
-			return unary(isUnaryFloat64() ? LowExprKind.SpecialUnary.Kind.sqrtFloat64 : failUnary());
+			return unaryFloat64(LowExprKind.SpecialUnary.Kind.sqrtFloat64);
 		case symbol!"tan".value:
 			return unaryFloat64(LowExprKind.SpecialUnary.Kind.tanFloat64);
 		case symbol!"tanh".value:

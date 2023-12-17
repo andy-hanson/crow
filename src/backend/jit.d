@@ -350,9 +350,11 @@ enum BuiltinFunction {
 	atanh,
 	__builtin_popcountl,
 	cos,
+	cosf,
 	cosh,
 	round,
 	sin,
+	sinf,
 	sinh,
 	sqrt,
 	tan,
@@ -1354,10 +1356,14 @@ ExprResult constantToGcc(ref ExprCtx ctx, ref ExprEmit emit, in LowType type, in
 			return builtin(BuiltinFunction.atan);
 		case LowExprKind.SpecialUnary.Kind.atanhFloat64:
 			return builtin(BuiltinFunction.atanh);
+		case LowExprKind.SpecialUnary.Kind.cosFloat32:
+			return builtin(BuiltinFunction.cosf);
 		case LowExprKind.SpecialUnary.Kind.cosFloat64:
 			return builtin(BuiltinFunction.cos);
 		case LowExprKind.SpecialUnary.Kind.coshFloat64:
 			return builtin(BuiltinFunction.cosh);
+		case LowExprKind.SpecialUnary.Kind.sinFloat32:
+			return builtin(BuiltinFunction.sinf);
 		case LowExprKind.SpecialUnary.Kind.sinFloat64:
 			return builtin(BuiltinFunction.sin);
 		case LowExprKind.SpecialUnary.Kind.sinhFloat64:

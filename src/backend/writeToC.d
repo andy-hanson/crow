@@ -71,7 +71,7 @@ import util.writer :
 
 CString writeToC(ref Alloc alloc, ref TempAlloc tempAlloc, in ShowCtx printCtx, in LowProgram program) =>
 	withWriter(alloc, (scope ref Writer writer) {
-		writer ~= "#include <tgmath.h>\n"; // Implements functions in 'tgmath.crow'
+		writer ~= "#include <math.h>\n"; // for e.g. 'sin'
 		writer ~= "#include <stddef.h>\n"; // for NULL
 		writer ~= "#include <stdint.h>\n";
 		version (Windows) {
@@ -1394,6 +1394,8 @@ WriteExprResult writeSpecialUnary(
 			return specialCall("atanh");
 		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
 			return prefix("(uint8_t*) ");
+		case LowExprKind.SpecialUnary.Kind.cosFloat32:
+			return specialCall("cosf");
 		case LowExprKind.SpecialUnary.Kind.cosFloat64:
 			return specialCall("cos");
 		case LowExprKind.SpecialUnary.Kind.coshFloat64:
@@ -1426,6 +1428,8 @@ WriteExprResult writeSpecialUnary(
 		case LowExprKind.SpecialUnary.Kind.unsafeToNat32FromNat64:
 		case LowExprKind.SpecialUnary.Kind.unsafeToNat64FromInt64:
 			return writeCast();
+		case LowExprKind.SpecialUnary.Kind.sinFloat32:
+			return specialCall("sinf");
 		case LowExprKind.SpecialUnary.Kind.sinFloat64:
 			return specialCall("sin");
 		case LowExprKind.SpecialUnary.Kind.sinhFloat64:
