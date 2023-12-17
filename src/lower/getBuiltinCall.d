@@ -5,7 +5,7 @@ module lower.getBuiltinCall;
 import model.constant : Constant, constantBool, constantZero;
 import model.lowModel : isPrimitiveType, isPtrRawConstOrMut, LowExprKind, LowType, PrimitiveType;
 import util.alloc.alloc : Alloc;
-import util.symbol : AllSymbols, Symbol, symbol, writeSym;
+import util.symbol : AllSymbols, Symbol, symbol, writeSymbol;
 import util.union_ : Union;
 import util.util : todo;
 import util.writer : debugLogWithWriter, Writer;
@@ -53,7 +53,7 @@ BuiltinKind getBuiltinKind(
 	T failT(T)() {
 		debugLogWithWriter((ref Writer writer) {
 			writer ~= "not a builtin fun: ";
-			writeSym(writer, allSymbols, name);
+			writeSymbol(writer, allSymbols, name);
 		});
 		return todo!T("not a builtin fun");
 	}

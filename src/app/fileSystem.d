@@ -2,6 +2,7 @@ module app.fileSystem;
 
 @safe @nogc nothrow: // not pure
 
+import app.appUtil : printError;
 import core.stdc.errno : ENOENT, errno;
 import core.stdc.stdio : fclose, ferror, FILE, fopen, fprintf, fread, fseek, ftell, fwrite, printf, SEEK_END, SEEK_SET;
 version (Windows) {} else {
@@ -47,11 +48,12 @@ import model.diag : ReadFileDiag;
 import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
 import util.col.array : endPtr, newArray;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
-import util.exitCode : ExitCode;
+import util.exitCode : ExitCode, okAnd;
 import util.memory : memset;
 import util.opt : force, has, Opt, some;
 import util.string : CString, cStringSize;
 import util.symbol : Symbol;
+import util.union_ : Union;
 import util.uri :
 	AllUris,
 	alterExtensionWithHex,
@@ -62,9 +64,10 @@ import util.uri :
 	parseAbsoluteFilePathAsUri,
 	fileUriToTempStr,
 	TempStrForPath,
-	Uri;
+	Uri,
+	writeFileUri;
 import util.util : todo;
-import util.writer : withWriter, Writer;
+import util.writer : withStackWriter, withWriter, Writer;
 
 FILE* stdin() {
 	version (Windows) {
@@ -90,18 +93,21 @@ FILE* stderr() {
 	}
 }
 
-private @trusted void removeFile(in AllUris allUris, FileUri uri) {
+private @trusted ExitCode removeFile(in AllUris allUris, FileUri uri) {
 	TempStrForPath buf = void;
-	CString cStr = fileUriToTempStr(buf, allUris, uri);
+	CString cString = fileUriToTempStr(buf, allUris, uri);
 	version (Windows) {
-		int res = DeleteFileA(cStr.ptr);
-		if (!res) todo!void("error removing file");
+		return DeleteFileA(cString.ptr)
+			? ExitCode.ok
+			: printErrorForFile("Error removing file", allUris, uri);
 	} else {
-		final switch (unlink(cStr.ptr)) {
+		final switch (unlink(cString.ptr)) {
 			case 0:
-				break;
+				return ExitCode.ok;
 			case -1:
-				todo!void("error removing file");
+				return errno == ENOENT
+					? ExitCode.ok
+					: printErrorForFile("Error removing file", allUris, uri);
 		}
 	}
 }
@@ -126,8 +132,9 @@ ExitCode withUriOrTemp(Symbol extension)(
 		if (isFileUri(allUris, tempBasePath)) {
 			ubyte[8] bytes = getRandomBytes();
 			FileUri tempUri = alterExtensionWithHex!extension(allUris, asFileUri(allUris, tempBasePath), bytes);
-			scope(exit) removeFile(allUris, tempUri);
-			return cb(tempUri);
+			ExitCode exit = cb(tempUri);
+			ExitCode exit2 = removeFile(allUris, tempUri);
+			return okAnd(exit, () => exit2);
 		} else
 			return todo!ExitCode("need another place to put temps");
 	}
@@ -283,16 +290,34 @@ private @system FILE* tryOpenFileForWrite(in AllUris allUris, FileUri uri) {
 	return parseAbsoluteFilePathAsUri(allUris, CString(cast(immutable) res.ptr));
 }
 
+immutable struct Signal {
+	int signal;
+}
+
+immutable struct ExitCodeOrSignal {
+	mixin Union!(ExitCode, Signal);
+}
+
+ExitCode printSignalAndExit(ExitCodeOrSignal a) =>
+	a.matchImpure!ExitCode(
+		(in ExitCode x) =>
+			x,
+		(in Signal x) =>
+			printError(withStackWriter((scope ref Alloc _, scope ref Writer writer) {
+				writer ~= "Program exited with signal ";
+				writer ~= x.signal;
+			})));
+
 // Returns the child process' error code.
 // WARN: A first arg will be prepended that is the executable path.
-@trusted ExitCode spawnAndWait(
+@trusted ExitCodeOrSignal spawnAndWait(
 	ref TempAlloc tempAlloc,
 	in AllUris allUris,
 	in CString executablePath,
 	in CString[] args,
 ) {
 	version (Windows) {
-		CString argsCStr = windowsArgsCStr(tempAlloc, executablePath, args);
+		CString argsCString = windowsArgsCString(tempAlloc, executablePath, args);
 
 		HANDLE stdoutRead;
 		HANDLE stdoutWrite;
@@ -324,7 +349,7 @@ private @system FILE* tryOpenFileForWrite(in AllUris allUris, FileUri uri) {
 		int ok = CreateProcessA(
 			executablePath.ptr,
 			// not sure why Windows makes this mutable
-			cast(char*) argsCStr,
+			cast(char*) argsCString,
 			null,
 			null,
 			true,
@@ -356,7 +381,7 @@ private @system FILE* tryOpenFileForWrite(in AllUris allUris, FileUri uri) {
 			todo!void("");
 
 		if (exitCode != 0) {
-			fprintf(stderr, "Error invoking C compiler: %s\n", argsCStr);
+			fprintf(stderr, "Error invoking C compiler: %s\n", argsCString);
 			fprintf(stderr, "Exit code %d\n", exitCode);
 			fprintf(stderr, "C compiler stderr: %s\n", stderrBuf.ptr);
 			printf("C compiler stdout: %s\n", stdoutBuf.ptr);
@@ -365,7 +390,7 @@ private @system FILE* tryOpenFileForWrite(in AllUris allUris, FileUri uri) {
 		verifyOk(CloseHandle(processInfo.hProcess));
 		verifyOk(CloseHandle(processInfo.hThread));
 
-		return ExitCode(exitCode);
+		return ExitCodeOrSignal(ExitCode(exitCode));
 	} else {
 		pid_t pid;
 		int spawnStatus = posix_spawn(
@@ -381,15 +406,13 @@ private @system FILE* tryOpenFileForWrite(in AllUris allUris, FileUri uri) {
 			int resPid = waitpid(pid, &waitStatus, 0);
 			assert(resPid == pid);
 			if (WIFEXITED(waitStatus))
-				return ExitCode(WEXITSTATUS(waitStatus)); // only valid if WIFEXITED
-			else {
-				if (WIFSIGNALED(waitStatus))
-					return todo!ExitCode("process exited with signal");
-				else
-					return todo!ExitCode("process exited non-normally");
-			}
+				return ExitCodeOrSignal(ExitCode(WEXITSTATUS(waitStatus))); // only valid if WIFEXITED
+			else if (WIFSIGNALED(waitStatus))
+				return ExitCodeOrSignal(Signal(__WTERMSIG(waitStatus)));
+			else
+				return todo!ExitCodeOrSignal("process exited non-normally");
 		} else
-			return todo!ExitCode("posix_spawn failed");
+			return todo!ExitCodeOrSignal("posix_spawn failed");
 	}
 }
 
@@ -425,15 +448,17 @@ version (Windows) {
 
 version (Windows) {
 } else {
-	@system ExitCode handleMkdirErr(int err, CString dir) {
-		if (err != 0)
-			fprintf(stderr, "Error making directory %s: %s\n", dir.ptr, strerror(errno));
-		return ExitCode(err);
+	@system ExitCode handleMkdirErr(int err, CString dir) =>
+		err == 0 ? ExitCode.ok : printErrno("Error making directory", dir);
+
+	@system ExitCode printErrno(string description, CString file) {
+		fprintf(stderr, "%.*s %s: %s\n", cast(int) description.length, description.ptr, file.ptr, strerror(errno));
+		return ExitCode.error;
 	}
 }
 
 version (Windows) {
-	CString windowsArgsCStr(
+	CString windowsArgsCString(
 		ref Alloc alloc,
 		in CString executablePath,
 		in CString[] args,
@@ -503,7 +528,7 @@ bool WIFSIGNALED( int status )
 }
 
 version (Windows) {
-	@system void printLastError(int error, CStr description) {
+	@system void printLastError(int error, CString description) {
 		char[0x400] buffer;
 		int size = FormatMessageA(
 			FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -521,3 +546,9 @@ version (Windows) {
 version (Windows) {
 	extern(C) FILE* __acrt_iob_func(uint);
 }
+
+ExitCode printErrorForFile(string description, in AllUris allUris, FileUri uri) =>
+	printError(withStackWriter((scope ref Alloc _, scope ref Writer writer) {
+		writer ~= description;
+		writeFileUri(writer, allUris, uri);
+	}));

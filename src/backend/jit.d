@@ -132,7 +132,7 @@ import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : UriAndRange;
 import util.string : CString;
-import util.symbol : AllSymbols, writeSym;
+import util.symbol : AllSymbols, writeSymbol;
 import util.union_ : Union, UnionMutable;
 import util.util : castImmutable, castNonScope, castNonScope_ref, cStringOfEnum, ptrTrustMe, todo, unreachable;
 import util.writer : debugLogWithWriter, withWriter, Writer;
@@ -214,7 +214,7 @@ GccProgram getGccProgram(
 		//TODO:NO ALLOC
 		gcc_jit_context_add_driver_option(*ctx, withWriter(alloc, (scope ref Writer writer) {
 			writer ~= "-l";
-			writeSym(writer, allSymbols, x.libraryName);
+			writeSymbol(writer, allSymbols, x.libraryName);
 		}).ptr);
 
 	withMeasure!(void, () {

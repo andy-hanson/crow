@@ -620,22 +620,23 @@ RecordModifiers withByValOrRef(
 	ref CheckCtx ctx,
 	RecordModifiers cur,
 	in Range range,
-	ForcedByValOrRefOrNone value) {
+	ForcedByValOrRefOrNone value,
+) {
 	if (cur.byValOrRefOrNone != ForcedByValOrRefOrNone.none) {
-		Symbol valueSym = symbolOfForcedByValOrRefOrNone(value);
+		Symbol valueSymbol = symbolOfForcedByValOrRefOrNone(value);
 		addDiag(ctx, range, value == cur.byValOrRefOrNone
-			? Diag(Diag.ModifierDuplicate(valueSym))
-			: Diag(Diag.ModifierConflict(symbolOfForcedByValOrRefOrNone(cur.byValOrRefOrNone), valueSym)));
+			? Diag(Diag.ModifierDuplicate(valueSymbol))
+			: Diag(Diag.ModifierConflict(symbolOfForcedByValOrRefOrNone(cur.byValOrRefOrNone), valueSymbol)));
 	}
 	return RecordModifiers(value, cur.newVisibility, cur.packed);
 }
 
 RecordModifiers withNewVisibility(ref CheckCtx ctx, RecordModifiers cur, in Range range, Visibility value) {
 	if (has(cur.newVisibility)) {
-		Symbol valueSym = symbolOfNewVisibility(value);
+		Symbol valueSymbol = symbolOfNewVisibility(value);
 		addDiag(ctx, range, value == force(cur.newVisibility)
-			? Diag(Diag.ModifierDuplicate(valueSym))
-			: Diag(Diag.ModifierConflict(symbolOfNewVisibility(force(cur.newVisibility)), valueSym)));
+			? Diag(Diag.ModifierDuplicate(valueSymbol))
+			: Diag(Diag.ModifierConflict(symbolOfNewVisibility(force(cur.newVisibility)), valueSymbol)));
 	}
 	return RecordModifiers(cur.byValOrRefOrNone, some(value), cur.packed);
 }

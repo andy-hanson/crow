@@ -104,7 +104,7 @@ void addDiagUnexpectedCurToken(ref Lexer lexer, Pos start, TokenAndData token) {
 			case Token.invalid:
 				return ParseDiag(ParseDiag.UnexpectedCharacter(*(lexer.ptr - 1)));
 			case Token.operator:
-				return ParseDiag(ParseDiag.UnexpectedOperator(token.asSym()));
+				return ParseDiag(ParseDiag.UnexpectedOperator(token.asSymbol));
 			default:
 				return ParseDiag(ParseDiag.UnexpectedToken(token.token));
 		}

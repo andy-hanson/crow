@@ -6,7 +6,7 @@ import test.testUtil : Test;
 import util.comparison : Comparison;
 import util.opt : none, optEqual, some;
 import util.string : CString, cString;
-import util.symbol : Symbol, symbol, symAsTempBuffer, symbolOfString;
+import util.symbol : Symbol, symbol, symbolAsTempBuffer, symbolOfString;
 import util.uri :
 	AllUris,
 	asFileUri,
@@ -115,8 +115,8 @@ void verifyEq(ref Test test, Symbol a, Symbol b) {
 	if (a != b) {
 		debug {
 			debugLog("Symbols not equal:");
-			debugLog(cast(immutable) symAsTempBuffer!64(test.allSymbols, a).ptr);
-			debugLog(cast(immutable) symAsTempBuffer!64(test.allSymbols, b).ptr);
+			debugLog(cast(immutable) symbolAsTempBuffer!64(test.allSymbols, a).ptr);
+			debugLog(cast(immutable) symbolAsTempBuffer!64(test.allSymbols, b).ptr);
 		}
 		assert(false);
 	}

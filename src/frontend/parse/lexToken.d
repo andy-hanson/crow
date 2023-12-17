@@ -34,7 +34,7 @@ immutable struct TokenAndData {
 
 	public:
 	this(Token t, bool) {
-		assert(!isSymToken(t) &&
+		assert(!isSymbolToken(t) &&
 			!isNewlineToken(t) &&
 			t != Token.literalFloat &&
 			t != Token.literalInt &&
@@ -42,7 +42,7 @@ immutable struct TokenAndData {
 		token = t;
 	}
 	this(Token t, Symbol s) {
-		assert(isSymToken(t));
+		assert(isSymbolToken(t));
 		token = t;
 		symbol = s;
 	}
@@ -67,11 +67,11 @@ immutable struct TokenAndData {
 		literalNat = l;
 	}
 
-	bool isSym() =>
-		isSymToken(token);
+	bool isSymbol() =>
+		isSymbolToken(token);
 
-	Symbol asSym() {
-		assert(isSym());
+	Symbol asSymbol() {
+		assert(isSymbol);
 		return symbol;
 	}
 	// WARN: The docComment string is temporary.
@@ -144,10 +144,10 @@ enum Token {
 	loop, // 'loop'
 	match, // 'match'
 	mut, // 'mut'
-	name, // Any non-keyword, non-operator name; use TokenAndData.asSym with this
+	name, // Any non-keyword, non-operator name; use TokenAndData.asSymbol with this
 	// Tokens for a name with '=' or ':=' on the end.
-	nameOrOperatorColonEquals, // 'TokenAndData.asSym' does NOT include the ':='
-	nameOrOperatorEquals, // 'TokenAndData.asSym' DOES include the '='
+	nameOrOperatorColonEquals, // 'TokenAndData.asSymbol' does NOT include the ':='
+	nameOrOperatorEquals, // 'TokenAndData.asSymbol' DOES include the '='
 	// End of line followed by another line at lesser indentation.
 	// There will be one of these tokens for each reduced indent level, followed by a 'newline' token.
 	newlineDedent,
@@ -157,7 +157,7 @@ enum Token {
 	// end of line followed by another line at the same indent level.
 	newlineSameIndent,
 	noStd, // 'no-std'
-	operator, // Any operator; use TokenAndData.asSym with this
+	operator, // Any operator; use TokenAndData.asSymbol with this
 	parenLeft, // '('
 	parenRight, // ')'
 	question, // '?'
@@ -193,7 +193,7 @@ bool isNewlineToken(Token a) {
 			return false;
 	}
 }
-bool isSymToken(Token a) {
+bool isSymbolToken(Token a) {
 	switch (a) {
 		case Token.name:
 		case Token.operator:
@@ -329,7 +329,7 @@ Possibly writes to 'data' depending on the kind of token returned.
 			if (isAlphaIdentifierStart(c)) {
 				string nameStr = takeNameRest(ptr, ptr - 1);
 				Symbol symbol = symbolOfString(allSymbols, nameStr);
-				Token token = tokenForSym(symbol);
+				Token token = tokenForSymbol(symbol);
 				return token == Token.name
 					? nameLikeToken(ptr, allSymbols, symbol, Token.name)
 					: plainToken(token);
@@ -560,7 +560,7 @@ TokenAndData nameLikeToken(ref immutable(char)* ptr, ref AllSymbols allSymbols, 
 		? TokenAndData(Token.nameOrOperatorEquals, appendEquals(allSymbols, a))
 		: TokenAndData(tryTakeChars(ptr, ":=") ? Token.nameOrOperatorColonEquals : regularToken, a);
 
-Token tokenForSym(Symbol a) {
+Token tokenForSymbol(Symbol a) {
 	switch (a.value) {
 		case symbol!"act".value:
 			return Token.act;

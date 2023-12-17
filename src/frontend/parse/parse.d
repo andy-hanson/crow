@@ -505,10 +505,10 @@ ModifierAst.Kind parseModifierKind(ref Lexer lexer) {
 		case Token.mut:
 			return ModifierAst.Kind.mut;
 		case Token.name:
-			Opt!(ModifierAst.Kind) kind = modifierKindFromSym(token.asSym());
+			Opt!(ModifierAst.Kind) kind = modifierKindFromSymbol(token.asSymbol);
 			return has(kind) ? force(kind) : fail();
 		case Token.operator:
-			switch (token.asSym().value) {
+			switch (token.asSymbol.value) {
 				case symbol!"-".value:
 					Opt!Symbol name = tryTakeName(lexer);
 					return has(name) && force(name) == symbol!"new" ? ModifierAst.Kind.newPrivate : fail();
@@ -523,7 +523,7 @@ ModifierAst.Kind parseModifierKind(ref Lexer lexer) {
 	}
 }
 
-Opt!(ModifierAst.Kind) modifierKindFromSym(Symbol a) {
+Opt!(ModifierAst.Kind) modifierKindFromSymbol(Symbol a) {
 	switch (a.value) {
 		case symbol!"by-val".value:
 			return some(ModifierAst.Kind.byVal);

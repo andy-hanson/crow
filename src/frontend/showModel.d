@@ -31,7 +31,7 @@ import util.col.array : isEmpty, only, only2, sizeEq;
 import util.lineAndColumnGetter : LineAndColumn, LineAndColumnRange, PosKind;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : toUriAndPos, UriAndPos, UriAndRange;
-import util.symbol : AllSymbols, Symbol, writeSym;
+import util.symbol : AllSymbols, Symbol, writeSymbol;
 import util.uri : AllUris, Uri, UrisInfo, writeUri, writeUriPreferRelative;
 import util.util : stringOfEnum;
 import util.writer :
@@ -136,7 +136,7 @@ private void writeTypeParamsAndArgs(
 	if (!isEmpty(typeParams)) {
 		writer ~= " with ";
 		writeWithCommasZip!(NameAndRange, Type)(writer, typeParams, typeArgs, (in NameAndRange param, in Type arg) {
-			writeSym(writer, ctx.allSymbols, param.name);
+			writeSymbol(writer, ctx.allSymbols, param.name);
 			writer ~= '=';
 			writeTypeUnquoted(writer, ctx, TypeWithContainer(arg, typeArgsContext));
 		});
@@ -154,7 +154,7 @@ void writeFunDeclAndTypeArgs(
 	in TypeContainer typeContainer,
 	in FunDeclAndTypeArgs a,
 ) {
-	writeSym(writer, ctx.allSymbols, a.decl.name);
+	writeSymbol(writer, ctx.allSymbols, a.decl.name);
 	writeTypeArgs(writer, ctx, typeContainer, a.typeArgs);
 	writeFunDeclLocation(writer, ctx, *a.decl);
 }
@@ -189,7 +189,7 @@ void writeSig(
 	in Params params,
 	in Opt!ReturnAndParamTypes instantiated,
 ) {
-	writeSym(writer, ctx.allSymbols, name);
+	writeSymbol(writer, ctx.allSymbols, name);
 	writer ~= ' ';
 	writeTypeUnquoted(writer, ctx, TypeWithContainer(
 		has(instantiated) ? force(instantiated).returnType : returnType,
@@ -226,11 +226,11 @@ void writeSigSimple(
 	Symbol name,
 	in TypeParamsAndSig sig,
 ) {
-	writeSym(writer, ctx.allSymbols, name);
+	writeSymbol(writer, ctx.allSymbols, name);
 	if (!isEmpty(sig.typeParams)) {
 		writer ~= '[';
 		writeWithCommas!NameAndRange(writer, sig.typeParams, (in NameAndRange x) {
-			writeSym(writer, ctx.allSymbols, x.name);
+			writeSymbol(writer, ctx.allSymbols, x.name);
 		});
 		writer ~= ']';
 	}
@@ -238,7 +238,7 @@ void writeSigSimple(
 	writeTypeUnquoted(writer, ctx, TypeWithContainer(sig.returnType, typeContainer));
 	writer ~= '(';
 	writeWithCommas!ParamShort(writer, sig.params, (in ParamShort x) {
-		writeSym(writer, ctx.allSymbols, x.name);
+		writeSymbol(writer, ctx.allSymbols, x.name);
 		writer ~= ' ';
 		writeTypeUnquoted(writer, ctx, TypeWithContainer(x.type, typeContainer));
 	});
@@ -259,7 +259,7 @@ private void writeDestructure(
 			writeTypeUnquoted(writer, ctx, TypeWithContainer(type, typeContainer));
 		},
 		(in Local x) {
-			writeSym(writer, ctx.allSymbols, x.name);
+			writeSymbol(writer, ctx.allSymbols, x.name);
 			writer ~= ' ';
 			writeTypeUnquoted(writer, ctx, TypeWithContainer(type, typeContainer));
 		},
@@ -341,7 +341,7 @@ void writeStructInst(scope ref Writer writer, in ShowCtx ctx, in TypeContainer t
 				writer ~= ' ';
 				break;
 		}
-		writeSym(writer, ctx.allSymbols, name);
+		writeSymbol(writer, ctx.allSymbols, name);
 	}
 }
 
@@ -397,7 +397,7 @@ void writeTypeUnquoted(scope ref Writer writer, in ShowCtx ctx, in TypeWithConta
 			writer ~= "<<any>>";
 		},
 		(in TypeParamIndex x) {
-			writeSym(writer, ctx.allSymbols, a.container.typeParams[x.index].name);
+			writeSymbol(writer, ctx.allSymbols, a.container.typeParams[x.index].name);
 		},
 		(in StructInst x) {
 			writeStructInst(writer, ctx, a.container, x);
@@ -412,12 +412,12 @@ void writePurity(scope ref Writer writer, in ShowCtx ctx, Purity a) {
 
 void writeName(scope ref Writer writer, in ShowCtx ctx, Symbol name) {
 	writer ~= '\'';
-	writeSym(writer, ctx.allSymbols, name);
+	writeSymbol(writer, ctx.allSymbols, name);
 	writer ~= '\'';
 }
 
 void writeSpecInst(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in SpecInst a) {
-	writeSym(writer, ctx.allSymbols, a.name);
+	writeSymbol(writer, ctx.allSymbols, a.name);
 	writeTypeArgs(writer, ctx, typeContainer, a.typeArgs);
 }
 

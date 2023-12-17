@@ -25,7 +25,7 @@ import util.conv : safeToUshort;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
-import util.symbol : concatSymsWithDot, Symbol, symbol;
+import util.symbol : concatSymbolsWithDot, Symbol, symbol;
 import util.uri : AllUris, childPath, Path, RelPath, rootPath;
 import util.util : todo, typeAs;
 
@@ -193,7 +193,7 @@ Symbol takePathComponent(ref Lexer lexer) =>
 Symbol takePathComponentRest(ref Lexer lexer, Symbol cur) {
 	if (tryTakeToken(lexer, Token.dot)) {
 		Symbol extension = takeName(lexer);
-		return takePathComponentRest(lexer, concatSymsWithDot(lexer.allSymbols, cur, extension));
+		return takePathComponentRest(lexer, concatSymbolsWithDot(lexer.allSymbols, cur, extension));
 	} else
 		return cur;
 }

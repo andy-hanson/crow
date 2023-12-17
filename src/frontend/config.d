@@ -83,7 +83,7 @@ Map!(Symbol, Uri) parseIncludeOrExtern(
 	scope ref ArrayBuilder!Diagnostic diags,
 	in Json json,
 ) =>
-	parseSymMap!Uri(alloc, allSymbols, diags, json, (in Json value) {
+	parseSymbolMap!Uri(alloc, allSymbols, diags, json, (in Json value) {
 		Opt!Uri res = parseUri(allUris, dirContainingConfig, diags, value);
 		return has(res) ? force(res) : bogusUri(allUris);
 	});
@@ -102,7 +102,7 @@ Opt!Uri parseUri(
 	}
 }
 
-Map!(Symbol, T) parseSymMap(T)(
+Map!(Symbol, T) parseSymbolMap(T)(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	scope ref ArrayBuilder!Diagnostic diags,

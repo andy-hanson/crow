@@ -3,7 +3,7 @@ module util.col.arrayBuilder;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.mutArr : asTemporaryArray, moveToArr, MutArr, mutArrIsEmpty, mutArrSize, mustPop, push, pushAll;
+import util.col.mutArr : asTemporaryArray, moveToArray, MutArr, mutArrIsEmpty, mutArrSize, mustPop, push, pushAll;
 import util.col.sortUtil : sortInPlace;
 import util.comparison : Comparer;
 
@@ -41,7 +41,7 @@ void arrBuilderSort(T)(scope ref ArrayBuilder!T a, in Comparer!T compare) {
 }
 
 immutable(T[]) finish(T)(ref Alloc alloc, scope ref ArrayBuilder!T a) =>
-	moveToArr(alloc, a.data);
+	moveToArray(alloc, a.data);
 
 size_t arrBuilderSize(T)(in ArrayBuilder!T a) =>
 	mutArrSize(a.data);

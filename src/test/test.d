@@ -16,7 +16,7 @@ import test.testMutMultiMap : testMutMultiMap;
 import test.testServer : testServer;
 import test.testSortUtil : testSortUtil;
 import test.testStack : testStack;
-import test.testSym : testSym;
+import test.testSymbol : testSymbol;
 import test.testUri : testUri;
 import test.testUtil : Test;
 import test.testWriter : testWriter;
@@ -61,7 +61,7 @@ NameAndTest[] allTests = [
 	NameAndTest("server", &testServer),
 	NameAndTest("sort-util", &testSortUtil),
 	NameAndTest("stack", &testStack),
-	NameAndTest("symbol", &testSym),
+	NameAndTest("symbol", &testSymbol),
 	NameAndTest("path", &testUri),
 	NameAndTest("writer", &testWriter),
 ];

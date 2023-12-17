@@ -2,7 +2,7 @@ module concretize.concretizeExpr;
 
 @safe @nogc pure nothrow:
 
-import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantArr, getConstantPtr;
+import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantArray, getConstantPointer;
 import concretize.concretizeCtx :
 	arrayElementType,
 	boolType,
@@ -10,10 +10,10 @@ import concretize.concretizeCtx :
 	ConcreteFunKey,
 	concreteTypeFromClosure,
 	concretizeLambdaParams,
-	constantCStr,
-	constantSym,
+	constantCString,
+	constantSymbol,
 	ContainingFunInfo,
-	cStrType,
+	cStringType,
 	getOrAddNonTemplateConcreteFunAndFillBody,
 	getConcreteType_fromConcretizeCtx = getConcreteType,
 	getConcreteFunForLambdaAndFillBody,
@@ -131,7 +131,7 @@ ConcreteExpr concretizeBogus(ref ConcretizeCtx ctx, ConcreteType type, UriAndRan
 	ConcreteExpr(type, range, concretizeBogusKind(ctx, range));
 ConcreteExprKind concretizeBogusKind(ref ConcretizeCtx ctx, in UriAndRange range) =>
 	ConcreteExprKind(allocate(ctx.alloc, ConcreteExprKind.Throw(
-		cStrConcreteExpr(ctx, range, cString!"Reached compile error"))));
+		cStringConcreteExpr(ctx, range, cString!"Reached compile error"))));
 
 private:
 
@@ -728,7 +728,7 @@ ConcreteExpr concretizePtrToLocal(
 			ConcreteExprKind(ConcreteExprKind.PtrToLocal(local)),
 		(TypedConstant x) =>
 			//TODO: what if pointee is a reference?
-			ConcreteExprKind(getConstantPtr(ctx.alloc, ctx.allConstants, mustBeByVal(x.type), x.value)));
+			ConcreteExprKind(getConstantPointer(ctx.alloc, ctx.allConstants, mustBeByVal(x.type), x.value)));
 	return ConcreteExpr(type, range, kind);
 }
 
@@ -890,10 +890,10 @@ ConcreteVariableRef concretizeVariableRefForClosure(
 		(ClosureRef x) =>
 			ConcreteVariableRef(getClosureFieldInfo(ctx, range, x).closureRef));
 
-ConcreteExpr cStrConcreteExpr(ref ConcretizeCtx ctx, in UriAndRange range, CString value) =>
-	cStrConcreteExpr(ctx, cStrType(ctx), range, value);
-ConcreteExpr cStrConcreteExpr(ref ConcretizeCtx ctx, ConcreteType type, in UriAndRange range, CString value) =>
-	ConcreteExpr(type, range, ConcreteExprKind(constantCStr(ctx, value)));
+ConcreteExpr cStringConcreteExpr(ref ConcretizeCtx ctx, in UriAndRange range, CString value) =>
+	cStringConcreteExpr(ctx, cStringType(ctx), range, value);
+ConcreteExpr cStringConcreteExpr(ref ConcretizeCtx ctx, ConcreteType type, in UriAndRange range, CString value) =>
+	ConcreteExpr(type, range, ConcreteExprKind(constantCString(ctx, value)));
 
 ConcreteExpr concretizeAssertOrForbid(
 	ref ConcretizeExprCtx ctx,
@@ -905,8 +905,8 @@ ConcreteExpr concretizeAssertOrForbid(
 	assert(isVoid(type));
 	ConcreteExpr condition = concretizeExpr(ctx, boolType(ctx), locals, *a.condition);
 	ConcreteExpr thrown = has(a.thrown)
-		? concretizeExpr(ctx, cStrType(ctx.concretizeCtx), locals, *force(a.thrown))
-		: cStrConcreteExpr(ctx.concretizeCtx, range, defaultAssertOrForbidMessage(a.kind));
+		? concretizeExpr(ctx, cStringType(ctx.concretizeCtx), locals, *force(a.thrown))
+		: cStringConcreteExpr(ctx.concretizeCtx, range, defaultAssertOrForbidMessage(a.kind));
 	ConcreteExpr void_ = constantVoid(ctx.concretizeCtx, range);
 	ConcreteType voidType = voidType(ctx);
 	ConcreteExpr throw_ = ConcreteExpr(
@@ -964,9 +964,9 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 		(ref LiteralExpr x) =>
 			ConcreteExpr(type, range, ConcreteExprKind(x.value)),
 		(LiteralCStringExpr x) =>
-			cStrConcreteExpr(ctx.concretizeCtx, type, range, x.value),
+			cStringConcreteExpr(ctx.concretizeCtx, type, range, x.value),
 		(LiteralSymbolExpr x) =>
-			ConcreteExpr(type, range, ConcreteExprKind(constantSym(ctx.concretizeCtx, x.value))),
+			ConcreteExpr(type, range, ConcreteExprKind(constantSymbol(ctx.concretizeCtx, x.value))),
 		(LocalGetExpr x) =>
 			concretizeLocalGet(ctx, type, range, locals, x.local),
 		(ref LocalSetExpr x) =>
@@ -1000,7 +1000,7 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 		(ref ThrowExpr x) =>
 			ConcreteExpr(type, range, ConcreteExprKind(
 				allocate(ctx.alloc, ConcreteExprKind.Throw(
-					concretizeExpr(ctx, cStrType(ctx.concretizeCtx), locals, x.thrown))))));
+					concretizeExpr(ctx, cStringType(ctx.concretizeCtx), locals, x.thrown))))));
 }
 
 ConstantsOrExprs constantsOrExprsArr(
@@ -1012,7 +1012,7 @@ ConstantsOrExprs constantsOrExprsArr(
 	args.match!ConstantsOrExprs(
 		(Constant[] constants) =>
 			ConstantsOrExprs(newArray!Constant(ctx.alloc, [
-				getConstantArr(ctx.alloc, ctx.allConstants, mustBeByVal(arrayType), constants)])),
+				getConstantArray(ctx.alloc, ctx.allConstants, mustBeByVal(arrayType), constants)])),
 		(ConcreteExpr[] exprs) =>
 			ConstantsOrExprs(newArray!ConcreteExpr(ctx.alloc, [
 				ConcreteExpr(arrayType, range, ConcreteExprKind(

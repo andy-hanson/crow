@@ -42,7 +42,7 @@ CommonTypes* getCommonTypes(
 		addDiag(ctx, UriAndRange(ctx.curUri, Range.empty), Diag(Diag.CommonTypeMissing(name)));
 	}
 
-	StructInst* nonTemplateFromSym(Symbol name) {
+	StructInst* nonTemplateFromSymbol(Symbol name) {
 		Opt!(StructInst*) res =
 			getCommonNonTemplateType(ctx.instantiateCtx, structsAndAliasesMap, name, delayedStructInsts);
 		if (has(res))
@@ -54,7 +54,7 @@ CommonTypes* getCommonTypes(
 		}
 	}
 	StructInst* nonTemplate(string name)() {
-		return nonTemplateFromSym(symbol!name);
+		return nonTemplateFromSymbol(symbol!name);
 	}
 
 	StructInst* bool_ = nonTemplate!"bool";
@@ -72,7 +72,7 @@ CommonTypes* getCommonTypes(
 	StructInst* symbolType = nonTemplate!"symbol";
 	StructInst* void_ = nonTemplate!"void";
 
-	StructDecl* getDeclFromSym(Symbol name, size_t nTypeParameters) {
+	StructDecl* getDeclFromSymbol(Symbol name, size_t nTypeParameters) {
 		Opt!(StructDecl*) res = getCommonTemplateType(structsAndAliasesMap, name, nTypeParameters);
 		if (has(res))
 			return force(res);
@@ -82,7 +82,7 @@ CommonTypes* getCommonTypes(
 		}
 	}
 	StructDecl* getDecl(string name)(size_t nTypeParameters) {
-		return getDeclFromSym(symbol!name, nTypeParameters);
+		return getDeclFromSymbol(symbol!name, nTypeParameters);
 	}
 
 	StructDecl* array = getDecl!"array"(1);
@@ -95,7 +95,7 @@ CommonTypes* getCommonTypes(
 	]);
 
 	StructDecl* constPointer = getDecl!"const-pointer"(1);
-	StructInst* cStr = instantiateStruct(
+	StructInst* cString = instantiateStruct(
 		ctx.instantiateCtx, constPointer, small!Type([Type(char8)]), someMut(ptrTrustMe(delayedStructInsts)));
 
 	StructDecl*[8] tuples = [
@@ -112,7 +112,7 @@ CommonTypes* getCommonTypes(
 	return allocate(ctx.alloc, CommonTypes(
 		bool_,
 		char8,
-		cStr,
+		cString,
 		float32,
 		float64,
 		IntegralTypes(int8, int16, int32, int64, nat8, nat16, nat32, nat64),

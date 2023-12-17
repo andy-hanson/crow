@@ -295,12 +295,12 @@ struct NameAndPrecedence {
 ExprAst parseNamedCalls(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) {
 	Pos pos = curPos(lexer);
 	Opt!NameAndPrecedence optName = tryTakeToken!NameAndPrecedence(lexer, (TokenAndData x) {
-		if (x.isSym()) {
-			int precedence = symPrecedence(
-				x.asSym(),
+		if (x.isSymbol) {
+			int precedence = symbolPrecedence(
+				x.asSymbol,
 				x.token == Token.nameOrOperatorEquals || x.token == Token.nameOrOperatorColonEquals);
 			return precedence > argCtx.allowedCalls.minPrecedenceExclusive
-				? some(NameAndPrecedence(x.token, x.asSym(), precedence))
+				? some(NameAndPrecedence(x.token, x.asSymbol, precedence))
 				: none!NameAndPrecedence;
 		} else
 			return none!NameAndPrecedence;
@@ -358,7 +358,7 @@ int commaPrecedence() =>
 int ternaryPrecedence() =>
 	-5;
 
-int symPrecedence(Symbol a, bool isAssignment) {
+int symbolPrecedence(Symbol a, bool isAssignment) {
 	if (isAssignment) return -4;
 	switch (a.value) {
 		case symbol!"||".value:
@@ -770,12 +770,12 @@ ExprAst parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBlock) {
 		case Token.match:
 			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.match, () => parseMatch(lexer, start));
 		case Token.name:
-			Symbol name = token.asSym();
+			Symbol name = token.asSymbol;
 			return tryTakeToken(lexer, Token.arrowLambda)
 				? parseLambdaAfterNameAndArrow(lexer, start, allowedBlock, name)
 				: handleName(lexer, start, NameAndRange(start, name));
 		case Token.operator:
-			Symbol operator = token.asSym();
+			Symbol operator = token.asSymbol;
 			if (operator == symbol!"&") {
 				ExprAst inner = parseExprBeforeCall(lexer, AllowedBlock.no);
 				return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, PtrAst(inner))));

@@ -73,7 +73,7 @@ void pushAll(T)(ref Alloc alloc, ref MutArr!(immutable T) a, scope immutable T[]
 	return a.inner[a.size_];
 }
 
-@trusted immutable(T[]) moveToArr(T)(ref Alloc alloc, scope ref MutArr!(immutable T) a) =>
+@trusted immutable(T[]) moveToArray(T)(ref Alloc alloc, scope ref MutArr!(immutable T) a) =>
 	cast(immutable) moveToArr_mut(alloc, a);
 @trusted T[] moveToArr_mut(T)(ref Alloc alloc, ref MutArr!T a) {
 	T[] res = a.inner[0 .. a.size_];

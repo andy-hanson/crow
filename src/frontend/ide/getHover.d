@@ -57,7 +57,7 @@ import util.alloc.alloc : Alloc;
 import util.opt : none, Opt, some;
 import util.sourceRange : UriAndRange;
 import util.string : CString, cStringIsEmpty;
-import util.symbol : writeSym;
+import util.symbol : writeSymbol;
 import util.uri : Uri;
 import util.util : ptrTrustMe, unreachable;
 import util.writer : withWriter, Writer;
@@ -79,7 +79,7 @@ void getHover(scope ref Writer writer, in ShowCtx ctx, in Position pos) =>
 		},
 		(in FunDecl x) {
 			writer ~= "function ";
-			writeSym(writer, ctx.allSymbols, x.name);
+			writeSymbol(writer, ctx.allSymbols, x.name);
 		},
 		(in PositionKind.FunExtern x) {
 			writer ~= "function comes from external library ";
@@ -152,9 +152,9 @@ void getHover(scope ref Writer writer, in ShowCtx ctx, in Position pos) =>
 		},
 		(in PositionKind.RecordFieldPosition x) {
 			writer ~= "field ";
-			writeSym(writer, ctx.allSymbols, x.struct_.name);
+			writeSymbol(writer, ctx.allSymbols, x.struct_.name);
 			writer ~= '.';
-			writeSym(writer, ctx.allSymbols, x.field.name);
+			writeSymbol(writer, ctx.allSymbols, x.field.name);
 			writer ~= " (";
 			writeTypeUnquoted(writer, ctx, TypeWithContainer(x.field.type, TypeContainer(x.struct_)));
 			writer ~= ')';
@@ -188,7 +188,7 @@ void getHover(scope ref Writer writer, in ShowCtx ctx, in Position pos) =>
 			hoverTypeParam(writer, ctx, x.container, x.typeParam);
 		},
 		(in VarDecl x) {
-			writeSym(writer, ctx.allSymbols, symbolOfVarKind(x.kind));
+			writeSymbol(writer, ctx.allSymbols, symbolOfVarKind(x.kind));
 			writer ~= " variable ";
 			writeName(writer, ctx, x.name);
 			writer ~= " (";
@@ -219,7 +219,7 @@ void writeStructDeclHover(scope ref Writer writer, in ShowCtx ctx, in StructDecl
 			"record type ",
 		(in StructBody.Union) =>
 			"union type ");
-	writeSym(writer, ctx.allSymbols, a.name);
+	writeSymbol(writer, ctx.allSymbols, a.name);
 }
 
 void getImportedNameHover(scope ref Writer writer, in ShowCtx ctx, in PositionKind.ImportedName) {
@@ -228,7 +228,7 @@ void getImportedNameHover(scope ref Writer writer, in ShowCtx ctx, in PositionKi
 
 void hoverTypeParam(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in TypeParamIndex index) {
 	writer ~= "type parameter ";
-	writeSym(writer, ctx.allSymbols, typeContainer.typeParams[index.index].name);
+	writeSymbol(writer, ctx.allSymbols, typeContainer.typeParams[index.index].name);
 }
 
 void getExprHover(scope ref Writer writer, in ShowCtx ctx, in Uri curUri, in TypeContainer typeContainer, in Expr a) =>
@@ -333,13 +333,13 @@ void getExprHover(scope ref Writer writer, in ShowCtx ctx, in Uri curUri, in Typ
 
 void closureRefHover(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in ClosureRef a) {
 	writer ~= "closure variable ";
-	writeSym(writer, ctx.allSymbols, a.name);
+	writeSymbol(writer, ctx.allSymbols, a.name);
 	writer ~= ' ';
 	writeTypeUnquoted(writer, ctx, TypeWithContainer(a.type, typeContainer));
 }
 
 void localHover(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in Local a) {
-	writeSym(writer, ctx.allSymbols, a.name);
+	writeSymbol(writer, ctx.allSymbols, a.name);
 	writer ~= ' ';
 	writeTypeUnquoted(writer, ctx, TypeWithContainer(a.type, typeContainer));
 }

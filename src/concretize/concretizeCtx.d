@@ -2,7 +2,7 @@ module concretize.concretizeCtx;
 
 @safe @nogc pure nothrow:
 
-import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantArr, getConstantCStr, getConstantSym;
+import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantArray, getConstantCString, getConstantSymbol;
 import concretize.concretizeExpr : concretizeBogus, concretizeBogusKind, concretizeFunBody;
 import concretize.safeValue : bodyForSafeValue;
 import frontend.storage : asBytes, FileContent, ReadFileResult;
@@ -212,7 +212,7 @@ struct ConcretizeCtx {
 	Late!ConcreteType _voidType;
 	Late!ConcreteType nat64Type;
 	Late!ConcreteType _ctxType;
-	Late!ConcreteType _cStrType;
+	Late!ConcreteType _cStringType;
 
 	ref Alloc alloc() return scope =>
 		*allocPtr;
@@ -258,15 +258,15 @@ ConcreteType voidType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._voidType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.void_, TypeArgsScope.empty));
 
-ConcreteType cStrType(ref ConcretizeCtx a) =>
-	lazilySet!ConcreteType(a._cStrType, () =>
+ConcreteType cStringType(ref ConcretizeCtx a) =>
+	lazilySet!ConcreteType(a._cStringType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.cString, TypeArgsScope.empty));
 
-Constant constantCStr(ref ConcretizeCtx a, CString value) =>
-	getConstantCStr(a.alloc, a.allConstants, value);
+Constant constantCString(ref ConcretizeCtx a, CString value) =>
+	getConstantCString(a.alloc, a.allConstants, value);
 
-Constant constantSym(ref ConcretizeCtx a, Symbol value) =>
-	getConstantSym(a.alloc, a.allConstants, a.allSymbols, value);
+Constant constantSymbol(ref ConcretizeCtx a, Symbol value) =>
+	getConstantSymbol(a.alloc, a.allConstants, a.allSymbols, value);
 
 ConcreteFun* getOrAddConcreteFunAndFillBody(ref ConcretizeCtx ctx, ConcreteFunKey key) {
 	ConcreteFun* cf = getOrAddConcreteFunWithoutFillingBody(ctx, key);
@@ -776,11 +776,11 @@ ConcreteExpr concretizeFileImport(ref ConcretizeCtx ctx, ConcreteFun* cf, in Fun
 				Constant(Constant.Integral(a)));
 			final switch (import_.type) {
 				case ImportFileType.nat8Array:
-					return ConcreteExprKind(getConstantArr(ctx.alloc, ctx.allConstants, mustBeByVal(type), bytes));
+					return ConcreteExprKind(getConstantArray(ctx.alloc, ctx.allConstants, mustBeByVal(type), bytes));
 				case ImportFileType.string:
 					ConcreteType char8ArrayType = only(ctx.char8ArrayAsString.paramsIncludingClosure).type;
 					ConcreteExpr char8s = ConcreteExpr(char8ArrayType, range, ConcreteExprKind(
-						getConstantArr(ctx.alloc, ctx.allConstants, mustBeByVal(char8ArrayType), bytes)));
+						getConstantArray(ctx.alloc, ctx.allConstants, mustBeByVal(char8ArrayType), bytes)));
 					return ConcreteExprKind(ConcreteExprKind.Call(
 						ctx.char8ArrayAsString, newArray(ctx.alloc, [char8s])));
 			}
@@ -807,9 +807,9 @@ ConcreteFunBody bodyForEnumOrFlagsMembers(ref ConcretizeCtx ctx, ConcreteType re
 		only2(mustBeByVal(arrayElementType(returnType)).source.as!(ConcreteStructSource.Inst).typeArgs)[1];
 	Constant[] elements = map(ctx.alloc, enumOrFlagsMembers(enumOrFlagsType), (ref StructBody.Enum.Member member) =>
 		Constant(Constant.Record(newArray!Constant(ctx.alloc, [
-			constantSym(ctx, member.name),
+			constantSymbol(ctx, member.name),
 			Constant(Constant.Integral(member.value.value))]))));
-	Constant arr = getConstantArr(ctx.alloc, ctx.allConstants, mustBeByVal(returnType), elements);
+	Constant arr = getConstantArray(ctx.alloc, ctx.allConstants, mustBeByVal(returnType), elements);
 	return ConcreteFunBody(ConcreteExpr(returnType, UriAndRange.empty, ConcreteExprKind(arr)));
 }
 
@@ -837,7 +837,7 @@ ConcreteFunBody bodyForAllTests(ref ConcretizeCtx ctx, ConcreteType returnType) 
 			addAll(ctx.alloc, allTestsBuilder, m.tests);
 		return finish(ctx.alloc, allTestsBuilder);
 	}();
-	Constant arr = getConstantArr(
+	Constant arr = getConstantArray(
 		ctx.alloc,
 		ctx.allConstants,
 		mustBeByVal(returnType),

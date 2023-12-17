@@ -18,8 +18,8 @@ import model.ast :
 	range,
 	rangeOfNameAndRange,
 	suffixRange,
-	symForTypeAstMap,
-	symForTypeAstSuffix,
+	symbolForTypeAstMap,
+	symbolForTypeAstSuffix,
 	TypeAst;
 import model.diag : Diag, TypeContainer, TypeWithContainer;
 import model.model :
@@ -197,7 +197,7 @@ Type typeFromAst(
 			instStructFromAst(
 				ctx,
 				commonTypes,
-				symForTypeAstSuffix(it.kind),
+				symbolForTypeAstSuffix(it.kind),
 				suffixRange(it),
 				some(&castNonScope_ref(it).left),
 				structsAndAliasesMap,
@@ -333,7 +333,7 @@ private Type typeFromMapAst(
 	return instStructFromAst(
 		ctx,
 		commonTypes,
-		symForTypeAstMap(ast.kind),
+		symbolForTypeAstMap(ast.kind),
 		range(ast, ctx.allSymbols),
 		some(ptrTrustMe(typeArg)),
 		structsAndAliasesMap,

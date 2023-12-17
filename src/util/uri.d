@@ -16,15 +16,15 @@ import util.symbol :
 	alterExtension,
 	AllSymbols,
 	appendHexExtension,
-	eachCharInSym,
+	eachCharInSymbol,
 	getExtension,
 	hasExtension,
 	removeExtension,
 	Symbol,
 	symbol,
 	symbolOfString,
-	symSize,
-	writeSym;
+	symbolSize,
+	writeSymbol;
 import util.util : todo;
 import util.writer : withWriter, Writer;
 
@@ -280,7 +280,7 @@ private size_t pathToStrLength(in AllUris allUris, Path path, in StringOfPathOpt
 	size_t res = 0;
 	walkPathBackwards(allUris, path, (Symbol part, bool _) {
 		// 1 for '/'
-		res += 1 + symSize(allUris.allSymbols, part);
+		res += 1 + symbolSize(allUris.allSymbols, part);
 	});
 	assert(res > 0);
 	// - 1 uncount the leading slash (before maybe adding it back)
@@ -318,9 +318,9 @@ private @system void stringOfPathWorker(in AllUris allUris, Path path, char[] ou
 	}
 	walkPathBackwards(allUris, path, (Symbol part, bool isFirstPart) @trusted {
 		char* partEnd = cur;
-		cur -= symSize(allUris.allSymbols, part);
+		cur -= symbolSize(allUris.allSymbols, part);
 		char* j = cur;
-		eachCharInSym(allUris.allSymbols, part, (char c) @trusted {
+		eachCharInSymbol(allUris.allSymbols, part, (char c) @trusted {
 			*j = c;
 			j++;
 		});
@@ -587,12 +587,12 @@ void writePathPlain(ref Writer writer, in AllUris allUris, Path p) {
 		writePathPlain(writer, allUris, force(par));
 		writer ~= '/';
 	}
-	writeSym(writer, allUris.allSymbols, baseName(allUris, p));
+	writeSymbol(writer, allUris.allSymbols, baseName(allUris, p));
 }
 
 public void writeUriPreferRelative(ref Writer writer, in AllUris allUris, in UrisInfo urisInfo, Uri a) {
 	eachPartPreferRelative(allUris, urisInfo, a, (Symbol part, bool isLast) {
-		writeSym(writer, allUris.allSymbols, part);
+		writeSymbol(writer, allUris.allSymbols, part);
 		if (!isLast)
 			writer ~= '/';
 	});

@@ -65,7 +65,7 @@ import util.col.fullIndexMap :
 import util.conv : safeToInt;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.string : CString;
-import util.symbol : AllSymbols, writeSym;
+import util.symbol : AllSymbols, writeSymbol;
 import util.util : castImmutable, castNonScope_ref, typeAs;
 import util.writer : withWriter, Writer;
 
@@ -361,7 +361,7 @@ struct GccTypesWip {
 	immutable gcc_jit_field*[] fields = map(alloc, record.fields, (ref LowField field) {
 		//TODO:NO ALLOC
 		CString name = withWriter(alloc, (scope ref Writer writer) {
-			writeSym(writer, allSymbols, debugName(field));
+			writeSymbol(writer, allSymbols, debugName(field));
 		});
 		return gcc_jit_context_new_field(ctx, null, getGccType(typesWip, field.type), name.ptr);
 	});

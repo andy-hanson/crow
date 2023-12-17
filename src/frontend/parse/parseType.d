@@ -74,7 +74,7 @@ TypeAst parseTypeBeforeSuffixes(ref Lexer lexer) {
 	Pos start = curPos(lexer);
 	switch (getPeekToken(lexer)) {
 		case Token.name:
-			return TypeAst(NameAndRange(start, takeNextToken(lexer).asSym()));
+			return TypeAst(NameAndRange(start, takeNextToken(lexer).asSymbol));
 		case Token.parenLeft:
 			takeNextToken(lexer);
 			return parseTupleType(lexer, start);

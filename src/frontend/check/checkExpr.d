@@ -313,7 +313,7 @@ Expr checkAndExpect(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, Type e
 Expr checkAndExpectBool(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast) =>
 	checkAndExpect(ctx, locals, ast, Type(ctx.commonTypes.bool_));
 
-Expr checkAndExpectCStr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast) =>
+Expr checkAndExpectCString(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast) =>
 	checkAndExpect(ctx, locals, ast, Type(ctx.commonTypes.cString));
 
 Expr checkAndExpectVoid(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast) =>
@@ -348,7 +348,7 @@ Expr checkThrow(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ThrowAs
 		addDiag2(ctx, source, Diag(Diag.NeedsExpectedType(Diag.NeedsExpectedType.Kind.throw_)));
 		return bogus(expected, source);
 	} else {
-		Expr thrown = checkAndExpectCStr(ctx, locals, &ast.thrown);
+		Expr thrown = checkAndExpectCString(ctx, locals, &ast.thrown);
 		return Expr(source, ExprKind(allocate(ctx.alloc, ThrowExpr(thrown))));
 	}
 }
@@ -362,7 +362,7 @@ Expr checkAssertOrForbid(
 ) {
 	Expr* condition = allocate(ctx.alloc, checkAndExpectBool(ctx, locals, &ast.condition));
 	Opt!(Expr*) thrown = has(ast.thrown)
-		? some(allocate(ctx.alloc, checkAndExpectCStr(ctx, locals, &force(ast.thrown))))
+		? some(allocate(ctx.alloc, checkAndExpectCString(ctx, locals, &force(ast.thrown))))
 		: none!(Expr*);
 	return check(ctx, source, expected, voidType(ctx), Expr(
 		source,

@@ -79,7 +79,10 @@ immutable struct RunOptions {
 	immutable struct Jit {
 		JitOptions options;
 	}
-	mixin Union!(Interpret, Jit);
+	immutable struct Aot {
+		CCompileOptions compileOptions;
+	}
+	mixin Union!(Interpret, Jit, Aot);
 }
 
 immutable struct BuildOptions {
@@ -97,7 +100,7 @@ immutable struct CCompileOptions {
 	OptimizationLevel optimizationLevel;
 }
 
-private immutable struct BuildOut {
+immutable struct BuildOut {
 	Opt!Uri outC;
 	Opt!Uri outExecutable;
 }
@@ -151,7 +154,7 @@ CommandKind parseCommandKind(
 	}
 }
 
-Symbol defaultExeExtension() {
+public Symbol defaultExeExtension() {
 	version (Windows) {
 		return symbol!".exe";
 	} else {
@@ -309,10 +312,14 @@ CommandKind parseRunCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd,
 }
 
 Opt!RunOptions parseRunOptions(ref Alloc alloc, scope ref AllUris allUris, in ArgsPart[] argParts) {
+	bool aot = false;
 	bool jit = false;
 	bool optimize = false;
 	foreach (ArgsPart part; argParts) {
 		switch (stringOfCString(part.tag)) {
+			case "--aot":
+				aot = true;
+				break;
 			case "--jit":
 				jit = true;
 				break;
@@ -323,11 +330,18 @@ Opt!RunOptions parseRunOptions(ref Alloc alloc, scope ref AllUris allUris, in Ar
 				return none!RunOptions;
 		}
 	}
-	return jit
-		? some(RunOptions(RunOptions.Jit(optimize ? JitOptions(OptimizationLevel.o2) : JitOptions())))
-		: optimize
-		? none!RunOptions
-		: some(RunOptions(RunOptions.Interpret()));
+	if (aot)
+		return jit
+			? none!RunOptions
+			: some(RunOptions(RunOptions.Aot(optimize ? CCompileOptions(OptimizationLevel.o2) : CCompileOptions())));
+	else if (jit)
+		return aot
+			? none!RunOptions
+			: some(RunOptions(RunOptions.Jit(optimize ? JitOptions(OptimizationLevel.o2) : JitOptions())));
+	else
+		return optimize
+			? none!RunOptions
+			: some(RunOptions(RunOptions.Interpret()));
 }
 
 Opt!BuildOptions parseBuildOptions(

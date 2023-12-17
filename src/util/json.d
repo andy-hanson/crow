@@ -8,7 +8,7 @@ import util.col.fullIndexMap : FullIndexMap;
 import util.col.map : KeyValuePair;
 import util.opt : force, has, Opt;
 import util.string : copyString, CString, cStringIsEmpty, stringsEqual, stringOfCString;
-import util.symbol : AllSymbols, Symbol, symbol, writeQuotedSym;
+import util.symbol : AllSymbols, Symbol, symbol, writeQuotedSymbol;
 import util.union_ : Union;
 import util.util : todo;
 import util.writer :
@@ -168,8 +168,8 @@ void writeJson(ref Writer writer, in AllSymbols allSymbols, in Json a) =>
 		(in string x) {
 			writeQuotedString(writer, x);
 		},
-		(in Symbol it) {
-			writeQuotedSym(writer, allSymbols, it);
+		(in Symbol x) {
+			writeQuotedSymbol(writer, allSymbols, x);
 		},
 		(in Json[] x) {
 			writer ~= '[';
@@ -180,7 +180,7 @@ void writeJson(ref Writer writer, in AllSymbols allSymbols, in Json a) =>
 		},
 		(in Json.Object x) {
 			writeObjectCompact!Symbol(writer, allSymbols, x, (in Symbol key) {
-				writeQuotedSym(writer, allSymbols, key);
+				writeQuotedSymbol(writer, allSymbols, key);
 			});
 		},
 		(in Json.StringObject x) {
@@ -223,7 +223,7 @@ void writeJsonPretty(ref Writer writer, in AllSymbols allSymbols, in Json a, in 
 		string comma = singleLine ? ", " : ",";
 		writeWithSeparator!(Json.ObjectField)(writer, a.as!(Json.Object), comma, (in Json.ObjectField pair) {
 			if (!singleLine) writeNewlineAndIndent(writer, indent + 1);
-			writeQuotedSym(writer, allSymbols, pair.key);
+			writeQuotedSymbol(writer, allSymbols, pair.key);
 			writer ~= ": ";
 			writeJsonPretty(writer, allSymbols, pair.value, indent + 1);
 		});

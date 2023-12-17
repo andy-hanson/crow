@@ -5,7 +5,7 @@ module concretize.safeValue;
 import concretize.concretizeCtx : addConcreteFun, ConcretizeCtx, voidType;
 import concretize.concretizeExpr : nextLambdaImplId;
 import concretize.constantsOrExprs : asConstantsOrExprs, ConstantsOrExprs;
-import concretize.allConstantsBuilder : getConstantPtr;
+import concretize.allConstantsBuilder : getConstantPointer;
 import model.concreteModel :
 	BuiltinStructKind,
 	ConcreteExpr,
@@ -65,7 +65,7 @@ ConcreteExpr safeValueForType(ref Ctx ctx, UriAndRange range, ConcreteType type)
 			return inner;
 		case ReferenceKind.byRef:
 			return ConcreteExpr(type, range, inner.kind.isA!Constant
-				? ConcreteExprKind(getConstantPtr(
+				? ConcreteExprKind(getConstantPointer(
 					ctx.alloc,
 					ctx.concretizeCtx.allConstants,
 					type.struct_,

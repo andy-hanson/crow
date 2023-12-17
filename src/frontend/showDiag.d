@@ -60,7 +60,7 @@ import util.comparison : Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : compareRange;
 import util.string : CString;
-import util.symbol : AllSymbols, Symbol, writeSym;
+import util.symbol : AllSymbols, Symbol, writeSymbol;
 import util.uri : AllUris, baseName, compareUriAlphabetically, Uri, writeRelPath, writeUri;
 import util.util : stringOfEnum, max, unreachable;
 import util.writer :
@@ -240,7 +240,7 @@ void writeParseDiag(scope ref Writer writer, in AllSymbols allSymbols, in AllUri
 		},
 		(in ParseDiag.UnexpectedOperator x) {
 			writer ~= "Unexpected '";
-			writeSym(writer, allSymbols, x.operator);
+			writeSymbol(writer, allSymbols, x.operator);
 			writer ~= "'.";
 		},
 		(in ParseDiag.UnexpectedToken u) {

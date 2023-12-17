@@ -17,7 +17,7 @@ import util.writer : digitChar, withWriter, writeEscapedChar, Writer;
 immutable struct Symbol {
 	@safe @nogc pure nothrow:
 	// This is either:
-	// * A short symbol, tagged with 'shortSymTag'
+	// * A short symbol, tagged with 'shortSymbolTag'
 	// * An index into 'largeStrings'.
 	ulong value; // Public for 'switch'
 	@disable this();
@@ -32,10 +32,10 @@ struct AllSymbols {
 
 	@trusted this(return scope Alloc* a) {
 		allocPtr = a;
-		foreach (string s; specialSyms) { {
+		foreach (string s; specialSymbols) { {
 			CString str = CString(s.ptr);
 			debug {
-				Opt!Symbol packed = tryPackShortSym(stringOfCString(str));
+				Opt!Symbol packed = tryPackShortSymbol(stringOfCString(str));
 				assert(!has(packed));
 			}
 			cast(void) addLargeString(this, str);
@@ -63,7 +63,7 @@ private Symbol addLargeString(ref AllSymbols a, CString value) {
 
 Symbol appendHexExtension(ref AllSymbols allSymbols, Symbol a, in ubyte[] bytes) {
 	MutMaxArr!(0x100, immutable char) res = mutMaxArr!(0x100, immutable char);
-	eachCharInSym(allSymbols, a, (char x) {
+	eachCharInSymbol(allSymbols, a, (char x) {
 		push(res, x);
 	});
 	push(res, '.');
@@ -87,7 +87,7 @@ Symbol alterExtension(Symbol extension)(ref AllSymbols allSymbols, Symbol a) =>
 Symbol removeExtension(ref AllSymbols allSymbols, Symbol a) {
 	MutMaxArr!(0x100, immutable char) res = mutMaxArr!(0x100, immutable char);
 	bool hasDot = false;
-	eachCharInSym(allSymbols, a, (char x) {
+	eachCharInSymbol(allSymbols, a, (char x) {
 		if (!hasDot) {
 			if (x == '.') {
 				hasDot = true;
@@ -103,7 +103,7 @@ Symbol removeExtension(ref AllSymbols allSymbols, Symbol a) {
 Symbol getExtension(ref AllSymbols allSymbols, Symbol a) {
 	MutMaxArr!(0x100, immutable char) res = mutMaxArr!(0x100, immutable char);
 	bool hasDot = false;
-	eachCharInSym(allSymbols, a, (char x) {
+	eachCharInSymbol(allSymbols, a, (char x) {
 		if (x == '.') {
 			hasDot = true;
 			clear(res);
@@ -117,14 +117,14 @@ Symbol getExtension(ref AllSymbols allSymbols, Symbol a) {
 
 bool hasExtension(in AllSymbols allSymbols, Symbol a) {
 	bool hasDot = false;
-	eachCharInSym(allSymbols, a, (char x) {
+	eachCharInSymbol(allSymbols, a, (char x) {
 		hasDot = hasDot || x == '.';
 	});
 	return hasDot;
 }
 
 Symbol prependSet(ref AllSymbols allSymbols, Symbol a) {
-	Opt!Symbol short_ = tryPrefixShortSymWithSet(a);
+	Opt!Symbol short_ = tryPrefixShortSymbolWithSet(a);
 	return has(short_) ? force(short_) : prependToLongStr!"set-"(allSymbols, a);
 }
 
@@ -139,34 +139,34 @@ private @trusted Symbol prependToLongStr(string prepend)(ref AllSymbols allSymbo
 	char[0x100] temp = void;
 	temp[0 .. prepend.length] = prepend;
 	size_t i = prepend.length;
-	eachCharInSym(allSymbols, a, (char x) {
+	eachCharInSymbol(allSymbols, a, (char x) {
 		temp[i] = x;
 		i++;
 		assert(i <= temp.length);
 	});
-	return getSymFromLongStr(allSymbols, cast(immutable) temp[0 .. i]);
+	return getSymbolFromLongStr(allSymbols, cast(immutable) temp[0 .. i]);
 }
 
 private @trusted Symbol appendToLongStr(Symbol append)(ref AllSymbols allSymbols, Symbol a) {
 	char[0x100] temp = void;
 	size_t i = 0;
 	foreach (Symbol symbol; [a, append])
-		eachCharInSym(allSymbols, symbol, (char x) {
+		eachCharInSymbol(allSymbols, symbol, (char x) {
 			temp[i] = x;
 			i++;
 			assert(i <= temp.length);
 		});
-	return getSymFromLongStr(allSymbols, cast(immutable) temp[0 .. i]);
+	return getSymbolFromLongStr(allSymbols, cast(immutable) temp[0 .. i]);
 }
 
-Symbol concatSymsWithDot(ref AllSymbols allSymbols, Symbol a, Symbol b) =>
-	concatSyms(allSymbols, [a, symbol!".", b]);
+Symbol concatSymbolsWithDot(ref AllSymbols allSymbols, Symbol a, Symbol b) =>
+	concatSymbols(allSymbols, [a, symbol!".", b]);
 
-@trusted Symbol concatSyms(ref AllSymbols allSymbols, scope Symbol[] syms) {
+@trusted Symbol concatSymbols(ref AllSymbols allSymbols, scope Symbol[] symbols) {
 	char[0x100] temp = void;
 	size_t i = 0;
-	foreach (Symbol s; syms)
-		eachCharInSym(allSymbols, s, (char x) {
+	foreach (Symbol s; symbols)
+		eachCharInSymbol(allSymbols, s, (char x) {
 			temp[i] = x;
 			i++;
 			assert(i <= temp.length);
@@ -175,48 +175,48 @@ Symbol concatSymsWithDot(ref AllSymbols allSymbols, Symbol a, Symbol b) =>
 }
 
 Symbol symbolOfString(ref AllSymbols allSymbols, in string str) {
-	Opt!Symbol packed = tryPackShortSym(str);
-	return has(packed) ? force(packed) : getSymFromLongStr(allSymbols, str);
+	Opt!Symbol packed = tryPackShortSymbol(str);
+	return has(packed) ? force(packed) : getSymbolFromLongStr(allSymbols, str);
 }
 
-void eachCharInSym(in AllSymbols allSymbols, Symbol a, in void delegate(char) @safe @nogc pure nothrow cb) {
-	if (isShortSym(a))
-		eachCharInShortSym(a.value, cb);
+void eachCharInSymbol(in AllSymbols allSymbols, Symbol a, in void delegate(char) @safe @nogc pure nothrow cb) {
+	if (isShortSymbol(a))
+		eachCharInShortSymbol(a.value, cb);
 	else {
-		assert(isLongSym(a));
-		eachChar(asLongSym(castNonScope_ref(allSymbols), a), cb);
+		assert(isLongSymbol(a));
+		eachChar(asLongSymbol(castNonScope_ref(allSymbols), a), cb);
 	}
 }
 
-uint symSize(in AllSymbols allSymbols, Symbol a) {
+uint symbolSize(in AllSymbols allSymbols, Symbol a) {
 	uint size = 0;
-	eachCharInSym(allSymbols, a, (char) {
+	eachCharInSymbol(allSymbols, a, (char) {
 		size++;
 	});
 	return size;
 }
 
-enum symbol(string name) = getSym(name);
-private Symbol getSym(string name) {
-	foreach (size_t i, string s; specialSyms)
+enum symbol(string name) = getSymbol(name);
+private Symbol getSymbol(string name) {
+	foreach (size_t i, string s; specialSymbols)
 		if (stringsEqual(s[0 .. $ - 1], name))
 			return Symbol(i);
-	Opt!Symbol opt = tryPackShortSym(name);
+	Opt!Symbol opt = tryPackShortSymbol(name);
 	return force(opt);
 }
 
 CString cStringOfSymbol(ref Alloc alloc, return scope ref const AllSymbols allSymbols, Symbol a) =>
-	isLongSym(a)
-		? asLongSym(allSymbols, a)
+	isLongSymbol(a)
+		? asLongSymbol(allSymbols, a)
 		: withWriter(alloc, (scope ref Writer writer) {
-			writeSym(writer, allSymbols, a);
+			writeSymbol(writer, allSymbols, a);
 		});
 
-char[bufferSize] symAsTempBuffer(size_t bufferSize)(in AllSymbols allSymbols, Symbol a) {
+char[bufferSize] symbolAsTempBuffer(size_t bufferSize)(in AllSymbols allSymbols, Symbol a) {
 	char[bufferSize] res;
-	assert(symSize(allSymbols, a) < bufferSize);
+	assert(symbolSize(allSymbols, a) < bufferSize);
 	size_t index;
-	eachCharInSym(allSymbols, a, (char c) {
+	eachCharInSymbol(allSymbols, a, (char c) {
 		res[index] = c;
 		index++;
 	});
@@ -224,22 +224,22 @@ char[bufferSize] symAsTempBuffer(size_t bufferSize)(in AllSymbols allSymbols, Sy
 	return res;
 }
 
-size_t writeSymAndGetSize(scope ref Writer writer, in AllSymbols allSymbols, Symbol a) {
+size_t writeSymbolAndGetSize(scope ref Writer writer, in AllSymbols allSymbols, Symbol a) {
 	size_t size = 0;
-	eachCharInSym(allSymbols, a, (char c) {
+	eachCharInSymbol(allSymbols, a, (char c) {
 		writer ~= c;
 		size++;
 	});
 	return size;
 }
 
-void writeSym(scope ref Writer writer, in AllSymbols allSymbols, Symbol a) {
-	writeSymAndGetSize(writer, allSymbols, a);
+void writeSymbol(scope ref Writer writer, in AllSymbols allSymbols, Symbol a) {
+	writeSymbolAndGetSize(writer, allSymbols, a);
 }
 
-void writeQuotedSym(scope ref Writer writer, in AllSymbols allSymbols, Symbol a) {
+void writeQuotedSymbol(scope ref Writer writer, in AllSymbols allSymbols, Symbol a) {
 	writer ~= '"';
-	eachCharInSym(allSymbols, a, (char x) {
+	eachCharInSymbol(allSymbols, a, (char x) {
 		writeEscapedChar(writer, x);
 	});
 	writer ~= '"';
@@ -248,10 +248,10 @@ void writeQuotedSym(scope ref Writer writer, in AllSymbols allSymbols, Symbol a)
 private:
 
 // Bit to be set when the symbol is short
-ulong shortSymTag() =>
+ulong shortSymbolTag() =>
 	0x8000000000000000;
 
-size_t shortSymMaxChars() =>
+size_t shortSymbolMaxChars() =>
 	12;
 
 ulong codeForLetter(char a) {
@@ -268,10 +268,10 @@ ulong codeForNextIsCapitalLetter() => 29;
 ulong codeForNextIsDigit() => 30;
 
 ulong setPrefix() =>
-	(codeForLetter('s') << (5 * (shortSymMaxChars - 1))) |
-	(codeForLetter('e') << (5 * (shortSymMaxChars - 2))) |
-	(codeForLetter('t') << (5 * (shortSymMaxChars - 3))) |
-	(codeForHyphen << (5 * (shortSymMaxChars - 4)));
+	(codeForLetter('s') << (5 * (shortSymbolMaxChars - 1))) |
+	(codeForLetter('e') << (5 * (shortSymbolMaxChars - 2))) |
+	(codeForLetter('t') << (5 * (shortSymbolMaxChars - 3))) |
+	(codeForHyphen << (5 * (shortSymbolMaxChars - 4)));
 
 ulong setPrefixSizeBits() =>
 	5 * 4;
@@ -280,8 +280,8 @@ ulong setPrefixLowerBitsMask() =>
 ulong setPrefixMask() =>
 	setPrefixLowerBitsMask << (5 * 8);
 
-Opt!Symbol tryPrefixShortSymWithSet(Symbol a) {
-	if (isShortSym(a) && (a.value & setPrefixMask) == 0) {
+Opt!Symbol tryPrefixShortSymbolWithSet(Symbol a) {
+	if (isShortSymbol(a) && (a.value & setPrefixMask) == 0) {
 		ulong shift = 0;
 		ulong value = a.value;
 		while (true) {
@@ -291,12 +291,12 @@ Opt!Symbol tryPrefixShortSymWithSet(Symbol a) {
 			value = shifted;
 			shift += 5;
 		}
-		return some(Symbol(shortSymTag | ((setPrefix | value) >> shift)));
+		return some(Symbol(shortSymbolTag | ((setPrefix | value) >> shift)));
 	} else
 		return none!Symbol;
 }
 
-Opt!Symbol tryPackShortSym(string str) {
+Opt!Symbol tryPackShortSymbol(string str) {
 	ulong res = 0;
 	size_t len = 0;
 
@@ -322,11 +322,11 @@ Opt!Symbol tryPackShortSym(string str) {
 		} else
 			return none!Symbol;
 	}
-	return len > shortSymMaxChars ? none!Symbol : some(Symbol(res | shortSymTag));
+	return len > shortSymbolMaxChars ? none!Symbol : some(Symbol(res | shortSymbolTag));
 }
 
-void eachCharInShortSym(ulong value, in void delegate(char) @safe @nogc pure nothrow cb) {
-	ulong remaining = shortSymMaxChars;
+void eachCharInShortSymbol(ulong value, in void delegate(char) @safe @nogc pure nothrow cb) {
+	ulong remaining = shortSymbolMaxChars;
 	ulong take() {
 		ulong res = (value >> 55) & 0b11111;
 		value = value << 5;
@@ -360,25 +360,25 @@ void eachCharInShortSym(ulong value, in void delegate(char) @safe @nogc pure not
 }
 
 // Public for test only
-public bool isShortSym(Symbol a) =>
-	(a.value & shortSymTag) != 0;
+public bool isShortSymbol(Symbol a) =>
+	(a.value & shortSymbolTag) != 0;
 
 // Public for test only
-public bool isLongSym(Symbol a) =>
-	!isShortSym(a);
+public bool isLongSymbol(Symbol a) =>
+	!isShortSymbol(a);
 
-@trusted CString asLongSym(return scope ref const AllSymbols allSymbols, Symbol a) {
-	assert(isLongSym(a));
+@trusted CString asLongSymbol(return scope ref const AllSymbols allSymbols, Symbol a) {
+	assert(isLongSymbol(a));
 	return allSymbols.largeStringFromIndex[safeToSizeT(a.value)];
 }
 
-Symbol getSymFromLongStr(ref AllSymbols allSymbols, in string str) {
+Symbol getSymbolFromLongStr(ref AllSymbols allSymbols, in string str) {
 	Opt!Symbol value = allSymbols.largeStringToIndex[str];
 	return has(value) ? force(value) : addLargeString(allSymbols, copyToCString(allSymbols.alloc, str));
 }
 
-immutable string[] specialSyms = [
-	// Putting operator symbols in precedence order so `symPrecedence` from `parseExpr` can be efficient.
+immutable string[] specialSymbols = [
+	// Putting operator symbols in precedence order so `symbolPrecedence` from `parseExpr` can be efficient.
 	// '-' can't be here because it's a short symbol.
 	"||\0",
 	"&&\0",

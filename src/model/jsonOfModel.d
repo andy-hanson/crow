@@ -207,7 +207,7 @@ Json.ObjectField[3] commonDeclFields(
 	];
 
 Json funFlags(ref Alloc alloc, in FunFlags a) {
-	Opt!Symbol[5] syms = [
+	Opt!Symbol[5] symbols = [
 		flag!"bare"(a.bare),
 		flag!"summon"(a.summon),
 		() {
@@ -232,7 +232,7 @@ Json funFlags(ref Alloc alloc, in FunFlags a) {
 			}
 		}(),
 	];
-	return jsonList(mapOp!(Json, Opt!Symbol)(alloc, syms, (ref Opt!Symbol x) =>
+	return jsonList(mapOp!(Json, Opt!Symbol)(alloc, symbols, (ref Opt!Symbol x) =>
 		has(x) ? some(jsonString(force(x))) : none!Json));
 }
 

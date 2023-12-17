@@ -74,7 +74,7 @@ import util.lineAndColumnGetter :
 	LineAndCharacter, LineAndCharacterRange, lineAndCharacterRange, LineAndColumnGetter, lineLengthInCharacters;
 import util.opt : force, has, Opt;
 import util.sourceRange : compareRange, Pos, rangeOfStartAndLength, rangeOfStartAndName, Range;
-import util.symbol : AllSymbols, Symbol, symbol, symSize;
+import util.symbol : AllSymbols, Symbol, symbol, symbolSize;
 import util.uri : AllUris;
 import util.util : stringOfEnum;
 
@@ -256,7 +256,7 @@ void stringLiteral(scope ref TokensBuilder a, in Range range) {
 }
 
 Range rangeAtName(in AllSymbols allSymbols, Pos start, Symbol name) =>
-	Range(start, start + symSize(allSymbols, name));
+	Range(start, start + symbolSize(allSymbols, name));
 
 void addImportTokens(
 	scope ref TokensBuilder tokens,
@@ -421,7 +421,7 @@ void addEnumOrFlagsTokens(
 		declare(tokens, TokenType.enumMember, member.range);
 		if (has(member.value)) {
 			uint addLen = " = ".length;
-			Pos pos = member.range.start + symSize(allSymbols, member.name) + addLen;
+			Pos pos = member.range.start + symbolSize(allSymbols, member.name) + addLen;
 			numberLiteral(tokens, Range(pos, member.range.end));
 		}
 	}
@@ -430,7 +430,7 @@ void addEnumOrFlagsTokens(
 void addVarDeclTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in VarDeclAst a) {
 	declare(tokens, TokenType.variable, rangeOfNameAndRange(a.name, allSymbols));
 	addTypeParamsTokens(tokens, allSymbols, a.typeParams);
-	keyword(tokens, rangeOfStartAndLength(a.kindPos, symSize(allSymbols, symbolOfVarKind(a.kind))));
+	keyword(tokens, rangeOfStartAndLength(a.kindPos, symbolSize(allSymbols, symbolOfVarKind(a.kind))));
 	addTypeTokens(tokens, allSymbols, a.type);
 	addFunModifierTokens(tokens, allSymbols, a.modifiers);
 }

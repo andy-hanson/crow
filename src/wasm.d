@@ -49,14 +49,14 @@ extern(C) size_t getParameterBufferLength() => parameterBuffer.length;
 // Like FetchMemoryCb but not pure
 alias FetchMemoryCbImpure = ulong[] delegate(size_t sizeWords, size_t timesCalled) @system @nogc nothrow;
 
-@system extern(C) Server* newServer(scope immutable char* paramsCStr) {
+@system extern(C) Server* newServer(scope immutable char* paramsCString) {
 	Server* server = &serverStorage;
 	FetchMemoryCbImpure fetchMemoryCb = (size_t sizeWords, size_t timesCalled) {
 		assert(timesCalled == 0);
 		return serverBuffer;
 	};
 	server.__ctor(cast(FetchMemoryCb) fetchMemoryCb);
-	CString paramsStr = CString(paramsCStr);
+	CString paramsStr = CString(paramsCString);
 	withTempAlloc!void(server.metaAlloc, (ref Alloc alloc) {
 		Json params = mustParseJson(alloc, server.allSymbols, paramsStr);
 		setIncludeDir(server, parseUri(server.allUris, get!"includeDir"(params).as!string));

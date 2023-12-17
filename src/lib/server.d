@@ -633,6 +633,7 @@ Programs buildToLowProgram(
 immutable struct BuildToCResult {
 	CString cSource;
 	CString diagnostics;
+	bool hasFatalDiagnostics;
 	ExternLibraries externLibraries;
 }
 BuildToCResult buildToC(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri main) {
@@ -643,6 +644,7 @@ BuildToCResult buildToC(scope ref Perf perf, ref Alloc alloc, ref Server server,
 			? writeToC(alloc, alloc, ctx, force(programs.lowProgram))
 			: cString!"",
 		showDiagnostics(alloc, server, programs.program),
+		hasFatalDiagnostics(programs.programWithMain),
 		has(programs.lowProgram) ? force(programs.lowProgram).externLibraries : []);
 }
 

@@ -16,7 +16,7 @@ import frontend.parse.lexer :
 	takeNextToken,
 	Token,
 	TokenAndData;
-import frontend.parse.lexToken : isSymToken;
+import frontend.parse.lexToken : isSymbolToken;
 import model.ast : NameAndRange;
 import model.parseDiag : ParseDiag;
 import util.col.array : contains;
@@ -43,7 +43,7 @@ bool tryTakeToken(ref Lexer lexer, in Token[] expected) {
 
 bool tryTakeOperator(ref Lexer lexer, Symbol expected) =>
 	tryTakeTokenIf(lexer, (TokenAndData x) =>
-		x.token == Token.operator && x.asSym() == expected);
+		x.token == Token.operator && x.asSymbol == expected);
 
 private bool tryTakeTokenIf(ref Lexer lexer, in bool delegate(TokenAndData) @safe @nogc pure nothrow cb) {
 	Opt!bool res = tryTakeToken!bool(lexer, (TokenAndData x) => cb(x) ? some(true) : none!bool);
@@ -120,7 +120,7 @@ NameAndRange takeNameAndRangeAllowUnderscore(ref Lexer lexer) {
 
 Opt!Symbol tryTakeName(ref Lexer lexer) =>
 	tryTakeToken!Symbol(lexer, (TokenAndData x) =>
-		x.token == Token.name ? some(x.asSym()) : none!Symbol);
+		x.token == Token.name ? some(x.asSymbol) : none!Symbol);
 
 Symbol takeName(ref Lexer lexer) =>
 	takeNameAndRange(lexer).name;
@@ -128,8 +128,8 @@ Symbol takeName(ref Lexer lexer) =>
 NameAndRange takeNameOrOperator(ref Lexer lexer) {
 	Pos start = curPos(lexer);
 	Opt!Symbol res = tryTakeToken!Symbol(lexer, (TokenAndData x) =>
-		isSymToken(x.token) && x.token != Token.nameOrOperatorColonEquals
-			? some(x.asSym())
+		isSymbolToken(x.token) && x.token != Token.nameOrOperatorColonEquals
+			? some(x.asSymbol)
 			: none!Symbol);
 	if (has(res))
 		return NameAndRange(start, force(res));

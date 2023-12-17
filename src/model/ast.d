@@ -169,7 +169,7 @@ private uint suffixLength(TypeAst.SuffixSpecial.Kind a) {
 	}
 }
 
-Symbol symForTypeAstMap(TypeAst.Map.Kind a) {
+Symbol symbolForTypeAstMap(TypeAst.Map.Kind a) {
 	final switch (a) {
 		case TypeAst.Map.Kind.data:
 			return symbol!"map";
@@ -178,7 +178,7 @@ Symbol symForTypeAstMap(TypeAst.Map.Kind a) {
 	}
 }
 
-Symbol symForTypeAstSuffix(TypeAst.SuffixSpecial.Kind a) {
+Symbol symbolForTypeAstSuffix(TypeAst.SuffixSpecial.Kind a) {
 	final switch (a) {
 		case TypeAst.SuffixSpecial.Kind.future:
 			return symbol!"future";

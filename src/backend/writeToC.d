@@ -1346,8 +1346,8 @@ WriteExprResult writeSpecialUnary(
 	in LowType type,
 	in LowExprKind.SpecialUnary a,
 ) {
-	WriteExprResult prefix(string prefix) {
-		return writeInlineableSingleArg(
+	WriteExprResult prefix(string prefix) =>
+		writeInlineableSingleArg(
 			writer, indent, ctx, locals, writeKind, type, a.arg,
 			(in WriteExprResult temp) {
 				writer ~= '(';
@@ -1355,21 +1355,23 @@ WriteExprResult writeSpecialUnary(
 				writeTempOrInline(writer, ctx, locals, a.arg, temp);
 				writer ~= ')';
 			});
-	}
 
-	WriteExprResult writeCast() {
-		return writeInlineableSingleArg(
+	WriteExprResult writeCast() =>
+		writeInlineableSingleArg(
 			writer, indent, ctx, locals, writeKind, type, a.arg,
 			(in WriteExprResult temp) {
-				writer ~= '(';
-				writeCastToType(writer, ctx.ctx, type);
-				writeTempOrInline(writer, ctx, locals, a.arg, temp);
-				writer ~= ')';
+				if (isEmptyType(ctx, a.arg.type))
+					writeTempOrInline(writer, ctx, locals, a.arg, temp);
+				else {
+					writer ~= '(';
+					writeCastToType(writer, ctx.ctx, type);
+					writeTempOrInline(writer, ctx, locals, a.arg, temp);
+					writer ~= ')';
+				}
 			});
-	}
 
-	WriteExprResult specialCall(string name) {
-		return writeInlineableSingleArg(
+	WriteExprResult specialCall(string name) =>
+		writeInlineableSingleArg(
 			writer, indent, ctx, locals, writeKind, type, a.arg,
 			(in WriteExprResult temp) {
 				writer ~= name;
@@ -1377,7 +1379,6 @@ WriteExprResult writeSpecialUnary(
 				writeTempOrInline(writer, ctx, locals, a.arg, temp);
 				writer ~= ')';
 			});
-	}
 
 	final switch (a.kind) {
 		case LowExprKind.SpecialUnary.Kind.acosFloat64:

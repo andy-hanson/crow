@@ -33,7 +33,7 @@ import util.col.hashTable : ValueAndDidAdd;
 import util.col.mutMultiMap : countKeys, eachValueForKey, MutMultiMap;
 import util.memory : allocate;
 import util.opt : force, Opt;
-import util.symbol : AllSymbols, Symbol, symbol, writeSym;
+import util.symbol : AllSymbols, Symbol, symbol, writeSymbol;
 import util.uri : parseUri, Uri;
 import util.util : ptrTrustMe;
 import util.writer : debugLogWithWriter, writeNewline, Writer;
@@ -170,13 +170,13 @@ void assertReferencedBy(in Test test, in AllInsts insts, in ExpectedReferences[]
 void writeAnyInst(scope ref Writer writer, in AllSymbols allSymbols, in AllInsts a, in AnyInst inst) {
 	inst.matchIn!void(
 		(in StructInst x) {
-			writeSym(writer, allSymbols, x.decl.name);
+			writeSymbol(writer, allSymbols, x.decl.name);
 		},
 		(in SpecInst x) {
-			writeSym(writer, allSymbols, x.decl.name);
+			writeSymbol(writer, allSymbols, x.decl.name);
 		},
 		(in FunInst x) {
-			writeSym(writer, allSymbols, x.decl.name);
+			writeSymbol(writer, allSymbols, x.decl.name);
 		});
 }
 

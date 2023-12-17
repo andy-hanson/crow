@@ -3,7 +3,7 @@ module backend.cCompile;
 @safe @nogc nothrow: // not pure
 
 import app.appUtil : printError;
-import app.fileSystem : spawnAndWait;
+import app.fileSystem : printSignalAndExit, spawnAndWait;
 version (Windows) {
 	import app.fileSystem : findPathToCl;
 }
@@ -16,7 +16,7 @@ import util.exitCode : ExitCode;
 import util.opt : force, has, none;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.string : CString, cString;
-import util.symbol : AllSymbols, concatSyms, cStringOfSymbol, Symbol, symbol, writeSym;
+import util.symbol : AllSymbols, concatSymbols, cStringOfSymbol, Symbol, symbol, writeSymbol;
 import util.uri : AllUris, asFileUri, childFileUri, FileUri, cStringOfFileUri, isFileUri, Uri, writeFileUri;
 import util.util : todo;
 import util.writer : withWriter, Writer;
@@ -46,7 +46,7 @@ import util.writer : withWriter, Writer;
 		scope CString executable = cString!"/usr/bin/cc";
 	}
 	return withMeasure!(ExitCode, () =>
-		spawnAndWait(alloc, allUris, executable, args)
+		printSignalAndExit(spawnAndWait(alloc, allUris, executable, args)),
 	)(perf, alloc, PerfMeasure.cCompile);
 }
 
@@ -70,7 +70,7 @@ CString[] cCompileArgs(
 	}
 	foreach (ExternLibrary x; externLibraries) {
 		version (Windows) {
-			Symbol xDotLib = concatSyms(allSymbols, [x.libraryName, symbol!".lib"]);
+			Symbol xDotLib = concatSymbols(allSymbols, [x.libraryName, symbol!".lib"]);
 			if (has(x.configuredDir)) {
 				FileUri path = childFileUri(allUris, force(x.configuredDir), xDotLib);
 				add(alloc, args, cStringOfFileUri(alloc, allUris, path));
@@ -95,7 +95,7 @@ CString[] cCompileArgs(
 
 			add(alloc, args, withWriter(alloc, (scope ref Writer writer) {
 				writer ~= "-l";
-				writeSym(writer, allSymbols, x.libraryName);
+				writeSymbol(writer, allSymbols, x.libraryName);
 			}));
 		}
 	}
@@ -137,15 +137,16 @@ CString[] cCompilerArgs(in CCompileOptions options) {
 			cString!"-Wall",
 			cString!"-ansi",
 			cString!"-std=c17",
+			cString!"-Wno-address-of-packed-member",
+			cString!"-Wno-builtin-declaration-mismatch",
 			cString!"-Wno-maybe-uninitialized",
 			cString!"-Wno-missing-field-initializers",
+			cString!"-Wno-unused-but-set-parameter",
+			cString!"-Wno-unused-but-set-variable",
 			cString!"-Wno-unused-function",
 			cString!"-Wno-unused-parameter",
-			cString!"-Wno-unused-but-set-variable",
 			cString!"-Wno-unused-variable",
 			cString!"-Wno-unused-value",
-			cString!"-Wno-builtin-declaration-mismatch",
-			cString!"-Wno-address-of-packed-member",
 			cString!"-Ofast",
 		];
 		static immutable CString[] regularArgs = optimizedArgs[0 .. $ - 1] ~ [cString!"-g"];

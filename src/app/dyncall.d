@@ -13,7 +13,7 @@ import interpret.extern_ :
 	FunPtr,
 	FunPtrInputs,
 	WriteError,
-	writeSymToCb;
+	writeSymbolToCb;
 import interpret.runBytecode : syntheticCall;
 import interpret.stacks : dataPush, Stacks;
 import model.lowModel : ExternLibraries, ExternLibrary;
@@ -28,7 +28,7 @@ import util.late : Late, late, lateGet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
 import util.string : CString, cString;
-import util.symbol : AllSymbols, concatSyms, Symbol, symbol, symAsTempBuffer;
+import util.symbol : AllSymbols, concatSymbols, Symbol, symbol, symbolAsTempBuffer;
 import util.uri : AllUris, asFileUri, childUri, fileUriToTempStr, isFileUri, TempStrForPath, Uri;
 import util.util : todo, unreachable;
 
@@ -118,9 +118,9 @@ LibraryAndError getLibrary(
 
 Symbol dllOrSoName(ref AllSymbols allSymbols, immutable Symbol libraryName) {
 	version (Windows) {
-		return concatSyms(allSymbols, [libraryName, symbol!".dll"]);
+		return concatSymbols(allSymbols, [libraryName, symbol!".dll"]);
 	} else {
-		return concatSyms(allSymbols, [symbol!"lib", libraryName, symbol!".so"]);
+		return concatSymbols(allSymbols, [symbol!"lib", libraryName, symbol!".so"]);
 	}
 }
 
@@ -135,7 +135,7 @@ Symbol dllOrSoName(ref AllSymbols allSymbols, immutable Symbol libraryName) {
 }
 
 @trusted LibraryAndError loadLibraryFromName(in AllSymbols allSymbols, Symbol name, in WriteError writeError) {
-	char[256] buf = symAsTempBuffer!256(allSymbols, name);
+	char[256] buf = symbolAsTempBuffer!256(allSymbols, name);
 	return loadLibraryFromName(CString(cast(immutable) buf.ptr), writeError);
 }
 
@@ -182,9 +182,9 @@ LoadedLibraries loadLibrariesInner(
 		});
 	foreach (KeyValuePair!(Symbol, Symbol) x; failures) {
 		writeError(cString!"Could not load extern function ");
-		writeSymToCb(writeError, allSymbols, x.value);
+		writeSymbolToCb(writeError, allSymbols, x.value);
 		writeError(cString!" from library ");
-		writeSymToCb(writeError, allSymbols, x.key);
+		writeSymbolToCb(writeError, allSymbols, x.key);
 		writeError(cString!"\n");
 	}
 	return LoadedLibraries(
@@ -193,7 +193,7 @@ LoadedLibraries loadLibrariesInner(
 }
 
 @trusted pure Opt!FunPtr getExternFunPtr(in AllSymbols allSymbols, DLLib* library, Symbol name) {
-	immutable char[256] nameBuffer = symAsTempBuffer!256(allSymbols, name);
+	immutable char[256] nameBuffer = symbolAsTempBuffer!256(allSymbols, name);
 	DCpointer ptr = dlFindSymbol(library, nameBuffer.ptr);
 	return ptr == null ? none!FunPtr : some(FunPtr(cast(immutable) ptr));
 }

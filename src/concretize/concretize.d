@@ -8,7 +8,7 @@ import concretize.concretizeCtx :
 	boolType,
 	concreteFunForWrapMain,
 	ConcretizeCtx,
-	cStrType,
+	cStringType,
 	deferredFillRecordAndUnionBodies,
 	finishConcreteVars,
 	getOrAddNonTemplateConcreteFunAndFillBody,
@@ -21,7 +21,7 @@ import model.model : CommonFuns, MainFun, ProgramWithMain;
 import util.alloc.alloc : Alloc;
 import util.col.arrayBuilder : finish;
 import util.col.map : Map;
-import util.col.mutArr : moveToArr, MutArr;
+import util.col.mutArr : moveToArray, MutArr;
 import util.col.mutMap : isEmpty, mapToMap;
 import util.late : lateSet;
 import util.perf : Perf, PerfMeasure, withMeasure;
@@ -87,7 +87,7 @@ ConcreteProgram concretizeInner(
 			alloc,
 			ctx.funStructToImpls,
 			(ref MutArr!ConcreteLambdaImpl it) =>
-				moveToArr(alloc, it)),
+				moveToArray(alloc, it)),
 		ConcreteCommonFuns(
 			allocFun,
 			commonFuns.funOrActSubscriptFunDecls,
@@ -96,7 +96,7 @@ ConcreteProgram concretizeInner(
 			rtMainConcreteFun,
 			throwImplFun,
 			userMainConcreteFun));
-	checkConcreteProgram(printCtx, ConcreteCommonTypes(boolType(ctx), cStrType(ctx), voidType(ctx)), res);
+	checkConcreteProgram(printCtx, ConcreteCommonTypes(boolType(ctx), cStringType(ctx), voidType(ctx)), res);
 	return res;
 }
 

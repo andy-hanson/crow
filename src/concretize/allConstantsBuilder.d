@@ -12,7 +12,7 @@ import model.concreteModel :
 import model.constant : Constant, constantZero;
 import util.alloc.alloc : Alloc;
 import util.col.array : arraysEqual, fillArray, findIndex, isEmpty, newArray, only;
-import util.col.mutArr : asTemporaryArray, moveToArr, MutArr, mutArrSize, push;
+import util.col.mutArr : asTemporaryArray, moveToArray, MutArr, mutArrSize, push;
 import util.col.mutMap : getOrAdd, MutMap, size, values, valuesArray;
 import util.memory : initMemory;
 import util.opt : force, has, Opt;
@@ -24,7 +24,7 @@ struct AllConstantsBuilder {
 	private:
 	@disable this(ref const AllConstantsBuilder);
 	MutMap!(CString, Constant.CString) cStrings;
-	MutMap!(Symbol, Constant) syms;
+	MutMap!(Symbol, Constant) symbols;
 	MutArr!CString cStringValues;
 	MutMap!(ConcreteType, ArrTypeAndConstants) arrs;
 	MutMap!(ConcreteStruct*, PointerTypeAndConstants) pointers;
@@ -45,9 +45,9 @@ private struct PointerTypeAndConstants {
 AllConstantsConcrete finishAllConstants(
 	ref Alloc alloc,
 	scope ref AllConstantsBuilder a,
-	ConcreteStruct* arrSymStruct,
+	ConcreteStruct* symbolArrayStruct,
 ) {
-	Constant staticSymbols = getConstantArr(alloc, a, arrSymStruct, valuesArray(alloc, a.syms));
+	Constant staticSymbols = getConstantArray(alloc, a, symbolArrayStruct, valuesArray(alloc, a.symbols));
 
 	ArrTypeAndConstantsConcrete[] arrays = fillArray!ArrTypeAndConstantsConcrete(
 		alloc, size(a.arrs), ArrTypeAndConstantsConcrete(null));
@@ -55,18 +55,25 @@ AllConstantsConcrete finishAllConstants(
 		initMemory(&arrays[x.typeIndex], ArrTypeAndConstantsConcrete(
 			x.arrType,
 			x.elementType,
-			moveToArr!(immutable Constant[])(alloc, x.constants)));
+			moveToArray!(immutable Constant[])(alloc, x.constants)));
 
 	PointerTypeAndConstantsConcrete[] pointers = fillArray!PointerTypeAndConstantsConcrete(
 		alloc, size(a.pointers), PointerTypeAndConstantsConcrete(null));
 	foreach (ConcreteStruct* pointerType, PointerTypeAndConstants x; a.pointers)
-		initMemory(&pointers[x.typeIndex], PointerTypeAndConstantsConcrete(pointerType, moveToArr(alloc, x.constants)));
+		initMemory(
+			&pointers[x.typeIndex],
+			PointerTypeAndConstantsConcrete(pointerType, moveToArray(alloc, x.constants)));
 
-	return AllConstantsConcrete(moveToArr(alloc, a.cStringValues), staticSymbols, arrays, pointers);
+	return AllConstantsConcrete(moveToArray(alloc, a.cStringValues), staticSymbols, arrays, pointers);
 }
 
 // TODO: this will be used when creating constant records by-ref.
-Constant getConstantPtr(ref Alloc alloc, ref AllConstantsBuilder constants, ConcreteStruct* pointee, Constant value) {
+Constant getConstantPointer(
+	ref Alloc alloc,
+	ref AllConstantsBuilder constants,
+	ConcreteStruct* pointee,
+	Constant value,
+) {
 	PointerTypeAndConstants* d = ptrTrustMe(getOrAdd(alloc, constants.pointers, pointee, () =>
 		PointerTypeAndConstants(size(constants.pointers), MutArr!(immutable Constant)())));
 	return Constant(Constant.Pointer(
@@ -74,7 +81,7 @@ Constant getConstantPtr(ref Alloc alloc, ref AllConstantsBuilder constants, Conc
 		findOrPush!Constant(alloc, d.constants, (in Constant a) => a == value, () => value)));
 }
 
-Constant getConstantArr(
+Constant getConstantArray(
 	ref Alloc alloc,
 	scope ref AllConstantsBuilder allConstants,
 	ConcreteStruct* arrStruct,
@@ -104,15 +111,15 @@ private Constant constantEmptyArr() {
 	return Constant(Constant.Record(fields));
 }
 
-private Constant getConstantCStrForSym(
+private Constant getConstantCStringForSymbol(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
 	ref const AllSymbols allSymbols,
 	Symbol value,
 ) =>
-	getConstantCStr(alloc, allConstants, cStringOfSymbol(alloc, allSymbols, value));
+	getConstantCString(alloc, allConstants, cStringOfSymbol(alloc, allSymbols, value));
 
-Constant getConstantCStr(ref Alloc alloc, ref AllConstantsBuilder allConstants, CString value) =>
+Constant getConstantCString(ref Alloc alloc, ref AllConstantsBuilder allConstants, CString value) =>
 	Constant(getOrAdd!(CString, Constant.CString)(
 		alloc,
 		allConstants.cStrings,
@@ -124,15 +131,15 @@ Constant getConstantCStr(ref Alloc alloc, ref AllConstantsBuilder allConstants, 
 			return Constant.CString(index);
 		}));
 
-Constant getConstantSym(
+Constant getConstantSymbol(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
 	ref const AllSymbols allSymbols,
 	Symbol value,
 ) =>
-	getOrAdd!(Symbol, Constant)(alloc, allConstants.syms, value, () =>
+	getOrAdd!(Symbol, Constant)(alloc, allConstants.symbols, value, () =>
 		Constant(Constant.Record(newArray!Constant(alloc, [
-			getConstantCStrForSym(alloc, allConstants, allSymbols, value)]))));
+			getConstantCStringForSymbol(alloc, allConstants, allSymbols, value)]))));
 
 private:
 

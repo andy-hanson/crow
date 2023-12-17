@@ -18,7 +18,7 @@ import model.lowModel :
 import model.model : Local;
 import util.col.array : only;
 import util.writer : Writer, writeWithCommas;
-import util.symbol : writeSym;
+import util.symbol : writeSymbol;
 import util.util : stringOfEnum;
 
 void writeFunName(scope ref Writer writer, in ShowCtx ctx, in LowProgram lowProgram, LowFunIndex fun) {
@@ -31,7 +31,7 @@ void writeFunName(scope ref Writer writer, in ShowCtx ctx, in LowProgram lowProg
 			writeConcreteFunName(writer, ctx, x);
 		},
 		(in LowFunSource.Generated x) {
-			writeSym(writer, ctx.allSymbols, x.name);
+			writeSymbol(writer, ctx.allSymbols, x.name);
 			writeLowTypeArgs(writer, ctx, lowProgram, x.typeArgs);
 			writer ~= " (generated)";
 		});
@@ -61,13 +61,13 @@ void writeFunSig(scope ref Writer writer, in ShowCtx ctx, in LowProgram lowProgr
 				(in ConcreteLocal param) {
 					param.source.matchIn!void(
 						(in Local p) {
-							writeSym(writer, ctx.allSymbols, p.name);
+							writeSymbol(writer, ctx.allSymbols, p.name);
 						},
 						(in ConcreteLocalSource.Closure) {
 							writer ~= "<closure>";
 						},
 						(in ConcreteLocalSource.Generated x) {
-							writeSym(writer, ctx.allSymbols, x.name);
+							writeSymbol(writer, ctx.allSymbols, x.name);
 						});
 					writer ~= ' ';
 					writeConcreteType(writer, ctx, param.type);
@@ -116,7 +116,7 @@ void writeLowType(scope ref Writer writer, in ShowCtx ctx, in AllLowTypes lowTyp
 void writeConcreteFunName(scope ref Writer writer, in ShowCtx ctx, in ConcreteFun a) {
 	a.source.matchIn!void(
 		(in ConcreteFunKey x) {
-			writeSym(writer, ctx.allSymbols, x.decl.name);
+			writeSymbol(writer, ctx.allSymbols, x.decl.name);
 			writeConcreteTypeArgs(writer, ctx, x.typeArgs);
 			// TODO: write spec impls?
 		},
@@ -172,7 +172,7 @@ void writeConcreteStruct(scope ref Writer writer, in ShowCtx ctx, in ConcreteStr
 					});
 					writer ~= ") ";
 			}
-			writeSym(writer, ctx.allSymbols, x.inst.decl.name);
+			writeSymbol(writer, ctx.allSymbols, x.inst.decl.name);
 		},
 		(in ConcreteStructSource.Lambda x) {
 			writeConcreteFunName(writer, ctx, *x.containingFun);

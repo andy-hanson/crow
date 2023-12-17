@@ -43,13 +43,15 @@ void debugLogWithWriter(in void delegate(scope ref Writer) @safe @nogc pure noth
 }
 void debugLogWithWriter(in void delegate(scope ref Alloc, scope ref Writer) @safe @nogc pure nothrow cb) {
 	debug {
-		withStackAlloc!0x1000((scope ref Alloc alloc) {
-			debugLog(withWriter(alloc, (scope ref Writer writer) {
-				cb(alloc, writer);
-			}).ptr);
-		});
+		debugLog(withStackWriter(cb).ptr);
 	}
 }
+// Result is temporary
+CString withStackWriter(in void delegate(scope ref Alloc, scope ref Writer) @safe @nogc pure nothrow cb) =>
+	withStackAlloc!0x1000((scope ref Alloc alloc) =>
+		withWriter(alloc, (scope ref Writer writer) {
+			cb(alloc, writer);
+		}));
 
 @trusted CString withWriter(ref Alloc alloc, in void delegate(scope ref Writer writer) @safe @nogc pure nothrow cb) {
 	scope Writer writer = Writer(&alloc);

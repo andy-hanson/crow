@@ -21,6 +21,7 @@ unit-test: bin\crow-debug.exe
 
 crow-unit-tests: bin\crow.exe
 	.\bin\crow.exe run test\crow-unit-tests.crow
+	.\bin\crow.exe run test\crow-unit-tests.crow --aot
 
 end-to-end-test: bin\crow.exe
 	.\bin\crow.exe run test\test-end-to-end.crow

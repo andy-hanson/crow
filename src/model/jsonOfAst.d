@@ -53,7 +53,7 @@ import model.ast :
 	StructDeclAst,
 	stringOfFieldMutabilityAstKind,
 	stringOfSpecialFlag,
-	symForTypeAstSuffix,
+	symbolForTypeAstSuffix,
 	symbolOfModifierKind,
 	ThenAst,
 	ThrowAst,
@@ -361,7 +361,7 @@ Json jsonOfTypeAst(ref Alloc alloc, scope ref Ctx ctx, in TypeAst a) =>
 				kindField!"suffix-special",
 				field!"left"(jsonOfTypeAst(alloc, ctx, x.left)),
 				field!"suffix-pos"(x.suffixPos),
-				field!"suffix"(symForTypeAstSuffix(x.kind))]),
+				field!"suffix"(symbolForTypeAstSuffix(x.kind))]),
 		(in TypeAst.Tuple x) =>
 			jsonObject(alloc, [
 				kindField!"tuple",

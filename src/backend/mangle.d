@@ -30,7 +30,7 @@ import util.col.mapBuilder : finishMap, mustAddToMap, MapBuilder;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapEachValue, mapFullIndexMap;
 import util.col.mutMap : getOrAdd, insertOrUpdate, MutMap, setInMap;
 import util.opt : force, has, none, Opt, some;
-import util.symbol : AllSymbols, eachCharInSym, Symbol, symbol, writeSym;
+import util.symbol : AllSymbols, eachCharInSymbol, Symbol, symbol, writeSymbol;
 import util.union_ : Union;
 import util.util : todo;
 import util.writer : Writer;
@@ -175,7 +175,7 @@ private void writeConcreteFunMangledName(
 	source.source.matchIn!void(
 		(in ConcreteFunKey x) {
 			if (source.body_.isA!(ConcreteFunBody.Extern))
-				writeSym(writer, *mangledNames.allSymbols, x.decl.name);
+				writeSymbol(writer, *mangledNames.allSymbols, x.decl.name);
 			else {
 				writeMangledName(writer, mangledNames, x.decl.name);
 				maybeWriteIndexSuffix(writer, mangledNames.funToNameIndex[source]);
@@ -286,7 +286,7 @@ public void writeMangledName(ref Writer writer, in MangledNames mangledNames, Sy
 
 	if (conflictsWithCName(a))
 		writer ~= '_';
-	eachCharInSym(*mangledNames.allSymbols, a, (char c) {
+	eachCharInSymbol(*mangledNames.allSymbols, a, (char c) {
 		Opt!string mangled = mangleChar(c);
 		if (has(mangled))
 			writer ~= force(mangled);

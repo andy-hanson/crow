@@ -6,7 +6,7 @@ import util.alloc.alloc : Alloc;
 import util.comparison : compareNat32, Comparison;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonObject;
-import util.symbol : AllSymbols, Symbol, symSize;
+import util.symbol : AllSymbols, Symbol, symbolSize;
 import util.lineAndColumnGetter :
 	LineAndCharacter, lineAndCharacterAtPos, LineAndCharacterRange, LineAndColumnGetter, PosKind;
 import util.uri : AllUris, compareUriAlphabetically, Uri;
@@ -52,7 +52,7 @@ bool hasPos(in Range a, Pos p) =>
 	a.start <= p && p <= a.end;
 
 Range rangeOfStartAndName(Pos start, Symbol name, in AllSymbols allSymbols) =>
-	rangeOfStartAndLength(start, symSize(allSymbols, name));
+	rangeOfStartAndLength(start, symbolSize(allSymbols, name));
 
 Range rangeOfStartAndLength(Pos start, size_t length) =>
 	Range(start, safeToUint(start + length));

@@ -74,18 +74,22 @@ options:
 -run-single-crow-test failure[]^(path-to-crow string, path string, options test-options) summon
 	if options print-tests
 		out print "crow run {path}"
-	interpret-failures <- path-to-crow run-single-runnable-test path, interpret, \
-		options.overwrite-output
-	if interpret-failures.is-empty && !(trusted is-windows)
-		path-to-crow run-single-runnable-test path, jit, options.overwrite-output
+	interpret-failures <- path-to-crow run-single path, interpret, options.overwrite-output
+	jit-failures <- if interpret-failures.is-empty && !(trusted is-windows)
+		path-to-crow run-single path, jit, options.overwrite-output
 	else
 		interpret-failures,
+	if jit-failures is-empty
+		path-to-crow run-single path, aot, options.overwrite-output
+	else
+		jit-failures,
 
 run-kind enum
 	interpret
 	jit
+	aot
 
--run-single-runnable-test failure[]^(
+-run-single failure[]^(
 	path-to-crow string,
 	path string,
 	run-kind run-kind,
@@ -96,6 +100,8 @@ run-kind enum
 		"run", path
 	as jit
 		"run", path, "--jit"
+	as aot
+		"run", path, "--aot"
 	res = path-to-crow spawn-and-wait-result args
 	(path handle-output "{path}.out", res.format-output, overwrite-output),
 

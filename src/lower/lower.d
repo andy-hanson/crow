@@ -127,7 +127,7 @@ import util.col.map : KeyValuePair, makeMapWithIndex, mustGet, Map;
 import util.col.mapBuilder : finishMap, mustAddToMap, MapBuilder;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapEachValue, fullIndexMapOfArr, fullIndexMapSize;
 import util.col.mutIndexMap : getOrAddAndDidAdd, mustGet, MutIndexMap, newMutIndexMap;
-import util.col.mutArr : moveToArr, MutArr, push;
+import util.col.mutArr : moveToArray, MutArr, push;
 import util.col.mutMap : getOrAdd, mapToArray, MutMap, MutMap, ValueAndDidAdd;
 import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2MustGet0, stackMap2MustGet1, withStackMap2;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
@@ -728,7 +728,7 @@ AllLowFuns getAllLowFuns(
 				ExternLibrary(
 					libraryName,
 					configExtern[libraryName],
-					moveToArr!Symbol(getLowTypeCtx.alloc, xs))));
+					moveToArray!Symbol(getLowTypeCtx.alloc, xs))));
 }
 
 alias VarIndices = Map!(immutable ConcreteVar*, LowVarIndex);

@@ -9,7 +9,7 @@ import lib.lsp.lspTypes : Pipe;
 import model.lowModel : ExternLibrary;
 import test.testUtil : Test;
 import util.col.map : mustGet;
-import util.col.mutArr : moveToArr, MutArr, pushAll;
+import util.col.mutArr : moveToArray, MutArr, pushAll;
 import util.exitCode : ExitCode;
 import util.opt : force, none, Opt;
 import util.string : CString, cString, stringsEqual;
@@ -90,6 +90,6 @@ void testWrite(ref Test test) {
 			return ExitCode(42);
 		});
 	assert(result.value == 42);
-	assert(stringsEqual(moveToArr(test.alloc, stdout), "gnarway c"));
-	assert(stringsEqual(moveToArr(test.alloc, stderr), "tu"));
+	assert(stringsEqual(moveToArray(test.alloc, stdout), "gnarway c"));
+	assert(stringsEqual(moveToArray(test.alloc, stderr), "tu"));
 }

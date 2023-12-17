@@ -12,7 +12,7 @@ import interpret.extern_ :
 	FunPtr,
 	FunPtrInputs,
 	WriteError,
-	writeSymToCb;
+	writeSymbolToCb;
 import interpret.runBytecode : syntheticCall;
 import interpret.stacks : dataPush, Stacks;
 import model.lowModel : ExternLibraries, ExternLibrary;
@@ -67,9 +67,9 @@ Opt!ExternFunPtrsForAllLibraries getAllFakeExternFuns(
 				fakeExternFunsForLibrary(alloc, failures, allSymbols, x)));
 	foreach (immutable KeyValuePair!(Symbol, Symbol) x; failures) {
 		writeError(cString!"Could not load extern function ");
-		writeSymToCb(writeError, allSymbols, x.value);
+		writeSymbolToCb(writeError, allSymbols, x.value);
 		writeError(cString!" from library ");
-		writeSymToCb(writeError, allSymbols, x.key);
+		writeSymbolToCb(writeError, allSymbols, x.key);
 		writeError(cString!"\n");
 	}
 	return mutArrIsEmpty(failures) ? some(res) : none!ExternFunPtrsForAllLibraries;
