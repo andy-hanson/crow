@@ -1066,15 +1066,27 @@ LowExpr getAllocExpr2Expr(ref GetLowExprCtx ctx, UriAndRange range, ref LowExpr 
 	LowExpr(ptrType, range, getAllocExpr2(ctx, range, arg, ptrType));
 
 LowExprKind getAllocExpr2(ref GetLowExprCtx ctx, UriAndRange range, ref LowExpr arg, LowType ptrType) {
-	// (temp0 = (T*) alloc(sizeof(T)), *temp0 = arg, temp0)
-	LowLocal* local = addTempLocal(ctx, ptrType);
-	LowExpr sizeofT = genSizeOf(range, asPtrGcPointee(ptrType));
-	LowExpr allocatePtr = getAllocateExpr(ctx.alloc, ctx.allocFunIndex, range, ptrType, sizeofT);
-	LowExpr getTemp = genLocalGet(range, local);
-	LowExpr setTemp = genWriteToPtr(ctx.alloc, range, getTemp, arg);
-	return LowExprKind(allocate(ctx.alloc, LowExprKind.Let(
-		local, allocatePtr, genSeq(ctx.alloc, range, setTemp, getTemp))));
+	if (isEmptyType(*ctx.allTypes, arg.type))
+		return mayHaveSideEffects(arg)
+			? genSeqKind(ctx.alloc, genDrop(ctx.alloc, range, arg), LowExpr(ptrType, range, LowExprKind(constantZero)))
+			: LowExprKind(constantZero);
+	else {
+		// (temp0 = (T*) alloc(sizeof(T)), *temp0 = arg, temp0)
+		LowLocal* local = addTempLocal(ctx, ptrType);
+		LowExpr sizeofT = genSizeOf(range, asPtrGcPointee(ptrType));
+		LowExpr allocatePtr = getAllocateExpr(ctx.alloc, ctx.allocFunIndex, range, ptrType, sizeofT);
+		LowExpr getTemp = genLocalGet(range, local);
+		LowExpr setTemp = genWriteToPtr(ctx.alloc, range, getTemp, arg);
+		return LowExprKind(allocate(ctx.alloc, LowExprKind.Let(
+			local, allocatePtr, genSeq(ctx.alloc, range, setTemp, getTemp))));
+	}
 }
+
+// TODO: this should probably part of the expression 'type'
+bool mayHaveSideEffects(in LowExpr a) =>
+	!a.kind.isA!Constant && !a.kind.isA!(LowExprKind.LocalGet) && (
+		!a.kind.isA!(LowExprKind.CreateRecord) ||
+		exists!LowExpr(a.kind.as!(LowExprKind.CreateRecord).args, (in LowExpr x) => mayHaveSideEffects(x)));
 
 LowExprKind getLoopExpr(
 	ref GetLowExprCtx ctx,

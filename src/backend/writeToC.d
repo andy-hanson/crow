@@ -26,6 +26,7 @@ import model.lowModel :
 	debugName,
 	isChar8,
 	isGeneratedMain,
+	isVoid,
 	LowExpr,
 	LowExprKind,
 	LowField,
@@ -765,11 +766,15 @@ WriteExprResult writeExpr(
 				writeTempOrInline(writer, ctx, locals, it.value, fieldValue);
 			});
 		},
-		(in LowExprKind.SizeOf it) =>
+		(in LowExprKind.SizeOf x) =>
 			inlineableSimple(() {
-				writer ~= "sizeof(";
-				writeType(writer, ctx.ctx, it.type);
-				writer ~= ')';
+				if (isVoid(x.type))
+					writer ~= '0';
+				else {
+					writer ~= "sizeof(";
+					writeType(writer, ctx.ctx, x.type);
+					writer ~= ')';
+				}
 			}),
 		(in Constant it) =>
 			inlineableSimple(() {
