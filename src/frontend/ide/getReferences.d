@@ -95,7 +95,7 @@ import util.opt : force, has, none, Opt, optEqual, some;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : AllSymbols, prependSet, Symbol;
 import util.uri : AllUris, Uri;
-import util.util : ptrTrustMe, todo, unreachable;
+import util.util : ptrTrustMe, unreachable;
 
 UriAndRange[] getReferencesForPosition(
 	ref Alloc alloc,
@@ -499,8 +499,7 @@ void referencesForRecordField(in AllSymbols allSymbols, in Program program, in R
 }
 
 void referencesForEnumMember(in Program program, in StructBody.Enum.Member* x, in ReferenceCb cb) {
-	// Find the corresponding creation function
-	todo!void("!!!");
+	// TODO: Find the corresponding creation function
 }
 
 void referencesForVarDecl(scope ref AllSymbols allSymbols, in Program program, in VarDecl* a, in ReferenceCb cb) {

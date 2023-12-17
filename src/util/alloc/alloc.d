@@ -3,6 +3,7 @@ module util.alloc.alloc;
 @safe @nogc nothrow: // not pure
 
 import util.alloc.doubleLink :
+	assertDoubleLink,
 	DoubleLink,
 	eachHereAndNext,
 	eachPrevNode,
@@ -17,12 +18,11 @@ import util.alloc.doubleLink :
 	prev,
 	removeAllFromListAnd,
 	removeFromList,
-	replaceInList,
-	assertDoubleLink;
+	replaceInList;
 import util.col.array : arrayOfRange, arrayOfSingle, endPtr;
 import util.col.enumMap : EnumMap;
-import util.memory : memset;
-import util.opt : ConstOpt, force, has, MutOpt, noneMut, someMut;
+import util.memory : ensureMemoryClear, memset;
+import util.opt : ConstOpt, force, has, MutOpt;
 import util.union_ : UnionMutable;
 import util.util : clamp, divRoundUp, max, ptrTrustMe;
 
@@ -145,6 +145,9 @@ struct MetaAlloc {
 			},
 			(BlockKind.Sentinel) {
 				total.overheadBytes += BlockNode.sizeof;
+			},
+			(BlockKind.Temp) {
+				assert(false);
 			});
 	});
 
@@ -192,6 +195,10 @@ struct Alloc {
 	@disable this(ref const Alloc);
 	this(AllocKind ak, MetaAlloc* m, BlockNode* b, word* c) {
 		allocKind = ak; meta = m; curBlock = b; curWord = c;
+		if (isSentinel(b))
+			assert(curWord == null);
+		else
+			assert(curWord <= curBlock.end);
 	}
 
 	AllocKind allocKind;
@@ -276,9 +283,7 @@ size_t totalBytes(in MemorySummary a) =>
 }
 
 @trusted FinishedAlloc* finishAlloc(Alloc* a) {
-	MutOpt!(BlockNode*) freed = maybeSplitOffBlock(a.curBlock, a.curWord - a.curBlock.words.ptr);
-	if (has(freed))
-		addToFreeList(*a.meta, force(freed));
+	freeRestOfBlock(*a.meta, a.curBlock, a.curWord - a.curBlock.words.ptr);
 	return a;
 }
 
@@ -289,7 +294,7 @@ size_t totalBytes(in MemorySummary a) =>
 		assert(x.kind.as!(Alloc*) == a);
 		addToFreeList(*a.meta, x);
 	});
-	*a = Alloc(a.allocKind, null, null, null);
+	ensureMemoryClear(a);
 }
 
 struct AllocAndValue(T) {
@@ -318,21 +323,19 @@ struct BlockKind {
 
 	immutable struct Free {}
 	immutable struct Sentinel {}
-	mixin UnionMutable!(Alloc*, Free, Sentinel);
+	// Just taken off of free list and not yet used to allocate
+	immutable struct Temp {}
+	mixin UnionMutable!(Alloc*, Free, Sentinel, Temp);
 
 	bool opEquals(in BlockKind b) const =>
-		matchConst!bool(
-			(const Alloc* x) =>
-				b.isA!(Alloc*) && x == b.as!(Alloc*),
-			(Free _) =>
-				b.isA!Free,
-			(Sentinel _) =>
-				b.isA!Sentinel);
+		taggedPointerEquals(b);
 
 	static BlockKind free() =>
 		BlockKind(Free());
 	static BlockKind sentinel() =>
 		BlockKind(Sentinel());
+	static BlockKind temp() =>
+		BlockKind(Temp());
 }
 static assert(BlockKind.sizeof == ulong.sizeof);
 
@@ -352,7 +355,6 @@ struct BlockNode {
 		return has(right)
 			? cast(inout word*) force(next!allBlocksLink(&this))
 			: cast(inout word*) (&this + 1);
-
 	}
 	@trusted inout(word[]) words() return scope inout =>
 		arrayOfRange!word(cast(inout word*) (&this + 1), end);
@@ -382,9 +384,8 @@ ref inout(DoubleLink!BlockNode) allocLink(inout BlockNode* a) =>
 		(in BlockNode* x) => isSentinel(x),
 		(in BlockNode* x) => x.words.length >= minWords);
 	if (has(found)) {
-		BlockNode* res = force(found);
-		takeFromStartOfFreeBlock(res, minWords);
-		return res;
+		takeFromFreeBlock(meta, force(found), minWords);
+		return force(found);
 	} else {
 		word[] moreWords = meta.fetchCb(max(blockHeaderSizeWords * 2 + minWords, minFetchSizeWords), meta.timesFetched);
 		meta.timesFetched++;
@@ -405,29 +406,25 @@ ref inout(DoubleLink!BlockNode) allocLink(inout BlockNode* a) =>
 	}
 }
 
-// Takes 'minWords' or 'preferredBlockWordCount' from the start of a free block,
-// unlinking it but leaving the remainder free.
-void takeFromStartOfFreeBlock(BlockNode* block, size_t minWords) {
+// Takes at least 'minWords' from the block, possibly creating a new block for the remainder.
+// After this, 'block' will no longer be in the free list.
+void takeFromFreeBlock(ref MetaAlloc a, BlockNode* block, size_t minWords) {
 	assert(isFree(block));
 	size_t sizeWords = clamp(preferredBlockWordCount, minWords, block.words.length);
-	MutOpt!(BlockNode*) remaining = maybeSplitOffBlock(block, sizeWords);
-	if (has(remaining))
-		insertToRight!allocLink(block, force(remaining));
 	removeFromList!allocLink(block);
-	assert(block.words.length >= sizeWords);
+	block.kind = BlockKind.temp;
+	freeRestOfBlock(a, block, sizeWords);
 }
 
-// Splits the block and returns the new right half (which is linked to 'allBlocksLink' but not 'allocLink')
-@trusted MutOpt!(BlockNode*) maybeSplitOffBlock(BlockNode* left, size_t leftSizeWords) {
-	assert(left.words.length >= leftSizeWords);
+@trusted void freeRestOfBlock(ref MetaAlloc a, BlockNode* left, size_t leftSizeWords) {
+	assert(leftSizeWords <= left.words.length);
 	size_t remaining = left.words.length - leftSizeWords;
 	if (remaining >= blockHeaderSizeWords + minBlockSizeWords) {
 		BlockNode* right = cast(BlockNode*) &left.words[leftSizeWords];
 		*right = BlockNode(left.kind);
 		insertToRight!allBlocksLink(left, right);
-		return someMut(right);
-	} else
-		return noneMut!(BlockNode*);
+		addToFreeList(a, right);
+	}
 }
 
 void addToFreeList(ref MetaAlloc a, BlockNode* block) {
@@ -505,6 +502,7 @@ size_t blockHeaderSizeWords() {
 	b.ptr <= a.ptr && endPtr(a) <= endPtr(b);
 
 @system word[] allocateWords(ref Alloc a, size_t nWords) {
+	assert(a.curWord <= a.curBlock.end);
 	word* newCur = a.curWord + nWords;
 	if (newCur > a.curBlock.end) {
 		expandOrFetchNewBlock(&a, nWords);
@@ -518,14 +516,16 @@ size_t blockHeaderSizeWords() {
 }
 
 @system void expandOrFetchNewBlock(Alloc* a, size_t minWords) {
-	size_t remaining = a.curBlock.end - a.curWord;
 	BlockNode* cur = a.curBlock;
+	size_t remaining = cur.end - a.curWord;
+	assert(remaining < minWords);
 	BlockNode* right = force(next!allBlocksLink(cur));
 	if (isFree(right) && remaining + totalWordsIncludingHeader(right) >= minWords) {
 		// Expand into adjacent free block. No need to modify 'curBlock' or 'curWord'.
-		takeFromStartOfFreeBlock(right, subtractAndClamp(minWords, blockHeaderSizeWords + remaining));
+		takeFromFreeBlock(*a.meta, right, minWords - remaining);
 		assert(isUnlinked!allocLink(right));
 		removeFromList!allBlocksLink(right);
+		// 'cur' automatically expanded as a side effect of removing 'right'
 	} else {
 		BlockNode* block = extractFreeBlock(*a.meta, minWords);
 		block.kind = BlockKind(a);
@@ -533,11 +533,9 @@ size_t blockHeaderSizeWords() {
 		a.curBlock = block;
 		a.curWord = block.words.ptr;
 	}
+	assert(a.curBlock.end - a.curWord >= minWords);
 	validate(*a.meta);
 }
-
-size_t subtractAndClamp(size_t a, size_t b) =>
-	a >= b ? a - b : 0;
 
 @system void freeWords(ref Alloc a, in word[] range) {
 	// Do nothing for other frees, they will just be fragmentation within the arena

@@ -214,6 +214,8 @@ mixin template UnionMutable(Types...) {
 			value & 0b11;
 		private ulong ptrValue() scope const =>
 			value & ~0b11;
+		bool taggedPointerEquals(const typeof(this) other) const =>
+			value == other.value;
 	} else {
 		private uint kind;
 		union {
