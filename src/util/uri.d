@@ -4,7 +4,7 @@ module util.uri;
 
 import util.alloc.alloc : Alloc, allocateElements;
 import util.col.array : endPtr, indexOf, indexOfStartingAt;
-import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
+import util.col.mutArr : MutArr, mutArrSize, push;
 import util.comparison : Comparison;
 import util.conv : safeToUshort;
 import util.hash : HashCode;
@@ -213,7 +213,7 @@ PathFirstAndRest firstAndRest(ref AllUris allUris, Path a) {
 }
 
 private Path getOrAddChild(ref AllUris allUris, ref MutArr!Path children, Opt!Path parent, Symbol name) {
-	foreach (Path child; tempAsArr(children))
+	foreach (Path child; children)
 		if (baseName(allUris, child) == name)
 			return child;
 

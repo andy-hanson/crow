@@ -6,6 +6,8 @@ import util.alloc.alloc : Alloc, allocateElements, freeElements;
 import util.memory : copyToFrom, initMemory, overwriteMemory;
 
 struct MutArr(T) {
+	@safe @nogc nothrow:
+
 	private:
 	T[] inner;
 	size_t size_;
@@ -19,6 +21,15 @@ struct MutArr(T) {
 	@trusted void opIndexAssign(T value, immutable size_t index) {
 		assert(index < size_);
 		overwriteMemory(&inner[index], value);
+	}
+
+	int opApply(Cb)(in Cb cb) scope {
+		foreach (ref T value; inner[0 .. size_]) {
+			int res = cb(value);
+			if (res != 0)
+				return res;
+		}
+		return 0;
 	}
 }
 
@@ -72,7 +83,7 @@ void pushAll(T)(ref Alloc alloc, ref MutArr!(immutable T) a, scope immutable T[]
 	return res;
 }
 
-@trusted const(T[]) tempAsArr(T)(ref const MutArr!T a) =>
+@trusted const(T[]) asTemporaryArray(T)(ref const MutArr!T a) =>
 	a.inner[0 .. a.size_];
 
 void filterUnordered(T)(ref MutArr!T a, in bool delegate(ref T) @safe @nogc pure nothrow pred) {

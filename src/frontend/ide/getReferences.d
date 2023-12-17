@@ -90,7 +90,7 @@ import util.alloc.alloc : Alloc;
 import util.col.array : allSame, contains, find, fold, isEmpty, only, zip, zipIn;
 import util.col.arrayBuilder : buildArray;
 import util.col.hashTable : mustGet;
-import util.col.mutMaxArr : mutMaxArr, MutMaxArr, push, tempAsArr;
+import util.col.mutMaxArr : asTemporaryArray, mutMaxArr, MutMaxArr, push;
 import util.opt : force, has, none, Opt, optEqual, some;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : AllSymbols, prependSet, Symbol;
@@ -527,7 +527,7 @@ void withRecordFieldFunctions(
 				push(res, fun);
 		}
 	}
-	cb(tempAsArr(res));
+	cb(asTemporaryArray(res));
 }
 
 immutable(FunDecl*)[] funsNamed(in Module* module_, Symbol name) =>

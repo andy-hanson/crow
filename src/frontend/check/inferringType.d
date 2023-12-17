@@ -19,9 +19,9 @@ import model.model :
 	TypeParamIndex;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.array : contains, exists, indexOf, map, MutSmallArray, newArray, only, only2, small, zip, zipEvery;
-import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, arrBuilderTempAsArr, finish;
+import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, asTemporaryArray, finish;
 import util.col.enumMap : enumMapFindKey;
-import util.col.mutMaxArr : push, tempAsArr;
+import util.col.mutMaxArr : asTemporaryArray, push;
 import util.opt : has, force, MutOpt, none, noneMut, Opt, optOrDefault, some, someInout, someMut;
 import util.union_ : UnionMutable;
 import util.util : castNonScope_ref, unreachable;
@@ -146,7 +146,7 @@ Opt!size_t findExpectedStructForLiteral(
 							if (struct_ != rsltStruct) {
 								if (arrBuilderIsEmpty(multiple))
 									add(ctx.alloc, multiple, rsltStruct);
-								if (!contains(arrBuilderTempAsArr(multiple), struct_))
+								if (!contains(asTemporaryArray(multiple), struct_))
 									add(ctx.alloc, multiple, struct_);
 							}
 						} else
@@ -382,7 +382,7 @@ Opt!Type tryGetNonInferringType(ref InstantiateCtx ctx, const TypeAndContext a) 
 				else
 					return none!Type;
 			}
-			return some(Type(instantiateStructNeverDelay(ctx, i.decl, tempAsArr(newTypeArgs))));
+			return some(Type(instantiateStructNeverDelay(ctx, i.decl, asTemporaryArray(newTypeArgs))));
 		});
 
 private:
@@ -403,7 +403,7 @@ Type applyInferred(ref InstantiateCtx ctx, in TypeAndContext a) =>
 			scope TypeArgsArray newTypeArgs = typeArgsArray();
 			foreach (Type x; i.typeArgs)
 				push(newTypeArgs, applyInferred(ctx, const TypeAndContext(x, a.context)));
-			return Type(instantiateStructNeverDelay(ctx, i.decl, tempAsArr(newTypeArgs)));
+			return Type(instantiateStructNeverDelay(ctx, i.decl, asTemporaryArray(newTypeArgs)));
 		});
 
 /*

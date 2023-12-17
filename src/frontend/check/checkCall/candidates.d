@@ -34,6 +34,7 @@ import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.conv : safeToUshort;
 import util.memory : overwriteMemory;
 import util.col.mutMaxArr :
+	asTemporaryArray,
 	copyToFrom,
 	fillMutMaxArr,
 	filterUnordered,
@@ -42,8 +43,7 @@ import util.col.mutMaxArr :
 	mustPopAndDrop,
 	MutMaxArr,
 	mutMaxArr,
-	pushUninitialized,
-	tempAsArr;
+	pushUninitialized;
 import util.opt : force, has, Opt;
 import util.symbol : Symbol;
 
@@ -52,7 +52,7 @@ size_t maxCandidates() => 64;
 alias Candidates = MutMaxArr!(maxCandidates, Candidate);
 
 CalledDecl[] candidatesForDiag(ref Alloc alloc, in Candidates candidates) =>
-	map(alloc, tempAsArr(candidates), (ref const Candidate c) => c.called);
+	map(alloc, asTemporaryArray(candidates), (ref const Candidate c) => c.called);
 
 CalledDecl[] getAllCandidatesAsCalledDecls(ref ExprCtx ctx, Symbol funName) {
 	ArrayBuilder!CalledDecl res = ArrayBuilder!CalledDecl();
@@ -71,7 +71,7 @@ struct Candidate {
 inout(TypeContext) typeContextForCandidate(ref inout Candidate a) {
 	// 'match' can't return 'inout' we must do it this way
 	if (a.called.isA!(FunDecl*))
-		return TypeContext(small!SingleInferringType(cast(inout SingleInferringType[]) tempAsArr(a.typeArgs)));
+		return TypeContext(small!SingleInferringType(cast(inout SingleInferringType[]) asTemporaryArray(a.typeArgs)));
 	else {
 		assert(a.called.isA!CalledSpecSig);
 		// Spec is instantiated using the caller's types

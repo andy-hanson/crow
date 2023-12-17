@@ -25,7 +25,7 @@ import model.model :
 	CommonTypes, Config, emptyConfig, getConfigUri, getModuleUri, MainFun, Module, Program, ProgramWithMain;
 import util.alloc.alloc :
 	Alloc, AllocAndValue, allocateUninitialized, AllocKind, freeAllocAndValue, MetaAlloc, newAlloc, withAlloc;
-import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderTempAsArr, finish;
+import util.col.arrayBuilder : add, ArrayBuilder, asTemporaryArray, finish;
 import util.col.array : contains, exists, every, findIndex, map;
 import util.col.exactSizeArrayBuilder : buildArrayExact, ExactSizeArrayBuilder;
 import util.col.hashTable : getOrAdd, HashTable, mapPreservingKeys, moveToImmutable, mustGet, MutHashTable;
@@ -295,7 +295,7 @@ Uri[] fixCircularImportsRecur(ref FrontendCompiler a, scope ref ArrayBuilder!Uri
 			!isImportWorkable(a.allUris, x));
 	size_t importIndex = force(optImportIndex);
 	CrowFile* next = force(file.resolvedImports)[importIndex].as!(CrowFile*);
-	Uri[] cycle = contains(arrBuilderTempAsArr(cycleBuilder), next.uri)
+	Uri[] cycle = contains(asTemporaryArray(cycleBuilder), next.uri)
 		? finish(a.alloc, cycleBuilder)
 		: fixCircularImportsRecur(a, cycleBuilder, next);
 	force(file.resolvedImports)[importIndex] = MostlyResolvedImport(

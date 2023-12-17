@@ -21,7 +21,7 @@ import util.alloc.alloc : Alloc;
 import util.col.array : map, mapImpure;
 import util.col.map : Map, KeyValuePair, makeMapFromKeys, zipToMap;
 import util.col.mapBuilder : MapBuilder, finishMap, tryAddToMap;
-import util.col.mutArr : MutArr, mutArrIsEmpty, push, tempAsArr;
+import util.col.mutArr : MutArr, mutArrIsEmpty, push;
 import util.conv : bitsOfFloat32, bitsOfFloat64, float32OfBits, float64OfBits, safeToUshort;
 import util.exitCode : ExitCode;
 import util.late : Late, late, lateGet, lateSet;
@@ -180,7 +180,7 @@ LoadedLibraries loadLibrariesInner(
 				});
 			return immutable KeyValuePair!(Symbol, ExternFunPtrsForLibrary)(x.libraryName, funPtrs);
 		});
-	foreach (KeyValuePair!(Symbol, Symbol) x; tempAsArr(failures)) {
+	foreach (KeyValuePair!(Symbol, Symbol) x; failures) {
 		writeError(cString!"Could not load extern function ");
 		writeSymToCb(writeError, allSymbols, x.value);
 		writeError(cString!" from library ");

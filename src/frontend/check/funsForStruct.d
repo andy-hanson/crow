@@ -42,7 +42,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.array : isEmpty, map, small, sum;
 import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder;
-import util.col.mutMaxArr : push, tempAsArr;
+import util.col.mutMaxArr : asTemporaryArray, push;
 import util.opt : force, has, none, Opt, some;
 import util.symbol : prependSet, prependSetDeref, Symbol, symbol;
 
@@ -351,7 +351,7 @@ void addFunsForRecord(
 ) {
 	scope TypeArgsArray typeArgs = typeArgsArray();
 	typeArgsFromParams(typeArgs, struct_.typeParams);
-	Type structType = Type(instantiateStructNeverDelay(ctx.instantiateCtx, struct_, tempAsArr(typeArgs)));
+	Type structType = Type(instantiateStructNeverDelay(ctx.instantiateCtx, struct_, asTemporaryArray(typeArgs)));
 	bool byVal = recordIsAlwaysByVal(record);
 	addFunsForRecordConstructor(ctx, funsBuilder, commonTypes, struct_, record, structType, byVal);
 	foreach (size_t fieldIndex, ref RecordField field; record.fields)
@@ -477,7 +477,7 @@ void addFunsForUnion(
 ) {
 	scope TypeArgsArray typeArgs = typeArgsArray();
 	typeArgsFromParams(typeArgs, struct_.typeParams);
-	Type structType = Type(instantiateStructNeverDelay(ctx.instantiateCtx, struct_, tempAsArr(typeArgs)));
+	Type structType = Type(instantiateStructNeverDelay(ctx.instantiateCtx, struct_, asTemporaryArray(typeArgs)));
 	foreach (size_t memberIndex, ref UnionMember member; union_.members) {
 		Params params = isVoid(commonTypes, member.type)
 			? Params([])

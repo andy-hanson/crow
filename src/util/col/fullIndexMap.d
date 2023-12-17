@@ -4,8 +4,9 @@ module util.col.fullIndexMap;
 
 import util.alloc.alloc : Alloc;
 import util.conv : safeToUint, safeToUshort;
-import util.col.array : castImmutable, makeArray, mapWithIndex;
+import util.col.array : makeArray, mapWithIndex;
 import util.memory : overwriteMemory;
+import util.util : castImmutable;
 
 struct FullIndexMap(K, V) {
 	@disable this();

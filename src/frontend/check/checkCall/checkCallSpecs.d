@@ -36,7 +36,7 @@ import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.array : every, exists, first, only, small, zipFirst;
 import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, finish;
-import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, only, push, tempAsArr, toArray;
+import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, only, push, asTemporaryArray, toArray;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range;
 import util.union_ : Union;
@@ -174,7 +174,7 @@ Trace.Result getCalledFromCandidateAfterTypeChecks(Trace)(
 	scope Trace trace,
 ) {
 	TypeArgsArray candidateTypeArgs = typeArgsArray();
-	foreach (ref const SingleInferringType x; tempAsArr(candidate.typeArgs)) {
+	foreach (ref const SingleInferringType x; candidate.typeArgs) {
 		Opt!Type t = tryGetInferred(x);
 		if (has(t))
 			push(candidateTypeArgs, force(t));
@@ -189,13 +189,13 @@ Trace.Result getCalledFromCandidateAfterTypeChecks(Trace)(
 			else {
 				SpecImpls specImpls = mutMaxArr!(maxSpecImpls, Called);
 				Opt!(Trace.NoMatch) diag = checkSpecImpls(
-					specImpls, ctx, f, small!Type(tempAsArr(candidateTypeArgs)), trace);
+					specImpls, ctx, f, small!Type(asTemporaryArray(candidateTypeArgs)), trace);
 				return has(diag)
 					? Trace.Result(force(diag))
 					: Trace.Result(Called(instantiateFun(
 						ctx.instantiateCtx, f,
-						small!Type(tempAsArr(candidateTypeArgs)),
-						small!Called(tempAsArr(specImpls)))));
+						small!Type(asTemporaryArray(candidateTypeArgs)),
+						small!Called(asTemporaryArray(specImpls)))));
 			}
 		},
 		(CalledSpecSig s) =>

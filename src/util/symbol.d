@@ -6,7 +6,7 @@ import util.alloc.alloc : Alloc;
 import util.col.array : only;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : mustAdd, MutMap, size;
-import util.col.mutMaxArr : clear, MutMaxArr, mutMaxArr, push, pushAll, tempAsArr;
+import util.col.mutMaxArr : asTemporaryArray, clear, MutMaxArr, mutMaxArr, push, pushAll;
 import util.conv : safeToSizeT;
 import util.hash : HashCode, hashUlong;
 import util.opt : force, has, Opt, none, some;
@@ -69,7 +69,7 @@ Symbol appendHexExtension(ref AllSymbols allSymbols, Symbol a, in ubyte[] bytes)
 	push(res, '.');
 	foreach (ubyte x; bytes)
 		pushAll!(0x100, immutable char)(res, [digitChar(x / 16), digitChar(x % 16)]);
-	return symbolOfString(allSymbols, tempAsArr(res));
+	return symbolOfString(allSymbols, asTemporaryArray(res));
 }
 
 Symbol addExtension(Symbol extension)(ref AllSymbols allSymbols, Symbol a) {
@@ -96,7 +96,7 @@ Symbol removeExtension(ref AllSymbols allSymbols, Symbol a) {
 			}
 		}
 	});
-	return symbolOfString(allSymbols, tempAsArr(res));
+	return symbolOfString(allSymbols, asTemporaryArray(res));
 }
 
 // TODO:PERF This could be cached (with removeExtension)
@@ -112,7 +112,7 @@ Symbol getExtension(ref AllSymbols allSymbols, Symbol a) {
 			push(res, x);
 		}
 	});
-	return symbolOfString(allSymbols, tempAsArr(res));
+	return symbolOfString(allSymbols, asTemporaryArray(res));
 }
 
 bool hasExtension(in AllSymbols allSymbols, Symbol a) {

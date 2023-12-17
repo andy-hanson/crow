@@ -52,15 +52,15 @@ import model.lowModel :
 import model.model : Program, VarKind;
 import model.typeLayout : nStackEntriesForType;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.col.array : castImmutable, map;
+import util.col.array : map;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.map : Map, KeyValuePair, mustGet, zipToMap;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach, fullIndexMapSize, mapFullIndexMap;
-import util.col.mutMaxArr : initializeMutMaxArr, MutMaxArr, push, tempAsArr;
+import util.col.mutMaxArr : asTemporaryArray, initializeMutMaxArr, MutMaxArr, push;
 import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.symbol : AllSymbols, Symbol, symbol;
-import util.util : ptrTrustMe, todo, unreachable;
+import util.util : castImmutable, ptrTrustMe, todo, unreachable;
 
 ByteCode generateBytecode(
 	scope ref Perf perf,
@@ -275,7 +275,7 @@ void generateExternCallFunPtr(
 		toDynCallTypes(program, x.type, (DynCallType x) {
 		push(sigTypes, x);
 	});
-	writeCallFunPtrExtern(writer, source, funPtr, DynCallSig(tempAsArr(sigTypes)));
+	writeCallFunPtrExtern(writer, source, funPtr, DynCallSig(asTemporaryArray(sigTypes)));
 }
 
 DynCallType toDynCallType(in LowType a) =>

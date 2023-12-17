@@ -137,8 +137,8 @@ import util.alloc.alloc : TempAlloc;
 import util.col.array : indexOfPointer, isEmpty;
 import util.col.arrayBuilder : add;
 import util.col.map : mustGet;
-import util.col.mutArr : clearAndFree, MutArr, push, tempAsArr;
-import util.col.mutMaxArr : push, tempAsArr;
+import util.col.mutArr : clearAndFree, MutArr, push;
+import util.col.mutMaxArr : push;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.opt : force, has, Opt;
@@ -1356,7 +1356,7 @@ void generateIf(
 			after.returnValueStackEntries,
 			ExprAfterKind(ExprAfterKind.JumpDelayed(&delayedJumps)));
 		cb(afterBranch, after);
-		foreach (ByteCodeIndex jumpIndex; tempAsArr(delayedJumps))
+		foreach (ByteCodeIndex jumpIndex; delayedJumps)
 			fillInJumpDelayed(writer, jumpIndex);
 		clearAndFree(ctx.tempAlloc, delayedJumps);
 	} else

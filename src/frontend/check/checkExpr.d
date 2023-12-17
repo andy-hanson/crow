@@ -158,8 +158,8 @@ import util.col.array :
 	newArray,
 	only,
 	PtrAndSmallNumber;
-import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
-import util.col.mutMaxArr : initializeMutMaxArr, mutMaxArrSize, push, tempAsArr;
+import util.col.mutArr : asTemporaryArray, MutArr, mutArrSize, push;
+import util.col.mutMaxArr : asTemporaryArray, initializeMutMaxArr, mutMaxArrSize, push;
 import util.conv : safeToUshort, safeToUint;
 import util.memory : allocate, initMemory, overwriteMemory;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, someMut, some;
@@ -645,7 +645,7 @@ MutOpt!VariableRefAndType getIdentifierFromFunOrLambda(
 	ref FunOrLambdaInfo info,
 	LocalAccessKind accessKind,
 ) {
-	foreach (size_t index, ref ClosureFieldBuilder field; tempAsArr(info.closureFields))
+	foreach (size_t index, ref ClosureFieldBuilder field; asTemporaryArray(info.closureFields))
 		if (field.name == name) {
 			field.setIsUsed(accessKindInClosure(accessKind));
 			return someMut(VariableRefAndType(
@@ -1140,7 +1140,7 @@ Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref La
 	Expr body_ = bodyAndType.a;
 	Type actualPossiblyFutReturnType = bodyAndType.b;
 
-	VariableRef[] closureFields = checkClosure(ctx, source, kind, tempAsArr(lambdaInfo.closureFields));
+	VariableRef[] closureFields = checkClosure(ctx, source, kind, asTemporaryArray(lambdaInfo.closureFields));
 
 	Type actualNonFutReturnType = kind == FunKind.far
 		? unwrapFutureType(actualPossiblyFutReturnType, ctx)

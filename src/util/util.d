@@ -131,7 +131,7 @@ private enum cStringOfString(string s) =
 @trusted T* ptrTrustMe(T)(scope ref T t) =>
 	castNonScope(&t);
 
-@trusted immutable(T*) castImmutable(T)(T* a) =>
+@trusted immutable(T) castImmutable(T)(T a) =>
 	cast(immutable) a;
 
 @trusted inout(T) castNonScope(T)(scope inout T x) {

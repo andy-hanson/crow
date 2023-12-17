@@ -20,7 +20,7 @@ import model.lowModel :
 import model.model : VarKind;
 import model.typeLayout : nStackEntriesForType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.col.array : castImmutable, isEmpty, map, sum, zip;
+import util.col.array : isEmpty, map, sum, zip;
 import util.col.map : mustGet;
 import util.col.enumMap : EnumMap;
 import util.col.exactSizeArrayBuilder :
@@ -38,7 +38,7 @@ import util.col.exactSizeArrayBuilder :
 import util.col.fullIndexMap : FullIndexMap, mapFullIndexMap;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.string : CString, cStringSize;
-import util.util : castNonScope, ptrTrustMe, todo, unreachable;
+import util.util : castImmutable, castNonScope, ptrTrustMe, todo, unreachable;
 
 immutable struct VarsInfo {
 	// Thread-locals and globals offsets are in different buffers.

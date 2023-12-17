@@ -19,7 +19,7 @@ import model.lowModel : ExternLibraries, ExternLibrary;
 import util.alloc.alloc : Alloc, allocateBytes;
 import util.col.array : map;
 import util.col.map : KeyValuePair, makeMap;
-import util.col.mutArr : MutArr, mutArrIsEmpty, push, tempAsArr;
+import util.col.mutArr : MutArr, mutArrIsEmpty, push;
 import util.memory : memmove, memset;
 import util.opt : force, has, none, Opt, some;
 import util.string : cString;
@@ -65,7 +65,7 @@ Opt!ExternFunPtrsForAllLibraries getAllFakeExternFuns(
 			immutable KeyValuePair!(Symbol, ExternFunPtrsForLibrary)(
 				x.libraryName,
 				fakeExternFunsForLibrary(alloc, failures, allSymbols, x)));
-	foreach (KeyValuePair!(Symbol, Symbol) x; tempAsArr(failures)) {
+	foreach (immutable KeyValuePair!(Symbol, Symbol) x; failures) {
 		writeError(cString!"Could not load extern function ");
 		writeSymToCb(writeError, allSymbols, x.value);
 		writeError(cString!" from library ");

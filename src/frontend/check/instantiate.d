@@ -36,7 +36,7 @@ import util.alloc.alloc : Alloc;
 import util.col.array : emptySmallArray, fold, map, mapWithFirst, small, SmallArray;
 import util.col.hashTable : ValueAndDidAdd;
 import util.col.mutArr : MutArrWithAlloc, push;
-import util.col.mutMaxArr : mapTo, MutMaxArr, mutMaxArr, push, tempAsArr;
+import util.col.mutMaxArr : asTemporaryArray, mapTo, MutMaxArr, mutMaxArr, push;
 import util.opt : force, MutOpt, noneMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.util : typeAs;
@@ -161,7 +161,7 @@ private StructInst* instantiateStructInst(
 	scope TypeArgsArray itsTypeArgs = typeArgsArray();
 	mapTo!(maxTypeParams, Type, Type)(itsTypeArgs, structInst.typeArgs, (ref Type x) =>
 		instantiateType(ctx, x, typeArgs, delayStructInsts));
-	return instantiateStruct(ctx, structInst.decl, small!Type(tempAsArr(itsTypeArgs)), delayStructInsts);
+	return instantiateStruct(ctx, structInst.decl, small!Type(asTemporaryArray(itsTypeArgs)), delayStructInsts);
 }
 
 StructInst* instantiateStructNeverDelay(ref InstantiateCtx ctx, StructDecl* decl, in Type[] typeArgs) =>
@@ -214,7 +214,7 @@ SpecInst* instantiateSpecInst(
 	TypeArgsArray itsTypeArgs = typeArgsArray();
 	mapTo!(maxTypeParams, Type, Type)(itsTypeArgs, specInst.typeArgs, (ref Type x) =>
 		instantiateType(ctx, x, typeArgs, noDelayStructInsts));
-	return instantiateSpec(ctx, specInst.decl, small!Type(tempAsArr(itsTypeArgs)), delaySpecInsts);
+	return instantiateSpec(ctx, specInst.decl, small!Type(asTemporaryArray(itsTypeArgs)), delaySpecInsts);
 }
 
 private:

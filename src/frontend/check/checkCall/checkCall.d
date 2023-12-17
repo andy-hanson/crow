@@ -58,7 +58,7 @@ import model.model :
 import util.col.array : every, exists, isEmpty, makeArrayOrFail, newArray, only, small, zipEvery;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.mutMaxArr :
-	exists, isEmpty, fillMutMaxArr, MutMaxArr, mutMaxArr, mutMaxArrSize, only, push, size, tempAsArr;
+	asTemporaryArray, isEmpty, fillMutMaxArr, MutMaxArr, mutMaxArr, mutMaxArrSize, only, push, size;
 import util.opt : force, has, none, noneMut, Opt, some, some;
 import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMeasure, startMeasure;
 import util.sourceRange : Range;
@@ -170,7 +170,7 @@ Expr checkCallInner(
 
 		ParamExpected paramExpected = mutMaxArr!(maxCandidates, TypeAndContext);
 		getParamExpected(ctx.instantiateCtx, paramExpected, candidates, argIdx);
-		Expected expected = Expected(small!TypeAndContext(tempAsArr(castNonScope_ref(paramExpected))));
+		Expected expected = Expected(small!TypeAndContext(asTemporaryArray(castNonScope_ref(paramExpected))));
 
 		pauseMeasure(ctx.perf, ctx.alloc, perfMeasurer);
 		Expr arg = checkExpr(ctx, locals, &argAsts[argIdx], expected);
@@ -265,7 +265,7 @@ void getParamExpected(
 	foreach (ref Candidate candidate; candidates) {
 		TypeAndContext expected = getCandidateExpectedParameterType(ctx, candidate, argIdx);
 		bool isDuplicate = !expected.context.isInferring &&
-			exists!TypeAndContext(tempAsArr(paramExpected), (in TypeAndContext x) =>
+			exists!TypeAndContext(asTemporaryArray(paramExpected), (in TypeAndContext x) =>
 				!x.context.isInferring && x.type == expected.type);
 		if (!isDuplicate)
 			push(paramExpected, expected);
@@ -291,7 +291,7 @@ void inferCandidateTypeArgsFromCheckedSpecSig(
 bool isPartiallyInferred(in MutMaxArr!(maxTypeParams, SingleInferringType) typeArgs) {
 	bool hasInferred = false;
 	bool hasUninferred = true;
-	foreach (ref const SingleInferringType x; tempAsArr(typeArgs)) {
+	foreach (ref const SingleInferringType x; typeArgs) {
 		if (has(tryGetInferred(x)))
 			hasInferred = true;
 		else

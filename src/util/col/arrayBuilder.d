@@ -3,7 +3,7 @@ module util.col.arrayBuilder;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.mutArr : moveToArr, MutArr, mutArrIsEmpty, mutArrSize, mustPop, push, pushAll, tempAsArr;
+import util.col.mutArr : asTemporaryArray, moveToArr, MutArr, mutArrIsEmpty, mutArrSize, mustPop, push, pushAll;
 import util.col.sortUtil : sortInPlace;
 import util.comparison : Comparer;
 
@@ -33,11 +33,11 @@ void addAll(T)(ref Alloc alloc, ref ArrayBuilder!(immutable T) a, in immutable T
 	pushAll(alloc, a.data, value);
 }
 
-const(T[]) arrBuilderTempAsArr(T)(ref const ArrayBuilder!T a) =>
-	tempAsArr(a.data);
+const(T[]) asTemporaryArray(T)(ref const ArrayBuilder!T a) =>
+	.asTemporaryArray(a.data);
 
 void arrBuilderSort(T)(scope ref ArrayBuilder!T a, in Comparer!T compare) {
-	sortInPlace!(immutable T)(tempAsArr(a.data), compare);
+	sortInPlace!(immutable T)(asTemporaryArray(a), compare);
 }
 
 immutable(T[]) finish(T)(ref Alloc alloc, scope ref ArrayBuilder!T a) =>

@@ -94,7 +94,7 @@ import util.col.array :
 	small,
 	zip,
 	zipPointers;
-import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderTempAsArr, finish;
+import util.col.arrayBuilder : add, ArrayBuilder, asTemporaryArray, finish;
 import util.col.exactSizeArrayBuilder : buildArrayExact, ExactSizeArrayBuilder, pushUninitialized;
 import util.col.hashTable :
 	getPointer, HashTable, insertOrUpdate, mapAndMovePreservingKeys, mayAdd, moveToImmutable, MutHashTable;
@@ -675,7 +675,7 @@ FunsMap buildFunsMap(ref Alloc alloc, in immutable FunDecl[] funs) {
 		finish(alloc, x));
 }
 Symbol funDeclsBuilderName(in ArrayBuilder!(immutable FunDecl*) a) =>
-	arrBuilderTempAsArr(a)[0].name;
+	asTemporaryArray(a)[0].name;
 
 Opt!TypeAst getExternTypeArg(ref FunDeclAst a, FunModifierAst.Special.Flags externOrGlobalFlag) {
 	foreach (ref FunModifierAst modifier; a.modifiers) {

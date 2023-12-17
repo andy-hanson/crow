@@ -12,7 +12,7 @@ import model.concreteModel :
 import model.constant : Constant, constantZero;
 import util.alloc.alloc : Alloc;
 import util.col.array : arraysEqual, fillArray, findIndex, isEmpty, newArray, only;
-import util.col.mutArr : moveToArr, MutArr, mutArrSize, push, tempAsArr;
+import util.col.mutArr : asTemporaryArray, moveToArr, MutArr, mutArrSize, push;
 import util.col.mutMap : getOrAdd, MutMap, size, values, valuesArray;
 import util.memory : initMemory;
 import util.opt : force, has, Opt;
@@ -142,7 +142,7 @@ size_t findOrPush(T)(
 	in bool delegate(in T) @safe @nogc pure nothrow cbFind,
 	in T delegate() @safe @nogc pure nothrow cbPush,
 ) {
-	Opt!size_t res = findIndex!T(tempAsArr(a), cbFind);
+	Opt!size_t res = findIndex!T(asTemporaryArray(a), cbFind);
 	if (has(res))
 		return force(res);
 	else {
