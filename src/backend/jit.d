@@ -123,6 +123,7 @@ import model.lowModel :
 import model.typeLayout : typeSizeBytes;
 import util.alloc.alloc : Alloc;
 import util.col.array : fillArray, indexOfPointer, isEmpty, makeArray, map, mapWithIndex, zip;
+import util.col.enumMap : EnumMap, makeEnumMap;
 import util.col.map : mustGet;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapZip, mapFullIndexMap_mut;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
@@ -133,7 +134,7 @@ import util.sourceRange : UriAndRange;
 import util.string : CString;
 import util.symbol : AllSymbols, writeSym;
 import util.union_ : Union, UnionMutable;
-import util.util : castImmutable, castNonScope, castNonScope_ref, ptrTrustMe, todo, unreachable;
+import util.util : castImmutable, castNonScope, castNonScope_ref, cStringOfEnum, ptrTrustMe, todo, unreachable;
 import util.writer : debugLogWithWriter, withWriter, Writer;
 
 @trusted int jitAndRun(
@@ -270,9 +271,8 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in AllSymbols all
 		0,
 		null,
 		false));
+	BuiltinFunctions builtinFunctions = generateBuiltinFunctions(ctx);
 	ConversionFunctions conversionFunctions = generateConversionFunctions(ctx);
-	immutable gcc_jit_function* builtinPopcountlFunction =
-		gcc_jit_context_get_builtin_function(ctx, "__builtin_popcountl");
 
 	// Now fill in the body of every function.
 	fullIndexMapZip!(LowFunIndex, LowFun, gcc_jit_function*)(
@@ -300,8 +300,8 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in AllSymbols all
 					entryBlock,
 					nat64Type,
 					abortFunction,
-					conversionFunctions,
-					builtinPopcountlFunction,
+					&builtinFunctions,
+					&conversionFunctions,
 					globalVoid);
 
 				if (isStubFunction(funIndex)) {
@@ -338,6 +338,32 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in AllSymbols all
 //TODO:KILL
 bool isStubFunction(LowFunIndex _) =>
 	false;
+
+// https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html
+enum BuiltinFunction {
+	acos,
+	acosh,
+	asin,
+	asinh,
+	atan,
+	atan2,
+	atanh,
+	__builtin_popcountl,
+	cos,
+	cosh,
+	round,
+	sin,
+	sinh,
+	sqrt,
+	tan,
+	tanh,
+}
+
+alias BuiltinFunctions = EnumMap!(BuiltinFunction, immutable gcc_jit_function*);
+BuiltinFunctions generateBuiltinFunctions(ref gcc_jit_context ctx) =>
+	makeEnumMap((BuiltinFunction x) =>
+		gcc_jit_context_get_builtin_function(ctx, cStringOfEnum(x).ptr));
+
 
 immutable struct ConversionFunctions {
 	gcc_jit_function* ptrToNat64;
@@ -786,8 +812,8 @@ struct ExprCtx {
 	gcc_jit_block* curBlock;
 	immutable gcc_jit_type* nat64Type;
 	immutable gcc_jit_function* abortFunction;
-	ConversionFunctions conversionFunctions;
-	immutable gcc_jit_function* builtinPopcountlFunction;
+	BuiltinFunctions* builtinFunctionsPtr;
+	ConversionFunctions* conversionFunctionsPtr;
 	immutable gcc_jit_rvalue* globalVoid;
 
 	ref Alloc alloc() return scope =>
@@ -810,6 +836,11 @@ struct ExprCtx {
 
 	ref gcc_jit_context gcc() return scope =>
 		*gccPtr;
+
+	ref BuiltinFunctions builtinFunctions() return scope =>
+		*builtinFunctionsPtr;
+	ref ConversionFunctions conversionFunctions() return scope =>
+		*conversionFunctionsPtr;
 }
 
 ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ref ExprEmit emit, in LowExpr a) =>
@@ -1306,22 +1337,39 @@ ExprResult constantToGcc(ref ExprCtx ctx, ref ExprEmit emit, in LowType type, in
 	in LowType type,
 	in LowExprKind.SpecialUnary a,
 ) {
+	ExprResult builtin(BuiltinFunction x) {
+		return callBuiltinUnary(ctx, locals, emit, a.arg, x);
+	}
+
 	final switch (a.kind) {
 		case LowExprKind.SpecialUnary.Kind.acosFloat64:
+			return builtin(BuiltinFunction.acos);
 		case LowExprKind.SpecialUnary.Kind.acoshFloat64:
+			return builtin(BuiltinFunction.acosh);
 		case LowExprKind.SpecialUnary.Kind.asinFloat64:
+			return builtin(BuiltinFunction.asin);
 		case LowExprKind.SpecialUnary.Kind.asinhFloat64:
+			return builtin(BuiltinFunction.asinh);
 		case LowExprKind.SpecialUnary.Kind.atanFloat64:
+			return builtin(BuiltinFunction.atan);
 		case LowExprKind.SpecialUnary.Kind.atanhFloat64:
+			return builtin(BuiltinFunction.atanh);
 		case LowExprKind.SpecialUnary.Kind.cosFloat64:
+			return builtin(BuiltinFunction.cos);
 		case LowExprKind.SpecialUnary.Kind.coshFloat64:
+			return builtin(BuiltinFunction.cosh);
 		case LowExprKind.SpecialUnary.Kind.sinFloat64:
+			return builtin(BuiltinFunction.sin);
 		case LowExprKind.SpecialUnary.Kind.sinhFloat64:
+			return builtin(BuiltinFunction.sinh);
 		case LowExprKind.SpecialUnary.Kind.tanFloat64:
+			return builtin(BuiltinFunction.tan);
 		case LowExprKind.SpecialUnary.Kind.tanhFloat64:
+			return builtin(BuiltinFunction.tanh);
 		case LowExprKind.SpecialUnary.Kind.roundFloat64:
+			return builtin(BuiltinFunction.round);
 		case LowExprKind.SpecialUnary.Kind.sqrtFloat64:
-			return todo!ExprResult("!!!");
+			return builtin(BuiltinFunction.sqrt);
 		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat8:
 		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat16:
 		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat32:
@@ -1333,7 +1381,8 @@ ExprResult constantToGcc(ref ExprCtx ctx, ref ExprEmit emit, in LowType type, in
 				getGccType(ctx.types, type),
 				emitToRValue(ctx, locals, a.arg)));
 		case LowExprKind.SpecialUnary.Kind.countOnesNat64:
-			return countOnesToGcc(ctx, locals, emit, a.arg);
+			return callBuiltinUnaryAndCast(
+				ctx, locals, emit, a.arg, BuiltinFunction.__builtin_popcountl, ctx.nat64Type);
 		case LowExprKind.SpecialUnary.Kind.deref:
 			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_as_rvalue(
 				gcc_jit_rvalue_dereference(emitToRValue(ctx, locals, a.arg), null)));
@@ -1383,15 +1432,41 @@ ExprResult constantToGcc(ref ExprCtx ctx, ref ExprEmit emit, in LowType type, in
 	}
 }
 
-ExprResult countOnesToGcc(ref ExprCtx ctx, ref Locals locals, ref ExprEmit emit, in LowExpr arg) {
+ExprResult callBuiltinUnary(
+	ref ExprCtx ctx,
+	ref Locals locals,
+	ref ExprEmit emit,
+	in LowExpr arg,
+	BuiltinFunction function_,
+) {
 	immutable gcc_jit_rvalue* argGcc = emitToRValue(ctx, locals, arg);
-	gcc_jit_rvalue* call = castImmutable(gcc_jit_context_new_call(
-		ctx.gcc,
-		null,
-		ctx.builtinPopcountlFunction,
-		1,
-		&argGcc));
-	return emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_cast(ctx.gcc, null, call, ctx.nat64Type));
+	return emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_call(
+		ctx.gcc, null, ctx.builtinFunctions[function_], 1, &argGcc));
+}
+
+ExprResult callBuiltinUnaryAndCast(
+	ref ExprCtx ctx,
+	ref Locals locals,
+	ref ExprEmit emit,
+	in LowExpr arg,
+	BuiltinFunction function_,
+	immutable gcc_jit_type* castToType,
+) {
+	immutable gcc_jit_rvalue* argGcc = emitToRValue(ctx, locals, arg);
+	gcc_jit_rvalue* call = gcc_jit_context_new_call(ctx.gcc, null, ctx.builtinFunctions[function_], 1, &argGcc);
+	return emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_cast(ctx.gcc, null, call, castToType));
+}
+
+ExprResult callBuiltinBinary(
+	ref ExprCtx ctx,
+	ref Locals locals,
+	ref ExprEmit emit,
+	in LowExpr[2] args,
+	BuiltinFunction function_,
+) {
+	immutable gcc_jit_rvalue*[2] argsGcc = [emitToRValue(ctx, locals, args[0]), emitToRValue(ctx, locals, args[1])];
+	return emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_call(
+		ctx.gcc, null, ctx.builtinFunctions[function_], argsGcc.length, argsGcc.ptr));
 }
 
 ExprResult binaryToGcc(
@@ -1416,7 +1491,7 @@ ExprResult binaryToGcc(
 
 	final switch (a.kind) {
 		case LowExprKind.SpecialBinary.Kind.atan2Float64:
-			return todo!ExprResult("!!!");
+			return callBuiltinBinary(ctx, locals, emit, a.args, BuiltinFunction.atan2);
 		case LowExprKind.SpecialBinary.Kind.addFloat32:
 		case LowExprKind.SpecialBinary.Kind.addFloat64:
 		case LowExprKind.SpecialBinary.Kind.unsafeAddInt8:
