@@ -71,6 +71,8 @@ BuiltinKind getBuiltinKind(
 		arity == 1 && isFloat32(rt) && isFloat32(p0);
 	bool isUnaryFloat64() =>
 		arity == 1 && isFloat64(rt) && isFloat64(p0);
+	bool isBinaryFloat32() =>
+		arity == 2 && isFloat32(rt) && isFloat32(p0) && isFloat32(p1);
 	bool isBinaryFloat64() =>
 		arity == 2 && isFloat64(rt) && isFloat64(p0) && isFloat64(p1);
 
@@ -80,6 +82,8 @@ BuiltinKind getBuiltinKind(
 		unary(isUnaryFloat32() ? kind32 : isUnaryFloat64() ? kind64 : failUnary());
 	BuiltinKind binaryFloat64(LowExprKind.SpecialBinary.Kind kind) =>
 		binary(isBinaryFloat64() ? kind : failBinary());
+	BuiltinKind binaryFloat32Or64(LowExprKind.SpecialBinary.Kind kind32, LowExprKind.SpecialBinary.Kind kind64) =>
+		binary(isBinaryFloat32() ? kind32 : isBinaryFloat64() ? kind64 : failBinary());
 
 	switch (name.value) {
 		case symbol!"+".value:
@@ -193,19 +197,26 @@ BuiltinKind getBuiltinKind(
 				? LowExprKind.SpecialBinary.Kind.bitwiseXorNat64
 				: failBinary());
 		case symbol!"acos".value:
-			return unaryFloat64(LowExprKind.SpecialUnary.Kind.acosFloat64);
+			return unaryFloat32Or64(
+				LowExprKind.SpecialUnary.Kind.acosFloat32, LowExprKind.SpecialUnary.Kind.acosFloat64);
 		case symbol!"acosh".value:
-			return unaryFloat64(LowExprKind.SpecialUnary.Kind.acoshFloat64);
+			return unaryFloat32Or64(
+				LowExprKind.SpecialUnary.Kind.acoshFloat32, LowExprKind.SpecialUnary.Kind.acoshFloat64);
 		case symbol!"asin".value:
-			return unaryFloat64(LowExprKind.SpecialUnary.Kind.asinFloat64);
+			return unaryFloat32Or64(
+				LowExprKind.SpecialUnary.Kind.asinFloat32, LowExprKind.SpecialUnary.Kind.asinFloat64);
 		case symbol!"asinh".value:
-			return unaryFloat64(LowExprKind.SpecialUnary.Kind.asinhFloat64);
+			return unaryFloat32Or64(
+				LowExprKind.SpecialUnary.Kind.asinhFloat32, LowExprKind.SpecialUnary.Kind.asinhFloat64);
 		case symbol!"atan".value:
-			return unaryFloat64(LowExprKind.SpecialUnary.Kind.atanFloat64);
+			return unaryFloat32Or64(
+				LowExprKind.SpecialUnary.Kind.atanFloat32, LowExprKind.SpecialUnary.Kind.atanFloat64);
 		case symbol!"atan2".value:
-			return binaryFloat64(LowExprKind.SpecialBinary.Kind.atan2Float64);
+			return binaryFloat32Or64(
+				LowExprKind.SpecialBinary.Kind.atan2Float32, LowExprKind.SpecialBinary.Kind.atan2Float64);
 		case symbol!"atanh".value:
-			return unaryFloat64(LowExprKind.SpecialUnary.Kind.atanhFloat64);
+			return unaryFloat32Or64(
+				LowExprKind.SpecialUnary.Kind.atanhFloat32, LowExprKind.SpecialUnary.Kind.atanhFloat64);
 		case symbol!"as-const".value:
 		case symbol!"as-fun-pointer".value:
 		case symbol!"as-mut".value:
@@ -218,7 +229,8 @@ BuiltinKind getBuiltinKind(
 		case symbol!"cos".value:
 			return unaryFloat32Or64(LowExprKind.SpecialUnary.Kind.cosFloat32, LowExprKind.SpecialUnary.Kind.cosFloat64);
 		case symbol!"cosh".value:
-			return unaryFloat64(LowExprKind.SpecialUnary.Kind.coshFloat64);
+			return unaryFloat32Or64(
+				LowExprKind.SpecialUnary.Kind.coshFloat32, LowExprKind.SpecialUnary.Kind.coshFloat64);
 		case symbol!"false".value:
 			return BuiltinKind(constantBool(false));
 		case symbol!"interpreter-backtrace".value:
@@ -246,13 +258,15 @@ BuiltinKind getBuiltinKind(
 		case symbol!"reference-equal".value:
 			return binary(LowExprKind.SpecialBinary.Kind.eqPtr);
 		case symbol!"round".value:
-			return unaryFloat64(LowExprKind.SpecialUnary.Kind.roundFloat64);
+			return unaryFloat32Or64(
+				LowExprKind.SpecialUnary.Kind.roundFloat32, LowExprKind.SpecialUnary.Kind.roundFloat64);
 		case symbol!"set-deref".value:
 			return binary(p0.isA!(LowType.PtrRawMut) ? LowExprKind.SpecialBinary.Kind.writeToPtr : failBinary());
 		case symbol!"sin".value:
 			return unaryFloat32Or64(LowExprKind.SpecialUnary.Kind.sinFloat32, LowExprKind.SpecialUnary.Kind.sinFloat64);
 		case symbol!"sinh".value:
-			return unaryFloat64(LowExprKind.SpecialUnary.Kind.sinhFloat64);
+			return unaryFloat32Or64(
+				LowExprKind.SpecialUnary.Kind.sinhFloat32, LowExprKind.SpecialUnary.Kind.sinhFloat64);
 		case symbol!"size-of".value:
 			return BuiltinKind(BuiltinKind.SizeOf());
 		case symbol!"subscript".value:
@@ -261,11 +275,13 @@ BuiltinKind getBuiltinKind(
 				// 'subscript' for fun / act is handled elsewhere, see concreteFunWillBecomeNonExternLowFun
 				: fail();
 		case symbol!"sqrt".value:
-			return unaryFloat64(LowExprKind.SpecialUnary.Kind.sqrtFloat64);
+			return unaryFloat32Or64(
+				LowExprKind.SpecialUnary.Kind.sqrtFloat32, LowExprKind.SpecialUnary.Kind.sqrtFloat64);
 		case symbol!"tan".value:
-			return unaryFloat64(LowExprKind.SpecialUnary.Kind.tanFloat64);
+			return unaryFloat32Or64(LowExprKind.SpecialUnary.Kind.tanFloat32, LowExprKind.SpecialUnary.Kind.tanFloat64);
 		case symbol!"tanh".value:
-			return unaryFloat64(LowExprKind.SpecialUnary.Kind.tanhFloat64);
+			return unaryFloat32Or64(
+				LowExprKind.SpecialUnary.Kind.tanhFloat32, LowExprKind.SpecialUnary.Kind.tanhFloat64);
 		case symbol!"to".value:
 			return unary(isChar8(rt)
 				? isNat8(p0)

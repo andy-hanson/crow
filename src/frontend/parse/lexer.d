@@ -109,16 +109,14 @@ void addDiagUnexpectedCurToken(ref Lexer lexer, Pos start, TokenAndData token) {
 				return ParseDiag(ParseDiag.UnexpectedToken(token.token));
 		}
 	}();
-	addDiag(lexer, rangeEnsureAtLeastOne(lexer, start), diag);
+	addDiag(lexer, rangeForCurToken(lexer, start), diag);
 }
 
-Range rangeEnsureAtLeastOne(in Lexer lexer, Pos begin) {
-	Range res = range(lexer, begin);
-	return res.end == res.start ? Range(res.start, res.end + 1) : res;
-}
+Range range(in Lexer lexer, Pos start) =>
+	Range(start, posOf(lexer, lexer.prevTokenEnd));
 
-Range range(in Lexer lexer, Pos begin) =>
-	Range(begin, posOf(lexer, lexer.prevTokenEnd));
+Range rangeForCurToken(in Lexer lexer, Pos start) =>
+	Range(start, posOf(lexer, lexer.ptr));
 
 void skipUntilNewlineNoDiag(ref Lexer lexer) {
 	if (!isNewlineToken(getPeekToken(lexer))) {

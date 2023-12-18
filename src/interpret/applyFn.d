@@ -16,22 +16,35 @@ private ulong unaryFloat32(alias cb)(ulong a) =>
 private ulong unaryFloat64(alias cb)(ulong a) =>
 	bitsOfFloat64(cb(float64OfBits(a)));
 
+alias fnRoundFloat32 = unaryFloat32!((float a) => round(a));
 alias fnRoundFloat64 = unaryFloat64!((double a) => round(a));
+alias fnSqrtFloat32 = unaryFloat32!((float a) => sqrt(a));
 alias fnSqrtFloat64 = unaryFloat64!((double a) => sqrt(a));
+alias fnAcosFloat32 = unaryFloat32!((float a) => acos(a));
 alias fnAcosFloat64 = unaryFloat64!((double a) => acos(a));
+alias fnAcoshFloat32 = unaryFloat32!((float a) => acosh(a));
 alias fnAcoshFloat64 = unaryFloat64!((double a) => acosh(a));
+alias fnAsinFloat32 = unaryFloat32!((float a) => asin(a));
 alias fnAsinFloat64 = unaryFloat64!((double a) => asin(a));
+alias fnAsinhFloat32 = unaryFloat32!((float a) => asinh(a));
 alias fnAsinhFloat64 = unaryFloat64!((double a) => asinh(a));
+alias fnAtanFloat32 = unaryFloat32!((float a) => atan(a));
 alias fnAtanFloat64 = unaryFloat64!((double a) => atan(a));
+alias fnAtanhFloat32 = unaryFloat32!((float a) => atanh(a));
 alias fnAtanhFloat64 = unaryFloat64!((double a) => atanh(a));
 alias fnCosFloat32 = unaryFloat32!((float a) => cosf(a));
 alias fnCosFloat64 = unaryFloat64!((double a) => cos(a));
+alias fnCoshFloat32 = unaryFloat32!((float a) => cosh(a));
 alias fnCoshFloat64 = unaryFloat64!((double a) => cosh(a));
 alias fnSinFloat32 = unaryFloat32!((float a) => sinf(a));
 alias fnSinFloat64 = unaryFloat64!((double a) => sin(a));
+alias fnSinhFloat32 = unaryFloat32!((float a) => sinh(a));
 alias fnSinhFloat64 = unaryFloat64!((double a) => sinh(a));
+alias fnTanFloat32 = unaryFloat32!((float a) => tan(a));
 alias fnTanFloat64 = unaryFloat64!((double a) => tan(a));
+alias fnTanhFloat32 = unaryFloat32!((float a) => tanh(a));
 alias fnTanhFloat64 = unaryFloat64!((double a) => tanh(a));
+alias fnAtan2Float32 = binaryFloat32s!((float a, float b) => atan2(a, b));
 alias fnAtan2Float64 = binaryFloat64s!((double a, double b) => atan2(a, b));
 
 alias fnAddFloat32 = binaryFloat32s!((float a, float b) => a + b);

@@ -342,23 +342,36 @@ bool isStubFunction(LowFunIndex _) =>
 // https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html
 enum BuiltinFunction {
 	acos,
+	acosf,
 	acosh,
+	acoshf,
 	asin,
+	asinf,
 	asinh,
+	asinhf,
 	atan,
+	atanf,
 	atan2,
+	atan2f,
 	atanh,
+	atanhf,
 	__builtin_popcountl,
 	cos,
 	cosf,
 	cosh,
+	coshf,
 	round,
+	roundf,
 	sin,
 	sinf,
 	sinh,
+	sinhf,
 	sqrt,
+	sqrtf,
 	tan,
+	tanf,
 	tanh,
+	tanhf,
 }
 
 alias BuiltinFunctions = EnumMap!(BuiltinFunction, immutable gcc_jit_function*);
@@ -1344,36 +1357,60 @@ ExprResult constantToGcc(ref ExprCtx ctx, ref ExprEmit emit, in LowType type, in
 	}
 
 	final switch (a.kind) {
+		case LowExprKind.SpecialUnary.Kind.acosFloat32:
+			return builtin(BuiltinFunction.acosf);
 		case LowExprKind.SpecialUnary.Kind.acosFloat64:
 			return builtin(BuiltinFunction.acos);
+		case LowExprKind.SpecialUnary.Kind.acoshFloat32:
+			return builtin(BuiltinFunction.acoshf);
 		case LowExprKind.SpecialUnary.Kind.acoshFloat64:
 			return builtin(BuiltinFunction.acosh);
+		case LowExprKind.SpecialUnary.Kind.asinFloat32:
+			return builtin(BuiltinFunction.asinf);
 		case LowExprKind.SpecialUnary.Kind.asinFloat64:
 			return builtin(BuiltinFunction.asin);
+		case LowExprKind.SpecialUnary.Kind.asinhFloat32:
+			return builtin(BuiltinFunction.asinhf);
 		case LowExprKind.SpecialUnary.Kind.asinhFloat64:
 			return builtin(BuiltinFunction.asinh);
+		case LowExprKind.SpecialUnary.Kind.atanFloat32:
+			return builtin(BuiltinFunction.atanf);
 		case LowExprKind.SpecialUnary.Kind.atanFloat64:
 			return builtin(BuiltinFunction.atan);
+		case LowExprKind.SpecialUnary.Kind.atanhFloat32:
+			return builtin(BuiltinFunction.atanhf);
 		case LowExprKind.SpecialUnary.Kind.atanhFloat64:
 			return builtin(BuiltinFunction.atanh);
 		case LowExprKind.SpecialUnary.Kind.cosFloat32:
 			return builtin(BuiltinFunction.cosf);
 		case LowExprKind.SpecialUnary.Kind.cosFloat64:
 			return builtin(BuiltinFunction.cos);
+		case LowExprKind.SpecialUnary.Kind.coshFloat32:
+			return builtin(BuiltinFunction.coshf);
 		case LowExprKind.SpecialUnary.Kind.coshFloat64:
 			return builtin(BuiltinFunction.cosh);
 		case LowExprKind.SpecialUnary.Kind.sinFloat32:
 			return builtin(BuiltinFunction.sinf);
 		case LowExprKind.SpecialUnary.Kind.sinFloat64:
 			return builtin(BuiltinFunction.sin);
+		case LowExprKind.SpecialUnary.Kind.sinhFloat32:
+			return builtin(BuiltinFunction.sinhf);
 		case LowExprKind.SpecialUnary.Kind.sinhFloat64:
 			return builtin(BuiltinFunction.sinh);
+		case LowExprKind.SpecialUnary.Kind.tanFloat32:
+			return builtin(BuiltinFunction.tanf);
 		case LowExprKind.SpecialUnary.Kind.tanFloat64:
 			return builtin(BuiltinFunction.tan);
+		case LowExprKind.SpecialUnary.Kind.tanhFloat32:
+			return builtin(BuiltinFunction.tanhf);
 		case LowExprKind.SpecialUnary.Kind.tanhFloat64:
 			return builtin(BuiltinFunction.tanh);
+		case LowExprKind.SpecialUnary.Kind.roundFloat32:
+			return builtin(BuiltinFunction.roundf);
 		case LowExprKind.SpecialUnary.Kind.roundFloat64:
 			return builtin(BuiltinFunction.round);
+		case LowExprKind.SpecialUnary.Kind.sqrtFloat32:
+			return builtin(BuiltinFunction.sqrtf);
 		case LowExprKind.SpecialUnary.Kind.sqrtFloat64:
 			return builtin(BuiltinFunction.sqrt);
 		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat8:
@@ -1496,6 +1533,8 @@ ExprResult binaryToGcc(
 	}
 
 	final switch (a.kind) {
+		case LowExprKind.SpecialBinary.Kind.atan2Float32:
+			return callBuiltinBinary(ctx, locals, emit, a.args, BuiltinFunction.atan2f);
 		case LowExprKind.SpecialBinary.Kind.atan2Float64:
 			return callBuiltinBinary(ctx, locals, emit, a.args, BuiltinFunction.atan2);
 		case LowExprKind.SpecialBinary.Kind.addFloat32:

@@ -1,0 +1,6 @@
+import
+	tgmath: sqrt
+
+main void() unsafe
+	info log "-1.sqrt is: {-1.sqrt}"
+	assert -1::float64.square-root is-nan

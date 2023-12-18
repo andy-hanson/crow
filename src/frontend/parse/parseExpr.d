@@ -19,6 +19,7 @@ import frontend.parse.lexer :
 	QuoteKind,
 	range,
 	rangeAtChar,
+	rangeForCurToken,
 	skipUntilNewlineNoDiag,
 	StringPart,
 	takeClosingBraceThenStringPart,
@@ -675,7 +676,7 @@ ExprAst parseExprInlineOrBlock(
 
 ExprAst skipRestOfLineAndReturnBogusNoDiag(ref Lexer lexer, Pos start) {
 	skipUntilNewlineNoDiag(lexer);
-	return bogusExpr(range(lexer, start));
+	return bogusExpr(rangeForCurToken(lexer, start));
 }
 
 ExprAst skipRestOfLineAndReturnBogus(ref Lexer lexer, Pos start, ParseDiag diag) {

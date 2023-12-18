@@ -3,7 +3,7 @@ import
 	../col/array: ~~, array
 	../number: -, float32, float64
 	../string: ~~, literal, string
-	./trig: cos, sin
+	./math: cos, sin
 	./vec: +, *, dot, new, normalize, to, vec3-32, vec3-64, x, y, z
 
 # 3x3 matrix of float32

@@ -1,9 +1,10 @@
 no-std
 import
 	../col/array: array, new
-	../number: +, -, *, /, float32, float64, square-root, to
+	../number: +, -, *, /, float32, float64, to
 	../string: ~~, literal, string, to
 	../test-util: throws
+	./math: square-root
 
 # 2-dimensional vector with 32-bit elements.
 +vec2-32 record extern

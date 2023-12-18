@@ -48,7 +48,7 @@ import util.opt : force, has, Opt;
 import util.symbol : Symbol;
 
 // Max number of candidates with same return type
-size_t maxCandidates() => 64;
+size_t maxCandidates() => 128;
 alias Candidates = MutMaxArr!(maxCandidates, Candidate);
 
 CalledDecl[] candidatesForDiag(ref Alloc alloc, in Candidates candidates) =>

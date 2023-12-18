@@ -1381,16 +1381,28 @@ WriteExprResult writeSpecialUnary(
 			});
 
 	final switch (a.kind) {
+		case LowExprKind.SpecialUnary.Kind.acosFloat32:
+			return specialCall("acosf");
 		case LowExprKind.SpecialUnary.Kind.acosFloat64:
 			return specialCall("acos");
+		case LowExprKind.SpecialUnary.Kind.acoshFloat32:
+			return specialCall("acoshf");
 		case LowExprKind.SpecialUnary.Kind.acoshFloat64:
 			return specialCall("acosh");
+		case LowExprKind.SpecialUnary.Kind.asinFloat32:
+			return specialCall("asinf");
 		case LowExprKind.SpecialUnary.Kind.asinFloat64:
 			return specialCall("asin");
+		case LowExprKind.SpecialUnary.Kind.asinhFloat32:
+			return specialCall("asinhf");
 		case LowExprKind.SpecialUnary.Kind.asinhFloat64:
 			return specialCall("asinh");
+		case LowExprKind.SpecialUnary.Kind.atanFloat32:
+			return specialCall("atanf");
 		case LowExprKind.SpecialUnary.Kind.atanFloat64:
 			return specialCall("atan");
+		case LowExprKind.SpecialUnary.Kind.atanhFloat32:
+			return specialCall("atanhf");
 		case LowExprKind.SpecialUnary.Kind.atanhFloat64:
 			return specialCall("atanh");
 		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
@@ -1399,8 +1411,12 @@ WriteExprResult writeSpecialUnary(
 			return specialCall("cosf");
 		case LowExprKind.SpecialUnary.Kind.cosFloat64:
 			return specialCall("cos");
+		case LowExprKind.SpecialUnary.Kind.coshFloat32:
+			return specialCall("coshf");
 		case LowExprKind.SpecialUnary.Kind.coshFloat64:
 			return specialCall("cosh");
+		case LowExprKind.SpecialUnary.Kind.deref:
+			return prefix("*");
 		case LowExprKind.SpecialUnary.Kind.drop:
 			return a.arg.kind.isA!(Constant) ? writeVoid(writeKind) : writeCast();
 		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
@@ -1429,14 +1445,24 @@ WriteExprResult writeSpecialUnary(
 		case LowExprKind.SpecialUnary.Kind.unsafeToNat32FromNat64:
 		case LowExprKind.SpecialUnary.Kind.unsafeToNat64FromInt64:
 			return writeCast();
+		case LowExprKind.SpecialUnary.Kind.roundFloat32:
+			return specialCall("roundf");
+		case LowExprKind.SpecialUnary.Kind.roundFloat64:
+			return specialCall("round");
 		case LowExprKind.SpecialUnary.Kind.sinFloat32:
 			return specialCall("sinf");
 		case LowExprKind.SpecialUnary.Kind.sinFloat64:
 			return specialCall("sin");
+		case LowExprKind.SpecialUnary.Kind.sinhFloat32:
+			return specialCall("sinhf");
 		case LowExprKind.SpecialUnary.Kind.sinhFloat64:
 			return specialCall("sinh");
+		case LowExprKind.SpecialUnary.Kind.tanFloat32:
+			return specialCall("tanf");
 		case LowExprKind.SpecialUnary.Kind.tanFloat64:
 			return specialCall("tan");
+		case LowExprKind.SpecialUnary.Kind.tanhFloat32:
+			return specialCall("tanhf");
 		case LowExprKind.SpecialUnary.Kind.tanhFloat64:
 			return specialCall("tanh");
 		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat8:
@@ -1450,10 +1476,8 @@ WriteExprResult writeSpecialUnary(
 			} else {
 				return specialCall("__builtin_popcountl");
 			}
-		case LowExprKind.SpecialUnary.Kind.deref:
-			return prefix("*");
-		case LowExprKind.SpecialUnary.Kind.roundFloat64:
-			return specialCall("round");
+		case LowExprKind.SpecialUnary.Kind.sqrtFloat32:
+			return specialCall("sqrtf");
 		case LowExprKind.SpecialUnary.Kind.sqrtFloat64:
 			return specialCall("sqrt");
 	}
@@ -1543,6 +1567,8 @@ WriteExprResult writeSpecialBinary(
 	}
 
 	final switch (a.kind) {
+		case LowExprKind.SpecialBinary.Kind.atan2Float32:
+			return specialCall("atan2f");
 		case LowExprKind.SpecialBinary.Kind.atan2Float64:
 			return specialCall("atan2");
 		case LowExprKind.SpecialBinary.Kind.addFloat32:

@@ -1,6 +1,9 @@
+###
+Oter functions are in 'math.crow'
+###
+
 no-std
 import
-	tgmath: round, sqrt
 	./bool: &&, bool, false, new, true
 	./compare: !=, <, <=, >, >=
 	./private/number-low-level:
@@ -252,11 +255,6 @@ unsafe-div float64(a float64, b float64) builtin, bare, unsafe
 	else
 		a * a ** (b wrap-sub 1)
 
-+square-root float32(a float32) bare
-	a.to.sqrt to
-+square-root float64(a float64) bare
-	a sqrt
-
 # `true` iff `a` is "Not A Number".
 +is-nan bool(a float32) bare
 	a != a
@@ -281,6 +279,9 @@ Conversions involving floats (in either direction) are approximate and never thr
 
 +to int64(a float64) bare
 	a.round truncate-to
+
++round float32(a float32) bare, builtin
++round float64(a float64) bare, builtin
 
 +to nat64(a float64) bare
 	a.to::int64 to

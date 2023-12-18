@@ -254,7 +254,6 @@ alias testIncludePathsSeq = AliasSeq!(
 	"string.crow",
 	"sys/sysinfo.crow",
 	"sys/types.crow",
-	"tgmath.crow",
 	"time.crow",
 	"unistd.crow",
 	"win32.crow",

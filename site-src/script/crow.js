@@ -47,7 +47,7 @@ export const CrowServer = null
 /** @type {() => Promise<CrowServer>} */
 export const getCrowServer = () => crowServer
 
-/** @type {ReadonlyArray<keyof Math>} */
+/** @type {ReadonlyArray<string & keyof Math>} */
 const mathKeys = [
 	"acos", "acosh", "asin", "asinh", "atan", "atanh", "atan2",
 	"cos", "cosh", "round", "sin", "sinh", "sqrt", "tan", "tanh",
@@ -77,9 +77,10 @@ const imports = {
 	debugLog: (str, value) => {
 		console.log(readCString(str), value)
 	},
-	...Object.fromEntries(mathKeys.map(name => [name, Math[name]])),
-	cosf: Math.cos,
-	sinf: Math.sin,
+	...Object.fromEntries(mathKeys.flatMap(name => [
+		[name, Math[name]],
+		[`${name}f`, Math[name]],
+	])),
 	/** @type {function(CStr, CStr, number): void} */
 	__assert: (asserted, file, line) => {
 		throw new Error(`Assertion '${readCString(asserted)}' failed on ${readCString(file)} line ${line}`)

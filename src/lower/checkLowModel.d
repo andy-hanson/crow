@@ -266,8 +266,20 @@ ExpectUnary unaryExpected(
 			return ExpectUnary(some(asGcOrRawPointee(argType)), none!LowType);
 		case LowExprKind.SpecialUnary.Kind.drop:
 			return ExpectUnary(some(voidType), none!LowType);
+		case LowExprKind.SpecialUnary.Kind.acosFloat32:
+		case LowExprKind.SpecialUnary.Kind.acoshFloat32:
+		case LowExprKind.SpecialUnary.Kind.asinFloat32:
+		case LowExprKind.SpecialUnary.Kind.asinhFloat32:
+		case LowExprKind.SpecialUnary.Kind.atanFloat32:
+		case LowExprKind.SpecialUnary.Kind.atanhFloat32:
 		case LowExprKind.SpecialUnary.Kind.cosFloat32:
+		case LowExprKind.SpecialUnary.Kind.coshFloat32:
+		case LowExprKind.SpecialUnary.Kind.roundFloat32:
 		case LowExprKind.SpecialUnary.Kind.sinFloat32:
+		case LowExprKind.SpecialUnary.Kind.sinhFloat32:
+		case LowExprKind.SpecialUnary.Kind.sqrtFloat32:
+		case LowExprKind.SpecialUnary.Kind.tanFloat32:
+		case LowExprKind.SpecialUnary.Kind.tanhFloat32:
 			return expect(float32Type, float32Type);
 		case LowExprKind.SpecialUnary.Kind.acosFloat64:
 		case LowExprKind.SpecialUnary.Kind.acoshFloat64:
@@ -362,6 +374,7 @@ ExpectBinary binaryExpected(
 ) {
 	final switch (kind) {
 		case LowExprKind.SpecialBinary.Kind.addFloat32:
+		case LowExprKind.SpecialBinary.Kind.atan2Float32:
 		case LowExprKind.SpecialBinary.Kind.mulFloat32:
 		case LowExprKind.SpecialBinary.Kind.subFloat32:
 		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat32:

@@ -44,9 +44,9 @@ import
 	crow/private/bare-queue-tests: dummy-bare-queue-tests
 	crow/private/bits-tests: dummy-bits-tests
 	crow/private/json-tests: dummy-json-tests
+	crow/private/math-tests: dummy-math-tests
 	crow/private/number-tests: dummy-number-tests
 	crow/private/string-tests: dummy-string-tests
-	crow/private/tgmath-tests: dummy-tgmath-tests
 	crow/serialize: from-bytes
 	crow/test-util/test-runner: run-all-tests
 	crow/version: is-windows
@@ -71,10 +71,10 @@ main void() summon
 	_ = dummy-index-set-tests
 	_ = dummy-json-tests
 	_ = dummy-list-tests
+	_ = dummy-math-tests
 	_ = dummy-number-tests
 	_ = dummy-set-tests
 	_ = dummy-string-tests
-	_ = dummy-tgmath-tests
 	_ = () :: nat[nat]
 	_ = () :: ((nat, nat) frozen-map)
 	_ = () :: (nat frozen-set)
