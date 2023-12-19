@@ -1,15 +1,13 @@
-module test.testLineAndColumnGetter;
+module test.testSourceRange;
 
 @safe @nogc pure nothrow:
 
 import test.testUtil : Test;
-import util.lineAndColumnGetter :
-	LineAndColumn, lineAndColumnAtPos, LineAndColumnGetter, lineAndColumnGetterForText, PosKind;
 import util.opt : force, has, none, Opt, some;
-import util.sourceRange : Pos;
+import util.sourceRange : LineAndColumn, LineAndColumnGetter, lineAndColumnGetterForText, Pos, PosKind;
 import util.string : cString;
 
-void testLineAndColumnGetter(ref Test test) {
+void testSourceRange(ref Test test) {
 	testLF(test);
 	testCR(test);
 	testCRLF(test);
@@ -68,6 +66,6 @@ void verifyConvert(
 	in LineAndColumn lineAndColumn,
 	in Opt!Pos convertBackPos = none!Pos,
 ) {
-	assert(lineAndColumnAtPos(lcg, pos, kind) == lineAndColumn);
+	assert(lcg[pos, kind] == lineAndColumn);
 	assert(lcg[lineAndColumn] == (has(convertBackPos) ? force(convertBackPos) : pos));
 }

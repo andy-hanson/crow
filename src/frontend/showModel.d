@@ -3,7 +3,7 @@ module frontend.showModel;
 @safe @nogc pure nothrow:
 
 import frontend.check.typeFromAst : typeSyntaxKind;
-import frontend.storage : lineAndColumnAtPos, LineAndColumnGetters, lineAndColumnRange;
+import frontend.storage : LineAndCharacterGetters, LineAndColumnGetters;
 import model.ast : NameAndRange;
 import model.diag : Diag, TypeContainer, TypeWithContainer;
 import model.model :
@@ -28,9 +28,8 @@ import model.model :
 	TypeParams,
 	TypeParamsAndSig;
 import util.col.array : isEmpty, only, only2, sizeEq;
-import util.lineAndColumnGetter : LineAndColumn, LineAndColumnRange, PosKind;
 import util.opt : force, has, none, Opt, some;
-import util.sourceRange : toUriAndPos, UriAndPos, UriAndRange;
+import util.sourceRange : LineAndColumn, LineAndColumnRange, PosKind, toUriAndPos, UriAndPos, UriAndRange;
 import util.symbol : AllSymbols, Symbol, writeSymbol;
 import util.uri : AllUris, Uri, UrisInfo, writeUri, writeUriPreferRelative;
 import util.util : stringOfEnum;
@@ -47,12 +46,14 @@ const struct ShowCtx {
 	ShowOptions options;
 	immutable Program* programPtr;
 
-	ref const(AllSymbols) allSymbols() return scope const =>
+	ref const(AllSymbols) allSymbols() return scope =>
 		*allSymbolsPtr;
-	ref const(AllUris) allUris() return scope const =>
+	ref const(AllUris) allUris() return scope =>
 		*allUrisPtr;
-	ref Program program() return scope const =>
+	ref Program program() return scope =>
 		*programPtr;
+	LineAndCharacterGetters lineAndCharacterGetters() return scope =>
+		lineAndColumnGetters.lineAndCharacterGetters;
 }
 
 struct ShowOptions {
@@ -177,7 +178,7 @@ private void writeLineNumber(scope ref Writer writer, in ShowCtx ctx, in UriAndP
 	if (ctx.options.color)
 		writeReset(writer);
 	writer ~= " line ";
-	writer ~= lineAndColumnAtPos(ctx.lineAndColumnGetters, pos, PosKind.startOfRange).line1Indexed;
+	writer ~= ctx.lineAndColumnGetters[pos, PosKind.startOfRange].pos.line1Indexed;
 }
 
 void writeSig(
@@ -424,7 +425,7 @@ void writeSpecInst(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typ
 void writeUriAndRange(scope ref Writer writer, in ShowCtx ctx, in UriAndRange where) {
 	writeFileNoResetWriter(writer, ctx, where.uri);
 	if (where.uri != Uri.empty)
-		writeLineAndColumnRange(writer, lineAndColumnRange(ctx.lineAndColumnGetters, where));
+		writeLineAndColumnRange(writer, ctx.lineAndColumnGetters[where].range);
 	if (ctx.options.color)
 		writeReset(writer);
 }
@@ -432,7 +433,7 @@ void writeUriAndRange(scope ref Writer writer, in ShowCtx ctx, in UriAndRange wh
 void writeUriAndPos(scope ref Writer writer, in ShowCtx ctx, in UriAndPos where) {
 	writeFileNoResetWriter(writer, ctx, where.uri);
 	if (where.uri != Uri.empty)
-		writeLineAndColumn(writer, lineAndColumnAtPos(ctx.lineAndColumnGetters, where, PosKind.startOfRange));
+		writeLineAndColumn(writer, ctx.lineAndColumnGetters[where, PosKind.startOfRange].pos);
 	if (ctx.options.color)
 		writeReset(writer);
 }

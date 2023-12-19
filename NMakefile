@@ -154,7 +154,6 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\json.d \
 	src\util\jsonParse.d \
 	src\util\late.d \
-	src\util\lineAndColumnGetter.d \
 	src\util\memory.d \
 	src\util\opt.d \
 	src\util\perf.d \
@@ -183,12 +182,12 @@ app_src_with_test = $(app_src_no_test) \
 	src\test\testHover.d \
 	src\test\testInterpreter.d \
 	src\test\testJson.d \
-	src\test\testLineAndColumnGetter.d \
 	src\test\testMap.d \
 	src\test\testMemory.d \
 	src\test\testMutMultiMap.d \
 	src\test\testUri.d \
 	src\test\testSortUtil.d \
+	src\test\testSourceRange.d \
 	src\test\testStack.d \
 	src\test\testServer.d \
 	src\test\testSymbol.d \

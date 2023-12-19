@@ -80,9 +80,8 @@ import util.json :
 	optionalFlagField,
 	optionalField,
 	kindField;
-import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : force, has, none, Opt, some;
-import util.sourceRange : jsonOfRange;
+import util.sourceRange : jsonOfLineAndColumnRange, LineAndColumnGetter;
 import util.symbol : Symbol, symbol;
 import util.uri : AllUris, stringOfUri;
 import util.util : ptrTrustMe, stringOfEnum;
@@ -112,7 +111,7 @@ private:
 Json jsonOfImportOrExport(ref Alloc alloc, in Ctx ctx, in ImportOrExport a) =>
 	jsonObject(alloc, [
 		optionalField!("source", ImportOrExportAst*)(a.source, (in ImportOrExportAst* x) =>
-			jsonOfRange(alloc, ctx.lineAndColumnGetter, pathRange(ctx.allUris, *x))),
+			jsonOfLineAndColumnRange(alloc, ctx.lineAndColumnGetter[pathRange(ctx.allUris, *x)])),
 		field!"module"(stringOfUri(alloc, ctx.allUris, a.module_.uri)),
 		field!"import-kind"(jsonOfImportOrExportKind(alloc, a.kind))]);
 
@@ -171,7 +170,7 @@ Json jsonOfSpecDeclBody(ref Alloc alloc, in Ctx ctx, in SpecDeclBody a) =>
 
 Json jsonOfSpecDeclSig(ref Alloc alloc, in Ctx ctx, in SpecDeclSig a) =>
 	jsonObject(alloc, [
-		field!"where"(jsonOfRange(alloc, ctx.lineAndColumnGetter, a.range.range)),
+		field!"where"(jsonOfLineAndColumnRange(alloc, ctx.lineAndColumnGetter[a.range.range])),
 		field!"name"(a.name),
 		field!"return-type"(jsonOfType(alloc, ctx, a.returnType)),
 		field!"params"(jsonOfDestructures(alloc, ctx, a.params))]);

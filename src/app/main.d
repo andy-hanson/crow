@@ -76,10 +76,10 @@ import util.col.array : prepend;
 import util.exitCode : ExitCode, okAnd;
 import util.json : Json, jsonToString;
 import util.jsonParse : mustParseJson, mustParseUint, skipWhitespace;
-import util.lineAndColumnGetter : UriLineAndColumn;
 import util.opt : force, has, none, MutOpt, Opt, some, someMut;
 import util.perf : disablePerf, isEnabled, Perf, withNullPerf;
 import util.perfReport : perfReport;
+import util.sourceRange : UriLineAndColumn;
 import util.string : mustStripPrefix, CString, cString, cStringIsEmpty, cStringSize;
 import util.symbol : AllSymbols, symbol;
 import util.uri : AllUris, childUri, cStringOfFileUri, cStringOfUri, FileUri, Uri, parentOrEmpty, toUri;
@@ -130,7 +130,7 @@ private:
 				LspOutAction action = handleLspMessage(perf, alloc, server, message, some(dg));
 				foreach (LspOutMessage outMessage; action.outMessages) {
 					writeOut(alloc, server.allSymbols, jsonOfLspOutMessage(
-						alloc, server.allUris, server.lineAndColumnGetters, outMessage));
+						alloc, server.allUris, server.lineAndCharacterGetters, outMessage));
 				}
 				return action.exitCode;
 			}));

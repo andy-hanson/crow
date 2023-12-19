@@ -21,30 +21,25 @@ import util.alloc.alloc :
 import util.col.array : append, contains, isEmpty;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.mutMap : getOrAdd, keys, mayDelete, mustAdd, MutMap, values;
-import util.json : field, Json, jsonObject;
-import util.lineAndColumnGetter :
-	LineAndCharacter,
-	lineAndCharacterAtPos,
-	LineAndCharacterRange,
-	LineAndColumn,
-	lineAndColumnAtPos,
-	LineAndColumnGetter,
-	lineAndColumnGetterForEmptyFile,
-	lineAndColumnGetterForText,
-	LineAndColumnRange,
-	lineAndColumnRange,
-	PosKind,
-	toLineAndCharacter,
-	UriLineAndCharacter,
-	UriLineAndColumn;
 import util.memory : allocate;
 import util.opt : ConstOpt, force, has, MutOpt;
 import util.perf : Perf;
-import util.sourceRange : jsonOfRange, lineAndCharacterRange, Pos, Range, UriAndPos, UriAndRange;
+import util.sourceRange :
+	LineAndCharacterGetter,
+	LineAndColumnGetter,
+	lineAndColumnGetterForText,
+	Pos,
+	PosKind,
+	Range,
+	UriAndPos,
+	UriAndRange,
+	UriAndLineAndCharacterRange,
+	UriLineAndColumn,
+	UriLineAndColumnRange;
 import util.string : CString, cStringSize, stringOfCString;
 import util.symbol : AllSymbols;
 import util.union_ : Union;
-import util.uri : AllUris, baseName, getExtension, Uri, stringOfUri;
+import util.uri : AllUris, baseName, getExtension, Uri;
 import util.writer : withWriter, Writer;
 
 struct Storage {
@@ -71,9 +66,14 @@ struct Storage {
 }
 
 private immutable struct FileInfo {
+	@safe @nogc pure nothrow:
+
 	FileContent content;
 	LineAndColumnGetter lineAndColumnGetter;
 	ParseResult parsed;
+
+	LineAndCharacterGetter lineAndCharacterGetter() =>
+		lineAndColumnGetter.lineAndCharacterGetter;
 }
 
 immutable struct ParseResult {
@@ -116,7 +116,7 @@ void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentCont
 void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentContentChangeEvent change) {
 	FileInfo info = fileOrDiag(a, uri).as!FileInfo;
 	withTempAlloc(a.metaAlloc, (ref Alloc alloc) {
-		CString newContent = applyChange(alloc, asString(info.content), info.lineAndColumnGetter, change);
+		CString newContent = applyChange(alloc, asString(info.content), info.lineAndCharacterGetter, change);
 		// TODO:PERF This means an unnecessary copy in 'setFile'.
 		// Would be better to modify the array in place and force re-parse.
 		setFile(perf, a, uri, stringOfCString(newContent));
@@ -273,6 +273,23 @@ private @trusted CString asCString(return scope FileContent a) =>
 private string asString(return scope FileContent a) =>
 	cast(string) asBytes(a);
 
+const struct LineAndCharacterGetters {
+	@safe @nogc pure nothrow:
+
+	private const Storage* storage;
+
+	LineAndCharacterGetter opIndex(Uri uri) scope {
+		ConstOpt!(AllocAndValue!FileInfo) res = storage.successes[uri];
+		return has(res) ? force(res).value.lineAndCharacterGetter : LineAndCharacterGetter.empty;
+	}
+
+	Pos opIndex(in TextDocumentPositionParams x) scope =>
+		this[x.textDocument.uri][x.position];
+
+	UriAndLineAndCharacterRange opIndex(in UriAndRange x) scope =>
+		UriAndLineAndCharacterRange(x.uri, this[x.uri][x.range]);
+}
+
 const struct LineAndColumnGetters {
 	@safe @nogc pure nothrow:
 
@@ -280,40 +297,23 @@ const struct LineAndColumnGetters {
 
 	LineAndColumnGetter opIndex(Uri uri) scope {
 		ConstOpt!(AllocAndValue!FileInfo) res = storage.successes[uri];
-		return has(res) ? force(res).value.lineAndColumnGetter : lineAndColumnGetterForEmptyFile;
+		return has(res) ? force(res).value.lineAndColumnGetter : LineAndColumnGetter.empty;
 	}
 
-	Pos opIndex(in TextDocumentPositionParams x) scope =>
-		this[x.textDocument.uri][x.position];
+	UriLineAndColumn opIndex(in UriAndPos pos, PosKind kind) scope =>
+		UriLineAndColumn(pos.uri, this[pos.uri][pos.pos, kind]);
+
+	UriLineAndColumnRange opIndex(in UriAndRange x) scope =>
+		UriLineAndColumnRange(x.uri, this[x.uri][x.range]);
+
+	LineAndCharacterGetters lineAndCharacterGetters() return scope =>
+		LineAndCharacterGetters(storage);
 }
-
-UriLineAndCharacter toLineAndCharacter(in LineAndColumnGetters a, in UriLineAndColumn x) =>
-	UriLineAndCharacter(x.uri, toLineAndCharacter(a[x.uri], x.lineAndColumn));
-
-LineAndColumn lineAndColumnAtPos(in LineAndColumnGetters a, in UriAndPos pos, PosKind kind) =>
-	lineAndColumnAtPos(a[pos.uri], pos.pos, kind);
-
-LineAndCharacter lineAndCharacterAtPos(in LineAndColumnGetters a, in UriAndPos pos, PosKind kind) =>
-	lineAndCharacterAtPos(a[pos.uri], pos.pos, kind);
-
-LineAndCharacterRange lineAndCharacterRange(in LineAndColumnGetters a, in UriAndRange range) =>
-	lineAndCharacterRange(a[range.uri], range.range);
-
-LineAndColumnRange lineAndColumnRange(in LineAndColumnGetters a, in UriAndRange range) =>
-	lineAndColumnRange(a[range.uri], range.range);
-
-Json jsonOfUriAndRange(ref Alloc alloc, in AllUris allUris, in LineAndColumnGetters lcg, in UriAndRange a) =>
-	jsonObject(alloc, [
-		field!"uri"(stringOfUri(alloc, allUris, a.uri)),
-		field!"range"(jsonOfRange(alloc, lcg, a))]);
-
-Json jsonOfRange(ref Alloc alloc, in LineAndColumnGetters lcg, in UriAndRange a) =>
-	jsonOfRange(alloc, lcg[a.uri], a.range);
 
 private CString applyChange(
 	ref Alloc alloc,
 	in string input,
-	in LineAndColumnGetter lc,
+	in LineAndCharacterGetter lc,
 	in TextDocumentContentChangeEvent event,
 ) =>
 	withWriter(alloc, (scope ref Writer writer) {

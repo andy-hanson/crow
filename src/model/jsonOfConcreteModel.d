@@ -2,7 +2,7 @@ module model.jsonOfConcreteModel;
 
 @safe @nogc pure nothrow:
 
-import frontend.storage : jsonOfRange, LineAndColumnGetters;
+import frontend.storage : LineAndColumnGetters;
 import model.concreteModel :
 	ConcreteClosureRef,
 	ConcreteExpr,
@@ -27,6 +27,7 @@ import model.model : EnumFunction, enumFunctionName, flagsFunctionName, Local;
 import util.alloc.alloc : Alloc;
 import util.json :
 	field, Json, jsonObject, optionalArrayField, optionalField, optionalFlagField, jsonList, jsonString, kindField;
+import util.sourceRange : jsonOfLineAndColumnRange;
 import util.symbol : Symbol, symbol;
 import util.util : stringOfEnum, todo;
 
@@ -216,7 +217,7 @@ Symbol name(in ConcreteLocalSource a) =>
 
 Json jsonOfConcreteExpr(ref Alloc alloc, in Ctx ctx, in ConcreteExpr a) =>
 	jsonObject(alloc, [
-		field!"range"(jsonOfRange(alloc, ctx.lineAndColumnGetters, a.range)),
+		field!"range"(jsonOfLineAndColumnRange(alloc, ctx.lineAndColumnGetters[a.range].range)),
 		field!"type"(jsonOfConcreteType(alloc, a.type)),
 		field!"expr-kind"(jsonOfConcreteExprKind(alloc, ctx, a.kind))]);
 

@@ -1,7 +1,9 @@
 [
 	{
-		"start": {"line": 0, "character": 0},
-		"end": {"line": 0, "character": 3},
+		"range": {
+			"start": {"line": 0, "character": 0},
+			"end": {"line": 0, "character": 3}
+		},
 		"hover": "builtin type nat",
 		"definition": [
 			{
@@ -14,14 +16,18 @@
 		]
 	},
 	{
-		"start": {"line": 0, "character": 4},
-		"end": {"line": 0, "character": 11},
+		"range": {
+			"start": {"line": 0, "character": 4},
+			"end": {"line": 0, "character": 11}
+		},
 		"hover": "Declares a type implemented by the compiler.",
 		"definition": null
 	},
 	{
-		"start": {"line": 2, "character": 0},
-		"end": {"line": 2, "character": 1},
+		"range": {
+			"start": {"line": 2, "character": 0},
+			"end": {"line": 2, "character": 1}
+		},
 		"hover": "record type r",
 		"definition": [
 			{
@@ -34,14 +40,18 @@
 		]
 	},
 	{
-		"start": {"line": 2, "character": 2},
-		"end": {"line": 2, "character": 8},
+		"range": {
+			"start": {"line": 2, "character": 2},
+			"end": {"line": 2, "character": 8}
+		},
 		"hover": "Declares a type combining several named members.",
 		"definition": null
 	},
 	{
-		"start": {"line": 3, "character": 1},
-		"end": {"line": 3, "character": 4},
+		"range": {
+			"start": {"line": 3, "character": 1},
+			"end": {"line": 3, "character": 4}
+		},
 		"hover": "field r.fld (nat)",
 		"definition": [
 			{
@@ -54,8 +64,10 @@
 		]
 	},
 	{
-		"start": {"line": 3, "character": 5},
-		"end": {"line": 3, "character": 8},
+		"range": {
+			"start": {"line": 3, "character": 5},
+			"end": {"line": 3, "character": 8}
+		},
 		"hover": "builtin type nat",
 		"definition": [
 			{

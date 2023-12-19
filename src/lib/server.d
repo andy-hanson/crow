@@ -27,12 +27,12 @@ import frontend.storage :
 	FilesState,
 	filesState,
 	getParsedOrDiag,
+	LineAndCharacterGetters,
 	LineAndColumnGetters,
 	ParseResult,
 	ReadFileResult,
 	setFile,
-	Storage,
-	toLineAndCharacter;
+	Storage;
 import interpret.bytecode : ByteCode;
 import interpret.extern_ : Extern, ExternFunPtrsForAllLibraries, WriteError;
 import interpret.fakeExtern : withFakeExtern, WriteCb;
@@ -101,10 +101,9 @@ import util.col.array : concatenate, contains, map, mapOp, newArray;
 import util.exitCode : ExitCode;
 import util.json : field, Json, jsonNull, jsonObject;
 import util.late : Late, lateGet, lateSet, MutLate;
-import util.lineAndColumnGetter : UriLineAndColumn;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
-import util.sourceRange : UriAndRange;
+import util.sourceRange : toLineAndCharacter, UriAndRange, UriLineAndColumn;
 import util.string : copyString, CString, cString, cStringIsEmpty, stringOfCString;
 import util.symbol : AllSymbols;
 import util.uri : AllUris, getExtension, Uri, UrisInfo;
@@ -304,6 +303,8 @@ struct Server {
 		*lateGet(frontend_);
 	ShowOptions showOptions() scope const =>
 		showOptions_;
+	LineAndCharacterGetters lineAndCharacterGetters() return scope const =>
+		LineAndCharacterGetters(&castNonScope_ref(storage));
 	LineAndColumnGetters lineAndColumnGetters() return scope const =>
 		LineAndColumnGetters(&castNonScope_ref(storage));
 }
@@ -480,7 +481,7 @@ Program getProgramForAll(scope ref Perf perf, ref Alloc alloc, ref Server server
 private Opt!Position getPosition(scope ref Server server, in Program program, in TextDocumentPositionParams where) {
 	Opt!(immutable Module*) module_ = program.allModules[where.textDocument.uri];
 	return has(module_)
-		? some(getPosition(server.allSymbols, server.allUris, force(module_), server.lineAndColumnGetters[where]))
+		? some(getPosition(server.allSymbols, server.allUris, force(module_), server.lineAndCharacterGetters[where]))
 		: none!Position;
 }
 
@@ -573,7 +574,7 @@ DiagsAndResultJson printIde(
 	Program program = getProgram(perf, alloc, server, [where.uri]); // TODO: we should support specifying roots...
 	TextDocumentPositionParams params = TextDocumentPositionParams(
 		TextDocumentIdentifier(where.uri),
-		toLineAndCharacter(server.lineAndColumnGetters[where.uri], where.lineAndColumn));
+		toLineAndCharacter(server.lineAndColumnGetters[where.uri], where.pos));
 	return printForProgram(alloc, server, program, getPrinted(alloc, server, program, params, kind));
 }
 
@@ -585,7 +586,7 @@ private Json getPrinted(
 	PrintKind.Ide.Kind kind,
 ) {
 	Json locations(UriAndRange[] xs) =>
-		jsonOfReferences(alloc, server.allUris, server.lineAndColumnGetters, xs);
+		jsonOfReferences(alloc, server.allUris, server.lineAndCharacterGetters, xs);
 	final switch (kind) {
 		case PrintKind.Ide.Kind.definition:
 			return locations(getDefinitionForProgram(alloc, server, program, DefinitionParams(params)));
@@ -593,7 +594,7 @@ private Json getPrinted(
 			return jsonOfHover(alloc, getHoverForProgram(alloc, server, program, HoverParams(params)));
 		case PrintKind.Ide.Kind.rename:
 			Opt!WorkspaceEdit rename = getRenameForProgram(alloc, server, program, RenameParams(params, "new-name"));
-			return jsonOfRename(alloc, server.allUris, server.lineAndColumnGetters, rename);
+			return jsonOfRename(alloc, server.allUris, server.lineAndCharacterGetters, rename);
 		case PrintKind.Ide.Kind.references:
 			return locations(getReferencesForProgram(alloc, server, program, ReferenceParams(params)));
 	}
@@ -660,7 +661,7 @@ ShowCtx getShowDiagCtx(return scope ref const Server server, return scope ref Pr
 private:
 
 SemanticTokens getTokens(ref Alloc alloc, ref Server server, Uri uri, in FileAst ast) =>
-	tokensOfAst(alloc, server.allSymbols, server.allUris, server.lineAndColumnGetters[uri], ast);
+	tokensOfAst(alloc, server.allSymbols, server.allUris, server.lineAndCharacterGetters[uri], ast);
 
 ReadFileDiag readFileDiagOfReadFileResultType(ReadFileResultType a) {
 	final switch (a) {

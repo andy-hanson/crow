@@ -73,7 +73,7 @@ alias FetchMemoryCbImpure = ulong[] delegate(size_t sizeWords, size_t timesCalle
 			Json inputJson = mustParseJson(resultAlloc, server.allSymbols, inputStr);
 			LspInMessage inputMessage = parseLspInMessage(resultAlloc, server.allUris, inputJson);
 			LspOutAction output = handleLspMessage(perf, resultAlloc, *server, inputMessage, none!CbHandleUnknownUris);
-			Json outputJson = jsonOfLspOutAction(resultAlloc, server.allUris, server.lineAndColumnGetters, output);
+			Json outputJson = jsonOfLspOutAction(resultAlloc, server.allUris, server.lineAndCharacterGetters, output);
 			return jsonToString(resultAlloc, server.allSymbols, outputJson);
 		})).ptr;
 }

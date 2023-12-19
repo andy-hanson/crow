@@ -7,7 +7,6 @@ import frontend.ide.getHover : getHover;
 import frontend.ide.getPosition : getPosition;
 import frontend.ide.position : Position;
 import frontend.showModel : ShowCtx;
-import frontend.storage : jsonOfUriAndRange;
 import lib.lsp.lspTypes : Hover;
 import lib.server : getProgramForAll, getShowDiagCtx, Server;
 import model.model : Module, Program;
@@ -19,10 +18,10 @@ import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.hashTable : mustGet;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonList, jsonObject, jsonToStringPretty, optionalArrayField;
-import util.lineAndColumnGetter : LineAndColumnGetter, PosKind;
 import util.opt : force, has, Opt;
 import util.uri : parseUri, Uri;
-import util.sourceRange : jsonOfPosWithinFile, Pos, UriAndRange;
+import util.sourceRange :
+	jsonOfLineAndCharacterRange, jsonOfUriAndLineAndCharacterRange, LineAndCharacterGetter, Pos, Range, UriAndRange;
 import util.string : CString, cString, cStringIsEmpty, stringOfCString;
 import util.util : debugLog;
 
@@ -82,17 +81,16 @@ Json hoverResult(ref Alloc alloc, in string content, in ShowCtx ctx, Module* mai
 	Pos curRangeStart = 0;
 	Cell!(InfoAtPos) curInfo = Cell!(InfoAtPos)(InfoAtPos(cString!"", []));
 
-	LineAndColumnGetter lcg = ctx.lineAndColumnGetters[mainModule.uri];
+	LineAndCharacterGetter lcg = ctx.lineAndCharacterGetters[mainModule.uri];
 
 	void endRange(Pos end) {
 		InfoAtPos info = cellGet(curInfo);
 		if (!info.isEmpty) {
 			add(alloc, parts, jsonObject(alloc, [
-				field!"start"(jsonOfPosWithinFile(alloc, lcg, curRangeStart, PosKind.startOfRange)),
-				field!"end"(jsonOfPosWithinFile(alloc, lcg, end, PosKind.endOfRange)),
+				field!"range"(jsonOfLineAndCharacterRange(alloc, lcg[Range(curRangeStart, end)])),
 				field!"hover"(info.hover),
 				optionalArrayField!("definition", UriAndRange)(alloc, info.definition, (in UriAndRange x) =>
-					jsonOfUriAndRange(alloc, ctx.allUris, ctx.lineAndColumnGetters, x)),
+					jsonOfUriAndLineAndCharacterRange(alloc, ctx.allUris, ctx.lineAndCharacterGetters[x])),
 			]));
 		}
 	}

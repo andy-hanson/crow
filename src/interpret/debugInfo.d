@@ -3,7 +3,7 @@ module interpret.debugInfo;
 @safe @nogc nothrow: // not pure (because of backtraceStringsStorage)
 
 import frontend.showModel : ShowCtx, writeUriAndPos;
-import frontend.storage : lineAndColumnAtPos, LineAndColumnGetters;
+import frontend.storage : LineAndColumnGetters;
 import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeSource, Operation;
 import interpret.debugging : writeFunName;
 import interpret.runBytecode : operationOpStopInterpretation;
@@ -11,11 +11,10 @@ import interpret.stacks : returnPeek, returnStackSize, Stacks;
 import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.lowModel : LowFunIndex, LowFunSource, LowProgram;
 import util.alloc.alloc : Alloc, withStaticAlloc;
-import util.lineAndColumnGetter : LineAndColumn, PosKind;
 import util.col.array : isPointerInRange;
 import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
-import util.sourceRange : UriAndPos;
+import util.sourceRange : LineAndColumn, PosKind, UriAndPos;
 import util.string : CString;
 import util.symbol : AllSymbols;
 import util.uri : AllUris, cStringOfUriPreferRelative, Uri, UrisInfo;
@@ -113,8 +112,7 @@ private @trusted BacktraceEntry backtraceEntryFromSource(
 	if (has(opUri)) {
 		Uri uri = force(opUri);
 		CString fileUri = cStringOfUriPreferRelative(alloc, info.allUris, info.urisInfo, uri);
-		LineAndColumn lc = lineAndColumnAtPos(
-			info.lineAndColumnGetters, UriAndPos(uri, source.pos), PosKind.startOfRange);
+		LineAndColumn lc = info.lineAndColumnGetters[UriAndPos(uri, source.pos), PosKind.startOfRange].pos;
 		return BacktraceEntry(funName.ptr, fileUri.ptr, lc.line1Indexed, 0);
 	} else
 		return BacktraceEntry(funName.ptr, "", 0, 0);

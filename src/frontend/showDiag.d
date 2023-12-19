@@ -53,12 +53,11 @@ import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.array : exists, isEmpty, only;
 import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderSort, finish;
-import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnRange;
 import util.col.multiMap : makeMultiMap, MultiMap, MultiMapCb;
 import util.col.sortUtil : sorted;
 import util.comparison : Comparison;
 import util.opt : force, has, none, Opt, some;
-import util.sourceRange : compareRange;
+import util.sourceRange : compareRange, LineAndColumnGetter;
 import util.string : CString;
 import util.symbol : AllSymbols, Symbol, writeSymbol;
 import util.uri : AllUris, baseName, compareUriAlphabetically, Uri, writeRelPath, writeUri;
@@ -104,7 +103,7 @@ CString stringOfParseDiagnostics(
 ) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		writeWithNewlines!ParseDiagnostic(writer, diagnostics, (in ParseDiagnostic x) {
-			writeLineAndColumnRange(writer, lineAndColumnRange(lcg, x.range));
+			writeLineAndColumnRange(writer, lcg[x.range]);
 			writer ~= ' ';
 			writeParseDiag(writer, allSymbols, allUris, x.kind);
 		});

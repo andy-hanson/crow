@@ -6,10 +6,9 @@ module lib.lsp.lspTypes;
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/
 
 import util.exitCode : ExitCode;
-import util.lineAndColumnGetter : LineAndCharacter, LineAndCharacterRange;
 import util.col.multiMap : MultiMap;
 import util.opt : Opt;
-import util.sourceRange : Range, UriAndRange;
+import util.sourceRange : LineAndCharacter, LineAndCharacterRange, Range, UriAndRange;
 import util.string : CString;
 import util.union_ : Union;
 import util.uri : Uri;

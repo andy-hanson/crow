@@ -4,12 +4,13 @@ module util.sourceRange;
 
 import util.alloc.alloc : Alloc;
 import util.comparison : compareNat32, Comparison;
+import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonObject;
+import util.string : CString;
 import util.symbol : AllSymbols, Symbol, symbolSize;
-import util.lineAndColumnGetter :
-	LineAndCharacter, lineAndCharacterAtPos, LineAndCharacterRange, LineAndColumnGetter, PosKind;
-import util.uri : AllUris, compareUriAlphabetically, Uri;
+import util.uri : AllUris, compareUriAlphabetically, stringOfUri, Uri;
+import util.util : min;
 
 alias Pos = uint;
 
@@ -91,23 +92,213 @@ Comparison compareUriAndRange(in AllUris allUris, UriAndRange a, UriAndRange b) 
 UriAndPos toUriAndPos(UriAndRange a) =>
 	UriAndPos(a.uri, a.start);
 
-Json jsonOfPosWithinFile(ref Alloc alloc, in LineAndColumnGetter lcg, Pos a, PosKind posKind) =>
-	jsonOfLineAndCharacter(alloc, lineAndCharacterAtPos(lcg, a, posKind));
+immutable struct LineAndCharacter {
+	uint line;
+	// This counts tabs as 1 character.
+	uint character;
+}
 
-Json jsonOfRange(ref Alloc alloc, in LineAndColumnGetter lcg, in Range a) =>
-	jsonOfLineAndCharacterRange(alloc, lineAndCharacterRange(lcg, a));
+immutable struct LineAndColumnRange {
+	LineAndColumn start;
+	LineAndColumn end;
+}
 
-private Json jsonOfLineAndCharacterRange(ref Alloc alloc, in LineAndCharacterRange a) =>
+immutable struct UriLineAndColumn {
+	Uri uri;
+	LineAndColumn pos;
+}
+
+immutable struct UriLineAndColumnRange {
+	Uri uri;
+	LineAndColumnRange range;
+}
+
+immutable struct LineAndColumn {
+	@safe @nogc pure nothrow:
+
+	uint line0Indexed;
+	// This counts tabs as TAB_SIZE characters.
+	uint column0Indexed;
+
+	uint line1Indexed() =>
+		line0Indexed + 1;
+	uint column1Indexed() =>
+		column0Indexed + 1;
+}
+
+immutable struct LineAndCharacterRange {
+	LineAndCharacter start;
+	LineAndCharacter end;
+}
+
+immutable struct UriAndLineAndCharacterRange {
+	Uri uri;
+	LineAndCharacterRange range;
+}
+
+Json jsonOfUriAndLineAndCharacterRange(ref Alloc alloc, in AllUris allUris, in UriAndLineAndCharacterRange a) =>
+	jsonObject(alloc, [
+		field!"uri"(stringOfUri(alloc, allUris, a.uri)),
+		field!"range"(jsonOfLineAndCharacterRange(alloc, a.range))]);
+
+Json jsonOfLineAndColumnRange(ref Alloc alloc, in LineAndColumnRange a) =>
+	jsonObject(alloc, [
+		field!"start"(jsonOfLineAndColumn(alloc, a.start)),
+		field!"end"(jsonOfLineAndColumn(alloc, a.end))]);
+
+Json jsonOfLineAndCharacterRange(ref Alloc alloc, in LineAndCharacterRange a) =>
 	jsonObject(alloc, [
 		field!"start"(jsonOfLineAndCharacter(alloc, a.start)),
 		field!"end"(jsonOfLineAndCharacter(alloc, a.end))]);
 
-LineAndCharacterRange lineAndCharacterRange(in LineAndColumnGetter lcg, in Range a) =>
-	LineAndCharacterRange(
-		lineAndCharacterAtPos(lcg, a.start, PosKind.startOfRange),
-		lineAndCharacterAtPos(lcg, a.end, PosKind.endOfRange));
+Json jsonOfLineAndColumn(ref Alloc alloc, in LineAndColumn a) =>
+	jsonObject(alloc, [field!"line"(a.line1Indexed), field!"column"(a.column1Indexed)]);
+
+private Json jsonOfLineAndCharacter(ref Alloc alloc, in LineAndCharacter a) =>
+	jsonObject(alloc, [field!"line"(a.line), field!"character"(a.character)]);
+
+immutable struct LineAndCharacterGetter {
+	@safe @nogc pure nothrow:
+
+	uint[] lineToPos;
+	uint maxPos;
+	bool usesCRLF;
+
+	static LineAndCharacterGetter empty() {
+		static immutable Pos[] emptyLineToPos = [0];
+		return LineAndCharacterGetter(emptyLineToPos, 0, false);
+	}
+
+	Pos opIndex(in LineAndCharacter lc) scope =>
+		lc.line >= lineToPos.length
+			? maxPos
+			: min(
+				lineToPos[lc.line] + lc.character,
+				lc.line >= lineToPos.length - 1 ? maxPos : lineToPos[lc.line + 1] - 1);
+
+	Range opIndex(in LineAndCharacterRange lc) scope =>
+		Range(this[lc.start], this[lc.end]);
+
+	LineAndCharacter opIndex(Pos pos, PosKind kind) scope {
+		uint line = lineAtPos(lineToPos, pos);
+		if (kind == PosKind.endOfRange && lineToPos[line] == pos && line != 0) {
+			// Show end of range at the end of the previous line
+			line--;
+			pos--;
+		}
+		Pos lineStart = lineToPos[line];
+		assert((pos >= lineStart && line == lineToPos.length - 1) || pos <= lineToPos[line + 1]);
+		uint character = pos - lineStart;
+		// Don't include a column for the '\r' in '\r\n'
+		if (usesCRLF && line + 1 < lineToPos.length && pos + 1 == lineToPos[line + 1])
+			character--;
+		return LineAndCharacter(line, character);
+	}
+
+	LineAndCharacterRange opIndex(in Range range) scope =>
+		LineAndCharacterRange(this[range.start, PosKind.startOfRange], this[range.end, PosKind.endOfRange]);
+}
+
+immutable struct LineAndColumnGetter {
+	@safe @nogc pure nothrow:
+	LineAndCharacterGetter lineAndCharacterGetter;
+	ubyte[] lineToNTabs;
+
+	static LineAndColumnGetter empty() {
+		static immutable ubyte[] emptyLineToNTabs = [0];
+		return LineAndColumnGetter(LineAndCharacterGetter.empty, emptyLineToNTabs);
+	}
+
+	Pos opIndex(in LineAndColumn x) scope =>
+		lineAndCharacterGetter[toLineAndCharacter(this, x)];
+
+	LineAndColumn opIndex(Pos pos, PosKind kind) scope {
+		LineAndCharacter res = lineAndCharacterGetter[pos, kind];
+		ubyte nTabs = lineToNTabs[res.line];
+		uint column = res.character <= nTabs
+			? res.character * TAB_SIZE
+			: nTabs * (TAB_SIZE - 1) + res.character;
+		return LineAndColumn(res.line, column);
+	}
+
+	LineAndColumnRange opIndex(in Range range) scope =>
+		LineAndColumnRange(this[range.start, PosKind.startOfRange], this[range.end, PosKind.endOfRange]);
+}
+
+LineAndCharacter toLineAndCharacter(in LineAndColumnGetter a, in LineAndColumn lc) =>
+	LineAndCharacter(
+		lc.line0Indexed,
+		columnToCharacter(
+			lc.column0Indexed,
+			lc.line0Indexed < a.lineToNTabs.length ? a.lineToNTabs[lc.line0Indexed] : 0));
+
+@trusted LineAndColumnGetter lineAndColumnGetterForText(ref Alloc alloc, scope CString text) {
+	ArrayBuilder!Pos lineToPos;
+	ArrayBuilder!ubyte lineToNTabs;
+
+	immutable(char)* ptr = text.ptr;
+
+	add(alloc, lineToPos, 0);
+	add(alloc, lineToNTabs, advanceAndGetNTabs(ptr));
+
+	bool usesCRLF = false;
+	while (*ptr != '\0') {
+		if (*ptr == '\r' && *(ptr + 1) == '\n') usesCRLF = true;
+		bool nl = *ptr == '\n' || (*ptr == '\r' && *(ptr + 1) != '\n');
+		ptr++;
+		if (nl) {
+			add(alloc, lineToPos, safeToUint(ptr - text.ptr));
+			add(alloc, lineToNTabs, advanceAndGetNTabs(ptr));
+		}
+	}
+
+	return LineAndColumnGetter(
+		LineAndCharacterGetter(finish(alloc, lineToPos), safeToUint(ptr - text.ptr), usesCRLF),
+		finish(alloc, lineToNTabs));
+}
+
+enum PosKind { startOfRange, endOfRange }
+
+uint lineLengthInCharacters(in LineAndCharacterGetter a, uint line) =>
+	line < a.lineToPos.length - 1
+		? a.lineToPos[line + 1] - a.lineToPos[line]
+		: line == a.lineToPos.length - 1
+		? a.maxPos - a.lineToPos[line]
+		: 0;
 
 private:
 
-Json jsonOfLineAndCharacter(ref Alloc alloc, in LineAndCharacter a) =>
-	jsonObject(alloc, [field!"line"(a.line), field!"character"(a.character)]);
+Pos columnToCharacter(uint column, ubyte nTabs) =>
+	column <= nTabs * TAB_SIZE
+		? column / TAB_SIZE
+		: column - (nTabs * (TAB_SIZE - 1));
+
+uint lineAtPos(in uint[] lineToPos, Pos pos) {
+	uint lowLine = 0; // inclusive
+	uint highLine = safeToUint(lineToPos.length);
+	assert(highLine != 0);
+	while (lowLine < highLine - 1) {
+		uint middleLine = mid(lowLine, highLine);
+		Pos middlePos = lineToPos[middleLine];
+		if (pos == middlePos)
+			return middleLine;
+		else if (pos < middlePos)
+			// Exclusive -- must be on a previous line
+			highLine = middleLine;
+		else
+			// Inclusive -- may be on a later character of the same line
+			lowLine = middleLine;
+	}
+	return lowLine;
+}
+
+uint TAB_SIZE() => 4; // TODO: configurable
+
+uint mid(uint a, uint b) =>
+	(a + b) / 2;
+
+@system ubyte advanceAndGetNTabs(ref immutable(char)* a) {
+	immutable char* begin = a;
+	while (*a == '\t') a++;
+	return cast(ubyte) (a - begin);
+}

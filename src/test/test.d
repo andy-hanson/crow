@@ -10,11 +10,11 @@ import test.testFakeExtern : testFakeExtern;
 import test.testHover : testHover;
 import test.testInterpreter : testInterpreter;
 import test.testJson : testJson;
-import test.testLineAndColumnGetter : testLineAndColumnGetter;
 import test.testMemory : testMemory;
 import test.testMutMultiMap : testMutMultiMap;
 import test.testServer : testServer;
 import test.testSortUtil : testSortUtil;
+import test.testSourceRange : testSourceRange;
 import test.testStack : testStack;
 import test.testSymbol : testSymbol;
 import test.testUri : testUri;
@@ -54,12 +54,12 @@ NameAndTest[] allTests = [
 	NameAndTest("hover", &testHover),
 	NameAndTest("interpreter", &testInterpreter),
 	NameAndTest("json", &testJson),
-	NameAndTest("line-and-column-getter", &testLineAndColumnGetter),
 	NameAndTest("map", &testMap),
 	NameAndTest("memory", &testMemory),
 	NameAndTest("mut-multi-map", &testMutMultiMap),
 	NameAndTest("server", &testServer),
 	NameAndTest("sort-util", &testSortUtil),
+	NameAndTest("source-range", &testSourceRange),
 	NameAndTest("stack", &testStack),
 	NameAndTest("symbol", &testSymbol),
 	NameAndTest("path", &testUri),

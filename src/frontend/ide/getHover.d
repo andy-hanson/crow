@@ -5,7 +5,6 @@ module frontend.ide.getHover;
 import frontend.ide.position : Position, PositionKind;
 import frontend.showModel :
 	ShowCtx, writeCalled, writeFile, writeFunInst, writeLineAndColumnRange, writeName, writeSpecInst, writeTypeUnquoted;
-import frontend.storage : lineAndColumnRange;
 import lib.lsp.lspTypes : Hover, MarkupContent, MarkupKind;
 import model.ast : FieldMutabilityAst, FunModifierAst;
 import model.diag : TypeContainer, TypeWithContainer;
@@ -346,5 +345,5 @@ void localHover(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeCo
 
 void writeLoop(scope ref Writer writer, in ShowCtx ctx, Uri curUri, in LoopExpr a) {
 	writer ~= "loop at ";
-	writeLineAndColumnRange(writer, lineAndColumnRange(ctx.lineAndColumnGetters, UriAndRange(curUri, a.range)));
+	writeLineAndColumnRange(writer, ctx.lineAndColumnGetters[UriAndRange(curUri, a.range)].range);
 }

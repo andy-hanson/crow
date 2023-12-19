@@ -2,7 +2,7 @@ module model.jsonOfLowModel;
 
 @safe @nogc pure nothrow:
 
-import frontend.storage : jsonOfRange, LineAndColumnGetters;
+import frontend.storage : LineAndColumnGetters;
 import model.concreteModel : ConcreteFun;
 import model.constant : Constant;
 import model.jsonOfConstant : jsonOfConstant;
@@ -30,6 +30,7 @@ import model.model : EnumValue, Local;
 import model.jsonOfConcreteModel : jsonOfConcreteFunRef, jsonOfConcreteStructRef;
 import util.alloc.alloc : Alloc;
 import util.json : field, jsonObject, optionalField, Json, jsonInt, jsonList, jsonString, kindField;
+import util.sourceRange : jsonOfLineAndColumnRange;
 import util.util : castNonScope_ref, stringOfEnum;
 
 Json jsonOfLowProgram(ref Alloc alloc, in LineAndColumnGetters lineAndColumnGetters, in LowProgram a) {
@@ -138,7 +139,7 @@ Json jsonOfLowLocalSource(ref Alloc alloc, in LowLocalSource a) =>
 Json jsonOfLowExpr(ref Alloc alloc, in Ctx ctx, in LowExpr a) =>
 	jsonObject(alloc, [
 		field!"type"(jsonOfLowType(alloc, a.type)),
-		field!"source"(jsonOfRange(alloc, ctx.lineAndColumnGetters, a.source)),
+		field!"source"(jsonOfLineAndColumnRange(alloc, ctx.lineAndColumnGetters[a.source].range)),
 		field!"expr-kind"(jsonOfLowExprKind(alloc, ctx, a.kind))]);
 
 Json jsonOfLowExprs(ref Alloc alloc, in Ctx ctx, in LowExpr[] a) =>

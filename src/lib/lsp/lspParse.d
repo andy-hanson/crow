@@ -34,8 +34,8 @@ import util.alloc.alloc : Alloc;
 import util.col.array : map;
 import util.json : get, hasKey, Json;
 import util.jsonParse : asUint;
-import util.lineAndColumnGetter : LineAndCharacter, LineAndCharacterRange;
 import util.opt : none, some;
+import util.sourceRange : LineAndCharacter, LineAndCharacterRange;
 import util.uri : AllUris, parseUri, Uri;
 import util.util : enumOfString;
 

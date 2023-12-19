@@ -76,9 +76,8 @@ import util.json :
 	jsonList,
 	jsonString,
 	kindField;
-import util.lineAndColumnGetter : LineAndColumnGetter, PosKind;
 import util.opt : Opt;
-import util.sourceRange : jsonOfPosWithinFile, jsonOfRange, Pos, Range;
+import util.sourceRange : jsonOfLineAndColumn, jsonOfLineAndColumnRange, LineAndColumnGetter, Pos, PosKind, Range;
 import util.union_ : Union;
 import util.uri : AllUris, cStringOfPath, Path, RelPath;
 import util.util : ptrTrustMe, stringOfEnum;
@@ -114,7 +113,7 @@ const struct Ctx {
 }
 
 Json jsonOfRange(ref Alloc alloc, scope ref Ctx ctx, in Range a) =>
-	jsonOfRange(alloc, ctx.lineAndColumnGetter, a);
+	jsonOfLineAndColumnRange(alloc, ctx.lineAndColumnGetter[a]);
 
 Json jsonOfImportsOrExports(ref Alloc alloc, scope ref Ctx ctx, in ImportsOrExportsAst a) =>
 	jsonObject(alloc, [
@@ -400,7 +399,7 @@ Json jsonOfExprAst(ref Alloc alloc, scope ref Ctx ctx, in ExprAst ast) =>
 
 Json jsonOfNameAndRange(ref Alloc alloc, scope ref Ctx ctx, in NameAndRange a) =>
 	jsonObject(alloc, [
-		field!"start"(jsonOfPosWithinFile(alloc, ctx.lineAndColumnGetter, a.start, PosKind.startOfRange)),
+		field!"start"(jsonOfLineAndColumn(alloc, ctx.lineAndColumnGetter[a.start, PosKind.startOfRange])),
 		field!"name"(a.name)]);
 
 Json jsonOfExprAstKind(ref Alloc alloc, scope ref Ctx ctx, in ExprAstKind ast) =>

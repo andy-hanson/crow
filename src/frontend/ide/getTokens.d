@@ -70,10 +70,17 @@ import util.col.arrayBuilder : add, addAll, ArrayBuilder, finish;
 import util.col.sortUtil : eachSorted;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonList, jsonObject;
-import util.lineAndColumnGetter :
-	LineAndCharacter, LineAndCharacterRange, lineAndCharacterRange, LineAndColumnGetter, lineLengthInCharacters;
 import util.opt : force, has, Opt;
-import util.sourceRange : compareRange, Pos, rangeOfStartAndLength, rangeOfStartAndName, Range;
+import util.sourceRange :
+	compareRange,
+	LineAndCharacterGetter,
+	LineAndCharacter,
+	LineAndCharacterRange,
+	lineLengthInCharacters,
+	Pos,
+	rangeOfStartAndLength,
+	rangeOfStartAndName,
+	Range;
 import util.symbol : AllSymbols, Symbol, symbol, symbolSize;
 import util.uri : AllUris;
 import util.util : stringOfEnum;
@@ -82,10 +89,10 @@ SemanticTokens tokensOfAst(
 	ref Alloc alloc,
 	in AllSymbols allSymbols,
 	in AllUris allUris,
-	in LineAndColumnGetter lineAndColumnGetter,
+	in LineAndCharacterGetter lineAndCharacterGetter,
 	in FileAst ast,
 ) {
-	TokensBuilder tokens = TokensBuilder(&alloc, lineAndColumnGetter);
+	TokensBuilder tokens = TokensBuilder(&alloc, lineAndCharacterGetter);
 
 	if (has(ast.imports))
 		addImportTokens(tokens, allSymbols, allUris, force(ast.imports));
@@ -203,22 +210,24 @@ string stringOfTokenModifier(TokenModifiers a) {
 
 struct TokensBuilder {
 	Alloc* alloc;
-	LineAndColumnGetter lineAndColumnGetter; //TODO:PERF this could just be a LineAndCharacterGetter
+	LineAndCharacterGetter lineAndCharacterGetter;
 	ArrayBuilder!(immutable uint) encoded;
 	uint prevLine;
 	uint prevCharacter;
 }
 void add(scope ref TokensBuilder a, Range range, TokenType type, TokenModifiers modifiers) {
-	LineAndCharacterRange lcRange = lineAndCharacterRange(a.lineAndColumnGetter, range);
-	if (lcRange.start.line == lcRange.end.line)
-		addSingleLineToken(a, lcRange.start, range.length, type, modifiers);
+	LineAndCharacterRange lcRange = a.lineAndCharacterGetter[range];
+	LineAndCharacter start = lcRange.start;
+	LineAndCharacter end = lcRange.end;
+	if (start.line == end.line)
+		addSingleLineToken(a, start, range.length, type, modifiers);
 	else {
-		uint firstLength = lineLengthInCharacters(a.lineAndColumnGetter, lcRange.start.line) - lcRange.start.character;
-		addSingleLineToken(a, lcRange.start, firstLength, type, modifiers);
-		foreach (uint line; lcRange.start.line + 1 .. lcRange.end.line)
+		uint firstLength = lineLengthInCharacters(a.lineAndCharacterGetter, start.line) - start.character;
+		addSingleLineToken(a, start, firstLength, type, modifiers);
+		foreach (uint line; start.line + 1 .. end.line)
 			addSingleLineToken(
-				a, LineAndCharacter(line, 0), lineLengthInCharacters(a.lineAndColumnGetter, line), type, modifiers);
-		addSingleLineToken(a, LineAndCharacter(lcRange.end.line, 0), lcRange.end.character, type, modifiers);
+				a, LineAndCharacter(line, 0), lineLengthInCharacters(a.lineAndCharacterGetter, line), type, modifiers);
+		addSingleLineToken(a, LineAndCharacter(end.line, 0), end.character, type, modifiers);
 	}
 }
 void addSingleLineToken(
