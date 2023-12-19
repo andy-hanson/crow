@@ -2,12 +2,12 @@ module util.jsonParse;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.lexUtil : isDecimalDigit, isWhitespace, tryTakeChar, tryTakeChars;
+import frontend.parse.lexUtil : isDecimalDigit, isWhitespace, takeChar, tryTakeChar, tryTakeChars;
 import util.alloc.alloc : Alloc;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.json : Json;
 import util.opt : force, has, none, Opt, some;
-import util.string : CString, stringOfCString;
+import util.string : CString, cStringIsEmpty, MutCString, stringOfCString;
 import util.symbol : AllSymbols, symbolOfString;
 import util.writer : withWriter, Writer;
 
@@ -17,18 +17,18 @@ Json mustParseJson(ref Alloc alloc, scope ref AllSymbols allSymbols, in CString 
 }
 
 Opt!Json parseJson(ref Alloc alloc, scope ref AllSymbols allSymbols, in CString source) {
-	immutable(char)* ptr = source.ptr;
+	MutCString ptr = source;
 	Opt!Json res = parseValue(alloc, allSymbols, ptr);
 	skipWhitespace(ptr);
-	return *ptr == '\0' ? res : none!Json;
+	return cStringIsEmpty(ptr) ? res : none!Json;
 }
 
 uint mustParseUint(CString s) {
-	immutable(char)* ptr = s.ptr;
+	MutCString ptr = s;
 	skipWhitespace(ptr);
 	Json res = parseNumber(0, ptr);
 	skipWhitespace(ptr);
-	assert(*ptr == '\0');
+	assert(cStringIsEmpty(ptr));
 	return safeUintOfDouble(res.as!double);
 }
 
@@ -41,16 +41,16 @@ private uint safeUintOfDouble(double a) {
 	return res;
 }
 
-@trusted void skipWhitespace(scope ref immutable(char)* ptr) {
+void skipWhitespace(scope ref MutCString ptr) {
 	while (isWhitespace(*ptr))
 		ptr++;
 }
 
 private:
 
-Opt!Json parseValue(ref Alloc alloc, scope ref AllSymbols allSymbols, scope ref immutable(char)* ptr) {
+Opt!Json parseValue(ref Alloc alloc, scope ref AllSymbols allSymbols, scope ref MutCString ptr) {
 	skipWhitespace(ptr);
-	char x = next(ptr);
+	char x = takeChar(ptr);
 	switch (x) {
 		case 'f':
 			return tryTakeChars(ptr, "alse")
@@ -74,19 +74,19 @@ Opt!Json parseValue(ref Alloc alloc, scope ref AllSymbols allSymbols, scope ref 
 	}
 }
 
-Json parseNumber(double value, scope ref immutable(char)* ptr) {
+Json parseNumber(double value, scope ref MutCString ptr) {
 	// TODO: support floats?
 	while (isDecimalDigit(*ptr))
-		value = value * 10 + (next(ptr) - '0');
+		value = value * 10 + (takeChar(ptr) - '0');
 	return Json(value);
 }
 
-Opt!string parseString(ref Alloc alloc, scope ref immutable(char)* ptr) {
+Opt!string parseString(ref Alloc alloc, scope ref MutCString ptr) {
 	bool ok = false;
 	CString res = withWriter(alloc, (scope ref Writer writer) {
 		//TODO: escaping
 		while (true) {
-			char x = next(ptr);
+			char x = takeChar(ptr);
 			switch (x) {
 				case '\0':
 				case '\r':
@@ -96,7 +96,7 @@ Opt!string parseString(ref Alloc alloc, scope ref immutable(char)* ptr) {
 					ok = true;
 					return;
 				case '\\':
-					Opt!char esc = escapedChar(next(ptr));
+					Opt!char esc = escapedChar(takeChar(ptr));
 					if (has(esc)) {
 						writer ~= force(esc);
 						break;
@@ -128,7 +128,7 @@ Opt!char escapedChar(char escape) {
 }
 
 
-Opt!Json parseArray(ref Alloc alloc, scope ref AllSymbols allSymbols, scope ref immutable(char)* ptr) {
+Opt!Json parseArray(ref Alloc alloc, scope ref AllSymbols allSymbols, scope ref MutCString ptr) {
 	ArrayBuilder!Json res;
 	return parseArrayRecur(alloc, allSymbols, res, ptr);
 }
@@ -136,7 +136,7 @@ Opt!Json parseArrayRecur(
 	ref Alloc alloc,
 	scope ref AllSymbols allSymbols,
 	scope ref ArrayBuilder!Json res,
-	scope ref immutable(char)* ptr,
+	scope ref MutCString ptr,
 ) {
 	if (tryTakePunctuation(ptr, ']'))
 		return some(Json(finish(alloc, res)));
@@ -154,7 +154,7 @@ Opt!Json parseArrayRecur(
 	}
 }
 
-Opt!Json parseObject(ref Alloc alloc, scope ref AllSymbols allSymbols, scope ref immutable(char)* ptr) {
+Opt!Json parseObject(ref Alloc alloc, scope ref AllSymbols allSymbols, scope ref MutCString ptr) {
 	ArrayBuilder!(Json.ObjectField) res;
 	return parseObjectRecur(alloc, allSymbols, res, ptr);
 }
@@ -163,7 +163,7 @@ Opt!Json parseObjectRecur(
 	ref Alloc alloc,
 	scope ref AllSymbols allSymbols,
 	scope ref ArrayBuilder!(Json.ObjectField) res,
-	scope ref immutable(char)* ptr,
+	scope ref MutCString ptr,
 ) {
 	if (tryTakePunctuation(ptr, '"')) {
 		Opt!string keyString = parseString(alloc, ptr);
@@ -186,13 +186,7 @@ Opt!Json parseObjectRecur(
 		return none!Json;
 }
 
-@trusted char next(scope ref immutable(char)* ptr) {
-	char res = *ptr;
-	ptr++;
-	return res;
-}
-
-bool tryTakePunctuation(scope ref immutable(char)* ptr, char expected) {
+bool tryTakePunctuation(scope ref MutCString ptr, char expected) {
 	skipWhitespace(ptr);
 	return tryTakeChar(ptr, expected);
 }

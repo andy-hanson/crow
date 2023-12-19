@@ -80,7 +80,7 @@ import util.opt : force, has, none, MutOpt, Opt, some, someMut;
 import util.perf : disablePerf, isEnabled, Perf, withNullPerf;
 import util.perfReport : perfReport;
 import util.sourceRange : UriLineAndColumn;
-import util.string : mustStripPrefix, CString, cString, cStringIsEmpty, cStringSize;
+import util.string : CString, cString, cStringIsEmpty, cStringSize, mustStripPrefix, MutCString;
 import util.symbol : AllSymbols, symbol;
 import util.uri : AllUris, childUri, cStringOfFileUri, cStringOfUri, FileUri, Uri, parentOrEmpty, toUri;
 import versionInfo : versionInfoForJIT;
@@ -149,7 +149,7 @@ private:
 	uint contentLength = mustParseUint(stripped);
 	assert(contentLength < buffer.length);
 
-	immutable(char)* line1 = cast(immutable) fgets(buffer.ptr, buffer.length, stdin);
+	MutCString line1 = MutCString(cast(immutable) fgets(buffer.ptr, buffer.length, stdin));
 	assert(line1 != null);
 	skipWhitespace(line1);
 	assert(*line1 == '\0');

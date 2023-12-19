@@ -7,7 +7,7 @@ import util.comparison : compareNat32, Comparison;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonObject;
-import util.string : CString;
+import util.string : CString, MutCString;
 import util.symbol : AllSymbols, Symbol, symbolSize;
 import util.uri : AllUris, compareUriAlphabetically, stringOfUri, Uri;
 import util.util : min;
@@ -232,28 +232,28 @@ LineAndCharacter toLineAndCharacter(in LineAndColumnGetter a, in LineAndColumn l
 			lc.column0Indexed,
 			lc.line0Indexed < a.lineToNTabs.length ? a.lineToNTabs[lc.line0Indexed] : 0));
 
-@trusted LineAndColumnGetter lineAndColumnGetterForText(ref Alloc alloc, scope CString text) {
+LineAndColumnGetter lineAndColumnGetterForText(ref Alloc alloc, scope CString text) {
 	ArrayBuilder!Pos lineToPos;
 	ArrayBuilder!ubyte lineToNTabs;
 
-	immutable(char)* ptr = text.ptr;
+	MutCString ptr = text;
 
 	add(alloc, lineToPos, 0);
 	add(alloc, lineToNTabs, advanceAndGetNTabs(ptr));
 
 	bool usesCRLF = false;
 	while (*ptr != '\0') {
-		if (*ptr == '\r' && *(ptr + 1) == '\n') usesCRLF = true;
-		bool nl = *ptr == '\n' || (*ptr == '\r' && *(ptr + 1) != '\n');
+		char x = *ptr;
 		ptr++;
-		if (nl) {
-			add(alloc, lineToPos, safeToUint(ptr - text.ptr));
+		if (x == '\r' && *ptr == '\n') usesCRLF = true;
+		if (x == '\n' || (x == '\r' && *ptr != '\n')) {
+			add(alloc, lineToPos, safeToUint(ptr - text));
 			add(alloc, lineToNTabs, advanceAndGetNTabs(ptr));
 		}
 	}
 
 	return LineAndColumnGetter(
-		LineAndCharacterGetter(finish(alloc, lineToPos), safeToUint(ptr - text.ptr), usesCRLF),
+		LineAndCharacterGetter(finish(alloc, lineToPos), safeToUint(ptr - text), usesCRLF),
 		finish(alloc, lineToNTabs));
 }
 
@@ -297,8 +297,8 @@ uint TAB_SIZE() => 4; // TODO: configurable
 uint mid(uint a, uint b) =>
 	(a + b) / 2;
 
-@system ubyte advanceAndGetNTabs(ref immutable(char)* a) {
-	immutable char* begin = a;
+ubyte advanceAndGetNTabs(ref MutCString a) {
+	MutCString begin = a;
 	while (*a == '\t') a++;
 	return cast(ubyte) (a - begin);
 }

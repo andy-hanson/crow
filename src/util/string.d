@@ -4,29 +4,46 @@ module util.string;
 
 import util.alloc.alloc : Alloc;
 import util.comparison : Comparison;
-import util.col.array : append, arraysEqual, copyArray, isEmpty;
+import util.col.array : append, arrayOfRange, arraysEqual, copyArray, isEmpty;
 import util.hash : HashCode, hashString;
 
 // Like 'immutable char*' but guaranteed to have a terminating '\0'
 // (Preferred to `string` as it is 8 bytes instead of 16)
-immutable struct CString {
+struct MutCString {
 	@safe @nogc pure nothrow:
 
 	@disable this();
-	@system this(immutable char* p) {
+	@system this(immutable char* p) inout {
 		ptr = p;
 	}
 
-	immutable char* ptr;
+	char opUnary(string op : "*")() scope const =>
+		*ptr;
 
-	bool opEquals(in string b) scope =>
+	@trusted void opUnary(string op : "++")() {
+		assert(*ptr != '\0');
+		ptr++;
+	}
+
+	size_t opBinary(string op : "-")(in MutCString b) scope const =>
+		ptr - b.ptr;
+
+	immutable(char)* ptr;
+
+	bool opEquals(in string b) scope const =>
 		stringsEqual(stringOfCString(this), b);
-	bool opEquals(in CString b) scope =>
+	bool opEquals(in CString b) scope const =>
 		this == stringOfCString(b);
 
-	HashCode hash() scope =>
+	HashCode hash() scope const =>
 		hashString(stringOfCString(this));
 }
+
+// TODO: I'd like to get rid of this
+@system char cStringPrev(in CString a) =>
+	*(a.ptr - 1);
+
+alias CString = immutable MutCString;
 
 private @trusted immutable(char*) cstringEnd(immutable(char)* ptr) {
 	while (*ptr != '\0')
@@ -50,6 +67,9 @@ bool stringsEqual(in string a, in string b) =>
 
 bool cStringIsEmpty(CString a) =>
 	*a.ptr == '\0';
+
+@trusted string stringOfRange(CString begin, CString end) =>
+	arrayOfRange(begin.ptr, end.ptr);
 
 @trusted string stringOfCString(return scope CString a) =>
 	a.ptr[0 .. (cstringEnd(a.ptr) - a.ptr)];

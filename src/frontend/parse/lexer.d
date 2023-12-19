@@ -23,7 +23,7 @@ import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
-import util.string : CString;
+import util.string : CString, cStringPrev, MutCString;
 import util.symbol : AllSymbols;
 
 public import frontend.parse.lexToken : ElifOrElse, EqualsOrThen, QuoteKind, StringPart, Token, TokenAndData;
@@ -39,8 +39,8 @@ struct Lexer {
 	// This is the indent at 'ptr', after 'nextToken'.
 	uint curIndent;
 	// This is after 'nextToken'.
-	immutable(char)* ptr;
-	immutable(char)* prevTokenEnd;
+	MutCString ptr;
+	MutCString prevTokenEnd;
 	ArrayBuilder!ParseDiagnostic diagnosticsBuilder;
 	// Position at start of 'nextToken'.
 	Pos nextTokenPos = void;
@@ -58,7 +58,7 @@ ref AllSymbols allSymbols(return ref Lexer lexer) =>
 	AllSymbols* allSymbols,
 	CString source,
 ) {
-	Lexer lexer = Lexer(alloc, allSymbols, source, detectIndentKind(source), 0, source.ptr, source.ptr);
+	Lexer lexer = Lexer(alloc, allSymbols, source, detectIndentKind(source), 0, source, source);
 	cellSet(lexer.nextToken,
 		lexInitialToken(lexer.ptr, lexer.allSymbols, lexer.indentKind, lexer.curIndent, (ParseDiag x) =>
 			addDiagAtChar(lexer, x)));
@@ -68,8 +68,8 @@ ref AllSymbols allSymbols(return ref Lexer lexer) =>
 Pos curPos(in Lexer lexer) =>
 	lexer.nextTokenPos;
 
-private Pos posOf(in Lexer lexer, in immutable char* ptr) =>
-	safeToUint(ptr - lexer.sourceBegin.ptr);
+private Pos posOf(in Lexer lexer, in CString ptr) =>
+	safeToUint(ptr - lexer.sourceBegin);
 
 void addDiag(ref Lexer lexer, in Range range, ParseDiag diag) {
 	add(lexer.alloc, lexer.diagnosticsBuilder, ParseDiagnostic(range, diag));
@@ -89,8 +89,10 @@ Range rangeAtChar(in Lexer lexer) {
 			case '\0':
 				return pos;
 			case '\r':
+				MutCString ptr = lexer.ptr;
+				ptr++;
 				// Treat "\r\n" as one character
-				return *(lexer.ptr + 1) == '\n' ? pos + 2 : pos + 1;
+				return *ptr == '\n' ? pos + 2 : pos + 1;
 			default:
 				return pos + 1;
 		}
@@ -102,7 +104,7 @@ void addDiagUnexpectedCurToken(ref Lexer lexer, Pos start, TokenAndData token) {
 	ParseDiag diag = () @trusted {
 		switch (token.token) {
 			case Token.invalid:
-				return ParseDiag(ParseDiag.UnexpectedCharacter(*(lexer.ptr - 1)));
+				return ParseDiag(ParseDiag.UnexpectedCharacter(cStringPrev(lexer.ptr)));
 			case Token.operator:
 				return ParseDiag(ParseDiag.UnexpectedOperator(token.asSymbol));
 			default:
@@ -160,7 +162,7 @@ Token getPeekToken(in Lexer lexer) =>
 	getPeekTokenAndData(lexer).token;
 
 private Range range(in Lexer lexer, CString begin) =>
-	range(lexer, posOf(lexer, begin.ptr));
+	range(lexer, posOf(lexer, begin));
 
 StringPart takeClosingBraceThenStringPart(ref Lexer lexer, QuoteKind quoteKind) {
 	if (getPeekToken(lexer) != Token.braceRight)

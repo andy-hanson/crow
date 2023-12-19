@@ -2,14 +2,14 @@ module frontend.parse.lexToken;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.lexUtil : isDecimalDigit, startsWith, tryTakeChar, tryTakeChars;
+import frontend.parse.lexUtil : isDecimalDigit, startsWith, takeChar, tryGetAfterStartsWith, tryTakeChar, tryTakeChars;
 import frontend.parse.lexWhitespace : DocCommentAndIndentDelta, IndentKind, skipBlankLinesAndGetIndentDelta;
 import model.ast : LiteralFloatAst, LiteralIntAst, LiteralNatAst;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
-import util.col.array : arrayOfRange, isEmpty;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, Opt, optOrDefault, some;
+import util.string : CString, MutCString, stringOfRange;
 import util.symbol : AllSymbols, appendEquals, Symbol, symbol, symbolOfString;
 import util.util : todo, unreachable;
 
@@ -206,7 +206,7 @@ bool isSymbolToken(Token a) {
 }
 
 TokenAndData lexInitialToken(
-	ref immutable(char)* ptr,
+	ref MutCString ptr,
 	ref AllSymbols allSymbols,
 	IndentKind indentKind,
 	ref uint curIndent,
@@ -218,15 +218,18 @@ TokenAndData lexInitialToken(
 Advances 'ptr' to lex a single token.
 Possibly writes to 'data' depending on the kind of token returned.
 */
-@trusted TokenAndData lexToken(
-	ref immutable(char)* ptr,
+TokenAndData lexToken(
+	ref MutCString ptr,
 	ref AllSymbols allSymbols,
 	IndentKind indentKind,
 	ref uint curIndent,
 	in AddDiag addDiag,
 ) {
-	char c = *ptr;
-	ptr++;
+	if (*ptr == '\0')
+		return newlineToken(ptr, Token.EOF, indentKind, curIndent, addDiag);
+
+	CString start = ptr;
+	char c = takeChar(ptr);
 	switch (c) {
 		case ' ':
 		case '\t':
@@ -234,9 +237,6 @@ Possibly writes to 'data' depending on the kind of token returned.
 		case '#':
 			// handled by skipSpacesAndComments
 			return unreachable!TokenAndData();
-		case '\0':
-			ptr--;
-			return newlineToken(ptr, Token.EOF, indentKind, curIndent, addDiag);
 		case '\n':
 			return newlineToken(ptr, Token.newlineSameIndent, indentKind, curIndent, addDiag);
 		case '~':
@@ -244,7 +244,7 @@ Possibly writes to 'data' depending on the kind of token returned.
 		case '@':
 			return plainToken(Token.at);
 		case '!':
-			return !peekChars(ptr, "==") && tryTakeChar(ptr, '=')
+			return !startsWith(ptr, "==") && tryTakeChar(ptr, '=')
 				? operatorToken(ptr, allSymbols, symbol!"!=")
 				: plainToken(Token.bang);
 		case '%':
@@ -327,14 +327,14 @@ Possibly writes to 'data' depending on the kind of token returned.
 				: plainToken(Token.question);
 		default:
 			if (isAlphaIdentifierStart(c)) {
-				string nameStr = takeNameRest(ptr, ptr - 1);
+				string nameStr = takeNameRest(ptr, start);
 				Symbol symbol = symbolOfString(allSymbols, nameStr);
 				Token token = tokenForSymbol(symbol);
 				return token == Token.name
 					? nameLikeToken(ptr, allSymbols, symbol, Token.name)
 					: plainToken(token);
 			} else if (isDecimalDigit(c)) {
-				ptr--;
+				ptr = start;
 				return takeNumberAfterSign(ptr, none!Sign);
 			} else
 				return plainToken(Token.invalid);
@@ -344,45 +344,53 @@ Possibly writes to 'data' depending on the kind of token returned.
 private alias AddDiag = void delegate(ParseDiag) @safe @nogc pure nothrow;
 
 enum EqualsOrThen { equals, then }
-@trusted Opt!EqualsOrThen lookaheadEqualsOrThen(immutable(char)* ptr) {
-	if (ptr[0] == '<' && ptr[1] == '-' && ptr[2] == ' ')
+Opt!EqualsOrThen lookaheadEqualsOrThen(MutCString ptr) {
+	if (startsWith(ptr, "<- "))
 		return some(EqualsOrThen.then);
 	while (true) {
 		switch (*ptr) {
 			case ' ':
-				if (ptr[1] == '=' && ptr[2] == ' ')
+				ptr++;
+				if (startsWith(ptr, "= "))
 					return some(EqualsOrThen.equals);
-				else if (ptr[1] == '<' && ptr[2] == '-' && ptr[3] == ' ')
+				else if (startsWith(ptr, "<- "))
 					return some(EqualsOrThen.then);
-				break;
+				else
+					break;
 			// characters that appear in types
 			default:
 				if (!isTypeChar(*ptr))
 					return none!EqualsOrThen;
-				break;
+				else {
+					ptr++;
+					break;
+				}
 		}
-		ptr++;
 	}
 }
 
-@trusted bool lookaheadQuestionEquals(immutable(char)* ptr) {
+bool lookaheadQuestionEquals(MutCString ptr) {
 	while (true) {
 		switch (*ptr) {
 			case ' ':
-				if (ptr[1] == '?' && ptr[2] == '=' && ptr[3] == ' ')
+				ptr++;
+				if (startsWith(ptr, "?= "))
 					return true;
-				break;
+				else
+					break;
 			default:
 				// Destructure chars are same as type chars
 				if (!isTypeChar(*ptr))
 					return false;
-				break;
+				else {
+					ptr++;
+					break;
+				}
 		}
-		ptr++;
 	}
 }
 
-@trusted bool lookaheadLambdaAfterParenLeft(immutable(char)* ptr) {
+bool lookaheadLambdaAfterParenLeft(MutCString ptr) {
 	size_t openParens = 1;
 	while (true) {
 		switch (*ptr) {
@@ -392,9 +400,11 @@ enum EqualsOrThen { equals, then }
 			case ')':
 				openParens--;
 				//TODO: allow more or less whitespace
-				if (openParens == 0)
-					return ptr[1] == ' ' && ptr[2] == '=' && ptr[3] == '>';
-				break;
+				if (openParens == 0) {
+					ptr++;
+					return startsWith(ptr, " =>");
+				} else
+					break;
 			default:
 				if (!isTypeChar(*ptr))
 					return false;
@@ -403,16 +413,18 @@ enum EqualsOrThen { equals, then }
 	}
 }
 
-private @trusted bool startsWithIdentifier(immutable char* ptr, in string expected) =>
-	startsWith(ptr, expected) && !isAlphaIdentifierContinue(ptr[expected.length]);
+private bool startsWithIdentifier(CString ptr, in string expected) {
+	Opt!CString end = tryGetAfterStartsWith(ptr, expected);
+	return has(end) && !isAlphaIdentifierContinue(*force(end));
+}
 
-bool lookaheadAs(immutable(char)* ptr) =>
+bool lookaheadAs(CString ptr) =>
 	startsWithIdentifier(ptr, "as");
-bool lookaheadElse(immutable(char)* ptr) =>
+bool lookaheadElse(CString ptr) =>
 	startsWithIdentifier(ptr, "else");
 
 enum ElifOrElse { elif, else_ }
-Opt!ElifOrElse lookaheadElifOrElse(immutable(char)* ptr) =>
+Opt!ElifOrElse lookaheadElifOrElse(CString ptr) =>
 	startsWithIdentifier(ptr, "elif")
 		? some(ElifOrElse.elif)
 		: startsWithIdentifier(ptr, "else")
@@ -436,16 +448,16 @@ enum QuoteKind {
 
 StringPart takeStringPart(
 	ref Alloc alloc,
-	return scope ref immutable(char)* ptr,
+	return scope ref MutCString ptr,
 	QuoteKind quoteKind,
 	in AddDiag addDiag,
 ) {
 	ArrayBuilder!char res;
 	StringPart.After after = () {
 		while (true) {
-			switch (peekChar(ptr)) {
+			switch (*ptr) {
 				case '"':
-					skipChar(ptr);
+					ptr++;
 					final switch (quoteKind) {
 						case QuoteKind.double_:
 							return StringPart.After.quote;
@@ -458,10 +470,10 @@ StringPart takeStringPart(
 					}
 					break;
 				case '{':
-					skipChar(ptr);
+					ptr++;
 					return StringPart.After.lbrace;
 				case '\\':
-					skipChar(ptr);
+					ptr++;
 					char escapeCode = takeChar(ptr);
 					char escaped = () {
 						switch (escapeCode) {
@@ -523,8 +535,8 @@ StringPart takeStringPart(
 
 private:
 
-@trusted TokenAndData newlineToken(
-	ref immutable(char)* ptr,
+TokenAndData newlineToken(
+	ref MutCString ptr,
 	Token newlineOrEOF,
 	IndentKind indentKind,
 	ref uint curIndent,
@@ -536,27 +548,11 @@ private:
 	return TokenAndData(token, DocCommentAndExtraDedents(x.docComment, extraDedents));
 }
 
-@trusted char peekChar(immutable char* ptr) =>
-	*ptr;
-
-@trusted void skipChar(ref immutable(char)* ptr) {
-	ptr++;
-}
-
-@trusted char takeChar(ref immutable(char)* ptr) {
-	char res = *ptr;
-	ptr++;
-	return res;
-}
-
-@trusted bool peekChars(immutable(char*) ptr, in string chars) =>
-	isEmpty(chars) || (*ptr == chars[0] && peekChars(ptr + 1, chars[1 .. $]));
-
-TokenAndData operatorToken(ref immutable(char)* ptr, ref AllSymbols allSymbols, Symbol a) =>
+TokenAndData operatorToken(scope ref MutCString ptr, ref AllSymbols allSymbols, Symbol a) =>
 	nameLikeToken(ptr, allSymbols, a, Token.operator);
 
-TokenAndData nameLikeToken(ref immutable(char)* ptr, ref AllSymbols allSymbols, Symbol a, Token regularToken) =>
-	!peekChars(ptr, "==") && tryTakeChar(ptr, '=')
+TokenAndData nameLikeToken(scope ref MutCString ptr, ref AllSymbols allSymbols, Symbol a, Token regularToken) =>
+	!startsWith(ptr, "==") && tryTakeChar(ptr, '=')
 		? TokenAndData(Token.nameOrOperatorEquals, appendEquals(allSymbols, a))
 		: TokenAndData(tryTakeChars(ptr, ":=") ? Token.nameOrOperatorColonEquals : regularToken, a);
 
@@ -654,7 +650,7 @@ enum Sign {
 	minus,
 }
 
-@trusted TokenAndData takeNumberAfterSign(ref immutable(char)* ptr, Opt!Sign sign) {
+TokenAndData takeNumberAfterSign(ref MutCString ptr, Opt!Sign sign) {
 	ulong base = tryTakeChars(ptr, "0x")
 		? 16
 		: tryTakeChars(ptr, "0o")
@@ -663,9 +659,9 @@ enum Sign {
 		? 2
 		: 10;
 	LiteralNatAst n = takeNat(ptr, base);
-	if (*ptr == '.' && isDecimalDigit(*(ptr + 1))) {
+	if (peekDecimalPoint(ptr)) {
 		ptr++;
-		return takeFloat(ptr, has(sign) ? force(sign) : Sign.plus, n, base);
+		return takeFloat(ptr, optOrDefault!Sign(sign, () => Sign.plus), n, base);
 	} else if (has(sign))
 		return TokenAndData(Token.literalInt, () {
 			final switch (force(sign)) {
@@ -679,12 +675,21 @@ enum Sign {
 		return TokenAndData(Token.literalNat, n);
 }
 
-@system TokenAndData takeFloat(ref immutable(char)* ptr, Sign sign, LiteralNatAst natPart, ulong base) {
+bool peekDecimalPoint(MutCString ptr) {
+	if (*ptr == '.') {
+		ptr++;
+		return isDecimalDigit(*ptr);
+	} else
+		return false;
+}
+
+
+TokenAndData takeFloat(ref MutCString ptr, Sign sign, LiteralNatAst natPart, ulong base) {
 	// TODO: improve accuracy
-	const char *cur = ptr;
+	MutCString afterDecimalPoint = ptr;
 	LiteralNatAst rest = takeNat(ptr, base);
 	bool overflow = natPart.overflow || rest.overflow;
-	ulong power = ptr - cur;
+	ulong power = ptr - afterDecimalPoint;
 	double multiplier = pow(1.0, 1.0 / base, power);
 	double floatSign = () {
 		final switch (sign) {
@@ -705,7 +710,7 @@ double pow(double acc, double base, ulong power) =>
 ulong getDivisor(ulong acc, ulong a, ulong base) =>
 	acc < a ? getDivisor(acc * base, a, base) : acc;
 
-public @system LiteralNatAst takeNat(ref immutable(char)* ptr, ulong base) {
+public LiteralNatAst takeNat(ref MutCString ptr, ulong base) {
 	ulong value = 0;
 	bool overflow = false;
 	while (true) {
@@ -731,12 +736,15 @@ ulong charToNat(char a) =>
 		? 10 + (a - 'A')
 		: ulong.max;
 
-@trusted string takeNameRest(ref immutable(char)* ptr, immutable char* begin) {
-	while (isAlphaIdentifierContinue(*ptr))
+string takeNameRest(ref MutCString ptr, CString begin) {
+	MutCString lastNonHyphen = begin;
+	while (isAlphaIdentifierContinue(*ptr)) {
+		if (*ptr != '-') lastNonHyphen = ptr;
 		ptr++;
-	if (*(ptr - 1) == '-')
-		ptr--;
-	return arrayOfRange(begin, ptr);
+	}
+	ptr = lastNonHyphen;
+	ptr++;
+	return stringOfRange(begin, ptr);
 }
 
 bool isAlphaIdentifierStart(char c) =>

@@ -4,7 +4,7 @@ module lib.cliParser;
 
 import frontend.lang : cExtension, crowExtension, JitOptions, OptimizationLevel;
 import frontend.parse.lexToken : takeNat;
-import frontend.parse.lexUtil : isDecimalDigit, tryTakeChar;
+import frontend.parse.lexUtil : isDecimalDigit, startsWith, tryTakeChar;
 import model.ast : LiteralNatAst;
 import util.alloc.alloc : Alloc;
 import util.col.array : copyArray, findIndex, foldOrStop, isEmpty, mapOrNone, only;
@@ -12,7 +12,7 @@ import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.conv : isUint, safeToUint;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.sourceRange : LineAndColumn;
-import util.string : CString, cString, stringOfCString;
+import util.string : CString, cString, MutCString, stringOfCString;
 import util.symbol : Symbol, symbol;
 import util.union_ : Union;
 import util.uri : addExtension, alterExtension, AllUris, getExtension, parseUriWithCwd, Uri;
@@ -243,8 +243,8 @@ Opt!PrintKind parsePrintKind(in CString a, in CString[] args) {
 	}
 }
 
-@trusted Opt!LineAndColumn parseLineAndColumn(in CString a) {
-	immutable(char)* ptr = a.ptr;
+Opt!LineAndColumn parseLineAndColumn(in CString a) {
+	MutCString ptr = a;
 	Opt!uint line = convertFrom1Indexed(tryTakeNat(ptr));
 	bool colon = tryTakeChar(ptr, ':');
 	Opt!uint column = convertFrom1Indexed(tryTakeNat(ptr));
@@ -258,7 +258,7 @@ Opt!uint convertFrom1Indexed(in Opt!uint a) =>
 		? some(force(a) - 1)
 		: none!uint;
 
-@system Opt!uint tryTakeNat(ref immutable(char)* ptr) {
+Opt!uint tryTakeNat(ref MutCString ptr) {
 	if (isDecimalDigit(*ptr)) {
 		LiteralNatAst res = takeNat(ptr, 10);
 		return !res.overflow && isUint(res.value)
@@ -436,8 +436,8 @@ SplitArgsAndOptions splitArgs(ref Alloc alloc, return scope CString[] args) {
 	}
 }
 
-@trusted bool startsWithDashDash(in CString a) =>
-	a.ptr[0] == '-' && a.ptr[1] == '-';
+bool startsWithDashDash(in CString a) =>
+	startsWith(a, "--");
 
 struct NamedArgs {
 	ArgsPart[] parts;

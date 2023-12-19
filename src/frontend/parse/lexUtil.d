@@ -2,6 +2,10 @@ module frontend.parse.lexUtil;
 
 @safe @nogc pure nothrow:
 
+import util.opt : none, Opt, some;
+import util.string : CString, MutCString;
+import util.util : castNonScope_ref;
+
 bool isDecimalDigit(char c) =>
 	'0' <= c && c <= '9';
 
@@ -17,7 +21,13 @@ bool isWhitespace(char a) {
 	}
 }
 
-@trusted bool tryTakeChar(scope ref immutable(char)* ptr, char expected) {
+char takeChar(scope ref MutCString ptr) {
+	char res = *ptr;
+	ptr++;
+	return res;
+}
+
+bool tryTakeChar(scope ref MutCString ptr, char expected) {
 	if (*ptr == expected) {
 		ptr++;
 		return true;
@@ -25,19 +35,21 @@ bool isWhitespace(char a) {
 		return false;
 }
 
-@trusted bool startsWith(immutable(char)* ptr, in string chars) {
+bool startsWith(in CString a, in string chars) {
+	MutCString ptr = a;
+	return tryTakeChars(ptr, chars);
+}
+
+Opt!CString tryGetAfterStartsWith(MutCString ptr, in string chars) =>
+	tryTakeChars(ptr, chars) ? some!CString(ptr) : none!CString;
+
+bool tryTakeChars(scope ref MutCString a, in string chars) {
+	MutCString ptr = a;
 	foreach (immutable char expected; chars) {
 		if (*ptr != expected)
 			return false;
 		ptr++;
 	}
+	a = castNonScope_ref(ptr);
 	return true;
-}
-
-@trusted bool tryTakeChars(ref immutable(char)* ptr, in string chars) {
-	if (startsWith(ptr, chars)) {
-		ptr += chars.length;
-		return true;
-	} else
-		return false;
 }
