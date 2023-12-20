@@ -60,6 +60,12 @@ CString withStackWriter(in void delegate(scope ref Alloc, scope ref Writer) @saf
 	return CString(finish(*writer.alloc, writer.res).ptr);
 }
 
+string makeStringWithWriter(ref Alloc alloc, in void delegate(scope ref Writer writer) @safe @nogc pure nothrow cb) {
+	scope Writer writer = Writer(&alloc);
+	cb(writer);
+	return finish(*writer.alloc, writer.res);
+}
+
 void writeHex(scope ref Writer writer, ulong a) {
 	writeNat(writer, a, 16);
 }

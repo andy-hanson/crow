@@ -7,7 +7,7 @@ import util.col.array : arraysEqual, concatenateIn, copyArray, every, exists, fi
 import util.col.fullIndexMap : FullIndexMap;
 import util.col.map : KeyValuePair;
 import util.opt : force, has, Opt;
-import util.string : copyString, CString, cStringIsEmpty, stringsEqual, stringOfCString;
+import util.string : copyString, CString, stringsEqual, stringOfCString;
 import util.symbol : AllSymbols, Symbol, symbol, writeQuotedSymbol;
 import util.union_ : Union;
 import util.util : todo;
@@ -91,8 +91,8 @@ Json.ObjectField optionalArrayField(string name, T)(
 	optionalField!name(!isEmpty(array), () =>
 		jsonList(map!(Json, const T)(alloc, array, (ref const T x) => cb(x))));
 
-Json.ObjectField optionalStringField(string name)(ref Alloc alloc, in CString value) =>
-	optionalField!name(!cStringIsEmpty(value), () => jsonString(alloc, value));
+Json.ObjectField optionalStringField(string name)(ref Alloc alloc, in string value) =>
+	optionalField!name(!isEmpty(value), () => jsonString(alloc, value));
 
 Json.ObjectField kindField(string kindName)() =>
 	.kindField(kindName);
@@ -118,14 +118,8 @@ Json jsonInt(long a) =>
 Json jsonString(string a) =>
 	Json(a);
 
-Json jsonString(CString a) =>
-	jsonString(stringOfCString(a));
-
 Json jsonString(ref Alloc alloc, in string a) =>
 	jsonString(copyString(alloc, a));
-
-Json jsonString(ref Alloc alloc, in CString a) =>
-	jsonString(alloc, stringOfCString(a));
 
 Json jsonString(Symbol a) =>
 	Json(a);

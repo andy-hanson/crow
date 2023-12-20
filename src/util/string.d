@@ -4,8 +4,13 @@ module util.string;
 
 import util.alloc.alloc : Alloc;
 import util.comparison : Comparison;
-import util.col.array : append, arrayOfRange, arraysEqual, copyArray, isEmpty;
+import util.col.array :
+	append, arrayOfRange, arraysEqual, copyArray, emptySmallArray, isEmpty, MutSmallArray, SmallArray;
 import util.hash : HashCode, hashString;
+
+alias SmallString = SmallArray!char;
+SmallString emptySmallString() =>
+	emptySmallArray!char;
 
 // Like 'immutable char*' but guaranteed to have a terminating '\0'
 // (Preferred to `string` as it is 8 bytes instead of 16)

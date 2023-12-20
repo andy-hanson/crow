@@ -32,7 +32,7 @@ import util.conv : safeToSizeT;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : combineRanges, UriAndRange, Pos, rangeOfStartAndLength, Range;
-import util.string : CString, cString;
+import util.string : emptySmallString, SmallString;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : Union;
 import util.uri : Uri;
@@ -300,7 +300,7 @@ immutable struct StructAlias {
 	// This will be none if the alias target is not found
 	private Late!(Opt!(StructInst*)) target_;
 
-	CString docComment() return scope =>
+	SmallString docComment() return scope =>
 		ast.docComment;
 
 	TypeParams typeParams() return scope =>
@@ -372,12 +372,12 @@ immutable struct StructDecl {
 		lateSet(lateBody, value);
 	}
 
-	CString docComment() return scope =>
-		source.match!CString(
+	SmallString docComment() return scope =>
+		source.match!SmallString(
 			(ref StructDeclAst x) =>
 				x.docComment,
 			(ref StructDeclSource.Bogus) =>
-				cString!"");
+				emptySmallString);
 	TypeParams typeParams() return scope =>
 		source.match!TypeParams(
 			(ref StructDeclAst x) =>
@@ -481,7 +481,7 @@ immutable struct SpecDecl {
 	SpecDeclBody body_;
 	private Late!(SmallArray!(immutable SpecInst*)) parents_;
 
-	CString docComment() return scope =>
+	SmallString docComment() return scope =>
 		ast.docComment;
 	TypeParams typeParams() return scope =>
 		ast.typeParams;
@@ -749,7 +749,7 @@ immutable struct FunDecl {
 	UriAndRange range() scope =>
 		source.range;
 
-	CString docComment() scope =>
+	SmallString docComment() scope =>
 		source.as!(FunDeclSource.Ast).ast.docComment;
 
 	Linkage linkage() scope =>
@@ -1476,7 +1476,7 @@ immutable struct LiteralExpr {
 }
 
 immutable struct LiteralCStringExpr {
-	CString value;
+	string value;
 }
 
 immutable struct LiteralSymbolExpr {

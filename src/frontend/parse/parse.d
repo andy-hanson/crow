@@ -68,7 +68,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : Pos, Range;
-import util.string : CString, cString;
+import util.string : CString, emptySmallString, SmallString;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.uri : AllUris;
 import util.util : castNonScope_ref, ptrTrustMe, typeAs;
@@ -131,13 +131,13 @@ ParamsAst parseParams(ref Lexer lexer) {
 
 SpecSigAst parseSpecSig(ref Lexer lexer) {
 	// TODO: get doc comment
-	CString comment = cString!"";
+	SmallString docComment = emptySmallString;
 	Pos start = curPos(lexer);
 	NameAndRange name = takeNameOrOperator(lexer);
 	assert(name.start == start);
 	TypeAst returnType = parseType(lexer);
 	ParamsAst params = parseParams(lexer);
-	return SpecSigAst(comment, range(lexer, start), name.name, returnType, params);
+	return SpecSigAst(docComment, range(lexer, start), name.name, returnType, params);
 }
 
 SpecSigAst[] parseIndentedSigs(ref Lexer lexer) {
@@ -243,7 +243,7 @@ StructDeclAst.Body.Union.Member[] parseUnionMembers(ref Lexer lexer) {
 
 FunDeclAst parseFun(
 	ref Lexer lexer,
-	CString docComment,
+	SmallString docComment,
 	ExplicitVisibility visibility,
 	Pos start,
 	NameAndRange name,
@@ -334,7 +334,7 @@ void parseSpecOrStructOrFunOrTest(
 	scope ref ArrayBuilder!FunDeclAst funs,
 	scope ref ArrayBuilder!TestAst tests,
 	scope ref ArrayBuilder!VarDeclAst vars,
-	CString docComment,
+	SmallString docComment,
 ) {
 	if (tryTakeToken(lexer, Token.test))
 		add(lexer.alloc, tests, TestAst(parseFunExprBody(lexer)));
@@ -349,7 +349,7 @@ void parseSpecOrStructOrFun(
 	scope ref ArrayBuilder!StructDeclAst structs,
 	scope ref ArrayBuilder!FunDeclAst funs,
 	scope ref ArrayBuilder!VarDeclAst varDecls,
-	CString docComment,
+	SmallString docComment,
 ) {
 	Pos start = curPos(lexer);
 	ExplicitVisibility visibility = tryTakeVisibility(lexer);
@@ -458,7 +458,7 @@ Opt!(LiteralNatAst*) parseNat(ref Lexer lexer) =>
 VarDeclAst parseVarDecl(
 	ref Lexer lexer,
 	Pos start,
-	CString docComment,
+	SmallString docComment,
 	ExplicitVisibility visibility,
 	NameAndRange name,
 	NameAndRange[] typeParams,
@@ -552,8 +552,8 @@ ExplicitVisibility tryTakeVisibility(ref Lexer lexer) =>
 		: ExplicitVisibility.default_;
 
 FileAst* parseFileInner(scope ref AllUris allUris, ref Lexer lexer) {
-	CString moduleDocComment = takeNewline_topLevel(lexer);
-	Cell!(Opt!CString) firstDocComment = Cell!(Opt!CString)(some(cString!""));
+	SmallString moduleDocComment = takeNewline_topLevel(lexer);
+	Cell!(Opt!SmallString) firstDocComment = Cell!(Opt!SmallString)(some(emptySmallString));
 	bool noStd = tryTakeToken(lexer, Token.noStd);
 	if (noStd)
 		cellSet(firstDocComment, some(takeNewline_topLevel(lexer)));
@@ -572,10 +572,10 @@ FileAst* parseFileInner(scope ref AllUris allUris, ref Lexer lexer) {
 	ArrayBuilder!VarDeclAst vars;
 
 	while (!tryTakeToken(lexer, Token.EOF)) {
-		CString docComment = () {
+		SmallString docComment = () {
 			if (has(cellGet(firstDocComment))) {
-				CString res = force(cellGet(firstDocComment));
-				cellSet(firstDocComment, none!CString);
+				SmallString res = force(cellGet(firstDocComment));
+				cellSet(firstDocComment, none!SmallString);
 				return res;
 			} else
 				return takeNewline_topLevel(lexer);

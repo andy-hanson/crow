@@ -339,7 +339,9 @@ string stringOfUri(ref Alloc alloc, in AllUris allUris, Uri a) =>
 	stringOfCString(cStringOfUri(alloc, allUris, a));
 CString cStringOfFileUri(ref Alloc alloc, in AllUris allUris, FileUri a) =>
 	cStringOfPath(alloc, allUris, a.path, true);
-@trusted CString cStringOfPath(ref Alloc alloc, in AllUris allUris, Path path, bool leadingSlash) {
+string stringOfPath(ref Alloc alloc, in AllUris allUris, Path path, bool leadingSlash) =>
+	stringOfCString(cStringOfPath(alloc, allUris, path, leadingSlash));
+@trusted private CString cStringOfPath(ref Alloc alloc, in AllUris allUris, Path path, bool leadingSlash) {
 	StringOfPathOptions options = StringOfPathOptions(leadingSlash, true);
 	size_t length = pathToStrLength(allUris, path, options);
 	char[] res = allocateElements!char(alloc, length);

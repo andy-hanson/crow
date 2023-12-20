@@ -12,7 +12,6 @@ import lib.server : getProgramForAll, getShowDiagCtx, Server;
 import model.model : Module, Program;
 import test.testUtil : setupTestServer, Test, withTestServer;
 import util.alloc.alloc : Alloc;
-import util.cell : Cell, cellGet, cellSet;
 import util.col.array : arraysEqual, isEmpty;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.hashTable : mustGet;
@@ -22,7 +21,7 @@ import util.opt : force, has, Opt;
 import util.uri : parseUri, Uri;
 import util.sourceRange :
 	jsonOfLineAndCharacterRange, jsonOfUriAndLineAndCharacterRange, LineAndCharacterGetter, Pos, Range, UriAndRange;
-import util.string : CString, cString, cStringIsEmpty, stringOfCString;
+import util.string : CString, stringOfCString;
 import util.util : debugLog;
 
 @trusted void testHover(ref Test test) {
@@ -61,14 +60,14 @@ void withHoverTest(string fileName)(
 	});
 }
 
-immutable struct InfoAtPos {
+struct InfoAtPos {
 	@safe @nogc pure nothrow:
 
-	CString hover;
+	string hover;
 	UriAndRange[] definition;
 
 	bool isEmpty() scope =>
-		cStringIsEmpty(hover) && .isEmpty(definition);
+		.isEmpty(hover) && .isEmpty(definition);
 
 	bool opEquals(in InfoAtPos b) scope =>
 		hover == b.hover && arraysEqual(definition, b.definition);
@@ -79,17 +78,16 @@ Json hoverResult(ref Alloc alloc, in string content, in ShowModelCtx ctx, Module
 
 	// We combine ranges that have the same info.
 	Pos curRangeStart = 0;
-	Cell!(InfoAtPos) curInfo = Cell!(InfoAtPos)(InfoAtPos(cString!"", []));
+	InfoAtPos curInfo = InfoAtPos("", []);
 
 	LineAndCharacterGetter lcg = ctx.lineAndCharacterGetters[mainModule.uri];
 
 	void endRange(Pos end) {
-		InfoAtPos info = cellGet(curInfo);
-		if (!info.isEmpty) {
+		if (!curInfo.isEmpty) {
 			add(alloc, parts, jsonObject(alloc, [
 				field!"range"(jsonOfLineAndCharacterRange(alloc, lcg[Range(curRangeStart, end)])),
-				field!"hover"(info.hover),
-				optionalArrayField!("definition", UriAndRange)(alloc, info.definition, (in UriAndRange x) =>
+				field!"hover"(curInfo.hover),
+				optionalArrayField!("definition", UriAndRange)(alloc, curInfo.definition, (in UriAndRange x) =>
 					jsonOfUriAndLineAndCharacterRange(alloc, ctx.allUris, ctx.lineAndCharacterGetters[x])),
 			]));
 		}
@@ -100,12 +98,12 @@ Json hoverResult(ref Alloc alloc, in string content, in ShowModelCtx ctx, Module
 		Position position = getPosition(ctx.allSymbols, ctx.allUris, mainModule, pos);
 		Opt!Hover hover = getHover(alloc, ctx, position);
 		InfoAtPos here = InfoAtPos(
-			has(hover) ? force(hover).contents.value : cString!"",
+			has(hover) ? force(hover).contents.value : "",
 			getDefinitionForPosition(alloc, ctx.allSymbols, position));
-		if (here != cellGet(curInfo)) {
+		if (here != curInfo) {
 			endRange(pos - 1);
 			curRangeStart = pos;
-			cellSet(curInfo, here);
+			curInfo = here;
 		}
 	}
 	endRange(endOfFile);

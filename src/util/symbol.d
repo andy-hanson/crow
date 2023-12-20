@@ -205,6 +205,9 @@ private Symbol getSymbol(string name) {
 	return force(opt);
 }
 
+string stringOfSymbol(ref Alloc alloc, return scope ref const AllSymbols allSymbols, Symbol a) =>
+	stringOfCString(cStringOfSymbol(alloc, allSymbols, a));
+
 CString cStringOfSymbol(ref Alloc alloc, return scope ref const AllSymbols allSymbols, Symbol a) =>
 	isLongSymbol(a)
 		? asLongSymbol(allSymbols, a)

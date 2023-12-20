@@ -164,7 +164,6 @@ import util.conv : safeToUshort, safeToUint;
 import util.memory : allocate, initMemory, overwriteMemory;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, someMut, some;
 import util.sourceRange : Pos, Range;
-import util.string : copyToCString;
 import util.symbol : prependSet, prependSetDeref, Symbol, symbol, symbolOfString;
 import util.union_ : Union;
 import util.util : castImmutable, castNonScope_ref, max, ptrTrustMe, todo, unreachable;
@@ -838,7 +837,7 @@ Expr checkLiteralNat(ref ExprCtx ctx, ExprAst* source, in LiteralNatAst ast, ref
 		return bogus(expected, source);
 }
 
-Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, scope string value, ref Expected expected) {
+Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, string value, ref Expected expected) {
 	StructInst* expectedStruct = expectedStructOrNull(ctx.instantiateCtx, expected);
 	if (expectedStruct == ctx.commonTypes.char8) {
 		char char_ = () {
@@ -852,7 +851,7 @@ Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, scope string value, re
 	} else if (expectedStruct == ctx.commonTypes.symbol)
 		return Expr(source, ExprKind(LiteralSymbolExpr(symbolOfString(ctx.allSymbols, value))));
 	else if (expectedStruct == ctx.commonTypes.cString)
-		return Expr(source, ExprKind(LiteralCStringExpr(copyToCString(ctx.alloc, value))));
+		return Expr(source, ExprKind(LiteralCStringExpr(value)));
 	else {
 		defaultExpectedToString(ctx, source, expected);
 		return checkCallSpecialNoLocals(ctx, source, symbol!"literal", arrayOfSingle(source), expected);

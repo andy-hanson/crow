@@ -16,14 +16,14 @@ import util.col.mutArr : asTemporaryArray, moveToArray, MutArr, mutArrSize, push
 import util.col.mutMap : getOrAdd, MutMap, size, values, valuesArray;
 import util.memory : initMemory;
 import util.opt : force, has, Opt;
-import util.string : CString;
-import util.symbol : AllSymbols, cStringOfSymbol, Symbol;
+import util.string : copyToCString, CString;
+import util.symbol : AllSymbols, stringOfSymbol, Symbol;
 import util.util : ptrTrustMe;
 
 struct AllConstantsBuilder {
 	private:
 	@disable this(ref const AllConstantsBuilder);
-	MutMap!(CString, Constant.CString) cStrings;
+	MutMap!(immutable string, Constant.CString) cStrings;
 	MutMap!(Symbol, Constant) symbols;
 	MutArr!CString cStringValues;
 	MutMap!(ConcreteType, ArrTypeAndConstants) arrs;
@@ -117,17 +117,18 @@ private Constant getConstantCStringForSymbol(
 	ref const AllSymbols allSymbols,
 	Symbol value,
 ) =>
-	getConstantCString(alloc, allConstants, cStringOfSymbol(alloc, allSymbols, value));
+	// TODO: PERF avoid alloc when the symbol is in allConstants.cStrings
+	getConstantCString(alloc, allConstants, stringOfSymbol(alloc, allSymbols, value));
 
-Constant getConstantCString(ref Alloc alloc, ref AllConstantsBuilder allConstants, CString value) =>
-	Constant(getOrAdd!(CString, Constant.CString)(
+Constant getConstantCString(ref Alloc alloc, ref AllConstantsBuilder allConstants, string value) =>
+	Constant(getOrAdd!(immutable string, Constant.CString)(
 		alloc,
 		allConstants.cStrings,
 		value,
 		() {
 			size_t index = mutArrSize(allConstants.cStringValues);
 			assert(size(allConstants.cStrings) == index);
-			push(alloc, allConstants.cStringValues, value);
+			push(alloc, allConstants.cStringValues, copyToCString(alloc, value));
 			return Constant.CString(index);
 		}));
 

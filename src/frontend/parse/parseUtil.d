@@ -5,7 +5,6 @@ module frontend.parse.parseUtil;
 import frontend.parse.lexer :
 	addDiag,
 	addDiagAtChar,
-	alloc,
 	curPos,
 	getPeekToken,
 	getPeekTokenAndData,
@@ -22,7 +21,7 @@ import model.parseDiag : ParseDiag;
 import util.col.array : contains;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
-import util.string : copyToCString, CString, cString;
+import util.string : emptySmallString, SmallString;
 import util.symbol : Symbol, symbol;
 import util.util : unreachable;
 
@@ -148,15 +147,15 @@ private immutable Token[] endOfLineTokens =
 bool peekEndOfLine(ref Lexer lexer) =>
 	peekToken(lexer, endOfLineTokens);
 
-CString takeNewline_topLevel(ref Lexer lexer) {
+SmallString takeNewline_topLevel(ref Lexer lexer) {
 	TokenAndData token = takeNextToken(lexer);
 	if (token.token == Token.newlineSameIndent)
-		return copyToCString(lexer.alloc, token.asDocComment().docComment);
+		return token.asDocComment().docComment;
 	else {
 		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.newline)));
 		NewlineOrDedent nl = skipToNextNewlineOrDedent(lexer);
 		assert(nl == NewlineOrDedent.newline);
-		return cString!"";
+		return emptySmallString;
 	}
 }
 

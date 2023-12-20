@@ -46,7 +46,7 @@ import util.json :
 	kindField;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : compareUriAndRange, UriAndRange;
-import util.string : CString;
+import util.string : CString, SmallString;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.uri : AllUris, stringOfUri;
 import util.util : stringOfEnum, unreachable;
@@ -95,7 +95,7 @@ DocExport documentExport(
 	ref Alloc alloc,
 	UriAndRange range,
 	Symbol name,
-	in CString docComment,
+	in SmallString docComment,
 	in TypeParams typeParams,
 	Json value,
 ) =>

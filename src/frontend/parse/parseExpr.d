@@ -81,7 +81,6 @@ import model.ast :
 	WithAst;
 import model.model : AssertOrForbidKind;
 import model.parseDiag : ParseDiag;
-import util.cell : Cell, cellGet, cellSet;
 import util.col.array : isEmpty, newArray, only, prepend;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.memory : allocate;
@@ -958,14 +957,17 @@ ExprAst parseEqualsOrThen(ref Lexer lexer, EqualsOrThen kind) {
 
 ExprAst parseStatements(ref Lexer lexer) {
 	Pos start = curPos(lexer);
-	Cell!ExprAst res = Cell!ExprAst(parseSingleStatementLine(lexer));
-	while (tryTakeToken(lexer, Token.newlineSameIndent)) {
+	return parseStatementsRecur(lexer, start, parseSingleStatementLine(lexer));
+}
+
+ExprAst parseStatementsRecur(ref Lexer lexer, Pos start, ExprAst res) {
+	if (tryTakeToken(lexer, Token.newlineSameIndent)) {
 		ExprAst nextLine = parseSingleStatementLine(lexer);
-		cellSet(res, ExprAst(
+		return parseStatementsRecur(lexer, start, ExprAst(
 			range(lexer, start),
-			ExprAstKind(allocate(lexer.alloc, SeqAst(cellGet(res), nextLine)))));
-	}
-	return cellGet(res);
+			ExprAstKind(allocate(lexer.alloc, SeqAst(res, nextLine)))));
+	} else
+		return res;
 }
 
 ExprAst parseIndentedStatements(ref Lexer lexer) =>

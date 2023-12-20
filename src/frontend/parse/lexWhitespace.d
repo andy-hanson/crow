@@ -4,9 +4,9 @@ module frontend.parse.lexWhitespace;
 
 import frontend.parse.lexUtil : isWhitespace, tryTakeChar, tryTakeChars;
 import model.parseDiag : ParseDiag;
-import util.col.array : isEmpty;
+import util.col.array : isEmpty, small;
 import util.conv : safeIntFromUint, safeToUint;
-import util.string : CString, cStringIsEmpty, MutCString, stringOfRange;
+import util.string : CString, cStringIsEmpty, MutCString, SmallString, stringOfRange;
 import util.util : castNonScope_ref;
 
 private alias AddDiag = void delegate(ParseDiag) @safe @nogc pure nothrow;
@@ -76,7 +76,7 @@ void skipSpacesAndComments(scope ref MutCString ptr) {
 }
 
 immutable struct DocCommentAndIndentDelta {
-	string docComment;
+	SmallString docComment;
 	int indentDelta;
 }
 
@@ -115,7 +115,7 @@ DocCommentAndIndentDelta skipBlankLinesAndGetIndentDelta(
 			continue;
 		} else {
 			curIndent = newIndent;
-			return DocCommentAndIndentDelta(docComment, delta);
+			return DocCommentAndIndentDelta(small!char(docComment), delta);
 		}
 	}
 }

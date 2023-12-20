@@ -169,7 +169,7 @@ immutable struct Hover {
 }
 immutable struct MarkupContent {
 	MarkupKind kind;
-	CString value;
+	string value;
 }
 enum MarkupKind {
 	plaintext,

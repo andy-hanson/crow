@@ -95,7 +95,6 @@ import util.late : Late, lateGet, lazilySet;
 import util.memory : allocate;
 import util.opt : force, has, none;
 import util.sourceRange : UriAndRange;
-import util.string : CString;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.uri : AllUris, Uri;
 import util.util : max, roundUp, todo, typeAs, unreachable;
@@ -262,7 +261,7 @@ ConcreteType cStringType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._cStringType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.cString, TypeArgsScope.empty));
 
-Constant constantCString(ref ConcretizeCtx a, CString value) =>
+Constant constantCString(ref ConcretizeCtx a, string value) =>
 	getConstantCString(a.alloc, a.allConstants, value);
 
 Constant constantSymbol(ref ConcretizeCtx a, Symbol value) =>

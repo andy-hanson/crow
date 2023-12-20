@@ -9,12 +9,12 @@ import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.opt : force, has, none, Opt, optOrDefault, some;
-import util.string : CString, MutCString, stringOfRange;
+import util.string : CString, MutCString, SmallString, stringOfRange;
 import util.symbol : AllSymbols, appendEquals, Symbol, symbol, symbolOfString;
 import util.util : todo, unreachable;
 
 immutable struct DocCommentAndExtraDedents {
-	string docComment;
+	SmallString docComment;
 	uint extraDedents;
 }
 

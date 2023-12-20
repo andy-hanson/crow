@@ -11,7 +11,7 @@ import util.conv : safeToUint;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.sourceRange : Pos, Range, rangeOfStartAndLength, rangeOfStartAndName;
-import util.string : CString, cString;
+import util.string : emptySmallString, SmallString;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : Union;
 import util.uri : AllUris, Path, pathLength, RelPath, relPathLength;
@@ -533,7 +533,7 @@ DestructureAst[] paramsArray(return scope ParamsAst a) =>
 immutable struct SpecSigAst {
 	@safe @nogc pure nothrow:
 
-	CString docComment;
+	SmallString docComment;
 	Range range;
 	Symbol name;
 	TypeAst returnType;
@@ -544,7 +544,7 @@ immutable struct SpecSigAst {
 }
 
 immutable struct StructAliasAst {
-	CString docComment;
+	SmallString docComment;
 	Range range;
 	ExplicitVisibility visibility;
 	NameAndRange name;
@@ -622,7 +622,7 @@ immutable struct StructDeclAst {
 	}
 	static assert(Body.sizeof <= 24);
 
-	CString docComment;
+	SmallString docComment;
 	// Range starts at the visibility
 	Range range;
 	ExplicitVisibility visibility;
@@ -662,7 +662,7 @@ static assert(SpecBodyAst.sizeof == ulong.sizeof);
 
 immutable struct SpecDeclAst {
 	Range range;
-	CString docComment;
+	SmallString docComment;
 	ExplicitVisibility visibility;
 	NameAndRange name;
 	SmallArray!NameAndRange typeParams;
@@ -675,7 +675,7 @@ Range nameRange(in AllSymbols allSymbols, in SpecDeclAst a) =>
 
 immutable struct FunDeclAst {
 	Range range;
-	CString docComment;
+	SmallString docComment;
 	ExplicitVisibility visibility;
 	NameAndRange name;
 	SmallArray!NameAndRange typeParams;
@@ -766,7 +766,7 @@ immutable struct TestAst {
 // 'extern' or 'thread-local'
 immutable struct VarDeclAst {
 	Range range;
-	CString docComment;
+	SmallString docComment;
 	ExplicitVisibility visibility;
 	NameAndRange name;
 	NameAndRange[] typeParams; // This will be a compile error
@@ -812,7 +812,7 @@ immutable struct ImportsOrExportsAst {
 
 immutable struct FileAst {
 	ParseDiagnostic[] parseDiagnostics;
-	CString docComment;
+	SmallString docComment;
 	bool noStd;
 	Opt!ImportsOrExportsAst imports;
 	Opt!ImportsOrExportsAst reExports;
@@ -827,7 +827,7 @@ immutable struct FileAst {
 private FileAst* fileAstForDiags(ref Alloc alloc, ParseDiagnostic[] diags) =>
 	allocate(alloc, FileAst(
 		diags,
-		cString!"",
+		emptySmallString,
 		true, // Make sure the dummy AST doesn't have implicit imports
 		none!ImportsOrExportsAst,
 		none!ImportsOrExportsAst,

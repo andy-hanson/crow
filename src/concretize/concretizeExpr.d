@@ -104,7 +104,6 @@ import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2Mus
 import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range, UriAndRange;
-import util.string : CString, cString;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : Union;
 import util.uri : Uri;
@@ -131,7 +130,7 @@ ConcreteExpr concretizeBogus(ref ConcretizeCtx ctx, ConcreteType type, UriAndRan
 	ConcreteExpr(type, range, concretizeBogusKind(ctx, range));
 ConcreteExprKind concretizeBogusKind(ref ConcretizeCtx ctx, in UriAndRange range) =>
 	ConcreteExprKind(allocate(ctx.alloc, ConcreteExprKind.Throw(
-		cStringConcreteExpr(ctx, range, cString!"Reached compile error"))));
+		cStringConcreteExpr(ctx, range, "Reached compile error"))));
 
 private:
 
@@ -890,9 +889,9 @@ ConcreteVariableRef concretizeVariableRefForClosure(
 		(ClosureRef x) =>
 			ConcreteVariableRef(getClosureFieldInfo(ctx, range, x).closureRef));
 
-ConcreteExpr cStringConcreteExpr(ref ConcretizeCtx ctx, in UriAndRange range, CString value) =>
+ConcreteExpr cStringConcreteExpr(ref ConcretizeCtx ctx, in UriAndRange range, string value) =>
 	cStringConcreteExpr(ctx, cStringType(ctx), range, value);
-ConcreteExpr cStringConcreteExpr(ref ConcretizeCtx ctx, ConcreteType type, in UriAndRange range, CString value) =>
+ConcreteExpr cStringConcreteExpr(ref ConcretizeCtx ctx, ConcreteType type, in UriAndRange range, string value) =>
 	ConcreteExpr(type, range, ConcreteExprKind(constantCString(ctx, value)));
 
 ConcreteExpr concretizeAssertOrForbid(
@@ -924,12 +923,12 @@ ConcreteExpr concretizeAssertOrForbid(
 	return ConcreteExpr(type, range, ConcreteExprKind(allocate(ctx.alloc, if_)));
 }
 
-CString defaultAssertOrForbidMessage(AssertOrForbidKind a) {
+string defaultAssertOrForbidMessage(AssertOrForbidKind a) {
 	final switch (a) {
 		case AssertOrForbidKind.assert_:
-			return cString!"assert failed";
+			return "assert failed";
 		case AssertOrForbidKind.forbid:
-			return cString!"forbid failed";
+			return "forbid failed";
 	}
 }
 
