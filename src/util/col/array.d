@@ -500,42 +500,6 @@ bool arraysCorrespond(T, U)(
 bool arraysEqual(T)(in T[] a, in T[] b) =>
 	arraysCorrespond!(T, T)(a, b, (ref const T x, ref const T y) => x == y);
 
-private immutable struct MapAndFoldResult(Out, State) {
-	Out[] output;
-	State state;
-}
-
-immutable struct MapAndFold(Out, State) {
-	Out output;
-	State state;
-}
-
-@trusted MapAndFoldResult!(Out, State) mapAndFold(Out, State, In)(
-	ref Alloc alloc,
-	State start,
-	in In[] a,
-	in MapAndFold!(Out, State) delegate(in In, State) @safe @nogc pure nothrow cb,
-) {
-	Out[] res = allocateElements!Out(alloc, a.length);
-	State endState = mapAndFoldRecur!(Out, State, In)(res.ptr, start, a.ptr, endPtr(a), cb);
-	return MapAndFoldResult!(Out, State)(res, endState);
-}
-
-private @system State mapAndFoldRecur(Out, State, In)(
-	Out* res,
-	State state,
-	in In* curIn,
-	in In* endIn,
-	in MapAndFold!(Out, State) delegate(in In, State) @safe @nogc pure nothrow cb,
-) {
-	if (curIn != endIn) {
-		MapAndFold!(Out, State) mf = cb(*curIn, state);
-		initMemory(res, mf.output);
-		return mapAndFoldRecur!(Out, State, In)(res + 1, mf.state, curIn + 1, endIn, cb);
-	} else
-		return state;
-}
-
 T fold(T, U)(T start, in U[] arr, in T delegate(T a, in U b) @safe @nogc pure nothrow cb) =>
 	isEmpty(arr)
 		? start

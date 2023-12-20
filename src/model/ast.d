@@ -582,9 +582,14 @@ immutable struct StructDeclAst {
 		immutable struct Builtin {}
 		immutable struct Enum {
 			immutable struct Member {
+				@safe @nogc pure nothrow:
+
 				Range range;
 				Symbol name;
 				Opt!LiteralIntOrNat value;
+
+				NameAndRange nameAndRange() scope =>
+					NameAndRange(range.start, name);
 			}
 
 			Opt!(TypeAst*) typeArg;
@@ -611,9 +616,14 @@ immutable struct StructDeclAst {
 		}
 		immutable struct Union {
 			immutable struct Member {
+				@safe @nogc pure nothrow:
+
 				Range range;
 				Symbol name;
 				Opt!TypeAst type;
+
+				NameAndRange nameAndRange() scope =>
+					NameAndRange(range.start, name);
 			}
 			Member[] members;
 		}

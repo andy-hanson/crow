@@ -212,11 +212,20 @@ UriAndRange nameRange(in AllSymbols allSymbols, in RecordField a) =>
 	UriAndRange(a.containingRecord.moduleUri, rangeOfNameAndRange(a.ast.name, allSymbols));
 
 immutable struct UnionMember {
+	@safe @nogc pure nothrow:
+
 	//TODO: use NameAndRange (more compact)
-	UriAndRange range;
+	StructDeclAst.Body.Union.Member* ast;
+	StructDecl* containingUnion;
 	Symbol name;
 	Type type;
+
+	Range range() scope =>
+		ast.range;
 }
+
+UriAndRange nameRange(in AllSymbols allSymbols, in UnionMember a) =>
+	UriAndRange(a.containingUnion.moduleUri, rangeOfNameAndRange(a.ast.nameAndRange, allSymbols));
 
 enum ForcedByValOrRefOrNone {
 	none,
@@ -247,33 +256,38 @@ immutable struct EnumValue {
 	// Large nat64 are represented as wrapped to negative values.
 	long value;
 
-	//TODO:NOT INSTANCE
 	long asSigned() =>
 		value;
 	ulong asUnsigned() =>
 		cast(ulong) value;
 }
 
+immutable struct EnumMember {
+	@safe @nogc pure nothrow:
+
+	StructDeclAst.Body.Enum.Member* ast;
+	StructDecl* containingEnum;
+	Symbol name;
+	EnumValue value;
+
+	Range range() scope =>
+		ast.range;
+}
+
 immutable struct StructBody {
 	immutable struct Bogus {}
 	immutable struct Builtin {}
 	immutable struct Enum {
-		immutable struct Member {
-			UriAndRange range;
-			Symbol name;
-			EnumValue value;
-		}
 		EnumBackingType backingType;
-		Member[] members;
+		EnumMember[] members;
 	}
 	immutable struct Extern {
 		Opt!TypeSize size;
 	}
 	immutable struct Flags {
-		alias Member = Enum.Member;
 		EnumBackingType backingType;
 		// For Flags, members should be unsigned
-		Member[] members;
+		EnumMember[] members;
 	}
 	immutable struct Record {
 		RecordFlags flags;
@@ -287,8 +301,8 @@ immutable struct StructBody {
 }
 static assert(StructBody.sizeof == size_t.sizeof + StructBody.Record.sizeof);
 
-UriAndRange nameRange(in AllSymbols allSymbols, in StructBody.Enum.Member a) =>
-	UriAndRange(a.range.uri, rangeOfNameAndRange(NameAndRange(a.range.range.start, a.name), allSymbols));
+UriAndRange nameRange(in AllSymbols allSymbols, in EnumMember a) =>
+	UriAndRange(a.containingEnum.moduleUri, rangeOfNameAndRange(a.ast.nameAndRange, allSymbols));
 
 immutable struct StructAlias {
 	@safe @nogc pure nothrow:
@@ -580,7 +594,7 @@ immutable struct FunBody {
 	immutable struct Bogus {}
 	immutable struct Builtin {}
 	immutable struct CreateEnum {
-		StructBody.Enum.Member* member;
+		EnumMember* member;
 	}
 	immutable struct CreateExtern {}
 	immutable struct CreateRecord {}
@@ -676,7 +690,7 @@ immutable struct FunDeclSource {
 		ImportOrExportAst* ast;
 	}
 
-	mixin Union!(Bogus, Ast, FileImport, StructBody.Enum.Member*, StructDecl*, VarDecl*);
+	mixin Union!(Bogus, Ast, EnumMember*, FileImport, RecordField*, StructDecl*, UnionMember*, VarDecl*);
 
 	UriAndRange range() scope =>
 		matchIn!UriAndRange(
@@ -684,12 +698,16 @@ immutable struct FunDeclSource {
 				UriAndRange(x.uri, Range.empty),
 			(in FunDeclSource.Ast x) =>
 				UriAndRange(x.moduleUri, x.ast.range),
+			(in EnumMember x) =>
+				UriAndRange(x.containingEnum.moduleUri, x.range),
 			(in FunDeclSource.FileImport x) =>
 				UriAndRange(x.moduleUri, x.ast.range),
-			(in StructBody.Enum.Member x) =>
-				x.range,
+			(in RecordField x) =>
+				UriAndRange(x.containingRecord.moduleUri, x.range),
 			(in StructDecl x) =>
 				x.range,
+			(in UnionMember x) =>
+				UriAndRange(x.containingUnion.moduleUri, x.range),
 			(in VarDecl x) =>
 				x.range);
 }
@@ -700,11 +718,15 @@ UriAndRange nameRange(in AllSymbols allSymbols, in FunDeclSource a) =>
 			UriAndRange(x.uri, Range.empty),
 		(in FunDeclSource.Ast x) =>
 			UriAndRange(x.moduleUri, nameRange(allSymbols, *x.ast)),
+		(in EnumMember x) =>
+			nameRange(allSymbols, x),
 		(in FunDeclSource.FileImport x) =>
 			UriAndRange(x.moduleUri, x.ast.range),
-		(in StructBody.Enum.Member x) =>
+		(in RecordField x) =>
 			nameRange(allSymbols, x),
 		(in StructDecl x) =>
+			nameRange(allSymbols, x),
+		(in UnionMember x) =>
 			nameRange(allSymbols, x),
 		(in VarDecl x) =>
 			nameRange(allSymbols, x));
@@ -734,12 +756,16 @@ immutable struct FunDecl {
 				x.typeParams,
 			(FunDeclSource.Ast x) =>
 				x.ast.typeParams,
+			(ref EnumMember _) =>
+				emptySmallArray!NameAndRange,
 			(FunDeclSource.FileImport _) =>
 				emptySmallArray!NameAndRange,
-			(ref StructBody.Enum.Member _) =>
-				emptySmallArray!NameAndRange,
+			(ref RecordField x) =>
+				x.containingRecord.typeParams,
 			(ref StructDecl x) =>
 				x.typeParams,
+			(ref UnionMember x) =>
+				x.containingUnion.typeParams,
 			(ref VarDecl x) =>
 				x.typeParams);
 

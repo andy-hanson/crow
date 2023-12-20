@@ -40,6 +40,7 @@ import model.model :
 	ClosureSetExpr,
 	Destructure,
 	eachImportOrReExport,
+	EnumMember,
 	Expr,
 	ExprKind,
 	FunBody,
@@ -135,7 +136,7 @@ void referencesForTarget(
 	in ReferenceCb cb,
 ) =>
 	a.matchWithPointers!void(
-		(StructBody.Enum.Member* x) {
+		(EnumMember* x) {
 			referencesForEnumMember(program, x, cb);
 		},
 		(FunDecl* x) {
@@ -492,7 +493,7 @@ void referencesForRecordField(in AllSymbols allSymbols, in Program program, in R
 	});
 }
 
-void referencesForEnumMember(in Program program, in StructBody.Enum.Member* x, in ReferenceCb cb) {
+void referencesForEnumMember(in Program program, in EnumMember* x, in ReferenceCb cb) {
 	// TODO: Find the corresponding creation function
 }
 

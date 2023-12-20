@@ -4,8 +4,7 @@ module util.string;
 
 import util.alloc.alloc : Alloc;
 import util.comparison : Comparison;
-import util.col.array :
-	append, arrayOfRange, arraysEqual, copyArray, emptySmallArray, isEmpty, MutSmallArray, SmallArray;
+import util.col.array : append, arrayOfRange, arraysEqual, copyArray, emptySmallArray, isEmpty, SmallArray;
 import util.hash : HashCode, hashString;
 
 alias SmallString = SmallArray!char;

@@ -2,7 +2,7 @@ module frontend.frontendCompile;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.check : BootstrapCheck, check, checkBootstrap, FileAndAst, ResolvedImport;
+import frontend.check.check : BootstrapCheck, check, checkBootstrap, UriAndAst, ResolvedImport;
 import frontend.check.getCommonFuns : CommonFunsAndMain, CommonModule, getCommonFuns;
 import frontend.check.instantiate : InstantiateCtx;
 import frontend.lang : crowConfigBaseName, crowExtension;
@@ -267,7 +267,7 @@ void doDirtyWork(scope ref Perf perf, ref FrontendCompiler a) {
 	CrowFile* bootstrap = a.commonFiles[CommonModule.bootstrap];
 	if (mayDelete(a.workable, bootstrap)) {
 		bootstrap.moduleAndAlloc = someMut(withAlloc!(Module*)(AllocKind.module_, a.metaAlloc, (ref Alloc alloc) {
-			FileAndAst fa = FileAndAst(bootstrap.uri, toAst(alloc, bootstrap.astOrDiag));
+			UriAndAst fa = UriAndAst(bootstrap.uri, toAst(alloc, bootstrap.astOrDiag));
 			BootstrapCheck bs = checkBootstrap(perf, alloc, a.allSymbols, a.allUris, a.allInsts, fa);
 			a.commonTypes = someMut(bs.commonTypes);
 			return bs.module_;
@@ -326,7 +326,7 @@ Uri[] fixCircularImportsRecur(ref FrontendCompiler a, scope ref ArrayBuilder!Uri
 Module* compileNonBootstrapModule(scope ref Perf perf, ref Alloc alloc, ref FrontendCompiler a, CrowFile* file) {
 	assert(isWorkable(a.allUris, *file));
 	assert(has(a.commonTypes)); // bootstrap is always compiled first
-	FileAndAst ast = FileAndAst(file.uri, toAst(alloc, file.astOrDiag));
+	UriAndAst ast = UriAndAst(file.uri, toAst(alloc, file.astOrDiag));
 	return check(
 		perf, alloc, a.allSymbols, a.allUris, a.allInsts, ast,
 		fullyResolveImports(a, force(file.resolvedImports)),

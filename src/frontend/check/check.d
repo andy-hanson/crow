@@ -2,7 +2,8 @@ module frontend.check.check;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCtx : addDiag, CheckCtx, checkForUnused, finishDiagnostics, ImportAndReExportModules;
+import frontend.check.checkCtx :
+	addDiag, addDiagAssertSameUri, CheckCtx, checkForUnused, finishDiagnostics, ImportAndReExportModules;
 import frontend.check.checkExpr : checkFunctionBody;
 import frontend.check.checkStructs : checkStructBodies, checkStructsInitial;
 import frontend.check.getCommonTypes : getCommonTypes;
@@ -103,13 +104,13 @@ import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, mutMaxArrSize
 import util.memory : allocate, initMemory;
 import util.opt : force, has, none, Opt, someMut, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.sourceRange : Range, UriAndRange;
+import util.sourceRange : Range;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : Union;
 import util.uri : AllUris, Uri;
 import util.util : ptrTrustMe, unreachable, todo;
 
-immutable struct FileAndAst {
+immutable struct UriAndAst {
 	Uri uri;
 	FileAst* ast;
 }
@@ -130,16 +131,10 @@ BootstrapCheck checkBootstrap(
 	scope ref AllSymbols allSymbols,
 	in AllUris allUris,
 	ref AllInsts allInsts,
-	ref FileAndAst fileAndAst,
+	ref UriAndAst uriAndAst,
 ) =>
 	checkWorker(
-		alloc,
-		perf,
-		allSymbols,
-		allUris,
-		allInsts,
-		[],
-		fileAndAst,
+		alloc, perf, allSymbols, allUris, allInsts, [], uriAndAst,
 		(ref CheckCtx ctx,
 		in StructsAndAliasesMap structsAndAliasesMap,
 		scope ref DelayStructInsts delayedStructInsts) =>
@@ -153,18 +148,12 @@ Module* check(
 	scope ref AllSymbols allSymbols,
 	in AllUris allUris,
 	ref AllInsts allInsts,
-	ref FileAndAst fileAndAst,
+	ref UriAndAst uriAndAst,
 	in ResolvedImport[] imports,
 	CommonTypes* commonTypes,
 ) =>
 	checkWorker(
-		alloc,
-		perf,
-		allSymbols,
-		allUris,
-		allInsts,
-		imports,
-		fileAndAst,
+		alloc, perf, allSymbols, allUris, allInsts, imports, uriAndAst,
 		(ref CheckCtx _, in StructsAndAliasesMap _2, scope ref DelayStructInsts _3) => commonTypes,
 	).module_;
 
@@ -314,7 +303,7 @@ void checkSpecDeclParents(
 void detectAndFixSpecRecursion(ref CheckCtx ctx, SpecDecl* decl) {
 	MutMaxArr!(8, immutable SpecDecl*) trace = mutMaxArr!(8, immutable SpecDecl*);
 	if (recurDetectSpecRecursion(decl, trace)) {
-		addDiag(ctx, decl.range, Diag(Diag.SpecRecursion(toArray(ctx.alloc, trace))));
+		addDiagAssertSameUri(ctx, decl.range, Diag(Diag.SpecRecursion(toArray(ctx.alloc, trace))));
 		decl.overwriteParentsToEmpty();
 	}
 }
@@ -366,11 +355,9 @@ void checkStructAliasTargets(
 StructsAndAliasesMap buildStructsAndAliasesMap(ref CheckCtx ctx, StructDecl[] structs, StructAlias[] aliases) {
 	MutHashTable!(StructOrAlias, Symbol, structOrAliasName) builder;
 	foreach (StructDecl* decl; ptrsRange(structs))
-		addToDeclsMap!StructOrAlias(
-			ctx, builder, StructOrAlias(decl), Diag.DuplicateDeclaration.Kind.structOrAlias, () => decl.range);
+		addToDeclsMap!StructOrAlias(ctx, builder, StructOrAlias(decl), Diag.DuplicateDeclaration.Kind.structOrAlias);
 	foreach (StructAlias* alias_; ptrsRange(aliases))
-		addToDeclsMap!StructOrAlias(
-			ctx, builder, StructOrAlias(alias_), Diag.DuplicateDeclaration.Kind.structOrAlias, () => alias_.range);
+		addToDeclsMap!StructOrAlias(ctx, builder, StructOrAlias(alias_), Diag.DuplicateDeclaration.Kind.structOrAlias);
 	return moveToImmutable(builder);
 }
 
@@ -419,10 +406,9 @@ void addToDeclsMap(T, alias getName)(
 	scope ref MutHashTable!(T, Symbol, getName) builder,
 	T added,
 	Diag.DuplicateDeclaration.Kind kind,
-	in UriAndRange delegate() @safe @nogc pure nothrow getRange,
 ) {
 	if (!mayAdd(ctx.alloc, builder, added))
-		addDiag(ctx, getRange(), Diag(Diag.DuplicateDeclaration(kind, getName(added))));
+		addDiagAssertSameUri(ctx, added.range, Diag(Diag.DuplicateDeclaration(kind, getName(added))));
 }
 
 immutable struct FunsAndMap {
@@ -760,12 +746,15 @@ FunBody.Extern checkExternBody(ref CheckCtx ctx, FunDecl* fun, in Opt!TypeAst ty
 	Linkage funLinkage = Linkage.extern_;
 
 	if (!isEmpty(fun.typeParams))
-		addDiag(ctx, fun.range, Diag(Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.hasTypeParams)));
+		addDiagAssertSameUri(ctx, fun.range, Diag(
+			Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.hasTypeParams)));
 	if (!isEmpty(fun.specs))
-		addDiag(ctx, fun.range, Diag(Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.hasSpecs)));
+		addDiagAssertSameUri(ctx, fun.range, Diag(
+			Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.hasSpecs)));
 
 	if (!isLinkageAlwaysCompatible(funLinkage, linkageRange(fun.returnType)))
-		addDiag(ctx, fun.range, Diag(Diag.LinkageWorseThanContainingFun(fun, fun.returnType, none!(Destructure*))));
+		addDiagAssertSameUri(ctx, fun.range, Diag(
+			Diag.LinkageWorseThanContainingFun(fun, fun.returnType, none!(Destructure*))));
 	fun.params.match!void(
 		(Destructure[] params) {
 			foreach (Destructure* p; ptrsRange(params))
@@ -774,7 +763,8 @@ FunBody.Extern checkExternBody(ref CheckCtx ctx, FunDecl* fun, in Opt!TypeAst ty
 						Diag.LinkageWorseThanContainingFun(fun, p.type, some(p))));
 		},
 		(ref Params.Varargs) {
-			addDiag(ctx, fun.range, Diag(Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.variadic)));
+			addDiagAssertSameUri(ctx, fun.range, Diag(
+				Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.variadic)));
 		});
 	return FunBody.Extern(externLibraryNameFromTypeArg(ctx, fun.range.range, typeArg));
 }
@@ -791,7 +781,7 @@ Symbol externLibraryNameFromTypeArg(ref CheckCtx ctx, in Range range, in Opt!Typ
 SpecsMap buildSpecsMap(ref CheckCtx ctx, SpecDecl[] specs) {
 	MutHashTable!(immutable SpecDecl*, Symbol, specDeclName) builder;
 	foreach (SpecDecl* spec; ptrsRange(specs))
-		addToDeclsMap(ctx, builder, spec, Diag.DuplicateDeclaration.Kind.spec, () => spec.range);
+		addToDeclsMap(ctx, builder, spec, Diag.DuplicateDeclaration.Kind.spec);
 	return moveToImmutable(builder);
 }
 
@@ -915,7 +905,7 @@ BootstrapCheck checkWorker(
 	in AllUris allUris,
 	ref AllInsts allInsts,
 	in ResolvedImport[] resolvedImports,
-	ref FileAndAst fileAndAst,
+	ref UriAndAst uriAndAst,
 	in CommonTypes* delegate(
 		ref CheckCtx,
 		in StructsAndAliasesMap,
@@ -925,14 +915,14 @@ BootstrapCheck checkWorker(
 	withMeasure!(BootstrapCheck, () {
 		ArrayBuilder!Diagnostic diagsBuilder;
 		ImportsAndReExports importsAndReExports = checkImportsAndReExports(
-			alloc, allSymbols, allUris, diagsBuilder, fileAndAst.ast, resolvedImports);
-		FileAst* ast = fileAndAst.ast;
+			alloc, allSymbols, allUris, diagsBuilder, uriAndAst.ast, resolvedImports);
+		FileAst* ast = uriAndAst.ast;
 		CheckCtx ctx = CheckCtx(
 			ptrTrustMe(alloc),
 			InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(allInsts)),
 			ptrTrustMe(allSymbols),
 			ptrTrustMe(allUris),
-			fileAndAst.uri,
+			uriAndAst.uri,
 			importsAndReExports.modules,
 			ptrTrustMe(diagsBuilder));
 
@@ -964,7 +954,7 @@ BootstrapCheck checkWorker(
 			structAliases,
 			structs,
 			delayStructInsts,
-			fileAndAst.uri,
+			uriAndAst.uri,
 			importsAndReExports,
 			ast);
 		return BootstrapCheck(res, commonTypes);

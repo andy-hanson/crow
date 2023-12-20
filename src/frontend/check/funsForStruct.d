@@ -17,6 +17,7 @@ import model.model :
 	CommonTypes,
 	EnumBackingType,
 	EnumFunction,
+	EnumMember,
 	FieldMutability,
 	FlagsFunction,
 	ForcedByValOrRefOrNone,
@@ -183,7 +184,7 @@ void addFunsForEnum(
 	addEnumFlagsCommonFunctions(
 		ctx.alloc, funsBuilder, ctx.instantiateCtx,
 		struct_, enumType, enum_.backingType, commonTypes, symbol!"enum-members");
-	foreach (ref StructBody.Enum.Member member; enum_.members)
+	foreach (ref EnumMember member; enum_.members)
 		funsBuilder ~= enumOrFlagsConstructor(ctx.alloc, visibility, enumType, &member);
 }
 
@@ -203,7 +204,7 @@ void addFunsForFlags(
 	funsBuilder ~= flagsNegateFunction(ctx.alloc, struct_, type);
 	funsBuilder ~= flagsUnionOrIntersectFunction(ctx.alloc, struct_, type, symbol!"|", EnumFunction.union_);
 	funsBuilder ~= flagsUnionOrIntersectFunction(ctx.alloc, struct_, type, symbol!"&", EnumFunction.intersect);
-	foreach (ref StructBody.Enum.Member member; flags.members)
+	foreach (ref EnumMember member; flags.members)
 		funsBuilder ~= enumOrFlagsConstructor(ctx.alloc, struct_.visibility, type, &member);
 }
 
@@ -222,7 +223,7 @@ void addEnumFlagsCommonFunctions(
 	funsBuilder ~= enumOrFlagsMembersFunction(ctx, struct_, membersName, type, commonTypes);
 }
 
-FunDecl enumOrFlagsConstructor(ref Alloc alloc, Visibility visibility, Type enumType, StructBody.Enum.Member* member) =>
+FunDecl enumOrFlagsConstructor(ref Alloc alloc, Visibility visibility, Type enumType, EnumMember* member) =>
 	basicFunDecl(
 		FunDeclSource(member),
 		visibility,
@@ -355,7 +356,7 @@ void addFunsForRecord(
 	bool byVal = recordIsAlwaysByVal(record);
 	addFunsForRecordConstructor(ctx, funsBuilder, commonTypes, struct_, record, structType, byVal);
 	foreach (size_t fieldIndex, ref RecordField field; record.fields)
-		addFunsForRecordField(ctx, funsBuilder, commonTypes, struct_, structType, byVal, fieldIndex, field);
+		addFunsForRecordField(ctx, funsBuilder, commonTypes, struct_, structType, byVal, fieldIndex, &field);
 }
 
 void typeArgsFromParams(scope ref TypeArgsArray out_, in TypeParams typeParams) {
@@ -392,11 +393,11 @@ void addFunsForRecordField(
 	Type structType,
 	bool recordIsByVal,
 	size_t fieldIndex,
-	ref RecordField field,
+	RecordField* field,
 ) {
 	Visibility fieldVisibility = leastVisibility(struct_.visibility, field.visibility);
 	funsBuilder ~= funDeclWithBody(
-		FunDeclSource(struct_),
+		FunDeclSource(field),
 		fieldVisibility,
 		field.name,
 		field.type,
@@ -407,7 +408,7 @@ void addFunsForRecordField(
 
 	void addRecordFieldPointer(Visibility visibility, Type recordPointer, Type fieldPointer) {
 		funsBuilder ~= funDeclWithBody(
-			FunDeclSource(struct_),
+			FunDeclSource(field),
 			visibility,
 			field.name,
 			fieldPointer,
@@ -429,7 +430,7 @@ void addFunsForRecordField(
 		Type recordMutPointer = Type(makeMutPointerType(ctx.instantiateCtx, commonTypes, structType));
 		if (recordIsByVal) {
 			funsBuilder ~= funDeclWithBody(
-				FunDeclSource(struct_),
+				FunDeclSource(field),
 				setVisibility,
 				prependSetDeref(ctx.allSymbols, field.name),
 				Type(commonTypes.void_),
@@ -446,7 +447,7 @@ void addFunsForRecordField(
 				Type(makeMutPointerType(ctx.instantiateCtx, commonTypes, field.type)));
 		} else
 			funsBuilder ~= funDeclWithBody(
-				FunDeclSource(struct_),
+				FunDeclSource(field),
 				setVisibility,
 				prependSet(ctx.allSymbols, field.name),
 				Type(commonTypes.void_),
@@ -483,7 +484,7 @@ void addFunsForUnion(
 			? Params([])
 			: makeParams(ctx.alloc, [param!"a"(member.type)]);
 		funsBuilder ~= funDeclWithBody(
-			FunDeclSource(struct_),
+			FunDeclSource(&member),
 			struct_.visibility,
 			member.name,
 			structType,

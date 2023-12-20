@@ -14,7 +14,7 @@ import util.alloc.alloc : Alloc;
 import util.col.mutMaxArr : MutMaxArr;
 import util.opt : has, force, MutOpt, none, Opt, some;
 import util.perf : Perf;
-import util.sourceRange : Range, UriAndRange;
+import util.sourceRange : Range;
 import util.symbol : AllSymbols, Symbol;
 
 struct ClosureFieldBuilder {
@@ -139,9 +139,6 @@ bool checkCanDoUnsafe(ref ExprCtx ctx) {
 	}
 }
 
-void addDiag2(ref ExprCtx ctx, in UriAndRange range, Diag diag) {
-	addDiag(ctx.checkCtx, range, diag);
-}
 void addDiag2(ref ExprCtx ctx, in Range range, Diag diag) {
 	addDiag(ctx.checkCtx, range, diag);
 }

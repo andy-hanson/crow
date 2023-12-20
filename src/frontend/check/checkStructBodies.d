@@ -3,7 +3,7 @@ module frontend.check.checkStructs;
 @safe @nogc pure nothrow:
 
 import frontend.check.check : visibilityFromExplicit;
-import frontend.check.checkCtx : addDiag, CheckCtx, rangeInFile;
+import frontend.check.checkCtx : addDiag, addDiagAssertSameUri, CheckCtx;
 import frontend.check.instantiate : DelayStructInsts;
 import frontend.check.maps : StructsAndAliasesMap;
 import frontend.check.typeFromAst : checkTypeParams, typeFromAst;
@@ -22,6 +22,7 @@ import model.model :
 	CommonTypes,
 	emptyTypeParams,
 	EnumBackingType,
+	EnumMember,
 	EnumValue,
 	FieldMutability,
 	ForcedByValOrRefOrNone,
@@ -45,9 +46,9 @@ import model.model :
 	TypeParamIndex,
 	UnionMember,
 	Visibility;
-import util.col.array : eachPair, fold, isEmpty, map, mapAndFold, MapAndFold, mapPointers, zipPtrFirst;
+import util.col.array : eachPair, fold, isEmpty, mapPointers, zipPtrFirst;
 import util.conv : safeToSizeT;
-import util.opt : force, has, none, Opt, optOrDefault, some, someMut;
+import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, some, someMut;
 import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
 import util.util : isMultipleOf, ptrTrustMe, todo, unreachable;
@@ -348,7 +349,7 @@ StructBody.Flags checkFlags(
 
 immutable struct EnumOrFlagsTypeAndMembers {
 	EnumBackingType backingType;
-	StructBody.Enum.Member[] members;
+	EnumMember[] members;
 }
 
 immutable struct ValueAndOverflow {
@@ -375,37 +376,32 @@ EnumOrFlagsTypeAndMembers checkEnumOrFlagsMembers(
 		: Type(commonTypes.integrals.nat32);
 	EnumBackingType enumType = getEnumTypeFromType(ctx, struct_, range, commonTypes, implementationType);
 
-	StructBody.Enum.Member[] members =
-		mapAndFold!(StructBody.Enum.Member, Opt!EnumValue, StructDeclAst.Body.Enum.Member)(
-			ctx.alloc,
-			none!EnumValue,
-			memberAsts,
-			(in StructDeclAst.Body.Enum.Member memberAst, Opt!EnumValue lastValue) {
-				ValueAndOverflow valueAndOverflow = () {
-					if (has(memberAst.value))
-						return isSignedEnumBackingType(enumType)
-							? force(memberAst.value).matchIn!ValueAndOverflow(
-								(in LiteralIntAst i) =>
-									ValueAndOverflow(EnumValue(i.value), i.overflow),
-								(in LiteralNatAst n) =>
-									ValueAndOverflow(EnumValue(n.value), n.value > long.max))
-							: force(memberAst.value).match!ValueAndOverflow(
-								(LiteralIntAst) =>
-									todo!ValueAndOverflow("signed value in unsigned enum"),
-								(LiteralNatAst n) =>
-									ValueAndOverflow(EnumValue(n.value), n.overflow));
-					else
-						return cbGetNextValue(lastValue, enumType);
-				}();
-				EnumValue value = valueAndOverflow.value;
-				if (valueAndOverflow.overflow || valueOverflows(enumType, value))
-					addDiag(ctx, memberAst.range, Diag(Diag.EnumMemberOverflows(enumType)));
-				return MapAndFold!(StructBody.Enum.Member, Opt!EnumValue)(
-					StructBody.Enum.Member(rangeInFile(ctx, memberAst.range), memberAst.name, value),
-					some(value));
-			}).output;
+	MutOpt!long lastValue = noneMut!long;
+	EnumMember[] members = mapPointers(ctx.alloc, memberAsts, (StructDeclAst.Body.Enum.Member* memberAst) {
+		ValueAndOverflow valueAndOverflow = () {
+			if (has(memberAst.value))
+				return isSignedEnumBackingType(enumType)
+					? force(memberAst.value).matchIn!ValueAndOverflow(
+						(in LiteralIntAst i) =>
+							ValueAndOverflow(EnumValue(i.value), i.overflow),
+						(in LiteralNatAst n) =>
+							ValueAndOverflow(EnumValue(n.value), n.value > long.max))
+					: force(memberAst.value).match!ValueAndOverflow(
+						(LiteralIntAst) =>
+							todo!ValueAndOverflow("signed value in unsigned enum"),
+						(LiteralNatAst n) =>
+							ValueAndOverflow(EnumValue(n.value), n.overflow));
+			else
+				return cbGetNextValue(has(lastValue) ? some(EnumValue(force(lastValue))) : none!EnumValue, enumType);
+		}();
+		EnumValue value = valueAndOverflow.value;
+		if (valueAndOverflow.overflow || valueOverflows(enumType, value))
+			addDiag(ctx, memberAst.range, Diag(Diag.EnumMemberOverflows(enumType)));
+		lastValue = someMut!long(value.value);
+		return EnumMember(memberAst, struct_, memberAst.name, value);
+	});
 
-	eachPair!(StructBody.Enum.Member)(members, (in StructBody.Enum.Member a, in StructBody.Enum.Member b) {
+	eachPair!(EnumMember)(members, (in EnumMember a, in EnumMember b) {
 		if (a.name == b.name)
 			addDiag(ctx, b.range, Diag(Diag.DuplicateDeclaration(memberKind, b.name)));
 		if (a.value == b.value)
@@ -519,7 +515,7 @@ StructBody.Record checkRecord(
 	bool isExtern = struct_.linkage != Linkage.internal;
 	ForcedByValOrRefOrNone valOrRef = isExtern ? ForcedByValOrRefOrNone.byVal : modifiers.byValOrRefOrNone;
 	if (isExtern && modifiers.byValOrRefOrNone != ForcedByValOrRefOrNone.none)
-		addDiag(ctx, struct_.range, Diag(Diag.ExternRecordImplicitlyByVal(struct_)));
+		addDiagAssertSameUri(ctx, struct_.range, Diag(Diag.ExternRecordImplicitlyByVal(struct_)));
 	RecordField[] fields = mapPointers!(RecordField, StructDeclAst.Body.Record.Field)(
 		ctx.alloc, r.fields, (StructDeclAst.Body.Record.Field* field) =>
 			checkRecordField(ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, field));
@@ -578,9 +574,9 @@ StructBody.Union checkUnion(
 		case Linkage.internal:
 			break;
 		case Linkage.extern_:
-			addDiag(ctx, struct_.range, Diag(Diag.ExternUnion()));
+			addDiagAssertSameUri(ctx, struct_.range, Diag(Diag.ExternUnion()));
 	}
-	UnionMember[] members = map(ctx.alloc, ast.members, (ref StructDeclAst.Body.Union.Member memberAst) =>
+	UnionMember[] members = mapPointers(ctx.alloc, ast.members, (StructDeclAst.Body.Union.Member* memberAst) =>
 		checkUnionMember(ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, memberAst));
 	eachPair!UnionMember(members, (in UnionMember a, in UnionMember b) {
 		if (a.name == b.name)
@@ -595,7 +591,7 @@ UnionMember checkUnionMember(
 	ref StructsAndAliasesMap structsAndAliasesMap,
 	scope ref DelayStructInsts delayStructInsts,
 	StructDecl* struct_,
-	in StructDeclAst.Body.Union.Member ast,
+	StructDeclAst.Body.Union.Member* ast,
 ) {
 	Type type = !has(ast.type)
 		? Type(commonTypes.void_)
@@ -607,7 +603,7 @@ UnionMember checkUnionMember(
 			struct_.typeParams,
 			someMut(ptrTrustMe(delayStructInsts)));
 	checkReferencePurity(ctx, struct_, ast.range, type);
-	return UnionMember(rangeInFile(ctx, ast.range), ast.name, type);
+	return UnionMember(ast, struct_, ast.name, type);
 }
 
 immutable struct RecordModifiers {
@@ -709,7 +705,7 @@ Visibility recordNewVisibility(
 	if (has(explicit)) {
 		if (force(explicit) == default_)
 			//TODO: better range
-			addDiag(ctx, struct_.range, Diag(Diag.RecordNewVisibilityIsRedundant(default_)));
+			addDiagAssertSameUri(ctx, struct_.range, Diag(Diag.RecordNewVisibilityIsRedundant(default_)));
 		return force(explicit);
 	} else
 		return default_;

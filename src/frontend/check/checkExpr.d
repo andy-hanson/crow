@@ -98,6 +98,7 @@ import model.model :
 	Destructure,
 	emptySpecImpls,
 	emptyTypeArgs,
+	EnumMember,
 	Expr,
 	ExprAndType,
 	ExprKind,
@@ -1307,16 +1308,16 @@ Expr checkMatchEnum(
 	in MatchAst ast,
 	ref Expected expected,
 	ref ExprAndType matched,
-	in StructBody.Enum.Member[] members,
+	in EnumMember[] members,
 ) {
-	bool goodCases = arraysCorrespond!(StructBody.Enum.Member, MatchAst.CaseAst)(
+	bool goodCases = arraysCorrespond!(EnumMember, MatchAst.CaseAst)(
 		members,
 		ast.cases,
-		(ref StructBody.Enum.Member member, ref MatchAst.CaseAst caseAst) =>
+		(ref EnumMember member, ref MatchAst.CaseAst caseAst) =>
 			member.name == caseAst.memberName);
 	if (!goodCases) {
 		addDiag2(ctx, source, Diag(Diag.MatchCaseNamesDoNotMatch(
-			map(ctx.alloc, members, (ref StructBody.Enum.Member member) => member.name))));
+			map(ctx.alloc, members, (ref EnumMember member) => member.name))));
 		return bogus(expected, source);
 	} else {
 		Expr[] cases = mapPointers(ctx.alloc, ast.cases, (MatchAst.CaseAst* caseAst) {

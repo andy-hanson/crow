@@ -6,6 +6,7 @@ import model.ast : NameAndRange;
 import model.concreteModel : TypeSize;
 import model.model :
 	Destructure,
+	EnumMember,
 	FieldMutability,
 	FunDecl,
 	Module,
@@ -142,8 +143,8 @@ DocExport documentStructDecl(ref Alloc alloc, in StructDecl a) =>
 		(in StructBody.Union x) =>
 			documentUnion(alloc, a, x)));
 
-Json jsonOfEnumMembers(ref Alloc alloc, in StructBody.Enum.Member[] members) =>
-	jsonList!(StructBody.Enum.Member)(alloc, members, (in StructBody.Enum.Member member) =>
+Json jsonOfEnumMembers(ref Alloc alloc, in EnumMember[] members) =>
+	jsonList!EnumMember(alloc, members, (in EnumMember member) =>
 		jsonString(member.name));
 
 Json documentRecord(ref Alloc alloc, in StructDecl decl, in StructBody.Record a) =>

@@ -42,6 +42,7 @@ import model.model :
 	Destructure,
 	EnumBackingType,
 	EnumFunction,
+	EnumMember,
 	Expr,
 	FieldMutability,
 	FlagsFunction,
@@ -662,21 +663,21 @@ size_t sizeForEnumOrFlags(EnumBackingType a) {
 }
 
 ConcreteStructBody.Enum getConcreteStructBodyForEnum(ref Alloc alloc, in StructBody.Enum a) {
-	bool simple = everyWithIndex!(StructBody.Enum.Member)(
-		a.members, (size_t index, ref StructBody.Enum.Member member) =>
+	bool simple = everyWithIndex!EnumMember(
+		a.members, (size_t index, ref EnumMember member) =>
 			member.value.value == index);
 	return simple
 		? ConcreteStructBody.Enum(a.backingType, EnumValues(a.members.length))
 		: ConcreteStructBody.Enum(
 			a.backingType,
-			EnumValues(map(alloc, a.members, (ref StructBody.Enum.Member member) =>
+			EnumValues(map(alloc, a.members, (ref EnumMember member) =>
 				member.value)));
 }
 
 ConcreteStructBody.Flags getConcreteStructBodyForFlags(ref Alloc alloc, in StructBody.Flags a) =>
 	ConcreteStructBody.Flags(
 		a.backingType,
-		map!(immutable ulong, StructBody.Enum.Member)(alloc, a.members, (ref StructBody.Enum.Member member) =>
+		map!(immutable ulong, EnumMember)(alloc, a.members, (ref EnumMember member) =>
 			member.value.asUnsigned()));
 
 public void deferredFillRecordAndUnionBodies(ref ConcretizeCtx ctx) {
@@ -804,7 +805,7 @@ ConcreteFunBody bodyForEnumOrFlagsMembers(ref ConcretizeCtx ctx, ConcreteType re
 	// First type arg is 'symbol'
 	ConcreteType enumOrFlagsType =
 		only2(mustBeByVal(arrayElementType(returnType)).source.as!(ConcreteStructSource.Inst).typeArgs)[1];
-	Constant[] elements = map(ctx.alloc, enumOrFlagsMembers(enumOrFlagsType), (ref StructBody.Enum.Member member) =>
+	Constant[] elements = map(ctx.alloc, enumOrFlagsMembers(enumOrFlagsType), (ref EnumMember member) =>
 		Constant(Constant.Record(newArray!Constant(ctx.alloc, [
 			constantSymbol(ctx, member.name),
 			Constant(Constant.Integral(member.value.value))]))));
@@ -812,22 +813,22 @@ ConcreteFunBody bodyForEnumOrFlagsMembers(ref ConcretizeCtx ctx, ConcreteType re
 	return ConcreteFunBody(ConcreteExpr(returnType, UriAndRange.empty, ConcreteExprKind(arr)));
 }
 
-StructBody.Enum.Member[] enumOrFlagsMembers(ConcreteType type) =>
-	mustBeByVal(type).source.as!(ConcreteStructSource.Inst).inst.decl.body_.match!(StructBody.Enum.Member[])(
+EnumMember[] enumOrFlagsMembers(ConcreteType type) =>
+	mustBeByVal(type).source.as!(ConcreteStructSource.Inst).inst.decl.body_.match!(EnumMember[])(
 		(StructBody.Bogus) =>
-			unreachable!(StructBody.Enum.Member[]),
+			unreachable!(EnumMember[]),
 		(StructBody.Builtin) =>
-			unreachable!(StructBody.Enum.Member[]),
-		(StructBody.Enum it) =>
-			it.members,
+			unreachable!(EnumMember[]),
+		(StructBody.Enum x) =>
+			x.members,
 		(StructBody.Extern) =>
-			unreachable!(StructBody.Enum.Member[]),
-		(StructBody.Flags it) =>
-			it.members,
+			unreachable!(EnumMember[]),
+		(StructBody.Flags x) =>
+			x.members,
 		(StructBody.Record) =>
-			unreachable!(StructBody.Enum.Member[]),
+			unreachable!(EnumMember[]),
 		(StructBody.Union) =>
-			unreachable!(StructBody.Enum.Member[]));
+			unreachable!(EnumMember[]));
 
 ConcreteFunBody bodyForAllTests(ref ConcretizeCtx ctx, ConcreteType returnType) {
 	Test[] allTests = () {

@@ -7,6 +7,7 @@ import frontend.ide.ideUtil : ReferenceCb;
 import frontend.ide.position : Position, PositionKind;
 import model.ast : rangeOfNameAndRange;
 import model.model :
+	EnumMember,
 	FunDecl,
 	LoopExpr,
 	localMustHaveNameRange,
@@ -16,7 +17,6 @@ import model.model :
 	NameReferents,
 	RecordField,
 	SpecDecl,
-	StructBody,
 	StructDecl,
 	VarDecl;
 import util.alloc.alloc : Alloc;
@@ -40,7 +40,7 @@ private:
 // public for 'getReferences' only
 public void definitionForTarget(in AllSymbols allSymbols, Uri curUri, in Target a, in ReferenceCb cb) =>
 	a.matchIn!void(
-		(in StructBody.Enum.Member x) {
+		(in EnumMember x) {
 			cb(nameRange(allSymbols, x));
 		},
 		(in FunDecl x) {

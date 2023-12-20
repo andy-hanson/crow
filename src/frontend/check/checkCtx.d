@@ -82,7 +82,8 @@ void checkForUnused(ref CheckCtx ctx, StructAlias[] aliases, StructDecl[] struct
 	checkUnusedImports(ctx);
 	void checkUnusedDecl(T)(T* decl) {
 		if (decl.visibility == Visibility.private_ && !isUsed(ctx.used, decl))
-			addDiag(ctx, decl.range, Diag(Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.PrivateDecl(decl.name)))));
+			addDiagAssertSameUri(ctx, decl.range, Diag(
+				Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.PrivateDecl(decl.name)))));
 	}
 	foreach (StructAlias* alias_; ptrsRange(aliases))
 		checkUnusedDecl(alias_);
@@ -154,10 +155,7 @@ void eachImportAndReExport(
 		inner(m);
 }
 
-UriAndRange rangeInFile(in CheckCtx ctx, in Range range) =>
-	UriAndRange(ctx.curUri, range);
-
-void addDiag(ref CheckCtx ctx, in UriAndRange range, Diag diag) {
+void addDiagAssertSameUri(ref CheckCtx ctx, in UriAndRange range, Diag diag) {
 	assert(range.uri == ctx.curUri);
 	addDiag(ctx, range.range, diag);
 }
