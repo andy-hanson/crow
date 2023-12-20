@@ -6,6 +6,7 @@ import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
 import frontend.parse.lexer : Token;
 import frontend.showModel :
 	ShowCtx,
+	ShowDiagCtx,
 	writeCalledDecls,
 	writeCalleds,
 	writeFunDecl,
@@ -50,16 +51,15 @@ import model.model :
 	TypeParamsAndSig;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
-import util.cell : Cell, cellGet, cellSet;
 import util.col.array : exists, isEmpty, only;
 import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderSort, finish;
 import util.col.multiMap : makeMultiMap, MultiMap, MultiMapCb;
 import util.col.sortUtil : sorted;
 import util.comparison : Comparison;
 import util.opt : force, has, none, Opt, some;
-import util.sourceRange : compareRange, LineAndColumnGetter;
+import util.sourceRange : compareRange;
 import util.string : CString;
-import util.symbol : AllSymbols, Symbol, writeSymbol;
+import util.symbol : Symbol, writeSymbol;
 import util.uri : AllUris, baseName, compareUriAlphabetically, Uri, writeRelPath, writeUri;
 import util.util : stringOfEnum, max, unreachable;
 import util.writer :
@@ -72,7 +72,7 @@ import util.writer :
 	writeWithSeparator,
 	Writer;
 
-CString stringOfDiagnostics(ref Alloc alloc, in ShowCtx ctx, in Program program) =>
+CString stringOfDiagnostics(ref Alloc alloc, in ShowDiagCtx ctx, in Program program) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		DiagnosticSeverity severity = maxDiagnosticSeverity(program);
 		bool first = true;
@@ -89,23 +89,17 @@ CString stringOfDiagnostics(ref Alloc alloc, in ShowCtx ctx, in Program program)
 		}
 	});
 
-CString stringOfDiag(ref Alloc alloc, in ShowCtx ctx, in Diag diag) =>
+CString stringOfDiag(ref Alloc alloc, in ShowDiagCtx ctx, in Diag diag) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		writeDiag(writer, ctx, diag);
 	});
 
-CString stringOfParseDiagnostics(
-	ref Alloc alloc,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
-	in LineAndColumnGetter lcg,
-	in ParseDiagnostic[] diagnostics,
-) =>
+CString stringOfParseDiagnostics(ref Alloc alloc, in ShowCtx ctx, Uri uri, in ParseDiagnostic[] diagnostics) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		writeWithNewlines!ParseDiagnostic(writer, diagnostics, (in ParseDiagnostic x) {
-			writeLineAndColumnRange(writer, lcg[x.range]);
+			writeLineAndColumnRange(writer, ctx.lineAndColumnGetters[uri][x.range]);
 			writer ~= ' ';
-			writeParseDiag(writer, allSymbols, allUris, x.kind);
+			writeParseDiag(writer, ctx, x.kind);
 		});
 	});
 
@@ -174,7 +168,7 @@ void writeUnusedDiag(scope ref Writer writer, in ShowCtx ctx, in Diag.Unused a) 
 		});
 }
 
-void writeParseDiag(scope ref Writer writer, in AllSymbols allSymbols, in AllUris allUris, in ParseDiag d) {
+void writeParseDiag(scope ref Writer writer, in ShowCtx ctx, in ParseDiag d) {
 	d.matchIn!void(
 		(in ParseDiag.Expected x) {
 			writer ~= showParseDiagExpected(x.kind);
@@ -227,7 +221,7 @@ void writeParseDiag(scope ref Writer writer, in AllSymbols allSymbols, in AllUri
 				: "in a context where it can be followed by an indented block.";
 		},
 		(in ReadFileDiag x) {
-			showReadFileDiag(writer, x);
+			showReadFileDiag(writer, ctx, x, none!Uri);
 		},
 		(in ParseDiag.TrailingComma) {
 			writer ~= "Remove this trailing comma.";
@@ -239,7 +233,7 @@ void writeParseDiag(scope ref Writer writer, in AllSymbols allSymbols, in AllUri
 		},
 		(in ParseDiag.UnexpectedOperator x) {
 			writer ~= "Unexpected '";
-			writeSymbol(writer, allSymbols, x.operator);
+			writeSymbol(writer, ctx.allSymbols, x.operator);
 			writer ~= "'.";
 		},
 		(in ParseDiag.UnexpectedToken u) {
@@ -306,19 +300,35 @@ string showParseDiagExpected(ParseDiag.Expected.Kind kind) {
 	}
 }
 
-void showReadFileDiag(scope ref Writer writer, ReadFileDiag a) {
-	writer ~= () {
-		final switch (a) {
-			case ReadFileDiag.notFound:
-				return "File does not exist.";
-			case ReadFileDiag.error:
-				return "Unable to read file.";
-			case ReadFileDiag.loading:
-				return "IDE is still loading file.";
-			case ReadFileDiag.unknown:
-				return "IDE has not started loading file.";
-		}
-	}();
+void showReadFileDiag(scope ref Writer writer, in ShowCtx ctx, ReadFileDiag a, Opt!Uri uri) {
+	final switch (a) {
+		case ReadFileDiag.notFound:
+			if (has(uri)) {
+				writer ~= "Imported file ";
+				writeUri(writer, ctx, force(uri));
+				writer ~= " does not exist.";
+			} else
+				writer ~= "This file does not exist.";
+			break;
+		case ReadFileDiag.error:
+			if (has(uri)) {
+				writer ~= "There was an error reading imported file ";
+				writeUri(writer, ctx, force(uri));
+				writer ~= '.';
+			} else
+				writer ~= "There was an error reading this file.";
+			break;
+		case ReadFileDiag.loading:
+			if (has(uri)) {
+				writer ~= "IDE is still loading imported file ";
+				writeUri(writer, ctx, force(uri));
+				writer ~= '.';
+			} else
+				writer ~= "The editor is still loading this file.";
+			break;
+		case ReadFileDiag.unknown:
+			assert(false);
+	}
 }
 
 void showChar(scope ref Writer writer, char c) {
@@ -340,19 +350,18 @@ void showChar(scope ref Writer writer, char c) {
 
 void writeSpecTrace(
 	scope ref Writer writer,
-	in ShowCtx ctx,
+	in ShowDiagCtx ctx,
 	in TypeContainer outermostTypeContainer,
 	in FunDeclAndTypeArgs[] trace,
 ) {
-	Cell!TypeContainer prevTypeContainer = Cell!TypeContainer(outermostTypeContainer);
-	foreach (FunDeclAndTypeArgs x; trace) {
+	foreach (size_t i, FunDeclAndTypeArgs x; trace) {
 		writer ~= "\n\t";
-		writeFunDeclAndTypeArgs(writer, ctx, cellGet(prevTypeContainer), x);
-		cellSet(prevTypeContainer, TypeContainer(x.decl));
+		TypeContainer typeContainer = i == 0 ? outermostTypeContainer : TypeContainer(trace[i - 1].decl);
+		writeFunDeclAndTypeArgs(writer, ctx, typeContainer, x);
 	}
 }
 
-void writeCallNoMatch(scope ref Writer writer, in ShowCtx ctx, in Diag.CallNoMatch d) {
+void writeCallNoMatch(scope ref Writer writer, in ShowDiagCtx ctx, in Diag.CallNoMatch d) {
 	bool someCandidateHasCorrectNTypeArgs =
 		d.actualNTypeArgs == 0 ||
 		exists!CalledDecl(d.allCandidates, (in CalledDecl c) =>
@@ -418,7 +427,7 @@ void writeCallNoMatch(scope ref Writer writer, in ShowCtx ctx, in Diag.CallNoMat
 	}
 }
 
-void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
+void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 	diag.matchIn!void(
 		(in Diag.AssignmentNotAllowed) {
 			writer ~= "Can't assign to this kind of expression.";
@@ -644,9 +653,7 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 					writeUri(writer, ctx, y.cycle[0]);
 				},
 				(in Diag.ImportFileDiag.ReadError y) {
-					showReadFileDiag(writer, y.diag);
-					writer ~= ": ";
-					writeUri(writer, ctx, y.uri);
+					showReadFileDiag(writer, ctx, y.diag, some(y.uri));
 				},
 				(in Diag.ImportFileDiag.RelativeImportReachesPastRoot y) {
 					writer ~= "Relative path ";
@@ -789,7 +796,7 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 			writer ~= "This parameter needs a type.";
 		},
 		(in ParseDiag x) {
-			writeParseDiag(writer, ctx.allSymbols, ctx.allUris, x);
+			writeParseDiag(writer, ctx, x);
 		},
 		(in Diag.PointerIsUnsafe) {
 			writer ~= "Getting a pointer can only be done in an 'unsafe' function or 'trusted' expression.";
@@ -946,7 +953,7 @@ void writeDiag(scope ref Writer writer, in ShowCtx ctx, in Diag diag) {
 		});
 }
 
-void showDiagnostic(scope ref Writer writer, in ShowCtx ctx, in UriAndDiagnostic a) {
+void showDiagnostic(scope ref Writer writer, in ShowDiagCtx ctx, in UriAndDiagnostic a) {
 	writeUriAndRange(writer, ctx, a.where);
 	writer ~= ' ';
 	writeDiag(writer, ctx, a.kind);
@@ -958,7 +965,7 @@ enum ExpectedKind {
 	return_,
 }
 
-void writeExpected(scope ref Writer writer, in ShowCtx ctx, in ExpectedForDiag a, ExpectedKind kind) {
+void writeExpected(scope ref Writer writer, in ShowDiagCtx ctx, in ExpectedForDiag a, ExpectedKind kind) {
 	void writeType() {
 		if (kind == ExpectedKind.return_) writer ~= "return ";
 		writer ~= "type";

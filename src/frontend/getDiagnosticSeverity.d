@@ -2,7 +2,7 @@ module frontend.getDiagnosticSeverity;
 
 @safe @nogc pure nothrow:
 
-import model.diag : Diag, DiagnosticSeverity;
+import model.diag : Diag, DiagnosticSeverity, ReadFileDiag;
 import model.parseDiag : ParseDiag;
 
 DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
@@ -107,8 +107,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ParamMissingType) =>
 			DiagnosticSeverity.checkError,
-		(in ParseDiag _) =>
-			DiagnosticSeverity.parseError,
+		(in ParseDiag x) =>
+			x.isA!ReadFileDiag ? DiagnosticSeverity.importError : DiagnosticSeverity.parseError,
 		(in Diag.PointerIsUnsafe) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.PointerMutToConst) =>

@@ -52,13 +52,16 @@ void testFileNotFoundThenAdded(ref Test test) {
 		CString showDiags() =>
 			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA).program);
 
-		assertEqual(showDiags(), cString!"test:///b.crow 1:1-1:1 File does not exist.");
+		CString bDoesNotExist = cString!(
+			"test:///a.crow 2:5-2:8 Imported file test:///b.crow does not exist.\n" ~
+			"test:///b.crow 1:1-1:1 This file does not exist.");
+		assertEqual(showDiags(), bDoesNotExist);
 
 		setFile(test.perf, server, uriB, "hello string()\n\t\"hello\"");
 		assertEqual(showDiags(), cString!"");
 
 		setFile(test.perf, server, uriB, ReadFileResult(ReadFileDiag.notFound));
-		assertEqual(showDiags(), cString!"test:///b.crow 1:1-1:1 File does not exist.");
+		assertEqual(showDiags(), bDoesNotExist);
 	});
 }
 

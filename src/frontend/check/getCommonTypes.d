@@ -2,11 +2,10 @@ module frontend.check.getCommonTypes;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCtx : addDiag, CheckCtx;
 import frontend.check.instantiate : DelayStructInsts, InstantiateCtx, instantiateStruct;
 import frontend.check.maps : StructsAndAliasesMap;
 import model.ast : NameAndRange;
-import model.diag : Diag;
+import model.diag : Diag, Diagnostic;
 import model.model :
 	CommonTypes,
 	emptyTypeArgs,
@@ -31,26 +30,29 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, someMut, some;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : Symbol, symbol;
+import util.uri : Uri;
 import util.util : ptrTrustMe, todo;
 
 CommonTypes* getCommonTypes(
-	ref CheckCtx ctx,
+	ref Alloc alloc,
+	Uri curUri,
+	InstantiateCtx instantiateCtx,
+	scope ref ArrayBuilder!Diagnostic diagnosticsBuilder,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	scope ref DelayStructInsts delayedStructInsts,
 ) {
 	void addDiagMissing(Symbol name) {
-		addDiag(ctx, UriAndRange(ctx.curUri, Range.empty), Diag(Diag.CommonTypeMissing(name)));
+		add(alloc, diagnosticsBuilder, Diagnostic(Range.empty, Diag(Diag.CommonTypeMissing(name))));
 	}
 
 	StructInst* nonTemplateFromSymbol(Symbol name) {
 		Opt!(StructInst*) res =
-			getCommonNonTemplateType(ctx.instantiateCtx, structsAndAliasesMap, name, delayedStructInsts);
+			getCommonNonTemplateType(instantiateCtx, structsAndAliasesMap, name, delayedStructInsts);
 		if (has(res))
 			return force(res);
 		else {
 			addDiagMissing(name);
-			return instantiateNonTemplateStructDecl(
-				ctx.instantiateCtx, delayedStructInsts, bogusStructDecl(ctx.alloc, 0));
+			return instantiateNonTemplateStructDecl(instantiateCtx, delayedStructInsts, bogusStructDecl(alloc, 0));
 		}
 	}
 	StructInst* nonTemplate(string name)() {
@@ -78,7 +80,7 @@ CommonTypes* getCommonTypes(
 			return force(res);
 		else {
 			addDiagMissing(name);
-			return bogusStructDecl(ctx.alloc, nTypeParameters);
+			return bogusStructDecl(alloc, nTypeParameters);
 		}
 	}
 	StructDecl* getDecl(string name)(size_t nTypeParameters) {
@@ -96,7 +98,7 @@ CommonTypes* getCommonTypes(
 
 	StructDecl* constPointer = getDecl!"const-pointer"(1);
 	StructInst* cString = instantiateStruct(
-		ctx.instantiateCtx, constPointer, small!Type([Type(char8)]), someMut(ptrTrustMe(delayedStructInsts)));
+		instantiateCtx, constPointer, small!Type([Type(char8)]), someMut(ptrTrustMe(delayedStructInsts)));
 
 	StructDecl*[8] tuples = [
 		getDecl!"tuple2"(2),
@@ -109,7 +111,7 @@ CommonTypes* getCommonTypes(
 		getDecl!"tuple9"(9),
 	];
 
-	return allocate(ctx.alloc, CommonTypes(
+	return allocate(alloc, CommonTypes(
 		bool_,
 		char8,
 		cString,

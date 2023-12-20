@@ -24,7 +24,7 @@ Opt!WorkspaceEdit getRenameForPosition(
 	in Position pos,
 	in string newName,
 ) {
-	Opt!Target target = targetForPosition(program, pos.kind);
+	Opt!Target target = targetForPosition(pos.kind);
 	return has(target)
 		? some(WorkspaceEdit(makeMultiMap!(Uri, TextEdit)(alloc, (in MultiMapCb!(Uri, TextEdit) cb) {
 			string newNameOut = copyString(alloc, newName);

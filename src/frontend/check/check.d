@@ -143,7 +143,9 @@ BootstrapCheck checkBootstrap(
 		(ref CheckCtx ctx,
 		in StructsAndAliasesMap structsAndAliasesMap,
 		scope ref DelayStructInsts delayedStructInsts) =>
-			getCommonTypes(ctx, structsAndAliasesMap, delayedStructInsts));
+			getCommonTypes(
+				ctx.alloc, ctx.curUri, ctx.instantiateCtx, ctx.diagnosticsBuilder,
+				structsAndAliasesMap, delayedStructInsts));
 
 Module* check(
 	scope ref Perf perf,

@@ -12,7 +12,6 @@ import interpret.debugInfo : showDataArr;
 import interpret.stacks : dataTempAsArr, returnTempAsArrReverse, Stacks;
 import lib.server : allUnknownUris, Server, setCwd, setFile, setIncludeDir;
 import model.diag : ReadFileDiag;
-import model.model : Program;
 import util.alloc.alloc : Alloc, allocateElements, AllocKind, MetaAlloc, newAlloc, withTempAlloc, word;
 import util.col.array : arraysEqual, arraysCorrespond, indexOf, isEmpty, makeArray, map;
 import util.opt : force, has, none, Opt;
@@ -49,24 +48,18 @@ struct Test {
 void withShowDiagCtxForTestImpure(
 	scope ref Test test,
 	scope ref Storage storage,
-	in Program program,
 	in void delegate(in ShowCtx) @safe @nogc nothrow cb,
 ) {
-	withShowDiagCtxForTestImpl!cb(test, storage, program);
+	withShowDiagCtxForTestImpl!cb(test, storage);
 }
 
-private void withShowDiagCtxForTestImpl(alias cb)(
-	scope ref Test test,
-	in Storage storage,
-	in Program program,
-) =>
+private void withShowDiagCtxForTestImpl(alias cb)(scope ref Test test, in Storage storage) =>
 	cb(ShowCtx(
 		ptrTrustMe(test.allSymbols),
 		ptrTrustMe(test.allUris),
 		LineAndColumnGetters(ptrTrustMe(storage)),
 		UrisInfo(none!Uri),
-		ShowOptions(false),
-		ptrTrustMe(program)));
+		ShowOptions(false)));
 
 @trusted void expectDataStack(ref Test test, in Stacks stacks, in immutable ulong[] expected) {
 	scope immutable ulong[] stack = dataTempAsArr(stacks);

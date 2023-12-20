@@ -1,3 +1,4 @@
 exit code: 1
 stderr:
-test/compile-errors/does-not-exist.crow 1:1-1:1 File does not exist.
+test/compile-errors/does-not-exist.crow 1:1-1:1 This file does not exist.
+test/compile-errors/import-non-existing.crow 2:5-2:21 Imported file test/compile-errors/does-not-exist.crow does not exist.

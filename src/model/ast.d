@@ -828,7 +828,7 @@ private FileAst* fileAstForDiags(ref Alloc alloc, ParseDiagnostic[] diags) =>
 	allocate(alloc, FileAst(
 		diags,
 		cString!"",
-		false,
+		true, // Make sure the dummy AST doesn't have implicit imports
 		none!ImportsOrExportsAst,
 		none!ImportsOrExportsAst,
 		[], [], [], [], [], []));

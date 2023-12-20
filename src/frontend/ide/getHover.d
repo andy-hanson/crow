@@ -4,7 +4,14 @@ module frontend.ide.getHover;
 
 import frontend.ide.position : Position, PositionKind;
 import frontend.showModel :
-	ShowCtx, writeCalled, writeFile, writeFunInst, writeLineAndColumnRange, writeName, writeSpecInst, writeTypeUnquoted;
+	ShowModelCtx,
+	writeCalled,
+	writeFile,
+	writeFunInst,
+	writeLineAndColumnRange,
+	writeName,
+	writeSpecInst,
+	writeTypeUnquoted;
 import lib.lsp.lspTypes : Hover, MarkupContent, MarkupKind;
 import model.ast : FieldMutabilityAst, FunModifierAst;
 import model.diag : TypeContainer, TypeWithContainer;
@@ -61,7 +68,7 @@ import util.uri : Uri;
 import util.util : ptrTrustMe, unreachable;
 import util.writer : withWriter, Writer;
 
-Opt!Hover getHover(ref Alloc alloc, in ShowCtx ctx, in Position pos) {
+Opt!Hover getHover(ref Alloc alloc, in ShowModelCtx ctx, in Position pos) {
 	CString content = withWriter(alloc, (scope ref Writer writer) {
 		getHover(writer, ctx, pos);
 	});
@@ -70,7 +77,7 @@ Opt!Hover getHover(ref Alloc alloc, in ShowCtx ctx, in Position pos) {
 		: some(Hover(MarkupContent(MarkupKind.plaintext, content)));
 }
 
-void getHover(scope ref Writer writer, in ShowCtx ctx, in Position pos) =>
+void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 	pos.kind.matchIn!void(
 		(in PositionKind.None) {},
 		(in PositionKind.Expression x) {
@@ -202,7 +209,7 @@ void getHover(scope ref Writer writer, in ShowCtx ctx, in Position pos) =>
 
 private:
 
-void writeStructDeclHover(scope ref Writer writer, in ShowCtx ctx, in StructDecl a) {
+void writeStructDeclHover(scope ref Writer writer, in ShowModelCtx ctx, in StructDecl a) {
 	writer ~= a.body_.matchIn!string(
 		(in StructBody.Bogus) =>
 			"type ",
@@ -221,16 +228,27 @@ void writeStructDeclHover(scope ref Writer writer, in ShowCtx ctx, in StructDecl
 	writeSymbol(writer, ctx.allSymbols, a.name);
 }
 
-void getImportedNameHover(scope ref Writer writer, in ShowCtx ctx, in PositionKind.ImportedName) {
+void getImportedNameHover(scope ref Writer writer, in ShowModelCtx ctx, in PositionKind.ImportedName) {
 	writer ~= "TODO: getImportedNameHover";
 }
 
-void hoverTypeParam(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in TypeParamIndex index) {
+void hoverTypeParam(
+	scope ref Writer writer,
+	in ShowModelCtx ctx,
+	in TypeContainer typeContainer,
+	in TypeParamIndex index,
+) {
 	writer ~= "type parameter ";
 	writeSymbol(writer, ctx.allSymbols, typeContainer.typeParams[index.index].name);
 }
 
-void getExprHover(scope ref Writer writer, in ShowCtx ctx, in Uri curUri, in TypeContainer typeContainer, in Expr a) =>
+void getExprHover(
+	scope ref Writer writer,
+	in ShowModelCtx ctx,
+	in Uri curUri,
+	in TypeContainer typeContainer,
+	in Expr a,
+) =>
 	a.kind.matchIn!void(
 		(in AssertOrForbidExpr x) {
 			writer ~= "throws if the condition is ";
@@ -330,20 +348,20 @@ void getExprHover(scope ref Writer writer, in ShowCtx ctx, in Uri curUri, in Typ
 			writer ~= "throws an exception";
 		});
 
-void closureRefHover(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in ClosureRef a) {
+void closureRefHover(scope ref Writer writer, in ShowModelCtx ctx, in TypeContainer typeContainer, in ClosureRef a) {
 	writer ~= "closure variable ";
 	writeSymbol(writer, ctx.allSymbols, a.name);
 	writer ~= ' ';
 	writeTypeUnquoted(writer, ctx, TypeWithContainer(a.type, typeContainer));
 }
 
-void localHover(scope ref Writer writer, in ShowCtx ctx, in TypeContainer typeContainer, in Local a) {
+void localHover(scope ref Writer writer, in ShowModelCtx ctx, in TypeContainer typeContainer, in Local a) {
 	writeSymbol(writer, ctx.allSymbols, a.name);
 	writer ~= ' ';
 	writeTypeUnquoted(writer, ctx, TypeWithContainer(a.type, typeContainer));
 }
 
-void writeLoop(scope ref Writer writer, in ShowCtx ctx, Uri curUri, in LoopExpr a) {
+void writeLoop(scope ref Writer writer, in ShowModelCtx ctx, Uri curUri, in LoopExpr a) {
 	writer ~= "loop at ";
 	writeLineAndColumnRange(writer, ctx.lineAndColumnGetters[UriAndRange(curUri, a.range)].range);
 }

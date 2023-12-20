@@ -104,7 +104,7 @@ UriAndRange[] getReferencesForPosition(
 	in Program program,
 	in Position pos,
 ) {
-	Opt!Target target = targetForPosition(program, pos.kind);
+	Opt!Target target = targetForPosition(pos.kind);
 	return has(target)
 		? buildArray!UriAndRange(alloc, (in ReferenceCb cb) {
 			eachReferenceForTarget(allSymbols, allUris, program, pos.module_.uri, force(target), cb);
@@ -145,7 +145,7 @@ void referencesForTarget(
 			referencesForImportedName(allSymbols, program, x, cb);
 		},
 		(PositionKind.LocalPosition x) {
-			referencesForLocal(allSymbols, program, curUri, x, cb);
+			referencesForLocal(allSymbols, curUri, x, cb);
 		},
 		(LoopExpr* x) {
 			referencesForLoop(curUri, *x, cb);
@@ -227,20 +227,14 @@ void eachImportForName(
 	}
 }
 
-void referencesForLocal(
-	in AllSymbols allSymbols,
-	in Program program,
-	Uri curUri,
-	in PositionKind.LocalPosition a,
-	in ReferenceCb cb,
-) {
+void referencesForLocal(in AllSymbols allSymbols, Uri curUri, in PositionKind.LocalPosition a, in ReferenceCb cb) {
 	a.container.match!void(
 		(ref FunDecl fun) {
 			Expr body_ = fun.body_.isA!(FunBody.ExpressionBody)
 				? fun.body_.as!(FunBody.ExpressionBody).expr
 				: Expr(null, ExprKind(BogusExpr()));
 			eachDescendentExprIncluding(body_, (in Expr x) @safe {
-				Opt!Target xTarget = exprTarget(program, PositionKind.Expression(&fun, ptrTrustMe(x)));
+				Opt!Target xTarget = exprTarget(PositionKind.Expression(&fun, ptrTrustMe(x)));
 				if (optEqual!Target(xTarget, some(Target(a))))
 					cb(UriAndRange(fun.moduleUri, x.range));
 			});

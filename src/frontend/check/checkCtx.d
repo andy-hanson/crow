@@ -39,7 +39,7 @@ struct CheckCtx {
 	const AllUris* allUrisPtr;
 	public immutable Uri curUri;
 	public ImportAndReExportModules importsAndReExports;
-	ArrayBuilder!Diagnostic* diagnosticsBuilder;
+	ArrayBuilder!Diagnostic* diagnosticsBuilderPtr;
 	UsedSet used;
 
 	public:
@@ -55,6 +55,9 @@ struct CheckCtx {
 
 	ref const(AllUris) allUris() return scope const =>
 		*allUrisPtr;
+
+	ref ArrayBuilder!Diagnostic diagnosticsBuilder() return scope =>
+		*diagnosticsBuilderPtr;
 }
 
 private struct UsedSet {
@@ -160,8 +163,8 @@ void addDiag(ref CheckCtx ctx, in UriAndRange range, Diag diag) {
 }
 
 void addDiag(ref CheckCtx ctx, in Range range, Diag diag) {
-	add(ctx.alloc, *ctx.diagnosticsBuilder, Diagnostic(range, diag));
+	add(ctx.alloc, ctx.diagnosticsBuilder, Diagnostic(range, diag));
 }
 
 Diagnostic[] finishDiagnostics(ref CheckCtx ctx) =>
-	finish(ctx.alloc, *ctx.diagnosticsBuilder);
+	finish(ctx.alloc, ctx.diagnosticsBuilder);

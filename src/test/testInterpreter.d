@@ -68,7 +68,7 @@ import model.lowModel :
 	LowVarIndex,
 	LowType,
 	LowUnion;
-import model.model : fakeProgramForTest, VarKind;
+import model.model : VarKind;
 import model.typeLayout : Pack, PackField;
 import test.testUtil : expectDataStack, expectReturnStack, Test, withShowDiagCtxForTestImpure;
 import util.alloc.alloc : Alloc;
@@ -138,7 +138,7 @@ void doInterpret(
 		[]);
 	withFakeExtern!void(test.alloc, test.allSymbols, unreachableWriteCb, (scope ref Extern extern_) {
 		Storage storage = Storage(test.metaAlloc, ptrTrustMe(test.allSymbols), ptrTrustMe(test.allUris));
-		withShowDiagCtxForTestImpure(test, storage, fakeProgramForTest, (in ShowCtx ctx) {
+		withShowDiagCtxForTestImpure(test, storage, (in ShowCtx ctx) {
 			withInterpreter!void(test.alloc, extern_.doDynCall, ctx, lowProgram, byteCode, (ref Stacks stacks) {
 				runInterpreter(stacks, initialOperationPointer(byteCode));
 			});

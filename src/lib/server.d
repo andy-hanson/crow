@@ -18,7 +18,7 @@ import frontend.ide.position : Position;
 import frontend.lang : crowExtension;
 import frontend.showDiag :
 	sortedDiagnostics, stringOfDiag, stringOfDiagnostics, stringOfParseDiagnostics, UriAndDiagnostics;
-import frontend.showModel : ShowCtx, ShowOptions;
+import frontend.showModel : ShowCtx, ShowDiagCtx, ShowOptions;
 import frontend.storage :
 	allKnownGoodCrowUris,
 	allStorageUris,
@@ -403,10 +403,8 @@ Uri[] allUnknownUris(ref Alloc alloc, in Server server) =>
 private Uri[] allUnloadedUris(ref Alloc alloc, in Server server) =>
 	allUrisWithFileDiag(alloc, server.storage, [ReadFileDiag.unknown, ReadFileDiag.loading]);
 
-CString showDiagnostics(ref Alloc alloc, scope ref Server server, in Program program) {
-	ShowCtx ctx = getShowDiagCtx(server, program);
-	return stringOfDiagnostics(alloc, ctx, program);
-}
+CString showDiagnostics(ref Alloc alloc, scope ref Server server, in Program program) =>
+	stringOfDiagnostics(alloc, getShowDiagCtx(server, program), program);
 
 immutable struct DocumentResult {
 	CString document;
@@ -428,7 +426,7 @@ private UriAndRange[] getDefinitionForProgram(
 ) {
 	Opt!Position position = getPosition(server, program, params.params);
 	return has(position)
-		? getDefinitionForPosition(alloc, server.allSymbols, program, force(position))
+		? getDefinitionForPosition(alloc, server.allSymbols, force(position))
 		: [];
 }
 
@@ -463,9 +461,8 @@ private Opt!Hover getHoverForProgram(
 	in HoverParams params,
 ) {
 	Opt!Position position = getPosition(server, program, params.params);
-	ShowCtx ctx = getShowDiagCtx(server, program);
 	return has(position)
-		? getHover(alloc, ctx, force(position))
+		? getHover(alloc, getShowDiagCtx(server, program), force(position))
 		: none!Hover;
 }
 
@@ -500,8 +497,7 @@ private DiagsAndResultJson printForProgram(
 
 private DiagsAndResultJson printForAst(ref Alloc alloc, ref Server server, Uri uri, in FileAst ast, Json result) =>
 	DiagsAndResultJson(
-		stringOfParseDiagnostics(
-			alloc, server.allSymbols, server.allUris, server.lineAndColumnGetters[uri], ast.parseDiagnostics),
+		stringOfParseDiagnostics(alloc, getShowCtx(server), uri, ast.parseDiagnostics),
 		result);
 
 DiagsAndResultJson printTokens(ref Alloc alloc, ref Server server, in SemanticTokensParams params) {
@@ -649,16 +645,18 @@ BuildToCResult buildToC(scope ref Perf perf, ref Alloc alloc, ref Server server,
 		has(programs.lowProgram) ? force(programs.lowProgram).externLibraries : []);
 }
 
-ShowCtx getShowDiagCtx(return scope ref const Server server, return scope ref Program program) =>
+ShowDiagCtx getShowDiagCtx(return scope ref const Server server, return scope ref Program program) =>
+	ShowDiagCtx(getShowCtx(server), program.commonTypes);
+
+private:
+
+ShowCtx getShowCtx(return scope ref const Server server) =>
 	ShowCtx(
 		ptrTrustMe(server.allSymbols),
 		ptrTrustMe(server.allUris),
 		server.lineAndColumnGetters,
 		server.urisInfo,
-		server.showOptions,
-		ptrTrustMe(program));
-
-private:
+		server.showOptions);
 
 SemanticTokens getTokens(ref Alloc alloc, ref Server server, Uri uri, in FileAst ast) =>
 	tokensOfAst(alloc, server.allSymbols, server.allUris, server.lineAndCharacterGetters[uri], ast);
@@ -689,7 +687,7 @@ LspOutAction notifyDiagnostics(scope ref Perf perf, ref Alloc alloc, ref Server 
 		freeElements!Uri(state.stateAlloc, state.urisWithDiagnostics);
 	}();
 	state.urisWithDiagnostics = castNonScope(newUris);
-	ShowCtx ctx = getShowDiagCtx(server, program);
+	ShowDiagCtx ctx = getShowDiagCtx(server, program);
 	return LspOutAction(map!(LspOutMessage, UriAndDiagnostics)(alloc, all, (ref UriAndDiagnostics ud) =>
 		notification(PublishDiagnosticsParams(ud.uri, map(alloc, ud.diagnostics, (ref Diagnostic x) =>
 			LspDiagnostic(

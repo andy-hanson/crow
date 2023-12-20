@@ -20,7 +20,7 @@ import frontend.storage :
 	ReadFileResult,
 	Storage;
 import model.ast : FileAst, fileAstForReadFileDiag, ImportOrExportAst, ImportOrExportAstKind, NameAndRange;
-import model.diag : Diag, ReadFileDiag;
+import model.diag : Diag, ReadFileDiag, ReadFileDiag_;
 import model.model :
 	CommonTypes, Config, emptyConfig, getConfigUri, getModuleUri, MainFun, Module, Program, ProgramWithMain;
 import util.alloc.alloc :
@@ -54,7 +54,7 @@ import util.uri :
 	PathFirstAndRest,
 	RelPath,
 	resolveUri;
-import util.util : ptrTrustMe, todo;
+import util.util : ptrTrustMe, todo, typeAs;
 
 struct FrontendCompiler {
 	@safe @nogc pure nothrow:
@@ -119,8 +119,9 @@ private struct CrowFile {
 	immutable Uri uri;
 	// This needs to be filled in in 3 steps: ast/config, resolvedImports/referencedBy, module
 
+	// Ast is allocated by Storage, just referenced from here
+	AstOrDiag astOrDiag;
 	MutOpt!(Config*) config; // This will be some(defaultConfig) if there is no config file on the path
-	MutOpt!(FileAst*) ast;
 
 	MutOpt!(MostlyResolvedImport[]) resolvedImports; // Also includes re-exports. Set once we have config.
 	MutSet!(CrowFile*) referencedBy;
@@ -136,6 +137,10 @@ private struct CrowFile {
 }
 private Uri getCrowFileUri(in CrowFile* a) =>
 	a.uri;
+
+private struct AstOrDiag {
+	mixin UnionMutable!(FileAst*, ReadFileDiag_);
+}
 
 private struct OtherFile {
 	immutable Uri uri;
@@ -176,7 +181,7 @@ private Common makeProgramCommon(
 			alloc, a.crowFiles, (ref const CrowFile* file) => file.mustHaveModule),
 		map!(immutable Module*, Uri)(alloc, roots, (ref Uri uri) => mustGet(a.crowFiles, uri).mustHaveModule),
 		commonFuns.commonFuns,
-		*force(a.commonTypes));
+		force(a.commonTypes));
 	return Common(program, commonFuns.mainFun);
 }
 
@@ -191,14 +196,16 @@ void onFileChanged(scope ref Perf perf, ref FrontendCompiler a, Uri uri) {
 	withMeasure!(void, () {
 		final switch (fileType(a.allUris, uri)) {
 			case FileType.crow:
-				FileAst* ast = getParsedOrDiag(a.storage, uri).match!(FileAst*)(
+				AstOrDiag ast = getParsedOrDiag(a.storage, uri).match!AstOrDiag(
 					(ParseResult x) =>
-						x.as!(FileAst*),
-					(ReadFileDiag x) =>
-						// TODO: Storage should just store this
-						fileAstForReadFileDiag(a.alloc, x));
+						AstOrDiag(x.as!(FileAst*)),
+					(ReadFileDiag x) {
+						// Files don't change *to* unknown, only change out of that state
+						assert(x != ReadFileDiag.unknown);
+						return AstOrDiag(x);
+					});
 				CrowFile* file = ensureCrowFile(a, uri);
-				file.ast = someMut(ast); // TODO: free old ast
+				file.astOrDiag = ast;
 				updatedAstOrConfig(a, file);
 				break;
 			case FileType.crowConfig:
@@ -235,7 +242,10 @@ CrowFile* ensureCrowFile(ref FrontendCompiler a, Uri uri) {
 	return getOrAdd!(CrowFile*, Uri, getCrowFileUri)(a.alloc, a.crowFiles, uri, () {
 		markUnknownIfNotExist(a.storage, uri);
 		a.countUncompiledCrowFiles++;
-		return allocate(a.alloc, CrowFile(uri, tryFindConfig(a.storage, a.allUris, parentOrEmpty(a.allUris, uri))));
+		return allocate(a.alloc, CrowFile(
+			uri,
+			AstOrDiag(ReadFileDiag.unknown),
+			tryFindConfig(a.storage, a.allUris, parentOrEmpty(a.allUris, uri))));
 	});
 }
 
@@ -245,11 +255,19 @@ OtherFile* ensureOtherFile(ref FrontendCompiler a, Uri uri) =>
 		return allocate(a.alloc, OtherFile(uri));
 	});
 
+FileAst* toAst(ref Alloc alloc, AstOrDiag x) =>
+	x.matchConst!(FileAst*)(
+		(const FileAst* x) => x,
+		(const ReadFileDiag_ x) {
+			assert(!isUnknownOrLoading(x));
+			return fileAstForReadFileDiag(alloc, x);
+		});
+
 void doDirtyWork(scope ref Perf perf, ref FrontendCompiler a) {
 	CrowFile* bootstrap = a.commonFiles[CommonModule.bootstrap];
 	if (mayDelete(a.workable, bootstrap)) {
-		FileAndAst fa = FileAndAst(bootstrap.uri, force(bootstrap.ast));
 		bootstrap.moduleAndAlloc = someMut(withAlloc!(Module*)(AllocKind.module_, a.metaAlloc, (ref Alloc alloc) {
+			FileAndAst fa = FileAndAst(bootstrap.uri, toAst(alloc, bootstrap.astOrDiag));
 			BootstrapCheck bs = checkBootstrap(perf, alloc, a.allSymbols, a.allUris, a.allInsts, fa);
 			a.commonTypes = someMut(bs.commonTypes);
 			return bs.module_;
@@ -308,7 +326,7 @@ Uri[] fixCircularImportsRecur(ref FrontendCompiler a, scope ref ArrayBuilder!Uri
 Module* compileNonBootstrapModule(scope ref Perf perf, ref Alloc alloc, ref FrontendCompiler a, CrowFile* file) {
 	assert(isWorkable(a.allUris, *file));
 	assert(has(a.commonTypes)); // bootstrap is always compiled first
-	FileAndAst ast = FileAndAst(file.uri, force(file.ast));
+	FileAndAst ast = FileAndAst(file.uri, toAst(alloc, file.astOrDiag));
 	return check(
 		perf, alloc, a.allSymbols, a.allUris, a.allInsts, ast,
 		fullyResolveImports(a, force(file.resolvedImports)),
@@ -326,18 +344,21 @@ void updateFileOnConfigChange(ref FrontendCompiler a, CrowFile* file) {
 }
 
 void updatedAstOrConfig(ref FrontendCompiler a, CrowFile* file) {
-	if (has(file.ast) && has(file.config))
+	if (!isUnknownOrLoading(*file) && has(file.config))
 		recomputeResolvedImports(a, file);
 	else
 		assert(!has(file.resolvedImports) && !file.hasModule);
 }
+
+bool isUnknownOrLoading(in CrowFile a) =>
+	a.astOrDiag.isA!ReadFileDiag_ && isUnknownOrLoading(a.astOrDiag.as!ReadFileDiag_);
 
 void recomputeResolvedImports(ref FrontendCompiler a, CrowFile* file) {
 	markModuleDirty(a, *file);
 
 	MutOpt!(Uri[]) circularImport = has(file.resolvedImports) ? clearResolvedImports(file) : noneMut!(Uri[]);
 
-	file.resolvedImports = someMut(resolveImports(a, *force(file.ast), *force(file.config), file.uri));
+	file.resolvedImports = someMut(resolveImports(a, file.astOrDiag, *force(file.config), file.uri));
 	foreach (MostlyResolvedImport x; force(file.resolvedImports)) {
 		MutOpt!(MutSet!(CrowFile*)*) rb = getReferencedBy(x);
 		if (has(rb))
@@ -387,7 +408,7 @@ void addToWorkableIfSo(ref FrontendCompiler a, CrowFile* file) {
 // Note: File won't actually be worked on until 'CommonTypes' is set, but it still gets marked here.
 bool isWorkable(scope ref AllUris allUris, in CrowFile a) {
 	assert(!a.hasModule);
-	return has(a.ast) &&
+	return !isUnknownOrLoading(a) &&
 		has(a.config) &&
 		every!MostlyResolvedImport(force(a.resolvedImports), (in MostlyResolvedImport x) =>
 			isImportWorkable(allUris, x));
@@ -419,7 +440,14 @@ bool isUnknownOrLoading(ReadFileDiag a) {
 	}
 }
 
-MostlyResolvedImport[] resolveImports(ref FrontendCompiler a, in FileAst ast, in Config config, Uri uri) =>
+MostlyResolvedImport[] resolveImports(ref FrontendCompiler a, in AstOrDiag astOrDiag, in Config config, Uri uri) =>
+	astOrDiag.matchConst!(MostlyResolvedImport[])(
+		(const FileAst* x) =>
+			resolveImportsForAst(a, *x, config, uri),
+		(const ReadFileDiag_ _) =>
+			typeAs!(MostlyResolvedImport[])([]));
+
+MostlyResolvedImport[] resolveImportsForAst(ref FrontendCompiler a, in FileAst ast, in Config config, Uri uri) =>
 	buildArrayExact!MostlyResolvedImport(
 		a.alloc,
 		countImportsAndReExports(ast),
@@ -462,12 +490,15 @@ void markModuleDirty(scope ref FrontendCompiler a, scope ref CrowFile file) {
 	}
 }
 
-ResolvedImport[] fullyResolveImports(ref FrontendCompiler a, MostlyResolvedImport[] imports) =>
-	map(a.alloc, imports, (ref MostlyResolvedImport x) =>
-		x.match!ResolvedImport(
-			(CrowFile* x) =>
-				ResolvedImport(x.mustHaveModule),
-			(OtherFile* file) =>
+ResolvedImport[] fullyResolveImports(ref FrontendCompiler a, in MostlyResolvedImport[] imports) =>
+	map(a.alloc, imports, (ref const MostlyResolvedImport x) =>
+		x.matchConst!ResolvedImport(
+			(const CrowFile* x) =>
+				x.astOrDiag.isA!ReadFileDiag_
+					? ResolvedImport(Diag.ImportFileDiag(
+						Diag.ImportFileDiag.ReadError(x.uri, x.astOrDiag.as!ReadFileDiag_)))
+					: ResolvedImport(x.mustHaveModule),
+			(const OtherFile* file) =>
 				getFileContentOrDiag(a.storage, file.uri).match!ResolvedImport(
 					(FileContent content) =>
 						ResolvedImport(file.uri),

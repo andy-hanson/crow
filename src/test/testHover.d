@@ -6,7 +6,7 @@ import frontend.ide.getDefinition : getDefinitionForPosition;
 import frontend.ide.getHover : getHover;
 import frontend.ide.getPosition : getPosition;
 import frontend.ide.position : Position;
-import frontend.showModel : ShowCtx;
+import frontend.showModel : ShowModelCtx;
 import lib.lsp.lspTypes : Hover;
 import lib.server : getProgramForAll, getShowDiagCtx, Server;
 import model.model : Module, Program;
@@ -35,7 +35,7 @@ private:
 void hoverTest(string crowFileName, string outputFileName)(ref Test test) {
 	string content = import("hover/" ~ crowFileName);
 	string expected = import(outputFileName);
-	withHoverTest!crowFileName(test, content, (in ShowCtx ctx, Module* module_) {
+	withHoverTest!crowFileName(test, content, (in ShowModelCtx ctx, Module* module_) {
 		CString actual = jsonToStringPretty(
 			test.alloc, test.allSymbols, hoverResult(test.alloc, content, ctx, module_));
 		if (stringOfCString(actual) != expected) {
@@ -51,7 +51,7 @@ void hoverTest(string crowFileName, string outputFileName)(ref Test test) {
 void withHoverTest(string fileName)(
 	ref Test test,
 	in string content,
-	in void delegate(in ShowCtx, Module*) @safe @nogc pure nothrow cb,
+	in void delegate(in ShowModelCtx, Module*) @safe @nogc pure nothrow cb,
 ) {
 	withTestServer(test, (ref Alloc alloc, ref Server server) {
 		Uri uri = parseUri(server.allUris, "magic:/" ~ fileName);
@@ -74,7 +74,7 @@ immutable struct InfoAtPos {
 		hover == b.hover && arraysEqual(definition, b.definition);
 }
 
-Json hoverResult(ref Alloc alloc, in string content, in ShowCtx ctx, Module* mainModule) {
+Json hoverResult(ref Alloc alloc, in string content, in ShowModelCtx ctx, Module* mainModule) {
 	ArrayBuilder!Json parts;
 
 	// We combine ranges that have the same info.
@@ -101,7 +101,7 @@ Json hoverResult(ref Alloc alloc, in string content, in ShowCtx ctx, Module* mai
 		Opt!Hover hover = getHover(alloc, ctx, position);
 		InfoAtPos here = InfoAtPos(
 			has(hover) ? force(hover).contents.value : cString!"",
-			getDefinitionForPosition(alloc, ctx.allSymbols, ctx.program, position));
+			getDefinitionForPosition(alloc, ctx.allSymbols, position));
 		if (here != cellGet(curInfo)) {
 			endRange(pos - 1);
 			curRangeStart = pos;

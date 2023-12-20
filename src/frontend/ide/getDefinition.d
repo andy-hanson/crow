@@ -14,7 +14,6 @@ import model.model :
 	Module,
 	nameRange,
 	NameReferents,
-	Program,
 	RecordField,
 	SpecDecl,
 	StructBody,
@@ -27,8 +26,8 @@ import util.sourceRange : UriAndRange;
 import util.symbol : AllSymbols;
 import util.uri : Uri;
 
-UriAndRange[] getDefinitionForPosition(ref Alloc alloc, in AllSymbols allSymbols, in Program program, in Position pos) {
-	Opt!Target target = targetForPosition(program, pos.kind);
+UriAndRange[] getDefinitionForPosition(ref Alloc alloc, in AllSymbols allSymbols, in Position pos) {
+	Opt!Target target = targetForPosition(pos.kind);
 	return has(target)
 		? buildArray!UriAndRange(alloc, (in ReferenceCb cb) {
 			definitionForTarget(allSymbols, pos.module_.uri, force(target), cb);

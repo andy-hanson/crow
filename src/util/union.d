@@ -294,6 +294,8 @@ mixin template UnionMutable(Types...) {
 							return handlers[i](cast(const P*) ptrValue);
 						else static if (is(T == MutSmallArray!U, U))
 							return handlers[i](MutSmallArray!U.fromTagged(ptrValue));
+						else static if (is(T == enum))
+							return handlers[i](cast(T) (ptrValue >> 2));
 						else
 							static assert(false);
 					} else {
@@ -317,6 +319,8 @@ mixin template UnionMutable(Types...) {
 					assert(kind == i);
 					static if (is(Ty == P*, P))
 						return (cast(inout P*) ptrValue);
+					else static if (is(T == enum))
+						return cast(T) ptrValue >> 2;
 					else
 						return Ty.fromTagged(ptrValue);
 				}
@@ -433,7 +437,7 @@ template toHandlersImpure(R, Types...) {
 template toHandlersConst(R, Types...) {
 	template toHandlerConst(P) {
 		static if (isMutable!P) {
-			static if (isEmptyStruct!P || is(P == U[], U) || is(P == U*, U))
+			static if (isEmptyStruct!P || is(P == enum) || is(P == U[], U) || is(P == U*, U))
 				alias toHandlerConst = R delegate(const P) @safe @nogc pure nothrow;
 			else static if (is(P == MutSmallArray!U, U))
 				alias toHandlerConst = R delegate(const U[]) @safe @nogc pure nothrow;

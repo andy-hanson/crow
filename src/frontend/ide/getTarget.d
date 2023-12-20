@@ -37,7 +37,6 @@ import model.model :
 	MatchEnumExpr,
 	MatchUnionExpr,
 	Module,
-	Program,
 	PtrToFieldExpr,
 	PtrToLocalExpr,
 	RecordField,
@@ -72,12 +71,12 @@ immutable struct Target {
 	);
 }
 
-Opt!Target targetForPosition(in Program program, PositionKind pos) =>
+Opt!Target targetForPosition(PositionKind pos) =>
 	pos.matchWithPointers!(Opt!Target)(
 		(PositionKind.None) =>
 			none!Target,
 		(PositionKind.Expression x) =>
-			exprTarget(program, x),
+			exprTarget(x),
 		(FunDecl* x) =>
 			some(Target(x)),
 		(PositionKind.FunExtern) =>
@@ -119,7 +118,7 @@ Opt!Target targetForPosition(in Program program, PositionKind pos) =>
 		(Visibility _) =>
 			none!Target);
 
-Opt!Target exprTarget(in Program program, PositionKind.Expression a) {
+Opt!Target exprTarget(PositionKind.Expression a) {
 	Opt!Target local(Local* x) =>
 		some(Target(PositionKind.LocalPosition(LocalContainer(a.containingFun), x)));
 	return a.expr.kind.match!(Opt!Target)(

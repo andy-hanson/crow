@@ -42,8 +42,8 @@ enum DiagnosticSeverity {
 	nameNotFound,
 	// Severe error where a common fun (e.g. 'alloc', 'main') or type (e.g. 'void') is missing
 	commonMissing,
-	importError,
 	parseError,
+	importError,
 }
 bool isFatal(DiagnosticSeverity a) =>
 	a >= DiagnosticSeverity.commonMissing;
@@ -84,7 +84,7 @@ enum TypeKind {
 	union_,
 }
 
-private enum ReadFileDiag_ {
+enum ReadFileDiag_ {
 	unknown, // We've just encountered the file and haven't notified the environment.
 	loading, // We've notified the environment that we want this file, but haven't received a response.
 	notFound, // The file is known to not exist.

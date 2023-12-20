@@ -1172,15 +1172,8 @@ immutable struct Program {
 	HashTable!(immutable Module*, Uri, getModuleUri) allModules;
 	Module*[] rootModules;
 	CommonFuns commonFuns;
-	CommonTypes commonTypes;
+	CommonTypes* commonTypes;
 }
-Program fakeProgramForTest() =>
-	Program(
-		HashTable!(immutable Config*, Uri, getConfigUri)(),
-		HashTable!(immutable Module*, Uri, getModuleUri)(),
-		[],
-		CommonFuns(),
-		CommonTypes());
 
 bool hasAnyDiagnostics(in Program a) =>
 	existsDiagnostic(a, (in UriAndDiagnostic _) => true);
