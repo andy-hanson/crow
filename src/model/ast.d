@@ -770,6 +770,7 @@ string stringOfSpecialFlag(FunModifierAst.Special.Flags a) {
 }
 
 immutable struct TestAst {
+	Range range;
 	Opt!ExprAst body_;
 }
 

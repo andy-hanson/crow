@@ -286,7 +286,8 @@ void eachTypeInModule(in Module a, in TypeCb cb) {
 	foreach (ref FunDecl x; a.funs)
 		eachTypeInFun(x, cb);
 	foreach (ref Test x; a.tests)
-		eachTypeInExpr(x.body_, cb);
+		if (has(x.body_))
+			eachTypeInExpr(force(x.body_), cb);
 }
 
 void eachTypeInFun(in FunDecl a, in TypeCb cb) {
@@ -467,9 +468,11 @@ void eachExprThatMayReference(
 				});
 		}
 		foreach (ref Test test; module_.tests)
-			eachDescendentExprIncluding(test.body_, (in Expr x) {
-				cb(module_, x);
-			});
+			if (has(test.body_)) {
+				eachDescendentExprIncluding(force(test.body_), (in Expr x) {
+					cb(module_, x);
+				});
+			}
 	});
 }
 

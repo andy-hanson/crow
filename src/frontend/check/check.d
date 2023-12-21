@@ -50,6 +50,7 @@ import model.model :
 	CommonTypes,
 	Destructure,
 	emptyTypeParams,
+	Expr,
 	FunBody,
 	FunDecl,
 	FunDeclSource,
@@ -620,20 +621,16 @@ FunsAndMap checkFuns(
 	Test[] tests = () @trusted {
 		return mapWithResultPointer!(Test, TestAst)(ctx.alloc, testAsts, (TestAst* ast, Test* out_) {
 			Type voidType = Type(commonTypes.void_);
-			if (!has(ast.body_))
-				todo!void("diag: test needs body");
-			return Test(ctx.curUri, checkFunctionBody(
-				ctx,
-				structsAndAliasesMap,
-				commonTypes,
-				funsMap,
-				TypeContainer(out_),
-				voidType,
-				emptyTypeParams,
-				[],
-				[],
-				FunFlags.none.withSummon,
-				&force(ast.body_)));
+			Opt!Expr body_ = () {
+				if (!has(ast.body_)) {
+					addDiag(ctx, ast.range, Diag(Diag.FunMissingBody()));
+					return none!Expr;
+				} else
+					return some(checkFunctionBody(
+						ctx, structsAndAliasesMap, commonTypes, funsMap, TypeContainer(out_),
+						voidType, emptyTypeParams, [], [], FunFlags.none.withSummon, &force(ast.body_)));
+			}();
+			return Test(ast, ctx.curUri, body_);
 		});
 	}();
 

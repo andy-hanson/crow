@@ -336,9 +336,11 @@ void parseSpecOrStructOrFunOrTest(
 	scope ref ArrayBuilder!VarDeclAst vars,
 	SmallString docComment,
 ) {
-	if (tryTakeToken(lexer, Token.test))
-		add(lexer.alloc, tests, TestAst(parseFunExprBody(lexer)));
-	else
+	Pos start = curPos(lexer);
+	if (tryTakeToken(lexer, Token.test)) {
+		Opt!ExprAst body_ = parseFunExprBody(lexer);
+		add(lexer.alloc, tests, TestAst(range(lexer, start), body_));
+	} else
 		parseSpecOrStructOrFun(lexer, specs, structAliases, structs, funs, vars, docComment);
 }
 

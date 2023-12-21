@@ -226,13 +226,13 @@ void handleAfter(
 	scope ref ExprAfter after,
 ) {
 	handleAfterReturnData(writer, source, after);
-	after.kind.match!void(
+	after.kind.matchScope!void(
 		(ExprAfterKind.Continue) {},
-		(ref ExprAfterKind.JumpDelayed x) {
+		(scope ref ExprAfterKind.JumpDelayed x) {
 			immutable ByteCodeIndex delayed = writeJumpDelayed(writer, source);
 			push(ctx.tempAlloc, *x.delayedJumps, delayed);
 		},
-		(ref ExprAfterKind.Loop) {
+		(scope ref ExprAfterKind.Loop) {
 			// Only 'break' or 'continue' possible here, and they don't call 'handleAfter' normally
 			unreachable!void();
 		},

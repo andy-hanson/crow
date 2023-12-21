@@ -18,6 +18,7 @@ import model.ast :
 	SpecSigAst,
 	StructAliasAst,
 	StructDeclAst,
+	TestAst,
 	VarDeclAst;
 import model.concreteModel : TypeSize;
 import model.constant : Constant;
@@ -808,11 +809,13 @@ UriAndRange nameRange(in AllSymbols allSymbols, in FunDecl a) scope =>
 immutable struct Test {
 	@safe @nogc pure nothrow:
 
+	TestAst* ast;
 	Uri moduleUri;
-	Expr body_;
+	// Missing for compile error only
+	Opt!Expr body_;
 
 	UriAndRange range() =>
-		UriAndRange(moduleUri, body_.range);
+		UriAndRange(moduleUri, ast.range);
 }
 
 immutable struct FunDeclAndTypeArgs {

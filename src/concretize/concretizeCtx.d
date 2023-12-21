@@ -455,7 +455,9 @@ ConcreteFun* concreteFunForTest(ref ConcretizeCtx ctx, ref Test test, size_t tes
 		emptySmallArray!(immutable SpecInst*),
 		emptySmallArray!ConcreteType,
 		emptySmallArray!(immutable ConcreteFun*));
-	ConcreteExpr body_ = concretizeFunBody(ctx, containing, res, [], test.body_);
+	ConcreteExpr body_ = has(test.body_)
+		? concretizeFunBody(ctx, containing, res, [], force(test.body_))
+		: concretizeBogus(ctx, voidType(ctx), test.range);
 	res.body_ = ConcreteFunBody(body_);
 	addConcreteFun(ctx, res);
 	return res;

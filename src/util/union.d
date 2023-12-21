@@ -204,7 +204,8 @@ mixin template UnionMutable(Types...) {
 
 	import std.traits : isMutable;
 	import util.memory : overwriteMemory;
-	import util.union_ : canUseTaggedPointers, getTaggedPointerValue, isEmptyStruct, toHandlersConst, toHandlersMutable;
+	import util.union_ :
+		canUseTaggedPointers, getTaggedPointerValue, isEmptyStruct, toHandlersConst, toHandlersMutable, toHandlersScope;
 
 	enum usesTaggedPointer = canUseTaggedPointers!Types;
 
@@ -264,6 +265,26 @@ mixin template UnionMutable(Types...) {
 	}
 
 	@trusted R match(R)(scope toHandlersMutable!(R, Types) handlers) {
+		final switch (kind) {
+			static foreach (i, T; Types) {
+				case i:
+					static if (usesTaggedPointer) {
+						static if (isEmptyStruct!T)
+							return handlers[i](T());
+						else static if (is(T == P*, P))
+							return handlers[i](cast(P*) ptrValue);
+						else static if (is(T == MutSmallArray!U, U))
+							return handlers[i](MutSmallArray!U.fromTagged(ptrValue).toArray);
+						else
+							static assert(false);
+					} else {
+						mixin("return handlers[", i, "](as", i, ");");
+					}
+			}
+		}
+	}
+
+	@trusted R matchScope(R)(scope toHandlersScope!(R, Types) handlers) scope {
 		final switch (kind) {
 			static foreach (i, T; Types) {
 				case i:
@@ -462,6 +483,18 @@ template toHandlersMutable(R, Types...) {
 			alias toHandlerMutable = R delegate(immutable P) @safe @nogc pure nothrow;
 	}
 	alias toHandlersMutable = staticMap!(toHandlerMutable, Types);
+}
+
+template toHandlersScope(R, Types...) {
+	template toHandlerScope(P) {
+		static if (isEmptyStruct!P)
+			alias toHandlerScope = R delegate(P) @safe @nogc pure nothrow;
+		else static if (is(P == U*, U))
+			alias tohandlerScope = R delegate(scope ref U) @safe @nogc pure nothrow;
+		else
+			alias toHandlerScope = R delegate(scope ref P) @safe @nogc pure nothrow;
+	}
+	alias toHandlersScope = staticMap!(toHandlerScope, Types);
 }
 
 template toHandlersWithPointers(R, Types...) {

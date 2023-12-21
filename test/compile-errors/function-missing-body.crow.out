@@ -1,0 +1,6 @@
+exit code: 1
+stderr:
+test/compile-errors/function-missing-body.crow 1:1-1:12 This function needs a body.
+test/compile-errors/function-missing-body.crow 2:1-2:5 This function needs a body.
+Uncaught exception: Reached compile error
+	at main

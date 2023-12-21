@@ -189,7 +189,7 @@ Json jsonOfFunDecl(ref Alloc alloc, in Ctx ctx, in FunDecl a) =>
 
 Json jsonOfTest(ref Alloc alloc, in Ctx ctx, in Test a) =>
 	jsonObject(alloc, [
-		field!"body"(jsonOfExpr(alloc, ctx, a.body_))]);
+		optionalField!("body", Expr)(a.body_, (in Expr x) => jsonOfExpr(alloc, ctx, x))]);
 
 Json.ObjectField[3] commonDeclFields(
 	ref Alloc alloc,
