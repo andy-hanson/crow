@@ -1,0 +1,9 @@
+main void()
+	"x" foo
+	"x" bar 0
+
+foo[t] void(a t)
+	a bar 0
+
+bar[t] void(a t, b t)
+	()

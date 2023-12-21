@@ -2,9 +2,9 @@ exit code: 1
 stderr:
 test/compile-errors/lambda-errors.crow 2:9-2:16 Lambda expression needs an expected type.
 test/compile-errors/lambda-errors.crow 3:11-3:27 The lambda doesn't match the expected type at this location.
-expected type: 'act void(nat64)'
+Expected type 'act void(nat64)'.
 test/compile-errors/lambda-errors.crow 4:11-4:18 Multiple lambda types are possible.
-expected one of these types:
+Expected one of these types:
 	'act void(nat64)'
 	'act void(string)'
 Consider explicitly typing the lambda's parameter.

@@ -395,11 +395,12 @@ Type applyInferred(ref InstantiateCtx ctx, in TypeAndContext a) =>
 			Type(Type.Bogus()),
 		(TypeParamIndex x) {
 			const MutOpt!(SingleInferringType*) ta = tryGetInferring(a.context, x);
-			return optOrDefault!Type(
-				has(ta) ? tryGetInferred(*force(ta)) : none!Type,
-				() => Type(Type.Bogus()));
+			return has(ta)
+				// If not yet inferred, use Bogus to indicate that any type would work.
+				? optOrDefault!Type(tryGetInferred(*force(ta)), () => Type(Type.Bogus()))
+				: Type(x);
 		},
-		(ref StructInst i) @safe {
+		(ref StructInst i) {
 			scope TypeArgsArray newTypeArgs = typeArgsArray();
 			foreach (Type x; i.typeArgs)
 				push(newTypeArgs, applyInferred(ctx, const TypeAndContext(x, a.context)));

@@ -1,7 +1,6 @@
 exit code: 1
 stderr:
-test/compile-errors/literal-does-not-match-expected-type.crow 2:16-2:17 expected type: 'string'
-Actual:
-	'nat64'
+test/compile-errors/literal-does-not-match-expected-type.crow 2:16-2:17 Expected type 'string'.
+Actual: 'nat64'.
 Uncaught exception: Reached compile error
 	at main

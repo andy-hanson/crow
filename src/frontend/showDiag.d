@@ -900,9 +900,9 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		(in Diag.TypeConflict x) {
 			writeExpected(writer, ctx, x.expected, ExpectedKind.generic);
 			writeNewline(writer, 0);
-			writer ~= "Actual:";
-			writeNewline(writer, 1);
+			writer ~= "Actual: ";
 			writeTypeQuoted(writer, ctx, x.actual);
+			writer ~= '.';
 		},
 		(in Diag.TypeParamCantHaveTypeArgs) {
 			writer ~= "Can't provide type arguments to a type parameter.";
@@ -973,12 +973,13 @@ void writeExpected(scope ref Writer writer, in ShowDiagCtx ctx, in ExpectedForDi
 	a.matchIn!void(
 		(in ExpectedForDiag.Choices choices) {
 			if (choices.types.length == 1) {
-				writer ~= "expected ";
+				writer ~= "Expected ";
 				writeType();
-				writer ~= ": ";
+				writer ~= ' ';
 				writeTypeQuoted(writer, ctx, TypeWithContainer(only(choices.types), choices.typeContainer));
+				writer ~= '.';
 			} else {
-				writer ~= "expected one of these ";
+				writer ~= "Expected one of these ";
 				writeType();
 				writer ~= "s:";
 				foreach (Type t; choices.types) {
@@ -988,11 +989,12 @@ void writeExpected(scope ref Writer writer, in ShowDiagCtx ctx, in ExpectedForDi
 			}
 		},
 		(in ExpectedForDiag.Infer) {
-			writer ~= "this location has no expected ";
+			writer ~= "This location has no expected ";
 			writeType();
+			writer ~= '.';
 		},
 		(in ExpectedForDiag.Loop) {
-			writer ~= "expected a loop 'break' or 'continue'";
+			writer ~= "Expected a loop 'break' or 'continue'.";
 		});
 }
 
