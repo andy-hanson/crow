@@ -170,7 +170,6 @@ bool isExpressionStartToken(Token a) {
 		case Token.fun:
 		case Token.global:
 		case Token.import_:
-		case Token.invalid:
 		case Token.mut:
 		case Token.nameOrOperatorColonEquals:
 		case Token.nameOrOperatorEquals:
@@ -188,6 +187,7 @@ bool isExpressionStartToken(Token a) {
 		case Token.summon:
 		case Token.test:
 		case Token.thread_local:
+		case Token.unexpectedCharacter:
 		case Token.union_:
 		case Token.unsafe:
 			return false;

@@ -226,9 +226,9 @@ void writeParseDiag(scope ref Writer writer, in ShowCtx ctx, in ParseDiag d) {
 		(in ParseDiag.TrailingComma) {
 			writer ~= "Remove this trailing comma.";
 		},
-		(in ParseDiag.UnexpectedCharacter u) {
+		(in ParseDiag.UnexpectedCharacter x) {
 			writer ~= "Unexpected character '";
-			showChar(writer, u.ch);
+			showChar(writer, x.character);
 			writer ~= "'.";
 		},
 		(in ParseDiag.UnexpectedOperator x) {
@@ -1136,7 +1136,7 @@ string describeTokenForUnexpected(Token token) {
 			return "Unexpected keyword 'if'.";
 		case Token.import_:
 			return "Unexpected keyword 'import'.";
-		case Token.invalid:
+		case Token.unexpectedCharacter:
 			// This is UnexpectedCharacter instead
 			assert(false);
 		case Token.literalFloat:

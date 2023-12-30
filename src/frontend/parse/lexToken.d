@@ -30,6 +30,7 @@ immutable struct TokenAndData {
 		LiteralFloatAst literalFloat = void; // for Token.literalFloat
 		LiteralIntAst literalInt = void; // for Token.literalInt
 		LiteralNatAst literalNat = void; // for Token.literalNat
+		char unexpectedCharacter;
 	}
 
 	public:
@@ -66,6 +67,11 @@ immutable struct TokenAndData {
 		token = t;
 		literalNat = l;
 	}
+	this(Token t, char c) {
+		assert(t == Token.unexpectedCharacter);
+		token = t;
+		unexpectedCharacter = c;
+	}
 
 	bool isSymbol() =>
 		isSymbolToken(token);
@@ -90,6 +96,10 @@ immutable struct TokenAndData {
 	LiteralNatAst asLiteralNat() {
 		assert(token == Token.literalNat);
 		return literalNat;
+	}
+	char asUnexpectedCharacter() {
+		assert(token == Token.unexpectedCharacter);
+		return unexpectedCharacter;
 	}
 }
 
@@ -137,7 +147,6 @@ enum Token {
 	global, // 'global'
 	if_, // 'if'
 	import_, // 'import'
-	invalid, // invalid token (e.g. illegal character)
 	literalFloat, // Use getCurLiteralFloat
 	literalInt, // Use getCurLiteralInt
 	literalNat, // Use getCurLiteralNat
@@ -173,6 +182,7 @@ enum Token {
 	thread_local, // 'thread-local'
 	throw_, // 'throw'
 	trusted, // 'trusted'
+	unexpectedCharacter, // Any unexpected character
 	underscore, // '_'
 	union_, // 'union'
 	unless, // 'unless'
@@ -337,7 +347,7 @@ TokenAndData lexToken(
 				ptr = start;
 				return takeNumberAfterSign(ptr, none!Sign);
 			} else
-				return plainToken(Token.invalid);
+				return TokenAndData(Token.unexpectedCharacter, c);
 	}
 }
 

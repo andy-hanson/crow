@@ -50,10 +50,6 @@ struct MutCString {
 		hashString(stringOfCString(this));
 }
 
-// TODO: I'd like to get rid of this
-@system char cStringPrev(in CString a) =>
-	*(a.ptr - 1);
-
 alias CString = immutable MutCString;
 
 private @trusted immutable(char*) cstringEnd(immutable(char)* ptr) {

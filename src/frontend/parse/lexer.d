@@ -23,7 +23,7 @@ import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
-import util.string : CString, cStringPrev, MutCString;
+import util.string : CString, MutCString;
 import util.symbol : AllSymbols;
 
 public import frontend.parse.lexToken : ElifOrElse, EqualsOrThen, QuoteKind, StringPart, Token, TokenAndData;
@@ -100,11 +100,11 @@ Range rangeAtChar(in Lexer lexer) {
 	return Range(pos, nextPos);
 }
 
-void addDiagUnexpectedCurToken(ref Lexer lexer, Pos start, TokenAndData token) {
+void addDiagUnexpectedCurToken(ref Lexer lexer, Pos start, in TokenAndData token) {
 	ParseDiag diag = () @trusted {
 		switch (token.token) {
-			case Token.invalid:
-				return ParseDiag(ParseDiag.UnexpectedCharacter(cStringPrev(lexer.ptr)));
+			case Token.unexpectedCharacter:
+				return ParseDiag(ParseDiag.UnexpectedCharacter(token.asUnexpectedCharacter));
 			case Token.operator:
 				return ParseDiag(ParseDiag.UnexpectedOperator(token.asSymbol));
 			default:

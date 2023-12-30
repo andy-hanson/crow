@@ -83,7 +83,7 @@ immutable struct ParseDiag {
 	}
 	immutable struct TrailingComma {}
 	immutable struct UnexpectedCharacter {
-		char ch;
+		char character;
 	}
 	immutable struct UnexpectedOperator {
 		Symbol operator;
