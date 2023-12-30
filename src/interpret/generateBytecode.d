@@ -335,7 +335,7 @@ void toDynCallTypes(in LowProgram program, in LowType a, in void delegate(DynCal
 		foreach (LowField field; program.allRecords[a.as!(LowType.Record)].fields)
 			toDynCallTypes(program, field.type, cb);
 	} else if (a.isA!(LowType.Union)) {
-		// This should only happen for the 'str[]' in 'main'
+		// TODO: Hardcoded support for the 'string[]' in 'main'. Support more types.
 		LowUnion u = program.allUnions[a.as!(LowType.Union)];
 		assert(u.source.source.as!(ConcreteStructSource.Inst).inst.decl.name == symbol!"node");
 		size_t sizeWords = 3;

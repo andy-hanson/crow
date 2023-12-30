@@ -1,0 +1,3 @@
+main void()
+	x fun* void() = &foo
+	x[]

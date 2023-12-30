@@ -159,7 +159,6 @@ import util.col.array :
 	newArray,
 	only,
 	PtrAndSmallNumber;
-import util.col.mutArr : asTemporaryArray, MutArr, mutArrSize, push;
 import util.col.mutMaxArr : asTemporaryArray, initializeMutMaxArr, mutMaxArrSize, push;
 import util.conv : safeToUshort, safeToUint;
 import util.memory : allocate, initMemory, overwriteMemory;
@@ -1100,27 +1099,42 @@ Expr checkFunPointer(ref ExprCtx ctx, ExprAst* source, in PtrAst ast, ref Expect
 	if (!ast.inner.kind.isA!IdentifierAst)
 		todo!void("diag: fun-pointer ast should just be an identifier");
 	Symbol name = ast.inner.kind.as!IdentifierAst.name;
-	MutArr!(FunDecl*) funs = MutArr!(FunDecl*)();
+	Opt!(FunDecl*) fun = funWithName(ctx, source.range, name);
+	if (!has(fun)) {
+		return bogus(expected, source);
+	} else {
+		FunDecl* funDecl = force(fun);
+		if (funDecl.isTemplate)
+			todo!void("can't point to template");
+		FunInst* funInst = instantiateFun(ctx.instantiateCtx, funDecl, emptyTypeArgs, emptySpecImpls);
+		Type paramType = makeTupleType(ctx.instantiateCtx, ctx.commonTypes, funInst.paramTypes);
+		StructInst* structInst = instantiateStructNeverDelay(
+			ctx.instantiateCtx, ctx.commonTypes.funPtrStruct, [funInst.returnType, paramType]);
+		return check(ctx, source, expected, Type(structInst), Expr(source, ExprKind(FunPointerExpr(funInst))));
+	}
+}
+
+Opt!(FunDecl*) funWithName(ref ExprCtx ctx, Range range, Symbol name) {
+	MutOpt!(FunDecl*) res = MutOpt!(FunDecl*)();
 	eachFunInScope(funsInScope(ctx), name, (CalledDecl cd) {
 		cd.matchWithPointers!void(
 			(FunDecl* x) {
 				markUsed(ctx.checkCtx, x);
-				push(ctx.alloc, funs, x);
+				if (has(res))
+					todo!void("diag: multiple functions with name");
+				else
+					res = someMut(x);
 			},
 			(SpecSig) {
 				todo!void("!");
 			});
 	});
-	if (mutArrSize(funs) != 1)
-		todo!void("did not find or found too many");
-	FunDecl* funDecl = funs[0];
-	if (funDecl.isTemplate)
-		todo!void("can't point to template");
-	FunInst* funInst = instantiateFun(ctx.instantiateCtx, funDecl, emptyTypeArgs, emptySpecImpls);
-	Type paramType = makeTupleType(ctx.instantiateCtx, ctx.commonTypes, funInst.paramTypes);
-	StructInst* structInst = instantiateStructNeverDelay(
-		ctx.instantiateCtx, ctx.commonTypes.funPtrStruct, [funInst.returnType, paramType]);
-	return check(ctx, source, expected, Type(structInst), Expr(source, ExprKind(FunPointerExpr(funInst))));
+	if (has(res))
+		return some(force(res));
+	else {
+		addDiag2(ctx, range, Diag(Diag.NameNotFound(Diag.NameNotFound.Kind.function_, name)));
+		return none!(FunDecl*);
+	}
 }
 
 Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref LambdaAst ast, ref Expected expected) {

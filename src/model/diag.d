@@ -315,6 +315,7 @@ immutable struct Diag {
 	immutable struct MutFieldNotAllowed {}
 	immutable struct NameNotFound {
 		enum Kind {
+			function_,
 			spec,
 			type,
 		}
