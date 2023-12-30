@@ -6,7 +6,7 @@ import model.concreteModel : ConcreteStruct, TypeSize;
 import model.lowModel :
 	LowExternType,
 	LowField,
-	LowFunPtrType,
+	LowFunPointerType,
 	LowProgram,
 	LowPtrCombine,
 	LowRecord,
@@ -17,19 +17,18 @@ import model.lowModel :
 import util.alloc.alloc : Alloc;
 import util.col.array : every;
 import util.col.fullIndexMap :
-	FullIndexMap, fullIndexMapEachKey, fullIndexMapEachValue, fullIndexMapSize, makeFullIndexMap_mut;
+	FullIndexMap, fullIndexMapEachKey, fullIndexMapSize, makeFullIndexMap_mut;
 import util.opt : none, Opt, some;
 import util.util : isMultipleOf;
 
 void writeTypes(ref Alloc alloc, in LowProgram program, in TypeWriters writers) {
-	fullIndexMapEachValue!(LowType.Extern, LowExternType)(program.allExternTypes, (ref LowExternType it) {
-		writers.cbWriteExternWithSize(it.source, getElementAndCountForExtern(typeSize(it)));
-	});
+	foreach (ref LowExternType x; program.allExternTypes)
+		writers.cbWriteExternWithSize(x.source, getElementAndCountForExtern(typeSize(x)));
 
 	// TODO: use a temp alloc...
 	scope StructStates structStates = StructStates(
-		makeFullIndexMap_mut!(LowType.FunPtr, bool)(
-			alloc, fullIndexMapSize(program.allFunPtrTypes), (LowType.FunPtr) => false),
+		makeFullIndexMap_mut!(LowType.FunPointer, bool)(
+			alloc, fullIndexMapSize(program.allFunPointerTypes), (LowType.FunPointer) => false),
 		makeFullIndexMap_mut!(LowType.Record, StructState)(
 			alloc, fullIndexMapSize(program.allRecords), (LowType.Record) => StructState.none),
 		makeFullIndexMap_mut!(LowType.Union, StructState)(
@@ -37,12 +36,12 @@ void writeTypes(ref Alloc alloc, in LowProgram program, in TypeWriters writers) 
 	for (;;) {
 		bool madeProgress = false;
 		bool someIncomplete = false;
-		fullIndexMapEachKey!(LowType.FunPtr, LowFunPtrType)(
-			program.allFunPtrTypes,
-			(LowType.FunPtr funPtrIndex) {
+		fullIndexMapEachKey!(LowType.FunPointer, LowFunPointerType)(
+			program.allFunPointerTypes,
+			(LowType.FunPointer funPtrIndex) {
 				bool curState = structStates.funPtrStates[funPtrIndex];
 				if (!curState) {
-					if (tryWriteFunPtrDeclaration(program, structStates, writers, funPtrIndex)) {
+					if (tryWriteFunPointerDeclaration(program, structStates, writers, funPtrIndex)) {
 						structStates.funPtrStates[funPtrIndex] = true;
 						madeProgress = true;
 					} else
@@ -87,7 +86,7 @@ void writeTypes(ref Alloc alloc, in LowProgram program, in TypeWriters writers) 
 immutable struct TypeWriters {
 	void delegate(ConcreteStruct*) @safe @nogc pure nothrow cbDeclareStruct;
 	void delegate(ConcreteStruct*, in Opt!ElementAndCount) @safe @nogc pure nothrow cbWriteExternWithSize;
-	void delegate(LowType.FunPtr, in LowFunPtrType) @safe @nogc pure nothrow cbWriteFunPtr;
+	void delegate(LowType.FunPointer, in LowFunPointerType) @safe @nogc pure nothrow cbWriteFunPointer;
 	void delegate(LowType.Record, in LowRecord) @safe @nogc pure nothrow cbWriteRecord;
 	void delegate(LowType.Union, in LowUnion) @safe @nogc pure nothrow cbWriteUnion;
 }
@@ -125,7 +124,7 @@ enum StructState {
 }
 
 struct StructStates {
-	FullIndexMap!(LowType.FunPtr, bool) funPtrStates; // No need to define, just declared or not
+	FullIndexMap!(LowType.FunPointer, bool) funPtrStates; // No need to define, just declared or not
 	FullIndexMap!(LowType.Record, StructState) recordStates;
 	FullIndexMap!(LowType.Union, StructState) unionStates;
 }
@@ -134,7 +133,7 @@ bool canReferenceTypeAsValue(in StructStates states, in LowType a) =>
 	a.combinePointer.match!bool(
 		(LowType.Extern) =>
 			true,
-		(LowType.FunPtr it) =>
+		(LowType.FunPointer it) =>
 			states.funPtrStates[it],
 		(PrimitiveType) =>
 			true,
@@ -149,7 +148,7 @@ bool canReferenceTypeAsPointee(in StructStates states, in LowType a) =>
 	a.combinePointer.match!bool(
 		(LowType.Extern) =>
 			true,
-		(LowType.FunPtr it) =>
+		(LowType.FunPointer it) =>
 			states.funPtrStates[it],
 		(PrimitiveType) =>
 			true,
@@ -198,18 +197,18 @@ StructState writeUnionDeclarationOrDefinition(
 	}
 }
 
-bool tryWriteFunPtrDeclaration(
+bool tryWriteFunPointerDeclaration(
 	in LowProgram program,
 	in StructStates structStates,
 	in TypeWriters writers,
-	LowType.FunPtr funPtrIndex,
+	LowType.FunPointer funPtrIndex,
 ) {
-	LowFunPtrType funPtr = program.allFunPtrTypes[funPtrIndex];
+	LowFunPointerType funPtr = program.allFunPointerTypes[funPtrIndex];
 	bool canDeclare =
 		canReferenceTypeAsPointee(structStates, funPtr.returnType) &&
 		every!LowType(funPtr.paramTypes, (in LowType it) =>
 			canReferenceTypeAsPointee(structStates, it));
 	if (canDeclare)
-		writers.cbWriteFunPtr(funPtrIndex, funPtr);
+		writers.cbWriteFunPointer(funPtrIndex, funPtr);
 	return canDeclare;
 }

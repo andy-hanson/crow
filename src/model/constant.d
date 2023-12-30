@@ -25,7 +25,7 @@ immutable struct Constant {
 	immutable struct Float {
 		double value;
 	}
-	immutable struct FunPtr {
+	immutable struct FunPointer {
 		ConcreteFun* fun;
 	}
 	// For intX, natX, and enum / flags types.
@@ -49,7 +49,7 @@ immutable struct Constant {
 	// All 0 bits. Good for null, void, or empty value of 'extern' type.
 	immutable struct Zero {}
 
-	mixin .Union!(ArrConstant, CString, Float, FunPtr, Integral, Pointer, Record, Union*, Zero);
+	mixin .Union!(ArrConstant, CString, Float, FunPointer, Integral, Pointer, Record, Union*, Zero);
 
 	// WARN: Only do this with constants known to have the same type
 	bool opEquals(in Constant b) scope {
@@ -62,8 +62,8 @@ immutable struct Constant {
 			(in Constant.Float x) =>
 				//TODO: handle NaN
 				b.as!(Constant.Float).value == x.value,
-			(in Constant.FunPtr x) =>
-				b.as!(Constant.FunPtr).fun == x.fun,
+			(in Constant.FunPointer x) =>
+				b.as!(Constant.FunPointer).fun == x.fun,
 			(in Constant.Integral x) =>
 				b.as!(Constant.Integral).value == x.value,
 			(in Constant.Pointer x) =>

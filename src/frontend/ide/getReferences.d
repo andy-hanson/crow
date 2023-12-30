@@ -47,7 +47,7 @@ import model.model :
 	FunDecl,
 	FunDeclSource,
 	FunInst,
-	FunPtrExpr,
+	FunPointerExpr,
 	greatestVisibility,
 	IfExpr,
 	IfOptionExpr,
@@ -390,7 +390,7 @@ void eachTypeDirectlyInExpr(in Expr a, in TypeCb cb) {
 		},
 		(in ClosureGetExpr _) {},
 		(in ClosureSetExpr x) {},
-		(in FunPtrExpr _) {
+		(in FunPointerExpr _) {
 			//TODO: types in explicit type args
 		},
 		(in IfExpr x) {},
@@ -434,8 +434,8 @@ void referencesForFunDecls(in AllSymbols allSymbols, in Program program, in FunD
 				Called called = x.kind.as!CallExpr.called;
 				if (called.isA!(FunInst*) && contains(decls, called.as!(FunInst*).decl))
 					cb(UriAndRange(module_.uri, callNameRange(allSymbols, x)));
-			} else if (x.kind.isA!FunPtrExpr) {
-				if (contains(decls, x.kind.as!FunPtrExpr.funInst.decl))
+			} else if (x.kind.isA!FunPointerExpr) {
+				if (contains(decls, x.kind.as!FunPointerExpr.funInst.decl))
 					cb(UriAndRange(module_.uri, callNameRange(allSymbols, x)));
 			}
 		});
@@ -480,9 +480,9 @@ void referencesForSpecSig(in AllSymbols allSymbols, in Program program, in Posit
 			Called called = x.kind.as!CallExpr.called;
 			if (called.isA!(CalledSpecSig) && called.as!(CalledSpecSig).nonInstantiatedSig == a.sig)
 				cb(UriAndRange(module_.uri, x.range));
-		} else if (x.kind.isA!FunPtrExpr) {
+		} else if (x.kind.isA!FunPointerExpr) {
 			// Currently doesn't support specs
-			assert(x.kind.as!FunPtrExpr.funInst != null);
+			assert(x.kind.as!FunPointerExpr.funInst != null);
 		}
 	});
 }

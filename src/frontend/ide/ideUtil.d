@@ -14,7 +14,7 @@ import model.model :
 	ExprKind,
 	FunDecl,
 	FunDeclSource,
-	FunPtrExpr,
+	FunPointerExpr,
 	IfExpr,
 	IfOptionExpr,
 	LambdaExpr,
@@ -197,7 +197,7 @@ private Opt!T findDirectChildExpr(T)(in ExprKind a, in Opt!T delegate(in Expr) @
 			none!T,
 		(in ClosureSetExpr x) =>
 			cb(*x.value),
-		(in FunPtrExpr _) =>
+		(in FunPointerExpr _) =>
 			none!T,
 		(in IfExpr x) =>
 			optOr!T(cb(x.cond), () => cb(x.then), () => cb(x.else_)),

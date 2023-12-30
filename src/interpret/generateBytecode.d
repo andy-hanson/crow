@@ -2,11 +2,12 @@ module interpret.generateBytecode;
 
 @safe @nogc pure nothrow:
 
-import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeSource, FunPtrToOperationPtr, Operation, Operations;
+import interpret.bytecode :
+	ByteCode, ByteCodeIndex, ByteCodeSource, FunPointerToOperationPointer, Operation, Operations;
 import interpret.bytecodeWriter :
 	ByteCodeWriter,
 	fillDelayedCall,
-	fillDelayedFunPtr,
+	fillDelayedFunPointer,
 	finishOperations,
 	getNextStackEntry,
 	newByteCodeWriter,
@@ -15,17 +16,17 @@ import interpret.bytecodeWriter :
 	setStackEntryAfterParameters,
 	StackEntries,
 	StackEntry,
-	writeCallFunPtrExtern,
+	writeCallFunPointerExtern,
 	writeLongjmp,
 	writeReturn,
 	writeSetjmp;
 import interpret.extern_ :
-	DynCallType, DynCallSig, ExternFunPtrsForAllLibraries, FunPtr, FunPtrInputs, MakeSyntheticFunPtrs;
+	DynCallType, DynCallSig, ExternPointersForAllLibraries, FunPointer, FunPointerInputs, MakeSyntheticFunPointers;
 import interpret.funToReferences :
-	eachFunPtr,
+	eachFunPointer,
 	finishAt,
-	FunPtrReferences,
-	FunPtrTypeToDynCallSig,
+	FunPointerReferences,
+	FunPointerTypeToDynCallSig,
 	FunReferences,
 	FunToReferences,
 	initFunToReferences;
@@ -41,7 +42,7 @@ import model.lowModel :
 	LowFunExprBody,
 	lowFunRange,
 	LowFunIndex,
-	LowFunPtrType,
+	LowFunPointerType,
 	LowLocal,
 	LowProgram,
 	LowType,
@@ -68,12 +69,12 @@ ByteCode generateBytecode(
 	in AllSymbols allSymbols,
 	in Program modelProgram,
 	in LowProgram program,
-	ExternFunPtrsForAllLibraries externFunPtrs,
-	in MakeSyntheticFunPtrs makeSyntheticFunPtrs,
+	ExternPointersForAllLibraries externPointers,
+	in MakeSyntheticFunPointers makeSyntheticFunPointers,
 ) {
 	//TODO: use a temp alloc for 2nd arg
 	return withMeasure!(ByteCode, () =>
-		generateBytecodeInner(alloc, alloc, allSymbols, modelProgram, program, externFunPtrs, makeSyntheticFunPtrs)
+		generateBytecodeInner(alloc, alloc, allSymbols, modelProgram, program, externPointers, makeSyntheticFunPointers)
 	)(perf, alloc, PerfMeasure.generateBytecode);
 }
 
@@ -83,14 +84,14 @@ private ByteCode generateBytecodeInner(
 	in AllSymbols allSymbols,
 	in Program modelProgram,
 	in LowProgram program,
-	ExternFunPtrsForAllLibraries externFunPtrs,
-	in MakeSyntheticFunPtrs cbMakeSyntheticFunPtrs,
+	ExternPointersForAllLibraries externPointers,
+	in MakeSyntheticFunPointers cbMakeSyntheticFunPointers,
 ) {
-	FunPtrTypeToDynCallSig funPtrTypeToDynCallSig =
-		mapFullIndexMap!(LowType.FunPtr, DynCallSig, LowFunPtrType)(
+	FunPointerTypeToDynCallSig funPtrTypeToDynCallSig =
+		mapFullIndexMap!(LowType.FunPointer, DynCallSig, LowFunPointerType)(
 			codeAlloc,
-			program.allFunPtrTypes,
-			(LowType.FunPtr, in LowFunPtrType x) =>
+			program.allFunPointerTypes,
+			(LowType.FunPointer, in LowFunPointerType x) =>
 				funPtrDynCallSig(codeAlloc, program, x));
 
 	FunToReferences funToReferences =
@@ -114,7 +115,7 @@ private ByteCode generateBytecodeInner(
 					vars,
 					modelProgram,
 					program,
-					externFunPtrs,
+					externPointers,
 					funIndex,
 					fun);
 				return funPos;
@@ -122,8 +123,9 @@ private ByteCode generateBytecodeInner(
 
 	Operations operations = finishOperations(writer);
 
-	SyntheticFunPtrs syntheticFunPtrs = makeSyntheticFunPtrs(
-		codeAlloc, allSymbols, program, operations.byteCode, funToDefinition, funToReferences, cbMakeSyntheticFunPtrs);
+	SyntheticFunPointers syntheticFunPointers = makeSyntheticFunPointers(
+		codeAlloc, allSymbols, program,
+		operations.byteCode, funToDefinition, funToReferences, cbMakeSyntheticFunPointers);
 
 	fullIndexMapEach!(LowFunIndex, ByteCodeIndex)(
 		funToDefinition,
@@ -133,18 +135,18 @@ private ByteCode generateBytecodeInner(
 			foreach (ByteCodeIndex reference; references.calls)
 				fillDelayedCall(operations, reference, definition);
 			if (has(references.ptrRefs)) {
-				FunPtrReferences ptrRefs = force(references.ptrRefs);
-				FunPtr funPtr = mustGet(syntheticFunPtrs.funToFunPtr, funIndex);
+				FunPointerReferences ptrRefs = force(references.ptrRefs);
+				FunPointer funPtr = mustGet(syntheticFunPointers.funToFunPointer, funIndex);
 				foreach (TextIndex reference; ptrRefs.textRefs)
-					*(cast(ulong*) &text.text[reference.index]) = cast(ulong) funPtr.fn;
+					*(cast(ulong*) &text.text[reference.index]) = funPtr.asUlong;
 				foreach (ByteCodeIndex reference; ptrRefs.funPtrRefs)
-					fillDelayedFunPtr(operations, reference, funPtr);
+					fillDelayedFunPointer(operations, reference, funPtr);
 			}
 		});
 
 	return ByteCode(
 		operations,
-		syntheticFunPtrs.funPtrToOperationPtr,
+		syntheticFunPointers.funPointerToOperationPointer,
 		castImmutable(text.text),
 		vars.totalSizeWords,
 		funToDefinition[program.main]);
@@ -152,38 +154,38 @@ private ByteCode generateBytecodeInner(
 
 private:
 
-SyntheticFunPtrs makeSyntheticFunPtrs(
+SyntheticFunPointers makeSyntheticFunPointers(
 	ref Alloc alloc,
 	in AllSymbols allSymbols,
 	in LowProgram program,
 	Operation[] byteCode,
 	in FunToDefinition funToDefinition,
 	in FunToReferences funToReferences,
-	in MakeSyntheticFunPtrs cbMakeSyntheticFunPtrs,
+	in MakeSyntheticFunPointers cbMakeSyntheticFunPointers,
 ) {
-	ArrayBuilder!FunPtrInputs inputsBuilder;
-	eachFunPtr(funToReferences, (LowFunIndex funIndex, DynCallSig sig) {
-		add(alloc, inputsBuilder, FunPtrInputs(funIndex, sig, &byteCode[funToDefinition[funIndex].index]));
+	ArrayBuilder!FunPointerInputs inputsBuilder;
+	eachFunPointer(funToReferences, (LowFunIndex funIndex, DynCallSig sig) {
+		add(alloc, inputsBuilder, FunPointerInputs(funIndex, sig, &byteCode[funToDefinition[funIndex].index]));
 	});
-	FunPtrInputs[] inputs = finish(alloc, inputsBuilder);
-	FunPtr[] funPtrs = cbMakeSyntheticFunPtrs(inputs);
-	FunToFunPtr funToFunPtr = zipToMap!(LowFunIndex, FunPtr, FunPtrInputs, FunPtr)(
-		alloc, inputs, funPtrs, (ref FunPtrInputs inputs, ref FunPtr funPtr) =>
-			immutable KeyValuePair!(LowFunIndex, FunPtr)(inputs.funIndex, funPtr));
-	FunPtrToOperationPtr funPtrToOperationPtr = zipToMap!(FunPtr, Operation*, FunPtrInputs, FunPtr)(
-		alloc, inputs, funPtrs, (ref FunPtrInputs inputs, ref FunPtr funPtr) =>
-			immutable KeyValuePair!(FunPtr, immutable Operation*)(funPtr, inputs.operationPtr));
-	return SyntheticFunPtrs(funToFunPtr, funPtrToOperationPtr);
+	FunPointerInputs[] inputs = finish(alloc, inputsBuilder);
+	FunPointer[] funPtrs = cbMakeSyntheticFunPointers(inputs);
+	FunToFunPointer funToFunPointer = zipToMap!(LowFunIndex, FunPointer, FunPointerInputs, FunPointer)(
+		alloc, inputs, funPtrs, (ref FunPointerInputs inputs, ref FunPointer funPtr) =>
+			immutable KeyValuePair!(LowFunIndex, FunPointer)(inputs.funIndex, funPtr));
+	FunPointerToOperationPointer funToOp = zipToMap!(FunPointer, Operation*, FunPointerInputs, FunPointer)(
+		alloc, inputs, funPtrs, (ref FunPointerInputs inputs, ref FunPointer funPtr) =>
+			immutable KeyValuePair!(FunPointer, immutable Operation*)(funPtr, inputs.operationPtr));
+	return SyntheticFunPointers(funToFunPointer, funToOp);
 }
 
-immutable struct SyntheticFunPtrs {
-	FunToFunPtr funToFunPtr;
-	FunPtrToOperationPtr funPtrToOperationPtr;
+immutable struct SyntheticFunPointers {
+	FunToFunPointer funToFunPointer;
+	FunPointerToOperationPointer funPointerToOperationPointer;
 }
-alias FunToFunPtr = Map!(LowFunIndex, FunPtr);
+alias FunToFunPointer = Map!(LowFunIndex, FunPointer);
 alias FunToDefinition = immutable FullIndexMap!(LowFunIndex, ByteCodeIndex);
 
-DynCallSig funPtrDynCallSig(ref Alloc alloc, in LowProgram program, in LowFunPtrType a) {
+DynCallSig funPtrDynCallSig(ref Alloc alloc, in LowProgram program, in LowFunPointerType a) {
 	ArrayBuilder!DynCallType sigTypes;
 	add(alloc, sigTypes, toDynCallType(a.returnType));
 	foreach (ref LowType x; a.paramTypes)
@@ -202,7 +204,7 @@ void generateBytecodeForFun(
 	in VarsInfo varsInfo,
 	in Program modelProgram,
 	in LowProgram program,
-	ExternFunPtrsForAllLibraries externFunPtrs,
+	ExternPointersForAllLibraries externPointers,
 	LowFunIndex funIndex,
 	in LowFun fun,
 ) {
@@ -222,12 +224,12 @@ void generateBytecodeForFun(
 
 	fun.body_.matchIn!void(
 		(in LowFunBody.Extern body_) {
-			generateExternCall(writer, allSymbols, program, funIndex, fun, body_, externFunPtrs);
+			generateExternCall(writer, allSymbols, program, funIndex, fun, body_, externPointers);
 			writeReturn(writer, source);
 		},
 		(in LowFunExprBody body_) {
 			generateFunFromExpr(
-				tempAlloc, writer, allSymbols, modelProgram, program, textInfo, varsInfo, externFunPtrs, funIndex,
+				tempAlloc, writer, allSymbols, modelProgram, program, textInfo, varsInfo, externPointers, funIndex,
 				funToReferences, fun.params, parameters, returnEntries, body_);
 		});
 	assert(getNextStackEntry(writer).entry == returnEntries);
@@ -241,7 +243,7 @@ void generateExternCall(
 	LowFunIndex funIndex,
 	in LowFun fun,
 	in LowFunBody.Extern a,
-	ExternFunPtrsForAllLibraries externFunPtrs,
+	ExternPointersForAllLibraries externPointers,
 ) {
 	ByteCodeSource source = ByteCodeSource(funIndex, lowFunRange(fun).range.start);
 	Opt!Symbol optName = name(fun);
@@ -254,19 +256,19 @@ void generateExternCall(
 			writeSetjmp(writer, source);
 			break;
 		default:
-			generateExternCallFunPtr(
-				writer, source, program, fun, mustGet(mustGet(externFunPtrs, a.libraryName), name));
+			generateExternCallFunPointer(
+				writer, source, program, fun, mustGet(mustGet(externPointers, a.libraryName), name).asFunPointer);
 			break;
 	}
 	writeReturn(writer, source);
 }
 
-void generateExternCallFunPtr(
+void generateExternCallFunPointer(
 	scope ref ByteCodeWriter writer,
 	ByteCodeSource source,
 	in LowProgram program,
 	in LowFun fun,
-	FunPtr funPtr,
+	FunPointer funPtr,
 ) {
 	MutMaxArr!(16, DynCallType) sigTypes = void;
 	initializeMutMaxArr(sigTypes);
@@ -275,14 +277,14 @@ void generateExternCallFunPtr(
 		toDynCallTypes(program, x.type, (DynCallType x) {
 		push(sigTypes, x);
 	});
-	writeCallFunPtrExtern(writer, source, funPtr, DynCallSig(asTemporaryArray(sigTypes)));
+	writeCallFunPointerExtern(writer, source, funPtr, DynCallSig(asTemporaryArray(sigTypes)));
 }
 
 DynCallType toDynCallType(in LowType a) =>
 	a.matchIn!DynCallType(
 		(in LowType.Extern) =>
 			todo!DynCallType("!"),
-		(in LowType.FunPtr) =>
+		(in LowType.FunPointer) =>
 			DynCallType.pointer,
 		(in PrimitiveType x) =>
 			primitiveToDynCallType(x),

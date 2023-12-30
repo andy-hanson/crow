@@ -9,14 +9,14 @@ import interpret.bytecode :
 	ByteCode,
 	ByteCodeIndex,
 	ByteCodeSource,
-	FunPtrToOperationPtr,
+	FunPointerToOperationPointer,
 	initialOperationPointer,
 	Operation,
 	Operations;
 import interpret.bytecodeWriter :
 	ByteCodeWriter,
 	fillDelayedCall,
-	fillDelayedFunPtr,
+	fillDelayedFunPointer,
 	fillDelayedSwitchEntry,
 	fillInJumpDelayed,
 	finishOperations,
@@ -29,7 +29,7 @@ import interpret.bytecodeWriter :
 	SwitchDelayed,
 	writeBreak,
 	writeCallDelayed,
-	writeCallFunPtr,
+	writeCallFunPointer,
 	writeDup,
 	writeDupEntries,
 	writeDupEntry,
@@ -37,7 +37,7 @@ import interpret.bytecodeWriter :
 	writePack,
 	writePushConstant,
 	writePushConstants,
-	writePushFunPtrDelayed,
+	writePushFunPointerDelayed,
 	writeJumpDelayed,
 	writeRead,
 	writeRemove,
@@ -45,10 +45,10 @@ import interpret.bytecodeWriter :
 	writeStackRef,
 	writeSwitch0ToNDelay,
 	writeWrite;
-import interpret.extern_ : DynCallType, DynCallSig, Extern, FunPtr, FunPtrInputs;
-import interpret.fakeExtern : fakeSyntheticFunPtrs, unreachableWriteCb, withFakeExtern;
+import interpret.extern_ : DynCallType, DynCallSig, Extern, FunPointer, FunPointerInputs;
+import interpret.fakeExtern : fakeSyntheticFunPointers, unreachableWriteCb, withFakeExtern;
 import interpret.funToReferences :
-	FunPtrTypeToDynCallSig, FunToReferences, initFunToReferences, registerFunPtrReference;
+	FunPointerTypeToDynCallSig, FunToReferences, initFunToReferences, registerFunPointerReference;
 import interpret.runBytecode : opCall, stepUntilBreak, stepUntilExit, withInterpreter;
 import interpret.stacks : dataBegin, dataPop, dataPush, Stacks;
 import lower.lowExprHelpers : nat64Type;
@@ -60,7 +60,7 @@ import model.lowModel :
 	LowFun,
 	LowFunBody,
 	LowFunIndex,
-	LowFunPtrType,
+	LowFunPointerType,
 	LowFunSource,
 	LowProgram,
 	LowRecord,
@@ -81,7 +81,7 @@ import util.util : castNonScope, ptrTrustMe;
 
 void testInterpreter(ref Test test) {
 	testCall(test);
-	testCallFunPtr(test);
+	testCallFunPointer(test);
 	testDup(test);
 	testRemoveOne(test);
 	testRemoveMany(test);
@@ -109,7 +109,7 @@ ByteCode makeByteCode(
 ByteCode dummyByteCode(return scope Operations operations) =>
 	ByteCode(
 		operations,
-		FunPtrToOperationPtr(),
+		FunPointerToOperationPointer(),
 		[],
 		EnumMap!(VarKind, size_t)([0, 0]),
 		ByteCodeIndex(0));
@@ -130,7 +130,7 @@ void doInterpret(
 		emptyFullIndexMap!(LowVarIndex, LowVar),
 		AllLowTypes(
 			emptyFullIndexMap!(LowType.Extern, LowExternType),
-			emptyFullIndexMap!(LowType.FunPtr, LowFunPtrType),
+			emptyFullIndexMap!(LowType.FunPointer, LowFunPointerType),
 			emptyFullIndexMap!(LowType.Record, LowRecord),
 			emptyFullIndexMap!(LowType.Union, LowUnion)),
 		fullIndexMapOfArr!(LowFunIndex, LowFun)(lowFun),
@@ -207,7 +207,7 @@ void testCall(ref Test test) {
 	});
 }
 
-void testCallFunPtr(ref Test test) {
+void testCallFunPointer(ref Test test) {
 	// Code is:
 	// push address of 'f'
 	// push 1, 2
@@ -220,10 +220,10 @@ void testCallFunPtr(ref Test test) {
 	DynCallType[3] sigTypes = [DynCallType.nat64, DynCallType.nat64, DynCallType.nat64];
 	DynCallSig sig = DynCallSig(sigTypes);
 	DynCallSig[1] sigsStorage = [castNonScope(sig)];
-	FunPtrTypeToDynCallSig funPtrTypeToDynCallSig =
-		castNonScope(fullIndexMapOfArr!(LowType.FunPtr, DynCallSig)(castNonScope(sigsStorage)));
+	FunPointerTypeToDynCallSig funPtrTypeToDynCallSig =
+		castNonScope(fullIndexMapOfArr!(LowType.FunPointer, DynCallSig)(castNonScope(sigsStorage)));
 	LowFunIndex funIndex = LowFunIndex(0);
-	LowType.FunPtr funType = LowType.FunPtr(0);
+	LowType.FunPointer funType = LowType.FunPointer(0);
 	ByteCodeSource source = emptyByteCodeSource;
 
 	ByteCodeWriter writer = newByteCodeWriter(test.allocPtr);
@@ -231,12 +231,12 @@ void testCallFunPtr(ref Test test) {
 
 	StackEntry argsFirstStackEntry = getNextStackEntry(writer);
 
-	ByteCodeIndex delayed = writePushFunPtrDelayed(writer, source);
-	registerFunPtrReference(test.alloc, funToReferences, funType, funIndex, delayed);
+	ByteCodeIndex delayed = writePushFunPointerDelayed(writer, source);
+	registerFunPointerReference(test.alloc, funToReferences, funType, funIndex, delayed);
 
 	writePushConstants(writer, source, [1, 2]);
 	writeBreak(writer, source);
-	writeCallFunPtr(writer, source, argsFirstStackEntry, sig);
+	writeCallFunPointer(writer, source, argsFirstStackEntry, sig);
 	ByteCodeIndex afterCall = nextByteCodeIndex(writer);
 	writeBreak(writer, source);
 	writeReturn(writer, source);
@@ -250,19 +250,15 @@ void testCallFunPtr(ref Test test) {
 
 	Operations operations = finishOperations(writer);
 
-	FunPtrInputs[1] inputs = [
-		FunPtrInputs(funIndex, castNonScope(sig), &operations.byteCode[fIndex.index]),
+	FunPointerInputs[1] inputs = [
+		FunPointerInputs(funIndex, castNonScope(sig), &operations.byteCode[fIndex.index]),
 	];
-	FunPtr funPtr = fakeSyntheticFunPtrs(test.alloc, castNonScope(inputs))[0];
-	fillDelayedFunPtr(operations, delayed, funPtr);
+	FunPointer funPtr = fakeSyntheticFunPointers(test.alloc, castNonScope(inputs))[0];
+	fillDelayedFunPointer(operations, delayed, funPtr);
 	ByteCode byteCode = dummyByteCode(operations);
 
 	doInterpret(test, byteCode, (ref Stacks stacks, Operation* operation) {
-		stepUntilBreakAndExpect(
-			test,
-			stacks,
-			[cast(ulong) funPtr.fn, 1, 2],
-			operation);
+		stepUntilBreakAndExpect(test, stacks, [funPtr.asUlong, 1, 2], operation);
 		stepUntilBreakAndExpect(test, stacks, [3], operation); // +
 		assert(curByteCodeIndex(byteCode, operation) == ByteCodeIndex(afterCall.index + 1));
 		expectReturnStack(test, byteCode, stacks, []);

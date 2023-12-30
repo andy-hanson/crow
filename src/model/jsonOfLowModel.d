@@ -16,7 +16,7 @@ import model.lowModel :
 	LowFunBody,
 	LowFunExprBody,
 	LowFunIndex,
-	LowFunPtrType,
+	LowFunPointerType,
 	LowFunSource,
 	LowLocal,
 	LowLocalSource,
@@ -39,8 +39,9 @@ Json jsonOfLowProgram(ref Alloc alloc, in LineAndColumnGetters lineAndColumnGett
 		field!"extern"(
 			jsonList!(LowType.Extern, LowExternType)(alloc, a.allExternTypes, (in LowExternType x) =>
 				jsonOfExternType(alloc, x))),
-		field!"fun-pointers"(jsonList!(LowType.FunPtr, LowFunPtrType)(alloc, a.allFunPtrTypes, (in LowFunPtrType x) =>
-			jsonOfLowFunPtrType(alloc, x))),
+		field!"fun-pointers"(jsonList!(LowType.FunPointer, LowFunPointerType)(
+			alloc, a.allFunPointerTypes, (in LowFunPointerType x) =>
+				jsonOfLowFunPointerType(alloc, x))),
 		field!"records"(jsonList!(LowType.Record, LowRecord)(alloc, a.allRecords, (in LowRecord x) =>
 			jsonOfLowRecord(alloc, x))),
 		field!"unions"(jsonList!(LowType.Union, LowUnion)(alloc, a.allUnions, (in LowUnion x) =>
@@ -60,7 +61,7 @@ Json jsonOfLowType(ref Alloc alloc, in LowType a) =>
 	a.matchIn!Json(
 		(in LowType.Extern x) =>
 			jsonObject(alloc, [kindField!"extern", field!"index"(x.index)]),
-		(in LowType.FunPtr x) =>
+		(in LowType.FunPointer x) =>
 			jsonObject(alloc, [kindField!"fun-pointer", field!"index"(x.index)]),
 		(in PrimitiveType x) =>
 			jsonString(stringOfEnum(x)),
@@ -78,7 +79,7 @@ Json jsonOfLowType(ref Alloc alloc, in LowType a) =>
 Json jsonOfExternType(ref Alloc alloc, in LowExternType a) =>
 	jsonObject(alloc, [field!"source"(jsonOfConcreteStructRef(alloc, *a.source))]);
 
-Json jsonOfLowFunPtrType(ref Alloc alloc, in LowFunPtrType a) =>
+Json jsonOfLowFunPointerType(ref Alloc alloc, in LowFunPointerType a) =>
 	jsonObject(alloc, [
 		field!"source"(jsonOfConcreteStructRef(alloc, *a.source)),
 		field!"return-type"(jsonOfLowType(alloc, a.returnType)),
@@ -153,7 +154,7 @@ Json jsonOfLowExprKind(ref Alloc alloc, in Ctx ctx, in LowExprKind a) =>
 				kindField!"call",
 				field!"called"(x.called.index),
 				field!"args"(jsonOfLowExprs(alloc, ctx, x.args))]),
-		(in LowExprKind.CallFunPtr x) =>
+		(in LowExprKind.CallFunPointer x) =>
 			jsonObject(alloc, [
 				kindField!"call-fun-pointer",
 				field!"fun-pointer"(jsonOfLowExpr(alloc, ctx, x.funPtr)),

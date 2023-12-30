@@ -83,7 +83,7 @@ import model.lowModel :
 	LowFunBody,
 	LowFunExprBody,
 	LowFunIndex,
-	LowFunPtrType,
+	LowFunPointerType,
 	LowFunSource,
 	LowLocal,
 	LowLocalSource,
@@ -125,7 +125,7 @@ import util.col.array :
 	zipPtrFirst;
 import util.col.map : KeyValuePair, makeMapWithIndex, mustGet, Map;
 import util.col.mapBuilder : finishMap, mustAddToMap, MapBuilder;
-import util.col.fullIndexMap : FullIndexMap, fullIndexMapEachValue, fullIndexMapOfArr, fullIndexMapSize;
+import util.col.fullIndexMap : FullIndexMap, fullIndexMapOfArr, fullIndexMapSize;
 import util.col.mutIndexMap : getOrAddAndDidAdd, mustGet, MutIndexMap, newMutIndexMap;
 import util.col.mutArr : moveToArray, MutArr, push;
 import util.col.mutMap : getOrAdd, mapToArray, MutMap, MutMap, ValueAndDidAdd;
@@ -205,7 +205,7 @@ Opt!LowFunIndex tryGetMarkVisitFun(in MarkVisitFuns funs, LowType type) =>
 	type.match!(Opt!LowFunIndex)(
 		(LowType.Extern) =>
 			none!LowFunIndex,
-		(LowType.FunPtr) =>
+		(LowType.FunPointer) =>
 			none!LowFunIndex,
 		(PrimitiveType _) =>
 			none!LowFunIndex,
@@ -291,7 +291,7 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in AllSymbols allSymbols, in 
 					case BuiltinStructKind.funPointer: {
 						size_t i = arrBuilderSize(allFunPointerSources);
 						add(alloc, allFunPointerSources, concrete);
-						return some(LowType(LowType.FunPtr(i)));
+						return some(LowType(LowType.FunPointer(i)));
 					}
 					case BuiltinStructKind.int8:
 						return some(LowType(PrimitiveType.int8));
@@ -350,11 +350,11 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in AllSymbols allSymbols, in 
 						struct_.fieldOffsets,
 						(ConcreteField* field, in immutable size_t fieldOffset) =>
 							LowField(field, fieldOffset, lowTypeFromConcreteType(getLowTypeCtx, field.type))))));
-	immutable FullIndexMap!(LowType.FunPtr, LowFunPtrType) allFunPointers =
-		fullIndexMapOfArr!(LowType.FunPtr, LowFunPtrType)(
+	immutable FullIndexMap!(LowType.FunPointer, LowFunPointerType) allFunPointers =
+		fullIndexMapOfArr!(LowType.FunPointer, LowFunPointerType)(
 			map(alloc, finish(alloc, allFunPointerSources), (ref immutable ConcreteStruct* x) {
 				ConcreteType[2] typeArgs = only2(x.body_.as!(ConcreteStructBody.Builtin).typeArgs);
-				return LowFunPtrType(
+				return LowFunPointerType(
 					x,
 					lowTypeFromConcreteType(getLowTypeCtx, typeArgs[0]),
 					maybeUnpackTuple(alloc, allRecords, lowTypeFromConcreteType(getLowTypeCtx, typeArgs[1])));
@@ -508,7 +508,7 @@ bool needsMarkVisitFun(in AllLowTypes allTypes, in LowType a) =>
 	a.matchIn!bool(
 		(in LowType.Extern) =>
 			false,
-		(in LowType.FunPtr) =>
+		(in LowType.FunPointer) =>
 			false,
 		(in PrimitiveType) =>
 			false,
@@ -559,7 +559,7 @@ AllLowFuns getAllLowFuns(
 		return lowType.match!LowFunIndex(
 			(LowType.Extern) =>
 				assert(false),
-			(LowType.FunPtr) =>
+			(LowType.FunPointer) =>
 				assert(false),
 			(PrimitiveType it) =>
 				assert(false),
@@ -616,11 +616,11 @@ AllLowFuns getAllLowFuns(
 			symbolName);
 	}
 
-	fullIndexMapEachValue!(LowVarIndex, LowVar)(allVars, (ref LowVar x) {
+	foreach (ref LowVar x; allVars) {
 		Opt!Symbol libraryName = x.externLibraryName;
 		if (has(libraryName))
 			addExternSymbol(force(libraryName), x.name);
-	});
+	}
 
 	foreach (ConcreteFun* fun; program.allFuns) {
 		Opt!LowFunIndex opIndex = fun.body_.match!(Opt!LowFunIndex)(
@@ -681,7 +681,7 @@ AllLowFuns getAllLowFuns(
 	ConcreteFunToLowFunIndex concreteFunToLowFunIndex =
 		finishMap(getLowTypeCtx.alloc, concreteFunToLowFunIndexBuilder);
 
-	LowType userMainFunPtrType =
+	LowType userMainFunPointerType =
 		lowTypeFromConcreteType(getLowTypeCtx, program.rtMain.paramsIncludingClosure[2].type);
 
 	//TODO: use temp alloc
@@ -715,7 +715,7 @@ AllLowFuns getAllLowFuns(
 				getLowTypeCtx,
 				mustGet(concreteFunToLowFunIndex, program.rtMain),
 				program.userMain,
-				userMainFunPtrType)));
+				userMainFunPointerType)));
 
 	return AllLowFuns(
 		concreteFunToLowFunIndex,
@@ -784,12 +784,12 @@ LowFun lowFunFromCause(
 		(LowFunCause.MarkVisitGcPtr it) =>
 			generateMarkVisitGcPtr(getLowTypeCtx.alloc, markCtxType, markFun, it.pointerType, it.visitPointee));
 
-LowFun mainFun(ref GetLowTypeCtx ctx, LowFunIndex rtMainIndex, ConcreteFun* userMain, LowType userMainFunPtrType) {
+LowFun mainFun(ref GetLowTypeCtx ctx, LowFunIndex rtMainIndex, ConcreteFun* userMain, LowType userMainFunPointerType) {
 	LowLocal[] params = newArray!LowLocal(ctx.alloc, [
 		genLocalByValue(ctx.alloc, symbol!"argc", 0, int32Type),
 		genLocalByValue(ctx.alloc, symbol!"argv", 1, char8PtrPtrConstType)]);
-	LowExpr userMainFunPtr =
-		LowExpr(userMainFunPtrType, UriAndRange.empty, LowExprKind(Constant(Constant.FunPtr(userMain))));
+	LowExpr userMainFunPointer =
+		LowExpr(userMainFunPointerType, UriAndRange.empty, LowExprKind(Constant(Constant.FunPointer(userMain))));
 	LowExpr call = LowExpr(
 		int32Type,
 		UriAndRange.empty,
@@ -798,7 +798,7 @@ LowFun mainFun(ref GetLowTypeCtx ctx, LowFunIndex rtMainIndex, ConcreteFun* user
 			newArray!LowExpr(ctx.alloc, [
 				genLocalGet(UriAndRange.empty, &params[0]),
 				genLocalGet(UriAndRange.empty, &params[1]),
-				userMainFunPtr]))));
+				userMainFunPointer]))));
 	LowFunBody body_ = LowFunBody(LowFunExprBody(false, call));
 	return LowFun(
 		LowFunSource(allocate(ctx.alloc, LowFunSource.Generated(symbol!"main", []))),
@@ -1269,7 +1269,7 @@ LowExpr[] getArgs(ref GetLowExprCtx ctx, in Locals locals, ConcreteExpr[] args) 
 		getLowExpr(ctx, locals, arg, ExprPos.nonTail));
 
 // cbWrap will only be called if this is not a plain argument array
-LowExprKind callFunPtr(
+LowExprKind callFunPointer(
 	ref GetLowExprCtx ctx,
 	in Locals locals,
 	UriAndRange range,
@@ -1277,7 +1277,7 @@ LowExprKind callFunPtr(
 	ConcreteExpr[2] funPtrAndArg,
 ) {
 	LowExprKind doCall(LowExpr funPtr, LowExpr[] args) {
-		return LowExprKind(allocate(ctx.alloc, LowExprKind.CallFunPtr(funPtr, args)));
+		return LowExprKind(allocate(ctx.alloc, LowExprKind.CallFunPointer(funPtr, args)));
 	}
 	LowExpr doCallExpr(LowExpr funPtr, LowExpr[] args) {
 		return LowExpr(type, range, doCall(funPtr, args));
@@ -1292,11 +1292,11 @@ LowExprKind callFunPtr(
 			? doCall(funPtr, arg.kind.as!(LowExprKind.CreateRecord).args)
 			: argTypes.length == 0
 			// Making sure the side effect order is function then arg
-			? genLetTemp(ctx.alloc, range, nextTempLocalIndex(ctx), funPtr, (LowExpr getFunPtr) =>
-				genSeq(ctx.alloc, range, arg, doCallExpr(getFunPtr, []))).kind
-			: genLetTemp(ctx.alloc, range, nextTempLocalIndex(ctx), funPtr, (LowExpr getFunPtr) =>
+			? genLetTemp(ctx.alloc, range, nextTempLocalIndex(ctx), funPtr, (LowExpr getFunPointer) =>
+				genSeq(ctx.alloc, range, arg, doCallExpr(getFunPointer, []))).kind
+			: genLetTemp(ctx.alloc, range, nextTempLocalIndex(ctx), funPtr, (LowExpr getFunPointer) =>
 				genLetTemp(ctx.alloc, range, nextTempLocalIndex(ctx), arg, (LowExpr getArg) =>
-					doCallExpr(getFunPtr, mapWithIndex!(LowExpr, LowType)(
+					doCallExpr(getFunPointer, mapWithIndex!(LowExpr, LowType)(
 						ctx.alloc, argTypes, (size_t argIndex, ref LowType argType) =>
 							genRecordFieldGet(ctx.alloc, range, getArg, argType, argIndex))))).kind;
 	} else
@@ -1325,7 +1325,7 @@ LowExprKind getCallBuiltinExpr(
 	BuiltinKind builtinKind = getBuiltinKind(ctx.alloc, ctx.allSymbols, name, type, a.args.length, p0, p1);
 	return builtinKind.match!LowExprKind(
 		(BuiltinKind.CallFunPointer) =>
-			callFunPtr(ctx, locals, range, type, only2(a.args)),
+			callFunPointer(ctx, locals, range, type, only2(a.args)),
 		(Constant it) =>
 			LowExprKind(it),
 		(BuiltinKind.InitConstants) =>

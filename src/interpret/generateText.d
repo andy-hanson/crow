@@ -208,7 +208,7 @@ void ensureConstant(ref Alloc alloc, ref TempAlloc tempAlloc, ref Ctx ctx, in Lo
 			// We wrote out all CStrings first, so no need to do anything here.
 		},
 		(in Constant.Float) {},
-		(in Constant.FunPtr) {},
+		(in Constant.FunPointer) {},
 		(in Constant.Integral) {},
 		(in Constant.Pointer it) {
 			PointerTypeAndConstantsLow* ptrs = &ctx.program.allConstants.pointers[it.typeIndex];
@@ -314,12 +314,12 @@ void writeConstant(ref Alloc alloc, ref TempAlloc tempAlloc, ref Ctx ctx, in Low
 					assert(false);
 			}
 		},
-		(in Constant.FunPtr x) {
+		(in Constant.FunPointer x) {
 			LowFunIndex fun = mustGet(ctx.program.concreteFunToLowFunIndex, x.fun);
 			registerTextReference(
 				tempAlloc,
 				ctx.funToReferences,
-				type.as!(LowType.FunPtr),
+				type.as!(LowType.FunPointer),
 				fun,
 				TextIndex(exactSizeArrBuilderCurSize(ctx.text)));
 			add64(ctx.text, 0);

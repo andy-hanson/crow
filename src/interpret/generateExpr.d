@@ -97,7 +97,7 @@ import interpret.bytecodeWriter :
 	SwitchDelayed,
 	writeAddConstantNat64,
 	writeCallDelayed,
-	writeCallFunPtr,
+	writeCallFunPointer,
 	writeDup,
 	writeDupEntries,
 	writeDupEntry,
@@ -108,7 +108,7 @@ import interpret.bytecodeWriter :
 	writePushConstant,
 	writePushConstantPointer,
 	writePushEmptySpace,
-	writePushFunPtrDelayed,
+	writePushFunPointerDelayed,
 	writeJump,
 	writeJumpDelayed,
 	writeJumpIfFalseDelayed,
@@ -123,8 +123,9 @@ import interpret.bytecodeWriter :
 	writeSwitchWithValuesDelay,
 	writeThreadLocalPtr,
 	writeWrite;
-import interpret.extern_ : ExternFunPtrsForAllLibraries, FunPtr;
-import interpret.funToReferences : FunPtrTypeToDynCallSig, FunToReferences, registerCall, registerFunPtrReference;
+import interpret.extern_ : ExternPointersForAllLibraries, FunPointer;
+import interpret.funToReferences :
+	FunPointerTypeToDynCallSig, FunToReferences, registerCall, registerFunPointerReference;
 import interpret.generateText :
 	getTextInfoForArray, getTextPointer, getTextPointerForCString, TextArrInfo, TextInfo, VarsInfo;
 import model.constant : Constant;
@@ -169,7 +170,7 @@ void generateFunFromExpr(
 	in LowProgram lowProgram,
 	in TextInfo textInfo,
 	in VarsInfo varsInfo,
-	ExternFunPtrsForAllLibraries externFunPtrs,
+	ExternPointersForAllLibraries externPointers,
 	LowFunIndex funIndex,
 	ref FunToReferences funToReferences,
 	in LowLocal[] curFunParams,
@@ -182,7 +183,7 @@ void generateFunFromExpr(
 		ptrTrustMe(lowProgram),
 		ptrTrustMe(textInfo),
 		ptrTrustMe(varsInfo),
-		externFunPtrs,
+		externPointers,
 		funIndex,
 		returnEntries,
 		ptrTrustMe(tempAlloc),
@@ -253,7 +254,7 @@ struct ExprCtx {
 	immutable LowProgram* programPtr;
 	immutable TextInfo* textInfoPtr;
 	immutable VarsInfo* varsInfoPtr;
-	ExternFunPtrsForAllLibraries externFunPtrs;
+	ExternPointersForAllLibraries externPointers;
 	immutable LowFunIndex curFunIndex;
 	immutable size_t returnTypeSizeInStackEntries;
 	TempAlloc* tempAllocPtr;
@@ -274,7 +275,7 @@ struct ExprCtx {
 		*tempAllocPtr;
 	ref FunToReferences funToReferences() return scope =>
 		*funToReferencesPtr;
-	FunPtrTypeToDynCallSig funPtrTypeToDynCallSig() =>
+	FunPointerTypeToDynCallSig funPtrTypeToDynCallSig() =>
 		funToReferences.funPtrTypeToDynCallSig;
 }
 
@@ -323,11 +324,11 @@ void generateExpr(
 			//TODO: do a tailcall if possible
 			handleAfter(writer, ctx, source, after);
 		},
-		(in LowExprKind.CallFunPtr x) {
+		(in LowExprKind.CallFunPointer x) {
 			StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
 			generateExprAndContinue(writer, ctx, locals, x.funPtr);
 			generateArgsAndContinue(writer, ctx, locals, x.args);
-			writeCallFunPtr(writer, source, stackEntryBeforeArgs, ctx.funPtrTypeToDynCallSig[funPtrType(x)]);
+			writeCallFunPointer(writer, source, stackEntryBeforeArgs, ctx.funPtrTypeToDynCallSig[funPtrType(x)]);
 			handleAfter(writer, ctx, source, after);
 		},
 		(in LowExprKind.CreateRecord it) {
@@ -447,7 +448,7 @@ void writeVarPtr(
 			Opt!Symbol libName = var.externLibraryName;
 			writePushConstant(
 				writer, source,
-				cast(ulong) mustGet(mustGet(ctx.externFunPtrs, force(libName)), var.name).fn);
+				mustGet(mustGet(ctx.externPointers, force(libName)), var.name).asUlong);
 			break;
 		case LowVar.Kind.global:
 			writePushConstant(writer, source, cast(ulong) getGlobalsPointer(ctx.varsInfo.offsetsInWords[varIndex]));
@@ -798,10 +799,10 @@ void generateConstant(
 					assert(false);
 			}
 		},
-		(in Constant.FunPtr it) {
+		(in Constant.FunPointer it) {
 			LowFunIndex fun = mustGet(ctx.program.concreteFunToLowFunIndex, it.fun);
-			ByteCodeIndex where = writePushFunPtrDelayed(writer, source);
-			registerFunPtrReference(ctx.tempAlloc, ctx.funToReferences, type.as!(LowType.FunPtr), fun, where);
+			ByteCodeIndex where = writePushFunPointerDelayed(writer, source);
+			registerFunPointerReference(ctx.tempAlloc, ctx.funToReferences, type.as!(LowType.FunPointer), fun, where);
 		},
 		(in Constant.Integral it) {
 			writePushConstant(writer, source, it.value);

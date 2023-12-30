@@ -15,12 +15,12 @@ import interpret.bytecode :
 	StackOffset,
 	StackOffsetBytes,
 	subtractByteCodeIndex;
-import interpret.extern_ : DynCallType, DynCallSig, FunPtr;
+import interpret.extern_ : DynCallType, DynCallSig, FunPointer;
 import interpret.runBytecode :
 	opBreak,
 	opCall,
-	opCallFunPtr,
-	opCallFunPtrExtern,
+	opCallFunPointer,
+	opCallFunPointerExtern,
 	opDupBytes,
 	opDupWords,
 	opDupWordsVariable,
@@ -125,7 +125,7 @@ void fillDelayedCall(ref Operations operations, ByteCodeIndex index, Operation* 
 	overwriteMemory(&operations.byteCode[index.index], Operation(definition));
 }
 
-void writeCallFunPtr(
+void writeCallFunPointer(
 	ref ByteCodeWriter writer,
 	ByteCodeSource source,
 	// This is before the fun-pointer arg, which should be the first
@@ -133,19 +133,24 @@ void writeCallFunPtr(
 	in DynCallSig sig,
 ) {
 	assert(stackEntryBeforeArgs.entry == writer.nextStackEntry - sig.parameterTypes.length - 1);
-	pushOperationFn(writer, source, &opCallFunPtr);
-	writeCallFunPtrCommon(writer, source, sig);
+	pushOperationFn(writer, source, &opCallFunPointer);
+	writeCallFunPointerCommon(writer, source, sig);
 	writer.nextStackEntry -= 1; // for the fun-pointer
 	assert(writer.nextStackEntry == stackEntryBeforeArgs.entry + (sig.returnType == DynCallType.void_ ? 0 : 1));
 }
 
-void writeCallFunPtrExtern(scope ref ByteCodeWriter writer, ByteCodeSource source, FunPtr funPtr, in DynCallSig sig) {
-	pushOperationFn(writer, source, &opCallFunPtrExtern);
-	pushNat64(writer, source, cast(immutable ulong) funPtr.fn);
-	writeCallFunPtrCommon(writer, source, sig);
+void writeCallFunPointerExtern(
+	scope ref ByteCodeWriter writer,
+	ByteCodeSource source,
+	FunPointer fun,
+	in DynCallSig sig,
+) {
+	pushOperationFn(writer, source, &opCallFunPointerExtern);
+	pushNat64(writer, source, fun.asUlong);
+	writeCallFunPointerCommon(writer, source, sig);
 }
 
-private void writeCallFunPtrCommon(scope ref ByteCodeWriter writer, ByteCodeSource source, in DynCallSig sig) {
+private void writeCallFunPointerCommon(scope ref ByteCodeWriter writer, ByteCodeSource source, in DynCallSig sig) {
 	writeArray!DynCallType(writer, source, sig.returnTypeAndParameterTypes);
 	writer.nextStackEntry -= sig.parameterTypes.length;
 	writer.nextStackEntry += (sig.returnType == DynCallType.void_ ? 0 : 1);
@@ -371,7 +376,7 @@ void writeReturn(scope ref ByteCodeWriter writer, ByteCodeSource source) {
 	pushOperationFn(writer, source, &opReturn);
 }
 
-ByteCodeIndex writePushFunPtrDelayed(scope ref ByteCodeWriter writer, ByteCodeSource source) {
+ByteCodeIndex writePushFunPointerDelayed(scope ref ByteCodeWriter writer, ByteCodeSource source) {
 	pushOperationFn(writer, source, &opPushValue64);
 	ByteCodeIndex fnAddress = nextByteCodeIndex(writer);
 	pushNat64(writer, source, 0);
@@ -379,8 +384,8 @@ ByteCodeIndex writePushFunPtrDelayed(scope ref ByteCodeWriter writer, ByteCodeSo
 	return fnAddress;
 }
 
-void fillDelayedFunPtr(ref Operations operations, ByteCodeIndex index, FunPtr definition) {
-	overwriteMemory(&operations.byteCode[index.index], Operation(cast(ulong) definition.fn));
+void fillDelayedFunPointer(ref Operations operations, ByteCodeIndex index, FunPointer definition) {
+	overwriteMemory(&operations.byteCode[index.index], Operation(definition.asUlong));
 }
 
 void writeRemove(scope ref ByteCodeWriter writer, ByteCodeSource source, StackEntries entries) {

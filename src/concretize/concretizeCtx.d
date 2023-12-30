@@ -841,7 +841,7 @@ ConcreteFunBody bodyForAllTests(ref ConcretizeCtx ctx, ConcreteType returnType) 
 		ctx.allConstants,
 		mustBeByVal(returnType),
 		mapWithIndex!(Constant, Test)(ctx.alloc, allTests, (size_t testIndex, ref Test it) =>
-			Constant(Constant.FunPtr(concreteFunForTest(ctx, it, testIndex)))));
+			Constant(Constant.FunPointer(concreteFunForTest(ctx, it, testIndex)))));
 	return ConcreteFunBody(ConcreteExpr(returnType, UriAndRange.empty, ConcreteExprKind(arr)));
 }
 

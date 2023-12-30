@@ -24,7 +24,7 @@ import model.model :
 	FunDecl,
 	FunFlags,
 	FunInst,
-	FunPtrExpr,
+	FunPointerExpr,
 	IfExpr,
 	IfOptionExpr,
 	ImportOrExport,
@@ -359,7 +359,7 @@ Json jsonOfExpr(ref Alloc alloc, in Ctx ctx, in Expr a) =>
 			jsonObject(alloc, [
 				kindField!"closure-set",
 				field!"index"(x.closureRef.index)]),
-		(in FunPtrExpr x) =>
+		(in FunPointerExpr x) =>
 			jsonObject(alloc, [
 				kindField!"fun-pointer",
 				field!"fun"(jsonOfFunInst(alloc, ctx, *x.funInst))]),

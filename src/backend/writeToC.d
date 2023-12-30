@@ -34,7 +34,7 @@ import model.lowModel :
 	LowFunBody,
 	LowFunExprBody,
 	LowFunIndex,
-	LowFunPtrType,
+	LowFunPointerType,
 	LowLocal,
 	LowPtrCombine,
 	LowProgram,
@@ -258,8 +258,8 @@ void writeType(scope ref Writer writer, scope ref Ctx ctx, in LowType t) {
 			writer ~= "struct ";
 			writeStructMangledName(writer, ctx.mangledNames, ctx.program.allExternTypes[it].source);
 		},
-		(in LowType.FunPtr it) {
-			writeStructMangledName(writer, ctx.mangledNames, ctx.program.allFunPtrTypes[it].source);
+		(in LowType.FunPointer it) {
+			writeStructMangledName(writer, ctx.mangledNames, ctx.program.allFunPointerTypes[it].source);
 		},
 		(in PrimitiveType it) {
 			writePrimitiveType(writer, it);
@@ -401,7 +401,7 @@ void writeStructs(ref Alloc alloc, scope ref Writer writer, scope ref Ctx ctx) {
 			}
 			writer ~= ";\n";
 		},
-		(LowType.FunPtr, in LowFunPtrType funPtr) {
+		(LowType.FunPointer, in LowFunPointerType funPtr) {
 			writer ~= "typedef ";
 			if (isEmptyType(ctx, funPtr.returnType))
 				writer ~= "void";
@@ -703,8 +703,8 @@ WriteExprResult writeExpr(
 	return expr.kind.matchIn!WriteExprResult(
 		(in LowExprKind.Call it) =>
 			writeCallExpr(writer, indent, ctx, locals, writeKind, type, it),
-		(in LowExprKind.CallFunPtr it) =>
-			writeCallFunPtr(writer, indent, ctx, locals, writeKind, type, it),
+		(in LowExprKind.CallFunPointer it) =>
+			writeCallFunPointer(writer, indent, ctx, locals, writeKind, type, it),
 		(in LowExprKind.CreateRecord it) =>
 			inlineable(it.args, (in WriteExprResult[] args) {
 				writeCastToType(writer, ctx.ctx, type);
@@ -1032,7 +1032,7 @@ void writeCreateUnion(
 	writer ~= '}';
 }
 
-void writeFunPtr(scope ref Writer writer, scope ref Ctx ctx, LowFunIndex a) {
+void writeFunPointer(scope ref Writer writer, scope ref Ctx ctx, LowFunIndex a) {
 	writeLowFunMangledName(writer, ctx.mangledNames, a, ctx.program.allFuns[a]);
 }
 
@@ -1218,10 +1218,10 @@ void writeConstantRef(
 			}
 			writeFloatLiteral(writer, x.value);
 		},
-		(in Constant.FunPtr it) {
+		(in Constant.FunPointer it) {
 			bool isRawPtr = type.match!bool(
 				(LowType.Extern) => assert(false),
-				(LowType.FunPtr) => false,
+				(LowType.FunPointer) => false,
 				(PrimitiveType _) => assert(false),
 				(LowType.PtrGc) => assert(false),
 				(LowType.PtrRawConst) => true,
@@ -1230,7 +1230,7 @@ void writeConstantRef(
 				(LowType.Union) => assert(false));
 			if (isRawPtr)
 				writer ~= "((uint8_t*)";
-			writeFunPtr(writer, ctx, mustGet(ctx.program.concreteFunToLowFunIndex, it.fun));
+			writeFunPointer(writer, ctx, mustGet(ctx.program.concreteFunToLowFunIndex, it.fun));
 			if (isRawPtr)
 				writer ~= ')';
 		},
@@ -1488,7 +1488,7 @@ void writeZeroedValue(scope ref Writer writer, scope ref Ctx ctx, in LowType typ
 		(in LowType.Extern x) {
 			writeExternZeroed(writer, ctx, x);
 		},
-		(in LowType.FunPtr) {
+		(in LowType.FunPointer) {
 			writer ~= "NULL";
 		},
 		(in PrimitiveType it) {
@@ -1813,14 +1813,14 @@ WriteExprResult writeIf(
 	return nested.result;
 }
 
-WriteExprResult writeCallFunPtr(
+WriteExprResult writeCallFunPointer(
 	scope ref Writer writer,
 	size_t indent,
 	scope ref FunBodyCtx ctx,
 	in Locals locals,
 	in WriteKind writeKind,
 	in LowType type,
-	in LowExprKind.CallFunPtr a,
+	in LowExprKind.CallFunPointer a,
 ) {
 	WriteExprResult fn = writeExprTempOrInline(writer, indent, ctx, locals, a.funPtr);
 	WriteExprResult[] args = writeExprsTempOrInline(writer, indent, ctx, locals, a.args);

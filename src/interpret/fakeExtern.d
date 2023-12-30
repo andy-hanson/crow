@@ -7,10 +7,11 @@ import interpret.bytecode : Operation;
 import interpret.extern_ :
 	DynCallSig,
 	Extern,
-	ExternFunPtrsForAllLibraries,
-	ExternFunPtrsForLibrary,
-	FunPtr,
-	FunPtrInputs,
+	ExternPointer,
+	ExternPointersForAllLibraries,
+	ExternPointersForLibrary,
+	FunPointer,
+	FunPointerInputs,
 	WriteError,
 	writeSymbolToCb;
 import interpret.runBytecode : syntheticCall;
@@ -21,7 +22,7 @@ import util.col.array : map;
 import util.col.map : KeyValuePair, makeMap;
 import util.col.mutArr : MutArr, mutArrIsEmpty, push;
 import util.memory : memmove, memset;
-import util.opt : force, has, none, Opt, some;
+import util.opt : has, none, Opt, optOrDefault, some;
 import util.string : cString;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.util : debugLog, todo;
@@ -40,29 +41,29 @@ T withFakeExtern(T)(
 	scope Extern extern_ = Extern(
 		(in ExternLibraries libraries, scope WriteError writeError) =>
 			getAllFakeExternFuns(alloc, allSymbols, libraries, writeError),
-		(in FunPtrInputs[] inputs) =>
-			fakeSyntheticFunPtrs(alloc, inputs),
-		(FunPtr ptr, in DynCallSig sig, in ulong[] args) =>
-			callFakeExternFun(alloc, write, ptr.fn, sig, args));
+		(in FunPointerInputs[] inputs) =>
+			fakeSyntheticFunPointers(alloc, inputs),
+		(FunPointer fun, in DynCallSig sig, in ulong[] args) =>
+			callFakeExternFun(alloc, write, fun.pointer, sig, args));
 	return cb(extern_);
 }
 
-pure FunPtr[] fakeSyntheticFunPtrs(ref Alloc alloc, in FunPtrInputs[] inputs) =>
-	map(alloc, inputs, (ref FunPtrInputs x) =>
-		FunPtr(x.operationPtr));
+pure FunPointer[] fakeSyntheticFunPointers(ref Alloc alloc, in FunPointerInputs[] inputs) =>
+	map(alloc, inputs, (ref FunPointerInputs x) =>
+		FunPointer(x.operationPtr));
 
 private:
 
-Opt!ExternFunPtrsForAllLibraries getAllFakeExternFuns(
+Opt!ExternPointersForAllLibraries getAllFakeExternFuns(
 	ref Alloc alloc,
 	in AllSymbols allSymbols,
 	in ExternLibraries libraries,
 	scope WriteError writeError,
 ) {
 	MutArr!(immutable KeyValuePair!(Symbol, Symbol)) failures;
-	ExternFunPtrsForAllLibraries res = makeMap!(Symbol, ExternFunPtrsForLibrary, ExternLibrary)(
+	ExternPointersForAllLibraries res = makeMap!(Symbol, ExternPointersForLibrary, ExternLibrary)(
 		alloc, libraries, (in ExternLibrary x) =>
-			immutable KeyValuePair!(Symbol, ExternFunPtrsForLibrary)(
+			immutable KeyValuePair!(Symbol, ExternPointersForLibrary)(
 				x.libraryName,
 				fakeExternFunsForLibrary(alloc, failures, allSymbols, x)));
 	foreach (immutable KeyValuePair!(Symbol, Symbol) x; failures) {
@@ -72,7 +73,7 @@ Opt!ExternFunPtrsForAllLibraries getAllFakeExternFuns(
 		writeSymbolToCb(writeError, allSymbols, x.key);
 		writeError(cString!"\n");
 	}
-	return mutArrIsEmpty(failures) ? some(res) : none!ExternFunPtrsForAllLibraries;
+	return mutArrIsEmpty(failures) ? some(res) : none!ExternPointersForAllLibraries;
 }
 
 @system ulong callFakeExternFun(
@@ -111,49 +112,51 @@ Opt!ExternFunPtrsForAllLibraries getAllFakeExternFuns(
 
 pure:
 
-ExternFunPtrsForLibrary fakeExternFunsForLibrary(
+ExternPointersForLibrary fakeExternFunsForLibrary(
 	ref Alloc alloc,
 	ref MutArr!(immutable KeyValuePair!(Symbol, Symbol)) failures,
 	in AllSymbols allSymbols,
 	in ExternLibrary lib,
 ) =>
-	makeMap!(Symbol, FunPtr, Symbol)(alloc, lib.importNames, (in Symbol importName) {
-		Opt!FunPtr res = getFakeExternFun(lib.libraryName, importName);
+	makeMap!(Symbol, ExternPointer, Symbol)(alloc, lib.importNames, (in Symbol importName) {
+		Opt!FunPointer res = getFakeExternFun(lib.libraryName, importName);
 		if (!has(res))
 			push(alloc, failures, KeyValuePair!(Symbol, Symbol)(lib.libraryName, importName));
-		return immutable KeyValuePair!(Symbol, FunPtr)(importName, has(res) ? force(res) : FunPtr(null));
+		return immutable KeyValuePair!(Symbol, ExternPointer)(
+			importName,
+			optOrDefault!FunPointer(res, () => FunPointer(null)).asExternPointer());
 	});
 
-Opt!FunPtr getFakeExternFun(Symbol libraryName, Symbol name) =>
+Opt!FunPointer getFakeExternFun(Symbol libraryName, Symbol name) =>
 	libraryName == symbol!"c"
 		? getFakeExternFunC(name)
-		: none!FunPtr;
+		: none!FunPointer;
 
-Opt!FunPtr getFakeExternFunC(Symbol name) {
+Opt!FunPointer getFakeExternFunC(Symbol name) {
 	switch (name.value) {
 		case symbol!"abort".value:
-			return some(FunPtr(&abort));
+			return some(FunPointer(&abort));
 		case symbol!"clock_gettime".value:
-			return some(FunPtr(&clockGetTime));
+			return some(FunPointer(&clockGetTime));
 		case symbol!"free".value:
-			return some(FunPtr(&free));
+			return some(FunPointer(&free));
 		case symbol!"nanosleep".value:
-			return some(FunPtr(&nanosleep));
+			return some(FunPointer(&nanosleep));
 		case symbol!"malloc".value:
-			return some(FunPtr(&malloc));
+			return some(FunPointer(&malloc));
 		case symbol!"memcpy".value:
 		case symbol!"memmove".value:
-			return some(FunPtr(&memmove));
+			return some(FunPointer(&memmove));
 		case symbol!"memset".value:
-			return some(FunPtr(&memset));
+			return some(FunPointer(&memset));
 		case symbol!"write".value:
-			return some(FunPtr(&write));
+			return some(FunPointer(&write));
 		case symbol!"longjmp".value:
 		case symbol!"setjmp".value:
 			// these are treated specially by the interpreter
-			return some(FunPtr(&wontBeCalled));
+			return some(FunPointer(&wontBeCalled));
 		default:
-			return none!FunPtr;
+			return none!FunPointer;
 	}
 }
 

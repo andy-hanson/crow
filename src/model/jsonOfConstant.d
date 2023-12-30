@@ -23,7 +23,7 @@ Json jsonOfConstant(ref Alloc alloc, in Constant a) =>
 			jsonObject(alloc, [
 				kindField!"float",
 				field!"value"(x.value)]),
-		(in Constant.FunPtr x) =>
+		(in Constant.FunPointer x) =>
 			jsonObject(alloc, [
 				kindField!"fun-pointer",
 				optionalField!("fun-name", Symbol)(name(*x.fun), (in Symbol name) => jsonString(name))]),

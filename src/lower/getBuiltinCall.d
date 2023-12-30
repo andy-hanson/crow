@@ -270,7 +270,7 @@ BuiltinKind getBuiltinKind(
 		case symbol!"size-of".value:
 			return BuiltinKind(BuiltinKind.SizeOf());
 		case symbol!"subscript".value:
-			return p0.isA!(LowType.FunPtr)
+			return p0.isA!(LowType.FunPointer)
 				? BuiltinKind(BuiltinKind.CallFunPointer())
 				// 'subscript' for fun / act is handled elsewhere, see concreteFunWillBecomeNonExternLowFun
 				: fail();

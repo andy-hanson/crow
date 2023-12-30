@@ -19,7 +19,7 @@ import model.model :
 	FunBody,
 	FunDecl,
 	FunInst,
-	FunPtrExpr,
+	FunPointerExpr,
 	IfExpr,
 	IfOptionExpr,
 	LambdaExpr,
@@ -133,7 +133,7 @@ Opt!Target exprTarget(PositionKind.Expression a) {
 			local(toLocal(x.closureRef)),
 		(ClosureSetExpr x) =>
 			local(toLocal(x.closureRef)),
-		(FunPtrExpr x) =>
+		(FunPointerExpr x) =>
 			some(Target(x.funInst.decl)),
 		(ref IfExpr _) =>
 			none!Target,

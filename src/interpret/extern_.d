@@ -12,22 +12,22 @@ import util.symbol : AllSymbols, Symbol, symbolAsTempBuffer;
 
 immutable struct Extern {
 	// 'none' if anything failed to load
-	Opt!ExternFunPtrsForAllLibraries delegate(
+	Opt!ExternPointersForAllLibraries delegate(
 		in ExternLibraries libraries,
 		scope WriteError writeError,
-	) @safe @nogc nothrow loadExternFunPtrs;
-	MakeSyntheticFunPtrs makeSyntheticFunPtrs;
+	) @safe @nogc nothrow loadExternPointers;
+	MakeSyntheticFunPointers makeSyntheticFunPointers;
 	DoDynCall doDynCall;
 }
 
-immutable struct FunPtrInputs {
+immutable struct FunPointerInputs {
 	LowFunIndex funIndex;
 	DynCallSig sig;
 	Operation* operationPtr;
 }
 
-alias MakeSyntheticFunPtrs = immutable FunPtr[] delegate(in FunPtrInputs[] inputs) @safe @nogc pure nothrow;
-alias DoDynCall = immutable ulong delegate(FunPtr, in DynCallSig, in ulong[] args) @system @nogc nothrow;
+alias MakeSyntheticFunPointers = immutable FunPointer[] delegate(in FunPointerInputs[] inputs) @safe @nogc pure nothrow;
+alias DoDynCall = immutable ulong delegate(FunPointer, in DynCallSig, in ulong[] args) @system @nogc nothrow;
 alias WriteError = immutable void delegate(in CString) @safe @nogc nothrow;
 
 @trusted void writeSymbolToCb(scope WriteError writeError, in AllSymbols allSymbols, Symbol a) {
@@ -35,16 +35,38 @@ alias WriteError = immutable void delegate(in CString) @safe @nogc nothrow;
 	writeError(CString(buf.ptr));
 }
 
-alias ExternFunPtrsForAllLibraries = Map!(Symbol, ExternFunPtrsForLibrary);
-alias ExternFunPtrsForLibrary = Map!(Symbol, FunPtr);
+alias ExternPointersForAllLibraries = Map!(Symbol, ExternPointersForLibrary);
+alias ExternPointersForLibrary = Map!(Symbol, ExternPointer);
 
-immutable struct FunPtr {
+immutable struct FunPointer {
 	@safe @nogc pure nothrow:
 
-	void* fn;
+	void* pointer;
 
 	HashCode hash() scope =>
-		hashPtr(fn);
+		hashPtr(pointer);
+
+	ulong asUlong() =>
+		cast(ulong) pointer;
+
+	ExternPointer asExternPointer() =>
+		ExternPointer(pointer);
+}
+
+// May be a function or variable pointer
+immutable struct ExternPointer {
+	@safe @nogc pure nothrow:
+
+	void* pointer;
+
+	HashCode hash() scope =>
+		hashPtr(pointer);
+
+	ulong asUlong() =>
+		cast(ulong) pointer;
+
+	FunPointer asFunPointer() =>
+		FunPointer(pointer);
 }
 
 immutable struct DynCallSig {

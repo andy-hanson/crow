@@ -84,7 +84,7 @@ void writeLowType(scope ref Writer writer, in ShowCtx ctx, in AllLowTypes lowTyp
 		(in LowType.Extern) {
 			writer ~= "some extern type"; // TODO: more detail
 		},
-		(in LowType.FunPtr) {
+		(in LowType.FunPointer) {
 			writer ~= "some fun ptr type"; // TODO: more detail
 		},
 		(in PrimitiveType x) {

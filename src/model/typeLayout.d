@@ -23,7 +23,7 @@ TypeSize sizeOfType(in AllLowTypes types, in LowType a) =>
 	a.combinePointer.match!TypeSize(
 		(LowType.Extern x) =>
 			typeSize(types.allExternTypes[x]),
-		(LowType.FunPtr) =>
+		(LowType.FunPointer) =>
 			funPtrSize,
 		(PrimitiveType it) =>
 			primitiveSize(it),

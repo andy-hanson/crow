@@ -13,7 +13,7 @@ import model.lowModel :
 	LowExternType,
 	LowFun,
 	LowFunIndex,
-	LowFunPtrType,
+	LowFunPointerType,
 	LowFunSource,
 	LowLocal,
 	LowLocalSource,
@@ -27,7 +27,7 @@ import model.model : Local;
 import util.alloc.alloc : Alloc;
 import util.col.map : Map;
 import util.col.mapBuilder : finishMap, mustAddToMap, MapBuilder;
-import util.col.fullIndexMap : FullIndexMap, fullIndexMapEachValue, mapFullIndexMap;
+import util.col.fullIndexMap : FullIndexMap, mapFullIndexMap;
 import util.col.mutMap : getOrAdd, insertOrUpdate, MutMap, setInMap;
 import util.opt : force, has, none, Opt, some;
 import util.symbol : AllSymbols, eachCharInSymbol, Symbol, symbol, writeSymbol;
@@ -55,7 +55,7 @@ MangledNames buildMangledNames(
 	MapBuilder!(ConcreteFun*, size_t) funToNameIndex;
 	// HAX: Ensure "main" has that name.
 	setInMap(alloc, funNameToIndex, symbol!"main", PrevOrIndex!ConcreteFun(0));
-	fullIndexMapEachValue!(LowFunIndex, LowFun)(program.allFuns, (ref LowFun fun) {
+	foreach (ref LowFun fun; program.allFuns)
 		fun.source.matchWithPointers!void(
 			(ConcreteFun* cf) {
 				cf.source.matchIn!void(
@@ -68,7 +68,6 @@ MangledNames buildMangledNames(
 					(in ConcreteFunSource.WrapMain) {});
 			},
 			(LowFunSource.Generated*) {});
-	});
 
 	MutMap!(Symbol, PrevOrIndex!ConcreteStruct) structNameToIndex;
 	// This will not have an entry for non-overloaded structs.
@@ -82,18 +81,14 @@ MangledNames buildMangledNames(
 			},
 			(ConcreteStructSource.Lambda) {});
 	}
-	fullIndexMapEachValue!(LowType.Extern, LowExternType)(program.allExternTypes, (ref LowExternType it) {
-		build(it.source);
-	});
-	fullIndexMapEachValue!(LowType.FunPtr, LowFunPtrType)(program.allFunPtrTypes, (ref LowFunPtrType it) {
-		build(it.source);
-	});
-	fullIndexMapEachValue!(LowType.Record, LowRecord)(program.allRecords, (ref LowRecord it) {
-		build(it.source);
-	});
-	fullIndexMapEachValue!(LowType.Union, LowUnion)(program.allUnions, (ref LowUnion it) {
-		build(it.source);
-	});
+	foreach (ref LowExternType x; program.allExternTypes)
+		build(x.source);
+	foreach (ref LowFunPointerType x; program.allFunPointerTypes)
+		build(x.source);
+	foreach (ref LowRecord x; program.allRecords)
+		build(x.source);
+	foreach (LowUnion x; program.allUnions)
+		build(x.source);
 
 	return MangledNames(
 		allSymbols,

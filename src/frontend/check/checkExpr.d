@@ -108,7 +108,7 @@ import model.model :
 	FunFlags,
 	FunInst,
 	FunKind,
-	FunPtrExpr,
+	FunPointerExpr,
 	IfExpr,
 	IfOptionExpr,
 	IntegralTypes,
@@ -1110,7 +1110,7 @@ Expr checkFunPointer(ref ExprCtx ctx, ExprAst* source, in PtrAst ast, ref Expect
 	Type paramType = makeTupleType(ctx.instantiateCtx, ctx.commonTypes, funInst.paramTypes);
 	StructInst* structInst = instantiateStructNeverDelay(
 		ctx.instantiateCtx, ctx.commonTypes.funPtrStruct, [funInst.returnType, paramType]);
-	return check(ctx, source, expected, Type(structInst), Expr(source, ExprKind(FunPtrExpr(funInst))));
+	return check(ctx, source, expected, Type(structInst), Expr(source, ExprKind(FunPointerExpr(funInst))));
 }
 
 Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref LambdaAst ast, ref Expected expected) {

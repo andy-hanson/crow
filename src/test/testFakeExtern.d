@@ -3,7 +3,7 @@ module test.testFakeExtern;
 @safe @nogc nothrow: // not pure
 
 import interpret.extern_ :
-	DynCallType, DynCallSig, Extern, ExternFunPtrsForAllLibraries, ExternFunPtrsForLibrary, FunPtr;
+	DynCallType, DynCallSig, Extern, ExternPointersForAllLibraries, ExternPointersForLibrary, FunPointer;
 import interpret.fakeExtern : unreachableWriteCb, withFakeExtern, WriteCb;
 import lib.lsp.lspTypes : Pipe;
 import model.lowModel : ExternLibrary;
@@ -27,13 +27,13 @@ private:
 	withFakeExtern(test.alloc, test.allSymbols, unreachableWriteCb, (scope ref Extern extern_) @trusted {
 		Symbol[2] exportNames = [symbol!"free", symbol!"malloc"];
 		ExternLibrary[1] externLibraries = [ExternLibrary(symbol!"c", none!Uri, exportNames)];
-		Opt!ExternFunPtrsForAllLibraries funPtrsOpt =
-			extern_.loadExternFunPtrs(externLibraries, (in CString _) =>
+		Opt!ExternPointersForAllLibraries funPtrsOpt =
+			extern_.loadExternPointers(externLibraries, (in CString _) =>
 				assert(false));
-		ExternFunPtrsForAllLibraries funPtrs = force(funPtrsOpt);
-		ExternFunPtrsForLibrary forCrow = mustGet(funPtrs, symbol!"c");
-		FunPtr free = mustGet(forCrow, symbol!"free");
-		FunPtr malloc = mustGet(forCrow, symbol!"malloc");
+		ExternPointersForAllLibraries funPtrs = force(funPtrsOpt);
+		ExternPointersForLibrary forCrow = mustGet(funPtrs, symbol!"c");
+		FunPointer free = mustGet(forCrow, symbol!"free").asFunPointer;
+		FunPointer malloc = mustGet(forCrow, symbol!"malloc").asFunPointer;
 
 		ulong[1] args8 = [8];
 		DynCallType[2] mallocSigTypes = [DynCallType.pointer, DynCallType.nat64];
@@ -71,12 +71,12 @@ void testWrite(ref Test test) {
 		withFakeExtern(test.alloc, test.allSymbols, fakeWrite, (scope ref Extern extern_) @trusted {
 			Symbol[1] exportNames = [symbol!"write"];
 			ExternLibrary[1] externLibraries = [ExternLibrary(symbol!"c", none!Uri, exportNames)];
-			Opt!ExternFunPtrsForAllLibraries funPtrsOpt =
-				extern_.loadExternFunPtrs(externLibraries, (in CString _) =>
+			Opt!ExternPointersForAllLibraries funPtrsOpt =
+				extern_.loadExternPointers(externLibraries, (in CString _) =>
 					assert(false));
-			ExternFunPtrsForAllLibraries funPtrs = force(funPtrsOpt);
-			ExternFunPtrsForLibrary forCrow = mustGet(funPtrs, symbol!"c");
-			FunPtr write = mustGet(forCrow, symbol!"write");
+			ExternPointersForAllLibraries funPtrs = force(funPtrsOpt);
+			ExternPointersForLibrary forCrow = mustGet(funPtrs, symbol!"c");
+			FunPointer write = mustGet(forCrow, symbol!"write").asFunPointer;
 
 			DynCallType[4] sigTypes = [DynCallType.pointer, DynCallType.int32, DynCallType.pointer, DynCallType.nat64];
 			DynCallSig sig = DynCallSig(sigTypes);

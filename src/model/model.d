@@ -1415,7 +1415,7 @@ immutable struct ExprKind {
 		CallExpr,
 		ClosureGetExpr,
 		ClosureSetExpr,
-		FunPtrExpr,
+		FunPointerExpr,
 		IfExpr*,
 		IfOptionExpr*,
 		LambdaExpr*,
@@ -1467,7 +1467,7 @@ immutable struct ClosureSetExpr {
 	Expr* value;
 }
 
-immutable struct FunPtrExpr {
+immutable struct FunPointerExpr {
 	FunInst* funInst;
 }
 

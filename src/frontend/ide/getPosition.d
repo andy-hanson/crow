@@ -35,7 +35,7 @@ import model.model :
 	FunBody,
 	FunDecl,
 	FunDeclSource,
-	FunPtrExpr,
+	FunPointerExpr,
 	IfExpr,
 	IfOptionExpr,
 	ImportOrExport,
@@ -371,7 +371,7 @@ Opt!PositionKind positionInExpr(in AllSymbols allSymbols, FunDecl* containingFun
 				optOr!PositionKind(
 					recur(*x.value),
 					() => here()),
-			(FunPtrExpr _) =>
+			(FunPointerExpr _) =>
 				here(),
 			(ref IfExpr x) =>
 				optOr!PositionKind(

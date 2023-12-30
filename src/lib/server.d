@@ -33,7 +33,7 @@ import frontend.storage :
 	SourceAndAst,
 	Storage;
 import interpret.bytecode : ByteCode;
-import interpret.extern_ : Extern, ExternFunPtrsForAllLibraries, WriteError;
+import interpret.extern_ : Extern, ExternPointersForAllLibraries, WriteError;
 import interpret.fakeExtern : withFakeExtern, WriteCb;
 import interpret.generateBytecode : generateBytecode;
 import interpret.runBytecode : runBytecode;
@@ -128,13 +128,13 @@ ExitCode buildAndInterpret(
 			return ExitCode.error;
 		else {
 			LowProgram lowProgram = force(programs.lowProgram);
-			Opt!ExternFunPtrsForAllLibraries externFunPtrs =
-				extern_.loadExternFunPtrs(lowProgram.externLibraries, writeError);
-			if (has(externFunPtrs))
+			Opt!ExternPointersForAllLibraries externPointers =
+				extern_.loadExternPointers(lowProgram.externLibraries, writeError);
+			if (has(externPointers))
 				return withTempAllocImpure!ExitCode(server.metaAlloc, AllocKind.interpreter, (ref Alloc bytecodeAlloc) {
 					ByteCode byteCode = generateBytecode(
 						perf, bytecodeAlloc, server.allSymbols,
-						programs.program, lowProgram, force(externFunPtrs), extern_.makeSyntheticFunPtrs);
+						programs.program, lowProgram, force(externPointers), extern_.makeSyntheticFunPointers);
 					ShowCtx printCtx = getShowDiagCtx(server, programs.program);
 					return ExitCode(runBytecode(
 						perf, bytecodeAlloc, printCtx, extern_.doDynCall, lowProgram, byteCode, allArgs));

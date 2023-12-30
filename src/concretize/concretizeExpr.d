@@ -69,7 +69,7 @@ import model.model :
 	ExprAndType,
 	FunInst,
 	FunKind,
-	FunPtrExpr,
+	FunPointerExpr,
 	getClosureReferenceKind,
 	IfExpr,
 	IfOptionExpr,
@@ -168,7 +168,7 @@ struct ConcretizeExprCtx {
 	ConcretizeCtx* concretizeCtxPtr;
 	Uri curUri;
 	immutable ContainingFunInfo containing;
-	immutable ConcreteFun* currentConcreteFunPtr; // This is the ConcreteFun* for a lambda, not its containing fun
+	immutable ConcreteFun* currentConcreteFunPointer; // This is the ConcreteFun* for a lambda, not its containing fun
 	size_t nextLambdaIndex = 0;
 
 	ref Alloc alloc() return scope =>
@@ -178,7 +178,7 @@ struct ConcretizeExprCtx {
 		*concretizeCtxPtr;
 
 	ref ConcreteFun currentConcreteFun() return scope const =>
-		*currentConcreteFunPtr;
+		*currentConcreteFunPointer;
 
 	ref const(AllSymbols) allSymbols() const =>
 		concretizeCtx.allSymbols;
@@ -418,9 +418,14 @@ ConcreteExpr constantVoid(ref ConcretizeCtx ctx, UriAndRange range) =>
 ConcreteExprKind constantVoidKind() =>
 	ConcreteExprKind(constantZero);
 
-ConcreteExpr concretizeFunPtr(ref ConcretizeExprCtx ctx, ConcreteType type, in UriAndRange range, FunPtrExpr e) =>
+ConcreteExpr concretizeFunPointer(
+	ref ConcretizeExprCtx ctx,
+	ConcreteType type,
+	in UriAndRange range,
+	FunPointerExpr e,
+) =>
 	ConcreteExpr(type, range, ConcreteExprKind(
-		Constant(Constant.FunPtr(getOrAddNonTemplateConcreteFunAndFillBody(ctx.concretizeCtx, e.funInst)))));
+		Constant(Constant.FunPointer(getOrAddNonTemplateConcreteFunAndFillBody(ctx.concretizeCtx, e.funInst)))));
 
 ConcreteExpr concretizeLambda(
 	ref ConcretizeExprCtx ctx,
@@ -441,7 +446,7 @@ ConcreteExpr concretizeLambda(
 	ConcreteType closureType = concreteTypeFromClosure(
 		ctx.concretizeCtx,
 		closureFields,
-		ConcreteStructSource(ConcreteStructSource.Lambda(ctx.currentConcreteFunPtr, lambdaIndex)));
+		ConcreteStructSource(ConcreteStructSource.Lambda(ctx.currentConcreteFunPointer, lambdaIndex)));
 	ConcreteLocal[] paramsIncludingClosure = concretizeLambdaParams(ctx.concretizeCtx, closureType, e.param, tScope);
 
 	ConcreteStruct* concreteStruct = mustBeByVal(type);
@@ -461,7 +466,7 @@ ConcreteExpr concretizeLambda(
 
 	ConcreteFun* fun = getConcreteFunForLambdaAndFillBody(
 		ctx.concretizeCtx,
-		ctx.currentConcreteFunPtr,
+		ctx.currentConcreteFunPointer,
 		lambdaIndex,
 		returnType,
 		e.param,
@@ -950,8 +955,8 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 			concretizeClosureGet(ctx, type, range, x),
 		(ClosureSetExpr x) =>
 			concretizeClosureSet(ctx, type, range, locals, x),
-		(FunPtrExpr x) =>
-			concretizeFunPtr(ctx, type, range, x),
+		(FunPointerExpr x) =>
+			concretizeFunPointer(ctx, type, range, x),
 		(ref IfExpr x) =>
 			concretizeIf(ctx, type, range, locals, x),
 		(ref IfOptionExpr x) =>

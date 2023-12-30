@@ -8,10 +8,11 @@ import interpret.extern_ :
 	DynCallSig,
 	DynCallType,
 	Extern,
-	ExternFunPtrsForAllLibraries,
-	ExternFunPtrsForLibrary,
-	FunPtr,
-	FunPtrInputs,
+	ExternPointer,
+	ExternPointersForAllLibraries,
+	ExternPointersForLibrary,
+	FunPointer,
+	FunPointerInputs,
 	WriteError,
 	writeSymbolToCb;
 import interpret.runBytecode : syntheticCall;
@@ -43,22 +44,23 @@ import util.util : todo;
 		(in ExternLibraries libraries, scope WriteError writeError) {
 			LoadedLibraries res = loadLibraries(alloc, allSymbols, allUris, libraries, writeError);
 			lateSet(debugNames, res.debugNames);
-			return res.funPtrs;
+			return res.funPointers;
 		},
-		(in FunPtrInputs[] inputs) =>
-			makeSyntheticFunPtrs(alloc, inputs),
-		(FunPtr funPtr, in DynCallSig sig, in ulong[] parameters) =>
-			dynamicCallFunPtr(funPtr, allSymbols, lateGet(debugNames)[funPtr], sig, parameters));
+		(in FunPointerInputs[] inputs) =>
+			makeSyntheticFunPointers(alloc, inputs),
+		(FunPointer funPointer, in DynCallSig sig, in ulong[] parameters) =>
+			dynamicCallFunPointer(
+				funPointer, allSymbols, lateGet(debugNames)[funPointer.asExternPointer], sig, parameters));
 	return cb(extern_);
 }
 
 private:
 
-alias DebugNames = Map!(FunPtr, Symbol);
+alias DebugNames = Map!(ExternPointer, Symbol);
 
 immutable struct LoadedLibraries {
 	DebugNames debugNames;
-	Opt!ExternFunPtrsForAllLibraries funPtrs;
+	Opt!ExternPointersForAllLibraries funPointers;
 }
 
 LoadedLibraries loadLibraries(
@@ -76,7 +78,7 @@ LoadedLibraries loadLibraries(
 	});
 	return success
 		? loadLibrariesInner(alloc, allSymbols, libraries, libs, writeError)
-		: LoadedLibraries(DebugNames(), none!ExternFunPtrsForAllLibraries);
+		: LoadedLibraries(DebugNames(), none!ExternPointersForAllLibraries);
 }
 
 // Can't use Opt since 'null' is sometimes allowed as the library
@@ -157,28 +159,28 @@ LoadedLibraries loadLibrariesInner(
 	immutable DLLib*[] libs,
 	in WriteError writeError,
 ) {
-	MapBuilder!(FunPtr, Symbol) debugNames;
+	MapBuilder!(ExternPointer, Symbol) debugNames;
 	MutArr!(KeyValuePair!(Symbol, Symbol)) failures;
-	ExternFunPtrsForAllLibraries res = zipToMap!(Symbol, Map!(Symbol, FunPtr), ExternLibrary, DLLib*)(
+	ExternPointersForAllLibraries res = zipToMap!(Symbol, Map!(Symbol, ExternPointer), ExternLibrary, DLLib*)(
 		alloc,
 		libraries,
 		libs,
 		(ref ExternLibrary x, ref DLLib* lib) {
-			ExternFunPtrsForLibrary funPtrs = makeMapFromKeys!(Symbol, FunPtr)(
+			ExternPointersForLibrary pointers = makeMapFromKeys!(Symbol, ExternPointer)(
 				alloc,
 				x.importNames,
 				(Symbol importName) {
-					Opt!FunPtr p = getExternFunPtr(allSymbols, lib, importName);
+					Opt!ExternPointer p = getExternPointer(allSymbols, lib, importName);
 					if (has(p)) {
 						// sometimes two names refer to the same function -- just go with the first name
-						tryAddToMap!(FunPtr, Symbol)(alloc, debugNames, force(p), importName);
+						tryAddToMap!(ExternPointer, Symbol)(alloc, debugNames, force(p), importName);
 						return force(p);
 					} else {
 						push(alloc, failures, KeyValuePair!(Symbol, Symbol)(x.libraryName, importName));
-						return FunPtr(null);
+						return ExternPointer(null);
 					}
 				});
-			return immutable KeyValuePair!(Symbol, ExternFunPtrsForLibrary)(x.libraryName, funPtrs);
+			return immutable KeyValuePair!(Symbol, ExternPointersForLibrary)(x.libraryName, pointers);
 		});
 	foreach (KeyValuePair!(Symbol, Symbol) x; failures) {
 		writeError(cString!"Could not load extern function ");
@@ -189,17 +191,17 @@ LoadedLibraries loadLibrariesInner(
 	}
 	return LoadedLibraries(
 		finishMap(alloc, debugNames),
-		mutArrIsEmpty(failures) ? some(res) : none!ExternFunPtrsForAllLibraries);
+		mutArrIsEmpty(failures) ? some(res) : none!ExternPointersForAllLibraries);
 }
 
-@trusted pure Opt!FunPtr getExternFunPtr(in AllSymbols allSymbols, DLLib* library, Symbol name) {
+@trusted pure Opt!ExternPointer getExternPointer(in AllSymbols allSymbols, DLLib* library, Symbol name) {
 	immutable char[256] nameBuffer = symbolAsTempBuffer!256(allSymbols, name);
 	DCpointer ptr = dlFindSymbol(library, nameBuffer.ptr);
-	return ptr == null ? none!FunPtr : some(FunPtr(cast(immutable) ptr));
+	return ptr == null ? none!ExternPointer : some(ExternPointer(cast(immutable) ptr));
 }
 
-@system ulong dynamicCallFunPtr(
-	FunPtr funPtr,
+@system ulong dynamicCallFunPointer(
+	FunPointer fun,
 	in AllSymbols allSymbols,
 	Opt!Symbol /*debugName*/,
 	in DynCallSig sig,
@@ -218,7 +220,7 @@ LoadedLibraries loadLibrariesInner(
 		dcMode(dcVm, DC_CALL_C_DEFAULT);
 	}
 
-	DCpointer ptr = cast(DCpointer) funPtr.fn;
+	DCpointer ptr = cast(DCpointer) fun.pointer;
 	dcReset(dcVm);
 	foreach (size_t i, ulong value; parameters) {
 		addArgForDynCall(dcVm, value, sig.parameterTypes[i]);
@@ -229,7 +231,7 @@ LoadedLibraries loadLibrariesInner(
 	return res;
 }
 
-@system void addArgForDynCall(DCCallVM*dcVm, ulong value, DynCallType parameterType) {
+@system void addArgForDynCall(DCCallVM* dcVm, ulong value, DynCallType parameterType) {
 	final switch (parameterType) {
 		case DynCallType.bool_:
 			dcArgBool(dcVm, cast(bool) value);
@@ -311,15 +313,15 @@ immutable struct UserData {
 	Operation* operationPtr;
 }
 
-pure FunPtr[] makeSyntheticFunPtrs(ref Alloc alloc, in FunPtrInputs[] inputs) =>
-	map(alloc, inputs, (ref FunPtrInputs x) =>
-		syntheticFunPtrForSig(alloc, x.sig, x.operationPtr));
+pure FunPointer[] makeSyntheticFunPointers(ref Alloc alloc, in FunPointerInputs[] inputs) =>
+	map(alloc, inputs, (ref FunPointerInputs x) =>
+		syntheticFunPointerForSig(alloc, x.sig, x.operationPtr));
 
-@trusted pure FunPtr syntheticFunPtrForSig(ref Alloc alloc, DynCallSig sig, Operation* operationPtr) {
+@trusted pure FunPointer syntheticFunPointerForSig(ref Alloc alloc, DynCallSig sig, Operation* operationPtr) {
 	char[16] sigStr;
 	toDynCallSigString(sigStr, sig);
 	UserData* userData = allocate(alloc, UserData(sig, operationPtr));
-	return FunPtr(cast(immutable) dcbNewCallback(sigStr.ptr, &callbackHandler, cast(void*) userData));
+	return FunPointer(cast(immutable) dcbNewCallback(sigStr.ptr, &callbackHandler, cast(void*) userData));
 }
 
 @system extern(C) char callbackHandler(DCCallback* cb, DCArgs* args, DCValue* result, void* userDataPtr) {

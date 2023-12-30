@@ -21,6 +21,15 @@ struct FullIndexMap(K, V) {
 		}
 	}
 
+	int opApply(in int delegate(ref immutable V) @safe @nogc pure nothrow cb) scope immutable {
+		foreach (ref immutable V value; values) {
+			int res = cb(value);
+			if (res != 0)
+				return res;
+		}
+		return 0;
+	}
+
 	//TODO: private:
 	V[] values;
 }
@@ -55,14 +64,6 @@ void fullIndexMapEachKey(K, V)(
 ) {
 	foreach (size_t i; 0 .. fullIndexMapSize(a))
 		cb(K(i));
-}
-
-void fullIndexMapEachValue(K, V)(
-	in immutable FullIndexMap!(K, V) a,
-	in void delegate(ref immutable V) @safe @nogc pure nothrow cb,
-) {
-	foreach (ref immutable V value; a.values)
-		cb(value);
 }
 
 void fullIndexMapEach(K, V)(

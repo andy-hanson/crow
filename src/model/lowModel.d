@@ -65,7 +65,7 @@ immutable struct LowUnion {
 TypeSize typeSize(in LowUnion a) =>
 	a.source.typeSize;
 
-immutable struct LowFunPtrType {
+immutable struct LowFunPointerType {
 	ConcreteStruct* source;
 	LowType returnType;
 	LowType[] paramTypes;
@@ -94,7 +94,7 @@ immutable struct LowType {
 	immutable struct Extern {
 		size_t index;
 	}
-	immutable struct FunPtr {
+	immutable struct FunPointer {
 		size_t index;
 	}
 	// May be gc-allocated or not; gc will try to trace
@@ -116,7 +116,7 @@ immutable struct LowType {
 
 	mixin .Union!(
 		Extern,
-		FunPtr,
+		FunPointer,
 		PrimitiveType,
 		PtrGc,
 		PtrRawConst,
@@ -128,8 +128,8 @@ immutable struct LowType {
 		matchIn!bool(
 			(in Extern x) =>
 				b.isA!Extern && b.as!Extern.index == x.index,
-			(in FunPtr x) =>
-				b.isA!FunPtr && b.as!FunPtr.index == x.index,
+			(in FunPointer x) =>
+				b.isA!FunPointer && b.as!FunPointer.index == x.index,
 			(in PrimitiveType x) =>
 				b.isA!PrimitiveType && b.as!PrimitiveType == x,
 			(in PtrGc x) =>
@@ -147,7 +147,7 @@ immutable struct LowType {
 		hash2(kind, matchIn!HashCode(
 			(in Extern x) =>
 				hashSizeT(x.index),
-			(in FunPtr x) =>
+			(in FunPointer x) =>
 				hashSizeT(x.index),
 			(in PrimitiveType x) =>
 				hashEnum(x),
@@ -166,7 +166,7 @@ immutable struct LowType {
 		match!LowTypeCombinePointer(
 			(LowType.Extern x) =>
 				LowTypeCombinePointer(x),
-			(LowType.FunPtr x) =>
+			(LowType.FunPointer x) =>
 				LowTypeCombinePointer(x),
 			(PrimitiveType x) =>
 				LowTypeCombinePointer(x),
@@ -214,7 +214,7 @@ immutable struct LowPtrCombine {
 }
 
 private immutable struct LowTypeCombinePointer {
-	mixin Union!(LowType.Extern, LowType.FunPtr, PrimitiveType, LowPtrCombine, LowType.Record, LowType.Union);
+	mixin Union!(LowType.Extern, LowType.FunPointer, PrimitiveType, LowPtrCombine, LowType.Record, LowType.Union);
 }
 
 bool isPrimitiveType(LowType a, PrimitiveType p) =>
@@ -327,7 +327,7 @@ immutable struct LowExprKind {
 		LowExpr[] args; // Includes implicit ctx arg if needed
 	}
 
-	immutable struct CallFunPtr {
+	immutable struct CallFunPointer {
 		@safe @nogc pure nothrow:
 
 		LowExpr funPtr;
@@ -627,7 +627,7 @@ immutable struct LowExprKind {
 
 	mixin Union!(
 		Call,
-		CallFunPtr*,
+		CallFunPointer*,
 		CreateRecord,
 		CreateUnion*,
 		If*,
@@ -657,8 +657,8 @@ immutable struct LowExprKind {
 }
 static assert(LowExprKind.sizeof <= 32);
 
-LowType.FunPtr funPtrType(in LowExprKind.CallFunPtr a) =>
-	a.funPtr.type.as!(LowType.FunPtr);
+LowType.FunPointer funPtrType(in LowExprKind.CallFunPointer a) =>
+	a.funPtr.type.as!(LowType.FunPointer);
 
 LowType.Record targetRecordType(in LowExprKind.PtrToField a) =>
 	asGcOrRawPointee(a.target.type).as!(LowType.Record);
@@ -756,8 +756,8 @@ immutable struct LowProgram {
 	ref immutable(FullIndexMap!(LowType.Extern, LowExternType)) allExternTypes() scope return =>
 		allTypes.allExternTypes;
 
-	ref immutable(FullIndexMap!(LowType.FunPtr, LowFunPtrType)) allFunPtrTypes() scope return =>
-		allTypes.allFunPtrTypes;
+	ref immutable(FullIndexMap!(LowType.FunPointer, LowFunPointerType)) allFunPointerTypes() scope return =>
+		allTypes.allFunPointerTypes;
 
 	ref immutable(FullIndexMap!(LowType.Record, LowRecord)) allRecords() scope return =>
 		allTypes.allRecords;
@@ -776,7 +776,7 @@ immutable struct ExternLibrary {
 
 immutable struct AllLowTypes {
 	FullIndexMap!(LowType.Extern, LowExternType) allExternTypes;
-	FullIndexMap!(LowType.FunPtr, LowFunPtrType) allFunPtrTypes;
+	FullIndexMap!(LowType.FunPointer, LowFunPointerType) allFunPointerTypes;
 	FullIndexMap!(LowType.Record, LowRecord) allRecords;
 	FullIndexMap!(LowType.Union, LowUnion) allUnions;
 }

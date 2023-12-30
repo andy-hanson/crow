@@ -4,9 +4,9 @@ module interpret.runBytecode;
 
 import frontend.showModel : ShowCtx;
 import interpret.bytecode :
-	ByteCode, ByteCodeOffset, ByteCodeOffsetUnsigned, FunPtrToOperationPtr, initialOperationPointer, Operation;
+	ByteCode, ByteCodeOffset, ByteCodeOffsetUnsigned, FunPointerToOperationPointer, initialOperationPointer, Operation;
 import interpret.debugInfo : BacktraceEntry, fillBacktrace, InterpreterDebugInfo, printDebugInfo;
-import interpret.extern_ : DoDynCall, DynCallType, DynCallSig, FunPtr;
+import interpret.extern_ : DoDynCall, DynCallType, DynCallSig, FunPointer;
 import interpret.stacks :
 	dataDupWords,
 	dataEnd,
@@ -117,7 +117,7 @@ void stepUntilBreak(ref Stacks stacks, ref Operation* operation) {
 		ptrTrustMe(printCtx), ptrTrustMe(lowProgram), ptrTrustMe(byteCode));
 	setGlobals(InterpreterGlobals(
 		ptrTrustMe(debugInfo),
-		castNonScope_ref(byteCode).funPtrToOperationPtr,
+		castNonScope_ref(byteCode).funPointerToOperationPointer,
 		castNonScope_ref(doDynCall_)));
 	return withStacks!T((scope ref Stacks stacks) @trusted {
 		// Ensure the last 'return' returns to here
@@ -129,7 +129,7 @@ void stepUntilBreak(ref Stacks stacks, ref Operation* operation) {
 			T res = cb(stacks);
 
 		debug {
-			setGlobals(InterpreterGlobals(null, FunPtrToOperationPtr(), null));
+			setGlobals(InterpreterGlobals(null, FunPointerToOperationPointer(), null));
 		}
 
 		static if (!is(T == void))
@@ -146,7 +146,7 @@ private static Operation* nextOperationPtr;
 
 private struct InterpreterGlobals {
 	InterpreterDebugInfo* debugInfoPtr;
-	const FunPtrToOperationPtr funPtrToOperationPtr;
+	const FunPointerToOperationPointer funPointerToOperationPointer;
 	DoDynCall doDynCall;
 }
 private __gshared InterpreterGlobals globals = void;
@@ -346,17 +346,17 @@ private void opCallInner(ref Stacks stacks, ref Operation* cur) {
 	cur = op;
 }
 
-alias opCallFunPtr = operation!opCallFunPtrInner;
-private void opCallFunPtrInner(ref Stacks stacks, ref Operation* cur) {
+alias opCallFunPointer = operation!opCallFunPointerInner;
+private void opCallFunPointerInner(ref Stacks stacks, ref Operation* cur) {
 	DynCallSig sig = readDynCallSig(cur);
-	FunPtr funPtr = FunPtr(cast(immutable void*) dataRemove(stacks, sig.parameterTypes.length));
-	Opt!(Operation*) operationPtr = globals.funPtrToOperationPtr[funPtr];
+	FunPointer funPtr = FunPointer(cast(immutable void*) dataRemove(stacks, sig.parameterTypes.length));
+	Opt!(Operation*) operationPtr = globals.funPointerToOperationPointer[funPtr];
 	if (has(operationPtr)) {
 		returnPush(stacks, cur);
 		cur = force(operationPtr);
 	} else {
 		scope immutable ulong[] params = dataPopN(stacks, sig.parameterTypes.length);
-		// This is an extern FunPtr, but it might call back into a synthetic FunPtr
+		// This is an extern FunPointer, but it might call back into a synthetic FunPointer
 		saveStacks(stacks);
 		ulong value = globals.doDynCall(funPtr, sig, params);
 		if (sig.returnType != DynCallType.void_)
@@ -364,13 +364,13 @@ private void opCallFunPtrInner(ref Stacks stacks, ref Operation* cur) {
 	}
 }
 
-alias opCallFunPtrExtern = operation!opCallFunPtrExternInner;
-private void opCallFunPtrExternInner(ref Stacks stacks, ref Operation* cur) {
-	assert(FunPtr.sizeof <= ulong.sizeof);
-	FunPtr funPtr = FunPtr(cast(immutable void*) readNat64(cur));
+alias opCallFunPointerExtern = operation!opCallFunPointerExternInner;
+private void opCallFunPointerExternInner(ref Stacks stacks, ref Operation* cur) {
+	assert(FunPointer.sizeof <= ulong.sizeof);
+	FunPointer funPtr = FunPointer(cast(immutable void*) readNat64(cur));
 	DynCallSig sig = readDynCallSig(cur);
 	scope immutable ulong[] params = dataPopN(stacks, sig.parameterTypes.length);
-	// This is an extern FunPtr, but it might call back into a synthetic FunPtr
+	// This is an extern FunPointer, but it might call back into a synthetic FunPointer
 	saveStacks(stacks);
 	ulong value = globals.doDynCall(funPtr, sig, params);
 	if (sig.returnType != DynCallType.void_)

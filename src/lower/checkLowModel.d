@@ -28,8 +28,7 @@ import model.lowModel :
 	LowFun,
 	LowFunBody,
 	LowFunExprBody,
-	LowFunIndex,
-	LowFunPtrType,
+	LowFunPointerType,
 	LowLocal,
 	LowProgram,
 	LowType,
@@ -42,7 +41,6 @@ import util.alloc.alloc : Alloc;
 import util.col.array : sizeEq;
 import util.col.array : zip;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
-import util.col.fullIndexMap : fullIndexMapEachValue;
 import util.json : field, Json, jsonObject, jsonString, kindField, writeJson;
 import util.opt : force, has, none, Opt, some;
 import util.symbol : AllSymbols;
@@ -51,9 +49,8 @@ import util.writer : debugLogWithWriter, Writer;
 
 void checkLowProgram(in AllSymbols allSymbols, in Program program, in LowProgram a) {
 	Ctx ctx = Ctx(ptrTrustMe(allSymbols), ptrTrustMe(program), ptrTrustMe(a));
-	fullIndexMapEachValue!(LowFunIndex, LowFun)(a.allFuns, (ref LowFun fun) {
+	foreach (ref LowFun fun; a.allFuns)
 		checkLowFun(ctx, fun);
-	});
 }
 
 private:
@@ -114,8 +111,8 @@ void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr
 				checkLowExpr(ctx, info, param.type, arg);
 			});
 		},
-		(in LowExprKind.CallFunPtr it) {
-			LowFunPtrType funPtrType = ctx.ctx.program.allFunPtrTypes[it.funPtr.type.as!(LowType.FunPtr)];
+		(in LowExprKind.CallFunPointer it) {
+			LowFunPointerType funPtrType = ctx.ctx.program.allFunPointerTypes[it.funPtr.type.as!(LowType.FunPointer)];
 			checkTypeEqual(ctx.ctx, type, funPtrType.returnType);
 			assert(sizeEq(funPtrType.paramTypes, it.args));
 			zip!(LowType, LowExpr)(funPtrType.paramTypes, it.args, (ref LowType paramType, ref LowExpr arg) {
@@ -526,7 +523,7 @@ Json jsonOfLowType2(ref Alloc alloc, in LowProgram program, in LowType a) =>
 	a.matchIn!Json(
 		(in LowType.Extern) =>
 			jsonString!"some-extern", //TODO: more detail
-		(in LowType.FunPtr) =>
+		(in LowType.FunPointer) =>
 			jsonString!"some-fun-ptr", //TODO: more detail
 		(in PrimitiveType x) =>
 			jsonString(stringOfEnum(x)),

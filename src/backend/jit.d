@@ -862,8 +862,8 @@ ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ref ExprEmit emit, in L
 	a.kind.matchIn!ExprResult(
 		(in LowExprKind.Call it) =>
 			callToGcc(ctx, locals, emit, a.type, it),
-		(in LowExprKind.CallFunPtr it) =>
-			callFunPtrToGcc(ctx, locals, emit, a, it),
+		(in LowExprKind.CallFunPointer it) =>
+			callFunPointerToGcc(ctx, locals, emit, a, it),
 		(in LowExprKind.CreateRecord it) =>
 			createRecordToGcc(ctx, locals, emit, a, it),
 		(in LowExprKind.CreateUnion it) =>
@@ -963,12 +963,12 @@ void emitToVoid(ref ExprCtx ctx, ref Locals locals, in LowExpr a) {
 		gcc_jit_context_new_call(ctx.gcc, null, called, cast(int) argsGcc.length, argsGcc.ptr)));
 }
 
-@trusted ExprResult callFunPtrToGcc(
+@trusted ExprResult callFunPointerToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ref ExprEmit emit,
 	in LowExpr expr,
-	in LowExprKind.CallFunPtr a,
+	in LowExprKind.CallFunPointer a,
 ) {
 	gcc_jit_rvalue* funPtrGcc = emitToRValue(ctx, locals, a.funPtr);
 	//TODO:NO ALLOC
@@ -1306,7 +1306,7 @@ ExprResult constantToGcc(ref ExprCtx ctx, ref ExprEmit emit, in LowType type, in
 				ctx,
 				emit,
 				gcc_jit_context_new_rvalue_from_double(ctx.gcc, getGccType(ctx.types, type), it.value)),
-		(in Constant.FunPtr it) {
+		(in Constant.FunPointer it) {
 			gcc_jit_rvalue* value = gcc_jit_function_get_address(
 				ctx.gccFuns[mustGet(ctx.program.concreteFunToLowFunIndex, it.fun)],
 				null);
@@ -1315,7 +1315,7 @@ ExprResult constantToGcc(ref ExprCtx ctx, ref ExprEmit emit, in LowType type, in
 					// We need to cast function pointer to any-ptr for 'all-funs'
 					return gcc_jit_context_new_cast(ctx.gcc, null, value, getGccType(ctx.types, type));
 				else {
-					assert(type.isA!(LowType.FunPtr));
+					assert(type.isA!(LowType.FunPointer));
 					return value;
 				}
 			}();
@@ -1827,7 +1827,7 @@ ExprResult zeroedToGcc(ref ExprCtx ctx, ref ExprEmit emit, in LowType type) {
 	return type.combinePointer.matchIn!ExprResult(
 		(in LowType.Extern x) =>
 			externZeroedToGcc(ctx, emit, x),
-		(in LowType.FunPtr) =>
+		(in LowType.FunPointer) =>
 			emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_null(ctx.gcc, gccType)),
 		(in PrimitiveType x) =>
 			x == PrimitiveType.void_
@@ -1902,7 +1902,7 @@ gcc_jit_rvalue* arbitraryValue(ref ExprCtx ctx, LowType type) {
 	return type.combinePointer.matchIn!(gcc_jit_rvalue*)(
 		(in LowType.Extern) =>
 			todo!(gcc_jit_rvalue*)("!"),
-		(in LowType.FunPtr) =>
+		(in LowType.FunPointer) =>
 			nullValue(),
 		(in PrimitiveType _) =>
 			emitToRValueCb((ref ExprEmit emit) =>

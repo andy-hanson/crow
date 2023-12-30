@@ -2,7 +2,7 @@ module interpret.bytecode;
 
 @safe @nogc nothrow: // not pure
 
-import interpret.extern_ : FunPtr;
+import interpret.extern_ : FunPointer;
 import model.lowModel : LowFunIndex;
 import model.model : VarKind;
 import util.col.map : Map;
@@ -43,7 +43,7 @@ immutable struct ByteCode {
 	@safe @nogc pure nothrow:
 
 	Operations operations;
-	FunPtrToOperationPtr funPtrToOperationPtr;
+	FunPointerToOperationPointer funPointerToOperationPointer;
 	ubyte[] text;
 	EnumMap!(VarKind, size_t) varsSizeWords;
 	ByteCodeIndex main;
@@ -54,7 +54,7 @@ immutable struct ByteCode {
 		operations.sources;
 }
 
-alias FunPtrToOperationPtr = Map!(FunPtr, immutable Operation*);
+alias FunPointerToOperationPointer = Map!(FunPointer, immutable Operation*);
 
 immutable struct Operations {
 	Operation[] byteCode;

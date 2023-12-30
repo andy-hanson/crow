@@ -26,7 +26,7 @@ import model.model :
 	Expr,
 	FunDecl,
 	FunKind,
-	FunPtrExpr,
+	FunPointerExpr,
 	IfExpr,
 	IfOptionExpr,
 	LambdaExpr,
@@ -273,7 +273,7 @@ void getExprHover(
 			writer ~= "sets ";
 			closureRefHover(writer, ctx, typeContainer, x.closureRef);
 		},
-		(in FunPtrExpr x) {
+		(in FunPointerExpr x) {
 			writer ~= "pointer to function ";
 			writeFunInst(writer, ctx, typeContainer, *x.funInst);
 		},
