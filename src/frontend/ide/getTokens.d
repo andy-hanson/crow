@@ -555,7 +555,6 @@ void addExprTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in 
 			reference(tokens, TokenType.variable, a.range);
 		},
 		(in IfAst x) {
-			keyword(tokens, a.range.start, "if");
 			addExprTokens(tokens, allSymbols, x.cond);
 			addExprTokens(tokens, allSymbols, x.then);
 			addExprTokens(tokens, allSymbols, x.else_);

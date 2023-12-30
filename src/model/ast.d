@@ -277,9 +277,11 @@ immutable struct IdentifierAst {
 	Symbol name;
 }
 
+// This can come from the 'if' keyword or a ternary expression (`cond ? then : else`).
 immutable struct IfAst {
 	ExprAst cond;
 	ExprAst then;
+	// May be EmptyAst
 	ExprAst else_;
 }
 
@@ -287,6 +289,7 @@ immutable struct IfOptionAst {
 	DestructureAst destructure;
 	ExprAst option;
 	ExprAst then;
+	// May be EmptyAst
 	ExprAst else_;
 }
 

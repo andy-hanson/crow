@@ -29,8 +29,9 @@ struct MutMaxArr(size_t maxSize, T) {
 	}
 	@trusted int opApply(in int delegate(ref const T) @safe @nogc pure nothrow cb) scope const {
 		foreach (ref const T x; values[0 .. size_]) {
-			int i = cb(x);
-			assert(i == 0);
+			int res = cb(x);
+			if (res != 0)
+				return res;
 		}
 		return 0;
 	}
