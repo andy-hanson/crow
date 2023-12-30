@@ -691,7 +691,7 @@ immutable struct FunDeclAst {
 	TypeAst returnType;
 	ParamsAst params;
 	SmallArray!FunModifierAst modifiers;
-	Opt!ExprAst body_;
+	ExprAst body_; // EmptyAst if missing
 }
 
 Range nameRange(in AllSymbols allSymbols, in FunDeclAst a) =>
@@ -770,7 +770,7 @@ string stringOfSpecialFlag(FunModifierAst.Special.Flags a) {
 
 immutable struct TestAst {
 	Range range;
-	Opt!ExprAst body_;
+	ExprAst body_; // EmptyAst if missing
 }
 
 // 'extern' or 'thread-local'

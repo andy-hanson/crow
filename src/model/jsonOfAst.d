@@ -304,7 +304,7 @@ Json jsonOfFunDeclAst(ref Alloc alloc, scope ref Ctx ctx, in FunDeclAst a) =>
 		field!"params"(jsonOfParamsAst(alloc, ctx, a.params)),
 		optionalArrayField!("modifiers", FunModifierAst)(alloc, a.modifiers, (in FunModifierAst s) =>
 			jsonOfFunModifierAst(alloc, ctx, s)),
-		optionalField!("body", ExprAst)(a.body_, (in ExprAst body_) => jsonOfExprAst(alloc, ctx, body_))]);
+		field!"body"(jsonOfExprAst(alloc, ctx, a.body_))]);
 
 Json jsonOfParamsAst(ref Alloc alloc, scope ref Ctx ctx, in ParamsAst a) =>
 	a.matchIn!Json(

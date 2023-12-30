@@ -252,7 +252,7 @@ FunDeclAst parseFun(
 	TypeAst returnType = parseType(lexer);
 	ParamsAst params = parseParams(lexer);
 	FunModifierAst[] modifiers = parseFunModifiers(lexer);
-	Opt!ExprAst body_ = parseFunExprBody(lexer);
+	ExprAst body_ = parseFunExprBody(lexer);
 	return FunDeclAst(
 		range(lexer, start),
 		docComment,
@@ -338,7 +338,7 @@ void parseSpecOrStructOrFunOrTest(
 ) {
 	Pos start = curPos(lexer);
 	if (tryTakeToken(lexer, Token.test)) {
-		Opt!ExprAst body_ = parseFunExprBody(lexer);
+		ExprAst body_ = parseFunExprBody(lexer);
 		add(lexer.alloc, tests, TestAst(range(lexer, start), body_));
 	} else
 		parseSpecOrStructOrFun(lexer, specs, structAliases, structs, funs, vars, docComment);

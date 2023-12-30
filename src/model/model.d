@@ -811,8 +811,7 @@ immutable struct Test {
 
 	TestAst* ast;
 	Uri moduleUri;
-	// Missing for compile error only
-	Opt!Expr body_;
+	Expr body_;
 
 	UriAndRange range() =>
 		UriAndRange(moduleUri, ast.range);

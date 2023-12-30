@@ -23,6 +23,7 @@ import frontend.check.typeFromAst :
 	checkDestructure, checkTypeParams, specFromAst, typeFromAst, typeFromAstNoTypeParamsNeverDelay;
 import model.ast :
 	DestructureAst,
+	EmptyAst,
 	ExplicitVisibility,
 	ExprAst,
 	FileAst,
@@ -589,7 +590,7 @@ FunsAndMap checkFuns(
 		fun.body_ = () {
 			final switch (fun.flags.specialBody) {
 				case FunFlags.SpecialBody.none:
-					if (!has(funAst.body_)) {
+					if (funAst.body_.kind.isA!EmptyAst) {
 						addDiag(ctx, funAst.range, Diag(Diag.FunMissingBody()));
 						return FunBody(FunBody.Bogus());
 					} else
@@ -599,15 +600,15 @@ FunsAndMap checkFuns(
 							structsAndAliasesMap,
 							funsMap,
 							fun,
-							&force(funAst.body_)));
+							&funAst.body_));
 				case FunFlags.SpecialBody.builtin:
 				case FunFlags.SpecialBody.generated:
-					if (has(funAst.body_))
+					if (!funAst.body_.kind.isA!EmptyAst)
 						todo!void("diag: builtin fun can't have body");
 					return FunBody(FunBody.Builtin());
 				case FunFlags.SpecialBody.extern_:
-					if (has(funAst.body_))
-						todo!void("diag: builtin fun can't have body");
+					if (!funAst.body_.kind.isA!EmptyAst)
+						todo!void("diag: extern fun can't have body");
 					return FunBody(checkExternBody(
 						ctx, fun, getExternTypeArg(*funAst, FunModifierAst.Special.Flags.extern_)));
 			}
@@ -618,21 +619,16 @@ FunsAndMap checkFuns(
 	foreach (size_t i, ref ImportOrExportFile f; fileExports)
 		funs[asts.length + fileImports.length + i].body_ = getFileImportFunctionBody(f);
 
-	Test[] tests = () @trusted {
-		return mapWithResultPointer!(Test, TestAst)(ctx.alloc, testAsts, (TestAst* ast, Test* out_) {
-			Type voidType = Type(commonTypes.void_);
-			Opt!Expr body_ = () {
-				if (!has(ast.body_)) {
-					addDiag(ctx, ast.range, Diag(Diag.FunMissingBody()));
-					return none!Expr;
-				} else
-					return some(checkFunctionBody(
-						ctx, structsAndAliasesMap, commonTypes, funsMap, TypeContainer(out_),
-						voidType, emptyTypeParams, [], [], FunFlags.none.withSummon, &force(ast.body_)));
-			}();
+	Test[] tests = (() @trusted =>
+		mapWithResultPointer!(Test, TestAst)(ctx.alloc, testAsts, (TestAst* ast, Test* out_) {
+			if (ast.body_.kind.isA!EmptyAst)
+				addDiag(ctx, ast.range, Diag(Diag.FunMissingBody()));
+			Expr body_ = checkFunctionBody(
+				ctx, structsAndAliasesMap, commonTypes, funsMap, TypeContainer(out_),
+				Type(commonTypes.void_), emptyTypeParams, [], [], FunFlags.none.withSummon, &ast.body_);
 			return Test(ast, ctx.curUri, body_);
-		});
-	}();
+		})
+	)();
 
 	return FunsAndMap(funs, tests, funsMap);
 }

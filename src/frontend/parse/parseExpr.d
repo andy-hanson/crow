@@ -89,10 +89,10 @@ import util.sourceRange : Pos, Range;
 import util.symbol : AllSymbols, appendEquals, Symbol, symbol;
 import util.util : max;
 
-Opt!ExprAst parseFunExprBody(ref Lexer lexer) =>
+ExprAst parseFunExprBody(ref Lexer lexer) =>
 	tryTakeToken(lexer, Token.newlineIndent)
-		? some(parseStatementsAndDedent(lexer))
-		: none!ExprAst;
+		? parseStatementsAndDedent(lexer)
+		: emptyAst(lexer);
 
 private:
 

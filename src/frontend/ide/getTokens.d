@@ -481,8 +481,7 @@ void addFunTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in F
 	addTypeParamsTokens(tokens, allSymbols, a.typeParams);
 	addSigReturnTypeAndParamsTokens(tokens, allSymbols, a.returnType, a.params);
 	addFunModifierTokens(tokens, allSymbols, a.modifiers);
-	if (has(a.body_))
-		addExprTokens(tokens, allSymbols, force(a.body_));
+	addExprTokens(tokens, allSymbols, a.body_);
 }
 
 void addExprTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in ExprAst a) {
