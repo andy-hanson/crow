@@ -24,12 +24,12 @@ import util.memory : memmove, memset;
 import util.opt : force, has, none, Opt, some;
 import util.string : cString;
 import util.symbol : AllSymbols, Symbol, symbol;
-import util.util : debugLog, todo, unreachable;
+import util.util : debugLog, todo;
 
 alias WriteCb = void delegate(Pipe, in string);
 
 WriteCb unreachableWriteCb() =>
-	(Pipe _, in string _1) => unreachable!void;
+	(Pipe _, in string _1) => assert(false);
 
 T withFakeExtern(T)(
 	ref Alloc alloc,
@@ -151,10 +151,14 @@ Opt!FunPtr getFakeExternFunC(Symbol name) {
 		case symbol!"longjmp".value:
 		case symbol!"setjmp".value:
 			// these are treated specially by the interpreter
-			return some(FunPtr(&unreachable!void));
+			return some(FunPtr(&wontBeCalled));
 		default:
 			return none!FunPtr;
 	}
+}
+
+void wontBeCalled() {
+	assert(false);
 }
 
 // Just used as fake funtion pointers, actual implementation in callFakeExternFun

@@ -15,7 +15,6 @@ import util.opt : force, none, Opt;
 import util.string : CString, cString, stringsEqual;
 import util.symbol : Symbol, symbol;
 import util.uri : Uri;
-import util.util : unreachable;
 
 void testFakeExtern(ref Test test) {
 	testMallocAndFree(test);
@@ -30,7 +29,7 @@ private:
 		ExternLibrary[1] externLibraries = [ExternLibrary(symbol!"c", none!Uri, exportNames)];
 		Opt!ExternFunPtrsForAllLibraries funPtrsOpt =
 			extern_.loadExternFunPtrs(externLibraries, (in CString _) =>
-				unreachable!void());
+				assert(false));
 		ExternFunPtrsForAllLibraries funPtrs = force(funPtrsOpt);
 		ExternFunPtrsForLibrary forCrow = mustGet(funPtrs, symbol!"c");
 		FunPtr free = mustGet(forCrow, symbol!"free");
@@ -74,7 +73,7 @@ void testWrite(ref Test test) {
 			ExternLibrary[1] externLibraries = [ExternLibrary(symbol!"c", none!Uri, exportNames)];
 			Opt!ExternFunPtrsForAllLibraries funPtrsOpt =
 				extern_.loadExternFunPtrs(externLibraries, (in CString _) =>
-					unreachable!void());
+					assert(false));
 			ExternFunPtrsForAllLibraries funPtrs = force(funPtrsOpt);
 			ExternFunPtrsForLibrary forCrow = mustGet(funPtrs, symbol!"c");
 			FunPtr write = mustGet(forCrow, symbol!"write");

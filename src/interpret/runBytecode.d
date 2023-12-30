@@ -38,7 +38,7 @@ import util.memory : memcpy, memmove, overwriteMemory;
 import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasureNoAlloc;
 import util.string : CString;
-import util.util : castNonScope_ref, debugLog, divRoundUp, ptrTrustMe, unreachable;
+import util.util : castNonScope_ref, debugLog, divRoundUp, ptrTrustMe;
 
 @safe int runBytecode(
 	scope ref Perf perf,
@@ -335,8 +335,7 @@ private void writePartialBytes(ubyte* ptr, ulong value, size_t size) {
 			*(cast(uint*) ptr) = cast(uint) value;
 			break;
 		default:
-			unreachable!void();
-			break;
+			assert(false);
 	}
 }
 

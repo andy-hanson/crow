@@ -37,7 +37,7 @@ import util.string : emptySmallString, SmallString;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : Union;
 import util.uri : Uri;
-import util.util : max, min, stringOfEnum, typeAs, unreachable;
+import util.util : max, min, stringOfEnum, typeAs;
 
 alias Purity = immutable Purity_;
 private enum Purity_ : ubyte {
@@ -1326,7 +1326,7 @@ private ClosureReferenceKind getClosureReferenceKind(VariableRef a) {
 		case LocalMutability.immut:
 			return ClosureReferenceKind.direct;
 		case LocalMutability.mutOnStack:
-			return unreachable!ClosureReferenceKind;
+			assert(false);
 		case LocalMutability.mutAllocated:
 			return ClosureReferenceKind.allocated;
 	}

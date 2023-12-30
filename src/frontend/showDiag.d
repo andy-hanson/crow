@@ -61,7 +61,7 @@ import util.sourceRange : compareRange;
 import util.string : CString;
 import util.symbol : Symbol, writeSymbol;
 import util.uri : AllUris, baseName, compareUriAlphabetically, Uri, writeRelPath, writeUri;
-import util.util : stringOfEnum, max, unreachable;
+import util.util : stringOfEnum, max;
 import util.writer :
 	withWriter,
 	writeEscapedChar,
@@ -1138,7 +1138,7 @@ string describeTokenForUnexpected(Token token) {
 			return "Unexpected keyword 'import'.";
 		case Token.invalid:
 			// This is UnexpectedCharacter instead
-			return unreachable!string;
+			assert(false);
 		case Token.literalFloat:
 		case Token.literalInt:
 		case Token.literalNat:
@@ -1161,7 +1161,7 @@ string describeTokenForUnexpected(Token token) {
 			return "Unexpected keyword 'no-std'.";
 		case Token.operator:
 			// This is UnexpectedOperator instead
-			return unreachable!string;
+			assert(false);
 		case Token.parenLeft:
 			return "Unexpected '('.";
 		case Token.parenRight:
@@ -1175,7 +1175,7 @@ string describeTokenForUnexpected(Token token) {
 		case Token.quoteDouble3:
 			return "Unexpected '\"\"\"'.";
 		case Token.quotedText:
-			return unreachable!string;
+			assert(false);
 		case Token.record:
 			return "Unexpected keyword 'record'.";
 		case Token.semicolon:

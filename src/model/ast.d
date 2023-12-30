@@ -15,7 +15,6 @@ import util.string : emptySmallString, SmallString;
 import util.symbol : AllSymbols, Symbol, symbol, symbolSize;
 import util.union_ : Union;
 import util.uri : AllUris, Path, pathLength, RelPath, relPathLength;
-import util.util : unreachable;
 
 immutable struct NameAndRange {
 	@safe @nogc pure nothrow:
@@ -765,7 +764,7 @@ string stringOfSpecialFlag(FunModifierAst.Special.Flags a) {
 		case FunModifierAst.Special.Flags.forceCtx:
 			return "force-ctx";
 		default:
-			return unreachable!string;
+			assert(false);
 	}
 }
 

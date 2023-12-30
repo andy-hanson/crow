@@ -30,7 +30,7 @@ import util.opt : force, has, Opt, none, some;
 import util.string : CString, cString;
 import util.symbol : AllSymbols, concatSymbols, Symbol, symbol, symbolAsTempBuffer;
 import util.uri : AllUris, asFileUri, childUri, fileUriToTempStr, isFileUri, TempStrForPath, Uri;
-import util.util : todo, unreachable;
+import util.util : todo;
 
 @trusted ExitCode withRealExtern(
 	ref Alloc alloc,
@@ -269,7 +269,7 @@ LoadedLibraries loadLibrariesInner(
 			dcArgPointer(dcVm, cast(void*) value);
 			break;
 		case DynCallType.void_:
-			unreachable!void();
+			assert(false);
 	}
 }
 
@@ -406,7 +406,7 @@ pure char dynCallSigChar(DynCallType a) {
 		case DynCallType.pointer:
 			return cast(ulong) dcbArgPointer(args);
 		case DynCallType.void_:
-			return unreachable!ulong;
+			assert(false);
 	}
 }
 

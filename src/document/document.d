@@ -50,7 +50,7 @@ import util.sourceRange : compareUriAndRange, UriAndRange;
 import util.string : CString, SmallString;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.uri : AllUris, stringOfUri;
-import util.util : stringOfEnum, unreachable;
+import util.util : stringOfEnum;
 
 CString documentJSON(ref Alloc alloc, in AllSymbols allSymbols, in AllUris allUris, in Program program) =>
 	jsonToString(alloc, allSymbols, documentRootModules(alloc, allSymbols, allUris, program));
@@ -124,7 +124,7 @@ DocExport documentStructAlias(ref Alloc alloc, in StructAlias a) {
 DocExport documentStructDecl(ref Alloc alloc, in StructDecl a) =>
 	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, a.body_.matchIn!Json(
 		(in StructBody.Bogus) =>
-			unreachable!Json,
+			assert(false),
 		(in StructBody.Builtin) =>
 			jsonObject(alloc, [kindField!"builtin", field!"name"(a.name)]),
 		(in StructBody.Enum x) =>
@@ -257,7 +257,7 @@ Json documentParam(ref Alloc alloc, in TypeParams typeParams, in Destructure a) 
 Json documentTypeRef(ref Alloc alloc, in TypeParams typeParams, in Type a) =>
 	a.matchIn!Json(
 		(in Type.Bogus) =>
-			unreachable!Json,
+			assert(false),
 		(in TypeParamIndex x) =>
 			jsonObject(alloc, [kindField!"type-param", field!"name"(typeParams[x.index].name)]),
 		(in StructInst x) =>

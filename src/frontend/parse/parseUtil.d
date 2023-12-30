@@ -23,7 +23,6 @@ import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
 import util.string : emptySmallString, SmallString;
 import util.symbol : Symbol, symbol;
-import util.util : unreachable;
 
 bool peekToken(ref Lexer lexer, Token expected) =>
 	getPeekToken(lexer) == expected;
@@ -204,7 +203,7 @@ private NewlineOrDedent skipToNextNewlineOrDedent(ref Lexer lexer) {
 				dedentsNeeded += 1;
 				break;
 			default:
-				return unreachable!NewlineOrDedent;
+				assert(false);
 		}
 	}
 }

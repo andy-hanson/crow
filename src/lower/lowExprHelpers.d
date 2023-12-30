@@ -19,7 +19,6 @@ import util.alloc.alloc : Alloc;
 import util.memory : allocate, overwriteMemory;
 import util.sourceRange : UriAndRange;
 import util.symbol : Symbol, symbol;
-import util.util : unreachable;
 
 LowType boolType = LowType(PrimitiveType.bool_);
 LowType char8Type = LowType(PrimitiveType.char8);
@@ -138,7 +137,7 @@ private LowExprKind.SpecialUnary.Kind bitwiseNegateForType(PrimitiveType a) {
 		case PrimitiveType.int16:
 		case PrimitiveType.int32:
 		case PrimitiveType.int64:
-			return unreachable!(LowExprKind.SpecialUnary.Kind);
+			assert(false);
 		case PrimitiveType.nat8:
 			return LowExprKind.SpecialUnary.Kind.bitwiseNotNat8;
 		case PrimitiveType.nat16:
@@ -157,7 +156,7 @@ private LowExprKind.SpecialBinary.Kind eqForType(PrimitiveType a) {
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:
-			return unreachable!(LowExprKind.SpecialBinary.Kind);
+			assert(false);
 		case PrimitiveType.int8:
 			return LowExprKind.SpecialBinary.Kind.eqInt8;
 		case PrimitiveType.int16:
@@ -184,7 +183,7 @@ private LowExprKind.SpecialBinary.Kind intersectForType(PrimitiveType a) {
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:
-			return unreachable!(LowExprKind.SpecialBinary.Kind);
+			assert(false);
 		case PrimitiveType.int8:
 			return LowExprKind.SpecialBinary.Kind.bitwiseAndInt8;
 		case PrimitiveType.int16:
@@ -211,7 +210,7 @@ private LowExprKind.SpecialBinary.Kind unionForType(PrimitiveType a) {
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:
-			return unreachable!(LowExprKind.SpecialBinary.Kind);
+			assert(false);
 		case PrimitiveType.int8:
 			return LowExprKind.SpecialBinary.Kind.bitwiseOrInt8;
 		case PrimitiveType.int16:

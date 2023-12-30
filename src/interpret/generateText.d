@@ -38,7 +38,7 @@ import util.col.exactSizeArrayBuilder :
 import util.col.fullIndexMap : FullIndexMap, mapFullIndexMap;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.string : CString, cStringSize;
-import util.util : castImmutable, castNonScope, ptrTrustMe, todo, unreachable;
+import util.util : castImmutable, castNonScope, ptrTrustMe, todo;
 
 immutable struct VarsInfo {
 	// Thread-locals and globals offsets are in different buffers.
@@ -311,8 +311,7 @@ void writeConstant(ref Alloc alloc, ref TempAlloc tempAlloc, ref Ctx ctx, in Low
 					add64(ctx.text, bitsOfFloat64(x.value));
 					break;
 				default:
-					unreachable!void();
-					break;
+					assert(false);
 			}
 		},
 		(in Constant.FunPtr x) {
@@ -330,8 +329,7 @@ void writeConstant(ref Alloc alloc, ref TempAlloc tempAlloc, ref Ctx ctx, in Low
 				case PrimitiveType.float32:
 				case PrimitiveType.float64:
 				case PrimitiveType.void_:
-					unreachable!void();
-					break;
+					assert(false);
 				case PrimitiveType.bool_:
 				case PrimitiveType.char8:
 				case PrimitiveType.int8:

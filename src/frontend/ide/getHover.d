@@ -65,7 +65,7 @@ import util.opt : none, Opt, some;
 import util.sourceRange : UriAndRange;
 import util.symbol : writeSymbol;
 import util.uri : Uri;
-import util.util : ptrTrustMe, unreachable;
+import util.util : ptrTrustMe;
 import util.writer : makeStringWithWriter, Writer;
 
 Opt!Hover getHover(ref Alloc alloc, in ShowModelCtx ctx, in Position pos) {
@@ -95,7 +95,7 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 			writer ~= () {
 				final switch (x.flag) {
 					case FunModifierAst.Special.Flags.none:
-						return unreachable!string;
+						assert(false);
 					case FunModifierAst.Special.Flags.builtin:
 						return "This function is built in to the compiler.";
 					case FunModifierAst.Special.Flags.extern_:

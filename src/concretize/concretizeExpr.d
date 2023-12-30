@@ -107,7 +107,7 @@ import util.sourceRange : Range, UriAndRange;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : Union;
 import util.uri : Uri;
-import util.util : castNonScope, castNonScope_ref, ptrTrustMe, todo, unreachable;
+import util.util : castNonScope, castNonScope_ref, ptrTrustMe, todo;
 import versionInfo : VersionInfo;
 
 ConcreteExpr concretizeFunBody(
@@ -395,7 +395,7 @@ ReferenceKind addIndirection(ReferenceKind a) {
 		case ReferenceKind.byRef:
 			return ReferenceKind.byRefRef;
 		case ReferenceKind.byRefRef:
-			return unreachable!ReferenceKind;
+			assert(false);
 	}
 }
 
@@ -404,7 +404,7 @@ ConcreteType removeIndirection(ConcreteType a) =>
 ReferenceKind removeIndirection(ReferenceKind a) {
 	final switch (a) {
 		case ReferenceKind.byVal:
-			return unreachable!ReferenceKind;
+			assert(false);
 		case ReferenceKind.byRef:
 			return ReferenceKind.byVal;
 		case ReferenceKind.byRefRef:

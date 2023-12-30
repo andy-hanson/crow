@@ -11,7 +11,7 @@ import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.string : CString, MutCString, SmallString, stringOfRange;
 import util.symbol : AllSymbols, appendEquals, Symbol, symbol, symbolOfString;
-import util.util : todo, unreachable;
+import util.util : todo;
 
 immutable struct DocCommentAndExtraDedents {
 	SmallString docComment;
@@ -236,7 +236,7 @@ TokenAndData lexToken(
 		case '\r':
 		case '#':
 			// handled by skipSpacesAndComments
-			return unreachable!TokenAndData();
+			assert(false);
 		case '\n':
 			return newlineToken(ptr, Token.newlineSameIndent, indentKind, curIndent, addDiag);
 		case '~':

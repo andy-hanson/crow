@@ -134,7 +134,7 @@ import util.sourceRange : UriAndRange;
 import util.string : CString;
 import util.symbol : AllSymbols, writeSymbol;
 import util.union_ : Union, UnionMutable;
-import util.util : castImmutable, castNonScope, castNonScope_ref, cStringOfEnum, ptrTrustMe, todo, unreachable;
+import util.util : castImmutable, castNonScope, castNonScope_ref, cStringOfEnum, ptrTrustMe, todo;
 import util.writer : debugLogWithWriter, withWriter, Writer;
 
 @trusted int jitAndRun(
@@ -320,7 +320,7 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in AllSymbols all
 						toGccExpr(exprCtx, locals, emit, expr.expr));
 					result.match!void(
 						(ExprResult.BreakContinueOrReturn) {},
-						(ref gcc_jit_rvalue) => unreachable!void,
+						(ref gcc_jit_rvalue) => assert(false),
 						(ExprResult.Void) {});
 				}
 
@@ -614,7 +614,7 @@ ExprResult emitSimpleNoSideEffects(ref ExprCtx ctx, ref ExprEmit emit, gcc_jit_r
 	assert(value != null);
 	return emit.match!ExprResult(
 		(ExprEmit.Loop*) =>
-			unreachable!ExprResult,
+			assert(false),
 		(ExprEmit.Return) {
 			gcc_jit_block_end_with_return(ctx.curBlock, null, value);
 			return ExprResult(ExprResult.BreakContinueOrReturn());
@@ -657,7 +657,7 @@ ExprResult emitWriteToLValue(
 ) =>
 	emit.match!ExprResult(
 		(ExprEmit.Loop*) =>
-			unreachable!ExprResult,
+			assert(false),
 		(ExprEmit.Return) {
 			gcc_jit_rvalue* rvalue = getRValueUsingLocal(ctx, type, cb);
 			gcc_jit_block_end_with_return(ctx.curBlock, null, rvalue);
@@ -678,7 +678,7 @@ ExprResult emitWriteToLValue(
 ExprResult emitVoid(ref ExprCtx ctx, ref ExprEmit emit) =>
 	emit.match!ExprResult(
 		(ExprEmit.Loop*) =>
-			unreachable!ExprResult,
+			assert(false),
 		(ExprEmit.Return) {
 			//TODO: this should be unnecessary, use local void
 			gcc_jit_block_end_with_return(ctx.curBlock, null, ctx.globalVoid);
@@ -905,7 +905,7 @@ ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ref ExprEmit emit, in L
 		(in LowExprKind.SpecialBinary it) =>
 			binaryToGcc(ctx, locals, emit, a.type, it),
 		(in LowExprKind.SpecialTernary) =>
-			unreachable!ExprResult,
+			assert(false),
 		(in LowExprKind.Switch0ToN it) =>
 			switch0ToNToGcc(ctx, locals, emit, a.type, it),
 		(in LowExprKind.SwitchWithValues) =>
@@ -1145,7 +1145,7 @@ ExprResult loopBreakToGcc(ref ExprCtx ctx, ref Locals locals, ref ExprEmit emit,
 	ExprResult result = toGccExpr(ctx, locals, loop.breakEmit, a.value);
 	result.match!void(
 		(ExprResult.BreakContinueOrReturn) {},
-		(ref gcc_jit_rvalue) { unreachable!void(); },
+		(ref gcc_jit_rvalue) { assert(false); },
 		(ExprResult.Void) {
 			gcc_jit_block_end_with_jump(ctx.curBlock, null, force(loop.endBlock));
 		});
@@ -1891,7 +1891,7 @@ gcc_jit_rvalue* zeroForPrimitiveType(ref ExprCtx ctx, PrimitiveType a) {
 		case PrimitiveType.float64:
 			return gcc_jit_context_new_rvalue_from_double(ctx.gcc, gccType, 0);
 		case PrimitiveType.void_:
-			return unreachable!(gcc_jit_rvalue*);
+			assert(false);
 	}
 }
 

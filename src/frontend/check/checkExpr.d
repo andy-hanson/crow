@@ -167,7 +167,7 @@ import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, someMut,
 import util.sourceRange : Pos, Range;
 import util.symbol : prependSet, prependSetDeref, Symbol, symbol, symbolOfString;
 import util.union_ : Union;
-import util.util : castImmutable, castNonScope_ref, max, ptrTrustMe, todo, unreachable;
+import util.util : castImmutable, castNonScope_ref, max, ptrTrustMe, todo;
 
 Expr checkFunctionBody(
 	ref CheckCtx checkCtx,
@@ -906,7 +906,7 @@ Opt!Expr checkWithDestructureParts(
 ) {
 	switch (parts.length) {
 		case 0:
-			return unreachable!(Opt!Expr);
+			assert(false);
 		case 1:
 			return checkWithDestructure(ctx, locals, only(parts), cb);
 		default:

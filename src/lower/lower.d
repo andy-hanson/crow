@@ -137,7 +137,7 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : UriAndRange;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : Union;
-import util.util : castNonScope_ref, ptrTrustMe, todo, typeAs, unreachable;
+import util.util : castNonScope_ref, ptrTrustMe, todo, typeAs;
 
 LowProgram lower(
 	scope ref Perf perf,
@@ -428,10 +428,10 @@ LowUnion getLowUnion(ref Alloc alloc, in ConcreteProgram program, ref GetLowType
 			return map(getLowTypeCtx.alloc, impls, (ref ConcreteLambdaImpl impl) =>
 				lowTypeFromConcreteType(getLowTypeCtx, impl.closureType));
 		},
-		(in ConcreteStructBody.Enum) => unreachable!(LowType[])(),
-		(in ConcreteStructBody.Extern) => unreachable!(LowType[])(),
-		(in ConcreteStructBody.Flags) => unreachable!(LowType[])(),
-		(in ConcreteStructBody.Record) => unreachable!(LowType[])(),
+		(in ConcreteStructBody.Enum) => assert(false),
+		(in ConcreteStructBody.Extern) => assert(false),
+		(in ConcreteStructBody.Flags) => assert(false),
+		(in ConcreteStructBody.Record) => assert(false),
 		(in ConcreteStructBody.Union it) =>
 			map(getLowTypeCtx.alloc, it.members, (ref ConcreteType member) =>
 				lowTypeFromConcreteType(getLowTypeCtx, member))));
@@ -460,7 +460,7 @@ LowType lowTypeFromConcreteStruct(ref GetLowTypeCtx ctx, in ConcreteStruct* stru
 			case BuiltinStructKind.pointerMut:
 				return LowType(LowType.PtrRawMut(inner));
 			default:
-				return unreachable!LowType;
+				assert(false);
 		}
 	}
 }
@@ -558,11 +558,11 @@ AllLowFuns getAllLowFuns(
 
 		return lowType.match!LowFunIndex(
 			(LowType.Extern) =>
-				unreachable!LowFunIndex,
+				assert(false),
 			(LowType.FunPtr) =>
-				unreachable!LowFunIndex,
+				assert(false),
 			(PrimitiveType it) =>
-				unreachable!LowFunIndex,
+				assert(false),
 			(LowType.PtrGc it) {
 				Opt!LowFunIndex visitPointee = maybeGenerateMarkVisitForType(*it.pointee);
 				return getOrAdd(
@@ -572,9 +572,9 @@ AllLowFuns getAllLowFuns(
 					() => addLowFun(LowFunCause(LowFunCause.MarkVisitGcPtr(it, visitPointee))));
 			},
 			(LowType.PtrRawConst) =>
-				unreachable!LowFunIndex,
+				assert(false),
 			(LowType.PtrRawMut) =>
-				unreachable!LowFunIndex,
+				assert(false),
 			(LowType.Record it) {
 				LowRecord record = allTypes.allRecords[it];
 				if (isArray(record)) {
@@ -865,15 +865,15 @@ LowFunBody getLowFunBody(
 ) =>
 	a.body_.match!LowFunBody(
 		(ConcreteFunBody.Builtin) =>
-			unreachable!LowFunBody,
+			assert(false),
 		(Constant _) =>
-			unreachable!LowFunBody,
+			assert(false),
 		(ConcreteFunBody.CreateRecord) =>
-			unreachable!LowFunBody,
+			assert(false),
 		(ConcreteFunBody.CreateUnion) =>
-			unreachable!LowFunBody,
+			assert(false),
 		(EnumFunction) =>
-			unreachable!LowFunBody,
+			assert(false),
 		(ConcreteFunBody.Extern x) =>
 			LowFunBody(LowFunBody.Extern(x.libraryName)),
 		(ConcreteExpr x) {
@@ -896,17 +896,17 @@ LowFunBody getLowFunBody(
 			return LowFunBody(LowFunExprBody(exprCtx.hasTailRecur, expr));
 		},
 		(ConcreteFunBody.FlagsFn) =>
-			unreachable!LowFunBody,
+			assert(false),
 		(ConcreteFunBody.RecordFieldGet) =>
-			unreachable!LowFunBody,
+			assert(false),
 		(ConcreteFunBody.RecordFieldPointer) =>
-			unreachable!LowFunBody,
+			assert(false),
 		(ConcreteFunBody.RecordFieldSet) =>
-			unreachable!LowFunBody,
+			assert(false),
 		(ConcreteFunBody.VarGet) =>
-			unreachable!LowFunBody,
+			assert(false),
 		(ConcreteFunBody.VarSet) =>
-			unreachable!LowFunBody);
+			assert(false));
 
 struct GetLowExprCtx {
 	@safe @nogc pure nothrow:
@@ -1191,9 +1191,9 @@ LowExprKind getCallSpecial(
 		(EnumFunction x) =>
 			genEnumFunction(ctx, locals, x, a.args),
 		(ConcreteFunBody.Extern) =>
-			unreachable!LowExprKind,
+			assert(false),
 		(ConcreteExpr _) =>
-			unreachable!LowExprKind,
+			assert(false),
 		(ConcreteFunBody.FlagsFn x) {
 			final switch (x.fn) {
 				case FlagsFunction.all:
@@ -1260,7 +1260,7 @@ LowExprKind genEnumFunction(
 			return genEnumUnion(ctx.alloc, arg0(), arg1());
 		case EnumFunction.members:
 			// In concretize, this was translated to a constant
-			return unreachable!LowExprKind;
+			assert(false);
 	}
 }
 

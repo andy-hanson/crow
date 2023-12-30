@@ -60,7 +60,7 @@ import util.col.mutMaxArr : asTemporaryArray, initializeMutMaxArr, MutMaxArr, pu
 import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.symbol : AllSymbols, Symbol, symbol;
-import util.util : castImmutable, ptrTrustMe, todo, unreachable;
+import util.util : castImmutable, ptrTrustMe, todo;
 
 ByteCode generateBytecode(
 	scope ref Perf perf,
@@ -293,9 +293,9 @@ DynCallType toDynCallType(in LowType a) =>
 		(in LowType.PtrRawMut) =>
 			DynCallType.pointer,
 		(in LowType.Record) =>
-			unreachable!DynCallType,
+			assert(false),
 		(in LowType.Union) =>
-			unreachable!DynCallType);
+			assert(false));
 
 DynCallType primitiveToDynCallType(PrimitiveType a) {
 	final switch (a) {

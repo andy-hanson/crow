@@ -24,7 +24,7 @@ import util.col.enumMap : enumMapFindKey;
 import util.col.mutMaxArr : asTemporaryArray, push;
 import util.opt : has, force, MutOpt, none, noneMut, Opt, optOrDefault, some, someInout, someMut;
 import util.union_ : UnionMutable;
-import util.util : castNonScope_ref, unreachable;
+import util.util : castNonScope_ref;
 
 struct SingleInferringType {
 	@safe @nogc pure nothrow:
@@ -302,7 +302,7 @@ Expr bogus(ref Expected expected, ExprAst* ast) {
 Type inferred(ref const Expected expected) =>
 	expected.matchConst!Type(
 		(Expected.Infer) =>
-			unreachable!Type,
+			assert(false),
 		(Expected.LocalType x) =>
 			x.type,
 		(const TypeAndContext[] choices) =>

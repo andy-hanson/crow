@@ -50,7 +50,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : Symbol, symbol;
-import util.util : castNonScope_ref, todo, unreachable;
+import util.util : castNonScope_ref, todo;
 
 enum CommonModule {
 	bootstrap,
@@ -201,7 +201,7 @@ immutable(FunDecl*[]) getFunOrActSubscriptFuns(
 			case FunKind.act:
 				return true;
 			case FunKind.far:
-				return unreachable!bool;
+				assert(false);
 			case FunKind.pointer:
 				return false;
 		}
@@ -214,7 +214,7 @@ FunKind firstArgFunKind(in CommonTypes commonTypes, FunDecl* f) {
 	foreach (FunKind kind; [FunKind.fun, FunKind.act, FunKind.pointer])
 		if (actual == commonTypes.funStructs[kind])
 			return kind;
-	return unreachable!FunKind;
+	assert(false);
 }
 
 Type getNonTemplateType(

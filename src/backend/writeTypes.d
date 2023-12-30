@@ -19,7 +19,7 @@ import util.col.array : every;
 import util.col.fullIndexMap :
 	FullIndexMap, fullIndexMapEachKey, fullIndexMapEachValue, fullIndexMapSize, makeFullIndexMap_mut;
 import util.opt : none, Opt, some;
-import util.util : isMultipleOf, unreachable;
+import util.util : isMultipleOf;
 
 void writeTypes(ref Alloc alloc, in LowProgram program, in TypeWriters writers) {
 	fullIndexMapEachValue!(LowType.Extern, LowExternType)(program.allExternTypes, (ref LowExternType it) {
@@ -112,7 +112,7 @@ Opt!ElementAndCount getElementAndCountForExtern(TypeSize size) {
 			assert(isMultipleOf(size.sizeBytes, 8));
 			return some(ElementAndCount(PrimitiveType.nat64, size.sizeBytes / 8));
 		default:
-			return unreachable!(Opt!ElementAndCount);
+			assert(false);
 	}
 }
 

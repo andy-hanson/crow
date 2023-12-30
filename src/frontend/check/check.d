@@ -109,7 +109,7 @@ import util.sourceRange : Range;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : Union;
 import util.uri : AllUris, Uri;
-import util.util : ptrTrustMe, unreachable, todo;
+import util.util : ptrTrustMe, todo;
 
 immutable struct UriAndAst {
 	Uri uri;
@@ -500,7 +500,7 @@ FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, FunModifierAst.Special.
 			? symbol!"builtin"
 			: extern_
 			? symbol!"extern"
-			: unreachable!Symbol;
+			: assert(false);
 	}
 
 	FunFlags.Safety safety = !unsafe
@@ -674,7 +674,7 @@ Opt!TypeAst getExternTypeArg(ref FunDeclAst a, FunModifierAst.Special.Flags exte
 		if (has(res))
 			return force(res);
 	}
-	return unreachable!(Opt!TypeAst);
+	assert(false);
 }
 
 FunBody getFileImportFunctionBody(in ImportOrExportFile a) =>
@@ -1021,7 +1021,7 @@ ImportsOrReExports checkImportsOrReExports(
 				add(alloc, imports, ImportOrExport(source, x, cb(x)));
 			},
 			(FileContent) {
-				unreachable!void();
+				assert(false);
 			},
 			(Diag.ImportFileDiag x) {
 				add(alloc, diagsBuilder, Diagnostic(
@@ -1048,7 +1048,7 @@ ImportsOrReExports checkImportsOrReExports(
 				(ref ImportOrExportAstKind.File x) {
 					nextResolvedImport().matchWithPointers!void(
 						(Module*) {
-							unreachable!void();
+							assert(false);
 						},
 						(Uri x) {
 							add(alloc, fileImports, ImportOrExportFile(importAst, x));

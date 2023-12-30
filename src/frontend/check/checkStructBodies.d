@@ -51,7 +51,7 @@ import util.conv : safeToSizeT;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, some, someMut;
 import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
-import util.util : isMultipleOf, ptrTrustMe, todo, unreachable;
+import util.util : isMultipleOf, ptrTrustMe, todo;
 
 StructDecl[] checkStructsInitial(ref CheckCtx ctx, in StructDeclAst[] asts) =>
 	mapPointers!(StructDecl, StructDeclAst)(ctx.alloc, asts, (StructDeclAst* ast) {
@@ -478,7 +478,7 @@ EnumBackingType getEnumTypeFromType(
 			defaultEnumBackingType(),
 		(TypeParamIndex _) =>
 			// enums can't have type params
-			unreachable!EnumBackingType(),
+			assert(false),
 		(StructInst* x) =>
 			x == integrals.int8
 				? EnumBackingType.int8

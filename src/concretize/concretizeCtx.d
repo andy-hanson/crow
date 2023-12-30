@@ -98,7 +98,7 @@ import util.opt : force, has, none;
 import util.sourceRange : UriAndRange;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.uri : AllUris, Uri;
-import util.util : max, roundUp, todo, typeAs, unreachable;
+import util.util : max, roundUp, todo, typeAs;
 import versionInfo : VersionInfo;
 
 immutable struct TypeArgsScope {
@@ -567,7 +567,7 @@ void initializeConcreteStruct(
 	in TypeArgsScope typeArgsScope,
 ) {
 	i.decl.body_.match!void(
-		(StructBody.Bogus) => unreachable!void,
+		(StructBody.Bogus) => assert(false),
 		(StructBody.Builtin) {
 			BuiltinStructKind kind = getBuiltinStructKind(i.decl.name);
 			res.defaultReferenceKind = ReferenceKind.byVal;
@@ -818,19 +818,19 @@ ConcreteFunBody bodyForEnumOrFlagsMembers(ref ConcretizeCtx ctx, ConcreteType re
 EnumMember[] enumOrFlagsMembers(ConcreteType type) =>
 	mustBeByVal(type).source.as!(ConcreteStructSource.Inst).inst.decl.body_.match!(EnumMember[])(
 		(StructBody.Bogus) =>
-			unreachable!(EnumMember[]),
+			assert(false),
 		(StructBody.Builtin) =>
-			unreachable!(EnumMember[]),
+			assert(false),
 		(StructBody.Enum x) =>
 			x.members,
 		(StructBody.Extern) =>
-			unreachable!(EnumMember[]),
+			assert(false),
 		(StructBody.Flags x) =>
 			x.members,
 		(StructBody.Record) =>
-			unreachable!(EnumMember[]),
+			assert(false),
 		(StructBody.Union) =>
-			unreachable!(EnumMember[]));
+			assert(false));
 
 ConcreteFunBody bodyForAllTests(ref ConcretizeCtx ctx, ConcreteType returnType) {
 	Test[] allTests = () {

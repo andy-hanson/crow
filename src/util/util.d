@@ -76,10 +76,6 @@ version (WebAssembly) {
 	}
 }
 
-T unreachable(T)() {
-	assert(0);
-}
-
 E enumOfString(E)(in string a) {
 	assertNormalEnum!E();
 	final switch (a) {

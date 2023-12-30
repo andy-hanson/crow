@@ -159,7 +159,7 @@ import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.opt : force, has, Opt;
 import util.symbol : AllSymbols, Symbol;
 import util.union_ : UnionMutable;
-import util.util : castNonScope, castNonScope_ref, divRoundUp, ptrTrustMe, unreachable;
+import util.util : castNonScope, castNonScope_ref, divRoundUp, ptrTrustMe;
 
 void generateFunFromExpr(
 	ref TempAlloc tempAlloc,
@@ -234,7 +234,7 @@ void handleAfter(
 		},
 		(scope ref ExprAfterKind.Loop) {
 			// Only 'break' or 'continue' possible here, and they don't call 'handleAfter' normally
-			unreachable!void();
+			assert(false);
 		},
 		(ExprAfterKind.Return) {
 			writeReturn(writer, source);
@@ -795,8 +795,7 @@ void generateConstant(
 					writePushConstant(writer, source, bitsOfFloat64(it.value));
 					break;
 				default:
-					unreachable!void();
-					break;
+					assert(false);
 			}
 		},
 		(in Constant.FunPtr it) {

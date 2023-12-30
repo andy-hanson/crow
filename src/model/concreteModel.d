@@ -27,7 +27,6 @@ import util.sourceRange : UriAndRange;
 import util.string : CString;
 import util.symbol : Symbol;
 import util.union_ : Union;
-import util.util : unreachable;
 
 enum BuiltinStructKind {
 	bool_,
@@ -388,9 +387,9 @@ bool isSummon(ref ConcreteFun a) =>
 			isSummon(*x.containingFun),
 		(in ConcreteFunSource.Test) =>
 			// 'isSummon' is called for direct calls, but tests are never called directly
-			unreachable!bool(),
+			assert(false),
 		(in ConcreteFunSource.WrapMain) =>
-			unreachable!bool());
+			assert(false));
 
 UriAndRange concreteFunRange(in ConcreteFun a) =>
 	a.source.matchIn!UriAndRange(

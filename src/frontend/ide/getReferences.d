@@ -96,7 +96,7 @@ import util.opt : force, has, none, Opt, optEqual, some;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : AllSymbols, prependSet, Symbol;
 import util.uri : AllUris, Uri;
-import util.util : ptrTrustMe, unreachable;
+import util.util : ptrTrustMe;
 
 UriAndRange[] getReferencesForPosition(
 	ref Alloc alloc,
@@ -268,9 +268,9 @@ void referencesForTypeParam(
 		(in StructDecl x) =>
 			eachTypeInStruct(x, typeCb),
 		(in Test _) =>
-			unreachable!void,
+			assert(false),
 		(in VarDecl _) =>
-			unreachable!void);
+			assert(false));
 }
 
 alias TypeCb = void delegate(in Type, in TypeAst) @safe @nogc pure nothrow;

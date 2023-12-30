@@ -48,7 +48,6 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : UriAndRange;
 import util.symbol : symbol;
-import util.util : unreachable;
 
 LowFun generateMarkVisitGcPtr(
 	ref Alloc alloc,
@@ -115,7 +114,7 @@ LowFun generateMarkVisitNonArr(
 		: paramType.isA!(LowType.Union)
 		? visitUnionBody(
 			alloc, range, markVisitFuns, allTypes.allUnions[paramType.as!(LowType.Union)].members, markCtx, value)
-		: unreachable!LowFunExprBody;
+		: assert(false);
 	return LowFun(
 		LowFunSource(allocate(alloc, LowFunSource.Generated(
 			symbol!"mark-visit", newArray!LowType(alloc, [paramType])))),

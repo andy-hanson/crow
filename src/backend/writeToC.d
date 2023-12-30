@@ -59,7 +59,7 @@ import util.opt : force, has, Opt, some;
 import util.string : eachChar, CString;
 import util.symbol : AllSymbols;
 import util.union_ : Union;
-import util.util : abs, castNonScope, castNonScope_ref, ptrTrustMe, unreachable;
+import util.util : abs, castNonScope, castNonScope_ref, ptrTrustMe;
 import util.writer :
 	withWriter,
 	writeEscapedChar_inner,
@@ -785,7 +785,7 @@ WriteExprResult writeExpr(
 		(in LowExprKind.SpecialBinary it) =>
 			writeSpecialBinary(writer, indent, ctx, locals, writeKind, type, it),
 		(in LowExprKind.SpecialTernary) =>
-			unreachable!WriteExprResult,
+			assert(false),
 		(in LowExprKind.Switch0ToN it) =>
 			writeSwitch(
 				writer, indent, ctx, locals, writeKind, type, it.value, it.cases,
@@ -937,15 +937,15 @@ WriteExprResult writeReturnVoid(
 ) =>
 	castNonScope_ref(writeKind).matchIn!WriteExprResult(
 		(in WriteKind.Inline) =>
-			unreachable!WriteExprResult,
+			assert(false),
 		(in WriteKind.InlineOrTemp) =>
-			unreachable!WriteExprResult,
+			assert(false),
 		(in LowLocal) =>
-			unreachable!WriteExprResult,
+			assert(false),
 		(in LowVarIndex) =>
-			unreachable!WriteExprResult,
+			assert(false),
 		(in WriteKind.MakeTemp) =>
-			unreachable!WriteExprResult,
+			assert(false),
 		(in WriteKind.Return) {
 			if (cb != null) {
 				writeNewline(writer, indent);
@@ -957,7 +957,7 @@ WriteExprResult writeReturnVoid(
 			return writeExprDone();
 		},
 		(in WriteKind.UseTemp) =>
-			unreachable!WriteExprResult,
+			assert(false),
 		(in WriteKind.Void) {
 			if (cb != null) {
 				writeNewline(writer, indent);
@@ -1145,7 +1145,7 @@ bool isSignedIntegral(PrimitiveType a) {
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:
-			return unreachable!bool;
+			assert(false);
 		case PrimitiveType.int8:
 		case PrimitiveType.int16:
 		case PrimitiveType.int32:
@@ -1214,20 +1214,20 @@ void writeConstantRef(
 				case PrimitiveType.float64:
 					break;
 				default:
-					unreachable!void();
+					assert(false);
 			}
 			writeFloatLiteral(writer, x.value);
 		},
 		(in Constant.FunPtr it) {
 			bool isRawPtr = type.match!bool(
-				(LowType.Extern) => unreachable!bool,
+				(LowType.Extern) => assert(false),
 				(LowType.FunPtr) => false,
-				(PrimitiveType _) => unreachable!bool,
-				(LowType.PtrGc) => unreachable!bool,
+				(PrimitiveType _) => assert(false),
+				(LowType.PtrGc) => assert(false),
 				(LowType.PtrRawConst) => true,
 				(LowType.PtrRawMut) => true,
-				(LowType.Record) => unreachable!bool,
-				(LowType.Union) => unreachable!bool);
+				(LowType.Record) => assert(false),
+				(LowType.Union) => assert(false));
 			if (isRawPtr)
 				writer ~= "((uint8_t*)";
 			writeFunPtr(writer, ctx, mustGet(ctx.program.concreteFunToLowFunIndex, it.fun));
