@@ -229,7 +229,7 @@ void add(scope ref TokensBuilder a, Range range, TokenType type, TokenModifiers 
 }
 
 void addLastTokens(scope ref TokensBuilder a) {
-	addTokensBetween(a, Range(a.prevPos, safeToUint(cStringSize(a.source))));
+	addTokensBetween(a, rangeOfStartAndLength(a.prevPos, cStringSize((() @trusted => a.source.jumpTo(a.prevPos))())));
 }
 
 void addInner(scope ref TokensBuilder a, Range range, TokenType type, TokenModifiers modifiers) {
