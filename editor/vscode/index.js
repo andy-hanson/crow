@@ -1,5 +1,6 @@
 /*
 If editing this file, run 'make install-vscode-extension' for the changes to take effect.
+(You don't need to do that when rebuilding `bin/crow`.)
 */
 
 const childProcess = require("child_process")
@@ -25,7 +26,10 @@ exports.activate = context => {
 		outputChannelName: 'Crow language server',
 		connectionOptions: {
 			maxRestartCount: 0,
-		}
+		},
+		initializationOptions: {
+			unknownUris: true,
+		},
 	}
 	client = new LanguageClient("crow", "Crow language server", serverOptions, clientOptions)
 	client.start()

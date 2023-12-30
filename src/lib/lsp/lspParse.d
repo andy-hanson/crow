@@ -11,6 +11,7 @@ import lib.lsp.lspTypes :
 	DidSaveTextDocumentParams,
 	ExitParams,
 	HoverParams,
+	InitializationOptions,
 	InitializeParams,
 	InitializedParams,
 	LspInMessage,
@@ -65,9 +66,9 @@ LspInMessage parseLspInMessage(ref Alloc alloc, scope ref AllUris allUris, in Js
 		case "exit":
 			return notification(ExitParams());
 		case "initialize":
-			return request(InitializeParams(hasKey!"trace"(params)
-				? parseTraceValue(get!"trace"(params).as!string)
-				: TraceValue.off));
+			return request(InitializeParams(
+				parseInitializationOptions(get!"initializationOptions"(params)),
+				hasKey!"trace"(params) ? parseTraceValue(get!"trace"(params).as!string) : TraceValue.off));
 		case "initialized":
 			return notification(InitializedParams());
 		case "shutdown":
@@ -99,6 +100,9 @@ LspInMessage parseLspInMessage(ref Alloc alloc, scope ref AllUris allUris, in Js
 }
 
 private:
+
+InitializationOptions parseInitializationOptions(in Json a) =>
+	InitializationOptions(hasKey!"unknownUris"(a) ? get!"unknownUris"(a).as!bool : false);
 
 TraceValue parseTraceValue(string a) =>
 	enumOfString!TraceValue(a);

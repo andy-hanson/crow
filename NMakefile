@@ -143,6 +143,7 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\col\mutMap.d \
 	src\util\col\mutMaxArr.d \
 	src\util\col\mutMultiMap.d \
+	src\util\col\mutQueue.d \
 	src\util\col\mutSet.d \
 	src\util\col\sortUtil.d \
 	src\util\col\stackMap.d \

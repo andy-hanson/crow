@@ -31,11 +31,21 @@ version (GccJitAvailable) {
 }
 import frontend.lang : cExtension, JitOptions;
 import frontend.showModel : ShowOptions;
-import frontend.storage : FilesState;
+import frontend.storage : asString, FileContent, FilesState;
 import interpret.extern_ : Extern;
 import lib.lsp.lspParse : parseLspInMessage;
 import lib.lsp.lspToJson : jsonOfLspOutMessage;
-import lib.lsp.lspTypes : LspInMessage, LspOutAction, LspOutMessage, SemanticTokensParams, TextDocumentIdentifier;
+import lib.lsp.lspTypes :
+	LspInMessage,
+	LspInNotification,
+	LspOutAction,
+	LspOutMessage,
+	LspOutNotification,
+	ReadFileResultParams,
+	ReadFileResultType,
+	SemanticTokensParams,
+	TextDocumentIdentifier,
+	UnknownUris;
 import lib.cliParser :
 	BuildOptions, BuildOut, Command, CommandKind, defaultExeExtension, hasAnyOut, parseCommand, PrintKind, RunOptions;
 import lib.server :
@@ -65,6 +75,7 @@ import lib.server :
 	setShowOptions,
 	showDiagnostics,
 	version_;
+import model.diag : ReadFileDiag;
 import model.model : hasAnyDiagnostics, ProgramWithMain;
 import model.lowModel : ExternLibraries;
 version (Test) {
@@ -72,6 +83,7 @@ version (Test) {
 }
 import util.alloc.alloc : Alloc, AllocKind, newAlloc, withTempAllocImpure, word;
 import util.col.array : prepend;
+import util.col.mutQueue : enqueue, isEmpty, mustDequeue, MutQueue;
 import util.exitCode : ExitCode, okAnd;
 import util.json : Json, jsonToString;
 import util.jsonParse : mustParseJson, mustParseUint, skipWhitespace;
@@ -82,6 +94,7 @@ import util.sourceRange : UriLineAndColumn;
 import util.string : CString, cString, cStringIsEmpty, cStringSize, mustStripPrefix, MutCString;
 import util.symbol : AllSymbols, symbol;
 import util.uri : AllUris, childUri, cStringOfFileUri, cStringOfUri, FileUri, Uri, parentOrEmpty, toUri;
+import util.util : debugLog;
 import versionInfo : versionInfoForJIT;
 
 @system extern(C) int main(int argc, immutable char** argv) {
@@ -121,21 +134,39 @@ private:
 	while (true) {
 		//TODO: track perf for each message/response
 		Opt!ExitCode stop = withNullPerf!(Opt!ExitCode, (scope ref Perf perf) =>
-			withTempAllocImpure!(Opt!ExitCode)(server.metaAlloc, (ref Alloc alloc) {
-				LspInMessage message = readIn(alloc, server.allSymbols, server.allUris);
-				LspOutAction action = handleLspMessage(perf, alloc, server, message);
-				foreach (LspOutMessage outMessage; action.outMessages) {
-					writeOut(alloc, server.allSymbols, jsonOfLspOutMessage(
-						alloc, server.allUris, server.lineAndCharacterGetters, outMessage));
-				}
-				return action.exitCode;
-			}));
+			withTempAllocImpure!(Opt!ExitCode)(server.metaAlloc, (ref Alloc alloc) =>
+				handleOneMessageIn(perf, alloc, server)));
 		if (has(stop))
 			return force(stop);
 		else
 			continue;
 	}
 }
+
+Opt!ExitCode handleOneMessageIn(scope ref Perf perf, ref Alloc alloc, ref Server server) {
+	MutQueue!LspInMessage bufferedMessages;
+	enqueue(alloc, bufferedMessages, readIn(alloc, server.allSymbols, server.allUris));
+	do {
+		LspInMessage message = mustDequeue(bufferedMessages);
+		LspOutAction action = handleLspMessage(perf, alloc, server, message);
+		foreach (LspOutMessage outMessage; action.outMessages) {
+			if (!server.lspState.supportsUnknownUris && isUnknownUris(outMessage)) {
+				debugLog("Server will load unknown URIs itself (since client does not support them)");
+				foreach (Uri uri; outMessage.as!LspOutNotification.as!UnknownUris.unknownUris)
+					enqueue(alloc, bufferedMessages, LspInMessage(
+						LspInNotification(readFileLocally(alloc, server.allUris, uri))));
+			} else
+				writeOut(alloc, server.allSymbols, jsonOfLspOutMessage(
+					alloc, server.allUris, server.lineAndCharacterGetters, outMessage));
+		}
+		if (has(action.exitCode))
+			return action.exitCode;
+	} while (!isEmpty(bufferedMessages));
+	return none!ExitCode;
+}
+
+bool isUnknownUris(in LspOutMessage a) =>
+	a.isA!LspOutNotification && a.as!LspOutNotification.isA!UnknownUris;
 
 @trusted LspInMessage readIn(ref Alloc alloc, scope ref AllSymbols allSymbols, scope ref AllUris allUris) {
 	char[0x10000] buffer;
@@ -168,6 +199,25 @@ void loadAllFiles(scope ref Perf perf, ref Server server, in Uri[] rootUris) {
 		loadSingleFile(perf, server, uri);
 	loadUntilNoUnknownUris(perf, server);
 }
+
+ReadFileResultParams readFileLocally(ref Alloc alloc, scope ref AllUris allUris, Uri uri) =>
+	tryReadFile(alloc, allUris, uri).match!ReadFileResultParams(
+		(FileContent x) =>
+			ReadFileResultParams(uri, ReadFileResultType.ok, asString(x)),
+		(ReadFileDiag x) {
+			ReadFileResultType type = () {
+					final switch (x) {
+					case ReadFileDiag.unknown:
+					case ReadFileDiag.loading:
+						assert(false);
+					case ReadFileDiag.notFound:
+						return ReadFileResultType.notFound;
+					case ReadFileDiag.error:
+						return ReadFileResultType.error;
+				}
+			}();
+			return ReadFileResultParams(uri, type, "");
+		});
 
 void loadUntilNoUnknownUris(scope ref Perf perf, ref Server server) {
 	while (filesState(server) != FilesState.allLoaded) {

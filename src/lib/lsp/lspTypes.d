@@ -90,6 +90,8 @@ immutable struct RegisterCapability {
 	string method;
 }
 
+// Only used if it's in InitializeOptions. (Currently that is true for VSCode but not for Sublime Text.)
+// The editor should send back a readFileResult notification for each unknown URI.
 immutable struct UnknownUris {
 	Uri[] unknownUris;
 }
@@ -137,7 +139,11 @@ immutable struct CancelRequestParams {
 immutable struct ExitParams {}
 
 immutable struct InitializeParams {
+	InitializationOptions initializationOptions;
 	TraceValue trace;
+}
+immutable struct InitializationOptions {
+	bool unknownUris;
 }
 immutable struct InitializedParams {}
 

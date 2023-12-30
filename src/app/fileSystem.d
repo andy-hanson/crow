@@ -192,7 +192,7 @@ version (Windows) {
 	}
 }
 
-@trusted ReadFileResult tryReadFile(ref Alloc alloc, ref AllUris allUris, Uri uri) {
+@trusted ReadFileResult tryReadFile(ref Alloc alloc, scope ref AllUris allUris, Uri uri) {
 	if (!isFileUri(allUris, uri))
 		return ReadFileResult(ReadFileDiag.notFound);
 

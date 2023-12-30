@@ -293,7 +293,7 @@ immutable(ubyte[]) asBytes(return scope FileContent a) =>
 private @trusted CString asCString(return scope FileContent a) =>
 	CString(cast(immutable char*) a.bytes.ptr);
 
-private string asString(return scope FileContent a) =>
+string asString(return scope FileContent a) =>
 	cast(string) asBytes(a);
 
 const struct LineAndCharacterGetters {

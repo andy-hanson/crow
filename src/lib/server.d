@@ -189,8 +189,8 @@ private LspOutAction handleLspNotification(
 			LspOutAction([]),
 		(in ExitParams x) =>
 			LspOutAction([], some(ExitCode.ok)),
-		(in InitializedParams x) =>
-			initializedAction(alloc),
+		(in InitializedParams _) =>
+			initializedAction(alloc, server),
 		(in ReadFileResultParams x) {
 			final switch (x.type) {
 				case ReadFileResultType.ok:
@@ -243,8 +243,10 @@ private Opt!LspOutResult handleLspRequest(
 			respondWithProgram(perf, alloc, server, a),
 		(in HoverParams x) =>
 			respondWithProgram(perf, alloc, server, a),
-		(in InitializeParams x) =>
-			some(LspOutResult(InitializeResult())),
+		(in InitializeParams x) {
+			server.lspState.supportsUnknownUris = x.initializationOptions.unknownUris;
+			return some(LspOutResult(InitializeResult()));
+		},
 		(in ReferenceParams x) =>
 			respondWithProgram(perf, alloc, server, a),
 		(in RenameParams x) =>
@@ -341,7 +343,7 @@ struct Server {
 		allSymbols = AllSymbols(newAlloc(AllocKind.allSymbols, metaAlloc));
 		allUris = AllUris(newAlloc(AllocKind.allUris, metaAlloc), &allSymbols);
 		storage = Storage(metaAlloc, &allSymbols, &allUris);
-		lspState = LspState(newAlloc(AllocKind.lspState, metaAlloc), []);
+		lspState = LspState(newAlloc(AllocKind.lspState, metaAlloc));
 	}
 
 	inout(MetaAlloc*) metaAlloc() inout =>
@@ -368,6 +370,7 @@ private struct LspState {
 	@safe @nogc pure nothrow:
 
 	Alloc* stateAllocPtr;
+	bool supportsUnknownUris;
 	Uri[] urisWithDiagnostics;
 	MutArr!LspInRequest pendingRequests;
 
@@ -757,14 +760,15 @@ LspDiagnosticSeverity toLspDiagnosticSeverity(DiagnosticSeverity a) {
 	}
 }
 
-LspOutAction initializedAction(ref Alloc alloc) =>
-	LspOutAction(newArray!LspOutMessage(alloc, [
+LspOutAction initializedAction(ref Alloc alloc, ref Server server) {
+	return LspOutAction(newArray!LspOutMessage(alloc, [
 		register("textDocument/definition"),
 		register("textDocument/hover"),
 		register("textDocument/rename"),
 		register("textDocument/references"),
 		register("textDocument/semanticTokens/full"),
 	]));
+}
 
 LspOutMessage register(string method) =>
 	notification(RegisterCapability(method, method));
