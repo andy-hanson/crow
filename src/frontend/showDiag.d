@@ -880,6 +880,12 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 				writeName(writer, ctx, spec.name);
 			});
 		},
+		(in Diag.StringLiteralInvalid x) {
+			final switch (x.reason) {
+				case Diag.StringLiteralInvalid.Reason.containsNul:
+					writer ~= "String literal can't contain '\\0'";
+			}
+		},
 		(in Diag.TrustedUnnecessary x) {
 			writer ~= () {
 				final switch (x.reason) {

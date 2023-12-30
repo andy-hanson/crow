@@ -499,10 +499,10 @@ bool isString(Type a) =>
 
 CallAst checkInterpolatedRecur(ref ExprCtx ctx, in InterpolatedPart[] parts, Pos pos, in Opt!ExprAst left) {
 	ExprAst right = parts[0].matchIn!ExprAst(
-		(in string it) =>
+		(in string x) =>
 			// TODO: this length may be wrong in the presence of escapes
-			ExprAst(Range(pos, safeToUint(pos + it.length)), ExprAstKind(LiteralStringAst(it))),
-		(in ExprAst e) @safe =>
+			ExprAst(Range(pos, safeToUint(pos + x.length)), ExprAstKind(LiteralStringAst(x))),
+		(in ExprAst e) =>
 			ExprAst(e.range, ExprAstKind(CallAst(
 				//TODO: new kind (not infix)
 				CallAst.Style.infix,
@@ -807,8 +807,8 @@ immutable struct IntRange {
 	long min;
 	long max;
 }
-bool contains(IntRange a, long value) =>
-	a.min <= value && value <= a.max;
+bool contains(IntRange a, long x) =>
+	a.min <= x && x <= a.max;
 
 Expr checkLiteralNat(ref ExprCtx ctx, ExprAst* source, in LiteralNatAst ast, ref Expected expected) {
 	IntegralTypes integrals = ctx.commonTypes.integrals;
@@ -849,13 +849,23 @@ Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, string value, ref Expe
 				return only(value);
 		}();
 		return Expr(source, ExprKind(allocate(ctx.alloc, LiteralExpr(Constant(Constant.Integral(char_))))));
-	} else if (expectedStruct == ctx.commonTypes.symbol)
-		return Expr(source, ExprKind(LiteralSymbolExpr(symbolOfString(ctx.allSymbols, value))));
-	else if (expectedStruct == ctx.commonTypes.cString)
-		return Expr(source, ExprKind(LiteralCStringExpr(value)));
-	else {
-		defaultExpectedToString(ctx, source, expected);
-		return checkCallSpecialNoLocals(ctx, source, symbol!"literal", arrayOfSingle(source), expected);
+	} else {
+		void checkString() {
+			if (contains(value, '\0'))
+				addDiag2(ctx, source.range, Diag(
+					Diag.StringLiteralInvalid(Diag.StringLiteralInvalid.Reason.containsNul)));
+		}
+
+		if (expectedStruct == ctx.commonTypes.symbol) {
+			checkString();
+			return Expr(source, ExprKind(LiteralSymbolExpr(symbolOfString(ctx.allSymbols, value))));
+		} else if (expectedStruct == ctx.commonTypes.cString) {
+			checkString();
+			return Expr(source, ExprKind(LiteralCStringExpr(value)));
+		} else {
+			defaultExpectedToString(ctx, source, expected);
+			return checkCallSpecialNoLocals(ctx, source, symbol!"literal", arrayOfSingle(source), expected);
+		}
 	}
 }
 

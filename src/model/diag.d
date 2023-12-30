@@ -378,6 +378,10 @@ immutable struct Diag {
 	immutable struct SpecRecursion {
 		SpecDecl*[] trace;
 	}
+	immutable struct StringLiteralInvalid {
+		enum Reason { containsNul }
+		Reason reason;
+	}
 	immutable struct ThreadLocalError {
 		FunDecl* fun;
 		enum Kind { hasParams, hasSpecs, hasTypeParams, mustReturnPtrMut }
@@ -502,6 +506,7 @@ immutable struct Diag {
 		SpecNoMatch,
 		SpecNameMissing,
 		SpecRecursion,
+		StringLiteralInvalid,
 		TrustedUnnecessary,
 		TypeAnnotationUnnecessary,
 		TypeConflict,

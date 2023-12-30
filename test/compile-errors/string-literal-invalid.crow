@@ -1,0 +1,3 @@
+main void()
+	info log "a\0b"
+	info log "{"a\0b"::symbol}"

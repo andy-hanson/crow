@@ -1,0 +1,7 @@
+exit code: 0
+stdout:
+info: a
+info: a
+stderr:
+test/compile-errors/string-literal-invalid.crow 2:14-2:20 String literal can't contain '\0'
+test/compile-errors/string-literal-invalid.crow 3:16-3:22 String literal can't contain '\0'
