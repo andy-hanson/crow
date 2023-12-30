@@ -1,4 +1,4 @@
-module interpret.debugging;
+module model.showLowModel;
 
 @safe @nogc pure nothrow:
 
@@ -79,6 +79,16 @@ void writeFunSig(scope ref Writer writer, in ShowCtx ctx, in LowProgram lowProgr
 		});
 }
 
+void writeConcreteType(scope ref Writer writer, in ShowCtx ctx, in ConcreteType a) {
+	writeConcreteStruct(writer, ctx, *a.struct_);
+	if (a.reference != ReferenceKind.byVal) {
+		writer ~= ' ';
+		writer ~= stringOfEnum(a.reference);
+	}
+}
+
+private:
+
 void writeLowType(scope ref Writer writer, in ShowCtx ctx, in AllLowTypes lowTypes, in LowType a) {
 	a.matchIn!void(
 		(in LowType.Extern) {
@@ -134,23 +144,13 @@ void writeConcreteFunName(scope ref Writer writer, in ShowCtx ctx, in ConcreteFu
 		});
 }
 
-private void writeConcreteTypeArgs(scope ref Writer writer, in ShowCtx ctx, in ConcreteType[] a) {
+void writeConcreteTypeArgs(scope ref Writer writer, in ShowCtx ctx, in ConcreteType[] a) {
 	writeTypeArgsGeneric!ConcreteType(writer, a,
 		(in ConcreteType x) => false,
 		(in ConcreteType x) {
 			writeConcreteType(writer, ctx, x);
 		});
 }
-
-void writeConcreteType(scope ref Writer writer, in ShowCtx ctx, in ConcreteType a) {
-	writeConcreteStruct(writer, ctx, *a.struct_);
-	if (a.reference != ReferenceKind.byVal) {
-		writer ~= ' ';
-		writer ~= stringOfEnum(a.reference);
-	}
-}
-
-private:
 
 void writeConcreteStruct(scope ref Writer writer, in ShowCtx ctx, in ConcreteStruct a) {
 	a.source.matchIn!void(

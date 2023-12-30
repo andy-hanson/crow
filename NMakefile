@@ -92,7 +92,6 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\interpret\applyFn.d \
 	src\interpret\bytecode.d \
 	src\interpret\bytecodeWriter.d \
-	src\interpret\debugging.d \
 	src\interpret\debugInfo.d \
 	src\interpret\extern_.d \
 	src\interpret\fakeExtern.d \
@@ -125,6 +124,8 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\model\lowModel.d \
 	src\model\model.d \
 	src\model\parseDiag.d \
+	src\model\showModel.d \
+	src\model\showLowModel.d \
 	src\model\typeLayout.d \
 	src\util\alloc\alloc.d \
 	src\util\alloc\doubleLink.d \

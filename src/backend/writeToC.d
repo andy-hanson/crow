@@ -15,7 +15,6 @@ import backend.mangle :
 	writeStructMangledName;
 import backend.writeTypes : ElementAndCount, TypeWriters, writeTypes;
 import frontend.showModel : ShowCtx;
-import interpret.debugging : writeFunName, writeFunSig;
 import lower.lowExprHelpers : boolType;
 import model.concreteModel : BuiltinStructKind, ConcreteStruct, ConcreteStructBody, TypeSize;
 import model.constant : Constant;
@@ -49,6 +48,7 @@ import model.lowModel :
 	targetRecordType,
 	UpdateParam;
 import model.model : EnumValue;
+import model.showLowModel : writeFunName, writeFunSig;
 import model.typeLayout : sizeOfType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.array : every, exists, isEmpty, map, only, sizeEq, zip;

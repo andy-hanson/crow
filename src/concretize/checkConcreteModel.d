@@ -3,10 +3,10 @@ module concretize.checkConcreteModel;
 @safe @nogc pure nothrow:
 
 import frontend.showModel : ShowCtx;
-import interpret.debugging : writeConcreteType;
 import model.concreteModel :
 	ConcreteExpr, ConcreteExprKind, ConcreteFun, ConcreteLocal, ConcreteProgram, ConcreteType, isBogus, isVoid;
 import model.constant : Constant;
+import model.showLowModel : writeConcreteType;
 import util.alloc.alloc : Alloc, withStackAlloc;
 import util.col.array : zip;
 import util.opt : force, has;

@@ -120,6 +120,7 @@ import model.lowModel :
 	targetIsPointer,
 	targetRecordType,
 	UpdateParam;
+import model.showLowModel : writeFunName, writeFunSig;
 import model.typeLayout : typeSizeBytes;
 import util.alloc.alloc : Alloc;
 import util.col.array : fillArray, indexOfPointer, isEmpty, makeArray, map, mapWithIndex, zip;
@@ -306,7 +307,6 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in AllSymbols all
 
 				if (isStubFunction(funIndex)) {
 					debugLogWithWriter((scope ref Writer writer) {
-						import interpret.debugging : writeFunName, writeFunSig;
 						writer ~= "Stub ";
 						writer ~= funIndex.index;
 						writeFunName(writer, todo!ShowCtx("!"), program, funIndex);
