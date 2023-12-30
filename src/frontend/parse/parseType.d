@@ -12,6 +12,7 @@ import frontend.parse.lexer :
 	Lexer,
 	range,
 	rangeAtChar,
+	rangeForCurToken,
 	takeNextToken,
 	Token;
 import frontend.parse.parseUtil :
@@ -89,7 +90,7 @@ TypeAst parseTypeBeforeSuffixes(ref Lexer lexer) {
 			return parseFunType(lexer, start, tryTakeOperator(lexer, symbol!"*") ? FunKind.pointer : FunKind.fun);
 		default:
 			addDiagUnexpectedCurToken(lexer, start, getPeekTokenAndData(lexer));
-			return TypeAst(TypeAst.Bogus(range(lexer, start)));
+			return TypeAst(TypeAst.Bogus(rangeForCurToken(lexer, start)));
 	}
 }
 

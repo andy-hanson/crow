@@ -8,7 +8,6 @@ import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonObject;
 import util.string : CString, MutCString;
-import util.symbol : AllSymbols, Symbol, symbolSize;
 import util.uri : AllUris, compareUriAlphabetically, stringOfUri, Uri;
 import util.util : min;
 
@@ -41,6 +40,9 @@ immutable struct Range {
 		Range(start + low, start + high);
 }
 
+bool rangeContains(in Range a, in Range b) =>
+	a.start <= b.start && b.end <= a.end;
+
 Comparison compareRange(in Range a, in Range b) =>
 	a.start == b.start ? compareNat32(a.end, b.end) : compareNat32(a.start, b.start);
 
@@ -51,9 +53,6 @@ Range combineRanges(in Range a, in Range b) {
 
 bool hasPos(in Range a, Pos p) =>
 	a.start <= p && p <= a.end;
-
-Range rangeOfStartAndName(Pos start, Symbol name, in AllSymbols allSymbols) =>
-	rangeOfStartAndLength(start, symbolSize(allSymbols, name));
 
 Range rangeOfStartAndLength(Pos start, size_t length) =>
 	Range(start, safeToUint(start + length));

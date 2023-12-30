@@ -5,6 +5,7 @@ module util.string;
 import util.alloc.alloc : Alloc;
 import util.comparison : Comparison;
 import util.col.array : append, arrayOfRange, arraysEqual, copyArray, emptySmallArray, isEmpty, SmallArray;
+import util.conv : safeToUint;
 import util.hash : HashCode, hashString;
 
 alias SmallString = SmallArray!char;
@@ -23,14 +24,20 @@ struct MutCString {
 
 	char opUnary(string op : "*")() scope const =>
 		*ptr;
+	// Unsafe since this does not check bounds
+	@system CString jumpTo(uint n) immutable =>
+		inout MutCString(ptr + n);
+
+	@system ptrdiff_t opCmp(in MutCString b) scope const =>
+		ptr - b.ptr;
 
 	@trusted void opUnary(string op : "++")() {
 		assert(*ptr != '\0');
 		ptr++;
 	}
 
-	size_t opBinary(string op : "-")(in MutCString b) scope const =>
-		ptr - b.ptr;
+	uint opBinary(string op : "-")(in MutCString b) scope const =>
+		safeToUint(ptr - b.ptr);
 
 	immutable(char)* ptr;
 

@@ -150,7 +150,8 @@ TokenAndData takeNextToken(ref Lexer lexer) {
 
 private void readNextToken(ref Lexer lexer) {
 	lexer.prevTokenEnd = lexer.ptr;
-	skipSpacesAndComments(lexer.ptr);
+	skipSpacesAndComments(lexer.ptr, (CString _, string _2) {}, (ParseDiag x) =>
+		addDiagAtChar(lexer, x));
 	lexer.nextTokenPos = posOf(lexer, lexer.ptr);
 	cellSet(lexer.nextToken, lexToken(lexer.ptr, lexer.allSymbols, lexer.indentKind, lexer.curIndent, (ParseDiag x) =>
 		addDiagAtChar(lexer, x)));

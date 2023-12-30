@@ -145,7 +145,7 @@ serve: prepare-site
 bin/crow.tar.xz: bin/crow bin/crow.vsix demo/* demo/*/* editor/sublime/* $(ALL_INCLUDE) libraries/* libraries/*/*
 	tar --directory .. --create --xz --exclude demo/extern --file bin/crow.tar.xz crow/bin/crow crow/demo crow/editor crow/include crow/libraries
 
-bin/crow.vsix: editor/vscode/*
+bin/crow.vsix: editor/vscode/* editor/vscode/node_modules
 	cd editor/vscode && ./node_modules/vsce/vsce package --allow-missing-repository --out ../../bin/crow.vsix
 
 editor/vscode/node_modules:

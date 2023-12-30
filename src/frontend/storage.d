@@ -47,20 +47,24 @@ struct Storage {
 
 	this(MetaAlloc* a, AllSymbols* as, AllUris* au) {
 		metaAlloc = a;
-		allSymbols = as;
-		allUris = au;
+		allSymbolsPtr = as;
+		allUrisPtr = au;
 		mapAlloc_ = newAlloc(AllocKind.storage, metaAlloc);
 	}
 
 	private:
 	MetaAlloc* metaAlloc;
-	AllSymbols* allSymbols;
-	AllUris* allUris;
+	AllSymbols* allSymbolsPtr;
+	AllUris* allUrisPtr;
 	Alloc* mapAlloc_;
 	// Store in separate maps depending on success / diag
 	MutMap!(Uri, AllocAndValue!FileInfo) successes;
 	MutMap!(Uri, ReadFileDiag) diags;
 
+	ref inout(AllSymbols) allSymbols() return scope inout =>
+		*allSymbolsPtr;
+	ref inout(AllUris) allUris() return scope inout =>
+		*allUrisPtr;
 	ref inout(Alloc) mapAlloc() return scope inout =>
 		*mapAlloc_;
 }
@@ -130,7 +134,7 @@ private AllocAndValue!FileInfo getFileInfo(scope ref Perf perf, ref Storage stor
 			content,
 			// TODO: only needed for CrowFile or CrowConfig
 			lineAndColumnGetterForText(alloc, asCString(content)),
-			parseContent(perf, alloc, *storage.allSymbols, *storage.allUris, uri, asCString(content)));
+			parseContent(perf, alloc, storage.allSymbols, storage.allUris, uri, asCString(content)));
 	});
 
 private ParseResult parseContent(
@@ -199,7 +203,7 @@ Uri[] allStorageUris(ref Alloc alloc, in Storage a) {
 Uri[] allKnownGoodCrowUris(ref Alloc alloc, scope ref Storage a) {
 	ArrayBuilder!Uri res;
 	foreach (Uri uri; keys(a.successes))
-		if (fileType(*a.allUris, uri) == FileType.crow)
+		if (fileType(a.allUris, uri) == FileType.crow)
 			add(alloc, res, uri);
 	return finish(alloc, res);
 }
@@ -223,18 +227,37 @@ private FileInfoOrDiag fileOrDiag(ref Storage a, Uri uri) {
 		: FileInfoOrDiag(getOrAdd!(Uri, ReadFileDiag)(a.mapAlloc, a.diags, uri, () => ReadFileDiag.unknown));
 }
 
-private immutable struct ParsedOrDiag {
-	mixin Union!(ParseResult, ReadFileDiag);
-}
-
 void markUnknownIfNotExist(scope ref Storage a, Uri uri) {
 	cast(void) fileOrDiag(a, uri);
+}
+
+private immutable struct ParsedOrDiag {
+	mixin Union!(ParseResult, ReadFileDiag);
 }
 
 ParsedOrDiag getParsedOrDiag(ref Storage a, Uri uri) =>
 	fileOrDiag(a, uri).match!ParsedOrDiag(
 		(FileInfo x) => ParsedOrDiag(x.parsed),
 		(ReadFileDiag x) => ParsedOrDiag(x));
+
+
+immutable struct SourceAndAst {
+	CString source;
+	FileAst* ast;
+}
+
+private immutable struct SourceAndAstOrDiag {
+	mixin Union!(SourceAndAst, ReadFileDiag);
+}
+
+SourceAndAstOrDiag getSourceAndAstOrDiag(ref Storage a, Uri uri) {
+	assert(fileType(a.allUris, uri) == FileType.crow);
+	return fileOrDiag(a, uri).match!SourceAndAstOrDiag(
+		(FileInfo x) =>
+			SourceAndAstOrDiag(SourceAndAst(asCString(x.content), x.parsed.as!(FileAst*))),
+		(ReadFileDiag x) =>
+			SourceAndAstOrDiag(x));
+}
 
 // Storage is mutable, so file content can only be given out temporarily.
 ReadFileResult getFileContentOrDiag(ref Storage a, Uri uri) =>

@@ -5,6 +5,8 @@ module frontend.ide.getTokens;
 import std.range : iota;
 import std.traits : EnumMembers, staticMap;
 
+import frontend.parse.lexWhitespace : lexTokensBetweenAsts;
+import frontend.storage : SourceAndAst;
 import lib.lsp.lspTypes : SemanticTokens;
 import model.ast :
 	ArrowAccessAst,
@@ -63,7 +65,7 @@ import model.ast :
 	UnlessAst,
 	VarDeclAst,
 	WithAst;
-import model.model : symbolOfVarKind;
+import model.model : stringOfVarKind;
 import util.alloc.alloc : Alloc;
 import util.col.array : isEmpty, newArray;
 import util.col.arrayBuilder : add, addAll, ArrayBuilder, finish;
@@ -78,9 +80,10 @@ import util.sourceRange :
 	LineAndCharacterRange,
 	lineLengthInCharacters,
 	Pos,
+	rangeContains,
 	rangeOfStartAndLength,
-	rangeOfStartAndName,
 	Range;
+import util.string : CString, cStringSize;
 import util.symbol : AllSymbols, Symbol, symbol, symbolSize;
 import util.uri : AllUris;
 import util.util : stringOfEnum;
@@ -90,9 +93,10 @@ SemanticTokens tokensOfAst(
 	in AllSymbols allSymbols,
 	in AllUris allUris,
 	in LineAndCharacterGetter lineAndCharacterGetter,
-	in FileAst ast,
+	in SourceAndAst sourceAndAst,
 ) {
-	TokensBuilder tokens = TokensBuilder(&alloc, lineAndCharacterGetter);
+	TokensBuilder tokens = TokensBuilder(sourceAndAst.source, &alloc, lineAndCharacterGetter);
+	FileAst* ast = sourceAndAst.ast;
 
 	if (has(ast.imports))
 		addImportTokens(tokens, allSymbols, allUris, force(ast.imports));
@@ -119,6 +123,7 @@ SemanticTokens tokensOfAst(
 		ast.vars, (in VarDeclAst x) => x.range, (in VarDeclAst x) {
 			addVarDeclTokens( tokens, allSymbols, x);
 		});
+	addLastTokens(tokens);
 	return SemanticTokens(finish(alloc, tokens.encoded));
 }
 
@@ -209,13 +214,25 @@ string stringOfTokenModifier(TokenModifiers a) {
 }
 
 struct TokensBuilder {
+	CString source;
 	Alloc* alloc;
 	LineAndCharacterGetter lineAndCharacterGetter;
 	ArrayBuilder!(immutable uint) encoded;
+	Pos prevPos;
 	uint prevLine;
 	uint prevCharacter;
 }
 void add(scope ref TokensBuilder a, Range range, TokenType type, TokenModifiers modifiers) {
+	addTokensBetween(a, Range(a.prevPos, range.start));
+	a.prevPos = range.end;
+	addInner(a, range, type, modifiers);
+}
+
+void addLastTokens(scope ref TokensBuilder a) {
+	addTokensBetween(a, Range(a.prevPos, safeToUint(cStringSize(a.source))));
+}
+
+void addInner(scope ref TokensBuilder a, Range range, TokenType type, TokenModifiers modifiers) {
 	LineAndCharacterRange lcRange = a.lineAndCharacterGetter[range];
 	LineAndCharacter start = lcRange.start;
 	LineAndCharacter end = lcRange.end;
@@ -230,6 +247,7 @@ void add(scope ref TokensBuilder a, Range range, TokenType type, TokenModifiers 
 		addSingleLineToken(a, LineAndCharacter(end.line, 0), end.character, type, modifiers);
 	}
 }
+
 void addSingleLineToken(
 	scope ref TokensBuilder a,
 	in LineAndCharacter pos,
@@ -248,6 +266,19 @@ void addSingleLineToken(
 	a.prevCharacter = pos.character;
 }
 
+@trusted void addTokensBetween(scope ref TokensBuilder a, Range range) {
+	lexTokensBetweenAsts(
+		a.source, range,
+		(Range commentRange) {
+			assert(rangeContains(range, commentRange));
+			addInner(a, commentRange, TokenType.comment, noTokenModifiers);
+		},
+		(Range keywordRange) {
+			assert(rangeContains(range, keywordRange));
+			addInner(a, keywordRange, TokenType.keyword, noTokenModifiers);
+		});
+}
+
 void declare(scope ref TokensBuilder a, TokenType type, in Range range) {
 	add(a, range, type, TokenModifiers.declaration);
 }
@@ -256,6 +287,9 @@ void reference(scope ref TokensBuilder a, TokenType type, in Range range) {
 }
 void keyword(scope ref TokensBuilder a, in Range range) {
 	reference(a, TokenType.keyword, range);
+}
+void keyword(scope ref TokensBuilder a, Pos start, in string name) {
+	keyword(a, rangeOfStartAndLength(start, name.length));
 }
 void numberLiteral(scope ref TokensBuilder a, in Range range) {
 	reference(a, TokenType.number, range);
@@ -274,7 +308,7 @@ void addImportTokens(
 	in ImportsOrExportsAst a,
 ) {
 	// "export".length is the same
-	keyword(tokens, a.range[0 .. "import".length]);
+	keyword(tokens, a.range.start, "import");
 	foreach (ref ImportOrExportAst x; a.paths) {
 		reference(tokens, TokenType.namespace, pathRange(allUris, x));
 		// TODO: tokens for imported names
@@ -318,15 +352,13 @@ void addTypeTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in 
 	a.matchIn!void(
 		(in TypeAst.Bogus) {},
 		(in TypeAst.Fun x) {
-			keyword(tokens, rangeOfStartAndName(x.range.start, symbol!"fun", allSymbols));
+			keyword(tokens, x.range.start, "fun");
 			foreach (TypeAst t; x.returnAndParamTypes)
 				addTypeTokens(tokens, allSymbols, t);
 		},
 		(in TypeAst.Map x) {
 			addTypeTokens(tokens, allSymbols, x.v);
-			keyword(tokens, Range(range(x.v, allSymbols).end, range(x.k, allSymbols).start));
 			addTypeTokens(tokens, allSymbols, x.k);
-			keyword(tokens, rangeOfStartAndLength(range(x.k, allSymbols).end, "]".length));
 		},
 		(in NameAndRange x) {
 			reference(tokens, TokenType.type, rangeOfNameAndRange(x, allSymbols));
@@ -439,7 +471,7 @@ void addEnumOrFlagsTokens(
 void addVarDeclTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in VarDeclAst a) {
 	declare(tokens, TokenType.variable, rangeOfNameAndRange(a.name, allSymbols));
 	addTypeParamsTokens(tokens, allSymbols, a.typeParams);
-	keyword(tokens, rangeOfStartAndLength(a.kindPos, symbolSize(allSymbols, symbolOfVarKind(a.kind))));
+	keyword(tokens, a.kindPos, stringOfVarKind(a.kind));
 	addTypeTokens(tokens, allSymbols, a.type);
 	addFunModifierTokens(tokens, allSymbols, a.modifiers);
 }
@@ -461,14 +493,14 @@ void addExprTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in 
 		},
 		(in AssertOrForbidAst x) {
 			// Only the length matters, and "assert" is same length as "forbid"
-			keyword(tokens, rangeOfNameAndRange(NameAndRange(a.range.start, symbol!"assert"), allSymbols));
+			keyword(tokens, a.range.start, "assert");
 			addExprTokens(tokens, allSymbols, x.condition);
 			if (has(x.thrown))
 				addExprTokens(tokens, allSymbols, force(x.thrown));
 		},
 		(in AssignmentAst x) {
 			addExprTokens(tokens, allSymbols, x.left);
-			keyword(tokens, rangeOfStartAndLength(x.assignmentPos, ":=".length));
+			keyword(tokens, x.assignmentPos, ":=");
 			addExprTokens(tokens, allSymbols, x.right);
 		},
 		(in AssignmentCallAst x) {
@@ -513,7 +545,7 @@ void addExprTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in 
 		},
 		(in EmptyAst x) {},
 		(in ForAst x) {
-			keyword(tokens, rangeOfStartAndLength(a.range.start, "for".length));
+			keyword(tokens, a.range.start, "for");
 			addDestructureTokens(tokens, allSymbols, x.param);
 			addExprTokens(tokens, allSymbols, x.collection);
 			addExprTokens(tokens, allSymbols, x.body_);
@@ -523,6 +555,7 @@ void addExprTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in 
 			reference(tokens, TokenType.variable, a.range);
 		},
 		(in IfAst x) {
+			keyword(tokens, a.range.start, "if");
 			addExprTokens(tokens, allSymbols, x.cond);
 			addExprTokens(tokens, allSymbols, x.then);
 			addExprTokens(tokens, allSymbols, x.else_);
@@ -584,23 +617,23 @@ void addExprTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in 
 			stringLiteral(tokens, a.range);
 		},
 		(in LoopAst x) {
-			keyword(tokens, rangeOfStartAndLength(a.range.start, "loop".length));
+			keyword(tokens, a.range.start, "loop");
 			addExprTokens(tokens, allSymbols, x.body_);
 		},
 		(in LoopBreakAst x) {
-			keyword(tokens, rangeOfStartAndLength(a.range.start, "break".length));
+			keyword(tokens, a.range.start, "break");
 			addExprTokens(tokens, allSymbols, x.value);
 		},
 		(in LoopContinueAst _) {
-			keyword(tokens, rangeOfStartAndLength(a.range.start, "continue".length));
+			keyword(tokens, a.range.start, "continue");
 		},
 		(in LoopUntilAst x) {
-			keyword(tokens, rangeOfStartAndLength(a.range.start, "until".length));
+			keyword(tokens, a.range.start, "until");
 			addExprTokens(tokens, allSymbols, x.condition);
 			addExprTokens(tokens, allSymbols, x.body_);
 		},
 		(in LoopWhileAst x) {
-			keyword(tokens, rangeOfStartAndLength(a.range.start, "while".length));
+			keyword(tokens, a.range.start, "while");
 			addExprTokens(tokens, allSymbols, x.condition);
 			addExprTokens(tokens, allSymbols, x.body_);
 		},
@@ -629,11 +662,11 @@ void addExprTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in 
 			addExprTokens(tokens, allSymbols, x.then);
 		},
 		(in ThrowAst x) {
-			keyword(tokens, rangeOfStartAndLength(a.range.start, "throw".length));
+			keyword(tokens, a.range.start, "throw");
 			addExprTokens(tokens, allSymbols, x.thrown);
 		},
 		(in TrustedAst x) {
-			keyword(tokens, rangeOfStartAndLength(a.range.start, "trusted".length));
+			keyword(tokens, a.range.start, "trusted");
 			addExprTokens(tokens, allSymbols, x.inner);
 		},
 		(in TypedAst x) {
@@ -645,7 +678,7 @@ void addExprTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, in 
 			addExprTokens(tokens, allSymbols, x.body_);
 		},
 		(in WithAst x) {
-			keyword(tokens, rangeOfStartAndLength(a.range.start, "with".length));
+			keyword(tokens, a.range.start, "with");
 			addDestructureTokens(tokens, allSymbols, x.param);
 			addExprTokens(tokens, allSymbols, x.arg);
 			addExprTokens(tokens, allSymbols, x.body_);

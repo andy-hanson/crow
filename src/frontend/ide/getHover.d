@@ -50,10 +50,10 @@ import model.model :
 	SeqExpr,
 	StructBody,
 	SpecDecl,
+	stringOfVarKind,
 	stringOfVisibility,
 	StructDecl,
 	StructInst,
-	symbolOfVarKind,
 	ThrowExpr,
 	Type,
 	TypeParamIndex,
@@ -194,7 +194,7 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 			hoverTypeParam(writer, ctx, x.container, x.typeParam);
 		},
 		(in VarDecl x) {
-			writeSymbol(writer, ctx.allSymbols, symbolOfVarKind(x.kind));
+			writer ~= stringOfVarKind(x.kind);
 			writer ~= " variable ";
 			writeName(writer, ctx, x.name);
 			writer ~= " (";

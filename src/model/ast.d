@@ -10,9 +10,9 @@ import util.col.array : arrayOfSingle, exists, newArray, SmallArray;
 import util.conv : safeToUint;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault, some;
-import util.sourceRange : Pos, Range, rangeOfStartAndLength, rangeOfStartAndName;
+import util.sourceRange : Pos, Range, rangeOfStartAndLength;
 import util.string : emptySmallString, SmallString;
-import util.symbol : AllSymbols, Symbol, symbol;
+import util.symbol : AllSymbols, Symbol, symbol, symbolSize;
 import util.union_ : Union;
 import util.uri : AllUris, Path, pathLength, RelPath, relPathLength;
 import util.util : unreachable;
@@ -32,7 +32,7 @@ immutable struct NameAndRange {
 static assert(NameAndRange.sizeof == ulong.sizeof * 2);
 
 Range rangeOfNameAndRange(NameAndRange a, in AllSymbols allSymbols) =>
-	rangeOfStartAndName(a.start, a.name, allSymbols);
+	rangeOfStartAndLength(a.start, symbolSize(allSymbols, a.name));
 
 enum ExplicitVisibility {
 	default_,
@@ -419,7 +419,7 @@ immutable struct MatchAst {
 		ExprAst then;
 
 		Range memberNameRange(ref const AllSymbols allSymbols) scope =>
-			rangeOfStartAndName(range.start + safeToUint("as ".length), memberName, allSymbols);
+			rangeOfNameAndRange(NameAndRange(range.start + safeToUint("as ".length), memberName), allSymbols);
 	}
 
 	ExprAst matched;
@@ -571,7 +571,7 @@ immutable struct ModifierAst {
 }
 
 Range rangeOfModifierAst(ModifierAst a, ref const AllSymbols allSymbols) =>
-	rangeOfStartAndName(a.pos, symbolOfModifierKind(a.kind), allSymbols);
+	rangeOfNameAndRange(NameAndRange(a.pos, symbolOfModifierKind(a.kind)), allSymbols);
 
 immutable struct LiteralIntOrNat {
 	mixin Union!(LiteralIntAst, LiteralNatAst);

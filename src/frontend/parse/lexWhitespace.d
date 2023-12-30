@@ -6,10 +6,13 @@ import frontend.parse.lexUtil : isWhitespace, tryTakeChar, tryTakeChars;
 import model.parseDiag : ParseDiag;
 import util.col.array : isEmpty, small;
 import util.conv : safeIntFromUint, safeToUint;
+import util.sourceRange : Range;
 import util.string : CString, cStringIsEmpty, MutCString, SmallString, stringOfRange;
 import util.util : castNonScope_ref;
 
 private alias AddDiag = void delegate(ParseDiag) @safe @nogc pure nothrow;
+// 'fullStart' includes the '#' (or '###' or 'region'). The full range is from there to the current source pointer.
+private alias CbComment = void delegate(CString fullStart, string content) @safe @nogc pure nothrow;
 
 enum IndentKind {
 	tabs,
@@ -48,8 +51,34 @@ void skipUntilNewline(scope ref MutCString ptr) {
 		ptr++;
 }
 
-void skipSpacesAndComments(scope ref MutCString ptr) {
+// Used to lex the tokens that appear between AST nodes -- always a comment or keyword.
+@trusted void lexTokensBetweenAsts(
+	in CString source,
+	Range range,
+	in void delegate(Range) @safe @nogc pure nothrow cbComment,
+	in void delegate(Range) @safe @nogc pure nothrow cbKeyword,
+) {
+	MutCString ptr = source.jumpTo(range.start);
+	CString end = source.jumpTo(range.end);
+	Range toRange(CString start) =>
+		Range(start - source, ptr - source);
+	while (ptr < end) {
+		skipForTokens(ptr, end, (CString start, string _) { cbComment(toRange(start)); });
+		if (ptr < end) {
+			CString start = ptr;
+			while (!isWhitespaceOrCommentStart(*ptr) && ptr < end)
+				ptr++;
+			assert(start < ptr && ptr <= end);
+			cbKeyword(toRange(start));
+		}
+	}
+	assert(ptr == end);
+}
+
+// Does not skip newlines (unless within a comment), only spaces within a line
+void skipSpacesAndComments(ref MutCString ptr, in CbComment cbComment, in AddDiag addDiag) {
 	while (true) {
+		CString start = ptr;
 		switch (*ptr) {
 			case ' ':
 			case '\t':
@@ -63,11 +92,15 @@ void skipSpacesAndComments(scope ref MutCString ptr) {
 				if (tryTakeNewline(ptr2)) {
 					while (tryTakeNewline(ptr2) || tryTakeChar(ptr2, ' ')) {}
 					ptr = castNonScope_ref(ptr2);
+					cbComment(start, "");
 					continue;
 				} else
 					return;
 			case '#':
-				skipUntilNewline(ptr);
+				if (tryTakeTripleHashThenNewline(ptr))
+					cbComment(start, takeRestOfBlockComment(ptr, addDiag));
+				else
+					cbComment(start, takeRestOfLine(ptr));
 				return;
 			default:
 				return;
@@ -88,20 +121,19 @@ DocCommentAndIndentDelta skipBlankLinesAndGetIndentDelta(
 ) {
 	string docComment = "";
 	while (true) {
-		uint newIndent = takeIndentAmountAfterNewline(ptr, indentKind, addDiag);
-		if (tryTakeNewline(ptr))
-			continue;
-		else if (tryTakeTripleHashThenNewline(ptr)) {
-			docComment = takeRestOfBlockComment(ptr, addDiag);
-			continue;
-		} else if (tryTakeChar(ptr, '#')) {
-			docComment = takeRestOfLineAndNewline(ptr);
-			continue;
-		} else if (tryTakeChars(ptr, "region ") || tryTakeChars(ptr, "subregion ")) {
-			skipRestOfLineAndNewline(ptr);
-			docComment = "";
-			continue;
-		}
+		uint newIndent;
+		skipBlankLines(
+			ptr,
+			() {
+				newIndent = takeIndentAmountAfterNewline(ptr, indentKind, addDiag);
+			},
+			(CString _, string _2) {
+				docComment = "";
+			},
+			(CString _, string dc) {
+				docComment = dc;
+			},
+			addDiag);
 
 		if (*ptr == '\0')
 			// Ignore indent before EOF
@@ -121,6 +153,63 @@ DocCommentAndIndentDelta skipBlankLinesAndGetIndentDelta(
 }
 
 private:
+
+@system void skipForTokens(ref MutCString ptr, CString end, in CbComment cbCommentOrRegion) {
+	while (ptr < end) {
+		CString start = ptr;
+		while (isNonKeywordPunctuation(*ptr))
+			ptr++;
+		if (ptr < end)
+			skipSpacesAndComments(ptr, cbCommentOrRegion, (ParseDiag _) {});
+		if (ptr < end)
+			skipBlankLines(ptr, () {}, cbCommentOrRegion, cbCommentOrRegion, (ParseDiag _) {});
+		if (ptr == start)
+			break;
+	}
+}
+
+// Skip mundane punctuation instead of highlighting it as a keyword
+bool isNonKeywordPunctuation(char a) {
+	switch (a) {
+		case '.':
+		case ',':
+		case '(':
+		case ')':
+		case '[':
+		case ']':
+		case '{':
+		case '}':
+			return true;
+		default:
+			return false;
+	}
+}
+
+
+void skipBlankLines(
+	ref MutCString ptr,
+	in void delegate() @safe @nogc pure nothrow cbStartOfLoop,
+	in CbComment cbRegion,
+	in CbComment cbComment,
+	in AddDiag addDiag,
+) {
+	while (true) {
+		cbStartOfLoop();
+		CString before = ptr;
+		if (tryTakeNewline(ptr)) {
+		} else if (tryTakeTripleHashThenNewline(ptr)) {
+			cbComment(before, takeRestOfBlockComment(ptr, addDiag));
+		} else if (tryTakeChar(ptr, '#')) {
+			cbComment(before, takeRestOfLine(ptr));
+		} else if (tryTakeChars(ptr, "region ") || tryTakeChars(ptr, "subregion ")) {
+			cbRegion(before, takeRestOfLine(ptr));
+		} else
+			break;
+	}
+}
+
+bool isWhitespaceOrCommentStart(char c) =>
+	isWhitespace(c) || c == '\\' || c == '#';
 
 bool isNewlineChar(char c) =>
 	c == '\r' || c == '\n';
@@ -166,12 +255,10 @@ string takeRestOfBlockComment(return scope ref MutCString ptr, in AddDiag addDia
 	return stripWhitespace(stringOfRange(begin, end));
 }
 
-string takeRestOfLineAndNewline(return scope ref MutCString ptr) {
+string takeRestOfLine(return scope ref MutCString ptr) {
 	CString begin = ptr;
 	skipUntilNewline(ptr);
-	string res = stringOfRange(begin, ptr);
-	cast(void) tryTakeNewline(ptr);
-	return res;
+	return stringOfRange(begin, ptr);
 }
 
 string stripWhitespace(string a) {

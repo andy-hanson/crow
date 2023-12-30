@@ -15,7 +15,6 @@ import frontend.ide.getRename : getRenameForPosition;
 import frontend.ide.getReferences : getReferencesForPosition;
 import frontend.ide.getTokens : jsonOfDecodedTokens, tokensOfAst;
 import frontend.ide.position : Position;
-import frontend.lang : crowExtension;
 import frontend.showDiag :
 	sortedDiagnostics, stringOfDiag, stringOfDiagnostics, stringOfParseDiagnostics, UriAndDiagnostics;
 import frontend.showModel : ShowCtx, ShowDiagCtx, ShowOptions;
@@ -26,12 +25,12 @@ import frontend.storage :
 	changeFile,
 	FilesState,
 	filesState,
-	getParsedOrDiag,
+	getSourceAndAstOrDiag,
 	LineAndCharacterGetters,
 	LineAndColumnGetters,
-	ParseResult,
 	ReadFileResult,
 	setFile,
+	SourceAndAst,
 	Storage;
 import interpret.bytecode : ByteCode;
 import interpret.extern_ : Extern, ExternFunPtrsForAllLibraries, WriteError;
@@ -106,7 +105,7 @@ import util.perf : Perf;
 import util.sourceRange : toLineAndCharacter, UriAndRange, UriLineAndColumn;
 import util.string : copyString, CString, cString, cStringIsEmpty, stringOfCString;
 import util.symbol : AllSymbols;
-import util.uri : AllUris, getExtension, Uri, UrisInfo;
+import util.uri : AllUris, Uri, UrisInfo;
 import util.util : castNonScope, castNonScope_ref, ptrTrustMe;
 import util.writer : withWriter, Writer;
 import versionInfo : VersionInfo, versionInfoForBuildToC, versionInfoForInterpret;
@@ -250,7 +249,7 @@ private LspOutResult handleLspRequest(
 		},
 		(in SemanticTokensParams x) {
 			Uri uri = x.textDocument.uri;
-			return LspOutResult(getTokens(alloc, server, uri, *getAst(alloc, server, uri)));
+			return LspOutResult(getTokens(alloc, server, uri, getSourceAndAst(alloc, server, uri)));
 		},
 		(in ShutdownParams _) =>
 			LspOutResult(LspOutResult.Null()),
@@ -502,25 +501,23 @@ private DiagsAndResultJson printForAst(ref Alloc alloc, ref Server server, Uri u
 
 DiagsAndResultJson printTokens(ref Alloc alloc, ref Server server, in SemanticTokensParams params) {
 	Uri uri = params.textDocument.uri;
-	FileAst* ast = getAst(alloc, server, uri);
-	return printForAst(alloc, server, uri, *ast, jsonOfDecodedTokens(alloc, getTokens(alloc, server, uri, *ast)));
+	SourceAndAst ast = getSourceAndAst(alloc, server, uri);
+	return printForAst(alloc, server, uri, *ast.ast, jsonOfDecodedTokens(alloc, getTokens(alloc, server, uri, ast)));
 }
 
 DiagsAndResultJson printAst(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri uri) {
-	FileAst* ast = getAst(alloc, server, uri);
+	SourceAndAst ast = getSourceAndAst(alloc, server, uri);
 	return printForAst(
-		alloc, server, uri, *ast,
-		jsonOfAst(alloc, server.allUris, server.lineAndColumnGetters[uri], *ast));
+		alloc, server, uri, *ast.ast,
+		jsonOfAst(alloc, server.allUris, server.lineAndColumnGetters[uri], *ast.ast));
 }
 
-private FileAst* getAst(ref Alloc alloc, ref Server server, Uri uri) {
-	assert(getExtension(server.allUris, uri) == crowExtension);
-	return getParsedOrDiag(server.storage, uri).match!(FileAst*)(
-		(ParseResult x) =>
-			x.as!(FileAst*),
+private SourceAndAst getSourceAndAst(ref Alloc alloc, ref Server server, Uri uri) =>
+	getSourceAndAstOrDiag(server.storage, uri).match!SourceAndAst(
+		(SourceAndAst x) =>
+			x,
 		(ReadFileDiag x) =>
-			fileAstForReadFileDiag(alloc, x));
-}
+			SourceAndAst(cString!"", fileAstForReadFileDiag(alloc, x)));
 
 DiagsAndResultJson printModel(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri uri) {
 	Program program = getProgram(perf, alloc, server, [uri]);
@@ -658,7 +655,7 @@ ShowCtx getShowCtx(return scope ref const Server server) =>
 		server.urisInfo,
 		server.showOptions);
 
-SemanticTokens getTokens(ref Alloc alloc, ref Server server, Uri uri, in FileAst ast) =>
+SemanticTokens getTokens(ref Alloc alloc, ref Server server, Uri uri, in SourceAndAst ast) =>
 	tokensOfAst(alloc, server.allSymbols, server.allUris, server.lineAndCharacterGetters[uri], ast);
 
 ReadFileDiag readFileDiagOfReadFileResultType(ReadFileResultType a) {
