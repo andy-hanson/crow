@@ -1,6 +1,8 @@
 # This file is for Linux.
 # WARN: If editing this file, you might need to change NMakefile too.
 
+MAKEFLAGS = -j4
+
 .PHONY: confirm-upload-site debug end-to-end-test end-to-end-test-overwrite serve prepare-site show-dependencies test unit-test
 
 # WARN: Does not clean `dyncall` as that takes too long to restore
@@ -105,8 +107,10 @@ bin/crow-debug.wasm: $(wasm_deps)
 	rm bin/crow-debug.o
 
 bin/crow.wasm: $(wasm_deps)
-	ldc2 -ofbin/crow.wasm $(ldc_flags_assert) $(ldc_wasm_flags) $(ldc_fast_flags_no_tail_call) $(wasm_src)
-	rm bin/crow.o
+	# Build with a different name so it doesn't use the same '.o' file as 'bin/crow'
+	ldc2 -ofbin/crow-wasm.wasm $(ldc_flags_assert) $(ldc_wasm_flags) $(ldc_fast_flags_no_tail_call) $(wasm_src)
+	rm bin/crow-wasm.o
+	mv bin/crow-wasm.wasm bin/crow.wasm
 
 ALL_INCLUDE = include/*.crow include/*/*.crow include/*/*/*.crow include/*/*/*/*.crow
 
