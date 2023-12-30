@@ -119,24 +119,6 @@ ref inout(T[2]) only2(T)(return scope inout T[] a) {
 @system bool isPointerInRange(T)(in T[] xs, in T* x) =>
 	xs.ptr <= x && x < endPtr(xs);
 
-@trusted PtrsRange!T ptrsRange(T)(T[] a) =>
-	PtrsRange!T(a.ptr, endPtr(a));
-
-private struct PtrsRange(T) {
-	T* begin;
-	T* end;
-
-	bool empty() const =>
-		begin >= end;
-
-	inout(T*) front() inout =>
-		begin;
-
-	@trusted void popFront() {
-		begin++;
-	}
-}
-
 @trusted T[] newArray(T)(scope ref Alloc alloc, scope T[] values) {
 	T[] res = allocateElements!T(alloc, values.length);
 	foreach (size_t i, ref T x; values)
@@ -240,8 +222,8 @@ Opt!Out first(Out, In)(in In[] a, in Opt!Out delegate(In) @safe @nogc pure nothr
 	firstWithIndex!(Out, In)(a, (size_t _, In x) => cb(x));
 
 Opt!Out firstPointer(Out, In)(In[] a, in Opt!Out delegate(In*) @safe @nogc pure nothrow cb) {
-	foreach (In* x; ptrsRange(a)) {
-		Opt!Out res = cb(x);
+	foreach (ref In x; a) {
+		Opt!Out res = cb(&x);
 		if (has(res))
 			return res;
 	}

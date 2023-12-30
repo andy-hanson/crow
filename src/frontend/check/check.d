@@ -93,7 +93,6 @@ import util.col.array :
 	mapPointers,
 	mapWithResultPointer,
 	only,
-	ptrsRange,
 	small,
 	zip,
 	zipPointers;
@@ -295,8 +294,8 @@ void checkSpecDeclParents(
 				someMut(ptrTrustMe(delaySpecInsts))));
 	});
 
-	foreach (SpecDecl* decl; ptrsRange(specs))
-		detectAndFixSpecRecursion(ctx, decl);
+	foreach (ref SpecDecl decl; specs)
+		detectAndFixSpecRecursion(ctx, &decl);
 
 	while (!mutArrIsEmpty(delaySpecInsts))
 		instantiateSpecParents(ctx.instantiateCtx, mustPop(delaySpecInsts), someMut(&delaySpecInsts));
@@ -356,10 +355,10 @@ void checkStructAliasTargets(
 
 StructsAndAliasesMap buildStructsAndAliasesMap(ref CheckCtx ctx, StructDecl[] structs, StructAlias[] aliases) {
 	MutHashTable!(StructOrAlias, Symbol, structOrAliasName) builder;
-	foreach (StructDecl* decl; ptrsRange(structs))
-		addToDeclsMap!StructOrAlias(ctx, builder, StructOrAlias(decl), Diag.DuplicateDeclaration.Kind.structOrAlias);
-	foreach (StructAlias* alias_; ptrsRange(aliases))
-		addToDeclsMap!StructOrAlias(ctx, builder, StructOrAlias(alias_), Diag.DuplicateDeclaration.Kind.structOrAlias);
+	foreach (ref StructDecl decl; structs)
+		addToDeclsMap!StructOrAlias(ctx, builder, StructOrAlias(&decl), Diag.DuplicateDeclaration.Kind.structOrAlias);
+	foreach (ref StructAlias alias_; aliases)
+		addToDeclsMap!StructOrAlias(ctx, builder, StructOrAlias(&alias_), Diag.DuplicateDeclaration.Kind.structOrAlias);
 	return moveToImmutable(builder);
 }
 
@@ -546,7 +545,7 @@ FunsAndMap checkFuns(
 		ctx.alloc,
 		asts.length + fileImports.length + fileExports.length + countFunsForStructs(structs) + countFunsForVars(vars),
 		(scope ref ExactSizeArrayBuilder!FunDecl funsBuilder) @trusted {
-			foreach (FunDeclAst* funAst; ptrsRange(asts)) {
+			foreach (ref FunDeclAst funAst; asts) {
 				FunDecl* fun = pushUninitialized(funsBuilder);
 				checkTypeParams(ctx, funAst.typeParams);
 				ReturnTypeAndParams rp = checkReturnTypeAndParams(
@@ -562,7 +561,7 @@ FunsAndMap checkFuns(
 					ctx, commonTypes, funAst.range, funAst.modifiers,
 					structsAndAliasesMap, specsMap, funAst.typeParams);
 				initMemory(fun, FunDecl(
-					FunDeclSource(FunDeclSource.Ast(ctx.curUri, funAst)),
+					FunDeclSource(FunDeclSource.Ast(ctx.curUri, &funAst)),
 					visibilityFromExplicit(funAst.visibility),
 					funAst.name.name,
 					rp.returnType,
@@ -577,10 +576,10 @@ FunsAndMap checkFuns(
 				funsBuilder ~= funDeclForFileImportOrExport(
 					ctx, commonTypes, structsAndAliasesMap, f, Visibility.public_);
 
-			foreach (StructDecl* struct_; ptrsRange(structs))
-				addFunsForStruct(ctx, funsBuilder, commonTypes, struct_);
-			foreach (VarDecl* var; ptrsRange(vars))
-				addFunsForVar(ctx, funsBuilder, commonTypes, var);
+			foreach (ref StructDecl struct_; structs)
+				addFunsForStruct(ctx, funsBuilder, commonTypes, &struct_);
+			foreach (ref VarDecl var; vars)
+				addFunsForVar(ctx, funsBuilder, commonTypes, &var);
 		});
 
 	FunsMap funsMap = buildFunsMap(ctx.alloc, funs);
@@ -635,18 +634,18 @@ FunsAndMap checkFuns(
 
 FunsMap buildFunsMap(ref Alloc alloc, in immutable FunDecl[] funs) {
 	MutHashTable!(ArrayBuilder!(immutable FunDecl*), Symbol, funDeclsBuilderName) res;
-	foreach (FunDecl* fun; ptrsRange(funs)) {
+	foreach (ref FunDecl fun; funs) {
 		insertOrUpdate(
 			alloc,
 			res,
 			fun.name,
 			() {
 				ArrayBuilder!(immutable FunDecl*) builder;
-				add(alloc, builder, fun);
+				add(alloc, builder, &fun);
 				return builder;
 			},
 			(ref ArrayBuilder!(immutable FunDecl*) builder) {
-				add(alloc, builder, fun);
+				add(alloc, builder, &fun);
 				return builder;
 			});
 	}
@@ -750,10 +749,10 @@ FunBody.Extern checkExternBody(ref CheckCtx ctx, FunDecl* fun, in Opt!TypeAst ty
 			Diag.LinkageWorseThanContainingFun(fun, fun.returnType, none!(Destructure*))));
 	fun.params.match!void(
 		(Destructure[] params) {
-			foreach (Destructure* p; ptrsRange(params))
-				if (!isLinkageAlwaysCompatible(funLinkage, linkageRange(p.type)))
-					addDiag(ctx, p.range(ctx.allSymbols), Diag(
-						Diag.LinkageWorseThanContainingFun(fun, p.type, some(p))));
+			foreach (ref Destructure param; params)
+				if (!isLinkageAlwaysCompatible(funLinkage, linkageRange(param.type)))
+					addDiag(ctx, param.range(ctx.allSymbols), Diag(
+						Diag.LinkageWorseThanContainingFun(fun, param.type, some(&param))));
 		},
 		(ref Params.Varargs) {
 			addDiagAssertSameUri(ctx, fun.range, Diag(
@@ -773,8 +772,8 @@ Symbol externLibraryNameFromTypeArg(ref CheckCtx ctx, in Range range, in Opt!Typ
 
 SpecsMap buildSpecsMap(ref CheckCtx ctx, SpecDecl[] specs) {
 	MutHashTable!(immutable SpecDecl*, Symbol, specDeclName) builder;
-	foreach (SpecDecl* spec; ptrsRange(specs))
-		addToDeclsMap(ctx, builder, spec, Diag.DuplicateDeclaration.Kind.spec);
+	foreach (ref SpecDecl spec; specs)
+		addToDeclsMap(ctx, builder, &spec, Diag.DuplicateDeclaration.Kind.spec);
 	return moveToImmutable(builder);
 }
 
@@ -1031,14 +1030,14 @@ ImportsOrReExports checkImportsOrReExports(
 			ImportOrExportKind(ImportOrExportKind.ModuleWhole()));
 
 	if (has(ast))
-		foreach (ImportOrExportAst* importAst; ptrsRange(force(ast).paths)) {
-			Opt!(ImportOrExportAst*) source = some(importAst);
+		foreach (ref ImportOrExportAst importAst; force(ast).paths)
 			importAst.kind.match!void(
 				(ImportOrExportAstKind.ModuleWhole) {
-					handleModuleImport(source, (Module*) => ImportOrExportKind(ImportOrExportKind.ModuleWhole()));
+					handleModuleImport(some(&importAst), (Module*) =>
+						ImportOrExportKind(ImportOrExportKind.ModuleWhole()));
 				},
 				(NameAndRange[] names) {
-					handleModuleImport(source, (Module* module_) =>
+					handleModuleImport(some(&importAst), (Module* module_) =>
 						ImportOrExportKind(checkNamedImports(alloc, allSymbols, diagsBuilder, module_, names)));
 				},
 				(ref ImportOrExportAstKind.File x) {
@@ -1047,13 +1046,12 @@ ImportsOrReExports checkImportsOrReExports(
 							assert(false);
 						},
 						(Uri x) {
-							add(alloc, fileImports, ImportOrExportFile(importAst, x));
+							add(alloc, fileImports, ImportOrExportFile(&importAst, x));
 						},
 						(Diag.ImportFileDiag x) {
-							add(alloc, diagsBuilder, Diagnostic(pathRange(allUris, *importAst), Diag(x)));
+							add(alloc, diagsBuilder, Diagnostic(pathRange(allUris, importAst), Diag(x)));
 						});
 				});
-		}
 	return ImportsOrReExports(finish(alloc, imports), finish(alloc, fileImports));
 }
 

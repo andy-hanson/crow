@@ -19,7 +19,7 @@ import model.model :
 	Type,
 	TypeArgs;
 import util.alloc.alloc : Alloc, free;
-import util.col.array : arraysEqual, copyArray, ptrsRange, SmallArray;
+import util.col.array : arraysEqual, copyArray, SmallArray;
 import util.col.hashTable :
 	getOrAdd, getOrAddAndDidAdd, hashTableToArray, mayDeleteValue, MutHashTable, size, ValueAndDidAdd;
 import util.col.mutMap : getOrAdd, getOrAddAndDidAdd;
@@ -161,8 +161,8 @@ void getInstsToProcessFromModule(ref AllInsts a, ref ToProcess out_, in Module m
 }
 
 void getInstsToProcessFromDecls(Decl)(ref AllInsts a, ref ToProcess out_, in Decl[] decls) {
-	foreach (Decl* decl; ptrsRange(decls))
-		mayDeleteKey!(AnyDeclOrInst, AnyInst)(a.referencedBy, decl, (AnyInst inst) {
+	foreach (ref Decl decl; decls)
+		mayDeleteKey!(AnyDeclOrInst, AnyInst)(a.referencedBy, &decl, (AnyInst inst) {
 			mustAdd(out_, inst);
 		});
 }

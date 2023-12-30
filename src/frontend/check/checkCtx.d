@@ -18,7 +18,7 @@ import model.model :
 	StructOrAlias,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.array : exists, ptrsRange;
+import util.col.array : exists;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.hashTable : existsInHashTable;
 import util.col.mutSet : mayAddToMutSet, MutSet, mutSetHas;
@@ -85,15 +85,15 @@ void checkForUnused(ref CheckCtx ctx, StructAlias[] aliases, StructDecl[] struct
 			addDiagAssertSameUri(ctx, decl.range, Diag(
 				Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.PrivateDecl(decl.name)))));
 	}
-	foreach (StructAlias* alias_; ptrsRange(aliases))
-		checkUnusedDecl(alias_);
-	foreach (StructDecl* struct_; ptrsRange(structs))
-		checkUnusedDecl(struct_);
-	foreach (SpecDecl* spec; ptrsRange(specs))
-		checkUnusedDecl(spec);
-	foreach (FunDecl* fun; ptrsRange(funs))
+	foreach (ref StructAlias alias_; aliases)
+		checkUnusedDecl(&alias_);
+	foreach (ref StructDecl struct_; structs)
+		checkUnusedDecl(&struct_);
+	foreach (ref SpecDecl spec; specs)
+		checkUnusedDecl(&spec);
+	foreach (ref FunDecl fun; funs)
 		if (!fun.okIfUnused)
-			checkUnusedDecl(fun);
+			checkUnusedDecl(&fun);
 }
 
 private void checkUnusedImports(ref CheckCtx ctx) {

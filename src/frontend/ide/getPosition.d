@@ -74,7 +74,7 @@ import model.model :
 	TypeParamIndex,
 	VarDecl;
 import model.model : paramsArray, StructDeclSource;
-import util.col.array : first, firstPointer, firstWithIndex, firstZipPointerFirst, ptrsRange;
+import util.col.array : first, firstPointer, firstWithIndex, firstZipPointerFirst;
 import util.opt : force, has, none, Opt, optIf, optOr, optOr, optOrDefault, some;
 import util.sourceRange : hasPos, Pos, Range, rangeOfStartAndLength;
 import util.symbol : AllSymbols;
@@ -163,15 +163,15 @@ Opt!PositionKind positionInImportsOrExports(
 	ImportOrExport[] importsOrExports,
 	Pos pos,
 ) {
-	foreach (ImportOrExport* im; ptrsRange(importsOrExports))
+	foreach (ref ImportOrExport im; importsOrExports)
 		if (has(im.source) && hasPos(force(im.source).range, pos)) {
 			ImportOrExportAst* source = force(im.source);
 			return im.kind.matchIn!(Opt!PositionKind)(
 				(in ImportOrExportKind.ModuleWhole) =>
-					some(PositionKind(PositionKind.ImportedModule(im))),
+					some(PositionKind(PositionKind.ImportedModule(&im))),
 				(in Opt!(NameReferents*)[] referents) =>
 					hasPos(pathRange(allUris, *force(im.source)), pos)
-						? some(PositionKind(PositionKind.ImportedModule(im)))
+						? some(PositionKind(PositionKind.ImportedModule(&im)))
 						: positionInImportedNames(
 							allSymbols, im.modulePtr, source.kind.as!(NameAndRange[]), referents, pos));
 		}
