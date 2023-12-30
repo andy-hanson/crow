@@ -1,3 +1,7 @@
+/*
+If editing this file, run 'make install-vscode-extension' for the changes to take effect.
+*/
+
 const childProcess = require("child_process")
 /** @typedef {import("vscode").ExtensionContext} ExtensionContext */
 /** @typedef {import("vscode").TextDocument} TextDocument */
@@ -12,21 +16,16 @@ let client
 /** @type {function(ExtensionContext): void} */
 exports.activate = context => {
 	/** @type {ServerOptions} */
-	const serverOptions = () => {
-		const proc = childProcess.spawn("crow", ["lsp"], {stdio:'pipe'})
-		proc.stderr.on('data', chunk => {
-			logError("Crow stderr:", chunk.toString('utf-8'))
-		})
-		proc.stderr.on('close', () => {
-			console.log("Crow stderr closed")
-		})
-		return Promise.resolve(proc)
-	}
+	const serverOptions = () =>
+		Promise.resolve(childProcess.spawn("crow", ["lsp"], {stdio:'pipe'}))
 
 	/** @type {LanguageClientOptions} */
 	const clientOptions = {
 		documentSelector: [{scheme:"file", language:"crow"}],
 		outputChannelName: 'Crow language server',
+		connectionOptions: {
+			maxRestartCount: 0,
+		}
 	}
 	client = new LanguageClient("crow", "Crow language server", serverOptions, clientOptions)
 	client.start()
@@ -59,15 +58,18 @@ const logError = message => {
 /** @type {function({unknownUris: ReadonlyArray<string>}): void} */
 const onUnknownUris = ({unknownUris}) => {
 	for (const uri of unknownUris) {
-		/** @type {Promise<TextDocument>} */ (workspace.openTextDocument(Uri.parse(uri)))
-			// This triggers 'onDidOpen', so no need to do anything else on success
+		workspace.fs.readFile(Uri.parse(uri))
+			.then(bytes => {
+				const content = uri.endsWith(".crow") || uri.endsWith(".json")
+					? new TextDecoder().decode(bytes)
+					: "" // Content of these files doesn't matter for frontend
+				client.sendNotification("custom/readFileResult", {uri, type: "ok", content})
+			})
 			.catch(error => {
-				if (error.name !== "CodeExpectedError")
+				const isNotFound = error.code === "FileNotFound"
+				if (!isNotFound)
 					logError(`Error reading file: ${JSON.stringify({uri, error})}`)
-				client.sendNotification("custom/readFileResult", {
-					uri,
-					type: error.name === "CodeExpectedError" ? "notFound" : "error",
-				})
+				client.sendNotification("custom/readFileResult", {uri, type: isNotFound ? "notFound" : "error"})
 			})
 	}
 }

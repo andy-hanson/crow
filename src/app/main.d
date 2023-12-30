@@ -44,7 +44,6 @@ import lib.server :
 	buildToC,
 	BuildToCResult,
 	buildToLowProgram,
-	CbHandleUnknownUris,
 	DiagsAndResultJson,
 	DocumentResult,
 	filesState,
@@ -124,10 +123,7 @@ private:
 		Opt!ExitCode stop = withNullPerf!(Opt!ExitCode, (scope ref Perf perf) =>
 			withTempAllocImpure!(Opt!ExitCode)(server.metaAlloc, (ref Alloc alloc) {
 				LspInMessage message = readIn(alloc, server.allSymbols, server.allUris);
-				scope CbHandleUnknownUris dg = () {
-					loadUntilNoUnknownUris(perf, server);
-				};
-				LspOutAction action = handleLspMessage(perf, alloc, server, message, some(dg));
+				LspOutAction action = handleLspMessage(perf, alloc, server, message);
 				foreach (LspOutMessage outMessage; action.outMessages) {
 					writeOut(alloc, server.allSymbols, jsonOfLspOutMessage(
 						alloc, server.allUris, server.lineAndCharacterGetters, outMessage));

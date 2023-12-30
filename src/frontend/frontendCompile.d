@@ -213,11 +213,18 @@ void onFileChanged(scope ref Perf perf, ref FrontendCompiler a, Uri uri) {
 					updateFileOnConfigChange(a, file);
 				break;
 			case FileType.other:
-				// TODO: if the file existed before and exists now, no need to re-compile.
+				bool isLoading = getFileContentOrDiag(a.storage, uri).matchIn!bool(
+					(in FileContent _) => false,
+					(in ReadFileDiag x) {
+						assert(x != ReadFileDiag.unknown);
+						return x == ReadFileDiag.loading;
+					});
 				OtherFile* file = ensureOtherFile(a, uri);
-				file.loaded = true;
-				foreach (CrowFile* x; file.referencedBy)
-					addToWorkableIfSo(a, x);
+				if (!isLoading && !file.loaded) {
+					file.loaded = true;
+					foreach (CrowFile* x; file.referencedBy)
+						addToWorkableIfSo(a, x);
+				}
 				break;
 		}
 		doDirtyWork(perf, a);
@@ -423,8 +430,8 @@ bool isImportWorkable(scope ref AllUris allUris, in MostlyResolvedImport a) =>
 		(Diag.ImportFileDiag x) {
 			if (x.isA!(Diag.ImportFileDiag.ReadError)) {
 				Diag.ImportFileDiag.ReadError read = x.as!(Diag.ImportFileDiag.ReadError);
-				// Unknown/loading files still have a CrowFile* or Config*
-				assert(!isUnknownOrLoading(read.diag) || fileType(allUris, read.uri) == FileType.other);
+				// Unknown/loading files still have a CrowFile*, Config*, or OtherFile*
+				assert(!isUnknownOrLoading(read.diag));
 			}
 			return true;
 		});

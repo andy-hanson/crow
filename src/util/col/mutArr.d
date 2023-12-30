@@ -33,6 +33,10 @@ struct MutArr(T) {
 	}
 }
 
+void clearAndDoNotFree(T)(ref MutArr!T a) {
+	a.size_ = 0;
+}
+
 @trusted void clearAndFree(T)(ref Alloc alloc, ref MutArr!T a) {
 	freeElements(alloc, a.inner);
 	a.inner = [];

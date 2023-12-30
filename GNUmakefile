@@ -10,7 +10,7 @@ MAKEFLAGS = -j4
 clean:
 	rm -rf bin site temp
 
-all: clean test lint serve
+all: clean test lint install-vscode-extension serve
 
 debug: bin/crow-debug
 	gdb ./bin/crow-debug
@@ -151,6 +151,9 @@ bin/crow.tar.xz: bin/crow bin/crow.vsix demo/* demo/*/* editor/sublime/* $(ALL_I
 
 bin/crow.vsix: editor/vscode/* editor/vscode/node_modules
 	cd editor/vscode && ./node_modules/vsce/vsce package --allow-missing-repository --out ../../bin/crow.vsix
+
+install-vscode-extension: bin/crow.vsix
+	code --install-extension bin/crow.vsix
 
 editor/vscode/node_modules:
 	cd editor/vscode && npm install

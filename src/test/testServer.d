@@ -14,6 +14,7 @@ import util.uri : concatUriAndPath, parsePath, parseUri, Uri;
 void testServer(ref Test test) {
 	testCircularImportFixed(test);
 	testFileNotFoundThenAdded(test);
+	testFileImportNotFound(test);
 	testChangeBootstrap(test);
 }
 
@@ -62,6 +63,29 @@ void testFileNotFoundThenAdded(ref Test test) {
 
 		setFile(test.perf, server, uriB, ReadFileResult(ReadFileDiag.notFound));
 		assertEqual(showDiags(), bDoesNotExist);
+	});
+}
+
+void testFileImportNotFound(ref Test test) {
+	withTestServer(test, (ref Alloc alloc, ref Server server) {
+		Uri uriA = parseUri(server.allUris, "test:///a.crow");
+		Uri uriB = parseUri(server.allUris, "test:///b.txt");
+		Uri uriB2 = parseUri(server.allUris, "test:///b2.txt");
+		setFile(test.perf, server, uriB, "hello");
+
+		CString showDiags() =>
+			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA).program);
+
+		string original = "import\n\t./b.txt as b string\n\nmain void()\n\t()";
+		setupTestServer(test, alloc, server, uriA, original);
+		assertEqual(showDiags(), cString!"");
+
+		setFile(test.perf, server, uriA, "import\n\t./b2.txt as string\n\nmain void()\n\t()");
+		setFile(test.perf, server, uriB2, ReadFileResult(ReadFileDiag.notFound));
+		assertEqual(showDiags(), cString!"test:///a.crow 2:5-2:13 Imported file test:///b2.txt does not exist.");
+
+		setFile(test.perf, server, uriA, original);
+		assertEqual(showDiags(), cString!"");
 	});
 }
 

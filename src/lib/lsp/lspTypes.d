@@ -25,6 +25,7 @@ immutable struct LspInMessage {
 
 immutable struct LspInNotification {
 	mixin Union!(
+		CancelRequestParams,
 		DidChangeTextDocumentParams,
 		DidCloseTextDocumentParams,
 		DidOpenTextDocumentParams,
@@ -106,8 +107,9 @@ enum TraceValue { off, messages, verbose }
 immutable struct ReadFileResultParams {
 	Uri uri;
 	ReadFileResultType type;
+	string content;
 }
-enum ReadFileResultType { notFound, error }
+enum ReadFileResultType { ok, notFound, error }
 // Parameter to "custom/run"
 immutable struct RunParams {
 	Uri uri;
@@ -126,6 +128,10 @@ enum Pipe { stdout, stderr }
 immutable struct UnloadedUrisParams {}
 immutable struct UnloadedUris {
 	Uri[] unloadedUris;
+}
+
+immutable struct CancelRequestParams {
+	uint id;
 }
 
 immutable struct ExitParams {}

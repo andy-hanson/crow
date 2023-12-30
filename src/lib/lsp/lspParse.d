@@ -3,6 +3,7 @@ module lib.lsp.lspParse;
 @safe @nogc pure nothrow:
 
 import lib.lsp.lspTypes :
+	CancelRequestParams,
 	DefinitionParams,
 	DidChangeTextDocumentParams,
 	DidCloseTextDocumentParams,
@@ -48,12 +49,15 @@ LspInMessage parseLspInMessage(ref Alloc alloc, scope ref AllUris allUris, in Js
 
 	Json params = get!"params"(message);
 	switch (get!"method"(message).as!string) {
+		case "$/cancelRequest":
+			return notification(CancelRequestParams(asUint(get!"id"(params))));
 		case "$/setTrace":
 			return notification(SetTraceParams(parseTraceValue(get!"value"(params).as!string)));
 		case "custom/readFileResult":
 			return notification(ReadFileResultParams(
 				parseUriProperty(allUris, params),
-				toReadFileResponseType(get!"type"(params).as!string)));
+				toReadFileResponseType(get!"type"(params).as!string),
+				hasKey!"content"(params) ? get!"content"(params).as!string : ""));
 		case "custom/run":
 			return request(RunParams(parseUriProperty(allUris, params)));
 		case "custom/unloadedUris":
@@ -107,6 +111,8 @@ DidChangeTextDocumentParams parseDidChangeTextDocumentParams(ref Alloc alloc, sc
 
 ReadFileResultType toReadFileResponseType(in string a) {
 	final switch (a) {
+		case "ok":
+			return ReadFileResultType.ok;
 		case "notFound":
 			return ReadFileResultType.notFound;
 		case "error":

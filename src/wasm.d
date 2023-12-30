@@ -3,12 +3,11 @@
 import lib.lsp.lspParse : parseLspInMessage;
 import lib.lsp.lspToJson : jsonOfLspOutAction;
 import lib.lsp.lspTypes : LspInMessage, LspOutAction;
-import lib.server : CbHandleUnknownUris, handleLspMessage, Server, setCwd, setIncludeDir;
+import lib.server : handleLspMessage, Server, setCwd, setIncludeDir;
 import util.alloc.alloc : Alloc, FetchMemoryCb, withTempAlloc, withTempAllocImpure;
 import util.json : get, Json, jsonToString;
 import util.jsonParse : mustParseJson;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
-import util.opt : none;
 import util.perf : Perf, PerfMeasure, PerfMeasureResult, PerfResult, perfResult, withNullPerf;
 import util.string : CString;
 import util.uri : parseUri;
@@ -72,7 +71,7 @@ alias FetchMemoryCbImpure = ulong[] delegate(size_t sizeWords, size_t timesCalle
 		withTempAllocImpure!CString(server.metaAlloc, (ref Alloc resultAlloc) {
 			Json inputJson = mustParseJson(resultAlloc, server.allSymbols, inputStr);
 			LspInMessage inputMessage = parseLspInMessage(resultAlloc, server.allUris, inputJson);
-			LspOutAction output = handleLspMessage(perf, resultAlloc, *server, inputMessage, none!CbHandleUnknownUris);
+			LspOutAction output = handleLspMessage(perf, resultAlloc, *server, inputMessage);
 			Json outputJson = jsonOfLspOutAction(resultAlloc, server.allUris, server.lineAndCharacterGetters, output);
 			return jsonToString(resultAlloc, server.allSymbols, outputJson);
 		})).ptr;

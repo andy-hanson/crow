@@ -40,6 +40,7 @@ import interpret.runBytecode : runBytecode;
 import lib.cliParser : PrintKind;
 import lib.lsp.lspToJson : jsonOfHover, jsonOfReferences, jsonOfRename;
 import lib.lsp.lspTypes :
+	CancelRequestParams,
 	DefinitionParams,
 	DidChangeTextDocumentParams,
 	DidCloseTextDocumentParams,
@@ -97,6 +98,7 @@ import util.alloc.alloc : Alloc, AllocKind, FetchMemoryCb, freeElements, MetaAll
 import util.col.array : only;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.array : concatenate, contains, map, mapOp, newArray;
+import util.col.mutArr : clearAndDoNotFree, MutArr, push;
 import util.exitCode : ExitCode;
 import util.json : field, Json, jsonNull, jsonObject;
 import util.late : Late, lateGet, lateSet, MutLate;
@@ -147,41 +149,41 @@ ExitCode buildAndInterpret(
 	});
 }
 
-alias CbHandleUnknownUris = void delegate() @safe @nogc nothrow;
-
-LspOutAction handleLspMessage(
-	scope ref Perf perf,
-	ref Alloc alloc,
-	ref Server server,
-	in LspInMessage message,
-	in Opt!CbHandleUnknownUris cb,
-) =>
+LspOutAction handleLspMessage(scope ref Perf perf, ref Alloc alloc, ref Server server, in LspInMessage message) =>
 	message.matchImpure!LspOutAction(
 		(in LspInNotification x) =>
-			handleLspNotification(perf, alloc, server, x, cb),
-		(in LspInRequest x) =>
-			LspOutAction(
-				newArray!LspOutMessage(alloc, [
-					LspOutMessage(LspOutResponse(x.id, handleLspRequest(perf, alloc, server, x.params)))]),
-				none!ExitCode));
+			handleLspNotification(perf, alloc, server, x),
+		(in LspInRequest x) {
+			Opt!LspOutResult response = handleLspRequest(perf, alloc, server, x);
+			return LspOutAction(
+				has(response) ? newArray!LspOutMessage(alloc, [messageForResponse(x, force(response))]) : [],
+				none!ExitCode);
+		});
+
+private LspOutMessage messageForResponse(in LspInRequest request, LspOutResult result) =>
+	LspOutMessage(LspOutResponse(request.id, result));
 
 private LspOutAction handleLspNotification(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
 	in LspInNotification a,
-	in Opt!CbHandleUnknownUris cb,
 ) =>
 	a.matchImpure!LspOutAction(
+		(in CancelRequestParams _) {
+			// Ignore because according to documentation,
+			// "A request that got canceled still needs to return from the server and send a response back"
+			return LspOutAction([]);
+		},
 		(in DidChangeTextDocumentParams x) {
 			changeFile(perf, server, x.textDocument.uri, x.contentChanges);
-			return handleFileChanged(perf, alloc, server, x.textDocument.uri, cb);
+			return handleFileChanged(perf, alloc, server, x.textDocument.uri);
 		},
 		(in DidCloseTextDocumentParams x) =>
 			LspOutAction([]),
 		(in DidOpenTextDocumentParams x) {
 			setFile(perf, server, x.textDocument.uri, x.textDocument.text);
-			return handleFileChanged(perf, alloc, server, x.textDocument.uri, cb);
+			return handleFileChanged(perf, alloc, server, x.textDocument.uri);
 		},
 		(in DidSaveTextDocumentParams x) =>
 			LspOutAction([]),
@@ -190,24 +192,24 @@ private LspOutAction handleLspNotification(
 		(in InitializedParams x) =>
 			initializedAction(alloc),
 		(in ReadFileResultParams x) {
-			setFile(perf, server, x.uri, readFileDiagOfReadFileResultType(x.type));
-			return handleFileChanged(perf, alloc, server, x.uri, cb);
+			final switch (x.type) {
+				case ReadFileResultType.ok:
+					setFile(perf, server, x.uri, x.content);
+					break;
+				case ReadFileResultType.notFound:
+					setFile(perf, server, x.uri, ReadFileDiag.notFound);
+					break;
+				case ReadFileResultType.error:
+					setFile(perf, server, x.uri, ReadFileDiag.error);
+					break;
+			}
+			return handleFileChanged(perf, alloc, server, x.uri);
 		},
 		(in SetTraceParams _) =>
 			// TODO: implement this
 			LspOutAction([]));
 
-private LspOutAction handleFileChanged(
-	scope ref Perf perf,
-	ref Alloc alloc,
-	ref Server server,
-	Uri changed,
-	in Opt!CbHandleUnknownUris cb,
-) {
-	if (has(cb)) {
-		force(cb)();
-		assert(filesState(server) == FilesState.allLoaded);
-	}
+private LspOutAction handleFileChanged(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri changed) {
 	final switch (filesState(server)) {
 		case FilesState.hasUnknown:
 			Uri[] unknown = allUnknownUris(alloc, server);
@@ -217,44 +219,94 @@ private LspOutAction handleFileChanged(
 		case FilesState.hasLoading:
 			return LspOutAction([]);
 		case FilesState.allLoaded:
-			return notifyDiagnostics(perf, alloc, server);
+			Program program = getProgramForAll(perf, alloc, server);
+			ArrayBuilder!LspOutMessage messages;
+			foreach (LspInRequest request; server.lspState.pendingRequests)
+				add(alloc, messages, messageForResponse(
+					request,
+					handleLspRequestWithProgram(perf, alloc, server, program, request.params)));
+			clearAndDoNotFree(server.lspState.pendingRequests);
+			notifyDiagnostics(perf, alloc, messages, server, program);
+			return LspOutAction(finish(alloc, messages), none!ExitCode);
 	}
 }
 
-private LspOutResult handleLspRequest(
+// Only returns 'none' if not all files are loaded
+private Opt!LspOutResult handleLspRequest(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
+	in LspInRequest a,
+) =>
+	a.params.matchImpure!(Opt!LspOutResult)(
+		(in DefinitionParams x) =>
+			respondWithProgram(perf, alloc, server, a),
+		(in HoverParams x) =>
+			respondWithProgram(perf, alloc, server, a),
+		(in InitializeParams x) =>
+			some(LspOutResult(InitializeResult())),
+		(in ReferenceParams x) =>
+			respondWithProgram(perf, alloc, server, a),
+		(in RenameParams x) =>
+			respondWithProgram(perf, alloc, server, a),
+		(in RunParams x) =>
+			respondWithProgram(perf, alloc, server, a),
+		(in SemanticTokensParams x) {
+			Uri uri = x.textDocument.uri;
+			return some(LspOutResult(getTokens(alloc, server, uri, getSourceAndAst(alloc, server, uri))));
+		},
+		(in ShutdownParams _) =>
+			some(LspOutResult(LspOutResult.Null())),
+		(in UnloadedUrisParams) =>
+			some(LspOutResult(UnloadedUris(allUnloadedUris(alloc, server)))));
+
+private Opt!LspOutResult respondWithProgram(
+	scope ref Perf perf,
+	ref Alloc alloc,
+	ref Server server,
+	in LspInRequest request,
+) {
+	if (filesState(server) == FilesState.allLoaded)
+		return some(handleLspRequestWithProgram(
+			perf,alloc, server, getProgramForAll(perf, alloc, server), request.params));
+	else {
+		push(server.lspState.stateAlloc, server.lspState.pendingRequests, request);
+		return none!LspOutResult;
+	}
+}
+
+private LspOutResult handleLspRequestWithProgram(
+	scope ref Perf perf,
+	ref Alloc alloc,
+	ref Server server,
+	in Program program,
 	in LspInRequestParams a,
 ) =>
 	a.matchImpure!LspOutResult(
 		(in DefinitionParams x) =>
-			LspOutResult(getDefinitionForProgram(
-				alloc, server, getProgram(perf, alloc, server, [x.params.textDocument.uri]), x)),
+			LspOutResult(getDefinitionForProgram(alloc, server, program, x)),
 		(in HoverParams x) =>
-			LspOutResult(getHoverForProgram(
-				alloc, server, getProgram(perf, alloc, server, [x.params.textDocument.uri]), x)),
-		(in InitializeParams x) =>
-			LspOutResult(InitializeResult()),
+			LspOutResult(getHoverForProgram(alloc, server, program, x)),
+		(in InitializeParams _) =>
+			assert(false),
 		(in ReferenceParams x) =>
-			LspOutResult(getReferencesForProgram(alloc, server, getProgramForAll(perf, alloc, server), x)),
+			LspOutResult(getReferencesForProgram(alloc, server, program, x)),
 		(in RenameParams x) =>
-			LspOutResult(getRenameForProgram(alloc, server, getProgramForAll(perf, alloc, server), x)),
+			LspOutResult(getRenameForProgram(alloc, server, program, x)),
 		(in RunParams x) {
 			ArrayBuilder!Write writes;
+			// TODO: this redundantly builds a program...
 			ExitCode exitCode = run(perf, alloc, server, x.uri, (Pipe pipe, in string x) {
 				add(alloc, writes, Write(pipe, copyString(alloc, x)));
 			});
 			return LspOutResult(RunResult(exitCode, finish(alloc, writes)));
 		},
-		(in SemanticTokensParams x) {
-			Uri uri = x.textDocument.uri;
-			return LspOutResult(getTokens(alloc, server, uri, getSourceAndAst(alloc, server, uri)));
-		},
+		(in SemanticTokensParams _) =>
+			assert(false),
 		(in ShutdownParams _) =>
-			LspOutResult(LspOutResult.Null()),
-		(in UnloadedUrisParams) =>
-			LspOutResult(UnloadedUris(allUnloadedUris(alloc, server))));
+			assert(false),
+		(in UnloadedUrisParams _) =>
+			assert(false));
 
 private ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri main, in WriteCb writeCb) {
 	// TODO: use an arena so anything allocated during interpretation is cleaned up.
@@ -317,6 +369,7 @@ private struct LspState {
 
 	Alloc* stateAllocPtr;
 	Uri[] urisWithDiagnostics;
+	MutArr!LspInRequest pendingRequests;
 
 	ref inout(Alloc) stateAlloc() return scope inout =>
 		*stateAllocPtr;
@@ -402,7 +455,7 @@ Uri[] allUnknownUris(ref Alloc alloc, in Server server) =>
 private Uri[] allUnloadedUris(ref Alloc alloc, in Server server) =>
 	allUrisWithFileDiag(alloc, server.storage, [ReadFileDiag.unknown, ReadFileDiag.loading]);
 
-CString showDiagnostics(ref Alloc alloc, scope ref Server server, in Program program) =>
+CString showDiagnostics(ref Alloc alloc, in Server server, in Program program) =>
 	stringOfDiagnostics(alloc, getShowDiagCtx(server, program), program);
 
 immutable struct DocumentResult {
@@ -419,7 +472,7 @@ DocumentResult getDocumentation(scope ref Perf perf, ref Alloc alloc, ref Server
 
 private UriAndRange[] getDefinitionForProgram(
 	ref Alloc alloc,
-	scope ref Server server,
+	in Server server,
 	in Program program,
 	in DefinitionParams params,
 ) {
@@ -455,7 +508,7 @@ private Opt!WorkspaceEdit getRenameForProgram(
 
 private Opt!Hover getHoverForProgram(
 	ref Alloc alloc,
-	scope ref Server server,
+	in Server server,
 	in Program program,
 	in HoverParams params,
 ) {
@@ -474,7 +527,7 @@ ProgramWithMain getProgramForMain(scope ref Perf perf, ref Alloc alloc, ref Serv
 Program getProgramForAll(scope ref Perf perf, ref Alloc alloc, ref Server server) =>
 	getProgram(perf, alloc, server, allKnownGoodCrowUris(alloc, server.storage));
 
-private Opt!Position getPosition(scope ref Server server, in Program program, in TextDocumentPositionParams where) {
+private Opt!Position getPosition(in Server server, in Program program, in TextDocumentPositionParams where) {
 	Opt!(immutable Module*) module_ = program.allModules[where.textDocument.uri];
 	return has(module_)
 		? some(getPosition(server.allSymbols, server.allUris, force(module_), server.lineAndCharacterGetters[where]))
@@ -488,7 +541,7 @@ struct DiagsAndResultJson {
 
 private DiagsAndResultJson printForProgram(
 	ref Alloc alloc,
-	scope ref Server server,
+	in Server server,
 	in Program program,
 	Json result,
 ) =>
@@ -658,20 +711,16 @@ ShowCtx getShowCtx(return scope ref const Server server) =>
 SemanticTokens getTokens(ref Alloc alloc, ref Server server, Uri uri, in SourceAndAst ast) =>
 	tokensOfAst(alloc, server.allSymbols, server.allUris, server.lineAndCharacterGetters[uri], ast);
 
-ReadFileDiag readFileDiagOfReadFileResultType(ReadFileResultType a) {
-	final switch (a) {
-		case ReadFileResultType.notFound:
-			return ReadFileDiag.notFound;
-		case ReadFileResultType.error:
-			return ReadFileDiag.error;
-	}
-}
-
 LspOutMessage notification(T)(T a) =>
 	LspOutMessage(LspOutNotification(a));
 
-LspOutAction notifyDiagnostics(scope ref Perf perf, ref Alloc alloc, ref Server server) {
-	Program program = getProgramForAll(perf, alloc, server);
+void notifyDiagnostics(
+	scope ref Perf perf,
+	ref Alloc alloc,
+	scope ref ArrayBuilder!LspOutMessage out_,
+	ref Server server,
+	ref Program program,
+) {
 	UriAndDiagnostics[] diags = sortedDiagnostics(alloc, server.allUris, program);
 	ref LspState state() => server.lspState;
 	Uri[] newUris = map(state.stateAlloc, diags, (ref UriAndDiagnostics x) => x.uri);
@@ -685,12 +734,12 @@ LspOutAction notifyDiagnostics(scope ref Perf perf, ref Alloc alloc, ref Server 
 	}();
 	state.urisWithDiagnostics = castNonScope(newUris);
 	ShowDiagCtx ctx = getShowDiagCtx(server, program);
-	return LspOutAction(map!(LspOutMessage, UriAndDiagnostics)(alloc, all, (ref UriAndDiagnostics ud) =>
-		notification(PublishDiagnosticsParams(ud.uri, map(alloc, ud.diagnostics, (ref Diagnostic x) =>
+	foreach (ref UriAndDiagnostics ud; all)
+		add(alloc, out_, notification(PublishDiagnosticsParams(ud.uri, map(alloc, ud.diagnostics, (ref Diagnostic x) =>
 			LspDiagnostic(
 				x.range,
 				toLspDiagnosticSeverity(getDiagnosticSeverity(x.kind)),
-				stringOfDiag(alloc, ctx, x.kind)))))));
+				stringOfDiag(alloc, ctx, x.kind))))));
 }
 
 LspDiagnosticSeverity toLspDiagnosticSeverity(DiagnosticSeverity a) {
