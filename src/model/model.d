@@ -17,6 +17,7 @@ import model.ast :
 	SpecDeclAst,
 	SpecSigAst,
 	StructAliasAst,
+	StructBodyAst,
 	StructDeclAst,
 	TestAst,
 	VarDeclAst;
@@ -198,7 +199,7 @@ enum FieldMutability {
 immutable struct RecordField {
 	@safe @nogc pure nothrow:
 
-	StructDeclAst.Body.Record.Field* ast;
+	StructBodyAst.Record.Field* ast;
 	StructDecl* containingRecord;
 	Visibility visibility;
 	Symbol name;
@@ -216,7 +217,7 @@ immutable struct UnionMember {
 	@safe @nogc pure nothrow:
 
 	//TODO: use NameAndRange (more compact)
-	StructDeclAst.Body.Union.Member* ast;
+	StructBodyAst.Union.Member* ast;
 	StructDecl* containingUnion;
 	Symbol name;
 	Type type;
@@ -266,7 +267,7 @@ immutable struct EnumValue {
 immutable struct EnumMember {
 	@safe @nogc pure nothrow:
 
-	StructDeclAst.Body.Enum.Member* ast;
+	StructBodyAst.Enum.Member* ast;
 	StructDecl* containingEnum;
 	Symbol name;
 	EnumValue value;

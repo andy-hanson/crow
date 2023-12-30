@@ -54,6 +54,7 @@ import model.ast :
 	SpecDeclAst,
 	SpecSigAst,
 	StructAliasAst,
+	StructBodyAst,
 	StructDeclAst,
 	TestAst,
 	TypeAst,
@@ -71,7 +72,7 @@ import util.sourceRange : Pos, Range;
 import util.string : CString, emptySmallString, SmallString;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.uri : AllUris;
-import util.util : castNonScope_ref, ptrTrustMe, typeAs;
+import util.util : castNonScope_ref, ptrTrustMe;
 
 FileAst* parseFile(
 	scope ref Perf perf,
@@ -157,10 +158,10 @@ SpecSigAst[] parseIndentedSigs(ref Lexer lexer) {
 		return [];
 }
 
-SmallArray!(StructDeclAst.Body.Enum.Member) parseEnumOrFlagsMembers(ref Lexer lexer) {
+SmallArray!(StructBodyAst.Enum.Member) parseEnumOrFlagsMembers(ref Lexer lexer) {
 	if (tryTakeToken(lexer, Token.newlineIndent)) {
-		ArrayBuilder!(StructDeclAst.Body.Enum.Member) res;
-		SmallArray!(StructDeclAst.Body.Enum.Member) recur() {
+		ArrayBuilder!(StructBodyAst.Enum.Member) res;
+		SmallArray!(StructBodyAst.Enum.Member) recur() {
 			Pos start = curPos(lexer);
 			Symbol name = takeName(lexer);
 			Opt!LiteralIntOrNat value = () {
@@ -177,33 +178,33 @@ SmallArray!(StructDeclAst.Body.Enum.Member) parseEnumOrFlagsMembers(ref Lexer le
 				} else
 					return none!LiteralIntOrNat;
 			}();
-			add(lexer.alloc, res, StructDeclAst.Body.Enum.Member(range(lexer, start), name, value));
+			add(lexer.alloc, res, StructBodyAst.Enum.Member(range(lexer, start), name, value));
 			final switch (takeNewlineOrDedent(lexer)) {
 				case NewlineOrDedent.newline:
 					return recur();
 				case NewlineOrDedent.dedent:
-					return small!(StructDeclAst.Body.Enum.Member)(finish(lexer.alloc, res));
+					return small!(StructBodyAst.Enum.Member)(finish(lexer.alloc, res));
 			}
 		}
 		return recur();
 	} else
-		return emptySmallArray!(StructDeclAst.Body.Enum.Member);
+		return emptySmallArray!(StructBodyAst.Enum.Member);
 }
 
-StructDeclAst.Body.Record parseRecordBody(ref Lexer lexer) =>
-	StructDeclAst.Body.Record(tryTakeToken(lexer, Token.newlineIndent)
-		? small!(StructDeclAst.Body.Record.Field)(parseRecordFields(lexer))
-		: emptySmallArray!(StructDeclAst.Body.Record.Field));
+StructBodyAst.Record parseRecordBody(ref Lexer lexer) =>
+	StructBodyAst.Record(tryTakeToken(lexer, Token.newlineIndent)
+		? small!(StructBodyAst.Record.Field)(parseRecordFields(lexer))
+		: emptySmallArray!(StructBodyAst.Record.Field));
 
-StructDeclAst.Body.Record.Field[] parseRecordFields(ref Lexer lexer) {
-	ArrayBuilder!(StructDeclAst.Body.Record.Field) fields;
+StructBodyAst.Record.Field[] parseRecordFields(ref Lexer lexer) {
+	ArrayBuilder!(StructBodyAst.Record.Field) fields;
 	while (true) {
 		Pos start = curPos(lexer);
 		ExplicitVisibility visibility = tryTakeVisibility(lexer);
 		NameAndRange name = takeNameAndRange(lexer);
 		Opt!FieldMutabilityAst mutability = parseFieldMutability(lexer);
 		TypeAst type = parseType(lexer);
-		add(lexer.alloc, fields, StructDeclAst.Body.Record.Field(
+		add(lexer.alloc, fields, StructBodyAst.Record.Field(
 			range(lexer, start), visibility, name, mutability, type));
 		final switch (takeNewlineOrDedent(lexer)) {
 			case NewlineOrDedent.newline:
@@ -230,15 +231,15 @@ Opt!FieldMutabilityAst parseFieldMutability(ref Lexer lexer) {
 			: none!FieldMutabilityAst;
 }
 
-StructDeclAst.Body.Union.Member[] parseUnionMembers(ref Lexer lexer) {
-	ArrayBuilder!(StructDeclAst.Body.Union.Member) res;
+SmallArray!(StructBodyAst.Union.Member) parseUnionMembers(ref Lexer lexer) {
+	ArrayBuilder!(StructBodyAst.Union.Member) res;
 	do {
 		Pos start = curPos(lexer);
 		Symbol name = takeName(lexer);
 		Opt!TypeAst type = peekEndOfLine(lexer) ? none!TypeAst : some(parseType(lexer));
-		add(lexer.alloc, res, StructDeclAst.Body.Union.Member(range(lexer, start), name, type));
+		add(lexer.alloc, res, StructBodyAst.Union.Member(range(lexer, start), name, type));
 	} while (takeNewlineOrDedent(lexer) == NewlineOrDedent.newline);
-	return finish(lexer.alloc, res);
+	return small!(StructBodyAst.Union.Member)(finish(lexer.alloc, res));
 }
 
 FunDeclAst parseFun(
@@ -359,9 +360,9 @@ void parseSpecOrStructOrFun(
 	TypeParams typeParams = parseTypeParams(lexer);
 	Pos keywordPos = curPos(lexer);
 
-	void addStruct(in StructDeclAst.Body delegate() @safe @nogc pure nothrow cb) {
+	void addStruct(in StructBodyAst delegate() @safe @nogc pure nothrow cb) {
 		SmallArray!ModifierAst modifiers = parseModifiers(lexer);
-		StructDeclAst.Body body_ = cb();
+		StructBodyAst body_ = cb();
 		add(lexer.alloc, structs, StructDeclAst(
 			docComment, range(lexer, start), visibility, name, typeParams, keywordPos, modifiers, body_));
 	}
@@ -381,7 +382,7 @@ void parseSpecOrStructOrFun(
 			break;
 		case Token.builtin:
 			takeNextToken(lexer);
-			addStruct(() => StructDeclAst.Body(StructDeclAst.Body.Builtin()));
+			addStruct(() => StructBodyAst(StructBodyAst.Builtin()));
 			break;
 		case Token.builtinSpec:
 			takeNextToken(lexer);
@@ -397,17 +398,17 @@ void parseSpecOrStructOrFun(
 		case Token.enum_:
 			takeNextToken(lexer);
 			Opt!(TypeAst*) typeArg = tryParseTypeArgForEnumOrFlags(lexer);
-			addStruct(() => StructDeclAst.Body(StructDeclAst.Body.Enum(typeArg, parseEnumOrFlagsMembers(lexer))));
+			addStruct(() => StructBodyAst(StructBodyAst.Enum(typeArg, parseEnumOrFlagsMembers(lexer))));
 			break;
 		case Token.extern_:
 			takeNextToken(lexer);
-			StructDeclAst.Body.Extern body_ = parseExternType(lexer);
-			addStruct(() => StructDeclAst.Body(body_));
+			StructBodyAst.Extern body_ = parseExternType(lexer);
+			addStruct(() => StructBodyAst(body_));
 			break;
 		case Token.flags:
 			takeNextToken(lexer);
 			Opt!(TypeAst*) typeArg = tryParseTypeArgForEnumOrFlags(lexer);
-			addStruct(() => StructDeclAst.Body(StructDeclAst.Body.Flags(typeArg, parseEnumOrFlagsMembers(lexer))));
+			addStruct(() => StructBodyAst(StructBodyAst.Flags(typeArg, parseEnumOrFlagsMembers(lexer))));
 			break;
 		case Token.global:
 			Pos pos = curPos(lexer);
@@ -417,7 +418,7 @@ void parseSpecOrStructOrFun(
 			break;
 		case Token.record:
 			takeNextToken(lexer);
-			addStruct(() => StructDeclAst.Body(parseRecordBody(lexer)));
+			addStruct(() => StructBodyAst(parseRecordBody(lexer)));
 			break;
 		case Token.spec:
 			takeNextToken(lexer);
@@ -434,7 +435,7 @@ void parseSpecOrStructOrFun(
 			break;
 		case Token.union_:
 			takeNextToken(lexer);
-			addStruct(() => StructDeclAst.Body(StructDeclAst.Body.Union(parseUnionMembersOrDiag(lexer))));
+			addStruct(() => StructBodyAst(StructBodyAst.Union(parseUnionMembersOrDiag(lexer))));
 			break;
 		default:
 			add(lexer.alloc, funs, parseFun(lexer, docComment, visibility, start, name, typeParams));
@@ -442,16 +443,16 @@ void parseSpecOrStructOrFun(
 	}
 }
 
-StructDeclAst.Body.Extern parseExternType(ref Lexer lexer) {
+StructBodyAst.Extern parseExternType(ref Lexer lexer) {
 	if (tryTakeToken(lexer, Token.parenLeft)) {
 		Opt!(LiteralNatAst*) size = parseNat(lexer);
 		Opt!(LiteralNatAst*) alignment = tryTakeToken(lexer, Token.comma)
 			? parseNat(lexer)
 			: none!(LiteralNatAst*);
 		takeOrAddDiagExpectedToken(lexer, Token.parenRight, ParseDiag.Expected.Kind.closingParen);
-		return StructDeclAst.Body.Extern(size, alignment);
+		return StructBodyAst.Extern(size, alignment);
 	} else
-		return StructDeclAst.Body.Extern(none!(LiteralNatAst*), none!(LiteralNatAst*));
+		return StructBodyAst.Extern(none!(LiteralNatAst*), none!(LiteralNatAst*));
 }
 Opt!(LiteralNatAst*) parseNat(ref Lexer lexer) =>
 	takeOrAddDiagExpectedToken!(LiteralNatAst*)(lexer, ParseDiag.Expected.Kind.literalNat, (TokenAndData x) =>
@@ -472,15 +473,15 @@ VarDeclAst parseVarDecl(
 	return VarDeclAst(range(lexer, start), docComment, visibility, name, typeParams, kindPos, kind, type, modifiers);
 }
 
-StructDeclAst.Body.Union.Member[] parseUnionMembersOrDiag(ref Lexer lexer) =>
+SmallArray!(StructBodyAst.Union.Member) parseUnionMembersOrDiag(ref Lexer lexer) =>
 	// TODO: This should be a checker error, not a parse error
-	takeIndentOrFailGeneric!(StructDeclAst.Body.Union.Member[])(
+	takeIndentOrFailGeneric!(SmallArray!(StructBodyAst.Union.Member))(
 		lexer,
 		() => parseUnionMembers(lexer),
-		(in Range _) => typeAs!(StructDeclAst.Body.Union.Member[])([]));
+		(in Range _) => emptySmallArray!(StructBodyAst.Union.Member));
 
-ModifierAst[] parseModifiers(ref Lexer lexer) {
-	if (peekEndOfLine(lexer)) return [];
+SmallArray!ModifierAst parseModifiers(ref Lexer lexer) {
+	if (peekEndOfLine(lexer)) return emptySmallArray!ModifierAst;
 	ArrayBuilder!ModifierAst res;
 	while (true) {
 		Pos start = curPos(lexer);
@@ -491,7 +492,7 @@ ModifierAst[] parseModifiers(ref Lexer lexer) {
 		else
 			takeOrAddDiagExpectedToken(lexer, Token.comma, ParseDiag.Expected.Kind.comma);
 	}
-	return finish(lexer.alloc, res);
+	return small!ModifierAst(finish(lexer.alloc, res));
 }
 
 ModifierAst.Kind parseModifierKind(ref Lexer lexer) {

@@ -28,6 +28,7 @@ import model.ast :
 	pathRange,
 	range,
 	rangeOfNameAndRange,
+	StructBodyAst,
 	StructDeclAst,
 	TypeAst;
 import model.model :
@@ -320,7 +321,7 @@ void eachTypeInStruct(in StructDecl a, in TypeCb cb) =>
 			eachTypeInStructBody(a.body_, x.body_, cb);
 		},
 		(in StructDeclSource.Bogus) {});
-void eachTypeInStructBody(in StructBody body_, in StructDeclAst.Body ast, in TypeCb cb) {
+void eachTypeInStructBody(in StructBody body_, in StructBodyAst ast, in TypeCb cb) {
 	body_.matchIn!void(
 		(in StructBody.Bogus) {},
 		(in StructBody.Builtin) {},
@@ -332,18 +333,18 @@ void eachTypeInStructBody(in StructBody body_, in StructDeclAst.Body ast, in Typ
 			// TODO: references for backingType
 		},
 		(in StructBody.Record x) {
-			zip!(RecordField, StructDeclAst.Body.Record.Field)(
+			zip!(RecordField, StructBodyAst.Record.Field)(
 				x.fields,
-				ast.as!(StructDeclAst.Body.Record).fields,
-				(ref RecordField field, ref StructDeclAst.Body.Record.Field fieldAst) {
+				ast.as!(StructBodyAst.Record).fields,
+				(ref RecordField field, ref StructBodyAst.Record.Field fieldAst) {
 					eachTypeInType(field.type, fieldAst.type, cb);
 				});
 		},
 		(in StructBody.Union x) {
-			zip!(UnionMember, StructDeclAst.Body.Union.Member)(
+			zip!(UnionMember, StructBodyAst.Union.Member)(
 				x.members,
-				ast.as!(StructDeclAst.Body.Union).members,
-				(ref UnionMember member, ref StructDeclAst.Body.Union.Member memberAst) {
+				ast.as!(StructBodyAst.Union).members,
+				(ref UnionMember member, ref StructBodyAst.Union.Member memberAst) {
 					if (has(memberAst.type))
 						eachTypeInType(member.type, force(memberAst.type), cb);
 				});

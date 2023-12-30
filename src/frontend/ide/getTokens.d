@@ -55,6 +55,7 @@ import model.ast :
 	SpecDeclAst,
 	SpecSigAst,
 	StructAliasAst,
+	StructBodyAst,
 	StructDeclAst,
 	suffixRange,
 	ThenAst,
@@ -392,28 +393,28 @@ void addStructTokens(scope ref TokensBuilder tokens, in AllSymbols allSymbols, i
 	declare(tokens, TokenType.type, rangeOfNameAndRange(a.name, allSymbols));
 	addTypeParamsTokens(tokens, allSymbols, a.typeParams);
 	a.body_.matchIn!void(
-		(in StructDeclAst.Body.Builtin) {
+		(in StructBodyAst.Builtin) {
 			addModifierTokens(tokens, allSymbols, a);
 		},
-		(in StructDeclAst.Body.Enum x) {
+		(in StructBodyAst.Enum x) {
 			addEnumOrFlagsTokens(tokens, allSymbols, a, x.typeArg, x.members);
 		},
-		(in StructDeclAst.Body.Extern) {
+		(in StructBodyAst.Extern) {
 			addModifierTokens(tokens, allSymbols, a);
 		},
-		(in StructDeclAst.Body.Flags x) {
+		(in StructBodyAst.Flags x) {
 			addEnumOrFlagsTokens(tokens, allSymbols, a, x.typeArg, x.members);
 		},
-		(in StructDeclAst.Body.Record record) {
+		(in StructBodyAst.Record record) {
 			addModifierTokens(tokens, allSymbols, a);
-			foreach (ref StructDeclAst.Body.Record.Field field; record.fields) {
+			foreach (ref StructBodyAst.Record.Field field; record.fields) {
 				declare(tokens, TokenType.property, rangeOfNameAndRange(field.name, allSymbols));
 				addTypeTokens(tokens, allSymbols, field.type);
 			}
 		},
-		(in StructDeclAst.Body.Union union_) {
+		(in StructBodyAst.Union union_) {
 			addModifierTokens(tokens, allSymbols, a);
-			foreach (ref StructDeclAst.Body.Union.Member member; union_.members) {
+			foreach (ref StructBodyAst.Union.Member member; union_.members) {
 				declare(tokens, TokenType.enumMember, rangeAtName(allSymbols, member.range.start, member.name));
 				if (has(member.type))
 					addTypeTokens(tokens, allSymbols, force(member.type));
@@ -453,12 +454,12 @@ void addEnumOrFlagsTokens(
 	in AllSymbols allSymbols,
 	in StructDeclAst a,
 	in Opt!(TypeAst*) typeArg,
-	in StructDeclAst.Body.Enum.Member[] members,
+	in StructBodyAst.Enum.Member[] members,
 ) {
 	if (has(typeArg))
 		addTypeTokens(tokens, allSymbols, *force(typeArg));
 	addModifierTokens(tokens, allSymbols, a);
-	foreach (ref StructDeclAst.Body.Enum.Member member; members) {
+	foreach (ref StructBodyAst.Enum.Member member; members) {
 		declare(tokens, TokenType.enumMember, member.range);
 		if (has(member.value)) {
 			uint addLen = " = ".length;

@@ -576,61 +576,61 @@ immutable struct LiteralIntOrNat {
 	mixin Union!(LiteralIntAst, LiteralNatAst);
 }
 
-immutable struct StructDeclAst {
-	immutable struct Body {
-		immutable struct Builtin {}
-		immutable struct Enum {
-			immutable struct Member {
-				@safe @nogc pure nothrow:
+immutable struct StructBodyAst {
+	immutable struct Builtin {}
+	immutable struct Enum {
+		immutable struct Member {
+			@safe @nogc pure nothrow:
 
-				Range range;
-				Symbol name;
-				Opt!LiteralIntOrNat value;
+			Range range;
+			Symbol name;
+			Opt!LiteralIntOrNat value;
 
-				NameAndRange nameAndRange() scope =>
-					NameAndRange(range.start, name);
-			}
-
-			Opt!(TypeAst*) typeArg;
-			SmallArray!Member members;
-		}
-		immutable struct Extern {
-			Opt!(LiteralNatAst*) size;
-			Opt!(LiteralNatAst*) alignment;
-		}
-		immutable struct Flags {
-			alias Member = Enum.Member;
-			Opt!(TypeAst*) typeArg;
-			SmallArray!Member members;
-		}
-		immutable struct Record {
-			immutable struct Field {
-				Range range;
-				ExplicitVisibility visibility;
-				NameAndRange name;
-				Opt!FieldMutabilityAst mutability;
-				TypeAst type;
-			}
-			SmallArray!Field fields;
-		}
-		immutable struct Union {
-			immutable struct Member {
-				@safe @nogc pure nothrow:
-
-				Range range;
-				Symbol name;
-				Opt!TypeAst type;
-
-				NameAndRange nameAndRange() scope =>
-					NameAndRange(range.start, name);
-			}
-			Member[] members;
+			NameAndRange nameAndRange() scope =>
+				NameAndRange(range.start, name);
 		}
 
-		mixin .Union!(Builtin, Enum, Extern, Flags, Record, Union);
+		Opt!(TypeAst*) typeArg;
+		SmallArray!Member members;
 	}
-	static assert(Body.sizeof <= 24);
+	immutable struct Extern {
+		Opt!(LiteralNatAst*) size;
+		Opt!(LiteralNatAst*) alignment;
+	}
+	immutable struct Flags {
+		alias Member = Enum.Member;
+		Opt!(TypeAst*) typeArg;
+		SmallArray!Member members;
+	}
+	immutable struct Record {
+		immutable struct Field {
+			Range range;
+			ExplicitVisibility visibility;
+			NameAndRange name;
+			Opt!FieldMutabilityAst mutability;
+			TypeAst type;
+		}
+		SmallArray!Field fields;
+	}
+	immutable struct Union {
+		immutable struct Member {
+			@safe @nogc pure nothrow:
 
+			Range range;
+			Symbol name;
+			Opt!TypeAst type;
+
+			NameAndRange nameAndRange() scope =>
+				NameAndRange(range.start, name);
+		}
+		SmallArray!Member members;
+	}
+
+	mixin .Union!(Builtin, Enum, Extern, Flags, Record, Union);
+}
+static assert(StructBodyAst.sizeof <= 24);
+
+immutable struct StructDeclAst {
 	SmallString docComment;
 	// Range starts at the visibility
 	Range range;
@@ -639,7 +639,7 @@ immutable struct StructDeclAst {
 	SmallArray!NameAndRange typeParams;
 	Pos keywordPos;
 	SmallArray!ModifierAst modifiers;
-	Body body_;
+	StructBodyAst body_;
 }
 
 Range keywordRange(in AllSymbols allSymbols, in StructDeclAst a) =>
@@ -648,19 +648,19 @@ Range keywordRange(in AllSymbols allSymbols, in StructDeclAst a) =>
 Range nameRange(in AllSymbols allSymbols, in StructDeclAst a) =>
 	rangeOfNameAndRange(a.name, allSymbols);
 
-private Symbol keywordForStructBody(in StructDeclAst.Body a) =>
+private Symbol keywordForStructBody(in StructBodyAst a) =>
 	a.matchIn!Symbol(
-		(in StructDeclAst.Body.Builtin) =>
+		(in StructBodyAst.Builtin) =>
 			symbol!"builtin",
-		(in StructDeclAst.Body.Enum) =>
+		(in StructBodyAst.Enum) =>
 			symbol!"enum",
-		(in StructDeclAst.Body.Extern) =>
+		(in StructBodyAst.Extern) =>
 			symbol!"extern",
-		(in StructDeclAst.Body.Flags) =>
+		(in StructBodyAst.Flags) =>
 			symbol!"flags",
-		(in StructDeclAst.Body.Record) =>
+		(in StructBodyAst.Record) =>
 			symbol!"record",
-		(in StructDeclAst.Body.Union) =>
+		(in StructBodyAst.Union) =>
 			symbol!"union");
 
 immutable struct SpecBodyAst {

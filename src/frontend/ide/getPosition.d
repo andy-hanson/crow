@@ -21,6 +21,7 @@ import model.ast :
 	rangeOfNameAndRange,
 	SpecSigAst,
 	stringOfFieldMutabilityAstKind,
+	StructBodyAst,
 	StructDeclAst,
 	TypeAst;
 import model.diag : TypeContainer, TypeWithContainer;
@@ -215,19 +216,19 @@ Opt!PositionKind positionInStruct(in AllSymbols allSymbols, StructDecl* a, in St
 		//TODO: positions for flags (like 'extern' or 'by-val')
 		() => positionInStructBody(allSymbols, a, a.body_, ast.body_, pos));
 
-PositionKind.Keyword.Kind keywordKindForStructBody(in StructDeclAst.Body a) =>
+PositionKind.Keyword.Kind keywordKindForStructBody(in StructBodyAst a) =>
 	a.matchIn!(PositionKind.Keyword.Kind)(
-		(in StructDeclAst.Body.Builtin) =>
+		(in StructBodyAst.Builtin) =>
 			PositionKind.Keyword.Kind.builtin,
-		(in StructDeclAst.Body.Enum) =>
+		(in StructBodyAst.Enum) =>
 			PositionKind.Keyword.Kind.enum_,
-		(in StructDeclAst.Body.Extern) =>
+		(in StructBodyAst.Extern) =>
 			PositionKind.Keyword.Kind.extern_,
-		(in StructDeclAst.Body.Flags) =>
+		(in StructBodyAst.Flags) =>
 			PositionKind.Keyword.Kind.flags,
-		(in StructDeclAst.Body.Record) =>
+		(in StructBodyAst.Record) =>
 			PositionKind.Keyword.Kind.record,
-		(in StructDeclAst.Body.Union) =>
+		(in StructBodyAst.Union) =>
 			PositionKind.Keyword.Kind.union_);
 
 Opt!PositionKind positionInVisibility(T, TAst)(in T a, in TAst ast, Pos pos) =>
@@ -293,7 +294,7 @@ Opt!PositionKind positionInStructBody(
 	in AllSymbols allSymbols,
 	StructDecl* decl,
 	ref StructBody body_,
-	in StructDeclAst.Body ast,
+	in StructBodyAst ast,
 	Pos pos,
 ) =>
 	body_.match!(Opt!PositionKind)(
@@ -308,10 +309,10 @@ Opt!PositionKind positionInStructBody(
 		(StructBody.Flags) =>
 			none!PositionKind, // TODO
 		(StructBody.Record x) =>
-			firstZipPointerFirst!(PositionKind, RecordField, StructDeclAst.Body.Record.Field)(
+			firstZipPointerFirst!(PositionKind, RecordField, StructBodyAst.Record.Field)(
 				x.fields,
-				ast.as!(StructDeclAst.Body.Record).fields,
-				(RecordField* field, StructDeclAst.Body.Record.Field fieldAst) =>
+				ast.as!(StructBodyAst.Record).fields,
+				(RecordField* field, StructBodyAst.Record.Field fieldAst) =>
 					positionInRecordField(allSymbols, decl, field, fieldAst, pos)),
 		(StructBody.Union) =>
 			//TODO
@@ -321,7 +322,7 @@ Opt!PositionKind positionInRecordField(
 	in AllSymbols allSymbols,
 	StructDecl* decl,
 	RecordField* field,
-	in StructDeclAst.Body.Record.Field fieldAst,
+	in StructBodyAst.Record.Field fieldAst,
 	Pos pos,
 ) =>
 	optOr!PositionKind(

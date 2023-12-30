@@ -50,6 +50,7 @@ import model.ast :
 	SpecDeclAst,
 	SpecSigAst,
 	StructAliasAst,
+	StructBodyAst,
 	StructDeclAst,
 	stringOfFieldMutabilityAstKind,
 	stringOfSpecialFlag,
@@ -185,17 +186,17 @@ Json jsonOfEnumOrFlags(
 	scope ref Ctx ctx,
 	string name,
 	in Opt!(TypeAst*) typeArg,
-	in StructDeclAst.Body.Enum.Member[] members,
+	in StructBodyAst.Enum.Member[] members,
 ) =>
 	jsonObject(alloc, [
 		kindField(name),
 		optionalField!("backing-type", TypeAst*)(typeArg, (in TypeAst* x) =>
 			jsonOfTypeAst(alloc, ctx, *x)),
-		field!"members"(jsonList!(StructDeclAst.Body.Enum.Member)(
-			alloc, members, (in StructDeclAst.Body.Enum.Member x) =>
+		field!"members"(jsonList!(StructBodyAst.Enum.Member)(
+			alloc, members, (in StructBodyAst.Enum.Member x) =>
 				jsonOfEnumMember(alloc, ctx, x)))]);
 
-Json jsonOfEnumMember(ref Alloc alloc, scope ref Ctx ctx, in StructDeclAst.Body.Enum.Member a) =>
+Json jsonOfEnumMember(ref Alloc alloc, scope ref Ctx ctx, in StructBodyAst.Enum.Member a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		field!"name"(a.name),
@@ -227,7 +228,7 @@ Json jsonOfLiteralIntOrNat(ref Alloc alloc, in LiteralIntOrNat a) =>
 		(in LiteralNatAst x) =>
 			jsonOfLiteralNatAst(alloc, x));
 
-Json jsonOfField(ref Alloc alloc, scope ref Ctx ctx, in StructDeclAst.Body.Record.Field a) =>
+Json jsonOfField(ref Alloc alloc, scope ref Ctx ctx, in StructBodyAst.Record.Field a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		field!"visibility"(stringOfEnum(a.visibility)),
@@ -238,40 +239,40 @@ Json jsonOfField(ref Alloc alloc, scope ref Ctx ctx, in StructDeclAst.Body.Recor
 				field!"kind"(stringOfFieldMutabilityAstKind(x.kind))])),
 		field!"type"(jsonOfTypeAst(alloc, ctx, a.type))]);
 
-Json jsonOfRecordAst(ref Alloc alloc, scope ref Ctx ctx, in StructDeclAst.Body.Record a) =>
+Json jsonOfRecordAst(ref Alloc alloc, scope ref Ctx ctx, in StructBodyAst.Record a) =>
 	jsonObject(alloc, [
 		kindField!"record",
-		field!"fields"(jsonList!(StructDeclAst.Body.Record.Field)(
+		field!"fields"(jsonList!(StructBodyAst.Record.Field)(
 			alloc,
 			a.fields,
-			(in StructDeclAst.Body.Record.Field x) =>
+			(in StructBodyAst.Record.Field x) =>
 				jsonOfField(alloc, ctx, x)))]);
 
-Json jsonOfUnion(ref Alloc alloc, scope ref Ctx ctx, in StructDeclAst.Body.Union a) =>
+Json jsonOfUnion(ref Alloc alloc, scope ref Ctx ctx, in StructBodyAst.Union a) =>
 	jsonObject(alloc, [
 		kindField!"union",
-		field!"members"(jsonList!(StructDeclAst.Body.Union.Member)(
+		field!"members"(jsonList!(StructBodyAst.Union.Member)(
 			alloc,
 			a.members,
-			(in StructDeclAst.Body.Union.Member x) =>
+			(in StructBodyAst.Union.Member x) =>
 				jsonObject(alloc, [
 					field!"name"(x.name),
 					optionalField!("type", TypeAst)(x.type, (in TypeAst t) =>
 						jsonOfTypeAst(alloc, ctx, t))])))]);
 
-Json jsonOfStructBodyAst(ref Alloc alloc, scope ref Ctx ctx, in StructDeclAst.Body a) =>
+Json jsonOfStructBodyAst(ref Alloc alloc, scope ref Ctx ctx, in StructBodyAst a) =>
 	a.matchIn!Json(
-		(in StructDeclAst.Body.Builtin) =>
+		(in StructBodyAst.Builtin) =>
 			jsonString!"builtin" ,
-		(in StructDeclAst.Body.Enum e) =>
+		(in StructBodyAst.Enum e) =>
 			jsonOfEnumOrFlags(alloc, ctx, "enum", e.typeArg, e.members),
-		(in StructDeclAst.Body.Extern) =>
+		(in StructBodyAst.Extern) =>
 			jsonString!"extern",
-		(in StructDeclAst.Body.Flags e) =>
+		(in StructBodyAst.Flags e) =>
 			jsonOfEnumOrFlags(alloc, ctx, "flags", e.typeArg, e.members),
-		(in StructDeclAst.Body.Record a) =>
+		(in StructBodyAst.Record a) =>
 			jsonOfRecordAst(alloc, ctx, a),
-		(in StructDeclAst.Body.Union a) =>
+		(in StructBodyAst.Union a) =>
 			jsonOfUnion(alloc, ctx, a));
 
 Json jsonOfStructDeclAst(ref Alloc alloc, scope ref Ctx ctx, in StructDeclAst a) =>
