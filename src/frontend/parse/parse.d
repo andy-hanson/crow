@@ -198,10 +198,10 @@ SmallArray!(StructBodyAst.Enum.Member) parseEnumOrFlagsMembers(ref Lexer lexer) 
 
 StructBodyAst.Record parseRecordBody(ref Lexer lexer) =>
 	StructBodyAst.Record(tryTakeToken(lexer, Token.newlineIndent)
-		? small!(StructBodyAst.Record.Field)(parseRecordFields(lexer))
+		? parseRecordFields(lexer)
 		: emptySmallArray!(StructBodyAst.Record.Field));
 
-StructBodyAst.Record.Field[] parseRecordFields(ref Lexer lexer) {
+SmallArray!(StructBodyAst.Record.Field) parseRecordFields(ref Lexer lexer) {
 	ArrayBuilder!(StructBodyAst.Record.Field) fields;
 	while (true) {
 		Pos start = curPos(lexer);
@@ -215,7 +215,7 @@ StructBodyAst.Record.Field[] parseRecordFields(ref Lexer lexer) {
 			case NewlineOrDedent.newline:
 				continue;
 			case NewlineOrDedent.dedent:
-				return finish(lexer.alloc, fields);
+				return small!(StructBodyAst.Record.Field)(finish(lexer.alloc, fields));
 		}
 	}
 }
@@ -237,6 +237,9 @@ Opt!FieldMutabilityAst parseFieldMutability(ref Lexer lexer) {
 }
 
 SmallArray!(StructBodyAst.Union.Member) parseUnionMembers(ref Lexer lexer) {
+	if (!tryTakeToken(lexer, Token.newlineIndent))
+		return emptySmallArray!(StructBodyAst.Union.Member);
+
 	ArrayBuilder!(StructBodyAst.Union.Member) res;
 	do {
 		Pos start = curPos(lexer);
@@ -440,7 +443,7 @@ void parseSpecOrStructOrFun(
 			break;
 		case Token.union_:
 			takeNextToken(lexer);
-			addStruct(() => StructBodyAst(StructBodyAst.Union(parseUnionMembersOrDiag(lexer))));
+			addStruct(() => StructBodyAst(StructBodyAst.Union(parseUnionMembers(lexer))));
 			break;
 		default:
 			add(lexer.alloc, funs, parseFun(lexer, docComment, visibility, start, name, typeParams));
@@ -477,13 +480,6 @@ VarDeclAst parseVarDecl(
 	FunModifierAst[] modifiers = parseFunModifiers(lexer);
 	return VarDeclAst(range(lexer, start), docComment, visibility, name, typeParams, kindPos, kind, type, modifiers);
 }
-
-SmallArray!(StructBodyAst.Union.Member) parseUnionMembersOrDiag(ref Lexer lexer) =>
-	// TODO: This should be a checker error, not a parse error
-	takeIndentOrFailGeneric!(SmallArray!(StructBodyAst.Union.Member))(
-		lexer,
-		() => parseUnionMembers(lexer),
-		(in Range _) => emptySmallArray!(StructBodyAst.Union.Member));
 
 SmallArray!ModifierAst parseModifiers(ref Lexer lexer) {
 	if (peekEndOfLine(lexer)) return emptySmallArray!ModifierAst;

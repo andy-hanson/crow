@@ -1,0 +1,12 @@
+main void()
+	()
+
+f void(a u)
+	match a
+
+f void(a e)
+	match a
+
+e enum
+
+u union
