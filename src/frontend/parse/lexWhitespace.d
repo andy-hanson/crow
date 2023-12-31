@@ -58,6 +58,10 @@ void skipUntilNewline(scope ref MutCString ptr) {
 	in void delegate(Range) @safe @nogc pure nothrow cbComment,
 	in void delegate(Range) @safe @nogc pure nothrow cbKeyword,
 ) {
+	debug {
+		import core.stdc.stdio : printf;
+		printf("lexTokensBetweenAsts from %u to %u\n", range.start, range.end);
+	}
 	MutCString ptr = source.jumpTo(range.start);
 	CString end = source.jumpTo(range.end);
 	Range toRange(CString start) =>
@@ -68,6 +72,9 @@ void skipUntilNewline(scope ref MutCString ptr) {
 			CString start = ptr;
 			while (!isWhitespaceOrCommentStart(*ptr) && ptr < end)
 				ptr++;
+			debug {
+				printf("Final position: %li (start is %li, end is %li)\n", ptr.ptr - source.ptr, start.ptr - source.ptr, end.ptr - source.ptr);
+			}
 			assert(start < ptr && ptr <= end);
 			cbKeyword(toRange(start));
 		}
@@ -161,6 +168,9 @@ private:
 			ptr++;
 		if (ptr < end)
 			skipSpacesAndComments(ptr, cbCommentOrRegion, (ParseDiag _) {});
+		if (ptr < end && *ptr == '\\')
+			// Non-comment '\', skip this too
+			ptr++;
 		if (ptr < end)
 			skipBlankLines(ptr, () {}, cbCommentOrRegion, cbCommentOrRegion, (ParseDiag _) {});
 		if (ptr == start)
