@@ -217,9 +217,10 @@ T takeIndentOrFailGeneric(T)(
 	if (tryTakeToken(lexer, Token.newlineIndent))
 		return cbIndent();
 	else {
-		addDiag(lexer, Range(start, start + 1), ParseDiag(
+		Range range = rangeForCurToken(lexer, start);
+		addDiag(lexer, range, ParseDiag(
 			ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
-		return cbFail(range(lexer, start)); //TODO: the range is always empty!
+		return cbFail(range);
 	}
 }
 
