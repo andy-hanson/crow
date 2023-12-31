@@ -586,9 +586,9 @@ enum VarKind { global, threadLocal }
 string stringOfVarKind(VarKind a) {
 	final switch (a) {
 		case VarKind.global:
-			return "global";
+			return "Global";
 		case VarKind.threadLocal:
-			return "thread-local";
+			return "Thread-local";
 	}
 }
 

@@ -4,7 +4,7 @@
 			"start": {"line": 0, "character": 0},
 			"end": {"line": 0, "character": 3}
 		},
-		"hover": "builtin type nat",
+		"hover": "Builtin type 'nat'",
 		"definition": [
 			{
 				"uri": "magic:/function.crow",
@@ -28,7 +28,7 @@
 			"start": {"line": 2, "character": 0},
 			"end": {"line": 2, "character": 1}
 		},
-		"hover": "function f",
+		"hover": "Function 'f'",
 		"definition": [
 			{
 				"uri": "magic:/function.crow",
@@ -44,7 +44,7 @@
 			"start": {"line": 2, "character": 2},
 			"end": {"line": 2, "character": 5}
 		},
-		"hover": "builtin type nat",
+		"hover": "Builtin type 'nat'",
 		"definition": [
 			{
 				"uri": "magic:/function.crow",
@@ -60,7 +60,7 @@
 			"start": {"line": 2, "character": 6},
 			"end": {"line": 2, "character": 7}
 		},
-		"hover": "local a nat",
+		"hover": "Local 'a' (of type 'nat')",
 		"definition": [
 			{
 				"uri": "magic:/function.crow",
@@ -76,7 +76,7 @@
 			"start": {"line": 2, "character": 8},
 			"end": {"line": 2, "character": 11}
 		},
-		"hover": "builtin type nat",
+		"hover": "Builtin type 'nat'",
 		"definition": [
 			{
 				"uri": "magic:/function.crow",
@@ -92,7 +92,7 @@
 			"start": {"line": 3, "character": 1},
 			"end": {"line": 3, "character": 2}
 		},
-		"hover": "a nat",
+		"hover": "Gets 'a' (of type 'nat')",
 		"definition": [
 			{
 				"uri": "magic:/function.crow",
@@ -108,7 +108,7 @@
 			"start": {"line": 3, "character": 3},
 			"end": {"line": 3, "character": 4}
 		},
-		"hover": "g nat(a nat) (from magic:/function.crow line 6)",
+		"hover": "Calls 'g nat(a nat)' (from magic:/function.crow line 6).",
 		"definition": [
 			{
 				"uri": "magic:/function.crow",
@@ -124,7 +124,7 @@
 			"start": {"line": 5, "character": 0},
 			"end": {"line": 5, "character": 1}
 		},
-		"hover": "function g",
+		"hover": "Function 'g'",
 		"definition": [
 			{
 				"uri": "magic:/function.crow",
@@ -140,7 +140,7 @@
 			"start": {"line": 5, "character": 2},
 			"end": {"line": 5, "character": 5}
 		},
-		"hover": "builtin type nat",
+		"hover": "Builtin type 'nat'",
 		"definition": [
 			{
 				"uri": "magic:/function.crow",
@@ -156,7 +156,7 @@
 			"start": {"line": 5, "character": 6},
 			"end": {"line": 5, "character": 7}
 		},
-		"hover": "local a nat",
+		"hover": "Local 'a' (of type 'nat')",
 		"definition": [
 			{
 				"uri": "magic:/function.crow",
@@ -172,7 +172,7 @@
 			"start": {"line": 5, "character": 8},
 			"end": {"line": 5, "character": 11}
 		},
-		"hover": "builtin type nat",
+		"hover": "Builtin type 'nat'",
 		"definition": [
 			{
 				"uri": "magic:/function.crow",

@@ -16,6 +16,7 @@ import model.model :
 	SpecDeclSig,
 	SpecInst,
 	StructDecl,
+	Test,
 	TypeParamIndex,
 	VarDecl,
 	Visibility;
@@ -29,13 +30,34 @@ immutable struct Position {
 	PositionKind kind;
 }
 
+immutable struct ExprContainer {
+	@safe @nogc pure nothrow:
+
+	mixin Union!(FunDecl*, Test*);
+
+	LocalContainer toLocalContainer() =>
+		matchWithPointers!LocalContainer(
+			(FunDecl* x) =>
+				LocalContainer(x),
+			(Test* x) =>
+				LocalContainer(x));
+
+	TypeContainer toTypeContainer() =>
+		toLocalContainer.toTypeContainer;
+
+	Uri moduleUri() =>
+		toTypeContainer.moduleUri;
+}
+
 immutable struct LocalContainer {
 	@safe @nogc pure nothrow:
-	mixin Union!(FunDecl*, SpecDecl*);
+	mixin Union!(FunDecl*, Test*, SpecDecl*);
 
 	TypeContainer toTypeContainer() =>
 		matchWithPointers!TypeContainer(
 			(FunDecl* x) =>
+				TypeContainer(x),
+			(Test* x) =>
 				TypeContainer(x),
 			(SpecDecl* x) =>
 				TypeContainer(x));
@@ -58,7 +80,7 @@ immutable struct PositionKind {
 		FunModifierAst.Special.Flags flag;
 	}
 	immutable struct Expression {
-		FunDecl* containingFun;
+		ExprContainer container;
 		Expr* expr;
 	}
 	immutable struct ImportedModule {
@@ -127,6 +149,7 @@ immutable struct PositionKind {
 		SpecSig,
 		SpecUse,
 		StructDecl*,
+		Test*,
 		TypeWithContainer,
 		TypeParamWithContainer,
 		VarDecl*,

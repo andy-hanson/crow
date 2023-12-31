@@ -18,7 +18,7 @@ import util.opt : force, has, none, Opt;
 import util.perf : Perf;
 import util.string : CString, stringOfCString;
 import util.symbol : AllSymbols;
-import util.uri : AllUris, concatUriAndPath, cStringOfUri, getExtension, isAncestor, parsePath, parseUri, Uri, UrisInfo;
+import util.uri : AllUris, concatUriAndPath, getExtension, isAncestor, parsePath, parseUri, Uri, UrisInfo, writeUri;
 import util.util : ptrTrustMe;
 import util.writer : debugLogWithWriter, Writer;
 
@@ -161,10 +161,10 @@ ReadFileResult defaultFileResult(ref Alloc alloc, scope ref Server server, in Ur
 			if (has(index))
 				return ReadFileResult(FileContent(testIncludeContents[force(index)]));
 			else if (isAncestor(server.allUris, server.includeDir, uri)) {
-				debug {
-					import core.stdc.stdio : printf;
-					printf("Missing URI: %s\n", cStringOfUri(alloc, server.allUris, uri).ptr);
-				}
+				debugLogWithWriter((scope ref Writer writer) {
+					writer ~= "Missing URI: ";
+					writeUri(writer, server.allUris, uri);
+				});
 				assert(false);
 			} else
 				return ReadFileResult(ReadFileDiag.notFound);

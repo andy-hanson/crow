@@ -13,7 +13,7 @@ import frontend.ide.ideUtil :
 	eachDescendentExprIncluding,
 	eachTypeArg,
 	ReferenceCb;
-import frontend.ide.position : Position, PositionKind;
+import frontend.ide.position : ExprContainer, Position, PositionKind;
 import model.ast :
 	AssignmentAst,
 	AssignmentCallAst,
@@ -230,18 +230,25 @@ void eachImportForName(
 }
 
 void referencesForLocal(in AllSymbols allSymbols, Uri curUri, in PositionKind.LocalPosition a, in ReferenceCb cb) {
-	a.container.match!void(
-		(ref FunDecl fun) {
-			Expr body_ = fun.body_.isA!(FunBody.ExpressionBody)
-				? fun.body_.as!(FunBody.ExpressionBody).expr
-				: Expr(null, ExprKind(BogusExpr()));
-			eachDescendentExprIncluding(body_, (in Expr x) @safe {
-				Opt!Target xTarget = exprTarget(PositionKind.Expression(&fun, ptrTrustMe(x)));
-				if (optEqual!Target(xTarget, some(Target(a))))
-					cb(UriAndRange(fun.moduleUri, x.range));
-			});
-		},
-		(ref SpecDecl) {});
+	Opt!ContainerAndBody body_ = a.container.matchWithPointers!(Opt!ContainerAndBody)(
+		(FunDecl* x) =>
+			x.body_.isA!(FunBody.ExpressionBody)
+				? some(ContainerAndBody(ExprContainer(x), x.body_.as!(FunBody.ExpressionBody).expr))
+				: none!ContainerAndBody,
+		(Test* x) =>
+			some(ContainerAndBody(ExprContainer(x), x.body_)),
+		(SpecDecl*) =>
+			none!ContainerAndBody);
+	if (has(body_))
+		eachDescendentExprIncluding(force(body_).body_, (in Expr x) {
+			Opt!Target xTarget = exprTarget(PositionKind.Expression(force(body_).container, ptrTrustMe(x)));
+			if (optEqual!Target(xTarget, some(Target(a))))
+				cb(UriAndRange(force(body_).container.moduleUri, x.range));
+		});
+}
+immutable struct ContainerAndBody {
+	ExprContainer container;
+	Expr body_;
 }
 
 void referencesForLoop(Uri curUri, in LoopExpr loop, in ReferenceCb cb) {

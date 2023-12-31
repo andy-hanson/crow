@@ -25,8 +25,6 @@ immutable struct Range {
 		assert(start <= end);
 	}
 
-	static Range max() =>
-		Range(Pos.max, Pos.max);
 	static Range empty() =>
 		Range(0, 0);
 

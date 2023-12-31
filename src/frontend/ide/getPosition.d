@@ -3,7 +3,7 @@ module frontend.ide.getPosition;
 @safe @nogc pure nothrow:
 
 import frontend.ide.ideUtil : eachDestructureComponent, eachSpecParent, eachTypeArg, eachTypeComponent;
-import frontend.ide.position : LocalContainer, Position, PositionKind;
+import frontend.ide.position : ExprContainer, LocalContainer, Position, PositionKind;
 import model.ast :
 	DestructureAst,
 	ExplicitVisibility,
@@ -23,6 +23,7 @@ import model.ast :
 	stringOfFieldMutabilityAstKind,
 	StructBodyAst,
 	StructDeclAst,
+	TestAst,
 	TypeAst;
 import model.diag : TypeContainer, TypeWithContainer;
 import model.model :
@@ -70,6 +71,7 @@ import model.model :
 	SpecDecl,
 	SpecDeclSig,
 	StructDecl,
+	Test,
 	ThrowExpr,
 	Type,
 	TypeParamIndex,
@@ -108,6 +110,10 @@ Opt!PositionKind getPositionKind(in AllSymbols allSymbols, in AllUris allUris, r
 		() => firstPointer!(PositionKind, FunDecl)(module_.funs, (FunDecl* x) =>
 			x.source.isA!(FunDeclSource.Ast)
 				? positionInFun(allSymbols, x, *x.source.as!(FunDeclSource.Ast).ast, pos)
+				: none!PositionKind),
+		() => firstPointer!(PositionKind, Test)(module_.tests, (Test* x) =>
+			hasPos(x.ast.range, pos)
+				? some(positionInTest(allSymbols, x, *x.ast, pos))
 				: none!PositionKind));
 	//TODO: check for aliases too
 
@@ -121,8 +127,13 @@ Opt!PositionKind positionInFun(in AllSymbols allSymbols, FunDecl* a, in FunDeclA
 			optIf(hasPos(range(modifier, allSymbols), pos), () =>
 				positionForModifier(a, ast, index, modifier))),
 		() => a.body_.isA!(FunBody.ExpressionBody)
-			? positionInExpr(allSymbols, a, a.body_.as!(FunBody.ExpressionBody).expr, pos)
+			? positionInExpr(allSymbols, ExprContainer(a), a.body_.as!(FunBody.ExpressionBody).expr, pos)
 			: none!PositionKind);
+
+PositionKind positionInTest(in AllSymbols allSymbols, Test* a, in TestAst ast, Pos pos) =>
+	optOrDefault!PositionKind(
+		positionInExpr(allSymbols, ExprContainer(a), a.body_, pos),
+		() => PositionKind(a));
 
 Opt!PositionKind positionInParams(in AllSymbols allSymbols, LocalContainer container, in Params params, Pos pos) =>
 	first!(PositionKind, Destructure)(paramsArray(params), (Destructure x) =>
@@ -339,16 +350,16 @@ Opt!PositionKind positionInFieldMutability(in AllSymbols allSymbols, in FieldMut
 		hasPos(rangeOfStartAndLength(ast.pos, stringOfFieldMutabilityAstKind(ast.kind).length), pos),
 		() => PositionKind(PositionKind.RecordFieldMutability(ast.kind)));
 
-Opt!PositionKind positionInExpr(in AllSymbols allSymbols, FunDecl* containingFun, ref Expr a, Pos pos) {
+Opt!PositionKind positionInExpr(in AllSymbols allSymbols, ExprContainer container, ref Expr a, Pos pos) {
 	if (!hasPos(a.range, pos))
 		return none!PositionKind;
 	else {
 		Opt!PositionKind here() =>
-			some(PositionKind(PositionKind.Expression(containingFun, &a)));
+			some(PositionKind(PositionKind.Expression(container, &a)));
 		Opt!PositionKind inDestructure(in Destructure x) =>
-			positionInDestructure(allSymbols, LocalContainer(containingFun), x, pos);
+			positionInDestructure(allSymbols, container.toLocalContainer, x, pos);
 		Opt!PositionKind recur(in Expr inner) =>
-			positionInExpr(allSymbols, containingFun, inner, pos);
+			positionInExpr(allSymbols, container, inner, pos);
 		Opt!PositionKind recurOpt(in Opt!(Expr*) inner) =>
 			has(inner)
 				? recur(*force(inner))

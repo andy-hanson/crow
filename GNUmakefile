@@ -25,10 +25,13 @@ test: unit-test crow-unit-tests end-to-end-test
 unit-test: bin/crow-debug
 	./bin/crow-debug test
 
-crow-unit-tests: bin/crow
+crow-unit-tests: crow-unit-tests-interpreter crow-unit-tests-jit crow-unit-tests-aot
+crow-unit-tests-interpreter: bin/crow
 	./bin/crow run test/crow-unit-tests.crow
+crow-unit-tests-jit: bin/crow
 	./bin/crow run test/crow-unit-tests.crow --jit
 	./bin/crow run test/crow-unit-tests.crow --jit --optimize
+crow-unit-tests-aot: bin/crow
 	./bin/crow run test/crow-unit-tests.crow --aot
 	./bin/crow run test/crow-unit-tests.crow --aot --optimize
 

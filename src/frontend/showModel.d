@@ -206,6 +206,7 @@ void writeSig(
 	in Params params,
 	in Opt!ReturnAndParamTypes instantiated,
 ) {
+	writer ~= '\'';
 	writeSymbol(writer, ctx.allSymbols, name);
 	writer ~= ' ';
 	writeTypeUnquoted(writer, ctx, TypeWithContainer(
@@ -233,7 +234,7 @@ void writeSig(
 				has(instantiated) ? only(force(instantiated).paramTypes) : varargs.param.type,
 				typeContainer));
 		});
-	writer ~= ")";
+	writer ~= ")'";
 }
 
 void writeSigSimple(
@@ -413,7 +414,7 @@ void writeTypeQuoted(scope ref Writer writer, in ShowTypeCtx ctx, in TypeWithCon
 	writer ~= '\'';
 }
 
-void writeTypeUnquoted(scope ref Writer writer, in ShowTypeCtx ctx, in TypeWithContainer a) {
+private void writeTypeUnquoted(scope ref Writer writer, in ShowTypeCtx ctx, in TypeWithContainer a) {
 	a.type.matchIn!void(
 		(in Type.Bogus) {
 			writer ~= "<<any>>";
@@ -436,6 +437,9 @@ void writeName(scope ref Writer writer, in ShowCtx ctx, Symbol name) {
 	writer ~= '\'';
 	writeSymbol(writer, ctx.allSymbols, name);
 	writer ~= '\'';
+}
+void writeName(scope ref Writer writer, in ShowTypeCtx ctx, Symbol name) {
+	writeName(writer, ctx.show, name);
 }
 
 void writeSpecInst(scope ref Writer writer, in ShowTypeCtx ctx, in TypeContainer typeContainer, in SpecInst a) {

@@ -11,7 +11,7 @@ import frontend.showModel :
 	writeLineAndColumnRange,
 	writeName,
 	writeSpecInst,
-	writeTypeUnquoted;
+	writeTypeQuoted;
 import lib.lsp.lspTypes : Hover, MarkupContent, MarkupKind;
 import model.ast : FieldMutabilityAst, FunModifierAst;
 import model.diag : TypeContainer, TypeWithContainer;
@@ -54,6 +54,7 @@ import model.model :
 	stringOfVisibility,
 	StructDecl,
 	StructInst,
+	Test,
 	ThrowExpr,
 	Type,
 	TypeParamIndex,
@@ -63,7 +64,7 @@ import util.alloc.alloc : Alloc;
 import util.col.array : isEmpty;
 import util.opt : none, Opt, some;
 import util.sourceRange : UriAndRange;
-import util.symbol : writeSymbol;
+import util.symbol : symbol, writeSymbol;
 import util.uri : Uri;
 import util.util : ptrTrustMe;
 import util.writer : makeStringWithWriter, Writer;
@@ -81,15 +82,16 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 	pos.kind.matchIn!void(
 		(in PositionKind.None) {},
 		(in PositionKind.Expression x) {
-			getExprHover(writer, ctx, pos.module_.uri, TypeContainer(x.containingFun), *x.expr);
+			getExprHover(writer, ctx, pos.module_.uri, x.container.toTypeContainer, *x.expr);
 		},
 		(in FunDecl x) {
-			writer ~= "function ";
-			writeSymbol(writer, ctx.allSymbols, x.name);
+			writer ~= "Function ";
+			writeName(writer, ctx, x.name);
 		},
 		(in PositionKind.FunExtern x) {
-			writer ~= "function comes from external library ";
+			writer ~= "Function comes from external library ";
 			writeName(writer, ctx, x.funDecl.name);
+			writer ~= '.';
 		},
 		(in PositionKind.FunSpecialModifier x) {
 			writer ~= () {
@@ -116,7 +118,7 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 			}();
 		},
 		(in PositionKind.ImportedModule x) {
-			writer ~= "import module ";
+			writer ~= "Import module ";
 			writeFile(writer, ctx, x.module_.uri);
 		},
 		(in PositionKind.ImportedName x) {
@@ -143,7 +145,7 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 			}();
 		},
 		(in PositionKind.LocalPosition x) {
-			writer ~= "local ";
+			writer ~= "Local ";
 			localHover(writer, ctx, x.container.toTypeContainer, *x.local);
 		},
 		(in PositionKind.RecordFieldMutability x) {
@@ -157,28 +159,31 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 			}();
 		},
 		(in PositionKind.RecordFieldPosition x) {
-			writer ~= "field ";
+			writer ~= "Record field ";
 			writeSymbol(writer, ctx.allSymbols, x.struct_.name);
 			writer ~= '.';
 			writeSymbol(writer, ctx.allSymbols, x.field.name);
-			writer ~= " (";
-			writeTypeUnquoted(writer, ctx, TypeWithContainer(x.field.type, TypeContainer(x.struct_)));
+			writer ~= " (of type ";
+			writeTypeQuoted(writer, ctx, TypeWithContainer(x.field.type, TypeContainer(x.struct_)));
 			writer ~= ')';
 		},
 		(in SpecDecl x) {
-			writer ~= "spec ";
+			writer ~= "Spec ";
 			writeName(writer, ctx, x.name);
 		},
 		(in PositionKind.SpecSig x) {
-			writer ~= "spec signature ";
+			writer ~= "Spec signature ";
 			writeName(writer, ctx, x.sig.name);
 		},
 		(in PositionKind.SpecUse x) {
-			writer ~= "spec ";
+			writer ~= "Spec ";
 			writeSpecInst(writer, ctx, x.container, *x.spec);
 		},
 		(in StructDecl x) {
 			writeStructDeclHover(writer, ctx, x);
+		},
+		(in Test x) {
+			writer ~= "Declares a unit test.";
 		},
 		(in TypeWithContainer x) {
 			x.type.matchIn!void(
@@ -197,8 +202,8 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 			writer ~= stringOfVarKind(x.kind);
 			writer ~= " variable ";
 			writeName(writer, ctx, x.name);
-			writer ~= " (";
-			writeTypeUnquoted(writer, ctx, TypeWithContainer(x.type, TypeContainer(ptrTrustMe(x))));
+			writer ~= " (of type ";
+			writeTypeQuoted(writer, ctx, TypeWithContainer(x.type, TypeContainer(ptrTrustMe(x))));
 			writer ~= ')';
 		},
 		(in Visibility x) {
@@ -212,20 +217,20 @@ private:
 void writeStructDeclHover(scope ref Writer writer, in ShowModelCtx ctx, in StructDecl a) {
 	writer ~= a.body_.matchIn!string(
 		(in StructBody.Bogus) =>
-			"type ",
+			"Type ",
 		(in StructBody.Builtin) =>
-			"builtin type ",
+			"Builtin type ",
 		(in StructBody.Enum) =>
-			"enum type ",
+			"Enum type ",
 		(in StructBody.Extern) =>
-			"extern type ",
+			"Extern type ",
 		(in StructBody.Flags) =>
-			"flags type ",
+			"Flags type ",
 		(in StructBody.Record) =>
-			"record type ",
+			"Record type ",
 		(in StructBody.Union) =>
-			"union type ");
-	writeSymbol(writer, ctx.allSymbols, a.name);
+			"Union type ");
+	writeName(writer, ctx, a.name);
 }
 
 void getImportedNameHover(scope ref Writer writer, in ShowModelCtx ctx, in PositionKind.ImportedName) {
@@ -238,8 +243,8 @@ void hoverTypeParam(
 	in TypeContainer typeContainer,
 	in TypeParamIndex index,
 ) {
-	writer ~= "type parameter ";
-	writeSymbol(writer, ctx.allSymbols, typeContainer.typeParams[index.index].name);
+	writer ~= "Type parameter ";
+	writeName(writer, ctx, typeContainer.typeParams[index.index].name);
 }
 
 void getExprHover(
@@ -251,88 +256,96 @@ void getExprHover(
 ) =>
 	a.kind.matchIn!void(
 		(in AssertOrForbidExpr x) {
-			writer ~= "throws if the condition is ";
-			writer ~= () {
+			writer ~= "Throws if the condition is ";
+			writeName(writer, ctx, () {
 				final switch (x.kind) {
 					case AssertOrForbidKind.assert_:
-						return "false";
+						return symbol!"false";
 					case AssertOrForbidKind.forbid:
-						return "true";
+						return symbol!"true";
 				}
-			}();
+			}());
+			writer ~= '.';
 		},
 		(in BogusExpr _) {},
 		(in CallExpr x) {
+			writer ~= "Calls ";
 			writeCalled(writer, ctx, typeContainer, x.called);
+			writer ~= '.';
 		},
 		(in ClosureGetExpr x) {
-			writer ~= "gets ";
+			writer ~= "Gets ";
 			closureRefHover(writer, ctx, typeContainer, x.closureRef);
 		},
 		(in ClosureSetExpr x) {
-			writer ~= "sets ";
+			writer ~= "Sets ";
 			closureRefHover(writer, ctx, typeContainer, x.closureRef);
 		},
 		(in FunPointerExpr x) {
-			writer ~= "pointer to function ";
+			writer ~= "Pointer to function ";
 			writeFunInst(writer, ctx, typeContainer, *x.funInst);
 		},
 		(in IfExpr _) {
-			writer ~= "returns the first branch if the condition is 'true', " ~
-				"and the second branch if the condition is 'false'";
+			writer ~= "Returns the first branch if the condition is 'true', " ~
+				"and the second branch if the condition is 'false'.";
 		},
 		(in IfOptionExpr _) {
-			writer ~= "returns the first branch if the option is non-empty, " ~
-				"and the second branch if it is empty";
+			writer ~= "Returns the first branch if the option is non-empty, " ~
+				"and the second branch if it is empty.";
 		},
 		(in LambdaExpr x) {
 			writer ~= () {
 				final switch (x.kind) {
 					case FunKind.fun:
-						return "function";
+						return "Function";
 					case FunKind.act:
-						return "'act' function";
+						return "Action function";
 					case FunKind.far:
-						return "far function";
+						return "Far function";
 					case FunKind.pointer:
-						return "function pointer";
+						return "Function pointer";
 				}
 			}();
 			writer ~= " literal";
 		},
 		(in LetExpr _) {},
 		(in LiteralExpr _) {
-			writer ~= "number literal";
+			writer ~= "Number literal";
 		},
 		(in LiteralCStringExpr _) {
-			writer ~= "c-string literal";
+			writeName(writer, ctx, symbol!"c-string");
+			writer ~= " literal";
 		},
 		(in LiteralSymbolExpr _) {
-			writer ~= "symbol literal";
+			writer ~= "Symbol literal";
 		},
 		(in LocalGetExpr x) {
+			writer ~= "Gets ";
 			localHover(writer, ctx, typeContainer, *x.local);
 		},
 		(in LocalSetExpr x) {
-			writer ~= "sets ";
+			writer ~= "Sets ";
 			localHover(writer, ctx, typeContainer, *x.local);
+			writer ~= '.';
 		},
 		(in LoopExpr _) {
-			writer ~= "loop that terminates at a 'break'";
+			writer ~= "Loop that terminates at a 'break'";
 		},
 		(in LoopBreakExpr x) {
-			writer ~= "breaks out of ";
+			writer ~= "Breaks out of ";
 			writeLoop(writer, ctx, curUri, *x.loop);
+			writer ~= '.';
 		},
 		(in LoopContinueExpr x) {
-			writer ~= "goes back to top of ";
+			writer ~= "Goes back to top of ";
 			writeLoop(writer, ctx, curUri, *x.loop);
+			writer ~= '.';
 		},
 		(in LoopUntilExpr _) {
-			writer ~= "loop that runs as long as the condition is 'false'";
+			writer ~= "Loop will run as long as the condition is 'false'.";
 		},
 		(in LoopWhileExpr _) {
-			writer ~= "loop that runs as long as the condition is 'true'";
+			writer ~= "Loop will run as long as the condition is 'true'.";
 		},
 		(in MatchEnumExpr _) {},
 		(in MatchUnionExpr _) {},
@@ -340,25 +353,27 @@ void getExprHover(
 			// TODO: PtrToFieldExpr should have the RecordField
 		},
 		(in PtrToLocalExpr x) {
-			writer ~= "pointer to ";
+			writer ~= "Pointer to ";
 			localHover(writer, ctx, typeContainer, *x.local);
 		},
 		(in SeqExpr _) {},
 		(in ThrowExpr _) {
-			writer ~= "throws an exception";
+			writer ~= "Throws an exception.";
 		});
 
 void closureRefHover(scope ref Writer writer, in ShowModelCtx ctx, in TypeContainer typeContainer, in ClosureRef a) {
 	writer ~= "closure variable ";
-	writeSymbol(writer, ctx.allSymbols, a.name);
-	writer ~= ' ';
-	writeTypeUnquoted(writer, ctx, TypeWithContainer(a.type, typeContainer));
+	writeName(writer, ctx, a.name);
+	writer ~= "(of type ";
+	writeTypeQuoted(writer, ctx, TypeWithContainer(a.type, typeContainer));
+	writer ~= ')';
 }
 
 void localHover(scope ref Writer writer, in ShowModelCtx ctx, in TypeContainer typeContainer, in Local a) {
-	writeSymbol(writer, ctx.allSymbols, a.name);
-	writer ~= ' ';
-	writeTypeUnquoted(writer, ctx, TypeWithContainer(a.type, typeContainer));
+	writeName(writer, ctx, a.name);
+	writer ~= " (of type ";
+	writeTypeQuoted(writer, ctx, TypeWithContainer(a.type, typeContainer));
+	writer ~= ')';
 }
 
 void writeLoop(scope ref Writer writer, in ShowModelCtx ctx, Uri curUri, in LoopExpr a) {

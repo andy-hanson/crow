@@ -2,7 +2,7 @@ module frontend.ide.getTarget;
 
 @safe @nogc pure nothrow:
 
-import frontend.ide.position : LocalContainer, PositionKind;
+import frontend.ide.position : PositionKind;
 import model.diag : TypeWithContainer;
 import model.model :
 	AssertOrForbidExpr,
@@ -46,6 +46,7 @@ import model.model :
 	SpecDecl,
 	StructDecl,
 	StructInst,
+	Test,
 	ThrowExpr,
 	toLocal,
 	TypeParamIndex,
@@ -104,6 +105,8 @@ Opt!Target targetForPosition(PositionKind pos) =>
 			some(Target(x.spec.decl)),
 		(StructDecl* x) =>
 			some(Target(x)),
+		(Test*) =>
+			none!Target,
 		(TypeWithContainer x) =>
 			x.type.matchWithPointers!(Opt!Target)(
 				(Bogus) =>
@@ -121,7 +124,7 @@ Opt!Target targetForPosition(PositionKind pos) =>
 
 Opt!Target exprTarget(PositionKind.Expression a) {
 	Opt!Target local(Local* x) =>
-		some(Target(PositionKind.LocalPosition(LocalContainer(a.containingFun), x)));
+		some(Target(PositionKind.LocalPosition(a.container.toLocalContainer, x)));
 	return a.expr.kind.match!(Opt!Target)(
 		(AssertOrForbidExpr _) =>
 			none!Target,
