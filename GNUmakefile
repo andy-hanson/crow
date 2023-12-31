@@ -43,10 +43,12 @@ end-to-end-test-overwrite: bin/crow
 
 ### external dependencies ###
 
-dyncall:
-	hg clone https://dyncall.org/pub/dyncall/dyncall/
+dyncall/dyncall/libdyncall_s.a: dyncall
 	cd dyncall && ./configure
 	cd dyncall && make
+
+dyncall:
+	hg clone https://dyncall.org/pub/dyncall/dyncall/
 
 ### D build ###
 
@@ -65,8 +67,8 @@ src_files_common = src/concretize/*.d \
 app_src_no_test = src/app/*.d $(src_files_common) src/backend/*.d src/document/*.d
 app_src_with_test = $(app_src_no_test) src/test/*.d
 other_deps = bin/d-imports/date.txt bin/d-imports/commit-hash.txt
-app_deps_no_test = $(app_src_no_test) $(other_deps) dyncall
-app_deps_with_test = $(app_src_with_test) src/test/hover/* $(other_deps) dyncall
+app_deps_no_test = $(app_src_no_test) $(other_deps) dyncall/dyncall/libdyncall_s.a
+app_deps_with_test = $(app_src_with_test) src/test/hover/* $(other_deps) dyncall/dyncall/libdyncall_s.a
 
 d_flags_common = -w -betterC -preview=dip1000 -preview=in -J=bin/d-imports -J=src/test -J=include
 dmd_flags_common = $(d_flags_common) -version=GccJitAvailable
