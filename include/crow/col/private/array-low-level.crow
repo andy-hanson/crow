@@ -9,7 +9,7 @@ import
 		==, <=>, +, -, *, as-const, const-pointer, mut-pointer, null, pointer-cast, set-deref,
 		size-of, to-mut-pointer, to
 	../../range: .., low, range, size
-	../../private/alloc: alloc-uninitialized, copy-data-from
+	../../private/alloc: alloc-uninitialized, mem-copy
 	../../private/bootstrap: new, pointer, size
 	./build: build-options, size-hint
 export
@@ -105,7 +105,7 @@ Calls `f` for each element in `a`.
 			cur-size = a.end - a.begin
 			new-capacity = cur-size == 0 ? 4 : cur-size * 2
 			new-begin t mut* = new-capacity alloc-uninitialized
-			new-begin copy-data-from a.begin.as-const, cur-size
+			new-begin mem-copy a.begin.as-const, cur-size
 			a.begin := new-begin
 			a.cur := new-begin + cur-size
 			a.end := new-begin + new-capacity
@@ -123,11 +123,11 @@ Calls `f` for each element in `a`.
 			min-size = cur-size + values.size
 			new-capacity = min-size.round-up-to-power-of-two
 			new-begin t mut* = new-capacity alloc-uninitialized
-			new-begin copy-data-from a.begin.as-const, cur-size
+			new-begin mem-copy a.begin.as-const, cur-size
 			a.begin := new-begin
 			a.cur := new-begin + cur-size
 			a.end := new-begin + new-capacity
-		a.cur copy-data-from values.begin-pointer, values.size
+		a.cur mem-copy values.begin-pointer, values.size
 		a.cur +:= values size
 
 +size[t] nat64(a t array-builder)

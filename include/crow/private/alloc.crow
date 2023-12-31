@@ -343,6 +343,3 @@ unmanaged-free-elements[t] void(begin t mut*, _ nat64) bare, unsafe
 
 unmanaged-free[t] void(p t mut*) bare, unsafe
 	p.pointer-cast free
-
-copy-data-from[t] void(to t mut*, from t*, len nat64) bare, unsafe
-	_ = to.pointer-cast memcpy from.pointer-cast, (len wrap-mul size-of@t)

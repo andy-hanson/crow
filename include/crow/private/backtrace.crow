@@ -15,7 +15,7 @@ import
 	../private/number-low-level: ==, <=>, nat8, nat32, nat64, unsafe-to, wrap-add, wrap-sub
 	../pointer: ==, <=>, +, *, as-const, mut-pointer, null, pointer-cast, set-deref, size-of
 	../version: is-interpreted, is-windows
-	./alloc: copy-data-from, gc-ctx, try-alloc-uninitialized
+	./alloc: gc-ctx, mem-copy, try-alloc-uninitialized
 	./bootstrap: char8, c-string, hard-assert
 	./c-string-util: c-string-size-incl-nul
 	./libunwind:
@@ -159,7 +159,7 @@ Result entries are temporary, must copy!
 -copy-c-string-or-empty c-string(gc gc-ctx, a c-string) bare, unsafe
 	size = a c-string-size-incl-nul
 	if out ?= (gc try-alloc-uninitialized size) :: char8 mut*?
-		out copy-data-from a, size
+		out mem-copy a, size
 		out as-const
 	else
 		""

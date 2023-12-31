@@ -10,7 +10,7 @@ import
 	../pointer:
 		+, -, as-const, mut-pointer, pointer-cast, reference-equal, set-deref, set-subscript,
 		size-of, subscript, zeroed
-	../private/alloc: alloc-uninitialized, copy-data-from, mem-move, set-zero-range
+	../private/alloc: alloc-uninitialized, mem-copy, mem-move, set-zero-range
 	../private/bootstrap: backing, mut-list-size, set-backing, set-mut-list-size
 	../private/number-low-level: round-up-to-power-of-two
 	../range: .., iterate
@@ -216,7 +216,7 @@ push-capacity-must-be-sufficient[t] void(a t mut[], value t) bare, unsafe
 		assert new-capacity > a.capacity
 		old-begin = a begin-pointer
 		a.backing := new-capacity uninitialized-mut-array
-		a.begin-pointer copy-data-from old-begin.as-const, a.size
+		a.begin-pointer mem-copy old-begin.as-const, a.size
 		a.backing[a.size + 1 .. end] set-zero-elements
 
 ###
