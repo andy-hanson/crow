@@ -5,6 +5,7 @@ module app.main;
 import core.memory : pureMalloc;
 import core.stdc.signal : raise;
 import core.stdc.stdio : fflush, fprintf, printf, fgets, fread;
+import core.stdc.stdlib : abort;
 version (Windows) {
 	import core.sys.windows.core : GetTickCount;
 } else {
@@ -12,6 +13,7 @@ version (Windows) {
 }
 
 import app.appUtil : print, printError;
+import app.backtrace : printBacktrace;
 import app.dyncall : withRealExtern;
 import app.fileSystem :
 	ExitCodeOrSignal,
@@ -123,19 +125,27 @@ import versionInfo : versionInfoForJIT;
 
 private:
 
+// Override the default '__assert' to print the backtrace
+@trusted extern(C) noreturn __assert(immutable char* asserted, immutable char* file, uint lineNumber) {
+	fprintf(stderr, "Assert failed: %s at %s line %u", asserted, file, lineNumber);
+	printBacktrace();
+	abort();
+}
+
 @trusted ExitCode runLsp(ref Server server) {
 	withTempAllocImpure!void(server.metaAlloc, (ref Alloc alloc) @trusted {
 		fprintf(stderr, "Crow version %s\nRunning language server protocol\n", version_(alloc, server).ptr);
-		fprintf(stderr, "Running language server protocol\n");
 	});
 
 	setShowOptions(server, ShowOptions(false));
 
 	while (true) {
+		// TODO: get this from specified trace level
+		bool logLsp = false;
 		//TODO: track perf for each message/response
 		Opt!ExitCode stop = withNullPerf!(Opt!ExitCode, (scope ref Perf perf) =>
 			withTempAllocImpure!(Opt!ExitCode)(server.metaAlloc, (ref Alloc alloc) =>
-				handleOneMessageIn(perf, alloc, server)));
+				handleOneMessageIn(perf, alloc, server, logLsp)));
 		if (has(stop))
 			return force(stop);
 		else
@@ -143,9 +153,9 @@ private:
 	}
 }
 
-Opt!ExitCode handleOneMessageIn(scope ref Perf perf, ref Alloc alloc, ref Server server) {
+Opt!ExitCode handleOneMessageIn(scope ref Perf perf, ref Alloc alloc, ref Server server, bool logLsp) {
 	MutQueue!LspInMessage bufferedMessages;
-	enqueue(alloc, bufferedMessages, readIn(alloc, server.allSymbols, server.allUris));
+	enqueue(alloc, bufferedMessages, readIn(alloc, server.allSymbols, server.allUris, logLsp));
 	do {
 		LspInMessage message = mustDequeue(bufferedMessages);
 		LspOutAction action = handleLspMessage(perf, alloc, server, message);
@@ -156,8 +166,10 @@ Opt!ExitCode handleOneMessageIn(scope ref Perf perf, ref Alloc alloc, ref Server
 					enqueue(alloc, bufferedMessages, LspInMessage(
 						LspInNotification(readFileLocally(alloc, server.allUris, uri))));
 			} else
-				writeOut(alloc, server.allSymbols, jsonOfLspOutMessage(
-					alloc, server.allUris, server.lineAndCharacterGetters, outMessage));
+				writeOut(
+					alloc, server.allSymbols,
+					jsonOfLspOutMessage(alloc, server.allUris, server.lineAndCharacterGetters, outMessage),
+					logLsp);
 		}
 		if (has(action.exitCode))
 			return action.exitCode;
@@ -168,7 +180,7 @@ Opt!ExitCode handleOneMessageIn(scope ref Perf perf, ref Alloc alloc, ref Server
 bool isUnknownUris(in LspOutMessage a) =>
 	a.isA!LspOutNotification && a.as!LspOutNotification.isA!UnknownUris;
 
-@trusted LspInMessage readIn(ref Alloc alloc, scope ref AllSymbols allSymbols, scope ref AllUris allUris) {
+@trusted LspInMessage readIn(ref Alloc alloc, scope ref AllSymbols allSymbols, scope ref AllUris allUris, bool logLsp) {
 	char[0x10000] buffer;
 	immutable(char)* line0 = cast(immutable) fgets(buffer.ptr, buffer.length, stdin);
 	assert(line0 != null);
@@ -185,12 +197,17 @@ bool isUnknownUris(in LspOutMessage a) =>
 	assert(n == contentLength);
 	buffer[n] = '\0';
 
+	if (logLsp)
+		fprintf(stderr, "LSP in: %s\n", buffer.ptr);
+
 	return parseLspInMessage(alloc, allUris, mustParseJson(alloc, allSymbols, CString(cast(immutable) buffer.ptr)));
 }
 
-@trusted void writeOut(ref Alloc alloc, in AllSymbols allSymbols, in Json contentJson) {
+@trusted void writeOut(ref Alloc alloc, in AllSymbols allSymbols, in Json contentJson, bool logLsp) {
 	CString content = jsonToString(alloc, allSymbols, contentJson);
 	printf("Content-Length: %lu\r\n\r\n%s", cStringSize(content), content.ptr);
+	if (logLsp)
+		fprintf(stderr, "LSP out: %s\n", content.ptr);
 	fflush(stdout);
 }
 

@@ -33,7 +33,7 @@ import util.col.map : Map;
 import util.col.mapBuilder : finishMap, MapBuilder, mustAddToMap;
 import util.col.enumMap : EnumMap, enumMapMapValues, makeEnumMap;
 import util.col.mutMaxSet : clear, mayDelete, mustAdd, MutMaxSet, popArbitrary;
-import util.col.mutSet : mayAddToMutSet, MutSet, mutSetMayDelete, mutSetMustDelete;
+import util.col.mutSet : mayAddToMutSet, MutSet, mutSetMayDelete;
 import util.json : field, Json, jsonObject;
 import util.memory : allocate, initMemory;
 import util.opt : ConstOpt, force, has, MutOpt, Opt, none, noneMut, some, someMut;
@@ -233,7 +233,6 @@ void onFileChanged(scope ref Perf perf, ref FrontendCompiler a, Uri uri) {
 
 private:
 
-
 HashTable!(immutable Config*, Uri, getConfigUri) getAllConfigs(ref Alloc alloc, in FrontendCompiler a) {
 	MutHashTable!(immutable Config*, Uri, getConfigUri) res;
 	foreach (const CrowFile* file; a.crowFiles) {
@@ -363,7 +362,7 @@ bool isUnknownOrLoading(in CrowFile a) =>
 void recomputeResolvedImports(ref FrontendCompiler a, CrowFile* file) {
 	markModuleDirty(a, *file);
 
-	MutOpt!(Uri[]) circularImport = has(file.resolvedImports) ? clearResolvedImports(file) : noneMut!(Uri[]);
+	MutOpt!(Uri[]) circularImport = has(file.resolvedImports) ? clearResolvedImports(a.allUris, file) : noneMut!(Uri[]);
 
 	file.resolvedImports = someMut(resolveImports(a, file.astOrDiag, *force(file.config), file.uri));
 	foreach (MostlyResolvedImport x; force(file.resolvedImports)) {
@@ -377,7 +376,7 @@ void recomputeResolvedImports(ref FrontendCompiler a, CrowFile* file) {
 		foreach (Uri uri; force(circularImport))
 			if (uri != file.uri) {
 				CrowFile* other = mustGet(a.crowFiles, uri);
-				MutOpt!(Uri[]) ci = clearResolvedImports(other);
+				MutOpt!(Uri[]) ci = clearResolvedImports(a.allUris, other);
 				assert(has(ci)); // But ignore it since we've already handled it
 				recomputeResolvedImports(a, other);
 			}
@@ -385,12 +384,13 @@ void recomputeResolvedImports(ref FrontendCompiler a, CrowFile* file) {
 	addToWorkableIfSo(a, file);
 }
 
-MutOpt!(Uri[]) clearResolvedImports(CrowFile* file) {
+MutOpt!(Uri[]) clearResolvedImports(in AllUris allUris, CrowFile* file) {
 	MutOpt!(Uri[]) circularImport = noneMut!(Uri[]);
 	foreach (ref MostlyResolvedImport import_; force(file.resolvedImports)) {
 		MutOpt!(MutSet!(CrowFile*)*) rb = getReferencedBy(import_);
 		if (has(rb))
-			mutSetMustDelete(*force(rb), file);
+			// Not mustDelete because file may have the same import multiple times
+			mutSetMayDelete(*force(rb), file);
 		else
 			circularImport = asCircularImport(import_);
 	}
