@@ -1,9 +1,9 @@
 no-std
 import
-	../json: to
-	../number: ==, +, -, *, /, int64, max-value, min-value, nat64, to
-	../string: literal
-	../test-util: is, throws
+	../../json: to
+	../../number: ==, +, -, *, /, int64, max-value, min-value, nat64, to
+	../../string: literal
+	../../test-util: is, throws
 
 dummy-number-tests nat64()
 	0

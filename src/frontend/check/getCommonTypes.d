@@ -99,6 +99,8 @@ CommonTypes* getCommonTypes(
 	StructDecl* constPointer = getDecl!"const-pointer"(1);
 	StructInst* cString = instantiateStruct(
 		instantiateCtx, constPointer, small!Type([Type(char8)]), someMut(ptrTrustMe(delayedStructInsts)));
+	StructInst* voidFuture = instantiateStruct(
+		instantiateCtx, future, small!Type([Type(void_)]), someMut(ptrTrustMe(delayedStructInsts)));
 
 	StructDecl*[8] tuples = [
 		getDecl!"tuple2"(2),
@@ -122,6 +124,7 @@ CommonTypes* getCommonTypes(
 		void_,
 		array,
 		future,
+		voidFuture,
 		opt,
 		pointerConst,
 		pointerMut,

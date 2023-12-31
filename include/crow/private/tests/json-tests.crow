@@ -1,17 +1,17 @@
 no-std
 import
-	../bool: false, true
-	../col/list: list, new
-	../col/map: map, new
-	../json: ==, new, null, json, to
-	../misc: to, void
-	../number: float64, nat64
-	../parse: ==, expected, new, parse, parse-error
-	../result: ==, error, ok
-	../string: ==, begin, literal, string
-	../symbol: ==, <=>, hash-mix, symbol
-	../test-util: is
-	../tuple: new
+	../../bool: false, true
+	../../col/list: list, new
+	../../col/map: map, new
+	../../json: ==, new, null, json, to
+	../../misc: to, void
+	../../number: float64, nat64
+	../../parse: ==, expected, new, parse, parse-error
+	../../result: ==, error, ok
+	../../string: ==, begin, literal, string
+	../../symbol: ==, <=>, hash-mix, symbol
+	../../test-util: is
+	../../tuple: new
 
 dummy-json-tests nat64()
 	0

@@ -813,6 +813,8 @@ immutable struct Test {
 	TestAst* ast;
 	Uri moduleUri;
 	Expr body_;
+	enum BodyType { bogus, void_, voidFuture }
+	BodyType bodyType;
 
 	UriAndRange range() =>
 		UriAndRange(moduleUri, ast.range);
@@ -1112,6 +1114,7 @@ immutable struct CommonFuns {
 	FunInst* mark;
 	FunDecl* markVisitFunDecl;
 	FunInst* newNat64Future;
+	FunInst* newVoidFuture;
 	FunInst* rtMain;
 	FunInst* staticSymbols;
 	FunInst* throwImpl;
@@ -1131,6 +1134,7 @@ immutable struct CommonTypes {
 	StructInst* void_;
 	StructDecl* array;
 	StructDecl* future;
+	StructInst* voidFuture;
 	StructDecl* opt;
 	StructDecl* ptrConst;
 	StructDecl* ptrMut;

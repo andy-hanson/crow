@@ -1,0 +1,11 @@
+dummy-future-tests nat64()
+	0
+
+test
+	xs nat[] = for x : 0 .. 10; x
+	out nat mut[] = ()
+	<- for x : xs sequential
+		out ~= x
+		()
+	out.move-to::nat[] is (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+	()::void^

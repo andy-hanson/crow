@@ -39,20 +39,21 @@ import
 	crow/parse: grammar-skip, new
 	crow/parse-command: parse-named-args
 	crow/perf: measure-performance
-	crow/private/exclusion-queue-tests: dummy-exclusion-queue-tests
-	crow/private/bare-map-tests: dummy-bare-map-tests
-	crow/private/bare-queue-tests: dummy-bare-queue-tests
-	crow/private/bits-tests: dummy-bits-tests
-	crow/private/json-tests: dummy-json-tests
-	crow/private/math-tests: dummy-math-tests
-	crow/private/number-tests: dummy-number-tests
-	crow/private/string-tests: dummy-string-tests
+	crow/private/tests/exclusion-queue-tests: dummy-exclusion-queue-tests
+	crow/private/tests/bare-map-tests: dummy-bare-map-tests
+	crow/private/tests/bare-queue-tests: dummy-bare-queue-tests
+	crow/private/tests/bits-tests: dummy-bits-tests
+	crow/private/tests/future-tests: dummy-future-tests
+	crow/private/tests/json-tests: dummy-json-tests
+	crow/private/tests/math-tests: dummy-math-tests
+	crow/private/tests/number-tests: dummy-number-tests
+	crow/private/tests/string-tests: dummy-string-tests
 	crow/serialize: from-bytes
 	crow/test-util/test-runner: run-all-tests
 	crow/version: is-windows
 	../editor/vscode/license.txt as license string
 
-main void() summon
+main nat^(_ string[]) summon
 	license is "public domain"
 	_ = ().from-bytes :: nat8[]
 	_ = bold
@@ -65,6 +66,7 @@ main void() summon
 	_ = dummy-bare-map-tests
 	_ = dummy-bare-queue-tests
 	_ = dummy-bits-tests
+	_ = dummy-future-tests
 	_ = dummy-map-tests
 	_ = dummy-exclusion-queue-tests
 	_ = dummy-frozen-map-tests
@@ -112,5 +114,5 @@ main void() summon
 	_ = () :: (nat queue)
 	_ = gmt
 	_ = () parse-named-args ()
-	run-all-tests
+	<- run-all-tests
 	()

@@ -31,6 +31,7 @@ import frontend.check.inferringType :
 	inferred,
 	isPurelyInferring,
 	LoopInfo,
+	nonInferring,
 	OkSkipOrAbort,
 	Pair,
 	setExpectedIfNoInferred,
@@ -98,6 +99,7 @@ import model.model :
 	Destructure,
 	emptySpecImpls,
 	emptyTypeArgs,
+	emptyTypeParams,
 	EnumMember,
 	Expr,
 	ExprAndType,
@@ -139,6 +141,7 @@ import model.model :
 	StructBody,
 	StructDecl,
 	StructInst,
+	Test,
 	ThrowExpr,
 	toMutability,
 	Type,
@@ -158,7 +161,8 @@ import util.col.array :
 	mapZipPointers3,
 	newArray,
 	only,
-	PtrAndSmallNumber;
+	PtrAndSmallNumber,
+	small;
 import util.col.mutMaxArr : asTemporaryArray, initializeMutMaxArr, mutMaxArrSize, push;
 import util.conv : safeToUshort, safeToUint;
 import util.memory : allocate, initMemory, overwriteMemory;
@@ -197,6 +201,42 @@ Expr checkFunctionBody(
 		(ref LocalsInfo innerLocals) =>
 			checkAndExpect(castNonScope_ref(exprCtx), innerLocals, ast, returnType));
 	return res;
+}
+
+immutable struct TestBody {
+	Expr body_;
+	Test.BodyType type;
+}
+
+TestBody checkTestBody(
+	ref CheckCtx checkCtx,
+	in StructsAndAliasesMap structsAndAliasesMap,
+	in CommonTypes commonTypes,
+	in FunsMap funsMap,
+	TypeContainer typeContainer,
+	ExprAst* ast,
+) {
+	ExprCtx exprCtx = ExprCtx(
+		ptrTrustMe(checkCtx),
+		structsAndAliasesMap,
+		funsMap,
+		commonTypes,
+		typeContainer,
+		[],
+		emptyTypeParams,
+		FunFlags.none);
+	FunOrLambdaInfo funInfo = FunOrLambdaInfo(noneMut!(LocalsInfo*), none!(LambdaExpr*));
+	LocalsInfo locals = LocalsInfo(ptrTrustMe(funInfo), noneMut!(LocalNode*));
+	TypeAndContext[2] choices = [nonInferring(Type(commonTypes.void_)), nonInferring(Type(commonTypes.voidFuture))];
+	Expected expected = Expected(small!TypeAndContext(choices));
+	Expr expr = checkExpr(castNonScope_ref(exprCtx), locals, ast, expected);
+	Type actual = inferred(expected);
+	Test.BodyType bodyType = actual == Type(commonTypes.void_)
+		? Test.BodyType.void_
+		: actual == Type(commonTypes.voidFuture)
+		? Test.BodyType.voidFuture
+		: Test.bodyType.bogus;
+	return TestBody(expr, bodyType);
 }
 
 Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expected expected) =>

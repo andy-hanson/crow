@@ -144,6 +144,7 @@ CommonFunsAndMain getCommonFuns(
 	FunDecl* newTFuture = getFunDeclInner(
 		*modules[CommonModule.future], symbol!"new", singleTypeParams, tFuture, newTFutureParams);
 	FunInst* newNat64Future = instantiateFun(ctx, newTFuture, small!Type([nat64Type]), emptySpecImpls);
+	FunInst* newVoidFuture = instantiateFun(ctx, newTFuture, small!Type([voidType]), emptySpecImpls);
 	FunInst* rtMain = getFun(
 		CommonModule.runtimeMain,
 		symbol!"rt-main",
@@ -169,7 +170,7 @@ CommonFunsAndMain getCommonFuns(
 		CommonFuns(
 			finish(alloc, diagsBuilder),
 			allocFun, funOrActSubscriptFunDecls, curExclusion, mark,
-			markVisit, newNat64Future, rtMain, staticSymbols, throwImpl, char8ArrayAsString),
+			markVisit, newNat64Future, newVoidFuture, rtMain, staticSymbols, throwImpl, char8ArrayAsString),
 		main);
 }
 

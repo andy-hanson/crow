@@ -193,6 +193,7 @@ struct ConcretizeCtx {
 	Map!(Uri, ReadFileResult) fileContents;
 	Late!(ConcreteFun*) curExclusionFun_;
 	Late!(ConcreteFun*) char8ArrayAsString_;
+	Late!(ConcreteFun*) newVoidFutureFunction_;
 	AllConstantsBuilder allConstants;
 	MutHashTable!(ConcreteStruct*, ConcreteStructKey, getStructKey) nonLambdaConcreteStructs;
 	ArrayBuilder!(ConcreteStruct*) allConcreteStructs;
@@ -227,6 +228,8 @@ struct ConcretizeCtx {
 		lateGet(curExclusionFun_);
 	ConcreteFun* char8ArrayAsString() return scope const =>
 		lateGet(char8ArrayAsString_);
+	ConcreteFun* newVoidFutureFunction() return scope const =>
+		lateGet(newVoidFutureFunction_);
 	ref Program program() return scope const =>
 		*programPtr;
 }
@@ -446,16 +449,40 @@ void addConcreteFun(ref ConcretizeCtx ctx, ConcreteFun* fun) {
 }
 
 ConcreteFun* concreteFunForTest(ref ConcretizeCtx ctx, ref Test test, size_t testIndex) {
+	ConcreteType voidType = voidType(ctx);
+	ConcreteType voidFutureType = ctx.newVoidFutureFunction.returnType;
 	ConcreteFun* res = allocate(ctx.alloc, ConcreteFun(
 		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.Test(test.range, testIndex))),
-		voidType(ctx),
+		voidFutureType,
 		[]));
 	ContainingFunInfo containing = ContainingFunInfo(
 		test.moduleUri,
 		emptySmallArray!(immutable SpecInst*),
 		emptySmallArray!ConcreteType,
 		emptySmallArray!(immutable ConcreteFun*));
-	res.body_ = ConcreteFunBody(concretizeFunBody(ctx, containing, res, [], test.body_));
+	ConcreteType returnType = () {
+		final switch (test.bodyType) {
+			case Test.BodyType.void_:
+				return voidType;
+			case Test.bodyType.bogus:
+			case Test.BodyType.voidFuture:
+				return voidFutureType;
+		}
+	}();
+	ConcreteExpr body_ = test.bodyType == Test.BodyType.bogus
+		? concretizeBogus(ctx, returnType, test.range)
+		: concretizeFunBody(ctx, containing, res, returnType, [], test.body_);
+	ConcreteExpr body2 = () {
+		final switch (test.bodyType) {
+			case Test.BodyType.void_:
+				return ConcreteExpr(voidFutureType, test.range, ConcreteExprKind(
+					ConcreteExprKind.Call(ctx.newVoidFutureFunction, newArray(ctx.alloc, [body_]))));
+			case Test.BodyType.bogus:
+			case Test.BodyType.voidFuture:
+				return body_;
+		}
+	}();
+	res.body_ = ConcreteFunBody(body2);
 	addConcreteFun(ctx, res);
 	return res;
 }
@@ -473,11 +500,7 @@ public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* mo
 	UriAndRange range = modelMain.decl.range;
 	ConcreteExpr callMain = ConcreteExpr(voidType(ctx), range, ConcreteExprKind(ConcreteExprKind.Call(innerMain, [])));
 	ConcreteExpr zero = ConcreteExpr(nat64Type, range, ConcreteExprKind(constantZero));
-	ConcreteFun* newNat64Future = getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
-		ctx.program.commonFuns.newNat64Future.decl,
-		//TODO:avoid alloc
-		small!ConcreteType(newArray(ctx.alloc, [nat64Type])),
-		emptySmallArray!(immutable ConcreteFun*)));
+	ConcreteFun* newNat64Future = newNat64FutureFunction(ctx, nat64Type);
 	ConcreteExpr callNewNatFuture = ConcreteExpr(newNat64Future.returnType, range, ConcreteExprKind(
 		ConcreteExprKind.Call(newNat64Future, newArray(ctx.alloc, [zero]))));
 	ConcreteExpr body_ = ConcreteExpr(newNat64Future.returnType, range, ConcreteExprKind(
@@ -493,6 +516,13 @@ public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* mo
 	addConcreteFun(ctx, res);
 	return res;
 }
+
+ConcreteFun* newNat64FutureFunction(ref ConcretizeCtx ctx, ConcreteType nat64Type) =>
+	getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
+		ctx.program.commonFuns.newNat64Future.decl,
+		//TODO:avoid alloc
+		small!ConcreteType(newArray(ctx.alloc, [nat64Type])),
+		emptySmallArray!(immutable ConcreteFun*)));
 
 bool canGetUnionSize(in ConcreteType[] members) =>
 	every!(ConcreteType)(members, (in ConcreteType type) =>
@@ -744,7 +774,7 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 			(FunBody.Extern x) =>
 				ConcreteFunBody(ConcreteFunBody.Extern(x.libraryName)),
 			(FunBody.ExpressionBody e) =>
-				ConcreteFunBody(concretizeFunBody(ctx, inputs.containing, cf, params, e.expr)),
+				ConcreteFunBody(concretizeFunBody(ctx, inputs.containing, cf, cf.returnType, params, e.expr)),
 			(FunBody.FileImport x) =>
 				ConcreteFunBody(concretizeFileImport(ctx, cf, x)),
 			(FlagsFunction it) =>

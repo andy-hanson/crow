@@ -1,18 +1,19 @@
 no-std
 import
-	../col/array: array, iterate, size
-	../col/collection: for-loop
+	../col/array: array, begin, next, size
 	../fun-util: subscript
+	../future: for-loop, future, new, sequential, then
 	../io/print: out, print
 	../misc: new, void
 	../string: ~~, literal, to
 
 # Run every `test` from all source files included in the compilation.
-+run-all-tests void() summon
++run-all-tests void^() summon
 	tests = all-tests
 	out print "Running {tests size} tests"
-	for x : tests
+	<- for x : tests sequential
 		x[]
 	out print "Done running tests"
+	()
 
--all-tests fun* void() array() builtin
+-all-tests fun* void^() array() builtin

@@ -12,7 +12,7 @@ import
 	./search-dir-recursive: search-dir-recursive
 
 main nat^(_ string[]) summon
-	run-all-tests
+	<- run-all-tests
 	all-content <- documentation ~~ pages ~~ include-all
 	<- for content : all-content parallel
 		content ensure-up-to-date

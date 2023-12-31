@@ -1,9 +1,9 @@
 no-std
 import
-	../bits: high-n-bits, low-n-bits
-	../json: to
-	../number: ==, nat64
-	../test-util: is
+	../../bits: high-n-bits, low-n-bits
+	../../json: to
+	../../number: ==, nat64
+	../../test-util: is
 
 dummy-bits-tests nat64()
 	0

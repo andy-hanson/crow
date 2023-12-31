@@ -29,7 +29,7 @@ import app.fileSystem : stderr;
 			char[1024] buf;
 			err = err || unw_get_proc_name(&cursor, buf.ptr, buf.length, &offset);
 			if (err == 0)
-				fprintf(stderr, "\tat %s\n", buf.ptr);
+				fprintf(stderr, "\n\tat %s", buf.ptr);
 		}
 		if (err != 0)
 			fprintf(stderr, "\terror getting backtrace\n");

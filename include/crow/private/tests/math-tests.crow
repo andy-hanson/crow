@@ -1,6 +1,6 @@
 import
-	crow/math/math
-	crow/parse
+	../../math/math
+	../../parse
 
 dummy-math-tests nat()
 	0

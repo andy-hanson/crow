@@ -4,7 +4,7 @@ module frontend.check.check;
 
 import frontend.check.checkCtx :
 	addDiag, addDiagAssertSameUri, CheckCtx, checkForUnused, finishDiagnostics, ImportAndReExportModules;
-import frontend.check.checkExpr : checkFunctionBody;
+import frontend.check.checkExpr : checkFunctionBody, checkTestBody, TestBody;
 import frontend.check.checkStructs : checkStructBodies, checkStructsInitial;
 import frontend.check.getCommonTypes : getCommonTypes;
 import frontend.check.maps : funDeclsName, FunsMap, specDeclName, SpecsMap, structOrAliasName, StructsAndAliasesMap;
@@ -48,10 +48,11 @@ import frontend.allInsts : AllInsts;
 import frontend.storage : FileContent;
 import model.diag : Diag, Diagnostic, TypeContainer;
 import model.model :
+	BogusExpr,
 	CommonTypes,
 	Destructure,
-	emptyTypeParams,
 	Expr,
+	ExprKind,
 	FunBody,
 	FunDecl,
 	FunDeclSource,
@@ -620,12 +621,15 @@ FunsAndMap checkFuns(
 
 	Test[] tests = (() @trusted =>
 		mapWithResultPointer!(Test, TestAst)(ctx.alloc, testAsts, (TestAst* ast, Test* out_) {
-			if (ast.body_.kind.isA!EmptyAst)
-				addDiag(ctx, ast.range, Diag(Diag.FunMissingBody()));
-			Expr body_ = checkFunctionBody(
-				ctx, structsAndAliasesMap, commonTypes, funsMap, TypeContainer(out_),
-				Type(commonTypes.void_), emptyTypeParams, [], [], FunFlags.none.withSummon, &ast.body_);
-			return Test(ast, ctx.curUri, body_);
+			TestBody body_ = () {
+				if (ast.body_.kind.isA!EmptyAst) {
+					addDiag(ctx, ast.range, Diag(Diag.FunMissingBody()));
+					return TestBody(Expr(&ast.body_, ExprKind(BogusExpr())));
+				} else
+					return checkTestBody(
+						ctx, structsAndAliasesMap, commonTypes, funsMap, TypeContainer(out_), &ast.body_);
+			}();
+			return Test(ast, ctx.curUri, body_.body_, body_.type);
 		})
 	)();
 

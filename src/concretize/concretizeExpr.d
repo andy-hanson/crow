@@ -114,6 +114,7 @@ ConcreteExpr concretizeFunBody(
 	ref ConcretizeCtx ctx,
 	ref ContainingFunInfo containing,
 	ConcreteFun* cf,
+	ConcreteType returnType,
 	in Destructure[] params,
 	ref Expr e,
 ) {
@@ -122,7 +123,7 @@ ConcreteExpr concretizeFunBody(
 		// Ignore closure param, which is never destructured.
 		ConcreteLocal[] paramsToDestructure =
 			cf.paramsIncludingClosure[params.length + 1 == cf.paramsIncludingClosure.length ? 1 : 0 .. $];
-		return concretizeWithParamDestructures(exprCtx, cf.returnType, locals, params, paramsToDestructure, e);
+		return concretizeWithParamDestructures(exprCtx, returnType, locals, params, paramsToDestructure, e);
 	});
 }
 
