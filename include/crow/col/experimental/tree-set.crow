@@ -387,13 +387,13 @@ try-remove[t] t tree-set?(a t tree-set, b t) t key
 		match value <=> i.value
 		as less
 			out tree-to-array-recur i.left, value
-			out ~= i.value
+			out ~= i value
 			out tree-to-array-recur i.right
 		as equal
 			unreachable
 		as greater
 			out tree-to-array-recur i.left
-			out ~= i.value
+			out ~= i value
 			out tree-to-array-recur i.right, value
 	as leaf l
 		# Find first x > value, insert it before there
@@ -406,7 +406,7 @@ try-remove[t] t tree-set?(a t tree-set, b t) t key
 	match a
 	as inner i
 		out tree-to-array-recur i.left
-		out ~= i.value
+		out ~= i value
 		out tree-to-array-recur i.right
 	as leaf l
 		out ~~= l

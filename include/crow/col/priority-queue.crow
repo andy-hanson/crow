@@ -228,7 +228,7 @@ This is amortized O(log n).
 		# Output later nodes first to preserve insertion order (since they're inserted to the front)
 		if next ?= a next
 			out compact-singles next
-		out ~= a.min
+		out ~= a min
 
 -compact-non-singles[k, v] void(out (k, v) mut-array-builder, a (k, v) node?)
 	cur mut = a

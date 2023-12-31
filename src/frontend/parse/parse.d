@@ -45,7 +45,9 @@ import model.ast :
 	FunDeclAst,
 	FunModifierAst,
 	ImportsOrExportsAst,
+	LiteralIntAst,
 	LiteralIntOrNat,
+	LiteralIntOrNatKind,
 	LiteralNatAst,
 	ModifierAst,
 	NameAndRange,
@@ -166,11 +168,14 @@ SmallArray!(StructBodyAst.Enum.Member) parseEnumOrFlagsMembers(ref Lexer lexer) 
 			Symbol name = takeName(lexer);
 			Opt!LiteralIntOrNat value = () {
 				if (tryTakeToken(lexer, Token.equal)) {
+					Pos start = curPos(lexer);
 					switch (getPeekToken(lexer)) {
 						case Token.literalInt:
-							return some(LiteralIntOrNat(takeNextToken(lexer).asLiteralInt()));
+							LiteralIntAst literal = takeNextToken(lexer).asLiteralInt;
+							return some(LiteralIntOrNat(range(lexer, start), LiteralIntOrNatKind(literal)));
 						case Token.literalNat:
-							return some(LiteralIntOrNat(takeNextToken(lexer).asLiteralNat()));
+							LiteralNatAst literal = takeNextToken(lexer).asLiteralNat;
+							return some(LiteralIntOrNat(range(lexer, start), LiteralIntOrNatKind(literal)));
 						default:
 							addDiagExpected(lexer, ParseDiag.Expected.Kind.literalIntOrNat);
 							return none!LiteralIntOrNat;

@@ -104,7 +104,7 @@ NameAndRange takeNameAndRange(ref Lexer lexer) {
 	if (has(name))
 		return force(name);
 	else {
-		addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.name)));
+		addDiag(lexer, rangeForCurToken(lexer, start), ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.name)));
 		return NameAndRange(start, symbol!"");
 	}
 }

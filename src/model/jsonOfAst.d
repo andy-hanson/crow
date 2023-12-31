@@ -31,6 +31,7 @@ import model.ast :
 	LiteralFloatAst,
 	LiteralIntAst,
 	LiteralIntOrNat,
+	LiteralIntOrNatKind,
 	LiteralNatAst,
 	LiteralStringAst,
 	LoopAst,
@@ -113,16 +114,16 @@ const struct Ctx {
 		*allUrisPtr;
 }
 
-Json jsonOfRange(ref Alloc alloc, scope ref Ctx ctx, in Range a) =>
+Json jsonOfRange(ref Alloc alloc, in Ctx ctx, in Range a) =>
 	jsonOfLineAndColumnRange(alloc, ctx.lineAndColumnGetter[a]);
 
-Json jsonOfImportsOrExports(ref Alloc alloc, scope ref Ctx ctx, in ImportsOrExportsAst a) =>
+Json jsonOfImportsOrExports(ref Alloc alloc, in Ctx ctx, in ImportsOrExportsAst a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		field!"imports"(jsonList!ImportOrExportAst(alloc, a.paths, (in ImportOrExportAst a) =>
 			jsonOfImportOrExportAst(alloc, ctx, a)))]);
 
-Json jsonOfImportOrExportAst(ref Alloc alloc, scope ref Ctx ctx, in ImportOrExportAst a) =>
+Json jsonOfImportOrExportAst(ref Alloc alloc, in Ctx ctx, in ImportOrExportAst a) =>
 	jsonObject(alloc, [
 		field!"path"(pathOrRelPathToJson(alloc, ctx.allUris, a.path)),
 		field!"import-kind"(a.kind.matchIn!Json(
@@ -146,7 +147,7 @@ Json pathOrRelPathToJson(ref Alloc alloc, in AllUris allUris, PathOrRelPath a) =
 				field!"nParents"(relPath.nParents),
 				field!"path"(stringOfPath(alloc, allUris, relPath.path, false))]));
 
-Json jsonOfSpecDeclAst(ref Alloc alloc, scope ref Ctx ctx, in SpecDeclAst a) =>
+Json jsonOfSpecDeclAst(ref Alloc alloc, in Ctx ctx, in SpecDeclAst a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		field!"comment"(jsonString(alloc, a.docComment)),
@@ -156,7 +157,7 @@ Json jsonOfSpecDeclAst(ref Alloc alloc, scope ref Ctx ctx, in SpecDeclAst a) =>
 		maybeTypeParams(alloc, ctx, a.typeParams),
 		field!"body"(jsonOfSpecBodyAst(alloc, ctx, a.body_))]);
 
-Json jsonOfSpecBodyAst(ref Alloc alloc, scope ref Ctx ctx, in SpecBodyAst a) =>
+Json jsonOfSpecBodyAst(ref Alloc alloc, in Ctx ctx, in SpecBodyAst a) =>
 	a.matchIn!Json(
 		(in SpecBodyAst.Builtin) =>
 			jsonString!"builtin",
@@ -164,7 +165,7 @@ Json jsonOfSpecBodyAst(ref Alloc alloc, scope ref Ctx ctx, in SpecBodyAst a) =>
 			jsonList!SpecSigAst(alloc, sigs, (in SpecSigAst sig) =>
 				jsonOfSpecSig(alloc, ctx, sig)));
 
-Json jsonOfSpecSig(ref Alloc alloc, scope ref Ctx ctx, in SpecSigAst a) =>
+Json jsonOfSpecSig(ref Alloc alloc, in Ctx ctx, in SpecSigAst a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		field!"doc"(jsonString(alloc, a.docComment)),
@@ -172,7 +173,7 @@ Json jsonOfSpecSig(ref Alloc alloc, scope ref Ctx ctx, in SpecSigAst a) =>
 		field!"return-type"(jsonOfTypeAst(alloc, ctx, a.returnType)),
 		field!"params"(jsonOfParamsAst(alloc, ctx, a.params))]);
 
-Json jsonOfStructAliasAst(ref Alloc alloc, scope ref Ctx ctx, in StructAliasAst a) =>
+Json jsonOfStructAliasAst(ref Alloc alloc, in Ctx ctx, in StructAliasAst a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		optionalStringField!"doc"(alloc, a.docComment),
@@ -183,7 +184,7 @@ Json jsonOfStructAliasAst(ref Alloc alloc, scope ref Ctx ctx, in StructAliasAst 
 
 Json jsonOfEnumOrFlags(
 	ref Alloc alloc,
-	scope ref Ctx ctx,
+	in Ctx ctx,
 	string name,
 	in Opt!(TypeAst*) typeArg,
 	in StructBodyAst.Enum.Member[] members,
@@ -196,12 +197,12 @@ Json jsonOfEnumOrFlags(
 			alloc, members, (in StructBodyAst.Enum.Member x) =>
 				jsonOfEnumMember(alloc, ctx, x)))]);
 
-Json jsonOfEnumMember(ref Alloc alloc, scope ref Ctx ctx, in StructBodyAst.Enum.Member a) =>
+Json jsonOfEnumMember(ref Alloc alloc, in Ctx ctx, in StructBodyAst.Enum.Member a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		field!"name"(a.name),
 		optionalField!("value", LiteralIntOrNat)(a.value, (in LiteralIntOrNat x) =>
-			jsonOfLiteralIntOrNat(alloc, x))]);
+			jsonOfLiteralIntOrNat(alloc, ctx, x))]);
 
 Json jsonOfLiteralFloatAst(ref Alloc alloc, in LiteralFloatAst a) =>
 	jsonOfLiteral!"float"(alloc, a.value, a.overflow);
@@ -221,14 +222,19 @@ Json jsonOfLiteral(string typeName, T)(ref Alloc alloc, T value, bool overflow) 
 		field!"value"(value),
 		optionalFlagField!"overflow"(overflow)]);
 
-Json jsonOfLiteralIntOrNat(ref Alloc alloc, in LiteralIntOrNat a) =>
+Json jsonOfLiteralIntOrNat(ref Alloc alloc, in Ctx ctx, in LiteralIntOrNat a) =>
+	jsonObject(alloc, [
+		field!"range"(jsonOfRange(alloc, ctx, a.range)),
+		field!"kind"(jsonOfLiteralIntOrNatKind(alloc, a.kind))]);
+
+Json jsonOfLiteralIntOrNatKind(ref Alloc alloc, in LiteralIntOrNatKind a) =>
 	a.matchIn!Json(
 		(in LiteralIntAst x) =>
 			jsonOfLiteralIntAst(alloc, x),
 		(in LiteralNatAst x) =>
 			jsonOfLiteralNatAst(alloc, x));
 
-Json jsonOfField(ref Alloc alloc, scope ref Ctx ctx, in StructBodyAst.Record.Field a) =>
+Json jsonOfField(ref Alloc alloc, in Ctx ctx, in StructBodyAst.Record.Field a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		field!"visibility"(stringOfEnum(a.visibility)),
@@ -239,7 +245,7 @@ Json jsonOfField(ref Alloc alloc, scope ref Ctx ctx, in StructBodyAst.Record.Fie
 				field!"kind"(stringOfFieldMutabilityAstKind(x.kind))])),
 		field!"type"(jsonOfTypeAst(alloc, ctx, a.type))]);
 
-Json jsonOfRecordAst(ref Alloc alloc, scope ref Ctx ctx, in StructBodyAst.Record a) =>
+Json jsonOfRecordAst(ref Alloc alloc, in Ctx ctx, in StructBodyAst.Record a) =>
 	jsonObject(alloc, [
 		kindField!"record",
 		field!"fields"(jsonList!(StructBodyAst.Record.Field)(
@@ -248,7 +254,7 @@ Json jsonOfRecordAst(ref Alloc alloc, scope ref Ctx ctx, in StructBodyAst.Record
 			(in StructBodyAst.Record.Field x) =>
 				jsonOfField(alloc, ctx, x)))]);
 
-Json jsonOfUnion(ref Alloc alloc, scope ref Ctx ctx, in StructBodyAst.Union a) =>
+Json jsonOfUnion(ref Alloc alloc, in Ctx ctx, in StructBodyAst.Union a) =>
 	jsonObject(alloc, [
 		kindField!"union",
 		field!"members"(jsonList!(StructBodyAst.Union.Member)(
@@ -260,7 +266,7 @@ Json jsonOfUnion(ref Alloc alloc, scope ref Ctx ctx, in StructBodyAst.Union a) =
 					optionalField!("type", TypeAst)(x.type, (in TypeAst t) =>
 						jsonOfTypeAst(alloc, ctx, t))])))]);
 
-Json jsonOfStructBodyAst(ref Alloc alloc, scope ref Ctx ctx, in StructBodyAst a) =>
+Json jsonOfStructBodyAst(ref Alloc alloc, in Ctx ctx, in StructBodyAst a) =>
 	a.matchIn!Json(
 		(in StructBodyAst.Builtin) =>
 			jsonString!"builtin" ,
@@ -275,7 +281,7 @@ Json jsonOfStructBodyAst(ref Alloc alloc, scope ref Ctx ctx, in StructBodyAst a)
 		(in StructBodyAst.Union a) =>
 			jsonOfUnion(alloc, ctx, a));
 
-Json jsonOfStructDeclAst(ref Alloc alloc, scope ref Ctx ctx, in StructDeclAst a) =>
+Json jsonOfStructDeclAst(ref Alloc alloc, in Ctx ctx, in StructDeclAst a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		field!"doc"(jsonString(alloc, a.docComment)),
@@ -285,7 +291,7 @@ Json jsonOfStructDeclAst(ref Alloc alloc, scope ref Ctx ctx, in StructDeclAst a)
 			jsonOfModifierAst(alloc, x)),
 		field!"body"(jsonOfStructBodyAst(alloc, ctx, a.body_))]);
 
-Json.ObjectField maybeTypeParams(ref Alloc alloc, scope ref Ctx ctx, in NameAndRange[] typeParams) =>
+Json.ObjectField maybeTypeParams(ref Alloc alloc, in Ctx ctx, in NameAndRange[] typeParams) =>
 	optionalArrayField!("type-params", NameAndRange)(alloc, typeParams, (in NameAndRange x) =>
 		jsonOfNameAndRange(alloc, ctx, x));
 
@@ -294,7 +300,7 @@ Json jsonOfModifierAst(ref Alloc alloc, in ModifierAst a) =>
 		field!"pos"(a.pos),
 		field!"modifier"(symbolOfModifierKind(a.kind))]);
 
-Json jsonOfFunDeclAst(ref Alloc alloc, scope ref Ctx ctx, in FunDeclAst a) =>
+Json jsonOfFunDeclAst(ref Alloc alloc, in Ctx ctx, in FunDeclAst a) =>
 	jsonObject(alloc, [
 		optionalStringField!"doc"(alloc, a.docComment),
 		field!"visibility"(stringOfEnum(a.visibility)),
@@ -307,7 +313,7 @@ Json jsonOfFunDeclAst(ref Alloc alloc, scope ref Ctx ctx, in FunDeclAst a) =>
 			jsonOfFunModifierAst(alloc, ctx, s)),
 		field!"body"(jsonOfExprAst(alloc, ctx, a.body_))]);
 
-Json jsonOfParamsAst(ref Alloc alloc, scope ref Ctx ctx, in ParamsAst a) =>
+Json jsonOfParamsAst(ref Alloc alloc, in Ctx ctx, in ParamsAst a) =>
 	a.matchIn!Json(
 		(in DestructureAst[] params) =>
 			jsonOfDestructureAsts(alloc, ctx, params),
@@ -316,7 +322,7 @@ Json jsonOfParamsAst(ref Alloc alloc, scope ref Ctx ctx, in ParamsAst a) =>
 				kindField!"varargs",
 				field!"param"(jsonOfDestructureAst(alloc, ctx, v.param))]));
 
-Json jsonOfFunModifierAst(ref Alloc alloc, scope ref Ctx ctx, in FunModifierAst a) =>
+Json jsonOfFunModifierAst(ref Alloc alloc, in Ctx ctx, in FunModifierAst a) =>
 	a.matchIn!Json(
 		(in FunModifierAst.Special x) =>
 			jsonObject(alloc, [
@@ -331,7 +337,7 @@ Json jsonOfFunModifierAst(ref Alloc alloc, scope ref Ctx ctx, in FunModifierAst 
 		(in TypeAst x) =>
 			jsonOfTypeAst(alloc, ctx, x));
 
-Json jsonOfTypeAst(ref Alloc alloc, scope ref Ctx ctx, in TypeAst a) =>
+Json jsonOfTypeAst(ref Alloc alloc, in Ctx ctx, in TypeAst a) =>
 	a.matchIn!Json(
 		(in TypeAst.Bogus x) =>
 			jsonObject(alloc, [
@@ -368,15 +374,15 @@ Json jsonOfTypeAst(ref Alloc alloc, scope ref Ctx ctx, in TypeAst a) =>
 				field!"range"(jsonOfRange(alloc, ctx, x.range)),
 				field!"members"(jsonOfTypeAsts(alloc, ctx, x.members))]));
 
-Json jsonOfTypeAsts(ref Alloc alloc, scope ref Ctx ctx, in TypeAst[] a) =>
+Json jsonOfTypeAsts(ref Alloc alloc, in Ctx ctx, in TypeAst[] a) =>
 	jsonList!TypeAst(alloc, a, (in TypeAst x) =>
 		jsonOfTypeAst(alloc, ctx, x));
 
-Json jsonOfDestructureAsts(ref Alloc alloc, scope ref Ctx ctx, in DestructureAst[] a) =>
+Json jsonOfDestructureAsts(ref Alloc alloc, in Ctx ctx, in DestructureAst[] a) =>
 	jsonList!DestructureAst(alloc, a, (in DestructureAst x) =>
 		jsonOfDestructureAst(alloc, ctx, x));
 
-Json jsonOfDestructureAst(ref Alloc alloc, scope ref Ctx ctx, in DestructureAst a) =>
+Json jsonOfDestructureAst(ref Alloc alloc, in Ctx ctx, in DestructureAst a) =>
 	a.matchIn!Json(
 		(in DestructureAst.Single x) =>
 			jsonObject(alloc, [
@@ -393,17 +399,17 @@ Json jsonOfDestructureAst(ref Alloc alloc, scope ref Ctx ctx, in DestructureAst 
 			jsonList!DestructureAst(alloc, parts, (in DestructureAst part) =>
 				jsonOfDestructureAst(alloc, ctx, part)));
 
-Json jsonOfExprAst(ref Alloc alloc, scope ref Ctx ctx, in ExprAst ast) =>
+Json jsonOfExprAst(ref Alloc alloc, in Ctx ctx, in ExprAst ast) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, ast.range)),
 		field!"kind"(jsonOfExprAstKind(alloc, ctx, ast.kind))]);
 
-Json jsonOfNameAndRange(ref Alloc alloc, scope ref Ctx ctx, in NameAndRange a) =>
+Json jsonOfNameAndRange(ref Alloc alloc, in Ctx ctx, in NameAndRange a) =>
 	jsonObject(alloc, [
 		field!"start"(jsonOfLineAndColumn(alloc, ctx.lineAndColumnGetter[a.start, PosKind.startOfRange])),
 		field!"name"(a.name)]);
 
-Json jsonOfExprAstKind(ref Alloc alloc, scope ref Ctx ctx, in ExprAstKind ast) =>
+Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 	ast.matchIn!Json(
 		(in ArrowAccessAst e) =>
 			jsonObject(alloc, [
@@ -561,7 +567,7 @@ Json jsonOfExprAstKind(ref Alloc alloc, scope ref Ctx ctx, in ExprAstKind ast) =
 				field!"arg"(jsonOfExprAst(alloc, ctx, x.arg)),
 				field!"body"(jsonOfExprAst(alloc, ctx, x.body_))]));
 
-Json jsonOfInterpolatedPart(ref Alloc alloc, scope ref Ctx ctx, in InterpolatedPart a) =>
+Json jsonOfInterpolatedPart(ref Alloc alloc, in Ctx ctx, in InterpolatedPart a) =>
 	a.matchIn!Json(
 		(in string x) => jsonString(alloc, x),
 		(in ExprAst x) => jsonOfExprAst(alloc, ctx, x));

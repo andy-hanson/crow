@@ -378,26 +378,29 @@ EnumOrFlagsTypeAndMembers checkEnumOrFlagsMembers(
 	EnumBackingType enumType = getEnumTypeFromType(ctx, struct_, range, commonTypes, implementationType);
 
 	MutOpt!long lastValue = noneMut!long;
+	bool anyOverflow = false;
 	EnumMember[] members = mapPointers(ctx.alloc, memberAsts, (StructBodyAst.Enum.Member* memberAst) {
 		ValueAndOverflow valueAndOverflow = () {
 			if (has(memberAst.value))
 				return isSignedEnumBackingType(enumType)
-					? force(memberAst.value).matchIn!ValueAndOverflow(
+					? force(memberAst.value).kind.matchIn!ValueAndOverflow(
 						(in LiteralIntAst i) =>
 							ValueAndOverflow(EnumValue(i.value), i.overflow),
 						(in LiteralNatAst n) =>
 							ValueAndOverflow(EnumValue(n.value), n.value > long.max))
-					: force(memberAst.value).match!ValueAndOverflow(
-						(LiteralIntAst) =>
-							todo!ValueAndOverflow("signed value in unsigned enum"),
-						(LiteralNatAst n) =>
+					: force(memberAst.value).kind.matchIn!ValueAndOverflow(
+						(in LiteralIntAst _) =>
+							ValueAndOverflow(EnumValue(0), true),
+						(in LiteralNatAst n) =>
 							ValueAndOverflow(EnumValue(n.value), n.overflow));
 			else
 				return cbGetNextValue(has(lastValue) ? some(EnumValue(force(lastValue))) : none!EnumValue, enumType);
 		}();
 		EnumValue value = valueAndOverflow.value;
-		if (valueAndOverflow.overflow || valueOverflows(enumType, value))
+		if (valueAndOverflow.overflow || valueOverflows(enumType, value)) {
+			anyOverflow = true;
 			addDiag(ctx, memberAst.range, Diag(Diag.EnumMemberOverflows(enumType)));
+		}
 		lastValue = someMut!long(value.value);
 		return EnumMember(memberAst, struct_, memberAst.name, value);
 	});
@@ -405,7 +408,7 @@ EnumOrFlagsTypeAndMembers checkEnumOrFlagsMembers(
 	eachPair!(EnumMember)(members, (in EnumMember a, in EnumMember b) {
 		if (a.name == b.name)
 			addDiag(ctx, b.range, Diag(Diag.DuplicateDeclaration(memberKind, b.name)));
-		if (a.value == b.value)
+		if (a.value == b.value && !anyOverflow)
 			addDiag(ctx, b.range, Diag(Diag.EnumDuplicateValue(isSignedEnumBackingType(enumType), b.value.value)));
 	});
 	return EnumOrFlagsTypeAndMembers(enumType, members);

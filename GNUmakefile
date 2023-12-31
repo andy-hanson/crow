@@ -28,7 +28,9 @@ unit-test: bin/crow-debug
 crow-unit-tests: bin/crow
 	./bin/crow run test/crow-unit-tests.crow
 	./bin/crow run test/crow-unit-tests.crow --jit
+	./bin/crow run test/crow-unit-tests.crow --jit --optimize
 	./bin/crow run test/crow-unit-tests.crow --aot
+	./bin/crow run test/crow-unit-tests.crow --aot --optimize
 
 end-to-end-test: bin/crow
 	./bin/crow run test/test-end-to-end.crow

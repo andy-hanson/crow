@@ -576,6 +576,11 @@ Range rangeOfModifierAst(ModifierAst a, ref const AllSymbols allSymbols) =>
 	rangeOfNameAndRange(NameAndRange(a.pos, symbolOfModifierKind(a.kind)), allSymbols);
 
 immutable struct LiteralIntOrNat {
+	Range range;
+	LiteralIntOrNatKind kind;
+}
+
+immutable struct LiteralIntOrNatKind {
 	mixin Union!(LiteralIntAst, LiteralNatAst);
 }
 
@@ -591,6 +596,8 @@ immutable struct StructBodyAst {
 
 			NameAndRange nameAndRange() scope =>
 				NameAndRange(range.start, name);
+			Range nameRange(in AllSymbols allSymbols) scope =>
+				rangeOfNameAndRange(nameAndRange, allSymbols);
 		}
 
 		Opt!(TypeAst*) typeArg;

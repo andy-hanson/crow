@@ -224,9 +224,11 @@ struct TokensBuilder {
 	uint prevCharacter;
 }
 void add(scope ref TokensBuilder a, Range range, TokenType type, TokenModifiers modifiers) {
-	addTokensBetween(a, Range(a.prevPos, range.start));
-	a.prevPos = range.end;
-	addInner(a, range, type, modifiers);
+	if (range.length != 0) { // This can happen for missing names
+		addTokensBetween(a, Range(a.prevPos, range.start));
+		a.prevPos = range.end;
+		addInner(a, range, type, modifiers);
+	}
 }
 
 void addLastTokens(scope ref TokensBuilder a) {
@@ -460,12 +462,9 @@ void addEnumOrFlagsTokens(
 		addTypeTokens(tokens, allSymbols, *force(typeArg));
 	addModifierTokens(tokens, allSymbols, a);
 	foreach (ref StructBodyAst.Enum.Member member; members) {
-		declare(tokens, TokenType.enumMember, member.range);
-		if (has(member.value)) {
-			uint addLen = " = ".length;
-			Pos pos = member.range.start + symbolSize(allSymbols, member.name) + addLen;
-			numberLiteral(tokens, Range(pos, member.range.end));
-		}
+		declare(tokens, TokenType.enumMember, member.nameRange(allSymbols));
+		if (has(member.value))
+			numberLiteral(tokens, force(member.value).range);
 	}
 }
 
