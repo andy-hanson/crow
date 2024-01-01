@@ -157,7 +157,7 @@ private:
 @system void skipForTokens(ref MutCString ptr, CString end, in CbComment cbCommentOrRegion) {
 	while (ptr < end) {
 		CString start = ptr;
-		while (isNonKeywordPunctuation(*ptr))
+		while (isNonKeywordPunctuation(*ptr) && ptr < end)
 			ptr++;
 		if (ptr < end)
 			skipSpacesAndComments(ptr, cbCommentOrRegion, (ParseDiag _) {});

@@ -26,6 +26,7 @@ import model.ast :
 	IfAst,
 	IfOptionAst,
 	ImportOrExportAst,
+	ImportOrExportAstKind,
 	ImportsOrExportsAst,
 	InterpolatedAst,
 	InterpolatedPart,
@@ -303,11 +304,18 @@ Range rangeAtName(in AllSymbols allSymbols, Pos start, Symbol name) =>
 	Range(start, start + symbolSize(allSymbols, name));
 
 void addImportTokens(scope ref Ctx ctx, in AllUris allUris, in ImportsOrExportsAst a) {
-	// "export".length is the same
-	keyword(ctx.tokens, a.range.start, "import");
 	foreach (ref ImportOrExportAst x; a.paths) {
 		reference(ctx.tokens, TokenType.namespace, pathRange(allUris, x));
-		// TODO: tokens for imported names
+		x.kind.matchIn!void(
+			(in ImportOrExportAstKind.ModuleWhole) {},
+			(in NameAndRange[] names) {
+				foreach (NameAndRange name; names)
+					reference(ctx.tokens, TokenType.variable, rangeOfNameAndRange(name, ctx.allSymbols));
+			},
+			(in ImportOrExportAstKind.File x) {
+				declare(ctx.tokens, TokenType.variable, rangeOfNameAndRange(x.name, ctx.allSymbols));
+				addTypeTokens(ctx, x.typeAst);
+			});
 	}
 }
 

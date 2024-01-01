@@ -17,7 +17,7 @@ import frontend.parse.parseUtil :
 	tryTakeOperator,
 	tryTakeToken;
 import model.ast :
-	ImportOrExportAst, ImportOrExportAstKind, ImportsOrExportsAst, NameAndRange, PathOrRelPath, TypeAst;
+	ImportOrExportAst, ImportOrExportAstKind, ImportsOrExportsAst, NameAndRange, PathOrRelPath, range, TypeAst;
 import model.model : ImportFileType;
 import model.parseDiag : ParseDiag;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
@@ -101,20 +101,19 @@ ImportOrExportAstKind parseImportOrExportKind(ref Lexer lexer, Pos start) {
 				(in Range _) => ImportOrExportAstKind(ImportOrExportAstKind.ModuleWhole()));
 	} else if (tryTakeToken(lexer, Token.as)) {
 		NameAndRange name = takeNameAndRange(lexer);
-		ImportFileType type = parseImportFileType(lexer);
-		return ImportOrExportAstKind(allocate(lexer.alloc, ImportOrExportAstKind.File(name, type)));
+		TypeAst type = parseType(lexer);
+		return ImportOrExportAstKind(allocate(lexer.alloc, ImportOrExportAstKind.File(
+			name, type, toImportFileTypeOrDiag(lexer, type))));
 	} else
 		return ImportOrExportAstKind(ImportOrExportAstKind.ModuleWhole());
 }
 
-ImportFileType parseImportFileType(ref Lexer lexer) {
-	Pos start = curPos(lexer);
-	TypeAst type = parseType(lexer);
+ImportFileType toImportFileTypeOrDiag(ref Lexer lexer, in TypeAst type) {
 	Opt!ImportFileType fileType = toImportFileType(type);
 	if (has(fileType))
 		return force(fileType);
 	else {
-		addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.ImportFileTypeNotSupported()));
+		addDiag(lexer, type.range(lexer.allSymbols), ParseDiag(ParseDiag.ImportFileTypeNotSupported()));
 		return ImportFileType.string;
 	}
 }

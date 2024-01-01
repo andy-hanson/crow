@@ -819,6 +819,7 @@ immutable struct ImportOrExportAstKind {
 	immutable struct ModuleWhole {}
 	immutable struct File {
 		NameAndRange name;
+		TypeAst typeAst;
 		ImportFileType type;
 	}
 	mixin Union!(ModuleWhole, SmallArray!NameAndRange, File*);
