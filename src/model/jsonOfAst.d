@@ -520,8 +520,7 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 				field!"matched"(jsonOfExprAst(alloc, ctx, x.matched)),
 				field!"cases"(jsonList!(MatchAst.CaseAst)(alloc, x.cases, (in MatchAst.CaseAst case_) =>
 					jsonObject(alloc, [
-						field!"range"(jsonOfRange(alloc, ctx, case_.range)),
-						field!"member-name"(case_.memberName),
+						field!"member-name"(jsonOfNameAndRange(alloc, ctx, case_.memberName)),
 						optionalField!("destructure", DestructureAst)(case_.destructure, (in DestructureAst x) =>
 							jsonOfDestructureAst(alloc, ctx, x)),
 						field!"then"(jsonOfExprAst(alloc, ctx, case_.then))])))]),

@@ -37,7 +37,6 @@ import frontend.parse.parseUtil :
 	peekToken,
 	takeDedent,
 	takeIndentOrFailGeneric,
-	takeName,
 	takeNameAndRange,
 	takeNameAndRangeAllowUnderscore,
 	takeOrAddDiagExpectedToken,
@@ -456,17 +455,13 @@ ExprAst parseSubscript(ref Lexer lexer, ExprAst initial, Pos start) {
 ExprAst parseMatch(ref Lexer lexer, Pos start) {
 	ExprAst matched = parseExprNoBlock(lexer);
 	ArrayBuilder!(MatchAst.CaseAst) cases;
-	while (true) {
-		Pos startCase = curPos(lexer);
-		if (tryTakeNewlineThenAs(lexer)) {
-			Symbol memberName = takeName(lexer);
-			Opt!DestructureAst destructure = peekEndOfLine(lexer)
-				? none!DestructureAst
-				: some(parseDestructureNoRequireParens(lexer));
-			ExprAst then = parseIndentedStatements(lexer);
-			add(lexer.alloc, cases, MatchAst.CaseAst(range(lexer, startCase), memberName, destructure, then));
-		} else
-			break;
+	while (tryTakeNewlineThenAs(lexer)) {
+		NameAndRange memberName = takeNameAndRange(lexer);
+		Opt!DestructureAst destructure = peekEndOfLine(lexer)
+			? none!DestructureAst
+			: some(parseDestructureNoRequireParens(lexer));
+		ExprAst then = parseIndentedStatements(lexer);
+		add(lexer.alloc, cases, MatchAst.CaseAst(memberName, destructure, then));
 	}
 	return ExprAst(
 		range(lexer, start),

@@ -415,13 +415,12 @@ immutable struct MatchAst {
 	immutable struct CaseAst {
 		@safe @nogc pure nothrow:
 
-		Range range;
-		Symbol memberName;
+		NameAndRange memberName;
 		Opt!DestructureAst destructure;
 		ExprAst then;
 
-		Range memberNameRange(ref const AllSymbols allSymbols) scope =>
-			rangeOfNameAndRange(NameAndRange(range.start + safeToUint("as ".length), memberName), allSymbols);
+		Range memberNameRange(in AllSymbols allSymbols) scope =>
+			rangeOfNameAndRange(memberName, allSymbols);
 	}
 
 	ExprAst matched;

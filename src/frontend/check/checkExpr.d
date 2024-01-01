@@ -1378,7 +1378,7 @@ Expr checkMatchEnum(
 		members,
 		ast.cases,
 		(ref EnumMember member, ref MatchAst.CaseAst caseAst) =>
-			member.name == caseAst.memberName);
+			member.name == caseAst.memberName.name);
 	if (!goodCases) {
 		addDiag2(ctx, source, Diag(Diag.MatchCaseNamesDoNotMatch(
 			map(ctx.alloc, members, (ref EnumMember member) => member.name))));
@@ -1409,7 +1409,7 @@ Expr checkMatchUnion(
 		declaredMembers,
 		ast.cases,
 		(ref UnionMember member, ref MatchAst.CaseAst caseAst) =>
-			member.name == caseAst.memberName);
+			member.name == caseAst.memberName.name);
 	if (!goodCases) {
 		addDiag2(ctx, source, Diag(Diag.MatchCaseNamesDoNotMatch(
 			map(ctx.alloc, declaredMembers, (ref UnionMember member) => member.name))));
