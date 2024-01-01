@@ -926,23 +926,23 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 					case Diag.TypeShouldUseSyntax.Kind.funFun:
 						return "Prefer to write 'fun r(p)' instead of '(r, p) fun-fun'.";
 					case Diag.TypeShouldUseSyntax.Kind.future:
-						return "Prefer to write 'a$' instead of 'a future'.";
+						return "Prefer to write 't^' instead of 't future'.";
 					case Diag.TypeShouldUseSyntax.Kind.list:
-						return "Prefer to write 'a[]' instead of 'a list'.";
+						return "Prefer to write 't[]' instead of 't list'.";
 					case Diag.TypeShouldUseSyntax.Kind.map:
 						return "Prefer to write 'v[k]' instead of '(k, v) map'.";
 					case Diag.TypeShouldUseSyntax.Kind.mutMap:
 						return "Prefer to write 'v mut[k]' instead of '(k, v) mut-map'.";
 					case Diag.TypeShouldUseSyntax.Kind.mutList:
-						return "Prefer to write 'a mut[]' instead of 'a mut-list'.";
+						return "Prefer to write 't mut[]' instead of 't mut-list'.";
 					case Diag.TypeShouldUseSyntax.Kind.mutPointer:
-						return "Prefer to write 'a mut*' instead of 'a mut-pointer'.";
+						return "Prefer to write 't mut*' instead of 't mut-pointer'.";
 					case Diag.TypeShouldUseSyntax.Kind.opt:
-						return "Prefer to write 'a?' instead of 'a option'.";
+						return "Prefer to write 't?' instead of 't option'.";
 					case Diag.TypeShouldUseSyntax.Kind.pointer:
-						return "Prefer to write 'a*' instead of 'a const-pointer'.";
+						return "Prefer to write 't*' instead of 't const-pointer'.";
 					case Diag.TypeShouldUseSyntax.Kind.tuple:
-						return "Prefer to write '(a, b)' instead of '(a, b) tuple2'.";
+						return "Prefer to write '(t, u)' instead of '(t, u) tuple2'.";
 				}
 			}();
 		},
