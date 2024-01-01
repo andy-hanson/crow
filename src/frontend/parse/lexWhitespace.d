@@ -86,15 +86,9 @@ void skipSpacesAndComments(ref MutCString ptr, in CbComment cbComment, in AddDia
 				ptr++;
 				continue;
 			case '\\':
-				scope MutCString ptr2 = ptr;
-				ptr2++;
-				while (tryTakeChar(ptr2, ' ')) {}
-				if (tryTakeNewline(ptr2)) {
-					while (tryTakeNewline(ptr2) || tryTakeChar(ptr2, ' ')) {}
-					ptr = castNonScope_ref(ptr2);
-					cbComment(start, "");
+				if (tryTakeLineContinuation(ptr, cbComment))
 					continue;
-				} else
+				else
 					return;
 			case '#':
 				if (tryTakeTripleHashThenNewline(ptr))
@@ -154,6 +148,23 @@ DocCommentAndIndentDelta skipBlankLinesAndGetIndentDelta(
 
 private:
 
+bool tryTakeLineContinuation(ref MutCString ptr, in CbComment cbComment) {
+	CString start = ptr;
+	if (*ptr == '\\') {
+		scope MutCString ptr2 = ptr;
+		ptr2++;
+		while (tryTakeChar(ptr2, ' ')) {}
+		if (tryTakeNewline(ptr2)) {
+			while (tryTakeNewline(ptr2) || tryTakeChar(ptr2, ' ')) {}
+			ptr = castNonScope_ref(ptr2);
+			cbComment(start, "");
+			return true;
+		} else
+			return false;
+	} else
+		return false;
+}
+
 bool ignoreCharForTokens(char c) =>
 	isWhitespace(c) || c == '\\' || c == '#' || isNonKeywordPunctuation(c);
 
@@ -209,7 +220,7 @@ void skipBlankLines(
 			cbComment(before, takeRestOfLine(ptr));
 		} else if (tryTakeChars(ptr, "region ") || tryTakeChars(ptr, "subregion ")) {
 			cbRegion(before, takeRestOfLine(ptr));
-		} else
+		} else if (!tryTakeLineContinuation(ptr, cbComment))
 			break;
 	}
 }

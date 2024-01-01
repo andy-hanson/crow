@@ -9,7 +9,7 @@ Candidates (with 1 arguments):
 	'new build-options(size-hint nat64)' (from include/crow/col/private/build.crow line 9)
 	'new index-relative-to-end(subtract nat64)' (from include/crow/col/collection.crow line 58)
 	'new[t] t[](...t array)' (from include/crow/col/list.crow line 155)
-	'new[k, v] k[v](...(k, v) array)' (from include/crow/col/map.crow line 67)
+	'new[k, v] k[v](...(k, v) array)' (from include/crow/col/map.crow line 65)
 	'new[t] t mut-array(...t array)' (from include/crow/col/mut-array.crow line 37)
 	'new[t] t mut[](...t array)' (from include/crow/col/mut-list.crow line 56)
 	'new[k, v] k mut[v](...(k, v) array)' (from include/crow/col/mut-map.crow line 42)

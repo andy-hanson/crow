@@ -14,14 +14,12 @@ import
 	../tuple: b, new
 	../private/bootstrap: todo
 	./array:
-		~, ~=, +, -, array, array-builder, begin, build, end, is-empty, iterate, new, next,
+		~, ~=, ~~=, +, -, array, array-builder, begin, build, end, is-empty, iterate, new, next,
 		remove-at, size, slice, update-at
 	./collection:
-		.., -, build-options, end, every, find-index, flatten, for-break, for-loop, join, n-of,
-		set-subscript, subscript, with-index
-	./mut-array:
-		~=, +, begin, build, cast-immutable, mut-array, next, set-next, set-subscript, size,
-		uninitialized-mut-array
+		.., -, build, build-options, end, every, find-index, flatten, for-break, for-loop, join,
+		n-of, set-subscript, subscript, with-block, with-index
+	./mut-array: ~=, +, begin, build, cast-immutable, mut-array, next, set-next
 	./list:
 		~~, ~=, +, -, begin, build, end, iterate, list, new, next, size, slice, to
 
@@ -313,19 +311,15 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 			total-size + l.size
 	if total-size <= leaf-max-size
 		# TODO: if only one non-empty leaf, don't copy..
-		trusted
-			out (k, v) mut-array = total-size uninitialized-mut-array
-			out-index mut = 0
+		pairs (k, v) array = with out : total-size build
 			for child-index, child : a with-index
 				match child-index == which ? new-child : child
 				as inner-node _
 					unreachable
 				as leaf-node l
-					new-out-index = out-index + l.size
-					out[out-index .. new-out-index] := l
-					out-index := new-out-index
-			assert out-index == out.size
-			out.cast-immutable.leaf-node,
+					out ~~= l
+		assert pairs.size == total-size
+		pairs.leaf-node,
 
 -find-only-non-empty-child[k, v] (k, v) node?(children (k, v) node array)
 	first-non-empty-index = (children find-index it => !it.node-is-empty)!
