@@ -771,7 +771,7 @@ Symbol externLibraryNameFromTypeArg(ref CheckCtx ctx, in Range range, in Opt!Typ
 		return force(typeArg).as!NameAndRange.name;
 	else {
 		addDiag(ctx, range, Diag(Diag.ExternMissingLibraryName()));
-		return symbol!"bogus";
+		return symbol!"";
 	}
 }
 

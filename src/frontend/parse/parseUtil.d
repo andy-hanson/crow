@@ -134,7 +134,7 @@ NameAndRange takeNameOrOperator(ref Lexer lexer) {
 	else {
 		addDiag(lexer, rangeForCurToken(lexer, start), ParseDiag(
 			ParseDiag.Expected(ParseDiag.Expected.Kind.nameOrOperator)));
-		return NameAndRange(start, symbol!"bogus");
+		return NameAndRange(start, symbol!"");
 	}
 }
 

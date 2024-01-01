@@ -12,13 +12,13 @@ import
 		pointer-cast, set-deref, set-subscript, size-of, subscript
 	../private/alloc: alloc-uninitialized, set-zero-range
 	../private/bootstrap: inner
-	../range: .., high, low, range
+	../range: .., high, low, range, size
 	../tuple: new
 	./array:
 		~=, ~~=, +, array, array-builder, as-array, begin, begin-pointer, build, iterate, new, next,
 		size, slice, subscript
 	./private/array-low-level: array-reference-equal
-	./collection: build-options, for-loop, subscript
+	./collection: build-options, for-loop, range-relative-to-end, subscript
 export
 	../private/bootstrap: mut-array
 
@@ -92,26 +92,24 @@ This is O(n).
 
 ###
 Copies elements from `source` to `dest`.
-
 Throws if `dest` and `source` are not the same size.
-(Hint: Both `dest` and `source` can be slices of bigger arrays.)
-
-This is O(n).
 ###
-+copy-from[t] void(dest t mut-array, source t array)
+set-subscript[t] void(dest t mut-array, range nat64 range, source t array)
+	assert range.size == source.size
+	dest[range] copy-from source
+set-subscript[t] void(dest t mut-array, range nat64 range, source t mut-array)
+	dest[range] := trusted source.temp-as-array
+set-subscript[t] void(dest t mut-array, range range-relative-to-end, source t array)
+	dest[range] copy-from source
+set-subscript[t] void(dest t mut-array, range range-relative-to-end, source t mut-array)
+	dest[range] := trusted source.temp-as-array
+
+-copy-from[t] void(dest t mut-array, source t array)
 	assert dest.size == source.size
 	trusted
 		dest-ptr any-mut-pointer = dest.begin-pointer pointer-cast
 		src-ptr any-const-pointer = source.begin-pointer pointer-cast
 		_ = dest-ptr memcpy src-ptr, dest.size * size-of@t
-
-###
-Copies elements from `source` to `dest`.
-
-This is O(n).
-###
-+copy-from[t] void(dest t mut-array, source t mut-array)
-	dest copy-from trusted source.temp-as-array
 
 ###
 Allocates a `mut-array` without initializing any of its elements.

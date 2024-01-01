@@ -12,8 +12,8 @@ import
 	../test-util: is
 	./collection: .., -, end, for-loop, join, set-subscript, subscript, with-index
 	./mut-array:
-		+, -, begin, cast-immutable, copy-from, end, iterate, mut-array, is-empty, new, next,
-		set-next, set-zero-elements, size, slice, uninitialized-mut-array, zeroed-mut-array
+		+, -, begin, cast-immutable, end, iterate, mut-array, is-empty, new, next, set-next,
+		set-subscript, set-zero-elements, size, slice, uninitialized-mut-array, zeroed-mut-array
 	./list:
 		==, ~=, +, -, begin, build, end, is-empty, iterate, list, new, next, size, to
 
@@ -165,11 +165,11 @@ Callers should then push something.
 -copy-from-deque[t] void(dest t mut-array, a t mut-deque)
 	assert dest.size == a.size
 	if a.left < a.right
-		dest copy-from a.inner[a.left .. a.right]
+		dest[0 .. end] := a.inner[a.left .. a.right]
 	else
 		left-to-end-size = a.inner.size - a.left
-		dest[0 .. left-to-end-size] copy-from a.inner[a.left .. end]
-		dest[left-to-end-size .. end] copy-from a.inner[0 .. a.right]
+		dest[0 .. left-to-end-size] := a.inner[a.left .. end]
+		dest[left-to-end-size .. end] := a.inner[0 .. a.right]
 
 -dbg string(a nat64 mut-deque)
 	" " join for i, x : a.inner with-index

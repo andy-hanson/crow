@@ -1,26 +1,24 @@
 no-std
 import
-	string: memcpy, memmove
 	../bool: bool
 	../compare: <, <=, >
 	../fun-util: subscript
 	../misc: new, void
-	../number: ==, <=>, +, -, *, nat64
+	../number: ==, <=>, +, -, nat64
 	../option: new, option
 	../pointer:
-		+, -, as-const, mut-pointer, pointer-cast, reference-equal, set-deref, set-subscript,
-		size-of, subscript, zeroed
-	../private/alloc: alloc-uninitialized, mem-copy, mem-move, set-zero-range
+		+, -, as-const, mut-pointer, reference-equal, set-deref, set-subscript, subscript, zeroed
+	../private/alloc: mem-copy, mem-move, set-zero-range
 	../private/bootstrap: backing, mut-list-size, set-backing, set-mut-list-size
 	../private/number-low-level: round-up-to-power-of-two
 	../range: .., iterate
 	../tuple: a, b, new
-	./array: array, subscript
+	./array: +, array, begin, slice
 	./collection: .., -, build-options, end, for-loop, iterate, set-subscript, size-hint, subscript
 	./mut-array:
 		+, -, begin, begin-pointer, cast-immutable, copy, empty-mut-array, end, mut-array,
-		mut-array-iterator, prev, next, next-index, set-next, set-prev, set-zero-elements, size,
-		slice, subscript, temp-as-array, uninitialized-mut-array
+		mut-array-iterator, prev, next, next-index, set-next, set-prev, set-subscript,
+		set-zero-elements, size, slice, subscript, temp-as-array, uninitialized-mut-array
 	./list: iterate, list, to
 export
 	../private/bootstrap: mut-list
@@ -130,15 +128,6 @@ temp-as-array[t] t array(a t mut[]) bare, unsafe
 +is-empty[t] bool(a t mut[]) bare
 	a.size == 0
 
-# TODO: this should be 'subscript' with a range. And return a list.
--copy-range-to-array[t] t array(a t mut[], begin nat64, size nat64)
-	assert begin + size <= a.size : "range out of bounds"
-	trusted
-		res t mut* = size alloc-uninitialized
-		src = a.begin-pointer + begin as-const
-		_ = res.pointer-cast memcpy src.pointer-cast, size * size-of@t
-		res.as-const[0 .. size]
-
 ###
 Removes the first `n` elements and returns them as an array.
 This is O(a.size - n) because of the cost of copying, and all remaining elements must be shifted.
@@ -146,12 +135,10 @@ Throws if `n > a.size`.
 ###
 +pop-n-from-start[t] t[](a t mut[], n nat64)
 	assert n <= a.size : "can't pop more than size of array"
-	res = a copy-range-to-array 0, n
-	trusted
-		src = a.begin-pointer + n as-const
-		new-size = a.size - n
-		_ = a.begin-pointer.pointer-cast memmove src.pointer-cast, new-size * size-of@t
-		a.size := new-size
+	res = a[0 .. n]
+	new-size = a.size - n
+	a.backing[0 .. new-size] := trusted a.temp-as-array[n .. a.size]
+	a.size := new-size
 	res to
 
 +peek[t] t?(a t mut[])
@@ -283,13 +270,10 @@ Throws if `index > a.size`.
 	assert index <= a.size : "index out of bounds"
 	trusted
 		a incr-capacity
-		dest = a.begin-pointer + index + 1
-		src = a.begin-pointer + index as-const
-		n = a.size - index
-		_ = dest.pointer-cast memmove src.pointer-cast, n * size-of@t
+		a.backing[index + 1 .. a.size + 1] := a.temp-as-array[index .. a.size]
 		a.size +:= 1
-		a[index] := value
 		assert a.size <= a.capacity
+		a[index] := value
 
 ###
 Removes `a[index]`, and shifts all values from `index` onwards to the left to fill the hole.
@@ -302,10 +286,7 @@ Throws if `index >= a.size`.
 	a check-index index
 	res = a[index]
 	trusted
-		dest = a.begin-pointer + index
-		src = a.begin-pointer + index + 1 as-const
-		n = a.size - index - 1
-		_ = dest.pointer-cast memmove src.pointer-cast, n * size-of@t
+		a.backing[index .. a.size - 1] := a.temp-as-array[index + 1 .. a.size]
 		a.size -:= 1
 	res
 

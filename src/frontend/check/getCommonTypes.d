@@ -186,11 +186,11 @@ StructDecl* bogusStructDecl(ref Alloc alloc, size_t nTypeParameters) {
 	ArrayBuilder!NameAndRange typeParams;
 	UriAndRange uriAndRange = UriAndRange.empty;
 	foreach (size_t i; 0 .. nTypeParameters)
-		add(alloc, typeParams, NameAndRange(0, symbol!"bogus"));
+		add(alloc, typeParams, NameAndRange(0, symbol!""));
 	StructDecl* res = allocate(alloc, StructDecl(
 		StructDeclSource(allocate(alloc, StructDeclSource.Bogus(TypeParams(finish(alloc, typeParams))))),
 		uriAndRange.uri,
-		symbol!"bogus",
+		symbol!"",
 		Visibility.public_,
 		Linkage.internal,
 		Purity.data,

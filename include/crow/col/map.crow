@@ -20,7 +20,7 @@ import
 		.., -, build-options, end, every, find-index, flatten, for-break, for-loop, join, n-of,
 		set-subscript, subscript, with-index
 	./mut-array:
-		~=, +, begin, build, cast-immutable, copy-from, mut-array, next, set-next, size, slice,
+		~=, +, begin, build, cast-immutable, mut-array, next, set-next, set-subscript, size,
 		uninitialized-mut-array
 	./list:
 		~~, ~=, +, -, begin, build, end, iterate, list, new, next, size, slice, to
@@ -322,7 +322,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 					unreachable
 				as leaf-node l
 					new-out-index = out-index + l.size
-					out[out-index .. new-out-index] copy-from l
+					out[out-index .. new-out-index] := l
 					out-index := new-out-index
 			assert out-index == out.size
 			out.cast-immutable.leaf-node,
