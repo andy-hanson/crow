@@ -2,7 +2,7 @@ module frontend.parse.parseImport;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.lexer : addDiag, addDiagAtChar, alloc, allSymbols, curPos, Lexer, range, Token;
+import frontend.parse.lexer : addDiag, alloc, allSymbols, curPos, Lexer, range, Token;
 import frontend.parse.parseType : parseType;
 import frontend.parse.parseUtil :
 	NewlineOrDedent,
@@ -28,7 +28,6 @@ import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
 import util.symbol : concatSymbolsWithDot, Symbol, symbol;
 import util.uri : AllUris, childPath, Path, RelPath, rootPath;
-import util.util : todo;
 
 Opt!ImportsOrExportsAst parseImportsOrExports(scope ref AllUris allUris, ref Lexer lexer, Token keyword) {
 	Pos start = curPos(lexer);
@@ -140,26 +139,15 @@ bool isInstStructOneArg(TypeAst a, Symbol typeArgName, Symbol name) {
 ImportOrExportAstKind parseIndentedImportNames(ref Lexer lexer, Pos start) {
 	ArrayBuilder!NameAndRange names;
 	while (true) {
-		TrailingComma trailingComma = takeCommaSeparatedNames(lexer, names);
+		Opt!Range trailingComma = takeCommaSeparatedNames(lexer, names);
 		final switch (takeNewlineOrDedent(lexer)) {
 			case NewlineOrDedent.newline:
-				final switch (trailingComma) {
-					case TrailingComma.no:
-						addDiag(lexer, range(lexer, start), ParseDiag(
-							ParseDiag.Expected(ParseDiag.Expected.Kind.comma)));
-						break;
-					case TrailingComma.yes:
-						break;
-				}
+				if (!has(trailingComma))
+					addDiag(lexer, range(lexer, start), ParseDiag(
+						ParseDiag.Expected(ParseDiag.Expected.Kind.comma)));
 				continue;
 			case NewlineOrDedent.dedent:
-				final switch (trailingComma) {
-					case TrailingComma.no:
-						break;
-					case TrailingComma.yes:
-						todo!void("!");
-						break;
-				}
+				addDiagIfTrailingComma(lexer, trailingComma);
 				return ImportOrExportAstKind(finish(lexer.alloc, names));
 		}
 	}
@@ -167,25 +155,24 @@ ImportOrExportAstKind parseIndentedImportNames(ref Lexer lexer, Pos start) {
 
 NameAndRange[] parseSingleImportNamesOnSingleLine(ref Lexer lexer) {
 	ArrayBuilder!NameAndRange names;
-	final switch (takeCommaSeparatedNames(lexer, names)) {
-		case TrailingComma.no:
-			break;
-		case TrailingComma.yes:
-			addDiagAtChar(lexer, ParseDiag(ParseDiag.TrailingComma()));
-			break;
-	}
+	addDiagIfTrailingComma(lexer, takeCommaSeparatedNames(lexer, names));
 	return finish(lexer.alloc, names);
 }
 
-enum TrailingComma { no, yes }
+void addDiagIfTrailingComma(ref Lexer lexer, in Opt!Range trailingComma) {
+	if (has(trailingComma))
+		addDiag(lexer, force(trailingComma), ParseDiag(ParseDiag.TrailingComma()));
+}
 
-TrailingComma takeCommaSeparatedNames(ref Lexer lexer, ref ArrayBuilder!NameAndRange names) {
+// Returns position of trailing comma
+Opt!Range takeCommaSeparatedNames(ref Lexer lexer, ref ArrayBuilder!NameAndRange names) {
 	add(lexer.alloc, names, takeNameOrOperator(lexer));
+	Pos start = curPos(lexer);
 	return tryTakeToken(lexer, Token.comma)
 		? peekEndOfLine(lexer)
-			? TrailingComma.yes
+			? some(range(lexer, start))
 			: takeCommaSeparatedNames(lexer, names)
-		: TrailingComma.no;
+		: none!Range;
 }
 
 Symbol takePathComponent(ref Lexer lexer) =>
