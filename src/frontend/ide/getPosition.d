@@ -3,7 +3,7 @@ module frontend.ide.getPosition;
 @safe @nogc pure nothrow:
 
 import frontend.ide.ideUtil : eachDestructureComponent, eachSpecParent, eachTypeArg, eachTypeComponent;
-import frontend.ide.position : ExprContainer, LocalContainer, Position, PositionKind;
+import frontend.ide.position : ExprContainer, LocalContainer, Position, PositionKind, VisibilityContainer;
 import model.ast :
 	DestructureAst,
 	ExplicitVisibility,
@@ -11,7 +11,6 @@ import model.ast :
 	FunDeclAst,
 	FunModifierAst,
 	ImportOrExportAst,
-	keywordRange,
 	NameAndRange,
 	paramsArray,
 	pathRange,
@@ -119,7 +118,8 @@ Opt!PositionKind getPositionKind(in AllSymbols allSymbols, in AllUris allUris, r
 
 Opt!PositionKind positionInFun(in AllSymbols allSymbols, FunDecl* a, in FunDeclAst ast, Pos pos) =>
 	optOr!PositionKind(
-		optIf(hasPos(allSymbols, ast.name, pos), () => PositionKind(a)),
+		positionInVisibility(VisibilityContainer(a), ast, pos),
+		() => optIf(hasPos(allSymbols, ast.name, pos), () => PositionKind(a)),
 		() => positionInTypeParams(allSymbols, TypeContainer(a), ast.typeParams, pos),
 		() => positionInType(allSymbols, TypeContainer(a), a.returnType, ast.returnType, pos),
 		() => positionInParams(allSymbols, LocalContainer(a), a.params, pos),
@@ -205,7 +205,7 @@ Opt!PositionKind positionInImportedNames(
 
 Opt!PositionKind positionInVar(in AllSymbols allSymbols, VarDecl* a, Pos pos) =>
 	optOr!PositionKind(
-		positionInVisibility(a, a.ast, pos),
+		positionInVisibility(VisibilityContainer(a), a.ast, pos),
 		() => optIf(hasPos(nameRange(allSymbols, *a).range, pos), () => PositionKind(a)));
 		//TODO: keyword range
 		//TODO: type range
@@ -219,9 +219,9 @@ Opt!PositionKind positionInStruct(in AllSymbols allSymbols, StructDecl* a, Pos p
 
 Opt!PositionKind positionInStruct(in AllSymbols allSymbols, StructDecl* a, in StructDeclAst ast, Pos pos) =>
 	optOr!PositionKind(
-		positionInVisibility(a, ast, pos),
+		positionInVisibility(VisibilityContainer(a), ast, pos),
 		() => optIf(hasPos(nameRange(allSymbols, *a).range, pos), () => PositionKind(a)),
-		() => optIf(hasPos(keywordRange(allSymbols, ast), pos), () =>
+		() => optIf(hasPos(ast.keywordRange, pos), () =>
 			PositionKind(PositionKind.Keyword(keywordKindForStructBody(ast.body_)))),
 		() => positionInTypeParams(allSymbols, TypeContainer(a), ast.typeParams, pos),
 		//TODO: positions for flags (like 'extern' or 'by-val')
@@ -242,9 +242,9 @@ PositionKind.Keyword.Kind keywordKindForStructBody(in StructBodyAst a) =>
 		(in StructBodyAst.Union) =>
 			PositionKind.Keyword.Kind.union_);
 
-Opt!PositionKind positionInVisibility(T, TAst)(in T a, in TAst ast, Pos pos) =>
+Opt!PositionKind positionInVisibility(TAst)(VisibilityContainer a, in TAst ast, Pos pos) =>
 	pos == ast.range.start && ast.visibility != ExplicitVisibility.default_
-		? some(PositionKind(a.visibility))
+		? some(PositionKind(PositionKind.VisibilityMark(a)))
 		: none!PositionKind;
 
 Opt!PositionKind positionInTypeParams(
@@ -258,11 +258,12 @@ Opt!PositionKind positionInTypeParams(
 			PositionKind(PositionKind.TypeParamWithContainer(TypeParamIndex(index), container))));
 
 Opt!PositionKind positionInSpec(in AllSymbols allSymbols, SpecDecl* a, Pos pos) =>
-	//TODO:visibility
-	//TODO: 'spec' keyword itself
 	optOr!PositionKind(
-		optIf(hasPos(allSymbols, a.ast.name, pos), () => PositionKind(a)),
+		positionInVisibility(VisibilityContainer(a), a.ast, pos),
+		() => optIf(hasPos(allSymbols, a.ast.name, pos), () => PositionKind(a)),
 		() => positionInTypeParams(allSymbols, TypeContainer(a), a.ast.typeParams, pos),
+		() => optIf(hasPos(a.ast.keywordRange, pos), () =>
+			PositionKind(PositionKind.Keyword(PositionKind.Keyword.Kind.spec))),
 		() => positionInSpecParents(allSymbols, a, pos),
 		() => positionInSpecBody(allSymbols, a, pos));
 
@@ -337,7 +338,7 @@ Opt!PositionKind positionInRecordField(
 	Pos pos,
 ) =>
 	optOr!PositionKind(
-		positionInVisibility(field, fieldAst, pos),
+		positionInVisibility(VisibilityContainer(field), fieldAst, pos),
 		() => optIf(hasPos(allSymbols, fieldAst.name, pos), () =>
 			PositionKind(PositionKind.RecordFieldPosition(decl, field))),
 		() => has(fieldAst.mutability)

@@ -181,6 +181,7 @@ bool isExpressionStartToken(Token a) {
 		case Token.questionEqual:
 		case Token.quotedText:
 		case Token.record:
+		case Token.reserved:
 		case Token.semicolon:
 		case Token.spec:
 		case Token.summon:

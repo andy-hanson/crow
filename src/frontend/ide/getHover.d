@@ -58,8 +58,7 @@ import model.model :
 	ThrowExpr,
 	Type,
 	TypeParamIndex,
-	VarDecl,
-	Visibility;
+	VarDecl;
 import util.alloc.alloc : Alloc;
 import util.col.array : isEmpty;
 import util.opt : none, Opt, some;
@@ -139,6 +138,8 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 						return "Makes this a mutable variable.";
 					case PositionKind.Keyword.Kind.record:
 						return "Declares a type combining several named members.";
+					case PositionKind.Keyword.Kind.spec:
+						return "Specifies function signatures which to be provided by a function's caller.";
 					case PositionKind.Keyword.Kind.union_:
 						return "Declares a type where a value will be one of the listed choices.";
 				}
@@ -206,9 +207,11 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 			writeTypeQuoted(writer, ctx, TypeWithContainer(x.type, TypeContainer(ptrTrustMe(x))));
 			writer ~= ')';
 		},
-		(in Visibility x) {
-			writer ~= "The declaration is ";
-			writer ~= stringOfVisibility(x);
+		(in PositionKind.VisibilityMark x) {
+			writer ~= "Marks ";
+			writeName(writer, ctx, x.container.name);
+			writer ~= " as ";
+			writer ~= stringOfVisibility(x.container.visibility);
 			writer ~= '.';
 		});
 

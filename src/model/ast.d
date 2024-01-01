@@ -640,6 +640,8 @@ immutable struct StructBodyAst {
 static assert(StructBodyAst.sizeof <= 24);
 
 immutable struct StructDeclAst {
+	@safe @nogc pure nothrow:
+
 	SmallString docComment;
 	// Range starts at the visibility
 	Range range;
@@ -649,28 +651,28 @@ immutable struct StructDeclAst {
 	Pos keywordPos;
 	SmallArray!ModifierAst modifiers;
 	StructBodyAst body_;
-}
 
-Range keywordRange(in AllSymbols allSymbols, in StructDeclAst a) =>
-	rangeOfNameAndRange(NameAndRange(a.keywordPos, keywordForStructBody(a.body_)), allSymbols);
+	Range keywordRange() scope =>
+		rangeOfStartAndLength(keywordPos, keywordForStructBody(body_).length);
+}
 
 Range nameRange(in AllSymbols allSymbols, in StructDeclAst a) =>
 	rangeOfNameAndRange(a.name, allSymbols);
 
-private Symbol keywordForStructBody(in StructBodyAst a) =>
-	a.matchIn!Symbol(
+private string keywordForStructBody(in StructBodyAst a) =>
+	a.matchIn!string(
 		(in StructBodyAst.Builtin) =>
-			symbol!"builtin",
+			"builtin",
 		(in StructBodyAst.Enum) =>
-			symbol!"enum",
+			"enum",
 		(in StructBodyAst.Extern) =>
-			symbol!"extern",
+			"extern",
 		(in StructBodyAst.Flags) =>
-			symbol!"flags",
+			"flags",
 		(in StructBodyAst.Record) =>
-			symbol!"record",
+			"record",
 		(in StructBodyAst.Union) =>
-			symbol!"union");
+			"union");
 
 immutable struct SpecBodyAst {
 	immutable struct Builtin {}
@@ -679,17 +681,30 @@ immutable struct SpecBodyAst {
 static assert(SpecBodyAst.sizeof == ulong.sizeof);
 
 immutable struct SpecDeclAst {
+	@safe @nogc pure nothrow:
+
 	Range range;
 	SmallString docComment;
 	ExplicitVisibility visibility;
 	NameAndRange name;
 	SmallArray!NameAndRange typeParams;
+	Pos specKeywordPos;
 	SmallArray!TypeAst parents;
 	SpecBodyAst body_;
+
+	Range keywordRange() scope =>
+		rangeOfStartAndLength(specKeywordPos, keywordForSpecBody(body_).length);
 }
 
 Range nameRange(in AllSymbols allSymbols, in SpecDeclAst a) =>
 	rangeOfNameAndRange(a.name, allSymbols);
+
+private string keywordForSpecBody(in SpecBodyAst a) =>
+	a.matchIn!string(
+		(in SpecBodyAst.Builtin) =>
+			"builtin-spec",
+		(in SpecSigAst[]) =>
+			"spec");
 
 immutable struct FunDeclAst {
 	Range range;
@@ -782,7 +797,7 @@ immutable struct TestAst {
 	ExprAst body_; // EmptyAst if missing
 }
 
-// 'extern' or 'thread-local'
+// 'global' or 'thread-local'
 immutable struct VarDeclAst {
 	Range range;
 	SmallString docComment;

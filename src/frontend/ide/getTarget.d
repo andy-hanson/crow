@@ -50,8 +50,7 @@ import model.model :
 	ThrowExpr,
 	toLocal,
 	TypeParamIndex,
-	VarDecl,
-	Visibility;
+	VarDecl;
 import util.opt : none, Opt, some;
 import util.json : field;
 import util.union_ : Union;
@@ -119,7 +118,7 @@ Opt!Target targetForPosition(PositionKind pos) =>
 			some(Target(x)),
 		(VarDecl* x) =>
 			some(Target(x)),
-		(Visibility _) =>
+		(PositionKind.VisibilityMark) =>
 			none!Target);
 
 Opt!Target exprTarget(PositionKind.Expression a) {

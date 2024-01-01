@@ -399,7 +399,8 @@ void parseSpecOrStructOrFun(
 				docComment,
 				visibility,
 				name,
-				small!NameAndRange(typeParams),
+				typeParams,
+				keywordPos,
 				emptySmallArray!TypeAst,
 				SpecBodyAst(SpecBodyAst.Builtin())));
 			break;
@@ -433,7 +434,7 @@ void parseSpecOrStructOrFun(
 			SmallArray!TypeAst parents = parseSpecModifiers(lexer);
 			SpecBodyAst body_ = SpecBodyAst(parseIndentedSigs(lexer));
 			add(lexer.alloc, specs, SpecDeclAst(
-				range(lexer, start), docComment, visibility, name, typeParams, parents, body_));
+				range(lexer, start), docComment, visibility, name, typeParams, keywordPos, parents, body_));
 			break;
 		case Token.thread_local:
 			Pos pos = curPos(lexer);

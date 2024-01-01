@@ -175,6 +175,7 @@ enum Token {
 	quoteDouble3, // '"""'
 	quotedText, // Fake token to be the peek after the '"'
 	record, // 'record'
+	reserved, // any reserved word
 	semicolon, // ';'
 	spec, // 'spec'
 	summon, // 'summon'
@@ -568,6 +569,8 @@ TokenAndData nameLikeToken(scope ref MutCString ptr, ref AllSymbols allSymbols, 
 
 Token tokenForSymbol(Symbol a) {
 	switch (a.value) {
+		case symbol!"abstract".value:
+			return Token.reserved;
 		case symbol!"act".value:
 			return Token.act;
 		case symbol!"alias".value:
@@ -584,6 +587,8 @@ Token tokenForSymbol(Symbol a) {
 			return Token.builtin;
 		case symbol!"builtin-spec".value:
 			return Token.builtinSpec;
+		case symbol!"class".value:
+			return Token.reserved;
 		case symbol!"continue".value:
 			return Token.continue_;
 		case symbol!"elif".value:
@@ -614,6 +619,8 @@ Token tokenForSymbol(Symbol a) {
 			return Token.if_;
 		case symbol!"import".value:
 			return Token.import_;
+		case symbol!"interface".value:
+			return Token.reserved;
 		case symbol!"loop".value:
 			return Token.loop;
 		case symbol!"match".value:

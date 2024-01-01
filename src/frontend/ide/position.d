@@ -69,6 +69,28 @@ immutable struct LocalContainer {
 		toTypeContainer.typeParams;
 }
 
+immutable struct VisibilityContainer {
+	@safe @nogc pure nothrow:
+
+	mixin Union!(FunDecl*, RecordField*, SpecDecl*, StructDecl*, VarDecl*);
+
+	Symbol name() scope =>
+		matchIn!Symbol(
+			(in FunDecl x) => x.name,
+			(in RecordField x) => x.name,
+			(in SpecDecl x) => x.name,
+			(in StructDecl x) => x.name,
+			(in VarDecl x) => x.name);
+
+	Visibility visibility() scope =>
+		matchIn!Visibility(
+			(in FunDecl x) => x.visibility,
+			(in RecordField x) => x.visibility,
+			(in SpecDecl x) => x.visibility,
+			(in StructDecl x) => x.visibility,
+			(in VarDecl x) => x.visibility);
+}
+
 immutable struct PositionKind {
 	immutable struct None {}
 
@@ -105,6 +127,7 @@ immutable struct PositionKind {
 			flags,
 			localMut,
 			record,
+			spec,
 			union_,
 		}
 		Kind kind;
@@ -132,6 +155,9 @@ immutable struct PositionKind {
 		TypeParamIndex typeParam;
 		TypeContainer container;
 	}
+	immutable struct VisibilityMark {
+		VisibilityContainer container;
+	}
 
 	mixin Union!(
 		None,
@@ -153,5 +179,5 @@ immutable struct PositionKind {
 		TypeWithContainer,
 		TypeParamWithContainer,
 		VarDecl*,
-		Visibility);
+		VisibilityMark);
 }
