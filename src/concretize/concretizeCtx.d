@@ -4,7 +4,6 @@ module concretize.concretizeCtx;
 
 import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantArray, getConstantCString, getConstantSymbol;
 import concretize.concretizeExpr : concretizeBogus, concretizeBogusKind, concretizeFunBody;
-import concretize.safeValue : bodyForSafeValue;
 import frontend.storage : asBytes, FileContent, ReadFileResult;
 import model.concreteModel :
 	BuiltinStructKind,
@@ -746,8 +745,6 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 				switch (cf.source.as!ConcreteFunKey.decl.name.value) {
 					case symbol!"all-tests".value:
 						return bodyForAllTests(ctx, cf.returnType);
-					case symbol!"safe-value".value:
-						return bodyForSafeValue(ctx, cf, concreteFunRange(*cf), cf.returnType);
 					default:
 						return ConcreteFunBody(ConcreteFunBody.Builtin(typeArgs(inputs)));
 				}
