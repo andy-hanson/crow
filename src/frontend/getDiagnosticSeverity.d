@@ -143,5 +143,7 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.unusedCode,
 		(in Diag.VarargsParamMustBeArray) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.VarDeclTypeParams) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.WrongNumberTypeArgs) =>
 			DiagnosticSeverity.checkError);

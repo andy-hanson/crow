@@ -473,12 +473,12 @@ VarDeclAst parseVarDecl(
 	SmallString docComment,
 	ExplicitVisibility visibility,
 	NameAndRange name,
-	NameAndRange[] typeParams,
+	SmallArray!NameAndRange typeParams,
 	Pos kindPos,
 	VarKind kind,
 ) {
 	TypeAst type = parseTypeArgForVarDecl(lexer);
-	FunModifierAst[] modifiers = parseFunModifiers(lexer);
+	SmallArray!FunModifierAst modifiers = parseFunModifiers(lexer);
 	return VarDeclAst(range(lexer, start), docComment, visibility, name, typeParams, kindPos, kind, type, modifiers);
 }
 

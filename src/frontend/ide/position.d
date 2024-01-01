@@ -125,9 +125,11 @@ immutable struct PositionKind {
 			enum_,
 			extern_,
 			flags,
+			global,
 			localMut,
 			record,
 			spec,
+			threadLocal,
 			union_,
 		}
 		Kind kind;

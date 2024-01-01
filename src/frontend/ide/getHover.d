@@ -50,7 +50,7 @@ import model.model :
 	SeqExpr,
 	StructBody,
 	SpecDecl,
-	stringOfVarKind,
+	stringOfVarKindUpperCase,
 	stringOfVisibility,
 	StructDecl,
 	StructInst,
@@ -134,12 +134,16 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 						return "Declares a type implemented by an external library.";
 					case PositionKind.Keyword.Kind.flags:
 						return "Declares a type that can have any combination of flags (this would be an 'enum' in C)";
+					case PositionKind.Keyword.Kind.global:
+						return "Declares a mutable global variable (shared between all threads).";
 					case PositionKind.Keyword.Kind.localMut:
 						return "Makes this a mutable variable.";
 					case PositionKind.Keyword.Kind.record:
 						return "Declares a type combining several named members.";
 					case PositionKind.Keyword.Kind.spec:
 						return "Specifies function signatures which to be provided by a function's caller.";
+					case PositionKind.Keyword.Kind.threadLocal:
+						return "Declares a mutable thread-local variable.";
 					case PositionKind.Keyword.Kind.union_:
 						return "Declares a type where a value will be one of the listed choices.";
 				}
@@ -200,7 +204,7 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 			hoverTypeParam(writer, ctx, x.container, x.typeParam);
 		},
 		(in VarDecl x) {
-			writer ~= stringOfVarKind(x.kind);
+			writer ~= stringOfVarKindUpperCase(x.kind);
 			writer ~= " variable ";
 			writeName(writer, ctx, x.name);
 			writer ~= " (of type ";

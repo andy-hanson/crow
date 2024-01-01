@@ -583,12 +583,21 @@ Symbol flagsFunctionName(FlagsFunction a) {
 
 enum VarKind { global, threadLocal }
 
-string stringOfVarKind(VarKind a) {
+string stringOfVarKindUpperCase(VarKind a) {
 	final switch (a) {
 		case VarKind.global:
 			return "Global";
 		case VarKind.threadLocal:
 			return "Thread-local";
+	}
+}
+
+string stringOfVarKindLowerCase(VarKind a) {
+	final switch (a) {
+		case VarKind.global:
+			return "global";
+		case VarKind.threadLocal:
+			return "thread-local";
 	}
 }
 

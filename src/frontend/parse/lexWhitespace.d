@@ -66,7 +66,7 @@ void skipUntilNewline(scope ref MutCString ptr) {
 		skipForTokens(ptr, end, (CString start, string _) { cbComment(toRange(start)); });
 		if (ptr < end) {
 			CString start = ptr;
-			while (!isWhitespaceOrCommentStart(*ptr) && ptr < end)
+			while (!ignoreCharForTokens(*ptr) && ptr < end)
 				ptr++;
 			assert(start < ptr && ptr <= end);
 			cbKeyword(toRange(start));
@@ -154,6 +154,9 @@ DocCommentAndIndentDelta skipBlankLinesAndGetIndentDelta(
 
 private:
 
+bool ignoreCharForTokens(char c) =>
+	isWhitespace(c) || c == '\\' || c == '#' || isNonKeywordPunctuation(c);
+
 @system void skipForTokens(ref MutCString ptr, CString end, in CbComment cbCommentOrRegion) {
 	while (ptr < end) {
 		CString start = ptr;
@@ -210,9 +213,6 @@ void skipBlankLines(
 			break;
 	}
 }
-
-bool isWhitespaceOrCommentStart(char c) =>
-	isWhitespace(c) || c == '\\' || c == '#';
 
 bool isNewlineChar(char c) =>
 	c == '\r' || c == '\n';

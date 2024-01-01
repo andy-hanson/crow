@@ -23,6 +23,7 @@ import model.model :
 	TypeParams,
 	TypeParamsAndSig,
 	VarDecl,
+	VarKind,
 	VariableRef,
 	Visibility;
 import model.parseDiag : ParseDiag;
@@ -443,6 +444,9 @@ immutable struct Diag {
 		Kind kind;
 	}
 	immutable struct VarargsParamMustBeArray {}
+	immutable struct VarDeclTypeParams {
+		VarKind kind;
+	}
 	immutable struct WrongNumberTypeArgs {
 		Symbol name;
 		size_t nExpectedTypeArgs;
@@ -518,6 +522,7 @@ immutable struct Diag {
 		TypeShouldUseSyntax,
 		Unused,
 		VarargsParamMustBeArray,
+		VarDeclTypeParams,
 		WrongNumberTypeArgs);
 }
 

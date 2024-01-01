@@ -3,14 +3,14 @@ module model.ast;
 @safe @nogc pure nothrow:
 
 import model.diag : ReadFileDiag;
-import model.model : AssertOrForbidKind, FunKind, ImportFileType, VarKind;
+import model.model : AssertOrForbidKind, FunKind, ImportFileType, stringOfVarKindLowerCase, VarKind;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
-import util.col.array : arrayOfSingle, exists, newArray, SmallArray;
+import util.col.array : arrayOfSingle, exists, isEmpty, newArray, SmallArray;
 import util.conv : safeToUint;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault, some;
-import util.sourceRange : Pos, Range, rangeOfStartAndLength;
+import util.sourceRange : combineRanges, Pos, Range, rangeOfStartAndLength;
 import util.string : emptySmallString, SmallString;
 import util.symbol : AllSymbols, Symbol, symbol, symbolSize;
 import util.union_ : Union;
@@ -553,6 +553,13 @@ immutable struct StructAliasAst {
 	TypeAst target;
 }
 
+Range typeParamsRange(in AllSymbols allSymbols, in SmallArray!NameAndRange typeParams) {
+	assert(!isEmpty(typeParams));
+	return combineRanges(
+		rangeOfNameAndRange(typeParams[0], allSymbols),
+		rangeOfNameAndRange(typeParams[$ - 1], allSymbols));
+}
+
 immutable struct ModifierAst {
 	enum Kind {
 		byRef,
@@ -799,15 +806,20 @@ immutable struct TestAst {
 
 // 'global' or 'thread-local'
 immutable struct VarDeclAst {
+	@safe @nogc pure nothrow:
+
 	Range range;
 	SmallString docComment;
 	ExplicitVisibility visibility;
 	NameAndRange name;
-	NameAndRange[] typeParams; // This will be a compile error
-	Pos kindPos;
+	SmallArray!NameAndRange typeParams; // This will be a compile error
+	Pos keywordPos;
 	VarKind kind;
 	TypeAst type;
-	FunModifierAst[] modifiers; // Any but 'extern' will be a compile error
+	SmallArray!FunModifierAst modifiers; // Any but 'extern' will be a compile error
+
+	Range keywordRange() =>
+		rangeOfStartAndLength(keywordPos, stringOfVarKindLowerCase(kind).length);
 }
 
 immutable struct ImportOrExportAst {
@@ -842,7 +854,7 @@ static assert(ImportOrExportAstKind.sizeof == ulong.sizeof);
 
 immutable struct ImportsOrExportsAst {
 	Range range;
-	ImportOrExportAst[] paths;
+	SmallArray!ImportOrExportAst paths;
 }
 
 immutable struct FileAst {

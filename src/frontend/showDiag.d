@@ -46,6 +46,7 @@ import model.model :
 	SpecDeclSig,
 	StructInst,
 	stringOfSpecBodyBuiltinKind,
+	stringOfVarKindLowerCase,
 	stringOfVisibility,
 	Type,
 	TypeParamsAndSig;
@@ -948,8 +949,13 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		(in Diag.Unused x) {
 			writeUnusedDiag(writer, ctx, x);
 		},
-		(in Diag.VarargsParamMustBeArray _) {
+		(in Diag.VarargsParamMustBeArray) {
 			writer ~= "Variadic parameter must be an 'array'.";
+		},
+		(in Diag.VarDeclTypeParams x) {
+			writer ~= "A ";
+			writer ~= stringOfVarKindLowerCase(x.kind);
+			writer ~= " variable can't have type parameters.";
 		},
 		(in Diag.WrongNumberTypeArgs x) {
 			writeName(writer, ctx, x.name);

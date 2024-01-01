@@ -74,7 +74,8 @@ import model.model :
 	ThrowExpr,
 	Type,
 	TypeParamIndex,
-	VarDecl;
+	VarDecl,
+	VarKind;
 import model.model : paramsArray, StructDeclSource;
 import util.col.array : first, firstPointer, firstWithIndex, firstZipPointerFirst;
 import util.opt : force, has, none, Opt, optIf, optOr, optOr, optOrDefault, some;
@@ -206,9 +207,19 @@ Opt!PositionKind positionInImportedNames(
 Opt!PositionKind positionInVar(in AllSymbols allSymbols, VarDecl* a, Pos pos) =>
 	optOr!PositionKind(
 		positionInVisibility(VisibilityContainer(a), a.ast, pos),
-		() => optIf(hasPos(nameRange(allSymbols, *a).range, pos), () => PositionKind(a)));
-		//TODO: keyword range
-		//TODO: type range
+		() => optIf(hasPos(nameRange(allSymbols, *a).range, pos), () => PositionKind(a)),
+		() => optIf(hasPos(a.ast.keywordRange, pos), () =>
+			PositionKind(PositionKind.Keyword(keywordKindForVar(a.kind)))),
+		() => positionInType(allSymbols, TypeContainer(a), a.type, a.ast.type, pos));
+
+PositionKind.Keyword.Kind keywordKindForVar(VarKind a) {
+	final switch (a) {
+		case VarKind.global:
+			return PositionKind.Keyword.Kind.global;
+		case VarKind.threadLocal:
+			return PositionKind.Keyword.Kind.threadLocal;
+	}
+}
 
 Opt!PositionKind positionInStruct(in AllSymbols allSymbols, StructDecl* a, Pos pos) =>
 	a.source.matchIn!(Opt!PositionKind)(

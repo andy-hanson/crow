@@ -43,6 +43,7 @@ import model.ast :
 	StructAliasAst,
 	TestAst,
 	TypeAst,
+	typeParamsRange,
 	VarDeclAst;
 import frontend.allInsts : AllInsts;
 import frontend.storage : FileContent;
@@ -370,7 +371,7 @@ VarDecl checkVarDecl(
 	VarDeclAst* ast,
 ) {
 	if (!isEmpty(ast.typeParams))
-		todo!void("diag");
+		addDiag(ctx, typeParamsRange(ctx.allSymbols, ast.typeParams), Diag(Diag.VarDeclTypeParams(ast.kind)));
 	return VarDecl(
 		ast,
 		ctx.curUri,

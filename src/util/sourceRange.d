@@ -44,10 +44,8 @@ bool rangeContains(in Range a, in Range b) =>
 Comparison compareRange(in Range a, in Range b) =>
 	a.start == b.start ? compareNat32(a.end, b.end) : compareNat32(a.start, b.start);
 
-Range combineRanges(in Range a, in Range b) {
-	assert(a.end <= b.start);
-	return Range(a.start, b.end);
-}
+Range combineRanges(in Range a, in Range b) =>
+	Range(a.start, b.end);
 
 bool hasPos(in Range a, Pos p) =>
 	a.start <= p && p <= a.end;

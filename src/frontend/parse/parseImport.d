@@ -20,6 +20,7 @@ import model.ast :
 	ImportOrExportAst, ImportOrExportAstKind, ImportsOrExportsAst, NameAndRange, PathOrRelPath, range, TypeAst;
 import model.model : ImportFileType;
 import model.parseDiag : ParseDiag;
+import util.col.array : emptySmallArray, small, SmallArray;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.conv : safeToUshort;
 import util.memory : allocate;
@@ -27,15 +28,15 @@ import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
 import util.symbol : concatSymbolsWithDot, Symbol, symbol;
 import util.uri : AllUris, childPath, Path, RelPath, rootPath;
-import util.util : todo, typeAs;
+import util.util : todo;
 
 Opt!ImportsOrExportsAst parseImportsOrExports(scope ref AllUris allUris, ref Lexer lexer, Token keyword) {
 	Pos start = curPos(lexer);
 	if (tryTakeToken(lexer, keyword)) {
-		ImportOrExportAst[] imports = takeIndentOrFailGeneric!(ImportOrExportAst[])(
+		SmallArray!ImportOrExportAst imports = takeIndentOrFailGeneric!(SmallArray!ImportOrExportAst)(
 			lexer,
 			() => parseImportLines(allUris, lexer),
-			(in Range _) => typeAs!(ImportOrExportAst[])([]));
+			(in Range _) => emptySmallArray!ImportOrExportAst);
 		return some(ImportsOrExportsAst(range(lexer, start), imports));
 	} else
 		return none!ImportsOrExportsAst;
@@ -43,7 +44,7 @@ Opt!ImportsOrExportsAst parseImportsOrExports(scope ref AllUris allUris, ref Lex
 
 private:
 
-ImportOrExportAst[] parseImportLines(scope ref AllUris allUris, ref Lexer lexer) {
+SmallArray!ImportOrExportAst parseImportLines(scope ref AllUris allUris, ref Lexer lexer) {
 	ArrayBuilder!ImportOrExportAst res;
 	while (true) {
 		add(lexer.alloc, res, parseSingleModuleImportOnOwnLine(allUris, lexer));
@@ -51,7 +52,7 @@ ImportOrExportAst[] parseImportLines(scope ref AllUris allUris, ref Lexer lexer)
 			case NewlineOrDedent.newline:
 				continue;
 			case NewlineOrDedent.dedent:
-				return finish(lexer.alloc, res);
+				return small!ImportOrExportAst(finish(lexer.alloc, res));
 		}
 	}
 }
