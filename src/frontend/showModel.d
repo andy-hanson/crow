@@ -208,6 +208,8 @@ void writeSig(
 ) {
 	writer ~= '\'';
 	writeSymbol(writer, ctx.allSymbols, name);
+	if (!has(instantiated))
+		writeTypeParams(writer, ctx, typeContainer.typeParams);
 	writer ~= ' ';
 	writeTypeUnquoted(writer, ctx, TypeWithContainer(
 		has(instantiated) ? force(instantiated).returnType : returnType,
@@ -245,13 +247,7 @@ void writeSigSimple(
 	in TypeParamsAndSig sig,
 ) {
 	writeSymbol(writer, ctx.allSymbols, name);
-	if (!isEmpty(sig.typeParams)) {
-		writer ~= '[';
-		writeWithCommas!NameAndRange(writer, sig.typeParams, (in NameAndRange x) {
-			writeSymbol(writer, ctx.allSymbols, x.name);
-		});
-		writer ~= ']';
-	}
+	writeTypeParams(writer, ctx, sig.typeParams);
 	writer ~= ' ';
 	writeTypeUnquoted(writer, ctx, TypeWithContainer(sig.returnType, typeContainer));
 	writer ~= '(';
@@ -261,6 +257,16 @@ void writeSigSimple(
 		writeTypeUnquoted(writer, ctx, TypeWithContainer(x.type, typeContainer));
 	});
 	writer ~= ')';
+}
+
+private void writeTypeParams(scope ref Writer writer, in ShowTypeCtx ctx, in TypeParams typeParams) {
+	if (!isEmpty(typeParams)) {
+		writer ~= '[';
+		writeWithCommas!NameAndRange(writer, typeParams, (in NameAndRange x) {
+			writeSymbol(writer, ctx.allSymbols, x.name);
+		});
+		writer ~= ']';
+	}
 }
 
 private void writeDestructure(

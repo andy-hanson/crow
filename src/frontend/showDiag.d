@@ -843,7 +843,6 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writeSpecTrace(writer, ctx, x.outermostTypeContainer, x.trace);
 		},
 		(in Diag.SpecNoMatch x) {
-			writer ~= "A spec was not satisfied.\n\t";
 			x.reason.matchIn!void(
 				(in Diag.SpecNoMatch.Reason.BuiltinNotSatisfied y) {
 					writeTypeQuoted(writer, ctx, TypeWithContainer(y.type, x.outermostTypeContainer));
@@ -851,8 +850,9 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 					writer ~= stringOfSpecBodyBuiltinKind(y.kind);
 					writer ~= "'.";
 				},
-				(in Diag.SpecNoMatch.Reason.CantInferTypeArguments _) {
-					writer ~= "Can't infer type arguments.";
+				(in Diag.SpecNoMatch.Reason.CantInferTypeArguments y) {
+					writer ~= "Can't infer type arguments to ";
+					writeFunDecl(writer, ctx, y.fun);
 				},
 				(in Diag.SpecNoMatch.Reason.SpecImplNotFound y) {
 					writer ~= "No implementation was found for spec signature ";
@@ -865,9 +865,11 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 				(in Diag.SpecNoMatch.Reason.TooDeep _) {
 					writer ~= "Spec instantiation is too deep.";
 				});
-			writeNewline(writer, 1);
-			writer ~= "Calling:";
-			writeSpecTrace(writer, ctx, x.outermostTypeContainer, x.trace);
+			if (!isEmpty(x.trace)) {
+				writeNewline(writer, 1);
+				writer ~= "Calling:";
+				writeSpecTrace(writer, ctx, x.outermostTypeContainer, x.trace);
+			}
 		},
 		(in Diag.SpecNameMissing) {
 			writer ~= "Spec name is missing.";

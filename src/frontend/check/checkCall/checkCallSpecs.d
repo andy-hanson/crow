@@ -36,7 +36,7 @@ import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.array : every, exists, first, only, small, zipFirst;
 import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, finish;
-import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, only, push, asTemporaryArray, toArray;
+import util.col.mutMaxArr : asTemporaryArray, isFull, mustPop, MutMaxArr, mutMaxArr, only, push, toArray;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range;
 import util.union_ : Union;
@@ -180,10 +180,10 @@ Trace.Result getCalledFromCandidateAfterTypeChecks(Trace)(
 			push(candidateTypeArgs, force(t));
 		else
 			return Trace.Result(specNoMatch(trace, Diag.SpecNoMatch.Reason(
-				Diag.SpecNoMatch.Reason.CantInferTypeArguments())));
+				Diag.SpecNoMatch.Reason.CantInferTypeArguments(candidate.called.as!(FunDecl*)))));
 	}
 	return candidate.called.matchWithPointers!(Trace.Result)(
-		(FunDecl* f) @safe {
+		(FunDecl* f) {
 			if (isFull(trace))
 				return Trace.Result(specNoMatch(trace, Diag.SpecNoMatch.Reason(Diag.SpecNoMatch.Reason.TooDeep())));
 			else {

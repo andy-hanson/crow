@@ -363,7 +363,10 @@ immutable struct Diag {
 				SpecDeclBody.Builtin kind;
 				Type type;
 			}
-			immutable struct CantInferTypeArguments {}
+			immutable struct CantInferTypeArguments {
+				// Since we didn't infer type args, it can't go onto the trace.
+				FunDecl* fun;
+			}
 			immutable struct SpecImplNotFound {
 				SpecDeclSig* sigDecl;
 				ReturnAndParamTypes sigType;

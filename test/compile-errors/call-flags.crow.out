@@ -12,4 +12,4 @@ test/compile-errors/call-flags.crow 8:5-8:21 A 'bare' function can't call non-'b
 test/compile-errors/call-flags.crow 10:5-10:16 A non-'summon' function can't call 'summon' function 'foo void(_ nat64)' (from test/compile-errors/call-flags.crow line 30).
 test/compile-errors/call-flags.crow 11:5-11:18 A non-'summon' function can't call 'summon' function 'foo void(_ nat64)' (from test/compile-errors/call-flags.crow line 30).
 test/compile-errors/call-flags.crow 12:5-12:20 A non-'summon' function can't call 'summon' function 'foo void(_ nat64)' (from test/compile-errors/call-flags.crow line 30).
-test/compile-errors/call-flags.crow 14:15-14:17 A 'bare' function can't call variadic function 'new t[](...t array)' (from include/crow/col/list.crow line 155).
+test/compile-errors/call-flags.crow 14:15-14:17 A 'bare' function can't call variadic function 'new[t] t[](...t array)' (from include/crow/col/list.crow line 155).
