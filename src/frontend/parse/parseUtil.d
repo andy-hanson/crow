@@ -173,7 +173,7 @@ enum NewlineOrDedent {
 NewlineOrDedent takeNewlineOrDedent(ref Lexer lexer) {
 	if (tryTakeToken(lexer, Token.newlineSameIndent))
 		return NewlineOrDedent.newline;
-	else if (tryTakeToken(lexer, Token.newlineDedent))
+	else if (tryTakeToken(lexer, [Token.newlineDedent, Token.EOF]))
 		return NewlineOrDedent.dedent;
 	else {
 		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.newlineOrDedent)));

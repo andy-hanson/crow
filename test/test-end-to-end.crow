@@ -72,15 +72,16 @@ options:
 		ext == "crow"
 
 -run-single-crow-test failure[]^(path-to-crow string, path string, options test-options) summon
+	overwrite = options overwrite-output
 	if options print-tests
 		out print "crow run {path}"
-	interpret-failures <- path-to-crow run-single path, interpret, options.overwrite-output
-	jit-failures <- if interpret-failures.is-empty && !(trusted is-windows)
-		path-to-crow run-single path, jit, options.overwrite-output
+	interpret-failures <- path-to-crow run-single path, interpret, overwrite
+	jit-failures <- if interpret-failures.is-empty && !overwrite && !(trusted is-windows)
+		path-to-crow run-single path, jit, overwrite
 	else
 		interpret-failures,
-	if jit-failures is-empty
-		path-to-crow run-single path, aot, options.overwrite-output
+	if jit-failures.is-empty && !overwrite
+		path-to-crow run-single path, aot, overwrite
 	else
 		jit-failures,
 
