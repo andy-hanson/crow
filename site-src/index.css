@@ -49,8 +49,8 @@ li {
 table {
 	margin-left: auto;
 	margin-right: auto;
-	margin-top: 0.25em;
-	margin-bottom: 0.25em;
+	margin-top: 0.5em;
+	margin-bottom: 1em;
 	border-collapse: collapse;
 }
 

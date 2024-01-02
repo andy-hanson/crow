@@ -112,6 +112,7 @@ textarea {
 .type { color: #ab9df2; }
 .type-param { color: #fc9867; }
 .variable { color: #ffebbd; }
+.comment { color: #ddeedd; }
 
 .diag {
 	position: relative;
