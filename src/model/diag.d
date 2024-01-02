@@ -16,6 +16,7 @@ import model.model :
 	SpecDecl,
 	SpecDeclBody,
 	SpecDeclSig,
+	StructAlias,
 	StructDecl,
 	StructInst,
 	Test,
@@ -545,13 +546,15 @@ immutable struct TypeWithContainer {
 immutable struct TypeContainer {
 	@safe @nogc pure nothrow:
 
-	mixin Union!(FunDecl*, SpecDecl*, StructDecl*, Test*, VarDecl*);
+	mixin Union!(FunDecl*, SpecDecl*, StructAlias*, StructDecl*, Test*, VarDecl*);
 
 	Uri moduleUri() scope =>
 		matchIn!Uri(
 			(in FunDecl x) =>
 				x.moduleUri,
 			(in SpecDecl x) =>
+				x.moduleUri,
+			(in StructAlias x) =>
 				x.moduleUri,
 			(in StructDecl x) =>
 				x.moduleUri,
@@ -566,6 +569,8 @@ immutable struct TypeContainer {
 				x.typeParams,
 			(in SpecDecl x) =>
 				x.typeParams,
+			(in StructAlias x) =>
+				emptyTypeParams,
 			(in StructDecl x) =>
 				x.typeParams,
 			(in Test x) =>

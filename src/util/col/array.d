@@ -50,7 +50,6 @@ struct MutSmallArray(T) {
 	@safe @nogc pure nothrow:
 	alias toArray this;
 
-	@disable this();
 	private this(PtrAndSmallNumber!T v) {
 		sizeAndBegin = v;
 	}
@@ -119,12 +118,15 @@ ref inout(T[2]) only2(T)(return scope inout T[] a) {
 @system bool isPointerInRange(T)(in T[] xs, in T* x) =>
 	xs.ptr <= x && x < endPtr(xs);
 
-@trusted T[] newArray(T)(scope ref Alloc alloc, scope T[] values) {
+@trusted T[] newArray(T)(ref Alloc alloc, scope T[] values) {
 	T[] res = allocateElements!T(alloc, values.length);
 	foreach (size_t i, ref T x; values)
 		initMemory!T(&res[i], x);
 	return res;
 }
+
+SmallArray!T newSmallArray(T)(ref Alloc alloc, scope T[] values) =>
+	small!T(newArray(alloc, values));
 
 @trusted Out[] makeArray(Out)(ref Alloc alloc, size_t size, in Out delegate(size_t) @safe @nogc pure nothrow cb) {
 	Out[] res = allocateElements!Out(alloc, size);

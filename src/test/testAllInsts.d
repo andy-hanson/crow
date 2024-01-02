@@ -28,7 +28,7 @@ import model.model :
 	Visibility;
 import test.testUtil : Test;
 import util.alloc.alloc : Alloc, withTempAlloc;
-import util.col.array : contains, indexOf, newArray, small;
+import util.col.array : contains, indexOf, newArray, newSmallArray, small;
 import util.col.hashTable : ValueAndDidAdd;
 import util.col.mutMultiMap : countKeys, eachValueForKey, MutMultiMap;
 import util.memory : allocate;
@@ -204,7 +204,7 @@ T mustNotDidAdd(T)(ValueAndDidAdd!T a) {
 }
 
 Module makeModule(ref Alloc alloc, Uri uri, in StructDecl[] structs) =>
-	Module(uri, structs: newArray(alloc, structs));
+	Module(uri, structs: newSmallArray(alloc, structs));
 
 StructDecl dummyStruct(ref Alloc alloc, Uri uri, Symbol name, size_t nTypeParams) =>
 	StructDecl(

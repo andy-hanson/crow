@@ -164,6 +164,9 @@ void referencesForTarget(
 		(PositionKind.SpecSig x) {
 			referencesForSpecSig(allSymbols, program, x, cb);
 		},
+		(StructAlias* x) {
+			referencesForStructAlias(x, cb);
+		},
 		(StructDecl* x) {
 			referencesForStructDecl(allSymbols, program, x, cb);
 		},
@@ -273,6 +276,8 @@ void referencesForTypeParam(
 			eachTypeInFun(x, typeCb),
 		(in SpecDecl x) =>
 			eachTypeInSpec(x, typeCb),
+		(in StructAlias x) =>
+			assert(false),
 		(in StructDecl x) =>
 			eachTypeInStruct(x, typeCb),
 		(in Test _) =>

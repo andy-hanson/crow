@@ -65,8 +65,8 @@ import model.model : TypeParams, VarKind;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.array : emptySmallArray, small, SmallArray;
-import util.col.arrayBuilder : add, ArrayBuilder, finish;
+import util.col.array : emptySmallArray, SmallArray;
+import util.col.arrayBuilder : add, ArrayBuilder, smallFinish;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
@@ -97,7 +97,7 @@ TypeParams parseTypeParams(ref Lexer lexer) {
 			add(lexer.alloc, res, takeNameAndRange(lexer));
 		} while (tryTakeToken(lexer, Token.comma));
 		takeOrAddDiagExpectedToken(lexer, Token.bracketRight, ParseDiag.Expected.Kind.closingBracket);
-		return small!NameAndRange(finish(lexer.alloc, res));
+		return smallFinish(lexer.alloc, res);
 	} else
 		return emptySmallArray!NameAndRange;
 }
@@ -128,7 +128,7 @@ ParamsAst parseParams(ref Lexer lexer) {
 			if (tryTakeToken(lexer, Token.parenRight))
 				break;
 		}
-		return ParamsAst(finish(lexer.alloc, res));
+		return ParamsAst(smallFinish(lexer.alloc, res));
 	}
 }
 
@@ -143,7 +143,7 @@ SpecSigAst parseSpecSig(ref Lexer lexer) {
 	return SpecSigAst(docComment, range(lexer, start), name.name, returnType, params);
 }
 
-SpecSigAst[] parseIndentedSigs(ref Lexer lexer) {
+SmallArray!SpecSigAst parseIndentedSigs(ref Lexer lexer) {
 	if (tryTakeToken(lexer, Token.newlineIndent)) {
 		ArrayBuilder!SpecSigAst res;
 		while (true) {
@@ -153,11 +153,11 @@ SpecSigAst[] parseIndentedSigs(ref Lexer lexer) {
 				case NewlineOrDedent.newline:
 					continue;
 				case NewlineOrDedent.dedent:
-					return finish(lexer.alloc, res);
+					return smallFinish(lexer.alloc, res);
 			}
 		}
 	} else
-		return [];
+		return emptySmallArray!SpecSigAst;
 }
 
 SmallArray!(StructBodyAst.Enum.Member) parseEnumOrFlagsMembers(ref Lexer lexer) {
@@ -188,7 +188,7 @@ SmallArray!(StructBodyAst.Enum.Member) parseEnumOrFlagsMembers(ref Lexer lexer) 
 				case NewlineOrDedent.newline:
 					return recur();
 				case NewlineOrDedent.dedent:
-					return small!(StructBodyAst.Enum.Member)(finish(lexer.alloc, res));
+					return smallFinish(lexer.alloc, res);
 			}
 		}
 		return recur();
@@ -215,7 +215,7 @@ SmallArray!(StructBodyAst.Record.Field) parseRecordFields(ref Lexer lexer) {
 			case NewlineOrDedent.newline:
 				continue;
 			case NewlineOrDedent.dedent:
-				return small!(StructBodyAst.Record.Field)(finish(lexer.alloc, fields));
+				return smallFinish(lexer.alloc, fields);
 		}
 	}
 }
@@ -247,7 +247,7 @@ SmallArray!(StructBodyAst.Union.Member) parseUnionMembers(ref Lexer lexer) {
 		Opt!TypeAst type = peekEndOfLine(lexer) ? none!TypeAst : some(parseType(lexer));
 		add(lexer.alloc, res, StructBodyAst.Union.Member(range(lexer, start), name, type));
 	} while (takeNewlineOrDedent(lexer) == NewlineOrDedent.newline);
-	return small!(StructBodyAst.Union.Member)(finish(lexer.alloc, res));
+	return smallFinish(lexer.alloc, res);
 }
 
 FunDeclAst parseFun(
@@ -256,33 +256,25 @@ FunDeclAst parseFun(
 	ExplicitVisibility visibility,
 	Pos start,
 	NameAndRange name,
-	NameAndRange[] typeParams,
+	TypeParams typeParams,
 ) {
 	TypeAst returnType = parseType(lexer);
 	ParamsAst params = parseParams(lexer);
-	FunModifierAst[] modifiers = parseFunModifiers(lexer);
+	SmallArray!FunModifierAst modifiers = parseFunModifiers(lexer);
 	ExprAst body_ = parseFunExprBody(lexer);
 	return FunDeclAst(
-		range(lexer, start),
-		docComment,
-		visibility,
-		name,
-		small!NameAndRange(typeParams),
-		returnType,
-		params,
-		small!FunModifierAst(modifiers),
-		body_);
+		range(lexer, start), docComment, visibility, name, typeParams, returnType, params, modifiers, body_);
 }
 
-FunModifierAst[] parseFunModifiers(ref Lexer lexer) {
+SmallArray!FunModifierAst parseFunModifiers(ref Lexer lexer) {
 	if (peekEndOfLine(lexer))
-		return [];
+		return emptySmallArray!FunModifierAst;
 	else {
 		ArrayBuilder!FunModifierAst res;
 		add(lexer.alloc, res, parseFunModifier(lexer));
 		while (tryTakeToken(lexer, Token.comma))
 			add(lexer.alloc, res, parseFunModifier(lexer));
-		return finish(lexer.alloc, res);
+		return smallFinish(lexer.alloc, res);
 	}
 }
 
@@ -309,7 +301,7 @@ SmallArray!TypeAst parseSpecModifiers(ref Lexer lexer) {
 		add(lexer.alloc, res, parseType(lexer));
 		while (tryTakeToken(lexer, Token.comma))
 			add(lexer.alloc, res, parseType(lexer));
-		return small!TypeAst(finish(lexer.alloc, res));
+		return smallFinish(lexer.alloc, res);
 	}
 }
 
@@ -386,7 +378,7 @@ void parseSpecOrStructOrFun(
 				},
 				(in Range range) => TypeAst(TypeAst.Bogus(range)));
 			add(lexer.alloc, structAliases, StructAliasAst(
-				docComment, range(lexer, start), visibility, name, small!NameAndRange(typeParams), target));
+				docComment, range(lexer, start), visibility, name, typeParams, keywordPos, target));
 			break;
 		case Token.builtin:
 			takeNextToken(lexer);
@@ -494,7 +486,7 @@ SmallArray!ModifierAst parseModifiers(ref Lexer lexer) {
 		else
 			takeOrAddDiagExpectedToken(lexer, Token.comma, ParseDiag.Expected.Kind.comma);
 	}
-	return small!ModifierAst(finish(lexer.alloc, res));
+	return smallFinish(lexer.alloc, res);
 }
 
 ModifierAst.Kind parseModifierKind(ref Lexer lexer) {
@@ -596,10 +588,10 @@ FileAst* parseFileInner(scope ref AllUris allUris, ref Lexer lexer) {
 		noStd,
 		imports,
 		exports,
-		finish(lexer.alloc, specs),
-		finish(lexer.alloc, structAliases),
-		finish(lexer.alloc, structs),
-		finish(lexer.alloc, funs),
-		finish(lexer.alloc, tests),
-		finish(lexer.alloc, vars)));
+		smallFinish(lexer.alloc, specs),
+		smallFinish(lexer.alloc, structAliases),
+		smallFinish(lexer.alloc, structs),
+		smallFinish(lexer.alloc, funs),
+		smallFinish(lexer.alloc, tests),
+		smallFinish(lexer.alloc, vars)));
 }

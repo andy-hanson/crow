@@ -18,8 +18,8 @@ import model.model :
 	StructOrAlias,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.array : exists;
-import util.col.arrayBuilder : add, ArrayBuilder, finish;
+import util.col.array : exists, SmallArray;
+import util.col.arrayBuilder : add, ArrayBuilder, smallFinish;
 import util.col.hashTable : existsInHashTable;
 import util.col.mutSet : mayAddToMutSet, MutSet, mutSetHas;
 import util.opt : force, has, none, Opt, some;
@@ -164,5 +164,5 @@ void addDiag(ref CheckCtx ctx, in Range range, Diag diag) {
 	add(ctx.alloc, ctx.diagnosticsBuilder, Diagnostic(range, diag));
 }
 
-Diagnostic[] finishDiagnostics(ref CheckCtx ctx) =>
-	finish(ctx.alloc, ctx.diagnosticsBuilder);
+SmallArray!Diagnostic finishDiagnostics(ref CheckCtx ctx) =>
+	smallFinish(ctx.alloc, ctx.diagnosticsBuilder);

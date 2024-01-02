@@ -17,9 +17,9 @@ Candidates (with 1 arguments):
 	'new[t] t^(value t)' (from include/crow/future.crow line 40)
 	'new json(...(symbol, json) array)' (from include/crow/json.crow line 34)
 	'new[t] t?(a t)' (from include/crow/option.crow line 15)
-	'new[t] t mut-array(inner t array)' (from include/crow/private/bootstrap.crow line 117)
-	'new symbol(symbol-to-c-string char8*)' (from include/crow/private/bootstrap.crow line 165)
-	'new backtrace(entries backtrace-entry array)' (from include/crow/private/bootstrap.crow line 373)
+	'new[t] t mut-array(inner t array)' (from include/crow/private/bootstrap.crow line 114)
+	'new symbol(symbol-to-c-string char8*)' (from include/crow/private/bootstrap.crow line 155)
+	'new backtrace(entries backtrace-entry array)' (from include/crow/private/bootstrap.crow line 363)
 test/compile-errors/record-privacy-b.crow 12:11-12:12 There is no function named 'j'.
 test/compile-errors/record-privacy-b.crow 13:5-13:13 There is no function named 'set-k'.
 test/compile-errors/record-privacy-b.crow 15:5-15:13 There is no function named 'set-l'.

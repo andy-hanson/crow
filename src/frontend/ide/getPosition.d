@@ -69,6 +69,7 @@ import model.model :
 	StructBody,
 	SpecDecl,
 	SpecDeclSig,
+	StructAlias,
 	StructDecl,
 	Test,
 	ThrowExpr,
@@ -95,6 +96,10 @@ Opt!PositionKind getPositionKind(in AllSymbols allSymbols, in AllUris allUris, r
 	optOr!PositionKind(
 		positionInImportsOrExports(allSymbols, allUris, module_.imports, pos),
 		() => positionInImportsOrExports(allSymbols, allUris, module_.reExports, pos),
+		() => firstPointer!(PositionKind, StructAlias)(module_.aliases, (StructAlias* x) =>
+			hasPos(x.range.range, pos)
+				? positionInAlias(allSymbols, x, pos)
+				: none!PositionKind),
 		() => firstPointer!(PositionKind, StructDecl)(module_.structs, (StructDecl* x) =>
 			hasPos(x.range.range, pos)
 				? positionInStruct(allSymbols, x, pos)
@@ -115,7 +120,6 @@ Opt!PositionKind getPositionKind(in AllSymbols allSymbols, in AllUris allUris, r
 			hasPos(x.ast.range, pos)
 				? some(positionInTest(allSymbols, x, *x.ast, pos))
 				: none!PositionKind));
-	//TODO: check for aliases too
 
 Opt!PositionKind positionInFun(in AllSymbols allSymbols, FunDecl* a, in FunDeclAst ast, Pos pos) =>
 	optOr!PositionKind(
@@ -220,6 +224,16 @@ PositionKind.Keyword.Kind keywordKindForVar(VarKind a) {
 			return PositionKind.Keyword.Kind.threadLocal;
 	}
 }
+
+Opt!PositionKind positionInAlias(in AllSymbols allSymbols, StructAlias* a, Pos pos) =>
+	optOr!PositionKind(
+		positionInVisibility(VisibilityContainer(a), a.ast, pos),
+		() => optIf(hasPos(nameRange(allSymbols, *a).range, pos), () => PositionKind(a)),
+		() => optIf(hasPos(a.ast.keywordRange, pos), () =>
+			PositionKind(PositionKind.Keyword(PositionKind.Keyword.Kind.alias_))),
+		() => has(a.target)
+			? positionInType(allSymbols, TypeContainer(a), Type(force(a.target)), a.ast.target, pos)
+			: none!PositionKind);
 
 Opt!PositionKind positionInStruct(in AllSymbols allSymbols, StructDecl* a, Pos pos) =>
 	a.source.matchIn!(Opt!PositionKind)(

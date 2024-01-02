@@ -6,7 +6,7 @@ import model.diag : ReadFileDiag;
 import model.model : AssertOrForbidKind, FunKind, ImportFileType, stringOfVarKindLowerCase, VarKind;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
-import util.col.array : arrayOfSingle, exists, isEmpty, newArray, SmallArray;
+import util.col.array : arrayOfSingle, emptySmallArray, exists, isEmpty, newSmallArray, SmallArray;
 import util.conv : safeToUint;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault, some;
@@ -545,12 +545,18 @@ immutable struct SpecSigAst {
 }
 
 immutable struct StructAliasAst {
+	@safe @nogc pure nothrow:
+
 	SmallString docComment;
 	Range range;
 	ExplicitVisibility visibility;
 	NameAndRange name;
 	SmallArray!NameAndRange typeParams;
+	Pos keywordPos;
 	TypeAst target;
+
+	Range keywordRange() =>
+		rangeOfStartAndLength(keywordPos, "alias".length);
 }
 
 Range typeParamsRange(in AllSymbols allSymbols, in SmallArray!NameAndRange typeParams) {
@@ -858,30 +864,25 @@ immutable struct ImportsOrExportsAst {
 }
 
 immutable struct FileAst {
-	ParseDiagnostic[] parseDiagnostics;
+	SmallArray!ParseDiagnostic parseDiagnostics;
 	SmallString docComment;
 	bool noStd;
 	Opt!ImportsOrExportsAst imports;
 	Opt!ImportsOrExportsAst reExports;
-	SpecDeclAst[] specs;
-	StructAliasAst[] structAliases;
-	StructDeclAst[] structs;
-	FunDeclAst[] funs;
-	TestAst[] tests;
-	VarDeclAst[] vars;
+	SmallArray!SpecDeclAst specs;
+	SmallArray!StructAliasAst structAliases;
+	SmallArray!StructDeclAst structs;
+	SmallArray!FunDeclAst funs;
+	SmallArray!TestAst tests;
+	SmallArray!VarDeclAst vars;
 }
 
-private FileAst* fileAstForDiags(ref Alloc alloc, ParseDiagnostic[] diags) =>
-	allocate(alloc, FileAst(
-		diags,
-		emptySmallString,
-		true, // Make sure the dummy AST doesn't have implicit imports
-		none!ImportsOrExportsAst,
-		none!ImportsOrExportsAst,
-		[], [], [], [], [], []));
+private FileAst* fileAstForDiags(ref Alloc alloc, SmallArray!ParseDiagnostic diags) =>
+	// Make sure the dummy AST doesn't have implicit imports
+	allocate(alloc, FileAst(diags, noStd: true));
 
 FileAst* fileAstForReadFileDiag(ref Alloc alloc, ReadFileDiag a) =>
-	fileAstForDiags(alloc, newArray(alloc, [ParseDiagnostic(Range.empty, ParseDiag(a))]));
+	fileAstForDiags(alloc, newSmallArray(alloc, [ParseDiagnostic(Range.empty, ParseDiag(a))]));
 
 Symbol symbolOfModifierKind(ModifierAst.Kind a) {
 	final switch (a) {

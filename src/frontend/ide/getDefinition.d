@@ -17,6 +17,7 @@ import model.model :
 	NameReferents,
 	RecordField,
 	SpecDecl,
+	StructAlias,
 	StructDecl,
 	VarDecl;
 import util.alloc.alloc : Alloc;
@@ -66,6 +67,9 @@ public void definitionForTarget(in AllSymbols allSymbols, Uri curUri, in Target 
 		},
 		(in PositionKind.SpecSig x) {
 			cb(nameRange(allSymbols, *x.sig));
+		},
+		(in StructAlias x) {
+			cb(nameRange(allSymbols, x));
 		},
 		(in StructDecl x) {
 			cb(nameRange(allSymbols, x));

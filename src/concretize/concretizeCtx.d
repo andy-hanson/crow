@@ -81,6 +81,7 @@ import util.col.array :
 	mapZip,
 	max,
 	newArray,
+	newSmallArray,
 	only,
 	only2,
 	small,
@@ -523,7 +524,7 @@ ConcreteFun* newNat64FutureFunction(ref ConcretizeCtx ctx, ConcreteType nat64Typ
 	getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
 		ctx.program.commonFuns.newNat64Future.decl,
 		//TODO:avoid alloc
-		small!ConcreteType(newArray(ctx.alloc, [nat64Type])),
+		newSmallArray(ctx.alloc, [nat64Type]),
 		emptySmallArray!(immutable ConcreteFun*)));
 
 bool canGetUnionSize(in ConcreteType[] members) =>

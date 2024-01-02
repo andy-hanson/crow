@@ -325,12 +325,15 @@ immutable struct StructAlias {
 	UriAndRange range() scope =>
 		UriAndRange(moduleUri, ast.range);
 
-	Opt!(StructInst*) target() return scope =>
+	ref Opt!(StructInst*) target() return scope =>
 		lateGet(target_);
 	void target(Opt!(StructInst*) value) {
 		lateSet(target_, value);
 	}
 }
+
+UriAndRange nameRange(in AllSymbols allSymbols, in StructAlias a) =>
+	UriAndRange(a.moduleUri, rangeOfNameAndRange(a.ast.name, allSymbols));
 
 // sorted least strict to most strict
 enum Linkage : ubyte { internal, extern_ }
@@ -1039,14 +1042,15 @@ immutable struct Module {
 
 	Uri uri;
 	FileAst* ast;
-	Diagnostic[] diagnostics; // See also 'ast.diagnostics'
-	ImportOrExport[] imports; // includes import of std (if applicable)
-	ImportOrExport[] reExports;
-	StructDecl[] structs;
-	VarDecl[] vars;
-	SpecDecl[] specs;
-	FunDecl[] funs;
-	Test[] tests;
+	SmallArray!Diagnostic diagnostics; // See also 'ast.diagnostics'
+	SmallArray!ImportOrExport imports; // includes import of std (if applicable)
+	SmallArray!ImportOrExport reExports;
+	SmallArray!StructAlias aliases;
+	SmallArray!StructDecl structs;
+	SmallArray!VarDecl vars;
+	SmallArray!SpecDecl specs;
+	SmallArray!FunDecl funs;
+	SmallArray!Test tests;
 	// Includes re-exports
 	HashTable!(NameReferents, Symbol, nameFromNameReferents) allExportedNames;
 

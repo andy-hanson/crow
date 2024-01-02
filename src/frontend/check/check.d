@@ -96,9 +96,10 @@ import util.col.array :
 	mapWithResultPointer,
 	only,
 	small,
+	SmallArray,
 	zip,
 	zipPointers;
-import util.col.arrayBuilder : add, ArrayBuilder, asTemporaryArray, finish;
+import util.col.arrayBuilder : add, ArrayBuilder, asTemporaryArray, finish, smallFinish;
 import util.col.exactSizeArrayBuilder : buildArrayExact, ExactSizeArrayBuilder, pushUninitialized;
 import util.col.hashTable :
 	getPointer, HashTable, insertOrUpdate, mapAndMovePreservingKeys, mayAdd, moveToImmutable, MutHashTable;
@@ -415,8 +416,8 @@ void addToDeclsMap(T, alias getName)(
 }
 
 immutable struct FunsAndMap {
-	FunDecl[] funs;
-	Test[] tests;
+	SmallArray!FunDecl funs;
+	SmallArray!Test tests;
 	FunsMap funsMap;
 }
 
@@ -634,7 +635,7 @@ FunsAndMap checkFuns(
 		})
 	)();
 
-	return FunsAndMap(funs, tests, funsMap);
+	return FunsAndMap(small!FunDecl(funs), small!Test(tests), funsMap);
 }
 
 FunsMap buildFunsMap(ref Alloc alloc, in immutable FunDecl[] funs) {
@@ -821,7 +822,12 @@ Module* checkWorkerAfterCommonTypes(
 		finishDiagnostics(ctx),
 		importsAndReExports.moduleImports,
 		importsAndReExports.moduleReExports,
-		structs, vars, specs, funsAndMap.funs, funsAndMap.tests,
+		small!StructAlias(structAliases),
+		small!StructDecl(structs),
+		small!VarDecl(vars),
+		small!SpecDecl(specs),
+		funsAndMap.funs,
+		funsAndMap.tests,
 		getAllExportedNames(
 			ctx, importsAndReExports.moduleReExports, structsAndAliasesMap, specsMap, funsAndMap.funsMap)));
 }
@@ -960,10 +966,10 @@ BootstrapCheck checkWorker(
 immutable struct ImportsAndReExports {
 	@safe @nogc pure nothrow:
 
-	ImportOrExport[] moduleImports;
-	ImportOrExport[] moduleReExports;
-	ImportOrExportFile[] fileImports;
-	ImportOrExportFile[] fileExports;
+	SmallArray!ImportOrExport moduleImports;
+	SmallArray!ImportOrExport moduleReExports;
+	SmallArray!ImportOrExportFile fileImports;
+	SmallArray!ImportOrExportFile fileExports;
 
 	ImportAndReExportModules modules() =>
 		ImportAndReExportModules(moduleImports, moduleReExports);
@@ -991,8 +997,8 @@ ImportsAndReExports checkImportsAndReExports(
 }
 
 struct ImportsOrReExports {
-	ImportOrExport[] modules;
-	ImportOrExportFile[] files;
+	SmallArray!ImportOrExport modules;
+	SmallArray!ImportOrExportFile files;
 }
 ImportsOrReExports checkImportsOrReExports(
 	ref Alloc alloc,
@@ -1057,7 +1063,7 @@ ImportsOrReExports checkImportsOrReExports(
 							add(alloc, diagsBuilder, Diagnostic(pathRange(allUris, importAst), Diag(x)));
 						});
 				});
-	return ImportsOrReExports(finish(alloc, imports), finish(alloc, fileImports));
+	return ImportsOrReExports(smallFinish(alloc, imports), smallFinish(alloc, fileImports));
 }
 
 Opt!(NameReferents*)[] checkNamedImports(

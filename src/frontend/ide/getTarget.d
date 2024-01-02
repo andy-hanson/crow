@@ -44,6 +44,7 @@ import model.model :
 	SeqExpr,
 	StructBody,
 	SpecDecl,
+	StructAlias,
 	StructDecl,
 	StructInst,
 	Test,
@@ -66,6 +67,7 @@ immutable struct Target {
 		RecordField*,
 		SpecDecl*,
 		PositionKind.SpecSig,
+		StructAlias*,
 		StructDecl*,
 		PositionKind.TypeParamWithContainer,
 		VarDecl*,
@@ -102,6 +104,8 @@ Opt!Target targetForPosition(PositionKind pos) =>
 			some(Target(x)),
 		(PositionKind.SpecUse x) =>
 			some(Target(x.spec.decl)),
+		(StructAlias* x) =>
+			some(Target(x)),
 		(StructDecl* x) =>
 			some(Target(x)),
 		(Test*) =>

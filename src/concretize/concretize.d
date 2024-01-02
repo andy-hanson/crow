@@ -28,7 +28,7 @@ import model.concreteModel :
 	mustBeByVal;
 import model.model : CommonFuns, MainFun, ProgramWithMain;
 import util.alloc.alloc : Alloc;
-import util.col.array : emptySmallArray, newArray, small;
+import util.col.array : emptySmallArray, newSmallArray, small;
 import util.col.arrayBuilder : finish;
 import util.col.map : Map;
 import util.col.mutArr : moveToArray, MutArr;
@@ -76,7 +76,7 @@ ConcreteProgram concretizeInner(
 	lateSet(ctx.newVoidFutureFunction_, getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
 		ctx.program.commonFuns.newVoidFuture.decl,
 		//TODO:avoid alloc
-		small!ConcreteType(newArray(ctx.alloc, [voidType(ctx)])),
+		newSmallArray(ctx.alloc, [voidType(ctx)]),
 		emptySmallArray!(immutable ConcreteFun*))));
 	ConcreteFun* markFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.mark);
 	ConcreteFun* rtMainConcreteFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.rtMain);

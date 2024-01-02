@@ -19,7 +19,8 @@ import frontend.parse.lexWhitespace : detectIndentKind, IndentKind, skipSpacesAn
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arrayBuilder : add, ArrayBuilder, finish;
+import util.col.array : SmallArray;
+import util.col.arrayBuilder : add, ArrayBuilder, smallFinish;
 import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
@@ -75,8 +76,8 @@ void addDiag(ref Lexer lexer, in Range range, ParseDiag diag) {
 	add(lexer.alloc, lexer.diagnosticsBuilder, ParseDiagnostic(range, diag));
 }
 
-ParseDiagnostic[] finishDiagnostics(ref Lexer lexer) =>
-	finish(lexer.alloc, lexer.diagnosticsBuilder);
+SmallArray!ParseDiagnostic finishDiagnostics(ref Lexer lexer) =>
+	smallFinish(lexer.alloc, lexer.diagnosticsBuilder);
 
 void addDiagAtChar(ref Lexer lexer, ParseDiag diag) {
 	addDiag(lexer, rangeAtChar(lexer), diag);

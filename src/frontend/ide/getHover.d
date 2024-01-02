@@ -7,6 +7,7 @@ import frontend.showModel :
 	ShowModelCtx,
 	writeCalled,
 	writeFile,
+	writeFunDecl,
 	writeFunInst,
 	writeLineAndColumnRange,
 	writeName,
@@ -44,10 +45,12 @@ import model.model :
 	LoopWhileExpr,
 	MatchEnumExpr,
 	MatchUnionExpr,
+	NameReferents,
 	PtrToFieldExpr,
 	PtrToLocalExpr,
 	RecordField,
 	SeqExpr,
+	StructAlias,
 	StructBody,
 	SpecDecl,
 	stringOfVarKindUpperCase,
@@ -61,12 +64,11 @@ import model.model :
 	VarDecl;
 import util.alloc.alloc : Alloc;
 import util.col.array : isEmpty;
-import util.opt : none, Opt, some;
+import util.opt : force, has, none, Opt, some;
 import util.sourceRange : UriAndRange;
 import util.symbol : symbol, writeSymbol;
 import util.uri : Uri;
-import util.util : ptrTrustMe;
-import util.writer : makeStringWithWriter, Writer;
+import util.writer : makeStringWithWriter, writeNewline, Writer;
 
 Opt!Hover getHover(ref Alloc alloc, in ShowModelCtx ctx, in Position pos) {
 	string content = makeStringWithWriter(alloc, (scope ref Writer writer) {
@@ -78,21 +80,20 @@ Opt!Hover getHover(ref Alloc alloc, in ShowModelCtx ctx, in Position pos) {
 }
 
 void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
-	pos.kind.matchIn!void(
-		(in PositionKind.None) {},
-		(in PositionKind.Expression x) {
+	pos.kind.matchWithPointers!void(
+		(PositionKind.None) {},
+		(PositionKind.Expression x) {
 			getExprHover(writer, ctx, pos.module_.uri, x.container.toTypeContainer, *x.expr);
 		},
-		(in FunDecl x) {
-			writer ~= "Function ";
-			writeName(writer, ctx, x.name);
+		(FunDecl* x) {
+			writeFunDecl(writer, ctx, x);
 		},
-		(in PositionKind.FunExtern x) {
+		(PositionKind.FunExtern x) {
 			writer ~= "Function comes from external library ";
 			writeName(writer, ctx, x.funDecl.name);
 			writer ~= '.';
 		},
-		(in PositionKind.FunSpecialModifier x) {
+		(PositionKind.FunSpecialModifier x) {
 			writer ~= () {
 				final switch (x.flag) {
 					case FunModifierAst.Special.Flags.none:
@@ -116,16 +117,18 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 				}
 			}();
 		},
-		(in PositionKind.ImportedModule x) {
+		(PositionKind.ImportedModule x) {
 			writer ~= "Import module ";
 			writeFile(writer, ctx, x.module_.uri);
 		},
-		(in PositionKind.ImportedName x) {
+		(PositionKind.ImportedName x) {
 			getImportedNameHover(writer, ctx, x);
 		},
-		(in PositionKind.Keyword x) {
+		(PositionKind.Keyword x) {
 			writer ~= () {
 				final switch (x.kind) {
+					case PositionKind.Keyword.Kind.alias_:
+						return "Declares a type alias.";
 					case PositionKind.Keyword.Kind.builtin:
 						return "Declares a type implemented by the compiler.";
 					case PositionKind.Keyword.Kind.enum_:
@@ -149,11 +152,11 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 				}
 			}();
 		},
-		(in PositionKind.LocalPosition x) {
+		(PositionKind.LocalPosition x) {
 			writer ~= "Local ";
 			localHover(writer, ctx, x.container.toTypeContainer, *x.local);
 		},
-		(in PositionKind.RecordFieldMutability x) {
+		(PositionKind.RecordFieldMutability x) {
 			writer ~= () {
 				final switch (x.kind) {
 					case FieldMutabilityAst.Kind.private_:
@@ -163,7 +166,7 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 				}
 			}();
 		},
-		(in PositionKind.RecordFieldPosition x) {
+		(PositionKind.RecordFieldPosition x) {
 			writer ~= "Record field ";
 			writeSymbol(writer, ctx.allSymbols, x.struct_.name);
 			writer ~= '.';
@@ -172,25 +175,27 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 			writeTypeQuoted(writer, ctx, TypeWithContainer(x.field.type, TypeContainer(x.struct_)));
 			writer ~= ')';
 		},
-		(in SpecDecl x) {
-			writer ~= "Spec ";
-			writeName(writer, ctx, x.name);
+		(SpecDecl* x) {
+			writeSpecDeclHover(writer, ctx, *x);
 		},
-		(in PositionKind.SpecSig x) {
+		(PositionKind.SpecSig x) {
 			writer ~= "Spec signature ";
 			writeName(writer, ctx, x.sig.name);
 		},
-		(in PositionKind.SpecUse x) {
+		(PositionKind.SpecUse x) {
 			writer ~= "Spec ";
 			writeSpecInst(writer, ctx, x.container, *x.spec);
 		},
-		(in StructDecl x) {
-			writeStructDeclHover(writer, ctx, x);
+		(StructAlias* x) {
+			writeStructAliasHover(writer, ctx, x);
 		},
-		(in Test x) {
+		(StructDecl* x) {
+			writeStructDeclHover(writer, ctx, *x);
+		},
+		(Test* x) {
 			writer ~= "Declares a unit test.";
 		},
-		(in TypeWithContainer x) {
+		(TypeWithContainer x) {
 			x.type.matchIn!void(
 				(in Type.Bogus) {},
 				(in TypeParamIndex p) {
@@ -200,18 +205,18 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 					writeStructDeclHover(writer, ctx, *i.decl);
 				});
 		},
-		(in PositionKind.TypeParamWithContainer x) {
+		(PositionKind.TypeParamWithContainer x) {
 			hoverTypeParam(writer, ctx, x.container, x.typeParam);
 		},
-		(in VarDecl x) {
+		(VarDecl* x) {
 			writer ~= stringOfVarKindUpperCase(x.kind);
 			writer ~= " variable ";
 			writeName(writer, ctx, x.name);
 			writer ~= " (of type ";
-			writeTypeQuoted(writer, ctx, TypeWithContainer(x.type, TypeContainer(ptrTrustMe(x))));
+			writeTypeQuoted(writer, ctx, TypeWithContainer(x.type, TypeContainer(x)));
 			writer ~= ')';
 		},
-		(in PositionKind.VisibilityMark x) {
+		(PositionKind.VisibilityMark x) {
 			writer ~= "Marks ";
 			writeName(writer, ctx, x.container.name);
 			writer ~= " as ";
@@ -220,6 +225,13 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 		});
 
 private:
+
+void writeStructAliasHover(scope ref Writer writer, in ShowModelCtx ctx, in StructAlias* a) {
+	if (has(a.target)) {
+		writer ~= "Alias for ";
+		writeTypeQuoted(writer, ctx, TypeWithContainer(Type(force(a.target)), TypeContainer(a)));
+	}
+}
 
 void writeStructDeclHover(scope ref Writer writer, in ShowModelCtx ctx, in StructDecl a) {
 	writer ~= a.body_.matchIn!string(
@@ -240,8 +252,41 @@ void writeStructDeclHover(scope ref Writer writer, in ShowModelCtx ctx, in Struc
 	writeName(writer, ctx, a.name);
 }
 
-void getImportedNameHover(scope ref Writer writer, in ShowModelCtx ctx, in PositionKind.ImportedName) {
-	writer ~= "TODO: getImportedNameHover";
+void writeSpecDeclHover(scope ref Writer writer, in ShowModelCtx ctx, in SpecDecl a) {
+	writer ~= "Spec ";
+	writeName(writer, ctx, a.name);
+}
+
+void getImportedNameHover(scope ref Writer writer, in ShowModelCtx ctx, in PositionKind.ImportedName a) {
+	if (has(a.referents)) {
+		bool first = true;
+		void separate() {
+			if (!first)
+				writeNewline(writer, 0);
+			first = false;
+		}
+
+		NameReferents* referents = force(a.referents);
+		if (has(referents.structOrAlias)) {
+			force(referents.structOrAlias).matchWithPointers!void(
+				(StructAlias* x) {
+					separate();
+					writeStructAliasHover(writer, ctx, x);
+				},
+				(StructDecl* x) {
+					separate();
+					writeStructDeclHover(writer, ctx, *x);
+				});
+		}
+		if (has(referents.spec)) {
+			separate();
+			writeSpecDeclHover(writer, ctx, *force(referents.spec));
+		}
+		foreach (FunDecl* x; referents.funs) {
+			separate();
+			writeFunDecl(writer, ctx, x);
+		}
+	}
 }
 
 void hoverTypeParam(

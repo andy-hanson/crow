@@ -1,4 +1,4 @@
-# Many types must be declared here because they're needed by 'CommonTypes' in the compiler (which uses bootstrap).
+# The compiler expects many common types to appear in this file. See 'getCommonTypes.d'.
 
 no-std
 

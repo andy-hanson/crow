@@ -118,6 +118,18 @@ Opt!T optOr(T)(
 ) =>
 	optOr!T(optOr!T(a, b), c, d, e, f, g);
 
+Opt!T optOr(T)(
+	Opt!T a,
+	in Opt!T delegate() @safe @nogc pure nothrow b,
+	in Opt!T delegate() @safe @nogc pure nothrow c,
+	in Opt!T delegate() @safe @nogc pure nothrow d,
+	in Opt!T delegate() @safe @nogc pure nothrow e,
+	in Opt!T delegate() @safe @nogc pure nothrow f,
+	in Opt!T delegate() @safe @nogc pure nothrow g,
+	in Opt!T delegate() @safe @nogc pure nothrow h,
+) =>
+	optOr!T(optOr!T(a, b), c, d, e, f, g, h);
+
 T optOrDefault(T)(Opt!T a, in T delegate() @safe @nogc pure nothrow cb) =>
 	has(a)
 		? force(a)

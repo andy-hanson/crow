@@ -15,6 +15,7 @@ import model.model :
 	SpecDecl,
 	SpecDeclSig,
 	SpecInst,
+	StructAlias,
 	StructDecl,
 	Test,
 	TypeParamIndex,
@@ -72,13 +73,14 @@ immutable struct LocalContainer {
 immutable struct VisibilityContainer {
 	@safe @nogc pure nothrow:
 
-	mixin Union!(FunDecl*, RecordField*, SpecDecl*, StructDecl*, VarDecl*);
+	mixin Union!(FunDecl*, RecordField*, SpecDecl*, StructAlias*, StructDecl*, VarDecl*);
 
 	Symbol name() scope =>
 		matchIn!Symbol(
 			(in FunDecl x) => x.name,
 			(in RecordField x) => x.name,
 			(in SpecDecl x) => x.name,
+			(in StructAlias x) => x.name,
 			(in StructDecl x) => x.name,
 			(in VarDecl x) => x.name);
 
@@ -87,6 +89,7 @@ immutable struct VisibilityContainer {
 			(in FunDecl x) => x.visibility,
 			(in RecordField x) => x.visibility,
 			(in SpecDecl x) => x.visibility,
+			(in StructAlias x) => x.visibility,
 			(in StructDecl x) => x.visibility,
 			(in VarDecl x) => x.visibility);
 }
@@ -121,6 +124,7 @@ immutable struct PositionKind {
 	}
 	immutable struct Keyword {
 		enum Kind {
+			alias_,
 			builtin,
 			enum_,
 			extern_,
@@ -176,6 +180,7 @@ immutable struct PositionKind {
 		SpecDecl*,
 		SpecSig,
 		SpecUse,
+		StructAlias*,
 		StructDecl*,
 		Test*,
 		TypeWithContainer,
