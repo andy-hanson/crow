@@ -23,8 +23,7 @@ import
 	./tuple: new
 export
 	# TODO: don't export find-c-string-end
-	./private/c-string-util: find-c-string-end, to
-	./private/bootstrap: char8, c-string
+	./private/c-string-util: char8, c-string, find-c-string-end, to
 
 ###
 Strings are optimized for fast concatenation and splitting.

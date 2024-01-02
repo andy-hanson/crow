@@ -16,8 +16,8 @@ import
 	../pointer: ==, <=>, +, *, as-const, mut-pointer, null, pointer-cast, set-deref, size-of
 	../version: is-interpreted, is-windows
 	./alloc: gc-ctx, mem-copy, try-alloc-uninitialized
-	./bootstrap: char8, c-string, hard-assert
-	./c-string-util: c-string-size-incl-nul
+	./bootstrap: hard-assert
+	./c-string-util: char8, c-string, c-string-size-incl-nul
 	./libunwind:
 		new, unw_context_t, unw_cursor_t, unw_getcontext, unw_get_proc_name, unw_init_local,
 		unw_step, unw_word_t

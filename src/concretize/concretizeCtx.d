@@ -264,6 +264,9 @@ ConcreteType cStringType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._cStringType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.cString, TypeArgsScope.empty));
 
+ConcreteStruct* symbolArrayType(ref ConcretizeCtx a) =>
+	mustBeByVal(getConcreteType_forStructInst(a, a.commonTypes.symbolArray, TypeArgsScope.empty));
+
 Constant constantCString(ref ConcretizeCtx a, string value) =>
 	getConstantCString(a.alloc, a.allConstants, value);
 

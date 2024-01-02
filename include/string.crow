@@ -1,7 +1,8 @@
 no-std
 import
 	crow/c-types: c-int, size_t
-	crow/private/bootstrap: any-const-pointer, any-mut-pointer, c-string
+	crow/pointer: any-const-pointer, any-mut-pointer
+	crow/private/c-string-util: c-string
 
 memcpy any-mut-pointer(dest any-mut-pointer, src any-const-pointer, size size_t) c extern
 

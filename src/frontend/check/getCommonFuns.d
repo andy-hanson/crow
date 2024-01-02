@@ -102,7 +102,6 @@ CommonFunsAndMain getCommonFuns(
 	StructDecl* listDecl = getStructDeclOrAddDiag(alloc, diagsBuilder, *modules[CommonModule.list], symbol!"list", 1);
 	Type stringType = getType(CommonModule.string_, symbol!"string");
 	Type markCtxType = getType(CommonModule.alloc, symbol!"mark-ctx");
-	Type symbolType = getType(CommonModule.bootstrap, symbol!"symbol");
 	Type int32Type = Type(commonTypes.integrals.int32);
 	Type nat8Type = Type(commonTypes.integrals.nat8);
 	Type nat64Type = Type(commonTypes.integrals.nat64);
@@ -111,9 +110,8 @@ CommonFunsAndMain getCommonFuns(
 	Type stringListType = instantiateType(listDecl, [stringType]);
 	Type nat8ConstPointerType = instantiateType(commonTypes.ptrConst, [nat8Type]);
 	Type nat8MutPointerType = instantiateType(commonTypes.ptrMut, [nat8Type]);
-	Type symbolArrayType = instantiateType(arrayDecl, [symbolType]);
 	Type char8ArrayType = instantiateType(arrayDecl, [Type(commonTypes.char8)]);
-	Type cStringType = instantiateType(commonTypes.ptrConst, [Type(commonTypes.char8)]);
+	Type cStringType = Type(commonTypes.cString);
 	Type cStringConstPointerType = instantiateType(commonTypes.ptrConst, [cStringType]);
 	Type mainPointerType = instantiateType(commonTypes.funPtrStruct, [nat64FutureType, stringListType]);
 
@@ -154,8 +152,6 @@ CommonFunsAndMain getCommonFuns(
 			param!"argv"(cStringConstPointerType),
 			param!"main"(mainPointerType),
 		]);
-	FunInst* staticSymbols =
-		getFun(CommonModule.bootstrap, symbol!"static-symbols", symbolArrayType, []);
 	FunInst* throwImpl = getFun(
 		CommonModule.exceptionLowLevel,
 		symbol!"throw-impl",
@@ -170,7 +166,7 @@ CommonFunsAndMain getCommonFuns(
 		CommonFuns(
 			finish(alloc, diagsBuilder),
 			allocFun, funOrActSubscriptFunDecls, curExclusion, mark,
-			markVisit, newNat64Future, newVoidFuture, rtMain, staticSymbols, throwImpl, char8ArrayAsString),
+			markVisit, newNat64Future, newVoidFuture, rtMain, throwImpl, char8ArrayAsString),
 		main);
 }
 

@@ -4,8 +4,8 @@ import
 	crow/c-types: c-int, err-t, fd-t, size_t, long
 	crow/misc: void
 	crow/number: nat8, nat32
-	crow/private/bootstrap: char8, c-string
 	crow/pointer: const-pointer, mut-pointer
+	crow/private/c-string-util: char8, c-string
 
 perror void(s c-string) summon, c extern
 

@@ -1,7 +1,7 @@
 no-std
 import
 	../bool: bool
-	../col/array: iterate, size
+	../col/array: array, iterate, size
 	../col/collection: for-loop
 	../col/map: ~=, build, get-or-add
 	../compare: comparison
@@ -11,7 +11,7 @@ import
 	../string: ==, <=>, char8, c-string, hash-mix, iterate, literal, size, string
 	../tuple: new
 	./alloc: unmanaged-alloc-elements
-	./bootstrap: static-symbols, symbol-to-c-string
+	./bootstrap: symbol-to-c-string
 	./runtime: get-global-ctx, global-ctx, set-deref-symbols-table, symbols-lock, symbols-table
 	./thread-utils: with-lock
 export
@@ -31,6 +31,9 @@ export
 init-symbol-table void(a global-ctx mut*) unsafe
 	a->symbols-table := for x : static-symbols
 		x.to, x
+
+# All symbols that exist in the compiled code, in arbitrary order
+-static-symbols symbol array() builtin, bare
 
 ###
 Interns a string.

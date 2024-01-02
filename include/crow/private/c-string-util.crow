@@ -3,6 +3,7 @@ import
 	../number: ==, +, nat8, nat64
 	../option: new, option
 	../pointer: +, -, *, as-const, as-mut, mut-pointer
+export
 	./bootstrap: char8, c-string
 
 +to char8(a nat8) builtin, bare

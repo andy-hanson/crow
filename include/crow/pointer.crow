@@ -5,12 +5,16 @@ Functions dealing with pointers and low-level memory issues.
 no-std
 import
 	./bool: bool
-	./compare: comparison, less, equal, greater
+	./compare: !=, comparison, less, equal, greater
 	./misc: void
-	./number: /, nat64
-	./private/number-low-level: wrap-sub
+	./private/number-low-level: ==, nat8, nat64, unsafe-div, wrap-sub
 export
-	./private/bootstrap: any-const-pointer, any-mut-pointer, const-pointer, mut-pointer, zeroed
+	./private/bootstrap: const-pointer, mut-pointer, zeroed
+
++any-const-pointer alias
+	nat8*
++any-mut-pointer alias
+	nat8 mut*
 
 # Treats a mutable pointer as constant.
 +as-const[t] t*(a t mut*) builtin, bare, unsafe
@@ -77,7 +81,8 @@ This is undefined behavior if `a < b` or if `size-of@t == 0`.
 +-[t] nat64(a t*, b t*) bare, unsafe
 	a.as-mut - b.as-mut
 +-[t] nat64(a t mut*, b t mut*) bare, unsafe
-	(a.to wrap-sub b.to) / size-of@t
+	assert size-of@t != 0
+	(a.to wrap-sub b.to) unsafe-div size-of@t
 
 -is-less[t] bool(a t*, b t*) builtin, bare, unsafe
 -is-less[t] bool(a t mut*, b t mut*) builtin, bare, unsafe

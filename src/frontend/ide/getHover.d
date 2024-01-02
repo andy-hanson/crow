@@ -320,8 +320,7 @@ void getExprHover(
 			writer ~= "Number literal";
 		},
 		(in LiteralCStringExpr _) {
-			writeName(writer, ctx, symbol!"c-string");
-			writer ~= " literal";
+			writer ~= "String literal";
 		},
 		(in LiteralSymbolExpr _) {
 			writer ~= "Symbol literal";

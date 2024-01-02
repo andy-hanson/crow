@@ -1,8 +1,8 @@
 no-std
 import
 	crow/c-types: c-int, err-t, size_t, long
-	crow/private/bootstrap: char8, c-string
 	crow/pointer: const-pointer, mut-pointer
+	crow/private/c-string-util: char8, c-string
 
 timespec record extern
 	tv_sec long

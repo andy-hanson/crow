@@ -8,7 +8,8 @@ import
 	../version: is-interpreted, is-windows
 	./alloc: try-get-cur-gc-ctx
 	./backtrace: get-backtrace
-	./bootstrap: abort, array, c-string, error, hard-assert, new, ok, result
+	./bootstrap: abort, array, error, hard-assert, new, ok, result
+	./c-string-util: c-string
 export
 	./bootstrap: exception, message
 

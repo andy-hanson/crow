@@ -13,6 +13,7 @@ import concretize.concretizeCtx :
 	finishConcreteVars,
 	getOrAddConcreteFunAndFillBody,
 	getOrAddNonTemplateConcreteFunAndFillBody,
+	symbolArrayType,
 	voidType;
 import frontend.showModel : ShowCtx;
 import frontend.storage : ReadFileResult;
@@ -84,7 +85,6 @@ ConcreteProgram concretizeInner(
 	ConcreteFun* userMainConcreteFun = concretizeMainFun(ctx, program.mainFun);
 	ConcreteFun* allocFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.alloc);
 	ConcreteFun* throwImplFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.throwImpl);
-	ConcreteFun* staticSymbolsFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.staticSymbols);
 	// We remove items from these maps when we process them.
 	assert(isEmpty(ctx.concreteFunToBodyInputs));
 
@@ -93,7 +93,7 @@ ConcreteProgram concretizeInner(
 	deferredFillRecordAndUnionBodies(ctx);
 
 	ConcreteProgram res = ConcreteProgram(
-		finishAllConstants(alloc, ctx.allConstants, mustBeByVal(staticSymbolsFun.returnType)),
+		finishAllConstants(alloc, ctx.allConstants, symbolArrayType(ctx)),
 		finish(alloc, ctx.allConcreteStructs),
 		finishConcreteVars(ctx),
 		allConcreteFuns,

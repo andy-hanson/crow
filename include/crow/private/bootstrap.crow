@@ -1,3 +1,5 @@
+# Many types must be declared here because they're needed by 'CommonTypes' in the compiler (which uses bootstrap).
+
 no-std
 
 region basic types
@@ -77,11 +79,6 @@ This is like `const-pointer` but supports writing to the contents.
 ###
 +mut-pointer[t] builtin extern, mut
 
-+any-const-pointer alias
-	nat8*
-+any-mut-pointer alias
-	nat8 mut*
-
 region arr
 
 ###
@@ -117,6 +114,7 @@ Taking a slice aliases the elements, so writing to the slice writes to the origi
 +mut-array[t] record by-val, mut
 	~inner t array
 
+# Needed here since it's used in 'future'
 ###
 Mutable array type that can change in size.
 This is represented as a reference to a `mut-array` with extra capacity.
@@ -124,6 +122,7 @@ Appending (or removing) elements to the end is amortized O(1),
 but appending (or removing) from the beginning is always O(N).
 ###
 +mut-list[t] record mut
+	# Fields should only be used in mut-list.crow
 	# backing.size is the capacity
 	# For the GC's sake, unused parts of backing are filled with 'zeroed'
 	~backing mut t mut-array
@@ -150,15 +149,6 @@ Boolean type: either `false` or `true`.
 Unlike in other programming languages, this isn't a numeric type.
 ###
 +bool builtin extern
-
-###
-False boolean value.
-This can also be written as `()`.
-###
-+false bool() builtin, bare
-
-# True boolean value.
-+true bool() builtin, bare
 
 region symbol.crow
 
@@ -424,8 +414,3 @@ lock record by-val, shared
 	n2 nat64
 	n3 nat64
 	n4 nat64
-
-region reflect
-
-# All symbols that exist in the compiled code, in arbitrary order
-static-symbols symbol array() builtin, bare

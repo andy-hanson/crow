@@ -3,7 +3,7 @@ import
 	crow/bool: bool, false
 	crow/c-types: c-char
 	crow/number: nat32, to
-	crow/private/bootstrap: c-string
+	crow/private/c-string-util: c-string
 	crow/pointer: *, any-const-pointer, any-mut-pointer, const-pointer, mut-pointer, null, size-of
 	win32: CONTEXT, DWORD, DWORD64, HANDLE, Rbp, Rip, Rsp, WORD
 

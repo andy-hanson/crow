@@ -1125,7 +1125,6 @@ immutable struct CommonFuns {
 	FunInst* newNat64Future;
 	FunInst* newVoidFuture;
 	FunInst* rtMain;
-	FunInst* staticSymbols;
 	FunInst* throwImpl;
 	FunInst* char8ArrayAsString;
 }
@@ -1140,6 +1139,7 @@ immutable struct CommonTypes {
 	StructInst* float64;
 	IntegralTypes integrals;
 	StructInst* symbol;
+	StructInst* symbolArray;
 	StructInst* void_;
 	StructDecl* array;
 	StructDecl* future;
