@@ -16,17 +16,18 @@ import
 	./range-low-level: .., high, low, range
 	./thread-utils: acquire, barrier, init, release, wait-barrier, uninit
 
+# Unlike 'mem-move', this does not handle 'dest' and 'src' overlapping
 mem-copy[t] void(dest t mut*, src t*, size nat64) bare, unsafe
 	d = dest as-const
 	assert d < src ? d + size <= src : src + size <= d
 	_ = dest.pointer-cast memcpy src.pointer-cast, (size wrap-mul size-of@t)
 
+# Unlike 'mem-copy', this handles 'dest' and 'src' overlapping
 mem-move[t] void(dest t mut*, src t*, size nat64) bare, unsafe
 	_ = dest.pointer-cast memmove src.pointer-cast, (size wrap-mul size-of@t)
 
-set-zero-range[t] void(begin t mut*, size nat64) bare, unsafe
-	# TODO: wrap-mul is unsafe
-	_ = begin.pointer-cast memset 0, (size wrap-mul size-of@t)
+mem-clear[t] void(dest t mut*, size nat64) bare, unsafe
+	_ = dest.pointer-cast memset 0, (size wrap-mul size-of@t)
 
 mark-ctx record by-val, mut
 	memory-size-words nat64

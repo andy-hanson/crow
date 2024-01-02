@@ -13,7 +13,7 @@ import
 	./collection: .., -, end, for-loop, join, set-subscript, subscript, with-index
 	./mut-array:
 		+, -, begin, cast-immutable, end, iterate, mut-array, is-empty, new, next, set-next,
-		set-subscript, set-zero-elements, size, slice, uninitialized-mut-array, zeroed-mut-array
+		set-subscript, size, slice, uninitialized-mut-array, zero-memory, zeroed-mut-array
 	./list:
 		==, ~=, +, -, begin, build, end, is-empty, iterate, list, new, next, size, to
 
@@ -157,7 +157,7 @@ Callers should then push something.
 			new-capacity = old-capacity * 2
 			new-inner t mut-array = new-capacity uninitialized-mut-array
 			new-inner[0 .. old-capacity] copy-from-deque a
-			new-inner[old-capacity .. new-capacity] set-zero-elements
+			new-inner[old-capacity .. new-capacity] zero-memory
 			a.inner := new-inner
 			a.left := 0
 			a.right := old-capacity

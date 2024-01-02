@@ -8,7 +8,7 @@ import
 	../option: new, option
 	../pointer:
 		+, -, as-const, mut-pointer, reference-equal, set-deref, set-subscript, subscript, zeroed
-	../private/alloc: mem-copy, mem-move, set-zero-range
+	../private/alloc: mem-copy, mem-move
 	../private/bootstrap: backing, mut-list-size, set-backing, set-mut-list-size
 	../private/number-low-level: round-up-to-power-of-two
 	../range: .., iterate
@@ -18,7 +18,7 @@ import
 	./mut-array:
 		+, -, begin, begin-pointer, cast-immutable, copy, empty-mut-array, end, mut-array,
 		mut-array-iterator, prev, next, next-index, set-next, set-prev, set-subscript,
-		set-zero-elements, size, slice, subscript, temp-as-array, uninitialized-mut-array
+		size, slice, subscript, temp-as-array, uninitialized-mut-array, zero-memory
 	./list: iterate, list, to
 export
 	../private/bootstrap: mut-list
@@ -67,8 +67,7 @@ Creates a new list with the given elements.
 
 +clear[t] void(a t mut[]) bare
 	trusted
-		# TODO: zero the memory for GC
-		a.begin-pointer set-zero-range a.size
+		a.backing[0 .. a.size] zero-memory
 		a.size := 0
 
 ###
@@ -167,7 +166,7 @@ Throws if `n > a.size`.
 	assert n <= a.size : "can't pop more than size of array"
 	new-size = a.size - n
 	trusted
-		a.begin-pointer + new-size set-zero-range n
+		a.backing[new-size .. a.size] zero-memory
 		a.size := new-size
 
 +prepend=[t] void(a t mut[], value t)
@@ -204,7 +203,7 @@ push-capacity-must-be-sufficient[t] void(a t mut[], value t) bare, unsafe
 		old-begin = a begin-pointer
 		a.backing := new-capacity uninitialized-mut-array
 		a.begin-pointer mem-copy old-begin.as-const, a.size
-		a.backing[a.size + 1 .. end] set-zero-elements
+		a.backing[a.size + 1 .. end] zero-memory
 
 ###
 For performance, hint that the list will eventually reach 'eventual-size'.
@@ -306,7 +305,7 @@ This can be written as `a.filter := f`.
 				*out := x
 				out +:= 1
 		new-size = out - a.begin-pointer
-		a.backing[new-size .. a.size] set-zero-elements
+		a.backing[new-size .. a.size] zero-memory
 		a.size := new-size
 
 region spec impls (see collection.crow)

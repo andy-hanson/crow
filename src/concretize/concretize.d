@@ -18,17 +18,10 @@ import concretize.concretizeCtx :
 import frontend.showModel : ShowCtx;
 import frontend.storage : ReadFileResult;
 import model.concreteModel :
-	ConcreteCommonFuns,
-	ConcreteFun,
-	ConcreteFunKey,
-	ConcreteLambdaImpl,
-	ConcreteProgram,
-	ConcreteStruct,
-	ConcreteType,
-	mustBeByVal;
+	ConcreteCommonFuns, ConcreteFun, ConcreteFunKey, ConcreteLambdaImpl, ConcreteProgram, ConcreteStruct;
 import model.model : CommonFuns, MainFun, ProgramWithMain;
 import util.alloc.alloc : Alloc;
-import util.col.array : emptySmallArray, newSmallArray, small;
+import util.col.array : emptySmallArray, newSmallArray;
 import util.col.arrayBuilder : finish;
 import util.col.map : Map;
 import util.col.mutArr : moveToArray, MutArr;

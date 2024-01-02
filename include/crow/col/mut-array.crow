@@ -1,16 +1,15 @@
 no-std
 import
-	string: memcpy
 	../bool: &&, bool, false, true
 	../compare: !=, <, <=, equal
 	../fun-util: subscript
-	../misc: new, void
+	../misc: void
 	../number: ==, <=>, +, -, *, /, %, nat64
 	../option: new, option
 	../pointer:
-		==, <=>, +, *, any-const-pointer, any-mut-pointer, as-const, as-mut, mut-pointer,
-		pointer-cast, set-subscript, size-of, subscript
-	../private/alloc: alloc-uninitialized, set-zero-range
+		==, <=>, +, *, as-const, as-mut, mut-pointer, pointer-cast, set-subscript, size-of,
+		subscript
+	../private/alloc: alloc-uninitialized, mem-move, mem-clear
 	../private/bootstrap: inner
 	../range: .., high, low, range, size
 	../tuple: new
@@ -108,9 +107,7 @@ set-subscript[t] void(dest t mut-array, range range-relative-to-end, source t mu
 -copy-from[t] void(dest t mut-array, source t array)
 	assert dest.size == source.size
 	trusted
-		dest-ptr any-mut-pointer = dest.begin-pointer pointer-cast
-		src-ptr any-const-pointer = source.begin-pointer pointer-cast
-		_ = dest-ptr memcpy src-ptr, dest.size * size-of@t
+		dest.begin-pointer mem-move source.begin-pointer, dest.size
 
 ###
 Allocates a `mut-array` without initializing any of its elements.
@@ -139,14 +136,15 @@ This is used by collections like `mut[]` that need some excess capacity that wil
 ###
 zeroed-mut-array[t] t mut-array(size nat64) unsafe
 	res t mut-array = size uninitialized-mut-array
-	res set-zero-elements
+	res zero-memory
 	res
 
 ###
-Sets every element to `zeroed`. See comment on `zeroed-mut-array` for why this is useful.
+Sets every element to `zeroed`.
+See comment on `zeroed-mut-array` for why this is useful.
 ###
-set-zero-elements[t] void(a t mut-array) bare, unsafe
-	a.begin-pointer set-zero-range a.size
+zero-memory[t] void(a t mut-array) bare, unsafe
+	a.begin-pointer mem-clear a.size
 
 +in[t] bool(value t, a t mut-array) bare, t equal
 	trusted
