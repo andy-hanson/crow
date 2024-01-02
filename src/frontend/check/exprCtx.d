@@ -14,7 +14,7 @@ import util.alloc.alloc : Alloc;
 import util.col.mutMaxArr : MutMaxArr;
 import util.opt : has, force, MutOpt, none, Opt, some;
 import util.perf : Perf;
-import util.sourceRange : Range;
+import util.sourceRange : Range, rangeOfStartAndLength;
 import util.symbol : AllSymbols, Symbol;
 
 struct ClosureFieldBuilder {
@@ -116,18 +116,22 @@ T withTrusted(T)(ref ExprCtx ctx, ExprAst* source, in T delegate() @safe @nogc p
 		? some(Diag.TrustedUnnecessary.Reason.inTrusted)
 		: none!(Diag.TrustedUnnecessary.Reason);
 	if(has(reason)) {
-		addDiag2(ctx, source, Diag(Diag.TrustedUnnecessary(force(reason))));
+		addDiag2(ctx, trustedKeywordRange(source), Diag(Diag.TrustedUnnecessary(force(reason))));
 		return cb();
 	} else {
 		ctx.isInTrusted = true;
 		T res = cb();
 		ctx.isInTrusted = false;
 		if (!ctx.usedTrusted)
-			addDiag2(ctx, source, Diag(Diag.TrustedUnnecessary(Diag.TrustedUnnecessary.Reason.unused)));
+			addDiag2(ctx, trustedKeywordRange(source), Diag(
+				Diag.TrustedUnnecessary(Diag.TrustedUnnecessary.Reason.unused)));
 		ctx.usedTrusted = false;
 		return res;
 	}
 }
+
+Range trustedKeywordRange(in ExprAst* source) =>
+	rangeOfStartAndLength(source.range.start, "trusted".length);
 
 bool checkCanDoUnsafe(ref ExprCtx ctx) {
 	if (ctx.outermostFunFlags.safety == FunFlags.Safety.unsafe)
