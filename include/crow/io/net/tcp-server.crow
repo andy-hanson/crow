@@ -1,15 +1,15 @@
 no-std
 import
-	errno: EAGAIN, errno, EWOULDBLOCK
-	fcntl: fcntl, F_GETFL, F_SETFL, O_NONBLOCK
-	netinet/in: new, sockaddr_in
-	stdio: perror
-	sys/epoll:
+	system/errno: EAGAIN, errno, EWOULDBLOCK
+	system/fcntl: fcntl, F_GETFL, F_SETFL, O_NONBLOCK
+	system/netinet/in: new, sockaddr_in
+	system/stdio: perror
+	system/sys/epoll:
 		epoll_create1, epoll_ctl, EPOLL_CTL_ADD, EPOLLERR, EPOLLET, epoll_event, EPOLLHUP, EPOLLIN,
 		epoll_wait, event_data, events, new
-	sys/socket: accept, as-fd, as-socket, listen, shutdown, SHUT_RDWR, sockaddr, SOCKET
-	sys/types: socklen_t
-	unistd: close, read
+	system/sys/socket: accept, as-fd, as-socket, listen, shutdown, SHUT_RDWR, sockaddr, SOCKET
+	system/sys/types: socklen_t
+	system/unistd: close, read
 	../../bits: |, bits-intersect
 	../../bool: ||, bool, false, not, true
 	../../col/array: +, array, begin, slice

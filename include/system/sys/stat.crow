@@ -4,7 +4,8 @@ import
 	crow/number: nat32
 	crow/pointer: mut-pointer
 	crow/string: c-string
-	sys/types: blkcnt_t, blksize_t, dev_t, gid_t, ino_t, mode_t, nlink_t, off_t, time_t, uid_t
+	system/sys/types:
+		blkcnt_t, blksize_t, dev_t, gid_t, ino_t, mode_t, nlink_t, off_t, time_t, uid_t
 
 stat record extern
 	st_dev dev_t

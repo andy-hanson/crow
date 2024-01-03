@@ -17,12 +17,7 @@ const tab_size = 4
 */
 export const Token = null
 
-
-/**
- * @typedef TokensAndDiagnostics
- * @property {ReadonlyArray<Token>} tokens
- * @property {ReadonlyArray<Diagnostic>} diagnostics
- */
+/** @typedef {{tokens:ReadonlyArray<Token>, diagnostics:ReadonlyArray<Diagnostic>}} TokensAndDiagnostics */
 export const TokensAndDiagnostics = null
 
 /**
@@ -108,26 +103,27 @@ textarea {
 .namespace { color: #ff6188; }
 .number { color: #ffd866; }
 .parameter { color: #ffebbd; }
+.property { color: #fefefe; }
 .string { color: #ffd866; }
 .type { color: #ab9df2; }
 .type-param { color: #fc9867; }
 .variable { color: #ffebbd; }
 .comment { color: #ddeedd; }
 
-.diag {
+.diagnostic {
 	position: relative;
 	border-bottom: 0.2em dotted #e87878;
 }
-.diag::after {
+.diagnostic::after {
 	content: attr(data-tooltip);
 	position: absolute;
 	white-space: nowrap;
 	background: #80000080;
-	padding: 0.5em;
+	padding: 0.25em;
 	color: #fdf9f3;
 	border-radius: 0.5em;
 	margin-left: -1em;
-	margin-top: 0.5ex;
+	margin-top: 0.25ex;
 	top: 3ex;
 }
 .hover-tooltip {
@@ -295,21 +291,13 @@ const highlight = (td, highlightDiv, text) => {
 const createDiagSpan = (message, children) =>
 	createSpan({
 		attr: {"data-tooltip": message},
-		className: "diag",
+		className: "diagnostic",
 		children,
 	})
 
-/**
- * @typedef AllContainer
- * @property {"all"} type
- * @property {Array<Node>} children
- */
+/** @typedef {{type:"all", children:Node[]}} AllContainer */
 
-/**
- * @typedef LineContainer
- * @property {"line"} type
- * @property {Array<Node>} children
- */
+/** @typedef {{type:"line", children:Node[]}} LineContainer */
 
 /**
  * @typedef DiagContainer
@@ -319,20 +307,11 @@ const createDiagSpan = (message, children) =>
  * @property {string} message
  */
 
-/**
- * @typedef TextContainer
- * @property {"text"} type
- * @property {string} text
- * @property {Array<Node>} children
- */
+/** @typedef {{type:"text", text:string, children:Node[]}} TextContainer */
 
-/**
- * @typedef {AllContainer | LineContainer | DiagContainer} Container
- */
+/** @typedef {AllContainer | LineContainer | DiagContainer} Container */
 
- /**
- * @typedef {Container | TextContainer} SomeContainer
- */
+/** @typedef {Container | TextContainer} SomeContainer */
 
 /** @type {function(TokensAndDiagnostics, string): ReadonlyArray<Node>} */
 const tokensAndDiagsToNodes = ({tokens, diagnostics}, text) => {

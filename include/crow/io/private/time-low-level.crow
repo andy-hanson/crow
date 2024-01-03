@@ -1,7 +1,7 @@
 no-std
 import
-	time: clock_gettime, CLOCK_MONOTONIC, new, timespec, tv_nsec, tv_sec
-	win32: GetTickCount
+	system/time: clock_gettime, CLOCK_MONOTONIC, new, timespec, tv_nsec, tv_sec
+	system/win32: GetTickCount
 	../../number: ==, +, *, /, %, int64, to
 	../../private/bootstrap: nat64, todo
 	../../version: is-windows

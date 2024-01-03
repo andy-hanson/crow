@@ -52,7 +52,7 @@ import model.model :
 	TypeParamsAndSig;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
-import util.col.array : exists, isEmpty, only;
+import util.col.array : contains, exists, isEmpty, only;
 import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderSort, finish;
 import util.col.multiMap : makeMultiMap, MultiMap, MultiMapCb;
 import util.col.sortUtil : sorted;
@@ -73,21 +73,21 @@ import util.writer :
 	writeWithSeparator,
 	Writer;
 
-CString stringOfDiagnostics(ref Alloc alloc, in ShowDiagCtx ctx, in Program program) =>
+CString stringOfDiagnostics(ref Alloc alloc, in ShowDiagCtx ctx, in Program program, in Opt!(Uri[]) onlyForUris) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		DiagnosticSeverity severity = maxDiagnosticSeverity(program);
 		bool first = true;
-		foreach (UriAndDiagnostics x; sortedDiagnostics(alloc, ctx.allUris, program)) {
-			foreach (Diagnostic diagnostic; x.diagnostics) {
-				if (getDiagnosticSeverity(diagnostic.kind) == severity) {
-					if (!first)
-						writer ~= '\n';
-					else
-						first = false;
-					showDiagnostic(writer, ctx, UriAndDiagnostic(x.uri, diagnostic));
+		foreach (UriAndDiagnostics x; sortedDiagnostics(alloc, ctx.allUris, program))
+			if (!has(onlyForUris) || contains(force(onlyForUris), x.uri))
+				foreach (Diagnostic diagnostic; x.diagnostics) {
+					if (getDiagnosticSeverity(diagnostic.kind) == severity) {
+						if (!first)
+							writer ~= '\n';
+						else
+							first = false;
+						showDiagnostic(writer, ctx, UriAndDiagnostic(x.uri, diagnostic));
+					}
 				}
-			}
-		}
 	});
 
 CString stringOfDiag(ref Alloc alloc, in ShowDiagCtx ctx, in Diag diag) =>
@@ -652,6 +652,13 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 					}
 					writeNewline(writer, 1);
 					writeUri(writer, ctx, y.cycle[0]);
+				},
+				(in Diag.ImportFileDiag.LibraryNotConfigured x) {
+					writer ~= "Library ";
+					writeName(writer, ctx, x.libraryName);
+					writer ~= " is not configured.";
+					writeNewline(writer, 0);
+					writer ~= "It must be added to \"include\" in 'crow-config.json'.";
 				},
 				(in Diag.ImportFileDiag.ReadError y) {
 					showReadFileDiag(writer, ctx, y.diag, some(y.uri));

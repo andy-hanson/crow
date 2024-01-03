@@ -134,7 +134,7 @@ const connected = (shadowRoot, name, noRun, crow, initialText) => {
 			// Put behind a timeout so loading will show
 			setTimeout(() => {
 				collapseButton.classList.remove("collapsed")
-				output.finishRunning(crow.request("custom/run", {uri:mainUri}))
+				output.finishRunning(crow.request("custom/run", {uri:mainUri, diagnosticsOnlyForUris:[mainUri]}))
 			}, 0)
 		} catch (e) {
 			console.error("ERROR WHILE RUNNING", e)

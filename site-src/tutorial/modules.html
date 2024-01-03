@@ -26,7 +26,8 @@
 	<aside class="small">
 		Don't pass multiple files to <code>crow run</code>.
 		<br />
-		Just pass the path of the <code>main</code> function, and it will find other files based on imports.
+		Just pass the file containing <code class="function">main</code>,
+		and Crow will use import paths to find other files.
 	</aside>
 
 	<h3>Whole-module imports</h3>
@@ -58,14 +59,27 @@
 	</p>
 	<aside class="small">Always use <code>/</code> instead of <code>\</code>, even on Windows.</aside>
 
-	<h3>Global imports</h3>
+	<h3>Library imports</h3>
 	<p>
-		Importing from the crow standard library looks like <code>crow/crypto/random</code>.
-		Note that there is no <code>./</code> in front.
+		An import like <code>crow/io/print</code> that starts with a plain name
+		(as opposed to <code>./</code> or <code>../</code>) is a library import.
+		<br />
+		The first part of the path is the library name.
+		In <code>crow/io/print</code>, the library name is <code>crow</code>.
+		<br />
+		A global import first looks up the library path, then appends the rest of the path to that.
+		<br />
+		If the library name is <code>crow</code> or <code>system</code>,
+		the library path is <code>include/crow</code> or <code>include/system</code>
+		from where Crow is installed.
+		<br />
+		Otherwise, the library path must be specified in <code>crow-config.json</code>.
 	</p>
 	<aside class="small">
-		Some parts of the standard library are imported by default.
-		See if it works without the import first.
+		<code>crow/std</code> is imported by default.
+		This re-exports common modules like <code>crow/string</code> so you don't have to explicitly import them.
+		<br />
+		See them all <a href="https://github.com/andy-hanson/crow/blob/master/include/crow/std.crow">here</a>.
 	</aside>
 </section>
 <section>
@@ -102,10 +116,10 @@
 
 	<crow-runnable>
 		import
-			./greetings.crow as greetings string
+			./hello.txt as hello string
 
 		main void()
-			info log "The content of greetings.crow is:\n{greetings}"
+			info log hello
 	</crow-runnable>
 
 	<p>
@@ -205,7 +219,8 @@
 		main void()
 			a dimensions = 4,
 			info log "{a.area}"
-			info log a.debug # compile error
+			info log a.debug
+			# above has a compile error, will throw
 	</crow-runnable>
 
 	<p>

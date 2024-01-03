@@ -236,6 +236,9 @@ immutable struct Diag {
 		immutable struct CircularImport {
 			Uri[] cycle;
 		}
+		immutable struct LibraryNotConfigured {
+			Symbol libraryName;
+		}
 		immutable struct ReadError {
 			// The imported file will also have a ParseDiag for the issue, but we also show the error in the importer.
 			// (This is important in an IDE.)
@@ -245,7 +248,7 @@ immutable struct Diag {
 		immutable struct RelativeImportReachesPastRoot {
 			RelPath imported;
 		}
-		mixin Union!(CircularImport, ReadError, RelativeImportReachesPastRoot);
+		mixin Union!(CircularImport, LibraryNotConfigured, ReadError, RelativeImportReachesPastRoot);
 	}
 	immutable struct ImportRefersToNothing {
 		Symbol name;

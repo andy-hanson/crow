@@ -118,12 +118,13 @@ ExitCode buildAndInterpret(
 	in Extern extern_,
 	in WriteError writeError,
 	Uri main,
+	in Opt!(Uri[]) diagnosticsOnlyForUris,
 	in CString[] allArgs,
 ) {
 	assert(filesState(server) == FilesState.allLoaded);
 	return withTempAllocImpure!ExitCode(server.metaAlloc, AllocKind.buildToLowProgram, (ref Alloc buildAlloc) {
 		Programs programs = buildToLowProgram(perf, buildAlloc, server, versionInfoForInterpret, main);
-		CString diags = showDiagnostics(buildAlloc, server, programs.program);
+		CString diags = showDiagnostics(buildAlloc, server, programs.program, diagnosticsOnlyForUris);
 		if (!cStringIsEmpty(diags))
 			writeError(diags);
 		if (!has(programs.lowProgram))
@@ -298,7 +299,7 @@ private LspOutResult handleLspRequestWithProgram(
 		(in RunParams x) {
 			ArrayBuilder!Write writes;
 			// TODO: this redundantly builds a program...
-			ExitCode exitCode = run(perf, alloc, server, x.uri, (Pipe pipe, in string x) {
+			ExitCode exitCode = run(perf, alloc, server, x.uri, x.diagnosticsOnlyForUris, (Pipe pipe, in string x) {
 				add(alloc, writes, Write(pipe, copyString(alloc, x)));
 			});
 			return LspOutResult(RunResult(exitCode, finish(alloc, writes)));
@@ -310,7 +311,14 @@ private LspOutResult handleLspRequestWithProgram(
 		(in UnloadedUrisParams _) =>
 			assert(false));
 
-private ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri main, in WriteCb writeCb) {
+private ExitCode run(
+	scope ref Perf perf,
+	ref Alloc alloc,
+	ref Server server,
+	Uri main,
+	in Opt!(Uri[]) diagnosticsOnlyForUris,
+	in WriteCb writeCb,
+) {
 	// TODO: use an arena so anything allocated during interpretation is cleaned up.
 	// Or just have interpreter free things.
 	CString[1] allArgs = [cString!"/usr/bin/fakeExecutable"];
@@ -320,7 +328,7 @@ private ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, Ur
 			(in CString x) {
 				writeCb(Pipe.stderr, stringOfCString(x));
 			},
-			main, allArgs));
+			main, diagnosticsOnlyForUris, allArgs));
 }
 
 pure:
@@ -458,8 +466,13 @@ Uri[] allUnknownUris(ref Alloc alloc, in Server server) =>
 private Uri[] allUnloadedUris(ref Alloc alloc, in Server server) =>
 	allUrisWithFileDiag(alloc, server.storage, [ReadFileDiag.unknown, ReadFileDiag.loading]);
 
-CString showDiagnostics(ref Alloc alloc, in Server server, in Program program) =>
-	stringOfDiagnostics(alloc, getShowDiagCtx(server, program), program);
+CString showDiagnostics(
+	ref Alloc alloc,
+	in Server server,
+	in Program program,
+	in Opt!(Uri[]) onlyForUris = none!(Uri[]),
+) =>
+	stringOfDiagnostics(alloc, getShowDiagCtx(server, program), program, onlyForUris);
 
 immutable struct DocumentResult {
 	CString document;

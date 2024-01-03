@@ -3,7 +3,7 @@ import
 	crow/c-types: err-t, u-int, u-long
 	crow/number: int32
 	crow/pointer: any-const-pointer, any-mut-pointer, const-pointer, mut-pointer
-	time: __clockid_t, timespec
+	system/time: __clockid_t, timespec
 
 pthread_t alias
 	u-long

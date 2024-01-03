@@ -5,8 +5,8 @@ import
 	crow/number: int32
 	crow/pointer: const-pointer, mut-pointer
 	crow/string: c-string
-	sys/socket: sockaddr
-	sys/types: socklen_t
+	system/sys/socket: sockaddr
+	system/sys/types: socklen_t
 
 addrinfo record extern, mut
 	ai_flags int32

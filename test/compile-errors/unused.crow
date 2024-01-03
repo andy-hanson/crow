@@ -4,7 +4,7 @@ import
 	# unused type
 	crow/io/time-format: time-locale
 	# unused type alias
-	unistd: ssize_t
+	system/unistd: ssize_t
 	# unused spec
 	crow/col/collection: begin-end
 	# unused module

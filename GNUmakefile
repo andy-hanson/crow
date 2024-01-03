@@ -119,7 +119,7 @@ bin/crow.wasm: $(wasm_deps)
 	rm bin/crow-wasm.o
 	mv bin/crow-wasm.wasm bin/crow.wasm
 
-ALL_INCLUDE = include/*.crow include/*/*.crow include/*/*/*.crow include/*/*/*/*.crow
+ALL_INCLUDE = include/*/*.crow include/*/*/*.crow include/*/*/*/*.crow
 
 ### lint ###
 

@@ -1,7 +1,7 @@
 no-std
 import
-	stdlib: free, malloc
-	string: memcpy, memmove, memset
+	system/stdlib: free, malloc
+	system/string: memcpy, memmove, memset
 	../bits: ~, &
 	../bool: bool, false, not, to, true
 	../compare: !=, <, <=, >, >=

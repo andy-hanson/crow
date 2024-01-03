@@ -152,7 +152,8 @@ SmallString takeNewline_topLevel(ref Lexer lexer) {
 		return token.asDocComment().docComment;
 	else {
 		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.newline)));
-		NewlineOrDedent nl = skipToNextNewlineOrDedent(lexer);
+		assert(token.token != Token.newlineDedent);
+		NewlineOrDedent nl = skipToNextNewlineOrDedent(lexer, token.token == Token.newlineIndent ? 1 : 0);
 		assert(nl == NewlineOrDedent.newline);
 		return emptySmallString;
 	}
@@ -181,8 +182,7 @@ NewlineOrDedent takeNewlineOrDedent(ref Lexer lexer) {
 	}
 }
 
-private NewlineOrDedent skipToNextNewlineOrDedent(ref Lexer lexer) {
-	uint dedentsNeeded = 0;
+private NewlineOrDedent skipToNextNewlineOrDedent(ref Lexer lexer, uint dedentsNeeded = 0) {
 	while (true) {
 		skipUntilNewlineNoDiag(lexer);
 		switch (takeNextToken(lexer).token) {

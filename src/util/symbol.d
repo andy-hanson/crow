@@ -460,6 +460,7 @@ immutable string[] specialSymbols = [
 	"unsafe-bit-shift-right\0",
 
 	"contentChanges\0",
+	"diagnosticsOnlyForUris\0",
 	"initializationOptions\0",
 	"textDocument\0",
 	"unloadedUris\0",

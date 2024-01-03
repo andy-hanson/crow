@@ -126,14 +126,6 @@ const readCString = begin => {
 	return res
 }
 
-/** @type {function(number, number): string} */
-const readString = (begin, length) => {
-	let res = ""
-	for (let i = 0; i < length; i++)
-		res += String.fromCharCode(view.getUint8(begin + i))
-	return res
-}
-
 /** @type {function({begin:CStr, length:number}, string): CStr} */
 const writeCString = ({begin, length}, content) => {
 	assert(content.length < length)
@@ -165,6 +157,8 @@ const makeLspServer = async () => {
 	}
 }
 
+let diagnosticsPerUri = new Map()
+
 /** @type {Promise<CrowServer>} */
 const crowServer = (async () => {
 	const lsp = await makeLspServer()
@@ -173,16 +167,14 @@ const crowServer = (async () => {
 
 	/** @type {function(Uri, Response): ReadonlyArray<Diagnostic>} */
 	const getDiagnostics = (uri, response) => {
-		let diagnostics = []
 		for (const message of response.messages) {
 			if (message.method === "custom/unknownUris") {
 			} else {
 				assert(message.method === "textDocument/publishDiagnostics")
-				assert(message.params.uri === uri)
-				diagnostics = message.params.diagnostics
+				diagnosticsPerUri.set(message.params.uri, message.params.diagnostics)
 			}
 		}
-		return diagnostics
+		return diagnosticsPerUri.get(uri) || []
 	}
 
 	/** @type {CrowServer["openFile"]} */
@@ -211,6 +203,7 @@ const crowServer = (async () => {
 	for (const [path, text] of Object.entries(includeAll))
 		openFile(`${includeDir}/${path}`, text)
 	openFile("file:///crow-config.json", "{}")
+	openFile("file:///hello.txt", "Hello, world!")
 	markUnknownFilesNotFound()
 
 	return {request:lsp.request, tokensLegend, openFile, changeFile, markUnknownFilesNotFound}

@@ -6,7 +6,7 @@ Most of these take a `unix-time`; see `get-unix-time` in `crow/io/time`.
 
 no-std
 import
-	time: gmtime, localtime, strftime
+	system/time: gmtime, localtime, strftime
 	../bool: bool, false, true
 	../col/array: +, begin, slice
 	../col/collection: subscript

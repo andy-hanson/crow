@@ -115,6 +115,7 @@ enum ReadFileResultType { ok, notFound, error }
 // Parameter to "custom/run"
 immutable struct RunParams {
 	Uri uri;
+	Opt!(Uri[]) diagnosticsOnlyForUris;
 }
 immutable struct RunResult {
 	ExitCode exitCode;

@@ -304,6 +304,7 @@ ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, in Command
 							printError(x);
 						},
 						run.mainUri,
+						none!(Uri[]),
 						getAllArgs(alloc, server.allUris, run.mainUri, run.programArgs))),
 		(in RunOptions.Jit x) {
 			version (GccJitAvailable) {

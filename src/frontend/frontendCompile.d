@@ -38,7 +38,7 @@ import util.json : field, Json, jsonObject;
 import util.memory : allocate, initMemory;
 import util.opt : ConstOpt, force, has, MutOpt, Opt, none, noneMut, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.symbol : AllSymbols, symbol;
+import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : Union, UnionMutable;
 import util.uri :
 	addExtension,
@@ -580,10 +580,15 @@ MostlyResolvedImport tryResolveImport(ref FrontendCompiler a, in Config config, 
 	UriOrDiag base = ast.path.matchIn!UriOrDiag(
 		(in Path path) {
 			PathFirstAndRest fr = firstAndRest(a.allUris, path);
-			Opt!Uri fromConfig = config.include[fr.first];
-			return UriOrDiag(has(fromConfig)
-				? (has(fr.rest) ? concatUriAndPath(a.allUris, force(fromConfig), force(fr.rest)) : force(fromConfig))
-				: concatUriAndPath(a.allUris, a.crowIncludeDir, path));
+			Symbol libraryName = fr.first;
+			if (libraryName == symbol!"crow" || libraryName == symbol!"system")
+				return UriOrDiag(concatUriAndPath(a.allUris, a.crowIncludeDir, path));
+			else {
+				Opt!Uri fromConfig = config.include[libraryName];
+				return has(fromConfig)
+					? UriOrDiag(has(fr.rest) ? concatUriAndPath(a.allUris, force(fromConfig), force(fr.rest)) : force(fromConfig))
+					: UriOrDiag(Diag.ImportFileDiag(Diag.ImportFileDiag.LibraryNotConfigured(libraryName)));
+			}
 		},
 		(in RelPath relPath) {
 			Opt!Uri rel = resolveUri(a.allUris, parentOrEmpty(a.allUris, fromUri), relPath);

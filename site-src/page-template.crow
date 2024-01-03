@@ -8,7 +8,7 @@ page-template path-and-content(path string, title string, content string)
 <head>
 	<meta charset="utf-8">
 	<title>Crow programming language: {title}</title>
-	<link rel="icon" href="crow.svg" type="image/x-icon">
+	<link rel="icon" href="/crow.svg" type="image/x-icon">
 	<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/hack-font@3/build/web/hack-subset.css">
 	<link rel="stylesheet" href="/index.css">
 	<script type="module" async src="/script/index.js"></script>
@@ -18,7 +18,7 @@ page-template path-and-content(path string, title string, content string)
 		<nav>
 			<div id="crow">
 				<a href="/">
-					<img src="crow.svg" alt="crow icon" />
+					<img src="/crow.svg" alt="crow icon" />
 				</a>
 			</div>
 			<ul class="grow">

@@ -1,6 +1,6 @@
 no-std
 import
-	errno: errno
+	system/errno: errno
 	../c-types: err-t
 	../misc: new, void
 	../number: ==

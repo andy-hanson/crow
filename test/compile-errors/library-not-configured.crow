@@ -1,0 +1,5 @@
+import
+	non-existent: foo
+
+main void()
+	()

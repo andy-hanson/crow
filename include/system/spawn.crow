@@ -4,7 +4,7 @@ import
 	crow/number: int32
 	crow/pointer: any-const-pointer, const-pointer, mut-pointer
 	crow/string: c-string
-	sys/types: mode_t, pid_t
+	system/sys/types: mode_t, pid_t
 
 posix_spawn_file_actions_t extern(80)
 

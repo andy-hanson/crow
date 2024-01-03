@@ -5,7 +5,7 @@ import
 	crow/private/number-low-level: unsafe-to
 	crow/pointer: any-mut-pointer, mut-pointer
 	crow/version: is-windows
-	unistd: ssize_t
+	../unistd: ssize_t
 	./types: socklen_t
 
 AF_UNSPEC nat16() bare

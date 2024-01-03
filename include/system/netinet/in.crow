@@ -1,7 +1,7 @@
 no-std
 import
 	crow/number: nat16, nat32, nat64
-	sys/socket: sa_family_t
+	system/sys/socket: sa_family_t
 
 in_addr_t alias
 	nat32

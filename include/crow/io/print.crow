@@ -1,8 +1,8 @@
 no-std
 import
-	stdio: stderr, stdout
-	unistd: write
-	win32:
+	system/stdio: stderr, stdout
+	system/unistd: write
+	system/win32:
 		DWORD, GetLastError, GetStdHandle, HANDLE, STD_ERROR_HANDLE, STD_OUTPUT_HANDLE,
 		WriteFile
 	../col/array: array, begin-pointer, size

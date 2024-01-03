@@ -60,7 +60,11 @@ LspInMessage parseLspInMessage(ref Alloc alloc, scope ref AllUris allUris, in Js
 				toReadFileResponseType(get!"type"(params).as!string),
 				hasKey!"content"(params) ? get!"content"(params).as!string : ""));
 		case "custom/run":
-			return request(RunParams(parseUriProperty(allUris, params)));
+			return request(RunParams(
+				parseUriProperty(allUris, params),
+				hasKey!"diagnosticsOnlyForUris"(params)
+					? some(parseUriList(alloc, allUris, get!"diagnosticsOnlyForUris"(params)))
+					: none!(Uri[])));
 		case "custom/unloadedUris":
 			return request(UnloadedUrisParams());
 		case "exit":
@@ -100,6 +104,10 @@ LspInMessage parseLspInMessage(ref Alloc alloc, scope ref AllUris allUris, in Js
 }
 
 private:
+
+Uri[] parseUriList(ref Alloc alloc, scope ref AllUris allUris, in Json a) =>
+	map(alloc, a.as!(Json[]), (ref Json x) =>
+		parseUri(allUris, x.as!string));
 
 InitializationOptions parseInitializationOptions(in Json a) =>
 	InitializationOptions(hasKey!"unknownUris"(a) ? get!"unknownUris"(a).as!bool : false);

@@ -4,7 +4,7 @@ import
 	crow/pointer: any-const-pointer, any-mut-pointer, const-pointer, mut-pointer
 	crow/private/c-string-util: char8, c-string
 	crow/private/number-low-level: int32, int64, nat32
-	sys/types: off_t
+	./sys/types: off_t
 
 getcwd char8 mut*(buf char8 mut*, size size_t) summon, c extern
 

@@ -9,8 +9,8 @@ import
 		*, any-const-pointer, any-mut-pointer, const-pointer, mut-pointer, new, pointer-cast,
 		size-of, to-mut-pointer
 	crow/private/c-string-util: c-string
-	stdio: FILE
-	sys/types: mode_t
+	system/stdio: FILE
+	system/sys/types: mode_t
 
 CRITICAL_SECTION record extern
 	n0 nat64

@@ -1,9 +1,9 @@
 no-std
 import
-	win32:
+	system/win32:
 		CONTEXT, CONTEXT_FULL, GetCurrentProcess, GetCurrentThread, HANDLE,
 		IMAGE_FILE_MACHINE_AMD64, new, RtlCaptureContext
-	windows/DbgHelp:
+	system/windows/DbgHelp:
 		AddrPC, FileName, IMAGEHLP_LINE64, IMAGEHLP_SYMBOL64, LineNumber, Name, new, Offset,
 		STACKFRAME64, StackWalk64, SymCleanup, SymGetLineFromAddr64, SymGetSymFromAddr64,
 		SymFunctionTableAccess64, SymInitialize, SYMOPT_LOAD_LINES, SymSetOptions

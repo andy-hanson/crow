@@ -1,6 +1,6 @@
 no-std
 import
-	unistd: __environ
+	system/unistd: __environ
 	../col/collection: build, with-block
 	../col/map: ~=, build, map
 	../private/bootstrap: todo

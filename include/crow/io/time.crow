@@ -1,6 +1,6 @@
 no-std
 import
-	time: time, time_t
+	system/time: time, time_t
 	../compare: max
 	../future: future, subscript, then
 	../misc: break-or-continue, new, shared, void

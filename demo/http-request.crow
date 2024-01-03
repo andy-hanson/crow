@@ -1,11 +1,11 @@
 import
 	crow/c-types: fd-t
 	crow/io/print: out, print
-	arpa/inet: inet_addr, inet_ntoa
-	netdb: gethostbyname, getprotobyname, h_addr_list, p_proto
-	netinet/in: htons, in_addr, new, sockaddr_in
-	sys/socket: AF_INET, connect, sockaddr, socket, SOCK_STREAM
-	unistd: read, write
+	system/arpa/inet: inet_addr, inet_ntoa
+	system/netdb: gethostbyname, getprotobyname, h_addr_list, p_proto
+	system/netinet/in: htons, in_addr, new, sockaddr_in
+	system/sys/socket: AF_INET, connect, sockaddr, socket, SOCK_STREAM
+	system/unistd: read, write
 
 main nat^(_ string[]) summon
 	hostname = "crow-lang.org"

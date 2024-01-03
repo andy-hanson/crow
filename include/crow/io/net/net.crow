@@ -4,16 +4,16 @@ Module for low-level networking.
 
 no-std
 import
-	bits/socket_type: SOCK_STREAM
 	crow/misc: new, void
 	crow/version: is-windows
-	netdb:
+	system/bits/socket_type: SOCK_STREAM
+	system/netdb:
 		addrinfo, ai_addr, ai_addrlen, ai_family, ai_next, ai-passive, ai_protocol, ai_socktype,
 		freeaddrinfo, getaddrinfo, new
-	sys/socket:
+	system/sys/socket:
 		AF_INET, AF_UNSPEC, as-fd, bind, closesocket, connect, INVALID_SOCKET, socket, SOCKET
-	unistd: close
-	win32: new, MAKEWORD, WSADATA, WSAStartup
+	system/unistd: close
+	system/win32: new, MAKEWORD, WSADATA, WSAStartup
 	../../compare: !=
 	../../number: ==, int32, nat16, to
 	../../option: force, new, option

@@ -1,8 +1,8 @@
 no-std
 import
-	errno: EAGAIN, errno
-	sys/socket: as-fd, SOCKET
-	unistd: write
+	system/errno: EAGAIN, errno
+	system/sys/socket: as-fd, SOCKET
+	system/unistd: write
 	../../bool: bool, false, true
 	../../col/array: +, -, array, begin, begin-pointer, end, is-empty, iterate, size, slice
 	../../col/collection:

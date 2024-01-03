@@ -1,12 +1,12 @@
 no-std
 import
-	dirent: closedir, DIR, dirent, d_name, new, opendir, readdir_r
-	errno: EEXIST, ENOENT, errno
-	stdio: fclose, ferror, FILE, fopen, fread, fseek, ftell, fwrite, SEEK_SET, SEEK_END
-	sys/stat: mkdir, new, S_IFDIR, S_IFMT, S_IFREG, stat, st_mode
-	sys/types: mode_t
-	unistd: getcwd, readlink, rmdir, symlink, unlink
-	win32:
+	system/dirent: closedir, DIR, dirent, d_name, new, opendir, readdir_r
+	system/errno: EEXIST, ENOENT, errno
+	system/stdio: fclose, ferror, FILE, fopen, fread, fseek, ftell, fwrite, SEEK_SET, SEEK_END
+	system/sys/stat: mkdir, new, S_IFDIR, S_IFMT, S_IFREG, stat, st_mode
+	system/sys/types: mode_t
+	system/unistd: getcwd, readlink, rmdir, symlink, unlink
+	system/win32:
 		&, |, ==, cFileName, CreateSymbolicLinkA, DeleteFileA, ERROR_FILE_NOT_FOUND,
 		ERROR_NO_MORE_FILES, ERROR_PATH_NOT_FOUND, FILE_ATTRIBUTE_DIRECTORY, FindClose,
 		FindFirstFileA, FindNextFileA, _getcwd, GetFileAttributesA, GetLastError, HANDLE,

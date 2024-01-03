@@ -1,6 +1,6 @@
 no-std
 import
-	sodium: sodium_init
+	system/sodium: sodium_init
 	../../bool: ||
 	../../misc: void
 	../../number: ==

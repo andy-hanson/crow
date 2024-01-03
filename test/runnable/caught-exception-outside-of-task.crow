@@ -1,6 +1,6 @@
 import
 	crow/private/thread-utils: create-one-thread, join-one-thread
-	stdio: puts
+	system/stdio: puts
 
 main void() summon, unsafe
 	thread = null create-one-thread &thread-fun

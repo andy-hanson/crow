@@ -1,4 +1,4 @@
 exit code: 1
 stderr:
-include/x.crow 1:1-1:1 This file does not exist.
-test/parse-errors/import-missing-name.crow 2:5-2:6 Imported file include/x.crow does not exist.
+test/parse-errors/import-missing-name.crow 2:5-2:6 Library 'x' is not configured.
+It must be added to "include" in 'crow-config.json'.

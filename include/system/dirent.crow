@@ -4,7 +4,7 @@ import
 	crow/number: int32, nat16
 	crow/pointer: *, const-pointer, mut-pointer, pointer-cast
 	crow/string: char8, c-string
-	sys/types: ino_t, off_t
+	system/sys/types: ino_t, off_t
 
 DIR extern
 
