@@ -22,34 +22,34 @@ import
 Immutable map that is not efficient to update.
 However, this is more compact than `map` and has faster lookups.
 ###
-frozen-map[k, v] record by-val
++frozen-map[k, v] record by-val
 	# exposed for tests only
 	pairs (k, v) array
 	bucket-starts nat64 array
 
-new[k, v] (k, v) frozen-map(...a (k, v) array) k key
++new[k, v] (k, v) frozen-map(...a (k, v) array) k key
 	a.to to
 
-to[k, v] (k, v) frozen-map(a (k, v)[]) k key
++to[k, v] (k, v) frozen-map(a (k, v)[]) k key
 	trusted a.to as-frozen-map
 
 # This is O(1).
-to[k, v] (k, v) array(a (k, v) frozen-map) bare
++to[k, v] (k, v) array(a (k, v) frozen-map) bare
 	a pairs
-to[k, v] (k, v)[](a (k, v) frozen-map) bare
++to[k, v] (k, v)[](a (k, v) frozen-map) bare
 	a.to::((k, v) array) to
 
-is-empty[k, v] bool(a (k, v) frozen-map)
++is-empty[k, v] bool(a (k, v) frozen-map)
 	a.pairs is-empty
 
-size[k, v] nat64(a (k, v) frozen-map)
++size[k, v] nat64(a (k, v) frozen-map)
 	a.pairs size
 
-subscript[k, v] v?(a (k, v) frozen-map, key k) k key
++subscript[k, v] v?(a (k, v) frozen-map, key k) k key
 	if index ?= a try-get-unordered-index key
 		a.pairs[index].b,
 
-in[k, v] bool(key k, a (k, v) frozen-map) k key
++in[k, v] bool(key k, a (k, v) frozen-map) k key
 	!(a try-get-unordered-index key is-empty)
 
 try-get-unordered-index[k, v] nat64?(a (k, v) frozen-map, key k) k key
@@ -158,16 +158,16 @@ mut-array-to-frozen-map-promise-no-duplicates[k, v] (k, v) frozen-map(
 
 region spec impls (see collection.crow)
 
-iterate[k, v] bool(a (k, v) frozen-map, f act bool(k, v))
++iterate[k, v] bool(a (k, v) frozen-map, f act bool(k, v))
 	a.pairs iterate f
 
 subregion build
 
-frozen-map-builder[k, v] record mut
++frozen-map-builder[k, v] record mut
 	-inner (k, v) mut-array-builder
-build[k, v] (k, v) frozen-map(a build-options, f act void((k, v) frozen-map-builder)) k key
++build[k, v] (k, v) frozen-map(a build-options, f act void((k, v) frozen-map-builder)) k key
 	trusted (a build out => f[out,]) as-frozen-map
-~ ~=[k, v] void(a(k, v) frozen-map-builder, pair (k, v))
++ ~=[k, v] void(a(k, v) frozen-map-builder, pair (k, v))
 	a.inner ~= pair
-size[k, v] nat64(a (k, v) frozen-map-builder)
++size[k, v] nat64(a (k, v) frozen-map-builder)
 	a.inner size

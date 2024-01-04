@@ -3,27 +3,27 @@ import
 	crow/c-types: long-long, u-int, u-long, u-long-long
 	crow/private/bootstrap: int32, nat32
 
-blkcnt_t alias
++blkcnt_t alias
 	u-long
-blksize_t alias
++blksize_t alias
 	u-long
-dev_t alias
++dev_t alias
 	u-long-long
-gid_t alias
++gid_t alias
 	u-long
-ino_t alias
++ino_t alias
 	u-long
-mode_t alias
++mode_t alias
 	u-int
-nlink_t alias
++nlink_t alias
 	u-int
-off_t alias
++off_t alias
 	long-long
-pid_t alias
++pid_t alias
 	int32
-socklen_t alias
++socklen_t alias
 	nat32
-time_t alias
++time_t alias
 	u-long
-uid_t alias
++uid_t alias
 	u-long

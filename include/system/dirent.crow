@@ -6,9 +6,9 @@ import
 	crow/string: char8, c-string
 	system/sys/types: ino_t, off_t
 
-DIR extern
++DIR extern
 
-dirent record extern
++dirent record extern
 	d_ino ino_t
 	d_off off_t
 	d_reclen nat16
@@ -16,12 +16,12 @@ dirent record extern
 	# TODO: d_name char8[256]
 	-d_name bytes256
 -bytes256 extern(256, 1) data
-new dirent() unsafe
++new dirent() unsafe
 	0, 0, 0, "\0", ()
 
-d_name c-string(a dirent*) unsafe
++d_name c-string(a dirent*) unsafe
 	(&a->d_name)::bytes256* pointer-cast
 
-opendir DIR mut*(name c-string) summon, c extern
-closedir err-t(dirp DIR mut*) summon, c extern
-readdir_r int32(dirp DIR mut*, entry dirent mut*, result dirent mut* mut*) summon, c extern
++opendir DIR mut*(name c-string) summon, c extern
++closedir err-t(dirp DIR mut*) summon, c extern
++readdir_r int32(dirp DIR mut*, entry dirent mut*, result dirent mut* mut*) summon, c extern

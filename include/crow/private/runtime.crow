@@ -71,7 +71,7 @@ get-global-lock lock mut*() unsafe
 -thread-id-var thread-local(nat64)
 
 # This is not 'bare' since a non-crow thread won't have an ID
-cur-thread-id nat64() unsafe
++cur-thread-id nat64() unsafe
 	thread-id-var
 
 uninit global-ctx(n-threads nat64) bare, summon, unsafe

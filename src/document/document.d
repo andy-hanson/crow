@@ -70,7 +70,7 @@ Json documentModule(
 	in Module a,
 ) {
 	ArrayBuilder!DocExport exports; // TODO: no alloc
-	foreach (NameReferents referents; a.allExportedNames) {
+	foreach (NameReferents referents; a.exports) {
 		if (has(referents.structOrAlias) && force(referents.structOrAlias).visibility == Visibility.public_)
 			add(alloc, exports, documentStructOrAlias(alloc, force(referents.structOrAlias)));
 		if (has(referents.spec) && force(referents.spec).visibility == Visibility.public_)

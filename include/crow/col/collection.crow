@@ -56,7 +56,7 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, bare
 
 # Represents an index relative to the size of a collection
 +index-relative-to-end record by-val
-	subtract nat64
+	+subtract nat64
 
 +end index-relative-to-end() bare
 	0,
@@ -383,14 +383,14 @@ and returns slices of `a` to the left and right of that.
 
 Returns an empty option iff `b` is not a subsequence of `a`.
 ###
-try-split-once[col, iter, elem] (col, col)?(
++try-split-once[col, iter, elem] (col, col)?(
 	a col,
 	b col,
 ) (iter, col) begin-end, (elem, iter) next, (col, iter) slice, elem equal
 	if l, r ?= a iters-of-seq b
 		((a.begin slice l), (r slice a.end)),
 
-try-split-once-right[col, iter, elem] (col, col)?(
++try-split-once-right[col, iter, elem] (col, col)?(
 	a col,
 	b col,
 ) (iter, col) begin-end, (elem, iter) prev, (col, iter) slice, elem equal
@@ -610,7 +610,7 @@ Equivalent to `parts[0] ~~ joiner ~~ parts[1] ~~ joiner ~~ ... ~~ parts[n]`.
 	res
 
 # Equivalent to `() join a`
-flatten[col, col-col] col(a col-col) (col-col, col) iterate, col concatenate, col new
++flatten[col, col-col] col(a col-col) (col-col, col) iterate, col concatenate, col new
 	res mut col = ()
 	for x : a
 		res ~~:= x

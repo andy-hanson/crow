@@ -11,49 +11,49 @@ import
 	../map: ~=, build, get-or-add, is-empty, iterate, map, size, subscript, try-remove
 	../list: iterate, list, size, to
 
-hamt-set[t] record
++hamt-set[t] record
 	-inner void[t]
 
-new[t] t hamt-set(...values t array) t key
++new[t] t hamt-set(...values t array) t key
 	values.to to
 
-to[t] t hamt-set(a t[]) t key
++to[t] t hamt-set(a t[]) t key
 	inner void[t] = for x : a; x, ()
 	inner,
 
-is-empty[t] bool(a t hamt-set) t key
++is-empty[t] bool(a t hamt-set) t key
 	a.inner is-empty
 
-size[t] nat64(a t hamt-set) t key
++size[t] nat64(a t hamt-set) t key
 	a.inner size
 
-in[t] bool(value t, a t hamt-set) t key
++in[t] bool(value t, a t hamt-set) t key
 	!a.inner[value].is-empty
 
-~ ~[t] t hamt-set(a t hamt-set, value t) t key
++ ~[t] t hamt-set(a t hamt-set, value t) t key
 	if res ?= a try-add value
 		res
 	else
 		a
 
-try-add[t] t hamt-set?(a t hamt-set, value t) t key
++try-add[t] t hamt-set?(a t hamt-set, value t) t key
 	match a.inner get-or-add value, () => ()
 	as got _
 		()
 	as added res
 		(res.a,),
 
-~ -[t] t hamt-set(a t hamt-set, value t) t key
++ -[t] t hamt-set(a t hamt-set, value t) t key
 	if res ?= a try-remove value
 		res
 	else
 		a
 
-try-remove[t] t hamt-set?(a t hamt-set, value t) t key
++try-remove[t] t hamt-set?(a t hamt-set, value t) t key
 	if res ?= a.inner try-remove value
 		(res.b,),
 
 region spec impls (see collection.crow)
 
-iterate[t] bool(a t hamt-set, f act bool(t)) t key
++iterate[t] bool(a t hamt-set, f act bool(t)) t key
 	a.inner iterate (k, _) => f[k]

@@ -2,4 +2,4 @@ no-std
 import
 	crow/c-types: c-int
 
-get_nprocs c-int() summon, c extern
++get_nprocs c-int() summon, c extern

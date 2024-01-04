@@ -4,33 +4,33 @@ import
 	crow/number: nat32
 	crow/string: c-string
 
-fcntl c-int(fd fd-t, cmd c-int, oflags oflag-t) summon, GL extern
++fcntl c-int(fd fd-t, cmd c-int, oflags oflag-t) summon, GL extern
 
-F_DUPFD c-int() bare
++F_DUPFD c-int() bare
 	0
-F_GETFD c-int() bare
++F_GETFD c-int() bare
 	1
-F_SETFD c-int() bare
++F_SETFD c-int() bare
 	2
-F_GETFL c-int() bare
++F_GETFL c-int() bare
 	3
-F_SETFL c-int() bare
++F_SETFL c-int() bare
 	4
 
-open fd-t(path c-string, oflag oflag-t, permission nat32) summon, GL extern
++open fd-t(path c-string, oflag oflag-t, permission nat32) summon, GL extern
 
-oflag-t alias
++oflag-t alias
 	c-int
 
-O_RDONLY oflag-t() bare
++O_RDONLY oflag-t() bare
 	0
-O_WRONLY oflag-t() bare
++O_WRONLY oflag-t() bare
 	1
-O_RDWR oflag-t() bare
++O_RDWR oflag-t() bare
 	2
-O_CREAT oflag-t() bare
++O_CREAT oflag-t() bare
 	0x40
-O_TRUNC oflag-t() bare
++O_TRUNC oflag-t() bare
 	0x200
-O_NONBLOCK oflag-t() bare
++O_NONBLOCK oflag-t() bare
 	0x800

@@ -2,40 +2,40 @@ import
 	crow/c-types: c-int
 	crow/version: is-big-endian
 
-SDL_Color record extern
-	r nat8
-	g nat8
-	b nat8
-	a nat8
++SDL_Color record extern
+	+r nat8
+	+g nat8
+	+b nat8
+	+a nat8
 
-SDL_Palette record extern, mut
-	ncolors c-int
-	colors SDL_Color mut*
-	version nat32
-	refcount c-int
++SDL_Palette record extern, mut
+	+ncolors c-int
+	+colors SDL_Color mut*
+	+version nat32
+	+refcount c-int
 
-SDL_PixelFormat record extern, mut
-	format nat32
-	palette SDL_Palette mut*
-	BitsPerPixel nat8
-	BytesPerPixel nat8
-	padding nat16
-	Rmask nat32
-	Gmask nat32
-	Bmask nat32
-	Amask nat32
-	Rloss nat8
-	Gloss nat8
-	Bloss nat8
-	Aloss nat8
-	Rshift nat8
-	Gshift nat8
-	Bshift nat8
-	Ashift nat8
-	refcount c-int
-	next SDL_PixelFormat mut*
++SDL_PixelFormat record extern, mut
+	+format nat32
+	+palette SDL_Palette mut*
+	+BitsPerPixel nat8
+	+BytesPerPixel nat8
+	+padding nat16
+	+Rmask nat32
+	+Gmask nat32
+	+Bmask nat32
+	+Amask nat32
+	+Rloss nat8
+	+Gloss nat8
+	+Bloss nat8
+	+Aloss nat8
+	+Rshift nat8
+	+Gshift nat8
+	+Bshift nat8
+	+Ashift nat8
+	+refcount c-int
+	+next SDL_PixelFormat mut*
 
-SDL_PIXELFORMAT_RGBA32 nat32() bare, unsafe
++SDL_PIXELFORMAT_RGBA32 nat32() bare, unsafe
 	if is-big-endian
 		SDL_PIXELFORMAT_RGBA8888
 	else
@@ -57,7 +57,7 @@ SDL_PIXELFORMAT_RGBA32 nat32() bare, unsafe
 	format nat32 = (type.to << 24) | (order.to << 20) | (layout.to << 16)
 	(1 << 28) | format | (bits << 8) | bytes
 
-SDL_PixelType enum(nat32)
++SDL_PixelType enum(nat32)
 	SDL_PIXELTYPE_UNKNOWN
 	SDL_PIXELTYPE_INDEX1
 	SDL_PIXELTYPE_INDEX4
@@ -71,7 +71,7 @@ SDL_PixelType enum(nat32)
 	SDL_PIXELTYPE_ARRAYF16
 	SDL_PIXELTYPE_ARRAYF32
 
-SDL_PackedOrder enum(nat32)
++SDL_PackedOrder enum(nat32)
 	SDL_PACKEDORDER_NONE
 	SDL_PACKEDORDER_XRGB
 	SDL_PACKEDORDER_RGBX
@@ -82,7 +82,7 @@ SDL_PackedOrder enum(nat32)
 	SDL_PACKEDORDER_ABGR
 	SDL_PACKEDORDER_BGRA
 
-SDL_PackedLayout enum(nat32)
++SDL_PackedLayout enum(nat32)
 	SDL_PACKEDLAYOUT_NONE
 	SDL_PACKEDLAYOUT_332
 	SDL_PACKEDLAYOUT_4444

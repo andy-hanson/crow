@@ -167,11 +167,11 @@
 		<tbody>
 			<tr>
 				<td><code>+</code></td>
-				<td>Public visibility; anything can import it.</td>
+				<td>Public visibility; any module can import it.</td>
 			</tr>
 			<tr>
 				<td><code>~</code></td>
-				<td>Internal visibility; intended for use within the same library.</td>
+				<td>Internal visibility; it can be imported by a relative import but not by a library import.</td>
 			</tr>
 			<tr>
 				<td><code>-</code></td>
@@ -181,12 +181,13 @@
 	</table>
 
 	<p>
-		By default, declarations (like functions, types, etc.) have "internal" visibility.
-		Currently, "internal" declarations are exactly like "public" ones, except they are hidden from documentation.
-		(In the future there may be more enforcement.)
+		By default, declarations (like functions, types, etc.) have internal visibility.
 		<br />
 		This is the default because it prevents accidentally adding public functions,
 		but doesn't add friction to calling functions you wrote.
+		<br />
+		If you aren't writing a library, you could choose to never specify visibility,
+		and everything will be accessible within your code.
 	</p>
 	<p>
 		To make a declaration public, put a <code>+</code> in front of it.

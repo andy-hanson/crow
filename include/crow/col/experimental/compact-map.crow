@@ -20,27 +20,17 @@ import
 		frozen-map, in, is-empty, iterate, mut-array-to-frozen-map-promise-no-duplicates, new,
 		size, subscript, to
 
-compact-map[k, v] record by-val
-	ignore void
-	impl (k, v) impl
++compact-map[k, v] record by-val
+	-ignore void
+	-impl (k, v) impl
 
-==[k, v] bool(a (k, v) compact-map, b (k, v) compact-map) k key, v equal
++==[k, v] bool(a (k, v) compact-map, b (k, v) compact-map) k key, v equal
 	a.to-sorted-pairs == b.to-sorted-pairs
 -to-sorted-pairs[k, v] (k, v)[](a (k, v) compact-map) k key
 	(for x : a; x) sort (k, _) => k
 
-to[k, v] json(a (k, v) compact-map) k key, (json, k) to, (json, v) to
++to[k, v] json(a (k, v) compact-map) k key, (json, k) to, (json, v) to
 	a.to-sorted-pairs to
-
-# TODO:KILL
-node-count[k, v] nat64(a (k, v) compact-map)
-	0 node-count a.impl
--node-count[k, v] nat64(acc nat64, a (k, v) impl)
-	match a
-	as overlay o
-		acc + 1 node-count o.prev
-	as end-node _
-		acc + 1
 
 -impl[k, v] union
 	overlay (k, v) overlay
@@ -50,13 +40,13 @@ node-count[k, v] nat64(a (k, v) compact-map)
 	pairs (k, v?) frozen-map
 	prev (k, v) impl
 
-new[k, v] (k, v) compact-map() k key
++new[k, v] (k, v) compact-map() k key
 	(), ().end-node
 
-to[k, v] (k, v) compact-map(a (k, v)[]) k key
++to[k, v] (k, v) compact-map(a (k, v)[]) k key
 	(), a.to.end-node
 
-is-empty[k, v] bool(a (k, v) compact-map) k key
++is-empty[k, v] bool(a (k, v) compact-map) k key
 	match a impl
 	as overlay _
 		false
@@ -67,13 +57,13 @@ is-empty[k, v] bool(a (k, v) compact-map) k key
 Number of pairs.
 This is O(n).
 ###
-size[k, v] nat64(a (k, v) compact-map) k key
++size[k, v] nat64(a (k, v) compact-map) k key
 	res mut = 0
 	for _ : a
 		res +:= 1
 	res
 
-~ ~[k, v] (k, v) compact-map(a (k, v) compact-map, (key k, value v)) k key
++ ~[k, v] (k, v) compact-map(a (k, v) compact-map, (key k, value v)) k key
 	a add-or-remove key, (value,)
 
 ###
@@ -82,19 +72,19 @@ TODO
 	a ~ b.arr
 ###
 
-~ ~~[k, v] (k, v) compact-map(a (k, v) compact-map, b (k, v)[]) k key
++ ~~[k, v] (k, v) compact-map(a (k, v) compact-map, b (k, v)[]) k key
 	res mut = a
 	for pair : b
 		res ~:= pair
 	res
 
-~ -[k, v] (k, v) compact-map(a (k, v) compact-map, key k) k key
++ -[k, v] (k, v) compact-map(a (k, v) compact-map, key k) k key
 	if key in a
 		a add-or-remove key, ()
 	else
 		a
 
-subscript[k, v] v?(a (k, v) compact-map, key k) k key
++subscript[k, v] v?(a (k, v) compact-map, key k) k key
 	cur mut = a impl
 	loop
 		match cur
@@ -107,7 +97,7 @@ subscript[k, v] v?(a (k, v) compact-map, key k) k key
 		as end-node e
 			break e[key]
 
-in[k, v] bool(key k, a (k, v) compact-map) k key
++in[k, v] bool(key k, a (k, v) compact-map) k key
 	!a[key].is-empty
 
 -add-or-remove[k, v] (k, v) compact-map(a (k, v) compact-map, key k, value v?) k key
@@ -156,7 +146,7 @@ in[k, v] bool(key k, a (k, v) compact-map) k key
 
 region spec impls (see collection.crow)
 
-iterate[k, v] bool(a (k, v) compact-map, f act bool(k, v)) k key
++iterate[k, v] bool(a (k, v) compact-map, f act bool(k, v)) k key
 	cur mut = a impl
 	seen k mut-set = ()
 	loop

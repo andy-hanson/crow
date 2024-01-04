@@ -17,16 +17,16 @@ import
 	./thread-utils: acquire, barrier, init, release, wait-barrier, uninit
 
 # Unlike 'mem-move', this does not handle 'dest' and 'src' overlapping
-mem-copy[t] void(dest t mut*, src t*, size nat64) bare, unsafe
++mem-copy[t] void(dest t mut*, src t*, size nat64) bare, unsafe
 	d = dest as-const
 	assert d < src ? d + size <= src : src + size <= d
 	_ = dest.pointer-cast memcpy src.pointer-cast, (size wrap-mul size-of@t)
 
 # Unlike 'mem-copy', this handles 'dest' and 'src' overlapping
-mem-move[t] void(dest t mut*, src t*, size nat64) bare, unsafe
++mem-move[t] void(dest t mut*, src t*, size nat64) bare, unsafe
 	_ = dest.pointer-cast memmove src.pointer-cast, (size wrap-mul size-of@t)
 
-mem-clear[t] void(dest t mut*, size nat64) bare, unsafe
++mem-clear[t] void(dest t mut*, size nat64) bare, unsafe
 	_ = dest.pointer-cast memset 0, (size wrap-mul size-of@t)
 
 mark-ctx record by-val, mut
@@ -92,19 +92,19 @@ gc record by-val, mut
 	-data-cur mut nat64 mut*
 	-data-end mut nat64 mut*
 
-gc-stats record by-val
-	gc-count nat64
-	cur-word nat64
-	total-words nat64
-	words-used nat64
++gc-stats record by-val
+	+gc-count nat64
+	+cur-word nat64
+	+total-words nat64
+	+words-used nat64
 
-words-free nat64(a gc-stats) bare
++words-free nat64(a gc-stats) bare
 	a.total-words wrap-sub a.words-used
 
 # Super unsafe
 # WARN: Unfortunately this doesn't prevent the original allocation in new-gc,
 # just forbids us to use it
-set-hard-limit void(gc gc mut*, size-words nat64) bare, unsafe
++set-hard-limit void(gc gc mut*, size-words nat64) bare, unsafe
 	# TODO: get a lock
 	gc.as-const validate-gc
 	size-words <= gc->size-words hard-assert
@@ -116,7 +116,7 @@ set-hard-limit void(gc gc mut*, size-words nat64) bare, unsafe
 	gc.as-const validate-gc
 
 # WARN: this locks up the GC for a long time
-get-stats gc-stats(gc gc mut*) bare, unsafe
++get-stats gc-stats(gc gc mut*) bare, unsafe
 	gc.lk acquire
 	gc.as-const validate-gc
 	gc-count = gc->gc-count
@@ -208,7 +208,7 @@ Currently they all share the common GC and must take a lock every time they allo
 gc-ctx record by-val, mut
 	gc gc mut*
 
-force-needs-gc void(gc gc mut*) unsafe
++force-needs-gc void(gc gc mut*) unsafe
 	gc->needs-gc := true
 
 -cur-gc-ctx thread-local(gc-ctx?)
@@ -231,7 +231,7 @@ mutator-begin void(a gc mut*) bare, unsafe
 mutator-end void() bare, unsafe
 	cur-gc-ctx := ()
 
-get-gc gc mut*() unsafe
++get-gc gc mut*() unsafe
 	get-gc-ctx gc
 
 validate-gc void(gc gc*) bare, unsafe
@@ -325,7 +325,7 @@ try-alloc-uninitialized[t] t mut*?(gc gc-ctx) bare, unsafe
 unmanaged-alloc-uninitialized[t] t mut*() bare, unsafe
 	1 unmanaged-alloc-elements
 
-unmanaged-alloc[t] t mut*(value t) bare, unsafe
++unmanaged-alloc[t] t mut*(value t) bare, unsafe
 	res t mut* = unmanaged-alloc-uninitialized
 	*res := value
 	res
@@ -342,5 +342,5 @@ unmanaged-alloc-elements[t] t mut*(size-elements nat64) bare, unsafe
 unmanaged-free-elements[t] void(begin t mut*, _ nat64) bare, unsafe
 	begin.pointer-cast free
 
-unmanaged-free[t] void(p t mut*) bare, unsafe
++unmanaged-free[t] void(p t mut*) bare, unsafe
 	p.pointer-cast free

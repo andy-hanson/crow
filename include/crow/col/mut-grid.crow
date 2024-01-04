@@ -36,8 +36,8 @@ Coordinate in a grid.
 `y` is the row index. The top row is 0; the bottom row is `height - 1`.
 ###
 +coord record
-	x nat64
-	y nat64
+	+x nat64
+	+y nat64
 
 # Same as `0, 0`.
 +new coord()

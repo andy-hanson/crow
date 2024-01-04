@@ -128,7 +128,7 @@ const nonNull = x => {
  * @return {T}
  */
 const typeAs = (x, type) => {
-	if (x instanceof type)
+	if (!(x instanceof type))
 		throw new Error("Not instance of type")
 	return /** @type {T} */ (x)
 }

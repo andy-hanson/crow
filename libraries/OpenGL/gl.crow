@@ -3,7 +3,7 @@ import
 	./headers:
 		GLbitfield, GLboolean, GLchar, GLenum, GLfloat, GLint, GLintptr, GLsizei, GLsizeiptr, GLuint
 
-gl-ext record mut
++gl-ext record mut
 	-glActiveTexture_ fun* void(GLenum)
 	-glAttachShader_ fun* void(GLuint, GLuint)
 	-glBindBuffer_ fun* void(GLenum, GLuint)
@@ -40,19 +40,19 @@ gl-ext record mut
 	-glUseProgram_ fun* void(GLuint)
 	-glVertexAttribPointer_ fun* void(GLuint, GLint, GLenum, GLboolean, GLsizei, any-const-pointer)
 
-glActiveTexture void(a gl-ext, texture GLenum) bare, summon, unsafe
++glActiveTexture void(a gl-ext, texture GLenum) bare, summon, unsafe
 	a.glActiveTexture_[texture]
 
-glAttachShader void(a gl-ext, program GLuint, shader GLuint) bare, summon, unsafe
++glAttachShader void(a gl-ext, program GLuint, shader GLuint) bare, summon, unsafe
 	a.glAttachShader_[program, shader]
 
-glBindBuffer void(a gl-ext, target GLenum, buffer GLuint) bare, summon, unsafe
++glBindBuffer void(a gl-ext, target GLenum, buffer GLuint) bare, summon, unsafe
 	a.glBindBuffer_[target, buffer]
 
-glBindTexture void(a gl-ext, target GLenum, texture GLuint) bare, summon, unsafe
++glBindTexture void(a gl-ext, target GLenum, texture GLuint) bare, summon, unsafe
 	a.glBindTexture_[target, texture]
 
-glBufferData void(
++glBufferData void(
 	a gl-ext,
 	target GLenum,
 	size GLsizeiptr,
@@ -61,7 +61,7 @@ glBufferData void(
 ) bare, summon, unsafe
 	a.glBufferData_[target, size, buffer-data, usage]
 
-glBufferSubData void(
++glBufferSubData void(
 	a gl-ext,
 	target GLenum,
 	offset GLintptr,
@@ -70,55 +70,55 @@ glBufferSubData void(
 ) bare, summon, unsafe
 	a.glBufferSubData_[target, offset, size, buffer-data]
 
-glClear void(a gl-ext, mask GLbitfield) bare, summon, unsafe
++glClear void(a gl-ext, mask GLbitfield) bare, summon, unsafe
 	a.glClear_[mask]
 
-glClearColor void(a gl-ext, red GLfloat, green GLfloat, blue GLfloat, alpha GLfloat) bare, summon, unsafe
++glClearColor void(a gl-ext, red GLfloat, green GLfloat, blue GLfloat, alpha GLfloat) bare, summon, unsafe
 	a.glClearColor_[red, green, blue, alpha]
 
-glCompileShader void(a gl-ext, shader GLuint) bare, summon, unsafe
++glCompileShader void(a gl-ext, shader GLuint) bare, summon, unsafe
 	a.glCompileShader_[shader]
 
-glCreateProgram GLuint(a gl-ext) bare, summon, unsafe
++glCreateProgram GLuint(a gl-ext) bare, summon, unsafe
 	a.glCreateProgram_[]
 
-glCreateShader GLuint(a gl-ext, type GLenum) bare, summon, unsafe
++glCreateShader GLuint(a gl-ext, type GLenum) bare, summon, unsafe
 	a.glCreateShader_[type]
 
-glCullFace void(a gl-ext, mode GLenum) bare, summon, unsafe
++glCullFace void(a gl-ext, mode GLenum) bare, summon, unsafe
 	a.glCullFace_[mode]
 
-glDeleteBuffers void(a gl-ext, n GLsizei, buffers GLuint*) bare, summon, unsafe
++glDeleteBuffers void(a gl-ext, n GLsizei, buffers GLuint*) bare, summon, unsafe
 	a.glDeleteBuffers_[n, buffers]
 
-glDeleteProgram void(a gl-ext, program GLuint) bare, summon, unsafe
++glDeleteProgram void(a gl-ext, program GLuint) bare, summon, unsafe
 	a.glDeleteProgram_[program]
 
-glDeleteShader void(a gl-ext, shader GLuint) bare, summon, unsafe
++glDeleteShader void(a gl-ext, shader GLuint) bare, summon, unsafe
 	a.glDeleteShader_[shader]
 
-glDeleteTextures void(a gl-ext, n GLsizei, textures GLuint*) bare, summon, unsafe
++glDeleteTextures void(a gl-ext, n GLsizei, textures GLuint*) bare, summon, unsafe
 	a.glDeleteTextures_[n, textures]
 
-glEnable void(a gl-ext, cap GLenum) bare, summon, unsafe
++glEnable void(a gl-ext, cap GLenum) bare, summon, unsafe
 	a.glEnable_[cap]
 
-glEnableVertexAttribArray void(a gl-ext, index GLuint) bare, summon, unsafe
++glEnableVertexAttribArray void(a gl-ext, index GLuint) bare, summon, unsafe
 	a.glEnableVertexAttribArray_[index]
 
-glDrawArrays void(a gl-ext, mode GLenum, first GLint, count GLsizei) bare, summon, unsafe
++glDrawArrays void(a gl-ext, mode GLenum, first GLint, count GLsizei) bare, summon, unsafe
 	a.glDrawArrays_[mode, first, count]
 
-glGenBuffers void(a gl-ext, n GLsizei, buffers GLuint mut*) bare, summon, unsafe
++glGenBuffers void(a gl-ext, n GLsizei, buffers GLuint mut*) bare, summon, unsafe
 	a.glGenBuffers_[n, buffers]
 
-glGenTextures void(a gl-ext, n GLsizei, textures GLuint mut*) bare, summon, unsafe
++glGenTextures void(a gl-ext, n GLsizei, textures GLuint mut*) bare, summon, unsafe
 	a.glGenTextures_[n, textures]
 
-glGetError GLenum(a gl-ext) bare, summon
++glGetError GLenum(a gl-ext) bare, summon
 	a.glGetError_[]
 
-glGetProgramInfoLog void(
++glGetProgramInfoLog void(
 	a gl-ext,
 	program GLuint,
 	bufSize GLsizei,
@@ -127,10 +127,10 @@ glGetProgramInfoLog void(
 ) bare, summon, unsafe
 	a.glGetProgramInfoLog_[program, bufSize, length, infoLog]
 
-glGetProgramiv void(a gl-ext, program GLuint, pname GLenum, params GLint mut*) bare, summon, unsafe
++glGetProgramiv void(a gl-ext, program GLuint, pname GLenum, params GLint mut*) bare, summon, unsafe
 	a.glGetProgramiv_[program, pname, params]
 
-glGetShaderInfoLog void(
++glGetShaderInfoLog void(
 	a gl-ext,
 	shader GLuint,
 	bufSize GLsizei,
@@ -139,16 +139,16 @@ glGetShaderInfoLog void(
 ) bare, summon, unsafe
 	a.glGetShaderInfoLog_[shader, bufSize, length, infoLog]
 
-glGetShaderiv void(a gl-ext, reader GLuint, pname GLenum, params GLint mut*) bare, summon, unsafe
++glGetShaderiv void(a gl-ext, reader GLuint, pname GLenum, params GLint mut*) bare, summon, unsafe
 	a.glGetShaderiv_[reader, pname, params]
 
-glGetUniformLocation GLint(a gl-ext, program GLuint, name GLchar*) bare, summon, unsafe
++glGetUniformLocation GLint(a gl-ext, program GLuint, name GLchar*) bare, summon, unsafe
 	a.glGetUniformLocation_[program, name]
 
-glLinkProgram void(a gl-ext, program GLuint) bare, summon, unsafe
++glLinkProgram void(a gl-ext, program GLuint) bare, summon, unsafe
 	a.glLinkProgram_[program]
 
-glShaderSource void(
++glShaderSource void(
 	a gl-ext,
 	shader GLuint,
 	count GLsizei,
@@ -157,7 +157,7 @@ glShaderSource void(
 ) bare, summon, unsafe
 	a.glShaderSource_[shader, count, string, length]
 
-glTexImage2D void(
++glTexImage2D void(
 	a gl-ext,
 	target GLenum,
 	level GLint,
@@ -171,13 +171,13 @@ glTexImage2D void(
 ) bare, summon, unsafe
 	a.glTexImage2D_[target, level, internalformat, width, height, border, format, type, pixels]
 
-glTexParameteri void(a gl-ext, target GLenum, pname GLenum, param GLenum) bare, summon, unsafe
++glTexParameteri void(a gl-ext, target GLenum, pname GLenum, param GLenum) bare, summon, unsafe
 	a.glTexParameteri_[target, pname, param]
 
-glUniform1i void(a gl-ext, location GLint, v0 GLint) bare, summon, unsafe
++glUniform1i void(a gl-ext, location GLint, v0 GLint) bare, summon, unsafe
 	a.glUniform1i_[location, v0]
 
-glUniformMatrix3fv void(
++glUniformMatrix3fv void(
 	a gl-ext,
 	location GLint,
 	count GLsizei,
@@ -186,10 +186,10 @@ glUniformMatrix3fv void(
 ) bare, summon, unsafe
 	a.glUniformMatrix3fv_[location, count, transpose, value]
 
-glUseProgram void(a gl-ext, program GLuint) bare, summon, unsafe
++glUseProgram void(a gl-ext, program GLuint) bare, summon, unsafe
 	a.glUseProgram_[program]
 
-glVertexAttribPointer void(
++glVertexAttribPointer void(
 	a gl-ext,
 	index GLuint,
 	size GLint,
@@ -200,7 +200,7 @@ glVertexAttribPointer void(
 ) bare, summon, unsafe
 	a.glVertexAttribPointer_[index, size, type, normalized, stride, pointer]
 
-new gl-ext() summon, unsafe
++new gl-ext() summon, unsafe
 	glActiveTexture fun* void(GLenum) = "glActiveTexture".load as-fun-pointer
 	glAttachShader fun* void(GLuint, GLuint) = "glAttachShader".load as-fun-pointer
 	glBindBuffer fun* void(GLenum, GLuint) = "glBindBuffer".load as-fun-pointer

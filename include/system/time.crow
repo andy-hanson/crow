@@ -4,34 +4,34 @@ import
 	crow/pointer: const-pointer, mut-pointer
 	crow/private/c-string-util: char8, c-string
 
-timespec record extern
-	tv_sec long
-	tv_nsec long
++timespec record extern
+	+tv_sec long
+	+tv_nsec long
 
-new timespec() bare
++new timespec() bare
 	0, 0
 
-tm extern
++tm extern
 
-nanosleep err-t(requested_time timespec*, remaining timespec mut*) c extern
++nanosleep err-t(requested_time timespec*, remaining timespec mut*) c extern
 
 # TODO:SUMMON
-clock_gettime err-t(clock-id __clockid_t, timespec timespec mut*) c extern
++clock_gettime err-t(clock-id __clockid_t, timespec timespec mut*) c extern
 
-gmtime tm mut*(timer time_t*) summon, c extern
++gmtime tm mut*(timer time_t*) summon, c extern
 
-localtime tm mut*(timer time_t*) summon, c extern
++localtime tm mut*(timer time_t*) summon, c extern
 
-time time_t(timer time_t mut*) summon, c extern
++time time_t(timer time_t mut*) summon, c extern
 
-strftime size_t(s char8 mut*, max-size size_t, format c-string, tp tm*) summon, c extern
++strftime size_t(s char8 mut*, max-size size_t, format c-string, tp tm*) summon, c extern
 
-CLOCK_MONOTONIC __clockid_t() bare
++CLOCK_MONOTONIC __clockid_t() bare
 	1
 
-__clockid_t alias
++__clockid_t alias
 	c-int
 
 # Seconds since the Epoch
-time_t alias
++time_t alias
 	long

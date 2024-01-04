@@ -4,16 +4,16 @@ import
 		channels, frames, new, samplerate, sf_close, sf_count_t, sf_error, SF_INFO, SFM_READ,
 		sf_open, sf_open_virtual, sf_read_float, SF_VIRTUAL_IO, SNDFILE
 	sndfile/util: check-sndfile-error
-	stdio: SEEK
+	system/stdio: SEEK
 	./sound: new, sound
 
-read-sound-file sound(path string) summon
++read-sound-file sound(path string) summon
 	trusted
 		info mut SF_INFO = ()
 		f = path.to sf_open SFM_READ, &info
 		f common info
 
-sound-from-file-content sound(content nat8 array)
++sound-from-file-content sound(content nat8 array)
 	trusted
 		info mut SF_INFO = ()
 		user-data mut user-data = content, content.begin-pointer
@@ -25,11 +25,11 @@ sound-from-file-content sound(content nat8 array)
 	f.sf_error check-sndfile-error
 	n-channels nat64 = info.channels to
 	sample-rate nat64 = info.samplerate to
-	samples float32 mut[] = info.frames * n-channels uninitialized-mut-list
+	samples float32 mut-array = info.frames * n-channels uninitialized-mut-array
 	n-read = f sf_read_float samples.begin-pointer, samples.size
 	f.sf_close check-sndfile-error
 	assert n-read == samples.size
-	(n-channels, sample-rate), samples.move-to
+	(n-channels, sample-rate), samples.cast-immutable
 
 -get_filelen sf_count_t(user-data-pointer any-mut-pointer) bare, unsafe
 	(user-data-pointer.pointer-cast::user-data mut*)->content size

@@ -6,11 +6,11 @@ import
 	crow/string: c-string
 	system/sys/types: mode_t, pid_t
 
-posix_spawn_file_actions_t extern(80)
++posix_spawn_file_actions_t extern(80)
 
 # TODO: type file-actions and attrp, currently these are always null
 # /usr/include/spawn.h
-posix_spawn err-t(
++posix_spawn err-t(
 	pid pid_t mut*,
 	executable-path c-string,
 	file-actions posix_spawn_file_actions_t*,
@@ -19,22 +19,22 @@ posix_spawn err-t(
 	environ c-string*,
 ) summon, c extern
 
-posix_spawn_file_actions_init err-t(file-actions posix_spawn_file_actions_t mut*) summon, c extern
-posix_spawn_file_actions_destroy err-t(
++posix_spawn_file_actions_init err-t(file-actions posix_spawn_file_actions_t mut*) summon, c extern
++posix_spawn_file_actions_destroy err-t(
 	file-actions posix_spawn_file_actions_t mut*,
 ) summon, c extern
-posix_spawn_file_actions_addopen err-t(
++posix_spawn_file_actions_addopen err-t(
 	file-actions posix_spawn_file_actions_t mut*,
 	fd fd-t,
 	path c-string,
 	oflag int32,
 	mode mode_t,
 ) summon, c extern
-posix_spawn_file_actions_addclose err-t(
++posix_spawn_file_actions_addclose err-t(
 	file-actions posix_spawn_file_actions_t mut*,
 	fd fd-t,
 ) summon, c extern
-posix_spawn_file_actions_adddup2 err-t(
++posix_spawn_file_actions_adddup2 err-t(
 	file-actions posix_spawn_file_actions_t mut*,
 	fd fd-t,
 	new-fd fd-t,

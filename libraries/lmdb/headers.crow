@@ -1,6 +1,6 @@
 import
 	crow/c-types: c-int, err-t, size_t, u-int
-	sys/types: mode_t
+	system/sys/types: mode_t
 
 MDB_env extern
 MDB_dbi alias

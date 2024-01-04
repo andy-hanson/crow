@@ -77,7 +77,7 @@ This will return `((),) (), (("d",),)`.
 
 If the argument syntax is invalid, returns an empty option.
 ###
-parse-named-args string[]?[]?(args string[], arg-names symbol[])
++parse-named-args string[]?[]?(args string[], arg-names symbol[])
 	parsed = args parse-command
 	values string[]? mut[] = arg-names.size n-of ()
 	err mut = false
@@ -94,7 +94,7 @@ If `a` as a single element, returns that; else throws an exception.
 
 Useful for arguments that should have a single string as their value.
 ###
-single-string-or-throw string(a string[]?, option-name string)
++single-string-or-throw string(a string[]?, option-name string)
 	if strs ?= a
 		if strs.size == 1
 			strs[0]

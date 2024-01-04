@@ -117,10 +117,10 @@ region basic building blocks
 +text-delimited string grammar(begin string, end string)
 	begin ~~ end.text-not-containing ~~ end
 
-text-not-containing string grammar(ending string)
++text-not-containing string grammar(ending string)
 	(ending,) text-not-containing-any
 
-text-not-containing-any string grammar(possible-endings string[])
++text-not-containing-any string grammar(possible-endings string[])
 	with start : make-grammar
 		iter mut = start
 		res string = with out : build

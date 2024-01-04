@@ -26,7 +26,7 @@ import
 Set of unique values.
 Unlike `array`, the values are always in sorted order, and there are never two of the same value.
 ###
-tree-set[t] record
++tree-set[t] record
 	-root t node
 	-total-size nat64
 
@@ -39,20 +39,20 @@ tree-set[t] record
 	left t node
 	right t node
 
-# True iff the set is empty.
+# Same as `a.size == 0`
 is-empty[t] bool(a t tree-set) t key
 	a.total-size == 0
 
 # Number of values in the set.
-size[t] nat64(a t tree-set) t key
++size[t] nat64(a t tree-set) t key
 	a total-size
 
 # Empty `tree-set`.
-new[t] t tree-set(...a t array) t key
++new[t] t tree-set(...a t array) t key
 	a.to to
 
 # Copy a list to a `tree-set`.
-to[t] t tree-set(a t[]) t key
++to[t] t tree-set(a t[]) t key
 	values t array = a.to sort-unique
 	values.leaf, values.size
 
@@ -60,7 +60,7 @@ to[t] t tree-set(a t[]) t key
 List of all values in the set, in sorted order.
 This is O(n).
 ###
-to[t] t[](a t tree-set) t key
++to[t] t[](a t tree-set) t key
 	match a.root
 	as inner i
 		i tree-to-array a.size to
@@ -68,7 +68,7 @@ to[t] t[](a t tree-set) t key
 		l to
 
 # True iff the value is in the set.
-in[t] bool(value t, a t tree-set) t key
++in[t] bool(value t, a t tree-set) t key
 	a.root has value
 -has[t] bool(a t node, value t) t key
 	match a
@@ -88,7 +88,7 @@ Add a value to the set.
 No effect if the value is already in the set.
 This is O(a.size ln)
 ###
-~ ~[t] t tree-set(a t tree-set, value t) t key
++ ~[t] t tree-set(a t tree-set, value t) t key
 	new-size = a.size + 1
 	match a.root add-recur value, new-size.get-max-height
 	as none
@@ -102,7 +102,7 @@ This is O(a.size ln)
 Union of two sets.
 This is O(n).
 ###
-~ ~~[t] t tree-set(a t tree-set, b t tree-set) t key
++ ~~[t] t tree-set(a t tree-set, b t tree-set) t key
 	list t[] = with out : a.size + b.size build
 		b-iter = b iter
 		for x : a
@@ -135,7 +135,7 @@ This is O(n).
 	else
 		out ~= value
 
-intersect[t] t tree-set(a t tree-set, b t tree-set) t key
++intersect[t] t tree-set(a t tree-set, b t tree-set) t key
 	b-iter = b iter
 	a filter x => b-iter walk-iter-has x
 
@@ -156,7 +156,7 @@ Returns a set that does not contain 'b'.
 If 'b' is not in the set, returns it unmodified.
 This is O(a.size ln).
 ###
-~ -[t] t tree-set(a t tree-set, b t) t key
++ -[t] t tree-set(a t tree-set, b t) t key
 	if res ?= a try-remove b
 		res
 	else
@@ -175,7 +175,7 @@ If 'b' is in the set, returns `none~.
 Else, returns a set with 'b' removed.
 This is O(a.size ln).
 ###
-try-remove[t] t tree-set?(a t tree-set, b t) t key
++try-remove[t] t tree-set?(a t tree-set, b t) t key
 	if node ?= a.root try-remove-recur b
 		(node, a.size - 1),
 
@@ -418,7 +418,7 @@ try-remove[t] t tree-set?(a t tree-set, b t) t key
 
 region spec impls (see collection.crow)
 
-iterate[t] bool(a t tree-set, f act bool(t)) t key
++iterate[t] bool(a t tree-set, f act bool(t)) t key
 	a.root iterate-recur f
 -iterate-recur[t] bool(a t node, f act bool(t))
 	match a
@@ -436,10 +436,10 @@ iterate[t] bool(a t tree-set, f act bool(t)) t key
 
 subregion build
 
-tree-set-builder[t] record mut
++tree-set-builder[t] record mut
 	-inner t list-builder
 
-build[t] t tree-set(a build-options, f act void(t tree-set-builder)) t key
++build[t] t tree-set(a build-options, f act void(t tree-set-builder)) t key
 	a build (out => f[out,]) to
 
 ~ ~=[t] void(a t tree-set-builder, value t) t key

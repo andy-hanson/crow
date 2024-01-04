@@ -1051,8 +1051,8 @@ immutable struct Module {
 	SmallArray!SpecDecl specs;
 	SmallArray!FunDecl funs;
 	SmallArray!Test tests;
-	// Includes re-exports
-	HashTable!(NameReferents, Symbol, nameFromNameReferents) allExportedNames;
+	// Includes both internal and public exports.
+	HashTable!(NameReferents, Symbol, nameFromNameReferents) exports;
 
 	UriAndRange range() scope =>
 		UriAndRange.topOfFile(uri);
@@ -1073,6 +1073,8 @@ immutable struct ImportOrExport {
 	// none for an automatic import of std
 	Opt!(ImportOrExportAst*) source;
 	Module* modulePtr;
+	// If this is internal, imports internal and public exports; if this is public, import only public exports
+	ExportVisibility importVisibility;
 	ImportOrExportKind kind;
 
 	ref Module module_() return scope =>
@@ -1606,6 +1608,24 @@ private enum Visibility_ : ubyte {
 }
 string stringOfVisibility(Visibility a) =>
 	stringOfEnum(a);
+
+enum ExportVisibility : ubyte {
+	internal,
+	public_
+}
+
+bool importCanSee(ExportVisibility importVisibility, Visibility exportVisibility) =>
+	toExportVisibility(exportVisibility) >= importVisibility;
+private ExportVisibility toExportVisibility(Visibility a) {
+	final switch (a) {
+		case Visibility.private_:
+			assert(false);
+		case Visibility.internal:
+			return ExportVisibility.internal;
+		case Visibility.public_:
+			return ExportVisibility.public_;
+	}
+}
 
 Visibility leastVisibility(Visibility a, Visibility b) =>
 	min(a, b);

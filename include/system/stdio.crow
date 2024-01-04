@@ -7,44 +7,44 @@ import
 	crow/pointer: const-pointer, mut-pointer
 	crow/private/c-string-util: char8, c-string
 
-perror void(s c-string) summon, c extern
++perror void(s c-string) summon, c extern
 
-stdin fd-t() bare
++stdin fd-t() bare
 	0
-stdout fd-t() bare
++stdout fd-t() bare
 	1
-stderr fd-t() bare
++stderr fd-t() bare
 	2
 
-puts err-t(s c-string) summon, c extern
++puts err-t(s c-string) summon, c extern
 
-FILE extern
++FILE extern
 
-popen FILE mut*(command c-string, modes c-string) summon, c extern
-pclose c-int(stream FILE mut*) summon, c extern
++popen FILE mut*(command c-string, modes c-string) summon, c extern
++pclose c-int(stream FILE mut*) summon, c extern
 
-feof bool(stream FILE mut*) summon, c extern
-fgets char8 mut*(s char8 mut*, n c-int, stream FILE mut*) summon, c extern
++feof bool(stream FILE mut*) summon, c extern
++fgets char8 mut*(s char8 mut*, n c-int, stream FILE mut*) summon, c extern
 
-fopen FILE mut*(filename c-string, mode c-string) summon, c extern
-fclose c-int(stream FILE mut*) summon, c extern
-fseek c-int(stream FILE mut*, offset long, whence SEEK) summon, c extern
-ftell long(stream FILE mut*) summon, c extern
-ferror bool(stream FILE mut*) summon, c extern
-fread size_t(
++fopen FILE mut*(filename c-string, mode c-string) summon, c extern
++fclose c-int(stream FILE mut*) summon, c extern
++fseek c-int(stream FILE mut*, offset long, whence SEEK) summon, c extern
++ftell long(stream FILE mut*) summon, c extern
++ferror bool(stream FILE mut*) summon, c extern
++fread size_t(
 	_Buffer nat8 mut*,
 	_ElementSize size_t,
 	_ElementCount size_t,
 	_Stream FILE mut*,
 ) summon, c extern
-fwrite size_t(
++fwrite size_t(
 	_Buffer nat8*,
 	_ElementSize size_t,
 	_ElementCount size_t,
 	_Stream FILE mut*,
 ) summon, c extern
 
-SEEK enum(nat32) extern
++SEEK enum(nat32) extern
 	SEEK_SET
 	SEEK_CUR
 	SEEK_END

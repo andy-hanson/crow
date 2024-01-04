@@ -34,7 +34,7 @@ import
 export
 	./bootstrap: lock
 
-count-processors nat64() bare, summon, unsafe
++count-processors nat64() bare, summon, unsafe
 	if is-single-threaded
 		1
 	elif is-windows
@@ -44,7 +44,7 @@ count-processors nat64() bare, summon, unsafe
 	else
 		get_nprocs to
 
-uninit lock() bare, unsafe
++uninit lock() bare, unsafe
 	zeroed
 
 -as-critical-section CRITICAL_SECTION mut*(a lock mut*) bare, unsafe
@@ -55,7 +55,7 @@ uninit lock() bare, unsafe
 	size-of@pthread_mutex_t <= size-of@lock hard-assert
 	a pointer-cast
 
-init void(a lock mut*) bare, unsafe
++init void(a lock mut*) bare, unsafe
 	if is-single-threaded
 		()
 	elif is-windows
@@ -64,7 +64,7 @@ init void(a lock mut*) bare, unsafe
 		attr pthread_mutexattr_t = zeroed
 		a.as-mutex pthread_mutex_init &attr hard-assert-posix-error
 
-acquire void(a lock mut*) bare, unsafe
++acquire void(a lock mut*) bare, unsafe
 	if is-single-threaded
 		()
 	elif is-windows
@@ -72,7 +72,7 @@ acquire void(a lock mut*) bare, unsafe
 	else
 		a.as-mutex.pthread_mutex_lock hard-assert-posix-error
 
-release void(a lock mut*) bare, unsafe
++release void(a lock mut*) bare, unsafe
 	if is-single-threaded
 		()
 	elif is-windows
@@ -297,7 +297,7 @@ thread-handle record by-val, mut
 -as-pthread pthread_t(a thread-handle) bare, unsafe
 	a.storage to
 
-create-one-thread thread-handle(
++create-one-thread thread-handle(
 	thread-arg any-mut-pointer,
 	thread-fun fun* any-mut-pointer(any-mut-pointer),
 ) bare, summon, unsafe
@@ -320,7 +320,7 @@ create-one-thread thread-handle(
 				todo
 		res
 
-join-one-thread void(a thread-handle) bare, summon, unsafe
++join-one-thread void(a thread-handle) bare, summon, unsafe
 	if is-single-threaded
 		hard-unreachable
 	elif is-windows

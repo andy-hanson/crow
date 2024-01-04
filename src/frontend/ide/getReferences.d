@@ -538,7 +538,7 @@ void withRecordFieldFunctions(
 }
 
 immutable(FunDecl*)[] funsNamed(in Module* module_, Symbol name) =>
-	mustGet(module_.allExportedNames, name).funs;
+	mustGet(module_.exports, name).funs;
 
 bool isRecordFieldFunction(in FunBody a) =>
 	a.isA!(FunBody.RecordFieldGet) || a.isA!(FunBody.RecordFieldPointer) || a.isA!(FunBody.RecordFieldSet);

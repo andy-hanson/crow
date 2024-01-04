@@ -28,7 +28,7 @@ import
 		size, try-remove
 
 # This is like `set`, but keeps elements in sorted order.
-sorted-set[t] record
++sorted-set[t] record
 	-add t add-node
 	-remove index-set
 
@@ -43,23 +43,23 @@ Nodes are added to the right.
 	values t array
 	left t add-node?
 
-new[t] t sorted-set(...a t array) t key
++new[t] t sorted-set(...a t array) t key
 	a.to to
 
-to[t] t sorted-set(a t[]) t key
++to[t] t sorted-set(a t[]) t key
 	(a.to.sort, ()) :: (t add-node), ()
 
-to[t] t[](a t sorted-set) t key
++to[t] t[](a t sorted-set) t key
 	for x : a
 		x
 
-# `true` iff `a.size == 0`.
-is-empty[t] bool(a t sorted-set)
+# Same as `a.size == 0`.
++is-empty[t] bool(a t sorted-set)
 	# Compaction ensures that this is the only case where we store empty values.
 	a.add.values is-empty
 
 # Number of elements in the set.
-size[t] nat64(a t sorted-set)
++size[t] nat64(a t sorted-set)
 	a.add.add-size - a.remove.size
 -add-size[t] nat64(a t add-node)
 	a.values.size + a.add-size-left
@@ -75,7 +75,7 @@ size[t] nat64(a t sorted-set)
 			break acc
 
 # True if `value` is an element of the set.
-in[t] bool(value t, a t sorted-set) t key
++in[t] bool(value t, a t sorted-set) t key
 	if index ?= a.add find-in-add value
 		!(index in a.remove)
 
@@ -109,14 +109,14 @@ Adds an element to the set.
 
 If `value` is already in the set, returns `a` unmodified.
 ###
-~ ~[t] t sorted-set(a t sorted-set, value t) t key
++ ~[t] t sorted-set(a t sorted-set, value t) t key
 	a try-add value ?? a
 
 ###
 If `value` is already in the set, returns an empty option.
 Else, adds it and returns the new set.
 ###
-try-add[t] t sorted-set?(a t sorted-set, value t) t key
++try-add[t] t sorted-set?(a t sorted-set, value t) t key
 	if index ?= a.add find-in-add value
 		# In 'add', but may need to remove from removals
 		if new-remove ?= a.remove try-remove index
@@ -129,14 +129,14 @@ Removes a value from the set.
 
 If `value` is not in the set, returns `a` unmodified.
 ###
-~ -[t] t sorted-set(a t sorted-set, value t) t key
++ -[t] t sorted-set(a t sorted-set, value t) t key
 	a try-remove value ?? a
 
 ###
 If `value` is in the set, removes it and returns the new set.
 Else, returns an empty option.
 ###
-try-remove[t] t sorted-set?(a t sorted-set, value t) t key
++try-remove[t] t sorted-set?(a t sorted-set, value t) t key
 	if r ?= a.add find-in-add-for-remove value, 0
 		removals-here-and-right = (a.remove count-greater-or-equal r.size-left) + 1
 		if r.size-here should-compact r.size-right, removals-here-and-right
@@ -331,7 +331,7 @@ Or a combination of the two.
 
 region spec impls (see collection.crow)
 
-iterate[t] bool(a t sorted-set, f act bool(t)) t key
++iterate[t] bool(a t sorted-set, f act bool(t)) t key
 	iters mut = a init-iters
 	loop
 		if iters is-empty
@@ -407,13 +407,13 @@ iterate[t] bool(a t sorted-set, f act bool(t)) t key
 
 subregion build
 
-sorted-set-builder[t] record mut
++sorted-set-builder[t] record mut
 	-inner t list-builder
 
-build[t] t sorted-set(a build-options, f act void(t sorted-set-builder)) t key
++build[t] t sorted-set(a build-options, f act void(t sorted-set-builder)) t key
 	a build (out => f[out,]) to
 
-~ ~=[t] void(a t sorted-set-builder, value t) t key
++ ~=[t] void(a t sorted-set-builder, value t) t key
 	a.inner ~= value
 
 region test

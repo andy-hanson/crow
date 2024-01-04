@@ -19,7 +19,9 @@ import model.model :
 	CalledDecl,
 	CalledSpecSig,
 	Destructure,
+	ExportVisibility,
 	FunDecl,
+	importCanSee,
 	NameReferents,
 	Params,
 	paramTypeAt,
@@ -160,9 +162,10 @@ void eachFunInScope(in FunsInScope a, Symbol funName, in void delegate(CalledDec
 		foreach (FunDecl* f; force(funs))
 			cb(CalledDecl(f));
 
-	eachImportAndReExport(a.importsAndReExports, funName, (in NameReferents x) {
+	eachImportAndReExport(a.importsAndReExports, funName, (ExportVisibility visibility, in NameReferents x) {
 		foreach (FunDecl* f; x.funs)
-			cb(CalledDecl(f));
+			if (importCanSee(visibility, f.visibility))
+				cb(CalledDecl(f));
 	});
 }
 

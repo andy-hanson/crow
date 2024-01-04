@@ -3,9 +3,9 @@
 import
 	crow/c-types: c-int
 
-SDL_Init c-int(init-flags SDL_Init_flags) summon, SDL2 extern
++SDL_Init c-int(init-flags SDL_Init_flags) summon, SDL2 extern
 
-SDL_Init_flags flags(nat32) extern
++SDL_Init_flags flags(nat32) extern
 	SDL_INIT_TIMER = 0x00000001
 	SDL_INIT_AUDIO = 0x00000010
 	SDL_INIT_VIDEO = 0x00000020
@@ -15,6 +15,6 @@ SDL_Init_flags flags(nat32) extern
 	SDL_INIT_EVENTTHREAD = 0x01000000
 	SDL_INIT_EVERYTHING = 0x0000FFFF
 
-SDL_Quit void() summon, SDL2 extern
++SDL_Quit void() summon, SDL2 extern
 
-SDL_GetError c-string() summon, SDL2 extern
++SDL_GetError c-string() summon, SDL2 extern

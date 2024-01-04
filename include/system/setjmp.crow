@@ -5,23 +5,23 @@ import
 
 # Make this as big as the biggest one I've found, which is on Windows where it is 16 * 128 bits.
 # The interpreter uses a fake implementation of this.
-__jmp_buf_tag extern(512)
++__jmp_buf_tag extern(512)
 
 # WARNING: This is declared as `typedef struct __jmp_buf_tag jmp_buf[1];`
 # (or on Windows, `typedef _JBTYPE jmp_buf[_JBLEN];` where JBLEN is 16)
 # So in some cases it's by value, in others by reference
-jmp_buf alias
++jmp_buf alias
 	__jmp_buf_tag mut*
 
 # WARN: Use _setjmp on Windows
-setjmp int32(env jmp_buf) c extern
++setjmp int32(env jmp_buf) c extern
 
 # WARN: Windows only
-_setjmp int32(env jmp_buf) kernel32 extern
++_setjmp int32(env jmp_buf) kernel32 extern
 
 ###
 This is used internally by crow for `throw` and should not be used otherwise.
 
 The interpreter uses a fake implementation.
 ###
-longjmp void(env jmp_buf, val int32) c extern
++longjmp void(env jmp_buf, val int32) c extern

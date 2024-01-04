@@ -1,35 +1,35 @@
 import
 	crow/c-types: c-int
 
-SDL_AudioFormat alias
++SDL_AudioFormat alias
 	nat16
 
-AUDIO_F32 SDL_AudioFormat() bare
++AUDIO_F32 SDL_AudioFormat() bare
 	0x8120
 
-SDL_AudioDeviceID alias
++SDL_AudioDeviceID alias
 	nat32
 
-SDL_AudioCallback alias
++SDL_AudioCallback alias
 	fun* void(any-mut-pointer, nat8 mut*, c-int)
 
-SDL_AudioSpec record extern, mut
-	freq c-int
-	format SDL_AudioFormat
-	channels nat8
-	silence nat8
-	samples nat16
-	padding nat16
-	size nat32
-	callback SDL_AudioCallback
-	userdata any-mut-pointer
++SDL_AudioSpec record extern, mut
+	+freq c-int
+	+format SDL_AudioFormat
+	+channels nat8
+	+silence nat8
+	+samples nat16
+	+padding nat16
+	+size nat32
+	+callback SDL_AudioCallback
+	+userdata any-mut-pointer
 
-new SDL_AudioSpec() bare, unsafe
++new SDL_AudioSpec() bare, unsafe
 	0, 0, 0, 0, 0, 0, 0, null, null
 
-SDL_GetAudioDeviceName c-string(index c-int, iscapture c-int) summon, SDL2 extern
++SDL_GetAudioDeviceName c-string(index c-int, iscapture c-int) summon, SDL2 extern
 
-SDL_OpenAudioDevice SDL_AudioDeviceID(
++SDL_OpenAudioDevice SDL_AudioDeviceID(
 	device c-string,
 	iscapture c-int,
 	desired SDL_AudioSpec*,
@@ -37,6 +37,6 @@ SDL_OpenAudioDevice SDL_AudioDeviceID(
 	allowed_changes c-int,
 ) summon, SDL2 extern
 
-SDL_PauseAudioDevice void(dev SDL_AudioDeviceID, pause_on c-int) summon, SDL2 extern
++SDL_PauseAudioDevice void(dev SDL_AudioDeviceID, pause_on c-int) summon, SDL2 extern
 
-SDL_CloseAudioDevice void(dev SDL_AudioDeviceID) summon, SDL2 extern
++SDL_CloseAudioDevice void(dev SDL_AudioDeviceID) summon, SDL2 extern

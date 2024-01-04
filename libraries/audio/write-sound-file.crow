@@ -7,12 +7,12 @@ import
 	sndfile/util: check-sndfile-error
 	./sound: format, n-channels, sample-rate, samples, sound
 
-sound-file-format enum
++sound-file-format enum
 	flac
 	ogg-vorbis
 	wav
 
-write-sound-file void(path string, sound sound, format sound-file-format) summon
++write-sound-file void(path string, sound sound, format sound-file-format) summon
 	n-channels = sound.format n-channels
 	n-frames = sound.samples.size / n-channels
 	sf-format = format to-sf-format

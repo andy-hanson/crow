@@ -1,13 +1,13 @@
 import
 	crow/c-types: c-int, u-int
 
-SDL_Window extern
++SDL_Window extern
 
-SDL_DestroyWindow void(window SDL_Window mut*) summon, SDL2 extern
++SDL_DestroyWindow void(window SDL_Window mut*) summon, SDL2 extern
 
-SDL_GLContext extern
++SDL_GLContext extern
 
-SDL_CreateWindow SDL_Window mut*(
++SDL_CreateWindow SDL_Window mut*(
 	title c-string,
 	x c-int,
 	y c-int,
@@ -16,7 +16,7 @@ SDL_CreateWindow SDL_Window mut*(
 	window-flags SDL_WindowFlags,
 ) summon, SDL2 extern
 
-SDL_WindowFlags flags(nat32) extern
++SDL_WindowFlags flags(nat32) extern
 	SDL_WINDOW_FULLSCREEN = 0x00000001
 	SDL_WINDOW_OPENGL = 0x00000002
 	SDL_WINDOW_SHOWN = 0x00000004
@@ -41,10 +41,10 @@ SDL_WindowFlags flags(nat32) extern
 	SDL_WINDOW_VULKAN = 0x10000000
 	SDL_WINDOW_METAL = 0x20000000
 
-SDL_GL_CreateContext SDL_GLContext mut*(window SDL_Window mut*) summon, SDL2 extern
-SDL_GL_DeleteContext void(context SDL_GLContext mut*) summon, SDL2 extern
++SDL_GL_CreateContext SDL_GLContext mut*(window SDL_Window mut*) summon, SDL2 extern
++SDL_GL_DeleteContext void(context SDL_GLContext mut*) summon, SDL2 extern
 
-SDL_GLattr enum(u-int) extern
++SDL_GLattr enum(u-int) extern
 	SDL_GL_RED_SIZE = 0
 	SDL_GL_GREEN_SIZE = 1
 	SDL_GL_BLUE_SIZE = 2
@@ -73,18 +73,18 @@ SDL_GLattr enum(u-int) extern
 	SDL_GL_CONTEXT_RESET_NOTIFICATION = 25
 	SDL_GL_CONTEXT_NO_ERROR = 26
 
-SDL_GLprofile flags(c-int)
++SDL_GLprofile flags(c-int)
 	SDL_GL_CONTEXT_PROFILE_CORE = 1
 	SDL_GL_CONTEXT_PROFILE_COMPATIBILITY = 2
 	SDL_GL_CONTEXT_PROFILE_ES = 4
 
-SDL_GL_SetAttribute c-int(attr SDL_GLattr, value c-int) summon, SDL2 extern
++SDL_GL_SetAttribute c-int(attr SDL_GLattr, value c-int) summon, SDL2 extern
 
-SDL_WINDOWPOS_UNDEFINED c-int()
++SDL_WINDOWPOS_UNDEFINED c-int()
 	0x1fff0000
 
-SDL_GL_SwapWindow void(window SDL_Window mut*) summon, SDL2 extern
++SDL_GL_SwapWindow void(window SDL_Window mut*) summon, SDL2 extern
 
-SDL_GL_LoadLibrary c-int(path c-string) summon, SDL2 extern
++SDL_GL_LoadLibrary c-int(path c-string) summon, SDL2 extern
 
-SDL_GL_GetProcAddress any-const-pointer(proc c-string) summon, SDL2 extern
++SDL_GL_GetProcAddress any-const-pointer(proc c-string) summon, SDL2 extern

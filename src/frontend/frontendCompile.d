@@ -586,7 +586,9 @@ MostlyResolvedImport tryResolveImport(ref FrontendCompiler a, in Config config, 
 			else {
 				Opt!Uri fromConfig = config.include[libraryName];
 				return has(fromConfig)
-					? UriOrDiag(has(fr.rest) ? concatUriAndPath(a.allUris, force(fromConfig), force(fr.rest)) : force(fromConfig))
+					? UriOrDiag(has(fr.rest)
+						? concatUriAndPath(a.allUris, force(fromConfig), force(fr.rest))
+						: force(fromConfig))
 					: UriOrDiag(Diag.ImportFileDiag(Diag.ImportFileDiag.LibraryNotConfigured(libraryName)));
 			}
 		},

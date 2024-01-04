@@ -6,7 +6,9 @@ import frontend.check.instantiate : InstantiateCtx;
 import model.ast : pathRange;
 import model.diag : Diag, Diagnostic;
 import model.model :
+	ExportVisibility,
 	FunDecl,
+	importCanSee,
 	ImportOrExport,
 	ImportOrExportKind,
 	Module,
@@ -106,26 +108,28 @@ private void checkUnusedImports(ref CheckCtx ctx) {
 		}
 		import_.kind.match!void(
 			(ImportOrExportKind.ModuleWhole) {
-				if (!isUsedModuleWhole(ctx, import_.module_) && has(import_.source))
+				if (!isUsedModuleWhole(ctx, import_.module_, import_.importVisibility) && has(import_.source))
 					addDiagUnused(import_.modulePtr, none!Symbol);
 			},
 			(Opt!(NameReferents*)[] referents) {
 				foreach (Opt!(NameReferents*) x; referents)
-					if (has(x) && !containsUsed(*force(x), ctx.used))
+					if (has(x) && !containsUsed(*force(x), import_.importVisibility, ctx.used))
 						addDiagUnused(import_.modulePtr, some(force(x).name));
 			});
 	}
 }
 
-private bool isUsedModuleWhole(in CheckCtx ctx, in Module module_) =>
-	existsInHashTable!(NameReferents, Symbol, nameFromNameReferents)(module_.allExportedNames, (in NameReferents x) =>
-		containsUsed(x, ctx.used));
+private bool isUsedModuleWhole(in CheckCtx ctx, in Module module_, ExportVisibility importVisibility) =>
+	existsInHashTable!(NameReferents, Symbol, nameFromNameReferents)(module_.exports, (in NameReferents x) =>
+		containsUsed(x, importVisibility, ctx.used));
 
-private bool containsUsed(in NameReferents a, in UsedSet used) =>
-	(has(a.structOrAlias) && isUsed(used, force(a.structOrAlias).asVoidPointer())) ||
-	(has(a.spec) && isUsed(used, force(a.spec))) ||
+private bool containsUsed(in NameReferents a, ExportVisibility importVisibility, in UsedSet used) =>
+	(has(a.structOrAlias) &&
+		importCanSee(importVisibility, force(a.structOrAlias).visibility) &&
+		isUsed(used, force(a.structOrAlias).asVoidPointer())) ||
+	(has(a.spec) && importCanSee(importVisibility, force(a.spec).visibility) && isUsed(used, force(a.spec))) ||
 	exists!(immutable FunDecl*)(a.funs, (in FunDecl* x) =>
-		isUsed(used, x));
+		importCanSee(importVisibility, x.visibility) && isUsed(used, x));
 
 immutable struct ImportAndReExportModules {
 	immutable ImportOrExport[] imports;
@@ -135,18 +139,19 @@ immutable struct ImportAndReExportModules {
 void eachImportAndReExport(
 	in ImportAndReExportModules a,
 	Symbol name,
-	in void delegate(in NameReferents) @safe @nogc pure nothrow cb,
+	// Caller is responsible for filtering by visibility
+	in void delegate(ExportVisibility, in NameReferents) @safe @nogc pure nothrow cb,
 ) {
 	void inner(ref ImportOrExport import_) {
 		import_.kind.match!void(
 			(ImportOrExportKind.ModuleWhole) {
-				Opt!NameReferents x = import_.module_.allExportedNames[name];
-				if (has(x)) cb(force(x));
+				Opt!NameReferents x = import_.module_.exports[name];
+				if (has(x)) cb(import_.importVisibility, force(x));
 			},
 			(Opt!(NameReferents*)[] referents) {
 				foreach (Opt!(NameReferents*) x; referents)
 					if (has(x) && force(x).name == name)
-						cb(*force(x));
+						cb(import_.importVisibility, *force(x));
 			});
 	}
 	foreach (ref ImportOrExport m; a.imports)

@@ -256,8 +256,8 @@ StructDecl* getStructDeclOrAddDiag(
 }
 
 Opt!(StructDecl*) getStructDecl(in Module a, Symbol name) {
-Opt!NameReferents optReferents = a.allExportedNames[name];
-if (has(optReferents)) {
+	Opt!NameReferents optReferents = a.exports[name];
+	if (has(optReferents)) {
 		Opt!StructOrAlias sa = force(optReferents).structOrAlias;
 		return has(sa) && force(sa).isA!(StructDecl*)
 			? some(force(sa).as!(StructDecl*))
@@ -361,7 +361,7 @@ FunDeclAndSigIndex getFunDeclMulti(
 }
 
 immutable(FunDecl*[]) getFuns(ref Module a, Symbol name) {
-	Opt!NameReferents optReferents = a.allExportedNames[name];
+	Opt!NameReferents optReferents = a.exports[name];
 	return has(optReferents) ? force(optReferents).funs : [];
 }
 

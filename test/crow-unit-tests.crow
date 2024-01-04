@@ -9,8 +9,6 @@ import
 	crow/col/experimental/index-set: index-set, new
 	crow/col/experimental/mut-sorted-map: mut-sorted-map, new
 	crow/col/experimental/mut-sorted-set: mut-sorted-set, new
-	crow/col/experimental/private/frozen-map-tests: dummy-frozen-map-tests
-	crow/col/experimental/private/index-set-tests: dummy-index-set-tests
 	crow/col/experimental/sorted-set: new, sorted-set
 	crow/col/experimental/tree-set: new, tree-set
 	crow/col/mut-deque: mut-deque, new
@@ -19,10 +17,6 @@ import
 	crow/col/mut-queue: mut-queue, new
 	crow/col/mut-stack: mut-stack, new
 	crow/col/priority-queue: new, priority-queue
-	crow/col/private/array-tests: dummy-array-tests
-	crow/col/private/map-tests: dummy-map-tests
-	crow/col/private/list-tests: dummy-list-tests
-	crow/col/private/set-tests: dummy-set-tests
 	crow/col/stack: new, stack
 	crow/col/queue: new, queue
 	crow/crypto/experimental/login-cookie: generate-login-cookie
@@ -39,18 +33,24 @@ import
 	crow/parse: grammar-skip, new
 	crow/parse-command: parse-named-args
 	crow/perf: measure-performance
-	crow/private/tests/exclusion-queue-tests: dummy-exclusion-queue-tests
-	crow/private/tests/bare-map-tests: dummy-bare-map-tests
-	crow/private/tests/bare-queue-tests: dummy-bare-queue-tests
-	crow/private/tests/bits-tests: dummy-bits-tests
-	crow/private/tests/future-tests: dummy-future-tests
-	crow/private/tests/json-tests: dummy-json-tests
-	crow/private/tests/math-tests: dummy-math-tests
-	crow/private/tests/number-tests: dummy-number-tests
-	crow/private/tests/string-tests: dummy-string-tests
 	crow/serialize: from-bytes
 	crow/test-util/test-runner: run-all-tests
 	crow/version: is-windows
+	../include/crow/col/experimental/private/frozen-map-tests: dummy-frozen-map-tests
+	../include/crow/col/experimental/private/index-set-tests: dummy-index-set-tests
+	../include/crow/col/private/array-tests: dummy-array-tests
+	../include/crow/col/private/map-tests: dummy-map-tests
+	../include/crow/col/private/list-tests: dummy-list-tests
+	../include/crow/col/private/set-tests: dummy-set-tests
+	../include/crow/private/tests/exclusion-queue-tests: dummy-exclusion-queue-tests
+	../include/crow/private/tests/bare-map-tests: dummy-bare-map-tests
+	../include/crow/private/tests/bare-queue-tests: dummy-bare-queue-tests
+	../include/crow/private/tests/bits-tests: dummy-bits-tests
+	../include/crow/private/tests/future-tests: dummy-future-tests
+	../include/crow/private/tests/json-tests: dummy-json-tests
+	../include/crow/private/tests/math-tests: dummy-math-tests
+	../include/crow/private/tests/number-tests: dummy-number-tests
+	../include/crow/private/tests/string-tests: dummy-string-tests
 	../editor/vscode/license.txt as license string
 
 main nat^(_ string[]) summon

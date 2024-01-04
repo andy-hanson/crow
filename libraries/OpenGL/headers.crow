@@ -1,112 +1,112 @@
 import
 	crow/c-types: c-char, c-float, c-int, long, u-int
 
-GLbitfield alias
++GLbitfield alias
 	u-int
-GLboolean alias
++GLboolean alias
 	bool
-GLchar alias
++GLchar alias
 	c-char
-GLint alias
++GLint alias
 	c-int
-GLintptr alias
++GLintptr alias
 	long
-GLsizei alias
++GLsizei alias
 	c-int
-GLsizeiptr alias
++GLsizeiptr alias
 	long
-GLubyte alias
++GLubyte alias
 	nat8
-GLuint alias
++GLuint alias
 	u-int
-GLfloat alias
++GLfloat alias
 	c-float
 
-glActiveTexture void(texture GLenum) summon, GL extern
++glActiveTexture void(texture GLenum) summon, GL extern
 
-glAttachShader void(program GLuint, shader GLuint) summon, GL extern
++glAttachShader void(program GLuint, shader GLuint) summon, GL extern
 
-glBindBuffer void(target GLenum, buffer GLuint) summon, GL extern
++glBindBuffer void(target GLenum, buffer GLuint) summon, GL extern
 
-glBindTexture void(target GLenum, texture GLuint) summon, GL extern
++glBindTexture void(target GLenum, texture GLuint) summon, GL extern
 
-glBufferData void(
++glBufferData void(
 	target GLenum,
 	size GLsizeiptr,
 	buffer-data any-const-pointer,
 	usage GLenum,
 ) summon, GL extern
 
-glBufferSubData void(
++glBufferSubData void(
 	target GLenum,
 	offset GLintptr,
 	size GLsizeiptr,
 	buffer-data any-const-pointer,
 ) summon, GL extern
 
-glClear void(mask GLbitfield) summon, GL extern
++glClear void(mask GLbitfield) summon, GL extern
 
-glClearColor void(red GLfloat, green GLfloat, blue GLfloat, alpha GLfloat) summon, GL extern
++glClearColor void(red GLfloat, green GLfloat, blue GLfloat, alpha GLfloat) summon, GL extern
 
-glCompileShader void(shader GLuint) summon, GL extern
++glCompileShader void(shader GLuint) summon, GL extern
 
-glCreateProgram GLuint() summon, GL extern
++glCreateProgram GLuint() summon, GL extern
 
-glCreateShader GLuint(type GLenum) summon, GL extern
++glCreateShader GLuint(type GLenum) summon, GL extern
 
-glCullFace void(mode GLenum) summon, GL extern
++glCullFace void(mode GLenum) summon, GL extern
 
-glDeleteBuffers void(n GLsizei, buffers GLuint*) summon, GL extern
++glDeleteBuffers void(n GLsizei, buffers GLuint*) summon, GL extern
 
-glDeleteProgram void(program GLuint) summon, GL extern
++glDeleteProgram void(program GLuint) summon, GL extern
 
-glDeleteShader void(shader GLuint) summon, GL extern
++glDeleteShader void(shader GLuint) summon, GL extern
 
-glDeleteTextures void(n GLsizei, textures GLuint*) summon, GL extern
++glDeleteTextures void(n GLsizei, textures GLuint*) summon, GL extern
 
-glDrawArrays void(mode GLenum, first GLint, count GLsizei) summon, GL extern
++glDrawArrays void(mode GLenum, first GLint, count GLsizei) summon, GL extern
 
-glEnable void(cap GLenum) summon, GL extern
-glEnableVertexAttribArray void(index GLuint) summon, GL extern
++glEnable void(cap GLenum) summon, GL extern
++glEnableVertexAttribArray void(index GLuint) summon, GL extern
 
-glGenBuffers void(n GLsizei, buffers GLuint mut*) summon, GL extern
++glGenBuffers void(n GLsizei, buffers GLuint mut*) summon, GL extern
 
-glGenTextures void(n GLsizei, textures GLuint mut*) summon, GL extern
++glGenTextures void(n GLsizei, textures GLuint mut*) summon, GL extern
 
-glGetError GLenum() summon, GL extern
++glGetError GLenum() summon, GL extern
 
-glGetProgramInfoLog void(
++glGetProgramInfoLog void(
 	program GLuint,
 	bufSize GLsizei,
 	length GLsizei mut*,
 	infoLog GLchar mut*,
 ) summon, GL extern
 
-glGetProgramiv void(program GLuint, pname GLenum, params GLint mut*) summon, GL extern
++glGetProgramiv void(program GLuint, pname GLenum, params GLint mut*) summon, GL extern
 
-glGetShaderInfoLog void(
++glGetShaderInfoLog void(
 	shader GLuint,
 	bufSize GLsizei,
 	length GLsizei mut*,
 	infoLog GLchar mut*,
 ) summon, GL extern
 
-glGetShaderiv void(reader GLuint, pname GLenum, params GLint mut*) summon, GL extern
++glGetShaderiv void(reader GLuint, pname GLenum, params GLint mut*) summon, GL extern
 
-glGetString c-string(name GLenum) summon, GL extern
++glGetString c-string(name GLenum) summon, GL extern
 
-glGetUniformLocation GLint(program GLuint, name GLchar*) summon, GL extern
++glGetUniformLocation GLint(program GLuint, name GLchar*) summon, GL extern
 
-glLinkProgram void(program GLuint) summon, GL extern
++glLinkProgram void(program GLuint) summon, GL extern
 
-glShaderSource void(
++glShaderSource void(
 	shader GLuint,
 	count GLsizei,
 	string GLchar**,
 	length GLint*,
 ) summon, GL extern
 
-glTexImage2D void(
++glTexImage2D void(
 	target GLenum,
 	level GLint,
 	internalformat GLenum,
@@ -118,20 +118,20 @@ glTexImage2D void(
 	pixels any-const-pointer,
 ) summon, GL extern
 
-glTexParameteri void(target GLenum, pname GLenum, param GLenum) summon, GL extern
++glTexParameteri void(target GLenum, pname GLenum, param GLenum) summon, GL extern
 
-glUniform1i void(location GLint, v0 GLint) summon, GL extern
++glUniform1i void(location GLint, v0 GLint) summon, GL extern
 
-glUniformMatrix3fv void(
++glUniformMatrix3fv void(
 	location GLint,
 	count GLsizei,
 	transpose GLboolean,
 	value GLfloat*,
 ) summon, GL extern
 
-glUseProgram void(program GLuint) summon, GL extern
++glUseProgram void(program GLuint) summon, GL extern
 
-glVertexAttribPointer void(
++glVertexAttribPointer void(
 	index GLuint,
 	size GLint,
 	type GLenum,
@@ -140,12 +140,12 @@ glVertexAttribPointer void(
 	pointer any-const-pointer,
 ) summon, GL extern
 
-GL_FALSE GLint() bare
++GL_FALSE GLint() bare
 	0
-GL_TRUE GLint() bare
++GL_TRUE GLint() bare
 	1
 
-GLenum enum(u-int) extern
++GLenum enum(u-int) extern
 	GL_NO_ERROR = 0
 	GL_TRIANGLES = 4
 	GL_TRIANGLE_STRIP = 5
@@ -185,5 +185,5 @@ GLenum enum(u-int) extern
 	GL_TEXTURE_SWIZZLE_A = 0x8e45
 	GL_CULL_FACE = 0x0B44
 
-GL_COLOR_BUFFER_BIT GLbitfield() bare
++GL_COLOR_BUFFER_BIT GLbitfield() bare
 	0x00004000

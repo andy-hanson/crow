@@ -85,7 +85,7 @@ This is O(1).
 ###
 +as-string string(a char8[]) bare
 	a,
-as-string string(a char8 array) bare
++as-string string(a char8 array) bare
 	a.to::char8[] as-string
 as-string string(a char8* range) bare, unsafe
 	a.as-array as-string
@@ -96,7 +96,7 @@ This is O(1).
 ###
 +as-string string(bytes nat8[])
 	trusted bytes.list-cast::char8[] as-string
-as-string string(bytes nat8 array)
++as-string string(bytes nat8 array)
 	bytes.to::nat8[] as-string
 
 +to nat64(a char8) bare

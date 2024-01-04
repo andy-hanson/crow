@@ -139,6 +139,7 @@ CString[] cCompilerArgs(in CCompileOptions options) {
 			cString!"-std=c17",
 			cString!"-Wno-address-of-packed-member",
 			cString!"-Wno-builtin-declaration-mismatch",
+			cString!"-Wno-div-by-zero",
 			cString!"-Wno-maybe-uninitialized",
 			cString!"-Wno-missing-field-initializers",
 			cString!"-Wno-unused-but-set-parameter",

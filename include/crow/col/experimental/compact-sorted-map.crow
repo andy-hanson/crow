@@ -22,7 +22,7 @@ import
 	../sort: sort
 	../private/sort-utils: binary-search-key
 
-compact-sorted-map[k, v] record by-val
++compact-sorted-map[k, v] record by-val
 	-impl (k, v) impl
 
 -impl[k, v] union
@@ -36,21 +36,21 @@ compact-sorted-map[k, v] record by-val
 	pairs (k, v?) array
 	prev (k, v) impl
 
-==[k, v] bool(a (k, v) compact-sorted-map, b (k, v) compact-sorted-map) k key, v equal
++==[k, v] bool(a (k, v) compact-sorted-map, b (k, v) compact-sorted-map) k key, v equal
 	a.to-sorted-pairs == b.to-sorted-pairs
 -to-sorted-pairs[k, v] (k, v)[](a (k, v) compact-sorted-map) k key
 	a.to sort (k, _) => k
 
-to[k, v] json(a (k, v) compact-sorted-map) k key, (json, k) to, (json, v) to
++to[k, v] json(a (k, v) compact-sorted-map) k key, (json, k) to, (json, v) to
 	a.to-sorted-pairs to
 
-new[k, v] (k, v) compact-sorted-map(...a (k, v) array) k key
++new[k, v] (k, v) compact-sorted-map(...a (k, v) array) k key
 	a.to to
 
-to[k, v] (k, v) compact-sorted-map(a (k, v)[]) k key
++to[k, v] (k, v) compact-sorted-map(a (k, v)[]) k key
 	(a.to::((k, v) array) sort (k, _) => k).end-node,
 
-is-empty[k, v] bool(a (k, v) compact-sorted-map) k key
++is-empty[k, v] bool(a (k, v) compact-sorted-map) k key
 	match a impl
 	as overlay _
 		false
@@ -92,7 +92,7 @@ to[k, v] (k, v)[](a (k, v) compact-sorted-map) k key
 	else
 		a
 
-subscript[k, v] v?(a (k, v) compact-sorted-map, key k) k key
++subscript[k, v] v?(a (k, v) compact-sorted-map, key k) k key
 	cur mut = a impl
 	loop
 		match cur
@@ -105,7 +105,7 @@ subscript[k, v] v?(a (k, v) compact-sorted-map, key k) k key
 		as end-node e
 			break e binary-search-key key
 
-in[k, v] bool(key k, a (k, v) compact-sorted-map) k key
++in[k, v] bool(key k, a (k, v) compact-sorted-map) k key
 	!a[key].is-empty
 
 -add-or-remove[k, v] (k, v) impl(a (k, v) impl, key k, value v?) k key
@@ -202,7 +202,7 @@ compact[k, v] (k, v) compact-sorted-map(a (k, v) compact-sorted-map) k key
 
 region spec impls (see collection.crow)
 
-iterate[k, v] bool(a (k, v) compact-sorted-map, f act bool(k, v)) k key
++iterate[k, v] bool(a (k, v) compact-sorted-map, f act bool(k, v)) k key
 	end-node mut (k, v) array = ()
 	# Key has an index because overlays with a lower index (rightmost) should come first
 	overlays ((k, nat64), (k, v?) array) mut-priority-queue = with out : build
@@ -290,9 +290,9 @@ iterate[k, v] bool(a (k, v) compact-sorted-map, f act bool(k, v)) k key
 
 region build
 
-compact-sorted-map-builder[k, v] record mut
++compact-sorted-map-builder[k, v] record mut
 	-inner (k, v) list-builder
-build[k, v] (k, v) compact-sorted-map(
++build[k, v] (k, v) compact-sorted-map(
 	a build-options,
 	f act void((k, v) compact-sorted-map-builder),
 ) k key
@@ -319,7 +319,7 @@ region test
 			"{k} -> {v}"
 		"[{pairs}]"
 
-verify void(a (nat64, string) compact-sorted-map, expected string)
+-verify void(a (nat64, string) compact-sorted-map, expected string)
 	a.dbg is expected
 
 test

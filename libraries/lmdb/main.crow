@@ -13,16 +13,16 @@ import
 region env
 
 # LMDB environment.
-lmdb-env record mut
++lmdb-env record mut
 	-env MDB_env mut*
 
 -open-lmdb-env record
 	db-dir string
 	create-if-not-exists bool
-open-lmdb-env open-lmdb-env(db-dir string, create-if-not-exists bool)
++open-lmdb-env open-lmdb-env(db-dir string, create-if-not-exists bool)
 	db-dir, create-if-not-exists
 # Calls `open-env`, then `f`, then `close-env` (in a `finally`).
-with-block[t] t^(options open-lmdb-env, f act t^(lmdb-env)) summon, t shared
++with-block[t] t^(options open-lmdb-env, f act t^(lmdb-env)) summon, t shared
 	trusted
 		env = options open-env
 		with : (() => env.close-env,) future-finally
@@ -56,47 +56,47 @@ Keys in LMDB can be nat32, nat64, or string.
 
 Don't implement this spec for other types, since LMDB really only supports a few types.
 ###
-lmdb-key[k] spec k key
++lmdb-key[k] spec k key
 	# NOTE: Parameter is a dummy, don't actually use it
 	lmdb-key-flags mdb-database-flags(_ k)
 	# Don't use `serialize`, because lmdb expects integers to be fixed size
 	to-lmdb-key nat8[](key k)
 	from-lmdb-key k(a nat8[])
 
-lmdb-key-flags mdb-database-flags(_ nat64)
++lmdb-key-flags mdb-database-flags(_ nat64)
 	MDB_INTEGERKEY
-lmdb-key-flags mdb-database-flags(_ nat32)
++lmdb-key-flags mdb-database-flags(_ nat32)
 	MDB_INTEGERKEY
-lmdb-key-flags mdb-database-flags(_ string)
++lmdb-key-flags mdb-database-flags(_ string)
 	()
 
-to-lmdb-key nat8[](key nat64)
++to-lmdb-key nat8[](key nat64)
 	key to-8-bytes
-to-lmdb-key nat8[](key nat32)
++to-lmdb-key nat8[](key nat32)
 	key to-4-bytes
-to-lmdb-key nat8[](key string)
++to-lmdb-key nat8[](key string)
 	key to-bytes
 
-from-lmdb-key nat64(a nat8[])
++from-lmdb-key nat64(a nat8[])
 	a from-bytes
-from-lmdb-key nat32(a nat8[])
++from-lmdb-key nat32(a nat8[])
 	a from-bytes
-from-lmdb-key string(a nat8[])
++from-lmdb-key string(a nat8[])
 	a from-bytes
 
 region db
 
 # Single database (key-value store).
-lmdb-db[k, v] record mut
++lmdb-db[k, v] record mut
 	-dbi MDB_dbi
 
-database[k, v] record mut
++database[k, v] record mut
 	env lmdb-env
 	db-name string
-database[k, v] (k, v) database(env lmdb-env, db-name string)
++database[k, v] (k, v) database(env lmdb-env, db-name string)
 	env, db-name
 
-with-block[t, k, v] t^(
++with-block[t, k, v] t^(
 	a (k, v) database,
 	f act t^((k, v) lmdb-db),
 ) summon, t shared, k lmdb-key, v serialize
@@ -122,42 +122,42 @@ with-block[t, k, v] t^(
 region transaction
 
 # LMDB transaction.
-lmdb-txn record mut
++lmdb-txn record mut
 	-txn MDB_txn mut*
 
-read-transaction record mut
++read-transaction record mut
 	env lmdb-env
 ###
 Open a read-only transaction, then call `f`, then commit the transaction.
 
 Aborts the transaction iff `f` throws an exception.
 ###
-read-transaction read-transaction(env lmdb-env)
++read-transaction read-transaction(env lmdb-env)
 	env,
-with-block[t] t(a read-transaction, f act t(lmdb-txn)) summon
++with-block[t] t(a read-transaction, f act t(lmdb-txn)) summon
 	a.env with-transaction MDB_RDONLY, txn =>
 		f[txn], transaction-abort
 
-write-transaction record mut
++write-transaction record mut
 	env lmdb-env
 # Like `write-transaction`, but the transaction can perform writes.
-write-transaction write-transaction(env lmdb-env)
++write-transaction write-transaction(env lmdb-env)
 	env,
-with-block[t] t(a write-transaction, f act t(lmdb-txn)) summon
++with-block[t] t(a write-transaction, f act t(lmdb-txn)) summon
 	with txn : a.env abortable-write-transaction
 		f[txn], transaction-commit
 
-transaction-result enum
++transaction-result enum
 	transaction-abort
 	transaction-commit
 
-abortable-write-transaction record mut
++abortable-write-transaction record mut
 	env lmdb-env
 # Like `with-write-transaction`,
 # but `f` returns a pair of the result and whether to commit the transaction.
-abortable-write-transaction abortable-write-transaction(env lmdb-env)
++abortable-write-transaction abortable-write-transaction(env lmdb-env)
 	env,
-with-block[t] t(a abortable-write-transaction, f act (t, transaction-result)(lmdb-txn)) summon
++with-block[t] t(a abortable-write-transaction, f act (t, transaction-result)(lmdb-txn)) summon
 	a.env with-transaction (), f
 
 -with-transaction[t] t(
@@ -183,7 +183,7 @@ region get / set
 Gets the value associated with a key.
 Returns an empty option iff `key` is not in `db`.
 ###
-get[k, v] v?(txn lmdb-txn, db (k, v) lmdb-db, key k) summon, k lmdb-key, v serialize
++get[k, v] v?(txn lmdb-txn, db (k, v) lmdb-db, key k) summon, k lmdb-key, v serialize
 	# TODO: this check should be unnecessary...
 	unless (txn count db) == 0
 		lmdb-key = key to-lmdb-key
@@ -201,11 +201,11 @@ get[k, v] v?(txn lmdb-txn, db (k, v) lmdb-db, key k) summon, k lmdb-key, v seria
 Associates the value with the key.
 This may add the key or overwrite the value if the key is already in the database.
 ###
-set[k, v] void(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lmdb-key, v serialize
++set[k, v] void(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lmdb-key, v serialize
 	txn put-inner db, key, value, () check-lmdb-error
 
 # Like `set`, but throws if `key` is already in the `db`.
-add[k, v] void(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lmdb-key, v serialize
++add[k, v] void(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lmdb-key, v serialize
 	unless txn try-add db, key, value
 		throw "key already exists"
 
@@ -213,7 +213,7 @@ add[k, v] void(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lmdb-k
 If `key` is already in `db`, returns `false`.
 Else, adds the `key` and `value` and returns `true`.
 ###
-try-add[k, v] bool(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lmdb-key, v serialize
++try-add[k, v] bool(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lmdb-key, v serialize
 	err = txn put-inner db, key, value, MDB_NOOVERWRITE
 	unless err == MDB_KEYEXIST
 		err check-lmdb-error
@@ -233,7 +233,7 @@ try-add[k, v] bool(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lm
 
 region stat
 
-lmdb_stat record
++lmdb_stat record
 	psize nat
 	depth nat
 	branch-pages nat
@@ -241,7 +241,7 @@ lmdb_stat record
 	overflow-pages nat
 	entries nat
 
-to string(a lmdb_stat)
++to string(a lmdb_stat)
 	# TODO: Use """ string
 	x = "	psize = {a psize}\n	depth = {a depth}\n	branch-pages = {a branch-pages}"
 	y = "	leaf-pages = {a leaf-pages}\n	overflow-pages = {a overflow-pages}"
@@ -249,7 +249,7 @@ to string(a lmdb_stat)
 	"lmdb_stat:\n{x}\n{y}\n{z}"
 
 # Get statistics about `db`.
-stat[k, v] lmdb_stat(txn lmdb-txn, db (k, v) lmdb-db) summon
++stat[k, v] lmdb_stat(txn lmdb-txn, db (k, v) lmdb-db) summon
 	trusted
 		s mut mdb_stat = ()
 		txn.txn mdb_stat db.dbi, &s check-lmdb-error
@@ -261,22 +261,22 @@ stat[k, v] lmdb_stat(txn lmdb-txn, db (k, v) lmdb-db) summon
 Get the number of entries in `db`.
 (This just uses `stat`.)
 ###
-count[k, v] nat(txn lmdb-txn, db (k, v) lmdb-db) summon
++count[k, v] nat(txn lmdb-txn, db (k, v) lmdb-db) summon
 	txn stat db entries
 
 region iteration
 
-each[k, v] record mut
++each[k, v] record mut
 	txn lmdb-txn
 	db (k, v) lmdb-db
-each[k, v] (k, v) each(txn lmdb-txn, db (k, v) lmdb-db)
++each[k, v] (k, v) each(txn lmdb-txn, db (k, v) lmdb-db)
 	txn, db
 
-size[k, v] nat64(a (k, v) each) summon
++size[k, v] nat64(a (k, v) each) summon
 	a.txn count a.db
 
 # Calls `f` for each key-value pair in `db`.
-iterate[k, v] bool(a (k, v) each, f act bool(k, v)) summon, k lmdb-key, v serialize
++iterate[k, v] bool(a (k, v) each, f act bool(k, v)) summon, k lmdb-key, v serialize
 	trusted a.txn with-cursor a.db, cursor =>
 		key mut = empty-val
 		value mut = empty-val
@@ -299,7 +299,7 @@ iterate[k, v] bool(a (k, v) each, f act bool(k, v)) summon, k lmdb-key, v serial
 Iterates `db0` and `db1` in order, calling `f` with each key and with the values from both dbs.
 Returns an array of the results.
 ###
-zip[out, k, v0, v1] out[](
++zip[out, k, v0, v1] out[](
 	txn lmdb-txn,
 	db0 (k, v0) lmdb-db,
 	db1 (k, v1) lmdb-db,

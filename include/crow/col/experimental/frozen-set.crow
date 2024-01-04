@@ -13,47 +13,47 @@ import
 		~=, build, frozen-map, frozen-map-builder, in, is-empty, iterate, size, to,
 		try-get-unordered-index
 
-frozen-set[t] record by-val
++frozen-set[t] record by-val
 	-inner (t, void) frozen-map
 
-new[t] t frozen-set(...a t array) t key
++new[t] t frozen-set(...a t array) t key
 	a.to to
 
-to[t] t frozen-set(a t[]) t key
++to[t] t frozen-set(a t[]) t key
 	(trusted a.list-cast::((t, void)[])).to,
 
 # This is O(1).
-to[t] t[](a t frozen-set)
++to[t] t[](a t frozen-set)
 	trusted a.inner.to::((t, void)[]).list-cast
 
-is-empty[t] bool(a t frozen-set)
++is-empty[t] bool(a t frozen-set)
 	a.inner is-empty
 
-size[t] nat64(a t frozen-set)
++size[t] nat64(a t frozen-set)
 	a.inner size
 
-in[t] bool(value t, a t frozen-set) t key
++in[t] bool(value t, a t frozen-set) t key
 	value in a.inner
 
 ###
 WARN: The order of values is arbitrary.
 Equal sets may have different indices for the same values.
 ###
-try-get-unordered-index[t] nat64?(a t frozen-set, value t) t key
++try-get-unordered-index[t] nat64?(a t frozen-set, value t) t key
 	a.inner try-get-unordered-index value
 
 region spec impls (see collection.crow)
 
-iterate[t] bool(a t frozen-set, f act bool(t))
++iterate[t] bool(a t frozen-set, f act bool(t))
 	a.inner iterate (k, _) => f[k]
 
 subregion build
 
-frozen-set-builder[t] record mut
++frozen-set-builder[t] record mut
 	-inner (t, void) frozen-map-builder
-build[t] t frozen-set(a build-options, f act void(t frozen-set-builder)) t key
++build[t] t frozen-set(a build-options, f act void(t frozen-set-builder)) t key
 	(a build out => f[out,])::((t, void) frozen-map),
-~ ~=[t] void(a t frozen-set-builder, value t)
++ ~=[t] void(a t frozen-set-builder, value t)
 	a.inner ~= (value, ())
-size[t] nat64(a t frozen-set-builder)
++size[t] nat64(a t frozen-set-builder)
 	a.inner size

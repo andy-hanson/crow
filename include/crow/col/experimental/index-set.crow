@@ -17,10 +17,10 @@ import
 	../collection: build-options, for-loop, join, subscript
 	../list: ~=, build, iterate, list, list-builder, to
 
-index-set record by-ref
++index-set record by-ref
 	# This is one more than the highest number that would currently fit in the tree.
-	capacity nat64
-	root node
+	-capacity nat64
+	-root node
 
 -node union
 	inner inner-node
@@ -39,7 +39,7 @@ index-set record by-ref
 	c nat64
 	d nat64
 
-subscript nat64(a leaf-node, n nat64)
+-subscript nat64(a leaf-node, n nat64)
 	a.values[n]
 
 -values nat64 array(a leaf-node)
@@ -48,16 +48,16 @@ subscript nat64(a leaf-node, n nat64)
 	# 64 * 4
 	256
 
-new index-set(...a nat64 array)
++new index-set(...a nat64 array)
 	a.to to
 
-to index-set(a nat64[])
++to index-set(a nat64[])
 	res mut index-set = (0, empty)
 	for x : a
 		res ~:= x
 	res
 
-== bool(a index-set, b index-set)
++== bool(a index-set, b index-set)
 	a.capacity == b.capacity && a.root == b.root
 -== bool(a node, b node)
 	match a
@@ -86,7 +86,7 @@ to index-set(a nat64[])
 		as empty
 			true
 
-is-empty bool(a index-set)
++is-empty bool(a index-set)
 	a.capacity == 0
 -is-empty bool(a node)
 	match a
@@ -98,7 +98,7 @@ is-empty bool(a index-set)
 		true
 
 # O(n).
-size nat64(a index-set)
++size nat64(a index-set)
 	0 size-recur a.root
 -size-recur nat64(acc nat64, a node)
 	match a
@@ -109,11 +109,11 @@ size nat64(a index-set)
 	as empty
 		acc
 
-to nat64[](a index-set)
++to nat64[](a index-set)
 	for x : a
 		x
 
-in bool(index nat64, a index-set)
++in bool(index nat64, a index-set)
 	index < a.capacity && index in a.root, a.capacity
 # n = capacity of this node
 -in bool(index nat64, a node, n nat64)
@@ -154,7 +154,7 @@ in bool(index nat64, a index-set)
 -empty-leaf-node leaf-node()
 	0, 0, 0, 0
 
-try-add index-set?(a index-set, index nat64)
++try-add index-set?(a index-set, index nat64)
 	if index >= a.capacity
 		a.quadruple-capacity try-add index
 	elif res ?= a.root try-add index, a.capacity
@@ -196,16 +196,16 @@ try-add index-set?(a index-set, index nat64)
 			empty-inner-node inner
 		new-node try-add index, n
 
-~ ~~ index-set(a index-set, indices nat64[])
++ ~~ index-set(a index-set, indices nat64[])
 	res mut = a
 	for index : indices
 		res ~:= index
 	res
 
-~ - index-set(a index-set, index nat64)
++ - index-set(a index-set, index nat64)
 	a try-remove index ?? a
 
-try-remove index-set?(a index-set, index nat64)
++try-remove index-set?(a index-set, index nat64)
 	if index < a.capacity
 		if removed ?= a.root try-remove index, a.capacity
 			(removed simplify-after-remove-or-filter a.capacity),
@@ -312,7 +312,7 @@ intersect index-set(a index-set, b index-set)
 
 # hi exclusive
 # TODO: use 'range' type
-count-range nat64(a index-set, low nat64, high nat64)
++count-range nat64(a index-set, low nat64, high nat64)
 	if low <= high
 		a.root count-range a.capacity, low, high - low
 -count-range nat64(a node, n nat64, low nat64, len nat64)
@@ -347,7 +347,7 @@ count-range nat64(a index-set, low nat64, high nat64)
 		as empty
 			0
 
-count-less nat64(a index-set, n nat64)
++count-less nat64(a index-set, n nat64)
 	a count-range 0, n
 
 count-greater-or-equal nat64(a index-set, n nat64)
@@ -369,7 +369,7 @@ count-greater-or-equal nat64(a index-set, n nat64)
 	res
 
 # Gets the set with only values < limit
-filter-less index-set(a index-set, limit nat64)
++filter-less index-set(a index-set, limit nat64)
 	if limit < a.capacity
 		filtered = a.root filter-less-recur a.capacity, limit
 		filtered simplify-after-remove-or-filter a.capacity
@@ -419,14 +419,14 @@ filter-less index-set(a index-set, limit nat64)
 -bit-index nat64(a nat64)
 	a % 64
 
-to string(a index-set)
++to string(a index-set)
 	", " join for x : a; "{x}"
 
 region spec impls (see collection.crow)
 
 subregion iteration
 
-iterate bool(a index-set, f act bool(nat64))
++iterate bool(a index-set, f act bool(nat64))
 	a.root iterate-recur 0, a.capacity, f
 # offset: how much to add to indices in this node
 -iterate-recur bool(node node, offset nat64, n nat64, f act bool(nat64))
@@ -455,18 +455,18 @@ iterate bool(a index-set, f act bool(nat64))
 
 subregion build
 
-index-set-builder record mut
++index-set-builder record mut
 	-inner nat64 list-builder
 
-build index-set(a build-options, f act void(index-set-builder))
++build index-set(a build-options, f act void(index-set-builder))
 	a build (out => f[out,]) to
 
-~ ~= void(a index-set-builder, value nat64)
++ ~= void(a index-set-builder, value nat64)
 	a.inner ~= value
 
 region test
 
-dbg string(a index-set)
+~dbg string(a index-set)
 	a.root dbg
 -dbg string(a node)
 	match a

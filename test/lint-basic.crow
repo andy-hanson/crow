@@ -6,7 +6,7 @@ import
 
 main nat^(_ string[]) summon
 	files = list-lintable-files
-	failures failure[] <- ()::failure[] join for file : files parallel
+	failures failure[] <- () join for file : files parallel
 		file.lint-file,
 	if failures is-empty
 		out print "linted {files size} files"

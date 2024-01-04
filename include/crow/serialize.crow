@@ -44,7 +44,7 @@ This strips leading 0 bytes.
 ###
 Unlike `a to-bytes`, this always returns an 8-byte array, including any leading 0 bytes.
 ###
-to-8-bytes nat8[](a nat64)
++to-8-bytes nat8[](a nat64)
 	b0 = a >> 0x00 wrap-to
 	b1 = a >> 0x08 wrap-to
 	b2 = a >> 0x10 wrap-to
@@ -78,14 +78,14 @@ test
 
 +to-bytes nat8[](a nat32)
 	a.to::nat64 to-bytes
-to-4-bytes nat8[](a nat32)
++to-4-bytes nat8[](a nat32)
 	a.to::nat64.to-8-bytes[4 .. 8]
 +from-bytes nat32(a nat8[])
 	a.from-bytes::nat64 to
 
 +to-bytes nat8[](a int64)
 	a to-8-bytes
-to-8-bytes nat8[](a int64)
++to-8-bytes nat8[](a int64)
 	if a < 0
 		todo
 	else

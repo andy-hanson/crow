@@ -6,46 +6,46 @@ export
 	./bootstrap: float32, float64, int8, int16, int32, int64, nat8, nat16, nat32, nat64
 
 # Same as 0.
-new nat8() bare
++new nat8() bare
 	0
-new nat16() bare
++new nat16() bare
 	0
-new nat32() bare
++new nat32() bare
 	0
-new nat64() bare
++new nat64() bare
 	0
-new int8() bare
++new int8() bare
 	0
-new int16() bare
++new int16() bare
 	0
-new int32() bare
++new int32() bare
 	0
-new int64() bare
++new int64() bare
 	0
-new float32() bare
++new float32() bare
 	0
-new float64() bare
++new float64() bare
 	0
 
-<=> comparison(a nat8, b nat8) bare
++<=> comparison(a nat8, b nat8) bare
 	a cmp b
-<=> comparison(a nat16, b nat16) bare
++<=> comparison(a nat16, b nat16) bare
 	a cmp b
-<=> comparison(a nat32, b nat32) bare
++<=> comparison(a nat32, b nat32) bare
 	a cmp b
-<=> comparison(a nat64, b nat64) bare
++<=> comparison(a nat64, b nat64) bare
 	a cmp b
-<=> comparison(a int8, b int8) bare
++<=> comparison(a int8, b int8) bare
 	a cmp b
-<=> comparison(a int16, b int16) bare
++<=> comparison(a int16, b int16) bare
 	a cmp b
-<=> comparison(a int32, b int32) bare
++<=> comparison(a int32, b int32) bare
 	a cmp b
-<=> comparison(a int64, b int64) bare
++<=> comparison(a int64, b int64) bare
 	a cmp b
-<=> comparison(a float64, b float64) bare
++<=> comparison(a float64, b float64) bare
 	a cmp b
-<=> comparison(a float32, b float32) bare
++<=> comparison(a float32, b float32) bare
 	a cmp b
 
 -cmp[t] comparison(a t, b t) bare, t less
@@ -70,132 +70,134 @@ new float64() bare
 -is-less bool(a int64, b int64) builtin, bare
 -is-less bool(a float32, b float32) builtin, bare
 -is-less bool(a float64, b float64) builtin, bare
-== bool(a nat8, b nat8) builtin, bare
-== bool(a nat16, b nat16) builtin, bare
-== bool(a nat32, b nat32) builtin, bare
-== bool(a nat64, b nat64) builtin, bare
-== bool(a int8, b int8) builtin, bare
-== bool(a int16, b int16) builtin, bare
-== bool(a int32, b int32) builtin, bare
-== bool(a int64, b int64) builtin, bare
-== bool(a float32, b float32) builtin, bare
-== bool(a float64, b float64) builtin, bare
++== bool(a nat8, b nat8) builtin, bare
++== bool(a nat16, b nat16) builtin, bare
++== bool(a nat32, b nat32) builtin, bare
++== bool(a nat64, b nat64) builtin, bare
++== bool(a int8, b int8) builtin, bare
++== bool(a int16, b int16) builtin, bare
++== bool(a int32, b int32) builtin, bare
++== bool(a int64, b int64) builtin, bare
++== bool(a float32, b float32) builtin, bare
++== bool(a float64, b float64) builtin, bare
 
-unsafe-mod nat64(a nat64, b nat64) builtin, bare, unsafe
+~unsafe-mod nat64(a nat64, b nat64) builtin, bare, unsafe
 
-unsafe-to nat8(a nat64) builtin, bare, unsafe
-unsafe-to nat16(a nat64) builtin, bare, unsafe
-unsafe-to nat32(a int32) builtin, bare, unsafe
-unsafe-to nat32(a nat64) builtin, bare, unsafe
-unsafe-to nat64(a int64) builtin, bare, unsafe
-unsafe-to nat64(a int32) bare, unsafe
+~unsafe-to nat8(a nat64) builtin, bare, unsafe
+~unsafe-to nat16(a nat64) builtin, bare, unsafe
+~unsafe-to nat32(a int32) builtin, bare, unsafe
+~unsafe-to nat32(a nat64) builtin, bare, unsafe
+~unsafe-to nat64(a int64) builtin, bare, unsafe
+~unsafe-to nat64(a int32) bare, unsafe
 	# TODO: breaking this local out to avoid a libgccjit bug
 	b int64 = a.to
 	b unsafe-to
 
 # UB for positive numbers >= 2 ** 63
-unsafe-to int8(a int64) builtin, bare, unsafe
-unsafe-to int16(a int64) builtin, bare, unsafe
-unsafe-to int32(a int64) builtin, bare, unsafe
-unsafe-to int32(a nat64) bare, unsafe
+~unsafe-to int8(a int64) builtin, bare, unsafe
+~unsafe-to int16(a int64) builtin, bare, unsafe
+~unsafe-to int32(a int64) builtin, bare, unsafe
+~unsafe-to int32(a nat64) bare, unsafe
 	# TODO: breaking this local out to avoid a libgccjit bug
 	b int64 = a unsafe-to
 	b unsafe-to
-unsafe-to int64(a nat64) builtin, bare, unsafe
+~unsafe-to int64(a nat64) builtin, bare, unsafe
 
-wrap-to nat32(a nat64) bare
++wrap-to nat32(a nat64) bare
 	trusted a unsafe-to
-wrap-to int32(a nat32) bare
++wrap-to int32(a nat32) bare
 	trusted a.to.unsafe-to::int64 unsafe-to
++wrap-to nat32(a int32) bare
+	trusted a unsafe-to
 
-to nat16(a nat8) bare
++to nat16(a nat8) bare
 	trusted a.to unsafe-to
-to nat64(a nat8) builtin, bare
-to nat64(a nat16) builtin, bare
-to nat64(a nat32) builtin, bare
++to nat64(a nat8) builtin, bare
++to nat64(a nat16) builtin, bare
++to nat64(a nat32) builtin, bare
 
-to int64(a int8) builtin, bare
-to int64(a int16) builtin, bare
-to int64(a int32) builtin, bare
++to int64(a int8) builtin, bare
++to int64(a int16) builtin, bare
++to int64(a int32) builtin, bare
 
-wrap-add nat8(a nat8, b nat8) builtin, bare
-wrap-add nat16(a nat16, b nat16) builtin, bare
-wrap-add nat32(a nat32, b nat32) builtin, bare
-wrap-add nat64(a nat64, b nat64) builtin, bare
++wrap-add nat8(a nat8, b nat8) builtin, bare
++wrap-add nat16(a nat16, b nat16) builtin, bare
++wrap-add nat32(a nat32, b nat32) builtin, bare
++wrap-add nat64(a nat64, b nat64) builtin, bare
 
-unsafe-add int8(a int8, b int8) builtin, bare, unsafe
-unsafe-add int16(a int16, b int16) builtin, bare, unsafe
-unsafe-add int32(a int32, b int32) builtin, bare, unsafe
-unsafe-add int64(a int64, b int64) builtin, bare, unsafe
+~unsafe-add int8(a int8, b int8) builtin, bare, unsafe
+~unsafe-add int16(a int16, b int16) builtin, bare, unsafe
+~unsafe-add int32(a int32, b int32) builtin, bare, unsafe
+~unsafe-add int64(a int64, b int64) builtin, bare, unsafe
 
-wrap-sub nat8(a nat8, b nat8) builtin, bare
-wrap-sub nat16(a nat16, b nat16) builtin, bare
-wrap-sub nat32(a nat32, b nat32) builtin, bare
-wrap-sub nat64(a nat64, b nat64) builtin, bare
++wrap-sub nat8(a nat8, b nat8) builtin, bare
++wrap-sub nat16(a nat16, b nat16) builtin, bare
++wrap-sub nat32(a nat32, b nat32) builtin, bare
++wrap-sub nat64(a nat64, b nat64) builtin, bare
 
-unsafe-sub int8(a int8, b int8) builtin, bare, unsafe
-unsafe-sub int16(a int16, b int16) builtin, bare, unsafe
-unsafe-sub int32(a int32, b int32) builtin, bare, unsafe
-unsafe-sub int64(a int64, b int64) builtin, bare, unsafe
+~unsafe-sub int8(a int8, b int8) builtin, bare, unsafe
+~unsafe-sub int16(a int16, b int16) builtin, bare, unsafe
+~unsafe-sub int32(a int32, b int32) builtin, bare, unsafe
+~unsafe-sub int64(a int64, b int64) builtin, bare, unsafe
 
-wrap-mul nat8(a nat8, b nat8) builtin, bare
-wrap-mul nat16(a nat16, b nat16) builtin, bare
-wrap-mul nat32(a nat32, b nat32) builtin, bare
-wrap-mul nat64(a nat64, b nat64) builtin, bare
++wrap-mul nat8(a nat8, b nat8) builtin, bare
++wrap-mul nat16(a nat16, b nat16) builtin, bare
++wrap-mul nat32(a nat32, b nat32) builtin, bare
++wrap-mul nat64(a nat64, b nat64) builtin, bare
 
-unsafe-mul int8(a int8, b int8) builtin, bare, unsafe
-unsafe-mul int16(a int16, b int16) builtin, bare, unsafe
-unsafe-mul int32(a int32, b int32) builtin, bare, unsafe
-unsafe-mul int64(a int64, b int64) builtin, bare, unsafe
+~unsafe-mul int8(a int8, b int8) builtin, bare, unsafe
+~unsafe-mul int16(a int16, b int16) builtin, bare, unsafe
+~unsafe-mul int32(a int32, b int32) builtin, bare, unsafe
+~unsafe-mul int64(a int64, b int64) builtin, bare, unsafe
 
-unsafe-div nat64(a nat8, b nat8) builtin, bare, unsafe
-unsafe-div nat64(a nat16, b nat16) builtin, bare, unsafe
-unsafe-div nat64(a nat32, b nat32) builtin, bare, unsafe
-unsafe-div nat64(a nat64, b nat64) builtin, bare, unsafe
-unsafe-div int16(a int8, b int8) builtin, bare, unsafe
-unsafe-div int16(a int16, b int16) builtin, bare, unsafe
-unsafe-div int32(a int32, b int32) builtin, bare, unsafe
-unsafe-div int64(a int64, b int64) builtin, bare, unsafe
+~unsafe-div nat64(a nat8, b nat8) builtin, bare, unsafe
+~unsafe-div nat64(a nat16, b nat16) builtin, bare, unsafe
+~unsafe-div nat64(a nat32, b nat32) builtin, bare, unsafe
+~unsafe-div nat64(a nat64, b nat64) builtin, bare, unsafe
+~unsafe-div int16(a int8, b int8) builtin, bare, unsafe
+~unsafe-div int16(a int16, b int16) builtin, bare, unsafe
+~unsafe-div int32(a int32, b int32) builtin, bare, unsafe
+~unsafe-div int64(a int64, b int64) builtin, bare, unsafe
 
 # Equivlaent to `a is-multiple-of 2`.
-is-even bool(a nat64) bare
++is-even bool(a nat64) bare
 	(trusted a unsafe-mod 2) == 0
 
 # Equivalent to `!a.is-even`.
-is-odd bool(a nat64) bare
++is-odd bool(a nat64) bare
 	!a.is-even
 
 region constants
 
 # Least possible value for a type.
-min-value int8() bare
++min-value int8() bare
 	-0x80
-min-value int16() bare
++min-value int16() bare
 	-0x8000
-min-value int32() bare
++min-value int32() bare
 	-0x80000000
-min-value int64() bare
++min-value int64() bare
 	-0x8000000000000000
 
 # Greatest possible value for a type.
-max-value int8() bare
++max-value int8() bare
 	0x7f
-max-value int16() bare
++max-value int16() bare
 	0x7fff
-max-value int32() bare
++max-value int32() bare
 	0x7fffffff
-max-value int64() bare
++max-value int64() bare
 	0x7fffffffffffffff
-max-value nat8() bare
++max-value nat8() bare
 	0xff
-max-value nat16() bare
++max-value nat16() bare
 	0xffff
-max-value nat32() bare
++max-value nat32() bare
 	0xffffffff
-max-value nat64() bare
++max-value nat64() bare
 	0xffffffffffffffff
 
-round-up-to-power-of-two nat64(n nat64) bare
+~round-up-to-power-of-two nat64(n nat64) bare
 	# TODO: this needs to throw if 'n' is too big to round up!
 	acc mut = 1
 	until acc >= n

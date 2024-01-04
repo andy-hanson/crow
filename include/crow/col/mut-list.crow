@@ -36,12 +36,12 @@ export
 ###
 Pointer to the first element.
 Since `mut-list` changes its underlying data occasionally,
-it's UB if this is used after the size of `a` changes.
+it's unsafe to use this after the size of `a` changes.
 ###
-begin-pointer[t] t mut*(a t mut[]) bare, unsafe
++begin-pointer[t] t mut*(a t mut[]) bare, unsafe
 	a.backing begin-pointer
 
-end-pointer[t] t mut*(a t mut[]) bare, unsafe
++end-pointer[t] t mut*(a t mut[]) bare, unsafe
 	a.begin-pointer + a.size
 
 is-at-capacity[t] bool(a t mut[]) bare, unsafe

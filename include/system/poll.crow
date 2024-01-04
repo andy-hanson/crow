@@ -6,35 +6,35 @@ import
 	crow/number: int16, int32
 	crow/pointer: mut-pointer
 
-pollfd record extern
-	fd fd-t
-	events int16
-	revents int16
++pollfd record extern
+	+fd fd-t
+	+events int16
+	+revents int16
 
-POLLIN int16()
++POLLIN int16()
 	1
-POLLPRI int16()
++POLLPRI int16()
 	2
-POLLOUT int16()
++POLLOUT int16()
 	4
-POLLERR int16()
++POLLERR int16()
 	8
-POLLHUP int16()
++POLLHUP int16()
 	0x10
-POLLNVAL int16()
++POLLNVAL int16()
 	0x20
 
-poll int32(fds pollfd mut*, nfds u-long, timeout int32) summon, c extern
++poll int32(fds pollfd mut*, nfds u-long, timeout int32) summon, c extern
 
-has-POLLIN bool(revents int16)
++has-POLLIN bool(revents int16)
 	revents bits-intersect POLLIN
-has-POLLPRI bool(revents int16)
++has-POLLPRI bool(revents int16)
 	revents bits-intersect POLLPRI
-has-POLLOUT bool(revents int16)
++has-POLLOUT bool(revents int16)
 	revents bits-intersect POLLOUT
-has-POLLERR bool(revents int16)
++has-POLLERR bool(revents int16)
 	revents bits-intersect POLLERR
-has-POLLHUP bool(revents int16)
++has-POLLHUP bool(revents int16)
 	revents bits-intersect POLLHUP
-has-POLLNVAL bool(revents int16)
++has-POLLNVAL bool(revents int16)
 	revents bits-intersect POLLNVAL

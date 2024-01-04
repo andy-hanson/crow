@@ -213,7 +213,7 @@ abort void() c extern
 Zeroed data isn't safe as it would contain null pointers.
 It's GC-safe though, since the GC treats a null pointer same as any external pointer.
 ###
-zeroed[t] t() builtin, bare, unsafe
++zeroed[t] t() builtin, bare, unsafe
 
 ###
 For a number: 0.
@@ -262,64 +262,64 @@ exclusion alias
 region tuple
 
 +tuple2[t, u] record extern
-	a t
-	b u
+	+a t
+	+b u
 
 +tuple3[t0, t1, t2] record extern
-	a t0
-	b t1
-	c t2
+	+a t0
+	+b t1
+	+c t2
 
 +tuple4[t0, t1, t2, t3] record extern
-	a t0
-	b t1
-	c t2
-	d t3
+	+a t0
+	+b t1
+	+c t2
+	+d t3
 
 +tuple5[t0, t1, t2, t3, t4] record extern
-	a t0
-	b t1
-	c t2
-	d t3
-	e t4
+	+a t0
+	+b t1
+	+c t2
+	+d t3
+	+e t4
 
 +tuple6[t0, t1, t2, t3, t4, t5] record extern
-	a t0
-	b t1
-	c t2
-	d t3
-	e t4
-	f t5
+	+a t0
+	+b t1
+	+c t2
+	+d t3
+	+e t4
+	+f t5
 
 +tuple7[t0, t1, t2, t3, t4, t5, t6] record extern
-	a t0
-	b t1
-	c t2
-	d t3
-	e t4
-	f t5
-	g t6
+	+a t0
+	+b t1
+	+c t2
+	+d t3
+	+e t4
+	+f t5
+	+g t6
 
 +tuple8[t0, t1, t2, t3, t4, t5, t6, t7] record extern
-	a t0
-	b t1
-	c t2
-	d t3
-	e t4
-	f t5
-	g t6
-	h t7
+	+a t0
+	+b t1
+	+c t2
+	+d t3
+	+e t4
+	+f t5
+	+g t6
+	+h t7
 
 +tuple9[t0, t1, t2, t3, t4, t5, t6, t7, t8] record extern
-	a t0
-	b t1
-	c t2
-	d t3
-	e t4
-	f t5
-	g t6
-	h t7
-	i t8
+	+a t0
+	+b t1
+	+c t2
+	+d t3
+	+e t4
+	+f t5
+	+g t6
+	+h t7
+	+i t8
 
 region fun
 
@@ -408,7 +408,7 @@ future-state[t] union mut
 
 region lock
 
-lock record by-val, shared
++lock record by-val, shared
 	n0 nat64
 	n1 nat64
 	n2 nat64

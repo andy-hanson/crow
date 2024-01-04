@@ -200,19 +200,19 @@ This does not render as JSON; `to::string` does that.
 	as json-object o
 		o,
 
-as-bool-allow-null bool?(a json)
++as-bool-allow-null bool?(a json)
 	if a is-null
 		false,
 	else
 		a as-bool
 
-as-list-allow-null json[]?(a json)
++as-list-allow-null json[]?(a json)
 	if a is-null
 		(),
 	else
 		a as-list
 
-as-string-allow-null string?(a json)
++as-string-allow-null string?(a json)
 	if a is-null
 		"",
 	else

@@ -1,1 +1,1 @@
-SDL_GetKeyboardState nat8*(num-keys int mut*) summon, SDL2 extern
++SDL_GetKeyboardState nat8*(num-keys int mut*) summon, SDL2 extern

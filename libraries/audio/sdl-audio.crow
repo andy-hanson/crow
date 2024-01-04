@@ -9,7 +9,7 @@ import
 	./audio-queue: audio-queue, clear, new, play, play-loop, pull
 	./sound: n-channels, new, sample-rate, sound-format
 
-start-sdl-audio audio() summon
++start-sdl-audio audio() summon
 	trusted
 		err = SDL_INIT_AUDIO SDL_Init
 		assert err == 0

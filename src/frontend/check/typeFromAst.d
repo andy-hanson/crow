@@ -27,6 +27,8 @@ import model.model :
 	CommonTypes,
 	Destructure,
 	emptyTypeParams,
+	ExportVisibility,
+	importCanSee,
 	Local,
 	LocalMutability,
 	LocalSource,
@@ -481,9 +483,9 @@ Opt!T tryFindT(T)(
 	in Opt!T delegate(in NameReferents) @safe @nogc pure nothrow getFromNameReferents,
 ) {
 	Cell!(Opt!T) res = Cell!(Opt!T)(fromThisModule);
-	eachImportAndReExport(ctx.importsAndReExports, name, (in NameReferents referents) {
+	eachImportAndReExport(ctx.importsAndReExports, name, (ExportVisibility visibility, in NameReferents referents) {
 		Opt!T got = getFromNameReferents(referents);
-		if (has(got)) {
+		if (has(got) && importCanSee(visibility, force(got).visibility)) {
 			if (has(cellGet(res)))
 				// TODO: include both modules in the diag
 				addDiag(ctx, range, Diag(Diag.DuplicateImports(duplicateImportKind, name)));
