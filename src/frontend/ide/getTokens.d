@@ -69,7 +69,7 @@ import model.ast :
 	VarDeclAst,
 	WithAst;
 import util.alloc.alloc : Alloc;
-import util.col.array : isEmpty, newArray;
+import util.col.array : isEmpty, newArray, only;
 import util.col.arrayBuilder : add, addAll, ArrayBuilder, finish;
 import util.col.sortUtil : eachSorted, sortedIter;
 import util.conv : safeToUint;
@@ -517,12 +517,12 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 					addExprsTokens(ctx, x.args[1 .. $]);
 					break;
 				case CallAst.Style.prefixBang:
-					reference(ctx.tokens, TokenType.function_, rangeOfStartAndLength(x.funName.start, 1));
-					addExprTokens(ctx, x.args[0]);
+					reference(ctx.tokens, TokenType.function_, rangeOfStartAndLength(x.funName.start, "!".length));
+					addExprTokens(ctx, only(x.args));
 					break;
 				case CallAst.Style.suffixBang:
-					addExprTokens(ctx, x.args[0]);
-					reference(ctx.tokens, TokenType.function_, rangeOfStartAndLength(x.funName.start, 1));
+					addExprTokens(ctx, only(x.args));
+					reference(ctx.tokens, TokenType.function_, rangeOfStartAndLength(x.funName.start, "!".length));
 					break;
 				case CallAst.style.emptyParens:
 					break;

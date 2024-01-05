@@ -405,7 +405,8 @@ int symbolPrecedence(Symbol a, bool isAssignment) {
 }
 
 ExprAst tryParseDotsAndSubscripts(ref Lexer lexer, ExprAst initial) {
-	Pos start = curPos(lexer);
+	Pos start = initial.range.start;
+	Pos dotPos = curPos(lexer);
 	if (tryTakeToken(lexer, Token.dot)) {
 		NameAndRange name = takeNameAndRange(lexer);
 		Opt!(TypeAst*) typeArg = tryParseTypeArgForExpr(lexer);
@@ -417,7 +418,7 @@ ExprAst tryParseDotsAndSubscripts(ref Lexer lexer, ExprAst initial) {
 			range(lexer, start),
 			ExprAstKind(ArrowAccessAst(allocate(lexer.alloc, initial), name))));
 	} else if (tryTakeToken(lexer, Token.bracketLeft))
-		return parseSubscript(lexer, initial, start);
+		return parseSubscript(lexer, initial, dotPos);
 	else if (tryTakeToken(lexer, Token.colon2)) {
 		TypeAst type = parseTypeForTypedExpr(lexer);
 		return tryParseDotsAndSubscripts(lexer, ExprAst(
@@ -427,29 +428,28 @@ ExprAst tryParseDotsAndSubscripts(ref Lexer lexer, ExprAst initial) {
 		return tryParseDotsAndSubscripts(lexer, ExprAst(
 			range(lexer, start),
 			ExprAstKind(CallAst(
-				CallAst.Style.suffixBang, NameAndRange(start, symbol!"force"), newArray(lexer.alloc, [initial])))));
+				CallAst.Style.suffixBang, NameAndRange(dotPos, symbol!"force"), newArray(lexer.alloc, [initial])))));
 	} else
 		return initial;
 }
 
-ExprAst parseSubscript(ref Lexer lexer, ExprAst initial, Pos start) {
+ExprAst parseSubscript(ref Lexer lexer, ExprAst initial, Pos subscriptPos) {
 	ExprAst arg = () {
 		if (tryTakeToken(lexer, Token.bracketRight))
 			return ExprAst(
-				range(lexer, start),
-				ExprAstKind(CallAst(CallAst.Style.emptyParens, NameAndRange(start, symbol!"new"), [])));
+				range(lexer, subscriptPos),
+				ExprAstKind(CallAst(CallAst.Style.emptyParens, NameAndRange(subscriptPos, symbol!"new"), [])));
 		else {
 			ExprAst res = parseExprNoBlock(lexer);
 			takeOrAddDiagExpectedToken(lexer, Token.bracketRight, ParseDiag.Expected.Kind.closingBracket);
 			return res;
 		}
 	}();
-	//TODO: the range is wrong..
 	return tryParseDotsAndSubscripts(lexer, ExprAst(
-		range(lexer, start),
+		range(lexer, initial.range.start),
 		ExprAstKind(CallAst(
 			CallAst.Style.subscript,
-			NameAndRange(start, symbol!"subscript"),
+			NameAndRange(subscriptPos, symbol!"subscript"),
 			newArray!ExprAst(lexer.alloc, [initial, arg])))));
 }
 

@@ -405,7 +405,7 @@ CString version_(ref Alloc alloc, in Server server) =>
 		version (TailRecursionAvailable) {} else {
 			writer ~= ", no tail calls";
 		}
-		version (GccJitEnabled) {} else {
+		version (GccJitAvailable) {} else {
 			writer ~= ", does not support '--jit'";
 		}
 		writer ~= ", built with ";
