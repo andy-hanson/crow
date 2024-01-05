@@ -39,6 +39,7 @@ import model.model :
 	SpecDecl,
 	StructInst,
 	ThrowExpr,
+	TrustedExpr,
 	Type,
 	TypeParamIndex;
 import util.col.array : arrayOfSingle, count, first, firstZip, isEmpty, only;
@@ -241,4 +242,6 @@ private Opt!T findDirectChildExpr(T)(in ExprKind a, in Opt!T delegate(in Expr) @
 		(in SeqExpr x) =>
 			optOr!T(cb(x.first), () => cb(x.then)),
 		(in ThrowExpr x) =>
-			cb(x.thrown));
+			cb(x.thrown),
+		(in TrustedExpr x) =>
+			cb(x.inner));

@@ -55,7 +55,11 @@ import model.model :
 	ImportOrExport,
 	LambdaExpr,
 	LetExpr,
+	LiteralCStringExpr,
+	LiteralExpr,
+	LiteralSymbolExpr,
 	Local,
+	LocalGetExpr,
 	LocalSetExpr,
 	LoopBreakExpr,
 	LoopContinueExpr,
@@ -84,6 +88,7 @@ import model.model :
 	StructInst,
 	Test,
 	ThrowExpr,
+	TrustedExpr,
 	Type,
 	UnionMember,
 	VarDecl,
@@ -396,44 +401,45 @@ void eachTypeInExpr(in Expr expr, in TypeCb cb) {
 
 void eachTypeDirectlyInExpr(in Expr a, in TypeCb cb) {
 	a.kind.matchIn!void(
-		(in AssertOrForbidExpr x) {},
-		(in BogusExpr) {},
+		(in AssertOrForbidExpr _) {},
+		(in BogusExpr _) {},
 		(in CallExpr x) {
 			//TODO: types in explicit type args
 		},
 		(in ClosureGetExpr _) {},
-		(in ClosureSetExpr x) {},
+		(in ClosureSetExpr _) {},
 		(in FunPointerExpr _) {
 			//TODO: types in explicit type args
 		},
-		(in IfExpr x) {},
-		(in IfOptionExpr x) {},
+		(in IfExpr _) {},
+		(in IfOptionExpr _) {},
 		(in LambdaExpr x) {
 			eachTypeInDestructure(x.param, cb);
 		},
 		(in LetExpr x) {
 			eachTypeInDestructure(x.destructure, cb);
 		},
-		(in LiteralExpr) {},
-		(in LiteralCStringExpr) {},
-		(in LiteralSymbolExpr) {},
-		(in LocalGetExpr) {},
-		(in LocalSetExpr x) {},
-		(in LoopExpr x) {},
-		(in LoopBreakExpr x) {},
-		(in LoopContinueExpr) {},
-		(in LoopUntilExpr x) {},
-		(in LoopWhileExpr x) {},
-		(in MatchEnumExpr x) {},
+		(in LiteralExpr _) {},
+		(in LiteralCStringExpr _) {},
+		(in LiteralSymbolExpr _) {},
+		(in LocalGetExpr _) {},
+		(in LocalSetExpr _) {},
+		(in LoopExpr _) {},
+		(in LoopBreakExpr _) {},
+		(in LoopContinueExpr _) {},
+		(in LoopUntilExpr _) {},
+		(in LoopWhileExpr _) {},
+		(in MatchEnumExpr _) {},
 		(in MatchUnionExpr x) {
 			foreach (ref MatchUnionExpr.Case case_; x.cases) {
 				eachTypeInDestructure(case_.destructure, cb);
 			}
 		},
-		(in PtrToFieldExpr x) {},
+		(in PtrToFieldExpr _) {},
 		(in PtrToLocalExpr _) {},
-		(in SeqExpr x) {},
-		(in ThrowExpr x) {});
+		(in SeqExpr _) {},
+		(in ThrowExpr _) {},
+		(in TrustedExpr _) {});
 }
 
 void referencesForFunDecls(in AllSymbols allSymbols, in Program program, in FunDecl*[] decls, in ReferenceCb cb) {

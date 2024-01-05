@@ -73,6 +73,7 @@ import model.model :
 	StructDecl,
 	Test,
 	ThrowExpr,
+	TrustedExpr,
 	Type,
 	TypeParamIndex,
 	VarDecl,
@@ -476,7 +477,9 @@ Opt!PositionKind positionInExpr(in AllSymbols allSymbols, ExprContainer containe
 			(ref SeqExpr x) =>
 				optOr!PositionKind(recur(x.first), () => recur(x.then)),
 			(ref ThrowExpr x) =>
-				optOr!PositionKind(recur(x.thrown), () => here()));
+				optOr!PositionKind(recur(x.thrown), () => here()),
+			(ref TrustedExpr x) =>
+				optOr!PositionKind(recur(x.inner), () => here()));
 	}
 }
 

@@ -143,6 +143,7 @@ import model.model :
 	StructInst,
 	Test,
 	ThrowExpr,
+	TrustedExpr,
 	toMutability,
 	Type,
 	TypeParams,
@@ -300,7 +301,7 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expecte
 		(ThrowAst* a) =>
 			checkThrow(ctx, locals, ast, a, expected),
 		(TrustedAst* a) =>
-			withTrusted!Expr(ctx, ast, () => checkExpr(ctx, locals, &a.inner, expected)),
+			checkTrusted(ctx, locals, ast, a, expected),
 		(TypedAst* a) =>
 			checkTyped(ctx, locals, ast, a, expected),
 		(UnlessAst* a) =>
@@ -390,6 +391,11 @@ Expr checkThrow(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ThrowAs
 		Expr thrown = checkAndExpectCString(ctx, locals, &ast.thrown);
 		return Expr(source, ExprKind(allocate(ctx.alloc, ThrowExpr(thrown))));
 	}
+}
+
+Expr checkTrusted(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, TrustedAst* ast, ref Expected expected) {
+	Expr inner = withTrusted!Expr(ctx, source, () => checkExpr(ctx, locals, &ast.inner, expected));
+	return Expr(source, ExprKind(allocate(ctx.alloc, TrustedExpr(inner))));
 }
 
 Expr checkAssertOrForbid(

@@ -42,9 +42,9 @@ options:
 	paths string[] = for name : ("parse-errors", "compile-errors", "runnable")::string[]
 		"./test" child-path name
 	path-to-crow = crow-dir crow-path
-	tests string[] <- () join for path : paths parallel
+	tests string[] <- ()::string[] join for path : paths parallel
 		path list-tests options.match-test
-	failures failure[] <- () join for x : tests parallel
+	failures failure[] <- ()::failure[] join for x : tests parallel
 		path-to-crow run-single-crow-test x, options
 	if failures is-empty
 		out print "ran {tests size} crow tests"

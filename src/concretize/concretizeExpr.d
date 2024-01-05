@@ -94,6 +94,7 @@ import model.model :
 	SeqExpr,
 	SpecInst,
 	ThrowExpr,
+	TrustedExpr,
 	Type,
 	VariableRef;
 import util.alloc.alloc : Alloc;
@@ -1005,7 +1006,9 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 		(ref ThrowExpr x) =>
 			ConcreteExpr(type, range, ConcreteExprKind(
 				allocate(ctx.alloc, ConcreteExprKind.Throw(
-					concretizeExpr(ctx, cStringType(ctx.concretizeCtx), locals, x.thrown))))));
+					concretizeExpr(ctx, cStringType(ctx.concretizeCtx), locals, x.thrown))))),
+		(ref TrustedExpr x) =>
+			concretizeExpr(ctx, type, locals, x.inner));
 }
 
 ConstantsOrExprs constantsOrExprsArr(

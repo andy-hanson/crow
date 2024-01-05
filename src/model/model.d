@@ -1455,7 +1455,8 @@ immutable struct ExprKind {
 		PtrToFieldExpr*,
 		PtrToLocalExpr,
 		SeqExpr*,
-		ThrowExpr*);
+		ThrowExpr*,
+		TrustedExpr*);
 }
 
 immutable struct ExprAndType {
@@ -1598,6 +1599,10 @@ immutable struct SeqExpr {
 
 immutable struct ThrowExpr {
 	Expr thrown;
+}
+
+immutable struct TrustedExpr {
+	Expr inner;
 }
 
 alias Visibility = immutable Visibility_;

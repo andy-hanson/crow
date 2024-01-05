@@ -61,6 +61,7 @@ import model.model :
 	stringOfVisibility,
 	Test,
 	ThrowExpr,
+	TrustedExpr,
 	Type,
 	TypeParamIndex,
 	TypeParams,
@@ -460,7 +461,11 @@ Json jsonOfExpr(ref Alloc alloc, in Ctx ctx, in Expr a) =>
 		(in ThrowExpr a) =>
 			jsonObject(alloc, [
 				kindField!"throw",
-				field!"thrown"(jsonOfExpr(alloc, ctx, a.thrown))]));
+				field!"thrown"(jsonOfExpr(alloc, ctx, a.thrown))]),
+		(in TrustedExpr a) =>
+			jsonObject(alloc, [
+				kindField!"trusted",
+				field!"inner"(jsonOfExpr(alloc, ctx, a.inner))]));
 
 Json jsonOfDestructure(ref Alloc alloc, in Ctx ctx, in Destructure a) =>
 	a.matchIn!Json(

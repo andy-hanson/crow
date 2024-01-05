@@ -59,6 +59,7 @@ import model.model :
 	StructInst,
 	Test,
 	ThrowExpr,
+	TrustedExpr,
 	Type,
 	TypeParamIndex,
 	VarDecl;
@@ -410,6 +411,9 @@ void getExprHover(
 		(in SeqExpr _) {},
 		(in ThrowExpr _) {
 			writer ~= "Throws an exception.";
+		},
+		(in TrustedExpr _) {
+			writer ~= "Allows 'unsafe' code to be used anywhere.";
 		});
 
 void closureRefHover(scope ref Writer writer, in ShowModelCtx ctx, in TypeContainer typeContainer, in ClosureRef a) {
