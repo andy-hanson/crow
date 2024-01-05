@@ -134,6 +134,7 @@ immutable struct PositionKind {
 			record,
 			spec,
 			threadLocal,
+			underscore,
 			union_,
 		}
 		Kind kind;

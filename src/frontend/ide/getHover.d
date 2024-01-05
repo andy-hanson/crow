@@ -148,6 +148,8 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 						return "Specifies function signatures which to be provided by a function's caller.";
 					case PositionKind.Keyword.Kind.threadLocal:
 						return "Declares a mutable thread-local variable.";
+					case PositionKind.Keyword.Kind.underscore:
+						return "Ignores the value.";
 					case PositionKind.Keyword.Kind.union_:
 						return "Declares a type where a value will be one of the listed choices.";
 				}

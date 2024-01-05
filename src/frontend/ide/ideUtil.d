@@ -9,7 +9,6 @@ import model.model :
 	CallExpr,
 	ClosureGetExpr,
 	ClosureSetExpr,
-	Destructure,
 	Expr,
 	ExprKind,
 	FunDecl,
@@ -22,7 +21,6 @@ import model.model :
 	LiteralCStringExpr,
 	LiteralExpr,
 	LiteralSymbolExpr,
-	Local,
 	LocalGetExpr,
 	LocalSetExpr,
 	LoopBreakExpr,
@@ -42,7 +40,7 @@ import model.model :
 	TrustedExpr,
 	Type,
 	TypeParamIndex;
-import util.col.array : arrayOfSingle, count, first, firstZip, isEmpty, only, only2;
+import util.col.array : arrayOfSingle, count, first, firstZip, only, only2;
 import util.col.arrayBuilder : ArrBuilderCb;
 import util.opt : force, has, none, Opt, optOr, some;
 import util.sourceRange : UriAndRange;
@@ -165,18 +163,6 @@ Opt!T eachTypeArg(T)(
 		(ref TypeAst.Tuple x) =>
 			zipIt(x.members));
 }
-
-Opt!T eachDestructureComponent(T)(Destructure a, in Opt!T delegate(Local*) @safe @nogc pure nothrow cb) =>
-	a.matchWithPointers!(Opt!T)(
-		(Destructure.Ignore*) =>
-			none!T,
-		(Local* x) =>
-			cb(x),
-		(Destructure.Split* x) =>
-			isEmpty(x.parts)
-				? none!T
-				: first!(T, Destructure)(x.parts, (Destructure part) =>
-					eachDestructureComponent!T(part, cb)));
 
 void eachDescendentExprIncluding(in Expr a, in void delegate(in Expr) @safe @nogc pure nothrow cb) {
 	cb(a);

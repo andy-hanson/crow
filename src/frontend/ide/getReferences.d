@@ -5,7 +5,6 @@ module frontend.ide.getReferences;
 import frontend.ide.getDefinition : definitionForTarget;
 import frontend.ide.getTarget : exprTarget, Target, targetForPosition;
 import frontend.ide.ideUtil :
-	eachDestructureComponent,
 	eachFunSpec,
 	eachSpecParent,
 	eachTypeComponent,
@@ -22,6 +21,9 @@ import model.ast :
 	ExprAstKind,
 	FunDeclAst,
 	ImportOrExportAst,
+	LambdaAst,
+	LetAst,
+	MatchAst,
 	NameAndRange,
 	ParamsAst,
 	paramsArray,
@@ -378,19 +380,31 @@ void eachTypeInType(in Type a, in TypeAst ast, in TypeCb cb) {
 }
 
 void eachTypeInParams(in Params a, in ParamsAst asts, in TypeCb cb) {
-	zip!(Destructure, DestructureAst)(paramsArray(a), paramsArray(asts), (ref Destructure x, ref DestructureAst _) {
-		eachTypeInDestructure(x, cb);
+	zip!(Destructure, DestructureAst)(paramsArray(a), paramsArray(asts), (ref Destructure x, ref DestructureAst ast) {
+		eachTypeInDestructure(x, ast, cb);
 	});
 }
 
-void eachTypeInDestructure(in Destructure a, in TypeCb cb) {
-	Opt!bool res = eachDestructureComponent!bool(a, (Local* x) {
-		DestructureAst.Single* ast = x.source.as!(DestructureAst.Single*);
-		if (has(ast.type))
-			cb(x.type, *force(ast.type));
-		return none!bool;
-	});
-	assert(!has(res));
+void eachTypeInDestructure(in Destructure a, in DestructureAst ast, in TypeCb cb) {
+	void handleSingle(in Type type) {
+		Opt!(TypeAst*) typeAst = ast.as!(DestructureAst.Single).type;
+		if (has(typeAst))
+			cb(type, *force(typeAst));
+	}
+
+	a.matchIn!void(
+		(in Destructure.Ignore x) {
+			if (!ast.isA!(DestructureAst.Void))
+				handleSingle(x.type);
+		},
+		(in Local x) {
+			handleSingle(x.type);
+		},
+		(in Destructure.Split x) {
+			zip(x.parts, ast.as!(DestructureAst[]), (ref Destructure part, ref DestructureAst partAst) {
+				eachTypeInDestructure(part, partAst, cb);
+			});
+		});
 }
 
 void eachTypeInExpr(in Expr expr, in TypeCb cb) {
@@ -414,10 +428,10 @@ void eachTypeDirectlyInExpr(in Expr a, in TypeCb cb) {
 		(in IfExpr _) {},
 		(in IfOptionExpr _) {},
 		(in LambdaExpr x) {
-			eachTypeInDestructure(x.param, cb);
+			eachTypeInDestructure(x.param, a.ast.kind.as!(LambdaAst*).param, cb);
 		},
 		(in LetExpr x) {
-			eachTypeInDestructure(x.destructure, cb);
+			eachTypeInDestructure(x.destructure, a.ast.kind.as!(LetAst*).destructure, cb);
 		},
 		(in LiteralExpr _) {},
 		(in LiteralCStringExpr _) {},
@@ -431,9 +445,14 @@ void eachTypeDirectlyInExpr(in Expr a, in TypeCb cb) {
 		(in LoopWhileExpr _) {},
 		(in MatchEnumExpr _) {},
 		(in MatchUnionExpr x) {
-			foreach (ref MatchUnionExpr.Case case_; x.cases) {
-				eachTypeInDestructure(case_.destructure, cb);
-			}
+			zip(
+				x.cases,
+				a.ast.kind.as!(MatchAst*).cases,
+				(ref MatchUnionExpr.Case case_, ref MatchAst.CaseAst caseAst) {
+					if (has(caseAst.destructure)) {
+						eachTypeInDestructure(case_.destructure, force(caseAst.destructure), cb);
+					}
+				});
 		},
 		(in PtrToFieldExpr _) {},
 		(in PtrToLocalExpr _) {},

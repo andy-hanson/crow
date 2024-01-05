@@ -1373,6 +1373,7 @@ private Local* toLocal(VariableRef a) =>
 immutable struct Destructure {
 	@safe @nogc pure nothrow:
 
+	// This can come from '_' or '()' (which is the same as '_ void')
 	immutable struct Ignore {
 		Pos pos;
 		Type type;
