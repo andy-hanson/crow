@@ -42,11 +42,10 @@ import model.model :
 	TrustedExpr,
 	Type,
 	TypeParamIndex;
-import util.col.array : arrayOfSingle, count, first, firstZip, isEmpty, only;
+import util.col.array : arrayOfSingle, count, first, firstZip, isEmpty, only, only2;
 import util.col.arrayBuilder : ArrBuilderCb;
 import util.opt : force, has, none, Opt, optOr, some;
 import util.sourceRange : UriAndRange;
-import util.util : typeAs;
 
 alias ReferenceCb = ArrBuilderCb!UriAndRange;
 
@@ -113,23 +112,6 @@ Opt!T eachTypeComponent(T)(
 		(in StructInst x) =>
 			eachTypeArg!T(x.typeArgs, ast, cb));
 
-private TypeAst[] typeAstTypeArgs(return scope TypeAst ast) =>
-	ast.match!(TypeAst[])(
-		(TypeAst.Bogus) =>
-			typeAs!(TypeAst[])([]),
-		(ref TypeAst.Fun x) =>
-			x.returnAndParamTypes,
-		(ref TypeAst.Map x) =>
-			x.kv,
-		(NameAndRange _) =>
-			typeAs!(TypeAst[])([]),
-		(ref TypeAst.SuffixName x) =>
-			arrayOfSingle(&x.left),
-		(ref TypeAst.SuffixSpecial x) =>
-			arrayOfSingle(&x.left),
-		(ref TypeAst.Tuple x) =>
-			x.members);
-
 void eachTypeArg(
 	in Type[] typeArgs,
 	in TypeAst ast,
@@ -147,11 +129,41 @@ Opt!T eachTypeArg(T)(
 	in TypeAst ast,
 	in Opt!T delegate(in Type, in TypeAst) @safe @nogc pure nothrow cb,
 ) {
-	TypeAst[] typeArgAsts = typeAstTypeArgs(ast);
-	TypeAst[] actualArgAsts = typeArgAsts.length == typeArgs.length
-		? typeArgAsts
-		: only(typeArgAsts).as!(TypeAst.Tuple*).members;
-	return firstZip!(T, Type, TypeAst)(typeArgs, actualArgAsts, (Type x, TypeAst y) => cb(x, y));
+	Opt!T zipIt(in TypeAst[] typeArgAsts) =>
+		firstZip!(T, Type, TypeAst)(typeArgs, typeArgAsts, (Type x, TypeAst y) => cb(x, y));
+	Opt!T zipSuffix(in TypeAst* typeArgAst) =>
+		zipIt(typeArgs.length == 1
+			? arrayOfSingle(typeArgAst)
+			: typeArgAst.as!(TypeAst.Tuple*).members);
+
+	return ast.match!(Opt!T)(
+		(TypeAst.Bogus) =>
+			none!T,
+		(ref TypeAst.Fun x) {
+			Type[2] returnAndParam = only2(typeArgs);
+			Opt!T fromReturn = cb(returnAndParam[0], x.returnType);
+			switch (x.paramTypes.length) {
+				case 0:
+					return fromReturn;
+				case 1:
+					return optOr!T(fromReturn, () => cb(returnAndParam[1], only(x.paramTypes)));
+				default:
+					TypeAst.Tuple tuple = TypeAst.Tuple(x.range, x.paramTypes);
+					return optOr!T(fromReturn, () => cb(returnAndParam[1], TypeAst(&tuple)));
+			}
+		},
+		(ref TypeAst.Map x) =>
+			zipIt(x.kv),
+		(NameAndRange _) =>
+			// For a type alias, 'typeArgs' may be non-empty as it comes from the alias' target type.
+			// But ignore them in any case.
+			none!T,
+		(ref TypeAst.SuffixName x) @safe =>
+			zipSuffix(&x.left),
+		(ref TypeAst.SuffixSpecial x) =>
+			zipSuffix(&x.left),
+		(ref TypeAst.Tuple x) =>
+			zipIt(x.members));
 }
 
 Opt!T eachDestructureComponent(T)(Destructure a, in Opt!T delegate(Local*) @safe @nogc pure nothrow cb) =>
