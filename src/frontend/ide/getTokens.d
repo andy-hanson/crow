@@ -583,8 +583,8 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 				// Ensure closing quote is highlighted
 				x.parts[$ - 1].matchIn!void(
 					(in string) {},
-					(in ExprAst _) {
-						stringLiteral(ctx.tokens, a.range[$ - 1 .. $]);
+					(in ExprAst x) {
+						stringLiteral(ctx.tokens, Range(x.range.end, a.range.end));
 					});
 			}
 		},

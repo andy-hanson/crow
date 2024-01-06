@@ -214,7 +214,9 @@ Json jsonOfLiteralNatAst(ref Alloc alloc, in LiteralNatAst a) =>
 	jsonOfLiteral!"nat"(alloc, a.value, a.overflow);
 
 Json jsonOfLiteralStringAst(ref Alloc alloc, in LiteralStringAst a) =>
-	jsonOfLiteral!"string"(alloc, jsonString(alloc, a.value), false);
+	jsonObject(alloc, [
+		kindField!"string",
+		field!"value"(jsonString(alloc, a.value))]);
 
 Json jsonOfLiteral(string typeName, T)(ref Alloc alloc, T value, bool overflow) =>
 	jsonObject(alloc, [
