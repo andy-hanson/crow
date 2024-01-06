@@ -29,7 +29,7 @@ import
 	./http-types:
 		==, enum-members, GET, headers, http-internal-server-error, http-method, http-request,
 		http-response, new, response-body, status, status-desc
-	./tcp-server: close-client, new, start-tcp-server, stop
+	./tcp-server: close-client, new, start-tcp-server, stop, tcp-handler
 
 # Reference to a running server.
 +http-server record
@@ -50,21 +50,22 @@ Starts running an HTTP server. Stops it when `cb` returns.
 +with-block[t] t^(a http-server-options, cb far t(http-server)) summon, t shared
 	client-states http-parse-state mut[SOCKET] = ()
 
-	on-accepted-client far void(SOCKET) = sock =>
-		client-states[sock] := ()
-		()
-	on-received-chunk far void(SOCKET, nat8 array) = (sock, bytes) =>
-		if state ?= client-states[sock]
-			closed <- trusted sock handle-chunk state, bytes, a.handler
-			if closed
-				_ = client-states try-remove sock
+	handler tcp-handler = do
+		on-accepted-client: sock =>
+			client-states[sock] := ()
 			()
-		else
-			warn log "Ignoring unrecognized client"
-			()
+		on-received-chunk: (sock, bytes) =>
+			if state ?= client-states[sock]
+				closed <- trusted sock handle-chunk state, bytes, a.handler
+				if closed
+					_ = client-states try-remove sock
+				()
+			else
+				warn log "Ignoring unrecognized client"
+				()
 
 	trusted
-		tcp-server = a.port start-tcp-server (on-accepted-client, on-received-chunk)
+		tcp-server = a.port start-tcp-server handler
 		with : tcp-server.stop future-finally
 			cb[]
 

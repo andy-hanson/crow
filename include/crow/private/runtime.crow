@@ -75,8 +75,20 @@ get-global-lock lock mut*() unsafe
 	thread-id-var
 
 uninit global-ctx(n-threads nat64) bare, summon, unsafe
-	uninit, uninit, false, uninit, uninit, empty-map, (exn => exn default-exception-handler), \
-		(log => log default-log-handler), uninit, uninit, n-threads, uninit, uninit, false
+	global-lock: uninit
+	may-be-work-to-do: uninit
+	any-unhandled-exceptions: false
+	gc: uninit
+	tasks: uninit
+	symbols-table: empty-map
+	exception-handler: exn => exn default-exception-handler
+	default-log-handler: log => log default-log-handler
+	symbols-lock: uninit
+	tasks-lock: uninit
+	n-threads: n-threads
+	n-waiting-threads: uninit
+	next-exclusion: uninit
+	is-shut-down: false
 
 init void(a global-ctx mut*) bare, unsafe
 	a.global-lock init

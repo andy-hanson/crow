@@ -1,3 +1,3 @@
 exit code: big
 stderr:
-Assert failed: token.token != Token.newlineDedent at src/frontend/parse/parseUtil.d line 153
+Assert failed: token.token != Token.newlineDedent at src/frontend/parse/parseUtil.d line 159

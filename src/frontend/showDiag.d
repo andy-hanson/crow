@@ -278,6 +278,8 @@ string showParseDiagExpected(ParseDiag.Expected.Kind kind) {
 			return "Expected a valid modifier.";
 		case ParseDiag.Expected.Kind.name:
 			return "Expected a name (non-operator).";
+		case ParseDiag.Expected.Kind.namedArgument:
+			return "Expected another named argument.";
 		case ParseDiag.Expected.Kind.nameOrOperator:
 			return "Expected a name or operator.";
 		case ParseDiag.Expected.Kind.newline:
@@ -1137,6 +1139,8 @@ string describeTokenForUnexpected(Token token) {
 			return "Unexpected ','.";
 		case Token.continue_:
 			return "Unexpected keyword 'continue'.";
+		case Token.do_:
+			return "Unexpected keyword 'do'.";
 		case Token.dot:
 			return "Unexpected '.'.";
 		case Token.dot3:
@@ -1187,9 +1191,11 @@ string describeTokenForUnexpected(Token token) {
 		case Token.mut:
 			return "Unexpected keyword 'mut'.";
 		case Token.name:
-		case Token.nameOrOperatorColonEquals:
-		case Token.nameOrOperatorEquals:
 			return "Did not expect a name here.";
+		case Token.nameOrOperatorColonEquals:
+			return "Did not expect a 'name:=' here.";
+		case Token.nameOrOperatorEquals:
+			return "Did not expect a 'name=' here.";
 		case Token.newlineDedent:
 		case Token.newlineIndent:
 		case Token.newlineSameIndent:

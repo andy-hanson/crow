@@ -129,6 +129,7 @@ enum Token {
 	colonEqual, // ':='
 	comma, // ','
 	continue_, // 'continue'
+	do_, // 'do'
 	dot, // '.'. // '..' is Operator.range
 	dot3, // '...'
 	elif, // 'elif'
@@ -154,7 +155,7 @@ enum Token {
 	match, // 'match'
 	mut, // 'mut'
 	name, // Any non-keyword, non-operator name; use TokenAndData.asSymbol with this
-	// Tokens for a name with '=' or ':=' on the end.
+	// Tokens for a name with ':', ':=', or '=' on the end.
 	nameOrOperatorColonEquals, // 'TokenAndData.asSymbol' does NOT include the ':='
 	nameOrOperatorEquals, // 'TokenAndData.asSymbol' DOES include the '='
 	// End of line followed by another line at lesser indentation.
@@ -341,9 +342,10 @@ TokenAndData lexToken(
 				string nameStr = takeNameRest(ptr, start);
 				Symbol symbol = symbolOfString(allSymbols, nameStr);
 				Token token = tokenForSymbol(symbol);
-				return token == Token.name
-					? nameLikeToken(ptr, allSymbols, symbol, Token.name)
-					: plainToken(token);
+				if (token == Token.name)
+					return nameLikeToken(ptr, allSymbols, symbol, Token.name);
+				else
+					return plainToken(token);
 			} else if (isDecimalDigit(c)) {
 				ptr = start;
 				return takeNumberAfterSign(ptr, none!Sign);
@@ -378,6 +380,11 @@ Opt!EqualsOrThen lookaheadEqualsOrThen(MutCString ptr) {
 				}
 		}
 	}
+}
+
+bool lookaheadColon(MutCString ptr) {
+	while (tryTakeChar(ptr, ' ')) {}
+	return tryTakeChar(ptr, ':') && *ptr != ':' && *ptr != '=';
 }
 
 bool lookaheadQuestionEquals(MutCString ptr) {
@@ -591,6 +598,8 @@ Token tokenForSymbol(Symbol a) {
 			return Token.reserved;
 		case symbol!"continue".value:
 			return Token.continue_;
+		case symbol!"do".value:
+			return Token.do_;
 		case symbol!"elif".value:
 			return Token.elif;
 		case symbol!"else".value:

@@ -12,6 +12,6 @@ test/compile-errors/duplicate-declaration.crow 23:14-23:15 Local name 'a' is alr
 test/compile-errors/duplicate-declaration.crow 28:5-28:6 Local name 'a' is already used.
 test/compile-errors/duplicate-declaration.crow 32:5-32:6 Local name 'a' is already used.
 test/compile-errors/duplicate-declaration.crow 37:9-37:10 Local name 'a' is already used.
-test/compile-errors/duplicate-declaration.crow 43:14-43:15 Local name 'b' is already used.
+test/compile-errors/duplicate-declaration.crow 43:16-43:17 Local name 'b' is already used.
 test/compile-errors/duplicate-declaration.crow 44:13-44:14 Local name 'a' is already used.
-test/compile-errors/duplicate-declaration.crow 49:14-49:15 Local name 'a' is already used.
+test/compile-errors/duplicate-declaration.crow 49:16-49:17 Local name 'a' is already used.

@@ -83,10 +83,9 @@ start-tcp-server tcp-server(port nat16, handler tcp-handler) summon, unsafe
 		done = state tcp-server-loop-linux
 		done handle-exceptions
 
-		stop far void() = () =>
+		stop: () =>
 			state.should-stop := true
 			done
-		stop,
 
 # Close a TCP client.
 close-client void(client SOCKET) summon, unsafe

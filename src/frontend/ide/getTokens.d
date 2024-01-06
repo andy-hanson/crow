@@ -15,7 +15,9 @@ import model.ast :
 	AssignmentCallAst,
 	BogusAst,
 	CallAst,
+	CallNamedAst,
 	DestructureAst,
+	DoAst,
 	EmptyAst,
 	ExprAst,
 	FileAst,
@@ -42,14 +44,12 @@ import model.ast :
 	LoopUntilAst,
 	LoopWhileAst,
 	MatchAst,
-	ModifierAst,
 	NameAndRange,
 	ParamsAst,
 	ParenthesizedAst,
 	pathRange,
 	PtrAst,
 	range,
-	rangeOfModifierAst,
 	rangeOfNameAndRange,
 	SeqAst,
 	SpecBodyAst,
@@ -69,7 +69,7 @@ import model.ast :
 	VarDeclAst,
 	WithAst;
 import util.alloc.alloc : Alloc;
-import util.col.array : isEmpty, newArray, only;
+import util.col.array : isEmpty, newArray, only, zip;
 import util.col.arrayBuilder : add, addAll, ArrayBuilder, finish;
 import util.col.sortUtil : eachSorted, sortedIter;
 import util.conv : safeToUint;
@@ -174,6 +174,7 @@ void decodeTokens(
 	}
 }
 
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#semanticTokenTypes
 enum TokenType {
 	comment,
 	enum_,
@@ -348,7 +349,6 @@ void addTypeTokens(scope ref Ctx ctx, in TypeAst a) {
 	a.matchIn!void(
 		(in TypeAst.Bogus) {},
 		(in TypeAst.Fun x) {
-			keyword(ctx.tokens, x.range.start, "fun");
 			foreach (TypeAst t; x.returnAndParamTypes)
 				addTypeTokens(ctx, t);
 		},
@@ -418,18 +418,15 @@ void addStructTokens(scope ref Ctx ctx, in StructDeclAst a) {
 }
 
 void addModifierTokens(scope ref Ctx ctx, in StructDeclAst a) {
-	foreach (ref ModifierAst x; a.modifiers)
-		keyword(ctx.tokens, rangeOfModifierAst(x, ctx.allSymbols));
+	// Just let them become keywords
 }
 void addFunModifierTokens(scope ref Ctx ctx, in FunModifierAst[] a) {
 	foreach (ref FunModifierAst mod; a) {
 		mod.matchIn!void(
 			(in FunModifierAst.Special x) {
-				keyword(ctx.tokens, x.range);
 			},
 			(in FunModifierAst.Extern x) {
 				addTypeTokens(ctx, *x.left);
-				keyword(ctx.tokens, x.suffixRange);
 			},
 			(in TypeAst x) {
 				if (x.isA!NameAndRange)
@@ -537,9 +534,17 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 					break;
 			}
 		},
+		(in CallNamedAst x) {
+			zip(x.names, x.args, (ref NameAndRange name, ref ExprAst arg) {
+				reference(ctx.tokens, TokenType.parameter, rangeOfNameAndRange(name, ctx.allSymbols));
+				addExprTokens(ctx, arg);
+			});
+		},
+		(in DoAst x) {
+			addExprTokens(ctx, *x.body_);
+		},
 		(in EmptyAst x) {},
 		(in ForAst x) {
-			keyword(ctx.tokens, a.range.start, "for");
 			addDestructureTokens(ctx, x.param);
 			addExprTokens(ctx, x.collection);
 			addExprTokens(ctx, x.body_);
@@ -610,23 +615,17 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 			stringLiteral(ctx.tokens, a.range);
 		},
 		(in LoopAst x) {
-			keyword(ctx.tokens, a.range.start, "loop");
 			addExprTokens(ctx, x.body_);
 		},
 		(in LoopBreakAst x) {
-			keyword(ctx.tokens, a.range.start, "break");
 			addExprTokens(ctx, x.value);
 		},
-		(in LoopContinueAst _) {
-			keyword(ctx.tokens, a.range.start, "continue");
-		},
+		(in LoopContinueAst _) {},
 		(in LoopUntilAst x) {
-			keyword(ctx.tokens, a.range.start, "until");
 			addExprTokens(ctx, x.condition);
 			addExprTokens(ctx, x.body_);
 		},
 		(in LoopWhileAst x) {
-			keyword(ctx.tokens, a.range.start, "while");
 			addExprTokens(ctx, x.condition);
 			addExprTokens(ctx, x.body_);
 		},
@@ -655,11 +654,9 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 			addExprTokens(ctx, x.then);
 		},
 		(in ThrowAst x) {
-			keyword(ctx.tokens, a.range.start, "throw");
 			addExprTokens(ctx, x.thrown);
 		},
 		(in TrustedAst x) {
-			keyword(ctx.tokens, a.range.start, "trusted");
 			addExprTokens(ctx, x.inner);
 		},
 		(in TypedAst x) {
@@ -671,7 +668,6 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 			addExprTokens(ctx, x.body_);
 		},
 		(in WithAst x) {
-			keyword(ctx.tokens, a.range.start, "with");
 			addDestructureTokens(ctx, x.param);
 			addExprTokens(ctx, x.arg);
 			addExprTokens(ctx, x.body_);

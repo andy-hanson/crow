@@ -8,6 +8,7 @@ import frontend.parse.lexToken :
 	lexInitialToken,
 	lexToken,
 	lookaheadAs,
+	lookaheadColon,
 	lookaheadElifOrElse,
 	lookaheadElse,
 	lookaheadEqualsOrThen,
@@ -222,6 +223,10 @@ private StringPart takeStringPartCommon(ref Lexer lexer, QuoteKind quoteKind) {
 			return .lookaheadEqualsOrThen(lexer.ptr);
 	}
 }
+
+bool lookaheadNameColon(in Lexer lexer) =>
+	getPeekToken(lexer) == Token.name && lookaheadColon(lexer.ptr);
+
 
 @trusted bool lookaheadQuestionEquals(in Lexer lexer) =>
 	getPeekToken(lexer) == Token.questionEqual || .lookaheadQuestionEquals(lexer.ptr);

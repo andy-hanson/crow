@@ -3,7 +3,8 @@ module frontend.check.checkExpr;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCall.candidates : eachFunInScope, funsInScope;
-import frontend.check.checkCall.checkCall : checkCall, checkCallIdentifier, checkCallSpecial, checkCallSpecialNoLocals;
+import frontend.check.checkCall.checkCall :
+	checkCall, checkCallIdentifier, checkCallNamed, checkCallSpecial, checkCallSpecialNoLocals;
 import frontend.check.checkCall.checkCallSpecs : isPurityAlwaysCompatibleConsideringSpecs;
 import frontend.check.checkCtx : CheckCtx, CommonModule, markUsed;
 import frontend.check.exprCtx :
@@ -50,7 +51,9 @@ import model.ast :
 	AssignmentCallAst,
 	BogusAst,
 	CallAst,
+	CallNamedAst,
 	DestructureAst,
+	DoAst,
 	EmptyAst,
 	ExprAst,
 	ExprAstKind,
@@ -254,6 +257,10 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expecte
 			bogus(expected, ast),
 		(CallAst a) =>
 			checkCall(ctx, locals, ast, a, expected),
+		(CallNamedAst a) =>
+			checkCallNamed(ctx, locals, ast, a, expected),
+		(DoAst a) =>
+			checkExpr(ctx, locals, a.body_, expected),
 		(EmptyAst a) =>
 			checkEmptyNew(ctx, ast, expected),
 		(ForAst* a) =>
@@ -1472,6 +1479,10 @@ bool hasBreakOrContinue(in ExprAst a) =>
 			false,
 		(in CallAst _) =>
 			false,
+		(in CallNamedAst _) =>
+			false,
+		(in DoAst x) =>
+			hasBreakOrContinue(*x.body_),
 		(in EmptyAst _) =>
 			false,
 		(in ForAst _) =>

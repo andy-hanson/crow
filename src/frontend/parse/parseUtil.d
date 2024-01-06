@@ -56,6 +56,12 @@ Opt!T tryTakeToken(T)(ref Lexer lexer, in Opt!T delegate(TokenAndData) @safe @no
 	return res;
 }
 
+bool takeOrAddDiagExpectedTokenAndSkipRestOfLine(ref Lexer lexer, Token token, ParseDiag.Expected.Kind kind) {
+	bool res = takeOrAddDiagExpectedToken(lexer, token, kind);
+	if (!res)
+		skipUntilNewlineNoDiag(lexer);
+	return res;
+}
 bool takeOrAddDiagExpectedToken(ref Lexer lexer, Token token, ParseDiag.Expected.Kind kind) {
 	bool res = tryTakeToken(lexer, token);
 	if (!res)

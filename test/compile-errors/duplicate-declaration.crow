@@ -33,21 +33,21 @@ f nat(a nat)
 	a
 
 f nat()
-	1 do a =>
+	1 call a =>
 		a = 1
 		a
 
 f nat()
-	1 do a =>
+	1 call a =>
 		b = 1
-		1 do b =>
+		1 call b =>
 			a = 2
 			b
 
 f nat()
-	1 do a =>
-		1 do a =>
+	1 call a =>
+		1 call a =>
 			a
 
-do nat(_ nat, f fun nat(nat))
+call nat(_ nat, f fun nat(nat))
 	f[0]

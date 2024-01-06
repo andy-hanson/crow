@@ -9,7 +9,9 @@ import model.ast :
 	AssignmentCallAst,
 	BogusAst,
 	CallAst,
+	CallNamedAst,
 	DestructureAst,
+	DoAst,
 	EmptyAst,
 	ExprAst,
 	ExprAstKind,
@@ -406,6 +408,10 @@ Json jsonOfExprAst(ref Alloc alloc, in Ctx ctx, in ExprAst ast) =>
 		field!"range"(jsonOfRange(alloc, ctx, ast.range)),
 		field!"kind"(jsonOfExprAstKind(alloc, ctx, ast.kind))]);
 
+Json jsonOfExprAsts(ref Alloc alloc, in Ctx ctx, in ExprAst[] asts) =>
+	jsonList!ExprAst(alloc, asts, (in ExprAst x) =>
+		jsonOfExprAst(alloc, ctx, x));
+
 Json jsonOfNameAndRange(ref Alloc alloc, in Ctx ctx, in NameAndRange a) =>
 	jsonObject(alloc, [
 		field!"start"(jsonOfLineAndColumn(alloc, ctx.lineAndColumnGetter[a.start, PosKind.startOfRange])),
@@ -444,8 +450,17 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 				field!"fun-name"(jsonOfNameAndRange(alloc, ctx, e.funName)),
 				optionalField!("type-arg", TypeAst*)(e.typeArg, (in TypeAst* x) =>
 					jsonOfTypeAst(alloc, ctx, *x)),
-				field!"args"(jsonList!ExprAst(alloc, e.args, (in ExprAst x) =>
-					jsonOfExprAst(alloc, ctx, x)))]),
+				field!"args"(jsonOfExprAsts(alloc, ctx, e.args))]),
+		(in CallNamedAst x) =>
+			jsonObject(alloc, [
+				kindField!"call-named",
+				field!"names"(jsonList!NameAndRange(alloc, x.names, (in NameAndRange y) =>
+					jsonOfNameAndRange(alloc, ctx, y))),
+				field!"args"(jsonOfExprAsts(alloc, ctx, x.args))]),
+		(in DoAst x) =>
+			jsonObject(alloc, [
+				kindField!"do",
+				field!"body"(jsonOfExprAst(alloc, ctx, *x.body_))]),
 		(in EmptyAst e) =>
 			jsonObject(alloc, [kindField!"empty"]),
 		(in ForAst x) =>

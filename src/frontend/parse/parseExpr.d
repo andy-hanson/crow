@@ -15,6 +15,7 @@ import frontend.parse.lexer :
 	Lexer,
 	lookaheadEqualsOrThen,
 	lookaheadLambda,
+	lookaheadNameColon,
 	lookaheadQuestionEquals,
 	QuoteKind,
 	range,
@@ -40,6 +41,7 @@ import frontend.parse.parseUtil :
 	takeNameAndRange,
 	takeNameAndRangeAllowUnderscore,
 	takeOrAddDiagExpectedToken,
+	takeOrAddDiagExpectedTokenAndSkipRestOfLine,
 	tryTakeToken;
 import model.ast :
 	ArrowAccessAst,
@@ -48,7 +50,9 @@ import model.ast :
 	AssignmentCallAst,
 	BogusAst,
 	CallAst,
+	CallNamedAst,
 	DestructureAst,
+	DoAst,
 	EmptyAst,
 	ExprAst,
 	ExprAstKind,
@@ -81,7 +85,7 @@ import model.ast :
 import model.model : AssertOrForbidKind;
 import model.parseDiag : ParseDiag;
 import util.col.array : isEmpty, newArray, only, prepend;
-import util.col.arrayBuilder : add, ArrayBuilder, finish;
+import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, finish;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some, some;
 import util.sourceRange : Pos, Range;
@@ -196,6 +200,7 @@ bool isExpressionStartToken(Token a) {
 		case Token.bracketLeft:
 		case Token.break_:
 		case Token.continue_:
+		case Token.do_:
 		case Token.forbid:
 		case Token.if_:
 		case Token.for_:
@@ -467,6 +472,11 @@ ExprAst parseMatch(ref Lexer lexer, Pos start) {
 	return ExprAst(
 		range(lexer, start),
 		ExprAstKind(allocate(lexer.alloc, MatchAst(matched, finish(lexer.alloc, cases)))));
+}
+
+ExprAst parseDo(ref Lexer lexer, Pos start) {
+	ExprAst body_ = parseIndentedStatements(lexer);
+	return ExprAst(range(lexer, start), ExprAstKind(DoAst(allocate(lexer.alloc, body_))));
 }
 
 ExprAst parseIf(ref Lexer lexer, Pos start) =>
@@ -757,6 +767,8 @@ ExprAst parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBlock) {
 			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.break_, () => parseLoopBreak(lexer, start));
 		case Token.continue_:
 			return ExprAst(range(lexer, start), ExprAstKind(LoopContinueAst()));
+		case Token.do_:
+			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.do_, () => parseDo(lexer, start));
 		case Token.if_:
 			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.if_, () => parseIf(lexer, start));
 		case Token.for_:
@@ -876,6 +888,8 @@ ExprAst parseSingleStatementLine(ref Lexer lexer) {
 	Opt!EqualsOrThen et = lookaheadEqualsOrThen(lexer);
 	if (has(et))
 		return parseEqualsOrThen(lexer, force(et));
+	else if (lookaheadNameColon(lexer))
+		return parseNamedCall(lexer, start);
 	else {
 		ExprAst expr = parseExprBeforeCall(lexer, AllowedBlock.yes);
 		Pos assignmentPos = curPos(lexer);
@@ -883,6 +897,22 @@ ExprAst parseSingleStatementLine(ref Lexer lexer) {
 			? parseAssignment(lexer, start, expr, assignmentPos)
 			: parseCalls(lexer, start, expr, ArgCtx(AllowedBlock.yes, allowAllCalls()));
 	}
+}
+
+ExprAst parseNamedCall(ref Lexer lexer, Pos start) {
+	ArrayBuilder!NameAndRange names;
+	ArrayBuilder!ExprAst values;
+	do {
+		NameAndRange name = takeNameAndRange(lexer);
+		if (takeOrAddDiagExpectedTokenAndSkipRestOfLine(lexer, Token.colon, ParseDiag.Expected.Kind.namedArgument)) {
+			add(lexer.alloc, names, name);
+			add(lexer.alloc, values, parseExprNoLet(lexer));
+		}
+	} while (tryTakeToken(lexer, Token.newlineSameIndent));
+	return arrBuilderIsEmpty(names)
+		? ExprAst(range(lexer, start), ExprAstKind(BogusAst()))
+		: ExprAst(range(lexer, start), ExprAstKind(
+			CallNamedAst(finish(lexer.alloc, names), finish(lexer.alloc, values))));
 }
 
 public DestructureAst parseDestructureRequireParens(ref Lexer lexer) {

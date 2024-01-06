@@ -34,6 +34,7 @@ immutable struct ParseDiag {
 			literalNat,
 			modifier,
 			name,
+			namedArgument,
 			nameOrOperator,
 			newline,
 			newlineOrDedent,
@@ -67,6 +68,7 @@ immutable struct ParseDiag {
 	immutable struct NeedsBlockCtx {
 		enum Kind {
 			break_,
+			do_,
 			for_,
 			if_,
 			match,

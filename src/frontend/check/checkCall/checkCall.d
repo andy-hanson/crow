@@ -39,23 +39,26 @@ import frontend.check.inferringType :
 import frontend.check.instantiate : InstantiateCtx;
 import frontend.check.typeFromAst : getNTypeArgsForDiagnostic, unpackTupleIfNeeded;
 import frontend.lang : maxTypeParams;
-import model.ast : CallAst, ExprAst, LambdaAst, nameRange, rangeOfNameAndRange;
+import model.ast : CallAst, CallNamedAst, ExprAst, LambdaAst, NameAndRange, nameRange, rangeOfNameAndRange;
 import model.diag : Diag, TypeContainer;
 import model.model :
 	Called,
 	CalledDecl,
 	CalledSpecSig,
 	CallExpr,
+	Destructure,
 	Expr,
 	ExprKind,
 	FunDecl,
 	LambdaExpr,
+	Local,
+	Params,
 	ReturnAndParamTypes,
 	SpecDeclBody,
 	SpecDeclSig,
 	SpecInst,
 	Type;
-import util.col.array : every, exists, isEmpty, makeArrayOrFail, newArray, only, small, zipEvery;
+import util.col.array : arraysCorrespond, every, exists, isEmpty, makeArrayOrFail, newArray, only, small, zipEvery;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.mutMaxArr :
 	asTemporaryArray, isEmpty, fillMutMaxArr, MutMaxArr, mutMaxArr, mutMaxArrSize, only, push, size;
@@ -63,7 +66,7 @@ import util.opt : force, has, none, noneMut, Opt, some, some;
 import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMeasure, startMeasure;
 import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
-import util.util : castNonScope_ref, ptrTrustMe;
+import util.util : castNonScope_ref, ptrTrustMe, typeAs;
 
 Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref CallAst ast, ref Expected expected) {
 	switch (ast.style) {
@@ -82,7 +85,41 @@ Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref Call
 		ast.funName.name,
 		has(ast.typeArg) ? some(typeFromAst2(ctx, *force(ast.typeArg))) : none!Type,
 		ast.args,
-		expected);
+		expected,
+		(in CalledDecl _) => true);
+}
+
+Expr checkCallNamed(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	ExprAst* source,
+	ref CallNamedAst ast,
+	ref Expected expected,
+) =>
+	checkCallCommon(
+		ctx,
+		locals,
+		source,
+		source.range,
+		symbol!"new",
+		none!Type,
+		ast.args,
+		expected,
+		(in CalledDecl x) =>
+			parameterNamesAre(x, ast.names));
+
+private bool parameterNamesAre(in CalledDecl a, in NameAndRange[] names) {
+	assert(!isEmpty(names));
+	Destructure[] actual = a.match!(Destructure[])(
+		(ref FunDecl x) =>
+			x.params.match!(Destructure[])(
+				(Destructure[] y) => y,
+				// will always fail because 'names' is always non-empty
+				(ref Params.Varargs) => typeAs!(Destructure[])([])),
+		(CalledSpecSig x) =>
+			typeAs!(Destructure[])(x.nonInstantiatedSig.params));
+	return arraysCorrespond!(Destructure, NameAndRange)(actual, names, (ref Destructure x, ref NameAndRange name) =>
+		x.isA!(Local*) && x.as!(Local*).name == name.name);
 }
 
 Expr checkCallSpecial(
@@ -94,7 +131,9 @@ Expr checkCallSpecial(
 	ref Expected expected,
 ) =>
 	// TODO:NO ALLOC
-	checkCallCommon(ctx, locals, source, source.range, funName, none!Type, newArray(ctx.alloc, args), expected);
+	checkCallCommon(
+		ctx, locals, source, source.range, funName, none!Type, newArray(ctx.alloc, args), expected,
+		(in CalledDecl _) => true);
 
 Expr checkCallSpecialNoLocals(
 	ref ExprCtx ctx,
@@ -117,6 +156,7 @@ private Expr checkCallCommon(
 	Opt!Type typeArg,
 	ExprAst[] args,
 	ref Expected expected,
+	in bool delegate(in CalledDecl) @safe @nogc pure nothrow cbAdditionalFilter,
 ) {
 	PerfMeasurer perfMeasurer = startMeasure(ctx.perf, ctx.alloc, PerfMeasure.checkCall);
 	Expr res = withCandidates!Expr(
@@ -125,7 +165,8 @@ private Expr checkCallCommon(
 			(!has(typeArg) || filterCandidateByExplicitTypeArg(ctx, candidate, force(typeArg))) &&
 			matchExpectedVsReturnTypeNoDiagnostic(
 				ctx.instantiateCtx, expected,
-				TypeAndContext(candidate.called.returnType, typeContextForCandidate(candidate))),
+				TypeAndContext(candidate.called.returnType, typeContextForCandidate(candidate))) &&
+			cbAdditionalFilter(candidate.called),
 		(ref Candidates candidates) =>
 			checkCallInner(
 				ctx, locals, source, diagRange, funName, args, typeArg, perfMeasurer, candidates, expected));

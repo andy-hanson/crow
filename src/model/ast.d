@@ -6,7 +6,7 @@ import model.diag : ReadFileDiag;
 import model.model : AssertOrForbidKind, FunKind, ImportFileType, stringOfVarKindLowerCase, VarKind;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
-import util.col.array : arrayOfSingle, exists, isEmpty, newSmallArray, SmallArray;
+import util.col.array : arrayOfSingle, exists, isEmpty, newSmallArray, sizeEq, SmallArray;
 import util.conv : safeToUint;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault, some;
@@ -263,6 +263,24 @@ immutable struct CallAst {
 Range nameRange(in AllSymbols allSymbols, in CallAst a) =>
 	rangeOfNameAndRange(a.funName, allSymbols);
 
+immutable struct CallNamedAst {
+	@safe @nogc pure nothrow:
+
+	NameAndRange[] names;
+	ExprAst[] args;
+
+	this(NameAndRange[] ns, ExprAst[] as) {
+		names = ns;
+		args = as;
+		assert(!isEmpty(names));
+		assert(sizeEq(names, args));
+	}
+}
+
+immutable struct DoAst {
+	ExprAst* body_;
+}
+
 // Used for implicit 'else ()' or implicit '()' after a Let
 immutable struct EmptyAst {}
 
@@ -480,6 +498,8 @@ immutable struct ExprAstKind {
 		AssignmentCallAst*,
 		BogusAst,
 		CallAst,
+		CallNamedAst,
+		DoAst,
 		EmptyAst,
 		ForAst*,
 		IdentifierAst,

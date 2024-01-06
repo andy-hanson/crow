@@ -201,42 +201,41 @@ import
 	a.glVertexAttribPointer_[index, size, type, normalized, stride, pointer]
 
 +new gl-ext() summon, unsafe
-	glActiveTexture fun* void(GLenum) = "glActiveTexture".load as-fun-pointer
-	glAttachShader fun* void(GLuint, GLuint) = "glAttachShader".load as-fun-pointer
-	glBindBuffer fun* void(GLenum, GLuint) = "glBindBuffer".load as-fun-pointer
-	glBindTexture fun* void(GLenum, GLuint) = "glBindTexture".load as-fun-pointer
-	glBufferData fun* void(GLenum, GLsizeiptr, any-const-pointer, GLenum) = "glBufferData".load as-fun-pointer
-	glBufferSubData fun* void(GLenum, GLintptr, GLsizeiptr, any-const-pointer) = "glBufferSubData".load as-fun-pointer
-	glClear fun* void(GLbitfield) = "glClear".load as-fun-pointer
-	glClearColor fun* void(GLfloat, GLfloat, GLfloat, GLfloat) = "glClearColor".load as-fun-pointer
-	glCompileShader fun* void(GLuint) = "glCompileShader".load as-fun-pointer
-	glCreateProgram fun* GLuint() = "glCreateProgram".load as-fun-pointer
-	glCreateShader fun* GLuint(GLenum) = "glCreateShader".load as-fun-pointer
-	glCullFace fun* void(GLenum) = "glCullFace".load as-fun-pointer
-	glDeleteBuffers fun* void(GLsizei, GLuint*) = "glDeleteBuffers".load as-fun-pointer
-	glDeleteProgram fun* void(GLuint) = "glDeleteProgram".load as-fun-pointer
-	glDeleteShader fun* void(GLuint) = "glDeleteShader".load as-fun-pointer
-	glDeleteTextures fun* void(GLsizei, GLuint*) = "glDeleteTextures".load as-fun-pointer
-	glDrawArrays fun* void(GLenum, GLint, GLsizei) = "glDrawArrays".load as-fun-pointer
-	glEnable fun* void(GLenum) = "glEnable".load as-fun-pointer
-	glEnableVertexAttribArray fun* void(GLuint) = "glEnableVertexAttribArray".load as-fun-pointer
-	glGenBuffers fun* void(GLsizei, GLuint mut*) = "glGenBuffers".load as-fun-pointer
-	glGenTextures fun* void(GLsizei, GLuint mut*) = "glGenTextures".load as-fun-pointer
-	glGetError fun* GLenum() = "glGetError".load as-fun-pointer
-	glGetProgramInfoLog fun* void(GLuint, GLsizei, GLsizei mut*, GLchar mut*) = "glGetProgramInfoLog".load as-fun-pointer
-	glGetProgramiv fun* void(GLuint, GLenum, GLint mut*) = "glGetProgramiv".load as-fun-pointer
-	glGetShaderInfoLog fun* void(GLuint, GLsizei, GLsizei mut*, GLchar mut*) = "glGetShaderInfoLog".load as-fun-pointer
-	glGetShaderiv fun* void(GLuint, GLenum, GLint mut*) = "glGetShaderiv".load as-fun-pointer
-	glGetUniformLocation fun* GLint(GLuint, GLchar*) = "glGetUniformLocation".load as-fun-pointer
-	glLinkProgram fun* void(GLuint) = "glLinkProgram".load as-fun-pointer
-	glShaderSource fun* void(GLuint, GLsizei, GLchar**, GLint*) = "glShaderSource".load as-fun-pointer
-	glTexImage2D fun* void(GLenum, GLint, GLenum, GLsizei, GLsizei, GLint, GLenum, GLenum, any-const-pointer) = "glTexImage2D".load as-fun-pointer
-	glTexParameteri fun* void(GLenum, GLenum, GLenum) = "glTexParameteri".load as-fun-pointer
-	glUniform1i fun* void(GLint, GLint) = "glUniform1i".load as-fun-pointer
-	glUniformMatrix3fv fun* void(GLint, GLsizei, GLboolean, GLfloat*) = "glUniformMatrix3fv".load as-fun-pointer
-	glUseProgram fun* void(GLuint) = "glUseProgram".load as-fun-pointer
-	glVertexAttribPointer fun* void(GLuint, GLint, GLenum, GLboolean, GLsizei, any-const-pointer) = "glVertexAttribPointer".load as-fun-pointer
-	glActiveTexture, glAttachShader, glBindBuffer, glBindTexture, glBufferData, glBufferSubData, glClear, glClearColor, glCompileShader, glCreateProgram, glCreateShader, glCullFace, glDeleteBuffers, glDeleteProgram, glDeleteShader, glDeleteTextures, glDrawArrays, glEnable, glEnableVertexAttribArray, glGenBuffers, glGenTextures, glGetError, glGetProgramInfoLog, glGetProgramiv, glGetShaderInfoLog, glGetShaderiv, glGetUniformLocation, glLinkProgram, glShaderSource, glTexImage2D, glTexParameteri, glUniform1i, glUniformMatrix3fv, glUseProgram, glVertexAttribPointer
+	glActiveTexture_: "glActiveTexture".load as-fun-pointer
+	glAttachShader_: "glAttachShader".load as-fun-pointer
+	glBindBuffer_: "glBindBuffer".load as-fun-pointer
+	glBindTexture_: "glBindTexture".load as-fun-pointer
+	glBufferData_: "glBufferData".load as-fun-pointer
+	glBufferSubData_: "glBufferSubData".load as-fun-pointer
+	glClear_: "glClear".load as-fun-pointer
+	glClearColor_: "glClearColor".load as-fun-pointer
+	glCompileShader_: "glCompileShader".load as-fun-pointer
+	glCreateProgram_: "glCreateProgram".load as-fun-pointer
+	glCreateShader_: "glCreateShader".load as-fun-pointer
+	glCullFace_: "glCullFace".load as-fun-pointer
+	glDeleteBuffers_: "glDeleteBuffers".load as-fun-pointer
+	glDeleteProgram_: "glDeleteProgram".load as-fun-pointer
+	glDeleteShader_: "glDeleteShader".load as-fun-pointer
+	glDeleteTextures_: "glDeleteTextures".load as-fun-pointer
+	glDrawArrays_: "glDrawArrays".load as-fun-pointer
+	glEnable_: "glEnable".load as-fun-pointer
+	glEnableVertexAttribArray_: "glEnableVertexAttribArray".load as-fun-pointer
+	glGenBuffers_: "glGenBuffers".load as-fun-pointer
+	glGenTextures_: "glGenTextures".load as-fun-pointer
+	glGetError_: "glGetError".load as-fun-pointer
+	glGetProgramInfoLog_: "glGetProgramInfoLog".load as-fun-pointer
+	glGetProgramiv_: "glGetProgramiv".load as-fun-pointer
+	glGetShaderInfoLog_: "glGetShaderInfoLog".load as-fun-pointer
+	glGetShaderiv_: "glGetShaderiv".load as-fun-pointer
+	glGetUniformLocation_: "glGetUniformLocation".load as-fun-pointer
+	glLinkProgram_: "glLinkProgram".load as-fun-pointer
+	glShaderSource_: "glShaderSource".load as-fun-pointer
+	glTexImage2D_: "glTexImage2D".load as-fun-pointer
+	glTexParameteri_: "glTexParameteri".load as-fun-pointer
+	glUniform1i_: "glUniform1i".load as-fun-pointer
+	glUniformMatrix3fv_: "glUniformMatrix3fv".load as-fun-pointer
+	glUseProgram_: "glUseProgram".load as-fun-pointer
+	glVertexAttribPointer_: "glVertexAttribPointer".load as-fun-pointer
 
 -load any-const-pointer(name c-string) summon, unsafe
 	proc = name SDL_GL_GetProcAddress
