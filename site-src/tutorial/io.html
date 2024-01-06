@@ -86,19 +86,18 @@
 			()
 
 		connection record shared
-			write far void(symbol, string)
 			read far string?(symbol)
+			write far void(symbol, string)
 
 		make-connection connection() summon
 			db string mut[symbol] = ()
-			write far void(symbol, string) = (key, value) =>
+			read: key =>
+				out print "read {key}"
+				db[key],
+			write: (key, value) =>
 				out print "write to {key}: {value}"
 				db[key] := value
 				()
-			read far string?(symbol) = key =>
-				out print "read {key}"
-				db[key],
-			write, read
 
 		use-connection void^(a connection)
 			&lt;- a.write["key", "value"]
@@ -106,6 +105,10 @@
 			info log "value is {value ?? "not found"}"
 			()
 	</crow-runnable>
+
+	<aside class="small">
+		This uses the "named new" syntax described in {{tutorial/special-call-syntax}}.
+	</aside>
 
 	<aside class="small">
 		Even though the function is declared as <code>far void(symbol, string)</code>,

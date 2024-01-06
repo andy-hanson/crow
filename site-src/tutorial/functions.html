@@ -1,53 +1,20 @@
 <section>
 	<h2>Identifiers</h2>
 	<p>
-		Most identifiers use <code>kebab-case</code>, meaning lower-case letters with words separated by hyphens.
-	</p>
-	<p>
-		The formal rule is that an identifier (name of a variable or function) must start with a letter
+		An identifier (name of function, variable, type, or any other thing) must start with a letter
 		(A through Z, lower or upper case), followed by letters, numbers, <code>_</code> and <code>-</code>.
 		<br />
-		In other words, legal identifiers in Crow are like those in C, Java, etc.; plus <code>-</code> is also allowed.
+		The rules are the same for functions, variables, types, etc.
 		<br />
-		These rules are the same for all kinds of identifiers: functions, variables, types, etc.
+		Examples: <code>a</code>, <code>is-empty</code>, <code>float32</code>, <code>BIG_WORDS</code>.
 	</p>
 	<p>
-		Crow also supports operators like <code>+</code>.
-		These are actually function names, but the parser treats them a bit differently.
+		The standard library uses <code>kebab-case</code>, which means lower-case words separated by hyphens.
+	</p>
+	<p>
+		Function names can also be operators like <code>+</code>.
 		Those will be described in {{tutorial/special-call-syntax}}.
 	</p>
-	<p>
-		Example allowed identifiers:
-		<ul class="bullets">
-			<li><code>a</code></li>
-			<li><code>hello-world</code></li>
-			<li><code>float32</code></li>
-			<li><code>BIG_WORDS</code></li>
-		</ul>
-		Some disallowed identifiers:
-		<ul class="bullets">
-			<li><code>if</code> (and other keywords)</li>
-			<li><code>x+y</code></li>
-			<li><code>2much</code></li>
-		</ul>
-	</p>
-	<aside>
-		<h4>Naming conventions</h4>
-		<p>
-			You can write names in any style you want,
-			but the standard library uses <code>kebab-case</code> for everything.
-			<br />
-			This doesn't vary between functions and type names. The syntax makes it unambiguous which is which.
-			<br />
-			There is also no naming convention for private members since that is enforced at the language level.
-			(See {{tutorial/modules}}.)
-		</p>
-		<p>
-			The exception is that when calling C code, the original C names are used.
-			<br />
-			For example, you would still call <code>SDL_Init</code> not <code>sdl-init</code>.
-		</p>
-	</aside>
 </section>
 
 <section>
@@ -62,14 +29,16 @@
 			</li>
 			<li>
 				With 1 argument: <code>x f</code>.
-				You can also write <code>x.f</code> which makes it bind more tightly, to avoid needing parentheses.
+				You can also write <code>x.f</code> which binds tightly, meaning it is like <code>(x f)</code>.
 			</li>
 			<li>
 				With 2 arguments: <code>x f y</code>.
 			</li>
 			<li>
 				With 3 arguments: <code>x f y, z</code>.
-				For more than 3 arguments, just keep adding commas before each argument.
+			</li>
+			<li>
+				With 4 or more arguments: Just add a comma before each additional argument.
 			</li>
 		</ul>
 	</p>
@@ -85,10 +54,10 @@
 		and <code>a b c</code> is its first argument.
 		Then <code>e</code> is the second argument to <code>d</code>.
 		<br />
-		So this is equivalent to <code>(a <span class="fun">b</span> c) <span class="fun">d</span> e</code>.
+		So this is equivalent to <code>(a <span class="function">b</span> c) <span class="function">d</span> e</code>.
 	</p>
 	<p>
-		If you instead wrote <code>a <span class="fun">b</span> c, d <span class="fun">e</span></code>,
+		If you instead wrote <code>a <span class="function">b</span> c, d <span class="function">e</span></code>,
 		then the call to <code class="function">b</code> gets <code>d</code> as a third argument.
 		<br />
 		Then the whole expression is passed into <code class="function">e</code>,
@@ -113,7 +82,7 @@
 
 	<p>
 		<code>info log hello-world</code> calls the function <code>log</code> with 2 arguments
-		<code>info</code> and <code>world</code>, which are 0-argument function calls.
+		<code>info</code> and <code>hello-world</code>, which are 0-argument function calls.
 	</p>
 	<p>
 		<code>hello-world string()</code> is the function <em>signature</em>.

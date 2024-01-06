@@ -251,15 +251,11 @@
 	<aside>
 		<h4>Visibility for operators</h4>
 		<p>
-			When defining a function named <code class="function">+</code>, <code class="function">~</code>,
-			or <code class="function">-</code>, it must have an explicit visibility,
+			When defining a function named <code class="function">-</code>, , <code class="function">~</code>,
+			or <code class="function">+</code>, it must have an explicit visibility,
 			as in <code>+ + nat(a nat, b nat)</code>.
 			<br />
 			The first <code>+</code> is the visibility, and the second is the function name.
-		</p>
-		<p>
-			<code>+ nat(a nat, b nat)</code> won't parse since the <code>+</code> is read as the visibility,
-			<code>nat</code> becomes the function name, and then it then fails to parse the type.
 		</p>
 	</aside>
 </section>

@@ -9,7 +9,7 @@
 			info log x
 	</crow-runnable>
 
-	<aside class="small">There is no syntax to declare an uninitialized local variable.</aside>
+	<aside class="small">There are no uninitialized local variables.</aside>
 
 	<h3>Adding a type annotation</h3>
 	<p>
@@ -28,8 +28,7 @@
 		By default, locals are read-only.
 		Use the <code class="keyword">mut</code> keyword to make it mutable.
 		Then use <code class="keyword">:=</code> to change the value.
-	</p>
-	<p>
+		<br />
 		The type annotation remains optional.
 		If present, it should go after <code class="keyword">mut</code>.
 	</p>
@@ -59,17 +58,17 @@
 				It always refers to the same <code>string-builder</code> and can't be reassigned to a different one.
 			</li>
 			<li>
-				<code>x mut string-builder</code> would be a rebindable <code>string-builder</code>.
+				<code>x mut string-builder</code> would be a reassignable <code>string-builder</code>.
 			</li>
 		</ul>
 		<p>
-			One way to remember this is that <code class="keyword">mut</code> modifies the variable, not the type.
+			In other words, <code class="keyword">mut</code> modifies the variable, not the type.
 		</p>
 	</aside>
 
 	<h3>Short syntax for updates</h3>
 	<p>
-			Any function name can be placed in front of the <code class="keyword">:=</code>.
+		Any function name (including operators) can be placed in front of the <code class="keyword">:=</code>.
 		<br />
 		<code>x foo:= y</code> is shorthand for <code>x := x foo y</code>.
 	</p>
@@ -86,8 +85,8 @@
 	<p>When a value is a tuple, you can declare a variable for each component of the tuple instead of for the whole.</p>
 	<crow-runnable>
 		main void()
-			tuple (string, string) = "hello", "world"
-			greeting, target = tuple
+			x (string, string) = "hello", "world"
+			greeting, target = x
 			info log "Tell {target} I said {greeting}"
 	</crow-runnable>
 
@@ -99,22 +98,27 @@
 
 	<h3>Ignored values</h3>
 	<p>
-		Use <code class="keyword">_</code> acts like a local name,
+		<code class="keyword">_</code> acts like a local name,
 		but you can't use it to get the value of the local, marking it as intentionally unused.
 		<br />
-		Normally, crow requires an expression to be <code class="type">void</code> if its value is unused,
+		Crow requires an expression in statement position to be <code class="type">void</code>,
 		so <code>_ =</code> is useful to explicitly drop a value.
 		<br />
-		It's also useful in destructuring if you some of the members of a tuple are unused.
+		It's also useful in destructuring if some of the members of a tuple are unused.
 	</p>
 	<crow-runnable>
 		main void()
 			# Just calling this for the side effect
 			_ = func
+			_, y = get-pair
+			info log "{y}"
 
 		func string()
 			info log "side effect"
 			"return value"
+		
+		get-pair (nat, nat)()
+			1, 2
 	</crow-runnable>
 
 	<p>
@@ -127,8 +131,8 @@
 	</p>
 	<crow-runnable>
 		main void()
-			tuple (string, string) = "hello", "world"
-			info log tuple.greet
+			x (string, string) = "hello", "world"
+			info log x.greet
 
 		greet string((greeting mut string, target string))
 			# This mutates the local 'greeting', not the original tuple.

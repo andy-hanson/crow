@@ -235,6 +235,10 @@ const addSpansForWrites = (container, writes, exitCode) => {
 		curPipe = "exit-code"
 		curLine = `Exit code: ${exitCode}`
 		finishLine()
+	} else if (writes.length === 0) {
+		curPipe = "stdout"
+		curLine = "<<no output>>"
+		finishLine()
 	}
 }
 /** @type {function(number[], SemanticTokensLegend): Token[]} */

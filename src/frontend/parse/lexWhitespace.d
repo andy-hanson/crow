@@ -194,8 +194,6 @@ bool isNonKeywordPunctuation(char a) {
 		case ')':
 		case '[':
 		case ']':
-		case '{':
-		case '}':
 			return true;
 		default:
 			return false;

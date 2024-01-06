@@ -578,7 +578,7 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 						(in string s) {
 							// TODO: length may be wrong if there are escapes
 							// Ensure the closing quote is highlighted
-							Pos end = safeToUint(pos + s.length) + (i == x.parts.length - 1 ? 1 : 0);
+							Pos end = safeToUint(pos + s.length) + (i == 0 || i == x.parts.length - 1 ? 1 : 0);
 							stringLiteral(ctx.tokens, Range(pos, end));
 						},
 						(in ExprAst e) {
@@ -589,7 +589,7 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 				x.parts[$ - 1].matchIn!void(
 					(in string) {},
 					(in ExprAst x) {
-						stringLiteral(ctx.tokens, Range(x.range.end, a.range.end));
+						stringLiteral(ctx.tokens, Range(x.range.end + 1, a.range.end));
 					});
 			}
 		},
