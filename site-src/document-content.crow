@@ -84,7 +84,8 @@ module-content string(a module, all-exports all-exports)
 	name type-or-spec-name-reference ctx.all-exports.specs, "spec", ctx
 -type-or-spec-name-reference string(name symbol, map module-path[symbol], kind string, ctx ctx)
 	if module ?= map[name]
-		module-path = module != ctx.current-module ? "/doc/{module}.html"
+		module-path = if module != ctx.current-module
+			"/doc/{(module.to::string try-remove-end ".crow")!}.html"
 		"""<a href="{module-path}#{name}"><code class="{kind}">{name}</code></a>"""
 	else
 		throw "Could not find {kind} {name} in {ctx current-module} member {ctx current-export}"
@@ -132,28 +133,28 @@ module-content string(a module, all-exports all-exports)
 -name-class string(a module-export-value)
 	match a
 	as alias-decl _
-		"struct"
+		"type"
 	as builtin-decl
-		"struct"
+		"type"
 	as enum-decl _
-		"struct"
+		"enum"
 	as extern-decl
-		"struct"
+		"type"
 	as flags-decl _
-		"struct"
+		"enum"
 	as fun-decl _
-		"fun"
+		"function"
 	as record-decl _
-		"struct"
+		"type"
 	as spec-decl _
-		"spec"
+		"interface"
 	as union-decl _
-		"struct"
+		"type"
 
 -type-params-content string(a type-param[])
 	unless a is-empty
 		type-params = ", " join for x : a
-			"""<code class="type-param">{x name}</code>"""
+			"""<code class="typeParameter">{x name}</code>"""
 		"""<span class="type-params">[{type-params}]</span>"""
 
 -export-header-extra string(a module-export-value, ctx ctx)
@@ -217,7 +218,7 @@ module-content string(a module, all-exports all-exports)
 		as spec-sigs sigs
 			sigs-content = "" join for x : sigs
 				x spec-sig-li ctx
-			"""<ul class="sigs">{sigs-content}</ul>"""
+			"""<ul class="spec-sigs">{sigs-content}</ul>"""
 	as union-decl u
 		members = "" join for x : u members
 			x union-member-content ctx
@@ -225,16 +226,16 @@ module-content string(a module, all-exports all-exports)
 
 -enum-flags-members-content string(a symbol[])
 	members = "" join for x : a
-		"""<li><code class="member">{x}</code></li>"""
+		"""<li><code class="property">{x}</code></li>"""
 	"""<ul class="members">{members}</ul>"""
 
 -field-content string(a record-field, ctx ctx)
-	name = """<code class="member">{a name}</code>"""
+	name = """<code class="property">{a name}</code>"""
 	mut-kw = a.is-mut ? """ <code class="keyword">mut</code>"""
 	"<li>{name}{mut-kw} {a.type type-ref-content ctx}</li>"
 
 -union-member-content string(a union-member, ctx ctx)
-	name = """<code class="member">{a name}</code>"""
+	name = """<code class="property">{a name}</code>"""
 	type = if t ?= a type
 		" {t type-ref-content ctx}"
 	"<li>{name}{type}</li>"
@@ -259,7 +260,7 @@ module-content string(a module, all-exports all-exports)
 -param-content string(a param, variadic bool, ctx ctx)
 	var = variadic ? """<code class="keyword">...</code>"""
 	type = a.type type-ref-content ctx
-	"""<span class="param">{var}<code class="param">{a name}</code> {type}</span>"""
+	"""{var}<code class="parameter">{a name}</code> {type}"""
 
 -type-ref-content string(a type-ref, ctx ctx)
 	name = a name
@@ -302,12 +303,12 @@ module-content string(a module, all-exports all-exports)
 	unless specs is-empty
 		contents = ", " join for x : specs
 			x spec-ref-content ctx
-		""" <span class="specs">{contents}</span>"""
+		""" {contents}"""
 
 -spec-ref-content string(a spec-ref, ctx ctx)
 	args = a.type-args type-args-content ctx
 	name = a.name in special-specs ? "{a name}" : a.name spec-name-reference ctx
-	"""<span class="spec">{args}{name}</span>"""
+	"""{args}<code class="interface">{name}</code>"""
 
 special-specs symbol set()
 	"bare", "summon", "unsafe"

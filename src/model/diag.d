@@ -249,7 +249,12 @@ immutable struct Diag {
 		immutable struct RelativeImportReachesPastRoot {
 			RelPath imported;
 		}
-		mixin Union!(CantImportCrowAsText, CircularImport, LibraryNotConfigured, ReadError, RelativeImportReachesPastRoot);
+		mixin Union!(
+			CantImportCrowAsText,
+			CircularImport,
+			LibraryNotConfigured,
+			ReadError,
+			RelativeImportReachesPastRoot);
 	}
 	immutable struct ImportRefersToNothing {
 		Symbol name;

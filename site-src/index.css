@@ -384,7 +384,7 @@ code.number { color: #ff6040; }
 	margin-left: var(--tab);
 }
 
-.doc span.type-params code.type-param+code.type-param {
+.doc span.type-params code.typeParameter + code.typeParameter {
 	margin-left: 0.33em;
 }
 
@@ -405,6 +405,6 @@ h4 {
 	margin-left: var(--tab);
 }
 
-.doc ul.sigs {
+.doc ul.spec-sigs {
 	margin-left: var(--tab);
 }
