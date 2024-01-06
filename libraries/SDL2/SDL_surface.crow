@@ -7,19 +7,19 @@ import
 +SDL_FreeSurface void(surface SDL_Surface mut*) summon, SDL2 extern
 
 +SDL_Surface record extern, mut
-	+surface-flags nat32
-	+format SDL_PixelFormat mut*
-	+w c-int
-	+h c-int
-	+pitch c-int
-	+pixels any-mut-pointer
-	+userdata any-mut-pointer
-	+locked c-int
-	+list_blitmap any-mut-pointer
-	+clip_rect SDL_Rect
+	surface-flags nat32
+	format SDL_PixelFormat mut*
+	w c-int
+	h c-int
+	pitch c-int
+	pixels any-mut-pointer
+	userdata any-mut-pointer
+	locked c-int
+	list_blitmap any-mut-pointer
+	clip_rect SDL_Rect
 	# TODO: SDL_BlitMap
-	+map any-mut-pointer
-	+refcount c-int
+	map any-mut-pointer
+	refcount c-int
 
 +SDL_LoadBMP_RW SDL_Surface mut*(src SDL_RWops mut*, freesrc c-int) summon, SDL2 extern
 

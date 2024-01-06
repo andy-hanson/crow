@@ -8,23 +8,23 @@ import
 
 # 2-dimensional vector with 32-bit elements.
 +vec2-32 record extern
-	+x float32
-	+y float32
+	x float32
+	y float32
 # 2-dimensional vector with 64-bit elements.
 +vec2-64 record extern
-	+x float64
-	+y float64
+	x float64
+	y float64
 
 # 3-dimensional vector with 32-bit elements.
 +vec3-32 record extern
-	+x float32
-	+y float32
-	+z float32
+	x float32
+	y float32
+	z float32
 # 3-dimensional vector with 64-bit elements.
 +vec3-64 record extern
-	+x float64
-	+y float64
-	+z float64
+	x float64
+	y float64
+	z float64
 
 # 0 vector.
 +new vec2-32() bare

@@ -2,11 +2,11 @@ import
 	./sound: sound, sound-format
 
 +audio record shared
-	+format sound-format
-	+clear fun void()
-	+play fun playing-sound(sound)
-	+play-loop fun playing-sound(sound)
-	+shut-down far void()
+	format sound-format
+	clear fun void()
+	play fun playing-sound(sound)
+	play-loop fun playing-sound(sound)
+	shut-down far void()
 
 +clear void(a audio)
 	cb fun void() = a clear

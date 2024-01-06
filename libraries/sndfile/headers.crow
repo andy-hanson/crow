@@ -8,22 +8,22 @@ import
 +SNDFILE extern
 
 +SF_VIRTUAL_IO record extern, mut
-	+get_filelen fun* sf_count_t(any-mut-pointer)
-	+seek fun* sf_count_t(sf_count_t, SEEK, any-mut-pointer)
-	+read fun* sf_count_t(nat8 mut*, sf_count_t, any-mut-pointer)
-	+write fun* sf_count_t(nat8*, sf_count_t, any-mut-pointer)
-	+tell fun* sf_count_t(any-mut-pointer)
+	get_filelen fun* sf_count_t(any-mut-pointer)
+	seek fun* sf_count_t(sf_count_t, SEEK, any-mut-pointer)
+	read fun* sf_count_t(nat8 mut*, sf_count_t, any-mut-pointer)
+	write fun* sf_count_t(nat8*, sf_count_t, any-mut-pointer)
+	tell fun* sf_count_t(any-mut-pointer)
 
 +sf_error c-int(sndfile SNDFILE mut*) sndfile extern
 +sf_error_number c-string(errnum c-int) sndfile extern
 
 +SF_INFO record extern
-	+frames sf_count_t
-	+samplerate u-int
-	+channels u-int
-	+format SF_FORMAT
-	+sections u-int
-	+seekable u-int
+	frames sf_count_t
+	samplerate u-int
+	channels u-int
+	format SF_FORMAT
+	sections u-int
+	seekable u-int
 
 +new SF_INFO() bare
 	0, 0, 0, (), 0, 0

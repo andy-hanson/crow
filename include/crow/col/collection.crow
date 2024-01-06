@@ -56,7 +56,7 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, bare
 
 # Represents an index relative to the size of a collection
 +index-relative-to-end record by-val
-	+subtract nat64
+	subtract nat64
 
 +end index-relative-to-end() bare
 	0,

@@ -346,9 +346,6 @@ immutable struct Diag {
 		StructDecl* parent;
 		Type child;
 	}
-	immutable struct RecordNewVisibilityIsRedundant {
-		Visibility visibility;
-	}
 	// spec did have a match, but there was an error
 	immutable struct SpecMatchError {
 		immutable struct Reason {
@@ -451,6 +448,13 @@ immutable struct Diag {
 	immutable struct VarDeclTypeParams {
 		VarKind kind;
 	}
+	// We don't have any warning at the top-level even though '~' is redundant. This is only within a record.
+	immutable struct VisibilityIsRedundant {
+		enum Kind { field, new_ }
+		Kind kind;
+		StructDecl* record;
+		Visibility visibility;
+	}
 	immutable struct WrongNumberTypeArgs {
 		Symbol name;
 		size_t nExpectedTypeArgs;
@@ -513,7 +517,6 @@ immutable struct Diag {
 		PointerMutToConst,
 		PointerUnsupported,
 		PurityWorseThanParent,
-		RecordNewVisibilityIsRedundant,
 		SpecMatchError,
 		SpecNoMatch,
 		SpecNameMissing,
@@ -527,6 +530,7 @@ immutable struct Diag {
 		Unused,
 		VarargsParamMustBeArray,
 		VarDeclTypeParams,
+		VisibilityIsRedundant,
 		WrongNumberTypeArgs);
 }
 

@@ -93,10 +93,10 @@ gc record by-val, mut
 	-data-end mut nat64 mut*
 
 +gc-stats record by-val
-	+gc-count nat64
-	+cur-word nat64
-	+total-words nat64
-	+words-used nat64
+	gc-count nat64
+	cur-word nat64
+	total-words nat64
+	words-used nat64
 
 +words-free nat64(a gc-stats) bare
 	a.total-words wrap-sub a.words-used

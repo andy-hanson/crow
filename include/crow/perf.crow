@@ -32,9 +32,9 @@ import
 # Count and total duration of all measurements with the same name.
 +measure-total record
 	# Number of times a perf measure happend with this name.
-	+count nat64
+	count nat64
 	# Total time spent in all measures with this name.
-	+total-duration duration
+	total-duration duration
 +to string(a measure-total)
 	"{a count} × {a total-duration}"
 

@@ -21,8 +21,8 @@ import
 
 # The headers just use int[2], but this is easier to use from crow
 +pipes record extern, mut
-	+write-pipe fd-t
-	+read-pipe fd-t
+	write-pipe fd-t
+	read-pipe fd-t
 
 +__environ global(c-string*) c extern
 

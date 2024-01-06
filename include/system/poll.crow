@@ -7,9 +7,9 @@ import
 	crow/pointer: mut-pointer
 
 +pollfd record extern
-	+fd fd-t
-	+events int16
-	+revents int16
+	fd fd-t
+	events int16
+	revents int16
 
 +POLLIN int16()
 	1

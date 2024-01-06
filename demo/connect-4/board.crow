@@ -1,7 +1,6 @@
 import
 	crow/col/mut-grid: coord, new, x, y
 	crow/io/terminal-color: bold, blue, foreground, red, reset
-	crow/private/number-low-level: wrap-to
 
 ###
 Board representation is bits: 7 bits for a column (max of 6 entries), over 6 rows.

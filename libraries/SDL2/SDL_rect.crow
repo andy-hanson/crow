@@ -2,7 +2,7 @@ import
 	crow/c-types: c-int
 
 +SDL_Rect record extern
-	+x c-int
-	+y c-int
-	+w c-int
-	+h c-int
+	x c-int
+	y c-int
+	w c-int
+	h c-int

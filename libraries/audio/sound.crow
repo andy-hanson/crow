@@ -1,8 +1,8 @@
 # Represents a single sound.
 +sound record
 	-ignore void
-	+format sound-format
-	+samples float32 array
+	format sound-format
+	samples float32 array
 
 +new sound(format sound-format, samples float32 array)
 	nc = format n-channels
@@ -13,9 +13,9 @@
 	res
 
 +sound-format record
-	+n-channels nat64
+	n-channels nat64
 	# `samples` contains `n-channels * sample-rate` samples per second
-	+sample-rate nat64
+	sample-rate nat64
 
 +samples-per-second nat64(a sound-format)
 	a.n-channels * a.sample-rate

@@ -10,6 +10,7 @@ test/compile-errors/unused.crow 17:23-17:24 Local 'x' is unused
 test/compile-errors/unused.crow 19:5-19:6 Local 'y' is unused
 test/compile-errors/unused.crow 22:1-23:7 'bar' is unused
 test/compile-errors/unused.crow 25:1-26:17 'r' is unused
+test/compile-errors/unused.crow 26:5-26:17 Fields of record 'r' are already private by default.
 test/compile-errors/unused.crow 28:1-29:11 'u' is unused
 test/compile-errors/unused.crow 31:1-32:8 'a' is unused
 test/compile-errors/unused.crow 34:1-35:7 'e' is unused

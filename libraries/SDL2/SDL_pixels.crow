@@ -3,37 +3,37 @@ import
 	crow/version: is-big-endian
 
 +SDL_Color record extern
-	+r nat8
-	+g nat8
-	+b nat8
-	+a nat8
+	r nat8
+	g nat8
+	b nat8
+	a nat8
 
 +SDL_Palette record extern, mut
-	+ncolors c-int
-	+colors SDL_Color mut*
-	+version nat32
-	+refcount c-int
+	ncolors c-int
+	colors SDL_Color mut*
+	version nat32
+	refcount c-int
 
 +SDL_PixelFormat record extern, mut
-	+format nat32
-	+palette SDL_Palette mut*
-	+BitsPerPixel nat8
-	+BytesPerPixel nat8
-	+padding nat16
-	+Rmask nat32
-	+Gmask nat32
-	+Bmask nat32
-	+Amask nat32
-	+Rloss nat8
-	+Gloss nat8
-	+Bloss nat8
-	+Aloss nat8
-	+Rshift nat8
-	+Gshift nat8
-	+Bshift nat8
-	+Ashift nat8
-	+refcount c-int
-	+next SDL_PixelFormat mut*
+	format nat32
+	palette SDL_Palette mut*
+	BitsPerPixel nat8
+	BytesPerPixel nat8
+	padding nat16
+	Rmask nat32
+	Gmask nat32
+	Bmask nat32
+	Amask nat32
+	Rloss nat8
+	Gloss nat8
+	Bloss nat8
+	Aloss nat8
+	Rshift nat8
+	Gshift nat8
+	Bshift nat8
+	Ashift nat8
+	refcount c-int
+	next SDL_PixelFormat mut*
 
 +SDL_PIXELFORMAT_RGBA32 nat32() bare, unsafe
 	if is-big-endian

@@ -2,7 +2,7 @@ module frontend.check.checkStructs;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.check : visibilityFromExplicit;
+import frontend.check.check : optVisibilityFromExplicit, visibilityFromExplicit;
 import frontend.check.checkCtx : addDiag, addDiagAssertSameUri, CheckCtx;
 import frontend.check.instantiate : DelayStructInsts;
 import frontend.check.maps : StructsAndAliasesMap;
@@ -528,7 +528,7 @@ StructBody.Record checkRecord(
 			addDiag(ctx, b.range, Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.recordField, a.name)));
 	});
 	return StructBody.Record(
-		RecordFlags(recordNewVisibility(ctx, *struct_, fields, modifiers.newVisibility), modifiers.packed, valOrRef),
+		RecordFlags(recordNewVisibility(ctx, struct_, fields, modifiers.newVisibility), modifiers.packed, valOrRef),
 		fields);
 }
 
@@ -545,10 +545,14 @@ RecordField checkRecordField(
 	checkReferenceLinkageAndPurity(ctx, struct_, ast.range, fieldType);
 	if (has(ast.mutability) && struct_.purity != Purity.mut && !struct_.purityIsForced)
 		addDiag(ctx, ast.range, Diag(Diag.MutFieldNotAllowed()));
+	Opt!Visibility visibility = optVisibilityFromExplicit(ast.visibility);
+	if (has(visibility) && force(visibility) == struct_.visibility)
+		addDiag(ctx, ast.range, Diag(
+			Diag.VisibilityIsRedundant(Diag.VisibilityIsRedundant.Kind.field, struct_, force(visibility))));
 	return RecordField(
 		ast,
 		struct_,
-		visibilityFromExplicit(ast.visibility),
+		optOrDefault!Visibility(visibility, () => struct_.visibility),
 		ast.name.name,
 		fieldMutabilityFromAst(ast.mutability),
 		fieldType);
@@ -699,7 +703,7 @@ void checkReferencePurity(ref CheckCtx ctx, StructDecl* struct_, in Range range,
 
 Visibility recordNewVisibility(
 	ref CheckCtx ctx,
-	ref StructDecl struct_,
+	StructDecl* struct_,
 	in RecordField[] fields,
 	Opt!Visibility explicit,
 ) {
@@ -709,7 +713,8 @@ Visibility recordNewVisibility(
 	if (has(explicit)) {
 		if (force(explicit) == default_)
 			//TODO: better range
-			addDiagAssertSameUri(ctx, struct_.range, Diag(Diag.RecordNewVisibilityIsRedundant(default_)));
+			addDiagAssertSameUri(ctx, struct_.range, Diag(
+				Diag.VisibilityIsRedundant(Diag.VisibilityIsRedundant.Kind.new_, struct_, default_)));
 		return force(explicit);
 	} else
 		return default_;

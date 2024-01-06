@@ -117,8 +117,6 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.PurityWorseThanParent) =>
 			DiagnosticSeverity.checkError,
-		(in Diag.RecordNewVisibilityIsRedundant) =>
-			DiagnosticSeverity.checkWarning,
 		(in Diag.SpecMatchError) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.SpecNoMatch) =>
@@ -145,5 +143,7 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.VarDeclTypeParams) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.VisibilityIsRedundant) =>
+			DiagnosticSeverity.unusedCode,
 		(in Diag.WrongNumberTypeArgs) =>
 			DiagnosticSeverity.checkError);

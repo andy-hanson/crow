@@ -14,15 +14,15 @@ import
 	fun* void(any-mut-pointer, nat8 mut*, c-int)
 
 +SDL_AudioSpec record extern, mut
-	+freq c-int
-	+format SDL_AudioFormat
-	+channels nat8
-	+silence nat8
-	+samples nat16
-	+padding nat16
-	+size nat32
-	+callback SDL_AudioCallback
-	+userdata any-mut-pointer
+	freq c-int
+	format SDL_AudioFormat
+	channels nat8
+	silence nat8
+	samples nat16
+	padding nat16
+	size nat32
+	callback SDL_AudioCallback
+	userdata any-mut-pointer
 
 +new SDL_AudioSpec() bare, unsafe
 	0, 0, 0, 0, 0, 0, 0, null, null

@@ -14,9 +14,9 @@ import
 	AddrModeFlat
 
 +ADDRESS64 record extern
-	+Offset DWORD64
-	+Segment WORD
-	+Mode ADDRESS_MODE
+	Offset DWORD64
+	Segment WORD
+	Mode ADDRESS_MODE
 
 +new ADDRESS64() bare
 	0,
@@ -25,22 +25,22 @@ import
 	offset, 0, AddrModeFlat
 
 +STACKFRAME64 record extern
-	+AddrPC ADDRESS64
-	+AddrReturn ADDRESS64
-	+AddrFrame ADDRESS64
-	+AddrStack ADDRESS64
-	+AddrBStore ADDRESS64
-	+FuncTableEntry any-const-pointer
-	+Params0 DWORD64
-	+Params1 DWORD64
-	+Params2 DWORD64
-	+Params3 DWORD64
-	+Far bool
-	+Virtual bool
-	+Reserved0 DWORD64
-	+Reserved1 DWORD64
-	+Reserved2 DWORD64
-	+KdHelp KDHELP64
+	AddrPC ADDRESS64
+	AddrReturn ADDRESS64
+	AddrFrame ADDRESS64
+	AddrStack ADDRESS64
+	AddrBStore ADDRESS64
+	FuncTableEntry any-const-pointer
+	Params0 DWORD64
+	Params1 DWORD64
+	Params2 DWORD64
+	Params3 DWORD64
+	Far bool
+	Virtual bool
+	Reserved0 DWORD64
+	Reserved1 DWORD64
+	Reserved2 DWORD64
+	KdHelp KDHELP64
 
 +new STACKFRAME64(context CONTEXT*) bare, unsafe
 	(context->Rip,), (), (context->Rbp,), (context->Rsp,), (), null, 0, 0, 0, 0, false, false, 0, \
@@ -70,24 +70,24 @@ import
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
 +IMAGEHLP_SYMBOL64 record extern
-	+SizeOfStruct DWORD
-	+Address DWORD64
-	+Size DWORD
-	+Flags DWORD
-	+MaxNameLength DWORD
+	SizeOfStruct DWORD
+	Address DWORD64
+	Size DWORD
+	Flags DWORD
+	MaxNameLength DWORD
 	# Actually may be more than one char, making the size of this struct actually bigger
-	+Name c-char
+	Name c-char
 
 +new IMAGEHLP_SYMBOL64(max-name-length DWORD) bare, unsafe
 	# TODO: should not need parentheses
 	(size-of@IMAGEHLP_LINE64).to, 0, 0, 0, max-name-length, "\0"
 
 +IMAGEHLP_LINE64 record extern
-	+SizeOfStruct DWORD
-	+Key any-const-pointer
-	+LineNumber DWORD
-	+FileName c-string
-	+Address DWORD64
+	SizeOfStruct DWORD
+	Key any-const-pointer
+	LineNumber DWORD
+	FileName c-string
+	Address DWORD64
 
 +new IMAGEHLP_LINE64() bare, unsafe
 	# TODO: should not need parentheses

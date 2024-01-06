@@ -833,11 +833,6 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writePurity(writer, ctx, bestCasePurity(x.child));
 			writer ~= '.';
 		},
-		(in Diag.RecordNewVisibilityIsRedundant x) {
-			writer ~= "The 'new' function for this record is already '";
-			writer ~= stringOfVisibility(x.visibility);
-			writer ~= "' by default.";
-		},
 		(in Diag.SpecMatchError x) {
 			x.reason.matchIn!void(
 				(in Diag.SpecMatchError.Reason.MultipleMatches y) {
@@ -963,6 +958,24 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= "A ";
 			writer ~= stringOfVarKindLowerCase(x.kind);
 			writer ~= " variable can't have type parameters.";
+		},
+		(in Diag.VisibilityIsRedundant x) {
+			final switch (x.kind) {
+				case Diag.VisibilityIsRedundant.Kind.field:
+					writer ~= "Fields of record ";
+					writeName(writer, ctx, x.record.name);
+					writer ~= " are already ";
+					writer ~= stringOfVisibility(x.visibility);
+					writer ~= " by default.";
+					break;
+				case Diag.VisibilityIsRedundant.Kind.new_:
+					writer ~= "The 'new' function for ";
+					writeName(writer, ctx, x.record.name);
+					writer ~= " is already ";
+					writer ~= stringOfVisibility(x.visibility);
+					writer ~= " by default (derived from visibility of fields).";
+					break;
+			}
 		},
 		(in Diag.WrongNumberTypeArgs x) {
 			writeName(writer, ctx, x.name);

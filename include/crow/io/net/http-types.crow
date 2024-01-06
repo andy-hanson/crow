@@ -7,10 +7,10 @@ import
 
 # Parsed HTTP request.
 +http-request record
-	+method http-method
-	+url string
-	+headers string[string]
-	+request-body nat8[]
+	method http-method
+	url string
+	headers string[string]
+	request-body nat8[]
 
 # TODO: should this be trusted?
 # Request body as as string.
@@ -19,10 +19,10 @@ import
 
 # Response to an HTTP request.
 +http-response record
-	+status nat64
-	+status-desc string
-	+headers string[string]
-	+response-body nat8[]
+	status nat64
+	status-desc string
+	headers string[string]
+	response-body nat8[]
 
 # Creates a 400 response with the message "Bad query".
 +http-bad-query http-response()

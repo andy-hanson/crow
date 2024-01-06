@@ -41,9 +41,9 @@ import
 
 # Represents the output of running a process.
 +process-result record
-	+exit process-exit
-	+stdout string
-	+stderr string
+	exit process-exit
+	stdout string
+	stderr string
 
 +process-exit union
 	exited int32

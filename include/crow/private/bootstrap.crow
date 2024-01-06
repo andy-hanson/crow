@@ -93,8 +93,8 @@ A slice does not keep the whole array alive, only the elements it can reach;
 elements not reachable by any slice will be garbage collected.
 ###
 +array[t] record by-val
-	+size nat64
-	pointer t*
+	size nat64
+	~pointer t*
 
 ###
 `mut-array` is a low-level type mostly useful for implementing other collections.
@@ -262,64 +262,64 @@ exclusion alias
 region tuple
 
 +tuple2[t, u] record extern
-	+a t
-	+b u
+	a t
+	b u
 
 +tuple3[t0, t1, t2] record extern
-	+a t0
-	+b t1
-	+c t2
+	a t0
+	b t1
+	c t2
 
 +tuple4[t0, t1, t2, t3] record extern
-	+a t0
-	+b t1
-	+c t2
-	+d t3
+	a t0
+	b t1
+	c t2
+	d t3
 
 +tuple5[t0, t1, t2, t3, t4] record extern
-	+a t0
-	+b t1
-	+c t2
-	+d t3
-	+e t4
+	a t0
+	b t1
+	c t2
+	d t3
+	e t4
 
 +tuple6[t0, t1, t2, t3, t4, t5] record extern
-	+a t0
-	+b t1
-	+c t2
-	+d t3
-	+e t4
-	+f t5
+	a t0
+	b t1
+	c t2
+	d t3
+	e t4
+	f t5
 
 +tuple7[t0, t1, t2, t3, t4, t5, t6] record extern
-	+a t0
-	+b t1
-	+c t2
-	+d t3
-	+e t4
-	+f t5
-	+g t6
+	a t0
+	b t1
+	c t2
+	d t3
+	e t4
+	f t5
+	g t6
 
 +tuple8[t0, t1, t2, t3, t4, t5, t6, t7] record extern
-	+a t0
-	+b t1
-	+c t2
-	+d t3
-	+e t4
-	+f t5
-	+g t6
-	+h t7
+	a t0
+	b t1
+	c t2
+	d t3
+	e t4
+	f t5
+	g t6
+	h t7
 
 +tuple9[t0, t1, t2, t3, t4, t5, t6, t7, t8] record extern
-	+a t0
-	+b t1
-	+c t2
-	+d t3
-	+e t4
-	+f t5
-	+g t6
-	+h t7
-	+i t8
+	a t0
+	b t1
+	c t2
+	d t3
+	e t4
+	f t5
+	g t6
+	h t7
+	i t8
 
 region fun
 

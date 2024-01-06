@@ -6,7 +6,7 @@ import
 +in_addr_t alias
 	nat32
 +in_addr record extern
-	+s-addr in_addr_t
+	s-addr in_addr_t
 
 +in_port_t alias
 	nat16
@@ -14,11 +14,11 @@ import
 # Same size as sockaddr
 +sockaddr_in record by-val
 	# 2 bytes
-	+sin_family sa_family_t
+	sin_family sa_family_t
 	# 2 bytes
-	+sin_port in_port_t
+	sin_port in_port_t
 	# 4 bytes
-	+sin_addr in_addr
+	sin_addr in_addr
 	-padding nat64
 
 +new sockaddr_in(sin_family sa_family_t, sin_port in_port_t, sin_addr in_addr) bare

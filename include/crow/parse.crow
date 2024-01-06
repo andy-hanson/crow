@@ -439,9 +439,9 @@ This allows e.g. "1", "+23", "-45".
 	("+".optional ~~ (nat map x => x.to)) / ("+" ~~ (nat map x => -x.to))
 
 -nat-and-count-digits record
-	-end string-iterator
-	-value nat64
-	-count-digits nat64
+	end string-iterator
+	value nat64
+	count-digits nat64
 -take-nat-and-count-digits nat-and-count-digits?(start string-iterator)
 	acc mut = 0
 	count-digits mut = 0

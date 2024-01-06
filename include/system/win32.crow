@@ -281,10 +281,10 @@ import
 	(size-of@SECURITY_ATTRIBUTES).to, lpSecurityDescriptor, bInheritHandle ? 1 : 0
 
 +PROCESS_INFORMATION record extern, mut
-	+hProcess HANDLE
-	+hThread HANDLE
-	+dwProcessId DWORD
-	+dwThreadId DWORD
+	hProcess HANDLE
+	hThread HANDLE
+	dwProcessId DWORD
+	dwThreadId DWORD
 
 +new PROCESS_INFORMATION() bare, unsafe
 	(), (), (), ()
@@ -362,15 +362,15 @@ import
 
 +SYSTEM_INFO record extern, mut
 	-DUMMYUNIONNAME DWORD
-	+dwPageSize DWORD
-	+lpMinimumApplicationAddress any-mut-pointer
-	+lpMaximumApplicationAddress any-mut-pointer
-	+dwActiveProcessorMask int64
-	+dwNumberOfProcessors DWORD
-	+dwProcessorType DWORD
-	+dwAllocationGranularity DWORD
-	+wProcessorLevel WORD
-	+wProcessorRevision WORD
+	dwPageSize DWORD
+	lpMinimumApplicationAddress any-mut-pointer
+	lpMaximumApplicationAddress any-mut-pointer
+	dwActiveProcessorMask int64
+	dwNumberOfProcessors DWORD
+	dwProcessorType DWORD
+	dwAllocationGranularity DWORD
+	wProcessorLevel WORD
+	wProcessorRevision WORD
 
 +new SYSTEM_INFO() bare, unsafe
 	(), (), (), (), (), (), (), (), (), ()
@@ -381,47 +381,47 @@ import
 +Sleep void(dwMilliseconds DWORD) summon, kernel32 extern
 
 +CONTEXT record extern, mut
-	+P1Home DWORD64
-	+P2Home DWORD64
-	+P3Home DWORD64
-	+P4Home DWORD64
-	+P5Home DWORD64
-	+P6Home DWORD64
-	+ContextFlags DWORD
+	P1Home DWORD64
+	P2Home DWORD64
+	P3Home DWORD64
+	P4Home DWORD64
+	P5Home DWORD64
+	P6Home DWORD64
+	ContextFlags DWORD
 
-	+SegCs WORD
-	+SegDs WORD
-	+SegEs WORD
-	+SegFs WORD
-	+SegGs WORD
-	+SegSs WORD
-	+EFlags DWORD
+	SegCs WORD
+	SegDs WORD
+	SegEs WORD
+	SegFs WORD
+	SegGs WORD
+	SegSs WORD
+	EFlags DWORD
 
-	+Dr0 DWORD64
-	+Dr1 DWORD64
-	+Dr2 DWORD64
-	+Dr3 DWORD64
-	+Dr6 DWORD64
-	+Dr7 DWORD64
+	Dr0 DWORD64
+	Dr1 DWORD64
+	Dr2 DWORD64
+	Dr3 DWORD64
+	Dr6 DWORD64
+	Dr7 DWORD64
 
-	+Rax DWORD64
-	+Rcx DWORD64
-	+Rdx DWORD64
-	+Rbx DWORD64
-	+Rsp DWORD64
-	+Rbp DWORD64
-	+Rsi DWORD64
-	+Rdi DWORD64
-	+R8 DWORD64
-	+R9 DWORD64
-	+R10 DWORD64
-	+R11 DWORD64
-	+R12 DWORD64
-	+R13 DWORD64
-	+R14 DWORD64
-	+R15 DWORD64
+	Rax DWORD64
+	Rcx DWORD64
+	Rdx DWORD64
+	Rbx DWORD64
+	Rsp DWORD64
+	Rbp DWORD64
+	Rsi DWORD64
+	Rdi DWORD64
+	R8 DWORD64
+	R9 DWORD64
+	R10 DWORD64
+	R11 DWORD64
+	R12 DWORD64
+	R13 DWORD64
+	R14 DWORD64
+	R15 DWORD64
 
-	+Rip DWORD64
+	Rip DWORD64
 	# There's a lot more declared here, reserve enough space for it all
 	-opaque bytes2048
 -bytes2048 extern(2048)

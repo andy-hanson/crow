@@ -109,7 +109,7 @@ import util.col.hashTable :
 import util.col.mutArr : mustPop, mutArrIsEmpty;
 import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, mutMaxArrSize, push, pushIfUnderMaxSize, toArray;
 import util.memory : allocate, initMemory;
-import util.opt : force, has, none, Opt, someMut, some;
+import util.opt : force, has, none, Opt, optOrDefault, someMut, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : Range;
 import util.symbol : AllSymbols, Symbol, symbol;
@@ -164,16 +164,19 @@ Module* check(
 		(ref CheckCtx _, in StructsAndAliasesMap _2, scope ref DelayStructInsts _3) => commonTypes,
 	).module_;
 
-Visibility visibilityFromExplicit(ExplicitVisibility a) {
+Visibility visibilityFromExplicit(ExplicitVisibility a) =>
+	optOrDefault!Visibility(optVisibilityFromExplicit(a), () => Visibility.internal);
+
+Opt!Visibility optVisibilityFromExplicit(ExplicitVisibility a) {
 	final switch (a) {
 		case ExplicitVisibility.default_:
-			return Visibility.internal;
+			return none!Visibility;
 		case ExplicitVisibility.private_:
-			return Visibility.private_;
+			return some(Visibility.private_);
 		case ExplicitVisibility.internal:
-			return Visibility.internal;
+			return some(Visibility.internal);
 		case ExplicitVisibility.public_:
-			return Visibility.public_;
+			return some(Visibility.public_);
 	}
 }
 
