@@ -233,6 +233,7 @@ immutable struct Diag {
 		TypeWithContainer actualType;
 	}
 	immutable struct ImportFileDiag {
+		immutable struct CantImportCrowAsText {}
 		immutable struct CircularImport {
 			Uri[] cycle;
 		}
@@ -248,7 +249,7 @@ immutable struct Diag {
 		immutable struct RelativeImportReachesPastRoot {
 			RelPath imported;
 		}
-		mixin Union!(CircularImport, LibraryNotConfigured, ReadError, RelativeImportReachesPastRoot);
+		mixin Union!(CantImportCrowAsText, CircularImport, LibraryNotConfigured, ReadError, RelativeImportReachesPastRoot);
 	}
 	immutable struct ImportRefersToNothing {
 		Symbol name;

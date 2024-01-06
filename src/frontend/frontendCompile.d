@@ -255,11 +255,13 @@ CrowFile* ensureCrowFile(ref FrontendCompiler a, Uri uri) {
 	});
 }
 
-OtherFile* ensureOtherFile(ref FrontendCompiler a, Uri uri) =>
-	getOrAdd!(OtherFile*, Uri, getOtherFileUri)(a.alloc, a.otherFiles, uri, () {
+OtherFile* ensureOtherFile(ref FrontendCompiler a, Uri uri) {
+	assert(fileType(a.allUris, uri) != FileType.crow);
+	return getOrAdd!(OtherFile*, Uri, getOtherFileUri)(a.alloc, a.otherFiles, uri, () {
 		markUnknownIfNotExist(a.storage, uri);
 		return allocate(a.alloc, OtherFile(uri));
 	});
+}
 
 FileAst* toAst(ref Alloc alloc, AstOrDiag x) =>
 	x.matchConst!(FileAst*)(
@@ -608,7 +610,9 @@ MostlyResolvedImport tryResolveImport(ref FrontendCompiler a, in Config config, 
 				(NameAndRange[]) =>
 					crowFile(),
 				(ref ImportOrExportAstKind.File) =>
-					MostlyResolvedImport(ensureOtherFile(a, uri)));
+					fileType(a.allUris, uri) == FileType.crow
+						? MostlyResolvedImport(Diag.ImportFileDiag(Diag.ImportFileDiag.CantImportCrowAsText()))
+						: MostlyResolvedImport(ensureOtherFile(a, uri)));
 		},
 		(Diag.ImportFileDiag x) =>
 			MostlyResolvedImport(x));

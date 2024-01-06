@@ -380,13 +380,13 @@ There is no exception subtyping in crow, so all exceptions have this type.
 ###
 +exception record by-val
 	# Message passed to `throw`.
-	message c-string
+	~message c-string
 	# TODO: accessing backtrace should be unsafe
 	###
 	Backtrace when the exception was created.
 	Catching and rethrowing the exception doesn't affect this.
 	###
-	backtrace backtrace
+	~backtrace backtrace
 
 +future[t] record by-ref, force-shared
 	lk mut lock

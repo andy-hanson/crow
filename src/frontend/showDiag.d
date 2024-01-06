@@ -643,6 +643,9 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		},
 		(in Diag.ImportFileDiag x) {
 			x.matchIn!void(
+				(in Diag.ImportFileDiag.CantImportCrowAsText y) {
+					writer ~= "Can't import a '.crow' file as content.";
+				},
 				(in Diag.ImportFileDiag.CircularImport y) {
 					writer ~= "This is part of a circular import:";
 					foreach (Uri uri; y.cycle) {

@@ -87,7 +87,7 @@ module-content string(a module, all-exports all-exports)
 		module-path = module != ctx.current-module ? "/doc/{module}.html"
 		"""<a href="{module-path}#{name}"><code class="{kind}">{name}</code></a>"""
 	else
-		throw "could not find {kind} {name} in {ctx current-module}.{ctx current-export}"
+		throw "Could not find {kind} {name} in {ctx current-module} member {ctx current-export}"
 
 -module-top string(path module-path)
 	url = "https://github.com/andy-hanson/crow/blob/master/include/{path}"
