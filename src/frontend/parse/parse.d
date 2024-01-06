@@ -102,7 +102,7 @@ TypeParams parseTypeParams(ref Lexer lexer) {
 		return emptySmallArray!NameAndRange;
 }
 
-ParamsAst parseParams(ref Lexer lexer, uint indentLevel) {
+ParamsAst parseParams(ref Lexer lexer, bool indentLevel) {
 	if (!takeOrAddDiagExpectedToken(lexer, Token.parenLeft, ParseDiag.Expected.Kind.openParen)) {
 		skipUntilNewlineNoDiag(lexer);
 		return ParamsAst([]);

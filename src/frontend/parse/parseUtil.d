@@ -5,6 +5,7 @@ module frontend.parse.parseUtil;
 import frontend.parse.lexer :
 	addDiag,
 	addDiagAtChar,
+	assertCurIndent,
 	curPos,
 	getPeekToken,
 	getPeekTokenAndData,
@@ -151,6 +152,7 @@ bool peekEndOfLine(ref Lexer lexer) =>
 	peekToken(lexer, endOfLineTokens);
 
 SmallString takeNewline_topLevel(ref Lexer lexer) {
+	assertCurIndent(lexer, 0);
 	TokenAndData token = takeNextToken(lexer);
 	if (token.token == Token.newlineSameIndent)
 		return token.asDocComment().docComment;

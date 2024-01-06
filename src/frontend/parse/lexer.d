@@ -67,6 +67,10 @@ ref AllSymbols allSymbols(return ref Lexer lexer) =>
 	return lexer;
 }
 
+void assertCurIndent(in Lexer lexer, uint expected) {
+	assert(lexer.curIndent == expected);
+}
+
 Pos curPos(in Lexer lexer) =>
 	lexer.nextTokenPos;
 
@@ -141,8 +145,7 @@ f nat(
 After the ')', we want to parse as if the previous indent level was 0 (which it was at the '(')
 */
 
-
-void skipNewlinesIgnoreIndentation(ref Lexer lexer, uint setIndentLevel) {
+void skipNewlinesIgnoreIndentation(ref Lexer lexer, bool indentOne) {
 	while (true) {
 		switch (getPeekToken(lexer)) {
 			case Token.newlineDedent:
@@ -150,8 +153,13 @@ void skipNewlinesIgnoreIndentation(ref Lexer lexer, uint setIndentLevel) {
 			case Token.newlineSameIndent:
 				takeNextToken(lexer);
 				continue;
+			case Token.EOF:
+				if (indentOne)
+					cellSet(lexer.nextToken, TokenAndData(Token.newlineDedent, DocCommentAndExtraDedents()));
+				lexer.curIndent = 0;
+				return;
 			default:
-				lexer.curIndent = setIndentLevel;
+				lexer.curIndent = indentOne;
 				return;
 		}
 	}
@@ -226,7 +234,6 @@ private StringPart takeStringPartCommon(ref Lexer lexer, QuoteKind quoteKind) {
 
 bool lookaheadNameColon(in Lexer lexer) =>
 	getPeekToken(lexer) == Token.name && lookaheadColon(lexer.ptr);
-
 
 @trusted bool lookaheadQuestionEquals(in Lexer lexer) =>
 	getPeekToken(lexer) == Token.questionEqual || .lookaheadQuestionEquals(lexer.ptr);
