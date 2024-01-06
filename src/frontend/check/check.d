@@ -68,6 +68,7 @@ import model.model :
 	linkageRange,
 	Module,
 	nameFromNameReferents,
+	nameRange,
 	NameReferents,
 	Params,
 	paramsArray,
@@ -111,7 +112,7 @@ import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, mutMaxArrSize
 import util.memory : allocate, initMemory;
 import util.opt : force, has, none, Opt, optOrDefault, someMut, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.sourceRange : Range;
+import util.sourceRange : Range, UriAndRange;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : Union;
 import util.uri : AllUris, Path, RelPath, Uri;
@@ -366,10 +367,15 @@ void checkStructAliasTargets(
 
 StructsAndAliasesMap buildStructsAndAliasesMap(ref CheckCtx ctx, StructDecl[] structs, StructAlias[] aliases) {
 	MutHashTable!(StructOrAlias, Symbol, structOrAliasName) builder;
+	void add(StructOrAlias sa) {
+		addToDeclsMap!StructOrAlias(
+			ctx, builder, sa, Diag.DuplicateDeclaration.Kind.structOrAlias, (in StructOrAlias x) =>
+				nameRange(ctx.allSymbols, x));
+	}
 	foreach (ref StructDecl decl; structs)
-		addToDeclsMap!StructOrAlias(ctx, builder, StructOrAlias(&decl), Diag.DuplicateDeclaration.Kind.structOrAlias);
+		add(StructOrAlias(&decl));
 	foreach (ref StructAlias alias_; aliases)
-		addToDeclsMap!StructOrAlias(ctx, builder, StructOrAlias(&alias_), Diag.DuplicateDeclaration.Kind.structOrAlias);
+		add(StructOrAlias(&alias_));
 	return moveToImmutable(builder);
 }
 
@@ -418,9 +424,10 @@ void addToDeclsMap(T, alias getName)(
 	scope ref MutHashTable!(T, Symbol, getName) builder,
 	T added,
 	Diag.DuplicateDeclaration.Kind kind,
+	in UriAndRange delegate(in T) @safe @nogc pure nothrow cbNameRange,
 ) {
 	if (!mayAdd(ctx.alloc, builder, added))
-		addDiagAssertSameUri(ctx, added.range, Diag(Diag.DuplicateDeclaration(kind, getName(added))));
+		addDiagAssertSameUri(ctx, cbNameRange(added), Diag(Diag.DuplicateDeclaration(kind, getName(added))));
 }
 
 immutable struct FunsAndMap {
@@ -787,7 +794,8 @@ Symbol externLibraryNameFromTypeArg(ref CheckCtx ctx, in Range range, in Opt!Typ
 SpecsMap buildSpecsMap(ref CheckCtx ctx, SpecDecl[] specs) {
 	MutHashTable!(immutable SpecDecl*, Symbol, specDeclName) builder;
 	foreach (ref SpecDecl spec; specs)
-		addToDeclsMap(ctx, builder, &spec, Diag.DuplicateDeclaration.Kind.spec);
+		addToDeclsMap!(immutable SpecDecl*)(ctx, builder, &spec, Diag.DuplicateDeclaration.Kind.spec, (in SpecDecl* x) =>
+			nameRange(ctx.allSymbols, *x));
 	return moveToImmutable(builder);
 }
 

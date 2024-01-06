@@ -448,11 +448,6 @@ private bool containsSubstring(in string a, in string b) =>
 	return compareCStringAlphabetically(CString(cast(immutable) aBuf.ptr), CString(cast(immutable) bBuf.ptr));
 }
 
-immutable struct UriAndRange {
-	Uri uri;
-	Range range;
-}
-
 immutable struct UrisInfo {
 	Opt!Uri cwd;
 }

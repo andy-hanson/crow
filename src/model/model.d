@@ -1015,6 +1015,13 @@ immutable struct StructOrAlias {
 }
 static assert(StructOrAlias.sizeof == ulong.sizeof);
 
+UriAndRange nameRange(in AllSymbols allSymbols, in StructOrAlias a) =>
+	a.matchIn!UriAndRange(
+		(in StructAlias x) =>
+			nameRange(allSymbols, x),
+		(in StructDecl x) =>
+			nameRange(allSymbols, x));
+
 // No VarInst since these can't be templates
 immutable struct VarDecl {
 	@safe @nogc pure nothrow:
