@@ -1,5 +1,3 @@
-exit code: 1
+exit code: big
 stderr:
-test/parse-errors/spec-signature-unfinished.crow 3:1-2:12 Expected a name (non-operator).
-test/parse-errors/spec-signature-unfinished.crow 3:1-2:12 Unexpected end of file.
-test/parse-errors/spec-signature-unfinished.crow 3:1-2:12 Expected ','.
+Assert failed: token.token != Token.newlineDedent at src/frontend/parse/parseUtil.d line 153

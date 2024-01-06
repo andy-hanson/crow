@@ -138,8 +138,6 @@ NameAndRange takeNameOrOperator(ref Lexer lexer) {
 	}
 }
 
-private immutable Token[] endOfLineTokensNotEOF =
-	[Token.newlineDedent, Token.newlineIndent, Token.newlineSameIndent];
 private immutable Token[] endOfLineTokens =
 	[Token.newlineDedent, Token.newlineIndent, Token.newlineSameIndent, Token.EOF];
 
@@ -222,8 +220,4 @@ T takeIndentOrFailGeneric(T)(
 			ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
 		return cbFail(range);
 	}
-}
-
-void skipNewlinesIgnoreIndentation(ref Lexer lexer) {
-	while (tryTakeToken(lexer, endOfLineTokensNotEOF)) {}
 }

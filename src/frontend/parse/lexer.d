@@ -129,6 +129,33 @@ void skipUntilNewlineNoDiag(ref Lexer lexer) {
 	}
 }
 
+/*
+Since we've ignoring indentation, we need to set the final logical indent level
+E.g., in:
+
+f nat(
+		x nat)
+	x + 1
+
+After the ')', we want to parse as if the previous indent level was 0 (which it was at the '(')
+*/
+
+
+void skipNewlinesIgnoreIndentation(ref Lexer lexer, uint setIndentLevel) {
+	while (true) {
+		switch (getPeekToken(lexer)) {
+			case Token.newlineDedent:
+			case Token.newlineIndent:
+			case Token.newlineSameIndent:
+				takeNextToken(lexer);
+				continue;
+			default:
+				lexer.curIndent = setIndentLevel;
+				return;
+		}
+	}
+}
+
 TokenAndData takeNextToken(ref Lexer lexer) {
 	TokenAndData res = cellGet(lexer.nextToken);
 	switch (res.token) {

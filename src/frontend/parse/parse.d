@@ -13,6 +13,7 @@ import frontend.parse.lexer :
 	getPeekTokenAndData,
 	Lexer,
 	range,
+	skipNewlinesIgnoreIndentation,
 	skipUntilNewlineNoDiag,
 	takeNextToken,
 	Token,
@@ -24,7 +25,6 @@ import frontend.parse.parseUtil :
 	addDiagExpected,
 	NewlineOrDedent,
 	peekEndOfLine,
-	skipNewlinesIgnoreIndentation,
 	takeDedent,
 	takeIndentOrFailGeneric,
 	takeName,
@@ -102,7 +102,7 @@ TypeParams parseTypeParams(ref Lexer lexer) {
 		return emptySmallArray!NameAndRange;
 }
 
-ParamsAst parseParams(ref Lexer lexer) {
+ParamsAst parseParams(ref Lexer lexer, uint indentLevel) {
 	if (!takeOrAddDiagExpectedToken(lexer, Token.parenLeft, ParseDiag.Expected.Kind.openParen)) {
 		skipUntilNewlineNoDiag(lexer);
 		return ParamsAst([]);
@@ -115,7 +115,7 @@ ParamsAst parseParams(ref Lexer lexer) {
 	} else {
 		ArrayBuilder!DestructureAst res;
 		for (;;) {
-			skipNewlinesIgnoreIndentation(lexer);
+			skipNewlinesIgnoreIndentation(lexer, indentLevel);
 			add(lexer.alloc, res, parseDestructureRequireParens(lexer));
 			if (tryTakeToken(lexer, Token.parenRight))
 				break;
@@ -124,7 +124,7 @@ ParamsAst parseParams(ref Lexer lexer) {
 				break;
 			}
 			// allow trailing comma
-			skipNewlinesIgnoreIndentation(lexer);
+			skipNewlinesIgnoreIndentation(lexer, indentLevel);
 			if (tryTakeToken(lexer, Token.parenRight))
 				break;
 		}
@@ -139,7 +139,7 @@ SpecSigAst parseSpecSig(ref Lexer lexer) {
 	NameAndRange name = takeNameOrOperator(lexer);
 	assert(name.start == start);
 	TypeAst returnType = parseType(lexer);
-	ParamsAst params = parseParams(lexer);
+	ParamsAst params = parseParams(lexer, 1);
 	return SpecSigAst(docComment, range(lexer, start), name.name, returnType, params);
 }
 
@@ -259,7 +259,7 @@ FunDeclAst parseFun(
 	TypeParams typeParams,
 ) {
 	TypeAst returnType = parseType(lexer);
-	ParamsAst params = parseParams(lexer);
+	ParamsAst params = parseParams(lexer, 0);
 	SmallArray!FunModifierAst modifiers = parseFunModifiers(lexer);
 	ExprAst body_ = parseFunExprBody(lexer);
 	return FunDeclAst(
