@@ -5,7 +5,7 @@ module frontend.check.checkExpr;
 import frontend.check.checkCall.candidates : eachFunInScope, funsInScope;
 import frontend.check.checkCall.checkCall : checkCall, checkCallIdentifier, checkCallSpecial, checkCallSpecialNoLocals;
 import frontend.check.checkCall.checkCallSpecs : isPurityAlwaysCompatibleConsideringSpecs;
-import frontend.check.checkCtx : CheckCtx, markUsed;
+import frontend.check.checkCtx : CheckCtx, CommonModule, markUsed;
 import frontend.check.exprCtx :
 	addDiag2,
 	checkCanDoUnsafe,
@@ -527,7 +527,7 @@ Expr checkInterpolated(
 	// "a{b}c" ==> "a" ~~ b.to ~~ "c"
 	CallAst call = checkInterpolatedRecur(ctx, ast.parts, source.range.start + 1, none!ExprAst);
 	Opt!Type inferred = tryGetNonInferringType(ctx.instantiateCtx, expected);
-	CallAst callAndConvert = has(inferred) && !isString(force(inferred))
+	CallAst callAndConvert = has(inferred) && !isString(ctx, force(inferred))
 		? CallAst(
 			//TODO: new kind (not infix)
 			CallAst.Style.infix,
@@ -538,9 +538,10 @@ Expr checkInterpolated(
 	return checkCall(ctx, locals, source, callAndConvert, expected);
 }
 
-bool isString(Type a) =>
-	// TODO: better
-	a.isA!(StructInst*) && a.as!(StructInst*).decl.name == symbol!"string";
+bool isString(in ExprCtx ctx, Type a) =>
+	a.isA!(StructInst*) &&
+	a.as!(StructInst*).decl.name == symbol!"string" &&
+	a.as!(StructInst*).decl.moduleUri == ctx.checkCtx.commonUris[CommonModule.string_];
 
 CallAst checkInterpolatedRecur(ref ExprCtx ctx, in InterpolatedPart[] parts, Pos pos, in Opt!ExprAst left) {
 	ExprAst right = parts[0].matchIn!ExprAst(
@@ -1129,8 +1130,14 @@ PointerMutability pointerMutabilityFromField(FieldMutability a) {
 	}
 }
 
-bool isDerefFunction(ref ExprCtx ctx, FunInst* a) =>
-	a.decl.body_.isA!(FunBody.Builtin) && a.decl.name == symbol!"*" && a.arity == Arity(1);
+bool isDerefFunction(ref ExprCtx ctx, FunInst* a) {
+	if (a.decl.name == symbol!"*" && a.decl.body_.isA!(FunBody.Builtin)) {
+		assert(a.decl.moduleUri == ctx.checkCtx.commonUris[CommonModule.pointer]);
+		assert(a.arity == Arity(1));
+		return true;
+	} else
+		return false;
+}
 
 PointerMutability mutabilityForPtrDecl(in ExprCtx ctx, in StructDecl* a) {
 	if (a == ctx.commonTypes.ptrConst)

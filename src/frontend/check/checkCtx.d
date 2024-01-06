@@ -22,6 +22,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.array : exists, SmallArray;
 import util.col.arrayBuilder : add, ArrayBuilder, smallFinish;
+import util.col.enumMap : EnumMap;
 import util.col.hashTable : existsInHashTable;
 import util.col.mutSet : mayAddToMutSet, MutSet, mutSetHas;
 import util.opt : force, has, none, Opt, some;
@@ -36,9 +37,10 @@ struct CheckCtx {
 	private:
 
 	public Alloc* allocPtr;
-	public InstantiateCtx instantiateCtx;
 	AllSymbols* allSymbolsPtr;
 	const AllUris* allUrisPtr;
+	public InstantiateCtx instantiateCtx;
+	CommonUris* commonUrisPtr;
 	public immutable Uri curUri;
 	public ImportAndReExportModules importsAndReExports;
 	ArrayBuilder!Diagnostic* diagnosticsBuilderPtr;
@@ -58,9 +60,27 @@ struct CheckCtx {
 	ref const(AllUris) allUris() return scope const =>
 		*allUrisPtr;
 
+	ref CommonUris commonUris() return scope const =>
+		*commonUrisPtr;
+
 	ref ArrayBuilder!Diagnostic diagnosticsBuilder() return scope =>
 		*diagnosticsBuilderPtr;
 }
+
+enum CommonModule {
+	bootstrap,
+	alloc,
+	exceptionLowLevel,
+	funUtil,
+	future,
+	list,
+	pointer,
+	std,
+	string_,
+	runtime,
+	runtimeMain,
+}
+alias CommonUris = immutable EnumMap!(CommonModule, Uri);
 
 private struct UsedSet {
 	private MutSet!(immutable void*) used;

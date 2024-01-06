@@ -2,6 +2,7 @@ module frontend.check.getCommonFuns;
 
 @safe @nogc pure nothrow:
 
+import frontend.check.checkCtx : CommonModule;
 import frontend.check.funsForStruct : funDeclWithBody;
 import frontend.check.inferringType : typesAreCorrespondingStructInsts;
 import frontend.check.instantiate : InstantiateCtx, instantiateFun, instantiateStructNeverDelay;
@@ -51,19 +52,6 @@ import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : Symbol, symbol;
 import util.util : castNonScope_ref, todo;
-
-enum CommonModule {
-	bootstrap,
-	alloc,
-	exceptionLowLevel,
-	funUtil,
-	future,
-	list,
-	std,
-	string_,
-	runtime,
-	runtimeMain,
-}
 
 struct CommonFunsAndMain {
 	CommonFuns commonFuns;

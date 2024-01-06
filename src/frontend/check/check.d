@@ -3,7 +3,7 @@ module frontend.check.check;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCtx :
-	addDiag, addDiagAssertSameUri, CheckCtx, checkForUnused, finishDiagnostics, ImportAndReExportModules;
+	addDiag, addDiagAssertSameUri, CheckCtx, checkForUnused, CommonUris, finishDiagnostics, ImportAndReExportModules;
 import frontend.check.checkExpr : checkFunctionBody, checkTestBody, TestBody;
 import frontend.check.checkStructs : checkStructBodies, checkStructsInitial;
 import frontend.check.getCommonTypes : getCommonTypes;
@@ -138,10 +138,11 @@ BootstrapCheck checkBootstrap(
 	scope ref AllSymbols allSymbols,
 	in AllUris allUris,
 	ref AllInsts allInsts,
+	in CommonUris commonUris,
 	ref UriAndAst uriAndAst,
 ) =>
 	checkWorker(
-		alloc, perf, allSymbols, allUris, allInsts, [], uriAndAst,
+		alloc, perf, allSymbols, allUris, allInsts, commonUris, [], uriAndAst,
 		(ref CheckCtx ctx,
 		in StructsAndAliasesMap structsAndAliasesMap,
 		scope ref DelayStructInsts delayedStructInsts) =>
@@ -155,12 +156,13 @@ Module* check(
 	scope ref AllSymbols allSymbols,
 	in AllUris allUris,
 	ref AllInsts allInsts,
+	in CommonUris commonUris,
 	ref UriAndAst uriAndAst,
 	in ResolvedImport[] imports,
 	CommonTypes* commonTypes,
 ) =>
 	checkWorker(
-		alloc, perf, allSymbols, allUris, allInsts, imports, uriAndAst,
+		alloc, perf, allSymbols, allUris, allInsts, commonUris, imports, uriAndAst,
 		(ref CheckCtx _, in StructsAndAliasesMap _2, scope ref DelayStructInsts _3) => commonTypes,
 	).module_;
 
@@ -915,6 +917,7 @@ BootstrapCheck checkWorker(
 	scope ref AllSymbols allSymbols,
 	in AllUris allUris,
 	ref AllInsts allInsts,
+	in CommonUris commonUris,
 	in ResolvedImport[] resolvedImports,
 	ref UriAndAst uriAndAst,
 	in CommonTypes* delegate(
@@ -930,9 +933,10 @@ BootstrapCheck checkWorker(
 		FileAst* ast = uriAndAst.ast;
 		CheckCtx ctx = CheckCtx(
 			ptrTrustMe(alloc),
-			InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(allInsts)),
 			ptrTrustMe(allSymbols),
 			ptrTrustMe(allUris),
+			InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(allInsts)),
+			ptrTrustMe(commonUris),
 			uriAndAst.uri,
 			importsAndReExports.modules,
 			ptrTrustMe(diagsBuilder));

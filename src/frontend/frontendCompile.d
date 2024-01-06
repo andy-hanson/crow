@@ -3,7 +3,8 @@ module frontend.frontendCompile;
 @safe @nogc pure nothrow:
 
 import frontend.check.check : BootstrapCheck, check, checkBootstrap, UriAndAst, ResolvedImport;
-import frontend.check.getCommonFuns : CommonFunsAndMain, CommonModule, getCommonFuns;
+import frontend.check.checkCtx : CommonModule, CommonUris;
+import frontend.check.getCommonFuns : CommonFunsAndMain, getCommonFuns;
 import frontend.check.instantiate : InstantiateCtx;
 import frontend.lang : crowConfigBaseName, crowExtension;
 import frontend.allInsts : AllInsts, freeInstantiationsForModule, perfStats;
@@ -65,6 +66,7 @@ struct FrontendCompiler {
 	AllUris* allUrisPtr;
 	Storage* storagePtr;
 	Uri crowIncludeDir;
+	CommonUris commonUris;
 	EnumMap!(CommonModule, CrowFile*) commonFiles;
 	AllInsts allInsts;
 	// Set after 'bootstrap' is compiled
@@ -100,10 +102,10 @@ FrontendCompiler* initFrontend(
 		FrontendCompiler* res = allocateUninitialized!FrontendCompiler(*alloc);
 		initMemory(res, FrontendCompiler(
 			metaAlloc, alloc, allSymbols, allUris, storage, crowIncludeDir,
+			commonUris(*allUris, crowIncludeDir),
 			makeEnumMap!(CommonModule, CrowFile*)((CommonModule _) => null),
 			AllInsts(newAlloc(AllocKind.allInsts, metaAlloc))));
-		res.commonFiles = enumMapMapValues!(CommonModule, CrowFile*, Uri)(
-			commonUris(*allUris, crowIncludeDir), (in Uri uri) =>
+		res.commonFiles = enumMapMapValues!(CommonModule, CrowFile*, Uri)(res.commonUris, (in Uri uri) =>
 				ensureCrowFile(*res, uri));
 		return res;
 	}();
@@ -276,7 +278,7 @@ void doDirtyWork(scope ref Perf perf, ref FrontendCompiler a) {
 	if (mayDelete(a.workable, bootstrap)) {
 		bootstrap.moduleAndAlloc = someMut(withAlloc!(Module*)(AllocKind.module_, a.metaAlloc, (ref Alloc alloc) {
 			UriAndAst fa = UriAndAst(bootstrap.uri, toAst(alloc, bootstrap.astOrDiag));
-			BootstrapCheck bs = checkBootstrap(perf, alloc, a.allSymbols, a.allUris, a.allInsts, fa);
+			BootstrapCheck bs = checkBootstrap(perf, alloc, a.allSymbols, a.allUris, a.allInsts, a.commonUris, fa);
 			a.commonTypes = someMut(bs.commonTypes);
 			return bs.module_;
 		}));
@@ -336,7 +338,7 @@ Module* compileNonBootstrapModule(scope ref Perf perf, ref Alloc alloc, ref Fron
 	assert(has(a.commonTypes)); // bootstrap is always compiled first
 	UriAndAst ast = UriAndAst(file.uri, toAst(alloc, file.astOrDiag));
 	return check(
-		perf, alloc, a.allSymbols, a.allUris, a.allInsts, ast,
+		perf, alloc, a.allSymbols, a.allUris, a.allInsts, a.commonUris, ast,
 		fullyResolveImports(a, force(file.resolvedImports)),
 		force(a.commonTypes));
 }
@@ -540,17 +542,18 @@ MutOpt!(Config*) tryFindConfig(scope ref Storage storage, scope ref AllUris allU
 		});
 }
 
-immutable(EnumMap!(CommonModule, Uri)) commonUris(ref AllUris allUris, Uri includeDir) {
+CommonUris commonUris(ref AllUris allUris, Uri includeDir) {
 	Uri includeCrow = childUri(allUris, includeDir, symbol!"crow");
 	Uri private_ = childUri(allUris, includeCrow, symbol!"private");
 	Uri col = childUri(allUris, includeCrow, symbol!"col");
-	return enumMapMapValues!(CommonModule, Uri, Uri)(immutable EnumMap!(CommonModule, Uri)([
+	return enumMapMapValues!(CommonModule, Uri, Uri)(CommonUris([
 		childUri(allUris, private_, symbol!"bootstrap"),
 		childUri(allUris, private_, symbol!"alloc"),
 		childUri(allUris, private_, symbol!"exception-low-level"),
 		childUri(allUris, includeCrow, symbol!"fun-util"),
 		childUri(allUris, includeCrow, symbol!"future"),
 		childUri(allUris, col, symbol!"list"),
+		childUri(allUris, includeCrow, symbol!"pointer"),
 		childUri(allUris, includeCrow, symbol!"std"),
 		childUri(allUris, includeCrow, symbol!"string"),
 		childUri(allUris, private_, symbol!"runtime"),

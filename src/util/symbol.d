@@ -75,9 +75,8 @@ Symbol appendHexExtension(ref AllSymbols allSymbols, Symbol a, in ubyte[] bytes)
 Symbol addExtension(Symbol extension)(ref AllSymbols allSymbols, Symbol a) {
 	static if (extension == symbol!"")
 		return a;
-	else {
+	else
 		return appendToLongStr!extension(allSymbols, a);
-	}
 }
 
 Symbol alterExtension(Symbol extension)(ref AllSymbols allSymbols, Symbol a) =>
