@@ -69,7 +69,7 @@ import model.ast :
 	VarDeclAst,
 	WithAst;
 import util.alloc.alloc : Alloc;
-import util.col.array : isEmpty, newArray, only, zip;
+import util.col.array : newArray, only, zip;
 import util.col.arrayBuilder : add, addAll, ArrayBuilder, finish;
 import util.col.sortUtil : eachSorted, sortedIter;
 import util.conv : safeToUint;
@@ -87,7 +87,7 @@ import util.sourceRange :
 import util.string : CString, cStringSize;
 import util.symbol : AllSymbols, Symbol, symbol, symbolSize;
 import util.uri : AllUris;
-import util.util : ptrTrustMe, stringOfEnum;
+import util.util : min, ptrTrustMe, stringOfEnum;
 
 SemanticTokens tokensOfAst(
 	ref Alloc alloc,
@@ -225,14 +225,19 @@ struct TokensBuilder {
 }
 void add(scope ref TokensBuilder a, Range range, TokenType type, TokenModifiers modifiers) {
 	if (range.length != 0) { // This can happen for missing names
-		addTokensBetween(a, Range(a.prevPos, range.start));
+		advanceTo(a, range.start);
 		a.prevPos = range.end;
 		addInner(a, range, type, modifiers);
 	}
 }
 
+void advanceTo(scope ref TokensBuilder a, Pos pos) {
+	addTokensBetween(a, Range(a.prevPos, pos));
+	a.prevPos = pos;
+}
+
 void addLastTokens(scope ref TokensBuilder a) {
-	addTokensBetween(a, rangeOfStartAndLength(a.prevPos, cStringSize((() @trusted => a.source.jumpTo(a.prevPos))())));
+	advanceTo(a, a.prevPos + safeToUint(cStringSize((() @trusted => a.source.jumpTo(a.prevPos))())));
 }
 
 void addInner(scope ref TokensBuilder a, Range range, TokenType type, TokenModifiers modifiers) {
@@ -565,34 +570,17 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 			addExprTokens(ctx, x.else_);
 		},
 		(in InterpolatedAst x) {
-			Pos pos = a.range.start;
-			if (!isEmpty(x.parts)) {
-				// Ensure opening quote is highlighted
-				x.parts[0].matchIn!void(
-					(in string) {},
-					(in ExprAst _) {
-						stringLiteral(ctx.tokens, Range(pos, pos + 1));
+			advanceTo(ctx.tokens, a.range.start);
+			foreach (size_t i, ref InterpolatedPart part; x.parts)
+				part.matchIn!void(
+					(in string _) {},
+					(in ExprAst e) {
+						stringLiteral(ctx.tokens, Range(ctx.tokens.prevPos, e.range.start - 1));
+						addExprTokens(ctx, e);
+						// use 'min' since '}' may be missing
+						advanceTo(ctx.tokens, min(e.range.end + 1, a.range.end));
 					});
-				foreach (size_t i, ref InterpolatedPart part; x.parts)
-					part.matchIn!void(
-						(in string s) {
-							// TODO: length may be wrong if there are escapes
-							// Ensure the closing quote is highlighted
-							Pos end = safeToUint(pos + s.length) + (i == 0 || i == x.parts.length - 1 ? 1 : 0);
-							stringLiteral(ctx.tokens, Range(pos, end));
-						},
-						(in ExprAst e) {
-							addExprTokens(ctx, e);
-							pos = safeToUint(e.range.end + 1);
-						});
-				// Ensure closing quote is highlighted
-				x.parts[$ - 1].matchIn!void(
-					(in string) {},
-					(in ExprAst x) {
-						if (x.range.end + 1 < a.range.end)
-							stringLiteral(ctx.tokens, Range(x.range.end + 1, a.range.end));
-					});
-			}
+			stringLiteral(ctx.tokens, Range(ctx.tokens.prevPos, a.range.end));
 		},
 		(in LambdaAst x) {
 			addDestructureTokens(ctx, x.param);
