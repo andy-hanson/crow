@@ -1,0 +1,18 @@
+main void()
+	f fun* void() = &foo
+	g fun* void() = &goo
+
+hoo[t] spec
+	hoo void(a t)
+
+use-spec[t] void(x t) t hoo
+	f fun* void(t) = &hoo
+	f[x]
+
+foo void()
+	()
+foo string()
+	()
+
+goo[t] void()
+	()

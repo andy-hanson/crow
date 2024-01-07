@@ -229,6 +229,11 @@ immutable struct Diag {
 	immutable struct ExternUnion {}
 	immutable struct FunMissingBody {}
 	immutable struct FunModifierTrustedOnNonExtern {}
+	immutable struct FunPointerNotSupported {
+		enum Reason { multiple, spec, template_ }
+		Reason reason;
+		Symbol name;
+	}
 	immutable struct IfNeedsOpt {
 		TypeWithContainer actualType;
 	}
@@ -494,6 +499,7 @@ immutable struct Diag {
 		ExternUnion,
 		FunMissingBody,
 		FunModifierTrustedOnNonExtern,
+		FunPointerNotSupported,
 		IfNeedsOpt,
 		ImportFileDiag,
 		ImportRefersToNothing,

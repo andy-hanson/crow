@@ -638,6 +638,23 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		(in Diag.FunModifierTrustedOnNonExtern) {
 			writer ~= "Only 'extern' functions can be 'trusted'; otherwise 'trusted' should be used as an expression.";
 		},
+		(in Diag.FunPointerNotSupported x) {
+			final switch (x.reason) {
+				case Diag.FunPointerNotSupported.Reason.multiple:
+					writer ~= "There are multiple functions named ";
+					writeName(writer, ctx, x.name);
+					writer ~= " in scope.";
+					break;
+				case Diag.FunPointerNotSupported.Reason.spec:
+					writeName(writer, ctx, x.name);
+					writer ~= " comes from a spec signature.";
+					break;
+				case Diag.FunPointerNotSupported.Reason.template_:
+					writeName(writer, ctx, x.name);
+					writer ~= " is a template.";
+			}
+			writer ~= " This is not currently supported for function pointers.";
+		},
 		(in Diag.IfNeedsOpt x) {
 			writer ~= "Expected an option type, but got ";
 			writeTypeQuoted(writer, ctx, x.actualType);

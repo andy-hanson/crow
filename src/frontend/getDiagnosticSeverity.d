@@ -57,6 +57,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in FunModifierTrustedOnNonExtern) =>
 			DiagnosticSeverity.checkError,
+		(in FunPointerNotSupported) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.IfNeedsOpt) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ImportFileDiag) =>

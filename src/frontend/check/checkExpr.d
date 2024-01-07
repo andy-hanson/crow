@@ -93,6 +93,7 @@ import model.model :
 	BogusExpr,
 	Called,
 	CalledDecl,
+	CalledSpecSig,
 	CallExpr,
 	ClosureGetExpr,
 	ClosureRef,
@@ -1159,8 +1160,6 @@ Expr checkFunPointer(ref ExprCtx ctx, ExprAst* source, in PtrAst ast, ref Expect
 		return bogus(expected, source);
 	} else {
 		FunDecl* funDecl = force(fun);
-		if (funDecl.isTemplate)
-			todo!void("can't point to template");
 		FunInst* funInst = instantiateFun(ctx.instantiateCtx, funDecl, emptyTypeArgs, emptySpecImpls);
 		Type paramType = makeTupleType(ctx.instantiateCtx, ctx.commonTypes, funInst.paramTypes);
 		StructInst* structInst = instantiateStructNeverDelay(
@@ -1171,20 +1170,25 @@ Expr checkFunPointer(ref ExprCtx ctx, ExprAst* source, in PtrAst ast, ref Expect
 
 Opt!(FunDecl*) funWithName(ref ExprCtx ctx, Range range, Symbol name) {
 	MutOpt!(FunDecl*) res = MutOpt!(FunDecl*)();
+	MutOpt!(Diag.FunPointerNotSupported.Reason) diag = noneMut!(Diag.FunPointerNotSupported.Reason);
 	eachFunInScope(funsInScope(ctx), name, (CalledDecl cd) {
 		cd.matchWithPointers!void(
 			(FunDecl* x) {
 				markUsed(ctx.checkCtx, x);
 				if (has(res))
-					todo!void("diag: multiple functions with name");
-				else
-					res = someMut(x);
+					diag = someMut(Diag.FunPointerNotSupported.Reason.multiple);
+				else if (x.isTemplate)
+					diag = someMut(Diag.FunPointerNotSupported.Reason.template_);
+				res = someMut(x);
 			},
-			(SpecSig) {
-				todo!void("!");
+			(CalledSpecSig _) {
+				diag = someMut(Diag.FunPointerNotSupported.Reason.spec);
 			});
 	});
-	if (has(res))
+	if (has(diag)) {
+		addDiag2(ctx, range, Diag(Diag.FunPointerNotSupported(force(diag), name)));
+		return none!(FunDecl*);
+	} else if (has(res))
 		return some(force(res));
 	else {
 		addDiag2(ctx, range, Diag(Diag.NameNotFound(Diag.NameNotFound.Kind.function_, name)));
