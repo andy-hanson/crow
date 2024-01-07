@@ -63,6 +63,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.importError,
 		(in Diag.ImportRefersToNothing) =>
 			DiagnosticSeverity.nameNotFound,
+		(in Diag.LambdaCantBeFunctionPointer) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.LambdaCantInferParamType) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.LambdaClosesOverMut) =>

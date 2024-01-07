@@ -679,6 +679,9 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writeName(writer, ctx, x.name);
 			writer ~= " does not refer to anything.";
 		},
+		(in Diag.LambdaCantBeFunctionPointer x) {
+			writer ~= "A function pointer can't be implemented by a lambda. Write a function and use '&f' instead.";
+		},
 		(in Diag.LambdaCantInferParamType x) {
 			writer ~= "Can't infer the lambda parameter's type.";
 		},

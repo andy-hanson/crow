@@ -1199,6 +1199,10 @@ Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref La
 
 	ExpectedLambdaType et = force(opEt);
 	FunKind kind = et.kind;
+	if (kind == FunKind.pointer) {
+		addDiag2(ctx, source, Diag(Diag.LambdaCantBeFunctionPointer()));
+		return bogus(expected, source);
+	}
 
 	Destructure param = checkDestructure2(ctx, ast.param, et.instantiatedParamType);
 
@@ -1266,8 +1270,7 @@ VariableRef[] checkClosure(ref ExprCtx ctx, ExprAst* source, FunKind kind, Closu
 		case FunKind.far:
 			break;
 		case FunKind.pointer:
-			todo!void("ensure no closure");
-			break;
+			assert(false); // handled in checkLambda
 	}
 	return map(ctx.alloc, closureFields, (ref ClosureFieldBuilder x) => x.variableRef);
 }

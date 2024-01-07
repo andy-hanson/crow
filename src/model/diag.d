@@ -259,6 +259,7 @@ immutable struct Diag {
 	immutable struct ImportRefersToNothing {
 		Symbol name;
 	}
+	immutable struct LambdaCantBeFunctionPointer {}
 	immutable struct LambdaCantInferParamType {}
 	immutable struct LambdaClosesOverMut {
 		Symbol name;
@@ -496,6 +497,7 @@ immutable struct Diag {
 		IfNeedsOpt,
 		ImportFileDiag,
 		ImportRefersToNothing,
+		LambdaCantBeFunctionPointer,
 		LambdaCantInferParamType,
 		LambdaClosesOverMut,
 		LambdaMultipleMatch,
