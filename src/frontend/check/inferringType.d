@@ -7,21 +7,10 @@ import frontend.check.instantiate : InstantiateCtx, instantiateStructNeverDelay,
 import frontend.check.typeUtil : FunType, getFunType;
 import model.ast : ExprAst;
 import model.diag : Diag, ExpectedForDiag;
-import model.model :
-	BogusExpr,
-	CommonTypes,
-	Expr,
-	ExprKind,
-	FunKind,
-	LoopExpr,
-	StructDecl,
-	StructInst,
-	Type,
-	TypeParamIndex;
+import model.model : BogusExpr, CommonTypes, Expr, ExprKind, LoopExpr, StructInst, Type, TypeParamIndex;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.array : contains, exists, indexOf, map, MutSmallArray, newArray, only, only2, small, zip, zipEvery;
+import util.col.array : contains, exists, indexOf, map, MutSmallArray, newArray, only, small, zip, zipEvery;
 import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, asTemporaryArray, finish;
-import util.col.enumMap : enumMapFindKey;
 import util.col.mutMaxArr : asTemporaryArray, push;
 import util.opt : has, force, MutOpt, none, noneMut, Opt, optOrDefault, some, someInout, someMut;
 import util.union_ : UnionMutable;

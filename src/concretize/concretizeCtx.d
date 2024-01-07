@@ -37,7 +37,6 @@ import model.concreteModel :
 import model.constant : Constant, constantZero;
 import model.diag : ReadFileDiag;
 import model.model :
-	CommonFuns,
 	CommonTypes,
 	Destructure,
 	EnumBackingType,
@@ -806,7 +805,8 @@ ConcreteFunBody.RecordFieldCall getRecordFieldCall(
 	ConcreteType recordType,
 	size_t fieldIndex,
 ) {
-	ConcreteStruct* fieldType = mustBeByVal(recordType.struct_.body_.as!(ConcreteStructBody.Record).fields[fieldIndex].type);
+	ConcreteStruct* fieldType = mustBeByVal(
+		recordType.struct_.body_.as!(ConcreteStructBody.Record).fields[fieldIndex].type);
 	ConcreteType[2] typeArgs = only2(fieldType.source.as!(ConcreteStructSource.Inst).typeArgs);
 	ConcreteFun* callFun = getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
 		ctx.program.commonFuns.funSubscript[funKind],

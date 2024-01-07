@@ -43,7 +43,7 @@ import model.model :
 	TypeParamsAndSig,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.array : arraysCorrespond, copyArray, filter, findIndex, isEmpty, makeArray, map, only, sizeEq, small;
+import util.col.array : arraysCorrespond, copyArray, findIndex, isEmpty, makeArray, map, only, sizeEq, small;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.enumMap : EnumMap, enumMapMapValues;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;

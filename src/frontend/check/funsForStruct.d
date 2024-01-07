@@ -48,7 +48,6 @@ import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder;
 import util.col.mutMaxArr : asTemporaryArray, push;
 import util.opt : force, has, none, Opt, some;
 import util.symbol : prependSet, prependSetDeref, Symbol, symbol;
-import util.util : todo;
 
 size_t countFunsForStructs(in CommonTypes commonTypes, in StructDecl[] structs) =>
 	sum!StructDecl(structs, (in StructDecl x) => countFunsForStruct(commonTypes, x));

@@ -213,16 +213,17 @@
 	</crow-runnable>
 
 	<p>
-		Also, the operators <code class="function">-</code>, <code class="function">~</code>, and <code class="function">+</code>
-		must have explicit visibility, since the same characters are used to specify visibility.
+		Also, the operators <code class="function">-</code>, <code class="function">~</code>, and
+		<code class="function">+</code> must have explicit visibility,
+		since the same characters are used to specify visibility.
 		<br />
 		(Visibility will be explained in {{tutorial/modules}}).
 	</p>
-	
+
 	<crow-runnable>
 		main void()
 			"hello" + "world"
-		
+
 		# '-' is the visibility, '+' is the function
 		- + void(a string, b string)
 			info log "{a} + {b}"
@@ -276,11 +277,11 @@
 	<crow-runnable>
 		main void()
 			info log hello-world
-		
+
 		hello-world string()
 			greeting: "Hello"
 			target: "world"
-		
+
 		new string(greeting string, target string)
 			"{greeting}, {target}!"
 	</crow-runnable>

@@ -795,8 +795,9 @@ Symbol externLibraryNameFromTypeArg(ref CheckCtx ctx, in Range range, in Opt!Typ
 SpecsMap buildSpecsMap(ref CheckCtx ctx, SpecDecl[] specs) {
 	MutHashTable!(immutable SpecDecl*, Symbol, specDeclName) builder;
 	foreach (ref SpecDecl spec; specs)
-		addToDeclsMap!(immutable SpecDecl*)(ctx, builder, &spec, Diag.DuplicateDeclaration.Kind.spec, (in SpecDecl* x) =>
-			nameRange(ctx.allSymbols, *x));
+		addToDeclsMap!(immutable SpecDecl*)(
+			ctx, builder, &spec, Diag.DuplicateDeclaration.Kind.spec, (in SpecDecl* x) =>
+				nameRange(ctx.allSymbols, *x));
 	return moveToImmutable(builder);
 }
 

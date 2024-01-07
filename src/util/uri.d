@@ -9,7 +9,6 @@ import util.comparison : Comparison;
 import util.conv : safeToUshort;
 import util.hash : HashCode;
 import util.opt : has, force, none, Opt, some;
-import util.sourceRange : Range;
 import util.string : compareCStringAlphabetically, CString, cString, stringOfCString;
 import util.symbol :
 	addExtension,

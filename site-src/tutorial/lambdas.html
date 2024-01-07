@@ -133,7 +133,7 @@
 <section>
 	<h2>Lambdas in records</h2>
 	<p>
-		If a record stores a lambda, the compiler generates a "caller" that gets the lambda and calling it.
+		If a record has a lambda field, it generates a "caller" that gets the lambda and calls it.
 		<br />
 		(It also generates a getter as usual.)
 	</p>
@@ -147,6 +147,5 @@
 
 		r record mut
 			greet act void(string)
-		
 	</crow-runnable>
 </section>

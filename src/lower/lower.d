@@ -1240,7 +1240,10 @@ LowExprKind getRecordFieldCall(
 	in ConcreteExpr[] args,
 	in ConcreteFunBody.RecordFieldCall body_,
 ) {
-	LowExpr fun = LowExpr(lowTypeFromConcreteStruct(ctx.typeCtx, body_.funType), range, getRecordFieldGet(ctx, locals, args[0], body_.fieldIndex));
+	LowExpr fun = LowExpr(
+		lowTypeFromConcreteStruct(ctx.typeCtx, body_.funType),
+		range,
+		getRecordFieldGet(ctx, locals, args[0], body_.fieldIndex));
 	LowExpr arg = () {
 		switch (args.length) {
 			case 0:
