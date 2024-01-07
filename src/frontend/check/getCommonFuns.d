@@ -43,12 +43,12 @@ import model.model :
 	TypeParamsAndSig,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.array : arraysCorrespond, copyArray, filter, findIndex, isEmpty, makeArray, map, sizeEq, small;
+import util.col.array : arraysCorrespond, copyArray, filter, findIndex, isEmpty, makeArray, map, only, sizeEq, small;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
-import util.col.enumMap : EnumMap;
+import util.col.enumMap : EnumMap, enumMapMapValues;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, MutOpt, Opt, some, someMut;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : Symbol, symbol;
 import util.util : castNonScope_ref, todo;
@@ -104,9 +104,8 @@ CommonFunsAndMain getCommonFuns(
 	Type mainPointerType = instantiateType(commonTypes.funPtrStruct, [nat64FutureType, stringListType]);
 
 	FunInst* allocFun = getFun(CommonModule.alloc, symbol!"alloc", nat8MutPointerType, [param!"size-bytes"(nat64Type)]);
-	immutable FunDecl*[] funOrActSubscriptFunDecls =
-		// TODO: check signatures
-		getFunOrActSubscriptFuns(alloc, commonTypes, getFuns(*modules[CommonModule.funUtil], symbol!"subscript"));
+	immutable EnumMap!(FunKind, FunDecl*) lambdaSubscriptFuns = getLambdaSubscriptFuns(
+		alloc, commonTypes, *modules[CommonModule.funUtil], *modules[CommonModule.future]);
 	FunInst* curExclusion =
 		getFun(CommonModule.runtime, symbol!"cur-exclusion", nat64Type, []);
 	Opt!MainFun main = has(mainModule)
@@ -153,7 +152,7 @@ CommonFunsAndMain getCommonFuns(
 	return CommonFunsAndMain(
 		CommonFuns(
 			finish(alloc, diagsBuilder),
-			allocFun, funOrActSubscriptFunDecls, curExclusion, mark,
+			allocFun, lambdaSubscriptFuns, curExclusion, mark,
 			markVisit, newNat64Future, newVoidFuture, rtMain, throwImpl, char8ArrayAsString),
 		main);
 }
@@ -175,22 +174,31 @@ TypeParams singleTypeParams() => TypeParams(singleTypeParam);
 Type singleTypeParamType() =>
 	Type(TypeParamIndex(0));
 
-immutable(FunDecl*[]) getFunOrActSubscriptFuns(
+immutable(EnumMap!(FunKind, FunDecl*)) getLambdaSubscriptFuns(
 	ref Alloc alloc,
 	in CommonTypes commonTypes,
-	immutable FunDecl*[] subscripts,
-) =>
-	filter!(immutable FunDecl*)(alloc, subscripts, (in immutable FunDecl* x) {
-		final switch (firstArgFunKind(commonTypes, x)) {
+	in Module funUtil,
+	in Module future,
+) {
+	EnumMap!(FunKind, MutOpt!(FunDecl*)) res;
+	foreach (FunDecl* x; getFuns(funUtil, symbol!"subscript")) {
+		// TODO: check the type more thoroughly
+		FunKind funKind = firstArgFunKind(commonTypes, x);
+		final switch (funKind) {
 			case FunKind.fun:
 			case FunKind.act:
-				return true;
+			case FunKind.pointer:
+				assert(!has(res[funKind]));
+				res[funKind] = someMut(x);
+				break;
 			case FunKind.far:
 				assert(false);
-			case FunKind.pointer:
-				return false;
 		}
-	});
+	}
+	// TODO: check signature
+	res[FunKind.far] = someMut(only(getFuns(future, symbol!"subscript")));
+	return enumMapMapValues!(FunKind, FunDecl*, MutOpt!(FunDecl*))(res, (const MutOpt!(FunDecl*) x) => force(x));
+}
 
 FunKind firstArgFunKind(in CommonTypes commonTypes, FunDecl* f) {
 	Destructure[] params = assertNonVariadic(f.params);

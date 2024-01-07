@@ -625,6 +625,10 @@ immutable struct FunBody {
 		ImportFileType type;
 		Uri uri;
 	}
+	immutable struct RecordFieldCall {
+		size_t fieldIndex;
+		FunKind funKind;
+	}
 	immutable struct RecordFieldGet {
 		size_t fieldIndex;
 	}
@@ -649,6 +653,7 @@ immutable struct FunBody {
 		ExpressionBody,
 		FileImport,
 		FlagsFunction,
+		RecordFieldCall,
 		RecordFieldGet,
 		RecordFieldPointer,
 		RecordFieldSet,
@@ -1131,7 +1136,7 @@ enum FunKind {
 immutable struct CommonFuns {
 	UriAndDiagnostic[] diagnostics;
 	FunInst* alloc;
-	FunDecl*[] funOrActSubscriptFunDecls;
+	EnumMap!(FunKind, FunDecl*) funSubscript;
 	FunInst* curExclusion;
 	FunInst* mark;
 	FunDecl* markVisitFunDecl;

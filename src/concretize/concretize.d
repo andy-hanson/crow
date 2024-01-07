@@ -19,7 +19,7 @@ import frontend.showModel : ShowCtx;
 import frontend.storage : ReadFileResult;
 import model.concreteModel :
 	ConcreteCommonFuns, ConcreteFun, ConcreteFunKey, ConcreteLambdaImpl, ConcreteProgram, ConcreteStruct;
-import model.model : CommonFuns, MainFun, ProgramWithMain;
+import model.model : CommonFuns, FunDecl, FunKind, MainFun, ProgramWithMain;
 import util.alloc.alloc : Alloc;
 import util.col.array : emptySmallArray, newSmallArray;
 import util.col.arrayBuilder : finish;
@@ -29,7 +29,7 @@ import util.col.mutMap : isEmpty, mapToMap;
 import util.late : lateSet;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.uri : Uri;
-import util.util : castNonScope, ptrTrustMe;
+import util.util : castNonScope, ptrTrustMe, todo;
 import versionInfo : VersionInfo;
 
 ConcreteProgram concretize(
@@ -97,7 +97,7 @@ ConcreteProgram concretizeInner(
 				moveToArray(alloc, it)),
 		ConcreteCommonFuns(
 			allocFun,
-			commonFuns.funOrActSubscriptFunDecls,
+			[commonFuns.funSubscript[FunKind.fun], commonFuns.funSubscript[FunKind.act]],
 			markFun,
 			commonFuns.markVisitFunDecl,
 			rtMainConcreteFun,

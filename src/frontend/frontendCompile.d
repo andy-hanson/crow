@@ -105,8 +105,8 @@ FrontendCompiler* initFrontend(
 			commonUris(*allUris, crowIncludeDir),
 			makeEnumMap!(CommonModule, CrowFile*)((CommonModule _) => null),
 			AllInsts(newAlloc(AllocKind.allInsts, metaAlloc))));
-		res.commonFiles = enumMapMapValues!(CommonModule, CrowFile*, Uri)(res.commonUris, (in Uri uri) =>
-				ensureCrowFile(*res, uri));
+		res.commonFiles = enumMapMapValues!(CommonModule, CrowFile*, Uri)(res.commonUris, (Uri uri) =>
+			ensureCrowFile(*res, uri));
 		return res;
 	}();
 }
@@ -174,7 +174,7 @@ private Common makeProgramCommon(
 ) {
 	assert(filesState(a.storage) == FilesState.allLoaded);
 	EnumMap!(CommonModule, Module*) commonModules = enumMapMapValues!(CommonModule, Module*, CrowFile*)(
-		a.commonFiles, (in CrowFile* x) => x.mustHaveModule);
+		a.commonFiles, (const CrowFile* x) => x.mustHaveModule);
 	InstantiateCtx ctx = InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(a.allInsts));
 	CommonFunsAndMain commonFuns = getCommonFuns(a.alloc, ctx, *force(a.commonTypes), commonModules, mainModule);
 	Program program = Program(
@@ -558,7 +558,7 @@ CommonUris commonUris(ref AllUris allUris, Uri includeDir) {
 		childUri(allUris, includeCrow, symbol!"string"),
 		childUri(allUris, private_, symbol!"runtime"),
 		childUri(allUris, private_, symbol!"rt-main"),
-	]), (in Uri x) => addExtension!crowExtension(allUris, x));
+	]), (Uri x) => addExtension!crowExtension(allUris, x));
 }
 
 immutable struct UriOrDiag {

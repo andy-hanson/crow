@@ -29,7 +29,7 @@ THe whole string must match the grammar.
 If the string has leading or trailing spaces you must use a grammar that includes those.
 ###
 +parse[t] (t, parse-error) result(a t grammar, text string)
-	result = a.fn[text begin]
+	result = a fn text.begin
 	iter = result a
 	match result b
 	as ok v
@@ -170,10 +170,10 @@ By default this does not allow spaces in between. For that, use `a ~~ spaces ~~ 
 ###
 +~~[t, u] (t, u) grammar(a t grammar, b u grammar)
 	with start : make-grammar
-		iter, res = a.fn[start]
+		iter, res = a fn start
 		match res
 		as ok x
-			iter2, res2 = b.fn[iter]
+			iter2, res2 = b fn iter
 			iter2, match res2
 			as ok y
 				(x, y) ok
@@ -183,10 +183,10 @@ By default this does not allow spaces in between. For that, use `a ~~ spaces ~~ 
 			iter, e.error
 +~~[t] t grammar(a t grammar, b grammar-skip)
 	with start : make-grammar
-		iter, res = a.fn[start]
+		iter, res = a fn start
 		match res
 		as ok x
-			iter2, res2 = b.inner.fn[iter]
+			iter2, res2 = b.inner fn iter
 			iter2, match res2
 			as ok _
 				x ok
@@ -196,10 +196,10 @@ By default this does not allow spaces in between. For that, use `a ~~ spaces ~~ 
 			iter, e.error
 +~~[t] t grammar(a grammar-skip, b t grammar)
 	with start : make-grammar
-		iter, res = a.inner.fn[start]
+		iter, res = a.inner fn start
 		match res
 		as ok _
-			iter2, res2 = b.fn[iter]
+			iter2, res2 = b fn iter
 			iter2, match res2
 			as ok x
 				x ok
@@ -223,23 +223,23 @@ By default this does not allow spaces in between. For that, use `a ~~ spaces ~~ 
 # Tries to parse with 'a', and if that fails, tries to parse with 'b' instead.
 +/[t] t grammar(a t grammar, b t grammar)
 	with start : make-grammar
-		iter, res = a.fn[start]
+		iter, res = a fn start
 		match res
 		as ok v
 			iter, v.ok
 		as error _
-			b.fn[start]
+			b fn start
 
 # TODO: use 'fun' not 'act'
 # Uses a function to transform the result if parsing is successful.
 +map[out, in] out grammar(a in grammar, f act out(in))
 	with start : make-grammar
-		a.fn[start] then f
+		a fn start then f
 
 # Allows parsing to fail, returning an empty option if it does.
 +optional[t] t? grammar(a t grammar)
 	with start : make-grammar
-		iter, res = a.fn[start]
+		iter, res = a fn start
 		iter, match res
 		as ok v
 			(v,) ok
@@ -255,7 +255,7 @@ By default this does not allow spaces in between. For that, use `a ~~ spaces ~~ 
 		iter mut = start
 		res t[] = with out : build
 			loop
-				iter2, res2 = a.fn[iter]
+				iter2, res2 = a fn iter
 				match res2
 				as ok v
 					iter := iter2
@@ -289,7 +289,7 @@ it is a parse error to have a separator not followed by another 'a'.
 +separated-by[t] t[] grammar(a t grammar, separator grammar-skip)
 	with start : make-grammar
 		iter mut = start
-		iter1, res1 = a.fn[iter]
+		iter1, res1 = a fn iter
 		match res1
 		as ok first
 			iter := iter1
@@ -297,11 +297,11 @@ it is a parse error to have a separator not followed by another 'a'.
 			res t[] = with out : build
 				out ~= first
 				loop
-					iter2, res2 = separator.inner.fn[iter]
+					iter2, res2 = separator.inner fn iter
 					match res2
 					as ok _
 						iter := iter2
-						iter3, res3 = a.fn[iter]
+						iter3, res3 = a fn iter
 						iter := iter3
 						match res3
 						as ok v
@@ -327,7 +327,7 @@ it is a parse error to have a separator not followed by another 'a'.
 	with start : make-grammar
 		# TODO: actually be lazy (cache it)
 		grammar = f[]
-		grammar.fn[start]
+		grammar fn start
 
 region basic elements
 

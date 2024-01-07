@@ -659,6 +659,8 @@ AllLowFuns getAllLowFuns(
 				some(addLowFun(LowFunCause(fun))),
 			(ConcreteFunBody.FlagsFn) =>
 				none!LowFunIndex,
+			(ConcreteFunBody.RecordFieldCall) =>
+				none!LowFunIndex,
 			(ConcreteFunBody.RecordFieldGet) =>
 				none!LowFunIndex,
 			(ConcreteFunBody.RecordFieldPointer) =>
@@ -896,6 +898,8 @@ LowFunBody getLowFunBody(
 			return LowFunBody(LowFunExprBody(exprCtx.hasTailRecur, expr));
 		},
 		(ConcreteFunBody.FlagsFn) =>
+			assert(false),
+		(ConcreteFunBody.RecordFieldCall) =>
 			assert(false),
 		(ConcreteFunBody.RecordFieldGet) =>
 			assert(false),
@@ -1208,6 +1212,8 @@ LowExprKind getCallSpecial(
 					return LowExprKind(Constant(Constant.Integral(0)));
 			}
 		},
+		(ConcreteFunBody.RecordFieldCall x) =>
+			getRecordFieldCall(ctx, locals, range, type, a.args, x),
 		(ConcreteFunBody.RecordFieldGet x) =>
 			getRecordFieldGet(ctx, locals, only(a.args), x.fieldIndex),
 		(ConcreteFunBody.RecordFieldPointer x) =>
@@ -1225,6 +1231,44 @@ LowExprKind getCallSpecial(
 			LowExprKind(LowExprKind.VarSet(
 				mustGet(ctx.varIndices, x.var),
 				allocate(ctx.alloc, getLowExpr(ctx, locals, only(a.args), ExprPos.nonTail)))));
+
+LowExprKind getRecordFieldCall(
+	ref GetLowExprCtx ctx,
+	in Locals locals,
+	UriAndRange range,
+	LowType type,
+	in ConcreteExpr[] args,
+	in ConcreteFunBody.RecordFieldCall body_,
+) {
+	LowExpr fun = LowExpr(lowTypeFromConcreteStruct(ctx.typeCtx, body_.funType), range, getRecordFieldGet(ctx, locals, args[0], body_.fieldIndex));
+	LowExpr arg = () {
+		switch (args.length) {
+			case 0:
+				assert(false);
+			case 1:
+				return genVoid(range);
+			case 2:
+				return getLowExpr(ctx, locals, args[1], ExprPos.nonTail);
+			default:
+				return LowExpr(
+					lowTypeFromConcreteType(ctx.typeCtx, body_.argType),
+					range,
+					LowExprKind(LowExprKind.CreateRecord(map(ctx.alloc, args[1 .. $], (ref ConcreteExpr arg) =>
+						getLowExpr(ctx, locals, arg, ExprPos.nonTail)))));
+		}
+	}();
+	ConcreteFun* caller = body_.caller;
+	Opt!LowFunIndex opCalled = tryGetLowFunIndex(ctx, caller);
+	if (has(opCalled))
+		return LowExprKind(LowExprKind.Call(force(opCalled), newArray!LowExpr(ctx.alloc, [fun, arg])));
+	else {
+		assert(caller.body_.isA!(ConcreteFunBody.Builtin));
+		assert(getBuiltinKind(
+			ctx.alloc, ctx.allSymbols, getName(caller), type, args.length, fun.type, arg.type
+		).isA!(BuiltinKind.CallFunPointer));
+		return callFunPointerInner(ctx, locals, range, type, fun, arg);
+	}
+}
 
 LowExprKind getRecordFieldGet(ref GetLowExprCtx ctx, in Locals locals, ref ConcreteExpr record, size_t fieldIndex) =>
 	LowExprKind(allocate(ctx.alloc, LowExprKind.RecordFieldGet(
@@ -1268,7 +1312,6 @@ LowExpr[] getArgs(ref GetLowExprCtx ctx, in Locals locals, ConcreteExpr[] args) 
 	map(ctx.alloc, args, (ref ConcreteExpr arg) =>
 		getLowExpr(ctx, locals, arg, ExprPos.nonTail));
 
-// cbWrap will only be called if this is not a plain argument array
 LowExprKind callFunPointer(
 	ref GetLowExprCtx ctx,
 	in Locals locals,
@@ -1276,15 +1319,23 @@ LowExprKind callFunPointer(
 	LowType type,
 	ConcreteExpr[2] funPtrAndArg,
 ) {
-	LowExprKind doCall(LowExpr funPtr, LowExpr[] args) {
-		return LowExprKind(allocate(ctx.alloc, LowExprKind.CallFunPointer(funPtr, args)));
-	}
-	LowExpr doCallExpr(LowExpr funPtr, LowExpr[] args) {
-		return LowExpr(type, range, doCall(funPtr, args));
-	}
-
 	LowExpr funPtr = getLowExpr(ctx, locals, funPtrAndArg[0], ExprPos.nonTail);
 	LowExpr arg = getLowExpr(ctx, locals, funPtrAndArg[1], ExprPos.nonTail);
+	return callFunPointerInner(ctx, locals, range, type, funPtr, arg);
+}
+
+LowExprKind callFunPointerInner(
+	ref GetLowExprCtx ctx,
+	in Locals locals,
+	UriAndRange range,
+	LowType type,
+	LowExpr funPtr,
+	LowExpr arg,
+) {
+	LowExprKind doCall(LowExpr getFunPtr, LowExpr[] args) =>
+		LowExprKind(allocate(ctx.alloc, LowExprKind.CallFunPointer(getFunPtr, args)));
+	LowExpr doCallExpr(LowExpr getFunPtr, LowExpr[] args) =>
+		LowExpr(type, range, doCall(getFunPtr, args));
 	Opt!(LowType[]) optArgTypes = tryUnpackTuple(ctx.alloc, ctx.allTypes.allRecords, arg.type);
 	if (has(optArgTypes)) {
 		LowType[] argTypes = force(optArgTypes);
@@ -1303,6 +1354,9 @@ LowExprKind callFunPointer(
 		return doCall(funPtr, newArray!LowExpr(ctx.alloc, [arg]));
 }
 
+Symbol getName(ConcreteFun* a) =>
+	a.source.as!ConcreteFunKey.decl.name;
+
 LowExprKind getCallBuiltinExpr(
 	ref GetLowExprCtx ctx,
 	in Locals locals,
@@ -1311,7 +1365,7 @@ LowExprKind getCallBuiltinExpr(
 	LowType type,
 	ref ConcreteExprKind.Call a,
 ) {
-	Symbol name = a.called.source.as!ConcreteFunKey.decl.name;
+	Symbol name = getName(a.called);
 	LowType paramType(size_t index) {
 		return index < a.args.length
 			? lowTypeFromConcreteType(ctx.typeCtx, a.called.paramsIncludingClosure[index].type)

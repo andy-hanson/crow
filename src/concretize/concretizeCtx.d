@@ -37,6 +37,7 @@ import model.concreteModel :
 import model.constant : Constant, constantZero;
 import model.diag : ReadFileDiag;
 import model.model :
+	CommonFuns,
 	CommonTypes,
 	Destructure,
 	EnumBackingType,
@@ -48,6 +49,7 @@ import model.model :
 	ForcedByValOrRefOrNone,
 	FunBody,
 	FunInst,
+	FunKind,
 	ImportFileType,
 	isArray,
 	isTuple,
@@ -782,6 +784,8 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 				ConcreteFunBody(ConcreteFunBody.FlagsFn(
 					getAllValue(mustBeByVal(cf.returnType).body_.as!(ConcreteStructBody.Flags)),
 					it)),
+			(FunBody.RecordFieldCall x) =>
+				ConcreteFunBody(getRecordFieldCall(ctx, x.funKind, cf.paramsIncludingClosure[0].type, x.fieldIndex)),
 			(FunBody.RecordFieldGet it) =>
 				ConcreteFunBody(ConcreteFunBody.RecordFieldGet(it.fieldIndex)),
 			(FunBody.RecordFieldPointer x) =>
@@ -794,6 +798,22 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 				ConcreteFunBody(ConcreteFunBody.VarSet(getVar(ctx, x.var))));
 		cf.overwriteBody(body_);
 	}
+}
+
+ConcreteFunBody.RecordFieldCall getRecordFieldCall(
+	ref ConcretizeCtx ctx,
+	FunKind funKind,
+	ConcreteType recordType,
+	size_t fieldIndex,
+) {
+	ConcreteStruct* fieldType = mustBeByVal(recordType.struct_.body_.as!(ConcreteStructBody.Record).fields[fieldIndex].type);
+	ConcreteType[2] typeArgs = only2(fieldType.source.as!(ConcreteStructSource.Inst).typeArgs);
+	ConcreteFun* callFun = getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
+		ctx.program.commonFuns.funSubscript[funKind],
+		// TODO: don't always allocate, only on create
+		small!ConcreteType(newArray!ConcreteType(ctx.alloc, typeArgs)),
+		emptySmallArray!(immutable ConcreteFun*)));
+	return ConcreteFunBody.RecordFieldCall(fieldIndex, fieldType, typeArgs[1], callFun);
 }
 
 ConcreteExpr concretizeFileImport(ref ConcretizeCtx ctx, ConcreteFun* cf, in FunBody.FileImport import_) {

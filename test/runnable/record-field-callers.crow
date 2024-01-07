@@ -1,0 +1,68 @@
+main nat^(_ string[])
+	r0 = make-r0
+	info log r0.act_
+	info log r0.fun_
+	x0 <- r0.far_
+	info log x0
+	info log trusted r0.ptr::c-string.to
+
+	r1 = make-r1
+	info log (r1 act_ "a")
+	info log (r1 fun_ "b")
+	x1 <- r1 far_ "c"
+	info log x1
+	r1 ptr "d"
+
+	r2 = make-r2
+	info log (r2 act_ "a", "b")
+	info log (r2 fun_ "a", "b")
+	x2 <- r2 far_ "a", "b"
+	info log x2
+	r2 ptr "a", "b"
+
+	()
+
+r0 record mut
+	act_ act string()
+	fun_ fun string()
+	far_ far string()
+	ptr fun* c-string()
+
+make-r0 r0()
+	act_: () => "act"
+	fun_: () => "fun"
+	far_: () => "far",
+	ptr: &ptr0
+
+ptr0 c-string()
+	"ptr"
+
+r1 record mut
+	act_ act string(string)
+	fun_ fun string(string)
+	far_ far string(string)
+	ptr fun* void(string)
+
+make-r1 r1()
+	act_: x => "{x} act"
+	fun_: x => "{x} fun"
+	far_: x => "{x} far",
+	ptr: &ptr1
+
+ptr1 void(x string)
+	info log "{x} ptr1"
+
+r2 record mut
+	act_ act string(string, string)
+	fun_ fun string(string, string)
+	far_ far string(string, string)
+	ptr fun* void(string, string)
+
+make-r2 r2()
+	act_: (x, y) => "{x} act {y}"
+	fun_: (x, y) => "{x} fun {y}"
+	far_: (x, y) => "{x} far {y}",
+	ptr: &ptr2
+
+ptr2 void(x string, y string)
+	info log "{x} ptr {y}"

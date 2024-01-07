@@ -139,8 +139,8 @@ const(MutMultiMap!(AnyDeclOrInst, AnyInst)) TEST_getReferencedBy(ref const AllIn
 
 private:
 
-alias ToProcess = MutMaxSet!(0x1000, AnyInst);
-alias Processed = MutMaxSet!(0x1000, AnyInst);
+alias ToProcess = MutMaxSet!(0x4000, AnyInst);
+alias Processed = MutMaxSet!(0x4000, AnyInst);
 
 // public for tests
 public alias AnyDeclOrInst = immutable void*;

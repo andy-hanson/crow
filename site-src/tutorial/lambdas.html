@@ -63,7 +63,7 @@
 	</crow-runnable>
 
 	<p>
-		Similarly, a tuple can appear to take no parameter, but actually takes <code class="type">void</code>.
+		Similarly, a lambda can appear to take no parameter, but actually takes <code class="type">void</code>.
 	</p>
 	<crow-runnable>
 		main void()
@@ -129,4 +129,24 @@
 		Since this is only possible for the last argument to a funciton,
 		most functions make sure a lambda argument comes last.
 	</p>
+</section>
+<section>
+	<h2>Lambdas in records</h2>
+	<p>
+		If a record stores a lambda, the compiler generates a "caller" that gets the lambda and calling it.
+		<br />
+		(It also generates a getter as usual.)
+	</p>
+	<crow-runnable>
+		main void()
+			r r = do
+				greet: x =>
+					info log "Hello, {x}!"
+			# Equivalent to 'r.greet[world]'
+			r greet "world"
+
+		r record mut
+			greet act void(string)
+		
+	</crow-runnable>
 </section>

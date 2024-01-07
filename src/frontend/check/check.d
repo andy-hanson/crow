@@ -561,7 +561,8 @@ FunsAndMap checkFuns(
 ) {
 	FunDecl[] funs = buildArrayExact!FunDecl(
 		ctx.alloc,
-		asts.length + fileImports.length + fileExports.length + countFunsForStructs(structs) + countFunsForVars(vars),
+		asts.length + fileImports.length + fileExports.length +
+			countFunsForStructs(commonTypes, structs) + countFunsForVars(vars),
 		(scope ref ExactSizeArrayBuilder!FunDecl funsBuilder) @trusted {
 			foreach (ref FunDeclAst funAst; asts) {
 				FunDecl* fun = pushUninitialized(funsBuilder);

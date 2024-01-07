@@ -221,6 +221,8 @@ Opt!Target calledTarget(ref Called a) =>
 					Target(decl),
 				(FlagsFunction) =>
 					returnTypeTarget(decl),
+				(FunBody.RecordFieldCall x) =>
+					recordFieldTarget(decl, x.fieldIndex),
 				(FunBody.RecordFieldGet x) =>
 					recordFieldTarget(decl, x.fieldIndex),
 				(FunBody.RecordFieldPointer x) =>

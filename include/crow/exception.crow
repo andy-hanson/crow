@@ -28,7 +28,7 @@ If `after` throws an exception, the original exception will be lost.
 ###
 +with-block[t] t(a finally, try act t())
 	res = a.cleanup do-if-error () => try[]
-	a.cleanup[]
+	a cleanup
 	res
 
 ###

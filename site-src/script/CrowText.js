@@ -103,7 +103,7 @@ textarea {
 .namespace { color: #ff6188; }
 .number { color: #ffd866; }
 .parameter { color: #ffebbd; }
-.property { color: #fefefe; }
+.property, .enumMember { color: #fefefe; }
 .string { color: #ffd866; }
 .type { color: #ab9df2; }
 .type-param { color: #fc9867; }

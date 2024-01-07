@@ -74,7 +74,7 @@ Opt!E enumMapFindKey(E, V)(in EnumMap!(E, V) a, in bool delegate(in V) @safe @no
 
 @trusted EnumMap!(E, VOut) enumMapMapValues(E, VOut, VIn)(
 	in EnumMap!(E, VIn) a,
-	in VOut delegate(in VIn) @safe @nogc pure nothrow cb,
+	in VOut delegate(const VIn) @safe @nogc pure nothrow cb,
 ) =>
 	makeEnumMap!(E, VOut)((E e) =>
 		cb(a[e]));

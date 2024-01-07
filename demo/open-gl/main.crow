@@ -13,8 +13,9 @@ import
 		glEnableVertexAttribArray, gl-ext, glGenBuffers, glGetError, glGetUniformLocation,
 		glUniform1i, glUniformMatrix3fv, glUseProgram, glVertexAttribPointer, new
 	OpenGL/headers:
-		==, enum-members, GL_ARRAY_BUFFER, GL_BACK, GL_COLOR_BUFFER_BIT, GL_CULL_FACE, GL_FLOAT,
-		GLint, GL_NO_ERROR, GL_STATIC_DRAW, GL_TEXTURE0, GL_TEXTURE_2D, GL_TRIANGLES, GLuint
+		==, enum-members, GL_ARRAY_BUFFER, GL_BACK, GL_COLOR_BUFFER_BIT, GL_CULL_FACE, GLenum,
+		GL_FLOAT, GLint, GL_NO_ERROR, GL_STATIC_DRAW, GL_TEXTURE0, GL_TEXTURE_2D, GL_TRIANGLES,
+		GLuint
 	SDL2/SDL:
 		SDL_GetError, SDL_Init, SDL_INIT_VIDEO, SDL_Quit
 	SDL2/SDL_events:
@@ -237,7 +238,7 @@ main nat^(_ string[]) summon
 	gl glBufferData GL_ARRAY_BUFFER, vertices.size-bytes.to, vertices.begin-pointer.pointer-cast, \
 		GL_STATIC_DRAW
 	gl glBindBuffer GL_ARRAY_BUFFER, 0
-	err = gl glGetError
+	err GLenum = gl glGetError
 	unless err == GL_NO_ERROR
 		gl glDeleteBuffers n-buffers, &vbo
 		throw "Creating VBO failed: Code {err}"
@@ -250,5 +251,5 @@ size-bytes nat(vertices vertex array) unsafe
 	gl glDeleteBuffers 1, &vbo
 
 -gl-check-error void(gl gl-ext, desc string) summon
-	err = gl glGetError
+	err GLenum = gl glGetError
 	assert err == GL_NO_ERROR : "Gl error at {desc}: code {err}"

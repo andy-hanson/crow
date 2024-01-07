@@ -268,6 +268,12 @@ immutable struct ConcreteFunBody {
 		ulong allValue;
 		FlagsFunction fn;
 	}
+	immutable struct RecordFieldCall {
+		size_t fieldIndex;
+		ConcreteStruct* funType;
+		ConcreteType argType;
+		ConcreteFun* caller;
+	}
 	immutable struct RecordFieldGet {
 		size_t fieldIndex;
 	}
@@ -290,6 +296,7 @@ immutable struct ConcreteFunBody {
 		Extern,
 		ConcreteExpr,
 		FlagsFn,
+		RecordFieldCall,
 		RecordFieldGet,
 		RecordFieldPointer,
 		RecordFieldSet,
@@ -641,7 +648,7 @@ immutable struct ConcreteProgram {
 
 immutable struct ConcreteCommonFuns {
 	ConcreteFun* allocFun;
-	FunDecl*[] funOrActSubscriptFunDecls;
+	FunDecl*[2] funOrActSubscriptFunDecls;
 	ConcreteFun* markFun;
 	FunDecl* markVisitFunDecl;
 	ConcreteFun* rtMain;

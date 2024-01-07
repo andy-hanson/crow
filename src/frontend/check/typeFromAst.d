@@ -353,9 +353,6 @@ private Opt!(SpecDecl*) tryFindSpec(ref CheckCtx ctx, NameAndRange name, in Spec
 		Diag.NameNotFound.Kind.spec,
 		(in NameReferents x) => x.spec);
 
-Type makeFutType(ref InstantiateCtx ctx, ref CommonTypes commonTypes, Type type) =>
-	Type(instantiateStructNeverDelay(ctx, commonTypes.future, [type]));
-
 Opt!Type typeFromDestructure(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,

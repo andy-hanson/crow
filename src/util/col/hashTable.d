@@ -116,7 +116,7 @@ ref T mustAddToHashTable(T, K, alias getKey)(MutOpt!T[] values, T value) {
 			overwriteMemory(&values[i], someMut!T(value));
 			return force(values[i]);
 		} else {
-			assert(!eq!K(key, getKey(force(values[i]))));
+			assert(!eq!K(key, getKey(force(values[i]))), "mustAddToHashTable but key is already in table");
 			i = nextI!T(values, i);
 		}
 	}

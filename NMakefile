@@ -63,6 +63,7 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\frontend\check\instantiate.d \
 	src\frontend\check\maps.d \
 	src\frontend\check\typeFromAst.d \
+	src\frontend\check\typeUtil.d \
 	src\frontend\ide\getDefinition.d \
 	src\frontend\ide\getRename.d \
 	src\frontend\ide\getReferences.d \

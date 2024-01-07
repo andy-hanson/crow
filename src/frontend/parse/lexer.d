@@ -67,10 +67,6 @@ ref AllSymbols allSymbols(return ref Lexer lexer) =>
 	return lexer;
 }
 
-void assertCurIndent(in Lexer lexer, uint expected) {
-	assert(lexer.curIndent == expected);
-}
-
 Pos curPos(in Lexer lexer) =>
 	lexer.nextTokenPos;
 

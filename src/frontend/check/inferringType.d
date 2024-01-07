@@ -4,6 +4,7 @@ module frontend.check.inferringType;
 
 import frontend.check.exprCtx : addDiag2, ExprCtx, typeWithContainer;
 import frontend.check.instantiate : InstantiateCtx, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray;
+import frontend.check.typeUtil : FunType, getFunType;
 import model.ast : ExprAst;
 import model.diag : Diag, ExpectedForDiag;
 import model.model :
@@ -467,28 +468,6 @@ bool matchTypes_TypeParamB(ref InstantiateCtx ctx, TypeAndContext a, TypeParamIn
 		return !has(inferred) || matchTypes(ctx, a, nonInferring(force(inferred)));
 	} else
 		return false;
-}
-
-public immutable struct FunType {
-	FunKind kind;
-	StructInst* structInst;
-	StructDecl* structDecl;
-	Type nonInstantiatedNonFutReturnType;
-	Type nonInstantiatedParamType;
-}
-public Opt!FunType getFunType(in CommonTypes commonTypes, Type a) {
-	if (a.isA!(StructInst*)) {
-		StructInst* structInst = a.as!(StructInst*);
-		StructDecl* structDecl = structInst.decl;
-		Opt!FunKind kind = enumMapFindKey!(FunKind, StructDecl*)(commonTypes.funStructs, (in StructDecl* x) =>
-			x == structDecl);
-		if (has(kind)) {
-			Type[2] typeArgs = only2(structInst.typeArgs);
-			return some(FunType(force(kind), structInst, structDecl, typeArgs[0], typeArgs[1]));
-		} else
-			return none!FunType;
-	} else
-		return none!FunType;
 }
 
 public void inferTypeArgsFromLambdaParameterType(

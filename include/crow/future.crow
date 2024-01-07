@@ -107,7 +107,7 @@ Future resolved to `ok` if `a` succeeds and `err` if `a` fails with an exception
 	res t^ = trusted unresolved
 	trusted fut add-task-no-exclusion () =>
 		result = fut get-result
-		cleanup-fut = a.cleanup[]
+		cleanup-fut void^ = a cleanup
 		cleanup-fut add-task-no-exclusion () =>
 			match result
 			as ok value

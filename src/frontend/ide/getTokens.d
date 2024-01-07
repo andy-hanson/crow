@@ -589,7 +589,8 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 				x.parts[$ - 1].matchIn!void(
 					(in string) {},
 					(in ExprAst x) {
-						stringLiteral(ctx.tokens, Range(x.range.end + 1, a.range.end));
+						if (x.range.end + 1 < a.range.end)
+							stringLiteral(ctx.tokens, Range(x.range.end + 1, a.range.end));
 					});
 			}
 		},

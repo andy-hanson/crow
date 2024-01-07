@@ -13,7 +13,9 @@ import frontend.check.instantiate :
 	TypeArgsArray,
 	typeArgsArray;
 import frontend.check.typeFromAst : makeTupleType;
+import frontend.check.typeUtil : FunType, getFunType, nonInstantiatedReturnType;
 import model.model :
+	asTuple,
 	CommonTypes,
 	EnumBackingType,
 	EnumFunction,
@@ -41,16 +43,17 @@ import model.model :
 	VarDecl,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.array : isEmpty, map, small, sum;
+import util.col.array : isEmpty, map, mapWithFirst, small, sum;
 import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder;
 import util.col.mutMaxArr : asTemporaryArray, push;
 import util.opt : force, has, none, Opt, some;
 import util.symbol : prependSet, prependSetDeref, Symbol, symbol;
+import util.util : todo;
 
-size_t countFunsForStructs(in StructDecl[] structs) =>
-	sum!StructDecl(structs, (in StructDecl x) => countFunsForStruct(x));
+size_t countFunsForStructs(in CommonTypes commonTypes, in StructDecl[] structs) =>
+	sum!StructDecl(structs, (in StructDecl x) => countFunsForStruct(commonTypes, x));
 
-private size_t countFunsForStruct(in StructDecl a) =>
+private size_t countFunsForStruct(in CommonTypes commonTypes, in StructDecl a) =>
 	a.body_.matchIn!size_t(
 		(in StructBody.Bogus) =>
 			0,
@@ -66,10 +69,12 @@ private size_t countFunsForStruct(in StructDecl a) =>
 			// and a constructor for each member
 			8 + x.members.length,
 		(in StructBody.Record x) {
-			size_t forFields = sum!RecordField(x.fields, (in RecordField field) =>
-				field.mutability == FieldMutability.const_ ? 1 : 2);
+			size_t forGetSet = sum!RecordField(x.fields, (in RecordField field) =>
+				1 + (field.mutability != FieldMutability.const_));
+			size_t forCall = sum!RecordField(x.fields, (in RecordField field) =>
+				fieldHasCaller(commonTypes, field.type));
 			// byVal has get/set for pointer too
-			return 1 + forFields * (recordIsAlwaysByVal(x) ? 2 : 1);
+			return 1 + forGetSet * (recordIsAlwaysByVal(x) ? 2 : 1) + forCall;
 		},
 		(in StructBody.Union x) =>
 			x.members.length);
@@ -390,7 +395,7 @@ void addFunsForRecordField(
 	scope ref ExactSizeArrayBuilder!FunDecl funsBuilder,
 	ref CommonTypes commonTypes,
 	StructDecl* struct_,
-	Type structType,
+	Type recordType,
 	bool recordIsByVal,
 	size_t fieldIndex,
 	RecordField* field,
@@ -401,7 +406,7 @@ void addFunsForRecordField(
 		fieldVisibility,
 		field.name,
 		field.type,
-		makeParams(ctx.alloc, [param!"a"(structType)]),
+		makeParams(ctx.alloc, [param!"a"(recordType)]),
 		FunFlags.generatedBare,
 		[],
 		FunBody(FunBody.RecordFieldGet(fieldIndex)));
@@ -418,16 +423,18 @@ void addFunsForRecordField(
 			FunBody(FunBody.RecordFieldPointer(fieldIndex)));
 	}
 
+	maybeAddFieldCaller(ctx, funsBuilder, commonTypes, recordType, fieldVisibility, fieldIndex, field);
+
 	if (recordIsByVal)
 		addRecordFieldPointer(
 			fieldVisibility,
-			Type(makeConstPointerType(ctx.instantiateCtx, commonTypes, structType)),
+			Type(makeConstPointerType(ctx.instantiateCtx, commonTypes, recordType)),
 			Type(makeConstPointerType(ctx.instantiateCtx, commonTypes, field.type)));
 
 	Opt!Visibility mutVisibility = visibilityOfFieldMutability(field.mutability);
 	if (has(mutVisibility)) {
 		Visibility setVisibility = leastVisibility(struct_.visibility, force(mutVisibility));
-		Type recordMutPointer = Type(makeMutPointerType(ctx.instantiateCtx, commonTypes, structType));
+		Type recordMutPointer = Type(makeMutPointerType(ctx.instantiateCtx, commonTypes, recordType));
 		if (recordIsByVal) {
 			funsBuilder ~= funDeclWithBody(
 				FunDeclSource(field),
@@ -451,10 +458,66 @@ void addFunsForRecordField(
 				setVisibility,
 				prependSet(ctx.allSymbols, field.name),
 				Type(commonTypes.void_),
-				makeParams(ctx.alloc, [param!"a"(structType), ParamShort(field.name, field.type)]),
+				makeParams(ctx.alloc, [param!"a"(recordType), ParamShort(field.name, field.type)]),
 				FunFlags.generatedBare,
 				[],
 				FunBody(FunBody.RecordFieldSet(fieldIndex)));
+	}
+}
+
+bool fieldHasCaller(in CommonTypes commonTypes, Type fieldType) {
+	Opt!FunType optFunType = getFunType(commonTypes, fieldType);
+	return has(optFunType);
+}
+
+void maybeAddFieldCaller(
+	ref CheckCtx ctx,
+	scope ref ExactSizeArrayBuilder!FunDecl funsBuilder,
+	ref CommonTypes commonTypes,
+	Type recordType,
+	Visibility fieldVisibility,
+	size_t fieldIndex,
+	RecordField* field,
+) {
+	Opt!FunType optFunType = getFunType(commonTypes, field.type);
+	if (has(optFunType)) {
+		FunType funType = force(optFunType);
+		Params params = paramsForFieldCaller(ctx.alloc, commonTypes, recordType, funType.nonInstantiatedParamType);
+		funsBuilder ~= funDeclWithBody(
+			FunDeclSource(field),
+			fieldVisibility,
+			field.name,
+			nonInstantiatedReturnType(ctx.instantiateCtx, commonTypes, funType),
+			params,
+			FunFlags.generated.withOkIfUnused,
+			[],
+			FunBody(FunBody.RecordFieldCall(fieldIndex, funType.kind)));
+	}
+}
+
+Params paramsForFieldCaller(ref Alloc alloc, ref CommonTypes commonTypes, Type recordType, Type paramType) {
+	Opt!(Type[]) parts = asTuple(commonTypes, paramType);
+	ParamShort paramA = param!"a"(recordType);
+	return has(parts)
+		? makeParams(alloc, mapWithFirst!(ParamShort, Type)(alloc, paramA, force(parts), (size_t i, ref Type type) =>
+			ParamShort(symbolForParam(i), type)))
+		: paramType == Type(commonTypes.void_)
+		? makeParams(alloc, [paramA])
+		: makeParams(alloc, [paramA, ParamShort(symbol!"param", paramType)]);
+}
+
+Symbol symbolForParam(size_t index) {
+	final switch (index) {
+		case 0: return symbol!"param0";
+		case 1: return symbol!"param1";
+		case 2: return symbol!"param2";
+		case 3: return symbol!"param3";
+		case 4: return symbol!"param4";
+		case 5: return symbol!"param5";
+		case 6: return symbol!"param6";
+		case 7: return symbol!"param7";
+		case 8: return symbol!"param8";
+		case 9: return symbol!"param9";
 	}
 }
 
@@ -478,7 +541,7 @@ void addFunsForUnion(
 ) {
 	scope TypeArgsArray typeArgs = typeArgsArray();
 	typeArgsFromParams(typeArgs, struct_.typeParams);
-	Type structType = Type(instantiateStructNeverDelay(ctx.instantiateCtx, struct_, asTemporaryArray(typeArgs)));
+	Type unionType = Type(instantiateStructNeverDelay(ctx.instantiateCtx, struct_, asTemporaryArray(typeArgs)));
 	foreach (size_t memberIndex, ref UnionMember member; union_.members) {
 		Params params = isVoid(commonTypes, member.type)
 			? Params([])
@@ -487,7 +550,7 @@ void addFunsForUnion(
 			FunDeclSource(&member),
 			struct_.visibility,
 			member.name,
-			structType,
+			unionType,
 			params,
 			FunFlags.generatedBare,
 			[],

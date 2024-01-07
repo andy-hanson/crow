@@ -25,9 +25,7 @@ import frontend.check.inferringType :
 	check,
 	Expected,
 	findExpectedStructForLiteral,
-	FunType,
 	getExpectedForDiag,
-	getFunType,
 	handleExpectedLambda,
 	inferred,
 	isPurelyInferring,
@@ -43,7 +41,8 @@ import frontend.check.inferringType :
 	withCopyWithNewExpectedType;
 import frontend.check.instantiate : InstantiateCtx, instantiateFun, instantiateStructNeverDelay, noDelayStructInsts;
 import frontend.check.maps : FunsMap, StructsAndAliasesMap;
-import frontend.check.typeFromAst : checkDestructure, makeFutType, makeTupleType, typeFromDestructure;
+import frontend.check.typeFromAst : checkDestructure, makeTupleType, typeFromDestructure;
+import frontend.check.typeUtil : FunType, getFunType, nonInstantiatedReturnType;
 import model.ast :
 	ArrowAccessAst,
 	AssertOrForbidAst,
@@ -622,15 +621,11 @@ MutOpt!ExpectedLambdaType getExpectedLambdaType(
 							? OkSkipOrAbort!Type.ok(force(declaredParamType))
 							: OkSkipOrAbort!Type.abort(Diag(Diag.LambdaCantInferParamType()));
 				}();
-				return actualParamType.mapOk((Type paramType) {
-					Type nonInstantiatedReturnType = funType.kind == FunKind.far
-						? makeFutType(ctx.instantiateCtx, ctx.commonTypes, funType.nonInstantiatedNonFutReturnType)
-						: funType.nonInstantiatedNonFutReturnType;
-					return ExpectedLambdaType(
+				return actualParamType.mapOk((Type paramType) =>
+					ExpectedLambdaType(
 						expectedType.context,
 						funType.structInst, funType.structDecl, funType.kind,
-						nonInstantiatedReturnType, paramType);
-				});
+						nonInstantiatedReturnType(ctx.instantiateCtx, ctx.commonTypes, funType), paramType));
 			} else
 				return OkSkipOrAbort!ExpectedLambdaType.skip;
 		});

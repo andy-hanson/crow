@@ -46,8 +46,7 @@
 	</crow-runnable>
 
 	<p>
-		<code class="keyword">throw</code> is an expression.
-		It can be any type, since the result will never be used due to the exception.
+		<code class="keyword">throw</code> is an expression. It can provide any expected type.
 	</p>
 	<crow-runnable>
 		main void()
@@ -97,12 +96,11 @@
 			<br />
 			In other words, <code class="keyword">match</code> instead of <code class="keyword">catch</code>.
 			<br />
-			For example, <code>map[key]</code> returns an option
-			instead of throwing a <code>KeyNotFoundException</code>.
+			For example, <code>map[key]</code> just returns an option that is empty if the key is not fund.
 		</p>
 		<p>
 			You should usually not have to catch exceptions.
-			Exceptions in crow indicate a bug in the caller, so you should fix the caller instead.
+			An exception indicates a bug, so you should fix the bug instead of catching it.
 			<br />
 			For example, if indexing into a list <code>xs[i]</code> caused an exception,
 			fix the code to test <code>i</code> first.

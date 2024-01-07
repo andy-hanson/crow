@@ -294,6 +294,10 @@ Json jsonOfFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 			jsonObject(alloc, [
 				kindField!"flags-fn",
 				field!"name"(flagsFunctionName(x))]),
+		(in FunBody.RecordFieldCall x) =>
+			jsonObject(alloc, [
+				kindField!"field-call",
+				field!"field-index"(x.fieldIndex)]),
 		(in FunBody.RecordFieldGet x) =>
 			jsonObject(alloc, [
 				kindField!"field-get",
