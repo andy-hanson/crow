@@ -150,7 +150,7 @@ void writeUnusedDiag(scope ref Writer writer, in ShowCtx ctx, in Diag.Unused a) 
 				writer ~= "Imported module ";
 				writeName(writer, ctx, baseName(ctx.allUris, x.importedModule.uri));
 			}
-			writer ~= " is unused";
+			writer ~= " is unused.";
 		},
 		(in Diag.Unused.Kind.Local x) {
 			writer ~= "Local ";
@@ -161,11 +161,11 @@ void writeUnusedDiag(scope ref Writer writer, in ShowCtx ctx, in Diag.Unused a) 
 				? " is mutable but never reassigned"
 				: x.usedSet
 				? " is assigned to but unused"
-				: " is unused";
+				: " is unused.";
 		},
 		(in Diag.Unused.Kind.PrivateDecl x) {
 			writeName(writer, ctx, x.name);
-			writer ~= " is unused";
+			writer ~= " is unused.";
 		});
 }
 
@@ -983,6 +983,15 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= "A ";
 			writer ~= stringOfVarKindLowerCase(x.kind);
 			writer ~= " variable can't have type parameters.";
+		},
+		(in Diag.VisibilityExceedsContainer x) {
+			writer ~= "Field  ";
+			writeName(writer, ctx, x.fieldName);
+			writer ~= " should not be more visible than record ";
+			writeName(writer, ctx, x.record.name);
+			writer ~= " which is only ";
+			writer ~= stringOfVisibility(x.record.visibility);
+			writer ~= '.';
 		},
 		(in Diag.VisibilityIsRedundant x) {
 			final switch (x.kind) {

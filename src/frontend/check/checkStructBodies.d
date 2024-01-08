@@ -546,14 +546,16 @@ RecordField checkRecordField(
 	if (has(ast.mutability) && struct_.purity != Purity.mut && !struct_.purityIsForced)
 		addDiag(ctx, ast.range, Diag(Diag.MutFieldNotAllowed()));
 	Opt!Visibility visibility = optVisibilityFromExplicit(ast.visibility);
-	if (has(visibility) && force(visibility) == struct_.visibility)
-		addDiag(ctx, ast.range, Diag(
-			Diag.VisibilityIsRedundant(Diag.VisibilityIsRedundant.Kind.field, struct_, force(visibility))));
+	Symbol name = ast.name.name;
+	if (has(visibility) && force(visibility) >= struct_.visibility)
+		addDiag(ctx, ast.range, force(visibility) == struct_.visibility
+			? Diag(Diag.VisibilityIsRedundant(Diag.VisibilityIsRedundant.Kind.field, struct_, force(visibility)))
+			: Diag(Diag.VisibilityExceedsContainer(struct_, name)));
 	return RecordField(
 		ast,
 		struct_,
 		optOrDefault!Visibility(visibility, () => struct_.visibility),
-		ast.name.name,
+		name,
 		fieldMutabilityFromAst(ast.mutability),
 		fieldType);
 }

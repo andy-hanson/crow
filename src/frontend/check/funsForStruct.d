@@ -399,10 +399,9 @@ void addFunsForRecordField(
 	size_t fieldIndex,
 	RecordField* field,
 ) {
-	Visibility fieldVisibility = leastVisibility(struct_.visibility, field.visibility);
 	funsBuilder ~= funDeclWithBody(
 		FunDeclSource(field),
-		fieldVisibility,
+		field.visibility,
 		field.name,
 		field.type,
 		makeParams(ctx.alloc, [param!"a"(recordType)]),
@@ -422,11 +421,11 @@ void addFunsForRecordField(
 			FunBody(FunBody.RecordFieldPointer(fieldIndex)));
 	}
 
-	maybeAddFieldCaller(ctx, funsBuilder, commonTypes, recordType, fieldVisibility, fieldIndex, field);
+	maybeAddFieldCaller(ctx, funsBuilder, commonTypes, recordType, fieldIndex, field);
 
 	if (recordIsByVal)
 		addRecordFieldPointer(
-			fieldVisibility,
+			field.visibility,
 			Type(makeConstPointerType(ctx.instantiateCtx, commonTypes, recordType)),
 			Type(makeConstPointerType(ctx.instantiateCtx, commonTypes, field.type)));
 
@@ -474,7 +473,6 @@ void maybeAddFieldCaller(
 	scope ref ExactSizeArrayBuilder!FunDecl funsBuilder,
 	ref CommonTypes commonTypes,
 	Type recordType,
-	Visibility fieldVisibility,
 	size_t fieldIndex,
 	RecordField* field,
 ) {
@@ -484,7 +482,7 @@ void maybeAddFieldCaller(
 		Params params = paramsForFieldCaller(ctx.alloc, commonTypes, recordType, funType.nonInstantiatedParamType);
 		funsBuilder ~= funDeclWithBody(
 			FunDeclSource(field),
-			fieldVisibility,
+			field.visibility,
 			field.name,
 			nonInstantiatedReturnType(ctx.instantiateCtx, commonTypes, funType),
 			params,

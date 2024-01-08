@@ -1,0 +1,11 @@
+main void()
+	()
+
+r record
+	+x nat
+
+-s record
+	~x nat
+
+-t record
+	-x nat

@@ -35,7 +35,7 @@ void testCircularImportFixed(ref Test test) {
 		assertEqual(showDiags(), cString!"");
 
 		setFile(test.perf, server, uriB, "import\n\t./a");
-		assertEqual(showDiags(), cString!"test:///b.crow 2:5-2:8 Imported module 'a.crow' is unused");
+		assertEqual(showDiags(), cString!"test:///b.crow 2:5-2:8 Imported module 'a.crow' is unused.");
 
 		setFile(test.perf, server, uriA, "import\n\t./b\n\nmain void()\n\tinfo log hello");
 		assertEqual(showDiags(), cString!expectedDiags2);
