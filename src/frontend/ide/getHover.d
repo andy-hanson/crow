@@ -12,9 +12,10 @@ import frontend.showModel :
 	writeLineAndColumnRange,
 	writeName,
 	writeSpecInst,
-	writeTypeQuoted;
+	writeTypeQuoted,
+	writeVisibility;
 import lib.lsp.lspTypes : Hover, MarkupContent, MarkupKind;
-import model.ast : FieldMutabilityAst, FunModifierAst;
+import model.ast : FunModifierAst, optVisibilityFromExplicit;
 import model.diag : TypeContainer, TypeWithContainer;
 import model.model :
 	AssertOrForbidExpr,
@@ -54,7 +55,6 @@ import model.model :
 	StructBody,
 	SpecDecl,
 	stringOfVarKindUpperCase,
-	stringOfVisibility,
 	StructDecl,
 	StructInst,
 	Test,
@@ -62,7 +62,8 @@ import model.model :
 	TrustedExpr,
 	Type,
 	TypeParamIndex,
-	VarDecl;
+	VarDecl,
+	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.array : isEmpty;
 import util.opt : force, has, none, Opt, some;
@@ -160,14 +161,13 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 			localHover(writer, ctx, x.container.toTypeContainer, *x.local);
 		},
 		(PositionKind.RecordFieldMutability x) {
-			writer ~= () {
-				final switch (x.kind) {
-					case FieldMutabilityAst.Kind.private_:
-						return "Defines a private setter.";
-					case FieldMutabilityAst.Kind.public_:
-						return "Defines a public setter.";
-				}
-			}();
+			writer ~= "Defines a ";
+			Opt!Visibility visibility = optVisibilityFromExplicit(x.visibility);
+			if (has(visibility)) {
+				writeVisibility(writer, ctx.show, force(visibility));
+				writer ~= ' ';
+			}
+			writer ~= "setter.";
 		},
 		(PositionKind.RecordFieldPosition x) {
 			writer ~= "Record field ";
@@ -223,7 +223,7 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 			writer ~= "Marks ";
 			writeName(writer, ctx, x.container.name);
 			writer ~= " as ";
-			writer ~= stringOfVisibility(x.container.visibility);
+			writeVisibility(writer, ctx, x.container.visibility);
 			writer ~= '.';
 		});
 

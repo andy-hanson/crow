@@ -19,7 +19,8 @@ import frontend.showModel :
 	writeStructInst,
 	writeTypeQuoted,
 	writeUri,
-	writeUriAndRange;
+	writeUriAndRange,
+	writeVisibility;
 import model.diag :
 	Diagnostic,
 	Diag,
@@ -47,7 +48,6 @@ import model.model :
 	StructInst,
 	stringOfSpecBodyBuiltinKind,
 	stringOfVarKindLowerCase,
-	stringOfVisibility,
 	Type,
 	TypeParamsAndSig;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
@@ -60,7 +60,7 @@ import util.comparison : Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : compareRange;
 import util.string : CString;
-import util.symbol : Symbol, writeSymbol;
+import util.symbol : Symbol, symbol, writeSymbol;
 import util.uri : AllUris, baseName, compareUriAlphabetically, Uri, writeRelPath, writeUri;
 import util.util : stringOfEnum, max;
 import util.writer :
@@ -984,32 +984,8 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= stringOfVarKindLowerCase(x.kind);
 			writer ~= " variable can't have type parameters.";
 		},
-		(in Diag.VisibilityExceedsContainer x) {
-			writer ~= "Field  ";
-			writeName(writer, ctx, x.fieldName);
-			writer ~= " should not be more visible than record ";
-			writeName(writer, ctx, x.record.name);
-			writer ~= " which is only ";
-			writer ~= stringOfVisibility(x.record.visibility);
-			writer ~= '.';
-		},
-		(in Diag.VisibilityIsRedundant x) {
-			final switch (x.kind) {
-				case Diag.VisibilityIsRedundant.Kind.field:
-					writer ~= "Fields of record ";
-					writeName(writer, ctx, x.record.name);
-					writer ~= " are already ";
-					writer ~= stringOfVisibility(x.visibility);
-					writer ~= " by default.";
-					break;
-				case Diag.VisibilityIsRedundant.Kind.new_:
-					writer ~= "The 'new' function for ";
-					writeName(writer, ctx, x.record.name);
-					writer ~= " is already ";
-					writer ~= stringOfVisibility(x.visibility);
-					writer ~= " by default (derived from visibility of fields).";
-					break;
-			}
+		(in Diag.VisibilityWarning x) {
+			writeVisibilityWarning(writer, ctx, x);
 		},
 		(in Diag.WrongNumberTypeArgs x) {
 			writeName(writer, ctx, x.name);
@@ -1119,6 +1095,61 @@ ulong maxValue(EnumBackingType type) {
 			return uint.max;
 		case EnumBackingType.nat64:
 			return ulong.max;
+	}
+}
+
+void writeVisibilityWarning(scope ref Writer writer, in ShowDiagCtx ctx, in Diag.VisibilityWarning a) {
+	if (a.actualVisibility > a.defaultVisibility) {
+		a.kind.matchIn!void(
+			(in Diag.VisibilityWarning.Kind.Field x) {
+				writer ~= "Field ";
+				writeName(writer, ctx, x.fieldName);
+				writer ~= " should not be more visible than record ";
+				writeName(writer, ctx, x.record.name);
+				writer ~= " which is only ";
+				writeVisibility(writer, ctx, a.defaultVisibility);
+				writer ~= '.';
+			},
+			(in Diag.VisibilityWarning.Kind.FieldMutability x) {
+				writer ~= "Field ";
+				writeName(writer, ctx, x.fieldName);
+				writer ~= " can't have ";
+				writeVisibility(writer, ctx, a.actualVisibility);
+				writer ~= " mutability when the field itself is ";
+				writeVisibility(writer, ctx, a.defaultVisibility);
+			},
+			(in Diag.VisibilityWarning.Kind.New x) {
+				writeName(writer, ctx, symbol!"new");
+				writer ~= " function for record ";
+				writeName(writer, ctx, x.record.name);
+				writer ~= " should not have greater visibility than ";
+				writeVisibility(writer, ctx, a.defaultVisibility);
+				writer ~= " (derived from visibility of fields).";
+			});
+	} else {
+		assert(a.actualVisibility == a.defaultVisibility);
+		a.kind.matchIn!void(
+			(in Diag.VisibilityWarning.Kind.Field x) {
+				writer ~= "Fields of record ";
+				writeName(writer, ctx, x.record.name);
+				writer ~= " are already ";
+				writeVisibility(writer, ctx, a.defaultVisibility);
+				writer ~= " by default.";
+			},
+			(in Diag.VisibilityWarning.Kind.FieldMutability x) {
+				writer ~= "Field ";
+				writeName(writer, ctx, x.fieldName);
+				writer ~= " mutability would already be ";
+				writeVisibility(writer, ctx, a.defaultVisibility);
+				writer ~= " by default.";
+			},
+			(in Diag.VisibilityWarning.Kind.New x) {
+				writer ~= "The 'new' function for ";
+				writeName(writer, ctx, x.record.name);
+				writer ~= " is already ";
+				writeVisibility(writer, ctx, a.defaultVisibility);
+				writer ~= " by default (derived from visibility of fields).";
+			});
 	}
 }
 

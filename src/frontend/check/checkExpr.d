@@ -107,7 +107,6 @@ import model.model :
 	Expr,
 	ExprAndType,
 	ExprKind,
-	FieldMutability,
 	FunBody,
 	FunDecl,
 	FunFlags,
@@ -1027,7 +1026,7 @@ immutable struct ExpectedPointee {
 	}
 	mixin Union!(None, FunPointer, Pointer);
 }
-enum PointerMutability { immutable_, mutable }
+enum PointerMutability { readOnly, writeable }
 
 ExpectedPointee getExpectedPointee(ref ExprCtx ctx, ref const Expected expected) {
 	Opt!Type expectedType = tryGetNonInferringType(ctx.instantiateCtx, expected);
@@ -1035,10 +1034,10 @@ ExpectedPointee getExpectedPointee(ref ExprCtx ctx, ref const Expected expected)
 		StructInst* inst = force(expectedType).as!(StructInst*);
 		if (inst.decl == ctx.commonTypes.ptrConst)
 			return ExpectedPointee(ExpectedPointee.Pointer(
-				Type(inst), only(inst.typeArgs), PointerMutability.immutable_));
+				Type(inst), only(inst.typeArgs), PointerMutability.readOnly));
 		else if (inst.decl == ctx.commonTypes.ptrMut)
 			return ExpectedPointee(ExpectedPointee.Pointer(
-				Type(inst), only(inst.typeArgs), PointerMutability.mutable));
+				Type(inst), only(inst.typeArgs), PointerMutability.writeable));
 		else if (inst.decl == ctx.commonTypes.funPtrStruct)
 			return ExpectedPointee(ExpectedPointee.FunPointer());
 		else
@@ -1064,7 +1063,7 @@ Expr checkPointerInner(
 		Local* local = inner.kind.as!LocalGetExpr.local;
 		if (local.mutability < expectedMutability)
 			addDiag2(ctx, source, Diag(Diag.PointerMutToConst(Diag.PointerMutToConst.Kind.local)));
-		if (expectedMutability == PointerMutability.mutable)
+		if (expectedMutability == PointerMutability.writeable)
 			markIsUsedSetOnStack(locals, local);
 		return check(ctx, source, expected, pointerType, Expr(source, ExprKind(PtrToLocalExpr(local))));
 	} else if (inner.kind.isA!CallExpr)
@@ -1094,8 +1093,10 @@ Expr checkPointerOfCall(
 			FunBody.RecordFieldGet rfg = getFieldFun.decl.body_.as!(FunBody.RecordFieldGet);
 			Expr target = only(call.args);
 			StructInst* recordType = only(getFieldFun.paramTypes).as!(StructInst*);
-			PointerMutability fieldMutability = pointerMutabilityFromField(
-				recordType.decl.body_.as!(StructBody.Record).fields[rfg.fieldIndex].mutability);
+			PointerMutability fieldMutability =
+				has(recordType.decl.body_.as!(StructBody.Record).fields[rfg.fieldIndex].mutability)
+					? PointerMutability.writeable
+					: PointerMutability.readOnly;
 			if (isDefinitelyByRef(*recordType)) {
 				if (fieldMutability < expectedMutability)
 					addDiag2(ctx, source, Diag(Diag.PointerMutToConst(Diag.PointerMutToConst.Kind.field)));
@@ -1123,16 +1124,6 @@ Expr checkPointerOfCall(
 		return fail();
 }
 
-PointerMutability pointerMutabilityFromField(FieldMutability a) {
-	final switch (a) {
-		case FieldMutability.const_:
-			return PointerMutability.immutable_;
-		case FieldMutability.private_:
-		case FieldMutability.public_:
-			return PointerMutability.mutable;
-	}
-}
-
 bool isDerefFunction(ref ExprCtx ctx, FunInst* a) {
 	if (a.decl.name == symbol!"*" && a.decl.body_.isA!(FunBody.Builtin)) {
 		assert(a.decl.moduleUri == ctx.checkCtx.commonUris[CommonModule.pointer]);
@@ -1144,10 +1135,10 @@ bool isDerefFunction(ref ExprCtx ctx, FunInst* a) {
 
 PointerMutability mutabilityForPtrDecl(in ExprCtx ctx, in StructDecl* a) {
 	if (a == ctx.commonTypes.ptrConst)
-		return PointerMutability.immutable_;
+		return PointerMutability.readOnly;
 	else {
 		assert(a == ctx.commonTypes.ptrMut);
-		return PointerMutability.mutable;
+		return PointerMutability.writeable;
 	}
 }
 

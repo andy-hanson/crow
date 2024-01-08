@@ -2,13 +2,13 @@ module frontend.check.checkStructs;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.check : optVisibilityFromExplicit, visibilityFromExplicit;
-import frontend.check.checkCtx : addDiag, addDiagAssertSameUri, CheckCtx;
+import frontend.check.checkCtx :
+	addDiag, addDiagAssertSameUri, CheckCtx, visibilityFromDefaultWithDiag, visibilityFromExplicitTopLevel;
 import frontend.check.instantiate : DelayStructInsts;
 import frontend.check.maps : StructsAndAliasesMap;
 import frontend.check.typeFromAst : checkTypeParams, typeFromAst;
 import model.ast :
-	FieldMutabilityAst,
+	ExplicitVisibility,
 	LiteralIntAst,
 	LiteralNatAst,
 	ModifierAst,
@@ -25,7 +25,6 @@ import model.model :
 	EnumBackingType,
 	EnumMember,
 	EnumValue,
-	FieldMutability,
 	ForcedByValOrRefOrNone,
 	IntegralTypes,
 	isLinkagePossiblyCompatible,
@@ -62,7 +61,7 @@ StructDecl[] checkStructsInitial(ref CheckCtx ctx, in StructDeclAst[] asts) =>
 			StructDeclSource(ast),
 			ctx.curUri,
 			ast.name.name,
-			visibilityFromExplicit(ast.visibility),
+			visibilityFromExplicitTopLevel(ast.visibility),
 			p.linkage,
 			p.purityAndForced.purity,
 			p.purityAndForced.forced);
@@ -537,39 +536,23 @@ RecordField checkRecordField(
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesMap structsAndAliasesMap,
 	scope ref DelayStructInsts delayStructInsts,
-	StructDecl* struct_,
+	StructDecl* record,
 	StructBodyAst.Record.Field* ast,
 ) {
 	Type fieldType = typeFromAst(
-		ctx, commonTypes, ast.type, structsAndAliasesMap, struct_.typeParams, someMut(ptrTrustMe(delayStructInsts)));
-	checkReferenceLinkageAndPurity(ctx, struct_, ast.range, fieldType);
-	if (has(ast.mutability) && struct_.purity != Purity.mut && !struct_.purityIsForced)
+		ctx, commonTypes, ast.type, structsAndAliasesMap, record.typeParams, someMut(ptrTrustMe(delayStructInsts)));
+	checkReferenceLinkageAndPurity(ctx, record, ast.range, fieldType);
+	if (has(ast.mutability) && record.purity != Purity.mut && !record.purityIsForced)
 		addDiag(ctx, ast.range, Diag(Diag.MutFieldNotAllowed()));
-	Opt!Visibility visibility = optVisibilityFromExplicit(ast.visibility);
 	Symbol name = ast.name.name;
-	if (has(visibility) && force(visibility) >= struct_.visibility)
-		addDiag(ctx, ast.range, force(visibility) == struct_.visibility
-			? Diag(Diag.VisibilityIsRedundant(Diag.VisibilityIsRedundant.Kind.field, struct_, force(visibility)))
-			: Diag(Diag.VisibilityExceedsContainer(struct_, name)));
-	return RecordField(
-		ast,
-		struct_,
-		optOrDefault!Visibility(visibility, () => struct_.visibility),
-		name,
-		fieldMutabilityFromAst(ast.mutability),
-		fieldType);
-}
-
-FieldMutability fieldMutabilityFromAst(Opt!FieldMutabilityAst a) {
-	if (has(a)) {
-		final switch (force(a).kind) {
-			case FieldMutabilityAst.Kind.private_:
-				return FieldMutability.private_;
-			case FieldMutabilityAst.Kind.public_:
-				return FieldMutability.public_;
-		}
-	} else
-		return FieldMutability.const_;
+	Visibility visibility = visibilityFromDefaultWithDiag(ctx, ast.range, record.visibility, ast.visibility,
+		Diag.VisibilityWarning.Kind(Diag.VisibilityWarning.Kind.Field(record, name)));
+	Opt!Visibility mutability = has(ast.mutability)
+		? some(visibilityFromDefaultWithDiag(
+			ctx, ast.range, visibility, force(ast.mutability).visibility,
+			Diag.VisibilityWarning.Kind(Diag.VisibilityWarning.Kind.FieldMutability(name))))
+		: none!Visibility;
+	return RecordField(ast, record, visibility, name, mutability, fieldType);
 }
 
 StructBody.Union checkUnion(
@@ -618,8 +601,12 @@ UnionMember checkUnionMember(
 
 immutable struct RecordModifiers {
 	ForcedByValOrRefOrNone byValOrRefOrNone;
-	Opt!Visibility newVisibility;
+	NewVisibility newVisibility;
 	bool packed;
+}
+immutable struct NewVisibility {
+	Range range;
+	ExplicitVisibility visibility;
 }
 
 RecordModifiers withByValOrRef(
@@ -637,23 +624,26 @@ RecordModifiers withByValOrRef(
 	return RecordModifiers(value, cur.newVisibility, cur.packed);
 }
 
-RecordModifiers withNewVisibility(ref CheckCtx ctx, RecordModifiers cur, in Range range, Visibility value) {
-	if (has(cur.newVisibility)) {
+RecordModifiers withNewVisibility(ref CheckCtx ctx, RecordModifiers cur, in Range range, ExplicitVisibility value) {
+	assert(value != ExplicitVisibility.default_);
+	if (cur.newVisibility.visibility != ExplicitVisibility.default_) {
 		Symbol valueSymbol = symbolOfNewVisibility(value);
-		addDiag(ctx, range, value == force(cur.newVisibility)
+		addDiag(ctx, range, value == cur.newVisibility.visibility
 			? Diag(Diag.ModifierDuplicate(valueSymbol))
-			: Diag(Diag.ModifierConflict(symbolOfNewVisibility(force(cur.newVisibility)), valueSymbol)));
+			: Diag(Diag.ModifierConflict(symbolOfNewVisibility(cur.newVisibility.visibility), valueSymbol)));
 	}
-	return RecordModifiers(cur.byValOrRefOrNone, some(value), cur.packed);
+	return RecordModifiers(cur.byValOrRefOrNone, NewVisibility(range, value), cur.packed);
 }
 
-Symbol symbolOfNewVisibility(Visibility a) {
+Symbol symbolOfNewVisibility(ExplicitVisibility a) {
 	final switch (a) {
-		case Visibility.private_:
+		case ExplicitVisibility.default_:
+			assert(false);
+		case ExplicitVisibility.private_:
 			return symbol!"-new";
-		case Visibility.internal:
+		case ExplicitVisibility.internal:
 			return symbol!"~new";
-		case Visibility.public_:
+		case ExplicitVisibility.public_:
 			return symbol!"+new";
 	}
 }
@@ -666,7 +656,7 @@ RecordModifiers withPacked(ref CheckCtx ctx, RecordModifiers cur, in Range range
 
 RecordModifiers checkRecordModifiers(ref CheckCtx ctx, ModifierAst[] modifiers) =>
 	fold!(RecordModifiers, ModifierAst)(
-		RecordModifiers(ForcedByValOrRefOrNone.none, none!Visibility, false),
+		RecordModifiers(ForcedByValOrRefOrNone.none, NewVisibility(Range.empty, ExplicitVisibility.default_), false),
 		modifiers,
 		(RecordModifiers cur, in ModifierAst modifier) {
 			Range range = rangeOfModifierAst(modifier, ctx.allSymbols);
@@ -676,9 +666,9 @@ RecordModifiers checkRecordModifiers(ref CheckCtx ctx, ModifierAst[] modifiers) 
 				case ModifierAst.Kind.byVal:
 					return withByValOrRef(ctx, cur, range, ForcedByValOrRefOrNone.byVal);
 				case ModifierAst.Kind.newPrivate:
-					return withNewVisibility(ctx, cur, range, Visibility.private_);
+					return withNewVisibility(ctx, cur, range, ExplicitVisibility.private_);
 				case ModifierAst.Kind.newPublic:
-					return withNewVisibility(ctx, cur, range, Visibility.public_);
+					return withNewVisibility(ctx, cur, range, ExplicitVisibility.public_);
 				case ModifierAst.Kind.packed:
 					return withPacked(ctx, cur, range);
 				case ModifierAst.Kind.data:
@@ -705,19 +695,14 @@ void checkReferencePurity(ref CheckCtx ctx, StructDecl* struct_, in Range range,
 
 Visibility recordNewVisibility(
 	ref CheckCtx ctx,
-	StructDecl* struct_,
+	StructDecl* record,
 	in RecordField[] fields,
-	Opt!Visibility explicit,
+	in NewVisibility ast,
 ) {
 	Visibility default_ = fold!(Visibility, RecordField)(
-		struct_.visibility, fields, (Visibility cur, in RecordField field) =>
+		record.visibility, fields, (Visibility cur, in RecordField field) =>
 			leastVisibility(cur, field.visibility));
-	if (has(explicit)) {
-		if (force(explicit) == default_)
-			//TODO: better range
-			addDiagAssertSameUri(ctx, struct_.range, Diag(
-				Diag.VisibilityIsRedundant(Diag.VisibilityIsRedundant.Kind.new_, struct_, default_)));
-		return force(explicit);
-	} else
-		return default_;
+	//TODO: better range
+	return visibilityFromDefaultWithDiag(ctx, ast.range, default_, ast.visibility, Diag.VisibilityWarning.Kind(
+		Diag.VisibilityWarning.Kind.New(record)));
 }

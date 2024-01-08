@@ -3,7 +3,14 @@ module frontend.check.check;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCtx :
-	addDiag, addDiagAssertSameUri, CheckCtx, checkForUnused, CommonUris, finishDiagnostics, ImportAndReExportModules;
+	addDiag,
+	addDiagAssertSameUri,
+	CheckCtx,
+	checkForUnused,
+	CommonUris,
+	finishDiagnostics,
+	ImportAndReExportModules,
+	visibilityFromExplicitTopLevel;
 import frontend.check.checkExpr : checkFunctionBody, checkTestBody, TestBody;
 import frontend.check.checkStructs : checkStructBodies, checkStructsInitial;
 import frontend.check.getCommonTypes : getCommonTypes;
@@ -24,7 +31,6 @@ import frontend.check.typeFromAst :
 import model.ast :
 	DestructureAst,
 	EmptyAst,
-	ExplicitVisibility,
 	ExprAst,
 	FileAst,
 	FunDeclAst,
@@ -110,7 +116,7 @@ import util.col.hashTable :
 import util.col.mutArr : mustPop, mutArrIsEmpty;
 import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, mutMaxArrSize, push, pushIfUnderMaxSize, toArray;
 import util.memory : allocate, initMemory;
-import util.opt : force, has, none, Opt, optOrDefault, someMut, some;
+import util.opt : force, has, none, Opt, someMut, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : AllSymbols, Symbol, symbol;
@@ -166,22 +172,6 @@ Module* check(
 		alloc, perf, allSymbols, allUris, allInsts, commonUris, imports, uriAndAst,
 		(ref CheckCtx _, in StructsAndAliasesMap _2, scope ref DelayStructInsts _3) => commonTypes,
 	).module_;
-
-Visibility visibilityFromExplicit(ExplicitVisibility a) =>
-	optOrDefault!Visibility(optVisibilityFromExplicit(a), () => Visibility.internal);
-
-Opt!Visibility optVisibilityFromExplicit(ExplicitVisibility a) {
-	final switch (a) {
-		case ExplicitVisibility.default_:
-			return none!Visibility;
-		case ExplicitVisibility.private_:
-			return some(Visibility.private_);
-		case ExplicitVisibility.internal:
-			return some(Visibility.internal);
-		case ExplicitVisibility.public_:
-			return some(Visibility.public_);
-	}
-}
 
 private:
 
@@ -286,7 +276,7 @@ SpecDeclBody checkSpecDeclBody(
 		SpecDeclBody body_ = checkSpecDeclBody(
 			ctx, commonTypes, TypeContainer(out_),
 			ast.typeParams, structsAndAliasesMap, ast.range, ast.name.name, ast.body_);
-		return SpecDecl(ctx.curUri, ast, visibilityFromExplicit(ast.visibility), ast.name.name, body_);
+		return SpecDecl(ctx.curUri, ast, visibilityFromExplicitTopLevel(ast.visibility), ast.name.name, body_);
 	});
 
 void checkSpecDeclParents(
@@ -336,7 +326,7 @@ bool recurDetectSpecRecursion(SpecDecl* cur, ref MutMaxArr!(8, immutable SpecDec
 StructAlias[] checkStructAliasesInitial(ref CheckCtx ctx, scope StructAliasAst[] asts) =>
 	mapPointers!(StructAlias, StructAliasAst)(ctx.alloc, asts, (StructAliasAst* ast) {
 		checkTypeParams(ctx, ast.typeParams);
-		return StructAlias(ast, ctx.curUri, visibilityFromExplicit(ast.visibility), ast.name.name);
+		return StructAlias(ast, ctx.curUri, visibilityFromExplicitTopLevel(ast.visibility), ast.name.name);
 	});
 
 void checkStructAliasTargets(
@@ -390,7 +380,7 @@ VarDecl checkVarDecl(
 	return VarDecl(
 		ast,
 		ctx.curUri,
-		visibilityFromExplicit(ast.visibility),
+		visibilityFromExplicitTopLevel(ast.visibility),
 		ast.name.name,
 		ast.kind,
 		typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, ast.type, structsAndAliasesMap),
@@ -581,7 +571,7 @@ FunsAndMap checkFuns(
 					structsAndAliasesMap, specsMap, funAst.typeParams);
 				initMemory(fun, FunDecl(
 					FunDeclSource(FunDeclSource.Ast(ctx.curUri, &funAst)),
-					visibilityFromExplicit(funAst.visibility),
+					visibilityFromExplicitTopLevel(funAst.visibility),
 					funAst.name.name,
 					rp.returnType,
 					rp.params,

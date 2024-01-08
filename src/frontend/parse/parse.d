@@ -223,17 +223,14 @@ SmallArray!(StructBodyAst.Record.Field) parseRecordFields(ref Lexer lexer) {
 Opt!FieldMutabilityAst parseFieldMutability(ref Lexer lexer) {
 	Pos pos = curPos(lexer);
 	TokenAndData peek = getPeekTokenAndData(lexer);
-	if (tryTakeOperator(lexer, symbol!"-")) {
-		if (tryTakeToken(lexer, Token.mut))
-			return some(FieldMutabilityAst(pos, FieldMutabilityAst.Kind.private_));
-		else {
-			addDiagUnexpectedCurToken(lexer, curPos(lexer) - 1, peek);
-			return none!FieldMutabilityAst;
-		}
-	} else
-		return tryTakeToken(lexer, Token.mut)
-			? some(FieldMutabilityAst(pos, FieldMutabilityAst.Kind.public_))
-			: none!FieldMutabilityAst;
+	ExplicitVisibility visibility = tryTakeVisibility(lexer);
+	if (tryTakeToken(lexer, Token.mut))
+		return some(FieldMutabilityAst(pos, visibility));
+	else {
+		if (visibility != ExplicitVisibility.default_)
+			addDiagUnexpectedCurToken(lexer, pos, peek);
+		return none!FieldMutabilityAst;
+	}
 }
 
 SmallArray!(StructBodyAst.Union.Member) parseUnionMembers(ref Lexer lexer) {

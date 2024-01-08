@@ -43,7 +43,6 @@ import model.model :
 	EnumFunction,
 	EnumMember,
 	Expr,
-	FieldMutability,
 	FlagsFunction,
 	ForcedByValOrRefOrNone,
 	FunBody,
@@ -643,7 +642,7 @@ void initializeConcreteStruct(
 				ctx.alloc, r.fields, i.instantiatedTypes, (ref RecordField f, ref Type type) =>
 					ConcreteField(
 						f.name,
-						toConcreteMutability(f.mutability),
+						has(f.mutability) ? ConcreteMutability.mutable : ConcreteMutability.const_,
 						getConcreteType(ctx, type, typeArgsScope)));
 			bool packed = r.flags.packed;
 			ConcreteStructInfo info = getConcreteStructInfoForFields(fields);
@@ -661,17 +660,6 @@ void initializeConcreteStruct(
 			else
 				push(ctx.alloc, ctx.deferredUnions, DeferredUnionBody(res, members));
 		});
-}
-
-ConcreteMutability toConcreteMutability(FieldMutability a) {
-	final switch (a) {
-		case FieldMutability.const_:
-			return ConcreteMutability.const_;
-		case FieldMutability.private_:
-			return ConcreteMutability.mutable;
-		case FieldMutability.public_:
-			return ConcreteMutability.mutable;
-	}
 }
 
 TypeSize typeSizeForEnumOrFlags(EnumBackingType a) {

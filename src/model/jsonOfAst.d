@@ -55,7 +55,6 @@ import model.ast :
 	StructAliasAst,
 	StructBodyAst,
 	StructDeclAst,
-	stringOfFieldMutabilityAstKind,
 	stringOfSpecialFlag,
 	symbolForTypeAstSuffix,
 	symbolOfModifierKind,
@@ -246,7 +245,7 @@ Json jsonOfField(ref Alloc alloc, in Ctx ctx, in StructBodyAst.Record.Field a) =
 		optionalField!("mutability", FieldMutabilityAst)(a.mutability, (in FieldMutabilityAst x) =>
 			jsonObject(alloc, [
 				field!"pos"(x.pos),
-				field!"kind"(stringOfFieldMutabilityAstKind(x.kind))])),
+				field!"visibility"(stringOfEnum(x.visibility))])),
 		field!"type"(jsonOfTypeAst(alloc, ctx, a.type))]);
 
 Json jsonOfRecordAst(ref Alloc alloc, in Ctx ctx, in StructBodyAst.Record a) =>

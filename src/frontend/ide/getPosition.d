@@ -25,7 +25,6 @@ import model.ast :
 	rangeOfMutKeyword,
 	rangeOfNameAndRange,
 	SpecSigAst,
-	stringOfFieldMutabilityAstKind,
 	StructBodyAst,
 	StructDeclAst,
 	TestAst,
@@ -87,7 +86,7 @@ import model.model :
 import model.model : paramsArray, StructDeclSource;
 import util.col.array : first, firstPointer, firstWithIndex, firstZip, firstZipPointerFirst, isEmpty;
 import util.opt : force, has, none, Opt, optIf, optOr, optOr, optOrDefault, some;
-import util.sourceRange : hasPos, Pos, Range, rangeOfStartAndLength;
+import util.sourceRange : hasPos, Pos, Range;
 import util.symbol : AllSymbols;
 import util.union_ : Union;
 import util.uri : AllUris;
@@ -406,8 +405,8 @@ Opt!PositionKind positionInRecordField(
 
 Opt!PositionKind positionInFieldMutability(in AllSymbols allSymbols, in FieldMutabilityAst ast, Pos pos) =>
 	optIf(
-		hasPos(rangeOfStartAndLength(ast.pos, stringOfFieldMutabilityAstKind(ast.kind).length), pos),
-		() => PositionKind(PositionKind.RecordFieldMutability(ast.kind)));
+		hasPos(ast.range, pos),
+		() => PositionKind(PositionKind.RecordFieldMutability(ast.visibility)));
 
 Opt!PositionKind positionInExpr(in AllSymbols allSymbols, ExprContainer container, ref Expr a, Pos pos) {
 	if (!hasPos(a.range, pos))

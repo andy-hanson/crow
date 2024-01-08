@@ -3,7 +3,7 @@ module frontend.check.checkCtx;
 @safe @nogc pure nothrow:
 
 import frontend.check.instantiate : InstantiateCtx;
-import model.ast : pathRange;
+import model.ast : ExplicitVisibility, optVisibilityFromExplicit, pathRange;
 import model.diag : Diag, Diagnostic;
 import model.model :
 	ExportVisibility,
@@ -25,7 +25,7 @@ import util.col.arrayBuilder : add, ArrayBuilder, smallFinish;
 import util.col.enumMap : EnumMap;
 import util.col.hashTable : existsInHashTable;
 import util.col.mutSet : mayAddToMutSet, MutSet, mutSetHas;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.perf : Perf;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : AllSymbols, Symbol;
@@ -191,3 +191,26 @@ void addDiag(ref CheckCtx ctx, in Range range, Diag diag) {
 
 SmallArray!Diagnostic finishDiagnostics(ref CheckCtx ctx) =>
 	smallFinish(ctx.alloc, ctx.diagnosticsBuilder);
+
+Visibility visibilityFromDefaultWithDiag(
+	scope ref CheckCtx ctx,
+	Range range,
+	Visibility default_,
+	ExplicitVisibility explicit,
+	Diag.VisibilityWarning.Kind kind,
+) {
+	Opt!Visibility opt = optVisibilityFromExplicit(explicit);
+	if (has(opt)) {
+		Visibility actual = force(opt);
+		if (actual < default_)
+			return actual;
+		else {
+			addDiag(ctx, range, Diag(Diag.VisibilityWarning(kind, default_, actual)));
+			return default_;
+		}
+	} else
+		return default_;
+}
+
+Visibility visibilityFromExplicitTopLevel(ExplicitVisibility a) =>
+	optOrDefault!Visibility(optVisibilityFromExplicit(a), () => Visibility.internal);

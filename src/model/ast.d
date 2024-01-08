@@ -3,7 +3,7 @@ module model.ast;
 @safe @nogc pure nothrow:
 
 import model.diag : ReadFileDiag;
-import model.model : AssertOrForbidKind, FunKind, ImportFileType, stringOfVarKindLowerCase, VarKind;
+import model.model : AssertOrForbidKind, FunKind, ImportFileType, stringOfVarKindLowerCase, VarKind, Visibility;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.col.array : arrayOfSingle, exists, isEmpty, newSmallArray, sizeEq, SmallArray;
@@ -39,25 +39,29 @@ enum ExplicitVisibility {
 	internal,
 	public_,
 }
+Opt!Visibility optVisibilityFromExplicit(ExplicitVisibility a) {
+	final switch (a) {
+		case ExplicitVisibility.default_:
+			return none!Visibility;
+		case ExplicitVisibility.private_:
+			return some(Visibility.private_);
+		case ExplicitVisibility.internal:
+			return some(Visibility.internal);
+		case ExplicitVisibility.public_:
+			return some(Visibility.public_);
+	}
+}
 
 immutable struct FieldMutabilityAst {
-	enum Kind {
-		private_,
-		public_,
-	}
+	@safe @nogc pure nothrow:
 
 	Pos pos;
-	Kind kind;
-}
+	ExplicitVisibility visibility;
 
-string stringOfFieldMutabilityAstKind(FieldMutabilityAst.Kind a) {
-	final switch (a) {
-		case FieldMutabilityAst.Kind.private_:
-			return "-mut";
-		case FieldMutabilityAst.Kind.public_:
-			return "mut";
-	}
+	Range range() =>
+		rangeOfStartAndLength(pos, visibility == ExplicitVisibility.default_ ? "mut".length : "-mut".length);
 }
+static assert(FieldMutabilityAst.sizeof == ulong.sizeof);
 
 immutable struct TypeAst {
 	immutable struct Bogus {

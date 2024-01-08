@@ -190,12 +190,6 @@ immutable struct ParamShort {
 	Type type;
 }
 
-enum FieldMutability {
-	const_,
-	private_,
-	public_,
-}
-
 immutable struct RecordField {
 	@safe @nogc pure nothrow:
 
@@ -203,7 +197,7 @@ immutable struct RecordField {
 	StructDecl* containingRecord;
 	Visibility visibility;
 	Symbol name;
-	FieldMutability mutability;
+	Opt!Visibility mutability;
 	Type type;
 
 	Range range() scope =>

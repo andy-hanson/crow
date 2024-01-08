@@ -1,3 +1,5 @@
 exit code: 0
 stderr:
-test/compile-errors/record-privacy-a.crow 7:1-8:11 The 'new' function for 'redundant-private-ctor' is already private by default (derived from visibility of fields).
+test/compile-errors/record-privacy-a.crow 7:31-7:35 The 'new' function for 'redundant-private-ctor' is already private by default (derived from visibility of fields).
+test/compile-errors/record-privacy-a.crow 10:25-10:29 'new' function for record 'private-mut' should not have greater visibility than private (derived from visibility of fields).
+test/compile-errors/record-privacy-a.crow 13:5-13:16 Field 'l' mutability would already be private by default.

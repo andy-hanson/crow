@@ -7,7 +7,6 @@ import model.concreteModel : TypeSize;
 import model.model :
 	Destructure,
 	EnumMember,
-	FieldMutability,
 	FunDecl,
 	Module,
 	NameReferents,
@@ -186,7 +185,7 @@ Opt!Json documentRecordField(ref Alloc alloc, in TypeParams typeParams, in Recor
 			return some(jsonObject(alloc, [
 				field!"name"(a.name),
 				field!"type"(documentTypeRef(alloc, typeParams, a.type)),
-				optionalFlagField!"mut"(a.mutability == FieldMutability.public_)]));
+				optionalFlagField!"mut"(has(a.mutability) && force(a.mutability) == Visibility.public_)]));
 	}
 }
 

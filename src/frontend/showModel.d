@@ -22,11 +22,13 @@ import model.model :
 	Purity,
 	ReturnAndParamTypes,
 	SpecInst,
+	stringOfVisibility,
 	StructInst,
 	Type,
 	TypeParamIndex,
 	TypeParams,
-	TypeParamsAndSig;
+	TypeParamsAndSig,
+	Visibility;
 import util.col.array : isEmpty, only, only2, sizeEq;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : LineAndColumn, LineAndColumnRange, PosKind, toUriAndPos, UriAndPos, UriAndRange;
@@ -492,4 +494,8 @@ private void writeFileNoResetWriter(scope ref Writer writer, in ShowCtx ctx, Uri
 	} else
 		writeUri(writer, ctx, uri);
 	writer ~= ' ';
+}
+
+void writeVisibility(scope ref Writer writer, in ShowCtx ctx, Visibility a) {
+	writer ~= stringOfVisibility(a);
 }

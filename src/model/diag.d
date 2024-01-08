@@ -12,7 +12,6 @@ import model.model :
 	FunDeclAndTypeArgs,
 	Local,
 	Module,
-	RecordField,
 	ReturnAndParamTypes,
 	SpecDecl,
 	SpecDeclBody,
@@ -461,16 +460,17 @@ immutable struct Diag {
 	immutable struct VarDeclTypeParams {
 		VarKind kind;
 	}
-	immutable struct VisibilityExceedsContainer {
-		StructDecl* record;
-		Symbol fieldName;
-	}
 	// We don't have any warning at the top-level even though '~' is redundant. This is only within a record.
-	immutable struct VisibilityIsRedundant {
-		enum Kind { field, new_ }
+	immutable struct VisibilityWarning {
+		immutable struct Kind {
+			immutable struct Field { StructDecl* record; Symbol fieldName; }
+			immutable struct FieldMutability { Symbol fieldName; }
+			immutable struct New { StructDecl* record; }
+			mixin Union!(Field, FieldMutability, New);
+		}
 		Kind kind;
-		StructDecl* record;
-		Visibility visibility;
+		Visibility defaultVisibility;
+		Visibility actualVisibility;
 	}
 	immutable struct WrongNumberTypeArgs {
 		Symbol name;
@@ -549,8 +549,7 @@ immutable struct Diag {
 		Unused,
 		VarargsParamMustBeArray,
 		VarDeclTypeParams,
-		VisibilityExceedsContainer,
-		VisibilityIsRedundant,
+		VisibilityWarning,
 		WrongNumberTypeArgs);
 }
 

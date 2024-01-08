@@ -147,9 +147,7 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.VarDeclTypeParams) =>
 			DiagnosticSeverity.checkError,
-		(in Diag.VisibilityExceedsContainer) =>
-			DiagnosticSeverity.checkWarning,
-		(in Diag.VisibilityIsRedundant) =>
+		(in Diag.VisibilityWarning) =>
 			DiagnosticSeverity.checkWarning,
 		(in Diag.WrongNumberTypeArgs) =>
 			DiagnosticSeverity.checkError);

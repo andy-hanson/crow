@@ -32,8 +32,8 @@ This works like `mut-map`, but iterates in sorted order.
 	-pairs (k, v?) mut[]
 	# Number of pairs in this node that are not `none`.
 	# Does not include sizes of other nodes.
-	-node-size -mut nat64
-	-next -mut (k, v) mut-sorted-map?
+	-node-size mut nat64
+	-next mut (k, v) mut-sorted-map?
 
 ###
 New map containing the given pairs.

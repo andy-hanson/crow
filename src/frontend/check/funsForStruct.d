@@ -20,7 +20,6 @@ import model.model :
 	EnumBackingType,
 	EnumFunction,
 	EnumMember,
-	FieldMutability,
 	FlagsFunction,
 	ForcedByValOrRefOrNone,
 	FunBody,
@@ -28,7 +27,6 @@ import model.model :
 	FunDeclSource,
 	FunFlags,
 	IntegralTypes,
-	leastVisibility,
 	Params,
 	ParamShort,
 	RecordField,
@@ -46,7 +44,7 @@ import util.alloc.alloc : Alloc;
 import util.col.array : isEmpty, map, mapWithFirst, small, sum;
 import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder;
 import util.col.mutMaxArr : asTemporaryArray, push;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, Opt;
 import util.symbol : prependSet, prependSetDeref, Symbol, symbol;
 
 size_t countFunsForStructs(in CommonTypes commonTypes, in StructDecl[] structs) =>
@@ -69,7 +67,7 @@ private size_t countFunsForStruct(in CommonTypes commonTypes, in StructDecl a) =
 			8 + x.members.length,
 		(in StructBody.Record x) {
 			size_t forGetSet = sum!RecordField(x.fields, (in RecordField field) =>
-				1 + (field.mutability != FieldMutability.const_));
+				1 + has(field.mutability));
 			size_t forCall = sum!RecordField(x.fields, (in RecordField field) =>
 				fieldHasCaller(commonTypes, field.type));
 			// byVal has get/set for pointer too
@@ -429,9 +427,8 @@ void addFunsForRecordField(
 			Type(makeConstPointerType(ctx.instantiateCtx, commonTypes, recordType)),
 			Type(makeConstPointerType(ctx.instantiateCtx, commonTypes, field.type)));
 
-	Opt!Visibility mutVisibility = visibilityOfFieldMutability(field.mutability);
-	if (has(mutVisibility)) {
-		Visibility setVisibility = leastVisibility(struct_.visibility, force(mutVisibility));
+	if (has(field.mutability)) {
+		Visibility setVisibility = force(field.mutability);
 		Type recordMutPointer = Type(makeMutPointerType(ctx.instantiateCtx, commonTypes, recordType));
 		if (recordIsByVal) {
 			funsBuilder ~= funDeclWithBody(
@@ -515,17 +512,6 @@ Symbol symbolForParam(size_t index) {
 		case 7: return symbol!"param7";
 		case 8: return symbol!"param8";
 		case 9: return symbol!"param9";
-	}
-}
-
-Opt!Visibility visibilityOfFieldMutability(FieldMutability a) {
-	final switch (a) {
-		case FieldMutability.const_:
-			return none!Visibility;
-		case FieldMutability.private_:
-			return some(Visibility.private_);
-		case FieldMutability.public_:
-			return some(Visibility.public_);
 	}
 }
 
