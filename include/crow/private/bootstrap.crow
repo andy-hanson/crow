@@ -215,15 +215,6 @@ It's GC-safe though, since the GC treats a null pointer same as any external poi
 ###
 +zeroed[t] t() builtin, bare, unsafe
 
-###
-For a number: 0.
-For a record: 'safe-value' for each field.
-For a union: 'safe-value' of the first union member.
-For an enum: The first member.
-For flags: 0.
-###
-safe-value[t] t() builtin
-
 # TODO: remove this function
 todo[t] t() bare
 	# this shouldn't really be trusted

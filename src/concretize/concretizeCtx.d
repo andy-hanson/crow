@@ -6,7 +6,6 @@ import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantArray, g
 import concretize.concretizeExpr : concretizeBogus, concretizeBogusKind, concretizeFunBody;
 import frontend.storage : asBytes, FileContent, ReadFileResult;
 import model.concreteModel :
-	BuiltinStructKind,
 	byVal,
 	ConcreteExpr,
 	ConcreteExprKind,
@@ -37,6 +36,8 @@ import model.concreteModel :
 import model.constant : Constant, constantZero;
 import model.diag : ReadFileDiag;
 import model.model :
+	BuiltinFun,
+	BuiltinType,
 	CommonTypes,
 	Destructure,
 	EnumBackingType,
@@ -98,7 +99,7 @@ import util.opt : force, has, none;
 import util.sourceRange : UriAndRange;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.uri : AllUris, Uri;
-import util.util : max, roundUp, todo, typeAs;
+import util.util : max, roundUp, typeAs;
 import versionInfo : VersionInfo;
 
 immutable struct TypeArgsScope {
@@ -598,13 +599,12 @@ void initializeConcreteStruct(
 ) {
 	i.decl.body_.match!void(
 		(StructBody.Bogus) => assert(false),
-		(StructBody.Builtin) {
-			BuiltinStructKind kind = getBuiltinStructKind(i.decl.name);
+		(BuiltinType x) {
 			res.defaultReferenceKind = ReferenceKind.byVal;
 			res.info = ConcreteStructInfo(
-				ConcreteStructBody(ConcreteStructBody.Builtin(kind, typeArgs)),
+				ConcreteStructBody(ConcreteStructBody.Builtin(x, typeArgs)),
 				false);
-			res.typeSize = getBuiltinStructSize(kind);
+			res.typeSize = getBuiltinStructSize(x);
 		},
 		(StructBody.Enum it) {
 			res.defaultReferenceKind = ReferenceKind.byVal;
@@ -729,19 +729,15 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 	// TODO: just assert it's not already set?
 	if (!cf.bodyIsSet) {
 		// set to arbitrary temporarily
-		cf.body_ = ConcreteFunBody(ConcreteFunBody.Builtin([]));
+		cf.body_ = ConcreteFunBody(ConcreteFunBody.CreateRecord());
 		ConcreteFunBodyInputs inputs = mustDelete(ctx.concreteFunToBodyInputs, cf);
 		ConcreteFunBody body_ = inputs.body_.match!ConcreteFunBody(
 			(FunBody.Bogus) =>
 				ConcreteFunBody(concretizeBogus(ctx, cf.returnType, concreteFunRange(*cf))),
-			(FunBody.Builtin) {
-				switch (cf.source.as!ConcreteFunKey.decl.name.value) {
-					case symbol!"all-tests".value:
-						return bodyForAllTests(ctx, cf.returnType);
-					default:
-						return ConcreteFunBody(ConcreteFunBody.Builtin(typeArgs(inputs)));
-				}
-			},
+			(BuiltinFun x) =>
+				x.isA!(BuiltinFun.AllTests)
+					? bodyForAllTests(ctx, cf.returnType)
+					: ConcreteFunBody(ConcreteFunBody.Builtin(x, typeArgs(inputs))),
 			(FunBody.CreateEnum x) =>
 				ConcreteFunBody(Constant(Constant.Integral(x.member.value.value))),
 			(FunBody.CreateExtern) =>
@@ -797,7 +793,7 @@ ConcreteFunBody.RecordFieldCall getRecordFieldCall(
 		recordType.struct_.body_.as!(ConcreteStructBody.Record).fields[fieldIndex].type);
 	ConcreteType[2] typeArgs = only2(fieldType.source.as!(ConcreteStructSource.Inst).typeArgs);
 	ConcreteFun* callFun = getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
-		ctx.program.commonFuns.funSubscript[funKind],
+		ctx.program.commonFuns.lambdaSubscript[funKind],
 		// TODO: don't always allocate, only on create
 		small!ConcreteType(newArray!ConcreteType(ctx.alloc, typeArgs)),
 		emptySmallArray!(immutable ConcreteFun*)));
@@ -855,7 +851,7 @@ EnumMember[] enumOrFlagsMembers(ConcreteType type) =>
 	mustBeByVal(type).source.as!(ConcreteStructSource.Inst).inst.decl.body_.match!(EnumMember[])(
 		(StructBody.Bogus) =>
 			assert(false),
-		(StructBody.Builtin) =>
+		(BuiltinType _) =>
 			assert(false),
 		(StructBody.Enum x) =>
 			x.members,
@@ -884,72 +880,30 @@ ConcreteFunBody bodyForAllTests(ref ConcretizeCtx ctx, ConcreteType returnType) 
 	return ConcreteFunBody(ConcreteExpr(returnType, UriAndRange.empty, ConcreteExprKind(arr)));
 }
 
-BuiltinStructKind getBuiltinStructKind(Symbol name) {
-	switch (name.value) {
-		case symbol!"bool".value:
-			return BuiltinStructKind.bool_;
-		case symbol!"char8".value:
-			return BuiltinStructKind.char8;
-		case symbol!"float32".value:
-			return BuiltinStructKind.float32;
-		case symbol!"float64".value:
-			return BuiltinStructKind.float64;
-		case symbol!"fun-act".value:
-		case symbol!"fun-fun".value:
-			return BuiltinStructKind.fun;
-		case symbol!"fun-pointer".value:
-			return BuiltinStructKind.funPointer;
-		case symbol!"int8".value:
-			return BuiltinStructKind.int8;
-		case symbol!"int16".value:
-			return BuiltinStructKind.int16;
-		case symbol!"int32".value:
-			return BuiltinStructKind.int32;
-		case symbol!"int64".value:
-			return BuiltinStructKind.int64;
-		case symbol!"nat8".value:
-			return BuiltinStructKind.nat8;
-		case symbol!"nat16".value:
-			return BuiltinStructKind.nat16;
-		case symbol!"nat32".value:
-			return BuiltinStructKind.nat32;
-		case symbol!"nat64".value:
-			return BuiltinStructKind.nat64;
-		case symbol!"const-pointer".value:
-			return BuiltinStructKind.pointerConst;
-		case symbol!"mut-pointer".value:
-			return BuiltinStructKind.pointerMut;
-		case symbol!"void".value:
-			return BuiltinStructKind.void_;
-		default:
-			return todo!BuiltinStructKind("not a builtin struct");
-	}
-}
-
-TypeSize getBuiltinStructSize(BuiltinStructKind kind) {
+TypeSize getBuiltinStructSize(BuiltinType kind) {
 	final switch (kind) {
-		case BuiltinStructKind.void_:
+		case BuiltinType.void_:
 			return TypeSize(0, 1);
-		case BuiltinStructKind.bool_:
-		case BuiltinStructKind.char8:
-		case BuiltinStructKind.int8:
-		case BuiltinStructKind.nat8:
+		case BuiltinType.bool_:
+		case BuiltinType.char8:
+		case BuiltinType.int8:
+		case BuiltinType.nat8:
 			return TypeSize(1, 1);
-		case BuiltinStructKind.int16:
-		case BuiltinStructKind.nat16:
+		case BuiltinType.int16:
+		case BuiltinType.nat16:
 			return TypeSize(2, 2);
-		case BuiltinStructKind.float32:
-		case BuiltinStructKind.int32:
-		case BuiltinStructKind.nat32:
+		case BuiltinType.float32:
+		case BuiltinType.int32:
+		case BuiltinType.nat32:
 			return TypeSize(4, 4);
-		case BuiltinStructKind.float64:
-		case BuiltinStructKind.funPointer:
-		case BuiltinStructKind.int64:
-		case BuiltinStructKind.nat64:
-		case BuiltinStructKind.pointerConst:
-		case BuiltinStructKind.pointerMut:
+		case BuiltinType.float64:
+		case BuiltinType.funPointer:
+		case BuiltinType.int64:
+		case BuiltinType.nat64:
+		case BuiltinType.pointerConst:
+		case BuiltinType.pointerMut:
 			return TypeSize(8, 8);
-		case BuiltinStructKind.fun:
+		case BuiltinType.funOrAct:
 			return TypeSize(16, 8);
 	}
 }

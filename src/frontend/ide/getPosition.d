@@ -32,6 +32,7 @@ import model.diag : TypeContainer, TypeWithContainer;
 import model.model :
 	AssertOrForbidExpr,
 	BogusExpr,
+	BuiltinType,
 	CallExpr,
 	ClosureGetExpr,
 	ClosureSetExpr,
@@ -368,7 +369,7 @@ Opt!PositionKind positionInStructBody(
 	body_.match!(Opt!PositionKind)(
 		(StructBody.Bogus) =>
 			none!PositionKind,
-		(StructBody.Builtin) =>
+		(BuiltinType _) =>
 			none!PositionKind,
 		(StructBody.Enum) =>
 			none!PositionKind, // TODO

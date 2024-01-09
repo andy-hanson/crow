@@ -74,7 +74,6 @@ enum CommonModule {
 	funUtil,
 	future,
 	list,
-	pointer,
 	std,
 	string_,
 	runtime,

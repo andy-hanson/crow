@@ -36,6 +36,7 @@ import model.ast :
 import model.model :
 	AssertOrForbidExpr,
 	BogusExpr,
+	BuiltinType,
 	Called,
 	CalledSpecSig,
 	CallExpr,
@@ -343,7 +344,7 @@ void eachTypeInStruct(in StructDecl a, in TypeCb cb) =>
 void eachTypeInStructBody(in StructBody body_, in StructBodyAst ast, in TypeCb cb) {
 	body_.matchIn!void(
 		(in StructBody.Bogus) {},
-		(in StructBody.Builtin) {},
+		(in BuiltinType _) {},
 		(in StructBody.Enum) {
 			// TODO: references for backingType
 		},

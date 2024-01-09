@@ -16,6 +16,7 @@ import frontend.check.typeFromAst : makeTupleType;
 import frontend.check.typeUtil : FunType, getFunType, nonInstantiatedReturnType;
 import model.model :
 	asTuple,
+	BuiltinType,
 	CommonTypes,
 	EnumBackingType,
 	EnumFunction,
@@ -54,7 +55,7 @@ private size_t countFunsForStruct(in CommonTypes commonTypes, in StructDecl a) =
 	a.body_.matchIn!size_t(
 		(in StructBody.Bogus) =>
 			0,
-		(in StructBody.Builtin) =>
+		(in BuiltinType _) =>
 			0,
 		(in StructBody.Enum x) =>
 			// '==', 'to', 'enum-members', and a constructor for each member
@@ -87,7 +88,7 @@ void addFunsForStruct(
 ) {
 	struct_.body_.match!void(
 		(StructBody.Bogus) {},
-		(StructBody.Builtin) {},
+		(BuiltinType _) {},
 		(StructBody.Enum x) {
 			addFunsForEnum(ctx, funsBuilder, commonTypes, struct_, x);
 		},

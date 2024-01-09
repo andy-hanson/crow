@@ -19,6 +19,7 @@ import model.ast :
 import model.concreteModel : TypeSize;
 import model.diag : Diag, TypeKind;
 import model.model :
+	BuiltinType,
 	CommonTypes,
 	emptyTypeParams,
 	EnumBackingType,
@@ -31,6 +32,7 @@ import model.model :
 	leastVisibility,
 	Linkage,
 	linkageRange,
+	nameRange,
 	Purity,
 	purityRange,
 	RecordField,
@@ -78,7 +80,7 @@ void checkStructBodies(
 		struct_.body_ = ast.body_.matchIn!StructBody(
 			(in StructBodyAst.Builtin) {
 				checkOnlyStructModifiers(ctx, TypeKind.builtin, ast.modifiers);
-				return StructBody(StructBody.Builtin());
+				return StructBody(getBuiltinType(ctx, struct_));
 			},
 			(in StructBodyAst.Enum x) {
 				checkOnlyStructModifiers(ctx, TypeKind.enum_, ast.modifiers);
@@ -704,4 +706,48 @@ Visibility recordNewVisibility(
 	//TODO: better range
 	return visibilityFromDefaultWithDiag(ctx, ast.range, default_, ast.visibility, Diag.VisibilityWarning.Kind(
 		Diag.VisibilityWarning.Kind.New(record)));
+}
+
+BuiltinType getBuiltinType(scope ref CheckCtx ctx, StructDecl* struct_) {
+	switch (struct_.name.value) {
+		case symbol!"bool".value:
+			return BuiltinType.bool_;
+		case symbol!"char8".value:
+			return BuiltinType.char8;
+		case symbol!"float32".value:
+			return BuiltinType.float32;
+		case symbol!"float64".value:
+			return BuiltinType.float64;
+		case symbol!"fun-act".value:
+		case symbol!"fun-fun".value:
+			return BuiltinType.funOrAct;
+		case symbol!"fun-pointer".value:
+			return BuiltinType.funPointer;
+		case symbol!"int8".value:
+			return BuiltinType.int8;
+		case symbol!"int16".value:
+			return BuiltinType.int16;
+		case symbol!"int32".value:
+			return BuiltinType.int32;
+		case symbol!"int64".value:
+			return BuiltinType.int64;
+		case symbol!"nat8".value:
+			return BuiltinType.nat8;
+		case symbol!"nat16".value:
+			return BuiltinType.nat16;
+		case symbol!"nat32".value:
+			return BuiltinType.nat32;
+		case symbol!"nat64".value:
+			return BuiltinType.nat64;
+		case symbol!"const-pointer".value:
+			return BuiltinType.pointerConst;
+		case symbol!"mut-pointer".value:
+			return BuiltinType.pointerMut;
+		case symbol!"void".value:
+			return BuiltinType.void_;
+		default:
+			addDiagAssertSameUri(ctx, nameRange(ctx.allSymbols, *struct_), Diag(
+				Diag.BuiltinUnsupported(Diag.BuiltinUnsupported.Kind.type, struct_.name)));
+			return BuiltinType.void_;
+	}
 }

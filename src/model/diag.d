@@ -100,6 +100,8 @@ immutable struct Diag {
 	immutable struct AssignmentNotAllowed {}
 
 	immutable struct BuiltinUnsupported {
+		enum Kind { function_, spec, type }
+		Kind kind;
 		Symbol name;
 	}
 

@@ -5,6 +5,7 @@ module document.document;
 import model.ast : NameAndRange;
 import model.concreteModel : TypeSize;
 import model.model :
+	BuiltinType,
 	Destructure,
 	EnumMember,
 	FunDecl,
@@ -124,8 +125,8 @@ DocExport documentStructDecl(ref Alloc alloc, in StructDecl a) =>
 	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, a.body_.matchIn!Json(
 		(in StructBody.Bogus) =>
 			assert(false),
-		(in StructBody.Builtin) =>
-			jsonObject(alloc, [kindField!"builtin", field!"name"(a.name)]),
+		(in BuiltinType _) =>
+			jsonObject(alloc, [kindField!"builtin"]),
 		(in StructBody.Enum x) =>
 			jsonObject(alloc, [kindField!"enum", field!"members"(jsonOfEnumMembers(alloc, x.members))]),
 		(in StructBody.Extern x) =>

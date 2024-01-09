@@ -5,6 +5,7 @@ module frontend.check.instantiate;
 import frontend.lang : maxTypeParams;
 import frontend.allInsts : getOrAddFunInst, getOrAddSpecInst, getOrAddStructInst, AllInsts;
 import model.model :
+	BuiltinType,
 	CommonTypes,
 	Destructure,
 	combineLinkageRange,
@@ -97,7 +98,7 @@ void instantiateStructTypes(ref InstantiateCtx ctx, StructInst* inst, scope MayD
 	inst.instantiatedTypes = inst.decl.body_.match!(Type[])(
 		(StructBody.Bogus) =>
 			typeAs!(Type[])([]),
-		(StructBody.Builtin) =>
+		(BuiltinType _) =>
 			typeAs!(Type[])([]),
 		(StructBody.Enum e) =>
 			typeAs!(Type[])([]),

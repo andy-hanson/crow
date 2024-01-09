@@ -13,6 +13,7 @@ import frontend.check.checkCtx :
 	visibilityFromExplicitTopLevel;
 import frontend.check.checkExpr : checkFunctionBody, checkTestBody, TestBody;
 import frontend.check.checkStructs : checkStructBodies, checkStructsInitial;
+import frontend.check.getBuiltinFun : getBuiltinFun;
 import frontend.check.getCommonTypes : getCommonTypes;
 import frontend.check.maps : funDeclsName, FunsMap, specDeclName, SpecsMap, structOrAliasName, StructsAndAliasesMap;
 import frontend.check.funsForStruct : addFunsForStruct, addFunsForVar, countFunsForStructs, countFunsForVars;
@@ -39,6 +40,7 @@ import model.ast :
 	ImportsOrExportsAst,
 	ImportOrExportAst,
 	NameAndRange,
+	nameRange,
 	ParamsAst,
 	pathRange,
 	range,
@@ -234,7 +236,7 @@ SpecDeclBody.Builtin getSpecBodyBuiltinKind(ref CheckCtx ctx, in Range range, Sy
 		case symbol!"shared".value:
 			return SpecDeclBody.Builtin.shared_;
 		default:
-			addDiag(ctx, range, Diag(Diag.BuiltinUnsupported(name)));
+			addDiag(ctx, range, Diag(Diag.BuiltinUnsupported(Diag.BuiltinUnsupported.Kind.spec, name)));
 			return SpecDeclBody.Builtin.data;
 	}
 }
@@ -275,7 +277,7 @@ SpecDeclBody checkSpecDeclBody(
 		checkTypeParams(ctx, ast.typeParams);
 		SpecDeclBody body_ = checkSpecDeclBody(
 			ctx, commonTypes, TypeContainer(out_),
-			ast.typeParams, structsAndAliasesMap, ast.range, ast.name.name, ast.body_);
+			ast.typeParams, structsAndAliasesMap, nameRange(ctx.allSymbols, *ast), ast.name.name, ast.body_);
 		return SpecDecl(ctx.curUri, ast, visibilityFromExplicitTopLevel(ast.visibility), ast.name.name, body_);
 	});
 
@@ -613,7 +615,7 @@ FunsAndMap checkFuns(
 				case FunFlags.SpecialBody.generated:
 					if (!funAst.body_.kind.isA!EmptyAst)
 						todo!void("diag: builtin fun can't have body");
-					return FunBody(FunBody.Builtin());
+					return getBuiltinFun(ctx, fun);
 				case FunFlags.SpecialBody.extern_:
 					if (!funAst.body_.kind.isA!EmptyAst)
 						todo!void("diag: extern fun can't have body");

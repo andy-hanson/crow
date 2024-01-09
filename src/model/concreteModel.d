@@ -4,6 +4,8 @@ module model.concreteModel;
 
 import model.constant : Constant;
 import model.model :
+	BuiltinFun,
+	BuiltinType,
 	ClosureReferenceKind,
 	EnumBackingType,
 	EnumFunction,
@@ -18,7 +20,7 @@ import model.model :
 	Purity,
 	StructInst,
 	VarDecl;
-import util.col.array : arraysEqual, contains, only, PtrAndSmallNumber, SmallArray;
+import util.col.array : arraysEqual, only, PtrAndSmallNumber, SmallArray;
 import util.col.map : Map;
 import util.hash : HashCode, Hasher, hashPtr;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
@@ -28,26 +30,6 @@ import util.string : CString;
 import util.symbol : Symbol;
 import util.union_ : Union;
 
-enum BuiltinStructKind {
-	bool_,
-	char8,
-	float32,
-	float64,
-	fun, // 'fun' or 'act'
-	funPointer,
-	int8,
-	int16,
-	int32,
-	int64,
-	nat8,
-	nat16,
-	nat32,
-	nat64,
-	pointerConst,
-	pointerMut,
-	void_,
-}
-
 immutable struct EnumValues {
 	// size_t for 0 to N
 	mixin Union!(size_t, EnumValue[]);
@@ -55,7 +37,7 @@ immutable struct EnumValues {
 
 immutable struct ConcreteStructBody {
 	immutable struct Builtin {
-		BuiltinStructKind kind;
+		BuiltinType kind;
 		ConcreteType[] typeArgs;
 	}
 	immutable struct Enum {
@@ -98,7 +80,7 @@ bool isBogus(in ConcreteType a) =>
 bool isVoid(in ConcreteType a) =>
 	a.reference == ReferenceKind.byVal &&
 	a.struct_.body_.isA!(ConcreteStructBody.Builtin) &&
-	a.struct_.body_.as!(ConcreteStructBody.Builtin).kind == BuiltinStructKind.void_;
+	a.struct_.body_.as!(ConcreteStructBody.Builtin).kind == BuiltinType.void_;
 
 alias ReferenceKind = immutable ReferenceKind_;
 private enum ReferenceKind_ { byVal, byRef, byRefRef }
@@ -255,6 +237,7 @@ immutable struct ConcreteLocal {
 
 immutable struct ConcreteFunBody {
 	immutable struct Builtin {
+		BuiltinFun kind;
 		ConcreteType[] typeArgs;
 	}
 	immutable struct CreateRecord {}
@@ -408,13 +391,6 @@ UriAndRange concreteFunRange(in ConcreteFun a) =>
 			x.range,
 		(in ConcreteFunSource.WrapMain x) =>
 			x.range);
-
-bool isFunOrActSubscript(ref ConcreteProgram program, ref ConcreteFun a) =>
-	a.source.isA!ConcreteFunKey &&
-	contains(program.commonFuns.funOrActSubscriptFunDecls, a.source.as!ConcreteFunKey.decl);
-
-bool isMarkVisitFun(ref ConcreteProgram program, ref ConcreteFun a) =>
-	a.source.isA!ConcreteFunKey && a.source.as!ConcreteFunKey.decl == program.commonFuns.markVisitFunDecl;
 
 immutable struct ConcreteExpr {
 	ConcreteType type;
@@ -648,9 +624,7 @@ immutable struct ConcreteProgram {
 
 immutable struct ConcreteCommonFuns {
 	ConcreteFun* allocFun;
-	FunDecl*[2] funOrActSubscriptFunDecls;
 	ConcreteFun* markFun;
-	FunDecl* markVisitFunDecl;
 	ConcreteFun* rtMain;
 	ConcreteFun* throwImpl;
 	ConcreteFun* userMain;

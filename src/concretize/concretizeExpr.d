@@ -96,7 +96,8 @@ import model.model :
 	ThrowExpr,
 	TrustedExpr,
 	Type,
-	VariableRef;
+	VariableRef,
+	VersionFun;
 import util.alloc.alloc : Alloc;
 import util.col.array : isEmpty, map, mapZip, newArray, only, PtrAndSmallNumber, sizeEq, small, SmallArray;
 import util.col.mutArr : MutArr, mutArrSize, push;
@@ -105,7 +106,7 @@ import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2Mus
 import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range, UriAndRange;
-import util.symbol : AllSymbols, Symbol, symbol;
+import util.symbol : AllSymbols, symbol;
 import util.union_ : Union;
 import util.uri : Uri;
 import util.util : castNonScope, castNonScope_ref, ptrTrustMe, todo;
@@ -1032,10 +1033,8 @@ Opt!Constant tryEvalConstant(
 	in VersionInfo versionInfo,
 ) =>
 	fn.body_.matchIn!(Opt!Constant)(
-		(in ConcreteFunBody.Builtin) {
-			// TODO: don't just special-case this one..
-			Opt!Symbol name = name(fn);
-			return has(name) ? tryEvalConstantBuiltin(force(name), versionInfo) : none!Constant;
+		(in ConcreteFunBody.Builtin x) {
+			return x.kind.isA!VersionFun ? some(versionConstant(x.kind.as!VersionFun, versionInfo)) : none!Constant;
 		},
 		(in Constant x) =>
 			some(x),
@@ -1055,21 +1054,19 @@ Opt!Constant tryEvalConstant(
 		(in ConcreteFunBody.VarGet) => none!Constant,
 		(in ConcreteFunBody.VarSet) => none!Constant);
 
-Opt!Constant tryEvalConstantBuiltin(Symbol name, in VersionInfo versionInfo) {
-	switch (name.value) {
-		case symbol!"is-big-endian".value:
-			return some(constantBool(versionInfo.isBigEndian));
-		case symbol!"is-interpreted".value:
-			return some(constantBool(versionInfo.isInterpreted));
-		case symbol!"is-jit".value:
-			return some(constantBool(versionInfo.isJit));
-		case symbol!"is-single-threaded".value:
-			return some(constantBool(versionInfo.isSingleThreaded));
-		case symbol!"is-wasm".value:
-			return some(constantBool(versionInfo.isWasm));
-		case symbol!"is-windows".value:
-			return some(constantBool(versionInfo.isWindows));
-		default:
-			return none!Constant;
+Constant versionConstant(VersionFun fun, in VersionInfo versionInfo) {
+	final switch (fun) {
+		case VersionFun.isBigEndian:
+			return constantBool(versionInfo.isBigEndian);
+		case VersionFun.isInterpreted:
+			return constantBool(versionInfo.isInterpreted);
+		case VersionFun.isJit:
+			return constantBool(versionInfo.isJit);
+		case VersionFun.isSingleThreaded:
+			return constantBool(versionInfo.isSingleThreaded);
+		case VersionFun.isWasm:
+			return constantBool(versionInfo.isWasm);
+		case VersionFun.isWindows:
+			return constantBool(versionInfo.isWindows);
 	}
 }

@@ -120,6 +120,7 @@ import model.lowModel :
 	targetIsPointer,
 	targetRecordType,
 	UpdateParam;
+import model.model : BuiltinBinary, BuiltinUnary;
 import model.showLowModel : writeFunName, writeFunSig;
 import model.typeLayout : typeSizeBytes;
 import util.alloc.alloc : Alloc;
@@ -575,7 +576,7 @@ struct ExprEmit {
 	immutable struct Value {}
 	/**
 	Don't return anything. (Don't even return_void).
-	This is used for `LowExprKind.SpecialUnary.Kind.drop` even if the expression type is not void.
+	This is used for `BuiltinUnary.drop` even if the expression type is not void.
 	**/
 	immutable struct Void {}
 	// Write to this local. Return none.
@@ -666,7 +667,7 @@ ExprResult emitWriteToLValue(
 		(ExprEmit.Value) =>
 			ExprResult(getRValueUsingLocal(ctx, type, cb)),
 		(ExprEmit.Void) {
-			// This can happen for a LowExprKind.SpecialUnary.Kind.drop
+			// This can happen for a BuiltinUnary.drop
 			getRValueUsingLocal(ctx, type, cb);
 			return ExprResult(ExprResult.Void());
 		},
@@ -1357,115 +1358,115 @@ ExprResult constantToGcc(ref ExprCtx ctx, ref ExprEmit emit, in LowType type, in
 	}
 
 	final switch (a.kind) {
-		case LowExprKind.SpecialUnary.Kind.acosFloat32:
+		case BuiltinUnary.acosFloat32:
 			return builtin(BuiltinFunction.acosf);
-		case LowExprKind.SpecialUnary.Kind.acosFloat64:
+		case BuiltinUnary.acosFloat64:
 			return builtin(BuiltinFunction.acos);
-		case LowExprKind.SpecialUnary.Kind.acoshFloat32:
+		case BuiltinUnary.acoshFloat32:
 			return builtin(BuiltinFunction.acoshf);
-		case LowExprKind.SpecialUnary.Kind.acoshFloat64:
+		case BuiltinUnary.acoshFloat64:
 			return builtin(BuiltinFunction.acosh);
-		case LowExprKind.SpecialUnary.Kind.asinFloat32:
+		case BuiltinUnary.asinFloat32:
 			return builtin(BuiltinFunction.asinf);
-		case LowExprKind.SpecialUnary.Kind.asinFloat64:
+		case BuiltinUnary.asinFloat64:
 			return builtin(BuiltinFunction.asin);
-		case LowExprKind.SpecialUnary.Kind.asinhFloat32:
+		case BuiltinUnary.asinhFloat32:
 			return builtin(BuiltinFunction.asinhf);
-		case LowExprKind.SpecialUnary.Kind.asinhFloat64:
+		case BuiltinUnary.asinhFloat64:
 			return builtin(BuiltinFunction.asinh);
-		case LowExprKind.SpecialUnary.Kind.atanFloat32:
+		case BuiltinUnary.atanFloat32:
 			return builtin(BuiltinFunction.atanf);
-		case LowExprKind.SpecialUnary.Kind.atanFloat64:
+		case BuiltinUnary.atanFloat64:
 			return builtin(BuiltinFunction.atan);
-		case LowExprKind.SpecialUnary.Kind.atanhFloat32:
+		case BuiltinUnary.atanhFloat32:
 			return builtin(BuiltinFunction.atanhf);
-		case LowExprKind.SpecialUnary.Kind.atanhFloat64:
+		case BuiltinUnary.atanhFloat64:
 			return builtin(BuiltinFunction.atanh);
-		case LowExprKind.SpecialUnary.Kind.cosFloat32:
+		case BuiltinUnary.cosFloat32:
 			return builtin(BuiltinFunction.cosf);
-		case LowExprKind.SpecialUnary.Kind.cosFloat64:
+		case BuiltinUnary.cosFloat64:
 			return builtin(BuiltinFunction.cos);
-		case LowExprKind.SpecialUnary.Kind.coshFloat32:
+		case BuiltinUnary.coshFloat32:
 			return builtin(BuiltinFunction.coshf);
-		case LowExprKind.SpecialUnary.Kind.coshFloat64:
+		case BuiltinUnary.coshFloat64:
 			return builtin(BuiltinFunction.cosh);
-		case LowExprKind.SpecialUnary.Kind.sinFloat32:
+		case BuiltinUnary.sinFloat32:
 			return builtin(BuiltinFunction.sinf);
-		case LowExprKind.SpecialUnary.Kind.sinFloat64:
+		case BuiltinUnary.sinFloat64:
 			return builtin(BuiltinFunction.sin);
-		case LowExprKind.SpecialUnary.Kind.sinhFloat32:
+		case BuiltinUnary.sinhFloat32:
 			return builtin(BuiltinFunction.sinhf);
-		case LowExprKind.SpecialUnary.Kind.sinhFloat64:
+		case BuiltinUnary.sinhFloat64:
 			return builtin(BuiltinFunction.sinh);
-		case LowExprKind.SpecialUnary.Kind.tanFloat32:
+		case BuiltinUnary.tanFloat32:
 			return builtin(BuiltinFunction.tanf);
-		case LowExprKind.SpecialUnary.Kind.tanFloat64:
+		case BuiltinUnary.tanFloat64:
 			return builtin(BuiltinFunction.tan);
-		case LowExprKind.SpecialUnary.Kind.tanhFloat32:
+		case BuiltinUnary.tanhFloat32:
 			return builtin(BuiltinFunction.tanhf);
-		case LowExprKind.SpecialUnary.Kind.tanhFloat64:
+		case BuiltinUnary.tanhFloat64:
 			return builtin(BuiltinFunction.tanh);
-		case LowExprKind.SpecialUnary.Kind.roundFloat32:
+		case BuiltinUnary.roundFloat32:
 			return builtin(BuiltinFunction.roundf);
-		case LowExprKind.SpecialUnary.Kind.roundFloat64:
+		case BuiltinUnary.roundFloat64:
 			return builtin(BuiltinFunction.round);
-		case LowExprKind.SpecialUnary.Kind.sqrtFloat32:
+		case BuiltinUnary.sqrtFloat32:
 			return builtin(BuiltinFunction.sqrtf);
-		case LowExprKind.SpecialUnary.Kind.sqrtFloat64:
+		case BuiltinUnary.sqrtFloat64:
 			return builtin(BuiltinFunction.sqrt);
-		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat8:
-		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat16:
-		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat32:
-		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat64:
+		case BuiltinUnary.bitwiseNotNat8:
+		case BuiltinUnary.bitwiseNotNat16:
+		case BuiltinUnary.bitwiseNotNat32:
+		case BuiltinUnary.bitwiseNotNat64:
 			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_unary_op(
 				ctx.gcc,
 				null,
 				gcc_jit_unary_op.GCC_JIT_UNARY_OP_BITWISE_NEGATE,
 				getGccType(ctx.types, type),
 				emitToRValue(ctx, locals, a.arg)));
-		case LowExprKind.SpecialUnary.Kind.countOnesNat64:
+		case BuiltinUnary.countOnesNat64:
 			return callBuiltinUnaryAndCast(
 				ctx, locals, emit, a.arg, BuiltinFunction.__builtin_popcountl, ctx.nat64Type);
-		case LowExprKind.SpecialUnary.Kind.deref:
+		case BuiltinUnary.deref:
 			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_as_rvalue(
 				gcc_jit_rvalue_dereference(emitToRValue(ctx, locals, a.arg), null)));
-		case LowExprKind.SpecialUnary.Kind.drop:
+		case BuiltinUnary.drop:
 			emitToVoid(ctx, locals, a.arg);
 			return emitVoid(ctx, emit);
-		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
-		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
-		case LowExprKind.SpecialUnary.Kind.toChar8FromNat8:
-		case LowExprKind.SpecialUnary.Kind.toFloat32FromFloat64:
-		case LowExprKind.SpecialUnary.Kind.toFloat64FromFloat32:
-		case LowExprKind.SpecialUnary.Kind.toFloat64FromInt64:
-		case LowExprKind.SpecialUnary.Kind.toFloat64FromNat64:
-		case LowExprKind.SpecialUnary.Kind.toInt64FromInt8:
-		case LowExprKind.SpecialUnary.Kind.toInt64FromInt16:
-		case LowExprKind.SpecialUnary.Kind.toInt64FromInt32:
-		case LowExprKind.SpecialUnary.Kind.toNat8FromChar8:
-		case LowExprKind.SpecialUnary.Kind.toNat64FromNat8:
-		case LowExprKind.SpecialUnary.Kind.toNat64FromNat16:
-		case LowExprKind.SpecialUnary.Kind.toNat64FromNat32:
-		case LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64:
-		case LowExprKind.SpecialUnary.Kind.unsafeToInt8FromInt64:
-		case LowExprKind.SpecialUnary.Kind.unsafeToInt16FromInt64:
-		case LowExprKind.SpecialUnary.Kind.unsafeToInt32FromInt64:
-		case LowExprKind.SpecialUnary.Kind.unsafeToInt64FromNat64:
-		case LowExprKind.SpecialUnary.Kind.unsafeToNat8FromNat64:
-		case LowExprKind.SpecialUnary.Kind.unsafeToNat16FromNat64:
-		case LowExprKind.SpecialUnary.Kind.unsafeToNat32FromInt32:
-		case LowExprKind.SpecialUnary.Kind.unsafeToNat32FromNat64:
-		case LowExprKind.SpecialUnary.Kind.unsafeToNat64FromInt64:
+		case BuiltinUnary.asAnyPtr:
+		case BuiltinUnary.enumToIntegral:
+		case BuiltinUnary.toChar8FromNat8:
+		case BuiltinUnary.toFloat32FromFloat64:
+		case BuiltinUnary.toFloat64FromFloat32:
+		case BuiltinUnary.toFloat64FromInt64:
+		case BuiltinUnary.toFloat64FromNat64:
+		case BuiltinUnary.toInt64FromInt8:
+		case BuiltinUnary.toInt64FromInt16:
+		case BuiltinUnary.toInt64FromInt32:
+		case BuiltinUnary.toNat8FromChar8:
+		case BuiltinUnary.toNat64FromNat8:
+		case BuiltinUnary.toNat64FromNat16:
+		case BuiltinUnary.toNat64FromNat32:
+		case BuiltinUnary.truncateToInt64FromFloat64:
+		case BuiltinUnary.unsafeToInt8FromInt64:
+		case BuiltinUnary.unsafeToInt16FromInt64:
+		case BuiltinUnary.unsafeToInt32FromInt64:
+		case BuiltinUnary.unsafeToInt64FromNat64:
+		case BuiltinUnary.unsafeToNat8FromNat64:
+		case BuiltinUnary.unsafeToNat16FromNat64:
+		case BuiltinUnary.unsafeToNat32FromInt32:
+		case BuiltinUnary.unsafeToNat32FromNat64:
+		case BuiltinUnary.unsafeToNat64FromInt64:
 			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_cast(
 				ctx.gcc,
 				null,
 				emitToRValue(ctx, locals, a.arg),
 				getGccType(ctx.types, type)));
-		case LowExprKind.SpecialUnary.Kind.toNat64FromPtr:
+		case BuiltinUnary.toNat64FromPtr:
 			immutable gcc_jit_rvalue* arg = emitToRValue(ctx, locals, a.arg);
 			return emitSimpleNoSideEffects(ctx, emit, castImmutable(
 				gcc_jit_context_new_call(ctx.gcc, null, ctx.conversionFunctions.ptrToNat64, 1, &arg)));
-		case LowExprKind.SpecialUnary.Kind.toPtrFromNat64:
+		case BuiltinUnary.toPtrFromNat64:
 			immutable gcc_jit_rvalue* arg = emitToRValue(ctx, locals, a.arg);
 			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_cast(
 				ctx.gcc,
@@ -1533,127 +1534,127 @@ ExprResult binaryToGcc(
 	}
 
 	final switch (a.kind) {
-		case LowExprKind.SpecialBinary.Kind.atan2Float32:
+		case BuiltinBinary.atan2Float32:
 			return callBuiltinBinary(ctx, locals, emit, a.args, BuiltinFunction.atan2f);
-		case LowExprKind.SpecialBinary.Kind.atan2Float64:
+		case BuiltinBinary.atan2Float64:
 			return callBuiltinBinary(ctx, locals, emit, a.args, BuiltinFunction.atan2);
-		case LowExprKind.SpecialBinary.Kind.addFloat32:
-		case LowExprKind.SpecialBinary.Kind.addFloat64:
-		case LowExprKind.SpecialBinary.Kind.unsafeAddInt8:
-		case LowExprKind.SpecialBinary.Kind.unsafeAddInt16:
-		case LowExprKind.SpecialBinary.Kind.unsafeAddInt32:
-		case LowExprKind.SpecialBinary.Kind.unsafeAddInt64:
-		case LowExprKind.SpecialBinary.Kind.wrapAddNat8:
-		case LowExprKind.SpecialBinary.Kind.wrapAddNat16:
-		case LowExprKind.SpecialBinary.Kind.wrapAddNat32:
-		case LowExprKind.SpecialBinary.Kind.wrapAddNat64:
+		case BuiltinBinary.addFloat32:
+		case BuiltinBinary.addFloat64:
+		case BuiltinBinary.unsafeAddInt8:
+		case BuiltinBinary.unsafeAddInt16:
+		case BuiltinBinary.unsafeAddInt32:
+		case BuiltinBinary.unsafeAddInt64:
+		case BuiltinBinary.wrapAddNat8:
+		case BuiltinBinary.wrapAddNat16:
+		case BuiltinBinary.wrapAddNat32:
+		case BuiltinBinary.wrapAddNat64:
 			// TODO: does this handle wrapping?
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_PLUS);
-		case LowExprKind.SpecialBinary.Kind.addPtrAndNat64:
+		case BuiltinBinary.addPtrAndNat64:
 			return ptrArithmeticToGcc(ctx, locals, emit, PtrArith.addNat, left, right);
-		case LowExprKind.SpecialBinary.Kind.and:
+		case BuiltinBinary.and:
 			return logicalOperatorToGcc(ctx, locals, emit, LogicalOperator.and, left, right);
-		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt8:
-		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt16:
-		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt32:
-		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt64:
-		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat8:
-		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat16:
-		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat32:
-		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat64:
+		case BuiltinBinary.bitwiseAndInt8:
+		case BuiltinBinary.bitwiseAndInt16:
+		case BuiltinBinary.bitwiseAndInt32:
+		case BuiltinBinary.bitwiseAndInt64:
+		case BuiltinBinary.bitwiseAndNat8:
+		case BuiltinBinary.bitwiseAndNat16:
+		case BuiltinBinary.bitwiseAndNat32:
+		case BuiltinBinary.bitwiseAndNat64:
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_BITWISE_AND);
-		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt8:
-		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt16:
-		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt32:
-		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt64:
-		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat8:
-		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat16:
-		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat32:
-		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat64:
+		case BuiltinBinary.bitwiseOrInt8:
+		case BuiltinBinary.bitwiseOrInt16:
+		case BuiltinBinary.bitwiseOrInt32:
+		case BuiltinBinary.bitwiseOrInt64:
+		case BuiltinBinary.bitwiseOrNat8:
+		case BuiltinBinary.bitwiseOrNat16:
+		case BuiltinBinary.bitwiseOrNat32:
+		case BuiltinBinary.bitwiseOrNat64:
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_BITWISE_OR);
-		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt8:
-		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt16:
-		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt32:
-		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt64:
-		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat8:
-		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat16:
-		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat32:
-		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat64:
+		case BuiltinBinary.bitwiseXorInt8:
+		case BuiltinBinary.bitwiseXorInt16:
+		case BuiltinBinary.bitwiseXorInt32:
+		case BuiltinBinary.bitwiseXorInt64:
+		case BuiltinBinary.bitwiseXorNat8:
+		case BuiltinBinary.bitwiseXorNat16:
+		case BuiltinBinary.bitwiseXorNat32:
+		case BuiltinBinary.bitwiseXorNat64:
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_BITWISE_XOR);
-		case LowExprKind.SpecialBinary.Kind.eqFloat32:
-		case LowExprKind.SpecialBinary.Kind.eqFloat64:
-		case LowExprKind.SpecialBinary.Kind.eqInt8:
-		case LowExprKind.SpecialBinary.Kind.eqInt16:
-		case LowExprKind.SpecialBinary.Kind.eqInt32:
-		case LowExprKind.SpecialBinary.Kind.eqInt64:
-		case LowExprKind.SpecialBinary.Kind.eqNat8:
-		case LowExprKind.SpecialBinary.Kind.eqNat16:
-		case LowExprKind.SpecialBinary.Kind.eqNat32:
-		case LowExprKind.SpecialBinary.Kind.eqNat64:
-		case LowExprKind.SpecialBinary.Kind.eqPtr:
+		case BuiltinBinary.eqFloat32:
+		case BuiltinBinary.eqFloat64:
+		case BuiltinBinary.eqInt8:
+		case BuiltinBinary.eqInt16:
+		case BuiltinBinary.eqInt32:
+		case BuiltinBinary.eqInt64:
+		case BuiltinBinary.eqNat8:
+		case BuiltinBinary.eqNat16:
+		case BuiltinBinary.eqNat32:
+		case BuiltinBinary.eqNat64:
+		case BuiltinBinary.eqPtr:
 			return comparison(gcc_jit_comparison.GCC_JIT_COMPARISON_EQ);
-		case LowExprKind.SpecialBinary.Kind.lessChar8:
-		case LowExprKind.SpecialBinary.Kind.lessFloat32:
-		case LowExprKind.SpecialBinary.Kind.lessFloat64:
-		case LowExprKind.SpecialBinary.Kind.lessInt8:
-		case LowExprKind.SpecialBinary.Kind.lessInt16:
-		case LowExprKind.SpecialBinary.Kind.lessInt32:
-		case LowExprKind.SpecialBinary.Kind.lessInt64:
-		case LowExprKind.SpecialBinary.Kind.lessNat8:
-		case LowExprKind.SpecialBinary.Kind.lessNat16:
-		case LowExprKind.SpecialBinary.Kind.lessNat32:
-		case LowExprKind.SpecialBinary.Kind.lessNat64:
-		case LowExprKind.SpecialBinary.Kind.lessPtr:
+		case BuiltinBinary.lessChar8:
+		case BuiltinBinary.lessFloat32:
+		case BuiltinBinary.lessFloat64:
+		case BuiltinBinary.lessInt8:
+		case BuiltinBinary.lessInt16:
+		case BuiltinBinary.lessInt32:
+		case BuiltinBinary.lessInt64:
+		case BuiltinBinary.lessNat8:
+		case BuiltinBinary.lessNat16:
+		case BuiltinBinary.lessNat32:
+		case BuiltinBinary.lessNat64:
+		case BuiltinBinary.lessPtr:
 			return comparison(gcc_jit_comparison.GCC_JIT_COMPARISON_LT);
-		case LowExprKind.SpecialBinary.Kind.mulFloat32:
-		case LowExprKind.SpecialBinary.Kind.mulFloat64:
-		case LowExprKind.SpecialBinary.Kind.unsafeMulInt8:
-		case LowExprKind.SpecialBinary.Kind.unsafeMulInt16:
-		case LowExprKind.SpecialBinary.Kind.unsafeMulInt32:
-		case LowExprKind.SpecialBinary.Kind.unsafeMulInt64:
-		case LowExprKind.SpecialBinary.Kind.wrapMulNat8:
-		case LowExprKind.SpecialBinary.Kind.wrapMulNat16:
-		case LowExprKind.SpecialBinary.Kind.wrapMulNat32:
-		case LowExprKind.SpecialBinary.Kind.wrapMulNat64:
+		case BuiltinBinary.mulFloat32:
+		case BuiltinBinary.mulFloat64:
+		case BuiltinBinary.unsafeMulInt8:
+		case BuiltinBinary.unsafeMulInt16:
+		case BuiltinBinary.unsafeMulInt32:
+		case BuiltinBinary.unsafeMulInt64:
+		case BuiltinBinary.wrapMulNat8:
+		case BuiltinBinary.wrapMulNat16:
+		case BuiltinBinary.wrapMulNat32:
+		case BuiltinBinary.wrapMulNat64:
 			// TODO: does this handle wrapping?
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_MULT);
-		case LowExprKind.SpecialBinary.Kind.orBool:
+		case BuiltinBinary.orBool:
 			return logicalOperatorToGcc(ctx, locals, emit, LogicalOperator.or, left, right);
-		case LowExprKind.SpecialBinary.Kind.seq:
+		case BuiltinBinary.seq:
 			emitToVoid(ctx, locals, left);
 			return toGccExpr(ctx, locals, emit, right);
-		case LowExprKind.SpecialBinary.Kind.subFloat32:
-		case LowExprKind.SpecialBinary.Kind.subFloat64:
-		case LowExprKind.SpecialBinary.Kind.unsafeSubInt8:
-		case LowExprKind.SpecialBinary.Kind.unsafeSubInt16:
-		case LowExprKind.SpecialBinary.Kind.unsafeSubInt32:
-		case LowExprKind.SpecialBinary.Kind.unsafeSubInt64:
-		case LowExprKind.SpecialBinary.Kind.wrapSubNat8:
-		case LowExprKind.SpecialBinary.Kind.wrapSubNat16:
-		case LowExprKind.SpecialBinary.Kind.wrapSubNat32:
-		case LowExprKind.SpecialBinary.Kind.wrapSubNat64:
+		case BuiltinBinary.subFloat32:
+		case BuiltinBinary.subFloat64:
+		case BuiltinBinary.unsafeSubInt8:
+		case BuiltinBinary.unsafeSubInt16:
+		case BuiltinBinary.unsafeSubInt32:
+		case BuiltinBinary.unsafeSubInt64:
+		case BuiltinBinary.wrapSubNat8:
+		case BuiltinBinary.wrapSubNat16:
+		case BuiltinBinary.wrapSubNat32:
+		case BuiltinBinary.wrapSubNat64:
 			// TODO: does this handle wrapping?
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_MINUS);
-		case LowExprKind.SpecialBinary.Kind.subPtrAndNat64:
+		case BuiltinBinary.subPtrAndNat64:
 			return ptrArithmeticToGcc(ctx, locals, emit, PtrArith.subtractNat, left, right);
-		case LowExprKind.SpecialBinary.Kind.unsafeBitShiftLeftNat64:
+		case BuiltinBinary.unsafeBitShiftLeftNat64:
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_LSHIFT);
-		case LowExprKind.SpecialBinary.Kind.unsafeBitShiftRightNat64:
+		case BuiltinBinary.unsafeBitShiftRightNat64:
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_RSHIFT);
-		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat32:
-		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat64:
-		case LowExprKind.SpecialBinary.Kind.unsafeDivInt8:
-		case LowExprKind.SpecialBinary.Kind.unsafeDivInt16:
-		case LowExprKind.SpecialBinary.Kind.unsafeDivInt32:
-		case LowExprKind.SpecialBinary.Kind.unsafeDivInt64:
-		case LowExprKind.SpecialBinary.Kind.unsafeDivNat8:
-		case LowExprKind.SpecialBinary.Kind.unsafeDivNat16:
-		case LowExprKind.SpecialBinary.Kind.unsafeDivNat32:
-		case LowExprKind.SpecialBinary.Kind.unsafeDivNat64:
+		case BuiltinBinary.unsafeDivFloat32:
+		case BuiltinBinary.unsafeDivFloat64:
+		case BuiltinBinary.unsafeDivInt8:
+		case BuiltinBinary.unsafeDivInt16:
+		case BuiltinBinary.unsafeDivInt32:
+		case BuiltinBinary.unsafeDivInt64:
+		case BuiltinBinary.unsafeDivNat8:
+		case BuiltinBinary.unsafeDivNat16:
+		case BuiltinBinary.unsafeDivNat32:
+		case BuiltinBinary.unsafeDivNat64:
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_DIVIDE);
-		case LowExprKind.SpecialBinary.Kind.unsafeModNat64:
+		case BuiltinBinary.unsafeModNat64:
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_MODULO);
-		case LowExprKind.SpecialBinary.Kind.writeToPtr:
+		case BuiltinBinary.writeToPtr:
 			gcc_jit_rvalue* gccLeft = emitToRValue(ctx, locals, left);
 			gcc_jit_rvalue* gccRight = emitToRValue(ctx, locals, right);
 			gcc_jit_block_add_assignment(ctx.curBlock, null, gcc_jit_rvalue_dereference(gccLeft, null), gccRight);

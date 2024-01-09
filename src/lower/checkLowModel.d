@@ -36,7 +36,7 @@ import model.lowModel :
 	targetIsPointer,
 	targetRecordType,
 	UpdateParam;
-import model.model : Program;
+import model.model : BuiltinUnary, BuiltinBinary, Program;
 import util.alloc.alloc : Alloc;
 import util.col.array : sizeEq;
 import util.col.array : zip;
@@ -240,108 +240,108 @@ void checkSpecialUnary(ref FunCtx ctx, in InfoStack info, in LowType type, in Lo
 }
 
 ExpectUnary unaryExpected(
-	LowExprKind.SpecialUnary.Kind kind,
+	BuiltinUnary kind,
 	return scope LowType returnType,
 	return scope LowType argType,
 ) {
 	final switch (kind) {
-		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
+		case BuiltinUnary.asAnyPtr:
 			//TODO: returns one of anyPtrConstType or anyPtrMutType. Maybe split these up
 			return ExpectUnary();
-		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
+		case BuiltinUnary.enumToIntegral:
 			return ExpectUnary();
-		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat8:
+		case BuiltinUnary.bitwiseNotNat8:
 			return expect(nat8Type, nat8Type);
-		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat16:
+		case BuiltinUnary.bitwiseNotNat16:
 			return expect(nat16Type, nat16Type);
-		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat32:
+		case BuiltinUnary.bitwiseNotNat32:
 			return expect(nat32Type, nat32Type);
-		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat64:
-		case LowExprKind.SpecialUnary.Kind.countOnesNat64:
+		case BuiltinUnary.bitwiseNotNat64:
+		case BuiltinUnary.countOnesNat64:
 			return expect(nat64Type, nat64Type);
-		case LowExprKind.SpecialUnary.Kind.deref:
+		case BuiltinUnary.deref:
 			return ExpectUnary(some(asGcOrRawPointee(argType)), none!LowType);
-		case LowExprKind.SpecialUnary.Kind.drop:
+		case BuiltinUnary.drop:
 			return ExpectUnary(some(voidType), none!LowType);
-		case LowExprKind.SpecialUnary.Kind.acosFloat32:
-		case LowExprKind.SpecialUnary.Kind.acoshFloat32:
-		case LowExprKind.SpecialUnary.Kind.asinFloat32:
-		case LowExprKind.SpecialUnary.Kind.asinhFloat32:
-		case LowExprKind.SpecialUnary.Kind.atanFloat32:
-		case LowExprKind.SpecialUnary.Kind.atanhFloat32:
-		case LowExprKind.SpecialUnary.Kind.cosFloat32:
-		case LowExprKind.SpecialUnary.Kind.coshFloat32:
-		case LowExprKind.SpecialUnary.Kind.roundFloat32:
-		case LowExprKind.SpecialUnary.Kind.sinFloat32:
-		case LowExprKind.SpecialUnary.Kind.sinhFloat32:
-		case LowExprKind.SpecialUnary.Kind.sqrtFloat32:
-		case LowExprKind.SpecialUnary.Kind.tanFloat32:
-		case LowExprKind.SpecialUnary.Kind.tanhFloat32:
+		case BuiltinUnary.acosFloat32:
+		case BuiltinUnary.acoshFloat32:
+		case BuiltinUnary.asinFloat32:
+		case BuiltinUnary.asinhFloat32:
+		case BuiltinUnary.atanFloat32:
+		case BuiltinUnary.atanhFloat32:
+		case BuiltinUnary.cosFloat32:
+		case BuiltinUnary.coshFloat32:
+		case BuiltinUnary.roundFloat32:
+		case BuiltinUnary.sinFloat32:
+		case BuiltinUnary.sinhFloat32:
+		case BuiltinUnary.sqrtFloat32:
+		case BuiltinUnary.tanFloat32:
+		case BuiltinUnary.tanhFloat32:
 			return expect(float32Type, float32Type);
-		case LowExprKind.SpecialUnary.Kind.acosFloat64:
-		case LowExprKind.SpecialUnary.Kind.acoshFloat64:
-		case LowExprKind.SpecialUnary.Kind.asinFloat64:
-		case LowExprKind.SpecialUnary.Kind.asinhFloat64:
-		case LowExprKind.SpecialUnary.Kind.atanFloat64:
-		case LowExprKind.SpecialUnary.Kind.atanhFloat64:
-		case LowExprKind.SpecialUnary.Kind.cosFloat64:
-		case LowExprKind.SpecialUnary.Kind.coshFloat64:
-		case LowExprKind.SpecialUnary.Kind.sinFloat64:
-		case LowExprKind.SpecialUnary.Kind.sinhFloat64:
-		case LowExprKind.SpecialUnary.Kind.tanFloat64:
-		case LowExprKind.SpecialUnary.Kind.tanhFloat64:
-		case LowExprKind.SpecialUnary.Kind.roundFloat64:
-		case LowExprKind.SpecialUnary.Kind.sqrtFloat64:
+		case BuiltinUnary.acosFloat64:
+		case BuiltinUnary.acoshFloat64:
+		case BuiltinUnary.asinFloat64:
+		case BuiltinUnary.asinhFloat64:
+		case BuiltinUnary.atanFloat64:
+		case BuiltinUnary.atanhFloat64:
+		case BuiltinUnary.cosFloat64:
+		case BuiltinUnary.coshFloat64:
+		case BuiltinUnary.sinFloat64:
+		case BuiltinUnary.sinhFloat64:
+		case BuiltinUnary.tanFloat64:
+		case BuiltinUnary.tanhFloat64:
+		case BuiltinUnary.roundFloat64:
+		case BuiltinUnary.sqrtFloat64:
 			return expect(float64Type, float64Type);
-		case LowExprKind.SpecialUnary.Kind.toChar8FromNat8:
+		case BuiltinUnary.toChar8FromNat8:
 			return expect(char8Type, nat8Type);
-		case LowExprKind.SpecialUnary.Kind.toFloat32FromFloat64:
+		case BuiltinUnary.toFloat32FromFloat64:
 			return expect(float32Type, float64Type);
-		case LowExprKind.SpecialUnary.Kind.toFloat64FromFloat32:
+		case BuiltinUnary.toFloat64FromFloat32:
 			return expect(float64Type, float32Type);
-		case LowExprKind.SpecialUnary.Kind.toFloat64FromInt64:
+		case BuiltinUnary.toFloat64FromInt64:
 			return expect(float64Type, int64Type);
-		case LowExprKind.SpecialUnary.Kind.toFloat64FromNat64:
+		case BuiltinUnary.toFloat64FromNat64:
 			return expect(float64Type, nat64Type);
-		case LowExprKind.SpecialUnary.Kind.toInt64FromInt8:
+		case BuiltinUnary.toInt64FromInt8:
 			return expect(int64Type, int8Type);
-		case LowExprKind.SpecialUnary.Kind.toInt64FromInt16:
+		case BuiltinUnary.toInt64FromInt16:
 			return expect(int64Type, int16Type);
-		case LowExprKind.SpecialUnary.Kind.toInt64FromInt32:
+		case BuiltinUnary.toInt64FromInt32:
 			return expect(int64Type, int32Type);
-		case LowExprKind.SpecialUnary.Kind.toNat8FromChar8:
+		case BuiltinUnary.toNat8FromChar8:
 			return expect(nat8Type, char8Type);
-		case LowExprKind.SpecialUnary.Kind.toNat64FromNat8:
+		case BuiltinUnary.toNat64FromNat8:
 			return expect(nat64Type, nat8Type);
-		case LowExprKind.SpecialUnary.Kind.toNat64FromNat16:
+		case BuiltinUnary.toNat64FromNat16:
 			return expect(nat64Type, nat16Type);
-		case LowExprKind.SpecialUnary.Kind.toNat64FromNat32:
+		case BuiltinUnary.toNat64FromNat32:
 			return expect(nat64Type, nat32Type);
-		case LowExprKind.SpecialUnary.Kind.toNat64FromPtr:
+		case BuiltinUnary.toNat64FromPtr:
 			assert(isPtrGcOrRaw(argType));
 			return ExpectUnary(some(nat64Type), none!LowType);
-		case LowExprKind.SpecialUnary.Kind.toPtrFromNat64:
+		case BuiltinUnary.toPtrFromNat64:
 			assert(isPtrGcOrRaw(returnType));
 			return ExpectUnary(none!LowType, some(nat64Type));
-		case LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64:
+		case BuiltinUnary.truncateToInt64FromFloat64:
 			return expect(int64Type, float64Type);
-		case LowExprKind.SpecialUnary.Kind.unsafeToInt8FromInt64:
+		case BuiltinUnary.unsafeToInt8FromInt64:
 			return expect(int8Type, int64Type);
-		case LowExprKind.SpecialUnary.Kind.unsafeToInt16FromInt64:
+		case BuiltinUnary.unsafeToInt16FromInt64:
 			return expect(int16Type, int64Type);
-		case LowExprKind.SpecialUnary.Kind.unsafeToInt32FromInt64:
+		case BuiltinUnary.unsafeToInt32FromInt64:
 			return expect(int32Type, int64Type);
-		case LowExprKind.SpecialUnary.Kind.unsafeToInt64FromNat64:
+		case BuiltinUnary.unsafeToInt64FromNat64:
 			return expect(int64Type, nat64Type);
-		case LowExprKind.SpecialUnary.Kind.unsafeToNat8FromNat64:
+		case BuiltinUnary.unsafeToNat8FromNat64:
 			return expect(nat8Type, nat64Type);
-		case LowExprKind.SpecialUnary.Kind.unsafeToNat16FromNat64:
+		case BuiltinUnary.unsafeToNat16FromNat64:
 			return expect(nat16Type, nat64Type);
-		case LowExprKind.SpecialUnary.Kind.unsafeToNat32FromInt32:
+		case BuiltinUnary.unsafeToNat32FromInt32:
 			return expect(nat32Type, int32Type);
-		case LowExprKind.SpecialUnary.Kind.unsafeToNat32FromNat64:
+		case BuiltinUnary.unsafeToNat32FromNat64:
 			return expect(nat32Type, nat64Type);
-		case LowExprKind.SpecialUnary.Kind.unsafeToNat64FromInt64:
+		case BuiltinUnary.unsafeToNat64FromInt64:
 			return expect(nat64Type, int64Type);
 	}
 }
@@ -364,139 +364,139 @@ void checkSpecialBinary(ref FunCtx ctx, in InfoStack info, in LowType type, in L
 }
 
 ExpectBinary binaryExpected(
-	in LowExprKind.SpecialBinary.Kind kind,
+	in BuiltinBinary kind,
 	in LowType returnType,
 	return scope LowType arg0Type,
 	in LowType arg1Type,
 ) {
 	final switch (kind) {
-		case LowExprKind.SpecialBinary.Kind.addFloat32:
-		case LowExprKind.SpecialBinary.Kind.atan2Float32:
-		case LowExprKind.SpecialBinary.Kind.mulFloat32:
-		case LowExprKind.SpecialBinary.Kind.subFloat32:
-		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat32:
+		case BuiltinBinary.addFloat32:
+		case BuiltinBinary.atan2Float32:
+		case BuiltinBinary.mulFloat32:
+		case BuiltinBinary.subFloat32:
+		case BuiltinBinary.unsafeDivFloat32:
 			return expect(float32Type, float32Type, float32Type);
-		case LowExprKind.SpecialBinary.Kind.addFloat64:
-		case LowExprKind.SpecialBinary.Kind.atan2Float64:
-		case LowExprKind.SpecialBinary.Kind.mulFloat64:
-		case LowExprKind.SpecialBinary.Kind.subFloat64:
-		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat64:
+		case BuiltinBinary.addFloat64:
+		case BuiltinBinary.atan2Float64:
+		case BuiltinBinary.mulFloat64:
+		case BuiltinBinary.subFloat64:
+		case BuiltinBinary.unsafeDivFloat64:
 			return expect(float64Type, float64Type, float64Type);
-		case LowExprKind.SpecialBinary.Kind.addPtrAndNat64:
-		case LowExprKind.SpecialBinary.Kind.subPtrAndNat64:
+		case BuiltinBinary.addPtrAndNat64:
+		case BuiltinBinary.subPtrAndNat64:
 			assert(returnType == arg0Type);
 			assert(isPtrGcOrRaw(returnType));
 			return ExpectBinary(none!LowType, [none!LowType, some(nat64Type)]);
-		case LowExprKind.SpecialBinary.Kind.and:
-		case LowExprKind.SpecialBinary.Kind.orBool:
+		case BuiltinBinary.and:
+		case BuiltinBinary.orBool:
 			return expect(boolType, boolType, boolType);
-		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt8:
-		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt8:
-		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt8:
-		case LowExprKind.SpecialBinary.Kind.unsafeAddInt8:
-		case LowExprKind.SpecialBinary.Kind.unsafeDivInt8:
-		case LowExprKind.SpecialBinary.Kind.unsafeMulInt8:
-		case LowExprKind.SpecialBinary.Kind.unsafeSubInt8:
+		case BuiltinBinary.bitwiseAndInt8:
+		case BuiltinBinary.bitwiseOrInt8:
+		case BuiltinBinary.bitwiseXorInt8:
+		case BuiltinBinary.unsafeAddInt8:
+		case BuiltinBinary.unsafeDivInt8:
+		case BuiltinBinary.unsafeMulInt8:
+		case BuiltinBinary.unsafeSubInt8:
 			return expect(int8Type, int8Type, int8Type);
-		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt16:
-		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt16:
-		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt16:
-		case LowExprKind.SpecialBinary.Kind.unsafeAddInt16:
-		case LowExprKind.SpecialBinary.Kind.unsafeDivInt16:
-		case LowExprKind.SpecialBinary.Kind.unsafeMulInt16:
-		case LowExprKind.SpecialBinary.Kind.unsafeSubInt16:
+		case BuiltinBinary.bitwiseAndInt16:
+		case BuiltinBinary.bitwiseOrInt16:
+		case BuiltinBinary.bitwiseXorInt16:
+		case BuiltinBinary.unsafeAddInt16:
+		case BuiltinBinary.unsafeDivInt16:
+		case BuiltinBinary.unsafeMulInt16:
+		case BuiltinBinary.unsafeSubInt16:
 			return expect(int16Type, int16Type, int16Type);
-		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt32:
-		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt32:
-		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt32:
-		case LowExprKind.SpecialBinary.Kind.unsafeAddInt32:
-		case LowExprKind.SpecialBinary.Kind.unsafeDivInt32:
-		case LowExprKind.SpecialBinary.Kind.unsafeMulInt32:
-		case LowExprKind.SpecialBinary.Kind.unsafeSubInt32:
+		case BuiltinBinary.bitwiseAndInt32:
+		case BuiltinBinary.bitwiseOrInt32:
+		case BuiltinBinary.bitwiseXorInt32:
+		case BuiltinBinary.unsafeAddInt32:
+		case BuiltinBinary.unsafeDivInt32:
+		case BuiltinBinary.unsafeMulInt32:
+		case BuiltinBinary.unsafeSubInt32:
 			return expect(int32Type, int32Type, int32Type);
-		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt64:
-		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt64:
-		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt64:
-		case LowExprKind.SpecialBinary.Kind.unsafeAddInt64:
-		case LowExprKind.SpecialBinary.Kind.unsafeDivInt64:
-		case LowExprKind.SpecialBinary.Kind.unsafeMulInt64:
-		case LowExprKind.SpecialBinary.Kind.unsafeSubInt64:
+		case BuiltinBinary.bitwiseAndInt64:
+		case BuiltinBinary.bitwiseOrInt64:
+		case BuiltinBinary.bitwiseXorInt64:
+		case BuiltinBinary.unsafeAddInt64:
+		case BuiltinBinary.unsafeDivInt64:
+		case BuiltinBinary.unsafeMulInt64:
+		case BuiltinBinary.unsafeSubInt64:
 			return expect(int64Type, int64Type, int64Type);
-		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat8:
-		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat8:
-		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat8:
-		case LowExprKind.SpecialBinary.Kind.unsafeDivNat8:
-		case LowExprKind.SpecialBinary.Kind.wrapAddNat8:
-		case LowExprKind.SpecialBinary.Kind.wrapMulNat8:
-		case LowExprKind.SpecialBinary.Kind.wrapSubNat8:
+		case BuiltinBinary.bitwiseAndNat8:
+		case BuiltinBinary.bitwiseOrNat8:
+		case BuiltinBinary.bitwiseXorNat8:
+		case BuiltinBinary.unsafeDivNat8:
+		case BuiltinBinary.wrapAddNat8:
+		case BuiltinBinary.wrapMulNat8:
+		case BuiltinBinary.wrapSubNat8:
 			return expect(nat8Type, nat8Type, nat8Type);
-		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat16:
-		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat16:
-		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat16:
-		case LowExprKind.SpecialBinary.Kind.unsafeDivNat16:
-		case LowExprKind.SpecialBinary.Kind.wrapAddNat16:
-		case LowExprKind.SpecialBinary.Kind.wrapMulNat16:
-		case LowExprKind.SpecialBinary.Kind.wrapSubNat16:
+		case BuiltinBinary.bitwiseAndNat16:
+		case BuiltinBinary.bitwiseOrNat16:
+		case BuiltinBinary.bitwiseXorNat16:
+		case BuiltinBinary.unsafeDivNat16:
+		case BuiltinBinary.wrapAddNat16:
+		case BuiltinBinary.wrapMulNat16:
+		case BuiltinBinary.wrapSubNat16:
 			return expect(nat16Type, nat16Type, nat16Type);
-		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat32:
-		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat32:
-		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat32:
-		case LowExprKind.SpecialBinary.Kind.unsafeDivNat32:
-		case LowExprKind.SpecialBinary.Kind.wrapAddNat32:
-		case LowExprKind.SpecialBinary.Kind.wrapMulNat32:
-		case LowExprKind.SpecialBinary.Kind.wrapSubNat32:
+		case BuiltinBinary.bitwiseAndNat32:
+		case BuiltinBinary.bitwiseOrNat32:
+		case BuiltinBinary.bitwiseXorNat32:
+		case BuiltinBinary.unsafeDivNat32:
+		case BuiltinBinary.wrapAddNat32:
+		case BuiltinBinary.wrapMulNat32:
+		case BuiltinBinary.wrapSubNat32:
 			return expect(nat32Type, nat32Type, nat32Type);
-		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat64:
-		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat64:
-		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat64:
-		case LowExprKind.SpecialBinary.Kind.unsafeBitShiftLeftNat64:
-		case LowExprKind.SpecialBinary.Kind.unsafeBitShiftRightNat64:
-		case LowExprKind.SpecialBinary.Kind.unsafeDivNat64:
-		case LowExprKind.SpecialBinary.Kind.unsafeModNat64:
-		case LowExprKind.SpecialBinary.Kind.wrapAddNat64:
-		case LowExprKind.SpecialBinary.Kind.wrapMulNat64:
-		case LowExprKind.SpecialBinary.Kind.wrapSubNat64:
+		case BuiltinBinary.bitwiseAndNat64:
+		case BuiltinBinary.bitwiseOrNat64:
+		case BuiltinBinary.bitwiseXorNat64:
+		case BuiltinBinary.unsafeBitShiftLeftNat64:
+		case BuiltinBinary.unsafeBitShiftRightNat64:
+		case BuiltinBinary.unsafeDivNat64:
+		case BuiltinBinary.unsafeModNat64:
+		case BuiltinBinary.wrapAddNat64:
+		case BuiltinBinary.wrapMulNat64:
+		case BuiltinBinary.wrapSubNat64:
 			return expect(nat64Type, nat64Type, nat64Type);
-		case LowExprKind.SpecialBinary.Kind.eqFloat32:
-		case LowExprKind.SpecialBinary.Kind.lessFloat32:
+		case BuiltinBinary.eqFloat32:
+		case BuiltinBinary.lessFloat32:
 			return expect(boolType, float32Type, float32Type);
-		case LowExprKind.SpecialBinary.Kind.eqFloat64:
-		case LowExprKind.SpecialBinary.Kind.lessFloat64:
+		case BuiltinBinary.eqFloat64:
+		case BuiltinBinary.lessFloat64:
 			return expect(boolType, float64Type, float64Type);
-		case LowExprKind.SpecialBinary.Kind.eqInt8:
-		case LowExprKind.SpecialBinary.Kind.lessInt8:
+		case BuiltinBinary.eqInt8:
+		case BuiltinBinary.lessInt8:
 			return expect(boolType, int8Type, int8Type);
-		case LowExprKind.SpecialBinary.Kind.eqInt16:
-		case LowExprKind.SpecialBinary.Kind.lessInt16:
+		case BuiltinBinary.eqInt16:
+		case BuiltinBinary.lessInt16:
 			return expect(boolType, int16Type, int16Type);
-		case LowExprKind.SpecialBinary.Kind.eqInt32:
-		case LowExprKind.SpecialBinary.Kind.lessInt32:
+		case BuiltinBinary.eqInt32:
+		case BuiltinBinary.lessInt32:
 			return expect(boolType, int32Type, int32Type);
-		case LowExprKind.SpecialBinary.Kind.eqInt64:
-		case LowExprKind.SpecialBinary.Kind.lessInt64:
+		case BuiltinBinary.eqInt64:
+		case BuiltinBinary.lessInt64:
 			return expect(boolType, int64Type, int64Type);
-		case LowExprKind.SpecialBinary.Kind.eqNat8:
-		case LowExprKind.SpecialBinary.Kind.lessNat8:
+		case BuiltinBinary.eqNat8:
+		case BuiltinBinary.lessNat8:
 			return expect(boolType, nat8Type, nat8Type);
-		case LowExprKind.SpecialBinary.Kind.eqNat16:
-		case LowExprKind.SpecialBinary.Kind.lessNat16:
+		case BuiltinBinary.eqNat16:
+		case BuiltinBinary.lessNat16:
 			return expect(boolType, nat16Type, nat16Type);
-		case LowExprKind.SpecialBinary.Kind.eqNat32:
-		case LowExprKind.SpecialBinary.Kind.lessNat32:
+		case BuiltinBinary.eqNat32:
+		case BuiltinBinary.lessNat32:
 			return expect(boolType, nat32Type, nat32Type);
-		case LowExprKind.SpecialBinary.Kind.eqNat64:
-		case LowExprKind.SpecialBinary.Kind.lessNat64:
+		case BuiltinBinary.eqNat64:
+		case BuiltinBinary.lessNat64:
 			return expect(boolType, nat64Type, nat64Type);
-		case LowExprKind.SpecialBinary.Kind.eqPtr:
-		case LowExprKind.SpecialBinary.Kind.lessPtr:
+		case BuiltinBinary.eqPtr:
+		case BuiltinBinary.lessPtr:
 			assert(arg0Type == arg1Type);
 			return ExpectBinary(some(boolType), [none!LowType, none!LowType]);
-		case LowExprKind.SpecialBinary.Kind.lessChar8:
+		case BuiltinBinary.lessChar8:
 			return expect(boolType, char8Type, char8Type);
-		case LowExprKind.SpecialBinary.Kind.seq:
+		case BuiltinBinary.seq:
 			assert(returnType == arg1Type);
 			return ExpectBinary(none!LowType, [some(voidType), none!LowType]);
-		case LowExprKind.SpecialBinary.Kind.writeToPtr:
+		case BuiltinBinary.writeToPtr:
 			return ExpectBinary(some(voidType), [none!LowType, some(asGcOrRawPointee(arg0Type))]);
 	}
 }

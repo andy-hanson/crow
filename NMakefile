@@ -64,6 +64,7 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\frontend\check\maps.d \
 	src\frontend\check\typeFromAst.d \
 	src\frontend\check\typeUtil.d \
+	src\frontend\getBuiltinFun.d \
 	src\frontend\ide\getDefinition.d \
 	src\frontend\ide\getRename.d \
 	src\frontend\ide\getReferences.d \
@@ -109,7 +110,6 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\lower\checkLowModel.d \
 	src\lower\generateCallFunOrAct.d \
 	src\lower\generateMarkVisitFun.d \
-	src\lower\getBuiltinCall.d \
 	src\lower\lower.d \
 	src\lower\lowExprHelpers.d \
 	src\model\ast.d \

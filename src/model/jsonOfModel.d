@@ -7,6 +7,7 @@ import model.jsonOfConstant : jsonOfConstant;
 import model.model :
 	AssertOrForbidExpr,
 	BogusExpr,
+	BuiltinFun,
 	Called,
 	CalledSpecSig,
 	CallExpr,
@@ -265,7 +266,7 @@ Json jsonOfFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 	a.matchIn!Json(
 		(in FunBody.Bogus) =>
 			jsonString!"bogus" ,
-		(in FunBody.Builtin) =>
+		(in BuiltinFun _) =>
 			jsonString!"builtin" ,
 		(in FunBody.CreateEnum x) =>
 			jsonObject(alloc, [kindField!"create-enum", field!"member"(x.member.name)]),

@@ -553,7 +553,6 @@ CommonUris commonUris(ref AllUris allUris, Uri includeDir) {
 		childUri(allUris, includeCrow, symbol!"fun-util"),
 		childUri(allUris, includeCrow, symbol!"future"),
 		childUri(allUris, col, symbol!"list"),
-		childUri(allUris, includeCrow, symbol!"pointer"),
 		childUri(allUris, includeCrow, symbol!"std"),
 		childUri(allUris, includeCrow, symbol!"string"),
 		childUri(allUris, private_, symbol!"runtime"),

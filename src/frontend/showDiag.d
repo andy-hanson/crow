@@ -436,7 +436,9 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= "Can't assign to this kind of expression.";
 		},
 		(in Diag.BuiltinUnsupported x) {
-			writer ~= "The compiler does not implement a builtin named ";
+			writer ~= "The compiler does not implement a builtin ";
+			writer ~= stringOfEnum(x.kind);
+			writer ~= " named ";
 			writeName(writer, ctx, x.name);
 			writer ~= '.';
 		},

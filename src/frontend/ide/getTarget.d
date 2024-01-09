@@ -7,6 +7,7 @@ import model.diag : TypeWithContainer;
 import model.model :
 	AssertOrForbidExpr,
 	BogusExpr,
+	BuiltinFun,
 	Called,
 	CalledSpecSig,
 	CallExpr,
@@ -196,7 +197,7 @@ Opt!Target calledTarget(ref Called a) =>
 			return some(decl.body_.match!(Target)(
 				(FunBody.Bogus) =>
 					Target(decl),
-				(FunBody.Builtin) =>
+				(BuiltinFun _) =>
 					Target(decl),
 				(FunBody.CreateEnum x) =>
 					// goto the enum member

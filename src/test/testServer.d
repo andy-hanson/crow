@@ -103,8 +103,8 @@ void testChangeBootstrap(ref Test test) {
 		string defaultBootstrap = defaultIncludeResult("crow/private/bootstrap.crow");
 		setFile(test.perf, server, bootstrap, concatenate(alloc, defaultBootstrap, "junk"));
 		assertEqual(showDiags(), cString!(
-			"test:///include/crow/private/bootstrap.crow 417:5-417:5 Unexpected end of file.\n" ~
-			"test:///include/crow/private/bootstrap.crow 417:5-417:5 Expected '('."));
+			"test:///include/crow/private/bootstrap.crow 408:5-408:5 Unexpected end of file.\n" ~
+			"test:///include/crow/private/bootstrap.crow 408:5-408:5 Expected '('."));
 
 		setFile(test.perf, server, bootstrap, defaultBootstrap);
 		assertEqual(showDiags(), cString!"");

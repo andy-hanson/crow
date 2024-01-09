@@ -1,0 +1,9 @@
+main void()
+	()
+
+x builtin
+
+x builtin-spec
+
+# There are '==' builtins but not with this signature
+== string(a nat, b int) builtin

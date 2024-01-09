@@ -21,6 +21,7 @@ import model.model :
 	AssertOrForbidExpr,
 	AssertOrForbidKind,
 	BogusExpr,
+	BuiltinType,
 	CallExpr,
 	ClosureGetExpr,
 	ClosureRef,
@@ -62,8 +63,7 @@ import model.model :
 	TrustedExpr,
 	Type,
 	TypeParamIndex,
-	VarDecl,
-	Visibility;
+	VarDecl;
 import util.alloc.alloc : Alloc;
 import util.col.array : isEmpty;
 import util.opt : force, has, none, Opt, some;
@@ -239,7 +239,7 @@ void writeStructDeclHover(scope ref Writer writer, in ShowModelCtx ctx, in Struc
 	writer ~= a.body_.matchIn!string(
 		(in StructBody.Bogus) =>
 			"Type ",
-		(in StructBody.Builtin) =>
+		(in BuiltinType _) =>
 			"Builtin type ",
 		(in StructBody.Enum) =>
 			"Enum type ",

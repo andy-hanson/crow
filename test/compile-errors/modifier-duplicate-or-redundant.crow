@@ -1,7 +1,7 @@
 main void()
 	()
 
-b builtin data
+nat64 builtin data
 
 e extern mut
 

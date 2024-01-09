@@ -19,7 +19,7 @@ import frontend.showModel : ShowCtx;
 import frontend.storage : ReadFileResult;
 import model.concreteModel :
 	ConcreteCommonFuns, ConcreteFun, ConcreteFunKey, ConcreteLambdaImpl, ConcreteProgram, ConcreteStruct;
-import model.model : CommonFuns, FunKind, MainFun, ProgramWithMain;
+import model.model : CommonFuns, MainFun, ProgramWithMain;
 import util.alloc.alloc : Alloc;
 import util.col.array : emptySmallArray, newSmallArray;
 import util.col.arrayBuilder : finish;
@@ -97,9 +97,7 @@ ConcreteProgram concretizeInner(
 				moveToArray(alloc, it)),
 		ConcreteCommonFuns(
 			allocFun,
-			[commonFuns.funSubscript[FunKind.fun], commonFuns.funSubscript[FunKind.act]],
 			markFun,
-			commonFuns.markVisitFunDecl,
 			rtMainConcreteFun,
 			throwImplFun,
 			userMainConcreteFun));

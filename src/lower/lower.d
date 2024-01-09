@@ -5,7 +5,6 @@ module lower.lower;
 import lower.checkLowModel : checkLowProgram;
 import lower.generateCallFunOrAct : generateCallFunOrAct;
 import lower.generateMarkVisitFun : generateMarkVisitArr, generateMarkVisitNonArr, generateMarkVisitGcPtr;
-import lower.getBuiltinCall : BuiltinKind, getBuiltinKind;
 import lower.lowExprHelpers :
 	anyPtrMutType,
 	char8PtrPtrConstType,
@@ -38,7 +37,6 @@ import lower.lowExprHelpers :
 import model.concreteModel :
 	AllConstantsConcrete,
 	ArrTypeAndConstantsConcrete,
-	BuiltinStructKind,
 	ConcreteClosureRef,
 	ConcreteExpr,
 	ConcreteExprKind,
@@ -56,8 +54,6 @@ import model.concreteModel :
 	ConcreteType,
 	ConcreteVar,
 	ConcreteVariableRef,
-	isFunOrActSubscript,
-	isMarkVisitFun,
 	mustBeByVal,
 	name,
 	PointerTypeAndConstantsConcrete,
@@ -97,6 +93,11 @@ import model.lowModel :
 	PrimitiveType,
 	UpdateParam;
 import model.model :
+	BuiltinBinary,
+	BuiltinFun,
+	BuiltinTernary,
+	BuiltinType,
+	BuiltinUnary,
 	ClosureReferenceKind,
 	ConfigExternUris,
 	EnumBackingType,
@@ -105,7 +106,8 @@ import model.model :
 	FlagsFunction,
 	Local,
 	Program,
-	VarKind;
+	VarKind,
+	VersionFun;
 import model.typeLayout : isEmptyType;
 import util.alloc.alloc : Alloc;
 import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderSize, finish;
@@ -278,41 +280,41 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in AllSymbols allSymbols, in 
 		Opt!LowType lowType = concrete.body_.matchIn!(Opt!LowType)(
 			(in ConcreteStructBody.Builtin it) {
 				final switch (it.kind) {
-					case BuiltinStructKind.bool_:
+					case BuiltinType.bool_:
 						return some(LowType(PrimitiveType.bool_));
-					case BuiltinStructKind.char8:
+					case BuiltinType.char8:
 						return some(LowType(PrimitiveType.char8));
-					case BuiltinStructKind.float32:
+					case BuiltinType.float32:
 						return some(LowType(PrimitiveType.float32));
-					case BuiltinStructKind.float64:
+					case BuiltinType.float64:
 						return some(LowType(PrimitiveType.float64));
-					case BuiltinStructKind.fun:
+					case BuiltinType.funOrAct:
 						return some(addUnion(concrete));
-					case BuiltinStructKind.funPointer: {
+					case BuiltinType.funPointer: {
 						size_t i = arrBuilderSize(allFunPointerSources);
 						add(alloc, allFunPointerSources, concrete);
 						return some(LowType(LowType.FunPointer(i)));
 					}
-					case BuiltinStructKind.int8:
+					case BuiltinType.int8:
 						return some(LowType(PrimitiveType.int8));
-					case BuiltinStructKind.int16:
+					case BuiltinType.int16:
 						return some(LowType(PrimitiveType.int16));
-					case BuiltinStructKind.int32:
+					case BuiltinType.int32:
 						return some(LowType(PrimitiveType.int32));
-					case BuiltinStructKind.int64:
+					case BuiltinType.int64:
 						return some(LowType(PrimitiveType.int64));
-					case BuiltinStructKind.nat8:
+					case BuiltinType.nat8:
 						return some(LowType(PrimitiveType.nat8));
-					case BuiltinStructKind.nat16:
+					case BuiltinType.nat16:
 						return some(LowType(PrimitiveType.nat16));
-					case BuiltinStructKind.nat32:
+					case BuiltinType.nat32:
 						return some(LowType(PrimitiveType.nat32));
-					case BuiltinStructKind.nat64:
+					case BuiltinType.nat64:
 						return some(LowType(PrimitiveType.nat64));
-					case BuiltinStructKind.pointerConst:
-					case BuiltinStructKind.pointerMut:
+					case BuiltinType.pointerConst:
+					case BuiltinType.pointerMut:
 						return none!LowType;
-					case BuiltinStructKind.void_:
+					case BuiltinType.void_:
 						return some(LowType(PrimitiveType.void_));
 				}
 			},
@@ -421,8 +423,8 @@ PrimitiveType typeForEnum(EnumBackingType a) {
 
 LowUnion getLowUnion(ref Alloc alloc, in ConcreteProgram program, ref GetLowTypeCtx getLowTypeCtx, ConcreteStruct* s) =>
 	LowUnion(s, s.body_.matchIn!(LowType[])(
-		(in ConcreteStructBody.Builtin it) {
-			assert(it.kind == BuiltinStructKind.fun);
+		(in ConcreteStructBody.Builtin x) {
+			assert(x.kind == BuiltinType.funOrAct);
 			ConcreteLambdaImpl[] impls = optOrDefault!(ConcreteLambdaImpl[])(program.funStructToImpls[s], () =>
 				typeAs!(ConcreteLambdaImpl[])([]));
 			return map(getLowTypeCtx.alloc, impls, (ref ConcreteLambdaImpl impl) =>
@@ -432,8 +434,8 @@ LowUnion getLowUnion(ref Alloc alloc, in ConcreteProgram program, ref GetLowType
 		(in ConcreteStructBody.Extern) => assert(false),
 		(in ConcreteStructBody.Flags) => assert(false),
 		(in ConcreteStructBody.Record) => assert(false),
-		(in ConcreteStructBody.Union it) =>
-			map(getLowTypeCtx.alloc, it.members, (ref ConcreteType member) =>
+		(in ConcreteStructBody.Union x) =>
+			map(getLowTypeCtx.alloc, x.members, (ref ConcreteType member) =>
 				lowTypeFromConcreteType(getLowTypeCtx, member))));
 
 LowType getLowRawPtrConstType(ref GetLowTypeCtx ctx, LowType pointee) {
@@ -452,12 +454,12 @@ LowType lowTypeFromConcreteStruct(ref GetLowTypeCtx ctx, in ConcreteStruct* stru
 		return force(res);
 	else {
 		ConcreteStructBody.Builtin builtin = struct_.body_.as!(ConcreteStructBody.Builtin);
-		//TODO: cache the creation.. don't want an allocation for every BuiltinStructKind.ptr to the same target type
+		//TODO: cache the creation.. don't want an allocation for every BuiltinType.ptr to the same target type
 		LowType* inner = allocate(ctx.alloc, lowTypeFromConcreteType(ctx, only(builtin.typeArgs)));
 		switch (builtin.kind) {
-			case BuiltinStructKind.pointerConst:
+			case BuiltinType.pointerConst:
 				return LowType(LowType.PtrRawConst(inner));
-			case BuiltinStructKind.pointerMut:
+			case BuiltinType.pointerMut:
 				return LowType(LowType.PtrRawMut(inner));
 			default:
 				assert(false);
@@ -624,8 +626,8 @@ AllLowFuns getAllLowFuns(
 
 	foreach (ConcreteFun* fun; program.allFuns) {
 		Opt!LowFunIndex opIndex = fun.body_.match!(Opt!LowFunIndex)(
-			(ConcreteFunBody.Builtin it) {
-				if (isFunOrActSubscript(program, *fun)) {
+			(ConcreteFunBody.Builtin x) {
+				if (x.kind.isA!(BuiltinFun.CallFunOrAct)) {
 					ConcreteLocal[2] params = only2(fun.paramsIncludingClosure);
 					return some(addLowFun(LowFunCause(LowFunCause.CallFunOrAct(
 						lowTypeFromConcreteType(getLowTypeCtx, params[0].type),
@@ -633,12 +635,12 @@ AllLowFuns getAllLowFuns(
 						lowTypeFromConcreteType(getLowTypeCtx, params[1].type),
 						optOrDefault!(ConcreteLambdaImpl[])(program.funStructToImpls[mustBeByVal(params[0].type)], () =>
 							typeAs!(ConcreteLambdaImpl[])([]))))));
-				} else if (isMarkVisitFun(program, *fun)) {
+				} else if (x.kind.isA!(BuiltinFun.MarkVisit)) {
 					if (!lateIsSet(markCtxTypeLate))
 						lateSet(markCtxTypeLate, lowTypeFromConcreteType(
 							getLowTypeCtx,
 							fun.paramsIncludingClosure[0].type));
-					return some(generateMarkVisitForType(lowTypeFromConcreteType(getLowTypeCtx, only(it.typeArgs))));
+					return some(generateMarkVisitForType(lowTypeFromConcreteType(getLowTypeCtx, only(x.typeArgs))));
 				} else
 					return none!LowFunIndex;
 			},
@@ -671,8 +673,6 @@ AllLowFuns getAllLowFuns(
 				none!LowFunIndex,
 			(ConcreteFunBody.VarSet) =>
 				none!LowFunIndex);
-		if (concreteFunWillBecomeNonExternLowFun(program, *fun))
-			assert(has(opIndex));
 		if (has(opIndex))
 			mustAddToMap(getLowTypeCtx.alloc, concreteFunToLowFunIndexBuilder, fun, force(opIndex));
 	}
@@ -734,10 +734,6 @@ AllLowFuns getAllLowFuns(
 }
 
 alias VarIndices = Map!(immutable ConcreteVar*, LowVarIndex);
-
-bool concreteFunWillBecomeNonExternLowFun(in ConcreteProgram program, in ConcreteFun a) =>
-	a.body_.isA!(ConcreteExpr) || (
-		a.body_.isA!(ConcreteFunBody.Builtin) && (isFunOrActSubscript(program, a) || isMarkVisitFun(program, a)));
 
 LowFun lowFunFromCause(
 	ref AllLowTypes allTypes,
@@ -1169,8 +1165,8 @@ LowExprKind getCallSpecial(
 	ref ConcreteExprKind.Call a,
 ) =>
 	a.called.body_.match!LowExprKind(
-		(ConcreteFunBody.Builtin) =>
-			getCallBuiltinExpr(ctx, locals, exprPos, range, type, a),
+		(ConcreteFunBody.Builtin x) =>
+			getCallBuiltinExpr(ctx, locals, exprPos, range, type, a, x.kind),
 		(Constant x) =>
 			LowExprKind(x),
 		(ConcreteFunBody.CreateRecord) {
@@ -1265,10 +1261,7 @@ LowExprKind getRecordFieldCall(
 	if (has(opCalled))
 		return LowExprKind(LowExprKind.Call(force(opCalled), newArray!LowExpr(ctx.alloc, [fun, arg])));
 	else {
-		assert(caller.body_.isA!(ConcreteFunBody.Builtin));
-		assert(getBuiltinKind(
-			ctx.alloc, ctx.allSymbols, getName(caller), type, args.length, fun.type, arg.type
-		).isA!(BuiltinKind.CallFunPointer));
+		assert(caller.body_.as!(ConcreteFunBody.Builtin).kind.isA!(BuiltinFun.CallFunPointer));
 		return callFunPointerInner(ctx, locals, range, type, fun, arg);
 	}
 }
@@ -1357,9 +1350,6 @@ LowExprKind callFunPointerInner(
 		return doCall(funPtr, newArray!LowExpr(ctx.alloc, [arg]));
 }
 
-Symbol getName(ConcreteFun* a) =>
-	a.source.as!ConcreteFunKey.decl.name;
-
 LowExprKind getCallBuiltinExpr(
 	ref GetLowExprCtx ctx,
 	in Locals locals,
@@ -1367,8 +1357,8 @@ LowExprKind getCallBuiltinExpr(
 	UriAndRange range,
 	LowType type,
 	ref ConcreteExprKind.Call a,
+	BuiltinFun kind,
 ) {
-	Symbol name = getName(a.called);
 	LowType paramType(size_t index) {
 		return index < a.args.length
 			? lowTypeFromConcreteType(ctx.typeCtx, a.called.paramsIncludingClosure[index].type)
@@ -1379,31 +1369,26 @@ LowExprKind getCallBuiltinExpr(
 	}
 	LowType p0 = paramType(0);
 	LowType p1 = paramType(1);
-	BuiltinKind builtinKind = getBuiltinKind(ctx.alloc, ctx.allSymbols, name, type, a.args.length, p0, p1);
-	return builtinKind.match!LowExprKind(
-		(BuiltinKind.CallFunPointer) =>
-			callFunPointer(ctx, locals, range, type, only2(a.args)),
-		(Constant it) =>
-			LowExprKind(it),
-		(BuiltinKind.InitConstants) =>
-			LowExprKind(LowExprKind.InitConstants()),
-		(LowExprKind.SpecialUnary.Kind kind) {
+	return kind.match!LowExprKind(
+		(BuiltinFun.AllTests) =>
+			assert(false), // handled in concretize
+		(BuiltinUnary kind) {
 			assert(a.args.length == 1);
 			return LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialUnary(kind, getArg(a.args[0], ExprPos.nonTail))));
 		},
-		(LowExprKind.SpecialBinary.Kind kind) {
+		(BuiltinBinary kind) {
 			assert(a.args.length == 2);
 			ExprPos arg1Pos = () {
 				switch (kind) {
-					case LowExprKind.SpecialBinary.Kind.and:
-					case LowExprKind.SpecialBinary.Kind.orBool:
+					case BuiltinBinary.and:
+					case BuiltinBinary.orBool:
 						return exprPos;
 					default:
 						return ExprPos.nonTail;
 				}
 			}();
 			// Adding to pointer to empty type has no effect. (And some C compilers don't like it.)
-			return kind == LowExprKind.SpecialBinary.Kind.addPtrAndNat64
+			return kind == BuiltinBinary.addPtrAndNat64
 				&& isEmptyType(*ctx.allTypes, asPtrRawPointee(p0))
 				? genDropSecond(
 					ctx.alloc, range, nextTempLocalIndex(ctx),
@@ -1412,14 +1397,25 @@ LowExprKind getCallBuiltinExpr(
 					getArg(a.args[0], ExprPos.nonTail),
 					getArg(a.args[1], arg1Pos)])));
 		},
-		(LowExprKind.SpecialTernary.Kind kind) {
+		(BuiltinTernary kind) {
 			assert(a.args.length == 3);
 			return LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialTernary(kind, [
 				getArg(a.args[0], ExprPos.nonTail),
 				getArg(a.args[1], ExprPos.nonTail),
 				getArg(a.args[2], ExprPos.nonTail)])));
 		},
-		(BuiltinKind.OptOr) {
+		(BuiltinFun.CallFunOrAct) =>
+			assert(false), // handled in concretize
+		(BuiltinFun.CallFunPointer) =>
+			callFunPointer(ctx, locals, range, type, only2(a.args)),
+		(Constant it) =>
+			LowExprKind(it),
+		(BuiltinFun.InitConstants) =>
+			LowExprKind(LowExprKind.InitConstants()),
+		(BuiltinFun.MarkVisit) =>
+			// Handled in concretize
+			assert(false),
+		(BuiltinFun.OptOr) {
 			assert(a.args.length == 2);
 			assert(p0 == p1);
 			LowLocal* lhsLocal = addTempLocal(ctx, p0);
@@ -1433,7 +1429,7 @@ LowExprKind getCallBuiltinExpr(
 						LowExprKind.MatchUnion.Case(none!(LowLocal*), getArg(a.args[1], ExprPos.tail)),
 						LowExprKind.MatchUnion.Case(none!(LowLocal*), lhsRef)]))))))));
 		},
-		(BuiltinKind.OptQuestion2) {
+		(BuiltinFun.OptQuestion2) {
 			assert(a.args.length == 2);
 			LowLocal* valueLocal = addTempLocal(ctx, p1);
 			return LowExprKind(allocate(ctx.alloc, LowExprKind.MatchUnion(
@@ -1442,17 +1438,20 @@ LowExprKind getCallBuiltinExpr(
 					LowExprKind.MatchUnion.Case(none!(LowLocal*), getArg(a.args[1], ExprPos.tail)),
 					LowExprKind.MatchUnion.Case(some(valueLocal), genLocalGet(range, valueLocal))]))));
 		},
-		(BuiltinKind.PointerCast) {
+		(BuiltinFun.PointerCast) {
 			assert(a.args.length == 1);
 			return genPtrCastKind(ctx.alloc, getLowExpr(ctx, locals, only(a.args), ExprPos.nonTail));
 		},
-		(BuiltinKind.SizeOf) {
+		(BuiltinFun.SizeOf) {
 			LowType typeArg =
 				lowTypeFromConcreteType(ctx.typeCtx, only(a.called.body_.as!(ConcreteFunBody.Builtin).typeArgs));
 			return LowExprKind(LowExprKind.SizeOf(typeArg));
 		},
-		(BuiltinKind.StaticSymbols) =>
-			LowExprKind(ctx.staticSymbols));
+		(BuiltinFun.StaticSymbols) =>
+			LowExprKind(ctx.staticSymbols),
+		(VersionFun _) =>
+			// handled in concretize
+			assert(false));
 }
 
 LowExprKind getCreateArrExpr(

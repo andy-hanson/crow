@@ -118,12 +118,6 @@ CommonFunsAndMain getCommonFuns(
 		Type(commonTypes.bool_),
 		[param!"ctx"(markCtxType), param!"pointer"(nat8ConstPointerType), param!"size-bytes"(nat64Type)]);
 
-	scope ParamShort[] markVisitParams = [
-		param!"mark-ctx"(markCtxType),
-		param!"value"(singleTypeParamType),
-	];
-	FunDecl* markVisit = getFunDeclInner(
-		*modules[CommonModule.alloc], symbol!"mark-visit", singleTypeParams, voidType, markVisitParams);
 	scope ParamShort[] newTFutureParams = [param!"value"(singleTypeParamType)];
 	Type tFuture = instantiateType(commonTypes.future, [singleTypeParamType]);
 	FunDecl* newTFuture = getFunDeclInner(
@@ -153,7 +147,7 @@ CommonFunsAndMain getCommonFuns(
 		CommonFuns(
 			finish(alloc, diagsBuilder),
 			allocFun, lambdaSubscriptFuns, curExclusion, mark,
-			markVisit, newNat64Future, newVoidFuture, rtMain, throwImpl, char8ArrayAsString),
+			newNat64Future, newVoidFuture, rtMain, throwImpl, char8ArrayAsString),
 		main);
 }
 

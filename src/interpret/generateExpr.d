@@ -147,7 +147,7 @@ import model.lowModel :
 	targetIsPointer,
 	targetRecordType,
 	UpdateParam;
-import model.model : Program;
+import model.model : BuiltinBinary, BuiltinTernary, BuiltinUnary, Program;
 import model.typeLayout : nStackEntriesForType, optPack, Pack, typeSizeBytes;
 import util.alloc.alloc : TempAlloc;
 import util.col.array : indexOfPointer, isEmpty;
@@ -862,173 +862,173 @@ void generateSpecialUnary(
 	}
 
 	final switch (a.kind) {
-		case LowExprKind.SpecialUnary.Kind.acosFloat32:
+		case BuiltinUnary.acosFloat32:
 			fn!fnAcosFloat32();
 			break;
-		case LowExprKind.SpecialUnary.Kind.acosFloat64:
+		case BuiltinUnary.acosFloat64:
 			fn!fnAcosFloat64();
 			break;
-		case LowExprKind.SpecialUnary.Kind.acoshFloat32:
+		case BuiltinUnary.acoshFloat32:
 			fn!fnAcoshFloat32();
 			break;
-		case LowExprKind.SpecialUnary.Kind.acoshFloat64:
+		case BuiltinUnary.acoshFloat64:
 			fn!fnAcoshFloat64();
 			break;
-		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
-		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
-		case LowExprKind.SpecialUnary.Kind.toChar8FromNat8:
-		case LowExprKind.SpecialUnary.Kind.toNat8FromChar8:
-		case LowExprKind.SpecialUnary.Kind.toNat64FromPtr:
-		case LowExprKind.SpecialUnary.Kind.toPtrFromNat64:
-		case LowExprKind.SpecialUnary.Kind.unsafeToInt8FromInt64:
-		case LowExprKind.SpecialUnary.Kind.unsafeToInt16FromInt64:
-		case LowExprKind.SpecialUnary.Kind.unsafeToInt32FromInt64:
-		case LowExprKind.SpecialUnary.Kind.unsafeToInt64FromNat64:
-		case LowExprKind.SpecialUnary.Kind.unsafeToNat8FromNat64:
-		case LowExprKind.SpecialUnary.Kind.unsafeToNat16FromNat64:
-		case LowExprKind.SpecialUnary.Kind.unsafeToNat32FromInt32:
-		case LowExprKind.SpecialUnary.Kind.unsafeToNat32FromNat64:
-		case LowExprKind.SpecialUnary.Kind.unsafeToNat64FromInt64:
+		case BuiltinUnary.asAnyPtr:
+		case BuiltinUnary.enumToIntegral:
+		case BuiltinUnary.toChar8FromNat8:
+		case BuiltinUnary.toNat8FromChar8:
+		case BuiltinUnary.toNat64FromPtr:
+		case BuiltinUnary.toPtrFromNat64:
+		case BuiltinUnary.unsafeToInt8FromInt64:
+		case BuiltinUnary.unsafeToInt16FromInt64:
+		case BuiltinUnary.unsafeToInt32FromInt64:
+		case BuiltinUnary.unsafeToInt64FromNat64:
+		case BuiltinUnary.unsafeToNat8FromNat64:
+		case BuiltinUnary.unsafeToNat16FromNat64:
+		case BuiltinUnary.unsafeToNat32FromInt32:
+		case BuiltinUnary.unsafeToNat32FromNat64:
+		case BuiltinUnary.unsafeToNat64FromInt64:
 			// do nothing (doesn't change the bits, just their type)
 			// Some of these widen, but all fit within the one stack entry so nothing to do
 			// NOTE: we treat the upper bits of <64-bit types as arbitrary, so those are no-ops too
 			generateExpr(writer, ctx, locals, after, a.arg);
 			break;
-		case LowExprKind.SpecialUnary.Kind.asinFloat32:
+		case BuiltinUnary.asinFloat32:
 			fn!fnAsinFloat32();
 			break;
-		case LowExprKind.SpecialUnary.Kind.asinFloat64:
+		case BuiltinUnary.asinFloat64:
 			fn!fnAsinFloat64();
 			break;
-		case LowExprKind.SpecialUnary.Kind.asinhFloat32:
+		case BuiltinUnary.asinhFloat32:
 			fn!fnAsinhFloat32();
 			break;
-		case LowExprKind.SpecialUnary.Kind.asinhFloat64:
+		case BuiltinUnary.asinhFloat64:
 			fn!fnAsinhFloat64();
 			break;
-		case LowExprKind.SpecialUnary.Kind.atanFloat32:
+		case BuiltinUnary.atanFloat32:
 			fn!fnAtanFloat32();
 			break;
-		case LowExprKind.SpecialUnary.Kind.atanFloat64:
+		case BuiltinUnary.atanFloat64:
 			fn!fnAtanFloat64();
 			break;
-		case LowExprKind.SpecialUnary.Kind.atanhFloat32:
+		case BuiltinUnary.atanhFloat32:
 			fn!fnAtanhFloat32();
 			break;
-		case LowExprKind.SpecialUnary.Kind.atanhFloat64:
+		case BuiltinUnary.atanhFloat64:
 			fn!fnAtanhFloat64();
 			break;
-		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat8:
-		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat16:
-		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat32:
-		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat64:
+		case BuiltinUnary.bitwiseNotNat8:
+		case BuiltinUnary.bitwiseNotNat16:
+		case BuiltinUnary.bitwiseNotNat32:
+		case BuiltinUnary.bitwiseNotNat64:
 			fn!fnBitwiseNot();
 			break;
-		case LowExprKind.SpecialUnary.Kind.countOnesNat64:
+		case BuiltinUnary.countOnesNat64:
 			fn!fnCountOnesNat64();
 			break;
-		case LowExprKind.SpecialUnary.Kind.cosFloat32:
+		case BuiltinUnary.cosFloat32:
 			fn!fnCosFloat32();
 			break;
-		case LowExprKind.SpecialUnary.Kind.cosFloat64:
+		case BuiltinUnary.cosFloat64:
 			fn!fnCosFloat64();
 			break;
-		case LowExprKind.SpecialUnary.Kind.coshFloat32:
+		case BuiltinUnary.coshFloat32:
 			fn!fnCoshFloat32();
 			break;
-		case LowExprKind.SpecialUnary.Kind.coshFloat64:
+		case BuiltinUnary.coshFloat64:
 			fn!fnCoshFloat64();
 			break;
-		case LowExprKind.SpecialUnary.Kind.drop:
+		case BuiltinUnary.drop:
 			generateExprAndContinue(writer, ctx, locals, a.arg);
 			handleAfter(writer, ctx, source, after);
 			break;
-		case LowExprKind.SpecialUnary.Kind.roundFloat32:
+		case BuiltinUnary.roundFloat32:
 			fn!fnRoundFloat32();
 			break;
-		case LowExprKind.SpecialUnary.Kind.roundFloat64:
+		case BuiltinUnary.roundFloat64:
 			fn!fnRoundFloat64();
 			break;
-		case LowExprKind.SpecialUnary.Kind.sinFloat32:
+		case BuiltinUnary.sinFloat32:
 			fn!fnSinFloat32();
 			break;
-		case LowExprKind.SpecialUnary.Kind.sinFloat64:
+		case BuiltinUnary.sinFloat64:
 			fn!fnSinFloat64();
 			break;
-		case LowExprKind.SpecialUnary.Kind.sinhFloat32:
+		case BuiltinUnary.sinhFloat32:
 			fn!fnSinhFloat32();
 			break;
-		case LowExprKind.SpecialUnary.Kind.sinhFloat64:
+		case BuiltinUnary.sinhFloat64:
 			fn!fnSinhFloat64();
 			break;
-		case LowExprKind.SpecialUnary.Kind.sqrtFloat32:
+		case BuiltinUnary.sqrtFloat32:
 			fn!fnSqrtFloat32();
 			break;
-		case LowExprKind.SpecialUnary.Kind.sqrtFloat64:
+		case BuiltinUnary.sqrtFloat64:
 			fn!fnSqrtFloat64();
 			break;
-		case LowExprKind.SpecialUnary.Kind.tanFloat32:
+		case BuiltinUnary.tanFloat32:
 			fn!fnTanFloat32();
 			break;
-		case LowExprKind.SpecialUnary.Kind.tanFloat64:
+		case BuiltinUnary.tanFloat64:
 			fn!fnTanFloat64();
 			break;
-		case LowExprKind.SpecialUnary.Kind.tanhFloat32:
+		case BuiltinUnary.tanhFloat32:
 			fn!fnTanhFloat32();
 			break;
-		case LowExprKind.SpecialUnary.Kind.tanhFloat64:
+		case BuiltinUnary.tanhFloat64:
 			fn!fnTanhFloat64();
 			break;
-		case LowExprKind.SpecialUnary.Kind.toInt64FromInt8:
+		case BuiltinUnary.toInt64FromInt8:
 			fn!fnInt64FromInt8();
 			break;
-		case LowExprKind.SpecialUnary.Kind.toInt64FromInt16:
+		case BuiltinUnary.toInt64FromInt16:
 			fn!fnInt64FromInt16();
 			break;
-		case LowExprKind.SpecialUnary.Kind.toInt64FromInt32:
+		case BuiltinUnary.toInt64FromInt32:
 			fn!fnInt64FromInt32();
 			break;
 		// Normal operations on <64-bit values treat other bits as garbage
 		// (they may be written to, such as in a wrap-add operation that overflows)
 		// So we must mask out just the lower bits now.
-		case LowExprKind.SpecialUnary.Kind.toNat64FromNat8:
+		case BuiltinUnary.toNat64FromNat8:
 			generateArg();
 			writePushConstant(writer, source, ubyte.max);
 			writeFnBinary!fnBitwiseAnd(writer, source);
 			handleAfter(writer, ctx, source, after);
 			break;
-		case LowExprKind.SpecialUnary.Kind.toNat64FromNat16:
+		case BuiltinUnary.toNat64FromNat16:
 			generateArg();
 			writePushConstant(writer, source, ushort.max);
 			writeFnBinary!fnBitwiseAnd(writer, source);
 			handleAfter(writer, ctx, source, after);
 			break;
-		case LowExprKind.SpecialUnary.Kind.toNat64FromNat32:
+		case BuiltinUnary.toNat64FromNat32:
 			generateArg();
 			writePushConstant(writer, source, uint.max);
 			writeFnBinary!fnBitwiseAnd(writer, source);
 			handleAfter(writer, ctx, source, after);
 			break;
-		case LowExprKind.SpecialUnary.Kind.deref:
+		case BuiltinUnary.deref:
 			generateArg();
 			size_t size = typeSizeBytes(ctx, type);
 			if (size != 0)
 				writeRead(writer, source, 0, size);
 			handleAfter(writer, ctx, source, after);
 			break;
-		case LowExprKind.SpecialUnary.Kind.toFloat32FromFloat64:
+		case BuiltinUnary.toFloat32FromFloat64:
 			fn!fnFloat32FromFloat64();
 			break;
-		case LowExprKind.SpecialUnary.Kind.toFloat64FromFloat32:
+		case BuiltinUnary.toFloat64FromFloat32:
 			fn!fnFloat64FromFloat32();
 			break;
-		case LowExprKind.SpecialUnary.Kind.toFloat64FromInt64: // FnOp.float64FromInt64
+		case BuiltinUnary.toFloat64FromInt64: // FnOp.float64FromInt64
 			fn!fnFloat64FromInt64();
 			break;
-		case LowExprKind.SpecialUnary.Kind.toFloat64FromNat64:
+		case BuiltinUnary.toFloat64FromNat64:
 			fn!fnFloat64FromNat64();
 			break;
-		case LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64:
+		case BuiltinUnary.truncateToInt64FromFloat64:
 			fn!fnTruncateToInt64FromFloat64();
 			break;
 	}
@@ -1124,7 +1124,7 @@ void generateSpecialTernary(
 	foreach (ref LowExpr arg; castNonScope(a).args)
 		generateExprAndContinue(writer, ctx, locals, arg);
 	final switch (a.kind) {
-		case LowExprKind.SpecialTernary.Kind.interpreterBacktrace:
+		case BuiltinTernary.interpreterBacktrace:
 			writeInterpreterBacktrace(writer, source);
 			handleAfter(writer, ctx, source, after);
 	}
@@ -1147,14 +1147,14 @@ void generateSpecialBinary(
 	}
 
 	final switch (a.kind) {
-		case LowExprKind.SpecialBinary.Kind.atan2Float32:
+		case BuiltinBinary.atan2Float32:
 			fn!fnAtan2Float32();
 			break;
-		case LowExprKind.SpecialBinary.Kind.atan2Float64:
+		case BuiltinBinary.atan2Float64:
 			fn!fnAtan2Float64();
 			break;
-		case LowExprKind.SpecialBinary.Kind.addPtrAndNat64:
-		case LowExprKind.SpecialBinary.Kind.subPtrAndNat64:
+		case BuiltinBinary.addPtrAndNat64:
+		case BuiltinBinary.subPtrAndNat64:
 			LowType pointee = asPtrRawPointee(left.type);
 			generateExprAndContinue(writer, ctx, locals, left);
 			StackEntry afterLeft = getNextStackEntry(writer);
@@ -1165,20 +1165,20 @@ void generateSpecialBinary(
 			if (pointeeSize == 0) {
 				writeRemove(writer, source, StackEntries(afterLeft, 1));
 			} else {
-				if (a.kind == LowExprKind.SpecialBinary.Kind.addPtrAndNat64)
+				if (a.kind == BuiltinBinary.addPtrAndNat64)
 					writeFnBinary!fnWrapAddIntegral(writer, source);
 				else
 					writeFnBinary!fnWrapSubIntegral(writer, source);
 			}
 			handleAfter(writer, ctx, source, after);
 			break;
-		case LowExprKind.SpecialBinary.Kind.addFloat32:
+		case BuiltinBinary.addFloat32:
 			fn!fnAddFloat32();
 			break;
-		case LowExprKind.SpecialBinary.Kind.addFloat64:
+		case BuiltinBinary.addFloat64:
 			fn!fnAddFloat64();
 			break;
-		case LowExprKind.SpecialBinary.Kind.and:
+		case BuiltinBinary.and:
 			generateIf(
 				writer, ctx, source, locals, after, left,
 				(ref ExprAfter innerAfter) {
@@ -1189,98 +1189,98 @@ void generateSpecialBinary(
 					handleAfter(writer, ctx, source, innerAfter);
 				});
 			break;
-		case LowExprKind.SpecialBinary.Kind.unsafeBitShiftLeftNat64:
+		case BuiltinBinary.unsafeBitShiftLeftNat64:
 			fn!fnUnsafeBitShiftLeftNat64();
 			break;
-		case LowExprKind.SpecialBinary.Kind.unsafeBitShiftRightNat64:
+		case BuiltinBinary.unsafeBitShiftRightNat64:
 			fn!fnUnsafeBitShiftRightNat64();
 			break;
-		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt8:
-		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt16:
-		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt32:
-		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt64:
-		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat8:
-		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat16:
-		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat32:
-		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat64:
+		case BuiltinBinary.bitwiseAndInt8:
+		case BuiltinBinary.bitwiseAndInt16:
+		case BuiltinBinary.bitwiseAndInt32:
+		case BuiltinBinary.bitwiseAndInt64:
+		case BuiltinBinary.bitwiseAndNat8:
+		case BuiltinBinary.bitwiseAndNat16:
+		case BuiltinBinary.bitwiseAndNat32:
+		case BuiltinBinary.bitwiseAndNat64:
 			fn!fnBitwiseAnd();
 			break;
-		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt8:
-		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt16:
-		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt32:
-		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt64:
-		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat8:
-		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat16:
-		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat32:
-		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat64:
+		case BuiltinBinary.bitwiseOrInt8:
+		case BuiltinBinary.bitwiseOrInt16:
+		case BuiltinBinary.bitwiseOrInt32:
+		case BuiltinBinary.bitwiseOrInt64:
+		case BuiltinBinary.bitwiseOrNat8:
+		case BuiltinBinary.bitwiseOrNat16:
+		case BuiltinBinary.bitwiseOrNat32:
+		case BuiltinBinary.bitwiseOrNat64:
 			fn!fnBitwiseOr();
 			break;
-		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt8:
-		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt16:
-		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt32:
-		case LowExprKind.SpecialBinary.Kind.bitwiseXorInt64:
-		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat8:
-		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat16:
-		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat32:
-		case LowExprKind.SpecialBinary.Kind.bitwiseXorNat64:
+		case BuiltinBinary.bitwiseXorInt8:
+		case BuiltinBinary.bitwiseXorInt16:
+		case BuiltinBinary.bitwiseXorInt32:
+		case BuiltinBinary.bitwiseXorInt64:
+		case BuiltinBinary.bitwiseXorNat8:
+		case BuiltinBinary.bitwiseXorNat16:
+		case BuiltinBinary.bitwiseXorNat32:
+		case BuiltinBinary.bitwiseXorNat64:
 			fn!fnBitwiseXor();
 			break;
-		case LowExprKind.SpecialBinary.Kind.eqFloat32:
+		case BuiltinBinary.eqFloat32:
 			fn!fnEqFloat32();
 			break;
-		case LowExprKind.SpecialBinary.Kind.eqFloat64:
+		case BuiltinBinary.eqFloat64:
 			fn!fnEqFloat64();
 			break;
-		case LowExprKind.SpecialBinary.Kind.eqInt8:
-		case LowExprKind.SpecialBinary.Kind.eqInt16:
-		case LowExprKind.SpecialBinary.Kind.eqInt32:
-		case LowExprKind.SpecialBinary.Kind.eqInt64:
-		case LowExprKind.SpecialBinary.Kind.eqNat8:
-		case LowExprKind.SpecialBinary.Kind.eqNat16:
-		case LowExprKind.SpecialBinary.Kind.eqNat32:
-		case LowExprKind.SpecialBinary.Kind.eqNat64:
-		case LowExprKind.SpecialBinary.Kind.eqPtr:
+		case BuiltinBinary.eqInt8:
+		case BuiltinBinary.eqInt16:
+		case BuiltinBinary.eqInt32:
+		case BuiltinBinary.eqInt64:
+		case BuiltinBinary.eqNat8:
+		case BuiltinBinary.eqNat16:
+		case BuiltinBinary.eqNat32:
+		case BuiltinBinary.eqNat64:
+		case BuiltinBinary.eqPtr:
 			fn!fnEqBits();
 			break;
-		case LowExprKind.SpecialBinary.Kind.lessChar8:
-		case LowExprKind.SpecialBinary.Kind.lessNat8:
+		case BuiltinBinary.lessChar8:
+		case BuiltinBinary.lessNat8:
 			fn!fnLessNat8();
 			break;
-		case LowExprKind.SpecialBinary.Kind.lessNat16:
+		case BuiltinBinary.lessNat16:
 			fn!fnLessNat16();
 			break;
-		case LowExprKind.SpecialBinary.Kind.lessNat32:
+		case BuiltinBinary.lessNat32:
 			fn!fnLessNat32();
 			break;
-		case LowExprKind.SpecialBinary.Kind.lessNat64:
-		case LowExprKind.SpecialBinary.Kind.lessPtr:
+		case BuiltinBinary.lessNat64:
+		case BuiltinBinary.lessPtr:
 			fn!fnLessNat64();
 			break;
-		case LowExprKind.SpecialBinary.Kind.lessFloat32:
+		case BuiltinBinary.lessFloat32:
 			fn!fnLessFloat32();
 			break;
-		case LowExprKind.SpecialBinary.Kind.lessFloat64:
+		case BuiltinBinary.lessFloat64:
 			fn!fnLessFloat64();
 			break;
-		case LowExprKind.SpecialBinary.Kind.lessInt8:
+		case BuiltinBinary.lessInt8:
 			fn!fnLessInt8();
 			break;
-		case LowExprKind.SpecialBinary.Kind.lessInt16:
+		case BuiltinBinary.lessInt16:
 			fn!fnLessInt16();
 			break;
-		case LowExprKind.SpecialBinary.Kind.lessInt32:
+		case BuiltinBinary.lessInt32:
 			fn!fnLessInt32();
 			break;
-		case LowExprKind.SpecialBinary.Kind.lessInt64:
+		case BuiltinBinary.lessInt64:
 			fn!fnLessInt64();
 			break;
-		case LowExprKind.SpecialBinary.Kind.mulFloat32:
+		case BuiltinBinary.mulFloat32:
 			fn!fnMulFloat32();
 			break;
-		case LowExprKind.SpecialBinary.Kind.mulFloat64:
+		case BuiltinBinary.mulFloat64:
 			fn!fnMulFloat64();
 			break;
-		case LowExprKind.SpecialBinary.Kind.orBool:
+		case BuiltinBinary.orBool:
 			generateIf(
 				writer, ctx, source, locals, after, left,
 				(ref ExprAfter innerAfter) {
@@ -1291,80 +1291,80 @@ void generateSpecialBinary(
 					generateExpr(writer, ctx, locals, innerAfter, right);
 				});
 			break;
-		case LowExprKind.SpecialBinary.Kind.seq:
+		case BuiltinBinary.seq:
 			generateExprAndContinue(writer, ctx, locals, left);
 			generateExpr(writer, ctx, locals, after, right);
 			break;
-		case LowExprKind.SpecialBinary.Kind.subFloat32:
+		case BuiltinBinary.subFloat32:
 			fn!fnSubFloat32();
 			break;
-		case LowExprKind.SpecialBinary.Kind.subFloat64:
+		case BuiltinBinary.subFloat64:
 			fn!fnSubFloat64();
 			break;
-		case LowExprKind.SpecialBinary.Kind.unsafeSubInt8:
-		case LowExprKind.SpecialBinary.Kind.unsafeSubInt16:
-		case LowExprKind.SpecialBinary.Kind.unsafeSubInt32:
-		case LowExprKind.SpecialBinary.Kind.unsafeSubInt64:
-		case LowExprKind.SpecialBinary.Kind.wrapSubNat8:
-		case LowExprKind.SpecialBinary.Kind.wrapSubNat16:
-		case LowExprKind.SpecialBinary.Kind.wrapSubNat32:
-		case LowExprKind.SpecialBinary.Kind.wrapSubNat64:
+		case BuiltinBinary.unsafeSubInt8:
+		case BuiltinBinary.unsafeSubInt16:
+		case BuiltinBinary.unsafeSubInt32:
+		case BuiltinBinary.unsafeSubInt64:
+		case BuiltinBinary.wrapSubNat8:
+		case BuiltinBinary.wrapSubNat16:
+		case BuiltinBinary.wrapSubNat32:
+		case BuiltinBinary.wrapSubNat64:
 			fn!fnWrapSubIntegral();
 			break;
-		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat32:
+		case BuiltinBinary.unsafeDivFloat32:
 			fn!fnUnsafeDivFloat32();
 			break;
-		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat64:
+		case BuiltinBinary.unsafeDivFloat64:
 			fn!fnUnsafeDivFloat64();
 			break;
-		case LowExprKind.SpecialBinary.Kind.unsafeDivInt8:
+		case BuiltinBinary.unsafeDivInt8:
 			fn!fnUnsafeDivInt8();
 			break;
-		case LowExprKind.SpecialBinary.Kind.unsafeDivInt16:
+		case BuiltinBinary.unsafeDivInt16:
 			fn!fnUnsafeDivInt16();
 			break;
-		case LowExprKind.SpecialBinary.Kind.unsafeDivInt32:
+		case BuiltinBinary.unsafeDivInt32:
 			fn!fnUnsafeDivInt32();
 			break;
-		case LowExprKind.SpecialBinary.Kind.unsafeDivInt64:
+		case BuiltinBinary.unsafeDivInt64:
 			fn!fnUnsafeDivInt64();
 			break;
-		case LowExprKind.SpecialBinary.Kind.unsafeDivNat8:
+		case BuiltinBinary.unsafeDivNat8:
 			fn!fnUnsafeDivNat8();
 			break;
-		case LowExprKind.SpecialBinary.Kind.unsafeDivNat16:
+		case BuiltinBinary.unsafeDivNat16:
 			fn!fnUnsafeDivNat16();
 			break;
-		case LowExprKind.SpecialBinary.Kind.unsafeDivNat32:
+		case BuiltinBinary.unsafeDivNat32:
 			fn!fnUnsafeDivNat32();
 			break;
-		case LowExprKind.SpecialBinary.Kind.unsafeDivNat64:
+		case BuiltinBinary.unsafeDivNat64:
 			fn!fnUnsafeDivNat64();
 			break;
-		case LowExprKind.SpecialBinary.Kind.unsafeModNat64:
+		case BuiltinBinary.unsafeModNat64:
 			fn!fnUnsafeModNat64();
 			break;
-		case LowExprKind.SpecialBinary.Kind.unsafeAddInt8:
-		case LowExprKind.SpecialBinary.Kind.unsafeAddInt16:
-		case LowExprKind.SpecialBinary.Kind.unsafeAddInt32:
-		case LowExprKind.SpecialBinary.Kind.unsafeAddInt64:
-		case LowExprKind.SpecialBinary.Kind.wrapAddNat8:
-		case LowExprKind.SpecialBinary.Kind.wrapAddNat16:
-		case LowExprKind.SpecialBinary.Kind.wrapAddNat32:
-		case LowExprKind.SpecialBinary.Kind.wrapAddNat64:
+		case BuiltinBinary.unsafeAddInt8:
+		case BuiltinBinary.unsafeAddInt16:
+		case BuiltinBinary.unsafeAddInt32:
+		case BuiltinBinary.unsafeAddInt64:
+		case BuiltinBinary.wrapAddNat8:
+		case BuiltinBinary.wrapAddNat16:
+		case BuiltinBinary.wrapAddNat32:
+		case BuiltinBinary.wrapAddNat64:
 			fn!fnWrapAddIntegral();
 			break;
-		case LowExprKind.SpecialBinary.Kind.unsafeMulInt8:
-		case LowExprKind.SpecialBinary.Kind.unsafeMulInt16:
-		case LowExprKind.SpecialBinary.Kind.unsafeMulInt32:
-		case LowExprKind.SpecialBinary.Kind.unsafeMulInt64:
-		case LowExprKind.SpecialBinary.Kind.wrapMulNat8:
-		case LowExprKind.SpecialBinary.Kind.wrapMulNat16:
-		case LowExprKind.SpecialBinary.Kind.wrapMulNat32:
-		case LowExprKind.SpecialBinary.Kind.wrapMulNat64:
+		case BuiltinBinary.unsafeMulInt8:
+		case BuiltinBinary.unsafeMulInt16:
+		case BuiltinBinary.unsafeMulInt32:
+		case BuiltinBinary.unsafeMulInt64:
+		case BuiltinBinary.wrapMulNat8:
+		case BuiltinBinary.wrapMulNat16:
+		case BuiltinBinary.wrapMulNat32:
+		case BuiltinBinary.wrapMulNat64:
 			fn!fnWrapMulIntegral();
 			break;
-		case LowExprKind.SpecialBinary.Kind.writeToPtr:
+		case BuiltinBinary.writeToPtr:
 			generateExprAndContinue(writer, ctx, locals, left);
 			generateExprAndContinue(writer, ctx, locals, right);
 			size_t size = typeSizeBytes(ctx, right.type);

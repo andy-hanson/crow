@@ -88,9 +88,10 @@ import model.ast :
 import model.constant : Constant;
 import model.diag : Diag, TypeContainer, TypeWithContainer;
 import model.model :
-	Arity,
 	AssertOrForbidExpr,
 	BogusExpr,
+	BuiltinFun,
+	BuiltinUnary,
 	Called,
 	CalledDecl,
 	CalledSpecSig,
@@ -1125,10 +1126,9 @@ Expr checkPointerOfCall(
 }
 
 bool isDerefFunction(ref ExprCtx ctx, FunInst* a) {
-	if (a.decl.name == symbol!"*" && a.decl.body_.isA!(FunBody.Builtin)) {
-		assert(a.decl.moduleUri == ctx.checkCtx.commonUris[CommonModule.pointer]);
-		assert(a.arity == Arity(1));
-		return true;
+	if (a.decl.body_.isA!BuiltinFun) {
+		BuiltinFun builtin = a.decl.body_.as!BuiltinFun;
+		return builtin.isA!BuiltinUnary && builtin.as!BuiltinUnary == BuiltinUnary.deref;
 	} else
 		return false;
 }

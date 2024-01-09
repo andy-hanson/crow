@@ -33,7 +33,7 @@ Candidates (with 3 arguments):
 	'new[t] t mut-set(...t array)' (from include/crow/col/mut-set.crow line 21)
 	'new[t] t set(...t array)' (from include/crow/col/set.crow line 31)
 	'new json(...(symbol, json) array)' (from include/crow/json.crow line 34)
-	'new[t0, t1, t2] (t0, t1, t2)(a t0, b t1, c t2)' (from include/crow/private/bootstrap.crow line 268)
+	'new[t0, t1, t2] (t0, t1, t2)(a t0, b t1, c t2)' (from include/crow/private/bootstrap.crow line 259)
 test/compile-errors/record-privacy-b.crow 11:5-11:13 There is no function named 'set-j'.
 test/compile-errors/record-privacy-b.crow 12:11-12:12 There is no function named 'j'.
 test/compile-errors/record-privacy-b.crow 13:5-13:13 There is no function named 'set-k'.

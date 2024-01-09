@@ -152,7 +152,7 @@ Destructure[] paramsArray(return scope Params a) =>
 Destructure[] assertNonVariadic(Params a) =>
 	a.as!(Destructure[]);
 
-immutable struct Arity {
+private immutable struct Arity {
 	immutable struct Varargs {}
 	mixin Union!(size_t, Varargs);
 }
@@ -272,7 +272,6 @@ immutable struct EnumMember {
 
 immutable struct StructBody {
 	immutable struct Bogus {}
-	immutable struct Builtin {}
 	immutable struct Enum {
 		EnumBackingType backingType;
 		EnumMember[] members;
@@ -293,9 +292,30 @@ immutable struct StructBody {
 		UnionMember[] members;
 	}
 
-	mixin .Union!(Bogus, Builtin, Enum, Extern, Flags, Record, Union);
+	mixin .Union!(Bogus, BuiltinType, Enum, Extern, Flags, Record, Union);
 }
 static assert(StructBody.sizeof == size_t.sizeof + StructBody.Record.sizeof);
+
+alias BuiltinType = immutable BuiltinType_;
+private enum BuiltinType_ {
+	bool_,
+	char8,
+	float32,
+	float64,
+	funOrAct,
+	funPointer,
+	int8,
+	int16,
+	int32,
+	int64,
+	nat8,
+	nat16,
+	nat32,
+	nat64,
+	pointerConst,
+	pointerMut,
+	void_,
+}
 
 UriAndRange nameRange(in AllSymbols allSymbols, in EnumMember a) =>
 	UriAndRange(a.containingEnum.moduleUri, rangeOfNameAndRange(a.ast.nameAndRange, allSymbols));
@@ -600,7 +620,6 @@ string stringOfVarKindLowerCase(VarKind a) {
 
 immutable struct FunBody {
 	immutable struct Bogus {}
-	immutable struct Builtin {}
 	immutable struct CreateEnum {
 		EnumMember* member;
 	}
@@ -637,7 +656,7 @@ immutable struct FunBody {
 
 	mixin Union!(
 		Bogus,
-		Builtin,
+		BuiltinFun,
 		CreateEnum,
 		CreateExtern,
 		CreateRecord,
@@ -654,6 +673,216 @@ immutable struct FunBody {
 		VarGet,
 		VarSet);
 }
+
+immutable struct BuiltinFun {
+	immutable struct AllTests {}
+	immutable struct CallFunOrAct {}
+	immutable struct CallFunPointer {}
+	immutable struct InitConstants {}
+	immutable struct MarkVisit {}
+	immutable struct OptOr {}
+	immutable struct OptQuestion2 {}
+	immutable struct PointerCast {}
+	immutable struct SizeOf {}
+	immutable struct StaticSymbols {}
+
+	mixin Union!(
+		AllTests,
+		BuiltinUnary,
+		BuiltinBinary,
+		BuiltinTernary,
+		CallFunOrAct,
+		CallFunPointer,
+		Constant,
+		InitConstants,
+		MarkVisit,
+		OptOr,
+		OptQuestion2,
+		PointerCast,
+		SizeOf,
+		StaticSymbols,
+		VersionFun);
+}
+
+alias VersionFun = immutable VersionFun_;
+private enum VersionFun_ {
+	isBigEndian,
+	isInterpreted,
+	isJit,
+	isSingleThreaded,
+	isWasm,
+	isWindows,
+}
+
+alias BuiltinUnary = immutable BuiltinUnary_;
+private enum BuiltinUnary_ {
+	asAnyPtr,
+	acosFloat32,
+	acosFloat64,
+	acoshFloat32,
+	acoshFloat64,
+	asinFloat32,
+	asinFloat64,
+	asinhFloat32,
+	asinhFloat64,
+	atanFloat32,
+	atanFloat64,
+	atanhFloat32,
+	atanhFloat64,
+	bitwiseNotNat8,
+	bitwiseNotNat16,
+	bitwiseNotNat32,
+	bitwiseNotNat64,
+	countOnesNat64,
+	cosFloat32,
+	cosFloat64,
+	coshFloat32,
+	coshFloat64,
+	deref,
+	drop,
+	enumToIntegral,
+	roundFloat32,
+	roundFloat64,
+	sinFloat32,
+	sinFloat64,
+	sinhFloat32,
+	sinhFloat64,
+	sqrtFloat32,
+	sqrtFloat64,
+	tanFloat32,
+	tanFloat64,
+	tanhFloat32,
+	tanhFloat64,
+	toChar8FromNat8,
+	toFloat32FromFloat64,
+	toFloat64FromFloat32,
+	toFloat64FromInt64,
+	toFloat64FromNat64,
+	toInt64FromInt8,
+	toInt64FromInt16,
+	toInt64FromInt32,
+	toNat8FromChar8,
+	toNat64FromNat8,
+	toNat64FromNat16,
+	toNat64FromNat32,
+	toNat64FromPtr,
+	toPtrFromNat64,
+	truncateToInt64FromFloat64,
+	unsafeToNat32FromInt32,
+	unsafeToInt8FromInt64,
+	unsafeToInt16FromInt64,
+	unsafeToInt32FromInt64,
+	unsafeToNat64FromInt64,
+	unsafeToInt64FromNat64,
+	unsafeToNat8FromNat64,
+	unsafeToNat16FromNat64,
+	unsafeToNat32FromNat64,
+}
+
+alias BuiltinBinary = immutable BuiltinBinary_;
+private enum BuiltinBinary_ {
+	addFloat32,
+	addFloat64,
+	addPtrAndNat64, // RHS is multiplied by size of pointee first
+	and,
+	atan2Float32,
+	atan2Float64,
+	bitwiseAndInt8,
+	bitwiseAndInt16,
+	bitwiseAndInt32,
+	bitwiseAndInt64,
+	bitwiseAndNat8,
+	bitwiseAndNat16,
+	bitwiseAndNat32,
+	bitwiseAndNat64,
+	bitwiseOrInt8,
+	bitwiseOrInt16,
+	bitwiseOrInt32,
+	bitwiseOrInt64,
+	bitwiseOrNat8,
+	bitwiseOrNat16,
+	bitwiseOrNat32,
+	bitwiseOrNat64,
+	bitwiseXorInt8,
+	bitwiseXorInt16,
+	bitwiseXorInt32,
+	bitwiseXorInt64,
+	bitwiseXorNat8,
+	bitwiseXorNat16,
+	bitwiseXorNat32,
+	bitwiseXorNat64,
+	eqFloat32,
+	eqFloat64,
+	eqInt8,
+	eqInt16,
+	eqInt32,
+	eqInt64,
+	eqNat8,
+	eqNat16,
+	eqNat32,
+	eqNat64,
+	eqPtr,
+	lessChar8,
+	lessFloat32,
+	lessFloat64,
+	lessInt8,
+	lessInt16,
+	lessInt32,
+	lessInt64,
+	lessNat8,
+	lessNat16,
+	lessNat32,
+	lessNat64,
+	lessPtr,
+	mulFloat32,
+	mulFloat64,
+	orBool,
+	seq,
+	subFloat32,
+	subFloat64,
+	subPtrAndNat64, // RHS is multiplied by size of pointee first
+	unsafeAddInt8,
+	unsafeAddInt16,
+	unsafeAddInt32,
+	unsafeAddInt64,
+	unsafeBitShiftLeftNat64,
+	unsafeBitShiftRightNat64,
+	unsafeDivFloat32,
+	unsafeDivFloat64,
+	unsafeDivInt8,
+	unsafeDivInt16,
+	unsafeDivInt32,
+	unsafeDivInt64,
+	unsafeDivNat8,
+	unsafeDivNat16,
+	unsafeDivNat32,
+	unsafeDivNat64,
+	unsafeModNat64,
+	unsafeMulInt8,
+	unsafeMulInt16,
+	unsafeMulInt32,
+	unsafeMulInt64,
+	unsafeSubInt8,
+	unsafeSubInt16,
+	unsafeSubInt32,
+	unsafeSubInt64,
+	wrapAddNat8,
+	wrapAddNat16,
+	wrapAddNat32,
+	wrapAddNat64,
+	wrapMulNat8,
+	wrapMulNat16,
+	wrapMulNat32,
+	wrapMulNat64,
+	wrapSubNat8,
+	wrapSubNat16,
+	wrapSubNat32,
+	wrapSubNat64,
+	writeToPtr,
+}
+
+alias BuiltinTernary = immutable BuiltinTernary_;
+private enum BuiltinTernary_ { interpreterBacktrace }
 
 immutable struct FunFlags {
 	@safe @nogc pure nothrow:
@@ -1130,10 +1359,9 @@ enum FunKind {
 immutable struct CommonFuns {
 	UriAndDiagnostic[] diagnostics;
 	FunInst* alloc;
-	EnumMap!(FunKind, FunDecl*) funSubscript;
+	EnumMap!(FunKind, FunDecl*) lambdaSubscript;
 	FunInst* curExclusion;
 	FunInst* mark;
-	FunDecl* markVisitFunDecl;
 	FunInst* newNat64Future;
 	FunInst* newVoidFuture;
 	FunInst* rtMain;

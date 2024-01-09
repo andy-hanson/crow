@@ -12,4 +12,5 @@ test/compile-errors/extern-errors.crow 25:1-25:24 'extern' function 'f' can't ha
 test/compile-errors/extern-errors.crow 25:11-25:14 'extern' function 'f' parameter 'a' can't reference non-extern type 't'.
 test/compile-errors/extern-errors.crow 27:1-27:34 'extern' function 'f' can't be variadic.
 test/compile-errors/extern-errors.crow 32:1-32:29 'extern' function 'f' can't have specs.
+test/compile-errors/extern-errors.crow 42:1-42:2 The compiler does not implement a builtin function named 'g'.
 test/compile-errors/extern-errors.crow 42:1-42:26 'extern' conflicts with 'builtin'.

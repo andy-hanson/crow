@@ -14,7 +14,7 @@ import model.concreteModel :
 	name,
 	TypeSize;
 import model.constant : Constant;
-import model.model : EnumValue, Local, StructBody;
+import model.model : BuiltinUnary, BuiltinBinary, BuiltinTernary, EnumValue, Local, StructBody;
 import util.col.map : Map;
 import util.col.fullIndexMap : FullIndexMap;
 import util.hash : hash2, HashCode, hashEnum, hashSizeT;
@@ -192,7 +192,7 @@ bool isChar8(LowType a) =>
 bool isVoid(LowType a) =>
 	a.isA!PrimitiveType && a.as!PrimitiveType == PrimitiveType.void_;
 
-bool isPtrRawConstOrMut(LowType a) =>
+private bool isPtrRawConstOrMut(LowType a) =>
 	a.isA!(LowType.PtrRawConst) || a.isA!(LowType.PtrRawMut);
 
 bool isPtrGcOrRaw(LowType a) =>
@@ -421,184 +421,17 @@ immutable struct LowExprKind {
 	}
 
 	immutable struct SpecialUnary {
-		alias Kind = immutable Kind_;
-		enum Kind_ {
-			asAnyPtr,
-			acosFloat32,
-			acosFloat64,
-			acoshFloat32,
-			acoshFloat64,
-			asinFloat32,
-			asinFloat64,
-			asinhFloat32,
-			asinhFloat64,
-			atanFloat32,
-			atanFloat64,
-			atanhFloat32,
-			atanhFloat64,
-			bitwiseNotNat8,
-			bitwiseNotNat16,
-			bitwiseNotNat32,
-			bitwiseNotNat64,
-			countOnesNat64,
-			cosFloat32,
-			cosFloat64,
-			coshFloat32,
-			coshFloat64,
-			deref,
-			drop,
-			enumToIntegral,
-			roundFloat32,
-			roundFloat64,
-			sinFloat32,
-			sinFloat64,
-			sinhFloat32,
-			sinhFloat64,
-			sqrtFloat32,
-			sqrtFloat64,
-			tanFloat32,
-			tanFloat64,
-			tanhFloat32,
-			tanhFloat64,
-			toChar8FromNat8,
-			toFloat32FromFloat64,
-			toFloat64FromFloat32,
-			toFloat64FromInt64,
-			toFloat64FromNat64,
-			toInt64FromInt8,
-			toInt64FromInt16,
-			toInt64FromInt32,
-			toNat8FromChar8,
-			toNat64FromNat8,
-			toNat64FromNat16,
-			toNat64FromNat32,
-			toNat64FromPtr,
-			toPtrFromNat64,
-			truncateToInt64FromFloat64,
-			unsafeToNat32FromInt32,
-			unsafeToInt8FromInt64,
-			unsafeToInt16FromInt64,
-			unsafeToInt32FromInt64,
-			unsafeToNat64FromInt64,
-			unsafeToInt64FromNat64,
-			unsafeToNat8FromNat64,
-			unsafeToNat16FromNat64,
-			unsafeToNat32FromNat64,
-		}
-		Kind kind;
+		BuiltinUnary kind;
 		LowExpr arg;
 	}
 
 	immutable struct SpecialBinary {
-		alias Kind = immutable Kind_;
-		enum Kind_ {
-			addFloat32,
-			addFloat64,
-			addPtrAndNat64, // RHS is multiplied by size of pointee first
-			and,
-			atan2Float32,
-			atan2Float64,
-			bitwiseAndInt8,
-			bitwiseAndInt16,
-			bitwiseAndInt32,
-			bitwiseAndInt64,
-			bitwiseAndNat8,
-			bitwiseAndNat16,
-			bitwiseAndNat32,
-			bitwiseAndNat64,
-			bitwiseOrInt8,
-			bitwiseOrInt16,
-			bitwiseOrInt32,
-			bitwiseOrInt64,
-			bitwiseOrNat8,
-			bitwiseOrNat16,
-			bitwiseOrNat32,
-			bitwiseOrNat64,
-			bitwiseXorInt8,
-			bitwiseXorInt16,
-			bitwiseXorInt32,
-			bitwiseXorInt64,
-			bitwiseXorNat8,
-			bitwiseXorNat16,
-			bitwiseXorNat32,
-			bitwiseXorNat64,
-			eqFloat32,
-			eqFloat64,
-			eqInt8,
-			eqInt16,
-			eqInt32,
-			eqInt64,
-			eqNat8,
-			eqNat16,
-			eqNat32,
-			eqNat64,
-			eqPtr,
-			lessChar8,
-			lessFloat32,
-			lessFloat64,
-			lessInt8,
-			lessInt16,
-			lessInt32,
-			lessInt64,
-			lessNat8,
-			lessNat16,
-			lessNat32,
-			lessNat64,
-			lessPtr,
-			mulFloat32,
-			mulFloat64,
-			orBool,
-			seq,
-			subFloat32,
-			subFloat64,
-			subPtrAndNat64, // RHS is multiplied by size of pointee first
-			unsafeAddInt8,
-			unsafeAddInt16,
-			unsafeAddInt32,
-			unsafeAddInt64,
-			unsafeBitShiftLeftNat64,
-			unsafeBitShiftRightNat64,
-			unsafeDivFloat32,
-			unsafeDivFloat64,
-			unsafeDivInt8,
-			unsafeDivInt16,
-			unsafeDivInt32,
-			unsafeDivInt64,
-			unsafeDivNat8,
-			unsafeDivNat16,
-			unsafeDivNat32,
-			unsafeDivNat64,
-			unsafeModNat64,
-			unsafeMulInt8,
-			unsafeMulInt16,
-			unsafeMulInt32,
-			unsafeMulInt64,
-			unsafeSubInt8,
-			unsafeSubInt16,
-			unsafeSubInt32,
-			unsafeSubInt64,
-			wrapAddNat8,
-			wrapAddNat16,
-			wrapAddNat32,
-			wrapAddNat64,
-			wrapMulNat8,
-			wrapMulNat16,
-			wrapMulNat32,
-			wrapMulNat64,
-			wrapSubNat8,
-			wrapSubNat16,
-			wrapSubNat32,
-			wrapSubNat64,
-			writeToPtr,
-		}
-		Kind kind;
+		BuiltinBinary kind;
 		LowExpr[2] args;
 	}
 
 	immutable struct SpecialTernary {
-		alias Kind = immutable Kind_;
-		enum Kind_ { interpreterBacktrace }
-		Kind kind;
+		BuiltinTernary kind;
 		LowExpr[3] args;
 	}
 

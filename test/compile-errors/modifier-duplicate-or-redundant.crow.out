@@ -1,6 +1,6 @@
 exit code: 0
 stderr:
-test/compile-errors/modifier-duplicate-or-redundant.crow 4:11-4:15 'data' is already the default for a builtin type.
+test/compile-errors/modifier-duplicate-or-redundant.crow 4:15-4:19 'data' is already the default for a builtin type.
 test/compile-errors/modifier-duplicate-or-redundant.crow 6:10-6:13 'mut' is already the default for an extern type.
 test/compile-errors/modifier-duplicate-or-redundant.crow 8:11-8:17 'extern' is already the default for an extern type.
 test/compile-errors/modifier-duplicate-or-redundant.crow 10:9-10:13 'data' is already the default for an enum type.

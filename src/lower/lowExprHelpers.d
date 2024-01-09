@@ -3,6 +3,7 @@ module lower.lowExprHelpers;
 @safe @nogc pure nothrow:
 
 import model.constant : Constant, constantZero;
+import model.model : BuiltinUnary, BuiltinBinary;
 import model.lowModel :
 	asGcOrRawPointee,
 	AllLowTypes,
@@ -43,15 +44,15 @@ LowType voidType = LowType(PrimitiveType.void_);
 
 LowExpr genAddPtr(ref Alloc alloc, LowType.PtrRawConst ptrType, UriAndRange range, LowExpr ptr, LowExpr added) =>
 	LowExpr(LowType(ptrType), range, LowExprKind(allocate(alloc,
-		LowExprKind.SpecialBinary(LowExprKind.SpecialBinary.Kind.addPtrAndNat64, [ptr, added]))));
+		LowExprKind.SpecialBinary(BuiltinBinary.addPtrAndNat64, [ptr, added]))));
 
 LowExpr genAsAnyPtrConst(ref Alloc alloc, UriAndRange range, LowExpr a) =>
 	LowExpr(anyPtrConstType, range, LowExprKind(allocate(alloc,
-		LowExprKind.SpecialUnary(LowExprKind.SpecialUnary.Kind.asAnyPtr, a))));
+		LowExprKind.SpecialUnary(BuiltinUnary.asAnyPtr, a))));
 
 LowExpr genDrop(ref Alloc alloc, UriAndRange range, LowExpr a) =>
 	LowExpr(voidType, range, LowExprKind(allocate(alloc,
-		LowExprKind.SpecialUnary(LowExprKind.SpecialUnary.Kind.drop, a))));
+		LowExprKind.SpecialUnary(BuiltinUnary.drop, a))));
 
 // Ensures that the side-effect order is still 'a' before 'b'
 LowExprKind genDropSecond(ref Alloc alloc, UriAndRange range, size_t localIndex, LowExpr a, LowExpr b) =>
@@ -59,7 +60,7 @@ LowExprKind genDropSecond(ref Alloc alloc, UriAndRange range, size_t localIndex,
 		genSeq(alloc, range, genDrop(alloc, range, b), getA)).kind;
 
 private LowExpr genDerefGcOrRawPtr(ref Alloc alloc, UriAndRange range, LowExpr ptr) =>
-	genUnary(alloc, range, asGcOrRawPointee(ptr.type), LowExprKind.SpecialUnary.Kind.deref, ptr);
+	genUnary(alloc, range, asGcOrRawPointee(ptr.type), BuiltinUnary.deref, ptr);
 
 LowExpr genDerefGcPtr(ref Alloc alloc, UriAndRange range, LowExpr ptr) =>
 	genDerefGcOrRawPtr(alloc, range, ptr);
@@ -74,7 +75,7 @@ private LowExpr genUnary(
 	ref Alloc alloc,
 	UriAndRange range,
 	LowType type,
-	LowExprKind.SpecialUnary.Kind kind,
+	BuiltinUnary kind,
 	LowExpr arg,
 ) =>
 	LowExpr(type, range, LowExprKind(allocate(alloc, LowExprKind.SpecialUnary(kind, arg))));
@@ -102,11 +103,11 @@ LowExpr genLocalSet(ref Alloc alloc, UriAndRange range, LowLocal* local, LowExpr
 
 LowExpr genWrapMulNat64(ref Alloc alloc, UriAndRange range, LowExpr left, LowExpr right) =>
 	LowExpr(nat64Type, range, LowExprKind(allocate(alloc,
-		LowExprKind.SpecialBinary(LowExprKind.SpecialBinary.Kind.wrapMulNat64, [left, right]))));
+		LowExprKind.SpecialBinary(BuiltinBinary.wrapMulNat64, [left, right]))));
 
 LowExpr genPtrEq(ref Alloc alloc, UriAndRange range, LowExpr a, LowExpr b) =>
 	LowExpr(boolType, range, LowExprKind(allocate(alloc,
-		LowExprKind.SpecialBinary(LowExprKind.SpecialBinary.Kind.eqPtr, [a, b]))));
+		LowExprKind.SpecialBinary(BuiltinBinary.eqPtr, [a, b]))));
 
 LowExprKind genEnumEq(ref Alloc alloc, LowExpr a, LowExpr b) {
 	assert(a.type.as!PrimitiveType == b.type.as!PrimitiveType);
@@ -126,7 +127,7 @@ LowExprKind genEnumUnion(ref Alloc alloc, LowExpr a, LowExpr b) {
 	return LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(unionForType(a.type.as!PrimitiveType), [a, b])));
 }
 
-private LowExprKind.SpecialUnary.Kind bitwiseNegateForType(PrimitiveType a) {
+private BuiltinUnary bitwiseNegateForType(PrimitiveType a) {
 	final switch (a) {
 		case PrimitiveType.bool_:
 		case PrimitiveType.char8:
@@ -139,17 +140,17 @@ private LowExprKind.SpecialUnary.Kind bitwiseNegateForType(PrimitiveType a) {
 		case PrimitiveType.int64:
 			assert(false);
 		case PrimitiveType.nat8:
-			return LowExprKind.SpecialUnary.Kind.bitwiseNotNat8;
+			return BuiltinUnary.bitwiseNotNat8;
 		case PrimitiveType.nat16:
-			return LowExprKind.SpecialUnary.Kind.bitwiseNotNat16;
+			return BuiltinUnary.bitwiseNotNat16;
 		case PrimitiveType.nat32:
-			return LowExprKind.SpecialUnary.Kind.bitwiseNotNat32;
+			return BuiltinUnary.bitwiseNotNat32;
 		case PrimitiveType.nat64:
-			return LowExprKind.SpecialUnary.Kind.bitwiseNotNat64;
+			return BuiltinUnary.bitwiseNotNat64;
 	}
 }
 
-private LowExprKind.SpecialBinary.Kind eqForType(PrimitiveType a) {
+private BuiltinBinary eqForType(PrimitiveType a) {
 	final switch (a) {
 		case PrimitiveType.bool_:
 		case PrimitiveType.char8:
@@ -158,25 +159,25 @@ private LowExprKind.SpecialBinary.Kind eqForType(PrimitiveType a) {
 		case PrimitiveType.void_:
 			assert(false);
 		case PrimitiveType.int8:
-			return LowExprKind.SpecialBinary.Kind.eqInt8;
+			return BuiltinBinary.eqInt8;
 		case PrimitiveType.int16:
-			return LowExprKind.SpecialBinary.Kind.eqInt16;
+			return BuiltinBinary.eqInt16;
 		case PrimitiveType.int32:
-			return LowExprKind.SpecialBinary.Kind.eqInt32;
+			return BuiltinBinary.eqInt32;
 		case PrimitiveType.int64:
-			return LowExprKind.SpecialBinary.Kind.eqInt64;
+			return BuiltinBinary.eqInt64;
 		case PrimitiveType.nat8:
-			return LowExprKind.SpecialBinary.Kind.eqNat8;
+			return BuiltinBinary.eqNat8;
 		case PrimitiveType.nat16:
-			return LowExprKind.SpecialBinary.Kind.eqNat16;
+			return BuiltinBinary.eqNat16;
 		case PrimitiveType.nat32:
-			return LowExprKind.SpecialBinary.Kind.eqNat32;
+			return BuiltinBinary.eqNat32;
 		case PrimitiveType.nat64:
-			return LowExprKind.SpecialBinary.Kind.eqNat64;
+			return BuiltinBinary.eqNat64;
 	}
 }
 
-private LowExprKind.SpecialBinary.Kind intersectForType(PrimitiveType a) {
+private BuiltinBinary intersectForType(PrimitiveType a) {
 	final switch (a) {
 		case PrimitiveType.bool_:
 		case PrimitiveType.char8:
@@ -185,25 +186,25 @@ private LowExprKind.SpecialBinary.Kind intersectForType(PrimitiveType a) {
 		case PrimitiveType.void_:
 			assert(false);
 		case PrimitiveType.int8:
-			return LowExprKind.SpecialBinary.Kind.bitwiseAndInt8;
+			return BuiltinBinary.bitwiseAndInt8;
 		case PrimitiveType.int16:
-			return LowExprKind.SpecialBinary.Kind.bitwiseAndInt16;
+			return BuiltinBinary.bitwiseAndInt16;
 		case PrimitiveType.int32:
-			return LowExprKind.SpecialBinary.Kind.bitwiseAndInt32;
+			return BuiltinBinary.bitwiseAndInt32;
 		case PrimitiveType.int64:
-			return LowExprKind.SpecialBinary.Kind.bitwiseAndInt64;
+			return BuiltinBinary.bitwiseAndInt64;
 		case PrimitiveType.nat8:
-			return LowExprKind.SpecialBinary.Kind.bitwiseAndNat8;
+			return BuiltinBinary.bitwiseAndNat8;
 		case PrimitiveType.nat16:
-			return LowExprKind.SpecialBinary.Kind.bitwiseAndNat16;
+			return BuiltinBinary.bitwiseAndNat16;
 		case PrimitiveType.nat32:
-			return LowExprKind.SpecialBinary.Kind.bitwiseAndNat32;
+			return BuiltinBinary.bitwiseAndNat32;
 		case PrimitiveType.nat64:
-			return LowExprKind.SpecialBinary.Kind.bitwiseAndNat64;
+			return BuiltinBinary.bitwiseAndNat64;
 	}
 }
 
-private LowExprKind.SpecialBinary.Kind unionForType(PrimitiveType a) {
+private BuiltinBinary unionForType(PrimitiveType a) {
 	final switch (a) {
 		case PrimitiveType.bool_:
 		case PrimitiveType.char8:
@@ -212,26 +213,26 @@ private LowExprKind.SpecialBinary.Kind unionForType(PrimitiveType a) {
 		case PrimitiveType.void_:
 			assert(false);
 		case PrimitiveType.int8:
-			return LowExprKind.SpecialBinary.Kind.bitwiseOrInt8;
+			return BuiltinBinary.bitwiseOrInt8;
 		case PrimitiveType.int16:
-			return LowExprKind.SpecialBinary.Kind.bitwiseOrInt16;
+			return BuiltinBinary.bitwiseOrInt16;
 		case PrimitiveType.int32:
-			return LowExprKind.SpecialBinary.Kind.bitwiseOrInt32;
+			return BuiltinBinary.bitwiseOrInt32;
 		case PrimitiveType.int64:
-			return LowExprKind.SpecialBinary.Kind.bitwiseOrInt64;
+			return BuiltinBinary.bitwiseOrInt64;
 		case PrimitiveType.nat8:
-			return LowExprKind.SpecialBinary.Kind.bitwiseOrNat8;
+			return BuiltinBinary.bitwiseOrNat8;
 		case PrimitiveType.nat16:
-			return LowExprKind.SpecialBinary.Kind.bitwiseOrNat16;
+			return BuiltinBinary.bitwiseOrNat16;
 		case PrimitiveType.nat32:
-			return LowExprKind.SpecialBinary.Kind.bitwiseOrNat32;
+			return BuiltinBinary.bitwiseOrNat32;
 		case PrimitiveType.nat64:
-			return LowExprKind.SpecialBinary.Kind.bitwiseOrNat64;
+			return BuiltinBinary.bitwiseOrNat64;
 	}
 }
 
 LowExprKind genEnumToIntegral(ref Alloc alloc, LowExpr inner) =>
-	LowExprKind(allocate(alloc, LowExprKind.SpecialUnary(LowExprKind.SpecialUnary.Kind.enumToIntegral, inner)));
+	LowExprKind(allocate(alloc, LowExprKind.SpecialUnary(BuiltinUnary.enumToIntegral, inner)));
 
 LowExpr genPtrCast(ref Alloc alloc, LowType type, UriAndRange range, LowExpr inner) =>
 	LowExpr(type, range, genPtrCastKind(alloc, inner));
@@ -245,7 +246,7 @@ LowExpr genRecordFieldGet(ref Alloc alloc, UriAndRange range, LowExpr target, Lo
 LowExpr genSeq(ref Alloc alloc, UriAndRange range, LowExpr first, LowExpr then) =>
 	LowExpr(then.type, range, genSeqKind(alloc, first, then));
 LowExprKind genSeqKind(ref Alloc alloc, LowExpr first, LowExpr then) =>
-	LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(LowExprKind.SpecialBinary.Kind.seq, [first, then])));
+	LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(BuiltinBinary.seq, [first, then])));
 
 LowExpr genSeq(ref Alloc alloc, UriAndRange range, LowExpr line0, LowExpr line1, LowExpr line2) =>
 	genSeq(alloc, range, line0, genSeq(alloc, range, line1, line2));
@@ -253,7 +254,7 @@ LowExpr genSeq(ref Alloc alloc, UriAndRange range, LowExpr line0, LowExpr line1,
 LowExpr genWriteToPtr(ref Alloc alloc, UriAndRange range, LowExpr ptr, LowExpr value) =>
 	LowExpr(voidType, range, genWriteToPtr(alloc, ptr, value));
 LowExprKind genWriteToPtr(ref Alloc alloc, LowExpr ptr, LowExpr value) =>
-	LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(LowExprKind.SpecialBinary.Kind.writeToPtr, [ptr, value])));
+	LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(BuiltinBinary.writeToPtr, [ptr, value])));
 
 LowExpr genVoid(UriAndRange source) =>
 	LowExpr(voidType, source, LowExprKind(constantZero));
