@@ -579,6 +579,7 @@ immutable struct ModifierAst {
 		extern_,
 		forceShared,
 		mut,
+		newInternal,
 		newPublic,
 		newPrivate,
 		packed,
@@ -903,6 +904,8 @@ Symbol symbolOfModifierKind(ModifierAst.Kind a) {
 			return symbol!"force-shared";
 		case ModifierAst.Kind.mut:
 			return symbol!"mut";
+		case ModifierAst.Kind.newInternal:
+			return symbol!"~new";
 		case ModifierAst.Kind.newPrivate:
 			return symbol!"-new";
 		case ModifierAst.Kind.newPublic:

@@ -4,8 +4,17 @@ main void()
 private-ctor record -new
 	x nat
 
-redundant-private-ctor record -new
+redundant-private record -new
 	-y nat
+
++internal-ctor record ~new
+	x nat
+
+redundant-internal record ~new
+	~x nat
+
++redundant-public record +new
+	+x nat
 
 private-mut record mut, +new
 	-j mut nat

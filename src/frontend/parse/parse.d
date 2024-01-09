@@ -490,6 +490,10 @@ ModifierAst.Kind parseModifierKind(ref Lexer lexer) {
 		addDiagExpected(lexer, ParseDiag.Expected.Kind.modifier);
 		return ModifierAst.Kind.data;
 	}
+	ModifierAst.Kind maybeNew(ModifierAst.Kind kind) {
+		Opt!Symbol name = tryTakeName(lexer);
+		return has(name) && force(name) == symbol!"new" ? kind : fail();
+	}
 
 	TokenAndData token = takeNextToken(lexer);
 	switch (token.token) {
@@ -503,11 +507,11 @@ ModifierAst.Kind parseModifierKind(ref Lexer lexer) {
 		case Token.operator:
 			switch (token.asSymbol.value) {
 				case symbol!"-".value:
-					Opt!Symbol name = tryTakeName(lexer);
-					return has(name) && force(name) == symbol!"new" ? ModifierAst.Kind.newPrivate : fail();
+					return maybeNew(ModifierAst.Kind.newPrivate);
+				case symbol!"~".value:
+					return maybeNew(ModifierAst.Kind.newInternal);
 				case symbol!"+".value:
-					Opt!Symbol name = tryTakeName(lexer);
-					return has(name) && force(name) == symbol!"new" ? ModifierAst.Kind.newPublic : fail();
+					return maybeNew(ModifierAst.Kind.newPublic);
 				default:
 					return fail();
 			}

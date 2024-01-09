@@ -14,3 +14,4 @@ foo void()
 	_ = b.k
 	b.l := 0
 	_ = b.l
+	_ internal-ctor = 0,

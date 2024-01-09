@@ -258,6 +258,7 @@ Opt!PurityAndForced purityAndForcedFromModifier(ModifierAst.Kind a) {
 		case ModifierAst.Kind.byRef:
 		case ModifierAst.Kind.byVal:
 		case ModifierAst.Kind.extern_:
+		case ModifierAst.Kind.newInternal:
 		case ModifierAst.Kind.newPrivate:
 		case ModifierAst.Kind.newPublic:
 		case ModifierAst.Kind.packed:
@@ -661,6 +662,8 @@ RecordModifiers checkRecordModifiers(ref CheckCtx ctx, ModifierAst[] modifiers) 
 					return withByValOrRef(ctx, cur, range, ForcedByValOrRefOrNone.byRef);
 				case ModifierAst.Kind.byVal:
 					return withByValOrRef(ctx, cur, range, ForcedByValOrRefOrNone.byVal);
+				case ModifierAst.Kind.newInternal:
+					return withNewVisibility(ctx, cur, range, Visibility.internal);
 				case ModifierAst.Kind.newPrivate:
 					return withNewVisibility(ctx, cur, range, Visibility.private_);
 				case ModifierAst.Kind.newPublic:
