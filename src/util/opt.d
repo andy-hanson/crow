@@ -3,6 +3,7 @@ module util.opt;
 @safe @nogc pure nothrow:
 
 import util.col.array : SmallArray;
+import util.util : assertNormalEnum;
 
 private struct Option(T) {
 	@safe @nogc pure nothrow:
@@ -25,6 +26,16 @@ private struct Option(T) {
 		bool has_() scope const =>
 			(value_.asTaggable & 1) == 0;
 		static assert(!this.init.has);
+	} else static if (is(T == enum)) {
+		static assert(__traits(allMembers, T).length < 255);
+		this(T value) {
+			assertNormalEnum!T();
+			value_ = value;
+			assert(has_);
+		}
+		T value_ = cast(T) 0xff;
+		bool has_() const =>
+			value_ != 0xff;
 	} else {
 		inout this(return scope inout T value) {
 			has_ = true;

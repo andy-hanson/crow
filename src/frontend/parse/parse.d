@@ -38,7 +38,6 @@ import frontend.parse.parseUtil :
 	tryTakeToken;
 import model.ast :
 	DestructureAst,
-	ExplicitVisibility,
 	ExprAst,
 	FieldMutabilityAst,
 	FileAst,
@@ -61,7 +60,7 @@ import model.ast :
 	TestAst,
 	TypeAst,
 	VarDeclAst;
-import model.model : TypeParams, VarKind;
+import model.model : TypeParams, VarKind, Visibility;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
@@ -205,7 +204,7 @@ SmallArray!(StructBodyAst.Record.Field) parseRecordFields(ref Lexer lexer) {
 	ArrayBuilder!(StructBodyAst.Record.Field) fields;
 	while (true) {
 		Pos start = curPos(lexer);
-		ExplicitVisibility visibility = tryTakeVisibility(lexer);
+		Opt!Visibility visibility = tryTakeVisibility(lexer);
 		NameAndRange name = takeNameAndRange(lexer);
 		Opt!FieldMutabilityAst mutability = parseFieldMutability(lexer);
 		TypeAst type = parseType(lexer);
@@ -223,11 +222,11 @@ SmallArray!(StructBodyAst.Record.Field) parseRecordFields(ref Lexer lexer) {
 Opt!FieldMutabilityAst parseFieldMutability(ref Lexer lexer) {
 	Pos pos = curPos(lexer);
 	TokenAndData peek = getPeekTokenAndData(lexer);
-	ExplicitVisibility visibility = tryTakeVisibility(lexer);
+	Opt!Visibility visibility = tryTakeVisibility(lexer);
 	if (tryTakeToken(lexer, Token.mut))
 		return some(FieldMutabilityAst(pos, visibility));
 	else {
-		if (visibility != ExplicitVisibility.default_)
+		if (has(visibility))
 			addDiagUnexpectedCurToken(lexer, pos, peek);
 		return none!FieldMutabilityAst;
 	}
@@ -250,7 +249,7 @@ SmallArray!(StructBodyAst.Union.Member) parseUnionMembers(ref Lexer lexer) {
 FunDeclAst parseFun(
 	ref Lexer lexer,
 	SmallString docComment,
-	ExplicitVisibility visibility,
+	Opt!Visibility visibility,
 	Pos start,
 	NameAndRange name,
 	TypeParams typeParams,
@@ -277,10 +276,10 @@ SmallArray!FunModifierAst parseFunModifiers(ref Lexer lexer) {
 
 FunModifierAst parseFunModifier(ref Lexer lexer) {
 	Pos start = curPos(lexer);
-	Opt!(FunModifierAst.Special.Flags) special = tryGetSpecialFunModifier(getPeekToken(lexer));
-	if (has(special)) {
+	FunModifierAst.Special.Flags special = tryGetSpecialFunModifier(getPeekToken(lexer));
+	if (special != FunModifierAst.Special.Flags.none) {
 		takeNextToken(lexer);
-		return FunModifierAst(FunModifierAst.Special(start, force(special)));
+		return FunModifierAst(FunModifierAst.Special(start, special));
 	} else {
 		TypeAst type = parseType(lexer);
 		Pos externPos = curPos(lexer);
@@ -302,24 +301,24 @@ SmallArray!TypeAst parseSpecModifiers(ref Lexer lexer) {
 	}
 }
 
-Opt!(FunModifierAst.Special.Flags) tryGetSpecialFunModifier(Token token) {
+FunModifierAst.Special.Flags tryGetSpecialFunModifier(Token token) {
 	switch (token) {
 		case Token.bare:
-			return some(FunModifierAst.Special.Flags.bare);
+			return FunModifierAst.Special.Flags.bare;
 		case Token.builtin:
-			return some(FunModifierAst.Special.Flags.builtin);
+			return FunModifierAst.Special.Flags.builtin;
 		case Token.extern_:
-			return some(FunModifierAst.Special.Flags.extern_);
+			return FunModifierAst.Special.Flags.extern_;
 		case Token.forceCtx:
-			return some(FunModifierAst.Special.Flags.forceCtx);
+			return FunModifierAst.Special.Flags.forceCtx;
 		case Token.summon:
-			return some(FunModifierAst.Special.Flags.summon);
+			return FunModifierAst.Special.Flags.summon;
 		case Token.trusted:
-			return some(FunModifierAst.Special.Flags.trusted);
+			return FunModifierAst.Special.Flags.trusted;
 		case Token.unsafe:
-			return some(FunModifierAst.Special.Flags.unsafe);
+			return FunModifierAst.Special.Flags.unsafe;
 		default:
-			return none!(FunModifierAst.Special.Flags);
+			return FunModifierAst.Special.Flags.none;
 	}
 }
 
@@ -352,7 +351,7 @@ void parseSpecOrStructOrFun(
 	SmallString docComment,
 ) {
 	Pos start = curPos(lexer);
-	ExplicitVisibility visibility = tryTakeVisibility(lexer);
+	Opt!Visibility visibility = tryTakeVisibility(lexer);
 	NameAndRange name = takeNameOrOperator(lexer);
 	TypeParams typeParams = parseTypeParams(lexer);
 	Pos keywordPos = curPos(lexer);
@@ -460,7 +459,7 @@ VarDeclAst parseVarDecl(
 	ref Lexer lexer,
 	Pos start,
 	SmallString docComment,
-	ExplicitVisibility visibility,
+	Opt!Visibility visibility,
 	NameAndRange name,
 	SmallArray!NameAndRange typeParams,
 	Pos kindPos,
@@ -536,14 +535,14 @@ Opt!(ModifierAst.Kind) modifierKindFromSymbol(Symbol a) {
 	}
 }
 
-ExplicitVisibility tryTakeVisibility(ref Lexer lexer) =>
+Opt!Visibility tryTakeVisibility(ref Lexer lexer) =>
 	tryTakeOperator(lexer, symbol!"-")
-		? ExplicitVisibility.private_
+		? some(Visibility.private_)
 		: tryTakeOperator(lexer, symbol!"+")
-		? ExplicitVisibility.public_
+		? some(Visibility.public_)
 		: tryTakeOperator(lexer, symbol!"~")
-		? ExplicitVisibility.internal
-		: ExplicitVisibility.default_;
+		? some(Visibility.internal)
+		: none!Visibility;
 
 FileAst* parseFileInner(scope ref AllUris allUris, ref Lexer lexer) {
 	SmallString moduleDocComment = takeNewline_topLevel(lexer);

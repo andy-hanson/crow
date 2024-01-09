@@ -6,7 +6,6 @@ import frontend.ide.ideUtil : eachSpecParent, eachTypeArg, eachTypeComponent;
 import frontend.ide.position : ExprContainer, LocalContainer, Position, PositionKind, VisibilityContainer;
 import model.ast :
 	DestructureAst,
-	ExplicitVisibility,
 	ExprAst,
 	FieldMutabilityAst,
 	FunDeclAst,
@@ -300,7 +299,7 @@ PositionKind.Keyword.Kind keywordKindForStructBody(in StructBodyAst a) =>
 			PositionKind.Keyword.Kind.union_);
 
 Opt!PositionKind positionInVisibility(TAst)(VisibilityContainer a, in TAst ast, Pos pos) =>
-	pos == ast.range.start && ast.visibility != ExplicitVisibility.default_
+	pos == ast.range.start && has(ast.visibility)
 		? some(PositionKind(PositionKind.VisibilityMark(a)))
 		: none!PositionKind;
 

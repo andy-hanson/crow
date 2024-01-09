@@ -3,7 +3,7 @@ module frontend.check.checkCtx;
 @safe @nogc pure nothrow:
 
 import frontend.check.instantiate : InstantiateCtx;
-import model.ast : ExplicitVisibility, optVisibilityFromExplicit, pathRange;
+import model.ast : pathRange;
 import model.diag : Diag, Diagnostic;
 import model.model :
 	ExportVisibility,
@@ -196,12 +196,11 @@ Visibility visibilityFromDefaultWithDiag(
 	scope ref CheckCtx ctx,
 	Range range,
 	Visibility default_,
-	ExplicitVisibility explicit,
+	Opt!Visibility explicit,
 	Diag.VisibilityWarning.Kind kind,
 ) {
-	Opt!Visibility opt = optVisibilityFromExplicit(explicit);
-	if (has(opt)) {
-		Visibility actual = force(opt);
+	if (has(explicit)) {
+		Visibility actual = force(explicit);
 		if (actual < default_)
 			return actual;
 		else {
@@ -212,5 +211,5 @@ Visibility visibilityFromDefaultWithDiag(
 		return default_;
 }
 
-Visibility visibilityFromExplicitTopLevel(ExplicitVisibility a) =>
-	optOrDefault!Visibility(optVisibilityFromExplicit(a), () => Visibility.internal);
+Visibility visibilityFromExplicitTopLevel(Opt!Visibility a) =>
+	optOrDefault!Visibility(a, () => Visibility.internal);

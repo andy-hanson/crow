@@ -15,7 +15,7 @@ import frontend.showModel :
 	writeTypeQuoted,
 	writeVisibility;
 import lib.lsp.lspTypes : Hover, MarkupContent, MarkupKind;
-import model.ast : FunModifierAst, optVisibilityFromExplicit;
+import model.ast : FunModifierAst;
 import model.diag : TypeContainer, TypeWithContainer;
 import model.model :
 	AssertOrForbidExpr,
@@ -162,9 +162,8 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 		},
 		(PositionKind.RecordFieldMutability x) {
 			writer ~= "Defines a ";
-			Opt!Visibility visibility = optVisibilityFromExplicit(x.visibility);
-			if (has(visibility)) {
-				writeVisibility(writer, ctx.show, force(visibility));
+			if (has(x.visibility)) {
+				writeVisibility(writer, ctx.show, force(x.visibility));
 				writer ~= ' ';
 			}
 			writer ~= "setter.";

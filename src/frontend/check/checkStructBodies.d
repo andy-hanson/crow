@@ -8,7 +8,6 @@ import frontend.check.instantiate : DelayStructInsts;
 import frontend.check.maps : StructsAndAliasesMap;
 import frontend.check.typeFromAst : checkTypeParams, typeFromAst;
 import model.ast :
-	ExplicitVisibility,
 	LiteralIntAst,
 	LiteralNatAst,
 	ModifierAst,
@@ -606,7 +605,7 @@ immutable struct RecordModifiers {
 }
 immutable struct NewVisibility {
 	Range range;
-	ExplicitVisibility visibility;
+	Opt!Visibility visibility;
 }
 
 RecordModifiers withByValOrRef(
@@ -624,26 +623,23 @@ RecordModifiers withByValOrRef(
 	return RecordModifiers(value, cur.newVisibility, cur.packed);
 }
 
-RecordModifiers withNewVisibility(ref CheckCtx ctx, RecordModifiers cur, in Range range, ExplicitVisibility value) {
-	assert(value != ExplicitVisibility.default_);
-	if (cur.newVisibility.visibility != ExplicitVisibility.default_) {
+RecordModifiers withNewVisibility(ref CheckCtx ctx, RecordModifiers cur, in Range range, Visibility value) {
+	if (has(cur.newVisibility.visibility)) {
 		Symbol valueSymbol = symbolOfNewVisibility(value);
-		addDiag(ctx, range, value == cur.newVisibility.visibility
+		addDiag(ctx, range, value == force(cur.newVisibility.visibility)
 			? Diag(Diag.ModifierDuplicate(valueSymbol))
-			: Diag(Diag.ModifierConflict(symbolOfNewVisibility(cur.newVisibility.visibility), valueSymbol)));
+			: Diag(Diag.ModifierConflict(symbolOfNewVisibility(force(cur.newVisibility.visibility)), valueSymbol)));
 	}
-	return RecordModifiers(cur.byValOrRefOrNone, NewVisibility(range, value), cur.packed);
+	return RecordModifiers(cur.byValOrRefOrNone, NewVisibility(range, some(value)), cur.packed);
 }
 
-Symbol symbolOfNewVisibility(ExplicitVisibility a) {
+Symbol symbolOfNewVisibility(Visibility a) {
 	final switch (a) {
-		case ExplicitVisibility.default_:
-			assert(false);
-		case ExplicitVisibility.private_:
+		case Visibility.private_:
 			return symbol!"-new";
-		case ExplicitVisibility.internal:
+		case Visibility.internal:
 			return symbol!"~new";
-		case ExplicitVisibility.public_:
+		case Visibility.public_:
 			return symbol!"+new";
 	}
 }
@@ -656,7 +652,7 @@ RecordModifiers withPacked(ref CheckCtx ctx, RecordModifiers cur, in Range range
 
 RecordModifiers checkRecordModifiers(ref CheckCtx ctx, ModifierAst[] modifiers) =>
 	fold!(RecordModifiers, ModifierAst)(
-		RecordModifiers(ForcedByValOrRefOrNone.none, NewVisibility(Range.empty, ExplicitVisibility.default_), false),
+		RecordModifiers(ForcedByValOrRefOrNone.none, NewVisibility(Range.empty, none!Visibility), false),
 		modifiers,
 		(RecordModifiers cur, in ModifierAst modifier) {
 			Range range = rangeOfModifierAst(modifier, ctx.allSymbols);
@@ -666,9 +662,9 @@ RecordModifiers checkRecordModifiers(ref CheckCtx ctx, ModifierAst[] modifiers) 
 				case ModifierAst.Kind.byVal:
 					return withByValOrRef(ctx, cur, range, ForcedByValOrRefOrNone.byVal);
 				case ModifierAst.Kind.newPrivate:
-					return withNewVisibility(ctx, cur, range, ExplicitVisibility.private_);
+					return withNewVisibility(ctx, cur, range, Visibility.private_);
 				case ModifierAst.Kind.newPublic:
-					return withNewVisibility(ctx, cur, range, ExplicitVisibility.public_);
+					return withNewVisibility(ctx, cur, range, Visibility.public_);
 				case ModifierAst.Kind.packed:
 					return withPacked(ctx, cur, range);
 				case ModifierAst.Kind.data:

@@ -33,33 +33,14 @@ static assert(NameAndRange.sizeof == ulong.sizeof * 2);
 Range rangeOfNameAndRange(NameAndRange a, in AllSymbols allSymbols) =>
 	rangeOfStartAndLength(a.start, symbolSize(allSymbols, a.name));
 
-enum ExplicitVisibility {
-	default_,
-	private_,
-	internal,
-	public_,
-}
-Opt!Visibility optVisibilityFromExplicit(ExplicitVisibility a) {
-	final switch (a) {
-		case ExplicitVisibility.default_:
-			return none!Visibility;
-		case ExplicitVisibility.private_:
-			return some(Visibility.private_);
-		case ExplicitVisibility.internal:
-			return some(Visibility.internal);
-		case ExplicitVisibility.public_:
-			return some(Visibility.public_);
-	}
-}
-
 immutable struct FieldMutabilityAst {
 	@safe @nogc pure nothrow:
 
 	Pos pos;
-	ExplicitVisibility visibility;
+	Opt!Visibility visibility;
 
 	Range range() =>
-		rangeOfStartAndLength(pos, visibility == ExplicitVisibility.default_ ? "mut".length : "-mut".length);
+		rangeOfStartAndLength(pos, has(visibility) ? "-mut".length : "mut".length);
 }
 static assert(FieldMutabilityAst.sizeof == ulong.sizeof);
 
@@ -573,7 +554,7 @@ immutable struct StructAliasAst {
 
 	SmallString docComment;
 	Range range;
-	ExplicitVisibility visibility;
+	Opt!Visibility visibility;
 	NameAndRange name;
 	SmallArray!NameAndRange typeParams;
 	Pos keywordPos;
@@ -651,7 +632,7 @@ immutable struct StructBodyAst {
 	immutable struct Record {
 		immutable struct Field {
 			Range range;
-			ExplicitVisibility visibility;
+			Opt!Visibility visibility;
 			NameAndRange name;
 			Opt!FieldMutabilityAst mutability;
 			TypeAst type;
@@ -682,7 +663,7 @@ immutable struct StructDeclAst {
 	SmallString docComment;
 	// Range starts at the visibility
 	Range range;
-	ExplicitVisibility visibility;
+	Opt!Visibility visibility;
 	NameAndRange name;
 	SmallArray!NameAndRange typeParams;
 	Pos keywordPos;
@@ -722,7 +703,7 @@ immutable struct SpecDeclAst {
 
 	Range range;
 	SmallString docComment;
-	ExplicitVisibility visibility;
+	Opt!Visibility visibility;
 	NameAndRange name;
 	SmallArray!NameAndRange typeParams;
 	Pos specKeywordPos;
@@ -746,7 +727,7 @@ private string keywordForSpecBody(in SpecBodyAst a) =>
 immutable struct FunDeclAst {
 	Range range;
 	SmallString docComment;
-	ExplicitVisibility visibility;
+	Opt!Visibility visibility;
 	NameAndRange name;
 	SmallArray!NameAndRange typeParams;
 	TypeAst returnType;
@@ -840,7 +821,7 @@ immutable struct VarDeclAst {
 
 	Range range;
 	SmallString docComment;
-	ExplicitVisibility visibility;
+	Opt!Visibility visibility;
 	NameAndRange name;
 	SmallArray!NameAndRange typeParams; // This will be a compile error
 	Pos keywordPos;

@@ -2,7 +2,7 @@ module frontend.ide.position;
 
 @safe @nogc pure nothrow:
 
-import model.ast : ExplicitVisibility, FunModifierAst, NameAndRange;
+import model.ast : FunModifierAst, NameAndRange;
 import model.diag : TypeContainer, TypeWithContainer;
 import model.model :
 	Expr,
@@ -144,7 +144,7 @@ immutable struct PositionKind {
 		Local* local;
 	}
 	immutable struct RecordFieldMutability {
-		ExplicitVisibility visibility;
+		Opt!Visibility visibility;
 	}
 	immutable struct RecordFieldPosition {
 		StructDecl* struct_;
