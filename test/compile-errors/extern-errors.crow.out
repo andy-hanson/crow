@@ -5,12 +5,12 @@ test/compile-errors/extern-errors.crow 6:5-6:17 Extern type 'r' can't reference 
 test/compile-errors/extern-errors.crow 8:1-9:12 'extern' record 'r2' is implicitly 'by-val'.
 test/compile-errors/extern-errors.crow 11:1-12:12 'extern' record 'r3' is implicitly 'by-val'.
 test/compile-errors/extern-errors.crow 14:1-15:13 A union can't be 'extern'.
-test/compile-errors/extern-errors.crow 17:1-17:16 Expected 'extern' to be preceded by the library name.
+test/compile-errors/extern-errors.crow 17:1-17:2 Expected 'extern' to be preceded by the library name.
 test/compile-errors/extern-errors.crow 21:1-21:20 'extern' function 'f' can't reference non-extern type 'string'.
 test/compile-errors/extern-errors.crow 23:8-23:16 'extern' function 'f' parameter 'a' can't reference non-extern type 'string'.
 test/compile-errors/extern-errors.crow 25:1-25:24 'extern' function 'f' can't have type parameters.
 test/compile-errors/extern-errors.crow 25:11-25:14 'extern' function 'f' parameter 'a' can't reference non-extern type 't'.
 test/compile-errors/extern-errors.crow 27:1-27:34 'extern' function 'f' can't be variadic.
 test/compile-errors/extern-errors.crow 32:1-32:29 'extern' function 'f' can't have specs.
+test/compile-errors/extern-errors.crow 42:1-42:2 'extern' conflicts with 'builtin'.
 test/compile-errors/extern-errors.crow 42:1-42:2 The compiler does not implement a builtin function named 'g'.
-test/compile-errors/extern-errors.crow 42:1-42:26 'extern' conflicts with 'builtin'.

@@ -229,6 +229,10 @@ immutable struct Diag {
 		StructDecl* struct_;
 	}
 	immutable struct ExternUnion {}
+	immutable struct FunCantHaveBody {
+		enum Reason { builtin, extern_ }
+		Reason reason;
+	}
 	immutable struct FunMissingBody {}
 	immutable struct FunModifierTrustedOnNonExtern {}
 	immutable struct FunPointerNotSupported {
@@ -504,6 +508,7 @@ immutable struct Diag {
 		ExternMissingLibraryName,
 		ExternRecordImplicitlyByVal,
 		ExternUnion,
+		FunCantHaveBody,
 		FunMissingBody,
 		FunModifierTrustedOnNonExtern,
 		FunPointerNotSupported,

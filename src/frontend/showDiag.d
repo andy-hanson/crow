@@ -634,6 +634,11 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		(in Diag.ExternUnion) {
 			writer ~= "A union can't be 'extern'.";
 		},
+		(in Diag.FunCantHaveBody x) {
+			writer ~= "A '";
+			writer ~= stringOfEnum(x.reason);
+			writer ~= "' function can't have a body.";
+		},
 		(in Diag.FunMissingBody) {
 			writer ~= "This function needs a body.";
 		},

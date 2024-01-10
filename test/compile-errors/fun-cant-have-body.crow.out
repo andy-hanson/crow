@@ -1,0 +1,4 @@
+exit code: 0
+stderr:
+test/compile-errors/fun-cant-have-body.crow 4:1-4:3 A 'builtin' function can't have a body.
+test/compile-errors/fun-cant-have-body.crow 7:1-7:4 A 'extern' function can't have a body.

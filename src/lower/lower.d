@@ -43,7 +43,6 @@ import model.concreteModel :
 	ConcreteField,
 	ConcreteFun,
 	ConcreteFunBody,
-	ConcreteFunKey,
 	ConcreteLambdaImpl,
 	ConcreteLocal,
 	ConcreteLocalSource,

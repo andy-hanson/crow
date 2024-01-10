@@ -548,10 +548,33 @@ FunsAndMap checkFuns(
 	VarDecl[] vars,
 	ImportOrExportFile[] fileImports,
 	ImportOrExportFile[] fileExports,
-	in FunDeclAst[] asts,
-	in TestAst[] testAsts,
+	FunDeclAst[] asts,
+	TestAst[] testAsts,
 ) {
-	FunDecl[] funs = buildArrayExact!FunDecl(
+	FunDecl[] funs = checkFunsInitial(
+		ctx, commonTypes, specsMap, structs, structsAndAliasesMap, vars, fileImports, fileExports, asts);
+	FunsMap funsMap = buildFunsMap(ctx.alloc, funs);
+	checkFunsWithAsts(ctx,commonTypes, structsAndAliasesMap, funsMap, funs[0 .. asts.length], asts);
+	foreach (size_t i, ref ImportOrExportFile f; fileImports)
+		funs[asts.length + i].body_ = getFileImportFunctionBody(f);
+	foreach (size_t i, ref ImportOrExportFile f; fileExports)
+		funs[asts.length + fileImports.length + i].body_ = getFileImportFunctionBody(f);
+	return FunsAndMap(
+		small!FunDecl(funs), checkTests(ctx, commonTypes, structsAndAliasesMap, funsMap, testAsts), funsMap);
+}
+
+FunDecl[] checkFunsInitial(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	in SpecsMap specsMap,
+	StructDecl[] structs,
+	in StructsAndAliasesMap structsAndAliasesMap,
+	VarDecl[] vars,
+	ImportOrExportFile[] fileImports,
+	ImportOrExportFile[] fileExports,
+	FunDeclAst[] asts,
+) =>
+	buildArrayExact!FunDecl(
 		ctx.alloc,
 		asts.length + fileImports.length + fileExports.length +
 			countFunsForStructs(commonTypes, structs) + countFunsForVars(vars),
@@ -569,7 +592,7 @@ FunsAndMap checkFuns(
 					structsAndAliasesMap,
 					noDelayStructInsts);
 				FunFlagsAndSpecs flagsAndSpecs = checkFunModifiers(
-					ctx, commonTypes, funAst.range, funAst.modifiers,
+					ctx, commonTypes, nameRange(ctx.allSymbols, funAst), funAst.modifiers,
 					structsAndAliasesMap, specsMap, funAst.typeParams);
 				initMemory(fun, FunDecl(
 					FunDeclSource(FunDeclSource.Ast(ctx.curUri, &funAst)),
@@ -593,15 +616,21 @@ FunsAndMap checkFuns(
 				addFunsForVar(ctx, funsBuilder, commonTypes, &var);
 		});
 
-	FunsMap funsMap = buildFunsMap(ctx.alloc, funs);
-
-	FunDecl[] funsWithAsts = funs[0 .. asts.length];
+void checkFunsWithAsts(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	in StructsAndAliasesMap structsAndAliasesMap,
+	in FunsMap funsMap,
+	FunDecl[] funsWithAsts,
+	FunDeclAst[] asts,
+) {
 	zipPointers!(FunDecl, FunDeclAst)(funsWithAsts, asts, (FunDecl* fun, FunDeclAst* funAst) {
+		Range diagRange = nameRange(ctx.allSymbols, *funAst);
 		fun.body_ = () {
 			final switch (fun.flags.specialBody) {
 				case FunFlags.SpecialBody.none:
 					if (funAst.body_.kind.isA!EmptyAst) {
-						addDiag(ctx, funAst.range, Diag(Diag.FunMissingBody()));
+						addDiag(ctx, diagRange, Diag(Diag.FunMissingBody()));
 						return FunBody(FunBody.Bogus());
 					} else
 						return FunBody(getExprFunctionBody(
@@ -612,39 +641,39 @@ FunsAndMap checkFuns(
 							fun,
 							&funAst.body_));
 				case FunFlags.SpecialBody.builtin:
-				case FunFlags.SpecialBody.generated:
 					if (!funAst.body_.kind.isA!EmptyAst)
-						todo!void("diag: builtin fun can't have body");
+						addDiag(ctx, diagRange, Diag(Diag.FunCantHaveBody(Diag.FunCantHaveBody.Reason.builtin)));
 					return getBuiltinFun(ctx, fun);
 				case FunFlags.SpecialBody.extern_:
 					if (!funAst.body_.kind.isA!EmptyAst)
-						todo!void("diag: extern fun can't have body");
+						addDiag(ctx, diagRange, Diag(Diag.FunCantHaveBody(Diag.FunCantHaveBody.Reason.extern_)));
 					return FunBody(checkExternBody(
 						ctx, fun, getExternTypeArg(*funAst, FunModifierAst.Special.Flags.extern_)));
+				case FunFlags.SpecialBody.generated:
+					assert(false);
 			}
 		}();
 	});
-	foreach (size_t i, ref ImportOrExportFile f; fileImports)
-		funs[asts.length + i].body_ = getFileImportFunctionBody(f);
-	foreach (size_t i, ref ImportOrExportFile f; fileExports)
-		funs[asts.length + fileImports.length + i].body_ = getFileImportFunctionBody(f);
-
-	Test[] tests = (() @trusted =>
-		mapWithResultPointer!(Test, TestAst)(ctx.alloc, testAsts, (TestAst* ast, Test* out_) {
-			TestBody body_ = () {
-				if (ast.body_.kind.isA!EmptyAst) {
-					addDiag(ctx, ast.range, Diag(Diag.FunMissingBody()));
-					return TestBody(Expr(&ast.body_, ExprKind(BogusExpr())));
-				} else
-					return checkTestBody(
-						ctx, structsAndAliasesMap, commonTypes, funsMap, TypeContainer(out_), &ast.body_);
-			}();
-			return Test(ast, ctx.curUri, body_.body_, body_.type);
-		})
-	)();
-
-	return FunsAndMap(small!FunDecl(funs), small!Test(tests), funsMap);
 }
+
+@trusted SmallArray!Test checkTests(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	in StructsAndAliasesMap structsAndAliasesMap,
+	in FunsMap funsMap,
+	TestAst[] testAsts,
+) =>
+	small!Test(mapWithResultPointer!(Test, TestAst)(ctx.alloc, testAsts, (TestAst* ast, Test* out_) @safe {
+		TestBody body_ = () {
+			if (ast.body_.kind.isA!EmptyAst) {
+				addDiag(ctx, ast.range, Diag(Diag.FunMissingBody()));
+				return TestBody(Expr(&ast.body_, ExprKind(BogusExpr())));
+			} else
+				return checkTestBody(
+					ctx, structsAndAliasesMap, commonTypes, funsMap, TypeContainer(out_), &ast.body_);
+		}();
+		return Test(ast, ctx.curUri, body_.body_, body_.type);
+	}));
 
 FunsMap buildFunsMap(ref Alloc alloc, in immutable FunDecl[] funs) {
 	MutHashTable!(ArrayBuilder!(immutable FunDecl*), Symbol, funDeclsBuilderName) res;
@@ -772,7 +801,7 @@ FunBody.Extern checkExternBody(ref CheckCtx ctx, FunDecl* fun, in Opt!TypeAst ty
 			addDiagAssertSameUri(ctx, fun.range, Diag(
 				Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.variadic)));
 		});
-	return FunBody.Extern(externLibraryNameFromTypeArg(ctx, fun.range.range, typeArg));
+	return FunBody.Extern(externLibraryNameFromTypeArg(ctx, nameRange(ctx.allSymbols, *fun).range, typeArg));
 }
 
 Symbol externLibraryNameFromTypeArg(ref CheckCtx ctx, in Range range, in Opt!TypeAst typeArg) {
