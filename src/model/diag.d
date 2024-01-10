@@ -77,13 +77,15 @@ immutable struct Diagnostic {
 	Diag kind;
 }
 
-enum TypeKind {
+enum DeclKind {
 	builtin,
 	enum_,
-	flags,
 	extern_,
+	global,
+	flags,
 	record,
 	union_,
+	threadLocal,
 }
 
 enum ReadFileDiag_ {
@@ -322,7 +324,7 @@ immutable struct Diag {
 	}
 	immutable struct ModifierInvalid {
 		Symbol modifier;
-		TypeKind typeKind;
+		DeclKind declKind;
 	}
 	// This is like 'ModifierDuplicate' but the modifiers are not identical.
 	// E.g., 'extern unsafe', since 'extern' implies 'unsafe'.
@@ -331,9 +333,9 @@ immutable struct Diag {
 		// This is implied by the first modifier
 		Symbol redundantModifier;
 	}
-	immutable struct ModifierRedundantDueToTypeKind {
+	immutable struct ModifierRedundantDueToDeclKind {
 		Symbol modifier;
-		TypeKind typeKind;
+		DeclKind declKind;
 	}
 	immutable struct MutFieldNotAllowed {}
 	immutable struct NameNotFound {
@@ -403,6 +405,9 @@ immutable struct Diag {
 		SpecDecl*[] trace;
 	}
 	immutable struct SpecSigCantBeVariadic {}
+	immutable struct SpecUseInvalid {
+		DeclKind declKind;
+	}
 	immutable struct StringLiteralInvalid {
 		enum Reason { containsNul }
 		Reason reason;
@@ -533,8 +538,8 @@ immutable struct Diag {
 		ModifierConflict,
 		ModifierDuplicate,
 		ModifierInvalid,
+		ModifierRedundantDueToDeclKind,
 		ModifierRedundantDueToModifier,
-		ModifierRedundantDueToTypeKind,
 		MutFieldNotAllowed,
 		NameNotFound,
 		NeedsExpectedType,
@@ -549,6 +554,7 @@ immutable struct Diag {
 		SpecNameMissing,
 		SpecRecursion,
 		SpecSigCantBeVariadic,
+		SpecUseInvalid,
 		StringLiteralInvalid,
 		TrustedUnnecessary,
 		TypeAnnotationUnnecessary,

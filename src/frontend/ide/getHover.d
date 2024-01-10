@@ -101,7 +101,7 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 					case FunModifierAst.Special.Flags.none:
 						assert(false);
 					case FunModifierAst.Special.Flags.builtin:
-						return "This function is built in to the compiler.";
+						return "This function is implemented natively by Crow.";
 					case FunModifierAst.Special.Flags.extern_:
 						// This is a compile error, so just let that explain it.
 						return "";
@@ -132,7 +132,7 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 					case PositionKind.Keyword.Kind.alias_:
 						return "Declares a type alias.";
 					case PositionKind.Keyword.Kind.builtin:
-						return "Declares a type implemented by the compiler.";
+						return "Declares a type implemented natively by Crow.";
 					case PositionKind.Keyword.Kind.enum_:
 						return "Declares an enumerated type. The type can only have the values listed.";
 					case PositionKind.Keyword.Kind.extern_:

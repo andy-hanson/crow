@@ -101,9 +101,9 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkWarning,
 		(in Diag.ModifierInvalid) =>
 			DiagnosticSeverity.checkError,
-		(in Diag.ModifierRedundantDueToModifier) =>
+		(in Diag.ModifierRedundantDueToDeclKind) =>
 			DiagnosticSeverity.checkWarning,
-		(in Diag.ModifierRedundantDueToTypeKind) =>
+		(in Diag.ModifierRedundantDueToModifier) =>
 			DiagnosticSeverity.checkWarning,
 		(in Diag.MutFieldNotAllowed) =>
 			DiagnosticSeverity.checkError,
@@ -132,6 +132,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 		(in Diag.SpecRecursion) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.SpecSigCantBeVariadic) =>
+			DiagnosticSeverity.checkError,
+		(in Diag.SpecUseInvalid) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.StringLiteralInvalid) =>
 			DiagnosticSeverity.checkError,

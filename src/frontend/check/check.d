@@ -49,13 +49,14 @@ import model.ast :
 	SpecDeclAst,
 	SpecSigAst,
 	StructAliasAst,
+	symbolOfSpecialFlag,
 	TestAst,
 	TypeAst,
 	typeParamsRange,
 	VarDeclAst;
 import frontend.allInsts : AllInsts;
 import frontend.storage : FileContent;
-import model.diag : Diag, Diagnostic, TypeContainer;
+import model.diag : DeclKind, Diag, Diagnostic, TypeContainer;
 import model.model :
 	BogusExpr,
 	CommonTypes,
@@ -93,6 +94,7 @@ import model.model :
 	TypeParamIndex,
 	TypeParams,
 	VarDecl,
+	VarKind,
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
@@ -388,29 +390,48 @@ VarDecl checkVarDecl(
 		ast.name.name,
 		ast.kind,
 		typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, ast.type, structsAndAliasesMap),
-		checkVarModifiers(ctx, ast.modifiers));
+		checkVarModifiers(ctx, ast.kind, ast.modifiers));
 }
 
-Opt!Symbol checkVarModifiers(ref CheckCtx ctx, in FunModifierAst[] modifiers) {
+Opt!Symbol checkVarModifiers(ref CheckCtx ctx, VarKind kind, in FunModifierAst[] modifiers) {
 	Cell!(Opt!Symbol) externLibraryName;
 	foreach (ref FunModifierAst modifier; modifiers) {
+		Range diagRange() => range(modifier, ctx.allSymbols);
 		modifier.matchIn!void(
 			(in FunModifierAst.Special x) {
 				if (x.flag == FunModifierAst.Special.Flags.extern_)
-					todo!void("diag: 'extern' missing library name");
+					addDiag(ctx, diagRange(), Diag(Diag.ExternMissingLibraryName()));
 				else
-					todo!void("diag: unsupported modifier");
+					addDiag(ctx, diagRange(), Diag(
+						Diag.ModifierInvalid(symbolOfSpecialFlag(ctx.allSymbols, x.flag), declKind(kind))));
 			},
 			(in FunModifierAst.Extern x) {
 				if (has(cellGet(externLibraryName)))
-					todo!void("diag: duplicate modifier");
-				cellSet(externLibraryName, some(externLibraryNameFromTypeArg(ctx, x.suffixRange, some(*x.left))));
+					addDiag(ctx, diagRange(), Diag(Diag.ModifierDuplicate(symbol!"extern")));
+				final switch (kind) {
+					case VarKind.global:
+						cellSet(externLibraryName, some(
+							externLibraryNameFromTypeArg(ctx, x.suffixRange, some(*x.left))));
+						break;
+					case VarKind.threadLocal:
+						addDiag(ctx, diagRange(), Diag(Diag.ModifierInvalid(symbol!"extern", DeclKind.threadLocal)));
+						break;
+				}
 			},
 			(in TypeAst _) {
-				todo!void("diag: unsupported modifier");
+				addDiag(ctx, diagRange(), Diag(Diag.SpecUseInvalid(declKind(kind))));
 			});
 	}
 	return cellGet(externLibraryName);
+}
+
+DeclKind declKind(VarKind a) {
+	final switch (a) {
+		case VarKind.global:
+			return DeclKind.global;
+		case VarKind.threadLocal:
+			return DeclKind.threadLocal;
+	}
 }
 
 void addToDeclsMap(T, alias getName)(

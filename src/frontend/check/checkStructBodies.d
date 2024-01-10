@@ -17,7 +17,7 @@ import model.ast :
 	symbolOfModifierKind,
 	TypeAst;
 import model.concreteModel : TypeSize;
-import model.diag : Diag, TypeKind;
+import model.diag : Diag, DeclKind;
 import model.model :
 	BuiltinType,
 	CommonTypes,
@@ -57,7 +57,7 @@ import util.util : isMultipleOf, ptrTrustMe, todo;
 StructDecl[] checkStructsInitial(ref CheckCtx ctx, in StructDeclAst[] asts) =>
 	mapPointers!(StructDecl, StructDeclAst)(ctx.alloc, asts, (StructDeclAst* ast) {
 		checkTypeParams(ctx, ast.typeParams);
-		LinkageAndPurity p = getStructModifiers(ctx, getTypeKind(ast.body_), ast.modifiers);
+		LinkageAndPurity p = getStructModifiers(ctx, getDeclKind(ast.body_), ast.modifiers);
 		return StructDecl(
 			StructDeclSource(ast),
 			ctx.curUri,
@@ -79,18 +79,18 @@ void checkStructBodies(
 	zipPtrFirst!(StructDecl, StructDeclAst)(structs, asts, (StructDecl* struct_, ref StructDeclAst ast) {
 		struct_.body_ = ast.body_.matchIn!StructBody(
 			(in StructBodyAst.Builtin) {
-				checkOnlyStructModifiers(ctx, TypeKind.builtin, ast.modifiers);
+				checkOnlyStructModifiers(ctx, DeclKind.builtin, ast.modifiers);
 				return StructBody(getBuiltinType(ctx, struct_));
 			},
 			(in StructBodyAst.Enum x) {
-				checkOnlyStructModifiers(ctx, TypeKind.enum_, ast.modifiers);
+				checkOnlyStructModifiers(ctx, DeclKind.enum_, ast.modifiers);
 				return StructBody(checkEnum(
 					ctx, commonTypes, structsAndAliasesMap, struct_, ast.range, x, delayStructInsts));
 			},
 			(in StructBodyAst.Extern it) =>
 				StructBody(checkExtern(ctx, ast, it)),
 			(in StructBodyAst.Flags x) {
-				checkOnlyStructModifiers(ctx, TypeKind.flags, ast.modifiers);
+				checkOnlyStructModifiers(ctx, DeclKind.flags, ast.modifiers);
 				return StructBody(checkFlags(
 					ctx, commonTypes, structsAndAliasesMap, struct_, ast.range, x, delayStructInsts));
 			},
@@ -98,7 +98,7 @@ void checkStructBodies(
 				StructBody(checkRecord(
 					ctx, commonTypes, structsAndAliasesMap, struct_, ast.modifiers, x, delayStructInsts)),
 			(in StructBodyAst.Union x) {
-				checkOnlyStructModifiers(ctx, TypeKind.union_, ast.modifiers);
+				checkOnlyStructModifiers(ctx, DeclKind.union_, ast.modifiers);
 				return StructBody(checkUnion(ctx, commonTypes, structsAndAliasesMap, struct_, x, delayStructInsts));
 			});
 	});
@@ -107,7 +107,7 @@ void checkStructBodies(
 private:
 
 StructBody.Extern checkExtern(ref CheckCtx ctx, in StructDeclAst declAst, in StructBodyAst.Extern bodyAst) {
-	checkOnlyStructModifiers(ctx, TypeKind.extern_, declAst.modifiers);
+	checkOnlyStructModifiers(ctx, DeclKind.extern_, declAst.modifiers);
 	if (!isEmpty(declAst.typeParams))
 		addDiag(ctx, declAst.range, Diag(Diag.ExternHasTypeParams()));
 	Opt!size_t optNat(Opt!(LiteralNatAst*) value) {
@@ -169,9 +169,9 @@ immutable struct PurityAndForced {
 }
 
 // Note: purity is taken for granted here, and verified later when we check the body.
-LinkageAndPurity getStructModifiers(ref CheckCtx ctx, TypeKind typeKind, in ModifierAst[] modifiers) {
-	Linkage defaultLinkage = defaultLinkage(typeKind);
-	PurityAndForced defaultPurity = PurityAndForced(defaultPurity(typeKind), false);
+LinkageAndPurity getStructModifiers(ref CheckCtx ctx, DeclKind declKind, in ModifierAst[] modifiers) {
+	Linkage defaultLinkage = defaultLinkage(declKind);
+	PurityAndForced defaultPurity = PurityAndForced(defaultPurity(declKind), false);
 	OptLinkageAndPurity opts = fold!(OptLinkageAndPurity, ModifierAst)(
 		OptLinkageAndPurity(),
 		modifiers,
@@ -183,9 +183,9 @@ LinkageAndPurity getStructModifiers(ref CheckCtx ctx, TypeKind typeKind, in Modi
 					modifierConflictOrDuplicate(prev, symbolOfModifierKind(mod.kind)));
 			}
 			void addDiagRedundant() {
-				addDiag(ctx, rangeOfModifierAst(mod, ctx.allSymbols), Diag(Diag.ModifierRedundantDueToTypeKind(
+				addDiag(ctx, rangeOfModifierAst(mod, ctx.allSymbols), Diag(Diag.ModifierRedundantDueToDeclKind(
 					symbolOfModifierKind(mod.kind),
-					typeKind)));
+					declKind)));
 			}
 
 			if (mod.kind == ModifierAst.Kind.extern_) {
@@ -214,46 +214,52 @@ LinkageAndPurity getStructModifiers(ref CheckCtx ctx, TypeKind typeKind, in Modi
 Diag modifierConflictOrDuplicate(Symbol a, Symbol b) =>
 	a == b ? Diag(Diag.ModifierDuplicate(a)) : Diag(Diag.ModifierConflict(a, b));
 
-Linkage defaultLinkage(TypeKind a) {
+Linkage defaultLinkage(DeclKind a) {
 	final switch (a) {
-		case TypeKind.builtin:
-		case TypeKind.enum_:
-		case TypeKind.flags:
-		case TypeKind.record:
-		case TypeKind.union_:
+		case DeclKind.builtin:
+		case DeclKind.enum_:
+		case DeclKind.flags:
+		case DeclKind.record:
+		case DeclKind.union_:
 			return Linkage.internal;
-		case TypeKind.extern_:
+		case DeclKind.extern_:
 			return Linkage.extern_;
+		case DeclKind.global:
+		case DeclKind.threadLocal:
+			assert(false);
 	}
 }
 
-Purity defaultPurity(TypeKind a) {
+Purity defaultPurity(DeclKind a) {
 	final switch (a) {
-		case TypeKind.builtin:
-		case TypeKind.enum_:
-		case TypeKind.flags:
-		case TypeKind.record:
-		case TypeKind.union_:
+		case DeclKind.builtin:
+		case DeclKind.enum_:
+		case DeclKind.flags:
+		case DeclKind.record:
+		case DeclKind.union_:
 			return Purity.data;
-		case TypeKind.extern_:
+		case DeclKind.extern_:
 			return Purity.mut;
+		case DeclKind.global:
+		case DeclKind.threadLocal:
+			assert(false);
 	}
 }
 
-TypeKind getTypeKind(in StructBodyAst a) =>
-	a.matchIn!TypeKind(
+DeclKind getDeclKind(in StructBodyAst a) =>
+	a.matchIn!DeclKind(
 		(in StructBodyAst.Builtin) =>
-			TypeKind.builtin,
+			DeclKind.builtin,
 		(in StructBodyAst.Enum) =>
-			TypeKind.enum_,
+			DeclKind.enum_,
 		(in StructBodyAst.Extern) =>
-			TypeKind.extern_,
+			DeclKind.extern_,
 		(in StructBodyAst.Flags) =>
-			TypeKind.flags,
+			DeclKind.flags,
 		(in StructBodyAst.Record) =>
-			TypeKind.record,
+			DeclKind.record,
 		(in StructBodyAst.Union) =>
-			TypeKind.union_);
+			DeclKind.union_);
 
 Opt!PurityAndForced purityAndForcedFromModifier(ModifierAst.Kind a) {
 	final switch (a) {
@@ -289,13 +295,13 @@ Symbol symbolOfPurityAndForced(PurityAndForced a) {
 	}
 }
 
-void checkOnlyStructModifiers(ref CheckCtx ctx, TypeKind typeKind, in ModifierAst[] modifiers) {
+void checkOnlyStructModifiers(ref CheckCtx ctx, DeclKind declKind, in ModifierAst[] modifiers) {
 	foreach (ref ModifierAst modifier; modifiers)
 		if (!isStructModifier(modifier.kind)) {
 			Symbol symbol = symbolOfModifierKind(modifier.kind);
 			addDiag(ctx, rangeOfModifierAst(modifier, ctx.allSymbols), modifier.kind == ModifierAst.Kind.byVal
-				? Diag(Diag.ModifierRedundantDueToTypeKind(symbol, typeKind))
-				: Diag(Diag.ModifierInvalid(symbol, typeKind)));
+				? Diag(Diag.ModifierRedundantDueToDeclKind(symbol, declKind))
+				: Diag(Diag.ModifierInvalid(symbol, declKind)));
 		}
 }
 

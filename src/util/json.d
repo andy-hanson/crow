@@ -44,7 +44,7 @@ immutable struct Json {
 			(in Json.Object oa) =>
 				b.isA!Object && arraysEqual(oa, b.as!Object),
 			(in Json.StringObject ob) =>
-				todo!bool(""));
+				assert(false));
 }
 
 Json get(string key)(in Json a) {

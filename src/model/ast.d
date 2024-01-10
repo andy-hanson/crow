@@ -12,7 +12,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.sourceRange : combineRanges, Pos, Range, rangeOfStartAndLength;
 import util.string : SmallString;
-import util.symbol : AllSymbols, Symbol, symbol, symbolSize;
+import util.symbol : AllSymbols, Symbol, symbol, symbolOfString, symbolSize;
 import util.union_ : Union;
 import util.uri : AllUris, Path, pathLength, RelPath, relPathLength;
 
@@ -809,6 +809,10 @@ string stringOfSpecialFlag(FunModifierAst.Special.Flags a) {
 		default:
 			assert(false);
 	}
+}
+
+Symbol symbolOfSpecialFlag(scope ref AllSymbols allSymbols, FunModifierAst.Special.Flags a) {
+	return symbolOfString(allSymbols, stringOfSpecialFlag(a));
 }
 
 immutable struct TestAst {

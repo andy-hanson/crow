@@ -39,4 +39,8 @@ g global(nat) c extern
 
 g global(nat)
 
-g nat() builtin, c extern
+g2 global(nat) builtin, c extern
+
+g3 global(nat) extern, bare, nat equal
+
+tl thread-local(nat) c extern, nat equal

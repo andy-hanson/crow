@@ -188,9 +188,8 @@ private FullIndexMap!(LowVarIndex, LowVar) getAllLowVars(
 						? LowVar.Kind.externGlobal
 						: LowVar.Kind.global;
 				case VarKind.threadLocal:
-					return has(source.source.externLibraryName)
-						? todo!(LowVar.Kind)("extern thread-local")
-						: LowVar.Kind.threadLocal;
+					assert(!has(source.source.externLibraryName));
+					return LowVar.Kind.threadLocal;
 			}
 		}();
 		return LowVar(source, kind, lowTypeFromConcreteType(ctx, source.type));

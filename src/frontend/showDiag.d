@@ -28,7 +28,7 @@ import model.diag :
 	ExpectedForDiag,
 	ReadFileDiag,
 	TypeContainer,
-	TypeKind,
+	DeclKind,
 	TypeWithContainer,
 	UriAndDiagnostic;
 import model.model :
@@ -436,7 +436,7 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= "Can't assign to this kind of expression.";
 		},
 		(in Diag.BuiltinUnsupported x) {
-			writer ~= "The compiler does not implement a builtin ";
+			writer ~= "Crow does not implement a builtin ";
 			writer ~= stringOfEnum(x.kind);
 			writer ~= " named ";
 			writeName(writer, ctx, x.name);
@@ -800,22 +800,22 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= '.';
 		},
 		(in Diag.ModifierInvalid x) {
+			writer ~= aOrAnDeclKind(x.declKind);
+			writer ~= " can't be ";
 			writeName(writer, ctx, x.modifier);
-			writer ~= " is not supported for ";
-			writer ~= aOrAnTypeKind(x.typeKind);
 			writer ~= '.';
+		},
+		(in Diag.ModifierRedundantDueToDeclKind x) {
+			writer ~= aOrAnDeclKind(x.declKind);
+			writer ~= " is already ";
+			writeName(writer, ctx, x.modifier);
+			writer ~= " by default.";
 		},
 		(in Diag.ModifierRedundantDueToModifier x) {
 			writeName(writer, ctx, x.redundantModifier);
 			writer ~= " is redundant given ";
 			writeName(writer, ctx, x.modifier);
 			writer ~= '.';
-		},
-		(in Diag.ModifierRedundantDueToTypeKind x) {
-			writeName(writer, ctx, x.modifier);
-			writer ~= " is already the default for ";
-			writer ~= aOrAnTypeKind(x.typeKind);
-			writer ~= " type.";
 		},
 		(in Diag.MutFieldNotAllowed) {
 			writer ~= "This field is 'mut', so the record must be 'mut'.";
@@ -919,6 +919,10 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		},
 		(in Diag.SpecSigCantBeVariadic x) {
 			writer ~= "A spec signature can't be variadic.";
+		},
+		(in Diag.SpecUseInvalid x) {
+			writer ~= aOrAnDeclKind(x.declKind);
+			writer ~= " can't have specs.";
 		},
 		(in Diag.StringLiteralInvalid x) {
 			final switch (x.reason) {
@@ -1052,20 +1056,24 @@ void writeExpected(scope ref Writer writer, in ShowDiagCtx ctx, in ExpectedForDi
 		});
 }
 
-string aOrAnTypeKind(TypeKind a) {
+string aOrAnDeclKind(DeclKind a) {
 	final switch (a) {
-		case TypeKind.builtin:
-			return "a builtin";
-		case TypeKind.enum_:
-			return "an enum";
-		case TypeKind.extern_:
-			return "an extern";
-		case TypeKind.flags:
-			return "a flags";
-		case TypeKind.record:
-			return "a record";
-		case TypeKind.union_:
-			return "a union";
+		case DeclKind.builtin:
+			return "A builtin type";
+		case DeclKind.enum_:
+			return "An enum type";
+		case DeclKind.extern_:
+			return "An extern type";
+		case DeclKind.global:
+			return "A global variable";
+		case DeclKind.flags:
+			return "A flags type";
+		case DeclKind.record:
+			return "A record type";
+		case DeclKind.threadLocal:
+			return "A thread-local variable";
+		case DeclKind.union_:
+			return "A union type";
 	}
 }
 
