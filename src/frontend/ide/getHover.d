@@ -97,25 +97,23 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 		},
 		(PositionKind.FunSpecialModifier x) {
 			writer ~= () {
-				final switch (x.flag) {
-					case FunModifierAst.Special.Flags.none:
-						assert(false);
-					case FunModifierAst.Special.Flags.builtin:
+				final switch (x.modifier) {
+					case FunModifierAst.Keyword.Kind.bare:
+						return "This function does not use the Crow runtime.";
+					case FunModifierAst.Keyword.Kind.builtin:
 						return "This function is implemented natively by Crow.";
-					case FunModifierAst.Special.Flags.extern_:
+					case FunModifierAst.Keyword.Kind.extern_:
 						// This is a compile error, so just let that explain it.
 						return "";
-					case FunModifierAst.Special.Flags.bare:
-						return "This function does not use the Crow runtime.";
-					case FunModifierAst.Special.Flags.summon:
-						return "This function can directly access all I/O capacilities.";
-					case FunModifierAst.Special.Flags.trusted:
-						return "This function is not unsafe, but can do unsafe things internally.";
-					case FunModifierAst.Special.Flags.unsafe:
-						return "This function can only be called by 'trusted' or 'unsafe' functions.";
-					case FunModifierAst.Special.Flags.forceCtx:
+					case FunModifierAst.Keyword.Kind.forceCtx:
 						return "This function uses the runtime, but 'bare' functions can call it. " ~
 							"(Don't use outside of the Crow runtime.)";
+					case FunModifierAst.Keyword.Kind.summon:
+						return "This function can directly access all I/O capacilities.";
+					case FunModifierAst.Keyword.Kind.trusted:
+						return "This function is not unsafe, but can do unsafe things internally.";
+					case FunModifierAst.Keyword.Kind.unsafe:
+						return "This function can only be called by 'trusted' or 'unsafe' functions.";
 				}
 			}();
 		},

@@ -49,7 +49,7 @@ import model.ast :
 	SpecDeclAst,
 	SpecSigAst,
 	StructAliasAst,
-	symbolOfSpecialFlag,
+	symbolOfKeywordModifier,
 	TestAst,
 	TypeAst,
 	typeParamsRange,
@@ -398,12 +398,12 @@ Opt!Symbol checkVarModifiers(ref CheckCtx ctx, VarKind kind, in FunModifierAst[]
 	foreach (ref FunModifierAst modifier; modifiers) {
 		Range diagRange() => range(modifier, ctx.allSymbols);
 		modifier.matchIn!void(
-			(in FunModifierAst.Special x) {
-				if (x.flag == FunModifierAst.Special.Flags.extern_)
+			(in FunModifierAst.Keyword x) {
+				if (x.kind == FunModifierAst.Keyword.Kind.extern_)
 					addDiag(ctx, diagRange(), Diag(Diag.ExternMissingLibraryName()));
 				else
 					addDiag(ctx, diagRange(), Diag(
-						Diag.ModifierInvalid(symbolOfSpecialFlag(ctx.allSymbols, x.flag), declKind(kind))));
+						Diag.ModifierInvalid(symbolOfKeywordModifier(ctx.allSymbols, x.kind), declKind(kind))));
 			},
 			(in FunModifierAst.Extern x) {
 				if (has(cellGet(externLibraryName)))
@@ -465,26 +465,63 @@ FunFlagsAndSpecs checkFunModifiers(
 	in SpecsMap specsMap,
 	TypeParams typeParamsScope,
 ) {
-	FunModifierAst.Special.Flags allFlags = FunModifierAst.Special.Flags.none;
+	CollectedFunFlags allFlags = CollectedFunFlags.none;
 	immutable SpecInst*[] specs =
 		mapOp!(immutable SpecInst*, FunModifierAst)(ctx.alloc, asts, (scope ref FunModifierAst ast) =>
 			ast.matchIn!(Opt!(SpecInst*))(
-				(in FunModifierAst.Special flag) {
-					if (allFlags & flag.flag)
-						todo!void("diag: duplicate flag");
-					allFlags |= flag.flag;
+				(in FunModifierAst.Keyword x) {
+					CollectedFunFlags flag = tryGetFunFlag(x.kind);
+					if (flag == CollectedFunFlags.none)
+						addDiag(ctx, x.range, Diag(
+							Diag.ModifierInvalid(symbolOfKeywordModifier(ctx.allSymbols, x.kind), DeclKind.function_)));
+					if (allFlags & flag)
+						addDiag(ctx, x.range, Diag(
+							Diag.ModifierDuplicate(symbolOfKeywordModifier(ctx.allSymbols, x.kind))));
+					allFlags |= flag;
 					return none!(SpecInst*);
 				},
 				(in FunModifierAst.Extern x) {
-					if (allFlags & FunModifierAst.Special.Flags.extern_)
-						todo!void("diag: duplicate flag");
-					allFlags |= FunModifierAst.Special.Flags.extern_;
+					if (allFlags & CollectedFunFlags.extern_)
+						addDiag(ctx, x.suffixRange, Diag(Diag.ModifierDuplicate(symbol!"extern")));
+					allFlags |= CollectedFunFlags.extern_;
 					return none!(SpecInst*);
 				},
 				(in TypeAst x) =>
 					checkFunModifierNonSpecial(
 						ctx, commonTypes, structsAndAliasesMap, specsMap, typeParamsScope, x, noDelaySpecInsts)));
 	return FunFlagsAndSpecs(checkFunFlags(ctx, range, allFlags), specs);
+}
+
+enum CollectedFunFlags {
+	none = 0,
+	bare = 1,
+	builtin = 0b10,
+	extern_ = 0b100,
+	forceCtx = 0b1000,
+	summon = 0b10000,
+	trusted = 0b100000,
+	unsafe = 0b1000000,
+}
+
+CollectedFunFlags tryGetFunFlag(FunModifierAst.Keyword.Kind kind) {
+	switch (kind) {
+		case FunModifierAst.Keyword.Kind.bare:
+			return CollectedFunFlags.bare;
+		case FunModifierAst.Keyword.Kind.builtin:
+			return CollectedFunFlags.builtin;
+		case FunModifierAst.Keyword.Kind.extern_:
+			return CollectedFunFlags.extern_;
+		case FunModifierAst.Keyword.Kind.forceCtx:
+			return CollectedFunFlags.forceCtx;
+		case FunModifierAst.Keyword.Kind.summon:
+			return CollectedFunFlags.summon;
+		case FunModifierAst.Keyword.Kind.trusted:
+			return CollectedFunFlags.trusted;
+		case FunModifierAst.Keyword.Kind.unsafe:
+			return CollectedFunFlags.unsafe;
+		default:
+			return CollectedFunFlags.none;
+	}
 }
 
 Opt!(SpecInst*) checkFunModifierNonSpecial(
@@ -510,18 +547,18 @@ Opt!(SpecInst*) checkFunModifierNonSpecial(
 	}
 }
 
-FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, FunModifierAst.Special.Flags flags) {
+FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, CollectedFunFlags flags) {
 	void warnRedundant(Symbol modifier, Symbol redundantModifier) {
 		addDiag(ctx, range, Diag(Diag.ModifierRedundantDueToModifier(modifier, redundantModifier)));
 	}
 
-	bool builtin = (flags & FunModifierAst.Special.Flags.builtin) != 0;
-	bool extern_ = (flags & FunModifierAst.Special.Flags.extern_) != 0;
-	bool explicitBare = (flags & FunModifierAst.Special.Flags.bare) != 0;
-	bool forceCtx = (flags & FunModifierAst.Special.Flags.forceCtx) != 0;
-	bool summon = (flags & FunModifierAst.Special.Flags.summon) != 0;
-	bool trusted = (flags & FunModifierAst.Special.Flags.trusted) != 0;
-	bool explicitUnsafe = (flags & FunModifierAst.Special.Flags.unsafe) != 0;
+	bool builtin = (flags & CollectedFunFlags.builtin) != 0;
+	bool extern_ = (flags & CollectedFunFlags.extern_) != 0;
+	bool explicitBare = (flags & CollectedFunFlags.bare) != 0;
+	bool forceCtx = (flags & CollectedFunFlags.forceCtx) != 0;
+	bool summon = (flags & CollectedFunFlags.summon) != 0;
+	bool trusted = (flags & CollectedFunFlags.trusted) != 0;
+	bool explicitUnsafe = (flags & CollectedFunFlags.unsafe) != 0;
 
 	bool implicitUnsafe = extern_;
 	bool unsafe = explicitUnsafe || implicitUnsafe;
@@ -671,7 +708,7 @@ void checkFunsWithAsts(
 					if (!funAst.body_.kind.isA!EmptyAst)
 						addDiag(ctx, diagRange, Diag(Diag.FunCantHaveBody(Diag.FunCantHaveBody.Reason.extern_)));
 					return FunBody(checkExternBody(
-						ctx, fun, getExternTypeArg(*funAst, FunModifierAst.Special.Flags.extern_)));
+						ctx, fun, getExternTypeArg(*funAst, FunModifierAst.Keyword.Kind.extern_)));
 				case FunFlags.SpecialBody.generated:
 					assert(false);
 			}
@@ -723,13 +760,13 @@ FunsMap buildFunsMap(ref Alloc alloc, in immutable FunDecl[] funs) {
 Symbol funDeclsBuilderName(in ArrayBuilder!(immutable FunDecl*) a) =>
 	asTemporaryArray(a)[0].name;
 
-Opt!TypeAst getExternTypeArg(ref FunDeclAst a, FunModifierAst.Special.Flags externOrGlobalFlag) {
+Opt!TypeAst getExternTypeArg(ref FunDeclAst a, FunModifierAst.Keyword.Kind externOrGlobal) {
 	foreach (ref FunModifierAst modifier; a.modifiers) {
 		Opt!(Opt!TypeAst) res = modifier.match!(Opt!(Opt!TypeAst))(
-			(FunModifierAst.Special x) =>
-				x.flag == externOrGlobalFlag ? some(none!TypeAst) : none!(Opt!TypeAst),
+			(FunModifierAst.Keyword x) =>
+				x.kind == externOrGlobal ? some(none!TypeAst) : none!(Opt!TypeAst),
 			(FunModifierAst.Extern x) =>
-				externOrGlobalFlag == FunModifierAst.Special.Flags.extern_ ? some(some(*x.left)) : none!(Opt!TypeAst),
+				externOrGlobal == FunModifierAst.Keyword.Kind.extern_ ? some(some(*x.left)) : none!(Opt!TypeAst),
 			(TypeAst x) =>
 				none!(Opt!TypeAst));
 		if (has(res))

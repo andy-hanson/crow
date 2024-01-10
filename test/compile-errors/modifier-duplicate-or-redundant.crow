@@ -1,6 +1,8 @@
 main void()
 	()
 
+f void() bare, bare, c extern, d extern
+
 nat64 builtin data
 
 e extern mut

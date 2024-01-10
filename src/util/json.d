@@ -10,7 +10,6 @@ import util.opt : force, has, Opt;
 import util.string : copyString, CString, stringsEqual, stringOfCString;
 import util.symbol : AllSymbols, Symbol, symbol, writeQuotedSymbol;
 import util.union_ : Union;
-import util.util : todo;
 import util.writer :
 	withWriter, writeFloatLiteral, Writer, writeQuotedString, writeWithCommasCompact, writeWithSeparator;
 

@@ -138,7 +138,7 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : UriAndRange;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : Union;
-import util.util : castNonScope_ref, ptrTrustMe, todo, typeAs;
+import util.util : castNonScope_ref, ptrTrustMe, typeAs;
 
 LowProgram lower(
 	scope ref Perf perf,

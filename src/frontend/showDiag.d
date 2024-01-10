@@ -1064,6 +1064,8 @@ string aOrAnDeclKind(DeclKind a) {
 			return "An enum type";
 		case DeclKind.extern_:
 			return "An extern type";
+		case DeclKind.function_:
+			return "A function";
 		case DeclKind.global:
 			return "A global variable";
 		case DeclKind.flags:

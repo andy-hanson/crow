@@ -159,8 +159,8 @@ Opt!PositionKind positionInParams(
 
 PositionKind positionForModifier(FunDecl* a, in FunDeclAst ast, size_t index, in FunModifierAst modifier) =>
 	modifier.matchIn!PositionKind(
-		(in FunModifierAst.Special x) =>
-			PositionKind(PositionKind.FunSpecialModifier(a, x.flag)),
+		(in FunModifierAst.Keyword x) =>
+			PositionKind(PositionKind.FunSpecialModifier(a, x.kind)),
 		(in FunModifierAst.Extern x) =>
 			PositionKind(PositionKind.FunExtern(a)),
 		(in TypeAst x) {

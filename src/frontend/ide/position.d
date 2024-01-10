@@ -102,7 +102,7 @@ immutable struct PositionKind {
 	}
 	immutable struct FunSpecialModifier {
 		FunDecl* funDecl;
-		FunModifierAst.Special.Flags flag;
+		FunModifierAst.Keyword.Kind modifier;
 	}
 	immutable struct Expression {
 		ExprContainer container;

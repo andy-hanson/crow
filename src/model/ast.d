@@ -743,26 +743,25 @@ Range nameRange(in AllSymbols allSymbols, in FunDeclAst a) =>
 immutable struct FunModifierAst {
 	@safe @nogc pure nothrow:
 
-	immutable struct Special {
+	immutable struct Keyword {
 		@safe @nogc pure nothrow:
 
-		enum Flags {
-			none = 0,
-			builtin = 1,
+		Pos pos;
+		enum Kind {
+			bare,
+			builtin,
 			// It's a compile error to have extern without a library name,
 			// so those will usually be a Extern instead
-			extern_ = 0b10,
-			bare = 0b100,
-			summon = 0b1000,
-			trusted = 0b100_0000,
-			unsafe = 0b1000_0000,
-			forceCtx = 0b1_0000_0000,
+			extern_,
+			forceCtx,
+			summon,
+			trusted,
+			unsafe,
 		}
-		Pos pos;
-		Flags flag;
+		Kind kind;
 
 		Range range() =>
-			rangeOfStartAndLength(pos, stringOfSpecialFlag(flag).length);
+			rangeOfStartAndLength(pos, stringOfKeywordModifier(kind).length);
 	}
 
 	immutable struct Extern {
@@ -778,42 +777,41 @@ immutable struct FunModifierAst {
 	}
 
 	// TypeAst will be interpreted as a spec inst
-	mixin Union!(Special, Extern, TypeAst);
+	mixin Union!(Keyword, Extern, TypeAst);
 }
 
-Range range(in FunModifierAst a, in AllSymbols allSymbols) =>
-	a.matchIn!Range(
-		(in FunModifierAst.Special x) =>
-			x.range,
-		(in FunModifierAst.Extern x) =>
-			x.range(allSymbols),
-		(in TypeAst x) =>
-			x.range(allSymbols));
-
-string stringOfSpecialFlag(FunModifierAst.Special.Flags a) {
+string stringOfKeywordModifier(FunModifierAst.Keyword.Kind a) {
 	switch (a) {
-		case FunModifierAst.Special.Flags.bare:
+		case FunModifierAst.Keyword.Kind.bare:
 			return "bare";
-		case FunModifierAst.Special.Flags.builtin:
+		case FunModifierAst.Keyword.Kind.builtin:
 			return "builtin";
-		case FunModifierAst.Special.Flags.extern_:
+		case FunModifierAst.Keyword.Kind.extern_:
 			return "extern";
-		case FunModifierAst.Special.Flags.summon:
+		case FunModifierAst.Keyword.Kind.summon:
 			return "summon";
-		case FunModifierAst.Special.Flags.trusted:
+		case FunModifierAst.Keyword.Kind.trusted:
 			return "trusted";
-		case FunModifierAst.Special.Flags.unsafe:
+		case FunModifierAst.Keyword.Kind.unsafe:
 			return "unsafe";
-		case FunModifierAst.Special.Flags.forceCtx:
+		case FunModifierAst.Keyword.Kind.forceCtx:
 			return "force-ctx";
 		default:
 			assert(false);
 	}
 }
 
-Symbol symbolOfSpecialFlag(scope ref AllSymbols allSymbols, FunModifierAst.Special.Flags a) {
-	return symbolOfString(allSymbols, stringOfSpecialFlag(a));
-}
+Symbol symbolOfKeywordModifier(scope ref AllSymbols allSymbols, FunModifierAst.Keyword.Kind a) =>
+	symbolOfString(allSymbols, stringOfKeywordModifier(a));
+
+Range range(in FunModifierAst a, in AllSymbols allSymbols) =>
+	a.matchIn!Range(
+		(in FunModifierAst.Keyword x) =>
+			x.range,
+		(in FunModifierAst.Extern x) =>
+			x.range(allSymbols),
+		(in TypeAst x) =>
+			x.range(allSymbols));
 
 immutable struct TestAst {
 	Range range;

@@ -224,6 +224,7 @@ Linkage defaultLinkage(DeclKind a) {
 			return Linkage.internal;
 		case DeclKind.extern_:
 			return Linkage.extern_;
+		case DeclKind.function_:
 		case DeclKind.global:
 		case DeclKind.threadLocal:
 			assert(false);
@@ -240,6 +241,7 @@ Purity defaultPurity(DeclKind a) {
 			return Purity.data;
 		case DeclKind.extern_:
 			return Purity.mut;
+		case DeclKind.function_:
 		case DeclKind.global:
 		case DeclKind.threadLocal:
 			assert(false);

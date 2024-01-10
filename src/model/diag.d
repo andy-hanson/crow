@@ -81,6 +81,7 @@ enum DeclKind {
 	builtin,
 	enum_,
 	extern_,
+	function_,
 	global,
 	flags,
 	record,

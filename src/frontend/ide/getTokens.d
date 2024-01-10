@@ -428,8 +428,7 @@ void addModifierTokens(scope ref Ctx ctx, in StructDeclAst a) {
 void addFunModifierTokens(scope ref Ctx ctx, in FunModifierAst[] a) {
 	foreach (ref FunModifierAst mod; a) {
 		mod.matchIn!void(
-			(in FunModifierAst.Special x) {
-			},
+			(in FunModifierAst.Keyword x) {},
 			(in FunModifierAst.Extern x) {
 				addTypeTokens(ctx, *x.left);
 			},

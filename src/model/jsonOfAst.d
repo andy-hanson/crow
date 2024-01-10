@@ -55,7 +55,7 @@ import model.ast :
 	StructAliasAst,
 	StructBodyAst,
 	StructDeclAst,
-	stringOfSpecialFlag,
+	stringOfKeywordModifier,
 	symbolForTypeAstSuffix,
 	symbolOfModifierKind,
 	ThenAst,
@@ -331,11 +331,11 @@ Json jsonOfParamsAst(ref Alloc alloc, in Ctx ctx, in ParamsAst a) =>
 
 Json jsonOfFunModifierAst(ref Alloc alloc, in Ctx ctx, in FunModifierAst a) =>
 	a.matchIn!Json(
-		(in FunModifierAst.Special x) =>
+		(in FunModifierAst.Keyword x) =>
 			jsonObject(alloc, [
-				kindField!"special",
+				kindField!"keyword",
 				field!"pos"(x.pos),
-				field!"flag"(stringOfSpecialFlag(x.flag))]),
+				field!"kind"(stringOfKeywordModifier(x.kind))]),
 		(in FunModifierAst.Extern x) =>
 			jsonObject(alloc, [
 				kindField!"extern",

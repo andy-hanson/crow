@@ -276,10 +276,10 @@ SmallArray!FunModifierAst parseFunModifiers(ref Lexer lexer) {
 
 FunModifierAst parseFunModifier(ref Lexer lexer) {
 	Pos start = curPos(lexer);
-	FunModifierAst.Special.Flags special = tryGetSpecialFunModifier(getPeekToken(lexer));
-	if (special != FunModifierAst.Special.Flags.none) {
+	Opt!(FunModifierAst.Keyword.Kind) keyword = tryGetKeywordModifier(getPeekToken(lexer));
+	if (has(keyword)) {
 		takeNextToken(lexer);
-		return FunModifierAst(FunModifierAst.Special(start, special));
+		return FunModifierAst(FunModifierAst.Keyword(start, force(keyword)));
 	} else {
 		TypeAst type = parseType(lexer);
 		Pos externPos = curPos(lexer);
@@ -301,24 +301,24 @@ SmallArray!TypeAst parseSpecModifiers(ref Lexer lexer) {
 	}
 }
 
-FunModifierAst.Special.Flags tryGetSpecialFunModifier(Token token) {
+Opt!(FunModifierAst.Keyword.Kind) tryGetKeywordModifier(Token token) {
 	switch (token) {
 		case Token.bare:
-			return FunModifierAst.Special.Flags.bare;
+			return some(FunModifierAst.Keyword.Kind.bare);
 		case Token.builtin:
-			return FunModifierAst.Special.Flags.builtin;
+			return some(FunModifierAst.Keyword.Kind.builtin);
 		case Token.extern_:
-			return FunModifierAst.Special.Flags.extern_;
+			return some(FunModifierAst.Keyword.Kind.extern_);
 		case Token.forceCtx:
-			return FunModifierAst.Special.Flags.forceCtx;
+			return some(FunModifierAst.Keyword.Kind.forceCtx);
 		case Token.summon:
-			return FunModifierAst.Special.Flags.summon;
+			return some(FunModifierAst.Keyword.Kind.summon);
 		case Token.trusted:
-			return FunModifierAst.Special.Flags.trusted;
+			return some(FunModifierAst.Keyword.Kind.trusted);
 		case Token.unsafe:
-			return FunModifierAst.Special.Flags.unsafe;
+			return some(FunModifierAst.Keyword.Kind.unsafe);
 		default:
-			return FunModifierAst.Special.Flags.none;
+			return none!(FunModifierAst.Keyword.Kind);
 	}
 }
 
