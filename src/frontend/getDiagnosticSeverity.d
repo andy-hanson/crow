@@ -131,6 +131,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.SpecRecursion) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.SpecSigCantBeVariadic) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.StringLiteralInvalid) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.TrustedUnnecessary) =>

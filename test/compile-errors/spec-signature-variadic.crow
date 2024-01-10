@@ -1,0 +1,5 @@
+main void()
+	()
+
+s spec
+	x nat(...xs nat array)

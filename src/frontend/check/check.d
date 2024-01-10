@@ -124,7 +124,7 @@ import util.sourceRange : Range, UriAndRange;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : Union;
 import util.uri : AllUris, Path, RelPath, Uri;
-import util.util : ptrTrustMe, todo;
+import util.util : ptrTrustMe, todo, typeAs;
 
 immutable struct UriAndAst {
 	Uri uri;
@@ -262,8 +262,10 @@ SpecDeclBody checkSpecDeclBody(
 				Destructure[] params = rp.params.match!(Destructure[])(
 					(Destructure[] x) =>
 						x,
-					(ref Params.Varargs _) =>
-						todo!(Destructure[])("diag: no varargs in spec"));
+					(ref Params.Varargs x) {
+						addDiag(ctx, x.param.range(ctx.allSymbols), Diag(Diag.SpecSigCantBeVariadic()));
+						return typeAs!(Destructure[])([]);
+					});
 				return SpecDeclSig(ctx.curUri, x, x.name, rp.returnType, small!Destructure(params));
 			})));
 

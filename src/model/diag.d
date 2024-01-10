@@ -402,6 +402,7 @@ immutable struct Diag {
 	immutable struct SpecRecursion {
 		SpecDecl*[] trace;
 	}
+	immutable struct SpecSigCantBeVariadic {}
 	immutable struct StringLiteralInvalid {
 		enum Reason { containsNul }
 		Reason reason;
@@ -547,6 +548,7 @@ immutable struct Diag {
 		SpecNoMatch,
 		SpecNameMissing,
 		SpecRecursion,
+		SpecSigCantBeVariadic,
 		StringLiteralInvalid,
 		TrustedUnnecessary,
 		TypeAnnotationUnnecessary,

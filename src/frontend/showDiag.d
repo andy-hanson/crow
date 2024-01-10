@@ -917,6 +917,9 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 				writeName(writer, ctx, spec.name);
 			});
 		},
+		(in Diag.SpecSigCantBeVariadic x) {
+			writer ~= "A spec signature can't be variadic.";
+		},
 		(in Diag.StringLiteralInvalid x) {
 			final switch (x.reason) {
 				case Diag.StringLiteralInvalid.Reason.containsNul:
