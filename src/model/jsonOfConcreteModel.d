@@ -20,6 +20,7 @@ import model.concreteModel :
 	ConcreteStructSource,
 	ConcreteType,
 	ConcreteVar,
+	ConcreteVariableRef,
 	returnType;
 import model.constant : Constant;
 import model.jsonOfConstant : jsonOfConstant;
@@ -242,7 +243,10 @@ Json jsonOfConcreteExprKind(ref Alloc alloc, in Ctx ctx, in ConcreteExprKind a) 
 				field!"called"(jsonOfConcreteFunRef(alloc, *x.called)),
 				field!"args"(jsonOfConcreteExprs(alloc, ctx, x.args))]),
 		(in ConcreteExprKind.ClosureCreate x) =>
-			todo!Json("!"),
+			jsonObject(alloc, [
+				kindField!"new-closure",
+				field!"args"(jsonList!ConcreteVariableRef(alloc, x.args, (in ConcreteVariableRef arg) =>
+					jsonOfConcreteVariableRef(alloc, arg)))]),
 		(in ConcreteExprKind.ClosureGet x) =>
 			jsonObject(alloc, [
 				kindField!"closure-get",
@@ -354,3 +358,12 @@ Json jsonOfConcreteExprKind(ref Alloc alloc, in Ctx ctx, in ConcreteExprKind a) 
 
 Json jsonOfConcreteClosureRef(ref Alloc alloc, in ConcreteClosureRef a) =>
 	jsonObject(alloc, [field!"field-index"(a.fieldIndex)]);
+
+Json jsonOfConcreteVariableRef(ref Alloc alloc, in ConcreteVariableRef a) =>
+	a.matchIn!Json(
+		(in Constant x) =>
+			jsonOfConstant(alloc, x),
+		(in ConcreteLocal x) =>
+			jsonOfConcreteLocalRef(x),
+		(in ConcreteClosureRef x) =>
+			jsonOfConcreteClosureRef(alloc, x));
