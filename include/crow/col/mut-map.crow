@@ -162,11 +162,8 @@ If the key was in the map, remove it and return the old value.
 
 Returns an empty option if the key was not in the map.
 ###
-+try-remove[k, v] v?(a v mut[k], key k) k key
++remove[k, v] v?(a v mut[k], key k) k key
 	a update key, ()
-
-+remove[k, v] void(a v mut[k], key k) k key
-	_ = a try-remove key
 
 +ensure[k, v] v(a v mut[k], key k, get-value act v()) k key
 	if v ?= a[key]
@@ -358,8 +355,8 @@ test
 	a[12] := "12"
 	a verify "(8 -> 8) _ _ (3 -> 3) [4 -> 4, 12 -> 12] _ (6 -> six) _"
 
-	a try-remove 5 is ()
-	a try-remove 4 is ("4",)
+	a remove 5 is ()
+	a remove 4 is ("4",)
 
 	a verify "(8 -> 8) _ _ (3 -> 3) (12 -> 12) _ (6 -> six) _"
 

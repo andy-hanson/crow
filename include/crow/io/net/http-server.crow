@@ -3,13 +3,13 @@ import
 	system/errno: EAGAIN, errno
 	system/sys/socket: as-fd, SOCKET
 	system/unistd: write
-	../../bool: bool, false, true
+	../../bool: bool, false
 	../../col/array: +, -, array, begin, begin-pointer, end, is-empty, iterate, size, slice
 	../../col/collection:
 		.., -, contains, end, for-loop, index-of, join, split, subscript, try-remove-end
 	../../col/list: ~~, ~=, +, -, begin, build, end, is-empty, iterate, list, next, size, slice, to
 	../../col/map: in, iterate, size, to
-	../../col/mut-map: mut-map, new, try-remove, set-subscript, subscript
+	../../col/mut-map: mut-map, new, remove, set-subscript, subscript
 	../../col/mut-list: ~=, ~~=, iterate, move-to, mut-list, new, pop-n-from-start, size
 	../../compare: <=, >
 	../../enum-util: to
@@ -19,7 +19,7 @@ import
 	../../log: error, log, warn
 	../../misc: new, shared, void
 	../../number: ==, <=>, +, nat8, nat16, nat64, to
-	../../option: ??, new, option
+	../../option: ??, force, new, option
 	../../parse: nat, parse
 	../../string:
 		==, <=>, ~~, as-string, begin, char8, end, hash-mix, is-empty, iterate, literal, new, next,
@@ -56,9 +56,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 			()
 		on-received-chunk: (sock, bytes) =>
 			if state ?= client-states[sock]
-				closed <- trusted sock handle-chunk state, bytes, a.handler
-				if closed
-					_ = client-states try-remove sock
+				<- trusted client-states handle-chunk sock, state, bytes, a.handler
 				()
 			else
 				warn log "Ignoring unrecognized client"
@@ -70,7 +68,8 @@ Starts running an HTTP server. Stops it when `cb` returns.
 			cb[]
 
 # Returns true when closed client
--handle-chunk bool^(
+-handle-chunk void^(
+	client-states http-parse-state mut[SOCKET],
 	sock SOCKET,
 	state http-parse-state,
 	chunk nat8 array,
@@ -85,6 +84,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 
 	if finished-request
 		request = state finish-request
+		_ = (client-states remove sock)!
 		handler-response <- handler[request] future-catch
 		response = match handler-response
 		as ok o
@@ -94,9 +94,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 			http-internal-server-error
 		<- sock write-until-finished response.response-to-array
 		sock close-client
-		true,
-	else
-		false,
+		()
 
 -write-until-finished void^(sock SOCKET, content nat8 array) unsafe
 	unless content is-empty
@@ -147,7 +145,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 				continue
 			else
 				parts string[] = line split ": "
-				assert parts.size == 2
+				assert parts.size == 2 : "Bad header line for {state.url}: '{line}'"
 				key = parts[0]
 				value = parts[1]
 				state.headers ~= (key, value)

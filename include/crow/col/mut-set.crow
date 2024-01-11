@@ -8,7 +8,7 @@ import
 	./array: array, iterate, size
 	./collection: for-loop
 	./list: ~=, build, iterate, list, size
-	./mut-map: ~=, clear, iterate, move-to, mut-map, in, to, try-remove
+	./mut-map: ~=, clear, iterate, move-to, mut-map, in, to, remove
 	./set: iterate, set, to
 
 ###
@@ -77,8 +77,8 @@ Else, adds it and returns `true`.
 If `value` is in the set, return `false`.
 Else, remove it and return `true`.
 ###
-+try-remove[t] bool(a t mut-set, value t) t key
-	!(a.inner try-remove value is-empty)
++remove[t] bool(a t mut-set, value t) t key
+	!(a.inner remove value is-empty)
 
 region spec impls (see collection.crow)
 
