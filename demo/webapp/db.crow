@@ -93,7 +93,7 @@ with-block[t] t^(a open-db, f act t^(db)) summon, t shared
 					with user-login : env database@(user, login-cookie) "user-login-cookie"
 						with post-user : env database@(post, user) "post-user"
 							with post-content : env database@(post, string) "post-content"
-								f[env, user-from-name, user-name, user-pw-hash, user-login, \
+								f[env, user-from-name, user-name, user-pw-hash, user-login,
 									post-user, post-content]
 
 list-users user-info[](db db) summon

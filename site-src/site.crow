@@ -84,7 +84,7 @@ link record
 
 -to-links link[](targets string[], remove-prefix string)
 	for target : targets
-		target, target try-remove-start remove-prefix ?? \
+		target, target try-remove-start remove-prefix ??
 			throw "{target} didn't start with {remove-prefix}"
 
 -to-paths-and-contents path-and-content[]^(paths string[], remove-prefix string) summon

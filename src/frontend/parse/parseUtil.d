@@ -13,6 +13,7 @@ import frontend.parse.lexer :
 	rangeForCurToken,
 	skipUntilNewlineNoDiag,
 	takeNextToken,
+	takeNextTokenMayContinueOntoNextLine,
 	Token,
 	TokenAndData;
 import frontend.parse.lexToken : isSymbolToken;
@@ -39,16 +40,24 @@ bool tryTakeToken(ref Lexer lexer, in Token[] expected) {
 		return false;
 }
 
+bool tryTakeTokenAndMayContinueOntoNextLine(ref Lexer lexer, Token expected) {
+	if (peekToken(lexer, expected)) {
+		takeNextTokenMayContinueOntoNextLine(lexer);
+		return true;
+	} else
+		return false;
+}
+
 bool tryTakeOperator(ref Lexer lexer, Symbol expected) =>
 	tryTakeTokenIf(lexer, (TokenAndData x) =>
 		x.token == Token.operator && x.asSymbol == expected);
 
 private bool tryTakeTokenIf(ref Lexer lexer, in bool delegate(TokenAndData) @safe @nogc pure nothrow cb) {
-	Opt!bool res = tryTakeToken!bool(lexer, (TokenAndData x) => cb(x) ? some(true) : none!bool);
+	Opt!bool res = tryTakeTokenCb!bool(lexer, (TokenAndData x) => cb(x) ? some(true) : none!bool);
 	return has(res);
 }
 
-Opt!T tryTakeToken(T)(ref Lexer lexer, in Opt!T delegate(TokenAndData) @safe @nogc pure nothrow cb) {
+private Opt!T tryTakeTokenCb(T)(ref Lexer lexer, in Opt!T delegate(TokenAndData) @safe @nogc pure nothrow cb) {
 	TokenAndData peek = getPeekTokenAndData(lexer);
 	Opt!T res = cb(peek);
 	if (has(res))
@@ -68,6 +77,12 @@ bool takeOrAddDiagExpectedToken(ref Lexer lexer, Token token, ParseDiag.Expected
 		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(kind)));
 	return res;
 }
+bool takeOrAddDiagExpectedTokenAndMayContinueOntoNextLine(ref Lexer lexer, Token token, ParseDiag.Expected.Kind kind) {
+	bool res = tryTakeTokenAndMayContinueOntoNextLine(lexer, token);
+	if (!res)
+		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(kind)));
+	return res;
+}
 bool takeOrAddDiagExpectedToken(ref Lexer lexer, in Token[] tokens, ParseDiag.Expected.Kind kind) {
 	bool res = tryTakeToken(lexer, tokens);
 	if (!res)
@@ -79,7 +94,7 @@ Opt!T takeOrAddDiagExpectedToken(T)(
 	ParseDiag.Expected.Kind kind,
 	in Opt!T delegate(TokenAndData) @safe @nogc pure nothrow cb,
 ) {
-	Opt!T res = tryTakeToken!T(lexer, cb);
+	Opt!T res = tryTakeTokenCb!T(lexer, cb);
 	if (!has(res))
 		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(kind)));
 	return res;
@@ -98,7 +113,7 @@ bool takeOrAddDiagExpectedOperator(ref Lexer lexer, Symbol operator, ParseDiag.E
 
 Opt!NameAndRange tryTakeNameAndRange(ref Lexer lexer) {
 	Pos start = curPos(lexer);
-	return tryTakeToken!NameAndRange(lexer, (TokenAndData x) =>
+	return tryTakeTokenCb!NameAndRange(lexer, (TokenAndData x) =>
 		optIf(x.token == Token.name, () => NameAndRange(start, x.asSymbol)));
 }
 
@@ -125,7 +140,7 @@ Symbol takeName(ref Lexer lexer) =>
 
 NameAndRange takeNameOrOperator(ref Lexer lexer) {
 	Pos start = curPos(lexer);
-	Opt!Symbol res = tryTakeToken!Symbol(lexer, (TokenAndData x) =>
+	Opt!Symbol res = tryTakeTokenCb!Symbol(lexer, (TokenAndData x) =>
 		isSymbolToken(x.token) && x.token != Token.nameOrOperatorColonEquals
 			? some(x.asSymbol)
 			: none!Symbol);

@@ -122,6 +122,6 @@ main nat^(_ string[]) summon
 
 -to json(a post-info)
 	("post", a.post.to), \
-		("user", a.user.to), \
-		("userName", a.user-name.to), \
+		("user", a.user.to),
+		("userName", a.user-name.to),
 		("content", a.content.to)

@@ -84,7 +84,7 @@ tutorial-pages path-and-content[]() summon
 				# TODO: validate the name
 				"<a href=\"/doc/crow/{name}.html\">{name}</a>"
 			elif kind == "tutorial"
-				title = tutorial-title-lookup[name to] ?? \
+				title = tutorial-title-lookup[name to] ??
 					throw "Linked to '{name}' but no tutorial page has that name."
 				"<a href=\"/tutorial/{name}.html\">{title}</a>"
 			else

@@ -646,8 +646,10 @@ Equivalent to `parts[0] ~~ joiner ~~ parts[1] ~~ joiner ~~ ... ~~ parts[n]`.
 +for-loop[out-col, out-elem, out-builder, in-col, in-iter, in-elem] out-col(
 	a in-col reverse,
 	f act out-elem(in-elem),
-) (out-col, out-elem, out-builder) build, \
-	(in-iter, in-col) end, (in-elem, in-iter) prev, in-col size
+) (out-col, out-elem, out-builder) build,
+		(in-iter, in-col) end,
+		(in-elem, in-iter) prev,
+		in-col size
 	with out : a.size build
 		iter mut = a.inner end
 		loop

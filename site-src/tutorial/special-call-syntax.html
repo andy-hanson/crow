@@ -408,17 +408,34 @@
 <section>
 	<h2>Line continuation</h2>
 	<p>
-		Normally a newline indicates the end of an expression.
+		Normally a newline indicates the end of an expression,
+		but sometimes it's clear from context that the line can't end yet.
 		<br />
-		To add a newline within an expression (to break up a long line),
-		add a <code class="keyword">\</code> before the newline.
+		In these contexts, the parser will skip any newlines:
+		<ul class="bullets">
+			<li>After <code class="keyword">=</code> or <code class="keyword">:=</code>.</li>
+			<li>After a binary operator like <code class="function">+</code>.</li>
+			<li>After the <code class="keyword">:</code> in an <code class="keyword">assert</code>.</li>
+			<li>
+				After a comma in an argument list.
+				But <code>x,</code> on its own does not continue the line since it's equivalent to <code>x.new</code>.
+			</li>
+		</ul>
+		In any other context, you can still break up a long line
+		by adding a <code class="keyword">\</code> before the newline.
 	</p>
 
 	<crow-runnable>
 		main void()
+			x mut nat =
+				0
+			x :=
+				1
+			y nat = x +
+				x
+			assert y == 2 :
+				"It's not 2?"
 			info log \
-				"hello, world!"
+				"It's {y}"
 	</crow-runnable>
-
-	<aside class="small">You usually won't need this.</aside>
 </section>

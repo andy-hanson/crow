@@ -146,6 +146,15 @@ DocCommentAndIndentDelta skipBlankLinesAndGetIndentDelta(
 	}
 }
 
+bool mayContinueOntoNextLine(ref MutCString ptr) {
+	while (tryTakeChar(ptr, ' ')) {}
+	if (tryTakeNewline(ptr)) {
+		while (tryTakeNewline(ptr) || tryTakeChar(ptr, ' ')) {}
+		return true;
+	} else
+		return false;
+}
+
 private:
 
 bool tryTakeLineContinuation(ref MutCString ptr, in CbComment cbComment) {
@@ -153,14 +162,12 @@ bool tryTakeLineContinuation(ref MutCString ptr, in CbComment cbComment) {
 	if (*ptr == '\\') {
 		scope MutCString ptr2 = ptr;
 		ptr2++;
-		while (tryTakeChar(ptr2, ' ')) {}
-		if (tryTakeNewline(ptr2)) {
-			while (tryTakeNewline(ptr2) || tryTakeChar(ptr2, ' ')) {}
+		bool res = mayContinueOntoNextLine(ptr2);
+		if (res) {
 			ptr = castNonScope_ref(ptr2);
 			cbComment(start, "");
-			return true;
-		} else
-			return false;
+		}
+		return res;
 	} else
 		return false;
 }

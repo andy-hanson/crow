@@ -17,7 +17,8 @@ import frontend.parse.lexToken :
 	lookaheadQuestionEquals,
 	plainToken,
 	takeStringPart;
-import frontend.parse.lexWhitespace : detectIndentKind, IndentKind, skipSpacesAndComments, skipUntilNewline;
+import frontend.parse.lexWhitespace :
+	mayContinueOntoNextLine, detectIndentKind, IndentKind, skipSpacesAndComments, skipUntilNewline;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
@@ -180,6 +181,11 @@ TokenAndData takeNextToken(ref Lexer lexer) {
 			break;
 	}
 	return res;
+}
+
+TokenAndData takeNextTokenMayContinueOntoNextLine(ref Lexer lexer) {
+	mayContinueOntoNextLine(lexer.ptr);
+	return takeNextToken(lexer);
 }
 
 private void readNextToken(ref Lexer lexer) {

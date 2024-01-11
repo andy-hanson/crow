@@ -40,6 +40,11 @@ bool startsWith(in CString a, in string chars) {
 	return tryTakeChars(ptr, chars);
 }
 
+bool startsWithThenWhitespace(in CString a, in string chars) {
+	MutCString ptr = a;
+	return tryTakeChars(ptr, chars) && isWhitespace(*ptr);
+}
+
 Opt!CString tryGetAfterStartsWith(MutCString ptr, in string chars) =>
 	tryTakeChars(ptr, chars) ? some!CString(ptr) : none!CString;
 

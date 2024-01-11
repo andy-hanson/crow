@@ -79,7 +79,7 @@ pull void(a audio-queue, out float32 mut-array) bare, unsafe
 	assert read == b.end-pointer
 
 -play-common playing-sound(a audio-queue, sound sound, looping bool)
-	assert sound.format == a.format : \
+	assert sound.format == a.format :
 		"sound format mismatch: expected {a format}, got {sound format}"
 	trusted
 		a.lock acquire

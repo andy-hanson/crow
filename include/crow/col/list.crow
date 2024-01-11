@@ -321,14 +321,14 @@ This is O(log n), amortized O(1).
 			(br.left, cat-right-lower[br.down, br.right], r) branch
 
 -cat-left-node-l1[t] t l1(l t l1, r t l1)
-	node = l.node cat-left-node-level r.node, \
-		((xs, lower) => (xs,) cat-left-array-l2 lower), \
+	node = l.node cat-left-node-level r.node,
+		((xs, lower) => (xs,) cat-left-array-l2 lower),
 		(x, y) => x cat-left-node-l2 y
 	node,
 
 -cat-right-node-l1[t] t l1(l t l1, r t l1)
-	node = l.node cat-right-node-level r.node, \
-		((lower, xs) => lower cat-right-array-l2 (xs,)), \
+	node = l.node cat-right-node-level r.node,
+		((lower, xs) => lower cat-right-array-l2 (xs,)),
 		((x, y) => x cat-right-node-l2 y)
 	node,
 
@@ -339,14 +339,14 @@ This is O(log n), amortized O(1).
 	(l.node cat-right-array-level r, (lower, xs) => lower cat-right-array-l2 (xs,)),
 
 -cat-left-node-l2[t] t l2(l t l2, r t l2)
-	node = l.node cat-left-node-level r.node, \
-		((xs, lower) => (xs,) cat-left-array-l3 lower), \
+	node = l.node cat-left-node-level r.node,
+		((xs, lower) => (xs,) cat-left-array-l3 lower),
 		((x, y) => x cat-left-node-l3 y)
 	node,
 
 -cat-right-node-l2[t] t l2(l t l2, r t l2)
-	node = l.node cat-right-node-level r.node, \
-		((lower, xs) => lower cat-right-array-l3 (xs,)), \
+	node = l.node cat-right-node-level r.node,
+		((lower, xs) => lower cat-right-array-l3 (xs,)),
 		((x, y) => x cat-right-node-l3 y)
 	node,
 

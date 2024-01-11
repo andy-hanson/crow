@@ -62,7 +62,7 @@ Result entries are temporary, must copy!
 		cur +:= 1
 
 -copy-c-strings backtrace-entry(gc gc-ctx, a backtrace-entry) bare, unsafe
-	(gc copy-c-string-or-empty a.function-name), (gc copy-c-string-or-empty a.file-path), \
+	(gc copy-c-string-or-empty a.function-name), (gc copy-c-string-or-empty a.file-path),
 		a.line-number, a.column-number
 
 -get-native-backtrace-windows backtrace(
@@ -130,13 +130,13 @@ Result entries are temporary, must copy!
 ) bare, unsafe
 	if out == out-end
 		out
-	elif IMAGE_FILE_MACHINE_AMD64 StackWalk64 process, thread, frame, \
+	elif IMAGE_FILE_MACHINE_AMD64 StackWalk64 process, thread, frame,
 			context.as-const.pointer-cast, null, &SymFunctionTableAccess64, null, null
 		if skip == 0
 			*out := gc windows-backtrace-entry process, frame, vars
 			gc windows-walk-backtrace out + 1, out-end, 0, process, thread, context, frame, vars
 		else
-			gc windows-walk-backtrace out, out-end, (skip wrap-sub 1), \
+			gc windows-walk-backtrace out, out-end, (skip wrap-sub 1),
 				process, thread, context, frame, vars
 	else
 		out

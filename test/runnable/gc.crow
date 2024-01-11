@@ -40,6 +40,6 @@ to string(a gc-stats)
 
 to json(a gc-stats)
 	("gc-count", a.gc-count.to), \
-		("cur-word", a.cur-word.to), \
-		("words-used", a.words-used.to), \
+		("cur-word", a.cur-word.to),
+		("words-used", a.words-used.to),
 		("words-free", a.words-free.to)

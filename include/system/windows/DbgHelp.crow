@@ -43,7 +43,7 @@ import
 	KdHelp KDHELP64
 
 +new STACKFRAME64(context CONTEXT*) bare, unsafe
-	(context->Rip,), (), (context->Rbp,), (context->Rsp,), (), null, 0, 0, 0, 0, false, false, 0, \
+	(context->Rip,), (), (context->Rbp,), (context->Rsp,), (), null, 0, 0, 0, 0, false, false, 0,
 		0, 0, ()
 
 +KDHELP64 record extern

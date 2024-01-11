@@ -195,7 +195,7 @@ merge-no-duplicates[t] void(a t mut[], b t mut[], compare act unique-comparison(
 			as greater
 				*a-write := *a-read
 				if a-read == a.begin-pointer.as-const
-					(a.begin-pointer .. a-write).as-mut-array[0 .. end] := \
+					(a.begin-pointer .. a-write).as-mut-array[0 .. end] :=
 						(b-begin .. b-read + 1).as-array
 					break
 				else

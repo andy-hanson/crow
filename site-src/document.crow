@@ -10,7 +10,7 @@ import
 
 documentation path-and-content[]^() summon
 	include = current-directory ~~ "/include"
-	all-module-paths <- "{include}/crow" search-dir-recursive (x => !x.ignore-dir), \
+	all-module-paths <- "{include}/crow" search-dir-recursive (x => !x.ignore-dir),
 		(x => x != "std.crow")
 	all-modules <- all-module-paths get-modules "file://{include}/"
 	all-paths = (for x : all-modules; x path) sort-paths

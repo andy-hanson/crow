@@ -26,6 +26,7 @@ import frontend.parse.lexer :
 	takeClosingBraceThenStringPart,
 	takeInitialStringPart,
 	takeNextToken,
+	takeNextTokenMayContinueOntoNextLine,
 	Token,
 	TokenAndData,
 	tryTakeNewlineThenAs,
@@ -41,8 +42,10 @@ import frontend.parse.parseUtil :
 	takeNameAndRange,
 	takeNameAndRangeAllowUnderscore,
 	takeOrAddDiagExpectedToken,
+	takeOrAddDiagExpectedTokenAndMayContinueOntoNextLine,
 	takeOrAddDiagExpectedTokenAndSkipRestOfLine,
-	tryTakeToken;
+	tryTakeToken,
+	tryTakeTokenAndMayContinueOntoNextLine;
 import model.ast :
 	ArrowAccessAst,
 	AssertOrForbidAst,
@@ -228,7 +231,7 @@ bool isExpressionStartToken(Token a) {
 ExprAst[] parseArgsRecur(ref Lexer lexer, ArgCtx ctx, ref ArrayBuilder!ExprAst args) {
 	assert(ctx.allowedCalls.minPrecedenceExclusive >= commaPrecedence);
 	add(lexer.alloc, args, parseExprAndCalls(lexer, ctx));
-	return tryTakeToken(lexer, Token.comma)
+	return tryTakeTokenAndMayContinueOntoNextLine(lexer, Token.comma)
 		? parseArgsRecur(lexer, ctx, args)
 		: finish(lexer.alloc, args);
 }
@@ -299,17 +302,7 @@ struct NameAndPrecedence {
 
 ExprAst parseNamedCalls(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) {
 	Pos pos = curPos(lexer);
-	Opt!NameAndPrecedence optName = tryTakeToken!NameAndPrecedence(lexer, (TokenAndData x) {
-		if (x.isSymbol) {
-			int precedence = symbolPrecedence(
-				x.asSymbol,
-				x.token == Token.nameOrOperatorEquals || x.token == Token.nameOrOperatorColonEquals);
-			return precedence > argCtx.allowedCalls.minPrecedenceExclusive
-				? some(NameAndPrecedence(x.token, x.asSymbol, precedence))
-				: none!NameAndPrecedence;
-		} else
-			return none!NameAndPrecedence;
-	});
+	Opt!NameAndPrecedence optName = tryTakeNameAndPrecedence(lexer, argCtx);
 	if (!has(optName))
 		return lhs;
 
@@ -346,6 +339,35 @@ ExprAst parseNamedCalls(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argC
 	}();
 	ExprAst expr = ExprAst(range(lexer, start), exprKind);
 	return parseCalls(lexer, start, expr, argCtx);
+}
+
+Opt!NameAndPrecedence tryTakeNameAndPrecedence(scope ref Lexer lexer, ArgCtx argCtx) {
+	TokenAndData x = getPeekTokenAndData(lexer);
+	if (x.isSymbol) {
+		int precedence = symbolPrecedence(
+			x.asSymbol,
+			x.token == Token.nameOrOperatorEquals || x.token == Token.nameOrOperatorColonEquals);
+		if (precedence > argCtx.allowedCalls.minPrecedenceExclusive) {
+			if (tokenHasContinuation(x.token))
+				takeNextTokenMayContinueOntoNextLine(lexer);
+			else
+				takeNextToken(lexer);
+			return some(NameAndPrecedence(x.token, x.asSymbol, precedence));
+		} else
+			return none!NameAndPrecedence;
+	} else
+		return none!NameAndPrecedence;
+}
+
+bool tokenHasContinuation(Token a) {
+	switch (a) {
+		case Token.operator:
+		case Token.nameOrOperatorColonEquals:
+		case Token.nameOrOperatorEquals:
+			return true;
+		default:
+			return false;
+	}
 }
 
 enum AssignmentKind {
@@ -562,7 +584,7 @@ ExprAst parseThrowOrTrusted(
 
 ExprAst parseAssertOrForbid(ref Lexer lexer, Pos start, AllowedBlock allowedBlock, AssertOrForbidKind kind) {
 	ExprAst condition = parseExprAndCalls(lexer, ArgCtx(allowedBlock, allowAllCalls));
-	if (tryTakeToken(lexer, Token.colon)) {
+	if (tryTakeTokenAndMayContinueOntoNextLine(lexer, Token.colon)) {
 		ExprAst thrown = parseExprAndCalls(lexer, ArgCtx(allowedBlock, allowAllCalls));
 		return ExprAst(range(lexer, start), ExprAstKind(
 			allocate(lexer.alloc, AssertOrForbidAst(kind, condition, some(thrown)))));
@@ -653,7 +675,7 @@ DestructureAst parseForThenOrWithParameter(
 		return DestructureAst(DestructureAst.Void(pos));
 	else {
 		DestructureAst res = parseDestructureNoRequireParens(lexer);
-		takeOrAddDiagExpectedToken(lexer, endToken, expectedEndToken);
+		takeOrAddDiagExpectedTokenAndMayContinueOntoNextLine(lexer, endToken, expectedEndToken);
 		return res;
 	}
 }
@@ -893,7 +915,7 @@ ExprAst parseSingleStatementLine(ref Lexer lexer) {
 	else {
 		ExprAst expr = parseExprBeforeCall(lexer, AllowedBlock.yes);
 		Pos assignmentPos = curPos(lexer);
-		return tryTakeToken(lexer, Token.colonEqual)
+		return tryTakeTokenAndMayContinueOntoNextLine(lexer, Token.colonEqual)
 			? parseAssignment(lexer, start, expr, assignmentPos)
 			: parseCalls(lexer, start, expr, ArgCtx(AllowedBlock.yes, allowAllCalls()));
 	}
@@ -967,7 +989,7 @@ ExprAst parseEqualsOrThen(ref Lexer lexer, EqualsOrThen kind) {
 	final switch (kind) {
 		case EqualsOrThen.equals:
 			DestructureAst left = parseDestructureNoRequireParens(lexer);
-			takeOrAddDiagExpectedToken(lexer, Token.equal, ParseDiag.Expected.Kind.equals);
+			takeOrAddDiagExpectedTokenAndMayContinueOntoNextLine(lexer, Token.equal, ParseDiag.Expected.Kind.equals);
 			ExprAst init = parseExprNoLet(lexer);
 			ExprAst then = parseNextLinesOrEmpty(lexer, start);
 			return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, LetAst(left, init, then))));

@@ -268,7 +268,7 @@ import
 	hStdError HANDLE,
 ) bare, unsafe
 	size DWORD = size-of@STARTUPINFOA to
-	size, (), (), (), (), (), (), (), (), (), (), dwFlags, (), (), (), \
+	size, (), (), (), (), (), (), (), (), (), (), dwFlags, (), (), (),
 		hStdInput, hStdOutput, hStdError
 
 +SECURITY_ATTRIBUTES record extern, mut
@@ -428,7 +428,7 @@ import
 
 +new CONTEXT(ContextFlags DWORD) bare, unsafe
 	cf = ContextFlags
-	0, 0, 0, 0, 0, 0, cf, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
+	0, 0, 0, 0, 0, 0, cf, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, ()
 
 +RtlCaptureContext void(context CONTEXT mut*) kernel32 extern
@@ -449,7 +449,7 @@ import
 +CONTEXT_FULL DWORD() bare
 	CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_FLOATING_POINT
 +CONTEXT_ALL DWORD() bare
-	CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS | CONTEXT_FLOATING_POINT | \
+	CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS | CONTEXT_FLOATING_POINT |
 		CONTEXT_DEBUG_REGISTERS
 +CONTEXT_XSTATE DWORD() bare
 	CONTEXT_AMD64 | 0x00000040

@@ -35,7 +35,8 @@ import frontend.parse.parseUtil :
 	takeNewline_topLevel,
 	takeOrAddDiagExpectedToken,
 	tryTakeOperator,
-	tryTakeToken;
+	tryTakeToken,
+	tryTakeTokenAndMayContinueOntoNextLine;
 import model.ast :
 	DestructureAst,
 	ExprAst,
@@ -270,7 +271,7 @@ SmallArray!ModifierAst parseModifiers(ref Lexer lexer) {
 		ArrayBuilder!ModifierAst res;
 		do {
 			add(lexer.alloc, res, parseModifier(lexer));
-		} while (tryTakeToken(lexer, Token.comma));
+		} while (tryTakeTokenAndMayContinueOntoNextLine(lexer, Token.comma));
 		return smallFinish(lexer.alloc, res);
 	}
 }
@@ -315,7 +316,7 @@ SmallArray!TypeAst parseSpecModifiers(ref Lexer lexer) {
 	else {
 		ArrayBuilder!TypeAst res;
 		add(lexer.alloc, res, parseType(lexer));
-		while (tryTakeToken(lexer, Token.comma))
+		while (tryTakeTokenAndMayContinueOntoNextLine(lexer, Token.comma))
 			add(lexer.alloc, res, parseType(lexer));
 		return smallFinish(lexer.alloc, res);
 	}

@@ -5,6 +5,7 @@ module util.writer;
 import util.alloc.alloc : Alloc, withStackAlloc;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.array : zip;
+import util.conv : bitsOfFloat64;
 import util.string : eachChar, CString;
 import util.util : abs, debugLog;
 
@@ -48,7 +49,7 @@ void debugLogWithWriter(in void delegate(scope ref Alloc, scope ref Writer) @saf
 }
 // Result is temporary
 CString withStackWriter(in void delegate(scope ref Alloc, scope ref Writer) @safe @nogc pure nothrow cb) =>
-	withStackAlloc!0x1000((scope ref Alloc alloc) =>
+	withStackAlloc!0x10000((scope ref Alloc alloc) =>
 		withWriter(alloc, (scope ref Writer writer) {
 			cb(alloc, writer);
 		}));
@@ -90,9 +91,7 @@ void writeFloatLiteral(scope ref Writer writer, double a) {
 		writer ~= '.';
 		writer ~= (cast(long) (abs(a) * 10)) % 10;
 	} else {
-		DoubleToUlong conv;
-		conv.double_ = a;
-		ulong u = conv.ulong_;
+		ulong u = bitsOfFloat64(a);
 		bool isNegative = u >> (64 - 1);
 		ulong exponentPlus1023 = (u >> (64 - 1 - 11)) & ((1 << 11) - 1);
 		ulong fraction = u & ((1uL << 52) - 1);
@@ -104,11 +103,6 @@ void writeFloatLiteral(scope ref Writer writer, double a) {
 		writer ~= 'p';
 		writer ~= exponent;
 	}
-}
-
-private union DoubleToUlong {
-	double double_;
-	ulong ulong_;
 }
 
 private void writeNat(scope ref Writer writer, ulong n, ulong base = 10) {

@@ -2,7 +2,8 @@ module frontend.parse.lexToken;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.lexUtil : isDecimalDigit, startsWith, takeChar, tryGetAfterStartsWith, tryTakeChar, tryTakeChars;
+import frontend.parse.lexUtil :
+	isDecimalDigit, startsWith, startsWithThenWhitespace, takeChar, tryGetAfterStartsWith, tryTakeChar, tryTakeChars;
 import frontend.parse.lexWhitespace : DocCommentAndIndentDelta, IndentKind, skipBlankLinesAndGetIndentDelta;
 import model.ast : LiteralFloatAst, LiteralIntAst, LiteralNatAst;
 import model.parseDiag : ParseDiag;
@@ -358,15 +359,15 @@ private alias AddDiag = void delegate(ParseDiag) @safe @nogc pure nothrow;
 
 enum EqualsOrThen { equals, then }
 Opt!EqualsOrThen lookaheadEqualsOrThen(MutCString ptr) {
-	if (startsWith(ptr, "<- "))
+	if (startsWithThenWhitespace(ptr, "<-"))
 		return some(EqualsOrThen.then);
 	while (true) {
 		switch (*ptr) {
 			case ' ':
 				ptr++;
-				if (startsWith(ptr, "= "))
+				if (startsWithThenWhitespace(ptr, "="))
 					return some(EqualsOrThen.equals);
-				else if (startsWith(ptr, "<- "))
+				else if (startsWithThenWhitespace(ptr, "<-"))
 					return some(EqualsOrThen.then);
 				else
 					break;
@@ -392,7 +393,7 @@ bool lookaheadQuestionEquals(MutCString ptr) {
 		switch (*ptr) {
 			case ' ':
 				ptr++;
-				if (startsWith(ptr, "?= "))
+				if (startsWithThenWhitespace(ptr, "?="))
 					return true;
 				else
 					break;

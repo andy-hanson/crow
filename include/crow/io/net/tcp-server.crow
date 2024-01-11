@@ -119,13 +119,13 @@ close-client void(client SOCKET) summon, unsafe
 			assert num-events == 1
 			event-flags = event events
 			fd int32 = event.event_data to
-			if event-flags bits-intersect (EPOLLERR | EPOLLHUP) || \
-				!(event-flags bits-intersect EPOLLIN)
+			if event-flags bits-intersect (EPOLLERR | EPOLLHUP) ||
+					!(event-flags bits-intersect EPOLLIN)
 				err print "SOME KINDA ERROR"
 				err = fd close
 				assert err == 0
 			elif fd == state.port-fd
-				state.port-fd.as-socket accept-clients state.epoll-fd, \
+				state.port-fd.as-socket accept-clients state.epoll-fd,
 					state.handler.on-accepted-client
 			else
 				fd handle-client-linux state.handler.on-received-chunk

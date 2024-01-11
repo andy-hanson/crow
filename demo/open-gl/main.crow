@@ -52,7 +52,7 @@ main nat^(_ string[]) summon
 		SDL_GL_DOUBLEBUFFER SDL_GL_SetAttribute 1 handle-sdl-error "set double buffer"
 
 		wflags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN
-		window = "crube" SDL_CreateWindow SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, \
+		window = "crube" SDL_CreateWindow SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 			960, 720, wflags
 		if window == null
 			"SDL_CreateWindow" fail-sdl-error
@@ -87,7 +87,7 @@ main nat^(_ string[]) summon
 		triangle-vbo = gl vbo-create vertices
 		forbid triangle-vbo == 0
 
-		renderer renderer = gl, cur-thread-id, window, shader-prog, vertices, triangle-vbo, \
+		renderer renderer = gl, cur-thread-id, window, shader-prog, vertices, triangle-vbo,
 			texture, rotation-loc
 		renderer set-up-renderer
 
@@ -235,7 +235,7 @@ main nat^(_ string[]) summon
 	n-buffers int32 = 1
 	gl glGenBuffers n-buffers, &vbo
 	gl glBindBuffer GL_ARRAY_BUFFER, vbo
-	gl glBufferData GL_ARRAY_BUFFER, vertices.size-bytes.to, vertices.begin-pointer.pointer-cast, \
+	gl glBufferData GL_ARRAY_BUFFER, vertices.size-bytes.to, vertices.begin-pointer.pointer-cast,
 		GL_STATIC_DRAW
 	gl glBindBuffer GL_ARRAY_BUFFER, 0
 	err GLenum = gl glGetError
