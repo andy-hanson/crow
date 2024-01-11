@@ -12,7 +12,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.sourceRange : combineRanges, Pos, Range, rangeOfStartAndLength;
 import util.string : SmallString;
-import util.symbol : AllSymbols, Symbol, symbol, symbolOfString, symbolSize;
+import util.symbol : AllSymbols, Symbol, symbol, symbolSize;
 import util.union_ : Union;
 import util.uri : AllUris, Path, pathLength, RelPath, relPathLength;
 
@@ -572,26 +572,64 @@ Range typeParamsRange(in AllSymbols allSymbols, in SmallArray!NameAndRange typeP
 }
 
 immutable struct ModifierAst {
-	enum Kind {
-		byRef,
-		byVal,
-		data,
-		extern_,
-		forceShared,
-		mut,
-		newInternal,
-		newPublic,
-		newPrivate,
-		packed,
-		shared_,
+	@safe @nogc pure nothrow:
+
+	immutable struct Keyword {
+		@safe @nogc pure nothrow:
+
+		Pos pos;
+		ModifierKeyword kind;
+
+		Range range() =>
+			rangeOfStartAndLength(pos, stringOfModifierKeyword(kind).length);
 	}
 
-	Pos pos;
-	Kind kind;
+	immutable struct Extern {
+		@safe @nogc pure nothrow:
+
+		TypeAst* left;
+		Pos externPos;
+
+		Range range(in AllSymbols allSymbols) scope =>
+			Range(.range(*left, allSymbols).start, suffixRange.end);
+		Range suffixRange() scope =>
+			rangeOfStartAndLength(externPos, "extern".length);
+	}
+
+	// TypeAst will be interpreted as a spec inst
+	mixin Union!(Keyword, Extern, TypeAst);
+
+	Range range(in AllSymbols allSymbols) scope =>
+		matchIn!Range(
+			(in Keyword x) =>
+				x.range,
+			(in Extern x) =>
+				x.range(allSymbols),
+			(in TypeAst x) =>
+				x.range(allSymbols));
 }
 
-Range rangeOfModifierAst(ModifierAst a, ref const AllSymbols allSymbols) =>
-	rangeOfNameAndRange(NameAndRange(a.pos, symbolOfModifierKind(a.kind)), allSymbols);
+enum ModifierKeyword {
+	bare,
+	builtin,
+	byRef,
+	byVal,
+	data,
+	// It's a compile error to have extern without a library name,
+	// so those will usually be a Extern instead
+	extern_,
+	forceCtx,
+	forceShared,
+	mut,
+	newInternal,
+	newPublic,
+	newPrivate,
+	packed,
+	shared_,
+	summon,
+	trusted,
+	unsafe,
+}
 
 immutable struct LiteralIntOrNat {
 	Range range;
@@ -733,85 +771,59 @@ immutable struct FunDeclAst {
 	SmallArray!NameAndRange typeParams;
 	TypeAst returnType;
 	ParamsAst params;
-	SmallArray!FunModifierAst modifiers;
+	SmallArray!ModifierAst modifiers;
 	ExprAst body_; // EmptyAst if missing
 }
 
 Range nameRange(in AllSymbols allSymbols, in FunDeclAst a) =>
 	rangeOfNameAndRange(a.name, allSymbols);
 
-immutable struct FunModifierAst {
-	@safe @nogc pure nothrow:
-
-	immutable struct Keyword {
-		@safe @nogc pure nothrow:
-
-		Pos pos;
-		enum Kind {
-			bare,
-			builtin,
-			// It's a compile error to have extern without a library name,
-			// so those will usually be a Extern instead
-			extern_,
-			forceCtx,
-			summon,
-			trusted,
-			unsafe,
-		}
-		Kind kind;
-
-		Range range() =>
-			rangeOfStartAndLength(pos, stringOfKeywordModifier(kind).length);
-	}
-
-	immutable struct Extern {
-		@safe @nogc pure nothrow:
-
-		TypeAst* left;
-		Pos externPos;
-
-		Range range(in AllSymbols allSymbols) scope =>
-			Range(.range(*left, allSymbols).start, suffixRange.end);
-		Range suffixRange() scope =>
-			rangeOfStartAndLength(externPos, "extern".length);
-	}
-
-	// TypeAst will be interpreted as a spec inst
-	mixin Union!(Keyword, Extern, TypeAst);
-}
-
-string stringOfKeywordModifier(FunModifierAst.Keyword.Kind a) {
-	switch (a) {
-		case FunModifierAst.Keyword.Kind.bare:
+string stringOfModifierKeyword(ModifierKeyword a) {
+	final switch (a) {
+		case ModifierKeyword.bare:
 			return "bare";
-		case FunModifierAst.Keyword.Kind.builtin:
+		case ModifierKeyword.builtin:
 			return "builtin";
-		case FunModifierAst.Keyword.Kind.extern_:
+		case ModifierKeyword.byRef:
+			return "by-ref";
+		case ModifierKeyword.byVal:
+			return "by-val";
+		case ModifierKeyword.data:
+			return "data";
+		case ModifierKeyword.extern_:
 			return "extern";
-		case FunModifierAst.Keyword.Kind.summon:
-			return "summon";
-		case FunModifierAst.Keyword.Kind.trusted:
-			return "trusted";
-		case FunModifierAst.Keyword.Kind.unsafe:
-			return "unsafe";
-		case FunModifierAst.Keyword.Kind.forceCtx:
+		case ModifierKeyword.forceCtx:
 			return "force-ctx";
-		default:
-			assert(false);
+		case ModifierKeyword.forceShared:
+			return "force-shared";
+		case ModifierKeyword.mut:
+			return "mut";
+		case ModifierKeyword.newInternal:
+			return "~new";
+		case ModifierKeyword.newPrivate:
+			return "-new";
+		case ModifierKeyword.newPublic:
+			return "+new";
+		case ModifierKeyword.packed:
+			return "packed";
+		case ModifierKeyword.shared_:
+			return "shared";
+		case ModifierKeyword.summon:
+			return "summon";
+		case ModifierKeyword.trusted:
+			return "trusted";
+		case ModifierKeyword.unsafe:
+			return "unsafe";
 	}
 }
-
-Symbol symbolOfKeywordModifier(scope ref AllSymbols allSymbols, FunModifierAst.Keyword.Kind a) =>
-	symbolOfString(allSymbols, stringOfKeywordModifier(a));
-
-Range range(in FunModifierAst a, in AllSymbols allSymbols) =>
-	a.matchIn!Range(
-		(in FunModifierAst.Keyword x) =>
-			x.range,
-		(in FunModifierAst.Extern x) =>
-			x.range(allSymbols),
-		(in TypeAst x) =>
-			x.range(allSymbols));
+Symbol symbolOfModifierKeyword(ModifierKeyword a) {
+	final switch (a) {
+		static foreach (ubyte index, string member; __traits(allMembers, ModifierKeyword)) {
+			case __traits(getMember, ModifierKeyword, member):
+				return symbol!(stringOfModifierKeyword(__traits(getMember, ModifierKeyword, member)));
+		}
+	}
+}
 
 immutable struct TestAst {
 	Range range;
@@ -830,7 +842,7 @@ immutable struct VarDeclAst {
 	Pos keywordPos;
 	VarKind kind;
 	TypeAst type;
-	SmallArray!FunModifierAst modifiers; // Any but 'extern' will be a compile error
+	SmallArray!ModifierAst modifiers; // Any but 'extern' will be a compile error
 
 	Range keywordRange() =>
 		rangeOfStartAndLength(keywordPos, stringOfVarKindLowerCase(kind).length);
@@ -891,30 +903,3 @@ private FileAst* fileAstForDiags(ref Alloc alloc, SmallArray!ParseDiagnostic dia
 
 FileAst* fileAstForReadFileDiag(ref Alloc alloc, ReadFileDiag a) =>
 	fileAstForDiags(alloc, newSmallArray(alloc, [ParseDiagnostic(Range.empty, ParseDiag(a))]));
-
-Symbol symbolOfModifierKind(ModifierAst.Kind a) {
-	final switch (a) {
-		case ModifierAst.Kind.byRef:
-			return symbol!"by-ref";
-		case ModifierAst.Kind.byVal:
-			return symbol!"by-val";
-		case ModifierAst.Kind.data:
-			return symbol!"data";
-		case ModifierAst.Kind.extern_:
-			return symbol!"extern";
-		case ModifierAst.Kind.forceShared:
-			return symbol!"force-shared";
-		case ModifierAst.Kind.mut:
-			return symbol!"mut";
-		case ModifierAst.Kind.newInternal:
-			return symbol!"~new";
-		case ModifierAst.Kind.newPrivate:
-			return symbol!"-new";
-		case ModifierAst.Kind.newPublic:
-			return symbol!"+new";
-		case ModifierAst.Kind.packed:
-			return symbol!"packed";
-		case ModifierAst.Kind.shared_:
-			return symbol!"shared";
-	}
-}

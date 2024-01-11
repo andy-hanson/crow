@@ -11,10 +11,10 @@ import model.ast :
 	LiteralIntAst,
 	LiteralNatAst,
 	ModifierAst,
-	rangeOfModifierAst,
+	ModifierKeyword,
 	StructBodyAst,
 	StructDeclAst,
-	symbolOfModifierKind,
+	symbolOfModifierKeyword,
 	TypeAst;
 import model.concreteModel : TypeSize;
 import model.diag : Diag, DeclKind;
@@ -109,7 +109,7 @@ private:
 StructBody.Extern checkExtern(ref CheckCtx ctx, in StructDeclAst declAst, in StructBodyAst.Extern bodyAst) {
 	checkOnlyStructModifiers(ctx, DeclKind.extern_, declAst.modifiers);
 	if (!isEmpty(declAst.typeParams))
-		addDiag(ctx, declAst.range, Diag(Diag.ExternHasTypeParams()));
+		addDiag(ctx, declAst.range, Diag(Diag.ExternTypeHasTypeParams()));
 	Opt!size_t optNat(Opt!(LiteralNatAst*) value) {
 		if (has(value)) {
 			LiteralNatAst n = *force(value);
@@ -176,35 +176,33 @@ LinkageAndPurity getStructModifiers(ref CheckCtx ctx, DeclKind declKind, in Modi
 		OptLinkageAndPurity(),
 		modifiers,
 		(OptLinkageAndPurity cur, in ModifierAst mod) {
-			void addDiagConflictOrDuplicate(Symbol prev) {
-				addDiag(
-					ctx,
-					rangeOfModifierAst(mod, ctx.allSymbols),
-					modifierConflictOrDuplicate(prev, symbolOfModifierKind(mod.kind)));
-			}
-			void addDiagRedundant() {
-				addDiag(ctx, rangeOfModifierAst(mod, ctx.allSymbols), Diag(Diag.ModifierRedundantDueToDeclKind(
-					symbolOfModifierKind(mod.kind),
-					declKind)));
-			}
-
-			if (mod.kind == ModifierAst.Kind.extern_) {
-				if (has(cur.linkage))
-					addDiagConflictOrDuplicate(symbolOfLinkage(force(cur.linkage)));
-				else if (Linkage.extern_ == defaultLinkage)
-					addDiagRedundant();
-				return OptLinkageAndPurity(some(Linkage.extern_), cur.purityAndForced);
-			} else {
-				Opt!PurityAndForced op = purityAndForcedFromModifier(mod.kind);
-				if (has(op)) {
+			if (isStructModifier(mod)) {
+				ModifierAst.Keyword kw = mod.as!(ModifierAst.Keyword);
+				void addDiagConflictOrDuplicate(Symbol prev) {
+					addDiag(ctx, kw.range, modifierConflictOrDuplicate(prev, symbolOfModifierKeyword(kw.kind)));
+				}
+				void addDiagRedundant() {
+					addDiag(ctx, kw.range, Diag(
+						Diag.ModifierRedundantDueToDeclKind(symbolOfModifierKeyword(kw.kind), declKind)));
+				}
+				if (kw.kind == ModifierKeyword.extern_) {
+					if (has(cur.linkage))
+						addDiagConflictOrDuplicate(symbolOfLinkage(force(cur.linkage)));
+					else if (Linkage.extern_ == defaultLinkage)
+						addDiagRedundant();
+					return OptLinkageAndPurity(some(Linkage.extern_), cur.purityAndForced);
+				} else {
+					Opt!PurityAndForced opt = purityAndForcedFromModifier(kw.kind);
+					PurityAndForced pur = force(opt);
 					if (has(cur.purityAndForced))
 						addDiagConflictOrDuplicate(symbolOfPurityAndForced(force(cur.purityAndForced)));
-					else if (force(op) == defaultPurity)
+					else if (pur == defaultPurity)
 						addDiagRedundant();
-					return OptLinkageAndPurity(cur.linkage, op);
-				} else
-					return cur;
-			}
+					return OptLinkageAndPurity(cur.linkage, some(pur));
+				}
+			} else
+				// Already warned in 'checkOnlyStructModifiers'
+				return cur;
 		});
 	return LinkageAndPurity(
 		optOrDefault!Linkage(opts.linkage, () => defaultLinkage),
@@ -263,24 +261,18 @@ DeclKind getDeclKind(in StructBodyAst a) =>
 		(in StructBodyAst.Union) =>
 			DeclKind.union_);
 
-Opt!PurityAndForced purityAndForcedFromModifier(ModifierAst.Kind a) {
-	final switch (a) {
-		case ModifierAst.Kind.byRef:
-		case ModifierAst.Kind.byVal:
-		case ModifierAst.Kind.extern_:
-		case ModifierAst.Kind.newInternal:
-		case ModifierAst.Kind.newPrivate:
-		case ModifierAst.Kind.newPublic:
-		case ModifierAst.Kind.packed:
-			return none!PurityAndForced;
-		case ModifierAst.Kind.data:
+Opt!PurityAndForced purityAndForcedFromModifier(ModifierKeyword a) {
+	switch (a) {
+		case ModifierKeyword.data:
 			return some(PurityAndForced(Purity.data, false));
-		case ModifierAst.Kind.forceShared:
+		case ModifierKeyword.forceShared:
 			return some(PurityAndForced(Purity.shared_, true));
-		case ModifierAst.Kind.mut:
+		case ModifierKeyword.mut:
 			return some(PurityAndForced(Purity.mut, false));
-		case ModifierAst.Kind.shared_:
+		case ModifierKeyword.shared_:
 			return some(PurityAndForced(Purity.shared_, false));
+		default:
+			return none!PurityAndForced;
 	}
 }
 
@@ -299,22 +291,28 @@ Symbol symbolOfPurityAndForced(PurityAndForced a) {
 
 void checkOnlyStructModifiers(ref CheckCtx ctx, DeclKind declKind, in ModifierAst[] modifiers) {
 	foreach (ref ModifierAst modifier; modifiers)
-		if (!isStructModifier(modifier.kind)) {
-			Symbol symbol = symbolOfModifierKind(modifier.kind);
-			addDiag(ctx, rangeOfModifierAst(modifier, ctx.allSymbols), modifier.kind == ModifierAst.Kind.byVal
-				? Diag(Diag.ModifierRedundantDueToDeclKind(symbol, declKind))
-				: Diag(Diag.ModifierInvalid(symbol, declKind)));
-		}
+		if (!isStructModifier(modifier))
+			addDiag(ctx, modifier.range(ctx.allSymbols), modifier.match!Diag(
+				(ModifierAst.Keyword x) {
+					Symbol symbol = symbolOfModifierKeyword(x.kind);
+					return x.kind == ModifierKeyword.byVal
+						? Diag(Diag.ModifierRedundantDueToDeclKind(symbol, declKind))
+						: Diag(Diag.ModifierInvalid(symbol, declKind));
+				},
+				(ModifierAst.Extern) =>
+					Diag(Diag.ExternHasUnnecessaryLibraryName()),
+				(TypeAst x) =>
+					Diag(Diag.SpecUseInvalid(declKind))));
 }
 
-bool isStructModifier(ModifierAst.Kind a) {
-	if (a == ModifierAst.Kind.extern_)
-		return true;
-	else {
-		Opt!PurityAndForced purity = purityAndForcedFromModifier(a);
-		return has(purity);
-	}
-}
+bool isStructModifier(in ModifierAst a) =>
+	a.matchIn!bool(
+		(in ModifierAst.Keyword x) =>
+			x.kind == ModifierKeyword.extern_ || has(purityAndForcedFromModifier(x.kind)),
+		(in ModifierAst.Extern) =>
+			false,
+		(in TypeAst _) =>
+			false);
 
 StructBody.Enum checkEnum(
 	ref CheckCtx ctx,
@@ -666,28 +664,43 @@ RecordModifiers checkRecordModifiers(ref CheckCtx ctx, ModifierAst[] modifiers) 
 		RecordModifiers(ForcedByValOrRefOrNone.none, NewVisibility(Range.empty, none!Visibility), false),
 		modifiers,
 		(RecordModifiers cur, in ModifierAst modifier) {
-			Range range = rangeOfModifierAst(modifier, ctx.allSymbols);
-			final switch (modifier.kind) {
-				case ModifierAst.Kind.byRef:
-					return withByValOrRef(ctx, cur, range, ForcedByValOrRefOrNone.byRef);
-				case ModifierAst.Kind.byVal:
-					return withByValOrRef(ctx, cur, range, ForcedByValOrRefOrNone.byVal);
-				case ModifierAst.Kind.newInternal:
-					return withNewVisibility(ctx, cur, range, Visibility.internal);
-				case ModifierAst.Kind.newPrivate:
-					return withNewVisibility(ctx, cur, range, Visibility.private_);
-				case ModifierAst.Kind.newPublic:
-					return withNewVisibility(ctx, cur, range, Visibility.public_);
-				case ModifierAst.Kind.packed:
-					return withPacked(ctx, cur, range);
-				case ModifierAst.Kind.data:
-				case ModifierAst.Kind.extern_:
-				case ModifierAst.Kind.forceShared:
-				case ModifierAst.Kind.mut:
-				case ModifierAst.Kind.shared_:
-					// already handled in getStructModifiers
+			Range range = modifier.range(ctx.allSymbols);
+			return modifier.matchIn!RecordModifiers(
+				(in ModifierAst.Keyword x) {
+					switch (x.kind) {
+						case ModifierKeyword.byRef:
+							return withByValOrRef(ctx, cur, range, ForcedByValOrRefOrNone.byRef);
+						case ModifierKeyword.byVal:
+							return withByValOrRef(ctx, cur, range, ForcedByValOrRefOrNone.byVal);
+						case ModifierKeyword.newInternal:
+							return withNewVisibility(ctx, cur, range, Visibility.internal);
+						case ModifierKeyword.newPrivate:
+							return withNewVisibility(ctx, cur, range, Visibility.private_);
+						case ModifierKeyword.newPublic:
+							return withNewVisibility(ctx, cur, range, Visibility.public_);
+						case ModifierKeyword.packed:
+							return withPacked(ctx, cur, range);
+						case ModifierKeyword.data:
+						case ModifierKeyword.extern_:
+						case ModifierKeyword.forceShared:
+						case ModifierKeyword.mut:
+						case ModifierKeyword.shared_:
+							// already handled in getStructModifiers
+							return cur;
+						default:
+							addDiag(ctx, range, Diag(
+								Diag.ModifierInvalid(symbolOfModifierKeyword(x.kind), DeclKind.record)));
+							return cur;
+					}
+				},
+				(in ModifierAst.Extern x) {
+					addDiag(ctx, range, Diag(Diag.ExternHasUnnecessaryLibraryName()));
 					return cur;
-			}
+				},
+				(in TypeAst x) {
+					addDiag(ctx, range, Diag(Diag.SpecUseInvalid(DeclKind.record)));
+					return cur;
+				});
 		});
 
 void checkReferenceLinkageAndPurity(ref CheckCtx ctx, StructDecl* struct_, in Range range, Type referencedType) {

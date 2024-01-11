@@ -84,10 +84,6 @@ Opt!Target targetForPosition(PositionKind pos) =>
 			exprTarget(x),
 		(FunDecl* x) =>
 			some(Target(x)),
-		(PositionKind.FunExtern) =>
-			none!Target,
-		(PositionKind.FunSpecialModifier) =>
-			none!Target,
 		(PositionKind.ImportedModule x) =>
 			some(Target(x.modulePtr)),
 		(PositionKind.ImportedName x) =>
@@ -96,6 +92,10 @@ Opt!Target targetForPosition(PositionKind pos) =>
 			none!Target,
 		(PositionKind.LocalPosition x) =>
 			some(Target(x)),
+		(PositionKind.Modifier) =>
+			none!Target,
+		(PositionKind.ModifierExtern) =>
+			none!Target,
 		(PositionKind.RecordFieldMutability) =>
 			none!Target,
 		(PositionKind.RecordFieldPosition x) =>

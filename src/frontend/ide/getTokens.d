@@ -23,7 +23,7 @@ import model.ast :
 	FileAst,
 	ForAst,
 	FunDeclAst,
-	FunModifierAst,
+	ModifierAst,
 	IdentifierAst,
 	IfAst,
 	IfOptionAst,
@@ -394,26 +394,26 @@ void addStructTokens(scope ref Ctx ctx, in StructDeclAst a) {
 	addTypeParamsTokens(ctx, a.typeParams);
 	a.body_.matchIn!void(
 		(in StructBodyAst.Builtin) {
-			addModifierTokens(ctx, a);
+			addModifierTokens(ctx, a.modifiers);
 		},
 		(in StructBodyAst.Enum x) {
 			addEnumOrFlagsTokens(ctx, a, x.typeArg, x.members);
 		},
 		(in StructBodyAst.Extern) {
-			addModifierTokens(ctx, a);
+			addModifierTokens(ctx, a.modifiers);
 		},
 		(in StructBodyAst.Flags x) {
 			addEnumOrFlagsTokens(ctx, a, x.typeArg, x.members);
 		},
 		(in StructBodyAst.Record record) {
-			addModifierTokens(ctx, a);
+			addModifierTokens(ctx, a.modifiers);
 			foreach (ref StructBodyAst.Record.Field field; record.fields) {
 				declare(ctx.tokens, TokenType.property, rangeOfNameAndRange(field.name, ctx.allSymbols));
 				addTypeTokens(ctx, field.type);
 			}
 		},
 		(in StructBodyAst.Union union_) {
-			addModifierTokens(ctx, a);
+			addModifierTokens(ctx, a.modifiers);
 			foreach (ref StructBodyAst.Union.Member member; union_.members) {
 				declare(ctx.tokens, TokenType.enumMember, rangeAtName(ctx.allSymbols, member.range.start, member.name));
 				if (has(member.type))
@@ -422,14 +422,11 @@ void addStructTokens(scope ref Ctx ctx, in StructDeclAst a) {
 		});
 }
 
-void addModifierTokens(scope ref Ctx ctx, in StructDeclAst a) {
-	// Just let them become keywords
-}
-void addFunModifierTokens(scope ref Ctx ctx, in FunModifierAst[] a) {
-	foreach (ref FunModifierAst mod; a) {
+void addModifierTokens(scope ref Ctx ctx, in ModifierAst[] a) {
+	foreach (ref ModifierAst mod; a) {
 		mod.matchIn!void(
-			(in FunModifierAst.Keyword x) {},
-			(in FunModifierAst.Extern x) {
+			(in ModifierAst.Keyword x) {},
+			(in ModifierAst.Extern x) {
 				addTypeTokens(ctx, *x.left);
 			},
 			(in TypeAst x) {
@@ -453,7 +450,7 @@ void addEnumOrFlagsTokens(
 ) {
 	if (has(typeArg))
 		addTypeTokens(ctx, *force(typeArg));
-	addModifierTokens(ctx, a);
+	addModifierTokens(ctx, a.modifiers);
 	foreach (ref StructBodyAst.Enum.Member member; members) {
 		declare(ctx.tokens, TokenType.enumMember, member.nameRange(ctx.allSymbols));
 		if (has(member.value))
@@ -465,14 +462,14 @@ void addVarDeclTokens(scope ref Ctx ctx, in VarDeclAst a) {
 	declare(ctx.tokens, TokenType.variable, rangeOfNameAndRange(a.name, ctx.allSymbols));
 	addTypeParamsTokens(ctx, a.typeParams);
 	addTypeTokens(ctx, a.type);
-	addFunModifierTokens(ctx, a.modifiers);
+	addModifierTokens(ctx, a.modifiers);
 }
 
 void addFunTokens(scope ref Ctx ctx, in FunDeclAst a) {
 	declare(ctx.tokens, TokenType.function_, rangeOfNameAndRange(a.name, ctx.allSymbols));
 	addTypeParamsTokens(ctx, a.typeParams);
 	addSigReturnTypeAndParamsTokens(ctx, a.returnType, a.params);
-	addFunModifierTokens(ctx, a.modifiers);
+	addModifierTokens(ctx, a.modifiers);
 	addExprTokens(ctx, a.body_);
 }
 

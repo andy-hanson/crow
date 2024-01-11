@@ -12,6 +12,7 @@ import frontend.parse.lexer :
 	getPeekToken,
 	getPeekTokenAndData,
 	Lexer,
+	lookaheadNewVisibility,
 	range,
 	skipNewlinesIgnoreIndentation,
 	skipUntilNewlineNoDiag,
@@ -33,7 +34,6 @@ import frontend.parse.parseUtil :
 	takeNewlineOrDedent,
 	takeNewline_topLevel,
 	takeOrAddDiagExpectedToken,
-	tryTakeName,
 	tryTakeOperator,
 	tryTakeToken;
 import model.ast :
@@ -42,7 +42,8 @@ import model.ast :
 	FieldMutabilityAst,
 	FileAst,
 	FunDeclAst,
-	FunModifierAst,
+	ModifierAst,
+	ModifierKeyword,
 	ImportsOrExportsAst,
 	LiteralIntAst,
 	LiteralIntOrNat,
@@ -256,36 +257,55 @@ FunDeclAst parseFun(
 ) {
 	TypeAst returnType = parseType(lexer);
 	ParamsAst params = parseParams(lexer, 0);
-	SmallArray!FunModifierAst modifiers = parseFunModifiers(lexer);
+	SmallArray!ModifierAst modifiers = parseModifiers(lexer);
 	ExprAst body_ = parseFunExprBody(lexer);
 	return FunDeclAst(
 		range(lexer, start), docComment, visibility, name, typeParams, returnType, params, modifiers, body_);
 }
 
-SmallArray!FunModifierAst parseFunModifiers(ref Lexer lexer) {
+SmallArray!ModifierAst parseModifiers(ref Lexer lexer) {
 	if (peekEndOfLine(lexer))
-		return emptySmallArray!FunModifierAst;
+		return emptySmallArray!ModifierAst;
 	else {
-		ArrayBuilder!FunModifierAst res;
-		add(lexer.alloc, res, parseFunModifier(lexer));
-		while (tryTakeToken(lexer, Token.comma))
-			add(lexer.alloc, res, parseFunModifier(lexer));
+		ArrayBuilder!ModifierAst res;
+		do {
+			add(lexer.alloc, res, parseModifier(lexer));
+		} while (tryTakeToken(lexer, Token.comma));
 		return smallFinish(lexer.alloc, res);
 	}
 }
 
-FunModifierAst parseFunModifier(ref Lexer lexer) {
+ModifierAst parseModifier(ref Lexer lexer) {
 	Pos start = curPos(lexer);
-	Opt!(FunModifierAst.Keyword.Kind) keyword = tryGetKeywordModifier(getPeekToken(lexer));
+	Opt!(ModifierKeyword) keyword = tryGetKeywordModifier(getPeekTokenAndData(lexer));
 	if (has(keyword)) {
 		takeNextToken(lexer);
-		return FunModifierAst(FunModifierAst.Keyword(start, force(keyword)));
+		return ModifierAst(ModifierAst.Keyword(start, force(keyword)));
 	} else {
-		TypeAst type = parseType(lexer);
-		Pos externPos = curPos(lexer);
-		return tryTakeToken(lexer, Token.extern_)
-			? FunModifierAst(FunModifierAst.Extern(allocate(lexer.alloc, type), externPos))
-			: FunModifierAst(type);
+		if (lookaheadNewVisibility(lexer)) {
+			Opt!Visibility opt = tryTakeVisibility(lexer);
+			Visibility visibility = force(opt);
+			Symbol name = takeName(lexer);
+			assert(name == symbol!"new");
+			return ModifierAst(ModifierAst.Keyword(start, newVisibility(visibility)));
+		} else {
+			TypeAst type = parseType(lexer);
+			Pos externPos = curPos(lexer);
+			return tryTakeToken(lexer, Token.extern_)
+				? ModifierAst(ModifierAst.Extern(allocate(lexer.alloc, type), externPos))
+				: ModifierAst(type);
+		}
+	}
+}
+
+ModifierKeyword newVisibility(Visibility a) {
+	final switch (a) {
+		case Visibility.private_:
+			return ModifierKeyword.newPrivate;
+		case Visibility.internal:
+			return ModifierKeyword.newInternal;
+		case Visibility.public_:
+			return ModifierKeyword.newPublic;
 	}
 }
 
@@ -301,24 +321,44 @@ SmallArray!TypeAst parseSpecModifiers(ref Lexer lexer) {
 	}
 }
 
-Opt!(FunModifierAst.Keyword.Kind) tryGetKeywordModifier(Token token) {
-	switch (token) {
+Opt!ModifierKeyword tryGetKeywordModifier(TokenAndData token) {
+	switch (token.token) {
 		case Token.bare:
-			return some(FunModifierAst.Keyword.Kind.bare);
+			return some(ModifierKeyword.bare);
 		case Token.builtin:
-			return some(FunModifierAst.Keyword.Kind.builtin);
+			return some(ModifierKeyword.builtin);
 		case Token.extern_:
-			return some(FunModifierAst.Keyword.Kind.extern_);
+			return some(ModifierKeyword.extern_);
 		case Token.forceCtx:
-			return some(FunModifierAst.Keyword.Kind.forceCtx);
+			return some(ModifierKeyword.forceCtx);
+		case Token.mut:
+			return some(ModifierKeyword.mut);
+		case Token.name:
+			Symbol name = token.asSymbol;
+			switch (name.value) {
+				case symbol!"by-ref".value:
+					return some(ModifierKeyword.byRef);
+				case symbol!"by-val".value:
+					return some(ModifierKeyword.byVal);
+				case symbol!"data".value:
+					return some(ModifierKeyword.data);
+				case symbol!"force-shared".value:
+					return some(ModifierKeyword.forceShared);
+				case symbol!"packed".value:
+					return some(ModifierKeyword.packed);
+				case symbol!"shared".value:
+					return some(ModifierKeyword.shared_);
+				default:
+					return none!(ModifierKeyword);
+			}
 		case Token.summon:
-			return some(FunModifierAst.Keyword.Kind.summon);
+			return some(ModifierKeyword.summon);
 		case Token.trusted:
-			return some(FunModifierAst.Keyword.Kind.trusted);
+			return some(ModifierKeyword.trusted);
 		case Token.unsafe:
-			return some(FunModifierAst.Keyword.Kind.unsafe);
+			return some(ModifierKeyword.unsafe);
 		default:
-			return none!(FunModifierAst.Keyword.Kind);
+			return none!(ModifierKeyword);
 	}
 }
 
@@ -466,77 +506,8 @@ VarDeclAst parseVarDecl(
 	VarKind kind,
 ) {
 	TypeAst type = parseTypeArgForVarDecl(lexer);
-	SmallArray!FunModifierAst modifiers = parseFunModifiers(lexer);
+	SmallArray!ModifierAst modifiers = parseModifiers(lexer);
 	return VarDeclAst(range(lexer, start), docComment, visibility, name, typeParams, kindPos, kind, type, modifiers);
-}
-
-SmallArray!ModifierAst parseModifiers(ref Lexer lexer) {
-	if (peekEndOfLine(lexer)) return emptySmallArray!ModifierAst;
-	ArrayBuilder!ModifierAst res;
-	while (true) {
-		Pos start = curPos(lexer);
-		ModifierAst.Kind kind = parseModifierKind(lexer);
-		add(lexer.alloc, res, ModifierAst(start, kind));
-		if (peekEndOfLine(lexer))
-			break;
-		else
-			takeOrAddDiagExpectedToken(lexer, Token.comma, ParseDiag.Expected.Kind.comma);
-	}
-	return smallFinish(lexer.alloc, res);
-}
-
-ModifierAst.Kind parseModifierKind(ref Lexer lexer) {
-	ModifierAst.Kind fail() {
-		addDiagExpected(lexer, ParseDiag.Expected.Kind.modifier);
-		return ModifierAst.Kind.data;
-	}
-	ModifierAst.Kind maybeNew(ModifierAst.Kind kind) {
-		Opt!Symbol name = tryTakeName(lexer);
-		return has(name) && force(name) == symbol!"new" ? kind : fail();
-	}
-
-	TokenAndData token = takeNextToken(lexer);
-	switch (token.token) {
-		case Token.extern_:
-			return ModifierAst.Kind.extern_;
-		case Token.mut:
-			return ModifierAst.Kind.mut;
-		case Token.name:
-			Opt!(ModifierAst.Kind) kind = modifierKindFromSymbol(token.asSymbol);
-			return has(kind) ? force(kind) : fail();
-		case Token.operator:
-			switch (token.asSymbol.value) {
-				case symbol!"-".value:
-					return maybeNew(ModifierAst.Kind.newPrivate);
-				case symbol!"~".value:
-					return maybeNew(ModifierAst.Kind.newInternal);
-				case symbol!"+".value:
-					return maybeNew(ModifierAst.Kind.newPublic);
-				default:
-					return fail();
-			}
-		default:
-			return fail();
-	}
-}
-
-Opt!(ModifierAst.Kind) modifierKindFromSymbol(Symbol a) {
-	switch (a.value) {
-		case symbol!"by-val".value:
-			return some(ModifierAst.Kind.byVal);
-		case symbol!"by-ref".value:
-			return some(ModifierAst.Kind.byRef);
-		case symbol!"data".value:
-			return some(ModifierAst.Kind.data);
-		case symbol!"force-shared".value:
-			return some(ModifierAst.Kind.forceShared);
-		case symbol!"packed".value:
-			return some(ModifierAst.Kind.packed);
-		case symbol!"shared".value:
-			return some(ModifierAst.Kind.shared_);
-		default:
-			return none!(ModifierAst.Kind);
-	}
 }
 
 Opt!Visibility tryTakeVisibility(ref Lexer lexer) =>

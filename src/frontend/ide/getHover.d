@@ -15,7 +15,7 @@ import frontend.showModel :
 	writeTypeQuoted,
 	writeVisibility;
 import lib.lsp.lspTypes : Hover, MarkupContent, MarkupKind;
-import model.ast : FunModifierAst;
+import model.ast : ModifierKeyword;
 import model.diag : TypeContainer, TypeWithContainer;
 import model.model :
 	AssertOrForbidExpr,
@@ -90,33 +90,6 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 		(FunDecl* x) {
 			writeFunDecl(writer, ctx, x);
 		},
-		(PositionKind.FunExtern x) {
-			writer ~= "Function comes from external library ";
-			writeName(writer, ctx, x.funDecl.name);
-			writer ~= '.';
-		},
-		(PositionKind.FunSpecialModifier x) {
-			writer ~= () {
-				final switch (x.modifier) {
-					case FunModifierAst.Keyword.Kind.bare:
-						return "This function does not use the Crow runtime.";
-					case FunModifierAst.Keyword.Kind.builtin:
-						return "This function is implemented natively by Crow.";
-					case FunModifierAst.Keyword.Kind.extern_:
-						// This is a compile error, so just let that explain it.
-						return "";
-					case FunModifierAst.Keyword.Kind.forceCtx:
-						return "This function uses the runtime, but 'bare' functions can call it. " ~
-							"(Don't use outside of the Crow runtime.)";
-					case FunModifierAst.Keyword.Kind.summon:
-						return "This function can directly access all I/O capacilities.";
-					case FunModifierAst.Keyword.Kind.trusted:
-						return "This function is not unsafe, but can do unsafe things internally.";
-					case FunModifierAst.Keyword.Kind.unsafe:
-						return "This function can only be called by 'trusted' or 'unsafe' functions.";
-				}
-			}();
-		},
 		(PositionKind.ImportedModule x) {
 			writer ~= "Import module ";
 			writeFile(writer, ctx, x.module_.uri);
@@ -157,6 +130,54 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 		(PositionKind.LocalPosition x) {
 			writer ~= "Local ";
 			localHover(writer, ctx, x.container.toTypeContainer, *x.local);
+		},
+		(PositionKind.Modifier x) {
+			writer ~= () {
+				final switch (x.modifier) {
+					case ModifierKeyword.bare:
+						return "This function does not use the Crow runtime.";
+					case ModifierKeyword.builtin:
+						return "This function is implemented natively by Crow.";
+					case ModifierKeyword.byRef:
+						return "This type is behind a pointer.\n" ~
+							"This is more efficient if there are many references to the same value.";
+					case ModifierKeyword.byVal:
+						return "This type is stored by-value.\b" ~
+							"This avoids allocation but each place this value is used has its own copy of the content.";
+					case ModifierKeyword.data:
+						return "The type is completely immutable.";
+					case ModifierKeyword.extern_:
+						return "This type is compatible with external libraries.";
+					case ModifierKeyword.forceCtx:
+						return "This function uses the runtime, but 'bare' functions can call it. " ~
+							"(Don't use outside of the Crow runtime.)";
+					case ModifierKeyword.forceShared:
+						return "This type is be considered 'shared' even though it has 'mut' content.";
+					case ModifierKeyword.mut:
+						return "This type is either directly mutable or references something mutable.";
+					case ModifierKeyword.newInternal:
+						return "The 'new' function is internal.";
+					case ModifierKeyword.newPrivate:
+						return "The 'new' function is private.";
+					case ModifierKeyword.newPublic:
+						return "The 'new' function is public.";
+					case ModifierKeyword.packed:
+						return "The type will be laid out without gaps for alignment.";
+					case ModifierKeyword.shared_:
+						return "The type is mutable, but in a way that is safe to share between concurrent tasks.";
+					case ModifierKeyword.summon:
+						return "This function can directly access all I/O capacilities.";
+					case ModifierKeyword.trusted:
+						return "This function is not unsafe, but can do unsafe things internally.";
+					case ModifierKeyword.unsafe:
+						return "This function can only be called by 'trusted' or 'unsafe' functions.";
+				}
+			}();
+		},
+		(PositionKind.ModifierExtern x) {
+			writer ~= "Function comes from external library ";
+			writeName(writer, ctx, x.libraryName);
+			writer ~= '.';
 		},
 		(PositionKind.RecordFieldMutability x) {
 			writer ~= "Defines a ";

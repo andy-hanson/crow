@@ -13,6 +13,7 @@ import frontend.parse.lexToken :
 	lookaheadElse,
 	lookaheadEqualsOrThen,
 	lookaheadLambdaAfterParenLeft,
+	lookaheadNew,
 	lookaheadQuestionEquals,
 	plainToken,
 	takeStringPart;
@@ -26,7 +27,7 @@ import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
 import util.string : CString, MutCString;
-import util.symbol : AllSymbols;
+import util.symbol : AllSymbols, symbol;
 
 public import frontend.parse.lexToken : ElifOrElse, EqualsOrThen, QuoteKind, StringPart, Token, TokenAndData;
 
@@ -226,6 +227,23 @@ private StringPart takeStringPartCommon(ref Lexer lexer, QuoteKind quoteKind) {
 		default:
 			return .lookaheadEqualsOrThen(lexer.ptr);
 	}
+}
+
+bool lookaheadNewVisibility(in Lexer lexer) =>
+	isVisibility(getPeekTokenAndData(lexer)) && lookaheadNew(lexer.ptr);
+
+private bool isVisibility(in TokenAndData a) {
+	if (a.token == Token.operator) {
+		switch (a.asSymbol.value) {
+			case symbol!"-".value:
+			case symbol!"~".value:
+			case symbol!"+".value:
+				return true;
+			default:
+				return false;
+		}
+	} else
+		return false;
 }
 
 bool lookaheadNameColon(in Lexer lexer) =>

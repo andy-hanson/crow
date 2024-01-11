@@ -2,7 +2,7 @@ module frontend.ide.ideUtil;
 
 @safe @nogc pure nothrow:
 
-import model.ast : FunModifierAst, NameAndRange, TypeAst;
+import model.ast : ModifierAst, NameAndRange, TypeAst;
 import model.model :
 	AssertOrForbidExpr,
 	BogusExpr,
@@ -61,12 +61,12 @@ Opt!T eachSpecParent(T)(in SpecDecl a, in Opt!T delegate(SpecInst*, in TypeAst) 
 
 void eachFunSpec(in FunDecl a, in void delegate(in SpecInst*, in TypeAst) @safe @nogc pure nothrow cb) {
 	if (a.source.isA!(FunDeclSource.Ast)) {
-		FunModifierAst[] modifiers = a.source.as!(FunDeclSource.Ast).ast.modifiers;
+		ModifierAst[] modifiers = a.source.as!(FunDeclSource.Ast).ast.modifiers;
 		// Count may not match if there are compile errors.
-		zipSecondMapOpIfSizeEq!(SpecInst*, FunModifierAst, TypeAst)(
+		zipSecondMapOpIfSizeEq!(SpecInst*, ModifierAst, TypeAst)(
 			a.specs,
 			modifiers,
-			(in FunModifierAst x) => x.isA!(TypeAst) ? some(x.as!TypeAst) : none!TypeAst,
+			(in ModifierAst x) => x.isA!(TypeAst) ? some(x.as!TypeAst) : none!TypeAst,
 			cb);
 	}
 }

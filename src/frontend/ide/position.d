@@ -2,7 +2,7 @@ module frontend.ide.position;
 
 @safe @nogc pure nothrow:
 
-import model.ast : FunModifierAst, NameAndRange;
+import model.ast : ModifierKeyword, NameAndRange;
 import model.diag : TypeContainer, TypeWithContainer;
 import model.model :
 	Expr,
@@ -97,13 +97,6 @@ immutable struct VisibilityContainer {
 immutable struct PositionKind {
 	immutable struct None {}
 
-	immutable struct FunExtern {
-		FunDecl* funDecl;
-	}
-	immutable struct FunSpecialModifier {
-		FunDecl* funDecl;
-		FunModifierAst.Keyword.Kind modifier;
-	}
 	immutable struct Expression {
 		ExprContainer container;
 		Expr* expr;
@@ -122,6 +115,7 @@ immutable struct PositionKind {
 		Symbol name;
 		Opt!(NameReferents*) referents;
 	}
+	// non-Modifier
 	immutable struct Keyword {
 		enum Kind {
 			alias_,
@@ -142,6 +136,13 @@ immutable struct PositionKind {
 	immutable struct LocalPosition {
 		LocalContainer container;
 		Local* local;
+	}
+	immutable struct Modifier {
+		TypeContainer container;
+		ModifierKeyword modifier;
+	}
+	immutable struct ModifierExtern {
+		Symbol libraryName;
 	}
 	immutable struct RecordFieldMutability {
 		Opt!Visibility visibility;
@@ -170,12 +171,12 @@ immutable struct PositionKind {
 		None,
 		Expression,
 		FunDecl*,
-		FunExtern,
-		FunSpecialModifier,
 		ImportedModule,
 		ImportedName,
 		Keyword,
 		LocalPosition,
+		Modifier,
+		ModifierExtern,
 		RecordFieldMutability,
 		RecordFieldPosition,
 		SpecDecl*,

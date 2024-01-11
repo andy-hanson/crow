@@ -438,6 +438,8 @@ private bool startsWithIdentifier(CString ptr, in string expected) {
 
 bool lookaheadAs(CString ptr) =>
 	startsWithIdentifier(ptr, "as");
+bool lookaheadNew(CString ptr) =>
+	startsWithIdentifier(ptr, "new");
 bool lookaheadElse(CString ptr) =>
 	startsWithIdentifier(ptr, "else");
 

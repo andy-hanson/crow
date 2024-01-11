@@ -45,11 +45,13 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ExternFunForbidden) =>
 			DiagnosticSeverity.checkError,
-		(in Diag.ExternHasTypeParams) =>
-			DiagnosticSeverity.checkError,
+		(in Diag.ExternHasUnnecessaryLibraryName) =>
+			DiagnosticSeverity.checkWarning,
 		(in Diag.ExternMissingLibraryName) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ExternRecordImplicitlyByVal) =>
+			DiagnosticSeverity.checkError,
+		(in Diag.ExternTypeHasTypeParams) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ExternUnion) =>
 			DiagnosticSeverity.checkError,

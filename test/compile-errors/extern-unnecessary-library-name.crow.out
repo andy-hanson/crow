@@ -1,0 +1,5 @@
+exit code: 0
+stderr:
+test/compile-errors/extern-unnecessary-library-name.crow 4:9-4:17 'extern' for a type does not need the library name.
+test/compile-errors/extern-unnecessary-library-name.crow 5:10-5:18 'extern' for a type does not need the library name.
+test/compile-errors/extern-unnecessary-library-name.crow 6:9-6:17 'extern' for a type does not need the library name.

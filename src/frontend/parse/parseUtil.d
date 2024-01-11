@@ -19,7 +19,7 @@ import frontend.parse.lexToken : isSymbolToken;
 import model.ast : NameAndRange;
 import model.parseDiag : ParseDiag;
 import util.col.array : contains;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, Opt, optIf, some;
 import util.sourceRange : Pos, Range;
 import util.string : emptySmallString, SmallString;
 import util.symbol : Symbol, symbol;
@@ -98,10 +98,8 @@ bool takeOrAddDiagExpectedOperator(ref Lexer lexer, Symbol operator, ParseDiag.E
 
 Opt!NameAndRange tryTakeNameAndRange(ref Lexer lexer) {
 	Pos start = curPos(lexer);
-	Opt!Symbol name = tryTakeName(lexer);
-	return has(name)
-		? some(NameAndRange(start, force(name)))
-		: none!NameAndRange;
+	return tryTakeToken!NameAndRange(lexer, (TokenAndData x) =>
+		optIf(x.token == Token.name, () => NameAndRange(start, x.asSymbol)));
 }
 
 NameAndRange takeNameAndRange(ref Lexer lexer) {
@@ -121,10 +119,6 @@ NameAndRange takeNameAndRangeAllowUnderscore(ref Lexer lexer) {
 		? NameAndRange(start, symbol!"_")
 		: takeNameAndRange(lexer);
 }
-
-Opt!Symbol tryTakeName(ref Lexer lexer) =>
-	tryTakeToken!Symbol(lexer, (TokenAndData x) =>
-		x.token == Token.name ? some(x.asSymbol) : none!Symbol);
 
 Symbol takeName(ref Lexer lexer) =>
 	takeNameAndRange(lexer).name;

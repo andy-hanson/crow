@@ -274,8 +274,6 @@ string showParseDiagExpected(ParseDiag.Expected.Kind kind) {
 			return "Expected an integer.";
 		case ParseDiag.Expected.Kind.literalNat:
 			return "Expected a natural number.";
-		case ParseDiag.Expected.Kind.modifier:
-			return "Expected a valid modifier.";
 		case ParseDiag.Expected.Kind.name:
 			return "Expected a name (non-operator).";
 		case ParseDiag.Expected.Kind.namedArgument:
@@ -620,8 +618,8 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 				}
 			}();
 		},
-		(in Diag.ExternHasTypeParams) {
-			writer ~= "An 'extern' type should not be a template.";
+		(in Diag.ExternHasUnnecessaryLibraryName) {
+			writer ~= "'extern' for a type does not need the library name.";
 		},
 		(in Diag.ExternMissingLibraryName) {
 			writer ~= "Expected 'extern' to be preceded by the library name.";
@@ -630,6 +628,9 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= "'extern' record ";
 			writeName(writer, ctx, x.struct_.name);
 			writer ~= " is implicitly 'by-val'.";
+		},
+		(in Diag.ExternTypeHasTypeParams) {
+			writer ~= "An 'extern' type should not be a template.";
 		},
 		(in Diag.ExternUnion) {
 			writer ~= "A union can't be 'extern'.";

@@ -226,11 +226,12 @@ immutable struct Diag {
 		FunDecl* fun;
 		Reason reason;
 	}
-	immutable struct ExternHasTypeParams {}
+	immutable struct ExternHasUnnecessaryLibraryName {}
 	immutable struct ExternMissingLibraryName {}
 	immutable struct ExternRecordImplicitlyByVal {
 		StructDecl* struct_;
 	}
+	immutable struct ExternTypeHasTypeParams {}
 	immutable struct ExternUnion {}
 	immutable struct FunCantHaveBody {
 		enum Reason { builtin, extern_ }
@@ -511,9 +512,10 @@ immutable struct Diag {
 		EnumMemberOverflows,
 		ExpectedTypeIsNotALambda,
 		ExternFunForbidden,
-		ExternHasTypeParams,
+		ExternHasUnnecessaryLibraryName,
 		ExternMissingLibraryName,
 		ExternRecordImplicitlyByVal,
+		ExternTypeHasTypeParams,
 		ExternUnion,
 		FunCantHaveBody,
 		FunMissingBody,

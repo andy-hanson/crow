@@ -1,0 +1,6 @@
+main void()
+	()
+
+f flags c extern
+r record c extern
+u union c extern

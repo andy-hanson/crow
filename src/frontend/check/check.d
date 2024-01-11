@@ -35,7 +35,8 @@ import model.ast :
 	ExprAst,
 	FileAst,
 	FunDeclAst,
-	FunModifierAst,
+	ModifierAst,
+	ModifierKeyword,
 	ImportOrExportAstKind,
 	ImportsOrExportsAst,
 	ImportOrExportAst,
@@ -49,7 +50,7 @@ import model.ast :
 	SpecDeclAst,
 	SpecSigAst,
 	StructAliasAst,
-	symbolOfKeywordModifier,
+	symbolOfModifierKeyword,
 	TestAst,
 	TypeAst,
 	typeParamsRange,
@@ -393,33 +394,31 @@ VarDecl checkVarDecl(
 		checkVarModifiers(ctx, ast.kind, ast.modifiers));
 }
 
-Opt!Symbol checkVarModifiers(ref CheckCtx ctx, VarKind kind, in FunModifierAst[] modifiers) {
+Opt!Symbol checkVarModifiers(ref CheckCtx ctx, VarKind kind, in ModifierAst[] modifiers) {
 	Cell!(Opt!Symbol) externLibraryName;
-	foreach (ref FunModifierAst modifier; modifiers) {
-		Range diagRange() => range(modifier, ctx.allSymbols);
+	foreach (ref ModifierAst modifier; modifiers) {
+		Range diagRange = modifier.range(ctx.allSymbols);
 		modifier.matchIn!void(
-			(in FunModifierAst.Keyword x) {
-				if (x.kind == FunModifierAst.Keyword.Kind.extern_)
-					addDiag(ctx, diagRange(), Diag(Diag.ExternMissingLibraryName()));
-				else
-					addDiag(ctx, diagRange(), Diag(
-						Diag.ModifierInvalid(symbolOfKeywordModifier(ctx.allSymbols, x.kind), declKind(kind))));
+			(in ModifierAst.Keyword x) {
+				addDiag(ctx, diagRange, x.kind == ModifierKeyword.extern_
+					? Diag(Diag.ExternMissingLibraryName())
+					: Diag(Diag.ModifierInvalid(symbolOfModifierKeyword(x.kind), declKind(kind))));
 			},
-			(in FunModifierAst.Extern x) {
+			(in ModifierAst.Extern x) {
 				if (has(cellGet(externLibraryName)))
-					addDiag(ctx, diagRange(), Diag(Diag.ModifierDuplicate(symbol!"extern")));
+					addDiag(ctx, diagRange, Diag(Diag.ModifierDuplicate(symbol!"extern")));
 				final switch (kind) {
 					case VarKind.global:
 						cellSet(externLibraryName, some(
 							externLibraryNameFromTypeArg(ctx, x.suffixRange, some(*x.left))));
 						break;
 					case VarKind.threadLocal:
-						addDiag(ctx, diagRange(), Diag(Diag.ModifierInvalid(symbol!"extern", DeclKind.threadLocal)));
+						addDiag(ctx, diagRange, Diag(Diag.ModifierInvalid(symbol!"extern", DeclKind.threadLocal)));
 						break;
 				}
 			},
 			(in TypeAst _) {
-				addDiag(ctx, diagRange(), Diag(Diag.SpecUseInvalid(declKind(kind))));
+				addDiag(ctx, diagRange, Diag(Diag.SpecUseInvalid(declKind(kind))));
 			});
 	}
 	return cellGet(externLibraryName);
@@ -460,27 +459,26 @@ FunFlagsAndSpecs checkFunModifiers(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	in Range range,
-	in FunModifierAst[] asts,
+	in ModifierAst[] asts,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in SpecsMap specsMap,
 	TypeParams typeParamsScope,
 ) {
 	CollectedFunFlags allFlags = CollectedFunFlags.none;
 	immutable SpecInst*[] specs =
-		mapOp!(immutable SpecInst*, FunModifierAst)(ctx.alloc, asts, (scope ref FunModifierAst ast) =>
+		mapOp!(immutable SpecInst*, ModifierAst)(ctx.alloc, asts, (scope ref ModifierAst ast) =>
 			ast.matchIn!(Opt!(SpecInst*))(
-				(in FunModifierAst.Keyword x) {
+				(in ModifierAst.Keyword x) {
 					CollectedFunFlags flag = tryGetFunFlag(x.kind);
 					if (flag == CollectedFunFlags.none)
 						addDiag(ctx, x.range, Diag(
-							Diag.ModifierInvalid(symbolOfKeywordModifier(ctx.allSymbols, x.kind), DeclKind.function_)));
+							Diag.ModifierInvalid(symbolOfModifierKeyword(x.kind), DeclKind.function_)));
 					if (allFlags & flag)
-						addDiag(ctx, x.range, Diag(
-							Diag.ModifierDuplicate(symbolOfKeywordModifier(ctx.allSymbols, x.kind))));
+						addDiag(ctx, x.range, Diag(Diag.ModifierDuplicate(symbolOfModifierKeyword(x.kind))));
 					allFlags |= flag;
 					return none!(SpecInst*);
 				},
-				(in FunModifierAst.Extern x) {
+				(in ModifierAst.Extern x) {
 					if (allFlags & CollectedFunFlags.extern_)
 						addDiag(ctx, x.suffixRange, Diag(Diag.ModifierDuplicate(symbol!"extern")));
 					allFlags |= CollectedFunFlags.extern_;
@@ -503,21 +501,21 @@ enum CollectedFunFlags {
 	unsafe = 0b1000000,
 }
 
-CollectedFunFlags tryGetFunFlag(FunModifierAst.Keyword.Kind kind) {
+CollectedFunFlags tryGetFunFlag(ModifierKeyword kind) {
 	switch (kind) {
-		case FunModifierAst.Keyword.Kind.bare:
+		case ModifierKeyword.bare:
 			return CollectedFunFlags.bare;
-		case FunModifierAst.Keyword.Kind.builtin:
+		case ModifierKeyword.builtin:
 			return CollectedFunFlags.builtin;
-		case FunModifierAst.Keyword.Kind.extern_:
+		case ModifierKeyword.extern_:
 			return CollectedFunFlags.extern_;
-		case FunModifierAst.Keyword.Kind.forceCtx:
+		case ModifierKeyword.forceCtx:
 			return CollectedFunFlags.forceCtx;
-		case FunModifierAst.Keyword.Kind.summon:
+		case ModifierKeyword.summon:
 			return CollectedFunFlags.summon;
-		case FunModifierAst.Keyword.Kind.trusted:
+		case ModifierKeyword.trusted:
 			return CollectedFunFlags.trusted;
-		case FunModifierAst.Keyword.Kind.unsafe:
+		case ModifierKeyword.unsafe:
 			return CollectedFunFlags.unsafe;
 		default:
 			return CollectedFunFlags.none;
@@ -708,7 +706,7 @@ void checkFunsWithAsts(
 					if (!funAst.body_.kind.isA!EmptyAst)
 						addDiag(ctx, diagRange, Diag(Diag.FunCantHaveBody(Diag.FunCantHaveBody.Reason.extern_)));
 					return FunBody(checkExternBody(
-						ctx, fun, getExternTypeArg(*funAst, FunModifierAst.Keyword.Kind.extern_)));
+						ctx, fun, getExternTypeArg(*funAst, ModifierKeyword.extern_)));
 				case FunFlags.SpecialBody.generated:
 					assert(false);
 			}
@@ -760,13 +758,13 @@ FunsMap buildFunsMap(ref Alloc alloc, in immutable FunDecl[] funs) {
 Symbol funDeclsBuilderName(in ArrayBuilder!(immutable FunDecl*) a) =>
 	asTemporaryArray(a)[0].name;
 
-Opt!TypeAst getExternTypeArg(ref FunDeclAst a, FunModifierAst.Keyword.Kind externOrGlobal) {
-	foreach (ref FunModifierAst modifier; a.modifiers) {
+Opt!TypeAst getExternTypeArg(ref FunDeclAst a, ModifierKeyword externOrGlobal) {
+	foreach (ref ModifierAst modifier; a.modifiers) {
 		Opt!(Opt!TypeAst) res = modifier.match!(Opt!(Opt!TypeAst))(
-			(FunModifierAst.Keyword x) =>
+			(ModifierAst.Keyword x) =>
 				x.kind == externOrGlobal ? some(none!TypeAst) : none!(Opt!TypeAst),
-			(FunModifierAst.Extern x) =>
-				externOrGlobal == FunModifierAst.Keyword.Kind.extern_ ? some(some(*x.left)) : none!(Opt!TypeAst),
+			(ModifierAst.Extern x) =>
+				externOrGlobal == ModifierKeyword.extern_ ? some(some(*x.left)) : none!(Opt!TypeAst),
 			(TypeAst x) =>
 				none!(Opt!TypeAst));
 		if (has(res))

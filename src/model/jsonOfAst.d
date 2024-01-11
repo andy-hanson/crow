@@ -19,7 +19,7 @@ import model.ast :
 	FileAst,
 	ForAst,
 	FunDeclAst,
-	FunModifierAst,
+	ModifierAst,
 	IdentifierAst,
 	IfAst,
 	IfOptionAst,
@@ -55,9 +55,8 @@ import model.ast :
 	StructAliasAst,
 	StructBodyAst,
 	StructDeclAst,
-	stringOfKeywordModifier,
+	stringOfModifierKeyword,
 	symbolForTypeAstSuffix,
-	symbolOfModifierKind,
 	ThenAst,
 	ThrowAst,
 	TrustedAst,
@@ -294,18 +293,12 @@ Json jsonOfStructDeclAst(ref Alloc alloc, in Ctx ctx, in StructDeclAst a) =>
 		field!"doc"(jsonString(alloc, a.docComment)),
 		visibilityField(a.visibility),
 		maybeTypeParams(alloc, ctx, a.typeParams),
-		optionalArrayField!("modifiers", ModifierAst)(alloc, a.modifiers, (in ModifierAst x) =>
-			jsonOfModifierAst(alloc, x)),
+		field!"modifiers"(jsonOfModifiers(alloc, ctx, a.modifiers)),
 		field!"body"(jsonOfStructBodyAst(alloc, ctx, a.body_))]);
 
 Json.ObjectField maybeTypeParams(ref Alloc alloc, in Ctx ctx, in NameAndRange[] typeParams) =>
 	optionalArrayField!("type-params", NameAndRange)(alloc, typeParams, (in NameAndRange x) =>
 		jsonOfNameAndRange(alloc, ctx, x));
-
-Json jsonOfModifierAst(ref Alloc alloc, in ModifierAst a) =>
-	jsonObject(alloc, [
-		field!"pos"(a.pos),
-		field!"modifier"(symbolOfModifierKind(a.kind))]);
 
 Json jsonOfFunDeclAst(ref Alloc alloc, in Ctx ctx, in FunDeclAst a) =>
 	jsonObject(alloc, [
@@ -316,8 +309,7 @@ Json jsonOfFunDeclAst(ref Alloc alloc, in Ctx ctx, in FunDeclAst a) =>
 		maybeTypeParams(alloc, ctx, a.typeParams),
 		field!"return"(jsonOfTypeAst(alloc, ctx, a.returnType)),
 		field!"params"(jsonOfParamsAst(alloc, ctx, a.params)),
-		optionalArrayField!("modifiers", FunModifierAst)(alloc, a.modifiers, (in FunModifierAst s) =>
-			jsonOfFunModifierAst(alloc, ctx, s)),
+		field!"modifiers"(jsonOfModifiers(alloc, ctx, a.modifiers)),
 		field!"body"(jsonOfExprAst(alloc, ctx, a.body_))]);
 
 Json jsonOfParamsAst(ref Alloc alloc, in Ctx ctx, in ParamsAst a) =>
@@ -329,14 +321,19 @@ Json jsonOfParamsAst(ref Alloc alloc, in Ctx ctx, in ParamsAst a) =>
 				kindField!"varargs",
 				field!"param"(jsonOfDestructureAst(alloc, ctx, v.param))]));
 
-Json jsonOfFunModifierAst(ref Alloc alloc, in Ctx ctx, in FunModifierAst a) =>
+
+Json jsonOfModifiers(ref Alloc alloc, in Ctx ctx, in ModifierAst[] modifiers) =>
+	jsonList!ModifierAst(alloc, modifiers, (in ModifierAst x) =>
+		jsonOfModifierAst(alloc, ctx, x));
+
+Json jsonOfModifierAst(ref Alloc alloc, in Ctx ctx, in ModifierAst a) =>
 	a.matchIn!Json(
-		(in FunModifierAst.Keyword x) =>
+		(in ModifierAst.Keyword x) =>
 			jsonObject(alloc, [
 				kindField!"keyword",
 				field!"pos"(x.pos),
-				field!"kind"(stringOfKeywordModifier(x.kind))]),
-		(in FunModifierAst.Extern x) =>
+				field!"kind"(stringOfModifierKeyword(x.kind))]),
+		(in ModifierAst.Extern x) =>
 			jsonObject(alloc, [
 				kindField!"extern",
 				field!"loeft"(jsonOfTypeAst(alloc, ctx, *x.left)),
