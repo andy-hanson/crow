@@ -872,8 +872,10 @@ ExprAst takeInterpolatedRecur(
 ) {
 	ExprAst e = () {
 		if (peekToken(lexer, Token.braceRight)) {
-			addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.MissingExpression()));
-			return bogusExpr(range(lexer, start));
+			Pos pos = curPos(lexer);
+			Range range = Range(pos - 1, pos + 1);
+			addDiag(lexer, range, ParseDiag(ParseDiag.MissingExpression()));
+			return bogusExpr(range);
 		} else
 			return parseExprNoBlock(lexer);
 	}();
