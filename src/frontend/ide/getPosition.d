@@ -69,7 +69,6 @@ import model.model :
 	PtrToLocalExpr,
 	RecordField,
 	SeqExpr,
-	SpecDeclBody,
 	SpecInst,
 	StructBody,
 	SpecDecl,
@@ -342,7 +341,7 @@ Opt!PositionKind positionInSpec(in AllSymbols allSymbols, SpecDecl* a, Pos pos) 
 		() => optIf(hasPos(a.ast.keywordRange, pos), () =>
 			PositionKind(PositionKind.Keyword(PositionKind.Keyword.Kind.spec))),
 		() => positionInSpecParents(allSymbols, a, pos),
-		() => positionInSpecBody(allSymbols, a, pos));
+		() => positionInSpecSigs(allSymbols, a, pos));
 
 Opt!PositionKind positionInSpecParents(in AllSymbols allSymbols, SpecDecl* a, Pos pos) =>
 	eachSpecParent!PositionKind(*a, (SpecInst* parent, in TypeAst ast) =>
@@ -352,17 +351,10 @@ Opt!PositionKind positionInSpecParents(in AllSymbols allSymbols, SpecDecl* a, Po
 					positionInType(allSymbols, TypeContainer(a), typeArg, argAst, pos)),
 				() => PositionKind(PositionKind.SpecUse(TypeContainer(a), parent)))));
 
-Opt!PositionKind positionInSpecBody(in AllSymbols allSymbols, SpecDecl* a, Pos pos) =>
-	a.body_.matchIn!(Opt!PositionKind)(
-		(in SpecDeclBody.Builtin) =>
-			//TODO: keyword position
-			none!PositionKind,
-		(in SpecDeclSig[] sigs) =>
-			firstZipPointerFirst!(PositionKind, SpecDeclSig, SpecSigAst)(
-				sigs,
-				a.ast.body_.as!(SpecSigAst[]),
-				(SpecDeclSig* sig, SpecSigAst sigAst) =>
-					positionInSpecSig(allSymbols, a, sig, sigAst, pos)));
+Opt!PositionKind positionInSpecSigs(in AllSymbols allSymbols, SpecDecl* a, Pos pos) =>
+	firstZipPointerFirst!(PositionKind, SpecDeclSig, SpecSigAst)(
+		a.sigs, a.ast.sigs, (SpecDeclSig* sig, SpecSigAst sigAst) =>
+			positionInSpecSig(allSymbols, a, sig, sigAst, pos));
 
 Opt!PositionKind positionInSpecSig(
 	in AllSymbols allSymbols,

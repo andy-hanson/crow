@@ -5,8 +5,7 @@ import
 	./module:
 		alias-decl, builtin-decl, data, enum-decl, exports, extern-decl, flags-decl, fun-decl,
 		module, module-export, module-export-value, mut_, new, param, purity, spec-decl, spec-ref,
-		type-param, type-ref, record-decl, record-field, shared, spec-builtin, spec-sig, spec-sigs,
-		union-decl, union-member
+		type-param, type-ref, record-decl, record-field, shared, spec-sig, union-decl, union-member
 
 get-modules module[]^(paths string[], remove-prefix string) summon
 	result = crow-path spawn-and-wait-result "document" ~ paths
@@ -130,19 +129,12 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 		x to-spec-ref
 
 -to-spec-decl spec-decl(a json)
+	is-builtin = a["builtin"].as-bool-allow-null!
 	parents spec-ref[] = for x : a["parents"].as-list!
 		x to-spec-ref
-	body-json = a["body"]
-	kind = body-json["kind"].as-symbol!
-	body_ = if kind == "builtin"
-		spec-builtin
-	elif kind == "sigs"
-		sigs spec-sig[] = for x : body-json["sigs"].as-list!
-			x to-sig
-		sigs spec-sigs
-	else
-		throw "unexpected spec kind {kind}"
-	parents, body_
+	sigs spec-sig[] = for x : a["sigs"].as-list!
+		x to-sig
+	is-builtin, parents, sigs
 
 -to-sig spec-sig(a json)
 	a.get-doc, a.get-name, a.get-return-type, a.get-params

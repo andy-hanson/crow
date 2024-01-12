@@ -2,7 +2,9 @@ module model.diag;
 
 @safe @nogc pure nothrow:
 
+import model.ast : ModifierKeyword;
 import model.model :
+	BuiltinSpec,
 	Called,
 	CalledDecl,
 	Destructure,
@@ -14,7 +16,6 @@ import model.model :
 	Module,
 	ReturnAndParamTypes,
 	SpecDecl,
-	SpecDeclBody,
 	SpecDeclSig,
 	StructAlias,
 	StructDecl,
@@ -85,6 +86,7 @@ enum DeclKind {
 	global,
 	flags,
 	record,
+	spec,
 	union_,
 	threadLocal,
 }
@@ -318,25 +320,25 @@ immutable struct Diag {
 	}
 
 	immutable struct ModifierConflict {
-		Symbol prevModifier;
-		Symbol curModifier;
+		ModifierKeyword prevModifier;
+		ModifierKeyword curModifier;
 	}
 	immutable struct ModifierDuplicate {
-		Symbol modifier;
+		ModifierKeyword modifier;
 	}
 	immutable struct ModifierInvalid {
-		Symbol modifier;
+		ModifierKeyword modifier;
 		DeclKind declKind;
 	}
 	// This is like 'ModifierDuplicate' but the modifiers are not identical.
 	// E.g., 'extern unsafe', since 'extern' implies 'unsafe'.
 	immutable struct ModifierRedundantDueToModifier {
-		Symbol modifier;
+		ModifierKeyword modifier;
 		// This is implied by the first modifier
-		Symbol redundantModifier;
+		ModifierKeyword redundantModifier;
 	}
 	immutable struct ModifierRedundantDueToDeclKind {
-		Symbol modifier;
+		ModifierKeyword modifier;
 		DeclKind declKind;
 	}
 	immutable struct MutFieldNotAllowed {}
@@ -384,7 +386,7 @@ immutable struct Diag {
 	immutable struct SpecNoMatch {
 		immutable struct Reason {
 			immutable struct BuiltinNotSatisfied {
-				SpecDeclBody.Builtin kind;
+				BuiltinSpec kind;
 				Type type;
 			}
 			immutable struct CantInferTypeArguments {

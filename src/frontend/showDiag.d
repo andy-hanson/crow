@@ -21,6 +21,7 @@ import frontend.showModel :
 	writeUri,
 	writeUriAndRange,
 	writeVisibility;
+import model.ast : ModifierKeyword, stringOfModifierKeyword;
 import model.diag :
 	Diagnostic,
 	Diag,
@@ -46,7 +47,6 @@ import model.model :
 	SpecDecl,
 	SpecDeclSig,
 	StructInst,
-	stringOfSpecBodyBuiltinKind,
 	stringOfVarKindLowerCase,
 	Type,
 	TypeParamsAndSig;
@@ -790,32 +790,32 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= '.';
 		},
 		(in Diag.ModifierConflict x) {
-			writeName(writer, ctx, x.curModifier);
+			writeModifier(writer, ctx, x.curModifier);
 			writer ~= " conflicts with ";
-			writeName(writer, ctx, x.prevModifier);
+			writeModifier(writer, ctx, x.prevModifier);
 			writer ~= '.';
 		},
 		(in Diag.ModifierDuplicate x) {
 			writer ~= "Redundant ";
-			writeName(writer, ctx, x.modifier);
+			writeModifier(writer, ctx, x.modifier);
 			writer ~= '.';
 		},
 		(in Diag.ModifierInvalid x) {
 			writer ~= aOrAnDeclKind(x.declKind);
 			writer ~= " can't be ";
-			writeName(writer, ctx, x.modifier);
+			writeModifier(writer, ctx, x.modifier);
 			writer ~= '.';
 		},
 		(in Diag.ModifierRedundantDueToDeclKind x) {
 			writer ~= aOrAnDeclKind(x.declKind);
 			writer ~= " is already ";
-			writeName(writer, ctx, x.modifier);
+			writeModifier(writer, ctx, x.modifier);
 			writer ~= " by default.";
 		},
 		(in Diag.ModifierRedundantDueToModifier x) {
-			writeName(writer, ctx, x.redundantModifier);
+			writeModifier(writer, ctx, x.redundantModifier);
 			writer ~= " is redundant given ";
-			writeName(writer, ctx, x.modifier);
+			writeModifier(writer, ctx, x.modifier);
 			writer ~= '.';
 		},
 		(in Diag.MutFieldNotAllowed) {
@@ -883,7 +883,7 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 				(in Diag.SpecNoMatch.Reason.BuiltinNotSatisfied y) {
 					writeTypeQuoted(writer, ctx, TypeWithContainer(y.type, x.outermostTypeContainer));
 					writer ~= " is not '";
-					writer ~= stringOfSpecBodyBuiltinKind(y.kind);
+					writer ~= stringOfEnum(y.kind);
 					writer ~= "'.";
 				},
 				(in Diag.SpecNoMatch.Reason.CantInferTypeArguments y) {
@@ -1057,6 +1057,10 @@ void writeExpected(scope ref Writer writer, in ShowDiagCtx ctx, in ExpectedForDi
 		});
 }
 
+void writeModifier(scope ref Writer writer, in ShowDiagCtx ctx, ModifierKeyword kind) {
+	writeName(writer, ctx, stringOfModifierKeyword(kind));
+}
+
 string aOrAnDeclKind(DeclKind a) {
 	final switch (a) {
 		case DeclKind.builtin:
@@ -1073,6 +1077,8 @@ string aOrAnDeclKind(DeclKind a) {
 			return "A flags type";
 		case DeclKind.record:
 			return "A record type";
+		case DeclKind.spec:
+			return "A spec";
 		case DeclKind.threadLocal:
 			return "A thread-local variable";
 		case DeclKind.union_:
@@ -1200,8 +1206,6 @@ string describeTokenForUnexpected(Token token) {
 			return "Unexpected keyword 'break'.";
 		case Token.builtin:
 			return "Unexpected keyword 'builtin'.";
-		case Token.builtinSpec:
-			return "Unexpected keyword 'builtin-spec'.";
 		case Token.braceLeft:
 			return "Unexpected '{'.";
 		case Token.braceRight:

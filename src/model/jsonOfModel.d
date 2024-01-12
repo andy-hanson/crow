@@ -8,6 +8,7 @@ import model.model :
 	AssertOrForbidExpr,
 	BogusExpr,
 	BuiltinFun,
+	BuiltinSpec,
 	Called,
 	CalledSpecSig,
 	CallExpr,
@@ -53,12 +54,10 @@ import model.model :
 	Purity,
 	SeqExpr,
 	SpecDecl,
-	SpecDeclBody,
 	SpecDeclSig,
 	SpecInst,
 	StructDecl,
 	StructInst,
-	stringOfSpecBodyBuiltinKind,
 	stringOfVisibility,
 	Test,
 	ThrowExpr,
@@ -158,17 +157,12 @@ Json jsonOfSpecDecl(ref Alloc alloc, in Ctx ctx, in SpecDecl a) =>
 		alloc,
 		commonDeclFields(alloc, ctx, a.visibility, a.name, a.typeParams),
 		[
-			optionalArrayField!"parents"(alloc, a.parents, (in SpecInst* x) => jsonOfSpecInst(alloc, ctx, *x)),
-			field!"body"(jsonOfSpecDeclBody(alloc, ctx, a.body_)),
+			optionalField!("builtin", BuiltinSpec)(a.builtin, (in BuiltinSpec x) => jsonString(stringOfEnum(x))),
+				field!"parents"(jsonList!(SpecInst*)(alloc, a.parents, (in SpecInst* x) =>
+					jsonOfSpecInst(alloc, ctx, *x))),
+				field!"sigs"(jsonList!SpecDeclSig(alloc, a.sigs, (in SpecDeclSig x) =>
+					jsonOfSpecDeclSig(alloc, ctx, x)))
 		]);
-
-Json jsonOfSpecDeclBody(ref Alloc alloc, in Ctx ctx, in SpecDeclBody a) =>
-	a.matchIn!Json(
-		(in SpecDeclBody.Builtin x) =>
-			jsonString(stringOfSpecBodyBuiltinKind(x)),
-		(in SpecDeclSig[] xs) =>
-			jsonList!SpecDeclSig(alloc, xs, (in SpecDeclSig x) =>
-				jsonOfSpecDeclSig(alloc, ctx, x)));
 
 Json jsonOfSpecDeclSig(ref Alloc alloc, in Ctx ctx, in SpecDeclSig a) =>
 	jsonObject(alloc, [

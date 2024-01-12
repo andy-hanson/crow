@@ -120,7 +120,6 @@ enum Token {
 	bare, // 'bare'
 	break_, // 'break'
 	builtin, // 'builtin'
-	builtinSpec, // 'builtin-spec'
 	braceLeft, // '{'
 	braceRight, // '}'
 	bracketLeft, // '['
@@ -595,8 +594,6 @@ Token tokenForSymbol(Symbol a) {
 			return Token.break_;
 		case symbol!"builtin".value:
 			return Token.builtin;
-		case symbol!"builtin-spec".value:
-			return Token.builtinSpec;
 		case symbol!"class".value:
 			return Token.reserved;
 		case symbol!"continue".value:

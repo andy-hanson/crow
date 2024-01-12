@@ -229,17 +229,6 @@ enum ForcedByValOrRefOrNone {
 	byRef,
 }
 
-Symbol symbolOfForcedByValOrRefOrNone(ForcedByValOrRefOrNone a) {
-	final switch (a) {
-		case ForcedByValOrRefOrNone.none:
-			return symbol!"none";
-		case ForcedByValOrRefOrNone.byVal:
-			return symbol!"by-val";
-		case ForcedByValOrRefOrNone.byRef:
-			return symbol!"by-ref";
-	}
-}
-
 immutable struct RecordFlags {
 	Visibility newVisibility;
 	bool packed;
@@ -351,15 +340,6 @@ UriAndRange nameRange(in AllSymbols allSymbols, in StructAlias a) =>
 
 // sorted least strict to most strict
 enum Linkage : ubyte { internal, extern_ }
-
-Symbol symbolOfLinkage(Linkage a) {
-	final switch (a) {
-		case Linkage.internal:
-			return symbol!"internal";
-		case Linkage.extern_:
-			return symbol!"extern";
-	}
-}
 
 // Range of possible linkage
 immutable struct LinkageRange {
@@ -487,22 +467,12 @@ Opt!(Type[]) asTuple(in CommonTypes commonTypes, Type type) =>
 	isTuple(commonTypes, type) ? some!(Type[])(type.as!(StructInst*).typeArgs) : none!(Type[]);
 
 immutable struct SpecDeclBody {
-	@safe @nogc pure nothrow:
-
-	private enum Builtin_ { data, shared_ }
-	alias Builtin = immutable Builtin_;
-	mixin Union!(Builtin, SmallArray!SpecDeclSig);
+	Opt!BuiltinSpec builtin;
+	SmallArray!(immutable SpecInst*) parents;
+	SmallArray!SpecDeclSig sigs;
 }
-static assert(SpecDeclBody.sizeof == ulong.sizeof);
-size_t countSigs(in SpecDeclBody a) =>
-	a.matchIn!size_t(
-		(in SpecDeclBody.Builtin x) =>
-			0,
-		(in SpecDeclSig[] x) =>
-			x.length);
 
-string stringOfSpecBodyBuiltinKind(SpecDeclBody.Builtin a) =>
-	stringOfEnum(a);
+enum BuiltinSpec { data, shared_ }
 
 immutable struct SpecDecl {
 	@safe @nogc pure nothrow:
@@ -511,23 +481,32 @@ immutable struct SpecDecl {
 	SpecDeclAst* ast;
 	Visibility visibility;
 	Symbol name;
-	SpecDeclBody body_;
-	private Late!(SmallArray!(immutable SpecInst*)) parents_;
+	private Late!SpecDeclBody lateBody;
 
 	SmallString docComment() return scope =>
 		ast.docComment;
 	TypeParams typeParams() return scope =>
 		ast.typeParams;
 
-	bool parentsIsSet() scope =>
-		lateIsSet(parents_);
-	immutable(SpecInst*[]) parents() scope =>
-		lateGet(parents_);
-	void parents(immutable SpecInst*[] value) scope {
-		lateSet(parents_, small!(immutable SpecInst*)(value));
+	bool bodyIsSet() scope =>
+		lateIsSet(lateBody);
+	private ref SpecDeclBody body_() return scope =>
+		lateGet(lateBody);
+	void body_(SpecDeclBody value) scope {
+		lateSet(lateBody, value);
 	}
+
+	ref Opt!BuiltinSpec builtin() return scope =>
+		body_.builtin;
+
+	SmallArray!(immutable SpecInst*) parents() return scope =>
+		body_.parents;
+
 	void overwriteParentsToEmpty() scope =>
-		lateSetOverwrite(parents_, emptySmallArray!(immutable SpecInst*));
+		lateSetOverwrite(lateBody, SpecDeclBody(builtin, emptySmallArray!(immutable SpecInst*), sigs));
+
+	SmallArray!SpecDeclSig sigs() return scope =>
+		body_.sigs;
 
 	UriAndRange range() scope =>
 		UriAndRange(moduleUri, ast.range);
@@ -542,18 +521,24 @@ immutable struct SpecInst {
 
 	SpecDecl* decl;
 	TypeArgs typeArgs;
-	// Corresponds to the signatures in decl.body_
-	SmallArray!ReturnAndParamTypes sigTypes;
-	private Late!(SmallArray!(immutable SpecInst*)) parents_;
+	private Late!SpecInstBody lateBody;
 
 	immutable(SpecInst*[]) parents() return scope =>
-		lateGet(parents_);
-	void parents(immutable SpecInst*[] value) {
-		lateSet(parents_, small!(immutable SpecInst*)(value));
+		lateGet(lateBody).parents;
+	immutable(ReturnAndParamTypes[]) sigTypes() return scope =>
+		lateGet(lateBody).sigTypes;
+	void body_(SpecInstBody value) {
+		lateSet(lateBody, value);
 	}
 
 	Symbol name() scope =>
 		decl.name;
+}
+
+immutable struct SpecInstBody {
+	SmallArray!(immutable SpecInst*) parents;
+	// Corresponds to the signatures in decl.body_
+	SmallArray!ReturnAndParamTypes sigTypes;
 }
 
 alias EnumFunction = immutable EnumFunction_;
@@ -1129,7 +1114,7 @@ immutable struct CalledSpecSig {
 		instantiatedSig.paramTypes;
 
 	SpecDeclSig* nonInstantiatedSig() return scope =>
-		&specInst.decl.body_.as!(SpecDeclSig[])[sigIndex];
+		&specInst.decl.sigs[sigIndex];
 
 	Symbol name() scope =>
 		nonInstantiatedSig.name;

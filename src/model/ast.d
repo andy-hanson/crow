@@ -731,12 +731,6 @@ private string keywordForStructBody(in StructBodyAst a) =>
 		(in StructBodyAst.Union) =>
 			"union");
 
-immutable struct SpecBodyAst {
-	immutable struct Builtin {}
-	mixin Union!(Builtin, SmallArray!SpecSigAst);
-}
-static assert(SpecBodyAst.sizeof == ulong.sizeof);
-
 immutable struct SpecDeclAst {
 	@safe @nogc pure nothrow:
 
@@ -746,22 +740,15 @@ immutable struct SpecDeclAst {
 	NameAndRange name;
 	SmallArray!NameAndRange typeParams;
 	Pos specKeywordPos;
-	SmallArray!TypeAst parents;
-	SpecBodyAst body_;
+	SmallArray!ModifierAst modifiers;
+	SmallArray!SpecSigAst sigs;
 
 	Range keywordRange() scope =>
-		rangeOfStartAndLength(specKeywordPos, keywordForSpecBody(body_).length);
+		rangeOfStartAndLength(specKeywordPos, "spec".length);
 }
 
 Range nameRange(in AllSymbols allSymbols, in SpecDeclAst a) =>
 	rangeOfNameAndRange(a.name, allSymbols);
-
-private string keywordForSpecBody(in SpecBodyAst a) =>
-	a.matchIn!string(
-		(in SpecBodyAst.Builtin) =>
-			"builtin-spec",
-		(in SpecSigAst[]) =>
-			"spec");
 
 immutable struct FunDeclAst {
 	Range range;
@@ -814,14 +801,6 @@ string stringOfModifierKeyword(ModifierKeyword a) {
 			return "trusted";
 		case ModifierKeyword.unsafe:
 			return "unsafe";
-	}
-}
-Symbol symbolOfModifierKeyword(ModifierKeyword a) {
-	final switch (a) {
-		static foreach (ubyte index, string member; __traits(allMembers, ModifierKeyword)) {
-			case __traits(getMember, ModifierKeyword, member):
-				return symbol!(stringOfModifierKeyword(__traits(getMember, ModifierKeyword, member)));
-		}
 	}
 }
 

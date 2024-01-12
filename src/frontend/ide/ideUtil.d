@@ -42,7 +42,7 @@ import model.model :
 	TypeParamIndex;
 import util.col.array : arrayOfSingle, count, first, firstZip, only, only2;
 import util.col.arrayBuilder : ArrBuilderCb;
-import util.opt : force, has, none, Opt, optOr, some;
+import util.opt : force, has, none, Opt, optOr;
 import util.sourceRange : UriAndRange;
 
 alias ReferenceCb = ArrBuilderCb!UriAndRange;
@@ -56,45 +56,39 @@ void eachSpecParent(in SpecDecl a, in void delegate(SpecInst*, in TypeAst) @safe
 }
 
 Opt!T eachSpecParent(T)(in SpecDecl a, in Opt!T delegate(SpecInst*, in TypeAst) @safe @nogc pure nothrow cb) =>
-	firstZip!(T, immutable SpecInst*, TypeAst)(a.parents, a.ast.parents, (immutable SpecInst* parent, TypeAst ast) =>
-		cb(parent, ast));
+	eachSpec!T(a.parents, a.ast.modifiers, cb);
 
-void eachFunSpec(in FunDecl a, in void delegate(in SpecInst*, in TypeAst) @safe @nogc pure nothrow cb) {
+void eachFunSpec(in FunDecl a, in void delegate(SpecInst*, in TypeAst) @safe @nogc pure nothrow cb) {
 	if (a.source.isA!(FunDeclSource.Ast)) {
-		ModifierAst[] modifiers = a.source.as!(FunDeclSource.Ast).ast.modifiers;
-		// Count may not match if there are compile errors.
-		zipSecondMapOpIfSizeEq!(SpecInst*, ModifierAst, TypeAst)(
-			a.specs,
-			modifiers,
-			(in ModifierAst x) => x.isA!(TypeAst) ? some(x.as!TypeAst) : none!TypeAst,
-			cb);
+		Opt!bool res = eachSpec!bool(
+			a.specs, a.source.as!(FunDeclSource.Ast).ast.modifiers,
+			(SpecInst* x, in TypeAst y) {
+				cb(x, y);
+				return none!bool;
+			});
+		assert(!has(res));
 	}
 }
 
-private void zipSecondMapOpIfSizeEq(T, UIn, UOut)(
-	in T[] a,
-	in UIn[] b,
-	in Opt!UOut delegate(in UIn) @safe @nogc pure nothrow bMap,
-	in void delegate(in T, in UOut) @safe @nogc pure nothrow cb,
+private Opt!Out eachSpec(Out)(
+	in SpecInst*[] specs,
+	in ModifierAst[] modifiers,
+	in Opt!Out delegate(SpecInst*, in TypeAst) @safe @nogc pure nothrow cb,
 ) {
-	size_t cnt = count!UIn(b, (in UIn x) => has(bMap(x)));
-	if (cnt == a.length) {
-		size_t bi = 0;
-		foreach (ref const T x; a) {
-			while (true) {
-				Opt!UOut y = bMap(b[bi]);
-				bi++;
-				if (has(y)) {
-					cb(x, force(y));
-					break;
-				}
+	size_t count = count!ModifierAst(modifiers, (in ModifierAst x) => x.isA!TypeAst);
+	if (specs.length == count) {
+		size_t specI = 0;
+		foreach (ref ModifierAst mod; modifiers) {
+			if (mod.isA!TypeAst) {
+				Opt!Out res = cb(specs[specI], mod.as!TypeAst);
+				if (has(res))
+					return res;
+				specI++;
 			}
 		}
-		debug {
-			while (bi < b.length && !has(bMap(b[bi]))) bi++;
-			assert(bi == b.length);
-		}
+		assert(specI == specs.length);
 	}
+	return none!Out;
 }
 
 Opt!T eachTypeComponent(T)(

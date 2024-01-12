@@ -62,7 +62,6 @@ import model.model :
 	ClosureRef,
 	ClosureReferenceKind,
 	ClosureSetExpr,
-	countSigs,
 	Destructure,
 	EnumFunction,
 	Expr,
@@ -298,7 +297,7 @@ bool searchSpecSigIndexRecur(ref size_t index, in SpecInst* inst, in SpecInst* s
 	}
 	if (inst == search)
 		return true;
-	index += countSigs(inst.decl.body_);
+	index += inst.decl.sigs.length;
 	return false;
 }
 

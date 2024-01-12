@@ -54,7 +54,6 @@ import model.model :
 	Local,
 	Params,
 	ReturnAndParamTypes,
-	SpecDeclBody,
 	SpecDeclSig,
 	SpecInst,
 	Type;
@@ -395,14 +394,11 @@ bool inferCandidateTypeArgsFromSpecInst(
 ) =>
 	every!(immutable SpecInst*)(spec.parents, (in immutable SpecInst* parent) =>
 		inferCandidateTypeArgsFromSpecInst(ctx, callCandidate, called, *parent)
-	) && spec.decl.body_.match!bool(
-		(SpecDeclBody.Builtin) =>
-			// figure this out at the end
-			true,
-		(SpecDeclSig[] sigs) =>
-			zipEvery!(SpecDeclSig, ReturnAndParamTypes)(
-				sigs, spec.sigTypes, (ref SpecDeclSig sig, ref ReturnAndParamTypes returnAndParamTypes) =>
-					inferCandidateTypeArgsFromSpecSig(ctx, callCandidate, called, sig, returnAndParamTypes)));
+	) &&
+	// For a builtin spec, we'll leave it for the end.
+	zipEvery!(SpecDeclSig, ReturnAndParamTypes)(
+		spec.decl.sigs, spec.sigTypes, (ref SpecDeclSig sig, ref ReturnAndParamTypes returnAndParamTypes) =>
+			inferCandidateTypeArgsFromSpecSig(ctx, callCandidate, called, sig, returnAndParamTypes));
 
 bool inferCandidateTypeArgsFromSpecSig(
 	ref ExprCtx ctx,

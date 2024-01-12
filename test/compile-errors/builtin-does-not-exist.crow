@@ -3,7 +3,7 @@ main void()
 
 x builtin
 
-x builtin-spec
+x spec builtin
 
 # There are '==' builtins but not with this signature
 == string(a nat, b int) builtin

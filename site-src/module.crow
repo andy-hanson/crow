@@ -56,12 +56,9 @@ record-field record
 	is-mut bool
 
 spec-decl record
+	is-builtin bool
 	parents spec-ref[]
-	body_ spec-body
-
-spec-body union
-	spec-builtin
-	spec-sigs spec-sig[]
+	sigs spec-sig[]
 
 spec-sig record
 	doc string

@@ -2,11 +2,7 @@ import
 	crow/parse:
 		/, ~~, and-return, exact, grammar, grammar-skip, many, map, parse, text-delimited,
 		text-not-containing-any, to
-	./module:
-		body_, doc, exports, fields, has-non-public-fields, is-mut, members, module,
-		module-export, module-export-value, module-path, name, param, params, parents, path, purity,
-		record-field, return-type, spec-ref, spec-sig, specs, target, type-param, type-params, type,
-		type-args, type-ref, union-member, value, variadic
+	./module
 
 all-exports record
 	types module-path[symbol]
@@ -174,11 +170,7 @@ module-content string(a module, all-exports all-exports)
 	as record-decl r
 		"{"record" keyword}{r.purity purity-content}"
 	as spec-decl s
-		match s body_
-		as spec-builtin
-			"spec builtin" keyword
-		as spec-sigs _
-			"{"spec" keyword}{s.parents spec-refs-content ctx}"
+		"{(s.is-builtin ? "spec builtin" : "spec") keyword}{s.parents spec-refs-content ctx}"
 	as union-decl u
 		"{"union" keyword}{u.purity purity-content}"
 
@@ -212,13 +204,9 @@ module-content string(a module, all-exports all-exports)
 			x field-content ctx
 		"""{pre}<ul class="members">{fields}</ul>"""
 	as spec-decl s
-		match s body_
-		as spec-builtin
-			""
-		as spec-sigs sigs
-			sigs-content = "" join for x : sigs
-				x spec-sig-li ctx
-			"""<ul class="spec-sigs">{sigs-content}</ul>"""
+		sigs-content = "" join for x : s.sigs
+			x spec-sig-li ctx
+		"""<ul class="spec-sigs">{sigs-content}</ul>"""
 	as union-decl u
 		members = "" join for x : u members
 			x union-member-content ctx

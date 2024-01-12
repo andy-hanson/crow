@@ -1,5 +1,5 @@
 main void()
 	()
 
-s spec
+s spec by-val
 	x nat(...xs nat array)

@@ -16,6 +16,7 @@ import frontend.check.instantiate :
 import frontend.lang : maxSpecDepth, maxSpecImpls;
 import model.diag : Diag;
 import model.model :
+	BuiltinSpec,
 	Called,
 	CalledSpecSig,
 	FunDecl,
@@ -26,7 +27,7 @@ import model.model :
 	PurityRange,
 	purityRange,
 	ReturnAndParamTypes,
-	SpecDeclBody,
+	SpecDecl,
 	SpecDeclSig,
 	SpecInst,
 	StructInst,
@@ -37,7 +38,7 @@ import util.cell : Cell, cellGet, cellSet;
 import util.col.array : every, exists, first, only, small, zipFirst;
 import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, finish;
 import util.col.mutMaxArr : asTemporaryArray, isFull, mustPop, MutMaxArr, mutMaxArr, only, push, toArray;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, Opt, optIf, optOr, some;
 import util.sourceRange : Range;
 import util.union_ : Union;
 import util.util : ptrTrustMe;
@@ -258,32 +259,26 @@ Trace.Result findSpecSigImplementation(Trace)(
 			: specNoMatch(trace, Diag.SpecNoMatch.Reason(Diag.SpecNoMatch.Reason.SpecImplNotFound(sigDecl, sigType))));
 }
 
-bool checkBuiltinSpec(
-	ref CheckSpecsCtx ctx,
-	FunDecl* called,
-	SpecDeclBody.Builtin kind,
-	Type typeArg,
-) =>
+bool checkBuiltinSpec(ref CheckSpecsCtx ctx, FunDecl* called, BuiltinSpec kind, Type typeArg) =>
 	isPurityAlwaysCompatibleConsideringSpecs(ctx.funsInScope.outermostFunSpecs, typeArg, purityOfBuiltinSpec(kind));
 
-Purity purityOfBuiltinSpec(SpecDeclBody.Builtin kind) {
+Purity purityOfBuiltinSpec(BuiltinSpec kind) {
 	final switch (kind) {
-		case SpecDeclBody.Builtin.data:
+		case BuiltinSpec.data:
 			return Purity.data;
-		case SpecDeclBody.Builtin.shared_:
+		case BuiltinSpec.shared_:
 			return Purity.shared_;
 	}
 }
 
 // Whether 'inst' tells us that 'type' has purity at least 'expected'
 bool specProvidesPurity(in SpecInst* inst, in Type type, Purity expected) =>
+	(has(inst.decl.builtin) &&
+		only(inst.typeArgs) == type &&
+		isPurityCompatible(expected, purityOfBuiltinSpec(force(inst.decl.builtin)))
+	) ||
 	exists!(SpecInst*)(inst.parents, (in SpecInst* parent) =>
-		specProvidesPurity(parent, type, expected)) ||
-	inst.decl.body_.matchIn!bool(
-		(in SpecDeclBody.Builtin b) =>
-			only(inst.typeArgs) == type && isPurityCompatible(expected, purityOfBuiltinSpec(b)),
-		(in SpecDeclSig[]) =>
-			false);
+		specProvidesPurity(parent, type, expected));
 
 Opt!(Trace.NoMatch) checkSpecImpls(Trace)(
 	ref SpecImpls res,
@@ -305,25 +300,22 @@ Opt!(Trace.NoMatch) checkSpecImpl(Trace)(
 	scope Trace outerTrace,
 	in SpecInst specInstInstantiated,
 ) {
+	SpecDecl* decl = specInstInstantiated.decl;
 	TypeArgs typeArgs = specInstInstantiated.typeArgs;
-	return withTrace!(Opt!(Trace.NoMatch))(outerTrace, FunDeclAndTypeArgs(called, typeArgs), (scope Trace trace) {
-		Opt!(Trace.NoMatch) parentDiag = first!(Trace.NoMatch, immutable SpecInst*)(
-			specInstInstantiated.parents, (SpecInst* parent) => checkSpecImpl(res, ctx, called, trace, *parent));
-		return has(parentDiag) ? parentDiag : specInstInstantiated.decl.body_.match!(Opt!(Trace.NoMatch))(
-			(SpecDeclBody.Builtin b) =>
-				checkBuiltinSpec(ctx, called, b, only(typeArgs))
-					? none!(Trace.NoMatch)
-					: some(specNoMatch(trace, Diag.SpecNoMatch.Reason(
-						Diag.SpecNoMatch.Reason.BuiltinNotSatisfied(b, only(typeArgs))))),
-			(SpecDeclSig[] sigDecls) =>
-				zipFirst!(Trace.NoMatch, SpecDeclSig, ReturnAndParamTypes)(
-					sigDecls, specInstInstantiated.sigTypes, (SpecDeclSig* sigDecl, in ReturnAndParamTypes sigType) =>
-						findSpecSigImplementation(ctx, sigDecl, sigType, trace).match!(Opt!(Trace.NoMatch))(
-							(Called x) {
-								push(res, x);
-								return none!(Trace.NoMatch);
-							},
-							(Trace.NoMatch x) =>
-								some(x))));
-	});
+	return withTrace!(Opt!(Trace.NoMatch))(outerTrace, FunDeclAndTypeArgs(called, typeArgs), (scope Trace trace) =>
+		optOr!(Trace.NoMatch)(
+			optIf(has(decl.builtin) && !checkBuiltinSpec(ctx, called, force(decl.builtin), only(typeArgs)),
+				() => specNoMatch(trace, Diag.SpecNoMatch.Reason(
+					Diag.SpecNoMatch.Reason.BuiltinNotSatisfied(force(decl.builtin), only(typeArgs))))),
+			() => first!(Trace.NoMatch, immutable SpecInst*)(
+				specInstInstantiated.parents, (SpecInst* parent) => checkSpecImpl(res, ctx, called, trace, *parent)),
+			() => zipFirst!(Trace.NoMatch, SpecDeclSig, ReturnAndParamTypes)(
+				decl.sigs, specInstInstantiated.sigTypes, (SpecDeclSig* sigDecl, in ReturnAndParamTypes sigType) =>
+					findSpecSigImplementation(ctx, sigDecl, sigType, trace).match!(Opt!(Trace.NoMatch))(
+						(Called x) {
+							push(res, x);
+							return none!(Trace.NoMatch);
+						},
+						(Trace.NoMatch x) =>
+							some(x)))));
 }

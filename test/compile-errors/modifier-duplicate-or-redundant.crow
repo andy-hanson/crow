@@ -32,3 +32,5 @@ rr record by-ref, by-ref
 vv record by-val, by-val
 
 g global(nat) c extern, d extern
+
+data spec builtin, builtin

@@ -449,6 +449,11 @@ void writeName(scope ref Writer writer, in ShowCtx ctx, Symbol name) {
 void writeName(scope ref Writer writer, in ShowTypeCtx ctx, Symbol name) {
 	writeName(writer, ctx.show, name);
 }
+void writeName(scope ref Writer writer, in ShowTypeCtx ctx, string name) {
+	writer ~= '\'';
+	writer ~= name;
+	writer ~= '\'';
+}
 
 void writeSpecInst(scope ref Writer writer, in ShowTypeCtx ctx, in TypeContainer typeContainer, in SpecInst a) {
 	writeSymbol(writer, ctx.allSymbols, a.name);

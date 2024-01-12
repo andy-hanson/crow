@@ -53,7 +53,6 @@ import model.ast :
 	ModifierAst,
 	NameAndRange,
 	ParamsAst,
-	SpecBodyAst,
 	SpecDeclAst,
 	SpecSigAst,
 	StructAliasAst,
@@ -310,18 +309,6 @@ ModifierKeyword newVisibility(Visibility a) {
 	}
 }
 
-SmallArray!TypeAst parseSpecModifiers(ref Lexer lexer) {
-	if (peekEndOfLine(lexer))
-		return emptySmallArray!TypeAst;
-	else {
-		ArrayBuilder!TypeAst res;
-		add(lexer.alloc, res, parseType(lexer));
-		while (tryTakeTokenAndMayContinueOntoNextLine(lexer, Token.comma))
-			add(lexer.alloc, res, parseType(lexer));
-		return smallFinish(lexer.alloc, res);
-	}
-}
-
 Opt!ModifierKeyword tryGetKeywordModifier(TokenAndData token) {
 	switch (token.token) {
 		case Token.bare:
@@ -421,18 +408,6 @@ void parseSpecOrStructOrFun(
 			takeNextToken(lexer);
 			addStruct(() => StructBodyAst(StructBodyAst.Builtin()));
 			break;
-		case Token.builtinSpec:
-			takeNextToken(lexer);
-			add(lexer.alloc, specs, SpecDeclAst(
-				range(lexer, start),
-				docComment,
-				visibility,
-				name,
-				typeParams,
-				keywordPos,
-				emptySmallArray!TypeAst,
-				SpecBodyAst(SpecBodyAst.Builtin())));
-			break;
 		case Token.enum_:
 			takeNextToken(lexer);
 			Opt!(TypeAst*) typeArg = tryParseTypeArgForEnumOrFlags(lexer);
@@ -460,10 +435,10 @@ void parseSpecOrStructOrFun(
 			break;
 		case Token.spec:
 			takeNextToken(lexer);
-			SmallArray!TypeAst parents = parseSpecModifiers(lexer);
-			SpecBodyAst body_ = SpecBodyAst(parseIndentedSigs(lexer));
+			SmallArray!ModifierAst modifiers = parseModifiers(lexer);
+			SmallArray!SpecSigAst sigs = parseIndentedSigs(lexer);
 			add(lexer.alloc, specs, SpecDeclAst(
-				range(lexer, start), docComment, visibility, name, typeParams, keywordPos, parents, body_));
+				range(lexer, start), docComment, visibility, name, typeParams, keywordPos, modifiers, sigs));
 			break;
 		case Token.thread_local:
 			Pos pos = curPos(lexer);

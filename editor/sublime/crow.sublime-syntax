@@ -102,8 +102,6 @@ contexts:
     - match: 'spec\n'
       scope: comment
       push: spec
-    - match: 'builtin-spec\n'
-      scope: comment
     - match: 'union\s'
       scope: comment
       push: union

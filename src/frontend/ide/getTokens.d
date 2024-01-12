@@ -52,7 +52,6 @@ import model.ast :
 	range,
 	rangeOfNameAndRange,
 	SeqAst,
-	SpecBodyAst,
 	SpecDeclAst,
 	SpecSigAst,
 	StructAliasAst,
@@ -328,14 +327,11 @@ void addImportTokens(scope ref Ctx ctx, in AllUris allUris, in ImportsOrExportsA
 void addSpecTokens(scope ref Ctx ctx, in SpecDeclAst a) {
 	declare(ctx.tokens, TokenType.interface_, rangeOfNameAndRange(a.name, ctx.allSymbols));
 	addTypeParamsTokens(ctx, a.typeParams);
-	a.body_.matchIn!void(
-		(in SpecBodyAst.Builtin) {},
-		(in SpecSigAst[] sigs) {
-			foreach (ref SpecSigAst sig; sigs) {
-				declare(ctx.tokens, TokenType.function_, rangeAtName(ctx.allSymbols, sig.range.start, sig.name));
-				addSigReturnTypeAndParamsTokens(ctx, sig.returnType, sig.params);
-			}
-		});
+	addModifierTokens(ctx, a.modifiers);
+	foreach (ref SpecSigAst sig; a.sigs) {
+		declare(ctx.tokens, TokenType.function_, rangeAtName(ctx.allSymbols, sig.range.start, sig.name));
+		addSigReturnTypeAndParamsTokens(ctx, sig.returnType, sig.params);
+	}
 }
 
 void addSigReturnTypeAndParamsTokens(scope ref Ctx ctx, in TypeAst returnType, in ParamsAst params) {

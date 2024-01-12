@@ -415,12 +415,6 @@ Opt!Out zipFirst(Out, T, U)(
 	return none!Out;
 }
 
-void zipIn(T, U)(in T[] a, in U[] b, in void delegate(in T, in U) @safe @nogc pure nothrow cb) {
-	assert(sizeEq(a, b));
-	foreach (size_t i; 0 .. a.length)
-		cb(a[i], b[i]);
-}
-
 void zip(T, U)(scope T[] a, scope U[] b, in void delegate(ref T, ref U) @safe @nogc pure nothrow cb) {
 	assert(sizeEq(a, b));
 	foreach (size_t i; 0 .. a.length)

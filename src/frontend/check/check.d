@@ -23,7 +23,7 @@ import frontend.check.instantiate :
 	MayDelaySpecInsts,
 	MayDelayStructInsts,
 	InstantiateCtx,
-	instantiateSpecParents,
+	instantiateSpecBody,
 	instantiateStructTypes,
 	noDelaySpecInsts,
 	noDelayStructInsts;
@@ -46,11 +46,9 @@ import model.ast :
 	pathRange,
 	range,
 	rangeOfNameAndRange,
-	SpecBodyAst,
 	SpecDeclAst,
 	SpecSigAst,
 	StructAliasAst,
-	symbolOfModifierKeyword,
 	TestAst,
 	TypeAst,
 	typeParamsRange,
@@ -59,6 +57,7 @@ import frontend.allInsts : AllInsts;
 import frontend.storage : FileContent;
 import model.diag : DeclKind, Diag, Diagnostic, TypeContainer;
 import model.model :
+	BuiltinSpec,
 	BogusExpr,
 	CommonTypes,
 	Destructure,
@@ -100,6 +99,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.array :
+	arrayOfSingle,
 	concatenate,
 	emptySmallArray,
 	exists,
@@ -127,7 +127,7 @@ import util.sourceRange : Range, UriAndRange;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : Union;
 import util.uri : AllUris, Path, RelPath, Uri;
-import util.util : ptrTrustMe, todo, typeAs;
+import util.util : ptrTrustMe, todo;
 
 immutable struct UriAndAst {
 	Uri uri;
@@ -232,45 +232,48 @@ ReturnTypeAndParams checkReturnTypeAndParams(
 		typeFromAst(ctx, commonTypes, returnTypeAst, structsAndAliasesMap, typeParams, delayStructInsts),
 		checkParams(ctx, commonTypes, typeContainer, paramsAst, structsAndAliasesMap, typeParams, delayStructInsts));
 
-SpecDeclBody.Builtin getSpecBodyBuiltinKind(ref CheckCtx ctx, in Range range, Symbol name) {
+Opt!BuiltinSpec getBuiltinSpec(ref CheckCtx ctx, in Range range, Symbol name) {
 	switch (name.value) {
 		case symbol!"data".value:
-			return SpecDeclBody.Builtin.data;
+			return some(BuiltinSpec.data);
 		case symbol!"shared".value:
-			return SpecDeclBody.Builtin.shared_;
+			return some(BuiltinSpec.shared_);
 		default:
 			addDiag(ctx, range, Diag(Diag.BuiltinUnsupported(Diag.BuiltinUnsupported.Kind.spec, name)));
-			return SpecDeclBody.Builtin.data;
+			return none!BuiltinSpec;
 	}
 }
 
 SpecDeclBody checkSpecDeclBody(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
+	in StructsAndAliasesMap structsAndAliasesMap,
+	in SpecsMap specsMap,
 	TypeContainer typeContainer,
 	TypeParams typeParams,
-	in StructsAndAliasesMap structsAndAliasesMap,
-	in Range range,
-	Symbol name,
-	SpecBodyAst ast,
-) =>
-	ast.match!SpecDeclBody(
-		(SpecBodyAst.Builtin) =>
-			SpecDeclBody(SpecDeclBody.Builtin(getSpecBodyBuiltinKind(ctx, range, name))),
-		(SpecSigAst[] sigs) =>
-			SpecDeclBody(mapPointers(ctx.alloc, sigs, (SpecSigAst* x) {
-				ReturnTypeAndParams rp = checkReturnTypeAndParams(
-					ctx, commonTypes, typeContainer, x.returnType, x.params,
-					typeParams, structsAndAliasesMap, noDelayStructInsts);
-				Destructure[] params = rp.params.match!(Destructure[])(
-					(Destructure[] x) =>
-						x,
-					(ref Params.Varargs x) {
-						addDiag(ctx, x.param.range(ctx.allSymbols), Diag(Diag.SpecSigCantBeVariadic()));
-						return typeAs!(Destructure[])([]);
-					});
-				return SpecDeclSig(ctx.curUri, x, x.name, rp.returnType, small!Destructure(params));
-			})));
+	ref DelaySpecInsts delaySpecInsts,
+	in SpecDeclAst ast,
+) {
+	SpecFlagsAndParents modifiers = checkSpecModifiers(
+		ctx, commonTypes, structsAndAliasesMap, specsMap, delaySpecInsts, ast.typeParams, ast.modifiers);
+	Opt!BuiltinSpec builtin = modifiers.isBuiltin
+		? getBuiltinSpec(ctx, nameRange(ctx.allSymbols, ast), ast.name.name)
+		: none!BuiltinSpec;
+	SpecDeclSig[] sigs = mapPointers(ctx.alloc, ast.sigs, (SpecSigAst* x) {
+		ReturnTypeAndParams rp = checkReturnTypeAndParams(
+			ctx, commonTypes, typeContainer, x.returnType, x.params,
+			typeParams, structsAndAliasesMap, noDelayStructInsts);
+		Destructure[] params = rp.params.matchWithPointers!(Destructure[])(
+			(Destructure[] x) =>
+				x,
+			(Params.Varargs* x) {
+				addDiag(ctx, x.param.range(ctx.allSymbols), Diag(Diag.SpecSigCantBeVariadic()));
+				return arrayOfSingle(&x.param);
+			});
+		return SpecDeclSig(ctx.curUri, x, x.name, rp.returnType, small!Destructure(params));
+	});
+	return SpecDeclBody(builtin, small!(immutable SpecInst*)(modifiers.parents), small!SpecDeclSig(sigs));
+}
 
 @trusted SpecDecl[] checkSpecDeclsInitial(
 	ref CheckCtx ctx,
@@ -280,13 +283,10 @@ SpecDeclBody checkSpecDeclBody(
 ) =>
 	mapWithResultPointer!(SpecDecl, SpecDeclAst)(ctx.alloc, asts, (SpecDeclAst* ast, SpecDecl* out_) {
 		checkTypeParams(ctx, ast.typeParams);
-		SpecDeclBody body_ = checkSpecDeclBody(
-			ctx, commonTypes, TypeContainer(out_),
-			ast.typeParams, structsAndAliasesMap, nameRange(ctx.allSymbols, *ast), ast.name.name, ast.body_);
-		return SpecDecl(ctx.curUri, ast, visibilityFromExplicitTopLevel(ast.visibility), ast.name.name, body_);
+		return SpecDecl(ctx.curUri, ast, visibilityFromExplicitTopLevel(ast.visibility), ast.name.name);
 	});
 
-void checkSpecDeclParents(
+void checkSpecBodies(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesMap structsAndAliasesMap,
@@ -296,18 +296,17 @@ void checkSpecDeclParents(
 ) {
 	DelaySpecInsts delaySpecInsts = DelaySpecInsts(ctx.allocPtr);
 
-	zip!(SpecDeclAst, SpecDecl)(asts, specs, (ref SpecDeclAst ast, ref SpecDecl spec) {
-		spec.parents = mapOp!(immutable SpecInst*, TypeAst)(ctx.alloc, ast.parents, (ref TypeAst parent) =>
-			checkFunModifierNonSpecial(
-				ctx, commonTypes, structsAndAliasesMap, specsMap, ast.typeParams, parent,
-				someMut(ptrTrustMe(delaySpecInsts))));
+	zipPointers!(SpecDeclAst, SpecDecl)(asts, specs, (SpecDeclAst* ast, SpecDecl* spec) {
+		spec.body_ = checkSpecDeclBody(
+			ctx, commonTypes, structsAndAliasesMap, specsMap,
+			TypeContainer(spec), ast.typeParams, delaySpecInsts, *ast);
 	});
 
 	foreach (ref SpecDecl decl; specs)
 		detectAndFixSpecRecursion(ctx, &decl);
 
 	while (!mutArrIsEmpty(delaySpecInsts))
-		instantiateSpecParents(ctx.instantiateCtx, mustPop(delaySpecInsts), someMut(&delaySpecInsts));
+		instantiateSpecBody(ctx.instantiateCtx, mustPop(delaySpecInsts), someMut(&delaySpecInsts));
 }
 
 void detectAndFixSpecRecursion(ref CheckCtx ctx, SpecDecl* decl) {
@@ -402,18 +401,19 @@ Opt!Symbol checkVarModifiers(ref CheckCtx ctx, VarKind kind, in ModifierAst[] mo
 			(in ModifierAst.Keyword x) {
 				addDiag(ctx, diagRange, x.kind == ModifierKeyword.extern_
 					? Diag(Diag.ExternMissingLibraryName())
-					: Diag(Diag.ModifierInvalid(symbolOfModifierKeyword(x.kind), declKind(kind))));
+					: Diag(Diag.ModifierInvalid(x.kind, declKind(kind))));
 			},
 			(in ModifierAst.Extern x) {
 				if (has(cellGet(externLibraryName)))
-					addDiag(ctx, diagRange, Diag(Diag.ModifierDuplicate(symbol!"extern")));
+					addDiag(ctx, diagRange, Diag(Diag.ModifierDuplicate(ModifierKeyword.extern_)));
 				final switch (kind) {
 					case VarKind.global:
 						cellSet(externLibraryName, some(
 							externLibraryNameFromTypeArg(ctx, x.suffixRange, some(*x.left))));
 						break;
 					case VarKind.threadLocal:
-						addDiag(ctx, diagRange, Diag(Diag.ModifierInvalid(symbol!"extern", DeclKind.threadLocal)));
+						addDiag(ctx, diagRange, Diag(
+							Diag.ModifierInvalid(ModifierKeyword.extern_, DeclKind.threadLocal)));
 						break;
 				}
 			},
@@ -450,6 +450,48 @@ immutable struct FunsAndMap {
 	FunsMap funsMap;
 }
 
+immutable struct SpecFlagsAndParents {
+	bool isBuiltin;
+	SpecInst*[] parents;
+}
+
+SpecFlagsAndParents checkSpecModifiers(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	in StructsAndAliasesMap structsAndAliasesMap,
+	in SpecsMap specsMap,
+	ref DelaySpecInsts delaySpecInsts,
+	TypeParams typeParamsScope,
+	in ModifierAst[] asts,
+) {
+	bool builtin = false;
+	immutable SpecInst*[] parents = mapOp!(immutable SpecInst*, ModifierAst)(ctx.alloc, asts, (ref ModifierAst ast) =>
+		ast.matchIn!(Opt!(SpecInst*))(
+			(in ModifierAst.Keyword x) {
+				switch (x.kind) {
+					case ModifierKeyword.builtin:
+						if (builtin)
+							addDiag(ctx, x.range, Diag(Diag.ModifierDuplicate(x.kind)));
+						builtin = true;
+						break;
+					default:
+						addDiag(ctx, x.range, Diag(
+							Diag.ModifierInvalid(x.kind, DeclKind.spec)));
+						break;
+				}
+				return none!(SpecInst*);
+			},
+			(in ModifierAst.Extern x) {
+				addDiag(ctx, x.suffixRange, Diag(Diag.ModifierInvalid(ModifierKeyword.extern_, DeclKind.spec)));
+				return none!(SpecInst*);
+			},
+			(in TypeAst x) =>
+				checkFunModifierNonSpecial(
+					ctx, commonTypes, structsAndAliasesMap, specsMap, typeParamsScope, x,
+					someMut(ptrTrustMe(delaySpecInsts)))));
+	return SpecFlagsAndParents(builtin, parents);
+}
+
 immutable struct FunFlagsAndSpecs {
 	FunFlags flags;
 	SpecInst*[] specs;
@@ -458,29 +500,28 @@ immutable struct FunFlagsAndSpecs {
 FunFlagsAndSpecs checkFunModifiers(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	in Range range,
-	in ModifierAst[] asts,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in SpecsMap specsMap,
 	TypeParams typeParamsScope,
+	in Range range,
+	in ModifierAst[] asts,
 ) {
 	CollectedFunFlags allFlags = CollectedFunFlags.none;
 	immutable SpecInst*[] specs =
-		mapOp!(immutable SpecInst*, ModifierAst)(ctx.alloc, asts, (scope ref ModifierAst ast) =>
+		mapOp!(immutable SpecInst*, ModifierAst)(ctx.alloc, asts, (ref ModifierAst ast) =>
 			ast.matchIn!(Opt!(SpecInst*))(
 				(in ModifierAst.Keyword x) {
 					CollectedFunFlags flag = tryGetFunFlag(x.kind);
 					if (flag == CollectedFunFlags.none)
-						addDiag(ctx, x.range, Diag(
-							Diag.ModifierInvalid(symbolOfModifierKeyword(x.kind), DeclKind.function_)));
+						addDiag(ctx, x.range, Diag(Diag.ModifierInvalid(x.kind, DeclKind.function_)));
 					if (allFlags & flag)
-						addDiag(ctx, x.range, Diag(Diag.ModifierDuplicate(symbolOfModifierKeyword(x.kind))));
+						addDiag(ctx, x.range, Diag(Diag.ModifierDuplicate(x.kind)));
 					allFlags |= flag;
 					return none!(SpecInst*);
 				},
 				(in ModifierAst.Extern x) {
 					if (allFlags & CollectedFunFlags.extern_)
-						addDiag(ctx, x.suffixRange, Diag(Diag.ModifierDuplicate(symbol!"extern")));
+						addDiag(ctx, x.suffixRange, Diag(Diag.ModifierDuplicate(ModifierKeyword.extern_)));
 					allFlags |= CollectedFunFlags.extern_;
 					return none!(SpecInst*);
 				},
@@ -546,7 +587,7 @@ Opt!(SpecInst*) checkFunModifierNonSpecial(
 }
 
 FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, CollectedFunFlags flags) {
-	void warnRedundant(Symbol modifier, Symbol redundantModifier) {
+	void warnRedundant(ModifierKeyword modifier, ModifierKeyword redundantModifier) {
 		addDiag(ctx, range, Diag(Diag.ModifierRedundantDueToModifier(modifier, redundantModifier)));
 	}
 
@@ -563,13 +604,12 @@ FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, CollectedFunFlags flags
 	bool implicitBare = extern_;
 	bool bare = explicitBare || implicitBare;
 
-	Symbol bodyModifier() {
-		return builtin
-			? symbol!"builtin"
+	ModifierKeyword bodyModifier() =>
+		builtin
+			? ModifierKeyword.builtin
 			: extern_
-			? symbol!"extern"
+			? ModifierKeyword.extern_
 			: assert(false);
-	}
 
 	FunFlags.Safety safety = !unsafe
 		? FunFlags.Safety.safe
@@ -577,9 +617,9 @@ FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, CollectedFunFlags flags
 		? FunFlags.Safety.safe
 		: FunFlags.Safety.unsafe;
 	if (implicitBare && explicitBare)
-		warnRedundant(bodyModifier(), symbol!"bare");
+		warnRedundant(bodyModifier(), ModifierKeyword.bare);
 	if (implicitUnsafe && explicitUnsafe)
-		warnRedundant(bodyModifier(), symbol!"unsafe");
+		warnRedundant(bodyModifier(), ModifierKeyword.unsafe);
 	if (trusted && !extern_)
 		addDiag(ctx, range, Diag(Diag.FunModifierTrustedOnNonExtern()));
 	FunFlags.SpecialBody specialBody = builtin
@@ -588,9 +628,9 @@ FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, CollectedFunFlags flags
 		? FunFlags.SpecialBody.extern_
 		: FunFlags.SpecialBody.none;
 	if (builtin + extern_ > 1) {
-		MutMaxArr!(2, Symbol) bodyModifiers = mutMaxArr!(2, Symbol);
-		if (builtin) pushIfUnderMaxSize(bodyModifiers, symbol!"builtin");
-		if (extern_) pushIfUnderMaxSize(bodyModifiers, symbol!"extern");
+		MutMaxArr!(2, ModifierKeyword) bodyModifiers = mutMaxArr!(2, ModifierKeyword);
+		if (builtin) pushIfUnderMaxSize(bodyModifiers, ModifierKeyword.builtin);
+		if (extern_) pushIfUnderMaxSize(bodyModifiers, ModifierKeyword.extern_);
 		assert(mutMaxArrSize(bodyModifiers) == 2);
 		addDiag(ctx, range, Diag(Diag.ModifierConflict(bodyModifiers[0], bodyModifiers[1])));
 	}
@@ -650,8 +690,8 @@ FunDecl[] checkFunsInitial(
 					structsAndAliasesMap,
 					noDelayStructInsts);
 				FunFlagsAndSpecs flagsAndSpecs = checkFunModifiers(
-					ctx, commonTypes, nameRange(ctx.allSymbols, funAst), funAst.modifiers,
-					structsAndAliasesMap, specsMap, funAst.typeParams);
+					ctx, commonTypes, structsAndAliasesMap, specsMap,
+					funAst.typeParams, nameRange(ctx.allSymbols, funAst), funAst.modifiers);
 				initMemory(fun, FunDecl(
 					FunDeclSource(FunDeclSource.Ast(ctx.curUri, &funAst)),
 					visibilityFromExplicitTopLevel(funAst.visibility),
@@ -900,7 +940,7 @@ Module* checkWorkerAfterCommonTypes(
 		checkVarDecl(ctx, commonTypes, structsAndAliasesMap, ast));
 	SpecDecl[] specs = checkSpecDeclsInitial(ctx, commonTypes, structsAndAliasesMap, ast.specs);
 	SpecsMap specsMap = buildSpecsMap(ctx, specs);
-	checkSpecDeclParents(ctx, commonTypes, structsAndAliasesMap, specsMap, ast.specs, specs);
+	checkSpecBodies(ctx, commonTypes, structsAndAliasesMap, specsMap, ast.specs, specs);
 	FunsAndMap funsAndMap = checkFuns(
 		ctx,
 		commonTypes,

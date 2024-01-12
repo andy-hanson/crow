@@ -19,7 +19,7 @@ import model.model :
 	Type,
 	TypeArgs;
 import util.alloc.alloc : Alloc, free;
-import util.col.array : arraysEqual, copyArray, SmallArray;
+import util.col.array : arraysEqual, copyArray;
 import util.col.hashTable :
 	getOrAdd, getOrAddAndDidAdd, hashTableToArray, mayDeleteValue, MutHashTable, size, ValueAndDidAdd;
 import util.col.mutMap : getOrAdd, getOrAddAndDidAdd;
@@ -67,14 +67,9 @@ ValueAndDidAdd!(StructInst*) getOrAddStructInst(
 		return res;
 	});
 
-ValueAndDidAdd!(SpecInst*) getOrAddSpecInst(
-	ref AllInsts a,
-	SpecDecl* decl,
-	in TypeArgs typeArgs,
-	in SmallArray!ReturnAndParamTypes delegate() @safe @nogc pure nothrow cbInstantiatedSigs,
-) =>
+ValueAndDidAdd!(SpecInst*) getOrAddSpecInst(ref AllInsts a, SpecDecl* decl, in TypeArgs typeArgs) =>
 	getOrAddAndDidAdd(a.alloc, a.specInsts, SpecArgs(decl, typeArgs), () {
-		SpecInst* res = allocate(a.alloc, SpecInst(decl, copyArray!Type(a.alloc, typeArgs), cbInstantiatedSigs()));
+		SpecInst* res = allocate(a.alloc, SpecInst(decl, copyArray!Type(a.alloc, typeArgs)));
 		addEachReferenced(a, res);
 		return res;
 	});

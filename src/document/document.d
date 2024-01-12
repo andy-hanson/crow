@@ -17,7 +17,6 @@ import model.model :
 	Purity,
 	RecordField,
 	SpecDecl,
-	SpecDeclBody,
 	SpecDeclSig,
 	SpecInst,
 	StructAlias,
@@ -198,16 +197,11 @@ Json documentUnionMember(ref Alloc alloc, in TypeParams typeParams, in UnionMemb
 DocExport documentSpec(ref Alloc alloc, in SpecDecl a) =>
 	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, jsonObject(alloc, [
 		kindField!"spec",
+		optionalFlagField!"builtin"(has(a.builtin)),
 		field!"parents"(jsonList(map(alloc, a.parents, (ref immutable SpecInst* x) =>
 			documentSpecInst(alloc, a.typeParams, *x)))),
-		field!"body"(a.body_.matchIn!Json(
-			(in SpecDeclBody.Builtin) =>
-				jsonObject(alloc, [kindField!"builtin"]),
-			(in SpecDeclSig[] sigs) =>
-				jsonObject(alloc, [
-					kindField!"sigs",
-					field!"sigs"(jsonList!SpecDeclSig(alloc, sigs, (in SpecDeclSig sig) =>
-						documentSpecDeclSig(alloc, a.typeParams, sig)))])))]));
+		field!"sigs"(jsonList!SpecDeclSig(alloc, a.sigs, (in SpecDeclSig sig) =>
+			documentSpecDeclSig(alloc, a.typeParams, sig)))]));
 
 Json documentSpecDeclSig(ref Alloc alloc, in TypeParams typeParams, in SpecDeclSig a) =>
 	jsonObject(alloc, [

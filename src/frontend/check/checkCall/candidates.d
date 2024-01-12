@@ -26,7 +26,6 @@ import model.model :
 	Params,
 	paramTypeAt,
 	ReturnAndParamTypes,
-	SpecDeclBody,
 	SpecDeclSig,
 	SpecInst,
 	Type;
@@ -226,12 +225,8 @@ private void eachFunInScopeForSpec(
 ) {
 	foreach (SpecInst* parent; specInst.parents)
 		eachFunInScopeForSpec(parent, funName, cb);
-	specInst.decl.body_.match!void(
-		(SpecDeclBody.Builtin) {},
-		(SpecDeclSig[] sigs) {
-			foreach (size_t sigIndex, ref SpecDeclSig sig; sigs) {
-				if (sig.name == funName)
-					cb(CalledDecl(CalledSpecSig(specInst, safeToUshort(sigIndex))));
-			}
-		});
+	foreach (size_t sigIndex, ref SpecDeclSig sig; specInst.decl.sigs) {
+		if (sig.name == funName)
+			cb(CalledDecl(CalledSpecSig(specInst, safeToUshort(sigIndex))));
+	}
 }

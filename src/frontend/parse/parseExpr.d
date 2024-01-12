@@ -153,7 +153,6 @@ bool isExpressionStartToken(Token a) {
 		case Token.at:
 		case Token.bare:
 		case Token.builtin:
-		case Token.builtinSpec:
 		case Token.braceLeft:
 		case Token.braceRight:
 		case Token.bracketRight:

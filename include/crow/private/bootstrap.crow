@@ -24,7 +24,7 @@ To put it another way, a type works with `data` if it is:
 * Immutable collections like `x[]`, where the type arguments are all `data`.
 * A constant pointer like `nat*`.
 ###
-+data[t] builtin-spec
++data[t] spec builtin
 
 ###
 Specifies that a type must be safe to share between tasks that may run in parallel.
@@ -35,7 +35,7 @@ In addition, `future` and `ref` types are shared if their type arguments are.
 
 In the future, parallel-safe collections may be included here.
 ###
-+shared[t] builtin-spec
++shared[t] spec builtin
 
 region option.crow
 

@@ -22,10 +22,10 @@ import model.model :
 	RecordField,
 	ReturnAndParamTypes,
 	SpecDecl,
-	SpecDeclBody,
 	SpecDeclSig,
 	SpecImpls,
 	SpecInst,
+	SpecInstBody,
 	StructBody,
 	StructDecl,
 	StructInst,
@@ -34,7 +34,7 @@ import model.model :
 	TypeParamIndex,
 	UnionMember;
 import util.alloc.alloc : Alloc;
-import util.col.array : emptySmallArray, fold, map, mapWithFirst, small, SmallArray;
+import util.col.array : fold, map, mapWithFirst, small;
 import util.col.hashTable : ValueAndDidAdd;
 import util.col.mutArr : MutArrWithAlloc, push;
 import util.col.mutMaxArr : asTemporaryArray, mapTo, MutMaxArr, mutMaxArr, push;
@@ -184,26 +184,23 @@ SpecInst* instantiateSpec(
 	scope MayDelaySpecInsts delaySpecInsts,
 ) =>
 	withMeasure!(SpecInst*, () {
-		ValueAndDidAdd!(SpecInst*) res = getOrAddSpecInst(ctx.allInsts, decl, typeArgs, () =>
-			decl.body_.match!(SmallArray!ReturnAndParamTypes)(
-				(SpecDeclBody.Builtin b) =>
-					emptySmallArray!ReturnAndParamTypes,
-				(SpecDeclSig[] sigs) =>
-					small!ReturnAndParamTypes(map(ctx.alloc, sigs, (ref SpecDeclSig sig) =>
-						instantiateReturnAndParamTypes(ctx, sig.returnType, sig.params, typeArgs)))));
+		ValueAndDidAdd!(SpecInst*) res = getOrAddSpecInst(ctx.allInsts, decl, typeArgs);
 		if (res.didAdd) {
-			if (decl.parentsIsSet)
-				instantiateSpecParents(ctx, res.value, delaySpecInsts);
+			if (decl.bodyIsSet)
+				instantiateSpecBody(ctx, res.value, delaySpecInsts);
 			else
 				push(*force(delaySpecInsts), res.value);
 		}
 		return res.value;
 	})(ctx.perf, ctx.alloc, PerfMeasure.instantiateSpec);
 
-void instantiateSpecParents(ref InstantiateCtx ctx, SpecInst* a, scope MayDelaySpecInsts delaySpecInsts) {
-	a.parents = map!(immutable SpecInst*, immutable SpecInst*)(
-		ctx.alloc, a.decl.parents, (ref immutable SpecInst* parent) =>
-			instantiateSpecInst(ctx, parent, a.typeArgs, delaySpecInsts));
+void instantiateSpecBody(ref InstantiateCtx ctx, SpecInst* a, scope MayDelaySpecInsts delaySpecInsts) {
+	a.body_ = SpecInstBody(
+		small!(immutable SpecInst*)(map!(immutable SpecInst*, immutable SpecInst*)(
+			ctx.alloc, a.decl.parents, (ref immutable SpecInst* parent) =>
+				instantiateSpecInst(ctx, parent, a.typeArgs, delaySpecInsts))),
+		small!ReturnAndParamTypes(map(ctx.alloc, a.decl.sigs, (ref SpecDeclSig sig) =>
+			instantiateReturnAndParamTypes(ctx, sig.returnType, sig.params, a.typeArgs))));
 }
 
 SpecInst* instantiateSpecInst(

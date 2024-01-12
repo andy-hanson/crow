@@ -81,7 +81,6 @@ import model.model :
 	RecordField,
 	SeqExpr,
 	SpecDecl,
-	SpecDeclBody,
 	SpecDeclSig,
 	SpecInst,
 	StructAlias,
@@ -97,7 +96,7 @@ import model.model :
 	VarDecl,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.array : allSame, contains, find, fold, isEmpty, only, zip, zipIn;
+import util.col.array : allSame, contains, find, fold, isEmpty, only, zip;
 import util.col.arrayBuilder : buildArray;
 import util.col.hashTable : mustGet;
 import util.col.mutMaxArr : asTemporaryArray, mutMaxArr, MutMaxArr, push;
@@ -325,14 +324,10 @@ void eachTypeInSpec(in SpecDecl a, in TypeCb cb) {
 	eachSpecParent(a, (SpecInst* parent, in TypeAst ast) {
 		eachTypeArg(parent.typeArgs, ast, cb);
 	});
-	a.body_.matchIn!void(
-		(in SpecDeclBody.Builtin) {},
-		(in SpecDeclSig[] sigs) {
-			foreach (ref SpecDeclSig sig; sigs) {
-				eachTypeInType(sig.returnType, sig.ast.returnType, cb);
-				eachTypeInParams(Params(sig.params), sig.ast.params, cb);
-			}
-		});
+	foreach (ref SpecDeclSig sig; a.sigs) {
+		eachTypeInType(sig.returnType, sig.ast.returnType, cb);
+		eachTypeInParams(Params(sig.params), sig.ast.params, cb);
+	}
 }
 
 void eachTypeInStruct(in StructDecl a, in TypeCb cb) =>
@@ -571,12 +566,12 @@ bool isRecordFieldFunction(in FunBody a) =>
 
 void referencesForSpecDecl(in AllSymbols allSymbols, in Program program, in SpecDecl* a, in ReferenceCb refCb) {
 	eachModuleThatMayReference(program, a.visibility, moduleOf(program, a.moduleUri), (in Module module_) {
-		scope void delegate(in SpecInst*, in TypeAst) @safe @nogc pure nothrow cb = (spec, ast) {
+		scope void delegate(SpecInst*, in TypeAst) @safe @nogc pure nothrow cb = (spec, ast) {
 			if (spec.decl == a)
 				refCb(UriAndRange(module_.uri, range(ast, allSymbols)));
 		};
 		foreach (ref SpecDecl spec; module_.specs)
-			zipIn!(SpecInst*, TypeAst)(spec.parents, spec.ast.parents, cb);
+			eachSpecParent(spec, cb);
 		foreach (ref FunDecl fun; module_.funs)
 			eachFunSpec(fun, cb);
 	});

@@ -49,7 +49,6 @@ import model.ast :
 	PathOrRelPath,
 	PtrAst,
 	SeqAst,
-	SpecBodyAst,
 	SpecDeclAst,
 	SpecSigAst,
 	StructAliasAst,
@@ -154,20 +153,13 @@ Json jsonOfSpecDeclAst(ref Alloc alloc, in Ctx ctx, in SpecDeclAst a) =>
 		field!"comment"(jsonString(alloc, a.docComment)),
 		visibilityField(a.visibility),
 		field!"name"(jsonOfNameAndRange(alloc, ctx, a.name)),
-		field!"parents"(jsonOfTypeAsts(alloc, ctx, a.parents)),
+		field!"modifiers"(jsonOfModifiers(alloc, ctx, a.modifiers)),
 		maybeTypeParams(alloc, ctx, a.typeParams),
-		field!"body"(jsonOfSpecBodyAst(alloc, ctx, a.body_))]);
+		field!"sigs"(jsonList!SpecSigAst(alloc, a.sigs, (in SpecSigAst sig) =>
+			jsonOfSpecSig(alloc, ctx, sig)))]);
 
 Json.ObjectField visibilityField(Opt!Visibility a) =>
 	optionalField!("visibility", Visibility)(a, (in Visibility x) => jsonString(stringOfEnum(x)));
-
-Json jsonOfSpecBodyAst(ref Alloc alloc, in Ctx ctx, in SpecBodyAst a) =>
-	a.matchIn!Json(
-		(in SpecBodyAst.Builtin) =>
-			jsonString!"builtin",
-		(in SpecSigAst[] sigs) =>
-			jsonList!SpecSigAst(alloc, sigs, (in SpecSigAst sig) =>
-				jsonOfSpecSig(alloc, ctx, sig)));
 
 Json jsonOfSpecSig(ref Alloc alloc, in Ctx ctx, in SpecSigAst a) =>
 	jsonObject(alloc, [
