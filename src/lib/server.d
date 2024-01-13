@@ -6,7 +6,7 @@ import backend.writeToC : writeToC;
 import concretize.concretize : concretize;
 import document.document : documentJSON;
 import frontend.frontendCompile :
-	FrontendCompiler, getFileContents, initFrontend, makeProgramForRoots, makeProgramForMain, onFileChanged, perfStats;
+	FrontendCompiler, initFrontend, makeProgramForRoots, makeProgramForMain, onFileChanged, perfStats;
 import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
 import frontend.ide.getDefinition : getDefinitionForPosition;
 import frontend.ide.getHover : getHover;
@@ -23,6 +23,7 @@ import frontend.storage :
 	allStorageUris,
 	allUrisWithFileDiag,
 	changeFile,
+	FileContentGetters,
 	FilesState,
 	filesState,
 	getSourceAndAstOrDiag,
@@ -686,7 +687,7 @@ Programs buildToLowProgram(
 		return Programs(program, none!ConcreteProgram, none!LowProgram);
 	else {
 		ConcreteProgram concreteProgram = concretize(
-			perf, alloc, ctx, versionInfo, program, getFileContents(alloc, server.frontend));
+			perf, alloc, ctx, versionInfo, program, FileContentGetters(&server.storage));
 		LowProgram lowProgram = lower(
 			perf, alloc, server.allSymbols, program.mainConfig.extern_, program.program, concreteProgram);
 		return Programs(program, some(concreteProgram), some(lowProgram));

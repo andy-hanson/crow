@@ -98,7 +98,7 @@ import model.model :
 	VariableRef,
 	VersionFun;
 import util.alloc.alloc : Alloc;
-import util.col.array : isEmpty, map, mapZip, newArray, only, PtrAndSmallNumber, sizeEq, small, SmallArray;
+import util.col.array : concatenate, isEmpty, map, mapZip, newArray, only, PtrAndSmallNumber, sizeEq, small, SmallArray;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : getOrAdd;
 import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2MustGet0, stackMap2MustGet1, withStackMap2;
@@ -912,7 +912,7 @@ ConcreteExpr concretizeAssertOrForbid(
 	ConcreteExpr condition = concretizeExpr(ctx, boolType(ctx), locals, *a.condition);
 	ConcreteExpr thrown = has(a.thrown)
 		? concretizeExpr(ctx, cStringType(ctx.concretizeCtx), locals, *force(a.thrown))
-		: cStringConcreteExpr(ctx.concretizeCtx, range, defaultAssertOrForbidMessage(a.kind));
+		: cStringConcreteExpr(ctx.concretizeCtx, range, defaultAssertOrForbidMessage(ctx, a));
 	ConcreteExpr void_ = constantVoid(ctx.concretizeCtx, range);
 	ConcreteType voidType = voidType(ctx);
 	ConcreteExpr throw_ = ConcreteExpr(
@@ -930,13 +930,17 @@ ConcreteExpr concretizeAssertOrForbid(
 	return ConcreteExpr(type, range, ConcreteExprKind(allocate(ctx.alloc, if_)));
 }
 
-string defaultAssertOrForbidMessage(AssertOrForbidKind a) {
-	final switch (a) {
-		case AssertOrForbidKind.assert_:
-			return "assert failed";
-		case AssertOrForbidKind.forbid:
-			return "forbid failed";
-	}
+string defaultAssertOrForbidMessage(ref ConcretizeExprCtx ctx, in AssertOrForbidExpr a) {
+	string prefix = () {
+		final switch (a.kind) {
+			case AssertOrForbidKind.assert_:
+				return "Asserted expression is false: ";
+			case AssertOrForbidKind.forbid:
+				return "Forbidden expression is true: ";
+		}
+	}();
+	string exprText = ctx.concretizeCtx.fileContentGetters.getSourceText(ctx.curUri, a.condition.range);
+	return concatenate(ctx.alloc, prefix, exprText);
 }
 
 ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, in Locals locals, ref ExprAndType a) =>

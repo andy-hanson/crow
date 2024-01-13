@@ -51,8 +51,8 @@
 	<crow-runnable>
 		main void()
 			xs string[nat] = (1, "one"), (2, "two")
-			info log (xs[1] ?? throw "nothing for 'one'")
-			info log (xs[3] ?? throw "nothing for 'three'")
+			info log (xs[1] ?? throw "Nothing for 1")
+			info log (xs[3] ?? throw "Nothing for 3")
 	</crow-runnable>
 
 	<p>
@@ -73,12 +73,12 @@
 		but there is a <code class="keyword">catch</code> function.
 	</p>
 	<crow-runnable>
-		main void()
+		main void() unsafe
 			match (() => try-me) catch
 			as ok value
-				info log "succeeded with {value}"
-			as error _
-				error log "failed"
+				info log "Succeeded with {value}"
+			as error e
+				error log "Failed with: {e}"
 
 		try-me nat()
 			throw "not today"

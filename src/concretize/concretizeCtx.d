@@ -4,7 +4,7 @@ module concretize.concretizeCtx;
 
 import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantArray, getConstantCString, getConstantSymbol;
 import concretize.concretizeExpr : concretizeBogus, concretizeBogusKind, concretizeFunBody;
-import frontend.storage : asBytes, FileContent, ReadFileResult;
+import frontend.storage : asBytes, FileContent, FileContentGetters;
 import model.concreteModel :
 	byVal,
 	ConcreteExpr,
@@ -34,7 +34,6 @@ import model.concreteModel :
 	sizeOrPointerSizeBytes,
 	TypeSize;
 import model.constant : Constant, constantZero;
-import model.diag : ReadFileDiag;
 import model.model :
 	BuiltinFun,
 	BuiltinType,
@@ -88,13 +87,13 @@ import util.col.array :
 	SmallArray;
 import util.col.arrayBuilder : add, addAll, ArrayBuilder, finish;
 import util.col.hashTable : getOrAdd, getOrAddAndDidAdd, moveToArray, MutHashTable;
-import util.col.map : Map, mustGet, values;
+import util.col.map : values;
 import util.col.mutArr : filterUnordered, MutArr, mutArrIsEmpty, push;
 import util.col.mutMap : getOrAdd, getOrAddAndDidAdd, mustAdd, mustDelete, MutMap, ValueAndDidAdd;
 import util.hash : HashCode, Hasher;
 import util.late : Late, lateGet, lazilySet;
 import util.memory : allocate;
-import util.opt : force, has, none;
+import util.opt : force, has, none, Opt;
 import util.sourceRange : UriAndRange;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.uri : AllUris, Uri;
@@ -190,7 +189,7 @@ struct ConcretizeCtx {
 	const AllUris* allUrisPtr;
 	CommonTypes* commonTypesPtr;
 	immutable Program* programPtr;
-	Map!(Uri, ReadFileResult) fileContents;
+	FileContentGetters fileContentGetters; // For 'assert' or 'forbid' messages and file imports
 	Late!(ConcreteFun*) curExclusionFun_;
 	Late!(ConcreteFun*) char8ArrayAsString_;
 	Late!(ConcreteFun*) newVoidFutureFunction_;
@@ -794,10 +793,11 @@ ConcreteFunBody.RecordFieldCall getRecordFieldCall(
 ConcreteExpr concretizeFileImport(ref ConcretizeCtx ctx, ConcreteFun* cf, in FunBody.FileImport import_) {
 	ConcreteType type = cf.returnType;
 	UriAndRange range = concreteFunRange(*cf);
-	ConcreteExprKind exprKind = mustGet(ctx.fileContents, import_.uri).match!ConcreteExprKind(
-		(FileContent content) {
+	Opt!FileContent optContent = ctx.fileContentGetters[import_.uri];
+	ConcreteExprKind exprKind = () {
+		if (has(optContent)) {
 			//TODO:PERF creating a Constant per byte is expensive
-			Constant[] bytes = map(ctx.alloc, asBytes(content), (ref immutable ubyte a) =>
+			Constant[] bytes = map(ctx.alloc, asBytes(force(optContent)), (ref immutable ubyte a) =>
 				Constant(Constant.Integral(a)));
 			final switch (import_.type) {
 				case ImportFileType.nat8Array:
@@ -809,9 +809,9 @@ ConcreteExpr concretizeFileImport(ref ConcretizeCtx ctx, ConcreteFun* cf, in Fun
 					return ConcreteExprKind(ConcreteExprKind.Call(
 						ctx.char8ArrayAsString, newArray(ctx.alloc, [char8s])));
 			}
-		},
-		(ReadFileDiag diag) =>
-			concretizeBogusKind(ctx, range));
+		} else
+			return concretizeBogusKind(ctx, range);
+	}();
 	return ConcreteExpr(type, range, exprKind);
 }
 

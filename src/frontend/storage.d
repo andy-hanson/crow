@@ -22,7 +22,7 @@ import util.col.array : append, contains, isEmpty;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.mutMap : getOrAdd, keys, mayDelete, mustAdd, MutMap, values;
 import util.memory : allocate;
-import util.opt : ConstOpt, force, has, MutOpt;
+import util.opt : ConstOpt, force, has, MutOpt, none, Opt, some;
 import util.perf : Perf;
 import util.sourceRange :
 	LineAndCharacterGetter,
@@ -295,6 +295,22 @@ private @trusted CString asCString(return scope FileContent a) =>
 
 string asString(return scope FileContent a) =>
 	cast(string) asBytes(a);
+
+const struct FileContentGetters {
+	@safe @nogc pure nothrow:
+
+	private const Storage* storage;
+
+	Opt!FileContent opIndex(Uri uri) scope {
+		ConstOpt!(AllocAndValue!FileInfo) res = storage.successes[uri];
+		return has(res) ? some(force(res).value.content) : none!FileContent;
+	}
+
+	string getSourceText(Uri uri, Range range) scope {
+		Opt!FileContent res = this[uri];
+		return asString(force(res))[range.start .. range.end];
+	}
+}
 
 const struct LineAndCharacterGetters {
 	@safe @nogc pure nothrow:

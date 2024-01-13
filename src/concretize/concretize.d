@@ -16,20 +16,18 @@ import concretize.concretizeCtx :
 	symbolArrayType,
 	voidType;
 import frontend.showModel : ShowCtx;
-import frontend.storage : ReadFileResult;
+import frontend.storage : FileContentGetters;
 import model.concreteModel :
 	ConcreteCommonFuns, ConcreteFun, ConcreteFunKey, ConcreteLambdaImpl, ConcreteProgram, ConcreteStruct;
 import model.model : CommonFuns, MainFun, ProgramWithMain;
 import util.alloc.alloc : Alloc;
 import util.col.array : emptySmallArray, newSmallArray;
 import util.col.arrayBuilder : finish;
-import util.col.map : Map;
 import util.col.mutArr : moveToArray, MutArr;
 import util.col.mutMap : isEmpty, mapToMap;
 import util.late : lateSet;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.uri : Uri;
-import util.util : castNonScope, ptrTrustMe;
+import util.util : castNonScope, castNonScope_ref, ptrTrustMe;
 import versionInfo : VersionInfo;
 
 ConcreteProgram concretize(
@@ -38,10 +36,10 @@ ConcreteProgram concretize(
 	in ShowCtx printCtx,
 	in VersionInfo versionInfo,
 	ref ProgramWithMain program,
-	Map!(Uri, ReadFileResult) fileContents,
+	in FileContentGetters fileContentGetters,
 ) =>
 	withMeasure!(ConcreteProgram, () =>
-		concretizeInner(&alloc, printCtx, versionInfo, program, fileContents)
+		concretizeInner(&alloc, printCtx, versionInfo, program, fileContentGetters)
 	)(perf, alloc, PerfMeasure.concretize);
 
 private:
@@ -51,7 +49,7 @@ ConcreteProgram concretizeInner(
 	in ShowCtx printCtx,
 	in VersionInfo versionInfo,
 	ref ProgramWithMain program,
-	Map!(Uri, ReadFileResult) fileContents,
+	in FileContentGetters fileContentGetters,
 ) {
 	ref Alloc alloc() =>
 		*allocPtr;
@@ -62,7 +60,7 @@ ConcreteProgram concretizeInner(
 		castNonScope(printCtx.allUrisPtr),
 		program.program.commonTypes,
 		ptrTrustMe(program.program),
-		fileContents);
+		castNonScope_ref(fileContentGetters));
 	CommonFuns commonFuns = program.program.commonFuns;
 	lateSet(ctx.curExclusionFun_, getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.curExclusion));
 	lateSet(ctx.char8ArrayAsString_, getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.char8ArrayAsString));

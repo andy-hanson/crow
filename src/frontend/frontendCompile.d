@@ -18,7 +18,6 @@ import frontend.storage :
 	getParsedOrDiag,
 	markUnknownIfNotExist,
 	ParseResult,
-	ReadFileResult,
 	Storage;
 import model.ast : FileAst, fileAstForReadFileDiag, ImportOrExportAst, ImportOrExportAstKind, NameAndRange;
 import model.diag : Diag, ReadFileDiag, ReadFileDiag_;
@@ -30,8 +29,6 @@ import util.col.arrayBuilder : add, ArrayBuilder, asTemporaryArray, finish;
 import util.col.array : contains, exists, every, findIndex, map;
 import util.col.exactSizeArrayBuilder : buildArrayExact, ExactSizeArrayBuilder;
 import util.col.hashTable : getOrAdd, HashTable, mapPreservingKeys, moveToImmutable, mustGet, MutHashTable;
-import util.col.map : Map;
-import util.col.mapBuilder : finishMap, MapBuilder, mustAddToMap;
 import util.col.enumMap : EnumMap, enumMapMapValues, makeEnumMap;
 import util.col.mutMaxSet : clear, mayDelete, mustAdd, MutMaxSet, popArbitrary;
 import util.col.mutSet : mayAddToMutSet, MutSet, mutSetMayDelete;
@@ -185,13 +182,6 @@ private Common makeProgramCommon(
 		commonFuns.commonFuns,
 		force(a.commonTypes));
 	return Common(program, commonFuns.mainFun);
-}
-
-Map!(Uri, ReadFileResult) getFileContents(ref Alloc alloc, scope ref FrontendCompiler a) {
-	MapBuilder!(Uri, ReadFileResult) res;
-	foreach (OtherFile* x; a.otherFiles)
-		mustAddToMap(alloc, res, x.uri, getFileContentOrDiag(a.storage, x.uri));
-	return finishMap(alloc, res);
 }
 
 void onFileChanged(scope ref Perf perf, ref FrontendCompiler a, Uri uri) {
