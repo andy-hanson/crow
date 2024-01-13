@@ -1,0 +1,9 @@
+exit code: 0
+stderr:
+test/compile-errors/match-errors.crow 5:11-5:12 Can't match on non-'enum', non-'union' type 't'.
+test/compile-errors/match-errors.crow 10:13-10:17 There is no function or variable named 'asdf'.
+test/compile-errors/match-errors.crow 26:9-26:10 Expected type 'nat64'.
+Actual: 'void'.
+test/compile-errors/match-errors.crow 32:10-32:11 Matching on enum 'e', so case should not expect a value.
+test/compile-errors/match-errors.crow 38:5-38:10 Expected the case names to be: 'm', 'n'
+test/compile-errors/match-errors.crow 45:5-45:10 Expected the case names to be: 'm', 'n'

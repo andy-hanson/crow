@@ -210,11 +210,10 @@ UriAndRange nameRange(in AllSymbols allSymbols, in RecordField a) =>
 immutable struct UnionMember {
 	@safe @nogc pure nothrow:
 
-	//TODO: use NameAndRange (more compact)
 	StructBodyAst.Union.Member* ast;
 	StructDecl* containingUnion;
 	Symbol name;
-	Type type;
+	Type type; // This will be Void if no type is specified
 
 	Range range() scope =>
 		ast.range;

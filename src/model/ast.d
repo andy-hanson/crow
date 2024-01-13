@@ -415,6 +415,8 @@ immutable struct LoopWhileAst {
 }
 
 immutable struct MatchAst {
+	@safe @nogc pure nothrow:
+
 	immutable struct CaseAst {
 		@safe @nogc pure nothrow:
 
@@ -428,6 +430,11 @@ immutable struct MatchAst {
 
 	ExprAst matched;
 	CaseAst[] cases;
+
+	Range keywordRange(in ExprAst source) scope {
+		assert(source.kind.as!(MatchAst*) == &this);
+		return rangeOfStartAndLength(source.range.start, "match".length);
+	}
 }
 
 immutable struct ParenthesizedAst {

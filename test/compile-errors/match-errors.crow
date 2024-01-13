@@ -1,0 +1,49 @@
+main void()
+	()
+
+f[t] nat(a t)
+	match a
+	as x
+		1
+
+f nat()
+	bogus = asdf
+	match bogus
+	as x
+		1
+
+u union
+	m
+	n nat
+
+e enum
+	m
+	n
+
+foo nat(a u)
+	match a
+	as m x
+		x
+	as n
+		2
+
+foo nat(a e)
+	match a
+	as m x
+		1
+	as n
+		2
+
+g nat(a u)
+	match a
+	as n
+		1
+	as m
+		2
+
+g nat(a e)
+	match a
+	as n
+		1
+	as m
+		2

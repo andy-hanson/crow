@@ -631,6 +631,9 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		(in Diag.FunModifierTrustedOnNonExtern) {
 			writer ~= "Only 'extern' functions can be 'trusted'; otherwise 'trusted' should be used as an expression.";
 		},
+		(in Diag.FunPointerExprMustBeName) {
+			writer ~= "Function pointer expression must be a plain identifier ('&f').";
+		},
 		(in Diag.FunPointerNotSupported x) {
 			final switch (x.reason) {
 				case Diag.FunPointerNotSupported.Reason.multiple:
@@ -769,7 +772,19 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 				writeName(writer, ctx, name);
 			});
 		},
-		(in Diag.MatchOnNonUnion x) {
+		(in Diag.MatchCaseNoValueForEnum x) {
+			writer ~= "Matching on enum ";
+			writeName(writer, ctx, x.enum_.name);
+			writer ~= ", so case should not expect a value.";
+		},
+		(in Diag.MatchCaseShouldUseIgnore x) {
+			writer ~= "Union member ";
+			writeName(writer, ctx, x.member.name);
+			writer ~= " declares a value, so it should be explicitly ignored using ";
+			writeName(writer, ctx, symbol!"_");
+			writer ~= '.';
+		},
+		(in Diag.MatchOnNonEnumOrUnion x) {
 			writer ~= "Can't match on non-'enum', non-'union' type ";
 			writeTypeQuoted(writer, ctx, x.type);
 			writer ~= '.';

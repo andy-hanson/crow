@@ -1143,20 +1143,25 @@ PointerMutability mutabilityForPtrDecl(in ExprCtx ctx, in StructDecl* a) {
 }
 
 Expr checkFunPointer(ref ExprCtx ctx, ExprAst* source, in PtrAst ast, ref Expected expected) {
-	if (!ast.inner.kind.isA!IdentifierAst)
-		todo!void("diag: fun-pointer ast should just be an identifier");
-	Symbol name = ast.inner.kind.as!IdentifierAst.name;
-	Opt!(FunDecl*) fun = funWithName(ctx, source.range, name);
-	if (!has(fun)) {
-		return bogus(expected, source);
-	} else {
-		FunDecl* funDecl = force(fun);
-		FunInst* funInst = instantiateFun(ctx.instantiateCtx, funDecl, emptyTypeArgs, emptySpecImpls);
-		Type paramType = makeTupleType(ctx.instantiateCtx, ctx.commonTypes, funInst.paramTypes);
-		StructInst* structInst = instantiateStructNeverDelay(
-			ctx.instantiateCtx, ctx.commonTypes.funPtrStruct, [funInst.returnType, paramType]);
-		return check(ctx, source, expected, Type(structInst), Expr(source, ExprKind(FunPointerExpr(funInst))));
+	Opt!(FunDecl*) fun = getFunDeclFromExpr(ctx, ast.inner);
+	return has(fun) ? checkFunPointerInner(ctx, source, force(fun), expected) : bogus(expected, source);
+}
+
+Opt!(FunDecl*) getFunDeclFromExpr(ref ExprCtx ctx, in ExprAst ast) {
+	if (ast.kind.isA!IdentifierAst)
+		return funWithName(ctx, ast.range, ast.kind.as!IdentifierAst.name);
+	else {
+		addDiag2(ctx, ast.range, Diag(Diag.FunPointerExprMustBeName()));
+		return none!(FunDecl*);
 	}
+}
+
+Expr checkFunPointerInner(ref ExprCtx ctx, ExprAst* source, FunDecl* funDecl, ref Expected expected) {
+	FunInst* funInst = instantiateFun(ctx.instantiateCtx, funDecl, emptyTypeArgs, emptySpecImpls);
+	Type paramType = makeTupleType(ctx.instantiateCtx, ctx.commonTypes, funInst.paramTypes);
+	StructInst* structInst = instantiateStructNeverDelay(
+		ctx.instantiateCtx, ctx.commonTypes.funPtrStruct, [funInst.returnType, paramType]);
+	return check(ctx, source, expected, Type(structInst), Expr(source, ExprKind(FunPointerExpr(funInst))));
 }
 
 Opt!(FunDecl*) funWithName(ref ExprCtx ctx, Range range, Symbol name) {
@@ -1361,19 +1366,20 @@ Expr checkLoopWhile(
 Expr checkMatch(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, MatchAst* ast, ref Expected expected) {
 	ExprAndType matchedAndType = checkAndInfer(ctx, locals, &ast.matched);
 	Type matchedType = matchedAndType.type;
-	StructBody body_ = matchedType.isA!(StructInst*)
-		? matchedType.as!(StructInst*).decl.body_
-		: StructBody(StructBody.Bogus());
+	Opt!(StructInst*) inst = matchedType.isA!(StructInst*) ? some(matchedType.as!(StructInst*)) : none!(StructInst*);
+	Opt!(StructDecl*) decl = has(inst) ? some(force(inst).decl) : none!(StructDecl*);
+	StructBody body_ = has(decl) ? force(decl).body_ : StructBody(StructBody.Bogus());
 	if (body_.isA!(StructBody.Enum))
-		return checkMatchEnum(ctx, locals, source, *ast, expected, matchedAndType, body_.as!(StructBody.Enum).members);
+		return checkMatchEnum(
+			ctx, locals, source, *ast, expected, matchedAndType, force(decl), body_.as!(StructBody.Enum).members);
 	else if (body_.isA!(StructBody.Union))
 		return checkMatchUnion(
 			ctx, locals, source, *ast, expected, matchedAndType,
 			body_.as!(StructBody.Union).members,
-			matchedType.as!(StructInst*).instantiatedTypes);
+			force(inst).instantiatedTypes);
 	else {
 		if (!matchedType.isA!(Type.Bogus))
-			addDiag2(ctx, ast.matched.range, Diag(Diag.MatchOnNonUnion(typeWithContainer(ctx, matchedType))));
+			addDiag2(ctx, ast.matched.range, Diag(Diag.MatchOnNonEnumOrUnion(typeWithContainer(ctx, matchedType))));
 		return bogus(expected, &ast.matched);
 	}
 }
@@ -1385,27 +1391,21 @@ Expr checkMatchEnum(
 	in MatchAst ast,
 	ref Expected expected,
 	ref ExprAndType matched,
+	StructDecl* matchedEnum,
 	in EnumMember[] members,
 ) {
-	bool goodCases = arraysCorrespond!(EnumMember, MatchAst.CaseAst)(
-		members,
-		ast.cases,
-		(ref EnumMember member, ref MatchAst.CaseAst caseAst) =>
-			member.name == caseAst.memberName.name);
-	if (!goodCases) {
-		addDiag2(ctx, source, Diag(Diag.MatchCaseNamesDoNotMatch(
-			map(ctx.alloc, members, (ref EnumMember member) => member.name))));
-		return bogus(expected, source);
-	} else {
+	if (checkMatchCaseNames!EnumMember(ctx, members, *source, ast)) {
 		Expr[] cases = mapPointers(ctx.alloc, ast.cases, (MatchAst.CaseAst* caseAst) {
 			if (has(caseAst.destructure))
-				todo!void("diag: enum match has no value");
+				addDiag2(ctx, force(caseAst.destructure).range(ctx.allSymbols), Diag(
+					Diag.MatchCaseNoValueForEnum(matchedEnum)));
 			return checkExpr(ctx, locals, &caseAst.then, expected);
 		});
 		return Expr(
 			source,
 			ExprKind(allocate(ctx.alloc, MatchEnumExpr(matched, cases))));
-	}
+	} else
+		return bogus(expected, source);
 }
 
 Expr checkMatchUnion(
@@ -1415,29 +1415,31 @@ Expr checkMatchUnion(
 	in MatchAst ast,
 	ref Expected expected,
 	ref ExprAndType matched,
-	in UnionMember[] declaredMembers,
+	in UnionMember[] members,
 	in Type[] instantiatedTypes,
 ) {
-	bool goodCases = arraysCorrespond!(UnionMember, MatchAst.CaseAst)(
-		declaredMembers,
-		ast.cases,
-		(ref UnionMember member, ref MatchAst.CaseAst caseAst) =>
-			member.name == caseAst.memberName.name);
-	if (!goodCases) {
-		addDiag2(ctx, source, Diag(Diag.MatchCaseNamesDoNotMatch(
-			map(ctx.alloc, declaredMembers, (ref UnionMember member) => member.name))));
-		return bogus(expected, source);
-	} else {
+	if (checkMatchCaseNames!UnionMember(ctx, members, *source, ast)) {
 		MatchUnionExpr.Case[] cases =
 			mapZipPointers3!(MatchUnionExpr.Case, UnionMember, Type, MatchAst.CaseAst)(
-				ctx.alloc, declaredMembers, instantiatedTypes, ast.cases,
+				ctx.alloc, members, instantiatedTypes, ast.cases,
 				(UnionMember* member, Type* type, MatchAst.CaseAst* caseAst) =>
-					checkMatchCase(ctx, locals, member, *type, caseAst, expected));
+					checkMatchUnionCase(ctx, locals, member, *type, caseAst, expected));
 		return Expr(source, ExprKind(allocate(ctx.alloc, MatchUnionExpr(matched, cases))));
-	}
+	} else
+		return bogus(expected, source);
 }
 
-MatchUnionExpr.Case checkMatchCase(
+bool checkMatchCaseNames(Member)(ref ExprCtx ctx, in Member[] members, in ExprAst source, in MatchAst ast) {
+	bool ok = arraysCorrespond!(MatchAst.CaseAst, Member)(
+		ast.cases, members, (ref MatchAst.CaseAst caseAst, ref Member member) =>
+			caseAst.memberName.name == member.name);
+	if (!ok)
+		addDiag2(ctx, ast.keywordRange(source), Diag(Diag.MatchCaseNamesDoNotMatch(
+			map(ctx.alloc, members, (ref Member member) => member.name))));
+	return ok;
+}
+
+MatchUnionExpr.Case checkMatchUnionCase(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	UnionMember* member,
@@ -1445,11 +1447,17 @@ MatchUnionExpr.Case checkMatchCase(
 	MatchAst.CaseAst* caseAst,
 	ref Expected expected,
 ) {
-	immutable DestructureAst destructureVoidAst = DestructureAst(DestructureAst.Void());
-	Destructure destructure = checkDestructure2(
-		ctx, has(caseAst.destructure) ? force(caseAst.destructure) : destructureVoidAst, memberType);
-	return MatchUnionExpr.Case(
-		destructure, checkExprWithDestructure(ctx, locals, destructure, &caseAst.then, expected));
+	if (has(caseAst.destructure)) {
+		Destructure destructure = checkDestructure2(ctx, force(caseAst.destructure), memberType);
+		return MatchUnionExpr.Case(
+			destructure, checkExprWithDestructure(ctx, locals, destructure, &caseAst.then, expected));
+	} else {
+		if (memberType != Type(ctx.commonTypes.void_))
+			addDiag2(ctx, caseAst.memberNameRange(ctx.allSymbols), Diag(Diag.MatchCaseShouldUseIgnore(member)));
+		return MatchUnionExpr.Case(
+			Destructure(allocate(ctx.alloc, Destructure.Ignore(caseAst.memberName.start, memberType))),
+			checkExpr(ctx, locals, &caseAst.then, expected));
+	}
 }
 
 Expr checkSeq(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, SeqAst* ast, ref Expected expected) {

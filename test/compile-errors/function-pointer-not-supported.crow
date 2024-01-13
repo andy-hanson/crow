@@ -1,6 +1,7 @@
 main void()
 	f fun* void() = &foo
 	g fun* void() = &goo
+	h fun* void() = &(1 + 1)
 
 hoo[t] spec
 	hoo void(a t)

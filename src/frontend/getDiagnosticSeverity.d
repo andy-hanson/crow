@@ -57,9 +57,11 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.FunMissingBody) =>
 			DiagnosticSeverity.checkError,
-		(in FunModifierTrustedOnNonExtern) =>
+		(in Diag.FunModifierTrustedOnNonExtern) =>
 			DiagnosticSeverity.checkError,
-		(in FunPointerNotSupported) =>
+		(in Diag.FunPointerExprMustBeName) =>
+			DiagnosticSeverity.checkError,
+		(in Diag.FunPointerNotSupported) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.IfNeedsOpt) =>
 			DiagnosticSeverity.checkError,
@@ -93,7 +95,11 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkWarning,
 		(in Diag.MatchCaseNamesDoNotMatch) =>
 			DiagnosticSeverity.checkError,
-		(in Diag.MatchOnNonUnion) =>
+		(in Diag.MatchCaseNoValueForEnum) =>
+			DiagnosticSeverity.checkError,
+		(in Diag.MatchCaseShouldUseIgnore) =>
+			DiagnosticSeverity.checkWarning,
+		(in Diag.MatchOnNonEnumOrUnion) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ModifierConflict) =>
 			DiagnosticSeverity.checkError,

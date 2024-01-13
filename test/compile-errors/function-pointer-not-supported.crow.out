@@ -1,7 +1,8 @@
 exit code: 1
 stderr:
-test/compile-errors/function-pointer-not-supported.crow 2:21-2:25 There are multiple functions named 'foo' in scope. This is not currently supported for function pointers.
-test/compile-errors/function-pointer-not-supported.crow 3:21-3:25 'goo' is a template. This is not currently supported for function pointers.
-test/compile-errors/function-pointer-not-supported.crow 9:22-9:26 'hoo' comes from a spec signature. This is not currently supported for function pointers.
+test/compile-errors/function-pointer-not-supported.crow 2:22-2:25 There are multiple functions named 'foo' in scope. This is not currently supported for function pointers.
+test/compile-errors/function-pointer-not-supported.crow 3:22-3:25 'goo' is a template. This is not currently supported for function pointers.
+test/compile-errors/function-pointer-not-supported.crow 4:22-4:29 Function pointer expression must be a plain identifier ('&f').
+test/compile-errors/function-pointer-not-supported.crow 10:23-10:26 'hoo' comes from a spec signature. This is not currently supported for function pointers.
 Uncaught exception: Reached compile error
 	at main

@@ -24,6 +24,7 @@ import model.model :
 	Type,
 	TypeParams,
 	TypeParamsAndSig,
+	UnionMember,
 	VarDecl,
 	VariableRef,
 	Visibility;
@@ -237,6 +238,7 @@ immutable struct Diag {
 	}
 	immutable struct FunMissingBody {}
 	immutable struct FunModifierTrustedOnNonExtern {}
+	immutable struct FunPointerExprMustBeName {}
 	immutable struct FunPointerNotSupported {
 		enum Reason { multiple, spec, template_ }
 		Reason reason;
@@ -311,7 +313,13 @@ immutable struct Diag {
 	immutable struct MatchCaseNamesDoNotMatch {
 		Symbol[] expectedNames;
 	}
-	immutable struct MatchOnNonUnion {
+	immutable struct MatchCaseNoValueForEnum {
+		StructDecl* enum_;
+	}
+	immutable struct MatchCaseShouldUseIgnore {
+		UnionMember* member;
+	}
+	immutable struct MatchOnNonEnumOrUnion {
 		TypeWithContainer type;
 	}
 
@@ -517,6 +525,7 @@ immutable struct Diag {
 		FunCantHaveBody,
 		FunMissingBody,
 		FunModifierTrustedOnNonExtern,
+		FunPointerExprMustBeName,
 		FunPointerNotSupported,
 		IfNeedsOpt,
 		ImportFileDiag,
@@ -534,7 +543,9 @@ immutable struct Diag {
 		LocalNotMutable,
 		LoopWithoutBreak,
 		MatchCaseNamesDoNotMatch,
-		MatchOnNonUnion,
+		MatchCaseNoValueForEnum,
+		MatchCaseShouldUseIgnore,
+		MatchOnNonEnumOrUnion,
 		ModifierConflict,
 		ModifierDuplicate,
 		ModifierInvalid,
