@@ -7,6 +7,7 @@ import frontend.check.checkCtx :
 	addDiagAssertSameUri,
 	CheckCtx,
 	checkForUnused,
+	checkNoTypeParams,
 	CommonUris,
 	finishDiagnostics,
 	ImportAndReExportModules,
@@ -51,7 +52,6 @@ import model.ast :
 	StructAliasAst,
 	TestAst,
 	TypeAst,
-	typeParamsRange,
 	VarDeclAst;
 import frontend.allInsts : AllInsts;
 import frontend.storage : FileContent;
@@ -109,6 +109,7 @@ import util.col.array :
 	mapOp,
 	mapPointers,
 	mapWithResultPointer,
+	mustFind,
 	only,
 	small,
 	SmallArray,
@@ -127,7 +128,7 @@ import util.sourceRange : Range, UriAndRange;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : Union;
 import util.uri : AllUris, Path, RelPath, Uri;
-import util.util : enumConvert, optEnumConvert, ptrTrustMe, todo;
+import util.util : enumConvert, optEnumConvert, ptrTrustMe;
 
 immutable struct UriAndAst {
 	Uri uri;
@@ -331,7 +332,7 @@ bool recurDetectSpecRecursion(SpecDecl* cur, ref MutMaxArr!(8, immutable SpecDec
 
 StructAlias[] checkStructAliasesInitial(ref CheckCtx ctx, scope StructAliasAst[] asts) =>
 	mapPointers!(StructAlias, StructAliasAst)(ctx.alloc, asts, (StructAliasAst* ast) {
-		checkTypeParams(ctx, ast.typeParams);
+		checkNoTypeParams(ctx, ast.typeParams, DeclKind.alias_);
 		return StructAlias(ast, ctx.curUri, visibilityFromExplicitTopLevel(ast.visibility), ast.name.name);
 	});
 
@@ -351,13 +352,10 @@ void checkStructAliasTargets(
 			structsAndAliasesMap,
 			ast.typeParams,
 			someMut(ptrTrustMe(delayStructInsts)));
-		if (type.isA!(StructInst*))
-			structAlias.target = some(type.as!(StructInst*));
-		else {
-			if (!type.isA!(Type.Bogus))
-				todo!void("diagnostic -- alias does not resolve to struct (must be bogus or a type parameter)");
-			structAlias.target = none!(StructInst*);
-		}
+		assert(type.isA!(StructInst*) || type.isA!(Type.Bogus)); // since type aliases can't have type parameters
+		structAlias.target = type.isA!(StructInst*)
+			? some(type.as!(StructInst*))
+			: none!(StructInst*);
 	});
 }
 
@@ -381,8 +379,7 @@ VarDecl checkVarDecl(
 	in StructsAndAliasesMap structsAndAliasesMap,
 	VarDeclAst* ast,
 ) {
-	if (!isEmpty(ast.typeParams))
-		addDiag(ctx, typeParamsRange(ctx.allSymbols, ast.typeParams), Diag(Diag.VarDeclTypeParams(ast.kind)));
+	checkNoTypeParams(ctx, ast.typeParams, enumConvert!DeclKind(ast.kind));
 	return VarDecl(
 		ast,
 		ctx.curUri,
@@ -417,7 +414,7 @@ Opt!Symbol checkVarModifiers(ref CheckCtx ctx, VarKind kind, in ModifierAst[] mo
 						break;
 				}
 			},
-			(in TypeAst _) {
+			(in TypeAst x) {
 				addDiag(ctx, diagRange, Diag(Diag.SpecUseInvalid(declKind(kind))));
 			});
 	}
@@ -717,7 +714,7 @@ void checkFunsWithAsts(
 					if (!funAst.body_.kind.isA!EmptyAst)
 						addDiag(ctx, diagRange, Diag(Diag.FunCantHaveBody(Diag.FunCantHaveBody.Reason.extern_)));
 					return FunBody(checkExternBody(
-						ctx, fun, getExternTypeArg(*funAst, ModifierKeyword.extern_)));
+						ctx, fun, funAst, getExternTypeArg(*funAst, ModifierKeyword.extern_)));
 				case FunFlags.SpecialBody.generated:
 					assert(false);
 			}
@@ -846,15 +843,14 @@ Type typeForFileImport(
 	}
 }
 
-FunBody.Extern checkExternBody(ref CheckCtx ctx, FunDecl* fun, in Opt!TypeAst typeArg) {
+FunBody.Extern checkExternBody(ref CheckCtx ctx, FunDecl* fun, FunDeclAst* ast, in Opt!TypeAst typeArg) {
 	Linkage funLinkage = Linkage.extern_;
 
-	if (!isEmpty(fun.typeParams))
-		addDiagAssertSameUri(ctx, fun.range, Diag(
-			Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.hasTypeParams)));
-	if (!isEmpty(fun.specs))
-		addDiagAssertSameUri(ctx, fun.range, Diag(
-			Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.hasSpecs)));
+	checkNoTypeParams(ctx, fun.typeParams, DeclKind.externFunction);
+	if (!isEmpty(fun.specs)) {
+		Range range = mustFind!ModifierAst(ast.modifiers, (in ModifierAst x) => x.isA!TypeAst).range(ctx.allSymbols);
+		addDiag(ctx, range, Diag(Diag.SpecUseInvalid(DeclKind.externFunction)));
+	}
 
 	if (!isLinkageAlwaysCompatible(funLinkage, linkageRange(fun.returnType)))
 		addDiagAssertSameUri(ctx, fun.range, Diag(
@@ -866,9 +862,8 @@ FunBody.Extern checkExternBody(ref CheckCtx ctx, FunDecl* fun, in Opt!TypeAst ty
 					addDiag(ctx, param.range(ctx.allSymbols), Diag(
 						Diag.LinkageWorseThanContainingFun(fun, param.type, some(&param))));
 		},
-		(ref Params.Varargs) {
-			addDiagAssertSameUri(ctx, fun.range, Diag(
-				Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.variadic)));
+		(ref Params.Varargs x) {
+			addDiag(ctx, x.param.range(ctx.allSymbols), Diag(Diag.ExternFunVariadic()));
 		});
 	return FunBody.Extern(externLibraryNameFromTypeArg(ctx, nameRange(ctx.allSymbols, *fun).range, typeArg));
 }

@@ -1,9 +1,11 @@
 exit code: 0
 stderr:
 test/compile-errors/spec-use-invalid.crow 4:18-4:25 A builtin type can't have specs.
+test/compile-errors/spec-use-invalid.crow 6:3-6:4 An enum type can't have type parameters.
 test/compile-errors/spec-use-invalid.crow 6:11-6:18 An enum type can't have specs.
-test/compile-errors/spec-use-invalid.crow 8:1-8:21 An 'extern' type should not be a template.
+test/compile-errors/spec-use-invalid.crow 8:4-8:5 An extern type can't have type parameters.
 test/compile-errors/spec-use-invalid.crow 8:14-8:21 An extern type can't have specs.
+test/compile-errors/spec-use-invalid.crow 10:3-10:4 A flags type can't have type parameters.
 test/compile-errors/spec-use-invalid.crow 10:12-10:19 A flags type can't have specs.
 test/compile-errors/spec-use-invalid.crow 12:13-12:20 A record type can't have specs.
 test/compile-errors/spec-use-invalid.crow 14:12-14:19 A union type can't have specs.

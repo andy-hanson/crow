@@ -1,0 +1,9 @@
+main void()
+	()
+
+f[t] void() c extern
+ex[t] extern
+seq[t] alias
+	t[]
+e[t] enum
+f[t] flags

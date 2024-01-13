@@ -47,7 +47,6 @@ import model.model :
 	SpecDecl,
 	SpecDeclSig,
 	StructInst,
-	stringOfVarKindLowerCase,
 	Type,
 	TypeParamsAndSig;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
@@ -604,19 +603,8 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			} else
 				writer ~= "There is no expected type at this location; lambdas need an expected type.";
 		},
-		(in Diag.ExternFunForbidden x) {
-			writer ~= "'extern' function ";
-			writeName(writer, ctx, x.fun.name);
-			writer ~= () {
-				final switch (x.reason) {
-					case Diag.ExternFunForbidden.Reason.hasSpecs:
-						return " can't have specs.";
-					case Diag.ExternFunForbidden.Reason.hasTypeParams:
-						return " can't have type parameters.";
-					case Diag.ExternFunForbidden.Reason.variadic:
-						return " can't be variadic.";
-				}
-			}();
+		(in Diag.ExternFunVariadic) {
+			writer ~= "An 'extern' function can't be variadic.";
 		},
 		(in Diag.ExternHasUnnecessaryLibraryName) {
 			writer ~= "'extern' for a type does not need the library name.";
@@ -628,9 +616,6 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= "'extern' record ";
 			writeName(writer, ctx, x.struct_.name);
 			writer ~= " is implicitly 'by-val'.";
-		},
-		(in Diag.ExternTypeHasTypeParams) {
-			writer ~= "An 'extern' type should not be a template.";
 		},
 		(in Diag.ExternUnion) {
 			writer ~= "A union can't be 'extern'.";
@@ -958,6 +943,10 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		(in Diag.TypeParamCantHaveTypeArgs) {
 			writer ~= "Can't provide type arguments to a type parameter.";
 		},
+		(in Diag.TypeParamsUnsupported x) {
+			writer ~= aOrAnDeclKind(x.declKind);
+			writer ~= " can't have type parameters.";
+		},
 		(in Diag.TypeShouldUseSyntax x) {
 			writer ~= () {
 				final switch (x.kind) {
@@ -993,11 +982,6 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		},
 		(in Diag.VarargsParamMustBeArray) {
 			writer ~= "Variadic parameter must be an 'array'.";
-		},
-		(in Diag.VarDeclTypeParams x) {
-			writer ~= "A ";
-			writer ~= stringOfVarKindLowerCase(x.kind);
-			writer ~= " variable can't have type parameters.";
 		},
 		(in Diag.VisibilityWarning x) {
 			writeVisibilityWarning(writer, ctx, x);
@@ -1063,12 +1047,16 @@ void writeModifier(scope ref Writer writer, in ShowDiagCtx ctx, ModifierKeyword 
 
 string aOrAnDeclKind(DeclKind a) {
 	final switch (a) {
+		case DeclKind.alias_:
+			return "A type alias ";
 		case DeclKind.builtin:
 			return "A builtin type";
 		case DeclKind.enum_:
 			return "An enum type";
 		case DeclKind.extern_:
 			return "An extern type";
+		case DeclKind.externFunction:
+			return "An extern function";
 		case DeclKind.function_:
 			return "A function";
 		case DeclKind.global:

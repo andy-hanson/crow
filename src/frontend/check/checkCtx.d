@@ -3,8 +3,8 @@ module frontend.check.checkCtx;
 @safe @nogc pure nothrow:
 
 import frontend.check.instantiate : InstantiateCtx;
-import model.ast : pathRange;
-import model.diag : Diag, Diagnostic;
+import model.ast : pathRange, typeParamsRange;
+import model.diag : DeclKind, Diag, Diagnostic;
 import model.model :
 	ExportVisibility,
 	FunDecl,
@@ -18,9 +18,10 @@ import model.model :
 	StructAlias,
 	StructDecl,
 	StructOrAlias,
+	TypeParams,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.array : exists, SmallArray;
+import util.col.array : exists, isEmpty, SmallArray;
 import util.col.arrayBuilder : add, ArrayBuilder, smallFinish;
 import util.col.enumMap : EnumMap;
 import util.col.hashTable : existsInHashTable;
@@ -212,3 +213,8 @@ Visibility visibilityFromDefaultWithDiag(
 
 Visibility visibilityFromExplicitTopLevel(Opt!Visibility a) =>
 	optOrDefault!Visibility(a, () => Visibility.internal);
+
+void checkNoTypeParams(ref CheckCtx ctx, in TypeParams typeParams, DeclKind declKind) {
+	if (!isEmpty(typeParams))
+		addDiag(ctx, typeParamsRange(ctx.allSymbols, typeParams), Diag(Diag.TypeParamsUnsupported(declKind)));
+}

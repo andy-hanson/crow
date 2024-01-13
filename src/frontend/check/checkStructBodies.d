@@ -3,7 +3,12 @@ module frontend.check.checkStructs;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCtx :
-	addDiag, addDiagAssertSameUri, CheckCtx, visibilityFromDefaultWithDiag, visibilityFromExplicitTopLevel;
+	addDiag,
+	addDiagAssertSameUri,
+	CheckCtx,
+	checkNoTypeParams,
+	visibilityFromDefaultWithDiag,
+	visibilityFromExplicitTopLevel;
 import frontend.check.instantiate : DelayStructInsts;
 import frontend.check.maps : StructsAndAliasesMap;
 import frontend.check.typeFromAst : checkTypeParams, typeFromAst;
@@ -37,7 +42,7 @@ import model.model :
 	TypeParamIndex,
 	UnionMember,
 	Visibility;
-import util.col.array : eachPair, fold, isEmpty, mapPointers, zipPtrFirst;
+import util.col.array : eachPair, fold, mapPointers, zipPtrFirst;
 import util.conv : safeToSizeT;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, some, someMut;
 import util.sourceRange : Range;
@@ -73,6 +78,7 @@ void checkStructBodies(
 				return StructBody(getBuiltinType(ctx, struct_));
 			},
 			(in StructBodyAst.Enum x) {
+				checkNoTypeParams(ctx, ast.typeParams, DeclKind.enum_);
 				checkOnlyStructModifiers(ctx, DeclKind.enum_, ast.modifiers);
 				return StructBody(checkEnum(
 					ctx, commonTypes, structsAndAliasesMap, struct_, ast.range, x, delayStructInsts));
@@ -80,6 +86,7 @@ void checkStructBodies(
 			(in StructBodyAst.Extern it) =>
 				StructBody(checkExtern(ctx, ast, it)),
 			(in StructBodyAst.Flags x) {
+				checkNoTypeParams(ctx, ast.typeParams, DeclKind.flags);
 				checkOnlyStructModifiers(ctx, DeclKind.flags, ast.modifiers);
 				return StructBody(checkFlags(
 					ctx, commonTypes, structsAndAliasesMap, struct_, ast.range, x, delayStructInsts));
@@ -97,9 +104,8 @@ void checkStructBodies(
 private:
 
 StructBody.Extern checkExtern(ref CheckCtx ctx, in StructDeclAst declAst, in StructBodyAst.Extern bodyAst) {
+	checkNoTypeParams(ctx, declAst.typeParams, DeclKind.extern_);
 	checkOnlyStructModifiers(ctx, DeclKind.extern_, declAst.modifiers);
-	if (!isEmpty(declAst.typeParams))
-		addDiag(ctx, declAst.range, Diag(Diag.ExternTypeHasTypeParams()));
 	Opt!size_t optNat(Opt!(LiteralNatAst*) value) {
 		if (has(value)) {
 			LiteralNatAst n = *force(value);
@@ -212,6 +218,8 @@ Linkage defaultLinkage(DeclKind a) {
 			return Linkage.internal;
 		case DeclKind.extern_:
 			return Linkage.extern_;
+		case DeclKind.alias_:
+		case DeclKind.externFunction:
 		case DeclKind.function_:
 		case DeclKind.global:
 		case DeclKind.spec:
@@ -230,6 +238,8 @@ Purity defaultPurity(DeclKind a) {
 			return Purity.data;
 		case DeclKind.extern_:
 			return Purity.mut;
+		case DeclKind.alias_:
+		case DeclKind.externFunction:
 		case DeclKind.function_:
 		case DeclKind.global:
 		case DeclKind.spec:

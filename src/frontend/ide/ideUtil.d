@@ -48,15 +48,12 @@ import util.sourceRange : UriAndRange;
 alias ReferenceCb = ArrBuilderCb!UriAndRange;
 
 void eachSpecParent(in SpecDecl a, in void delegate(SpecInst*, in TypeAst) @safe @nogc pure nothrow cb) {
-	Opt!bool res = eachSpecParent!bool(a, (SpecInst* x, in TypeAst ast) {
+	Opt!bool res = eachSpec!bool(a.parents, a.ast.modifiers, (SpecInst* x, in TypeAst ast) {
 		cb(x, ast);
 		return none!bool;
 	});
 	assert(!has(res));
 }
-
-Opt!T eachSpecParent(T)(in SpecDecl a, in Opt!T delegate(SpecInst*, in TypeAst) @safe @nogc pure nothrow cb) =>
-	eachSpec!T(a.parents, a.ast.modifiers, cb);
 
 void eachFunSpec(in FunDecl a, in void delegate(SpecInst*, in TypeAst) @safe @nogc pure nothrow cb) {
 	if (a.source.isA!(FunDeclSource.Ast)) {
@@ -70,13 +67,15 @@ void eachFunSpec(in FunDecl a, in void delegate(SpecInst*, in TypeAst) @safe @no
 	}
 }
 
+bool specsMatch(in SpecInst*[] specs, in ModifierAst[] modifiers) =>
+	specs.length == count!ModifierAst(modifiers, (in ModifierAst x) => x.isA!TypeAst);
+
 private Opt!Out eachSpec(Out)(
 	in SpecInst*[] specs,
 	in ModifierAst[] modifiers,
 	in Opt!Out delegate(SpecInst*, in TypeAst) @safe @nogc pure nothrow cb,
 ) {
-	size_t count = count!ModifierAst(modifiers, (in ModifierAst x) => x.isA!TypeAst);
-	if (specs.length == count) {
+	if (specsMatch(specs, modifiers)) {
 		size_t specI = 0;
 		foreach (ref ModifierAst mod; modifiers) {
 			if (mod.isA!TypeAst) {

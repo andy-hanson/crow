@@ -8,10 +8,10 @@ test/compile-errors/extern-errors.crow 14:1-15:13 A union can't be 'extern'.
 test/compile-errors/extern-errors.crow 17:1-17:2 Expected 'extern' to be preceded by the library name.
 test/compile-errors/extern-errors.crow 21:1-21:20 'extern' function 'f' can't reference non-extern type 'string'.
 test/compile-errors/extern-errors.crow 23:8-23:16 'extern' function 'f' parameter 'a' can't reference non-extern type 'string'.
-test/compile-errors/extern-errors.crow 25:1-25:24 'extern' function 'f' can't have type parameters.
+test/compile-errors/extern-errors.crow 25:3-25:4 An extern function can't have type parameters.
 test/compile-errors/extern-errors.crow 25:11-25:14 'extern' function 'f' parameter 'a' can't reference non-extern type 't'.
-test/compile-errors/extern-errors.crow 27:1-27:34 'extern' function 'f' can't be variadic.
-test/compile-errors/extern-errors.crow 32:1-32:29 'extern' function 'f' can't have specs.
+test/compile-errors/extern-errors.crow 27:11-27:24 An 'extern' function can't be variadic.
+test/compile-errors/extern-errors.crow 32:20-32:29 An extern function can't have specs.
 test/compile-errors/extern-errors.crow 42:16-42:23 A global variable can't be 'builtin'.
 test/compile-errors/extern-errors.crow 44:16-44:22 Expected 'extern' to be preceded by the library name.
 test/compile-errors/extern-errors.crow 44:24-44:28 A global variable can't be 'bare'.

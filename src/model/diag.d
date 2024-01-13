@@ -25,7 +25,6 @@ import model.model :
 	TypeParams,
 	TypeParamsAndSig,
 	VarDecl,
-	VarKind,
 	VariableRef,
 	Visibility;
 import model.parseDiag : ParseDiag;
@@ -79,9 +78,11 @@ immutable struct Diagnostic {
 }
 
 enum DeclKind {
+	alias_,
 	builtin,
 	enum_,
 	extern_,
+	externFunction,
 	function_,
 	global,
 	flags,
@@ -223,17 +224,12 @@ immutable struct Diag {
 	immutable struct ExpectedTypeIsNotALambda {
 		Opt!TypeWithContainer expectedType;
 	}
-	immutable struct ExternFunForbidden {
-		enum Reason { hasSpecs, hasTypeParams, variadic }
-		FunDecl* fun;
-		Reason reason;
-	}
+	immutable struct ExternFunVariadic {}
 	immutable struct ExternHasUnnecessaryLibraryName {}
 	immutable struct ExternMissingLibraryName {}
 	immutable struct ExternRecordImplicitlyByVal {
 		StructDecl* struct_;
 	}
-	immutable struct ExternTypeHasTypeParams {}
 	immutable struct ExternUnion {}
 	immutable struct FunCantHaveBody {
 		enum Reason { builtin, extern_ }
@@ -437,6 +433,9 @@ immutable struct Diag {
 		TypeWithContainer actual;
 	}
 	immutable struct TypeParamCantHaveTypeArgs {}
+	immutable struct TypeParamsUnsupported {
+		DeclKind declKind;
+	}
 	immutable struct TypeShouldUseSyntax {
 		enum Kind {
 			funAct,
@@ -473,9 +472,6 @@ immutable struct Diag {
 		Kind kind;
 	}
 	immutable struct VarargsParamMustBeArray {}
-	immutable struct VarDeclTypeParams {
-		VarKind kind;
-	}
 	// We don't have any warning at the top-level even though '~' is redundant. This is only within a record.
 	immutable struct VisibilityWarning {
 		immutable struct Kind {
@@ -513,11 +509,10 @@ immutable struct Diag {
 		EnumDuplicateValue,
 		EnumMemberOverflows,
 		ExpectedTypeIsNotALambda,
-		ExternFunForbidden,
+		ExternFunVariadic,
 		ExternHasUnnecessaryLibraryName,
 		ExternMissingLibraryName,
 		ExternRecordImplicitlyByVal,
-		ExternTypeHasTypeParams,
 		ExternUnion,
 		FunCantHaveBody,
 		FunMissingBody,
@@ -565,10 +560,10 @@ immutable struct Diag {
 		TypeAnnotationUnnecessary,
 		TypeConflict,
 		TypeParamCantHaveTypeArgs,
+		TypeParamsUnsupported,
 		TypeShouldUseSyntax,
 		Unused,
 		VarargsParamMustBeArray,
-		VarDeclTypeParams,
 		VisibilityWarning,
 		WrongNumberTypeArgs);
 }

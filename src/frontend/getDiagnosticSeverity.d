@@ -43,15 +43,13 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ExpectedTypeIsNotALambda) =>
 			DiagnosticSeverity.checkError,
-		(in Diag.ExternFunForbidden) =>
+		(in Diag.ExternFunVariadic) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ExternHasUnnecessaryLibraryName) =>
 			DiagnosticSeverity.checkWarning,
 		(in Diag.ExternMissingLibraryName) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ExternRecordImplicitlyByVal) =>
-			DiagnosticSeverity.checkError,
-		(in Diag.ExternTypeHasTypeParams) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ExternUnion) =>
 			DiagnosticSeverity.checkError,
@@ -147,13 +145,13 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.TypeParamCantHaveTypeArgs) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.TypeParamsUnsupported) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.TypeShouldUseSyntax) =>
 			DiagnosticSeverity.checkWarning,
 		(in Diag.Unused) =>
 			DiagnosticSeverity.unusedCode,
 		(in Diag.VarargsParamMustBeArray) =>
-			DiagnosticSeverity.checkError,
-		(in Diag.VarDeclTypeParams) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.VisibilityWarning) =>
 			DiagnosticSeverity.checkWarning,
