@@ -45,7 +45,6 @@ import model.model :
 	EnumMember,
 	Expr,
 	FlagsFunction,
-	ForcedByValOrRefOrNone,
 	FunBody,
 	FunInst,
 	FunKind,
@@ -99,7 +98,7 @@ import util.opt : force, has, none;
 import util.sourceRange : UriAndRange;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.uri : AllUris, Uri;
-import util.util : max, roundUp, typeAs;
+import util.util : enumConvert, max, roundUp, typeAs;
 import versionInfo : VersionInfo;
 
 immutable struct TypeArgsScope {
@@ -627,16 +626,8 @@ void initializeConcreteStruct(
 		},
 		(StructBody.Record r) {
 			// don't set 'defaultReferenceKind' until the end, unless explicit
-			final switch (r.flags.forcedByValOrRef) {
-				case ForcedByValOrRefOrNone.none:
-					break;
-				case ForcedByValOrRefOrNone.byVal:
-					res.defaultReferenceKind = ReferenceKind.byVal;
-					break;
-				case ForcedByValOrRefOrNone.byRef:
-					res.defaultReferenceKind = ReferenceKind.byRef;
-					break;
-			}
+			if (has(r.flags.forcedByValOrRef))
+				res.defaultReferenceKind = enumConvert!ReferenceKind(force(r.flags.forcedByValOrRef));
 
 			ConcreteField[] fields = mapZip(
 				ctx.alloc, r.fields, i.instantiatedTypes, (ref RecordField f, ref Type type) =>

@@ -32,13 +32,13 @@ import util.col.map : Map;
 import util.col.enumMap : EnumMap;
 import util.conv : safeToSizeT;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, Opt, optEqual, some;
 import util.sourceRange : combineRanges, UriAndRange, Pos, rangeOfStartAndLength, Range;
 import util.string : emptySmallString, SmallString;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : Union;
 import util.uri : Uri;
-import util.util : max, min, stringOfEnum, typeAs;
+import util.util : enumConvertOrAssert, max, min, stringOfEnum, typeAs;
 
 alias Purity = immutable Purity_;
 private enum Purity_ : ubyte {
@@ -223,8 +223,8 @@ immutable struct UnionMember {
 UriAndRange nameRange(in AllSymbols allSymbols, in UnionMember a) =>
 	UriAndRange(a.containingUnion.moduleUri, rangeOfNameAndRange(a.ast.nameAndRange, allSymbols));
 
-enum ForcedByValOrRefOrNone {
-	none,
+alias ByValOrRef = immutable ByValOrRef_;
+private enum ByValOrRef_ {
 	byVal,
 	byRef,
 }
@@ -232,7 +232,7 @@ enum ForcedByValOrRefOrNone {
 immutable struct RecordFlags {
 	Visibility newVisibility;
 	bool packed;
-	ForcedByValOrRefOrNone forcedByValOrRef;
+	Opt!ByValOrRef forcedByValOrRef;
 }
 
 immutable struct EnumValue {
@@ -449,7 +449,7 @@ immutable struct StructInst {
 bool isDefinitelyByRef(in StructInst a) {
 	StructBody body_ = a.decl.body_;
 	return body_.isA!(StructBody.Record) &&
-		body_.as!(StructBody.Record).flags.forcedByValOrRef == ForcedByValOrRefOrNone.byRef;
+		optEqual!ByValOrRef(body_.as!(StructBody.Record).flags.forcedByValOrRef, some(ByValOrRef.byRef));
 }
 
 bool isArray(in CommonTypes commonTypes, in StructInst a) =>
@@ -1840,17 +1840,7 @@ enum ExportVisibility : ubyte {
 }
 
 bool importCanSee(ExportVisibility importVisibility, Visibility exportVisibility) =>
-	toExportVisibility(exportVisibility) >= importVisibility;
-private ExportVisibility toExportVisibility(Visibility a) {
-	final switch (a) {
-		case Visibility.private_:
-			assert(false);
-		case Visibility.internal:
-			return ExportVisibility.internal;
-		case Visibility.public_:
-			return ExportVisibility.public_;
-	}
-}
+	enumConvertOrAssert!ExportVisibility(exportVisibility) >= importVisibility;
 
 Visibility leastVisibility(Visibility a, Visibility b) =>
 	min(a, b);

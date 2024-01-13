@@ -763,7 +763,7 @@ ExprAst parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBlock) {
 			}
 		case Token.quoteDouble:
 		case Token.quoteDouble3:
-			QuoteKind quoteKind = token.token == Token.quoteDouble ? QuoteKind.double_ : QuoteKind.double3;
+			QuoteKind quoteKind = token.token == Token.quoteDouble ? QuoteKind.quoteDouble : QuoteKind.quoteDouble3;
 			StringPart part = takeInitialStringPart(lexer, quoteKind);
 			ExprAst quoted = () {
 				final switch (part.after) {

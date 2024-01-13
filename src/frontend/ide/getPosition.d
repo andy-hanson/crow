@@ -80,8 +80,7 @@ import model.model :
 	TrustedExpr,
 	Type,
 	TypeParamIndex,
-	VarDecl,
-	VarKind;
+	VarDecl;
 import model.model : paramsArray, StructDeclSource;
 import util.col.array : first, firstPointer, firstWithIndex, firstZip, firstZipPointerFirst, isEmpty;
 import util.opt : force, has, none, Opt, optIf, optOr, optOr, optOrDefault, some;
@@ -89,6 +88,7 @@ import util.sourceRange : hasPos, Pos, Range;
 import util.symbol : AllSymbols;
 import util.union_ : Union;
 import util.uri : AllUris;
+import util.util : enumConvert;
 
 Position getPosition(in AllSymbols allSymbols, in AllUris allUris, Module* module_, Pos pos) {
 	Opt!PositionKind kind = getPositionKind(allSymbols, allUris, *module_, pos);
@@ -264,17 +264,8 @@ Opt!PositionKind positionInVar(in AllSymbols allSymbols, VarDecl* a, Pos pos) =>
 		positionInVisibility(VisibilityContainer(a), a.ast, pos),
 		() => optIf(hasPos(nameRange(allSymbols, *a).range, pos), () => PositionKind(a)),
 		() => optIf(hasPos(a.ast.keywordRange, pos), () =>
-			PositionKind(PositionKind.Keyword(keywordKindForVar(a.kind)))),
+			PositionKind(PositionKind.Keyword(enumConvert!(PositionKind.Keyword.Kind)(a.kind)))),
 		() => positionInType(allSymbols, TypeContainer(a), a.type, a.ast.type, pos));
-
-PositionKind.Keyword.Kind keywordKindForVar(VarKind a) {
-	final switch (a) {
-		case VarKind.global:
-			return PositionKind.Keyword.Kind.global;
-		case VarKind.threadLocal:
-			return PositionKind.Keyword.Kind.threadLocal;
-	}
-}
 
 Opt!PositionKind positionInAlias(in AllSymbols allSymbols, StructAlias* a, Pos pos) =>
 	optOr!PositionKind(

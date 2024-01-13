@@ -61,7 +61,7 @@ import util.col.mutMaxArr : asTemporaryArray, initializeMutMaxArr, MutMaxArr, pu
 import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.symbol : AllSymbols, Symbol, symbol;
-import util.util : castImmutable, ptrTrustMe, todo;
+import util.util : castImmutable, enumConvert, ptrTrustMe, todo;
 
 ByteCode generateBytecode(
 	scope ref Perf perf,
@@ -299,36 +299,8 @@ DynCallType toDynCallType(in LowType a) =>
 		(in LowType.Union) =>
 			assert(false));
 
-DynCallType primitiveToDynCallType(PrimitiveType a) {
-	final switch (a) {
-		case PrimitiveType.bool_:
-			return DynCallType.bool_;
-		case PrimitiveType.char8:
-			return DynCallType.char8;
-		case PrimitiveType.float32:
-			return DynCallType.float32;
-		case PrimitiveType.float64:
-			return DynCallType.float64;
-		case PrimitiveType.int8:
-			return DynCallType.int8;
-		case PrimitiveType.int16:
-			return DynCallType.int16;
-		case PrimitiveType.int32:
-			return DynCallType.int32;
-		case PrimitiveType.int64:
-			return DynCallType.int64;
-		case PrimitiveType.nat8:
-			return DynCallType.nat8;
-		case PrimitiveType.nat16:
-			return DynCallType.nat16;
-		case PrimitiveType.nat32:
-			return DynCallType.nat32;
-		case PrimitiveType.nat64:
-			return DynCallType.nat64;
-		case PrimitiveType.void_:
-			return DynCallType.void_;
-	}
-}
+DynCallType primitiveToDynCallType(PrimitiveType a) =>
+	enumConvert!DynCallType(a);
 
 void toDynCallTypes(in LowProgram program, in LowType a, in void delegate(DynCallType) @safe @nogc pure nothrow cb) {
 	if (a.isA!(LowType.Record)) {

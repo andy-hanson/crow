@@ -12,12 +12,12 @@ import model.concreteModel : TypeSize;
 import model.diag : Diag, DeclKind;
 import model.model :
 	BuiltinType,
+	ByValOrRef,
 	CommonTypes,
 	emptyTypeParams,
 	EnumBackingType,
 	EnumMember,
 	EnumValue,
-	ForcedByValOrRefOrNone,
 	IntegralTypes,
 	isLinkagePossiblyCompatible,
 	isPurityPossiblyCompatible,
@@ -42,7 +42,7 @@ import util.conv : safeToSizeT;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, some, someMut;
 import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
-import util.util : isMultipleOf, ptrTrustMe, todo;
+import util.util : enumConvert, isMultipleOf, ptrTrustMe, todo;
 
 StructDecl[] checkStructsInitial(ref CheckCtx ctx, in StructDeclAst[] asts) =>
 	mapPointers!(StructDecl, StructDeclAst)(ctx.alloc, asts, (StructDeclAst* ast) {
@@ -514,8 +514,8 @@ StructBody.Record checkRecord(
 ) {
 	RecordModifiers modifiers = checkRecordModifiers(ctx, modifierAsts);
 	bool isExtern = struct_.linkage != Linkage.internal;
-	ForcedByValOrRefOrNone valOrRef = isExtern ? ForcedByValOrRefOrNone.byVal : modifiers.byValOrRefOrNone;
-	if (isExtern && modifiers.byValOrRefOrNone != ForcedByValOrRefOrNone.none)
+	Opt!ByValOrRef valOrRef = isExtern ? some(ByValOrRef.byVal) : modifiers.byValOrRef;
+	if (isExtern && has(modifiers.byValOrRef))
 		addDiagAssertSameUri(ctx, struct_.range, Diag(Diag.ExternRecordImplicitlyByVal(struct_)));
 	RecordField[] fields = mapPointers!(RecordField, StructBodyAst.Record.Field)(
 		ctx.alloc, r.fields, (StructBodyAst.Record.Field* field) =>
@@ -598,7 +598,7 @@ UnionMember checkUnionMember(
 }
 
 immutable struct RecordModifiers {
-	ForcedByValOrRefOrNone byValOrRefOrNone;
+	Opt!ByValOrRef byValOrRef;
 	NewVisibility newVisibility;
 	bool packed;
 }
@@ -607,31 +607,18 @@ immutable struct NewVisibility {
 	Opt!Visibility visibility;
 }
 
-RecordModifiers withByValOrRef(
-	ref CheckCtx ctx,
-	RecordModifiers cur,
-	in Range range,
-	ForcedByValOrRefOrNone value,
-) {
-	if (cur.byValOrRefOrNone != ForcedByValOrRefOrNone.none) {
-		ModifierKeyword valueKeyword = modifierOfForcedByValOrRef(value);
-		addDiag(ctx, range, value == cur.byValOrRefOrNone
+RecordModifiers withByValOrRef(ref CheckCtx ctx, RecordModifiers cur, in Range range, ByValOrRef value) {
+	if (has(cur.byValOrRef)) {
+		ModifierKeyword valueKeyword = modifierOfByValOrRef(value);
+		addDiag(ctx, range, value == force(cur.byValOrRef)
 			? Diag(Diag.ModifierDuplicate(valueKeyword))
-			: Diag(Diag.ModifierConflict(modifierOfForcedByValOrRef(cur.byValOrRefOrNone), valueKeyword)));
+			: Diag(Diag.ModifierConflict(modifierOfByValOrRef(force(cur.byValOrRef)), valueKeyword)));
 	}
-	return RecordModifiers(value, cur.newVisibility, cur.packed);
+	return RecordModifiers(some(value), cur.newVisibility, cur.packed);
 }
 
-ModifierKeyword modifierOfForcedByValOrRef(ForcedByValOrRefOrNone a) {
-	final switch (a) {
-		case ForcedByValOrRefOrNone.none:
-			assert(false);
-		case ForcedByValOrRefOrNone.byVal:
-			return ModifierKeyword.byVal;
-		case ForcedByValOrRefOrNone.byRef:
-			return ModifierKeyword.byRef;
-	}
-}
+ModifierKeyword modifierOfByValOrRef(ByValOrRef a) =>
+	enumConvert!ModifierKeyword(a);
 
 RecordModifiers withNewVisibility(ref CheckCtx ctx, RecordModifiers cur, in Range range, Visibility value) {
 	if (has(cur.newVisibility.visibility)) {
@@ -640,7 +627,7 @@ RecordModifiers withNewVisibility(ref CheckCtx ctx, RecordModifiers cur, in Rang
 			? Diag(Diag.ModifierDuplicate(valueKeyword))
 			: Diag(Diag.ModifierConflict(modifierOfNewVisibility(force(cur.newVisibility.visibility)), valueKeyword)));
 	}
-	return RecordModifiers(cur.byValOrRefOrNone, NewVisibility(range, some(value)), cur.packed);
+	return RecordModifiers(cur.byValOrRef, NewVisibility(range, some(value)), cur.packed);
 }
 
 ModifierKeyword modifierOfNewVisibility(Visibility a) {
@@ -657,12 +644,12 @@ ModifierKeyword modifierOfNewVisibility(Visibility a) {
 RecordModifiers withPacked(ref CheckCtx ctx, RecordModifiers cur, in Range range) {
 	if (cur.packed)
 		addDiag(ctx, range, Diag(Diag.ModifierDuplicate(ModifierKeyword.packed)));
-	return RecordModifiers(cur.byValOrRefOrNone, cur.newVisibility, true);
+	return RecordModifiers(cur.byValOrRef, cur.newVisibility, true);
 }
 
 RecordModifiers checkRecordModifiers(ref CheckCtx ctx, ModifierAst[] modifiers) =>
 	fold!(RecordModifiers, ModifierAst)(
-		RecordModifiers(ForcedByValOrRefOrNone.none, NewVisibility(Range.empty, none!Visibility), false),
+		RecordModifiers(none!ByValOrRef, NewVisibility(Range.empty, none!Visibility), false),
 		modifiers,
 		(RecordModifiers cur, in ModifierAst modifier) {
 			Range range = modifier.range(ctx.allSymbols);
@@ -670,9 +657,9 @@ RecordModifiers checkRecordModifiers(ref CheckCtx ctx, ModifierAst[] modifiers) 
 				(in ModifierAst.Keyword x) {
 					switch (x.kind) {
 						case ModifierKeyword.byRef:
-							return withByValOrRef(ctx, cur, range, ForcedByValOrRefOrNone.byRef);
+							return withByValOrRef(ctx, cur, range, ByValOrRef.byRef);
 						case ModifierKeyword.byVal:
-							return withByValOrRef(ctx, cur, range, ForcedByValOrRefOrNone.byVal);
+							return withByValOrRef(ctx, cur, range, ByValOrRef.byVal);
 						case ModifierKeyword.newInternal:
 							return withNewVisibility(ctx, cur, range, Visibility.internal);
 						case ModifierKeyword.newPrivate:

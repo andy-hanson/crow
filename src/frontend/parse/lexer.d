@@ -29,6 +29,7 @@ import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
 import util.string : CString, MutCString;
 import util.symbol : AllSymbols, symbol;
+import util.util : enumConvert;
 
 public import frontend.parse.lexToken : ElifOrElse, EqualsOrThen, QuoteKind, StringPart, Token, TokenAndData;
 
@@ -290,18 +291,9 @@ Opt!ElifOrElse tryTakeNewlineThenElifOrElse(ref Lexer lexer) {
 			TokenAndData a = takeNextToken(lexer);
 			assert(a.token == Token.newlineSameIndent);
 			TokenAndData b = takeNextToken(lexer);
-			assert(b.token == elifOrElseToken(force(res)));
+			assert(b.token == enumConvert!Token(force(res)));
 		}
 		return res;
 	} else
 		return none!ElifOrElse;
-}
-
-private Token elifOrElseToken(ElifOrElse a) {
-	final switch (a) {
-		case ElifOrElse.elif:
-			return Token.elif;
-		case ElifOrElse.else_:
-			return Token.else_;
-	}
 }

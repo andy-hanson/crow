@@ -41,7 +41,7 @@ import util.col.mutMaxArr : asTemporaryArray, isFull, mustPop, MutMaxArr, mutMax
 import util.opt : force, has, none, Opt, optIf, optOr, some;
 import util.sourceRange : Range;
 import util.union_ : Union;
-import util.util : ptrTrustMe;
+import util.util : enumConvert, ptrTrustMe;
 
 bool isPurityAlwaysCompatibleConsideringSpecs(in immutable SpecInst*[] funSpecs, Type type, Purity expected) {
 	PurityRange typePurity = purityRange(type);
@@ -262,14 +262,8 @@ Trace.Result findSpecSigImplementation(Trace)(
 bool checkBuiltinSpec(ref CheckSpecsCtx ctx, FunDecl* called, BuiltinSpec kind, Type typeArg) =>
 	isPurityAlwaysCompatibleConsideringSpecs(ctx.funsInScope.outermostFunSpecs, typeArg, purityOfBuiltinSpec(kind));
 
-Purity purityOfBuiltinSpec(BuiltinSpec kind) {
-	final switch (kind) {
-		case BuiltinSpec.data:
-			return Purity.data;
-		case BuiltinSpec.shared_:
-			return Purity.shared_;
-	}
-}
+Purity purityOfBuiltinSpec(BuiltinSpec kind) =>
+	enumConvert!Purity(kind);
 
 // Whether 'inst' tells us that 'type' has purity at least 'expected'
 bool specProvidesPurity(in SpecInst* inst, in Type type, Purity expected) =>

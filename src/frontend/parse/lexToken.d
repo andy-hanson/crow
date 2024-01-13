@@ -12,7 +12,7 @@ import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.string : CString, MutCString, SmallString, stringOfRange;
 import util.symbol : AllSymbols, appendEquals, Symbol, symbol, symbolOfString;
-import util.util : todo;
+import util.util : enumConvert, todo;
 
 immutable struct DocCommentAndExtraDedents {
 	SmallString docComment;
@@ -462,8 +462,8 @@ immutable struct StringPart {
 }
 
 enum QuoteKind {
-	double_,
-	double3,
+	quoteDouble,
+	quoteDouble3,
 }
 
 StringPart takeStringPart(
@@ -479,9 +479,9 @@ StringPart takeStringPart(
 				case '"':
 					ptr++;
 					final switch (quoteKind) {
-						case QuoteKind.double_:
+						case QuoteKind.quoteDouble:
 							return StringPart.After.quote;
-						case QuoteKind.double3:
+						case QuoteKind.quoteDouble3:
 							if (tryTakeChars(ptr, "\"\""))
 								return StringPart.After.quote;
 							else
@@ -527,23 +527,16 @@ StringPart takeStringPart(
 				case '\r':
 				case '\n':
 					final switch (quoteKind) {
-						case QuoteKind.double_:
+						case QuoteKind.quoteDouble:
 							addDiag(ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.quoteDouble)));
 							return StringPart.After.quote;
-						case QuoteKind.double3:
+						case QuoteKind.quoteDouble3:
 							add(alloc, res, takeChar(ptr));
 							break;
 					}
 					break;
 				case '\0':
-					addDiag(ParseDiag(ParseDiag.Expected(() {
-						final switch (quoteKind) {
-							case QuoteKind.double_:
-								return ParseDiag.Expected.Kind.quoteDouble;
-							case QuoteKind.double3:
-								return ParseDiag.Expected.Kind.quoteDouble3;
-						}
-					}())));
+					addDiag(ParseDiag(ParseDiag.Expected(enumConvert!(ParseDiag.Expected.Kind)(quoteKind))));
 					return StringPart.After.quote;
 				default:
 					add(alloc, res, takeChar(ptr));

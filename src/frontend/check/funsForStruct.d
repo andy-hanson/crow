@@ -17,12 +17,12 @@ import frontend.check.typeUtil : FunType, getFunType, nonInstantiatedReturnType;
 import model.model :
 	asTuple,
 	BuiltinType,
+	ByValOrRef,
 	CommonTypes,
 	EnumBackingType,
 	EnumFunction,
 	EnumMember,
 	FlagsFunction,
-	ForcedByValOrRefOrNone,
 	FunBody,
 	FunDecl,
 	FunDeclSource,
@@ -45,7 +45,7 @@ import util.alloc.alloc : Alloc;
 import util.col.array : isEmpty, map, mapWithFirst, small, sum;
 import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder;
 import util.col.mutMaxArr : asTemporaryArray, push;
-import util.opt : force, has, Opt;
+import util.opt : force, has, Opt, optEqual, some;
 import util.symbol : prependSet, prependSetDeref, Symbol, symbol;
 
 size_t countFunsForStructs(in CommonTypes commonTypes, in StructDecl[] structs) =>
@@ -173,7 +173,7 @@ StructInst* instantiateNonTemplateStructDeclNeverDelay(ref InstantiateCtx ctx, S
 	instantiateStructNeverDelay(ctx, structDecl, []);
 
 bool recordIsAlwaysByVal(in StructBody.Record record) =>
-	isEmpty(record.fields) || record.flags.forcedByValOrRef == ForcedByValOrRefOrNone.byVal;
+	isEmpty(record.fields) || optEqual!ByValOrRef(record.flags.forcedByValOrRef, some(ByValOrRef.byVal));
 
 void addFunsForEnum(
 	ref CheckCtx ctx,

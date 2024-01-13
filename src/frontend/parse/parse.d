@@ -277,7 +277,7 @@ SmallArray!ModifierAst parseModifiers(ref Lexer lexer) {
 
 ModifierAst parseModifier(ref Lexer lexer) {
 	Pos start = curPos(lexer);
-	Opt!(ModifierKeyword) keyword = tryGetKeywordModifier(getPeekTokenAndData(lexer));
+	Opt!ModifierKeyword keyword = tryGetModifierKeyword(getPeekTokenAndData(lexer));
 	if (has(keyword)) {
 		takeNextToken(lexer);
 		return ModifierAst(ModifierAst.Keyword(start, force(keyword)));
@@ -309,7 +309,7 @@ ModifierKeyword newVisibility(Visibility a) {
 	}
 }
 
-Opt!ModifierKeyword tryGetKeywordModifier(TokenAndData token) {
+Opt!ModifierKeyword tryGetModifierKeyword(TokenAndData token) {
 	switch (token.token) {
 		case Token.bare:
 			return some(ModifierKeyword.bare);

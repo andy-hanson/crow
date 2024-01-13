@@ -127,7 +127,7 @@ import util.sourceRange : Range, UriAndRange;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : Union;
 import util.uri : AllUris, Path, RelPath, Uri;
-import util.util : ptrTrustMe, todo;
+import util.util : enumConvert, optEnumConvert, ptrTrustMe, todo;
 
 immutable struct UriAndAst {
 	Uri uri;
@@ -424,14 +424,8 @@ Opt!Symbol checkVarModifiers(ref CheckCtx ctx, VarKind kind, in ModifierAst[] mo
 	return cellGet(externLibraryName);
 }
 
-DeclKind declKind(VarKind a) {
-	final switch (a) {
-		case VarKind.global:
-			return DeclKind.global;
-		case VarKind.threadLocal:
-			return DeclKind.threadLocal;
-	}
-}
+DeclKind declKind(VarKind a) =>
+	enumConvert!DeclKind(a);
 
 void addToDeclsMap(T, alias getName)(
 	ref CheckCtx ctx,
@@ -542,26 +536,8 @@ enum CollectedFunFlags {
 	unsafe = 0b1000000,
 }
 
-CollectedFunFlags tryGetFunFlag(ModifierKeyword kind) {
-	switch (kind) {
-		case ModifierKeyword.bare:
-			return CollectedFunFlags.bare;
-		case ModifierKeyword.builtin:
-			return CollectedFunFlags.builtin;
-		case ModifierKeyword.extern_:
-			return CollectedFunFlags.extern_;
-		case ModifierKeyword.forceCtx:
-			return CollectedFunFlags.forceCtx;
-		case ModifierKeyword.summon:
-			return CollectedFunFlags.summon;
-		case ModifierKeyword.trusted:
-			return CollectedFunFlags.trusted;
-		case ModifierKeyword.unsafe:
-			return CollectedFunFlags.unsafe;
-		default:
-			return CollectedFunFlags.none;
-	}
-}
+CollectedFunFlags tryGetFunFlag(ModifierKeyword kind) =>
+	optEnumConvert!CollectedFunFlags(kind, CollectedFunFlags.none);
 
 Opt!(SpecInst*) checkFunModifierNonSpecial(
 	ref CheckCtx ctx,

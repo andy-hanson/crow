@@ -223,7 +223,7 @@ ReadFileResultParams readFileLocally(ref Alloc alloc, scope ref AllUris allUris,
 			ReadFileResultParams(uri, ReadFileResultType.ok, asString(x)),
 		(ReadFileDiag x) {
 			ReadFileResultType type = () {
-					final switch (x) {
+				final switch (x) {
 					case ReadFileDiag.unknown:
 					case ReadFileDiag.loading:
 						assert(false);

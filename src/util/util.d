@@ -76,6 +76,38 @@ version (WebAssembly) {
 	}
 }
 
+Out enumConvert(Out, In)(In a) {
+	final switch (a) {
+		static foreach (string member; __traits(allMembers, In)) {
+			case __traits(getMember, In, member):
+				return __traits(getMember, Out, member);
+		}
+	}
+}
+
+Out enumConvertOrAssert(Out, In)(In a) {
+	switch (a) {
+		static foreach (string member; __traits(allMembers, Out))
+			case __traits(getMember, In, member):
+				return __traits(getMember, Out, member);
+		default:
+			assert(false);
+	}
+}
+
+Out optEnumConvert(Out, In)(In a, Out default_) {
+	switch (a) {
+		static foreach (string member; __traits(allMembers, In)) {
+			static if (__traits(hasMember, Out, member)) {
+				case __traits(getMember, In, member):
+					return __traits(getMember, Out, member);
+			}
+		}
+		default:
+			return default_;
+	}
+}
+
 E enumOfString(E)(in string a) {
 	assertNormalEnum!E();
 	final switch (a) {

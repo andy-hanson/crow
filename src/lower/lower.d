@@ -138,7 +138,7 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : UriAndRange;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : Union;
-import util.util : castNonScope_ref, ptrTrustMe, typeAs;
+import util.util : castNonScope_ref, enumConvert, ptrTrustMe, typeAs;
 
 LowProgram lower(
 	scope ref Perf perf,
@@ -398,26 +398,8 @@ Opt!(LowType[]) tryUnpackTuple(
 		return none!(LowType[]);
 }
 
-PrimitiveType typeForEnum(EnumBackingType a) {
-	final switch (a) {
-		case EnumBackingType.int8:
-			return PrimitiveType.int8;
-		case EnumBackingType.int16:
-			return PrimitiveType.int16;
-		case EnumBackingType.int32:
-			return PrimitiveType.int32;
-		case EnumBackingType.int64:
-			return PrimitiveType.int64;
-		case EnumBackingType.nat8:
-			return PrimitiveType.nat8;
-		case EnumBackingType.nat16:
-			return PrimitiveType.nat16;
-		case EnumBackingType.nat32:
-			return PrimitiveType.nat32;
-		case EnumBackingType.nat64:
-			return PrimitiveType.nat64;
-	}
-}
+PrimitiveType typeForEnum(EnumBackingType a) =>
+	enumConvert!PrimitiveType(a);
 
 LowUnion getLowUnion(ref Alloc alloc, in ConcreteProgram program, ref GetLowTypeCtx getLowTypeCtx, ConcreteStruct* s) =>
 	LowUnion(s, s.body_.matchIn!(LowType[])(

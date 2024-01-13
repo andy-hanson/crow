@@ -57,7 +57,7 @@ LspInMessage parseLspInMessage(ref Alloc alloc, scope ref AllUris allUris, in Js
 		case "custom/readFileResult":
 			return notification(ReadFileResultParams(
 				parseUriProperty(allUris, params),
-				toReadFileResponseType(get!"type"(params).as!string),
+				enumOfString!ReadFileResultType(get!"type"(params).as!string),
 				hasKey!"content"(params) ? get!"content"(params).as!string : ""));
 		case "custom/run":
 			return request(RunParams(
@@ -120,17 +120,6 @@ DidChangeTextDocumentParams parseDidChangeTextDocumentParams(ref Alloc alloc, sc
 		parseTextDocumentIdentifier(allUris, get!"textDocument"(a)),
 		parseList!TextDocumentContentChangeEvent(alloc, get!"contentChanges"(a), (in Json x) =>
 			parseTextDocumentContentChangeEvent(alloc, x)));
-
-ReadFileResultType toReadFileResponseType(in string a) {
-	final switch (a) {
-		case "ok":
-			return ReadFileResultType.ok;
-		case "notFound":
-			return ReadFileResultType.notFound;
-		case "error":
-			return ReadFileResultType.error;
-	}
-}
 
 TextDocumentItem parseTextDocumentItem(scope ref AllUris allUris, in Json a) =>
 	TextDocumentItem(parseUriProperty(allUris, a), parseTextProperty(a));
