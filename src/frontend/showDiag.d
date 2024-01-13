@@ -719,7 +719,7 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 				writer ~= '.';
 			} else
 				writer ~= " which is 'mut'.";
-			writer ~= " (Should it be an 'act' or 'ref' fun?)";
+			writer ~= " (Should it be an 'act' or 'far' fun?)";
 		},
 		(in Diag.LambdaMultipleMatch x) {
 			writer ~= "Multiple lambda types are possible.\n";

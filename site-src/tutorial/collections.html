@@ -40,11 +40,11 @@
 	<crow-runnable>
 		main void()
 			xs string[] = "a", "b"
-			info log xs.to::json.to
+			info log "{xs.to::json}"
 			ys = xs ~ "c"
-			info log ys.to::json.to
+			info log "{ys.to::json}"
 			zs = xs ~~ ys
-			info log zs.to::json.to
+			info log "{zs.to::json}"
 	</crow-runnable>
 
 	<p>
@@ -85,12 +85,12 @@
 	<crow-runnable>
 		main void()
 			xs string mut[] = "a", "b"
-			info log xs.to::string[].to::json.to
+			info log "{xs.to::json}"
 			xs ~= "c"
-			info log xs.to::string[].to::json.to
+			info log "{xs.to::json}"
 			xs ~~= xs
 			xs[4] := "B"
-			info log xs.to::string[].to::json.to
+			info log "{xs.to::json}"
 	</crow-runnable>
 
 	<aside class="small">Documentation: {{doc/col/mut-list}}</aside>

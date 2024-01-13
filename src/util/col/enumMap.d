@@ -8,7 +8,9 @@ import util.opt : none, Opt, some;
 import util.util : assertNormalEnum;
 
 struct EnumMap(E, V) {
-	int opApply(in int delegate(E, ref immutable V) @safe @nogc nothrow cb) scope immutable {
+	@safe @nogc nothrow: // not pure
+
+	int opApply(in int delegate(E, ref immutable V) @safe @nogc nothrow cb) immutable {
 		foreach (E e; cast(E) 0 .. cast(E) size) {
 			int res = cb(e, this[e]);
 			if (res != 0) return res;
@@ -16,34 +18,25 @@ struct EnumMap(E, V) {
 		return 0;
 	}
 
-	@safe @nogc nothrow: // not pure
+	pure:
 
 	enum size = EnumMembers!E.length;
 	static foreach (size_t i; 0 .. size)
 		static assert(Members[i] == i);
 
-	this(inout V[size] values) inout {
-		assertNormalEnum!E;
-		static foreach (size_t i; 0 .. size)
-			mixin("value", i, " = values[", i, "];");
-	}
-
 	ref inout(V) opIndex(E key) inout {
-		final switch (key) {
-			static foreach (size_t i; 0 .. size)
-				case cast(E) i:
-					mixin("return value", i, ";");
-		}
+		assertNormalEnum!E;
+		return values[key];
 	}
 
-	int opApply(in int delegate(E, ref immutable V) @safe @nogc pure nothrow cb) scope immutable {
+	int opApply(in int delegate(E, ref immutable V) @safe @nogc pure nothrow cb) immutable {
 		foreach (E e; cast(E) 0 .. cast(E) size) {
 			int res = cb(e, this[e]);
 			if (res != 0) return res;
 		}
 		return 0;
 	}
-	int opApply(in int delegate(E, ref const V) @safe @nogc pure nothrow cb) scope const {
+	int opApply(in int delegate(E, ref const V) @safe @nogc pure nothrow cb) const {
 		foreach (E e; cast(E) 0 .. cast(E) size) {
 			int res = cb(e, this[e]);
 			if (res != 0) return res;
@@ -53,10 +46,7 @@ struct EnumMap(E, V) {
 
 	private:
 	alias Members = EnumMembers!E;
-	// Using an array caused errors where it tried to call '_memset16'
-	static foreach (size_t i; 0 .. size) {
-		mixin("V value", i, ";");
-	}
+	V[size] values;
 }
 
 EnumMap!(E, V) makeEnumMap(E, V)(in V delegate(E) @safe @nogc pure nothrow cb) {

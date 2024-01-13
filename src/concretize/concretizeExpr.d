@@ -109,7 +109,7 @@ import util.symbol : AllSymbols, symbol;
 import util.union_ : Union;
 import util.uri : Uri;
 import util.util : castNonScope, castNonScope_ref, ptrTrustMe, todo;
-import versionInfo : VersionInfo;
+import versionInfo : isVersion, VersionInfo;
 
 ConcreteExpr concretizeFunBody(
 	ref ConcretizeCtx ctx,
@@ -1033,7 +1033,9 @@ Opt!Constant tryEvalConstant(
 ) =>
 	fn.body_.matchIn!(Opt!Constant)(
 		(in ConcreteFunBody.Builtin x) {
-			return x.kind.isA!VersionFun ? some(versionConstant(x.kind.as!VersionFun, versionInfo)) : none!Constant;
+			return x.kind.isA!VersionFun
+				? some(constantBool(isVersion(versionInfo, x.kind.as!VersionFun)))
+				: none!Constant;
 		},
 		(in Constant x) =>
 			some(x),
@@ -1052,20 +1054,3 @@ Opt!Constant tryEvalConstant(
 		(in ConcreteFunBody.RecordFieldSet) => none!Constant,
 		(in ConcreteFunBody.VarGet) => none!Constant,
 		(in ConcreteFunBody.VarSet) => none!Constant);
-
-Constant versionConstant(VersionFun fun, in VersionInfo versionInfo) {
-	final switch (fun) {
-		case VersionFun.isBigEndian:
-			return constantBool(versionInfo.isBigEndian);
-		case VersionFun.isInterpreted:
-			return constantBool(versionInfo.isInterpreted);
-		case VersionFun.isJit:
-			return constantBool(versionInfo.isJit);
-		case VersionFun.isSingleThreaded:
-			return constantBool(versionInfo.isSingleThreaded);
-		case VersionFun.isWasm:
-			return constantBool(versionInfo.isWasm);
-		case VersionFun.isWindows:
-			return constantBool(versionInfo.isWindows);
-	}
-}

@@ -1385,14 +1385,16 @@ immutable struct CommonTypes {
 }
 
 immutable struct IntegralTypes {
-	StructInst* int8;
-	StructInst* int16;
-	StructInst* int32;
-	StructInst* int64;
-	StructInst* nat8;
-	StructInst* nat16;
-	StructInst* nat32;
-	StructInst* nat64;
+	@safe @nogc pure nothrow:
+	EnumMap!(EnumBackingType, StructInst*) byEnumBackingType;
+	StructInst* int8() return scope => byEnumBackingType[EnumBackingType.int8];
+	StructInst* int16() return scope => byEnumBackingType[EnumBackingType.int16];
+	StructInst* int32() return scope => byEnumBackingType[EnumBackingType.int32];
+	StructInst* int64() return scope => byEnumBackingType[EnumBackingType.int64];
+	StructInst* nat8() return scope => byEnumBackingType[EnumBackingType.nat8];
+	StructInst* nat16() return scope => byEnumBackingType[EnumBackingType.nat16];
+	StructInst* nat32() return scope => byEnumBackingType[EnumBackingType.nat32];
+	StructInst* nat64() return scope => byEnumBackingType[EnumBackingType.nat64];
 }
 
 alias EnumBackingType = immutable EnumBackingType_;

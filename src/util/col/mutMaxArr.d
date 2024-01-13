@@ -114,11 +114,6 @@ void pushAll(size_t maxSize, T)(scope ref MutMaxArr!(maxSize, T) a, in T[] value
 		push(a, value);
 }
 
-void pushIfUnderMaxSize(size_t maxSize, T)(scope ref MutMaxArr!(maxSize, T) a, immutable T value) {
-	if (a.size_ < maxSize)
-		push(a, value);
-}
-
 T mustPop(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) {
 	assert(a.size_ != 0);
 	a.size_--;

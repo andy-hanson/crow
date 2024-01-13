@@ -12,7 +12,7 @@
 		main void()
 			xs nat[] = 1, 2, 3
 			ys nat[] = xs filter x => x is-even
-			info log ys.to::json.to
+			info log "{ys.to::json}"
 	</crow-runnable>
 
 	<p>
@@ -123,7 +123,7 @@
 					x is-even
 				else
 					x is-odd
-			info log ys.to::json.to
+			info log "{ys.to::json}"
 	</crow-runnable>
 	<p>
 		Since this is only possible for the last argument to a funciton,

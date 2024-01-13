@@ -6,7 +6,7 @@ main nat^(_ string[]) summon
 	out print "running with {trusted count-processors} processors"
 	p nat64 range parallel-collection = (1_000_000 .. 1_010_000).parallel
 	primes nat[] <- p filter x => x.is-prime,
-	out print "primes: {(for x : primes; x.to)::json[].to::json}"
+	out print "primes: {primes.to::json}"
 	()
 
 is-prime bool(a nat)

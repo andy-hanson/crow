@@ -346,8 +346,7 @@
 				<td>
 					Used to set a field in a record.
 					<br />
-					(These functions are generated when defining a record.
-					This will be explained in {{tutorial/records}}.)
+					This is generated when defining a record, as explained in {{tutorial/records}}.)
 				</td>
 			</tr>
 			<tr>
@@ -363,7 +362,11 @@
 			<tr>
 				<td><code>x->y := z</code></td>
 				<td><code>x set-deref-y z</code></td>
-				<td>Used to write to a field of a record when 'x' is a pointer to the record.</td>
+				<td>
+					Used to write to a field of a record when 'x' is a pointer to the record.
+					<br />
+					This is generated for <code class="keyword">extern</code> records.
+				</td>
 			</tr>
 		</tbody>
 	</table>
@@ -380,6 +383,13 @@
 			info log "{a}[{key}] := {value}"
 	</crow-runnable>
 
+	<aside class="small">
+		<code>x[y] +:= z</code> also works.
+		<br />
+		It's just <code>x[y] := x[y] + z</code>, which is
+		<code>x set-subscript y, (x subscript y) + z</code>.
+	</aside>
+
 	<p>
 		Relatedly, a function name may end with <code>=</code>.
 		The idea is that <code>x foo= y</code> should behave the same as <code>x := x foo y</code>.
@@ -390,7 +400,7 @@
 		main void()
 			xs string mut[] = "a", "b", "c"
 			xs filter= x => x != "b"
-			info log xs.to::string[].to::json.to
+			info log "{xs.to::json}"
 	</crow-runnable>
 
 	<p>

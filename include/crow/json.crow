@@ -5,6 +5,7 @@ import
 	./col/collection: for-loop, join
 	./col/experimental/index-set: iterate, index-set, size
 	./col/map: ==, ~=, build, iterate, map, size, subscript, to
+	./col/mut-list: iterate, mut-list, size
 	./col/list: ==, ~=, build, iterate, list, new, size
 	./parse:
 		/, ~~, bool, exact, float, grammar, lazy, map, quoted-string, separated-by, spaces,
@@ -65,6 +66,8 @@ JSON data.
 +to[t] json(a t array) (json, t) to
 	(for x : a; x to) json-list
 +to[t] json(a t[]) (json, t) to
+	(for x : a; x to) json-list
++to[t] json(a t mut[]) (json, t) to
 	(for x : a; x to) json-list
 +to[t] json(a t[symbol]) (json, t) to
 	(for k, v : a; k, v.to) json-object

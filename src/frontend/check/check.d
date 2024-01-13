@@ -119,7 +119,7 @@ import util.col.exactSizeArrayBuilder : buildArrayExact, ExactSizeArrayBuilder, 
 import util.col.hashTable :
 	getPointer, HashTable, insertOrUpdate, mapAndMovePreservingKeys, mayAdd, moveToImmutable, MutHashTable;
 import util.col.mutArr : mustPop, mutArrIsEmpty;
-import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, mutMaxArrSize, push, pushIfUnderMaxSize, toArray;
+import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, push, toArray;
 import util.memory : allocate, initMemory;
 import util.opt : force, has, none, Opt, someMut, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
@@ -603,13 +603,8 @@ FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, CollectedFunFlags flags
 		: extern_
 		? FunFlags.SpecialBody.extern_
 		: FunFlags.SpecialBody.none;
-	if (builtin + extern_ > 1) {
-		MutMaxArr!(2, ModifierKeyword) bodyModifiers = mutMaxArr!(2, ModifierKeyword);
-		if (builtin) pushIfUnderMaxSize(bodyModifiers, ModifierKeyword.builtin);
-		if (extern_) pushIfUnderMaxSize(bodyModifiers, ModifierKeyword.extern_);
-		assert(mutMaxArrSize(bodyModifiers) == 2);
-		addDiag(ctx, range, Diag(Diag.ModifierConflict(bodyModifiers[0], bodyModifiers[1])));
-	}
+	if (builtin && extern_)
+		addDiag(ctx, range, Diag(Diag.ModifierConflict(ModifierKeyword.builtin, ModifierKeyword.extern_)));
 	return FunFlags.regular(bare, summon, safety, specialBody, forceCtx);
 }
 

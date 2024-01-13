@@ -15,7 +15,7 @@ Candidates (with 1 arguments):
 	'new[t] t mut-set(...t array)' (from include/crow/col/mut-set.crow line 21)
 	'new[t] t set(...t array)' (from include/crow/col/set.crow line 31)
 	'new[t] t^(value t)' (from include/crow/future.crow line 40)
-	'new json(...(symbol, json) array)' (from include/crow/json.crow line 34)
+	'new json(...(symbol, json) array)' (from include/crow/json.crow line 35)
 	'new[t] t?(a t)' (from include/crow/option.crow line 15)
 	'new internal-ctor(x nat64)' (from test/compile-errors/record-privacy-a.crow line 10)
 	'new redundant-internal(x nat64)' (from test/compile-errors/record-privacy-a.crow line 13)
@@ -32,7 +32,7 @@ Candidates (with 3 arguments):
 	'new[k, v] k mut[v](...(k, v) array)' (from include/crow/col/mut-map.crow line 42)
 	'new[t] t mut-set(...t array)' (from include/crow/col/mut-set.crow line 21)
 	'new[t] t set(...t array)' (from include/crow/col/set.crow line 31)
-	'new json(...(symbol, json) array)' (from include/crow/json.crow line 34)
+	'new json(...(symbol, json) array)' (from include/crow/json.crow line 35)
 	'new[t0, t1, t2] (t0, t1, t2)(a t0, b t1, c t2)' (from include/crow/private/bootstrap.crow line 259)
 test/compile-errors/record-privacy-b.crow 11:5-11:13 There is no function named 'set-j'.
 test/compile-errors/record-privacy-b.crow 12:11-12:12 There is no function named 'j'.

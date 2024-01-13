@@ -9,6 +9,7 @@ import model.diag : Diag, Diagnostic;
 import model.model :
 	CommonTypes,
 	emptyTypeArgs,
+	EnumBackingType,
 	FunKind,
 	IntegralTypes,
 	Linkage,
@@ -121,7 +122,7 @@ CommonTypes* getCommonTypes(
 		cString,
 		float32,
 		float64,
-		IntegralTypes(int8, int16, int32, int64, nat8, nat16, nat32, nat64),
+		IntegralTypes(EnumMap!(EnumBackingType, StructInst*)([int8, int16, int32, int64, nat8, nat16, nat32, nat64])),
 		symbolType,
 		symbolArray,
 		void_,

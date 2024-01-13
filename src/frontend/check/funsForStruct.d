@@ -27,7 +27,6 @@ import model.model :
 	FunDecl,
 	FunDeclSource,
 	FunFlags,
-	IntegralTypes,
 	Params,
 	ParamShort,
 	RecordField,
@@ -287,32 +286,10 @@ FunDecl enumToIntegralFunction(
 		FunDeclSource(struct_),
 		struct_.visibility,
 		symbol!"to",
-		Type(getBackingTypeFromEnumType(enumBackingType, commonTypes)),
+		Type(commonTypes.integrals.byEnumBackingType[enumBackingType]),
 		makeParams(alloc, [param!"a"(enumType)]),
 		FunFlags.generatedBare.withOkIfUnused(),
 		FunBody(EnumFunction.toIntegral));
-
-StructInst* getBackingTypeFromEnumType(EnumBackingType a, ref CommonTypes commonTypes) {
-	IntegralTypes integrals = commonTypes.integrals;
-	final switch (a) {
-		case EnumBackingType.int8:
-			return integrals.int8;
-		case EnumBackingType.int16:
-			return integrals.int16;
-		case EnumBackingType.int32:
-			return integrals.int32;
-		case EnumBackingType.int64:
-			return integrals.int64;
-		case EnumBackingType.nat8:
-			return integrals.nat8;
-		case EnumBackingType.nat16:
-			return integrals.nat16;
-		case EnumBackingType.nat32:
-			return integrals.nat32;
-		case EnumBackingType.nat64:
-			return integrals.nat64;
-	}
-}
 
 FunDecl enumOrFlagsMembersFunction(
 	ref InstantiateCtx ctx,

@@ -16,7 +16,7 @@ Candidates (with 1 arguments):
 	'new[t] t mut-set(...t array)' (from include/crow/col/mut-set.crow line 21)
 	'new[t] t set(...t array)' (from include/crow/col/set.crow line 31)
 	'new[t] t^(value t)' (from include/crow/future.crow line 40)
-	'new json(...(symbol, json) array)' (from include/crow/json.crow line 34)
+	'new json(...(symbol, json) array)' (from include/crow/json.crow line 35)
 	'new[t] t?(a t)' (from include/crow/option.crow line 15)
 Uncaught exception: Reached compile error
 	at main
