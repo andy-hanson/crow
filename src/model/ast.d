@@ -420,12 +420,16 @@ immutable struct MatchAst {
 	immutable struct CaseAst {
 		@safe @nogc pure nothrow:
 
+		Pos keywordPos;
 		NameAndRange memberName;
 		Opt!DestructureAst destructure;
 		ExprAst then;
 
 		Range memberNameRange(in AllSymbols allSymbols) scope =>
 			rangeOfNameAndRange(memberName, allSymbols);
+
+		Range keywordAndMemberNameRange(in AllSymbols allSymbols) scope =>
+			Range(keywordPos, memberNameRange(allSymbols).end);
 	}
 
 	ExprAst matched;

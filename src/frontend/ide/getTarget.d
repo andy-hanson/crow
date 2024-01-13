@@ -53,6 +53,7 @@ import model.model :
 	TrustedExpr,
 	toLocal,
 	TypeParamIndex,
+	UnionMember,
 	VarDecl;
 import util.opt : none, Opt, some;
 import util.json : field;
@@ -72,6 +73,7 @@ immutable struct Target {
 		StructAlias*,
 		StructDecl*,
 		PositionKind.TypeParamWithContainer,
+		UnionMember*,
 		VarDecl*,
 	);
 }
@@ -92,6 +94,10 @@ Opt!Target targetForPosition(PositionKind pos) =>
 			none!Target,
 		(PositionKind.LocalPosition x) =>
 			some(Target(x)),
+		(PositionKind.MatchEnumCase x) =>
+			some(Target(x.member)),
+		(PositionKind.MatchUnionCase x) =>
+			some(Target(x.member)),
 		(PositionKind.Modifier) =>
 			none!Target,
 		(PositionKind.ModifierExtern) =>

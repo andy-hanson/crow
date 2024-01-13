@@ -5,6 +5,7 @@ module frontend.ide.position;
 import model.ast : ModifierKeyword, NameAndRange;
 import model.diag : TypeContainer, TypeWithContainer;
 import model.model :
+	EnumMember,
 	Expr,
 	FunDecl,
 	ImportOrExport,
@@ -19,6 +20,7 @@ import model.model :
 	StructDecl,
 	Test,
 	TypeParamIndex,
+	UnionMember,
 	VarDecl,
 	Visibility;
 import util.opt : Opt;
@@ -137,6 +139,12 @@ immutable struct PositionKind {
 		LocalContainer container;
 		Local* local;
 	}
+	immutable struct MatchEnumCase {
+		EnumMember* member;
+	}
+	immutable struct MatchUnionCase {
+		UnionMember* member;
+	}
 	immutable struct Modifier {
 		TypeContainer container;
 		ModifierKeyword modifier;
@@ -175,6 +183,8 @@ immutable struct PositionKind {
 		ImportedName,
 		Keyword,
 		LocalPosition,
+		MatchEnumCase,
+		MatchUnionCase,
 		Modifier,
 		ModifierExtern,
 		RecordFieldMutability,

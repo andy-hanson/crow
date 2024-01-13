@@ -354,8 +354,8 @@ void checkStructAliasTargets(
 			someMut(ptrTrustMe(delayStructInsts)));
 		assert(type.isA!(StructInst*) || type.isA!(Type.Bogus)); // since type aliases can't have type parameters
 		structAlias.target = type.isA!(StructInst*)
-			? some(type.as!(StructInst*))
-			: none!(StructInst*);
+			? type.as!(StructInst*)
+			: commonTypes.void_;
 	});
 }
 

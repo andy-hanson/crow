@@ -113,12 +113,10 @@ DocExport documentStructOrAlias(ref Alloc alloc, in StructOrAlias a) =>
 		(in StructDecl x) =>
 			documentStructDecl(alloc, x));
 
-DocExport documentStructAlias(ref Alloc alloc, in StructAlias a) {
-	Opt!(StructInst*) optTarget = a.target;
-	return documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, jsonObject(alloc, [
+DocExport documentStructAlias(ref Alloc alloc, in StructAlias a) =>
+	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, jsonObject(alloc, [
 		kindField!"alias",
-		field!"target"(documentStructInst(alloc, a.typeParams, *force(optTarget)))]));
-}
+		field!"target"(documentStructInst(alloc, a.typeParams, *a.target))]));
 
 DocExport documentStructDecl(ref Alloc alloc, in StructDecl a) =>
 	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, a.body_.matchIn!Json(

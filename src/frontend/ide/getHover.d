@@ -131,6 +131,18 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 			writer ~= "Local ";
 			localHover(writer, ctx, x.container.toTypeContainer, *x.local);
 		},
+		(PositionKind.MatchEnumCase x) {
+			writer ~= "Handler for enum ";
+			writeName(writer, ctx, x.member.containingEnum.name);
+			writer ~= " member ";
+			writeName(writer, ctx, x.member.name);
+		},
+		(PositionKind.MatchUnionCase x) {
+			writer ~= "Handler for union ";
+			writeName(writer, ctx, x.member.containingUnion.name);
+			writer ~= " member ";
+			writeName(writer, ctx, x.member.name);
+		},
 		(PositionKind.Modifier x) {
 			writer ~= () {
 				final switch (x.modifier) {
@@ -248,10 +260,8 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 private:
 
 void writeStructAliasHover(scope ref Writer writer, in ShowModelCtx ctx, in StructAlias* a) {
-	if (has(a.target)) {
-		writer ~= "Alias for ";
-		writeTypeQuoted(writer, ctx, TypeWithContainer(Type(force(a.target)), TypeContainer(a)));
-	}
+	writer ~= "Alias for ";
+	writeTypeQuoted(writer, ctx, TypeWithContainer(Type(a.target), TypeContainer(a)));
 }
 
 void writeStructDeclHover(scope ref Writer writer, in ShowModelCtx ctx, in StructDecl a) {

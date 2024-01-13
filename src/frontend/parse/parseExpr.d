@@ -482,13 +482,17 @@ ExprAst parseSubscript(ref Lexer lexer, ExprAst initial, Pos subscriptPos) {
 ExprAst parseMatch(ref Lexer lexer, Pos start) {
 	ExprAst matched = parseExprNoBlock(lexer);
 	ArrayBuilder!(MatchAst.CaseAst) cases;
-	while (tryTakeNewlineThenAs(lexer)) {
-		NameAndRange memberName = takeNameAndRange(lexer);
-		Opt!DestructureAst destructure = peekEndOfLine(lexer)
-			? none!DestructureAst
-			: some(parseDestructureNoRequireParens(lexer));
-		ExprAst then = parseIndentedStatements(lexer);
-		add(lexer.alloc, cases, MatchAst.CaseAst(memberName, destructure, then));
+	while (true) {
+		Opt!Pos asPos = tryTakeNewlineThenAs(lexer);
+		if (has(asPos)) {
+			NameAndRange memberName = takeNameAndRange(lexer);
+			Opt!DestructureAst destructure = peekEndOfLine(lexer)
+				? none!DestructureAst
+				: some(parseDestructureNoRequireParens(lexer));
+			ExprAst then = parseIndentedStatements(lexer);
+			add(lexer.alloc, cases, MatchAst.CaseAst(force(asPos), memberName, destructure, then));
+		} else
+			break;
 	}
 	return ExprAst(
 		range(lexer, start),

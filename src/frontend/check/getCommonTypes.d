@@ -162,21 +162,21 @@ Opt!(StructInst*) getCommonNonTemplateType(
 ) {
 	Opt!StructOrAlias opStructOrAlias = structsAndAliasesMap[name];
 	return has(opStructOrAlias)
-		? instantiateNonTemplateStructOrAlias(ctx, delayedStructInsts, force(opStructOrAlias))
+		? some(instantiateNonTemplateStructOrAlias(ctx, delayedStructInsts, force(opStructOrAlias)))
 		: none!(StructInst*);
 }
 
-Opt!(StructInst*) instantiateNonTemplateStructOrAlias(
+StructInst* instantiateNonTemplateStructOrAlias(
 	ref InstantiateCtx ctx,
 	scope ref DelayStructInsts delayedStructInsts,
 	StructOrAlias structOrAlias,
 ) {
 	assert(isEmpty(structOrAlias.typeParams));
-	return structOrAlias.matchWithPointers!(Opt!(StructInst*))(
+	return structOrAlias.matchWithPointers!(StructInst*)(
 		(StructAlias* x) =>
 			x.target,
 		(StructDecl* x) =>
-			some(instantiateNonTemplateStructDecl(ctx, delayedStructInsts, x)));
+			instantiateNonTemplateStructDecl(ctx, delayedStructInsts, x));
 }
 
 StructInst* instantiateNonTemplateStructDecl(

@@ -37,7 +37,6 @@ import model.model :
 	SpecInst,
 	StructAlias,
 	StructDecl,
-	StructInst,
 	StructOrAlias,
 	Type,
 	TypeArgs,
@@ -78,7 +77,7 @@ private Type instStructFromAst(
 				(StructAlias* a) =>
 					sOrA.typeParams.length != 0
 						? todo!Type("alias with type params")
-						: typeFromOptInst(a.target),
+						: Type(a.target),
 				(StructDecl* decl) =>
 					Type(instantiateStruct(ctx.instantiateCtx, decl, force(typeArgs), delayStructInsts)))
 			: Type(Type.Bogus());
@@ -302,9 +301,6 @@ Opt!(Diag.TypeShouldUseSyntax.Kind) typeSyntaxKind(Symbol a) {
 			return none!(Diag.TypeShouldUseSyntax.Kind);
 	}
 }
-
-private Type typeFromOptInst(Opt!(StructInst*) a) =>
-	has(a) ? Type(force(a)) : Type(Type.Bogus());
 
 private Type typeFromFunAst(
 	ref CheckCtx ctx,

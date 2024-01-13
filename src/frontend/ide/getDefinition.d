@@ -19,7 +19,8 @@ import model.model :
 	SpecDecl,
 	StructAlias,
 	StructDecl,
-	VarDecl;
+	VarDecl,
+	UnionMember;
 import util.alloc.alloc : Alloc;
 import util.col.arrayBuilder : buildArray;
 import util.opt : force, has, Opt;
@@ -78,6 +79,9 @@ public void definitionForTarget(in AllSymbols allSymbols, Uri curUri, in Target 
 			cb(UriAndRange(
 				x.container.moduleUri,
 				rangeOfNameAndRange(x.container.typeParams[x.typeParam.index], allSymbols)));
+		},
+		(in UnionMember x) {
+			cb(nameRange(allSymbols, x));
 		},
 		(in VarDecl x) {
 			cb(nameRange(allSymbols, x));

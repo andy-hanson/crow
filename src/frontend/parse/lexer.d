@@ -262,15 +262,17 @@ bool lookaheadNameColon(in Lexer lexer) =>
 bool lookaheadLambda(in Lexer lexer) =>
 	getPeekToken(lexer) == Token.parenLeft && .lookaheadLambdaAfterParenLeft(lexer.ptr);
 
-bool tryTakeNewlineThenAs(ref Lexer lexer) {
+// Returns position of 'as'
+Opt!Pos tryTakeNewlineThenAs(ref Lexer lexer) {
 	if (getPeekToken(lexer) == Token.newlineSameIndent && .lookaheadAs(lexer.ptr)) {
 		TokenAndData a = takeNextToken(lexer);
 		assert(a.token == Token.newlineSameIndent);
+		Pos asPos = curPos(lexer);
 		TokenAndData b = takeNextToken(lexer);
 		assert(b.token == Token.as);
-		return true;
+		return some(asPos);
 	} else
-		return false;
+		return none!Pos;
 }
 
 bool tryTakeNewlineThenElse(ref Lexer lexer) {

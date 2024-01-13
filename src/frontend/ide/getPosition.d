@@ -37,6 +37,7 @@ import model.model :
 	ClosureGetExpr,
 	ClosureSetExpr,
 	Destructure,
+	EnumMember,
 	Expr,
 	FunBody,
 	FunDecl,
@@ -80,15 +81,17 @@ import model.model :
 	TrustedExpr,
 	Type,
 	TypeParamIndex,
+	UnionMember,
 	VarDecl;
 import model.model : paramsArray, StructDeclSource;
-import util.col.array : first, firstPointer, firstWithIndex, firstZip, firstZipPointerFirst, isEmpty, SmallArray;
+import util.col.array :
+	first, firstPointer, firstWithIndex, firstZip, firstZipPointerFirst, firstZipPointerFirst3, isEmpty, SmallArray;
 import util.opt : force, has, none, Opt, optIf, optOr, optOr, optOrDefault, some;
 import util.sourceRange : hasPos, Pos, Range;
 import util.symbol : AllSymbols;
 import util.union_ : Union;
 import util.uri : AllUris;
-import util.util : enumConvert;
+import util.util : enumConvert, ptrTrustMe;
 
 Position getPosition(in AllSymbols allSymbols, in AllUris allUris, Module* module_, Pos pos) {
 	Opt!PositionKind kind = getPositionKind(allSymbols, allUris, *module_, pos);
@@ -198,6 +201,9 @@ PositionKind positionInModifier(
 				return PositionKind(PositionKind.None());
 		});
 
+Opt!PositionKind positionInDestructure(in ExprCtx ctx, in Destructure a, in DestructureAst ast, Pos pos) =>
+	positionInDestructure(ctx.allSymbols, ctx.container.toLocalContainer, a, ast, pos);
+
 Opt!PositionKind positionInDestructure(
 	in AllSymbols allSymbols,
 	LocalContainer container,
@@ -280,9 +286,7 @@ Opt!PositionKind positionInAlias(in AllSymbols allSymbols, StructAlias* a, Pos p
 		() => optIf(hasPos(nameRange(allSymbols, *a).range, pos), () => PositionKind(a)),
 		() => optIf(hasPos(a.ast.keywordRange, pos), () =>
 			PositionKind(PositionKind.Keyword(PositionKind.Keyword.Kind.alias_))),
-		() => has(a.target)
-			? positionInType(allSymbols, TypeContainer(a), Type(force(a.target)), a.ast.target, pos)
-			: none!PositionKind);
+		() => positionInType(allSymbols, TypeContainer(a), Type(a.target), a.ast.target, pos));
 
 Opt!PositionKind positionInStruct(in AllSymbols allSymbols, StructDecl* a, Pos pos) =>
 	a.source.matchIn!(Opt!PositionKind)(
@@ -411,17 +415,32 @@ Opt!PositionKind positionInFieldMutability(in AllSymbols allSymbols, in FieldMut
 		hasPos(ast.range, pos),
 		() => PositionKind(PositionKind.RecordFieldMutability(ast.visibility)));
 
+const struct ExprCtx {
+	@safe @nogc pure nothrow:
+
+	AllSymbols* allSymbolsPtr;
+	ExprContainer container;
+
+	ref const(AllSymbols) allSymbols() return scope =>
+		*allSymbolsPtr;
+}
+
 Opt!PositionKind positionInExpr(in AllSymbols allSymbols, ExprContainer container, ref Expr a, Pos pos) {
+	ExprCtx ctx = ExprCtx(ptrTrustMe(allSymbols), container);
+	return positionInExpr(ctx, a, pos);
+}
+
+Opt!PositionKind positionInExpr(in ExprCtx ctx, ref Expr a, Pos pos) {
 	if (!hasPos(a.range, pos))
 		return none!PositionKind;
 	else {
 		ExprAst* ast = a.ast;
 		Opt!PositionKind here() =>
-			some(PositionKind(PositionKind.Expression(container, &a)));
+			some(PositionKind(PositionKind.Expression(ctx.container, &a)));
 		Opt!PositionKind inDestructure(in Destructure x, in DestructureAst y) =>
-			positionInDestructure(allSymbols, container.toLocalContainer, x, y, pos);
+			positionInDestructure(ctx, x, y, pos);
 		Opt!PositionKind recur(in Expr inner) =>
-			positionInExpr(allSymbols, container, inner, pos);
+			positionInExpr(ctx, inner, pos);
 		Opt!PositionKind recurOpt(in Opt!(Expr*) inner) =>
 			has(inner)
 				? recur(*force(inner))
@@ -492,22 +511,9 @@ Opt!PositionKind positionInExpr(in AllSymbols allSymbols, ExprContainer containe
 			(ref LoopWhileExpr x) =>
 				optOr!PositionKind(recur(x.condition), () => recur(x.body_), () => here()),
 			(ref MatchEnumExpr x) =>
-				optOr!PositionKind(
-					recur(x.matched.expr),
-					() => first!(PositionKind, Expr)(x.cases, (Expr y) => recur(y)),
-					() => here()),
+				positionInMatchEnum(ctx, &a, x, *ast, pos),
 			(ref MatchUnionExpr x) =>
-				optOr!PositionKind(
-					recur(x.matched.expr),
-					() => firstZip!(PositionKind, MatchUnionExpr.Case, MatchAst.CaseAst)(
-						x.cases,
-						ast.kind.as!(MatchAst*).cases,
-						(MatchUnionExpr.Case case_, MatchAst.CaseAst caseAst) =>
-							optOr!PositionKind(
-								has(caseAst.destructure)
-									? inDestructure(case_.destructure, force(caseAst.destructure))
-									: none!PositionKind,
-								() => recur(case_.then)))),
+				positionInMatchUnion(ctx, &a, x, *ast, pos),
 			(ref PtrToFieldExpr x) =>
 				optOr!PositionKind(
 					recur(x.target.expr),
@@ -522,6 +528,46 @@ Opt!PositionKind positionInExpr(in AllSymbols allSymbols, ExprContainer containe
 				optOr!PositionKind(recur(x.inner), () => here()));
 	}
 }
+
+Opt!PositionKind positionInMatchEnum(in ExprCtx ctx, Expr* expr, ref MatchEnumExpr a, ref ExprAst ast, Pos pos) =>
+	optOr!PositionKind(
+		positionInMatchCommon(ctx, expr, a.matched.expr, ast, pos),
+		() => firstZipPointerFirst3!(PositionKind, EnumMember, Expr, MatchAst.CaseAst)(
+			a.enumMembers, a.cases, ast.kind.as!(MatchAst*).cases,
+			(EnumMember* member, Expr then, MatchAst.CaseAst caseAst) =>
+				optOr!PositionKind(
+					optIf(hasPos(caseAst.keywordAndMemberNameRange(ctx.allSymbols), pos), () =>
+						PositionKind(PositionKind.MatchEnumCase(member))),
+					() => positionInExpr(ctx, then, pos))));
+
+Opt!PositionKind positionInMatchUnion(in ExprCtx ctx, Expr* expr, ref MatchUnionExpr a, ref ExprAst ast, Pos pos) =>
+	optOr!PositionKind(
+		positionInMatchCommon(ctx, expr, a.matched.expr, ast, pos),
+		() => firstZipPointerFirst3!(PositionKind, UnionMember, MatchUnionExpr.Case, MatchAst.CaseAst)(
+			a.unionMembers, a.cases, ast.kind.as!(MatchAst*).cases,
+			(UnionMember* member, MatchUnionExpr.Case case_, MatchAst.CaseAst caseAst) =>
+				positionInMatchUnionCase(ctx, member, case_, caseAst, pos)));
+
+Opt!PositionKind positionInMatchUnionCase(
+	in ExprCtx ctx,
+	UnionMember* member,
+	MatchUnionExpr.Case case_,
+	MatchAst.CaseAst ast,
+	Pos pos,
+) =>
+	optOr!PositionKind(
+		optIf(hasPos(ast.keywordAndMemberNameRange(ctx.allSymbols), pos), () =>
+			PositionKind(PositionKind.MatchUnionCase(member))),
+		() => has(ast.destructure)
+			? positionInDestructure(ctx, case_.destructure, force(ast.destructure), pos)
+			: none!PositionKind,
+		() => positionInExpr(ctx, case_.then, pos));
+
+Opt!PositionKind positionInMatchCommon(in ExprCtx ctx, Expr* matchExpr, ref Expr matched, ref ExprAst ast, Pos pos) =>
+	optOr!PositionKind(
+		optIf(hasPos(ast.kind.as!(MatchAst*).keywordRange(ast), pos), () =>
+			PositionKind(PositionKind.Expression(ctx.container, matchExpr))),
+		() => positionInExpr(ctx, matched, pos));
 
 Opt!PositionKind positionInType(in AllSymbols allSymbols, TypeContainer container, Type type, TypeAst ast, Pos pos) =>
 	hasPos(range(ast, allSymbols), pos)

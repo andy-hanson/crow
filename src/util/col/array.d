@@ -96,6 +96,9 @@ SmallArray!T emptySmallArray(T)() =>
 bool sizeEq(T, U)(in T[] a, in U[] b) =>
 	a.length == b.length;
 
+private bool sizeEq3(T, U, V)(in T[] a, in U[] b, in V[] c) =>
+	a.length == b.length && b.length == c.length;
+
 bool isEmpty(T)(in T[] a) =>
 	a.length == 0;
 
@@ -251,6 +254,16 @@ Opt!Out firstZipPointerFirst(Out, In0, In1)(
 ) {
 	assert(sizeEq(a, b));
 	return firstWithIndex!(Out, In1)(b, (size_t i, In1 x) => cb(&a[i], x));
+}
+
+Opt!Out firstZipPointerFirst3(Out, In0, In1, In2)(
+	In0[] a,
+	in In1[] b,
+	in In2[] c,
+	in Opt!Out delegate(In0*, In1, In2) @safe @nogc pure nothrow cb,
+) {
+	assert(sizeEq3(a, b, c));
+	return firstWithIndex!(Out, In1)(b, (size_t i, In1 x) => cb(&a[i], x, c[i]));
 }
 
 SmallArray!T copyArray(T)(ref Alloc alloc, scope SmallArray!T a) =>

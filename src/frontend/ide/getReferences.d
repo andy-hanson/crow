@@ -180,6 +180,9 @@ void referencesForTarget(
 		(PositionKind.TypeParamWithContainer x) {
 			referencesForTypeParam(allSymbols, curUri, x, cb);
 		},
+		(UnionMember* x) {
+			referencesForUnionMember(program, x, cb);
+		},
 		(VarDecl* x) {
 			referencesForVarDecl(allSymbols, program, x, cb);
 		});
@@ -528,7 +531,11 @@ void referencesForRecordField(in AllSymbols allSymbols, in Program program, in R
 }
 
 void referencesForEnumMember(in Program program, in EnumMember* x, in ReferenceCb cb) {
-	// TODO: Find the corresponding creation function
+	// TODO: Find the corresponding creation function. Also all references in 'match' expressions.
+}
+
+void referencesForUnionMember(in Program program, in UnionMember* x, in ReferenceCb cb) {
+	// TODO: Find the corresponding creation function. Also all references in 'match' expressions.
 }
 
 void referencesForVarDecl(scope ref AllSymbols allSymbols, in Program program, in VarDecl* a, in ReferenceCb cb) {

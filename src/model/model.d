@@ -315,8 +315,7 @@ immutable struct StructAlias {
 	Uri moduleUri;
 	Visibility visibility;
 	Symbol name;
-	// This will be none if the alias target is not found
-	private Late!(Opt!(StructInst*)) target_;
+	private Late!(StructInst*) target_;
 
 	SmallString docComment() return scope =>
 		ast.docComment;
@@ -327,9 +326,9 @@ immutable struct StructAlias {
 	UriAndRange range() scope =>
 		UriAndRange(moduleUri, ast.range);
 
-	ref Opt!(StructInst*) target() return scope =>
+	StructInst* target() return scope =>
 		lateGet(target_);
-	void target(Opt!(StructInst*) value) {
+	void target(StructInst* value) {
 		lateSet(target_, value);
 	}
 }
@@ -1613,13 +1612,6 @@ immutable struct Destructure {
 			(in Destructure.Split _) =>
 				none!Symbol);
 
-	Opt!Range nameRange(in AllSymbols allSymbols) scope {
-		Opt!Symbol name = name;
-		return has(name)
-			? some(rangeOfNameAndRange(NameAndRange(range(allSymbols).start, force(name)), allSymbols))
-			: none!Range;
-	}
-
 	Range range(in AllSymbols allSymbols) scope =>
 		matchIn!Range(
 			(in Ignore x) =>
@@ -1790,11 +1782,18 @@ immutable struct LoopWhileExpr {
 }
 
 immutable struct MatchEnumExpr {
+	@safe @nogc pure nothrow:
+
 	ExprAndType matched;
 	Expr[] cases;
+
+	EnumMember[] enumMembers() =>
+		matched.type.as!(StructInst*).decl.body_.as!(StructBody.Enum).members;
 }
 
 immutable struct MatchUnionExpr {
+	@safe @nogc pure nothrow:
+
 	immutable struct Case {
 		Destructure destructure;
 		Expr then;
@@ -1802,6 +1801,9 @@ immutable struct MatchUnionExpr {
 
 	ExprAndType matched;
 	Case[] cases;
+
+	UnionMember[] unionMembers() =>
+		matched.type.as!(StructInst*).decl.body_.as!(StructBody.Union).members;
 }
 
 immutable struct PtrToFieldExpr {
