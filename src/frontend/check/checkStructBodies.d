@@ -12,7 +12,15 @@ import frontend.check.checkCtx :
 import frontend.check.instantiate : DelayStructInsts;
 import frontend.check.maps : StructsAndAliasesMap;
 import frontend.check.typeFromAst : checkTypeParams, typeFromAst;
-import model.ast : LiteralIntAst, LiteralNatAst, ModifierAst, ModifierKeyword, StructBodyAst, StructDeclAst, TypeAst;
+import model.ast :
+	LiteralIntAst,
+	LiteralNatAst,
+	ModifierAst,
+	ModifierKeyword,
+	StructBodyAst,
+	StructDeclAst,
+	TypeAst,
+	VisibilityAndRange;
 import model.concreteModel : TypeSize;
 import model.diag : Diag, DeclKind;
 import model.model :
@@ -44,10 +52,10 @@ import model.model :
 	Visibility;
 import util.col.array : eachPair, fold, mapPointers, zipPtrFirst;
 import util.conv : safeToSizeT;
-import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, some, someMut;
+import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
-import util.util : enumConvert, isMultipleOf, ptrTrustMe, todo;
+import util.util : enumConvertOrAssert, isMultipleOf, ptrTrustMe, todo;
 
 StructDecl[] checkStructsInitial(ref CheckCtx ctx, in StructDeclAst[] asts) =>
 	mapPointers!(StructDecl, StructDeclAst)(ctx.alloc, asts, (StructDeclAst* ast) {
@@ -154,10 +162,6 @@ immutable struct LinkageAndPurity {
 	Linkage linkage;
 	PurityAndForced purityAndForced;
 }
-immutable struct OptLinkageAndPurity {
-	Opt!Linkage linkage;
-	Opt!PurityAndForced purityAndForced;
-}
 
 immutable struct PurityAndForced {
 	Purity purity;
@@ -165,48 +169,48 @@ immutable struct PurityAndForced {
 }
 
 // Note: purity is taken for granted here, and verified later when we check the body.
-LinkageAndPurity getStructModifiers(ref CheckCtx ctx, DeclKind declKind, in ModifierAst[] modifiers) {
-	Linkage defaultLinkage = defaultLinkage(declKind);
-	PurityAndForced defaultPurity = PurityAndForced(defaultPurity(declKind), false);
-	OptLinkageAndPurity opts = fold!(OptLinkageAndPurity, ModifierAst)(
-		OptLinkageAndPurity(),
-		modifiers,
-		(OptLinkageAndPurity cur, in ModifierAst mod) {
-			if (isStructModifier(mod)) {
-				ModifierAst.Keyword kw = mod.as!(ModifierAst.Keyword);
-				void addDiagConflictOrDuplicate(ModifierKeyword prev) {
-					addDiag(ctx, kw.range, modifierConflictOrDuplicate(prev, kw.kind));
-				}
-				void addDiagRedundant() {
-					addDiag(ctx, kw.range, Diag(
-						Diag.ModifierRedundantDueToDeclKind(kw.kind, declKind)));
-				}
-				if (kw.kind == ModifierKeyword.extern_) {
-					if (has(cur.linkage))
-						addDiagConflictOrDuplicate(ModifierKeyword.extern_);
-					else if (Linkage.extern_ == defaultLinkage)
-						addDiagRedundant();
-					return OptLinkageAndPurity(some(Linkage.extern_), cur.purityAndForced);
-				} else {
-					Opt!PurityAndForced opt = purityAndForcedFromModifier(kw.kind);
-					PurityAndForced pur = force(opt);
-					if (has(cur.purityAndForced))
-						addDiagConflictOrDuplicate(modifierForPurityAndForced(force(cur.purityAndForced)));
-					else if (pur == defaultPurity)
-						addDiagRedundant();
-					return OptLinkageAndPurity(cur.linkage, some(pur));
-				}
-			} else
-				// Already warned in 'checkOnlyStructModifiers'
-				return cur;
-		});
-	return LinkageAndPurity(
-		optOrDefault!Linkage(opts.linkage, () => defaultLinkage),
-		optOrDefault!PurityAndForced(opts.purityAndForced, () => defaultPurity));
+LinkageAndPurity getStructModifiers(ref CheckCtx ctx, DeclKind declKind, ModifierAst[] modifiers) {
+	LinkageAndPurityModifiers accum = accumulateStructModifiers(ctx, modifiers);
+	Linkage linkage = () {
+		Linkage defaultLinkage = defaultLinkage(declKind);
+		if (has(accum.linkage)) {
+			ModifierAst.Keyword* keyword = force(accum.linkage);
+			assert(keyword.kind == ModifierKeyword.extern_);
+			if (defaultLinkage == Linkage.extern_)
+				addDiag(ctx, keyword.range, Diag(Diag.ModifierRedundantDueToDeclKind(keyword.kind, declKind)));
+			return Linkage.extern_;
+		} else
+			return defaultLinkage;
+	}();
+	PurityAndForced purity = () {
+		Purity defaultPurity = defaultPurity(declKind);
+		if (has(accum.purityAndForced)) {
+			ModifierAst.Keyword* keyword = force(accum.purityAndForced);
+			Opt!PurityAndForced opt = purityAndForcedFromModifier(keyword.kind);
+			PurityAndForced pf = force(opt);
+			if (pf.purity == defaultPurity)
+				addDiag(ctx, keyword.range, Diag(Diag.ModifierRedundantDueToDeclKind(keyword.kind, declKind)));
+			return pf;
+		} else
+			return PurityAndForced(defaultPurity, false);
+	}();
+	return LinkageAndPurity(linkage, purity);
 }
 
-Diag modifierConflictOrDuplicate(ModifierKeyword a, ModifierKeyword b) =>
-	a == b ? Diag(Diag.ModifierDuplicate(a)) : Diag(Diag.ModifierConflict(a, b));
+struct LinkageAndPurityModifiers {
+	MutOpt!(ModifierAst.Keyword*) linkage;
+	MutOpt!(ModifierAst.Keyword*) purityAndForced;
+}
+LinkageAndPurityModifiers accumulateStructModifiers(ref CheckCtx ctx, ModifierAst[] modifiers) {
+	LinkageAndPurityModifiers cur = LinkageAndPurityModifiers();
+	foreach (ref ModifierAst modifier; modifiers) {
+		if (isStructModifier(modifier)) {
+			ModifierAst.Keyword* kw = &modifier.as!(ModifierAst.Keyword)();
+			accumulateModifier(ctx, kw.kind == ModifierKeyword.extern_ ? cur.linkage : cur.purityAndForced, kw);
+		} // else already warned in 'checkOnlyStructModifiers'
+	}
+	return cur;
+}
 
 Linkage defaultLinkage(DeclKind a) {
 	final switch (a) {
@@ -275,19 +279,6 @@ Opt!PurityAndForced purityAndForcedFromModifier(ModifierKeyword a) {
 			return some(PurityAndForced(Purity.shared_, false));
 		default:
 			return none!PurityAndForced;
-	}
-}
-
-ModifierKeyword modifierForPurityAndForced(PurityAndForced a) {
-	final switch (a.purity) {
-		case Purity.data:
-			assert(!a.forced);
-			return ModifierKeyword.data;
-		case Purity.shared_:
-			return a.forced ? ModifierKeyword.forceShared : ModifierKeyword.shared_;
-		case Purity.mut:
-			assert(!a.forced);
-			return ModifierKeyword.mut;
 	}
 }
 
@@ -522,11 +513,15 @@ StructBody.Record checkRecord(
 	in StructBodyAst.Record r,
 	scope ref DelayStructInsts delayStructInsts,
 ) {
-	RecordModifiers modifiers = checkRecordModifiers(ctx, modifierAsts);
+	RecordModifiers modifiers = accumulateRecordModifiers(ctx, modifierAsts);
 	bool isExtern = struct_.linkage != Linkage.internal;
-	Opt!ByValOrRef valOrRef = isExtern ? some(ByValOrRef.byVal) : modifiers.byValOrRef;
+	Opt!ByValOrRef valOrRef = isExtern
+		? some(ByValOrRef.byVal)
+		: has(modifiers.byValOrRef)
+		? some(enumConvertOrAssert!ByValOrRef(force(modifiers.byValOrRef).kind))
+		: none!ByValOrRef;
 	if (isExtern && has(modifiers.byValOrRef))
-		addDiagAssertSameUri(ctx, struct_.range, Diag(Diag.ExternRecordImplicitlyByVal(struct_)));
+		addDiag(ctx, force(modifiers.byValOrRef).range, Diag(Diag.ExternRecordImplicitlyByVal(struct_)));
 	RecordField[] fields = mapPointers!(RecordField, StructBodyAst.Record.Field)(
 		ctx.alloc, r.fields, (StructBodyAst.Record.Field* field) =>
 			checkRecordField(ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, field));
@@ -535,7 +530,7 @@ StructBody.Record checkRecord(
 			addDiag(ctx, b.range, Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.recordField, a.name)));
 	});
 	return StructBody.Record(
-		RecordFlags(recordNewVisibility(ctx, struct_, fields, modifiers.newVisibility), modifiers.packed, valOrRef),
+		RecordFlags(recordNewVisibility(ctx, struct_, fields, modifiers), has(modifiers.packed), valOrRef),
 		fields);
 }
 
@@ -553,11 +548,11 @@ RecordField checkRecordField(
 	if (has(ast.mutability) && record.purity != Purity.mut && !record.purityIsForced)
 		addDiag(ctx, ast.range, Diag(Diag.MutFieldNotAllowed()));
 	Symbol name = ast.name.name;
-	Visibility visibility = visibilityFromDefaultWithDiag(ctx, ast.range, record.visibility, ast.visibility,
+	Visibility visibility = visibilityFromDefaultWithDiag(ctx, record.visibility, ast.visibility,
 		Diag.VisibilityWarning.Kind(Diag.VisibilityWarning.Kind.Field(record, name)));
 	Opt!Visibility mutability = has(ast.mutability)
 		? some(visibilityFromDefaultWithDiag(
-			ctx, ast.range, visibility, force(ast.mutability).visibility,
+			ctx, visibility, force(ast.mutability).visibility,
 			Diag.VisibilityWarning.Kind(Diag.VisibilityWarning.Kind.FieldMutability(name))))
 		: none!Visibility;
 	return RecordField(ast, record, visibility, name, mutability, fieldType);
@@ -607,99 +602,64 @@ UnionMember checkUnionMember(
 	return UnionMember(ast, struct_, ast.name, type);
 }
 
-immutable struct RecordModifiers {
-	Opt!ByValOrRef byValOrRef;
-	NewVisibility newVisibility;
-	bool packed;
-}
-immutable struct NewVisibility {
-	Range range;
-	Opt!Visibility visibility;
+struct RecordModifiers {
+	MutOpt!(ModifierAst.Keyword*) byValOrRef;
+	MutOpt!(ModifierAst.Keyword*) newVisibility;
+	MutOpt!(ModifierAst.Keyword*) packed;
 }
 
-RecordModifiers withByValOrRef(ref CheckCtx ctx, RecordModifiers cur, in Range range, ByValOrRef value) {
-	if (has(cur.byValOrRef)) {
-		ModifierKeyword valueKeyword = modifierOfByValOrRef(value);
-		addDiag(ctx, range, value == force(cur.byValOrRef)
-			? Diag(Diag.ModifierDuplicate(valueKeyword))
-			: Diag(Diag.ModifierConflict(modifierOfByValOrRef(force(cur.byValOrRef)), valueKeyword)));
+void accumulateModifier(ref CheckCtx ctx, ref MutOpt!(ModifierAst.Keyword*) old, ModifierAst.Keyword* new_) {
+	if (has(old)) {
+		ModifierKeyword oldKeyword = force(old).kind;
+		addDiag(ctx, new_.range, new_.kind == oldKeyword
+			? Diag(Diag.ModifierDuplicate(new_.kind))
+			: Diag(Diag.ModifierConflict(oldKeyword, new_.kind)));
 	}
-	return RecordModifiers(some(value), cur.newVisibility, cur.packed);
+	old = someMut(new_);
 }
 
-ModifierKeyword modifierOfByValOrRef(ByValOrRef a) =>
-	enumConvert!ModifierKeyword(a);
-
-RecordModifiers withNewVisibility(ref CheckCtx ctx, RecordModifiers cur, in Range range, Visibility value) {
-	if (has(cur.newVisibility.visibility)) {
-		ModifierKeyword valueKeyword = modifierOfNewVisibility(value);
-		addDiag(ctx, range, value == force(cur.newVisibility.visibility)
-			? Diag(Diag.ModifierDuplicate(valueKeyword))
-			: Diag(Diag.ModifierConflict(modifierOfNewVisibility(force(cur.newVisibility.visibility)), valueKeyword)));
+RecordModifiers accumulateRecordModifiers(ref CheckCtx ctx, ModifierAst[] modifiers) {
+	RecordModifiers res = RecordModifiers();
+	foreach (ref ModifierAst modifier; modifiers) {
+		Range range() => modifier.range(ctx.allSymbols);
+		modifier.match!void(
+			(ModifierAst.Keyword x) {
+				ModifierAst.Keyword* ptr = &modifier.as!(ModifierAst.Keyword)();
+				switch (x.kind) {
+					case ModifierKeyword.byRef:
+					case ModifierKeyword.byVal:
+						accumulateModifier(ctx, res.byValOrRef, ptr);
+						break;
+					case ModifierKeyword.newInternal:
+					case ModifierKeyword.newPrivate:
+					case ModifierKeyword.newPublic:
+						accumulateModifier(ctx, res.newVisibility, ptr);
+						break;
+					case ModifierKeyword.packed:
+						accumulateModifier(ctx, res.packed, ptr);
+						break;
+					case ModifierKeyword.data:
+					case ModifierKeyword.extern_:
+					case ModifierKeyword.forceShared:
+					case ModifierKeyword.mut:
+					case ModifierKeyword.shared_:
+						// already handled in getStructModifiers
+						assert(isStructModifier(modifier));
+						break;
+					default:
+						addDiag(ctx, range(), Diag(Diag.ModifierInvalid(x.kind, DeclKind.record)));
+						break;
+				}
+			},
+			(ModifierAst.Extern) {
+				addDiag(ctx, range(), Diag(Diag.ExternHasUnnecessaryLibraryName()));
+			},
+			(TypeAst) {
+				addDiag(ctx, range(), Diag(Diag.SpecUseInvalid(DeclKind.record)));
+			});
 	}
-	return RecordModifiers(cur.byValOrRef, NewVisibility(range, some(value)), cur.packed);
+	return res;
 }
-
-ModifierKeyword modifierOfNewVisibility(Visibility a) {
-	final switch (a) {
-		case Visibility.private_:
-			return ModifierKeyword.newPrivate;
-		case Visibility.internal:
-			return ModifierKeyword.newInternal;
-		case Visibility.public_:
-			return ModifierKeyword.newPublic;
-	}
-}
-
-RecordModifiers withPacked(ref CheckCtx ctx, RecordModifiers cur, in Range range) {
-	if (cur.packed)
-		addDiag(ctx, range, Diag(Diag.ModifierDuplicate(ModifierKeyword.packed)));
-	return RecordModifiers(cur.byValOrRef, cur.newVisibility, true);
-}
-
-RecordModifiers checkRecordModifiers(ref CheckCtx ctx, ModifierAst[] modifiers) =>
-	fold!(RecordModifiers, ModifierAst)(
-		RecordModifiers(none!ByValOrRef, NewVisibility(Range.empty, none!Visibility), false),
-		modifiers,
-		(RecordModifiers cur, in ModifierAst modifier) {
-			Range range = modifier.range(ctx.allSymbols);
-			return modifier.matchIn!RecordModifiers(
-				(in ModifierAst.Keyword x) {
-					switch (x.kind) {
-						case ModifierKeyword.byRef:
-							return withByValOrRef(ctx, cur, range, ByValOrRef.byRef);
-						case ModifierKeyword.byVal:
-							return withByValOrRef(ctx, cur, range, ByValOrRef.byVal);
-						case ModifierKeyword.newInternal:
-							return withNewVisibility(ctx, cur, range, Visibility.internal);
-						case ModifierKeyword.newPrivate:
-							return withNewVisibility(ctx, cur, range, Visibility.private_);
-						case ModifierKeyword.newPublic:
-							return withNewVisibility(ctx, cur, range, Visibility.public_);
-						case ModifierKeyword.packed:
-							return withPacked(ctx, cur, range);
-						case ModifierKeyword.data:
-						case ModifierKeyword.extern_:
-						case ModifierKeyword.forceShared:
-						case ModifierKeyword.mut:
-						case ModifierKeyword.shared_:
-							// already handled in getStructModifiers
-							return cur;
-						default:
-							addDiag(ctx, range, Diag(
-								Diag.ModifierInvalid(x.kind, DeclKind.record)));
-							return cur;
-					}
-				},
-				(in ModifierAst.Extern x) {
-					addDiag(ctx, range, Diag(Diag.ExternHasUnnecessaryLibraryName()));
-					return cur;
-				},
-				(in TypeAst x) {
-					addDiag(ctx, range, Diag(Diag.SpecUseInvalid(DeclKind.record)));
-					return cur;
-				});
-		});
 
 void checkReferenceLinkageAndPurity(ref CheckCtx ctx, StructDecl* struct_, in Range range, Type referencedType) {
 	if (!isLinkagePossiblyCompatible(struct_.linkage, linkageRange(referencedType)))
@@ -717,14 +677,31 @@ Visibility recordNewVisibility(
 	ref CheckCtx ctx,
 	StructDecl* record,
 	in RecordField[] fields,
-	in NewVisibility ast,
+	in RecordModifiers modifiers,
 ) {
 	Visibility default_ = fold!(Visibility, RecordField)(
 		record.visibility, fields, (Visibility cur, in RecordField field) =>
 			leastVisibility(cur, field.visibility));
-	//TODO: better range
-	return visibilityFromDefaultWithDiag(ctx, ast.range, default_, ast.visibility, Diag.VisibilityWarning.Kind(
+	Opt!VisibilityAndRange explicit = has(modifiers.newVisibility)
+		? some(VisibilityAndRange(
+			visibilityFromNewVisibility(force(modifiers.newVisibility).kind),
+			force(modifiers.newVisibility).pos))
+		: none!VisibilityAndRange;
+	return visibilityFromDefaultWithDiag(ctx, default_, explicit, Diag.VisibilityWarning.Kind(
 		Diag.VisibilityWarning.Kind.New(record)));
+}
+
+Visibility visibilityFromNewVisibility(ModifierKeyword a) {
+	switch (a) {
+		case ModifierKeyword.newPrivate:
+			return Visibility.private_;
+		case ModifierKeyword.newInternal:
+			return Visibility.internal;
+		case ModifierKeyword.newPublic:
+			return Visibility.public_;
+		default:
+			assert(false);
+	}
 }
 
 BuiltinType getBuiltinType(scope ref CheckCtx ctx, StructDecl* struct_) {

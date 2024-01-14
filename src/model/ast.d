@@ -9,7 +9,7 @@ import util.alloc.alloc : Alloc;
 import util.col.array : arrayOfSingle, exists, isEmpty, newSmallArray, sizeEq, SmallArray;
 import util.conv : safeToUint;
 import util.memory : allocate;
-import util.opt : force, has, none, Opt, optOrDefault, some;
+import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
 import util.sourceRange : combineRanges, Pos, Range, rangeOfStartAndLength;
 import util.string : SmallString;
 import util.symbol : AllSymbols, Symbol, symbol, symbolSize;
@@ -37,12 +37,29 @@ immutable struct FieldMutabilityAst {
 	@safe @nogc pure nothrow:
 
 	Pos pos;
-	Opt!Visibility visibility;
+	Opt!Visibility visibility_;
 
 	Range range() =>
 		rangeOfStartAndLength(pos, has(visibility) ? "-mut".length : "mut".length);
+
+	Opt!VisibilityAndRange visibility() =>
+		getVisibilityAndRange(pos, visibility_);
 }
 static assert(FieldMutabilityAst.sizeof == ulong.sizeof);
+
+immutable struct VisibilityAndRange {
+	@safe @nogc pure nothrow:
+
+	Visibility visibility;
+	Pos pos;
+
+	Range range() =>
+		rangeOfStartAndLength(pos, "+".length);
+}
+
+private Opt!VisibilityAndRange getVisibilityAndRange(Pos pos, Opt!Visibility visibility) =>
+	optIf(has(visibility), () =>
+		VisibilityAndRange(force(visibility), pos));
 
 immutable struct TypeAst {
 	immutable struct Bogus {
@@ -480,10 +497,17 @@ immutable struct UnlessAst {
 }
 
 immutable struct WithAst {
+	@safe @nogc pure nothrow:
+
 	DestructureAst param;
 	ExprAst arg;
 	ExprAst body_;
 	ExprAst else_;
+
+	Range keywordRange(ExprAst* ast) scope {
+		assert(ast.kind.as!(WithAst*) == &this);
+		return rangeOfStartAndLength(ast.range.start, "with".length);
+	}
 }
 
 immutable struct ExprAstKind {
@@ -565,14 +589,16 @@ immutable struct StructAliasAst {
 
 	SmallString docComment;
 	Range range;
-	Opt!Visibility visibility;
+	Opt!Visibility visibility_;
 	NameAndRange name;
 	SmallArray!NameAndRange typeParams;
 	Pos keywordPos;
 	TypeAst target;
 
-	Range keywordRange() =>
+	Range keywordRange() scope =>
 		rangeOfStartAndLength(keywordPos, "alias".length);
+	Opt!VisibilityAndRange visibility() scope =>
+		getVisibilityAndRange(range.start, visibility_);
 }
 
 Range typeParamsRange(in AllSymbols allSymbols, in SmallArray!NameAndRange typeParams) {
@@ -681,11 +707,16 @@ immutable struct StructBodyAst {
 	}
 	immutable struct Record {
 		immutable struct Field {
+			@safe @nogc pure nothrow:
+
 			Range range;
-			Opt!Visibility visibility;
+			Opt!Visibility visibility_;
 			NameAndRange name;
 			Opt!FieldMutabilityAst mutability;
 			TypeAst type;
+
+			Opt!VisibilityAndRange visibility() scope =>
+				getVisibilityAndRange(range.start, visibility_);
 		}
 		SmallArray!Field fields;
 	}
@@ -713,7 +744,7 @@ immutable struct StructDeclAst {
 	SmallString docComment;
 	// Range starts at the visibility
 	Range range;
-	Opt!Visibility visibility;
+	Opt!Visibility visibility_;
 	NameAndRange name;
 	SmallArray!NameAndRange typeParams;
 	Pos keywordPos;
@@ -722,6 +753,8 @@ immutable struct StructDeclAst {
 
 	Range keywordRange() scope =>
 		rangeOfStartAndLength(keywordPos, keywordForStructBody(body_).length);
+	Opt!VisibilityAndRange visibility() scope =>
+		getVisibilityAndRange(range.start, visibility_);
 }
 
 Range nameRange(in AllSymbols allSymbols, in StructDeclAst a) =>
@@ -747,7 +780,7 @@ immutable struct SpecDeclAst {
 
 	Range range;
 	SmallString docComment;
-	Opt!Visibility visibility;
+	Opt!Visibility visibility_;
 	NameAndRange name;
 	SmallArray!NameAndRange typeParams;
 	Pos specKeywordPos;
@@ -756,21 +789,28 @@ immutable struct SpecDeclAst {
 
 	Range keywordRange() scope =>
 		rangeOfStartAndLength(specKeywordPos, "spec".length);
+	Opt!VisibilityAndRange visibility() scope =>
+		getVisibilityAndRange(range.start, visibility_);
 }
 
 Range nameRange(in AllSymbols allSymbols, in SpecDeclAst a) =>
 	rangeOfNameAndRange(a.name, allSymbols);
 
 immutable struct FunDeclAst {
+	@safe @nogc pure nothrow:
+
 	Range range;
 	SmallString docComment;
-	Opt!Visibility visibility;
+	Opt!Visibility visibility_;
 	NameAndRange name;
 	SmallArray!NameAndRange typeParams;
 	TypeAst returnType;
 	ParamsAst params;
 	SmallArray!ModifierAst modifiers;
 	ExprAst body_; // EmptyAst if missing
+
+	Opt!VisibilityAndRange visibility() scope =>
+		getVisibilityAndRange(range.start, visibility_);
 }
 
 Range nameRange(in AllSymbols allSymbols, in FunDeclAst a) =>
@@ -826,7 +866,7 @@ immutable struct VarDeclAst {
 
 	Range range;
 	SmallString docComment;
-	Opt!Visibility visibility;
+	Opt!Visibility visibility_;
 	NameAndRange name;
 	SmallArray!NameAndRange typeParams; // This will be a compile error
 	Pos keywordPos;
@@ -834,8 +874,10 @@ immutable struct VarDeclAst {
 	TypeAst type;
 	SmallArray!ModifierAst modifiers; // Any but 'extern' will be a compile error
 
-	Range keywordRange() =>
+	Range keywordRange() scope =>
 		rangeOfStartAndLength(keywordPos, stringOfVarKindLowerCase(kind).length);
+	Opt!VisibilityAndRange visibility() scope =>
+		getVisibilityAndRange(range.start, visibility_);
 }
 
 immutable struct ImportOrExportAst {

@@ -441,6 +441,7 @@ void writePurity(scope ref Writer writer, in ShowCtx ctx, Purity a) {
 	writer ~= '\'';
 }
 
+alias writeKeyword = writeName;
 void writeName(scope ref Writer writer, in ShowCtx ctx, Symbol name) {
 	writer ~= '\'';
 	writeSymbol(writer, ctx.allSymbols, name);

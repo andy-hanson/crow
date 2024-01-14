@@ -154,7 +154,7 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 						return "This type is behind a pointer.\n" ~
 							"This is more efficient if there are many references to the same value.";
 					case ModifierKeyword.byVal:
-						return "This type is stored by-value.\b" ~
+						return "This type is stored by-value.\n" ~
 							"This avoids allocation but each place this value is used has its own copy of the content.";
 					case ModifierKeyword.data:
 						return "The type is completely immutable.";

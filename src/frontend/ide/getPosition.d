@@ -27,7 +27,8 @@ import model.ast :
 	StructBodyAst,
 	StructDeclAst,
 	TestAst,
-	TypeAst;
+	TypeAst,
+	VisibilityAndRange;
 import model.diag : TypeContainer, TypeWithContainer;
 import model.model :
 	AssertOrForbidExpr,
@@ -131,7 +132,7 @@ Opt!PositionKind getPositionKind(in AllSymbols allSymbols, in AllUris allUris, r
 
 Opt!PositionKind positionInFun(in AllSymbols allSymbols, FunDecl* a, in FunDeclAst* ast, Pos pos) =>
 	optOr!PositionKind(
-		positionInVisibility(VisibilityContainer(a), ast, pos),
+		positionInVisibility(VisibilityContainer(a), ast.visibility, pos),
 		() => optIf(hasPos(allSymbols, ast.name, pos), () => PositionKind(a)),
 		() => positionInTypeParams(allSymbols, TypeContainer(a), ast.typeParams, pos),
 		() => positionInType(allSymbols, TypeContainer(a), a.returnType, ast.returnType, pos),
@@ -274,7 +275,7 @@ Opt!PositionKind positionInImportedNames(
 
 Opt!PositionKind positionInVar(in AllSymbols allSymbols, VarDecl* a, Pos pos) =>
 	optOr!PositionKind(
-		positionInVisibility(VisibilityContainer(a), a.ast, pos),
+		positionInVisibility(VisibilityContainer(a), a.ast.visibility, pos),
 		() => optIf(hasPos(nameRange(allSymbols, *a).range, pos), () => PositionKind(a)),
 		() => optIf(hasPos(a.ast.keywordRange, pos), () =>
 			PositionKind(PositionKind.Keyword(enumConvert!(PositionKind.Keyword.Kind)(a.kind)))),
@@ -282,7 +283,7 @@ Opt!PositionKind positionInVar(in AllSymbols allSymbols, VarDecl* a, Pos pos) =>
 
 Opt!PositionKind positionInAlias(in AllSymbols allSymbols, StructAlias* a, Pos pos) =>
 	optOr!PositionKind(
-		positionInVisibility(VisibilityContainer(a), a.ast, pos),
+		positionInVisibility(VisibilityContainer(a), a.ast.visibility, pos),
 		() => optIf(hasPos(nameRange(allSymbols, *a).range, pos), () => PositionKind(a)),
 		() => optIf(hasPos(a.ast.keywordRange, pos), () =>
 			PositionKind(PositionKind.Keyword(PositionKind.Keyword.Kind.alias_))),
@@ -297,7 +298,7 @@ Opt!PositionKind positionInStruct(in AllSymbols allSymbols, StructDecl* a, Pos p
 
 Opt!PositionKind positionInStruct(in AllSymbols allSymbols, StructDecl* a, in StructDeclAst ast, Pos pos) =>
 	optOr!PositionKind(
-		positionInVisibility(VisibilityContainer(a), ast, pos),
+		positionInVisibility(VisibilityContainer(a), ast.visibility, pos),
 		() => optIf(hasPos(nameRange(allSymbols, *a).range, pos), () => PositionKind(a)),
 		() => optIf(hasPos(ast.keywordRange, pos), () =>
 			PositionKind(PositionKind.Keyword(keywordKindForStructBody(ast.body_)))),
@@ -321,8 +322,8 @@ PositionKind.Keyword.Kind keywordKindForStructBody(in StructBodyAst a) =>
 		(in StructBodyAst.Union) =>
 			PositionKind.Keyword.Kind.union_);
 
-Opt!PositionKind positionInVisibility(TAst)(VisibilityContainer a, in TAst ast, Pos pos) =>
-	pos == ast.range.start && has(ast.visibility)
+Opt!PositionKind positionInVisibility(VisibilityContainer a, in Opt!VisibilityAndRange visibility, Pos pos) =>
+	has(visibility) && hasPos(force(visibility).range, pos)
 		? some(PositionKind(PositionKind.VisibilityMark(a)))
 		: none!PositionKind;
 
@@ -338,7 +339,7 @@ Opt!PositionKind positionInTypeParams(
 
 Opt!PositionKind positionInSpec(in AllSymbols allSymbols, SpecDecl* a, Pos pos) =>
 	optOr!PositionKind(
-		positionInVisibility(VisibilityContainer(a), a.ast, pos),
+		positionInVisibility(VisibilityContainer(a), a.ast.visibility, pos),
 		() => optIf(hasPos(allSymbols, a.ast.name, pos), () => PositionKind(a)),
 		() => positionInTypeParams(allSymbols, TypeContainer(a), a.ast.typeParams, pos),
 		() => optIf(hasPos(a.ast.keywordRange, pos), () =>
@@ -402,7 +403,7 @@ Opt!PositionKind positionInRecordField(
 	Pos pos,
 ) =>
 	optOr!PositionKind(
-		positionInVisibility(VisibilityContainer(field), fieldAst, pos),
+		positionInVisibility(VisibilityContainer(field), fieldAst.visibility, pos),
 		() => optIf(hasPos(allSymbols, fieldAst.name, pos), () =>
 			PositionKind(PositionKind.RecordFieldPosition(decl, field))),
 		() => has(fieldAst.mutability)
@@ -411,9 +412,8 @@ Opt!PositionKind positionInRecordField(
 		() => positionInType(allSymbols, TypeContainer(decl), field.type, fieldAst.type, pos));
 
 Opt!PositionKind positionInFieldMutability(in AllSymbols allSymbols, in FieldMutabilityAst ast, Pos pos) =>
-	optIf(
-		hasPos(ast.range, pos),
-		() => PositionKind(PositionKind.RecordFieldMutability(ast.visibility)));
+	optIf(hasPos(ast.range, pos), () =>
+		PositionKind(PositionKind.RecordFieldMutability(ast.visibility_)));
 
 const struct ExprCtx {
 	@safe @nogc pure nothrow:

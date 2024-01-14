@@ -151,7 +151,7 @@ Json jsonOfSpecDeclAst(ref Alloc alloc, in Ctx ctx, in SpecDeclAst a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		field!"comment"(jsonString(alloc, a.docComment)),
-		visibilityField(a.visibility),
+		visibilityField(a.visibility_),
 		field!"name"(jsonOfNameAndRange(alloc, ctx, a.name)),
 		field!"modifiers"(jsonOfModifiers(alloc, ctx, a.modifiers)),
 		maybeTypeParams(alloc, ctx, a.typeParams),
@@ -173,7 +173,7 @@ Json jsonOfStructAliasAst(ref Alloc alloc, in Ctx ctx, in StructAliasAst a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		optionalStringField!"doc"(alloc, a.docComment),
-		visibilityField(a.visibility),
+		visibilityField(a.visibility_),
 		field!"name"(jsonOfNameAndRange(alloc, ctx, a.name)),
 		maybeTypeParams(alloc, ctx, a.typeParams),
 		field!"target"(jsonOfTypeAst(alloc, ctx, a.target))]);
@@ -235,12 +235,12 @@ Json jsonOfLiteralIntOrNatKind(ref Alloc alloc, in LiteralIntOrNatKind a) =>
 Json jsonOfField(ref Alloc alloc, in Ctx ctx, in StructBodyAst.Record.Field a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
-		visibilityField(a.visibility),
+		visibilityField(a.visibility_),
 		field!"name"(jsonOfNameAndRange(alloc, ctx, a.name)),
 		optionalField!("mutability", FieldMutabilityAst)(a.mutability, (in FieldMutabilityAst x) =>
 			jsonObject(alloc, [
 				field!"pos"(x.pos),
-				visibilityField(x.visibility)])),
+				visibilityField(x.visibility_)])),
 		field!"type"(jsonOfTypeAst(alloc, ctx, a.type))]);
 
 Json jsonOfRecordAst(ref Alloc alloc, in Ctx ctx, in StructBodyAst.Record a) =>
@@ -283,7 +283,7 @@ Json jsonOfStructDeclAst(ref Alloc alloc, in Ctx ctx, in StructDeclAst a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		field!"doc"(jsonString(alloc, a.docComment)),
-		visibilityField(a.visibility),
+		visibilityField(a.visibility_),
 		maybeTypeParams(alloc, ctx, a.typeParams),
 		field!"modifiers"(jsonOfModifiers(alloc, ctx, a.modifiers)),
 		field!"body"(jsonOfStructBodyAst(alloc, ctx, a.body_))]);
@@ -295,7 +295,7 @@ Json.ObjectField maybeTypeParams(ref Alloc alloc, in Ctx ctx, in NameAndRange[] 
 Json jsonOfFunDeclAst(ref Alloc alloc, in Ctx ctx, in FunDeclAst a) =>
 	jsonObject(alloc, [
 		optionalStringField!"doc"(alloc, a.docComment),
-		visibilityField(a.visibility),
+		visibilityField(a.visibility_),
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		field!"name"(jsonOfNameAndRange(alloc, ctx, a.name)),
 		maybeTypeParams(alloc, ctx, a.typeParams),

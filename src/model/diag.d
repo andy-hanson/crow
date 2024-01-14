@@ -492,6 +492,7 @@ immutable struct Diag {
 		Visibility defaultVisibility;
 		Visibility actualVisibility;
 	}
+	immutable struct WithHasElse {}
 	immutable struct WrongNumberTypeArgs {
 		Symbol name;
 		size_t nExpectedTypeArgs;
@@ -576,6 +577,7 @@ immutable struct Diag {
 		Unused,
 		VarargsParamMustBeArray,
 		VisibilityWarning,
+		WithHasElse,
 		WrongNumberTypeArgs);
 }
 

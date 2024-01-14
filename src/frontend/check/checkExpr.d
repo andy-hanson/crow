@@ -1556,7 +1556,7 @@ Expr checkFor(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref ForAs
 
 Expr checkWith(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref WithAst ast, ref Expected expected) {
 	if (!ast.else_.kind.isA!(EmptyAst))
-		todo!void("diag: no 'else' for 'with'");
+		addDiag2(ctx, ast.keywordRange(source), Diag(Diag.WithHasElse()));
 	// TODO: NO ALLOC
 	ExprAst lambda = ExprAst(source.range, ExprAstKind(allocate(ctx.alloc, LambdaAst(ast.param, ast.body_))));
 	return checkCallSpecial(ctx, locals, source, symbol!"with-block", [ast.arg, lambda], expected);

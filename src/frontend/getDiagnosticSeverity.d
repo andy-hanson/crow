@@ -161,5 +161,7 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.VisibilityWarning) =>
 			DiagnosticSeverity.checkWarning,
+		(in Diag.WithHasElse) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.WrongNumberTypeArgs) =>
 			DiagnosticSeverity.checkError);

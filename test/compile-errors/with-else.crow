@@ -1,0 +1,5 @@
+main void()
+	with : (() => info log "done") finally
+		info log "inner"
+	else
+		info log "else"

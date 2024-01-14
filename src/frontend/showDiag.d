@@ -11,6 +11,7 @@ import frontend.showModel :
 	writeCalleds,
 	writeFunDecl,
 	writeFunDeclAndTypeArgs,
+	writeKeyword,
 	writeLineAndColumnRange,
 	writeName,
 	writePurity,
@@ -996,10 +997,18 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writeUnusedDiag(writer, ctx, x);
 		},
 		(in Diag.VarargsParamMustBeArray) {
-			writer ~= "Variadic parameter must be an 'array'.";
+			writer ~= "Variadic parameter must be an ";
+			writeName(writer, ctx, symbol!"array");
+			writer ~= '.';
 		},
 		(in Diag.VisibilityWarning x) {
 			writeVisibilityWarning(writer, ctx, x);
+		},
+		(in Diag.WithHasElse) {
+			writeKeyword(writer, ctx, "with");
+			writer ~= " statement can't have ";
+			writeKeyword(writer, ctx, "else");
+			writer ~= '.';
 		},
 		(in Diag.WrongNumberTypeArgs x) {
 			writeName(writer, ctx, x.name);
