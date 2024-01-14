@@ -101,7 +101,7 @@ Json hoverResult(ref Alloc alloc, in string content, in ShowModelCtx ctx, Module
 			has(hover) ? force(hover).contents.value : "",
 			getDefinitionForPosition(alloc, ctx.allSymbols, position));
 		if (here != curInfo) {
-			endRange(pos - 1);
+			endRange(pos);
 			curRangeStart = pos;
 			curInfo = here;
 		}

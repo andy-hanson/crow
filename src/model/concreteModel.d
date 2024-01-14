@@ -86,8 +86,8 @@ alias ReferenceKind = immutable ReferenceKind_;
 private enum ReferenceKind_ { byVal, byRef, byRefRef }
 
 immutable struct TypeSize {
-	size_t sizeBytes;
-	size_t alignmentBytes;
+	uint sizeBytes;
+	uint alignmentBytes;
 }
 
 Purity purity(ConcreteType a) =>
@@ -136,7 +136,7 @@ immutable struct ConcreteStruct {
 	private Late!ReferenceKind defaultReferenceKind_;
 	private Late!TypeSize typeSize_;
 	// Only set for records
-	private Late!(immutable size_t[]) fieldOffsets_;
+	private Late!(immutable uint[]) fieldOffsets_;
 
 	void info(ConcreteStructInfo value) {
 		lateSet(info_, value);
@@ -164,9 +164,9 @@ immutable struct ConcreteStruct {
 	bool defaultReferenceKindIsSet() =>
 		lateIsSet(defaultReferenceKind_);
 
-	immutable(size_t[]) fieldOffsets() =>
+	immutable(uint[]) fieldOffsets() =>
 		lateGet(fieldOffsets_);
-	void fieldOffsets(immutable size_t[] value) {
+	void fieldOffsets(immutable uint[] value) {
 		lateSet(fieldOffsets_, value);
 	}
 }

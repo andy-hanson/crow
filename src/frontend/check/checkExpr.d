@@ -174,7 +174,7 @@ import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, someMut,
 import util.sourceRange : Pos, Range;
 import util.symbol : prependSet, prependSetDeref, Symbol, symbol, symbolOfString;
 import util.union_ : Union;
-import util.util : castImmutable, castNonScope_ref, max, ptrTrustMe, todo;
+import util.util : castImmutable, castNonScope_ref, max, ptrTrustMe;
 
 Expr checkFunctionBody(
 	ref CheckCtx checkCtx,
@@ -376,11 +376,10 @@ Expr checkArrowAccess(
 	ref ArrowAccessAst ast,
 	ref Expected expected,
 ) {
-	// TODO: NO ALLOC
 	ExprAst[] derefArgs = arrayOfSingle(ast.left);
 	CallAst callDeref = CallAst(CallAst.style.single, NameAndRange(source.range.start, symbol!"*"), derefArgs);
-	return checkCallSpecial(
-		ctx, locals, source, ast.name.name, [ExprAst(source.range, ExprAstKind(callDeref))], expected);
+	ExprAst deref = ExprAst(Range(source.range.start, ast.name.start), ExprAstKind(callDeref));
+	return checkCallSpecial(ctx, locals, source, ast.name.name, [deref], expected);
 }
 
 Expr checkIf(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, IfAst* ast, ref Expected expected) {
@@ -1083,8 +1082,8 @@ Expr checkPointerOfCall(
 	PointerMutability expectedMutability,
 	ref Expected expected,
 ) {
-	Expr fail() {
-		addDiag2(ctx, source, Diag(Diag.PointerUnsupported()));
+	Expr fail(Diag.PointerUnsupported.Reason reason = Diag.PointerUnsupported.Reason.other) {
+		addDiag2(ctx, source, Diag(Diag.PointerUnsupported(reason)));
 		return bogus(expected, source);
 	}
 
@@ -1100,7 +1099,7 @@ Expr checkPointerOfCall(
 					: PointerMutability.readOnly;
 			if (isDefinitelyByRef(*recordType)) {
 				if (fieldMutability < expectedMutability)
-					addDiag2(ctx, source, Diag(Diag.PointerMutToConst(Diag.PointerMutToConst.Kind.field)));
+					addDiag2(ctx, source, Diag(Diag.PointerMutToConst(Diag.PointerMutToConst.Kind.fieldOfByRef)));
 				return check(ctx, source, expected, pointerType, Expr(source, ExprKind(allocate(ctx.alloc,
 					PtrToFieldExpr(ExprAndType(target, Type(recordType)), rfg.fieldIndex)))));
 			} else if (target.kind.isA!CallExpr) {
@@ -1111,14 +1110,18 @@ Expr checkPointerOfCall(
 					Type derefedType = only(derefFun.paramTypes);
 					PointerMutability pointerMutability = mutabilityForPtrDecl(ctx, derefedType.as!(StructInst*).decl);
 					Expr targetPtr = only(targetCall.args);
-					if (max(fieldMutability, pointerMutability) < expectedMutability)
-						todo!void("diag: can't get mut* to immutable field");
-					return check(ctx, source, expected, pointerType, Expr(source, ExprKind(allocate(ctx.alloc,
-						PtrToFieldExpr(ExprAndType(targetPtr, derefedType), rfg.fieldIndex)))));
+					// Ignore fieldMutability -- we'll allow mutating a non-mut field from a mut pointer.
+					// But not allow any mutation from a non-mut pointer even for mutable fields.
+					if (pointerMutability < expectedMutability) {
+						addDiag2(ctx, source, Diag(Diag.PointerMutToConst(Diag.PointerMutToConst.Kind.fieldOfByVal)));
+						return bogus(expected, source);
+					} else
+						return check(ctx, source, expected, pointerType, Expr(source, ExprKind(allocate(ctx.alloc,
+							PtrToFieldExpr(ExprAndType(targetPtr, derefedType), rfg.fieldIndex)))));
 				} else
 					return fail();
 			} else
-				return fail();
+				return fail(Diag.PointerUnsupported.Reason.recordNotByRef);
 		} else
 			return fail();
 	} else

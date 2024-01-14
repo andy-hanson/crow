@@ -235,7 +235,7 @@ immutable struct CallAst {
 		infix, // `a b`, `a b c`, `a b c, d`, etc.
 		prefixBang,
 		prefixOperator, // `-x`, `x`, `~x`
-		single, // `a<t>` (without the type arg, it would just be an Identifier)
+		single, // `a@t` (without the type arg, it would just be an Identifier)
 		subscript, // a[b]
 		suffixBang, // 'x!'
 	}
@@ -405,6 +405,11 @@ immutable struct LiteralIntAst {
 immutable struct LiteralNatAst {
 	ulong value;
 	bool overflow;
+}
+
+immutable struct LiteralNatAndRange {
+	Range range;
+	LiteralNatAst nat;
 }
 
 immutable struct LiteralStringAst {
@@ -697,8 +702,8 @@ immutable struct StructBodyAst {
 		SmallArray!Member members;
 	}
 	immutable struct Extern {
-		Opt!(LiteralNatAst*) size;
-		Opt!(LiteralNatAst*) alignment;
+		Opt!(LiteralNatAndRange*) size;
+		Opt!(LiteralNatAndRange*) alignment;
 	}
 	immutable struct Flags {
 		alias Member = Enum.Member;

@@ -7,3 +7,5 @@ r record
 	a a
 
 b[t] extern
+
+c extern(9999999999, 3)

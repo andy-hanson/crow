@@ -344,11 +344,11 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in AllSymbols allSymbols, in 
 			map(alloc, finish(alloc, allRecordSources), (ref immutable ConcreteStruct* struct_) =>
 				LowRecord(
 					struct_,
-					mapZipPtrFirst!(LowField, ConcreteField, immutable size_t)(
+					mapZipPtrFirst!(LowField, ConcreteField, immutable uint)(
 						alloc,
 						struct_.body_.as!(ConcreteStructBody.Record).fields,
 						struct_.fieldOffsets,
-						(ConcreteField* field, in immutable size_t fieldOffset) =>
+						(ConcreteField* field, in immutable uint fieldOffset) =>
 							LowField(field, fieldOffset, lowTypeFromConcreteType(getLowTypeCtx, field.type))))));
 	immutable FullIndexMap!(LowType.FunPointer, LowFunPointerType) allFunPointers =
 		fullIndexMapOfArr!(LowType.FunPointer, LowFunPointerType)(

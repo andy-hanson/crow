@@ -23,7 +23,7 @@
 
 	<crow-runnable no-run name="regex.crow">
 		import
-			crow/c-types: c-int, size_t, u-long
+			crow/c-types: c-int, size_t
 
 		main void()
 			"cro\\+w" test-regex ("crow", "crooow", "duck")
@@ -68,25 +68,12 @@
 					_ = err regerror &a.wrapped, buf.begin-pointer, buf.size
 					throw buf.begin-pointer.as-const
 
-		regex_t record extern, mut
-			buffer void mut*
-			allocated size_t
-			used size_t
-			syntax u-long
-			fastmap char8 mut*
-			translate nat8 mut*
-			re_nsub size_t
-			re_flags nat8
-
-		new regex_t() unsafe
-			(), (), (), (), (), (), (), ()
+		regex_t extern(64)
 
 		regoff_t alias
 			c-int
 
-		regmatch_t record extern
-			rm_so regoff_t
-			rm_eo regoff_t
+		regmatch_t extern
 
 		reg_errcode_t enum(c-int) extern
 			REG_ENOSYS = -1
@@ -144,7 +131,7 @@
 			these are inferred from your code.
 			<br />
 			If the library needs to be linked to with <code>-lfoo</code>,
-			you could write <code>foo extern</code> instead of <code>c extern</code>.
+			its functions should be declared with <code>foo extern</code> instead of <code>c extern</code>.
 			<br />
 			For example, SDL functions are declared with <code>SDL2 extern</code>.
 			<br />
@@ -156,30 +143,49 @@
 <section>
 	<h2>Extern types</h2>
 	<p>
-		Notice that <code class="type">regmatch_t</code> is marked
-		<code class="keyword">extern</code>.
-		This is required to use the type in an <code class="keyword">extern</code> function.
+		This introduces a new kind of type declaration: <code>regex_t extern(64)</code>.
 		<br />
-		Otherwise, Crow would be free to layout the type any way it wants.
+		This declares an opaque type that takes up 64 bytes.
+		This lets you use an external library without declaring implementation details.
+		<br />
+		By default its alignment is the largest power of 2 that the size is divisible by, up to 8,
+		so 8 in this example.
+		<br />
+		You can specify a custom alignment like <code>extern(64, 1)</code>.
 	</p>
 	<p>
-		Basic types like <code class="type">nat64</code> that have C equivalents
+		<code>regmatch_t extern</code> declares an external type with unknown size.
+		<br />
+		This can be the target of a pointer, but you can't do anything with it.
+		This is useful for types that are always passed as opaque pointers.
+	</p>
+</section>
+<section>
+	<p>
+		<code class="type">reg_errcode_t</code> must be marked <code class="keyword">extern</code>.
+		<br />
+		This allows it to be used in <code class="keyword">extern</code> functions.
+		<br />
+		Otherwise, Crow would be free to layout the type any way it wants,
+		which would break compatibility with external libraries.
+		<br />
+		A <code class="keyword">record</code> that is <code class="keyword">extern</code> is always
+		<code class="keyword">by-val</code>.
+		For compatibility, it's laid out just like a C <code class="keyword">struct</code>.
+	</p>
+	<p>
+		Primitive types like <code class="type">nat64</code> that have C equivalents
 		are all <code class="keyword">extern</code>.
 		<br />
-		<code class="type">string</code> is not.
+		Crow-specific types like <code class="type">string</code> are not.
 	</p>
-
-	<aside class="small">
-		<code class="keyword">extern</code> types are always <code class="keyword">by-val</code>,
-		just like C <code class="keyword">struct</code>s.
-	</aside>
 
 	<aside class="danger">
 		<h4>C equivalent types</h4>
 		<p>
 			In Crow, <code class="type">int</code> always means <code class="type">int64</code> on all systems.
 			<br />
-			This is not the case in C, so when declaring a C function,
+			This is not the case in C, so when translating C headers,
 			use an alias from {{doc/c-types}} like <code class="type">c-int</code>.
 		</p>
 	</aside>
@@ -193,9 +199,9 @@
 	<crow-runnable>
 		import
 			crow/version: is-windows
-			stdio: stdout
-			unistd: write
-			win32: DWORD, GetStdHandle, STD_OUTPUT_HANDLE, WriteFile
+			system/stdio: stdout
+			system/unistd: write
+			system/win32: DWORD, GetStdHandle, STD_OUTPUT_HANDLE, WriteFile
 
 		main void() summon
 			text nat8 array = "hello\n" to-bytes
@@ -213,7 +219,7 @@
 		But after that, code generation keeps only the branch that matches your system.
 		<br />
 		On Windows, the <code>false</code> branch won't be compiled.
-		On Linux, the <code>true</code> branch won't be compiled.
+		On Linux (or in the browser), the <code>true</code> branch won't be compiled.
 	</p>
 	<p>
 		Notice how all functions are imported unconditionally.
@@ -222,14 +228,13 @@
 		Crow chooses what functions to include by starting with <code class="function">main</code>,
 		then repeatedly adding any function called by an included function.
 		<br />
-		If a function call is in the unused branch of a version check like <code>if is-windows</code>,
-		it won't be included in that process.
+		This process ignores the unused branch of a version check like <code>if is-windows</code>.
 	</p>
 
 	<aside class="small">
-		There's currently no way to make the contents of a type conditional on the system.
+		There's currently no way to make the contents of a type conditional on the version.
 		<br />
-		You can use a <code class="keyword">union</code> and use different parts of the union
-		depending on the system.
+		As a workaround, you can use a <code class="keyword">union</code> and use different parts of the union
+		depending on the version.
 	</aside>
 </section>

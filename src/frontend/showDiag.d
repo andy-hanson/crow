@@ -618,6 +618,18 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writeName(writer, ctx, x.struct_.name);
 			writer ~= " is implicitly 'by-val'.";
 		},
+		(in Diag.ExternTypeError x) {
+			writer ~= () {
+				final switch (x.reason) {
+					case Diag.ExternTypeError.Reason.alignmentIsDefault:
+						return "Alignment value is the default and can be omitted.";
+					case Diag.ExternTypeError.Reason.badAlignment:
+						return "Alignment must be 1, 2, 4, or 8.";
+					case Diag.ExternTypeError.Reason.tooBig:
+						return "Type size is too big.";
+				}
+			}();
+		},
 		(in Diag.ExternUnion) {
 			writer ~= "A union can't be 'extern'.";
 		},
@@ -846,15 +858,25 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		(in Diag.PointerMutToConst x) {
 			writer ~= () {
 				final switch (x.kind) {
-					case Diag.PointerMutToConst.Kind.field:
-						return "Can't get a mutable pointer to a non-'mut' field.";
+					case Diag.PointerMutToConst.Kind.fieldOfByRef:
+						return "Can't get a 'mut' pointer to a non-'mut' field.";
+					case Diag.PointerMutToConst.Kind.fieldOfByVal:
+						return "Can't get a 'mut' field pointer from a non-'mut' record pointer.";
 					case Diag.PointerMutToConst.Kind.local:
-						return "Can't get a mutable pointer to a non-'mut' local.";
+						return "Can't get a 'mut' pointer to a non-'mut' local.";
 				}
 			}();
 		},
-		(in Diag.PointerUnsupported) {
-			writer ~= "Can't get a pointer to this kind of expression.";
+		(in Diag.PointerUnsupported x) {
+			final switch (x.reason) {
+				case Diag.PointerUnsupported.Reason.other:
+					writer ~= "Can't get a pointer to this kind of expression.";
+					break;
+				case Diag.PointerUnsupported.Reason.recordNotByRef:
+					writer ~= "To get a pointer to a record field, " ~
+						"the record must be 'by-ref' or a pointer to a 'by-val' record.";
+					break;
+			}
 		},
 		(in Diag.PurityWorseThanParent x) {
 			writer ~= "Type ";

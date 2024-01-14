@@ -50,7 +50,6 @@ import model.model :
 	NameReferents,
 	PtrToFieldExpr,
 	PtrToLocalExpr,
-	RecordField,
 	SeqExpr,
 	StructAlias,
 	StructBody,
@@ -432,7 +431,11 @@ void getExprHover(
 		(in MatchEnumExpr _) {},
 		(in MatchUnionExpr _) {},
 		(in PtrToFieldExpr x) {
-			// TODO: PtrToFieldExpr should have the RecordField
+			writer ~= "Gets pointer to field ";
+			writeName(writer, ctx, x.fieldDecl(ctx.commonTypes).name);
+			writer ~= " of record ";
+			writeName(writer, ctx, x.recordDecl(ctx.commonTypes).name);
+			writer ~= '.';
 		},
 		(in PtrToLocalExpr x) {
 			writer ~= "Pointer to ";

@@ -50,6 +50,7 @@ import model.ast :
 	LiteralIntOrNat,
 	LiteralIntOrNatKind,
 	LiteralNatAst,
+	LiteralNatAndRange,
 	ModifierAst,
 	NameAndRange,
 	ParamsAst,
@@ -68,7 +69,7 @@ import util.cell : Cell, cellGet, cellSet;
 import util.col.array : emptySmallArray, SmallArray;
 import util.col.arrayBuilder : add, ArrayBuilder, smallFinish;
 import util.memory : allocate;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, Opt, optIf, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : Pos, Range;
 import util.string : CString, emptySmallString, SmallString;
@@ -458,18 +459,24 @@ void parseSpecOrStructOrFun(
 
 StructBodyAst.Extern parseExternType(ref Lexer lexer) {
 	if (tryTakeToken(lexer, Token.parenLeft)) {
-		Opt!(LiteralNatAst*) size = parseNat(lexer);
-		Opt!(LiteralNatAst*) alignment = tryTakeToken(lexer, Token.comma)
+		Opt!(LiteralNatAndRange*) size = parseNat(lexer);
+		Opt!(LiteralNatAndRange*) alignment = has(size) && tryTakeToken(lexer, Token.comma)
 			? parseNat(lexer)
-			: none!(LiteralNatAst*);
+			: none!(LiteralNatAndRange*);
 		takeOrAddDiagExpectedToken(lexer, Token.parenRight, ParseDiag.Expected.Kind.closingParen);
 		return StructBodyAst.Extern(size, alignment);
 	} else
-		return StructBodyAst.Extern(none!(LiteralNatAst*), none!(LiteralNatAst*));
+		return StructBodyAst.Extern(none!(LiteralNatAndRange*), none!(LiteralNatAndRange*));
 }
-Opt!(LiteralNatAst*) parseNat(ref Lexer lexer) =>
-	takeOrAddDiagExpectedToken!(LiteralNatAst*)(lexer, ParseDiag.Expected.Kind.literalNat, (TokenAndData x) =>
-		x.token == Token.literalNat ? some(allocate(lexer.alloc, x.asLiteralNat())) : none!(LiteralNatAst*));
+Opt!(LiteralNatAndRange*) parseNat(ref Lexer lexer) {
+	Pos start = curPos(lexer);
+	Opt!LiteralNatAst res = takeOrAddDiagExpectedToken!LiteralNatAst(
+		lexer, ParseDiag.Expected.Kind.literalNat, (TokenAndData x) =>
+			optIf(x.token == Token.literalNat, () => x.asLiteralNat()));
+	return has(res)
+		? some(allocate(lexer.alloc, LiteralNatAndRange(range(lexer, start), force(res))))
+		: none!(LiteralNatAndRange*);
+}
 
 VarDeclAst parseVarDecl(
 	ref Lexer lexer,

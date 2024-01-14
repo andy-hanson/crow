@@ -1382,6 +1382,9 @@ immutable struct CommonTypes {
 		2 <= arity && arity <= 9 ? some(tuples2Through9[arity - 2]) : none!(StructDecl*);
 }
 
+private bool isNonFunctionPointer(in CommonTypes commonTypes, StructDecl* a) =>
+	a == commonTypes.ptrConst || a == commonTypes.ptrMut;
+
 immutable struct IntegralTypes {
 	@safe @nogc pure nothrow:
 	EnumMap!(EnumBackingType, StructInst*) byEnumBackingType;
@@ -1807,8 +1810,20 @@ immutable struct MatchUnionExpr {
 }
 
 immutable struct PtrToFieldExpr {
+	@safe @nogc pure nothrow:
+
 	ExprAndType target; // This will be a pointer or by-ref type
 	size_t fieldIndex;
+
+	StructDecl* recordDecl(in CommonTypes commonTypes) scope {
+		StructInst* inst = target.type.as!(StructInst*);
+		return isNonFunctionPointer(commonTypes, inst.decl)
+			? only(inst.typeArgs).as!(StructInst*).decl
+			: inst.decl;
+	}
+
+	RecordField* fieldDecl(in CommonTypes commonTypes) scope =>
+		&recordDecl(commonTypes).body_.as!(StructBody.Record).fields[fieldIndex];
 }
 
 immutable struct PtrToLocalExpr {

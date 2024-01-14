@@ -51,6 +51,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ExternRecordImplicitlyByVal) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.ExternTypeError) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.ExternUnion) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.FunCantHaveBody) =>

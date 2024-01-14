@@ -93,7 +93,7 @@ import util.col.mutMap : getOrAdd, getOrAddAndDidAdd, mustAdd, mustDelete, MutMa
 import util.hash : HashCode, Hasher;
 import util.late : Late, lateGet, lazilySet;
 import util.memory : allocate;
-import util.opt : force, has, none, Opt;
+import util.opt : force, has, none, Opt, optOrDefault;
 import util.sourceRange : UriAndRange;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.uri : AllUris, Uri;
@@ -248,7 +248,7 @@ private ConcreteType bogusType(ref ConcretizeCtx a) =>
 			false);
 		res.defaultReferenceKind = ReferenceKind.byVal;
 		res.typeSize = TypeSize(0, 1);
-		res.fieldOffsets = typeAs!(immutable size_t[])([]);
+		res.fieldOffsets = typeAs!(immutable uint[])([]);
 		return ConcreteType(ReferenceKind.byVal, res);
 	});
 
@@ -531,15 +531,15 @@ bool canGetUnionSize(in ConcreteType[] members) =>
 		hasSizeOrPointerSizeBytes(type));
 
 TypeSize unionSize(in ConcreteType[] members) {
-	size_t unionAlign = 8;
-	size_t maxMember = max!(size_t, ConcreteType)(0, members, (in ConcreteType x) =>
+	uint unionAlign = 8;
+	uint maxMember = max!(uint, ConcreteType)(0, members, (in ConcreteType x) =>
 		sizeOrPointerSizeBytes(x).sizeBytes);
-	size_t sizeBytes = roundUp(8 + maxMember, unionAlign);
+	uint sizeBytes = roundUp(8 + maxMember, unionAlign);
 	return TypeSize(sizeBytes, unionAlign);
 }
 
 ReferenceKind getDefaultReferenceKindForFields(TypeSize typeSize, bool isSelfMutable, FieldsType type) {
-	size_t maxSize = () {
+	uint maxSize = () {
 		final switch (type) {
 			case FieldsType.closure:
 				return 8;
@@ -564,14 +564,14 @@ ConcreteStructInfo getConcreteStructInfoForFields(ConcreteField[] fields) =>
 
 immutable struct TypeSizeAndFieldOffsets {
 	TypeSize typeSize;
-	size_t[] fieldOffsets;
+	uint[] fieldOffsets;
 }
 
 TypeSizeAndFieldOffsets recordSize(ref Alloc alloc, bool packed, in ConcreteField[] fields) {
-	size_t maxFieldSize = 1;
-	size_t maxFieldAlignment = 1;
-	size_t offsetBytes = 0;
-	immutable size_t[] fieldOffsets = map!(immutable size_t, ConcreteField)(alloc, fields, (ref ConcreteField field) {
+	uint maxFieldSize = 1;
+	uint maxFieldAlignment = 1;
+	uint offsetBytes = 0;
+	immutable uint[] fieldOffsets = map!(immutable uint, ConcreteField)(alloc, fields, (ref ConcreteField field) {
 		TypeSize fieldSize = sizeOrPointerSizeBytes(field.type);
 		maxFieldSize = max(maxFieldSize, fieldSize.sizeBytes);
 		if (!packed) {
@@ -580,7 +580,7 @@ TypeSizeAndFieldOffsets recordSize(ref Alloc alloc, bool packed, in ConcreteFiel
 				offsetBytes = roundUp(offsetBytes, fieldSize.alignmentBytes);
 			}
 		}
-		size_t fieldOffset = offsetBytes;
+		uint fieldOffset = offsetBytes;
 		offsetBytes += fieldSize.sizeBytes;
 		return fieldOffset;
 	});
@@ -611,10 +611,10 @@ void initializeConcreteStruct(
 				false);
 			res.typeSize = typeSizeForEnumOrFlags(it.backingType);
 		},
-		(StructBody.Extern it) {
+		(StructBody.Extern x) {
 			res.defaultReferenceKind = ReferenceKind.byVal;
 			res.info = ConcreteStructInfo(ConcreteStructBody(ConcreteStructBody.Extern()), false);
-			res.typeSize = has(it.size) ? force(it.size) : TypeSize(0, 0);
+			res.typeSize = optOrDefault!TypeSize(x.size, () => TypeSize(0, 0));
 		},
 		(StructBody.Flags it) {
 			res.defaultReferenceKind = ReferenceKind.byVal;
@@ -653,10 +653,10 @@ void initializeConcreteStruct(
 }
 
 TypeSize typeSizeForEnumOrFlags(EnumBackingType a) {
-	size_t size = sizeForEnumOrFlags(a);
+	uint size = sizeForEnumOrFlags(a);
 	return TypeSize(size, size);
 }
-size_t sizeForEnumOrFlags(EnumBackingType a) {
+uint sizeForEnumOrFlags(EnumBackingType a) {
 	final switch (a) {
 		case EnumBackingType.int8:
 		case EnumBackingType.nat8:

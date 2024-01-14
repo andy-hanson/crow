@@ -5,7 +5,9 @@ module frontend.ide.getPosition;
 import frontend.ide.ideUtil : eachTypeArg, eachTypeComponent, specsMatch;
 import frontend.ide.position : ExprContainer, LocalContainer, Position, PositionKind, VisibilityContainer;
 import model.ast :
+	CallAst,
 	DestructureAst,
+	IdentifierAst,
 	ExprAst,
 	FieldMutabilityAst,
 	FunDeclAst,
@@ -454,10 +456,12 @@ Opt!PositionKind positionInExpr(in ExprCtx ctx, ref Expr a, Pos pos) {
 					() => here()),
 			(BogusExpr _) =>
 				none!PositionKind,
-			(CallExpr x) =>
-				optOr!PositionKind(
+			(CallExpr x) {
+				Opt!NameAndRange name = getCallName(*ast);
+				return optOr!PositionKind(
 					first!(PositionKind, Expr)(x.args, (Expr y) => recur(y)),
-					() => here()),
+					() => !has(name) || hasPos(ctx.allSymbols, force(name), pos) ? here() : none!PositionKind);
+			},
 			(ClosureGetExpr _) =>
 				here(),
 			(ClosureSetExpr x) =>
@@ -527,6 +531,25 @@ Opt!PositionKind positionInExpr(in ExprCtx ctx, ref Expr a, Pos pos) {
 			(ref TrustedExpr x) =>
 				optOr!PositionKind(recur(x.inner), () => here()));
 	}
+}
+
+Opt!NameAndRange getCallName(in ExprAst a) {
+	if (a.kind.isA!CallAst) {
+		final switch (a.kind.as!CallAst.style) {
+			case CallAst.Style.comma:
+			case CallAst.Style.emptyParens:
+			case CallAst.Style.subscript:
+				return none!NameAndRange;
+			case CallAst.Style.dot:
+			case CallAst.Style.infix:
+			case CallAst.Style.prefixBang:
+			case CallAst.Style.prefixOperator:
+			case CallAst.Style.single:
+			case CallAst.Style.suffixBang:
+				return some!NameAndRange(a.kind.as!CallAst.funName);
+		}
+	} else
+		return optIf(a.kind.isA!IdentifierAst, () => NameAndRange(a.range.start, a.kind.as!IdentifierAst.name));
 }
 
 Opt!PositionKind positionInMatchEnum(in ExprCtx ctx, Expr* expr, ref MatchEnumExpr a, ref ExprAst ast, Pos pos) =>

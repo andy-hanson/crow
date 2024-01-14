@@ -15,6 +15,7 @@ import frontend.check.typeFromAst : checkTypeParams, typeFromAst;
 import model.ast :
 	LiteralIntAst,
 	LiteralNatAst,
+	LiteralNatAndRange,
 	ModifierAst,
 	ModifierKeyword,
 	StructBodyAst,
@@ -22,7 +23,7 @@ import model.ast :
 	TypeAst,
 	VisibilityAndRange;
 import model.concreteModel : TypeSize;
-import model.diag : Diag, DeclKind;
+import model.diag : Diag, DeclKind, TypeContainer, TypeWithContainer;
 import model.model :
 	BuiltinType,
 	ByValOrRef,
@@ -51,11 +52,11 @@ import model.model :
 	UnionMember,
 	Visibility;
 import util.col.array : eachPair, fold, mapPointers, zipPtrFirst;
-import util.conv : safeToSizeT;
+import util.conv : safeToUint;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
-import util.util : enumConvertOrAssert, isMultipleOf, ptrTrustMe, todo;
+import util.util : enumConvertOrAssert, isMultipleOf, ptrTrustMe;
 
 StructDecl[] checkStructsInitial(ref CheckCtx ctx, in StructDeclAst[] asts) =>
 	mapPointers!(StructDecl, StructDeclAst)(ctx.alloc, asts, (StructDeclAst* ast) {
@@ -92,7 +93,7 @@ void checkStructBodies(
 					ctx, commonTypes, structsAndAliasesMap, struct_, ast.range, x, delayStructInsts));
 			},
 			(in StructBodyAst.Extern it) =>
-				StructBody(checkExtern(ctx, ast, it)),
+				StructBody(checkExtern(ctx, commonTypes, struct_, ast, it)),
 			(in StructBodyAst.Flags x) {
 				checkNoTypeParams(ctx, ast.typeParams, DeclKind.flags);
 				checkOnlyStructModifiers(ctx, DeclKind.flags, ast.modifiers);
@@ -111,47 +112,73 @@ void checkStructBodies(
 
 private:
 
-StructBody.Extern checkExtern(ref CheckCtx ctx, in StructDeclAst declAst, in StructBodyAst.Extern bodyAst) {
+StructBody.Extern checkExtern(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	StructDecl* struct_,
+	in StructDeclAst declAst,
+	in StructBodyAst.Extern bodyAst,
+) {
 	checkNoTypeParams(ctx, declAst.typeParams, DeclKind.extern_);
 	checkOnlyStructModifiers(ctx, DeclKind.extern_, declAst.modifiers);
-	Opt!size_t optNat(Opt!(LiteralNatAst*) value) {
-		if (has(value)) {
-			LiteralNatAst n = *force(value);
-			if (n.overflow || n.value > size_t.max) {
-				todo!void("checkExtern diagnostic");
-				return none!size_t;
-			} else
-				return some(safeToSizeT(n.value));
-		} else
-			return none!size_t;
-	}
-	return StructBody.Extern(toTypeSize(ctx, optNat(bodyAst.size), optNat(bodyAst.alignment)));
-}
-Opt!TypeSize toTypeSize(ref CheckCtx ctx, Opt!size_t optSize, Opt!size_t optAlignment) {
-	if (has(optSize)) {
-		size_t size = force(optSize);
-		size_t defAlign = defaultAlignment(size);
-		size_t alignment = () {
-			if (has(optAlignment)) {
-				switch (force(optAlignment)) {
-					case 1:
-					case 2:
-					case 4:
-					case 8:
-						return force(optAlignment);
-					default:
-						todo!void("toTypeSize diagnostic");
-						return defAlign;
-				}
-			} else
-				return defAlign;
-		}();
-		return some(TypeSize(size, alignment));
-	} else
-		return none!TypeSize;
+	return StructBody.Extern(getExternTypeSize(ctx, commonTypes, TypeContainer(struct_), declAst, bodyAst));
 }
 
-size_t defaultAlignment(size_t size) =>
+Opt!TypeSize getExternTypeSize(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	TypeContainer container,
+	in StructDeclAst declAst,
+	in StructBodyAst.Extern bodyAst,
+) {
+	if (has(bodyAst.size)) {
+		uint size = getSizeValue(ctx, commonTypes, container, *force(bodyAst.size));
+		uint default_ = defaultAlignment(size);
+		uint alignment = () {
+			if (has(bodyAst.alignment)) {
+				uint alignment = getSizeValue(ctx, commonTypes, container, *force(bodyAst.alignment));
+				if (isValidAlignment(alignment)) {
+					if (alignment == default_)
+						addDiag(ctx, force(bodyAst.alignment).range, Diag(
+							Diag.ExternTypeError(Diag.ExternTypeError.Reason.alignmentIsDefault)));
+					return alignment;
+				} else {
+					addDiag(ctx, force(bodyAst.alignment).range, Diag(
+						Diag.ExternTypeError(Diag.ExternTypeError.Reason.badAlignment)));
+					return default_;
+				}
+			} else
+				return default_;
+		}();
+		return some(TypeSize(size, alignment));
+	} else {
+		assert(!has(bodyAst.alignment));
+		return none!TypeSize;
+	}
+}
+
+uint getSizeValue(ref CheckCtx ctx, ref CommonTypes commonTypes, TypeContainer container, in LiteralNatAndRange ast) {
+	if (ast.nat.overflow || ast.nat.value > uint.max) {
+		addDiag(ctx, ast.range, Diag(
+			Diag.LiteralOverflow(TypeWithContainer(Type(commonTypes.integrals.nat32), container))));
+		return 0;
+	} else
+		return safeToUint(ast.nat.value);
+}
+
+bool isValidAlignment(uint alignment) {
+	switch (alignment) {
+		case 1:
+		case 2:
+		case 4:
+		case 8:
+			return true;
+		default:
+			return false;
+	}
+}
+
+uint defaultAlignment(size_t size) =>
 	size == 0 ? 0 :
 	isMultipleOf(size, 8) ? 8 :
 	isMultipleOf(size, 4) ? 4 :

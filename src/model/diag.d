@@ -231,6 +231,10 @@ immutable struct Diag {
 	immutable struct ExternRecordImplicitlyByVal {
 		StructDecl* struct_;
 	}
+	immutable struct ExternTypeError {
+		enum Reason { alignmentIsDefault, badAlignment, tooBig }
+		Reason reason;
+	}
 	immutable struct ExternUnion {}
 	immutable struct FunCantHaveBody {
 		enum Reason { builtin, extern_ }
@@ -366,10 +370,13 @@ immutable struct Diag {
 	immutable struct ParamMissingType {}
 	immutable struct PointerIsUnsafe {}
 	immutable struct PointerMutToConst {
-		enum Kind { field, local }
+		enum Kind { fieldOfByRef, fieldOfByVal, local }
 		Kind kind;
 	}
-	immutable struct PointerUnsupported {}
+	immutable struct PointerUnsupported {
+		enum Reason { other, recordNotByRef }
+		Reason reason;
+	}
 	immutable struct PurityWorseThanParent {
 		StructDecl* parent;
 		Type child;
@@ -522,6 +529,7 @@ immutable struct Diag {
 		ExternHasUnnecessaryLibraryName,
 		ExternMissingLibraryName,
 		ExternRecordImplicitlyByVal,
+		ExternTypeError,
 		ExternUnion,
 		FunCantHaveBody,
 		FunMissingBody,
