@@ -6,7 +6,7 @@ import
 	../misc: key, new, to, void
 	../number: ==, <=>, +, -, *, nat64
 	../option: ??, force, new, option
-	../string: ~~, literal, new, string, to
+	../string: ~~, new, string, to
 	./array: array
 	./collection: build, build-options, filter, for-loop, join, with-block, with-index
 	./experimental/index-set:

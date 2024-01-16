@@ -10,7 +10,8 @@ import util.sourceRange : Range;
 import util.string : CString, cStringIsEmpty, MutCString, SmallString, stringOfRange;
 import util.util : castNonScope_ref;
 
-private alias AddDiag = void delegate(ParseDiag) @safe @nogc pure nothrow;
+// Takes beginning of range; end is the current ptr
+alias AddDiag = void delegate(CString, ParseDiag) @safe @nogc pure nothrow;
 // 'fullStart' includes the '#' (or '###' or 'region'). The full range is from there to the current source pointer.
 private alias CbComment = void delegate(CString fullStart, string content) @safe @nogc pure nothrow;
 
@@ -115,10 +116,12 @@ DocCommentAndIndentDelta skipBlankLinesAndGetIndentDelta(
 ) {
 	string docComment = "";
 	while (true) {
+		MutCString start = ptr;
 		uint newIndent;
 		skipBlankLines(
 			ptr,
 			() {
+				start = ptr;
 				newIndent = takeIndentAmountAfterNewline(ptr, indentKind, addDiag);
 			},
 			(CString _, string _2) {
@@ -136,7 +139,7 @@ DocCommentAndIndentDelta skipBlankLinesAndGetIndentDelta(
 		// If we got here, we're looking at a non-empty line (or EOF)
 		int delta = safeIntFromUint(newIndent) - safeIntFromUint(curIndent);
 		if (delta > 1) {
-			addDiag(ParseDiag(ParseDiag.IndentTooMuch()));
+			addDiag(start, ParseDiag(ParseDiag.IndentTooMuch()));
 			skipRestOfLineAndNewline(ptr);
 			continue;
 		} else {
@@ -181,12 +184,12 @@ bool ignoreCharForTokens(char c) =>
 		while (isNonKeywordPunctuation(*ptr) && ptr < end)
 			ptr++;
 		if (ptr < end)
-			skipSpacesAndComments(ptr, cbCommentOrRegion, (ParseDiag _) {});
+			skipSpacesAndComments(ptr, cbCommentOrRegion, (CString _, ParseDiag _2) {});
 		if (ptr < end && *ptr == '\\')
 			// Non-comment '\', skip this too
 			ptr++;
 		if (ptr < end)
-			skipBlankLines(ptr, () {}, cbCommentOrRegion, cbCommentOrRegion, (ParseDiag _) {});
+			skipBlankLines(ptr, () {}, cbCommentOrRegion, cbCommentOrRegion, (CString _, ParseDiag _2) {});
 		if (ptr == start)
 			break;
 	}
@@ -246,8 +249,11 @@ uint takeIndentAmountAfterNewline(ref MutCString ptr, IndentKind indentKind, in 
 		case IndentKind.tabs:
 			CString begin = ptr;
 			while (tryTakeChar(ptr, '\t')) {}
-			if (*ptr == ' ')
-				addDiag(ParseDiag(ParseDiag.IndentWrongCharacter(true)));
+			if (*ptr == ' ') {
+				CString startSpaces = ptr;
+				while (*ptr == ' ') ptr++;
+				addDiag(startSpaces, ParseDiag(ParseDiag.IndentWrongCharacter(true)));
+			}
 			return safeToUint(ptr - begin);
 		case IndentKind.spaces2:
 			return takeIndentAmountAfterNewlineSpaces(ptr, 2, addDiag);
@@ -259,12 +265,15 @@ uint takeIndentAmountAfterNewline(ref MutCString ptr, IndentKind indentKind, in 
 uint takeIndentAmountAfterNewlineSpaces(ref MutCString ptr, uint nSpacesPerIndent, in AddDiag addDiag) {
 	CString begin = ptr;
 	while (tryTakeChar(ptr, ' ')) {}
-	if (*ptr == '\t')
-		addDiag(ParseDiag(ParseDiag.IndentWrongCharacter(false)));
+	if (*ptr == '\t') {
+		CString startTabs = ptr;
+		while (*ptr == '\t') ptr++;
+		addDiag(startTabs, ParseDiag(ParseDiag.IndentWrongCharacter(false)));
+	}
 	uint nSpaces = safeToUint(ptr - begin);
 	uint res = nSpaces / nSpacesPerIndent;
 	if (res * nSpacesPerIndent != nSpaces)
-		addDiag(ParseDiag(ParseDiag.IndentNotDivisible(nSpaces, nSpacesPerIndent)));
+		addDiag(begin, ParseDiag(ParseDiag.IndentNotDivisible(nSpaces, nSpacesPerIndent)));
 	return res;
 }
 
@@ -300,7 +309,7 @@ CString skipRestOfBlockComment(ref MutCString ptr, in AddDiag addDiag) {
 		if (tryTakeTripleHashThenNewline(ptr))
 			return end;
 		else if (*ptr == '\0') {
-			addDiag(ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.blockCommentEnd)));
+			addDiag(ptr, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.blockCommentEnd)));
 			return end;
 		}
 	}

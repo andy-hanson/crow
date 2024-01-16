@@ -1,0 +1,4 @@
+main void()
+	info log "\xe1 is á"
+	info log "\u30c3 is ッ"
+	info log "\U0001f63c is 😼"

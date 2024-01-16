@@ -8,7 +8,7 @@ import
 	../misc: void
 	../number: +
 	../pointer: ==, +, *, as-const, mut-pointer, set-deref
-	../string: ==, <=>, char8, c-string, hash-mix, iterate, literal, size, string
+	../string: ==, <=>, as-string, char8, c-string, hash-mix, iterate, size, string
 	../tuple: new
 	./alloc: unmanaged-alloc-elements
 	./bootstrap: symbol-to-c-string
@@ -26,7 +26,7 @@ export
 	a.to::string <=> b.to
 
 +to string(a symbol) bare
-	a.symbol-to-c-string literal
+	trusted a.symbol-to-c-string as-string
 
 init-symbol-table void(a global-ctx mut*) unsafe
 	a->symbols-table := for x : static-symbols

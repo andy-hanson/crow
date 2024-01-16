@@ -11,7 +11,7 @@ import frontend.lang : OptimizationLevel;
 import lib.cliParser : CCompileOptions;
 import model.lowModel : ExternLibrary;
 import util.alloc.alloc : Alloc;
-import util.col.arrayBuilder : add, addAll, finish, ArrayBuilder;
+import util.col.arrayBuilder : finish, ArrayBuilderWithAlloc;
 import util.exitCode : ExitCode;
 import util.opt : force, has, none;
 import util.perf : Perf, PerfMeasure, withMeasure;
@@ -62,57 +62,54 @@ CString[] cCompileArgs(
 	in ExternLibrary[] externLibraries,
 	in CCompileOptions options,
 ) {
-	ArrayBuilder!CString args;
-	addAll(alloc, args, cCompilerArgs(options));
-	add(alloc, args, cStringOfFileUri(alloc, allUris, cPath));
+	ArrayBuilderWithAlloc!CString args = ArrayBuilderWithAlloc!CString(&alloc);
+	args ~= cCompilerArgs(options);
+	args ~= cStringOfFileUri(alloc, allUris, cPath);
 	version (Windows) {
-		add(alloc, args, cString!"/link");
+		args ~= cString!"/link";
 	}
 	foreach (ExternLibrary x; externLibraries) {
 		version (Windows) {
 			Symbol xDotLib = concatSymbols(allSymbols, [x.libraryName, symbol!".lib"]);
 			if (has(x.configuredDir)) {
 				FileUri path = childFileUri(allUris, force(x.configuredDir), xDotLib);
-				add(alloc, args, cStringOfFileUri(alloc, allUris, path));
+				args ~= cStringOfFileUri(alloc, allUris, path);
 			} else
 				switch (x.libraryName.value) {
 					case symbol!"c".value:
 					case symbol!"m".value:
 						break;
 					default:
-						add(alloc, args, cStringOfSymbol(alloc, allSymbols, xDotLib));
+						args ~= cStringOfSymbol(alloc, allSymbols, xDotLib);
 						break;
 				}
 		} else {
 			if (has(x.configuredDir)) {
-				add(alloc, args, withWriter(alloc, (scope ref Writer writer) {
+				args ~= withWriter(alloc, (scope ref Writer writer) {
 					writer ~= "-L";
 					if (!isFileUri(allUris, force(x.configuredDir)))
 						todo!void("diagnostic: can't link to non-file");
 					writeFileUri(writer, allUris, asFileUri(allUris, force(x.configuredDir)));
-				}));
+				});
 			}
 
-			add(alloc, args, withWriter(alloc, (scope ref Writer writer) {
+			args ~= withWriter(alloc, (scope ref Writer writer) {
 				writer ~= "-l";
 				writeSymbol(writer, allSymbols, x.libraryName);
-			}));
+			});
 		}
 	}
 	version (Windows) {
-		add(alloc, args, cString!"/DEBUG");
-		add(alloc, args, withWriter(writer, (scope ref Writer writer) {
-			writer ~= "/out:";
-			writeFileUri(writer, allUris, exePath);
-		}));
-	} else {
-		add(alloc, args, cString!"-lm");
-		addAll(alloc, args, [
-			cString!"-o",
-			cStringOfFileUri(alloc, allUris, exePath),
-		]);
-	}
-	return finish(alloc, args);
+		args ~= [
+			cString!"/DEBUG",
+			withWriter(writer, (scope ref Writer writer) {
+				writer ~= "/out:";
+				writeFileUri(writer, allUris, exePath);
+			}),
+		];
+	} else
+		args ~= [cString!"-lm", cString!"-o", cStringOfFileUri(alloc, allUris, exePath)];
+	return finish(args);
 }
 
 CString[] cCompilerArgs(in CCompileOptions options) {

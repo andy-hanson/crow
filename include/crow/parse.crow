@@ -11,8 +11,8 @@ import
 	./option: is-empty, new, option
 	./result: error, ok, result
 	./string:
-		==, <=>, ~~, ~=, as-string, begin, build, char8, hash-mix, is-empty, iterate, literal, new,
-		next, string, string-iterator, to
+		==, <=>, ~~, ~=, as-string, begin, build, char8, hash-mix, is-empty, iterate, new, next,
+		string, string-iterator, to
 	./tuple: a, b, new
 
 ###

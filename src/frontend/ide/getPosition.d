@@ -54,6 +54,7 @@ import model.model :
 	LetExpr,
 	LiteralCStringExpr,
 	LiteralExpr,
+	LiteralStringExpr,
 	LiteralSymbolExpr,
 	Local,
 	LocalGetExpr,
@@ -497,6 +498,8 @@ Opt!PositionKind positionInExpr(in ExprCtx ctx, ref Expr a, Pos pos) {
 			(ref LiteralExpr _) =>
 				here(),
 			(LiteralCStringExpr _) =>
+				here(),
+			(LiteralStringExpr _) =>
 				here(),
 			(LiteralSymbolExpr _) =>
 				here(),

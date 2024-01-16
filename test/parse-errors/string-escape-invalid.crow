@@ -1,0 +1,11 @@
+main void()
+	info log "q is \q"
+	info log "x is \x"
+	info log "xit is \xit"
+	info log "uf00l! is \uf00l!"
+	info log "d7ff is \ud7ff" # ok
+	info log "d800 is \ud800"
+	info log "dfff is \udfff"
+	info log "e000 is \ue000" # ok
+	info log "0010ffff is \U0010ffff" # ok
+	info log "00110000 is \U00110000"

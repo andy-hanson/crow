@@ -71,7 +71,7 @@ immutable struct TypeAst {
 
 		Range range;
 		FunKind kind;
-		TypeAst[] returnAndParamTypes;
+		SmallArray!TypeAst returnAndParamTypes;
 
 		TypeAst returnType() return scope =>
 			returnAndParamTypes[0];
@@ -117,7 +117,7 @@ immutable struct TypeAst {
 		@safe @nogc pure nothrow:
 
 		Range range;
-		TypeAst[] members;
+		SmallArray!TypeAst members;
 
 		this(Range r, TypeAst[] ms) {
 			range = r;

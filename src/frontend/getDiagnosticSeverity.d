@@ -16,7 +16,7 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 		(in Diag.CallNoMatch) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.CallShouldUseSyntax) =>
-			DiagnosticSeverity.checkWarning,
+			DiagnosticSeverity.warning,
 		(in Diag.CantCall) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.CharLiteralMustBeOneChar) =>
@@ -46,7 +46,7 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 		(in Diag.ExternFunVariadic) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ExternHasUnnecessaryLibraryName) =>
-			DiagnosticSeverity.checkWarning,
+			DiagnosticSeverity.warning,
 		(in Diag.ExternMissingLibraryName) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ExternRecordImplicitlyByVal) =>
@@ -90,29 +90,29 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 		(in Diag.LiteralOverflow) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.LocalIgnoredButMutable) =>
-			DiagnosticSeverity.checkWarning,
+			DiagnosticSeverity.warning,
 		(in Diag.LocalNotMutable) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.LoopWithoutBreak) =>
-			DiagnosticSeverity.checkWarning,
+			DiagnosticSeverity.warning,
 		(in Diag.MatchCaseNamesDoNotMatch) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.MatchCaseNoValueForEnum) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.MatchCaseShouldUseIgnore) =>
-			DiagnosticSeverity.checkWarning,
+			DiagnosticSeverity.warning,
 		(in Diag.MatchOnNonEnumOrUnion) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ModifierConflict) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ModifierDuplicate) =>
-			DiagnosticSeverity.checkWarning,
+			DiagnosticSeverity.warning,
 		(in Diag.ModifierInvalid) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ModifierRedundantDueToDeclKind) =>
-			DiagnosticSeverity.checkWarning,
+			DiagnosticSeverity.warning,
 		(in Diag.ModifierRedundantDueToModifier) =>
-			DiagnosticSeverity.checkWarning,
+			DiagnosticSeverity.warning,
 		(in Diag.MutFieldNotAllowed) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.NameNotFound) =>
@@ -122,7 +122,7 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 		(in Diag.ParamMissingType) =>
 			DiagnosticSeverity.checkError,
 		(in ParseDiag x) =>
-			x.isA!ReadFileDiag ? DiagnosticSeverity.importError : DiagnosticSeverity.parseError,
+			parseDiagSeverity(x),
 		(in Diag.PointerIsUnsafe) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.PointerMutToConst) =>
@@ -146,9 +146,9 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 		(in Diag.StringLiteralInvalid) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.TrustedUnnecessary) =>
-			DiagnosticSeverity.checkWarning,
+			DiagnosticSeverity.warning,
 		(in Diag.TypeAnnotationUnnecessary) =>
-			DiagnosticSeverity.checkWarning,
+			DiagnosticSeverity.warning,
 		(in Diag.TypeConflict) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.TypeParamCantHaveTypeArgs) =>
@@ -156,14 +156,51 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 		(in Diag.TypeParamsUnsupported) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.TypeShouldUseSyntax) =>
-			DiagnosticSeverity.checkWarning,
+			DiagnosticSeverity.warning,
 		(in Diag.Unused) =>
 			DiagnosticSeverity.unusedCode,
 		(in Diag.VarargsParamMustBeArray) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.VisibilityWarning) =>
-			DiagnosticSeverity.checkWarning,
+			DiagnosticSeverity.warning,
 		(in Diag.WithHasElse) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.WrongNumberTypeArgs) =>
 			DiagnosticSeverity.checkError);
+
+private:
+
+DiagnosticSeverity parseDiagSeverity(in ParseDiag a) =>
+	a.matchIn!DiagnosticSeverity(
+		(in ParseDiag.Expected) =>
+			DiagnosticSeverity.parseError,
+		(in ParseDiag.FunctionTypeMissingParens) =>
+			DiagnosticSeverity.warning,
+		(in ParseDiag.ImportFileTypeNotSupported) =>
+			DiagnosticSeverity.parseError,
+		(in ParseDiag.IndentNotDivisible) =>
+			DiagnosticSeverity.parseError,
+		(in ParseDiag.IndentTooMuch) =>
+			DiagnosticSeverity.parseError,
+		(in ParseDiag.IndentWrongCharacter) =>
+			DiagnosticSeverity.parseError,
+		(in ParseDiag.InvalidStringEscape) =>
+			DiagnosticSeverity.warning,
+		(in ParseDiag.MissingExpression) =>
+			DiagnosticSeverity.parseError,
+		(in ParseDiag.NeedsBlockCtx) =>
+			DiagnosticSeverity.parseError,
+		(in ReadFileDiag _) =>
+			DiagnosticSeverity.importError,
+		(in ParseDiag.TrailingComma) =>
+			DiagnosticSeverity.warning,
+		(in ParseDiag.TypeEmptyParens) =>
+			DiagnosticSeverity.parseError,
+		(in ParseDiag.TypeUnnecessaryParens) =>
+			DiagnosticSeverity.warning,
+		(in ParseDiag.UnexpectedCharacter) =>
+			DiagnosticSeverity.parseError,
+		(in ParseDiag.UnexpectedOperator) =>
+			DiagnosticSeverity.parseError,
+		(in ParseDiag.UnexpectedToken) =>
+			DiagnosticSeverity.parseError);

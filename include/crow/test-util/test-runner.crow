@@ -1,11 +1,5 @@
-no-std
 import
-	../col/array: array, begin, next, size
-	../fun-util: subscript
-	../future: for-loop, future, new, sequential, then
 	../io/print: out, print
-	../misc: new, void
-	../string: ~~, literal, to
 
 # Run every `test` from all source files included in the compilation.
 +run-all-tests void^() summon

@@ -9,7 +9,7 @@ import
 	./misc: new, void
 	./number: ==, <=>, -
 	./range: ..
-	./string: ==, ~~, begin, is-empty, literal, new, next, string, to
+	./string: ==, ~~, begin, is-empty, new, next, string, to
 export
 	./private/backtrace: backtrace, backtrace-entry, entries, file-path, function-name, line-number
 	./private/exception-low-level: catch, exception, message, rethrow, unreachable

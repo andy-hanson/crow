@@ -12,6 +12,21 @@ struct ArrayBuilder(T) {
 	private MutArr!(immutable T) data;
 }
 
+struct ArrayBuilderWithAlloc(T) {
+	private Alloc* allocPtr;
+	private ArrayBuilder!T inner;
+
+	void opOpAssign(string op)(in T x) scope if (op == "~") {
+		add(*allocPtr, inner, x);
+	}
+	void opOpAssign(string op)(in T[] xs) scope if (op == "~") {
+		addAll!(immutable T)(*allocPtr, inner, xs);
+	}
+}
+
+immutable(T[]) finish(T)(ref ArrayBuilderWithAlloc!T a) =>
+	finish(*a.allocPtr, a.inner);
+
 alias ArrBuilderCb(T) = void delegate(in T) @safe @nogc pure nothrow;
 
 T[] buildArray(T)(ref Alloc alloc, in void delegate(in ArrBuilderCb!T) @safe @nogc pure nothrow cb) {

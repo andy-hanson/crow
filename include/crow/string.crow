@@ -37,9 +37,6 @@ They don't support efficient access by index, so use iterators instead.
 +to char8[](a string) bare
 	a inner
 
-+literal string(a c-string) bare
-	trusted a .. a.find-c-string-end as-string
-
 ###
 Concatenate two strings.
 This is O(n).
@@ -128,13 +125,20 @@ so it may be freed after the current task.
 
 ###
 Treats a c-string as a string by walking to the end.
-This copies the memory, so the result is safe to use immutably.
 
-Unsafe because `a` must end in a `"\0"` character somewhere.
+Unsafe because this does not copy the memory, and because `a` must end in a `"\0"` character.
+###
++as-string string(a c-string) bare, unsafe
+	(a .. a.find-c-string-end).as-string
+
+###
+Unlike 'as-string' this copies the 'c-string'.
+
+This is still unsafe because 'a' must end in a `"\0"` character.
 ###
 +to string(a c-string) unsafe
 	# TODO: 'copy' seems unnecessary since 'to' should do that?
-	a.literal.inner.to.copy.move-to
+	a.as-string.inner.to.copy.move-to
 
 # `"true"` or `"false"`.
 +to string(a bool) bare

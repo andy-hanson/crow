@@ -8,7 +8,7 @@ import
 	../option: ==, new, option
 	../pointer: zeroed
 	../range: ..
-	../string: ==, ~~, literal, new, string, to
+	../string: ==, ~~, new, string, to
 	../test-util: is
 	./collection: .., -, end, for-loop, join, set-subscript, subscript, with-index
 	./mut-array:

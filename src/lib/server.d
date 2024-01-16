@@ -763,7 +763,7 @@ LspDiagnosticSeverity toLspDiagnosticSeverity(DiagnosticSeverity a) {
 	final switch (a) {
 		case DiagnosticSeverity.unusedCode:
 			return LspDiagnosticSeverity.Hint;
-		case DiagnosticSeverity.checkWarning:
+		case DiagnosticSeverity.warning:
 			return LspDiagnosticSeverity.Warning;
 		case DiagnosticSeverity.checkError:
 		case DiagnosticSeverity.nameNotFound:

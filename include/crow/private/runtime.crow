@@ -12,7 +12,7 @@ import
 	../number: ==, nat64
 	../option: is-empty, option
 	../pointer: *, as-const, mut-pointer
-	../string: literal, string
+	../string: string
 	../version: is-wasm
 	./alloc:
 		gc, gc-add-root, gc-begin, gc-complete, gc-end, init, needs-gc, mutator-begin, mutator-end,

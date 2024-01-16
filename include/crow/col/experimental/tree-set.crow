@@ -8,7 +8,7 @@ import
 	../../misc: key, new, to, void
 	../../number: ==, <=>, +, -, /, nat64, new
 	../../option: force, new, option
-	../../string: ==, <=>, ~~, +, begin, hash-mix, literal, new, next, string, to
+	../../string: ==, <=>, ~~, +, begin, hash-mix, new, next, string, to
 	../../test-util: is
 	../../tuple: a
 	../array:

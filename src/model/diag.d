@@ -40,7 +40,7 @@ import util.uri : RelPath, Uri;
 enum DiagnosticSeverity {
 	// Warn: JS 'getDiagnosticsForUri' calls use these numbers directly
 	unusedCode,
-	checkWarning,
+	warning,
 	checkError,
 	nameNotFound,
 	// Severe error where a common fun (e.g. 'alloc', 'main') or type (e.g. 'void') is missing
@@ -424,7 +424,7 @@ immutable struct Diag {
 		DeclKind declKind;
 	}
 	immutable struct StringLiteralInvalid {
-		enum Reason { containsNul }
+		enum Reason { cStringContainsNul, symbolContainsNul }
 		Reason reason;
 	}
 	immutable struct ThreadLocalError {

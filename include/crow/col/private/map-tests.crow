@@ -6,7 +6,7 @@ import
 	../../misc: void
 	../../number: ==, <=>, nat64
 	../../option: ==, new
-	../../string: ==, literal, string, to
+	../../string: ==, string, to
 	../../test-util: is
 	../../tuple: new
 	../map: ~, ~~, dbg, is-empty, map, new, size, subscript

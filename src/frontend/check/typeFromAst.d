@@ -43,12 +43,12 @@ import model.model :
 	TypeParamIndex,
 	TypeParams;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.array : arrayOfSingle, eachPair, findIndex, map, mapOrNone, mapZip, only, small;
+import util.col.array : arrayOfSingle, eachPair, findIndex, isEmpty, map, mapOrNone, mapZip, only, small;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
-import util.util : castNonScope_ref, ptrTrustMe, todo;
+import util.util : castNonScope_ref, ptrTrustMe;
 
 private Type instStructFromAst(
 	ref CheckCtx ctx,
@@ -74,10 +74,10 @@ private Type instStructFromAst(
 			ctx, commonTypes, suffixRange, name, sOrA.typeParams.length, &typeArg);
 		return has(typeArgs)
 			? sOrA.matchWithPointers!Type(
-				(StructAlias* a) =>
-					sOrA.typeParams.length != 0
-						? todo!Type("alias with type params")
-						: Type(a.target),
+				(StructAlias* a) {
+					assert(isEmpty(force(typeArgs)));
+					return Type(a.target);
+				},
 				(StructDecl* decl) =>
 					Type(instantiateStruct(ctx.instantiateCtx, decl, force(typeArgs), delayStructInsts)))
 			: Type(Type.Bogus());

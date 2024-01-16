@@ -18,6 +18,7 @@ import concretize.concretizeCtx :
 	getConcreteType_fromConcretizeCtx = getConcreteType,
 	getConcreteFunForLambdaAndFillBody,
 	getOrAddConcreteFunAndFillBody,
+	stringLiteralConcreteExpr,
 	typeArgsScope,
 	TypeArgsScope,
 	typesToConcreteTypes_fromConcretizeCtx = typesToConcreteTypes,
@@ -76,6 +77,7 @@ import model.model :
 	LetExpr,
 	LiteralCStringExpr,
 	LiteralExpr,
+	LiteralStringExpr,
 	LiteralSymbolExpr,
 	Local,
 	LocalGetExpr,
@@ -975,6 +977,8 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 			ConcreteExpr(type, range, ConcreteExprKind(x.value)),
 		(LiteralCStringExpr x) =>
 			cStringConcreteExpr(ctx.concretizeCtx, type, range, x.value),
+		(LiteralStringExpr x) =>
+			ConcreteExpr(type, range, stringLiteralConcreteExpr(ctx.concretizeCtx, range, x.value)),
 		(LiteralSymbolExpr x) =>
 			ConcreteExpr(type, range, ConcreteExprKind(constantSymbol(ctx.concretizeCtx, x.value))),
 		(LocalGetExpr x) =>

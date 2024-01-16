@@ -20,6 +20,7 @@ import model.model :
 	LetExpr,
 	LiteralCStringExpr,
 	LiteralExpr,
+	LiteralStringExpr,
 	LiteralSymbolExpr,
 	LocalGetExpr,
 	LocalSetExpr,
@@ -202,6 +203,8 @@ private Opt!T findDirectChildExpr(T)(in ExprKind a, in Opt!T delegate(in Expr) @
 		(in LiteralExpr _) =>
 			none!T,
 		(in LiteralCStringExpr _) =>
+			none!T,
+		(in LiteralStringExpr _) =>
 			none!T,
 		(in LiteralSymbolExpr _) =>
 			none!T,

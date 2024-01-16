@@ -36,6 +36,7 @@ import model.model :
 	LetExpr,
 	LiteralCStringExpr,
 	LiteralExpr,
+	LiteralStringExpr,
 	LiteralSymbolExpr,
 	Local,
 	LocalGetExpr,
@@ -395,10 +396,13 @@ void getExprHover(
 			writer ~= "Number literal";
 		},
 		(in LiteralCStringExpr _) {
-			writer ~= "String literal";
+			writer ~= "Literal 'c-string'";
+		},
+		(in LiteralStringExpr _) {
+			writer ~= "Literal 'string'";
 		},
 		(in LiteralSymbolExpr _) {
-			writer ~= "Symbol literal";
+			writer ~= "Literal 'symbol'";
 		},
 		(in LocalGetExpr x) {
 			writer ~= "Gets ";

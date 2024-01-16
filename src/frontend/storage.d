@@ -36,7 +36,7 @@ import util.sourceRange :
 	UriAndLineAndCharacterRange,
 	UriLineAndColumn,
 	UriLineAndColumnRange;
-import util.string : CString, cStringSize, stringOfCString;
+import util.string : bytesOfString, CString, cStringSize, stringOfCString;
 import util.symbol : AllSymbols;
 import util.union_ : Union;
 import util.uri : AllUris, baseName, getExtension, Uri;
@@ -94,8 +94,8 @@ void setFile(scope ref Perf perf, ref Storage a, Uri uri, in ReadFileResult resu
 			setFile(perf, a, uri, x);
 		});
 }
-@trusted void setFile(scope ref Perf perf, ref Storage a, Uri uri, in string content) {
-	setFile(perf, a, uri, cast(ubyte[]) content);
+void setFile(scope ref Perf perf, ref Storage a, Uri uri, in string content) {
+	setFile(perf, a, uri, bytesOfString(content));
 }
 void setFile(scope ref Perf perf, ref Storage a, Uri uri, in ubyte[] content) {
 	prepareSetFile(a, uri);

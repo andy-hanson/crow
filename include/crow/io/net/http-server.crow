@@ -22,7 +22,7 @@ import
 	../../option: ??, force, new, option
 	../../parse: nat, parse
 	../../string:
-		==, <=>, ~~, as-string, begin, char8, end, hash-mix, is-empty, iterate, literal, new, next,
+		==, <=>, ~~, as-string, begin, char8, end, hash-mix, is-empty, iterate, new, next,
 		prev, slice, string, to-bytes, to
 	../../tuple: new
 	../../private/bootstrap: todo

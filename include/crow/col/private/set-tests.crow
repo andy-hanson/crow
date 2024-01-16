@@ -5,7 +5,7 @@ import
 	../../json: to
 	../../misc: void
 	../../number: ==, <=>, nat64
-	../../string: ==, literal, string, to
+	../../string: ==, string, to
 	../../test-util: is
 	../list: ==, list, new
 	../set: ~, ~~, dbg, in, is-empty, new, set, size, to

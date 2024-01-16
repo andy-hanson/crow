@@ -23,7 +23,7 @@ import
 	../../private/bootstrap: todo
 	../../pointer: mut-pointer, pointer-cast, size-of
 	../../range: ..
-	../../string: literal
+	../../string: string
 	../../tuple: new
 	../../version: is-windows
 	../duration: msec

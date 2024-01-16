@@ -1658,6 +1658,7 @@ immutable struct ExprKind {
 		LetExpr*,
 		LiteralExpr*,
 		LiteralCStringExpr,
+		LiteralStringExpr,
 		LiteralSymbolExpr,
 		LocalGetExpr,
 		LocalSetExpr*,
@@ -1741,6 +1742,10 @@ immutable struct LiteralExpr {
 }
 
 immutable struct LiteralCStringExpr {
+	string value;
+}
+
+immutable struct LiteralStringExpr {
 	string value;
 }
 

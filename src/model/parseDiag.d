@@ -57,11 +57,8 @@ immutable struct ParseDiag {
 	immutable struct IndentWrongCharacter {
 		bool expectedTabs;
 	}
-	immutable struct InvalidName {
-		string actual;
-	}
 	immutable struct InvalidStringEscape {
-		char actual;
+		string actual;
 	}
 	immutable struct MissingExpression {}
 	immutable struct NeedsBlockCtx {
@@ -83,6 +80,8 @@ immutable struct ParseDiag {
 		Kind kind;
 	}
 	immutable struct TrailingComma {}
+	immutable struct TypeEmptyParens {}
+	immutable struct TypeUnnecessaryParens {}
 	immutable struct UnexpectedCharacter {
 		char character;
 	}
@@ -100,12 +99,13 @@ immutable struct ParseDiag {
 		IndentNotDivisible,
 		IndentTooMuch,
 		IndentWrongCharacter,
-		InvalidName,
 		InvalidStringEscape,
 		MissingExpression,
 		NeedsBlockCtx,
 		ReadFileDiag,
 		TrailingComma,
+		TypeEmptyParens,
+		TypeUnnecessaryParens,
 		UnexpectedCharacter,
 		UnexpectedOperator,
 		UnexpectedToken);

@@ -8,7 +8,7 @@ import
 	../../number: float64, nat64
 	../../parse: ==, expected, new, parse, parse-error
 	../../result: ==, error, ok
-	../../string: ==, begin, literal, string
+	../../string: ==, begin, string
 	../../symbol: ==, <=>, hash-mix, symbol
 	../../test-util: is
 	../../tuple: new

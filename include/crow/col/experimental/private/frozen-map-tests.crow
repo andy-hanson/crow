@@ -6,7 +6,7 @@ import
 	../../../misc: void
 	../../../number: ==, <=>, nat64
 	../../../option: ==, new
-	../../../string: ==, literal, string
+	../../../string: ==, string
 	../../../test-util: is
 	../../../tuple: new
 	../../array: ==, array, iterate, new, size

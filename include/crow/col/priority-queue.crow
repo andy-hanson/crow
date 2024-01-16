@@ -8,7 +8,7 @@ import
 	../number: ==, <=>, +, -, nat64
 	../option: force, is-empty, new, option
 	../range: .., iterate
-	../string: ~~, ==, literal, new, string, to
+	../string: ~~, ==, new, string, to
 	../test-util: is
 	../tuple: ==, a, b, new
 	./array:

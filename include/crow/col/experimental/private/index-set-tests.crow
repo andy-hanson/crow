@@ -6,7 +6,7 @@ import
 	../../../number: ==, <=>, +, -, nat64
 	../../../option: ==, new
 	../../../range: .., iterate
-	../../../string: ==, literal, string
+	../../../string: ==, string
 	../../../test-util: is
 	../../collection: for-loop
 	../../list: ==, list, new, size

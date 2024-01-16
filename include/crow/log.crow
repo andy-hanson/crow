@@ -4,7 +4,7 @@ import
 	./fun-util: subscript
 	./io/print: err, out, print
 	./misc: new, void
-	./string: ~~, literal, string, to
+	./string: ~~, string, to
 
 ###
 Sends a log to the current log handler.

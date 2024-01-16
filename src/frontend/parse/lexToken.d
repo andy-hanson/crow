@@ -3,16 +3,19 @@ module frontend.parse.lexToken;
 @safe @nogc pure nothrow:
 
 import frontend.parse.lexUtil :
-	isDecimalDigit, startsWith, startsWithThenWhitespace, takeChar, tryGetAfterStartsWith, tryTakeChar, tryTakeChars;
-import frontend.parse.lexWhitespace : DocCommentAndIndentDelta, IndentKind, skipBlankLinesAndGetIndentDelta;
+	charToHexNat,
+	isDecimalDigit,
+	startsWith,
+	startsWithThenWhitespace,
+	takeChar,
+	tryGetAfterStartsWith,
+	tryTakeChar,
+	tryTakeChars;
+import frontend.parse.lexWhitespace : AddDiag, DocCommentAndIndentDelta, IndentKind, skipBlankLinesAndGetIndentDelta;
 import model.ast : LiteralFloatAst, LiteralIntAst, LiteralNatAst;
-import model.parseDiag : ParseDiag;
-import util.alloc.alloc : Alloc;
-import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.string : CString, MutCString, SmallString, stringOfRange;
 import util.symbol : AllSymbols, appendEquals, Symbol, symbol, symbolOfString;
-import util.util : enumConvert, todo;
 
 immutable struct DocCommentAndExtraDedents {
 	SmallString docComment;
@@ -354,8 +357,6 @@ TokenAndData lexToken(
 	}
 }
 
-private alias AddDiag = void delegate(ParseDiag) @safe @nogc pure nothrow;
-
 enum EqualsOrThen { equals, then }
 Opt!EqualsOrThen lookaheadEqualsOrThen(MutCString ptr) {
 	if (startsWithThenWhitespace(ptr, "<-"))
@@ -450,101 +451,6 @@ Opt!ElifOrElse lookaheadElifOrElse(CString ptr) =>
 		: startsWithIdentifier(ptr, "else")
 		? some(ElifOrElse.else_)
 		: none!ElifOrElse;
-
-immutable struct StringPart {
-	string text;
-	After after;
-
-	enum After {
-		quote,
-		lbrace,
-	}
-}
-
-enum QuoteKind {
-	quoteDouble,
-	quoteDouble3,
-}
-
-StringPart takeStringPart(
-	ref Alloc alloc,
-	return scope ref MutCString ptr,
-	QuoteKind quoteKind,
-	in AddDiag addDiag,
-) {
-	ArrayBuilder!char res;
-	StringPart.After after = () {
-		while (true) {
-			switch (*ptr) {
-				case '"':
-					ptr++;
-					final switch (quoteKind) {
-						case QuoteKind.quoteDouble:
-							return StringPart.After.quote;
-						case QuoteKind.quoteDouble3:
-							if (tryTakeChars(ptr, "\"\""))
-								return StringPart.After.quote;
-							else
-								add(alloc, res, '"');
-							break;
-					}
-					break;
-				case '{':
-					ptr++;
-					return StringPart.After.lbrace;
-				case '\\':
-					ptr++;
-					char escapeCode = takeChar(ptr);
-					char escaped = () {
-						switch (escapeCode) {
-							case 'x':
-								ulong digit0 = charToNat(takeChar(ptr));
-								ulong digit1 = charToNat(takeChar(ptr));
-								if (digit0 == ulong.max || digit1 == ulong.max)
-									todo!void("bad hex digit");
-								return cast(char) (digit0 * 16 + digit1);
-							case 'n':
-								return '\n';
-							case 'r':
-								return '\r';
-							case 't':
-								return '\t';
-							case '\\':
-								return '\\';
-							case '{':
-								return '{';
-							case '0':
-								return '\0';
-							case '"':
-								return '"';
-							default:
-								addDiag(ParseDiag(ParseDiag.InvalidStringEscape(escapeCode)));
-								return 'a';
-						}
-					}();
-					add(alloc, res, escaped);
-					break;
-				case '\r':
-				case '\n':
-					final switch (quoteKind) {
-						case QuoteKind.quoteDouble:
-							addDiag(ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.quoteDouble)));
-							return StringPart.After.quote;
-						case QuoteKind.quoteDouble3:
-							add(alloc, res, takeChar(ptr));
-							break;
-					}
-					break;
-				case '\0':
-					addDiag(ParseDiag(ParseDiag.Expected(enumConvert!(ParseDiag.Expected.Kind)(quoteKind))));
-					return StringPart.After.quote;
-				default:
-					add(alloc, res, takeChar(ptr));
-			}
-		}
-	}();
-	return StringPart(finish(alloc, res), after);
-}
 
 private:
 
@@ -733,10 +639,10 @@ public LiteralNatAst takeNat(ref MutCString ptr, ulong base) {
 	ulong value = 0;
 	bool overflow = false;
 	while (true) {
-		ulong digit = charToNat(*ptr);
-		if (digit < base) {
+		Opt!uint digit = charToHexNat(*ptr);
+		if (has(digit) && force(digit) < base) {
 			ptr++;
-			ulong newValue = value * base + digit;
+			ulong newValue = value * base + force(digit);
 			tryTakeChar(ptr, '_');
 			overflow = overflow || newValue / base != value;
 			value = newValue;
@@ -745,15 +651,6 @@ public LiteralNatAst takeNat(ref MutCString ptr, ulong base) {
 	}
 	return LiteralNatAst(value, overflow);
 }
-
-ulong charToNat(char a) =>
-	isDecimalDigit(a)
-		? a - '0'
-		: 'a' <= a && a <= 'f'
-		? 10 + (a - 'a')
-		: 'A' <= a && a <= 'F'
-		? 10 + (a - 'A')
-		: ulong.max;
 
 string takeNameRest(ref MutCString ptr, CString begin) {
 	MutCString lastNonHyphen = begin;

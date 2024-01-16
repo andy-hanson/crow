@@ -20,13 +20,12 @@ import frontend.parse.parseUtil :
 import model.ast : NameAndRange, range, TypeAst;
 import model.model : FunKind;
 import model.parseDiag : ParseDiag;
-import util.col.array : only;
-import util.col.arrayBuilder : add, ArrayBuilder, finish;
+import util.col.array : only, SmallArray;
+import util.col.arrayBuilder : add, ArrayBuilder, smallFinish;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos;
 import util.symbol : symbol;
-import util.util : todo;
 
 Opt!(TypeAst*) tryParseTypeArgForEnumOrFlags(ref Lexer lexer) {
 	if (tryTakeToken(lexer, Token.parenLeft)) {
@@ -51,34 +50,39 @@ Opt!(TypeAst*) tryParseTypeArgForExpr(ref Lexer lexer) =>
 		? some(allocate(lexer.alloc, parseTypeForTypedExpr(lexer)))
 		: none!(TypeAst*);
 
-private void parseTypesWithCommas(ref Lexer lexer, ref ArrayBuilder!TypeAst output) {
-	do {
-		add(lexer.alloc, output, parseType(lexer));
-	} while (tryTakeToken(lexer, Token.comma));
+private SmallArray!TypeAst parseTypesWithCommasThenClosingParen(ref Lexer lexer) {
+	ArrayBuilder!TypeAst res;
+	parseTypesWithCommasThenClosingParen(lexer, res);
+	return smallFinish(lexer.alloc, res);
 }
 
-private TypeAst[] parseTypesWithCommas(ref Lexer lexer) {
-	ArrayBuilder!TypeAst res;
-	parseTypesWithCommas(lexer, res);
-	return finish(lexer.alloc, res);
+private void parseTypesWithCommasThenClosingParen(ref Lexer lexer, scope ref ArrayBuilder!TypeAst res) {
+	if (!tryTakeToken(lexer, Token.parenRight)) {
+		do {
+			add(lexer.alloc, res, parseType(lexer));
+		} while (tryTakeToken(lexer, Token.comma));
+		takeOrAddDiagExpectedToken(lexer, Token.parenRight, ParseDiag.Expected.Kind.closingParen);
+	}
 }
 
 TypeAst parseType(ref Lexer lexer) =>
-	parseTypeSuffixes(lexer, parseTypeBeforeSuffixes(lexer));
+	parseTypeSuffixes(lexer, parseTypeBeforeSuffixes(lexer, ParenthesesNecessary.unnecessary));
 
 TypeAst parseTypeForTypedExpr(ref Lexer lexer) =>
-	parseTypeSuffixesNonName(lexer, parseTypeBeforeSuffixes(lexer));
+	parseTypeSuffixesNonName(lexer, parseTypeBeforeSuffixes(lexer, ParenthesesNecessary.necessary));
 
 private:
 
-TypeAst parseTypeBeforeSuffixes(ref Lexer lexer) {
+enum ParenthesesNecessary { unnecessary, necessary }
+
+TypeAst parseTypeBeforeSuffixes(ref Lexer lexer, ParenthesesNecessary parens) {
 	Pos start = curPos(lexer);
 	switch (getPeekToken(lexer)) {
 		case Token.name:
 			return TypeAst(NameAndRange(start, takeNextToken(lexer).asSymbol));
 		case Token.parenLeft:
 			takeNextToken(lexer);
-			return parseTupleType(lexer, start);
+			return parseTupleType(lexer, start, parens);
 		case Token.act:
 			takeNextToken(lexer);
 			return parseFunType(lexer, start, FunKind.act);
@@ -94,14 +98,15 @@ TypeAst parseTypeBeforeSuffixes(ref Lexer lexer) {
 	}
 }
 
-TypeAst parseTupleType(ref Lexer lexer, Pos start) {
-	//TODO:PERF avoid allocating args for the 0/1 cases
-	TypeAst[] args = parseTypesWithCommas(lexer);
-	takeOrAddDiagExpectedToken(lexer, Token.parenRight, ParseDiag.Expected.Kind.closingParen);
+TypeAst parseTupleType(ref Lexer lexer, Pos start, ParenthesesNecessary parens) {
+	SmallArray!TypeAst args = parseTypesWithCommasThenClosingParen(lexer);
 	switch (args.length) {
 		case 0:
-			return todo!TypeAst("diagnostic -- did you mean 'void'?");
+			addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.TypeEmptyParens()));
+			return TypeAst(TypeAst.Bogus());
 		case 1:
+			if (parens != ParenthesesNecessary.necessary)
+				addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.TypeUnnecessaryParens()));
 			return only(args);
 		default:
 			return TypeAst(allocate(lexer.alloc, TypeAst.Tuple(range(lexer, start), args)));
@@ -112,13 +117,10 @@ TypeAst parseFunType(ref Lexer lexer, Pos start, FunKind kind) {
 	ArrayBuilder!TypeAst returnAndParamTypes;
 	add(lexer.alloc, returnAndParamTypes, parseType(lexer));
 	if (tryTakeToken(lexer, Token.parenLeft)) {
-		if (!tryTakeToken(lexer, Token.parenRight)) {
-			parseTypesWithCommas(lexer, returnAndParamTypes);
-			takeOrAddDiagExpectedToken(lexer, Token.parenRight, ParseDiag.Expected.Kind.closingParen);
-		}
+		parseTypesWithCommasThenClosingParen(lexer, returnAndParamTypes);
 	} else
 		addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.FunctionTypeMissingParens()));
-	TypeAst[] types = finish(lexer.alloc, returnAndParamTypes);
+	SmallArray!TypeAst types = smallFinish(lexer.alloc, returnAndParamTypes);
 	return TypeAst(allocate(lexer.alloc, TypeAst.Fun(range(lexer, start), kind, types)));
 }
 

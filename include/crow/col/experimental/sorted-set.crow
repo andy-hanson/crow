@@ -10,7 +10,7 @@ import
 	../../option: ??, force, new, option
 	../../pointer: ==, <=>, +, -, *, as-const, const-pointer, mut-pointer, set-deref
 	../../range: ..
-	../../string: ==, <=>, ~~, hash-mix, literal, new, string, to
+	../../string: ==, <=>, ~~, hash-mix, new, string, to
 	../../test-util: is
 	../array:
 		+, -, ~=, array, as-array, begin, begin-pointer, build, end, end-pointer, is-empty, iterate,

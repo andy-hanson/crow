@@ -75,6 +75,7 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\frontend\ide\ideUtil.d \
 	src\frontend\ide\position.d \
 	src\frontend\parse\lexer.d \
+	src\frontend\parse\lexString.d \
 	src\frontend\parse\lexToken.d \
 	src\frontend\parse\lexWhitespace.d \
 	src\frontend\parse\parse.d \

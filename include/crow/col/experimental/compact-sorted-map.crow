@@ -9,7 +9,7 @@ import
 	../../misc: key, new, to, void
 	../../number: ==, <=>, +, nat64
 	../../option: ==, is-empty, new, option
-	../../string: ==, ~~, -, end, literal, new, next, string, to
+	../../string: ==, ~~, -, end, new, next, string, to
 	../../test-util: is
 	../../tuple: ==, <=>, a, b, new
 	../array:

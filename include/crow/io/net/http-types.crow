@@ -3,7 +3,7 @@ import
 	../../col/list: list
 	../../col/map: map, new
 	../../number: nat8, nat64
-	../../string: ==, <=>, as-string, hash-mix, literal, string, to-bytes
+	../../string: ==, <=>, as-string, hash-mix, string, to-bytes
 
 # Parsed HTTP request.
 +http-request record

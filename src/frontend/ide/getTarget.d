@@ -27,6 +27,7 @@ import model.model :
 	LetExpr,
 	LiteralCStringExpr,
 	LiteralExpr,
+	LiteralStringExpr,
 	LiteralSymbolExpr,
 	Local,
 	LocalGetExpr,
@@ -160,6 +161,8 @@ Opt!Target exprTarget(PositionKind.Expression a) {
 		(ref LiteralExpr _) =>
 			none!Target,
 		(LiteralCStringExpr _) =>
+			none!Target,
+		(LiteralStringExpr _) =>
 			none!Target,
 		(LiteralSymbolExpr _) =>
 			none!Target,

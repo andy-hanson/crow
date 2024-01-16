@@ -5,7 +5,7 @@ import
 	./col/collection: for-loop, join
 	./col/list: ~~, ~=, build, iterate, list, new, size
 	./json: json, to
-	./string: ~~, literal, new, string
+	./string: ~~, new, string
 	./symbol: symbol, to
 
 ###

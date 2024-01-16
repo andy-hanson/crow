@@ -8,7 +8,7 @@ import
 	../../misc: key, new, to, void
 	../../number: ==, <=>, +, nat64
 	../../option: ==, is-empty, new, option
-	../../string: ==, ~~, literal, new, string, to
+	../../string: ==, ~~, new, string, to
 	../../test-util: is
 	../../tuple: ==, new
 	../collection: build, for-loop, join, with-block

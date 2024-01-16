@@ -12,7 +12,7 @@ import
 	../../pointer: const-pointer
 	../../private/number-low-level: wrap-sub
 	../../range: ..
-	../../string: ~~, literal, new, string, to-hex, to
+	../../string: ~~, new, string, to-hex, to
 	../array: +, array, begin, iterate, next, slice, subscript
 	../collection: build-options, for-loop, join, subscript
 	../list: ~=, build, iterate, list, list-builder, to

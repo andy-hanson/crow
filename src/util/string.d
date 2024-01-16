@@ -52,6 +52,11 @@ struct MutCString {
 
 alias CString = immutable MutCString;
 
+@trusted immutable(ubyte[]) bytesOfString(return scope string a) {
+	static assert(char.sizeof == ubyte.sizeof);
+	return cast(ubyte[]) a;
+}
+
 private @trusted immutable(char*) cstringEnd(immutable(char)* ptr) {
 	while (*ptr != '\0')
 		ptr++;

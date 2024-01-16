@@ -11,7 +11,7 @@ import
 	../../parse: ~~, grammar, int, map, nat
 	../../range: ..
 	../../serialize: from-bytes, to-8-bytes
-	../../string: ~~, literal, string, to
+	../../string: ~~, string, to
 	../random: random
 
 +login-cookie record

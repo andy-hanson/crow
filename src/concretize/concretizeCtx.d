@@ -4,7 +4,7 @@ module concretize.concretizeCtx;
 
 import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantArray, getConstantCString, getConstantSymbol;
 import concretize.concretizeExpr : concretizeBogus, concretizeBogusKind, concretizeFunBody;
-import frontend.storage : asBytes, FileContent, FileContentGetters;
+import frontend.storage : asBytes, asString, FileContent, FileContentGetters;
 import model.concreteModel :
 	byVal,
 	ConcreteExpr,
@@ -95,6 +95,7 @@ import util.late : Late, lateGet, lazilySet;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault;
 import util.sourceRange : UriAndRange;
+import util.string : bytesOfString;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.uri : AllUris, Uri;
 import util.util : enumConvert, max, roundUp, typeAs;
@@ -796,23 +797,30 @@ ConcreteExpr concretizeFileImport(ref ConcretizeCtx ctx, ConcreteFun* cf, in Fun
 	Opt!FileContent optContent = ctx.fileContentGetters[import_.uri];
 	ConcreteExprKind exprKind = () {
 		if (has(optContent)) {
-			//TODO:PERF creating a Constant per byte is expensive
-			Constant[] bytes = map(ctx.alloc, asBytes(force(optContent)), (ref immutable ubyte a) =>
-				Constant(Constant.Integral(a)));
 			final switch (import_.type) {
 				case ImportFileType.nat8Array:
-					return ConcreteExprKind(getConstantArray(ctx.alloc, ctx.allConstants, mustBeByVal(type), bytes));
+					return ConcreteExprKind(constantOfBytes(ctx, type, asBytes(force(optContent))));
 				case ImportFileType.string:
-					ConcreteType char8ArrayType = only(ctx.char8ArrayAsString.paramsIncludingClosure).type;
-					ConcreteExpr char8s = ConcreteExpr(char8ArrayType, range, ConcreteExprKind(
-						getConstantArray(ctx.alloc, ctx.allConstants, mustBeByVal(char8ArrayType), bytes)));
-					return ConcreteExprKind(ConcreteExprKind.Call(
-						ctx.char8ArrayAsString, newArray(ctx.alloc, [char8s])));
+					return stringLiteralConcreteExpr(ctx, range, asString(force(optContent)));
 			}
 		} else
 			return concretizeBogusKind(ctx, range);
 	}();
 	return ConcreteExpr(type, range, exprKind);
+}
+
+Constant constantOfBytes(ref ConcretizeCtx ctx, ConcreteType arrayType, in ubyte[] bytes) {
+	//TODO:PERF creating a Constant per byte is expensive
+	Constant[] elements = map!(Constant, const ubyte)(ctx.alloc, bytes, (ref const ubyte a) =>
+		Constant(Constant.Integral(a)));
+	return getConstantArray(ctx.alloc, ctx.allConstants, mustBeByVal(arrayType), elements);
+}
+
+ConcreteExprKind stringLiteralConcreteExpr(ref ConcretizeCtx ctx, UriAndRange range, in string value) {
+	ConcreteType char8ArrayType = only(ctx.char8ArrayAsString.paramsIncludingClosure).type;
+	return ConcreteExprKind(ConcreteExprKind.Call(ctx.char8ArrayAsString, newArray(ctx.alloc, [
+		ConcreteExpr(char8ArrayType, range, ConcreteExprKind(
+			constantOfBytes(ctx, char8ArrayType, bytesOfString(value))))])));
 }
 
 ConcreteVar* getVar(ref ConcretizeCtx ctx, VarDecl* decl) =>

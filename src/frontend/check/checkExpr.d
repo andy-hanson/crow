@@ -122,6 +122,7 @@ import model.model :
 	LetExpr,
 	LiteralCStringExpr,
 	LiteralExpr,
+	LiteralStringExpr,
 	LiteralSymbolExpr,
 	Local,
 	LocalGetExpr,
@@ -898,22 +899,21 @@ Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, string value, ref Expe
 		}();
 		return Expr(source, ExprKind(allocate(ctx.alloc, LiteralExpr(Constant(Constant.Integral(char_))))));
 	} else {
-		void checkString() {
+		void checkString(Diag.StringLiteralInvalid.Reason reason) {
 			if (contains(value, '\0'))
-				addDiag2(ctx, source.range, Diag(
-					Diag.StringLiteralInvalid(Diag.StringLiteralInvalid.Reason.containsNul)));
+				addDiag2(ctx, source.range, Diag(Diag.StringLiteralInvalid(reason)));
 		}
 
 		if (expectedStruct == ctx.commonTypes.symbol) {
-			checkString();
+			checkString(Diag.StringLiteralInvalid.Reason.symbolContainsNul);
 			return Expr(source, ExprKind(LiteralSymbolExpr(symbolOfString(ctx.allSymbols, value))));
 		} else if (expectedStruct == ctx.commonTypes.cString) {
-			checkString();
+			checkString(Diag.StringLiteralInvalid.Reason.cStringContainsNul);
 			return Expr(source, ExprKind(LiteralCStringExpr(value)));
-		} else {
-			defaultExpectedToString(ctx, source, expected);
-			return checkCallSpecialNoLocals(ctx, source, symbol!"literal", arrayOfSingle(source), expected);
-		}
+		} else
+			return check(
+				ctx, source, expected, getStringType(ctx, source),
+				Expr(source, ExprKind(LiteralStringExpr(value))));
 	}
 }
 

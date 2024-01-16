@@ -63,15 +63,7 @@ import util.string : CString;
 import util.symbol : Symbol, symbol, writeSymbol;
 import util.uri : AllUris, baseName, compareUriAlphabetically, Uri, writeRelPath, writeUri;
 import util.util : stringOfEnum, max;
-import util.writer :
-	withWriter,
-	writeEscapedChar,
-	writeNewline,
-	writeQuotedString,
-	writeWithCommas,
-	writeWithNewlines,
-	writeWithSeparator,
-	Writer;
+import util.writer : withWriter, writeNewline, writeWithCommas, writeWithNewlines, writeWithSeparator, Writer;
 
 CString stringOfDiagnostics(ref Alloc alloc, in ShowDiagCtx ctx, in Program program, in Opt!(Uri[]) onlyForUris) =>
 	withWriter(alloc, (scope ref Writer writer) {
@@ -196,13 +188,9 @@ void writeParseDiag(scope ref Writer writer, in ShowCtx ctx, in ParseDiag d) {
 			writer ~= " (based on first indented line), but here there is a ";
 			writer ~= d.expectedTabs ? "space" : "tab.";
 		},
-		(in ParseDiag.InvalidName x) {
-			writeQuotedString(writer, x.actual);
-			writer ~= " is not a valid name.";
-		},
 		(in ParseDiag.InvalidStringEscape x) {
-			writer ~= "Invalid escape character '";
-			writeEscapedChar(writer, x.actual);
+			writer ~= "Invalid escape sequence '";
+			writer ~= x.actual;
 			writer ~= "'.";
 		},
 		(in ParseDiag.MissingExpression x) {
@@ -226,6 +214,12 @@ void writeParseDiag(scope ref Writer writer, in ShowCtx ctx, in ParseDiag d) {
 		},
 		(in ParseDiag.TrailingComma) {
 			writer ~= "Remove this trailing comma.";
+		},
+		(in ParseDiag.TypeEmptyParens) {
+			writer ~= "'()' is not a type. Did you mean 'void'?";
+		},
+		(in ParseDiag.TypeUnnecessaryParens) {
+			writer ~= "Parentheses are unnecessary.";
 		},
 		(in ParseDiag.UnexpectedCharacter x) {
 			writer ~= "Unexpected character '";
@@ -949,10 +943,14 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= " can't have specs.";
 		},
 		(in Diag.StringLiteralInvalid x) {
-			final switch (x.reason) {
-				case Diag.StringLiteralInvalid.Reason.containsNul:
-					writer ~= "String literal can't contain '\\0'";
-			}
+			writer ~= () {
+				final switch (x.reason) {
+					case Diag.StringLiteralInvalid.Reason.cStringContainsNul:
+						return "'c-string' literal can't contain '\\0'";
+					case Diag.StringLiteralInvalid.Reason.symbolContainsNul:
+						return "'symbol' literal can't contain '\\0'";
+				}
+			}();
 		},
 		(in Diag.TrustedUnnecessary x) {
 			writer ~= () {
@@ -1094,7 +1092,7 @@ void writeModifier(scope ref Writer writer, in ShowDiagCtx ctx, ModifierKeyword 
 string aOrAnDeclKind(DeclKind a) {
 	final switch (a) {
 		case DeclKind.alias_:
-			return "A type alias ";
+			return "A type alias";
 		case DeclKind.builtin:
 			return "A builtin type";
 		case DeclKind.enum_:

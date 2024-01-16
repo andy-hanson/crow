@@ -2,6 +2,7 @@ module frontend.parse.lexer;
 
 @safe @nogc pure nothrow:
 
+import frontend.parse.lexString : takeStringPart;
 import frontend.parse.lexToken :
 	DocCommentAndExtraDedents,
 	isNewlineToken,
@@ -15,8 +16,7 @@ import frontend.parse.lexToken :
 	lookaheadLambdaAfterParenLeft,
 	lookaheadNew,
 	lookaheadQuestionEquals,
-	plainToken,
-	takeStringPart;
+	plainToken;
 import frontend.parse.lexWhitespace :
 	mayContinueOntoNextLine, detectIndentKind, IndentKind, skipSpacesAndComments, skipUntilNewline;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
@@ -31,7 +31,8 @@ import util.string : CString, MutCString;
 import util.symbol : AllSymbols, symbol;
 import util.util : enumConvert;
 
-public import frontend.parse.lexToken : ElifOrElse, EqualsOrThen, QuoteKind, StringPart, Token, TokenAndData;
+public import frontend.parse.lexString : QuoteKind, StringPart;
+public import frontend.parse.lexToken : ElifOrElse, EqualsOrThen, Token, TokenAndData;
 
 struct Lexer {
 	private:
@@ -65,9 +66,13 @@ ref AllSymbols allSymbols(return ref Lexer lexer) =>
 ) {
 	Lexer lexer = Lexer(alloc, allSymbols, source, detectIndentKind(source), 0, source, source);
 	cellSet(lexer.nextToken,
-		lexInitialToken(lexer.ptr, lexer.allSymbols, lexer.indentKind, lexer.curIndent, (ParseDiag x) =>
-			addDiagAtChar(lexer, x)));
+		lexInitialToken(lexer.ptr, lexer.allSymbols, lexer.indentKind, lexer.curIndent, (CString start, ParseDiag x) =>
+			addDiagFromPointer(lexer, start, x)));
 	return lexer;
+}
+
+private void addDiagFromPointer(scope ref Lexer lexer, CString start, ParseDiag diag) {
+	addDiag(lexer, Range(posOf(lexer, start), posOf(lexer, lexer.ptr)), diag);
 }
 
 Pos curPos(in Lexer lexer) =>
@@ -191,11 +196,12 @@ TokenAndData takeNextTokenMayContinueOntoNextLine(ref Lexer lexer) {
 
 private void readNextToken(ref Lexer lexer) {
 	lexer.prevTokenEnd = lexer.ptr;
-	skipSpacesAndComments(lexer.ptr, (CString _, string _2) {}, (ParseDiag x) =>
-		addDiagAtChar(lexer, x));
+	skipSpacesAndComments(lexer.ptr, (CString _, string _2) {}, (CString start, ParseDiag x) =>
+		addDiagFromPointer(lexer, start, x));
 	lexer.nextTokenPos = posOf(lexer, lexer.ptr);
-	cellSet(lexer.nextToken, lexToken(lexer.ptr, lexer.allSymbols, lexer.indentKind, lexer.curIndent, (ParseDiag x) =>
-		addDiagAtChar(lexer, x)));
+	cellSet(lexer.nextToken, lexToken(
+		lexer.ptr, lexer.allSymbols, lexer.indentKind, lexer.curIndent, (CString start, ParseDiag x) =>
+			addDiagFromPointer(lexer, start, x)));
 }
 
 TokenAndData getPeekTokenAndData(return scope ref const Lexer lexer) =>
@@ -218,7 +224,8 @@ StringPart takeInitialStringPart(ref Lexer lexer, QuoteKind quoteKind) {
 }
 
 private StringPart takeStringPartCommon(ref Lexer lexer, QuoteKind quoteKind) {
-	StringPart res = takeStringPart(lexer.alloc, lexer.ptr, quoteKind, (ParseDiag x) => addDiagAtChar(lexer, x));
+	StringPart res = takeStringPart(lexer.alloc, lexer.ptr, quoteKind, (CString start, ParseDiag x) =>
+		addDiagFromPointer(lexer, start, x));
 	// Don't skip newline token (which is a parse error)
 	if (!isNewlineToken(getPeekToken(lexer)))
 		takeNextToken(lexer);
