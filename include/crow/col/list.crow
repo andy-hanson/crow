@@ -21,7 +21,7 @@ import
 	./private/array-low-level: array-reference-equal
 	./private/list-low-level:
 		array2d, array3d, arrays, branch, down, iterate-chunks, l1, l2, l3, leaf, left,
-		list-reference-equal, new, node, nodes, right, root, total-size
+		list-reference-equal, node, nodes, right, root, total-size
 export
 	./private/list-low-level: ~=, ~~=, build, list, list-builder
 

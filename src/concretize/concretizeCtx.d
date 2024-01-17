@@ -213,7 +213,7 @@ struct ConcretizeCtx {
 	Late!ConcreteType _voidType;
 	Late!ConcreteType nat64Type;
 	Late!ConcreteType _ctxType;
-	Late!ConcreteType _cStringType;
+	Late!ConcreteType _stringType;
 
 	ref Alloc alloc() return scope =>
 		*allocPtr;
@@ -261,9 +261,9 @@ ConcreteType voidType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._voidType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.void_, TypeArgsScope.empty));
 
-ConcreteType cStringType(ref ConcretizeCtx a) =>
-	lazilySet!ConcreteType(a._cStringType, () =>
-		getConcreteType_forStructInst(a, a.commonTypes.cString, TypeArgsScope.empty));
+ConcreteType stringType(ref ConcretizeCtx a) =>
+	lazilySet!ConcreteType(a._stringType, () =>
+		getConcreteType_forStructInst(a, a.commonTypes.string_, TypeArgsScope.empty));
 
 ConcreteStruct* symbolArrayType(ref ConcretizeCtx a) =>
 	mustBeByVal(getConcreteType_forStructInst(a, a.commonTypes.symbolArray, TypeArgsScope.empty));
@@ -801,7 +801,7 @@ ConcreteExpr concretizeFileImport(ref ConcretizeCtx ctx, ConcreteFun* cf, in Fun
 				case ImportFileType.nat8Array:
 					return ConcreteExprKind(constantOfBytes(ctx, type, asBytes(force(optContent))));
 				case ImportFileType.string:
-					return stringLiteralConcreteExpr(ctx, range, asString(force(optContent)));
+					return stringLiteralConcreteExprKind(ctx, range, asString(force(optContent)));
 			}
 		} else
 			return concretizeBogusKind(ctx, range);
@@ -816,7 +816,10 @@ Constant constantOfBytes(ref ConcretizeCtx ctx, ConcreteType arrayType, in ubyte
 	return getConstantArray(ctx.alloc, ctx.allConstants, mustBeByVal(arrayType), elements);
 }
 
-ConcreteExprKind stringLiteralConcreteExpr(ref ConcretizeCtx ctx, UriAndRange range, in string value) {
+public ConcreteExpr stringLiteralConcreteExpr(ref ConcretizeCtx ctx, UriAndRange range, in string value) =>
+	ConcreteExpr(stringType(ctx), range, stringLiteralConcreteExprKind(ctx, range, value));
+
+ConcreteExprKind stringLiteralConcreteExprKind(ref ConcretizeCtx ctx, UriAndRange range, in string value) {
 	ConcreteType char8ArrayType = only(ctx.char8ArrayAsString.paramsIncludingClosure).type;
 	return ConcreteExprKind(ConcreteExprKind.Call(ctx.char8ArrayAsString, newArray(ctx.alloc, [
 		ConcreteExpr(char8ArrayType, range, ConcreteExprKind(

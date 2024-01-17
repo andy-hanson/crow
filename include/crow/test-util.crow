@@ -9,7 +9,7 @@ import
 	./misc: to, void
 	./number: ==, nat64
 	./private/exception-low-level: catch, message
-	./string: ~~, ==, string, to
+	./string: ~~, ==, string
 	./tuple: ==, new
 
 ###
@@ -26,7 +26,7 @@ Calls `f` and asserts that it throws an exception with the specified `message`.
 	as ok _
 		throw "Expected to throw an exception"
 	as error e
-		(trusted e.message.to::string) is message
+		e.message is message
 
 test
 	x (nat64, string) = 1, "foo"

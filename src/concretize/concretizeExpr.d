@@ -13,12 +13,12 @@ import concretize.concretizeCtx :
 	constantCString,
 	constantSymbol,
 	ContainingFunInfo,
-	cStringType,
 	getOrAddNonTemplateConcreteFunAndFillBody,
 	getConcreteType_fromConcretizeCtx = getConcreteType,
 	getConcreteFunForLambdaAndFillBody,
 	getOrAddConcreteFunAndFillBody,
 	stringLiteralConcreteExpr,
+	stringType,
 	typeArgsScope,
 	TypeArgsScope,
 	typesToConcreteTypes_fromConcretizeCtx = typesToConcreteTypes,
@@ -132,7 +132,7 @@ ConcreteExpr concretizeBogus(ref ConcretizeCtx ctx, ConcreteType type, UriAndRan
 	ConcreteExpr(type, range, concretizeBogusKind(ctx, range));
 ConcreteExprKind concretizeBogusKind(ref ConcretizeCtx ctx, in UriAndRange range) =>
 	ConcreteExprKind(allocate(ctx.alloc, ConcreteExprKind.Throw(
-		cStringConcreteExpr(ctx, range, "Reached compile error"))));
+		stringLiteralConcreteExpr(ctx, range, "Reached compile error"))));
 
 private:
 
@@ -896,8 +896,6 @@ ConcreteVariableRef concretizeVariableRefForClosure(
 		(ClosureRef x) =>
 			ConcreteVariableRef(getClosureFieldInfo(ctx, range, x).closureRef));
 
-ConcreteExpr cStringConcreteExpr(ref ConcretizeCtx ctx, in UriAndRange range, string value) =>
-	cStringConcreteExpr(ctx, cStringType(ctx), range, value);
 ConcreteExpr cStringConcreteExpr(ref ConcretizeCtx ctx, ConcreteType type, in UriAndRange range, string value) =>
 	ConcreteExpr(type, range, ConcreteExprKind(constantCString(ctx, value)));
 
@@ -911,8 +909,8 @@ ConcreteExpr concretizeAssertOrForbid(
 	assert(isVoid(type));
 	ConcreteExpr condition = concretizeExpr(ctx, boolType(ctx), locals, *a.condition);
 	ConcreteExpr thrown = has(a.thrown)
-		? concretizeExpr(ctx, cStringType(ctx.concretizeCtx), locals, *force(a.thrown))
-		: cStringConcreteExpr(ctx.concretizeCtx, range, defaultAssertOrForbidMessage(ctx, a));
+		? concretizeExpr(ctx, stringType(ctx.concretizeCtx), locals, *force(a.thrown))
+		: stringLiteralConcreteExpr(ctx.concretizeCtx, range, defaultAssertOrForbidMessage(ctx, a));
 	ConcreteExpr void_ = constantVoid(ctx.concretizeCtx, range);
 	ConcreteType voidType = voidType(ctx);
 	ConcreteExpr throw_ = ConcreteExpr(
@@ -978,7 +976,7 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 				case LiteralStringLikeExpr.Kind.cString:
 					return cStringConcreteExpr(ctx.concretizeCtx, type, range, x.value);
 				case LiteralStringLikeExpr.Kind.string_:
-					return ConcreteExpr(type, range, stringLiteralConcreteExpr(ctx.concretizeCtx, range, x.value));
+					return stringLiteralConcreteExpr(ctx.concretizeCtx, range, x.value);
 				case LiteralStringLikeExpr.Kind.symbol:
 					return ConcreteExpr(type, range, ConcreteExprKind(
 						constantSymbol(ctx.concretizeCtx, symbolOfString(ctx.allSymbols, x.value))));
@@ -1017,7 +1015,7 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 		(ref ThrowExpr x) =>
 			ConcreteExpr(type, range, ConcreteExprKind(
 				allocate(ctx.alloc, ConcreteExprKind.Throw(
-					concretizeExpr(ctx, cStringType(ctx.concretizeCtx), locals, x.thrown))))),
+					concretizeExpr(ctx, stringType(ctx.concretizeCtx), locals, x.thrown))))),
 		(ref TrustedExpr x) =>
 			concretizeExpr(ctx, type, locals, x.inner));
 }

@@ -72,6 +72,7 @@ CommonTypes* getCommonTypes(
 	StructInst* nat16 = nonTemplate!"nat16";
 	StructInst* nat32 = nonTemplate!"nat32";
 	StructInst* nat64 = nonTemplate!"nat64";
+	StructInst* stringType = nonTemplate!"string";
 	StructInst* symbolType = nonTemplate!"symbol";
 	StructInst* void_ = nonTemplate!"void";
 
@@ -123,6 +124,7 @@ CommonTypes* getCommonTypes(
 		float32,
 		float64,
 		IntegralTypes(EnumMap!(EnumBackingType, StructInst*)([int8, int16, int32, int64, nat8, nat16, nat32, nat64])),
+		stringType,
 		symbolType,
 		symbolArray,
 		void_,

@@ -18,19 +18,14 @@ import
 		nat8, nat16, nat32, nat64, to, truncate-to
 	./option: ??, new, option
 	./pointer: ==, <=>, const-pointer
+	./private/bootstrap: inner
 	./private/number-low-level: wrap-sub
 	./range: .., range
 	./tuple: new
 export
+	./private/bootstrap: string
 	# TODO: don't export find-c-string-end
 	./private/c-string-util: char8, c-string, find-c-string-end, to
-
-###
-Strings are optimized for fast concatenation and splitting.
-They don't support efficient access by index, so use iterators instead.
-###
-+string record by-val
-	-inner char8[]
 
 +to char8 array(a string)
 	a.inner to

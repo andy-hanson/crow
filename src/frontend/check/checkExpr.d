@@ -6,7 +6,7 @@ import frontend.check.checkCall.candidates : eachFunInScope, funsInScope;
 import frontend.check.checkCall.checkCall :
 	checkCall, checkCallIdentifier, checkCallNamed, checkCallSpecial, checkCallSpecialNoLocals;
 import frontend.check.checkCall.checkCallSpecs : isPurityAlwaysCompatibleConsideringSpecs;
-import frontend.check.checkCtx : CheckCtx, CommonModule, markUsed;
+import frontend.check.checkCtx : CheckCtx, markUsed;
 import frontend.check.exprCtx :
 	addDiag2,
 	checkCanDoUnsafe,
@@ -81,7 +81,6 @@ import model.ast :
 	ThenAst,
 	ThrowAst,
 	TrustedAst,
-	TypeAst,
 	TypedAst,
 	UnlessAst,
 	WithAst;
@@ -359,8 +358,8 @@ Expr checkAndExpect(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, Type e
 Expr checkAndExpectBool(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast) =>
 	checkAndExpect(ctx, locals, ast, Type(ctx.commonTypes.bool_));
 
-Expr checkAndExpectCString(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast) =>
-	checkAndExpect(ctx, locals, ast, Type(ctx.commonTypes.cString));
+Expr checkAndExpectString(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast) =>
+	checkAndExpect(ctx, locals, ast, Type(ctx.commonTypes.string_));
 
 Expr checkAndExpectVoid(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast) =>
 	checkAndExpect(ctx, locals, ast, voidType(ctx));
@@ -393,7 +392,7 @@ Expr checkThrow(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ThrowAs
 		addDiag2(ctx, source, Diag(Diag.NeedsExpectedType(Diag.NeedsExpectedType.Kind.throw_)));
 		return bogus(expected, source);
 	} else {
-		Expr thrown = checkAndExpectCString(ctx, locals, &ast.thrown);
+		Expr thrown = checkAndExpectString(ctx, locals, &ast.thrown);
 		return Expr(source, ExprKind(allocate(ctx.alloc, ThrowExpr(thrown))));
 	}
 }
@@ -412,7 +411,7 @@ Expr checkAssertOrForbid(
 ) {
 	Expr* condition = allocate(ctx.alloc, checkAndExpectBool(ctx, locals, &ast.condition));
 	Opt!(Expr*) thrown = has(ast.thrown)
-		? some(allocate(ctx.alloc, checkAndExpectCString(ctx, locals, &force(ast.thrown))))
+		? some(allocate(ctx.alloc, checkAndExpectString(ctx, locals, &force(ast.thrown))))
 		: none!(Expr*);
 	return check(ctx, source, expected, voidType(ctx), Expr(
 		source,
@@ -527,12 +526,12 @@ Expr checkInterpolated(
 	in InterpolatedAst ast,
 	ref Expected expected,
 ) {
-	defaultExpectedToString(ctx, source, expected);
+	setExpectedIfNoInferred(expected, () => Type(ctx.commonTypes.string_));
 	// TODO: NEATER (don't create a synthetic AST)
 	// "a{b}c" ==> "a" ~~ b.to ~~ "c"
 	CallAst call = checkInterpolatedRecur(ctx, ast.parts, source.range.start + 1, none!ExprAst);
 	Opt!Type inferred = tryGetNonInferringType(ctx.instantiateCtx, expected);
-	CallAst callAndConvert = has(inferred) && !isString(ctx, force(inferred))
+	CallAst callAndConvert = has(inferred) && force(inferred) != Type(ctx.commonTypes.string_)
 		? CallAst(
 			//TODO: new kind (not infix)
 			CallAst.Style.infix,
@@ -542,11 +541,6 @@ Expr checkInterpolated(
 		: call;
 	return checkCall(ctx, locals, source, callAndConvert, expected);
 }
-
-bool isString(in ExprCtx ctx, Type a) =>
-	a.isA!(StructInst*) &&
-	a.as!(StructInst*).decl.name == symbol!"string" &&
-	a.as!(StructInst*).decl.moduleUri == ctx.checkCtx.commonUris[CommonModule.string_];
 
 CallAst checkInterpolatedRecur(ref ExprCtx ctx, in InterpolatedPart[] parts, Pos pos, in Opt!ExprAst left) {
 	ExprAst right = parts[0].matchIn!ExprAst(
@@ -913,7 +907,7 @@ Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, string value, ref Expe
 				}
 				return expr;
 			case LiteralStringLikeExpr.Kind.string_:
-				return check(ctx, source, expected, getStringType(ctx, source), expr);
+				return check(ctx, source, expected, Type(ctx.commonTypes.string_), expr);
 		}
 	}
 }
@@ -924,13 +918,6 @@ StructInst* expectedStructOrNull(ref InstantiateCtx ctx, ref const Expected expe
 		? force(expectedType).as!(StructInst*)
 		: null;
 }
-
-void defaultExpectedToString(ref ExprCtx ctx, ExprAst* source, ref Expected expected) {
-	setExpectedIfNoInferred(expected, () => getStringType(ctx, source));
-}
-
-Type getStringType(ref ExprCtx ctx, ExprAst* source) =>
-	typeFromAst2(ctx, TypeAst(NameAndRange(source.range.start, symbol!"string")));
 
 Expr checkExprWithDestructure(
 	ref ExprCtx ctx,

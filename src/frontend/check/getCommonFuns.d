@@ -88,13 +88,13 @@ CommonFunsAndMain getCommonFuns(
 	StructDecl* arrayDecl = getStructDeclOrAddDiag(
 		alloc, diagsBuilder, *modules[CommonModule.bootstrap], symbol!"array", 1);
 	StructDecl* listDecl = getStructDeclOrAddDiag(alloc, diagsBuilder, *modules[CommonModule.list], symbol!"list", 1);
-	Type stringType = getType(CommonModule.string_, symbol!"string");
 	Type markCtxType = getType(CommonModule.alloc, symbol!"mark-ctx");
 	Type int32Type = Type(commonTypes.integrals.int32);
 	Type nat8Type = Type(commonTypes.integrals.nat8);
 	Type nat64Type = Type(commonTypes.integrals.nat64);
 	Type nat64FutureType = instantiateType(commonTypes.future, [nat64Type]);
 	Type voidType = Type(commonTypes.void_);
+	Type stringType = Type(commonTypes.string_);
 	Type stringListType = instantiateType(listDecl, [stringType]);
 	Type nat8ConstPointerType = instantiateType(commonTypes.ptrConst, [nat8Type]);
 	Type nat8MutPointerType = instantiateType(commonTypes.ptrMut, [nat8Type]);
@@ -137,7 +137,7 @@ CommonFunsAndMain getCommonFuns(
 		CommonModule.exceptionLowLevel,
 		symbol!"throw-impl",
 		voidType,
-		[param!"message"(cStringType)]);
+		[param!"message"(stringType)]);
 	FunInst* char8ArrayAsString = getFun(
 		CommonModule.string_,
 		symbol!"as-string",

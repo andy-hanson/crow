@@ -8,11 +8,11 @@ import concretize.concretizeCtx :
 	boolType,
 	concreteFunForWrapMain,
 	ConcretizeCtx,
-	cStringType,
 	deferredFillRecordAndUnionBodies,
 	finishConcreteVars,
 	getOrAddConcreteFunAndFillBody,
 	getOrAddNonTemplateConcreteFunAndFillBody,
+	stringType,
 	symbolArrayType,
 	voidType;
 import frontend.showModel : ShowCtx;
@@ -102,7 +102,7 @@ ConcreteProgram concretizeInner(
 			rtMainConcreteFun,
 			throwImplFun,
 			userMainConcreteFun));
-	checkConcreteProgram(showCtx, ConcreteCommonTypes(boolType(ctx), cStringType(ctx), voidType(ctx)), res);
+	checkConcreteProgram(showCtx, ConcreteCommonTypes(boolType(ctx), stringType(ctx), voidType(ctx)), res);
 	return res;
 }
 

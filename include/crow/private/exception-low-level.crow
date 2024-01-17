@@ -8,8 +8,7 @@ import
 	../version: is-interpreted, is-windows
 	./alloc: try-get-cur-gc-ctx
 	./backtrace: get-backtrace
-	./bootstrap: abort, array, error, hard-assert, new, ok, result
-	./c-string-util: c-string
+	./bootstrap: abort, array, error, hard-assert, new, ok, result, string
 export
 	./bootstrap: exception, message
 
@@ -63,10 +62,10 @@ or `err` containing an exception if it threw one.
 	(() => try[] ok) catch e => e error
 
 # This is called by the compiler on 'throw'
-throw-impl void(message c-string) bare
+throw-impl void(message string) bare
 	message throw-with-skip 2
 
-throw-with-skip void(message c-string, skip nat64) bare
+throw-with-skip void(message string, skip nat64) bare
 	backtrace = trusted if ctx ?= try-get-cur-gc-ctx
 		ctx get-backtrace skip
 	else

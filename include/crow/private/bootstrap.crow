@@ -371,7 +371,7 @@ There is no exception subtyping in crow, so all exceptions have this type.
 ###
 +exception record by-val
 	# Message passed to `throw`.
-	~message c-string
+	~message string
 	# TODO: accessing backtrace should be unsafe
 	###
 	Backtrace when the exception was created.
@@ -405,3 +405,53 @@ region lock
 	n2 nat64
 	n3 nat64
 	n4 nat64
+
+region list
+
+###
+Immutable list type.
+
+This type is designed so concatenation (`~` and `~~`) will be efficient.
+It also is efficient to split from an iterator.
+
+It does not support efficient access by an index, so iterators should be used instead.
+###
++list[t] record by-val
+	~root t l1
+
+l1[t] record by-val
+	node (t array, t l2) node
+
+l2[t] record by-val
+	node (t array2d, t l3) node
+
+l3[t] record by-val
+	nodes t array3d
+
+node[leaf, lower] union
+	leaf leaf
+	branch (leaf, lower) branch
+
+###
+'left', 'down', and 'right' should all be non-empty.
+(Else, this layer should be a leaf. See `branch-or-leaf`.)
+###
+branch[leaf, lower] record by-ref
+	left leaf
+	down lower
+	right leaf
+
+array2d[t] record by-val
+	total-size nat64
+	arrays t array array
+
+array3d[t] record by-val
+	total-size nat64
+	arrays t array2d array
+
+###
+Strings are optimized for fast concatenation and splitting.
+They don't support efficient access by index, so use iterators instead.
+###
++string record by-val
+	~inner char8[]

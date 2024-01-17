@@ -51,7 +51,7 @@ AllConstantsConcrete finishAllConstants(
 
 	ArrTypeAndConstantsConcrete[] arrays = fillArray!ArrTypeAndConstantsConcrete(
 		alloc, size(a.arrs), ArrTypeAndConstantsConcrete(null));
-	foreach (ArrTypeAndConstants x; values(a.arrs))
+	foreach (ref ArrTypeAndConstants x; values(a.arrs))
 		initMemory(&arrays[x.typeIndex], ArrTypeAndConstantsConcrete(
 			x.arrType,
 			x.elementType,
@@ -59,7 +59,7 @@ AllConstantsConcrete finishAllConstants(
 
 	PointerTypeAndConstantsConcrete[] pointers = fillArray!PointerTypeAndConstantsConcrete(
 		alloc, size(a.pointers), PointerTypeAndConstantsConcrete(null));
-	foreach (ConcreteStruct* pointerType, PointerTypeAndConstants x; a.pointers)
+	foreach (ConcreteStruct* pointerType, ref PointerTypeAndConstants x; a.pointers)
 		initMemory(
 			&pointers[x.typeIndex],
 			PointerTypeAndConstantsConcrete(pointerType, moveToArray(alloc, x.constants)));

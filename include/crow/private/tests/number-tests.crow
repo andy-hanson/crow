@@ -2,7 +2,6 @@ no-std
 import
 	../../json: to
 	../../number: ==, +, -, *, /, int64, max-value, min-value, nat64, to
-	../../string: string
 	../../test-util: is, throws
 
 dummy-number-tests nat64()

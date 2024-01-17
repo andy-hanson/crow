@@ -22,7 +22,7 @@ void checkConcreteProgram(in ShowCtx printCtx, in ConcreteCommonTypes types, in 
 
 immutable struct ConcreteCommonTypes {
 	ConcreteType bool_;
-	ConcreteType cString;
+	ConcreteType string_;
 	ConcreteType void_;
 }
 
@@ -130,7 +130,7 @@ void checkExpr(ref Ctx ctx, in ConcreteType type, in ConcreteExpr expr) {
 			checkExpr(ctx, type, x.then);
 		},
 		(in ConcreteExprKind.Throw x) {
-			checkExpr(ctx, ctx.types.cString, x.thrown);
+			checkExpr(ctx, ctx.types.string_, x.thrown);
 		});
 }
 
