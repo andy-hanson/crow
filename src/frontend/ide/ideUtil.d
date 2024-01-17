@@ -18,10 +18,8 @@ import model.model :
 	IfOptionExpr,
 	LambdaExpr,
 	LetExpr,
-	LiteralCStringExpr,
 	LiteralExpr,
-	LiteralStringExpr,
-	LiteralSymbolExpr,
+	LiteralStringLikeExpr,
 	LocalGetExpr,
 	LocalSetExpr,
 	LoopBreakExpr,
@@ -202,11 +200,7 @@ private Opt!T findDirectChildExpr(T)(in ExprKind a, in Opt!T delegate(in Expr) @
 			optOr!T(cb(x.value), () => cb(x.then)),
 		(in LiteralExpr _) =>
 			none!T,
-		(in LiteralCStringExpr _) =>
-			none!T,
-		(in LiteralStringExpr _) =>
-			none!T,
-		(in LiteralSymbolExpr _) =>
+		(in LiteralStringLikeExpr _) =>
 			none!T,
 		(in LocalGetExpr _) =>
 			none!T,

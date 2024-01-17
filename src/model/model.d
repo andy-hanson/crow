@@ -1657,9 +1657,7 @@ immutable struct ExprKind {
 		LambdaExpr*,
 		LetExpr*,
 		LiteralExpr*,
-		LiteralCStringExpr,
-		LiteralStringExpr,
-		LiteralSymbolExpr,
+		LiteralStringLikeExpr,
 		LocalGetExpr,
 		LocalSetExpr*,
 		LoopExpr*,
@@ -1741,16 +1739,10 @@ immutable struct LiteralExpr {
 	Constant value;
 }
 
-immutable struct LiteralCStringExpr {
+immutable struct LiteralStringLikeExpr {
+	enum Kind { cString, string_, symbol }
+	Kind kind;
 	string value;
-}
-
-immutable struct LiteralStringExpr {
-	string value;
-}
-
-immutable struct LiteralSymbolExpr {
-	Symbol value;
 }
 
 immutable struct LocalGetExpr {

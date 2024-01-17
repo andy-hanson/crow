@@ -75,10 +75,8 @@ import model.model :
 	IfOptionExpr,
 	LambdaExpr,
 	LetExpr,
-	LiteralCStringExpr,
 	LiteralExpr,
-	LiteralStringExpr,
-	LiteralSymbolExpr,
+	LiteralStringLikeExpr,
 	Local,
 	LocalGetExpr,
 	LocalSetExpr,
@@ -107,7 +105,7 @@ import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2Mus
 import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range, UriAndRange;
-import util.symbol : AllSymbols, symbol;
+import util.symbol : AllSymbols, symbol, symbolOfString;
 import util.union_ : Union;
 import util.uri : Uri;
 import util.util : castNonScope, castNonScope_ref, ptrTrustMe, todo;
@@ -184,7 +182,7 @@ struct ConcretizeExprCtx {
 	ref ConcreteFun currentConcreteFun() return scope const =>
 		*currentConcreteFunPointer;
 
-	ref const(AllSymbols) allSymbols() const =>
+	ref inout(AllSymbols) allSymbols() inout =>
 		concretizeCtx.allSymbols;
 
 	ref inout(AllConstantsBuilder) allConstants() return scope inout =>
@@ -975,12 +973,17 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 			concretizeLet(ctx, type, range, locals, x),
 		(ref LiteralExpr x) =>
 			ConcreteExpr(type, range, ConcreteExprKind(x.value)),
-		(LiteralCStringExpr x) =>
-			cStringConcreteExpr(ctx.concretizeCtx, type, range, x.value),
-		(LiteralStringExpr x) =>
-			ConcreteExpr(type, range, stringLiteralConcreteExpr(ctx.concretizeCtx, range, x.value)),
-		(LiteralSymbolExpr x) =>
-			ConcreteExpr(type, range, ConcreteExprKind(constantSymbol(ctx.concretizeCtx, x.value))),
+		(LiteralStringLikeExpr x) {
+			final switch (x.kind) {
+				case LiteralStringLikeExpr.Kind.cString:
+					return cStringConcreteExpr(ctx.concretizeCtx, type, range, x.value);
+				case LiteralStringLikeExpr.Kind.string_:
+					return ConcreteExpr(type, range, stringLiteralConcreteExpr(ctx.concretizeCtx, range, x.value));
+				case LiteralStringLikeExpr.Kind.symbol:
+					return ConcreteExpr(type, range, ConcreteExprKind(
+						constantSymbol(ctx.concretizeCtx, symbolOfString(ctx.allSymbols, x.value))));
+			}
+		},
 		(LocalGetExpr x) =>
 			concretizeLocalGet(ctx, type, range, locals, x.local),
 		(ref LocalSetExpr x) =>

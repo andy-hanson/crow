@@ -34,10 +34,8 @@ import model.model :
 	IfOptionExpr,
 	LambdaExpr,
 	LetExpr,
-	LiteralCStringExpr,
 	LiteralExpr,
-	LiteralStringExpr,
-	LiteralSymbolExpr,
+	LiteralStringLikeExpr,
 	Local,
 	LocalGetExpr,
 	LocalSetExpr,
@@ -395,14 +393,19 @@ void getExprHover(
 		(in LiteralExpr _) {
 			writer ~= "Number literal";
 		},
-		(in LiteralCStringExpr _) {
-			writer ~= "Literal 'c-string'";
-		},
-		(in LiteralStringExpr _) {
-			writer ~= "Literal 'string'";
-		},
-		(in LiteralSymbolExpr _) {
-			writer ~= "Literal 'symbol'";
+		(in LiteralStringLikeExpr x) {
+			writer ~= "Literal '";
+			writer ~= () {
+				final switch (x.kind) {
+					case LiteralStringLikeExpr.Kind.cString:
+						return "c-string";
+					case LiteralStringLikeExpr.Kind.string_:
+						return "string";
+					case LiteralStringLikeExpr.Kind.symbol:
+						return "symbol";
+				}
+			}();
+			writer ~= "'";
 		},
 		(in LocalGetExpr x) {
 			writer ~= "Gets ";

@@ -687,7 +687,7 @@ Programs buildToLowProgram(
 		return Programs(program, none!ConcreteProgram, none!LowProgram);
 	else {
 		ConcreteProgram concreteProgram = concretize(
-			perf, alloc, ctx, versionInfo, program, FileContentGetters(&server.storage));
+			perf, alloc, server.allSymbols, ctx, versionInfo, program, FileContentGetters(&server.storage));
 		LowProgram lowProgram = lower(
 			perf, alloc, server.allSymbols, program.mainConfig.extern_, program.program, concreteProgram);
 		return Programs(program, some(concreteProgram), some(lowProgram));

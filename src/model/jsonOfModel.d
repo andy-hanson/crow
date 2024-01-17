@@ -33,10 +33,8 @@ import model.model :
 	ImportOrExportKind,
 	LambdaExpr,
 	LetExpr,
-	LiteralCStringExpr,
 	LiteralExpr,
-	LiteralStringExpr,
-	LiteralSymbolExpr,
+	LiteralStringLikeExpr,
 	Local,
 	LocalGetExpr,
 	LocalSetExpr,
@@ -396,18 +394,11 @@ Json jsonOfExpr(ref Alloc alloc, in Ctx ctx, in Expr a) =>
 			jsonObject(alloc, [
 				kindField!"literal",
 				field!"value"(jsonOfConstant(alloc, x.value))]),
-		(in LiteralCStringExpr x) =>
-			jsonObject(alloc, [
-				kindField!"c-string",
-				field!"value"(jsonString(alloc, x.value))]),
-		(in LiteralStringExpr x) =>
+		(in LiteralStringLikeExpr x) =>
 			jsonObject(alloc, [
 				kindField!"string",
+				field!"type"(jsonString(stringOfEnum(x.kind))),
 				field!"value"(jsonString(alloc, x.value))]),
-		(in LiteralSymbolExpr x) =>
-			jsonObject(alloc, [
-				kindField!"symbol",
-				field!"value"(x.value)]),
 		(in LocalGetExpr x) =>
 			jsonObject(alloc, [
 				kindField!"local-get",

@@ -52,10 +52,8 @@ import model.model :
 	ImportOrExportKind,
 	LambdaExpr,
 	LetExpr,
-	LiteralCStringExpr,
 	LiteralExpr,
-	LiteralStringExpr,
-	LiteralSymbolExpr,
+	LiteralStringLikeExpr,
 	Local,
 	LocalGetExpr,
 	LocalSetExpr,
@@ -497,11 +495,7 @@ Opt!PositionKind positionInExpr(in ExprCtx ctx, ref Expr a, Pos pos) {
 					() => here()),
 			(ref LiteralExpr _) =>
 				here(),
-			(LiteralCStringExpr _) =>
-				here(),
-			(LiteralStringExpr _) =>
-				here(),
-			(LiteralSymbolExpr _) =>
+			(LiteralStringLikeExpr _) =>
 				here(),
 			(LocalGetExpr _) =>
 				here(),

@@ -120,10 +120,8 @@ import model.model :
 	isDefinitelyByRef,
 	LambdaExpr,
 	LetExpr,
-	LiteralCStringExpr,
 	LiteralExpr,
-	LiteralStringExpr,
-	LiteralSymbolExpr,
+	LiteralStringLikeExpr,
 	Local,
 	LocalGetExpr,
 	localMustHaveNameRange,
@@ -173,7 +171,7 @@ import util.conv : safeToUshort, safeToUint;
 import util.memory : allocate, initMemory, overwriteMemory;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, someMut, some;
 import util.sourceRange : Pos, Range;
-import util.symbol : prependSet, prependSetDeref, Symbol, symbol, symbolOfString;
+import util.symbol : prependSet, prependSetDeref, Symbol, symbol;
 import util.union_ : Union;
 import util.util : castImmutable, castNonScope_ref, max, ptrTrustMe;
 
@@ -899,21 +897,24 @@ Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, string value, ref Expe
 		}();
 		return Expr(source, ExprKind(allocate(ctx.alloc, LiteralExpr(Constant(Constant.Integral(char_))))));
 	} else {
-		void checkString(Diag.StringLiteralInvalid.Reason reason) {
-			if (contains(value, '\0'))
-				addDiag2(ctx, source.range, Diag(Diag.StringLiteralInvalid(reason)));
+		LiteralStringLikeExpr.Kind kind = expectedStruct == ctx.commonTypes.symbol
+			? LiteralStringLikeExpr.Kind.symbol
+			: expectedStruct == ctx.commonTypes.cString
+			? LiteralStringLikeExpr.Kind.cString
+			: LiteralStringLikeExpr.Kind.string_;
+		Expr expr = Expr(source, ExprKind(LiteralStringLikeExpr(kind, value)));
+		final switch (kind) {
+			case LiteralStringLikeExpr.Kind.cString:
+			case LiteralStringLikeExpr.Kind.symbol:
+				if (contains(value, '\0')) {
+					addDiag2(ctx, source.range, Diag(Diag.StringLiteralInvalid(expectedStruct == ctx.commonTypes.symbol
+						? Diag.StringLiteralInvalid.Reason.symbolContainsNul
+						: Diag.StringLiteralInvalid.Reason.cStringContainsNul)));
+				}
+				return expr;
+			case LiteralStringLikeExpr.Kind.string_:
+				return check(ctx, source, expected, getStringType(ctx, source), expr);
 		}
-
-		if (expectedStruct == ctx.commonTypes.symbol) {
-			checkString(Diag.StringLiteralInvalid.Reason.symbolContainsNul);
-			return Expr(source, ExprKind(LiteralSymbolExpr(symbolOfString(ctx.allSymbols, value))));
-		} else if (expectedStruct == ctx.commonTypes.cString) {
-			checkString(Diag.StringLiteralInvalid.Reason.cStringContainsNul);
-			return Expr(source, ExprKind(LiteralCStringExpr(value)));
-		} else
-			return check(
-				ctx, source, expected, getStringType(ctx, source),
-				Expr(source, ExprKind(LiteralStringExpr(value))));
 	}
 }
 

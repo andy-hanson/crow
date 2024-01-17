@@ -186,7 +186,7 @@ struct ConcretizeCtx {
 
 	Alloc* allocPtr;
 	immutable VersionInfo versionInfo;
-	const AllSymbols* allSymbolsPtr;
+	AllSymbols* allSymbolsPtr;
 	const AllUris* allUrisPtr;
 	CommonTypes* commonTypesPtr;
 	immutable Program* programPtr;
@@ -218,7 +218,7 @@ struct ConcretizeCtx {
 	ref Alloc alloc() return scope =>
 		*allocPtr;
 
-	ref const(AllSymbols) allSymbols() return scope const =>
+	ref inout(AllSymbols) allSymbols() return scope inout =>
 		*allSymbolsPtr;
 	ref const(AllUris) allUris() return scope const =>
 		*allUrisPtr;

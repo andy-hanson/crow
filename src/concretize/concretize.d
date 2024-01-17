@@ -27,26 +27,29 @@ import util.col.mutArr : moveToArray, MutArr;
 import util.col.mutMap : isEmpty, mapToMap;
 import util.late : lateSet;
 import util.perf : Perf, PerfMeasure, withMeasure;
+import util.symbol : AllSymbols;
 import util.util : castNonScope, castNonScope_ref, ptrTrustMe;
 import versionInfo : VersionInfo;
 
 ConcreteProgram concretize(
 	scope ref Perf perf,
 	ref Alloc alloc,
-	in ShowCtx printCtx,
+	scope ref AllSymbols allSymbols,
+	in ShowCtx showCtx,
 	in VersionInfo versionInfo,
 	ref ProgramWithMain program,
 	in FileContentGetters fileContentGetters,
 ) =>
 	withMeasure!(ConcreteProgram, () =>
-		concretizeInner(&alloc, printCtx, versionInfo, program, fileContentGetters)
+		concretizeInner(&alloc, allSymbols, showCtx, versionInfo, program, fileContentGetters)
 	)(perf, alloc, PerfMeasure.concretize);
 
 private:
 
 ConcreteProgram concretizeInner(
 	Alloc* allocPtr,
-	in ShowCtx printCtx,
+	scope ref AllSymbols allSymbols,
+	in ShowCtx showCtx,
 	in VersionInfo versionInfo,
 	ref ProgramWithMain program,
 	in FileContentGetters fileContentGetters,
@@ -56,8 +59,8 @@ ConcreteProgram concretizeInner(
 	ConcretizeCtx ctx = ConcretizeCtx(
 		allocPtr,
 		versionInfo,
-		castNonScope(printCtx.allSymbolsPtr),
-		castNonScope(printCtx.allUrisPtr),
+		ptrTrustMe(allSymbols),
+		castNonScope(showCtx.allUrisPtr),
 		program.program.commonTypes,
 		ptrTrustMe(program.program),
 		castNonScope_ref(fileContentGetters));
@@ -99,7 +102,7 @@ ConcreteProgram concretizeInner(
 			rtMainConcreteFun,
 			throwImplFun,
 			userMainConcreteFun));
-	checkConcreteProgram(printCtx, ConcreteCommonTypes(boolType(ctx), cStringType(ctx), voidType(ctx)), res);
+	checkConcreteProgram(showCtx, ConcreteCommonTypes(boolType(ctx), cStringType(ctx), voidType(ctx)), res);
 	return res;
 }
 
