@@ -51,7 +51,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, MutOpt, Opt, some, someMut;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : Symbol, symbol;
-import util.util : castNonScope_ref, todo;
+import util.util : castNonScope_ref;
 
 struct CommonFunsAndMain {
 	CommonFuns commonFuns;
@@ -212,8 +212,7 @@ Type getNonTemplateType(
 	Symbol name,
 ) {
 	StructDecl* decl = getStructDeclOrAddDiag(alloc, diagsBuilder, module_, name, 0);
-	if (decl.isTemplate)
-		todo!void("diag");
+	assert(!decl.isTemplate);
 	return Type(instantiateStructNeverDelay(ctx, decl, []));
 }
 

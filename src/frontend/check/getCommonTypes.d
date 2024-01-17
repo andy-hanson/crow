@@ -28,11 +28,11 @@ import util.col.array : isEmpty, small;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.enumMap : EnumMap;
 import util.memory : allocate;
-import util.opt : force, has, none, Opt, someMut, some;
+import util.opt : force, has, none, Opt, optIf, someMut, some;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : Symbol, symbol;
 import util.uri : Uri;
-import util.util : ptrTrustMe, todo;
+import util.util : ptrTrustMe;
 
 CommonTypes* getCommonTypes(
 	ref Alloc alloc,
@@ -146,12 +146,10 @@ Opt!(StructDecl*) getCommonTemplateType(
 	size_t expectedTypeParams,
 ) {
 	Opt!StructOrAlias res = structsAndAliasesMap[name];
-	if (has(res)) {
+	if (has(res) && force(res).isA!(StructDecl*)) {
 		// TODO: may fail -- builtin Template should not be an alias
 		StructDecl* decl = force(res).as!(StructDecl*);
-		if (decl.typeParams.length != expectedTypeParams)
-			todo!void("getCommonTemplateType");
-		return some(decl);
+		return optIf(decl.typeParams.length == expectedTypeParams, () => decl);
 	} else
 		return none!(StructDecl*);
 }
