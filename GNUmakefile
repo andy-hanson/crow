@@ -20,7 +20,7 @@ debug-dmd: bin/crow-dmd
 
 ### test ###
 
-test: unit-test crow-unit-tests end-to-end-test
+test: unit-test crow-unit-tests test-extern-library end-to-end-test
 
 unit-test: bin/crow-debug
 	./bin/crow-debug test
@@ -35,11 +35,20 @@ crow-unit-tests-aot: bin/crow
 	./bin/crow run test/crow-unit-tests.crow --aot
 	./bin/crow run test/crow-unit-tests.crow --aot --optimize
 
+test-extern-library: bin/crow bin/libexample.so
+	./bin/crow run test/test-extern-library/main.crow
+	# TODO: ./bin/crow run test/test-extern-library/main.crow --jit
+	./bin/crow run test/test-extern-library/main.crow --aot
+
+bin/libexample.so: test/test-extern-library/example.c
+	mkdir -p bin
+	cc test/test-extern-library/example.c -Werror -Wextra -Wall -ansi -pedantic -shared -o bin/libexample.so
+
 end-to-end-test: bin/crow
-	./bin/crow run test/test-end-to-end.crow
+	./bin/crow run test/end-to-end/main.crow
 
 end-to-end-test-overwrite: bin/crow
-	./bin/crow run test/test-end-to-end.crow -- --overwrite-output
+	./bin/crow run test/end-to-end/main.crow -- --overwrite-output
 
 ### external dependencies ###
 

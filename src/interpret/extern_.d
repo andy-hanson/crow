@@ -86,7 +86,7 @@ alias DynCallType = immutable DynCallType_;
 private enum DynCallType_ : ubyte {
 	bool_,
 	char8,
-	int8,
+	int8 = char8,
 	int16,
 	int32,
 	int64,

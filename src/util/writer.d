@@ -130,7 +130,7 @@ void writeWithCommas(T)(
 	in bool delegate(in T) @safe @nogc pure nothrow filter,
 	in void delegate(in T) @safe @nogc pure nothrow cb,
 ) {
-	writeWithSeparator!T(writer, a, ", ", filter, cb);
+	writeWithSeparatorAndFilter!T(writer, a, ", ", filter, cb);
 }
 
 void writeWithCommasZip(T, U)(
@@ -171,10 +171,10 @@ void writeWithSeparator(T)(
 	in string separator,
 	in void delegate(in T) @safe @nogc pure nothrow cb,
 ) {
-	writeWithSeparator!T(writer, a, separator, (in T _) => true, cb);
+	writeWithSeparatorAndFilter!T(writer, a, separator, (in T _) => true, cb);
 }
 
-private void writeWithSeparator(T)(
+void writeWithSeparatorAndFilter(T)(
 	scope ref Writer writer,
 	in T[] a,
 	in string separator,

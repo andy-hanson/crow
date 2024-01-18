@@ -573,6 +573,7 @@ public void writeUri(ref Writer writer, in AllUris allUris, Uri a) {
 	writePathPlain(writer, allUris, a.path);
 }
 
+// WARN: Does not write leading '/'
 public void writeFileUri(ref Writer writer, in AllUris allUris, FileUri a) {
 	writePathPlain(writer, allUris, a.path);
 }

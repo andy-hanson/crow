@@ -1,0 +1,4 @@
+exit code: 0
+stderr:
+test/end-to-end/compile-errors/fun-closure-mut.crow 3:19-3:26 This lambda is a 'fun' but references 'x' which is 'mut'. (Should it be an 'act' or 'far' fun?)
+test/end-to-end/compile-errors/fun-closure-mut.crow 6:25-6:32 This lambda is a 'fun' but references 'y' of 'mut' type 'nat64 mut[]'. (Should it be an 'act' or 'far' fun?)

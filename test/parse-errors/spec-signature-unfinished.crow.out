@@ -1,4 +1,0 @@
-exit code: 1
-stderr:
-test/parse-errors/spec-signature-unfinished.crow 3:1-2:12 Expected a name (non-operator).
-test/parse-errors/spec-signature-unfinished.crow 3:1-2:12 Expected ','.

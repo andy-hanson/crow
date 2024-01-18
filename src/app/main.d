@@ -361,7 +361,7 @@ ExitCode doPrint(scope ref Perf perf, ref Alloc alloc, ref Server server, in Com
 ExitCode build(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri main, in BuildOptions options) {
 	loadAllFiles(perf, server, [main]);
 	if (hasAnyOut(options.out_))
-		return withBuild(perf, alloc, server, main, options, () => ExitCode.ok);
+		return withBuild(perf, alloc, server, main, options, (in ExternLibraries _) => ExitCode.ok);
 	else {
 		ProgramWithMain program = getProgramForMain(perf, alloc, server, main);
 		return hasAnyDiagnostics(program)
@@ -383,9 +383,10 @@ ExitCode buildAndRun(
 		BuildOptions buildOptions = BuildOptions(
 			BuildOut(none!Uri, some(toUri(server.allUris, exeUri))),
 			options.compileOptions);
-		return withBuild(perf, alloc, server, main, buildOptions, () {
+		return withBuild(perf, alloc, server, main, buildOptions, (in ExternLibraries externLibraries) {
 			ExitCodeOrSignal res = spawnAndWait(
-				alloc, server.allUris, cStringOfFileUri(alloc, server.allUris, exeUri), programArgs);
+				alloc, server.allSymbols, server.allUris, externLibraries,
+				cStringOfFileUri(alloc, server.allUris, exeUri), programArgs);
 			// Delay aborting with the signal so we can clean up temp files
 			return res.match!ExitCode(
 				(ExitCode x) =>
@@ -409,7 +410,7 @@ ExitCode withBuild(
 	ref Server server,
 	Uri main,
 	in BuildOptions options,
-	in ExitCode delegate() @safe @nogc nothrow cb,
+	in ExitCode delegate(in ExternLibraries) @safe @nogc nothrow cb,
 ) =>
 	withBuildToC(perf, alloc, server, main, (CString cSource, ExternLibraries externLibraries) =>
 		withUriOrTemp!cExtension(server.allUris, options.out_.outC, main, (FileUri cUri) =>
@@ -420,7 +421,7 @@ ExitCode withBuild(
 							perf, alloc, server.allSymbols, server.allUris,
 							cUri, force(options.out_.outExecutable), externLibraries, options.cCompileOptions)
 						: ExitCode.ok,
-					cb))));
+					() => cb(externLibraries)))));
 
 ExitCode withBuildToC(
 	scope ref Perf perf,
@@ -432,10 +433,7 @@ ExitCode withBuildToC(
 	BuildToCResult result = buildToC(perf, alloc, server, main);
 	if (!cStringIsEmpty(result.diagnostics))
 		printError(result.diagnostics);
-	if (result.hasFatalDiagnostics)
-		return ExitCode.error;
-	else
-		return cb(result.cSource, result.externLibraries);
+	return result.hasFatalDiagnostics ? ExitCode.error : cb(result.cSource, result.externLibraries);
 }
 
 version (GccJitAvailable) { ExitCode buildAndJit(

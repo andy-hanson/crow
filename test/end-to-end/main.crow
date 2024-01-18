@@ -1,0 +1,176 @@
+import
+	crow/io/file: each-child-recursive, try-read-file, write-file
+	crow/io/path: base-name, child-path, get-extension
+	crow/io/print: out, print
+	crow/io/process: exit, has-error, process-result, spawn-and-wait-result, stderr, stdout
+	crow/parse-command: parse-named-args
+	crow/version: is-windows
+	../failure
+
+main nat^(args string[]) summon
+	if values ?= args parse-named-args ("print-tests", "overwrite-output", "match")
+		print-tests-strs = values[0]
+		overwrite-output-strs = values[1]
+		match-test-strs = values[2]
+		should-print-tests = !print-tests-strs.is-empty
+		overwrite-output = if strs ?= overwrite-output-strs
+			assert strs is-empty
+			true
+		match-test = if strs ?= match-test-strs
+			assert strs.size == 1
+			strs[0]
+		(should-print-tests, overwrite-output, match-test) do-test
+	else
+		print-help
+		1,
+
+-print-help void() summon
+	out print """test -- runs tests
+options:
+	--print-tests: Print every test before it runs.
+	--overwrite-output: Overwrite '.out' files instead of failing
+	--match [STR]: Print tests that have STR in the name.
+"""
+
+-test-options record
+	print-tests bool
+	overwrite-output bool
+	match-test string
+
+-do-test nat^(options test-options) summon
+	crow-dir = "."
+	paths string[] = for name : ("parse-errors", "compile-errors", "runnable")::string[]
+		"./test/end-to-end" child-path name
+	path-to-crow = crow-dir crow-path
+	tests string[] <- ()::string[] join for path : paths parallel
+		path list-tests options.match-test
+	failures failure[] <- ()::failure[] join for x : tests parallel
+		path-to-crow run-single-crow-test x, options
+	if failures is-empty
+		out print "ran {tests size} crow tests"
+		()
+	else
+		failures.print-failures,
+
+-crow-path string(crow-dir string)
+	crow-dir child-path "bin" child-path "crow" ~~ (trusted is-windows ? ".exe" : "")
+
+-list-tests string[]^(path string, match-test string) summon
+	res string mut[] = ()
+	path each-child-recursive child =>
+		if child contains-seq match-test && child.ext-is-crow && !child.is-excluded
+			res ~= child
+	res.move-to,
+
+# Some tests have different output on Windows
+-is-excluded bool(a string)
+	if trusted is-windows
+		a ends-with "/fail.crow" || a ends-with "/gc.crow"
+
+-ext-is-crow bool(a string)
+	if ext ?= a.base-name get-extension
+		ext == "crow"
+
+-run-single-crow-test failure[]^(path-to-crow string, path string, options test-options) summon
+	overwrite = options overwrite-output
+	if options print-tests
+		out print "crow run {path}"
+	interpret-failures <- path-to-crow run-single path, interpret, overwrite
+	jit-failures <- if interpret-failures.is-empty && !overwrite && !(trusted is-windows)
+		path-to-crow run-single path, jit, overwrite
+	else
+		interpret-failures,
+	if jit-failures.is-empty && !overwrite
+		path-to-crow run-single path, aot, overwrite
+	else
+		jit-failures,
+
+run-kind enum
+	interpret
+	jit
+	aot
+
+-run-single failure[]^(
+	path-to-crow string,
+	path string,
+	run-kind run-kind,
+	overwrite-output bool,
+) summon
+	args string[] = match run-kind
+	as interpret
+		"run", path
+	as jit
+		"run", path, "--jit"
+	as aot
+		"run", path, "--aot"
+	res = path-to-crow spawn-and-wait-result args
+	(path handle-output "{path}.out", res.format-output, overwrite-output),
+
+-format-output string(a process-result)
+	if a has-error
+		exit-code = match a exit
+		as exited x
+			x
+		as signaled x
+			x
+		exit-string = exit-code != 0 && exit-code != 1 ? "big" : "{exit-code}"
+		"exit code: {exit-string}\n{a format-stdout-stderr}"
+	else
+		a.stdout remove-colors
+
+-format-stdout-stderr string(a process-result)
+	stdout = a.stdout == "" ? "" : "stdout:\n{a.stdout remove-colors}"
+	"{stdout}stderr:\n{a.stderr.remove-colors normalize-exceptions}"
+
+-remove-colors string(a string)
+	if pair ?= a try-split-once "\x1b"
+		pair.a ~~ if pair2 ?= pair.b try-split-once "m"
+			pair2.b remove-colors
+	else
+		a
+
+# Interpreter has more exception info than JIT. Remove extra info so they are the same.
+-normalize-exceptions string(a string)
+	a update-lines line =>
+		# TODO: use a function from parse.crow for this
+		if rest ?= line try-remove-start "\tat "
+			# Printed function names differ, so just take the name
+			# (In JIT hyphens print as '__s', so don't take hyphens)
+			name = rest take-while x => x is-letter
+			normalized-name = if name == "pthread"
+				""
+			else
+				name
+			normalized-name == "" ? () : ("\tat {normalized-name}",)
+		else
+			line,
+
+-update-lines string(a string, cb act string[](string))
+	new-lines string[] = () join for line : a split "\n"
+		cb[line]
+	"\n" join new-lines
+
+-is-letter bool(a char8)
+	# TODO: support other alphabets
+	"a"::char8.to::nat8 <= a.to && a.to::nat8 <= "z"::char8.to
+
+-handle-output failure[](
+	original-path string,
+	output-path string,
+	actual string,
+	overwrite-output bool,
+) summon
+	if text ?= output-path.try-read-file :: string?
+		if actual.normalize-newlines == text.normalize-newlines
+			()
+		elif overwrite-output
+			output-path write-file actual
+			()
+		else
+			message = "{output-path} was not as expected. actual:\n{actual}"
+			(original-path, message),
+	elif overwrite-output
+		output-path write-file actual
+		()
+	else
+		(original-path, "{output-path} does not exist. actual was:\n{actual}"),

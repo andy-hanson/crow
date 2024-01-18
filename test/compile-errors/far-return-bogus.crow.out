@@ -1,5 +1,0 @@
-exit code: 1
-stderr:
-test/compile-errors/far-return-bogus.crow 2:12-2:13 There is no function or variable named 'x'.
-Uncaught exception: Reached compile error
-	at main

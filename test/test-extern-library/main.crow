@@ -1,0 +1,102 @@
+import
+	crow/version: is-interpreted
+
+main void()
+	false f_bool &my_bool_fn is true
+	8 f_int8 &my_int8_fn is 9
+	16 f_int16 &my_int16_fn is 17
+	32 f_int32 &my_int32_fn is 33
+	64 f_int64 &my_int64_fn is 65
+	8 f_nat8 &my_nat8_fn is 9
+	16 f_nat16 &my_nat16_fn is 17
+	32 f_nat32 &my_nat32_fn is 33
+	64 f_nat64 &my_nat64_fn is 65
+	3.2 f_float32 &my_float32_fn is 3.3
+	6.4 f_float64 &my_float64_fn is 6.5
+	n nat64 = 64
+	assert trusted (&n f_nat64_ptr &my_nat64_ptr_fn) == &n
+
+	# TODO: Support structs in dyncall
+	unless trusted is-interpreted
+		s ExampleStruct = false, 64
+		s f_struct &my_struct_fn is (true, 65)
+
+	info log "done"
+	()
+
+-f_bool bool(a bool, f fun* bool(bool)) example extern, trusted
+-f_int8 int8(a int8, f fun* int8(int8)) example extern, trusted
+-f_int16 int16(a int16, f fun* int16(int16)) example extern, trusted
+-f_int32 int32(a int32, f fun* int32(int32)) example extern, trusted
+-f_int64 int64(a int64, f fun* int64(int64)) example extern, trusted
+-f_nat8 nat8(a nat8, f fun* nat8(nat8)) example extern, trusted
+-f_nat16 nat16(a nat16, f fun* nat16(nat16)) example extern, trusted
+-f_nat32 nat32(a nat32, f fun* nat32(nat32)) example extern, trusted
+-f_nat64 nat64(a nat64, f fun* nat64(nat64)) example extern, trusted
+-f_float32 float32(a float32, f fun* float32(float32)) example extern, trusted
+-f_float64 float64(a float64, f fun* float64(float64)) example extern, trusted
+-f_nat64_ptr nat64*(a nat64*, f fun* nat64*(nat64*)) example extern, trusted
+-f_struct ExampleStruct(
+	a ExampleStruct,
+	f fun* ExampleStruct(ExampleStruct),
+) example extern, trusted
+
+-ExampleStruct record extern
+	b bool
+	n nat64
+== bool(a ExampleStruct, b ExampleStruct)
+	a.b == b.b && a.n == b.n
+to json(a ExampleStruct)
+	("b", a.b.to), ("n", a.n.to)
+
+-my_bool_fn bool(a bool)
+	a is false
+	true
+
+-my_int8_fn int8(a int8)
+	a is 8
+	a + 1
+
+-my_int16_fn int16(a int16)
+	a is 16
+	a + 1
+
+-my_int32_fn int32(a int32)
+	a is 32
+	a + 1
+
+-my_int64_fn int64(a int64)
+	a is 64
+	a + 1
+
+-my_nat8_fn nat8(a nat8)
+	a is 8
+	a + 1
+
+-my_nat16_fn nat16(a nat16)
+	a is 16
+	a + 1
+
+-my_nat32_fn nat32(a nat32)
+	a is 32
+	a + 1
+
+-my_nat64_fn nat64(a nat64)
+	a is 64
+	a + 1
+
+-my_float32_fn float32(a float32)
+	a is 3.2
+	a + 0.1
+
+-my_float64_fn float64(a float64)
+	a is 6.4
+	a + 0.1
+
+-my_nat64_ptr_fn nat64*(a nat64*) unsafe
+	*a is 64
+	a
+
+-my_struct_fn ExampleStruct(a ExampleStruct) unsafe
+	a is (false, 64)
+	true, 65

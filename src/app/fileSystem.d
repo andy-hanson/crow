@@ -45,14 +45,15 @@ version (Windows) {
 }
 import frontend.storage : FileContent, ReadFileResult;
 import model.diag : ReadFileDiag;
+import model.lowModel : ExternLibrary, ExternLibraries;
 import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
-import util.col.array : endPtr, newArray;
-import util.col.arrayBuilder : add, ArrayBuilder, finish;
+import util.col.array : endPtr, exists, newArray;
+import util.col.arrayBuilder : ArrayBuilderWithAlloc, finish;
 import util.exitCode : ExitCode, okAnd;
 import util.memory : memset;
-import util.opt : force, has, Opt, some;
+import util.opt : force, has, Opt;
 import util.string : CString, cStringSize;
-import util.symbol : Symbol;
+import util.symbol : AllSymbols, Symbol;
 import util.union_ : Union;
 import util.uri :
 	AllUris,
@@ -66,8 +67,8 @@ import util.uri :
 	TempStrForPath,
 	Uri,
 	writeFileUri;
-import util.util : todo;
-import util.writer : withStackWriter, withWriter, Writer;
+import util.util : todo, typeAs;
+import util.writer : withStackWriter, withWriter, Writer, writeWithSeparatorAndFilter;
 
 FILE* stdin() {
 	version (Windows) {
@@ -312,7 +313,9 @@ ExitCode printSignalAndExit(ExitCodeOrSignal a) =>
 // WARN: A first arg will be prepended that is the executable path.
 @trusted ExitCodeOrSignal spawnAndWait(
 	ref TempAlloc tempAlloc,
-	in AllUris allUris,
+	scope ref AllSymbols allSymbols,
+	scope ref AllUris allUris,
+	in ExternLibraries externLibraries,
 	in CString executablePath,
 	in CString[] args,
 ) {
@@ -346,6 +349,7 @@ ExitCode printSignalAndExit(ExitCodeOrSignal a) =>
 
 		PROCESS_INFORMATION processInfo;
 		memset(cast(ubyte*) &processInfo, 0, PROCESS_INFORMATION.sizeof);
+		static assert(false); // TODO: environment for extern libraries?
 		int ok = CreateProcessA(
 			executablePath.ptr,
 			// not sure why Windows makes this mutable
@@ -400,7 +404,7 @@ ExitCode printSignalAndExit(ExitCodeOrSignal a) =>
 			null,
 			// https://stackoverflow.com/questions/50596439/can-string-literals-be-passed-in-posix-spawns-argv
 			cast(char**) convertArgs(tempAlloc, executablePath, args),
-			cast(char**) environ);
+			getEnvironForChildProcess(tempAlloc, allSymbols, allUris, externLibraries));
 		if (spawnStatus == 0) {
 			int waitStatus;
 			int resPid = waitpid(pid, &waitStatus, 0);
@@ -417,6 +421,41 @@ ExitCode printSignalAndExit(ExitCodeOrSignal a) =>
 }
 
 private:
+
+version (Windows) {} else {
+	@system immutable(char**) getEnvironForChildProcess(
+		ref Alloc alloc,
+		scope ref AllSymbols allSymbols,
+		scope ref AllUris allUris,
+		in ExternLibraries externLibraries,
+	) {
+		if (exists!ExternLibrary(externLibraries, (in ExternLibrary x) => has(x.configuredDir))) {
+			ArrayBuilderWithAlloc!(immutable char*) res = ArrayBuilderWithAlloc!(immutable char*)(&alloc);
+			immutable(char*)* cur = __environ;
+			while (*cur != null) {
+				res ~= *cur;
+				cur++;
+			}
+
+			res ~= withWriter(alloc, (scope ref Writer writer) {
+				writer ~= "LD_LIBRARY_PATH=";
+				writeWithSeparatorAndFilter!ExternLibrary(
+					writer,
+					externLibraries,
+					";",
+					(in ExternLibrary x) => has(x.configuredDir),
+					(in ExternLibrary x) {
+						writer ~= '/';
+						writeFileUri(writer, allUris, asFileUri(allUris, force(x.configuredDir)));
+					});
+			}).ptr;
+
+			res ~= typeAs!(immutable char*)(null);
+			return finish(res).ptr;
+		} else
+			return __environ;
+	}
+}
 
 version (Windows) {
 	extern(C) char* _getcwd(char* buffer, int maxlen);
@@ -506,16 +545,15 @@ version (Windows) {
 }
 
 @system immutable(char**) convertArgs(ref Alloc alloc, in CString executable, in CString[] args) {
-	ArrayBuilder!(immutable char*) cArgs;
-	add(alloc, cArgs, executable.ptr);
+	ArrayBuilderWithAlloc!(immutable char*) cArgs = ArrayBuilderWithAlloc!(immutable char*)(&alloc);
+	cArgs ~= executable.ptr;
 	foreach (CString arg; args)
-		add(alloc, cArgs, arg.ptr);
-	add(alloc, cArgs, null);
-	return finish(alloc, cArgs).ptr;
+		cArgs ~= arg.ptr;
+	cArgs ~= typeAs!(immutable char*)(null);
+	return finish(cArgs).ptr;
 }
 
-// D doesn't declare this anywhere for some reason
-extern(C) extern immutable char** environ;
+extern(C) immutable char** __environ;
 
 // Copying from /usr/include/dmd/druntime/import/core/sys/posix/sys/wait.d
 // to avoid linking to druntime

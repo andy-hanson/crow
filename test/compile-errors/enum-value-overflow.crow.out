@@ -1,6 +1,0 @@
-exit code: 0
-stderr:
-test/compile-errors/enum-value-overflow.crow 5:5-5:11 Enum member is not in the allowed range from 0 to 4294967295.
-test/compile-errors/enum-value-overflow.crow 8:5-8:19 Enum member is not in the allowed range from 0 to 4294967295.
-test/compile-errors/enum-value-overflow.crow 11:5-11:13 Enum member is not in the allowed range from -128 to 127.
-test/compile-errors/enum-value-overflow.crow 14:5-14:12 Enum member is not in the allowed range from -128 to 127.

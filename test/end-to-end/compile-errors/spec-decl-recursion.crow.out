@@ -1,0 +1,4 @@
+exit code: 0
+stderr:
+test/end-to-end/compile-errors/spec-decl-recursion.crow 4:1-4:9 Spec's parents tree is too deep.
+	Trace: 'b', 'a', 'b', 'a', 'b', 'a', 'b', 'a'

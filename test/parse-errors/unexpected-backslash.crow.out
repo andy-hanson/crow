@@ -1,3 +1,0 @@
-exit code: 1
-stderr:
-test/parse-errors/unexpected-backslash.crow 2:8-2:10 Unexpected character '\'.

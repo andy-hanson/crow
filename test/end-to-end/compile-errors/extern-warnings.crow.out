@@ -1,0 +1,4 @@
+exit code: 0
+stderr:
+test/end-to-end/compile-errors/extern-warnings.crow 4:1-4:2 'bare' is redundant given 'extern'.
+test/end-to-end/compile-errors/extern-warnings.crow 6:1-6:2 'unsafe' is redundant given 'extern'.

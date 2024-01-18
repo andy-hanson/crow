@@ -9,7 +9,7 @@ version (Windows) {
 }
 import frontend.lang : OptimizationLevel;
 import lib.cliParser : CCompileOptions;
-import model.lowModel : ExternLibrary;
+import model.lowModel : ExternLibraries, ExternLibrary;
 import util.alloc.alloc : Alloc;
 import util.col.arrayBuilder : finish, ArrayBuilderWithAlloc;
 import util.exitCode : ExitCode;
@@ -24,11 +24,11 @@ import util.writer : withWriter, Writer;
 @trusted ExitCode compileC(
 	scope ref Perf perf,
 	ref Alloc alloc,
-	ref AllSymbols allSymbols,
-	ref AllUris allUris,
+	scope ref AllSymbols allSymbols,
+	scope ref AllUris allUris,
 	in FileUri cPath,
 	in Uri exePath,
-	in ExternLibrary[] externLibraries,
+	in ExternLibraries externLibraries,
 	in CCompileOptions options,
 ) {
 	if (!isFileUri(allUris, exePath))
@@ -46,7 +46,7 @@ import util.writer : withWriter, Writer;
 		scope CString executable = cString!"/usr/bin/cc";
 	}
 	return withMeasure!(ExitCode, () =>
-		printSignalAndExit(spawnAndWait(alloc, allUris, executable, args)),
+		printSignalAndExit(spawnAndWait(alloc, allSymbols, allUris, externLibraries, executable, args)),
 	)(perf, alloc, PerfMeasure.cCompile);
 }
 
@@ -59,7 +59,7 @@ CString[] cCompileArgs(
 	ref AllUris allUris,
 	in FileUri cPath,
 	in FileUri exePath,
-	in ExternLibrary[] externLibraries,
+	in ExternLibraries externLibraries,
 	in CCompileOptions options,
 ) {
 	ArrayBuilderWithAlloc!CString args = ArrayBuilderWithAlloc!CString(&alloc);
@@ -86,7 +86,7 @@ CString[] cCompileArgs(
 		} else {
 			if (has(x.configuredDir)) {
 				args ~= withWriter(alloc, (scope ref Writer writer) {
-					writer ~= "-L";
+					writer ~= "-L/";
 					if (!isFileUri(allUris, force(x.configuredDir)))
 						todo!void("diagnostic: can't link to non-file");
 					writeFileUri(writer, allUris, asFileUri(allUris, force(x.configuredDir)));

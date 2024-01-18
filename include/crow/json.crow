@@ -14,7 +14,7 @@ import
 	./number: ==, float32, float64, int8, int16, int32, int64, nat8, nat16, nat32, nat64, to
 	./option: ??, new, option
 	./result: result
-	./string: ==, ~~, new, quote, string, to
+	./string: ==, ~~, char8, new, quote, string, to
 	./symbol: ==, <=>, hash-mix, symbol, to
 	./tuple: a, b, new
 
@@ -39,6 +39,8 @@ JSON data.
 	a
 +to json(a bool)
 	a.json-bool
++to json(a char8)
+	a.to::string to
 +to json(a nat8)
 	a.to::nat64 to
 +to json(a nat16)

@@ -23,7 +23,7 @@ import util.col.array : map, mapImpure;
 import util.col.map : Map, KeyValuePair, makeMapFromKeys, zipToMap;
 import util.col.mapBuilder : MapBuilder, finishMap, tryAddToMap;
 import util.col.mutArr : MutArr, mutArrIsEmpty, push;
-import util.conv : bitsOfFloat32, bitsOfFloat64, float32OfBits, float64OfBits, safeToUshort;
+import util.conv : bitsOfFloat32, bitsOfFloat64, float32OfBits, float64OfBits;
 import util.exitCode : ExitCode;
 import util.late : Late, late, lateGet, lateSet;
 import util.memory : allocate;
@@ -31,7 +31,6 @@ import util.opt : force, has, Opt, none, some;
 import util.string : CString, cString;
 import util.symbol : AllSymbols, concatSymbols, Symbol, symbol, symbolAsTempBuffer;
 import util.uri : AllUris, asFileUri, childUri, fileUriToTempStr, isFileUri, TempStrForPath, Uri;
-import util.util : todo;
 
 @trusted ExitCode withRealExtern(
 	ref Alloc alloc,
@@ -203,7 +202,7 @@ LoadedLibraries loadLibrariesInner(
 @system ulong dynamicCallFunPointer(
 	FunPointer fun,
 	in AllSymbols allSymbols,
-	Opt!Symbol /*debugName*/,
+	Opt!Symbol debugName,
 	in DynCallSig sig,
 	in ulong[] parameters,
 ) {
@@ -236,17 +235,21 @@ LoadedLibraries loadLibrariesInner(
 		case DynCallType.bool_:
 			dcArgBool(dcVm, cast(bool) value);
 			break;
-		case DynCallType.char8:
-			todo!void("handle this type");
-			break;
 		case DynCallType.int8:
-			todo!void("handle this type");
+		case DynCallType.nat8:
+			dcArgChar(dcVm, cast(char) value);
 			break;
 		case DynCallType.int16:
+		case DynCallType.nat16:
 			dcArgShort(dcVm, cast(short) value);
 			break;
 		case DynCallType.int32:
+		case DynCallType.nat32:
 			dcArgInt(dcVm, cast(int) value);
+			break;
+		case DynCallType.int64:
+		case DynCallType.nat64:
+			dcArgLongLong(dcVm, value);
 			break;
 		case DynCallType.float32:
 			dcArgFloat(dcVm, float32OfBits(cast(uint) value));
@@ -254,18 +257,7 @@ LoadedLibraries loadLibrariesInner(
 		case DynCallType.float64:
 			dcArgDouble(dcVm, float64OfBits(value));
 			break;
-		case DynCallType.nat8:
-			todo!void("handle this type");
-			break;
-		case DynCallType.nat16:
 			dcArgShort(dcVm, cast(ushort) value);
-			break;
-		case DynCallType.nat32:
-			dcArgInt(dcVm, cast(uint) value);
-			break;
-		case DynCallType.int64:
-		case DynCallType.nat64:
-			dcArgLongLong(dcVm, value);
 			break;
 		case DynCallType.pointer:
 			dcArgPointer(dcVm, cast(void*) value);
@@ -279,27 +271,22 @@ LoadedLibraries loadLibrariesInner(
 	final switch (returnType) {
 		case DynCallType.bool_:
 			return dcCallBool(dcVm, ptr);
-		case DynCallType.char8:
-			return todo!ulong("handle this type");
 		case DynCallType.int8:
-			return todo!ulong("handle this type");
+		case DynCallType.nat8:
+			return dcCallChar(dcVm, ptr);
 		case DynCallType.int16:
-			return todo!ulong("handle this type");
+		case DynCallType.nat16:
+			return dcCallShort(dcVm, ptr);
 		case DynCallType.int32:
+		case DynCallType.nat32:
 			return u64OfI32(dcCallInt(dcVm, ptr));
 		case DynCallType.int64:
 		case DynCallType.nat64:
 			return u64OfI64(dcCallLongLong(dcVm, ptr));
 		case DynCallType.float32:
-			return todo!ulong("handle this type");
+			return bitsOfFloat32(dcCallFloat(dcVm, ptr));
 		case DynCallType.float64:
 			return bitsOfFloat64(dcCallDouble(dcVm, ptr));
-		case DynCallType.nat8:
-			return todo!ulong("handle this type");
-		case DynCallType.nat16:
-			return safeToUshort(dcCallShort(dcVm, ptr));
-		case DynCallType.nat32:
-			return cast(uint) dcCallInt(dcVm, ptr);
 		case DynCallType.pointer:
 			return cast(size_t) dcCallPointer(dcVm, ptr);
 		case DynCallType.void_:
@@ -351,8 +338,6 @@ pure char dynCallSigChar(DynCallType a) {
 	final switch (a) {
 		case DynCallType.bool_:
 			return 'B';
-		case DynCallType.char8:
-			return 'c';
 		case DynCallType.int8:
 			return 'c';
 		case DynCallType.int16:
@@ -384,7 +369,6 @@ pure char dynCallSigChar(DynCallType a) {
 	final switch (type) {
 		case DynCallType.bool_:
 			return dcbArgBool(args);
-		case DynCallType.char8:
 		case DynCallType.int8:
 			return dcbArgChar(args);
 		case DynCallType.int16:
@@ -415,37 +399,34 @@ pure char dynCallSigChar(DynCallType a) {
 @system pure void dyncallSetResult(DCValue* result, ulong value, DynCallType type) {
 	final switch (type) {
 		case DynCallType.bool_:
-			todo!void("!");
-			break;
-		case DynCallType.char8:
-			todo!void("!");
+			result.B = cast(bool) value;
 			break;
 		case DynCallType.int8:
-			todo!void("!");
+			result.c = cast(char) value;
 			break;
 		case DynCallType.int16:
-			todo!void("!");
+			result.s = cast(short) value;
 			break;
 		case DynCallType.int32:
 			result.i = cast(int) value;
 			break;
 		case DynCallType.int64:
-			todo!void("!");
+			result.l = cast(long) value;
 			break;
 		case DynCallType.float32:
-			todo!void("!");
+			result.f = float32OfBits(value);
 			break;
 		case DynCallType.float64:
-			todo!void("!");
+			result.d = float64OfBits(value);
 			break;
 		case DynCallType.nat8:
-			todo!void("!");
+			result.C = cast(ubyte) value;
 			break;
 		case DynCallType.nat16:
-			todo!void("!");
+			result.S = cast(ushort) value;
 			break;
 		case DynCallType.nat32:
-			todo!void("!");
+			result.I = cast(uint) value;
 			break;
 		case DynCallType.nat64:
 			result.L = value;
@@ -535,7 +516,7 @@ extern(C) {
 	void dcMode(DCCallVM* vm, DCint mode);
 
 	void dcArgBool (DCCallVM* vm, DCbool value);
-	//void dcArgChar (DCCallVM* vm, DCchar value);
+	void dcArgChar (DCCallVM* vm, DCchar value);
 	void dcArgShort (DCCallVM* vm, DCshort value);
 	void dcArgInt (DCCallVM* vm, DCint value);
 	//void dcArgLong (DCCallVM* vm, DClong value);
@@ -547,12 +528,12 @@ extern(C) {
 
 	void dcCallVoid (DCCallVM* vm, DCpointer funcptr);
 	DCbool dcCallBool (DCCallVM* vm, DCpointer funcptr);
-	//DCchar dcCallChar (DCCallVM* vm, DCpointer funcptr);
+	DCchar dcCallChar (DCCallVM* vm, DCpointer funcptr);
 	DCshort dcCallShort (DCCallVM* vm, DCpointer funcptr);
 	DCint dcCallInt (DCCallVM* vm, DCpointer funcptr);
 	//DClong dcCallLong (DCCallVM* vm, DCpointer funcptr);
 	DClonglong dcCallLongLong (DCCallVM* vm, DCpointer funcptr);
-	//DCfloat dcCallFloat (DCCallVM* vm, DCpointer funcptr);
+	DCfloat dcCallFloat (DCCallVM* vm, DCpointer funcptr);
 	DCdouble dcCallDouble (DCCallVM* vm, DCpointer funcptr);
 	DCpointer dcCallPointer (DCCallVM* vm, DCpointer funcptr);
 	// void dcCallStruct (DCCallVM* vm, DCpointer funcptr, DCstruct* s, DCpointer returnValue);

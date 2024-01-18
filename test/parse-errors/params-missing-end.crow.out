@@ -1,3 +1,0 @@
-exit code: 1
-stderr:
-test/parse-errors/params-missing-end.crow 2:6-2:6 Expected ','.

@@ -1,0 +1,35 @@
+exit code: 1
+stderr:
+test/end-to-end/compile-errors/data-spec-with-type-args.crow 8:5-8:17 'm' is not 'data'.
+	Calling:
+	takes-data@m (from test/end-to-end/compile-errors/data-spec-with-type-args.crow line 59)
+test/end-to-end/compile-errors/data-spec-with-type-args.crow 20:5-20:23 'm' is not 'data'.
+	Calling:
+	takes-mt-t-data@m (from test/end-to-end/compile-errors/data-spec-with-type-args.crow line 56)
+test/end-to-end/compile-errors/data-spec-with-type-args.crow 21:5-21:18 'm mt' is not 'data'.
+	Calling:
+	takes-data@(m mt) (from test/end-to-end/compile-errors/data-spec-with-type-args.crow line 59)
+test/end-to-end/compile-errors/data-spec-with-type-args.crow 27:5-27:18 'd mt' is not 'data'.
+	Calling:
+	takes-data@(d mt) (from test/end-to-end/compile-errors/data-spec-with-type-args.crow line 59)
+test/end-to-end/compile-errors/data-spec-with-type-args.crow 32:5-32:23 'm' is not 'data'.
+	Calling:
+	takes-dt-t-data@m (from test/end-to-end/compile-errors/data-spec-with-type-args.crow line 53)
+test/end-to-end/compile-errors/data-spec-with-type-args.crow 33:5-33:18 'm dt' is not 'data'.
+	Calling:
+	takes-data@(m dt) (from test/end-to-end/compile-errors/data-spec-with-type-args.crow line 59)
+test/end-to-end/compile-errors/data-spec-with-type-args.crow 36:5-36:15 'm' is not 'data'.
+	Calling:
+	indirect@m (from test/end-to-end/compile-errors/data-spec-with-type-args.crow line 64)
+	takes-data@m (from test/end-to-end/compile-errors/data-spec-with-type-args.crow line 59)
+test/end-to-end/compile-errors/data-spec-with-type-args.crow 48:5-48:22 't' is not 'data'.
+	Calling:
+	takes-dt-t-data@t (from test/end-to-end/compile-errors/data-spec-with-type-args.crow line 53)
+test/end-to-end/compile-errors/data-spec-with-type-args.crow 51:5-51:22 't' is not 'data'.
+	Calling:
+	takes-mt-t-data@t (from test/end-to-end/compile-errors/data-spec-with-type-args.crow line 56)
+test/end-to-end/compile-errors/data-spec-with-type-args.crow 57:5-57:17 't mt' is not 'data'.
+	Calling:
+	takes-data@(t mt) (from test/end-to-end/compile-errors/data-spec-with-type-args.crow line 59)
+Uncaught exception: Reached compile error
+	at main

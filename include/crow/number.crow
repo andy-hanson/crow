@@ -120,6 +120,10 @@ Throws if the result would overflow.
 "Overflow" means:
 Be less than the least possible value or greater than the greatest possible value.
 ###
++ + int8(a int8, b int8) bare
+	trusted a.to unsafe-add b.to to
++ + int16(a int16, b int16) bare
+	trusted a.to unsafe-add b.to to
 + + int32(a int32, b int32) bare
 	trusted a.to unsafe-add b.to to
 + + int64(a int64, b int64) bare

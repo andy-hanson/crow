@@ -1,0 +1,3 @@
+exit code: 0
+stderr:
+test/end-to-end/compile-errors/unused.crow 26:8-26:9 Field 'r0' mutability would already be private by default.

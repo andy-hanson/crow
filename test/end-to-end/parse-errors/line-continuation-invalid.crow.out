@@ -1,0 +1,3 @@
+exit code: 1
+stderr:
+test/end-to-end/parse-errors/line-continuation-invalid.crow 2:10-2:11 Expected a dedent.
