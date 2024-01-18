@@ -40,8 +40,10 @@ mixin template Union(ReprTypes...) {
 							return handlers[i](MutSmallArray!U.fromTagged(ptrValue));
 						else static if (is(T == P*, P))
 							return handlers[i](*(cast(immutable P*) ptrValue));
+						else static if (is(T == enum))
+							return handlers[i](cast(T) (ptrValue >> 2));
 						else
-							static assert(false);
+							static assert(false, T.stringof);
 					} else static if (is(T == U*, U)) {
 						mixin("return handlers[", i, "](*as", i, ");");
 					} else {

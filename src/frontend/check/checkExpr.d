@@ -165,7 +165,7 @@ import util.col.array :
 	only,
 	PtrAndSmallNumber,
 	small;
-import util.col.mutMaxArr : asTemporaryArray, initializeMutMaxArr, mutMaxArrSize, push;
+import util.col.mutMaxArr : asTemporaryArray, initializeMutMaxArr, mutMaxArrSize;
 import util.conv : safeToUshort, safeToUint;
 import util.memory : allocate, initMemory, overwriteMemory;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, someMut, some;
@@ -702,9 +702,7 @@ MutOpt!VariableRefAndType getIdentifierFromFunOrLambda(
 	if (has(optOuter)) {
 		VariableRefAndType outer = force(optOuter);
 		size_t closureFieldIndex = mutMaxArrSize(info.closureFields);
-		push(
-			info.closureFields,
-			ClosureFieldBuilder(name, outer.mutability, outer.isUsed, outer.type, outer.variableRef));
+		info.closureFields ~= ClosureFieldBuilder(name, outer.mutability, outer.isUsed, outer.type, outer.variableRef);
 		outer.setIsUsed(accessKindInClosure(accessKind));
 		return someMut(VariableRefAndType(
 			VariableRef(ClosureRef(PtrAndSmallNumber!LambdaExpr(force(info.lambda), safeToUshort(closureFieldIndex)))),

@@ -2,11 +2,15 @@ module app.dyncall;
 
 @safe @nogc nothrow: // not pure
 
+import frontend.lang : maxTupleSize;
 import interpret.applyFn : u64OfI32, u64OfI64;
 import interpret.bytecode : Operation;
 import interpret.extern_ :
+	AggregateCbs,
+	DCaggr,
 	DynCallSig,
 	DynCallType,
+	countParameterEntries,
 	Extern,
 	ExternPointer,
 	ExternPointersForAllLibraries,
@@ -16,13 +20,15 @@ import interpret.extern_ :
 	WriteError,
 	writeSymbolToCb;
 import interpret.runBytecode : syntheticCall;
-import interpret.stacks : dataPush, Stacks;
-import model.lowModel : ExternLibraries, ExternLibrary;
+import interpret.stacks : dataPop, dataPopN, dataPush, dataPushUninitialized, loadStacks, saveStacks, Stacks;
+import model.lowModel : ExternLibraries, ExternLibrary, PrimitiveType;
 import util.alloc.alloc : Alloc;
-import util.col.array : map, mapImpure;
+import util.col.array : isEmpty, map, mapImpure;
+import util.col.arrayBuilder : ArrayBuilderWithAlloc, finish;
 import util.col.map : Map, KeyValuePair, makeMapFromKeys, zipToMap;
 import util.col.mapBuilder : MapBuilder, finishMap, tryAddToMap;
 import util.col.mutArr : MutArr, mutArrIsEmpty, push;
+import util.col.mutMaxArr : MutMaxArr, mutMaxArr;
 import util.conv : bitsOfFloat32, bitsOfFloat64, float32OfBits, float64OfBits;
 import util.exitCode : ExitCode;
 import util.late : Late, late, lateGet, lateSet;
@@ -47,9 +53,9 @@ import util.uri : AllUris, asFileUri, childUri, fileUriToTempStr, isFileUri, Tem
 		},
 		(in FunPointerInputs[] inputs) =>
 			makeSyntheticFunPointers(alloc, inputs),
-		(FunPointer funPointer, in DynCallSig sig, in ulong[] parameters) =>
-			dynamicCallFunPointer(
-				funPointer, allSymbols, lateGet(debugNames)[funPointer.asExternPointer], sig, parameters));
+		AggregateCbs(&newAggregate, &aggregateAddField, (DCaggr* x) { dcCloseAggr(x); }),
+		(FunPointer funPointer, in DynCallSig sig) =>
+			dynamicCallFunPointer(funPointer, allSymbols, lateGet(debugNames)[funPointer.asExternPointer], sig));
 	return cb(extern_);
 }
 
@@ -199,12 +205,11 @@ LoadedLibraries loadLibrariesInner(
 	return ptr == null ? none!ExternPointer : some(ExternPointer(cast(immutable) ptr));
 }
 
-@system ulong dynamicCallFunPointer(
+@system void dynamicCallFunPointer(
 	FunPointer fun,
 	in AllSymbols allSymbols,
 	Opt!Symbol debugName,
 	in DynCallSig sig,
-	in ulong[] parameters,
 ) {
 	static DCCallVM* dcVm = null;
 	if (dcVm == null) {
@@ -221,77 +226,103 @@ LoadedLibraries loadLibrariesInner(
 
 	DCpointer ptr = cast(DCpointer) fun.pointer;
 	dcReset(dcVm);
-	foreach (size_t i, ulong value; parameters) {
-		addArgForDynCall(dcVm, value, sig.parameterTypes[i]);
-	}
 
-	ulong res = doDynCallForType(dcVm, ptr, sig.returnType);
+	if (sig.returnType.isA!(DynCallType.Aggregate*))
+		dcBeginCallAggr(dcVm, sig.returnType.as!(DynCallType.Aggregate*).dcAggr);
+	Stacks stacks = loadStacks();
+	scope const(ulong)[] args = dataPopN(stacks, countParameterEntries(sig));
+	foreach (DynCallType type; sig.parameterTypes)
+		addArgForDynCall(dcVm, args, type);
+	assert(isEmpty(args));
+	doDynCallForType(dcVm, ptr, sig.returnType, stacks);
 	dcReset(dcVm);
-	return res;
+	saveStacks(stacks);
 }
 
-@system void addArgForDynCall(DCCallVM* dcVm, ulong value, DynCallType parameterType) {
-	final switch (parameterType) {
-		case DynCallType.bool_:
-			dcArgBool(dcVm, cast(bool) value);
-			break;
-		case DynCallType.int8:
-		case DynCallType.nat8:
-			dcArgChar(dcVm, cast(char) value);
-			break;
-		case DynCallType.int16:
-		case DynCallType.nat16:
-			dcArgShort(dcVm, cast(short) value);
-			break;
-		case DynCallType.int32:
-		case DynCallType.nat32:
-			dcArgInt(dcVm, cast(int) value);
-			break;
-		case DynCallType.int64:
-		case DynCallType.nat64:
-			dcArgLongLong(dcVm, value);
-			break;
-		case DynCallType.float32:
-			dcArgFloat(dcVm, float32OfBits(cast(uint) value));
-			break;
-		case DynCallType.float64:
-			dcArgDouble(dcVm, float64OfBits(value));
-			break;
-			dcArgShort(dcVm, cast(ushort) value);
-			break;
-		case DynCallType.pointer:
-			dcArgPointer(dcVm, cast(void*) value);
-			break;
-		case DynCallType.void_:
-			assert(false);
-	}
+@system void addArgForDynCall(DCCallVM* dcVm, scope ref const(ulong)[] args, DynCallType parameterType) {
+	parameterType.matchImpure!void(
+		(in PrimitiveType x) @trusted {
+			ulong value = args[0];
+			args = args[1 .. $];
+			final switch (x) {
+				case PrimitiveType.bool_:
+					dcArgBool(dcVm, cast(bool) value);
+					break;
+				case PrimitiveType.char8:
+				case PrimitiveType.int8:
+				case PrimitiveType.nat8:
+					dcArgChar(dcVm, cast(char) value);
+					break;
+				case PrimitiveType.int16:
+				case PrimitiveType.nat16:
+					dcArgShort(dcVm, cast(short) value);
+					break;
+				case PrimitiveType.int32:
+				case PrimitiveType.nat32:
+					dcArgInt(dcVm, cast(int) value);
+					break;
+				case PrimitiveType.int64:
+				case PrimitiveType.nat64:
+					dcArgLongLong(dcVm, value);
+					break;
+				case PrimitiveType.float32:
+					dcArgFloat(dcVm, float32OfBits(cast(uint) value));
+					break;
+				case PrimitiveType.float64:
+					dcArgDouble(dcVm, float64OfBits(value));
+					break;
+				case PrimitiveType.void_:
+					assert(false);
+			}
+		},
+		(in DynCallType.Pointer) @trusted {
+			dcArgPointer(dcVm, cast(void*) args[0]);
+			args = args[1 .. $];
+		},
+		(in DynCallType.Aggregate x) @trusted {
+			dcArgAggr(dcVm, x.dcAggr, args.ptr);
+			args = args[x.sizeWords .. $];
+		});
 }
 
-@system ulong doDynCallForType(DCCallVM* dcVm, DCpointer ptr, DynCallType returnType) {
-	final switch (returnType) {
-		case DynCallType.bool_:
-			return dcCallBool(dcVm, ptr);
-		case DynCallType.int8:
-		case DynCallType.nat8:
-			return dcCallChar(dcVm, ptr);
-		case DynCallType.int16:
-		case DynCallType.nat16:
-			return dcCallShort(dcVm, ptr);
-		case DynCallType.int32:
-		case DynCallType.nat32:
-			return u64OfI32(dcCallInt(dcVm, ptr));
-		case DynCallType.int64:
-		case DynCallType.nat64:
-			return u64OfI64(dcCallLongLong(dcVm, ptr));
-		case DynCallType.float32:
-			return bitsOfFloat32(dcCallFloat(dcVm, ptr));
-		case DynCallType.float64:
-			return bitsOfFloat64(dcCallDouble(dcVm, ptr));
-		case DynCallType.pointer:
-			return cast(size_t) dcCallPointer(dcVm, ptr);
-		case DynCallType.void_:
-			dcCallVoid(dcVm, ptr);
-			return 0;
+@system void doDynCallForType(DCCallVM* dcVm, DCpointer ptr, DynCallType returnType, scope ref Stacks stacks) {
+	returnType.matchImpure!void(
+		(in PrimitiveType x) @trusted {
+			dcCallPrimitive(dcVm, ptr, x, stacks);
+		},
+		(in DynCallType.Pointer) @trusted {
+			dataPush(stacks, cast(ulong) dcCallPointer(dcVm, ptr));
+		},
+		(in DynCallType.Aggregate x) @trusted {
+			ulong* out_ = dataPushUninitialized(stacks, x.sizeWords);
+			DCpointer ret = dcCallAggr(dcVm, ptr, x.dcAggr, out_);
+			assert(ret == out_);
+		});
+}
+
+@system void dcCallPrimitive(DCCallVM* dcVm, DCpointer ptr, PrimitiveType type, scope ref Stacks stacks) {
+	final switch (type) {
+		case PrimitiveType.bool_:
+			return dataPush(stacks, dcCallBool(dcVm, ptr));
+		case PrimitiveType.char8:
+		case PrimitiveType.int8:
+		case PrimitiveType.nat8:
+			return dataPush(stacks, dcCallChar(dcVm, ptr));
+		case PrimitiveType.int16:
+		case PrimitiveType.nat16:
+			return dataPush(stacks, dcCallShort(dcVm, ptr));
+		case PrimitiveType.int32:
+		case PrimitiveType.nat32:
+			return dataPush(stacks, u64OfI32(dcCallInt(dcVm, ptr)));
+		case PrimitiveType.int64:
+		case PrimitiveType.nat64:
+			return dataPush(stacks, u64OfI64(dcCallLongLong(dcVm, ptr)));
+		case PrimitiveType.float32:
+			return dataPush(stacks, bitsOfFloat32(dcCallFloat(dcVm, ptr)));
+		case PrimitiveType.float64:
+			return dataPush(stacks, bitsOfFloat64(dcCallDouble(dcVm, ptr)));
+		case PrimitiveType.void_:
+			return dcCallVoid(dcVm, ptr);
 	}
 }
 
@@ -305,139 +336,178 @@ pure FunPointer[] makeSyntheticFunPointers(ref Alloc alloc, in FunPointerInputs[
 		syntheticFunPointerForSig(alloc, x.sig, x.operationPtr));
 
 @trusted pure FunPointer syntheticFunPointerForSig(ref Alloc alloc, DynCallSig sig, Operation* operationPtr) {
-	char[16] sigStr;
-	toDynCallSigString(sigStr, sig);
+	MutMaxArr!(maxTupleSize + 3, char) sigStr = mutMaxArr!(maxTupleSize + 3, char);
+	ArrayBuilderWithAlloc!(immutable DCaggr*) aggrs = ArrayBuilderWithAlloc!(immutable DCaggr*)(&alloc);
+
+	void writeToSig(DynCallType x) {
+		sigStr ~= dynCallSigChar(x);
+		if (x.isA!(DynCallType.Aggregate*))
+			aggrs ~= x.as!(DynCallType.Aggregate*).dcAggr;
+	}
+
+	foreach (DynCallType x; sig.parameterTypes)
+		writeToSig(x);
+	sigStr ~= ')';
+	writeToSig(sig.returnType);
+	sigStr ~= '\0';
+
 	UserData* userData = allocate(alloc, UserData(sig, operationPtr));
-	return FunPointer(cast(immutable) dcbNewCallback(sigStr.ptr, &callbackHandler, cast(void*) userData));
+	return FunPointer(dcbNewCallback2(sigStr.ptr, &callbackHandler, cast(void*) userData, finish(aggrs).ptr));
 }
 
 @system extern(C) char callbackHandler(DCCallback* cb, DCArgs* args, DCValue* result, void* userDataPtr) {
 	UserData userData = *(cast(UserData*) userDataPtr);
 	DynCallSig sig = userData.sig;
-	ulong resValue = syntheticCall(sig, userData.operationPtr, (ref Stacks stacks) {
-		foreach (DynCallType argType; sig.parameterTypes)
-			dataPush(stacks, dyncallGetArg(args, argType));
-	});	dyncallSetResult(result, resValue, sig.returnType);
+	syntheticCall(
+		userData.operationPtr,
+		(scope ref Stacks stacks) {
+			foreach (DynCallType argType; sig.parameterTypes)
+				dyncallGetArg(args, argType, stacks);
+		},
+		(scope ref Stacks stacks) {
+			dyncallSetResult(args, result, sig.returnType, stacks);
+		});
 	return dynCallSigChar(sig.returnType);
 }
 
-pure void toDynCallSigString(ref char[16] res, in DynCallSig a) {
-	size_t i = 0;
-	void push(char x) {
-		res[i] = x;
-		i++;
-	}
-	foreach (DynCallType t; a.parameterTypes)
-		push(dynCallSigChar(t));
-	push(')');
-	push(dynCallSigChar(a.returnType));
-	push('\0');
+pure int safeToInt(size_t a) {
+	assert(a < int.max);
+	return cast(int) a;
 }
 
-pure char dynCallSigChar(DynCallType a) {
-	final switch (a) {
-		case DynCallType.bool_:
-			return 'B';
-		case DynCallType.int8:
-			return 'c';
-		case DynCallType.int16:
-			return 's';
-		case DynCallType.int32:
-			return 'i';
-		case DynCallType.int64:
-			return 'l';
-		case DynCallType.float32:
-			return 'f';
-		case DynCallType.float64:
-			return 'd';
-		case DynCallType.nat8:
-			return 'C';
-		case DynCallType.nat16:
-			return 'S';
-		case DynCallType.nat32:
-			return 'I';
-		case DynCallType.nat64:
-			return 'L';
-		case DynCallType.pointer:
-			return 'p';
-		case DynCallType.void_:
-			return 'v';
-	}
+pure char dynCallSigChar(in DynCallType a) =>
+	a.matchIn!char(
+		(in PrimitiveType x) {
+			final switch (x) {
+				case PrimitiveType.bool_:
+					return 'B';
+				case PrimitiveType.char8:
+				case PrimitiveType.int8:
+					return 'c';
+				case PrimitiveType.int16:
+					return 's';
+				case PrimitiveType.int32:
+					return 'i';
+				case PrimitiveType.int64:
+					return 'l';
+				case PrimitiveType.float32:
+					return 'f';
+				case PrimitiveType.float64:
+					return 'd';
+				case PrimitiveType.nat8:
+					return 'C';
+				case PrimitiveType.nat16:
+					return 'S';
+				case PrimitiveType.nat32:
+					return 'I';
+				case PrimitiveType.nat64:
+					return 'L';
+				case PrimitiveType.void_:
+					return 'v';
+			}
+		},
+		(in DynCallType.Pointer) =>
+			'p',
+		(in DynCallType.Aggregate) =>
+			// Aggregate is sent out-of-band in 'dcArgAggr' or 'dcCallAggr'
+			'A');
+
+@system void dyncallGetArg(DCArgs* args, DynCallType type, scope ref Stacks stacks) =>
+	type.matchImpure!void(
+		(in PrimitiveType x) @trusted {
+			final switch (x) {
+				case PrimitiveType.bool_:
+					return dataPush(stacks, dcbArgBool(args));
+				case PrimitiveType.char8:
+				case PrimitiveType.int8:
+					return dataPush(stacks, dcbArgChar(args));
+				case PrimitiveType.int16:
+					return dataPush(stacks, dcbArgShort(args));
+				case PrimitiveType.int32:
+					return dataPush(stacks, dcbArgInt(args));
+				case PrimitiveType.int64:
+					return dataPush(stacks, dcbArgLongLong(args));
+				case PrimitiveType.float32:
+					return dataPush(stacks, bitsOfFloat32(dcbArgFloat(args)));
+				case PrimitiveType.float64:
+					return dataPush(stacks, bitsOfFloat64(dcbArgDouble(args)));
+				case PrimitiveType.nat8:
+					return dataPush(stacks, dcbArgUChar(args));
+				case PrimitiveType.nat16:
+					return dataPush(stacks, dcbArgUShort(args));
+				case PrimitiveType.nat32:
+					return dataPush(stacks, dcbArgUInt(args));
+				case PrimitiveType.nat64:
+					return dataPush(stacks, dcbArgULongLong(args));
+				case PrimitiveType.void_:
+					assert(false);
+			}
+		},
+		(in DynCallType.Pointer) @trusted {
+			dataPush(stacks, cast(ulong) dcbArgPointer(args));
+		},
+		(in DynCallType.Aggregate x) @trusted {
+			ulong* ptr = dataPushUninitialized(stacks, x.sizeWords);
+			void* out_ = dcbArgAggr(args, ptr);
+			assert(out_ == ptr);
+		});
+
+@system void dyncallSetResult(DCArgs* args, DCValue* result, DynCallType type, scope ref Stacks stacks) {
+	type.matchImpure!void(
+		(in PrimitiveType x) @trusted {
+			final switch (x) {
+				case PrimitiveType.bool_:
+					result.B = cast(bool) dataPop(stacks);
+					break;
+				case PrimitiveType.char8:
+				case PrimitiveType.int8:
+					result.c = cast(char) dataPop(stacks);
+					break;
+				case PrimitiveType.int16:
+					result.s = cast(short) dataPop(stacks);
+					break;
+				case PrimitiveType.int32:
+					result.i = cast(int) dataPop(stacks);
+					break;
+				case PrimitiveType.int64:
+					result.l = cast(long) dataPop(stacks);
+					break;
+				case PrimitiveType.float32:
+					result.f = float32OfBits(dataPop(stacks));
+					break;
+				case PrimitiveType.float64:
+					result.d = float64OfBits(dataPop(stacks));
+					break;
+				case PrimitiveType.nat8:
+					result.C = cast(ubyte) dataPop(stacks);
+					break;
+				case PrimitiveType.nat16:
+					result.S = cast(ushort) dataPop(stacks);
+					break;
+				case PrimitiveType.nat32:
+					result.I = cast(uint) dataPop(stacks);
+					break;
+				case PrimitiveType.nat64:
+					result.L = dataPop(stacks);
+					break;
+				case PrimitiveType.void_:
+					break;
+			}
+		},
+		(in DynCallType.Pointer) @trusted {
+			result.p = cast(void*) dataPop(stacks);
+		},
+		(in DynCallType.Aggregate x) @trusted {
+			dcbReturnAggr(args, result, cast(void*) dataPopN(stacks, x.sizeWords).ptr);
+		});
 }
 
-@system pure ulong dyncallGetArg(DCArgs* args, DynCallType type) {
-	final switch (type) {
-		case DynCallType.bool_:
-			return dcbArgBool(args);
-		case DynCallType.int8:
-			return dcbArgChar(args);
-		case DynCallType.int16:
-			return dcbArgShort(args);
-		case DynCallType.int32:
-			return dcbArgInt(args);
-		case DynCallType.int64:
-			return dcbArgLongLong(args);
-		case DynCallType.float32:
-			return bitsOfFloat32(dcbArgFloat(args));
-		case DynCallType.float64:
-			return bitsOfFloat64(dcbArgDouble(args));
-		case DynCallType.nat8:
-			return dcbArgUChar(args);
-		case DynCallType.nat16:
-			return dcbArgUShort(args);
-		case DynCallType.nat32:
-			return dcbArgUInt(args);
-		case DynCallType.nat64:
-			return dcbArgULongLong(args);
-		case DynCallType.pointer:
-			return cast(ulong) dcbArgPointer(args);
-		case DynCallType.void_:
-			assert(false);
-	}
-}
+@system pure DCaggr* newAggregate(size_t countFields, size_t sizeBytes) =>
+	dcNewAggr(countFields, sizeBytes);
 
-@system pure void dyncallSetResult(DCValue* result, ulong value, DynCallType type) {
-	final switch (type) {
-		case DynCallType.bool_:
-			result.B = cast(bool) value;
-			break;
-		case DynCallType.int8:
-			result.c = cast(char) value;
-			break;
-		case DynCallType.int16:
-			result.s = cast(short) value;
-			break;
-		case DynCallType.int32:
-			result.i = cast(int) value;
-			break;
-		case DynCallType.int64:
-			result.l = cast(long) value;
-			break;
-		case DynCallType.float32:
-			result.f = float32OfBits(value);
-			break;
-		case DynCallType.float64:
-			result.d = float64OfBits(value);
-			break;
-		case DynCallType.nat8:
-			result.C = cast(ubyte) value;
-			break;
-		case DynCallType.nat16:
-			result.S = cast(ushort) value;
-			break;
-		case DynCallType.nat32:
-			result.I = cast(uint) value;
-			break;
-		case DynCallType.nat64:
-			result.L = value;
-			break;
-		case DynCallType.pointer:
-			result.p = cast(void*) value;
-			break;
-		case DynCallType.void_:
-			// do nothing
-			break;
-	}
+@system pure void aggregateAddField(DCaggr* aggr, size_t fieldOffset, DynCallType fieldType) {
+	assert(!fieldType.isA!(DynCallType.Aggregate*));
+	dcAggrField(aggr, dynCallSigChar(fieldType), safeToInt(fieldOffset), 1);
 }
 
 extern(C) {
@@ -465,25 +535,32 @@ extern(C) {
 
 	// dyncall_args.h
 	struct DCArgs;
-	pure DCbool dcbArgBool(DCArgs*);
-	pure DCchar dcbArgChar(DCArgs*);
-	pure DCshort dcbArgShort(DCArgs*);
-	pure DCint dcbArgInt(DCArgs*);
+	DCbool dcbArgBool(DCArgs*);
+	DCchar dcbArgChar(DCArgs*);
+	DCshort dcbArgShort(DCArgs*);
+	DCint dcbArgInt(DCArgs*);
 	// pure DClong dcbArgLong(DCArgs*);
-	pure DClonglong dcbArgLongLong(DCArgs*);
-	pure DCuchar dcbArgUChar(DCArgs*);
-	pure DCushort dcbArgUShort(DCArgs*);
-	pure DCuint dcbArgUInt(DCArgs*);
+	DClonglong dcbArgLongLong(DCArgs*);
+	DCuchar dcbArgUChar(DCArgs*);
+	DCushort dcbArgUShort(DCArgs*);
+	DCuint dcbArgUInt(DCArgs*);
 	// pure DCulong dcbArgULong(DCArgs*);
-	pure DCulonglong dcbArgULongLong(DCArgs*);
-	pure DCfloat dcbArgFloat(DCArgs*);
-	pure DCdouble dcbArgDouble(DCArgs*);
-	pure DCpointer dcbArgPointer(DCArgs*);
+	DCulonglong dcbArgULongLong(DCArgs*);
+	DCfloat dcbArgFloat(DCArgs*);
+	DCdouble dcbArgDouble(DCArgs*);
+	DCpointer dcbArgPointer(DCArgs*);
+	DCpointer dcbArgAggr(DCArgs* p, DCpointer target);
+
+	void dcbReturnAggr(DCArgs *args, DCValue* result, DCpointer ret);
 
 	// dyncall_callback.h
 	struct DCCallback;
 	alias DCCallbackHandler = char function(DCCallback* pcb, DCArgs* args, DCValue* result, void* userdata);
-	pure DCCallback* dcbNewCallback(scope const char* signature, DCCallbackHandler funcptr, void* userdata);
+	pure DCCallback* dcbNewCallback2(
+		scope const char* signature,
+		DCCallbackHandler funcptr,
+		void* userdata,
+		const DCaggr** aggrs);
 
 	// dyncall_value.h
 	union DCValue {
@@ -515,30 +592,39 @@ extern(C) {
 
 	void dcMode(DCCallVM* vm, DCint mode);
 
-	void dcArgBool (DCCallVM* vm, DCbool value);
-	void dcArgChar (DCCallVM* vm, DCchar value);
-	void dcArgShort (DCCallVM* vm, DCshort value);
-	void dcArgInt (DCCallVM* vm, DCint value);
-	//void dcArgLong (DCCallVM* vm, DClong value);
-	void dcArgLongLong (DCCallVM* vm, DClonglong value);
-	void dcArgFloat (DCCallVM* vm, DCfloat value);
-	void dcArgDouble (DCCallVM* vm, DCdouble value);
-	void dcArgPointer (DCCallVM* vm, DCpointer value);
-	// void dcArgStruct (DCCallVM* vm, DCstruct* s, DCpointer value);
+	void dcBeginCallAggr(DCCallVM* vm, const DCaggr* ag);
 
-	void dcCallVoid (DCCallVM* vm, DCpointer funcptr);
-	DCbool dcCallBool (DCCallVM* vm, DCpointer funcptr);
-	DCchar dcCallChar (DCCallVM* vm, DCpointer funcptr);
-	DCshort dcCallShort (DCCallVM* vm, DCpointer funcptr);
-	DCint dcCallInt (DCCallVM* vm, DCpointer funcptr);
+	void dcArgBool(DCCallVM* vm, DCbool value);
+	void dcArgChar(DCCallVM* vm, DCchar value);
+	void dcArgShort(DCCallVM* vm, DCshort value);
+	void dcArgInt(DCCallVM* vm, DCint value);
+	//void dcArgLong(DCCallVM* vm, DClong value);
+	void dcArgLongLong(DCCallVM* vm, DClonglong value);
+	void dcArgFloat(DCCallVM* vm, DCfloat value);
+	void dcArgDouble(DCCallVM* vm, DCdouble value);
+	void dcArgPointer(DCCallVM* vm, DCpointer value);
+	void dcArgAggr(DCCallVM* vm, const DCaggr* ag, const void* value);
+
+	void dcCallVoid(DCCallVM* vm, DCpointer funcptr);
+	DCbool dcCallBool(DCCallVM* vm, DCpointer funcptr);
+	DCchar dcCallChar(DCCallVM* vm, DCpointer funcptr);
+	DCshort dcCallShort(DCCallVM* vm, DCpointer funcptr);
+	DCint dcCallInt(DCCallVM* vm, DCpointer funcptr);
 	//DClong dcCallLong (DCCallVM* vm, DCpointer funcptr);
-	DClonglong dcCallLongLong (DCCallVM* vm, DCpointer funcptr);
-	DCfloat dcCallFloat (DCCallVM* vm, DCpointer funcptr);
-	DCdouble dcCallDouble (DCCallVM* vm, DCpointer funcptr);
-	DCpointer dcCallPointer (DCCallVM* vm, DCpointer funcptr);
-	// void dcCallStruct (DCCallVM* vm, DCpointer funcptr, DCstruct* s, DCpointer returnValue);
+	DClonglong dcCallLongLong(DCCallVM* vm, DCpointer funcptr);
+	DCfloat dcCallFloat(DCCallVM* vm, DCpointer funcptr);
+	DCdouble dcCallDouble(DCCallVM* vm, DCpointer funcptr);
+	DCpointer dcCallPointer(DCCallVM* vm, DCpointer funcptr);
+	DCpointer dcCallAggr(DCCallVM* vm, DCpointer funcptr, const DCaggr* ag, DCpointer ret);
 
 	//DCint dcGetError (DCCallVM* vm);
+
+	alias DCsigchar = char;
+
+	pure DCaggr* dcNewAggr(DCsize maxFieldCount, DCsize size);
+	pure void dcAggrField(DCaggr* ag, DCsigchar type, DCint offset, DCsize array_len, ...);
+	pure void dcCloseAggr(DCaggr* ag);
+	//void dcFreeAggr(DCaggr* ag);
 }
 
 extern(C) {

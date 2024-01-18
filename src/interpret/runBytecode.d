@@ -6,7 +6,7 @@ import frontend.showModel : ShowCtx;
 import interpret.bytecode :
 	ByteCode, ByteCodeOffset, ByteCodeOffsetUnsigned, FunPointerToOperationPointer, initialOperationPointer, Operation;
 import interpret.debugInfo : BacktraceEntry, fillBacktrace, InterpreterDebugInfo, printDebugInfo;
-import interpret.extern_ : DoDynCall, DynCallType, DynCallSig, FunPointer;
+import interpret.extern_ : countParameterEntries, DoDynCall, doDynCall, DynCallSig, FunPointer, sizeWords;
 import interpret.stacks :
 	dataDupWords,
 	dataEnd,
@@ -26,7 +26,6 @@ import interpret.stacks :
 	returnPush,
 	returnStackIsEmpty,
 	returnTempAsArrReverse,
-	saveStacks,
 	setReturnPeek,
 	Stacks,
 	withStacks;
@@ -65,18 +64,22 @@ private int runBytecodeInner(ref Stacks stacks, Operation* operation) {
 	return cast(int) returnCode;
 }
 
-ulong syntheticCall(
-	in DynCallSig sig,
+void syntheticCall(
 	Operation* operationPtr,
-	in void delegate(ref Stacks stacks) @nogc nothrow cbPushArgs,
+	in void delegate(scope ref Stacks stacks) @nogc nothrow cbPushArgs,
+	in void delegate(scope ref Stacks stacks) @nogc nothrow cbPopResult,
 ) =>
-	withStacks!ulong((ref Stacks stacks) {
-		returnPush(stacks, operationOpStopInterpretation.ptr);
+	withStacks!void((scope ref Stacks stacks) {
 		cbPushArgs(stacks);
-		Operation* op = operationPtr;
-		stepUntilExit(stacks, op);
-		return sig.returnType == DynCallType.void_ ? 0 : dataPop(stacks);
+		syntheticCallWithStacks(stacks, operationPtr);
+		cbPopResult(stacks);
 	});
+
+void syntheticCallWithStacks(scope ref Stacks stacks, Operation* operationPtr) {
+	returnPush(stacks, operationOpStopInterpretation.ptr);
+	Operation* op = operationPtr;
+	stepUntilExit(stacks, op);
+}
 
 // This only works if you did 'returnPush(stacks, operationOpStopInterpretation.ptr);'
 void stepUntilExit(ref Stacks stacks, ref Operation* operation) {
@@ -348,37 +351,23 @@ private void opCallInner(ref Stacks stacks, ref Operation* cur) {
 
 alias opCallFunPointer = operation!opCallFunPointerInner;
 private void opCallFunPointerInner(ref Stacks stacks, ref Operation* cur) {
-	DynCallSig sig = readDynCallSig(cur);
-	FunPointer funPtr = FunPointer(cast(immutable void*) dataRemove(stacks, sig.parameterTypes.length));
+	DynCallSig sig = readOperation(cur).sig;
+	FunPointer funPtr = FunPointer(cast(immutable void*) dataRemove(stacks, countParameterEntries(sig)));
 	Opt!(Operation*) operationPtr = globals.funPointerToOperationPointer[funPtr];
 	if (has(operationPtr)) {
 		returnPush(stacks, cur);
 		cur = force(operationPtr);
-	} else {
-		scope immutable ulong[] params = dataPopN(stacks, sig.parameterTypes.length);
-		// This is an extern FunPointer, but it might call back into a synthetic FunPointer
-		saveStacks(stacks);
-		ulong value = globals.doDynCall(funPtr, sig, params);
-		if (sig.returnType != DynCallType.void_)
-			dataPush(stacks, value);
-	}
+	} else
+		doDynCall(globals.doDynCall, stacks, sig, funPtr);
 }
 
 alias opCallFunPointerExtern = operation!opCallFunPointerExternInner;
 private void opCallFunPointerExternInner(ref Stacks stacks, ref Operation* cur) {
 	assert(FunPointer.sizeof <= ulong.sizeof);
-	FunPointer funPtr = FunPointer(cast(immutable void*) readNat64(cur));
-	DynCallSig sig = readDynCallSig(cur);
-	scope immutable ulong[] params = dataPopN(stacks, sig.parameterTypes.length);
-	// This is an extern FunPointer, but it might call back into a synthetic FunPointer
-	saveStacks(stacks);
-	ulong value = globals.doDynCall(funPtr, sig, params);
-	if (sig.returnType != DynCallType.void_)
-		dataPush(stacks, value);
+	FunPointer funPtr = readOperation(cur).funPointer;
+	DynCallSig sig = readOperation(cur).sig;
+	doDynCall(globals.doDynCall, stacks, sig, funPtr);
 }
-
-private DynCallSig readDynCallSig(ref Operation* cur) =>
-	DynCallSig(readArray!DynCallType(cur));
 
 alias opSetjmp = operation!opSetjmpInner;
 private void opSetjmpInner(ref Stacks stacks, ref Operation* cur) {
@@ -547,9 +536,8 @@ private void opSetCommon(ref Stacks stacks, ref Operation* cur, size_t offsetWor
 }
 
 private void readNoCheck(ref Stacks stacks, const ubyte* readFrom, size_t sizeBytes) {
-	ubyte* outPtr = cast(ubyte*) dataEnd(stacks);
 	size_t sizeWords = divRoundUp(sizeBytes, ulong.sizeof);
-	dataPushUninitialized(stacks, sizeWords);
+	ubyte* outPtr = cast(ubyte*) dataPushUninitialized(stacks, sizeWords);
 	memcpy(outPtr, readFrom, sizeBytes);
 
 	ubyte* endPtr = outPtr + sizeBytes;

@@ -37,7 +37,7 @@ import util.alloc.alloc : Alloc;
 import util.col.array : fold, map, mapWithFirst, small;
 import util.col.hashTable : ValueAndDidAdd;
 import util.col.mutArr : MutArrWithAlloc, push;
-import util.col.mutMaxArr : asTemporaryArray, mapTo, MutMaxArr, mutMaxArr, push;
+import util.col.mutMaxArr : asTemporaryArray, mapTo, MutMaxArr, mutMaxArr;
 import util.opt : force, MutOpt, noneMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.util : typeAs;

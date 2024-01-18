@@ -18,9 +18,13 @@ void saveStacks(Stacks a) {
 	savedStacks = a;
 }
 
+Stacks loadStacks() {
+	return savedStacks;
+}
+
 /*
 WARN: In case this is reentrant, the interpreter must call 'saveStacks' before.
-The callback should have a net 0 effect on the stack depths..
+The callback should have a net 0 effect on the stack depth.
 */
 @trusted T withStacks(T)(in T delegate(ref Stacks) @nogc nothrow cb) {
 	if (!stacksInitialized) {
@@ -69,9 +73,11 @@ void dataPush(ref Stacks a, in ulong[] values) {
 		dataPush(a, value);
 }
 
-void dataPushUninitialized(ref Stacks a, size_t n) {
+ulong* dataPushUninitialized(ref Stacks a, size_t n) {
+	ulong* res = dataEnd(a);
 	a.dataPtr += n;
 	debug assert(a.dataPtr < cast(ulong*) a.returnPtr);
+	return res;
 }
 
 ulong dataPeek(in Stacks a, size_t offset = 0) =>

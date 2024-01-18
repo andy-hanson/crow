@@ -162,6 +162,9 @@ private enum cStringOfString(string s) =
 @trusted immutable(T) castImmutable(T)(T a) =>
 	cast(immutable) a;
 
+@trusted T* castMutable(T)(immutable T* a) =>
+	cast(T*) a;
+
 @trusted inout(T) castNonScope(T)(scope inout T x) {
 	static if (is(T == P*, P)) {
 		size_t res = cast(size_t) x;

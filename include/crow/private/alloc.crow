@@ -141,8 +141,10 @@ uninit gc() bare, unsafe
 	#size-words = 0x40000000
 	size-of@bool == size-of@nat8 hard-assert
 	mark bool mut* = size-words.malloc pointer-cast
+	mark != null hard-assert
 	mark-end = mark + size-words
 	bytes nat64 mut* = (size-words wrap-mul size-of@nat64).malloc pointer-cast
+	bytes != null hard-assert
 	bytes.is-word-aligned hard-assert
 	bytes-end = bytes + size-words
 

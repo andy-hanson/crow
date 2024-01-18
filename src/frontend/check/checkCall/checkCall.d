@@ -59,8 +59,7 @@ import model.model :
 	Type;
 import util.col.array : arraysCorrespond, every, exists, isEmpty, makeArrayOrFail, newArray, only, small, zipEvery;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
-import util.col.mutMaxArr :
-	asTemporaryArray, isEmpty, fillMutMaxArr, MutMaxArr, mutMaxArr, mutMaxArrSize, only, push, size;
+import util.col.mutMaxArr : asTemporaryArray, isEmpty, fillMutMaxArr, MutMaxArr, mutMaxArr, mutMaxArrSize, only, size;
 import util.opt : force, has, none, noneMut, Opt, some, some;
 import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMeasure, startMeasure;
 import util.sourceRange : Range;
@@ -308,7 +307,7 @@ void getParamExpected(
 			exists!TypeAndContext(asTemporaryArray(paramExpected), (in TypeAndContext x) =>
 				!x.context.isInferring && x.type == expected.type);
 		if (!isDuplicate)
-			push(paramExpected, expected);
+			paramExpected ~= expected;
 	}
 }
 

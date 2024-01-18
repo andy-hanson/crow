@@ -1,7 +1,8 @@
-import
-	crow/version: is-interpreted
-
 main void()
+	trusted
+		&my_void_fn f_void
+		assert some-var == 42
+
 	false f_bool &my_bool_fn is true
 	8 f_int8 &my_int8_fn is 9
 	16 f_int16 &my_int16_fn is 17
@@ -16,14 +17,17 @@ main void()
 	n nat64 = 64
 	assert trusted (&n f_nat64_ptr &my_nat64_ptr_fn) == &n
 
-	# TODO: Support structs in dyncall
-	unless trusted is-interpreted
-		s ExampleStruct = false, 64
-		s f_struct &my_struct_fn is (true, 65)
+	(false, 64) f_struct_a &my_struct_a_fn is (true, 65)
+	(true, (false, 64)) f_struct_b &my_struct_b_fn is (false, (true, 65))
+
+	# Union can't be 'extern', but test creating and calling a fun*
+	fptr fun* union_a(union_a) = &my_union_a_fn
+	fptr[(false, 64).sa] is (false, (true, 65)).sb
 
 	info log "done"
 	()
 
+-f_void void(f fun* void()) example extern, trusted
 -f_bool bool(a bool, f fun* bool(bool)) example extern, trusted
 -f_int8 int8(a int8, f fun* int8(int8)) example extern, trusted
 -f_int16 int16(a int16, f fun* int16(int16)) example extern, trusted
@@ -36,18 +40,60 @@ main void()
 -f_float32 float32(a float32, f fun* float32(float32)) example extern, trusted
 -f_float64 float64(a float64, f fun* float64(float64)) example extern, trusted
 -f_nat64_ptr nat64*(a nat64*, f fun* nat64*(nat64*)) example extern, trusted
--f_struct ExampleStruct(
-	a ExampleStruct,
-	f fun* ExampleStruct(ExampleStruct),
+-f_struct_a struct_a(
+	a struct_a,
+	f fun* struct_a(struct_a),
+) example extern, trusted
+-f_struct_b struct_b(
+	a struct_b,
+	f fun* struct_b(struct_b),
 ) example extern, trusted
 
--ExampleStruct record extern
+-struct_a record extern
 	b bool
 	n nat64
-== bool(a ExampleStruct, b ExampleStruct)
+-== bool(a struct_a, b struct_a)
 	a.b == b.b && a.n == b.n
-to json(a ExampleStruct)
+-to json(a struct_a)
 	("b", a.b.to), ("n", a.n.to)
+
+-struct_b record extern
+	b bool
+	a struct_a
+-== bool(a struct_b, b struct_b)
+	a.b == b.b && a.a == b.a
+-to json(a struct_b)
+	("b", a.b.to), ("a", a.a.to)
+
+-union_a union
+	sa struct_a
+	sb struct_b
+-== bool(a union_a, b union_a)
+	match a
+	as sa a_a
+		match b
+		as sa b_a
+			a_a == b_a
+		as sb _
+			false
+	as sb a_b
+		match b
+		as sa _
+			false
+		as sb b_b
+			a_b == b_b
+-to json(a union_a)
+	match a
+	as sa x
+		("sa", x.to),
+	as sb x
+		("sb", x.to),
+
+some-var thread-local(nat)
+
+-my_void_fn void() unsafe
+	some-var := 42
+	()
 
 -my_bool_fn bool(a bool)
 	a is false
@@ -97,6 +143,14 @@ to json(a ExampleStruct)
 	*a is 64
 	a
 
--my_struct_fn ExampleStruct(a ExampleStruct) unsafe
+-my_struct_a_fn struct_a(a struct_a) unsafe
 	a is (false, 64)
 	true, 65
+
+-my_struct_b_fn struct_b(a struct_b) unsafe
+	a is (true, (false, 64))
+	false, (true, 65)
+
+-my_union_a_fn union_a(a union_a) unsafe
+	a is (false, 64).sa
+	(false, (true, 65)).sb

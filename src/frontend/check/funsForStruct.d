@@ -43,7 +43,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.array : isEmpty, map, mapWithFirst, small, sum;
 import util.col.exactSizeArrayBuilder : ExactSizeArrayBuilder;
-import util.col.mutMaxArr : asTemporaryArray, push;
+import util.col.mutMaxArr : asTemporaryArray;
 import util.opt : force, has, Opt, optEqual, some;
 import util.symbol : prependSet, prependSetDeref, Symbol, symbol;
 
@@ -341,7 +341,7 @@ void addFunsForRecord(
 
 void typeArgsFromParams(scope ref TypeArgsArray out_, in TypeParams typeParams) {
 	foreach (size_t i; 0 .. typeParams.length)
-		push(out_, Type(TypeParamIndex(i)));
+		out_ ~= Type(TypeParamIndex(i));
 }
 
 void addFunsForRecordConstructor(

@@ -36,6 +36,19 @@ struct MutMaxArr(size_t maxSize, T) {
 		return 0;
 	}
 
+	T* ptr() =>
+		values.ptr;
+
+
+	@trusted void opOpAssign(string op : "~")(T value) scope {
+		overwriteMemory(pushUninitialized(this), value);
+	}
+
+	void opOpAssign(string op : "~")(in T[] values) {
+		foreach (T value; values)
+			this ~= value;
+	}
+
 	private:
 	size_t size_;
 	T[maxSize] values = void;
@@ -105,15 +118,6 @@ void mapTo(size_t maxSize, Out, In)(
 		overwriteMemory(&a.values[i], cb(values[i]));
 }
 
-@trusted void push(size_t maxSize, T)(scope ref MutMaxArr!(maxSize, T) a, T value) {
-	overwriteMemory(pushUninitialized(a), value);
-}
-
-void pushAll(size_t maxSize, T)(scope ref MutMaxArr!(maxSize, T) a, in T[] values) {
-	foreach (T value; values)
-		push(a, value);
-}
-
 T mustPop(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) {
 	assert(a.size_ != 0);
 	a.size_--;
@@ -141,7 +145,7 @@ void filterUnorderedButDontRemoveAll(size_t maxSize, T)(
 	MutMaxArr!(maxSize, size_t) keep = mutMaxArr!(maxSize, size_t);
 	foreach (size_t i, ref T x; asTemporaryArray(a)) {
 		if (pred(x))
-			push(keep, i);
+			keep ~= i;
 	}
 	if (!isEmpty(keep)) {
 		foreach (size_t outI, size_t inI; asTemporaryArray(keep))

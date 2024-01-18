@@ -98,7 +98,7 @@ import util.alloc.alloc : Alloc;
 import util.col.array : allSame, contains, find, fold, isEmpty, only, zip;
 import util.col.arrayBuilder : buildArray;
 import util.col.hashTable : mustGet;
-import util.col.mutMaxArr : asTemporaryArray, mutMaxArr, MutMaxArr, push;
+import util.col.mutMaxArr : asTemporaryArray, mutMaxArr, MutMaxArr;
 import util.opt : force, has, none, Opt, optEqual, some;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : AllSymbols, prependSet, Symbol;
@@ -557,7 +557,7 @@ void withRecordFieldFunctions(
 			Type paramType = only(fun.params.as!(Destructure[])).type;
 			// TODO: for RecordFieldPointer we need to look for pointer to the struct
 			if (paramType.isA!(StructInst*) && paramType.as!(StructInst*).decl == field.containingRecord)
-				push(res, fun);
+				res ~= fun;
 		}
 	}
 	cb(asTemporaryArray(res));

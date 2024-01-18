@@ -37,7 +37,7 @@ import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.array : every, exists, first, only, small, zipFirst;
 import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, finish;
-import util.col.mutMaxArr : asTemporaryArray, isFull, mustPop, MutMaxArr, mutMaxArr, only, push, toArray;
+import util.col.mutMaxArr : asTemporaryArray, isFull, mustPop, MutMaxArr, mutMaxArr, only, toArray;
 import util.opt : force, has, none, Opt, optIf, optOr, some;
 import util.sourceRange : Range;
 import util.union_ : Union;
@@ -132,7 +132,7 @@ T withTrace(T)(
 	FunDeclAndTypeArgs called,
 	in T delegate(scope RealTrace*) @safe @nogc pure nothrow cb,
 ) {
-	push(trace.trace, called);
+	trace.trace ~= called;
 	T res = cb(trace);
 	mustPop(trace.trace);
 	return res;
@@ -178,7 +178,7 @@ Trace.Result getCalledFromCandidateAfterTypeChecks(Trace)(
 	foreach (ref const SingleInferringType x; candidate.typeArgs) {
 		Opt!Type t = tryGetInferred(x);
 		if (has(t))
-			push(candidateTypeArgs, force(t));
+			candidateTypeArgs ~= force(t);
 		else
 			return Trace.Result(specNoMatch(trace, Diag.SpecNoMatch.Reason(
 				Diag.SpecNoMatch.Reason.CantInferTypeArguments(candidate.called.as!(FunDecl*)))));
@@ -307,7 +307,7 @@ Opt!(Trace.NoMatch) checkSpecImpl(Trace)(
 				decl.sigs, specInstInstantiated.sigTypes, (SpecDeclSig* sigDecl, in ReturnAndParamTypes sigType) =>
 					findSpecSigImplementation(ctx, sigDecl, sigType, trace).match!(Opt!(Trace.NoMatch))(
 						(Called x) {
-							push(res, x);
+							res ~= x;
 							return none!(Trace.NoMatch);
 						},
 						(Trace.NoMatch x) =>

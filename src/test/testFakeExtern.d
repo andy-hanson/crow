@@ -3,11 +3,13 @@ module test.testFakeExtern;
 @safe @nogc nothrow: // not pure
 
 import interpret.extern_ :
-	DynCallType, DynCallSig, Extern, ExternPointersForAllLibraries, ExternPointersForLibrary, FunPointer;
+	doDynCall, DynCallType, DynCallSig, Extern, ExternPointersForAllLibraries, ExternPointersForLibrary, FunPointer;
 import interpret.fakeExtern : unreachableWriteCb, withFakeExtern, WriteCb;
+import interpret.stacks : dataPop, dataPush, Stacks, withStacks;
 import lib.lsp.lspTypes : Pipe;
-import model.lowModel : ExternLibrary;
+import model.lowModel : ExternLibrary, PrimitiveType;
 import test.testUtil : Test;
+import util.col.array : small;
 import util.col.map : mustGet;
 import util.col.mutArr : moveToArray, MutArr, pushAll;
 import util.exitCode : ExitCode;
@@ -35,21 +37,29 @@ private:
 		FunPointer free = mustGet(forCrow, symbol!"free").asFunPointer;
 		FunPointer malloc = mustGet(forCrow, symbol!"malloc").asFunPointer;
 
-		ulong[1] args8 = [8];
-		DynCallType[2] mallocSigTypes = [DynCallType.pointer, DynCallType.nat64];
-		scope DynCallSig mallocSig = DynCallSig(mallocSigTypes);
-		ubyte* ptr1 = cast(ubyte*) extern_.doDynCall(malloc, mallocSig, args8);
-		ulong[1] args16 = [8];
-		ubyte* ptr2 = cast(ubyte*) extern_.doDynCall(malloc, mallocSig, args16);
-		*ptr1 = 1;
-		assert(*ptr1 == 1);
-		assert(ptr2 != ptr1);
-		DynCallType[2] freeSigTypes = [DynCallType.void_, DynCallType.pointer];
-		scope DynCallSig freeSig = DynCallSig(freeSigTypes);
-		ulong[1] freePtr2 = [cast(ulong) ptr2];
-		extern_.doDynCall(free, freeSig, freePtr2);
-		ulong[1] freePtr1 = [cast(ulong) ptr1];
-		extern_.doDynCall(free, freeSig, freePtr1);
+		DynCallType[2] mallocSigTypes = [DynCallType.pointer, DynCallType(PrimitiveType.nat64)];
+		scope DynCallSig mallocSig = DynCallSig(small!DynCallType(mallocSigTypes));
+
+		withStacks!void((scope ref Stacks stacks) @trusted {
+			dataPush(stacks, 8);
+			doDynCall(extern_.doDynCall, stacks, mallocSig, malloc);
+			ubyte* ptr1 = cast(ubyte*) dataPop(stacks);
+
+			dataPush(stacks, 16);
+			doDynCall(extern_.doDynCall, stacks, mallocSig, malloc);
+			ubyte* ptr2 = cast(ubyte*) dataPop(stacks);
+
+			*ptr1 = 1;
+			assert(*ptr1 == 1);
+			assert(ptr2 != ptr1);
+
+			DynCallType[2] freeSigTypes = [DynCallType(PrimitiveType.void_), DynCallType.pointer];
+			scope DynCallSig freeSig = DynCallSig(small!DynCallType(freeSigTypes));
+			dataPush(stacks, cast(ulong) ptr2);
+			doDynCall(extern_.doDynCall, stacks, freeSig, free);
+			dataPush(stacks, cast(ulong) ptr1);
+			doDynCall(extern_.doDynCall, stacks, freeSig, free);
+		});
 		return ExitCode(0);
 	});
 }
@@ -78,14 +88,30 @@ void testWrite(ref Test test) {
 			ExternPointersForLibrary forCrow = mustGet(funPtrs, symbol!"c");
 			FunPointer write = mustGet(forCrow, symbol!"write").asFunPointer;
 
-			DynCallType[4] sigTypes = [DynCallType.pointer, DynCallType.int32, DynCallType.pointer, DynCallType.nat64];
-			DynCallSig sig = DynCallSig(sigTypes);
-			ulong[3] args1 = [1, cast(ulong) cString!"gnarly".ptr, 4];
-			extern_.doDynCall(write, sig, args1);
-			ulong[3] args2 = [2, cast(ulong) cString!"tubular".ptr, 2];
-			extern_.doDynCall(write, sig, args2);
-			ulong[3] args3 = [1, cast(ulong) cString!"way cool".ptr, 5];
-			extern_.doDynCall(write, sig, args3);
+			DynCallType[4] sigTypes = [
+				DynCallType.pointer,
+				DynCallType(PrimitiveType.int32),
+				DynCallType.pointer,
+				DynCallType(PrimitiveType.nat64),
+			];
+			DynCallSig sig = DynCallSig(small!DynCallType(sigTypes));
+
+			withStacks!void((scope ref Stacks stacks) {
+				dataPush(stacks, [1, cast(ulong) cString!"gnarly".ptr, 4]);
+				doDynCall(extern_.doDynCall, stacks, sig, write);
+				ulong res1 = dataPop(stacks);
+				assert(res1 == 4);
+
+				dataPush(stacks, [2, cast(ulong) cString!"tubular".ptr, 2]);
+				doDynCall(extern_.doDynCall, stacks, sig, write);
+				ulong res2 = dataPop(stacks);
+				assert(res2 == 2);
+
+				dataPush(stacks, [1, cast(ulong) cString!"way cool".ptr, 5]);
+				doDynCall(extern_.doDynCall, stacks, sig, write);
+				ulong res3 = dataPop(stacks);
+				assert(res3 == 5);
+			});
 			return ExitCode(42);
 		});
 	assert(result.value == 42);

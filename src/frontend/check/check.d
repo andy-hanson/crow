@@ -120,7 +120,7 @@ import util.col.exactSizeArrayBuilder : buildArrayExact, ExactSizeArrayBuilder, 
 import util.col.hashTable :
 	getPointer, HashTable, insertOrUpdate, mapAndMovePreservingKeys, mayAdd, moveToImmutable, MutHashTable;
 import util.col.mutArr : mustPop, mutArrIsEmpty;
-import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, push, toArray;
+import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, toArray;
 import util.memory : allocate, initMemory;
 import util.opt : force, has, none, Opt, someMut, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
@@ -321,7 +321,7 @@ bool recurDetectSpecRecursion(SpecDecl* cur, ref MutMaxArr!(8, immutable SpecDec
 	if (!isEmpty(cur.parents) && isFull(trace))
 		return true;
 	foreach (SpecInst* parent; cur.parents) {
-		push(trace, parent.decl);
+		trace ~= parent.decl;
 		if (recurDetectSpecRecursion(parent.decl, trace))
 			return true;
 		else

@@ -137,8 +137,8 @@ ExitCode buildAndInterpret(
 			if (has(externPointers))
 				return withTempAllocImpure!ExitCode(server.metaAlloc, AllocKind.interpreter, (ref Alloc bytecodeAlloc) {
 					ByteCode byteCode = generateBytecode(
-						perf, bytecodeAlloc, server.allSymbols,
-						programs.program, lowProgram, force(externPointers), extern_.makeSyntheticFunPointers);
+						perf, bytecodeAlloc, server.allSymbols, programs.program, lowProgram,
+						force(externPointers), extern_.aggregateCbs, extern_.makeSyntheticFunPointers);
 					ShowCtx printCtx = getShowDiagCtx(server, programs.program);
 					return ExitCode(runBytecode(
 						perf, bytecodeAlloc, printCtx, extern_.doDynCall, lowProgram, byteCode, allArgs));

@@ -13,7 +13,6 @@ main void()
 	dd takes-dt-t-data
 	dd takes-data
 
-	info log "E"
 	# type is mut and type arg is mut
 	mm m mt = (0,),
 	mm takes-mt

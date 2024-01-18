@@ -5,7 +5,11 @@ module interpret.fakeExtern;
 import lib.lsp.lspTypes : Pipe;
 import interpret.bytecode : Operation;
 import interpret.extern_ :
+	AggregateCbs,
+	countParameterEntries,
+	DCaggr,
 	DynCallSig,
+	DynCallType,
 	Extern,
 	ExternPointer,
 	ExternPointersForAllLibraries,
@@ -14,8 +18,8 @@ import interpret.extern_ :
 	FunPointerInputs,
 	WriteError,
 	writeSymbolToCb;
-import interpret.runBytecode : syntheticCall;
-import interpret.stacks : dataPush, Stacks;
+import interpret.runBytecode : syntheticCallWithStacks;
+import interpret.stacks : dataPopN, dataPush, loadStacks, saveStacks, Stacks;
 import model.lowModel : ExternLibraries, ExternLibrary;
 import util.alloc.alloc : Alloc, allocateBytes;
 import util.col.array : map;
@@ -43,8 +47,17 @@ T withFakeExtern(T)(
 			getAllFakeExternFuns(alloc, allSymbols, libraries, writeError),
 		(in FunPointerInputs[] inputs) =>
 			fakeSyntheticFunPointers(alloc, inputs),
-		(FunPointer fun, in DynCallSig sig, in ulong[] args) =>
-			callFakeExternFun(alloc, write, fun.pointer, sig, args));
+		AggregateCbs(
+			(size_t _, size_t _2) =>
+				null,
+			(DCaggr* aggr, size_t _, DynCallType _2) {
+				assert(aggr == null);
+			},
+			(DCaggr* aggr) {
+				assert(aggr == null);
+			}),
+		(FunPointer fun, in DynCallSig sig) =>
+			callFakeExternFun(alloc, write, fun.pointer, sig));
 	return cb(extern_);
 }
 
@@ -76,25 +89,25 @@ Opt!ExternPointersForAllLibraries getAllFakeExternFuns(
 	return mutArrIsEmpty(failures) ? some(res) : none!ExternPointersForAllLibraries;
 }
 
-@system ulong callFakeExternFun(
+@system void callFakeExternFun(
 	ref Alloc alloc,
 	in WriteCb writeCb,
 	immutable void* ptr,
 	in DynCallSig sig,
-	in ulong[] args,
 ) {
+	Stacks stacks = loadStacks();
+	scope const(ulong)[] args = dataPopN(stacks, countParameterEntries(sig));
 	if (ptr == &free) {
 		assert(args.length == 1);
-		return 0;
 	} else if (ptr == &malloc) {
 		assert(args.length == 1);
-		return cast(ulong) allocateBytes(alloc, cast(size_t) args[0]).ptr;
+		dataPush(stacks, cast(ulong) allocateBytes(alloc, cast(size_t) args[0]).ptr);
 	} else if (ptr == &memmove) {
 		assert(args.length == 3);
-		return cast(ulong) memmove(cast(ubyte*) args[0], cast(const ubyte*) args[1], cast(size_t) args[2]);
+		dataPush(stacks, cast(ulong) memmove(cast(ubyte*) args[0], cast(const ubyte*) args[1], cast(size_t) args[2]));
 	} else if (ptr == &memset) {
 		assert(args.length == 3);
-		return cast(ulong) memset(cast(ubyte*) args[0], cast(ubyte) args[1], cast(size_t) args[2]);
+		dataPush(stacks, cast(ulong) memset(cast(ubyte*) args[0], cast(ubyte) args[1], cast(size_t) args[2]));
 	} else if (ptr == &write) {
 		assert(args.length == 3);
 		int fd = cast(int) args[0];
@@ -103,11 +116,13 @@ Opt!ExternPointersForAllLibraries getAllFakeExternFuns(
 		assert(fd == 1 || fd == 2);
 		Pipe pipe = fd == 1 ? Pipe.stdout : Pipe.stderr;
 		writeCb(pipe, buf[0 .. nBytes]);
-		return nBytes;
-	} else
-		return syntheticCall(sig, cast(Operation*) ptr, (ref Stacks stacks) {
-			dataPush(stacks, args);
-		});
+		dataPush(stacks, nBytes);
+	} else {
+		dataPush(stacks, args);
+		syntheticCallWithStacks(stacks, cast(Operation*) ptr);
+		// Result remains on stack
+	}
+	saveStacks(stacks);
 }
 
 pure:

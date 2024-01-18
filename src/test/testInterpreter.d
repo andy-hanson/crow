@@ -67,11 +67,13 @@ import model.lowModel :
 	LowVar,
 	LowVarIndex,
 	LowType,
-	LowUnion;
+	LowUnion,
+	PrimitiveType;
 import model.model : VarKind;
 import model.typeLayout : Pack, PackField;
 import test.testUtil : expectDataStack, expectReturnStack, Test, withShowDiagCtxForTestImpure;
 import util.alloc.alloc : Alloc;
+import util.col.array : small;
 import util.col.enumMap : EnumMap;
 import util.col.fullIndexMap : emptyFullIndexMap, fullIndexMapOfArr;
 import util.memory : allocate;
@@ -217,8 +219,12 @@ void testCallFunPointer(ref Test test) {
 	// +
 	// return
 
-	DynCallType[3] sigTypes = [DynCallType.nat64, DynCallType.nat64, DynCallType.nat64];
-	DynCallSig sig = DynCallSig(sigTypes);
+	DynCallType[3] sigTypes = [
+		DynCallType(PrimitiveType.nat64),
+		DynCallType(PrimitiveType.nat64),
+		DynCallType(PrimitiveType.nat64),
+	];
+	DynCallSig sig = DynCallSig(small!DynCallType(sigTypes));
 	DynCallSig[1] sigsStorage = [castNonScope(sig)];
 	FunPointerTypeToDynCallSig funPtrTypeToDynCallSig =
 		castNonScope(fullIndexMapOfArr!(LowType.FunPointer, DynCallSig)(castNonScope(sigsStorage)));

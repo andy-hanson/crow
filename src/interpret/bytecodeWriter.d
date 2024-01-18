@@ -15,7 +15,7 @@ import interpret.bytecode :
 	StackOffset,
 	StackOffsetBytes,
 	subtractByteCodeIndex;
-import interpret.extern_ : DynCallType, DynCallSig, FunPointer;
+import interpret.extern_ : countParameterEntries, DynCallSig, FunPointer, sizeWords;
 import interpret.runBytecode :
 	opBreak,
 	opCall,
@@ -132,11 +132,11 @@ void writeCallFunPointer(
 	StackEntry stackEntryBeforeArgs,
 	in DynCallSig sig,
 ) {
-	assert(stackEntryBeforeArgs.entry == writer.nextStackEntry - sig.parameterTypes.length - 1);
+	assert(stackEntryBeforeArgs.entry == writer.nextStackEntry - countParameterEntries(sig) - 1);
 	pushOperationFn(writer, source, &opCallFunPointer);
 	writeCallFunPointerCommon(writer, source, sig);
 	writer.nextStackEntry -= 1; // for the fun-pointer
-	assert(writer.nextStackEntry == stackEntryBeforeArgs.entry + (sig.returnType == DynCallType.void_ ? 0 : 1));
+	assert(writer.nextStackEntry == stackEntryBeforeArgs.entry + sizeWords(sig.returnType));
 }
 
 void writeCallFunPointerExtern(
@@ -146,14 +146,14 @@ void writeCallFunPointerExtern(
 	in DynCallSig sig,
 ) {
 	pushOperationFn(writer, source, &opCallFunPointerExtern);
-	pushNat64(writer, source, fun.asUlong);
+	pushOperation(writer, source, Operation(fun));
 	writeCallFunPointerCommon(writer, source, sig);
 }
 
 private void writeCallFunPointerCommon(scope ref ByteCodeWriter writer, ByteCodeSource source, in DynCallSig sig) {
-	writeArray!DynCallType(writer, source, sig.returnTypeAndParameterTypes);
-	writer.nextStackEntry -= sig.parameterTypes.length;
-	writer.nextStackEntry += (sig.returnType == DynCallType.void_ ? 0 : 1);
+	pushOperation(writer, source, Operation(sig));
+	writer.nextStackEntry -= countParameterEntries(sig);
+	writer.nextStackEntry += sizeWords(sig.returnType);
 }
 
 private size_t getStackOffsetTo(in ByteCodeWriter writer, StackEntry stackEntry) {

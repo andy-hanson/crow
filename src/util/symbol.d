@@ -6,7 +6,7 @@ import util.alloc.alloc : Alloc;
 import util.col.array : only;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : mustAdd, MutMap, size;
-import util.col.mutMaxArr : asTemporaryArray, clear, MutMaxArr, mutMaxArr, push, pushAll;
+import util.col.mutMaxArr : asTemporaryArray, clear, MutMaxArr, mutMaxArr;
 import util.conv : safeToSizeT;
 import util.hash : HashCode, hashUlong;
 import util.opt : force, has, Opt, none, some;
@@ -64,11 +64,13 @@ private Symbol addLargeString(ref AllSymbols a, CString value) {
 Symbol appendHexExtension(ref AllSymbols allSymbols, Symbol a, in ubyte[] bytes) {
 	MutMaxArr!(0x100, immutable char) res = mutMaxArr!(0x100, immutable char);
 	eachCharInSymbol(allSymbols, a, (char x) {
-		push(res, x);
+		res ~= x;
 	});
-	push(res, '.');
-	foreach (ubyte x; bytes)
-		pushAll!(0x100, immutable char)(res, [digitChar(x / 16), digitChar(x % 16)]);
+	res ~= '.';
+	foreach (ubyte x; bytes) {
+		res ~= digitChar(x / 16);
+		res ~= digitChar(x % 16);
+	}
 	return symbolOfString(allSymbols, asTemporaryArray(res));
 }
 
@@ -88,11 +90,10 @@ Symbol removeExtension(ref AllSymbols allSymbols, Symbol a) {
 	bool hasDot = false;
 	eachCharInSymbol(allSymbols, a, (char x) {
 		if (!hasDot) {
-			if (x == '.') {
+			if (x == '.')
 				hasDot = true;
-			} else {
-				push(res, x);
-			}
+			else
+				res ~= x;
 		}
 	});
 	return symbolOfString(allSymbols, asTemporaryArray(res));
@@ -107,9 +108,8 @@ Symbol getExtension(ref AllSymbols allSymbols, Symbol a) {
 			hasDot = true;
 			clear(res);
 		}
-		if (hasDot) {
-			push(res, x);
-		}
+		if (hasDot)
+			res ~= x;
 	});
 	return symbolOfString(allSymbols, asTemporaryArray(res));
 }

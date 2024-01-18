@@ -21,7 +21,14 @@ import interpret.bytecodeWriter :
 	writeReturn,
 	writeSetjmp;
 import interpret.extern_ :
-	DynCallType, DynCallSig, ExternPointersForAllLibraries, FunPointer, FunPointerInputs, MakeSyntheticFunPointers;
+	AggregateCbs,
+	DCaggr,
+	DynCallType,
+	DynCallSig,
+	ExternPointersForAllLibraries,
+	FunPointer,
+	FunPointerInputs,
+	MakeSyntheticFunPointers;
 import interpret.funToReferences :
 	eachFunPointer,
 	finishAt,
@@ -34,7 +41,7 @@ import interpret.generateExpr : generateFunFromExpr, maxGlobalsSizeWords;
 import interpret.generateText :
 	generateText, generateVarsInfo, TextAndInfo, TextIndex, TextInfo, VarsInfo;
 import interpret.runBytecode : maxThreadLocalsSizeWords;
-import model.concreteModel : ConcreteStructSource, name;
+import model.concreteModel : name;
 import model.lowModel :
 	LowField,
 	LowFun,
@@ -45,23 +52,25 @@ import model.lowModel :
 	LowFunPointerType,
 	LowLocal,
 	LowProgram,
+	LowPtrCombine,
+	LowRecord,
 	LowType,
 	LowUnion,
 	name,
-	PrimitiveType,
-	typeSize;
+	PrimitiveType;
 import model.model : Program, VarKind;
-import model.typeLayout : nStackEntriesForType;
+import model.typeLayout : nStackEntriesForType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.array : map;
-import util.col.arrayBuilder : add, ArrayBuilder, finish;
-import util.col.map : Map, KeyValuePair, mustGet, zipToMap;
+import util.col.arrayBuilder : ArrayBuilderWithAlloc, finish, smallFinish;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach, fullIndexMapSize, mapFullIndexMap;
-import util.col.mutMaxArr : asTemporaryArray, initializeMutMaxArr, MutMaxArr, push;
+import util.col.map : Map, KeyValuePair, mustGet, zipToMap;
+import util.col.mutMap : getOrAddAndDidAdd, MutMap, ValueAndDidAdd;
+import util.memory : allocate;
 import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.symbol : AllSymbols, Symbol, symbol;
-import util.util : castImmutable, enumConvert, ptrTrustMe, todo;
+import util.util : castImmutable, castMutable, castNonScope_ref, ptrTrustMe, todo;
 
 ByteCode generateBytecode(
 	scope ref Perf perf,
@@ -70,11 +79,13 @@ ByteCode generateBytecode(
 	in Program modelProgram,
 	in LowProgram program,
 	ExternPointersForAllLibraries externPointers,
+	in AggregateCbs aggregateCbs,
 	in MakeSyntheticFunPointers makeSyntheticFunPointers,
 ) {
 	//TODO: use a temp alloc for 2nd arg
 	return withMeasure!(ByteCode, () =>
-		generateBytecodeInner(alloc, alloc, allSymbols, modelProgram, program, externPointers, makeSyntheticFunPointers)
+		generateBytecodeInner(
+			alloc, alloc, allSymbols, modelProgram, program, externPointers, aggregateCbs, makeSyntheticFunPointers)
 	)(perf, alloc, PerfMeasure.generateBytecode);
 }
 
@@ -85,14 +96,15 @@ private ByteCode generateBytecodeInner(
 	in Program modelProgram,
 	in LowProgram program,
 	ExternPointersForAllLibraries externPointers,
+	in AggregateCbs aggregateCbs,
 	in MakeSyntheticFunPointers cbMakeSyntheticFunPointers,
 ) {
+	DynCallTypeCtx typeCtx = DynCallTypeCtx(ptrTrustMe(codeAlloc), castNonScope_ref(aggregateCbs), ptrTrustMe(program));
+
 	FunPointerTypeToDynCallSig funPtrTypeToDynCallSig =
 		mapFullIndexMap!(LowType.FunPointer, DynCallSig, LowFunPointerType)(
-			codeAlloc,
-			program.allFunPointerTypes,
-			(LowType.FunPointer, in LowFunPointerType x) =>
-				funPtrDynCallSig(codeAlloc, program, x));
+			codeAlloc, program.allFunPointerTypes, (LowType.FunPointer, in LowFunPointerType x) =>
+				makeDynCallSigFromPointer(typeCtx, x));
 
 	FunToReferences funToReferences =
 		initFunToReferences(tempAlloc, funPtrTypeToDynCallSig, fullIndexMapSize(program.allFuns));
@@ -104,7 +116,7 @@ private ByteCode generateBytecodeInner(
 		mapFullIndexMap!(LowFunIndex, ByteCodeIndex, LowFun)(
 			tempAlloc,
 			program.allFuns,
-			(LowFunIndex funIndex, in LowFun fun) {
+			(LowFunIndex funIndex, in LowFun fun) @safe {
 				ByteCodeIndex funPos = nextByteCodeIndex(writer);
 				generateBytecodeForFun(
 					tempAlloc,
@@ -116,6 +128,7 @@ private ByteCode generateBytecodeInner(
 					modelProgram,
 					program,
 					externPointers,
+					typeCtx,
 					funIndex,
 					fun);
 				return funPos;
@@ -163,11 +176,11 @@ SyntheticFunPointers makeSyntheticFunPointers(
 	in FunToReferences funToReferences,
 	in MakeSyntheticFunPointers cbMakeSyntheticFunPointers,
 ) {
-	ArrayBuilder!FunPointerInputs inputsBuilder;
+	ArrayBuilderWithAlloc!FunPointerInputs inputsBuilder = ArrayBuilderWithAlloc!FunPointerInputs(&alloc);
 	eachFunPointer(funToReferences, (LowFunIndex funIndex, DynCallSig sig) {
-		add(alloc, inputsBuilder, FunPointerInputs(funIndex, sig, &byteCode[funToDefinition[funIndex].index]));
+		inputsBuilder ~= FunPointerInputs(funIndex, sig, &byteCode[funToDefinition[funIndex].index]);
 	});
-	FunPointerInputs[] inputs = finish(alloc, inputsBuilder);
+	FunPointerInputs[] inputs = finish(inputsBuilder);
 	FunPointer[] funPtrs = cbMakeSyntheticFunPointers(inputs);
 	FunToFunPointer funToFunPointer = zipToMap!(LowFunIndex, FunPointer, FunPointerInputs, FunPointer)(
 		alloc, inputs, funPtrs, (ref FunPointerInputs inputs, ref FunPointer funPtr) =>
@@ -185,16 +198,6 @@ immutable struct SyntheticFunPointers {
 alias FunToFunPointer = Map!(LowFunIndex, FunPointer);
 alias FunToDefinition = immutable FullIndexMap!(LowFunIndex, ByteCodeIndex);
 
-DynCallSig funPtrDynCallSig(ref Alloc alloc, in LowProgram program, in LowFunPointerType a) {
-	ArrayBuilder!DynCallType sigTypes;
-	add(alloc, sigTypes, toDynCallType(a.returnType));
-	foreach (ref LowType x; a.paramTypes)
-		toDynCallTypes(program, x, (DynCallType x) {
-			add(alloc, sigTypes, x);
-		});
-	return DynCallSig(finish(alloc, sigTypes));
-}
-
 void generateBytecodeForFun(
 	ref TempAlloc tempAlloc,
 	scope ref ByteCodeWriter writer,
@@ -205,6 +208,7 @@ void generateBytecodeForFun(
 	in Program modelProgram,
 	in LowProgram program,
 	ExternPointersForAllLibraries externPointers,
+	ref DynCallTypeCtx typeCtx,
 	LowFunIndex funIndex,
 	in LowFun fun,
 ) {
@@ -224,7 +228,7 @@ void generateBytecodeForFun(
 
 	fun.body_.matchIn!void(
 		(in LowFunBody.Extern body_) {
-			generateExternCall(writer, allSymbols, program, funIndex, fun, body_, externPointers);
+			generateExternCall(writer, allSymbols, program, funIndex, fun, body_, externPointers, typeCtx);
 			writeReturn(writer, source);
 		},
 		(in LowFunExprBody body_) {
@@ -237,13 +241,14 @@ void generateBytecodeForFun(
 }
 
 void generateExternCall(
-	ref ByteCodeWriter writer,
+	scope ref ByteCodeWriter writer,
 	in AllSymbols allSymbols,
 	in LowProgram program,
 	LowFunIndex funIndex,
 	in LowFun fun,
 	in LowFunBody.Extern a,
 	ExternPointersForAllLibraries externPointers,
+	ref DynCallTypeCtx typeCtx,
 ) {
 	ByteCodeSource source = ByteCodeSource(funIndex, lowFunRange(fun).range.start);
 	Opt!Symbol optName = name(fun);
@@ -256,64 +261,119 @@ void generateExternCall(
 			writeSetjmp(writer, source);
 			break;
 		default:
-			generateExternCallFunPointer(
-				writer, source, program, fun, mustGet(mustGet(externPointers, a.libraryName), name).asFunPointer);
+			writeCallFunPointerExtern(
+				writer, source,
+				mustGet(mustGet(externPointers, a.libraryName), name).asFunPointer,
+				makeDynCallSig(typeCtx, fun));
 			break;
 	}
 	writeReturn(writer, source);
 }
 
-void generateExternCallFunPointer(
-	scope ref ByteCodeWriter writer,
-	ByteCodeSource source,
-	in LowProgram program,
-	in LowFun fun,
-	FunPointer funPtr,
-) {
-	MutMaxArr!(16, DynCallType) sigTypes = void;
-	initializeMutMaxArr(sigTypes);
-	push(sigTypes, toDynCallType(fun.returnType));
-	foreach (ref LowLocal x; fun.params)
-		toDynCallTypes(program, x.type, (DynCallType x) {
-		push(sigTypes, x);
-	});
-	writeCallFunPointerExtern(writer, source, funPtr, DynCallSig(asTemporaryArray(sigTypes)));
+struct DynCallTypeCtx {
+	@safe @nogc pure nothrow:
+
+	Alloc* allocPtr;
+	AggregateCbs aggregateCbs;
+	LowProgram* programPtr;
+	MutMap!(LowType.Record, DynCallType.Aggregate*) records;
+	MutMap!(LowType.Union, DynCallType.Aggregate*) unions;
+
+	ref Alloc alloc() =>
+		*allocPtr;
+	ref LowProgram program() =>
+		*programPtr;
 }
 
-DynCallType toDynCallType(in LowType a) =>
+DynCallSig makeDynCallSig(ref DynCallTypeCtx ctx, in LowFun fun) {
+	ArrayBuilderWithAlloc!DynCallType sigTypes = ArrayBuilderWithAlloc!DynCallType(ctx.allocPtr);
+	sigTypes ~= toDynCallType(ctx, fun.returnType);
+	foreach (ref LowLocal x; fun.params)
+		sigTypes ~= toDynCallType(ctx, x.type);
+	return DynCallSig(smallFinish!DynCallType(sigTypes));
+}
+
+DynCallSig makeDynCallSigFromPointer(ref DynCallTypeCtx ctx, in LowFunPointerType fun) {
+	ArrayBuilderWithAlloc!DynCallType sigTypes = ArrayBuilderWithAlloc!DynCallType(ctx.allocPtr);
+	sigTypes ~= toDynCallType(ctx, fun.returnType);
+	foreach (ref LowType x; fun.paramTypes)
+		sigTypes ~= toDynCallType(ctx, x);
+	return DynCallSig(smallFinish!DynCallType(sigTypes));
+}
+
+@trusted DynCallType recordOrUnionToDynCallType(T)(
+	ref DynCallTypeCtx ctx,
+	MutMap!(T, DynCallType.Aggregate*) cache,
+	T x,
+) {
+	ValueAndDidAdd!(DynCallType.Aggregate*) res = getOrAddAndDidAdd(ctx.alloc, cache, x, () @trusted =>
+		newAggregate(ctx, LowType(x)));
+	DynCallType.Aggregate* aggr = res.value;
+	if (res.didAdd)
+		fillInAggregate(ctx, castMutable(aggr.dcAggr), LowType(x));
+	return DynCallType(aggr);
+}
+
+@system DynCallType.Aggregate* newAggregate(ref DynCallTypeCtx ctx, LowType type) =>
+	allocate(ctx.alloc, DynCallType.Aggregate(
+		nStackEntriesForType(ctx.program, type),
+		ctx.aggregateCbs.newAggregate(countFlattenedFields(ctx.program, type), typeSizeBytes(ctx.program, type))));
+
+@system void fillInAggregate(ref DynCallTypeCtx ctx, DCaggr* dcAggr, LowType type) {
+	eachFlattenedField(ctx.program, type, 0, (size_t offset, LowType fieldType) @trusted {
+		ctx.aggregateCbs.addField(dcAggr, offset, toDynCallType(ctx, fieldType));
+	});
+	ctx.aggregateCbs.close(dcAggr);
+}
+
+DynCallType toDynCallType(ref DynCallTypeCtx ctx, in LowType a) =>
 	a.matchIn!DynCallType(
 		(in LowType.Extern) =>
+			// If it has a size, could make an Aggregate.
+			// If not this should be a compile error.
 			todo!DynCallType("!"),
 		(in LowType.FunPointer) =>
 			DynCallType.pointer,
 		(in PrimitiveType x) =>
-			primitiveToDynCallType(x),
+			DynCallType(x),
 		(in LowType.PtrGc) =>
 			DynCallType.pointer,
 		(in LowType.PtrRawConst) =>
 			DynCallType.pointer,
 		(in LowType.PtrRawMut) =>
 			DynCallType.pointer,
-		(in LowType.Record) =>
+		(in LowType.Record x) =>
+			recordOrUnionToDynCallType(ctx, ctx.records, x),
+		(in LowType.Union x) =>
+			recordOrUnionToDynCallType(ctx, ctx.unions, x));
+
+size_t countFlattenedFields(in LowProgram program, LowType type) {
+	size_t res = 0;
+	eachFlattenedField(program, type, 0, (size_t _, LowType _2) { res++; });
+	return res;
+}
+
+alias CbFlattenedField = void delegate(size_t offset, LowType type) @safe @nogc pure nothrow;
+
+void eachFlattenedField(in LowProgram program, in LowType type, size_t baseOffset, in CbFlattenedField cb) {
+	type.combinePointer.matchIn!void(
+		(in LowType.Extern _) =>
 			assert(false),
-		(in LowType.Union) =>
-			assert(false));
-
-DynCallType primitiveToDynCallType(PrimitiveType a) =>
-	enumConvert!DynCallType(a);
-
-void toDynCallTypes(in LowProgram program, in LowType a, in void delegate(DynCallType) @safe @nogc pure nothrow cb) {
-	if (a.isA!(LowType.Record)) {
-		foreach (LowField field; program.allRecords[a.as!(LowType.Record)].fields)
-			toDynCallTypes(program, field.type, cb);
-	} else if (a.isA!(LowType.Union)) {
-		// TODO: Hardcoded support for the 'string[]' in 'main'. Support more types.
-		LowUnion u = program.allUnions[a.as!(LowType.Union)];
-		assert(u.source.source.as!(ConcreteStructSource.Inst).inst.decl.name == symbol!"node");
-		size_t sizeWords = 3;
-		assert(typeSize(u).sizeBytes == ulong.sizeof * sizeWords);
-		foreach (size_t i; 0 .. sizeWords)
-			cb(DynCallType.nat64);
-	} else
-		cb(toDynCallType(a));
+		(in LowType.FunPointer) =>
+			cb(baseOffset, type),
+		(in PrimitiveType _) =>
+			cb(baseOffset, type),
+		(in LowPtrCombine _) =>
+			cb(baseOffset, type),
+		(in LowType.Record x) {
+			LowRecord record = program.allRecords[x];
+			foreach (LowField field; record.fields)
+				eachFlattenedField(program, field.type, baseOffset + field.offset, cb);
+		},
+		(in LowType.Union x) {
+			LowUnion union_ = program.allUnions[x];
+			cb(baseOffset, LowType(PrimitiveType.nat64));
+			foreach (LowType member; union_.members)
+				eachFlattenedField(program, member, baseOffset + union_.membersOffset, cb);
+		});
 }

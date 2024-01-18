@@ -154,7 +154,6 @@ import util.col.array : indexOfPointer, isEmpty;
 import util.col.arrayBuilder : add;
 import util.col.map : mustGet;
 import util.col.mutArr : clearAndFree, MutArr, push;
-import util.col.mutMaxArr : push;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.opt : force, has, Opt;

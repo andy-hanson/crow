@@ -16,16 +16,22 @@ struct ArrayBuilderWithAlloc(T) {
 	private Alloc* allocPtr;
 	private ArrayBuilder!T inner;
 
+	private ref Alloc alloc() =>
+		*allocPtr;
+
 	void opOpAssign(string op)(in T x) scope if (op == "~") {
-		add(*allocPtr, inner, x);
+		add(alloc, inner, x);
 	}
 	void opOpAssign(string op)(in T[] xs) scope if (op == "~") {
-		addAll!(immutable T)(*allocPtr, inner, xs);
+		addAll!(immutable T)(alloc, inner, xs);
 	}
 }
 
+immutable(SmallArray!T) smallFinish(T)(scope ref ArrayBuilderWithAlloc!T a) =>
+	smallFinish(a.alloc, a.inner);
+
 immutable(T[]) finish(T)(ref ArrayBuilderWithAlloc!T a) =>
-	finish(*a.allocPtr, a.inner);
+	finish(a.alloc, a.inner);
 
 alias ArrBuilderCb(T) = void delegate(in T) @safe @nogc pure nothrow;
 

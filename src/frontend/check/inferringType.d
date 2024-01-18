@@ -11,7 +11,7 @@ import model.model : BogusExpr, CommonTypes, Expr, ExprKind, LoopExpr, StructIns
 import util.cell : Cell, cellGet, cellSet;
 import util.col.array : contains, exists, indexOf, map, MutSmallArray, newArray, only, small, zip, zipEvery;
 import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, asTemporaryArray, finish;
-import util.col.mutMaxArr : asTemporaryArray, push;
+import util.col.mutMaxArr : asTemporaryArray;
 import util.opt : has, force, MutOpt, none, noneMut, Opt, optOrDefault, some, someInout, someMut;
 import util.union_ : UnionMutable;
 import util.util : castNonScope_ref;
@@ -368,7 +368,7 @@ Opt!Type tryGetNonInferringType(ref InstantiateCtx ctx, const TypeAndContext a) 
 			foreach (Type x; i.typeArgs) {
 				Opt!Type t = tryGetNonInferringType(ctx, const TypeAndContext(x, a.context));
 				if (has(t))
-					push(newTypeArgs, force(t));
+					newTypeArgs ~= force(t);
 				else
 					return none!Type;
 			}
@@ -393,7 +393,7 @@ Type applyInferred(ref InstantiateCtx ctx, in TypeAndContext a) =>
 		(ref StructInst i) {
 			scope TypeArgsArray newTypeArgs = typeArgsArray();
 			foreach (Type x; i.typeArgs)
-				push(newTypeArgs, applyInferred(ctx, const TypeAndContext(x, a.context)));
+				newTypeArgs ~= applyInferred(ctx, const TypeAndContext(x, a.context));
 			return Type(instantiateStructNeverDelay(ctx, i.decl, asTemporaryArray(newTypeArgs)));
 		});
 

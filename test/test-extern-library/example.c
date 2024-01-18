@@ -1,6 +1,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+extern void f_void(void f()) {
+	f();
+}
+
 extern bool f_bool(bool a, bool f(bool)) {
 	return f(a);
 }
@@ -53,13 +57,20 @@ extern uint64_t const* f_nat64_ptr(uint64_t const* a, uint64_t const* f(uint64_t
 	return f(a);
 }
 
-struct ExampleStruct {
+typedef struct struct_a {
 	bool b;
 	uint64_t n;
-};
+} struct_a;
 
-extern struct ExampleStruct f_struct(struct ExampleStruct a, struct ExampleStruct f(struct ExampleStruct)) {
+typedef struct struct_b {
+	bool b;
+	struct_a a;
+} struct_b;
+
+extern struct_a f_struct_a(struct_a a, struct_a f(struct_a)) {
 	return f(a);
 }
 
-/* TODO: still need to test pointers and structs ------------------------------------------------------------------------------------------- */
+extern struct_b f_struct_b(struct_b a, struct_b f(struct_b)) {
+	return f(a);
+}

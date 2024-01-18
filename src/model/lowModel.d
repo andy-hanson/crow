@@ -58,8 +58,14 @@ bool isTuple(in LowRecord a) =>
 	isTuple(*a.source);
 
 immutable struct LowUnion {
+	@safe @nogc pure nothrow:
+
 	ConcreteStruct* source;
 	LowType[] members;
+
+	// This might change if we use tagged pointers
+	size_t membersOffset() =>
+		ulong.sizeof;
 }
 
 TypeSize typeSize(in LowUnion a) =>
@@ -72,7 +78,7 @@ immutable struct LowFunPointerType {
 }
 
 alias PrimitiveType = immutable PrimitiveType_;
-private enum PrimitiveType_ {
+private enum PrimitiveType_ : ubyte {
 	bool_,
 	char8,
 	float32,
@@ -108,10 +114,16 @@ immutable struct LowType {
 		LowType* pointee;
 	}
 	immutable struct Record {
+		@safe @nogc pure nothrow:
 		size_t index;
+		HashCode hash() =>
+			hashSizeT(index);
 	}
 	immutable struct Union {
+		@safe @nogc pure nothrow:
 		size_t index;
+		HashCode hash() =>
+			hashSizeT(index);
 	}
 
 	mixin .Union!(
