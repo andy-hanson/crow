@@ -227,7 +227,7 @@ ConcreteExpr concretizeCall(
 	ConcreteType type,
 	in UriAndRange range,
 	in Locals locals,
-	in CallExpr e,
+	ref CallExpr e,
 ) {
 	ConcreteFun* concreteCalled = getConcreteFunFromCalled(ctx, e.called);
 	if (isBogus(concreteCalled.returnType))
@@ -342,7 +342,7 @@ immutable struct ClosureFieldInfo {
 	ConcreteType type; // If 'referenceKind' is 'allocated', this is the pointee type
 	ClosureReferenceKind referenceKind;
 }
-ClosureFieldInfo getClosureFieldInfo(ref ConcretizeExprCtx ctx, in UriAndRange range, ClosureRef a) {
+ClosureFieldInfo getClosureFieldInfo(ref ConcretizeExprCtx ctx, in UriAndRange range, in ClosureRef a) {
 	ConcreteLocal* closureParam = &ctx.currentConcreteFun.paramsIncludingClosure[0];
 	ConcreteType closureType = closureParam.type;
 	ConcreteStructBody.Record record = closureType.struct_.body_.as!(ConcreteStructBody.Record);

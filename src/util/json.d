@@ -3,7 +3,7 @@ module util.json;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.array : arraysEqual, concatenateIn, copyArray, every, exists, find, isEmpty, map;
+import util.col.array : arraysEqual, concatenateIn, copyArray, every, exists, find, isEmpty, map, small, SmallArray;
 import util.col.fullIndexMap : FullIndexMap;
 import util.col.map : KeyValuePair;
 import util.opt : force, has, Opt;
@@ -23,7 +23,15 @@ immutable struct Json {
 	alias StringObjectField = immutable KeyValuePair!(string, Json);
 	alias StringObject = immutable StringObjectField[];
 	// string and Symbol cases should be treated as equivalent.
-	mixin Union!(Null, bool, double, string, Symbol, List, Object, StringObject);
+	mixin Union!(
+		Null,
+		bool,
+		double,
+		SmallArray!(immutable char),
+		Symbol,
+		SmallArray!Json,
+		SmallArray!ObjectField,
+		SmallArray!StringObjectField);
 
 	// Distinguishes CString / string / Symbol. Use only for tests.
 	bool opEquals(in Json b) scope =>
@@ -45,6 +53,7 @@ immutable struct Json {
 			(in Json.StringObject ob) =>
 				assert(false));
 }
+static assert(Json.sizeof == ulong.sizeof * 2);
 
 Json get(string key)(in Json a) {
 	Opt!(Json.ObjectField) pair = find!(Json.ObjectField)(a.as!(Json.Object), (in Json.ObjectField pair) =>
@@ -115,7 +124,7 @@ Json jsonInt(long a) =>
 	Json(a);
 
 Json jsonString(string a) =>
-	Json(a);
+	Json(small!(immutable char)(a));
 
 Json jsonString(ref Alloc alloc, in string a) =>
 	jsonString(copyString(alloc, a));

@@ -36,6 +36,14 @@ private struct Option(T) {
 		T value_ = cast(T) 0xff;
 		bool has_() const =>
 			value_ != 0xff;
+	} else static if (__traits(hasMember, T, "invalidValue")) {
+		T value_ = T.invalidValue;
+		inout this(return scope inout T value) {
+			value_ = value;
+			assert(has_);
+		}
+		bool has_() scope const =>
+			!value_.isInvalidValue;
 	} else {
 		inout this(return scope inout T value) {
 			has_ = true;

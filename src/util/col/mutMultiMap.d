@@ -5,9 +5,10 @@ module util.col.mutMultiMap;
 import util.alloc.alloc : Alloc, allocateElements;
 import util.col.hashTable :
 	addOrChange, getOrAddAndDidAdd, mayDelete, mustDelete, mustGet, MutHashTable, size, ValueAndDidAdd;
-import util.hash : HashCode, hashPointerAndTaggedPointer, hashUlong;
+import util.hash : HashCode, hashPointerAndTaggedPointer, hashUlong, hashUlongs;
 import util.memory : ensureMemoryClear, initMemory;
 import util.opt : force, has, MutOpt, noneMut, someMut;
+import util.symbol : Symbol;
 
 /**
 This acts like a MutSet of (K, V) pairs.
@@ -35,6 +36,8 @@ private struct Pair(K, V) {
 	HashCode hash() const {
 		static if (is(K == uint) && is(V == uint)) // for test
 			return hashUlong(((cast(ulong) key) << 32) | value);
+		else static if (is(K == Symbol) && is(V == Symbol))
+			return hashUlongs([key.value, value.value]);
 		else
 			// So far this is only used with pointers
 			return hashPointerAndTaggedPointer(key, value);
@@ -121,6 +124,11 @@ void mayDeleteKey(K, V)(ref MutMultiMap!(K, V) a, in K key, in void delegate(V) 
 			cur = next;
 		} while (cur != head);
 	}
+}
+
+void eachKey(K, V)(in MutMultiMap!(K, V) a, in void delegate(in K) @safe @nogc pure nothrow cb) {
+	foreach (ref const Node!(K, V)* head; a.heads)
+		cb(head.key);
 }
 
 void eachValueForKey(K, V)(in MutMultiMap!(K, V) a, in K key, in void delegate(in V) @safe @nogc pure nothrow cb) {

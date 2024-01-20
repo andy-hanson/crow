@@ -14,7 +14,8 @@ import model.concreteModel :
 	name,
 	TypeSize;
 import model.constant : Constant;
-import model.model : BuiltinUnary, BuiltinBinary, BuiltinTernary, EnumValue, Local, StructBody;
+import model.model :
+	BuiltinUnary, BuiltinUnaryMath, BuiltinBinary, BuiltinBinaryMath, BuiltinTernary, EnumValue, Local, StructBody;
 import util.col.map : Map;
 import util.col.fullIndexMap : FullIndexMap;
 import util.hash : hash2, HashCode, hashEnum, hashSizeT;
@@ -22,7 +23,7 @@ import util.opt : has, none, Opt;
 import util.sourceRange : UriAndRange;
 import util.string : CString;
 import util.symbol : Symbol, symbol;
-import util.union_ : Union;
+import util.union_ : TaggedUnion, Union;
 import util.uri : Uri;
 
 immutable struct LowExternType {
@@ -246,7 +247,7 @@ immutable struct LowLocalSource {
 		Symbol name;
 		size_t index;
 	}
-	mixin Union!(Local*, Generated*);
+	mixin TaggedUnion!(Local*, Generated*);
 }
 static assert(LowLocalSource.sizeof == ulong.sizeof);
 
@@ -282,7 +283,7 @@ immutable struct LowFunSource {
 		LowType[] typeArgs;
 	}
 
-	mixin Union!(ConcreteFun*, Generated*);
+	mixin TaggedUnion!(ConcreteFun*, Generated*);
 }
 static assert(LowFunSource.sizeof == ulong.sizeof);
 
@@ -437,8 +438,18 @@ immutable struct LowExprKind {
 		LowExpr arg;
 	}
 
+	immutable struct SpecialUnaryMath {
+		BuiltinUnaryMath kind;
+		LowExpr arg;
+	}
+
 	immutable struct SpecialBinary {
 		BuiltinBinary kind;
+		LowExpr[2] args;
+	}
+
+	immutable struct SpecialBinaryMath {
+		BuiltinBinaryMath kind;
 		LowExpr[2] args;
 	}
 
@@ -492,7 +503,9 @@ immutable struct LowExprKind {
 		SizeOf,
 		Constant,
 		SpecialUnary*,
+		SpecialUnaryMath*,
 		SpecialBinary*,
+		SpecialBinaryMath*,
 		SpecialTernary*,
 		Switch0ToN*,
 		SwitchWithValues*,

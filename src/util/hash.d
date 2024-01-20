@@ -92,6 +92,9 @@ HashCode hashSizeT(size_t a) =>
 HashCode hashUlong(ulong a) =>
 	HashCode(fmix64(a));
 
+HashCode hashUlongs(ulong[2] a) =>
+	murmurFinish(a);
+
 HashCode hashPtr(T)(T* a) =>
 	hashUlong(cast(size_t) a);
 

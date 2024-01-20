@@ -4,6 +4,8 @@ module backend.jit;
 
 version (GccJitAvailable) {
 
+import app.cCompile : getLinkOptions;
+import backend.builtinMath : builtinForBinaryMath, builtinForUnaryMath, BuiltinFunction;
 import backend.gccTypes :
 	assertFieldOffsetsFunctionName,
 	AssertFieldOffsetsType,
@@ -99,7 +101,6 @@ import frontend.lang : JitOptions, OptimizationLevel;
 import model.constant : Constant, constantBool;
 import model.lowModel :
 	ArrTypeAndConstantsLow,
-	ExternLibrary,
 	LowExpr,
 	LowExprKind,
 	LowField,
@@ -134,20 +135,22 @@ import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : UriAndRange;
 import util.string : CString;
-import util.symbol : AllSymbols, writeSymbol;
-import util.union_ : Union, UnionMutable;
-import util.util : castImmutable, castNonScope, castNonScope_ref, cStringOfEnum, ptrTrustMe, todo;
+import util.symbol : AllSymbols;
+import util.union_ : TaggedUnion, UnionMutable;
+import util.uri : AllUris;
+import util.util : castImmutable, castNonScope, castNonScope_ref, cStringOfEnum, debugLog, ptrTrustMe, todo;
 import util.writer : debugLogWithWriter, withWriter, Writer;
 
 @trusted int jitAndRun(
 	scope ref Perf perf,
 	ref Alloc alloc,
-	in AllSymbols allSymbols,
+	scope ref AllSymbols allSymbols,
+	scope ref AllUris allUris,
 	in LowProgram program,
 	in JitOptions options,
 	in CString[] allArgs,
 ) {
-	GccProgram gccProgram = getGccProgram(perf, alloc, allSymbols, program, options);
+	GccProgram gccProgram = getGccProgram(perf, alloc, allSymbols, allUris, program, options);
 
 	//TODO: perf measure this?
 	AssertFieldOffsetsType assertFieldOffsets = cast(AssertFieldOffsetsType)
@@ -194,7 +197,8 @@ struct GccProgram {
 GccProgram getGccProgram(
 	scope ref Perf perf,
 	ref Alloc alloc,
-	in AllSymbols allSymbols,
+	scope ref AllSymbols allSymbols,
+	scope ref AllUris allUris,
 	in LowProgram program,
 	in JitOptions options,
 ) {
@@ -212,12 +216,9 @@ GccProgram getGccProgram(
 	//gcc_jit_context_set_bool_option(*ctx, gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, true);
 	//gcc_jit_context_set_bool_option(*ctx, gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE, true);
 
-	foreach (ref ExternLibrary x; program.externLibraries)
-		//TODO:NO ALLOC
-		gcc_jit_context_add_driver_option(*ctx, withWriter(alloc, (scope ref Writer writer) {
-			writer ~= "-l";
-			writeSymbol(writer, allSymbols, x.libraryName);
-		}).ptr);
+	getLinkOptions(alloc, allSymbols, allUris, program.externLibraries, (CString x) {
+		gcc_jit_context_add_driver_option(*ctx, x.ptr);
+	});
 
 	withMeasure!(void, () {
 		buildGccProgram(alloc, *ctx, allSymbols, program);
@@ -228,6 +229,10 @@ GccProgram getGccProgram(
 	immutable gcc_jit_result* result = withMeasure!(immutable gcc_jit_result*, () =>
 		gcc_jit_context_compile(*ctx)
 	)(perf, alloc, PerfMeasure.gccCompile);
+
+	const char* error = gcc_jit_context_get_first_error(*ctx);
+	if (error != null)
+		debugLog(error);
 	assert(result != null);
 	return GccProgram(ctx, result);
 }
@@ -340,46 +345,10 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in AllSymbols all
 bool isStubFunction(LowFunIndex _) =>
 	false;
 
-// https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html
-enum BuiltinFunction {
-	acos,
-	acosf,
-	acosh,
-	acoshf,
-	asin,
-	asinf,
-	asinh,
-	asinhf,
-	atan,
-	atanf,
-	atan2,
-	atan2f,
-	atanh,
-	atanhf,
-	__builtin_popcountl,
-	cos,
-	cosf,
-	cosh,
-	coshf,
-	round,
-	roundf,
-	sin,
-	sinf,
-	sinh,
-	sinhf,
-	sqrt,
-	sqrtf,
-	tan,
-	tanf,
-	tanh,
-	tanhf,
-}
-
 alias BuiltinFunctions = EnumMap!(BuiltinFunction, immutable gcc_jit_function*);
 BuiltinFunctions generateBuiltinFunctions(ref gcc_jit_context ctx) =>
 	makeEnumMap((BuiltinFunction x) =>
 		gcc_jit_context_get_builtin_function(ctx, cStringOfEnum(x).ptr));
-
 
 immutable struct ConversionFunctions {
 	gcc_jit_function* ptrToNat64;
@@ -599,7 +568,7 @@ immutable struct ExprResult {
 	// Did not change control flow
 	immutable struct Void {}
 
-	mixin Union!(BreakContinueOrReturn, gcc_jit_rvalue*, Void);
+	mixin TaggedUnion!(BreakContinueOrReturn, gcc_jit_rvalue*, Void);
 
 	bool opEquals(in ExprResult b) scope =>
 		matchWithPointers!bool(
@@ -903,8 +872,12 @@ ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ref ExprEmit emit, in L
 			constantToGcc(ctx, emit, a.type, it),
 		(in LowExprKind.SpecialUnary it) =>
 			unaryToGcc(ctx, locals, emit, a.type, it),
+		(in LowExprKind.SpecialUnaryMath x) =>
+			callBuiltinUnary(ctx, locals, emit, x.arg, builtinForUnaryMath(x.kind)),
 		(in LowExprKind.SpecialBinary it) =>
 			binaryToGcc(ctx, locals, emit, a.type, it),
+		(in LowExprKind.SpecialBinaryMath x) =>
+			callBuiltinBinary(ctx, locals, emit, x.args, builtinForBinaryMath(x.kind)),
 		(in LowExprKind.SpecialTernary) =>
 			assert(false),
 		(in LowExprKind.Switch0ToN it) =>
@@ -1358,62 +1331,6 @@ ExprResult constantToGcc(ref ExprCtx ctx, ref ExprEmit emit, in LowType type, in
 	}
 
 	final switch (a.kind) {
-		case BuiltinUnary.acosFloat32:
-			return builtin(BuiltinFunction.acosf);
-		case BuiltinUnary.acosFloat64:
-			return builtin(BuiltinFunction.acos);
-		case BuiltinUnary.acoshFloat32:
-			return builtin(BuiltinFunction.acoshf);
-		case BuiltinUnary.acoshFloat64:
-			return builtin(BuiltinFunction.acosh);
-		case BuiltinUnary.asinFloat32:
-			return builtin(BuiltinFunction.asinf);
-		case BuiltinUnary.asinFloat64:
-			return builtin(BuiltinFunction.asin);
-		case BuiltinUnary.asinhFloat32:
-			return builtin(BuiltinFunction.asinhf);
-		case BuiltinUnary.asinhFloat64:
-			return builtin(BuiltinFunction.asinh);
-		case BuiltinUnary.atanFloat32:
-			return builtin(BuiltinFunction.atanf);
-		case BuiltinUnary.atanFloat64:
-			return builtin(BuiltinFunction.atan);
-		case BuiltinUnary.atanhFloat32:
-			return builtin(BuiltinFunction.atanhf);
-		case BuiltinUnary.atanhFloat64:
-			return builtin(BuiltinFunction.atanh);
-		case BuiltinUnary.cosFloat32:
-			return builtin(BuiltinFunction.cosf);
-		case BuiltinUnary.cosFloat64:
-			return builtin(BuiltinFunction.cos);
-		case BuiltinUnary.coshFloat32:
-			return builtin(BuiltinFunction.coshf);
-		case BuiltinUnary.coshFloat64:
-			return builtin(BuiltinFunction.cosh);
-		case BuiltinUnary.sinFloat32:
-			return builtin(BuiltinFunction.sinf);
-		case BuiltinUnary.sinFloat64:
-			return builtin(BuiltinFunction.sin);
-		case BuiltinUnary.sinhFloat32:
-			return builtin(BuiltinFunction.sinhf);
-		case BuiltinUnary.sinhFloat64:
-			return builtin(BuiltinFunction.sinh);
-		case BuiltinUnary.tanFloat32:
-			return builtin(BuiltinFunction.tanf);
-		case BuiltinUnary.tanFloat64:
-			return builtin(BuiltinFunction.tan);
-		case BuiltinUnary.tanhFloat32:
-			return builtin(BuiltinFunction.tanhf);
-		case BuiltinUnary.tanhFloat64:
-			return builtin(BuiltinFunction.tanh);
-		case BuiltinUnary.roundFloat32:
-			return builtin(BuiltinFunction.roundf);
-		case BuiltinUnary.roundFloat64:
-			return builtin(BuiltinFunction.round);
-		case BuiltinUnary.sqrtFloat32:
-			return builtin(BuiltinFunction.sqrtf);
-		case BuiltinUnary.sqrtFloat64:
-			return builtin(BuiltinFunction.sqrt);
 		case BuiltinUnary.bitwiseNotNat8:
 		case BuiltinUnary.bitwiseNotNat16:
 		case BuiltinUnary.bitwiseNotNat32:
@@ -1534,10 +1451,6 @@ ExprResult binaryToGcc(
 	}
 
 	final switch (a.kind) {
-		case BuiltinBinary.atan2Float32:
-			return callBuiltinBinary(ctx, locals, emit, a.args, BuiltinFunction.atan2f);
-		case BuiltinBinary.atan2Float64:
-			return callBuiltinBinary(ctx, locals, emit, a.args, BuiltinFunction.atan2);
 		case BuiltinBinary.addFloat32:
 		case BuiltinBinary.addFloat64:
 		case BuiltinBinary.unsafeAddInt8:

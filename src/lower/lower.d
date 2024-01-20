@@ -93,10 +93,12 @@ import model.lowModel :
 	UpdateParam;
 import model.model :
 	BuiltinBinary,
+	BuiltinBinaryMath,
 	BuiltinFun,
 	BuiltinTernary,
 	BuiltinType,
 	BuiltinUnary,
+	BuiltinUnaryMath,
 	ClosureReferenceKind,
 	ConfigExternUris,
 	EnumBackingType,
@@ -109,7 +111,7 @@ import model.model :
 	VersionFun;
 import model.typeLayout : isEmptyType;
 import util.alloc.alloc : Alloc;
-import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderSize, finish;
+import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderSize, buildArray, Builder, finish;
 import util.col.array :
 	exists,
 	indexOfPointer,
@@ -128,8 +130,8 @@ import util.col.map : KeyValuePair, makeMapWithIndex, mustGet, Map;
 import util.col.mapBuilder : finishMap, mustAddToMap, MapBuilder;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapOfArr, fullIndexMapSize;
 import util.col.mutIndexMap : getOrAddAndDidAdd, mustGet, MutIndexMap, newMutIndexMap;
-import util.col.mutArr : moveToArray, MutArr, push;
-import util.col.mutMap : getOrAdd, mapToArray, MutMap, MutMap, ValueAndDidAdd;
+import util.col.mutMap : getOrAdd, MutMap, MutMap, ValueAndDidAdd;
+import util.col.mutMultiMap : add, eachKey, eachValueForKey, MutMultiMap;
 import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2MustGet0, stackMap2MustGet1, withStackMap2;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate, overwriteMemory;
@@ -170,7 +172,7 @@ private LowProgram lowerInner(
 		allTypes.allTypes,
 		allFuns.allLowFuns,
 		allFuns.main,
-		allFuns.allExternFuns);
+		allFuns.allExternLibraries);
 	checkLowProgram(allSymbols, program, res);
 	return res;
 }
@@ -242,7 +244,7 @@ immutable struct AllLowFuns {
 	ConcreteFunToLowFunIndex concreteFunToLowFunIndex;
 	FullIndexMap!(LowFunIndex, LowFun) allLowFuns;
 	LowFunIndex main;
-	ExternLibraries allExternFuns;
+	ExternLibraries allExternLibraries;
 }
 
 struct GetLowTypeCtx {
@@ -590,12 +592,9 @@ AllLowFuns getAllLowFuns(
 
 	Late!LowType markCtxTypeLate = late!LowType;
 
-	MutMap!(Symbol, MutArr!Symbol) allExternSymbols; // Fun and Var combined
+	MutMultiMap!(Symbol, Symbol) externLibraryToNames; // Fun and Var combined
 	void addExternSymbol(Symbol libraryName, Symbol symbolName) {
-		push(
-			getLowTypeCtx.alloc,
-			getOrAdd(getLowTypeCtx.alloc, allExternSymbols, libraryName, () => MutArr!Symbol()),
-			symbolName);
+		add(getLowTypeCtx.alloc, externLibraryToNames, libraryName, symbolName);
 	}
 
 	foreach (ref LowVar x; allVars) {
@@ -621,8 +620,13 @@ AllLowFuns getAllLowFuns(
 							getLowTypeCtx,
 							fun.paramsIncludingClosure[0].type));
 					return some(generateMarkVisitForType(lowTypeFromConcreteType(getLowTypeCtx, only(x.typeArgs))));
-				} else
+				} else {
+					if (x.kind.isA!BuiltinUnaryMath || x.kind.isA!BuiltinBinaryMath) {
+						Opt!Symbol optName = name(*fun);
+						addExternSymbol(symbol!"m", force(optName));
+					}
 					return none!LowFunIndex;
+				}
 			},
 			(Constant _) =>
 				none!LowFunIndex,
@@ -703,15 +707,24 @@ AllLowFuns getAllLowFuns(
 		concreteFunToLowFunIndex,
 		allLowFuns,
 		LowFunIndex(lowFunCauses.length),
-		mapToArray!(ExternLibrary, Symbol, MutArr!Symbol)(
-			getLowTypeCtx.alloc,
-			allExternSymbols,
-			(Symbol libraryName, ref MutArr!Symbol xs) =>
-				ExternLibrary(
-					libraryName,
-					configExtern[libraryName],
-					moveToArray!Symbol(getLowTypeCtx.alloc, xs))));
+		getExternLibraries(getLowTypeCtx.alloc, externLibraryToNames, configExtern));
 }
+
+ExternLibraries getExternLibraries(
+	ref Alloc alloc,
+	in MutMultiMap!(Symbol, Symbol) externLibraryToNames,
+	in ConfigExternUris configExtern,
+) =>
+	buildArray!ExternLibrary(alloc, (scope ref Builder!ExternLibrary libraries) {
+		eachKey!(Symbol, Symbol)(externLibraryToNames, (in Symbol library) {
+			Symbol[] names = buildArray!Symbol(alloc, (scope ref Builder!Symbol res) {
+				eachValueForKey!(Symbol, Symbol)(externLibraryToNames, library, (in Symbol x) {
+					res ~= x;
+				});
+			});
+			libraries ~= ExternLibrary(library, configExtern[library], names);
+		});
+	});
 
 alias VarIndices = Map!(immutable ConcreteVar*, LowVarIndex);
 
@@ -1356,6 +1369,11 @@ LowExprKind getCallBuiltinExpr(
 			assert(a.args.length == 1);
 			return LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialUnary(kind, getArg(a.args[0], ExprPos.nonTail))));
 		},
+		(BuiltinUnaryMath kind) {
+			assert(a.args.length == 1);
+			return LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialUnaryMath(
+				kind, getArg(a.args[0], ExprPos.nonTail))));
+		},
 		(BuiltinBinary kind) {
 			assert(a.args.length == 2);
 			ExprPos arg1Pos = () {
@@ -1376,6 +1394,12 @@ LowExprKind getCallBuiltinExpr(
 				: LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialBinary(kind, [
 					getArg(a.args[0], ExprPos.nonTail),
 					getArg(a.args[1], arg1Pos)])));
+		},
+		(BuiltinBinaryMath kind) {
+			assert(a.args.length == 2);
+			return LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialBinaryMath(kind, [
+				getArg(a.args[0], ExprPos.nonTail),
+				getArg(a.args[1], ExprPos.nonTail)])));
 		},
 		(BuiltinTernary kind) {
 			assert(a.args.length == 3);

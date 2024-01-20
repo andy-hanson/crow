@@ -39,6 +39,7 @@ import frontend.parse.parseUtil :
 	tryTakeTokenAndMayContinueOntoNextLine;
 import model.ast :
 	DestructureAst,
+	EnumMemberAst,
 	ExprAst,
 	FieldMutabilityAst,
 	FileAst,
@@ -54,6 +55,7 @@ import model.ast :
 	ModifierAst,
 	NameAndRange,
 	ParamsAst,
+	RecordFieldAst,
 	SpecDeclAst,
 	SpecSigAst,
 	StructAliasAst,
@@ -61,13 +63,14 @@ import model.ast :
 	StructDeclAst,
 	TestAst,
 	TypeAst,
+	UnionMemberAst,
 	VarDeclAst;
 import model.model : TypeParams, VarKind, Visibility;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.array : emptySmallArray, SmallArray;
-import util.col.arrayBuilder : add, ArrayBuilder, smallFinish;
+import util.col.arrayBuilder : add, ArrayBuilder, buildSmallArray, Builder, smallFinish;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
@@ -91,17 +94,15 @@ FileAst* parseFile(
 
 private:
 
-TypeParams parseTypeParams(ref Lexer lexer) {
-	if (tryTakeToken(lexer, Token.bracketLeft)) {
-		ArrayBuilder!NameAndRange res;
-		do {
-			add(lexer.alloc, res, takeNameAndRange(lexer));
-		} while (tryTakeToken(lexer, Token.comma));
-		takeOrAddDiagExpectedToken(lexer, Token.bracketRight, ParseDiag.Expected.Kind.closingBracket);
-		return smallFinish(lexer.alloc, res);
-	} else
-		return emptySmallArray!NameAndRange;
-}
+TypeParams parseTypeParams(ref Lexer lexer) =>
+	tryTakeToken(lexer, Token.bracketLeft)
+		? buildSmallArray!NameAndRange(lexer.alloc, (scope ref Builder!NameAndRange res) {
+			do {
+				res ~= takeNameAndRange(lexer);
+			} while (tryTakeToken(lexer, Token.comma));
+			takeOrAddDiagExpectedToken(lexer, Token.bracketRight, ParseDiag.Expected.Kind.closingBracket);
+		})
+		: emptySmallArray!NameAndRange;
 
 ParamsAst parseParams(ref Lexer lexer, bool indentLevel) {
 	if (!takeOrAddDiagExpectedToken(lexer, Token.parenLeft, ParseDiag.Expected.Kind.openParen)) {
@@ -113,113 +114,79 @@ ParamsAst parseParams(ref Lexer lexer, bool indentLevel) {
 		DestructureAst param = parseDestructureRequireParens(lexer);
 		takeOrAddDiagExpectedToken(lexer, Token.parenRight, ParseDiag.Expected.Kind.closingParen);
 		return ParamsAst(allocate(lexer.alloc, ParamsAst.Varargs(param)));
-	} else {
-		ArrayBuilder!DestructureAst res;
-		for (;;) {
-			skipNewlinesIgnoreIndentation(lexer, indentLevel);
-			add(lexer.alloc, res, parseDestructureRequireParens(lexer));
-			if (tryTakeToken(lexer, Token.parenRight))
-				break;
-			if (!takeOrAddDiagExpectedToken(lexer, Token.comma, ParseDiag.Expected.Kind.comma)) {
-				skipUntilNewlineNoDiag(lexer);
-				break;
-			}
-			// allow trailing comma
-			skipNewlinesIgnoreIndentation(lexer, indentLevel);
-			if (tryTakeToken(lexer, Token.parenRight))
-				break;
-		}
-		return ParamsAst(smallFinish(lexer.alloc, res));
-	}
-}
-
-SpecSigAst parseSpecSig(ref Lexer lexer) {
-	// TODO: get doc comment
-	SmallString docComment = emptySmallString;
-	Pos start = curPos(lexer);
-	NameAndRange name = takeNameOrOperator(lexer);
-	assert(name.start == start);
-	TypeAst returnType = parseType(lexer);
-	ParamsAst params = parseParams(lexer, 1);
-	return SpecSigAst(docComment, range(lexer, start), name.name, returnType, params);
-}
-
-SmallArray!SpecSigAst parseIndentedSigs(ref Lexer lexer) {
-	if (tryTakeToken(lexer, Token.newlineIndent)) {
-		ArrayBuilder!SpecSigAst res;
-		while (true) {
-			SpecSigAst sig = parseSpecSig(lexer);
-			add(lexer.alloc, res, sig);
-			final switch (takeNewlineOrDedent(lexer)) {
-				case NewlineOrDedent.newline:
-					continue;
-				case NewlineOrDedent.dedent:
-					return smallFinish(lexer.alloc, res);
-			}
-		}
 	} else
-		return emptySmallArray!SpecSigAst;
+		return ParamsAst(buildSmallArray!DestructureAst(lexer.alloc, (scope ref Builder!DestructureAst res) {
+			while (true) {
+				skipNewlinesIgnoreIndentation(lexer, indentLevel);
+				res ~= parseDestructureRequireParens(lexer);
+				if (tryTakeToken(lexer, Token.parenRight))
+					break;
+				if (!takeOrAddDiagExpectedToken(lexer, Token.comma, ParseDiag.Expected.Kind.comma)) {
+					skipUntilNewlineNoDiag(lexer);
+					break;
+				}
+				// allow trailing comma
+				skipNewlinesIgnoreIndentation(lexer, indentLevel);
+				if (tryTakeToken(lexer, Token.parenRight))
+					break;
+			}
+		}));
 }
 
-SmallArray!(StructBodyAst.Enum.Member) parseEnumOrFlagsMembers(ref Lexer lexer) {
-	if (tryTakeToken(lexer, Token.newlineIndent)) {
-		ArrayBuilder!(StructBodyAst.Enum.Member) res;
-		SmallArray!(StructBodyAst.Enum.Member) recur() {
-			Pos start = curPos(lexer);
-			Symbol name = takeName(lexer);
-			Opt!LiteralIntOrNat value = () {
-				if (tryTakeToken(lexer, Token.equal)) {
-					Pos start = curPos(lexer);
-					switch (getPeekToken(lexer)) {
-						case Token.literalInt:
-							LiteralIntAst literal = takeNextToken(lexer).asLiteralInt;
-							return some(LiteralIntOrNat(range(lexer, start), LiteralIntOrNatKind(literal)));
-						case Token.literalNat:
-							LiteralNatAst literal = takeNextToken(lexer).asLiteralNat;
-							return some(LiteralIntOrNat(range(lexer, start), LiteralIntOrNatKind(literal)));
-						default:
-							addDiagExpected(lexer, ParseDiag.Expected.Kind.literalIntOrNat);
-							return none!LiteralIntOrNat;
-					}
-				} else
-					return none!LiteralIntOrNat;
-			}();
-			add(lexer.alloc, res, StructBodyAst.Enum.Member(range(lexer, start), name, value));
-			final switch (takeNewlineOrDedent(lexer)) {
-				case NewlineOrDedent.newline:
-					return recur();
-				case NewlineOrDedent.dedent:
-					return smallFinish(lexer.alloc, res);
-			}
-		}
-		return recur();
-	} else
-		return emptySmallArray!(StructBodyAst.Enum.Member);
-}
+SmallArray!T parseIndentedLines(T)(ref Lexer lexer, in T delegate() @safe @nogc pure nothrow cb) =>
+	tryTakeToken(lexer, Token.newlineIndent)
+		? buildSmallArray!T(lexer.alloc, (scope ref Builder!T res) {
+			do {
+				res ~= cb();
+			} while (takeNewlineOrDedent(lexer) == NewlineOrDedent.newline);
+		})
+		: emptySmallArray!T;
+
+SmallArray!SpecSigAst parseIndentedSigs(ref Lexer lexer) =>
+	parseIndentedLines!SpecSigAst(lexer, () {
+		// TODO: get doc comment
+		SmallString docComment = emptySmallString;
+		Pos start = curPos(lexer);
+		NameAndRange name = takeNameOrOperator(lexer);
+		assert(name.start == start);
+		TypeAst returnType = parseType(lexer);
+		ParamsAst params = parseParams(lexer, 1);
+		return SpecSigAst(docComment, range(lexer, start), name.name, returnType, params);
+	});
+
+SmallArray!EnumMemberAst parseEnumOrFlagsMembers(ref Lexer lexer) =>
+	parseIndentedLines!EnumMemberAst(lexer, () {
+		Pos start = curPos(lexer);
+		Symbol name = takeName(lexer);
+		Opt!LiteralIntOrNat value = () {
+			if (tryTakeToken(lexer, Token.equal)) {
+				Pos start = curPos(lexer);
+				switch (getPeekToken(lexer)) {
+					case Token.literalInt:
+						LiteralIntAst literal = takeNextToken(lexer).asLiteralInt;
+						return some(LiteralIntOrNat(range(lexer, start), LiteralIntOrNatKind(literal)));
+					case Token.literalNat:
+						LiteralNatAst literal = takeNextToken(lexer).asLiteralNat;
+						return some(LiteralIntOrNat(range(lexer, start), LiteralIntOrNatKind(literal)));
+					default:
+						addDiagExpected(lexer, ParseDiag.Expected.Kind.literalIntOrNat);
+						return none!LiteralIntOrNat;
+				}
+			} else
+				return none!LiteralIntOrNat;
+		}();
+		return EnumMemberAst(range(lexer, start), name, value);
+	});
 
 StructBodyAst.Record parseRecordBody(ref Lexer lexer) =>
-	StructBodyAst.Record(tryTakeToken(lexer, Token.newlineIndent)
-		? parseRecordFields(lexer)
-		: emptySmallArray!(StructBodyAst.Record.Field));
-
-SmallArray!(StructBodyAst.Record.Field) parseRecordFields(ref Lexer lexer) {
-	ArrayBuilder!(StructBodyAst.Record.Field) fields;
-	while (true) {
+	StructBodyAst.Record(parseIndentedLines!RecordFieldAst(lexer, () {
 		Pos start = curPos(lexer);
 		Opt!Visibility visibility = tryTakeVisibility(lexer);
 		NameAndRange name = takeNameAndRange(lexer);
 		Opt!FieldMutabilityAst mutability = parseFieldMutability(lexer);
 		TypeAst type = parseType(lexer);
-		add(lexer.alloc, fields, StructBodyAst.Record.Field(
-			range(lexer, start), visibility, name, mutability, type));
-		final switch (takeNewlineOrDedent(lexer)) {
-			case NewlineOrDedent.newline:
-				continue;
-			case NewlineOrDedent.dedent:
-				return smallFinish(lexer.alloc, fields);
-		}
-	}
-}
+		return RecordFieldAst(range(lexer, start), visibility, name, mutability, type);
+	}));
 
 Opt!FieldMutabilityAst parseFieldMutability(ref Lexer lexer) {
 	Pos pos = curPos(lexer);
@@ -234,19 +201,13 @@ Opt!FieldMutabilityAst parseFieldMutability(ref Lexer lexer) {
 	}
 }
 
-SmallArray!(StructBodyAst.Union.Member) parseUnionMembers(ref Lexer lexer) {
-	if (!tryTakeToken(lexer, Token.newlineIndent))
-		return emptySmallArray!(StructBodyAst.Union.Member);
-
-	ArrayBuilder!(StructBodyAst.Union.Member) res;
-	do {
+SmallArray!UnionMemberAst parseUnionMembers(ref Lexer lexer) =>
+	parseIndentedLines!UnionMemberAst(lexer, () {
 		Pos start = curPos(lexer);
 		Symbol name = takeName(lexer);
 		Opt!TypeAst type = peekEndOfLine(lexer) ? none!TypeAst : some(parseType(lexer));
-		add(lexer.alloc, res, StructBodyAst.Union.Member(range(lexer, start), name, type));
-	} while (takeNewlineOrDedent(lexer) == NewlineOrDedent.newline);
-	return smallFinish(lexer.alloc, res);
-}
+		return UnionMemberAst(range(lexer, start), name, type);
+	});
 
 FunDeclAst parseFun(
 	ref Lexer lexer,
@@ -264,17 +225,14 @@ FunDeclAst parseFun(
 		range(lexer, start), docComment, visibility, name, typeParams, returnType, params, modifiers, body_);
 }
 
-SmallArray!ModifierAst parseModifiers(ref Lexer lexer) {
-	if (peekEndOfLine(lexer))
-		return emptySmallArray!ModifierAst;
-	else {
-		ArrayBuilder!ModifierAst res;
-		do {
-			add(lexer.alloc, res, parseModifier(lexer));
-		} while (tryTakeTokenAndMayContinueOntoNextLine(lexer, Token.comma));
-		return smallFinish(lexer.alloc, res);
-	}
-}
+SmallArray!ModifierAst parseModifiers(ref Lexer lexer) =>
+	peekEndOfLine(lexer)
+		? emptySmallArray!ModifierAst
+		: buildSmallArray!ModifierAst(lexer.alloc, (scope ref Builder!ModifierAst res) {
+			do {
+				res ~= parseModifier(lexer);
+			} while (tryTakeTokenAndMayContinueOntoNextLine(lexer, Token.comma));
+		});
 
 ModifierAst parseModifier(ref Lexer lexer) {
 	Pos start = curPos(lexer);

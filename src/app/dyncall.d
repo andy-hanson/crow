@@ -24,7 +24,7 @@ import interpret.stacks : dataPop, dataPopN, dataPush, dataPushUninitialized, lo
 import model.lowModel : ExternLibraries, ExternLibrary, PrimitiveType;
 import util.alloc.alloc : Alloc;
 import util.col.array : isEmpty, map, mapImpure;
-import util.col.arrayBuilder : ArrayBuilderWithAlloc, finish;
+import util.col.arrayBuilder : buildArray, Builder;
 import util.col.map : Map, KeyValuePair, makeMapFromKeys, zipToMap;
 import util.col.mapBuilder : MapBuilder, finishMap, tryAddToMap;
 import util.col.mutArr : MutArr, mutArrIsEmpty, push;
@@ -337,22 +337,21 @@ pure FunPointer[] makeSyntheticFunPointers(ref Alloc alloc, in FunPointerInputs[
 
 @trusted pure FunPointer syntheticFunPointerForSig(ref Alloc alloc, DynCallSig sig, Operation* operationPtr) {
 	MutMaxArr!(maxTupleSize + 3, char) sigStr = mutMaxArr!(maxTupleSize + 3, char);
-	ArrayBuilderWithAlloc!(immutable DCaggr*) aggrs = ArrayBuilderWithAlloc!(immutable DCaggr*)(&alloc);
+	immutable DCaggr*[] aggrs = buildArray!(immutable DCaggr*)(alloc, (scope ref Builder!(immutable DCaggr*) aggrs) {
+		void writeToSig(DynCallType x) {
+			sigStr ~= dynCallSigChar(x);
+			if (x.isA!(DynCallType.Aggregate*))
+				aggrs ~= x.as!(DynCallType.Aggregate*).dcAggr;
+		}
 
-	void writeToSig(DynCallType x) {
-		sigStr ~= dynCallSigChar(x);
-		if (x.isA!(DynCallType.Aggregate*))
-			aggrs ~= x.as!(DynCallType.Aggregate*).dcAggr;
-	}
-
-	foreach (DynCallType x; sig.parameterTypes)
-		writeToSig(x);
-	sigStr ~= ')';
-	writeToSig(sig.returnType);
-	sigStr ~= '\0';
-
+		foreach (DynCallType x; sig.parameterTypes)
+			writeToSig(x);
+		sigStr ~= ')';
+		writeToSig(sig.returnType);
+		sigStr ~= '\0';
+	});
 	UserData* userData = allocate(alloc, UserData(sig, operationPtr));
-	return FunPointer(dcbNewCallback2(sigStr.ptr, &callbackHandler, cast(void*) userData, finish(aggrs).ptr));
+	return FunPointer(dcbNewCallback2(sigStr.ptr, &callbackHandler, cast(void*) userData, aggrs.ptr));
 }
 
 @system extern(C) char callbackHandler(DCCallback* cb, DCArgs* args, DCValue* result, void* userDataPtr) {

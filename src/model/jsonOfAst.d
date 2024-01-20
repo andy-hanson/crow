@@ -13,6 +13,7 @@ import model.ast :
 	DestructureAst,
 	DoAst,
 	EmptyAst,
+	EnumMemberAst,
 	ExprAst,
 	ExprAstKind,
 	FieldMutabilityAst,
@@ -48,6 +49,7 @@ import model.ast :
 	ParenthesizedAst,
 	PathOrRelPath,
 	PtrAst,
+	RecordFieldAst,
 	SeqAst,
 	SpecDeclAst,
 	SpecSigAst,
@@ -61,6 +63,7 @@ import model.ast :
 	TrustedAst,
 	TypeAst,
 	TypedAst,
+	UnionMemberAst,
 	UnlessAst,
 	WithAst;
 import model.model : Visibility;
@@ -183,17 +186,17 @@ Json jsonOfEnumOrFlags(
 	in Ctx ctx,
 	string name,
 	in Opt!(TypeAst*) typeArg,
-	in StructBodyAst.Enum.Member[] members,
+	in EnumMemberAst[] members,
 ) =>
 	jsonObject(alloc, [
 		kindField(name),
 		optionalField!("backing-type", TypeAst*)(typeArg, (in TypeAst* x) =>
 			jsonOfTypeAst(alloc, ctx, *x)),
-		field!"members"(jsonList!(StructBodyAst.Enum.Member)(
-			alloc, members, (in StructBodyAst.Enum.Member x) =>
+		field!"members"(jsonList!EnumMemberAst(
+			alloc, members, (in EnumMemberAst x) =>
 				jsonOfEnumMember(alloc, ctx, x)))]);
 
-Json jsonOfEnumMember(ref Alloc alloc, in Ctx ctx, in StructBodyAst.Enum.Member a) =>
+Json jsonOfEnumMember(ref Alloc alloc, in Ctx ctx, in EnumMemberAst a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		field!"name"(a.name),
@@ -232,7 +235,13 @@ Json jsonOfLiteralIntOrNatKind(ref Alloc alloc, in LiteralIntOrNatKind a) =>
 		(in LiteralNatAst x) =>
 			jsonOfLiteralNatAst(alloc, x));
 
-Json jsonOfField(ref Alloc alloc, in Ctx ctx, in StructBodyAst.Record.Field a) =>
+Json jsonOfRecordAst(ref Alloc alloc, in Ctx ctx, in StructBodyAst.Record a) =>
+	jsonObject(alloc, [
+		kindField!"record",
+		field!"fields"(jsonList!RecordFieldAst(alloc, a.fields, (in RecordFieldAst x) =>
+			jsonOfField(alloc, ctx, x)))]);
+
+Json jsonOfField(ref Alloc alloc, in Ctx ctx, in RecordFieldAst a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		visibilityField(a.visibility_),
@@ -243,26 +252,14 @@ Json jsonOfField(ref Alloc alloc, in Ctx ctx, in StructBodyAst.Record.Field a) =
 				visibilityField(x.visibility_)])),
 		field!"type"(jsonOfTypeAst(alloc, ctx, a.type))]);
 
-Json jsonOfRecordAst(ref Alloc alloc, in Ctx ctx, in StructBodyAst.Record a) =>
-	jsonObject(alloc, [
-		kindField!"record",
-		field!"fields"(jsonList!(StructBodyAst.Record.Field)(
-			alloc,
-			a.fields,
-			(in StructBodyAst.Record.Field x) =>
-				jsonOfField(alloc, ctx, x)))]);
-
 Json jsonOfUnion(ref Alloc alloc, in Ctx ctx, in StructBodyAst.Union a) =>
 	jsonObject(alloc, [
 		kindField!"union",
-		field!"members"(jsonList!(StructBodyAst.Union.Member)(
-			alloc,
-			a.members,
-			(in StructBodyAst.Union.Member x) =>
-				jsonObject(alloc, [
-					field!"name"(x.name),
-					optionalField!("type", TypeAst)(x.type, (in TypeAst t) =>
-						jsonOfTypeAst(alloc, ctx, t))])))]);
+		field!"members"(jsonList!UnionMemberAst(alloc, a.members, (in UnionMemberAst x) =>
+			jsonObject(alloc, [
+				field!"name"(x.name),
+				optionalField!("type", TypeAst)(x.type, (in TypeAst t) =>
+					jsonOfTypeAst(alloc, ctx, t))])))]);
 
 Json jsonOfStructBodyAst(ref Alloc alloc, in Ctx ctx, in StructBodyAst a) =>
 	a.matchIn!Json(

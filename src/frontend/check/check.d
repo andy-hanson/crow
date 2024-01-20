@@ -452,7 +452,7 @@ SpecFlagsAndParents checkSpecModifiers(
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in SpecsMap specsMap,
 	ref DelaySpecInsts delaySpecInsts,
-	TypeParams typeParamsScope,
+	in TypeParams typeParamsScope,
 	in ModifierAst[] asts,
 ) {
 	bool builtin = false;
@@ -541,7 +541,7 @@ Opt!(SpecInst*) checkFunModifierNonSpecial(
 	ref CommonTypes commonTypes,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in SpecsMap specsMap,
-	TypeParams typeParamsScope,
+	in TypeParams typeParamsScope,
 	in TypeAst ast,
 	MayDelaySpecInsts delaySpecInsts,
 ) {

@@ -142,15 +142,16 @@ void filterUnorderedButDontRemoveAll(size_t maxSize, T)(
 	in bool delegate(ref T) @safe @nogc pure nothrow pred,
 	in void delegate(ref T, ref T) @safe @nogc pure nothrow overwrite,
 ) {
+	T[] values = asTemporaryArray(a);
 	MutMaxArr!(maxSize, size_t) keep = mutMaxArr!(maxSize, size_t);
-	foreach (size_t i, ref T x; asTemporaryArray(a)) {
+	foreach (size_t i, ref T x; values) {
 		if (pred(x))
 			keep ~= i;
 	}
 	if (!isEmpty(keep)) {
 		foreach (size_t outI, size_t inI; asTemporaryArray(keep))
 			if (inI != outI)
-				overwrite(a.values[outI], a.values[inI]);
+				overwrite(values[outI], values[inI]);
 		a.size_ = keep.size;
 	}
 }

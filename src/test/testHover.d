@@ -13,7 +13,7 @@ import model.model : Module, Program;
 import test.testUtil : setupTestServer, Test, withTestServer;
 import util.alloc.alloc : Alloc;
 import util.col.array : arraysEqual, isEmpty;
-import util.col.arrayBuilder : add, ArrayBuilder, finish;
+import util.col.arrayBuilder : buildArray, Builder;
 import util.col.hashTable : mustGet;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonList, jsonObject, jsonToStringPretty, optionalArrayField;
@@ -73,40 +73,36 @@ struct InfoAtPos {
 		hover == b.hover && arraysEqual(definition, b.definition);
 }
 
-Json hoverResult(ref Alloc alloc, in string content, in ShowModelCtx ctx, Module* mainModule) {
-	ArrayBuilder!Json parts;
+Json hoverResult(ref Alloc alloc, in string content, in ShowModelCtx ctx, Module* mainModule) =>
+	jsonList(buildArray!Json(alloc, (scope ref Builder!Json res) {
+		// We combine ranges that have the same info.
+		Pos curRangeStart = 0;
+		InfoAtPos curInfo = InfoAtPos("", []);
 
-	// We combine ranges that have the same info.
-	Pos curRangeStart = 0;
-	InfoAtPos curInfo = InfoAtPos("", []);
+		LineAndCharacterGetter lcg = ctx.lineAndCharacterGetters[mainModule.uri];
 
-	LineAndCharacterGetter lcg = ctx.lineAndCharacterGetters[mainModule.uri];
-
-	void endRange(Pos end) {
-		if (!curInfo.isEmpty) {
-			add(alloc, parts, jsonObject(alloc, [
-				field!"range"(jsonOfLineAndCharacterRange(alloc, lcg[Range(curRangeStart, end)])),
-				field!"hover"(curInfo.hover),
-				optionalArrayField!("definition", UriAndRange)(alloc, curInfo.definition, (in UriAndRange x) =>
-					jsonOfUriAndLineAndCharacterRange(alloc, ctx.allUris, ctx.lineAndCharacterGetters[x])),
-			]));
+		void endRange(Pos end) {
+			if (!curInfo.isEmpty)
+				res ~= jsonObject(alloc, [
+					field!"range"(jsonOfLineAndCharacterRange(alloc, lcg[Range(curRangeStart, end)])),
+					field!"hover"(curInfo.hover),
+					optionalArrayField!("definition", UriAndRange)(alloc, curInfo.definition, (in UriAndRange x) =>
+						jsonOfUriAndLineAndCharacterRange(alloc, ctx.allUris, ctx.lineAndCharacterGetters[x])),
+				]);
 		}
-	}
 
-	Pos endOfFile = safeToUint(content.length);
-	foreach (Pos pos; 0 .. endOfFile + 1) {
-		Position position = getPosition(ctx.allSymbols, ctx.allUris, mainModule, pos);
-		Opt!Hover hover = getHover(alloc, ctx, position);
-		InfoAtPos here = InfoAtPos(
-			has(hover) ? force(hover).contents.value : "",
-			getDefinitionForPosition(alloc, ctx.allSymbols, position));
-		if (here != curInfo) {
-			endRange(pos);
-			curRangeStart = pos;
-			curInfo = here;
+		Pos endOfFile = safeToUint(content.length);
+		foreach (Pos pos; 0 .. endOfFile + 1) {
+			Position position = getPosition(ctx.allSymbols, ctx.allUris, mainModule, pos);
+			Opt!Hover hover = getHover(alloc, ctx, position);
+			InfoAtPos here = InfoAtPos(
+				has(hover) ? force(hover).contents.value : "",
+				getDefinitionForPosition(alloc, ctx.allSymbols, position));
+			if (here != curInfo) {
+				endRange(pos);
+				curRangeStart = pos;
+				curInfo = here;
+			}
 		}
-	}
-	endRange(endOfFile);
-
-	return jsonList(finish(alloc, parts));
-}
+		endRange(endOfFile);
+	}));

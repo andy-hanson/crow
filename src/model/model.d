@@ -5,6 +5,7 @@ module model.model;
 import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
 import model.ast :
 	DestructureAst,
+	EnumMemberAst,
 	ExprAst,
 	FileAst,
 	FunDeclAst,
@@ -14,12 +15,13 @@ import model.ast :
 	nameRangeOfDestructureSingle,
 	rangeOfDestructureSingle,
 	rangeOfNameAndRange,
+	RecordFieldAst,
 	SpecDeclAst,
 	SpecSigAst,
 	StructAliasAst,
-	StructBodyAst,
 	StructDeclAst,
 	TestAst,
+	UnionMemberAst,
 	VarDeclAst;
 import model.concreteModel : TypeSize;
 import model.constant : Constant;
@@ -36,7 +38,7 @@ import util.opt : force, has, none, Opt, optEqual, some;
 import util.sourceRange : combineRanges, UriAndRange, Pos, rangeOfStartAndLength, Range;
 import util.string : emptySmallString, SmallString;
 import util.symbol : AllSymbols, Symbol, symbol;
-import util.union_ : Union;
+import util.union_ : TaggedUnion, Union;
 import util.uri : Uri;
 import util.util : enumConvertOrAssert, max, min, stringOfEnum, typeAs;
 
@@ -95,7 +97,7 @@ immutable struct Type {
 	@safe @nogc pure nothrow:
 	immutable struct Bogus {}
 
-	mixin Union!(Bogus, TypeParamIndex, StructInst*);
+	mixin TaggedUnion!(Bogus, TypeParamIndex, StructInst*);
 
 	bool opEquals(scope Type b) scope =>
 		taggedPointerEquals(b);
@@ -131,7 +133,7 @@ immutable struct Params {
 		Type elementType;
 	}
 
-	mixin Union!(SmallArray!Destructure, Varargs*);
+	mixin TaggedUnion!(SmallArray!Destructure, Varargs*);
 
 	Arity arity() scope =>
 		matchIn!Arity(
@@ -193,7 +195,7 @@ immutable struct ParamShort {
 immutable struct RecordField {
 	@safe @nogc pure nothrow:
 
-	StructBodyAst.Record.Field* ast;
+	RecordFieldAst* ast;
 	StructDecl* containingRecord;
 	Visibility visibility;
 	Symbol name;
@@ -210,7 +212,7 @@ UriAndRange nameRange(in AllSymbols allSymbols, in RecordField a) =>
 immutable struct UnionMember {
 	@safe @nogc pure nothrow:
 
-	StructBodyAst.Union.Member* ast;
+	UnionMemberAst* ast;
 	StructDecl* containingUnion;
 	Symbol name;
 	Type type; // This will be Void if no type is specified
@@ -249,7 +251,7 @@ immutable struct EnumValue {
 immutable struct EnumMember {
 	@safe @nogc pure nothrow:
 
-	StructBodyAst.Enum.Member* ast;
+	EnumMemberAst* ast;
 	StructDecl* containingEnum;
 	Symbol name;
 	EnumValue value;
@@ -411,7 +413,7 @@ immutable struct StructDeclSource {
 	immutable struct Bogus {
 		TypeParams typeParams;
 	}
-	mixin Union!(StructDeclAst*, Bogus*);
+	mixin TaggedUnion!(StructDeclAst*, Bogus*);
 }
 static assert(StructDeclSource.sizeof == ulong.sizeof);
 
@@ -672,7 +674,9 @@ immutable struct BuiltinFun {
 	mixin Union!(
 		AllTests,
 		BuiltinUnary,
+		BuiltinUnaryMath,
 		BuiltinBinary,
+		BuiltinBinaryMath,
 		BuiltinTernary,
 		CallFunOrAct,
 		CallFunPointer,
@@ -700,42 +704,14 @@ private enum VersionFun_ {
 alias BuiltinUnary = immutable BuiltinUnary_;
 private enum BuiltinUnary_ {
 	asAnyPtr,
-	acosFloat32,
-	acosFloat64,
-	acoshFloat32,
-	acoshFloat64,
-	asinFloat32,
-	asinFloat64,
-	asinhFloat32,
-	asinhFloat64,
-	atanFloat32,
-	atanFloat64,
-	atanhFloat32,
-	atanhFloat64,
 	bitwiseNotNat8,
 	bitwiseNotNat16,
 	bitwiseNotNat32,
 	bitwiseNotNat64,
 	countOnesNat64,
-	cosFloat32,
-	cosFloat64,
-	coshFloat32,
-	coshFloat64,
 	deref,
 	drop,
 	enumToIntegral,
-	roundFloat32,
-	roundFloat64,
-	sinFloat32,
-	sinFloat64,
-	sinhFloat32,
-	sinhFloat64,
-	sqrtFloat32,
-	sqrtFloat64,
-	tanFloat32,
-	tanFloat64,
-	tanhFloat32,
-	tanhFloat64,
 	toChar8FromNat8,
 	toFloat32FromFloat64,
 	toFloat64FromFloat32,
@@ -762,14 +738,44 @@ private enum BuiltinUnary_ {
 	unsafeToNat32FromNat64,
 }
 
+alias BuiltinUnaryMath = immutable BuiltinUnaryMath_;
+private enum BuiltinUnaryMath_ {
+	acosFloat32,
+	acosFloat64,
+	acoshFloat32,
+	acoshFloat64,
+	asinFloat32,
+	asinFloat64,
+	asinhFloat32,
+	asinhFloat64,
+	atanFloat32,
+	atanFloat64,
+	atanhFloat32,
+	atanhFloat64,
+	cosFloat32,
+	cosFloat64,
+	coshFloat32,
+	coshFloat64,
+	roundFloat32,
+	roundFloat64,
+	sinFloat32,
+	sinFloat64,
+	sinhFloat32,
+	sinhFloat64,
+	sqrtFloat32,
+	sqrtFloat64,
+	tanFloat32,
+	tanFloat64,
+	tanhFloat32,
+	tanhFloat64,
+}
+
 alias BuiltinBinary = immutable BuiltinBinary_;
 private enum BuiltinBinary_ {
 	addFloat32,
 	addFloat64,
 	addPtrAndNat64, // RHS is multiplied by size of pointee first
 	and,
-	atan2Float32,
-	atan2Float64,
 	bitwiseAndInt8,
 	bitwiseAndInt16,
 	bitwiseAndInt32,
@@ -862,6 +868,12 @@ private enum BuiltinBinary_ {
 	wrapSubNat32,
 	wrapSubNat64,
 	writeToPtr,
+}
+
+alias BuiltinBinaryMath = immutable BuiltinBinaryMath_;
+private enum BuiltinBinaryMath_ {
+	atan2Float32,
+	atan2Float64,
 }
 
 alias BuiltinTernary = immutable BuiltinTernary_;
@@ -975,7 +987,7 @@ immutable struct FunDecl {
 		lateSet(lateBody, b);
 	}
 
-	TypeParams typeParams() scope =>
+	TypeParams typeParams() return scope =>
 		source.match!TypeParams(
 			(FunDeclSource.Bogus x) =>
 				x.typeParams,
@@ -1099,9 +1111,9 @@ immutable struct CalledSpecSig {
 	static CalledSpecSig fromTagged(ulong x) =>
 		CalledSpecSig(PtrAndSmallNumber!SpecInst.fromTagged(x));
 
-	SpecInst* specInst() =>
+	SpecInst* specInst() return scope =>
 		inner.ptr;
-	size_t sigIndex() =>
+	size_t sigIndex() scope =>
 		inner.number;
 
 	ReturnAndParamTypes instantiatedSig() return scope =>
@@ -1125,7 +1137,7 @@ immutable struct CalledSpecSig {
 immutable struct CalledDecl {
 	@safe @nogc pure nothrow:
 
-	mixin Union!(FunDecl*, CalledSpecSig);
+	mixin TaggedUnion!(FunDecl*, CalledSpecSig);
 
 	Symbol name() scope =>
 		matchIn!Symbol(
@@ -1158,7 +1170,7 @@ size_t nTypeParams(in CalledDecl a) =>
 immutable struct Called {
 	@safe @nogc pure nothrow:
 
-	mixin Union!(FunInst*, CalledSpecSig);
+	mixin TaggedUnion!(FunInst*, CalledSpecSig);
 
 	Symbol name() scope =>
 		matchIn!Symbol(
@@ -1197,9 +1209,9 @@ Type paramTypeAt(in Called a, size_t argIndex) scope =>
 immutable struct StructOrAlias {
 	@safe @nogc pure nothrow:
 
-	mixin Union!(StructAlias*, StructDecl*);
+	mixin TaggedUnion!(StructAlias*, StructDecl*);
 
-	immutable(void*) asVoidPointer() =>
+	immutable(void*) asVoidPointer() return scope =>
 		matchWithPointers!(immutable void*)(
 			(StructAlias* x) => typeAs!(immutable void*)(x),
 			(StructDecl* x) => typeAs!(immutable void*)(x));
@@ -1302,7 +1314,7 @@ immutable struct ImportOrExport {
 // No File option since those become FunDecls
 immutable struct ImportOrExportKind {
 	immutable struct ModuleWhole {}
-	mixin Union!(ModuleWhole, SmallArray!(Opt!(NameReferents*)));
+	mixin TaggedUnion!(ModuleWhole, SmallArray!(Opt!(NameReferents*)));
 }
 static assert(ImportOrExportKind.sizeof == ulong.sizeof);
 
@@ -1484,7 +1496,7 @@ alias ConfigExternUris = Map!(Symbol, Uri);
 
 immutable struct LocalSource {
 	immutable struct Generated {}
-	mixin Union!(DestructureAst.Single*, Generated);
+	mixin TaggedUnion!(DestructureAst.Single*, Generated);
 }
 static assert(LocalSource.sizeof == ulong.sizeof);
 
@@ -1540,23 +1552,23 @@ immutable struct ClosureRef {
 	static ClosureRef fromTagged(ulong x) =>
 		ClosureRef(PtrAndSmallNumber!LambdaExpr.fromTagged(x));
 
-	LambdaExpr* lambda() =>
+	LambdaExpr* lambda() return scope =>
 		lambdaAndIndex.ptr;
 
-	ushort index() =>
+	ushort index() scope =>
 		lambdaAndIndex.number;
 
-	VariableRef variableRef() =>
+	VariableRef variableRef() return scope =>
 		lambda.closure[index];
 
-	Symbol name() =>
+	Symbol name() scope =>
 		toLocal(this).name;
 
-	Type type() =>
+	Type type() return scope =>
 		toLocal(this).type;
 }
 
-Local* toLocal(in ClosureRef a) =>
+Local* toLocal(return in ClosureRef a) =>
 	toLocal(a.variableRef);
 
 enum ClosureReferenceKind { direct, allocated }
@@ -1577,9 +1589,9 @@ private ClosureReferenceKind getClosureReferenceKind(VariableRef a) {
 immutable struct VariableRef {
 	@safe @nogc pure nothrow:
 
-	mixin Union!(Local*, ClosureRef);
+	mixin TaggedUnion!(Local*, ClosureRef);
 
-	Symbol name() =>
+	Symbol name() scope =>
 		toLocal(this).name;
 	Type type() =>
 		toLocal(this).type;
@@ -1605,7 +1617,7 @@ immutable struct Destructure {
 		Type destructuredType; // This will be a tuple instance or Bogus.
 		SmallArray!Destructure parts;
 	}
-	mixin Union!(Ignore*, Local*, Split*);
+	mixin TaggedUnion!(Ignore*, Local*, Split*);
 
 	Opt!Symbol name() scope =>
 		matchIn!(Opt!Symbol)(

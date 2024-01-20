@@ -7,9 +7,11 @@ import model.constant : constantBool, constantZero;
 import model.diag : Diag;
 import model.model :
 	BuiltinBinary,
+	BuiltinBinaryMath,
 	BuiltinFun,
 	BuiltinType,
 	BuiltinUnary,
+	BuiltinUnaryMath,
 	BuiltinTernary,
 	Destructure,
 	FunBody,
@@ -65,12 +67,24 @@ FunBody inner(
 
 	FunBody unaryFloat64(BuiltinUnary kind) =>
 		unary(isUnaryFloat64() ? kind : failUnary);
-	FunBody unaryFloat32Or64(BuiltinUnary kind32, BuiltinUnary kind64) =>
-		unary(isUnaryFloat32() ? kind32 : isUnaryFloat64() ? kind64 : failUnary);
+	FunBody unaryMath(BuiltinUnaryMath kind32, BuiltinUnaryMath kind64) =>
+		arity != 1
+			? fail()
+			: isUnaryFloat32()
+			? FunBody(BuiltinFun(kind32))
+			: isUnaryFloat64()
+			? FunBody(BuiltinFun(kind64))
+			: fail();
 	FunBody binaryFloat64(BuiltinBinary kind) =>
 		binary(isBinaryFloat64() ? kind : failBinary);
-	FunBody binaryFloat32Or64(BuiltinBinary kind32, BuiltinBinary kind64) =>
-		binary(isBinaryFloat32() ? kind32 : isBinaryFloat64() ? kind64 : failBinary);
+	FunBody binaryMath(BuiltinBinaryMath kind32, BuiltinBinaryMath kind64) =>
+		arity != 2
+			? fail()
+			: isBinaryFloat32()
+			? FunBody(BuiltinFun(kind32))
+			: isBinaryFloat64()
+			? FunBody(BuiltinFun(kind64))
+			: fail();
 
 	switch (name.value) {
 		case symbol!"+".value:
@@ -185,28 +199,21 @@ FunBody inner(
 				? BuiltinBinary.bitwiseXorNat64
 				: failBinary);
 		case symbol!"acos".value:
-			return unaryFloat32Or64(
-				BuiltinUnary.acosFloat32, BuiltinUnary.acosFloat64);
+			return unaryMath(BuiltinUnaryMath.acosFloat32, BuiltinUnaryMath.acosFloat64);
 		case symbol!"acosh".value:
-			return unaryFloat32Or64(
-				BuiltinUnary.acoshFloat32, BuiltinUnary.acoshFloat64);
+			return unaryMath(BuiltinUnaryMath.acoshFloat32, BuiltinUnaryMath.acoshFloat64);
 		case symbol!"all-tests".value:
 			return arity == 0 ? FunBody(BuiltinFun(BuiltinFun.AllTests())) : fail();
 		case symbol!"asin".value:
-			return unaryFloat32Or64(
-				BuiltinUnary.asinFloat32, BuiltinUnary.asinFloat64);
+			return unaryMath(BuiltinUnaryMath.asinFloat32, BuiltinUnaryMath.asinFloat64);
 		case symbol!"asinh".value:
-			return unaryFloat32Or64(
-				BuiltinUnary.asinhFloat32, BuiltinUnary.asinhFloat64);
+			return unaryMath(BuiltinUnaryMath.asinhFloat32, BuiltinUnaryMath.asinhFloat64);
 		case symbol!"atan".value:
-			return unaryFloat32Or64(
-				BuiltinUnary.atanFloat32, BuiltinUnary.atanFloat64);
+			return unaryMath(BuiltinUnaryMath.atanFloat32, BuiltinUnaryMath.atanFloat64);
 		case symbol!"atan2".value:
-			return binaryFloat32Or64(
-				BuiltinBinary.atan2Float32, BuiltinBinary.atan2Float64);
+			return binaryMath(BuiltinBinaryMath.atan2Float32, BuiltinBinaryMath.atan2Float64);
 		case symbol!"atanh".value:
-			return unaryFloat32Or64(
-				BuiltinUnary.atanhFloat32, BuiltinUnary.atanhFloat64);
+			return unaryMath(BuiltinUnaryMath.atanhFloat32, BuiltinUnaryMath.atanhFloat64);
 		case symbol!"as-const".value:
 		case symbol!"as-fun-pointer".value:
 		case symbol!"as-mut".value:
@@ -217,9 +224,9 @@ FunBody inner(
 				? BuiltinUnary.countOnesNat64
 				: failUnary);
 		case symbol!"cos".value:
-			return unaryFloat32Or64(BuiltinUnary.cosFloat32, BuiltinUnary.cosFloat64);
+			return unaryMath(BuiltinUnaryMath.cosFloat32, BuiltinUnaryMath.cosFloat64);
 		case symbol!"cosh".value:
-			return unaryFloat32Or64(BuiltinUnary.coshFloat32, BuiltinUnary.coshFloat64);
+			return unaryMath(BuiltinUnaryMath.coshFloat32, BuiltinUnaryMath.coshFloat64);
 		case symbol!"false".value:
 			return FunBody(BuiltinFun(constantBool(false)));
 		case symbol!"interpreter-backtrace".value:
@@ -250,15 +257,13 @@ FunBody inner(
 		case symbol!"reference-equal".value:
 			return binary(BuiltinBinary.eqPtr);
 		case symbol!"round".value:
-			return unaryFloat32Or64(
-				BuiltinUnary.roundFloat32, BuiltinUnary.roundFloat64);
+			return unaryMath(BuiltinUnaryMath.roundFloat32, BuiltinUnaryMath.roundFloat64);
 		case symbol!"set-deref".value:
 			return binary(isBuiltin(p0, BuiltinType.pointerMut) ? BuiltinBinary.writeToPtr : failBinary);
 		case symbol!"sin".value:
-			return unaryFloat32Or64(BuiltinUnary.sinFloat32, BuiltinUnary.sinFloat64);
+			return unaryMath(BuiltinUnaryMath.sinFloat32, BuiltinUnaryMath.sinFloat64);
 		case symbol!"sinh".value:
-			return unaryFloat32Or64(
-				BuiltinUnary.sinhFloat32, BuiltinUnary.sinhFloat64);
+			return unaryMath(BuiltinUnaryMath.sinhFloat32, BuiltinUnaryMath.sinhFloat64);
 		case symbol!"size-of".value:
 			return FunBody(BuiltinFun(BuiltinFun.SizeOf()));
 		case symbol!"subscript".value:
@@ -269,13 +274,11 @@ FunBody inner(
 				? FunBody(BuiltinFun(BuiltinFun.CallFunOrAct()))
 				: fail();
 		case symbol!"sqrt".value:
-			return unaryFloat32Or64(
-				BuiltinUnary.sqrtFloat32, BuiltinUnary.sqrtFloat64);
+			return unaryMath(BuiltinUnaryMath.sqrtFloat32, BuiltinUnaryMath.sqrtFloat64);
 		case symbol!"tan".value:
-			return unaryFloat32Or64(BuiltinUnary.tanFloat32, BuiltinUnary.tanFloat64);
+			return unaryMath(BuiltinUnaryMath.tanFloat32, BuiltinUnaryMath.tanFloat64);
 		case symbol!"tanh".value:
-			return unaryFloat32Or64(
-				BuiltinUnary.tanhFloat32, BuiltinUnary.tanhFloat64);
+			return unaryMath(BuiltinUnaryMath.tanhFloat32, BuiltinUnaryMath.tanhFloat64);
 		case symbol!"to".value:
 			return unary(isChar8(rt)
 				? isNat8(p0)

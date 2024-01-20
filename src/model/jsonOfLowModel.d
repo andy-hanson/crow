@@ -31,7 +31,7 @@ import model.jsonOfConcreteModel : jsonOfConcreteFunRef, jsonOfConcreteStructRef
 import util.alloc.alloc : Alloc;
 import util.json : field, jsonObject, optionalField, Json, jsonInt, jsonList, jsonString, kindField;
 import util.sourceRange : jsonOfLineAndColumnRange;
-import util.util : castNonScope_ref, stringOfEnum;
+import util.util : castNonScope, stringOfEnum;
 
 Json jsonOfLowProgram(ref Alloc alloc, in LineAndColumnGetters lineAndColumnGetters, in LowProgram a) {
 	Ctx ctx = Ctx(lineAndColumnGetters);
@@ -240,17 +240,28 @@ Json jsonOfLowExprKind(ref Alloc alloc, in Ctx ctx, in LowExprKind a) =>
 				kindField!"unary",
 				field!"operation"(stringOfEnum(x.kind)),
 				field!"arg"(jsonOfLowExpr(alloc, ctx, x.arg))]),
+		(in LowExprKind.SpecialUnaryMath x) =>
+			jsonObject(alloc, [
+				kindField!"unary-math",
+				field!"fun"(stringOfEnum(x.kind)),
+				field!"arg"(jsonOfLowExpr(alloc, ctx, x.arg))]),
 		(in LowExprKind.SpecialBinary x) =>
 			jsonObject(alloc, [
 				kindField!"binary",
 				field!"operation"(stringOfEnum(x.kind)),
-				field!"args"(jsonList!LowExpr(alloc, castNonScope_ref(x.args), (in LowExpr e) =>
+				field!"args"(jsonList!LowExpr(alloc, castNonScope(x.args), (in LowExpr e) =>
+					jsonOfLowExpr(alloc, ctx, e)))]),
+		(in LowExprKind.SpecialBinaryMath x) =>
+			jsonObject(alloc, [
+				kindField!"binary-math",
+				field!"fun"(stringOfEnum(x.kind)),
+				field!"args"(jsonList!LowExpr(alloc, castNonScope(x.args), (in LowExpr e) =>
 					jsonOfLowExpr(alloc, ctx, e)))]),
 		(in LowExprKind.SpecialTernary x) =>
 			jsonObject(alloc, [
 				kindField!"ternary",
 				field!"operation"(stringOfEnum(x.kind)),
-				field!"args"(jsonList!LowExpr(alloc, castNonScope_ref(x.args), (in LowExpr e) =>
+				field!"args"(jsonList!LowExpr(alloc, castNonScope(x.args), (in LowExpr e) =>
 					jsonOfLowExpr(alloc, ctx, e)))]),
 		(in LowExprKind.Switch0ToN x) =>
 			jsonObject(alloc, [

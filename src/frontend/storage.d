@@ -19,7 +19,7 @@ import util.alloc.alloc :
 	withAlloc,
 	withTempAlloc;
 import util.col.array : append, contains, isEmpty;
-import util.col.arrayBuilder : add, ArrayBuilder, finish;
+import util.col.arrayBuilder : buildArray, Builder;
 import util.col.mutMap : getOrAdd, keys, mayDelete, mustAdd, MutMap, values;
 import util.memory : allocate;
 import util.opt : ConstOpt, force, has, MutOpt, none, Opt, some;
@@ -38,7 +38,7 @@ import util.sourceRange :
 	UriLineAndColumnRange;
 import util.string : bytesOfString, CString, cStringSize, stringOfCString;
 import util.symbol : AllSymbols;
-import util.union_ : Union;
+import util.union_ : TaggedUnion, Union;
 import util.uri : AllUris, baseName, getExtension, Uri;
 import util.writer : withWriter, Writer;
 
@@ -82,7 +82,7 @@ private immutable struct FileInfo {
 
 immutable struct ParseResult {
 	immutable struct None {}
-	mixin Union!(FileAst*, Config*, None);
+	mixin TaggedUnion!(FileAst*, Config*, None);
 }
 
 void setFile(scope ref Perf perf, ref Storage a, Uri uri, in ReadFileResult result) {
@@ -191,30 +191,27 @@ FilesState filesState(in Storage a) {
 	return res;
 }
 
-Uri[] allStorageUris(ref Alloc alloc, in Storage a) {
-	ArrayBuilder!Uri res;
-	foreach (Uri uri; keys(a.successes))
-		add(alloc, res, uri);
-	foreach (Uri uri; keys(a.diags))
-		add(alloc, res, uri);
-	return finish(alloc, res);
-}
+Uri[] allStorageUris(ref Alloc alloc, in Storage a) =>
+	buildArray!Uri(alloc, (scope ref Builder!Uri res) {
+		foreach (Uri uri; keys(a.successes))
+			res ~= uri;
+		foreach (Uri uri; keys(a.diags))
+			res ~= uri;
+	});
 
-Uri[] allKnownGoodCrowUris(ref Alloc alloc, scope ref Storage a) {
-	ArrayBuilder!Uri res;
-	foreach (Uri uri; keys(a.successes))
-		if (fileType(a.allUris, uri) == FileType.crow)
-			add(alloc, res, uri);
-	return finish(alloc, res);
-}
+Uri[] allKnownGoodCrowUris(ref Alloc alloc, scope ref Storage a) =>
+	buildArray!Uri(alloc, (scope ref Builder!Uri res) {
+		foreach (Uri uri; keys(a.successes))
+			if (fileType(a.allUris, uri) == FileType.crow)
+				res ~= uri;
+	});
 
-Uri[] allUrisWithFileDiag(ref Alloc alloc, in Storage a, in ReadFileDiag[] searchDiags) {
-	ArrayBuilder!Uri res;
-	foreach (Uri uri, ReadFileDiag diag; a.diags)
-		if (contains(searchDiags, diag))
-			add(alloc, res, uri);
-	return finish(alloc, res);
-}
+Uri[] allUrisWithFileDiag(ref Alloc alloc, in Storage a, in ReadFileDiag[] searchDiags) =>
+	buildArray!Uri(alloc, (scope ref Builder!Uri res) {
+		foreach (Uri uri, ReadFileDiag diag; a.diags)
+			if (contains(searchDiags, diag))
+				res ~= uri;
+	});
 
 private immutable struct FileInfoOrDiag {
 	mixin Union!(FileInfo, ReadFileDiag);
@@ -239,7 +236,6 @@ ParsedOrDiag getParsedOrDiag(ref Storage a, Uri uri) =>
 	fileOrDiag(a, uri).match!ParsedOrDiag(
 		(FileInfo x) => ParsedOrDiag(x.parsed),
 		(ReadFileDiag x) => ParsedOrDiag(x));
-
 
 immutable struct SourceAndAst {
 	CString source;

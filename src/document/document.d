@@ -31,7 +31,7 @@ import model.model :
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.array : exists, indexOf, isEmpty, map, mapOp;
-import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderSort, finish;
+import util.col.arrayBuilder : arrBuilderSort, buildArray, Builder;
 import util.json :
 	field,
 	Json,
@@ -68,22 +68,23 @@ Json documentModule(
 	in Program program,
 	in Module a,
 ) {
-	ArrayBuilder!DocExport exports; // TODO: no alloc
-	foreach (NameReferents referents; a.exports) {
-		if (has(referents.structOrAlias) && force(referents.structOrAlias).visibility == Visibility.public_)
-			add(alloc, exports, documentStructOrAlias(alloc, force(referents.structOrAlias)));
-		if (has(referents.spec) && force(referents.spec).visibility == Visibility.public_)
-			add(alloc, exports, documentSpec(alloc, *force(referents.spec)));
-		foreach (FunDecl* fun; referents.funs)
-			if (fun.visibility == Visibility.public_ && !fun.isGenerated)
-				add(alloc, exports, documentFun(alloc, *fun));
-	}
-	arrBuilderSort!DocExport(exports, (in DocExport x, in DocExport y) =>
-		compareUriAndRange(allUris, x.range, y.range));
+	DocExport[] exports = buildArray!DocExport(alloc, (scope ref Builder!DocExport res) {
+		foreach (NameReferents referents; a.exports) {
+			if (has(referents.structOrAlias) && force(referents.structOrAlias).visibility == Visibility.public_)
+				res ~= documentStructOrAlias(alloc, force(referents.structOrAlias));
+			if (has(referents.spec) && force(referents.spec).visibility == Visibility.public_)
+				res ~= documentSpec(alloc, *force(referents.spec));
+			foreach (FunDecl* fun; referents.funs)
+				if (fun.visibility == Visibility.public_ && !fun.isGenerated)
+					res ~= documentFun(alloc, *fun);
+		}
+		arrBuilderSort!DocExport(res, (in DocExport x, in DocExport y) =>
+			compareUriAndRange(allUris, x.range, y.range));
+	});
 	return jsonObject(alloc, [
 		field!"uri"(stringOfUri(alloc, allUris, a.uri)),
 		optionalStringField!"doc"(alloc, a.ast.docComment),
-		field!"exports"(jsonList!DocExport(alloc, finish(alloc, exports), (in DocExport x) => x.json))]);
+		field!"exports"(jsonList!DocExport(alloc, exports, (in DocExport x) => x.json))]);
 }
 
 immutable struct DocExport {
@@ -216,18 +217,17 @@ DocExport documentFun(ref Alloc alloc, in FunDecl a) =>
 		optionalFlagField!"variadic"(a.isVariadic),
 		optionalArrayField!"specs"(documentSpecs(alloc, a))]));
 
-Json[] documentSpecs(ref Alloc alloc, in FunDecl a) {
-	ArrayBuilder!Json res;
-	if (a.isBare)
-		add(alloc, res, jsonOfSpecialSpec(alloc, symbol!"bare"));
-	if (a.isSummon)
-		add(alloc, res, jsonOfSpecialSpec(alloc, symbol!"summon"));
-	if (a.isUnsafe)
-		add(alloc, res, jsonOfSpecialSpec(alloc, symbol!"unsafe"));
-	foreach (SpecInst* spec; a.specs)
-		add(alloc, res, documentSpecInst(alloc, a.typeParams, *spec));
-	return finish(alloc, res);
-}
+Json[] documentSpecs(ref Alloc alloc, in FunDecl a) =>
+	buildArray!Json(alloc, (scope ref Builder!Json res) {
+		if (a.isBare)
+			res ~= jsonOfSpecialSpec(alloc, symbol!"bare");
+		if (a.isSummon)
+			res ~= jsonOfSpecialSpec(alloc, symbol!"summon");
+		if (a.isUnsafe)
+			res ~= jsonOfSpecialSpec(alloc, symbol!"unsafe");
+		foreach (SpecInst* spec; a.specs)
+			res ~= documentSpecInst(alloc, a.typeParams, *spec);
+	});
 
 Json jsonOfSpecialSpec(ref Alloc alloc, Symbol name) =>
 	jsonObject(alloc, [kindField!"special", field!"name"(name)]);

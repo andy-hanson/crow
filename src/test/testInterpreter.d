@@ -79,7 +79,7 @@ import util.col.fullIndexMap : emptyFullIndexMap, fullIndexMapOfArr;
 import util.memory : allocate;
 import util.sourceRange : Pos;
 import util.symbol : symbol;
-import util.util : castNonScope, ptrTrustMe;
+import util.util : castNonScope, castNonScope_ref, ptrTrustMe;
 
 void testInterpreter(ref Test test) {
 	testCall(test);
@@ -242,7 +242,7 @@ void testCallFunPointer(ref Test test) {
 
 	writePushConstants(writer, source, [1, 2]);
 	writeBreak(writer, source);
-	writeCallFunPointer(writer, source, argsFirstStackEntry, sig);
+	writeCallFunPointer(writer, source, argsFirstStackEntry, castNonScope_ref(sig));
 	ByteCodeIndex afterCall = nextByteCodeIndex(writer);
 	writeBreak(writer, source);
 	writeReturn(writer, source);

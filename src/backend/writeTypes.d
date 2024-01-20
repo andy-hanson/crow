@@ -33,7 +33,7 @@ void writeTypes(ref Alloc alloc, in LowProgram program, in TypeWriters writers) 
 			alloc, fullIndexMapSize(program.allRecords), (LowType.Record) => StructState.none),
 		makeFullIndexMap_mut!(LowType.Union, StructState)(
 			alloc, fullIndexMapSize(program.allUnions), (LowType.Union) => StructState.none));
-	for (;;) {
+	while (true) {
 		bool madeProgress = false;
 		bool someIncomplete = false;
 		fullIndexMapEachKey!(LowType.FunPointer, LowFunPointerType)(

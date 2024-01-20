@@ -6,10 +6,10 @@ import model.concreteModel : ConcreteExpr;
 import model.constant : Constant;
 import util.alloc.alloc : Alloc;
 import util.col.array : every, map, SmallArray;
-import util.union_ : Union;
+import util.union_ : TaggedUnion;
 
 immutable struct ConstantsOrExprs {
-	mixin Union!(SmallArray!Constant, SmallArray!ConcreteExpr);
+	mixin TaggedUnion!(SmallArray!Constant, SmallArray!ConcreteExpr);
 }
 static assert(ConstantsOrExprs.sizeof == ulong.sizeof);
 

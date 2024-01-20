@@ -66,9 +66,9 @@ bool isMultipleOf(T)(T a, T b) {
 
 version (WebAssembly) {
 	// WARN: 'message' must be heap allocated, not on stack
-	extern(C) void debugLog(scope immutable char* message);
+	extern(C) void debugLog(scope const char* message);
 } else {
-	void debugLog(in immutable char* message) {
+	void debugLog(in char* message) {
 		// Log to stderr because LSP uses stdout
 		debug {
 			fprintf(stderr, "debug log: %s\n", message);

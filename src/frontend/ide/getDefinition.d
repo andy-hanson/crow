@@ -22,7 +22,7 @@ import model.model :
 	VarDecl,
 	UnionMember;
 import util.alloc.alloc : Alloc;
-import util.col.arrayBuilder : buildArray;
+import util.col.arrayBuilder : buildArray, Builder;
 import util.opt : force, has, Opt;
 import util.sourceRange : UriAndRange;
 import util.symbol : AllSymbols;
@@ -31,8 +31,8 @@ import util.uri : Uri;
 UriAndRange[] getDefinitionForPosition(ref Alloc alloc, in AllSymbols allSymbols, in Position pos) {
 	Opt!Target target = targetForPosition(pos.kind);
 	return has(target)
-		? buildArray!UriAndRange(alloc, (in ReferenceCb cb) {
-			definitionForTarget(allSymbols, pos.module_.uri, force(target), cb);
+		? buildArray!UriAndRange(alloc, (scope ref Builder!UriAndRange res) {
+			definitionForTarget(allSymbols, pos.module_.uri, force(target), (in UriAndRange x) { res ~= x; });
 		})
 		: [];
 }

@@ -31,7 +31,7 @@ import model.model :
 	Type;
 import util.alloc.alloc : Alloc;
 import util.col.array : everyWithIndex, map, small;
-import util.col.arrayBuilder : add, ArrayBuilder, finish;
+import util.col.arrayBuilder : buildArray, Builder;
 import util.conv : safeToUshort;
 import util.memory : overwriteMemory;
 import util.col.mutMaxArr :
@@ -55,13 +55,12 @@ alias Candidates = MutMaxArr!(maxCandidates, Candidate);
 CalledDecl[] candidatesForDiag(ref Alloc alloc, in Candidates candidates) =>
 	map(alloc, asTemporaryArray(candidates), (ref const Candidate c) => c.called);
 
-CalledDecl[] getAllCandidatesAsCalledDecls(ref ExprCtx ctx, Symbol funName) {
-	ArrayBuilder!CalledDecl res = ArrayBuilder!CalledDecl();
-	eachFunInScope(funsInScope(ctx), funName, (CalledDecl called) {
-		add(ctx.alloc, res, called);
+CalledDecl[] getAllCandidatesAsCalledDecls(ref ExprCtx ctx, Symbol funName) =>
+	buildArray!CalledDecl(ctx.alloc, (scope ref Builder!CalledDecl res) {
+		eachFunInScope(funsInScope(ctx), funName, (CalledDecl called) {
+			res ~= called;
+		});
 	});
-	return finish(ctx.alloc, res);
-}
 
 struct Candidate {
 	immutable CalledDecl called;
@@ -72,7 +71,7 @@ struct Candidate {
 inout(TypeContext) typeContextForCandidate(ref inout Candidate a) {
 	// 'match' can't return 'inout' we must do it this way
 	if (a.called.isA!(FunDecl*))
-		return TypeContext(small!SingleInferringType(cast(inout SingleInferringType[]) asTemporaryArray(a.typeArgs)));
+		return inout TypeContext(small!SingleInferringType(asTemporaryArray(a.typeArgs)));
 	else {
 		assert(a.called.isA!CalledSpecSig);
 		// Spec is instantiated using the caller's types
@@ -200,7 +199,7 @@ bool testCandidateParamType(
 	Opt!Type instantiated = tryGetNonInferringType(
 		ctx, inout TypeAndContext(declType, typeContextForCandidate(candidate)));
 	return has(instantiated)
-		? nonInferring(force(instantiated))
+		? cast(inout) nonInferring(force(instantiated))
 		: inout TypeAndContext(declType, typeContextForCandidate(candidate));
 }
 

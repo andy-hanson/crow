@@ -85,7 +85,7 @@ import util.col.array :
 	only2,
 	small,
 	SmallArray;
-import util.col.arrayBuilder : add, addAll, ArrayBuilder, finish;
+import util.col.arrayBuilder : add, ArrayBuilder, buildArray, Builder;
 import util.col.hashTable : getOrAdd, getOrAddAndDidAdd, moveToArray, MutHashTable;
 import util.col.map : values;
 import util.col.mutArr : filterUnordered, MutArr, mutArrIsEmpty, push;
@@ -867,12 +867,10 @@ EnumMember[] enumOrFlagsMembers(ConcreteType type) =>
 			assert(false));
 
 ConcreteFunBody bodyForAllTests(ref ConcretizeCtx ctx, ConcreteType returnType) {
-	Test[] allTests = () {
-		ArrayBuilder!Test allTestsBuilder;
+	Test[] allTests = buildArray!Test(ctx.alloc, (scope ref Builder!Test res) {
 		foreach (immutable Module* m; ctx.program.allModules)
-			addAll(ctx.alloc, allTestsBuilder, m.tests);
-		return finish(ctx.alloc, allTestsBuilder);
-	}();
+			res ~= m.tests;
+	});
 	Constant arr = getConstantArray(
 		ctx.alloc,
 		ctx.allConstants,

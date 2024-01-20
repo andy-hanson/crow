@@ -147,7 +147,7 @@ import model.lowModel :
 	targetIsPointer,
 	targetRecordType,
 	UpdateParam;
-import model.model : BuiltinBinary, BuiltinTernary, BuiltinUnary, Program;
+import model.model : BuiltinBinary, BuiltinBinaryMath, BuiltinTernary, BuiltinUnary, BuiltinUnaryMath, Program;
 import model.typeLayout : nStackEntriesForType, optPack, Pack, typeSizeBytes;
 import util.alloc.alloc : TempAlloc;
 import util.col.array : indexOfPointer, isEmpty;
@@ -405,8 +405,14 @@ void generateExpr(
 		(in LowExprKind.SpecialUnary it) {
 			generateSpecialUnary(writer, ctx, source, locals, after, expr.type, it);
 		},
+		(in LowExprKind.SpecialUnaryMath x) {
+			generateSpecialUnaryMath(writer, ctx, source, locals, after, expr.type, x);
+		},
 		(in LowExprKind.SpecialBinary it) {
 			generateSpecialBinary(writer, ctx, source, locals, after, it);
+		},
+		(in LowExprKind.SpecialBinaryMath x) {
+			generateSpecialBinaryMath(writer, ctx, source, locals, after, x);
 		},
 		(in LowExprKind.SpecialTernary it) {
 			generateSpecialTernary(writer, ctx, source, locals, after, it);
@@ -861,18 +867,6 @@ void generateSpecialUnary(
 	}
 
 	final switch (a.kind) {
-		case BuiltinUnary.acosFloat32:
-			fn!fnAcosFloat32();
-			break;
-		case BuiltinUnary.acosFloat64:
-			fn!fnAcosFloat64();
-			break;
-		case BuiltinUnary.acoshFloat32:
-			fn!fnAcoshFloat32();
-			break;
-		case BuiltinUnary.acoshFloat64:
-			fn!fnAcoshFloat64();
-			break;
 		case BuiltinUnary.asAnyPtr:
 		case BuiltinUnary.enumToIntegral:
 		case BuiltinUnary.toChar8FromNat8:
@@ -893,30 +887,6 @@ void generateSpecialUnary(
 			// NOTE: we treat the upper bits of <64-bit types as arbitrary, so those are no-ops too
 			generateExpr(writer, ctx, locals, after, a.arg);
 			break;
-		case BuiltinUnary.asinFloat32:
-			fn!fnAsinFloat32();
-			break;
-		case BuiltinUnary.asinFloat64:
-			fn!fnAsinFloat64();
-			break;
-		case BuiltinUnary.asinhFloat32:
-			fn!fnAsinhFloat32();
-			break;
-		case BuiltinUnary.asinhFloat64:
-			fn!fnAsinhFloat64();
-			break;
-		case BuiltinUnary.atanFloat32:
-			fn!fnAtanFloat32();
-			break;
-		case BuiltinUnary.atanFloat64:
-			fn!fnAtanFloat64();
-			break;
-		case BuiltinUnary.atanhFloat32:
-			fn!fnAtanhFloat32();
-			break;
-		case BuiltinUnary.atanhFloat64:
-			fn!fnAtanhFloat64();
-			break;
 		case BuiltinUnary.bitwiseNotNat8:
 		case BuiltinUnary.bitwiseNotNat16:
 		case BuiltinUnary.bitwiseNotNat32:
@@ -926,57 +896,9 @@ void generateSpecialUnary(
 		case BuiltinUnary.countOnesNat64:
 			fn!fnCountOnesNat64();
 			break;
-		case BuiltinUnary.cosFloat32:
-			fn!fnCosFloat32();
-			break;
-		case BuiltinUnary.cosFloat64:
-			fn!fnCosFloat64();
-			break;
-		case BuiltinUnary.coshFloat32:
-			fn!fnCoshFloat32();
-			break;
-		case BuiltinUnary.coshFloat64:
-			fn!fnCoshFloat64();
-			break;
 		case BuiltinUnary.drop:
 			generateExprAndContinue(writer, ctx, locals, a.arg);
 			handleAfter(writer, ctx, source, after);
-			break;
-		case BuiltinUnary.roundFloat32:
-			fn!fnRoundFloat32();
-			break;
-		case BuiltinUnary.roundFloat64:
-			fn!fnRoundFloat64();
-			break;
-		case BuiltinUnary.sinFloat32:
-			fn!fnSinFloat32();
-			break;
-		case BuiltinUnary.sinFloat64:
-			fn!fnSinFloat64();
-			break;
-		case BuiltinUnary.sinhFloat32:
-			fn!fnSinhFloat32();
-			break;
-		case BuiltinUnary.sinhFloat64:
-			fn!fnSinhFloat64();
-			break;
-		case BuiltinUnary.sqrtFloat32:
-			fn!fnSqrtFloat32();
-			break;
-		case BuiltinUnary.sqrtFloat64:
-			fn!fnSqrtFloat64();
-			break;
-		case BuiltinUnary.tanFloat32:
-			fn!fnTanFloat32();
-			break;
-		case BuiltinUnary.tanFloat64:
-			fn!fnTanFloat64();
-			break;
-		case BuiltinUnary.tanhFloat32:
-			fn!fnTanhFloat32();
-			break;
-		case BuiltinUnary.tanhFloat64:
-			fn!fnTanhFloat64();
 			break;
 		case BuiltinUnary.toInt64FromInt8:
 			fn!fnInt64FromInt8();
@@ -1031,6 +953,109 @@ void generateSpecialUnary(
 			fn!fnTruncateToInt64FromFloat64();
 			break;
 	}
+}
+
+void generateSpecialUnaryMath(
+	ref ByteCodeWriter writer,
+	ref ExprCtx ctx,
+	ByteCodeSource source,
+	in Locals locals,
+	scope ref ExprAfter after,
+	in LowType type,
+	in LowExprKind.SpecialUnaryMath a,
+) {
+	generateExprAndContinue(writer, ctx, locals, a.arg);
+	void fn(alias cb)() {
+		writeFnUnary!cb(writer, source);
+	}
+	final switch (a.kind) {
+		case BuiltinUnaryMath.acosFloat32:
+			fn!fnAcosFloat32();
+			break;
+		case BuiltinUnaryMath.acosFloat64:
+			fn!fnAcosFloat64();
+			break;
+		case BuiltinUnaryMath.acoshFloat32:
+			fn!fnAcoshFloat32();
+			break;
+		case BuiltinUnaryMath.acoshFloat64:
+			fn!fnAcoshFloat64();
+			break;
+		case BuiltinUnaryMath.asinFloat32:
+			fn!fnAsinFloat32();
+			break;
+		case BuiltinUnaryMath.asinFloat64:
+			fn!fnAsinFloat64();
+			break;
+		case BuiltinUnaryMath.asinhFloat32:
+			fn!fnAsinhFloat32();
+			break;
+		case BuiltinUnaryMath.asinhFloat64:
+			fn!fnAsinhFloat64();
+			break;
+		case BuiltinUnaryMath.atanFloat32:
+			fn!fnAtanFloat32();
+			break;
+		case BuiltinUnaryMath.atanFloat64:
+			fn!fnAtanFloat64();
+			break;
+		case BuiltinUnaryMath.atanhFloat32:
+			fn!fnAtanhFloat32();
+			break;
+		case BuiltinUnaryMath.atanhFloat64:
+			fn!fnAtanhFloat64();
+			break;
+		case BuiltinUnaryMath.cosFloat32:
+			fn!fnCosFloat32();
+			break;
+		case BuiltinUnaryMath.cosFloat64:
+			fn!fnCosFloat64();
+			break;
+		case BuiltinUnaryMath.coshFloat32:
+			fn!fnCoshFloat32();
+			break;
+		case BuiltinUnaryMath.coshFloat64:
+			fn!fnCoshFloat64();
+			break;
+		case BuiltinUnaryMath.roundFloat32:
+			fn!fnRoundFloat32();
+			break;
+		case BuiltinUnaryMath.roundFloat64:
+			fn!fnRoundFloat64();
+			break;
+		case BuiltinUnaryMath.sinFloat32:
+			fn!fnSinFloat32();
+			break;
+		case BuiltinUnaryMath.sinFloat64:
+			fn!fnSinFloat64();
+			break;
+		case BuiltinUnaryMath.sinhFloat32:
+			fn!fnSinhFloat32();
+			break;
+		case BuiltinUnaryMath.sinhFloat64:
+			fn!fnSinhFloat64();
+			break;
+		case BuiltinUnaryMath.sqrtFloat32:
+			fn!fnSqrtFloat32();
+			break;
+		case BuiltinUnaryMath.sqrtFloat64:
+			fn!fnSqrtFloat64();
+			break;
+		case BuiltinUnaryMath.tanFloat32:
+			fn!fnTanFloat32();
+			break;
+		case BuiltinUnaryMath.tanFloat64:
+			fn!fnTanFloat64();
+			break;
+		case BuiltinUnaryMath.tanhFloat32:
+			fn!fnTanhFloat32();
+			break;
+		case BuiltinUnaryMath.tanhFloat64:
+			fn!fnTanhFloat64();
+			break;
+	}
+
+	handleAfter(writer, ctx, source, after);
 }
 
 void generatePtrToLocal(
@@ -1146,12 +1171,6 @@ void generateSpecialBinary(
 	}
 
 	final switch (a.kind) {
-		case BuiltinBinary.atan2Float32:
-			fn!fnAtan2Float32();
-			break;
-		case BuiltinBinary.atan2Float64:
-			fn!fnAtan2Float64();
-			break;
 		case BuiltinBinary.addPtrAndNat64:
 		case BuiltinBinary.subPtrAndNat64:
 			LowType pointee = asPtrRawPointee(left.type);
@@ -1373,6 +1392,30 @@ void generateSpecialBinary(
 			handleAfter(writer, ctx, source, after);
 			break;
 	}
+}
+
+void generateSpecialBinaryMath(
+	ref ByteCodeWriter writer,
+	ref ExprCtx ctx,
+	ByteCodeSource source,
+	in Locals locals,
+	scope ref ExprAfter after,
+	in LowExprKind.SpecialBinaryMath a,
+) {
+	foreach (scope ref LowExpr arg; castNonScope(a.args))
+		generateExprAndContinue(writer, ctx, locals, arg);
+	void fn(alias cb)() {
+		writeFnBinary!cb(writer, source);
+	}
+	final switch (a.kind) {
+		case BuiltinBinaryMath.atan2Float32:
+			fn!fnAtan2Float32();
+			break;
+		case BuiltinBinaryMath.atan2Float64:
+			fn!fnAtan2Float64();
+			break;
+	}
+	handleAfter(writer, ctx, source, after);
 }
 
 void generateIf(

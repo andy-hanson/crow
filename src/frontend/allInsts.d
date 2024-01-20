@@ -29,7 +29,7 @@ import util.hash : HashCode, hashTaggedPointer, hashPointerAndTaggedPointers, ha
 import util.json : field, Json, jsonObject;
 import util.memory : allocate;
 import util.opt : force, has, MutOpt;
-import util.union_ : Union;
+import util.union_ : TaggedUnion;
 
 struct AllInsts {
 	@safe @nogc pure nothrow:
@@ -143,11 +143,12 @@ public alias AnyDeclOrInst = immutable void*;
 // public for tests
 public immutable struct AnyInst {
 	@safe @nogc pure nothrow:
-	mixin Union!(StructInst*, SpecInst*, FunInst*);
-	HashCode hash() =>
+	mixin TaggedUnion!(StructInst*, SpecInst*, FunInst*);
+	HashCode hash() scope =>
 		hashTaggedPointer!AnyInst(this);
 }
 static assert(AnyInst.sizeof == ulong.sizeof);
+static assert(MutOpt!AnyInst.sizeof == ulong.sizeof); // Used by MutMaxSet
 
 void getInstsToProcessFromModule(ref AllInsts a, ref ToProcess out_, in Module module_) {
 	getInstsToProcessFromDecls!StructDecl(a, out_, module_.structs);

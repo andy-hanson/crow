@@ -172,6 +172,7 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 app_only_files = src\app\appUtil.d src\app\backtrace.d src\app\cCompile.d src\app\main.d src\app\dyncall.d src\app\fileSystem.d src\app\lsp.d
 app_src_no_test = $(app_only_files) \
 	$(src_files_common) \
+	src\backend\builtinMath.d \
 	src\backend\mangle.d \
 	src\backend\writeToC.d \
 	src\backend\writeTypes.d \

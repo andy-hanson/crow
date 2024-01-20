@@ -53,7 +53,7 @@ import model.model :
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.col.array : contains, exists, isEmpty, only;
-import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderSort, finish;
+import util.col.arrayBuilder : arrBuilderSort, buildArray, Builder;
 import util.col.multiMap : makeMultiMap, MultiMap, MultiMapCb;
 import util.col.sortUtil : sorted;
 import util.comparison : Comparison;
@@ -107,16 +107,15 @@ UriAndDiagnostics[] sortedDiagnostics(ref Alloc alloc, in AllUris allUris, in Pr
 			cb(x.uri, x.diagnostic);
 		});
 	});
-
-	ArrayBuilder!UriAndDiagnostics res; // TODO:PERF ExactSizeArrayBuilder
-	foreach (Uri uri, immutable Diagnostic[] diags; map) {
-		Diagnostic[] sortedDiags = sorted!Diagnostic(alloc, diags, (in Diagnostic x, in Diagnostic y) =>
-			compareDiagnostic(x, y));
-		add(alloc, res, UriAndDiagnostics(uri, sortedDiags));
-	}
-	arrBuilderSort!UriAndDiagnostics(res, (in UriAndDiagnostics x, in UriAndDiagnostics y) =>
-		compareUriAlphabetically(allUris, x.uri, y.uri));
-	return finish(alloc, res);
+	return buildArray!UriAndDiagnostics(alloc, (scope ref Builder!UriAndDiagnostics res) {
+		foreach (Uri uri, immutable Diagnostic[] diags; map) {
+			Diagnostic[] sortedDiags = sorted!Diagnostic(alloc, diags, (in Diagnostic x, in Diagnostic y) =>
+				compareDiagnostic(x, y));
+			res ~= UriAndDiagnostics(uri, sortedDiags);
+		}
+		arrBuilderSort!UriAndDiagnostics(res, (in UriAndDiagnostics x, in UriAndDiagnostics y) =>
+			compareUriAlphabetically(allUris, x.uri, y.uri));
+	});
 }
 
 private:

@@ -4,7 +4,7 @@ module util.jsonParse;
 
 import frontend.parse.lexUtil : isDecimalDigit, isWhitespace, takeChar, tryTakeChar, tryTakeChars;
 import util.alloc.alloc : Alloc;
-import util.col.arrayBuilder : add, ArrayBuilder, finish;
+import util.col.arrayBuilder : Builder, finish;
 import util.json : Json;
 import util.opt : force, has, none, Opt, some;
 import util.string : CString, cStringIsEmpty, MutCString, stringOfCString;
@@ -129,61 +129,50 @@ Opt!char escapedChar(char escape) {
 
 
 Opt!Json parseArray(ref Alloc alloc, scope ref AllSymbols allSymbols, scope ref MutCString ptr) {
-	ArrayBuilder!Json res;
-	return parseArrayRecur(alloc, allSymbols, res, ptr);
-}
-Opt!Json parseArrayRecur(
-	ref Alloc alloc,
-	scope ref AllSymbols allSymbols,
-	scope ref ArrayBuilder!Json res,
-	scope ref MutCString ptr,
-) {
-	if (tryTakePunctuation(ptr, ']'))
-		return some(Json(finish(alloc, res)));
-	else {
-		Opt!Json value = parseValue(alloc, allSymbols, ptr);
-		if (has(value)) {
-			add(alloc, res, force(value));
-			return tryTakePunctuation(ptr, ',')
-				? parseArrayRecur(alloc, allSymbols, res, ptr)
-				: tryTakePunctuation(ptr, ']')
-				? some(Json(finish(alloc, res)))
-				: none!Json;
-		} else
-			return none!Json;
+	Builder!Json res = Builder!Json(&alloc);
+	while (true) {
+		if (tryTakePunctuation(ptr, ']'))
+			return some(Json(finish(res)));
+		else {
+			Opt!Json value = parseValue(alloc, allSymbols, ptr);
+			if (has(value)) {
+				res ~= force(value);
+				if (tryTakePunctuation(ptr, ','))
+					continue;
+				else if (tryTakePunctuation(ptr, ']'))
+					return some(Json(finish(res)));
+				else
+					return none!Json;
+			} else
+				return none!Json;
+		}
 	}
 }
 
 Opt!Json parseObject(ref Alloc alloc, scope ref AllSymbols allSymbols, scope ref MutCString ptr) {
-	ArrayBuilder!(Json.ObjectField) res;
-	return parseObjectRecur(alloc, allSymbols, res, ptr);
-}
-
-Opt!Json parseObjectRecur(
-	ref Alloc alloc,
-	scope ref AllSymbols allSymbols,
-	scope ref ArrayBuilder!(Json.ObjectField) res,
-	scope ref MutCString ptr,
-) {
-	if (tryTakePunctuation(ptr, '"')) {
-		Opt!string keyString = parseString(alloc, ptr);
-		if (has(keyString) && tryTakePunctuation(ptr, ':')) {
-			Opt!Json value = parseValue(alloc, allSymbols, ptr);
-			if (has(value)) {
-				add(alloc, res, Json.ObjectField(symbolOfString(allSymbols, force(keyString)), force(value)));
-				return tryTakePunctuation(ptr, ',')
-					? parseObjectRecur(alloc, allSymbols, res, ptr)
-					: tryTakePunctuation(ptr, '}')
-					? some(Json(finish(alloc, res)))
-					: none!Json;
+	Builder!(Json.ObjectField) res = Builder!(Json.ObjectField)(&alloc);
+	while (true) {
+		if (tryTakePunctuation(ptr, '"')) {
+			Opt!string keyString = parseString(alloc, ptr);
+			if (has(keyString) && tryTakePunctuation(ptr, ':')) {
+				Opt!Json value = parseValue(alloc, allSymbols, ptr);
+				if (has(value)) {
+					res ~= Json.ObjectField(symbolOfString(allSymbols, force(keyString)), force(value));
+					if (tryTakePunctuation(ptr, ','))
+						continue;
+					else if (tryTakePunctuation(ptr, '}'))
+						return some(Json(finish(res)));
+					else
+						return none!Json;
+				} else
+					return none!Json;
 			} else
 				return none!Json;
-		} else
+		} else if (tryTakePunctuation(ptr, '}'))
+			return some(Json(finish(res)));
+		else
 			return none!Json;
-	} else if (tryTakePunctuation(ptr, '}'))
-		return some(Json(finish(alloc, res)));
-	else
-		return none!Json;
+	}
 }
 
 bool tryTakePunctuation(scope ref MutCString ptr, char expected) {

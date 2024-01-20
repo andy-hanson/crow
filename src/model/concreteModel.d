@@ -403,13 +403,13 @@ immutable struct ConcreteClosureRef {
 
 	PtrAndSmallNumber!ConcreteLocal paramAndIndex;
 
-	ConcreteLocal* closureParam() =>
+	ConcreteLocal* closureParam() return scope =>
 		paramAndIndex.ptr;
 
-	ushort fieldIndex() =>
+	ushort fieldIndex() scope =>
 		paramAndIndex.number;
 
-	ConcreteType type() =>
+	ConcreteType type() scope =>
 		closureParam.type.struct_.body_.as!(ConcreteStructBody.Record).fields[fieldIndex].type;
 }
 

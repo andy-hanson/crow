@@ -3,7 +3,7 @@ module frontend.ide.getTokens;
 @safe @nogc pure nothrow:
 
 import std.range : iota;
-import std.traits : EnumMembers, staticMap;
+import std.traits : EnumMembers;
 
 import frontend.parse.lexWhitespace : lexTokensBetweenAsts;
 import frontend.storage : SourceAndAst;
@@ -19,6 +19,7 @@ import model.ast :
 	DestructureAst,
 	DoAst,
 	EmptyAst,
+	EnumMemberAst,
 	ExprAst,
 	FileAst,
 	ForAst,
@@ -51,6 +52,7 @@ import model.ast :
 	PtrAst,
 	range,
 	rangeOfNameAndRange,
+	RecordFieldAst,
 	SeqAst,
 	SpecDeclAst,
 	SpecSigAst,
@@ -64,15 +66,16 @@ import model.ast :
 	TrustedAst,
 	TypeAst,
 	TypedAst,
+	UnionMemberAst,
 	UnlessAst,
 	VarDeclAst,
 	WithAst;
 import util.alloc.alloc : Alloc;
 import util.col.array : newArray, only, zip;
-import util.col.arrayBuilder : add, addAll, ArrayBuilder, finish;
+import util.col.arrayBuilder : add, addAll, ArrayBuilder, buildArray, Builder, finish;
 import util.col.sortUtil : eachSorted, sortedIter;
 import util.conv : safeToUint;
-import util.json : field, Json, jsonList, jsonObject;
+import util.json : field, Json, jsonList, jsonObject, jsonString;
 import util.opt : force, has, Opt;
 import util.sourceRange :
 	LineAndCharacterGetter,
@@ -116,27 +119,28 @@ SemanticTokens tokensOfAst(
 	return SemanticTokens(finish(alloc, ctx.tokens.encoded));
 }
 
-Json jsonOfDecodedTokens(ref Alloc alloc, in SemanticTokens a) {
-	ArrayBuilder!Json res;
-	decodeTokens(a, (in LineAndCharacter lc, size_t length, TokenType type, TokenModifiers modifiers) {
-		add(alloc, res, jsonObject(alloc, [
-			field!"line"(lc.line),
-			field!"character"(lc.character),
-			field!"length"(length),
-			field!"type"(stringOfTokenType(type)),
-			field!"modifiers"(jsonList(modifiers == noTokenModifiers
-				? []
-				: newArray(alloc, [Json(stringOfTokenModifier(modifiers))])))]));
-	});
-	return jsonList(finish(alloc, res));
-}
+Json jsonOfDecodedTokens(ref Alloc alloc, in SemanticTokens a) =>
+	jsonList(buildArray!Json(alloc, (scope ref Builder!Json res) {
+		decodeTokens(a, (in LineAndCharacter lc, size_t length, TokenType type, TokenModifiers modifiers) {
+			res ~= jsonObject(alloc, [
+				field!"line"(lc.line),
+				field!"character"(lc.character),
+				field!"length"(length),
+				field!"type"(stringOfEnum(type)),
+				field!"modifiers"(jsonList(modifiers == noTokenModifiers
+					? []
+					: newArray(alloc, [Json(stringOfTokenModifier(modifiers))])))]);
+		});
+	}));
 
-Json getTokensLegend() {
-	static immutable Json.StringObject fields = [
-		Json.StringObjectField("tokenTypes", Json(allTokenTypesJson)),
-		Json.StringObjectField("tokenModifiers", Json(allTokenModifiersJson)),
-	];
-	return Json(fields);
+Json getTokensLegend(ref Alloc alloc) {
+	static immutable TokenType[] allTokenTypes = [EnumMembers!TokenType];
+	static immutable TokenModifiers[] allTokenModifiers = [EnumMembers!TokenModifiers];
+	return jsonObject(alloc, [
+		field!"tokenTypes"(jsonList!TokenType(alloc, allTokenTypes, (in TokenType x) =>
+			jsonString(stringOfEnum(x)))),
+		field!"tokenModifiers"(jsonList!TokenModifiers(alloc, allTokenModifiers, (in TokenModifiers x) =>
+			jsonString(stringOfTokenModifier(x))))]);
 }
 
 private:
@@ -195,16 +199,8 @@ enum TokenModifiers {
 	declaration = 1,
 }
 
-immutable Json[] allTokenTypesJson = [staticMap!(jsonOfTokenType, EnumMembers!TokenType)];
-enum jsonOfTokenType(TokenType a) = Json(stringOfTokenType(a));
-
 TokenModifiers noTokenModifiers() =>
 	cast(TokenModifiers) 0;
-immutable Json[] allTokenModifiersJson = [staticMap!(jsonOfTokenModifier, EnumMembers!TokenModifiers)];
-enum jsonOfTokenModifier(TokenModifiers a) = Json(stringOfTokenModifier(a));
-
-string stringOfTokenType(TokenType a) =>
-	stringOfEnum(a);
 
 string stringOfTokenModifier(TokenModifiers a) {
 	final switch (a) {
@@ -403,14 +399,14 @@ void addStructTokens(scope ref Ctx ctx, in StructDeclAst a) {
 		},
 		(in StructBodyAst.Record record) {
 			addModifierTokens(ctx, a.modifiers);
-			foreach (ref StructBodyAst.Record.Field field; record.fields) {
+			foreach (ref RecordFieldAst field; record.fields) {
 				declare(ctx.tokens, TokenType.property, rangeOfNameAndRange(field.name, ctx.allSymbols));
 				addTypeTokens(ctx, field.type);
 			}
 		},
 		(in StructBodyAst.Union union_) {
 			addModifierTokens(ctx, a.modifiers);
-			foreach (ref StructBodyAst.Union.Member member; union_.members) {
+			foreach (ref UnionMemberAst member; union_.members) {
 				declare(ctx.tokens, TokenType.enumMember, rangeAtName(ctx.allSymbols, member.range.start, member.name));
 				if (has(member.type))
 					addTypeTokens(ctx, force(member.type));
@@ -442,12 +438,12 @@ void addEnumOrFlagsTokens(
 	scope ref Ctx ctx,
 	in StructDeclAst a,
 	in Opt!(TypeAst*) typeArg,
-	in StructBodyAst.Enum.Member[] members,
+	in EnumMemberAst[] members,
 ) {
 	if (has(typeArg))
 		addTypeTokens(ctx, *force(typeArg));
 	addModifierTokens(ctx, a.modifiers);
-	foreach (ref StructBodyAst.Enum.Member member; members) {
+	foreach (ref EnumMemberAst member; members) {
 		declare(ctx.tokens, TokenType.enumMember, member.nameRange(ctx.allSymbols));
 		if (has(member.value))
 			numberLiteral(ctx.tokens, force(member.value).range);

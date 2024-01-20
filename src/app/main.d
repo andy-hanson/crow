@@ -14,6 +14,7 @@ version (Windows) {
 
 import app.appUtil : print, printError;
 import app.backtrace : printBacktrace;
+import app.cCompile : compileC;
 import app.dyncall : withRealExtern;
 import app.fileSystem :
 	ExitCodeOrSignal,
@@ -27,7 +28,6 @@ import app.fileSystem :
 	tryReadFile,
 	withUriOrTemp,
 	writeFile;
-import backend.cCompile : compileC;
 version (GccJitAvailable) {
 	import backend.jit : jitAndRun;
 }
@@ -448,7 +448,8 @@ version (GccJitAvailable) { ExitCode buildAndJit(
 	if (hasAnyDiagnostics(programs.program))
 		printError(showDiagnostics(alloc, server, programs.program));
 	return has(programs.lowProgram)
-		? ExitCode(jitAndRun(perf, alloc, server.allSymbols, force(programs.lowProgram), jitOptions, programArgs))
+		? ExitCode(jitAndRun(
+			perf, alloc, server.allSymbols, server.allUris, force(programs.lowProgram), jitOptions, programArgs))
 		: ExitCode.error;
 } }
 

@@ -11,7 +11,7 @@ import util.alloc.alloc :
 	MetaMemorySummary,
 	summarizeMemory,
 	totalBytes;
-import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderSort, finish;
+import util.col.arrayBuilder : buildArray, Builder, arrBuilderSort;
 import util.col.array : map;
 import util.col.enumMap : EnumMap;
 import util.col.exactSizeArrayBuilder : buildArrayExact, ExactSizeArrayBuilder;
@@ -65,13 +65,14 @@ Json jsonOfEnumMap(E, V)(
 	in Json delegate(in V) @safe @nogc pure nothrow cb,
 ) {
 	alias Pair = immutable KeyValuePair!(E, V);
-	ArrayBuilder!(Pair) sorted;
-	foreach (E key, ref immutable V value; a)
-		if (getQuantity(value) != 0)
-			add(alloc, sorted, Pair(key, value));
-	arrBuilderSort!(Pair)(sorted, (in Pair x, in Pair y) =>
-		oppositeComparison(compareUlong(getQuantity(x.value), getQuantity(y.value))));
-	return Json(map(alloc, finish(alloc, sorted), (ref Pair pair) =>
+	Pair[] pairs = buildArray!Pair(alloc, (scope ref Builder!Pair res) {
+		foreach (E key, ref immutable V value; a)
+			if (getQuantity(value) != 0)
+				res ~= Pair(key, value);
+		arrBuilderSort!(Pair)(res, (in Pair x, in Pair y) =>
+			oppositeComparison(compareUlong(getQuantity(x.value), getQuantity(y.value))));
+	});
+	return Json(map(alloc, pairs, (ref Pair pair) =>
 		Json.StringObjectField(stringOfEnum(pair.key), cb(pair.value))));
 }
 

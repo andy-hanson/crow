@@ -62,7 +62,7 @@ import model.model : Program, VarKind;
 import model.typeLayout : nStackEntriesForType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.array : map;
-import util.col.arrayBuilder : ArrayBuilderWithAlloc, finish, smallFinish;
+import util.col.arrayBuilder : buildArray, Builder, buildSmallArray;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach, fullIndexMapSize, mapFullIndexMap;
 import util.col.map : Map, KeyValuePair, mustGet, zipToMap;
 import util.col.mutMap : getOrAddAndDidAdd, MutMap, ValueAndDidAdd;
@@ -176,11 +176,11 @@ SyntheticFunPointers makeSyntheticFunPointers(
 	in FunToReferences funToReferences,
 	in MakeSyntheticFunPointers cbMakeSyntheticFunPointers,
 ) {
-	ArrayBuilderWithAlloc!FunPointerInputs inputsBuilder = ArrayBuilderWithAlloc!FunPointerInputs(&alloc);
-	eachFunPointer(funToReferences, (LowFunIndex funIndex, DynCallSig sig) {
-		inputsBuilder ~= FunPointerInputs(funIndex, sig, &byteCode[funToDefinition[funIndex].index]);
+	FunPointerInputs[] inputs = buildArray!FunPointerInputs(alloc, (scope ref Builder!FunPointerInputs builder) {
+		eachFunPointer(funToReferences, (LowFunIndex funIndex, DynCallSig sig) {
+			builder ~= FunPointerInputs(funIndex, sig, &byteCode[funToDefinition[funIndex].index]);
+		});
 	});
-	FunPointerInputs[] inputs = finish(inputsBuilder);
 	FunPointer[] funPtrs = cbMakeSyntheticFunPointers(inputs);
 	FunToFunPointer funToFunPointer = zipToMap!(LowFunIndex, FunPointer, FunPointerInputs, FunPointer)(
 		alloc, inputs, funPtrs, (ref FunPointerInputs inputs, ref FunPointer funPtr) =>
@@ -285,21 +285,19 @@ struct DynCallTypeCtx {
 		*programPtr;
 }
 
-DynCallSig makeDynCallSig(ref DynCallTypeCtx ctx, in LowFun fun) {
-	ArrayBuilderWithAlloc!DynCallType sigTypes = ArrayBuilderWithAlloc!DynCallType(ctx.allocPtr);
-	sigTypes ~= toDynCallType(ctx, fun.returnType);
-	foreach (ref LowLocal x; fun.params)
-		sigTypes ~= toDynCallType(ctx, x.type);
-	return DynCallSig(smallFinish!DynCallType(sigTypes));
-}
+DynCallSig makeDynCallSig(ref DynCallTypeCtx ctx, in LowFun fun) =>
+	DynCallSig(buildSmallArray!DynCallType(ctx.alloc, (scope ref Builder!DynCallType res) {
+		res ~= toDynCallType(ctx, fun.returnType);
+		foreach (ref LowLocal x; fun.params)
+			res ~= toDynCallType(ctx, x.type);
+	}));
 
-DynCallSig makeDynCallSigFromPointer(ref DynCallTypeCtx ctx, in LowFunPointerType fun) {
-	ArrayBuilderWithAlloc!DynCallType sigTypes = ArrayBuilderWithAlloc!DynCallType(ctx.allocPtr);
-	sigTypes ~= toDynCallType(ctx, fun.returnType);
-	foreach (ref LowType x; fun.paramTypes)
-		sigTypes ~= toDynCallType(ctx, x);
-	return DynCallSig(smallFinish!DynCallType(sigTypes));
-}
+DynCallSig makeDynCallSigFromPointer(ref DynCallTypeCtx ctx, in LowFunPointerType fun) =>
+	DynCallSig(buildSmallArray!DynCallType(ctx.alloc, (scope ref Builder!DynCallType res) {
+		res ~= toDynCallType(ctx, fun.returnType);
+		foreach (ref LowType x; fun.paramTypes)
+			res ~= toDynCallType(ctx, x);
+	}));
 
 @trusted DynCallType recordOrUnionToDynCallType(T)(
 	ref DynCallTypeCtx ctx,

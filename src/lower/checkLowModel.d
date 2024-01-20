@@ -36,7 +36,7 @@ import model.lowModel :
 	targetIsPointer,
 	targetRecordType,
 	UpdateParam;
-import model.model : BuiltinUnary, BuiltinBinary, Program;
+import model.model : BuiltinBinary, BuiltinBinaryMath, BuiltinUnary, BuiltinUnaryMath, Program;
 import util.alloc.alloc : Alloc;
 import util.col.array : sizeEq;
 import util.col.array : zip;
@@ -44,7 +44,7 @@ import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
 import util.json : field, Json, jsonObject, jsonString, kindField, writeJson;
 import util.opt : force, has, none, Opt, some;
 import util.symbol : AllSymbols;
-import util.util : ptrTrustMe, stringOfEnum;
+import util.util : castNonScope, ptrTrustMe, stringOfEnum;
 import util.writer : debugLogWithWriter, Writer;
 
 void checkLowProgram(in AllSymbols allSymbols, in Program program, in LowProgram a) {
@@ -203,8 +203,19 @@ void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr
 		(in LowExprKind.SpecialUnary it) {
 			checkSpecialUnary(ctx, info, type, it);
 		},
+		(in LowExprKind.SpecialUnaryMath x) {
+			LowType actual = unaryMathType(x.kind);
+			checkTypeEqual(ctx.ctx, type, actual);
+			checkLowExpr(ctx, info, actual, x.arg);
+		},
 		(in LowExprKind.SpecialBinary it) {
 			checkSpecialBinary(ctx, info, type, it);
+		},
+		(in LowExprKind.SpecialBinaryMath x) {
+			LowType actual = binaryMathType(x.kind);
+			checkTypeEqual(ctx.ctx, type, actual);
+			foreach (scope ref LowExpr arg; castNonScope(x.args))
+				checkLowExpr(ctx, info, actual, arg);
 		},
 		(in LowExprKind.SpecialTernary) {
 			// TODO
@@ -263,36 +274,6 @@ ExpectUnary unaryExpected(
 			return ExpectUnary(some(asGcOrRawPointee(argType)), none!LowType);
 		case BuiltinUnary.drop:
 			return ExpectUnary(some(voidType), none!LowType);
-		case BuiltinUnary.acosFloat32:
-		case BuiltinUnary.acoshFloat32:
-		case BuiltinUnary.asinFloat32:
-		case BuiltinUnary.asinhFloat32:
-		case BuiltinUnary.atanFloat32:
-		case BuiltinUnary.atanhFloat32:
-		case BuiltinUnary.cosFloat32:
-		case BuiltinUnary.coshFloat32:
-		case BuiltinUnary.roundFloat32:
-		case BuiltinUnary.sinFloat32:
-		case BuiltinUnary.sinhFloat32:
-		case BuiltinUnary.sqrtFloat32:
-		case BuiltinUnary.tanFloat32:
-		case BuiltinUnary.tanhFloat32:
-			return expect(float32Type, float32Type);
-		case BuiltinUnary.acosFloat64:
-		case BuiltinUnary.acoshFloat64:
-		case BuiltinUnary.asinFloat64:
-		case BuiltinUnary.asinhFloat64:
-		case BuiltinUnary.atanFloat64:
-		case BuiltinUnary.atanhFloat64:
-		case BuiltinUnary.cosFloat64:
-		case BuiltinUnary.coshFloat64:
-		case BuiltinUnary.sinFloat64:
-		case BuiltinUnary.sinhFloat64:
-		case BuiltinUnary.tanFloat64:
-		case BuiltinUnary.tanhFloat64:
-		case BuiltinUnary.roundFloat64:
-		case BuiltinUnary.sqrtFloat64:
-			return expect(float64Type, float64Type);
 		case BuiltinUnary.toChar8FromNat8:
 			return expect(char8Type, nat8Type);
 		case BuiltinUnary.toFloat32FromFloat64:
@@ -346,6 +327,41 @@ ExpectUnary unaryExpected(
 	}
 }
 
+LowType unaryMathType(BuiltinUnaryMath kind) {
+	final switch (kind) {
+		case BuiltinUnaryMath.acosFloat32:
+		case BuiltinUnaryMath.acoshFloat32:
+		case BuiltinUnaryMath.asinFloat32:
+		case BuiltinUnaryMath.asinhFloat32:
+		case BuiltinUnaryMath.atanFloat32:
+		case BuiltinUnaryMath.atanhFloat32:
+		case BuiltinUnaryMath.cosFloat32:
+		case BuiltinUnaryMath.coshFloat32:
+		case BuiltinUnaryMath.roundFloat32:
+		case BuiltinUnaryMath.sinFloat32:
+		case BuiltinUnaryMath.sinhFloat32:
+		case BuiltinUnaryMath.sqrtFloat32:
+		case BuiltinUnaryMath.tanFloat32:
+		case BuiltinUnaryMath.tanhFloat32:
+			return float32Type;
+		case BuiltinUnaryMath.acosFloat64:
+		case BuiltinUnaryMath.acoshFloat64:
+		case BuiltinUnaryMath.asinFloat64:
+		case BuiltinUnaryMath.asinhFloat64:
+		case BuiltinUnaryMath.atanFloat64:
+		case BuiltinUnaryMath.atanhFloat64:
+		case BuiltinUnaryMath.cosFloat64:
+		case BuiltinUnaryMath.coshFloat64:
+		case BuiltinUnaryMath.sinFloat64:
+		case BuiltinUnaryMath.sinhFloat64:
+		case BuiltinUnaryMath.tanFloat64:
+		case BuiltinUnaryMath.tanhFloat64:
+		case BuiltinUnaryMath.roundFloat64:
+		case BuiltinUnaryMath.sqrtFloat64:
+			return float64Type;
+	}
+}
+
 immutable struct ExpectUnary {
 	Opt!LowType return_;
 	Opt!LowType arg;
@@ -371,13 +387,11 @@ ExpectBinary binaryExpected(
 ) {
 	final switch (kind) {
 		case BuiltinBinary.addFloat32:
-		case BuiltinBinary.atan2Float32:
 		case BuiltinBinary.mulFloat32:
 		case BuiltinBinary.subFloat32:
 		case BuiltinBinary.unsafeDivFloat32:
 			return expect(float32Type, float32Type, float32Type);
 		case BuiltinBinary.addFloat64:
-		case BuiltinBinary.atan2Float64:
 		case BuiltinBinary.mulFloat64:
 		case BuiltinBinary.subFloat64:
 		case BuiltinBinary.unsafeDivFloat64:
@@ -498,6 +512,15 @@ ExpectBinary binaryExpected(
 			return ExpectBinary(none!LowType, [some(voidType), none!LowType]);
 		case BuiltinBinary.writeToPtr:
 			return ExpectBinary(some(voidType), [none!LowType, some(asGcOrRawPointee(arg0Type))]);
+	}
+}
+
+LowType binaryMathType(BuiltinBinaryMath kind) {
+	final switch (kind) {
+		case BuiltinBinaryMath.atan2Float32:
+			return float32Type;
+		case BuiltinBinaryMath.atan2Float64:
+			return float64Type;
 	}
 }
 

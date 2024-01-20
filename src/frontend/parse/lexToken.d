@@ -77,10 +77,10 @@ immutable struct TokenAndData {
 		unexpectedCharacter = c;
 	}
 
-	bool isSymbol() =>
+	bool isSymbol() scope =>
 		isSymbolToken(token);
 
-	Symbol asSymbol() {
+	Symbol asSymbol() scope {
 		assert(isSymbol);
 		return symbol;
 	}

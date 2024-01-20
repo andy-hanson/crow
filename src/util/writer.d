@@ -3,24 +3,28 @@ module util.writer;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, withStackAlloc;
-import util.col.arrayBuilder : add, ArrayBuilder, finish;
+import util.col.arrayBuilder : Builder, finish;
 import util.col.array : zip;
 import util.conv : bitsOfFloat64;
 import util.string : eachChar, CString;
 import util.util : abs, debugLog;
 
 struct Writer {
+	@safe @nogc pure nothrow:
+
 	private:
-	Alloc* alloc;
-	ArrayBuilder!char res;
+	Builder!(immutable char) res;
+
+	this(return scope Alloc* allocPtr) {
+		res = Builder!(immutable char)(allocPtr);
+	}
 
 	void opOpAssign(string op, T)(in T a) scope if (op == "~") {
 		static if (is(T == char))
-			add(*alloc, res, a);
-		else static if (is(T == string)) {
-			foreach (char c; a)
-				this ~= c;
-		} else static if (is(immutable T == CString))
+			res ~= a;
+		else static if (is(T == string))
+			res ~= a;
+		else static if (is(immutable T == CString))
 			eachChar(a, (char c) {
 				this ~= c;
 			});
@@ -58,13 +62,13 @@ CString withStackWriter(in void delegate(scope ref Alloc, scope ref Writer) @saf
 	scope Writer writer = Writer(&alloc);
 	cb(writer);
 	writer ~= '\0';
-	return CString(finish(*writer.alloc, writer.res).ptr);
+	return CString(finish(writer.res).ptr);
 }
 
 string makeStringWithWriter(ref Alloc alloc, in void delegate(scope ref Writer writer) @safe @nogc pure nothrow cb) {
 	scope Writer writer = Writer(&alloc);
 	cb(writer);
-	return finish(*writer.alloc, writer.res);
+	return finish(writer.res);
 }
 
 void writeHex(scope ref Writer writer, ulong a) {

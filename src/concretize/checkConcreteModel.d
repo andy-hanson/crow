@@ -50,7 +50,7 @@ void checkExpr(ref Ctx ctx, in ConcreteType type, in ConcreteExpr expr) {
 		(in ConcreteExprKind.ClosureCreate) {
 			// TODO: validate 'type' is a record and this creates it
 		},
-		(in ConcreteExprKind.ClosureGet x) {
+		(in ConcreteExprKind.ClosureGet x) @safe {
 			checkType(ctx, type, x.closureRef.type);
 		},
 		(in ConcreteExprKind.ClosureSet x) {

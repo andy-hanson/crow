@@ -57,7 +57,7 @@ private Type instStructFromAst(
 	in Range suffixRange,
 	in Opt!(TypeAst*) typeArgsAst,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	TypeParams typeParamsScope,
+	in TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
 ) {
 	Opt!StructOrAlias opDecl = tryFindT!StructOrAlias(
@@ -151,7 +151,7 @@ Type typeFromAst(
 	ref CommonTypes commonTypes,
 	in TypeAst ast,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	TypeParams typeParamsScope,
+	in TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
 ) =>
 	ast.matchIn!Type(
@@ -212,7 +212,7 @@ private Opt!Type optTypeFromOptAst(
 	ref CommonTypes commonTypes,
 	in Opt!(TypeAst*) ast,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	TypeParams typeParamsScope,
+	in TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
 ) =>
 	has(ast)
@@ -224,7 +224,7 @@ Opt!(SpecInst*) specFromAst(
 	ref CommonTypes commonTypes,
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in SpecsMap specsMap,
-	TypeParams typeParamsScope,
+	in TypeParams typeParamsScope,
 	in Opt!(TypeAst*) suffixLeft,
 	NameAndRange specName,
 	MayDelaySpecInsts delaySpecInsts,
@@ -249,7 +249,7 @@ private Type typeFromTupleAst(
 	ref CommonTypes commonTypes,
 	in TypeAst[] members,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	TypeParams typeParamsScope,
+	in TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
 ) {
 	//TODO:PERF Use temp aloc
@@ -258,7 +258,7 @@ private Type typeFromTupleAst(
 	return makeTupleType(ctx.instantiateCtx, commonTypes, args);
 }
 
-private Opt!TypeParamIndex findTypeParam(TypeParams typeParamsScope, Symbol name) {
+private Opt!TypeParamIndex findTypeParam(in TypeParams typeParamsScope, Symbol name) {
 	Opt!size_t res = findIndex!NameAndRange(typeParamsScope, (in NameAndRange x) =>
 		x.name == name);
 	return has(res) ? some(TypeParamIndex(force(res))) : none!TypeParamIndex;
@@ -307,15 +307,16 @@ private Type typeFromFunAst(
 	ref CommonTypes commonTypes,
 	in TypeAst.Fun ast,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	TypeParams typeParamsScope,
+	in TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
 ) {
 	Type returnType = typeFromAst(
 		ctx, commonTypes, ast.returnType, structsAndAliasesMap, typeParamsScope, delayStructInsts);
 	Type paramType = typeFromTupleAst(
 		ctx, commonTypes, ast.paramTypes, structsAndAliasesMap, typeParamsScope, delayStructInsts);
+	Type[2] typeArgs = [returnType, paramType];
 	return Type(instantiateStruct(
-		ctx.instantiateCtx, commonTypes.funStructs[ast.kind], small!Type([returnType, paramType]), delayStructInsts));
+		ctx.instantiateCtx, commonTypes.funStructs[ast.kind], small!Type(typeArgs), delayStructInsts));
 }
 
 private Type typeFromMapAst(
@@ -323,7 +324,7 @@ private Type typeFromMapAst(
 	ref CommonTypes commonTypes,
 	in TypeAst.Map ast,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	TypeParams typeParamsScope,
+	in TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
 ) {
 	TypeAst.Tuple tuple = TypeAst.Tuple(Range.empty, castNonScope_ref(ast.kv));

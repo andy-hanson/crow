@@ -2,6 +2,8 @@ module util.symbol;
 
 @safe @nogc pure nothrow:
 
+import std.meta : staticMap;
+
 import util.alloc.alloc : Alloc;
 import util.col.array : only;
 import util.col.mutArr : MutArr, mutArrSize, push;
@@ -11,7 +13,7 @@ import util.conv : safeToSizeT;
 import util.hash : HashCode, hashUlong;
 import util.opt : force, has, Opt, none, some;
 import util.string : copyToCString, eachChar, CString, stringsEqual, stringOfCString;
-import util.util : castNonScope_ref;
+import util.util : assertNormalEnum, castNonScope_ref;
 import util.writer : digitChar, withWriter, writeEscapedChar, Writer;
 
 immutable struct Symbol {
@@ -247,6 +249,12 @@ void writeQuotedSymbol(scope ref Writer writer, in AllSymbols allSymbols, Symbol
 	writer ~= '"';
 }
 
+Symbol symbolOfEnum(E)(E a) {
+	assertNormalEnum!E();
+	static immutable Symbol[] symbols = [staticMap!(symbol, __traits(allMembers, E))];
+	return symbols[a];
+}
+
 private:
 
 // Bit to be set when the symbol is short
@@ -459,8 +467,15 @@ immutable string[] specialSymbols = [
 	"unsafe-bit-shift-right\0",
 
 	"contentChanges\0",
+	"definitionProvider\0",
 	"diagnosticsOnlyForUris\0",
+	"hoverProvider\0",
 	"initializationOptions\0",
+	"referencesProvider\0",
+	"renameProvider\0",
+	"semanticTokensProvider\0",
 	"textDocument\0",
+	"textDocumentSync\0",
+	"tokenModifiers\0",
 	"unloadedUris\0",
 ];

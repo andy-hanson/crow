@@ -13,14 +13,17 @@ import frontend.check.instantiate : DelayStructInsts;
 import frontend.check.maps : StructsAndAliasesMap;
 import frontend.check.typeFromAst : checkTypeParams, typeFromAst;
 import model.ast :
+	EnumMemberAst,
 	LiteralIntAst,
 	LiteralNatAst,
 	LiteralNatAndRange,
 	ModifierAst,
 	ModifierKeyword,
+	RecordFieldAst,
 	StructBodyAst,
 	StructDeclAst,
 	TypeAst,
+	UnionMemberAst,
 	VisibilityAndRange;
 import model.concreteModel : TypeSize;
 import model.diag : Diag, DeclKind, TypeContainer, TypeWithContainer;
@@ -390,7 +393,7 @@ EnumOrFlagsTypeAndMembers checkEnumOrFlagsMembers(
 	StructDecl* struct_,
 	in Range range,
 	in Opt!(TypeAst*) typeArg,
-	in StructBodyAst.Enum.Member[] memberAsts,
+	in EnumMemberAst[] memberAsts,
 	scope ref DelayStructInsts delayStructInsts,
 	Diag.DuplicateDeclaration.Kind memberKind,
 	in ValueAndOverflow delegate(Opt!EnumValue, EnumBackingType) @safe @nogc pure nothrow cbGetNextValue,
@@ -404,7 +407,7 @@ EnumOrFlagsTypeAndMembers checkEnumOrFlagsMembers(
 
 	MutOpt!long lastValue = noneMut!long;
 	bool anyOverflow = false;
-	EnumMember[] members = mapPointers(ctx.alloc, memberAsts, (StructBodyAst.Enum.Member* memberAst) {
+	EnumMember[] members = mapPointers(ctx.alloc, memberAsts, (EnumMemberAst* memberAst) {
 		ValueAndOverflow valueAndOverflow = () {
 			if (has(memberAst.value))
 				return isSignedEnumBackingType(enumType)
@@ -549,9 +552,8 @@ StructBody.Record checkRecord(
 		: none!ByValOrRef;
 	if (isExtern && has(modifiers.byValOrRef))
 		addDiag(ctx, force(modifiers.byValOrRef).range, Diag(Diag.ExternRecordImplicitlyByVal(struct_)));
-	RecordField[] fields = mapPointers!(RecordField, StructBodyAst.Record.Field)(
-		ctx.alloc, r.fields, (StructBodyAst.Record.Field* field) =>
-			checkRecordField(ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, field));
+	RecordField[] fields = mapPointers!(RecordField, RecordFieldAst)(ctx.alloc, r.fields, (RecordFieldAst* field) =>
+		checkRecordField(ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, field));
 	eachPair!RecordField(fields, (in RecordField a, in RecordField b) {
 		if (a.name == b.name)
 			addDiag(ctx, b.range, Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.recordField, a.name)));
@@ -567,7 +569,7 @@ RecordField checkRecordField(
 	ref StructsAndAliasesMap structsAndAliasesMap,
 	scope ref DelayStructInsts delayStructInsts,
 	StructDecl* record,
-	StructBodyAst.Record.Field* ast,
+	RecordFieldAst* ast,
 ) {
 	Type fieldType = typeFromAst(
 		ctx, commonTypes, ast.type, structsAndAliasesMap, record.typeParams, someMut(ptrTrustMe(delayStructInsts)));
@@ -599,7 +601,7 @@ StructBody.Union checkUnion(
 		case Linkage.extern_:
 			addDiagAssertSameUri(ctx, struct_.range, Diag(Diag.ExternUnion()));
 	}
-	UnionMember[] members = mapPointers(ctx.alloc, ast.members, (StructBodyAst.Union.Member* memberAst) =>
+	UnionMember[] members = mapPointers(ctx.alloc, ast.members, (UnionMemberAst* memberAst) =>
 		checkUnionMember(ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, memberAst));
 	eachPair!UnionMember(members, (in UnionMember a, in UnionMember b) {
 		if (a.name == b.name)
@@ -614,7 +616,7 @@ UnionMember checkUnionMember(
 	ref StructsAndAliasesMap structsAndAliasesMap,
 	scope ref DelayStructInsts delayStructInsts,
 	StructDecl* struct_,
-	StructBodyAst.Union.Member* ast,
+	UnionMemberAst* ast,
 ) {
 	Type type = !has(ast.type)
 		? Type(commonTypes.void_)

@@ -48,7 +48,7 @@ import model.diag : ReadFileDiag;
 import model.lowModel : ExternLibrary, ExternLibraries;
 import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
 import util.col.array : endPtr, exists, newArray;
-import util.col.arrayBuilder : ArrayBuilderWithAlloc, finish;
+import util.col.arrayBuilder : buildArray, Builder;
 import util.exitCode : ExitCode, okAnd;
 import util.memory : memset;
 import util.opt : force, has, Opt;
@@ -428,33 +428,31 @@ version (Windows) {} else {
 		scope ref AllSymbols allSymbols,
 		scope ref AllUris allUris,
 		in ExternLibraries externLibraries,
-	) {
-		if (exists!ExternLibrary(externLibraries, (in ExternLibrary x) => has(x.configuredDir))) {
-			ArrayBuilderWithAlloc!(immutable char*) res = ArrayBuilderWithAlloc!(immutable char*)(&alloc);
-			immutable(char*)* cur = __environ;
-			while (*cur != null) {
-				res ~= *cur;
-				cur++;
-			}
+	) =>
+		exists!ExternLibrary(externLibraries, (in ExternLibrary x) => has(x.configuredDir))
+			? buildArray!(immutable char*)(alloc, (scope ref Builder!(immutable char*) res) @trusted {
+				immutable(char*)* cur = __environ;
+				while (*cur != null) {
+					res ~= *cur;
+					cur++;
+				}
 
-			res ~= withWriter(alloc, (scope ref Writer writer) {
-				writer ~= "LD_LIBRARY_PATH=";
-				writeWithSeparatorAndFilter!ExternLibrary(
-					writer,
-					externLibraries,
-					";",
-					(in ExternLibrary x) => has(x.configuredDir),
-					(in ExternLibrary x) {
-						writer ~= '/';
-						writeFileUri(writer, allUris, asFileUri(allUris, force(x.configuredDir)));
-					});
-			}).ptr;
+				res ~= withWriter(alloc, (scope ref Writer writer) {
+					writer ~= "LD_LIBRARY_PATH=";
+					writeWithSeparatorAndFilter!ExternLibrary(
+						writer,
+						externLibraries,
+						";",
+						(in ExternLibrary x) => has(x.configuredDir),
+						(in ExternLibrary x) {
+							writer ~= '/';
+							writeFileUri(writer, allUris, asFileUri(allUris, force(x.configuredDir)));
+						});
+				}).ptr;
 
-			res ~= typeAs!(immutable char*)(null);
-			return finish(res).ptr;
-		} else
-			return __environ;
-	}
+				res ~= typeAs!(immutable char*)(null);
+			}).ptr
+			: __environ;
 }
 
 version (Windows) {
@@ -544,14 +542,13 @@ version (Windows) {
 	}
 }
 
-@system immutable(char**) convertArgs(ref Alloc alloc, in CString executable, in CString[] args) {
-	ArrayBuilderWithAlloc!(immutable char*) cArgs = ArrayBuilderWithAlloc!(immutable char*)(&alloc);
-	cArgs ~= executable.ptr;
-	foreach (CString arg; args)
-		cArgs ~= arg.ptr;
-	cArgs ~= typeAs!(immutable char*)(null);
-	return finish(cArgs).ptr;
-}
+@system immutable(char**) convertArgs(ref Alloc alloc, in CString executable, in CString[] args) =>
+	buildArray!(immutable char*)(alloc, (scope ref Builder!(immutable char*) res) {
+		res ~= executable.ptr;
+		foreach (CString arg; args)
+			res ~= arg.ptr;
+		res ~= typeAs!(immutable char*)(null);
+	}).ptr;
 
 extern(C) immutable char** __environ;
 

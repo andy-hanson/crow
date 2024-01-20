@@ -77,7 +77,7 @@ Json jsonOfLspOutNotification(
 Json jsonOfLspOutResult(ref Alloc alloc, in AllUris allUris, in LineAndCharacterGetters lcg, ref LspOutResult a) =>
 	a.match!Json(
 		(InitializeResult _) =>
-			jsonObject(alloc, [field!"capabilities"(initializeCapabilities)]),
+			jsonObject(alloc, [field!"capabilities"(initializeCapabilities(alloc))]),
 		(Opt!Hover x) =>
 			jsonOfHover(alloc, x),
 		(RunResult x) =>
@@ -105,22 +105,17 @@ Json jsonOfWrite(ref Alloc alloc, Write a) =>
 		field!"pipe"(stringOfEnum(a.pipe)),
 		field!"text"(a.text)]);
 
-Json initializeCapabilities() {
-	static immutable Json.StringObjectField[2] semanticTokensOptions = [
-		Json.StringObjectField("full", jsonBool(true)),
-		Json.StringObjectField("legend", getTokensLegend()),
-	];
-	static immutable Json.StringObjectField[6] capabilities = [
-		Json.StringObjectField("textDocumentSync", Json(2)), // incremental
-		//Json.StringObjectField/TODO: completionProvider: {resolveProvider: true},
-		Json.StringObjectField("definitionProvider", jsonObject([])),
-		Json.StringObjectField("hoverProvider", jsonObject([])),
-		Json.StringObjectField("referencesProvider", jsonObject([])),
-		Json.StringObjectField("renameProvider", jsonObject([])),
-		Json.StringObjectField("semanticTokensProvider", Json(semanticTokensOptions)),
-	];
-	return Json(capabilities);
-}
+Json initializeCapabilities(ref Alloc alloc) =>
+	jsonObject(alloc, [
+		field!"textDocumentSync"(2), // incremental
+		//TODO: completionProvider: {resolveProvider: true},
+		field!"definitionProvider"(jsonObject([])),
+		field!"hoverProvider"(jsonObject([])),
+		field!"referencesProvider"(jsonObject([])),
+		field!"renameProvider"(jsonObject([])),
+		field!"semanticTokensProvider"(jsonObject(alloc, [
+			field!"full"(jsonBool(true)),
+			field!"legend"(getTokensLegend(alloc))]))]);
 
 Json jsonOfPublishDiagnosticsParams(
 	ref Alloc alloc,

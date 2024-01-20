@@ -30,9 +30,11 @@ import model.ast :
 	pathRange,
 	range,
 	rangeOfNameAndRange,
+	RecordFieldAst,
 	StructBodyAst,
 	StructDeclAst,
-	TypeAst;
+	TypeAst,
+	UnionMemberAst;
 import model.model :
 	AssertOrForbidExpr,
 	BogusExpr,
@@ -96,7 +98,7 @@ import model.model :
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.array : allSame, contains, find, fold, isEmpty, only, zip;
-import util.col.arrayBuilder : buildArray;
+import util.col.arrayBuilder : buildArray, Builder;
 import util.col.hashTable : mustGet;
 import util.col.mutMaxArr : asTemporaryArray, mutMaxArr, MutMaxArr;
 import util.opt : force, has, none, Opt, optEqual, some;
@@ -114,8 +116,10 @@ UriAndRange[] getReferencesForPosition(
 ) {
 	Opt!Target target = targetForPosition(pos.kind);
 	return has(target)
-		? buildArray!UriAndRange(alloc, (in ReferenceCb cb) {
-			eachReferenceForTarget(allSymbols, allUris, program, pos.module_.uri, force(target), cb);
+		? buildArray!UriAndRange(alloc, (scope ref Builder!UriAndRange res) {
+			eachReferenceForTarget(allSymbols, allUris, program, pos.module_.uri, force(target), (in UriAndRange x) {
+				res ~= x;
+			});
 		})
 		: [];
 }
@@ -350,18 +354,18 @@ void eachTypeInStructBody(in StructBody body_, in StructBodyAst ast, in TypeCb c
 			// TODO: references for backingType
 		},
 		(in StructBody.Record x) {
-			zip!(RecordField, StructBodyAst.Record.Field)(
+			zip!(RecordField, RecordFieldAst)(
 				x.fields,
 				ast.as!(StructBodyAst.Record).fields,
-				(ref RecordField field, ref StructBodyAst.Record.Field fieldAst) {
+				(ref RecordField field, ref RecordFieldAst fieldAst) {
 					eachTypeInType(field.type, fieldAst.type, cb);
 				});
 		},
 		(in StructBody.Union x) {
-			zip!(UnionMember, StructBodyAst.Union.Member)(
+			zip!(UnionMember, UnionMemberAst)(
 				x.members,
 				ast.as!(StructBodyAst.Union).members,
-				(ref UnionMember member, ref StructBodyAst.Union.Member memberAst) {
+				(ref UnionMember member, ref UnionMemberAst memberAst) {
 					if (has(memberAst.type))
 						eachTypeInType(member.type, force(memberAst.type), cb);
 				});

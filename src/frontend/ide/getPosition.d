@@ -25,6 +25,7 @@ import model.ast :
 	rangeOfDestructureSingle,
 	rangeOfMutKeyword,
 	rangeOfNameAndRange,
+	RecordFieldAst,
 	SpecSigAst,
 	StructBodyAst,
 	StructDeclAst,
@@ -203,7 +204,7 @@ PositionKind positionInModifier(
 				return PositionKind(PositionKind.None());
 		});
 
-Opt!PositionKind positionInDestructure(in ExprCtx ctx, in Destructure a, in DestructureAst ast, Pos pos) =>
+Opt!PositionKind positionInDestructure(ref ExprCtx ctx, in Destructure a, in DestructureAst ast, Pos pos) =>
 	positionInDestructure(ctx.allSymbols, ctx.container.toLocalContainer, a, ast, pos);
 
 Opt!PositionKind positionInDestructure(
@@ -387,10 +388,10 @@ Opt!PositionKind positionInStructBody(
 		(StructBody.Flags) =>
 			none!PositionKind, // TODO
 		(StructBody.Record x) =>
-			firstZipPointerFirst!(PositionKind, RecordField, StructBodyAst.Record.Field)(
+			firstZipPointerFirst!(PositionKind, RecordField, RecordFieldAst)(
 				x.fields,
 				ast.as!(StructBodyAst.Record).fields,
-				(RecordField* field, StructBodyAst.Record.Field fieldAst) =>
+				(RecordField* field, RecordFieldAst fieldAst) =>
 					positionInRecordField(allSymbols, decl, field, fieldAst, pos)),
 		(StructBody.Union) =>
 			//TODO
@@ -400,7 +401,7 @@ Opt!PositionKind positionInRecordField(
 	in AllSymbols allSymbols,
 	StructDecl* decl,
 	RecordField* field,
-	in StructBodyAst.Record.Field fieldAst,
+	in RecordFieldAst fieldAst,
 	Pos pos,
 ) =>
 	optOr!PositionKind(
@@ -431,7 +432,7 @@ Opt!PositionKind positionInExpr(in AllSymbols allSymbols, ExprContainer containe
 	return positionInExpr(ctx, a, pos);
 }
 
-Opt!PositionKind positionInExpr(in ExprCtx ctx, ref Expr a, Pos pos) {
+Opt!PositionKind positionInExpr(ref ExprCtx ctx, ref Expr a, Pos pos) {
 	if (!hasPos(a.range, pos))
 		return none!PositionKind;
 	else {

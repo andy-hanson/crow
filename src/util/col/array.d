@@ -22,19 +22,22 @@ pure:
 struct PtrAndSmallNumber(T) {
 	@safe @nogc pure nothrow:
 
-	private ulong value;
+	union {
+		private T* pointerValue; // Not a valid pointer! Here so 'scope' works.
+		private ulong value;
+	}
 
-	private this(ulong v) {
+	private this(ulong v) inout {
 		value = v;
 	}
-	this(inout T* ptr, ushort number) inout {
+	@trusted this(return scope inout T* ptr, ushort number) inout {
 		static assert(ushort.max == 0xffff);
 		ulong val = cast(ulong) ptr;
 		assert((val & 0xffff_0000_0000_0000) == 0);
 		value = ((cast(ulong) number) << 48) | val;
 	}
 
-	ulong asTaggable() const =>
+	ulong asTaggable() inout =>
 		value;
 	static PtrAndSmallNumber!T fromTagged(ulong x) =>
 		PtrAndSmallNumber!T(x);
@@ -50,23 +53,23 @@ struct MutSmallArray(T) {
 	@safe @nogc pure nothrow:
 	alias toArray this;
 
-	private this(PtrAndSmallNumber!T v) {
+	private this(inout PtrAndSmallNumber!T v) inout {
 		sizeAndBegin = v;
 	}
 
-	ulong asTaggable() const =>
+	ulong asTaggable() inout =>
 		sizeAndBegin.asTaggable;
 	static MutSmallArray!T fromTagged(ulong x) =>
 		MutSmallArray!T(PtrAndSmallNumber!T.fromTagged(x));
 
-	@trusted this(inout T[] values) inout {
+	@trusted this(return scope inout T[] values) inout {
 		sizeAndBegin = inout PtrAndSmallNumber!T(values.ptr, safeToUshort(values.length));
 	}
 
 	@trusted inout(T[]) toArray() inout {
 		size_t length = sizeAndBegin.number;
 		assert(length < 0xffff); // sanity check
-		return sizeAndBegin.ptr()[0 .. length];
+		return sizeAndBegin.ptr[0 .. length];
 	}
 
 	private:
@@ -76,17 +79,17 @@ alias SmallArray(T) = immutable MutSmallArray!T;
 
 template small(T) {
 	static if (is(T == immutable)) {
-		SmallArray!T small(T)(T[] values) =>
+		SmallArray!T small(T)(return scope T[] values) =>
 			SmallArray!T(values);
 	} else {
-		inout(MutSmallArray!T) small(T)(inout T[] values) =>
-			SmallArray!T(values);
+		inout(MutSmallArray!T) small(T)(return scope inout T[] values) =>
+			inout MutSmallArray!T(values);
 	}
 }
 
 SmallArray!T emptySmallArray(T)() =>
 	// Don't use `SmallArray!T([])` because that can't be evaluated at compile time
-	SmallArray!T(PtrAndSmallNumber!T(0));
+	SmallArray!T(immutable PtrAndSmallNumber!T(0));
 
 @system inout(T[]) arrayOfRange(T)(inout T* begin, inout T* end) {
 	assert(begin <= end);
@@ -424,7 +427,7 @@ bool zipEvery(T, U)(in T[] a, in U[] b, in bool delegate(ref const T, ref const 
 Opt!Out zipFirst(Out, T, U)(
 	T[] a,
 	in U[] b,
-	in Opt!Out delegate(T*, in U) @safe @nogc pure nothrow cb,
+	in Opt!Out delegate(T*, ref const U) @safe @nogc pure nothrow cb,
 ) {
 	assert(sizeEq(a, b));
 	foreach (size_t i; 0 .. a.length) {

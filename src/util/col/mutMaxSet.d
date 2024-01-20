@@ -4,6 +4,7 @@ module util.col.mutMaxSet;
 
 import util.col.hashTable : deleteFromHashTableAtIndex, getIndexInHashTable, mayDeleteFromHashTable, mustAddToHashTable;
 import util.opt : force, has, MutOpt, noneMut, Opt, someMut;
+import util.util : castNonScope;
 
 struct MutMaxSet(size_t capacity, T) {
 	private:
@@ -32,7 +33,7 @@ void clear(size_t capacity, T)(ref MutMaxSet!(capacity, T) a) {
 }
 
 bool has(size_t capacity, T)(in MutMaxSet!(capacity, T) a, T value) {
-	Opt!size_t res = getIndexInHashTable!(T, T, id)(a.values, value);
+	Opt!size_t res = getIndexInHashTable!(T, T, id)(castNonScope(a.values), value);
 	return .has(res);
 }
 

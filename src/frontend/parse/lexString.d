@@ -6,7 +6,7 @@ import frontend.parse.lexUtil : charToHexNat, takeChar, tryTakeChars;
 import frontend.parse.lexWhitespace : AddDiag;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
-import util.col.arrayBuilder : ArrayBuilderWithAlloc, finish;
+import util.col.arrayBuilder : Builder, finish;
 import util.opt : force, has, none, Opt, optIf;
 import util.string : CString, MutCString, stringOfRange;
 import util.util : enumConvert;
@@ -32,7 +32,7 @@ StringPart takeStringPart(
 	QuoteKind quoteKind,
 	in AddDiag addDiag,
 ) {
-	ArrayBuilderWithAlloc!(immutable char) res = ArrayBuilderWithAlloc!(immutable char)(&alloc);
+	Builder!(immutable char) res = Builder!(immutable char)(&alloc);
 	StringPart.After after = () @safe {
 		while (true) {
 			CString start = ptr;
@@ -82,7 +82,7 @@ StringPart takeStringPart(
 private:
 
 void takeStringEscape(
-	scope ref ArrayBuilderWithAlloc!(immutable char) res,
+	scope ref Builder!(immutable char) res,
 	in CString start,
 	scope ref MutCString ptr,
 	in AddDiag addDiag,
@@ -125,7 +125,7 @@ void takeStringEscape(
 }
 
 void takeUnicodeEscape(
-	scope ref ArrayBuilderWithAlloc!(immutable char) res,
+	scope ref Builder!(immutable char) res,
 	in CString start,
 	scope ref MutCString ptr,
 	in AddDiag addDiag,
@@ -147,7 +147,7 @@ void takeUnicodeEscape(
 }
 
 void stringEscapeError(
-	scope ref ArrayBuilderWithAlloc!(immutable char) res,
+	scope ref Builder!(immutable char) res,
 	in CString start,
 	in CString ptr,
 	in AddDiag addDiag,
@@ -170,7 +170,7 @@ Opt!uint tryTakeHexDigit(ref MutCString ptr) {
 	return res;
 }
 
-bool encodeUTF8(scope ref ArrayBuilderWithAlloc!(immutable char) res, dchar a) {
+bool encodeUTF8(scope ref Builder!(immutable char) res, dchar a) {
 	if (a < 0x80) {
 		res ~= safeToChar(a);
 		return true;

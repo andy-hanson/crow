@@ -40,11 +40,10 @@ import model.model :
 	Type,
 	TypeParamIndex;
 import util.col.array : arrayOfSingle, count, first, firstZip, only, only2;
-import util.col.arrayBuilder : ArrBuilderCb;
 import util.opt : force, has, none, Opt, optOr;
 import util.sourceRange : UriAndRange;
 
-alias ReferenceCb = ArrBuilderCb!UriAndRange;
+alias ReferenceCb = void delegate(in UriAndRange) @safe @nogc pure nothrow;
 
 void eachSpecParent(in SpecDecl a, in void delegate(SpecInst*, in TypeAst) @safe @nogc pure nothrow cb) {
 	Opt!bool res = eachSpec!bool(a.parents, a.ast.modifiers, (SpecInst* x, in TypeAst ast) {

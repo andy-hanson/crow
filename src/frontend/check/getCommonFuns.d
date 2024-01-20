@@ -122,8 +122,8 @@ CommonFunsAndMain getCommonFuns(
 	Type tFuture = instantiateType(commonTypes.future, [singleTypeParamType]);
 	FunDecl* newTFuture = getFunDeclInner(
 		*modules[CommonModule.future], symbol!"new", singleTypeParams, tFuture, newTFutureParams);
-	FunInst* newNat64Future = instantiateFun(ctx, newTFuture, small!Type([nat64Type]), emptySpecImpls);
-	FunInst* newVoidFuture = instantiateFun(ctx, newTFuture, small!Type([voidType]), emptySpecImpls);
+	FunInst* newNat64Future = instantiateFun1(ctx, newTFuture, nat64Type);
+	FunInst* newVoidFuture = instantiateFun1(ctx, newTFuture, voidType);
 	FunInst* rtMain = getFun(
 		CommonModule.runtimeMain,
 		symbol!"rt-main",
@@ -162,6 +162,11 @@ ParamShort param(string name)(Type type) =>
 	ParamShort(symbol!name, type);
 
 private:
+
+FunInst* instantiateFun1(InstantiateCtx ctx, FunDecl* decl, Type typeArg) {
+	Type[1] typeArgs = [typeArg];
+	return instantiateFun(ctx, decl, small!Type(typeArgs), emptySpecImpls);
+}
 
 immutable NameAndRange[1] singleTypeParam = [NameAndRange(0, symbol!"t")];
 TypeParams singleTypeParams() => TypeParams(singleTypeParam);

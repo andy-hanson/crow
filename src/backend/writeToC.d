@@ -13,6 +13,7 @@ import backend.mangle :
 	writeMangledName,
 	writeRecordName,
 	writeStructMangledName;
+import backend.builtinMath : builtinForBinaryMath, builtinForUnaryMath;
 import backend.writeTypes : ElementAndCount, TypeWriters, writeTypes;
 import frontend.showModel : ShowCtx;
 import lower.lowExprHelpers : boolType;
@@ -59,7 +60,7 @@ import util.opt : force, has, Opt, some;
 import util.string : eachChar, CString;
 import util.symbol : AllSymbols;
 import util.union_ : Union;
-import util.util : abs, castNonScope, castNonScope_ref, ptrTrustMe;
+import util.util : abs, castNonScope, castNonScope_ref, ptrTrustMe, stringOfEnum;
 import util.writer :
 	withWriter,
 	writeEscapedChar_inner,
@@ -782,8 +783,14 @@ WriteExprResult writeExpr(
 			}),
 		(in LowExprKind.SpecialUnary it) =>
 			writeSpecialUnary(writer, indent, ctx, locals, writeKind, type, it),
+		(in LowExprKind.SpecialUnaryMath x) =>
+			specialCallUnary(
+				writer, indent, ctx, locals, writeKind, type, x.arg, stringOfEnum(builtinForUnaryMath(x.kind))),
 		(in LowExprKind.SpecialBinary it) =>
 			writeSpecialBinary(writer, indent, ctx, locals, writeKind, type, it),
+		(in LowExprKind.SpecialBinaryMath x) =>
+			specialCallBinary(
+				writer, indent, ctx, locals, writeKind, type, x.args, stringOfEnum(builtinForBinaryMath(x.kind))),
 		(in LowExprKind.SpecialTernary) =>
 			assert(false),
 		(in LowExprKind.Switch0ToN it) =>
@@ -1370,51 +1377,9 @@ WriteExprResult writeSpecialUnary(
 				}
 			});
 
-	WriteExprResult specialCall(string name) =>
-		writeInlineableSingleArg(
-			writer, indent, ctx, locals, writeKind, type, a.arg,
-			(in WriteExprResult temp) {
-				writer ~= name;
-				writer ~= '(';
-				writeTempOrInline(writer, ctx, locals, a.arg, temp);
-				writer ~= ')';
-			});
-
 	final switch (a.kind) {
-		case BuiltinUnary.acosFloat32:
-			return specialCall("acosf");
-		case BuiltinUnary.acosFloat64:
-			return specialCall("acos");
-		case BuiltinUnary.acoshFloat32:
-			return specialCall("acoshf");
-		case BuiltinUnary.acoshFloat64:
-			return specialCall("acosh");
-		case BuiltinUnary.asinFloat32:
-			return specialCall("asinf");
-		case BuiltinUnary.asinFloat64:
-			return specialCall("asin");
-		case BuiltinUnary.asinhFloat32:
-			return specialCall("asinhf");
-		case BuiltinUnary.asinhFloat64:
-			return specialCall("asinh");
-		case BuiltinUnary.atanFloat32:
-			return specialCall("atanf");
-		case BuiltinUnary.atanFloat64:
-			return specialCall("atan");
-		case BuiltinUnary.atanhFloat32:
-			return specialCall("atanhf");
-		case BuiltinUnary.atanhFloat64:
-			return specialCall("atanh");
 		case BuiltinUnary.asAnyPtr:
 			return prefix("(uint8_t*) ");
-		case BuiltinUnary.cosFloat32:
-			return specialCall("cosf");
-		case BuiltinUnary.cosFloat64:
-			return specialCall("cos");
-		case BuiltinUnary.coshFloat32:
-			return specialCall("coshf");
-		case BuiltinUnary.coshFloat64:
-			return specialCall("cosh");
 		case BuiltinUnary.deref:
 			return prefix("*");
 		case BuiltinUnary.drop:
@@ -1445,26 +1410,6 @@ WriteExprResult writeSpecialUnary(
 		case BuiltinUnary.unsafeToNat32FromNat64:
 		case BuiltinUnary.unsafeToNat64FromInt64:
 			return writeCast();
-		case BuiltinUnary.roundFloat32:
-			return specialCall("roundf");
-		case BuiltinUnary.roundFloat64:
-			return specialCall("round");
-		case BuiltinUnary.sinFloat32:
-			return specialCall("sinf");
-		case BuiltinUnary.sinFloat64:
-			return specialCall("sin");
-		case BuiltinUnary.sinhFloat32:
-			return specialCall("sinhf");
-		case BuiltinUnary.sinhFloat64:
-			return specialCall("sinh");
-		case BuiltinUnary.tanFloat32:
-			return specialCall("tanf");
-		case BuiltinUnary.tanFloat64:
-			return specialCall("tan");
-		case BuiltinUnary.tanhFloat32:
-			return specialCall("tanhf");
-		case BuiltinUnary.tanhFloat64:
-			return specialCall("tanh");
 		case BuiltinUnary.bitwiseNotNat8:
 		case BuiltinUnary.bitwiseNotNat16:
 		case BuiltinUnary.bitwiseNotNat32:
@@ -1472,15 +1417,51 @@ WriteExprResult writeSpecialUnary(
 			return prefix("~");
 		case BuiltinUnary.countOnesNat64:
 			version (Windows) {
-				return specialCall("__popcnt64");
+				immutable string name = "__popcnt64";
 			} else {
-				return specialCall("__builtin_popcountl");
+				immutable string name = "__builtin_popcountl";
 			}
-		case BuiltinUnary.sqrtFloat32:
-			return specialCall("sqrtf");
-		case BuiltinUnary.sqrtFloat64:
-			return specialCall("sqrt");
+			return specialCallUnary(writer, indent, ctx, locals, writeKind, type, a.arg, name);
 	}
+}
+
+WriteExprResult specialCallUnary(
+	scope ref Writer writer,
+	size_t indent,
+	scope ref FunBodyCtx ctx,
+	in Locals locals,
+	in WriteKind writeKind,
+	in LowType type,
+	in LowExpr arg,
+	in string name,
+) =>
+	writeInlineableSingleArg(
+		writer, indent, ctx, locals, writeKind, type, arg,
+		(in WriteExprResult temp) {
+			writer ~= name;
+			writer ~= '(';
+			writeTempOrInline(writer, ctx, locals, arg, temp);
+			writer ~= ')';
+		});
+
+WriteExprResult specialCallBinary(
+	scope ref Writer writer,
+	size_t indent,
+	scope ref FunBodyCtx ctx,
+	in Locals locals,
+	in WriteKind writeKind,
+	in LowType type,
+	in LowExpr[2] args,
+	in string name,
+) {
+	return writeInlineable(
+		writer, indent, ctx, locals, writeKind, type, castNonScope(args),
+		(in WriteExprResult[] temps) {
+			writer ~= name;
+			writer ~= '(';
+			writeTempOrInlines(writer, ctx, locals, castNonScope(args), temps);
+			writer ~= ')';
+		});
 }
 
 void writeZeroedValue(scope ref Writer writer, scope ref Ctx ctx, in LowType type) {
@@ -1555,22 +1536,7 @@ WriteExprResult writeSpecialBinary(
 			});
 	}
 
-	WriteExprResult specialCall(string name) {
-		return writeInlineable(
-			writer, indent, ctx, locals, writeKind, type, castNonScope_ref(a).args,
-			(in WriteExprResult[] temps) {
-				writer ~= name;
-				writer ~= '(';
-				writeTempOrInlines(writer, ctx, locals, castNonScope_ref(a).args, temps);
-				writer ~= ')';
-			});
-	}
-
 	final switch (a.kind) {
-		case BuiltinBinary.atan2Float32:
-			return specialCall("atan2f");
-		case BuiltinBinary.atan2Float64:
-			return specialCall("atan2");
 		case BuiltinBinary.addFloat32:
 		case BuiltinBinary.addFloat64:
 		case BuiltinBinary.addPtrAndNat64:

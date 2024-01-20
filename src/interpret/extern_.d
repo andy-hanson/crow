@@ -11,7 +11,7 @@ import util.hash : HashCode, hashPtr;
 import util.opt : Opt;
 import util.string : CString;
 import util.symbol : AllSymbols, Symbol, symbolAsTempBuffer;
-import util.union_ : Union;
+import util.union_ : TaggedUnion;
 
 immutable struct Extern {
 	// 'none' if anything failed to load
@@ -116,7 +116,7 @@ immutable struct DynCallType {
 		// This is a DCaggr, but avoiding the dependency on dyncall here
 		DCaggr* dcAggr;
 	}
-	mixin Union!(PrimitiveType, Pointer, Aggregate*);
+	mixin TaggedUnion!(PrimitiveType, Pointer, Aggregate*);
 
 	@safe @nogc pure nothrow:
 

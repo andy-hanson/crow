@@ -24,13 +24,13 @@ import model.model :
 	TypeParams,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.array : isEmpty, small;
-import util.col.arrayBuilder : add, ArrayBuilder, finish;
-import util.col.enumMap : EnumMap;
+import util.col.array : isEmpty, makeArray, small;
+import util.col.arrayBuilder : add, ArrayBuilder;
+import util.col.enumMap : EnumMap, makeEnumMap;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, someMut, some;
 import util.sourceRange : Range, UriAndRange;
-import util.symbol : Symbol, symbol;
+import util.symbol : Symbol, symbol, symbolOfEnum;
 import util.uri : Uri;
 import util.util : ptrTrustMe;
 
@@ -42,103 +42,105 @@ CommonTypes* getCommonTypes(
 	in StructsAndAliasesMap structsAndAliasesMap,
 	scope ref DelayStructInsts delayedStructInsts,
 ) {
-	void addDiagMissing(Symbol name) {
-		add(alloc, diagnosticsBuilder, Diagnostic(Range.empty, Diag(Diag.CommonTypeMissing(name))));
-	}
-
-	StructInst* nonTemplateFromSymbol(Symbol name) {
-		Opt!(StructInst*) res =
-			getCommonNonTemplateType(instantiateCtx, structsAndAliasesMap, name, delayedStructInsts);
-		if (has(res))
-			return force(res);
-		else {
-			addDiagMissing(name);
-			return instantiateNonTemplateStructDecl(instantiateCtx, delayedStructInsts, bogusStructDecl(alloc, 0));
-		}
-	}
-	StructInst* nonTemplate(string name)() {
-		return nonTemplateFromSymbol(symbol!name);
-	}
-
-	StructInst* bool_ = nonTemplate!"bool";
-	StructInst* char8 = nonTemplate!"char8";
-	StructInst* float32 = nonTemplate!"float32";
-	StructInst* float64 = nonTemplate!"float64";
-	StructInst* int8 = nonTemplate!"int8";
-	StructInst* int16 = nonTemplate!"int16";
-	StructInst* int32 = nonTemplate!"int32";
-	StructInst* int64 = nonTemplate!"int64";
-	StructInst* nat8 = nonTemplate!"nat8";
-	StructInst* nat16 = nonTemplate!"nat16";
-	StructInst* nat32 = nonTemplate!"nat32";
-	StructInst* nat64 = nonTemplate!"nat64";
-	StructInst* stringType = nonTemplate!"string";
-	StructInst* symbolType = nonTemplate!"symbol";
-	StructInst* void_ = nonTemplate!"void";
-
-	StructDecl* getDeclFromSymbol(Symbol name, size_t nTypeParameters) {
-		Opt!(StructDecl*) res = getCommonTemplateType(structsAndAliasesMap, name, nTypeParameters);
-		if (has(res))
-			return force(res);
-		else {
-			addDiagMissing(name);
-			return bogusStructDecl(alloc, nTypeParameters);
-		}
-	}
-	StructDecl* getDecl(string name)(size_t nTypeParameters) {
-		return getDeclFromSymbol(symbol!name, nTypeParameters);
-	}
-
-	StructDecl* array = getDecl!"array"(1);
-	StructDecl* future = getDecl!"future"(1);
-	StructDecl* opt = getDecl!"option"(1);
-	StructDecl* pointerConst = getDecl!"const-pointer"(1);
-	StructDecl* pointerMut = getDecl!"mut-pointer"(1);
-	EnumMap!(FunKind, StructDecl*) funs = immutable EnumMap!(FunKind, StructDecl*)([
-		getDecl!"fun-fun"(2), getDecl!"fun-act"(2), getDecl!"fun-far"(2), getDecl!"fun-pointer"(2),
-	]);
-
-	StructDecl* constPointer = getDecl!"const-pointer"(1);
-	StructInst* cString = instantiateStruct(
-		instantiateCtx, constPointer, small!Type([Type(char8)]), someMut(ptrTrustMe(delayedStructInsts)));
-	StructInst* symbolArray = instantiateStruct(
-		instantiateCtx, array, small!Type([Type(symbolType)]), someMut(ptrTrustMe(delayedStructInsts)));
-	StructInst* voidFuture = instantiateStruct(
-		instantiateCtx, future, small!Type([Type(void_)]), someMut(ptrTrustMe(delayedStructInsts)));
-
-	StructDecl*[8] tuples = [
-		getDecl!"tuple2"(2),
-		getDecl!"tuple3"(3),
-		getDecl!"tuple4"(4),
-		getDecl!"tuple5"(5),
-		getDecl!"tuple6"(6),
-		getDecl!"tuple7"(7),
-		getDecl!"tuple8"(8),
-		getDecl!"tuple9"(9),
-	];
-
+	CommonTypesCtx ctx = CommonTypesCtx(
+		ptrTrustMe(alloc),
+		instantiateCtx,
+		ptrTrustMe(diagnosticsBuilder),
+		ptrTrustMe(structsAndAliasesMap),
+		ptrTrustMe(delayedStructInsts));
+	StructInst* char8 = nonTemplate(ctx, symbol!"char8");
+	StructInst* symbolType = nonTemplate(ctx, symbol!"symbol");
+	StructInst* void_ = nonTemplate(ctx, symbol!"void");
+	StructDecl* array = getDecl(ctx, symbol!"array", 1);
+	StructDecl* future = getDecl(ctx, symbol!"future", 1);
+	StructDecl* pointerConst = getDecl(ctx, symbol!"const-pointer", 1);
 	return allocate(alloc, CommonTypes(
-		bool_,
-		char8,
-		cString,
-		float32,
-		float64,
-		IntegralTypes(EnumMap!(EnumBackingType, StructInst*)([int8, int16, int32, int64, nat8, nat16, nat32, nat64])),
-		stringType,
-		symbolType,
-		symbolArray,
-		void_,
-		array,
-		future,
-		voidFuture,
-		opt,
-		pointerConst,
-		pointerMut,
-		tuples,
-		funs,));
+		bool_: nonTemplate(ctx, symbol!"bool"),
+		char8: char8,
+		cString: instantiate1(ctx, pointerConst, char8),
+		float32: nonTemplate(ctx, symbol!"float32"),
+		float64: nonTemplate(ctx, symbol!"float64"),
+		integrals: IntegralTypes(makeEnumMap!EnumBackingType((EnumBackingType type) =>
+			nonTemplate(ctx, symbolOfEnum(type)))),
+		string_: nonTemplate(ctx, symbol!"string"),
+		symbol: symbolType,
+		symbolArray: instantiate1(ctx, array, symbolType),
+		void_: void_,
+		array: array,
+		future: future,
+		voidFuture: instantiate1(ctx, future, void_),
+		opt: getDecl(ctx, symbol!"option", 1),
+		ptrConst: pointerConst,
+		ptrMut: getDecl(ctx, symbol!"mut-pointer", 1),
+		tuples2Through9: [
+			getDecl(ctx, symbol!"tuple2", 2),
+			getDecl(ctx, symbol!"tuple3", 3),
+			getDecl(ctx, symbol!"tuple4", 4),
+			getDecl(ctx, symbol!"tuple5", 5),
+			getDecl(ctx, symbol!"tuple6", 6),
+			getDecl(ctx, symbol!"tuple7", 7),
+			getDecl(ctx, symbol!"tuple8", 8),
+			getDecl(ctx, symbol!"tuple9", 9),
+		],
+		funStructs: immutable EnumMap!(FunKind, StructDecl*)([
+			getDecl(ctx, symbol!"fun-fun", 2),
+			getDecl(ctx, symbol!"fun-act", 2),
+			getDecl(ctx, symbol!"fun-far", 2),
+			getDecl(ctx, symbol!"fun-pointer", 2),
+		])));
 }
 
 private:
+
+struct CommonTypesCtx {
+	@safe @nogc pure nothrow:
+
+	Alloc* allocPtr;
+	InstantiateCtx instantiateCtx;
+	ArrayBuilder!Diagnostic* diagnosticsBuilderPtr;
+	StructsAndAliasesMap* structsAndAliasesMapPtr;
+	DelayStructInsts* delayedStructInstsPtr;
+
+	ref Alloc alloc() =>
+		*allocPtr;
+	ref ArrayBuilder!Diagnostic diagnosticsBuilder() =>
+		*diagnosticsBuilderPtr;
+	ref StructsAndAliasesMap structsAndAliasesMap() =>
+		*structsAndAliasesMapPtr;
+	ref DelayStructInsts delayedStructInsts() =>
+		*delayedStructInstsPtr;
+}
+
+void addDiagMissing(ref CommonTypesCtx ctx, Symbol name) {
+	add(ctx.alloc, ctx.diagnosticsBuilder, Diagnostic(Range.empty, Diag(Diag.CommonTypeMissing(name))));
+}
+
+StructDecl* getDecl(ref CommonTypesCtx ctx, Symbol name, size_t nTypeParameters) {
+	Opt!(StructDecl*) res = getCommonTemplateType(ctx.structsAndAliasesMap, name, nTypeParameters);
+	if (has(res))
+		return force(res);
+	else {
+		addDiagMissing(ctx, name);
+		return bogusStructDecl(ctx.alloc, nTypeParameters);
+	}
+}
+
+StructInst* nonTemplate(ref CommonTypesCtx ctx, Symbol name) {
+	Opt!(StructInst*) res =
+		getCommonNonTemplateType(ctx.instantiateCtx, ctx.structsAndAliasesMap, name, ctx.delayedStructInsts);
+	if (has(res))
+		return force(res);
+	else {
+		addDiagMissing(ctx, name);
+		return instantiateNonTemplateStructDecl(
+			ctx.instantiateCtx, ctx.delayedStructInsts, bogusStructDecl(ctx.alloc, 0));
+	}
+}
+
+StructInst* instantiate1(ref CommonTypesCtx ctx, StructDecl* decl, StructInst* typeArg) {
+	Type[1] typeArgs = [Type(typeArg)];
+	return instantiateStruct(ctx.instantiateCtx, decl, small!Type(typeArgs), someMut(ctx.delayedStructInstsPtr));
+}
 
 Opt!(StructDecl*) getCommonTemplateType(
 	in StructsAndAliasesMap structsAndAliasesMap,
@@ -187,12 +189,11 @@ StructInst* instantiateNonTemplateStructDecl(
 	instantiateStruct(ctx, structDecl, emptyTypeArgs, someMut(ptrTrustMe(delayedStructInsts)));
 
 StructDecl* bogusStructDecl(ref Alloc alloc, size_t nTypeParameters) {
-	ArrayBuilder!NameAndRange typeParams;
 	UriAndRange uriAndRange = UriAndRange.empty;
-	foreach (size_t i; 0 .. nTypeParameters)
-		add(alloc, typeParams, NameAndRange(0, symbol!""));
+	TypeParams typeParams = small!NameAndRange(makeArray!NameAndRange(alloc, nTypeParameters, (size_t i) =>
+		NameAndRange(0, symbol!"")));
 	StructDecl* res = allocate(alloc, StructDecl(
-		StructDeclSource(allocate(alloc, StructDeclSource.Bogus(TypeParams(finish(alloc, typeParams))))),
+		StructDeclSource(allocate(alloc, StructDeclSource.Bogus(typeParams))),
 		uriAndRange.uri,
 		symbol!"",
 		Visibility.public_,

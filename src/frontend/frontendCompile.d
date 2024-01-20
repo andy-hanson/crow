@@ -25,7 +25,7 @@ import model.model :
 	CommonTypes, Config, emptyConfig, getConfigUri, getModuleUri, MainFun, Module, Program, ProgramWithMain;
 import util.alloc.alloc :
 	Alloc, AllocAndValue, allocateUninitialized, AllocKind, freeAllocAndValue, MetaAlloc, newAlloc, withAlloc;
-import util.col.arrayBuilder : add, ArrayBuilder, asTemporaryArray, finish;
+import util.col.arrayBuilder : asTemporaryArray, Builder, finish;
 import util.col.array : contains, exists, every, findIndex, map;
 import util.col.exactSizeArrayBuilder : buildArrayExact, ExactSizeArrayBuilder;
 import util.col.hashTable : getOrAdd, HashTable, mapPreservingKeys, moveToImmutable, mustGet, MutHashTable;
@@ -300,21 +300,21 @@ void doDirtyWork(scope ref Perf perf, ref FrontendCompiler a) {
 void fixCircularImports(ref FrontendCompiler a) {
 	foreach (CrowFile* x; a.crowFiles)
 		if (!x.hasModule) {
-			ArrayBuilder!Uri cycleBuilder;
+			Builder!Uri cycleBuilder = Builder!Uri(a.allocPtr);
 			fixCircularImportsRecur(a, cycleBuilder, x);
 			return;
 		}
 }
-Uri[] fixCircularImportsRecur(ref FrontendCompiler a, scope ref ArrayBuilder!Uri cycleBuilder, CrowFile* file) {
+Uri[] fixCircularImportsRecur(ref FrontendCompiler a, ref Builder!Uri cycleBuilder, CrowFile* file) {
 	assert(!file.hasModule);
-	add(a.alloc, cycleBuilder, file.uri);
+	cycleBuilder ~= file.uri;
 	Opt!size_t optImportIndex = findIndex!MostlyResolvedImport(
 		force(file.resolvedImports), (in MostlyResolvedImport x) =>
-			!isImportWorkable(a.allUris, x));
+			!isImportWorkable(x));
 	size_t importIndex = force(optImportIndex);
 	CrowFile* next = force(file.resolvedImports)[importIndex].as!(CrowFile*);
 	Uri[] cycle = contains(asTemporaryArray(cycleBuilder), next.uri)
-		? finish(a.alloc, cycleBuilder)
+		? finish(cycleBuilder)
 		: fixCircularImportsRecur(a, cycleBuilder, next);
 	force(file.resolvedImports)[importIndex] = MostlyResolvedImport(
 		Diag.ImportFileDiag(Diag.ImportFileDiag.CircularImport(cycle)));
@@ -324,7 +324,7 @@ Uri[] fixCircularImportsRecur(ref FrontendCompiler a, scope ref ArrayBuilder!Uri
 }
 
 Module* compileNonBootstrapModule(scope ref Perf perf, ref Alloc alloc, ref FrontendCompiler a, CrowFile* file) {
-	assert(isWorkable(a.allUris, *file));
+	assert(isWorkable(*file));
 	assert(has(a.commonTypes)); // bootstrap is always compiled first
 	UriAndAst ast = UriAndAst(file.uri, toAst(alloc, file.astOrDiag));
 	return check(
@@ -402,20 +402,20 @@ MutOpt!(Uri[]) asCircularImport(MostlyResolvedImport a) =>
 		: noneMut!(Uri[]);
 
 void addToWorkableIfSo(ref FrontendCompiler a, CrowFile* file) {
-	if (isWorkable(a.allUris, *file))
+	if (isWorkable(*file))
 		mustAdd(a.workable, file);
 }
 
 // Note: File won't actually be worked on until 'CommonTypes' is set, but it still gets marked here.
-bool isWorkable(scope ref AllUris allUris, in CrowFile a) {
+bool isWorkable(in CrowFile a) {
 	assert(!a.hasModule);
 	return !isUnknownOrLoading(a) &&
 		has(a.config) &&
 		every!MostlyResolvedImport(force(a.resolvedImports), (in MostlyResolvedImport x) =>
-			isImportWorkable(allUris, x));
+			isImportWorkable(x));
 }
 
-bool isImportWorkable(scope ref AllUris allUris, in MostlyResolvedImport a) =>
+bool isImportWorkable(in MostlyResolvedImport a) =>
 	a.matchConst!bool(
 		(const CrowFile* x) =>
 			x.hasModule,
@@ -508,7 +508,7 @@ ResolvedImport[] fullyResolveImports(ref FrontendCompiler a, in MostlyResolvedIm
 			(Diag.ImportFileDiag x) =>
 				ResolvedImport(x)));
 
-MutOpt!(Config*) tryFindConfig(scope ref Storage storage, scope ref AllUris allUris, Uri configDir) {
+MutOpt!(Config*) tryFindConfig(ref Storage storage, scope ref AllUris allUris, Uri configDir) {
 	Uri configUri = childUri(allUris, configDir, crowConfigBaseName);
 	return getParsedOrDiag(storage, configUri).match!(MutOpt!(Config*))(
 		(ParseResult x) =>

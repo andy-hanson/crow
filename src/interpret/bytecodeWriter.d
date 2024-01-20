@@ -130,7 +130,7 @@ void writeCallFunPointer(
 	ByteCodeSource source,
 	// This is before the fun-pointer arg, which should be the first
 	StackEntry stackEntryBeforeArgs,
-	in DynCallSig sig,
+	DynCallSig sig,
 ) {
 	assert(stackEntryBeforeArgs.entry == writer.nextStackEntry - countParameterEntries(sig) - 1);
 	pushOperationFn(writer, source, &opCallFunPointer);
@@ -139,18 +139,13 @@ void writeCallFunPointer(
 	assert(writer.nextStackEntry == stackEntryBeforeArgs.entry + sizeWords(sig.returnType));
 }
 
-void writeCallFunPointerExtern(
-	scope ref ByteCodeWriter writer,
-	ByteCodeSource source,
-	FunPointer fun,
-	in DynCallSig sig,
-) {
+void writeCallFunPointerExtern(scope ref ByteCodeWriter writer, ByteCodeSource source, FunPointer fun, DynCallSig sig) {
 	pushOperationFn(writer, source, &opCallFunPointerExtern);
 	pushOperation(writer, source, Operation(fun));
 	writeCallFunPointerCommon(writer, source, sig);
 }
 
-private void writeCallFunPointerCommon(scope ref ByteCodeWriter writer, ByteCodeSource source, in DynCallSig sig) {
+private void writeCallFunPointerCommon(scope ref ByteCodeWriter writer, ByteCodeSource source, DynCallSig sig) {
 	pushOperation(writer, source, Operation(sig));
 	writer.nextStackEntry -= countParameterEntries(sig);
 	writer.nextStackEntry += sizeWords(sig.returnType);

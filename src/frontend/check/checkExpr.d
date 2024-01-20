@@ -230,7 +230,7 @@ TestBody checkTestBody(
 	FunOrLambdaInfo funInfo = FunOrLambdaInfo(noneMut!(LocalsInfo*), none!(LambdaExpr*));
 	LocalsInfo locals = LocalsInfo(ptrTrustMe(funInfo), noneMut!(LocalNode*));
 	TypeAndContext[2] choices = [nonInferring(Type(commonTypes.void_)), nonInferring(Type(commonTypes.voidFuture))];
-	Expected expected = Expected(small!TypeAndContext(choices));
+	Expected expected = Expected(small!TypeAndContext(castNonScope_ref(choices)));
 	Expr expr = checkExpr(castNonScope_ref(exprCtx), locals, ast, expected);
 	Type actual = inferred(expected);
 	Test.BodyType bodyType = actual == Type(commonTypes.void_)

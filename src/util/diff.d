@@ -4,7 +4,7 @@ module util.diff;
 
 import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
 import util.col.array : contains, indexOfMax, max, only;
-import util.col.arrayBuilder : add, ArrayBuilder, finish;
+import util.col.arrayBuilder : buildArray, Builder;
 import util.comparison : compareSizeT;
 import util.symbol : AllSymbols, Symbol, symbol, symbolSize, writeSymbol, writeSymbolAndGetSize;
 import util.writer : writeNewline, Writer, writeRed, writeReset, writeSpaces;
@@ -100,32 +100,31 @@ size_t findBestSplitIndex(
 }
 
 void longestCommonSubsequenceRecur(
-	ref Alloc alloc,
 	in Symbol[] a,
 	in Symbol[] b,
 	ref size_t[] scratch,
-	ref ArrayBuilder!Symbol res,
+	scope ref Builder!Symbol res,
 ) {
 	if (b.length == 0) {
 		// No output
 	} else if (a.length == 1) {
 		Symbol sa = only(a);
 		if (contains(b, sa))
-			add(alloc, res, sa);
+			res ~= sa;
 	} else {
 		// Always slice 'a' exactly in half. Then find best way to slice 'b'.
 		size_t aSplit = a.length / 2;
 		size_t bSplit = findBestSplitIndex(a, b, scratch);
-		longestCommonSubsequenceRecur(alloc, a[0 .. aSplit], b[0 .. bSplit], scratch, res);
-		longestCommonSubsequenceRecur(alloc, a[aSplit .. $], b[bSplit .. $], scratch, res);
+		longestCommonSubsequenceRecur(a[0 .. aSplit], b[0 .. bSplit], scratch, res);
+		longestCommonSubsequenceRecur(a[aSplit .. $], b[bSplit .. $], scratch, res);
 	}
 }
 
 @trusted Symbol[] longestCommonSubsequence(ref Alloc alloc, in Symbol[] a, in Symbol[] b) {
 	size_t[] scratch = allocateElements!size_t(alloc, (b.length + 1) * 2);
-	ArrayBuilder!Symbol res;
-	longestCommonSubsequenceRecur(alloc, a, b, scratch, res);
-	return finish(alloc, res);
+	return buildArray!Symbol(alloc, (scope ref Builder!Symbol res) {
+		longestCommonSubsequenceRecur(a, b, scratch, res);
+	});
 }
 
 void printDiff(

@@ -30,7 +30,7 @@ Opt!FunType getFunType(in CommonTypes commonTypes, Type a) {
 		return none!FunType;
 }
 
-Type nonInstantiatedReturnType(InstantiateCtx ctx, ref CommonTypes commonTypes, in FunType funType) =>
+Type nonInstantiatedReturnType(InstantiateCtx ctx, ref CommonTypes commonTypes, ref FunType funType) =>
 	funType.kind == FunKind.far
 		? makeFutType(ctx, commonTypes, funType.nonInstantiatedNonFutReturnType)
 		: funType.nonInstantiatedNonFutReturnType;

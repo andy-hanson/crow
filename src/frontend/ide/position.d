@@ -25,7 +25,7 @@ import model.model :
 	Visibility;
 import util.opt : Opt;
 import util.symbol : Symbol;
-import util.union_ : Union;
+import util.union_ : TaggedUnion, Union;
 import util.uri : Uri;
 
 immutable struct Position {
@@ -36,9 +36,9 @@ immutable struct Position {
 immutable struct ExprContainer {
 	@safe @nogc pure nothrow:
 
-	mixin Union!(FunDecl*, Test*);
+	mixin TaggedUnion!(FunDecl*, Test*);
 
-	LocalContainer toLocalContainer() =>
+	LocalContainer toLocalContainer() return scope =>
 		matchWithPointers!LocalContainer(
 			(FunDecl* x) =>
 				LocalContainer(x),
@@ -54,9 +54,9 @@ immutable struct ExprContainer {
 
 immutable struct LocalContainer {
 	@safe @nogc pure nothrow:
-	mixin Union!(FunDecl*, Test*, SpecDecl*);
+	mixin TaggedUnion!(FunDecl*, Test*, SpecDecl*);
 
-	TypeContainer toTypeContainer() =>
+	TypeContainer toTypeContainer() return scope =>
 		matchWithPointers!TypeContainer(
 			(FunDecl* x) =>
 				TypeContainer(x),
@@ -65,7 +65,7 @@ immutable struct LocalContainer {
 			(SpecDecl* x) =>
 				TypeContainer(x));
 
-	Uri moduleUri() =>
+	Uri moduleUri() scope =>
 		toTypeContainer.moduleUri;
 
 	NameAndRange[] typeParams() =>

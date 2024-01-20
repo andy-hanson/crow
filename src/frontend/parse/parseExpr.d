@@ -132,11 +132,18 @@ ExprAst[] parseArgsForOperator(ref Lexer lexer, ArgCtx ctx) =>
 	newArray!ExprAst(lexer.alloc, [parseExprAndCalls(lexer, ctx)]);
 
 ExprAst[] parseArgs(ref Lexer lexer, ArgCtx ctx) {
+	ArrayBuilder!ExprAst res;
+	parseArgsWithBuilder(lexer, ctx, res);
+	return finish(lexer.alloc, res);
+}
+
+void parseArgsWithBuilder(ref Lexer lexer, ArgCtx ctx, scope ref ArrayBuilder!ExprAst res) {
+	assert(ctx.allowedCalls.minPrecedenceExclusive >= commaPrecedence);
 	if (peekTokenExpression(lexer)) {
-		ArrayBuilder!ExprAst builder;
-		return parseArgsRecur(lexer, ctx, builder);
-	} else
-		return [];
+		do {
+			add(lexer.alloc, res, parseExprAndCalls(lexer, ctx));
+		} while (tryTakeTokenAndMayContinueOntoNextLine(lexer, Token.comma));
+	}
 }
 
 bool peekTokenExpression(ref Lexer lexer) =>
@@ -227,14 +234,6 @@ bool isExpressionStartToken(Token a) {
 	}
 }
 
-ExprAst[] parseArgsRecur(ref Lexer lexer, ArgCtx ctx, ref ArrayBuilder!ExprAst args) {
-	assert(ctx.allowedCalls.minPrecedenceExclusive >= commaPrecedence);
-	add(lexer.alloc, args, parseExprAndCalls(lexer, ctx));
-	return tryTakeTokenAndMayContinueOntoNextLine(lexer, Token.comma)
-		? parseArgsRecur(lexer, ctx, args)
-		: finish(lexer.alloc, args);
-}
-
 ExprAst parseAssignment(ref Lexer lexer, Pos start, ref ExprAst left, Pos assignmentPos) {
 	ExprAst right = parseExprNoLet(lexer);
 	return ExprAst(
@@ -284,13 +283,11 @@ bool canParseCommaExpr(in ArgCtx argCtx) =>
 ExprAst parseCallsAfterComma(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) {
 	ArrayBuilder!ExprAst builder;
 	add(lexer.alloc, builder, lhs);
-	ExprAst[] args = peekTokenExpression(lexer)
-		? parseArgsRecur(lexer, requirePrecedenceGtComma(argCtx), builder)
-		: finish(lexer.alloc, builder);
+	parseArgsWithBuilder(lexer, requirePrecedenceGtComma(argCtx), builder);
 	Range range = range(lexer, start);
 	return ExprAst(range, ExprAstKind(
 		//TODO: range is wrong..
-		CallAst(CallAst.Style.comma, NameAndRange(range.start, symbol!"new"), args)));
+		CallAst(CallAst.Style.comma, NameAndRange(range.start, symbol!"new"), finish(lexer.alloc, builder))));
 }
 
 struct NameAndPrecedence {

@@ -160,7 +160,7 @@ bool isFull(in RealTrace* trace) =>
 Trace.Result checkCandidate(Trace)(
 	ref CheckSpecsCtx ctx,
 	SpecDeclSig* sigDecl,
-	in ReturnAndParamTypes sigType,
+	ReturnAndParamTypes sigType,
 	ref Candidate candidate,
 	scope Trace trace,
 ) =>
@@ -227,7 +227,7 @@ Called[] finishMultipleMatches(ref CheckSpecsCtx ctx, scope RealTrace*, ref Arra
 Trace.Result findSpecSigImplementation(Trace)(
 	ref CheckSpecsCtx ctx,
 	SpecDeclSig* sigDecl,
-	in ReturnAndParamTypes sigType,
+	ReturnAndParamTypes sigType,
 	scope Trace trace,
 ) {
 	Cell!(Opt!Called) res;
@@ -304,7 +304,8 @@ Opt!(Trace.NoMatch) checkSpecImpl(Trace)(
 			() => first!(Trace.NoMatch, immutable SpecInst*)(
 				specInstInstantiated.parents, (SpecInst* parent) => checkSpecImpl(res, ctx, called, trace, *parent)),
 			() => zipFirst!(Trace.NoMatch, SpecDeclSig, ReturnAndParamTypes)(
-				decl.sigs, specInstInstantiated.sigTypes, (SpecDeclSig* sigDecl, in ReturnAndParamTypes sigType) =>
+				decl.sigs, specInstInstantiated.sigTypes,
+				(SpecDeclSig* sigDecl, ref const ReturnAndParamTypes sigType) =>
 					findSpecSigImplementation(ctx, sigDecl, sigType, trace).match!(Opt!(Trace.NoMatch))(
 						(Called x) {
 							res ~= x;

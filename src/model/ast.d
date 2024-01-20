@@ -13,7 +13,7 @@ import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
 import util.sourceRange : combineRanges, Pos, Range, rangeOfStartAndLength;
 import util.string : SmallString;
 import util.symbol : AllSymbols, Symbol, symbol, symbolSize;
-import util.union_ : Union;
+import util.union_ : TaggedUnion, Union;
 import util.uri : AllUris, Path, pathLength, RelPath, relPathLength;
 
 immutable struct NameAndRange {
@@ -228,7 +228,7 @@ immutable struct BogusAst {}
 immutable struct CallAst {
 	@safe @nogc pure nothrow:
 
-	enum Style {
+	enum Style : ubyte {
 		comma, // `a, b`, `a, b, c`, etc.
 		dot, // `a.b`
 		emptyParens, // `()`
@@ -261,6 +261,7 @@ immutable struct CallAst {
 	NameAndRange funName() scope =>
 		NameAndRange(funNameStart, funNameName);
 }
+static assert(CallAst.sizeof == ulong.sizeof * 4);
 
 Range nameRange(in AllSymbols allSymbols, in CallAst a) =>
 	rangeOfNameAndRange(a.funName, allSymbols);
@@ -565,7 +566,7 @@ immutable struct ParamsAst {
 	immutable struct Varargs {
 		DestructureAst param;
 	}
-	mixin Union!(SmallArray!DestructureAst, Varargs*);
+	mixin TaggedUnion!(SmallArray!DestructureAst, Varargs*);
 }
 static assert(ParamsAst.sizeof == 8);
 
@@ -685,63 +686,64 @@ immutable struct LiteralIntOrNatKind {
 immutable struct StructBodyAst {
 	immutable struct Builtin {}
 	immutable struct Enum {
-		immutable struct Member {
-			@safe @nogc pure nothrow:
-
-			Range range;
-			Symbol name;
-			Opt!LiteralIntOrNat value;
-
-			NameAndRange nameAndRange() scope =>
-				NameAndRange(range.start, name);
-			Range nameRange(in AllSymbols allSymbols) scope =>
-				rangeOfNameAndRange(nameAndRange, allSymbols);
-		}
-
 		Opt!(TypeAst*) typeArg;
-		SmallArray!Member members;
+		SmallArray!EnumMemberAst members;
 	}
 	immutable struct Extern {
 		Opt!(LiteralNatAndRange*) size;
 		Opt!(LiteralNatAndRange*) alignment;
 	}
 	immutable struct Flags {
-		alias Member = Enum.Member;
 		Opt!(TypeAst*) typeArg;
-		SmallArray!Member members;
+		SmallArray!EnumMemberAst members;
 	}
 	immutable struct Record {
-		immutable struct Field {
-			@safe @nogc pure nothrow:
-
-			Range range;
-			Opt!Visibility visibility_;
-			NameAndRange name;
-			Opt!FieldMutabilityAst mutability;
-			TypeAst type;
-
-			Opt!VisibilityAndRange visibility() scope =>
-				getVisibilityAndRange(range.start, visibility_);
-		}
-		SmallArray!Field fields;
+		SmallArray!RecordFieldAst fields;
 	}
 	immutable struct Union {
-		immutable struct Member {
-			@safe @nogc pure nothrow:
-
-			Range range;
-			Symbol name;
-			Opt!TypeAst type;
-
-			NameAndRange nameAndRange() scope =>
-				NameAndRange(range.start, name);
-		}
-		SmallArray!Member members;
+		SmallArray!UnionMemberAst members;
 	}
 
 	mixin .Union!(Builtin, Enum, Extern, Flags, Record, Union);
 }
 static assert(StructBodyAst.sizeof <= 24);
+
+immutable struct EnumMemberAst {
+	@safe @nogc pure nothrow:
+
+	Range range;
+	Symbol name;
+	Opt!LiteralIntOrNat value;
+
+	NameAndRange nameAndRange() scope =>
+		NameAndRange(range.start, name);
+	Range nameRange(in AllSymbols allSymbols) scope =>
+		rangeOfNameAndRange(nameAndRange, allSymbols);
+}
+
+immutable struct RecordFieldAst {
+	@safe @nogc pure nothrow:
+
+	Range range;
+	Opt!Visibility visibility_;
+	NameAndRange name;
+	Opt!FieldMutabilityAst mutability;
+	TypeAst type;
+
+	Opt!VisibilityAndRange visibility() scope =>
+		getVisibilityAndRange(range.start, visibility_);
+}
+
+immutable struct UnionMemberAst {
+	@safe @nogc pure nothrow:
+
+	Range range;
+	Symbol name;
+	Opt!TypeAst type;
+
+	NameAndRange nameAndRange() scope =>
+		NameAndRange(range.start, name);
+}
 
 immutable struct StructDeclAst {
 	@safe @nogc pure nothrow:
@@ -911,7 +913,7 @@ immutable struct ImportOrExportAstKind {
 		TypeAst typeAst;
 		ImportFileType type;
 	}
-	mixin Union!(ModuleWhole, SmallArray!NameAndRange, File*);
+	mixin TaggedUnion!(ModuleWhole, SmallArray!NameAndRange, File*);
 }
 static assert(ImportOrExportAstKind.sizeof == ulong.sizeof);
 
