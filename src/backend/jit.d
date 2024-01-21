@@ -131,6 +131,7 @@ import util.col.map : mustGet;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapZip, mapFullIndexMap_mut;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
 import util.conv : safeToInt;
+import util.exitCode : ExitCode;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : UriAndRange;
@@ -141,7 +142,7 @@ import util.uri : AllUris;
 import util.util : castImmutable, castNonScope, castNonScope_ref, cStringOfEnum, debugLog, ptrTrustMe, todo;
 import util.writer : debugLogWithWriter, withWriter, Writer;
 
-@trusted int jitAndRun(
+@trusted ExitCode jitAndRun(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	scope ref AllSymbols allSymbols,
@@ -163,7 +164,7 @@ import util.writer : debugLogWithWriter, withWriter, Writer;
 			*gccProgram.ctx,
 			gcc_jit_output_kind.GCC_JIT_OUTPUT_KIND_EXECUTABLE,
 			"GCCJITOUT");
-		return 0;
+		return ExitCode.ok;
 	}
 
 	MainType main = withMeasure!(MainType, () @trusted =>
@@ -176,7 +177,7 @@ import util.writer : debugLogWithWriter, withWriter, Writer;
 	assert(fieldOffsetsCorrect);
 	int exitCode = runMain(perf, alloc, allArgs, main);
 	gcc_jit_result_release(gccProgram.result);
-	return exitCode;
+	return ExitCode(exitCode);
 }
 
 private:

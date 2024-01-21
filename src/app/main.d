@@ -448,8 +448,8 @@ version (GccJitAvailable) { ExitCode buildAndJit(
 	if (hasAnyDiagnostics(programs.program))
 		printError(showDiagnostics(alloc, server, programs.program));
 	return has(programs.lowProgram)
-		? ExitCode(jitAndRun(
-			perf, alloc, server.allSymbols, server.allUris, force(programs.lowProgram), jitOptions, programArgs))
+		? jitAndRun(
+			perf, alloc, server.allSymbols, server.allUris, force(programs.lowProgram), jitOptions, programArgs)
 		: ExitCode.error;
 } }
 

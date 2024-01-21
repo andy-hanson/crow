@@ -54,6 +54,14 @@ double float64OfBits(ulong value) {
 	return conv.asFloat64;
 }
 
+uint uintOfUshorts(ushort[2] a) =>
+	((cast(uint) a[0]) << 16) | a[1];
+ushort[2] ushortsOfUint(uint a) =>
+	[a >> 16, a & 0xffff];
+
+static assert(uintOfUshorts([0x1234, 0x5678]) == 0x12345678);
+static assert(ushortsOfUint(0x12345678) == [0x1234, 0x5678], ushortsOfUint(0x12345678));
+
 private:
 
 union Converter32 {

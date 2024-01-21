@@ -6,7 +6,7 @@ import util.alloc.alloc : Alloc, allocateElements;
 import util.col.array : endPtr, indexOf, indexOfStartingAt;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.comparison : Comparison;
-import util.conv : safeToUshort;
+import util.conv : uintOfUshorts, ushortsOfUint, safeToUshort;
 import util.hash : HashCode;
 import util.opt : has, force, none, Opt, some;
 import util.string : compareCStringAlphabetically, CString, cString, stringOfCString;
@@ -71,6 +71,11 @@ immutable struct Uri {
 
 	HashCode hash() =>
 		path.hash();
+
+	uint asUintForTaggedUnion() =>
+		path.asUintForTaggedUnion;
+	static Uri fromUintForTaggedUnion(uint a) =>
+		Uri(Path.fromUintForTaggedUnion(a));
 }
 
 private bool isRootUri(in AllUris allUris, Uri a) =>
@@ -129,6 +134,11 @@ immutable struct Path {
 
 	HashCode hash() =>
 		HashCode(index);
+
+	uint asUintForTaggedUnion() =>
+		index;
+	static Path fromUintForTaggedUnion(uint a) =>
+		Path(safeToUshort(a));
 }
 
 Opt!Uri parent(in AllUris allUris, Uri a) {
@@ -240,8 +250,17 @@ Path childPath(ref AllUris allUris, Path parent, Symbol name) =>
 	getOrAddChild(allUris, allUris.pathToChildren[parent.index], some(parent), name);
 
 immutable struct RelPath {
+	@safe @nogc pure nothrow:
+
 	ushort nParents;
 	Path path;
+
+	uint asUintForTaggedUnion() =>
+		uintOfUshorts([nParents, path.index]);
+	static RelPath fromUintForTaggedUnion(uint a) {
+		ushort[2] xs = ushortsOfUint(a);
+		return RelPath(xs[0], Path(xs[1]));
+	}
 }
 
 Opt!Uri resolveUri(ref AllUris allUris, Uri base, RelPath relPath) {

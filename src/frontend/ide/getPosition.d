@@ -89,6 +89,7 @@ import model.model :
 import model.model : paramsArray, StructDeclSource;
 import util.col.array :
 	first, firstPointer, firstWithIndex, firstZip, firstZipPointerFirst, firstZipPointerFirst3, isEmpty, SmallArray;
+import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, optIf, optOr, optOr, optOrDefault, some;
 import util.sourceRange : hasPos, Pos, Range;
 import util.symbol : AllSymbols;
@@ -337,7 +338,7 @@ Opt!PositionKind positionInTypeParams(
 ) =>
 	firstWithIndex!(PositionKind, NameAndRange)(asts, (size_t index, NameAndRange x) =>
 		optIf(hasPos(allSymbols, x, pos), () =>
-			PositionKind(PositionKind.TypeParamWithContainer(TypeParamIndex(index), container))));
+			PositionKind(PositionKind.TypeParamWithContainer(TypeParamIndex(safeToUint(index)), container))));
 
 Opt!PositionKind positionInSpec(in AllSymbols allSymbols, SpecDecl* a, Pos pos) =>
 	optOr!PositionKind(

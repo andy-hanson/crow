@@ -14,7 +14,7 @@ import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.sourceRange : LineAndColumn;
 import util.string : CString, cString, MutCString, stringOfCString;
 import util.symbol : Symbol, symbol;
-import util.union_ : Union;
+import util.union_ : TaggedUnion, Union;
 import util.uri : addExtension, alterExtension, AllUris, getExtension, parseUriWithCwd, Uri;
 import util.util : castNonScope, optEnumOfString, todo;
 
@@ -81,6 +81,7 @@ immutable struct RunOptions {
 	}
 	immutable struct Aot {
 		CCompileOptions compileOptions;
+		ulong _padding; // Avoid doing the work for a TaggedUnion
 	}
 	mixin Union!(Interpret, Jit, Aot);
 }

@@ -140,8 +140,8 @@ ExitCode buildAndInterpret(
 						perf, bytecodeAlloc, server.allSymbols, programs.program, lowProgram,
 						force(externPointers), extern_.aggregateCbs, extern_.makeSyntheticFunPointers);
 					ShowCtx printCtx = getShowDiagCtx(server, programs.program);
-					return ExitCode(runBytecode(
-						perf, bytecodeAlloc, printCtx, extern_.doDynCall, lowProgram, byteCode, allArgs));
+					return runBytecode(
+						perf, bytecodeAlloc, printCtx, extern_.doDynCall, lowProgram, byteCode, allArgs);
 				});
 			else {
 				writeError(cString!"Failed to load external libraries\n");

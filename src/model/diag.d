@@ -537,7 +537,7 @@ immutable struct Diag {
 		FunPointerExprMustBeName,
 		FunPointerNotSupported,
 		IfNeedsOpt,
-		ImportFileDiag,
+		ImportFileDiag*,
 		ImportRefersToNothing,
 		LambdaCantBeFunctionPointer,
 		LambdaCantInferParamType,

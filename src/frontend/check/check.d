@@ -126,7 +126,7 @@ import util.opt : force, has, none, Opt, someMut, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : AllSymbols, Symbol, symbol;
-import util.union_ : Union;
+import util.union_ : TaggedUnion;
 import util.uri : AllUris, Path, RelPath, Uri;
 import util.util : enumConvert, optEnumConvert, ptrTrustMe;
 
@@ -137,7 +137,7 @@ immutable struct UriAndAst {
 
 immutable struct ResolvedImport {
 	// Uri is for a file import
-	mixin Union!(Module*, Uri, Diag.ImportFileDiag);
+	mixin TaggedUnion!(Module*, Uri, Diag.ImportFileDiag*);
 }
 
 immutable struct BootstrapCheck {
@@ -1137,7 +1137,7 @@ ImportsOrReExports checkImportsOrReExports(
 			(FileContent) {
 				assert(false);
 			},
-			(Diag.ImportFileDiag x) {
+			(Diag.ImportFileDiag* x) {
 				add(alloc, diagsBuilder, Diagnostic(
 					has(source) ? pathRange(allUris, *force(source)) : Range.empty,
 					Diag(x)));
@@ -1169,7 +1169,7 @@ ImportsOrReExports checkImportsOrReExports(
 						(Uri x) {
 							add(alloc, fileImports, ImportOrExportFile(&importAst, x));
 						},
-						(Diag.ImportFileDiag x) {
+						(Diag.ImportFileDiag* x) {
 							add(alloc, diagsBuilder, Diagnostic(pathRange(allUris, importAst), Diag(x)));
 						});
 				});

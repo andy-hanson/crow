@@ -44,6 +44,7 @@ import model.model :
 	TypeParams;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.array : arrayOfSingle, eachPair, findIndex, isEmpty, map, mapOrNone, mapZip, only, small;
+import util.conv : safeToUint;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.sourceRange : Range;
@@ -261,7 +262,7 @@ private Type typeFromTupleAst(
 private Opt!TypeParamIndex findTypeParam(in TypeParams typeParamsScope, Symbol name) {
 	Opt!size_t res = findIndex!NameAndRange(typeParamsScope, (in NameAndRange x) =>
 		x.name == name);
-	return has(res) ? some(TypeParamIndex(force(res))) : none!TypeParamIndex;
+	return has(res) ? some(TypeParamIndex(safeToUint(force(res)))) : none!TypeParamIndex;
 }
 
 Opt!(Diag.TypeShouldUseSyntax.Kind) typeSyntaxKind(Symbol a) {

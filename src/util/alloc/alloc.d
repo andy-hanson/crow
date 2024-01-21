@@ -23,7 +23,7 @@ import util.col.array : arrayOfRange, arrayOfSingle, endPtr;
 import util.col.enumMap : EnumMap;
 import util.memory : ensureMemoryClear, memset;
 import util.opt : ConstOpt, force, has, MutOpt;
-import util.union_ : UnionMutable;
+import util.union_ : TaggedUnion;
 import util.util : clamp, divRoundUp, max, ptrTrustMe;
 
 T withStaticAlloc(T, alias cb)(word[] memory) {
@@ -325,7 +325,7 @@ struct BlockKind {
 	immutable struct Sentinel {}
 	// Just taken off of free list and not yet used to allocate
 	immutable struct Temp {}
-	mixin UnionMutable!(Alloc*, Free, Sentinel, Temp);
+	mixin TaggedUnion!(Alloc*, Free, Sentinel, Temp);
 
 	bool opEquals(in BlockKind b) const =>
 		taggedPointerEquals(b);

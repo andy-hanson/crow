@@ -37,7 +37,7 @@ import util.memory : allocate, initMemory;
 import util.opt : ConstOpt, force, has, MutOpt, Opt, none, noneMut, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.symbol : AllSymbols, Symbol, symbol;
-import util.union_ : Union, UnionMutable;
+import util.union_ : TaggedUnion;
 import util.uri :
 	addExtension,
 	AllUris,
@@ -138,7 +138,7 @@ private Uri getCrowFileUri(in CrowFile* a) =>
 	a.uri;
 
 private struct AstOrDiag {
-	mixin UnionMutable!(FileAst*, ReadFileDiag_);
+	mixin TaggedUnion!(FileAst*, ReadFileDiag_);
 }
 
 private struct OtherFile {
@@ -312,12 +312,12 @@ Uri[] fixCircularImportsRecur(ref FrontendCompiler a, ref Builder!Uri cycleBuild
 		force(file.resolvedImports), (in MostlyResolvedImport x) =>
 			!isImportWorkable(x));
 	size_t importIndex = force(optImportIndex);
-	CrowFile* next = force(file.resolvedImports)[importIndex].as!(CrowFile*);
+	CrowFile* next = force(file.resolvedImports)[importIndex].asInout!(CrowFile*);
 	Uri[] cycle = contains(asTemporaryArray(cycleBuilder), next.uri)
 		? finish(cycleBuilder)
 		: fixCircularImportsRecur(a, cycleBuilder, next);
 	force(file.resolvedImports)[importIndex] = MostlyResolvedImport(
-		Diag.ImportFileDiag(Diag.ImportFileDiag.CircularImport(cycle)));
+		allocate(a.alloc, Diag.ImportFileDiag(Diag.ImportFileDiag.CircularImport(cycle))));
 	mutSetMayDelete(next.referencedBy, file);
 	addToWorkableIfSo(a, file);
 	return cycle;
@@ -395,10 +395,10 @@ MutOpt!(Uri[]) clearResolvedImports(in AllUris allUris, CrowFile* file) {
 bool hasCircularImport(in MostlyResolvedImport[] a) =>
 	exists!MostlyResolvedImport(a, (in MostlyResolvedImport x) => isCircularImport(x));
 bool isCircularImport(in MostlyResolvedImport a) =>
-	a.isA!(Diag.ImportFileDiag) && a.as!(Diag.ImportFileDiag).isA!(Diag.ImportFileDiag.CircularImport);
+	a.isA!(Diag.ImportFileDiag*) && a.as!(Diag.ImportFileDiag*).isA!(Diag.ImportFileDiag.CircularImport);
 MutOpt!(Uri[]) asCircularImport(MostlyResolvedImport a) =>
 	isCircularImport(a)
-		? someMut(a.as!(Diag.ImportFileDiag).as!(Diag.ImportFileDiag.CircularImport).cycle)
+		? someMut(a.as!(Diag.ImportFileDiag*).as!(Diag.ImportFileDiag.CircularImport).cycle)
 		: noneMut!(Uri[]);
 
 void addToWorkableIfSo(ref FrontendCompiler a, CrowFile* file) {
@@ -421,7 +421,7 @@ bool isImportWorkable(in MostlyResolvedImport a) =>
 			x.hasModule,
 		(const OtherFile* x) =>
 			x.loaded,
-		(Diag.ImportFileDiag x) {
+		(Diag.ImportFileDiag* x) {
 			if (x.isA!(Diag.ImportFileDiag.ReadError)) {
 				Diag.ImportFileDiag.ReadError read = x.as!(Diag.ImportFileDiag.ReadError);
 				// Unknown/loading files still have a CrowFile*, Config*, or OtherFile*
@@ -496,16 +496,17 @@ ResolvedImport[] fullyResolveImports(ref FrontendCompiler a, in MostlyResolvedIm
 		x.matchConst!ResolvedImport(
 			(const CrowFile* x) =>
 				x.astOrDiag.isA!ReadFileDiag_
-					? ResolvedImport(Diag.ImportFileDiag(
-						Diag.ImportFileDiag.ReadError(x.uri, x.astOrDiag.as!ReadFileDiag_)))
+					? ResolvedImport(allocate(a.alloc, Diag.ImportFileDiag(
+						Diag.ImportFileDiag.ReadError(x.uri, x.astOrDiag.as!ReadFileDiag_))))
 					: ResolvedImport(x.mustHaveModule),
 			(const OtherFile* file) =>
 				getFileContentOrDiag(a.storage, file.uri).match!ResolvedImport(
 					(FileContent content) =>
 						ResolvedImport(file.uri),
 					(ReadFileDiag x) =>
-						ResolvedImport(Diag.ImportFileDiag(Diag.ImportFileDiag.ReadError(file.uri, x)))),
-			(Diag.ImportFileDiag x) =>
+						ResolvedImport(allocate(a.alloc, Diag.ImportFileDiag(
+							Diag.ImportFileDiag.ReadError(file.uri, x))))),
+			(Diag.ImportFileDiag* x) =>
 				ResolvedImport(x)));
 
 MutOpt!(Config*) tryFindConfig(ref Storage storage, scope ref AllUris allUris, Uri configDir) {
@@ -551,21 +552,21 @@ CommonUris commonUris(ref AllUris allUris, Uri includeDir) {
 }
 
 immutable struct UriOrDiag {
-	mixin Union!(Uri, Diag.ImportFileDiag);
+	mixin TaggedUnion!(Uri, Diag.ImportFileDiag*);
 }
 
 struct MostlyResolvedImport {
 	// For unknown/loading file, this will still be a CrowFile* or OtherFile*
-	mixin UnionMutable!(CrowFile*, OtherFile*, Diag.ImportFileDiag);
+	mixin TaggedUnion!(CrowFile*, OtherFile*, Diag.ImportFileDiag*);
 }
 
 MutOpt!(MutSet!(CrowFile*)*) getReferencedBy(ref MostlyResolvedImport import_) =>
-	import_.match!(MutOpt!(MutSet!(CrowFile*)*))(
+	import_.matchWithPointers!(MutOpt!(MutSet!(CrowFile*)*))(
 		(CrowFile* x) =>
 			someMut(&x.referencedBy),
 		(OtherFile* x) =>
 			someMut(&x.referencedBy),
-		(Diag.ImportFileDiag diag) =>
+		(Diag.ImportFileDiag*) =>
 			noneMut!(MutSet!(CrowFile*)*));
 @trusted ConstOpt!(MutSet!(CrowFile*)*) getReferencedBy(ref const MostlyResolvedImport import_) =>
 	getReferencedBy(cast(MostlyResolvedImport) import_);
@@ -583,16 +584,18 @@ MostlyResolvedImport tryResolveImport(ref FrontendCompiler a, in Config config, 
 					? UriOrDiag(has(fr.rest)
 						? concatUriAndPath(a.allUris, force(fromConfig), force(fr.rest))
 						: force(fromConfig))
-					: UriOrDiag(Diag.ImportFileDiag(Diag.ImportFileDiag.LibraryNotConfigured(libraryName)));
+					: UriOrDiag(allocate(a.alloc, Diag.ImportFileDiag(
+						Diag.ImportFileDiag.LibraryNotConfigured(libraryName))));
 			}
 		},
 		(in RelPath relPath) {
 			Opt!Uri rel = resolveUri(a.allUris, parentOrEmpty(a.allUris, fromUri), relPath);
 			return has(rel)
 				? UriOrDiag(force(rel))
-				: UriOrDiag(Diag.ImportFileDiag(Diag.ImportFileDiag.RelativeImportReachesPastRoot(relPath)));
+				: UriOrDiag(allocate(a.alloc, Diag.ImportFileDiag(
+					Diag.ImportFileDiag.RelativeImportReachesPastRoot(relPath))));
 		});
-	return base.match!MostlyResolvedImport(
+	return base.matchWithPointers!MostlyResolvedImport(
 		(Uri uri) {
 			MostlyResolvedImport crowFile() =>
 				MostlyResolvedImport(ensureCrowFile(a, addExtension!crowExtension(a.allUris, uri)));
@@ -603,9 +606,10 @@ MostlyResolvedImport tryResolveImport(ref FrontendCompiler a, in Config config, 
 					crowFile(),
 				(ref ImportOrExportAstKind.File) =>
 					fileType(a.allUris, uri) == FileType.crow
-						? MostlyResolvedImport(Diag.ImportFileDiag(Diag.ImportFileDiag.CantImportCrowAsText()))
+						? MostlyResolvedImport(allocate(a.alloc, Diag.ImportFileDiag(
+							Diag.ImportFileDiag.CantImportCrowAsText())))
 						: MostlyResolvedImport(ensureOtherFile(a, uri)));
 		},
-		(Diag.ImportFileDiag x) =>
+		(Diag.ImportFileDiag* x) =>
 			MostlyResolvedImport(x));
 }

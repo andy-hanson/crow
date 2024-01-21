@@ -897,7 +897,7 @@ Range pathRange(in AllUris allUris, in ImportOrExportAst a) =>
 	rangeOfStartAndLength(a.range.start, pathOrRelPathLength(allUris, a.path));
 
 immutable struct PathOrRelPath {
-	mixin Union!(Path, RelPath);
+	mixin TaggedUnion!(Path, RelPath);
 }
 private size_t pathOrRelPathLength(in AllUris allUris, in PathOrRelPath a) =>
 	a.matchIn!size_t(

@@ -32,7 +32,7 @@ import util.col.array :
 import util.col.hashTable : existsInHashTable, HashTable;
 import util.col.map : Map;
 import util.col.enumMap : EnumMap;
-import util.conv : safeToSizeT;
+import util.conv : safeToUint;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : force, has, none, Opt, optEqual, some;
 import util.sourceRange : combineRanges, UriAndRange, Pos, rangeOfStartAndLength, Range;
@@ -85,12 +85,12 @@ SpecImpls emptySpecImpls() =>
 immutable struct TypeParamIndex {
 	@safe @nogc pure nothrow:
 
-	size_t index;
+	uint index;
 
-	ulong asTaggable() =>
-		index << 2;
-	static TypeParamIndex fromTagged(ulong x) =>
-		TypeParamIndex(safeToSizeT(x >> 2));
+	uint asUintForTaggedUnion() =>
+		index;
+	static TypeParamIndex fromUintForTaggedUnion(uint a) =>
+		cast(TypeParamIndex) a;
 }
 
 immutable struct Type {
@@ -138,7 +138,7 @@ immutable struct Params {
 	Arity arity() scope =>
 		matchIn!Arity(
 			(in Destructure[] params) =>
-				Arity(params.length),
+				Arity(safeToUint(params.length)),
 			(in Params.Varargs) =>
 				Arity(Arity.Varargs()));
 }
@@ -156,12 +156,12 @@ Destructure[] assertNonVariadic(Params a) =>
 
 private immutable struct Arity {
 	immutable struct Varargs {}
-	mixin Union!(size_t, Varargs);
+	mixin TaggedUnion!(immutable uint, Varargs);
 }
 
 bool arityMatches(Arity sigArity, size_t nArgs) =>
 	sigArity.match!bool(
-		(size_t nParams) =>
+		(uint nParams) =>
 			nParams == nArgs,
 		(Arity.Varargs) =>
 			true);
@@ -1130,7 +1130,7 @@ immutable struct CalledSpecSig {
 		nonInstantiatedSig.name;
 
 	Arity arity() scope =>
-		Arity(nonInstantiatedSig.params.length);
+		Arity(safeToUint(nonInstantiatedSig.params.length));
 }
 
 // Like 'Called', but we haven't fully instantiated yet. (This is used for Candidate when checking a call expr.)

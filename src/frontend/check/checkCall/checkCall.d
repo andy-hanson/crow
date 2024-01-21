@@ -413,7 +413,7 @@ bool inferCandidateTypeArgsFromSpecSig(
 		specSig.params.length,
 		(ref Candidate x) =>
 			testCandidateForSpecSig(ctx.instantiateCtx, x, returnAndParamTypes, callContext),
-		(ref Candidates specCandidates) @safe {
+		(ref Candidates specCandidates) {
 			switch (size(specCandidates)) {
 				case 0:
 					return false;

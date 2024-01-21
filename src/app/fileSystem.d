@@ -54,7 +54,7 @@ import util.memory : memset;
 import util.opt : force, has, Opt;
 import util.string : CString, cStringSize;
 import util.symbol : AllSymbols, Symbol;
-import util.union_ : Union;
+import util.union_ : TaggedUnion;
 import util.uri :
 	AllUris,
 	alterExtensionWithHex,
@@ -292,11 +292,18 @@ private @system FILE* tryOpenFileForWrite(in AllUris allUris, FileUri uri) {
 }
 
 immutable struct Signal {
+	@safe @nogc pure nothrow:
+
 	int signal;
+
+	uint asUintForTaggedUnion() =>
+		cast(uint) signal;
+	static Signal fromUintForTaggedUnion(uint a) =>
+		Signal(cast(int) a);
 }
 
 immutable struct ExitCodeOrSignal {
-	mixin Union!(ExitCode, Signal);
+	mixin TaggedUnion!(ExitCode, Signal);
 }
 
 ExitCode printSignalAndExit(ExitCodeOrSignal a) =>

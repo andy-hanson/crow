@@ -6,6 +6,11 @@ immutable struct ExitCode {
 	@safe @nogc pure nothrow:
 	int value;
 
+	uint asUintForTaggedUnion() =>
+		cast(uint) value;
+	static ExitCode fromUintForTaggedUnion(uint a) =>
+		ExitCode(cast(int) a);
+
 	static ExitCode ok() =>
 		ExitCode(0);
 	static ExitCode error() =>

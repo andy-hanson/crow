@@ -13,20 +13,25 @@ mixin template TaggedUnion(ReprTypes...) {
 	import std.meta : staticMap;
 	import util.union_ :
 		canUseTaggedPointers,
+		getFromValueWithoutTag,
 		getTaggedPointerValue,
 		isEmptyStruct,
 		isImmutable,
 		toHandlers,
+		toHandlersConst,
 		toHandlersIn,
 		toHandlersImpure,
 		toHandlersWithPointers,
 		toMemberType;
 
-	static foreach (T; ReprTypes)
-		static assert(is(T == enum) || isImmutable!T, "Union types must be immutable (otherwise use UnionMutable)");
 	static assert(canUseTaggedPointers!ReprTypes);
 
-	alias MemberTypes = staticMap!(toMemberType, ReprTypes);
+	private alias MemberTypes = staticMap!(toMemberType, ReprTypes);
+
+	static if (isImmutable!(typeof(this))) {
+		static foreach (T; ReprTypes)
+			static assert(is(T == enum) || isImmutable!T, "Member types of immutable TaggedUnion should be immutable");
+	}
 
 	@trusted R matchImpure(R)(scope toHandlersImpure!(R, MemberTypes) handlers) scope immutable {
 		final switch (kind) {
@@ -36,10 +41,8 @@ mixin template TaggedUnion(ReprTypes...) {
 						return handlers[i](T());
 					else static if (is(T == P*, P))
 						return handlers[i](*(cast(immutable P*) valueWithoutTag));
-					else static if (is(T == enum))
-						return handlers[i](cast(T) (valueWithoutTag >> 2));
 					else
-						static assert(false, T.stringof);
+						return handlers[i](as!T);
 			}
 		}
 	}
@@ -50,13 +53,13 @@ mixin template TaggedUnion(ReprTypes...) {
 		private immutable void* voidPointerWithTag; // Not a valid pointer! Here so 'scope' works.
 		private ulong valueWithTag;
 	}
-	private uint kind() scope =>
+	private uint kind() scope const =>
 		valueWithTag & 0b11;
-	private ulong valueWithoutTag() scope =>
+	private ulong valueWithoutTag() scope const =>
 		valueWithTag & ~0b11;
-	@trusted immutable(void*) asVoidPointer() return scope =>
+	@trusted void* asVoidPointer() return scope =>
 		cast(void*) valueWithoutTag;
-	bool taggedPointerEquals(in typeof(this) other) scope =>
+	bool taggedPointerEquals(in typeof(this) other) scope const =>
 		valueWithTag == other.valueWithTag;
 	ulong taggedPointerValueForHash() scope =>
 		valueWithTag;
@@ -73,78 +76,114 @@ mixin template TaggedUnion(ReprTypes...) {
 	}
 
 	@disable this();
-	static foreach (i, T; ReprTypes) {
-		@trusted immutable this(immutable toMemberType!T a) {
+	static foreach (i, T; MemberTypes) {
+		@trusted inout this(inout T a) {
 			static if (is(T == P*, P))
 				assert(a != null);
-			valueWithTag = getTaggedPointerValue!(i, toMemberType!T)(a);
+			valueWithTag = getTaggedPointerValue!(i, T)(a);
 		}
 	}
 
-	@trusted R match(R)(scope toHandlers!(R, MemberTypes) handlers) immutable {
+	@trusted R match(R)(scope toHandlers!(R, MemberTypes) handlers) {
 		final switch (kind) {
-			static foreach (i, T; ReprTypes) {
+			static foreach (i, T; MemberTypes) {
 				case i:
-					static if (isEmptyStruct!T)
-						return handlers[i](T());
-					else static if (is(T == P*, P))
-						return handlers[i](*(cast(immutable P*) valueWithoutTag));
-					else static if (is(T == enum))
-						return handlers[i](cast(T) (asUlong >> 2));
+					static if (is(T == P*, P))
+						return handlers[i](*(cast(P*) valueWithoutTag));
 					else
-						return handlers[i](T.fromTagged(valueWithoutTag));
+						return handlers[i](as!T);
+			}
+		}
+	}
+
+	static if (!isImmutable!(typeof(this))) {
+		@trusted R matchConst(R)(scope toHandlersConst!(R, MemberTypes) handlers) const {
+			final switch (kind) {
+				static foreach (i, T; MemberTypes) {
+					case i:
+						static if (is(T == P*, P))
+							return handlers[i](cast(const P*) valueWithoutTag);
+						else
+							return handlers[i](as!T);
+				}
 			}
 		}
 	}
 
 	@trusted R matchIn(R)(scope toHandlersIn!(R, MemberTypes) handlers) scope {
 		final switch (kind) {
-			static foreach (i, T; ReprTypes) {
+			static foreach (i, T; MemberTypes) {
 				case i:
-					static if (isEmptyStruct!T)
-						return handlers[i](T());
-					else static if (is(T == P*, P))
+					static if (is(T == P*, P))
 						return handlers[i](*(cast(immutable P*) valueWithoutTag));
-					else static if (is(T == enum))
-						return handlers[i](cast(T) (valueWithoutTag >> 2));
 					else
-						return handlers[i](T.fromTagged(valueWithoutTag));
+						return handlers[i](as!T);
 			}
 		}
 	}
 
-	@trusted R matchWithPointers(R)(scope toHandlersWithPointers!(R, MemberTypes) handlers) immutable {
+	@trusted R matchWithPointers(R)(scope toHandlersWithPointers!(R, MemberTypes) handlers) {
 		final switch (kind) {
-			static foreach (i, T; ReprTypes) {
+			static foreach (i, T; MemberTypes) {
 				case i:
-					static if (isEmptyStruct!T)
-						return handlers[i](T());
-					else static if (is(T == P*, P))
-						return handlers[i](cast(immutable P*) valueWithoutTag);
-					else
-						return handlers[i](T.fromTagged(valueWithoutTag));
+					return handlers[i](asNonConst!T);
 			}
 		}
 	}
 
-	bool isA(T)() scope immutable {
+	bool isA(T)() scope const {
 		static foreach (i, Ty; MemberTypes) {
-			static if (is(immutable T == Ty))
+			static if (is(T == Ty))
 				return kind == i;
 		}
 	}
 
-	@trusted immutable(T) as(T)() immutable {
+	@trusted const(T) as(T)() const {
 		static foreach (i, Ty; ReprTypes) {
-			static if (is(immutable T == toMemberType!Ty)) {
+			static if (is(T == toMemberType!Ty)) {
 				assert(kind == i);
-				static if (is(Ty == P*, P))
-					return cast(immutable P*) valueWithoutTag;
-				else
-					return Ty.fromTagged(valueWithoutTag);
+				return getFromValueWithoutTag!Ty(valueWithoutTag);
 			}
 		}
 	}
+
+	@trusted private T asNonConst(T)() {
+		static foreach (i, Ty; ReprTypes) {
+			static if (is(T == toMemberType!Ty)) {
+				assert(kind == i);
+				return getFromValueWithoutTag!Ty(valueWithoutTag);
+			}
+		}
+	}
+
+	static if (!isImmutable!(typeof(this))) {
+		@trusted inout(T) asInout(T)() inout {
+			static foreach (i, Ty; ReprTypes) {
+				static if (is(T == toMemberType!Ty)) {
+					assert(kind == i);
+					static if (is(Ty == P*, P))
+						return cast(inout P*) valueWithoutTag;
+					else static if (is(T == enum))
+						return cast(T) (valueWithoutTag >> 2);
+					else
+						return cast(inout) Ty.fromTagged(valueWithoutTag);
+				}
+			}
+		}
+	}
+}
+
+static @system T getFromValueWithoutTag(T)(ulong valueWithoutTag) {
+	static if (isEmptyStruct!T)
+		return T();
+	else static if (is(T == P*, P))
+		return cast(P*) valueWithoutTag;
+	else static if (is(T == enum) || is(T == uint) || is(T == immutable uint))
+		return cast(T) (valueWithoutTag >> 2);
+	else static if (T.sizeof <= uint.sizeof)
+		return T.fromUintForTaggedUnion(cast(uint) (valueWithoutTag >> 2));
+	else
+		return T.fromTagged(valueWithoutTag);
 }
 
 mixin template Union(ReprTypes...) {
@@ -234,10 +273,9 @@ mixin template Union(ReprTypes...) {
 		}
 	}
 
-	bool isA(T)() scope immutable {
-		static foreach (i, Ty; MemberTypes) {
-			static if (is(immutable T == Ty))
-				return kind == i;
+	static foreach (i, Ty; MemberTypes) {
+		bool isA(T : Ty)() scope immutable {
+			return kind == i;
 		}
 	}
 
@@ -268,37 +306,19 @@ bool isImmutable(T)() {
 }
 
 bool isSimple(T)() =>
-	is(T == bool) || is(T == size_t) || is(T == long) || is(T == double);
+	is(T == bool) || is(T == uint) || is(T == ulong) || is(T == long) || is(T == double);
 
 mixin template UnionMutable(Types...) {
 	@safe @nogc pure nothrow:
 
 	import std.traits : isMutable;
 	import util.memory : overwriteMemory;
-	import util.union_ :
-		canUseTaggedPointers, getTaggedPointerValue, isEmptyStruct, toHandlersConst, toHandlersMutable, toHandlersScope;
+	import util.union_ : toHandlersConst, toHandlersMutable, toHandlersScope;
 
-	enum usesTaggedPointer = canUseTaggedPointers!Types;
-
-	static if (usesTaggedPointer) {
-		union {
-			private void* voidPointerWithTag; // Not a valid pointer! Here so 'scope' works.
-			private ulong valueWithTag;
-		}
-		private uint kind() scope const =>
-			valueWithTag & 0b11;
-		private ulong valueWithoutTag() scope const =>
-			valueWithTag & ~0b11;
-		bool taggedPointerEquals(const typeof(this) other) const =>
-			valueWithTag == other.valueWithTag;
-		@trusted void* asVoidPointer() return scope =>
-			cast(void*) valueWithoutTag;
-	} else {
-		private uint kind;
-		union {
-			static foreach (i, T; Types) {
-				mixin("private T as", i, ";");
-			}
+	private uint kind;
+	union {
+		static foreach (i, T; Types) {
+			mixin("private T as", i, ";");
 		}
 	}
 
@@ -308,35 +328,23 @@ mixin template UnionMutable(Types...) {
 			@trusted this(return inout T a) inout {
 				static if (is(T == P*, P))
 					assert(a != null);
-				static if (usesTaggedPointer) {
-					valueWithTag = getTaggedPointerValue!i(a);
-				} else {
-					kind = i;
-					mixin("as", i, " = a;");
-				}
+				kind = i;
+				mixin("as", i, " = a;");
 			}
 		} else {
 			@trusted this(return T a) {
 				static if (is(T == P*, P))
 					assert(a != null);
-				static if (usesTaggedPointer) {
-					valueWithTag = getTaggedPointerValue!i(a);
-				} else {
-					kind = i;
-					mixin("as", i, " = a;");
-				}
+				kind = i;
+				mixin("as", i, " = a;");
 			}
 		}
 	}
 
 	static foreach (i, T; Types) {
 		@trusted void opAssign(T b) {
-			static if (usesTaggedPointer) {
-				valueWithTag = getTaggedPointerValue!i(b);
-			} else {
-				kind = i;
-				mixin("overwriteMemory(&as", i, ", b);");
-			}
+			kind = i;
+			mixin("overwriteMemory(&as", i, ", b);");
 		}
 	}
 
@@ -344,18 +352,7 @@ mixin template UnionMutable(Types...) {
 		final switch (kind) {
 			static foreach (i, T; Types) {
 				case i:
-					static if (usesTaggedPointer) {
-						static if (isEmptyStruct!T)
-							return handlers[i](T());
-						else static if (is(T == P*, P))
-							return handlers[i](cast(P*) asVoidPointer);
-						else static if (is(T == MutSmallArray!U, U))
-							return handlers[i](MutSmallArray!U.fromTagged(asVoidPointer).toArray);
-						else
-							static assert(false);
-					} else {
-						mixin("return handlers[", i, "](as", i, ");");
-					}
+					mixin("return handlers[", i, "](as", i, ");");
 			}
 		}
 	}
@@ -364,18 +361,7 @@ mixin template UnionMutable(Types...) {
 		final switch (kind) {
 			static foreach (i, T; Types) {
 				case i:
-					static if (usesTaggedPointer) {
-						static if (isEmptyStruct!T)
-							return handlers[i](T());
-						else static if (is(T == P*, P))
-							return handlers[i](cast(P*) valueWithoutTag);
-						else static if (is(T == MutSmallArray!U, U))
-							return handlers[i](MutSmallArray!U.fromTagged(valueWithoutTag).toArray);
-						else
-							static assert(false);
-					} else {
-						mixin("return handlers[", i, "](as", i, ");");
-					}
+					mixin("return handlers[", i, "](as", i, ");");
 			}
 		}
 	}
@@ -384,20 +370,7 @@ mixin template UnionMutable(Types...) {
 		final switch (kind) {
 			static foreach (i, T; Types) {
 				case i:
-					static if (usesTaggedPointer) {
-						static if (isEmptyStruct!T)
-							return handlers[i](T());
-						else static if (is(T == P*, P))
-							return handlers[i](cast(const P*) valueWithoutTag);
-						else static if (is(T == MutSmallArray!U, U))
-							return handlers[i](MutSmallArray!U.fromTagged(valueWithoutTag));
-						else static if (is(T == enum))
-							return handlers[i](cast(T) (valueWithoutTag >> 2));
-						else
-							static assert(false);
-					} else {
-						mixin("return handlers[", i, "](as", i, ");");
-					}
+					mixin("return handlers[", i, "](as", i, ");");
 			}
 		}
 	}
@@ -409,27 +382,11 @@ mixin template UnionMutable(Types...) {
 		}
 	}
 
-	static if (usesTaggedPointer) {
-		@trusted inout(T) as(T)() inout {
-			static foreach (i, Ty; Types) {
-				static if (is(T == Ty)) {
-					assert(kind == i);
-					static if (is(Ty == P*, P))
-						return (cast(inout P*) valueWithoutTag);
-					else static if (is(T == enum))
-						return cast(T) valueWithoutTag >> 2;
-					else
-						return cast(inout) Ty.fromTagged(valueWithoutTag);
-				}
-			}
-		}
-	} else {
-		@trusted ref inout(T) as(T)() inout {
-			static foreach (i, Ty; Types) {
-				static if (is(T == Ty)) {
-					assert(kind == i);
-					mixin("return as", i, ";");
-				}
+	@trusted ref inout(T) as(T)() inout {
+		static foreach (i, Ty; Types) {
+			static if (is(T == Ty)) {
+				assert(kind == i);
+				mixin("return as", i, ";");
 			}
 		}
 	}
@@ -446,7 +403,7 @@ bool canUseTaggedPointers(Types...)() {
 		return false;
 }
 private bool canUseTaggedPointer(T)() {
-	static if (isEmptyStruct!T || is(T == U*, U) || __traits(hasMember, T, "fromTagged")) {
+	static if (T.sizeof <= uint.sizeof || is(T == U*, U) || __traits(hasMember, T, "fromTagged")) {
 		return true;
 	} else static if (is(T == enum)) {
 		assertNormalEnum!T;
@@ -455,20 +412,22 @@ private bool canUseTaggedPointer(T)() {
 		return false;
 }
 
-@trusted ulong getAsTaggable(T)(T a) {
+@trusted ulong getAsTaggable(T)(const T a) {
 	static if (isEmptyStruct!T)
 		return 0;
 	else static if (is(T == P*, P))
 		return cast(ulong) a;
 	else static if (is(T == U[], U))
-		return MutSmallArray!U(a).asTaggable;
-	else static if (is(T == enum))
+		return (const MutSmallArray!U(a)).asTaggable;
+	else static if (is(T == enum) || is(T == uint) || is(T == immutable uint))
 		return (cast(ulong) a) << 2;
+	else static if (T.sizeof <= uint.sizeof)
+		return (cast(ulong) a.asUintForTaggedUnion) << 2;
 	else
 		return a.asTaggable;
 }
 
-ulong getTaggedPointerValue(size_t i, T)(T a) {
+ulong getTaggedPointerValue(size_t i, T)(const T a) {
 	ulong ptr = getAsTaggable!T(a);
 	assert((ptr & 0b11) == 0);
 	static assert((i & 0b11) == i);
@@ -489,15 +448,15 @@ static assert(!isEmptyStruct!bool);
 
 template toMemberType(T) {
 	static if (is(T == MutSmallArray!U, U))
-		alias toMemberType = immutable U[];
+		alias toMemberType = U[];
 	else
-		alias toMemberType = immutable T;
+		alias toMemberType = T;
 }
 
 template toHandlers(R, Types...) {
 	template toHandler(P) {
 		static if (is(P == U*, U))
-			alias toHandler = R delegate(ref immutable U) @safe @nogc pure nothrow;
+			alias toHandler = R delegate(ref U) @safe @nogc pure nothrow;
 		else static if (isSimple!(Unqual!P))
 			alias toHandler = R delegate(Unqual!P) @safe @nogc pure nothrow;
 		else

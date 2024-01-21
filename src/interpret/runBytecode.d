@@ -33,13 +33,14 @@ import model.lowModel : LowProgram;
 import model.typeLayout : PackField;
 import util.alloc.alloc : Alloc;
 import util.conv : safeToSizeT;
+import util.exitCode : ExitCode;
 import util.memory : memcpy, memmove, overwriteMemory;
 import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasureNoAlloc;
 import util.string : CString;
 import util.util : castNonScope_ref, debugLog, divRoundUp, ptrTrustMe;
 
-@safe int runBytecode(
+@safe ExitCode runBytecode(
 	scope ref Perf perf,
 	ref Alloc alloc, // for thread locals
 	in ShowCtx printCtx,
@@ -48,20 +49,20 @@ import util.util : castNonScope_ref, debugLog, divRoundUp, ptrTrustMe;
 	in ByteCode byteCode,
 	in CString[] allArgs,
 ) =>
-	withInterpreter!int(alloc, doDynCall, printCtx, lowProgram, byteCode, (ref Stacks stacks) {
+	withInterpreter!ExitCode(alloc, doDynCall, printCtx, lowProgram, byteCode, (ref Stacks stacks) {
 		dataPush(stacks, allArgs.length);
 		dataPush(stacks, cast(ulong) allArgs.ptr);
-		return withMeasureNoAlloc!(int, () @trusted =>
+		return withMeasureNoAlloc!(ExitCode, () @trusted =>
 			runBytecodeInner(stacks, initialOperationPointer(byteCode))
 		)(perf, PerfMeasure.run);
 	});
 
-private int runBytecodeInner(ref Stacks stacks, Operation* operation) {
+private ExitCode runBytecodeInner(ref Stacks stacks, Operation* operation) {
 	stepUntilExit(stacks, operation);
 	ulong returnCode = dataPop(stacks);
 	assert(dataStackIsEmpty(stacks));
 	assert(returnStackIsEmpty(stacks));
-	return cast(int) returnCode;
+	return ExitCode(cast(uint) returnCode);
 }
 
 void syntheticCall(

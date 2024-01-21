@@ -31,7 +31,7 @@ import util.col.fullIndexMap : FullIndexMap, mapFullIndexMap;
 import util.col.mutMap : getOrAdd, insertOrUpdate, MutMap, setInMap;
 import util.opt : force, has, none, Opt, some;
 import util.symbol : AllSymbols, eachCharInSymbol, Symbol, symbol, writeSymbol;
-import util.union_ : Union;
+import util.union_ : TaggedUnion;
 import util.util : todo;
 import util.writer : Writer;
 
@@ -243,7 +243,7 @@ void writeRecordName(scope ref Writer writer, in MangledNames mangledNames, in L
 private:
 
 immutable struct PrevOrIndex(T) {
-	mixin Union!(immutable T*, immutable size_t);
+	mixin TaggedUnion!(immutable T*, uint);
 }
 
 void addToPrevOrIndex(T)(
@@ -260,13 +260,13 @@ void addToPrevOrIndex(T)(
 		() =>
 			PrevOrIndex!T(cur),
 		(in PrevOrIndex!T x) =>
-			PrevOrIndex!T(x.matchWithPointers!size_t(
+			PrevOrIndex!T(x.matchWithPointers!uint(
 				(T* prev) {
 					mustAddToMap(alloc, toNameIndex, prev, 0);
 					mustAddToMap(alloc, toNameIndex, cur, 1);
-					return size_t(2);
+					return 2;
 				},
-				(size_t index) {
+				(uint index) {
 					mustAddToMap(alloc, toNameIndex, cur, index);
 					return index + 1;
 				})));

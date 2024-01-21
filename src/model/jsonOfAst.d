@@ -141,7 +141,7 @@ Json jsonOfImportOrExportAst(ref Alloc alloc, in Ctx ctx, in ImportOrExportAst a
 					field!"name"(jsonOfNameAndRange(alloc, ctx, f.name)),
 					field!"file-type"(stringOfEnum(f.type))])))]);
 
-Json pathOrRelPathToJson(ref Alloc alloc, in AllUris allUris, PathOrRelPath a) =>
+Json pathOrRelPathToJson(ref Alloc alloc, in AllUris allUris, in PathOrRelPath a) =>
 	a.match!Json(
 		(Path global) =>
 			jsonString(stringOfPath(alloc, allUris, global, false)),

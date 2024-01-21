@@ -13,7 +13,7 @@ import util.col.array : contains, exists, indexOf, map, MutSmallArray, newArray,
 import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, asTemporaryArray, finish;
 import util.col.mutMaxArr : asTemporaryArray;
 import util.opt : has, force, MutOpt, none, noneMut, Opt, optOrDefault, some, someInout, someMut;
-import util.union_ : UnionMutable;
+import util.union_ : TaggedUnion, UnionMutable;
 import util.util : castNonScope_ref;
 
 struct SingleInferringType {
@@ -33,25 +33,28 @@ struct TypeContext {
 	@safe @nogc pure nothrow:
 
 	struct NonInferring {}
-	mixin UnionMutable!(NonInferring, MutSmallArray!SingleInferringType) args;
+	mixin TaggedUnion!(NonInferring, MutSmallArray!SingleInferringType) args;
 
 	static TypeContext nonInferring() =>
 		TypeContext(NonInferring());
 
 	bool isInferring() scope const =>
-		isA!(MutSmallArray!SingleInferringType);
+		isA!(SingleInferringType[]);
 }
 static assert(TypeContext.sizeof == ulong.sizeof);
 
 @trusted inout(InferringTypeArgs) asInferringTypeArgs(inout TypeContext a) =>
 	a.isInferring
-		? inout InferringTypeArgs(a.as!(MutSmallArray!SingleInferringType))
+		? inout InferringTypeArgs(a.asInout!(SingleInferringType[]))
 		: cast(inout) InferringTypeArgs.empty;
 
-private inout(MutOpt!(SingleInferringType*)) tryGetInferring(inout TypeContext context, TypeParamIndex param) =>
+private @trusted inout(MutOpt!(SingleInferringType*)) tryGetInferring(
+	inout TypeContext context,
+	TypeParamIndex param,
+) =>
 	context.isInferring
-		? someInout!(SingleInferringType*)(&context.as!(MutSmallArray!SingleInferringType)[param.index])
-		: noneMut!(SingleInferringType*);
+		? someInout!(SingleInferringType*)(&context.asInout!(SingleInferringType[])[param.index])
+		: cast(inout) noneMut!(SingleInferringType*);
 
 private Opt!Type tryGetInferred(const TypeContext a, TypeParamIndex param) {
 	const MutOpt!(SingleInferringType*) sit = tryGetInferring(a, param);
