@@ -716,8 +716,8 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= " (Should it be an 'act' or 'far' fun?)";
 		},
 		(in Diag.LambdaMultipleMatch x) {
-			writer ~= "Multiple lambda types are possible.\n";
-			writeExpected(writer, ctx, x.expected, ExpectedKind.lambda);
+			writer ~= "Multiple lambda types are possible:";
+			writeTypesOnLines(writer, ctx, x.choices);
 			writeNewline(writer, 0);
 			writer ~= "Consider explicitly typing the lambda's parameter.";
 		},
@@ -1068,10 +1068,7 @@ void writeExpected(scope ref Writer writer, in ShowDiagCtx ctx, in ExpectedForDi
 				writer ~= "Expected one of these ";
 				writeType();
 				writer ~= "s:";
-				foreach (Type t; choices.types) {
-					writeNewline(writer, 1);
-					writeTypeQuoted(writer, ctx, TypeWithContainer(t, choices.typeContainer));
-				}
+				writeTypesOnLines(writer, ctx, choices);
 			}
 		},
 		(in ExpectedForDiag.Infer) {
@@ -1082,6 +1079,13 @@ void writeExpected(scope ref Writer writer, in ShowDiagCtx ctx, in ExpectedForDi
 		(in ExpectedForDiag.Loop) {
 			writer ~= "Expected a loop 'break' or 'continue'.";
 		});
+}
+
+void writeTypesOnLines(scope ref Writer writer, in ShowDiagCtx ctx, in ExpectedForDiag.Choices choices) {
+	foreach (Type x; choices.types) {
+		writeNewline(writer, 1);
+		writeTypeQuoted(writer, ctx, TypeWithContainer(x, choices.typeContainer));
+	}
 }
 
 void writeModifier(scope ref Writer writer, in ShowDiagCtx ctx, ModifierKeyword kind) {

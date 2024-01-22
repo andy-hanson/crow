@@ -9,23 +9,27 @@ import util.col.enumMap : enumMapFindKey;
 import util.opt : force, has, none, Opt, some;
 
 immutable struct FunType {
+	@safe @nogc pure nothrow:
+
 	FunKind kind;
 	StructInst* structInst;
-	StructDecl* structDecl;
-	Type nonInstantiatedNonFutReturnType;
-	Type nonInstantiatedParamType;
+
+	StructDecl* funStruct() =>
+		structInst.decl;
+	Type nonInstantiatedNonFutReturnType() =>
+		only2(structInst.typeArgs)[0];
+	Type nonInstantiatedParamType() =>
+		only2(structInst.typeArgs)[1];
 }
+
 Opt!FunType getFunType(in CommonTypes commonTypes, Type a) {
 	if (a.isA!(StructInst*)) {
 		StructInst* structInst = a.as!(StructInst*);
-		StructDecl* structDecl = structInst.decl;
 		Opt!FunKind kind = enumMapFindKey!(FunKind, StructDecl*)(commonTypes.funStructs, (in StructDecl* x) =>
-			x == structDecl);
-		if (has(kind)) {
-			Type[2] typeArgs = only2(structInst.typeArgs);
-			return some(FunType(force(kind), structInst, structDecl, typeArgs[0], typeArgs[1]));
-		} else
-			return none!FunType;
+			x == structInst.decl);
+		return has(kind)
+			? some(FunType(force(kind), structInst))
+			: none!FunType;
 	} else
 		return none!FunType;
 }

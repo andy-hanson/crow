@@ -114,46 +114,34 @@ Opt!size_t findExpectedStructForLiteral(
 	ref const Expected expected,
 	in immutable StructInst*[] choices,
 	size_t defaultChoice,
-) =>
-	expected.matchConst!(Opt!size_t)(
-		(Expected.Infer) =>
-			some(defaultChoice),
-		(Expected.LocalType x) {
-			if (x.type.isA!(StructInst*)) {
-				Opt!size_t res = indexOf(choices, x.type.as!(StructInst*));
-				return has(res) ? res : some(defaultChoice);
-			} else
-				return some(defaultChoice);
-		},
-		(const TypeAndContext[] xs) {
-			// This function will only be used with types like nat8 with no type arguments, so don't worry about those
-			Cell!(Opt!size_t) rslt;
-			ArrayBuilder!(immutable StructInst*) multiple; // for diag
-			foreach (ref const TypeAndContext x; xs)
-				if (x.type.isA!(StructInst*)) {
-					StructInst* struct_ = x.type.as!(StructInst*);
-					Opt!size_t here = indexOf(choices, struct_);
-					if (has(here)) {
-						if (has(cellGet(rslt))) {
-							StructInst* rsltStruct = choices[force(cellGet(rslt))];
-							if (struct_ != rsltStruct) {
-								if (arrBuilderIsEmpty(multiple))
-									add(ctx.alloc, multiple, rsltStruct);
-								if (!contains(asTemporaryArray(multiple), struct_))
-									add(ctx.alloc, multiple, struct_);
-							}
-						} else
-							cellSet(rslt, here);
+) {
+	// This function will only be used with types like nat8 with no type arguments, so don't worry about those
+	Cell!(Opt!size_t) rslt;
+	ArrayBuilder!(immutable StructInst*) multiple; // for diag
+	eachChoiceConst(expected, (const TypeAndContext x) {
+		if (x.type.isA!(StructInst*)) {
+			StructInst* struct_ = x.type.as!(StructInst*);
+			Opt!size_t here = indexOf(choices, struct_);
+			if (has(here)) {
+				if (has(cellGet(rslt))) {
+					StructInst* rsltStruct = choices[force(cellGet(rslt))];
+					if (struct_ != rsltStruct) {
+						if (arrBuilderIsEmpty(multiple))
+							add(ctx.alloc, multiple, rsltStruct);
+						if (!contains(asTemporaryArray(multiple), struct_))
+							add(ctx.alloc, multiple, struct_);
 					}
-				}
-			if (!arrBuilderIsEmpty(multiple)) {
-				addDiag2(ctx, source, Diag(Diag.LiteralAmbiguous(ctx.typeContainer, finish(ctx.alloc, multiple))));
-				return none!size_t;
-			} else
-				return has(cellGet(rslt)) ? cellGet(rslt) : some(defaultChoice);
-		},
-		(const LoopInfo*) =>
-			some(defaultChoice));
+				} else
+					cellSet(rslt, here);
+			}
+		}
+	});
+	if (!arrBuilderIsEmpty(multiple)) {
+		addDiag2(ctx, source, Diag(Diag.LiteralAmbiguous(ctx.typeContainer, finish(ctx.alloc, multiple))));
+		return none!size_t;
+	} else
+		return has(cellGet(rslt)) ? cellGet(rslt) : some(defaultChoice);
+}
 
 private @trusted void setToType(scope ref Expected expected, Expected.LocalType type) {
 	expected = type;
@@ -178,7 +166,108 @@ Pair!(T, Type) withCopyWithNewExpectedType(T)(
 	return Pair!(T, Type)(castNonScope_ref(res), inferred(newExpected));
 }
 
-struct OkSkipOrAbort(T) {
+struct ExpectedLambdaType {
+	TypeContext typeContext;
+	FunType funType;
+	Type instantiatedParamType;
+}
+
+MutOpt!ExpectedLambdaType getExpectedLambda(
+	ref ExprCtx ctx,
+	ExprAst* source,
+	Opt!Type declaredParamType,
+	ref Expected expected,
+) {
+	if (has(declaredParamType) && force(declaredParamType).isA!(Type.Bogus))
+		return noneMut!ExpectedLambdaType;
+
+	Cell!(MutOpt!ExpectedLambdaType) res = Cell!(MutOpt!ExpectedLambdaType)();
+	ArrayBuilder!Type multiple;
+	bool anyDiag = false;
+	eachChoice(expected, (TypeAndContext choice) {
+		Opt!FunType optFunType = getExpectedFunType(ctx, source, choice);
+		if (has(optFunType)) {
+			FunType funType = force(optFunType);
+			Opt!Type actualParamType = getExpectedParamTypeFromFunType(ctx, source, choice.context, declaredParamType, funType, anyDiag);
+			if (has(actualParamType)) {
+				if (has(cellGet(res))) {
+					if (arrBuilderIsEmpty(multiple)) {
+						ExpectedLambdaType prev = force(cellGet(res));
+						add(ctx.alloc, multiple, applyInferred(
+							ctx.instantiateCtx, TypeAndContext(Type(prev.funType.structInst), prev.typeContext)));
+					}
+					add(ctx.alloc, multiple, applyInferred(ctx.instantiateCtx, choice));
+					anyDiag = true;
+				}
+				cellSet(res, someMut(ExpectedLambdaType(choice.context, funType, force(actualParamType))));
+			}
+		}
+	});
+
+	if (anyDiag) {
+		if (!arrBuilderIsEmpty(multiple))
+			addDiag2(ctx, source, Diag(
+				Diag.LambdaMultipleMatch(ExpectedForDiag.Choices(finish(ctx.alloc, multiple), ctx.typeContainer))));
+		return noneMut!ExpectedLambdaType;
+	} else {
+		if (!has(cellGet(res)))
+			addDiag2(ctx, source, Diag(Diag.LambdaNotExpected(getExpectedForDiag(ctx, expected))));
+		return cellGet(res);
+	}
+}
+
+private Opt!FunType getExpectedFunType(ref ExprCtx ctx, ExprAst* source, TypeAndContext choice) {
+	Opt!Type t = choice.type.isA!TypeParamIndex
+		? tryGetInferred(choice.context, choice.type.as!TypeParamIndex)
+		: some(choice.type);
+	if (has(t))
+		return getFunType(ctx.commonTypes, force(t));
+	else {
+		addDiag2(ctx, source, Diag(Diag.LambdaCantInferParamType()));
+		return none!FunType;
+	}
+}
+
+Opt!Type getExpectedParamTypeFromFunType(ref ExprCtx ctx, ExprAst* source, TypeContext typeContext, Opt!Type declaredParamType, FunType funType, ref bool anyDiag) {
+	Opt!Type optExpectedParamType = tryGetNonInferringType(
+		ctx.instantiateCtx, TypeAndContext(funType.nonInstantiatedParamType, typeContext));
+	if (has(optExpectedParamType))
+		return !has(declaredParamType) || force(optExpectedParamType) == force(declaredParamType)
+			? optExpectedParamType
+			: none!Type;
+	else if (has(declaredParamType))
+		return some(force(declaredParamType));
+	else {
+		addDiag2(ctx, source, Diag(Diag.LambdaCantInferParamType()));
+		anyDiag = true;
+		return none!Type;
+	}
+}
+
+private void eachChoice(ref Expected a, in void delegate(TypeAndContext) @safe @nogc pure nothrow cb) =>
+	a.match!void(
+		(Expected.Infer) {},
+		(Expected.LocalType x) {
+			cb(localTypeAndContext(x));
+		},
+		(TypeAndContext[] choices) {
+			foreach (TypeAndContext choice; choices)
+				cb(choice);
+		},
+		(LoopInfo*) {});
+private void eachChoiceConst(ref const Expected a, in void delegate(const TypeAndContext) @safe @nogc pure nothrow cb) =>
+	a.matchConst!void(
+		(Expected.Infer) {},
+		(Expected.LocalType x) {
+			cb(localTypeAndContext(x));
+		},
+		(const TypeAndContext[] choices) {
+			foreach (TypeAndContext choice; choices)
+				cb(choice);
+		},
+		(const LoopInfo*) {});
+
+private struct OkSkipOrAbort(T) {
 	@safe @nogc pure nothrow:
 
 	struct Ok { T value; }
@@ -203,44 +292,6 @@ struct OkSkipOrAbort(T) {
 			(Abort x) =>
 				OkSkipOrAbort!Out.abort(x.diag));
 }
-
-OkSkipOrAbort!T handleExpectedLambda(T)(
-	ref ExprCtx ctx,
-	ref Expected expected,
-	in OkSkipOrAbort!T delegate(TypeAndContext) @safe @nogc pure nothrow cb,
-) =>
-	expected.match!(OkSkipOrAbort!T)(
-		(Expected.Infer) =>
-			OkSkipOrAbort!T.skip,
-		(Expected.LocalType x) =>
-			cb(localTypeAndContext(x)),
-		(TypeAndContext[] choices) {
-			Cell!(MutOpt!T) res = Cell!(MutOpt!T)();
-			foreach (TypeAndContext choice; choices) {
-				Opt!Type t = choice.type.isA!TypeParamIndex
-					? tryGetInferred(choice.context, choice.type.as!TypeParamIndex)
-					: some(choice.type);
-				if (!has(t))
-					return OkSkipOrAbort!T.abort(Diag(Diag.LambdaCantInferParamType()));
-				Opt!Diag abort = cb(TypeAndContext(force(t), choice.context)).match!(Opt!Diag)(
-					(ref OkSkipOrAbort!T.Ok x) {
-						if (has(cellGet(res)))
-							return some(Diag(Diag.LambdaMultipleMatch(getExpectedForDiag(ctx, expected))));
-						else {
-							cellSet(res, someMut(x.value));
-							return none!Diag;
-						}
-					},
-					(OkSkipOrAbort!T.Skip) =>
-						none!Diag,
-					(OkSkipOrAbort!T.Abort x) =>
-						some(x.diag));
-				if (has(abort))
-					return OkSkipOrAbort!T.abort(force(abort));
-			}
-			return has(cellGet(res)) ? OkSkipOrAbort!T.ok(force(cellGet(res))) : OkSkipOrAbort!T.skip;
-		},
-		(const LoopInfo*) => OkSkipOrAbort!T.skip);
 
 // This will return a result if there are no references to inferring type parameters.
 // (There may be references to the current function's type parameters.)

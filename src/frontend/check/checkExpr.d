@@ -24,25 +24,23 @@ import frontend.check.inferringType :
 	bogus,
 	check,
 	Expected,
+	ExpectedLambdaType,
 	findExpectedStructForLiteral,
-	getExpectedForDiag,
-	handleExpectedLambda,
+	getExpectedLambda,
 	inferred,
 	isPurelyInferring,
 	LoopInfo,
 	nonInferring,
-	OkSkipOrAbort,
 	Pair,
 	setExpectedIfNoInferred,
 	tryGetNonInferringType,
 	tryGetLoop,
 	TypeAndContext,
-	TypeContext,
 	withCopyWithNewExpectedType;
 import frontend.check.instantiate : InstantiateCtx, instantiateFun, instantiateStructNeverDelay, noDelayStructInsts;
 import frontend.check.maps : FunsMap, StructsAndAliasesMap;
 import frontend.check.typeFromAst : checkDestructure, makeTupleType, typeFromDestructure;
-import frontend.check.typeUtil : FunType, getFunType, nonInstantiatedReturnType;
+import frontend.check.typeUtil : nonInstantiatedReturnType;
 import model.ast :
 	ArrowAccessAst,
 	AssertOrForbidAst,
@@ -574,66 +572,6 @@ CallAst checkInterpolatedRecur(ref ExprCtx ctx, in InterpolatedPart[] parts, Pos
 	return isEmpty(rest)
 		? newLeft.kind.as!CallAst
 		: checkInterpolatedRecur(ctx, rest, newPos, some(newLeft));
-}
-
-struct ExpectedLambdaType {
-	TypeContext typeContext;
-	StructInst* funStructInst;
-	StructDecl* funStruct;
-	FunKind kind;
-	Type nonInstantiatedPossiblyFutReturnType;
-	Type instantiatedParamType;
-}
-
-MutOpt!ExpectedLambdaType getExpectedLambdaType(
-	ref ExprCtx ctx,
-	ExprAst* source,
-	ref Expected expected,
-	in DestructureAst destructure,
-) {
-	Opt!Type declaredParamType = typeFromDestructure(ctx, destructure);
-	if (has(declaredParamType) && force(declaredParamType).isA!(Type.Bogus))
-		return noneMut!ExpectedLambdaType;
-	OkSkipOrAbort!ExpectedLambdaType res = handleExpectedLambda!ExpectedLambdaType(
-		ctx, expected, (TypeAndContext expectedType) {
-			Opt!FunType optFunType = getFunType(ctx.commonTypes, expectedType.type);
-			if (has(optFunType)) {
-				FunType funType = force(optFunType);
-				Opt!Type optExpectedParamType = tryGetNonInferringType(
-					ctx.instantiateCtx, TypeAndContext(funType.nonInstantiatedParamType, expectedType.context));
-				OkSkipOrAbort!Type actualParamType = () {
-					if (has(optExpectedParamType)) {
-						Type expectedParamType = force(optExpectedParamType);
-						return !has(declaredParamType)
-							? OkSkipOrAbort!Type.ok(expectedParamType)
-							: expectedParamType == force(declaredParamType)
-							? OkSkipOrAbort!Type.ok(expectedParamType)
-							: OkSkipOrAbort!Type.skip;
-					} else
-						return has(declaredParamType)
-							? OkSkipOrAbort!Type.ok(force(declaredParamType))
-							: OkSkipOrAbort!Type.abort(Diag(Diag.LambdaCantInferParamType()));
-				}();
-				return actualParamType.mapOk((Type paramType) =>
-					ExpectedLambdaType(
-						expectedType.context,
-						funType.structInst, funType.structDecl, funType.kind,
-						nonInstantiatedReturnType(ctx.instantiateCtx, ctx.commonTypes, funType), paramType));
-			} else
-				return OkSkipOrAbort!ExpectedLambdaType.skip;
-		});
-	return res.match!(MutOpt!ExpectedLambdaType)(
-		(ref OkSkipOrAbort!ExpectedLambdaType.Ok x) =>
-			someMut(x.value),
-		(OkSkipOrAbort!ExpectedLambdaType.Skip) {
-			// Skipped every lambda.
-			addDiag2(ctx, source, Diag(Diag.LambdaNotExpected(getExpectedForDiag(ctx, expected))));
-			return noneMut!ExpectedLambdaType;
-		},
-		(OkSkipOrAbort!ExpectedLambdaType.Abort x) {
-			addDiag2(ctx, source, x.diag);
-			return noneMut!ExpectedLambdaType;
-		});
 }
 
 struct VariableRefAndType {
@@ -1182,12 +1120,12 @@ Opt!(FunDecl*) funWithName(ref ExprCtx ctx, Range range, Symbol name) {
 }
 
 Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref LambdaAst ast, ref Expected expected) {
-	MutOpt!ExpectedLambdaType opEt = getExpectedLambdaType(ctx, source, expected, ast.param);
+	MutOpt!ExpectedLambdaType opEt = getExpectedLambda(ctx, source, typeFromDestructure(ctx, ast.param), expected);
 	if (!has(opEt))
 		return bogus(expected, source);
 
 	ExpectedLambdaType et = force(opEt);
-	FunKind kind = et.kind;
+	FunKind kind = et.funType.kind;
 	if (kind == FunKind.pointer) {
 		addDiag2(ctx, source, Diag(Diag.LambdaCantBeFunctionPointer()));
 		return bogus(expected, source);
@@ -1205,7 +1143,7 @@ Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref La
 	LocalsInfo bodyLocals = LocalsInfo(ptrTrustMe(lambdaInfo), noneMut!(LocalNode*));
 	Pair!(Expr, Type) bodyAndType = withCopyWithNewExpectedType!Expr(
 		expected,
-		et.nonInstantiatedPossiblyFutReturnType,
+		nonInstantiatedReturnType(ctx.instantiateCtx, ctx.commonTypes, et.funType),
 		et.typeContext,
 		(ref Expected returnTypeInferrer) =>
 			checkExprWithDestructure(ctx, bodyLocals, param, &ast.body_, returnTypeInferrer));
@@ -1218,7 +1156,7 @@ Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref La
 		? unwrapFutureType(actualPossiblyFutReturnType, ctx)
 		: actualPossiblyFutReturnType;
 	StructInst* instFunStruct = instantiateStructNeverDelay(
-		ctx.instantiateCtx, et.funStruct, [actualNonFutReturnType, param.type]);
+		ctx.instantiateCtx, et.funType.funStruct, [actualNonFutReturnType, param.type]);
 	initMemory(lambda, LambdaExpr(
 		param,
 		body_,

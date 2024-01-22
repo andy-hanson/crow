@@ -287,7 +287,8 @@ immutable struct Diag {
 		Opt!TypeWithContainer type;
 	}
 	immutable struct LambdaMultipleMatch {
-		ExpectedForDiag expected;
+		// This is only the expected types that are lambdas
+		ExpectedForDiag.Choices choices;
 	}
 	immutable struct LambdaNotExpected {
 		ExpectedForDiag expected;
