@@ -8,7 +8,7 @@ import
 	../col/collection: last-iter-of, slice-left, slice-right
 	../json: to
 	../option: ==, new, option
-	../string: ==, ~~, +, begin, collection, end, new, prev, slice, string, to
+	../string: ==, +, begin, collection, end, interpolate, new, prev, slice, string, to
 	../test-util: is
 
 ###

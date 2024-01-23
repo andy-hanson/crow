@@ -7,7 +7,7 @@ import
 	../misc: new, to, void
 	../number: ==, <=>, +, nat64
 	../option: ==, force, new, option
-	../string: ==, ~~, join, new, string, to
+	../string: ==, interpolate, join, new, string, to
 	../test-util: is
 	../tuple: ==, new
 	./array: +, array, begin, iterate, next, size
@@ -144,7 +144,7 @@ This is O(n).
 		mins = a.mins temp-as-array
 		buckets = a.buckets temp-as-array
 		", " join for i, min : mins with-index
-			show-bucket = if i < buckets.size
+			show-bucket string = if i < buckets.size
 				bucket = buckets[i]
 				unless bucket is-empty
 					parts = ", " join for pair : bucket; pair dbg

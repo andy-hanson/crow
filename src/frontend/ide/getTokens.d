@@ -32,7 +32,6 @@ import model.ast :
 	ImportOrExportAstKind,
 	ImportsOrExportsAst,
 	InterpolatedAst,
-	InterpolatedPart,
 	LambdaAst,
 	LetAst,
 	LiteralFloatAst,
@@ -522,6 +521,7 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 					addExprsTokens(ctx, x.args);
 					break;
 				case CallAst.Style.comma:
+				case CallAst.Style.implicit:
 				case CallAst.Style.subscript:
 					addExprsTokens(ctx, x.args);
 					break;
@@ -559,15 +559,14 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 		},
 		(in InterpolatedAst x) {
 			advanceTo(ctx.tokens, a.range.start);
-			foreach (size_t i, ref InterpolatedPart part; x.parts)
-				part.matchIn!void(
-					(in string _) {},
-					(in ExprAst e) {
-						stringLiteral(ctx.tokens, Range(ctx.tokens.prevPos, e.range.start - 1));
-						addExprTokens(ctx, e);
-						// use 'min' since '}' may be missing
-						advanceTo(ctx.tokens, min(e.range.end + 1, a.range.end));
-					});
+			foreach (size_t i, ref ExprAst part; x.parts) {
+				if (!part.kind.isA!LiteralStringAst) {
+					stringLiteral(ctx.tokens, Range(ctx.tokens.prevPos, part.range.start - 1));
+					addExprTokens(ctx, part);
+					// use 'min' since '}' may be missing
+					advanceTo(ctx.tokens, min(part.range.end + 1, a.range.end));
+				}
+			}
 			stringLiteral(ctx.tokens, Range(ctx.tokens.prevPos, a.range.end));
 		},
 		(in LambdaAst x) {

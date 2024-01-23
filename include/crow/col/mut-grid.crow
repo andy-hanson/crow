@@ -7,7 +7,7 @@ import
 	../misc: to, void
 	../number: +, *, ==, <=>, nat64
 	../range: .., iterate
-	../string: ==, ~~, join, string, to
+	../string: ==, interpolate, join, string, to
 	../test-util: is
 	../tuple: new
 	./collection: build, for-loop, set-subscript, subscript, with-block

@@ -232,6 +232,7 @@ immutable struct CallAst {
 		comma, // `a, b`, `a, b, c`, etc.
 		dot, // `a.b`
 		emptyParens, // `()`
+		implicit,
 		infix, // `a b`, `a b c`, `a b c, d`, etc.
 		prefixBang,
 		prefixOperator, // `-x`, `x`, `~x`
@@ -315,19 +316,7 @@ immutable struct IfOptionAst {
 }
 
 immutable struct InterpolatedAst {
-	@safe @nogc pure nothrow:
-
-	InterpolatedPart[] parts;
-
-	this(InterpolatedPart[] p) {
-		parts = p;
-		assert(exists!InterpolatedPart(parts, (in InterpolatedPart part) =>
-			part.isA!ExprAst));
-	}
-}
-
-immutable struct InterpolatedPart {
-	mixin Union!(string, ExprAst);
+	ExprAst[] parts;
 }
 
 immutable struct LambdaAst {

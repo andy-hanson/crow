@@ -2,7 +2,7 @@ no-std
 import
 	../col/array: array, new
 	../number: +, -, *, /, float32, float64, to
-	../string: ~~, string, to
+	../string: interpolate, string, to
 	../test-util: throws
 	./math: square-root
 

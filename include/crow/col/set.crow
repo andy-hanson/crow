@@ -6,7 +6,7 @@ import
 	../misc: key, new, to, void
 	../number: ==, <=>, +, -, *, nat64
 	../option: ??, force, new, option
-	../string: ~~, join, new, string, to
+	../string: interpolate, join, new, string, to
 	./array: array
 	./collection: build, build-options, filter, for-loop, iterate, with-block, with-index
 	./experimental/index-set:
@@ -264,7 +264,7 @@ dbg[t] string(a t set) (string, t) to
 		parts = " " join for i : a remove; "{i}"
 		"{add} - [{parts}]"
 -dbg[t] string(a t add-node) (string, t) to
-	left = if l ?= a left
+	left string = if l ?= a left
 		"{l dbg}, "
 	here = " " join for x : a here; "{x}"
 	"{left}[{here}]"

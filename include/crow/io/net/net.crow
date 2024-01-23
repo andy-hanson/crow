@@ -18,7 +18,7 @@ import
 	../../number: ==, int32, nat16, to
 	../../option: force, new, option
 	../../pointer: ==, *, as-const, const-pointer, mut-pointer, null
-	../../string: ~~, string, to
+	../../string: interpolate, string, to
 	../../private/bootstrap: todo
 	../posix-util: check-posix-error
 	../print: err, out, print

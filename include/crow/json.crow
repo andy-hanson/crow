@@ -14,7 +14,7 @@ import
 	./number: ==, float32, float64, int8, int16, int32, int64, nat8, nat16, nat32, nat64, to
 	./option: ??, new, option
 	./result: result
-	./string: ==, ~~, char8, join, quote, string, to
+	./string: ==, char8, interpolate, join, quote, string, to
 	./symbol: ==, <=>, hash-mix, symbol, to
 	./tuple: a, b, new
 

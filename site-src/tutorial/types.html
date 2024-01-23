@@ -140,10 +140,9 @@ but I forgot it
 	<p>
 		You've seen this a lot already.
 		<br />
-		<code>"One plus one is {1 + 1}!"</code> is shorthand for
-		<code>"One plus one is " ~~ (1 + 1).to ~~ "!"</code>.
+		<code>"1 + 1 is {1 + 1}!"</code> is shorthand for
+		<code>("1 + 1 is ", (1 + 1).to, "!") interpolate</code>.
 		<br />
-		<code>~~</code> is the concatenation operator.
 		The <code>.to</code> is to convert whatever is interpolated to <code>string</code>.
 	</p>
 

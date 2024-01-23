@@ -7,7 +7,7 @@ import
 	../number: ==, <=>, to
 	../pointer: null
 	../range: ..
-	../string: ~~, as-string, char8, string, to
+	../string: as-string, char8, interpolate, string, to
 	system/win32:
 		DWORD, FormatMessageA, FORMAT_MESSAGE_FROM_SYSTEM, FORMAT_MESSAGE_IGNORE_INSERTS,
 		LANG_NEUTRAL, MAKELANGID, SUBLANG_NEUTRAL

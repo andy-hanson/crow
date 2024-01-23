@@ -10,7 +10,7 @@ import
 	../number: ==, <=>, +, -, nat64
 	../option: force, is-empty, new, option
 	../range: .., iterate, size
-	../string: ~~, join, string, to
+	../string: interpolate, join, string, to
 	../tuple: b, new
 	../private/bootstrap: todo
 	./array:

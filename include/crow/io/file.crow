@@ -30,8 +30,7 @@ import
 	../private/bootstrap: todo
 	../pointer: ==, as-const, mut-pointer, null, pointer-cast, size-of
 	../range: ..
-	../string:
-		==, <=>, ~~, as-string, char8, c-string, string, to, to-bytes
+	../string: ==, <=>, as-string, char8, c-string, interpolate, string, to, to-bytes
 	../version: is-windows
 	./path: child-path
 	./posix-util: check-errno, check-posix-error, throw-posix-error

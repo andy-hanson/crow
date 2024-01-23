@@ -10,7 +10,7 @@ import
 	../misc: new, void
 	../number: ==, nat8, nat32, to
 	../pointer: null, size-of
-	../string: ~~, char8, string, to, to-bytes
+	../string: char8, interpolate, string, to, to-bytes
 	../version: is-windows
 	../private/bootstrap: todo
 	./win32-util: show-win32-error

@@ -8,7 +8,7 @@ import
 	../../option: force, is-empty
 	../../pointer: size-of
 	../../range: .., end, iterate, prev
-	../../string: ==, ~~, join, string, to
+	../../string: ==, interpolate, join, string, to
 	../../test-util: is
 	../../tuple: a, b
 	../array: +, -, array, begin, end, is-empty, iterate, size, slice

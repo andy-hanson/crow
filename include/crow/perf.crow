@@ -17,7 +17,7 @@ import
 	./misc: new, void
 	./number: ==, <=>, +, -, nat64, to
 	./range: .., iterate, size
-	./string: ~~, join, string, to
+	./string: interpolate, join, string, to
 	./symbol: ==, <=>, hash-mix, symbol, to
 	./tuple: new
 

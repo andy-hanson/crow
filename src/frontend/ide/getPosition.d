@@ -537,6 +537,7 @@ Opt!NameAndRange getCallName(in ExprAst a) {
 		final switch (a.kind.as!CallAst.style) {
 			case CallAst.Style.comma:
 			case CallAst.Style.emptyParens:
+			case CallAst.Style.implicit:
 			case CallAst.Style.subscript:
 				return none!NameAndRange;
 			case CallAst.Style.dot:

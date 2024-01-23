@@ -28,7 +28,6 @@ import model.ast :
 	ImportOrExportAstKind,
 	ImportsOrExportsAst,
 	InterpolatedAst,
-	InterpolatedPart,
 	LambdaAst,
 	LetAst,
 	LiteralFloatAst,
@@ -479,8 +478,7 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 		(in InterpolatedAst x) =>
 			jsonObject(alloc, [
 				kindField!"interpolated",
-				field!"parts"(jsonList!InterpolatedPart(alloc, x.parts, (in InterpolatedPart part) =>
-					jsonOfInterpolatedPart(alloc, ctx, part)))]),
+				field!"parts"(jsonOfExprAsts(alloc, ctx, x.parts))]),
 		(in LambdaAst x) =>
 			jsonObject(alloc, [
 				kindField!"lambda",
@@ -571,8 +569,3 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 				field!"param"(jsonOfDestructureAst(alloc, ctx, x.param)),
 				field!"arg"(jsonOfExprAst(alloc, ctx, x.arg)),
 				field!"body"(jsonOfExprAst(alloc, ctx, x.body_))]));
-
-Json jsonOfInterpolatedPart(ref Alloc alloc, in Ctx ctx, in InterpolatedPart a) =>
-	a.matchIn!Json(
-		(in string x) => jsonString(alloc, x),
-		(in ExprAst x) => jsonOfExprAst(alloc, ctx, x));

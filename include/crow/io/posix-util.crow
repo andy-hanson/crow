@@ -4,7 +4,7 @@ import
 	../c-types: err-t
 	../misc: new, void
 	../number: ==
-	../string: ~~, to
+	../string: interpolate, to
 
 # Fail if `errno != 0`.
 check-errno void() unsafe

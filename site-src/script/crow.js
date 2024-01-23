@@ -50,8 +50,13 @@ export const getCrowServer = () => crowServer
 /** @type {ReadonlyArray<string & keyof Math>} */
 const mathKeys = [
 	"acos", "acosh", "asin", "asinh", "atan", "atanh", "atan2",
-	"cos", "cosh", "round", "sin", "sinh", "sqrt", "tan", "tanh",
+	"cos", "cosh", "sin", "sinh", "sqrt", "tan", "tanh",
 ]
+
+/** @type {function(number): number)} */
+const round = x =>
+	// Behave like C's (and Crow's) round, where `-0.5.round` is -1
+	x < 0 ? -Math.round(-x) : Math.round(x)
 
 /** @type {function(() => DataView): WebAssembly.ModuleImports} */
 /** @type {Array<{name:string, count:number, msec:number, bytesAllocated:number}>} */
@@ -81,6 +86,9 @@ const imports = {
 		[name, Math[name]],
 		[`${name}f`, Math[name]],
 	])),
+	/** @type {function(number, number)} */
+	round,
+	roundf: round,
 	/** @type {function(CStr, CStr, number): void} */
 	__assert: (asserted, file, line) => {
 		throw new Error(`Assertion '${readCString(asserted)}' failed on ${readCString(file)} line ${line}`)

@@ -58,7 +58,6 @@ import model.ast :
 	IfAst,
 	IfOptionAst,
 	InterpolatedAst,
-	InterpolatedPart,
 	LambdaAst,
 	LetAst,
 	LiteralFloatAst,
@@ -163,10 +162,10 @@ import util.col.array :
 	PtrAndSmallNumber,
 	small;
 import util.col.mutMaxArr : asTemporaryArray, initializeMutMaxArr, mutMaxArrSize;
-import util.conv : safeToUshort, safeToUint;
+import util.conv : safeToUshort;
 import util.memory : allocate, initMemory, overwriteMemory;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, someMut, some;
-import util.sourceRange : Pos, Range;
+import util.sourceRange : Range;
 import util.symbol : prependSet, prependSetDeref, Symbol, symbol;
 import util.union_ : Union;
 import util.util : castImmutable, castNonScope_ref, max, ptrTrustMe;
@@ -523,53 +522,15 @@ Expr checkInterpolated(
 	in InterpolatedAst ast,
 	ref Expected expected,
 ) {
-	// TODO: NEATER (don't create a synthetic AST)
-	// "a{b}c" ==> "a" ~~ b.to ~~ "c"
-	CallAst call = checkInterpolatedRecur(ctx, ast.parts, source.range.start + 1, none!ExprAst);
-	Opt!Type inferred = tryGetNonInferringType(ctx.instantiateCtx, expected);
-	CallAst callAndConvert = has(inferred) && force(inferred) != Type(ctx.commonTypes.string_)
-		? CallAst(
-			//TODO: new kind (not infix)
-			CallAst.Style.infix,
-			NameAndRange(source.range.start, symbol!"to"),
-			// TODO: NO ALLOC
-			newArray!ExprAst(ctx.alloc, [ExprAst(source.range, ExprAstKind(call))]))
-		: call;
-	return checkCall(ctx, locals, source, callAndConvert, expected);
-}
-
-CallAst checkInterpolatedRecur(ref ExprCtx ctx, in InterpolatedPart[] parts, Pos pos, in Opt!ExprAst left) {
-	ExprAst right = parts[0].matchIn!ExprAst(
-		(in string x) =>
-			// TODO: this length may be wrong in the presence of escapes
-			ExprAst(Range(pos, safeToUint(pos + x.length)), ExprAstKind(LiteralStringAst(x))),
-		(in ExprAst e) =>
-			ExprAst(e.range, ExprAstKind(CallAst(
-				//TODO: new kind (not infix)
-				CallAst.Style.infix,
-				NameAndRange(pos, symbol!"to"),
-				// TODO: NO ALLOC
-				newArray!ExprAst(ctx.alloc, [e])))));
-	Pos newPos = parts[0].matchIn!Pos(
-		(in string x) =>
-			// TODO: this length may be wrong in the presence of escapes
-			safeToUint(pos + x.length),
-		(in ExprAst x) =>
-			x.range.end + 1);
-	ExprAst newLeft = has(left)
-		? ExprAst(
-			Range(pos, newPos),
-			ExprAstKind(CallAst(
-				//TODO: new kind (not infix)
-				CallAst.Style.infix,
-				NameAndRange(pos, symbol!"~~"),
-				// TODO: NO ALLOC
-				newArray!ExprAst(ctx.alloc, [force(left), right]))))
-		: right;
-	scope InterpolatedPart[] rest = parts[1 .. $];
-	return isEmpty(rest)
-		? newLeft.kind.as!CallAst
-		: checkInterpolatedRecur(ctx, rest, newPos, some(newLeft));
+	ExprAst[] args = map(ctx.alloc, ast.parts, (ref ExprAst part) =>
+		part.kind.isA!LiteralStringAst
+			? part
+			: ExprAst(part.range, ExprAstKind(CallAst(
+				CallAst.Style.implicit,
+				NameAndRange(source.range.start, symbol!"to"),
+				newArray!ExprAst(ctx.alloc, [part])))));
+	CallAst call = CallAst(CallAst.style.implicit, NameAndRange(source.range.start, symbol!"interpolate"), args);
+	return checkCall(ctx, locals, source, call, expected);
 }
 
 struct VariableRefAndType {

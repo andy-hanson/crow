@@ -2,6 +2,7 @@ module lower.lower;
 
 @safe @nogc pure nothrow:
 
+import backend.builtinMath : builtinForBinaryMath, builtinForUnaryMath;
 import lower.checkLowModel : checkLowProgram;
 import lower.generateCallFunOrAct : generateCallFunOrAct;
 import lower.generateMarkVisitFun : generateMarkVisitArr, generateMarkVisitNonArr, generateMarkVisitGcPtr;
@@ -138,9 +139,10 @@ import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : UriAndRange;
-import util.symbol : AllSymbols, Symbol, symbol;
+import util.symbol : AllSymbols, Symbol, symbol, symbolOfEnum;
 import util.union_ : Union;
 import util.util : castNonScope_ref, enumConvert, ptrTrustMe, typeAs;
+import versionInfo : isVersion;
 
 LowProgram lower(
 	scope ref Perf perf,
@@ -621,10 +623,11 @@ AllLowFuns getAllLowFuns(
 							fun.paramsIncludingClosure[0].type));
 					return some(generateMarkVisitForType(lowTypeFromConcreteType(getLowTypeCtx, only(x.typeArgs))));
 				} else {
-					if (x.kind.isA!BuiltinUnaryMath || x.kind.isA!BuiltinBinaryMath) {
-						Opt!Symbol optName = name(*fun);
-						addExternSymbol(symbol!"m", force(optName));
-					}
+					if (!isVersion(program.version_, VersionFun.isInterpreted) &&
+							(x.kind.isA!BuiltinUnaryMath || x.kind.isA!BuiltinBinaryMath))
+						addExternSymbol(symbol!"m", x.kind.isA!BuiltinUnaryMath
+							? symbolOfEnum(builtinForUnaryMath(x.kind.as!BuiltinUnaryMath))
+							: symbolOfEnum(builtinForBinaryMath(x.kind.as!BuiltinBinaryMath)));
 					return none!LowFunIndex;
 				}
 			},
@@ -855,7 +858,7 @@ LowFunBody getLowFunBody(
 	ref ConcreteFun a,
 ) =>
 	a.body_.match!LowFunBody(
-		(ConcreteFunBody.Builtin) =>
+		(ConcreteFunBody.Builtin x) =>
 			assert(false),
 		(Constant _) =>
 			assert(false),

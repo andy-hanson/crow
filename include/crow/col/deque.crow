@@ -4,7 +4,7 @@ import
 	../json: to
 	../number: ==, +, nat64
 	../option: force, is-empty, new, option
-	../string: ==, ~~, join, string, to
+	../string: ==, interpolate, join, string, to
 	../test-util: is
 	../tuple: a, b, new
 	./array: +, -, array, begin, end, is-empty, iterate, next, size, slice

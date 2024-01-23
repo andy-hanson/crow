@@ -21,8 +21,8 @@ import
 	../../option: ??, force, new, option
 	../../parse: nat, parse
 	../../string:
-		==, <=>, ~~, as-string, begin, char8, end, hash-mix, is-empty, iterate, join, next, prev,
-		slice, string, to-bytes, to
+		==, <=>, as-string, begin, char8, end, hash-mix, interpolate, is-empty, iterate, join, next,
+		prev, slice, string, to-bytes, to
 	../../tuple: new
 	../../private/bootstrap: todo
 	./http-types:
@@ -121,7 +121,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 		forbid k contains "\n"
 		forbid v contains "\n"
 		"\r\n{k}: {v}"
-	head = "HTTP/1.1 {a status} \r\n{a status-desc}{headers}"
+	head string = "HTTP/1.1 {a status} \r\n{a status-desc}{headers}"
 	if a.response-body is-empty
 		"{head}\r\n\r\n" to-bytes
 	else

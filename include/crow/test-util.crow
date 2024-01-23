@@ -9,7 +9,7 @@ import
 	./misc: to, void
 	./number: ==, nat64
 	./private/exception-low-level: catch, message
-	./string: ~~, ==, string
+	./string: ==, interpolate, string
 	./tuple: ==, new
 
 ###

@@ -8,7 +8,7 @@ import
 	../../misc: key, new, to, void
 	../../number: ==, <=>, +, nat64
 	../../option: ==, is-empty, new, option
-	../../string: ==, ~~, join, string, to
+	../../string: ==, interpolate, join, string, to
 	../../test-util: is
 	../../tuple: ==, new
 	../collection: build, for-loop, with-block
@@ -176,7 +176,7 @@ region test
 	as overlay o
 		parts = ", " join for k, v : o pairs
 			# TODO: v?.to::string ?? "_"
-			v-str = if val ?= v
+			v-str string = if val ?= v
 				"{val}"
 			else
 				"_"

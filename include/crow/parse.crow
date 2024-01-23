@@ -11,8 +11,8 @@ import
 	./option: is-empty, new, option
 	./result: error, ok, result
 	./string:
-		==, <=>, ~~, ~=, as-string, begin, build, char8, hash-mix, is-empty, iterate, join, next,
-		string, string-iterator, to
+		==, <=>, ~=, as-string, begin, build, char8, hash-mix, interpolate, is-empty, iterate, join,
+		next, string, string-iterator, to
 	./tuple: a, b, new
 
 ###
@@ -82,7 +82,7 @@ If the string has leading or trailing spaces you must use a grammar that include
 
 +to string(a parse-error)
 	# TODO: show where it is
-	peek = if x, _ ?= a.iter next
+	peek string = if x, _ ?= a.iter next
 		"'{x}'"
 	else
 		"EOF"

@@ -12,7 +12,7 @@ import
 	./misc: loop-break, loop-continue, new
 	./number: ==, +
 	./option: ??, new, option
-	./string: ==, ~~, begin, end, next, slice, string, to
+	./string: ==, begin, end, interpolate, next, slice, string, to
 	./symbol: ==, <=>, hash-mix, symbol, to
 	./test-util: is
 	./tuple: new

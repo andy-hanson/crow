@@ -36,7 +36,7 @@ documentation path-and-content[]^() summon
 )
 	out-path = "doc" child-path path.extension-to-html
 	nav = all-paths generate-nav path
-	full = """<div class="documentation" id="side-nav-wrapper">{nav}<main>{content}</main></div>"""
+	full string = """<div class="documentation" id="side-nav-wrapper">{nav}<main>{content}</main></div>"""
 	out-path page-template title, full
 
 -generate-nav string(all-paths module-path[], cur-path module-path)

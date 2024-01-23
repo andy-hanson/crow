@@ -64,7 +64,6 @@ import model.ast :
 	IfAst,
 	IfOptionAst,
 	InterpolatedAst,
-	InterpolatedPart,
 	LambdaAst,
 	LetAst,
 	LiteralStringAst,
@@ -88,7 +87,7 @@ import model.ast :
 import model.model : AssertOrForbidKind;
 import model.parseDiag : ParseDiag;
 import util.col.array : isEmpty, newArray, only, prepend;
-import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, finish;
+import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, buildArray, Builder, finish;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some, some;
 import util.sourceRange : Pos, Range;
@@ -859,37 +858,32 @@ ExprAst handleName(ref Lexer lexer, Pos start, NameAndRange name) {
 }
 
 ExprAst takeInterpolated(ref Lexer lexer, Pos start, string firstText, QuoteKind quoteKind) {
-	ArrayBuilder!InterpolatedPart parts;
-	if (!isEmpty(firstText))
-		add(lexer.alloc, parts, InterpolatedPart(firstText));
-	return takeInterpolatedRecur(lexer, start, parts, quoteKind);
-}
-
-ExprAst takeInterpolatedRecur(
-	ref Lexer lexer,
-	Pos start,
-	ref ArrayBuilder!InterpolatedPart parts,
-	QuoteKind quoteKind,
-) {
-	ExprAst e = () {
-		if (peekToken(lexer, Token.braceRight)) {
-			Pos pos = curPos(lexer);
-			Range range = Range(pos - 1, pos + 1);
-			addDiag(lexer, range, ParseDiag(ParseDiag.MissingExpression()));
-			return bogusExpr(range);
-		} else
-			return parseExprNoBlock(lexer);
-	}();
-	add(lexer.alloc, parts, InterpolatedPart(e));
-	StringPart part = takeClosingBraceThenStringPart(lexer, quoteKind);
-	if (!isEmpty(part.text))
-		add(lexer.alloc, parts, InterpolatedPart(part.text));
-	final switch (part.after) {
-		case StringPart.After.quote:
-			return ExprAst(range(lexer, start), ExprAstKind(InterpolatedAst(finish(lexer.alloc, parts))));
-		case StringPart.After.lbrace:
-			return takeInterpolatedRecur(lexer, start, parts, quoteKind);
-	}
+	ExprAst[] parts = buildArray!ExprAst(lexer.alloc, (scope ref Builder!ExprAst res) {
+		if (!isEmpty(firstText))
+			res ~= ExprAst(range(lexer, start), ExprAstKind(LiteralStringAst(firstText)));
+		while (true) {
+			res ~= () {
+				if (peekToken(lexer, Token.braceRight)) {
+					Pos pos = curPos(lexer);
+					Range range = Range(pos - 1, pos + 1);
+					addDiag(lexer, range, ParseDiag(ParseDiag.MissingExpression()));
+					return bogusExpr(range);
+				} else
+					return parseExprNoBlock(lexer);
+			}();
+			Pos stringStart = curPos(lexer);
+			StringPart part = takeClosingBraceThenStringPart(lexer, quoteKind);
+			if (!isEmpty(part.text))
+				res ~= ExprAst(range(lexer, stringStart), ExprAstKind(LiteralStringAst(part.text)));
+			final switch (part.after) {
+				case StringPart.After.quote:
+					return;
+				case StringPart.After.lbrace:
+					continue;
+			}
+		}
+	});
+	return ExprAst(range(lexer, start), ExprAstKind(InterpolatedAst(parts)));
 }
 
 ExprAst parseExprNoBlock(ref Lexer lexer) =>

@@ -9,7 +9,7 @@ import
 	../../misc: key, new, to, void
 	../../number: ==, <=>, +, nat64
 	../../option: ==, is-empty, new, option
-	../../string: ==, ~~, -, end, join, next, string, to
+	../../string: ==, -, end, interpolate, join, next, string, to
 	../../test-util: is
 	../../tuple: ==, <=>, a, b, new
 	../array:
@@ -307,7 +307,7 @@ region test
 	match a
 	as overlay o
 		pairs = ", " join for k, v-opt : o pairs
-			vs = if v ?= v-opt
+			vs string = if v ?= v-opt
 				"{v}"
 			else
 				"_"

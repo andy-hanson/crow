@@ -31,7 +31,7 @@ import
 	../private/c-string-util: find-c-string-end
 	../private/number-low-level: wrap-to
 	../pointer: ==, +, -, mut-pointer, new, null, pointer-cast
-	../string: ~~, as-string, char8, c-string, is-empty, join, move-to, string, to
+	../string: as-string, char8, c-string, interpolate, is-empty, join, move-to, string, to
 	../version: is-windows
 	./environ: get-environ-raw
 	./file: is-file

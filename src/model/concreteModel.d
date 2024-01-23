@@ -29,6 +29,7 @@ import util.sourceRange : UriAndRange;
 import util.string : CString;
 import util.symbol : Symbol;
 import util.union_ : Union;
+import versionInfo : VersionInfo;
 
 immutable struct EnumValues {
 	// size_t for 0 to N
@@ -602,6 +603,7 @@ immutable struct ConcreteVar {
 immutable struct ConcreteProgram {
 	@safe @nogc pure nothrow:
 
+	VersionInfo version_;
 	AllConstantsConcrete allConstants;
 	ConcreteStruct*[] allStructs;
 	ConcreteVar*[] allVars;

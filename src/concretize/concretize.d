@@ -87,6 +87,7 @@ ConcreteProgram concretizeInner(
 	deferredFillRecordAndUnionBodies(ctx);
 
 	ConcreteProgram res = ConcreteProgram(
+		versionInfo,
 		finishAllConstants(alloc, ctx.allConstants, symbolArrayType(ctx)),
 		finish(alloc, ctx.allConcreteStructs),
 		finishConcreteVars(ctx),

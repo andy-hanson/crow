@@ -425,8 +425,6 @@ immutable string[] specialSymbols = [
 	".exe\0",
 	".json\0",
 	".lib\0",
-	"+new\0",
-	"~new\0",
 	".so\0",
 	"as-any-mut-pointer\0",
 	"as-fun-pointer\0",
@@ -465,6 +463,8 @@ immutable string[] specialSymbols = [
 	"to-mut-pointer\0",
 	"unsafe-bit-shift-left\0",
 	"unsafe-bit-shift-right\0",
+
+	"__builtin_popcountl\0",
 
 	"contentChanges\0",
 	"definitionProvider\0",

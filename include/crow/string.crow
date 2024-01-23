@@ -41,6 +41,11 @@ If you need to concatenate many strings, consider using the `crow/writer` module
 +~~ string(a string, b string)
 	a.inner ~~ b.inner,
 
++interpolate string(...parts string array)
+	"" join parts.to
++interpolate char8*(...parts string array)
+	("" join parts.to) to
+
 # Same as `""`.
 +new string() bare
 	""
