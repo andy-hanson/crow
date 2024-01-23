@@ -5,16 +5,33 @@ module frontend.check.inferringType;
 import frontend.check.exprCtx : addDiag2, ExprCtx, typeWithContainer;
 import frontend.check.instantiate : InstantiateCtx, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray;
 import frontend.check.typeUtil : FunType, getFunType;
+import frontend.showModel : ShowCtx, ShowTypeCtx, ShowOptions, writeTypeUnquoted;
+import frontend.storage : LineAndColumnGetters;
 import model.ast : ExprAst;
-import model.diag : Diag, ExpectedForDiag;
+import model.diag : Diag, ExpectedForDiag, TypeContainer, TypeWithContainer;
 import model.model : BogusExpr, CommonTypes, Expr, ExprKind, LoopExpr, StructInst, Type, TypeParamIndex;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.array : contains, exists, indexOf, map, MutSmallArray, newArray, only, small, zip, zipEvery;
+import util.col.array :
+	contains,
+	indexOf,
+	isEmpty,
+	map,
+	MutSmallArray,
+	newArray,
+	NoneOneOrMany,
+	noneOneOrMany,
+	only,
+	small,
+	zip,
+	zipEvery;
 import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, asTemporaryArray, finish;
 import util.col.mutMaxArr : asTemporaryArray;
 import util.opt : has, force, MutOpt, none, noneMut, Opt, optOrDefault, some, someInout, someMut;
+import util.symbol : writeSymbol;
 import util.union_ : TaggedUnion, UnionMutable;
+import util.uri : UrisInfo;
 import util.util : castNonScope_ref;
+import util.writer : Writer, writeWithCommas;
 
 struct SingleInferringType {
 	@safe @nogc pure nothrow:
@@ -94,6 +111,69 @@ struct Expected {
 // TODO: I could probably get this to just ulong.sizeof
 static assert(Expected.sizeof == ulong.sizeof * 2);
 
+void debugLogExpected(scope ref Writer writer, ref ExprCtx ctx, in Expected a) {
+	ShowTypeCtx showCtx = ShowTypeCtx(
+		ShowCtx(
+			ctx.checkCtx.allSymbolsPtr,
+			ctx.checkCtx.allUrisPtr,
+			LineAndColumnGetters(null), // not used
+			UrisInfo(),
+			ShowOptions(color: false)),
+		ctx.commonTypesPtr);
+
+	a.matchConst!void(
+		(const Expected.Infer) {
+			writer ~= "<<infer>>";
+		},
+		(const Expected.LocalType t) {
+			writer ~= "local type ";
+			writeTypeUnquoted(writer, showCtx, typeWithContainer(ctx, t.type));
+		},
+		(const TypeAndContext[] choices) {
+			writer ~= "choices: ";
+			writeWithCommas!TypeAndContext(writer, choices, (in TypeAndContext choice) {
+				debugLogExpectedChoice(writer, showCtx, ctx.typeContainer, choice);
+			});
+		},
+		(const LoopInfo* x) {
+			writer ~= "loop returning ";
+			writeTypeUnquoted(writer, showCtx, typeWithContainer(ctx, x.type));
+		});
+}
+
+private void debugLogExpectedChoice(
+	scope ref Writer writer,
+	in ShowTypeCtx showCtx,
+	in TypeContainer container,
+	in TypeAndContext choice,
+) {
+	choice.type.matchIn!void(
+		(in Type.Bogus) {
+			writer ~= "<<bogus>>";
+		},
+		(in TypeParamIndex x) {
+			writer ~= "type param ";
+			writer ~= x.index;
+			const MutOpt!(SingleInferringType*) ta = tryGetInferring(choice.context, x);
+			Opt!Type inferred = tryGetInferred(*force(ta));
+			if (has(inferred)) {
+				writer ~= " inferred as ";
+				writeTypeUnquoted(writer, showCtx, TypeWithContainer(force(inferred), container));
+			} else
+				writer ~= " with no inference";
+		},
+		(in StructInst x) {
+			if (!isEmpty(x.typeArgs)) {
+				writer ~= '(';
+				writeWithCommas!Type(writer, x.typeArgs, (in Type typeArg) {
+					debugLogExpectedChoice(writer, showCtx, container, TypeAndContext(typeArg, choice.context));
+				});
+				writer ~= ") ";
+			}
+			writeSymbol(writer, showCtx.allSymbols, x.decl.name);
+		});
+}
+
 private TypeAndContext localTypeAndContext(Expected.LocalType a) =>
 	nonInferring(a.type);
 
@@ -105,42 +185,62 @@ bool isPurelyInferring(in Expected expected) =>
 
 /**
 Returns an index into 'choices' if it is the only allowed choice.
-If we are inferring a type, returns defaultChoice.
-If there are multiple allowed choices, adds a diagnostic and returns none.
+If there is no unambiguous choice, adds a diagnostic and returns 'none'.
 */
 Opt!size_t findExpectedStructForLiteral(
 	ref ExprCtx ctx,
 	ExprAst* source,
 	ref const Expected expected,
 	in immutable StructInst*[] choices,
-	size_t defaultChoice,
 ) {
-	// This function will only be used with types like nat8 with no type arguments, so don't worry about those
 	Cell!(Opt!size_t) rslt;
+	bool ambiguous = false;
 	ArrayBuilder!(immutable StructInst*) multiple; // for diag
-	eachChoiceConst(expected, (const TypeAndContext x) {
-		if (x.type.isA!(StructInst*)) {
-			StructInst* struct_ = x.type.as!(StructInst*);
-			Opt!size_t here = indexOf(choices, struct_);
-			if (has(here)) {
-				if (has(cellGet(rslt))) {
-					StructInst* rsltStruct = choices[force(cellGet(rslt))];
-					if (struct_ != rsltStruct) {
-						if (arrBuilderIsEmpty(multiple))
-							add(ctx.alloc, multiple, rsltStruct);
-						if (!contains(asTemporaryArray(multiple), struct_))
-							add(ctx.alloc, multiple, struct_);
-					}
-				} else
-					cellSet(rslt, here);
-			}
+
+	void handleStruct(StructInst* struct_) {
+		Opt!size_t here = indexOf(choices, struct_);
+		if (has(here)) {
+			if (has(cellGet(rslt))) {
+				StructInst* rsltStruct = choices[force(cellGet(rslt))];
+				if (struct_ != rsltStruct) {
+					if (arrBuilderIsEmpty(multiple))
+						add(ctx.alloc, multiple, rsltStruct);
+					if (!contains(asTemporaryArray(multiple), struct_))
+						add(ctx.alloc, multiple, struct_);
+				}
+			} else
+				cellSet(rslt, here);
 		}
+	}
+
+	eachChoiceConst(expected, (const TypeAndContext choice) {
+		choice.type.matchWithPointers!void(
+			(Type.Bogus) {
+				ambiguous = true;
+			},
+			(TypeParamIndex index) {
+				Opt!Type inferred = tryGetInferred(choice.context, index);
+				if (has(inferred))
+					force(inferred).matchWithPointers!void(
+						(Type.Bogus) {
+							ambiguous = true;
+						},
+						(TypeParamIndex) {},
+						(StructInst* x) { handleStruct(x); });
+				else
+					ambiguous = true;
+			},
+			(StructInst* x) { handleStruct(x); });
 	});
-	if (!arrBuilderIsEmpty(multiple)) {
-		addDiag2(ctx, source, Diag(Diag.LiteralAmbiguous(ctx.typeContainer, finish(ctx.alloc, multiple))));
+
+	if (ambiguous || !has(cellGet(rslt))) {
+		addDiag2(ctx, source, Diag(Diag.LiteralNotExpected(getExpectedForDiag(ctx, expected))));
+		return none!size_t;
+	} else if (!arrBuilderIsEmpty(multiple)) {
+		addDiag2(ctx, source, Diag(Diag.LiteralMultipleMatch(ctx.typeContainer, finish(ctx.alloc, multiple))));
 		return none!size_t;
 	} else
-		return has(cellGet(rslt)) ? cellGet(rslt) : some(defaultChoice);
+		return cellGet(rslt);
 }
 
 private @trusted void setToType(scope ref Expected expected, Expected.LocalType type) {
@@ -188,7 +288,8 @@ MutOpt!ExpectedLambdaType getExpectedLambda(
 		Opt!FunType optFunType = getExpectedFunType(ctx, source, choice);
 		if (has(optFunType)) {
 			FunType funType = force(optFunType);
-			Opt!Type actualParamType = getExpectedParamTypeFromFunType(ctx, source, choice.context, declaredParamType, funType, anyDiag);
+			Opt!Type actualParamType = getExpectedParamTypeFromFunType(
+				ctx, source, choice.context, declaredParamType, funType, anyDiag);
 			if (has(actualParamType)) {
 				if (has(cellGet(res))) {
 					if (arrBuilderIsEmpty(multiple)) {
@@ -228,7 +329,14 @@ private Opt!FunType getExpectedFunType(ref ExprCtx ctx, ExprAst* source, TypeAnd
 	}
 }
 
-Opt!Type getExpectedParamTypeFromFunType(ref ExprCtx ctx, ExprAst* source, TypeContext typeContext, Opt!Type declaredParamType, FunType funType, ref bool anyDiag) {
+private Opt!Type getExpectedParamTypeFromFunType(
+	ref ExprCtx ctx,
+	ExprAst* source,
+	TypeContext typeContext,
+	Opt!Type declaredParamType,
+	FunType funType,
+	ref bool anyDiag,
+) {
 	Opt!Type optExpectedParamType = tryGetNonInferringType(
 		ctx.instantiateCtx, TypeAndContext(funType.nonInstantiatedParamType, typeContext));
 	if (has(optExpectedParamType))
@@ -255,7 +363,10 @@ private void eachChoice(ref Expected a, in void delegate(TypeAndContext) @safe @
 				cb(choice);
 		},
 		(LoopInfo*) {});
-private void eachChoiceConst(ref const Expected a, in void delegate(const TypeAndContext) @safe @nogc pure nothrow cb) =>
+private void eachChoiceConst(
+	ref const Expected a,
+	in void delegate(const TypeAndContext) @safe @nogc pure nothrow cb,
+) =>
 	a.matchConst!void(
 		(Expected.Infer) {},
 		(Expected.LocalType x) {
@@ -317,16 +428,17 @@ bool matchExpectedVsReturnTypeNoDiagnostic(
 		(Expected.LocalType x) =>
 			// We have a particular expected type, so infer its type args
 			matchTypes(ctx, candidateReturnType, localTypeAndContext(x)),
-		(const TypeAndContext[] choices) {
-			if (choices.length == 1) {
-				Opt!Type t = tryGetNonInferringType(ctx, expected);
-				if (has(t))
-					return matchTypes(ctx, candidateReturnType, nonInferring(force(t)));
-			}
-			// Don't infer any type args here; multiple candidates and multiple possible return types.
-			return exists!(const TypeAndContext)(choices, (in TypeAndContext x) =>
-				isTypeMatchPossible(x, candidateReturnType));
-		},
+		(const TypeAndContext[] choices) =>
+			noneOneOrMany!TypeAndContext(choices, (in TypeAndContext x) =>
+				isTypeMatchPossible(x, candidateReturnType)
+			).matchIn!bool(
+				(in NoneOneOrMany.None) =>
+					false,
+				(in NoneOneOrMany.One x) =>
+					matchTypes(ctx, candidateReturnType, choices[x.index]),
+				(in NoneOneOrMany.Many) =>
+					// Else don't infer any type args; multiple candidates and multiple possible return types.
+					true),
 		(const LoopInfo*) =>
 			false);
 
@@ -378,16 +490,6 @@ ExpectedForDiag getExpectedForDiag(ref ExprCtx ctx, ref const Expected expected)
 				ctx.typeContainer)),
 		(const LoopInfo*) =>
 			ExpectedForDiag(ExpectedForDiag.Loop()));
-
-void setExpectedIfNoInferred(ref Expected expected, in Type delegate() @safe @nogc pure nothrow getType) {
-	expected.matchConst!void(
-		(Expected.Infer) {
-			setToType(expected, Expected.LocalType(getType()));
-		},
-		(Expected.LocalType) {},
-		(const TypeAndContext[]) {},
-		(const LoopInfo*) {});
-}
 
 // Note: this may infer type parameters
 private bool setTypeNoDiagnostic(ref InstantiateCtx ctx, ref Expected expected, Expected.LocalType actual) =>

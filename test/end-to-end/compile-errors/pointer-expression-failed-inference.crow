@@ -1,3 +1,3 @@
 main void() unsafe
-	x = 0
+	x nat = 0
 	_ nat8* = (&x).pointer-cast

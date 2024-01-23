@@ -44,7 +44,7 @@ documentation path-and-content[]^() summon
 		x nav-part x == cur-path
 	"""<nav><ul>{parts}</ul></nav>"""
 -nav-part string(a module-path, is-current bool)
-	cur = is-current ? " class=\"current\""
+	cur string = is-current ? " class=\"current\""
 	"""<li><a href="/doc/{a extension-to-html}"{cur}>{a.to remove-extension}</a></li>"""
 
 extension-to-html string(a module-path)

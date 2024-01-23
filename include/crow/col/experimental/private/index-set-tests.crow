@@ -21,7 +21,7 @@ dummy-index-set-tests nat64()
 	a.dbg is expected
 	actual-list nat64[] = a to
 	actual-list is expected-list
-	prev mut = 0
+	prev mut nat64 = 0
 	for cur : a
 		for x : prev .. cur
 			x in a is false
@@ -68,7 +68,8 @@ test
 	b = a ~ 1000
 	b verify "([0 1000000000 0 0] _ _ [0 0 0 10000000000])", (100, 1000)
 	c = b ~ 5000
-	cv = "((([0 1000000000 0 0] _ _ [0 0 0 10000000000]) _ _ _) ((_ _ _ [0 0 100 0]) _ _ _) _ _)"
+	cv string =
+		"((([0 1000000000 0 0] _ _ [0 0 0 10000000000]) _ _ _) ((_ _ _ [0 0 100 0]) _ _ _) _ _)"
 	c verify cv, (100, 1000, 5000)
 	d = c - 1000
 	d verify "((([0 1000000000 0 0] _ _ _) _ _ _) ((_ _ _ [0 0 100 0]) _ _ _) _ _)", (100, 5000)

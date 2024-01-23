@@ -16,9 +16,9 @@ dummy-bare-queue-tests nat()
 test
 	trusted with a : queue
 		assert a.as-const is-empty
-		for i : 0 .. 3
+		for i : 0::nat64 .. 3
 			a enqueue i
 		forbid a.as-const is-empty
-		for i : 0 .. 3
+		for i : 0::nat64 .. 3
 			a.dequeue is (i,)
 		assert a.as-const is-empty

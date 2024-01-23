@@ -1,0 +1,5 @@
+exit code: 0
+stdout:
+info: Called foo with 0 .. 3
+stderr:
+test/end-to-end/runnable/overloading.crow 11:10-11:11 Local 'a' is unused

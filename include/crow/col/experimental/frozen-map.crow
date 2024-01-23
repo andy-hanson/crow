@@ -87,7 +87,7 @@ mut-array-to-frozen-map-promise-no-duplicates[k, v] (k, v) frozen-map(
 		n-buckets = a.size / 2
 		bucket-starts = a get-bucket-starts n-buckets
 		bucket-counts nat64 mut-array = n-buckets n-of 0
-		cur mut = 0
+		cur mut nat64 = 0
 		until cur == a.size
 			bucket-index = a[cur].a get-bucket-index bucket-counts.size
 			bucket-count = bucket-counts[bucket-index]
@@ -150,7 +150,7 @@ mut-array-to-frozen-map-promise-no-duplicates[k, v] (k, v) frozen-map(
 	key.hash % n-buckets
 
 -running-sum void(a nat64 mut-array)
-	acc mut = 0
+	acc mut nat64 = 0
 	a map= x =>
 		start = acc
 		acc +:= x

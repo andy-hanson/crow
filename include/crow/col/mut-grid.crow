@@ -7,12 +7,12 @@ import
 	../misc: to, void
 	../number: +, *, ==, <=>, nat64
 	../range: .., iterate
-	../string: ==, ~~, new, string, to
+	../string: ==, ~~, join, string, to
 	../test-util: is
 	../tuple: new
-	./collection: build, for-loop, join, set-subscript, subscript, with-block
+	./collection: build, for-loop, set-subscript, subscript, with-block
 	./mut-array: ~=, +, begin, build, copy, iterate, mut-array, new, next, set-next, size, slice
-	./list: ~=, build, iterate
+	./list: ~=, build
 
 ###
 Mutable grid (matrix) type.
@@ -75,8 +75,8 @@ Throws if `y` is out of range.
 # Creates a new grid with the given width and height, setting every element to `f[x, y]`.
 +make[t] t mut-grid(width nat64, height nat64, f act t(nat64, nat64))
 	elements t mut-array = with out : width * height build
-		for y : 0 .. height
-			for x : 0 .. width
+		for y : 0::nat64 .. height
+			for x : 0::nat64 .. width
 				out ~= f[x, y]
 	elements, width, height
 
@@ -117,7 +117,7 @@ region rows
 +size[t] nat64(a t mut-grid-rows)
 	a.inner height
 +iterate[t] bool(a t mut-grid-rows, f act bool(t mut-array))
-	0 .. a.size iterate y =>
+	0::nat64 .. a.size iterate y =>
 		f[a.inner row y]
 
 region spec impls (see collection.crow)

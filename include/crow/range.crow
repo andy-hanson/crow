@@ -2,6 +2,7 @@ no-std
 import
 	./bool: &&, bool
 	./compare: <, <=, >, compare, comparison, equal
+	./number: nat64
 	./option: new, option
 	./private/bootstrap: new
 export
@@ -33,7 +34,7 @@ region iteration
 
 +prev[t] (t range-iterator, t)?(a t range-iterator) bare, t rangeable
 	if a.next-value > a.collection.low
-		value = a.next-value - 1
+		value = a.next-value - 1::nat64
 		((a.collection, value), value),
 +next[t] (t, t range-iterator)?(a t range-iterator) bare, t forward-rangeable
 	if a.next-value < a.collection.high

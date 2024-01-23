@@ -1,2 +1,2 @@
 main void()
-	_ mut = 0
+	_ mut nat = 0

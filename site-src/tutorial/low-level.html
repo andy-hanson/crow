@@ -22,11 +22,8 @@
 
 	<crow-runnable>
 		main void() unsafe
-			xs string mut[] = ()
-			xs ~= "a"
-			xs ~= "b"
-			xs ~= "c"
-			info log "{xs.capacity}"
+			x string* = null
+			info log "{x.to::nat}"
 	</crow-runnable>
 
 	<aside class="small">
@@ -64,11 +61,11 @@
 
 	<crow-runnable>
 		import
-			stdio: stdout
-			unistd: write
+			system/stdio: stdout
+			system/unistd: write
 
 		main void()
-			message = "hello\n"
+			message c-string = "hello\n"
 			_ = trusted stdout write message.to-bytes.begin-pointer, message.size
 	</crow-runnable>
 
@@ -116,7 +113,7 @@
 
 	<crow-runnable>
 		import
-			stdlib: free, malloc
+			system/stdlib: free, malloc
 
 		main void()
 			trusted
@@ -279,7 +276,7 @@
 				x := 1
 				info log "{x}"
 
-		-x thread-local(nat)
+		x thread-local(nat)
 	</crow-runnable>
 
 	<p>
@@ -376,7 +373,7 @@
 			# Can't allocate
 			_ nat[] = 1,
 			# Can't use the runtime
-			_ = with : parallel
+			_ nat^ = with : parallel
 				1,
 			()
 	</crow-runnable>

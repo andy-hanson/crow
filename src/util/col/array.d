@@ -4,7 +4,8 @@ import util.alloc.alloc : Alloc, allocateElements, freeElements;
 import util.comparison : Comparer, Comparison;
 import util.conv : safeToUshort;
 import util.memory : copyToFrom, initMemory;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, MutOpt, Opt, some, someMut;
+import util.union_ : TaggedUnion, Union;
 import util.util : max;
 
 @safe @nogc nothrow:
@@ -300,10 +301,34 @@ T[] copyArray(T)(ref Alloc alloc, scope T[] a) =>
 
 size_t count(T)(in T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
 	size_t res = 0;
-	foreach (ref T x; a)
+	foreach (ref const T x; a)
 		if (cb(x))
 			res++;
 	return res;
+}
+
+immutable struct NoneOneOrMany {
+	immutable struct None {}
+	immutable struct One {
+		size_t index;
+		private size_t _padding; // Avoid suggestion to use TaggedUnion
+	}
+	immutable struct Many {}
+	mixin Union!(None, One, Many);
+}
+NoneOneOrMany noneOneOrMany(T)(in T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
+	MutOpt!size_t res;
+	foreach (size_t index, ref const T x; a)
+		if (cb(x)) {
+			if (has(res))
+				return NoneOneOrMany(NoneOneOrMany.Many());
+			else
+				res = someMut(index);
+		}
+
+	return has(res)
+		? NoneOneOrMany(NoneOneOrMany.One(force(res)))
+		: NoneOneOrMany(NoneOneOrMany.None());
 }
 
 @trusted T[] filter(T)(ref Alloc alloc, in T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) =>

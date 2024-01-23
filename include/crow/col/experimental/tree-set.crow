@@ -8,16 +8,16 @@ import
 	../../misc: key, new, to, void
 	../../number: ==, <=>, +, -, /, nat64, new
 	../../option: force, new, option
-	../../string: ==, <=>, ~~, +, begin, hash-mix, new, next, string, to
+	../../string: ==, <=>, ~~, +, begin, hash-mix, join, next, string, to
 	../../test-util: is
 	../../tuple: a
 	../array:
 		~=, ~~=, +, -, array, array-builder, array-iterator, begin, build, collection, end,
 		insert-at, is-empty, iterate, next, next-index, remove-at, size, slice
 	../collection:
-		.., -, build, build-options, end, filter, for-loop, index-of, is-at-end, join, slice-left,
+		.., -, build, build-options, end, filter, for-loop, index-of, is-at-end, slice-left,
 		slice-right, starts-with, subscript, with-block
-	../list: ~=, build, iterate, list, list-builder, to
+	../list: ~=, build, list, list-builder, to
 	../mut-stack: ~=, mut-stack, new, peek, pop
 	../sort: sort-unique
 	../private/sort-utils: binary-search-has, binary-search-insert
@@ -70,6 +70,8 @@ This is O(n).
 # True iff the value is in the set.
 +in[t] bool(value t, a t tree-set) t key
 	a.root has value
++subscript[t] bool(a t tree-set, value t) t key
+	value in a
 -has[t] bool(a t node, value t) t key
 	match a
 	as inner i
@@ -481,7 +483,7 @@ test
 	s4 = s3 ~ "j"
 	s4 verify "[h i j k]"
 
-	assert "h" in s4
+	assert s4["h"]
 	s4 ~ "i" verify "[h i j k]"
 
 	s5 = s4 ~ "l"

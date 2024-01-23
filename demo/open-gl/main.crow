@@ -112,9 +112,10 @@ main nat^(_ string[]) summon
 
 -make-cube vertex array()
 	front = I.cube-side ~~ (up rotation pi / 2 cube-side) ~~ (right rotation pi / 2 cube-side)
-	back vertex[] = () join for xs : front groups-of 3
-		# Change order so that the triangles have reverse winding
-		xs[1].invert, xs[0].invert, xs[2].invert
+	back vertex[] = with out : build
+		for xs : front groups-of 3
+			# Change order so that the triangles have reverse winding
+			out ~~= (xs[1].invert, xs[0].invert, xs[2].invert)
 	for v : front ~~ back
 		v.pos, v.normal, (v.pos + (1, 1, 1)) * 0.5, v.tex-coord
 

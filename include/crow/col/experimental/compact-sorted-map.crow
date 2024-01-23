@@ -9,14 +9,13 @@ import
 	../../misc: key, new, to, void
 	../../number: ==, <=>, +, nat64
 	../../option: ==, is-empty, new, option
-	../../string: ==, ~~, -, end, new, next, string, to
+	../../string: ==, ~~, -, end, join, next, string, to
 	../../test-util: is
 	../../tuple: ==, <=>, a, b, new
 	../array:
 		~=, ~~=, +, -, array, array-builder, begin, build, collection, end, is-empty, iterate, new,
 		next, size, slice
-	../collection:
-		.., -, build, build-options, end, for-loop, join, slice-right, subscript, with-block
+	../collection: .., -, build, build-options, end, for-loop, slice-right, subscript, with-block
 	../mut-priority-queue: ~=, build, mut-priority-queue, pop, pop-if
 	../list: ==, ~=, build, is-empty, iterate, list, list-builder, new, size, to
 	../sort: sort
@@ -48,7 +47,7 @@ import
 	a.to to
 
 +to[k, v] (k, v) compact-sorted-map(a (k, v)[]) k key
-	(a.to::((k, v) array) sort (k, _) => k).end-node,
+	(a.to sort (k, _) => k).end-node,
 
 +is-empty[k, v] bool(a (k, v) compact-sorted-map) k key
 	match a impl
@@ -62,7 +61,7 @@ Number of pairs.
 This is O(n).
 ###
 size[k, v] nat64(a (k, v) compact-sorted-map) k key
-	res mut = 0
+	res mut nat64 = 0
 	for _ : a
 		res +:= 1
 	res
@@ -207,7 +206,7 @@ region spec impls (see collection.crow)
 	# Key has an index because overlays with a lower index (rightmost) should come first
 	overlays ((k, nat64), (k, v?) array) mut-priority-queue = with out : build
 		cur mut = a impl
-		overlay-index mut = 0
+		overlay-index mut nat64 = 0
 		end-node := loop
 			match cur
 			as overlay o

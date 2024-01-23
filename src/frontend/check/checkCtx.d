@@ -35,19 +35,15 @@ import util.uri : AllUris, Uri;
 struct CheckCtx {
 	@safe @nogc pure nothrow:
 
-	private:
-
-	public Alloc* allocPtr;
+	Alloc* allocPtr;
 	AllSymbols* allSymbolsPtr;
 	const AllUris* allUrisPtr;
-	public InstantiateCtx instantiateCtx;
-	CommonUris* commonUrisPtr;
-	public immutable Uri curUri;
-	public ImportAndReExportModules importsAndReExports;
+	InstantiateCtx instantiateCtx;
+	immutable CommonUris* commonUrisPtr;
+	immutable Uri curUri;
+	immutable ImportAndReExportModules importsAndReExports;
 	ArrayBuilder!Diagnostic* diagnosticsBuilderPtr;
 	UsedSet used;
-
-	public:
 
 	ref Perf perf() return scope =>
 		instantiateCtx.perf;

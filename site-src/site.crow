@@ -60,7 +60,7 @@ link record
 
 	font-paths <- "site-src/font" search-dir-recursive
 	font = font-paths to-links "site-src/"
-	bundle = if trusted is-windows
+	bundle string = if trusted is-windows
 		"bin/crow.zip"
 	else
 		"bin/crow.tar.xz"
@@ -72,7 +72,7 @@ link record
 	include <- "include" search-all-with-content ""
 	pairs string[symbol] = for x : include
 		x.out-path.remove-include.to, x.content
-	content = "{pairs.to::json}"
+	content string = "{pairs.to::json}"
 	(("include-all.json", content),),
 
 -remove-include string(a string)

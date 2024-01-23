@@ -12,9 +12,9 @@ import
 	../../pointer: const-pointer
 	../../private/number-low-level: wrap-sub
 	../../range: ..
-	../../string: ~~, new, string, to-hex, to
+	../../string: ~~, join, string, to-hex, to
 	../array: +, array, begin, iterate, next, slice, subscript
-	../collection: build-options, for-loop, join, subscript
+	../collection: build-options, for-loop, subscript
 	../list: ~=, build, iterate, list, list-builder, to
 
 +index-set record by-ref
@@ -363,7 +363,7 @@ count-greater-or-equal nat64(a index-set, n nat64)
 	a >> bit-index count-ones
 
 -count-ones-in-array nat64(a nat64 array)
-	res mut = 0
+	res mut nat64 = 0
 	for x : a
 		res +:= x count-ones
 	res
@@ -444,7 +444,7 @@ subregion iteration
 		else
 			i.d iterate-recur offset + three-quarters, quarter, f
 	as leaf l
-		word-index mut = 0
+		word-index mut nat64 = 0
 		l.values iterate value =>
 			bit-index-offset = offset + word-index * 64
 			word-index +:= 1

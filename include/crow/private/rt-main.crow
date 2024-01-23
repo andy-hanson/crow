@@ -107,7 +107,7 @@ init-constants void() builtin, bare, summon, unsafe
 	thread-args-begin thread-args mut*,
 	gctx global-ctx mut*,
 ) bare, summon, unsafe
-	i mut = 0
+	i mut nat64 = 0
 	until i == n-threads
 		thread-arg-pointer = thread-args-begin + i
 		*thread-arg-pointer := i, gctx
@@ -120,7 +120,7 @@ init-constants void() builtin, bare, summon, unsafe
 	null
 
 -join-threads void(n-threads nat64, threads thread-handle*) bare, summon, unsafe
-	i mut = 0
+	i mut nat64 = 0
 	until i == n-threads
 		threads[i] join-one-thread
 		i +:= 1

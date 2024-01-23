@@ -7,7 +7,7 @@ main void() summon
 	out print "a: {a}, b: {b}"
 
 sum-by[t] nat(a t[], f act nat(t))
-	res mut = 0
+	res mut nat = 0
 	for x : a
 		res +:= f[x]
 	res

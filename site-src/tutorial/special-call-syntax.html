@@ -201,7 +201,7 @@
 	</p>
 	<crow-runnable>
 		main void()
-			a = "crow"
+			a string = "crow"
 			info log !a
 			info log a!
 			info log !a!
@@ -306,13 +306,13 @@
 	<p>You can define these by defining named functions <code>subscript</code> and <code>set-subscript</code>.</p>
 	<crow-runnable>
 		main void()
-			info log "a"["k"]
-			"a"["k"] := "v"
+			info log false["k"]
+			true["k"] := "v"
 
-		subscript string(a string, key string)
+		subscript string(a bool, key string)
 			"{a}[{key}]"
 
-		set-subscript void(a string, key string, value string)
+		set-subscript void(a bool, key string, value string)
 			info log "{a}[{key}] = {value}"
 	</crow-runnable>
 </section>
@@ -374,12 +374,12 @@
 	<crow-runnable>
 		main void()
 			"crow".foo := "bar"
-			"a"["k"] := "v"
+			true["k"] := "v"
 
 		set-foo void(a string, value string)
 			info log "{a}.foo := {value}"
 
-		set-subscript void(a string, key string, value string)
+		set-subscript void(a bool, key string, value string)
 			info log "{a}[{key}] := {value}"
 	</crow-runnable>
 

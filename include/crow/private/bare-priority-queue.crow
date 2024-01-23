@@ -3,7 +3,7 @@ import
 	../bool: ||, bool
 	../compare: <=, >=, compare
 	../misc: new, void
-	../number: ==, *
+	../number: ==, *, nat64
 	../option: force, new, option
 	../pointer: ==, +, -, *, as-const, const-pointer, mut-pointer, new, set-deref, swap
 	../tuple: a, b
@@ -58,7 +58,7 @@ enqueue[k, v] void(a (k, v) bare-priority-queue mut*, pair (k, v)) bare, unsafe,
 -push[k, v] void(a (k, v) bare-priority-queue mut*, pair (k, v)) bare, unsafe
 	if a->end == a->alloc-end
 		old-capacity = a->end - a->begin
-		new-capacity = old-capacity == 0 ? 4 : old-capacity * 2
+		new-capacity nat64 = old-capacity == 0 ? 4 : old-capacity * 2
 		new-begin (k, v) mut* = new-capacity unmanaged-alloc-elements
 		new-begin mem-copy a->begin.as-const, old-capacity
 		a->begin := new-begin

@@ -50,7 +50,7 @@ page-template path-and-content(path string, title string, content string)
 	path, full-content
 
 nav-links string(path string)
-	current = " class=\"current\""
+	current string = " class=\"current\""
 	"""
 	<li><a href="/download.html"{path starts-with "download" ? current}>download</a></li>
 	<li><a href="/tutorial"{path starts-with "tutorial" ? current}>tutorial</a></li>

@@ -2,9 +2,9 @@ no-std
 import
 	./bool: bool
 	./col/collection:
-		begin, build, concatenate, for-loop, iterate, join, next, size, subscript, with-block,
+		begin, build, concatenate, flatten, for-loop, iterate, next, size, subscript, with-block,
 		with-index
-	./col/list: +, ~=, ~~, begin, build, iterate, list, new, next, size
+	./col/list: ~~, +, ~=, begin, build, iterate, list, new, next, size
 	./col/mut-list: ~=, hint-size, move-to, mut-list, new
 	./exception: catch, exception
 	./fun-util: subscript
@@ -270,11 +270,22 @@ which allows it to run in parallel.
 +for-loop[out-elem, in-col, in-elem] out-elem[]^(
 	a in-col parallel-collection,
 	f fun out-elem^(in-elem),
-) (in-col, in-elem) iterate, in-col size, out-elem shared, in-elem shared
+) out-elem shared, in-elem shared, (in-col, in-elem) iterate, in-col size
 	tasks out-elem^[] = for x : a inner
 		with : parallel
 			f[x]
 	tasks wait-all
+
++parallel-concat[col] record
+	-inner col
++parallel-concat[col] col parallel-concat(a col)
+	a,
++for-loop[out-elem, in-col, in-elem] out-elem[]^(
+	a in-col parallel-concat,
+	f fun out-elem[]^(in-elem),
+) out-elem shared, in-elem shared, (in-col, in-elem) iterate, in-col size
+	lists out-elem[][] <- a.inner.parallel for-loop f
+	lists.flatten,
 
 +filter[out-col, in-col, elem, builder] out-col^(
 	a in-col parallel-collection,
@@ -287,7 +298,3 @@ which allows it to run in parallel.
 			if bools[i]
 				out ~= x
 	res,
-
-+join[elem] elem[]^(joiner elem[], parts elem[][]^) elem shared
-	x <- parts
-	(joiner join x),

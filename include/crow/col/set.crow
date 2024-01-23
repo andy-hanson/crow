@@ -6,15 +6,15 @@ import
 	../misc: key, new, to, void
 	../number: ==, <=>, +, -, *, nat64
 	../option: ??, force, new, option
-	../string: ~~, new, string, to
+	../string: ~~, join, new, string, to
 	./array: array
-	./collection: build, build-options, filter, for-loop, join, with-block, with-index
+	./collection: build, build-options, filter, for-loop, iterate, with-block, with-index
 	./experimental/index-set:
 		count-greater-or-equal, filter-less, in, index-set, iterate, is-empty, new, size, try-remove
 	./experimental/frozen-set:
 		~=, build, frozen-set, frozen-set-builder, is-empty, iterate, new, size, to,
 		try-get-unordered-index
-	./list: ~=, build, iterate, list, to
+	./list: ~=, build, list, to
 
 ###
 Immutable unsorted set.
@@ -55,7 +55,7 @@ to[t] t set(a t frozen-set) t key
 -add-size[t] nat64(a t add-node)
 	a.here.size + a.add-size-left
 -add-size-left[t] nat64(a t add-node)
-	acc mut = 0
+	acc mut nat64 = 0
 	cur mut = a
 	loop
 		if left ?= cur left
@@ -69,6 +69,10 @@ to[t] t set(a t frozen-set) t key
 +in[t] bool(value t, a t set) t key
 	if index ?= a.add find-in-add value
 		!(index in a.remove)
+
+# Alternative way of writing 'value in a'
++subscript[t] bool(a t set, value t) t key
+	value in a
 
 -find-in-add[t] nat64?(a t add-node, value t) t key
 	cur mut = a
@@ -156,7 +160,7 @@ Else, adds it and returns the new set.
 	cur-size-here-and-left mut = full-add-size
 	cur mut = a add
 	remove = a remove
-	cur-size-right mut = 1
+	cur-size-right mut nat64 = 1
 	loop
 		size-here = cur.here size
 		size-left = cur-size-here-and-left - size-here
@@ -223,7 +227,7 @@ region spec impls (see collection.crow)
 	cur mut = a add
 	add-size-left mut = cur add-size-left
 	loop
-		i mut = 0
+		i mut nat64 = 0
 		here = cur.here iterate x =>
 			index = add-size-left + i
 			i +:= 1
@@ -246,6 +250,9 @@ subregion build
 	(a build out => f[out,])::(t frozen-set) to
 +~=[t] void(a t set-builder, value t) t key
 	a.inner ~= value
++~~=[t, col] void(a t set-builder, values col) t key, (col, t) iterate
+	for x : values
+		a ~= x
 
 region test
 

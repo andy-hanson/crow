@@ -14,7 +14,7 @@
 	</p>
 	<crow-runnable>
 		main void()
-			assert 3 &lt; 2
+			assert 3::nat &lt; 2
 	</crow-runnable>
 
 	<aside class="small">There is no difference between assertion failures and exceptions.</aside>
@@ -24,7 +24,7 @@
 	</p>
 	<crow-runnable>
 		main void()
-			assert 3 &lt; 2 : "custom message"
+			assert 3::nat &lt; 2 : "custom message"
 	</crow-runnable>
 
 	<p>
@@ -33,7 +33,7 @@
 	</p>
 	<crow-runnable>
 		main void()
-			forbid 2 &lt; 3
+			forbid 2::nat &lt; 3
 	</crow-runnable>
 
 	<p>

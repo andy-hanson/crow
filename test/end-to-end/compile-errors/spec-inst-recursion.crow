@@ -1,5 +1,5 @@
 main void()
-	"" foo
+	""::string foo
 
 foo[t] spec
 	foo void(a t)

@@ -4,12 +4,12 @@ import
 	../json: to
 	../number: ==, +, nat64
 	../option: force, is-empty, new, option
-	../string: ==, ~~, new, string, to
+	../string: ==, ~~, join, string, to
 	../test-util: is
 	../tuple: a, b, new
 	./array: +, -, array, begin, end, is-empty, iterate, next, size, slice
-	./collection: .., -, end, for-loop, join, reverse, subscript
-	./list: ==, ~=, build, iterate, list, new, to
+	./collection: .., -, end, for-loop, reverse, subscript
+	./list: ==, ~=, build, list, new, to
 	./stack:
 		~, end, is-empty, iterate, iterate-reverse, new, prev, pop, size, stack,
 		to, to-array-reverse
@@ -111,7 +111,7 @@ test
 	a.pop-left.is-empty is true
 	a.pop-right.is-empty is true
 
-	bl = 1 ~ a
+	bl nat64 deque = 1 ~ a
 	bl.dbg is "1 []"
 	bl.to::nat64[] is (1,)
 	bl-pop-left = bl.pop-left!
@@ -149,7 +149,7 @@ test
 	d-pop.b.dbg is "[3]"
 
 	# Test converting right stack to array
-	e = 1 ~ (2 ~ (3 ~ ()))
+	e nat64 deque = 1 ~ (2 ~ (3 ~ ()))
 	e.to::nat64[] is (1, 2, 3)
 	e.dbg is "1 2 3 []"
 	e-pop = e.pop-right!

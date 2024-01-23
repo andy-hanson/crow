@@ -85,7 +85,9 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.LinkageWorseThanContainingType) =>
 			DiagnosticSeverity.checkError,
-		(in Diag.LiteralAmbiguous) =>
+		(in Diag.LiteralMultipleMatch) =>
+			DiagnosticSeverity.checkError,
+		(in Diag.LiteralNotExpected) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.LiteralOverflow) =>
 			DiagnosticSeverity.checkError,

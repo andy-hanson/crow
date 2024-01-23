@@ -74,7 +74,7 @@ struct ExprCtx {
 	CheckCtx* checkCtxPtr;
 	immutable StructsAndAliasesMap structsAndAliasesMap;
 	immutable FunsMap funsMap;
-	immutable CommonTypes commonTypes;
+	immutable CommonTypes* commonTypesPtr;
 	immutable TypeContainer typeContainer; // for diags. This will be a FunDecl* or Test*.
 	immutable SpecInst*[] outermostFunSpecs;
 	immutable TypeParams outermostFunTypeParams;
@@ -103,6 +103,9 @@ struct ExprCtx {
 
 	ref InstantiateCtx instantiateCtx() return scope =>
 		checkCtx.instantiateCtx;
+
+	ref CommonTypes commonTypes() return scope const =>
+		*commonTypesPtr;
 }
 
 

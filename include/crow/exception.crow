@@ -2,14 +2,14 @@ no-std
 import
 	./bool: ||, bool, new, true
 	./col/array: +, begin, iterate, next, size, slice
-	./col/collection: find-index, for-loop, join, starts-with, subscript
-	./col/list: ~=, build, iterate
+	./col/collection: find-index, for-loop, starts-with, subscript
+	./col/list: ~=, build
 	./compare: >
 	./fun-util: subscript
 	./misc: new, void
 	./number: ==, <=>, -
 	./range: ..
-	./string: ==, ~~, begin, is-empty, new, next, string, to
+	./string: ==, ~~, begin, is-empty, join, next, string, to
 export
 	./private/backtrace: backtrace, backtrace-entry, entries, file-path, function-name, line-number
 	./private/exception-low-level: catch, exception, message, rethrow, unreachable
@@ -43,8 +43,7 @@ This is like `finally`, but does not run in the successful case.
 
 # Outputs the exception's message and backtrace to a string.
 +to string(a exception) unsafe
-	message string = a.message to
-	"{message.is-empty ? "<<empty message>>" : message}{a.backtrace}"
+	"{a.message}{a.backtrace}"
 
 -to string(a backtrace)
 	# Don't include entries from runtime, only at start of function

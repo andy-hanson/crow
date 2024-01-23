@@ -66,7 +66,7 @@
 				buf char8 mut[] = 1000 n-of "\0"
 				trusted
 					_ = err regerror &a.wrapped, buf.begin-pointer, buf.size
-					throw buf.begin-pointer.as-const
+					throw buf.begin-pointer.as-const.to
 
 		regex_t extern(64)
 

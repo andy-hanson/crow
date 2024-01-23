@@ -83,7 +83,7 @@
 	</p>
 	<crow-runnable>
 		main void()
-			factor = 2
+			factor nat = 2
 			f fun nat(nat) = x => x * factor
 			info log "{f[3]}"
 	</crow-runnable>
@@ -97,7 +97,7 @@
 	</p>
 	<crow-runnable>
 		main void()
-			factor mut = 2
+			factor mut nat = 2
 			f fun nat(nat) = x => x * factor
 			factor := 4
 			info log "{f[3]}"
@@ -142,7 +142,7 @@
 			r r = do
 				greet: x =>
 					info log "Hello, {x}!"
-			# Equivalent to 'r.greet[world]'
+			# Equivalent to 'r.greet["world"]'
 			r greet "world"
 
 		r record mut

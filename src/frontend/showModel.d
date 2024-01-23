@@ -55,7 +55,7 @@ const struct ShowCtx {
 		lineAndColumnGetters.lineAndCharacterGetters;
 }
 
-private const struct ShowTypeCtx {
+const struct ShowTypeCtx {
 	@safe @nogc pure nothrow:
 
 	ShowCtx show;
@@ -422,7 +422,7 @@ void writeTypeQuoted(scope ref Writer writer, in ShowTypeCtx ctx, in TypeWithCon
 	writer ~= '\'';
 }
 
-private void writeTypeUnquoted(scope ref Writer writer, in ShowTypeCtx ctx, in TypeWithContainer a) {
+void writeTypeUnquoted(scope ref Writer writer, in ShowTypeCtx ctx, in TypeWithContainer a) {
 	a.type.matchIn!void(
 		(in Type.Bogus) {
 			writer ~= "<<any>>";

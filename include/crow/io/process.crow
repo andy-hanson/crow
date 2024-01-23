@@ -19,7 +19,7 @@ import
 		STARTF_USESTDHANDLES, STARTUPINFOA, WaitForSingleObject
 	../bool: &&, ||, bool, not, to, true
 	../col/array: array, begin-pointer
-	../col/collection: for-loop, join, subscript
+	../col/collection: for-loop, subscript
 	../col/mut-array: +, begin, begin-pointer, mut-array, new, next, size
 	../col/list: ~, ~=, build, iterate, list, size, to
 	../col/mut-list: begin-pointer, end-pointer, move-to, mut-list, new, size, unsafe-set-size
@@ -31,7 +31,7 @@ import
 	../private/c-string-util: find-c-string-end
 	../private/number-low-level: wrap-to
 	../pointer: ==, +, -, mut-pointer, new, null, pointer-cast
-	../string: ~~, as-string, char8, c-string, is-empty, move-to, new, string, to
+	../string: ~~, as-string, char8, c-string, is-empty, join, move-to, string, to
 	../version: is-windows
 	./environ: get-environ-raw
 	./file: is-file
@@ -75,7 +75,7 @@ EXE should be a file path and not just a name; this does not search the system p
 			exe-c-string spawn-and-wait-result-posix (exe-c-string convert-args args)
 
 -keep-reading void(res char8 mut[], file FILE mut*) summon, unsafe
-	read-at-a-time = 0x1000
+	read-at-a-time nat64 = 0x1000
 	old-size = res size
 	res unsafe-set-size old-size + read-at-a-time
 	old-end = res.end-pointer - read-at-a-time
@@ -163,7 +163,7 @@ The child process shares stdout and stderr with the parent process.
 -read-from-pipe-windows string(pipe HANDLE) summon, unsafe
 	res nat8 mut[] = ()
 	loop
-		read-at-a-time = 0x1000
+		read-at-a-time nat64 = 0x1000
 		old-size = res size
 		res unsafe-set-size old-size + read-at-a-time
 		old-end = res.end-pointer - read-at-a-time
@@ -252,7 +252,7 @@ The child process shares stdout and stderr with the parent process.
 	had-POLLIN, hung-up
 
 -read-to-buffer-until-eof void(fd fd-t, buffer char8 mut[]) summon
-	read-max = 1024
+	read-max nat64 = 1024
 	# It will write to the end of the buffer. So we must ensure that it has enough space at the end.
 	old-size = buffer size
 	trusted

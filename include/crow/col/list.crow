@@ -44,7 +44,7 @@ export
 -recompute-total-size[t] t array2d(a t array array) bare
 	a.compute-total-size, a
 -compute-total-size[t] nat64(a t array array) bare
-	total-size mut = 0
+	total-size mut nat64 = 0
 	iter mut = a begin
 	loop
 		if x, next ?= iter next
@@ -72,7 +72,7 @@ export
 -recompute-total-size[t] t array3d(a t array2d array) bare
 	a.compute-total-size, a
 -compute-total-size[t] nat64(a t array2d array) bare
-	total-size mut = 0
+	total-size mut nat64 = 0
 	iter mut = a begin
 	loop
 		if x, next ?= iter next
@@ -523,7 +523,7 @@ This is O(n).
 + +[t] t list-iterator(a t list-iterator, n nat64) bare
 	# TODO:PERF
 	cur mut = a
-	i mut = 0
+	i mut nat64 = 0
 	loop
 		if i == n
 			break cur
@@ -537,7 +537,7 @@ This is O(n).
 + -[t] t list-iterator(a t list-iterator, n nat64) bare
 	# TODO:PERF
 	cur mut = a
-	i mut = 0
+	i mut nat64 = 0
 	loop
 		if i == n
 			break cur

@@ -10,17 +10,16 @@ import
 	../../option: ??, force, new, option
 	../../pointer: ==, <=>, +, -, *, as-const, const-pointer, mut-pointer, set-deref
 	../../range: ..
-	../../string: ==, <=>, ~~, hash-mix, new, string, to
+	../../string: ==, <=>, ~~, hash-mix, join, new, string, to
 	../../test-util: is
 	../array:
 		+, -, ~=, array, as-array, begin, begin-pointer, build, end, end-pointer, is-empty, iterate,
 		new, next, next-index, size, slice
-	../collection:
-		.., -, build, build-options, end, for-loop, join, set-subscript, subscript, with-block
+	../collection: .., -, build, build-options, end, for-loop, set-subscript, subscript, with-block
 	../mut-array:
 		~=, +, -, begin, begin-pointer, build, end, end-pointer, is-empty, mut-array,
 		mut-array-builder, next, set-next, size, slice, uninitialized-mut-array
-	../list: ~=, build, iterate, list, list-builder, to
+	../list: ~=, build, list, list-builder, to
 	../sort: sort
 	../private/sort-utils: binary-search-exact
 	./index-set:
@@ -64,7 +63,7 @@ Nodes are added to the right.
 -add-size[t] nat64(a t add-node)
 	a.values.size + a.add-size-left
 -add-size-left[t] nat64(a t add-node)
-	acc mut = 0
+	acc mut nat64 = 0
 	cur mut = a
 	loop
 		if left ?= cur left
@@ -378,7 +377,7 @@ region spec impls (see collection.crow)
 		_ = out init-iters-recur a.add, a.remove
 
 -add-node-count[t] nat64(a t sorted-set)
-	acc mut = 1
+	acc mut nat64 = 1
 	cur mut = a add
 	loop
 		if left ?= cur left

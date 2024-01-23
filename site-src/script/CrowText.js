@@ -106,7 +106,7 @@ textarea {
 .property, .enumMember { color: #fefefe; }
 .string { color: #ffd866; }
 .type { color: #ab9df2; }
-.type-param { color: #fc9867; }
+.typeParameter { color: #fc9867; }
 .variable { color: #ffebbd; }
 .comment { color: #ddeedd; }
 

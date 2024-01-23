@@ -455,7 +455,7 @@ Returns the first index `i` for which `f[a[i]]` is true.
 Returns an empty option iff `f` returns `false` for every elem of `a`.
 ###
 +find-index[col, elem] nat64?(a col, f act bool(elem)) (col, elem) iterate
-	i mut = 0
+	i mut nat64 = 0
 	for x : a
 		if f[x]
 			break i
@@ -593,23 +593,6 @@ If `f` always returns true, this returns an empty collection.
 +concatenate[t] spec
 	~~ t(a t, b t)
 
-###
-Equivalent to `parts[0] ~~ joiner ~~ parts[1] ~~ joiner ~~ ... ~~ parts[n]`.
-###
-+join[col] col(joiner col, parts col[]) col concatenate, col new, (col[], col) iterate
-	# NOTE: parts can only be a list because otherwise
-	# `" " join for x : xs; "{x}"` is ambiguous (the 'for' could return any collection)
-	first mut = true
-	res mut col = ()
-	for x : parts
-		if first
-			first := false
-		else
-			res ~~:= joiner
-		res ~~:= x
-	res
-
-# Equivalent to `() join a`
 +flatten[col, col-col] col(a col-col) (col-col, col) iterate, col concatenate, col new
 	res mut col = ()
 	for x : a
@@ -619,12 +602,12 @@ Equivalent to `parts[0] ~~ joiner ~~ parts[1] ~~ joiner ~~ ... ~~ parts[n]`.
 # Concatenate `n` copies of `a`.
 +repeat[col] col(a col, n nat64) col concatenate, col new
 	res mut col = ()
-	for _ : 0 .. n
+	for _ nat64 : 0 .. n
 		res ~~:= a
 	res
 
 +n-of[col, elem, builder] col(n nat64, value elem) (col, elem, builder) build
-	for _ : 0 .. n
+	for _ nat64 : 0 .. n
 		value
 
 +reverse[col] record
@@ -670,7 +653,7 @@ region with-index
 +with-index[col] col with-index(a col)
 	a,
 +for-loop[col, elem] void(a col with-index, f act void(nat64, elem)) (col, elem) iterate
-	i mut = 0
+	i mut nat64 = 0
 	for x : a inner
 		f[i, x]
 		i +:= 1
@@ -679,7 +662,7 @@ region with-index
 	f act out-elem(nat64, in-elem),
 ) (out-col, out-elem, out-builder) build, (in-col, in-elem) iterate, in-col size
 	(a.inner.size,) build builder =>
-		i mut = 0
+		i mut nat64 = 0
 		for x : a inner
 			builder ~= f[i, x]
 			i +:= 1
@@ -687,7 +670,7 @@ region with-index
 	a col with-index,
 	f act void break-or-continue(nat64, elem),
 ) (col, elem) iterate
-	i mut = 0
+	i mut nat64 = 0
 	_ = a.inner iterate x =>
 		match f[i, x]
 		as loop-break _
@@ -696,7 +679,7 @@ region with-index
 			i +:= 1
 			false
 +exists[col, elem] bool(a col with-index, f act bool(nat64, elem)) (col, elem) iterate
-	i mut = 0
+	i mut nat64 = 0
 	a.inner iterate x =>
 		res = f[i, x]
 		i +:= 1

@@ -8,10 +8,10 @@ import
 	../../misc: key, new, to, void
 	../../number: ==, <=>, +, nat64
 	../../option: ==, is-empty, new, option
-	../../string: ==, ~~, new, string, to
+	../../string: ==, ~~, join, string, to
 	../../test-util: is
 	../../tuple: ==, new
-	../collection: build, for-loop, join, with-block
+	../collection: build, for-loop, with-block
 	../mut-array: ~=, build, mut-array
 	../list: ==, ~=, build, iterate, list, new, size
 	../mut-set: in, mut-set, new, try-add
@@ -58,7 +58,7 @@ Number of pairs.
 This is O(n).
 ###
 +size[k, v] nat64(a (k, v) compact-map) k key
-	res mut = 0
+	res mut nat64 = 0
 	for _ : a
 		res +:= 1
 	res
@@ -223,7 +223,7 @@ test
 	f = e - 10
 	f verify "[10 -> 10, 15 -> 15, 5 -> 5, 20 -> 20], [11 -> 11, 15 -> _, 10 -> _]"
 	f[10] is ()
-	10 in f is false
+	10::nat64 in f is false
 
 	g = f ~ (10, "10b")
 	g verify "[10 -> 10, 15 -> 15, 5 -> 5, 20 -> 20], [11 -> 11, 15 -> _, 10 -> 10b]"

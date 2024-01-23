@@ -1,6 +1,6 @@
 main void()
-	"x" foo
-	"x" bar 0
+	"x"::string foo
+	"x"::string bar 0::nat64
 
 foo[t] void(a t)
 	a bar 0

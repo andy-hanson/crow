@@ -56,7 +56,7 @@ enqueue[t] void(a t bare-queue mut*, value t) bare, unsafe
 
 -increase-capacity[t] void(a t bare-queue mut*) bare, unsafe
 	old-capacity = a->alloc-end - a->alloc-begin
-	new-capacity = old-capacity == 0 ? 2 : old-capacity * 2
+	new-capacity nat64 = old-capacity == 0 ? 2 : old-capacity * 2
 	new-begin t mut* = new-capacity unmanaged-alloc-elements
 	new-end = if a->begin < a->end
 		size = a->end - a->begin

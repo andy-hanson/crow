@@ -31,11 +31,14 @@ main nat^(_ string[]) summon
 	failures move-to
 
 -get-all-imports symbol set(files file[])
-	() join for file : files; file imports
+	with out : build
+		for file : files
+			out ~~= file.imports
 
 -allow-exports symbol set()
 	# Allow members of TokenData; dscanner doesn't realize these aren't directly exports
-	"diffSymbols", "main", "ignore", "indentDelta", "literalFloat", "literalInt", "literalNat"
+	"debugLogExpected", "diffSymbols", "main", "ignore", "indentDelta", "literalFloat",
+	"literalInt", "literalNat"
 -allow-paths string set()
 	# Ignore debugging.d because unused functions may be useful for debugging.
 	# Ignore union.d because ddscanner gets confused by the mixin.
@@ -62,7 +65,7 @@ all-files file[]^() summon
 	"dub run dscanner -- --ctags {" " join paths}".shell-exec get-members-per-path
 -get-members-per-path members[string](stdout string)
 	members-by-path mut-members mut[string] = ()
-	look-for = "!_TAG_PROGRAM_URL	https://github.com/dlang-community/D-Scanner/\n"
+	look-for string = "!_TAG_PROGRAM_URL\thttps://github.com/dlang-community/D-Scanner/\n"
 	rest = (stdout try-split-once look-for)!.b
 	for line : rest lines
 		unless line == "" || line contains-seq "enum:" || line contains-seq "struct:"

@@ -6,4 +6,4 @@ main void()
 	x2 bool, y2 symbol = p
 
 	x3, y3, z3 = p
-	x4, y4 = 42
+	x4, y4 = 42::nat

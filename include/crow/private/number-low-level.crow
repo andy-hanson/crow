@@ -199,7 +199,7 @@ region constants
 
 ~round-up-to-power-of-two nat64(n nat64) bare
 	# TODO: this needs to throw if 'n' is too big to round up!
-	acc mut = 1
+	acc mut nat64 = 1
 	until acc >= n
 		acc wrap-mul:= 2
 	acc

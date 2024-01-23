@@ -8,11 +8,11 @@ import
 	../../misc: key, new, to, void
 	../../number: ==, <=>, +, -, *, nat64
 	../../option: ==, force, is-empty, new, option, size
-	../../string: ==, ~~, +, begin, new, next, string, to
+	../../string: ==, ~~, +, begin, join, next, string, to
 	../../test-util: is
 	../../tuple: a, b, new
 	../array: array
-	../collection: -, build-options, end, for-loop, join, map=, set-subscript, subscript
+	../collection: -, build-options, end, for-loop, map=, set-subscript, subscript
 	../mut-list:
 		~=, +, -, begin, clear, end, filter=, is-empty, iterate, mut-list, mut-list-iterator,
 		new, next, next-index, prev, remove-at, set-next, set-prev, size
@@ -63,7 +63,7 @@ Number of pairs in the map.
 This is O(n).
 ###
 +size[k, v] nat64(a (k, v) mut-sorted-map)
-	acc mut = 0
+	acc mut nat64 = 0
 	cur mut = a
 	loop
 		acc +:= cur node-size
@@ -209,7 +209,7 @@ Else, returns an empty option.
 		assert a.node-size == a.total-pairs-size
 
 -total-pairs-size[k, v] nat64(a (k, v) mut-sorted-map)
-	acc mut = 0
+	acc mut nat64 = 0
 	cur mut = a
 	loop
 		acc +:= cur.pairs size
@@ -292,7 +292,7 @@ region test
 	a verify-node-size
 
 -verify-node-size[k, v] void(a (k, v) mut-sorted-map)
-	res mut = 0
+	res mut nat64 = 0
 	for _, v : a pairs
 		res +:= v size
 	a.node-size is res
@@ -351,7 +351,7 @@ test
 
 	# Adding some more values so removals can't fully remove
 	a ~~= ((13, "13"), (15, "15"), (17, "17"))
-	node2 = "[0 -> 0, 2 -> 2, 6 -> 6]"
+	node2 string = "[0 -> 0, 2 -> 2, 6 -> 6]"
 	a verify "[5 -> 5, 7 -> 7, 8 -> 8, 10 -> 10, 11 -> 11, 13 -> 13, 15 -> 15, 17 -> 17], {node2}"
 
 	a remove-key 5 is ("5",)

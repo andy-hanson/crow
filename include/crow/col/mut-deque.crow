@@ -8,14 +8,14 @@ import
 	../option: ==, new, option
 	../pointer: zeroed
 	../range: ..
-	../string: ==, ~~, new, string, to
+	../string: ==, ~~, join, new, string, to
 	../test-util: is
-	./collection: .., -, end, for-loop, join, set-subscript, subscript, with-index
+	./collection: .., -, end, for-loop, set-subscript, subscript, with-index
 	./mut-array:
 		+, -, begin, cast-immutable, end, iterate, mut-array, is-empty, new, next, set-next,
 		set-subscript, size, slice, uninitialized-mut-array, zero-memory, zeroed-mut-array
 	./list:
-		==, ~=, +, -, begin, build, end, is-empty, iterate, list, new, next, size, to
+		==, ~=, +, -, begin, build, end, is-empty, list, new, next, size, to
 
 # Mutable double-ended queue.
 +mut-deque[t] record mut
@@ -173,7 +173,7 @@ Callers should then push something.
 
 -dbg string(a nat64 mut-deque)
 	" " join for i, x : a.inner with-index
-		"{i == a.right ? "<-R "}{i == a.left ? "L-> "}{x}"
+		"{i == a.right ? "<-R "::string}{i == a.left ? "L-> "::string}{x}"
 
 -verify void(a nat64 mut-deque, expected nat64[], expected-dbg string)
 	a.peek-left is (expected.is-empty ? () : (expected[0],))
@@ -187,7 +187,7 @@ test
 	a.pop-left is ()
 	a.pop-right is ()
 	a verify (), ""
-	1 push a
+	1::nat64 push a
 	a verify (1,), "<-R 0 L-> 1"
 	a push 2
 	a verify (1, 2), "2 <-R L-> 1"
@@ -206,8 +206,8 @@ test
 	a push 1
 	a verify (1,), "L-> 1 <-R 0"
 
-	2 push a
+	2::nat64 push a
 	a verify (2, 1), "1 <-R L-> 2"
 
-	3 push a
+	3::nat64 push a
 	a verify (3, 2, 1), "2 1 <-R 0 L-> 3"

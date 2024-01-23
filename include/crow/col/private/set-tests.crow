@@ -8,7 +8,7 @@ import
 	../../string: ==, string, to
 	../../test-util: is
 	../list: ==, list, new
-	../set: ~, ~~, dbg, in, is-empty, new, set, size, to
+	../set: ~, ~~, dbg, is-empty, new, set, size, subscript, to
 
 dummy-set-tests nat64()
 	0
@@ -37,15 +37,15 @@ test
 	e = d ~~ (4, 10)
 	e verify "[1 4 6 5], [10 8]"
 	e.size is 6
-	0 in e is false
-	1 in e is true
-	2 in e is false
-	3 in e is false
-	4 in e is true
-	5 in e is true
-	6 in e is true
-	7 in e is false
-	8 in e is true
-	9 in e is false
-	10 in e is true
-	11 in e is false
+	e[0] is false
+	e[1] is true
+	e[2] is false
+	e[3] is false
+	e[4] is true
+	e[5] is true
+	e[6] is true
+	e[7] is false
+	e[8] is true
+	e[9] is false
+	e[10] is true
+	e[11] is false

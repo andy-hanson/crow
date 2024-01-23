@@ -8,11 +8,11 @@ import
 	../../option: force, is-empty
 	../../pointer: size-of
 	../../range: .., end, iterate, prev
-	../../string: ==, ~~, new, string, to
+	../../string: ==, ~~, join, string, to
 	../../test-util: is
 	../../tuple: a, b
 	../array: +, -, array, begin, end, is-empty, iterate, size, slice
-	../collection: .., end, for-loop, groups-of, join, reverse, subscript, try-split-once
+	../collection: .., end, for-loop, groups-of, reverse, subscript, try-split-once
 	../list:
 		==, ~=, ~, ~~, +, -, begin, build, end, iterate, list, new, next, next-index, prev, size,
 		slice, to
@@ -31,7 +31,7 @@ dummy-list-tests nat64()
 	a-array t array = a to
 
 	iter mut = a begin
-	for index : 0 .. a.size
+	for index : 0::nat64 .. a.size
 		iter.next-index is index
 		a.begin slice iter is a-array[0 .. index].to
 		iter slice a.end is a-array[index .. end].to
@@ -42,7 +42,7 @@ dummy-list-tests nat64()
 	assert iter.next is-empty
 
 	iter := a end
-	for index : 0 .. a.size reverse
+	for index : 0::nat64 .. a.size reverse
 		prev-pair = iter.prev!
 		iter := prev-pair a
 		prev-pair.b is a[index]
@@ -52,7 +52,7 @@ dummy-list-tests nat64()
 	iter.next-index is 0
 	assert iter.prev is-empty
 
-	for i : 0 .. a.size
+	for i : 0::nat64 .. a.size
 		for j : i .. a.size
 			a[i .. j] is a-array[i .. j].to
 
@@ -97,7 +97,7 @@ dummy-list-tests nat64()
 		b.left.check-structure + b.down.nodes.check-structure + b.right.check-structure
 
 -check-structure[t] nat64(a t array2d)
-	acc mut = 0
+	acc mut nat64 = 0
 	for a1d : a arrays
 		forbid a1d is-empty
 		acc +:= a1d size
@@ -106,7 +106,7 @@ dummy-list-tests nat64()
 
 -check-structure[t] nat64(a t array3d)
 	# TODO: check total-size is accurate
-	acc mut = 0
+	acc mut nat64 = 0
 	for a2d : a arrays
 		forbid a2d.arrays is-empty
 		acc +:= a2d check-structure
@@ -115,7 +115,7 @@ dummy-list-tests nat64()
 
 test
 	a nat64[] = ()
-	b = 1 ~ a
+	b nat64[] = 1 ~ a
 	b verify "[1]"
 
 test
@@ -127,11 +127,11 @@ test
 test
 	a nat64[] = 1, 2, 3, 4, 5, 6, 7, 8
 	a verify "[1 2 3 4 5 6 7 8]"
-	b = 1 ~ a
+	b nat64[] = 1 ~ a
 	b verify "([1] [] [1 2 3 4 5 6 7 8])"
 	c nat64[] = (8, 7, 6, 5, 4, 3, 2) ~~ b
 	c verify "([8 7 6 5 4 3 2 1] [] [1 2 3 4 5 6 7 8])"
-	d = 9 ~ c
+	d nat64[] = 9 ~ c
 	d verify "([9] [[8 7 6 5 4 3 2 1]] [1 2 3 4 5 6 7 8])"
 	e = d ~~ (1, 2, 3, 4, 5)
 	e verify "([9] [[8 7 6 5 4 3 2 1] [1 2 3 4 5 6 7 8]] [1 2 3 4 5])"
@@ -142,7 +142,7 @@ test
 	b = a ~~ (9, 8, 7, 6)
 	b verify "([1 2 3 4 5] [] [9 8 7 6])"
 	c = b ~~ b
-	s = "[9 8 7 6 1 2 3 4 5]"
+	s string = "[9 8 7 6 1 2 3 4 5]"
 	c verify "([1 2 3 4 5] [{s}] [9 8 7 6])"
 	d = c ~~ c
 	d verify "([1 2 3 4 5] [{s} {s} {s}] [9 8 7 6])"

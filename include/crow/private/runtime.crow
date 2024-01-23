@@ -200,7 +200,7 @@ after-task void() bare, unsafe
 	shut-down
 
 -choose-task choose-task-result(gctx global-ctx mut*) bare, summon, unsafe
-	cur-time = if is-wasm
+	cur-time nat64 = if is-wasm
 		0
 	else
 		get-monotime-nsec

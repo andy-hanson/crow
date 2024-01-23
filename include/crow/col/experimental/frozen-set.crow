@@ -20,7 +20,7 @@ import
 	a.to to
 
 +to[t] t frozen-set(a t[]) t key
-	(trusted a.list-cast::((t, void)[])).to,
+	(trusted a.list-cast).to,
 
 # This is O(1).
 +to[t] t[](a t frozen-set)

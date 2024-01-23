@@ -8,7 +8,7 @@
 
 	<crow-runnable>
 		main void()
-			if 2 &lt; 3
+			if true
 				info log "True branch"
 			else
 				info log "False branch"
@@ -52,7 +52,7 @@
 
 	<crow-runnable>
 		main void()
-			info log if 2 &lt; 3
+			info log if true
 				"True branch"
 			else
 				"False branch"
@@ -64,9 +64,9 @@
 	</p>
 	<crow-runnable>
 		main void()
-			info log if 3 &lt; 2
+			info log if false
 				"First condition is true (second condition not checked)"
-			elif 2 &lt; 3
+			elif true
 				"First condition was false, second condition is true"
 			else
 				"Neither condition is true"
@@ -95,8 +95,8 @@
 	</p>
 	<crow-runnable>
 		main void()
-			unless 2 &lt; 3
-				info log "This won't log, because 2 &lt; 3"
+			unless true
+				info log "This won't log, because true"
 	</crow-runnable>
 
 	<h3>Ternary expressions</h3>
@@ -104,10 +104,10 @@
 	<p>There is an alternative syntax for short <code class="keyword">if</code> expressions.</p>
 	<crow-runnable>
 		main void()
-			x = true ? "crow" : "duck"
+			x string = true ? "crow" : "duck"
 			info log "x is '{x}'"
 			# The false branch is still optional
-			y = false ? "crow"
+			y string = false ? "crow"
 			info log "y is '{y}'"
 	</crow-runnable>
 </section>
@@ -122,8 +122,8 @@
 
 	<crow-runnable>
 		main void()
-			result = if 2 < 3
-				x = 1
+			result = if true
+				x nat = 1
 				x
 			info log "{result}"
 			# This won't work:
@@ -133,13 +133,13 @@
 	<h3>"Do" expressions</h3>
 	<p>
 		<code class="keyword">do</code> is an <em>unconditional</em> expression.
-		It's useful for introducing an indented block for scoping or nicer syntax.
+		It's useful for introducing a new scope.
 	</p>
 
 	<crow-runnable>
 		main void()
 			info log do
-				x = "world"
-				"hello, {x}"
+				x string = "world"
+				"Hello, {x}!"
 	</crow-runnable>
 </section>

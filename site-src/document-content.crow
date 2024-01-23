@@ -58,7 +58,7 @@ module-content string(a module, all-exports all-exports)
 	exports = "" join for x : a exports
 		ctx ctx = all-exports, a.path, x.name, for p : x.type-params; p name
 		x export-content ctx
-	doc = unless a.doc is-empty
+	doc string = unless a.doc is-empty
 		"""\n<section class="module-doc">{a.doc format-comment}</section>"""
 	"{a.path module-top}{doc}\n{exports}"
 
@@ -80,21 +80,21 @@ module-content string(a module, all-exports all-exports)
 	name type-or-spec-name-reference ctx.all-exports.specs, "spec", ctx
 -type-or-spec-name-reference string(name symbol, map module-path[symbol], kind string, ctx ctx)
 	if module ?= map[name]
-		module-path = if module != ctx.current-module
+		module-path string = if module != ctx.current-module
 			"/doc/{(module.to::string try-remove-end ".crow")!}.html"
 		"""<a href="{module-path}#{name}"><code class="{kind}">{name}</code></a>"""
 	else
 		throw "Could not find {kind} {name} in {ctx current-module} member {ctx current-export}"
 
 -module-top string(path module-path)
-	url = "https://github.com/andy-hanson/crow/blob/master/include/{path}"
-	source = """<a class="source-link" href="{url}">(source)</a>"""
+	url string = "https://github.com/andy-hanson/crow/blob/master/include/{path}"
+	source string = """<a class="source-link" href="{url}">(source)</a>"""
 	"""<h1><code class="module">{path}</code> {source}</h1>"""
 
 -export-content string(a module-export, ctx ctx)
 	type-params = a.type-params type-params-content
 	header-extra = a.value export-header-extra ctx
-	section = """<section class="doc {a.value section-class}">
+	section string = """<section class="doc {a.value section-class}">
 		<h4><code class="{a.value name-class}">{a name}</code>{type-params} {header-extra}</h4>
 		{a.value export-body ctx}
 		{a.doc format-comment}
@@ -198,7 +198,7 @@ module-content string(a module, all-exports all-exports)
 	as fun-decl _
 		()
 	as record-decl r
-		pre = if r.has-non-public-fields
+		pre string = if r.has-non-public-fields
 			"""<p class="has-non-public-fields">(has non-public fields)</p>"""
 		fields = "" join for x : r fields
 			x field-content ctx
@@ -218,13 +218,13 @@ module-content string(a module, all-exports all-exports)
 	"""<ul class="members">{members}</ul>"""
 
 -field-content string(a record-field, ctx ctx)
-	name = """<code class="property">{a name}</code>"""
-	mut-kw = a.is-mut ? """ <code class="keyword">mut</code>"""
+	name string = """<code class="property">{a name}</code>"""
+	mut-kw string = a.is-mut ? """ <code class="keyword">mut</code>"""
 	"<li>{name}{mut-kw} {a.type type-ref-content ctx}</li>"
 
 -union-member-content string(a union-member, ctx ctx)
-	name = """<code class="property">{a name}</code>"""
-	type = if t ?= a type
+	name string = """<code class="property">{a name}</code>"""
+	type string = if t ?= a type
 		" {t type-ref-content ctx}"
 	"<li>{name}{type}</li>"
 
@@ -246,7 +246,7 @@ module-content string(a module, all-exports all-exports)
 	"""{return-content}<span class="params">({params-content})</span>{specs-content}"""
 
 -param-content string(a param, variadic bool, ctx ctx)
-	var = variadic ? """<code class="keyword">...</code>"""
+	var string = variadic ? """<code class="keyword">...</code>"""
 	type = a.type type-ref-content ctx
 	"""{var}<code class="parameter">{a name}</code> {type}"""
 
@@ -295,7 +295,7 @@ module-content string(a module, all-exports all-exports)
 
 -spec-ref-content string(a spec-ref, ctx ctx)
 	args = a.type-args type-args-content ctx
-	name = a.name in special-specs ? "{a name}" : a.name spec-name-reference ctx
+	name string = a.name in special-specs ? "{a name}" : a.name spec-name-reference ctx
 	"""{args}<code class="interface">{name}</code>"""
 
 special-specs symbol set()

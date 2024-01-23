@@ -32,7 +32,7 @@ export
 
 # Taking 'gc' explicitly to avoid accidental uses
 get-backtrace backtrace(gc gc-ctx, skip nat64) bare, unsafe
-	max-entries = 16
+	max-entries nat64 = 16
 	opt-entries backtrace-entry mut*? = gc try-alloc-uninitialized max-entries
 	if entries ?= opt-entries
 		if is-interpreted
@@ -108,7 +108,7 @@ Result entries are temporary, must copy!
 -try-alloc-windows-backtrace-vars windows-backtrace-vars?(gc gc-ctx) bare, unsafe
 	if offset ?= gc.try-alloc-uninitialized :: nat64 mut*?
 		if displacement ?= gc.try-alloc-uninitialized :: nat32 mut*?
-			symbol-max-name-length = 255
+			symbol-max-name-length nat64 = 255
 			symbol-size = size-of@IMAGEHLP_SYMBOL64 wrap-add symbol-max-name-length wrap-add 1
 			if symbol-buffer ?= (gc try-alloc-uninitialized symbol-size) :: nat8 mut*?
 				symbol IMAGEHLP_SYMBOL64 mut* = symbol-buffer pointer-cast
@@ -199,7 +199,7 @@ Result entries are temporary, must copy!
 			break out-cur
 		else
 			offset mut unw_word_t = 0
-			buf-size = 256
+			buf-size nat64 = 256
 			buf-try char8 mut*? = gc try-alloc-uninitialized buf-size
 			if buf ?= buf-try
 				err = cursor unw_get_proc_name buf, buf-size, &offset

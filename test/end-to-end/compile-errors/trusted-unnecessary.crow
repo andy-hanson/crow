@@ -9,5 +9,5 @@ f nat*()
 
 f nat()
 	# testing twice to verify that we reset 'usedTrusted' after each 'trusted'
-	_ = trusted 0
+	_ nat = trusted 0
 	trusted 0

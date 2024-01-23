@@ -1,11 +1,11 @@
 no-std
 import
-	./bool: ||, bool
+	./bool: ||, bool, false, true
 	./compare: <, comparison
 	./col/array: array, as-array, begin, begin-pointer, end, new, next, prev, slice
 	./col/collection:
-		build-options, drop-right-while, drop-while, for-loop, join, split, strip-right,
-		try-remove-end, try-split-once
+		build, build-options, drop-right-while, drop-while, for-loop, split, strip-right, subscript,
+		try-remove-end, try-split-once, with-block
 	./col/list:
 		==, <=>, ~=, ~, ~~, ~~=, +, -, begin, build, collection, end, is-empty, iterate,
 		list, list-builder, list-cast, list-iterator, new, next, next-index, prev, size, slice, to
@@ -14,7 +14,7 @@ import
 	./hash: hasher, hash-mix
 	./misc: void
 	./number:
-		==, <=>, +, *, /, %, abs, float64, float32, int8, int16, int32, int64, is-nan, min-value,
+		==, <=>, +, -, *, /, %, abs, float64, float32, int8, int16, int32, int64, is-nan, min-value,
 		nat8, nat16, nat32, nat64, to, truncate-to
 	./option: ??, new, option
 	./pointer: ==, <=>, const-pointer
@@ -238,7 +238,7 @@ Result is only digits, no punctuation.
 	if a == min-value
 		"-9223372036854775808"
 	else
-		s = "{a abs}"
+		s string = "{a abs}"
 		a < 0 ? "-{s}" : s
 
 +to string(a float32)
@@ -258,7 +258,7 @@ Result is only digits, no punctuation.
 	# TODO: Use a real float to string algorithm
 	times-1000 int64 = a * 1000.0 truncate-to
 	thousandths = times-1000 % 1000
-	whole-part = "{times-1000 / 1000}"
+	whole-part string = "{times-1000 / 1000}"
 	hundredths = thousandths / 10
 	tenths = hundredths / 10
 	d0 = tenths digit-to-string
@@ -400,3 +400,26 @@ region utilities
 
 +unindent string(a string)
 	a replace-all "\t", ""
+
+###
+Equivalent to `parts[0] ~~ joiner ~~ parts[1] ~~ joiner ~~ ... ~~ parts[n]`.
+###
++join string(joiner string, parts string[])
+	if parts is-empty
+		""
+	elif parts.size == 1
+		parts[0]
+	else
+		res-size mut = joiner.size * (parts.size - 1)
+		for part : parts
+			res-size +:= part.size
+		# NOTE: parts can only be a list because otherwise
+		# `" " join for x : xs; "{x}"` is ambiguous (the 'for' could return any collection)
+		first mut = true
+		with out : res-size build
+			for x : parts
+				if first
+					first := false
+				else
+					out ~~= joiner
+				out ~~= x

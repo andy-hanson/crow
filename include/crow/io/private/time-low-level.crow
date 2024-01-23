@@ -32,7 +32,7 @@ nsec-to-msec nat64(a nat64) bare
 	a / 1000000
 
 to-timespec timespec(a timestamp) bare, unsafe
-	second = 1000000000
+	second nat64 = 1000000000
 	seconds int64 = a / second to
 	ns int64 = a % second to
 	seconds, ns

@@ -141,36 +141,6 @@
 	</ul>
 </section>
 <section>
-	<h2>Defaults</h2>
-	<p>
-		When there is no expected type, number and string literals will compile anyway using a default type.
-		<br />
-		(This does not apply if there are multiple expected types from overloads; it's a compile error in that case.)
-	</p>
-	<ul class="bullets">
-		<li>A simple number like <code class="number">0</code> defaults to <code class="type">nat</code>.</li>
-		<li>
-			A number with a sign like <code class="number">+1</code> or <code class="number">-1</code>
-			defaults to <code class="type">int</code>.
-		</li>
-		<li>
-			A number with a decimal point like <code class="number">1.5</code>
-			defaults to <code class="type">float</code>.
-		</li>
-		<li>
-			A string literal like <code class="string">"foo"</code> defaults to <code class="type">string</code>.
-		</li>
-	</ul>
-	<crow-runnable>
-		main void()
-			n = 0 # nat
-			i = +0 # int
-			f = 0.0 # float
-			s = "" # string
-			info log "{n} {i} {f} {s}"
-	</crow-runnable>
-</section>
-<section>
 	<h2>Overloading is safe</h2>
 	<p>
 		Since there are no implicit conversions in crow, overloading is always unambiguous.
@@ -188,7 +158,7 @@
 			"int"
 	</crow-runnable>
 	<aside class="small">
-		You can fix the example by changing it to <code>+7</code> or <code>7::nat</code>.
+		You can fix the example by changing it to <code>7::nat</code> or <code>7::int</code>.
 	</aside>
 </section>
 <section>

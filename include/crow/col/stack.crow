@@ -65,7 +65,7 @@ Number of elements in the stack.
 This is O(1).
 ###
 +size[t] nat64(a t stack)
-	res mut = 0
+	res mut nat64 = 0
 	for _ : a
 		res +:= 1
 	res

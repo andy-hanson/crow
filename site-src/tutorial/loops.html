@@ -18,7 +18,7 @@
 
 	<crow-runnable>
 		main void()
-			x mut = 0
+			x mut nat = 0
 			loop
 				if x &lt; 10
 					info log "{x}"
@@ -38,9 +38,9 @@
 	</p>
 	<crow-runnable>
 		main void()
-			n = 50
+			n nat = 50
 			# Find the smallest square number greater than 'n'
-			x mut = 0
+			x mut nat = 0
 			result nat = loop
 				square = x * x
 				if square &lt; n
@@ -61,7 +61,7 @@
 	</p>
 	<crow-runnable>
 		main void()
-			x mut = 0
+			x mut nat = 0
 			while x &lt; 10
 				info log "{x}"
 				x +:= 1
@@ -79,7 +79,7 @@
 	</p>
 	<crow-runnable>
 		main void()
-			x mut = 0
+			x mut nat = 0
 			until x >= 10
 				info log "{x}"
 				x +:= 1

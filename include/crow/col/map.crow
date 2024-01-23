@@ -10,15 +10,15 @@ import
 	../number: ==, <=>, +, -, nat64
 	../option: force, is-empty, new, option
 	../range: .., iterate, size
-	../string: ~~, new, string, to
+	../string: ~~, join, string, to
 	../tuple: b, new
 	../private/bootstrap: todo
 	./array:
 		~, ~=, ~~=, +, -, array, array-builder, begin, build, end, is-empty, iterate, new, next,
 		remove-at, size, slice, update-at
 	./collection:
-		.., -, build, build-options, end, every, find-index, flatten, for-break, for-loop, join,
-		n-of, set-subscript, subscript, with-block, with-index
+		.., -, build, build-options, end, every, find-index, flatten, for-break, for-loop, n-of,
+		set-subscript, subscript, with-block, with-index
 	./mut-array: ~=, +, begin, build, cast-immutable, mut-array, next, set-next
 	./list:
 		~~, ~=, +, -, begin, build, end, iterate, list, new, next, size, slice, to
@@ -108,7 +108,7 @@ Later pairs overwrite earlier pairs with the same key.
 -size[k, v] nat64(a (k, v) node)
 	match a
 	as inner-node i
-		acc mut = 0
+		acc mut nat64 = 0
 		for child : i
 			acc +:= child size
 		acc
@@ -276,7 +276,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 	if index < a.size
 		a update-at index, new-value
 	else
-		for i : 0 .. index + 1
+		for i : 0::nat64 .. index + 1
 			if i < a.size
 				a[i]
 			elif i == index
@@ -302,7 +302,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 
 # Returns 'some' if we should change this to a leaf.
 -inner-node-to-leaf[k, v] (k, v) node?(a (k, v) node array , which nat64, new-child (k, v) node)
-	total-size mut = 0
+	total-size mut nat64 = 0
 	for child-index, child : a with-index
 		total-size := match child-index == which ? new-child : child
 		as inner-node _

@@ -4,10 +4,10 @@ import
 main nat^(_ string[]) summon
 	trusted
 		foo := 33
-		results nat[] <- for _ : 0 .. 100 parallel
+		results nat[] <- for _ : 0::nat .. 100 parallel
 			# If 'foo' were thread-local, this would be uninitialized for some threads.
 			foo,
-		results is for _ : 1 .. 101; 33
+		results is for _ : 1::nat64 .. 101; 33
 		out print "{results[99]}"
 		()
 

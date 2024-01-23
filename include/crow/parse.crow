@@ -1,7 +1,7 @@
 no-std
 import
 	./bool: &&, bool, false, not, true
-	./col/collection: build, exists, for-break, for-loop, is-at-end, join, with-block
+	./col/collection: build, exists, for-break, for-loop, is-at-end, with-block
 	./col/list: ~, ~=, build, iterate, list, new, size
 	./col/set: in, new, set
 	./compare: !=, <=
@@ -11,7 +11,7 @@ import
 	./option: is-empty, new, option
 	./result: error, ok, result
 	./string:
-		==, <=>, ~~, ~=, as-string, begin, build, char8, hash-mix, is-empty, iterate, new, next,
+		==, <=>, ~~, ~=, as-string, begin, build, char8, hash-mix, is-empty, iterate, join, next,
 		string, string-iterator, to
 	./tuple: a, b, new
 
@@ -443,8 +443,8 @@ This allows e.g. "1", "+23", "-45".
 	value nat64
 	count-digits nat64
 -take-nat-and-count-digits nat-and-count-digits?(start string-iterator)
-	acc mut = 0
-	count-digits mut = 0
+	acc mut nat64 = 0
+	count-digits mut nat64 = 0
 	iter mut = start
 	loop
 		if x, rest ?= iter next-digit

@@ -12,7 +12,6 @@
 		import
 			crow/log: info, log
 			crow/misc: void
-			crow/string: literal
 
 		main void()
 			info log "Hello, world!"
@@ -35,8 +34,9 @@
 		import
 			crow/test-util/test-runner: run-all-tests
 
-		main void() summon
-			run-all-tests
+		main nat^(_ string[]) summon
+			&lt;- run-all-tests
+			()
 
 		test
 			1::nat + 1 is 2
@@ -44,6 +44,6 @@
 	</crow-runnable>
 
 	<aside class="small">
-		This uses the <code class="function">is</code> function from {{doc/test-util}}.
+		This uses the <code class="function">is</code> function from {{doc/test-util}}, which is imported by default.
 	</aside>
 </section>

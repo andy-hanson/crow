@@ -18,7 +18,7 @@ to string(a dependency)
 	parts = line split " "
 	# module (path) : modifier modifier : module (path):names
 	parts[2] is ":"
-	colon = parts[4] == ":" ? 4 : 5
+	colon nat = parts[4] == ":" ? 4 : 5
 	parts[colon] is ":"
 	parts[0], parts[colon + 1]
 

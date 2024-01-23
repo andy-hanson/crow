@@ -5,9 +5,8 @@ import
 	system/unistd: write
 	../../bool: bool, false
 	../../col/array: +, -, array, begin, begin-pointer, end, is-empty, iterate, size, slice
-	../../col/collection:
-		.., -, contains, end, for-loop, index-of, join, split, subscript, try-remove-end
-	../../col/list: ~~, ~=, +, -, begin, build, end, is-empty, iterate, list, next, size, slice, to
+	../../col/collection: .., -, contains, end, for-loop, index-of, split, subscript, try-remove-end
+	../../col/list: ~~, ~=, +, -, begin, build, end, is-empty, list, next, size, slice, to
 	../../col/map: in, iterate, size, to
 	../../col/mut-map: mut-map, new, remove, set-subscript, subscript
 	../../col/mut-list: ~=, ~~=, iterate, move-to, mut-list, new, pop-n-from-start, size
@@ -22,8 +21,8 @@ import
 	../../option: ??, force, new, option
 	../../parse: nat, parse
 	../../string:
-		==, <=>, ~~, as-string, begin, char8, end, hash-mix, is-empty, iterate, new, next,
-		prev, slice, string, to-bytes, to
+		==, <=>, ~~, as-string, begin, char8, end, hash-mix, is-empty, iterate, join, next, prev,
+		slice, string, to-bytes, to
 	../../tuple: new
 	../../private/bootstrap: todo
 	./http-types:
@@ -117,7 +116,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 	forbid a.status-desc contains "\n"
 	# TODO: headers are case insensitive,
 	# maybe forbid any upper-case letters in headers to be consistent
-	forbid "Content-Length" in a.headers
+	forbid "Content-Length"::string in a.headers
 	headers = "" join for k, v : a headers
 		forbid k contains "\n"
 		forbid v contains "\n"

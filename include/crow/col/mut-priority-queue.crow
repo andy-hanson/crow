@@ -7,13 +7,13 @@ import
 	../misc: new, to, void
 	../number: ==, <=>, +, nat64
 	../option: ==, force, new, option
-	../string: ==, ~~, new, string, to
+	../string: ==, ~~, join, new, string, to
 	../test-util: is
 	../tuple: ==, new
 	./array: +, array, begin, iterate, next, size
 	./collection:
-		build-options, for-loop, is-at-end, join, reverse, set-reverse, subscript, with-index
-	./list: ==, ~=, build, iterate, list, list-builder, new, to
+		build-options, for-loop, is-at-end, reverse, set-reverse, subscript, with-index
+	./list: ==, ~=, build, list, list-builder, new, to
 	./mut-list:
 		~=, ~~=, +, -, begin, clear, copy, end, is-empty, iterate, move-to, mut-list, new, next,
 		next-index, peek, pop, prev, set-next, set-prev, size, temp-as-array, to

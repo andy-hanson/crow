@@ -328,7 +328,7 @@ Throws if `index >= a.size`.
 		a.begin-pointer[index] := value
 
 +iterate[t] bool(a t mut[], f act bool(t))
-	0 .. a.size iterate i =>
+	0::nat64 .. a.size iterate i =>
 		f[a[i]]
 
 subregion iterator

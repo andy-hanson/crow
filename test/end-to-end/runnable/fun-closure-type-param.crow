@@ -2,7 +2,7 @@ import
 	crow/io/print: out, print
 
 main void() summon
-	f = 1 getter
+	f = 1::nat getter
 	out print "{f[]}"
 
 getter[k] fun k()(k k) k data

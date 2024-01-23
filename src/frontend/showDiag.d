@@ -725,7 +725,8 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			if (x.expected.isA!(ExpectedForDiag.Infer))
 				writer ~= "Lambda expression needs an expected type.";
 			else {
-				writer ~= "The lambda doesn't match the expected type at this location.\n";
+				writer ~= "The lambda doesn't match the expected type at this location.";
+				writeNewline(writer, 0);
 				writeExpected(writer, ctx, x.expected, ExpectedKind.lambda);
 			}
 		},
@@ -750,11 +751,20 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writeTypeQuoted(writer, ctx, TypeWithContainer(x.referencedType, TypeContainer(x.containingType)));
 			writer ~= '.';
 		},
-		(in Diag.LiteralAmbiguous x) {
+		(in Diag.LiteralMultipleMatch x) {
 			writer ~= "Multiple possible types for literal expression: ";
 			writeWithCommas!(StructInst*)(writer, x.types, (in StructInst* type) {
 				writeStructInst(writer, ctx, x.typeContainer, *type);
 			});
+		},
+		(in Diag.LiteralNotExpected x) {
+			if (x.expected.isA!(ExpectedForDiag.Infer))
+				writer ~= "Literal expression needs an expected type.";
+			else {
+				writer ~= "The literal doesn't match the expected type at this location.";
+				writeNewline(writer, 0);
+				writeExpected(writer, ctx, x.expected, ExpectedKind.lambda);
+			}
 		},
 		(in Diag.LiteralOverflow x) {
 			writer ~= "Literal exceeds the range of a ";

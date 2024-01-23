@@ -57,13 +57,13 @@ Unlike `a to-bytes`, this always returns an 8-byte array, including any leading 
 # This works for the result of either `to-bytes` or `to-8-bytes`.
 +from-bytes nat64(a nat8[])
 	assert a.size <= 8
-	res mut = 0
+	res mut nat64 = 0
 	for x : a
 		res <<:= 8
 		res |:= x to
 	res
 test
-	n = 0x0123456789abcdef
+	n nat64 = 0x0123456789abcdef
 	bytes = n to-bytes
 	bytes is (0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef)
 	bytes.from-bytes :: nat64 is n

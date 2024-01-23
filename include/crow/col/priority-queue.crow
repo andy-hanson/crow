@@ -8,18 +8,17 @@ import
 	../number: ==, <=>, +, -, nat64
 	../option: force, is-empty, new, option
 	../range: .., iterate
-	../string: ~~, ==, new, string, to
+	../string: ~~, ==, join, new, string, to
 	../test-util: is
 	../tuple: ==, a, b, new
 	./array:
 		~=, ~~=, +, -, array, array-builder, begin, build, end, is-empty, iterate, new, next, size,
 		slice
-	./collection:
-		.., build, build-options, end, for-break, for-loop, join, subscript, swap-at, with-block
+	./collection: .., build, build-options, end, for-break, for-loop, subscript, swap-at, with-block
 	./mut-array:
 		~=, ~~=, +, -, begin, build, cast-immutable, end, is-empty, mut-array, mut-array-builder,
 		next, prev, set-next, size, slice
-	./list: ==, ~=, build, iterate, list, new, to
+	./list: ==, ~=, build, list, new, to
 	./sort: sort, sort=
 
 ###
@@ -89,7 +88,7 @@ Number of pairs in the priority queue.
 This is O(n).
 ###
 +size[k, v] nat64(a (k, v) priority-queue) k priority
-	acc mut = 0
+	acc mut nat64 = 0
 	cur mut = a root
 	loop
 		if node ?= cur
@@ -247,7 +246,7 @@ This is amortized O(log n).
 	if node ?= a
 		pairs = ", " join for k, v : node pairs
 			"{k} {v}"
-		rest = node.next.is-empty ? "" : "; {node.next dbg}"
+		rest string = node.next.is-empty ? "" : "; {node.next dbg}"
 		k, v = node min
 		"{k} {v} [{pairs}]{rest}"
 
@@ -300,7 +299,7 @@ region spec impls (see collection.crow)
 			a walk f
 
 -swap-sorted[k, v] void(a (k, v) each-part mut-array) k compare
-	for i : 0 .. a.size - 1
+	for i : 0::nat64 .. a.size - 1
 		if a[i].min.a > a[i + 1].min.a
 			a swap-at i, i + 1
 			continue

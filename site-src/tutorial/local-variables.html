@@ -1,25 +1,28 @@
 <section>
 	<h2>Using local variables</h2>
 	<p>
-		Defining a local variable is as simple as writing an <code class="keyword">=</code> after the name.
-	</p>
-	<crow-runnable>
-		main void()
-			x = "Hello, world!"
-			info log x
-	</crow-runnable>
-
-	<aside class="small">There are no uninitialized local variables.</aside>
-
-	<h3>Adding a type annotation</h3>
-	<p>
-		Local variables can optionally have an explicit type.
-		As usual, this is written after the name.
+		To define a local variable, write the name, then the type, then <code class="keyword">=</code>, then the value.
 	</p>
 	<crow-runnable>
 		main void()
 			x string = "Hello, world!"
 			info log x
+	</crow-runnable>
+
+	<aside class="small">There are no uninitialized local variables.</aside>
+
+	<h3>Omitting the type annotation</h3>
+	<p>
+		The type can be omitted if the value has only one possible type.
+		(String literals can take on a few types. See {{tutorial/types}}.)
+	</p>
+	<crow-runnable>
+		main void()
+			x = hello-world
+			info log x
+
+		hello-world string()
+			"Hello, world!"
 	</crow-runnable>
 </section>
 <section>

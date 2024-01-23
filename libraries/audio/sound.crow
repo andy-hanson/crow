@@ -36,7 +36,7 @@
 	old-sample-rate = a.format sample-rate
 	new-n-samples = a.samples.size * new-sample-rate / old-sample-rate \
 		round-down-to-multiple-of n-channels
-	new-samples float32 array = for i : 0 .. new-n-samples
+	new-samples float32 array = for i : 0::nat64 .. new-n-samples
 		channel = i % n-channels
 		out-frame = i / n-channels
 		in-frame = out-frame * old-sample-rate / new-sample-rate

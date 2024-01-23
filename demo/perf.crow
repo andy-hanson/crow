@@ -4,12 +4,14 @@ import
 
 main void() summon
 	xs nat[], perf perf-result = with : ("is-prime",) measure-performance
-		() join for x : 2 .. 1000
-			with : "is-prime" perf-measure
-				x.is-prime ? (x,) : ()
+		with out : build
+			for x : 2::nat .. 1000
+				with : "is-prime" perf-measure
+					if x is-prime
+						out ~= x
 	out print (" " join for x : xs; "{x}")
 	out print "{perf}"
 	()
 
 is-prime bool(a nat)
-	!(2 .. a exists x => a is-multiple-of x)
+	!(2::nat .. a exists x => a is-multiple-of x)

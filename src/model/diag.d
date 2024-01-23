@@ -303,9 +303,12 @@ immutable struct Diag {
 		StructDecl* containingType;
 		Type referencedType;
 	}
-	immutable struct LiteralAmbiguous {
+	immutable struct LiteralMultipleMatch {
 		TypeContainer typeContainer;
 		StructInst*[] types;
+	}
+	immutable struct LiteralNotExpected {
+		ExpectedForDiag expected;
 	}
 	immutable struct LiteralOverflow {
 		TypeWithContainer type;
@@ -547,7 +550,8 @@ immutable struct Diag {
 		LambdaNotExpected,
 		LinkageWorseThanContainingFun,
 		LinkageWorseThanContainingType,
-		LiteralAmbiguous,
+		LiteralMultipleMatch,
+		LiteralNotExpected,
 		LiteralOverflow,
 		LocalIgnoredButMutable,
 		LocalNotMutable,

@@ -69,17 +69,17 @@ test
 
 test
 	trusted with a : bm
-		for i : 0 .. 10
+		for i : 0::nat64 .. 10
 			p = a find-or-insert i * 4
 			p.value->id := "{i}"
-		for i : 0 .. 10
+		for i : 0::nat64 .. 10
 			(a.as-const must-find i * 4).value->id is "{i}"
 
 test
 	trusted with a : bm
-		for i : 0 .. 10
+		for i : 0::nat64 .. 10
 			p = a find-or-insert i
 			p.value->id := "{i}"
-		for i : 0 .. 10
+		for i : 0::nat64 .. 10
 			a remove (a must-find i)
 		assert a.as-const slow-is-empty

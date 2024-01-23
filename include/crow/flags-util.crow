@@ -1,11 +1,12 @@
 no-std
 import
 	./bool: bool
-	./col/array: array, iterate, size
-	./col/collection: for-loop, join
-	./col/list: ~~, ~=, build, iterate, list, new, size
+	./col/array: array, iterate
+	./col/collection: build, for-loop, with-block
+	./col/list: ~=, build, iterate, list, size
 	./json: json, to
-	./string: ~~, new, string
+	./misc: new
+	./string: join, string
 	./symbol: symbol, to
 
 ###
@@ -35,10 +36,10 @@ True if every flag set in `a` is set in `b`.
 
 # Returns the names of every flag set in `a`.
 +to[t] symbol[](a t) t flags-like
-	parts symbol[][] = for name, value : flags-members
-		if value is-in a
-			name,
-	() join parts
+	with out : build
+		for name, value : flags-members
+			if value is-in a
+				out ~= name
 
 # Flag names separated by `|`, like `"foo | bar"`.
 +to[t] string(a t) t flags-like

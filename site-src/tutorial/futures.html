@@ -116,10 +116,10 @@
 	<crow-runnable>
 		main nat^(_ string[])
 			xs string mut[] = ()
-			f0 void^ = ("hello",) then x =>
+			f0 void^ = ("hello",)::string^ then x =>
 				xs ~= x
 				()
-			f1 void^ = ("world",) then x =>
+			f1 void^ = ("world",)::string^ then x =>
 				xs ~= x
 				()
 			f0 | f1 then ((), ()) =>
@@ -193,7 +193,7 @@
 
 	<crow-runnable>
 		main nat^(_ string[])
-			("hello",) then x =>
+			("hello",)::string^ then x =>
 				("{x}, world",)::string^ then y =>
 					info log y
 					()
@@ -209,7 +209,7 @@
 	<crow-runnable>
 		main nat^(_ string[])
 			x string &lt;- "hello",
-			y string &lt;- "{a}, world",
+			y string &lt;- "{x}, world",
 			info log "{y}"
 			()
 	</crow-runnable>
@@ -226,7 +226,7 @@
 	<crow-runnable>
 		main nat^(_ string[])
 			if true # Compile error
-				x &lt- "foo",
+				x &lt- ("foo",)::string^
 				info log x
 				()
 				# '&lt;-' expression ends here
@@ -242,7 +242,7 @@
 	<crow-runnable>
 		main nat^(_ string[])
 			&lt;- if true
-				x &lt- "foo",
+				x &lt- ("foo",)::string^
 				info log x
 				()
 			()

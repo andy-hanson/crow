@@ -32,12 +32,11 @@ import frontend.check.inferringType :
 	LoopInfo,
 	nonInferring,
 	Pair,
-	setExpectedIfNoInferred,
 	tryGetNonInferringType,
 	tryGetLoop,
 	TypeAndContext,
 	withCopyWithNewExpectedType;
-import frontend.check.instantiate : InstantiateCtx, instantiateFun, instantiateStructNeverDelay, noDelayStructInsts;
+import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay, noDelayStructInsts;
 import frontend.check.maps : FunsMap, StructsAndAliasesMap;
 import frontend.check.typeFromAst : checkDestructure, makeTupleType, typeFromDestructure;
 import frontend.check.typeUtil : nonInstantiatedReturnType;
@@ -189,7 +188,7 @@ Expr checkFunctionBody(
 		ptrTrustMe(checkCtx),
 		structsAndAliasesMap,
 		funsMap,
-		commonTypes,
+		ptrTrustMe(commonTypes),
 		typeContainer,
 		specs,
 		typeParams,
@@ -220,7 +219,7 @@ TestBody checkTestBody(
 		ptrTrustMe(checkCtx),
 		structsAndAliasesMap,
 		funsMap,
-		commonTypes,
+		ptrTrustMe(commonTypes),
 		typeContainer,
 		[],
 		emptyTypeParams,
@@ -524,7 +523,6 @@ Expr checkInterpolated(
 	in InterpolatedAst ast,
 	ref Expected expected,
 ) {
-	setExpectedIfNoInferred(expected, () => Type(ctx.commonTypes.string_));
 	// TODO: NEATER (don't create a synthetic AST)
 	// "a{b}c" ==> "a" ~~ b.to ~~ "c"
 	CallAst call = checkInterpolatedRecur(ctx, ast.parts, source.range.start + 1, none!ExprAst);
@@ -727,7 +725,7 @@ Expr toExpr(ref Alloc alloc, ExprAst* source, VariableRef a) =>
 
 Expr checkLiteralFloat(ref ExprCtx ctx, ExprAst* source, in LiteralFloatAst ast, ref Expected expected) {
 	immutable StructInst*[2] allowedTypes = [ctx.commonTypes.float32, ctx.commonTypes.float64];
-	Opt!size_t opTypeIndex = findExpectedStructForLiteral(ctx, source, expected, allowedTypes, 1);
+	Opt!size_t opTypeIndex = findExpectedStructForLiteral(ctx, source, expected, allowedTypes);
 	if (has(opTypeIndex)) {
 		StructInst* numberType = allowedTypes[force(opTypeIndex)];
 		if (ast.overflow)
@@ -764,7 +762,7 @@ Expr checkLiteralInt(ref ExprCtx ctx, ExprAst* source, in LiteralIntAst ast, ref
 		IntRange(int.min, int.max),
 		IntRange(long.min, long.max),
 	];
-	Opt!size_t opTypeIndex = findExpectedStructForLiteral(ctx, source, expected, allowedTypes, 3);
+	Opt!size_t opTypeIndex = findExpectedStructForLiteral(ctx, source, expected, allowedTypes);
 	if (has(opTypeIndex)) {
 		size_t typeIndex = force(opTypeIndex);
 		StructInst* numberType = allowedTypes[typeIndex];
@@ -798,7 +796,7 @@ Expr checkLiteralNat(ref ExprCtx ctx, ExprAst* source, in LiteralNatAst ast, ref
 		ubyte.max, ushort.max, uint.max, ulong.max,
 		byte.max, short.max, int.max, long.max,
 	];
-	Opt!size_t opTypeIndex = findExpectedStructForLiteral(ctx, source, expected, allowedTypes, 3);
+	Opt!size_t opTypeIndex = findExpectedStructForLiteral(ctx, source, expected, allowedTypes);
 	if (has(opTypeIndex)) {
 		size_t typeIndex = force(opTypeIndex);
 		StructInst* numberType = allowedTypes[typeIndex];
@@ -816,43 +814,45 @@ Expr checkLiteralNat(ref ExprCtx ctx, ExprAst* source, in LiteralNatAst ast, ref
 }
 
 Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, string value, ref Expected expected) {
-	StructInst* expectedStruct = expectedStructOrNull(ctx.instantiateCtx, expected);
-	if (expectedStruct == ctx.commonTypes.char8) {
-		char char_ = () {
-			if (value.length != 1) {
-				addDiag2(ctx, source, Diag(Diag.CharLiteralMustBeOneChar()));
-				return 'a';
-			} else
-				return only(value);
-		}();
-		return Expr(source, ExprKind(allocate(ctx.alloc, LiteralExpr(Constant(Constant.Integral(char_))))));
-	} else {
-		LiteralStringLikeExpr.Kind kind = expectedStruct == ctx.commonTypes.symbol
-			? LiteralStringLikeExpr.Kind.symbol
-			: expectedStruct == ctx.commonTypes.cString
-			? LiteralStringLikeExpr.Kind.cString
-			: LiteralStringLikeExpr.Kind.string_;
-		Expr expr = Expr(source, ExprKind(LiteralStringLikeExpr(kind, value)));
-		final switch (kind) {
-			case LiteralStringLikeExpr.Kind.cString:
-			case LiteralStringLikeExpr.Kind.symbol:
-				if (contains(value, '\0')) {
-					addDiag2(ctx, source.range, Diag(Diag.StringLiteralInvalid(expectedStruct == ctx.commonTypes.symbol
+	immutable StructInst*[4] allowedTypes = [
+		ctx.commonTypes.char8,
+		ctx.commonTypes.cString,
+		ctx.commonTypes.string_,
+		ctx.commonTypes.symbol,
+	];
+	Opt!size_t opTypeIndex = findExpectedStructForLiteral(ctx, source, expected, allowedTypes);
+	static immutable LiteralStringLikeExpr.Kind[4] kinds = [
+		LiteralStringLikeExpr.Kind.cString, // won't be used
+		LiteralStringLikeExpr.Kind.cString,
+		LiteralStringLikeExpr.Kind.string_,
+		LiteralStringLikeExpr.Kind.symbol,
+	];
+
+	if (has(opTypeIndex)) {
+		size_t typeIndex = force(opTypeIndex);
+		Expr expr = () {
+			if (typeIndex == 0) { // char8
+				char char_ = () {
+					if (value.length != 1) {
+						addDiag2(ctx, source, Diag(Diag.CharLiteralMustBeOneChar()));
+						return 'a';
+					} else
+						return only(value);
+				}();
+				return Expr(source, ExprKind(allocate(ctx.alloc, LiteralExpr(Constant(Constant.Integral(char_))))));
+			} else {
+				LiteralStringLikeExpr.Kind kind = kinds[typeIndex];
+				if (kind != LiteralStringLikeExpr.Kind.string_ && contains(value, '\0')) {
+					addDiag2(ctx, source.range, Diag(Diag.StringLiteralInvalid(kind == LiteralStringLikeExpr.Kind.symbol
 						? Diag.StringLiteralInvalid.Reason.symbolContainsNul
 						: Diag.StringLiteralInvalid.Reason.cStringContainsNul)));
 				}
-				return expr;
-			case LiteralStringLikeExpr.Kind.string_:
-				return check(ctx, source, expected, Type(ctx.commonTypes.string_), expr);
-		}
-	}
-}
-
-StructInst* expectedStructOrNull(ref InstantiateCtx ctx, ref const Expected expected) {
-	Opt!Type expectedType = tryGetNonInferringType(ctx, expected);
-	return has(expectedType) && force(expectedType).isA!(StructInst*)
-		? force(expectedType).as!(StructInst*)
-		: null;
+				return Expr(source, ExprKind(LiteralStringLikeExpr(kind, value)));
+			}
+		}();
+		return check(ctx, source, expected, Type(allowedTypes[typeIndex]), expr);
+	} else
+		return bogus(expected, source);
 }
 
 Expr checkExprWithDestructure(

@@ -53,7 +53,7 @@ Calls `f` for each element in `a`.
 ###
 +iterate[t] bool(a t array, f act bool(t))
 	trusted if size-of@t == 0
-		i mut = 0
+		i mut nat64 = 0
 		loop
 			if i == a.size
 				break false
@@ -103,7 +103,7 @@ Calls `f` for each element in `a`.
 		assert a.cur <= a.end
 		if a.cur == a.end
 			cur-size = a.end - a.begin
-			new-capacity = cur-size == 0 ? 4 : cur-size * 2
+			new-capacity nat64 = cur-size == 0 ? 4 : cur-size * 2
 			new-begin t mut* = new-capacity alloc-uninitialized
 			new-begin mem-copy a.begin.as-const, cur-size
 			a.begin := new-begin

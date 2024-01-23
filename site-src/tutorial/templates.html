@@ -69,9 +69,10 @@
 				false
 
 		combinations[t, u] (t, u)[](a t[], b u[])
-			() join for x : a
-				for y : b
-					(x, y)
+			with out : build
+				for x : a
+					for y : b
+						out ~= (x, y)
 	</crow-runnable>
 </section>
 <section>

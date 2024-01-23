@@ -12,8 +12,7 @@ pages path-and-content[]^() summon
 tutorial-pages path-and-content[]() summon
 	metas = tutorial-metas
 	title-lookup string[symbol] = for x : metas; x.key, x.title
-	for index : 0 .. metas.size
-		meta = metas[index]
+	for index, meta : metas with-index
 		next tutorial-meta? = unless index + 1 == metas.size
 			metas[index + 1],
 		content string = "site-src/tutorial/{meta key}.html" read-file
@@ -63,7 +62,7 @@ tutorial-pages path-and-content[]() summon
 -tutorial-nav string(tutorial-dir string, cur-path string, tutorial-metas tutorial-meta[])
 	lines = "" join for x : tutorial-metas
 		path = tutorial-dir path x
-		cur = path == cur-path ? " class=\"current\""
+		cur string = path == cur-path ? " class=\"current\""
 		"""<li><a href="/{path}"{cur}>{x title}</a></li>"""
 	"<nav><ul>{lines}</ul></nav>"
 
@@ -75,7 +74,7 @@ tutorial-pages path-and-content[]() summon
 	content string,
 	next tutorial-meta?,
 )
-	next-link = if n ?= next
+	next-link string = if n ?= next
 		"""<a id="next" href="/{tutorial-dir path n}">next: {n title}</a>"""
 	page-path = tutorial-dir path meta
 	content-with-links = content create-links link =>

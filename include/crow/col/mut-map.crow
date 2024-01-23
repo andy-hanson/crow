@@ -8,11 +8,11 @@ import
 	../misc: key, new, void, to
 	../number: ==, <=>, +, -, *, %, nat64
 	../option: ==, is-empty, new, option
-	../string: ==, ~~, new, string, to
+	../string: ==, ~~, join, string, to
 	../test-util: is
 	../tuple: ==, new
 	./array: array
-	./collection: fill, find, find-index, for-loop, join, n-of, map=, set-subscript, subscript
+	./collection: fill, find, find-index, for-loop, n-of, map=, set-subscript, subscript
 	./map: ~=, build, map
 	./mut-array: ~=, +, begin, build, iterate, mut-array, is-empty, new, next, set-next, size
 	./list: ==, ~=, build, iterate, list, new, size, to

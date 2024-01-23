@@ -6,8 +6,8 @@ Even non-`summon` code is can measure perf, but only `summon` code can access th
 no-std
 import
 	./col/array: +, array, begin, is-empty, iterate, new, next, size
-	./col/collection: for-loop, index-of, join, set-subscript, subscript
-	./col/list: ~=, build, iterate, list, to
+	./col/collection: for-loop, index-of, set-subscript, subscript
+	./col/list: ~=, build, list, to
 	./col/map: ~=, build, iterate, map, size
 	./col/mut-array: ~=, +, begin, build, mut-array, next, new, set-next
 	./exception: finally, with-block
@@ -17,7 +17,7 @@ import
 	./misc: new, void
 	./number: ==, <=>, +, -, nat64, to
 	./range: .., iterate, size
-	./string: ~~, new, string, to
+	./string: ~~, join, string, to
 	./symbol: ==, <=>, hash-mix, symbol, to
 	./tuple: new
 
@@ -65,7 +65,7 @@ import
 		f-res = f[]
 		end = perf-now
 		# TODO: 'zip'
-		perf-res perf-result = (end - start).to.nsec, trusted for i : 0 .. measure-names.size
+		perf-res perf-result = (end - start).to.nsec, trusted for i : 0::nat64 .. measure-names.size
 			value = measure-accums[i]
 			measure-names[i], (value.count, value.total-nsec.to.nsec)
 		f-res, perf-res
