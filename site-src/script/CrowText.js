@@ -208,7 +208,7 @@ export class CrowText extends HTMLElement {
 			const lineText = lines[line] || ''
 			const leadingTabs = countLeadingTabs(lineText)
 			const tabsFix = leadingTabs * (tab_size - 1)
-			const character = clamp(columnPre - tabsFix, 0, lineText.length - 1)
+			const character = lineText == "" ? 0 : clamp(columnPre - tabsFix, 0, lineText.length - 1)
 			mouseMoveIndex++
 
 			if (mouseMoveIndex === 2**16) mouseMoveIndex = 0
