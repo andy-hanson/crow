@@ -195,13 +195,13 @@ Type typeFromAst(
 					typeParamsScope,
 					delayStructInsts);
 		},
-		(in TypeAst.SuffixSpecial it) =>
+		(in TypeAst.SuffixSpecial x) =>
 			instStructFromAst(
 				ctx,
 				commonTypes,
-				symbolForTypeAstSuffix(it.kind),
-				suffixRange(it),
-				some(&castNonScope_ref(it).left),
+				symbolForTypeAstSuffix(x.kind),
+				suffixRange(x),
+				some(x.left),
 				structsAndAliasesMap,
 				typeParamsScope,
 				delayStructInsts),
@@ -328,8 +328,7 @@ private Type typeFromMapAst(
 	in TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
 ) {
-	TypeAst.Tuple tuple = TypeAst.Tuple(Range.empty, castNonScope_ref(ast.kv));
-	TypeAst typeArg = TypeAst(ptrTrustMe(tuple));
+	TypeAst typeArg = TypeAst(TypeAst.Tuple(Range.empty, castNonScope_ref(ast.kv)));
 	return instStructFromAst(
 		ctx,
 		commonTypes,

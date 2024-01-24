@@ -100,7 +100,7 @@ immutable struct TypeAst {
 	}
 
 	immutable struct SuffixSpecial {
-		enum Kind {
+		enum Kind : ubyte {
 			future,
 			list,
 			mutList,
@@ -108,7 +108,7 @@ immutable struct TypeAst {
 			option,
 			ptr,
 		}
-		TypeAst left;
+		TypeAst* left;
 		Pos suffixPos;
 		Kind kind;
 	}
@@ -126,9 +126,9 @@ immutable struct TypeAst {
 		}
 	}
 
-	mixin Union!(Bogus, Fun*, Map*, NameAndRange, SuffixName*, SuffixSpecial*, Tuple*);
+	mixin Union!(Bogus, Fun*, Map*, NameAndRange, SuffixName*, SuffixSpecial, Tuple);
 }
-//TODO: static assert(TypeAst.sizeof == ulong.sizeof);
+static assert(TypeAst.sizeof == ulong.sizeof * 3);
 
 Range range(in TypeAst a, in AllSymbols allSymbols) =>
 	a.matchIn!Range(
@@ -143,7 +143,7 @@ Range range(in TypeAst a, in AllSymbols allSymbols) =>
 Range range(in TypeAst.Map a, in AllSymbols allSymbols) =>
 	Range(range(a.v, allSymbols).start, safeToUint(range(a.k, allSymbols).end + "]".length));
 Range range(in TypeAst.SuffixSpecial a, in AllSymbols allSymbols) =>
-	Range(range(a.left, allSymbols).start, suffixEnd(a));
+	Range(range(*a.left, allSymbols).start, suffixEnd(a));
 Range suffixRange(in TypeAst.SuffixSpecial a) =>
 	Range(a.suffixPos, suffixEnd(a));
 private Pos suffixEnd(in TypeAst.SuffixSpecial a) =>

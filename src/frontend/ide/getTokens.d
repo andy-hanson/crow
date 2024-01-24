@@ -360,7 +360,7 @@ void addTypeTokens(scope ref Ctx ctx, in TypeAst a) {
 			reference(ctx.tokens, TokenType.type, rangeOfNameAndRange(x.name, ctx.allSymbols));
 		},
 		(in TypeAst.SuffixSpecial x) {
-			addTypeTokens(ctx, x.left);
+			addTypeTokens(ctx, *x.left);
 			declare(ctx.tokens, TokenType.type, suffixRange(x));
 		},
 		(in TypeAst.Tuple x) {

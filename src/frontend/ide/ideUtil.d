@@ -123,7 +123,7 @@ Opt!T eachTypeArg(T)(
 	Opt!T zipSuffix(in TypeAst* typeArgAst) =>
 		zipIt(typeArgs.length == 1
 			? arrayOfSingle(typeArgAst)
-			: typeArgAst.as!(TypeAst.Tuple*).members);
+			: typeArgAst.as!(TypeAst.Tuple).members);
 
 	return ast.match!(Opt!T)(
 		(TypeAst.Bogus) =>
@@ -137,8 +137,8 @@ Opt!T eachTypeArg(T)(
 				case 1:
 					return optOr!T(fromReturn, () => cb(returnAndParam[1], only(x.paramTypes)));
 				default:
-					TypeAst.Tuple tuple = TypeAst.Tuple(x.range, x.paramTypes);
-					return optOr!T(fromReturn, () => cb(returnAndParam[1], TypeAst(&tuple)));
+					return optOr!T(fromReturn, () =>
+						cb(returnAndParam[1], TypeAst(TypeAst.Tuple(x.range, x.paramTypes))));
 			}
 		},
 		(ref TypeAst.Map x) =>
@@ -147,11 +147,11 @@ Opt!T eachTypeArg(T)(
 			// For a type alias, 'typeArgs' may be non-empty as it comes from the alias' target type.
 			// But ignore them in any case.
 			none!T,
-		(ref TypeAst.SuffixName x) @safe =>
+		(ref TypeAst.SuffixName x) =>
 			zipSuffix(&x.left),
-		(ref TypeAst.SuffixSpecial x) =>
-			zipSuffix(&x.left),
-		(ref TypeAst.Tuple x) =>
+		(TypeAst.SuffixSpecial x) =>
+			zipSuffix(x.left),
+		(TypeAst.Tuple x) =>
 			zipIt(x.members));
 }
 

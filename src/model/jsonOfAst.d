@@ -357,7 +357,7 @@ Json jsonOfTypeAst(ref Alloc alloc, in Ctx ctx, in TypeAst a) =>
 		(in TypeAst.SuffixSpecial x) =>
 			jsonObject(alloc, [
 				kindField!"suffix-special",
-				field!"left"(jsonOfTypeAst(alloc, ctx, x.left)),
+				field!"left"(jsonOfTypeAst(alloc, ctx, *x.left)),
 				field!"suffix-pos"(x.suffixPos),
 				field!"suffix"(symbolForTypeAstSuffix(x.kind))]),
 		(in TypeAst.Tuple x) =>
