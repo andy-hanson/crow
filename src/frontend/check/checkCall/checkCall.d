@@ -26,7 +26,6 @@ import frontend.check.inferringType :
 	check,
 	Expected,
 	getExpectedForDiag,
-	inferred,
 	InferringTypeArgs,
 	inferTypeArgsFrom,
 	inferTypeArgsFromLambdaParameterType,
@@ -35,7 +34,8 @@ import frontend.check.inferringType :
 	SingleInferringType,
 	tryGetInferred,
 	TypeAndContext,
-	TypeContext;
+	TypeContext,
+	withExpectCandidates;
 import frontend.check.instantiate : InstantiateCtx;
 import frontend.check.typeFromAst : getNTypeArgsForDiagnostic, unpackTupleIfNeeded;
 import frontend.lang : maxTypeParams;
@@ -48,6 +48,7 @@ import model.model :
 	CallExpr,
 	Destructure,
 	Expr,
+	ExprAndType,
 	ExprKind,
 	FunDecl,
 	LambdaExpr,
@@ -57,14 +58,14 @@ import model.model :
 	SpecDeclSig,
 	SpecInst,
 	Type;
-import util.col.array : arraysCorrespond, every, exists, isEmpty, makeArrayOrFail, newArray, only, small, zipEvery;
+import util.col.array : arraysCorrespond, every, exists, isEmpty, makeArrayOrFail, newArray, only, zipEvery;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.mutMaxArr : asTemporaryArray, isEmpty, fillMutMaxArr, MutMaxArr, mutMaxArr, mutMaxArrSize, only, size;
 import util.opt : force, has, none, noneMut, Opt, some, some;
 import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMeasure, startMeasure;
 import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
-import util.util : castNonScope_ref, ptrTrustMe, typeAs;
+import util.util : ptrTrustMe, typeAs;
 
 Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref CallAst ast, ref Expected expected) {
 	switch (ast.style) {
@@ -209,22 +210,19 @@ Expr checkCallInner(
 
 		ParamExpected paramExpected = mutMaxArr!(maxCandidates, TypeAndContext);
 		getParamExpected(ctx.instantiateCtx, paramExpected, candidates, argIdx);
-		Expected expected = Expected(small!TypeAndContext(asTemporaryArray(castNonScope_ref(paramExpected))));
-
 		pauseMeasure(ctx.perf, ctx.alloc, perfMeasurer);
-		Expr arg = checkExpr(ctx, locals, &argAsts[argIdx], expected);
+		ExprAndType arg = withExpectCandidates(asTemporaryArray(paramExpected), (ref Expected expected) =>
+			checkExpr(ctx, locals, &argAsts[argIdx], expected));
 		resumeMeasure(ctx.perf, ctx.alloc, perfMeasurer);
-
-		Type actualArgType = inferred(expected);
 		// If it failed to check, don't continue, just stop there.
-		if (actualArgType.isA!(Type.Bogus)) {
+		if (arg.type.isA!(Type.Bogus)) {
 			someArgIsBogus = true;
 			return none!Expr;
 		}
-		add(ctx.alloc, actualArgTypes, actualArgType);
+		add(ctx.alloc, actualArgTypes, arg.type);
 		filterCandidates(candidates, (ref Candidate candidate) =>
-			testCandidateParamType(ctx.instantiateCtx, candidate, argIdx, nonInferring(actualArgType)));
-		return some(arg);
+			testCandidateParamType(ctx.instantiateCtx, candidate, argIdx, nonInferring(arg.type)));
+		return some(arg.expr);
 	});
 
 	if (someArgIsBogus)

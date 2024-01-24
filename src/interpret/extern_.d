@@ -123,7 +123,6 @@ immutable struct DynCallType {
 	static DynCallType pointer() =>
 		DynCallType(DynCallType.Pointer());
 }
-static assert(DynCallType.sizeof == ulong.sizeof);
 
 pure size_t sizeWords(in DynCallType a) =>
 	a.matchIn!size_t(

@@ -23,24 +23,21 @@ import util.symbol : Symbol, symbol;
 
 LowType boolType = LowType(PrimitiveType.bool_);
 LowType char8Type = LowType(PrimitiveType.char8);
-private LowType char8PtrConstType =
-	LowType(LowType.PtrRawConst(&char8Type));
-LowType char8PtrPtrConstType =
-	LowType(LowType.PtrRawConst(&char8PtrConstType));
-LowType float32Type = LowType(PrimitiveType.float32);
-LowType float64Type = LowType(PrimitiveType.float64);
-LowType int8Type = LowType(PrimitiveType.int8);
-LowType int16Type = LowType(PrimitiveType.int16);
-LowType int32Type = LowType(PrimitiveType.int32);
-LowType int64Type = LowType(PrimitiveType.int64);
+LowType char8PtrConstType() => LowType(LowType.PtrRawConst(&char8Type));
+LowType float32Type() => LowType(PrimitiveType.float32);
+LowType float64Type() => LowType(PrimitiveType.float64);
+LowType int8Type() => LowType(PrimitiveType.int8);
+LowType int16Type() => LowType(PrimitiveType.int16);
+LowType int32Type() => LowType(PrimitiveType.int32);
+LowType int64Type() => LowType(PrimitiveType.int64);
 LowType nat8Type = LowType(PrimitiveType.nat8);
-LowType nat16Type = LowType(PrimitiveType.nat16);
-LowType nat32Type = LowType(PrimitiveType.nat32);
-LowType nat64Type = LowType(PrimitiveType.nat64);
-private LowType anyPtrConstType =
+LowType nat16Type() => LowType(PrimitiveType.nat16);
+LowType nat32Type() => LowType(PrimitiveType.nat32);
+LowType nat64Type() => LowType(PrimitiveType.nat64);
+private LowType anyPtrConstType() =>
 	LowType(LowType.PtrRawConst(&nat8Type));
-LowType anyPtrMutType = LowType(LowType.PtrRawMut(&nat8Type));
-LowType voidType = LowType(PrimitiveType.void_);
+LowType anyPtrMutType() => LowType(LowType.PtrRawMut(&nat8Type));
+LowType voidType() => LowType(PrimitiveType.void_);
 
 LowExpr genAddPtr(ref Alloc alloc, LowType.PtrRawConst ptrType, UriAndRange range, LowExpr ptr, LowExpr added) =>
 	LowExpr(LowType(ptrType), range, LowExprKind(allocate(alloc,

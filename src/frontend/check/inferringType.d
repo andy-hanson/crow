@@ -9,7 +9,7 @@ import frontend.showModel : ShowCtx, ShowTypeCtx, ShowOptions, writeTypeUnquoted
 import frontend.storage : LineAndColumnGetters;
 import model.ast : ExprAst;
 import model.diag : Diag, ExpectedForDiag, TypeContainer, TypeWithContainer;
-import model.model : BogusExpr, CommonTypes, Expr, ExprKind, LoopExpr, StructInst, Type, TypeParamIndex;
+import model.model : BogusExpr, CommonTypes, Expr, ExprAndType, ExprKind, LoopExpr, StructInst, Type, TypeParamIndex;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.array :
 	contains,
@@ -28,7 +28,7 @@ import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, asTemporary
 import util.col.mutMaxArr : asTemporaryArray;
 import util.opt : has, force, MutOpt, none, noneMut, Opt, optOrDefault, some, someInout, someMut;
 import util.symbol : writeSymbol;
-import util.union_ : TaggedUnion, UnionMutable;
+import util.union_ : TaggedUnion;
 import util.uri : UrisInfo;
 import util.util : castNonScope_ref;
 import util.writer : Writer, writeWithCommas;
@@ -58,7 +58,6 @@ struct TypeContext {
 	bool isInferring() scope const =>
 		isA!(SingleInferringType[]);
 }
-static assert(TypeContext.sizeof == ulong.sizeof);
 
 @trusted inout(InferringTypeArgs) asInferringTypeArgs(inout TypeContext a) =>
 	a.isInferring
@@ -103,13 +102,79 @@ TypeAndContext nonInferring(Type a) =>
 	TypeAndContext(a, TypeContext.nonInferring);
 
 struct Expected {
+	@safe @nogc pure nothrow:
+	private:
+
 	immutable struct Infer {}
-	// Type in the context of the function being checked
-	immutable struct LocalType { Type type; }
-	mixin UnionMutable!(Infer, LocalType, MutSmallArray!TypeAndContext, LoopInfo*);
+	// TypeParamIndex (and type params in type args of StructInst) are in the context of the function being checked
+	mixin TaggedUnion!(Infer, Type.Bogus, TypeParamIndex, StructInst*, MutSmallArray!TypeAndContext, LoopInfo*);
+
+	T matchCombineType(T)(
+		in T delegate(Infer) @safe @nogc pure nothrow cbInfer,
+		in T delegate(Type) @safe @nogc pure nothrow cbType,
+		in T delegate(TypeAndContext[]) @safe @nogc pure nothrow cbTypeAndContext,
+		in T delegate(LoopInfo*) @safe @nogc pure nothrow cbLoopInfo,
+	) =>
+		matchWithPointers!T(
+			cbInfer,
+			(Type.Bogus x) => cbType(Type(x)),
+			(TypeParamIndex x) => cbType(Type(x)),
+			(StructInst* x) => cbType(Type(x)),
+			cbTypeAndContext,
+			cbLoopInfo);
+	T matchCombineTypeConst(T)(
+		in T delegate(Infer) @safe @nogc pure nothrow cbInfer,
+		in T delegate(Type) @safe @nogc pure nothrow cbType,
+		in T delegate(const TypeAndContext[]) @safe @nogc pure nothrow cbTypeAndContext,
+		in T delegate(const LoopInfo*) @safe @nogc pure nothrow cbLoopInfo,
+	) const =>
+		matchConst!T(
+			cbInfer,
+			(Type.Bogus x) => cbType(Type(x)),
+			(TypeParamIndex x) => cbType(Type(x)),
+			(StructInst* x) => cbType(Type(x)),
+			cbTypeAndContext,
+			cbLoopInfo);
 }
-// TODO: I could probably get this to just ulong.sizeof
-static assert(Expected.sizeof == ulong.sizeof * 2);
+
+ExprAndType withInfer(in Expr delegate(ref Expected) @safe @nogc pure nothrow cb) {
+	Expected expected = Expected(Expected.Infer());
+	Expr expr = cb(expected);
+	return ExprAndType(expr, inferred(expected));
+}
+
+Expr withExpect(Type type, in Expr delegate(ref Expected) @safe @nogc pure nothrow cb) {
+	Expected expected = type.matchWithPointers!Expected(
+			(Type.Bogus x) =>
+				Expected(x),
+			(TypeParamIndex x) =>
+				Expected(x),
+			(StructInst* x) =>
+				Expected(x));
+	return cb(expected);
+}
+
+ExprAndType withExpectCandidates(
+	scope TypeAndContext[] candidates,
+	in Expr delegate(ref Expected) @safe @nogc pure nothrow cb,
+) {
+	Expected expected = Expected(small!TypeAndContext(candidates));
+	Expr expr = cb(expected);
+	return ExprAndType(expr, inferred(expected));
+}
+
+ExprAndType withExpectAndInfer(Type[2] types, in Expr delegate(ref Expected) @safe @nogc pure nothrow cb) {
+	TypeAndContext[2] contexts = [nonInferring(types[0]), nonInferring(types[1])];
+	Expected expected = Expected(small!TypeAndContext(contexts));
+	Expr expr = cb(castNonScope_ref(expected));
+	return ExprAndType(expr, inferred(castNonScope_ref(expected)));
+}
+
+// Also writes to info.hasBreak
+Expr withExpectLoop(ref LoopInfo info, in Expr delegate(ref Expected) @safe @nogc pure nothrow cb) {
+	Expected expected = Expected(&info);
+	return cb(castNonScope_ref(expected));
+}
 
 void debugLogExpected(scope ref Writer writer, ref ExprCtx ctx, in Expected a) {
 	ShowTypeCtx showCtx = ShowTypeCtx(
@@ -125,9 +190,16 @@ void debugLogExpected(scope ref Writer writer, ref ExprCtx ctx, in Expected a) {
 		(const Expected.Infer) {
 			writer ~= "<<infer>>";
 		},
-		(const Expected.LocalType t) {
+		(const Type.Bogus x) {
+			writer ~= "<<bogus>>";
+		},
+		(const TypeParamIndex x) {
 			writer ~= "local type ";
-			writeTypeUnquoted(writer, showCtx, typeWithContainer(ctx, t.type));
+			writeTypeUnquoted(writer, showCtx, typeWithContainer(ctx, Type(x)));
+		},
+		(const StructInst* x) {
+			writer ~= "local type ";
+			writeTypeUnquoted(writer, showCtx, typeWithContainer(ctx, Type(x)));
 		},
 		(const TypeAndContext[] choices) {
 			writer ~= "choices: ";
@@ -173,9 +245,6 @@ private void debugLogExpectedChoice(
 			writeSymbol(writer, showCtx.allSymbols, x.decl.name);
 		});
 }
-
-private TypeAndContext localTypeAndContext(Expected.LocalType a) =>
-	nonInferring(a.type);
 
 MutOpt!(LoopInfo*) tryGetLoop(ref Expected expected) =>
 	expected.isA!(LoopInfo*) ? someMut(expected.as!(LoopInfo*)) : noneMut!(LoopInfo*);
@@ -243,11 +312,15 @@ Opt!size_t findExpectedStructForLiteral(
 		return cellGet(rslt);
 }
 
-private @trusted void setToType(scope ref Expected expected, Expected.LocalType type) {
-	expected = type;
+private @trusted void setToType(ref Expected expected, Type type) {
+	type.matchWithPointers!void(
+		(Type.Bogus x) { expected = x; },
+		(TypeParamIndex x) { expected = x; },
+		(StructInst* x) { expected = x; });
 }
-private void setToBogus(scope ref Expected expected) {
-	setToType(expected, Expected.LocalType(Type(Type.Bogus())));
+private void setToBogus(ref Expected expected) {
+	expected = Type.Bogus();
+	assert(expected.isA!(Type.Bogus));
 }
 
 struct Pair(T, U) {
@@ -353,10 +426,10 @@ private Opt!Type getExpectedParamTypeFromFunType(
 }
 
 private void eachChoice(ref Expected a, in void delegate(TypeAndContext) @safe @nogc pure nothrow cb) =>
-	a.match!void(
+	a.matchCombineType!void(
 		(Expected.Infer) {},
-		(Expected.LocalType x) {
-			cb(localTypeAndContext(x));
+		(Type x) {
+			cb(nonInferring(x));
 		},
 		(TypeAndContext[] choices) {
 			foreach (TypeAndContext choice; choices)
@@ -367,10 +440,10 @@ private void eachChoiceConst(
 	ref const Expected a,
 	in void delegate(const TypeAndContext) @safe @nogc pure nothrow cb,
 ) =>
-	a.matchConst!void(
+	a.matchCombineTypeConst!void(
 		(Expected.Infer) {},
-		(Expected.LocalType x) {
-			cb(localTypeAndContext(x));
+		(Type x) {
+			cb(nonInferring(x));
 		},
 		(const TypeAndContext[] choices) {
 			foreach (TypeAndContext choice; choices)
@@ -378,40 +451,14 @@ private void eachChoiceConst(
 		},
 		(const LoopInfo*) {});
 
-private struct OkSkipOrAbort(T) {
-	@safe @nogc pure nothrow:
-
-	struct Ok { T value; }
-	immutable struct Skip {}
-	immutable struct Abort { Diag diag; }
-
-	static OkSkipOrAbort ok(T value) =>
-		OkSkipOrAbort(Ok(value));
-	static OkSkipOrAbort skip() =>
-		OkSkipOrAbort(Skip());
-	static OkSkipOrAbort abort(Diag diag) =>
-		OkSkipOrAbort(Abort(diag));
-
-	mixin UnionMutable!(Ok, Skip, Abort);
-
-	OkSkipOrAbort!Out mapOk(Out)(in Out delegate(T) @safe @nogc pure nothrow cb) =>
-		match!(OkSkipOrAbort!Out)(
-			(ref Ok x) =>
-				OkSkipOrAbort!Out.ok(cb(x.value)),
-			(Skip _) =>
-				OkSkipOrAbort!Out.skip,
-			(Abort x) =>
-				OkSkipOrAbort!Out.abort(x.diag));
-}
-
 // This will return a result if there are no references to inferring type parameters.
 // (There may be references to the current function's type parameters.)
 private Opt!Type tryGetNonInferringType(ref InstantiateCtx ctx, ref const Expected expected) =>
-	expected.matchConst!(Opt!Type)(
+	expected.matchCombineTypeConst!(Opt!Type)(
 		(Expected.Infer) =>
 			none!Type,
-		(Expected.LocalType x) =>
-			some(x.type),
+		(Type x) =>
+			some(x),
 		(const TypeAndContext[] choices) =>
 			choices.length == 1 ? tryGetNonInferringType(ctx, only(choices)) : none!Type,
 		(const LoopInfo*) =>
@@ -422,12 +469,12 @@ bool matchExpectedVsReturnTypeNoDiagnostic(
 	ref const Expected expected,
 	TypeAndContext candidateReturnType,
 ) =>
-	expected.matchConst!bool(
+	expected.matchCombineTypeConst!bool(
 		(Expected.Infer) =>
 			true,
-		(Expected.LocalType x) =>
+		(Type x) =>
 			// We have a particular expected type, so infer its type args
-			matchTypes(ctx, candidateReturnType, localTypeAndContext(x)),
+			matchTypes(ctx, candidateReturnType, nonInferring(x)),
 		(const TypeAndContext[] choices) =>
 			noneOneOrMany!TypeAndContext(choices, (in TypeAndContext x) =>
 				isTypeMatchPossible(x, candidateReturnType)
@@ -443,11 +490,11 @@ bool matchExpectedVsReturnTypeNoDiagnostic(
 			false);
 
 Expr bogus(ref Expected expected, ExprAst* ast) {
-	expected.match!void(
+	expected.matchCombineType!void(
 		(Expected.Infer) {
 			setToBogus(expected);
 		},
-		(Expected.LocalType) {},
+		(Type _) {},
 		(TypeAndContext[]) {
 			setToBogus(expected);
 		},
@@ -455,12 +502,12 @@ Expr bogus(ref Expected expected, ExprAst* ast) {
 	return Expr(ast, ExprKind(BogusExpr()));
 }
 
-Type inferred(ref const Expected expected) =>
-	expected.matchConst!Type(
+private Type inferred(ref const Expected expected) =>
+	expected.matchCombineTypeConst!Type(
 		(Expected.Infer) =>
 			assert(false),
-		(Expected.LocalType x) =>
-			x.type,
+		(Type x) =>
+			x,
 		(const TypeAndContext[] choices) =>
 			// If there were multiple, we should have set the expected.
 			only(choices).type,
@@ -469,7 +516,7 @@ Type inferred(ref const Expected expected) =>
 			x.voidType);
 
 Expr check(ref ExprCtx ctx, ExprAst* source, ref Expected expected, Type exprType, Expr expr) {
-	if (setTypeNoDiagnostic(ctx.instantiateCtx, expected, Expected.LocalType(exprType)))
+	if (setTypeNoDiagnostic(ctx.instantiateCtx, expected, exprType))
 		return expr;
 	else {
 		addDiag2(ctx, expr.range, Diag(
@@ -479,11 +526,11 @@ Expr check(ref ExprCtx ctx, ExprAst* source, ref Expected expected, Type exprTyp
 }
 
 ExpectedForDiag getExpectedForDiag(ref ExprCtx ctx, ref const Expected expected) =>
-	expected.matchConst!ExpectedForDiag(
+	expected.matchCombineTypeConst!ExpectedForDiag(
 		(Expected.Infer) =>
 			ExpectedForDiag(ExpectedForDiag.Infer()),
-		(Expected.LocalType x) =>
-			ExpectedForDiag(ExpectedForDiag.Choices(newArray!Type(ctx.alloc, [x.type]), ctx.typeContainer)),
+		(Type x) =>
+			ExpectedForDiag(ExpectedForDiag.Choices(newArray!Type(ctx.alloc, [x]), ctx.typeContainer)),
 		(const TypeAndContext[] choices) =>
 			ExpectedForDiag(ExpectedForDiag.Choices(
 				map(ctx.alloc, choices, (ref const TypeAndContext x) => applyInferred(ctx.instantiateCtx, x)),
@@ -492,18 +539,18 @@ ExpectedForDiag getExpectedForDiag(ref ExprCtx ctx, ref const Expected expected)
 			ExpectedForDiag(ExpectedForDiag.Loop()));
 
 // Note: this may infer type parameters
-private bool setTypeNoDiagnostic(ref InstantiateCtx ctx, ref Expected expected, Expected.LocalType actual) =>
-	expected.match!bool(
+private bool setTypeNoDiagnostic(ref InstantiateCtx ctx, ref Expected expected, Type actual) =>
+	expected.matchCombineType!bool(
 		(Expected.Infer) {
 			setToType(expected, actual);
 			return true;
 		},
-		(Expected.LocalType x) =>
-			matchTypes(ctx, localTypeAndContext(x), localTypeAndContext(actual)),
+		(Type x) =>
+			matchTypes(ctx, nonInferring(x), nonInferring(actual)),
 		(TypeAndContext[] choices) {
 			bool anyOk = false;
 			foreach (ref TypeAndContext x; choices)
-				if (matchTypes(ctx, x, localTypeAndContext(actual)))
+				if (matchTypes(ctx, x, nonInferring(actual)))
 					anyOk = true;
 			if (anyOk) setToType(expected, actual);
 			return anyOk;

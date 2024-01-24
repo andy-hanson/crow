@@ -27,15 +27,16 @@ import frontend.check.inferringType :
 	ExpectedLambdaType,
 	findExpectedStructForLiteral,
 	getExpectedLambda,
-	inferred,
 	isPurelyInferring,
 	LoopInfo,
-	nonInferring,
 	Pair,
 	tryGetNonInferringType,
 	tryGetLoop,
-	TypeAndContext,
-	withCopyWithNewExpectedType;
+	withCopyWithNewExpectedType,
+	withExpect,
+	withExpectAndInfer,
+	withExpectLoop,
+	withInfer;
 import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay, noDelayStructInsts;
 import frontend.check.maps : FunsMap, StructsAndAliasesMap;
 import frontend.check.typeFromAst : checkDestructure, makeTupleType, typeFromDestructure;
@@ -159,8 +160,7 @@ import util.col.array :
 	mapZipPointers3,
 	newArray,
 	only,
-	PtrAndSmallNumber,
-	small;
+	PtrAndSmallNumber;
 import util.col.mutMaxArr : asTemporaryArray, initializeMutMaxArr, mutMaxArrSize;
 import util.conv : safeToUshort;
 import util.memory : allocate, initMemory, overwriteMemory;
@@ -225,16 +225,16 @@ TestBody checkTestBody(
 		FunFlags.none);
 	FunOrLambdaInfo funInfo = FunOrLambdaInfo(noneMut!(LocalsInfo*), none!(LambdaExpr*));
 	LocalsInfo locals = LocalsInfo(ptrTrustMe(funInfo), noneMut!(LocalNode*));
-	TypeAndContext[2] choices = [nonInferring(Type(commonTypes.void_)), nonInferring(Type(commonTypes.voidFuture))];
-	Expected expected = Expected(small!TypeAndContext(castNonScope_ref(choices)));
-	Expr expr = checkExpr(castNonScope_ref(exprCtx), locals, ast, expected);
-	Type actual = inferred(expected);
-	Test.BodyType bodyType = actual == Type(commonTypes.void_)
+	ExprAndType body_ = withExpectAndInfer(
+		[Type(commonTypes.void_), Type(commonTypes.voidFuture)],
+		(ref Expected expected) =>
+			checkExpr(castNonScope_ref(exprCtx), locals, ast, expected));
+	Test.BodyType bodyType = body_.type == Type(commonTypes.void_)
 		? Test.BodyType.void_
-		: actual == Type(commonTypes.voidFuture)
+		: body_.type == Type(commonTypes.voidFuture)
 		? Test.BodyType.voidFuture
 		: Test.bodyType.bogus;
-	return TestBody(expr, bodyType);
+	return TestBody(castNonScope_ref(body_).expr, bodyType);
 }
 
 Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expected expected) =>
@@ -335,21 +335,18 @@ Opt!Expr checkWithParamDestructuresRecur(
 		: checkWithDestructure(ctx, locals, params[0], (ref LocalsInfo innerLocals) =>
 			checkWithParamDestructuresRecur(ctx, innerLocals, params[1 .. $], cb));
 
-ExprAndType checkAndInfer(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast) {
-	Expected expected = Expected(Expected.Infer());
-	Expr expr = checkExpr(ctx, locals, ast, expected);
-	return ExprAndType(expr, inferred(expected));
-}
+ExprAndType checkAndInfer(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast) =>
+	withInfer((ref Expected e) =>
+		checkExpr(ctx, locals, ast, e));
 
 ExprAndType checkAndExpectOrInfer(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, Opt!Type optExpected) =>
 	has(optExpected)
 		? ExprAndType(checkAndExpect(ctx, locals, ast, force(optExpected)), force(optExpected))
 		: checkAndInfer(ctx, locals, ast);
 
-Expr checkAndExpect(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, Type expected) {
-	Expected et = Expected(Expected.LocalType(expected));
-	return checkExpr(ctx, locals, ast, et);
-}
+Expr checkAndExpect(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, Type expected) =>
+	withExpect(expected, (ref Expected e) =>
+		checkExpr(ctx, locals, ast, e));
 
 Expr checkAndExpectBool(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast) =>
 	checkAndExpect(ctx, locals, ast, Type(ctx.commonTypes.bool_));
@@ -358,7 +355,7 @@ Expr checkAndExpectString(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast) 
 	checkAndExpect(ctx, locals, ast, Type(ctx.commonTypes.string_));
 
 Expr checkAndExpectVoid(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast) =>
-	checkAndExpect(ctx, locals, ast, voidType(ctx));
+	checkAndExpect(ctx, locals, ast, Type(ctx.commonTypes.void_));
 
 Type voidType(ref const ExprCtx ctx) =>
 	Type(ctx.commonTypes.void_);
@@ -1186,8 +1183,8 @@ Expr checkLoop(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, LoopAst*
 			source.range,
 			Expr(source, ExprKind(BogusExpr()))));
 		LoopInfo info = LoopInfo(voidType(ctx), castImmutable(loop), type, false);
-		scope Expected bodyExpected = Expected(&info);
-		Expr body_ = checkExpr(ctx, locals, &ast.body_, castNonScope_ref(bodyExpected));
+		Expr body_ = withExpectLoop(info, (ref Expected bodyExpected) =>
+			checkExpr(ctx, locals, &ast.body_, castNonScope_ref(bodyExpected)));
 		overwriteMemory(&loop.body_, body_);
 		if (!info.hasBreak)
 			addDiag2(ctx, source, Diag(Diag.LoopWithoutBreak()));

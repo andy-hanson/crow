@@ -11,7 +11,6 @@ import util.union_ : TaggedUnion;
 immutable struct ConstantsOrExprs {
 	mixin TaggedUnion!(SmallArray!Constant, SmallArray!ConcreteExpr);
 }
-static assert(ConstantsOrExprs.sizeof == ulong.sizeof);
 
 ConstantsOrExprs asConstantsOrExprs(ref Alloc alloc, ConcreteExpr[] exprs) =>
 	every!ConcreteExpr(exprs, (in ConcreteExpr arg) => arg.kind.isA!Constant)

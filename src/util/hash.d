@@ -89,6 +89,9 @@ HashCode hashEnum(E)(E a) =>
 HashCode hashSizeT(size_t a) =>
 	hashUlong(a);
 
+HashCode hashUint(uint a) =>
+	hashUlong(a);
+
 HashCode hashUlong(ulong a) =>
 	HashCode(fmix64(a));
 

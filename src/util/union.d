@@ -4,8 +4,19 @@ module util.union_;
 
 import std.traits : EnumMembers, isMutable, Unqual;
 import std.meta : staticMap;
-import util.col.array : MutSmallArray, SmallArray;
+import util.col.array : MutSmallArray, PtrAndSmallNumber, SmallArray;
 import util.util : assertNormalEnum;
+
+mixin template IndexType() {
+	@safe @nogc pure nothrow:
+
+	uint index;
+
+	uint asUintForTaggedUnion() =>
+		index;
+	static typeof(this) fromUintForTaggedUnion(uint a) =>
+		typeof(this)(a);
+}
 
 mixin template TaggedUnion(ReprTypes...) {
 	@safe @nogc nothrow:
@@ -54,9 +65,9 @@ mixin template TaggedUnion(ReprTypes...) {
 		private ulong valueWithTag;
 	}
 	private uint kind() scope const =>
-		valueWithTag & 0b11;
+		valueWithTag & 0b111;
 	private ulong valueWithoutTag() scope const =>
-		valueWithTag & ~0b11;
+		valueWithTag & ~0b111;
 	@trusted void* asVoidPointer() return scope =>
 		cast(void*) valueWithoutTag;
 	bool taggedPointerEquals(in typeof(this) other) scope const =>
@@ -64,15 +75,16 @@ mixin template TaggedUnion(ReprTypes...) {
 	ulong taggedPointerValueForHash() scope =>
 		valueWithTag;
 
-	static if (ReprTypes.length < 4) {
+	static if (ReprTypes.length < 8) {
+		// Make this useable in Option without additional tag
 		private immutable struct InvalidValue {}
 		private @trusted this(InvalidValue a) {
-			valueWithTag = 0b11;
+			valueWithTag = 0b111;
 		}
 		static typeof(this) invalidValue() =>
 			typeof(this)(InvalidValue());
 		@trusted bool isInvalidValue() scope =>
-			valueWithTag == 0b11;
+			valueWithTag == 0b111;
 	}
 
 	@disable this();
@@ -104,7 +116,7 @@ mixin template TaggedUnion(ReprTypes...) {
 						static if (is(T == P*, P))
 							return handlers[i](cast(const P*) valueWithoutTag);
 						else
-							return handlers[i](as!T);
+							return handlers[i](asConst!T);
 				}
 			}
 		}
@@ -126,7 +138,7 @@ mixin template TaggedUnion(ReprTypes...) {
 		final switch (kind) {
 			static foreach (i, T; MemberTypes) {
 				case i:
-					return handlers[i](asNonConst!T);
+					return handlers[i](as!T);
 			}
 		}
 	}
@@ -138,16 +150,7 @@ mixin template TaggedUnion(ReprTypes...) {
 		}
 	}
 
-	@trusted const(T) as(T)() const {
-		static foreach (i, Ty; ReprTypes) {
-			static if (is(T == toMemberType!Ty)) {
-				assert(kind == i);
-				return getFromValueWithoutTag!Ty(valueWithoutTag);
-			}
-		}
-	}
-
-	@trusted private T asNonConst(T)() {
+	@trusted T as(T)() {
 		static foreach (i, Ty; ReprTypes) {
 			static if (is(T == toMemberType!Ty)) {
 				assert(kind == i);
@@ -157,16 +160,26 @@ mixin template TaggedUnion(ReprTypes...) {
 	}
 
 	static if (!isImmutable!(typeof(this))) {
+		static foreach (i, T; MemberTypes) {
+			@trusted void opAssign(T b) {
+				valueWithTag = typeof(this)(b).valueWithTag;
+			}
+		}
+
+		@trusted const(T) asConst(T)() const {
+			static foreach (i, Ty; ReprTypes) {
+				static if (is(T == toMemberType!Ty)) {
+					assert(kind == i);
+					return getFromValueWithoutTag!Ty(valueWithoutTag);
+				}
+			}
+		}
+
 		@trusted inout(T) asInout(T)() inout {
 			static foreach (i, Ty; ReprTypes) {
 				static if (is(T == toMemberType!Ty)) {
 					assert(kind == i);
-					static if (is(Ty == P*, P))
-						return cast(inout P*) valueWithoutTag;
-					else static if (is(T == enum))
-						return cast(T) (valueWithoutTag >> 2);
-					else
-						return cast(inout) Ty.fromTagged(valueWithoutTag);
+					return cast(inout) getFromValueWithoutTag!Ty(valueWithoutTag);
 				}
 			}
 		}
@@ -179,9 +192,11 @@ static @system T getFromValueWithoutTag(T)(ulong valueWithoutTag) {
 	else static if (is(T == P*, P))
 		return cast(P*) valueWithoutTag;
 	else static if (is(T == enum) || is(T == uint) || is(T == immutable uint))
-		return cast(T) (valueWithoutTag >> 2);
+		return cast(T) (valueWithoutTag >> 3);
+	else static if (__traits(hasMember, T, "fromPointerForTaggedUnion"))
+		return T.fromPointerForTaggedUnion(cast(void*) valueWithoutTag);
 	else static if (T.sizeof <= uint.sizeof)
-		return T.fromUintForTaggedUnion(cast(uint) (valueWithoutTag >> 2));
+		return T.fromUintForTaggedUnion(cast(uint) (valueWithoutTag >> 3));
 	else
 		return T.fromTagged(valueWithoutTag);
 }
@@ -393,7 +408,7 @@ mixin template UnionMutable(Types...) {
 }
 
 bool canUseTaggedPointers(Types...)() {
-	static if (Types.length > 4)
+	static if (Types.length > 8)
 		return false;
 	else static if (Types.length == 0)
 		return true;
@@ -403,7 +418,11 @@ bool canUseTaggedPointers(Types...)() {
 		return false;
 }
 private bool canUseTaggedPointer(T)() {
-	static if (T.sizeof <= uint.sizeof || is(T == U*, U) || __traits(hasMember, T, "fromTagged")) {
+	static if (
+			T.sizeof <= uint.sizeof ||
+			is(T == U*, U) ||
+			__traits(hasMember, T, "fromPointerForTaggedUnion") ||
+			__traits(hasMember, T, "fromTagged")) {
 		return true;
 	} else static if (is(T == enum)) {
 		assertNormalEnum!T;
@@ -416,21 +435,23 @@ private bool canUseTaggedPointer(T)() {
 	static if (isEmptyStruct!T)
 		return 0;
 	else static if (is(T == P*, P))
-		return cast(ulong) a;
+		return (const PtrAndSmallNumber!P(a, 0)).asTaggable;
 	else static if (is(T == U[], U))
 		return (const MutSmallArray!U(a)).asTaggable;
 	else static if (is(T == enum) || is(T == uint) || is(T == immutable uint))
-		return (cast(ulong) a) << 2;
+		return (cast(ulong) a) << 3;
+	else static if (__traits(hasMember, T, "asPointerForTaggedUnion"))
+		return (const PtrAndSmallNumber!void(a.asPointerForTaggedUnion, 0)).asTaggable;
 	else static if (T.sizeof <= uint.sizeof)
-		return (cast(ulong) a.asUintForTaggedUnion) << 2;
+		return (cast(ulong) a.asUintForTaggedUnion) << 3;
 	else
 		return a.asTaggable;
 }
 
 ulong getTaggedPointerValue(size_t i, T)(const T a) {
 	ulong ptr = getAsTaggable!T(a);
-	assert((ptr & 0b11) == 0);
-	static assert((i & 0b11) == i);
+	assert((ptr & 0b111) == 0);
+	static assert((i & 0b111) == i);
 	return ptr | i;
 }
 

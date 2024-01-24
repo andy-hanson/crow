@@ -42,8 +42,8 @@ immutable(FullIndexMap!(K, V)) fullIndexMapCastImmutable2(K, V)(const FullIndexM
 immutable(FullIndexMap!(K, V)) emptyFullIndexMap(K, V)() =>
 	fullIndexMapOfArr!(K, V)([]);
 
-immutable(size_t) fullIndexMapSize(K, V)(const FullIndexMap!(K, V) a) =>
-	a.values.length;
+uint fullIndexMapSize(K, V)(const FullIndexMap!(K, V) a) =>
+	safeToUint(a.values.length);
 
 immutable(FullIndexMap!(K, V)) fullIndexMapOfArr(K, V)(return scope immutable V[] values) =>
 	immutable FullIndexMap!(K, V)(values);
@@ -56,13 +56,13 @@ FullIndexMap!(K, V) makeFullIndexMap_mut(K, V)(
 	in V delegate(K) @safe @nogc pure nothrow cb,
 ) =>
 	fullIndexMapOfArr_mut!(K, V)(makeArray(alloc, size, (size_t i) =>
-		cb(K(i))));
+		cb(K(safeToUint(i)))));
 
 void fullIndexMapEachKey(K, V)(
 	in immutable FullIndexMap!(K, V) a,
 	in void delegate(K) @safe @nogc pure nothrow cb,
 ) {
-	foreach (size_t i; 0 .. fullIndexMapSize(a))
+	foreach (uint i; 0 .. fullIndexMapSize(a))
 		cb(K(i));
 }
 
@@ -100,7 +100,7 @@ void fullIndexMapZip3(K, V0, V1, V2)(
 ) {
 	assert(fullIndexMapSize(a) == fullIndexMapSize(b));
 	assert(fullIndexMapSize(b) == fullIndexMapSize(c));
-	foreach (size_t i; 0 .. fullIndexMapSize(a))
+	foreach (uint i; 0 .. fullIndexMapSize(a))
 		cb(K(i), a.values[i], b.values[i], c.values[i]);
 }
 

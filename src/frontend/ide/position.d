@@ -75,7 +75,7 @@ immutable struct LocalContainer {
 immutable struct VisibilityContainer {
 	@safe @nogc pure nothrow:
 
-	mixin Union!(FunDecl*, RecordField*, SpecDecl*, StructAlias*, StructDecl*, VarDecl*);
+	mixin TaggedUnion!(FunDecl*, RecordField*, SpecDecl*, StructAlias*, StructDecl*, VarDecl*);
 
 	Symbol name() scope =>
 		matchIn!Symbol(

@@ -904,7 +904,6 @@ immutable struct ImportOrExportAstKind {
 	}
 	mixin TaggedUnion!(ModuleWhole, SmallArray!NameAndRange, File*);
 }
-static assert(ImportOrExportAstKind.sizeof == ulong.sizeof);
 
 immutable struct ImportsOrExportsAst {
 	Range range;

@@ -8,7 +8,7 @@ import lower.generateCallFunOrAct : generateCallFunOrAct;
 import lower.generateMarkVisitFun : generateMarkVisitArr, generateMarkVisitNonArr, generateMarkVisitGcPtr;
 import lower.lowExprHelpers :
 	anyPtrMutType,
-	char8PtrPtrConstType,
+	char8PtrConstType,
 	genAddPtr,
 	genBitwiseNegate,
 	genConstantNat64,
@@ -134,6 +134,7 @@ import util.col.mutIndexMap : getOrAddAndDidAdd, mustGet, MutIndexMap, newMutInd
 import util.col.mutMap : getOrAdd, MutMap, MutMap, ValueAndDidAdd;
 import util.col.mutMultiMap : add, eachKey, eachValueForKey, MutMultiMap;
 import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2MustGet0, stackMap2MustGet1, withStackMap2;
+import util.conv : safeToUint;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, none, Opt, optOrDefault, some;
@@ -273,7 +274,7 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in AllSymbols allSymbols, in 
 	ArrayBuilder!(ConcreteStruct*) allUnionSources;
 
 	LowType addUnion(ConcreteStruct* s) {
-		size_t i = arrBuilderSize(allUnionSources);
+		uint i = safeToUint(arrBuilderSize(allUnionSources));
 		add(alloc, allUnionSources, s);
 		return LowType(LowType.Union(i));
 	}
@@ -293,7 +294,7 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in AllSymbols allSymbols, in 
 					case BuiltinType.funOrAct:
 						return some(addUnion(concrete));
 					case BuiltinType.funPointer: {
-						size_t i = arrBuilderSize(allFunPointerSources);
+						uint i = safeToUint(arrBuilderSize(allFunPointerSources));
 						add(alloc, allFunPointerSources, concrete);
 						return some(LowType(LowType.FunPointer(i)));
 					}
@@ -323,14 +324,14 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in AllSymbols allSymbols, in 
 			(in ConcreteStructBody.Enum it) =>
 				some(LowType(typeForEnum(it.backingType))),
 			(in ConcreteStructBody.Extern it) {
-				size_t i = arrBuilderSize(allExternTypes);
+				uint i = safeToUint(arrBuilderSize(allExternTypes));
 				add(alloc, allExternTypes, LowExternType(concrete));
 				return some(LowType(LowType.Extern(i)));
 			},
 			(in ConcreteStructBody.Flags it) =>
 				some(LowType(typeForEnum(it.backingType))),
 			(in ConcreteStructBody.Record it) {
-				size_t i = arrBuilderSize(allRecordSources);
+				uint i = safeToUint(arrBuilderSize(allRecordSources));
 				add(alloc, allRecordSources, concrete);
 				return some(LowType(LowType.Record(i)));
 			},
@@ -779,6 +780,7 @@ LowFun lowFunFromCause(
 			generateMarkVisitGcPtr(getLowTypeCtx.alloc, markCtxType, markFun, it.pointerType, it.visitPointee));
 
 LowFun mainFun(ref GetLowTypeCtx ctx, LowFunIndex rtMainIndex, ConcreteFun* userMain, LowType userMainFunPointerType) {
+	LowType char8PtrPtrConstType = LowType(LowType.PtrRawConst(allocate(ctx.alloc, char8PtrConstType)));
 	LowLocal[] params = newArray!LowLocal(ctx.alloc, [
 		genLocalByValue(ctx.alloc, symbol!"argc", 0, int32Type),
 		genLocalByValue(ctx.alloc, symbol!"argv", 1, char8PtrPtrConstType)]);

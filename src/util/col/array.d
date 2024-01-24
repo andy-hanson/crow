@@ -6,7 +6,7 @@ import util.conv : safeToUshort;
 import util.memory : copyToFrom, initMemory;
 import util.opt : force, has, none, MutOpt, Opt, some, someMut;
 import util.union_ : TaggedUnion, Union;
-import util.util : max;
+import util.util : max, typeAs;
 
 @safe @nogc nothrow:
 
@@ -23,31 +23,42 @@ pure:
 struct PtrAndSmallNumber(T) {
 	@safe @nogc pure nothrow:
 
-	union {
-		private T* pointerValue; // Not a valid pointer! Here so 'scope' works.
-		private ulong value;
+	version (WebAssembly) {
+		T* ptr;
+		ushort number;
+
+		@system ulong asTaggable() const =>
+			(cast(ulong) number << 48) | (cast(ulong) ptr);
+		@system static PtrAndSmallNumber!T fromTagged(ulong x) =>
+			PtrAndSmallNumber!T(cast(T*) (x & 0xffffffff), x >> 48);
+	} else {
+		static assert((T*).sizeof == ulong.sizeof);
+		union {
+			private T* pointerValue; // Not a valid pointer! Here so 'scope' works.
+			private ulong value;
+		}
+
+		private this(ulong v) inout {
+			value = v;
+		}
+		@trusted this(return scope inout T* ptr, ushort number) inout {
+			static assert(ushort.max == 0xffff);
+			ulong val = cast(ulong) ptr;
+			assert((val & 0xffff_0000_0000_0000) == 0);
+			value = ((cast(ulong) number) << 48) | val;
+		}
+
+		@system ulong asTaggable() inout =>
+			value;
+		@system static PtrAndSmallNumber!T fromTagged(ulong x) =>
+			PtrAndSmallNumber!T(x);
+
+		@trusted inout(T*) ptr() inout =>
+			cast(inout T*) (value & 0x0000_ffff_ffff_ffff);
+
+		ushort number() const =>
+			(value & 0xffff_0000_0000_0000) >> 48;
 	}
-
-	private this(ulong v) inout {
-		value = v;
-	}
-	@trusted this(return scope inout T* ptr, ushort number) inout {
-		static assert(ushort.max == 0xffff);
-		ulong val = cast(ulong) ptr;
-		assert((val & 0xffff_0000_0000_0000) == 0);
-		value = ((cast(ulong) number) << 48) | val;
-	}
-
-	ulong asTaggable() inout =>
-		value;
-	static PtrAndSmallNumber!T fromTagged(ulong x) =>
-		PtrAndSmallNumber!T(x);
-
-	@trusted inout(T*) ptr() inout =>
-		cast(inout T*) (value & 0x0000_ffff_ffff_ffff);
-
-	ushort number() const =>
-		(value & 0xffff_0000_0000_0000) >> 48;
 }
 
 struct MutSmallArray(T) {
@@ -58,9 +69,9 @@ struct MutSmallArray(T) {
 		sizeAndBegin = v;
 	}
 
-	ulong asTaggable() inout =>
+	@system ulong asTaggable() const =>
 		sizeAndBegin.asTaggable;
-	static MutSmallArray!T fromTagged(ulong x) =>
+	@system static MutSmallArray!T fromTagged(ulong x) =>
 		MutSmallArray!T(PtrAndSmallNumber!T.fromTagged(x));
 
 	@trusted this(return scope inout T[] values) inout {
@@ -90,7 +101,7 @@ template small(T) {
 
 SmallArray!T emptySmallArray(T)() =>
 	// Don't use `SmallArray!T([])` because that can't be evaluated at compile time
-	SmallArray!T(immutable PtrAndSmallNumber!T(0));
+	SmallArray!T(immutable PtrAndSmallNumber!T(typeAs!(immutable T*)(null), 0));
 
 @system inout(T[]) arrayOfRange(T)(inout T* begin, inout T* end) {
 	assert(begin <= end);

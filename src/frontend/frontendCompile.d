@@ -351,7 +351,7 @@ void updatedAstOrConfig(ref FrontendCompiler a, CrowFile* file) {
 }
 
 bool isUnknownOrLoading(in CrowFile a) =>
-	a.astOrDiag.isA!ReadFileDiag_ && isUnknownOrLoading(a.astOrDiag.as!ReadFileDiag_);
+	a.astOrDiag.isA!ReadFileDiag_ && isUnknownOrLoading(a.astOrDiag.asConst!ReadFileDiag_);
 
 void recomputeResolvedImports(ref FrontendCompiler a, CrowFile* file) {
 	markModuleDirty(a, *file);
@@ -395,7 +395,7 @@ MutOpt!(Uri[]) clearResolvedImports(in AllUris allUris, CrowFile* file) {
 bool hasCircularImport(in MostlyResolvedImport[] a) =>
 	exists!MostlyResolvedImport(a, (in MostlyResolvedImport x) => isCircularImport(x));
 bool isCircularImport(in MostlyResolvedImport a) =>
-	a.isA!(Diag.ImportFileDiag*) && a.as!(Diag.ImportFileDiag*).isA!(Diag.ImportFileDiag.CircularImport);
+	a.isA!(Diag.ImportFileDiag*) && a.asConst!(Diag.ImportFileDiag*).isA!(Diag.ImportFileDiag.CircularImport);
 MutOpt!(Uri[]) asCircularImport(MostlyResolvedImport a) =>
 	isCircularImport(a)
 		? someMut(a.as!(Diag.ImportFileDiag*).as!(Diag.ImportFileDiag.CircularImport).cycle)
@@ -497,7 +497,7 @@ ResolvedImport[] fullyResolveImports(ref FrontendCompiler a, in MostlyResolvedIm
 			(const CrowFile* x) =>
 				x.astOrDiag.isA!ReadFileDiag_
 					? ResolvedImport(allocate(a.alloc, Diag.ImportFileDiag(
-						Diag.ImportFileDiag.ReadError(x.uri, x.astOrDiag.as!ReadFileDiag_))))
+						Diag.ImportFileDiag.ReadError(x.uri, x.astOrDiag.asConst!ReadFileDiag_))))
 					: ResolvedImport(x.mustHaveModule),
 			(const OtherFile* file) =>
 				getFileContentOrDiag(a.storage, file.uri).match!ResolvedImport(

@@ -38,7 +38,7 @@ import util.opt : force, has, none, Opt, optEqual, some;
 import util.sourceRange : combineRanges, UriAndRange, Pos, rangeOfStartAndLength, Range;
 import util.string : emptySmallString, SmallString;
 import util.symbol : AllSymbols, Symbol, symbol;
-import util.union_ : TaggedUnion, Union;
+import util.union_ : IndexType, TaggedUnion, Union;
 import util.uri : Uri;
 import util.util : enumConvertOrAssert, max, min, stringOfEnum, typeAs;
 
@@ -83,14 +83,7 @@ SpecImpls emptySpecImpls() =>
 // Represent type parameter as the index, so we don't generate different types for every `t list`.
 // (These are disambiguated in the type checker using `TypeAndContext`)
 immutable struct TypeParamIndex {
-	@safe @nogc pure nothrow:
-
-	uint index;
-
-	uint asUintForTaggedUnion() =>
-		index;
-	static TypeParamIndex fromUintForTaggedUnion(uint a) =>
-		cast(TypeParamIndex) a;
+	mixin IndexType;
 }
 
 immutable struct Type {
@@ -102,7 +95,6 @@ immutable struct Type {
 	bool opEquals(scope Type b) scope =>
 		taggedPointerEquals(b);
 }
-static assert(Type.sizeof == ulong.sizeof);
 
 PurityRange purityRange(Type a) =>
 	a.matchIn!PurityRange(
@@ -142,7 +134,6 @@ immutable struct Params {
 			(in Params.Varargs) =>
 				Arity(Arity.Varargs()));
 }
-static assert(Params.sizeof == ulong.sizeof);
 
 Destructure[] paramsArray(return scope Params a) =>
 	a.matchWithPointers!(Destructure[])(
@@ -415,7 +406,6 @@ immutable struct StructDeclSource {
 	}
 	mixin TaggedUnion!(StructDeclAst*, Bogus*);
 }
-static assert(StructDeclSource.sizeof == ulong.sizeof);
 
 UriAndRange nameRange(in AllSymbols allSymbols, in StructDecl a) =>
 	UriAndRange(a.moduleUri, a.source.matchIn!Range(
@@ -1075,7 +1065,7 @@ immutable struct FunInst {
 	Type returnType() scope =>
 		instantiatedSig.returnType;
 
-	Type[] paramTypes() scope =>
+	Type[] paramTypes() return scope =>
 		instantiatedSig.paramTypes;
 
 	Arity arity() scope =>
@@ -1090,7 +1080,7 @@ immutable struct ReturnAndParamTypes {
 	Type returnType() scope =>
 		returnAndParamTypes[0];
 
-	Type[] paramTypes() scope =>
+	Type[] paramTypes() return scope =>
 		returnAndParamTypes[1 .. $];
 }
 
@@ -1106,9 +1096,9 @@ immutable struct CalledSpecSig {
 		inner = PtrAndSmallNumber!SpecInst(s, i);
 	}
 
-	ulong asTaggable() =>
+	@system ulong asTaggable() =>
 		inner.asTaggable;
-	static CalledSpecSig fromTagged(ulong x) =>
+	@system static CalledSpecSig fromTagged(ulong x) =>
 		CalledSpecSig(PtrAndSmallNumber!SpecInst.fromTagged(x));
 
 	SpecInst* specInst() return scope =>
@@ -1120,7 +1110,7 @@ immutable struct CalledSpecSig {
 		specInst.sigTypes[sigIndex];
 	Type returnType() scope =>
 		instantiatedSig.returnType;
-	Type[] paramTypes() scope =>
+	Type[] paramTypes() return scope =>
 		instantiatedSig.paramTypes;
 
 	SpecDeclSig* nonInstantiatedSig() return scope =>
@@ -1162,7 +1152,6 @@ immutable struct CalledDecl {
 				x.arity);
 
 }
-static assert(CalledDecl.sizeof == ulong.sizeof);
 
 size_t nTypeParams(in CalledDecl a) =>
 	a.typeParams.length;
@@ -1193,7 +1182,6 @@ immutable struct Called {
 			(in CalledSpecSig x) =>
 				x.arity);
 }
-static assert(Called.sizeof == ulong.sizeof);
 
 Type paramTypeAt(in Called a, size_t argIndex) scope =>
 	a.matchIn!Type(
@@ -1236,7 +1224,6 @@ immutable struct StructOrAlias {
 			(ref StructAlias x) => x.typeParams,
 			(ref StructDecl x) => x.typeParams);
 }
-static assert(StructOrAlias.sizeof == ulong.sizeof);
 
 UriAndRange nameRange(in AllSymbols allSymbols, in StructOrAlias a) =>
 	a.matchIn!UriAndRange(
@@ -1316,7 +1303,6 @@ immutable struct ImportOrExportKind {
 	immutable struct ModuleWhole {}
 	mixin TaggedUnion!(ModuleWhole, SmallArray!(Opt!(NameReferents*)));
 }
-static assert(ImportOrExportKind.sizeof == ulong.sizeof);
 
 enum ImportFileType { nat8Array, string }
 
@@ -1498,7 +1484,6 @@ immutable struct LocalSource {
 	immutable struct Generated {}
 	mixin TaggedUnion!(DestructureAst.Single*, Generated);
 }
-static assert(LocalSource.sizeof == ulong.sizeof);
 
 immutable struct Local {
 	@safe @nogc pure nothrow:
@@ -1547,9 +1532,9 @@ immutable struct ClosureRef {
 
 	PtrAndSmallNumber!LambdaExpr lambdaAndIndex;
 
-	ulong asTaggable() =>
+	@system ulong asTaggable() =>
 		lambdaAndIndex.asTaggable;
-	static ClosureRef fromTagged(ulong x) =>
+	@system static ClosureRef fromTagged(ulong x) =>
 		ClosureRef(PtrAndSmallNumber!LambdaExpr.fromTagged(x));
 
 	LambdaExpr* lambda() return scope =>
@@ -1596,7 +1581,6 @@ immutable struct VariableRef {
 	Type type() =>
 		toLocal(this).type;
 }
-static assert(VariableRef.sizeof == ulong.sizeof);
 
 private Local* toLocal(VariableRef a) =>
 	a.matchWithPointers!(Local*)(

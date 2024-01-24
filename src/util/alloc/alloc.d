@@ -337,7 +337,6 @@ struct BlockKind {
 	static BlockKind temp() =>
 		BlockKind(Temp());
 }
-static assert(BlockKind.sizeof == ulong.sizeof);
 
 struct BlockNode {
 	@safe @nogc pure nothrow:

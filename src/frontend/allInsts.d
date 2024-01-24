@@ -147,7 +147,6 @@ public immutable struct AnyInst {
 	HashCode hash() scope =>
 		hashTaggedPointer!AnyInst(this);
 }
-static assert(AnyInst.sizeof == ulong.sizeof);
 static assert(MutOpt!AnyInst.sizeof == ulong.sizeof); // Used by MutMaxSet
 
 void getInstsToProcessFromModule(ref AllInsts a, ref ToProcess out_, in Module module_) {

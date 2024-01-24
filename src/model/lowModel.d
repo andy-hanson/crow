@@ -18,12 +18,12 @@ import model.model :
 	BuiltinUnary, BuiltinUnaryMath, BuiltinBinary, BuiltinBinaryMath, BuiltinTernary, EnumValue, Local, StructBody;
 import util.col.map : Map;
 import util.col.fullIndexMap : FullIndexMap;
-import util.hash : hash2, HashCode, hashEnum, hashSizeT;
+import util.hash : hash2, HashCode, hashEnum, hashUint;
 import util.opt : has, none, Opt;
 import util.sourceRange : UriAndRange;
 import util.string : CString;
 import util.symbol : Symbol, symbol;
-import util.union_ : TaggedUnion, Union;
+import util.union_ : IndexType, TaggedUnion, Union;
 import util.uri : Uri;
 
 immutable struct LowExternType {
@@ -99,35 +99,53 @@ immutable struct LowType {
 	@safe @nogc pure nothrow:
 
 	immutable struct Extern {
-		size_t index;
+		mixin IndexType;
 	}
 	immutable struct FunPointer {
-		size_t index;
+		mixin IndexType;
 	}
 	// May be gc-allocated or not; gc will try to trace
 	immutable struct PtrGc {
+		@safe @nogc pure nothrow:
 		LowType* pointee;
+
+		@system void* asPointerForTaggedUnion() =>
+			cast(void*) pointee;
+		@system static PtrGc fromPointerForTaggedUnion(void* a) =>
+			PtrGc(cast(LowType*) a);
 	}
 	immutable struct PtrRawConst {
+		@safe @nogc pure nothrow:
 		LowType* pointee;
+
+		@system void* asPointerForTaggedUnion() =>
+			cast(void*) pointee;
+		@system static PtrRawConst fromPointerForTaggedUnion(void* a) =>
+			PtrRawConst(cast(LowType*) a);
 	}
 	immutable struct PtrRawMut {
+		@safe @nogc pure nothrow:
 		LowType* pointee;
+
+		@system void* asPointerForTaggedUnion() =>
+			cast(void*) pointee;
+		@system static PtrRawMut fromPointerForTaggedUnion(void* a) =>
+			PtrRawMut(cast(LowType*) a);
 	}
 	immutable struct Record {
 		@safe @nogc pure nothrow:
-		size_t index;
+		mixin IndexType;
 		HashCode hash() =>
-			hashSizeT(index);
+			hashUint(index);
 	}
 	immutable struct Union {
 		@safe @nogc pure nothrow:
-		size_t index;
+		mixin IndexType;
 		HashCode hash() =>
-			hashSizeT(index);
+			hashUint(index);
 	}
 
-	mixin .Union!(
+	mixin TaggedUnion!(
 		Extern,
 		FunPointer,
 		PrimitiveType,
@@ -159,9 +177,9 @@ immutable struct LowType {
 	HashCode hash() scope =>
 		hash2(kind, matchIn!HashCode(
 			(in Extern x) =>
-				hashSizeT(x.index),
+				hashUint(x.index),
 			(in FunPointer x) =>
-				hashSizeT(x.index),
+				hashUint(x.index),
 			(in PrimitiveType x) =>
 				hashEnum(x),
 			(in PtrGc x) =>
@@ -171,9 +189,9 @@ immutable struct LowType {
 			(in PtrRawMut x) =>
 				x.pointee.hash(),
 			(in Record x) =>
-				hashSizeT(x.index),
+				hashUint(x.index),
 			(in Union x) =>
-				hashSizeT(x.index)));
+				hashUint(x.index)));
 
 	LowTypeCombinePointer combinePointer() return scope =>
 		match!LowTypeCombinePointer(
@@ -249,7 +267,6 @@ immutable struct LowLocalSource {
 	}
 	mixin TaggedUnion!(Local*, Generated*);
 }
-static assert(LowLocalSource.sizeof == ulong.sizeof);
 
 immutable struct LowLocal {
 	@safe @nogc pure nothrow:
@@ -285,7 +302,6 @@ immutable struct LowFunSource {
 
 	mixin TaggedUnion!(ConcreteFun*, Generated*);
 }
-static assert(LowFunSource.sizeof == ulong.sizeof);
 
 immutable struct LowFun {
 	@disable this(ref const LowFun);
