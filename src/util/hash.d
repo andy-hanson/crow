@@ -9,8 +9,8 @@ HashCode getHash(T)(in T a) {
 		return hashPtr(a);
 	else static if (is(T == immutable string))
 		return hashString(a);
-	else static if (is(T == uint) || is(T == size_t))
-		return hashSizeT(a);
+	else static if (is(T == uint))
+		return hashUint(a);
 	else
 		return a.hash();
 }
@@ -84,9 +84,6 @@ HashCode hash2(ulong a, HashCode b) =>
 	murmurFinish([a, b.hashCode]);
 
 HashCode hashEnum(E)(E a) =>
-	hashUlong(a);
-
-HashCode hashSizeT(size_t a) =>
 	hashUlong(a);
 
 HashCode hashUint(uint a) =>

@@ -158,7 +158,7 @@ import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.opt : force, has, Opt;
 import util.symbol : AllSymbols, Symbol;
-import util.union_ : UnionMutable;
+import util.union_ : TaggedUnion;
 import util.util : castNonScope, castNonScope_ref, divRoundUp, ptrTrustMe;
 
 void generateFunFromExpr(
@@ -209,14 +209,23 @@ struct ExprAfterKind {
 	// Continue means: Just leave the value on the stack. (Still make sure to pop to 'toStackDepth')
 	// No relation to loop 'continue'!
 	immutable struct Continue {}
-	struct JumpDelayed { MutArr!ByteCodeIndex* delayedJumps; }
+	struct JumpDelayed {
+		@safe @nogc pure nothrow:
+
+		MutArr!ByteCodeIndex* delayedJumps;
+
+		@system const(void*) asPointerForTaggedUnion() const =>
+			cast(void*) delayedJumps;
+		@system static JumpDelayed fromPointerForTaggedUnion(void* a) =>
+			JumpDelayed(cast(MutArr!ByteCodeIndex*) a);
+	}
 	struct Loop {
 		immutable ByteCodeIndex loopTop; // used by 'continue'
 		ExprAfter* afterBreak;
 	}
 	immutable struct Return {}
 
-	mixin UnionMutable!(Continue, JumpDelayed, Loop, Return);
+	mixin TaggedUnion!(Continue, JumpDelayed, Loop*, Return);
 }
 
 void handleAfter(
@@ -226,9 +235,9 @@ void handleAfter(
 	scope ref ExprAfter after,
 ) {
 	handleAfterReturnData(writer, source, after);
-	after.kind.matchScope!void(
+	after.kind.match!void(
 		(ExprAfterKind.Continue) {},
-		(scope ref ExprAfterKind.JumpDelayed x) {
+		(ExprAfterKind.JumpDelayed x) {
 			immutable ByteCodeIndex delayed = writeJumpDelayed(writer, source);
 			push(ctx.tempAlloc, *x.delayedJumps, delayed);
 		},
@@ -508,9 +517,8 @@ void generateLet(
 	StackEntry stackBeforeLoop = getNextStackEntry(writer);
 	withBranching(writer, ctx, after, (ref ExprAfter afterBranch, ref ExprAfter afterLastBranch) {
 		ByteCodeIndex loopTop = nextByteCodeIndex(writer);
-		scope ExprAfter loopAfter = ExprAfter(
-			StackEntries(stackBeforeLoop, 0),
-			ExprAfterKind(ExprAfterKind.Loop(loopTop, ptrTrustMe(afterBranch))));
+		ExprAfterKind.Loop loop = ExprAfterKind.Loop(loopTop, ptrTrustMe(afterBranch));
+		scope ExprAfter loopAfter = ExprAfter(StackEntries(stackBeforeLoop, 0), ExprAfterKind(&loop));
 		// the loop always ends in a 'break' or 'continue' which will know what to do
 		generateExpr(writer, ctx, locals, loopAfter, a.body_);
 	});
@@ -526,7 +534,7 @@ void generateLoopBreak(
 	in LowExprKind.LoopBreak a,
 ) {
 	assert(after.returnValueStackEntries.size == 0);
-	ExprAfterKind.Loop loop = after.kind.as!(ExprAfterKind.Loop);
+	ExprAfterKind.Loop* loop = after.kind.as!(ExprAfterKind.Loop*);
 	generateExpr(writer, ctx, locals, *loop.afterBreak, a.value);
 	setNextStackEntry(writer, after.returnValueStackEntries.start);
 }
@@ -540,7 +548,7 @@ void generateLoopContinue(
 	in LowExprKind.LoopContinue a,
 ) {
 	assert(after.returnValueStackEntries.size == 0);
-	ExprAfterKind.Loop loop = after.kind.as!(ExprAfterKind.Loop);
+	ExprAfterKind.Loop* loop = after.kind.as!(ExprAfterKind.Loop*);
 	handleAfterReturnData(writer, source, after);
 	writeJump(writer, source, loop.loopTop);
 }
@@ -1447,11 +1455,11 @@ void generateIf(
 	// if 'after' is ExprAfterKind.Continue, last branch is different; just slides down to the result
 	in void delegate(ref ExprAfter afterBranch, ref ExprAfter afterLastBranch) @safe @nogc pure nothrow cb,
 ) {
-	bool needsJumps = after.kind.match!bool(
-		(ExprAfterKind.Continue) => true,
-		(ref ExprAfterKind.JumpDelayed) => false,
-		(ref ExprAfterKind.Loop) => false,
-		(ExprAfterKind.Return) => false);
+	bool needsJumps = after.kind.matchIn!bool(
+		(in ExprAfterKind.Continue) => true,
+		(in ExprAfterKind.JumpDelayed) => false,
+		(in ExprAfterKind.Loop) => false,
+		(in ExprAfterKind.Return) => false);
 	if (needsJumps) {
 		MutArr!ByteCodeIndex delayedJumps;
 		ExprAfter afterBranch = ExprAfter(

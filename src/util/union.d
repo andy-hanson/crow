@@ -216,7 +216,7 @@ mixin template Union(ReprTypes...) {
 		toMemberType;
 
 	static foreach (T; ReprTypes)
-		static assert(is(T == enum) || isImmutable!T, "Union types must be immutable (otherwise use UnionMutable)");
+		static assert(is(T == enum) || isImmutable!T, "Union types must be immutable (otherwise use TaggedUnion)");
 
 	static assert(!canUseTaggedPointers!ReprTypes, "Use TaggedUnion instead");
 	alias MemberTypes = staticMap!(toMemberType, ReprTypes);
@@ -322,90 +322,6 @@ bool isImmutable(T)() {
 
 bool isSimple(T)() =>
 	is(T == bool) || is(T == uint) || is(T == ulong) || is(T == long) || is(T == double);
-
-mixin template UnionMutable(Types...) {
-	@safe @nogc pure nothrow:
-
-	import std.traits : isMutable;
-	import util.memory : overwriteMemory;
-	import util.union_ : toHandlersConst, toHandlersMutable, toHandlersScope;
-
-	private uint kind;
-	union {
-		static foreach (i, T; Types) {
-			mixin("private T as", i, ";");
-		}
-	}
-
-	@disable this();
-	static foreach (i, T; Types) {
-		static if (isMutable!T) {
-			@trusted this(return inout T a) inout {
-				static if (is(T == P*, P))
-					assert(a != null);
-				kind = i;
-				mixin("as", i, " = a;");
-			}
-		} else {
-			@trusted this(return T a) {
-				static if (is(T == P*, P))
-					assert(a != null);
-				kind = i;
-				mixin("as", i, " = a;");
-			}
-		}
-	}
-
-	static foreach (i, T; Types) {
-		@trusted void opAssign(T b) {
-			kind = i;
-			mixin("overwriteMemory(&as", i, ", b);");
-		}
-	}
-
-	@trusted R match(R)(scope toHandlersMutable!(R, Types) handlers) {
-		final switch (kind) {
-			static foreach (i, T; Types) {
-				case i:
-					mixin("return handlers[", i, "](as", i, ");");
-			}
-		}
-	}
-
-	@trusted R matchScope(R)(scope toHandlersScope!(R, Types) handlers) scope {
-		final switch (kind) {
-			static foreach (i, T; Types) {
-				case i:
-					mixin("return handlers[", i, "](as", i, ");");
-			}
-		}
-	}
-
-	@trusted R matchConst(R)(scope toHandlersConst!(R, Types) handlers) const {
-		final switch (kind) {
-			static foreach (i, T; Types) {
-				case i:
-					mixin("return handlers[", i, "](as", i, ");");
-			}
-		}
-	}
-
-	bool isA(T)() scope const {
-		static foreach (i, Ty; Types) {
-			static if (is(T == Ty))
-				return kind == i;
-		}
-	}
-
-	@trusted ref inout(T) as(T)() inout {
-		static foreach (i, Ty; Types) {
-			static if (is(T == Ty)) {
-				assert(kind == i);
-				mixin("return as", i, ";");
-			}
-		}
-	}
-}
 
 bool canUseTaggedPointers(Types...)() {
 	static if (Types.length > 8)
@@ -546,7 +462,7 @@ template toHandlersScope(R, Types...) {
 		static if (isEmptyStruct!P)
 			alias toHandlerScope = R delegate(P) @safe @nogc pure nothrow;
 		else static if (is(P == U*, U))
-			alias tohandlerScope = R delegate(scope ref U) @safe @nogc pure nothrow;
+			alias toHandlerScope = R delegate(scope ref U) @safe @nogc pure nothrow;
 		else
 			alias toHandlerScope = R delegate(scope ref P) @safe @nogc pure nothrow;
 	}
