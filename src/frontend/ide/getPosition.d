@@ -20,11 +20,6 @@ import model.ast :
 	NameAndRange,
 	paramsArray,
 	ParamsAst,
-	pathRange,
-	range,
-	rangeOfDestructureSingle,
-	rangeOfMutKeyword,
-	rangeOfNameAndRange,
 	RecordFieldAst,
 	SpecSigAst,
 	StructBodyAst,
@@ -218,10 +213,10 @@ Opt!PositionKind positionInDestructure(
 ) {
 	Opt!PositionKind handleSingle(Type type, in PositionKind delegate() @safe @nogc pure nothrow cbName) {
 		DestructureAst.Single ast = destructureAst.as!(DestructureAst.Single);
-		return hasPos(rangeOfDestructureSingle(ast, allSymbols), pos)
+		return hasPos(ast.range(allSymbols), pos)
 			? optOr!PositionKind(
-				optIf(hasPos(rangeOfNameAndRange(ast.name, allSymbols), pos), cbName),
-				() => optIf(optHasPos(rangeOfMutKeyword(ast), pos), () =>
+				optIf(hasPos(ast.nameRange(allSymbols), pos), cbName),
+				() => optIf(optHasPos(ast.mutRange, pos), () =>
 					PositionKind(PositionKind.Keyword(PositionKind.Keyword.Kind.localMut))),
 				() => has(ast.type)
 					? positionInType(allSymbols, container.toTypeContainer(), type, *force(ast.type), pos)
@@ -256,7 +251,7 @@ Opt!PositionKind positionInImportsOrExports(
 				(in ImportOrExportKind.ModuleWhole) =>
 					some(PositionKind(PositionKind.ImportedModule(&im))),
 				(in Opt!(NameReferents*)[] referents) =>
-					hasPos(pathRange(allUris, *force(im.source)), pos)
+					hasPos(force(im.source).pathRange(allUris), pos)
 						? some(PositionKind(PositionKind.ImportedModule(&im)))
 						: positionInImportedNames(
 							allSymbols, im.modulePtr, source.kind.as!(NameAndRange[]), referents, pos));
@@ -280,7 +275,7 @@ Opt!PositionKind positionInImportedNames(
 Opt!PositionKind positionInVar(in AllSymbols allSymbols, VarDecl* a, Pos pos) =>
 	optOr!PositionKind(
 		positionInVisibility(VisibilityContainer(a), a.ast.visibility, pos),
-		() => optIf(hasPos(nameRange(allSymbols, *a).range, pos), () => PositionKind(a)),
+		() => optIf(hasPos(a.nameRange(allSymbols).range, pos), () => PositionKind(a)),
 		() => optIf(hasPos(a.ast.keywordRange, pos), () =>
 			PositionKind(PositionKind.Keyword(enumConvert!(PositionKind.Keyword.Kind)(a.kind)))),
 		() => positionInType(allSymbols, TypeContainer(a), a.type, a.ast.type, pos));
@@ -288,7 +283,7 @@ Opt!PositionKind positionInVar(in AllSymbols allSymbols, VarDecl* a, Pos pos) =>
 Opt!PositionKind positionInAlias(in AllSymbols allSymbols, StructAlias* a, Pos pos) =>
 	optOr!PositionKind(
 		positionInVisibility(VisibilityContainer(a), a.ast.visibility, pos),
-		() => optIf(hasPos(nameRange(allSymbols, *a).range, pos), () => PositionKind(a)),
+		() => optIf(hasPos(a.nameRange(allSymbols).range, pos), () => PositionKind(a)),
 		() => optIf(hasPos(a.ast.keywordRange, pos), () =>
 			PositionKind(PositionKind.Keyword(PositionKind.Keyword.Kind.alias_))),
 		() => positionInType(allSymbols, TypeContainer(a), Type(a.target), a.ast.target, pos));
@@ -303,7 +298,7 @@ Opt!PositionKind positionInStruct(in AllSymbols allSymbols, StructDecl* a, Pos p
 Opt!PositionKind positionInStruct(in AllSymbols allSymbols, StructDecl* a, in StructDeclAst ast, Pos pos) =>
 	optOr!PositionKind(
 		positionInVisibility(VisibilityContainer(a), ast.visibility, pos),
-		() => optIf(hasPos(nameRange(allSymbols, *a).range, pos), () => PositionKind(a)),
+		() => optIf(hasPos(a.nameRange(allSymbols).range, pos), () => PositionKind(a)),
 		() => optIf(hasPos(ast.keywordRange, pos), () =>
 			PositionKind(PositionKind.Keyword(keywordKindForStructBody(ast.body_)))),
 		() => positionInTypeParams(allSymbols, TypeContainer(a), ast.typeParams, pos),
@@ -599,7 +594,7 @@ Opt!PositionKind positionInMatchCommon(in ExprCtx ctx, Expr* matchExpr, ref Expr
 		() => positionInExpr(ctx, matched, pos));
 
 Opt!PositionKind positionInType(in AllSymbols allSymbols, TypeContainer container, Type type, TypeAst ast, Pos pos) =>
-	hasPos(range(ast, allSymbols), pos)
+	hasPos(ast.range(allSymbols), pos)
 		? optOr!PositionKind(
 			eachTypeComponent!PositionKind(type, ast, (in Type t, in TypeAst a) =>
 				positionInType(allSymbols, container, t, a, pos)),
@@ -617,7 +612,7 @@ Opt!PositionKind positionInTypeArgs(
 		positionInType(allSymbols, container, t, a, pos));
 
 bool hasPos(in AllSymbols allSymbols, in NameAndRange nr, Pos pos) =>
-	hasPos(rangeOfNameAndRange(nr, allSymbols), pos);
+	hasPos(nr.range(allSymbols), pos);
 
 bool optHasPos(in Opt!Range a, Pos p) =>
 	has(a) && hasPos(force(a), p);

@@ -28,7 +28,7 @@ import util.symbol : Symbol, symbol;
 FunBody getBuiltinFun(ref CheckCtx ctx, FunDecl* fun) {
 	Destructure[] params = paramsArray(fun.params);
 	return inner(
-		ctx, nameRange(ctx.allSymbols, *fun).range, fun.name, fun.returnType, params.length,
+		ctx, fun.nameRange(ctx.allSymbols).range, fun.name, fun.returnType, params.length,
 		params.length >= 1 ? params[0].type : Type(Type.Bogus()),
 		params.length >= 2 ? params[1].type : Type(Type.Bogus()));
 }

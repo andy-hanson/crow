@@ -42,11 +42,7 @@ import model.ast :
 	ImportsOrExportsAst,
 	ImportOrExportAst,
 	NameAndRange,
-	nameRange,
 	ParamsAst,
-	pathRange,
-	range,
-	rangeOfNameAndRange,
 	SpecDeclAst,
 	SpecSigAst,
 	StructAliasAst,
@@ -258,7 +254,7 @@ SpecDeclBody checkSpecDeclBody(
 	SpecFlagsAndParents modifiers = checkSpecModifiers(
 		ctx, commonTypes, structsAndAliasesMap, specsMap, delaySpecInsts, ast.typeParams, ast.modifiers);
 	Opt!BuiltinSpec builtin = modifiers.isBuiltin
-		? getBuiltinSpec(ctx, nameRange(ctx.allSymbols, ast), ast.name.name)
+		? getBuiltinSpec(ctx, ast.nameRange(ctx.allSymbols), ast.name.name)
 		: none!BuiltinSpec;
 	SpecDeclSig[] sigs = mapPointers(ctx.alloc, ast.sigs, (SpecSigAst* x) {
 		ReturnTypeAndParams rp = checkReturnTypeAndParams(
@@ -364,7 +360,7 @@ StructsAndAliasesMap buildStructsAndAliasesMap(ref CheckCtx ctx, StructDecl[] st
 	void add(StructOrAlias sa) {
 		addToDeclsMap!StructOrAlias(
 			ctx, builder, sa, Diag.DuplicateDeclaration.Kind.structOrAlias, (in StructOrAlias x) =>
-				nameRange(ctx.allSymbols, x));
+				x.nameRange(ctx.allSymbols));
 	}
 	foreach (ref StructDecl decl; structs)
 		add(StructOrAlias(&decl));
@@ -586,7 +582,7 @@ Opt!(SpecInst*) checkFunModifierNonSpecial(
 		return specFromAst(
 			ctx, commonTypes, structsAndAliasesMap, specsMap, typeParamsScope, some(&n.left), n.name, delaySpecInsts);
 	} else {
-		addDiag(ctx, range(ast, ctx.allSymbols), Diag(Diag.SpecNameMissing()));
+		addDiag(ctx, ast.range(ctx.allSymbols), Diag(Diag.SpecNameMissing()));
 		return none!(SpecInst*);
 	}
 }
@@ -693,7 +689,7 @@ FunDecl[] checkFunsInitial(
 					noDelayStructInsts);
 				FunFlagsAndSpecs flagsAndSpecs = checkFunModifiers(
 					ctx, commonTypes, structsAndAliasesMap, specsMap,
-					funAst.typeParams, nameRange(ctx.allSymbols, funAst), funAst.modifiers);
+					funAst.typeParams, funAst.nameRange(ctx.allSymbols), funAst.modifiers);
 				initMemory(fun, FunDecl(
 					FunDeclSource(FunDeclSource.Ast(ctx.curUri, &funAst)),
 					visibilityFromExplicitTopLevel(funAst.visibility),
@@ -725,7 +721,7 @@ void checkFunsWithAsts(
 	FunDeclAst[] asts,
 ) {
 	zipPointers!(FunDecl, FunDeclAst)(funsWithAsts, asts, (FunDecl* fun, FunDeclAst* funAst) {
-		Range diagRange = nameRange(ctx.allSymbols, *funAst);
+		Range diagRange = funAst.nameRange(ctx.allSymbols);
 		fun.body_ = () {
 			final switch (fun.flags.specialBody) {
 				case FunFlags.SpecialBody.none:
@@ -852,7 +848,7 @@ FunDecl funDeclForFileImportOrExport(
 		FunDeclSource(FunDeclSource.FileImport(ctx.curUri, a.source)),
 		visibility,
 		ast.name.name,
-		typeForFileImport(ctx, commonTypes, structsAndAliasesMap, pathRange(ctx.allUris, *a.source), ast.type),
+		typeForFileImport(ctx, commonTypes, structsAndAliasesMap, a.source.pathRange(ctx.allUris), ast.type),
 		Params([]),
 		FunFlags.generatedBare,
 		emptySmallArray!(immutable SpecInst*));
@@ -900,7 +896,7 @@ FunBody.Extern checkExternBody(ref CheckCtx ctx, FunDecl* fun, FunDeclAst* ast, 
 		(ref Params.Varargs x) {
 			addDiag(ctx, x.param.range(ctx.allSymbols), Diag(Diag.ExternFunVariadic()));
 		});
-	return FunBody.Extern(externLibraryNameFromTypeArg(ctx, nameRange(ctx.allSymbols, *fun).range, typeArg));
+	return FunBody.Extern(externLibraryNameFromTypeArg(ctx, fun.nameRange(ctx.allSymbols).range, typeArg));
 }
 
 Symbol externLibraryNameFromTypeArg(ref CheckCtx ctx, in Range range, in Opt!TypeAst typeArg) {
@@ -917,7 +913,7 @@ SpecsMap buildSpecsMap(ref CheckCtx ctx, SpecDecl[] specs) {
 	foreach (ref SpecDecl spec; specs)
 		addToDeclsMap!(immutable SpecDecl*)(
 			ctx, builder, &spec, Diag.DuplicateDeclaration.Kind.spec, (in SpecDecl* x) =>
-				nameRange(ctx.allSymbols, *x));
+				x.nameRange(ctx.allSymbols));
 	return moveToImmutable(builder);
 }
 
@@ -1005,12 +1001,12 @@ HashTable!(NameReferents, Symbol, nameFromNameReferents) getAllExports(
 			(in ImportOrExportKind.ModuleWhole m) {
 				// TODO: if this is a re-export of another library, only re-export the public members
 				foreach (NameReferents referents; e.module_.exports)
-					addExport(referents, () => pathRange(ctx.allUris, *force(e.source)));
+					addExport(referents, () => force(e.source).pathRange(ctx.allUris));
 			},
 			(in Opt!(NameReferents*)[] referents) {
 				foreach (Opt!(NameReferents*) x; referents)
 					if (has(x))
-						addExport(*force(x), () => pathRange(ctx.allUris, *force(e.source)));
+						addExport(*force(x), () => force(e.source).pathRange(ctx.allUris));
 			});
 	foreach (StructOrAlias x; structsAndAliasesMap)
 		final switch (x.visibility) {
@@ -1174,7 +1170,7 @@ ImportsOrReExports checkImportsOrReExports(
 			},
 			(Diag.ImportFileDiag* x) {
 				add(alloc, diagsBuilder, Diagnostic(
-					has(source) ? pathRange(allUris, *force(source)) : Range.empty,
+					has(source) ? force(source).pathRange(allUris) : Range.empty,
 					Diag(x)));
 			});
 	}
@@ -1205,7 +1201,7 @@ ImportsOrReExports checkImportsOrReExports(
 							add(alloc, fileImports, ImportOrExportFile(&importAst, x));
 						},
 						(Diag.ImportFileDiag* x) {
-							add(alloc, diagsBuilder, Diagnostic(pathRange(allUris, importAst), Diag(x)));
+							add(alloc, diagsBuilder, Diagnostic(importAst.pathRange(allUris), Diag(x)));
 						});
 				});
 		}
@@ -1229,9 +1225,7 @@ Opt!(NameReferents*)[] checkNamedImports(
 		Opt!(NameReferents*) referents = getPointer!(NameReferents, Symbol, nameFromNameReferents)(
 			module_.exports, name.name);
 		if (!has(referents) || !hasVisibility(*force(referents), importVisibility))
-			add(alloc, diagsBuilder, Diagnostic(
-				rangeOfNameAndRange(name, allSymbols),
-				Diag(Diag.ImportRefersToNothing(name.name))));
+			add(alloc, diagsBuilder, Diagnostic(name.range(allSymbols), Diag(Diag.ImportRefersToNothing(name.name))));
 		return referents;
 	});
 

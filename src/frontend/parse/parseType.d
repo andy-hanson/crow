@@ -17,7 +17,7 @@ import frontend.parse.lexer :
 	Token;
 import frontend.parse.parseUtil :
 	addDiagExpected, takeOrAddDiagExpectedToken, tryTakeNameAndRange, tryTakeOperator, tryTakeToken;
-import model.ast : NameAndRange, range, TypeAst;
+import model.ast : NameAndRange, TypeAst;
 import model.model : FunKind;
 import model.parseDiag : ParseDiag;
 import util.col.array : only, SmallArray;

@@ -38,7 +38,6 @@ import util.uri : RelPath, Uri;
 // In the CLI, we omit diagnostics if there are other more severe ones.
 // So e.g., you wouldn't see unused code errors if there are parse errors.
 enum DiagnosticSeverity {
-	// Warn: JS 'getDiagnosticsForUri' calls use these numbers directly
 	unusedCode,
 	warning,
 	checkError,

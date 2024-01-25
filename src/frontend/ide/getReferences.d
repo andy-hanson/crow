@@ -27,9 +27,6 @@ import model.ast :
 	NameAndRange,
 	ParamsAst,
 	paramsArray,
-	pathRange,
-	range,
-	rangeOfNameAndRange,
 	RecordFieldAst,
 	StructBodyAst,
 	StructDeclAst,
@@ -238,11 +235,10 @@ void eachImportForName(
 ) {
 	if (has(a.source)) {
 		ImportOrExportAst* source = force(a.source);
-		if (source.kind.isA!(NameAndRange[])) {
+		if (source.kind.isA!(NameAndRange[]))
 			foreach (NameAndRange x; source.kind.as!(NameAndRange[]))
 				if (x.name == name)
-					cb(UriAndRange(importingModule.uri, rangeOfNameAndRange(x, allSymbols)));
-		}
+					cb(UriAndRange(importingModule.uri, x.range(allSymbols)));
 	}
 }
 
@@ -283,7 +279,7 @@ void referencesForTypeParam(
 ) {
 	scope TypeCb typeCb = (in Type type, in TypeAst ast) {
 		if (type == Type(a.typeParam))
-			refCb(UriAndRange(curUri, range(ast, allSymbols)));
+			refCb(UriAndRange(curUri, ast.range(allSymbols)));
 	};
 	a.container.matchIn!void(
 		(in FunDecl x) =>
@@ -488,9 +484,9 @@ Range callNameRange(in AllSymbols allSymbols, in Expr a) {
 	return kind.isA!(AssignmentAst*)
 		? kind.as!(AssignmentAst*).left.range
 		: kind.isA!(AssignmentCallAst*)
-		? rangeOfNameAndRange(kind.as!(AssignmentCallAst*).funName, allSymbols)
+		? kind.as!(AssignmentCallAst*).funName.range(allSymbols)
 		: kind.isA!CallAst
-		? rangeOfNameAndRange(kind.as!CallAst.funName, allSymbols)
+		? kind.as!CallAst.funName.range(allSymbols)
 		: a.ast.range;
 }
 
@@ -579,7 +575,7 @@ void referencesForSpecDecl(in AllSymbols allSymbols, in Program program, in Spec
 	eachModuleThatMayReference(program, a.visibility, moduleOf(program, a.moduleUri), (in Module module_) {
 		scope void delegate(SpecInst*, in TypeAst) @safe @nogc pure nothrow cb = (spec, ast) {
 			if (spec.decl == a)
-				refCb(UriAndRange(module_.uri, range(ast, allSymbols)));
+				refCb(UriAndRange(module_.uri, ast.range(allSymbols)));
 		};
 		foreach (ref SpecDecl spec; module_.specs)
 			eachSpecParent(spec, cb);
@@ -592,7 +588,7 @@ void referencesForStructDecl(in AllSymbols allSymbols, in Program program, in St
 	eachModuleThatMayReference(program, a.visibility, moduleOf(program, a.moduleUri), (in Module module_) {
 		eachTypeInModule(module_, (in Type t, in TypeAst ast) {
 			if (t.isA!(StructInst*) && t.as!(StructInst*).decl == a)
-				cb(UriAndRange(module_.uri, range(ast, allSymbols)));
+				cb(UriAndRange(module_.uri, ast.range(allSymbols)));
 		});
 	});
 }
@@ -603,7 +599,7 @@ Module* moduleOf(in Program program, Uri uri) =>
 void referencesForModule(in AllUris allUris, in Program program, in Module* target, in ReferenceCb cb) {
 	eachModuleReferencing(program, target, (in Module importer, in ImportOrExport ie) {
 		if (has(ie.source))
-			cb(UriAndRange(importer.uri, pathRange(allUris, *force(ie.source))));
+			cb(UriAndRange(importer.uri, force(ie.source).pathRange(allUris)));
 	});
 }
 

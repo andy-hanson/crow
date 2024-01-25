@@ -5,7 +5,6 @@ module frontend.ide.getDefinition;
 import frontend.ide.getTarget : Target, targetForPosition;
 import frontend.ide.ideUtil : ReferenceCb;
 import frontend.ide.position : Position, PositionKind;
-import model.ast : rangeOfNameAndRange;
 import model.model :
 	EnumMember,
 	FunDecl,
@@ -43,10 +42,10 @@ private:
 public void definitionForTarget(in AllSymbols allSymbols, Uri curUri, in Target a, in ReferenceCb cb) =>
 	a.matchIn!void(
 		(in EnumMember x) {
-			cb(nameRange(allSymbols, x));
+			cb(x.nameRange(allSymbols));
 		},
 		(in FunDecl x) {
-			cb(nameRange(allSymbols, x));
+			cb(x.nameRange(allSymbols));
 		},
 		(in PositionKind.ImportedName x) {
 			definitionForImportedName(x, cb);
@@ -61,30 +60,28 @@ public void definitionForTarget(in AllSymbols allSymbols, Uri curUri, in Target 
 			cb(x.range);
 		},
 		(in RecordField x) {
-			cb(nameRange(allSymbols, x));
+			cb(x.nameRange(allSymbols));
 		},
 		(in SpecDecl x) {
-			cb(nameRange(allSymbols, x));
+			cb(x.nameRange(allSymbols));
 		},
 		(in PositionKind.SpecSig x) {
 			cb(nameRange(allSymbols, *x.sig));
 		},
 		(in StructAlias x) {
-			cb(nameRange(allSymbols, x));
+			cb(x.nameRange(allSymbols));
 		},
 		(in StructDecl x) {
-			cb(nameRange(allSymbols, x));
+			cb(x.nameRange(allSymbols));
 		},
 		(in PositionKind.TypeParamWithContainer x) {
-			cb(UriAndRange(
-				x.container.moduleUri,
-				rangeOfNameAndRange(x.container.typeParams[x.typeParam.index], allSymbols)));
+			cb(UriAndRange(x.container.moduleUri, x.container.typeParams[x.typeParam.index].range(allSymbols)));
 		},
 		(in UnionMember x) {
-			cb(nameRange(allSymbols, x));
+			cb(x.nameRange(allSymbols));
 		},
 		(in VarDecl x) {
-			cb(nameRange(allSymbols, x));
+			cb(x.nameRange(allSymbols));
 		});
 
 void definitionForImportedName(in PositionKind.ImportedName a, in ReferenceCb cb) {

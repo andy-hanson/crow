@@ -11,10 +11,6 @@ import model.ast :
 	FunDeclAst,
 	ImportOrExportAst,
 	NameAndRange,
-	nameRange,
-	nameRangeOfDestructureSingle,
-	rangeOfDestructureSingle,
-	rangeOfNameAndRange,
 	RecordFieldAst,
 	SpecDeclAst,
 	SpecSigAst,
@@ -172,7 +168,7 @@ immutable struct SpecDeclSig {
 }
 
 UriAndRange nameRange(in AllSymbols allSymbols, in SpecDeclSig a) =>
-	UriAndRange(a.moduleUri, rangeOfNameAndRange(a.ast.nameAndRange, allSymbols));
+	UriAndRange(a.moduleUri, a.ast.nameAndRange.range(allSymbols));
 
 immutable struct TypeParamsAndSig {
 	TypeParams typeParams;
@@ -196,10 +192,9 @@ immutable struct RecordField {
 
 	Range range() scope =>
 		ast.range;
+	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
+		UriAndRange(containingRecord.moduleUri, ast.nameRange(allSymbols));
 }
-
-UriAndRange nameRange(in AllSymbols allSymbols, in RecordField a) =>
-	UriAndRange(a.containingRecord.moduleUri, rangeOfNameAndRange(a.ast.name, allSymbols));
 
 immutable struct UnionMember {
 	@safe @nogc pure nothrow:
@@ -211,10 +206,9 @@ immutable struct UnionMember {
 
 	Range range() scope =>
 		ast.range;
+	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
+		UriAndRange(containingUnion.moduleUri, ast.nameRange(allSymbols));
 }
-
-UriAndRange nameRange(in AllSymbols allSymbols, in UnionMember a) =>
-	UriAndRange(a.containingUnion.moduleUri, rangeOfNameAndRange(a.ast.nameAndRange, allSymbols));
 
 alias ByValOrRef = immutable ByValOrRef_;
 private enum ByValOrRef_ {
@@ -250,6 +244,8 @@ immutable struct EnumMember {
 
 	Range range() scope =>
 		ast.range;
+	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
+		UriAndRange(containingEnum.moduleUri, ast.nameRange(allSymbols));
 }
 
 immutable struct StructBody {
@@ -300,7 +296,7 @@ private enum BuiltinType_ {
 }
 
 UriAndRange nameRange(in AllSymbols allSymbols, in EnumMember a) =>
-	UriAndRange(a.containingEnum.moduleUri, rangeOfNameAndRange(a.ast.nameAndRange, allSymbols));
+	UriAndRange(a.containingEnum.moduleUri, a.ast.nameRange(allSymbols));
 
 immutable struct StructAlias {
 	@safe @nogc pure nothrow:
@@ -319,6 +315,8 @@ immutable struct StructAlias {
 
 	UriAndRange range() scope =>
 		UriAndRange(moduleUri, ast.range);
+	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
+		UriAndRange(moduleUri, ast.nameRange(allSymbols));
 
 	StructInst* target() return scope =>
 		lateGet(target_);
@@ -326,9 +324,6 @@ immutable struct StructAlias {
 		lateSet(target_, value);
 	}
 }
-
-UriAndRange nameRange(in AllSymbols allSymbols, in StructAlias a) =>
-	UriAndRange(a.moduleUri, rangeOfNameAndRange(a.ast.name, allSymbols));
 
 // sorted least strict to most strict
 enum Linkage : ubyte { internal, extern_ }
@@ -397,6 +392,13 @@ immutable struct StructDecl {
 			(in StructDeclSource.Bogus) =>
 				Range.empty));
 
+	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
+		UriAndRange(moduleUri, source.matchIn!Range(
+			(in StructDeclAst x) =>
+				x.nameRange(allSymbols),
+			(in StructDeclSource.Bogus) =>
+				Range.empty));
+
 	bool isTemplate() scope =>
 		!isEmpty(typeParams);
 }
@@ -407,13 +409,6 @@ immutable struct StructDeclSource {
 	}
 	mixin TaggedUnion!(StructDeclAst*, Bogus*);
 }
-
-UriAndRange nameRange(in AllSymbols allSymbols, in StructDecl a) =>
-	UriAndRange(a.moduleUri, a.source.matchIn!Range(
-		(in StructDeclAst x) =>
-			nameRange(allSymbols, x),
-		(in StructDeclSource.Bogus) =>
-			Range.empty));
 
 // The StructInst and its contents are allocated using the AllInsts alloc.
 immutable struct StructInst {
@@ -501,10 +496,9 @@ immutable struct SpecDecl {
 
 	UriAndRange range() scope =>
 		UriAndRange(moduleUri, ast.range);
+	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
+		UriAndRange(moduleUri, ast.nameRange(allSymbols));
 }
-
-UriAndRange nameRange(in AllSymbols allSymbols, in SpecDecl a) =>
-	UriAndRange(a.moduleUri, nameRange(allSymbols, *a.ast));
 
 // The SpecInst and contents are allocated using the AllInsts alloc.
 immutable struct SpecInst {
@@ -938,26 +932,25 @@ immutable struct FunDeclSource {
 				UriAndRange(x.containingUnion.moduleUri, x.range),
 			(in VarDecl x) =>
 				x.range);
+	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
+		matchIn!UriAndRange(
+			(in FunDeclSource.Bogus x) =>
+				UriAndRange(x.uri, Range.empty),
+			(in FunDeclSource.Ast x) =>
+				UriAndRange(x.moduleUri, x.ast.nameRange(allSymbols)),
+			(in EnumMember x) =>
+				x.nameRange(allSymbols),
+			(in FunDeclSource.FileImport x) =>
+				UriAndRange(x.moduleUri, x.ast.range),
+			(in RecordField x) =>
+				x.nameRange(allSymbols),
+			(in StructDecl x) =>
+				x.nameRange(allSymbols),
+			(in UnionMember x) =>
+				x.nameRange(allSymbols),
+			(in VarDecl x) =>
+				x.nameRange(allSymbols));
 }
-
-UriAndRange nameRange(in AllSymbols allSymbols, in FunDeclSource a) =>
-	a.matchIn!UriAndRange(
-		(in FunDeclSource.Bogus x) =>
-			UriAndRange(x.uri, Range.empty),
-		(in FunDeclSource.Ast x) =>
-			UriAndRange(x.moduleUri, nameRange(allSymbols, *x.ast)),
-		(in EnumMember x) =>
-			nameRange(allSymbols, x),
-		(in FunDeclSource.FileImport x) =>
-			UriAndRange(x.moduleUri, x.ast.range),
-		(in RecordField x) =>
-			nameRange(allSymbols, x),
-		(in StructDecl x) =>
-			nameRange(allSymbols, x),
-		(in UnionMember x) =>
-			nameRange(allSymbols, x),
-		(in VarDecl x) =>
-			nameRange(allSymbols, x));
 
 immutable struct FunDecl {
 	@safe @nogc pure nothrow:
@@ -1002,6 +995,8 @@ immutable struct FunDecl {
 
 	UriAndRange range() scope =>
 		source.range;
+	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
+		source.nameRange(allSymbols);
 
 	SmallString docComment() scope =>
 		source.as!(FunDeclSource.Ast).ast.docComment;
@@ -1029,9 +1024,6 @@ immutable struct FunDecl {
 	Arity arity() scope =>
 		params.arity;
 }
-
-UriAndRange nameRange(in AllSymbols allSymbols, in FunDecl a) scope =>
-	nameRange(allSymbols, a.source);
 
 immutable struct Test {
 	@safe @nogc pure nothrow:
@@ -1210,6 +1202,12 @@ immutable struct StructOrAlias {
 		matchIn!UriAndRange(
 			(in StructAlias x) => x.range,
 			(in StructDecl x) => x.range);
+	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
+		matchIn!UriAndRange(
+			(in StructAlias x) =>
+				x.nameRange(allSymbols),
+			(in StructDecl x) =>
+				x.nameRange(allSymbols));
 
 	Visibility visibility() scope =>
 		matchIn!Visibility(
@@ -1226,13 +1224,6 @@ immutable struct StructOrAlias {
 			(ref StructAlias x) => x.typeParams,
 			(ref StructDecl x) => x.typeParams);
 }
-
-UriAndRange nameRange(in AllSymbols allSymbols, in StructOrAlias a) =>
-	a.matchIn!UriAndRange(
-		(in StructAlias x) =>
-			nameRange(allSymbols, x),
-		(in StructDecl x) =>
-			nameRange(allSymbols, x));
 
 // No VarInst since these can't be templates
 immutable struct VarDecl {
@@ -1251,10 +1242,9 @@ immutable struct VarDecl {
 
 	UriAndRange range() scope =>
 		UriAndRange(moduleUri, ast.range);
+	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
+		UriAndRange(moduleUri, ast.nameRange(allSymbols));
 }
-
-UriAndRange nameRange(in AllSymbols allSymbols, in VarDecl a) =>
-	UriAndRange(a.moduleUri, rangeOfNameAndRange(a.ast.name, allSymbols));
 
 immutable struct Module {
 	@safe @nogc pure nothrow:
@@ -1507,10 +1497,10 @@ bool localIsAllocated(in Local a) scope {
 }
 
 Range localMustHaveNameRange(in Local a, in AllSymbols allSymbols) =>
-	nameRangeOfDestructureSingle(*a.source.as!(DestructureAst.Single*), allSymbols);
+	a.source.as!(DestructureAst.Single*).nameRange(allSymbols);
 
 private Range localMustHaveRange(in Local a, in AllSymbols allSymbols) =>
-	rangeOfDestructureSingle(*a.source.as!(DestructureAst.Single*), allSymbols);
+	a.source.as!(DestructureAst.Single*).range(allSymbols);
 
 enum LocalMutability {
 	immut,

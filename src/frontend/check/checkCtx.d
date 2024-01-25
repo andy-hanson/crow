@@ -3,7 +3,7 @@ module frontend.check.checkCtx;
 @safe @nogc pure nothrow:
 
 import frontend.check.instantiate : InstantiateCtx;
-import model.ast : NameAndRange, pathRange, rangeOfNameAndRange, typeParamsRange, VisibilityAndRange;
+import model.ast : NameAndRange, typeParamsRange, VisibilityAndRange;
 import model.diag : DeclKind, Diag, Diagnostic;
 import model.model :
 	ExportVisibility,
@@ -100,7 +100,7 @@ void checkForUnused(ref CheckCtx ctx, StructAlias[] aliases, StructDecl[] struct
 	checkUnusedImports(ctx);
 	void checkUnusedDecl(T)(T* decl) {
 		if (decl.visibility == Visibility.private_ && !isUsed(ctx.used, decl))
-			addDiagAssertSameUri(ctx, decl.range, Diag(
+			addDiagAssertSameUri(ctx, decl.nameRange(ctx.allSymbols), Diag(
 				Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.PrivateDecl(decl.name)))));
 	}
 	foreach (ref StructAlias alias_; aliases)
@@ -122,14 +122,14 @@ private void checkUnusedImports(ref CheckCtx ctx) {
 		import_.kind.match!void(
 			(ImportOrExportKind.ModuleWhole) {
 				if (!isUsedModuleWhole(ctx, import_.module_, import_.importVisibility) && has(import_.source))
-					addDiagUnused(pathRange(ctx.allUris, *force(import_.source)), none!Symbol);
+					addDiagUnused(force(import_.source).pathRange(ctx.allUris), none!Symbol);
 			},
 			(Opt!(NameReferents*)[] referents) {
 				foreach (size_t index, Opt!(NameReferents*) x; referents)
 					if (has(x) && !containsUsed(*force(x), import_.importVisibility, ctx.used)) {
 						NameAndRange nr = force(import_.source).kind.as!(NameAndRange[])[index];
 						assert(nr.name == force(x).name);
-						addDiagUnused(rangeOfNameAndRange(nr, ctx.allSymbols), some(force(x).name));
+						addDiagUnused(nr.range(ctx.allSymbols), some(force(x).name));
 					}
 			});
 	}

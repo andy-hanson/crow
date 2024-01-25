@@ -1,3 +1,18 @@
 exit code: 0
 stderr:
+test/end-to-end/compile-errors/unused.crow 3:23-3:26 Imported name 'sec' is unused.
+test/end-to-end/compile-errors/unused.crow 5:26-5:37 Imported name 'time-locale' is unused.
+test/end-to-end/compile-errors/unused.crow 7:20-7:27 Imported name 'ssize_t' is unused.
+test/end-to-end/compile-errors/unused.crow 9:26-9:35 Imported name 'begin-end' is unused.
+test/end-to-end/compile-errors/unused.crow 11:5-11:20 Imported module 'process.crow' is unused.
+test/end-to-end/compile-errors/unused.crow 16:13-16:14 Local 'p' is unused
+test/end-to-end/compile-errors/unused.crow 17:23-17:24 Local 'x' is unused
+test/end-to-end/compile-errors/unused.crow 19:5-19:6 Local 'y' is unused
+test/end-to-end/compile-errors/unused.crow 22:2-22:5 'bar' is unused.
+test/end-to-end/compile-errors/unused.crow 25:2-25:3 'r' is unused.
 test/end-to-end/compile-errors/unused.crow 26:8-26:9 Field 'r0' mutability would already be private by default.
+test/end-to-end/compile-errors/unused.crow 28:2-28:3 'u' is unused.
+test/end-to-end/compile-errors/unused.crow 31:2-31:3 'a' is unused.
+test/end-to-end/compile-errors/unused.crow 34:2-34:3 'e' is unused.
+test/end-to-end/compile-errors/unused.crow 37:2-37:3 'f' is unused.
+test/end-to-end/compile-errors/unused.crow 40:2-40:3 's' is unused.

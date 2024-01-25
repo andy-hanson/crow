@@ -47,10 +47,7 @@ import model.ast :
 	NameAndRange,
 	ParamsAst,
 	ParenthesizedAst,
-	pathRange,
 	PtrAst,
-	range,
-	rangeOfNameAndRange,
 	RecordFieldAst,
 	SeqAst,
 	SpecDeclAst,
@@ -58,7 +55,6 @@ import model.ast :
 	StructAliasAst,
 	StructBodyAst,
 	StructDeclAst,
-	suffixRange,
 	ThenAst,
 	TestAst,
 	ThrowAst,
@@ -305,22 +301,22 @@ Range rangeAtName(in AllSymbols allSymbols, Pos start, Symbol name) =>
 
 void addImportTokens(scope ref Ctx ctx, in AllUris allUris, in ImportsOrExportsAst a) {
 	foreach (ref ImportOrExportAst x; a.paths) {
-		reference(ctx.tokens, TokenType.namespace, pathRange(allUris, x));
+		reference(ctx.tokens, TokenType.namespace, x.pathRange(allUris));
 		x.kind.matchIn!void(
 			(in ImportOrExportAstKind.ModuleWhole) {},
 			(in NameAndRange[] names) {
 				foreach (NameAndRange name; names)
-					reference(ctx.tokens, TokenType.variable, rangeOfNameAndRange(name, ctx.allSymbols));
+					reference(ctx.tokens, TokenType.variable, name.range(ctx.allSymbols));
 			},
 			(in ImportOrExportAstKind.File x) {
-				declare(ctx.tokens, TokenType.variable, rangeOfNameAndRange(x.name, ctx.allSymbols));
+				declare(ctx.tokens, TokenType.variable, x.name.range(ctx.allSymbols));
 				addTypeTokens(ctx, x.typeAst);
 			});
 	}
 }
 
 void addSpecTokens(scope ref Ctx ctx, in SpecDeclAst a) {
-	declare(ctx.tokens, TokenType.interface_, rangeOfNameAndRange(a.name, ctx.allSymbols));
+	declare(ctx.tokens, TokenType.interface_, a.name.range(ctx.allSymbols));
 	addTypeParamsTokens(ctx, a.typeParams);
 	addModifierTokens(ctx, a.modifiers);
 	foreach (ref SpecSigAst sig; a.sigs) {
@@ -353,15 +349,15 @@ void addTypeTokens(scope ref Ctx ctx, in TypeAst a) {
 			addTypeTokens(ctx, x.k);
 		},
 		(in NameAndRange x) {
-			reference(ctx.tokens, TokenType.type, rangeOfNameAndRange(x, ctx.allSymbols));
+			reference(ctx.tokens, TokenType.type, x.range(ctx.allSymbols));
 		},
 		(in TypeAst.SuffixName x) {
 			addTypeTokens(ctx, x.left);
-			reference(ctx.tokens, TokenType.type, rangeOfNameAndRange(x.name, ctx.allSymbols));
+			reference(ctx.tokens, TokenType.type, x.name.range(ctx.allSymbols));
 		},
 		(in TypeAst.SuffixSpecial x) {
 			addTypeTokens(ctx, *x.left);
-			declare(ctx.tokens, TokenType.type, suffixRange(x));
+			declare(ctx.tokens, TokenType.type, x.suffixRange);
 		},
 		(in TypeAst.Tuple x) {
 			foreach (TypeAst t; x.members)
@@ -371,17 +367,17 @@ void addTypeTokens(scope ref Ctx ctx, in TypeAst a) {
 
 void addTypeParamsTokens(scope ref Ctx ctx, in NameAndRange[] a) {
 	foreach (NameAndRange typeParam; a)
-		declare(ctx.tokens, TokenType.typeParameter, rangeOfNameAndRange(typeParam, ctx.allSymbols));
+		declare(ctx.tokens, TokenType.typeParameter, typeParam.range(ctx.allSymbols));
 }
 
 void addStructAliasTokens(scope ref Ctx ctx, in StructAliasAst a) {
-	declare(ctx.tokens, TokenType.type, rangeOfNameAndRange(a.name, ctx.allSymbols));
+	declare(ctx.tokens, TokenType.type, a.name.range(ctx.allSymbols));
 	addTypeParamsTokens(ctx, a.typeParams);
 	addTypeTokens(ctx, a.target);
 }
 
 void addStructTokens(scope ref Ctx ctx, in StructDeclAst a) {
-	declare(ctx.tokens, TokenType.type, rangeOfNameAndRange(a.name, ctx.allSymbols));
+	declare(ctx.tokens, TokenType.type, a.name.range(ctx.allSymbols));
 	addTypeParamsTokens(ctx, a.typeParams);
 	a.body_.matchIn!void(
 		(in StructBodyAst.Builtin) {
@@ -399,7 +395,7 @@ void addStructTokens(scope ref Ctx ctx, in StructDeclAst a) {
 		(in StructBodyAst.Record record) {
 			addModifierTokens(ctx, a.modifiers);
 			foreach (ref RecordFieldAst field; record.fields) {
-				declare(ctx.tokens, TokenType.property, rangeOfNameAndRange(field.name, ctx.allSymbols));
+				declare(ctx.tokens, TokenType.property, field.name.range(ctx.allSymbols));
 				addTypeTokens(ctx, field.type);
 			}
 		},
@@ -426,7 +422,7 @@ void addModifierTokens(scope ref Ctx ctx, in ModifierAst[] a) {
 				else if (x.isA!(TypeAst.SuffixName*)) {
 					TypeAst.SuffixName* n = x.as!(TypeAst.SuffixName*);
 					addTypeTokens(ctx, n.left);
-					reference(ctx.tokens, TokenType.interface_, rangeOfNameAndRange(n.name, ctx.allSymbols));
+					reference(ctx.tokens, TokenType.interface_, n.name.range(ctx.allSymbols));
 				}
 				// else parse error, so ignore
 			});
@@ -450,14 +446,14 @@ void addEnumOrFlagsTokens(
 }
 
 void addVarDeclTokens(scope ref Ctx ctx, in VarDeclAst a) {
-	declare(ctx.tokens, TokenType.variable, rangeOfNameAndRange(a.name, ctx.allSymbols));
+	declare(ctx.tokens, TokenType.variable, a.name.range(ctx.allSymbols));
 	addTypeParamsTokens(ctx, a.typeParams);
 	addTypeTokens(ctx, a.type);
 	addModifierTokens(ctx, a.modifiers);
 }
 
 void addFunTokens(scope ref Ctx ctx, in FunDeclAst a) {
-	declare(ctx.tokens, TokenType.function_, rangeOfNameAndRange(a.name, ctx.allSymbols));
+	declare(ctx.tokens, TokenType.function_, a.name.range(ctx.allSymbols));
 	addTypeParamsTokens(ctx, a.typeParams);
 	addSigReturnTypeAndParamsTokens(ctx, a.returnType, a.params);
 	addModifierTokens(ctx, a.modifiers);
@@ -472,7 +468,7 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 	a.kind.matchIn!void(
 		(in ArrowAccessAst x) {
 			addExprTokens(ctx, *x.left);
-			reference(ctx.tokens, TokenType.function_, rangeOfNameAndRange(x.name, ctx.allSymbols));
+			reference(ctx.tokens, TokenType.function_, x.name.range(ctx.allSymbols));
 		},
 		(in AssertOrForbidAst x) {
 			// Only the length matters, and "assert" is same length as "forbid"
@@ -488,13 +484,13 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 		},
 		(in AssignmentCallAst x) {
 			addExprTokens(ctx, x.left);
-			reference(ctx.tokens, TokenType.function_, rangeOfNameAndRange(x.funName, ctx.allSymbols));
+			reference(ctx.tokens, TokenType.function_, x.funName.range(ctx.allSymbols));
 			addExprTokens(ctx, x.right);
 		},
 		(in BogusAst _) {},
 		(in CallAst x) {
 			void addName() {
-				reference(ctx.tokens, TokenType.function_, rangeOfNameAndRange(x.funName, ctx.allSymbols));
+				reference(ctx.tokens, TokenType.function_, x.funName.range(ctx.allSymbols));
 				if (has(x.typeArg))
 					addTypeTokens(ctx, *force(x.typeArg));
 			}
@@ -529,7 +525,7 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 		},
 		(in CallNamedAst x) {
 			zip(x.names, x.args, (ref NameAndRange name, ref ExprAst arg) {
-				reference(ctx.tokens, TokenType.parameter, rangeOfNameAndRange(name, ctx.allSymbols));
+				reference(ctx.tokens, TokenType.parameter, name.range(ctx.allSymbols));
 				addExprTokens(ctx, arg);
 			});
 		},
@@ -656,7 +652,7 @@ void addDestructureTokens(scope ref Ctx ctx, in DestructureAst a) {
 			declare(
 				ctx.tokens,
 				x.name.name == symbol!"_" ? TokenType.comment : TokenType.parameter,
-				rangeOfNameAndRange(x.name, ctx.allSymbols));
+				x.name.range(ctx.allSymbols));
 			//TODO: add 'mut' keyword
 			if (has(x.type))
 				addTypeTokens(ctx, *force(x.type));

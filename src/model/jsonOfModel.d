@@ -2,7 +2,7 @@ module model.jsonOfModel;
 
 @safe @nogc pure nothrow:
 
-import model.ast : ImportOrExportAst, NameAndRange, pathRange;
+import model.ast : ImportOrExportAst, NameAndRange;
 import model.jsonOfConstant : jsonOfConstant;
 import model.model :
 	AssertOrForbidExpr,
@@ -112,7 +112,7 @@ private:
 Json jsonOfImportOrExport(ref Alloc alloc, in Ctx ctx, in ImportOrExport a) =>
 	jsonObject(alloc, [
 		optionalField!("source", ImportOrExportAst*)(a.source, (in ImportOrExportAst* x) =>
-			jsonOfLineAndColumnRange(alloc, ctx.lineAndColumnGetter[pathRange(ctx.allUris, *x)])),
+			jsonOfLineAndColumnRange(alloc, ctx.lineAndColumnGetter[x.pathRange(ctx.allUris)])),
 		field!"module"(stringOfUri(alloc, ctx.allUris, a.module_.uri)),
 		field!"import-kind"(jsonOfImportOrExportKind(alloc, a.kind))]);
 

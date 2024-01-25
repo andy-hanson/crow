@@ -773,7 +773,7 @@ BuiltinType getBuiltinType(scope ref CheckCtx ctx, StructDecl* struct_) {
 		case symbol!"void".value:
 			return BuiltinType.void_;
 		default:
-			addDiagAssertSameUri(ctx, nameRange(ctx.allSymbols, *struct_), Diag(
+			addDiagAssertSameUri(ctx, struct_.nameRange(ctx.allSymbols), Diag(
 				Diag.BuiltinUnsupported(Diag.BuiltinUnsupported.Kind.type, struct_.name)));
 			return BuiltinType.void_;
 	}

@@ -39,7 +39,7 @@ import frontend.check.inferringType :
 import frontend.check.instantiate : InstantiateCtx;
 import frontend.check.typeFromAst : getNTypeArgsForDiagnostic, unpackTupleIfNeeded;
 import frontend.lang : maxTypeParams;
-import model.ast : CallAst, CallNamedAst, ExprAst, LambdaAst, NameAndRange, nameRange, rangeOfNameAndRange;
+import model.ast : CallAst, CallNamedAst, ExprAst, LambdaAst, NameAndRange;
 import model.diag : Diag, TypeContainer;
 import model.model :
 	Called,
@@ -71,8 +71,7 @@ Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref Call
 	switch (ast.style) {
 		case CallAst.Style.dot:
 		case CallAst.Style.infix:
-			checkCallShouldUseSyntax(
-				ctx, rangeOfNameAndRange(ast.funName, ctx.allSymbols), ast.funNameName, ast.args.length);
+			checkCallShouldUseSyntax(ctx, ast.funName.range(ctx.allSymbols), ast.funNameName, ast.args.length);
 			break;
 		default:
 			break;
@@ -80,7 +79,7 @@ Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref Call
 	return checkCallCommon(
 		ctx, locals, source,
 		// Show diags at the function name and not at the whole call ast
-		nameRange(ctx.allSymbols, ast),
+		ast.nameRange(ctx.allSymbols),
 		ast.funName.name,
 		has(ast.typeArg) ? some(typeFromAst2(ctx, *force(ast.typeArg))) : none!Type,
 		ast.args,

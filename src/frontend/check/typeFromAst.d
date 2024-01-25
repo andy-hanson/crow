@@ -12,15 +12,7 @@ import frontend.check.instantiate :
 	MayDelayStructInsts,
 	noDelayStructInsts;
 import frontend.check.maps : SpecsMap, StructsAndAliasesMap;
-import model.ast :
-	DestructureAst,
-	NameAndRange,
-	range,
-	rangeOfNameAndRange,
-	suffixRange,
-	symbolForTypeAstMap,
-	symbolForTypeAstSuffix,
-	TypeAst;
+import model.ast : DestructureAst, NameAndRange, symbolForTypeAstMap, symbolForTypeAstSuffix, TypeAst;
 import model.diag : Diag, TypeContainer, TypeWithContainer;
 import model.model :
 	asTuple,
@@ -134,7 +126,7 @@ size_t getNTypeArgsForDiagnostic(in CommonTypes commonTypes, in Opt!Type explici
 void checkTypeParams(ref CheckCtx ctx, in NameAndRange[] asts) {
 	eachPair!NameAndRange(asts, (in NameAndRange x, in NameAndRange y) {
 		if (x.name == y.name)
-			addDiag(ctx, rangeOfNameAndRange(y, ctx.allSymbols), Diag(
+			addDiag(ctx, y.range(ctx.allSymbols), Diag(
 				Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.typeParam, y.name)));
 	});
 }
@@ -170,7 +162,7 @@ Type typeFromAst(
 					ctx,
 					commonTypes,
 					name.name,
-					rangeOfNameAndRange(name, ctx.allSymbols),
+					name.range(ctx.allSymbols),
 					none!(TypeAst*),
 					structsAndAliasesMap,
 					typeParamsScope,
@@ -179,17 +171,17 @@ Type typeFromAst(
 		(in TypeAst.SuffixName x) {
 			Opt!(Diag.TypeShouldUseSyntax.Kind) optSyntax = typeSyntaxKind(x.name.name);
 			if (has(optSyntax))
-				addDiag(ctx, suffixRange(x, ctx.allSymbols), Diag(Diag.TypeShouldUseSyntax(force(optSyntax))));
+				addDiag(ctx, x.suffixRange(ctx.allSymbols), Diag(Diag.TypeShouldUseSyntax(force(optSyntax))));
 			Opt!TypeParamIndex typeParam = findTypeParam(typeParamsScope, x.name.name);
 			if (has(typeParam)) {
-				addDiag(ctx, suffixRange(x, ctx.allSymbols), Diag(Diag.TypeParamCantHaveTypeArgs()));
+				addDiag(ctx, x.suffixRange(ctx.allSymbols), Diag(Diag.TypeParamCantHaveTypeArgs()));
 				return Type(force(typeParam));
 			} else
 				return instStructFromAst(
 					ctx,
 					commonTypes,
 					x.name.name,
-					suffixRange(x, ctx.allSymbols),
+					x.suffixRange(ctx.allSymbols),
 					some(&castNonScope_ref(x).left),
 					structsAndAliasesMap,
 					typeParamsScope,
@@ -200,7 +192,7 @@ Type typeFromAst(
 				ctx,
 				commonTypes,
 				symbolForTypeAstSuffix(x.kind),
-				suffixRange(x),
+				x.suffixRange,
 				some(x.left),
 				structsAndAliasesMap,
 				typeParamsScope,
@@ -237,7 +229,7 @@ Opt!(SpecInst*) specFromAst(
 			ctx, commonTypes, suffixLeft, structsAndAliasesMap, typeParamsScope, noDelayStructInsts);
 		Opt!TypeArgs typeArgs = getTypeArgsIfNumberMatches(
 			ctx, commonTypes,
-			rangeOfNameAndRange(specName, ctx.allSymbols), spec.name, spec.typeParams.length, &typeArg);
+			specName.range(ctx.allSymbols), spec.name, spec.typeParams.length, &typeArg);
 		return has(typeArgs)
 			? some(instantiateSpec(ctx.instantiateCtx, spec, force(typeArgs), delaySpecInsts))
 			: none!(SpecInst*);
@@ -333,7 +325,7 @@ private Type typeFromMapAst(
 		ctx,
 		commonTypes,
 		symbolForTypeAstMap(ast.kind),
-		range(ast, ctx.allSymbols),
+		ast.range(ctx.allSymbols),
 		some(ptrTrustMe(typeArg)),
 		structsAndAliasesMap,
 		typeParamsScope,
@@ -344,7 +336,7 @@ private Opt!(SpecDecl*) tryFindSpec(ref CheckCtx ctx, NameAndRange name, in Spec
 	tryFindT!(SpecDecl*)(
 		ctx,
 		name.name,
-		rangeOfNameAndRange(name, ctx.allSymbols),
+		name.range(ctx.allSymbols),
 		specsMap[name.name],
 		Diag.DuplicateImports.Kind.spec,
 		Diag.NameNotFound.Kind.spec,

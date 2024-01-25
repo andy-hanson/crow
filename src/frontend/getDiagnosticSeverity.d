@@ -164,7 +164,7 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 		(in Diag.VarargsParamMustBeArray) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.VisibilityWarning) =>
-			DiagnosticSeverity.warning,
+			DiagnosticSeverity.unusedCode,
 		(in Diag.WithHasElse) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.WrongNumberTypeArgs) =>
