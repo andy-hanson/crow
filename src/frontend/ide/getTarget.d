@@ -49,8 +49,9 @@ import model.model :
 	StructInst,
 	Test,
 	ThrowExpr,
-	TrustedExpr,
 	toLocal,
+	TrustedExpr,
+	TypedExpr,
 	TypeParamIndex,
 	UnionMember,
 	VarDecl;
@@ -188,6 +189,8 @@ Opt!Target exprTarget(PositionKind.Expression a) {
 		(ref ThrowExpr _) =>
 			none!Target,
 		(ref TrustedExpr _) =>
+			none!Target,
+		(ref TypedExpr _) =>
 			none!Target);
 }
 

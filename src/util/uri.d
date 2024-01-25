@@ -355,6 +355,12 @@ CString cStringOfUri(ref Alloc alloc, in AllUris allUris, Uri a) =>
 	cStringOfPath(alloc, allUris, a.path, false);
 string stringOfUri(ref Alloc alloc, in AllUris allUris, Uri a) =>
 	stringOfCString(cStringOfUri(alloc, allUris, a));
+Symbol symbolOfUri(scope ref AllUris allUris, Uri a) {
+	TempStrForPath buf;
+	CString res = uriToTempStr(buf, allUris, a);
+	return symbolOfString(allUris.allSymbols, stringOfCString(res));
+}
+
 CString cStringOfFileUri(ref Alloc alloc, in AllUris allUris, FileUri a) =>
 	cStringOfPath(alloc, allUris, a.path, true);
 string stringOfPath(ref Alloc alloc, in AllUris allUris, Path path, bool leadingSlash) =>

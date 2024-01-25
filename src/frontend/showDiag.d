@@ -821,6 +821,8 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= " can't be ";
 			writeModifier(writer, ctx, x.modifier);
 			writer ~= '.';
+			if (x.declKind == DeclKind.test && x.modifier == ModifierKeyword.unsafe)
+				writer ~= " Did you mean 'trusted'?";
 		},
 		(in Diag.ModifierRedundantDueToDeclKind x) {
 			writer ~= aOrAnDeclKind(x.declKind);
@@ -856,7 +858,7 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writeParseDiag(writer, ctx, x);
 		},
 		(in Diag.PointerIsUnsafe) {
-			writer ~= "Getting a pointer can only be done in an 'unsafe' function or 'trusted' expression.";
+			writer ~= "Can only get a pointer in an 'unsafe' function or 'trusted' expression.";
 		},
 		(in Diag.PointerMutToConst x) {
 			writer ~= () {
@@ -1124,6 +1126,8 @@ string aOrAnDeclKind(DeclKind a) {
 			return "A record type";
 		case DeclKind.spec:
 			return "A spec";
+		case DeclKind.test:
+			return "A test";
 		case DeclKind.threadLocal:
 			return "A thread-local variable";
 		case DeclKind.union_:

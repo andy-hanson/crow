@@ -20,8 +20,6 @@ immutable struct Json {
 	alias List = immutable Json[];
 	alias ObjectField = immutable KeyValuePair!(Symbol, Json);
 	alias Object = immutable ObjectField[];
-	alias StringObjectField = immutable KeyValuePair!(string, Json);
-	alias StringObject = immutable StringObjectField[];
 	// string and Symbol cases should be treated as equivalent.
 	mixin Union!(
 		Null,
@@ -30,8 +28,7 @@ immutable struct Json {
 		SmallArray!(immutable char),
 		Symbol,
 		SmallArray!Json,
-		SmallArray!ObjectField,
-		SmallArray!StringObjectField);
+		SmallArray!ObjectField);
 
 	// Distinguishes CString / string / Symbol. Use only for tests.
 	bool opEquals(in Json b) scope =>
@@ -49,9 +46,7 @@ immutable struct Json {
 			(in Json[] x) =>
 				b.isA!(Json[]) && arraysEqual!Json(x, b.as!(Json[])),
 			(in Json.Object oa) =>
-				b.isA!Object && arraysEqual(oa, b.as!Object),
-			(in Json.StringObject ob) =>
-				assert(false));
+				b.isA!Object && arraysEqual(oa, b.as!Object));
 }
 static assert(Json.sizeof == ulong.sizeof * 2);
 
@@ -183,11 +178,6 @@ void writeJson(ref Writer writer, in AllSymbols allSymbols, in Json a) =>
 		(in Json.Object x) {
 			writeObjectCompact!Symbol(writer, allSymbols, x, (in Symbol key) {
 				writeQuotedSymbol(writer, allSymbols, key);
-			});
-		},
-		(in Json.StringObject x) {
-			writeObjectCompact!string(writer, allSymbols, x, (in string key) {
-				writeQuotedString(writer, key);
 			});
 		});
 

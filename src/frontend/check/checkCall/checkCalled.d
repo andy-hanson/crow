@@ -4,7 +4,6 @@ module frontend.check.checkCall.checkCalled;
 
 import frontend.check.checkCtx : markUsed;
 import frontend.check.exprCtx : addDiag2, checkCanDoUnsafe, ExprCtx;
-import model.ast : ExprAst;
 import model.diag : Diag;
 import model.model : Called, CalledSpecSig, FunDecl, FunInst, FunFlags;
 import util.opt : force, has, none, Opt, some;
@@ -14,13 +13,13 @@ import util.sourceRange : Range;
 Additional checks on a call after the overload and spec impls have been chosen.
 */
 
-void checkCalled(ref ExprCtx ctx, ExprAst* source, in Called called, bool isInLambda, ArgsKind argsKind) {
+void checkCalled(ref ExprCtx ctx, in Range diagRange, in Called called, bool isInLambda, ArgsKind argsKind) {
 	called.match!void(
 		(ref FunInst x) {
 			markUsed(ctx.checkCtx, x.decl);
-			checkCallFlags(ctx, source.range, x.decl, ctx.outermostFunFlags, isInLambda, argsKind);
+			checkCallFlags(ctx, diagRange, x.decl, ctx.outermostFunFlags, isInLambda, argsKind);
 			foreach (ref Called impl; x.specImpls) {
-				checkCalled(ctx, source, impl, isInLambda, argsKind);
+				checkCalled(ctx, diagRange, impl, isInLambda, argsKind);
 			}
 		},
 		// For a spec, we do checks when providing the spec impl
@@ -33,7 +32,7 @@ private:
 
 void checkCallFlags(
 	ref ExprCtx ctx,
-	in Range range,
+	in Range diagRange,
 	FunDecl* called,
 	FunFlags caller,
 	bool isCallerInLambda,
@@ -46,7 +45,7 @@ void checkCallFlags(
 		caller,
 		isCallerInLambda);
 	if (has(reason))
-		addDiag2(ctx, range, Diag(Diag.CantCall(force(reason), called)));
+		addDiag2(ctx, diagRange, Diag(Diag.CantCall(force(reason), called)));
 }
 
 Opt!(Diag.CantCall.Reason) getCantCallReason(

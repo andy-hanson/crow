@@ -426,6 +426,8 @@ immutable string[] specialSymbols = [
 	".json\0",
 	".lib\0",
 	".so\0",
+
+	// from names in Crow code
 	"as-any-mut-pointer\0",
 	"as-fun-pointer\0",
 	"begin-pointer\0",
@@ -464,8 +466,20 @@ immutable string[] specialSymbols = [
 	"unsafe-bit-shift-left\0",
 	"unsafe-bit-shift-right\0",
 
+	// from perf
+	"buildToLowProgram\0",
+	"gccCreateProgram\0",
+	"generateBytecode\0",
+	"instantiateFun\0",
+	"instantiateSpec\0",
+	"instantiateStruct\0",
+	"onFileChanged\0",
+	"storageFileInfo\0",
+
+	// from names in compiled code
 	"__builtin_popcountl\0",
 
+	// from LSP
 	"contentChanges\0",
 	"definitionProvider\0",
 	"diagnosticsOnlyForUris\0",

@@ -137,12 +137,15 @@ private Range trustedKeywordRange(in ExprAst* source) =>
 	rangeOfStartAndLength(source.range.start, "trusted".length);
 
 bool checkCanDoUnsafe(ref ExprCtx ctx) {
-	if (ctx.outermostFunFlags.safety == FunFlags.Safety.unsafe)
-		return true;
-	else {
-		bool res = ctx.isInTrusted;
-		if (res) ctx.usedTrusted = true;
-		return res;
+	final switch (ctx.outermostFunFlags.safety) {
+		case FunFlags.Safety.safe:
+			bool res = ctx.isInTrusted;
+			if (res)
+				ctx.usedTrusted = true;
+			return res;
+		case FunFlags.Safety.unsafe:
+		case FunFlags.Safety.trusted:
+			return true;
 	}
 }
 

@@ -95,6 +95,7 @@ import model.model :
 	ThrowExpr,
 	TrustedExpr,
 	Type,
+	TypedExpr,
 	VariableRef,
 	VersionFun;
 import util.alloc.alloc : Alloc;
@@ -1017,6 +1018,8 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 				allocate(ctx.alloc, ConcreteExprKind.Throw(
 					concretizeExpr(ctx, stringType(ctx.concretizeCtx), locals, x.thrown))))),
 		(ref TrustedExpr x) =>
+			concretizeExpr(ctx, type, locals, x.inner),
+		(ref TypedExpr x) =>
 			concretizeExpr(ctx, type, locals, x.inner));
 }
 

@@ -62,6 +62,7 @@ import model.model :
 	ThrowExpr,
 	TrustedExpr,
 	Type,
+	TypedExpr,
 	TypeParamIndex,
 	TypeParams,
 	VarDecl,
@@ -208,6 +209,8 @@ Json funFlags(ref Alloc alloc, in FunFlags a) {
 			final switch (a.safety) {
 				case FunFlags.Safety.safe:
 					return none!Symbol;
+				case FunFlags.Safety.trusted:
+					return some(symbol!"trusted");
 				case FunFlags.Safety.unsafe:
 					return some(symbol!"unsafe");
 			}
@@ -460,6 +463,10 @@ Json jsonOfExpr(ref Alloc alloc, in Ctx ctx, in Expr a) =>
 		(in TrustedExpr a) =>
 			jsonObject(alloc, [
 				kindField!"trusted",
+				field!"inner"(jsonOfExpr(alloc, ctx, a.inner))]),
+		(in TypedExpr a) =>
+			jsonObject(alloc, [
+				kindField!"typed",
 				field!"inner"(jsonOfExpr(alloc, ctx, a.inner))]));
 
 Json jsonOfDestructure(ref Alloc alloc, in Ctx ctx, in Destructure a) =>

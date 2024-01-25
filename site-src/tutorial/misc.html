@@ -26,8 +26,12 @@
 		The block is expected to be of type <code class="struct">void</code> or <code class="struct">void^</code>.
 	</p>
 	<p>
+		A <code class="keyword">test</code> can also be marked <code class="keyword">summon</code> or
+		<code class="keyword">trusted</code> if necessary.
+	</p>
+	<p>
 		All <code class="keyword">test</code> blocks in all imported files are included.
-		(The below example runs more than 1 test, becuase it picked up some tests in the standard library.)
+		(The below example runs more than 2 tests, becuase it picked up some tests from the standard library.)
 	</p>
 
 	<crow-runnable>
@@ -40,7 +44,13 @@
 
 		test
 			1::nat + 1 is 2
-			2::nat + 2 is 7
+			2::nat + 2 is 4
+
+		test
+			res nat[] &lt;- for x : (1, 2, 3)::nat[] parallel
+				x * x,
+			res is (1, 4, 9)
+			()
 	</crow-runnable>
 
 	<aside class="small">

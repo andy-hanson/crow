@@ -257,6 +257,7 @@ Linkage defaultLinkage(DeclKind a) {
 		case DeclKind.function_:
 		case DeclKind.global:
 		case DeclKind.spec:
+		case DeclKind.test:
 		case DeclKind.threadLocal:
 			assert(false);
 	}
@@ -276,6 +277,7 @@ Purity defaultPurity(DeclKind a) {
 		case DeclKind.externFunction:
 		case DeclKind.function_:
 		case DeclKind.global:
+		case DeclKind.test:
 		case DeclKind.spec:
 		case DeclKind.threadLocal:
 			assert(false);

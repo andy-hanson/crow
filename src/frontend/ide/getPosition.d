@@ -83,6 +83,7 @@ import model.model :
 	ThrowExpr,
 	TrustedExpr,
 	Type,
+	TypedExpr,
 	TypeParamIndex,
 	UnionMember,
 	VarDecl;
@@ -528,7 +529,12 @@ Opt!PositionKind positionInExpr(ref ExprCtx ctx, ref Expr a, Pos pos) {
 			(ref ThrowExpr x) =>
 				optOr!PositionKind(recur(x.thrown), () => here()),
 			(ref TrustedExpr x) =>
-				optOr!PositionKind(recur(x.inner), () => here()));
+				optOr!PositionKind(recur(x.inner), () => here()),
+			(ref TypedExpr x) =>
+				optOr!PositionKind(
+					recur(x.inner),
+					() => hasPos(x.ast(a).keywordRange, pos) ? here() : none!PositionKind,
+					() => positionInType(ctx.allSymbols, ctx.container.toTypeContainer, x.type, x.ast(a).type, pos)));
 	}
 }
 

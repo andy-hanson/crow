@@ -519,7 +519,39 @@ FunFlagsAndSpecs checkFunModifiers(
 				(in TypeAst x) =>
 					checkFunModifierNonSpecial(
 						ctx, commonTypes, structsAndAliasesMap, specsMap, typeParamsScope, x, noDelaySpecInsts)));
-	return FunFlagsAndSpecs(checkFunFlags(ctx, range, allFlags), specs);
+	return FunFlagsAndSpecs(checkFunFlags(ctx, range, allFlags, isTest: false), specs);
+}
+
+FunFlags checkTestModifiers(ref CheckCtx ctx, in TestAst ast) {
+	CollectedFunFlags allFlags = CollectedFunFlags.none;
+	foreach (ModifierAst modifier; ast.modifiers) {
+		modifier.matchIn!void(
+			(in ModifierAst.Keyword x) {
+				CollectedFunFlags flag = tryGetFunFlag(x.kind);
+				if (isAllowedTestFlag(flag))
+					allFlags |= flag;
+				else
+					addDiag(ctx, x.range, Diag(Diag.ModifierInvalid(x.kind, DeclKind.test)));
+			},
+			(in ModifierAst.Extern x) {
+				addDiag(ctx, x.suffixRange, Diag(Diag.ModifierInvalid(ModifierKeyword.extern_, DeclKind.test)));
+			},
+			(in TypeAst x) {
+				addDiag(ctx, x.range(ctx.allSymbols), Diag(Diag.SpecUseInvalid(DeclKind.test)));
+			});
+	}
+	return checkFunFlags(ctx, ast.keywordRange, allFlags, isTest: true);
+}
+
+bool isAllowedTestFlag(CollectedFunFlags flag) {
+	switch (flag) {
+		case CollectedFunFlags.bare:
+		case CollectedFunFlags.summon:
+		case CollectedFunFlags.trusted:
+			return true;
+		default:
+			return false;
+	}
 }
 
 enum CollectedFunFlags {
@@ -559,7 +591,7 @@ Opt!(SpecInst*) checkFunModifierNonSpecial(
 	}
 }
 
-FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, CollectedFunFlags flags) {
+FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, CollectedFunFlags flags, bool isTest) {
 	void warnRedundant(ModifierKeyword modifier, ModifierKeyword redundantModifier) {
 		addDiag(ctx, range, Diag(Diag.ModifierRedundantDueToModifier(modifier, redundantModifier)));
 	}
@@ -584,16 +616,16 @@ FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, CollectedFunFlags flags
 			? ModifierKeyword.extern_
 			: assert(false);
 
-	FunFlags.Safety safety = !unsafe
-		? FunFlags.Safety.safe
-		: trusted
-		? FunFlags.Safety.safe
-		: FunFlags.Safety.unsafe;
+	FunFlags.Safety safety = trusted
+		? FunFlags.Safety.trusted
+		: unsafe
+		? FunFlags.Safety.unsafe
+		: FunFlags.Safety.safe;
 	if (implicitBare && explicitBare)
 		warnRedundant(bodyModifier(), ModifierKeyword.bare);
 	if (implicitUnsafe && explicitUnsafe)
 		warnRedundant(bodyModifier(), ModifierKeyword.unsafe);
-	if (trusted && !extern_)
+	if (trusted && !extern_ && !isTest)
 		addDiag(ctx, range, Diag(Diag.FunModifierTrustedOnNonExtern()));
 	FunFlags.SpecialBody specialBody = builtin
 		? FunFlags.SpecialBody.builtin
@@ -602,6 +634,8 @@ FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, CollectedFunFlags flags
 		: FunFlags.SpecialBody.none;
 	if (builtin && extern_)
 		addDiag(ctx, range, Diag(Diag.ModifierConflict(ModifierKeyword.builtin, ModifierKeyword.extern_)));
+	if (explicitUnsafe && trusted)
+		addDiag(ctx, range, Diag(Diag.ModifierConflict(ModifierKeyword.unsafe, ModifierKeyword.trusted)));
 	return FunFlags.regular(bare, summon, safety, specialBody, forceCtx);
 }
 
@@ -729,16 +763,17 @@ void checkFunsWithAsts(
 	in FunsMap funsMap,
 	TestAst[] testAsts,
 ) =>
-	small!Test(mapWithResultPointer!(Test, TestAst)(ctx.alloc, testAsts, (TestAst* ast, Test* out_) @safe {
+	small!Test(mapWithResultPointer!(Test, TestAst)(ctx.alloc, testAsts, (TestAst* ast, Test* out_) {
+		FunFlags flags = checkTestModifiers(ctx, *ast);
 		TestBody body_ = () {
 			if (ast.body_.kind.isA!EmptyAst) {
 				addDiag(ctx, ast.range, Diag(Diag.FunMissingBody()));
 				return TestBody(Expr(&ast.body_, ExprKind(BogusExpr())));
 			} else
 				return checkTestBody(
-					ctx, structsAndAliasesMap, commonTypes, funsMap, TypeContainer(out_), &ast.body_);
+					ctx, structsAndAliasesMap, commonTypes, funsMap, TypeContainer(out_), flags, &ast.body_);
 		}();
-		return Test(ast, ctx.curUri, body_.body_, body_.type);
+		return Test(ast, ctx.curUri, flags, body_.body_, body_.type);
 	}));
 
 FunsMap buildFunsMap(ref Alloc alloc, in immutable FunDecl[] funs) {

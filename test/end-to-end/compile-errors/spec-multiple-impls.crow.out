@@ -1,6 +1,6 @@
 exit code: 1
 stderr:
-test/end-to-end/compile-errors/spec-multiple-impls.crow 9:14-9:45 Multiple implementations found for spec signature 'to':
+test/end-to-end/compile-errors/spec-multiple-impls.crow 9:31-9:45 Multiple implementations found for spec signature 'to':
 	'to json(a string)' (from include/crow/json.crow line 64)
 	'to json(a string)' (from test/end-to-end/compile-errors/spec-multiple-impls.crow line 2)
 	Calling:

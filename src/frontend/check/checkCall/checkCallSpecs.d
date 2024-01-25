@@ -54,13 +54,13 @@ bool isPurityAlwaysCompatibleConsideringSpecs(in immutable SpecInst*[] funSpecs,
 				isPurityAlwaysCompatibleConsideringSpecs(funSpecs, typeArg, expected)));
 }
 
-Opt!Called checkCallSpecs(ref ExprCtx ctx, in Range range, ref const Candidate candidate) {
+Opt!Called checkCallSpecs(ref ExprCtx ctx, in Range diagRange, ref const Candidate candidate) {
 	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, funsInScope(ctx));
 	return getCalledFromCandidateAfterTypeChecks(checkSpecsCtx, candidate, DummyTrace()).match!(Opt!Called)(
 		(Called x) =>
-			checkSpecsCtx.hasErrors ? checkCallSpecsWithRealTrace(ctx, range, candidate) : some(x),
+			checkSpecsCtx.hasErrors ? checkCallSpecsWithRealTrace(ctx, diagRange, candidate) : some(x),
 		(DummyTrace.NoMatch _) =>
-			checkCallSpecsWithRealTrace(ctx, range, candidate));
+			checkCallSpecsWithRealTrace(ctx, diagRange, candidate));
 }
 
 private:

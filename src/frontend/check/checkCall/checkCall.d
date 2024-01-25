@@ -247,7 +247,8 @@ Expr checkCallInner(
 				Diag.CallMultipleMatches(funName, ctx.typeContainer, candidatesForDiag(ctx.alloc, candidates))));
 		return bogus(expected, source);
 	} else
-		return checkCallAfterChoosingOverload(ctx, isInLambda(locals), only(candidates), source, force(args), expected);
+		return checkCallAfterChoosingOverload(
+			ctx, isInLambda(locals), only(candidates), source, diagRange, force(args), expected);
 }
 
 void checkCallShouldUseSyntax(ref ExprCtx ctx, in Range range, Symbol funName, size_t arity) {
@@ -434,13 +435,14 @@ Expr checkCallAfterChoosingOverload(
 	bool isInLambda,
 	ref const Candidate candidate,
 	ExprAst* source,
+	in Range diagRange,
 	Expr[] args,
 	ref Expected expected,
 ) {
-	Opt!Called opCalled = checkCallSpecs(ctx, source.range, candidate);
+	Opt!Called opCalled = checkCallSpecs(ctx, diagRange, candidate);
 	if (has(opCalled)) {
 		Called called = force(opCalled);
-		checkCalled(ctx, source, called, isInLambda, isEmpty(args) ? ArgsKind.empty : ArgsKind.nonEmpty);
+		checkCalled(ctx, diagRange, called, isInLambda, isEmpty(args) ? ArgsKind.empty : ArgsKind.nonEmpty);
 		Expr calledExpr = Expr(source, ExprKind(CallExpr(called, args)));
 		//TODO: PERF second return type check may be unnecessary
 		// if we already filtered by return type at the beginning

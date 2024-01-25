@@ -1,6 +1,6 @@
 exit code: 1
 stderr:
-test/end-to-end/compile-errors/expected-type-param.crow 3:21-3:22 Expected type 'string'.
+test/end-to-end/compile-errors/expected-type-param.crow 3:21-3:29 Expected type 'string'.
 Actual: 'nat64'.
 test/end-to-end/compile-errors/expected-type-param.crow 6:11-6:12 The literal doesn't match the expected type at this location.
 Expected type 't'.

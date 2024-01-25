@@ -32,17 +32,27 @@ import util.opt : force, has, Opt;
 import util.sourceRange :
 	jsonOfLineAndCharacterRange, jsonOfUriAndLineAndCharacterRange, LineAndCharacterGetter, UriAndRange;
 import util.string : stringOfCString;
-import util.uri : AllUris, stringOfUri, Uri;
+import util.uri : AllUris, stringOfUri, symbolOfUri, Uri;
 import util.util : stringOfEnum;
 
-Json jsonOfLspOutAction(ref Alloc alloc, in AllUris allUris, in LineAndCharacterGetters lcg, in LspOutAction a) =>
+Json jsonOfLspOutAction(
+	ref Alloc alloc,
+	scope ref AllUris allUris,
+	in LineAndCharacterGetters lcg,
+	in LspOutAction a,
+) =>
 	jsonObject(alloc, [
 		field!"messages"(jsonList(map(alloc, a.outMessages, (ref LspOutMessage x) =>
 			jsonOfLspOutMessage(alloc, allUris, lcg, x)))),
 		optionalField!("exitCode", ExitCode)(a.exitCode, (in ExitCode x) =>
 			Json(x.value))]);
 
-Json jsonOfLspOutMessage(ref Alloc alloc, in AllUris allUris, in LineAndCharacterGetters lcg, ref LspOutMessage a) =>
+Json jsonOfLspOutMessage(
+	ref Alloc alloc,
+	scope ref AllUris allUris,
+	in LineAndCharacterGetters lcg,
+	ref LspOutMessage a,
+) =>
 	a.match!Json(
 		(LspOutNotification x) =>
 			jsonOfLspOutNotification(alloc, allUris, lcg, x),
@@ -74,7 +84,12 @@ Json jsonOfLspOutNotification(
 					Json(stringOfUri(alloc, allUris, x))))])));
 }
 
-Json jsonOfLspOutResult(ref Alloc alloc, in AllUris allUris, in LineAndCharacterGetters lcg, ref LspOutResult a) =>
+Json jsonOfLspOutResult(
+	ref Alloc alloc,
+	scope ref AllUris allUris,
+	in LineAndCharacterGetters lcg,
+	ref LspOutResult a,
+) =>
 	a.match!Json(
 		(InitializeResult _) =>
 			jsonObject(alloc, [field!"capabilities"(initializeCapabilities(alloc))]),
@@ -143,7 +158,12 @@ public Json jsonOfReferences(
 	jsonList!UriAndRange(alloc, references, (in UriAndRange x) =>
 		jsonOfUriAndLineAndCharacterRange(alloc, allUris, lcg[x]));
 
-public Json jsonOfRename(ref Alloc alloc, in AllUris allUris, in LineAndCharacterGetters lcg, in Opt!WorkspaceEdit a) =>
+public Json jsonOfRename(
+	ref Alloc alloc,
+	scope ref AllUris allUris,
+	in LineAndCharacterGetters lcg,
+	in Opt!WorkspaceEdit a,
+) =>
 	has(a)
 		? jsonOfWorkspaceEdit(alloc, allUris, lcg, force(a))
 		: jsonNull;
@@ -154,19 +174,22 @@ Json jsonOfDiagnostic(ref Alloc alloc, in LineAndCharacterGetter lcg, LspDiagnos
 		field!"severity"(cast(uint) a.severity),
 		field!"message"(stringOfCString(a.message))]);
 
-Json jsonOfWorkspaceEdit(ref Alloc alloc, in AllUris allUris, in LineAndCharacterGetters lcg, in WorkspaceEdit a) =>
+Json jsonOfWorkspaceEdit(
+	ref Alloc alloc,
+	scope ref AllUris allUris,
+	in LineAndCharacterGetters lcg,
+	in WorkspaceEdit a,
+) =>
 	jsonObject(alloc, [field!"changes"(jsonOfWorkspaceEditChanges(alloc, allUris, lcg, a.changes))]);
 
 Json jsonOfWorkspaceEditChanges(
 	ref Alloc alloc,
-	in AllUris allUris,
+	scope ref AllUris allUris,
 	in LineAndCharacterGetters lcg,
 	in MultiMap!(Uri, TextEdit) a,
 ) =>
-	Json(mapToArray!(Json.StringObjectField, Uri, TextEdit)(alloc, a, (Uri uri, immutable TextEdit[] changes) =>
-		Json.StringObjectField(
-			stringOfUri(alloc, allUris, uri),
-			jsonOfTextEdits(alloc, lcg[uri], changes))));
+	Json(mapToArray!(Json.ObjectField, Uri, TextEdit)(alloc, a, (Uri uri, immutable TextEdit[] changes) =>
+		Json.ObjectField(symbolOfUri(allUris, uri), jsonOfTextEdits(alloc, lcg[uri], changes))));
 
 Json jsonOfTextEdits(ref Alloc alloc, in LineAndCharacterGetter lcg, in TextEdit[] a) =>
 	jsonList(map!(Json, TextEdit)(alloc, a, (ref TextEdit x) =>

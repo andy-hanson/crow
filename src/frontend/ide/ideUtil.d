@@ -38,6 +38,7 @@ import model.model :
 	ThrowExpr,
 	TrustedExpr,
 	Type,
+	TypedExpr,
 	TypeParamIndex;
 import util.col.array : arrayOfSingle, count, first, firstZip, only, only2;
 import util.opt : force, has, none, Opt, optOr;
@@ -231,4 +232,6 @@ private Opt!T findDirectChildExpr(T)(in ExprKind a, in Opt!T delegate(in Expr) @
 		(in ThrowExpr x) =>
 			cb(x.thrown),
 		(in TrustedExpr x) =>
+			cb(x.inner),
+		(in TypedExpr x) =>
 			cb(x.inner));

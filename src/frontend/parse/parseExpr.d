@@ -445,7 +445,7 @@ ExprAst tryParseDotsAndSubscripts(ref Lexer lexer, ExprAst initial) {
 		TypeAst type = parseTypeForTypedExpr(lexer);
 		return tryParseDotsAndSubscripts(lexer, ExprAst(
 			range(lexer, start),
-			ExprAstKind(allocate(lexer.alloc, TypedAst(initial, type)))));
+			ExprAstKind(allocate(lexer.alloc, TypedAst(initial, dotPos, type)))));
 	} else if (tryTakeToken(lexer, Token.bang)) {
 		return tryParseDotsAndSubscripts(lexer, ExprAst(
 			range(lexer, start),

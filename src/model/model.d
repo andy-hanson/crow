@@ -21,6 +21,7 @@ import model.ast :
 	StructAliasAst,
 	StructDeclAst,
 	TestAst,
+	TypedAst,
 	UnionMemberAst,
 	VarDeclAst;
 import model.concreteModel : TypeSize;
@@ -874,7 +875,7 @@ immutable struct FunFlags {
 
 	bool bare;
 	bool summon;
-	enum Safety : ubyte { safe, unsafe }
+	enum Safety : ubyte { safe, trusted, unsafe }
 	Safety safety;
 	bool preferred;
 	bool okIfUnused;
@@ -1037,6 +1038,7 @@ immutable struct Test {
 
 	TestAst* ast;
 	Uri moduleUri;
+	FunFlags flags;
 	Expr body_;
 	enum BodyType { bogus, void_, voidFuture }
 	BodyType bodyType;
@@ -1668,7 +1670,8 @@ immutable struct ExprKind {
 		PtrToLocalExpr,
 		SeqExpr*,
 		ThrowExpr*,
-		TrustedExpr*);
+		TrustedExpr*,
+		TypedExpr*);
 }
 
 immutable struct ExprAndType {
@@ -1835,6 +1838,18 @@ immutable struct ThrowExpr {
 
 immutable struct TrustedExpr {
 	Expr inner;
+}
+
+immutable struct TypedExpr {
+	@safe @nogc pure nothrow:
+
+	Expr inner;
+	Type type;
+
+	TypedAst* ast(ref Expr expr) scope {
+		assert(expr.kind.as!(TypedExpr*) == &this);
+		return expr.ast.kind.as!(TypedAst*);
+	}
 }
 
 alias Visibility = immutable Visibility_;

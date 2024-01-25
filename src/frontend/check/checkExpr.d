@@ -144,6 +144,7 @@ import model.model :
 	TrustedExpr,
 	toMutability,
 	Type,
+	TypedExpr,
 	TypeParams,
 	UnionMember,
 	VariableRef;
@@ -212,6 +213,7 @@ TestBody checkTestBody(
 	in CommonTypes commonTypes,
 	in FunsMap funsMap,
 	TypeContainer typeContainer,
+	FunFlags flags,
 	ExprAst* ast,
 ) {
 	ExprCtx exprCtx = ExprCtx(
@@ -222,7 +224,7 @@ TestBody checkTestBody(
 		typeContainer,
 		[],
 		emptyTypeParams,
-		FunFlags.none);
+		flags);
 	FunOrLambdaInfo funInfo = FunOrLambdaInfo(noneMut!(LocalsInfo*), none!(LambdaExpr*));
 	LocalsInfo locals = LocalsInfo(ptrTrustMe(funInfo), noneMut!(LocalNode*));
 	ExprAndType body_ = withExpectAndInfer(
@@ -1460,5 +1462,5 @@ Expr checkTyped(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, TypedAs
 	if (has(inferred) && force(inferred) == type)
 		addDiag2(ctx, source, Diag(Diag.TypeAnnotationUnnecessary(typeWithContainer(ctx, type))));
 	Expr expr = checkAndExpect(ctx, locals, &ast.expr, type);
-	return check(ctx, source, expected, type, expr);
+	return check(ctx, source, expected, type, Expr(source, ExprKind(allocate(ctx.alloc, TypedExpr(expr, type)))));
 }

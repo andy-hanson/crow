@@ -60,6 +60,7 @@ import model.model :
 	ThrowExpr,
 	TrustedExpr,
 	Type,
+	TypedExpr,
 	TypeParamIndex,
 	VarDecl;
 import util.alloc.alloc : Alloc;
@@ -454,6 +455,9 @@ void getExprHover(
 		},
 		(in TrustedExpr _) {
 			writer ~= "Allows 'unsafe' code to be used anywhere.";
+		},
+		(in TypedExpr _) {
+			writer ~= "Provides an explicit type for the left hand side of '::'.";
 		});
 
 void closureRefHover(scope ref Writer writer, in ShowModelCtx ctx, in TypeContainer typeContainer, in ClosureRef a) {

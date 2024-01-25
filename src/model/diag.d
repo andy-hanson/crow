@@ -89,8 +89,9 @@ enum DeclKind {
 	flags,
 	record,
 	spec,
-	union_,
+	test,
 	threadLocal,
+	union_,
 }
 
 enum ReadFileDiag_ {

@@ -322,8 +322,9 @@ void parseSpecOrStructOrFunOrTest(
 ) {
 	Pos start = curPos(lexer);
 	if (tryTakeToken(lexer, Token.test)) {
+		SmallArray!ModifierAst modifiers = parseModifiers(lexer);
 		ExprAst body_ = parseFunExprBody(lexer);
-		add(lexer.alloc, tests, TestAst(range(lexer, start), body_));
+		add(lexer.alloc, tests, TestAst(range(lexer, start), modifiers, body_));
 	} else
 		parseSpecOrStructOrFun(lexer, specs, structAliases, structs, funs, vars, docComment);
 }

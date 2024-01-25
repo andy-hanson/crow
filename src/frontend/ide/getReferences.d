@@ -93,6 +93,7 @@ import model.model :
 	ThrowExpr,
 	TrustedExpr,
 	Type,
+	TypedExpr,
 	UnionMember,
 	VarDecl,
 	Visibility;
@@ -459,7 +460,8 @@ void eachTypeDirectlyInExpr(in Expr a, in TypeCb cb) {
 		(in PtrToLocalExpr _) {},
 		(in SeqExpr _) {},
 		(in ThrowExpr _) {},
-		(in TrustedExpr _) {});
+		(in TrustedExpr _) {},
+		(in TypedExpr x) @safe => cb(x.type, x.ast(a).type));
 }
 
 void referencesForFunDecls(in AllSymbols allSymbols, in Program program, in FunDecl*[] decls, in ReferenceCb cb) {

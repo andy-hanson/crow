@@ -482,8 +482,13 @@ immutable struct TrustedAst {
 
 // expr :: t
 immutable struct TypedAst {
+	@safe @nogc pure nothrow:
 	ExprAst expr;
+	Pos colonPos;
 	TypeAst type;
+
+	Range keywordRange() =>
+		rangeOfStartAndLength(colonPos, "::".length);
 }
 
 immutable struct UnlessAst {
@@ -852,8 +857,14 @@ string stringOfModifierKeyword(ModifierKeyword a) {
 }
 
 immutable struct TestAst {
+	@safe @nogc pure nothrow:
+
 	Range range;
+	SmallArray!ModifierAst modifiers;
 	ExprAst body_; // EmptyAst if missing
+
+	Range keywordRange() scope =>
+		rangeOfStartAndLength(range.start, "test".length);
 }
 
 // 'global' or 'thread-local'

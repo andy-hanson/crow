@@ -21,7 +21,7 @@ import util.json : field, Json, jsonObject;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf, PerfMeasure, PerfMeasureResult, PerfResult, perfResult;
 import util.string : CString;
-import util.util : stringOfEnum;
+import util.symbol : symbolOfEnum;
 import util.writer : withWriter, Writer;
 
 Json perfReport(ref Alloc alloc, in Perf perf, in MetaAlloc metaAlloc, Json stats) =>
@@ -73,7 +73,7 @@ Json jsonOfEnumMap(E, V)(
 			oppositeComparison(compareUlong(getQuantity(x.value), getQuantity(y.value))));
 	});
 	return Json(map(alloc, pairs, (ref Pair pair) =>
-		Json.StringObjectField(stringOfEnum(pair.key), cb(pair.value))));
+		Json.ObjectField(symbolOfEnum(pair.key), cb(pair.value))));
 }
 
 Json showMemory(ref Alloc alloc, in AllocKindMemorySummary a) =>
