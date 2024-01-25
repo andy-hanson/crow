@@ -1,5 +1,6 @@
 no-std
 import
+	../bool: bool, false, true
 	../col/mut-list: ~=, ~~=, iterate, new, move-to, mut-list, prepend=
 	../misc: new, void
 	../pointer: mut-pointer
@@ -24,6 +25,21 @@ resolve[t] void(a t^, value t) unsafe
 
 reject[t] void(a t^, error exception) unsafe
 	a resolve-or-reject error.rejected
+
+is-completed[t] bool(a t^)
+	match a.state
+	as empty
+		false
+	as one-task _
+		false
+	as tasks _
+		false
+	as forwarded x
+		x is-completed
+	as resolved _
+		true
+	as rejected _
+		true
 
 -resolve-or-reject[t] void(a t^, new-state t future-state) unsafe
 	a.lock acquire

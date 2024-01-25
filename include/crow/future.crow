@@ -4,7 +4,7 @@ import
 	./col/collection:
 		begin, build, concatenate, flatten, for-loop, iterate, next, size, subscript, with-block,
 		with-index
-	./col/list: ~~, +, ~=, begin, build, iterate, list, new, next, size
+	./col/list: ~~, +, ~=, begin, build, is-empty, iterate, list, new, next, size
 	./col/mut-list: ~=, hint-size, move-to, mut-list, new
 	./exception: catch, exception
 	./fun-util: subscript
@@ -79,15 +79,16 @@ Returns a future that is resolved once all inputs are resolved.
 WARN: This resolves successfully even if an input is rejected.
 ###
 -wait-all-complete[t] void^(futures t^[]) t shared
-	res void^ = trusted unresolved
-	count mut nat64 = futures.size
-	task task = trusted cur-exclusion, () =>
-		count -:= 1
-		if count == 0
-			res resolve ()
-	for x : futures
-		trusted x add-task task
-	res
+	unless futures is-empty
+		res void^ = trusted unresolved
+		count mut nat64 = futures.size
+		task task = trusted cur-exclusion, () =>
+			count -:= 1
+			if count == 0
+				res resolve ()
+		for x : futures
+			trusted x add-task task
+		res
 
 ###
 Future resolved to `ok` if `a` succeeds and `err` if `a` fails with an exception.
