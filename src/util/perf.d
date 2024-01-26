@@ -127,7 +127,6 @@ PerfResult perfResult(in Perf perf) =>
 	PerfResult(isEnabled(perf) ? perf.cbGetTimeNSec() - perf.nsecStart : 0, perf.measures);
 
 enum PerfMeasure {
-	cCompile,
 	check,
 	checkCall,
 	concretize,
@@ -138,6 +137,7 @@ enum PerfMeasure {
 	instantiateFun,
 	instantiateSpec,
 	instantiateStruct,
+	invokeCCompiler,
 	lower,
 	parseFile,
 	run,

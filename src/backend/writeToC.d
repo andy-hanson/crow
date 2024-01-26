@@ -15,7 +15,9 @@ import backend.mangle :
 	writeStructMangledName;
 import backend.builtinMath : builtinForBinaryMath, builtinForUnaryMath;
 import backend.writeTypes : ElementAndCount, TypeWriters, writeTypes;
+import frontend.lang : OptimizationLevel;
 import frontend.showModel : ShowCtx;
+import lib.cliParser : CCompileOptions;
 import lower.lowExprHelpers : boolType;
 import model.concreteModel : ConcreteStruct, ConcreteStructBody, TypeSize;
 import model.constant : Constant;
@@ -24,6 +26,8 @@ import model.lowModel :
 	ArrTypeAndConstantsLow,
 	asPtrGcPointee,
 	debugName,
+	ExternLibraries,
+	ExternLibrary,
 	isChar8,
 	isGeneratedMain,
 	isVoid,
@@ -53,14 +57,16 @@ import model.showLowModel : writeFunName, writeFunSig;
 import model.typeLayout : sizeOfType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.array : every, exists, isEmpty, map, only, sizeEq, zip;
+import util.col.arrayBuilder : buildArray, Builder;
 import util.col.map : mustGet;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach, fullIndexMapEachKey;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
 import util.opt : force, has, Opt, some;
-import util.string : eachChar, CString;
-import util.symbol : AllSymbols;
+import util.string : CString, cString, eachChar;
+import util.symbol : addExtension, AllSymbols, cStringOfSymbol, Extension, Symbol, symbol, writeSymbol;
 import util.union_ : Union;
-import util.util : abs, castNonScope, castNonScope_ref, ptrTrustMe, stringOfEnum;
+import util.uri : AllUris, asFileUri, childFileUri, cStringOfFileUri, FileUri, isFileUri, writeFileUri;
+import util.util : abs, castNonScope, castNonScope_ref, ptrTrustMe, stringOfEnum, todo;
 import util.writer :
 	withWriter,
 	writeEscapedChar_inner,
@@ -68,21 +74,58 @@ import util.writer :
 	writeNewline,
 	Writer,
 	writeWithCommas,
-	writeWithCommasZip;
+	writeWithCommasZip,
+	writeWithSpaces;
+import versionInfo : isWindows;
 
-CString writeToC(ref Alloc alloc, ref TempAlloc tempAlloc, in ShowCtx printCtx, in LowProgram program) =>
-	withWriter(alloc, (scope ref Writer writer) {
+immutable struct PathAndArgs {
+	FileUri path;
+	CString[] args;
+}
+
+immutable struct WriteToCResult {
+	PathAndArgs compileCommand;
+	CString cSource;
+}
+
+immutable struct WriteToCParams {
+	FileUri cCompiler;
+	FileUri cUri;
+	FileUri exeUri;
+	CCompileOptions compileOptions;
+}
+
+WriteToCResult writeToC(
+	ref Alloc alloc,
+	scope ref AllSymbols allSymbols,
+	scope ref AllUris allUris,
+	in ShowCtx printCtx,
+	in LowProgram program,
+	in WriteToCParams params,
+) {
+	bool isMSVC = isWindows(program.version_);
+	CString[] args = cCompileArgs(alloc, allSymbols, allUris, program.externLibraries, isMSVC, params);
+	CString content = withWriter(alloc, (scope ref Writer writer) {
+		writer ~= "/* /";
+		writeFileUri(writer, allUris, params.cCompiler);
+		writer ~= ' ';
+		writeWithSpaces!CString(writer, args, (in CString arg) { writer ~= arg; });
+		writer ~= " */\n\n";
+
 		writer ~= "#include <math.h>\n"; // for e.g. 'sin'
 		writer ~= "#include <stddef.h>\n"; // for NULL
 		writer ~= "#include <stdint.h>\n";
-		version (Windows) {
+		if (isMSVC) {
 			writer ~= "unsigned short __popcnt16(unsigned short value);\n";
 			writer ~= "unsigned int __popcnt(unsigned int value);\n";
 			writer ~= "unsigned __int64 __popcnt64(unsigned __int64 value);\n";
 		}
 
 		Ctx ctx = Ctx(
-			ptrTrustMe(printCtx), ptrTrustMe(program), buildMangledNames(alloc, printCtx.allSymbolsPtr, program));
+			ptrTrustMe(printCtx),
+			ptrTrustMe(program),
+			buildMangledNames(alloc, printCtx.allSymbolsPtr, program),
+			isMSVC: isMSVC);
 
 		writeStructs(alloc, writer, ctx);
 
@@ -96,11 +139,135 @@ CString writeToC(ref Alloc alloc, ref TempAlloc tempAlloc, in ShowCtx printCtx, 
 		fullIndexMapEach!(LowFunIndex, LowFun)(
 			program.allFuns,
 			(LowFunIndex funIndex, ref LowFun fun) {
-				writeFunDefinition(writer, tempAlloc, ctx, funIndex, fun);
+				writeFunDefinition(writer, alloc, ctx, funIndex, fun);
 			});
 	});
+	return WriteToCResult(PathAndArgs(params.cCompiler, args), content);
+}
+
+public void getLinkOptions(
+	ref Alloc alloc,
+	scope ref AllSymbols allSymbols,
+	scope ref AllUris allUris,
+	bool isMSVC,
+	in ExternLibraries externLibraries,
+	in void delegate(CString) @safe @nogc pure nothrow cb,
+) {
+	if (isMSVC)
+		cb(cString!"/link");
+	foreach (ExternLibrary x; externLibraries) {
+		if (isMSVC) {
+			Symbol xDotLib = addExtension(allSymbols, x.libraryName, Extension.lib);
+			if (has(x.configuredDir)) {
+				if (!isFileUri(allUris, force(x.configuredDir)))
+					todo!void("diagnostic: can't link to non-file");
+				cb(cStringOfFileUri(
+					alloc, allUris,
+					childFileUri(allUris, asFileUri(allUris, force(x.configuredDir)), xDotLib)));
+			} else
+				switch (x.libraryName.value) {
+					case symbol!"c".value:
+					case symbol!"m".value:
+						break;
+					default:
+						cb(cStringOfSymbol(alloc, allSymbols, xDotLib));
+						break;
+				}
+		} else {
+			if (has(x.configuredDir)) {
+				cb(withWriter(alloc, (scope ref Writer writer) {
+					writer ~= "-L/";
+					if (!isFileUri(allUris, force(x.configuredDir)))
+						todo!void("diagnostic: can't link to non-file");
+					writeFileUri(writer, allUris, asFileUri(allUris, force(x.configuredDir)));
+				}));
+			}
+
+			cb(withWriter(alloc, (scope ref Writer writer) {
+				writer ~= "-l";
+				writeSymbol(writer, allSymbols, x.libraryName);
+			}));
+		}
+	}
+}
 
 private:
+
+CString[] cCompileArgs(
+	ref Alloc alloc,
+	scope ref AllSymbols allSymbols,
+	scope ref AllUris allUris,
+	in ExternLibraries externLibraries,
+	bool isMSVC,
+	in WriteToCParams params,
+) =>
+	buildArray(alloc, (scope ref Builder!CString args) {
+		args ~= cCompilerArgs(isMSVC, params.compileOptions);
+		args ~= cStringOfFileUri(alloc, allUris, params.cUri);
+		getLinkOptions(alloc, allSymbols, allUris, isMSVC, externLibraries, (CString x) { args ~= x; });
+		if (isMSVC) {
+			args ~= [
+				cString!"/DEBUG",
+				withWriter(alloc, (scope ref Writer writer) {
+					writer ~= "/out:";
+					writeFileUri(writer, allUris, params.exeUri);
+				}),
+			];
+		} else {
+			args ~= [cString!"-o", cStringOfFileUri(alloc, allUris, params.exeUri)];
+		}
+	});
+
+CString[] cCompilerArgs(bool isMSVC, in CCompileOptions options) {
+	if (isMSVC) {
+		static immutable CString[] optimizedArgs = [
+			cString!"/Zi",
+			cString!"/std:c17",
+			cString!"/Wall",
+			cString!"/wd4034",
+			cString!"/wd4098",
+			cString!"/wd4100",
+			cString!"/wd4295",
+			cString!"/wd4820",
+			cString!"/WX",
+			cString!"/O2",
+		];
+		static immutable CString[] regularArgs = optimizedArgs[0 .. $ - 1];
+		final switch (options.optimizationLevel) {
+			case OptimizationLevel.none:
+				return regularArgs;
+			case OptimizationLevel.o2:
+				return optimizedArgs;
+		}
+	} else {
+		static immutable CString[] optimizedArgs = [
+			cString!"-Werror",
+			cString!"-Wextra",
+			cString!"-Wall",
+			cString!"-ansi",
+			cString!"-std=c17",
+			cString!"-Wno-address-of-packed-member",
+			cString!"-Wno-builtin-declaration-mismatch",
+			cString!"-Wno-div-by-zero",
+			cString!"-Wno-maybe-uninitialized",
+			cString!"-Wno-missing-field-initializers",
+			cString!"-Wno-unused-but-set-parameter",
+			cString!"-Wno-unused-but-set-variable",
+			cString!"-Wno-unused-function",
+			cString!"-Wno-unused-parameter",
+			cString!"-Wno-unused-variable",
+			cString!"-Wno-unused-value",
+			cString!"-Ofast",
+		];
+		static immutable CString[] regularArgs = optimizedArgs[0 .. $ - 1] ~ [cString!"-g"];
+		final switch (options.optimizationLevel) {
+			case OptimizationLevel.none:
+				return regularArgs;
+			case OptimizationLevel.o2:
+				return optimizedArgs;
+		}
+	}
+}
 
 void writeConstants(scope ref Writer writer, scope ref Ctx ctx, in AllConstantsLow allConstants) {
 	foreach (ref ArrTypeAndConstantsLow a; allConstants.arrs) {
@@ -162,11 +329,7 @@ void writeVars(scope ref Writer writer, scope ref Ctx ctx, in immutable FullInde
 				case LowVar.Kind.global:
 					return "static ";
 				case LowVar.Kind.threadLocal:
-					version (Windows) {
-						return "static __declspec(thread) ";
-					} else {
-						return "static _Thread_local ";
-					}
+					return ctx.isMSVC ? "static __declspec(thread) " : "static _Thread_local ";
 			}
 		}();
 		writeType(writer, ctx, var.type);
@@ -210,6 +373,7 @@ const struct Ctx {
 	ShowCtx* showDiagCtxPtr;
 	LowProgram* programPtr;
 	MangledNames mangledNames;
+	bool isMSVC;
 
 	ref ShowCtx printCtx() return scope =>
 		*showDiagCtxPtr;
@@ -313,11 +477,8 @@ bool isEmptyType(in FunBodyCtx ctx, in LowType a) =>
 	isEmptyType(ctx.ctx, a);
 
 void writeRecord(scope ref Writer writer, scope ref Ctx ctx, in LowRecord a) {
-	if (a.packed) {
-		version (Windows) {
-			writer ~= "__pragma(pack(push, 1))\n";
-		}
-	}
+	if (a.packed && ctx.isMSVC)
+		writer ~= "__pragma(pack(push, 1))\n";
 	writeStructHead(writer, ctx, a.source);
 	foreach (ref LowField field; a.fields) {
 		if (!isEmptyType(ctx, field.type)) {
@@ -329,13 +490,8 @@ void writeRecord(scope ref Writer writer, scope ref Ctx ctx, in LowRecord a) {
 		}
 	}
 	writer ~= "\n}";
-	if (a.packed) {
-		version (Windows) {
-			writer ~= "__pragma(pack(pop))";
-		} else {
-			writer ~= " __attribute__ ((__packed__))";
-		}
-	}
+	if (a.packed)
+		writer ~= ctx.isMSVC ? "__pragma(pack(pop))" : " __attribute__ ((__packed__))";
 	writer ~= ";\n";
 }
 
@@ -1098,13 +1254,11 @@ void writeDefaultAbort(
 	writer ~= "default:";
 	writeNewline(writer, indent + 2);
 	writer ~= "abort();";
-	version (Windows) {
-		if (!isEmptyType(ctx, type)) {
-			cast(void) writeInlineableSimple(writer, indent, ctx, locals, writeKind, type, () {
-				writeZeroedValue(writer, ctx.ctx, type);
-			});
-			writer ~= ';';
-		}
+	if (ctx.ctx.isMSVC && !isEmptyType(ctx, type)) {
+		cast(void) writeInlineableSimple(writer, indent, ctx, locals, writeKind, type, () {
+			writeZeroedValue(writer, ctx.ctx, type);
+		});
+		writer ~= ';';
 	}
 }
 
@@ -1211,7 +1365,7 @@ void writeConstantRef(
 			writer ~= '}';
 		},
 		(in Constant.CString x) {
-			writeStringLiteral(writer, ctx.program.allConstants.cStrings[x.index]);
+			writeStringLiteral(writer, ctx.isMSVC, ctx.program.allConstants.cStrings[x.index]);
 		},
 		(in Constant.Float x) {
 			switch (type.as!PrimitiveType) {
@@ -1294,17 +1448,19 @@ void writeConstantRef(
 		});
 }
 
-void writeStringLiteral(scope ref Writer writer, in CString a) {
+void writeStringLiteral(scope ref Writer writer, bool isMSVC, in CString a) {
 	writer ~= '"';
 	size_t chunk = 0;
 	eachChar(a, (char c) {
 		writeEscapedChar_inner(writer, c);
-		chunk++;
-		// Avoid error on Windows: "error C2026: string too big, trailing characters truncated"
-		if (chunk == 2048) {
-			writer ~= '"';
-			writer ~= '"';
-			chunk = 0;
+		if (isMSVC) {
+			// Avoid error with MSVC: "error C2026: string too big, trailing characters truncated"
+			chunk++;
+			if (chunk == 2048) {
+				writer ~= '"';
+				writer ~= '"';
+				chunk = 0;
+			}
 		}
 	});
 	writer ~= '"';
@@ -1416,11 +1572,7 @@ WriteExprResult writeSpecialUnary(
 		case BuiltinUnary.bitwiseNotNat64:
 			return prefix("~");
 		case BuiltinUnary.countOnesNat64:
-			version (Windows) {
-				immutable string name = "__popcnt64";
-			} else {
-				immutable string name = "__builtin_popcountl";
-			}
+			string name = ctx.ctx.isMSVC ? "__popcnt64" : "__builtin_popcountl";
 			return specialCallUnary(writer, indent, ctx, locals, writeKind, type, a.arg, name);
 	}
 }

@@ -165,6 +165,10 @@ void writeWithCommasZip(T, U)(
 	});
 }
 
+void writeWithSpaces(T)(scope ref Writer writer, in T[] a, in void delegate(in T) @safe @nogc pure nothrow cb) {
+	writeWithSeparator!T(writer, a, " ", cb);
+}
+
 void writeWithNewlines(T)(scope ref Writer writer, in T[] a, in void delegate(in T) @safe @nogc pure nothrow cb) {
 	writeWithSeparator!T(writer, a, "\n", cb);
 }

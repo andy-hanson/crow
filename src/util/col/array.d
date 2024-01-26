@@ -542,15 +542,6 @@ T fold(T, U)(T start, in U[] arr, in T delegate(T a, in U b) @safe @nogc pure no
 		? start
 		: fold!(T, U)(cb(start, arr[0]), arr[1 .. $], cb);
 
-Opt!T foldOrStop(T, U)(T start, in U[] arr, in Opt!T delegate(T a, ref U b) @safe @nogc pure nothrow cb) {
-	if (isEmpty(arr))
-		return some(start);
-	else {
-		Opt!T next = cb(start, arr[0]);
-		return has(next) ? foldOrStop!(T, U)(force(next), arr[1 .. $], cb) : none!T;
-	}
-}
-
 N max(N, T)(N start, in T[] a, in N delegate(in T) @safe @nogc pure nothrow cb) =>
 	fold!(N, T)(start, a, (N curMax, in T x) => .max(curMax, cb(x)));
 

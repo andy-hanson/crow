@@ -2,21 +2,33 @@ module lib.cliParser;
 
 @safe @nogc pure nothrow:
 
-import frontend.lang : cExtension, crowExtension, JitOptions, OptimizationLevel;
+import frontend.lang : JitOptions, OptimizationLevel;
 import frontend.parse.lexToken : takeNat;
 import frontend.parse.lexUtil : isDecimalDigit, startsWith, tryTakeChar;
 import model.ast : LiteralNatAst;
 import util.alloc.alloc : Alloc;
-import util.col.array : copyArray, findIndex, foldOrStop, isEmpty, mapOrNone, only;
+import util.cell : Cell, cellGet, cellSet;
+import util.col.array : copyArray, findIndex, isEmpty, mapOrNone, only;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.conv : isUint, safeToUint;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.sourceRange : LineAndColumn;
 import util.string : CString, cString, MutCString, stringOfCString;
-import util.symbol : Symbol, symbol;
-import util.union_ : TaggedUnion, Union;
-import util.uri : addExtension, alterExtension, AllUris, getExtension, parseUriWithCwd, Uri;
+import util.symbol : Extension;
+import util.union_ : Union;
+import util.uri :
+	addExtension,
+	alterExtension,
+	AllUris,
+	asFileUri,
+	FileUri,
+	getExtension,
+	isFileUri,
+	parseFileUriWithCwd,
+	parseUriWithCwd,
+	Uri;
 import util.util : castNonScope, optEnumOfString, todo;
+import versionInfo : OS;
 
 immutable struct Command {
 	CommandKind kind;
@@ -81,7 +93,7 @@ immutable struct RunOptions {
 	}
 	immutable struct Aot {
 		CCompileOptions compileOptions;
-		ulong _padding; // Avoid doing the work for a TaggedUnion
+		Extension defaultExeExtension;
 	}
 	mixin Union!(Interpret, Jit, Aot);
 }
@@ -91,31 +103,27 @@ immutable struct BuildOptions {
 	CCompileOptions cCompileOptions;
 }
 
-private BuildOptions withBuildOut(BuildOptions a, BuildOut value) =>
-	BuildOptions(value, a.cCompileOptions);
-
-private BuildOptions withCCompileOptions(BuildOptions a, CCompileOptions value) =>
-	BuildOptions(a.out_, value);
-
 immutable struct CCompileOptions {
 	OptimizationLevel optimizationLevel;
 }
 
 immutable struct BuildOut {
-	Opt!Uri outC;
-	Opt!Uri outExecutable;
+	Opt!FileUri outC;
+	bool shouldBuildExecutable;
+	// If 'shouldBuildExecutable' is not set, this is hypothetical (used for comment at top of C file)
+	Opt!FileUri outExecutable;
 }
 
 bool hasAnyOut(in BuildOut a) =>
-	has(a.outC) || has(a.outExecutable);
+	has(a.outC) || a.shouldBuildExecutable;
 
-Command parseCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in CString[] args) {
+Command parseCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, OS os, in CString[] args) {
 	if (isEmpty(args))
 		return Command(CommandKind(CommandKind.Help(helpAllText)));
 	else {
 		SplitArgsAndOptions split = splitArgs(alloc, args[1 .. $]);
 		return Command(
-			parseCommandKind(alloc, allUris, cwd, stringOfCString(args[0]), split.args),
+			parseCommandKind(alloc, allUris, cwd, os, stringOfCString(args[0]), split.args),
 			split.options);
 	}
 }
@@ -126,12 +134,14 @@ CommandKind parseCommandKind(
 	ref Alloc alloc,
 	scope ref AllUris allUris,
 	Uri cwd,
+	OS os,
 	in string commandName,
 	in SplitArgs args,
 ) {
+	Extension defaultExeExtension = getDefaultExeExtension(os);
 	switch (commandName) {
 		case "build":
-			return parseBuildCommand(alloc, allUris, cwd, args);
+			return parseBuildCommand(alloc, allUris, cwd, defaultExeExtension, args);
 		case "document":
 			return parseDocumentCommand(alloc, allUris, cwd, args);
 		case "lsp":
@@ -141,7 +151,7 @@ CommandKind parseCommandKind(
 		case "print":
 			return parsePrintCommand(alloc, allUris, cwd, args);
 		case "run":
-			return parseRunCommand(alloc, allUris, cwd, args);
+			return parseRunCommand(alloc, allUris, cwd, defaultExeExtension, args);
 		case "test":
 			return !args.help && isEmpty(args.parts) && isEmpty(args.afterDashDash)
 				? CommandKind(CommandKind.Test(copyArray(alloc, args.beforeFirstPart)))
@@ -155,16 +165,19 @@ CommandKind parseCommandKind(
 	}
 }
 
-public Symbol defaultExeExtension() {
-	version (Windows) {
-		return symbol!".exe";
-	} else {
-		return symbol!"";
+Extension getDefaultExeExtension(OS os) {
+	final switch (os) {
+		case OS.linux:
+			return Extension.none;
+		case OS.web:
+			assert(false);
+		case OS.windows:
+			return Extension.exe;
 	}
 }
 
 BuildOut emptyBuildOut() =>
-	BuildOut(none!Uri, none!Uri);
+	BuildOut(none!FileUri, false, none!FileUri);
 
 CommandKind withMainUri(
 	ref Alloc alloc,
@@ -190,10 +203,10 @@ CommandKind withRootUris(
 
 Opt!Uri tryParseCrowUri(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in CString arg) {
 	Uri uri = parseUriWithCwd(allUris, cwd, arg);
-	switch (getExtension(allUris, uri).value) {
-		case symbol!"".value:
-			return some(addExtension!crowExtension(allUris, uri));
-		case crowExtension.value:
+	switch (getExtension(allUris, uri)) {
+		case Extension.none:
+			return some(addExtension(allUris, uri, Extension.crow));
+		case Extension.crow:
 			return some(uri);
 		default:
 			return none!Uri;
@@ -282,7 +295,13 @@ CommandKind parseDocumentCommand(ref Alloc alloc, scope ref AllUris allUris, Uri
 				: helpDocument);
 }
 
-CommandKind parseBuildCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in SplitArgs args) {
+CommandKind parseBuildCommand(
+	ref Alloc alloc,
+	scope ref AllUris allUris,
+	Uri cwd,
+	Extension defaultExeExtension,
+	in SplitArgs args,
+) {
 	CommandKind helpBuild = CommandKind(CommandKind.Help(helpBuildText, args.help));
 	return args.help || args.beforeFirstPart.length != 1
 		? helpBuild
@@ -292,15 +311,22 @@ CommandKind parseBuildCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cw
 			cwd,
 			only(args.beforeFirstPart),
 			(Uri main) {
-				Opt!BuildOptions options = parseBuildOptions(alloc, allUris, cwd, args.parts, main);
+				Opt!BuildOptions options = parseBuildOptions(
+					alloc, allUris, cwd, defaultExeExtension, args.parts, main);
 				return has(options) && isEmpty(args.afterDashDash)
 					? CommandKind(CommandKind.Build(main, force(options)))
 					: helpBuild;
 			});
 }
 
-CommandKind parseRunCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in SplitArgs args) {
-	Opt!RunOptions options = parseRunOptions(alloc, allUris, args.parts);
+CommandKind parseRunCommand(
+	ref Alloc alloc,
+	scope ref AllUris allUris,
+	Uri cwd,
+	Extension defaultExeExtension,
+	in SplitArgs args,
+) {
+	Opt!RunOptions options = parseRunOptions(alloc, allUris, defaultExeExtension, args.parts);
 	return !args.help && args.beforeFirstPart.length == 1 && has(options)
 		? withMainUri(
 			alloc,
@@ -312,7 +338,12 @@ CommandKind parseRunCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd,
 		: CommandKind(CommandKind.Help(helpRunText, args.help));
 }
 
-Opt!RunOptions parseRunOptions(ref Alloc alloc, scope ref AllUris allUris, in ArgsPart[] argParts) {
+Opt!RunOptions parseRunOptions(
+	ref Alloc alloc,
+	scope ref AllUris allUris,
+	Extension defaultExeExtension,
+	in ArgsPart[] argParts,
+) {
 	bool aot = false;
 	bool jit = false;
 	bool optimize = false;
@@ -334,7 +365,9 @@ Opt!RunOptions parseRunOptions(ref Alloc alloc, scope ref AllUris allUris, in Ar
 	if (aot)
 		return jit
 			? none!RunOptions
-			: some(RunOptions(RunOptions.Aot(optimize ? CCompileOptions(OptimizationLevel.o2) : CCompileOptions())));
+			: some(RunOptions(RunOptions.Aot(
+				optimize ? CCompileOptions(OptimizationLevel.o2) : CCompileOptions(),
+				defaultExeExtension)));
 	else if (jit)
 		return aot
 			? none!RunOptions
@@ -349,52 +382,97 @@ Opt!BuildOptions parseBuildOptions(
 	ref Alloc alloc,
 	scope ref AllUris allUris,
 	Uri cwd,
+	Extension defaultExeExtension,
 	in ArgsPart[] argParts,
 	Uri mainUri,
-) =>
-	foldOrStop!(BuildOptions, ArgsPart)(
-		// Default: unoptimized, compiled next to the source file
-		BuildOptions(
-			BuildOut(none!Uri, some(alterExtension!defaultExeExtension(allUris, mainUri))),
-			CCompileOptions(OptimizationLevel.none)),
-		argParts,
-		(BuildOptions cur, ref ArgsPart part) {
-			switch (stringOfCString(part.tag)) {
-				case "--out":
-					Opt!BuildOut buildOut = parseBuildOut(alloc, allUris, cwd, part.args);
-					return has(buildOut) ? some(withBuildOut(cur, force(buildOut))) : none!BuildOptions;
-				case "--no-out":
-					return isEmpty(part.args)
-						? some(withBuildOut(cur, BuildOut(none!Uri, none!Uri)))
-						: none!BuildOptions;
-				case "--optimize":
-					return isEmpty(part.args)
-						? some(withCCompileOptions(cur, CCompileOptions(OptimizationLevel.o2)))
-						: none!BuildOptions;
-				default:
-					return none!BuildOptions;
-			}
-		});
+) {
+	Cell!(Opt!BuildOut) out_;
+	bool optimize = false;
+	bool noOut = false;
+	bool error = false;
+	foreach (ArgsPart part; argParts) {
+		switch (stringOfCString(part.tag)) {
+			case "--out":
+				if (has(cellGet(out_)))
+					error = true;
+				else
+					cellSet(out_, some(parseBuildOut(alloc, allUris, cwd, defaultExeExtension, part.args, error)));
+				break;
+			case "--no-out":
+				error = error || noOut || !isEmpty(part.args);
+				noOut = true;
+				break;
+			case "--optimize":
+				error = error || optimize || !isEmpty(part.args);
+				optimize = true;
+				break;
+			default:
+				error = true;
+		}
+	}
 
-Opt!BuildOut parseBuildOut(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in CString[] args) =>
-	foldOrStop!(BuildOut, CString)(
-		emptyBuildOut(),
-		args,
-		(BuildOut o, ref CString arg) {
-			Uri uri = parseUriWithCwd(allUris, cwd, arg);
-			switch (getExtension(allUris, uri).value) {
-				case symbol!"".value:
-					return has(o.outExecutable)
-						? none!BuildOut
-						: some(BuildOut(o.outC, some(uri)));
-				case cExtension.value:
-					return has(o.outC)
-						? none!BuildOut
-						: some(BuildOut(some(uri), o.outExecutable));
-				default:
-					return none!BuildOut;
-			}
-		});
+	CCompileOptions options = CCompileOptions(optimize ? OptimizationLevel.o2 : OptimizationLevel.none);
+	error = error || ((has(cellGet(out_)) || optimize) && noOut);
+	if (error)
+		return none!BuildOptions;
+	else if (noOut)
+		return some(BuildOptions(emptyBuildOut, CCompileOptions()));
+	else {
+		if (has(cellGet(out_)))
+			return some(BuildOptions(force(cellGet(out_)), options));
+		else if (isFileUri(allUris, mainUri))
+			return some(BuildOptions(
+				BuildOut(
+					outC: none!FileUri,
+					shouldBuildExecutable: true,
+					outExecutable: some(defaultExeUri(allUris, asFileUri(allUris, mainUri), defaultExeExtension))),
+				options));
+		else
+			return none!BuildOptions;
+	}
+}
+
+BuildOut parseBuildOut(
+	ref Alloc alloc,
+	scope ref AllUris allUris,
+	Uri cwd,
+	Extension defaultExeExtension,
+	in CString[] args,
+	ref bool error,
+) {
+	Cell!(Opt!FileUri) outC;
+	Cell!(Opt!FileUri) outExe;
+	foreach (CString arg; args) {
+		Opt!FileUri opt = parseFileUriWithCwd(allUris, cwd, arg);
+		if (has(opt)) {
+			FileUri uri = force(opt);
+			Extension extension = getExtension(allUris, uri);
+			if (extension == defaultExeExtension) {
+				error = error || has(cellGet(outExe));
+				cellSet(outExe, some(uri));
+			} else if (extension == Extension.c) {
+				error = error || has(cellGet(outC));
+				cellSet(outC, some(uri));
+			} else
+				error = true;
+		} else
+			error = true;
+	}
+	if (has(cellGet(outC)) || has(cellGet(outExe)))
+		return BuildOut(
+			outC: cellGet(outC),
+			shouldBuildExecutable: has(cellGet(outExe)),
+			outExecutable: some(has(cellGet(outExe))
+				? force(cellGet(outExe))
+				: defaultExeUri(allUris, force(cellGet(outC)), defaultExeExtension)));
+	else {
+		error = true;
+		return emptyBuildOut;
+	}
+}
+
+FileUri defaultExeUri(scope ref AllUris allUris, FileUri base, Extension defaultExeExtension) =>
+	alterExtension(allUris, base, defaultExeExtension);
 
 immutable struct ArgsPart {
 	CString tag; // includes the "--"

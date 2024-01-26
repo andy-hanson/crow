@@ -35,7 +35,7 @@ import util.late : Late, late, lateGet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
 import util.string : CString, cString;
-import util.symbol : AllSymbols, concatSymbols, Symbol, symbol, symbolAsTempBuffer;
+import util.symbol : addExtension, addPrefixAndExtension, AllSymbols, Symbol, symbol, symbolAsTempBuffer;
 import util.uri : AllUris, asFileUri, childUri, fileUriToTempStr, isFileUri, TempStrForPath, Uri;
 
 @trusted ExitCode withRealExtern(
@@ -123,12 +123,11 @@ LibraryAndError getLibrary(
 	}
 }
 
-Symbol dllOrSoName(ref AllSymbols allSymbols, immutable Symbol libraryName) {
-	version (Windows) {
-		return concatSymbols(allSymbols, [libraryName, symbol!".dll"]);
-	} else {
-		return concatSymbols(allSymbols, [symbol!"lib", libraryName, symbol!".so"]);
-	}
+Symbol dllOrSoName(scope ref AllSymbols allSymbols, immutable Symbol libraryName) {
+	version (Windows)
+		return addExtension(allSymbols, libraryName, ".dll");
+	else
+		return addPrefixAndExtension(allSymbols, "lib", libraryName, ".so");
 }
 
 @trusted Opt!(DLLib*) tryLoadLibraryFromUri(ref AllUris allUris, Uri uri) {

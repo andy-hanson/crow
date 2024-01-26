@@ -169,6 +169,7 @@ private LowProgram lowerInner(
 	AllLowFuns allFuns = getAllLowFuns(allTypes.allTypes, allTypes.getLowTypeCtx, configExtern, a, vars);
 	AllConstantsLow allConstants = convertAllConstants(allTypes.getLowTypeCtx, a.allConstants);
 	LowProgram res = LowProgram(
+		a.version_,
 		allFuns.concreteFunToLowFunIndex,
 		allConstants,
 		vars,

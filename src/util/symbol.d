@@ -8,13 +8,13 @@ import util.alloc.alloc : Alloc;
 import util.col.array : only;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : mustAdd, MutMap, size;
-import util.col.mutMaxArr : asTemporaryArray, clear, MutMaxArr, mutMaxArr;
+import util.col.mutMaxArr : asTemporaryArray, MutMaxArr, mutMaxArr;
 import util.conv : safeToSizeT;
 import util.hash : HashCode, hashUlong;
-import util.opt : force, has, Opt, none, some;
-import util.string : copyToCString, eachChar, CString, stringsEqual, stringOfCString;
-import util.util : assertNormalEnum, castNonScope_ref;
-import util.writer : digitChar, withWriter, writeEscapedChar, Writer;
+import util.opt : force, has, MutOpt, Opt, none, noneMut, some, someMut;
+import util.string : copyToCString, eachChar, CString, MutCString, stringsEqual, stringOfCString;
+import util.util : assertNormalEnum, castNonScope_ref, optEnumOfString, stringOfEnum;
+import util.writer : digitChar, withStackWriter, withWriter, writeEscapedChar, Writer;
 
 immutable struct Symbol {
 	@safe @nogc pure nothrow:
@@ -76,18 +76,22 @@ Symbol appendHexExtension(ref AllSymbols allSymbols, Symbol a, in ubyte[] bytes)
 	return symbolOfString(allSymbols, asTemporaryArray(res));
 }
 
-Symbol addExtension(Symbol extension)(ref AllSymbols allSymbols, Symbol a) {
-	static if (extension == symbol!"")
-		return a;
-	else
-		return appendToLongStr!extension(allSymbols, a);
+Symbol addExtension(scope ref AllSymbols allSymbols, Symbol a, Extension extension) {
+	assert(extension != Extension.other);
+	return extension == Extension.none
+		? a
+		: makeLongSymbol(allSymbols, (scope ref Writer writer) {
+			writeSymbol(writer, allSymbols, a);
+			writer ~= '.';
+			writer ~= stringOfEnum(extension);
+		});
 }
 
-Symbol alterExtension(Symbol extension)(ref AllSymbols allSymbols, Symbol a) =>
-	addExtension!extension(allSymbols, removeExtension(allSymbols, a));
+Symbol alterExtension(scope ref AllSymbols allSymbols, Symbol a, Extension extension) =>
+	addExtension(allSymbols, removeExtension(allSymbols, a), extension);
 
 // TODO:PERF This could be cached (with getExtension)
-Symbol removeExtension(ref AllSymbols allSymbols, Symbol a) {
+Symbol removeExtension(scope ref AllSymbols allSymbols, Symbol a) {
 	MutMaxArr!(0x100, immutable char) res = mutMaxArr!(0x100, immutable char);
 	bool hasDot = false;
 	eachCharInSymbol(allSymbols, a, (char x) {
@@ -101,19 +105,39 @@ Symbol removeExtension(ref AllSymbols allSymbols, Symbol a) {
 	return symbolOfString(allSymbols, asTemporaryArray(res));
 }
 
+enum Extension {
+	c,
+	crow,
+	exe,
+	json,
+	lib,
+	none, // ""
+	other,
+}
+
 // TODO:PERF This could be cached (with removeExtension)
-Symbol getExtension(ref AllSymbols allSymbols, Symbol a) {
-	MutMaxArr!(0x100, immutable char) res = mutMaxArr!(0x100, immutable char);
-	bool hasDot = false;
-	eachCharInSymbol(allSymbols, a, (char x) {
-		if (x == '.') {
-			hasDot = true;
-			clear(res);
+Extension getExtension(ref AllSymbols allSymbols, Symbol a) {
+	if (isShortSymbol(a))
+		// Since only a long symbol can have a '.'
+		return Extension.none;
+	else {
+		MutCString s = asLongSymbol(allSymbols, a);
+		MutOpt!MutCString lastDot = noneMut!MutCString;
+		while (*s != '\0') {
+			if (*s == '.')
+				lastDot = someMut(s);
+			s++;
 		}
-		if (hasDot)
-			res ~= x;
-	});
-	return symbolOfString(allSymbols, asTemporaryArray(res));
+		if (has(lastDot)) {
+			MutCString ext = force(lastDot);
+			ext++;
+			Opt!Extension res = optEnumOfString!Extension(stringOfCString(ext));
+			return has(res)
+				? (force(res) == Extension.none ? Extension.other : force(res))
+				: Extension.other;
+		} else
+			return Extension.none;
+	}
 }
 
 bool hasExtension(in AllSymbols allSymbols, Symbol a) {
@@ -126,58 +150,53 @@ bool hasExtension(in AllSymbols allSymbols, Symbol a) {
 
 Symbol prependSet(ref AllSymbols allSymbols, Symbol a) {
 	Opt!Symbol short_ = tryPrefixShortSymbolWithSet(a);
-	return has(short_) ? force(short_) : prependToLongStr!"set-"(allSymbols, a);
+	return has(short_) ? force(short_) : prependToLongString(allSymbols, "set-", a);
 }
 
-Symbol prependSetDeref(ref AllSymbols allSymbols, Symbol a) {
-	return prependToLongStr!"set-deref-"(allSymbols, a);
-}
+Symbol prependSetDeref(ref AllSymbols allSymbols, Symbol a) =>
+	prependToLongString(allSymbols, "set-deref-", a);
 
 Symbol appendEquals(ref AllSymbols allSymbols, Symbol a) =>
-	appendToLongStr!(symbol!"=")(allSymbols, a);
+	appendToLongString(allSymbols, a, "=");
 
-private @trusted Symbol prependToLongStr(string prepend)(ref AllSymbols allSymbols, Symbol a) {
-	char[0x100] temp = void;
-	temp[0 .. prepend.length] = prepend;
-	size_t i = prepend.length;
-	eachCharInSymbol(allSymbols, a, (char x) {
-		temp[i] = x;
-		i++;
-		assert(i <= temp.length);
+private Symbol prependToLongString(ref AllSymbols allSymbols, in string prepend, Symbol a) =>
+	makeLongSymbol(allSymbols, (scope ref Writer writer) {
+		writer ~= prepend;
+		writeSymbol(writer, allSymbols, a);
 	});
-	return getSymbolFromLongStr(allSymbols, cast(immutable) temp[0 .. i]);
-}
 
-private @trusted Symbol appendToLongStr(Symbol append)(ref AllSymbols allSymbols, Symbol a) {
-	char[0x100] temp = void;
-	size_t i = 0;
-	foreach (Symbol symbol; [a, append])
-		eachCharInSymbol(allSymbols, symbol, (char x) {
-			temp[i] = x;
-			i++;
-			assert(i <= temp.length);
-		});
-	return getSymbolFromLongStr(allSymbols, cast(immutable) temp[0 .. i]);
-}
+private Symbol appendToLongString(ref AllSymbols allSymbols, Symbol a, in string append) =>
+	makeLongSymbol(allSymbols, (scope ref Writer writer) {
+		writeSymbol(writer, allSymbols, a);
+		writer ~= append;
+	});
+
+// Only use for things that can't possibly be short symbols (for exapmle, if they always have a '.')
+private Symbol makeLongSymbol(
+	scope ref AllSymbols allSymbols,
+	in void delegate(scope ref Writer) @safe @nogc pure nothrow cb,
+) =>
+	getSymbolFromLongString(allSymbols, stringOfCString(withStackWriter((scope ref Alloc _, scope ref Writer writer) {
+		cb(writer);
+	})));
 
 Symbol concatSymbolsWithDot(ref AllSymbols allSymbols, Symbol a, Symbol b) =>
-	concatSymbols(allSymbols, [a, symbol!".", b]);
+	makeLongSymbol(allSymbols, (scope ref Writer writer) {
+		writeSymbol(writer, allSymbols, a);
+		writer ~= '.';
+		writeSymbol(writer, allSymbols, b);
+	});
 
-@trusted Symbol concatSymbols(ref AllSymbols allSymbols, scope Symbol[] symbols) {
-	char[0x100] temp = void;
-	size_t i = 0;
-	foreach (Symbol s; symbols)
-		eachCharInSymbol(allSymbols, s, (char x) {
-			temp[i] = x;
-			i++;
-			assert(i <= temp.length);
-		});
-	return symbolOfString(allSymbols, cast(immutable) temp[0 .. i]);
-}
+Symbol addPrefixAndExtension(scope ref AllSymbols allSymbols, string prefix, Symbol b, string extension) =>
+	makeLongSymbol(allSymbols, (scope ref Writer writer) {
+		writer ~= prefix;
+		writeSymbol(writer, allSymbols, b);
+		writer ~= extension;
+	});
 
 Symbol symbolOfString(ref AllSymbols allSymbols, in string str) {
 	Opt!Symbol packed = tryPackShortSymbol(str);
-	return has(packed) ? force(packed) : getSymbolFromLongStr(allSymbols, str);
+	return has(packed) ? force(packed) : getSymbolFromLongString(allSymbols, str);
 }
 
 void eachCharInSymbol(in AllSymbols allSymbols, Symbol a, in void delegate(char) @safe @nogc pure nothrow cb) {
@@ -382,7 +401,7 @@ public bool isLongSymbol(Symbol a) =>
 	return allSymbols.largeStringFromIndex[safeToSizeT(a.value)];
 }
 
-Symbol getSymbolFromLongStr(ref AllSymbols allSymbols, in string str) {
+Symbol getSymbolFromLongString(ref AllSymbols allSymbols, in string str) {
 	Opt!Symbol value = allSymbols.largeStringToIndex[str];
 	return has(value) ? force(value) : addLargeString(allSymbols, copyToCString(allSymbols.alloc, str));
 }
@@ -417,15 +436,6 @@ immutable string[] specialSymbols = [
 	"%\0",
 	"**\0",
 	"!\0",
-
-	".\0",
-	".c\0",
-	".crow\0",
-	".dll\0",
-	".exe\0",
-	".json\0",
-	".lib\0",
-	".so\0",
 
 	// from names in Crow code
 	"as-any-mut-pointer\0",
@@ -473,6 +483,7 @@ immutable string[] specialSymbols = [
 	"instantiateFun\0",
 	"instantiateSpec\0",
 	"instantiateStruct\0",
+	"invokeCCompiler\0",
 	"onFileChanged\0",
 	"storageFileInfo\0",
 

@@ -2,7 +2,7 @@ module lib.server;
 
 @safe @nogc nothrow: // not pure
 
-import backend.writeToC : writeToC;
+import backend.writeToC : PathAndArgs, writeToC, WriteToCParams, WriteToCResult;
 import concretize.concretize : concretize;
 import document.document : documentJSON;
 import frontend.frontendCompile :
@@ -111,7 +111,7 @@ import util.symbol : AllSymbols;
 import util.uri : AllUris, Uri, UrisInfo;
 import util.util : castNonScope, castNonScope_ref, ptrTrustMe;
 import util.writer : withWriter, Writer;
-import versionInfo : VersionInfo, versionInfoForBuildToC, versionInfoForInterpret;
+import versionInfo : getOS, OS, VersionInfo, versionInfoForBuildToC, versionInfoForInterpret;
 
 ExitCode buildAndInterpret(
 	scope ref Perf perf,
@@ -124,7 +124,7 @@ ExitCode buildAndInterpret(
 ) {
 	assert(filesState(server) == FilesState.allLoaded);
 	return withTempAllocImpure!ExitCode(server.metaAlloc, AllocKind.buildToLowProgram, (ref Alloc buildAlloc) {
-		Programs programs = buildToLowProgram(perf, buildAlloc, server, versionInfoForInterpret, main);
+		Programs programs = buildToLowProgram(perf, buildAlloc, server, versionInfoForInterpret(getOS()), main);
 		CString diags = showDiagnostics(buildAlloc, server, programs.program, diagnosticsOnlyForUris);
 		if (!cStringIsEmpty(diags))
 			writeError(diags);
@@ -393,7 +393,6 @@ CString version_(ref Alloc alloc, in Server server) =>
 		static immutable string commitHash = import("commit-hash.txt")[0 .. 8];
 
 		writer ~= date;
-		//"%.*s (%.*s)",
 		writer ~= " (";
 		writer ~= commitHash;
 		writer ~= ")";
@@ -695,18 +694,25 @@ Programs buildToLowProgram(
 }
 
 immutable struct BuildToCResult {
-	CString cSource;
+	WriteToCResult writeToCResult;
 	CString diagnostics;
 	bool hasFatalDiagnostics;
 	ExternLibraries externLibraries;
 }
-BuildToCResult buildToC(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri main) {
-	Programs programs = buildToLowProgram(perf, alloc, server, versionInfoForBuildToC, main);
+BuildToCResult buildToC(
+	scope ref Perf perf,
+	ref Alloc alloc,
+	ref Server server,
+	OS os,
+	Uri main,
+	in WriteToCParams params,
+) {
+	Programs programs = buildToLowProgram(perf, alloc, server, versionInfoForBuildToC(os), main);
 	ShowCtx ctx = getShowDiagCtx(server, programs.program);
 	return BuildToCResult(
 		has(programs.lowProgram)
-			? writeToC(alloc, alloc, ctx, force(programs.lowProgram))
-			: cString!"",
+			? writeToC(alloc, server.allSymbols, server.allUris, ctx, force(programs.lowProgram), params)
+			: WriteToCResult(PathAndArgs(params.cCompiler), cString!""),
 		showDiagnostics(alloc, server, programs.program),
 		hasFatalDiagnostics(programs.programWithMain),
 		has(programs.lowProgram) ? force(programs.lowProgram).externLibraries : []);

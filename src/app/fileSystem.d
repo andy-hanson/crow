@@ -43,6 +43,8 @@ version (Windows) {
 	import core.sys.posix.sys.stat : mkdir, pid_t, S_IRWXU;
 	import core.sys.posix.unistd : getcwd, read, readlink, unlink;
 }
+
+import backend.writeToC : PathAndArgs;
 import frontend.storage : FileContent, ReadFileResult;
 import model.diag : ReadFileDiag;
 import model.lowModel : ExternLibrary, ExternLibraries;
@@ -51,19 +53,21 @@ import util.col.array : endPtr, exists, newArray;
 import util.col.arrayBuilder : buildArray, Builder;
 import util.exitCode : ExitCode, okAnd;
 import util.memory : memset;
-import util.opt : force, has, Opt;
-import util.string : CString, cStringSize;
-import util.symbol : AllSymbols, Symbol;
+import util.opt : force, has, none, Opt, some;
+import util.string : CString, cString, cStringSize;
+import util.symbol : AllSymbols, Extension;
 import util.union_ : TaggedUnion;
 import util.uri :
 	AllUris,
 	alterExtensionWithHex,
 	asFileUri,
+	cStringOfFileUri,
 	FileUri,
+	fileUriToTempStr,
 	isFileUri,
 	parent,
 	parseAbsoluteFilePathAsUri,
-	fileUriToTempStr,
+	parseFileUri,
 	TempStrForPath,
 	Uri,
 	writeFileUri;
@@ -117,28 +121,28 @@ private @trusted ExitCode removeFile(in AllUris allUris, FileUri uri) {
 This doesn't create the path, 'cb' should do that.
 But if it is a temp path, this deletes it after the callback finishes.
 */
-ExitCode withUriOrTemp(Symbol extension)(
+ExitCode withUriOrTemp(
 	ref AllUris allUris,
-	Opt!Uri uri,
+	Opt!FileUri uri,
 	Uri tempBasePath,
+	Extension extension,
+	in ExitCode delegate(FileUri) @safe @nogc nothrow cb,
+) =>
+	has(uri)
+		? cb(force(uri))
+		: withTempUri(allUris, tempBasePath, extension, cb);
+
+ExitCode withTempUri(
+	ref AllUris allUris,
+	Uri tempBasePath,
+	Extension extension,
 	in ExitCode delegate(FileUri) @safe @nogc nothrow cb,
 ) {
-	if (has(uri)) {
-		if (!isFileUri(allUris, force(uri))) {
-			todo!void("message: can't use non-file URI");
-			return ExitCode.error;
-		} else
-			return cb(asFileUri(allUris, force(uri)));
-	} else {
-		if (isFileUri(allUris, tempBasePath)) {
-			ubyte[8] bytes = getRandomBytes();
-			FileUri tempUri = alterExtensionWithHex!extension(allUris, asFileUri(allUris, tempBasePath), bytes);
-			ExitCode exit = cb(tempUri);
-			ExitCode exit2 = removeFile(allUris, tempUri);
-			return okAnd(exit, () => exit2);
-		} else
-			return todo!ExitCode("need another place to put temps");
-	}
+	ubyte[8] bytes = getRandomBytes();
+	FileUri tempUri = alterExtensionWithHex(allUris, asFileUri(allUris, tempBasePath), bytes, extension);
+	ExitCode exit = cb(tempUri);
+	ExitCode exit2 = removeFile(allUris, tempUri);
+	return okAnd(exit, () => exit2);
 }
 
 private @trusted ubyte[8] getRandomBytes() {
@@ -182,15 +186,17 @@ private T[size0 + size1] concat(T, size_t size0, size_t size1)(in T[size0] a, in
 	return res;
 }
 
-version (Windows) {
-	@system ExitCode findPathToCl(ref TempStrForPath res) {
+@trusted Opt!FileUri findPathToCCompiler(scope ref AllUris allUris) {
+	version (Windows) {
+		TempStrForPath res = void;
 		int len = SearchPathA(null, "cl.exe", null, cast(uint) res.length, res.ptr, null);
 		if (len == 0) {
 			fprintf(stderr, "Could not find cl.exe on path. Be sure you are using a Native Tools Command Prompt.");
-			return ExitCode.error;
-		}
-		return ExitCode.ok;
-	}
+			return none!CString;
+		} else
+			return some(parseFileUri(CString(cast(immutable) res.ptr)));
+	} else
+		return some(parseFileUri(allUris, cString!"/usr/bin/cc"));
 }
 
 @trusted ReadFileResult tryReadFile(ref Alloc alloc, scope ref AllUris allUris, Uri uri) {
@@ -323,11 +329,11 @@ ExitCode printSignalAndExit(ExitCodeOrSignal a) =>
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
 	in ExternLibraries externLibraries,
-	in CString executablePath,
-	in CString[] args,
+	in PathAndArgs pathAndArgs,
 ) {
+	CString executablePath = cStringOfFileUri(tempAlloc, allUris, pathAndArgs.path);
 	version (Windows) {
-		CString argsCString = windowsArgsCString(tempAlloc, executablePath, args);
+		CString argsCString = windowsArgsCString(tempAlloc, executablePath, pathAndArgs.args);
 
 		HANDLE stdoutRead;
 		HANDLE stdoutWrite;
@@ -410,7 +416,7 @@ ExitCode printSignalAndExit(ExitCodeOrSignal a) =>
 			null,
 			null,
 			// https://stackoverflow.com/questions/50596439/can-string-literals-be-passed-in-posix-spawns-argv
-			cast(char**) convertArgs(tempAlloc, executablePath, args),
+			cast(char**) convertArgs(tempAlloc, executablePath, pathAndArgs.args),
 			getEnvironForChildProcess(tempAlloc, allSymbols, allUris, externLibraries));
 		if (spawnStatus == 0) {
 			int waitStatus;
@@ -502,12 +508,8 @@ version (Windows) {
 }
 
 version (Windows) {
-	CString windowsArgsCString(
-		ref Alloc alloc,
-		in CString executablePath,
-		in CString[] args,
-	) =>
-		withWriter(tempAlloc, (scope ref Writer writer) {
+	CString windowsArgsCString(ref Alloc alloc, in CString executablePath, in CString[] args) =>
+		withWriter(alloc, (scope ref Writer writer) {
 			writer ~= '"';
 			writer ~= executablePath;
 			writer ~= '"';

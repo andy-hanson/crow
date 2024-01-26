@@ -1,15 +1,43 @@
 module versionInfo;
 
-@safe @nogc pure nothrow:
+@safe @nogc nothrow: // not pure
 
 import model.model : VersionFun;
 
+enum OS {
+	linux,
+	web,
+	windows,
+}
+
+OS getOS() {
+	version (linux) {
+		return OS.linux;
+	} else version (Windows) {
+		return OS.windows;
+	} else version (WebAssembly) {
+		return OS.web;
+	} else
+		static assert(false);
+}
+
+pure:
+
 immutable struct VersionInfo {
-	@safe @nogc pure nothrow:
 	private:
+	OS os;
 	bool isInterpreted;
 	bool isJit;
 }
+
+VersionInfo versionInfoForInterpret(OS os) =>
+	VersionInfo(os: os, isInterpreted: true, isJit: false);
+
+VersionInfo versionInfoForJIT(OS os) =>
+	VersionInfo(os: os, isInterpreted: false, isJit: true);
+
+VersionInfo versionInfoForBuildToC(OS os) =>
+	VersionInfo(os: os, isInterpreted: false, isJit: false);
 
 bool isVersion(in VersionInfo a, VersionFun fun) {
 	final switch (fun) {
@@ -28,22 +56,19 @@ bool isVersion(in VersionInfo a, VersionFun fun) {
 		case VersionFun.isWasm:
 			return isWasm;
 		case VersionFun.isWindows:
-			version (Windows) {
-				return true;
-			} else {
-				return false;
-			}
+			return isWindows(a);
 	}
 }
 
-VersionInfo versionInfoForInterpret() =>
-	VersionInfo(isInterpreted: true, isJit: false);
-
-VersionInfo versionInfoForJIT() =>
-	VersionInfo(isInterpreted: false, isJit: true);
-
-VersionInfo versionInfoForBuildToC() =>
-	VersionInfo(isInterpreted: false, isJit: false);
+bool isWindows(in VersionInfo a) {
+	final switch (a.os) {
+		case OS.linux:
+		case OS.web:
+			return false;
+		case OS.windows:
+			return true;
+	}
+}
 
 private:
 

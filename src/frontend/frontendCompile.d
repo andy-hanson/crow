@@ -6,7 +6,7 @@ import frontend.check.check : BootstrapCheck, check, checkBootstrap, UriAndAst, 
 import frontend.check.checkCtx : CommonModule, CommonUris;
 import frontend.check.getCommonFuns : CommonFunsAndMain, getCommonFuns;
 import frontend.check.instantiate : InstantiateCtx;
-import frontend.lang : crowConfigBaseName, crowExtension;
+import frontend.lang : crowConfigBaseName;
 import frontend.allInsts : AllInsts, freeInstantiationsForModule, perfStats;
 import frontend.storage :
 	FileContent,
@@ -36,7 +36,7 @@ import util.json : field, Json, jsonObject;
 import util.memory : allocate, initMemory;
 import util.opt : ConstOpt, force, has, MutOpt, Opt, none, noneMut, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.symbol : AllSymbols, Symbol, symbol;
+import util.symbol : AllSymbols, Extension, Symbol, symbol;
 import util.union_ : TaggedUnion;
 import util.uri :
 	addExtension,
@@ -548,7 +548,7 @@ CommonUris commonUris(ref AllUris allUris, Uri includeDir) {
 		childUri(allUris, includeCrow, symbol!"string"),
 		childUri(allUris, private_, symbol!"runtime"),
 		childUri(allUris, private_, symbol!"rt-main"),
-	]), (Uri x) => addExtension!crowExtension(allUris, x));
+	]), (Uri x) => addExtension(allUris, x, Extension.crow));
 }
 
 immutable struct UriOrDiag {
@@ -598,7 +598,7 @@ MostlyResolvedImport tryResolveImport(ref FrontendCompiler a, in Config config, 
 	return base.matchWithPointers!MostlyResolvedImport(
 		(Uri uri) {
 			MostlyResolvedImport crowFile() =>
-				MostlyResolvedImport(ensureCrowFile(a, addExtension!crowExtension(a.allUris, uri)));
+				MostlyResolvedImport(ensureCrowFile(a, addExtension(a.allUris, uri, Extension.crow)));
 			return ast.kind.match!MostlyResolvedImport(
 				(ImportOrExportAstKind.ModuleWhole) =>
 					crowFile(),

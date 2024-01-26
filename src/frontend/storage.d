@@ -3,7 +3,7 @@ module frontend.storage;
 @safe @nogc pure nothrow:
 
 import frontend.config : parseConfig;
-import frontend.lang : crowConfigBaseName, crowExtension;
+import frontend.lang : crowConfigBaseName;
 import frontend.parse.parse : parseFile;
 import lib.lsp.lspTypes : TextDocumentContentChangeEvent, TextDocumentPositionParams;
 import model.ast : FileAst;
@@ -37,7 +37,7 @@ import util.sourceRange :
 	UriLineAndColumn,
 	UriLineAndColumnRange;
 import util.string : bytesOfString, CString, cStringSize, stringOfCString;
-import util.symbol : AllSymbols;
+import util.symbol : AllSymbols, Extension;
 import util.union_ : TaggedUnion, Union;
 import util.uri : AllUris, baseName, getExtension, Uri;
 import util.writer : withWriter, Writer;
@@ -161,12 +161,16 @@ enum FileType {
 	other,
 }
 
-FileType fileType(scope ref AllUris allUris, Uri uri) =>
-	getExtension(allUris, uri) == crowExtension
-		? FileType.crow
-		: baseName(allUris, uri) == crowConfigBaseName
-		? FileType.crowConfig
-		: FileType.other;
+FileType fileType(scope ref AllUris allUris, Uri uri) {
+	switch (getExtension(allUris, uri)) {
+		case Extension.crow:
+			return FileType.crow;
+		case Extension.json:
+			return baseName(allUris, uri) == crowConfigBaseName ? FileType.crowConfig : FileType.other;
+		default:
+			return FileType.other;
+	}
+}
 
 enum FilesState {
 	hasUnknown,

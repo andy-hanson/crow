@@ -4,7 +4,6 @@ module backend.jit;
 
 version (GccJitAvailable) {
 
-import app.cCompile : getLinkOptions;
 import backend.builtinMath : builtinForBinaryMath, builtinForUnaryMath, BuiltinFunction;
 import backend.gccTypes :
 	assertFieldOffsetsFunctionName,
@@ -96,6 +95,7 @@ import backend.mangle :
 	writeLowLocalName,
 	writeLowFunMangledName,
 	writeLowVarMangledName;
+import backend.writeToC : getLinkOptions;
 import frontend.showModel : ShowCtx;
 import frontend.lang : JitOptions, OptimizationLevel;
 import model.constant : Constant, constantBool;
@@ -217,7 +217,7 @@ GccProgram getGccProgram(
 	//gcc_jit_context_set_bool_option(*ctx, gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, true);
 	//gcc_jit_context_set_bool_option(*ctx, gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE, true);
 
-	getLinkOptions(alloc, allSymbols, allUris, program.externLibraries, (CString x) {
+	getLinkOptions(alloc, allSymbols, allUris, isMSVC: false, program.externLibraries, (CString x) {
 		gcc_jit_context_add_driver_option(*ctx, x.ptr);
 	});
 

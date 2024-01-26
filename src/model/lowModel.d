@@ -25,6 +25,7 @@ import util.string : CString;
 import util.symbol : Symbol, symbol;
 import util.union_ : IndexType, TaggedUnion, Union;
 import util.uri : Uri;
+import versionInfo : VersionInfo;
 
 immutable struct LowExternType {
 	ConcreteStruct* source;
@@ -619,6 +620,7 @@ immutable struct LowVar {
 immutable struct LowProgram {
 	@safe @nogc pure nothrow:
 
+	VersionInfo version_;
 	ConcreteFunToLowFunIndex concreteFunToLowFunIndex;
 	AllConstantsLow allConstants;
 	FullIndexMap!(LowVarIndex, LowVar) vars;

@@ -4,7 +4,6 @@ module test.testUtil;
 
 import std.meta : AliasSeq, staticMap;
 
-import frontend.lang : crowExtension;
 import frontend.showModel : ShowCtx, ShowOptions;
 import frontend.storage : FileContent, FileType, fileType, LineAndColumnGetters, ReadFileResult, Storage;
 import interpret.bytecode : ByteCode, ByteCodeIndex, Operation;
@@ -17,7 +16,7 @@ import util.col.array : arraysEqual, arraysCorrespond, indexOf, isEmpty, makeArr
 import util.opt : force, has, none, Opt;
 import util.perf : Perf;
 import util.string : CString, stringOfCString;
-import util.symbol : AllSymbols;
+import util.symbol : AllSymbols, Extension;
 import util.uri : AllUris, concatUriAndPath, getExtension, isAncestor, parsePath, parseUri, Uri, UrisInfo, writeUri;
 import util.util : ptrTrustMe;
 import util.writer : debugLogWithWriter, Writer;
@@ -133,7 +132,7 @@ void withTestServer(
 }
 
 void setupTestServer(ref Test test, ref Alloc alloc, ref Server server, Uri mainUri, in string mainContent) {
-	assert(getExtension(server.allUris, mainUri) == crowExtension);
+	assert(getExtension(server.allUris, mainUri) == Extension.crow);
 	setFile(test.perf, server, mainUri, mainContent);
 	Uri[] testUris = map(alloc, testIncludePaths, (ref immutable string path) =>
 		concatUriAndPath(server.allUris, server.includeDir, parsePath(server.allUris, path)));

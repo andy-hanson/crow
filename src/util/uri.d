@@ -8,7 +8,7 @@ import util.col.mutArr : MutArr, mutArrSize, push;
 import util.comparison : Comparison;
 import util.conv : uintOfUshorts, ushortsOfUint, safeToUshort;
 import util.hash : HashCode;
-import util.opt : has, force, none, Opt, some;
+import util.opt : has, force, none, Opt, optIf, some;
 import util.string : compareCStringAlphabetically, CString, cString, stringOfCString;
 import util.symbol :
 	addExtension,
@@ -16,6 +16,7 @@ import util.symbol :
 	AllSymbols,
 	appendHexExtension,
 	eachCharInSymbol,
+	Extension,
 	getExtension,
 	hasExtension,
 	removeExtension,
@@ -158,27 +159,28 @@ Uri parentOrEmpty(ref AllUris allUris, Uri a) {
 }
 
 // Removes an existing extension and adds a new one.
-Uri alterExtension(Symbol newExtension)(ref AllUris allUris, Uri a) =>
-	Uri(alterExtension!newExtension(allUris, a.path));
-Path alterExtension(Symbol newExtension)(ref AllUris allUris, Path a) =>
+FileUri alterExtension(scope ref AllUris allUris, FileUri a, Extension newExtension) =>
+	FileUri(alterExtension(allUris, a.path, newExtension));
+private Path alterExtension(scope ref AllUris allUris, Path a, Extension newExtension) =>
 	modifyBaseName(allUris, a, (Symbol name) =>
-		.alterExtension!newExtension(allUris.allSymbols, name));
+		.alterExtension(allUris.allSymbols, name, newExtension));
 
 // Adds an extension after any already existing extension.
-Uri addExtension(Symbol extension)(ref AllUris allUris, Uri a) =>
-	Uri(addExtension!extension(allUris, a.path));
-Path addExtension(Symbol extension)(ref AllUris allUris, Path a) =>
+Uri addExtension(scope ref AllUris allUris, Uri a, Extension extension) =>
+	Uri(addExtension(allUris, a.path, extension));
+private Path addExtension(scope ref AllUris allUris, Path a, Extension extension) =>
 	modifyBaseName(allUris, a, (Symbol name) =>
-		.addExtension!extension(allUris.allSymbols, name));
+		.addExtension(allUris.allSymbols, name, extension));
 
 // E.g., changes 'foo.crow' to 'foo.deadbeef.c'
-FileUri alterExtensionWithHex(Symbol newExtension)(ref AllUris allUris, FileUri a, in ubyte[] bytes) =>
-	FileUri(alterExtensionWithHexForPath!newExtension(allUris, a.path, bytes));
-private Path alterExtensionWithHexForPath(Symbol newExtension)(ref AllUris allUris, Path a, in ubyte[] bytes) =>
+FileUri alterExtensionWithHex(ref AllUris allUris, FileUri a, in ubyte[] bytes, Extension newExtension) =>
+	FileUri(alterExtensionWithHexForPath(allUris, a.path, bytes, newExtension));
+private Path alterExtensionWithHexForPath(ref AllUris allUris, Path a, in ubyte[] bytes, Extension newExtension) =>
 	modifyBaseName(allUris, a, (Symbol name) =>
-		addExtension!newExtension(
+		addExtension(
 			allUris.allSymbols,
-			appendHexExtension(allUris.allSymbols, removeExtension(allUris.allSymbols, name), bytes)));
+			appendHexExtension(allUris.allSymbols, removeExtension(allUris.allSymbols, name), bytes),
+			newExtension));
 
 private bool hasExtension(in AllUris allUris, Path a) =>
 	hasExtension(allUris.allSymbols, baseName(allUris, a));
@@ -189,11 +191,14 @@ private Path modifyBaseName(ref AllUris allUris, Path a, in Symbol delegate(Symb
 	return has(parent) ? childPath(allUris, force(parent), newBaseName) : rootPath(allUris, newBaseName);
 }
 
-Symbol getExtension(scope ref AllUris allUris, Uri a) =>
+// This will either be "" or start with a "."
+Extension getExtension(scope ref AllUris allUris, Uri a) =>
 	isRootUri(allUris, a)
-		? symbol!""
+		? Extension.none
 		: getExtension(allUris, a.path);
-Symbol getExtension(scope ref AllUris allUris, Path a) =>
+Extension getExtension(scope ref AllUris allUris, FileUri a) =>
+	getExtension(allUris, a.path);
+Extension getExtension(scope ref AllUris allUris, Path a) =>
 	getExtension(allUris.allSymbols, baseName(allUris, a));
 
 Symbol baseName(in AllUris allUris, Uri a) =>
@@ -433,6 +438,14 @@ private @system RelPath parseRelPathRecur(ref AllUris allUris, size_t nParents, 
 FileUri parseAbsoluteFilePathAsUri(ref AllUris allUris, in CString a) =>
 	FileUri(parsePath(allUris, a));
 FileUri parseAbsoluteFilePathAsUri(ref AllUris allUris, in string a) =>
+	FileUri(parsePath(allUris, a));
+
+Opt!FileUri parseFileUriWithCwd(ref AllUris allUris, Uri cwd, in CString a) {
+	Uri res = parseUriWithCwd(allUris, cwd, a);
+	return optIf(isFileUri(allUris, res), () => asFileUri(allUris, res));
+}
+
+FileUri parseFileUri(ref AllUris allUris, in CString a) =>
 	FileUri(parsePath(allUris, a));
 
 Uri parseUriWithCwd(ref AllUris allUris, Uri cwd, in CString a) =>

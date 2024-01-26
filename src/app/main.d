@@ -14,24 +14,27 @@ version (Windows) {
 
 import app.appUtil : print, printError;
 import app.backtrace : printBacktrace;
-import app.cCompile : compileC;
 import app.dyncall : withRealExtern;
 import app.fileSystem :
 	ExitCodeOrSignal,
+	findPathToCCompiler,
 	getCwd,
 	getPathToThisExecutable,
+	printSignalAndExit,
 	Signal,
 	spawnAndWait,
 	stderr,
 	stdin,
 	stdout,
 	tryReadFile,
+	withTempUri,
 	withUriOrTemp,
 	writeFile;
 version (GccJitAvailable) {
 	import backend.jit : jitAndRun;
 }
-import frontend.lang : cExtension, JitOptions;
+import backend.writeToC : PathAndArgs, WriteToCParams;
+import frontend.lang : JitOptions;
 import frontend.showModel : ShowOptions;
 import frontend.storage : asString, FileContent, FilesState;
 import interpret.extern_ : Extern;
@@ -48,8 +51,7 @@ import lib.lsp.lspTypes :
 	SemanticTokensParams,
 	TextDocumentIdentifier,
 	UnknownUris;
-import lib.cliParser :
-	BuildOptions, BuildOut, Command, CommandKind, defaultExeExtension, hasAnyOut, parseCommand, PrintKind, RunOptions;
+import lib.cliParser : BuildOptions, BuildOut, Command, CommandKind, hasAnyOut, parseCommand, PrintKind, RunOptions;
 import lib.server :
 	allUnknownUris,
 	buildAndInterpret,
@@ -90,14 +92,14 @@ import util.exitCode : ExitCode, okAnd;
 import util.json : Json, jsonToString;
 import util.jsonParse : mustParseJson, mustParseUint, skipWhitespace;
 import util.opt : force, has, none, MutOpt, Opt, some, someMut;
-import util.perf : disablePerf, isEnabled, Perf, withNullPerf;
+import util.perf : disablePerf, isEnabled, Perf, PerfMeasure, withMeasure, withNullPerf;
 import util.perfReport : perfReport;
 import util.sourceRange : UriLineAndColumn;
 import util.string : CString, cString, cStringIsEmpty, cStringSize, mustStripPrefix, MutCString;
-import util.symbol : AllSymbols, symbol;
-import util.uri : AllUris, childUri, cStringOfFileUri, cStringOfUri, FileUri, Uri, parentOrEmpty, toUri;
+import util.symbol : AllSymbols, Extension, symbol;
+import util.uri : AllUris, childUri, cStringOfUri, FileUri, Uri, parentOrEmpty, toUri;
 import util.util : debugLog;
-import versionInfo : versionInfoForJIT;
+import versionInfo : getOS, versionInfoForInterpret, versionInfoForJIT;
 
 @system extern(C) int main(int argc, immutable char** argv) {
 	ulong function() @safe @nogc pure nothrow getTimeNanosPure =
@@ -110,7 +112,7 @@ import versionInfo : versionInfoForJIT;
 	setCwd(server, cwd);
 	setShowOptions(server, ShowOptions(true));
 	Alloc* alloc = newAlloc(AllocKind.main, server.metaAlloc);
-	Command command = parseCommand(*alloc, server.allUris, cwd, cast(CString[]) argv[1 .. argc]);
+	Command command = parseCommand(*alloc, server.allUris, cwd, getOS(), cast(CString[]) argv[1 .. argc]);
 	if (!command.options.perf)
 		disablePerf(perf);
 	int res = go(perf, *alloc, server, command.kind).value;
@@ -342,11 +344,13 @@ ExitCode doPrint(scope ref Perf perf, ref Alloc alloc, ref Server server, in Com
 		},
 		(in PrintKind.ConcreteModel) {
 			loadAllFiles(perf, server, [mainUri]);
-			return printConcreteModel(perf, alloc, server, server.lineAndColumnGetters, versionInfoForJIT(), mainUri);
+			return printConcreteModel(
+				perf, alloc, server, server.lineAndColumnGetters, versionInfoForInterpret(getOS()), mainUri);
 		},
 		(in PrintKind.LowModel) {
 			loadAllFiles(perf, server, [mainUri]);
-			return printLowModel(perf, alloc, server, server.lineAndColumnGetters, versionInfoForJIT(), mainUri);
+			return printLowModel(
+				perf, alloc, server, server.lineAndColumnGetters, versionInfoForInterpret(getOS()), mainUri);
 		},
 		(in PrintKind.Ide x) {
 			loadAllFiles(perf, server, [mainUri]);
@@ -379,14 +383,14 @@ ExitCode buildAndRun(
 	in RunOptions.Aot options,
 ) {
 	MutOpt!int signal;
-	ExitCode exitCode = withUriOrTemp!defaultExeExtension(server.allUris, none!Uri, main, (FileUri exeUri) {
+	ExitCode exitCode = withTempUri(server.allUris, main, options.defaultExeExtension, (FileUri exeUri) {
 		BuildOptions buildOptions = BuildOptions(
-			BuildOut(none!Uri, some(toUri(server.allUris, exeUri))),
+			BuildOut(outC: none!FileUri, shouldBuildExecutable: true, outExecutable: some(exeUri)),
 			options.compileOptions);
 		return withBuild(perf, alloc, server, main, buildOptions, (in ExternLibraries externLibraries) {
 			ExitCodeOrSignal res = spawnAndWait(
 				alloc, server.allSymbols, server.allUris, externLibraries,
-				cStringOfFileUri(alloc, server.allUris, exeUri), programArgs);
+				PathAndArgs(exeUri, programArgs));
 			// Delay aborting with the signal so we can clean up temp files
 			return res.match!ExitCode(
 				(ExitCode x) =>
@@ -412,28 +416,38 @@ ExitCode withBuild(
 	in BuildOptions options,
 	in ExitCode delegate(in ExternLibraries) @safe @nogc nothrow cb,
 ) =>
-	withBuildToC(perf, alloc, server, main, (CString cSource, ExternLibraries externLibraries) =>
-		withUriOrTemp!cExtension(server.allUris, options.out_.outC, main, (FileUri cUri) =>
-			okAnd(writeFile(server.allUris, cUri, cSource), () =>
+	withUriOrTemp(server.allUris, options.out_.outC, main, Extension.c, (FileUri cUri) =>
+		withBuildToC(perf, alloc, server, main, options, cUri, (in BuildToCResult result) =>
+			okAnd(writeFile(server.allUris, cUri, result.writeToCResult.cSource), () =>
 				okAnd(
-					has(options.out_.outExecutable)
-						? compileC(
-							perf, alloc, server.allSymbols, server.allUris,
-							cUri, force(options.out_.outExecutable), externLibraries, options.cCompileOptions)
+					options.out_.shouldBuildExecutable
+						? withMeasure!(ExitCode, () =>
+							printSignalAndExit(spawnAndWait(
+								alloc, server.allSymbols, server.allUris,
+								result.externLibraries, result.writeToCResult.compileCommand))
+						)(perf, alloc, PerfMeasure.invokeCCompiler)
 						: ExitCode.ok,
-					() => cb(externLibraries)))));
+					() => cb(result.externLibraries)))));
 
 ExitCode withBuildToC(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
 	Uri main,
-	in ExitCode delegate(CString, ExternLibraries) @safe @nogc nothrow cb,
+	in BuildOptions options,
+	FileUri cUri,
+	in ExitCode delegate(in BuildToCResult) @safe @nogc nothrow cb,
 ) {
-	BuildToCResult result = buildToC(perf, alloc, server, main);
-	if (!cStringIsEmpty(result.diagnostics))
-		printError(result.diagnostics);
-	return result.hasFatalDiagnostics ? ExitCode.error : cb(result.cSource, result.externLibraries);
+	Opt!FileUri cCompiler = findPathToCCompiler(server.allUris);
+	if (has(cCompiler)) {
+		WriteToCParams params = WriteToCParams(
+			force(cCompiler), cUri, force(options.out_.outExecutable), options.cCompileOptions);
+		BuildToCResult result = buildToC(perf, alloc, server, getOS(), main, params);
+		if (!cStringIsEmpty(result.diagnostics))
+			printError(result.diagnostics);
+		return result.hasFatalDiagnostics ? ExitCode.error : cb(result);
+	} else
+		return ExitCode.error;
 }
 
 version (GccJitAvailable) { ExitCode buildAndJit(
@@ -444,7 +458,7 @@ version (GccJitAvailable) { ExitCode buildAndJit(
 	Uri main,
 	in CString[] programArgs,
 ) {
-	Programs programs = buildToLowProgram(perf, alloc, server, versionInfoForJIT(), main);
+	Programs programs = buildToLowProgram(perf, alloc, server, versionInfoForJIT(getOS()), main);
 	if (hasAnyDiagnostics(programs.program))
 		printError(showDiagnostics(alloc, server, programs.program));
 	return has(programs.lowProgram)

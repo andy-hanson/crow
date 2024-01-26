@@ -4,9 +4,6 @@ module frontend.lang;
 
 import util.symbol : Symbol, symbol;
 
-Symbol cExtension() => symbol!".c";
-Symbol crowExtension() => symbol!".crow";
-
 Symbol crowConfigBaseName() => symbol!"crow-config.json";
 
 immutable struct JitOptions {

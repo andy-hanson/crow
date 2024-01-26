@@ -6,7 +6,7 @@ import test.testUtil : Test;
 import util.comparison : Comparison;
 import util.opt : none, optEqual, some;
 import util.string : CString, cString;
-import util.symbol : Symbol, symbol, symbolAsTempBuffer, symbolOfString;
+import util.symbol : Extension, Symbol, symbol, symbolAsTempBuffer, symbolOfString;
 import util.uri :
 	AllUris,
 	asFileUri,
@@ -56,7 +56,7 @@ void testUri(ref Test test) {
 	verifyUri(test, allUris, zW, ["file://", "z", "w.crow"]);
 	assert(baseName(allUris, zW) == symbolOfString(test.allSymbols, "w.crow"));
 	assert(cStringOfUri(test.alloc, allUris, zW) == "file:///z/w.crow");
-	assert(getExtension(allUris, zW) == symbol!".crow");
+	assert(getExtension(allUris, zW) == Extension.crow);
 	Uri aXZW = parseUriWithCwd(allUris, aX, cString!"./z/w");
 	assert(cStringOfUri(test.alloc, allUris, aXZW) == "file:///a/x/z/w");
 	assert(aXZW == parseUriWithCwd(allUris, aX, cString!"z/w"));
@@ -71,7 +71,7 @@ void testUri(ref Test test) {
 	assert(optEqual!Uri(commonAncestor(allUris, [aX, crowLang]), none!Uri));
 
 	assert(optEqual!Uri(parent(allUris, crowLang), none!Uri));
-	assert(getExtension(allUris, crowLang) == symbol!"");
+	assert(getExtension(allUris, crowLang) == Extension.none);
 
 	testFileUri(test);
 }

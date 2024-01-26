@@ -80,6 +80,7 @@ import util.memory : allocate;
 import util.sourceRange : Pos;
 import util.symbol : symbol;
 import util.util : castNonScope, castNonScope_ref, ptrTrustMe;
+import versionInfo : OS, versionInfoForInterpret;
 
 void testInterpreter(ref Test test) {
 	testCall(test);
@@ -127,6 +128,7 @@ void doInterpret(
 		[],
 		LowFunBody(LowFunBody.Extern(symbol!"bogus")))];
 	LowProgram lowProgram = LowProgram(
+		versionInfoForInterpret(OS.linux),
 		ConcreteFunToLowFunIndex(),
 		AllConstantsLow([], [], []),
 		emptyFullIndexMap!(LowVarIndex, LowVar),
