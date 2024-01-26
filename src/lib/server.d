@@ -479,6 +479,11 @@ immutable struct DocumentResult {
 	CString diagnostics;
 }
 
+CString check(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] rootUris) {
+	Program program = getProgram(perf, alloc, server, rootUris);
+	return showDiagnostics(alloc, server, program);
+}
+
 DocumentResult getDocumentation(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] uris) {
 	Program program = getProgram(perf, alloc, server, uris);
 	return DocumentResult(

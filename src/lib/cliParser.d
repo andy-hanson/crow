@@ -11,7 +11,7 @@ import util.cell : Cell, cellGet, cellSet;
 import util.col.array : copyArray, findIndex, isEmpty, mapOrNone, only;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.conv : isUint, safeToUint;
-import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
+import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, some, someMut;
 import util.sourceRange : LineAndColumn;
 import util.string : CString, cString, MutCString, stringOfCString;
 import util.symbol : Extension;
@@ -45,6 +45,9 @@ immutable struct CommandKind {
 		Uri mainUri;
 		BuildOptions options;
 	}
+	immutable struct Check {
+		Uri[] rootUris;
+	}
 	immutable struct Document {
 		Uri[] rootUris;
 	}
@@ -68,7 +71,7 @@ immutable struct CommandKind {
 	}
 	immutable struct Version {}
 
-	mixin Union!(Build, Document, Help, Lsp, Print, Run, Test, Version);
+	mixin Union!(Build, Check, Document, Help, Lsp, Print, Run, Test, Version);
 }
 
 immutable struct PrintKind {
@@ -107,15 +110,13 @@ immutable struct CCompileOptions {
 	OptimizationLevel optimizationLevel;
 }
 
+// Build to C, executable, or both
 immutable struct BuildOut {
-	Opt!FileUri outC;
+	Opt!FileUri outC; // If this is 'none', use a temporary file
 	bool shouldBuildExecutable;
 	// If 'shouldBuildExecutable' is not set, this is hypothetical (used for comment at top of C file)
-	Opt!FileUri outExecutable;
+	FileUri outExecutable;
 }
-
-bool hasAnyOut(in BuildOut a) =>
-	has(a.outC) || a.shouldBuildExecutable;
 
 Command parseCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, OS os, in CString[] args) {
 	if (isEmpty(args))
@@ -142,6 +143,8 @@ CommandKind parseCommandKind(
 	switch (commandName) {
 		case "build":
 			return parseBuildCommand(alloc, allUris, cwd, defaultExeExtension, args);
+		case "check":
+			return parseCheckCommand(alloc, allUris, cwd, args);
 		case "document":
 			return parseDocumentCommand(alloc, allUris, cwd, args);
 		case "lsp":
@@ -175,9 +178,6 @@ Extension getDefaultExeExtension(OS os) {
 			return Extension.exe;
 	}
 }
-
-BuildOut emptyBuildOut() =>
-	BuildOut(none!FileUri, false, none!FileUri);
 
 CommandKind withMainUri(
 	ref Alloc alloc,
@@ -282,18 +282,17 @@ Opt!uint tryTakeNat(ref MutCString ptr) {
 		return none!uint;
 }
 
-CommandKind parseDocumentCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in SplitArgs args) {
-	CommandKind helpDocument = CommandKind(CommandKind.Help(helpDocumentText, args.help));
-	return withRootUris(
-		alloc,
-		allUris,
-		cwd,
-		args.beforeFirstPart,
-		(Uri[] x) =>
-			!args.help && isEmpty(args.parts) && isEmpty(args.afterDashDash)
-				? CommandKind(CommandKind.Document(x))
-				: helpDocument);
-}
+CommandKind parseCheckCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in SplitArgs args) =>
+	withRootUris(alloc, allUris, cwd, args.beforeFirstPart, (Uri[] x) =>
+		!args.help && isEmpty(args.parts) && isEmpty(args.afterDashDash)
+			? CommandKind(CommandKind.Check(x))
+			: CommandKind(CommandKind.Help(helpCheckText, args.help)));
+
+CommandKind parseDocumentCommand(ref Alloc alloc, scope ref AllUris allUris, Uri cwd, in SplitArgs args) =>
+	withRootUris(alloc, allUris, cwd, args.beforeFirstPart, (Uri[] x) =>
+		!args.help && isEmpty(args.parts) && isEmpty(args.afterDashDash)
+			? CommandKind(CommandKind.Document(x))
+			: CommandKind(CommandKind.Help(helpDocumentText, args.help)));
 
 CommandKind parseBuildCommand(
 	ref Alloc alloc,
@@ -388,7 +387,6 @@ Opt!BuildOptions parseBuildOptions(
 ) {
 	Cell!(Opt!BuildOut) out_;
 	bool optimize = false;
-	bool noOut = false;
 	bool error = false;
 	foreach (ArgsPart part; argParts) {
 		switch (stringOfCString(part.tag)) {
@@ -397,10 +395,6 @@ Opt!BuildOptions parseBuildOptions(
 					error = true;
 				else
 					cellSet(out_, some(parseBuildOut(alloc, allUris, cwd, defaultExeExtension, part.args, error)));
-				break;
-			case "--no-out":
-				error = error || noOut || !isEmpty(part.args);
-				noOut = true;
 				break;
 			case "--optimize":
 				error = error || optimize || !isEmpty(part.args);
@@ -412,11 +406,8 @@ Opt!BuildOptions parseBuildOptions(
 	}
 
 	CCompileOptions options = CCompileOptions(optimize ? OptimizationLevel.o2 : OptimizationLevel.none);
-	error = error || ((has(cellGet(out_)) || optimize) && noOut);
 	if (error)
 		return none!BuildOptions;
-	else if (noOut)
-		return some(BuildOptions(emptyBuildOut, CCompileOptions()));
 	else {
 		if (has(cellGet(out_)))
 			return some(BuildOptions(force(cellGet(out_)), options));
@@ -425,7 +416,7 @@ Opt!BuildOptions parseBuildOptions(
 				BuildOut(
 					outC: none!FileUri,
 					shouldBuildExecutable: true,
-					outExecutable: some(defaultExeUri(allUris, asFileUri(allUris, mainUri), defaultExeExtension))),
+					outExecutable: defaultExeUri(allUris, asFileUri(allUris, mainUri), defaultExeExtension)),
 				options));
 		else
 			return none!BuildOptions;
@@ -462,12 +453,11 @@ BuildOut parseBuildOut(
 		return BuildOut(
 			outC: cellGet(outC),
 			shouldBuildExecutable: has(cellGet(outExe)),
-			outExecutable: some(has(cellGet(outExe))
-				? force(cellGet(outExe))
-				: defaultExeUri(allUris, force(cellGet(outC)), defaultExeExtension)));
+			outExecutable: optOrDefault!FileUri(cellGet(outExe), () =>
+				defaultExeUri(allUris, force(cellGet(outC)), defaultExeExtension)));
 	else {
 		error = true;
-		return emptyBuildOut;
+		return BuildOut();
 	}
 }
 
@@ -563,9 +553,13 @@ CString helpAllText() =>
 	"\t'crow run'\n" ~
 	"\t'crow version'");
 
+CString helpCheckText() =>
+	cString!("Command: crow check PATHS\n" ~
+		"\tPrints any diagnostics for the module(s) at PATH(s) or their imports.");
+
 CString helpDocumentText() =>
-	cString!("Command: crow document PATH\n" ~
-	"\tGenerates JSON documentation for the module at PATH.\n");
+	cString!("Command: crow document PATHS\n" ~
+	"\tGenerates JSON documentation for the module(s) at PATH(s).\n");
 
 CString helpBuildText() =>
 	cString!("Command: crow build PATH --out OUT [options]\n" ~

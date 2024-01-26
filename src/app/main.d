@@ -51,19 +51,19 @@ import lib.lsp.lspTypes :
 	SemanticTokensParams,
 	TextDocumentIdentifier,
 	UnknownUris;
-import lib.cliParser : BuildOptions, BuildOut, Command, CommandKind, hasAnyOut, parseCommand, PrintKind, RunOptions;
+import lib.cliParser : BuildOptions, BuildOut, Command, CommandKind, parseCommand, PrintKind, RunOptions;
 import lib.server :
 	allUnknownUris,
 	buildAndInterpret,
 	buildToC,
 	BuildToCResult,
 	buildToLowProgram,
+	check,
 	DiagsAndResultJson,
 	DocumentResult,
 	filesState,
 	getDocumentation,
 	handleLspMessage,
-	getProgramForMain,
 	perfStats,
 	printAst,
 	printConcreteModel,
@@ -80,7 +80,7 @@ import lib.server :
 	showDiagnostics,
 	version_;
 import model.diag : ReadFileDiag;
-import model.model : hasAnyDiagnostics, ProgramWithMain;
+import model.model : hasAnyDiagnostics;
 import model.lowModel : ExternLibraries;
 version (Test) {
 	import test.test : test;
@@ -91,7 +91,7 @@ import util.col.mutQueue : enqueue, isEmpty, mustDequeue, MutQueue;
 import util.exitCode : ExitCode, okAnd;
 import util.json : Json, jsonToString;
 import util.jsonParse : mustParseJson, mustParseUint, skipWhitespace;
-import util.opt : force, has, none, MutOpt, Opt, some, someMut;
+import util.opt : force, has, none, MutOpt, Opt, someMut;
 import util.perf : disablePerf, isEnabled, Perf, PerfMeasure, withMeasure, withNullPerf;
 import util.perfReport : perfReport;
 import util.sourceRange : UriLineAndColumn;
@@ -265,8 +265,15 @@ void loadSingleFile(scope ref Perf perf, ref Server server, Uri uri) {
 
 ExitCode go(scope ref Perf perf, ref Alloc alloc, ref Server server, in CommandKind command) =>
 	command.matchImpure!ExitCode(
-		(in CommandKind.Build x) =>
-			build(perf, alloc, server, x.mainUri, x.options),
+		(in CommandKind.Build x) {
+			loadAllFiles(perf, server, [x.mainUri]);
+			return withBuild(perf, alloc, server, x.mainUri, x.options, (in ExternLibraries _) => ExitCode.ok);
+		},
+		(in CommandKind.Check x) {
+			loadAllFiles(perf, server, x.rootUris);
+			CString diags = check(perf, alloc, server, x.rootUris);
+			return cStringIsEmpty(diags) ? print(cString!"OK") : printError(diags);
+		},
 		(in CommandKind.Document x) {
 			loadAllFiles(perf, server, x.rootUris);
 			DocumentResult result = getDocumentation(perf, alloc, server, x.rootUris);
@@ -362,18 +369,6 @@ ExitCode doPrint(scope ref Perf perf, ref Alloc alloc, ref Server server, in Com
 	return cStringIsEmpty(printed.diagnostics) ? ExitCode.ok : ExitCode.error;
 }
 
-ExitCode build(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri main, in BuildOptions options) {
-	loadAllFiles(perf, server, [main]);
-	if (hasAnyOut(options.out_))
-		return withBuild(perf, alloc, server, main, options, (in ExternLibraries _) => ExitCode.ok);
-	else {
-		ProgramWithMain program = getProgramForMain(perf, alloc, server, main);
-		return hasAnyDiagnostics(program)
-			? printError(showDiagnostics(alloc, server, program.program))
-			: print(cString!"OK");
-	}
-}
-
 ExitCode buildAndRun(
 	scope ref Perf perf,
 	ref Alloc alloc,
@@ -385,7 +380,7 @@ ExitCode buildAndRun(
 	MutOpt!int signal;
 	ExitCode exitCode = withTempUri(server.allUris, main, options.defaultExeExtension, (FileUri exeUri) {
 		BuildOptions buildOptions = BuildOptions(
-			BuildOut(outC: none!FileUri, shouldBuildExecutable: true, outExecutable: some(exeUri)),
+			BuildOut(outC: none!FileUri, shouldBuildExecutable: true, outExecutable: exeUri),
 			options.compileOptions);
 		return withBuild(perf, alloc, server, main, buildOptions, (in ExternLibraries externLibraries) {
 			ExitCodeOrSignal res = spawnAndWait(
@@ -441,7 +436,7 @@ ExitCode withBuildToC(
 	Opt!FileUri cCompiler = findPathToCCompiler(server.allUris);
 	if (has(cCompiler)) {
 		WriteToCParams params = WriteToCParams(
-			force(cCompiler), cUri, force(options.out_.outExecutable), options.cCompileOptions);
+			force(cCompiler), cUri, options.out_.outExecutable, options.cCompileOptions);
 		BuildToCResult result = buildToC(perf, alloc, server, getOS(), main, params);
 		if (!cStringIsEmpty(result.diagnostics))
 			printError(result.diagnostics);
