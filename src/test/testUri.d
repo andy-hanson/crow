@@ -5,7 +5,7 @@ module test.testUri;
 import test.testUtil : Test;
 import util.comparison : Comparison;
 import util.opt : none, optEqual, some;
-import util.string : CString, cString;
+import util.string : CString;
 import util.symbol : Extension, Symbol, symbol, symbolAsTempBuffer, symbolOfString;
 import util.uri :
 	AllUris,
@@ -52,15 +52,15 @@ void testUri(ref Test test) {
 	assert(cStringOfUri(test.alloc, allUris, aX) == "file:///a/x");
 	assert(cStringOfUri(test.alloc, allUris, aY) == "file:///a/y");
 
-	Uri zW = parseUriWithCwd(allUris, aX, cString!"/z/w.crow");
+	Uri zW = parseUriWithCwd(allUris, aX, "/z/w.crow");
 	verifyUri(test, allUris, zW, ["file://", "z", "w.crow"]);
 	assert(baseName(allUris, zW) == symbolOfString(test.allSymbols, "w.crow"));
 	assert(cStringOfUri(test.alloc, allUris, zW) == "file:///z/w.crow");
 	assert(getExtension(allUris, zW) == Extension.crow);
-	Uri aXZW = parseUriWithCwd(allUris, aX, cString!"./z/w");
+	Uri aXZW = parseUriWithCwd(allUris, aX, "./z/w");
 	assert(cStringOfUri(test.alloc, allUris, aXZW) == "file:///a/x/z/w");
-	assert(aXZW == parseUriWithCwd(allUris, aX, cString!"z/w"));
-	assert(aY == parseUriWithCwd(allUris, aX, cString!"../y"));
+	assert(aXZW == parseUriWithCwd(allUris, aX, "z/w"));
+	assert(aY == parseUriWithCwd(allUris, aX, "../y"));
 
 	Uri crowLang = parseUri(allUris, "http://crow-lang.org");
 	assert(parseUriWithCwd(allUris, aX, "http://crow-lang.org") == crowLang);

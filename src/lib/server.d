@@ -38,7 +38,6 @@ import interpret.extern_ : Extern, ExternPointersForAllLibraries, WriteError;
 import interpret.fakeExtern : withFakeExtern, WriteCb;
 import interpret.generateBytecode : generateBytecode;
 import interpret.runBytecode : runBytecode;
-import lib.cliParser : PrintKind;
 import lib.lsp.lspToJson : jsonOfHover, jsonOfReferences, jsonOfRename;
 import lib.lsp.lspTypes :
 	CancelRequestParams,
@@ -105,10 +104,11 @@ import util.json : field, Json, jsonNull, jsonObject;
 import util.late : Late, lateGet, lateSet, MutLate;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
-import util.sourceRange : toLineAndCharacter, UriAndRange, UriLineAndColumn;
+import util.sourceRange : LineAndColumn, toLineAndCharacter, UriAndRange, UriLineAndColumn;
 import util.string : copyString, CString, cString, cStringIsEmpty, stringOfCString;
 import util.symbol : AllSymbols;
 import util.uri : AllUris, Uri, UrisInfo;
+import util.union_ : Union;
 import util.util : castNonScope, castNonScope_ref, ptrTrustMe;
 import util.writer : withWriter, Writer;
 import versionInfo : getOS, OS, VersionInfo, versionInfoForBuildToC, versionInfoForInterpret;
@@ -629,6 +629,21 @@ DiagsAndResultJson printLowModel(
 		has(programs.lowProgram)
 			? jsonOfLowProgram(alloc, lineAndColumnGetters, force(programs.lowProgram))
 			: jsonNull);
+}
+
+immutable struct PrintKind {
+	immutable struct Tokens {}
+	immutable struct Ast {}
+	immutable struct Model {}
+	immutable struct ConcreteModel {}
+	immutable struct LowModel {}
+	immutable struct Ide {
+		enum Kind { hover, definition, rename, references }
+		Kind kind;
+		LineAndColumn lineAndColumn;
+	}
+
+	mixin Union!(Tokens, Ast, Model, ConcreteModel, LowModel, Ide);
 }
 
 DiagsAndResultJson printIde(

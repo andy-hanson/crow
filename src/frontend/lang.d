@@ -10,6 +10,10 @@ immutable struct JitOptions {
 	OptimizationLevel optimization;
 }
 
+immutable struct CCompileOptions {
+	OptimizationLevel optimizationLevel;
+}
+
 enum OptimizationLevel {
 	none,
 	o2,

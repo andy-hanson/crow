@@ -6,7 +6,7 @@ import util.alloc.alloc : Alloc, withStackAlloc;
 import util.col.arrayBuilder : Builder, finish;
 import util.col.array : zip;
 import util.conv : bitsOfFloat64;
-import util.string : eachChar, CString;
+import util.string : eachChar, CString, stringOfCString;
 import util.util : abs, debugLog;
 
 struct Writer {
@@ -205,6 +205,9 @@ void writeQuotedString(scope ref Writer writer, in string s) {
 	foreach (char c; s)
 		writeEscapedChar_inner(writer, c);
 	writer ~= '"';
+}
+void writeQuotedString(scope ref Writer writer, in CString s) {
+	writeQuotedString(writer, stringOfCString(s));
 }
 
 void writeEscapedChar(scope ref Writer writer, char c) {

@@ -108,6 +108,11 @@ Out optEnumConvert(Out, In)(In a, Out default_) {
 	}
 }
 
+void enumEach(E)(in void delegate(E) @safe @nogc pure nothrow cb) {
+	static foreach (string member; __traits(allMembers, E))
+		cb(__traits(getMember, E, member));
+}
+
 E enumOfString(E)(in string a) {
 	assertNormalEnum!E();
 	final switch (a) {

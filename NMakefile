@@ -103,7 +103,6 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\interpret\generateText.d \
 	src\interpret\runBytecode.d \
 	src\interpret\stacks.d \
-	src\lib\cliParser.d \
 	src\lib\lsp\lspParse.d \
 	src\lib\lsp\lspToJson.d \
 	src\lib\lsp\lspTypes.d \
@@ -169,7 +168,14 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\util.d \
 	src\util\writer.d \
 	src\versionInfo.d
-app_only_files = src\app\appUtil.d src\app\backtrace.d src\app\main.d src\app\dyncall.d src\app\fileSystem.d src\app\lsp.d
+app_only_files = src\app\appUtil.d \
+	src\app\backtrace.d \
+	src\app\command.d \
+	src\app\dyncall.d \
+	src\app\fileSystem.d \
+	src\app\lsp.d \
+	src\app\main.d \
+	src\app\parseCommand.d 
 app_src_no_test = $(app_only_files) \
 	$(src_files_common) \
 	src\backend\builtinMath.d \

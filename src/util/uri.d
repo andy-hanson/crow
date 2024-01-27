@@ -440,16 +440,17 @@ FileUri parseAbsoluteFilePathAsUri(ref AllUris allUris, in CString a) =>
 FileUri parseAbsoluteFilePathAsUri(ref AllUris allUris, in string a) =>
 	FileUri(parsePath(allUris, a));
 
-Opt!FileUri parseFileUriWithCwd(ref AllUris allUris, Uri cwd, in CString a) {
-	Uri res = parseUriWithCwd(allUris, cwd, a);
+Opt!FileUri parseFileUriWithCwd(ref AllUris allUris, FileUri cwd, in CString a) {
+	Uri res = parseUriWithCwd(allUris, cwd, stringOfCString(a));
 	return optIf(isFileUri(allUris, res), () => asFileUri(allUris, res));
 }
 
 FileUri parseFileUri(ref AllUris allUris, in CString a) =>
 	FileUri(parsePath(allUris, a));
 
-Uri parseUriWithCwd(ref AllUris allUris, Uri cwd, in CString a) =>
-	parseUriWithCwd(allUris, cwd, stringOfCString(a));
+Uri parseUriWithCwd(ref AllUris allUris, FileUri cwd, in string a) =>
+	parseUriWithCwd(allUris, toUri(allUris, cwd), a);
+
 Uri parseUriWithCwd(ref AllUris allUris, Uri cwd, in string a) {
 	//TODO: handle actual URIs...
 	if (looksLikeAbsolutePath(a))

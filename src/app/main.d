@@ -14,6 +14,7 @@ version (Windows) {
 
 import app.appUtil : print, printError;
 import app.backtrace : printBacktrace;
+import app.command : BuildOptions, BuildOut, Command, CommandKind, RunOptions;
 import app.dyncall : withRealExtern;
 import app.fileSystem :
 	ExitCodeOrSignal,
@@ -30,6 +31,7 @@ import app.fileSystem :
 	withTempUri,
 	withUriOrTemp,
 	writeFile;
+import app.parseCommand : parseCommand;
 version (GccJitAvailable) {
 	import backend.jit : jitAndRun;
 }
@@ -51,7 +53,6 @@ import lib.lsp.lspTypes :
 	SemanticTokensParams,
 	TextDocumentIdentifier,
 	UnknownUris;
-import lib.cliParser : BuildOptions, BuildOut, Command, CommandKind, parseCommand, PrintKind, RunOptions;
 import lib.server :
 	allUnknownUris,
 	buildAndInterpret,
@@ -68,6 +69,7 @@ import lib.server :
 	printAst,
 	printConcreteModel,
 	printIde,
+	PrintKind,
 	printLowModel,
 	printModel,
 	printTokens,
@@ -107,9 +109,9 @@ import versionInfo : getOS, versionInfoForInterpret, versionInfoForJIT;
 	scope Perf perf = Perf(() => getTimeNanosPure());
 	Server server = Server((size_t sizeWords, size_t _) =>
 		(cast(word*) pureMalloc(sizeWords * word.sizeof))[0 .. sizeWords]);
-	Uri cwd = toUri(server.allUris, getCwd(server.allUris));
+	FileUri cwd = getCwd(server.allUris);
 	setIncludeDir(&server, childUri(server.allUris, getCrowDir(server.allUris), symbol!"include"));
-	setCwd(server, cwd);
+	setCwd(server, toUri(server.allUris, cwd));
 	setShowOptions(server, ShowOptions(true));
 	Alloc* alloc = newAlloc(AllocKind.main, server.metaAlloc);
 	Command command = parseCommand(*alloc, server.allUris, cwd, getOS(), cast(CString[]) argv[1 .. argc]);
@@ -279,8 +281,10 @@ ExitCode go(scope ref Perf perf, ref Alloc alloc, ref Server server, in CommandK
 			DocumentResult result = getDocumentation(perf, alloc, server, x.rootUris);
 			return cStringIsEmpty(result.diagnostics) ? print(result.document) : printError(result.diagnostics);
 		},
-		(in CommandKind.Help x) =>
-			help(x),
+		(in CommandKind.Help x) {
+			print(x.helpText);
+			return x.exitCode;
+		},
 		(in CommandKind.Lsp) =>
 			runLsp(server),
 		(in CommandKind.Print x) =>
@@ -461,8 +465,3 @@ version (GccJitAvailable) { ExitCode buildAndJit(
 			perf, alloc, server.allSymbols, server.allUris, force(programs.lowProgram), jitOptions, programArgs)
 		: ExitCode.error;
 } }
-
-ExitCode help(in CommandKind.Help a) {
-	print(a.helpText);
-	return a.requested ? ExitCode.ok : ExitCode.error;
-}

@@ -15,9 +15,8 @@ import backend.mangle :
 	writeStructMangledName;
 import backend.builtinMath : builtinForBinaryMath, builtinForUnaryMath;
 import backend.writeTypes : ElementAndCount, TypeWriters, writeTypes;
-import frontend.lang : OptimizationLevel;
+import frontend.lang : CCompileOptions, OptimizationLevel;
 import frontend.showModel : ShowCtx;
-import lib.cliParser : CCompileOptions;
 import lower.lowExprHelpers : boolType;
 import model.concreteModel : ConcreteStruct, ConcreteStructBody, TypeSize;
 import model.constant : Constant;
