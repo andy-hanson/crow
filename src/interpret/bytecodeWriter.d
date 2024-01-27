@@ -24,8 +24,6 @@ import interpret.runBytecode :
 	opDupBytes,
 	opDupWords,
 	opDupWordsVariable,
-	opFnBinary,
-	opFnUnary,
 	opInterpreterBacktrace,
 	opLongjmp,
 	opPack,
@@ -337,13 +335,13 @@ void writeWrite(scope ref ByteCodeWriter writer, ByteCodeSource source, size_t o
 void writeAddConstantNat64(scope ref ByteCodeWriter writer, ByteCodeSource source, ulong arg) {
 	assert(arg != 0);
 	writePushConstant(writer, source, arg);
-	writeFnBinary!fnWrapAddIntegral(writer, source);
+	writeFnBinary(writer, source, &fnWrapAddIntegral);
 }
 
 void writeMulConstantNat64(scope ref ByteCodeWriter writer, ByteCodeSource source, ulong arg) {
 	assert(arg != 0 && arg != 1);
 	writePushConstant(writer, source, arg);
-	writeFnBinary!fnWrapMulIntegral(writer, source);
+	writeFnBinary(writer, source, &fnWrapMulIntegral);
 }
 
 // Consume stack space without caring what's in it. Useful for unions.
@@ -579,13 +577,13 @@ void writeInterpreterBacktrace(scope ref ByteCodeWriter writer, ByteCodeSource s
 	writer.nextStackEntry -= 2;
 }
 
-void writeFnBinary(alias fn)(scope ref ByteCodeWriter writer, ByteCodeSource source) {
-	pushOperationFn(writer, source, &opFnBinary!fn);
+void writeFnBinary(scope ref ByteCodeWriter writer, ByteCodeSource source, Operation.Fn fn) {
+	pushOperationFn(writer, source, fn);
 	writer.nextStackEntry--;
 }
 
-void writeFnUnary(alias fn)(scope ref ByteCodeWriter writer, ByteCodeSource source) {
-	pushOperationFn(writer, source, &opFnUnary!fn);
+void writeFnUnary(scope ref ByteCodeWriter writer, ByteCodeSource source, Operation.Fn fn) {
+	pushOperationFn(writer, source, fn);
 }
 
 private void pushOperation(scope ref ByteCodeWriter writer, ByteCodeSource source, Operation value) {

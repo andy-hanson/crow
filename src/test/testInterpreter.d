@@ -186,7 +186,7 @@ void testCall(ref Test test) {
 
 	// f:
 	writeBreak(writer, source);
-	writeFnBinary!fnWrapAddIntegral(writer, source);
+	writeFnBinary(writer, source, &fnWrapAddIntegral);
 	writeReturn(writer, source);
 
 	Operations operations = finishOperations(writer);
@@ -251,9 +251,7 @@ void testCallFunPointer(ref Test test) {
 	ByteCodeIndex fIndex = nextByteCodeIndex(writer);
 
 	// f:
-	// TODO: can't break inside a fun-pointer now..
-	//writeBreak(writer, source);
-	writeFnBinary!fnWrapAddIntegral(writer, source);
+	writeFnBinary(writer, source, &fnWrapAddIntegral);
 	writeReturn(writer, source);
 
 	Operations operations = finishOperations(writer);

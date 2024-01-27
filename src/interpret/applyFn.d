@@ -2,89 +2,125 @@ module interpret.applyFn;
 
 @safe @nogc pure nothrow:
 
+import interpret.bytecode : Operation;
+import interpret.runBytecode : opFnBinary, opFnUnary;
+import model.model : BuiltinBinaryMath, BuiltinUnaryMath;
 import util.conv : bitsOfFloat32, bitsOfFloat64, float32OfBits, float64OfBits;
 
-private ulong binaryFloat32s(alias cb)(ulong a, ulong b) =>
-	bitsOfFloat32(cb(float32OfBits(a), float32OfBits(b)));
+private alias binaryFloat32s(alias cb) = opFnBinary!((ulong a, ulong b) =>
+	bitsOfFloat32(cb(float32OfBits(a), float32OfBits(b))));
 
-private ulong binaryFloat64s(alias cb)(ulong a, ulong b) =>
-	bitsOfFloat64(cb(float64OfBits(a), float64OfBits(b)));
+private alias binaryFloat64s(alias cb) = opFnBinary!((ulong a, ulong b) =>
+	bitsOfFloat64(cb(float64OfBits(a), float64OfBits(b))));
 
-private ulong unaryFloat32(alias cb)(ulong a) =>
-	bitsOfFloat32(cb(float32OfBits(a)));
+private alias unaryFloat32(alias cb) = opFnUnary!((ulong a) =>
+	bitsOfFloat32(cb(float32OfBits(a))));
 
-private ulong unaryFloat64(alias cb)(ulong a) =>
-	bitsOfFloat64(cb(float64OfBits(a)));
+private alias unaryFloat64(alias cb) = opFnUnary!((ulong a) =>
+	bitsOfFloat64(cb(float64OfBits(a))));
 
-alias fnRoundFloat32 = unaryFloat32!((float a) => round(a));
-alias fnRoundFloat64 = unaryFloat64!((double a) => round(a));
-alias fnSqrtFloat32 = unaryFloat32!((float a) => sqrt(a));
-alias fnSqrtFloat64 = unaryFloat64!((double a) => sqrt(a));
-alias fnAcosFloat32 = unaryFloat32!((float a) => acos(a));
-alias fnAcosFloat64 = unaryFloat64!((double a) => acos(a));
-alias fnAcoshFloat32 = unaryFloat32!((float a) => acosh(a));
-alias fnAcoshFloat64 = unaryFloat64!((double a) => acosh(a));
-alias fnAsinFloat32 = unaryFloat32!((float a) => asin(a));
-alias fnAsinFloat64 = unaryFloat64!((double a) => asin(a));
-alias fnAsinhFloat32 = unaryFloat32!((float a) => asinh(a));
-alias fnAsinhFloat64 = unaryFloat64!((double a) => asinh(a));
-alias fnAtanFloat32 = unaryFloat32!((float a) => atan(a));
-alias fnAtanFloat64 = unaryFloat64!((double a) => atan(a));
-alias fnAtanhFloat32 = unaryFloat32!((float a) => atanh(a));
-alias fnAtanhFloat64 = unaryFloat64!((double a) => atanh(a));
-alias fnCosFloat32 = unaryFloat32!((float a) => cosf(a));
-alias fnCosFloat64 = unaryFloat64!((double a) => cos(a));
-alias fnCoshFloat32 = unaryFloat32!((float a) => cosh(a));
-alias fnCoshFloat64 = unaryFloat64!((double a) => cosh(a));
-alias fnSinFloat32 = unaryFloat32!((float a) => sinf(a));
-alias fnSinFloat64 = unaryFloat64!((double a) => sin(a));
-alias fnSinhFloat32 = unaryFloat32!((float a) => sinh(a));
-alias fnSinhFloat64 = unaryFloat64!((double a) => sinh(a));
-alias fnTanFloat32 = unaryFloat32!((float a) => tan(a));
-alias fnTanFloat64 = unaryFloat64!((double a) => tan(a));
-alias fnTanhFloat32 = unaryFloat32!((float a) => tanh(a));
-alias fnTanhFloat64 = unaryFloat64!((double a) => tanh(a));
-alias fnAtan2Float32 = binaryFloat32s!((float a, float b) => atan2(a, b));
-alias fnAtan2Float64 = binaryFloat64s!((double a, double b) => atan2(a, b));
+Operation.Fn fnForUnaryMath(BuiltinUnaryMath a) {
+	final switch (a) {
+		case BuiltinUnaryMath.acosFloat32:
+			return &unaryFloat32!((float a) => acos(a));
+		case BuiltinUnaryMath.acosFloat64:
+			return &unaryFloat64!((double a) => acos(a));
+		case BuiltinUnaryMath.acoshFloat32:
+			return &unaryFloat32!((float a) => acosh(a));
+		case BuiltinUnaryMath.acoshFloat64:
+			return &unaryFloat64!((double a) => acosh(a));
+		case BuiltinUnaryMath.asinFloat32:
+			return &unaryFloat32!((float a) => asin(a));
+		case BuiltinUnaryMath.asinFloat64:
+			return &unaryFloat64!((double a) => asin(a));
+		case BuiltinUnaryMath.asinhFloat32:
+			return &unaryFloat32!((float a) => asinh(a));
+		case BuiltinUnaryMath.asinhFloat64:
+			return &unaryFloat64!((double a) => asinh(a));
+		case BuiltinUnaryMath.atanFloat32:
+			return &unaryFloat32!((float a) => atan(a));
+		case BuiltinUnaryMath.atanFloat64:
+			return &unaryFloat64!((double a) => atan(a));
+		case BuiltinUnaryMath.atanhFloat32:
+			return &unaryFloat32!((float a) => atanh(a));
+		case BuiltinUnaryMath.atanhFloat64:
+			return &unaryFloat64!((double a) => atanh(a));
+		case BuiltinUnaryMath.cosFloat32:
+			return &unaryFloat32!((float a) => cosf(a));
+		case BuiltinUnaryMath.cosFloat64:
+			return &unaryFloat64!((double a) => cos(a));
+		case BuiltinUnaryMath.coshFloat32:
+			return &unaryFloat32!((float a) => cosh(a));
+		case BuiltinUnaryMath.coshFloat64:
+			return &unaryFloat64!((double a) => cosh(a));
+		case BuiltinUnaryMath.roundFloat32:
+			return &unaryFloat32!((float a) => round(a));
+		case BuiltinUnaryMath.roundFloat64:
+			return &unaryFloat64!((double a) => round(a));
+		case BuiltinUnaryMath.sinFloat32:
+			return &unaryFloat32!((float a) => sinf(a));
+		case BuiltinUnaryMath.sinFloat64:
+			return &unaryFloat64!((double a) => sin(a));
+		case BuiltinUnaryMath.sinhFloat32:
+			return &unaryFloat32!((float a) => sinh(a));
+		case BuiltinUnaryMath.sinhFloat64:
+			return &unaryFloat64!((double a) => sinh(a));
+		case BuiltinUnaryMath.sqrtFloat32:
+			return &unaryFloat32!((float a) => sqrt(a));
+		case BuiltinUnaryMath.sqrtFloat64:
+			return &unaryFloat64!((double a) => sqrt(a));
+		case BuiltinUnaryMath.tanFloat32:
+			return &unaryFloat32!((float a) => tan(a));
+		case BuiltinUnaryMath.tanFloat64:
+			return &unaryFloat64!((double a) => tan(a));
+		case BuiltinUnaryMath.tanhFloat32:
+			return &unaryFloat32!((float a) => tanh(a));
+		case BuiltinUnaryMath.tanhFloat64:
+			return &unaryFloat64!((double a) => tanh(a));
+	}
+}
+
+Operation.Fn fnForBinaryMath(BuiltinBinaryMath a) {
+	final switch (a) {
+		case BuiltinBinaryMath.atan2Float32:
+			return &binaryFloat32s!((float a, float b) => atan2(a, b));
+		case BuiltinBinaryMath.atan2Float64:
+			return &binaryFloat64s!((double a, double b) => atan2(a, b));
+	}
+}
 
 alias fnAddFloat32 = binaryFloat32s!((float a, float b) => a + b);
 alias fnAddFloat64 = binaryFloat64s!((double a, double b) => a + b);
-ulong fnBitwiseNot(ulong a) =>
-	~a;
-ulong fnBitwiseAnd(ulong a, ulong b) =>
-	a & b;
-ulong fnBitwiseOr(ulong a, ulong b) =>
-	a | b;
-ulong fnBitwiseXor(ulong a, ulong b) =>
-	a ^ b;
-ulong fnCountOnesNat64(ulong a) =>
-	popcount(a);
-ulong fnEqBits(ulong a, ulong b) =>
-	a == b;
-ulong fnEqFloat32(ulong a, ulong b) =>
-	float32OfBits(a) == float32OfBits(b);
-ulong fnEqFloat64(ulong a, ulong b) =>
-	float64OfBits(a) == float64OfBits(b);
-ulong fnFloat32FromFloat64(ulong a) =>
-	bitsOfFloat32(cast(float) float64OfBits(a));
-ulong fnFloat64FromFloat32(ulong a) =>
-	bitsOfFloat64(cast(double) float32OfBits(a));
-ulong fnFloat64FromInt64(ulong a) =>
-	bitsOfFloat64(cast(double) (cast(long) a));
-ulong fnFloat64FromNat64(ulong a) =>
-	bitsOfFloat64(cast(double) a);
-ulong fnInt64FromInt8(ulong a) =>
-	cast(ulong) (cast(long) (cast(byte) a));
-ulong fnInt64FromInt16(ulong a) =>
-	cast(ulong) (cast(long) (cast(short) a));
-ulong fnInt64FromInt32(ulong a) =>
-	u64OfI32(cast(int) a);
-ulong fnLessFloat32(ulong a, ulong b) =>
-	float32OfBits(a) < float32OfBits(b);
-ulong fnLessFloat64(ulong a, ulong b) =>
-	float64OfBits(a) < float64OfBits(b);
-private ulong fnLessT(T)(ulong a, ulong b) =>
-	(cast(T) a) < (cast(T) b);
+alias fnBitwiseNot = opFnUnary!((ulong a) => ~a);
+alias fnBitwiseAnd = opFnBinary!((ulong a, ulong b) => a & b);
+alias fnBitwiseOr = opFnBinary!((ulong a, ulong b) => a | b);
+alias fnBitwiseXor = opFnBinary!((ulong a, ulong b) => a ^ b);
+alias fnCountOnesNat64 = opFnUnary!((ulong a) => popcount(a));
+alias fnEqBits = opFnBinary!((ulong a, ulong b) => a == b);
+alias fnEqFloat32 = opFnBinary!((ulong a, ulong b) =>
+	float32OfBits(a) == float32OfBits(b));
+alias fnEqFloat64 = opFnBinary!((ulong a, ulong b) =>
+	float64OfBits(a) == float64OfBits(b));
+alias fnFloat32FromFloat64 = opFnUnary!((ulong a) =>
+	bitsOfFloat32(cast(float) float64OfBits(a)));
+alias fnFloat64FromFloat32 = opFnUnary!((ulong a) =>
+	bitsOfFloat64(cast(double) float32OfBits(a)));
+alias fnFloat64FromInt64 = opFnUnary!((ulong a) =>
+	bitsOfFloat64(cast(double) (cast(long) a)));
+alias fnFloat64FromNat64 = opFnUnary!((ulong a) =>
+	bitsOfFloat64(cast(double) a));
+alias fnInt64FromInt8 = opFnUnary!((ulong a) =>
+	cast(ulong) (cast(long) (cast(byte) a)));
+alias fnInt64FromInt16 = opFnUnary!((ulong a) =>
+	cast(ulong) (cast(long) (cast(short) a)));
+alias fnInt64FromInt32 = opFnUnary!((ulong a) =>
+	u64OfI32(cast(int) a));
+alias fnLessFloat32 = opFnBinary!((ulong a, ulong b) =>
+	float32OfBits(a) < float32OfBits(b));
+alias fnLessFloat64 = opFnBinary!((ulong a, ulong b) =>
+	float64OfBits(a) < float64OfBits(b));
+private alias fnLessT(T) = opFnBinary!((ulong a, ulong b) =>
+	(cast(T) a) < (cast(T) b));
 alias fnLessInt8 = fnLessT!byte;
 alias fnLessInt16 = fnLessT!short;
 alias fnLessInt32 = fnLessT!int;
@@ -97,42 +133,42 @@ alias fnMulFloat32 = binaryFloat32s!((float a, float b) => a * b);
 alias fnMulFloat64 = binaryFloat64s!((double a, double b) => a * b);
 alias fnSubFloat32 = binaryFloat32s!((float a, float b) => a - b);
 alias fnSubFloat64 = binaryFloat64s!((double a, double b) => a - b);
-ulong fnTruncateToInt64FromFloat64(ulong a) =>
-	cast(ulong) cast(long) float64OfBits(a);
-ulong fnUnsafeBitShiftLeftNat64(ulong a, ulong b) {
+alias fnTruncateToInt64FromFloat64 = opFnUnary!((ulong a) =>
+	cast(ulong) cast(long) float64OfBits(a));
+alias fnUnsafeBitShiftLeftNat64 = opFnBinary!((ulong a, ulong b) {
 	assert(b < 64);
 	return a << b;
-}
-ulong fnUnsafeBitShiftRightNat64(ulong a, ulong b) {
+});
+alias fnUnsafeBitShiftRightNat64 = opFnBinary!((ulong a, ulong b) {
 	assert(b < 64);
 	return a >> b;
-}
+});
 alias fnUnsafeDivFloat32 = binaryFloat32s!((float a, float b) => a / b);
 alias fnUnsafeDivFloat64 = binaryFloat64s!((double a, double b) => a / b);
-ulong fnUnsafeDivInt8(ulong a, ulong b) =>
-	cast(byte) a / cast(byte) b;
-ulong fnUnsafeDivInt16(ulong a, ulong b) =>
-	cast(short) a / cast(short) b;
-ulong fnUnsafeDivInt32(ulong a, ulong b) =>
-	cast(int) a / cast(int) b;
-ulong fnUnsafeDivInt64(ulong a, ulong b) =>
-	cast(ulong) ((cast(long) a) / (cast(long) b));
-ulong fnUnsafeDivNat8(ulong a, ulong b) =>
-	cast(ubyte) a / cast(ubyte) b;
-ulong fnUnsafeDivNat16(ulong a, ulong b) =>
-	cast(ushort) a / cast(ushort) b;
-ulong fnUnsafeDivNat32(ulong a, ulong b) =>
-	cast(uint) a / cast(uint) b;
-ulong fnUnsafeDivNat64(ulong a, ulong b) =>
-	a / b;
-ulong fnUnsafeModNat64(ulong a, ulong b) =>
-	a % b;
-ulong fnWrapAddIntegral(ulong a, ulong b) =>
-	a + b;
-ulong fnWrapMulIntegral(ulong a, ulong b) =>
-	a * b;
-ulong fnWrapSubIntegral(ulong a, ulong b) =>
-	a - b;
+alias fnUnsafeDivInt8 = opFnBinary!((ulong a, ulong b) =>
+	cast(byte) a / cast(byte) b);
+alias fnUnsafeDivInt16 = opFnBinary!((ulong a, ulong b) =>
+	cast(short) a / cast(short) b);
+alias fnUnsafeDivInt32 = opFnBinary!((ulong a, ulong b) =>
+	cast(int) a / cast(int) b);
+alias fnUnsafeDivInt64 = opFnBinary!((ulong a, ulong b) =>
+	cast(ulong) ((cast(long) a) / (cast(long) b)));
+alias fnUnsafeDivNat8 = opFnBinary!((ulong a, ulong b) =>
+	cast(ubyte) a / cast(ubyte) b);
+alias fnUnsafeDivNat16 = opFnBinary!((ulong a, ulong b) =>
+	cast(ushort) a / cast(ushort) b);
+alias fnUnsafeDivNat32 = opFnBinary!((ulong a, ulong b) =>
+	cast(uint) a / cast(uint) b);
+alias fnUnsafeDivNat64 = opFnBinary!((ulong a, ulong b) =>
+	a / b);
+alias fnUnsafeModNat64 = opFnBinary!((ulong a, ulong b) =>
+	a % b);
+alias fnWrapAddIntegral = opFnBinary!((ulong a, ulong b) =>
+	a + b);
+alias fnWrapMulIntegral = opFnBinary!((ulong a, ulong b) =>
+	a * b);
+alias fnWrapSubIntegral = opFnBinary!((ulong a, ulong b) =>
+	a - b);
 
 //TODO:MOVE
 ulong u64OfI32(int a) =>
