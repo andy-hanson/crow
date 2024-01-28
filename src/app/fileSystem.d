@@ -11,6 +11,7 @@ version (Windows) {} else {
 import core.stdc.string : strerror;
 
 version (Windows) {
+	import core.stdc.stdarg : va_list;
 	import core.sys.windows.core :
 		CloseHandle,
 		CreatePipe,
@@ -18,6 +19,7 @@ version (Windows) {
 		DeleteFileA,
 		DWORD,
 		ERROR_BROKEN_PIPE,
+		ERROR_FILE_NOT_FOUND,
 		FormatMessageA,
 		FORMAT_MESSAGE_FROM_SYSTEM,
 		FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -29,6 +31,9 @@ version (Windows) {
 		HANDLE_FLAG_INHERIT,
 		HMODULE,
 		INFINITE,
+		LPCSTR,
+		LPSTR,
+		PCVOID,
 		PROCESS_INFORMATION,
 		ReadFile,
 		SearchPathA,
@@ -55,24 +60,27 @@ import util.exitCode : ExitCode, okAnd;
 import util.memory : memset;
 import util.opt : force, has, none, Opt, some;
 import util.string : CString, cString, cStringSize;
-import util.symbol : AllSymbols, Extension;
+import util.symbol : alterExtension, Extension, Symbol, symbol;
 import util.union_ : TaggedUnion;
 import util.uri :
 	AllUris,
+	alterExtension,
 	alterExtensionWithHex,
 	asFileUri,
+	baseName,
+	childFileUri,
 	cStringOfFileUri,
 	FileUri,
 	fileUriToTempStr,
 	isFileUri,
 	parent,
-	parseAbsoluteFilePathAsUri,
 	parseFileUri,
 	TempStrForPath,
 	Uri,
 	writeFileUri;
-import util.util : todo, typeAs;
+import util.util : castImmutable, todo, typeAs;
 import util.writer : withStackWriter, withWriter, Writer, writeWithSeparatorAndFilter;
+import versionInfo : getOS, OS;
 
 FILE* stdin() {
 	version (Windows) {
@@ -98,13 +106,14 @@ FILE* stderr() {
 	}
 }
 
-private @trusted ExitCode removeFile(in AllUris allUris, FileUri uri) {
+private @trusted ExitCode removeFileIfExists(in AllUris allUris, FileUri uri) {
 	TempStrForPath buf = void;
-	CString cString = fileUriToTempStr(buf, allUris, uri);
+	CString cString = fileUriToTempStr(buf, allUris, getOS(), uri);
 	version (Windows) {
-		return DeleteFileA(cString.ptr)
+		int ok = DeleteFileA(cString.ptr);
+		return ok == 1 || GetLastError() == ERROR_FILE_NOT_FOUND
 			? ExitCode.ok
-			: printErrorForFile("Error removing file", allUris, uri);
+			: printErrorForFile("Error removing file ", allUris, uri);
 	} else {
 		final switch (unlink(cString.ptr)) {
 			case 0:
@@ -141,7 +150,7 @@ ExitCode withTempUri(
 	ubyte[8] bytes = getRandomBytes();
 	FileUri tempUri = alterExtensionWithHex(allUris, asFileUri(allUris, tempBasePath), bytes, extension);
 	ExitCode exit = cb(tempUri);
-	ExitCode exit2 = removeFile(allUris, tempUri);
+	ExitCode exit2 = removeFileIfExists(allUris, tempUri);
 	return okAnd(exit, () => exit2);
 }
 
@@ -158,7 +167,13 @@ private @trusted ubyte[8] getRandomBytes() {
 
 @trusted ubyte[n] getNRandomBytes(size_t n)() {
 	version (Windows) {
-		static assert(false); // TODO
+		ubyte[n] res;
+		assert(n % 8 == 0);
+		for (size_t i = 0; i < n; i += 8) {
+			foreach (size_t j, ubyte x; getRandomBytes())
+				res[i + j] = x;
+		}
+		return res;
 	} else {
 		ubyte[n] out_;
 		FILE* fd = fopen("/dev/urandom", "rb");
@@ -192,9 +207,9 @@ private T[size0 + size1] concat(T, size_t size0, size_t size1)(in T[size0] a, in
 		int len = SearchPathA(null, "cl.exe", null, cast(uint) res.length, res.ptr, null);
 		if (len == 0) {
 			fprintf(stderr, "Could not find cl.exe on path. Be sure you are using a Native Tools Command Prompt.");
-			return none!CString;
+			return none!FileUri;
 		} else
-			return some(parseFileUri(CString(cast(immutable) res.ptr)));
+			return some(parseFileUri(allUris, CString(cast(immutable) res.ptr)));
 	} else
 		return some(parseFileUri(allUris, cString!"/usr/bin/cc"));
 }
@@ -204,7 +219,7 @@ private T[size0 + size1] concat(T, size_t size0, size_t size1)(in T[size0] a, in
 		return ReadFileResult(ReadFileDiag.notFound);
 
 	TempStrForPath pathBuf = void;
-	FILE* fd = fopen(fileUriToTempStr(pathBuf, allUris, asFileUri(allUris, uri)).ptr, "rb");
+	FILE* fd = fopen(fileUriToTempStr(pathBuf, allUris, getOS(), asFileUri(allUris, uri)).ptr, "rb");
 	if (fd == null)
 		return errno == ENOENT
 			? ReadFileResult(ReadFileDiag.notFound)
@@ -258,7 +273,7 @@ private T[size0 + size1] concat(T, size_t size0, size_t size1)(in T[size0] a, in
 
 private @system FILE* tryOpenFileForWrite(in AllUris allUris, FileUri uri) {
 	TempStrForPath buf = void;
-	CString pathStr = fileUriToTempStr(buf, allUris, uri);
+	CString pathStr = fileUriToTempStr(buf, allUris, getOS(), uri);
 	FILE* fd = fopen(pathStr.ptr, "w");
 	if (fd == null) {
 		if (errno == ENOENT) {
@@ -280,7 +295,7 @@ private @system FILE* tryOpenFileForWrite(in AllUris allUris, FileUri uri) {
 	const char* cwd = getcwd(res.ptr, res.length);
 	return cwd == null
 		? todo!FileUri("getcwd failed")
-		: parseAbsoluteFilePathAsUri(allUris, CString(cast(immutable) cwd));
+		: parseFileUri(allUris, CString(cast(immutable) cwd));
 }
 
 @trusted FileUri getPathToThisExecutable(ref AllUris allUris) {
@@ -294,7 +309,7 @@ private @system FILE* tryOpenFileForWrite(in AllUris allUris, FileUri uri) {
 	}
 	assert(size > 0 && size < res.length);
 	res[size] = '\0';
-	return parseAbsoluteFilePathAsUri(allUris, CString(cast(immutable) res.ptr));
+	return parseFileUri(allUris, CString(cast(immutable) res.ptr));
 }
 
 immutable struct Signal {
@@ -312,7 +327,7 @@ immutable struct ExitCodeOrSignal {
 	mixin TaggedUnion!(ExitCode, Signal);
 }
 
-ExitCode printSignalAndExit(ExitCodeOrSignal a) =>
+private ExitCode printSignalAndExit(ExitCodeOrSignal a) =>
 	a.matchImpure!ExitCode(
 		(in ExitCode x) =>
 			x,
@@ -322,51 +337,84 @@ ExitCode printSignalAndExit(ExitCodeOrSignal a) =>
 				writer ~= x.signal;
 			})));
 
-// Returns the child process' error code.
-// WARN: A first arg will be prepended that is the executable path.
-@trusted ExitCodeOrSignal spawnAndWait(
+ExitCode runCompiler(ref TempAlloc tempAlloc, scope ref AllUris allUris, in PathAndArgs pathAndArgs) =>
+	// Extern library linker arguments are already in args
+	printSignalAndExit(runCommon(tempAlloc, allUris, [], pathAndArgs, isCompile: true));
+
+ExitCode cleanupCompile(scope ref AllUris allUris, FileUri cwd, FileUri cUri, FileUri exeUri) {
+	version (Windows) {
+		removeFileIfExists(allUris, alterExtension(allUris, exeUri, Extension.ilk));
+		removeFileIfExists(allUris, alterExtension(allUris, exeUri, Extension.pdb));
+		Symbol objBaseName = alterExtension(allUris.allSymbols, baseName(allUris, cUri), Extension.obj);
+		return removeFileIfExists(allUris, childFileUri(allUris, cwd, objBaseName));
+	}
+}
+
+ExitCodeOrSignal runProgram(
 	ref TempAlloc tempAlloc,
-	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
 	in ExternLibraries externLibraries,
 	in PathAndArgs pathAndArgs,
+) =>
+	runCommon(tempAlloc, allUris, externLibraries, pathAndArgs, isCompile: false);
+
+private @trusted ExitCodeOrSignal runCommon(
+	ref TempAlloc tempAlloc,
+	scope ref AllUris allUris,
+	in ExternLibraries externLibraries,
+	in PathAndArgs pathAndArgs,
+	bool isCompile,
 ) {
-	CString executablePath = cStringOfFileUri(tempAlloc, allUris, pathAndArgs.path);
+	CString executablePath = cStringOfFileUri(tempAlloc, allUris, getOS(), pathAndArgs.path);
 	version (Windows) {
 		CString argsCString = windowsArgsCString(tempAlloc, executablePath, pathAndArgs.args);
+
+		foreach (ExternLibrary x; externLibraries) {
+			if (has(x.configuredDir)) {
+				TempStrForPath buf;
+				fileUriToTempStr(buf, allUris, OS.windows, asFileUri(allUris, force(x.configuredDir)));
+				SetDllDirectoryA(buf.ptr);
+			}
+		}
 
 		HANDLE stdoutRead;
 		HANDLE stdoutWrite;
 		HANDLE stderrRead;
 		HANDLE stderrWrite;
-		SECURITY_ATTRIBUTES saAttr;
-		saAttr.nLength = SECURITY_ATTRIBUTES.sizeof;
-		saAttr.bInheritHandle = true;
-		saAttr.lpSecurityDescriptor = null;
+		char[0x10000] stdoutBuf = void;
+		char[0x10000] stderrBuf = void;
 
-		if (!CreatePipe(&stdoutRead, &stdoutWrite, &saAttr, 0))
-			todo!void("");
-		if (!SetHandleInformation(stdoutRead, HANDLE_FLAG_INHERIT, 0))
-			todo!void("");
-		if (!CreatePipe(&stderrRead, &stderrWrite, &saAttr, 0))
-			todo!void("");
-		if (!SetHandleInformation(stderrRead, HANDLE_FLAG_INHERIT, 0))
-			todo!void("");
+		if (isCompile) {
+			SECURITY_ATTRIBUTES saAttr;
+			saAttr.nLength = SECURITY_ATTRIBUTES.sizeof;
+			saAttr.bInheritHandle = true;
+			saAttr.lpSecurityDescriptor = null;
+
+			if (!CreatePipe(&stdoutRead, &stdoutWrite, &saAttr, 0))
+				todo!void("");
+			if (!SetHandleInformation(stdoutRead, HANDLE_FLAG_INHERIT, 0))
+				todo!void("");
+			if (!CreatePipe(&stderrRead, &stderrWrite, &saAttr, 0))
+				todo!void("");
+			if (!SetHandleInformation(stderrRead, HANDLE_FLAG_INHERIT, 0))
+				todo!void("");
+		}
 
 		STARTUPINFOA startupInfo = void;
 		memset(cast(ubyte*) &startupInfo, 0, STARTUPINFOA.sizeof);
 		startupInfo.cb = STARTUPINFOA.sizeof;
-		startupInfo.dwFlags = STARTF_USESTDHANDLES;
-		startupInfo.hStdOutput = stdoutWrite;
-		startupInfo.hStdError = stderrWrite;
+		if (isCompile) {
+			startupInfo.dwFlags = STARTF_USESTDHANDLES;
+			startupInfo.hStdOutput = stdoutWrite;
+			startupInfo.hStdError = stderrWrite;
+		}
 
 		PROCESS_INFORMATION processInfo;
 		memset(cast(ubyte*) &processInfo, 0, PROCESS_INFORMATION.sizeof);
-		static assert(false); // TODO: environment for extern libraries?
 		int ok = CreateProcessA(
 			executablePath.ptr,
 			// not sure why Windows makes this mutable
-			cast(char*) argsCString,
+			cast(char*) argsCString.ptr,
 			null,
 			null,
 			true,
@@ -376,32 +424,43 @@ ExitCode printSignalAndExit(ExitCodeOrSignal a) =>
 			&startupInfo,
 			&processInfo);
 		if (!ok) {
-			printLastError(GetLastError(), "Spawning cl");
-			return ExitCode.error;
+			DWORD error = GetLastError();
+			errorLog((scope ref Writer writer) {
+				writer ~= "Error spawning ";
+				writer ~= argsCString;
+				writer ~= '\n';
+				writeLastError(writer, error);
+			});
+			return ExitCodeOrSignal(ExitCode.error);
 		}
 
-		verifyOk(CloseHandle(stdoutWrite));
-		verifyOk(CloseHandle(stderrWrite));
+		if (isCompile) {
+			verifyOk(CloseHandle(stdoutWrite));
+			verifyOk(CloseHandle(stderrWrite));
 
-		char[0x10000] stdoutBuf = void;
-		char[0x10000] stderrBuf = void;
-		readFromPipe(stdoutBuf, stdoutRead);
-		verifyOk(CloseHandle(stdoutRead));
-		readFromPipe(stderrBuf, stderrRead);
-		verifyOk(CloseHandle(stderrRead));
+			readFromPipe(stdoutBuf, stdoutRead);
+			verifyOk(CloseHandle(stdoutRead));
+			readFromPipe(stderrBuf, stderrRead);
+			verifyOk(CloseHandle(stderrRead));
+		}
 
 		WaitForSingleObject(processInfo.hProcess, INFINITE);
 
 		DWORD exitCode;
 		int ok2 = GetExitCodeProcess(processInfo.hProcess, &exitCode);
-		if (!ok2)
-			todo!void("");
+		assert(ok2 == 1);
 
-		if (exitCode != 0) {
-			fprintf(stderr, "Error invoking C compiler: %s\n", argsCString);
-			fprintf(stderr, "Exit code %d\n", exitCode);
-			fprintf(stderr, "C compiler stderr: %s\n", stderrBuf.ptr);
-			printf("C compiler stdout: %s\n", stdoutBuf.ptr);
+		if (isCompile && exitCode != 0) {
+			errorLog((scope ref Writer writer) @trusted {
+				writer ~= "Error running ";
+				writer ~= argsCString;
+				writer ~= "\nExit code ";
+				writer ~= exitCode;
+				writer ~= "\nStderr: ";
+				writer ~= CString(castImmutable(stderrBuf.ptr));
+				writer ~= "\nStdout: ";
+				writer ~= CString(castImmutable(stdoutBuf.ptr));
+			});
 		}
 
 		verifyOk(CloseHandle(processInfo.hProcess));
@@ -417,7 +476,7 @@ ExitCode printSignalAndExit(ExitCodeOrSignal a) =>
 			null,
 			// https://stackoverflow.com/questions/50596439/can-string-literals-be-passed-in-posix-spawns-argv
 			cast(char**) convertArgs(tempAlloc, executablePath, pathAndArgs.args),
-			getEnvironForChildProcess(tempAlloc, allSymbols, allUris, externLibraries));
+			getEnvironForChildProcess(tempAlloc, allUris, externLibraries));
 		if (spawnStatus == 0) {
 			int waitStatus;
 			int resPid = waitpid(pid, &waitStatus, 0);
@@ -435,10 +494,19 @@ ExitCode printSignalAndExit(ExitCodeOrSignal a) =>
 
 private:
 
+version (Windows) {
+	extern(C) bool SetDllDirectoryA(scope LPCSTR);
+}
+
+@trusted void errorLog(in void delegate(scope ref Writer) @safe @nogc pure nothrow cb) {
+	fprintf(stderr, "%s\n", withStackWriter((scope ref Alloc _, scope ref Writer writer) {
+		cb(writer);
+	}).ptr);
+}
+
 version (Windows) {} else {
 	@system immutable(char**) getEnvironForChildProcess(
 		ref Alloc alloc,
-		scope ref AllSymbols allSymbols,
 		scope ref AllUris allUris,
 		in ExternLibraries externLibraries,
 	) =>
@@ -543,7 +611,11 @@ version (Windows) {
 				if (err == ERROR_BROKEN_PIPE) {
 					*out_ = '\0';
 				} else {
-					printLastError(GetLastError(), "readFromPipe");
+					DWORD error = GetLastError();
+					errorLog((scope ref Writer writer) {
+						writer ~= "Error in readFromPipe: ";
+						writeLastError(writer, error);
+					});
 					todo!void("");
 				}
 			}
@@ -572,9 +644,15 @@ bool WIFSIGNALED( int status )
 }
 
 version (Windows) {
-	@system void printLastError(int error, CString description) {
+	@trusted pure void writeLastError(scope ref Writer writer, int error) {
+		writer ~= "Error ";
+		writer ~= error;
+		writer ~= ' ';
+
 		char[0x400] buffer;
-		int size = FormatMessageA(
+		alias FMA = DWORD function(DWORD, PCVOID, DWORD, DWORD, LPSTR, DWORD, va_list*) @system @nogc pure nothrow;
+		FMA fma = cast(FMA) &FormatMessageA;
+		int size = fma(
 			FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 			null,
 			error,
@@ -583,7 +661,7 @@ version (Windows) {
 			buffer.length,
 			null);
 		assert(size != 0 && size < buffer.length);
-		fprintf(stderr, "%s: %.*s", description, size, buffer.ptr);
+		writer ~= castImmutable(buffer[0 .. size]);
 	}
 }
 
@@ -591,8 +669,13 @@ version (Windows) {
 	extern(C) FILE* __acrt_iob_func(uint);
 }
 
-ExitCode printErrorForFile(string description, in AllUris allUris, FileUri uri) =>
-	printError(withStackWriter((scope ref Alloc _, scope ref Writer writer) {
+ExitCode printErrorForFile(string description, in AllUris allUris, FileUri uri) {
+	OS os = getOS();
+	DWORD error = GetLastError();
+	return printError(withStackWriter((scope ref Alloc _, scope ref Writer writer) {
 		writer ~= description;
-		writeFileUri(writer, allUris, uri);
+		writeFileUri(writer, allUris, os, uri);
+		writer ~= ": ";
+		writeLastError(writer, error);
 	}));
+}

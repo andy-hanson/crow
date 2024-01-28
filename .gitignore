@@ -3,8 +3,3 @@ site
 dyncall
 editor/vscode/node_modules
 test/test
-*.exe
-*.ilk
-*.mdb
-*.obj
-*.pdb

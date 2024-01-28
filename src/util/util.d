@@ -127,7 +127,7 @@ Opt!E optEnumOfString(E)(in string a) {
 	assertNormalEnum!E();
 	switch (a) {
 		static foreach (size_t index, string member; __traits(allMembers, E)) {
-			case member:
+			case stripUnderscore!member:
 				return some(cast(E) index);
 		}
 		default:

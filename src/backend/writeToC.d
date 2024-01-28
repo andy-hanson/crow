@@ -61,7 +61,7 @@ import util.col.map : mustGet;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach, fullIndexMapEachKey;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
 import util.opt : force, has, Opt, some;
-import util.string : CString, cString, eachChar;
+import util.string : CString, cString, cStringSize, eachChar;
 import util.symbol : addExtension, AllSymbols, cStringOfSymbol, Extension, Symbol, symbol, writeSymbol;
 import util.union_ : Union;
 import util.uri : AllUris, asFileUri, childFileUri, cStringOfFileUri, FileUri, isFileUri, writeFileUri;
@@ -75,7 +75,7 @@ import util.writer :
 	writeWithCommas,
 	writeWithCommasZip,
 	writeWithSpaces;
-import versionInfo : isWindows;
+import versionInfo : isWindows, OS, VersionInfo;
 
 immutable struct PathAndArgs {
 	FileUri path;
@@ -102,11 +102,12 @@ WriteToCResult writeToC(
 	in LowProgram program,
 	in WriteToCParams params,
 ) {
+	OS os = program.version_.os;
 	bool isMSVC = isWindows(program.version_);
-	CString[] args = cCompileArgs(alloc, allSymbols, allUris, program.externLibraries, isMSVC, params);
+	CString[] args = cCompileArgs(alloc, allSymbols, allUris, program.externLibraries, os, isMSVC, params);
 	CString content = withWriter(alloc, (scope ref Writer writer) {
-		writer ~= "/* /";
-		writeFileUri(writer, allUris, params.cCompiler);
+		writer ~= "/* ";
+		writeFileUri(writer, allUris, os, params.cCompiler);
 		writer ~= ' ';
 		writeWithSpaces!CString(writer, args, (in CString arg) { writer ~= arg; });
 		writer ~= " */\n\n";
@@ -148,6 +149,7 @@ public void getLinkOptions(
 	ref Alloc alloc,
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
+	OS os,
 	bool isMSVC,
 	in ExternLibraries externLibraries,
 	in void delegate(CString) @safe @nogc pure nothrow cb,
@@ -161,7 +163,7 @@ public void getLinkOptions(
 				if (!isFileUri(allUris, force(x.configuredDir)))
 					todo!void("diagnostic: can't link to non-file");
 				cb(cStringOfFileUri(
-					alloc, allUris,
+					alloc, allUris, OS.windows,
 					childFileUri(allUris, asFileUri(allUris, force(x.configuredDir)), xDotLib)));
 			} else
 				switch (x.libraryName.value) {
@@ -178,7 +180,7 @@ public void getLinkOptions(
 					writer ~= "-L/";
 					if (!isFileUri(allUris, force(x.configuredDir)))
 						todo!void("diagnostic: can't link to non-file");
-					writeFileUri(writer, allUris, asFileUri(allUris, force(x.configuredDir)));
+					writeFileUri(writer, allUris, os, asFileUri(allUris, force(x.configuredDir)));
 				}));
 			}
 
@@ -197,37 +199,37 @@ CString[] cCompileArgs(
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
 	in ExternLibraries externLibraries,
+	OS os,
 	bool isMSVC,
 	in WriteToCParams params,
 ) =>
 	buildArray(alloc, (scope ref Builder!CString args) {
 		args ~= cCompilerArgs(isMSVC, params.compileOptions);
-		args ~= cStringOfFileUri(alloc, allUris, params.cUri);
-		getLinkOptions(alloc, allSymbols, allUris, isMSVC, externLibraries, (CString x) { args ~= x; });
+		args ~= cStringOfFileUri(alloc, allUris, os, params.cUri);
+		getLinkOptions(alloc, allSymbols, allUris, os, isMSVC, externLibraries, (CString x) { args ~= x; });
 		if (isMSVC) {
 			args ~= [
-				cString!"/DEBUG",
+				cString!"/nologo",
 				withWriter(alloc, (scope ref Writer writer) {
 					writer ~= "/out:";
-					writeFileUri(writer, allUris, params.exeUri);
+					writeFileUri(writer, allUris, os, params.exeUri);
 				}),
 			];
 		} else {
-			args ~= [cString!"-o", cStringOfFileUri(alloc, allUris, params.exeUri)];
+			args ~= [cString!"-o", cStringOfFileUri(alloc, allUris, os, params.exeUri)];
 		}
 	});
 
 CString[] cCompilerArgs(bool isMSVC, in CCompileOptions options) {
 	if (isMSVC) {
 		static immutable CString[] optimizedArgs = [
-			cString!"/Zi",
+			cString!"/DEBUG",
+			cString!"/Z7",
 			cString!"/std:c17",
-			cString!"/Wall",
-			cString!"/wd4034",
+			cString!"/W3",
+			cString!"/wd4028",
 			cString!"/wd4098",
-			cString!"/wd4100",
-			cString!"/wd4295",
-			cString!"/wd4820",
+			cString!"/wd4723",
 			cString!"/WX",
 			cString!"/O2",
 		];
@@ -268,7 +270,24 @@ CString[] cCompilerArgs(bool isMSVC, in CCompileOptions options) {
 	}
 }
 
+void writeCStringName(scope ref Writer writer, size_t index) {
+	writer ~= "__cString";
+	writer ~= index;
+}
+
 void writeConstants(scope ref Writer writer, scope ref Ctx ctx, in AllConstantsLow allConstants) {
+	// Need to ensure strings are written only once so MSVC doesn't create duplicates (which breaks Symbol uniqueness)
+	foreach (size_t index, CString x; allConstants.cStrings) {
+		writer ~= "char ";
+		writeCStringName(writer, index);
+		writer ~= "[";
+		writer ~= cStringSize(x) + 1;
+		writer ~= "] = ";
+		writeStringLiteralWithNul(writer, ctx.isMSVC, x);
+		writer ~= ";\n";
+	}
+	writer ~= '\n';
+
 	foreach (ref ArrTypeAndConstantsLow a; allConstants.arrs) {
 		foreach (size_t i, Constant[] elements; a.constants) {
 			declareConstantArrStorage(writer, ctx, a.arrType, a.elementType, i, elements.length);
@@ -1364,7 +1383,7 @@ void writeConstantRef(
 			writer ~= '}';
 		},
 		(in Constant.CString x) {
-			writeStringLiteral(writer, ctx.isMSVC, ctx.program.allConstants.cStrings[x.index]);
+			writeCStringName(writer, x.index);
 		},
 		(in Constant.Float x) {
 			switch (type.as!PrimitiveType) {
@@ -1412,7 +1431,7 @@ void writeConstantRef(
 				writer ~= cast(ulong) it.value;
 				writer ~= 'u';
 				if (primitive == PrimitiveType.nat64)
-					writer ~= 'l';
+					writer ~= "ll";
 			}
 		},
 		(in Constant.Pointer it) {
@@ -1447,7 +1466,7 @@ void writeConstantRef(
 		});
 }
 
-void writeStringLiteral(scope ref Writer writer, bool isMSVC, in CString a) {
+void writeStringLiteralWithNul(scope ref Writer writer, bool isMSVC, in CString a) {
 	writer ~= '"';
 	size_t chunk = 0;
 	eachChar(a, (char c) {
@@ -1462,6 +1481,7 @@ void writeStringLiteral(scope ref Writer writer, bool isMSVC, in CString a) {
 			}
 		}
 	});
+	writer ~= "\\0";
 	writer ~= '"';
 }
 

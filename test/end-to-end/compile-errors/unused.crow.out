@@ -1,4 +1,6 @@
 exit code: 0
+stdout:
+info: done
 stderr:
 test/end-to-end/compile-errors/unused.crow 3:23-3:26 Imported name 'sec' is unused.
 test/end-to-end/compile-errors/unused.crow 5:26-5:37 Imported name 'time-locale' is unused.

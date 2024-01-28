@@ -5,7 +5,7 @@ module util.symbol;
 import std.meta : staticMap;
 
 import util.alloc.alloc : Alloc;
-import util.col.array : only;
+import util.col.array : lastIndexOf, only;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : mustAdd, MutMap, size;
 import util.col.mutMaxArr : asTemporaryArray, MutMaxArr, mutMaxArr;
@@ -91,28 +91,25 @@ Symbol alterExtension(scope ref AllSymbols allSymbols, Symbol a, Extension exten
 	addExtension(allSymbols, removeExtension(allSymbols, a), extension);
 
 // TODO:PERF This could be cached (with getExtension)
-Symbol removeExtension(scope ref AllSymbols allSymbols, Symbol a) {
-	MutMaxArr!(0x100, immutable char) res = mutMaxArr!(0x100, immutable char);
-	bool hasDot = false;
-	eachCharInSymbol(allSymbols, a, (char x) {
-		if (!hasDot) {
-			if (x == '.')
-				hasDot = true;
-			else
-				res ~= x;
-		}
-	});
-	return symbolOfString(allSymbols, asTemporaryArray(res));
+@trusted Symbol removeExtension(scope ref AllSymbols allSymbols, Symbol a) {
+	char[0x100] buf = symbolAsTempBuffer!0x100(allSymbols, a);
+	string str = stringOfCString(CString(cast(immutable) buf.ptr));
+	Opt!size_t index = lastIndexOf(str, '.');
+	return has(index) ? symbolOfString(allSymbols, str[0 .. force(index)]) : a;
 }
 
 enum Extension {
 	c,
 	crow,
+	dll,
 	exe,
+	ilk,
 	json,
 	lib,
 	none, // ""
+	obj,
 	other,
+	pdb,
 }
 
 // TODO:PERF This could be cached (with removeExtension)
@@ -489,6 +486,9 @@ immutable string[] specialSymbols = [
 
 	// from names in compiled code
 	"__builtin_popcountl\0",
+
+	// from compile
+	"vc140.pdb\0",
 
 	// from LSP
 	"contentChanges\0",

@@ -17,5 +17,8 @@ immutable struct ExitCode {
 		ExitCode(1);
 }
 
+pure ExitCode exitCodeCombine(ExitCode a, ExitCode b) =>
+	a == ExitCode.ok ? b : a;
+
 ExitCode okAnd(ExitCode a, in ExitCode delegate() @safe @nogc nothrow cb) =>
 	a == ExitCode.ok ? cb() : a;

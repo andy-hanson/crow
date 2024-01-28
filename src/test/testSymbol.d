@@ -6,11 +6,14 @@ import test.testUtil : Test;
 import util.alloc.alloc : Alloc, withTempAlloc;
 import util.symbol :
 	AllSymbols,
+	alterExtension,
 	appendHexExtension,
 	cStringOfSymbol,
+	Extension,
 	isShortSymbol,
 	isLongSymbol,
 	prependSet,
+	removeExtension,
 	Symbol,
 	symbol,
 	symbolOfString;
@@ -25,12 +28,12 @@ void testSymbol(ref Test test) {
 private:
 
 void inner(ref Test test, scope ref AllSymbols allSymbols) {
-	Symbol staticSymbol(string a)() @safe {
-		assert(symbol!a == nonStaticSymbol!a);
+	Symbol staticSymbol(string a)() {
+		assert(symbol!a == nonStaticSymbol(a));
 		return symbol!a;
 	}
 
-	Symbol nonStaticSymbol(string a)() @safe {
+	Symbol nonStaticSymbol(string a) {
 		Symbol res = symbolOfString(allSymbols, a);
 		assert(cStringOfSymbol(test.alloc, allSymbols, res) == a);
 		return res;
@@ -58,7 +61,7 @@ void inner(ref Test test, scope ref AllSymbols allSymbols) {
 	assert(isShortSymbol(setAbcdefgh));
 
 	Symbol setAbcdefghi = prependSet(allSymbols, staticSymbol!"abcdefghi");
-	assert(setAbcdefghi == nonStaticSymbol!"set-abcdefghi");
+	assert(setAbcdefghi == nonStaticSymbol("set-abcdefghi"));
 	assert(isLongSymbol(setAbcdefghi));
 
 	Symbol mvSize = staticSymbol!"mv_size";
@@ -71,5 +74,10 @@ void inner(ref Test test, scope ref AllSymbols allSymbols) {
 	assert(setN0 == staticSymbol!"set-n0");
 
 	Symbol goodFood = appendHexExtension(allSymbols, staticSymbol!"good", [0xf0, 0x0d]);
-	assert(goodFood == nonStaticSymbol!"good.f00d");
+	assert(goodFood == nonStaticSymbol("good.f00d"));
+
+	Symbol xDotYDotZ = nonStaticSymbol("x.y.z");
+	assert(removeExtension(allSymbols, nat8) == nat8);
+	assert(removeExtension(allSymbols, xDotYDotZ) == nonStaticSymbol("x.y"));
+	assert(alterExtension(allSymbols, xDotYDotZ, Extension.crow) == nonStaticSymbol("x.y.crow"));
 }

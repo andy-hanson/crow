@@ -35,8 +35,9 @@ import util.late : Late, late, lateGet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
 import util.string : CString, cString;
-import util.symbol : addExtension, addPrefixAndExtension, AllSymbols, Symbol, symbol, symbolAsTempBuffer;
+import util.symbol : addExtension, addPrefixAndExtension, AllSymbols, Extension, Symbol, symbol, symbolAsTempBuffer;
 import util.uri : AllUris, asFileUri, childUri, fileUriToTempStr, isFileUri, TempStrForPath, Uri;
+import versionInfo : getOS, OS;
 
 @trusted ExitCode withRealExtern(
 	ref Alloc alloc,
@@ -47,7 +48,7 @@ import util.uri : AllUris, asFileUri, childUri, fileUriToTempStr, isFileUri, Tem
 	Late!DebugNames debugNames = late!DebugNames;
 	scope Extern extern_ = Extern(
 		(in ExternLibraries libraries, scope WriteError writeError) {
-			LoadedLibraries res = loadLibraries(alloc, allSymbols, allUris, libraries, writeError);
+			LoadedLibraries res = loadLibraries(alloc, allSymbols, allUris, getOS(), libraries, writeError);
 			lateSet(debugNames, res.debugNames);
 			return res.funPointers;
 		},
@@ -72,12 +73,13 @@ LoadedLibraries loadLibraries(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	ref AllUris allUris,
+	OS os,
 	in ExternLibraries libraries,
 	in WriteError writeError,
 ) {
 	bool success = true;
 	immutable DLLib*[] libs = mapImpure!(immutable DLLib*, ExternLibrary)(alloc, libraries, (in ExternLibrary x) {
-		LibraryAndError lib = getLibrary(allSymbols, allUris, x.libraryName, x.configuredDir, writeError);
+		LibraryAndError lib = getLibrary(allSymbols, allUris, os, x.libraryName, x.configuredDir, writeError);
 		if (lib.error) success = false;
 		return lib.library;
 	});
@@ -95,13 +97,14 @@ immutable struct LibraryAndError {
 LibraryAndError getLibrary(
 	ref AllSymbols allSymbols,
 	ref AllUris allUris,
+	OS os,
 	Symbol libraryName,
 	Opt!Uri configuredDir,
 	in WriteError writeError,
 ) {
 	Symbol fileName = dllOrSoName(allSymbols, libraryName);
 	Opt!(DLLib*) fromUri = has(configuredDir)
-		? tryLoadLibraryFromUri(allUris, childUri(allUris, force(configuredDir), fileName))
+		? tryLoadLibraryFromUri(allUris, os, childUri(allUris, force(configuredDir), fileName))
 		: none!(DLLib*);
 	if (has(fromUri))
 		return LibraryAndError(force(fromUri), false);
@@ -125,15 +128,15 @@ LibraryAndError getLibrary(
 
 Symbol dllOrSoName(scope ref AllSymbols allSymbols, immutable Symbol libraryName) {
 	version (Windows)
-		return addExtension(allSymbols, libraryName, ".dll");
+		return addExtension(allSymbols, libraryName, Extension.dll);
 	else
 		return addPrefixAndExtension(allSymbols, "lib", libraryName, ".so");
 }
 
-@trusted Opt!(DLLib*) tryLoadLibraryFromUri(ref AllUris allUris, Uri uri) {
+@trusted Opt!(DLLib*) tryLoadLibraryFromUri(scope ref AllUris allUris, OS os, Uri uri) {
 	if (isFileUri(allUris, uri)) {
 		TempStrForPath buf = void;
-		CString file = fileUriToTempStr(buf, allUris, asFileUri(allUris, uri));
+		CString file = fileUriToTempStr(buf, allUris, os, asFileUri(allUris, uri));
 		DLLib* res = dlLoadLibrary(file.ptr);
 		return res == null ? none!(DLLib*) : some(res);
 	} else

@@ -16,7 +16,7 @@ import util.col.array : arraysEqual, arraysCorrespond, indexOf, isEmpty, makeArr
 import util.opt : force, has, none, Opt;
 import util.perf : Perf;
 import util.string : CString, stringOfCString;
-import util.symbol : AllSymbols, Extension;
+import util.symbol : AllSymbols, Extension, Symbol, writeSymbol;
 import util.uri : AllUris, concatUriAndPath, getExtension, isAncestor, parsePath, parseUri, Uri, UrisInfo, writeUri;
 import util.util : ptrTrustMe;
 import util.writer : debugLogWithWriter, Writer;
@@ -106,13 +106,29 @@ private void withShowDiagCtxForTestImpl(alias cb)(scope ref Test test, in Storag
 
 pure:
 
-void assertEqual(in CString actual, in CString expected) {
+void assertEqual(in CString actual, in string expected) {
+	assertEqual(stringOfCString(actual), expected);
+}
+
+void assertEqual(in string actual, in string expected) {
 	if (actual != expected) {
 		debugLogWithWriter((scope ref Writer writer) {
 			writer ~= "Actual: ";
 			writer ~= actual;
 			writer ~= "\nExpected: ";
 			writer ~= expected;
+		});
+		assert(false);
+	}
+}
+
+void assertEqual(scope ref Test test, Symbol a, Symbol b) {
+	if (a != b) {
+		debugLogWithWriter((scope ref Writer writer) {
+			writer ~= "Actual: ";
+			writeSymbol(writer, test.allSymbols, a);
+			writer ~= "\nExpected: ";
+			writeSymbol(writer, test.allSymbols, b);
 		});
 		assert(false);
 	}

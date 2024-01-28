@@ -2,9 +2,10 @@ module test.testUri;
 
 @safe @nogc pure nothrow:
 
-import test.testUtil : Test;
+import test.testUtil : assertEqual, Test;
+import util.alloc.alloc : Alloc;
 import util.comparison : Comparison;
-import util.opt : none, optEqual, some;
+import util.opt : force, has, none, Opt, optEqual, some;
 import util.string : CString;
 import util.symbol : Extension, Symbol, symbol, symbolAsTempBuffer, symbolOfString;
 import util.uri :
@@ -20,20 +21,28 @@ import util.uri :
 	getExtension,
 	isFileUri,
 	parent,
-	parseAbsoluteFilePathAsUri,
+	parseFileUri,
 	parseUri,
 	parseUriWithCwd,
 	Path,
+	stringOfUri,
 	TempStrForPath,
 	TEST_eachPart,
 	toUri,
-	Uri;
-import util.util : debugLog;
+	Uri,
+	uriToTempStr;
+import util.util : stringOfEnum;
+import util.writer : Writer;
+import versionInfo : OS;
 
 void testUri(ref Test test) {
-	ref AllUris allUris() =>
-		test.allUris;
+	testBasic(test, test.allUris);
+	testFileUri(test, test.allUris);
+}
 
+private:
+
+void testBasic(ref Test test, scope ref AllUris allUris) {
 	Uri a = parseUri(allUris, "file:///a");
 	verifyUri(test, allUris, a, ["file://", "a"]);
 	Uri b = parseUri(allUris, "file:///b");
@@ -41,7 +50,7 @@ void testUri(ref Test test) {
 	assert(compareUriAlphabetically(allUris, a, a) == Comparison.equal);
 	assert(compareUriAlphabetically(allUris, a, b) == Comparison.less);
 
-	assert(cStringOfUri(test.alloc, allUris, a) == "file:///a");
+	assertEqual(cStringOfUri(test.alloc, allUris, a), "file:///a");
 
 	Uri aX = childUri(allUris, a, symbol!"x");
 	verifyUri(test, allUris, aX, ["file://", "a", "x"]);
@@ -49,52 +58,83 @@ void testUri(ref Test test) {
 	Uri aY = childUri(allUris, a, symbol!"y");
 	verifyUri(test, allUris, aY, ["file://", "a", "y"]);
 	assert(aX != aY);
-	assert(cStringOfUri(test.alloc, allUris, aX) == "file:///a/x");
-	assert(cStringOfUri(test.alloc, allUris, aY) == "file:///a/y");
+	assertEqual(cStringOfUri(test.alloc, allUris, aX), "file:///a/x");
+	assertEqual(cStringOfUri(test.alloc, allUris, aY), "file:///a/y");
 
 	Uri zW = parseUriWithCwd(allUris, aX, "/z/w.crow");
 	verifyUri(test, allUris, zW, ["file://", "z", "w.crow"]);
-	assert(baseName(allUris, zW) == symbolOfString(test.allSymbols, "w.crow"));
-	assert(cStringOfUri(test.alloc, allUris, zW) == "file:///z/w.crow");
-	assert(getExtension(allUris, zW) == Extension.crow);
+	assertEqual(test, baseName(allUris, zW), symbolOfString(test.allSymbols, "w.crow"));
+	assertEqual(cStringOfUri(test.alloc, allUris, zW), "file:///z/w.crow");
+	assertEqual(getExtension(allUris, zW), Extension.crow);
 	Uri aXZW = parseUriWithCwd(allUris, aX, "./z/w");
-	assert(cStringOfUri(test.alloc, allUris, aXZW) == "file:///a/x/z/w");
-	assert(aXZW == parseUriWithCwd(allUris, aX, "z/w"));
-	assert(aY == parseUriWithCwd(allUris, aX, "../y"));
+	assertEqual(cStringOfUri(test.alloc, allUris, aXZW), "file:///a/x/z/w");
+	assertEqual(test, aXZW, parseUriWithCwd(allUris, aX, "z/w"));
+	assertEqual(test, aY, parseUriWithCwd(allUris, aX, "../y"));
 
 	Uri crowLang = parseUri(allUris, "http://crow-lang.org");
 	assert(parseUriWithCwd(allUris, aX, "http://crow-lang.org") == crowLang);
 
-	assert(optEqual!Uri(commonAncestor(allUris, [aX, aY]), some(a)));
-	assert(optEqual!Uri(commonAncestor(allUris, [aX, aXZW]), some(aX)));
-	assert(optEqual!Uri(commonAncestor(allUris, [aX, aXZW, aY]), some(a)));
-	assert(optEqual!Uri(commonAncestor(allUris, [aX, crowLang]), none!Uri));
+	assertEqual(test, commonAncestor(allUris, [aX, aY]), some(a));
+	assertEqual(test, commonAncestor(allUris, [aX, aXZW]), some(aX));
+	assertEqual(test, commonAncestor(allUris, [aX, aXZW, aY]), some(a));
+	assertEqual(test, commonAncestor(allUris, [aX, crowLang]), none!Uri);
 
-	assert(optEqual!Uri(parent(allUris, crowLang), none!Uri));
-	assert(getExtension(allUris, crowLang) == Extension.none);
-
-	testFileUri(test);
+	assertEqual(test, parent(allUris, crowLang), none!Uri);
+	assertEqual(getExtension(allUris, crowLang), Extension.none);
 }
 
-private:
+void assertEqual(ref Test test, Uri a, Uri b) {
+	if (a != b) {
+		assertEqual(stringOfUri(test.alloc, test.allUris, a), stringOfUri(test.alloc, test.allUris, b));
+		assert(false);
+	}
+}
 
-@trusted void testFileUri(ref Test test) {
-	ref AllUris allUris() =>
-		test.allUris;
+void assertEqual(ref Test test, Opt!Uri a, Opt!Uri b) {
+	if (!optEqual!Uri(a, b)) {
+		assertEqual(stringOfOptUri(test, a), stringOfOptUri(test, b));
+		assert(false);
+	}
+}
 
-	Uri uri = parseUri(allUris, "file:///home/crow/a.txt");
-	verifyUri(test, allUris, uri, ["file://", "home", "crow", "a.txt"]);
+string stringOfOptUri(ref Test test, Opt!Uri a) =>
+	has(a) ? stringOfUri(test.alloc, test.allUris, force(a)) : "<<none>>";
+
+void assertEqual(Extension a, Extension b) {
+	if (a != b) {
+		assertEqual(stringOfEnum(a), stringOfEnum(b));
+		assert(false);
+	}
+}
+
+void testFileUri(ref Test test, scope ref AllUris allUris) {
+	verifyFileUri(test, allUris, OS.linux, "file:///home/crow/a.txt", "/home/crow/a.txt", ["home", "crow", "a.txt"]);
+	verifyFileUri(
+		test, allUris, OS.windows,
+		"file:///C:/Users/User/a.txt", "C:/Users/User/a.txt", ["C:", "Users", "User", "a.txt"]);
+	assert(parseFileUri(allUris, "C:\\Users\\User\\a.txt") == parseFileUri(allUris, "C:/Users/User/a.txt"));
+}
+
+@trusted void verifyFileUri(
+	scope ref Test test,
+	scope ref AllUris allUris,
+	OS os,
+	in string asUriString,
+	in string asFileUriString,
+	in string[] components,
+) {
+	Uri uri = parseUri(allUris, asUriString);
+	FileUri fileUri = parseFileUri(allUris, asFileUriString);
+
 	assert(isFileUri(allUris, uri));
-	TempStrForPath pathBuf = void;
-	FileUri fileUri = asFileUri(allUris, uri);
-	fileUriToTempStr(pathBuf, allUris, fileUri);
-	CString actual = CString(cast(immutable) pathBuf.ptr);
-	assert(actual == "/home/crow/a.txt");
+	assert(asFileUri(allUris, uri) == fileUri);
+	assertEqual(test, toUri(allUris, fileUri), uri);
 
-	FileUri ab = parseAbsoluteFilePathAsUri(allUris, "/a/b");
-	verifyPath(test, allUris, ab.path, ["a", "b"]);
+	verifyPath(test, allUris, fileUri.path, components);
 
-	assert(toUri(allUris, fileUri) == uri);
+	TempStrForPath buf = void;
+	assertEqual(CString(uriToTempStr(buf, allUris, uri).ptr), asUriString);
+	assertEqual(CString(fileUriToTempStr(buf, allUris, os, fileUri).ptr), asFileUriString);
 }
 
 void verifyUri(ref Test test, in AllUris allUris, Uri a, in string[] expectedParts) {
@@ -105,19 +145,8 @@ void verifyPath(ref Test test, in AllUris allUris, Path a, in string[] expectedP
 	size_t i = 0;
 	TEST_eachPart(allUris, a, (Symbol x) {
 		assert(i < expectedParts.length);
-		verifyEq(test, x, symbolOfString(test.allSymbols, expectedParts[i]));
+		assertEqual(test, x, symbolOfString(test.allSymbols, expectedParts[i]));
 		i++;
 	});
 	assert(i == expectedParts.length);
-}
-
-void verifyEq(ref Test test, Symbol a, Symbol b) {
-	if (a != b) {
-		debug {
-			debugLog("Symbols not equal:");
-			debugLog(cast(immutable) symbolAsTempBuffer!64(test.allSymbols, a).ptr);
-			debugLog(cast(immutable) symbolAsTempBuffer!64(test.allSymbols, b).ptr);
-		}
-		assert(false);
-	}
 }

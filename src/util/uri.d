@@ -27,6 +27,7 @@ import util.symbol :
 	writeSymbol;
 import util.util : todo;
 import util.writer : withWriter, Writer;
+import versionInfo : OS;
 
 struct AllUris {
 	@safe @nogc pure nothrow:
@@ -51,9 +52,9 @@ struct AllUris {
 
 	ref inout(Alloc) alloc() return scope inout =>
 		*allocPtr;
-	ref const(AllSymbols) allSymbols() return scope const =>
+	public ref const(AllSymbols) allSymbols() return scope const =>
 		*allSymbolsPtr;
-	ref AllSymbols allSymbols() return scope =>
+	public ref AllSymbols allSymbols() return scope =>
 		*allSymbolsPtr;
 }
 
@@ -205,6 +206,8 @@ Symbol baseName(in AllUris allUris, Uri a) =>
 	isRootUri(allUris, a)
 		? symbol!""
 		: baseName(allUris, a.path);
+Symbol baseName(in AllUris allUris, FileUri a) =>
+	baseName(allUris, a.path);
 Symbol baseName(in AllUris allUris, Path a) =>
 	allUris.pathToBaseName[a.index];
 
@@ -312,17 +315,17 @@ private size_t pathToStrLength(in AllUris allUris, Path path, in StringOfPathOpt
 
 alias TempStrForPath = char[0x1000];
 
-private @trusted CString uriToTempStr(return ref TempStrForPath temp, in AllUris allUris, Uri uri) =>
+@trusted CString uriToTempStr(return ref TempStrForPath temp, in AllUris allUris, Uri uri) =>
 	pathToTempStr(temp, allUris, uri.path, false);
-@trusted CString fileUriToTempStr(return ref TempStrForPath temp, in AllUris allUris, FileUri uri) =>
-	pathToTempStr(temp, allUris, uri.path, true);
+@trusted CString fileUriToTempStr(return ref TempStrForPath temp, in AllUris allUris, OS os, FileUri uri) =>
+	pathToTempStr(temp, allUris, uri.path, leadingSlash: os != OS.windows);
 private @trusted CString pathToTempStr(
 	return ref TempStrForPath temp,
 	in AllUris allUris,
 	Path path,
 	bool leadingSlash,
 ) {
-	StringOfPathOptions options = StringOfPathOptions(true, true);
+	StringOfPathOptions options = StringOfPathOptions(leadingSlash: leadingSlash, nulTerminate: true);
 	size_t length = pathToStrLength(allUris, path, options);
 	assert(length <= temp.length);
 	stringOfPathWorker(allUris, path, temp[0 .. length], options);
@@ -366,8 +369,8 @@ Symbol symbolOfUri(scope ref AllUris allUris, Uri a) {
 	return symbolOfString(allUris.allSymbols, stringOfCString(res));
 }
 
-CString cStringOfFileUri(ref Alloc alloc, in AllUris allUris, FileUri a) =>
-	cStringOfPath(alloc, allUris, a.path, true);
+CString cStringOfFileUri(ref Alloc alloc, in AllUris allUris, OS os, FileUri a) =>
+	cStringOfPath(alloc, allUris, a.path, os != OS.windows);
 string stringOfPath(ref Alloc alloc, in AllUris allUris, Path path, bool leadingSlash) =>
 	stringOfCString(cStringOfPath(alloc, allUris, path, leadingSlash));
 @trusted private CString cStringOfPath(ref Alloc alloc, in AllUris allUris, Path path, bool leadingSlash) {
@@ -435,9 +438,9 @@ private @system RelPath parseRelPathRecur(ref AllUris allUris, size_t nParents, 
 		? parseRelPathRecur(allUris, nParents + 1, a[3 .. $])
 		: RelPath(safeToUshort(nParents), parsePath(allUris, a));
 
-FileUri parseAbsoluteFilePathAsUri(ref AllUris allUris, in CString a) =>
+FileUri parseFileUri(ref AllUris allUris, in CString a) =>
 	FileUri(parsePath(allUris, a));
-FileUri parseAbsoluteFilePathAsUri(ref AllUris allUris, in string a) =>
+FileUri parseFileUri(ref AllUris allUris, in string a) =>
 	FileUri(parsePath(allUris, a));
 
 Opt!FileUri parseFileUriWithCwd(ref AllUris allUris, FileUri cwd, in CString a) {
@@ -445,16 +448,13 @@ Opt!FileUri parseFileUriWithCwd(ref AllUris allUris, FileUri cwd, in CString a) 
 	return optIf(isFileUri(allUris, res), () => asFileUri(allUris, res));
 }
 
-FileUri parseFileUri(ref AllUris allUris, in CString a) =>
-	FileUri(parsePath(allUris, a));
-
 Uri parseUriWithCwd(ref AllUris allUris, FileUri cwd, in string a) =>
 	parseUriWithCwd(allUris, toUri(allUris, cwd), a);
 
 Uri parseUriWithCwd(ref AllUris allUris, Uri cwd, in string a) {
 	//TODO: handle actual URIs...
 	if (looksLikeAbsolutePath(a))
-		return toUri(allUris, parseAbsoluteFilePathAsUri(allUris, a));
+		return toUri(allUris, parseFileUri(allUris, a));
 	else if (looksLikeUri(a))
 		return parseUri(allUris, a);
 	else {
@@ -612,8 +612,9 @@ public void writeUri(ref Writer writer, in AllUris allUris, Uri a) {
 	writePathPlain(writer, allUris, a.path);
 }
 
-// WARN: Does not write leading '/'
-public void writeFileUri(ref Writer writer, in AllUris allUris, FileUri a) {
+public void writeFileUri(ref Writer writer, in AllUris allUris, OS os, FileUri a) {
+	if (os != OS.windows)
+		writer ~= '/';
 	writePathPlain(writer, allUris, a.path);
 }
 

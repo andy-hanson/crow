@@ -29,19 +29,19 @@ void testCircularImportFixed(ref Test test) {
 		CString showDiags() =>
 			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA).program);
 
-		assertEqual(showDiags(), cString!expectedDiags1);
+		assertEqual(showDiags(), expectedDiags1);
 
 		setFile(test.perf, server, uriA, "main void()\n\tinfo log \"hello, world!\"");
-		assertEqual(showDiags(), cString!"");
+		assertEqual(showDiags(), "");
 
 		setFile(test.perf, server, uriB, "import\n\t./a");
-		assertEqual(showDiags(), cString!"test:///b.crow 2:5-2:8 Imported module 'a.crow' is unused.");
+		assertEqual(showDiags(), "test:///b.crow 2:5-2:8 Imported module 'a.crow' is unused.");
 
 		setFile(test.perf, server, uriA, "import\n\t./b\n\nmain void()\n\tinfo log hello");
-		assertEqual(showDiags(), cString!expectedDiags2);
+		assertEqual(showDiags(), expectedDiags2);
 
 		setFile(test.perf, server, uriB, "hello string()\n\t\"hello\"");
-		assertEqual(showDiags(), cString!"");
+		assertEqual(showDiags(), "");
 	});
 }
 
@@ -53,13 +53,12 @@ void testFileNotFoundThenAdded(ref Test test) {
 		CString showDiags() =>
 			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA).program);
 
-		CString bDoesNotExist = cString!(
-			"test:///a.crow 2:5-2:8 Imported file test:///b.crow does not exist.\n" ~
-			"test:///b.crow 1:1-1:1 This file does not exist.");
+		string bDoesNotExist = "test:///a.crow 2:5-2:8 Imported file test:///b.crow does not exist.\n" ~
+			"test:///b.crow 1:1-1:1 This file does not exist.";
 		assertEqual(showDiags(), bDoesNotExist);
 
 		setFile(test.perf, server, uriB, "hello string()\n\t\"hello\"");
-		assertEqual(showDiags(), cString!"");
+		assertEqual(showDiags(), "");
 
 		setFile(test.perf, server, uriB, ReadFileResult(ReadFileDiag.notFound));
 		assertEqual(showDiags(), bDoesNotExist);
@@ -78,14 +77,14 @@ void testFileImportNotFound(ref Test test) {
 
 		string original = "import\n\t./b.txt as b string\n\nmain void()\n\t()";
 		setupTestServer(test, alloc, server, uriA, original);
-		assertEqual(showDiags(), cString!"");
+		assertEqual(showDiags(), "");
 
 		setFile(test.perf, server, uriA, "import\n\t./b2.txt as string\n\nmain void()\n\t()");
 		setFile(test.perf, server, uriB2, ReadFileResult(ReadFileDiag.notFound));
-		assertEqual(showDiags(), cString!"test:///a.crow 2:5-2:13 Imported file test:///b2.txt does not exist.");
+		assertEqual(showDiags(), "test:///a.crow 2:5-2:13 Imported file test:///b2.txt does not exist.");
 
 		setFile(test.perf, server, uriA, original);
-		assertEqual(showDiags(), cString!"");
+		assertEqual(showDiags(), "");
 	});
 }
 
@@ -96,18 +95,18 @@ void testChangeBootstrap(ref Test test) {
 		CString showDiags() =>
 			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA).program);
 
-		assertEqual(showDiags(), cString!"");
+		assertEqual(showDiags(), "");
 
 		Uri bootstrap = concatUriAndPath(
 			server.allUris, server.includeDir, parsePath(server.allUris, "crow/private/bootstrap.crow"));
 		string defaultBootstrap = defaultIncludeResult("crow/private/bootstrap.crow");
 		setFile(test.perf, server, bootstrap, concatenate(alloc, defaultBootstrap, "junk"));
-		assertEqual(showDiags(), cString!(
+		assertEqual(showDiags(),
 			"test:///include/crow/private/bootstrap.crow 458:5-458:5 Unexpected end of file.\n" ~
-			"test:///include/crow/private/bootstrap.crow 458:5-458:5 Expected '('."));
+			"test:///include/crow/private/bootstrap.crow 458:5-458:5 Expected '('.");
 
 		setFile(test.perf, server, bootstrap, defaultBootstrap);
-		assertEqual(showDiags(), cString!"");
+		assertEqual(showDiags(), "");
 	});
 }
 

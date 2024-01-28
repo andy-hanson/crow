@@ -14,7 +14,7 @@ all: clean bin\crow-debug.exe test lint serve
 
 ### test ###
 
-test: unit-test crow-unit-tests end-to-end-test
+test: unit-test crow-unit-tests test-extern-library end-to-end-test
 
 unit-test: bin\crow-debug.exe
 	.\bin\crow-debug.exe test
@@ -22,12 +22,26 @@ unit-test: bin\crow-debug.exe
 crow-unit-tests: bin\crow.exe
 	.\bin\crow.exe run test\crow-unit-tests.crow
 	.\bin\crow.exe run test\crow-unit-tests.crow --aot
+	.\bin\crow.exe run test\crow-unit-tests.crow --aot --optimize
+
+test-extern-library: bin\crow.exe bin\example.dll bin\example.lib
+	.\bin\crow run test\test-extern-library\main.crow
+	.\bin\crow run test\test-extern-library\main.crow --aot
+
+bin\example.lib: bin\example.obj
+	lib bin\example.obj /nologo /out:bin/example.lib
+
+bin\example.dll: bin\example.obj
+	link bin\example.obj /nologo /dll /out:bin/example.dll
+
+bin\example.obj: test\test-extern-library\example.c
+	cl /std:c17 /Wall /WX /wd4820 /c test\test-extern-library\example.c /nologo /Fobin\example.obj
 
 end-to-end-test: bin\crow.exe
-	.\bin\crow.exe run test\test-end-to-end.crow
+	.\bin\crow.exe run test\end-to-end\main.crow
 
 end-to-end-test-overwrite: bin\crow.exe
-	.\bin\crow.exe run test\test-end-to-end.crow -- --overwrite-output
+	.\bin\crow.exe run test\end-to-end\main.crow -- --overwrite-output
 
 ### external dependencies ###
 
@@ -77,6 +91,7 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\frontend\parse\lexer.d \
 	src\frontend\parse\lexString.d \
 	src\frontend\parse\lexToken.d \
+	src\frontend\parse\lexUtil.d \
 	src\frontend\parse\lexWhitespace.d \
 	src\frontend\parse\parse.d \
 	src\frontend\parse\parseExpr.d \
@@ -124,7 +139,6 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\model\lowModel.d \
 	src\model\model.d \
 	src\model\parseDiag.d \
-	src\model\showModel.d \
 	src\model\showLowModel.d \
 	src\model\typeLayout.d \
 	src\util\alloc\alloc.d \
@@ -142,6 +156,7 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\col\mutIndexMap.d \
 	src\util\col\mutMap.d \
 	src\util\col\mutMaxArr.d \
+	src\util\col\mutMaxSet.d \
 	src\util\col\mutMultiMap.d \
 	src\util\col\mutQueue.d \
 	src\util\col\mutSet.d \
@@ -173,7 +188,6 @@ app_only_files = src\app\appUtil.d \
 	src\app\command.d \
 	src\app\dyncall.d \
 	src\app\fileSystem.d \
-	src\app\lsp.d \
 	src\app\main.d \
 	src\app\parseCommand.d 
 app_src_no_test = $(app_only_files) \
@@ -274,15 +288,18 @@ serve: prepare-site
 
 ### publish ###
 
-bin\crow.zip: bin\crow.exe demo\* include\* libraries\*
+bin\crow.zip: bin\crow.exe bin\crow.vsix demo\* include\* libraries\*
 	mkdir bin\bin
 	copy bin\crow.exe bin\bin\crow.exe
 	powershell Compress-Archive -DestinationPath bin\crow.zip -Path bin\bin,demo,editor,include,libraries -Force
 	del bin\bin\crow.exe
 	rmdir bin\bin
 
-editor/vscode/server/node_modules:
-	cd editor/vscode/server
+bin\crow.vsix: editor\vscode\* editor\vscode\node_modules
+	cd editor\vscode && node .\node_modules\vsce\vsce package --allow-missing-repository --out ..\..\bin\crow.vsix
+
+editor\vscode\node_modules:
+	cd editor/vscode
 	npm install
 
 # Only upload `crow.zip`. Everything else uploaded by 'GNUmakefile'.

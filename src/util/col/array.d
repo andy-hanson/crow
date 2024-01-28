@@ -226,6 +226,13 @@ Opt!size_t findIndex(T)(in T[] a, in bool delegate(in T) @safe @nogc pure nothro
 Opt!size_t indexOf(T)(in T[] xs, in T value) =>
 	findIndex!T(xs, (in T x) => x == value);
 
+Opt!size_t lastIndexOf(T)(in T[] xs, in T value) {
+	foreach_reverse (size_t i, T x; xs)
+		if (x == value)
+			return some(i);
+	return none!size_t;
+}
+
 Opt!size_t indexOfStartingAt(T)(in T[] xs, in T value, size_t start) {
 	Opt!size_t indexFromStart = indexOf(xs[start .. $], value);
 	return has(indexFromStart) ? some(force(indexFromStart) + start) : none!size_t;

@@ -330,6 +330,7 @@ Opt!string mangleChar(char a) {
 bool conflictsWithCName(Symbol a) {
 	switch (a.value) {
 		case symbol!"atomic-bool".value: // avoid conflicting with c's "atomic_bool" type
+		case symbol!"abs".value: // conflicts with corecrt_math.h on Windows
 		case symbol!"break".value:
 		case symbol!"continue".value:
 		case symbol!"default".value:

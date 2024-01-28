@@ -25,7 +25,7 @@ pure:
 
 immutable struct VersionInfo {
 	private:
-	OS os;
+	public OS os;
 	bool isInterpreted;
 	bool isJit;
 }

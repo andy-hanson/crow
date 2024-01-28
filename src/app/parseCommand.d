@@ -583,7 +583,7 @@ NamedArgs splitNamedArgs(ref Alloc alloc, in CString[] args) {
 	bool help = false;
 	bool perf = false;
 	ArgsPart[] parts = buildArray!ArgsPart(alloc, (scope ref Builder!ArgsPart res) {
-		assert(startsWithDashDash(args[0]));
+		assert(isEmpty(args) || startsWithDashDash(args[0]));
 		MutOpt!size_t curPartStart;
 
 		void finishPart(size_t i) {

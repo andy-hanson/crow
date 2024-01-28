@@ -62,7 +62,7 @@ NameAndTest[] allTests = [
 	NameAndTest("source-range", &testSourceRange),
 	NameAndTest("stack", &testStack),
 	NameAndTest("symbol", &testSymbol),
-	NameAndTest("path", &testUri),
+	NameAndTest("uri", &testUri),
 	NameAndTest("writer", &testWriter),
 ];
 
