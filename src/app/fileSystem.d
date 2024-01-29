@@ -19,6 +19,7 @@ version (Windows) {
 		DWORD,
 		ERROR_BROKEN_PIPE,
 		ERROR_FILE_NOT_FOUND,
+		ERROR_SHARING_VIOLATION,
 		FormatMessageA,
 		FORMAT_MESSAGE_FROM_SYSTEM,
 		FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -36,6 +37,7 @@ version (Windows) {
 		SearchPathA,
 		SECURITY_ATTRIBUTES,
 		SetHandleInformation,
+		Sleep,
 		STARTF_USESTDHANDLES,
 		STARTUPINFOA,
 		WaitForSingleObject;
@@ -76,7 +78,7 @@ import util.uri :
 	Uri,
 	writeFileUri;
 import util.util : castImmutable, todo, typeAs;
-import util.writer : withStackWriter, withWriter, Writer, writeWithSeparatorAndFilter;
+import util.writer : withWriter, Writer, writeWithSeparatorAndFilter;
 import versionInfo : getOS, OS;
 
 FILE* stdin() {
@@ -107,35 +109,31 @@ private @trusted ExitCode removeFileIfExists(in AllUris allUris, FileUri uri) {
 	TempStrForPath buf = void;
 	OS os = getOS();
 	CString cString = fileUriToTempStr(buf, allUris, os, uri);
+
 	version (Windows) {
-		int ok = DeleteFileA(cString.ptr);
-		if (ok == 1 || GetLastError() == ERROR_FILE_NOT_FOUND)
-			return ExitCode.ok;
-		else {
-			DWORD error = GetLastError();
-			return printErrorCb((scope ref Writer writer) {
-				writer ~= "Error removing file ";
-				writeFileUri(writer, allUris, os, uri);
-				writer ~= ": ";
-				writeLastError(writer, error);
-			});
-		}
+		bool success = withRetry(() {
+			int ok = DeleteFileA(cString.ptr);
+			return ok == 1 || GetLastError() == ERROR_FILE_NOT_FOUND ? RetryResult.ok :
+				GetLastError() == ERROR_SHARING_VIOLATION ? RetryResult.retry :
+				RetryResult.error;
+		});
 	} else {
-		final switch (unlink(cString.ptr)) {
-			case 0:
-				return ExitCode.ok;
-			case -1:
-				int error = errno;
-				return error == ENOENT
-					? ExitCode.ok
-					: printErrorCb((scope ref Writer writer) {
-						writer ~= "Error removing file ";
-						writeFileUri(writer, allUris, os, uri);
-						writer ~= ": ";
-						writeErrno(writer, error);
-					});
-		}
+		bool success = () {
+			final switch (unlink(cString.ptr)) {
+				case 0:
+					return ExitCode.ok;
+				case -1:
+					return error == ENOENT;
+			}
+		}();
 	}
+
+	return success ? ExitCode.ok : printErrorCb((scope ref Writer writer) {
+		writer ~= "Error removing file ";
+		writeFileUri(writer, allUris, os, uri);
+		writer ~= ": ";
+		writeLastError(writer);
+	});
 }
 
 /**
@@ -296,12 +294,11 @@ private @system FILE* tryOpenFileForWrite(in AllUris allUris, FileUri uri) {
 					return fopen(pathStr.ptr, "w");
 			}
 		} else {
-			int error = errno;
 			printErrorCb((scope ref Writer writer) {
 				writer ~= "Failed to write file ";
 				writer ~= pathStr;
 				writer ~= ": ";
-				writeErrno(writer, error);
+				writeLastError(writer);
 			});
 			return null;
 		}
@@ -445,12 +442,11 @@ private @trusted ExitCodeOrSignal runCommon(
 			&startupInfo,
 			&processInfo);
 		if (!ok) {
-			DWORD error = GetLastError();
-			errorLog((scope ref Writer writer) {
+			printErrorCb((scope ref Writer writer) {
 				writer ~= "Error spawning ";
 				writer ~= argsCString;
 				writer ~= '\n';
-				writeLastError(writer, error);
+				writeLastError(writer);
 			});
 			return ExitCodeOrSignal(ExitCode.error);
 		}
@@ -472,7 +468,7 @@ private @trusted ExitCodeOrSignal runCommon(
 		assert(ok2 == 1);
 
 		if (isCompile && exitCode != 0) {
-			errorLog((scope ref Writer writer) @trusted {
+			printErrorCb((scope ref Writer writer) @trusted {
 				writer ~= "Error running ";
 				writer ~= argsCString;
 				writer ~= "\nExit code ";
@@ -515,14 +511,21 @@ private @trusted ExitCodeOrSignal runCommon(
 
 private:
 
-version (Windows) {
-	extern(C) bool SetDllDirectoryA(scope LPCSTR);
+enum RetryResult { ok, error, retry }
+@system bool withRetry(in RetryResult delegate() @nogc nothrow cb) {
+	final switch (cb()) {
+		case RetryResult.ok:
+			return true;
+		case RetryResult.error:
+			return false;
+		case RetryResult.retry:
+			Sleep(10);
+			return cb() == RetryResult.ok;
+	}
 }
 
-@trusted void errorLog(in void delegate(scope ref Writer) @safe @nogc pure nothrow cb) {
-	fprintf(stderr, "%s\n", withStackWriter((scope ref Alloc _, scope ref Writer writer) {
-		cb(writer);
-	}).ptr);
+version (Windows) {
+	extern(C) bool SetDllDirectoryA(scope LPCSTR);
 }
 
 version (Windows) {} else {
@@ -615,33 +618,25 @@ void verifyOk(int ok) {
 }
 
 version (Windows) {
-	@system void readFromPipe(ref char[0x10000] out_, HANDLE pipe) {
-		readFromPipeRecur(out_.ptr, endPtr(out_), pipe);
-	}
-
-	@system void readFromPipeRecur(char* out_, char* outEnd, HANDLE pipe) {
-		assert(out_ < outEnd);
-		if (out_ + 1 == outEnd) {
-			*out_ = '\0';
-		} else {
+	@system ExitCode readFromPipe(ref char[0x10000] outBuf, HANDLE pipe) {
+		char* out_ = outBuf.ptr;
+		char* outEnd = endPtr(outBuf);
+		while (out_ + 1 != outEnd) {
+			assert(out_ < outEnd);
 			uint nRead;
-			int ok = ReadFile(pipe, out_, cast(uint) (outEnd - out_ - 1), &nRead, null);
-			if (ok) {
-				readFromPipeRecur(out_ + nRead, outEnd, pipe);
-			} else {
-				int err = GetLastError();
-				if (err == ERROR_BROKEN_PIPE) {
-					*out_ = '\0';
-				} else {
-					DWORD error = GetLastError();
-					errorLog((scope ref Writer writer) {
-						writer ~= "Error in readFromPipe: ";
-						writeLastError(writer, error);
-					});
-					todo!void("");
-				}
-			}
+			if (ReadFile(pipe, out_, cast(uint) (outEnd - out_ - 1), &nRead, null) == 1) {
+				out_ += nRead;
+				continue;
+			} else if (GetLastError() == ERROR_BROKEN_PIPE)
+				break;
+			else
+				return printErrorCb((scope ref Writer writer) {
+					writer ~= "Error in readFromPipe: ";
+					writeLastError(writer);
+				});
 		}
+		*out_ = '\0';
+		return ExitCode.ok;
 	}
 }
 
@@ -665,11 +660,12 @@ bool WIFSIGNALED( int status )
 	return ( cast(byte) ( ( status & 0x7F ) + 1 ) >> 1 ) > 0;
 }
 
-version (Windows) {
-	@trusted void writeLastError(scope ref Writer writer, int error) {
+@trusted void writeLastError(scope ref Writer writer) {
+	version (Windows) {
+		DWORD error = GetLastError();
 		writer ~= "Windows error ";
 		writer ~= error;
-		writer ~= ' ';
+		writer ~= ": ";
 
 		char[0x400] buffer;
 		int size = FormatMessageA(
@@ -682,12 +678,10 @@ version (Windows) {
 			null);
 		assert(size != 0 && size < buffer.length);
 		writer ~= castImmutable(buffer[0 .. size]);
-	}
-} else {
-	@trusted void writeErrno(scope ref Writer writer, int errno) {
+	} else {
 		writer ~= "Posix error ";
 		writer ~= errno;
-		writer ~= ' ';
+		writer ~= ": ";
 		writer ~= CString(cast(immutable) strerror(errno));
 	}
 }

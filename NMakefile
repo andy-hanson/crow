@@ -10,7 +10,7 @@ clean:
 @IF EXIST temp rmdir /s /q temp
 <<
 
-all: clean bin\crow-debug.exe test lint serve
+all: clean test lint install-vscode-extension serve
 
 ### test ###
 
@@ -297,6 +297,9 @@ bin\crow.zip: bin\crow.exe bin\crow.vsix demo\* include\* libraries\*
 
 bin\crow.vsix: editor\vscode\* editor\vscode\node_modules
 	cd editor\vscode && node .\node_modules\vsce\vsce package --allow-missing-repository --out ..\..\bin\crow.vsix
+
+install-vscode-extension: bin\crow.vsix
+	code --install-extension bin\crow.vsix
 
 editor\vscode\node_modules:
 	cd editor/vscode

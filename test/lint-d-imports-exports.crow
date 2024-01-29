@@ -54,7 +54,7 @@ main nat^(_ string[]) summon
 	public symbol set
 	private symbol set
 
-all-files file[]^() summon
+-all-files file[]^() summon
 	paths <- "src" search-dir-recursive x => x ends-with ".d"
 	members = paths get-members-per-path
 	for path : paths parallel
@@ -62,7 +62,7 @@ all-files file[]^() summon
 		(path, members[path]!, imports-and-rest.imports, imports-and-rest.rest.words.to),
 
 -get-members-per-path members[string](paths string[]) summon
-	"dub run dscanner -- --ctags {" " join paths}".shell-exec get-members-per-path
+	"dub run dscanner --yes -- --ctags {" " join paths}".shell-exec get-members-per-path
 -get-members-per-path members[string](stdout string)
 	members-by-path mut-members mut[string] = ()
 	look-for string = "!_TAG_PROGRAM_URL\thttps://github.com/dlang-community/D-Scanner/\n"
