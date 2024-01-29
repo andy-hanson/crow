@@ -41,6 +41,11 @@ T withTempAllocImpure(T)(MetaAlloc* a, in T delegate(ref Alloc) @safe @nogc noth
 T withTempAllocImpure(T)(MetaAlloc* a, AllocKind kind, in T delegate(ref Alloc) @safe @nogc nothrow cb) =>
 	withTempAllocAlias!(T, cb)(a, kind);
 
+T withStackAllocImpure(size_t sizeWords, T)(in T delegate(scope ref Alloc) @safe @nogc nothrow cb) {
+	ulong[sizeWords] memory = void;
+	return withStaticAlloc!(T, cb)(memory);
+}
+
 @trusted private T withTempAllocAlias(T, alias cb)(MetaAlloc* a, AllocKind kind = AllocKind.temp) {
 	// TODO:PERF Since this is temporary, an initial block could be on the stack?
 	Alloc* alloc = newAlloc(AllocKind.temp, a);

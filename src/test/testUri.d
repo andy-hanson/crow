@@ -3,11 +3,10 @@ module test.testUri;
 @safe @nogc pure nothrow:
 
 import test.testUtil : assertEqual, Test;
-import util.alloc.alloc : Alloc;
 import util.comparison : Comparison;
 import util.opt : force, has, none, Opt, optEqual, some;
 import util.string : CString;
-import util.symbol : Extension, Symbol, symbol, symbolAsTempBuffer, symbolOfString;
+import util.symbol : Extension, Symbol, symbol, symbolOfString;
 import util.uri :
 	AllUris,
 	asFileUri,
@@ -32,7 +31,6 @@ import util.uri :
 	Uri,
 	uriToTempStr;
 import util.util : stringOfEnum;
-import util.writer : Writer;
 import versionInfo : OS;
 
 void testUri(ref Test test) {

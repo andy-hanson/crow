@@ -75,7 +75,7 @@ import util.writer :
 	writeWithCommas,
 	writeWithCommasZip,
 	writeWithSpaces;
-import versionInfo : isWindows, OS, VersionInfo;
+import versionInfo : isWindows, OS;
 
 immutable struct PathAndArgs {
 	FileUri path;

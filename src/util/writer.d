@@ -1,13 +1,23 @@
 module util.writer;
 
-@safe @nogc pure nothrow:
+@safe @nogc nothrow:
 
-import util.alloc.alloc : Alloc, withStackAlloc;
+import util.alloc.alloc : Alloc, withStackAlloc, withStackAllocImpure;
 import util.col.arrayBuilder : Builder, finish;
 import util.col.array : zip;
 import util.conv : bitsOfFloat64;
 import util.string : eachChar, CString, stringOfCString;
 import util.util : abs, debugLog;
+
+CString withStackWriterImpure(in void delegate(scope ref Writer) @safe @nogc nothrow cb) =>
+	withStackAllocImpure!(0x10000, CString)((scope ref Alloc alloc) @trusted {
+		scope Writer writer = Writer(&alloc);
+		cb(writer);
+		writer ~= '\0';
+		return CString(finish(writer.res).ptr);
+	});
+
+pure:
 
 struct Writer {
 	@safe @nogc pure nothrow:

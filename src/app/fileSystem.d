@@ -2,16 +2,15 @@ module app.fileSystem;
 
 @safe @nogc nothrow: // not pure
 
-import app.appUtil : printError;
+import app.appUtil : printErrorCb;
 import core.stdc.errno : ENOENT, errno;
-import core.stdc.stdio : fclose, ferror, FILE, fopen, fprintf, fread, fseek, ftell, fwrite, printf, SEEK_END, SEEK_SET;
+import core.stdc.stdio : fclose, ferror, FILE, fopen, fprintf, fread, fseek, ftell, fwrite, SEEK_END, SEEK_SET;
 version (Windows) {} else {
 	import core.stdc.stdio : posixStderr = stderr, posixStdin = stdin, posixStdout = stdout;
 }
 import core.stdc.string : strerror;
 
 version (Windows) {
-	import core.stdc.stdarg : va_list;
 	import core.sys.windows.core :
 		CloseHandle,
 		CreatePipe,
@@ -32,8 +31,6 @@ version (Windows) {
 		HMODULE,
 		INFINITE,
 		LPCSTR,
-		LPSTR,
-		PCVOID,
 		PROCESS_INFORMATION,
 		ReadFile,
 		SearchPathA,
@@ -60,7 +57,7 @@ import util.exitCode : ExitCode, okAnd;
 import util.memory : memset;
 import util.opt : force, has, none, Opt, some;
 import util.string : CString, cString, cStringSize;
-import util.symbol : alterExtension, Extension, Symbol, symbol;
+import util.symbol : alterExtension, Extension, Symbol;
 import util.union_ : TaggedUnion;
 import util.uri :
 	AllUris,
@@ -108,20 +105,35 @@ FILE* stderr() {
 
 private @trusted ExitCode removeFileIfExists(in AllUris allUris, FileUri uri) {
 	TempStrForPath buf = void;
-	CString cString = fileUriToTempStr(buf, allUris, getOS(), uri);
+	OS os = getOS();
+	CString cString = fileUriToTempStr(buf, allUris, os, uri);
 	version (Windows) {
 		int ok = DeleteFileA(cString.ptr);
-		return ok == 1 || GetLastError() == ERROR_FILE_NOT_FOUND
-			? ExitCode.ok
-			: printErrorForFile("Error removing file ", allUris, uri);
+		if (ok == 1 || GetLastError() == ERROR_FILE_NOT_FOUND)
+			return ExitCode.ok;
+		else {
+			DWORD error = GetLastError();
+			return printErrorCb((scope ref Writer writer) {
+				writer ~= "Error removing file ";
+				writeFileUri(writer, allUris, os, uri);
+				writer ~= ": ";
+				writeLastError(writer, error);
+			});
+		}
 	} else {
 		final switch (unlink(cString.ptr)) {
 			case 0:
 				return ExitCode.ok;
 			case -1:
-				return errno == ENOENT
+				int error = errno;
+				return error == ENOENT
 					? ExitCode.ok
-					: printErrorForFile("Error removing file", allUris, uri);
+					: printErrorCb((scope ref Writer writer) {
+						writer ~= "Error removing file ";
+						writeFileUri(writer, allUris, os, uri);
+						writer ~= ": ";
+						writeErrno(writer, error);
+					});
 		}
 	}
 }
@@ -284,7 +296,14 @@ private @system FILE* tryOpenFileForWrite(in AllUris allUris, FileUri uri) {
 					return fopen(pathStr.ptr, "w");
 			}
 		} else {
-			fprintf(stderr, "Failed to write file %s: %s\n", pathStr.ptr, strerror(errno));
+			int error = errno;
+			printErrorCb((scope ref Writer writer) {
+				writer ~= "Failed to write file ";
+				writer ~= pathStr;
+				writer ~= ": ";
+				writeErrno(writer, error);
+			});
+			return null;
 		}
 	}
 	return fd;
@@ -332,10 +351,10 @@ private ExitCode printSignalAndExit(ExitCodeOrSignal a) =>
 		(in ExitCode x) =>
 			x,
 		(in Signal x) =>
-			printError(withStackWriter((scope ref Alloc _, scope ref Writer writer) {
+			printErrorCb((scope ref Writer writer) {
 				writer ~= "Program exited with signal ";
 				writer ~= x.signal;
-			})));
+			}));
 
 ExitCode runCompiler(ref TempAlloc tempAlloc, scope ref AllUris allUris, in PathAndArgs pathAndArgs) =>
 	// Extern library linker arguments are already in args
@@ -347,7 +366,8 @@ ExitCode cleanupCompile(scope ref AllUris allUris, FileUri cwd, FileUri cUri, Fi
 		removeFileIfExists(allUris, alterExtension(allUris, exeUri, Extension.pdb));
 		Symbol objBaseName = alterExtension(allUris.allSymbols, baseName(allUris, cUri), Extension.obj);
 		return removeFileIfExists(allUris, childFileUri(allUris, cwd, objBaseName));
-	}
+	} else
+		return ExitCode.ok;
 }
 
 ExitCodeOrSignal runProgram(
@@ -373,7 +393,8 @@ private @trusted ExitCodeOrSignal runCommon(
 			if (has(x.configuredDir)) {
 				TempStrForPath buf;
 				fileUriToTempStr(buf, allUris, OS.windows, asFileUri(allUris, force(x.configuredDir)));
-				SetDllDirectoryA(buf.ptr);
+				bool ok = SetDllDirectoryA(buf.ptr);
+				assert(ok);
 			}
 		}
 
@@ -476,7 +497,7 @@ private @trusted ExitCodeOrSignal runCommon(
 			null,
 			// https://stackoverflow.com/questions/50596439/can-string-literals-be-passed-in-posix-spawns-argv
 			cast(char**) convertArgs(tempAlloc, executablePath, pathAndArgs.args),
-			getEnvironForChildProcess(tempAlloc, allUris, externLibraries));
+			getEnvironForChildProcess(tempAlloc, allUris, getOS(), externLibraries));
 		if (spawnStatus == 0) {
 			int waitStatus;
 			int resPid = waitpid(pid, &waitStatus, 0);
@@ -505,9 +526,10 @@ version (Windows) {
 }
 
 version (Windows) {} else {
-	@system immutable(char**) getEnvironForChildProcess(
+	@system pure immutable(char**) getEnvironForChildProcess(
 		ref Alloc alloc,
 		scope ref AllUris allUris,
+		OS os,
 		in ExternLibraries externLibraries,
 	) =>
 		exists!ExternLibrary(externLibraries, (in ExternLibrary x) => has(x.configuredDir))
@@ -527,7 +549,7 @@ version (Windows) {} else {
 						(in ExternLibrary x) => has(x.configuredDir),
 						(in ExternLibrary x) {
 							writer ~= '/';
-							writeFileUri(writer, allUris, asFileUri(allUris, force(x.configuredDir)));
+							writeFileUri(writer, allUris, os, asFileUri(allUris, force(x.configuredDir)));
 						});
 				}).ptr;
 
@@ -549,7 +571,7 @@ version (Windows) {
 		return todo!ExitCode("!");
 	} else {
 		TempStrForPath buf = void;
-		CString dirStr = fileUriToTempStr(buf, allUris, dir);
+		CString dirStr = fileUriToTempStr(buf, allUris, getOS(), dir);
 		int err = mkdir(dirStr.ptr, S_IRWXU);
 		if (err == ENOENT) {
 			Opt!FileUri par = parent(allUris, dir);
@@ -644,15 +666,13 @@ bool WIFSIGNALED( int status )
 }
 
 version (Windows) {
-	@trusted pure void writeLastError(scope ref Writer writer, int error) {
-		writer ~= "Error ";
+	@trusted void writeLastError(scope ref Writer writer, int error) {
+		writer ~= "Windows error ";
 		writer ~= error;
 		writer ~= ' ';
 
 		char[0x400] buffer;
-		alias FMA = DWORD function(DWORD, PCVOID, DWORD, DWORD, LPSTR, DWORD, va_list*) @system @nogc pure nothrow;
-		FMA fma = cast(FMA) &FormatMessageA;
-		int size = fma(
+		int size = FormatMessageA(
 			FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 			null,
 			error,
@@ -663,19 +683,15 @@ version (Windows) {
 		assert(size != 0 && size < buffer.length);
 		writer ~= castImmutable(buffer[0 .. size]);
 	}
+} else {
+	@trusted void writeErrno(scope ref Writer writer, int errno) {
+		writer ~= "Posix error ";
+		writer ~= errno;
+		writer ~= ' ';
+		writer ~= CString(cast(immutable) strerror(errno));
+	}
 }
 
 version (Windows) {
 	extern(C) FILE* __acrt_iob_func(uint);
-}
-
-ExitCode printErrorForFile(string description, in AllUris allUris, FileUri uri) {
-	OS os = getOS();
-	DWORD error = GetLastError();
-	return printError(withStackWriter((scope ref Alloc _, scope ref Writer writer) {
-		writer ~= description;
-		writeFileUri(writer, allUris, os, uri);
-		writer ~= ": ";
-		writeLastError(writer, error);
-	}));
 }
