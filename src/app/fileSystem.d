@@ -121,9 +121,9 @@ private @trusted ExitCode removeFileIfExists(in AllUris allUris, FileUri uri) {
 		bool success = () {
 			final switch (unlink(cString.ptr)) {
 				case 0:
-					return ExitCode.ok;
+					return true;
 				case -1:
-					return error == ENOENT;
+					return errno == ENOENT;
 			}
 		}();
 	}
@@ -511,20 +511,20 @@ private @trusted ExitCodeOrSignal runCommon(
 
 private:
 
-enum RetryResult { ok, error, retry }
-@system bool withRetry(in RetryResult delegate() @nogc nothrow cb) {
-	final switch (cb()) {
-		case RetryResult.ok:
-			return true;
-		case RetryResult.error:
-			return false;
-		case RetryResult.retry:
-			Sleep(10);
-			return cb() == RetryResult.ok;
-	}
-}
-
 version (Windows) {
+	enum RetryResult { ok, error, retry }
+	@system bool withRetry(in RetryResult delegate() @nogc nothrow cb) {
+		final switch (cb()) {
+			case RetryResult.ok:
+				return true;
+			case RetryResult.error:
+				return false;
+			case RetryResult.retry:
+				Sleep(10);
+				return cb() == RetryResult.ok;
+		}
+	}
+
 	extern(C) bool SetDllDirectoryA(scope LPCSTR);
 }
 
