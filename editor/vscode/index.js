@@ -23,7 +23,7 @@ exports.activate = context => {
 	/** @type {LanguageClientOptions} */
 	const clientOptions = {
 		documentSelector: [{scheme:"file", language:"crow"}],
-		outputChannelName: 'Crow language server',
+		outputChannelName: "Crow language server",
 		connectionOptions: {
 			maxRestartCount: 0,
 		},
