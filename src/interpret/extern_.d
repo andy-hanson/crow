@@ -9,8 +9,7 @@ import util.col.array : SmallArray, sum;
 import util.col.map : Map;
 import util.hash : HashCode, hashPtr;
 import util.opt : Opt;
-import util.string : CString;
-import util.symbol : AllSymbols, Symbol, symbolAsTempBuffer;
+import util.symbol : Symbol;
 import util.union_ : TaggedUnion;
 
 immutable struct Extern {
@@ -49,12 +48,7 @@ alias DoDynCall = void delegate(FunPointer, in DynCallSig) @system @nogc nothrow
 	stacks = loadStacks();
 }
 
-alias WriteError = void delegate(in CString) @safe @nogc nothrow;
-
-@trusted void writeSymbolToCb(scope WriteError writeError, in AllSymbols allSymbols, Symbol a) {
-	immutable char[256] buf = symbolAsTempBuffer!256(allSymbols, a);
-	writeError(CString(buf.ptr));
-}
+alias WriteError = void delegate(in string) @safe @nogc nothrow;
 
 alias ExternPointersForAllLibraries = Map!(Symbol, ExternPointersForLibrary);
 alias ExternPointersForLibrary = Map!(Symbol, ExternPointer);

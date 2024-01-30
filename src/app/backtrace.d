@@ -3,10 +3,10 @@ module app.backtrace;
 @safe @nogc nothrow: // not pure
 
 import core.stdc.stdint : uintptr_t;
-import core.stdc.stdio : fprintf;
-import app.fileSystem : stderr;
+import util.string : CString;
+import util.writer : Writer;
 
-@system void printBacktrace() {
+@system void writeBacktrace(scope ref Writer writer) {
 	version (Windows) {} else {
 		unw_cursor_t cursor;
 		unw_context_t context;
@@ -28,11 +28,14 @@ import app.fileSystem : stderr;
 			unw_word_t offset = 0;
 			char[1024] buf;
 			err = err || unw_get_proc_name(&cursor, buf.ptr, buf.length, &offset);
-			if (err == 0)
-				fprintf(stderr, "\n\tat %s", buf.ptr);
+			if (err == 0) {
+				writer ~= "\n\tat ";
+				writer ~= CString(cast(immutable) buf.ptr);
+			}
 		}
 		if (err != 0)
-			fprintf(stderr, "\terror getting backtrace\n");
+			writer ~= "\n\terror getting backtrace";
+		writer ~= "\n";
 	}
 }
 

@@ -5,7 +5,7 @@ module interpret.applyFn;
 import interpret.bytecode : Operation;
 import interpret.runBytecode : opFnBinary, opFnUnary;
 import model.model : BuiltinBinaryMath, BuiltinUnaryMath;
-import util.conv : bitsOfFloat32, bitsOfFloat64, float32OfBits, float64OfBits;
+import util.conv : bitsOfFloat32, bitsOfFloat64, bitsOfLong, float32OfBits, float64OfBits;
 
 private alias binaryFloat32s(alias cb) = opFnBinary!((ulong a, ulong b) =>
 	bitsOfFloat32(cb(float32OfBits(a), float32OfBits(b))));
@@ -96,7 +96,10 @@ alias fnBitwiseAnd = opFnBinary!((ulong a, ulong b) => a & b);
 alias fnBitwiseOr = opFnBinary!((ulong a, ulong b) => a | b);
 alias fnBitwiseXor = opFnBinary!((ulong a, ulong b) => a ^ b);
 alias fnCountOnesNat64 = opFnUnary!((ulong a) => popcount(a));
-alias fnEqBits = opFnBinary!((ulong a, ulong b) => a == b);
+alias fnEq8Bit = opFnBinary!((ulong a, ulong b) => cast(ubyte) a == cast(ubyte) b);
+alias fnEq16Bit = opFnBinary!((ulong a, ulong b) => cast(ushort) a == cast(ushort) b);
+alias fnEq32Bit = opFnBinary!((ulong a, ulong b) => cast(uint) a == cast(uint) b);
+alias fnEq64Bit = opFnBinary!((ulong a, ulong b) => a == b);
 alias fnEqFloat32 = opFnBinary!((ulong a, ulong b) =>
 	float32OfBits(a) == float32OfBits(b));
 alias fnEqFloat64 = opFnBinary!((ulong a, ulong b) =>
@@ -114,7 +117,7 @@ alias fnInt64FromInt8 = opFnUnary!((ulong a) =>
 alias fnInt64FromInt16 = opFnUnary!((ulong a) =>
 	cast(ulong) (cast(long) (cast(short) a)));
 alias fnInt64FromInt32 = opFnUnary!((ulong a) =>
-	u64OfI32(cast(int) a));
+	bitsOfLong(cast(long) (cast(int) a)));
 alias fnLessFloat32 = opFnBinary!((ulong a, ulong b) =>
 	float32OfBits(a) < float32OfBits(b));
 alias fnLessFloat64 = opFnBinary!((ulong a, ulong b) =>
@@ -169,13 +172,6 @@ alias fnWrapMulIntegral = opFnBinary!((ulong a, ulong b) =>
 	a * b);
 alias fnWrapSubIntegral = opFnBinary!((ulong a, ulong b) =>
 	a - b);
-
-//TODO:MOVE
-ulong u64OfI32(int a) =>
-	u64OfI64(a);
-
-ulong u64OfI64(long a) =>
-	cast(ulong) a;
 
 private:
 

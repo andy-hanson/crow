@@ -7,11 +7,11 @@ import model.concreteModel :
 	ConcreteExpr, ConcreteExprKind, ConcreteFun, ConcreteLocal, ConcreteProgram, ConcreteType, isBogus, isVoid;
 import model.constant : Constant;
 import model.showLowModel : writeConcreteType;
-import util.alloc.alloc : Alloc, withStackAlloc;
+import util.alloc.alloc : Alloc;
 import util.col.array : zip;
 import util.opt : force, has;
-import util.util : debugLog, ptrTrustMe;
-import util.writer : withWriter, Writer;
+import util.util : ptrTrustMe;
+import util.writer : debugLogWithWriter, Writer;
 
 void checkConcreteProgram(in ShowCtx printCtx, in ConcreteCommonTypes types, in ConcreteProgram a) {
 	Ctx ctx = Ctx(ptrTrustMe(printCtx), ptrTrustMe(types));
@@ -140,13 +140,11 @@ void checkExprAnyType(ref Ctx ctx, in ConcreteExpr expr) {
 
 void checkType(ref Ctx ctx, in ConcreteType expected, in ConcreteType actual) {
 	if (expected != actual) {
-		withStackAlloc!1024((ref Alloc alloc) {
-			debugLog(withWriter(alloc, (scope ref Writer writer) {
-				writer ~= "expected ";
-				writeConcreteType(writer, *ctx.printCtx, expected);
-				writer ~= " but was ";
-				writeConcreteType(writer, *ctx.printCtx, actual);
-			}).ptr);
+		debugLogWithWriter((scope ref Writer writer) {
+			writer ~= "expected ";
+			writeConcreteType(writer, *ctx.printCtx, expected);
+			writer ~= " but was ";
+			writeConcreteType(writer, *ctx.printCtx, actual);
 		});
 		assert(false);
 	}

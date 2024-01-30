@@ -10,7 +10,10 @@ import interpret.applyFn :
 	fnBitwiseOr,
 	fnBitwiseXor,
 	fnCountOnesNat64,
-	fnEqBits,
+	fnEq8Bit,
+	fnEq16Bit,
+	fnEq32Bit,
+	fnEq64Bit,
 	fnEqFloat32,
 	fnEqFloat64,
 	fnForBinaryMath,
@@ -1130,15 +1133,21 @@ void generateSpecialBinary(
 			fn(&fnEqFloat64);
 			break;
 		case BuiltinBinary.eqInt8:
-		case BuiltinBinary.eqInt16:
-		case BuiltinBinary.eqInt32:
-		case BuiltinBinary.eqInt64:
 		case BuiltinBinary.eqNat8:
+			fn(&fnEq8Bit);
+			break;
+		case BuiltinBinary.eqInt16:
 		case BuiltinBinary.eqNat16:
+			fn(&fnEq16Bit);
+			break;
+		case BuiltinBinary.eqInt32:
 		case BuiltinBinary.eqNat32:
+			fn(&fnEq32Bit);
+			break;
+		case BuiltinBinary.eqInt64:
 		case BuiltinBinary.eqNat64:
 		case BuiltinBinary.eqPtr:
-			fn(&fnEqBits);
+			fn(&fnEq64Bit);
 			break;
 		case BuiltinBinary.lessChar8:
 		case BuiltinBinary.lessNat8:

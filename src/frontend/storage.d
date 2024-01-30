@@ -36,11 +36,11 @@ import util.sourceRange :
 	UriAndLineAndCharacterRange,
 	UriLineAndColumn,
 	UriLineAndColumnRange;
-import util.string : bytesOfString, CString, cStringSize, stringOfCString;
+import util.string : bytesOfString, CString, cStringSize;
 import util.symbol : AllSymbols, Extension;
 import util.union_ : TaggedUnion, Union;
 import util.uri : AllUris, baseName, getExtension, Uri;
-import util.writer : withWriter, Writer;
+import util.writer : makeStringWithWriter, Writer;
 
 struct Storage {
 	@safe @nogc pure nothrow:
@@ -120,10 +120,10 @@ void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentCont
 void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentContentChangeEvent change) {
 	FileInfo info = fileOrDiag(a, uri).as!FileInfo;
 	withTempAlloc(a.metaAlloc, (ref Alloc alloc) {
-		CString newContent = applyChange(alloc, asString(info.content), info.lineAndCharacterGetter, change);
+		string newContent = applyChange(alloc, asString(info.content), info.lineAndCharacterGetter, change);
 		// TODO:PERF This means an unnecessary copy in 'setFile'.
 		// Would be better to modify the array in place and force re-parse.
-		setFile(perf, a, uri, stringOfCString(newContent));
+		setFile(perf, a, uri, newContent);
 	});
 }
 
@@ -349,13 +349,13 @@ const struct LineAndColumnGetters {
 		LineAndCharacterGetters(storage);
 }
 
-private CString applyChange(
+private string applyChange(
 	ref Alloc alloc,
 	in string input,
 	in LineAndCharacterGetter lc,
 	in TextDocumentContentChangeEvent event,
 ) =>
-	withWriter(alloc, (scope ref Writer writer) {
+	makeStringWithWriter(alloc, (scope ref Writer writer) {
 		if (has(event.range)) {
 			Range range = lc[force(event.range)];
 			writer ~= input[0 .. range.start];

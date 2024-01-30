@@ -95,9 +95,8 @@ import model.jsonOfModel : jsonOfModule;
 import model.lowModel : ExternLibraries, LowProgram;
 import model.model : hasFatalDiagnostics, Module, Program, ProgramWithMain;
 import util.alloc.alloc : Alloc, AllocKind, FetchMemoryCb, freeElements, MetaAlloc, newAlloc, withTempAllocImpure;
-import util.col.array : only;
+import util.col.array : concatenate, contains, isEmpty, map, mapOp, newArray, only;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
-import util.col.array : concatenate, contains, map, mapOp, newArray;
 import util.col.mutArr : clearAndDoNotFree, MutArr, push;
 import util.exitCode : ExitCode;
 import util.json : field, Json, jsonNull, jsonObject;
@@ -105,12 +104,12 @@ import util.late : Late, lateGet, lateSet, MutLate;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.sourceRange : LineAndColumn, toLineAndCharacter, UriAndRange, UriLineAndColumn;
-import util.string : copyString, CString, cString, cStringIsEmpty, stringOfCString;
+import util.string : copyString, CString, cString;
 import util.symbol : AllSymbols;
 import util.uri : AllUris, Uri, UrisInfo;
 import util.union_ : Union;
 import util.util : castNonScope, castNonScope_ref, ptrTrustMe;
-import util.writer : withWriter, Writer;
+import util.writer : Writer;
 import versionInfo : getOS, OS, VersionInfo, versionInfoForBuildToC, versionInfoForInterpret;
 
 ExitCode buildAndInterpret(
@@ -125,8 +124,8 @@ ExitCode buildAndInterpret(
 	assert(filesState(server) == FilesState.allLoaded);
 	return withTempAllocImpure!ExitCode(server.metaAlloc, AllocKind.buildToLowProgram, (ref Alloc buildAlloc) {
 		Programs programs = buildToLowProgram(perf, buildAlloc, server, versionInfoForInterpret(getOS()), main);
-		CString diags = showDiagnostics(buildAlloc, server, programs.program, diagnosticsOnlyForUris);
-		if (!cStringIsEmpty(diags))
+		string diags = showDiagnostics(buildAlloc, server, programs.program, diagnosticsOnlyForUris);
+		if (!isEmpty(diags))
 			writeError(diags);
 		if (!has(programs.lowProgram))
 			return ExitCode.error;
@@ -144,7 +143,7 @@ ExitCode buildAndInterpret(
 						perf, bytecodeAlloc, printCtx, extern_.doDynCall, lowProgram, byteCode, allArgs);
 				});
 			else {
-				writeError(cString!"Failed to load external libraries\n");
+				writeError("Failed to load external libraries\n");
 				return ExitCode.error;
 			}
 		}
@@ -326,9 +325,7 @@ private ExitCode run(
 	return withFakeExtern(alloc, server.allSymbols, writeCb, (scope ref Extern extern_) =>
 		buildAndInterpret(
 			perf, server, extern_,
-			(in CString x) {
-				writeCb(Pipe.stderr, stringOfCString(x));
-			},
+			(in string x) { writeCb(Pipe.stderr, x); },
 			main, diagnosticsOnlyForUris, allArgs));
 }
 
@@ -387,30 +384,29 @@ private struct LspState {
 		*stateAllocPtr;
 }
 
-CString version_(ref Alloc alloc, in Server server) =>
-	withWriter(alloc, (scope ref Writer writer) {
-		static immutable string date = import("date.txt")[0 .. "2020-02-02".length];
-		static immutable string commitHash = import("commit-hash.txt")[0 .. 8];
+void writeVersion(scope ref Writer writer, in Server server) {
+	static immutable string date = import("date.txt")[0 .. "2020-02-02".length];
+	static immutable string commitHash = import("commit-hash.txt")[0 .. 8];
 
-		writer ~= date;
-		writer ~= " (";
-		writer ~= commitHash;
-		writer ~= ")";
-		version (Debug) {
-			writer ~= ", debug build";
-		}
-		version (assert) {} else {
-			writer ~= ", assertions disabled";
-		}
-		version (TailRecursionAvailable) {} else {
-			writer ~= ", no tail calls";
-		}
-		version (GccJitAvailable) {} else {
-			writer ~= ", does not support '--jit'";
-		}
-		writer ~= ", built with ";
-		writer ~= dCompilerName;
-	});
+	writer ~= date;
+	writer ~= " (";
+	writer ~= commitHash;
+	writer ~= ")";
+	version (Debug) {
+		writer ~= ", debug build";
+	}
+	version (assert) {} else {
+		writer ~= ", assertions disabled";
+	}
+	version (TailRecursionAvailable) {} else {
+		writer ~= ", no tail calls";
+	}
+	version (GccJitAvailable) {} else {
+		writer ~= ", does not support '--jit'";
+	}
+	writer ~= ", built with ";
+	writer ~= dCompilerName;
+}
 
 private string dCompilerName() {
 	version (DigitalMars) {
@@ -466,7 +462,7 @@ Uri[] allUnknownUris(ref Alloc alloc, in Server server) =>
 private Uri[] allUnloadedUris(ref Alloc alloc, in Server server) =>
 	allUrisWithFileDiag(alloc, server.storage, [ReadFileDiag.unknown, ReadFileDiag.loading]);
 
-CString showDiagnostics(
+string showDiagnostics(
 	ref Alloc alloc,
 	in Server server,
 	in Program program,
@@ -475,11 +471,11 @@ CString showDiagnostics(
 	stringOfDiagnostics(alloc, getShowDiagCtx(server, program), program, onlyForUris);
 
 immutable struct DocumentResult {
-	CString document;
-	CString diagnostics;
+	string document;
+	string diagnostics;
 }
 
-CString check(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] rootUris) {
+string check(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] rootUris) {
 	Program program = getProgram(perf, alloc, server, rootUris);
 	return showDiagnostics(alloc, server, program);
 }
@@ -556,7 +552,7 @@ private Opt!Position getPosition(in Server server, in Program program, in TextDo
 }
 
 struct DiagsAndResultJson {
-	CString diagnostics;
+	string diagnostics;
 	Json result;
 }
 
@@ -715,7 +711,7 @@ Programs buildToLowProgram(
 
 immutable struct BuildToCResult {
 	WriteToCResult writeToCResult;
-	CString diagnostics;
+	string diagnostics;
 	bool hasFatalDiagnostics;
 	ExternLibraries externLibraries;
 }
@@ -732,7 +728,7 @@ BuildToCResult buildToC(
 	return BuildToCResult(
 		has(programs.lowProgram)
 			? writeToC(alloc, server.allSymbols, server.allUris, ctx, force(programs.lowProgram), params)
-			: WriteToCResult(PathAndArgs(params.cCompiler), cString!""),
+			: WriteToCResult(PathAndArgs(params.cCompiler), ""),
 		showDiagnostics(alloc, server, programs.program),
 		hasFatalDiagnostics(programs.programWithMain),
 		has(programs.lowProgram) ? force(programs.lowProgram).externLibraries : []);

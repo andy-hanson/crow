@@ -16,7 +16,7 @@ import util.conv : isUint, safeToUint;
 import util.exitCode : ExitCode;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, some, someMut;
 import util.sourceRange : LineAndColumn;
-import util.string : copyToCString, CString, cString, MutCString, stringOfCString;
+import util.string : CString, cString, MutCString, stringOfCString;
 import util.symbol : Extension, symbol;
 import util.union_ : Union;
 import util.uri :
@@ -32,7 +32,7 @@ import util.uri :
 	parseUriWithCwd,
 	Uri;
 import util.util : castNonScope, enumEach, optEnumOfString, stringOfEnum, typeAs;
-import util.writer : withWriter, writeNewline, writeQuotedString, Writer;
+import util.writer : makeStringWithWriter, writeNewline, writeQuotedString, Writer;
 import versionInfo : OS;
 
 Command parseCommand(ref Alloc alloc, scope ref AllUris allUris, FileUri cwd, OS os, in CString[] args) {
@@ -42,7 +42,7 @@ Command parseCommand(ref Alloc alloc, scope ref AllUris allUris, FileUri cwd, OS
 		SplitArgsAndOptions split = splitArgs(alloc, args[1 .. $]);
 		if (split.help)
 			return Command(
-				CommandKind(CommandKind.Help(copyToCString(alloc, helpForCommand(name)), ExitCode.ok)),
+				CommandKind(CommandKind.Help(helpForCommand(name), ExitCode.ok)),
 				split.options);
 		else {
 			Builder!Diag diagsBuilder = Builder!Diag(&alloc);
@@ -51,7 +51,7 @@ Command parseCommand(ref Alloc alloc, scope ref AllUris allUris, FileUri cwd, OS
 			if (isEmpty(diags))
 				return Command(res, split.options);
 			else {
-				CString help = withWriter(alloc, (scope ref Writer writer) {
+				string help = makeStringWithWriter(alloc, (scope ref Writer writer) {
 					writer ~= "Command syntax error: ";
 					foreach (Diag x; diags) {
 						writeDiag(writer, x);
@@ -74,7 +74,7 @@ Command parseCommand(ref Alloc alloc, scope ref AllUris allUris, FileUri cwd, OS
 private:
 
 CommandKind dummyCommand() =>
-	CommandKind(CommandKind.Help(cString!"This should not appear", ExitCode.error));
+	CommandKind(CommandKind.Help("This should not appear", ExitCode.error));
 
 enum CommandName {
 	build,
@@ -278,7 +278,7 @@ CommandKind withMainUri(
 		return dummyCommand;
 	} else {
 		Opt!Uri p = tryParseCrowUri(alloc, allUris, cwd, only(args));
-		return has(p) ? cb(force(p)) : CommandKind(CommandKind.Help(cString!"Invalid path"));
+		return has(p) ? cb(force(p)) : CommandKind(CommandKind.Help("Invalid path"));
 	}
 }
 
@@ -290,7 +290,7 @@ CommandKind withRootUris(
 	in CommandKind delegate(Uri[]) @safe pure @nogc nothrow cb,
 ) {
 	Opt!(Uri[]) p = tryParseRootUris(alloc, allUris, cwd, args);
-	return has(p) ? cb(force(p)) : CommandKind(CommandKind.Help(cString!"Invalid path"));
+	return has(p) ? cb(force(p)) : CommandKind(CommandKind.Help("Invalid path"));
 }
 
 Opt!Uri tryParseCrowUri(ref Alloc alloc, scope ref AllUris allUris, FileUri cwd, in CString arg) {
@@ -609,8 +609,8 @@ NamedArgs splitNamedArgs(ref Alloc alloc, in CString[] args) {
 	return NamedArgs(parts, CommandOptions(perf), help);
 }
 
-CString helpAllText(ref Alloc alloc) =>
-	withWriter(alloc, (scope ref Writer writer) {
+string helpAllText(ref Alloc alloc) =>
+	makeStringWithWriter(alloc, (scope ref Writer writer) {
 		writer ~= "Crow is divided into several commands. Type 'crow x --help' where 'x' is one of:";
 		enumEach!CommandName((CommandName name) {
 			writeNewline(writer, 1);

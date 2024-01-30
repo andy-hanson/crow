@@ -14,7 +14,7 @@ import util.col.map : mustGet;
 import util.col.mutArr : moveToArray, MutArr, pushAll;
 import util.exitCode : ExitCode;
 import util.opt : force, none, Opt;
-import util.string : CString, cString, stringsEqual;
+import util.string : cString, stringsEqual;
 import util.symbol : Symbol, symbol;
 import util.uri : Uri;
 
@@ -30,7 +30,7 @@ private:
 		Symbol[2] exportNames = [symbol!"free", symbol!"malloc"];
 		ExternLibrary[1] externLibraries = [ExternLibrary(symbol!"c", none!Uri, exportNames)];
 		Opt!ExternPointersForAllLibraries funPtrsOpt =
-			extern_.loadExternPointers(externLibraries, (in CString _) =>
+			extern_.loadExternPointers(externLibraries, (in string _) =>
 				assert(false));
 		ExternPointersForAllLibraries funPtrs = force(funPtrsOpt);
 		ExternPointersForLibrary forCrow = mustGet(funPtrs, symbol!"c");
@@ -82,7 +82,7 @@ void testWrite(ref Test test) {
 			Symbol[1] exportNames = [symbol!"write"];
 			ExternLibrary[1] externLibraries = [ExternLibrary(symbol!"c", none!Uri, exportNames)];
 			Opt!ExternPointersForAllLibraries funPtrsOpt =
-				extern_.loadExternPointers(externLibraries, (in CString _) =>
+				extern_.loadExternPointers(externLibraries, (in string _) =>
 					assert(false));
 			ExternPointersForAllLibraries funPtrs = force(funPtrsOpt);
 			ExternPointersForLibrary forCrow = mustGet(funPtrs, symbol!"c");

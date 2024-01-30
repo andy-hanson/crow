@@ -18,6 +18,7 @@ To work on Crow, you'll need these tools:
 	- Don't use the Visual D installer as it uses an older compiler.
 	Download the latest [release](https://github.com/ldc-developers/ldc/releases) instead.
 * Also install dependencies listed on the [download](https://crow-lang.org/download.html) page.
+* Optionally, [GraphViz](https://graphviz.org/download/) for viewing dependencies with `make show-dependencies`.
 * On Windows, use the "x64 Native Tools Command Prompt for VS 20__" (fill in the year) when running build commands.
 
 Then run:

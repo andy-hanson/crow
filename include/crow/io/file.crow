@@ -30,7 +30,7 @@ import
 	../private/bootstrap: todo
 	../pointer: ==, as-const, mut-pointer, null, pointer-cast, size-of
 	../range: ..
-	../string: ==, <=>, as-string, char8, c-string, interpolate, string, to, to-bytes
+	../string: ==, <=>, as-string, char8, c-string, interpolate, replace-all, string, to, to-bytes
 	../version: is-windows
 	./path: child-path
 	./posix-util: check-errno, check-posix-error, throw-posix-error
@@ -284,11 +284,13 @@ Will still throw on other errors, like permission errors.
 	trusted
 		buff char8 mut-array = 256 uninitialized-mut-array
 		b = is-windows ? buff.begin-pointer _getcwd buff.size : buff.begin-pointer getcwd buff.size
-		if b == null
-			todo
+		forbid b == null : "Error getting current directory"
+		assert b == buff.begin-pointer
+		res string = b.as-const to
+		if is-windows
+			res replace-all "\\", "/"
 		else
-			assert b == buff.begin-pointer
-			b.as-const to
+			res
 
 ###
 If `path` is a directory, calls `each-child-recursive` on every child of the directory.

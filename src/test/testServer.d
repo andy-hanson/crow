@@ -8,7 +8,6 @@ import model.diag : ReadFileDiag;
 import test.testUtil : assertEqual, defaultIncludeResult, setupTestServer, Test, withTestServer;
 import util.alloc.alloc : Alloc;
 import util.col.array : concatenate;
-import util.string : CString;
 import util.uri : concatUriAndPath, parsePath, parseUri, Uri;
 
 void testServer(ref Test test) {
@@ -26,7 +25,7 @@ void testCircularImportFixed(ref Test test) {
 		Uri uriB = parseUri(server.allUris, "test:///b.crow");
 		setupTestServer(test, alloc, server, uriA, "");
 
-		CString showDiags() =>
+		string showDiags() =>
 			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA).program);
 
 		assertEqual(showDiags(), expectedDiags1);
@@ -50,7 +49,7 @@ void testFileNotFoundThenAdded(ref Test test) {
 		Uri uriA = parseUri(server.allUris, "test:///a.crow");
 		Uri uriB = parseUri(server.allUris, "test:///b.crow");
 		setupTestServer(test, alloc, server, uriA, "import\n\t./b\n\nmain void()\n\tinfo log hello");
-		CString showDiags() =>
+		string showDiags() =>
 			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA).program);
 
 		string bDoesNotExist = "test:///a.crow 2:5-2:8 Imported file test:///b.crow does not exist.\n" ~
@@ -72,7 +71,7 @@ void testFileImportNotFound(ref Test test) {
 		Uri uriB2 = parseUri(server.allUris, "test:///b2.txt");
 		setFile(test.perf, server, uriB, "hello");
 
-		CString showDiags() =>
+		string showDiags() =>
 			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA).program);
 
 		string original = "import\n\t./b.txt as b string\n\nmain void()\n\t()";
@@ -92,7 +91,7 @@ void testChangeBootstrap(ref Test test) {
 	withTestServer(test, (ref Alloc alloc, ref Server server) {
 		Uri uriA = parseUri(server.allUris, "test:///a.crow");
 		setupTestServer(test, alloc, server, uriA, "main void()\n\t()");
-		CString showDiags() =>
+		string showDiags() =>
 			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA).program);
 
 		assertEqual(showDiags(), "");

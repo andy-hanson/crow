@@ -46,12 +46,12 @@ import util.json :
 	kindField;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : compareUriAndRange, UriAndRange;
-import util.string : CString, SmallString;
+import util.string : SmallString;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.uri : AllUris, stringOfUri;
 import util.util : stringOfEnum;
 
-CString documentJSON(ref Alloc alloc, in AllSymbols allSymbols, in AllUris allUris, in Program program) =>
+string documentJSON(ref Alloc alloc, in AllSymbols allSymbols, in AllUris allUris, in Program program) =>
 	jsonToString(alloc, allSymbols, documentRootModules(alloc, allSymbols, allUris, program));
 
 private:

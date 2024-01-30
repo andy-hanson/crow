@@ -20,9 +20,8 @@ import util.comparison : compareUlong, oppositeComparison;
 import util.json : field, Json, jsonObject;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf, PerfMeasure, PerfMeasureResult, PerfResult, perfResult;
-import util.string : CString;
 import util.symbol : symbolOfEnum;
-import util.writer : withWriter, Writer;
+import util.writer : makeStringWithWriter, Writer;
 
 Json perfReport(ref Alloc alloc, in Perf perf, in MetaAlloc metaAlloc, Json stats) =>
 	jsonObject(alloc, [
@@ -96,8 +95,8 @@ Json showMemoryCommon(ref Alloc alloc, Opt!size_t countAllocs, in MemorySummary 
 				res ~= field!"countAllocs"(force(countAllocs));
 		}));
 
-CString showMemoryAmount(ref Alloc alloc, size_t bytes) =>
-	withWriter(alloc, (scope ref Writer writer) {
+string showMemoryAmount(ref Alloc alloc, size_t bytes) =>
+	makeStringWithWriter(alloc, (scope ref Writer writer) {
 		size_t KB = 0x400;
 		size_t MB = KB * KB;
 		if (bytes > MB) {
@@ -112,8 +111,8 @@ CString showMemoryAmount(ref Alloc alloc, size_t bytes) =>
 		writer ~= "B";
 	});
 
-CString showTimeAmount(ref Alloc alloc, ulong nanoseconds) =>
-	withWriter(alloc, (scope ref Writer writer) {
+string showTimeAmount(ref Alloc alloc, ulong nanoseconds) =>
+	makeStringWithWriter(alloc, (scope ref Writer writer) {
 		writer ~= divRound(nanoseconds, 1_000_000);
 		writer ~= "ms";
 	});

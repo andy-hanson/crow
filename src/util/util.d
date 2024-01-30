@@ -5,11 +5,10 @@ module util.util;
 import std.meta : staticMap;
 
 import util.opt : none, Opt, some;
-import util.string : CString, cString;
+import util.string : CString, cString, stringOfCString;
 
 version (WebAssembly) { } else {
-	import core.stdc.stdio : fprintf;
-	import app.fileSystem : stderr;
+	import app.fileSystem : printError;
 }
 
 T typeAs(T)(T a) =>
@@ -68,10 +67,10 @@ version (WebAssembly) {
 	// WARN: 'message' must be heap allocated, not on stack
 	extern(C) void debugLog(scope const char* message);
 } else {
-	void debugLog(in char* message) {
-		// Log to stderr because LSP uses stdout
+	@trusted void debugLog(scope const char* message) {
 		debug {
-			fprintf(stderr, "debug log: %s\n", message);
+			// Log to stderr because LSP uses stdout
+			printError(stringOfCString(CString(cast(immutable) message)));
 		}
 	}
 }

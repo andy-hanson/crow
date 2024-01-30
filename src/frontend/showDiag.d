@@ -59,14 +59,13 @@ import util.col.sortUtil : sorted;
 import util.comparison : Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : compareRange;
-import util.string : CString;
 import util.symbol : Symbol, symbol, writeSymbol;
 import util.uri : AllUris, baseName, compareUriAlphabetically, Uri, writeRelPath, writeUri;
 import util.util : stringOfEnum, max;
-import util.writer : withWriter, writeNewline, writeWithCommas, writeWithNewlines, writeWithSeparator, Writer;
+import util.writer : makeStringWithWriter, writeNewline, writeWithCommas, writeWithNewlines, writeWithSeparator, Writer;
 
-CString stringOfDiagnostics(ref Alloc alloc, in ShowDiagCtx ctx, in Program program, in Opt!(Uri[]) onlyForUris) =>
-	withWriter(alloc, (scope ref Writer writer) {
+string stringOfDiagnostics(ref Alloc alloc, in ShowDiagCtx ctx, in Program program, in Opt!(Uri[]) onlyForUris) =>
+	makeStringWithWriter(alloc, (scope ref Writer writer) {
 		DiagnosticSeverity severity = maxDiagnosticSeverity(program);
 		bool first = true;
 		foreach (UriAndDiagnostics x; sortedDiagnostics(alloc, ctx.allUris, program))
@@ -82,13 +81,13 @@ CString stringOfDiagnostics(ref Alloc alloc, in ShowDiagCtx ctx, in Program prog
 				}
 	});
 
-CString stringOfDiag(ref Alloc alloc, in ShowDiagCtx ctx, in Diag diag) =>
-	withWriter(alloc, (scope ref Writer writer) {
+string stringOfDiag(ref Alloc alloc, in ShowDiagCtx ctx, in Diag diag) =>
+	makeStringWithWriter(alloc, (scope ref Writer writer) {
 		writeDiag(writer, ctx, diag);
 	});
 
-CString stringOfParseDiagnostics(ref Alloc alloc, in ShowCtx ctx, Uri uri, in ParseDiagnostic[] diagnostics) =>
-	withWriter(alloc, (scope ref Writer writer) {
+string stringOfParseDiagnostics(ref Alloc alloc, in ShowCtx ctx, Uri uri, in ParseDiagnostic[] diagnostics) =>
+	makeStringWithWriter(alloc, (scope ref Writer writer) {
 		writeWithNewlines!ParseDiagnostic(writer, diagnostics, (in ParseDiagnostic x) {
 			writeLineAndColumnRange(writer, ctx.lineAndColumnGetters[uri][x.range]);
 			writer ~= ' ';

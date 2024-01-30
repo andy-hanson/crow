@@ -11,7 +11,13 @@ import util.string : copyString, CString, stringsEqual, stringOfCString;
 import util.symbol : AllSymbols, Symbol, symbol, writeQuotedSymbol;
 import util.union_ : Union;
 import util.writer :
-	withWriter, writeFloatLiteral, Writer, writeQuotedString, writeWithCommasCompact, writeWithSeparator;
+	makeStringWithWriter,
+	withWriter,
+	writeFloatLiteral,
+	Writer,
+	writeQuotedString,
+	writeWithCommasCompact,
+	writeWithSeparator;
 
 immutable struct Json {
 	@safe @nogc pure nothrow:
@@ -141,13 +147,18 @@ Json.ObjectField field(string name)(string value) =>
 Json.ObjectField field(string name)(Symbol value) =>
 	field!name(Json(value));
 
-CString jsonToString(ref Alloc alloc, in AllSymbols allSymbols, in Json a) =>
+CString jsonToCString(ref Alloc alloc, in AllSymbols allSymbols, in Json a) =>
 	withWriter(alloc, (scope ref Writer writer) {
 		writeJson(writer, allSymbols, a);
 	});
 
-CString jsonToStringPretty(ref Alloc alloc, in AllSymbols allSymbols, in Json a) =>
-	withWriter(alloc, (scope ref Writer writer) {
+string jsonToString(ref Alloc alloc, in AllSymbols allSymbols, in Json a) =>
+	makeStringWithWriter(alloc, (scope ref Writer writer) {
+		writeJson(writer, allSymbols, a);
+	});
+
+string jsonToStringPretty(ref Alloc alloc, in AllSymbols allSymbols, in Json a) =>
+	makeStringWithWriter(alloc, (scope ref Writer writer) {
 		writeJsonPretty(writer, allSymbols, a, 0);
 	});
 

@@ -67,6 +67,7 @@ import util.union_ : Union;
 import util.uri : AllUris, asFileUri, childFileUri, cStringOfFileUri, FileUri, isFileUri, writeFileUri;
 import util.util : abs, castNonScope, castNonScope_ref, ptrTrustMe, stringOfEnum, todo;
 import util.writer :
+	makeStringWithWriter,
 	withWriter,
 	writeEscapedChar_inner,
 	writeFloatLiteral,
@@ -84,7 +85,7 @@ immutable struct PathAndArgs {
 
 immutable struct WriteToCResult {
 	PathAndArgs compileCommand;
-	CString cSource;
+	string cSource;
 }
 
 immutable struct WriteToCParams {
@@ -105,7 +106,7 @@ WriteToCResult writeToC(
 	OS os = program.version_.os;
 	bool isMSVC = isWindows(program.version_);
 	CString[] args = cCompileArgs(alloc, allSymbols, allUris, program.externLibraries, os, isMSVC, params);
-	CString content = withWriter(alloc, (scope ref Writer writer) {
+	string content = makeStringWithWriter(alloc, (scope ref Writer writer) {
 		writer ~= "/* ";
 		writeFileUri(writer, allUris, os, params.cCompiler);
 		writer ~= ' ';

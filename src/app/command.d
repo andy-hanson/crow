@@ -34,7 +34,7 @@ immutable struct CommandKind {
 	}
 	// Used for either explicit '--help' or any error using CLI
 	immutable struct Help {
-		CString helpText;
+		string helpText;
 		ExitCode exitCode;
 	}
 	immutable struct Lsp {}

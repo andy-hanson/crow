@@ -3,7 +3,6 @@ module app.dyncall;
 @safe @nogc nothrow: // not pure
 
 import frontend.lang : maxTupleSize;
-import interpret.applyFn : u64OfI32, u64OfI64;
 import interpret.bytecode : Operation;
 import interpret.extern_ :
 	AggregateCbs,
@@ -17,8 +16,7 @@ import interpret.extern_ :
 	ExternPointersForLibrary,
 	FunPointer,
 	FunPointerInputs,
-	WriteError,
-	writeSymbolToCb;
+	WriteError;
 import interpret.runBytecode : syntheticCall;
 import interpret.stacks : dataPop, dataPopN, dataPush, dataPushUninitialized, loadStacks, saveStacks, Stacks;
 import model.lowModel : ExternLibraries, ExternLibrary, PrimitiveType;
@@ -29,14 +27,16 @@ import util.col.map : Map, KeyValuePair, makeMapFromKeys, zipToMap;
 import util.col.mapBuilder : MapBuilder, finishMap, tryAddToMap;
 import util.col.mutArr : MutArr, mutArrIsEmpty, push;
 import util.col.mutMaxArr : MutMaxArr, mutMaxArr;
-import util.conv : bitsOfFloat32, bitsOfFloat64, float32OfBits, float64OfBits;
+import util.conv : bitsOfFloat32, bitsOfFloat64, bitsOfInt, bitsOfLong, float32OfBits, float64OfBits;
 import util.exitCode : ExitCode;
 import util.late : Late, late, lateGet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
 import util.string : CString, cString;
-import util.symbol : addExtension, addPrefixAndExtension, AllSymbols, Extension, Symbol, symbol, symbolAsTempBuffer;
+import util.symbol :
+	addExtension, addPrefixAndExtension, AllSymbols, Extension, Symbol, symbol, symbolAsTempBuffer, writeSymbol;
 import util.uri : AllUris, asFileUri, childUri, fileUriToTempStr, isFileUri, TempStrForPath, Uri;
+import util.writer : withStackWriter, Writer;
 import versionInfo : getOS, OS;
 
 @trusted ExitCode withRealExtern(
@@ -152,9 +152,10 @@ LibraryAndError loadLibraryFromName(in CString name, in WriteError writeError) {
 	DLLib* res = dlLoadLibrary(name.ptr);
 	if (res == null) {
 		// TODO: use a Diagnostic
-		writeError(cString!"Could not load library ");
-		writeError(name);
-		writeError(cString!"\n");
+		writeError(withStackWriter((scope ref Alloc _, scope ref Writer writer) {
+			writer ~= "Could not load library ";
+			writer ~= name;
+		}));
 	}
 	return LibraryAndError(res, res == null);
 }
@@ -189,13 +190,13 @@ LoadedLibraries loadLibrariesInner(
 				});
 			return immutable KeyValuePair!(Symbol, ExternPointersForLibrary)(x.libraryName, pointers);
 		});
-	foreach (KeyValuePair!(Symbol, Symbol) x; failures) {
-		writeError(cString!"Could not load extern function ");
-		writeSymbolToCb(writeError, allSymbols, x.value);
-		writeError(cString!" from library ");
-		writeSymbolToCb(writeError, allSymbols, x.key);
-		writeError(cString!"\n");
-	}
+	foreach (KeyValuePair!(Symbol, Symbol) x; failures)
+		writeError(withStackWriter((scope ref Alloc _, scope ref Writer writer) {
+			writer ~= "Could not load extern function ";
+			writeSymbol(writer, allSymbols, x.value);
+			writer ~= " from library ";
+			writeSymbol(writer, allSymbols, x.key);
+		}));
 	return LoadedLibraries(
 		finishMap(alloc, debugNames),
 		mutArrIsEmpty(failures) ? some(res) : none!ExternPointersForAllLibraries);
@@ -315,10 +316,10 @@ LoadedLibraries loadLibrariesInner(
 			return dataPush(stacks, dcCallShort(dcVm, ptr));
 		case PrimitiveType.int32:
 		case PrimitiveType.nat32:
-			return dataPush(stacks, u64OfI32(dcCallInt(dcVm, ptr)));
+			return dataPush(stacks, bitsOfInt(dcCallInt(dcVm, ptr)));
 		case PrimitiveType.int64:
 		case PrimitiveType.nat64:
-			return dataPush(stacks, u64OfI64(dcCallLongLong(dcVm, ptr)));
+			return dataPush(stacks, bitsOfLong(dcCallLongLong(dcVm, ptr)));
 		case PrimitiveType.float32:
 			return dataPush(stacks, bitsOfFloat32(dcCallFloat(dcVm, ptr)));
 		case PrimitiveType.float64:

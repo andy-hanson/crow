@@ -19,6 +19,7 @@ struct MutCString {
 
 	@disable this();
 	@system this(immutable char* p) inout {
+		assert(p != null);
 		ptr = p;
 	}
 

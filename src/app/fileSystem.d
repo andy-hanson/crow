@@ -2,9 +2,8 @@ module app.fileSystem;
 
 @safe @nogc nothrow: // not pure
 
-import app.appUtil : printErrorCb;
 import core.stdc.errno : ENOENT, errno;
-import core.stdc.stdio : fclose, ferror, FILE, fopen, fprintf, fread, fseek, ftell, fwrite, SEEK_END, SEEK_SET;
+import core.stdc.stdio : fclose, ferror, fflush, fgets, FILE, fopen, fread, fseek, ftell, fwrite, SEEK_END, SEEK_SET;
 version (Windows) {} else {
 	import core.stdc.stdio : posixStderr = stderr, posixStdin = stdin, posixStdout = stdout;
 }
@@ -27,6 +26,7 @@ version (Windows) {
 		GetLastError,
 		GetModuleFileNameA,
 		GetModuleHandle,
+		GetStdHandle,
 		HANDLE,
 		HANDLE_FLAG_INHERIT,
 		HMODULE,
@@ -40,7 +40,10 @@ version (Windows) {
 		Sleep,
 		STARTF_USESTDHANDLES,
 		STARTUPINFOA,
-		WaitForSingleObject;
+		STD_ERROR_HANDLE,
+		STD_OUTPUT_HANDLE,
+		WaitForSingleObject,
+		WriteFile;
 } else {
 	import core.sys.posix.spawn : posix_spawn;
 	import core.sys.posix.sys.wait : waitpid;
@@ -55,10 +58,11 @@ import model.lowModel : ExternLibrary, ExternLibraries;
 import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
 import util.col.array : endPtr, exists, newArray;
 import util.col.arrayBuilder : buildArray, Builder;
+import util.conv : safeToInt, safeToUint;
 import util.exitCode : ExitCode, okAnd;
 import util.memory : memset;
 import util.opt : force, has, none, Opt, some;
-import util.string : CString, cString, cStringSize;
+import util.string : CString, cString;
 import util.symbol : alterExtension, Extension, Symbol;
 import util.union_ : TaggedUnion;
 import util.uri :
@@ -78,10 +82,12 @@ import util.uri :
 	Uri,
 	writeFileUri;
 import util.util : castImmutable, todo, typeAs;
-import util.writer : withWriter, Writer, writeWithSeparatorAndFilter;
+import util.writer : withStackWriter, withStackWriterImpure, withWriter, Writer, writeWithSeparatorAndFilter;
 import versionInfo : getOS, OS;
 
-FILE* stdin() {
+private enum OutPipe { stdout = 1, stderr = 2 }
+
+private FILE* stdin() {
 	version (Windows) {
 		return __acrt_iob_func(0);
 	} else {
@@ -89,20 +95,81 @@ FILE* stdin() {
 	}
 }
 
-FILE* stdout() {
+@system CString readLineFromStdin(scope char[] buffer) {
+	char* res = fgets(buffer.ptr, safeToInt(buffer.length), stdin);
+	assert(res != null);
+	return CString(castImmutable(res));
+}
+
+@system void readExactFromStdin(scope char[] buffer) {
+	size_t n = fread(buffer.ptr, char.sizeof, buffer.length, stdin);
+	assert(n == buffer.length);
+}
+
+@trusted ExitCode print(in string a) {
+	writeLn(OutPipe.stdout, a);
+	return ExitCode.ok;
+}
+
+ExitCode printCb(in void delegate(scope ref Writer writer) @safe @nogc pure nothrow cb) =>
+	print(withStackWriter((ref Alloc _, scope ref Writer writer) {
+		cb(writer);
+	}));
+
+@trusted ExitCode printError(in string a) {
+	writeLn(OutPipe.stderr, a);
+	return ExitCode.error;
+}
+
+ExitCode printErrorCb(in void delegate(scope ref Writer writer) @safe @nogc nothrow cb) =>
+	printError(withStackWriterImpure(cb));
+
+// Unlike 'print' this does *not* add a newline.
+@system void writeToStdoutAndFlush(in string a) {
+	writeString(OutPipe.stdout, a);
+	flush(OutPipe.stdout);
+}
+
+private void flush(OutPipe pipe) {
+	fflush(fileForPipe(pipe));
+}
+
+private FILE* fileForPipe(OutPipe pipe) {
 	version (Windows) {
-		return __acrt_iob_func(1);
+		return __acrt_iob_func(pipe);
 	} else {
-		return posixStdout;
+		final switch (pipe) {
+			case OutPipe.stdout:
+				return posixStdout;
+			case OutPipe.stderr:
+				return posixStderr;
+		}
 	}
 }
 
-FILE* stderr() {
+private @system void writeString(OutPipe pipe, in string a) {
 	version (Windows) {
-		return __acrt_iob_func(2);
+		HANDLE console = GetStdHandle(() {
+			final switch (pipe) {
+				case OutPipe.stdout:
+					return STD_OUTPUT_HANDLE;
+				case OutPipe.stderr:
+					return STD_ERROR_HANDLE;
+			}
+		}());
+		DWORD written = 0;
+		int ok = WriteFile(console, a.ptr, safeToUint(a.length), &written, null);
+		assert(ok == 1);
+		assert(written == a.length);
 	} else {
-		return posixStderr;
+		write(fd, a.ptr, safeToUint(a.length));
 	}
+}
+
+private @system void writeLn(OutPipe pipe, in string a) {
+	writeString(pipe, a);
+	writeString(pipe, "\n");
+	flush(pipe);
 }
 
 private @trusted ExitCode removeFileIfExists(in AllUris allUris, FileUri uri) {
@@ -216,7 +283,7 @@ private T[size0 + size1] concat(T, size_t size0, size_t size1)(in T[size0] a, in
 		TempStrForPath res = void;
 		int len = SearchPathA(null, "cl.exe", null, cast(uint) res.length, res.ptr, null);
 		if (len == 0) {
-			fprintf(stderr, "Could not find cl.exe on path. Be sure you are using a Native Tools Command Prompt.");
+			printError("Could not find cl.exe on path. Be sure you are using a Native Tools Command Prompt.");
 			return none!FileUri;
 		} else
 			return some(parseFileUri(allUris, CString(cast(immutable) res.ptr)));
@@ -262,16 +329,15 @@ private T[size0 + size1] concat(T, size_t size0, size_t size1)(in T[size0] a, in
 	}
 }
 
-@trusted ExitCode writeFile(in AllUris allUris, FileUri uri, in CString content) {
+@trusted ExitCode writeFile(in AllUris allUris, FileUri uri, in string content) {
 	FILE* fd = tryOpenFileForWrite(allUris, uri);
 	if (fd == null)
 		return ExitCode.error;
 	else {
 		scope(exit) fclose(fd);
 
-		size_t size = cStringSize(content);
-		long wroteBytes = fwrite(content.ptr, char.sizeof, size, fd);
-		if (wroteBytes != size) {
+		long wroteBytes = fwrite(content.ptr, char.sizeof, content.length, fd);
+		if (wroteBytes != content.length) {
 			if (wroteBytes == -1)
 				todo!void("writeFile failed");
 			else
@@ -594,10 +660,14 @@ version (Windows) {
 	@system ExitCode handleMkdirErr(int err, CString dir) =>
 		err == 0 ? ExitCode.ok : printErrno("Error making directory", dir);
 
-	@system ExitCode printErrno(string description, CString file) {
-		fprintf(stderr, "%.*s %s: %s\n", cast(int) description.length, description.ptr, file.ptr, strerror(errno));
-		return ExitCode.error;
-	}
+	@system ExitCode printErrno(string description, CString file) =>
+		printErrorCb((scope ref Writer writer) {
+			writer ~= description;
+			writer ~= ' ';
+			writer ~= file;
+			writer ~= ": ";
+			writeLastError(writer);
+		});
 }
 
 version (Windows) {

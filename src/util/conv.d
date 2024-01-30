@@ -33,24 +33,24 @@ size_t safeToSizeT(ulong a) {
 uint bitsOfFloat32(float value) {
 	Converter32 conv;
 	conv.asFloat32 = value;
-	return conv.asU32;
+	return conv.asUint;
 }
 
 float float32OfBits(ulong value) {
 	Converter32 conv;
-	conv.asU32 = cast(uint) value;
+	conv.asUint = cast(uint) value;
 	return conv.asFloat32;
 }
 
 ulong bitsOfFloat64(double value) {
 	Converter64 conv;
 	conv.asFloat64 = value;
-	return conv.asU64;
+	return conv.asUlong;
 }
 
 double float64OfBits(ulong value) {
 	Converter64 conv;
-	conv.asU64 = value;
+	conv.asUlong = value;
 	return conv.asFloat64;
 }
 
@@ -62,14 +62,26 @@ ushort[2] ushortsOfUint(uint a) =>
 static assert(uintOfUshorts([0x1234, 0x5678]) == 0x12345678);
 static assert(ushortsOfUint(0x12345678) == [0x1234, 0x5678], ushortsOfUint(0x12345678));
 
+ulong bitsOfByte(byte a) =>
+	cast(ulong) (cast(ubyte) a);
+
+ulong bitsOfShort(short a) =>
+	cast(ulong) (cast(ushort) a);
+
+ulong bitsOfInt(int a) =>
+	cast(ulong) (cast(uint) a);
+
+ulong bitsOfLong(long a) =>
+	cast(ulong) a;
+
 private:
 
 union Converter32 {
-	uint asU32;
+	uint asUint;
 	float asFloat32;
 }
 
 union Converter64 {
-	ulong asU64;
+	ulong asUlong;
 	double asFloat64;
 }

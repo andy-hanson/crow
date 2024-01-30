@@ -21,8 +21,7 @@ import util.opt : force, has, Opt;
 import util.uri : parseUri, Uri;
 import util.sourceRange :
 	jsonOfLineAndCharacterRange, jsonOfUriAndLineAndCharacterRange, LineAndCharacterGetter, Pos, Range, UriAndRange;
-import util.string : CString, stringOfCString;
-import util.util : debugLog;
+import util.writer : debugLogWithWriter, Writer;
 
 @trusted void testHover(ref Test test) {
 	hoverTest!("basic.crow", "hover/basic.json")(test);
@@ -34,14 +33,16 @@ private:
 void hoverTest(string crowFileName, string outputFileName)(ref Test test) {
 	string content = import("hover/" ~ crowFileName);
 	string expected = import(outputFileName);
-	withHoverTest!crowFileName(test, content, (in ShowModelCtx ctx, Module* module_) {
-		CString actual = jsonToStringPretty(
+	withHoverTest!crowFileName(test, content, (in ShowModelCtx ctx, Module* module_) @safe {
+		string actual = jsonToStringPretty(
 			test.alloc, test.allSymbols, hoverResult(test.alloc, content, ctx, module_));
-		if (stringOfCString(actual) != expected) {
-			debugLog("Test output was not as expected. File is:");
-			debugLog(outputFileName);
-			debugLog("Actual is:");
-			debugLog(actual.ptr);
+		if (actual != expected) {
+			debugLogWithWriter((scope ref Writer writer) {
+				writer ~= "Test output for ";
+				writer ~= outputFileName;
+				writer ~= " is different than expected. Actual is:\n";
+				writer ~= actual;
+			});
 			assert(false);
 		}
 	});

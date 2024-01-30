@@ -31,7 +31,6 @@ import util.json : field, Json, jsonBool, jsonList, jsonNull, jsonObject, jsonSt
 import util.opt : force, has, Opt;
 import util.sourceRange :
 	jsonOfLineAndCharacterRange, jsonOfUriAndLineAndCharacterRange, LineAndCharacterGetter, UriAndRange;
-import util.string : stringOfCString;
 import util.uri : AllUris, stringOfUri, symbolOfUri, Uri;
 import util.util : stringOfEnum;
 
@@ -172,7 +171,7 @@ Json jsonOfDiagnostic(ref Alloc alloc, in LineAndCharacterGetter lcg, LspDiagnos
 	jsonObject(alloc, [
 		field!"range"(jsonOfLineAndCharacterRange(alloc, lcg[a.range])),
 		field!"severity"(cast(uint) a.severity),
-		field!"message"(stringOfCString(a.message))]);
+		field!"message"(a.message)]);
 
 Json jsonOfWorkspaceEdit(
 	ref Alloc alloc,

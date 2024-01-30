@@ -9,7 +9,6 @@ import util.exitCode : ExitCode;
 import util.col.multiMap : MultiMap;
 import util.opt : Opt;
 import util.sourceRange : LineAndCharacter, LineAndCharacterRange, Range, UriAndRange;
-import util.string : CString;
 import util.union_ : Union;
 import util.uri : Uri;
 
@@ -207,7 +206,7 @@ immutable struct TextDocumentPositionParams {
 immutable struct LspDiagnostic {
 	Range range;
 	LspDiagnosticSeverity severity;
-	CString message;
+	string message;
 }
 
 enum LspDiagnosticSeverity {

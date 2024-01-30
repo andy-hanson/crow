@@ -7,9 +7,9 @@ import util.alloc.alloc : Alloc;
 import util.col.arrayBuilder : Builder, finish;
 import util.json : Json;
 import util.opt : force, has, none, Opt, some;
-import util.string : CString, cStringIsEmpty, MutCString, stringOfCString;
+import util.string : CString, cStringIsEmpty, MutCString;
 import util.symbol : AllSymbols, symbolOfString;
-import util.writer : withWriter, Writer;
+import util.writer : makeStringWithWriter, Writer;
 
 Json mustParseJson(ref Alloc alloc, scope ref AllSymbols allSymbols, in CString source) {
 	Opt!Json res = parseJson(alloc, allSymbols, source);
@@ -83,7 +83,7 @@ Json parseNumber(double value, scope ref MutCString ptr) {
 
 Opt!string parseString(ref Alloc alloc, scope ref MutCString ptr) {
 	bool ok = false;
-	CString res = withWriter(alloc, (scope ref Writer writer) {
+	string res = makeStringWithWriter(alloc, (scope ref Writer writer) {
 		//TODO: escaping
 		while (true) {
 			char x = takeChar(ptr);
@@ -108,7 +108,7 @@ Opt!string parseString(ref Alloc alloc, scope ref MutCString ptr) {
 			}
 		}
 	});
-	return ok ? some(stringOfCString(res)) : none!string;
+	return ok ? some(res) : none!string;
 }
 
 // TODO: share code with crow lexer?

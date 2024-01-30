@@ -39,7 +39,7 @@ import interpret.bytecodeWriter : ByteCodeWriter, writeFnBinary, writeFnUnary, w
 import interpret.stacks : dataPush, Stacks;
 import test.testInterpreter : interpreterTest, stepUntilExitAndExpect;
 import test.testUtil : Test;
-import util.conv : bitsOfFloat32, bitsOfFloat64;
+import util.conv : bitsOfByte, bitsOfFloat32, bitsOfFloat64, bitsOfInt, bitsOfLong, bitsOfShort;
 
 void testApplyFn(ref Test test) {
 	ulong one = 1; // https://issues.dlang.org/show_bug.cgi?id=17778
@@ -50,8 +50,8 @@ void testApplyFn(ref Test test) {
 	testFnBinary(test, &fnAddFloat64, [bitsOfFloat64(-1.5), bitsOfFloat64(2.6)], bitsOfFloat64(1.1));
 
 	testFnUnary(test, &fnBitwiseNot, 0xa, 0xfffffffffffffff5);
-	testFnUnary(test, &fnInt64FromInt16, u64OfI16Bits(-1), u64OfI64Bits(-1));
-	testFnUnary(test, &fnInt64FromInt32, u64OfI32Bits(-1), u64OfI64Bits(-1));
+	testFnUnary(test, &fnInt64FromInt16, bitsOfShort(-1), bitsOfLong(-1));
+	testFnUnary(test, &fnInt64FromInt32, bitsOfInt(-1), bitsOfLong(-1));
 	testFnBinary(test, &fnUnsafeBitShiftLeftNat64, [0x0123456789abcdef, 4], 0x123456789abcdef0);
 	testFnBinary(test, &fnUnsafeBitShiftRightNat64, [0x0123456789abcdef, 4], 0x00123456789abcde);
 
@@ -60,7 +60,7 @@ void testApplyFn(ref Test test) {
 
 	testFnUnary(test, &fnCountOnesNat64, 0b10101, 3);
 
-	testFnUnary(test, &fnFloat64FromInt64, u64OfI64Bits(-1), bitsOfFloat64(-1.0));
+	testFnUnary(test, &fnFloat64FromInt64, bitsOfLong(-1), bitsOfFloat64(-1.0));
 
 	testFnUnary(test, &fnFloat64FromNat64, 1, bitsOfFloat64(1.0));
 
@@ -70,21 +70,21 @@ void testApplyFn(ref Test test) {
 	testFnBinary(test, &fnLessFloat64, [bitsOfFloat64(-1.0), bitsOfFloat64(1.0)], 1);
 	testFnBinary(test, &fnLessFloat64, [bitsOfFloat64(1.0), bitsOfFloat64(-1.0)], 0);
 
-	assert(u64OfI8Bits(-1) == 0xff);
+	assert(bitsOfByte(-1) == 0xff);
 
-	testFnBinary(test, &fnLessInt8, [u64OfI8Bits(-1), u64OfI8Bits(1)], 1);
+	testFnBinary(test, &fnLessInt8, [bitsOfByte(-1), bitsOfByte(1)], 1);
 
-	assert(u64OfI16Bits(-1) == 0xffff);
+	assert(bitsOfShort(-1) == 0xffff);
 
-	testFnBinary(test, &fnLessInt16, [u64OfI16Bits(-1), u64OfI16Bits(1)], 1);
+	testFnBinary(test, &fnLessInt16, [bitsOfShort(-1), bitsOfShort(1)], 1);
 
-	assert(u64OfI32Bits(-1) == 0x00000000ffffffff);
+	assert(bitsOfInt(-1) == 0x00000000ffffffff);
 
-	testFnBinary(test, &fnLessInt32, [u64OfI32Bits(-1), u64OfI32Bits(1)], 1);
-	testFnBinary(test, &fnLessInt32, [u64OfI32Bits(int.max), u64OfI32Bits(1)], 0);
+	testFnBinary(test, &fnLessInt32, [bitsOfInt(-1), bitsOfInt(1)], 1);
+	testFnBinary(test, &fnLessInt32, [bitsOfInt(int.max), bitsOfInt(1)], 0);
 
-	testFnBinary(test, &fnLessInt64, [u64OfI64Bits(-1), u64OfI64Bits(1)], 1);
-	testFnBinary(test, &fnLessInt64, [u64OfI64Bits(long.max), u64OfI64Bits(1)], 0);
+	testFnBinary(test, &fnLessInt64, [bitsOfLong(-1), bitsOfLong(1)], 1);
+	testFnBinary(test, &fnLessInt64, [bitsOfLong(long.max), bitsOfLong(1)], 0);
 
 	testFnBinary(test, &fnLessNat64, [1, 3], 1);
 	testFnBinary(test, &fnLessNat64, [1, one], 0);
@@ -98,14 +98,14 @@ void testApplyFn(ref Test test) {
 
 	testFnBinary(test, &fnSubFloat64, [bitsOfFloat64(1.5), bitsOfFloat64(2.6)], bitsOfFloat64(-1.1));
 
-	testFnUnary(test, &fnTruncateToInt64FromFloat64, bitsOfFloat64(-double.infinity), u64OfI64Bits(long.min));
-	testFnUnary(test, &fnTruncateToInt64FromFloat64, bitsOfFloat64(-9.0), u64OfI64Bits(-9));
+	testFnUnary(test, &fnTruncateToInt64FromFloat64, bitsOfFloat64(-double.infinity), bitsOfLong(long.min));
+	testFnUnary(test, &fnTruncateToInt64FromFloat64, bitsOfFloat64(-9.0), bitsOfLong(-9));
 
 	testFnBinary(test, &fnUnsafeDivFloat32, [bitsOfFloat32(9.0), bitsOfFloat32(5.0)], bitsOfFloat32(1.8));
 	testFnBinary(test, &fnUnsafeDivFloat64, [bitsOfFloat64(9.0), bitsOfFloat64(5.0)], bitsOfFloat64(1.8));
 
-	testFnBinary(test, &fnUnsafeDivInt64, [u64OfI64Bits(3), u64OfI64Bits(2)], u64OfI64Bits(1));
-	testFnBinary(test, &fnUnsafeDivInt64, [u64OfI64Bits(3), u64OfI64Bits(-1)], u64OfI64Bits(-3));
+	testFnBinary(test, &fnUnsafeDivInt64, [bitsOfLong(3), bitsOfLong(2)], bitsOfLong(1));
+	testFnBinary(test, &fnUnsafeDivInt64, [bitsOfLong(3), bitsOfLong(-1)], bitsOfLong(-3));
 
 	testFnBinary(test, &fnUnsafeDivNat64, [3, 2], 1);
 	testFnBinary(test, &fnUnsafeDivNat64, [3, ulong.max], 0);
@@ -125,18 +125,6 @@ void testApplyFn(ref Test test) {
 }
 
 private:
-
-ulong u64OfI8Bits(byte a) =>
-	cast(ulong) (cast(ubyte) a);
-
-ulong u64OfI16Bits(short a) =>
-	cast(ulong) (cast(ushort) a);
-
-ulong u64OfI32Bits(int a) =>
-	cast(ulong) (cast(uint) a);
-
-ulong u64OfI64Bits(long a) =>
-	cast(ulong) a;
 
 @trusted void testFnBinary(ref Test test, Operation.Fn fn, ulong[2] stackIn, ulong stackOut) {
 	interpreterTest(

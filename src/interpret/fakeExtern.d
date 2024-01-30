@@ -16,8 +16,7 @@ import interpret.extern_ :
 	ExternPointersForLibrary,
 	FunPointer,
 	FunPointerInputs,
-	WriteError,
-	writeSymbolToCb;
+	WriteError;
 import interpret.runBytecode : syntheticCallWithStacks;
 import interpret.stacks : dataPopN, dataPush, loadStacks, saveStacks, Stacks;
 import model.lowModel : ExternLibraries, ExternLibrary;
@@ -27,9 +26,9 @@ import util.col.map : KeyValuePair, makeMap;
 import util.col.mutArr : MutArr, mutArrIsEmpty, push;
 import util.memory : memmove, memset;
 import util.opt : has, none, Opt, optOrDefault, some;
-import util.string : cString;
-import util.symbol : AllSymbols, Symbol, symbol;
+import util.symbol : AllSymbols, Symbol, symbol, writeSymbol;
 import util.util : debugLog, todo;
+import util.writer : withStackWriter, Writer;
 
 alias WriteCb = void delegate(Pipe, in string);
 
@@ -79,13 +78,13 @@ Opt!ExternPointersForAllLibraries getAllFakeExternFuns(
 			immutable KeyValuePair!(Symbol, ExternPointersForLibrary)(
 				x.libraryName,
 				fakeExternFunsForLibrary(alloc, failures, allSymbols, x)));
-	foreach (immutable KeyValuePair!(Symbol, Symbol) x; failures) {
-		writeError(cString!"Could not load extern function ");
-		writeSymbolToCb(writeError, allSymbols, x.value);
-		writeError(cString!" from library ");
-		writeSymbolToCb(writeError, allSymbols, x.key);
-		writeError(cString!"\n");
-	}
+	foreach (immutable KeyValuePair!(Symbol, Symbol) x; failures)
+		writeError(withStackWriter((scope ref Alloc _, scope ref Writer writer) {
+			writer ~= "Could not load extern function ";
+			writeSymbol(writer, allSymbols, x.value);
+			writer ~= " from library ";
+			writeSymbol(writer, allSymbols, x.key);
+		}));
 	return mutArrIsEmpty(failures) ? some(res) : none!ExternPointersForAllLibraries;
 }
 
