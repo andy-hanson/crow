@@ -185,7 +185,7 @@ struct ExpectedReferences {
 	AnyInst[] referencers;
 }
 ExpectedReferences referenced(ref Alloc alloc, return scope AnyDeclOrInst a, in AnyInst[] b) =>
-	ExpectedReferences(AnyDeclOrInst(a), newArray(alloc, b));
+	ExpectedReferences(a, newArray(alloc, b));
 
 ValueAndDidAdd!(StructInst*) getStruct(ref AllInsts a, StructDecl* decl, in Type[] typeArgs) =>
 	getOrAddStructInst(

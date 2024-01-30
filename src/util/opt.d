@@ -12,6 +12,7 @@ private struct Option(T) {
 	static if (is(T == U*, U)) {
 		inout this(return scope inout T value) {
 			value_ = value;
+			assert(has_);
 		}
 		T value_ = null;
 		bool has_() scope const =>
@@ -54,6 +55,8 @@ private struct Option(T) {
 	}
 
 	@disable bool opEquals(scope const Opt!T b) scope const;
+
+	static assert(!typeof(this)().has_);
 }
 
 alias Opt(T) = immutable Option!(immutable T);

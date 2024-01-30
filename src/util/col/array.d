@@ -26,11 +26,12 @@ struct PtrAndSmallNumber(T) {
 	version (WebAssembly) {
 		T* ptr;
 		ushort number;
+		static assert((T*).sizeof == uint.sizeof);
 
 		@system ulong asTaggable() const =>
-			(cast(ulong) number << 48) | (cast(ulong) ptr);
+			((cast(ulong) ptr) << 32) | ((cast(ulong) number) << 16);
 		@system static PtrAndSmallNumber!T fromTagged(ulong x) =>
-			PtrAndSmallNumber!T(cast(T*) (x & 0xffffffff), x >> 48);
+			PtrAndSmallNumber!T(cast(T*) (x >> 32), cast(ushort) (x >> 16));
 	} else {
 		static assert((T*).sizeof == ulong.sizeof);
 		union {
@@ -98,6 +99,9 @@ template small(T) {
 			inout MutSmallArray!T(values);
 	}
 }
+
+MutSmallArray!T emptyMutSmallArray(T)() =>
+	MutSmallArray!T(PtrAndSmallNumber!T(typeAs!(T*)(null), 0));
 
 SmallArray!T emptySmallArray(T)() =>
 	// Don't use `SmallArray!T([])` because that can't be evaluated at compile time
@@ -540,6 +544,9 @@ bool arraysCorrespond(T, U)(
 	in bool delegate(ref const T, ref const U) @safe @nogc pure nothrow cb,
 ) =>
 	sizeEq(a, b) && zipEvery!(T, U)(a, b, cb);
+
+bool arraysIdentical(T)(in T[] a, in T[] b) =>
+	a.ptr == b.ptr && a.length == b.length;
 
 bool arraysEqual(T)(in T[] a, in T[] b) =>
 	arraysCorrespond!(T, T)(a, b, (ref const T x, ref const T y) => x == y);

@@ -5,7 +5,7 @@ import
 	sqlite3/main: iterate, open-sqlite3, query, run, size, with-block
 
 main void() summon
-	file-name = "test.db"
+	file-name string = "test.db"
 	with db : file-name open-sqlite3
 		db run "drop table if exists foo"
 		db run "create table foo (name varchar(255), quantity int);"

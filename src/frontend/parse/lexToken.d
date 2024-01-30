@@ -345,10 +345,9 @@ TokenAndData lexToken(
 				string nameStr = takeNameRest(ptr, start);
 				Symbol symbol = symbolOfString(allSymbols, nameStr);
 				Token token = tokenForSymbol(symbol);
-				if (token == Token.name)
-					return nameLikeToken(ptr, allSymbols, symbol, Token.name);
-				else
-					return plainToken(token);
+				return token == Token.name
+					? nameLikeToken(ptr, allSymbols, symbol, Token.name)
+					: plainToken(token);
 			} else if (isDecimalDigit(c)) {
 				ptr = start;
 				return takeNumberAfterSign(ptr, none!Sign);

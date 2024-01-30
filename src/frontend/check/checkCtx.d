@@ -93,7 +93,7 @@ void markUsed(ref CheckCtx ctx, immutable void* a) {
 	markUsed(ctx.alloc, ctx.used, a);
 }
 void markUsed(ref CheckCtx ctx, StructOrAlias a) {
-	markUsed(ctx, a.asVoidPointer());
+	markUsed(ctx, a.asVoidPointer);
 }
 
 void checkForUnused(ref CheckCtx ctx, StructAlias[] aliases, StructDecl[] structs, SpecDecl[] specs, FunDecl[] funs) {
@@ -142,7 +142,7 @@ private bool isUsedModuleWhole(in CheckCtx ctx, in Module module_, ExportVisibil
 private bool containsUsed(in NameReferents a, ExportVisibility importVisibility, in UsedSet used) =>
 	(has(a.structOrAlias) &&
 		importCanSee(importVisibility, force(a.structOrAlias).visibility) &&
-		isUsed(used, force(a.structOrAlias).asVoidPointer())) ||
+		isUsed(used, force(a.structOrAlias).asVoidPointer)) ||
 	(has(a.spec) && importCanSee(importVisibility, force(a.spec).visibility) && isUsed(used, force(a.spec))) ||
 	exists!(immutable FunDecl*)(a.funs, (in FunDecl* x) =>
 		importCanSee(importVisibility, x.visibility) && isUsed(used, x));

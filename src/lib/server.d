@@ -6,7 +6,7 @@ import backend.writeToC : PathAndArgs, writeToC, WriteToCParams, WriteToCResult;
 import concretize.concretize : concretize;
 import document.document : documentJSON;
 import frontend.frontendCompile :
-	FrontendCompiler, initFrontend, makeProgramForRoots, makeProgramForMain, onFileChanged, perfStats;
+	Frontend, initFrontend, makeProgramForRoots, makeProgramForMain, onFileChanged, perfStats;
 import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
 import frontend.ide.getDefinition : getDefinitionForPosition;
 import frontend.ide.getHover : getHover;
@@ -342,7 +342,7 @@ struct Server {
 	ShowOptions showOptions_ = ShowOptions(false);
 	Storage storage;
 	LspState lspState;
-	MutLate!(FrontendCompiler*) frontend_;
+	MutLate!(Frontend*) frontend_;
 
 	@trusted this(return scope FetchMemoryCb fetch) {
 		metaAlloc_ = MetaAlloc(fetch);
@@ -358,7 +358,7 @@ struct Server {
 		lateGet(includeDir_);
 	ref UrisInfo urisInfo() return scope const =>
 		lateGet(urisInfo_);
-	ref inout(FrontendCompiler) frontend() return scope inout =>
+	ref inout(Frontend) frontend() return scope inout =>
 		*lateGet(frontend_);
 	ShowOptions showOptions() scope const =>
 		showOptions_;
@@ -422,7 +422,7 @@ private string dCompilerName() {
 
 void setIncludeDir(Server* server, Uri uri) {
 	lateSet!Uri(server.includeDir_, uri);
-	lateSet!(FrontendCompiler*)(
+	lateSet!(Frontend*)(
 		server.frontend_,
 		initFrontend(server.metaAlloc, &server.allSymbols, &server.allUris, &server.storage, uri));
 }

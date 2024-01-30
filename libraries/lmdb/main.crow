@@ -242,11 +242,10 @@ region stat
 	entries nat
 
 +to string(a lmdb_stat)
-	# TODO: Use """ string
-	x = "	psize = {a psize}\n	depth = {a depth}\n	branch-pages = {a branch-pages}"
-	y = "	leaf-pages = {a leaf-pages}\n	overflow-pages = {a overflow-pages}"
-	z = "	entries = {a entries}"
-	"lmdb_stat:\n{x}\n{y}\n{z}"
+	""""lmdb_stat:
+	psize = {a psize}\n	depth = {a depth}\n	branch-pages = {a branch-pages}"
+	leaf-pages = {a leaf-pages}\n	overflow-pages = {a overflow-pages}"
+	entries = {a entries}"""
 
 # Get statistics about `db`.
 +stat[k, v] lmdb_stat(txn lmdb-txn, db (k, v) lmdb-db) summon

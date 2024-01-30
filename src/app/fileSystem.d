@@ -48,7 +48,7 @@ version (Windows) {
 	import core.sys.posix.spawn : posix_spawn;
 	import core.sys.posix.sys.wait : waitpid;
 	import core.sys.posix.sys.stat : mkdir, pid_t, S_IRWXU;
-	import core.sys.posix.unistd : getcwd, read, readlink, unlink;
+	import core.sys.posix.unistd : getcwd, read, readlink, unlink, write;
 }
 
 import backend.writeToC : PathAndArgs;
@@ -82,7 +82,7 @@ import util.uri :
 	Uri,
 	writeFileUri;
 import util.util : castImmutable, todo, typeAs;
-import util.writer : withStackWriter, withStackWriterImpure, withWriter, Writer, writeWithSeparatorAndFilter;
+import util.writer : withStackWriterImpure, withWriter, Writer, writeWithSeparatorAndFilter;
 import versionInfo : getOS, OS;
 
 private enum OutPipe { stdout = 1, stderr = 2 }
@@ -112,9 +112,7 @@ private FILE* stdin() {
 }
 
 ExitCode printCb(in void delegate(scope ref Writer writer) @safe @nogc pure nothrow cb) =>
-	print(withStackWriter((ref Alloc _, scope ref Writer writer) {
-		cb(writer);
-	}));
+	withStackWriterImpure(cb, (in string x) => print(x));
 
 @trusted ExitCode printError(in string a) {
 	writeLn(OutPipe.stderr, a);
@@ -122,7 +120,7 @@ ExitCode printCb(in void delegate(scope ref Writer writer) @safe @nogc pure noth
 }
 
 ExitCode printErrorCb(in void delegate(scope ref Writer writer) @safe @nogc nothrow cb) =>
-	printError(withStackWriterImpure(cb));
+	withStackWriterImpure(cb, (in string x) => printError(x));
 
 // Unlike 'print' this does *not* add a newline.
 @system void writeToStdoutAndFlush(in string a) {
@@ -162,7 +160,7 @@ private @system void writeString(OutPipe pipe, in string a) {
 		assert(ok == 1);
 		assert(written == a.length);
 	} else {
-		write(fd, a.ptr, safeToUint(a.length));
+		write(pipe, a.ptr, safeToUint(a.length));
 	}
 }
 

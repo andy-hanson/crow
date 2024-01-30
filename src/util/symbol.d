@@ -173,9 +173,9 @@ private Symbol makeLongSymbol(
 	scope ref AllSymbols allSymbols,
 	in void delegate(scope ref Writer) @safe @nogc pure nothrow cb,
 ) =>
-	getSymbolFromLongString(allSymbols, withStackWriter((scope ref Alloc _, scope ref Writer writer) {
+	withStackWriter!0x1000((scope ref Alloc _, scope ref Writer writer) {
 		cb(writer);
-	}));
+	}, (in string x) => getSymbolFromLongString(allSymbols, x));
 
 Symbol concatSymbolsWithDot(ref AllSymbols allSymbols, Symbol a, Symbol b) =>
 	makeLongSymbol(allSymbols, (scope ref Writer writer) {

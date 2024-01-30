@@ -37,7 +37,7 @@ import util.string : emptySmallString, SmallString;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : IndexType, TaggedUnion, Union;
 import util.uri : Uri;
-import util.util : enumConvertOrAssert, max, min, stringOfEnum, typeAs;
+import util.util : enumConvertOrAssert, max, min, stringOfEnum;
 
 alias Purity = immutable Purity_;
 private enum Purity_ : ubyte {
@@ -1192,11 +1192,6 @@ immutable struct StructOrAlias {
 	@safe @nogc pure nothrow:
 
 	mixin TaggedUnion!(StructAlias*, StructDecl*);
-
-	immutable(void*) asVoidPointer() return scope =>
-		matchWithPointers!(immutable void*)(
-			(StructAlias* x) => typeAs!(immutable void*)(x),
-			(StructDecl* x) => typeAs!(immutable void*)(x));
 
 	UriAndRange range() scope =>
 		matchIn!UriAndRange(

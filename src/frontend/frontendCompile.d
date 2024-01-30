@@ -25,8 +25,8 @@ import model.model :
 	CommonTypes, Config, emptyConfig, getConfigUri, getModuleUri, MainFun, Module, Program, ProgramWithMain;
 import util.alloc.alloc :
 	Alloc, AllocAndValue, allocateUninitialized, AllocKind, freeAllocAndValue, MetaAlloc, newAlloc, withAlloc;
-import util.col.arrayBuilder : asTemporaryArray, Builder, finish;
-import util.col.array : contains, exists, every, findIndex, map;
+import util.col.arrayBuilder : asTemporaryArray, Builder, smallFinish;
+import util.col.array : contains, emptyMutSmallArray, exists, every, findIndex, map, MutSmallArray, small, SmallArray;
 import util.col.exactSizeArrayBuilder : buildArrayExact, ExactSizeArrayBuilder;
 import util.col.hashTable : getOrAdd, HashTable, mapPreservingKeys, moveToImmutable, mustGet, MutHashTable;
 import util.col.enumMap : EnumMap, enumMapMapValues, makeEnumMap;
@@ -52,9 +52,9 @@ import util.uri :
 	PathFirstAndRest,
 	RelPath,
 	resolveUri;
-import util.util : ptrTrustMe, todo, typeAs;
+import util.util : ptrTrustMe, todo;
 
-struct FrontendCompiler {
+struct Frontend {
 	@safe @nogc pure nothrow:
 	private:
 	MetaAlloc* metaAlloc;
@@ -87,7 +87,7 @@ struct FrontendCompiler {
 		*storagePtr;
 }
 
-FrontendCompiler* initFrontend(
+Frontend* initFrontend(
 	MetaAlloc* metaAlloc,
 	AllSymbols* allSymbols,
 	AllUris* allUris,
@@ -96,8 +96,8 @@ FrontendCompiler* initFrontend(
 ) {
 	return () @trusted {
 		Alloc* alloc = newAlloc(AllocKind.frontend, metaAlloc);
-		FrontendCompiler* res = allocateUninitialized!FrontendCompiler(*alloc);
-		initMemory(res, FrontendCompiler(
+		Frontend* res = allocateUninitialized!Frontend(*alloc);
+		initMemory(res, Frontend(
 			metaAlloc, alloc, allSymbols, allUris, storage, crowIncludeDir,
 			commonUris(*allUris, crowIncludeDir),
 			makeEnumMap!(CommonModule, CrowFile*)((CommonModule _) => null),
@@ -108,7 +108,7 @@ FrontendCompiler* initFrontend(
 	}();
 }
 
-Json perfStats(ref Alloc alloc, in FrontendCompiler a) =>
+Json perfStats(ref Alloc alloc, in Frontend a) =>
 	jsonObject(alloc, [
 		field!"allInsts"(perfStats(alloc, a.allInsts))]);
 
@@ -122,7 +122,7 @@ private struct CrowFile {
 	AstOrDiag astOrDiag;
 	MutOpt!(Config*) config; // This will be some(defaultConfig) if there is no config file on the path
 
-	MutOpt!(MostlyResolvedImport[]) resolvedImports; // Also includes re-exports. Set once we have config.
+	MutOpt!(MutSmallArray!MostlyResolvedImport) resolvedImports; // Also includes re-exports. Set once we have config.
 	MutSet!(CrowFile*) referencedBy;
 
 	// This will be compiled only after all imports are compiled
@@ -149,13 +149,13 @@ private struct OtherFile {
 private Uri getOtherFileUri(in OtherFile* a) =>
 	a.uri;
 
-ProgramWithMain makeProgramForMain(scope ref Perf perf, ref Alloc alloc, ref FrontendCompiler a, Uri mainUri) {
+ProgramWithMain makeProgramForMain(scope ref Perf perf, ref Alloc alloc, ref Frontend a, Uri mainUri) {
 	CrowFile* mainFile = mustGet(a.crowFiles, mainUri);
 	Common res = makeProgramCommon(perf, alloc, a, [mainUri], some(mainFile.mustHaveModule));
 	return ProgramWithMain(force(mainFile.config), force(res.mainFun), res.program);
 }
 
-Program makeProgramForRoots(scope ref Perf perf, ref Alloc alloc, ref FrontendCompiler a, in Uri[] roots) =>
+Program makeProgramForRoots(scope ref Perf perf, ref Alloc alloc, ref Frontend a, in Uri[] roots) =>
 	makeProgramCommon(perf, alloc, a, roots, none!(Module*)).program;
 
 private struct Common {
@@ -165,7 +165,7 @@ private struct Common {
 private Common makeProgramCommon(
 	scope ref Perf perf,
 	ref Alloc alloc,
-	ref FrontendCompiler a,
+	ref Frontend a,
 	in Uri[] roots,
 	Opt!(Module*) mainModule,
 ) {
@@ -184,7 +184,7 @@ private Common makeProgramCommon(
 	return Common(program, commonFuns.mainFun);
 }
 
-void onFileChanged(scope ref Perf perf, ref FrontendCompiler a, Uri uri) {
+void onFileChanged(scope ref Perf perf, ref Frontend a, Uri uri) {
 	withMeasure!(void, () {
 		final switch (fileType(a.allUris, uri)) {
 			case FileType.crow:
@@ -225,7 +225,7 @@ void onFileChanged(scope ref Perf perf, ref FrontendCompiler a, Uri uri) {
 
 private:
 
-HashTable!(immutable Config*, Uri, getConfigUri) getAllConfigs(ref Alloc alloc, in FrontendCompiler a) {
+HashTable!(immutable Config*, Uri, getConfigUri) getAllConfigs(ref Alloc alloc, in Frontend a) {
 	MutHashTable!(immutable Config*, Uri, getConfigUri) res;
 	foreach (const CrowFile* file; a.crowFiles) {
 		Config* config = force(file.config);
@@ -235,7 +235,7 @@ HashTable!(immutable Config*, Uri, getConfigUri) getAllConfigs(ref Alloc alloc, 
 	return moveToImmutable(res);
 }
 
-CrowFile* ensureCrowFile(ref FrontendCompiler a, Uri uri) {
+CrowFile* ensureCrowFile(ref Frontend a, Uri uri) {
 	assert(fileType(a.allUris, uri) == FileType.crow);
 	return getOrAdd!(CrowFile*, Uri, getCrowFileUri)(a.alloc, a.crowFiles, uri, () {
 		markUnknownIfNotExist(a.storage, uri);
@@ -247,7 +247,7 @@ CrowFile* ensureCrowFile(ref FrontendCompiler a, Uri uri) {
 	});
 }
 
-OtherFile* ensureOtherFile(ref FrontendCompiler a, Uri uri) {
+OtherFile* ensureOtherFile(ref Frontend a, Uri uri) {
 	assert(fileType(a.allUris, uri) != FileType.crow);
 	return getOrAdd!(OtherFile*, Uri, getOtherFileUri)(a.alloc, a.otherFiles, uri, () {
 		markUnknownIfNotExist(a.storage, uri);
@@ -263,7 +263,7 @@ FileAst* toAst(ref Alloc alloc, AstOrDiag x) =>
 			return fileAstForReadFileDiag(alloc, x);
 		});
 
-void doDirtyWork(scope ref Perf perf, ref FrontendCompiler a) {
+void doDirtyWork(scope ref Perf perf, ref Frontend a) {
 	CrowFile* bootstrap = a.commonFiles[CommonModule.bootstrap];
 	if (mayDelete(a.workable, bootstrap)) {
 		bootstrap.moduleAndAlloc = someMut(withAlloc!(Module*)(AllocKind.module_, a.metaAlloc, (ref Alloc alloc) {
@@ -297,7 +297,7 @@ void doDirtyWork(scope ref Perf perf, ref FrontendCompiler a) {
 }
 
 // This may not fix all circular imports, but it's run in a loop
-void fixCircularImports(ref FrontendCompiler a) {
+void fixCircularImports(ref Frontend a) {
 	foreach (CrowFile* x; a.crowFiles)
 		if (!x.hasModule) {
 			Builder!Uri cycleBuilder = Builder!Uri(a.allocPtr);
@@ -305,7 +305,7 @@ void fixCircularImports(ref FrontendCompiler a) {
 			return;
 		}
 }
-Uri[] fixCircularImportsRecur(ref FrontendCompiler a, ref Builder!Uri cycleBuilder, CrowFile* file) {
+Uri[] fixCircularImportsRecur(ref Frontend a, ref Builder!Uri cycleBuilder, CrowFile* file) {
 	assert(!file.hasModule);
 	cycleBuilder ~= file.uri;
 	Opt!size_t optImportIndex = findIndex!MostlyResolvedImport(
@@ -313,8 +313,8 @@ Uri[] fixCircularImportsRecur(ref FrontendCompiler a, ref Builder!Uri cycleBuild
 			!isImportWorkable(x));
 	size_t importIndex = force(optImportIndex);
 	CrowFile* next = force(file.resolvedImports)[importIndex].asInout!(CrowFile*);
-	Uri[] cycle = contains(asTemporaryArray(cycleBuilder), next.uri)
-		? finish(cycleBuilder)
+	SmallArray!Uri cycle = contains(asTemporaryArray(cycleBuilder), next.uri)
+		? smallFinish(cycleBuilder)
 		: fixCircularImportsRecur(a, cycleBuilder, next);
 	force(file.resolvedImports)[importIndex] = MostlyResolvedImport(
 		allocate(a.alloc, Diag.ImportFileDiag(Diag.ImportFileDiag.CircularImport(cycle))));
@@ -323,7 +323,7 @@ Uri[] fixCircularImportsRecur(ref FrontendCompiler a, ref Builder!Uri cycleBuild
 	return cycle;
 }
 
-Module* compileNonBootstrapModule(scope ref Perf perf, ref Alloc alloc, ref FrontendCompiler a, CrowFile* file) {
+Module* compileNonBootstrapModule(scope ref Perf perf, ref Alloc alloc, ref Frontend a, CrowFile* file) {
 	assert(isWorkable(*file));
 	assert(has(a.commonTypes)); // bootstrap is always compiled first
 	UriAndAst ast = UriAndAst(file.uri, toAst(alloc, file.astOrDiag));
@@ -333,7 +333,7 @@ Module* compileNonBootstrapModule(scope ref Perf perf, ref Alloc alloc, ref Fron
 		force(a.commonTypes));
 }
 
-void updateFileOnConfigChange(ref FrontendCompiler a, CrowFile* file) {
+void updateFileOnConfigChange(ref Frontend a, CrowFile* file) {
 	MutOpt!(Config*) bestConfig = tryFindConfig(a.storage, a.allUris, parentOrEmpty(a.allUris, file.uri));
 	if (has(bestConfig)) {
 		if (!has(file.config) || force(bestConfig) != force(file.config)) {
@@ -343,7 +343,7 @@ void updateFileOnConfigChange(ref FrontendCompiler a, CrowFile* file) {
 	}
 }
 
-void updatedAstOrConfig(ref FrontendCompiler a, CrowFile* file) {
+void updatedAstOrConfig(ref Frontend a, CrowFile* file) {
 	if (!isUnknownOrLoading(*file) && has(file.config))
 		recomputeResolvedImports(a, file);
 	else
@@ -353,10 +353,12 @@ void updatedAstOrConfig(ref FrontendCompiler a, CrowFile* file) {
 bool isUnknownOrLoading(in CrowFile a) =>
 	a.astOrDiag.isA!ReadFileDiag_ && isUnknownOrLoading(a.astOrDiag.asConst!ReadFileDiag_);
 
-void recomputeResolvedImports(ref FrontendCompiler a, CrowFile* file) {
+void recomputeResolvedImports(ref Frontend a, CrowFile* file) {
 	markModuleDirty(a, *file);
 
-	MutOpt!(Uri[]) circularImport = has(file.resolvedImports) ? clearResolvedImports(a.allUris, file) : noneMut!(Uri[]);
+	MutOpt!(MutSmallArray!Uri) circularImport = has(file.resolvedImports)
+		? clearResolvedImports(a.allUris, file)
+		: noneMut!(MutSmallArray!Uri);
 
 	file.resolvedImports = someMut(resolveImports(a, file.astOrDiag, *force(file.config), file.uri));
 	foreach (MostlyResolvedImport x; force(file.resolvedImports)) {
@@ -370,7 +372,7 @@ void recomputeResolvedImports(ref FrontendCompiler a, CrowFile* file) {
 		foreach (Uri uri; force(circularImport))
 			if (uri != file.uri) {
 				CrowFile* other = mustGet(a.crowFiles, uri);
-				MutOpt!(Uri[]) ci = clearResolvedImports(a.allUris, other);
+				MutOpt!(MutSmallArray!Uri) ci = clearResolvedImports(a.allUris, other);
 				assert(has(ci)); // But ignore it since we've already handled it
 				recomputeResolvedImports(a, other);
 			}
@@ -378,8 +380,8 @@ void recomputeResolvedImports(ref FrontendCompiler a, CrowFile* file) {
 	addToWorkableIfSo(a, file);
 }
 
-MutOpt!(Uri[]) clearResolvedImports(in AllUris allUris, CrowFile* file) {
-	MutOpt!(Uri[]) circularImport = noneMut!(Uri[]);
+MutOpt!(MutSmallArray!Uri) clearResolvedImports(in AllUris allUris, CrowFile* file) {
+	MutOpt!(MutSmallArray!Uri) circularImport = noneMut!(MutSmallArray!Uri);
 	foreach (ref MostlyResolvedImport import_; force(file.resolvedImports)) {
 		MutOpt!(MutSet!(CrowFile*)*) rb = getReferencedBy(import_);
 		if (has(rb))
@@ -388,7 +390,7 @@ MutOpt!(Uri[]) clearResolvedImports(in AllUris allUris, CrowFile* file) {
 		else
 			circularImport = asCircularImport(import_);
 	}
-	file.resolvedImports = noneMut!(MostlyResolvedImport[]); // TODO: free old resolvedImports
+	file.resolvedImports = noneMut!(MutSmallArray!MostlyResolvedImport); // TODO: free old resolvedImports
 	return circularImport;
 }
 
@@ -396,12 +398,12 @@ bool hasCircularImport(in MostlyResolvedImport[] a) =>
 	exists!MostlyResolvedImport(a, (in MostlyResolvedImport x) => isCircularImport(x));
 bool isCircularImport(in MostlyResolvedImport a) =>
 	a.isA!(Diag.ImportFileDiag*) && a.asConst!(Diag.ImportFileDiag*).isA!(Diag.ImportFileDiag.CircularImport);
-MutOpt!(Uri[]) asCircularImport(MostlyResolvedImport a) =>
+MutOpt!(MutSmallArray!Uri) asCircularImport(MostlyResolvedImport a) =>
 	isCircularImport(a)
-		? someMut(a.as!(Diag.ImportFileDiag*).as!(Diag.ImportFileDiag.CircularImport).cycle)
-		: noneMut!(Uri[]);
+		? someMut!(MutSmallArray!Uri)(a.as!(Diag.ImportFileDiag*).as!(Diag.ImportFileDiag.CircularImport).cycle)
+		: noneMut!(MutSmallArray!Uri);
 
-void addToWorkableIfSo(ref FrontendCompiler a, CrowFile* file) {
+void addToWorkableIfSo(ref Frontend a, CrowFile* file) {
 	if (isWorkable(*file))
 		mustAdd(a.workable, file);
 }
@@ -441,15 +443,15 @@ bool isUnknownOrLoading(ReadFileDiag a) {
 	}
 }
 
-MostlyResolvedImport[] resolveImports(ref FrontendCompiler a, in AstOrDiag astOrDiag, in Config config, Uri uri) =>
-	astOrDiag.matchConst!(MostlyResolvedImport[])(
+MutSmallArray!MostlyResolvedImport resolveImports(ref Frontend a, in AstOrDiag astOrDiag, in Config config, Uri uri) =>
+	astOrDiag.matchConst!(MutSmallArray!MostlyResolvedImport)(
 		(const FileAst* x) =>
 			resolveImportsForAst(a, *x, config, uri),
 		(const ReadFileDiag_ _) =>
-			typeAs!(MostlyResolvedImport[])([]));
+			emptyMutSmallArray!MostlyResolvedImport);
 
-MostlyResolvedImport[] resolveImportsForAst(ref FrontendCompiler a, in FileAst ast, in Config config, Uri uri) =>
-	buildArrayExact!MostlyResolvedImport(
+MutSmallArray!MostlyResolvedImport resolveImportsForAst(ref Frontend a, in FileAst ast, in Config config, Uri uri) =>
+	small!MostlyResolvedImport(buildArrayExact!MostlyResolvedImport(
 		a.alloc,
 		countImportsAndReExports(ast),
 		(scope ref ExactSizeArrayBuilder!MostlyResolvedImport res) {
@@ -461,14 +463,14 @@ MostlyResolvedImport[] resolveImportsForAst(ref FrontendCompiler a, in FileAst a
 			if (has(ast.reExports))
 				foreach (ImportOrExportAst x; force(ast.reExports).paths)
 					res ~= tryResolveImport(a, config, uri, x);
-		});
+		}));
 
 size_t countImportsAndReExports(in FileAst a) =>
 	(a.noStd ? 0 : 1) +
 	(has(a.imports) ? force(a.imports).paths.length : 0) +
 	(has(a.reExports) ? force(a.reExports).paths.length : 0);
 
-void markAllNonBootstrapModulesDirty(ref FrontendCompiler a, CrowFile* bootstrap) {
+void markAllNonBootstrapModulesDirty(ref Frontend a, CrowFile* bootstrap) {
 	foreach (CrowFile* x; a.crowFiles)
 		if (x != bootstrap)
 			markModuleDirty(a, *x);
@@ -478,7 +480,7 @@ void markAllNonBootstrapModulesDirty(ref FrontendCompiler a, CrowFile* bootstrap
 			addToWorkableIfSo(a, x);
 }
 
-void markModuleDirty(scope ref FrontendCompiler a, scope ref CrowFile file) {
+void markModuleDirty(scope ref Frontend a, scope ref CrowFile file) {
 	if (file.hasModule) {
 		freeInstantiationsForModule(a.allInsts, *file.mustHaveModule);
 		() @trusted {
@@ -491,7 +493,7 @@ void markModuleDirty(scope ref FrontendCompiler a, scope ref CrowFile file) {
 	}
 }
 
-ResolvedImport[] fullyResolveImports(ref FrontendCompiler a, in MostlyResolvedImport[] imports) =>
+ResolvedImport[] fullyResolveImports(ref Frontend a, in MostlyResolvedImport[] imports) =>
 	map(a.alloc, imports, (ref const MostlyResolvedImport x) =>
 		x.matchConst!ResolvedImport(
 			(const CrowFile* x) =>
@@ -571,7 +573,7 @@ MutOpt!(MutSet!(CrowFile*)*) getReferencedBy(ref MostlyResolvedImport import_) =
 @trusted ConstOpt!(MutSet!(CrowFile*)*) getReferencedBy(ref const MostlyResolvedImport import_) =>
 	getReferencedBy(cast(MostlyResolvedImport) import_);
 
-MostlyResolvedImport tryResolveImport(ref FrontendCompiler a, in Config config, Uri fromUri, in ImportOrExportAst ast) {
+MostlyResolvedImport tryResolveImport(ref Frontend a, in Config config, Uri fromUri, in ImportOrExportAst ast) {
 	UriOrDiag base = ast.path.matchIn!UriOrDiag(
 		(in Path path) {
 			PathFirstAndRest fr = firstAndRest(a.allUris, path);

@@ -3,7 +3,8 @@
 
 MAKEFLAGS = -j4
 
-.PHONY: confirm-upload-site debug end-to-end-test end-to-end-test-overwrite serve prepare-site show-dependencies test unit-test
+.PHONY: confirm-upload-site debug debug-dmd end-to-end-test end-to-end-test-overwrite serve prepare-site \
+	show-dependencies test unit-test
 
 # WARN: Does not clean `dyncall` as that takes too long to restore
 # Also does not clean `node_modules` for the VSCode plugin
@@ -88,10 +89,16 @@ ldc_flags_assert = $(ldc_flags_common) --enable-asserts=true --boundscheck=on
 ldc_wasm_flags = -mtriple=wasm32-unknown-unknown-wasm -L-allow-undefined
 ldc_fast_flags_no_tail_call = -O2 -L=--strip-all
 ldc_fast_flags = $(ldc_fast_flags_no_tail_call) --d-version=TailRecursionAvailable
-app_link = -L=-ldyncall_s -L=-ldyncallback_s -L=-ldynload_s -L=-L./dyncall/dyncall -L=-L./dyncall/dyncallback -L=-L./dyncall/dynload -L=-lgccjit -L=-lunwind
+app_link = -L=-ldyncall_s -L=-ldyncallback_s -L=-ldynload_s -L=-lgccjit -L=-lunwind \
+	-L=-L./dyncall/dyncall -L=-L./dyncall/dyncallback -L=-L./dyncall/dynload
 
 # TODO: should not need document/mangle/writeToC/writeTypes
-wasm_src = src/wasm.d $(src_files_common) src/document/document.d src/backend/builtinMath.d src/backend/mangle.d src/backend/writeToC.d src/backend/writeTypes.d
+wasm_src = src/wasm.d $(src_files_common) \
+	src/document/document.d \
+	src/backend/builtinMath.d \
+	src/backend/mangle.d \
+	src/backend/writeToC.d \
+	src/backend/writeTypes.d
 wasm_deps = $(wasm_src) $(other_deps)
 
 bin/d-imports/date.txt:
@@ -110,7 +117,7 @@ bin/crow-debug: $(app_deps_with_test)
 
 # This isn't used anywhere, but you could use it to test things out quickly, since compilation with DMD is much faster.
 bin/crow-dmd: $(app_deps_with_test)
-	dmd -ofbin/crow-dmd -m64  $(dmd_flags_assert) -debug -g -version=Debug -version=Test $(app_src_with_test) $(app_link)
+	dmd -ofbin/crow-dmd -m64 $(dmd_flags_assert) -debug -g -version=Debug -version=Test $(app_src_with_test) $(app_link)
 	rm -f bin/crow-dmd.o
 
 bin/crow: $(app_deps_no_test)
@@ -163,7 +170,8 @@ serve: prepare-site
 ### publish ###
 
 bin/crow.tar.xz: bin/crow bin/crow.vsix demo/* demo/*/* editor/sublime/* $(ALL_INCLUDE) libraries/* libraries/*/*
-	tar --directory .. --create --xz --exclude demo/extern --file bin/crow.tar.xz crow/bin/crow crow/demo crow/editor crow/include crow/libraries
+	tar --directory .. --create --xz --exclude demo/extern \
+		--file bin/crow.tar.xz crow/bin/crow crow/demo crow/editor crow/include crow/libraries
 
 bin/crow.vsix: editor/vscode/* editor/vscode/node_modules
 	cd editor/vscode && ./node_modules/vsce/vsce package --allow-missing-repository --out ../../bin/crow.vsix

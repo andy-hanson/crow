@@ -29,6 +29,7 @@ import model.model :
 	VariableRef,
 	Visibility;
 import model.parseDiag : ParseDiag;
+import util.col.array : SmallArray;
 import util.opt : force, Opt;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : Symbol;
@@ -254,7 +255,7 @@ immutable struct Diag {
 	immutable struct ImportFileDiag {
 		immutable struct CantImportCrowAsText {}
 		immutable struct CircularImport {
-			Uri[] cycle;
+			SmallArray!Uri cycle;
 		}
 		immutable struct LibraryNotConfigured {
 			Symbol libraryName;

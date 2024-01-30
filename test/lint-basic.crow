@@ -64,8 +64,8 @@ main nat^(_ string[]) summon
 	if ext ?= name get-extension
 		ext should-ignore-extension
 	else
-		# Ignore extensionless files
-		true
+		# Ignore extensionless files since those are executables
+		name != "GNUmakefile" && name != "NMakefile"
 
 -max-line-length nat(path string)
 	path ends-with ".crow" ? 100 : 120

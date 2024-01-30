@@ -188,7 +188,7 @@ app_only_files = src\app\backtrace.d \
 	src\app\dyncall.d \
 	src\app\fileSystem.d \
 	src\app\main.d \
-	src\app\parseCommand.d 
+	src\app\parseCommand.d
 app_src_no_test = $(app_only_files) \
 	$(src_files_common) \
 	src\backend\builtinMath.d \
@@ -229,12 +229,18 @@ ldc_wasm_flags = -mtriple=wasm32-unknown-unknown-wasm -L-allow-undefined
 ldc_fast_flags = -O2
 ldc_fast_flags_no_tail_call = -O2
 
-app_link = -L=dyncall\dyncall\dyncall_s.lib -L=dyncall\dyncallback\dyncallback_s.lib -L=dyncall\dynload\dynload_s.lib -L=/stack:16777216
+app_link = -L=dyncall\dyncall\dyncall_s.lib -L=dyncall\dyncallback\dyncallback_s.lib -L=dyncall\dynload\dynload_s.lib \
+	-L=/stack:16777216
 
 app_files_no_test = $(app_only_files) $(src_files_no_test)
 app_files_with_test = $(app_only_files) $(src_files_with_test)
 # TODO: should not need document\mangle\writeToC\writeTypes
-wasm_src = src\wasm.d $(src_files_common) src\backend\builtinMath.d src\document\document.d src\backend\mangle.d src\backend\writeToC.d src\backend\writeTypes.d
+wasm_src = src\wasm.d $(src_files_common) \
+	src\backend\builtinMath.d \
+	src\document\document.d \
+	src\backend\mangle.d \
+	src\backend\writeToC.d \
+	src\backend\writeTypes.d
 wasm_deps = $(wasm_src) $(other_deps)
 
 bin\d-imports:
@@ -248,10 +254,12 @@ bin\d-imports\commit-hash.txt: bin\d-imports
 	git rev-parse --short HEAD > bin\d-imports\commit-hash.txt
 
 bin\crow-debug.exe: $(app_deps_with_test)
-	ldc2 -ofbin\crow-debug.exe -g $(ldc_flags_assert) $(ldc_flags_app) $(ldc_flags_debug) $(app_src_with_test) $(app_link)
+	ldc2 -ofbin\crow-debug.exe -g $(ldc_flags_assert) $(ldc_flags_app) $(ldc_flags_debug) \
+		$(app_src_with_test) $(app_link)
 
 bin\crow.exe: $(app_deps_no_test)
-	ldc2 -ofbin\crow.exe -g $(ldc_flags_assert) $(ldc_flags_app) $(ldc_fast_flags) $(app_src_no_test) $(app_link) -deps=bin/dependencies.txt
+	ldc2 -ofbin\crow.exe $(ldc_flags_assert) $(ldc_flags_app) $(ldc_fast_flags) \
+		$(app_src_no_test) $(app_link) -deps=bin/dependencies.txt
 	del bin\crow.obj
 
 bin\crow-debug.wasm: $(wasm_deps)
@@ -288,7 +296,8 @@ bin\dependencies.dot: bin\crow.exe test/dependencies.crow
 prepare-site: bin\crow.exe bin\crow.wasm bin\crow.zip
 	bin\crow run site-src\site.crow
 
-# TODO: This should be `bin\crow run site-src\serve.crow`, but currently Crow doesn't have a Windows server implementation
+# TODO: This should be `bin\crow run site-src\serve.crow`,
+# but currently Crow doesn't have a Windows server implementation
 serve: prepare-site
 	python -m http.server -d site
 

@@ -78,9 +78,9 @@ const imports = {
 		})
 		perfMeasures = []
 	},
-	/** @type {function(CStr, number): void} */
-	debugLog: (str, value) => {
-		console.log(readCString(str), value)
+	/** @type {function(CStr): void} */
+	debugLog: str => {
+		console.log(readCString(str))
 	},
 	...Object.fromEntries(mathKeys.flatMap(name => [
 		[name, Math[name]],

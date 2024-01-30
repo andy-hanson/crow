@@ -40,7 +40,7 @@ private struct Pair(K, V) {
 			return hashUlongs([key.value, value.value]);
 		else
 			// So far this is only used with pointers
-			return hashPointerAndTaggedPointer(key, value);
+			return hashPointerAndTaggedPointer!(K, V)(key, value);
 	}
 }
 

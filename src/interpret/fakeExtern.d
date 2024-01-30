@@ -28,7 +28,7 @@ import util.memory : memmove, memset;
 import util.opt : has, none, Opt, optOrDefault, some;
 import util.symbol : AllSymbols, Symbol, symbol, writeSymbol;
 import util.util : debugLog, todo;
-import util.writer : withStackWriter, Writer;
+import util.writer : withStackWriterImpure, Writer;
 
 alias WriteCb = void delegate(Pipe, in string);
 
@@ -79,12 +79,12 @@ Opt!ExternPointersForAllLibraries getAllFakeExternFuns(
 				x.libraryName,
 				fakeExternFunsForLibrary(alloc, failures, allSymbols, x)));
 	foreach (immutable KeyValuePair!(Symbol, Symbol) x; failures)
-		writeError(withStackWriter((scope ref Alloc _, scope ref Writer writer) {
+		withStackWriterImpure((scope ref Writer writer) {
 			writer ~= "Could not load extern function ";
 			writeSymbol(writer, allSymbols, x.value);
 			writer ~= " from library ";
 			writeSymbol(writer, allSymbols, x.key);
-		}));
+		}, writeError);
 	return mutArrIsEmpty(failures) ? some(res) : none!ExternPointersForAllLibraries;
 }
 

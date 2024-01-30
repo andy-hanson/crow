@@ -11,6 +11,8 @@ HashCode getHash(T)(in T a) {
 		return hashString(a);
 	else static if (is(T == uint))
 		return hashUint(a);
+	else static if (__traits(hasMember, T, "taggedPointerValueForHash"))
+		return hashUlong(a.taggedPointerValueForHash);
 	else
 		return a.hash();
 }
@@ -55,11 +57,9 @@ struct Hasher {
 HashCode hashTaggedPointer(T)(in T taggedPointer) =>
 	hashUlong(taggedPointer.taggedPointerValueForHash);
 
-HashCode hashPointerAndTaggedPointer(T, U)(T* a, U b) {
-	Hasher hasher;
-	hasher ~= a;
-	hasher ~= b.taggedPointerValueForHash;
-	return hasher.finish();
+HashCode hashPointerAndTaggedPointer(T, U)(in T a, in U b) {
+	static assert(is(T == P*, P));
+	return hashUlongs([cast(ulong) a, b.taggedPointerValueForHash]);
 }
 
 HashCode hashPointerAndTaggedPointers(T, U)(in T* pointer, in U[] taggedPointers) {

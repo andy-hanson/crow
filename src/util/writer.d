@@ -9,11 +9,14 @@ import util.conv : bitsOfFloat64;
 import util.string : eachChar, CString, stringOfCString;
 import util.util : abs, debugLog;
 
-string withStackWriterImpure(in void delegate(scope ref Writer) @safe @nogc nothrow cb) =>
-	withStackAllocImpure!0x10000((scope ref Alloc alloc) @trusted {
+T withStackWriterImpure(T)(
+	in void delegate(scope ref Writer) @safe @nogc nothrow cb,
+	in T delegate(in string) @safe @nogc nothrow cbRes,
+) =>
+	withStackAllocImpure!(0x10000, T)((scope ref Alloc alloc) {
 		scope Writer writer = Writer(&alloc);
 		cb(writer);
-		return finish(writer.res);
+		return cbRes(finish(writer.res));
 	});
 
 pure:
@@ -57,18 +60,21 @@ void debugLogWithWriter(in void delegate(scope ref Writer) @safe @nogc pure noth
 }
 void debugLogWithWriter(in void delegate(scope ref Alloc, scope ref Writer) @safe @nogc pure nothrow cb) {
 	debug {
-		debugLog(withStackWriter((scope ref Alloc alloc, scope ref Writer writer) {
+		withStackWriter!0x10000((scope ref Alloc alloc, scope ref Writer writer) {
 			cb(alloc, writer);
 			writer ~= '\0';
-		}).ptr);
+		}, (in string x) => debugLog(x.ptr));
 	}
 }
 // Result is temporary
-string withStackWriter(in void delegate(scope ref Alloc, scope ref Writer) @safe @nogc pure nothrow cb) =>
-	withStackAlloc!0x10000((scope ref Alloc alloc) =>
-		makeStringWithWriter(alloc, (scope ref Writer writer) {
+T withStackWriter(size_t nBytes, T)(
+	in void delegate(scope ref Alloc, scope ref Writer) @safe @nogc pure nothrow cb,
+	in T delegate(in string) @safe @nogc pure nothrow cbRes,
+) =>
+	withStackAlloc!nBytes((scope ref Alloc alloc) =>
+		cbRes(makeStringWithWriter(alloc, (scope ref Writer writer) {
 			cb(alloc, writer);
-		}));
+		})));
 
 @trusted CString withWriter(ref Alloc alloc, in void delegate(scope ref Writer writer) @safe @nogc pure nothrow cb) {
 	scope Writer writer = Writer(&alloc);

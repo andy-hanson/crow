@@ -36,7 +36,7 @@ import util.string : CString, cString;
 import util.symbol :
 	addExtension, addPrefixAndExtension, AllSymbols, Extension, Symbol, symbol, symbolAsTempBuffer, writeSymbol;
 import util.uri : AllUris, asFileUri, childUri, fileUriToTempStr, isFileUri, TempStrForPath, Uri;
-import util.writer : withStackWriter, Writer;
+import util.writer : withStackWriterImpure, Writer;
 import versionInfo : getOS, OS;
 
 @trusted ExitCode withRealExtern(
@@ -152,10 +152,10 @@ LibraryAndError loadLibraryFromName(in CString name, in WriteError writeError) {
 	DLLib* res = dlLoadLibrary(name.ptr);
 	if (res == null) {
 		// TODO: use a Diagnostic
-		writeError(withStackWriter((scope ref Alloc _, scope ref Writer writer) {
+		withStackWriterImpure!void((scope ref Writer writer) {
 			writer ~= "Could not load library ";
 			writer ~= name;
-		}));
+		}, writeError);
 	}
 	return LibraryAndError(res, res == null);
 }
@@ -191,12 +191,12 @@ LoadedLibraries loadLibrariesInner(
 			return immutable KeyValuePair!(Symbol, ExternPointersForLibrary)(x.libraryName, pointers);
 		});
 	foreach (KeyValuePair!(Symbol, Symbol) x; failures)
-		writeError(withStackWriter((scope ref Alloc _, scope ref Writer writer) {
+		withStackWriterImpure((scope ref Writer writer) {
 			writer ~= "Could not load extern function ";
 			writeSymbol(writer, allSymbols, x.value);
 			writer ~= " from library ";
 			writeSymbol(writer, allSymbols, x.key);
-		}));
+		}, writeError);
 	return LoadedLibraries(
 		finishMap(alloc, debugNames),
 		mutArrIsEmpty(failures) ? some(res) : none!ExternPointersForAllLibraries);
