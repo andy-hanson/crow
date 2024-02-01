@@ -9,14 +9,14 @@ import util.util : castNonScope_ref;
 bool isDecimalDigit(char c) =>
 	'0' <= c && c <= '9';
 
-Opt!uint charToHexNat(char a) =>
+Opt!ubyte decodeHexDigit(char a) =>
 	isDecimalDigit(a)
-		? some!uint(a - '0')
+		? some!ubyte(cast(ubyte) (a - '0'))
 		: 'a' <= a && a <= 'f'
-		? some!uint(10 + (a - 'a'))
+		? some!ubyte(cast(ubyte) (10 + (a - 'a')))
 		: 'A' <= a && a <= 'F'
-		? some!uint(10 + (a - 'A'))
-		: none!uint;
+		? some!ubyte(cast(ubyte) (10 + (a - 'A')))
+		: none!ubyte;
 
 bool isWhitespace(char a) {
 	switch (a) {

@@ -17,7 +17,7 @@ import util.opt : force, has, none, Opt;
 import util.perf : Perf;
 import util.string : CString, stringOfCString;
 import util.symbol : AllSymbols, Extension, Symbol, writeSymbol;
-import util.uri : AllUris, concatUriAndPath, getExtension, isAncestor, parsePath, parseUri, Uri, UrisInfo, writeUri;
+import util.uri : AllUris, concatUriAndPath, getExtension, isAncestor, mustParseUri, parsePath, Uri, UrisInfo, writeUri;
 import util.util : ptrTrustMe;
 import util.writer : debugLogWithWriter, Writer;
 
@@ -141,8 +141,8 @@ void withTestServer(
 	withTempAlloc!void(test.metaAlloc, (ref Alloc alloc) @trusted {
 		scope Server server = Server((size_t sizeWords, size_t _) =>
 			allocateElements!word(alloc, sizeWords));
-		setIncludeDir(&server, parseUri(server.allUris, "test:///include"));
-		setCwd(server, parseUri(server.allUris, "test:///"));
+		setIncludeDir(&server, mustParseUri(server.allUris, "test:///include"));
+		setCwd(server, mustParseUri(server.allUris, "test:///"));
 		return cb(alloc, server);
 	});
 }

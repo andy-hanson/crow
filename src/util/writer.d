@@ -19,6 +19,16 @@ T withStackWriterImpure(T)(
 		return cbRes(finish(writer.res));
 	});
 
+T withStackWriterImpureCString(T)(
+	in void delegate(scope ref Writer) @safe @nogc nothrow cb,
+	in T delegate(in CString) @safe @nogc nothrow cbRes,
+) =>
+	withStackAllocImpure!(0x10000, T)((scope ref Alloc alloc) {
+		scope Writer writer = Writer(&alloc);
+		cb(writer);
+		return cbRes(finishCString(writer));
+	});
+
 pure:
 
 struct Writer {
@@ -66,7 +76,6 @@ void debugLogWithWriter(in void delegate(scope ref Alloc, scope ref Writer) @saf
 		}, (in string x) => debugLog(x.ptr));
 	}
 }
-// Result is temporary
 T withStackWriter(size_t nBytes, T)(
 	in void delegate(scope ref Alloc, scope ref Writer) @safe @nogc pure nothrow cb,
 	in T delegate(in string) @safe @nogc pure nothrow cbRes,
@@ -76,9 +85,13 @@ T withStackWriter(size_t nBytes, T)(
 			cb(alloc, writer);
 		})));
 
-@trusted CString withWriter(ref Alloc alloc, in void delegate(scope ref Writer writer) @safe @nogc pure nothrow cb) {
+CString withWriter(ref Alloc alloc, in void delegate(scope ref Writer writer) @safe @nogc pure nothrow cb) {
 	scope Writer writer = Writer(&alloc);
 	cb(writer);
+	return finishCString(writer);
+}
+
+private @trusted CString finishCString(scope ref Writer writer) {
 	writer ~= '\0';
 	return CString(finish(writer.res).ptr);
 }

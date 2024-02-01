@@ -2,6 +2,8 @@ module util.comparison;
 
 @safe @nogc pure nothrow:
 
+import util.util : min;
+
 alias Comparer(T) = immutable Comparison delegate(in T, in T) @safe @nogc pure nothrow;
 
 enum Comparison {
@@ -21,14 +23,22 @@ Comparison oppositeComparison(Comparison a) {
 	}
 }
 
-Comparison compareNat32(uint a, uint b) =>
-	compareT(a, b);
+Comparison compareOr(Comparison a, in Comparison delegate() @safe @nogc pure nothrow b) =>
+	a != Comparison.equal ? a : b();
 
-Comparison compareSizeT(size_t a, size_t b) =>
-	compareT(a, b);
+Comparison compareArrays(T)(in T[] a, in T[] b, in Comparer!T cb) {
+	foreach (size_t i; 0 .. min(a.length, b.length)) {
+		Comparison comp = cb(a[i], b[i]);
+		if (comp != Comparison.equal)
+			return comp;
+	}
+	return compareSizeT(a.length, b.length);
+}
 
-Comparison compareUlong(ulong a, ulong b) =>
-	compareT(a, b);
+alias compareChar = compareT!char;
+alias compareUint = compareT!uint;
+alias compareUlong = compareT!ulong;
+alias compareSizeT = compareT!size_t;
 
 private Comparison compareT(T)(T a, T b) =>
 	a < b

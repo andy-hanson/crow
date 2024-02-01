@@ -18,7 +18,7 @@ import util.col.hashTable : mustGet;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonList, jsonObject, jsonToStringPretty, optionalArrayField;
 import util.opt : force, has, Opt;
-import util.uri : parseUri, Uri;
+import util.uri : mustParseUri, Uri;
 import util.sourceRange :
 	jsonOfLineAndCharacterRange, jsonOfUriAndLineAndCharacterRange, LineAndCharacterGetter, Pos, Range, UriAndRange;
 import util.writer : debugLogWithWriter, Writer;
@@ -54,7 +54,7 @@ void withHoverTest(string fileName)(
 	in void delegate(in ShowModelCtx, Module*) @safe @nogc pure nothrow cb,
 ) {
 	withTestServer(test, (ref Alloc alloc, ref Server server) {
-		Uri uri = parseUri(server.allUris, "magic:/" ~ fileName);
+		Uri uri = mustParseUri(server.allUris, "magic:/" ~ fileName);
 		setupTestServer(test, alloc, server, uri, content);
 		Program program = getProgramForAll(test.perf, alloc, server);
 		cb(getShowDiagCtx(server, program), mustGet(program.allModules, uri));

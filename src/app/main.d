@@ -102,7 +102,7 @@ import util.perfReport : perfReport;
 import util.sourceRange : UriLineAndColumn;
 import util.string : CString, mustStripPrefix, MutCString;
 import util.symbol : AllSymbols, Extension, symbol;
-import util.uri : AllUris, childUri, cStringOfUri, FileUri, Uri, parentOrEmpty, toUri;
+import util.uri : AllUris, childUri, cStringOfUriPreferRelative, FileUri, Uri, parentOrEmpty, toUri;
 import util.util : debugLog;
 import util.writer : debugLogWithWriter, makeStringWithWriter, Writer;
 import versionInfo : getOS, versionInfoForInterpret, versionInfoForJIT;
@@ -133,8 +133,15 @@ import versionInfo : getOS, versionInfoForInterpret, versionInfoForJIT;
 
 private:
 
-// Override the default '__assert' to print the backtrace
-@trusted extern(C) noreturn __assert(immutable char* asserted, immutable char* file, uint lineNumber) {
+version (Windows) {
+	extern(C) noreturn _assert(immutable char* asserted, immutable char* file, uint lineNumber) =>
+		assertFailed(asserted, file, lineNumber);
+} else {
+	extern(C) noreturn __assert(immutable char* asserted, immutable char* file, uint lineNumber) =>
+		assertFailed(asserted, file, lineNumber);
+}
+
+@trusted noreturn assertFailed(immutable char* asserted, immutable char* file, uint lineNumber) {
 	printErrorCb((scope ref Writer writer) @trusted {
 		writer ~= "Assert failed: ";
 		writer ~= CString(asserted);
@@ -160,7 +167,7 @@ private:
 
 	while (true) {
 		// TODO: get this from specified trace level
-		bool logLsp = false;
+		bool logLsp = true;
 		//TODO: track perf for each message/response
 		Opt!ExitCode stop = withNullPerf!(Opt!ExitCode, (scope ref Perf perf) =>
 			withTempAllocImpure!(Opt!ExitCode)(server.metaAlloc, (ref Alloc alloc) =>
@@ -350,10 +357,10 @@ ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, FileUri cw
 						perf, server, extern_,
 						(in string x) { printError(x); },
 						run.mainUri, none!(Uri[]),
-						getAllArgs(alloc, server.allUris, run.mainUri, run.programArgs))),
+						getAllArgs(alloc, server, run))),
 		(in RunOptions.Jit x) {
 			version (GccJitAvailable) {
-				CString[] args = getAllArgs(alloc, server.allUris, run.mainUri, run.programArgs);
+				CString[] args = getAllArgs(alloc, server, run);
 				return buildAndJit(perf, alloc, server, x.options, run.mainUri, args);
 			} else {
 				printError("'--jit' is not supported on Windows");
@@ -367,8 +374,8 @@ ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, FileUri cw
 Uri getCrowDir(ref AllUris allUris) =>
 	parentOrEmpty(allUris, parentOrEmpty(allUris, toUri(allUris, getPathToThisExecutable(allUris))));
 
-CString[] getAllArgs(ref Alloc alloc, in AllUris allUris, Uri main, in CString[] programArgs) =>
-	prepend(alloc, cStringOfUri(alloc, allUris, main), programArgs);
+CString[] getAllArgs(ref Alloc alloc, in Server server, in CommandKind.Run run) =>
+	prepend(alloc, cStringOfUriPreferRelative(alloc, server.allUris, server.urisInfo, run.mainUri), run.programArgs);
 
 ExitCode doPrint(scope ref Perf perf, ref Alloc alloc, ref Server server, in CommandKind.Print command) {
 	Uri mainUri = command.mainUri;

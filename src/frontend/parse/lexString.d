@@ -2,7 +2,7 @@ module frontend.parse.lexString;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.lexUtil : charToHexNat, takeChar, tryTakeChars;
+import frontend.parse.lexUtil : decodeHexDigit, takeChar, tryTakeChars;
 import frontend.parse.lexWhitespace : AddDiag;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
@@ -157,14 +157,14 @@ void stringEscapeError(
 }
 
 Opt!char takeCharEscape(scope ref MutCString ptr) {
-	Opt!uint digit0 = tryTakeHexDigit(ptr);
-	Opt!uint digit1 = has(digit0) ? tryTakeHexDigit(ptr) : none!uint;
+	Opt!ubyte digit0 = tryTakeHexDigit(ptr);
+	Opt!ubyte digit1 = has(digit0) ? tryTakeHexDigit(ptr) : none!ubyte;
 	return optIf(has(digit0) && has(digit1), () =>
 		safeToChar((force(digit0) << 4) | force(digit1)));
 }
 
-Opt!uint tryTakeHexDigit(ref MutCString ptr) {
-	Opt!uint res = charToHexNat(*ptr);
+Opt!ubyte tryTakeHexDigit(ref MutCString ptr) {
+	Opt!ubyte res = decodeHexDigit(*ptr);
 	if (has(res))
 		ptr++;
 	return res;

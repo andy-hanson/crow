@@ -34,7 +34,7 @@ import util.col.mutMultiMap : countKeys, eachValueForKey, MutMultiMap;
 import util.memory : allocate;
 import util.opt : force, Opt;
 import util.symbol : AllSymbols, Symbol, symbol, writeSymbol;
-import util.uri : parseUri, Uri;
+import util.uri : mustParseUri, Uri;
 import util.util : ptrTrustMe;
 import util.writer : debugLogWithWriter, writeNewline, Writer;
 
@@ -55,7 +55,7 @@ void testFreeInstantiationsForModule(ref Test test, ref Alloc alloc) {
 		a1[t] record
 		and something using `a0 a1`
 	*/
-	Uri uriA = parseUri(test.allUris, "test://a.crow");
+	Uri uriA = mustParseUri(test.allUris, "test://a.crow");
 	Module moduleA = makeModule(alloc, uriA, [
 		dummyStruct(test.alloc, uriA, symbol!"a0", 0),
 		dummyStruct(alloc, uriA, symbol!"a1", 1)]);
@@ -82,7 +82,7 @@ void testFreeInstantiationsForModule(ref Test test, ref Alloc alloc) {
 		b1[t] record
 		and something using `b0 b1`
 	*/
-	Uri uriB = parseUri(test.allUris, "test://b.crow");
+	Uri uriB = mustParseUri(test.allUris, "test://b.crow");
 	Module moduleB = makeModule(alloc, uriB, [
 		dummyStruct(alloc, uriB, symbol!"b0", 0),
 		dummyStruct(alloc, uriB, symbol!"b1", 1)]);

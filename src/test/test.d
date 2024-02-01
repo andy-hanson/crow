@@ -2,6 +2,7 @@ module test.test;
 
 @safe @nogc nothrow: // not pure
 
+import app.backtrace : writeBacktrace;
 import test.testAllInsts : testAllInsts;
 import test.testAlloc : testAlloc;
 import test.testApplyFn : testApplyFn;
@@ -27,6 +28,7 @@ import util.opt : force, Opt;
 import util.perf : Perf, withNullPerf;
 import util.string : CString, stringOfCString, stringsEqual;
 import util.util : ptrTrustMe;
+import util.writer : debugLogWithWriter, Writer;
 
 ExitCode test(MetaAlloc* alloc, in CString[] names) =>
 	withNullPerf!(ExitCode, (scope ref Perf perf) {

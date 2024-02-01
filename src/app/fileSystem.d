@@ -61,7 +61,7 @@ import util.col.arrayBuilder : buildArray, Builder;
 import util.conv : safeToInt, safeToUint;
 import util.exitCode : ExitCode, okAnd;
 import util.memory : memset;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.string : CString, cString;
 import util.symbol : alterExtension, Extension, Symbol;
 import util.union_ : TaggedUnion;
@@ -74,12 +74,11 @@ import util.uri :
 	childFileUri,
 	cStringOfFileUri,
 	FileUri,
-	fileUriToTempStr,
 	isFileUri,
 	parent,
 	parseFileUri,
-	TempStrForPath,
 	Uri,
+	withCStringOfFileUri,
 	writeFileUri;
 import util.util : castImmutable, todo, typeAs;
 import util.writer : withStackWriterImpure, withWriter, Writer, writeWithSeparatorAndFilter;
@@ -170,36 +169,32 @@ private @system void writeLn(OutPipe pipe, in string a) {
 	flush(pipe);
 }
 
-private @trusted ExitCode removeFileIfExists(in AllUris allUris, FileUri uri) {
-	TempStrForPath buf = void;
-	OS os = getOS();
-	CString cString = fileUriToTempStr(buf, allUris, os, uri);
-
-	version (Windows) {
-		bool success = withRetry(() {
-			int ok = DeleteFileA(cString.ptr);
-			return ok == 1 || GetLastError() == ERROR_FILE_NOT_FOUND ? RetryResult.ok :
-				GetLastError() == ERROR_SHARING_VIOLATION ? RetryResult.retry :
-				RetryResult.error;
+private ExitCode removeFileIfExists(in AllUris allUris, FileUri uri) =>
+	withCStringOfFileUri(allUris, getOS(), uri, (in CString cString) @trusted {
+		version (Windows) {
+			bool success = withRetry(() {
+				int ok = DeleteFileA(cString.ptr);
+				return ok == 1 || GetLastError() == ERROR_FILE_NOT_FOUND ? RetryResult.ok :
+					GetLastError() == ERROR_SHARING_VIOLATION ? RetryResult.retry :
+					RetryResult.error;
+			});
+		} else {
+			bool success = () {
+				final switch (unlink(cString.ptr)) {
+					case 0:
+						return true;
+					case -1:
+						return errno == ENOENT;
+				}
+			}();
+		}
+		return success ? ExitCode.ok : printErrorCb((scope ref Writer writer) {
+			writer ~= "Error removing file ";
+			writer ~= cString;
+			writer ~= ": ";
+			writeLastError(writer);
 		});
-	} else {
-		bool success = () {
-			final switch (unlink(cString.ptr)) {
-				case 0:
-					return true;
-				case -1:
-					return errno == ENOENT;
-			}
-		}();
-	}
-
-	return success ? ExitCode.ok : printErrorCb((scope ref Writer writer) {
-		writer ~= "Error removing file ";
-		writeFileUri(writer, allUris, os, uri);
-		writer ~= ": ";
-		writeLastError(writer);
 	});
-}
 
 /**
 This doesn't create the path, 'cb' should do that.
@@ -276,6 +271,8 @@ private T[size0 + size1] concat(T, size_t size0, size_t size1)(in T[size0] a, in
 	return res;
 }
 
+private alias TempStrForPath = char[0x1000];
+
 @trusted Opt!FileUri findPathToCCompiler(scope ref AllUris allUris) {
 	version (Windows) {
 		TempStrForPath res = void;
@@ -293,8 +290,7 @@ private T[size0 + size1] concat(T, size_t size0, size_t size1)(in T[size0] a, in
 	if (!isFileUri(allUris, uri))
 		return ReadFileResult(ReadFileDiag.notFound);
 
-	TempStrForPath pathBuf = void;
-	FILE* fd = fopen(fileUriToTempStr(pathBuf, allUris, getOS(), asFileUri(allUris, uri)).ptr, "rb");
+	FILE* fd = openFile(allUris, asFileUri(allUris, uri), "rb");
 	if (fd == null)
 		return errno == ENOENT
 			? ReadFileResult(ReadFileDiag.notFound)
@@ -327,14 +323,16 @@ private T[size0 + size1] concat(T, size_t size0, size_t size1)(in T[size0] a, in
 	}
 }
 
-@trusted ExitCode writeFile(in AllUris allUris, FileUri uri, in string content) {
-	FILE* fd = tryOpenFileForWrite(allUris, uri);
-	if (fd == null)
-		return ExitCode.error;
-	else {
-		scope(exit) fclose(fd);
+private @system FILE* openFile(in AllUris allUris, FileUri uri, immutable char* flags) =>
+	withCStringOfFileUri(allUris, getOS(), uri, (in CString x) @trusted =>
+		fopen(x.ptr, flags));
 
-		long wroteBytes = fwrite(content.ptr, char.sizeof, content.length, fd);
+@trusted ExitCode writeFile(in AllUris allUris, FileUri uri, in string content) {
+	MutOpt!(FILE*) fd = tryOpenFileForWrite(allUris, uri);
+	if (has(fd)) {
+		scope(exit) fclose(force(fd));
+
+		long wroteBytes = fwrite(content.ptr, char.sizeof, content.length, force(fd));
 		if (wroteBytes != content.length) {
 			if (wroteBytes == -1)
 				todo!void("writeFile failed");
@@ -342,32 +340,30 @@ private T[size0 + size1] concat(T, size_t size0, size_t size1)(in T[size0] a, in
 				todo!void("writeFile -- didn't write all the bytes?");
 		}
 		return ExitCode.ok;
-	}
+	} else
+		return ExitCode.error;
 }
 
-private @system FILE* tryOpenFileForWrite(in AllUris allUris, FileUri uri) {
-	TempStrForPath buf = void;
-	CString pathStr = fileUriToTempStr(buf, allUris, getOS(), uri);
-	FILE* fd = fopen(pathStr.ptr, "w");
-	if (fd == null) {
-		if (errno == ENOENT) {
-			Opt!FileUri par = parent(allUris, uri);
-			if (has(par)) {
-				ExitCode res = mkdirRecur(allUris, force(par));
-				if (res == ExitCode.ok)
-					return fopen(pathStr.ptr, "w");
-			}
-		} else {
-			printErrorCb((scope ref Writer writer) {
-				writer ~= "Failed to write file ";
-				writer ~= pathStr;
-				writer ~= ": ";
-				writeLastError(writer);
-			});
-			return null;
-		}
+private @system MutOpt!(FILE*) tryOpenFileForWrite(in AllUris allUris, FileUri uri) {
+	FILE* fd = openFile(allUris, uri, "w");
+	if (fd != null)
+		return someMut(fd);
+	else if (errno == ENOENT) {
+		Opt!FileUri par = parent(allUris, uri);
+		if (has(par) && mkdirRecur(allUris, force(par)) == ExitCode.ok) {
+			FILE* res = openFile(allUris, uri, "w");
+			return res == null ? noneMut!(FILE*) : someMut(res);
+		} else
+			return noneMut!(FILE*);
+	} else {
+		printErrorCb((scope ref Writer writer) {
+			writer ~= "Failed to write file ";
+			writeFileUri(writer, allUris, getOS(), uri);
+			writer ~= ": ";
+			writeLastError(writer);
+		});
+		return noneMut!(FILE*);
 	}
-	return fd;
 }
 
 @trusted FileUri getCwd(ref AllUris allUris) {
@@ -452,9 +448,8 @@ private @trusted ExitCodeOrSignal runCommon(
 
 		foreach (ExternLibrary x; externLibraries) {
 			if (has(x.configuredDir)) {
-				TempStrForPath buf;
-				fileUriToTempStr(buf, allUris, OS.windows, asFileUri(allUris, force(x.configuredDir)));
-				bool ok = SetDllDirectoryA(buf.ptr);
+				bool ok = withCStringOfFileUri(allUris, OS.windows, asFileUri(allUris, force(x.configuredDir)), (in CString x) =>
+					SetDllDirectoryA(x.ptr));
 				assert(ok);
 			}
 		}
@@ -637,9 +632,8 @@ version (Windows) {
 	version (Windows) {
 		return todo!ExitCode("!");
 	} else {
-		TempStrForPath buf = void;
-		CString dirStr = fileUriToTempStr(buf, allUris, getOS(), dir);
-		int err = mkdir(dirStr.ptr, S_IRWXU);
+		int err = withCStringOfFileUri(allUris, getOS(), dir, (in CString x) =>
+			mkdir(x.ptr, S_IRWXU));
 		if (err == ENOENT) {
 			Opt!FileUri par = parent(allUris, dir);
 			if (has(par)) {

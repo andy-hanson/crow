@@ -3,7 +3,7 @@ module util.col.array;
 import util.alloc.alloc : Alloc, allocateElements, freeElements;
 import util.comparison : Comparer, Comparison;
 import util.conv : safeToUshort;
-import util.memory : copyToFrom, initMemory;
+import util.memory : copyToFrom, initMemory, overwriteMemory;
 import util.opt : force, has, none, MutOpt, Opt, some, someMut;
 import util.union_ : TaggedUnion, Union;
 import util.util : max, typeAs;
@@ -589,4 +589,13 @@ void eachPair(T)(in T[] a, in void delegate(in T, in T) @safe @nogc pure nothrow
 	foreach (size_t i; 0 .. a.length)
 		foreach (size_t j; i + 1 .. a.length)
 			cb(a[i], a[j]);
+}
+
+void reverseInPlace(T)(scope T[] a) {
+	foreach (size_t i; 0 .. a.length / 2) {
+		size_t j = a.length - 1 - i;
+		T temp = a[i];
+		overwriteMemory(&a[i], a[j]);
+		overwriteMemory(&a[j], temp);
+	}
 }

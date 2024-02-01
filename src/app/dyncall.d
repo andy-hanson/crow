@@ -35,7 +35,7 @@ import util.opt : force, has, Opt, none, some;
 import util.string : CString, cString;
 import util.symbol :
 	addExtension, addPrefixAndExtension, AllSymbols, Extension, Symbol, symbol, symbolAsTempBuffer, writeSymbol;
-import util.uri : AllUris, asFileUri, childUri, fileUriToTempStr, isFileUri, TempStrForPath, Uri;
+import util.uri : AllUris, asFileUri, childUri, isFileUri, Uri, withCStringOfFileUri;
 import util.writer : withStackWriterImpure, Writer;
 import versionInfo : getOS, OS;
 
@@ -135,9 +135,8 @@ Symbol dllOrSoName(scope ref AllSymbols allSymbols, immutable Symbol libraryName
 
 @trusted Opt!(DLLib*) tryLoadLibraryFromUri(scope ref AllUris allUris, OS os, Uri uri) {
 	if (isFileUri(allUris, uri)) {
-		TempStrForPath buf = void;
-		CString file = fileUriToTempStr(buf, allUris, os, asFileUri(allUris, uri));
-		DLLib* res = dlLoadLibrary(file.ptr);
+		DLLib* res = withCStringOfFileUri!(DLLib*)(allUris, os, asFileUri(allUris, uri), (in CString file) =>
+			dlLoadLibrary(file.ptr));
 		return res == null ? none!(DLLib*) : some(res);
 	} else
 		return none!(DLLib*);

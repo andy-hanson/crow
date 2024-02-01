@@ -3,7 +3,7 @@ module util.string;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.comparison : Comparison;
+import util.comparison : compareArrays, compareChar, Comparison;
 import util.col.array : append, arrayOfRange, arraysEqual, copyArray, emptySmallArray, isEmpty, SmallArray;
 import util.conv : safeToUint;
 import util.hash : HashCode, hashString;
@@ -95,16 +95,8 @@ string copyString(ref Alloc alloc, in string a) =>
 		cb(*p);
 }
 
-@trusted Comparison compareCStringAlphabetically(in CString a, in CString b) =>
-	cStringIsEmpty(a)
-		? (cStringIsEmpty(b) ? Comparison.equal : Comparison.less)
-		: cStringIsEmpty(b)
-		? Comparison.greater
-		: a.ptr[0] < b.ptr[0]
-		? Comparison.less
-		: a.ptr[0] > b.ptr[0]
-		? Comparison.greater
-		: compareCStringAlphabetically(CString(a.ptr + 1), CString(b.ptr + 1));
+@trusted Comparison compareStringsAlphabetically(in string a, in string b) =>
+	compareArrays!char(a, b, (in char x, in char y) => compareChar(x, y));
 
 pure @trusted CString mustStripPrefix(CString a, string prefix) {
 	immutable(char)* ptr = a.ptr;

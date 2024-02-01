@@ -3,7 +3,7 @@ module util.sourceRange;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.comparison : compareNat32, Comparison;
+import util.comparison : compareOr, compareUint, Comparison;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonObject;
@@ -42,7 +42,7 @@ bool rangeContains(in Range a, in Range b) =>
 	a.start <= b.start && b.end <= a.end;
 
 Comparison compareRange(in Range a, in Range b) =>
-	a.start == b.start ? compareNat32(a.end, b.end) : compareNat32(a.start, b.start);
+	compareOr(compareUint(a.start, b.start), () => compareUint(a.end, b.end));
 
 Range combineRanges(in Range a, in Range b) =>
 	Range(a.start, b.end);

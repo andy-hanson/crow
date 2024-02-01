@@ -38,7 +38,7 @@ import util.json : get, hasKey, Json;
 import util.jsonParse : asUint;
 import util.opt : none, some;
 import util.sourceRange : LineAndCharacter, LineAndCharacterRange;
-import util.uri : AllUris, parseUri, Uri;
+import util.uri : AllUris, mustParseUri, Uri;
 import util.util : enumOfString;
 
 // If extending this, remember to modify 'initializeCapabilities'
@@ -107,7 +107,7 @@ private:
 
 Uri[] parseUriList(ref Alloc alloc, scope ref AllUris allUris, in Json a) =>
 	map(alloc, a.as!(Json[]), (ref Json x) =>
-		parseUri(allUris, x.as!string));
+		mustParseUri(allUris, x.as!string));
 
 InitializationOptions parseInitializationOptions(in Json a) =>
 	InitializationOptions(hasKey!"unknownUris"(a) ? get!"unknownUris"(a).as!bool : false);
@@ -136,7 +136,7 @@ TextDocumentIdentifier parseTextDocumentIdentifier(scope ref AllUris allUris, in
 	TextDocumentIdentifier(parseUriProperty(allUris, a));
 
 Uri parseUriProperty(scope ref AllUris allUris, in Json a) =>
-	parseUri(allUris, get!"uri"(a).as!string);
+	mustParseUri(allUris, get!"uri"(a).as!string);
 
 T[] parseList(T)(ref Alloc alloc, in Json input, in T delegate(in Json) @safe @nogc pure nothrow cb) =>
 	map!(T, Json)(alloc, input.as!(Json[]), (ref Json x) => cb(x));

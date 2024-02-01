@@ -3,7 +3,7 @@ module util.col.mutMaxArr;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.array : newArray;
+import util.col.array : newArray, reverseInPlace;
 import util.memory : overwriteMemory;
 import util.util : castNonScope;
 
@@ -132,6 +132,9 @@ ref inout(T) only(size_t maxSize, T)(scope ref inout MutMaxArr!(maxSize, T) a) {
 
 @trusted inout(T[]) asTemporaryArray(size_t maxSize, T)(return scope ref inout MutMaxArr!(maxSize, T) a) =>
 	castNonScope(a.values[0 .. a.size_]);
+
+void reverseInPlace(size_t maxSize, T)(return scope ref inout MutMaxArr!(maxSize, T) a) =>
+	.reverseInPlace(asTemporaryArray(a));
 
 void filterUnorderedButDontRemoveAll(size_t maxSize, T)(
 	scope ref MutMaxArr!(maxSize, T) a,

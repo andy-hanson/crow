@@ -3,7 +3,7 @@ module frontend.parse.lexToken;
 @safe @nogc pure nothrow:
 
 import frontend.parse.lexUtil :
-	charToHexNat,
+	decodeHexDigit,
 	isDecimalDigit,
 	startsWith,
 	startsWithThenWhitespace,
@@ -638,7 +638,7 @@ public LiteralNatAst takeNat(ref MutCString ptr, ulong base) {
 	ulong value = 0;
 	bool overflow = false;
 	while (true) {
-		Opt!uint digit = charToHexNat(*ptr);
+		Opt!ubyte digit = decodeHexDigit(*ptr);
 		if (has(digit) && force(digit) < base) {
 			ptr++;
 			ulong newValue = value * base + force(digit);
