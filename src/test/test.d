@@ -2,7 +2,7 @@ module test.test;
 
 @safe @nogc nothrow: // not pure
 
-import app.backtrace : writeBacktrace;
+import app.fileSystem : printCb;
 import test.testAllInsts : testAllInsts;
 import test.testAlloc : testAlloc;
 import test.testApplyFn : testApplyFn;
@@ -28,7 +28,7 @@ import util.opt : force, Opt;
 import util.perf : Perf, withNullPerf;
 import util.string : CString, stringOfCString, stringsEqual;
 import util.util : ptrTrustMe;
-import util.writer : debugLogWithWriter, Writer;
+import util.writer : Writer;
 
 ExitCode test(MetaAlloc* alloc, in CString[] names) =>
 	withNullPerf!(ExitCode, (scope ref Perf perf) {
@@ -43,12 +43,16 @@ ExitCode test(MetaAlloc* alloc, in CString[] names) =>
 				force(found).test(test);
 			}
 		}
-		return ExitCode.ok;
+		return printCb((scope ref Writer writer) {
+			writer ~= "Ran ";
+			writer ~= isEmpty(names) ? allTests.length : names.length;
+			writer ~= " tests.";
+		});
 	});
 
 private:
 
-NameAndTest[] allTests = [
+immutable NameAndTest[] allTests = [
 	NameAndTest("alloc", &testAlloc),
 	NameAndTest("all-insts", &testAllInsts),
 	NameAndTest("apply-fn", &testApplyFn),

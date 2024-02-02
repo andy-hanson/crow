@@ -9,7 +9,7 @@ import util.string : CString;
 import util.symbol : Extension;
 import util.exitCode : ExitCode;
 import util.union_ : Union;
-import util.uri : FileUri, Uri;
+import util.uri : FilePath, Uri;
 
 immutable struct Command {
 	CommandKind kind;
@@ -75,8 +75,8 @@ immutable struct BuildOptions {
 
 // Build to C, executable, or both
 immutable struct BuildOut {
-	Opt!FileUri outC; // If this is 'none', use a temporary file
+	Opt!FilePath outC; // If this is 'none', use a temporary file
 	bool shouldBuildExecutable;
 	// If 'shouldBuildExecutable' is not set, this is hypothetical (used for comment at top of C file)
-	FileUri outExecutable;
+	FilePath outExecutable;
 }

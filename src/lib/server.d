@@ -106,10 +106,10 @@ import util.perf : Perf;
 import util.sourceRange : LineAndColumn, toLineAndCharacter, UriAndRange, UriLineAndColumn;
 import util.string : copyString, CString, cString;
 import util.symbol : AllSymbols;
-import util.uri : AllUris, Uri, UrisInfo;
+import util.uri : AllUris, Uri, UrisInfo, writeUri;
 import util.union_ : Union;
 import util.util : castNonScope, castNonScope_ref, ptrTrustMe;
-import util.writer : Writer;
+import util.writer : debugLogWithWriter, Writer;
 import versionInfo : getOS, OS, VersionInfo, versionInfoForBuildToC, versionInfoForInterpret;
 
 ExitCode buildAndInterpret(
@@ -269,10 +269,15 @@ private Opt!LspOutResult respondWithProgram(
 	ref Server server,
 	in LspInRequest request,
 ) {
-	if (filesState(server) == FilesState.allLoaded)
+	if (filesState(server) == FilesState.allLoaded) {
 		return some(handleLspRequestWithProgram(
 			perf,alloc, server, getProgramForAll(perf, alloc, server), request.params));
-	else {
+	} else {
+		foreach (Uri uri; allUnloadedUris(alloc, server))
+			debugLogWithWriter((scope ref Writer writer) {
+				writer ~= "Unknown or unloaded URI: ";
+				writeUri(writer, server.allUris, uri);
+			});
 		push(server.lspState.stateAlloc, server.lspState.pendingRequests, request);
 		return none!LspOutResult;
 	}

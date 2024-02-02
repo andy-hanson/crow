@@ -271,6 +271,17 @@ Symbol symbolOfEnum(E)(E a) {
 	return symbols[a];
 }
 
+Symbol toLowerCase(ref AllSymbols allSymbols, Symbol a) =>
+	withStackWriter!0x1000((scope ref Alloc _, scope ref Writer writer) {
+		eachCharInSymbol(allSymbols, a, (char x) {
+			writer ~= toLowerCase(x);
+		});
+	}, (in string x) => symbolOfString(allSymbols, x));
+char toLowerCase(char a) =>
+	'A' <= a && a <= 'Z'
+		? cast(char) ('a' + (a - 'A'))
+		: a;
+
 private:
 
 // Bit to be set when the symbol is short
@@ -393,7 +404,7 @@ public bool isShortSymbol(Symbol a) =>
 public bool isLongSymbol(Symbol a) =>
 	!isShortSymbol(a);
 
-@trusted CString asLongSymbol(return scope ref const AllSymbols allSymbols, Symbol a) {
+public @trusted CString asLongSymbol(return scope ref const AllSymbols allSymbols, Symbol a) {
 	assert(isLongSymbol(a));
 	return allSymbols.largeStringFromIndex[safeToSizeT(a.value)];
 }

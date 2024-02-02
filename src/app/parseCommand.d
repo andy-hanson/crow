@@ -23,19 +23,19 @@ import util.uri :
 	addExtension,
 	alterExtension,
 	AllUris,
-	asFileUri,
-	childFileUri,
-	FileUri,
+	asFilePath,
+	childFilePath,
+	FilePath,
 	getExtension,
-	isFileUri,
-	parseFileUriWithCwd,
+	parseFilePathWithCwd,
 	parseUriWithCwd,
-	Uri;
+	Uri,
+	uriIsFile;
 import util.util : castNonScope, enumEach, optEnumOfString, stringOfEnum, typeAs;
 import util.writer : makeStringWithWriter, writeNewline, writeQuotedString, Writer;
 import versionInfo : OS;
 
-Command parseCommand(ref Alloc alloc, scope ref AllUris allUris, FileUri cwd, OS os, in CString[] args) {
+Command parseCommand(ref Alloc alloc, scope ref AllUris allUris, FilePath cwd, OS os, in CString[] args) {
 	Opt!CommandName optName = isEmpty(args) ? none!CommandName : optEnumOfString!CommandName(stringOfCString(args[0]));
 	if (has(optName)) {
 		CommandName name = force(optName);
@@ -96,7 +96,7 @@ immutable struct Diag {
 	immutable struct DuplicatePart { CString tag; }
 	immutable struct ExpectedPaths { CString tag; }
 	immutable struct NeedsSinglePath { size_t actual; }
-	immutable struct ParseFileUri { CString actual; }
+	immutable struct ParseFilePath { CString actual; }
 	immutable struct PrintKind {}
 	immutable struct UnexpectedPart { CString tag; }
 	immutable struct UnexpectedPartArgs { ArgsPart part; }
@@ -110,7 +110,7 @@ immutable struct Diag {
 		DuplicatePart,
 		ExpectedPaths,
 		NeedsSinglePath,
-		ParseFileUri,
+		ParseFilePath,
 		PrintKind,
 		UnexpectedPart,
 		UnexpectedPartArgs,
@@ -148,7 +148,7 @@ void writeDiag(scope ref Writer writer, in Diag a) {
 				writer ~= '.';
 			}
 		},
-		(in Diag.ParseFileUri x) {
+		(in Diag.ParseFilePath x) {
 			writer ~= "Not a valid file path: ";
 			writeQuotedString(writer, x.actual);
 			writer ~= '.';
@@ -194,7 +194,7 @@ void writeExtension(scope ref Writer writer, Extension a) {
 CommandKind parseCommandKind(
 	ref Alloc alloc,
 	scope ref AllUris allUris,
-	FileUri cwd,
+	FilePath cwd,
 	OS os,
 	CommandName commandName,
 	in SplitArgs args,
@@ -268,7 +268,7 @@ Extension getDefaultExeExtension(OS os) {
 CommandKind withMainUri(
 	ref Alloc alloc,
 	scope ref AllUris allUris,
-	FileUri cwd,
+	FilePath cwd,
 	scope ref Builder!Diag diags,
 	in CString[] args,
 	in CommandKind delegate(Uri) @safe pure @nogc nothrow cb,
@@ -285,7 +285,7 @@ CommandKind withMainUri(
 CommandKind withRootUris(
 	ref Alloc alloc,
 	scope ref AllUris allUris,
-	FileUri cwd,
+	FilePath cwd,
 	in CString[] args,
 	in CommandKind delegate(Uri[]) @safe pure @nogc nothrow cb,
 ) {
@@ -293,7 +293,7 @@ CommandKind withRootUris(
 	return has(p) ? cb(force(p)) : CommandKind(CommandKind.Help("Invalid path"));
 }
 
-Opt!Uri tryParseCrowUri(ref Alloc alloc, scope ref AllUris allUris, FileUri cwd, in CString arg) {
+Opt!Uri tryParseCrowUri(ref Alloc alloc, scope ref AllUris allUris, FilePath cwd, in CString arg) {
 	Uri uri = parseUriWithCwd(allUris, cwd, stringOfCString(arg));
 	switch (getExtension(allUris, uri)) {
 		case Extension.none:
@@ -305,7 +305,7 @@ Opt!Uri tryParseCrowUri(ref Alloc alloc, scope ref AllUris allUris, FileUri cwd,
 	}
 }
 
-Opt!(Uri[]) tryParseRootUris(ref Alloc alloc, scope ref AllUris allUris, FileUri cwd, in CString[] args) {
+Opt!(Uri[]) tryParseRootUris(ref Alloc alloc, scope ref AllUris allUris, FilePath cwd, in CString[] args) {
 	assert(!isEmpty(args));
 	return mapOrNone!(Uri, CString)(alloc, args, (ref CString arg) =>
 		tryParseCrowUri(alloc, allUris, cwd, arg));
@@ -314,7 +314,7 @@ Opt!(Uri[]) tryParseRootUris(ref Alloc alloc, scope ref AllUris allUris, FileUri
 CommandKind parsePrintCommand(
 	ref Alloc alloc,
 	scope ref AllUris allUris,
-	FileUri cwd,
+	FilePath cwd,
 	scope ref Builder!Diag diags,
 	in SplitArgs args,
 ) {
@@ -324,7 +324,7 @@ CommandKind parsePrintCommand(
 		? parsePrintKind(args.beforeFirstPart[0], args.beforeFirstPart[2 .. $])
 		: none!PrintKind;
 	if (has(kind))
-		return withMainUri(alloc, allUris, cwd, diags, args.beforeFirstPart[1 .. $], (Uri uri) =>
+		return withMainUri(alloc, allUris, cwd, diags, args.beforeFirstPart[1 .. 2], (Uri uri) =>
 			CommandKind(CommandKind.Print(force(kind), uri)));
 	else {
 		diags ~= Diag(Diag.PrintKind());
@@ -388,7 +388,7 @@ Opt!uint tryTakeNat(ref MutCString ptr) {
 CommandKind parseBuildCommand(
 	ref Alloc alloc,
 	scope ref AllUris allUris,
-	FileUri cwd,
+	FilePath cwd,
 	scope ref Builder!Diag diags,
 	Extension defaultExeExtension,
 	in SplitArgs args,
@@ -450,7 +450,7 @@ void expectFlag(scope ref Builder!Diag diags, ArgsPart part) {
 BuildOptions parseBuildOptions(
 	ref Alloc alloc,
 	scope ref AllUris allUris,
-	FileUri cwd,
+	FilePath cwd,
 	scope ref Builder!Diag diags,
 	Extension defaultExeExtension,
 	in ArgsPart[] argParts,
@@ -481,11 +481,11 @@ BuildOptions parseBuildOptions(
 	BuildOut resOut = has(cellGet(out_))
 		? force(cellGet(out_))
 		: BuildOut(
-			outC: none!FileUri,
+			outC: none!FilePath,
 			shouldBuildExecutable: true,
-			outExecutable: defaultExeUri(
+			outExecutable: defaultExePath(
 				allUris,
-				isFileUri(allUris, mainUri) ? asFileUri(allUris, mainUri) : childFileUri(allUris, cwd, symbol!"main"),
+				uriIsFile(allUris, mainUri) ? asFilePath(allUris, mainUri) : childFilePath(allUris, cwd, symbol!"main"),
 				defaultExeExtension));
 	return BuildOptions(resOut, options);
 }
@@ -493,42 +493,42 @@ BuildOptions parseBuildOptions(
 BuildOut parseBuildOut(
 	ref Alloc alloc,
 	scope ref AllUris allUris,
-	FileUri cwd,
+	FilePath cwd,
 	Extension defaultExeExtension,
 	scope ref Builder!Diag diags,
 	ArgsPart part,
 ) {
-	Cell!(Opt!FileUri) outC;
-	Cell!(Opt!FileUri) outExe;
+	Cell!(Opt!FilePath) outC;
+	Cell!(Opt!FilePath) outExe;
 	foreach (CString arg; part.args) {
-		Opt!FileUri opt = parseFileUriWithCwd(allUris, cwd, arg);
+		Opt!FilePath opt = parseFilePathWithCwd(allUris, cwd, arg);
 		if (has(opt)) {
-			FileUri uri = force(opt);
-			Extension extension = getExtension(allUris, uri);
+			FilePath path = force(opt);
+			Extension extension = getExtension(allUris, path);
 			if (extension == Extension.c) {
 				if (has(cellGet(outC)))
 					diags ~= Diag(Diag.BuildOutDuplicate());
-				cellSet(outC, some(uri));
+				cellSet(outC, some(path));
 			} else {
 				if (has(cellGet(outExe)))
 					diags ~= Diag(Diag.BuildOutDuplicate());
 				if (extension != defaultExeExtension)
 					diags ~= Diag(Diag.BuildOutBadFileExtension(defaultExeExtension));
-				cellSet(outExe, some(uri));
+				cellSet(outExe, some(path));
 			}
 		} else
-			diags ~= Diag(Diag.ParseFileUri(arg));
+			diags ~= Diag(Diag.ParseFilePath(arg));
 	}
 	if (!has(cellGet(outC)) && !has(cellGet(outExe)))
 		diags ~= Diag(Diag.ExpectedPaths(part.tag));
 	return BuildOut(
 		outC: cellGet(outC),
 		shouldBuildExecutable: has(cellGet(outExe)),
-		outExecutable: optOrDefault!FileUri(cellGet(outExe), () =>
-			defaultExeUri(allUris, force(cellGet(outC)), defaultExeExtension)));
+		outExecutable: optOrDefault!FilePath(cellGet(outExe), () =>
+			defaultExePath(allUris, force(cellGet(outC)), defaultExeExtension)));
 }
 
-FileUri defaultExeUri(scope ref AllUris allUris, FileUri base, Extension defaultExeExtension) =>
+FilePath defaultExePath(scope ref AllUris allUris, FilePath base, Extension defaultExeExtension) =>
 	alterExtension(allUris, base, defaultExeExtension);
 
 immutable struct ArgsPart {

@@ -13,7 +13,11 @@ documentation path-and-content[]^() summon
 	include = current-directory ~~ "/include"
 	all-module-paths <- "{include}/crow" search-dir-recursive (x => !x.ignore-dir),
 		(x => x != "std.crow")
-	include-uri string = "file://{trusted is-windows ? "/"::string : ""}{include}/"
+	include-uri string = if trusted is-windows
+		"file:///{include.to-lower-case uri-encode}/"
+	else
+		"file://{include uri-encode}/"
+	info log "include is {include-uri}"
 	all-modules <- all-module-paths get-modules include-uri
 	all-paths = (for x : all-modules; x path) sort-paths
 	all-exports = all-modules all-exports
@@ -23,6 +27,21 @@ documentation path-and-content[]^() summon
 	index-content string = "site-src/doc/index.html" read-file
 	index = "index" document-template "documentation", index-content, all-paths
 	index ~ modules,
+
+# TODO: should be in std lib somewhere
+-uri-encode string(a string)
+	# TODO: handle all URI encoding
+	a replace-all ":", "%3a"
+
+-to-lower-case string(a string)
+	for x : a; x.to-lower-case
+
+-to-lower-case char8(a char8)
+	if "A"::char8 <= a && a <= "Z"
+		diff = a.to::nat8 - "A"::char8.to
+		"a".to + diff to
+	else
+		a
 
 -sort-paths module-path[](a module-path[])
 	a sort x => ("{x}" split "/")::string[]

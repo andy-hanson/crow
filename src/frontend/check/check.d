@@ -13,7 +13,7 @@ import frontend.check.checkCtx :
 	ImportAndReExportModules,
 	visibilityFromExplicitTopLevel;
 import frontend.check.checkExpr : checkFunctionBody, checkTestBody, TestBody;
-import frontend.check.checkStructs : checkStructBodies, checkStructsInitial;
+import frontend.check.checkStructBodies : checkStructBodies, checkStructsInitial;
 import frontend.check.getBuiltinFun : getBuiltinFun;
 import frontend.check.getCommonTypes : getCommonTypes;
 import frontend.check.maps : funDeclsName, FunsMap, specDeclName, SpecsMap, structOrAliasName, StructsAndAliasesMap;

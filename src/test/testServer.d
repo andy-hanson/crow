@@ -8,7 +8,6 @@ import model.diag : ReadFileDiag;
 import test.testUtil : assertEqual, defaultIncludeResult, setupTestServer, Test, withTestServer;
 import util.alloc.alloc : Alloc;
 import util.col.array : concatenate;
-import util.symbol : symbol;
 import util.uri : concatUriAndPath, parsePath, mustParseUri, Uri;
 
 void testServer(ref Test test) {

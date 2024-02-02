@@ -55,173 +55,28 @@ nmake /f Nmakefile
 
 ### D build ###
 
-src_files_common = src\concretize\allConstantsBuilder.d \
-	src\concretize\checkConcreteModel.d \
-	src\concretize\concretize.d \
-	src\concretize\concretizeCtx.d \
-	src\concretize\concretizeExpr.d \
-	src\concretize\constantsOrExprs.d \
-	src\frontend\check\check.d \
-	src\frontend\check\checkCall\candidates.d \
-	src\frontend\check\checkCall\checkCall.d \
-	src\frontend\check\checkCall\checkCalled.d \
-	src\frontend\check\checkCall\checkCallSpecs.d \
-	src\frontend\check\checkCtx.d \
-	src\frontend\check\checkExpr.d \
-	src\frontend\check\checkStructBodies.d \
-	src\frontend\check\exprCtx.d \
-	src\frontend\check\funsForStruct.d \
-	src\frontend\check\getCommonFuns.d \
-	src\frontend\check\getCommonTypes.d \
-	src\frontend\check\inferringType.d \
-	src\frontend\check\instantiate.d \
-	src\frontend\check\maps.d \
-	src\frontend\check\typeFromAst.d \
-	src\frontend\check\typeUtil.d \
-	src\frontend\getBuiltinFun.d \
-	src\frontend\ide\getDefinition.d \
-	src\frontend\ide\getRename.d \
-	src\frontend\ide\getReferences.d \
-	src\frontend\ide\getHover.d \
-	src\frontend\ide\getPosition.d \
-	src\frontend\ide\getTarget.d \
-	src\frontend\ide\getTokens.d \
-	src\frontend\ide\ideUtil.d \
-	src\frontend\ide\position.d \
-	src\frontend\parse\lexer.d \
-	src\frontend\parse\lexString.d \
-	src\frontend\parse\lexToken.d \
-	src\frontend\parse\lexUtil.d \
-	src\frontend\parse\lexWhitespace.d \
-	src\frontend\parse\parse.d \
-	src\frontend\parse\parseExpr.d \
-	src\frontend\parse\parseImport.d \
-	src\frontend\parse\parseType.d \
-	src\frontend\parse\parseUtil.d \
-	src\frontend\allInsts.d \
-	src\frontend\config.d \
-	src\frontend\frontendCompile.d \
-	src\frontend\getDiagnosticSeverity.d \
-	src\frontend\lang.d \
-	src\frontend\showDiag.d \
-	src\frontend\showModel.d \
-	src\frontend\storage.d \
-	src\interpret\applyFn.d \
-	src\interpret\bytecode.d \
-	src\interpret\bytecodeWriter.d \
-	src\interpret\debugInfo.d \
-	src\interpret\extern_.d \
-	src\interpret\fakeExtern.d \
-	src\interpret\funToReferences.d \
-	src\interpret\generateBytecode.d \
-	src\interpret\generateExpr.d \
-	src\interpret\generateText.d \
-	src\interpret\runBytecode.d \
-	src\interpret\stacks.d \
-	src\lib\lsp\lspParse.d \
-	src\lib\lsp\lspToJson.d \
-	src\lib\lsp\lspTypes.d \
-	src\lib\server.d \
-	src\lower\checkLowModel.d \
-	src\lower\generateCallFunOrAct.d \
-	src\lower\generateMarkVisitFun.d \
-	src\lower\lower.d \
-	src\lower\lowExprHelpers.d \
-	src\model\ast.d \
-	src\model\concreteModel.d \
-	src\model\constant.d \
-	src\model\diag.d \
-	src\model\jsonOfAst.d \
-	src\model\jsonOfConcreteModel.d \
-	src\model\jsonOfConstant.d \
-	src\model\jsonOfLowModel.d \
-	src\model\jsonOfModel.d \
-	src\model\lowModel.d \
-	src\model\model.d \
-	src\model\parseDiag.d \
-	src\model\showLowModel.d \
-	src\model\typeLayout.d \
-	src\util\alloc\alloc.d \
-	src\util\alloc\doubleLink.d \
-	src\util\col\array.d \
-	src\util\col\arrayBuilder.d \
-	src\util\col\enumMap.d \
-	src\util\col\exactSizeArrayBuilder.d \
-	src\util\col\fullIndexMap.d \
-	src\util\col\hashTable.d \
-	src\util\col\map.d \
-	src\util\col\mapBuilder.d \
-	src\util\col\multiMap.d \
-	src\util\col\mutArr.d \
-	src\util\col\mutIndexMap.d \
-	src\util\col\mutMap.d \
-	src\util\col\mutMaxArr.d \
-	src\util\col\mutMaxSet.d \
-	src\util\col\mutMultiMap.d \
-	src\util\col\mutQueue.d \
-	src\util\col\mutSet.d \
-	src\util\col\sortUtil.d \
-	src\util\col\stackMap.d \
-	src\util\cell.d \
-	src\util\comparison.d \
-	src\util\conv.d \
-	src\util\diff.d \
-	src\util\exitCode.d \
-	src\util\hash.d \
-	src\util\json.d \
-	src\util\jsonParse.d \
-	src\util\late.d \
-	src\util\memory.d \
-	src\util\opt.d \
-	src\util\perf.d \
-	src\util\perfReport.d \
-	src\util\sourceRange.d \
-	src\util\string.d \
-	src\util\symbol.d \
-	src\util\union.d \
-	src\util\uri.d \
-	src\util\util.d \
-	src\util\writer.d \
-	src\versionInfo.d
-app_only_files = src\app\backtrace.d \
-	src\app\command.d \
-	src\app\dyncall.d \
-	src\app\fileSystem.d \
-	src\app\main.d \
-	src\app\parseCommand.d
-app_src_no_test = $(app_only_files) \
-	$(src_files_common) \
-	src\backend\builtinMath.d \
-	src\backend\mangle.d \
-	src\backend\writeToC.d \
-	src\backend\writeTypes.d \
-	src\document\document.d
-app_src_with_test = $(app_src_no_test) \
-	src\test\test.d \
-	src\test\testAllInsts.d \
-	src\test\testAlloc.d \
-	src\test\testApplyFn.d \
-	src\test\testFakeExtern.d \
-	src\test\testHover.d \
-	src\test\testInterpreter.d \
-	src\test\testJson.d \
-	src\test\testMap.d \
-	src\test\testMemory.d \
-	src\test\testMutMultiMap.d \
-	src\test\testUri.d \
-	src\test\testSortUtil.d \
-	src\test\testSourceRange.d \
-	src\test\testStack.d \
-	src\test\testServer.d \
-	src\test\testSymbol.d \
-	src\test\testUtil.d \
-	src\test\testWriter.d
-other_deps = bin\d-imports\date.txt bin\d-imports\commit-hash.txt
-app_deps_no_test = $(app_src_no_test) $(other_deps) dyncall
-app_deps_with_test = $(app_src_with_test) $(other_deps) dyncall
+all_src_files = src\*.d \
+	src\app\*.d \
+	src\backend\*.d \
+	src\concretize\*.d \
+	src\document\*.d \
+	src\frontend\*.d \
+	src\frontend\check\*.d \
+	src\frontend\check\checkCall\*.d \
+	src\frontend\ide\*.d \
+	src\frontend\parse\*.d \
+	src\interpret\*.d \
+	src\lib\*.d \
+	src\lib\lsp\*.d \
+	src\lower\*.d \
+	src\model\*.d \
+	src\test\*.d \
+	src\util\*.d \
+	src\util\alloc\*.d \
+	src\util\col\*.d
+d_dependencies = $(all_src_files) bin\d-imports\date.txt bin\d-imports\commit-hash.txt dyncall
 
 ldc_flags_common = -w -betterC -preview=dip1000 -preview=in -J=bin\d-imports -J=src\test -J=include
-ldc_flags_app = --m64
 ldc_flags_debug = --d-debug -g --d-version=Debug --d-version=Test
 ldc_flags_assert = $(ldc_flags_common) --enable-asserts=true --boundscheck=on
 ldc_wasm_flags = -mtriple=wasm32-unknown-unknown-wasm -L-allow-undefined
@@ -235,14 +90,6 @@ app_link = -L=dyncall\dyncall\dyncall_s.lib -L=dyncall\dyncallback\dyncallback_s
 
 app_files_no_test = $(app_only_files) $(src_files_no_test)
 app_files_with_test = $(app_only_files) $(src_files_with_test)
-# TODO: should not need document\mangle\writeToC\writeTypes
-wasm_src = src\wasm.d $(src_files_common) \
-	src\backend\builtinMath.d \
-	src\document\document.d \
-	src\backend\mangle.d \
-	src\backend\writeToC.d \
-	src\backend\writeTypes.d
-wasm_deps = $(wasm_src) $(other_deps)
 
 bin\d-imports:
 	if not exist "bin\d-imports" mkdir bin\d-imports
@@ -254,21 +101,19 @@ bin\d-imports\date.txt: bin\d-imports
 bin\d-imports\commit-hash.txt: bin\d-imports
 	git rev-parse --short HEAD > bin\d-imports\commit-hash.txt
 
-bin\crow-debug.exe: $(app_deps_with_test)
-	ldc2 -ofbin\crow-debug.exe -g $(ldc_flags_assert) $(ldc_flags_app) $(ldc_flags_debug) \
-		$(app_src_with_test) $(app_link)
+bin\crow-debug.exe: $(d_dependencies)
+	ldc2 -ofbin\crow-debug.exe -g $(ldc_flags_assert) --m64 $(ldc_flags_debug) src\app\main.d -I=src -i $(app_link)
 
-bin\crow.exe: $(app_deps_no_test)
-	ldc2 -ofbin\crow.exe $(ldc_flags_assert) $(ldc_flags_app) $(ldc_fast_flags) \
-		$(app_src_no_test) $(app_link) -deps=bin/dependencies.txt
+bin\crow.exe: $(d_dependencies)
+	ldc2 -ofbin\crow.exe $(ldc_flags_assert) --m64 $(ldc_fast_flags) src\app\main.d -I=src -i $(app_link)
 	del bin\crow.obj
 
-bin\crow-debug.wasm: $(wasm_deps)
-	ldc2 -ofbin\crow-debug.wasm $(debug_flags) $(ldc_flags_assert) $(ldc_wasm_flags) $(wasm_src)
+bin\crow-debug.wasm: $(d_dependencies)
+	ldc2 -ofbin\crow-debug.wasm $(debug_flags) $(ldc_flags_assert) $(ldc_wasm_flags) src\wasm.d -I=src -i
 	del bin\crow-debug.o
 
-bin\crow.wasm: $(wasm_deps)
-	ldc2 -ofbin\crow.wasm $(ldc_flags_assert) $(ldc_wasm_flags) $(ldc_fast_flags_no_tail_call) $(wasm_src)
+bin\crow.wasm: $(d_dependencies)
+	ldc2 -ofbin\crow.wasm $(ldc_flags_assert) $(ldc_wasm_flags) $(ldc_fast_flags_no_tail_call) src\wasm.d -I=src -i
 
 ### lint ###
 
@@ -278,7 +123,7 @@ lint-basic: bin\crow.exe
 	.\bin\crow.exe run test\lint-basic.crow
 
 lint-dscanner:
-	dub run dscanner -- --styleCheck $(app_src_with_test)
+	dub run dscanner -- --styleCheck src
 
 lint-d-imports-exports: bin\crow.exe
 	.\bin\crow.exe run test\lint-d-imports-exports.crow
@@ -289,7 +134,7 @@ show-dependencies: bin/dependencies.svg
 bin\dependencies.svg: bin\dependencies.dot
 	dot -Tsvg -o bin\dependencies.svg bin\dependencies.dot
 
-bin\dependencies.dot: bin\crow.exe test/dependencies.crow
+bin\dependencies.dot: bin\crow.exe test\dependencies.crow
 	.\bin\crow.exe run test\dependencies.crow
 
 ### site ###

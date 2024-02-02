@@ -1,38 +1,43 @@
 import
-	crow/io/file: read-file, write-file
+	crow/io/file: write-file
+	crow/io/process: shell-exec
+	../site-src/search-dir-recursive: search-dir-recursive
 
-main void() summon
-	text string = "bin/dependencies.txt" read-file
-	lines = text.lines[0 .. end - 1]
-	deps dependency[] = (for line : lines; line parse-line)::dependency[] filter x => !x.ignore
-	"bin/dependencies.dot" write-file deps.to-dot
+main nat^(_ string[]) summon
+	files <- "src" search-dir-recursive x => x ends-with ".d"
+	# dscanner has errors if run in parallel
+	all-deps dependency[] <- for file : files sequential-concat
+		file.dependencies-for-file,
+	filtered-deps dependency[] = all-deps filter x => !x.ignore
+	"bin/dependencies.dot" write-file filtered-deps.to-dot
+	()
 
-dependency record
+-dependencies-for-file dependency[](file string) summon
+	importer = file module-from-path
+	output = "dub run dscanner --yes --quiet -- --imports {file}" shell-exec
+	imported string[] = output split "\n" filter x => x != "" && !(x starts-with "core.")
+	for x : imported
+		importer, x
+
+-module-from-path string(a string)
+	((a try-remove-start "src/")! try-remove-end ".d")! replace-all "/", "."
+
+-dependency record
 	importer string
 	exporter string
 
-to string(a dependency)
+-to string(a dependency)
 	"{a.importer.to::json} -> {a.exporter.to::json}"
 
--parse-line dependency(line string)
-	parts = line split " "
-	# module (path) : modifier modifier : module (path):names
-	parts[2] is ":"
-	colon nat = parts[4] == ":" ? 4 : 5
-	parts[colon] is ":"
-	parts[0], parts[colon + 1]
+-ignore bool(a dependency)
+	a.importer.ignore || a.exporter.ignore
 
-ignore bool(a dependency)
-	a.importer.ignore-module || a.exporter.ignore-module
-
-ignore-module bool(a string)
+-ignore bool(a string)
 	# omit model and util since these are commonly imported dependencies
-	ignore-base string[] = "core.", "model.", "std.", "util."
+	ignore-base string[] = "core.", "model.", "std.", "test.", "util."
 	a == "object" || ignore-base exists (x => a starts-with x) || a ends-with ".txt"
 
 -to-dot string(dependencies dependency[])
-	"""
-digraph crow \{
+	"""digraph crow \{
 	{";\n\t" join for x : dependencies; x.to}
-}
-"""
+}"""

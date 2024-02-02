@@ -12,21 +12,16 @@ version (Windows) {
 		GetCurrentProcess,
 		GetCurrentThread,
 		HANDLE,
-		LPDWORD,
 		PCSTR,
 		PDWORD,
-		PSTR,
-		PVOID,
-		ULONG;
+		PVOID;
 	import core.sys.windows.winbase : GetProcAddress, LoadLibraryA;
 	import core.sys.windows.dbghelp :
 		FunctionTableAccessProc64, GetModuleBaseProc64, ReadProcessMemoryProc64, TranslateAddressProc64;
 	import core.sys.windows.dbghelp_types :
 		ADDRESS64,
-		API_VERSION,
 		IMAGE_FILE_MACHINE_AMD64,
 		IMAGEHLP_LINEA64,
-		IMAGEHLP_MODULEA64,
 		IMAGEHLP_SYMBOLA64,
 		KDHELP64,
 		STACKFRAME64,

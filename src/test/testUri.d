@@ -6,36 +6,34 @@ import test.testUtil : assertEqual, Test;
 import util.col.array : zip;
 import util.comparison : Comparison;
 import util.opt : force, has, none, Opt, optEqual, some;
-import util.string : CString;
 import util.symbol : Extension, Symbol, symbol, symbolOfString;
 import util.uri :
 	AllUris,
-	asFileUri,
+	asFilePath,
 	baseName,
+	childFilePath,
 	childUri,
 	commonAncestor,
 	compareUriAlphabetically,
-	FileUri,
+	FilePath,
 	getExtension,
-	isFileUri,
+	isWindowsPath,
 	mustParseUri,
 	parent,
-	parseFileUri,
+	parseFilePath,
 	parseUriWithCwd,
 	Path,
-	stringOfFileUri,
+	stringOfFilePath,
 	stringOfUri,
 	toUri,
 	Uri,
-	withPathComponents,
-	writeFileUri,
-	writeUri;
+	uriIsFile,
+	withComponents;
 import util.util : stringOfEnum;
-import versionInfo : OS;
 
 void testUri(ref Test test) {
 	testBasic(test, test.allUris);
-	testFileUri(test, test.allUris);
+	testFile(test, test.allUris);
 }
 
 private:
@@ -105,48 +103,58 @@ void assertEqual(Extension a, Extension b) {
 	}
 }
 
-void testFileUri(ref Test test, scope ref AllUris allUris) {
-	verifyFileUri(test, allUris, OS.linux, "file:///home/crow/a.txt", "/home/crow/a.txt", ["home", "crow", "a.txt"]);
-	verifyFileUri(
-		test, allUris, OS.windows,
+void testFile(ref Test test, scope ref AllUris allUris) {
+	verifyFile(test, allUris, "file:///home/crow/a.txt", "/home/crow/a.txt", ["home", "crow", "a.txt"]);
+	verifyFile(
+		test, allUris,
 		"file:///C%3A/Users/User/a.txt", "file:///c%3a/users/user/a.txt",
 		"C:\\Users\\User\\a.txt", "c:/users/user/a.txt",
 		["c:", "users", "user", "a.txt"]);
-	assert(parseFileUri(allUris, "C:\\Users\\User\\a.txt") == parseFileUri(allUris, "C:/Users/User/a.txt"));
+
+	Uri aUri = mustParseUri(allUris, "file:///C%3A/Users/User/a");
+	assert(isWindowsPath(allUris, aUri));
+	Uri booUri = childUri(allUris, aUri, symbol!"BOO");
+	assert(stringOfUri(test.alloc, allUris, booUri) == "file:///c%3a/users/user/a/boo");
+	assert(isWindowsPath(allUris, booUri));
+
+	FilePath a = parseFilePath(allUris, "C:\\Users\\User\\a");
+	assert(a == parseFilePath(allUris, "c:/users/user/a"));
+	assert(isWindowsPath(allUris, a));
+	FilePath boo = childFilePath(allUris, a, symbol!"BOO");
+	assert(stringOfFilePath(test.alloc, allUris, boo) == "c:/users/user/a/boo");
+	assert(isWindowsPath(allUris, boo));
 }
 
-void verifyFileUri(
+void verifyFile(
 	scope ref Test test,
 	scope ref AllUris allUris,
-	OS os,
 	in string asUriString,
-	in string asFileUriString,
+	in string asFilePathString,
 	in string[] components,
 ) {
-	verifyFileUri(test, allUris, os, asUriString, asUriString, asFileUriString, asFileUriString, components);
+	verifyFile(test, allUris, asUriString, asUriString, asFilePathString, asFilePathString, components);
 }
 
-@trusted void verifyFileUri(
+@trusted void verifyFile(
 	scope ref Test test,
 	scope ref AllUris allUris,
-	OS os, // TODO:KILL ----------------------------------------------------------------------------------------------------------------
 	in string uriIn,
 	in string uriOut,
-	in string fileUriIn,
-	in string fileUriOut,
+	in string filePathIn,
+	in string filePathOut,
 	in string[] components,
 ) {
 	Uri uri = mustParseUri(allUris, uriIn);
-	FileUri fileUri = parseFileUri(allUris, fileUriIn);
+	FilePath filePath = parseFilePath(allUris, filePathIn);
 
-	assert(isFileUri(allUris, uri));
-	assert(asFileUri(allUris, uri) == fileUri);
-	assertEqual(test, toUri(allUris, fileUri), uri);
+	assert(uriIsFile(allUris, uri));
+	assert(asFilePath(allUris, uri) == filePath);
+	assertEqual(test, toUri(allUris, filePath), uri);
 
-	verifyPath(test, allUris, fileUri.path, components);
+	verifyPath(test, allUris, filePath.path, components);
 
 	assertEqual(stringOfUri(test.alloc, allUris, uri), uriOut);
-	assertEqual(stringOfFileUri(test.alloc, allUris, os, fileUri), fileUriOut);
+	assertEqual(stringOfFilePath(test.alloc, allUris, filePath), filePathOut);
 }
 
 void verifyUri(ref Test test, in AllUris allUris, Uri a, in string[] expectedParts) {
@@ -154,7 +162,7 @@ void verifyUri(ref Test test, in AllUris allUris, Uri a, in string[] expectedPar
 }
 
 void verifyPath(ref Test test, in AllUris allUris, Path a, in string[] expectedComponents) {
-	withPathComponents(allUris, a, (in Symbol[] actual) {
+	withComponents(allUris, a, (in Symbol[] actual) {
 		assert(actual.length == expectedComponents.length);
 		zip(actual, expectedComponents, (ref Symbol actualComponent, ref const string expectedComponent) {
 			assertEqual(test, actualComponent, symbolOfString(test.allSymbols, expectedComponent));

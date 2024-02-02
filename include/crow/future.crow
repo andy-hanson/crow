@@ -277,6 +277,17 @@ which allows it to run in parallel.
 			f[x]
 	tasks wait-all
 
++sequential-concat[col] record
+	-inner col
++sequential-concat[col] col sequential-concat(a col)
+	a,
++for-loop[out-elem, in-col, in-iter, in-elem] out-elem[]^(
+	a in-col sequential-concat,
+	f far out-elem[](in-elem),
+) (in-iter, in-col) begin, (in-elem, in-iter) next, in-col size, out-elem shared, in-elem shared
+	lists out-elem[][] <- a.inner.sequential for-loop f
+	lists.flatten,
+
 +parallel-concat[col] record
 	-inner col
 +parallel-concat[col] col parallel-concat(a col)

@@ -1,4 +1,4 @@
-module frontend.check.checkStructs;
+module frontend.check.checkStructBodies;
 
 @safe @nogc pure nothrow:
 

@@ -30,8 +30,8 @@ import app.fileSystem :
 	runCompiler,
 	runProgram,
 	tryReadFile,
-	withTempUri,
-	withUriOrTemp,
+	withPathOrTemp,
+	withTempPath,
 	writeFile,
 	writeToStdoutAndFlush;
 import app.parseCommand : parseCommand;
@@ -102,7 +102,7 @@ import util.perfReport : perfReport;
 import util.sourceRange : UriLineAndColumn;
 import util.string : CString, mustStripPrefix, MutCString;
 import util.symbol : AllSymbols, Extension, symbol;
-import util.uri : AllUris, childUri, cStringOfUriPreferRelative, FileUri, Uri, parentOrEmpty, toUri;
+import util.uri : AllUris, childUri, cStringOfUriPreferRelative, FilePath, Uri, parentOrEmpty, toUri;
 import util.util : debugLog;
 import util.writer : debugLogWithWriter, makeStringWithWriter, Writer;
 import versionInfo : getOS, versionInfoForInterpret, versionInfoForJIT;
@@ -113,7 +113,7 @@ import versionInfo : getOS, versionInfoForInterpret, versionInfoForJIT;
 	scope Perf perf = Perf(() => getTimeNanosPure());
 	Server server = Server((size_t sizeWords, size_t _) =>
 		(cast(word*) pureMalloc(sizeWords * word.sizeof))[0 .. sizeWords]);
-	FileUri cwd = getCwd(server.allUris);
+	FilePath cwd = getCwd(server.allUris);
 	setIncludeDir(&server, childUri(server.allUris, getCrowDir(server.allUris), symbol!"include"));
 	setCwd(server, toUri(server.allUris, cwd));
 	setShowOptions(server, ShowOptions(true));
@@ -167,7 +167,7 @@ version (Windows) {
 
 	while (true) {
 		// TODO: get this from specified trace level
-		bool logLsp = true;
+		bool logLsp = false;
 		//TODO: track perf for each message/response
 		Opt!ExitCode stop = withNullPerf!(Opt!ExitCode, (scope ref Perf perf) =>
 			withTempAllocImpure!(Opt!ExitCode)(server.metaAlloc, (ref Alloc alloc) =>
@@ -191,11 +191,12 @@ Opt!ExitCode handleOneMessageIn(scope ref Perf perf, ref Alloc alloc, ref Server
 				foreach (Uri uri; outMessage.as!LspOutNotification.as!UnknownUris.unknownUris)
 					enqueue(alloc, bufferedMessages, LspInMessage(
 						LspInNotification(readFileLocally(alloc, server.allUris, uri))));
-			} else
+			} else {
 				lspWrite(
 					alloc, server.allSymbols,
 					jsonOfLspOutMessage(alloc, server.allUris, server.lineAndCharacterGetters, outMessage),
 					logLsp);
+			}
 		}
 		if (has(action.exitCode))
 			return action.exitCode;
@@ -306,11 +307,11 @@ void loadSingleFile(scope ref Perf perf, ref Server server, Uri uri) {
 	}
 }
 
-ExitCode go(scope ref Perf perf, ref Alloc alloc, ref Server server, FileUri cwd, in CommandKind command) =>
+ExitCode go(scope ref Perf perf, ref Alloc alloc, ref Server server, FilePath cwd, in CommandKind command) =>
 	command.matchImpure!ExitCode(
 		(in CommandKind.Build x) {
 			loadAllFiles(perf, server, [x.mainUri]);
-			return withBuild(perf, alloc, server, cwd, x.mainUri, x.options, (FileUri _, in ExternLibraries _2) =>
+			return withBuild(perf, alloc, server, cwd, x.mainUri, x.options, (FilePath _, in ExternLibraries _2) =>
 				ExitCode.ok);
 		},
 		(in CommandKind.Check x) {
@@ -344,7 +345,7 @@ ExitCode go(scope ref Perf perf, ref Alloc alloc, ref Server server, FileUri cwd
 				writeVersion(writer, server);
 			}));
 
-ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, FileUri cwd, in CommandKind.Run run) {
+ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, FilePath cwd, in CommandKind.Run run) {
 	loadAllFiles(perf, server, [run.mainUri]);
 	return run.options.matchImpure!ExitCode(
 		(in RunOptions.Interpret) =>
@@ -416,20 +417,20 @@ ExitCode buildAndRun(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
-	FileUri cwd,
+	FilePath cwd,
 	Uri main,
 	in CString[] programArgs,
 	in RunOptions.Aot options,
 ) {
 	MutOpt!int signal;
-	ExitCode exitCode = withTempUri(server.allUris, main, options.defaultExeExtension, (FileUri exeUri) {
+	ExitCode exitCode = withTempPath(server.allUris, main, options.defaultExeExtension, (FilePath exePath) {
 		BuildOptions buildOptions = BuildOptions(
-			BuildOut(outC: none!FileUri, shouldBuildExecutable: true, outExecutable: exeUri),
+			BuildOut(outC: none!FilePath, shouldBuildExecutable: true, outExecutable: exePath),
 			options.compileOptions);
-		return withBuild(perf, alloc, server, cwd, main, buildOptions, (FileUri cUri, in ExternLibraries libs) {
-			ExitCodeOrSignal res = runProgram(alloc, server.allUris, libs, PathAndArgs(exeUri, programArgs));
+		return withBuild(perf, alloc, server, cwd, main, buildOptions, (FilePath cPath, in ExternLibraries libs) {
+			ExitCodeOrSignal res = runProgram(alloc, server.allUris, libs, PathAndArgs(exePath, programArgs));
 			// Doing this after 'runProgram' since that may use the '.pdb' file
-			ExitCode cleanup = cleanupCompile(server.allUris, cwd, cUri, exeUri);
+			ExitCode cleanup = cleanupCompile(server.allUris, cwd, cPath, exePath);
 			// Delay aborting with the signal so we can clean up temp files
 			return res.match!ExitCode(
 				(ExitCode x) =>
@@ -451,22 +452,22 @@ ExitCode withBuild(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
-	FileUri cwd,
+	FilePath cwd,
 	Uri main,
 	in BuildOptions options,
 	// WARN: the C file will be deleted by the time this is called
-	in ExitCode delegate(FileUri cUri, in ExternLibraries) @safe @nogc nothrow cb,
+	in ExitCode delegate(FilePath cPath, in ExternLibraries) @safe @nogc nothrow cb,
 ) =>
-	withUriOrTemp(server.allUris, options.out_.outC, main, Extension.c, (FileUri cUri) =>
-		withBuildToC(perf, alloc, server, main, options, cUri, (in BuildToCResult result) =>
-			okAnd(writeFile(server.allUris, cUri, result.writeToCResult.cSource), () =>
+	withPathOrTemp(server.allUris, options.out_.outC, main, Extension.c, (FilePath cPath) =>
+		withBuildToC(perf, alloc, server, main, options, cPath, (in BuildToCResult result) =>
+			okAnd(writeFile(server.allUris, cPath, result.writeToCResult.cSource), () =>
 				okAnd(
 					options.out_.shouldBuildExecutable
 						? withMeasure!(ExitCode, () =>
 							runCompiler(alloc, server.allUris, result.writeToCResult.compileCommand)
 						)(perf, alloc, PerfMeasure.invokeCCompiler)
 						: ExitCode.ok,
-					() => cb(cUri, result.externLibraries)))));
+					() => cb(cPath, result.externLibraries)))));
 
 ExitCode withBuildToC(
 	scope ref Perf perf,
@@ -474,13 +475,13 @@ ExitCode withBuildToC(
 	ref Server server,
 	Uri main,
 	in BuildOptions options,
-	FileUri cUri,
+	FilePath cPath,
 	in ExitCode delegate(in BuildToCResult) @safe @nogc nothrow cb,
 ) {
-	Opt!FileUri cCompiler = findPathToCCompiler(server.allUris);
+	Opt!FilePath cCompiler = findPathToCCompiler(server.allUris);
 	if (has(cCompiler)) {
 		WriteToCParams params = WriteToCParams(
-			force(cCompiler), cUri, options.out_.outExecutable, options.cCompileOptions);
+			force(cCompiler), cPath, options.out_.outExecutable, options.cCompileOptions);
 		BuildToCResult result = buildToC(perf, alloc, server, getOS(), main, params);
 		if (!isEmpty(result.diagnostics))
 			printError(result.diagnostics);

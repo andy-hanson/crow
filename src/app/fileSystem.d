@@ -69,17 +69,18 @@ import util.uri :
 	AllUris,
 	alterExtension,
 	alterExtensionWithHex,
-	asFileUri,
+	asFilePath,
 	baseName,
-	childFileUri,
-	cStringOfFileUri,
-	FileUri,
-	isFileUri,
+	childFilePath,
+	cStringOfFilePath,
+	FilePath,
 	parent,
-	parseFileUri,
+	parseFilePath,
 	Uri,
-	withCStringOfFileUri,
-	writeFileUri;
+	uriIsFile,
+	withCStringOfFilePath,
+	writeFilePath,
+	writeUri;
 import util.util : castImmutable, todo, typeAs;
 import util.writer : withStackWriterImpure, withWriter, Writer, writeWithSeparatorAndFilter;
 import versionInfo : getOS, OS;
@@ -169,8 +170,8 @@ private @system void writeLn(OutPipe pipe, in string a) {
 	flush(pipe);
 }
 
-private ExitCode removeFileIfExists(in AllUris allUris, FileUri uri) =>
-	withCStringOfFileUri(allUris, getOS(), uri, (in CString cString) @trusted {
+private ExitCode removeFileIfExists(in AllUris allUris, FilePath path) =>
+	withCStringOfFilePath(allUris, path, (in CString cString) @trusted {
 		version (Windows) {
 			bool success = withRetry(() {
 				int ok = DeleteFileA(cString.ptr);
@@ -200,28 +201,35 @@ private ExitCode removeFileIfExists(in AllUris allUris, FileUri uri) =>
 This doesn't create the path, 'cb' should do that.
 But if it is a temp path, this deletes it after the callback finishes.
 */
-ExitCode withUriOrTemp(
+ExitCode withPathOrTemp(
 	ref AllUris allUris,
-	Opt!FileUri uri,
+	Opt!FilePath path,
 	Uri tempBasePath,
 	Extension extension,
-	in ExitCode delegate(FileUri) @safe @nogc nothrow cb,
+	in ExitCode delegate(FilePath) @safe @nogc nothrow cb,
 ) =>
-	has(uri)
-		? cb(force(uri))
-		: withTempUri(allUris, tempBasePath, extension, cb);
+	has(path)
+		? cb(force(path))
+		: withTempPath(allUris, tempBasePath, extension, cb);
 
-ExitCode withTempUri(
+ExitCode withTempPath(
 	ref AllUris allUris,
 	Uri tempBasePath,
 	Extension extension,
-	in ExitCode delegate(FileUri) @safe @nogc nothrow cb,
+	in ExitCode delegate(FilePath) @safe @nogc nothrow cb,
 ) {
-	ubyte[8] bytes = getRandomBytes();
-	FileUri tempUri = alterExtensionWithHex(allUris, asFileUri(allUris, tempBasePath), bytes, extension);
-	ExitCode exit = cb(tempUri);
-	ExitCode exit2 = removeFileIfExists(allUris, tempUri);
-	return okAnd(exit, () => exit2);
+	if (uriIsFile(allUris, tempBasePath)) {
+		ubyte[8] bytes = getRandomBytes();
+		FilePath tempPath = alterExtensionWithHex(allUris, asFilePath(allUris, tempBasePath), bytes, extension);
+		ExitCode exit = cb(tempPath);
+		ExitCode exit2 = removeFileIfExists(allUris, tempPath);
+		return okAnd(exit, () => exit2);
+	} else
+		return printErrorCb((scope ref Writer writer) {
+			writer ~= "Don't know where to put temporary file near ";
+			writeUri(writer, allUris, tempBasePath);
+			writer ~= " (since it is not a file path)";
+		});
 }
 
 private @trusted ubyte[8] getRandomBytes() {
@@ -273,24 +281,24 @@ private T[size0 + size1] concat(T, size_t size0, size_t size1)(in T[size0] a, in
 
 private alias TempStrForPath = char[0x1000];
 
-@trusted Opt!FileUri findPathToCCompiler(scope ref AllUris allUris) {
+@trusted Opt!FilePath findPathToCCompiler(scope ref AllUris allUris) {
 	version (Windows) {
 		TempStrForPath res = void;
 		int len = SearchPathA(null, "cl.exe", null, cast(uint) res.length, res.ptr, null);
 		if (len == 0) {
 			printError("Could not find cl.exe on path. Be sure you are using a Native Tools Command Prompt.");
-			return none!FileUri;
+			return none!FilePath;
 		} else
-			return some(parseFileUri(allUris, CString(cast(immutable) res.ptr)));
+			return some(parseFilePath(allUris, CString(cast(immutable) res.ptr)));
 	} else
-		return some(parseFileUri(allUris, cString!"/usr/bin/cc"));
+		return some(parseFilePath(allUris, cString!"/usr/bin/cc"));
 }
 
 @trusted ReadFileResult tryReadFile(ref Alloc alloc, scope ref AllUris allUris, Uri uri) {
-	if (!isFileUri(allUris, uri))
+	if (!uriIsFile(allUris, uri))
 		return ReadFileResult(ReadFileDiag.notFound);
 
-	FILE* fd = openFile(allUris, asFileUri(allUris, uri), "rb");
+	FILE* fd = openFile(allUris, asFilePath(allUris, uri), "rb");
 	if (fd == null)
 		return errno == ENOENT
 			? ReadFileResult(ReadFileDiag.notFound)
@@ -323,12 +331,12 @@ private alias TempStrForPath = char[0x1000];
 	}
 }
 
-private @system FILE* openFile(in AllUris allUris, FileUri uri, immutable char* flags) =>
-	withCStringOfFileUri(allUris, getOS(), uri, (in CString x) @trusted =>
+private @system FILE* openFile(in AllUris allUris, FilePath path, immutable char* flags) =>
+	withCStringOfFilePath(allUris, path, (in CString x) @trusted =>
 		fopen(x.ptr, flags));
 
-@trusted ExitCode writeFile(in AllUris allUris, FileUri uri, in string content) {
-	MutOpt!(FILE*) fd = tryOpenFileForWrite(allUris, uri);
+@trusted ExitCode writeFile(in AllUris allUris, FilePath path, in string content) {
+	MutOpt!(FILE*) fd = tryOpenFileForWrite(allUris, path);
 	if (has(fd)) {
 		scope(exit) fclose(force(fd));
 
@@ -344,21 +352,21 @@ private @system FILE* openFile(in AllUris allUris, FileUri uri, immutable char* 
 		return ExitCode.error;
 }
 
-private @system MutOpt!(FILE*) tryOpenFileForWrite(in AllUris allUris, FileUri uri) {
-	FILE* fd = openFile(allUris, uri, "w");
+private @system MutOpt!(FILE*) tryOpenFileForWrite(in AllUris allUris, FilePath path) {
+	FILE* fd = openFile(allUris, path, "w");
 	if (fd != null)
 		return someMut(fd);
 	else if (errno == ENOENT) {
-		Opt!FileUri par = parent(allUris, uri);
+		Opt!FilePath par = parent(allUris, path);
 		if (has(par) && mkdirRecur(allUris, force(par)) == ExitCode.ok) {
-			FILE* res = openFile(allUris, uri, "w");
+			FILE* res = openFile(allUris, path, "w");
 			return res == null ? noneMut!(FILE*) : someMut(res);
 		} else
 			return noneMut!(FILE*);
 	} else {
 		printErrorCb((scope ref Writer writer) {
 			writer ~= "Failed to write file ";
-			writeFileUri(writer, allUris, getOS(), uri);
+			writeFilePath(writer, allUris, path);
 			writer ~= ": ";
 			writeLastError(writer);
 		});
@@ -366,15 +374,15 @@ private @system MutOpt!(FILE*) tryOpenFileForWrite(in AllUris allUris, FileUri u
 	}
 }
 
-@trusted FileUri getCwd(ref AllUris allUris) {
+@trusted FilePath getCwd(ref AllUris allUris) {
 	TempStrForPath res = void;
 	const char* cwd = getcwd(res.ptr, res.length);
 	return cwd == null
-		? todo!FileUri("getcwd failed")
-		: parseFileUri(allUris, CString(cast(immutable) cwd));
+		? todo!FilePath("getcwd failed")
+		: parseFilePath(allUris, CString(cast(immutable) cwd));
 }
 
-@trusted FileUri getPathToThisExecutable(ref AllUris allUris) {
+@trusted FilePath getPathToThisExecutable(ref AllUris allUris) {
 	TempStrForPath res = void;
 	version (Windows) {
 		HMODULE mod = GetModuleHandle(null);
@@ -385,7 +393,7 @@ private @system MutOpt!(FILE*) tryOpenFileForWrite(in AllUris allUris, FileUri u
 	}
 	assert(size > 0 && size < res.length);
 	res[size] = '\0';
-	return parseFileUri(allUris, CString(cast(immutable) res.ptr));
+	return parseFilePath(allUris, CString(cast(immutable) res.ptr));
 }
 
 immutable struct Signal {
@@ -417,12 +425,12 @@ ExitCode runCompiler(ref TempAlloc tempAlloc, scope ref AllUris allUris, in Path
 	// Extern library linker arguments are already in args
 	printSignalAndExit(runCommon(tempAlloc, allUris, [], pathAndArgs, isCompile: true));
 
-ExitCode cleanupCompile(scope ref AllUris allUris, FileUri cwd, FileUri cUri, FileUri exeUri) {
+ExitCode cleanupCompile(scope ref AllUris allUris, FilePath cwd, FilePath cPath, FilePath exePath) {
 	version (Windows) {
-		removeFileIfExists(allUris, alterExtension(allUris, exeUri, Extension.ilk));
-		removeFileIfExists(allUris, alterExtension(allUris, exeUri, Extension.pdb));
-		Symbol objBaseName = alterExtension(allUris.allSymbols, baseName(allUris, cUri), Extension.obj);
-		return removeFileIfExists(allUris, childFileUri(allUris, cwd, objBaseName));
+		removeFileIfExists(allUris, alterExtension(allUris, exePath, Extension.ilk));
+		removeFileIfExists(allUris, alterExtension(allUris, exePath, Extension.pdb));
+		Symbol objBaseName = alterExtension(allUris.allSymbols, baseName(allUris, cPath), Extension.obj);
+		return removeFileIfExists(allUris, childFilePath(allUris, cwd, objBaseName));
 	} else
 		return ExitCode.ok;
 }
@@ -442,13 +450,13 @@ private @trusted ExitCodeOrSignal runCommon(
 	in PathAndArgs pathAndArgs,
 	bool isCompile,
 ) {
-	CString executablePath = cStringOfFileUri(tempAlloc, allUris, getOS(), pathAndArgs.path);
+	CString executablePath = cStringOfFilePath(tempAlloc, allUris, pathAndArgs.path);
 	version (Windows) {
 		CString argsCString = windowsArgsCString(tempAlloc, executablePath, pathAndArgs.args);
 
 		foreach (ExternLibrary x; externLibraries) {
 			if (has(x.configuredDir)) {
-				bool ok = withCStringOfFileUri(allUris, OS.windows, asFileUri(allUris, force(x.configuredDir)), (in CString x) =>
+				bool ok = withCStringOfFilePath(allUris, asFilePath(allUris, force(x.configuredDir)), (in CString x) =>
 					SetDllDirectoryA(x.ptr));
 				assert(ok);
 			}
@@ -611,7 +619,7 @@ version (Windows) {} else {
 						(in ExternLibrary x) => has(x.configuredDir),
 						(in ExternLibrary x) {
 							writer ~= '/';
-							writeFileUri(writer, allUris, os, asFileUri(allUris, force(x.configuredDir)));
+							writeFilePath(writer, allUris, os, asFilePath(allUris, force(x.configuredDir)));
 						});
 				}).ptr;
 
@@ -628,14 +636,14 @@ version (Windows) {
 	alias mkdir = _mkdir;
 }
 
-@system ExitCode mkdirRecur(in AllUris allUris, FileUri dir) {
+@system ExitCode mkdirRecur(in AllUris allUris, FilePath dir) {
 	version (Windows) {
 		return todo!ExitCode("!");
 	} else {
-		int err = withCStringOfFileUri(allUris, getOS(), dir, (in CString x) =>
+		int err = withCStringOfFilePath(allUris, dir, (in CString x) =>
 			mkdir(x.ptr, S_IRWXU));
 		if (err == ENOENT) {
-			Opt!FileUri par = parent(allUris, dir);
+			Opt!FilePath par = parent(allUris, dir);
 			if (has(par)) {
 				ExitCode res = mkdirRecur(allUris, force(par));
 				return res == ExitCode.ok

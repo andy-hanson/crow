@@ -64,7 +64,7 @@ import util.opt : force, has, Opt, some;
 import util.string : CString, cString, cStringSize, eachChar;
 import util.symbol : addExtension, AllSymbols, cStringOfSymbol, Extension, Symbol, symbol, writeSymbol;
 import util.union_ : Union;
-import util.uri : AllUris, asFileUri, childFileUri, cStringOfFileUri, FileUri, isFileUri, writeFileUri;
+import util.uri : AllUris, asFilePath, childFilePath, cStringOfFilePath, FilePath, uriIsFile, writeFilePath;
 import util.util : abs, castNonScope, castNonScope_ref, ptrTrustMe, stringOfEnum, todo;
 import util.writer :
 	makeStringWithWriter,
@@ -76,10 +76,10 @@ import util.writer :
 	writeWithCommas,
 	writeWithCommasZip,
 	writeWithSpaces;
-import versionInfo : isWindows, OS;
+import versionInfo : isWindows;
 
 immutable struct PathAndArgs {
-	FileUri path;
+	FilePath path;
 	CString[] args;
 }
 
@@ -89,9 +89,9 @@ immutable struct WriteToCResult {
 }
 
 immutable struct WriteToCParams {
-	FileUri cCompiler;
-	FileUri cUri;
-	FileUri exeUri;
+	FilePath cCompiler;
+	FilePath cPath;
+	FilePath exePath;
 	CCompileOptions compileOptions;
 }
 
@@ -103,12 +103,11 @@ WriteToCResult writeToC(
 	in LowProgram program,
 	in WriteToCParams params,
 ) {
-	OS os = program.version_.os;
 	bool isMSVC = isWindows(program.version_);
-	CString[] args = cCompileArgs(alloc, allSymbols, allUris, program.externLibraries, os, isMSVC, params);
+	CString[] args = cCompileArgs(alloc, allSymbols, allUris, program.externLibraries, isMSVC, params);
 	string content = makeStringWithWriter(alloc, (scope ref Writer writer) {
 		writer ~= "/* ";
-		writeFileUri(writer, allUris, os, params.cCompiler);
+		writeFilePath(writer, allUris, params.cCompiler);
 		writer ~= ' ';
 		writeWithSpaces!CString(writer, args, (in CString arg) { writer ~= arg; });
 		writer ~= " */\n\n";
@@ -150,7 +149,6 @@ public void getLinkOptions(
 	ref Alloc alloc,
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
-	OS os,
 	bool isMSVC,
 	in ExternLibraries externLibraries,
 	in void delegate(CString) @safe @nogc pure nothrow cb,
@@ -161,11 +159,10 @@ public void getLinkOptions(
 		if (isMSVC) {
 			Symbol xDotLib = addExtension(allSymbols, x.libraryName, Extension.lib);
 			if (has(x.configuredDir)) {
-				if (!isFileUri(allUris, force(x.configuredDir)))
+				if (!uriIsFile(allUris, force(x.configuredDir)))
 					todo!void("diagnostic: can't link to non-file");
-				cb(cStringOfFileUri(
-					alloc, allUris, OS.windows,
-					childFileUri(allUris, asFileUri(allUris, force(x.configuredDir)), xDotLib)));
+				cb(cStringOfFilePath(
+					alloc, allUris, childFilePath(allUris, asFilePath(allUris, force(x.configuredDir)), xDotLib)));
 			} else
 				switch (x.libraryName.value) {
 					case symbol!"c".value:
@@ -179,9 +176,9 @@ public void getLinkOptions(
 			if (has(x.configuredDir)) {
 				cb(withWriter(alloc, (scope ref Writer writer) {
 					writer ~= "-L/";
-					if (!isFileUri(allUris, force(x.configuredDir)))
+					if (!uriIsFile(allUris, force(x.configuredDir)))
 						todo!void("diagnostic: can't link to non-file");
-					writeFileUri(writer, allUris, os, asFileUri(allUris, force(x.configuredDir)));
+					writeFilePath(writer, allUris, asFilePath(allUris, force(x.configuredDir)));
 				}));
 			}
 
@@ -200,24 +197,23 @@ CString[] cCompileArgs(
 	scope ref AllSymbols allSymbols,
 	scope ref AllUris allUris,
 	in ExternLibraries externLibraries,
-	OS os,
 	bool isMSVC,
 	in WriteToCParams params,
 ) =>
 	buildArray(alloc, (scope ref Builder!CString args) {
 		args ~= cCompilerArgs(isMSVC, params.compileOptions);
-		args ~= cStringOfFileUri(alloc, allUris, os, params.cUri);
-		getLinkOptions(alloc, allSymbols, allUris, os, isMSVC, externLibraries, (CString x) { args ~= x; });
+		args ~= cStringOfFilePath(alloc, allUris, params.cPath);
+		getLinkOptions(alloc, allSymbols, allUris, isMSVC, externLibraries, (CString x) { args ~= x; });
 		if (isMSVC) {
 			args ~= [
 				cString!"/nologo",
 				withWriter(alloc, (scope ref Writer writer) {
 					writer ~= "/out:";
-					writeFileUri(writer, allUris, os, params.exeUri);
+					writeFilePath(writer, allUris, params.exePath);
 				}),
 			];
 		} else {
-			args ~= [cString!"-o", cStringOfFileUri(alloc, allUris, os, params.exeUri)];
+			args ~= [cString!"-o", cStringOfFilePath(alloc, allUris, params.exePath)];
 		}
 	});
 

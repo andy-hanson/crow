@@ -12,6 +12,13 @@ main nat^(_ string[]) summon
 		err print x
 	failures.size,
 
++all-files file[]^() summon
+	paths <- "src" search-dir-recursive x => x ends-with ".d"
+	members = paths get-members-per-path
+	for path : paths parallel
+		imports-and-rest = path.read-file find-imports
+		(path, members[path]!, imports-and-rest.imports, imports-and-rest.rest.words.to),
+
 -lint-files string[](files file[])
 	failures string mut[] = ()
 	all-imports = files get-all-imports
@@ -24,7 +31,9 @@ main nat^(_ string[]) summon
 				failures ~= "{file path} export not used: {public-export}"
 	for file : files
 		for private-member : file.members private
-			if file.uses[private-member] < 2 && file.path != "src/util/union.d"
+			if file.uses[private-member] < 2 &&
+					file.path != "src/util/union.d" &&
+					!(private-member in allow-private-unused)
 				failures ~= "{file path} private member not used: {private-member}"
 	for file : files
 		failures lint-imports-in-file file
@@ -35,14 +44,16 @@ main nat^(_ string[]) summon
 		for file : files
 			out ~~= file.imports
 
+-allow-private-unused symbol set()
+	"_assert", "__assert"
 -allow-exports symbol set()
 	# Allow members of TokenData; dscanner doesn't realize these aren't directly exports
-	"debugLogExpected", "diffSymbols", "main", "ignore", "indentDelta", "literalFloat",
-	"literalInt", "literalNat"
+	"debugLogExpected", "diffSymbols", "main", "ignore",
+	"indentDelta", "literalFloat", "literalInt", "literalNat"
 -allow-paths string set()
 	# Ignore debugging.d because unused functions may be useful for debugging.
-	# Ignore union.d because ddscanner gets confused by the mixin.
-	"src/interpret/debugging.d", "src/util/union.d"
+	# Ignore union_.d because dscanner gets confused by the mixin.
+	"src/interpret/debugging.d", "src/util/union_.d"
 
 -file record
 	path string
@@ -53,13 +64,6 @@ main nat^(_ string[]) summon
 -members record
 	public symbol set
 	private symbol set
-
--all-files file[]^() summon
-	paths <- "src" search-dir-recursive x => x ends-with ".d"
-	members = paths get-members-per-path
-	for path : paths parallel
-		imports-and-rest = path.read-file find-imports
-		(path, members[path]!, imports-and-rest.imports, imports-and-rest.rest.words.to),
 
 -get-members-per-path members[string](paths string[]) summon
 	"dub run dscanner --yes -- --ctags {" " join paths}".shell-exec get-members-per-path
@@ -144,5 +148,5 @@ main nat^(_ string[]) summon
 	for x, _ : a uses
 		_ = not-used remove x
 	for x : not-used
-		if a.path != "src/util/union.d"
+		if a.path != "src/util/union_.d"
 			failures ~= "{a path}: unused import {x}"

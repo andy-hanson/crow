@@ -10,7 +10,7 @@ import util.jsonParse : mustParseJson;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
 import util.perf : Perf, PerfMeasure, PerfMeasureResult, PerfResult, perfResult, withNullPerf;
 import util.string : CString;
-import util.uri : parseUri;
+import util.uri : mustParseUri;
 import util.util : cStringOfEnum;
 
 extern(C) void _start() {}
@@ -58,8 +58,8 @@ alias FetchMemoryCbImpure = ulong[] delegate(size_t sizeWords, size_t timesCalle
 	CString paramsStr = CString(paramsCString);
 	withTempAlloc!void(server.metaAlloc, (ref Alloc alloc) {
 		Json params = mustParseJson(alloc, server.allSymbols, paramsStr);
-		setIncludeDir(server, parseUri(server.allUris, get!"includeDir"(params).as!string));
-		setCwd(*server, parseUri(server.allUris, get!"cwd"(params).as!string));
+		setIncludeDir(server, mustParseUri(server.allUris, get!"includeDir"(params).as!string));
+		setCwd(*server, mustParseUri(server.allUris, get!"cwd"(params).as!string));
 	});
 	return server;
 }

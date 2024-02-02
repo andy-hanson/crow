@@ -26,7 +26,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
 import util.symbol : concatSymbolsWithDot, Symbol, symbol;
-import util.uri : AllUris, childPath, Path, RelPath, rootPath;
+import util.uri : AllUris, childPath, Path, RelPath, rootPathPlain;
 
 Opt!ImportsOrExportsAst parseImportsOrExports(scope ref AllUris allUris, ref Lexer lexer, Token keyword) {
 	Pos start = curPos(lexer);
@@ -66,7 +66,7 @@ PathOrRelPath parseImportPath(scope ref AllUris allUris, ref Lexer lexer) {
 		} else
 			return none!ushort;
 	}();
-	Path path = addPathComponents(allUris, lexer, rootPath(allUris, takePathComponent(lexer)));
+	Path path = addPathComponents(allUris, lexer, rootPathPlain(allUris, takePathComponent(lexer)));
 	return has(nParents) ? PathOrRelPath(RelPath(force(nParents), path)) : PathOrRelPath(path);
 }
 
