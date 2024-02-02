@@ -141,7 +141,6 @@ import util.union_ : TaggedUnion;
 import util.uri : AllUris;
 import util.util : castImmutable, castNonScope, castNonScope_ref, cStringOfEnum, debugLog, ptrTrustMe, todo;
 import util.writer : debugLogWithWriter, withWriter, Writer;
-import versionInfo : OS;
 
 @trusted ExitCode jitAndRun(
 	scope ref Perf perf,
@@ -218,7 +217,7 @@ GccProgram getGccProgram(
 	//gcc_jit_context_set_bool_option(*ctx, gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, true);
 	//gcc_jit_context_set_bool_option(*ctx, gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE, true);
 
-	getLinkOptions(alloc, allSymbols, allUris, OS.linux, isMSVC: false, program.externLibraries, (CString x) {
+	getLinkOptions(alloc, allSymbols, allUris, isMSVC: false, program.externLibraries, (CString x) {
 		gcc_jit_context_add_driver_option(*ctx, x.ptr);
 	});
 

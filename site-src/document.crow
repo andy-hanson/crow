@@ -17,7 +17,6 @@ documentation path-and-content[]^() summon
 		"file:///{include.to-lower-case uri-encode}/"
 	else
 		"file://{include uri-encode}/"
-	info log "include is {include-uri}"
 	all-modules <- all-module-paths get-modules include-uri
 	all-paths = (for x : all-modules; x path) sort-paths
 	all-exports = all-modules all-exports

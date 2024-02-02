@@ -62,23 +62,27 @@ dyncall:
 
 ### D build ###
 
-src_files_common = src/concretize/*.d \
+all_src_files = src/*.d \
+	src/app/*.d \
+	src/backend/*.d \
+	src/concretize/*.d \
+	src/document/*.d \
 	src/frontend/*.d \
-	src/frontend/*/*.d \
-	src/frontend/*/*/*.d \
+	src/frontend/check/*.d \
+	src/frontend/check/checkCall/*.d \
+	src/frontend/ide/*.d \
+	src/frontend/parse/*.d \
 	src/interpret/*.d \
 	src/lib/*.d \
-	src/lib/*/*.d \
+	src/lib/lsp/*.d \
 	src/lower/*.d \
 	src/model/*.d \
+	src/test/*.d \
+	src/test/hover/* \
 	src/util/*.d \
-	src/util/*/*.d \
-	src/versionInfo.d
-app_src_no_test = src/app/*.d $(src_files_common) src/backend/*.d src/document/*.d
-app_src_with_test = $(app_src_no_test) src/test/*.d
-other_deps = bin/d-imports/date.txt bin/d-imports/commit-hash.txt
-app_deps_no_test = $(app_src_no_test) $(other_deps) dyncall/dyncall/libdyncall_s.a
-app_deps_with_test = $(app_src_with_test) src/test/hover/* $(other_deps) dyncall/dyncall/libdyncall_s.a
+	src/util/alloc/*.d \
+	src/util/col/*.d
+d_dependencies = $(all_src_files) bin/d-imports/date.txt bin/d-imports/commit-hash.txt dyncall/dyncall/libdyncall_s.a
 
 d_flags_common = -w -betterC -preview=dip1000 -preview=in -J=bin/d-imports -J=src/test -J=include
 dmd_flags_common = $(d_flags_common) -version=GccJitAvailable
@@ -92,15 +96,6 @@ ldc_fast_flags = $(ldc_fast_flags_no_tail_call) --d-version=TailRecursionAvailab
 app_link = -L=-ldyncall_s -L=-ldyncallback_s -L=-ldynload_s -L=-lgccjit -L=-lunwind \
 	-L=-L./dyncall/dyncall -L=-L./dyncall/dyncallback -L=-L./dyncall/dynload
 
-# TODO: should not need document/mangle/writeToC/writeTypes
-wasm_src = src/wasm.d $(src_files_common) \
-	src/document/document.d \
-	src/backend/builtinMath.d \
-	src/backend/mangle.d \
-	src/backend/writeToC.d \
-	src/backend/writeTypes.d
-wasm_deps = $(wasm_src) $(other_deps)
-
 bin/d-imports/date.txt:
 	mkdir -p bin/d-imports
 	date --iso-8601 --utc > bin/d-imports/date.txt
@@ -111,27 +106,28 @@ bin/d-imports/commit-hash.txt:
 
 debug_flags = --d-debug -g --d-version=Debug
 
-bin/crow-debug: $(app_deps_with_test)
-	ldc2 -ofbin/crow-debug $(ldc_flags_assert) $(debug_flags) --d-version=Test $(app_src_with_test) $(app_link)
+bin/crow-debug: $(d_dependencies)
+	ldc2 -ofbin/crow-debug $(ldc_flags_assert) $(debug_flags) --d-version=Test src/app/main.d -I=src -i $(app_link)
 	rm bin/crow-debug.o
 
 # This isn't used anywhere, but you could use it to test things out quickly, since compilation with DMD is much faster.
-bin/crow-dmd: $(app_deps_with_test)
-	dmd -ofbin/crow-dmd -m64 $(dmd_flags_assert) -debug -g -version=Debug -version=Test $(app_src_with_test) $(app_link)
+bin/crow-dmd: $(d_dependencies)
+	dmd -ofbin/crow-dmd -m64 $(dmd_flags_assert) -debug -g -version=Debug -version=Test \
+		src/app/main.d -I=src -i $(app_link)
 	rm -f bin/crow-dmd.o
 
-bin/crow: $(app_deps_no_test)
-	ldc2 -ofbin/crow $(ldc_flags_assert) $(ldc_fast_flags) $(app_src_no_test) $(app_link) -deps=bin/dependencies.txt
+bin/crow: $(d_dependencies)
+	ldc2 -ofbin/crow $(ldc_flags_assert) $(ldc_fast_flags) src/app/main.d -I=src -i $(app_link)
 	rm bin/crow.o
 
 # This isn't used anywhere, but you can rename the result to 'crow.wasm' to help debugging in the browser
-bin/crow-debug.wasm: $(wasm_deps)
-	ldc2 -ofbin/crow-debug.wasm $(debug_flags) $(ldc_flags_assert) $(ldc_wasm_flags) $(wasm_src)
+bin/crow-debug.wasm: $(d_dependencies)
+	ldc2 -ofbin/crow-debug.wasm $(debug_flags) $(ldc_flags_assert) $(ldc_wasm_flags) src/wasm.d -I=src -i
 	rm bin/crow-debug.o
 
-bin/crow.wasm: $(wasm_deps)
+bin/crow.wasm: $(d_dependencies)
 	# Build with a different name so it doesn't use the same '.o' file as 'bin/crow'
-	ldc2 -ofbin/crow-wasm.wasm $(ldc_flags_assert) $(ldc_wasm_flags) $(ldc_fast_flags_no_tail_call) $(wasm_src)
+	ldc2 -ofbin/crow-wasm.wasm $(ldc_flags_assert) $(ldc_wasm_flags) $(ldc_fast_flags_no_tail_call) src/wasm.d -I=src -i
 	rm bin/crow-wasm.o
 	mv bin/crow-wasm.wasm bin/crow.wasm
 

@@ -36,7 +36,7 @@ import
 	./environ: get-environ-raw
 	./file: is-file
 	./posix-util: check-errno, check-posix-error
-	./print: err, out, print
+	./print: err, print
 	./win32-util: show-win32-error
 
 # Represents the output of running a process.
@@ -63,8 +63,6 @@ not to the parent's stdout and stderr.
 EXE should be a file path and not just a name; this does not search the system path for `exe`.
 ###
 +spawn-and-wait-result process-result(exe string, args string[]) summon
-	out print (" " join "spawn-and-wait-result: {exe}" ~ args)
-
 	# TODO: kill, handle that error properly
 	assert exe is-file : "{exe} is not a file"
 	trusted

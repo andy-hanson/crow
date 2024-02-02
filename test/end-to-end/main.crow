@@ -103,6 +103,7 @@ run-kind enum
 		"run", path, "--jit"
 	as aot
 		"run", path, "--aot"
+	info log "{path-to-crow} {" " join args}"
 	res = path-to-crow spawn-and-wait-result args
 	(path handle-output "{path}.out", res.format-output, overwrite-output),
 

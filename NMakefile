@@ -71,6 +71,7 @@ all_src_files = src\*.d \
 	src\lower\*.d \
 	src\model\*.d \
 	src\test\*.d \
+	src\test\hover\* \
 	src\util\*.d \
 	src\util\alloc\*.d \
 	src\util\col\*.d
@@ -102,7 +103,7 @@ bin\d-imports\commit-hash.txt: bin\d-imports
 	git rev-parse --short HEAD > bin\d-imports\commit-hash.txt
 
 bin\crow-debug.exe: $(d_dependencies)
-	ldc2 -ofbin\crow-debug.exe -g $(ldc_flags_assert) --m64 $(ldc_flags_debug) src\app\main.d -I=src -i $(app_link)
+	ldc2 -ofbin\crow-debug.exe $(ldc_flags_assert) --m64 $(ldc_flags_debug) src\app\main.d -I=src -i $(app_link)
 
 bin\crow.exe: $(d_dependencies)
 	ldc2 -ofbin\crow.exe $(ldc_flags_assert) --m64 $(ldc_fast_flags) src\app\main.d -I=src -i $(app_link)

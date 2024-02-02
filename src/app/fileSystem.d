@@ -83,7 +83,6 @@ import util.uri :
 	writeUri;
 import util.util : castImmutable, todo, typeAs;
 import util.writer : withStackWriterImpure, withWriter, Writer, writeWithSeparatorAndFilter;
-import versionInfo : getOS, OS;
 
 private enum OutPipe { stdout = 1, stderr = 2 }
 
@@ -560,7 +559,7 @@ private @trusted ExitCodeOrSignal runCommon(
 			null,
 			// https://stackoverflow.com/questions/50596439/can-string-literals-be-passed-in-posix-spawns-argv
 			cast(char**) convertArgs(tempAlloc, executablePath, pathAndArgs.args),
-			getEnvironForChildProcess(tempAlloc, allUris, getOS(), externLibraries));
+			getEnvironForChildProcess(tempAlloc, allUris, externLibraries));
 		if (spawnStatus == 0) {
 			int waitStatus;
 			int resPid = waitpid(pid, &waitStatus, 0);
@@ -599,7 +598,6 @@ version (Windows) {} else {
 	@system pure immutable(char**) getEnvironForChildProcess(
 		ref Alloc alloc,
 		scope ref AllUris allUris,
-		OS os,
 		in ExternLibraries externLibraries,
 	) =>
 		exists!ExternLibrary(externLibraries, (in ExternLibrary x) => has(x.configuredDir))
@@ -619,7 +617,7 @@ version (Windows) {} else {
 						(in ExternLibrary x) => has(x.configuredDir),
 						(in ExternLibrary x) {
 							writer ~= '/';
-							writeFilePath(writer, allUris, os, asFilePath(allUris, force(x.configuredDir)));
+							writeFilePath(writer, allUris, asFilePath(allUris, force(x.configuredDir)));
 						});
 				}).ptr;
 
@@ -640,34 +638,36 @@ version (Windows) {
 	version (Windows) {
 		return todo!ExitCode("!");
 	} else {
-		int err = withCStringOfFilePath(allUris, dir, (in CString x) =>
-			mkdir(x.ptr, S_IRWXU));
+		int err = makeDirectory(allUris, dir);
 		if (err == ENOENT) {
 			Opt!FilePath par = parent(allUris, dir);
 			if (has(par)) {
 				ExitCode res = mkdirRecur(allUris, force(par));
 				return res == ExitCode.ok
-					? handleMkdirErr(mkdir(dirStr.ptr, S_IRWXU), dirStr)
+					? handleMkdirError(allUris, dir, makeDirectory(allUris, dir))
 					: res;
-			}
-		}
-		return handleMkdirErr(err, dirStr);
+			} else
+				return handleMkdirError(allUris, dir, err);
+		} else
+			return handleMkdirError(allUris, dir, err);
 	}
 }
 
 version (Windows) {
 } else {
-	@system ExitCode handleMkdirErr(int err, CString dir) =>
-		err == 0 ? ExitCode.ok : printErrno("Error making directory", dir);
+	int makeDirectory(in AllUris allUris, FilePath dir) =>
+		withCStringOfFilePath(allUris, dir, (in CString x) @trusted =>
+			mkdir(x.ptr, S_IRWXU));
 
-	@system ExitCode printErrno(string description, CString file) =>
-		printErrorCb((scope ref Writer writer) {
-			writer ~= description;
-			writer ~= ' ';
-			writer ~= file;
-			writer ~= ": ";
-			writeLastError(writer);
-		});
+	@system ExitCode handleMkdirError(in AllUris allUris, FilePath dir, int err) =>
+		err == 0
+			? ExitCode.ok
+			: printErrorCb((scope ref Writer writer) {
+				writer ~= "Error making directory ";
+				writeFilePath(writer, allUris, dir);
+				writer ~= ": ";
+				writeLastError(writer);
+			});
 }
 
 version (Windows) {

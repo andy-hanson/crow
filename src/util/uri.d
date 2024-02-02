@@ -34,9 +34,9 @@ import util.symbol :
 import util.util : todo, typeAs;
 import util.writer : makeStringWithWriter, withStackWriter, withStackWriterImpureCString, withWriter, Writer;
 
-T withCStringOfFilePath(T)(in AllUris allUris, FilePath uri, in T delegate(in CString) @safe @nogc nothrow cb) =>
+T withCStringOfFilePath(T)(in AllUris allUris, FilePath path, in T delegate(in CString) @safe @nogc nothrow cb) =>
 	withStackWriterImpureCString!T((scope ref Writer writer) {
-		writeFilePath(writer, allUris, uri);
+		writeFilePath(writer, allUris, path);
 	}, cb);
 
 pure:
