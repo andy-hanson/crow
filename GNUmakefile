@@ -181,7 +181,7 @@ editor/vscode/node_modules:
 # `crow.zip` is uploaded by NMakefile
 aws_upload_command = aws s3 sync site s3://crow-lang.org --delete --exclude "crow.zip"
 
-confirm-upload-site:
+confirm-upload-site: prepare-site
 	$(aws_upload_command) --dryrun
 	@echo -n "Make these changes to crow-lang.org? [y/n] " && read ans && [ $${ans:-n} = y ]
 

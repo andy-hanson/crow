@@ -213,9 +213,12 @@ private Range range(in Lexer lexer, CString begin) =>
 	range(lexer, posOf(lexer, begin));
 
 StringPart takeClosingBraceThenStringPart(ref Lexer lexer, QuoteKind quoteKind) {
-	if (getPeekToken(lexer) != Token.braceRight)
+	if (getPeekToken(lexer) != Token.braceRight) {
 		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.closeInterpolated)));
-	return takeStringPartCommon(lexer, quoteKind);
+		skipUntilNewlineNoDiag(lexer);
+		return StringPart("", StringPart.After.quote);
+	} else
+		return takeStringPartCommon(lexer, quoteKind);
 }
 
 StringPart takeInitialStringPart(ref Lexer lexer, QuoteKind quoteKind) {

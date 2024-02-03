@@ -1351,7 +1351,7 @@ string describeTokenForUnexpected(Token token) {
 		case Token.quoteDouble3:
 			return "Unexpected '\"\"\"'.";
 		case Token.quotedText:
-			assert(false);
+			return "Unexpected string literal.";
 		case Token.record:
 			return "Unexpected keyword 'record'.";
 		case Token.reserved:
