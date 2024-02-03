@@ -81,8 +81,7 @@ ldc_flags_common = -w -betterC -preview=dip1000 -preview=in -J=bin\d-imports -J=
 ldc_flags_debug = --d-debug -g --d-version=Debug --d-version=Test
 ldc_flags_assert = $(ldc_flags_common) --enable-asserts=true --boundscheck=on
 ldc_wasm_flags = -mtriple=wasm32-unknown-unknown-wasm -L-allow-undefined
-# TODO: It seems --d-version=TailRecursionAvailable doesn't work on Windows
-ldc_fast_flags = -O2
+ldc_fast_flags = -O2 --d-version=TailRecursionAvailable
 ldc_fast_flags_no_tail_call = -O2
 
 # /FORCE:MULTIPLE is to allow overriding '_assert'
@@ -115,6 +114,7 @@ bin\crow-debug.wasm: $(d_dependencies)
 
 bin\crow.wasm: $(d_dependencies)
 	ldc2 -ofbin\crow.wasm $(ldc_flags_assert) $(ldc_wasm_flags) $(ldc_fast_flags_no_tail_call) src\wasm.d -I=src -i
+	del bin\crow.o
 
 ### lint ###
 

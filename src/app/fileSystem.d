@@ -8,6 +8,7 @@ version (Windows) {} else {
 	import core.stdc.stdio : posixStderr = stderr, posixStdin = stdin, posixStdout = stdout;
 }
 import core.stdc.string : strerror;
+import std.conv : octal;
 
 version (Windows) {
 	import core.sys.windows.core :
@@ -47,7 +48,7 @@ version (Windows) {
 } else {
 	import core.sys.posix.spawn : posix_spawn;
 	import core.sys.posix.sys.wait : waitpid;
-	import core.sys.posix.sys.stat : mkdir, pid_t, S_IRWXU;
+	import core.sys.posix.sys.stat : mkdir, pid_t;
 	import core.sys.posix.unistd : getcwd, read, readlink, unlink, write;
 }
 
@@ -59,7 +60,7 @@ import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
 import util.col.array : endPtr, exists, newArray;
 import util.col.arrayBuilder : buildArray, Builder;
 import util.conv : safeToInt, safeToUint;
-import util.exitCode : ExitCode, okAnd;
+import util.exitCode : ExitCode, okAnd, onError;
 import util.memory : memset;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.string : CString, cString;
@@ -357,7 +358,7 @@ private @system MutOpt!(FILE*) tryOpenFileForWrite(in AllUris allUris, FilePath 
 		return someMut(fd);
 	else if (errno == ENOENT) {
 		Opt!FilePath par = parent(allUris, path);
-		if (has(par) && mkdirRecur(allUris, force(par)) == ExitCode.ok) {
+		if (has(par) && makeDirectoryAndParents(allUris, force(par)) == ExitCode.ok) {
 			FILE* res = openFile(allUris, path, "w");
 			return res == null ? noneMut!(FILE*) : someMut(res);
 		} else
@@ -634,41 +635,28 @@ version (Windows) {
 	alias mkdir = _mkdir;
 }
 
-@system ExitCode mkdirRecur(in AllUris allUris, FilePath dir) {
-	version (Windows) {
-		return todo!ExitCode("!");
-	} else {
-		int err = makeDirectory(allUris, dir);
-		if (err == ENOENT) {
-			Opt!FilePath par = parent(allUris, dir);
-			if (has(par)) {
-				ExitCode res = mkdirRecur(allUris, force(par));
-				return res == ExitCode.ok
-					? handleMkdirError(allUris, dir, makeDirectory(allUris, dir))
-					: res;
-			} else
-				return handleMkdirError(allUris, dir, err);
-		} else
-			return handleMkdirError(allUris, dir, err);
-	}
-}
+ExitCode makeDirectoryAndParents(in AllUris allUris, FilePath dir) =>
+	onError(makeDirectoryNoPrintErrors(allUris, dir), () {
+		Opt!FilePath par = parent(allUris, dir);
+		return errno == ENOENT && has(par)
+			? okAnd(makeDirectoryAndParents(allUris, force(par)), () => makeDirectory(allUris, dir))
+			: logMakeDirectoryError(allUris, dir);
+	});
 
-version (Windows) {
-} else {
-	int makeDirectory(in AllUris allUris, FilePath dir) =>
-		withCStringOfFilePath(allUris, dir, (in CString x) @trusted =>
-			mkdir(x.ptr, S_IRWXU));
+ExitCode makeDirectory(in AllUris allUris, FilePath dir) =>
+	onError(makeDirectoryNoPrintErrors(allUris, dir), () => logMakeDirectoryError(allUris, dir));
 
-	@system ExitCode handleMkdirError(in AllUris allUris, FilePath dir, int err) =>
-		err == 0
-			? ExitCode.ok
-			: printErrorCb((scope ref Writer writer) {
-				writer ~= "Error making directory ";
-				writeFilePath(writer, allUris, dir);
-				writer ~= ": ";
-				writeLastError(writer);
-			});
-}
+ExitCode logMakeDirectoryError(in AllUris allUris, FilePath dir) =>
+	printErrorCb((scope ref Writer writer) {
+		writer ~= "Error making directory ";
+		writeFilePath(writer, allUris, dir);
+		writer ~= ": ";
+		writeLastError(writer);
+	});
+
+ExitCode makeDirectoryNoPrintErrors(in AllUris allUris, FilePath dir) =>
+	withCStringOfFilePath(allUris, dir, (in CString x) @trusted =>
+		mkdir(x.ptr, octal!"700") == 0 ? ExitCode.ok : ExitCode.error);
 
 version (Windows) {
 	CString windowsArgsCString(ref Alloc alloc, in CString executablePath, in CString[] args) =>

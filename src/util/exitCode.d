@@ -22,3 +22,6 @@ pure ExitCode exitCodeCombine(ExitCode a, ExitCode b) =>
 
 ExitCode okAnd(ExitCode a, in ExitCode delegate() @safe @nogc nothrow cb) =>
 	a == ExitCode.ok ? cb() : a;
+
+ExitCode onError(ExitCode a, in ExitCode delegate() @safe @nogc nothrow cb) =>
+	a == ExitCode.ok ? a : cb();
