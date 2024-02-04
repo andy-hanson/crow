@@ -7,7 +7,7 @@ dummy-bare-map-tests nat()
 -bm record
 -bm bm()
 	()
--with-block void(_ bm, cb act void((nat, value) bare-map mut*)) unsafe
+-with-block void(_ bm, cb void mut(map (nat, value) bare-map mut*)) unsafe
 	storage mut (nat, value) bare-map = 1,
 	a (nat, value) bare-map mut* = &storage
 	with : (() => a destroy) finally

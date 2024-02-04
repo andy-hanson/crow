@@ -7,7 +7,7 @@
 		<li>Allocate memory and never free it.</li>
 		<li>Free memory, then access it anyway.</li>
 		<li>Access global state.</li>
-		<li>Access information about the system (like endianness).</li>
+		<li>Access information about the system (like endianness or the operating system).</li>
 		<li>Access other information not explicitly passed through parameters, like a stack trace.</li>
 		<li>Access private information about data structures.</li>
 	</ul>
@@ -65,8 +65,8 @@
 			system/unistd: write
 
 		main void()
-			message c-string = "hello\n"
-			_ = trusted stdout write message.to-bytes.begin-pointer, message.size
+			message nat8 array = "hello\n"::string to-bytes
+			_ = trusted stdout write message.begin-pointer, message.size
 	</crow-runnable>
 
 	<aside class="small">
@@ -91,7 +91,8 @@
 		When deciding whether to mark a function as <code class="keyword">unsafe</code> or to use
 		<code class="keyword">trusted</code> in its body,
 		ask whether a malicious caller could cause the function to bad things.
-		(A good example is by passing <code class="function">null</code>.)
+		(For example, a function taking pointer parameters is almost always <code class="keyword">unsafe</code>,
+		since it can't guarantee that the pointers are valid.)
 		<br />
 		If so, always mark it as <code class="keyword">unsafe</code>.
 	</p>
@@ -293,23 +294,23 @@
 
 	<p>
 		There are also function pointer types like in C.
-		<br />
-		They are included for compatibility with C libraries that use them.
-		Otherwise you should use a <code class="keyword">fun</code> or <code class="keyword">act</code>.
 	</p>
 	<p>
-		A function pointer type is written just like a <code class="keyword">fun</code> type,
-		but using <code class="keyword">fun*</code> instead of <code class="keyword">fun</code>.
+		A function pointer type is written like a lambda type,
+		but with the <code class="keyword">function</code> keyword where the purity would normally appear.
+		<br />
+		(Function pointers are <code class="keyword">shared</code> since they
+		might point to a <code class="keyword">summon</code> function, and so could have side effects.)
 		<br />
 		To get a function pointer, write <code class="keyword">&</code> followed by the function name.
 	</p>
 
 	<crow-runnable>
 		main void()
-			f fun* nat(nat) = &double
+			f nat function(x nat) = &double
 			info log "{f[5]}"
 
-		double nat(a nat) bare
+		double nat(a nat)
 			a * 2
 	</crow-runnable>
 </section>
@@ -318,7 +319,8 @@
 	<p>
 		Normally, Crow will choose for you whether a record type is a reference type or a value type.
 		<br />
-		(Unions, enums, and flags are always value types.)
+		(<code class="keyword">union</code>, <code class="keyword">enum</code>, and <code class="keyword">flags</code>
+		are always value types.)
 		<br />
 		Crow guesses what will have the best performance; it passes small records by value and large records reference.
 		If a record has a mutable field, it is always passed by reference
@@ -391,7 +393,7 @@
 		<h4>Throwing in "bare" code</h4>
 		<p>
 			<code class="keyword">bare</code> functions are allowed to throw exceptions.
-			(E.g., <code class="function">+</code> throws on overflow.)
+			(E.g., <code class="function">+</code> is <code class="keyword">bare</code>, and throws on overflow.)
 			<br />
 			If an exception is thrown and it's not part of a Crow task, it might not be caught.
 			In that case, the program will abort.

@@ -325,7 +325,11 @@ void eachTypeInFun(in FunDecl a, in TypeCb cb) {
 
 void eachTypeInSpec(in SpecDecl a, in TypeCb cb) {
 	eachSpecParent(a, (SpecInst* parent, in TypeAst ast) {
-		eachTypeArg(parent.typeArgs, ast, cb);
+		Opt!bool x = eachTypeArg!bool(parent.typeArgs, ast, (in Type argType, in TypeAst argAst) {
+			cb(argType, argAst);
+			return none!bool;
+		});
+		assert(!has(x));
 	});
 	foreach (ref SpecDeclSig sig; a.sigs) {
 		eachTypeInType(sig.returnType, sig.ast.returnType, cb);

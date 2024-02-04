@@ -98,7 +98,7 @@ This is amortized O(log n).
 		a.mins ~~= bucket
 	res
 
-+pop-if[k, v] (k, v)?(a (k, v) mut-priority-queue, f act bool(k, v)) k priority
++pop-if[k, v] (k, v)?(a (k, v) mut-priority-queue, f bool mut(key k, value v)) k priority
 	if res ?= a.mins peek
 		if f[res]
 			a pop
@@ -163,7 +163,7 @@ region build
 	-inner (k, v) list-builder
 +build[k, v] (k, v) mut-priority-queue(
 	a build-options,
-	f act void((k, v) mut-priority-queue-builder),
+	f void mut(out (k, v) mut-priority-queue-builder),
 ) k priority
 	a build (out => f[out,]) to
 +~=[k, v] void(a (k, v) mut-priority-queue-builder, value (k, v)) k priority

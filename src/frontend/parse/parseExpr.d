@@ -5,8 +5,6 @@ module frontend.parse.parseExpr;
 import frontend.parse.lexer :
 	addDiag,
 	addDiagUnexpectedCurToken,
-	alloc,
-	allSymbols,
 	curPos,
 	ElifOrElse,
 	EqualsOrThen,
@@ -33,14 +31,14 @@ import frontend.parse.lexer :
 	tryTakeNewlineThenElifOrElse,
 	tryTakeNewlineThenElse;
 import frontend.parse.lexToken : isNewlineToken;
-import frontend.parse.parseType : parseType, parseTypeForTypedExpr, tryParseTypeArgForExpr;
+import frontend.parse.parseType :
+	parseDestructureNoRequireParens, parseDestructureRequireParens, parseTypeForTypedExpr, tryParseTypeArgForExpr;
 import frontend.parse.parseUtil :
 	peekEndOfLine,
 	peekToken,
 	takeDedent,
 	takeIndentOrFailGeneric,
 	takeNameAndRange,
-	takeNameAndRangeAllowUnderscore,
 	takeOrAddDiagExpectedToken,
 	takeOrAddDiagExpectedTokenAndMayContinueOntoNextLine,
 	takeOrAddDiagExpectedTokenAndSkipRestOfLine,
@@ -150,7 +148,6 @@ bool peekTokenExpression(ref Lexer lexer) =>
 
 bool isExpressionStartToken(Token a) {
 	final switch (a) {
-		case Token.act:
 		case Token.alias_:
 		case Token.arrowAccess:
 		case Token.arrowLambda:
@@ -178,7 +175,7 @@ bool isExpressionStartToken(Token a) {
 		case Token.far:
 		case Token.flags:
 		case Token.forceCtx:
-		case Token.fun:
+		case Token.function_:
 		case Token.global:
 		case Token.import_:
 		case Token.mut:
@@ -671,7 +668,7 @@ DestructureAst parseForThenOrWithParameter(
 ) {
 	Pos pos = curPos(lexer);
 	if (tryTakeToken(lexer, endToken))
-		return DestructureAst(DestructureAst.Void(pos));
+		return DestructureAst(DestructureAst.Void(range(lexer, pos)));
 	else {
 		DestructureAst res = parseDestructureNoRequireParens(lexer);
 		takeOrAddDiagExpectedTokenAndMayContinueOntoNextLine(lexer, endToken, expectedEndToken);
@@ -931,53 +928,6 @@ ExprAst parseNamedCall(ref Lexer lexer, Pos start) {
 		? ExprAst(range(lexer, start), ExprAstKind(BogusAst()))
 		: ExprAst(range(lexer, start), ExprAstKind(
 			CallNamedAst(finish(lexer.alloc, names), finish(lexer.alloc, values))));
-}
-
-public DestructureAst parseDestructureRequireParens(ref Lexer lexer) {
-	Pos start = curPos(lexer);
-	if (tryTakeToken(lexer, Token.parenLeft)) {
-		if (tryTakeToken(lexer, Token.parenRight))
-			return DestructureAst(DestructureAst.Void(start));
-		else {
-			DestructureAst res = parseDestructureNoRequireParens(lexer);
-			takeOrAddDiagExpectedToken(lexer, Token.parenRight, ParseDiag.Expected.Kind.closingParen);
-			return res;
-		}
-	} else {
-		NameAndRange name = takeNameAndRangeAllowUnderscore(lexer);
-		Pos posForMut = curPos(lexer);
-		Opt!Pos mut = tryTakeToken(lexer, Token.mut) ? some(posForMut) : none!Pos;
-		Opt!(TypeAst*) type = () {
-			switch (getPeekToken(lexer)) {
-				case Token.arrowThen:
-				case Token.colon:
-				case Token.comma:
-				case Token.equal:
-				case Token.newlineDedent:
-				case Token.newlineIndent:
-				case Token.newlineSameIndent:
-				case Token.parenRight:
-				case Token.questionEqual:
-					return none!(TypeAst*);
-				default:
-					return some(allocate(lexer.alloc, parseType(lexer)));
-			}
-		}();
-		return DestructureAst(DestructureAst.Single(name, mut, type));
-	}
-}
-
-DestructureAst parseDestructureNoRequireParens(ref Lexer lexer) {
-	DestructureAst first = parseDestructureRequireParens(lexer);
-	if (tryTakeToken(lexer, Token.comma)) {
-		ArrayBuilder!DestructureAst parts;
-		add(lexer.alloc, parts, first);
-		do {
-			add(lexer.alloc, parts, parseDestructureRequireParens(lexer));
-		} while (tryTakeToken(lexer, Token.comma));
-		return DestructureAst(finish(lexer.alloc, parts));
-	} else
-		return first;
 }
 
 ExprAst parseEqualsOrThen(ref Lexer lexer, EqualsOrThen kind) {

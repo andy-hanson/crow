@@ -51,7 +51,7 @@ Same as `sort`, but use `get-key` to get the comparable part of each element.
 ###
 +sort[col, elem, builder, k] col(
 	a col,
-	get-key fun k(elem),
+	get-key k data(elem elem),
 ) (col, elem, builder) build, (col, elem) iterate, col size, k compare
 	res elem mut-array = for x : a; x
 	res sort= get-key
@@ -87,7 +87,7 @@ test
 # Like `set-sort`, but use `get-key` to get the comparable part of each element.
 +sort=[col, iter, elem, k] void(
 	a col,
-	get-key fun k(elem),
+	get-key k data(elem elem),
 ) (iter, col) begin, (elem, iter) prev-next, (iter, elem) set-next, k compare
 	# TODO: PERF Try https://github.com/BonzaiThePenguin/WikiSort
 	cur mut = a begin
@@ -101,7 +101,7 @@ test
 -move-last-sorted[iter, elem, k] void(
 	init iter,
 	value-to-move elem,
-	get-key fun k(elem),
+	get-key k data(elem elem),
 ) (elem, iter) prev, (iter, elem) set-next, k compare
 	cur mut = init
 	key-to-move = get-key[value-to-move]

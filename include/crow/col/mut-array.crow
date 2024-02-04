@@ -196,7 +196,7 @@ region spec impls (see collection.crow)
 	a.inner size
 
 # Calls 'f' on each element in the mut-array.
-+iterate[t] bool(a t mut-array, f act bool(t))
++iterate[t] bool(a t mut-array, f bool mut(elem t))
 	trusted a.temp-as-array iterate f
 
 subregion iterator
@@ -251,7 +251,7 @@ subregion builder
 
 +mut-array-builder[t] record mut
 	-inner t array-builder
-+build[t] t mut-array(a build-options, f act void(t mut-array-builder))
++build[t] t mut-array(a build-options, f void mut(out t mut-array-builder))
 	(a build out => f[out,])::(t array),
 +~=[t] void(a t mut-array-builder, value t)
 	a.inner ~= value

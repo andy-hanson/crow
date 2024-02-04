@@ -68,8 +68,8 @@ Returns an empty option iff `a` is empty.
 
 region spec impls (see collection.crow)
 
-+iterate[t] bool(a t mut-stack, f act bool(t))
++iterate[t] bool(a t mut-stack, f bool mut(elem t))
 	a.inner iterate f
 
-+filter=[t] void(a t mut-stack, f act bool(t))
++filter=[t] void(a t mut-stack, f bool mut(elem t))
 	a.inner filter= f

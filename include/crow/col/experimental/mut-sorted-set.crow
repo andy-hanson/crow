@@ -86,20 +86,20 @@ If the value was not present, does nothing and returns `false`.
 	# TODO:PERF avoid a copy: return a 'mut-list' which the sorted-set can move into to itself
 	a.move-to to
 
-+filter=[t] void(a t mut-sorted-set, f fun bool(t)) t key
++filter=[t] void(a t mut-sorted-set, f bool mut(elem t)) t key
 	a.inner filter= (k, _) => f[k]
 
-+map=[t] void(a t mut-sorted-set, f fun t(t)) t key
++map=[t] void(a t mut-sorted-set, f t mut(elem t)) t key
 	a.inner map= (k, _) => f[k], ()
 
 region spec impls (see collection.crow)
 
-+iterate[t] bool(a t mut-sorted-set, f act bool(t)) t key
++iterate[t] bool(a t mut-sorted-set, f bool mut(elem t)) t key
 	a.inner iterate (k, _) => f[k]
 
 subregion build
 
-+build[t] t mut-sorted-set(_ build-options, f act void(t mut-sorted-set)) t key
++build[t] t mut-sorted-set(_ build-options, f void mut(out t mut-sorted-set)) t key
 	res t mut-sorted-set = ()
 	f[res]
 	res

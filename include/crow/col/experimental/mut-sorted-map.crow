@@ -233,12 +233,12 @@ Else, returns an empty option.
 
 region mutating iteration
 
-+filter=[k, v] void(a (k, v) mut-sorted-map, f act bool(k, v)) k key
++filter=[k, v] void(a (k, v) mut-sorted-map, f bool mut(key k, value v)) k key
 	a compact
 	a.pairs filter= (k, v) =>
 		f[k, v!]
 
-+map=[k, v] void(a (k, v) mut-sorted-map, f act (k, v)(k, v)) k key
++map=[k, v] void(a (k, v) mut-sorted-map, f (k, v) mut(key k, value v)) k key
 	a compact
 	a.pairs map= (k, v) =>
 		k-out, v-out = f[k, v!]
@@ -252,12 +252,12 @@ test
 		10 - k, "{v[0]}"
 	a verify "[4 -> 6, 7 -> 3]"
 
-+map-values=[k, v] void(a (k, v) mut-sorted-map, f act v(k, v)) k key
++map-values=[k, v] void(a (k, v) mut-sorted-map, f v mut(key k, value v)) k key
 	a map= (k, v) => k, f[k, v]
 
 region spec impls (see collection.crow)
 
-+iterate[k, v] bool(a (k, v) mut-sorted-map, f act bool(k, v)) k key
++iterate[k, v] bool(a (k, v) mut-sorted-map, f bool mut(key k, value v)) k key
 	a compact
 	a.pairs iterate (k, v) =>
 		f[k, v!]
@@ -267,7 +267,10 @@ subregion build
 +mut-sorted-map-builder[k, v] record mut
 	-inner (k, v) list-builder
 
-+build[k, v] (k, v) mut-sorted-map(a build-options, f act void((k, v) mut-sorted-map-builder)) k key
++build[k, v] (k, v) mut-sorted-map(
+	a build-options,
+	f void mut(out (k, v) mut-sorted-map-builder),
+) k key
 	a build (out => f[out,]) to
 
 + ~=[k, v] void(a (k, v) mut-sorted-map-builder, pair (k, v)) k key

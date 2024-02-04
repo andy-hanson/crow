@@ -378,13 +378,15 @@ void getExprHover(
 		(in LambdaExpr x) {
 			writer ~= () {
 				final switch (x.kind) {
-					case FunKind.fun:
-						return "Function";
-					case FunKind.act:
-						return "Action function";
+					case FunKind.data:
+						return "Lambda with 'data' closure and no 'summon'";
+					case FunKind.shared_:
+						return "Lambda with 'shared' closure";
+					case FunKind.mut:
+						return "Lambda with 'mut' closure";
 					case FunKind.far:
-						return "Far function";
-					case FunKind.pointer:
+						return "Far lambda";
+					case FunKind.function_:
 						return "Function pointer";
 				}
 			}();

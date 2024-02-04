@@ -85,10 +85,10 @@ forward-to[t] void(a t^, target t^) unsafe
 	as rejected _
 		hard-unreachable
 
-add-task-no-exclusion[t] void(a t^, action act void()) unsafe
+add-task-no-exclusion[t] void(a t^, action void mut()) unsafe
 	a add-task get-global-ctx.new-exclusion, action
 
-add-task[t] void(a t^, exclusion exclusion, action act void()) unsafe
+add-task[t] void(a t^, exclusion exclusion, action void mut()) unsafe
 	a add-task (exclusion, action)
 
 add-task[t] void(a t^, task task) unsafe

@@ -1,36 +1,41 @@
 main nat^(_ string[])
 	r0 = make-r0
-	info log r0.act_
-	info log r0.fun_
+	info log r0.data_
+	info log r0.shared_
+	info log r0.mut_
 	x0 <- r0.far_
 	info log x0
 	info log trusted r0.ptr::c-string.to
 
 	r1 = make-r1
-	info log (r1 act_ "a")
-	info log (r1 fun_ "b")
-	x1 <- r1 far_ "c"
+	info log (r1 data_ "a")
+	info log (r1 shared_ "a")
+	info log (r1 mut_ "c")
+	x1 <- r1 far_ "d"
 	info log x1
-	r1 ptr "d"
+	r1 ptr "e"
 
 	r2 = make-r2
-	info log (r2 act_ "a", "b")
-	info log (r2 fun_ "a", "b")
-	x2 <- r2 far_ "a", "b"
+	info log (r2 data_ "a", "b")
+	info log (r2 shared_ "c", "d")
+	info log (r2 mut_ "e", "f")
+	x2 <- r2 far_ "g", "h"
 	info log x2
-	r2 ptr "a", "b"
+	r2 ptr "i", "j"
 
 	()
 
 r0 record mut
-	act_ act string()
-	fun_ fun string()
-	far_ far string()
-	ptr fun* c-string()
+	data_ string data()
+	shared_ string shared()
+	mut_ string mut()
+	far_ string far()
+	ptr c-string function()
 
 make-r0 r0()
-	act_: () => "act"
-	fun_: () => "fun"
+	data_: () => "data"
+	shared_: () => "shared"
+	mut_: () => "mut"
 	far_: () => "far",
 	ptr: &ptr0
 
@@ -38,29 +43,33 @@ ptr0 c-string()
 	"ptr"
 
 r1 record mut
-	act_ act string(string)
-	fun_ fun string(string)
-	far_ far string(string)
-	ptr fun* void(string)
+	data_ string data(x string)
+	shared_ string shared(x string)
+	mut_ string mut(x string)
+	far_ string far(x string)
+	ptr void function(x string)
 
 make-r1 r1()
-	act_: x => "{x} act"
-	fun_: x => "{x} fun"
+	data_: x => "{x} data"
+	shared_: x => "{x} shared"
+	mut_: x => "{x} mut"
 	far_: x => "{x} far",
 	ptr: &ptr1
 
 ptr1 void(x string)
-	info log "{x} ptr1"
+	info log "{x} ptr"
 
 r2 record mut
-	act_ act string(string, string)
-	fun_ fun string(string, string)
-	far_ far string(string, string)
-	ptr fun* void(string, string)
+	data_ string data(x string, y string)
+	shared_ string shared(x string, y string)
+	mut_ string mut(x string, y string)
+	far_ string far(x string, y string)
+	ptr void function(x string, y string)
 
 make-r2 r2()
-	act_: (x, y) => "{x} act {y}"
-	fun_: (x, y) => "{x} fun {y}"
+	data_: (x, y) => "{x} data {y}"
+	shared_: (x, y) => "{x} shared {y}"
+	mut_: (x, y) => "{x} mut {y}"
 	far_: (x, y) => "{x} far {y}",
 	ptr: &ptr2
 

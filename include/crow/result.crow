@@ -22,7 +22,7 @@ export
 		as error eb
 			ea == eb
 
-+then[out, in, err] (out, err) result(a (in, err) result, f act (out, err) result(in))
++then[out, in, err] (out, err) result(a (in, err) result, f (out, err) result mut(x in))
 	match a
 	as ok v
 		f[v]

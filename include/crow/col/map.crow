@@ -178,7 +178,7 @@ got-or-added[k, v] union
 If `key` is already in `a`, return `already-has-key` with the old value.
 Else, add a new pair `key, get-value[]` return `added`.
 ###
-get-or-add[k, v] (k, v) got-or-added(a v[k], key k, get-value act v()) k key
+get-or-add[k, v] (k, v) got-or-added(a v[k], key k, get-value v mut()) k key
 	res = a get-or-update key, old-value =>
 		if old-value is-empty
 			get-value[] insert
@@ -228,7 +228,7 @@ If the key is not in the map, returns an empty option.
 -get-or-update[k, v] (k, v) get-or-update-result(
 	a v[k],
 	key k,
-	f act v get-or-update-action(v?),
+	f v get-or-update-action mut(old-value v?),
 ) k key
 	hash = key hash
 	match a root
@@ -242,7 +242,7 @@ If the key is not in the map, returns an empty option.
 	key k,
 	remaining-hash nat64,
 	hash-shift nat64,
-	f act v get-or-update-action(v?),
+	f v get-or-update-action mut(old-value v?),
 ) k key
 	match a
 	as inner-node i
@@ -331,7 +331,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 	key k,
 	remaining-hash nat64,
 	hash-shift nat64,
-	f act v get-or-update-action(v?),
+	f v get-or-update-action mut(old-value v?),
 ) k key
 	if index ?= a find-index (k, _) => k == key
 		_, old-value = a[index]
@@ -389,9 +389,9 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 
 region spec impls (see collection.crow)
 
-+iterate[k, v] bool(a v[k], f act bool(k, v))
++iterate[k, v] bool(a v[k], f bool mut(key k, value v))
 	a.root iterate-recur f
--iterate-recur[k, v] bool(a (k, v) node, f act bool(k, v))
+-iterate-recur[k, v] bool(a (k, v) node, f bool mut(key k, value v))
 	match a
 	as inner-node i
 		i iterate child =>
@@ -403,7 +403,7 @@ subregion build
 
 +map-builder[k, v] record mut
 	-inner (k, v) array-builder
-+build[k, v] v[k](a build-options, f act void((k, v) map-builder)) k key
++build[k, v] v[k](a build-options, f void mut(out (k, v) map-builder)) k key
 	(a build out => f[out,])::((k, v) array) to
 +~=[k, v] void(a (k, v) map-builder, pair (k, v))
 	a.inner ~= pair

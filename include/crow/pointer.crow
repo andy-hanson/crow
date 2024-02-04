@@ -28,7 +28,7 @@ Do not actually write to it.
 +null[t] t*() bare, unsafe
 	null.as-const
 +null[t] t mut*() builtin, bare, unsafe
-+null[r, p] fun* r(p)() bare, unsafe
++null[r, p] r function(param p)() bare, unsafe
 	null as-fun-pointer
 
 # Same as `null`.
@@ -147,7 +147,7 @@ as-any-const-pointer[t] any-const-pointer(reference t) bare, unsafe
 # WARN: See comment on 'as-any-const-pointer'.
 as-any-mut-pointer[t] any-mut-pointer(reference t) builtin, bare, unsafe
 
-+as-fun-pointer[r, p] fun* r(p)(a any-const-pointer) builtin, bare, unsafe
++as-fun-pointer[r, p] r function(param p)(a any-const-pointer) builtin, bare, unsafe
 
 ###
 True if two references have the same pointer.

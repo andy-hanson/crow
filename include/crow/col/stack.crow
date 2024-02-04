@@ -89,12 +89,12 @@ Returns an empty option iff `a` is empty.
 
 region spec impls (see collection.crow)
 
-+iterate[t] bool(a t stack, f act bool(t))
++iterate[t] bool(a t stack, f bool mut(elem t))
 	a.last-node iterate-recur f
--iterate-recur[t] bool(a t node?, f act bool(t))
+-iterate-recur[t] bool(a t node?, f bool mut(elem t))
 	if node ?= a
 		node.prev iterate-recur f || f[node value]
-iterate-reverse[t] bool(a t stack, f act bool(t))
+iterate-reverse[t] bool(a t stack, f bool mut(elem t))
 	cur mut = a last-node
 	loop
 		if c ?= cur

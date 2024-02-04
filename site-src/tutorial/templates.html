@@ -160,15 +160,23 @@
 					<td><code>(string, nat) mut-map</code></td>
 				</tr>
 				<tr>
-					<td><code>fun bool(nat, string)</code></td>
-					<td><code>(bool, nat) fun-fun</code></td>
+					<td><code>bool function(nat)</code></td>
+					<td><code>(bool, nat) fun-pointer</code></td>
 				</tr>
 				<tr>
-					<td><code>act bool(nat, string)</code></td>
-					<td><code>(bool, (nat, string) tuple2) fun-act</code></td>
+					<td><code>bool data(x nat)</code></td>
+					<td><code>(bool, nat) fun-data</code></td>
 				</tr>
 				<tr>
-					<td><code>far bool()</code></td>
+					<td><code>bool shared(x nat)</code></td>
+					<td><code>(bool, (nat, string)) fun-shared</code></td>
+				</tr>
+				<tr>
+					<td><code>bool mut(x nat, y string)</code></td>
+					<td><code>(bool, (nat, string) tuple2) fun-mut</code></td>
+				</tr>
+				<tr>
+					<td><code>bool far()</code></td>
 					<td><code>(bool, void) fun-far</code></td>
 				</tr>
 			</tbody>

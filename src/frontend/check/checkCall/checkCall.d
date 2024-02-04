@@ -19,7 +19,7 @@ import frontend.check.checkCall.candidates :
 import frontend.check.checkCall.checkCalled : ArgsKind, checkCalled;
 import frontend.check.checkCall.checkCallSpecs : checkCallSpecs;
 import frontend.check.checkExpr : checkExpr, typeFromDestructure;
-import frontend.check.exprCtx : addDiag2, ExprCtx, FunOrLambdaInfo, isInLambda, LocalNode, LocalsInfo, typeFromAst2;
+import frontend.check.exprCtx : addDiag2, ExprCtx, LocalsInfo, typeFromAst2;
 import frontend.check.inferringType :
 	asInferringTypeArgs,
 	bogus,
@@ -51,7 +51,6 @@ import model.model :
 	ExprAndType,
 	ExprKind,
 	FunDecl,
-	LambdaExpr,
 	Local,
 	Params,
 	ReturnAndParamTypes,
@@ -61,11 +60,11 @@ import model.model :
 import util.col.array : arraysCorrespond, every, exists, isEmpty, makeArrayOrFail, newArray, only, zipEvery;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.mutMaxArr : asTemporaryArray, isEmpty, fillMutMaxArr, MutMaxArr, mutMaxArr, mutMaxArrSize, only, size;
-import util.opt : force, has, none, noneMut, Opt, some, some;
+import util.opt : force, has, none, Opt, some, some;
 import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMeasure, startMeasure;
 import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
-import util.util : ptrTrustMe, typeAs;
+import util.util : typeAs;
 
 Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref CallAst ast, ref Expected expected) {
 	switch (ast.style) {
@@ -133,18 +132,6 @@ Expr checkCallSpecial(
 		ctx, locals, source, source.range, funName, none!Type, newArray(ctx.alloc, args), expected,
 		(in CalledDecl _) => true);
 
-Expr checkCallSpecialNoLocals(
-	ref ExprCtx ctx,
-	ExprAst* source,
-	Symbol funName,
-	in ExprAst[] args,
-	ref Expected expected,
-) {
-	FunOrLambdaInfo emptyFunInfo = FunOrLambdaInfo(noneMut!(LocalsInfo*), none!(LambdaExpr*));
-	LocalsInfo emptyLocals = LocalsInfo(ptrTrustMe(emptyFunInfo), noneMut!(LocalNode*));
-	return checkCallSpecial(ctx, emptyLocals, source, funName, args, expected);
-}
-
 private Expr checkCallCommon(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
@@ -172,9 +159,9 @@ private Expr checkCallCommon(
 	return res;
 }
 
-Expr checkCallIdentifier(ref ExprCtx ctx, ExprAst* source, Symbol name, ref Expected expected) {
+Expr checkCallIdentifier(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Symbol name, ref Expected expected) {
 	checkCallShouldUseSyntax(ctx, source.range, name, 0);
-	return checkCallSpecialNoLocals(ctx, source, name, [], expected);
+	return checkCallSpecial(ctx, locals, source, name, [], expected);
 }
 
 private:
@@ -247,7 +234,7 @@ Expr checkCallInner(
 		return bogus(expected, source);
 	} else
 		return checkCallAfterChoosingOverload(
-			ctx, isInLambda(locals), only(candidates), source, diagRange, force(args), expected);
+			ctx, locals, only(candidates), source, diagRange, force(args), expected);
 }
 
 void checkCallShouldUseSyntax(ref ExprCtx ctx, in Range range, Symbol funName, size_t arity) {
@@ -431,7 +418,7 @@ bool inferCandidateTypeArgsFromSpecSig(
 
 Expr checkCallAfterChoosingOverload(
 	ref ExprCtx ctx,
-	bool isInLambda,
+	in LocalsInfo locals,
 	ref const Candidate candidate,
 	ExprAst* source,
 	in Range diagRange,
@@ -441,7 +428,7 @@ Expr checkCallAfterChoosingOverload(
 	Opt!Called opCalled = checkCallSpecs(ctx, diagRange, candidate);
 	if (has(opCalled)) {
 		Called called = force(opCalled);
-		checkCalled(ctx, diagRange, called, isInLambda, isEmpty(args) ? ArgsKind.empty : ArgsKind.nonEmpty);
+		checkCalled(ctx, diagRange, called, locals, isEmpty(args) ? ArgsKind.empty : ArgsKind.nonEmpty);
 		Expr calledExpr = Expr(source, ExprKind(CallExpr(called, args)));
 		//TODO: PERF second return type check may be unnecessary
 		// if we already filtered by return type at the beginning

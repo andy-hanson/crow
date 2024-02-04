@@ -420,17 +420,17 @@ This is O(a.size ln).
 
 region spec impls (see collection.crow)
 
-+iterate[t] bool(a t tree-set, f act bool(t)) t key
++iterate[t] bool(a t tree-set, f bool mut(elem t)) t key
 	a.root iterate-recur f
--iterate-recur[t] bool(a t node, f act bool(t))
+-iterate-recur[t] bool(a t node, f bool mut(elem t))
 	match a
 	as inner i
 		i each-inner f
 	as leaf l
 		l iterate f
--each-inner[t] bool(a t inner-node, f act bool(t))
+-each-inner[t] bool(a t inner-node, f bool mut(elem t))
 	a.left iterate-recur f || f[a value] || a.right iterate-recur f
--each-inner[t] void(a t inner-node, f act void(t))
+-each-inner[t] void(a t inner-node, f void mut(elem t))
 	res bool = a each-inner x =>
 		f[x]
 		false
@@ -441,7 +441,7 @@ subregion build
 +tree-set-builder[t] record mut
 	-inner t list-builder
 
-+build[t] t tree-set(a build-options, f act void(t tree-set-builder)) t key
++build[t] t tree-set(a build-options, f void mut(out t tree-set-builder)) t key
 	a build (out => f[out,]) to
 
 ~ ~=[t] void(a t tree-set-builder, value t) t key

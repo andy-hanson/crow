@@ -132,13 +132,18 @@ import
 	IMAGEHLP_SYMBOL_TYPE_INFO_MAX
 
 +PREAD_PROCESS_MEMORY_ROUTINE64 alias
-	fun* bool(HANDLE, DWORD64, any-mut-pointer, DWORD, DWORD mut*)
+	bool function(
+		hProcess HANDLE,
+		lpBaseAddress DWORD64,
+		lpBuffer any-mut-pointer,
+		nSize DWORD,
+		lpNumberOfBytesRead DWORD mut*)
 +PFUNCTION_TABLE_ACCESS_ROUTINE64 alias
-	fun* any-const-pointer(HANDLE, DWORD64)
+	any-const-pointer function(hProcess HANDLE, AddrBase DWORD64)
 +PGET_MODULE_BASE_ROUTINE64 alias
-	fun* DWORD64(HANDLE, DWORD64)
+	DWORD64 function(hProcess HANDLE, Address DWORD64)
 +PTRANSLATE_ADDRESS_ROUTINE64 alias
-	fun* DWORD64(HANDLE, HANDLE, ADDRESS64 mut*)
+	DWORD64 function(hProcess HANDLE, hThread HANDLE, lpaddr ADDRESS64 mut*)
 
 +StackWalk64 bool(
 	MachineType DWORD,

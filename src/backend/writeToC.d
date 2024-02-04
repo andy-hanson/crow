@@ -514,7 +514,7 @@ void writeUnion(scope ref Writer writer, scope ref Ctx ctx, in LowUnion a) {
 	writeStructHead(writer, ctx, a.source);
 	writer ~= "\n\tuint64_t kind;";
 	bool isBuiltin = a.source.body_.isA!(ConcreteStructBody.Builtin);
-	if (isBuiltin) assert(a.source.body_.as!(ConcreteStructBody.Builtin).kind == BuiltinType.funOrAct);
+	if (isBuiltin) assert(a.source.body_.as!(ConcreteStructBody.Builtin).kind == BuiltinType.lambda);
 	if (isBuiltin || exists!LowType(a.members, (in LowType member) => !isEmptyType(ctx, member))) {
 		writer ~= "\n\tunion {";
 		foreach (size_t memberIndex, LowType member; a.members) {

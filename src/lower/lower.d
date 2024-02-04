@@ -4,7 +4,7 @@ module lower.lower;
 
 import backend.builtinMath : builtinForBinaryMath, builtinForUnaryMath;
 import lower.checkLowModel : checkLowProgram;
-import lower.generateCallFunOrAct : generateCallFunOrAct;
+import lower.generateCallLambda : generateCallLambda;
 import lower.generateMarkVisitFun : generateMarkVisitArr, generateMarkVisitNonArr, generateMarkVisitGcPtr;
 import lower.lowExprHelpers :
 	anyPtrMutType,
@@ -292,8 +292,6 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in AllSymbols allSymbols, in 
 						return some(LowType(PrimitiveType.float32));
 					case BuiltinType.float64:
 						return some(LowType(PrimitiveType.float64));
-					case BuiltinType.funOrAct:
-						return some(addUnion(concrete));
 					case BuiltinType.funPointer: {
 						uint i = safeToUint(arrBuilderSize(allFunPointerSources));
 						add(alloc, allFunPointerSources, concrete);
@@ -307,6 +305,8 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in AllSymbols allSymbols, in 
 						return some(LowType(PrimitiveType.int32));
 					case BuiltinType.int64:
 						return some(LowType(PrimitiveType.int64));
+					case BuiltinType.lambda:
+						return some(addUnion(concrete));
 					case BuiltinType.nat8:
 						return some(LowType(PrimitiveType.nat8));
 					case BuiltinType.nat16:
@@ -410,7 +410,7 @@ PrimitiveType typeForEnum(EnumBackingType a) =>
 LowUnion getLowUnion(ref Alloc alloc, in ConcreteProgram program, ref GetLowTypeCtx getLowTypeCtx, ConcreteStruct* s) =>
 	LowUnion(s, s.body_.matchIn!(LowType[])(
 		(in ConcreteStructBody.Builtin x) {
-			assert(x.kind == BuiltinType.funOrAct);
+			assert(x.kind == BuiltinType.lambda);
 			ConcreteLambdaImpl[] impls = optOrDefault!(ConcreteLambdaImpl[])(program.funStructToImpls[s], () =>
 				typeAs!(ConcreteLambdaImpl[])([]));
 			return map(getLowTypeCtx.alloc, impls, (ref ConcreteLambdaImpl impl) =>
@@ -472,7 +472,7 @@ LowType lowTypeFromConcreteType(ref GetLowTypeCtx ctx, in ConcreteType it) {
 }
 
 immutable struct LowFunCause {
-	immutable struct CallFunOrAct {
+	immutable struct CallLambda {
 		LowType funType;
 		LowType returnType;
 		LowType funParamType;
@@ -489,7 +489,7 @@ immutable struct LowFunCause {
 		Opt!LowFunIndex visitPointee;
 	}
 
-	mixin Union!(CallFunOrAct, ConcreteFun*, MarkVisitArrOuter, MarkVisitNonArr, MarkVisitGcPtr);
+	mixin Union!(CallLambda, ConcreteFun*, MarkVisitArrOuter, MarkVisitNonArr, MarkVisitGcPtr);
 }
 
 bool needsMarkVisitFun(in AllLowTypes allTypes, in LowType a) =>
@@ -610,9 +610,9 @@ AllLowFuns getAllLowFuns(
 	foreach (ConcreteFun* fun; program.allFuns) {
 		Opt!LowFunIndex opIndex = fun.body_.match!(Opt!LowFunIndex)(
 			(ConcreteFunBody.Builtin x) {
-				if (x.kind.isA!(BuiltinFun.CallFunOrAct)) {
+				if (x.kind.isA!(BuiltinFun.CallLambda)) {
 					ConcreteLocal[2] params = only2(fun.paramsIncludingClosure);
-					return some(addLowFun(LowFunCause(LowFunCause.CallFunOrAct(
+					return some(addLowFun(LowFunCause(LowFunCause.CallLambda(
 						lowTypeFromConcreteType(getLowTypeCtx, params[0].type),
 						lowTypeFromConcreteType(getLowTypeCtx, fun.returnType),
 						lowTypeFromConcreteType(getLowTypeCtx, params[1].type),
@@ -749,8 +749,8 @@ LowFun lowFunFromCause(
 	LowFunCause cause,
 ) =>
 	cause.matchWithPointers!LowFun(
-		(LowFunCause.CallFunOrAct x) =>
-			generateCallFunOrAct(getLowTypeCtx.alloc, allTypes, concreteFunToLowFunIndex, x),
+		(LowFunCause.CallLambda x) =>
+			generateCallLambda(getLowTypeCtx.alloc, allTypes, concreteFunToLowFunIndex, x),
 		(ConcreteFun* cf) {
 			LowType returnType = lowTypeFromConcreteType(getLowTypeCtx, cf.returnType);
 			LowLocal[] params = mapPointersWithIndex!(LowLocal, ConcreteLocal)(
@@ -1414,7 +1414,7 @@ LowExprKind getCallBuiltinExpr(
 				getArg(a.args[1], ExprPos.nonTail),
 				getArg(a.args[2], ExprPos.nonTail)])));
 		},
-		(BuiltinFun.CallFunOrAct) =>
+		(BuiltinFun.CallLambda) =>
 			assert(false), // handled in concretize
 		(BuiltinFun.CallFunPointer) =>
 			callFunPointer(ctx, locals, range, type, only2(a.args)),

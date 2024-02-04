@@ -11,7 +11,7 @@ import
 	db-path string
 +open-sqlite3 open-sqlite3(db-path string)
 	db-path,
-+with-block[t] t(a open-sqlite3, cb act t(db)) summon, t shared
++with-block[t] t(a open-sqlite3, cb t mut(db db)) summon, t shared
 	trusted
 		db mut sqlite3 mut* = null
 		# Create empty file if not exist
@@ -38,7 +38,7 @@ import
 +size nat64(_ db-query)
 	0
 
-+iterate bool(a db-query, f act bool(string[symbol])) summon
++iterate bool(a db-query, f bool mut(row string[symbol])) summon
 	trusted
 		error-message mut c-string = null
 		ctx mut callback-ctx = f,
@@ -51,7 +51,7 @@ import
 			throw "ERROR {err}: {error-string}"
 
 -callback-ctx record by-val, mut
-	cb-row act bool(string[symbol])
+	cb-row bool mut(row string[symbol])
 
 -callback c-int(
 	ctx-pointer any-mut-pointer,

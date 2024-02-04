@@ -37,7 +37,7 @@ import
 
 region spec impls (see collection.crow)
 
-+iterate[k] bool(a k counter, f act bool(k, nat64)) k key
++iterate[k] bool(a k counter, f bool mut(key k, count nat64)) k key
 	a.inner iterate f
 
 test

@@ -69,8 +69,8 @@ The garbage collector does not trace raw pointers.
 
 If `a` is a reference type, `a*` is a pointer to a pointer.
 
-This is a read-only reference, is the pointee is not immutable;
-it could be modified if there are other references to it.
+This is a read-only reference.
+The pointee is not immutable; it could be modified if there are other references to it.
 ###
 +const-pointer[t] builtin extern
 
@@ -245,7 +245,7 @@ region bootstrap runtime
 
 task record by-val, mut
 	exclusion exclusion
-	action act void()
+	action void mut()
 
 exclusion alias
 	nat64
@@ -320,23 +320,25 @@ These aren't used much in crow code.
 
 Create a function pointer by writing `&foo` where `foo` is the name of a function in scope.
 ###
-+fun-pointer[r, p] builtin extern
++fun-pointer[r, p] builtin extern, shared
+
++fun-data[r, p] builtin
 
 ###
-Non-mutating function type.
-This is usually written as `fun nat(string)` instead of `(nat, string) fun-fun`.
+Lambda with 'shared' closure.
+This is usually written as `nat shared(x string)` instead of `(nat, string) fun-shared`.
 
-Contrasted with `act`, a `fun` can't close over mutable data.
+Contrasted with `mut` lambdas, a `fun` can't close over mutable data.
 It can still close over `shared` data and perform I/O, so it's not a completely pure function.
 ###
-+fun-fun[r, p] builtin shared
++fun-shared[r, p] builtin shared
 
 ###
-This is usually written as `act nat(string)` instead of `(nat, string, bool) fun-act`.
+This is usually written as `nat mut(x string)` instead of `(nat, string) fun-mut`.
 
 An `act` can have anything in its closure, including mutable data, so it's considered mutable.
 ###
-+fun-act[r, p] builtin mut
++fun-mut[r, p] builtin mut
 
 ###
 This is usually written as `far nat(string)` instead of `(nat, string) fun-far`.
@@ -347,7 +349,7 @@ instead a task is added that will call the `act` when its exclusion is available
 ###
 +fun-far[r, p] record by-val, force-shared
 	exclusion exclusion
-	action act r^(p)
+	action r^ mut(param p)
 
 region future
 

@@ -280,12 +280,12 @@ private enum BuiltinType_ {
 	char8,
 	float32,
 	float64,
-	funOrAct,
 	funPointer,
 	int8,
 	int16,
 	int32,
 	int64,
+	lambda, // 'data', 'shared', or 'mut' lambda type. Not 'function' or 'far'.
 	nat8,
 	nat16,
 	nat32,
@@ -646,7 +646,7 @@ immutable struct FunBody {
 
 immutable struct BuiltinFun {
 	immutable struct AllTests {}
-	immutable struct CallFunOrAct {}
+	immutable struct CallLambda {}
 	immutable struct CallFunPointer {}
 	immutable struct InitConstants {}
 	immutable struct MarkVisit {}
@@ -663,7 +663,7 @@ immutable struct BuiltinFun {
 		BuiltinBinary,
 		BuiltinBinaryMath,
 		BuiltinTernary,
-		CallFunOrAct,
+		CallLambda,
 		CallFunPointer,
 		Constant,
 		InitConstants,
@@ -1318,10 +1318,11 @@ Symbol nameFromNameReferents(in NameReferents a) =>
 	a.name;
 
 enum FunKind {
-	fun,
-	act,
+	data,
+	shared_,
+	mut,
 	far,
-	pointer,
+	function_,
 }
 
 immutable struct CommonFuns {
@@ -1362,7 +1363,7 @@ immutable struct CommonTypes {
 	EnumMap!(FunKind, StructDecl*) funStructs;
 
 	StructDecl* funPtrStruct() =>
-		funStructs[FunKind.pointer];
+		funStructs[FunKind.function_];
 
 	Opt!(StructDecl*) tuple(size_t arity) return scope =>
 		2 <= arity && arity <= 9 ? some(tuples2Through9[arity - 2]) : none!(StructDecl*);
@@ -1706,12 +1707,27 @@ immutable struct IfOptionExpr {
 }
 
 immutable struct LambdaExpr {
-	Destructure param;
-	Expr body_;
-	VariableRef[] closure;
+	@safe @nogc pure nothrow:
+
 	FunKind kind;
+	Destructure param;
+	private Late!Expr lateBody;
+	private Late!(SmallArray!VariableRef) closure_;
 	// For FunKind.far this includes 'future' wrapper
-	Type returnType;
+	private Late!Type returnType_;
+
+	void fillLate(Expr body_, SmallArray!VariableRef closure, Type returnType) {
+		lateSet(lateBody, body_);
+		lateSet(closure_, closure);
+		lateSet(returnType_, returnType);
+	}
+
+	ref Expr body_() return scope =>
+		lateGet(lateBody);
+	SmallArray!VariableRef closure() return scope =>
+		lateGet(closure_);
+	Type returnType() return scope =>
+		lateGet(returnType_);
 }
 
 immutable struct LetExpr {

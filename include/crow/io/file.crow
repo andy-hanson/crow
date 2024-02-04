@@ -296,14 +296,18 @@ Will still throw on other errors, like permission errors.
 If `path` is a directory, calls `each-child-recursive` on every child of the directory.
 Else, calls `f[path]`.
 ###
-+each-child-recursive void(path string, f act void(string)) summon
++each-child-recursive void(path string, f void mut(path string)) summon
 	path each-child-recursive (_ => true), f
 
 ###
 Like `each-child-recursive`, but calls `filter` on names of directory children
 and skips them if `filter` returns false.
 ###
-+each-child-recursive void(path string, filter act bool(string), f act void(string)) summon
++each-child-recursive void(
+	path string,
+	filter bool mut(path string),
+	f void mut(path string),
+) summon
 	if path is-dir
 		for child-name : path names-in-dir
 			if filter[child-name]

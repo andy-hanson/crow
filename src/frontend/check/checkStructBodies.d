@@ -745,9 +745,10 @@ BuiltinType getBuiltinType(scope ref CheckCtx ctx, StructDecl* struct_) {
 			return BuiltinType.float32;
 		case symbol!"float64".value:
 			return BuiltinType.float64;
-		case symbol!"fun-act".value:
-		case symbol!"fun-fun".value:
-			return BuiltinType.funOrAct;
+		case symbol!"fun-data".value:
+		case symbol!"fun-shared".value:
+		case symbol!"fun-mut".value:
+			return BuiltinType.lambda;
 		case symbol!"fun-pointer".value:
 			return BuiltinType.funPointer;
 		case symbol!"int8".value:

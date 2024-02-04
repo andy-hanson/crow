@@ -330,7 +330,7 @@ Or a combination of the two.
 
 region spec impls (see collection.crow)
 
-+iterate[t] bool(a t sorted-set, f act bool(t)) t key
++iterate[t] bool(a t sorted-set, f bool mut(elem t)) t key
 	iters mut = a init-iters
 	loop
 		if iters is-empty
@@ -409,7 +409,7 @@ subregion build
 +sorted-set-builder[t] record mut
 	-inner t list-builder
 
-+build[t] t sorted-set(a build-options, f act void(t sorted-set-builder)) t key
++build[t] t sorted-set(a build-options, f void mut(out t sorted-set-builder)) t key
 	a build (out => f[out,]) to
 
 + ~=[t] void(a t sorted-set-builder, value t) t key

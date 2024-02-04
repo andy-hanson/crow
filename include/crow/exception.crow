@@ -17,8 +17,8 @@ export
 region handling
 
 +finally record mut
-	-cleanup act void()
-+finally finally(cleanup act void())
+	-cleanup void mut()
++finally finally(cleanup void mut())
 	cleanup,
 ###
 Runs `try`, and then runs `cleanup`, even if `try` threw an exception.
@@ -26,7 +26,7 @@ Runs `try`, and then runs `cleanup`, even if `try` threw an exception.
 If there was an exception, it will be rethrown after `after` finishes.
 If `after` throws an exception, the original exception will be lost.
 ###
-+with-block[t] t(a finally, try act t())
++with-block[t] t(a finally, try t mut())
 	res = a.cleanup do-if-error () => try[]
 	a cleanup
 	res
@@ -36,7 +36,7 @@ Rus `try`, and if it throws an exception, runs `on-error`.
 
 This is like `finally`, but does not run in the successful case.
 ###
-+do-if-error[t] t(on-error act void(), try act t())
++do-if-error[t] t(on-error void mut(), try t mut())
 	try catch err =>
 		on-error[]
 		err rethrow

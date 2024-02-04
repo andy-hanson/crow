@@ -80,7 +80,7 @@ export
 	else
 		a.as-mutex.pthread_mutex_unlock hard-assert-posix-error
 
-with-lock[t] t(a lock mut*, f act t())
+with-lock[t] t(a lock mut*, f t mut())
 	trusted
 		a acquire
 		res = f[]
@@ -299,7 +299,7 @@ thread-handle record by-val, mut
 
 +create-one-thread thread-handle(
 	thread-arg any-mut-pointer,
-	thread-fun fun* any-mut-pointer(any-mut-pointer),
+	thread-fun any-mut-pointer function(thread-arg any-mut-pointer),
 ) bare, summon, unsafe
 	if is-single-threaded
 		hard-unreachable

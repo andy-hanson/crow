@@ -42,7 +42,7 @@ Result will not have leading or trailing whitespace.
 Keep reading from stdin until `parse` returns a non-empty option.
 Print `error-message` after every failure.
 ###
-+read-stdin-until-parse[t] t^(error-message string, parse act t?(string)) summon, t shared
++read-stdin-until-parse[t] t^(error-message string, parse t? mut(input string)) summon, t shared
 	text <- read-stdin
 	if res ?= parse[text]
 		res,

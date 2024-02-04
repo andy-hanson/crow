@@ -164,9 +164,6 @@ void writeParseDiag(scope ref Writer writer, in ShowCtx ctx, in ParseDiag d) {
 		(in ParseDiag.Expected x) {
 			writer ~= showParseDiagExpected(x.kind);
 		},
-		(in ParseDiag.FunctionTypeMissingParens) {
-			writer ~= "Function type is missing parentheses.";
-		},
 		(in ParseDiag.ImportFileTypeNotSupported) {
 			writer ~= "Import file type not allowed; the only supported types are 'nat8 array' and 'string'.";
 		},
@@ -237,7 +234,7 @@ void writeParseDiag(scope ref Writer writer, in ShowCtx ctx, in ParseDiag d) {
 string showParseDiagExpected(ParseDiag.Expected.Kind kind) {
 	final switch (kind) {
 		case ParseDiag.Expected.Kind.afterMut:
-			return "Expected '[' or '*' after 'mut'.";
+			return "After 'mut', expected '[' or '(' or '*'.";
 		case ParseDiag.Expected.Kind.blockCommentEnd:
 			return "Expected '###' (then a newline).";
 		case ParseDiag.Expected.Kind.closeInterpolated:
@@ -477,6 +474,8 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 						return "A 'bare' function can't call non-'bare' function";
 					case Diag.CantCall.Reason.summon:
 						return "A non-'summon' function can't call 'summon' function";
+					case Diag.CantCall.Reason.summonInDataLambda:
+						return "Can't call a 'summon' function from inside a 'data' lambda.";
 					case Diag.CantCall.Reason.unsafe:
 						return "A non-'unsafe' function can't call 'unsafe' function";
 					case Diag.CantCall.Reason.variadicFromBare:
@@ -703,16 +702,23 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		(in Diag.LambdaCantInferParamType x) {
 			writer ~= "Can't infer the lambda parameter's type.";
 		},
-		(in Diag.LambdaClosesOverMut x) {
-			writer ~= "This lambda is a 'fun' but references ";
-			writeName(writer, ctx, x.name);
+		(in Diag.LambdaClosurePurity x) {
+			writer ~= "Can't access ";
+			writeName(writer, ctx, x.localName);
+			writer ~= " in a ";
+			writeKeyword(writer, ctx, stringOfEnum(x.funKind));
+			writer ~= " lambda because it is ";
 			if (has(x.type)) {
-				writer ~= " of 'mut' type ";
+				writer ~= "of ";
+				writePurity(writer, ctx, x.localPurity);
+				writer ~= " type ";
 				writeTypeQuoted(writer, ctx, force(x.type));
-				writer ~= '.';
-			} else
-				writer ~= " which is 'mut'.";
-			writer ~= " (Should it be an 'act' or 'far' fun?)";
+			} else {
+				writer ~= "a ";
+				writeKeyword(writer, ctx, "mut");
+				writer ~= " local";
+			}
+			writer ~= '.';
 		},
 		(in Diag.LambdaMultipleMatch x) {
 			writer ~= "Multiple lambda types are possible:";
@@ -728,6 +734,13 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 				writeNewline(writer, 0);
 				writeExpected(writer, ctx, x.expected, ExpectedKind.lambda);
 			}
+		},
+		(in Diag.LambdaTypeMissingParamType) {
+			writer ~= "Function type needs parameter types. " ~
+				"(It is parsed a as a destructure, so it needs both parameter names and types.)";
+		},
+		(in Diag.LambdaTypeVariadic) {
+			writer ~= "A function type can't be variadic; only a function can.";
 		},
 		(in Diag.LinkageWorseThanContainingFun x) {
 			writer ~= "'extern' function ";
@@ -996,12 +1009,16 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		(in Diag.TypeShouldUseSyntax x) {
 			writer ~= () {
 				final switch (x.kind) {
-					case Diag.TypeShouldUseSyntax.Kind.funAct:
-						return "Prefer to write 'act r(p)' instead of '(r, p) fun-act'.";
+					case Diag.TypeShouldUseSyntax.Kind.funData:
+						return "Prefer to write 'r data(x p)' instead of '(r, p) fun-data'.";
 					case Diag.TypeShouldUseSyntax.Kind.funFar:
-						return "Prefer to write 'far r(p)' instead of '(r, p) fun-far'.";
-					case Diag.TypeShouldUseSyntax.Kind.funFun:
-						return "Prefer to write 'fun r(p)' instead of '(r, p) fun-fun'.";
+						return "Prefer to write 'far r(x p)' instead of '(r, p) fun-far'.";
+					case Diag.TypeShouldUseSyntax.Kind.funMut:
+						return "Prefer to write 'r mut(x p)' instead of '(r, p) fun-mut'.";
+					case Diag.TypeShouldUseSyntax.Kind.funPointer:
+						return "Prefer to writer 'r function(x p)' instead of '(r, p) fun-pointer'.";
+					case Diag.TypeShouldUseSyntax.Kind.funShared:
+						return "Prefer to write 'r shared(x p)' instead of '(r, p) fun-shared'.";
 					case Diag.TypeShouldUseSyntax.Kind.future:
 						return "Prefer to write 't^' instead of 't future'.";
 					case Diag.TypeShouldUseSyntax.Kind.list:
@@ -1230,8 +1247,6 @@ void writeVisibilityWarning(scope ref Writer writer, in ShowDiagCtx ctx, in Diag
 
 string describeTokenForUnexpected(Token token) {
 	final switch (token) {
-		case Token.act:
-			return "Unexpected keyword 'act'.";
 		case Token.alias_:
 			return "Unexpected keyword 'alias'.";
 		case Token.arrowAccess:
@@ -1302,8 +1317,8 @@ string describeTokenForUnexpected(Token token) {
 			return "Unexpected keyword 'forbid'.";
 		case Token.forceCtx:
 			return "Unexpected keyword 'force-ctx'.";
-		case Token.fun:
-			return "Unexpected keyword 'fun'.";
+		case Token.function_:
+			return "Unexpected keyword 'function'.";
 		case Token.global:
 			return "Unexpected keyword 'global'.";
 		case Token.if_:

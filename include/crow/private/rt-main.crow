@@ -21,7 +21,7 @@ import
 	./thread-utils: count-processors, create-one-thread, join-one-thread, thread-handle
 
 -main-pointer alias
-	fun* nat64^(string[])
+	nat64^ function(args string[])
 
 # Treated specially by the compiler
 rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) bare, summon, unsafe

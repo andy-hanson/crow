@@ -29,7 +29,7 @@ This function is used to mark part of an `if` or `match` that should not be poss
 Run `try` and return what it returns, or return the result of `catcher` if `try` threw an exception.
 (An exception thrown by `catcher` will not be caught.)
 ###
-+catch[t] t(try act t(), catcher act t(exception))
++catch[t] t(try t mut(), catcher t mut(x exception))
 	trusted
 		old-jmp-buf = cur-jmp-buf
 		store mut __jmp_buf_tag = ()
@@ -58,7 +58,7 @@ Run `try` and return what it returns, or return the result of `catcher` if `try`
 Run `try` and return `ok` containing its return value,
 or `err` containing an exception if it threw one.
 ###
-+catch[t] (t, exception) result(try act t())
++catch[t] (t, exception) result(try t mut())
 	(() => try[] ok) catch e => e error
 
 # This is called by the compiler on 'throw'
@@ -96,7 +96,7 @@ abort-on-exceptions record
 abort-on-exceptions abort-on-exceptions()
 	()
 # Makes exceptions in callback non-catchable.
-with-block[t] t(_ abort-on-exceptions, cb act t()) unsafe
+with-block[t] t(_ abort-on-exceptions, cb t mut()) unsafe
 	jmp-buf = cur-jmp-buf
 	cur-jmp-buf := null
 	res = cb[]

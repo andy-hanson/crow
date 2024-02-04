@@ -20,8 +20,8 @@ Opaque grammar type parsing an 'a' value.
 Use the functions in this module to build a grammar.
 ###
 +grammar[t] record mut
-	# TODO: should be a 'fun'
-	-fn act (string-iterator, t inner-parse-result)(string-iterator)
+	# TODO: should be 'data' not 'mut'
+	-fn (string-iterator, t inner-parse-result) mut(iter string-iterator)
 
 ###
 Match a string against a grammar.
@@ -65,7 +65,7 @@ If the string has leading or trailing spaces you must use a grammar that include
 	ok t
 	error inner-parse-error
 
--then[out, in] out inner-parse-result(a in inner-parse-result, f act out(in))
+-then[out, in] out inner-parse-result(a in inner-parse-result, f out mut(x in))
 	match a
 	as ok v
 		f[v] ok
@@ -73,7 +73,7 @@ If the string has leading or trailing spaces you must use a grammar that include
 		e error
 -then[out, in] (string-iterator, out inner-parse-result)(
 	a (string-iterator, in inner-parse-result),
-	f act out(in),
+	f out mut(x in),
 )
 	a.a, a.b then f
 
@@ -101,7 +101,7 @@ If the string has leading or trailing spaces you must use a grammar that include
 	()
 -with-block[t] t grammar(
 	_ make-grammar,
-	f act (string-iterator, t inner-parse-result)(string-iterator),
+	f (string-iterator, t inner-parse-result) mut(iter string-iterator),
 )
 	f,
 
@@ -140,7 +140,7 @@ region basic building blocks
 			iter, res.ok
 
 # Grammar for a single character matching the predicate.
--char-matching-predicate char8 grammar(description string, predicate fun bool(char8))
+-char-matching-predicate char8 grammar(description string, predicate bool data(x char8))
 	with start : make-grammar
 		if x, rest ?= start next
 			if predicate[x]
@@ -230,9 +230,9 @@ By default this does not allow spaces in between. For that, use `a ~~ spaces ~~ 
 		as error _
 			b fn start
 
-# TODO: use 'fun' not 'act'
+# TODO: use 'f' should be 'data', not 'mut'
 # Uses a function to transform the result if parsing is successful.
-+map[out, in] out grammar(a in grammar, f act out(in))
++map[out, in] out grammar(a in grammar, f out mut(x in))
 	with start : make-grammar
 		a fn start then f
 
@@ -323,7 +323,7 @@ it is a parse error to have a separator not followed by another 'a'.
 +lazy record
 +lazy lazy()
 	()
-+with-block[t] t grammar(_ lazy, f fun t grammar())
++with-block[t] t grammar(_ lazy, f t grammar data())
 	with start : make-grammar
 		# TODO: actually be lazy (cache it)
 		grammar = f[]

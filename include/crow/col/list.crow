@@ -249,8 +249,8 @@ This is O(log n), amortized O(1).
 -cat-left-node-level[leaf, lower] (leaf, lower) node(
 	l (leaf, lower) node,
 	r (leaf, lower) node,
-	cat-left-array-lower act lower(leaf, lower),
-	cat-left-node-lower act lower(lower, lower),
+	cat-left-array-lower lower mut(left leaf, right lower),
+	cat-left-node-lower lower mut(left lower, right lower),
 ) leaf concatenate, leaf size-bytes, lower new
 	match l
 	as leaf xs
@@ -269,8 +269,8 @@ This is O(log n), amortized O(1).
 -cat-right-node-level[leaf, lower] (leaf, lower) node(
 	l (leaf, lower) node,
 	r (leaf, lower) node,
-	cat-right-array-lower act lower(lower, leaf),
-	cat-right-node-lower act lower(lower, lower),
+	cat-right-array-lower lower mut(left lower, right leaf),
+	cat-right-node-lower lower mut(left lower, right lower),
 ) leaf concatenate, leaf size-bytes, lower new
 	match r
 	as leaf xs
@@ -289,7 +289,7 @@ This is O(log n), amortized O(1).
 -cat-left-array-level[leaf, lower] (leaf, lower) node(
 	l leaf,
 	r (leaf, lower) node,
-	cat-left-lower act lower(leaf, lower),
+	cat-left-lower lower mut(left leaf, right lower),
 ) leaf concatenate, leaf size-bytes, lower new
 	match r
 	as leaf xs
@@ -306,7 +306,7 @@ This is O(log n), amortized O(1).
 -cat-right-array-level[leaf, lower] (leaf, lower) node(
 	l (leaf, lower) node,
 	r leaf,
-	cat-right-lower act lower(lower, leaf),
+	cat-right-lower lower mut(left lower, right leaf),
 ) leaf concatenate, leaf size-bytes, lower new
 	match l
 	as leaf xs
@@ -397,7 +397,7 @@ This is O(n).
 +size[t] nat64(a t[]) bare
 	a.end - a.begin
 
-+iterate[t] bool(a t[], f act bool(t))
++iterate[t] bool(a t[], f bool mut(elem t))
 	a iterate-chunks chunk =>
 		chunk iterate f
 

@@ -5,5 +5,5 @@ main void() summon
 	f = 1::nat getter
 	out print "{f[]}"
 
-getter[k] fun k()(k k) k data
+getter[k] k data()(k k) k data
 	() => k

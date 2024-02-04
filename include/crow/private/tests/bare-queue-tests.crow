@@ -7,7 +7,7 @@ dummy-bare-queue-tests nat()
 -queue record
 -queue queue()
 	()
--with-block void(_ queue, cb act void(nat bare-queue mut*)) unsafe
+-with-block void(_ queue, cb void mut(queue nat bare-queue mut*)) unsafe
 	storage mut nat bare-queue = ()
 	a nat bare-queue mut* = &storage
 	with : (() => a destroy) finally

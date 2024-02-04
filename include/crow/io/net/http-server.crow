@@ -35,7 +35,7 @@ import
 
 # Type of a function that can respond to HTTP requests.
 +http-handler alias
-	far http-response(http-request)
+	http-response far(req http-request)
 
 +http-server-options record shared
 	port nat16
@@ -46,7 +46,7 @@ import
 ###
 Starts running an HTTP server. Stops it when `cb` returns.
 ###
-+with-block[t] t^(a http-server-options, cb far t(http-server)) summon, t shared
++with-block[t] t^(a http-server-options, cb t far(server http-server)) summon, t shared
 	client-states http-parse-state mut[SOCKET] = ()
 
 	handler tcp-handler = do

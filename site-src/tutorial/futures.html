@@ -136,15 +136,21 @@
 
 	<p>
 		How is this possible?
-		The lambda can't be an <code class="keyword">act</code>
-		because a <code class="type">future</code>, being a <code class="keyword">shared</code> type,
-		can only reference <code class="keyword">shared</code> things.
-		It can't be a <code class="keyword">fun</code> because it needs a mutable closure.
-		<br />
-		Instead, there is a third kind of lambda, <code class="keyword">far</code>.
-		Though you should treat it as an opaque value,
-		internally it wraps an <code class="keyword">act</code> and an <em>exclusion</em>.
+		Ordinarily, a lambda must be <code class="keyword">mut</code>
+		to have a <code class="keyword">mut</code> closure.
+		But then it couldn't be passed to <code class="function">then</code>, which attaches it to the future.
+		A future is a <code class="keyword">shared</code> type and can only reference other
+		<code class="keyword">shared</code> values.
 	</p>
+	<p>
+		Instead, <code class="function">then</code> takes a new kind of lambda: <code>out far(param in)</code>.
+		A <code class="keyword">far</code> lambda is a <code class="keyword">shared</code> type that internally
+		wraps a <code class="keyword">mut</code> lambda and an <em>exclusion</em>.
+	</p>
+	<aside class="small">
+		The return type of a <code class="keyword">far</code> lambda is implicitly wrapped in a future.
+		So a <code>nat far(x string)</code> returns a <code>nat^</code>.
+	</aside>
 	<p>
 		An exclusion identifies an isolated space of mutable objects.
 		Only one task with the same exclusion can run at a time.
@@ -154,22 +160,29 @@
 		The benefit of a <code class="keyword">far</code> lambda
 		is that it is considered <code class="keyword">shared</code>, and yet it can have mutable data in its closure.
 		<br />
-		Hence the name: <code class="keyword">far</code> enable communication between different mutable exclusions.
-		These exclusions act like they are "far" from each other, since they communicate asynchronously.
+		Hence the name: <code class="keyword">far</code> lambdas enable isolated mutable exclusions
+		to communicate from afar.
+		<br />
+		You don't directly "call" a far lambda; you issue a request for it to eventually be called,
+		and get a future for the result once it is actually called.
 	</p>
 
 	<p>
 		When a <code class="keyword">far</code> lambda is created,
 		it gets the same exclusion as the task that created it.
+		(This still happens even if it doesn't actually close over anything mutable.)
 		<br />
 		So in the example, the three <code class="function">then</code> lambdas
 		have the same exclusion as <code class="function">main</code>.
+		<br />
+		That means we haven't actually introduced any parallelism yet, since all the tasks we've created
+		share an exclusion and can only run one at a time.
 	</p>
 
-	<h3>"Fun" means parallel</h3>
+	<h3>"Shared" means parallel</h3>
 	<p>
 		Unlike <code class="function">then</code> which takes a <code class="keyword">far</code> lambda,
-		<code>with : parallel</code> takes a <code class="keyword">fun</code>,
+		<code>with : parallel</code> takes a <code>t^ shared()</code>,
 		indicating that it expects parallel-safe code.
 		<br />
 		(Recall that the body of a <code class="keyword">with</code> is really a lambda.)
@@ -225,8 +238,8 @@
 	</p>
 	<crow-runnable>
 		main nat^(_ string[])
-			if true # Compile error
-				x &lt- ("foo",)::string^
+			if true
+				x &lt- ("foo",)::string^ # compile error
 				info log x
 				()
 				# '&lt;-' expression ends here
@@ -235,9 +248,10 @@
 	</crow-runnable>
 
 	<p>
-		The <code class="keyword">if</code> expression above has a type of <code class="type">void^</code>
-		(because its body is a call to <code class="function">then</code>),
-		so we need another <code class="keyword">&lt;-</code> to wait on it.
+		The <code class="keyword">if</code> expression above is still expected to be <code class="type">void</code>
+		because it appears on its own line.
+		We need to use <code class="keyword">&lt;- if</code> so that the <code class="keyword">if</code>
+		can be a <code class="type">void^</code>.
 	</p>
 	<crow-runnable>
 		main nat^(_ string[])
@@ -251,7 +265,7 @@
 	<aside class="small">
 		Having nothing to the left of <code class="keyword">&lt;-</code> is like having
 		<code class="keyword">()</code> as a lambda parameter;
-		it's a destructuring expecting <code class="type">void</code>.
+		it's a destructure expecting <code class="type">void</code>.
 		<br />
 		Also note the implicit <code>else ()</code> which produces a future resolved to a void value.
 	</aside>
@@ -290,13 +304,13 @@
 			fut string^ = with : parallel
 				xs[1],
 			fut-caught (string, exception) result^ = fut future-catch
-			x <- fut-caught
+			x &lt;- fut-caught
 			match x
 			as ok v
-				info log "ok: {v}"
+				info log "It went well: {v}"
 				()
 			as error e
-				error log trusted "err: {e}"
+				error log trusted "Something came up: {e}"
 				1,
 	</crow-runnable>
 

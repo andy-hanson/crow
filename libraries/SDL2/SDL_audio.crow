@@ -11,7 +11,7 @@ import
 	nat32
 
 +SDL_AudioCallback alias
-	fun* void(any-mut-pointer, nat8 mut*, c-int)
+	void function(userdata any-mut-pointer, stream nat8 mut*, len c-int)
 
 +SDL_AudioSpec record extern, mut
 	freq c-int

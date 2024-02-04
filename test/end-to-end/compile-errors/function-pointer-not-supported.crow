@@ -1,13 +1,13 @@
 main void()
-	f fun* void() = &foo
-	g fun* void() = &goo
-	h fun* void() = &(1 + 1)
+	f void function() = &foo
+	g void function() = &goo
+	h void function() = &(1 + 1)
 
 hoo[t] spec
 	hoo void(a t)
 
 use-spec[t] void(x t) t hoo
-	f fun* void(t) = &hoo
+	f void function(x t) = &hoo
 	f[x]
 
 foo void()

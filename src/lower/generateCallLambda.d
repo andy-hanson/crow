@@ -1,4 +1,4 @@
-module lower.generateCallFunOrAct;
+module lower.generateCallLambda;
 
 @safe @nogc pure nothrow:
 
@@ -23,11 +23,11 @@ import util.opt : some;
 import util.sourceRange : UriAndRange;
 import util.symbol : symbol;
 
-LowFun generateCallFunOrAct(
+LowFun generateCallLambda(
 	ref Alloc alloc,
 	in AllLowTypes allTypes,
 	in ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
-	LowFunCause.CallFunOrAct a,
+	LowFunCause.CallLambda a,
 ) {
 	UriAndRange range = UriAndRange.empty;
 	LowLocal[] params = newArray(alloc, [

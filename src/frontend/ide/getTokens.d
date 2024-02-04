@@ -327,6 +327,10 @@ void addSpecTokens(scope ref Ctx ctx, in SpecDeclAst a) {
 
 void addSigReturnTypeAndParamsTokens(scope ref Ctx ctx, in TypeAst returnType, in ParamsAst params) {
 	addTypeTokens(ctx, returnType);
+	addParamsTokens(ctx, params);
+}
+
+void addParamsTokens(scope ref Ctx ctx, in ParamsAst params) {
 	params.matchIn!void(
 		(in DestructureAst[] regular) {
 			foreach (ref DestructureAst param; regular)
@@ -341,8 +345,8 @@ void addTypeTokens(scope ref Ctx ctx, in TypeAst a) {
 	a.matchIn!void(
 		(in TypeAst.Bogus) {},
 		(in TypeAst.Fun x) {
-			foreach (TypeAst t; x.returnAndParamTypes)
-				addTypeTokens(ctx, t);
+			addTypeTokens(ctx, x.returnType);
+			addParamsTokens(ctx, x.params);
 		},
 		(in TypeAst.Map x) {
 			addTypeTokens(ctx, x.v);

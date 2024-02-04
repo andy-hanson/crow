@@ -111,7 +111,6 @@ TokenAndData plainToken(Token a) =>
 	TokenAndData(a, true);
 
 enum Token {
-	act, // 'act'
 	alias_, // 'alias'
 	arrowAccess, // '->'
 	arrowLambda, // '=>'
@@ -147,7 +146,7 @@ enum Token {
 	for_, // 'for'
 	forbid, // 'forbid'
 	forceCtx, // 'force-ctx'
-	fun, // 'fun'
+	function_, // 'function'
 	global, // 'global'
 	if_, // 'if'
 	import_, // 'import'
@@ -431,6 +430,9 @@ bool lookaheadLambdaAfterParenLeft(MutCString ptr) {
 	}
 }
 
+bool lookaheadOpenParen(CString ptr) =>
+	*ptr == '(';
+
 private bool startsWithIdentifier(CString ptr, in string expected) {
 	Opt!CString end = tryGetAfterStartsWith(ptr, expected);
 	return has(end) && !isAlphaIdentifierContinue(*force(end));
@@ -478,8 +480,6 @@ Token tokenForSymbol(Symbol a) {
 	switch (a.value) {
 		case symbol!"abstract".value:
 			return Token.reserved;
-		case symbol!"act".value:
-			return Token.act;
 		case symbol!"alias".value:
 			return Token.alias_;
 		case symbol!"as".value:
@@ -518,8 +518,8 @@ Token tokenForSymbol(Symbol a) {
 			return Token.forbid;
 		case symbol!"force-ctx".value:
 			return Token.forceCtx;
-		case symbol!"fun".value:
-			return Token.fun;
+		case symbol!"function".value:
+			return Token.function_;
 		case symbol!"global".value:
 			return Token.global;
 		case symbol!"if".value:

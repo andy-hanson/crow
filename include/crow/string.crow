@@ -279,7 +279,7 @@ Result is only digits, no punctuation.
 
 region spec impls (see collection.crow)
 
-+iterate bool(a string, f act bool(char8))
++iterate bool(a string, f bool mut(x char8))
 	a.inner iterate f
 
 +string-iterator record by-val
@@ -322,7 +322,7 @@ region spec impls (see collection.crow)
 
 +string-builder record mut
 	-inner char8 list-builder
-+build string(a build-options, f act void(string-builder))
++build string(a build-options, f void mut(out string-builder))
 	(a build out => f[out,])::char8[] as-string
 +~= void(a string-builder, c char8)
 	a.inner ~= c

@@ -29,7 +29,7 @@ list-reference-equal[t] bool(a t[], b t[]) unsafe
 
 +list-builder[t] record mut
 	-inner t array-builder
-+build[t] t[](a build-options, f act void(t list-builder))
++build[t] t[](a build-options, f void mut(out t list-builder))
 	inner t array = a build out => f[out,]
 	(inner.leaf,),
 +~=[t] void(a t list-builder, value t)
@@ -40,23 +40,23 @@ list-reference-equal[t] bool(a t[], b t[]) unsafe
 		false
 	forbid broke
 
-iterate-chunks[t] bool(a t[], f act bool(t array))
+iterate-chunks[t] bool(a t[], f bool mut(chunk t array))
 	a.root iterate-l1 f
 
--iterate-l1[t] bool(a t l1, f act bool(t array))
+-iterate-l1[t] bool(a t l1, f bool mut(chunk t array))
 	match a node
 	as leaf l
 		f[l]
 	as branch b
 		f[b left] || b.down iterate-l2 f || f[b right]
 
--iterate-l2[t] bool(a t l2, f act bool(t array))
+-iterate-l2[t] bool(a t l2, f bool mut(chunk t array))
 	match a node
 	as leaf l
 		l.arrays iterate f
 	as branch b
 		b.left.arrays iterate f || b.down iterate-l3 f || b.right.arrays iterate f
 
--iterate-l3[t] bool(a t l3, f act bool(t array))
+-iterate-l3[t] bool(a t l3, f bool mut(chunk t array))
 	a.nodes.arrays iterate nodes =>
 		nodes.arrays iterate f

@@ -82,5 +82,5 @@ Else, remove it and return `true`.
 
 region spec impls (see collection.crow)
 
-+iterate[t] bool(a t mut-set, f act bool(t)) t key
++iterate[t] bool(a t mut-set, f bool mut(elem t)) t key
 	a.inner iterate (k, _) => f[k]

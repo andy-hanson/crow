@@ -1,5 +1,5 @@
 main void()
 	(() => x) foo
 
-foo void(_ far string())
+foo void(_ string far())
 	()

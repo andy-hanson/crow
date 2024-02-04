@@ -63,14 +63,14 @@ Returns an empty option iff `a` is empty.
 
 region iteration
 
-+iterate[t] bool(a t queue, f act bool(t))
++iterate[t] bool(a t queue, f bool mut(elem t))
 	a.left iterate f || a.right iterate f
 
 region build
 
 +queue-builder[t] record mut
 	-inner t list-builder
-+build[t] t queue(a build-options, f act void(t queue-builder))
++build[t] t queue(a build-options, f void mut(out t queue-builder))
 	a build (out => f[out,]) to
 +~=[t] void(a t queue-builder, value t)
 	a.inner ~= value

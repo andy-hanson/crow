@@ -158,7 +158,7 @@ bin/dependencies.dot: bin/crow test/dependencies.crow
 ### site ###
 
 prepare-site: bin/crow bin/crow.wasm bin/crow.tar.xz
-	bin/crow run site-src/site.crow
+	bin/crow run site-src/site.crow --jit
 
 serve: prepare-site
 	bin/crow run site-src/serve.crow

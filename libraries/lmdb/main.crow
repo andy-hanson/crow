@@ -22,7 +22,7 @@ region env
 +open-lmdb-env open-lmdb-env(db-dir string, create-if-not-exists bool)
 	db-dir, create-if-not-exists
 # Calls `open-env`, then `f`, then `close-env` (in a `finally`).
-+with-block[t] t^(options open-lmdb-env, f act t^(lmdb-env)) summon, t shared
++with-block[t] t^(options open-lmdb-env, f t^ mut(env lmdb-env)) summon, t shared
 	trusted
 		env = options open-env
 		with : (() => env.close-env,) future-finally
@@ -98,7 +98,7 @@ region db
 
 +with-block[t, k, v] t^(
 	a (k, v) database,
-	f act t^((k, v) lmdb-db),
+	f t^ mut(db (k, v) lmdb-db),
 ) summon, t shared, k lmdb-key, v serialize
 	trusted
 		db (k, v) lmdb-db = a open-db
@@ -134,7 +134,7 @@ Aborts the transaction iff `f` throws an exception.
 ###
 +read-transaction read-transaction(env lmdb-env)
 	env,
-+with-block[t] t(a read-transaction, f act t(lmdb-txn)) summon
++with-block[t] t(a read-transaction, f t mut(txn lmdb-txn)) summon
 	a.env with-transaction MDB_RDONLY, txn =>
 		f[txn], transaction-abort
 
@@ -143,7 +143,7 @@ Aborts the transaction iff `f` throws an exception.
 # Like `write-transaction`, but the transaction can perform writes.
 +write-transaction write-transaction(env lmdb-env)
 	env,
-+with-block[t] t(a write-transaction, f act t(lmdb-txn)) summon
++with-block[t] t(a write-transaction, f t mut(txn lmdb-txn)) summon
 	with txn : a.env abortable-write-transaction
 		f[txn], transaction-commit
 
@@ -157,13 +157,13 @@ Aborts the transaction iff `f` throws an exception.
 # but `f` returns a pair of the result and whether to commit the transaction.
 +abortable-write-transaction abortable-write-transaction(env lmdb-env)
 	env,
-+with-block[t] t(a abortable-write-transaction, f act (t, transaction-result)(lmdb-txn)) summon
++with-block[t] t(a abortable-write-transaction, f (t, transaction-result) mut(txn lmdb-txn)) summon
 	a.env with-transaction (), f
 
 -with-transaction[t] t(
 	env lmdb-env,
 	mdb-flags mdb-environment-flags,
-	f act (t, transaction-result)(lmdb-txn),
+	f (t, transaction-result) mut(txn lmdb-txn),
 ) summon
 	trusted
 		transaction mut MDB_txn mut* = null
@@ -275,7 +275,7 @@ region iteration
 	a.txn count a.db
 
 # Calls `f` for each key-value pair in `db`.
-+iterate[k, v] bool(a (k, v) each, f act bool(k, v)) summon, k lmdb-key, v serialize
++iterate[k, v] bool(a (k, v) each, f bool mut(key k, value v)) summon, k lmdb-key, v serialize
 	trusted a.txn with-cursor a.db, cursor =>
 		key mut = empty-val
 		value mut = empty-val
@@ -302,7 +302,7 @@ Returns an array of the results.
 	txn lmdb-txn,
 	db0 (k, v0) lmdb-db,
 	db1 (k, v1) lmdb-db,
-	f act out(k, v0, v1),
+	f out mut(key k, db0-value v0, db1-value v1),
 ) summon, k lmdb-key, v0 serialize, v1 serialize
 	db0-count = txn count db0
 	db1-count = txn count db1
@@ -316,7 +316,7 @@ Returns an array of the results.
 	txn lmdb-txn,
 	db0 (k, v0) lmdb-db,
 	db1 (k, v1) lmdb-db,
-	f act void(k, v0, v1),
+	f void mut(key k, db0-value v0, db1-value v1),
 ) summon, k lmdb-key, v0 serialize, v1 serialize
 	trusted txn with-cursor db0, cursor0 =>
 		txn with-cursor db1, cursor1 =>
@@ -327,7 +327,7 @@ Returns an array of the results.
 -zip-inner[k, v0, v1] void(
 	cursor0 MDB_cursor mut*,
 	cursor1 MDB_cursor mut*,
-	f act void(k, v0, v1),
+	f void mut(key k, value0 v0, value1 v1),
 ) summon, unsafe, k lmdb-key, v0 serialize, v1 serialize
 	loop
 		key0-val mut = empty-val
@@ -353,7 +353,11 @@ Returns an array of the results.
 			err1 check-lmdb-error
 			continue
 
--with-cursor[t, k, v] t(txn lmdb-txn, db (k, v) lmdb-db, f act t(MDB_cursor mut*)) summon, unsafe
+-with-cursor[t, k, v] t(
+	txn lmdb-txn,
+	db (k, v) lmdb-db,
+	f t mut(cursor MDB_cursor mut*),
+) summon, unsafe
 	cursor mut MDB_cursor mut* = null
 	open-err = txn.txn mdb_cursor_open db.dbi, &cursor
 	with : (() => cursor mdb_cursor_close) finally

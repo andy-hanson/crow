@@ -6,7 +6,7 @@ main void() summon
 	b = ("foo", "bar") sum-by (s symbol) => s.to::string.size
 	out print "a: {a}, b: {b}"
 
-sum-by[t] nat(a t[], f act nat(t))
+sum-by[t] nat(a t[], f nat mut(x t))
 	res mut nat = 0
 	for x : a
 		res +:= f[x]

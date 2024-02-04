@@ -12,8 +12,10 @@ import model.model :
 	EnumBackingType,
 	FunDecl,
 	FunDeclAndTypeArgs,
+	FunKind,
 	Local,
 	Module,
+	Purity,
 	ReturnAndParamTypes,
 	SpecDecl,
 	SpecDeclSig,
@@ -155,6 +157,7 @@ immutable struct Diag {
 		enum Reason {
 			nonBare,
 			summon,
+			summonInDataLambda,
 			unsafe,
 			variadicFromBare,
 		}
@@ -281,8 +284,10 @@ immutable struct Diag {
 	}
 	immutable struct LambdaCantBeFunctionPointer {}
 	immutable struct LambdaCantInferParamType {}
-	immutable struct LambdaClosesOverMut {
-		Symbol name;
+	immutable struct LambdaClosurePurity {
+		FunKind funKind;
+		Symbol localName;
+		Purity localPurity;
 		// If missing, the error is that the local itself is 'mut'.
 		// If present, the error is that the type is 'mut'.
 		Opt!TypeWithContainer type;
@@ -294,6 +299,8 @@ immutable struct Diag {
 	immutable struct LambdaNotExpected {
 		ExpectedForDiag expected;
 	}
+	immutable struct LambdaTypeMissingParamType {}
+	immutable struct LambdaTypeVariadic {}
 	immutable struct LinkageWorseThanContainingFun {
 		FunDecl* containingFun;
 		Type referencedType;
@@ -458,9 +465,11 @@ immutable struct Diag {
 	}
 	immutable struct TypeShouldUseSyntax {
 		enum Kind {
-			funAct,
+			funData,
 			funFar,
-			funFun,
+			funMut,
+			funPointer,
+			funShared,
 			future,
 			list,
 			map,
@@ -546,9 +555,11 @@ immutable struct Diag {
 		ImportRefersToNothing,
 		LambdaCantBeFunctionPointer,
 		LambdaCantInferParamType,
-		LambdaClosesOverMut,
+		LambdaClosurePurity,
 		LambdaMultipleMatch,
 		LambdaNotExpected,
+		LambdaTypeMissingParamType,
+		LambdaTypeVariadic,
 		LinkageWorseThanContainingFun,
 		LinkageWorseThanContainingType,
 		LiteralMultipleMatch,

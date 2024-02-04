@@ -1,0 +1,29 @@
+main void() summon
+	fut void^ = ()
+
+	x mut nat = 0
+	_ nat data() = () =>
+		_ = fut
+		1
+	_ nat shared() = () => x
+
+	y nat mut[] = 0,
+	_ nat mut[] data() = () => y
+	_ nat mut[] shared() = () => y
+
+	_ void data() = () => sum
+	_ void data() = () =>
+		f void mut() = () => sum
+		f[]
+	_ void data() = () =>
+		uses-spec
+	()
+
+uses-spec void() sum
+	()
+
+sum spec
+	sum void()
+
+sum void() summon
+	()

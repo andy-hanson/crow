@@ -6,8 +6,8 @@ main void() summon
 	b = ((x nat) => x * 2) foo
 	out print "a: {a}, b: {b}"
 
-foo nat(cb act nat(nat))
+foo nat(cb nat mut(x nat))
 	cb[1]
 
-foo nat(cb act nat())
+foo nat(cb nat mut())
 	cb[]

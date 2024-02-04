@@ -4,9 +4,9 @@ import
 main void() summon
 	trusted
 		x mut nat = 0
-		get-x act nat() = () =>
+		get-x nat mut() = () =>
 			x
-		set-x act void() = () =>
+		set-x void mut() = () =>
 			x := 1
 
 		out print "{get-x[]}"

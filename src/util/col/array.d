@@ -471,20 +471,6 @@ bool zipEvery(T, U)(in T[] a, in U[] b, in bool delegate(ref const T, ref const 
 	return true;
 }
 
-Opt!Out zipFirst(Out, T, U)(
-	T[] a,
-	in U[] b,
-	in Opt!Out delegate(T*, ref const U) @safe @nogc pure nothrow cb,
-) {
-	assert(sizeEq(a, b));
-	foreach (size_t i; 0 .. a.length) {
-		Opt!Out res = cb(&a[i], b[i]);
-		if (has(res))
-			return res;
-	}
-	return none!Out;
-}
-
 void zip(T, U)(scope T[] a, scope U[] b, in void delegate(ref T, ref U) @safe @nogc pure nothrow cb) {
 	assert(sizeEq(a, b));
 	foreach (size_t i; 0 .. a.length)

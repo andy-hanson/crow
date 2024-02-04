@@ -68,7 +68,7 @@ import
 
 region spec impls (see collection.crow)
 
-+iterate[t] bool(a t mut-queue, f act bool(t))
++iterate[t] bool(a t mut-queue, f bool mut(elem t))
 	unless a is-empty
 		cur mut = a begin
 		loop

@@ -9,7 +9,8 @@ import frontend.check.typeFromAst : typeFromAst;
 import frontend.lang : maxClosureFields;
 import model.ast : ExprAst, TypeAst;
 import model.diag : Diag, TypeContainer, TypeWithContainer;
-import model.model : CommonTypes, FunFlags, LambdaExpr, Local, Mutability, SpecInst, Type, TypeParams, VariableRef;
+import model.model :
+	CommonTypes, FunFlags, FunKind, LambdaExpr, Local, Mutability, SpecInst, Type, TypeParams, VariableRef;
 import util.alloc.alloc : Alloc;
 import util.col.mutMaxArr : MutMaxArr;
 import util.opt : has, force, MutOpt, none, Opt, some;
@@ -20,10 +21,12 @@ import util.symbol : AllSymbols, Symbol;
 struct ClosureFieldBuilder {
 	@safe @nogc pure nothrow:
 
-	immutable Symbol name; // Redundant to the variableRef, but it's faster to keep this close
-	immutable Mutability mutability;
+	// name, mutability, and type are eventually redundant to the variableRef,
+	// but are needed before the lambda has its Late fields filled in
+	immutable Symbol name;
+	immutable Mutability mutability; // same
 	bool[4]* isUsed; // points to isUsed for the outer variable. Null for Param.
-	immutable Type type; // Same as above
+	immutable Type type;
 	immutable VariableRef variableRef;
 
 	void setIsUsed(LocalAccessKind accessKind) {
@@ -33,22 +36,23 @@ struct ClosureFieldBuilder {
 	}
 }
 
-struct FunOrLambdaInfo {
-	MutOpt!(LocalsInfo*) outer;
-	// none for a function.
-	// WARN: This will not be initialized; but we allocate the pointer early.
-	immutable Opt!(LambdaExpr*) lambda;
-	// Will be uninitialized for a function
+struct LambdaInfo {
+	LocalsInfo* outer;
+	// WARN: Only 'lambda.kind' will be initialized while checking the lambda
+	immutable LambdaExpr* lambda;
 	MutMaxArr!(maxClosureFields, ClosureFieldBuilder) closureFields = void;
 }
 
 struct LocalsInfo {
-	FunOrLambdaInfo* funOrLambda;
+	MutOpt!(LambdaInfo*) lambda;
 	MutOpt!(LocalNode*) locals;
 }
 
-bool isInLambda(ref LocalsInfo a) =>
-	has(a.funOrLambda.outer);
+bool isInLambda(in LocalsInfo a) =>
+	has(a.lambda);
+
+bool isInDataLambda(in LocalsInfo a) =>
+	has(a.lambda) && (force(a.lambda).lambda.kind == FunKind.data || isInDataLambda(*force(a.lambda).outer));
 
 struct LocalNode {
 	MutOpt!(LocalNode*) prev;

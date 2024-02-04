@@ -9,10 +9,10 @@ import util.col.array : lastIndexOf, only;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : mustAdd, MutMap, size;
 import util.col.mutMaxArr : asTemporaryArray, MutMaxArr, mutMaxArr;
-import util.conv : safeToSizeT;
+import util.conv : safeToUint, safeToSizeT;
 import util.hash : HashCode, hashUlong;
-import util.opt : force, has, MutOpt, Opt, none, noneMut, some, someMut;
-import util.string : copyToCString, eachChar, CString, MutCString, stringsEqual, stringOfCString;
+import util.opt : force, has, MutOpt, Opt, optOrDefault, none, noneMut, some, someMut;
+import util.string : copyToCString, eachChar, CString, cStringSize, MutCString, stringsEqual, stringOfCString;
 import util.util : assertNormalEnum, castNonScope_ref, optEnumOfString, stringOfEnum;
 import util.writer : digitChar, withStackWriter, withWriter, writeEscapedChar, Writer;
 
@@ -145,10 +145,9 @@ bool hasExtension(in AllSymbols allSymbols, Symbol a) {
 	return hasDot;
 }
 
-Symbol prependSet(ref AllSymbols allSymbols, Symbol a) {
-	Opt!Symbol short_ = tryPrefixShortSymbolWithSet(a);
-	return has(short_) ? force(short_) : prependToLongString(allSymbols, "set-", a);
-}
+Symbol prependSet(ref AllSymbols allSymbols, Symbol a) =>
+	optOrDefault!Symbol(tryPrefixShortSymbolWithSet(a), () =>
+		prependToLongString(allSymbols, "set-", a));
 
 Symbol prependSetDeref(ref AllSymbols allSymbols, Symbol a) =>
 	prependToLongString(allSymbols, "set-deref-", a);
@@ -198,20 +197,17 @@ Symbol symbolOfString(ref AllSymbols allSymbols, in string str) {
 
 void eachCharInSymbol(in AllSymbols allSymbols, Symbol a, in void delegate(char) @safe @nogc pure nothrow cb) {
 	if (isShortSymbol(a))
-		eachCharInShortSymbol(a.value, cb);
+		eachCharInShortSymbol(a, cb);
 	else {
 		assert(isLongSymbol(a));
 		eachChar(asLongSymbol(castNonScope_ref(allSymbols), a), cb);
 	}
 }
 
-uint symbolSize(in AllSymbols allSymbols, Symbol a) {
-	uint size = 0;
-	eachCharInSymbol(allSymbols, a, (char) {
-		size++;
-	});
-	return size;
-}
+uint symbolSize(in AllSymbols allSymbols, Symbol a) =>
+	isShortSymbol(a)
+		? shortSymbolSize(a)
+		: safeToUint(cStringSize(asLongSymbol(allSymbols, a)));
 
 enum symbol(string name) = getSymbol(name);
 private Symbol getSymbol(string name) {
@@ -291,54 +287,74 @@ ulong shortSymbolTag() =>
 size_t shortSymbolMaxChars() =>
 	12;
 
-ulong codeForLetter(char a) {
+ubyte codeForLetter(char a) {
 	assert('a' <= a && a <= 'z');
-	return 1 + a - 'a';
+	return cast(ubyte) (1 + a - 'a');
 }
-char letterFromCode(ulong code) {
+char letterFromCode(ubyte code) {
 	assert(1 <= code && code <= 26);
 	return cast(char) ('a' + (code - 1));
 }
-ulong codeForHyphen() => 27;
-ulong codeForUnderscore() => 28;
-ulong codeForNextIsCapitalLetter() => 29;
-ulong codeForNextIsDigit() => 30;
+ubyte codeForHyphen() => 27;
+ubyte codeForUnderscore() => 28;
+ubyte codeForNextIsCapitalLetter() => 29;
+ubyte codeForNextIsDigit() => 30;
+
+ubyte shortSymbolBitsPerCode() => 5;
 
 ulong setPrefix() =>
-	(codeForLetter('s') << (5 * (shortSymbolMaxChars - 1))) |
-	(codeForLetter('e') << (5 * (shortSymbolMaxChars - 2))) |
-	(codeForLetter('t') << (5 * (shortSymbolMaxChars - 3))) |
-	(codeForHyphen << (5 * (shortSymbolMaxChars - 4)));
-
-ulong setPrefixSizeBits() =>
-	5 * 4;
-ulong setPrefixLowerBitsMask() =>
-	(1 << setPrefixSizeBits) - 1;
-ulong setPrefixMask() =>
-	setPrefixLowerBitsMask << (5 * 8);
+	(codeForLetter('s') << (shortSymbolBitsPerCode * 3)) |
+	(codeForLetter('e') << (shortSymbolBitsPerCode * 2)) |
+	(codeForLetter('t') << (shortSymbolBitsPerCode * 1)) |
+	codeForHyphen;
 
 Opt!Symbol tryPrefixShortSymbolWithSet(Symbol a) {
-	if (isShortSymbol(a) && (a.value & setPrefixMask) == 0) {
-		ulong shift = 0;
-		ulong value = a.value;
-		while (true) {
-			ulong shifted = value << 5;
-			if ((shifted & setPrefixMask) != 0)
-				break;
-			value = shifted;
-			shift += 5;
-		}
-		return some(Symbol(shortSymbolTag | ((setPrefix | value) >> shift)));
+	if (isShortSymbol(a)) {
+		uint size = shortSymbolCodeCount(a);
+		return size <= (shortSymbolMaxChars - "set-".length)
+			? some(Symbol(a.value | (setPrefix << (size * shortSymbolBitsPerCode))))
+			: none!Symbol;
 	} else
 		return none!Symbol;
 }
 
-Opt!Symbol tryPackShortSymbol(string str) {
+uint shortSymbolCodeCount(in Symbol a) {
+	uint res;
+	eachShortSymbolCodeReverse(a, (ubyte _) {
+		res++;
+	});
+	return res;
+}
+
+uint shortSymbolSize(in Symbol a) {
+	uint res;
+	eachShortSymbolCodeReverse(a, (ubyte code) {
+		switch (code) {
+			case codeForNextIsCapitalLetter:
+			case codeForNextIsDigit:
+				break;
+			default:
+				res++;
+		}
+	});
+	return res;
+}
+
+void eachShortSymbolCodeReverse(in Symbol a, in void delegate(ubyte code) @safe @nogc pure nothrow cb) {
+	assert(isShortSymbol(a));
+	ulong value = a.value & ~shortSymbolTag;
+	while (value != 0) {
+		cb(value & 0b11111);
+		value >>= shortSymbolBitsPerCode;
+	}
+}
+
+Opt!Symbol tryPackShortSymbol(in string str) {
 	ulong res = 0;
 	size_t len = 0;
 
 	void push(ulong value) {
-		res = res << 5;
+		res = res << shortSymbolBitsPerCode;
 		res |= value;
 		len++;
 	}
@@ -362,36 +378,37 @@ Opt!Symbol tryPackShortSymbol(string str) {
 	return len > shortSymbolMaxChars ? none!Symbol : some(Symbol(res | shortSymbolTag));
 }
 
-void eachCharInShortSymbol(ulong value, in void delegate(char) @safe @nogc pure nothrow cb) {
+void eachCharInShortSymbol(Symbol a, in void delegate(char) @safe @nogc pure nothrow cb) {
+	assert(isShortSymbol(a));
+	ulong value = a.value;
 	ulong remaining = shortSymbolMaxChars;
-	ulong take() {
-		ulong res = (value >> 55) & 0b11111;
-		value = value << 5;
+	ubyte take() {
+		ubyte res = (value >> (shortSymbolBitsPerCode * (shortSymbolMaxChars - 1))) & 0b11111;
+		value = value << shortSymbolBitsPerCode;
 		remaining--;
 		return res;
 	}
 
 	while (remaining != 0) {
-		assert(remaining < 999);
-		ulong x = take();
-		if (x < 27) {
-			if (x != 0)
-				cb(letterFromCode(x));
-		} else {
-			final switch (x) {
-				case codeForHyphen:
-					cb('-');
-					break;
-				case codeForUnderscore:
-					cb('_');
-					break;
-				case codeForNextIsCapitalLetter:
-					cb(cast(char) ('A' + take()));
-					break;
-				case codeForNextIsDigit:
-					cb(cast(char) ('0' + take()));
-					break;
-			}
+		ubyte code = take();
+		switch (code) {
+			case 0:
+				break;
+			case codeForHyphen:
+				cb('-');
+				break;
+			case codeForUnderscore:
+				cb('_');
+				break;
+			case codeForNextIsCapitalLetter:
+				cb(cast(char) ('A' + take()));
+				break;
+			case codeForNextIsDigit:
+				cb(cast(char) ('0' + take()));
+				break;
+			default:
+				cb(letterFromCode(code));
+				break;
 		}
 	}
 }

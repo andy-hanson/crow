@@ -10,4 +10,4 @@ import
 	out print "Done running tests"
 	()
 
--all-tests fun* void^() array() builtin
+-all-tests void^ function() array() builtin

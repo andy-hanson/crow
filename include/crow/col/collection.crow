@@ -18,7 +18,7 @@ export
 	size nat64(a t)
 
 +iterate[col, elem] spec
-	iterate bool(a col, f act bool(elem))
+	iterate bool(a col, f bool mut(elem elem))
 
 +begin[iter, col] spec
 	begin iter(a col)
@@ -110,7 +110,7 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, bare
 
 +map=[col, iter, elem] void(
 	a col,
-	f act elem(elem),
+	f elem mut(elem elem),
 ) (iter, col) begin, (elem, iter) next, (iter, elem) set-next
 	iter mut = a begin
 	loop
@@ -174,7 +174,7 @@ swap-at[col, iter, elem] void(
 region 'for' loops
 
 # Call 'f' for each element in the collection and return nothing.
-+for-loop[col, elem] void(a col, f act void(elem)) (col, elem) iterate
++for-loop[col, elem] void(a col, f void mut(elem elem)) (col, elem) iterate
 	res = a iterate x =>
 		f[x]
 		false
@@ -182,10 +182,10 @@ region 'for' loops
 
 # Call 'f' for each element in the input collection
 # and return an output collection of the results of 'f'.
-+for-loop[out-col, out-e, out-builder, in-col, in-e] out-col(
++for-loop[out-col, out-elem, out-builder, in-col, in-elem] out-col(
 	in in-col,
-	f act out-e(in-e),
-) (out-col, out-e, out-builder) build, (in-col, in-e) iterate, in-col size
+	f out-elem mut(elem in-elem),
+) (out-col, out-elem, out-builder) build, (in-col, in-elem) iterate, in-col size
 	(in.size,) build builder =>
 		for x : in
 			builder ~= f[x]
@@ -196,19 +196,22 @@ If there is no `break`, return `f-else` instead.
 ###
 +for-break[out, col, elem] out(
 	a col,
-	f-loop act out break-or-continue(elem),
-	f-else act out(),
+	f-loop out break-or-continue mut(elem elem),
+	f-else out mut(),
 ) (col, elem) iterate
 	a for-break f-loop ?? f-else[]
 
-+for-break[col, elem] void(a col, f-loop act void break-or-continue(elem)) (col, elem) iterate
++for-break[col, elem] void(a col, f-loop void break-or-continue mut(elem elem)) (col, elem) iterate
 	a for-break f-loop ?? ()
 
 ###
 Call `f` for each element in the collection, but stop and return the result of the first `break`.
 If there is no `break`, return an empty option instead.
 ###
-+for-break[out, col, elem] out?(a col, f-loop act out break-or-continue(elem)) (col, elem) iterate
++for-break[out, col, elem] out?(
+	a col,
+	f-loop out break-or-continue mut(elem elem),
+) (col, elem) iterate
 	res mut out? = ()
 	broke = a iterate x =>
 		match f-loop[x]
@@ -226,14 +229,14 @@ and return an output collection of the elements for which `f` was `true`.
 ###
 +filter[out-col, elem, out-builder, in-col] out-col(
 	in in-col,
-	f act bool(elem),
+	f bool mut(elem elem),
 ) (out-col, elem, out-builder) build, (in-col, elem) iterate
 	with out : build
 		for x : in
 			if f[x]
 				out ~= x
 
-+reduce[col, elem] elem?(a col, f act elem(elem, elem)) (col, elem) iterate
++reduce[col, elem] elem?(a col, f elem mut(acc elem, next elem)) (col, elem) iterate
 	res mut elem? = ()
 	for x : a
 		res := if cur ?= res
@@ -445,7 +448,7 @@ Returns an empty option iff `b` is not a subsequence of `a`.
 Returns the first element for which `f` returns true,
 or an empty option if `f` was always `false`.
 ###
-+find[col, elem] elem?(a col, f act bool(elem)) (col, elem) iterate
++find[col, elem] elem?(a col, f bool mut(elem elem)) (col, elem) iterate
 	for x : a
 		if f[x]
 			break x
@@ -454,7 +457,7 @@ or an empty option if `f` was always `false`.
 Returns the first index `i` for which `f[a[i]]` is true.
 Returns an empty option iff `f` returns `false` for every elem of `a`.
 ###
-+find-index[col, elem] nat64?(a col, f act bool(elem)) (col, elem) iterate
++find-index[col, elem] nat64?(a col, f bool mut(elem elem)) (col, elem) iterate
 	i mut nat64 = 0
 	for x : a
 		if f[x]
@@ -490,7 +493,7 @@ Equivalent to `f[a[0]] || f[a[1]] || ... || f[a[end - 1]]`
 Calls `f` on each element of `a` and returns `true` the first time `f` does.
 Returns `false` iff `f` returned `false` every time.
 ###
-+exists[col, elem] bool(a col, f act bool(elem)) (col, elem) iterate
++exists[col, elem] bool(a col, f bool mut(elem elem)) (col, elem) iterate
 	a iterate f
 
 ###
@@ -499,7 +502,7 @@ Equivalent to `f[a[0]] && f[a[1]] && ... && f[a[end - 1]]`.
 Calls `f` on each element of `a` and returns `false` the fist time `f` does.
 Returns `true` iff `f` returned `true` every time.
 ###
-+every[col, elem] bool(a col, f act bool(elem)) (col, elem) iterate
++every[col, elem] bool(a col, f bool mut(elem elem)) (col, elem) iterate
 	!(a iterate x => !f[x])
 
 ###
@@ -508,7 +511,7 @@ If `f` always returns true, this returns an empty collection.
 ###
 +drop-while[col, iter, elem] col(
 	a col,
-	f act bool(elem),
+	f bool mut(elem elem),
 ) (iter, col) begin-end, (elem, iter) next, (col, iter) slice
 	iter mut = a begin
 	loop
@@ -525,7 +528,7 @@ If `f` always returns true, this returns an empty collection.
 # Drops elements from the right that match `f`.
 +drop-right-while[col, iter, elem] col(
 	a col,
-	f act bool(elem),
+	f bool mut(elem elem),
 ) (iter, col) begin-end, (elem, iter) prev, (col, iter) slice
 	iter mut = a end
 	loop
@@ -541,7 +544,7 @@ If `f` always returns true, this returns an empty collection.
 
 +take-while[col, iter, elem] col(
 	a col,
-	f act bool(elem),
+	f bool mut(elem elem),
 ) (iter, col) begin, (elem, iter) next, (col, iter) slice
 	iter mut = a begin
 	loop
@@ -557,7 +560,7 @@ If `f` always returns true, this returns an empty collection.
 
 +take-right-while[col, iter, elem] col(
 	a col,
-	f act bool(elem),
+	f bool mut(elem elem),
 ) (iter, col) end, (elem, iter) prev, (col, iter) slice
 	iter mut = a end
 	loop
@@ -616,7 +619,10 @@ If `f` always returns true, this returns an empty collection.
 	a,
 +size[col] nat64(a col reverse) col size
 	a.inner size
-+for-loop[col, iter, elem] void(a col reverse, f act void(elem)) (iter, col) end, (elem, iter) prev
++for-loop[col, iter, elem] void(
+	a col reverse,
+	f void mut(elem elem),
+) (iter, col) end, (elem, iter) prev
 	# TODO: define 'iterate' instead
 	iter mut = a.inner end
 	loop
@@ -628,7 +634,7 @@ If `f` always returns true, this returns an empty collection.
 			break
 +for-loop[out-col, out-elem, out-builder, in-col, in-iter, in-elem] out-col(
 	a in-col reverse,
-	f act out-elem(in-elem),
+	f out-elem mut(elem in-elem),
 ) (out-col, out-elem, out-builder) build,
 		(in-iter, in-col) end,
 		(in-elem, in-iter) prev,
@@ -652,14 +658,14 @@ region with-index
 	-inner col
 +with-index[col] col with-index(a col)
 	a,
-+for-loop[col, elem] void(a col with-index, f act void(nat64, elem)) (col, elem) iterate
++for-loop[col, elem] void(a col with-index, f void mut(index nat64, elem elem)) (col, elem) iterate
 	i mut nat64 = 0
 	for x : a inner
 		f[i, x]
 		i +:= 1
 +for-loop[out-col, out-elem, out-builder, in-col, in-elem] out-col(
 	a in-col with-index,
-	f act out-elem(nat64, in-elem),
+	f out-elem mut(index nat64, elem in-elem),
 ) (out-col, out-elem, out-builder) build, (in-col, in-elem) iterate, in-col size
 	(a.inner.size,) build builder =>
 		i mut nat64 = 0
@@ -668,7 +674,7 @@ region with-index
 			i +:= 1
 +for-break[col, elem] void(
 	a col with-index,
-	f act void break-or-continue(nat64, elem),
+	f void break-or-continue mut(index nat64, elem elem),
 ) (col, elem) iterate
 	i mut nat64 = 0
 	_ = a.inner iterate x =>
@@ -678,7 +684,7 @@ region with-index
 		as loop-continue
 			i +:= 1
 			false
-+exists[col, elem] bool(a col with-index, f act bool(nat64, elem)) (col, elem) iterate
++exists[col, elem] bool(a col with-index, f bool mut(index nat64, elem elem)) (col, elem) iterate
 	i mut nat64 = 0
 	a.inner iterate x =>
 		res = f[i, x]

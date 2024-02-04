@@ -71,14 +71,13 @@ immutable struct TypeAst {
 	immutable struct Fun {
 		@safe @nogc pure nothrow:
 
-		Range range;
+		TypeAst returnType;
 		FunKind kind;
-		SmallArray!TypeAst returnAndParamTypes;
+		Range paramsRange;
+		ParamsAst params;
 
-		TypeAst returnType() return scope =>
-			returnAndParamTypes[0];
-		TypeAst[] paramTypes() return scope =>
-			returnAndParamTypes[1 .. $];
+		Range range(in AllSymbols allSymbols) scope =>
+			combineRanges(returnType.range(allSymbols), paramsRange);
 	}
 
 	immutable struct Map {
@@ -150,7 +149,7 @@ immutable struct TypeAst {
 	Range range(in AllSymbols allSymbols) scope =>
 		matchIn!Range(
 			(in TypeAst.Bogus x) => x.range,
-			(in TypeAst.Fun x) => x.range,
+			(in TypeAst.Fun x) => x.range(allSymbols),
 			(in TypeAst.Map x) => x.range(allSymbols),
 			(in NameAndRange x) => x.range(allSymbols),
 			(in TypeAst.SuffixName x) => x.range(allSymbols),
@@ -353,7 +352,7 @@ immutable struct DestructureAst {
 	}
 	// `()` is a destructure matching only void values
 	immutable struct Void {
-		Pos pos;
+		Range range;
 	}
 	mixin Union!(Single, Void, DestructureAst[]);
 
@@ -362,7 +361,7 @@ immutable struct DestructureAst {
 			(in DestructureAst.Single x) =>
 				x.name.start,
 			(in DestructureAst.Void x) =>
-				x.pos,
+				x.range.start,
 			(in DestructureAst[] parts) =>
 				parts[0].pos);
 
@@ -375,7 +374,7 @@ immutable struct DestructureAst {
 					: name;
 			},
 			(in DestructureAst.Void x) =>
-				rangeOfStartAndLength(x.pos, "()".length),
+				x.range,
 			(in DestructureAst[] parts) =>
 				Range(parts[0].range(allSymbols).start, parts[$ - 1].range(allSymbols).end));
 }

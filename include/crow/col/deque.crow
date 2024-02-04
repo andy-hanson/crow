@@ -91,7 +91,7 @@ Returns an empty option iff `a` is empty.
 
 region spec impls (see collection.crow)
 
-+iterate[t] bool(a t deque, f act bool(t))
++iterate[t] bool(a t deque, f bool mut(elem t))
 	a.left iterate-reverse f || a.mid iterate f || a.right iterate f
 
 region test

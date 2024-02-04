@@ -15,6 +15,7 @@ import frontend.parse.lexToken :
 	lookaheadEqualsOrThen,
 	lookaheadLambdaAfterParenLeft,
 	lookaheadNew,
+	lookaheadOpenParen,
 	lookaheadQuestionEquals,
 	plainToken;
 import frontend.parse.lexWhitespace :
@@ -28,13 +29,14 @@ import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
 import util.string : CString, MutCString;
-import util.symbol : AllSymbols, symbol;
+import util.symbol : AllSymbols, Symbol, symbol;
 import util.util : enumConvert;
 
 public import frontend.parse.lexString : QuoteKind, StringPart;
 public import frontend.parse.lexToken : ElifOrElse, EqualsOrThen, Token, TokenAndData;
 
 struct Lexer {
+	@safe @nogc pure nothrow:
 	private:
 	Alloc* allocPtr;
 	AllSymbols* allSymbolsPtr;
@@ -51,13 +53,13 @@ struct Lexer {
 	// Position at start of 'nextToken'.
 	Pos nextTokenPos = void;
 	Cell!TokenAndData nextToken = void;
+
+	public:
+	ref Alloc alloc() return scope =>
+		*allocPtr;
+	ref AllSymbols allSymbols() return scope =>
+		*allSymbolsPtr;
 }
-
-ref Alloc alloc(return ref Lexer lexer) =>
-	*lexer.allocPtr;
-
-ref AllSymbols allSymbols(return ref Lexer lexer) =>
-	*lexer.allSymbolsPtr;
 
 @trusted Lexer createLexer(
 	Alloc* alloc,
@@ -70,6 +72,9 @@ ref AllSymbols allSymbols(return ref Lexer lexer) =>
 			addDiagFromPointer(lexer, start, x)));
 	return lexer;
 }
+
+uint getCurIndent(in Lexer lexer) =>
+	lexer.curIndent;
 
 private void addDiagFromPointer(scope ref Lexer lexer, CString start, ParseDiag diag) {
 	addDiag(lexer, Range(posOf(lexer, start), posOf(lexer, lexer.ptr)), diag);
@@ -149,7 +154,7 @@ f nat(
 After the ')', we want to parse as if the previous indent level was 0 (which it was at the '(')
 */
 
-void skipNewlinesIgnoreIndentation(ref Lexer lexer, bool indentOne) {
+void skipNewlinesIgnoreIndentation(ref Lexer lexer, uint indentLevel) {
 	while (true) {
 		switch (getPeekToken(lexer)) {
 			case Token.newlineDedent:
@@ -158,12 +163,12 @@ void skipNewlinesIgnoreIndentation(ref Lexer lexer, bool indentOne) {
 				takeNextToken(lexer);
 				continue;
 			case Token.EOF:
-				if (indentOne)
+				if (indentLevel != 0)
 					cellSet(lexer.nextToken, TokenAndData(Token.newlineDedent, DocCommentAndExtraDedents()));
 				lexer.curIndent = 0;
 				return;
 			default:
-				lexer.curIndent = indentOne;
+				lexer.curIndent = indentLevel;
 				return;
 		}
 	}
@@ -271,6 +276,11 @@ bool lookaheadNameColon(in Lexer lexer) =>
 
 bool lookaheadLambda(in Lexer lexer) =>
 	getPeekToken(lexer) == Token.parenLeft && .lookaheadLambdaAfterParenLeft(lexer.ptr);
+
+bool lookaheadNameOpenParen(in Lexer lexer, Symbol name) {
+	TokenAndData td = getPeekTokenAndData(lexer);
+	return td.token == Token.name && td.asSymbol == name && lookaheadOpenParen(lexer.ptr);
+}
 
 // Returns position of 'as'
 Opt!Pos tryTakeNewlineThenAs(ref Lexer lexer) {

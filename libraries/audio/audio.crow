@@ -3,15 +3,15 @@ import
 
 +audio record shared
 	format sound-format
-	clear fun void()
-	play fun playing-sound(sound)
-	play-loop fun playing-sound(sound)
-	shut-down far void()
+	clear void shared()
+	play playing-sound shared(x sound)
+	play-loop playing-sound shared(x sound)
+	shut-down void far()
 
 +playing-sound record shared
-	reset-position fun void()
+	reset-position void shared()
 	# NOTE: This doesn't reset the sound's position
-	set-playing fun void(bool)
+	set-playing void shared(should-be-playing bool)
 
 # Also known as 'pause'
 +pause void(a playing-sound)

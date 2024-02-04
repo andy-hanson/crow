@@ -165,7 +165,7 @@ Returns an empty option if the key was not in the map.
 +remove[k, v] v?(a v mut[k], key k) k key
 	a update key, ()
 
-+ensure[k, v] v(a v mut[k], key k, get-value act v()) k key
++ensure[k, v] v(a v mut[k], key k, get-value v mut()) k key
 	if v ?= a[key]
 		v
 	else
@@ -257,7 +257,7 @@ Filters the map in place.
 
 Calls `f` on every key and value and removes the key if `f` returns false.
 ###
-+filter=[k, v] void(a v mut[k], f act bool(k, v)) k key
++filter=[k, v] void(a v mut[k], f bool mut(key k, value v)) k key
 	a.entries map= entry =>
 		match entry
 		as none
@@ -279,7 +279,7 @@ Calls `f` on every key and value and removes the key if `f` returns false.
 ###
 Calls `f` on every key and value, and replaces the value with the new value returned by `f`.
 ###
-+map-values=[k, v] void(a v mut[k], f act v(k, v)) k key
++map-values=[k, v] void(a v mut[k], f v mut(key k, value v)) k key
 	a.entries map= entry =>
 		match entry
 		as none
@@ -293,7 +293,7 @@ Calls `f` on every key and value, and replaces the value with the new value retu
 region spec impls (see collection.crow)
 
 # Calls `f` for every key and value in the map.
-+iterate[k, v] bool(a v mut[k], f act bool(k, v)) k key
++iterate[k, v] bool(a v mut[k], f bool mut(key k, value v)) k key
 	a.entries iterate entry =>
 		match entry
 		as none

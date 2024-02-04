@@ -184,9 +184,10 @@ immutable(EnumMap!(FunKind, FunDecl*)) getLambdaSubscriptFuns(
 		// TODO: check the type more thoroughly
 		FunKind funKind = firstArgFunKind(commonTypes, x);
 		final switch (funKind) {
-			case FunKind.fun:
-			case FunKind.act:
-			case FunKind.pointer:
+			case FunKind.data:
+			case FunKind.shared_:
+			case FunKind.mut:
+			case FunKind.function_:
 				assert(!has(res[funKind]));
 				res[funKind] = someMut(x);
 				break;
@@ -203,7 +204,7 @@ FunKind firstArgFunKind(in CommonTypes commonTypes, FunDecl* f) {
 	Destructure[] params = assertNonVariadic(f.params);
 	assert(!isEmpty(params));
 	StructDecl* actual = params[0].type.as!(StructInst*).decl;
-	foreach (FunKind kind; [FunKind.fun, FunKind.act, FunKind.pointer])
+	foreach (FunKind kind; [FunKind.data, FunKind.shared_, FunKind.mut, FunKind.function_])
 		if (actual == commonTypes.funStructs[kind])
 			return kind;
 	assert(false);

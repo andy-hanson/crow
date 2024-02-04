@@ -4,8 +4,6 @@ module frontend.parse.parse;
 
 import frontend.parse.lexer :
 	addDiagUnexpectedCurToken,
-	alloc,
-	allSymbols,
 	createLexer,
 	curPos,
 	finishDiagnostics,
@@ -14,14 +12,12 @@ import frontend.parse.lexer :
 	Lexer,
 	lookaheadNewVisibility,
 	range,
-	skipNewlinesIgnoreIndentation,
-	skipUntilNewlineNoDiag,
 	takeNextToken,
 	Token,
 	TokenAndData;
-import frontend.parse.parseExpr : parseDestructureRequireParens, parseFunExprBody;
+import frontend.parse.parseExpr : parseFunExprBody;
 import frontend.parse.parseImport : parseImportsOrExports;
-import frontend.parse.parseType : parseType, parseTypeArgForVarDecl, tryParseTypeArgForEnumOrFlags;
+import frontend.parse.parseType : parseParams, parseType, parseTypeArgForVarDecl, tryParseTypeArgForEnumOrFlags;
 import frontend.parse.parseUtil :
 	addDiagExpected,
 	NewlineOrDedent,
@@ -38,7 +34,6 @@ import frontend.parse.parseUtil :
 	tryTakeToken,
 	tryTakeTokenAndMayContinueOntoNextLine;
 import model.ast :
-	DestructureAst,
 	EnumMemberAst,
 	ExprAst,
 	FieldMutabilityAst,
@@ -104,35 +99,6 @@ TypeParams parseTypeParams(ref Lexer lexer) =>
 		})
 		: emptySmallArray!NameAndRange;
 
-ParamsAst parseParams(ref Lexer lexer, bool indentLevel) {
-	if (!takeOrAddDiagExpectedToken(lexer, Token.parenLeft, ParseDiag.Expected.Kind.openParen)) {
-		skipUntilNewlineNoDiag(lexer);
-		return ParamsAst([]);
-	} else if (tryTakeToken(lexer, Token.parenRight))
-		return ParamsAst(emptySmallArray!DestructureAst);
-	else if (tryTakeToken(lexer, Token.dot3)) {
-		DestructureAst param = parseDestructureRequireParens(lexer);
-		takeOrAddDiagExpectedToken(lexer, Token.parenRight, ParseDiag.Expected.Kind.closingParen);
-		return ParamsAst(allocate(lexer.alloc, ParamsAst.Varargs(param)));
-	} else
-		return ParamsAst(buildSmallArray!DestructureAst(lexer.alloc, (scope ref Builder!DestructureAst res) {
-			while (true) {
-				skipNewlinesIgnoreIndentation(lexer, indentLevel);
-				res ~= parseDestructureRequireParens(lexer);
-				if (tryTakeToken(lexer, Token.parenRight))
-					break;
-				if (!takeOrAddDiagExpectedToken(lexer, Token.comma, ParseDiag.Expected.Kind.comma)) {
-					skipUntilNewlineNoDiag(lexer);
-					break;
-				}
-				// allow trailing comma
-				skipNewlinesIgnoreIndentation(lexer, indentLevel);
-				if (tryTakeToken(lexer, Token.parenRight))
-					break;
-			}
-		}));
-}
-
 SmallArray!T parseIndentedLines(T)(ref Lexer lexer, in T delegate() @safe @nogc pure nothrow cb) =>
 	tryTakeToken(lexer, Token.newlineIndent)
 		? buildSmallArray!T(lexer.alloc, (scope ref Builder!T res) {
@@ -150,7 +116,7 @@ SmallArray!SpecSigAst parseIndentedSigs(ref Lexer lexer) =>
 		NameAndRange name = takeNameOrOperator(lexer);
 		assert(name.start == start);
 		TypeAst returnType = parseType(lexer);
-		ParamsAst params = parseParams(lexer, 1);
+		ParamsAst params = parseParams(lexer);
 		return SpecSigAst(docComment, range(lexer, start), name.name, returnType, params);
 	});
 
@@ -218,7 +184,7 @@ FunDeclAst parseFun(
 	TypeParams typeParams,
 ) {
 	TypeAst returnType = parseType(lexer);
-	ParamsAst params = parseParams(lexer, 0);
+	ParamsAst params = parseParams(lexer);
 	SmallArray!ModifierAst modifiers = parseModifiers(lexer);
 	ExprAst body_ = parseFunExprBody(lexer);
 	return FunDeclAst(

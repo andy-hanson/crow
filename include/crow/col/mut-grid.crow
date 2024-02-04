@@ -73,7 +73,7 @@ Throws if `y` is out of range.
 	a.elements size
 
 # Creates a new grid with the given width and height, setting every element to `f[x, y]`.
-+make[t] t mut-grid(width nat64, height nat64, f act t(nat64, nat64))
++make[t] t mut-grid(width nat64, height nat64, f t mut(x nat64, y nat64))
 	elements t mut-array = with out : width * height build
 		for y : 0::nat64 .. height
 			for x : 0::nat64 .. width
@@ -116,13 +116,13 @@ region rows
 	a,
 +size[t] nat64(a t mut-grid-rows)
 	a.inner height
-+iterate[t] bool(a t mut-grid-rows, f act bool(t mut-array))
++iterate[t] bool(a t mut-grid-rows, f bool mut(elem t mut-array))
 	0::nat64 .. a.size iterate y =>
 		f[a.inner row y]
 
 region spec impls (see collection.crow)
 
-+iterate[t] bool(a t mut-grid, f act bool(t))
++iterate[t] bool(a t mut-grid, f bool mut(elem t))
 	a.elements iterate f
 +with-coords[t] record mut
 	-inner t mut-grid
@@ -130,7 +130,7 @@ region spec impls (see collection.crow)
 	a,
 +size[t] nat64(a t with-coords)
 	a.inner size
-+iterate[t] bool(a t with-coords, f act bool(coord, t))
++iterate[t] bool(a t with-coords, f bool mut(xy coord, value t))
 	coord mut coord = ()
 	a.inner iterate x =>
 		res = f[coord, x]

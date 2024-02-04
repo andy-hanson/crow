@@ -55,7 +55,7 @@ import
 	measure-names.to,
 
 # Enable performance, run the callback, then return its result and the measured performance.
-+with-block[t] (t, perf-result)(a measure-performance, f act t()) summon
++with-block[t] (t, perf-result)(a measure-performance, f t mut()) summon
 	assert (trusted measure-names.is-empty) : "Already measuring performance"
 	with : (() => trusted clear-perf) finally
 		trusted
@@ -80,7 +80,7 @@ Runs `f` and returns its result.
 If the performance measure `measure-name` is enabled,
 this contribues to its performance measurement.
 ###
-+with-block[t] t(a perf-measure, f act t())
++with-block[t] t(a perf-measure, f t mut())
 	if index ?= (trusted measure-names) index-of a.measure-name
 		start = perf-now
 		res = f[]

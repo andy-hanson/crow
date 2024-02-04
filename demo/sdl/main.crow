@@ -82,7 +82,7 @@ main nat^(_ string[]) summon
 	dest SDL_Rect = x, (window-height - image-height) / 2, image-width, image-height
 	renderer SDL_RenderCopy texture, null, &dest handle-sdl-error "SDL_RenderCopy"
 
--run-with-thread-id[t] t^(thread-id nat, cb act t()) unsafe, t shared
+-run-with-thread-id[t] t^(thread-id nat, cb t mut()) unsafe, t shared
 	if cur-thread-id == thread-id
 		cb[],
 	else

@@ -285,6 +285,9 @@ aside > h4 {
 	border-image-slice: 1;
 	width: 13em;
 }
+aside > h4 + ul {
+	margin-top: 1em;
+}
 
 div.code-block {
 	margin-left: 1em;

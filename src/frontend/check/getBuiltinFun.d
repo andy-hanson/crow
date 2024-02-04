@@ -270,8 +270,8 @@ FunBody inner(
 			// TODO: check signature
 			return isBuiltin(p0, BuiltinType.funPointer)
 				? FunBody(BuiltinFun(BuiltinFun.CallFunPointer()))
-				: isBuiltin(p0, BuiltinType.funOrAct)
-				? FunBody(BuiltinFun(BuiltinFun.CallFunOrAct()))
+				: isBuiltin(p0, BuiltinType.lambda)
+				? FunBody(BuiltinFun(BuiltinFun.CallLambda()))
 				: fail();
 		case symbol!"sqrt".value:
 			return unaryMath(BuiltinUnaryMath.sqrtFloat32, BuiltinUnaryMath.sqrtFloat64);

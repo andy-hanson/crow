@@ -99,7 +99,7 @@ import
 +_beginthreadex HANDLE(
 	security any-mut-pointer,
 	stack_size u-int,
-	start-address fun* any-mut-pointer(any-mut-pointer),
+	start-address any-mut-pointer function(arg any-mut-pointer),
 	arglist any-mut-pointer,
 	initflag u-int,
 	thrdaddr u-int mut*,

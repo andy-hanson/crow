@@ -1,12 +1,15 @@
-info: act
-info: fun
+info: data
+info: shared
+info: mut
 info: far
 info: ptr
-info: a act
-info: b fun
-info: c far
-info: d ptr1
-info: a act b
-info: a fun b
-info: a far b
-info: a ptr b
+info: a data
+info: a shared
+info: c mut
+info: d far
+info: e ptr
+info: a data b
+info: c shared d
+info: e mut f
+info: g far h
+info: i ptr j

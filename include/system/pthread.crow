@@ -13,7 +13,7 @@ import
 +pthread_create err-t(
 	thread pthread_t mut*,
 	attr any-const-pointer,
-	start-routine fun* any-mut-pointer(any-mut-pointer),
+	start-routine any-mut-pointer function(arg any-mut-pointer),
 	arg any-mut-pointer,
 ) summon, pthread extern
 

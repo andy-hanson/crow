@@ -14,7 +14,7 @@ sqlite3_close sqlite3-result(db sqlite3 mut*) summon, sqlite3 extern
 sqlite3_exec sqlite3-result(
 	db sqlite3 mut*,
 	sql c-string,
-	cb fun* c-int(any-mut-pointer, c-int, c-string*, c-string*),
+	cb c-int function(context any-mut-pointer, argc c-int, argv c-string*, colum_name c-string*),
 	cb-arg any-mut-pointer,
 	err-msg c-string mut*,
 ) summon, sqlite3 extern

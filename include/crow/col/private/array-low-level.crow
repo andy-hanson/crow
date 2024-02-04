@@ -51,7 +51,7 @@ Equivalent to calling `f[a[0]]`, `f[a[1]]`, etc.
 
 Calls `f` for each element in `a`.
 ###
-+iterate[t] bool(a t array, f act bool(t))
++iterate[t] bool(a t array, f bool mut(elem t))
 	trusted if size-of@t == 0
 		i mut nat64 = 0
 		loop
@@ -79,7 +79,7 @@ Calls `f` for each element in `a`.
 	# If `size-of@t == 0`, we store the size here instead of an actual pointer
 	-cur mut t mut*
 	-end mut t mut*
-+build[t] t array(a build-options, f act void(t array-builder))
++build[t] t array(a build-options, f void mut(out t array-builder))
 	trusted if size-of@t == 0
 		# store size in 'cur'
 		builder t array-builder = null, 0.to-mut-pointer, null

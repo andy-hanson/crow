@@ -1,4 +1,4 @@
 main void()
-	f fun* void() = () => ()
+	f void function() = () => ()
 	f[]
 	()

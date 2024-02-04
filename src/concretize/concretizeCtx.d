@@ -903,7 +903,7 @@ TypeSize getBuiltinStructSize(BuiltinType kind) {
 		case BuiltinType.pointerConst:
 		case BuiltinType.pointerMut:
 			return TypeSize(8, 8);
-		case BuiltinType.funOrAct:
+		case BuiltinType.lambda:
 			return TypeSize(16, 8);
 	}
 }

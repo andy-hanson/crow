@@ -7,7 +7,7 @@ dummy-exclusion-queue-tests nat()
 -eq record
 -eq eq()
 	()
--with-block void(_ eq, cb act void(string exclusion-queue mut*)) unsafe
+-with-block void(_ eq, cb void mut(queue string exclusion-queue mut*)) unsafe
 	storage mut string exclusion-queue = uninit
 	a string exclusion-queue mut* = &storage
 	a init

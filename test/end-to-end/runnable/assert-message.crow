@@ -4,7 +4,7 @@ main void() unsafe
 	(() => assert false : "Custom assert message") log-error
 	(() => forbid true : "Custom forbid message") log-error
 
-log-error void(cb act void()) unsafe
+log-error void(cb void mut()) unsafe
 	match cb catch
 	as ok ()
 		error log "Should throw"

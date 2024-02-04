@@ -109,7 +109,7 @@ main nat^(_ string[]) summon
 	_ = () :: (nat sorted-set)
 	_ = () :: (nat stack)
 	_ = () :: (nat tree-set)
-	_ = (() => read-stdin)::act string^()
+	_ = (() => read-stdin)::string far()
 	_ = () :: vec2-32
 	_ = () :: (nat queue)
 	_ = gmt

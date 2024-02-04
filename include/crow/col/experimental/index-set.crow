@@ -426,10 +426,10 @@ region spec impls (see collection.crow)
 
 subregion iteration
 
-+iterate bool(a index-set, f act bool(nat64))
++iterate bool(a index-set, f bool mut(elem nat64))
 	a.root iterate-recur 0, a.capacity, f
 # offset: how much to add to indices in this node
--iterate-recur bool(node node, offset nat64, n nat64, f act bool(nat64))
+-iterate-recur bool(node node, offset nat64, n nat64, f bool mut(elem nat64))
 	match node
 	as inner i
 		half = n / 2
@@ -458,7 +458,7 @@ subregion build
 +index-set-builder record mut
 	-inner nat64 list-builder
 
-+build index-set(a build-options, f act void(index-set-builder))
++build index-set(a build-options, f void mut(out index-set-builder))
 	a build (out => f[out,]) to
 
 + ~= void(a index-set-builder, value nat64)

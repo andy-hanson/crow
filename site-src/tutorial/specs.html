@@ -30,14 +30,14 @@
 		If there are multiple, separate them by commas, as in <code>t summable, t equal</code>.
 		<br />
 		The syntax for instantiating a spec template is just like for a type template.
-		<code>t summable</code> instantiates <code class="spec">summable</code>
+		<code>t summable</code> instantiates <code class="interface">summable</code>
 		using <code>t</code>. (The type parameter to <code class="function">sum</code>
-		happens to have the same name as the type parameter to <code class="spec">summable</code>.)
+		happens to have the same name as the type parameter to <code class="interface">summable</code>.)
 	</p>
 
 	<p>
-		Since <code class="function">sum</code> depends on <code class="spec">summable</code>,
-		the functions declared inside <code class="spec">summable</code>
+		Since <code class="function">sum</code> depends on <code class="interface">summable</code>,
+		the functions declared inside <code class="interface">summable</code>
 		are in scope inside of <code class="function">sum</code>.
 		<br />
 		So, the call to <code class="keyword">()</code> in <code>res mut t = ()</code>
@@ -132,14 +132,14 @@
 	</crow-runnable>
 
 	<aside class="small">
-		This uses the <code class="spec">new</code> spec from {{doc/misc}}.
+		This uses the <code class="interface">new</code> spec from {{doc/misc}}.
 	</aside>
 </section>
 <section>
 	<h2>Special specs</h2>
 
 	<p>
-		There are special specs <code class="spec">data</code> and <code class="spec">shared</code>
+		There are special specs <code class="interface">data</code> and <code class="interface">shared</code>
 		that aren't implemented by functions.
 		<br />
 		Instead, these specs are only satisfied when their type argument is a
@@ -160,7 +160,8 @@
 	</crow-runnable>
 
 	<aside class="small">
-		<code class="spec">key</code> is defined in {{doc/misc}}. It inherits from <code class="spec">data</code>.
+		<code class="interface">key</code> is defined in {{doc/misc}}.
+		It inherits from <code class="interface">data</code>.
 	</aside>
 
 	<p>

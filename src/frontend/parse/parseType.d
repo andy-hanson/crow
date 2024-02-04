@@ -5,27 +5,36 @@ module frontend.parse.parseType;
 import frontend.parse.lexer :
 	addDiag,
 	addDiagUnexpectedCurToken,
-	alloc,
 	curPos,
+	getCurIndent,
 	getPeekToken,
 	getPeekTokenAndData,
 	Lexer,
+	lookaheadNameOpenParen,
 	range,
 	rangeAtChar,
 	rangeForCurToken,
+	skipNewlinesIgnoreIndentation,
+	skipUntilNewlineNoDiag,
 	takeNextToken,
-	Token;
+	Token,
+	TokenAndData;
 import frontend.parse.parseUtil :
-	addDiagExpected, takeOrAddDiagExpectedToken, tryTakeNameAndRange, tryTakeOperator, tryTakeToken;
-import model.ast : NameAndRange, TypeAst;
+	addDiagExpected,
+	takeNameAndRangeAllowUnderscore,
+	takeOrAddDiagExpectedToken,
+	tryTakeNameAndRange,
+	tryTakeOperator,
+	tryTakeToken;
+import model.ast : DestructureAst, NameAndRange, ParamsAst, TypeAst;
 import model.model : FunKind;
 import model.parseDiag : ParseDiag;
-import util.col.array : only, SmallArray;
-import util.col.arrayBuilder : add, ArrayBuilder, smallFinish;
+import util.col.array : emptySmallArray, only, SmallArray;
+import util.col.arrayBuilder : Builder, buildSmallArray;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos;
-import util.symbol : symbol;
+import util.symbol : Symbol, symbol;
 
 Opt!(TypeAst*) tryParseTypeArgForEnumOrFlags(ref Lexer lexer) {
 	if (tryTakeToken(lexer, Token.parenLeft)) {
@@ -50,16 +59,15 @@ Opt!(TypeAst*) tryParseTypeArgForExpr(ref Lexer lexer) =>
 		? some(allocate(lexer.alloc, parseTypeForTypedExpr(lexer)))
 		: none!(TypeAst*);
 
-private SmallArray!TypeAst parseTypesWithCommasThenClosingParen(ref Lexer lexer) {
-	ArrayBuilder!TypeAst res;
-	parseTypesWithCommasThenClosingParen(lexer, res);
-	return smallFinish(lexer.alloc, res);
-}
+private SmallArray!TypeAst parseTypesWithCommasThenClosingParen(ref Lexer lexer) =>
+	buildSmallArray(lexer.alloc, (scope ref Builder!TypeAst out_) {
+		parseTypesWithCommasThenClosingParen(lexer, out_);
+	});
 
-private void parseTypesWithCommasThenClosingParen(ref Lexer lexer, scope ref ArrayBuilder!TypeAst res) {
+private void parseTypesWithCommasThenClosingParen(ref Lexer lexer, scope ref Builder!TypeAst res) {
 	if (!tryTakeToken(lexer, Token.parenRight)) {
 		do {
-			add(lexer.alloc, res, parseType(lexer));
+			res ~= parseType(lexer);
 		} while (tryTakeToken(lexer, Token.comma));
 		takeOrAddDiagExpectedToken(lexer, Token.parenRight, ParseDiag.Expected.Kind.closingParen);
 	}
@@ -70,6 +78,88 @@ TypeAst parseType(ref Lexer lexer) =>
 
 TypeAst parseTypeForTypedExpr(ref Lexer lexer) =>
 	parseTypeSuffixesNonName(lexer, parseTypeBeforeSuffixes(lexer, ParenthesesNecessary.necessary));
+
+DestructureAst parseDestructureRequireParens(ref Lexer lexer) {
+	Pos start = curPos(lexer);
+	if (tryTakeToken(lexer, Token.parenLeft)) {
+		if (tryTakeToken(lexer, Token.parenRight))
+			return DestructureAst(DestructureAst.Void(range(lexer, start)));
+		else {
+			DestructureAst res = parseDestructureNoRequireParens(lexer);
+			takeOrAddDiagExpectedToken(lexer, Token.parenRight, ParseDiag.Expected.Kind.closingParen);
+			return res;
+		}
+	} else {
+		NameAndRange name = takeNameAndRangeAllowUnderscore(lexer);
+		Pos posForMut = curPos(lexer);
+		Opt!Pos mut = tryTakeToken(lexer, Token.mut) ? some(posForMut) : none!Pos;
+		Opt!(TypeAst*) type = () {
+			switch (getPeekToken(lexer)) {
+				case Token.arrowThen:
+				case Token.colon:
+				case Token.comma:
+				case Token.equal:
+				case Token.newlineDedent:
+				case Token.newlineIndent:
+				case Token.newlineSameIndent:
+				case Token.parenRight:
+				case Token.questionEqual:
+					return none!(TypeAst*);
+				default:
+					return some(allocate(lexer.alloc, parseType(lexer)));
+			}
+		}();
+		return DestructureAst(DestructureAst.Single(name, mut, type));
+	}
+}
+
+DestructureAst parseDestructureNoRequireParens(ref Lexer lexer) {
+	DestructureAst first = parseDestructureRequireParens(lexer);
+	if (tryTakeToken(lexer, Token.comma)) {
+		return DestructureAst(buildSmallArray!DestructureAst(lexer.alloc, (ref Builder!DestructureAst parts) {
+			parts ~= first;
+			do {
+				parts ~= parseDestructureRequireParens(lexer);
+			} while (tryTakeToken(lexer, Token.comma));
+		}));
+	} else
+		return first;
+}
+
+ParamsAst parseParams(ref Lexer lexer) {
+	uint indent = getCurIndent(lexer);
+	if (!takeOrAddDiagExpectedToken(lexer, Token.parenLeft, ParseDiag.Expected.Kind.openParen)) {
+		skipUntilNewlineNoDiag(lexer);
+		return ParamsAst([]);
+	} else
+		return parseParamsAfterParenLeft(lexer, indent);
+}
+
+private ParamsAst parseParamsAfterParenLeft(ref Lexer lexer, uint indentLevel) {
+	if (tryTakeToken(lexer, Token.parenRight))
+		return ParamsAst(emptySmallArray!DestructureAst);
+	else if (tryTakeToken(lexer, Token.dot3)) {
+		DestructureAst param = parseDestructureRequireParens(lexer);
+		takeOrAddDiagExpectedToken(lexer, Token.parenRight, ParseDiag.Expected.Kind.closingParen);
+		return ParamsAst(allocate(lexer.alloc, ParamsAst.Varargs(param)));
+	} else
+		return ParamsAst(buildSmallArray!DestructureAst(lexer.alloc, (scope ref Builder!DestructureAst res) {
+			while (true) {
+				skipNewlinesIgnoreIndentation(lexer, indentLevel);
+				res ~= parseDestructureRequireParens(lexer);
+				if (tryTakeToken(lexer, Token.parenRight))
+					break;
+				if (!takeOrAddDiagExpectedToken(lexer, Token.comma, ParseDiag.Expected.Kind.comma)) {
+					skipUntilNewlineNoDiag(lexer);
+					break;
+				}
+				// allow trailing comma
+				skipNewlinesIgnoreIndentation(lexer, indentLevel);
+				if (tryTakeToken(lexer, Token.parenRight))
+					break;
+			}
+		}));
+}
 
 private:
 
@@ -83,15 +173,6 @@ TypeAst parseTypeBeforeSuffixes(ref Lexer lexer, ParenthesesNecessary parens) {
 		case Token.parenLeft:
 			takeNextToken(lexer);
 			return parseTupleType(lexer, start, parens);
-		case Token.act:
-			takeNextToken(lexer);
-			return parseFunType(lexer, start, FunKind.act);
-		case Token.far:
-			takeNextToken(lexer);
-			return parseFunType(lexer, start, FunKind.far);
-		case Token.fun:
-			takeNextToken(lexer);
-			return parseFunType(lexer, start, tryTakeOperator(lexer, symbol!"*") ? FunKind.pointer : FunKind.fun);
 		default:
 			addDiagUnexpectedCurToken(lexer, start, getPeekTokenAndData(lexer));
 			return TypeAst(TypeAst.Bogus(rangeForCurToken(lexer, start)));
@@ -111,17 +192,6 @@ TypeAst parseTupleType(ref Lexer lexer, Pos start, ParenthesesNecessary parens) 
 		default:
 			return TypeAst(TypeAst.Tuple(range(lexer, start), args));
 	}
-}
-
-TypeAst parseFunType(ref Lexer lexer, Pos start, FunKind kind) {
-	ArrayBuilder!TypeAst returnAndParamTypes;
-	add(lexer.alloc, returnAndParamTypes, parseType(lexer));
-	if (tryTakeToken(lexer, Token.parenLeft)) {
-		parseTypesWithCommasThenClosingParen(lexer, returnAndParamTypes);
-	} else
-		addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.FunctionTypeMissingParens()));
-	SmallArray!TypeAst types = smallFinish(lexer.alloc, returnAndParamTypes);
-	return TypeAst(allocate(lexer.alloc, TypeAst.Fun(range(lexer, start), kind, types)));
 }
 
 TypeAst parseTypeSuffixes(ref Lexer lexer, TypeAst left) {
@@ -174,10 +244,13 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, TypeAst left) {
 	else if (tryTakeOperator(lexer, symbol!"**"))
 		return doubleSuffix(TypeAst.SuffixSpecial.Kind.ptr, TypeAst.SuffixSpecial.Kind.ptr);
 	else if (tryTakeToken(lexer, Token.mut)) {
+		BeforeParen beforeParen = beforeParen(lexer);
 		if (tryTakeToken(lexer, Token.bracketLeft))
 			return tryTakeToken(lexer, Token.bracketRight)
 				? suffix(TypeAst.SuffixSpecial.Kind.mutList)
 				: mapLike(TypeAst.Map.Kind.mut);
+		else if (tryTakeToken(lexer, Token.parenLeft))
+			return some(parseFunType(lexer, left, beforeParen, FunKind.mut));
 		else if (tryTakeOperator(lexer, symbol!"*"))
 			return suffix(TypeAst.SuffixSpecial.Kind.mutPtr);
 		else if (tryTakeOperator(lexer, symbol!"**"))
@@ -186,6 +259,58 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, TypeAst left) {
 			addDiagExpected(lexer, ParseDiag.Expected.Kind.afterMut);
 			return none!TypeAst;
 		}
+	} else if (tryTakeToken(lexer, Token.far)) {
+		BeforeParen beforeParen = beforeParen(lexer);
+		if (tryTakeToken(lexer, Token.parenLeft))
+			return some(parseFunType(lexer, left, beforeParen, FunKind.far));
+		else {
+			addDiagExpected(lexer, ParseDiag.Expected.Kind.openParen);
+			return none!TypeAst;
+		}
+	} else if (tryTakeToken(lexer, Token.function_)) {
+		BeforeParen beforeParen = beforeParen(lexer);
+		if (tryTakeToken(lexer, Token.parenLeft))
+			return some(parseFunType(lexer, left, beforeParen, FunKind.function_));
+		else {
+			addDiagExpected(lexer, ParseDiag.Expected.Kind.openParen);
+			return none!TypeAst;
+		}
+	} else {
+		Opt!BeforeParen afterData = tryTakeNameOpenParen(lexer, symbol!"data");
+		if (has(afterData))
+			return some(parseFunType(lexer, left, force(afterData), FunKind.data));
+		else {
+			Opt!BeforeParen afterShared = tryTakeNameOpenParen(lexer, symbol!"shared");
+			if (has(afterShared))
+				return some(parseFunType(lexer, left, force(afterShared), FunKind.shared_));
+			else
+				return none!TypeAst;
+		}
+	}
+}
+
+struct BeforeParen {
+	uint indent;
+	Pos pos;
+}
+
+BeforeParen beforeParen(scope ref Lexer lexer) =>
+	BeforeParen(getCurIndent(lexer), curPos(lexer));
+
+// Returns position before '('
+Opt!BeforeParen tryTakeNameOpenParen(scope ref Lexer lexer, Symbol name) {
+	if (lookaheadNameOpenParen(lexer, name)) {
+		TokenAndData x = takeNextToken(lexer);
+		assert(x.token == Token.name && x.asSymbol == name);
+		BeforeParen res = beforeParen(lexer);
+		bool paren = tryTakeToken(lexer, Token.parenLeft);
+		assert(paren);
+		return some(res);
 	} else
-		return none!TypeAst;
+		return none!BeforeParen;
+}
+
+TypeAst parseFunType(ref Lexer lexer, TypeAst returnType, BeforeParen beforeParen, FunKind kind) {
+	ParamsAst params = parseParamsAfterParenLeft(lexer, beforeParen.indent);
+	return TypeAst(allocate(lexer.alloc, TypeAst.Fun(returnType, kind, range(lexer, beforeParen.pos), params)));
 }

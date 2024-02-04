@@ -30,11 +30,11 @@ tutorial-pages path-and-content[]() summon
 	options: Options
 	records: Records
 	unions: Unions
+	purity: Purity
 	collections: Collections
 	lambdas: Lambdas
 	for-and-with: "For" and "with" expressions
 	exceptions: Exceptions
-	purity: Purity
 	futures: Futures
 	io: I/O
 	modules: Modules
@@ -77,19 +77,7 @@ tutorial-pages path-and-content[]() summon
 	next-link string = if n ?= next
 		"""<a id="next" href="/{tutorial-dir path n}">next: {n title}</a>"""
 	page-path = tutorial-dir path meta
-	content-with-links = content create-links link =>
-		if kind, name ?= link try-split-once "/"
-			if kind == "doc"
-				# TODO: validate the name
-				"<a href=\"/doc/crow/{name}.html\">{name}</a>"
-			elif kind == "tutorial"
-				title = tutorial-title-lookup[name to] ??
-					throw "Linked to '{name}' but no tutorial page has that name."
-				"<a href=\"/tutorial/{name}.html\">{title}</a>"
-			else
-				throw "Unexpected link kind {kind}"
-		else
-			throw """Link "{link}" needs to begin with "doc/" or "tutorial/"."""
+	content-with-links = content create-links link => tutorial-title-lookup convert-link link
 	page-path page-template meta.title, """
 	<div id="side-nav-wrapper">
 		{tutorial-dir tutorial-nav page-path, tutorial-metas}
@@ -100,9 +88,31 @@ tutorial-pages path-and-content[]() summon
 		</main>
 	</div>"""
 
-create-links string(content string, fill-link fun string(string))
+-create-links string(content string, fill-link string data(link string))
 	if left, rest ?= content try-split-once "\{\{"
 		if link, right ?= rest try-split-once "}}"
 			left ~~ fill-link[link] ~~ (right create-links fill-link)
 	else
 		content
+
+-convert-link string(tutorial-title-lookup string[symbol], str string)
+	link = str parse-link
+	if link.kind == "doc"
+		# TODO: validate the name
+		"<a href=\"/doc/crow/{link.name}.html\">{link.name}</a>"
+	elif link.kind == "tutorial"
+		title = tutorial-title-lookup[link.name] ??
+			throw "Linked to '{link.name}' but no tutorial page has that name."
+		"<a href=\"/tutorial/{link.name}.html{link.hash}\">{title}</a>"
+	else
+		throw "Unexpected link kind {link.kind}"
+
+-link record
+	kind symbol
+	name symbol
+	hash string
+-parse-link link(a string)
+	kind, rest = a try-split-once "/" ??
+		throw """Link "{a}" needs to begin with "doc/" or "tutorial/"."""
+	name, hash = rest try-split-once "#" ?? (rest, "")
+	kind.to, name.to, hash.is-empty ? "" : "#{hash}"

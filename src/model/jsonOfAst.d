@@ -338,10 +338,9 @@ Json jsonOfTypeAst(ref Alloc alloc, in Ctx ctx, in TypeAst a) =>
 		(in TypeAst.Fun x) =>
 			jsonObject(alloc, [
 				kindField!"fun",
-				field!"range"(jsonOfRange(alloc, ctx, x.range)),
-				field!"fun-kind"(stringOfEnum(x.kind)),
 				field!"return-type"(jsonOfTypeAst(alloc, ctx, x.returnType)),
-				field!"param-types"(jsonOfTypeAsts(alloc, ctx, x.paramTypes))]),
+				field!"kind"(stringOfEnum(x.kind)),
+				field!"param"(jsonOfParamsAst(alloc, ctx, x.params))]),
 		(in TypeAst.Map x) =>
 			jsonObject(alloc, [
 				kindField!"map",
@@ -386,7 +385,7 @@ Json jsonOfDestructureAst(ref Alloc alloc, in Ctx ctx, in DestructureAst a) =>
 		(in DestructureAst.Void x) =>
 			jsonObject(alloc, [
 				kindField!"void",
-				field!"pos"(x.pos)]),
+				field!"range"(jsonOfRange(alloc, ctx, x.range))]),
 		(in DestructureAst[] parts) =>
 			jsonList!DestructureAst(alloc, parts, (in DestructureAst part) =>
 				jsonOfDestructureAst(alloc, ctx, part)));

@@ -27,7 +27,7 @@ Temporarily replaces the log handler.
 Only applies within this task. Even if you launch a task inside `with-log-handler`,
 that task will still have the default log handler.
 ###
-+with-block[t] t(a temp-log-handler, cb act t())
++with-block[t] t(a temp-log-handler, cb t mut())
 	original-handler = get-log-handler
 	with : (() => trusted original-handler set-log-handler) finally
 		trusted a.handler set-log-handler
@@ -75,7 +75,7 @@ Function that handles a log message.
 For example, this might write it to the console.
 ###
 +log-handler alias
-	fun void(logged)
+	void shared(logged logged)
 
 default-log-handler void(a logged) summon
 	(a.level == error ? err : out) print "{a level}: {a message}"

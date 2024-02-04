@@ -24,7 +24,7 @@ board-cache[t] record mut
 	-values t mut-array
 
 new[t] t board-cache() t new
-	size = 0xccce9
+	size nat = 0xccce9
 	# Per the Chinese Remainder Theorem, if we know the key mod 2^32 and mod size,
 	# we know the key mod their product.
 	# If their product is > the max key, then we know the key.
@@ -117,14 +117,14 @@ empty-board board()
 			cur-player.opposite,
 
 show string(a board, cur-player color, last-column nat?)
-	header = "" join for x : 0 .. width
-		text = " {x letter-of-alphabet}"
+	header = "" join for x : 0::nat .. width
+		text string = " {x letter-of-alphabet}"
 		if last-column == (x,)
 			"{bold}{text}{reset}"
 		else
 			text
-	rows = "\n" join for y : 0 .. height reverse
-		parts = "│" join for x : 0 .. width
+	rows = "\n" join for y : 0::nat .. height reverse
+		parts = "│" join for x : 0::nat .. width
 			a[x, y, cur-player] to-short-string
 		"│{parts}│"
 	"{header}\n{rows}\n╰─┴─┴─┴─┴─┴─┴─╯"

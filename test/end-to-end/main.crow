@@ -143,7 +143,7 @@ run-kind enum
 		else
 			line,
 
--update-lines string(a string, cb act string[](string))
+-update-lines string(a string, cb string[] data(line string))
 	"\n" join with out : build
 		for line : a split "\n"
 			for new-line : cb[line]

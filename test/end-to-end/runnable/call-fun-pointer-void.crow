@@ -7,7 +7,7 @@ main void() summon
 	out print (" " join xs.move-to)
 	out print "{res}"
 
-get-fun fun* nat()(xs string mut[])
+get-fun nat function()(xs string mut[])
 	xs ~= "get-fun"
 	&foo
 

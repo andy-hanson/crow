@@ -51,7 +51,7 @@ global-ctx record by-val, mut
 	symbols-table mut symbol[string]
 	# If there's an uncaught exception (e.g. in 'call-ref-and-drop'), we'll call this.
 	# Default is to print it and set `gctx.any-unhandled-exceptions`
-	exception-handler mut fun void(exception)
+	exception-handler mut void shared(x exception)
 	# TODO: this should be a `global`. But need to atomically set.
 	default-log-handler mut log-handler
 
@@ -112,10 +112,10 @@ default-exception-handler void(e exception) summon, unsafe
 	err print "{e}"
 	get-global-ctx->any-unhandled-exceptions := true
 
-enqueue-task-no-exclusion void(a global-ctx mut*, action act void()) unsafe
+enqueue-task-no-exclusion void(a global-ctx mut*, action void mut()) unsafe
 	a enqueue-task a.new-exclusion, action
 
-enqueue-task void(a global-ctx mut*, exclusion exclusion, action act void()) unsafe
+enqueue-task void(a global-ctx mut*, exclusion exclusion, action void mut()) unsafe
 	a enqueue-task (exclusion, action)
 
 enqueue-task void(a global-ctx mut*, task task) bare, unsafe
@@ -130,7 +130,7 @@ enqueue-tasks void(a global-ctx mut*, tasks task array) bare, unsafe
 	a.tasks-lock release
 	a.may-be-work-to-do broadcast
 
-enqueue-timed-task-no-exclusion void(a global-ctx mut*, time timestamp, action act void()) unsafe
+enqueue-timed-task-no-exclusion void(a global-ctx mut*, time timestamp, action void mut()) unsafe
 	a.tasks-lock acquire
 	a.tasks enqueue-timed-task time, (a.new-exclusion, action)
 	a.tasks-lock release
@@ -172,7 +172,7 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 		gc gc-complete
 	gc gc-end
 
--invoke-action void(action act void()) force-ctx
+-invoke-action void(action void mut()) force-ctx
 	action[]
 
 -thread-shut-down void(gctx global-ctx mut*) bare, summon, unsafe

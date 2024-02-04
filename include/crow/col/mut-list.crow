@@ -296,7 +296,7 @@ region mutating iteration
 Removes every element `x` where `!f[x]`.
 This can be written as `a.filter := f`.
 ###
-+filter=[t] void(a t mut[], f act bool(t))
++filter=[t] void(a t mut[], f bool mut(elem t))
 	# TOOD: this is unsafe if 'f' accesses to the list. Make it a 'fun' instead?
 	trusted
 		out mut = a begin-pointer
@@ -327,7 +327,7 @@ Throws if `index >= a.size`.
 	trusted
 		a.begin-pointer[index] := value
 
-+iterate[t] bool(a t mut[], f act bool(t))
++iterate[t] bool(a t mut[], f bool mut(elem t))
 	0::nat64 .. a.size iterate i =>
 		f[a[i]]
 
@@ -380,7 +380,7 @@ subregion iterator
 
 subregion build
 
-+build[t] t mut[](a build-options, f act void(t mut[]))
++build[t] t mut[](a build-options, f void mut(out t mut[]))
 	res t mut[] = ()
 	res hint-size a.size-hint
 	f[res]

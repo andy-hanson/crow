@@ -47,7 +47,6 @@ immutable struct ParseDiag {
 		}
 		Kind kind;
 	}
-	immutable struct FunctionTypeMissingParens {}
 	immutable struct ImportFileTypeNotSupported {}
 	immutable struct IndentNotDivisible {
 		uint nSpaces;
@@ -94,7 +93,6 @@ immutable struct ParseDiag {
 
 	mixin Union!(
 		Expected,
-		FunctionTypeMissingParens,
 		ImportFileTypeNotSupported,
 		IndentNotDivisible,
 		IndentTooMuch,

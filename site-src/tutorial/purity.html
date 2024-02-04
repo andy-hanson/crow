@@ -1,11 +1,12 @@
 <section>
 	<h2>Levels of purity</h2>
 	<p>
-		Crow prevents sharing mutable data between different threads.
+		Every type in crow has a <em>purity</em>.
+		The purpose is to control what can be shared between different contexts that may be running in paralle.
 		The precise details will be explained in {{tutorial/futures}}.
-		<br />
-		Doing that requires knowing the <em>purity</em> of every type.
-		The 3 purity levels are:
+	</p>
+	<p>
+		There are 3 levels or purity:
 	</p>
 	<table>
 		<tbody>
@@ -16,43 +17,40 @@
 			<tr>
 				<td><code class="keyword">shared</code></td>
 				<td>
-					Immutable values, <code class="keyword">fun</code> types,
-					and thread-safe mutable values (such as <code class="type">future</code>s).
+					All <code class="keyword">data</code>, plus values that are mutable in a thread-safe way.
 				</td>
 			</tr>
 			<tr>
 				<td><code class="keyword">mut</code></td>
-				<td>Allows all values, including ordinary mutable values.</td>
+				<td>Allows all types, including ordinary mutable values.</td>
 			</tr>
 		</tbody>
 	</table>
 
-	<aside>
-		<h4>Data is forever</h4>
-		<p>
-			This doesn't work like <code class="keyword">const</code> in other languages.
-			<br />
-			If a type is <code class="keyword">mut</code>, you can't cast it to <code class="keyword">data</code>.
-			(You <em>can</em> call <code class="function">to</code>
-			to convert a mutable collection to an immutable one.)
-			<br />
-			This is because we need <code class="keyword">data</code> to be truly immutable,
-			not just a read-only reference to something mutable.
-		</p>
-	</aside>
+	<p>
+		<code class="keyword">data</code> is stricter than "read-only";
+		it only allows values that are guaranteed to never change.
+
+		You can't cast mutable data to immutable data, but you can usually call <code class="function">to</code>.
+	</p>
 </section>
 <section>
 	<h2>Declaring purity</h2>
 
 	<p>
-		If a type is not <code class="keyword">data</code>,
-		it must be marked <code class="keyword">shared</code> or <code class="keyword">mut</code> at the declaration.
+		Types are assumed <code class="keyword">data</code> by default.
+		If not, they must be marked <code class="keyword">shared</code> or
+		<code class="keyword">mut</code> at the declaration.
 	</p>
 	<crow-runnable>
+		main void()
+			()
+
 		has-data record
 			x string
 
 		has-shared record shared
+			# 'string^' is a string future type, which is 'shared'.
 			x string^
 
 		has-mutable record mut
@@ -66,30 +64,6 @@
 		In contrast, it's not a compile error if you mark <code class="type">has-data</code>
 		as <code class="keyword">mut</code>.
 	</aside>
-
-	<h3>Purity and "fun"/"act"</h3>
-
-	<p>
-		An <code class="keyword">act</code> can have anything in its closure,
-		but <code class="keyword">fun</code> can only have <code class="keyword">shared</code>
-		(including <code class="keyword">data</code>) values in its closure.
-	</p>
-
-	<crow-runnable>
-		main void()
-			xs nat mut[] = ()
-			f act void() = () =>
-				xs ~= 1
-			f[]
-	</crow-runnable>
-
-	<aside class="small">
-		Try changing <code class="keyword">act</code> to <code class="keyword">fun</code> to see the compile error.
-	</aside>
-	<p>
-		As a result, a <code class="keyword">fun</code> type is <code class="keyword">shared</code>
-		while an <code class="keyword">act</code> type is <code class="keyword">mut</code>.
-	</p>
 </section>
 <section>
 	<h2>Benefits of purity</h2>
@@ -104,25 +78,20 @@
 
 	<p>Two other Crow features also enforce kinds of purity:</p>
 	<ul class="bullets">
-		<li>Global state is considered unsafe. (Code should behave as if there is no global state.)</li>
-		<li>I/O is controlled. For details, see {{tutorial/io}}.</li>
+		<li>
+			Global state is considered unsafe.
+			(It may be used, but code should behave <em>as if</em> there is no global state.)
+		</li>
+		<li>
+			For non-<code class="keyword">summon</code> functions, the ability to do I/O must come from a parameter.
+			This will be explained in {{tutorial/io}}.
+		</li>
 	</ul>
 
-	<aside>
-		<h4>Logging and I/O</h4>
-		<p>
-			Logging is treated differently from other I/O, which is what has allowed
-			all of these tutorial examples to be written in pure code.
-			<br />
-			Logging is not inherently I/O,
-			since the log handler is like an implicitly passed <code class="keyword">act</code>.
-			This fits into Crow's model of side effects, explained in {{tutorial/io}}.
-		</p>
-	</aside>
-
 	<p>
-		With all these combine, purity creates a "jail" that an ordinary function can't escape from.
-		Its parameters form the (only) roots of the graph of data it can access.
+		With these combine, purity creates a "jail" that a (non-<code class="keyword">summon</code>)
+		function can't escape from.
+		Its parameters are the roots of the graph of all data it can access.
 		<br />
 		If those parameters are <code class="keyword">data</code>, then the entire graph of objects accessible
 		to that function is <code class="keyword">data</code>.
@@ -133,4 +102,21 @@
 		<br />
 		It can still create mutable objects of its own, but this is fine since they won't affect anything elsewhere.
 	</p>
+	<p>
+		Even if some parameter is <code class="keyword">shared</code> or <code class="keyword">mut</code>,
+		the function can only access whatever state or side effects are exposed through that parameter.
+	</p>
+
+	<aside>
+		<h4>Exceptions to purity</h4>
+		<ul class="bullets">
+		<li>
+			All code can <code class="keyword">throw</code> exceptions.
+			(But looking at the stack trace is <code class="keyword">unsafe</code>.)
+		</li>
+		<li>
+			All code can call <code class="function">log</code>.
+			This is not inherently I/O, since the log handler can be customized.
+		</li>
+	</aside>
 </section>

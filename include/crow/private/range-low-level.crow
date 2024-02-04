@@ -34,7 +34,7 @@ Usable for any type with a comparison function.
 	a.high - a.low
 
 # Calls `f` for each value in the range, from `a.low` to `a.high - 1`.
-+iterate[t] bool(a t range, f act bool(t)) t forward-rangeable
++iterate[t] bool(a t range, f bool mut(elem t)) t forward-rangeable
 	cur mut = a low
 	loop
 		if cur >= a.high

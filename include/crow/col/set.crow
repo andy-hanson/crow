@@ -223,7 +223,7 @@ Else, adds it and returns the new set.
 
 region spec impls (see collection.crow)
 
-+iterate[t] bool(a t set, f act bool(t)) t key
++iterate[t] bool(a t set, f bool mut(elem t)) t key
 	cur mut = a add
 	add-size-left mut = cur add-size-left
 	loop
@@ -246,7 +246,7 @@ subregion build
 
 +set-builder[t] record mut
 	-inner t frozen-set-builder
-+build[t] t set(a build-options, f act void(t set-builder)) t key
++build[t] t set(a build-options, f void mut(out t set-builder)) t key
 	(a build out => f[out,])::(t frozen-set) to
 +~=[t] void(a t set-builder, value t) t key
 	a.inner ~= value

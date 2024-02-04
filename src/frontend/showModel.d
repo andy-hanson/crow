@@ -15,6 +15,7 @@ import model.model :
 	FunDecl,
 	FunDeclAndTypeArgs,
 	FunInst,
+	FunKind,
 	isTuple,
 	Local,
 	Params,
@@ -302,16 +303,9 @@ private void writeDestructure(
 void writeStructInst(scope ref Writer writer, in ShowTypeCtx ctx, in TypeContainer typeContainer, in StructInst s) {
 	TypeWithContainer withContainer(Type x) =>
 		TypeWithContainer(x, typeContainer);
-	void fun(string keyword) @safe {
-		writer ~= keyword;
-		writer ~= ' ';
+	void fun(FunKind kind) {
 		Type[2] rp = only2(s.typeArgs);
-		writeTypeUnquoted(writer, ctx, withContainer(rp[0]));
-		Type param = rp[1];
-		bool needParens = !(param.isA!(StructInst*) && isTuple(ctx.commonTypes, *param.as!(StructInst*)));
-		if (needParens) writer ~= '(';
-		writeTypeUnquoted(writer, ctx, withContainer(param));
-		if (needParens) writer ~= ')';
+		writeFunType(writer, ctx, typeContainer, kind, rp[0], rp[1]);
 	}
 	void map(string open) {
 		Type[2] vk = only2(s.typeArgs);
@@ -331,12 +325,16 @@ void writeStructInst(scope ref Writer writer, in ShowTypeCtx ctx, in TypeContain
 		final switch (force(kind)) {
 			case Diag.TypeShouldUseSyntax.Kind.map:
 				return map("[");
-			case Diag.TypeShouldUseSyntax.Kind.funAct:
-				return fun("act");
+			case Diag.TypeShouldUseSyntax.Kind.funData:
+				return fun(FunKind.data);
 			case Diag.TypeShouldUseSyntax.Kind.funFar:
-				return fun("far");
-			case Diag.TypeShouldUseSyntax.Kind.funFun:
-				return fun("fun");
+				return fun(FunKind.far);
+			case Diag.TypeShouldUseSyntax.Kind.funMut:
+				return fun(FunKind.mut);
+			case Diag.TypeShouldUseSyntax.Kind.funPointer:
+				return fun(FunKind.function_);
+			case Diag.TypeShouldUseSyntax.Kind.funShared:
+				return fun(FunKind.shared_);
 			case Diag.TypeShouldUseSyntax.Kind.future:
 				return suffix("^");
 			case Diag.TypeShouldUseSyntax.Kind.list:
@@ -369,6 +367,28 @@ void writeStructInst(scope ref Writer writer, in ShowTypeCtx ctx, in TypeContain
 		}
 		writeSymbol(writer, ctx.allSymbols, name);
 	}
+}
+
+private void writeFunType(
+	scope ref Writer writer,
+	in ShowTypeCtx ctx,
+	in TypeContainer typeContainer,
+	FunKind kind,
+	Type returnType,
+	Type paramType,
+) {
+	writeTypeUnquoted(writer, ctx, TypeWithContainer(returnType, typeContainer));
+	writer ~= ' ';
+	writer ~= stringOfEnum(kind);
+	writer ~= '(';
+	if (isTuple(ctx.commonTypes, paramType))
+		writeWithCommas!Type(writer, paramType.as!(StructInst*).typeArgs, (in Type typeArg) {
+			writer ~= "_ ";
+			writeTypeUnquoted(writer, ctx, TypeWithContainer(typeArg, typeContainer));
+		});
+	else if (paramType != Type(ctx.commonTypes.void_))
+		writeTypeUnquoted(writer, ctx, TypeWithContainer(paramType, typeContainer));
+	writer ~= ')';
 }
 
 private void writeTupleType(
@@ -436,9 +456,7 @@ void writeTypeUnquoted(scope ref Writer writer, in ShowTypeCtx ctx, in TypeWithC
 }
 
 void writePurity(scope ref Writer writer, in ShowCtx ctx, Purity a) {
-	writer ~= '\'';
-	writer ~= stringOfEnum(a);
-	writer ~= '\'';
+	writeName(writer, ctx, stringOfEnum(a));
 }
 
 alias writeKeyword = writeName;
@@ -450,7 +468,7 @@ void writeName(scope ref Writer writer, in ShowCtx ctx, Symbol name) {
 void writeName(scope ref Writer writer, in ShowTypeCtx ctx, Symbol name) {
 	writeName(writer, ctx.show, name);
 }
-void writeName(scope ref Writer writer, in ShowTypeCtx ctx, string name) {
+void writeName(scope ref Writer writer, in ShowCtx ctx, string name) {
 	writer ~= '\'';
 	writer ~= name;
 	writer ~= '\'';

@@ -12,7 +12,7 @@ import frontend.check.instantiate :
 	MayDelayStructInsts,
 	noDelayStructInsts;
 import frontend.check.maps : SpecsMap, StructsAndAliasesMap;
-import model.ast : DestructureAst, NameAndRange, symbolForTypeAstMap, symbolForTypeAstSuffix, TypeAst;
+import model.ast : DestructureAst, NameAndRange, ParamsAst, symbolForTypeAstMap, symbolForTypeAstSuffix, TypeAst;
 import model.diag : Diag, TypeContainer, TypeWithContainer;
 import model.model :
 	asTuple,
@@ -259,12 +259,16 @@ private Opt!TypeParamIndex findTypeParam(in TypeParams typeParamsScope, Symbol n
 
 Opt!(Diag.TypeShouldUseSyntax.Kind) typeSyntaxKind(Symbol a) {
 	switch (a.value) {
-		case symbol!"fun-act".value:
-			return some(Diag.TypeShouldUseSyntax.Kind.funAct);
+		case symbol!"fun-data".value:
+			return some(Diag.TypeShouldUseSyntax.Kind.funData);
 		case symbol!"fun-far".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.funFar);
-		case symbol!"fun-fun".value:
-			return some(Diag.TypeShouldUseSyntax.Kind.funFun);
+		case symbol!"fun-mut".value:
+			return some(Diag.TypeShouldUseSyntax.Kind.funMut);
+		case symbol!"fun-pointer".value:
+			return some(Diag.TypeShouldUseSyntax.Kind.funPointer);
+		case symbol!"fun-shared".value:
+			return some(Diag.TypeShouldUseSyntax.Kind.funShared);
 		case symbol!"const-pointer".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.pointer);
 		case symbol!"map".value:
@@ -305,8 +309,18 @@ private Type typeFromFunAst(
 ) {
 	Type returnType = typeFromAst(
 		ctx, commonTypes, ast.returnType, structsAndAliasesMap, typeParamsScope, delayStructInsts);
-	Type paramType = typeFromTupleAst(
-		ctx, commonTypes, ast.paramTypes, structsAndAliasesMap, typeParamsScope, delayStructInsts);
+	Type paramType = ast.params.matchIn!Type(
+		(in DestructureAst[] params) {
+			Opt!Type res = typeFromDestructures(
+				ctx, commonTypes, structsAndAliasesMap, typeParamsScope, delayStructInsts, params);
+			if (!has(res))
+				addDiag(ctx, ast.paramsRange, Diag(Diag.LambdaTypeMissingParamType()));
+			return optOrDefault!Type(res, () => Type(Type.Bogus()));
+		},
+		(in ParamsAst.Varargs x) {
+			addDiag(ctx, x.param.range(ctx.allSymbols), Diag(Diag.LambdaTypeVariadic()));
+			return Type(Type.Bogus());
+		});
 	Type[2] typeArgs = [returnType, paramType];
 	return Type(instantiateStruct(
 		ctx.instantiateCtx, commonTypes.funStructs[ast.kind], small!Type(typeArgs), delayStructInsts));
@@ -347,22 +361,33 @@ Opt!Type typeFromDestructure(
 	ref CommonTypes commonTypes,
 	in DestructureAst ast,
 	in StructsAndAliasesMap structsAndAliasesMap,
-	TypeParams typeParamsScope,
+	in TypeParams typeParamsScope,
+	MayDelayStructInsts delayStructInsts,
 ) =>
 	ast.matchIn!(Opt!Type)(
 		(in DestructureAst.Single x) =>
 			has(x.type)
 				? some(typeFromAst(
-					ctx, commonTypes, *force(x.type), structsAndAliasesMap, typeParamsScope, noDelayStructInsts))
+					ctx, commonTypes, *force(x.type), structsAndAliasesMap, typeParamsScope, delayStructInsts))
 				: none!Type,
 		(in DestructureAst.Void) =>
 			some(Type(commonTypes.void_)),
-		(in DestructureAst[] parts) {
-			// TODO:PERF use temp alloc
-			Opt!(Type[]) types = mapOrNone!(Type, DestructureAst)(ctx.alloc, parts, (ref DestructureAst part) =>
-				typeFromDestructure(ctx, commonTypes, part, structsAndAliasesMap, typeParamsScope));
-			return has(types) ? some(makeTupleType(ctx.instantiateCtx, commonTypes, force(types))) : none!Type;
-		});
+		(in DestructureAst[] parts) =>
+			typeFromDestructures(ctx, commonTypes, structsAndAliasesMap, typeParamsScope, delayStructInsts, parts));
+
+private Opt!Type typeFromDestructures(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	in StructsAndAliasesMap structsAndAliasesMap,
+	in TypeParams typeParamsScope,
+	MayDelayStructInsts delayStructInsts,
+	in DestructureAst[] parts,
+) {
+	// TODO:PERF use temp alloc
+	Opt!(Type[]) types = mapOrNone!(Type, DestructureAst)(ctx.alloc, parts, (ref DestructureAst part) =>
+		typeFromDestructure(ctx, commonTypes, part, structsAndAliasesMap, typeParamsScope, delayStructInsts));
+	return has(types) ? some(makeTupleType(ctx.instantiateCtx, commonTypes, force(types))) : none!Type;
+}
 
 Destructure checkDestructure(
 	ref CheckCtx ctx,
@@ -413,7 +438,7 @@ Destructure checkDestructure(
 		},
 		(DestructureAst.Void x) {
 			Type type = getType(some(Type(commonTypes.void_)));
-			return Destructure(allocate(ctx.alloc, Destructure.Ignore(x.pos, type)));
+			return Destructure(allocate(ctx.alloc, Destructure.Ignore(x.range.start, type)));
 		},
 		(DestructureAst[] partAsts) {
 			if (has(destructuredType)) {

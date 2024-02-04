@@ -44,14 +44,14 @@ Equal sets may have different indices for the same values.
 
 region spec impls (see collection.crow)
 
-+iterate[t] bool(a t frozen-set, f act bool(t))
++iterate[t] bool(a t frozen-set, f bool mut(elem t))
 	a.inner iterate (k, _) => f[k]
 
 subregion build
 
 +frozen-set-builder[t] record mut
 	-inner (t, void) frozen-map-builder
-+build[t] t frozen-set(a build-options, f act void(t frozen-set-builder)) t key
++build[t] t frozen-set(a build-options, f void mut(out t frozen-set-builder)) t key
 	(a build out => f[out,])::((t, void) frozen-map),
 + ~=[t] void(a t frozen-set-builder, value t)
 	a.inner ~= (value, ())

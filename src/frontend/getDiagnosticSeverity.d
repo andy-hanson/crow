@@ -75,11 +75,15 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.LambdaCantInferParamType) =>
 			DiagnosticSeverity.checkError,
-		(in Diag.LambdaClosesOverMut) =>
+		(in Diag.LambdaClosurePurity) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.LambdaMultipleMatch) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.LambdaNotExpected) =>
+			DiagnosticSeverity.checkError,
+		(in Diag.LambdaTypeMissingParamType) =>
+			DiagnosticSeverity.parseError,
+		(in Diag.LambdaTypeVariadic) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.LinkageWorseThanContainingFun) =>
 			DiagnosticSeverity.checkError,
@@ -176,8 +180,6 @@ DiagnosticSeverity parseDiagSeverity(in ParseDiag a) =>
 	a.matchIn!DiagnosticSeverity(
 		(in ParseDiag.Expected) =>
 			DiagnosticSeverity.parseError,
-		(in ParseDiag.FunctionTypeMissingParens) =>
-			DiagnosticSeverity.warning,
 		(in ParseDiag.ImportFileTypeNotSupported) =>
 			DiagnosticSeverity.parseError,
 		(in ParseDiag.IndentNotDivisible) =>

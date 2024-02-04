@@ -2,7 +2,7 @@ module frontend.parse.parseImport;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.lexer : addDiag, alloc, allSymbols, curPos, Lexer, range, Token;
+import frontend.parse.lexer : addDiag, curPos, Lexer, range, Token;
 import frontend.parse.parseType : parseType;
 import frontend.parse.parseUtil :
 	NewlineOrDedent,

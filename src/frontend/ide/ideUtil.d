@@ -2,7 +2,7 @@ module frontend.ide.ideUtil;
 
 @safe @nogc pure nothrow:
 
-import model.ast : ModifierAst, NameAndRange, TypeAst;
+import model.ast : DestructureAst, ModifierAst, NameAndRange, ParamsAst, TypeAst;
 import model.model :
 	AssertOrForbidExpr,
 	BogusExpr,
@@ -89,11 +89,9 @@ private Opt!Out eachSpec(Out)(
 	return none!Out;
 }
 
-Opt!T eachTypeComponent(T)(
-	in Type type,
-	in TypeAst ast,
-	in Opt!T delegate(in Type, in TypeAst) @safe @nogc pure nothrow cb,
-) =>
+private alias TypeCb(T) = Opt!T delegate(in Type, in TypeAst) @safe @nogc pure nothrow;
+
+Opt!T eachTypeComponent(T)(in Type type, in TypeAst ast, in TypeCb!T cb) =>
 	type.matchIn!(Opt!T)(
 		(in Type.Bogus) =>
 			none!T,
@@ -102,23 +100,7 @@ Opt!T eachTypeComponent(T)(
 		(in StructInst x) =>
 			eachTypeArg!T(x.typeArgs, ast, cb));
 
-void eachTypeArg(
-	in Type[] typeArgs,
-	in TypeAst ast,
-	in void delegate(in Type, in TypeAst) @safe @nogc pure nothrow cb,
-) {
-	Opt!bool res = eachTypeArg!bool(typeArgs, ast, (in Type x, in TypeAst y) {
-		cb(x, y);
-		return none!bool;
-	});
-	assert(!has(res));
-}
-
-Opt!T eachTypeArg(T)(
-	in Type[] typeArgs,
-	in TypeAst ast,
-	in Opt!T delegate(in Type, in TypeAst) @safe @nogc pure nothrow cb,
-) {
+Opt!T eachTypeArg(T)(in Type[] typeArgs, in TypeAst ast, in TypeCb!T cb) {
 	Opt!T zipIt(in TypeAst[] typeArgAsts) =>
 		firstZip!(T, Type, TypeAst)(typeArgs, typeArgAsts, (Type x, TypeAst y) => cb(x, y));
 	Opt!T zipSuffix(in TypeAst* typeArgAst) =>
@@ -131,16 +113,9 @@ Opt!T eachTypeArg(T)(
 			none!T,
 		(ref TypeAst.Fun x) {
 			Type[2] returnAndParam = only2(typeArgs);
-			Opt!T fromReturn = cb(returnAndParam[0], x.returnType);
-			switch (x.paramTypes.length) {
-				case 0:
-					return fromReturn;
-				case 1:
-					return optOr!T(fromReturn, () => cb(returnAndParam[1], only(x.paramTypes)));
-				default:
-					return optOr!T(fromReturn, () =>
-						cb(returnAndParam[1], TypeAst(TypeAst.Tuple(x.range, x.paramTypes))));
-			}
+			return optOr!T(
+				cb(returnAndParam[0], x.returnType),
+				() => eachFunTypeParameter!T(returnAndParam[1], x.params, cb));
 		},
 		(ref TypeAst.Map x) =>
 			zipIt(x.kv),
@@ -155,6 +130,28 @@ Opt!T eachTypeArg(T)(
 		(TypeAst.Tuple x) =>
 			zipIt(x.members));
 }
+
+private Opt!T eachFunTypeParameter(T)(in Type paramsType, in ParamsAst paramsAst, in TypeCb!T cb) =>
+	paramsAst.matchIn!(Opt!T)(
+		(in DestructureAst[] params) =>
+			params.length == 1
+				? eachTypeInDestructure!T(paramsType, only(params), cb)
+				: eachTypeInDestructureParts!T(paramsType, params, cb),
+		(in ParamsAst.Varargs) =>
+			none!T);
+
+private Opt!T eachTypeInDestructureParts(T)(in Type type, in DestructureAst[] parts, in TypeCb!T cb) =>
+	firstZip!(T, Type, DestructureAst)(type.as!(StructInst*).typeArgs, parts, (Type typeArg, DestructureAst param) =>
+		eachTypeInDestructure!T(typeArg, param, cb));
+
+private Opt!T eachTypeInDestructure(T)(in Type type, in DestructureAst ast, in TypeCb!T cb) =>
+	ast.matchIn!(Opt!T)(
+		(in DestructureAst.Single x) =>
+			has(x.type) ? cb(type, *force(x.type)) : none!T,
+		(in DestructureAst.Void x) =>
+			none!T,
+		(in DestructureAst[] parts) =>
+			eachTypeInDestructureParts!T(type, parts, cb));
 
 void eachDescendentExprIncluding(in Expr a, in void delegate(in Expr) @safe @nogc pure nothrow cb) {
 	cb(a);

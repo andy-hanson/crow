@@ -146,7 +146,7 @@ TODO
 
 region spec impls (see collection.crow)
 
-+iterate[k, v] bool(a (k, v) compact-map, f act bool(k, v)) k key
++iterate[k, v] bool(a (k, v) compact-map, f bool mut(key k, value v)) k key
 	cur mut = a impl
 	seen k mut-set = ()
 	loop

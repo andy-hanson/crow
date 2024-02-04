@@ -8,15 +8,16 @@ import util.symbol :
 	AllSymbols,
 	alterExtension,
 	appendHexExtension,
-	cStringOfSymbol,
 	Extension,
 	isShortSymbol,
 	isLongSymbol,
 	prependSet,
 	removeExtension,
+	stringOfSymbol,
 	Symbol,
 	symbol,
-	symbolOfString;
+	symbolOfString,
+	symbolSize;
 
 void testSymbol(ref Test test) {
 	withTempAlloc!void(test.metaAlloc, (ref Alloc alloc) @safe {
@@ -29,13 +30,15 @@ private:
 
 void inner(ref Test test, scope ref AllSymbols allSymbols) {
 	Symbol staticSymbol(string a)() {
-		assert(symbol!a == nonStaticSymbol(a));
-		return symbol!a;
+		Symbol res = symbol!a;
+		assert(res == nonStaticSymbol(a));
+		return res;
 	}
 
 	Symbol nonStaticSymbol(string a) {
 		Symbol res = symbolOfString(allSymbols, a);
-		assert(cStringOfSymbol(test.alloc, allSymbols, res) == a);
+		assert(stringOfSymbol(test.alloc, allSymbols, res) == a);
+		assert(symbolSize(allSymbols, res) == a.length);
 		return res;
 	}
 
@@ -55,6 +58,9 @@ void inner(ref Test test, scope ref AllSymbols allSymbols) {
 	Symbol setA = prependSet(allSymbols, staticSymbol!"a");
 	assert(setA == staticSymbol!"set-a");
 	assert(isShortSymbol(setA));
+	Symbol set = prependSet(allSymbols, staticSymbol!"");
+	assert(set == staticSymbol!"set-");
+	assert(isShortSymbol(set));
 
 	Symbol setAbcdefgh = prependSet(allSymbols, staticSymbol!"abcdefgh");
 	assert(setAbcdefgh == staticSymbol!"set-abcdefgh");

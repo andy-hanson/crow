@@ -7,9 +7,9 @@ foo record by-ref
 
 main void() summon
 	x mut foo = 0,
-	get act foo() = () =>
+	get foo mut() = () =>
 		x
-	set act void() = () =>
+	set void mut() = () =>
 		x := 1,
 	out print "{get[].x}"
 	set[]

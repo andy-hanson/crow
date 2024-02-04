@@ -1,7 +1,0 @@
-main void()
-	x mut nat = 0
-	_ fun nat() = () => x
-
-	y nat mut[] = 0,
-	_ fun nat mut[]() = () => y
-	()

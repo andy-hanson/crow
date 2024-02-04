@@ -83,8 +83,9 @@ CommonTypes* getCommonTypes(
 			getDecl(ctx, symbol!"tuple9", 9),
 		],
 		funStructs: immutable EnumMap!(FunKind, StructDecl*)([
-			getDecl(ctx, symbol!"fun-fun", 2),
-			getDecl(ctx, symbol!"fun-act", 2),
+			getDecl(ctx, symbol!"fun-data", 2),
+			getDecl(ctx, symbol!"fun-shared", 2),
+			getDecl(ctx, symbol!"fun-mut", 2),
 			getDecl(ctx, symbol!"fun-far", 2),
 			getDecl(ctx, symbol!"fun-pointer", 2),
 		])));

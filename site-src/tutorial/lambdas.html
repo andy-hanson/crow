@@ -1,9 +1,10 @@
 <section>
 	<h2>Lambdas</h2>
 	<p>
-		A <code>fun bool(nat)</code> is a value wrapping a function and its closure.
+		A lambda is a value wrapping a function and its closure.
 		<br />
-		This is useful to be able to customize a function.
+		This is useful to be able to customize a function by passing in behaviors and not just values.
+		<br />
 		For example, <code class="function">filter</code> can filter a collection by any arbitrary predicate.
 		<br />
 		A lambda value is created using the <code class="keyword">=></code> syntax.
@@ -16,38 +17,37 @@
 	</crow-runnable>
 
 	<p>
-		There is a <code class="function">subscript</code> function for calling lambdas.
+		There is a <code class="function">subscript</code> function for calling lambdas, called like <code>f[x]</code>.
 	</p>
 	<crow-runnable>
 		main void()
-			(x => info log "{x}") foo
+			info log ((x => "{x}") foo)
 
-		foo void(a fun void(nat))
+		foo string(a string data(x nat))
 			a[1]
-			a[2]
 	</crow-runnable>
+
+	<p>
+		The syntax <code>void data(x nat)</code> defines a lambda type.
+		The lambda returns <code class="type">void</code> and takes a <code class="type">nat</code>.
+		The parameter name <code class="parameter">x</code> is just for documentation.
+		<code class="keyword">data</code> will be explained in the section on <a href="#closures">Closures</a>.
+	</p>
 </section>
 <section>
 	<h2>Parameter destructuring</h2>
 	<p>
-		All lambdas take one parameter.
-		The parameter can be a tuple, though.
+		All lambdas take one parameter, but it can be a tuple.
 	</p>
 	<crow-runnable>
 		main void()
-			((x, y) => info log "{x} {y}") foo
+			info log (((x, y) => "{x} {y}") foo)
 			()
 
-		foo void(a fun void(nat, nat))
+		foo string(a string data(x nat, y nat))
 			# Constructs a tuple (1, 2) to pass to 'subscript'
 			a[1, 2]
-			a[3, 4]
 	</crow-runnable>
-
-	<aside class="small">
-		This makes it easy to write functions that work on any kind of lambda regardless of
-		the (apparent) parameter count.
-	</aside>
 
 	<p>
 		The syntax makes it look like there are multiple parameters.
@@ -55,26 +55,26 @@
 	</p>
 	<crow-runnable>
 		main void()
-			(tuple => info log "{tuple.a} {tuple.b}") foo
+			info log ((tuple => "{tuple.a} {tuple.b}") foo)
 
-		foo void(a fun void(nat, nat))
+		foo string(a string data(x nat, y nat))
 			tuple (nat, nat) = 1, 2
 			a[tuple]
 	</crow-runnable>
 
 	<p>
-		Similarly, a lambda can appear to take no parameter, but actually takes <code class="type">void</code>.
+		Similarly, a lambda can appear to take no parameter, but it actually takes <code class="type">void</code>.
 	</p>
 	<crow-runnable>
 		main void()
-			(() => info log "hello") foo
+			info log ((() => "hello") foo)
 
-		foo void(a fun void())
+		foo string(a string data())
 			# This is the same as 'a[()]'.
 			a[]
 	</crow-runnable>
 </section>
-<section>
+<section id="closures">
 	<h2>Closures</h2>
 	<p>
 		The code inside the lambda body (after the <code class="keyword">=></code>)
@@ -84,32 +84,30 @@
 	<crow-runnable>
 		main void()
 			factor nat = 2
-			f fun nat(nat) = x => x * factor
+			f nat data(x nat) = x => x * factor
 			info log "{f[3]}"
 	</crow-runnable>
-</section>
-<section>
-	<h2>"Action" lambdas</h2>
+
+	<h3>Closure purity</h2>
 	<p>
-		A <code class="keyword">fun</code> isn't allowed to have anything mutable in its closure.
-		To fix that, you just need to change the keyword to <code class="act">act</code> instead.
-		Other than that, they work the same.
+		The <code class="keyword">data</code> keyword is the purity of the closure.
+		To allow the closure to include <code class="keyword">shared</code> or <code class="keyword">mut</code> data,
+		use that keyword in the lambda type instead of <code class="keyword">data</code>.
 	</p>
 	<crow-runnable>
 		main void()
 			factor mut nat = 2
-			f fun nat(nat) = x => x * factor
+			f nat mut(x nat) = x => x * factor
 			factor := 4
 			info log "{f[3]}"
 	</crow-runnable>
-	<aside class="small">
-		Change <code class="keyword">fun</code> to <code class="keyword">act</code> to fix the example.
-	</aside>
 
 	<p>
-		The reason to have two separate types will be explained in {{tutorial/purity}}.
-		<br />
-		There is also a third <code class="keyword">far</code> lambda explained in {{tutorial/futures}}.
+		Most ordinary functions in the standard library allow a <code class="keyword">mut</code> closure.
+	</p>
+
+	<aside class="small">
+		There are also <code class="keyword">far</code> lambdas explained in {{tutorial/futures}}.
 	</aside>
 </section>
 <section>
@@ -130,7 +128,7 @@
 		most functions make sure a lambda argument comes last.
 	</p>
 </section>
-<section>
+<section id="callers">
 	<h2>Lambdas in records</h2>
 	<p>
 		If a record has a lambda field, it generates a "caller" that gets the lambda and calls it.
@@ -146,6 +144,6 @@
 			r greet "world"
 
 		r record mut
-			greet act void(string)
+			greet void mut(x string)
 	</crow-runnable>
 </section>

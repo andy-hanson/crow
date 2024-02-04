@@ -8,14 +8,10 @@ import
 	system/unistd: read, write
 
 main nat^(_ string[]) summon
-	hostname = "crow-lang.org"
 	trusted
 		socket = get-tcp-socket
-		socket connect-socket hostname, 80
-
-		request = "GET / HTTP/1.1\r\nHost: crow-lang.org\r\n\r\n"
-
-		socket send-request request
+		socket connect-socket "crow-lang.org", 80
+		socket send-request "GET / HTTP/1.1\r\nHost: crow-lang.org\r\n\r\n"
 		socket receive-response
 	()
 
@@ -46,7 +42,7 @@ main nat^(_ string[]) summon
 		# TODO: might be 0 if the socket is overloaded -- delay and try again
 		assert bytes-sent > 0
 		if bytes-sent < bytes.size.to
-			bytes := bytes[bytes-sent.to::nat64 .. end]
+			bytes := bytes[bytes-sent.to .. end]
 			continue
 		else
 			assert bytes-sent == bytes.size.to

@@ -201,7 +201,7 @@ compact[k, v] (k, v) compact-sorted-map(a (k, v) compact-sorted-map) k key
 
 region spec impls (see collection.crow)
 
-+iterate[k, v] bool(a (k, v) compact-sorted-map, f act bool(k, v)) k key
++iterate[k, v] bool(a (k, v) compact-sorted-map, f bool mut(key k, value v)) k key
 	end-node mut (k, v) array = ()
 	# Key has an index because overlays with a lower index (rightmost) should come first
 	overlays ((k, nat64), (k, v?) array) mut-priority-queue = with out : build
@@ -243,7 +243,7 @@ region spec impls (see collection.crow)
 
 -iterate-overlays[k, v] bool(
 	overlays ((k, nat64), (k, v?) array) mut-priority-queue,
-	f act bool(k, v?),
+	f bool mut(key k, value v?),
 ) k key
 	loop
 		if popped ?= overlays pop
@@ -293,7 +293,7 @@ region build
 	-inner (k, v) list-builder
 +build[k, v] (k, v) compact-sorted-map(
 	a build-options,
-	f act void((k, v) compact-sorted-map-builder),
+	f void mut(out (k, v) compact-sorted-map-builder),
 ) k key
 	a build (out => f[out,]) to
 + ~=[k, v] void(a (k, v) compact-sorted-map-builder, value (k, v)) k key

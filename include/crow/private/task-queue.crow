@@ -21,7 +21,7 @@ export
 # WARN: `task-queue` is not thread-safe; acquire `tasks-lock` on `global-ctx` first.
 
 task-queue record by-val, mut
-	-non-timed mut act void() exclusion-queue
+	-non-timed mut void mut() exclusion-queue
 	-timed mut (nat64, task) bare-priority-queue
 
 # Use for asserts only

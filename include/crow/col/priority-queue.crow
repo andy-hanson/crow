@@ -252,7 +252,7 @@ This is amortized O(log n).
 
 region spec impls (see collection.crow)
 
-+iterate[k, v] bool(a (k, v) priority-queue, f act bool(k, v)) k priority
++iterate[k, v] bool(a (k, v) priority-queue, f bool mut(key k, value v)) k priority
 	a.each-arr walk f
 
 -each-part[k, v] record mut
@@ -285,7 +285,7 @@ region spec impls (see collection.crow)
 		else
 			break
 
--walk[k, v] bool(a (k, v) each-part mut-array, f act bool(k, v)) k compare
+-walk[k, v] bool(a (k, v) each-part mut-array, f bool mut(key k, value v)) k compare
 	unless a is-empty
 		head = a[0]
 		if f[head min]
@@ -310,7 +310,7 @@ region spec impls (see collection.crow)
 	-inner (k, v) array-builder
 +build[k, v] (k, v) priority-queue(
 	a build-options,
-	f act void((k, v) priority-queue-builder),
+	f void mut(out (k, v) priority-queue-builder),
 ) k priority
 	(a build out => f[out,])::((k, v) array) to
 +~=[k, v] void(a (k, v) priority-queue-builder, value (k, v)) k priority

@@ -35,7 +35,7 @@ import model.model :
 	TypeArgs;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.array : every, exists, first, only, small, zipFirst;
+import util.col.array : every, exists, first, firstZipPointerFirst, only, small;
 import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, finish;
 import util.col.mutMaxArr : asTemporaryArray, isFull, mustPop, MutMaxArr, mutMaxArr, only, toArray;
 import util.opt : force, has, none, Opt, optIf, optOr, some;
@@ -303,9 +303,9 @@ Opt!(Trace.NoMatch) checkSpecImpl(Trace)(
 					Diag.SpecNoMatch.Reason.BuiltinNotSatisfied(force(decl.builtin), only(typeArgs))))),
 			() => first!(Trace.NoMatch, immutable SpecInst*)(
 				specInstInstantiated.parents, (SpecInst* parent) => checkSpecImpl(res, ctx, called, trace, *parent)),
-			() => zipFirst!(Trace.NoMatch, SpecDeclSig, ReturnAndParamTypes)(
+			() => firstZipPointerFirst!(Trace.NoMatch, SpecDeclSig, ReturnAndParamTypes)(
 				decl.sigs, specInstInstantiated.sigTypes,
-				(SpecDeclSig* sigDecl, ref const ReturnAndParamTypes sigType) =>
+				(SpecDeclSig* sigDecl, ReturnAndParamTypes sigType) =>
 					findSpecSigImplementation(ctx, sigDecl, sigType, trace).match!(Opt!(Trace.NoMatch))(
 						(Called x) {
 							res ~= x;
