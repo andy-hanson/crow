@@ -6,13 +6,9 @@ import test.testUtil : Test;
 import util.alloc.alloc : Alloc, withTempAlloc;
 import util.symbol :
 	AllSymbols,
-	alterExtension,
-	appendHexExtension,
-	Extension,
 	isShortSymbol,
 	isLongSymbol,
 	prependSet,
-	removeExtension,
 	stringOfSymbol,
 	Symbol,
 	symbol,
@@ -78,12 +74,4 @@ void inner(ref Test test, scope ref AllSymbols allSymbols) {
 
 	Symbol setN0 = prependSet(allSymbols, staticSymbol!"n0");
 	assert(setN0 == staticSymbol!"set-n0");
-
-	Symbol goodFood = appendHexExtension(allSymbols, staticSymbol!"good", [0xf0, 0x0d]);
-	assert(goodFood == nonStaticSymbol("good.f00d"));
-
-	Symbol xDotYDotZ = nonStaticSymbol("x.y.z");
-	assert(removeExtension(allSymbols, nat8) == nat8);
-	assert(removeExtension(allSymbols, xDotYDotZ) == nonStaticSymbol("x.y"));
-	assert(alterExtension(allSymbols, xDotYDotZ, Extension.crow) == nonStaticSymbol("x.y.crow"));
 }

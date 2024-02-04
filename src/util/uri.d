@@ -16,23 +16,22 @@ import util.string : compareStringsAlphabetically, CString, stringOfCString;
 import util.symbol :
 	addExtension,
 	alterExtension,
+	alterExtensionCb,
 	AllSymbols,
-	appendHexExtension,
 	asLongSymbol,
 	eachCharInSymbol,
 	Extension,
 	getExtension,
 	hasExtension,
 	isLongSymbol,
-	removeExtension,
 	Symbol,
 	symbol,
 	symbolOfString,
 	symbolSize,
 	toLowerCase,
 	writeSymbol;
-import util.util : todo, typeAs;
-import util.writer : makeStringWithWriter, withStackWriter, withStackWriterImpureCString, withWriter, Writer;
+import util.util : stringOfEnum, todo, typeAs;
+import util.writer : digitChar, makeStringWithWriter, withStackWriter, withStackWriterImpureCString, withWriter, Writer;
 
 T withCStringOfFilePath(T)(in AllUris allUris, FilePath path, in T delegate(in CString) @safe @nogc nothrow cb) =>
 	withStackWriterImpureCString!T((scope ref Writer writer) {
@@ -187,10 +186,15 @@ FilePath alterExtensionWithHex(ref AllUris allUris, FilePath a, in ubyte[] bytes
 	FilePath(alterExtensionWithHexForPath(allUris, a.path, bytes, newExtension));
 private Path alterExtensionWithHexForPath(ref AllUris allUris, Path a, in ubyte[] bytes, Extension newExtension) =>
 	modifyBaseName(allUris, a, (Symbol name) =>
-		addExtension(
-			allUris.allSymbols,
-			appendHexExtension(allUris.allSymbols, removeExtension(allUris.allSymbols, name), bytes),
-			newExtension));
+		alterExtensionCb(allUris.allSymbols, name, (scope ref Writer writer) {
+			writer ~= '.';
+			foreach (ubyte x; bytes) {
+				writer ~= digitChar(x / 16);
+				writer ~= digitChar(x % 16);
+			}
+			writer ~= '.';
+			writer ~= stringOfEnum(newExtension);
+		}));
 
 private bool hasExtension(in AllUris allUris, Path a) =>
 	hasExtension(allUris.allSymbols, baseName(allUris, a));
@@ -483,7 +487,7 @@ private void encodePathComponent(scope ref Writer writer, in AllSymbols allSymbo
 }
 
 private bool isWindowsPathStart(in AllSymbols allSymbols, Symbol a) =>
-	isLongSymbol(a) && isWindowsPathStart(stringOfCString(asLongSymbol(allSymbols, a)));
+	isLongSymbol(a) && isWindowsPathStart(asLongSymbol(allSymbols, a));
 private bool isWindowsPathStart(in string a) =>
 	a.length == 2 && isLetter(a[0]) && a[1] == ':';
 private bool isLetter(char a) =>

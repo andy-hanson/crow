@@ -84,6 +84,14 @@ T withStackWriter(size_t nBytes, T)(
 		cbRes(makeStringWithWriter(alloc, (scope ref Writer writer) {
 			cb(alloc, writer);
 		})));
+T withStackWriterCString(size_t nBytes = 0x10000, T)(
+	in void delegate(scope ref Writer) @safe @nogc pure nothrow cb,
+	in T delegate(in CString) @safe @nogc pure nothrow cbRes,
+) =>
+	withStackAlloc!nBytes((scope ref Alloc alloc) =>
+		cbRes(withWriter(alloc, (scope ref Writer writer) {
+			cb(writer);
+		})));
 
 CString withWriter(ref Alloc alloc, in void delegate(scope ref Writer writer) @safe @nogc pure nothrow cb) {
 	scope Writer writer = Writer(&alloc);

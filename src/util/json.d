@@ -7,7 +7,7 @@ import util.col.array : arraysEqual, concatenateIn, copyArray, every, exists, fi
 import util.col.fullIndexMap : FullIndexMap;
 import util.col.map : KeyValuePair;
 import util.opt : force, has, Opt;
-import util.string : copyString, CString, stringsEqual, stringOfCString;
+import util.string : copyString, CString, SmallString, stringsEqual, stringOfCString;
 import util.symbol : AllSymbols, Symbol, symbol, writeQuotedSymbol;
 import util.union_ : Union;
 import util.writer :
@@ -31,7 +31,7 @@ immutable struct Json {
 		Null,
 		bool,
 		double,
-		SmallArray!(immutable char),
+		SmallString,
 		Symbol,
 		SmallArray!Json,
 		SmallArray!ObjectField);

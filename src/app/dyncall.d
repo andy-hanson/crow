@@ -33,10 +33,9 @@ import util.late : Late, late, lateGet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
 import util.string : CString, cString;
-import util.symbol :
-	addExtension, addPrefixAndExtension, AllSymbols, Extension, Symbol, symbol, symbolAsTempBuffer, writeSymbol;
+import util.symbol : addExtension, addPrefixAndExtension, AllSymbols, Extension, Symbol, symbol, writeSymbol;
 import util.uri : AllUris, asFilePath, childUri, Uri, uriIsFile, withCStringOfFilePath;
-import util.writer : withStackWriterImpure, Writer;
+import util.writer : withStackWriterCString, withStackWriterImpure, withStackWriterImpureCString, Writer;
 
 @trusted ExitCode withRealExtern(
 	ref Alloc alloc,
@@ -139,10 +138,17 @@ Symbol dllOrSoName(scope ref AllSymbols allSymbols, immutable Symbol libraryName
 		return none!(DLLib*);
 }
 
-@trusted LibraryAndError loadLibraryFromName(in AllSymbols allSymbols, Symbol name, in WriteError writeError) {
-	char[256] buf = symbolAsTempBuffer!256(allSymbols, name);
-	return loadLibraryFromName(CString(cast(immutable) buf.ptr), writeError);
-}
+LibraryAndError loadLibraryFromName(in AllSymbols allSymbols, Symbol name, in WriteError writeError) =>
+	withCStringOfSymbolImpure(allSymbols, name, (in CString nameStr) => loadLibraryFromName(nameStr, writeError));
+
+T withCStringOfSymbol(T)(in AllSymbols allSymbols, Symbol a, in T delegate(in CString) @safe @nogc pure nothrow cb) =>
+	withStackWriterCString((scope ref Writer writer) {
+		writeSymbol(writer, allSymbols, a);
+	}, cb);
+T withCStringOfSymbolImpure(T)(in AllSymbols allSymbols, Symbol a, in T delegate(in CString) @safe @nogc nothrow cb) =>
+	withStackWriterImpureCString((scope ref Writer writer) {
+		writeSymbol(writer, allSymbols, a);
+	}, cb);
 
 LibraryAndError loadLibraryFromName(in CString name, in WriteError writeError) {
 	DLLib* res = dlLoadLibrary(name.ptr);
@@ -198,11 +204,11 @@ LoadedLibraries loadLibrariesInner(
 		mutArrIsEmpty(failures) ? some(res) : none!ExternPointersForAllLibraries);
 }
 
-@trusted pure Opt!ExternPointer getExternPointer(in AllSymbols allSymbols, DLLib* library, Symbol name) {
-	immutable char[256] nameBuffer = symbolAsTempBuffer!256(allSymbols, name);
-	DCpointer ptr = dlFindSymbol(library, nameBuffer.ptr);
-	return ptr == null ? none!ExternPointer : some(ExternPointer(cast(immutable) ptr));
-}
+pure Opt!ExternPointer getExternPointer(in AllSymbols allSymbols, DLLib* library, Symbol name) =>
+	withCStringOfSymbol!(Opt!ExternPointer)(allSymbols, name, (in CString nameStr) @trusted {
+		DCpointer ptr = dlFindSymbol(library, nameStr.ptr);
+		return ptr == null ? none!ExternPointer : some(ExternPointer(cast(immutable) ptr));
+	});
 
 @system void dynamicCallFunPointer(
 	FunPointer fun,

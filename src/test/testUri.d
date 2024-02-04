@@ -9,6 +9,7 @@ import util.opt : force, has, none, Opt, optEqual, some;
 import util.symbol : Extension, Symbol, symbol, symbolOfString;
 import util.uri :
 	AllUris,
+	alterExtensionWithHex,
 	asFilePath,
 	baseName,
 	childFilePath,
@@ -123,6 +124,11 @@ void testFile(ref Test test, scope ref AllUris allUris) {
 	FilePath boo = childFilePath(allUris, a, symbol!"BOO");
 	assert(stringOfFilePath(test.alloc, allUris, boo) == "c:/users/user/a/boo");
 	assert(isWindowsPath(allUris, boo));
+
+	FilePath aTxt = parseFilePath(allUris, "/foo/a.txt");
+
+	FilePath aF00dJson = alterExtensionWithHex(allUris, aTxt, [0xf0, 0x0d], Extension.json);
+	assert(stringOfFilePath(test.alloc, allUris, aF00dJson) == "/foo/a.f00d.json");
 }
 
 void verifyFile(

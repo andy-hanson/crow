@@ -4,10 +4,10 @@ module frontend.parse.lexWhitespace;
 
 import frontend.parse.lexUtil : isWhitespace, tryTakeChar, tryTakeChars;
 import model.parseDiag : ParseDiag;
-import util.col.array : isEmpty, small;
+import util.col.array : isEmpty;
 import util.conv : safeIntFromUint, safeToUint;
 import util.sourceRange : Range;
-import util.string : CString, cStringIsEmpty, MutCString, SmallString, stringOfRange;
+import util.string : CString, cStringIsEmpty, MutCString, SmallString, smallString, stringOfRange;
 import util.util : castNonScope_ref;
 
 // Takes beginning of range; end is the current ptr
@@ -144,7 +144,7 @@ DocCommentAndIndentDelta skipBlankLinesAndGetIndentDelta(
 			continue;
 		} else {
 			curIndent = newIndent;
-			return DocCommentAndIndentDelta(small!char(docComment), delta);
+			return DocCommentAndIndentDelta(smallString(docComment), delta);
 		}
 	}
 }

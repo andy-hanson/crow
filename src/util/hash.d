@@ -3,11 +3,12 @@ module util.hash;
 @safe @nogc pure nothrow:
 
 import util.opt : force, has, MutOpt, noneMut, someMut;
+import util.string : SmallString;
 
 HashCode getHash(T)(in T a) {
 	static if (is(T == P*, P))
 		return hashPtr(a);
-	else static if (is(T == immutable string))
+	else static if (is(T == immutable string) || is(T == SmallString))
 		return hashString(a);
 	else static if (is(T == uint))
 		return hashUint(a);

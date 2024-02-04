@@ -5,16 +5,15 @@ module util.symbol;
 import std.meta : staticMap;
 
 import util.alloc.alloc : Alloc;
-import util.col.array : lastIndexOf, only;
+import util.col.array : lastIndexOf, only, small;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : mustAdd, MutMap, size;
-import util.col.mutMaxArr : asTemporaryArray, MutMaxArr, mutMaxArr;
 import util.conv : safeToUint, safeToSizeT;
 import util.hash : HashCode, hashUlong;
-import util.opt : force, has, MutOpt, Opt, optOrDefault, none, noneMut, some, someMut;
-import util.string : copyToCString, eachChar, CString, cStringSize, MutCString, stringsEqual, stringOfCString;
+import util.opt : force, has, Opt, optOrDefault, none, some;
+import util.string : copyString, CString, SmallString, smallString, stringsEqual;
 import util.util : assertNormalEnum, castNonScope_ref, optEnumOfString, stringOfEnum;
-import util.writer : digitChar, withStackWriter, withWriter, writeEscapedChar, Writer;
+import util.writer : makeStringWithWriter, withStackWriter, withWriter, writeEscapedChar, Writer;
 
 immutable struct Symbol {
 	@safe @nogc pure nothrow:
@@ -34,46 +33,31 @@ struct AllSymbols {
 
 	@trusted this(return scope Alloc* a) {
 		allocPtr = a;
-		foreach (string s; specialSymbols) { {
-			CString str = CString(s.ptr);
-			debug {
-				Opt!Symbol packed = tryPackShortSymbol(stringOfCString(str));
-				assert(!has(packed));
-			}
+		foreach (string str; specialSymbols) {
+			Opt!Symbol packed = tryPackShortSymbol(str);
+			assert(!has(packed));
 			cast(void) addLargeString(this, str);
-		} }
+		}
 	}
 
 	private:
 	Alloc* allocPtr;
-	MutMap!(immutable string, Symbol) largeStringToIndex;
-	MutArr!CString largeStringFromIndex;
+	MutMap!(SmallString, Symbol) largeStringToIndex;
+	MutArr!SmallString largeStringFromIndex;
 
 	ref inout(Alloc) alloc() return scope inout =>
 		*allocPtr;
 }
 
 // WARN: 'value' must have been allocated by a.alloc
-private Symbol addLargeString(ref AllSymbols a, CString value) {
+private Symbol addLargeString(ref AllSymbols a, immutable string value) {
 	size_t index = mutArrSize(a.largeStringFromIndex);
 	assert(size(a.largeStringToIndex) == index);
 	Symbol res = Symbol(index);
-	mustAdd(a.alloc, a.largeStringToIndex, stringOfCString(value), res);
-	push(a.alloc, a.largeStringFromIndex, value);
+	SmallString small = smallString(value);
+	mustAdd(a.alloc, a.largeStringToIndex, small, res);
+	push(a.alloc, a.largeStringFromIndex, small);
 	return res;
-}
-
-Symbol appendHexExtension(ref AllSymbols allSymbols, Symbol a, in ubyte[] bytes) {
-	MutMaxArr!(0x100, immutable char) res = mutMaxArr!(0x100, immutable char);
-	eachCharInSymbol(allSymbols, a, (char x) {
-		res ~= x;
-	});
-	res ~= '.';
-	foreach (ubyte x; bytes) {
-		res ~= digitChar(x / 16);
-		res ~= digitChar(x % 16);
-	}
-	return symbolOfString(allSymbols, asTemporaryArray(res));
 }
 
 Symbol addExtension(scope ref AllSymbols allSymbols, Symbol a, Extension extension) {
@@ -87,16 +71,37 @@ Symbol addExtension(scope ref AllSymbols allSymbols, Symbol a, Extension extensi
 		});
 }
 
-Symbol alterExtension(scope ref AllSymbols allSymbols, Symbol a, Extension extension) =>
-	addExtension(allSymbols, removeExtension(allSymbols, a), extension);
+Symbol alterExtension(scope ref AllSymbols allSymbols, Symbol a, Extension newExtension) =>
+	alterExtensionCb(allSymbols, a, (scope ref Writer writer) {
+		writer ~= '.';
+		writer ~= stringOfEnum(newExtension);
+	});
 
-// TODO:PERF This could be cached (with getExtension)
-@trusted Symbol removeExtension(scope ref AllSymbols allSymbols, Symbol a) {
-	char[0x100] buf = symbolAsTempBuffer!0x100(allSymbols, a);
-	string str = stringOfCString(CString(cast(immutable) buf.ptr));
-	Opt!size_t index = lastIndexOf(str, '.');
-	return has(index) ? symbolOfString(allSymbols, str[0 .. force(index)]) : a;
-}
+private Symbol makeSymbol(
+	scope ref AllSymbols allSymbols,
+	in void delegate(scope ref Writer) @safe @nogc pure nothrow cb,
+) =>
+	withStackWriter!(0x1000, Symbol)((scope ref Alloc _, scope ref Writer writer) {
+		cb(writer);
+	}, (in string s) => symbolOfString(allSymbols, s));
+
+Symbol alterExtensionCb(
+	scope ref AllSymbols allSymbols,
+	Symbol a,
+	in void delegate(scope ref Writer writer) @safe @nogc pure nothrow cb,
+) =>
+	makeSymbol(allSymbols, (scope ref Writer writer) {
+		bool on = true;
+		eachCharInSymbol(allSymbols, a, (char x) {
+			if (on) {
+				if (x == '.')
+					on = false;
+				else
+					writer ~= x;
+			}
+		});
+		cb(writer);
+	});
 
 enum Extension {
 	c,
@@ -118,17 +123,10 @@ Extension getExtension(ref AllSymbols allSymbols, Symbol a) {
 		// Since only a long symbol can have a '.'
 		return Extension.none;
 	else {
-		MutCString s = asLongSymbol(allSymbols, a);
-		MutOpt!MutCString lastDot = noneMut!MutCString;
-		while (*s != '\0') {
-			if (*s == '.')
-				lastDot = someMut(s);
-			s++;
-		}
+		string s = asLongSymbol(allSymbols, a);
+		Opt!size_t lastDot = lastIndexOf(s, '.');
 		if (has(lastDot)) {
-			MutCString ext = force(lastDot);
-			ext++;
-			Opt!Extension res = optEnumOfString!Extension(stringOfCString(ext));
+			Opt!Extension res = optEnumOfString!Extension(s[force(lastDot) + 1 .. $]);
 			return has(res)
 				? (force(res) == Extension.none ? Extension.other : force(res))
 				: Extension.other;
@@ -167,15 +165,6 @@ private Symbol appendToLongString(ref AllSymbols allSymbols, Symbol a, in string
 		writer ~= append;
 	});
 
-// Only use for things that can't possibly be short symbols (for exapmle, if they always have a '.')
-private Symbol makeLongSymbol(
-	scope ref AllSymbols allSymbols,
-	in void delegate(scope ref Writer) @safe @nogc pure nothrow cb,
-) =>
-	withStackWriter!0x1000((scope ref Alloc _, scope ref Writer writer) {
-		cb(writer);
-	}, (in string x) => getSymbolFromLongString(allSymbols, x));
-
 Symbol concatSymbolsWithDot(ref AllSymbols allSymbols, Symbol a, Symbol b) =>
 	makeLongSymbol(allSymbols, (scope ref Writer writer) {
 		writeSymbol(writer, allSymbols, a);
@@ -200,45 +189,36 @@ void eachCharInSymbol(in AllSymbols allSymbols, Symbol a, in void delegate(char)
 		eachCharInShortSymbol(a, cb);
 	else {
 		assert(isLongSymbol(a));
-		eachChar(asLongSymbol(castNonScope_ref(allSymbols), a), cb);
+		foreach (char x; asLongSymbol(castNonScope_ref(allSymbols), a))
+			cb(x);
 	}
 }
 
 uint symbolSize(in AllSymbols allSymbols, Symbol a) =>
 	isShortSymbol(a)
 		? shortSymbolSize(a)
-		: safeToUint(cStringSize(asLongSymbol(allSymbols, a)));
+		: safeToUint(asLongSymbol(allSymbols, a).length);
 
 enum symbol(string name) = getSymbol(name);
 private Symbol getSymbol(string name) {
 	foreach (size_t i, string s; specialSymbols)
-		if (stringsEqual(s[0 .. $ - 1], name))
+		if (stringsEqual(s, name))
 			return Symbol(i);
 	Opt!Symbol opt = tryPackShortSymbol(name);
 	return force(opt);
 }
 
 string stringOfSymbol(ref Alloc alloc, return scope ref const AllSymbols allSymbols, Symbol a) =>
-	stringOfCString(cStringOfSymbol(alloc, allSymbols, a));
-
-CString cStringOfSymbol(ref Alloc alloc, return scope ref const AllSymbols allSymbols, Symbol a) =>
 	isLongSymbol(a)
 		? asLongSymbol(allSymbols, a)
-		: withWriter(alloc, (scope ref Writer writer) {
+		: makeStringWithWriter(alloc, (scope ref Writer writer) {
 			writeSymbol(writer, allSymbols, a);
 		});
 
-char[bufferSize] symbolAsTempBuffer(size_t bufferSize)(in AllSymbols allSymbols, Symbol a) {
-	char[bufferSize] res;
-	assert(symbolSize(allSymbols, a) < bufferSize);
-	size_t index;
-	eachCharInSymbol(allSymbols, a, (char c) {
-		res[index] = c;
-		index++;
+CString cStringOfSymbol(ref Alloc alloc, return scope ref const AllSymbols allSymbols, Symbol a) =>
+	withWriter(alloc, (scope ref Writer writer) {
+		writeSymbol(writer, allSymbols, a);
 	});
-	res[index] = '\0';
-	return res;
-}
 
 size_t writeSymbolAndGetSize(scope ref Writer writer, in AllSymbols allSymbols, Symbol a) {
 	size_t size = 0;
@@ -268,11 +248,21 @@ Symbol symbolOfEnum(E)(E a) {
 }
 
 Symbol toLowerCase(ref AllSymbols allSymbols, Symbol a) =>
-	withStackWriter!0x1000((scope ref Alloc _, scope ref Writer writer) {
+	makeSymbol(allSymbols, (scope ref Writer writer) {
 		eachCharInSymbol(allSymbols, a, (char x) {
 			writer ~= toLowerCase(x);
 		});
-	}, (in string x) => symbolOfString(allSymbols, x));
+	});
+
+// Only use for things that can't possibly be short symbols (for example, if they always have a '.')
+private Symbol makeLongSymbol(
+	scope ref AllSymbols allSymbols,
+	in void delegate(scope ref Writer) @safe @nogc pure nothrow cb,
+) =>
+	withStackWriter!0x1000((scope ref Alloc _, scope ref Writer writer) {
+		cb(writer);
+	}, (in string x) => getSymbolFromLongString(allSymbols, x));
+
 char toLowerCase(char a) =>
 	'A' <= a && a <= 'Z'
 		? cast(char) ('a' + (a - 'A'))
@@ -421,114 +411,114 @@ public bool isShortSymbol(Symbol a) =>
 public bool isLongSymbol(Symbol a) =>
 	!isShortSymbol(a);
 
-public @trusted CString asLongSymbol(return scope ref const AllSymbols allSymbols, Symbol a) {
+public @trusted string asLongSymbol(return scope ref const AllSymbols allSymbols, Symbol a) {
 	assert(isLongSymbol(a));
 	return allSymbols.largeStringFromIndex[safeToSizeT(a.value)];
 }
 
 Symbol getSymbolFromLongString(ref AllSymbols allSymbols, in string str) {
-	Opt!Symbol value = allSymbols.largeStringToIndex[str];
-	return has(value) ? force(value) : addLargeString(allSymbols, copyToCString(allSymbols.alloc, str));
+	Opt!Symbol value = allSymbols.largeStringToIndex[smallString(str)];
+	return optOrDefault!Symbol(value, () => addLargeString(allSymbols, copyString(allSymbols.alloc, str)));
 }
 
 immutable string[] specialSymbols = [
 	// Putting operator symbols in precedence order so `symbolPrecedence` from `parseExpr` can be efficient.
 	// '-' can't be here because it's a short symbol.
-	"||\0",
-	"&&\0",
-	"??\0",
-	"=\0",
-	"==\0",
-	"!=\0",
-	"<\0",
-	"<=\0",
-	">\0",
-	">=\0",
-	"<=>\0",
-	"|\0",
-	"^\0",
-	"&\0",
-	"~\0",
-	"~=\0",
-	"~~\0",
-	"~~=\0",
-	"..\0",
-	"<<\0",
-	">>\0",
-	"+\0",
-	"*\0",
-	"/\0",
-	"%\0",
-	"**\0",
-	"!\0",
+	"||",
+	"&&",
+	"??",
+	"=",
+	"==",
+	"!=",
+	"<",
+	"<=",
+	">",
+	">=",
+	"<=>",
+	"|",
+	"^",
+	"&",
+	"~",
+	"~=",
+	"~~",
+	"~~=",
+	"..",
+	"<<",
+	">>",
+	"+",
+	"*",
+	"/",
+	"%",
+	"**",
+	"!",
 
 	// from names in Crow code
-	"as-any-mut-pointer\0",
-	"as-fun-pointer\0",
-	"begin-pointer\0",
-	"call-fun-pointer\0",
-	"create-record\0",
-	"clock_gettime\0",
-	"concrete-model\0",
-	"const-pointer\0",
-	"crow-config.json\0",
-	"cur-exclusion\0",
-	"exception-low-level\0",
-	"extern-pointer\0",
-	"extern-pointers\0",
-	"field-pointer\0",
-	"file://\0",
-	"flags-members\0",
-	"has-non-public-fields\0",
-	"init-constants\0",
-	"interpreter-backtrace\0",
-	"is-big-endian\0",
-	"is-interpreted\0",
-	"is-single-threaded\0",
-	"loop-continue\0",
-	"mutAllocated\0",
-	"parseDiagnostics\0",
-	"pointer-cast-from-extern\0",
-	"pointer-cast-to-extern\0",
-	"pointer-to-field\0",
-	"pointer-to-local\0",
-	"reference-equal\0",
-	"reference-kind\0",
-	"set-subscript\0",
-	"static-symbols\0",
-	"suffix-special\0",
-	"to-mut-pointer\0",
-	"unsafe-bit-shift-left\0",
-	"unsafe-bit-shift-right\0",
+	"as-any-mut-pointer",
+	"as-fun-pointer",
+	"begin-pointer",
+	"call-fun-pointer",
+	"create-record",
+	"clock_gettime",
+	"concrete-model",
+	"const-pointer",
+	"crow-config.json",
+	"cur-exclusion",
+	"exception-low-level",
+	"extern-pointer",
+	"extern-pointers",
+	"field-pointer",
+	"file://",
+	"flags-members",
+	"has-non-public-fields",
+	"init-constants",
+	"interpreter-backtrace",
+	"is-big-endian",
+	"is-interpreted",
+	"is-single-threaded",
+	"loop-continue",
+	"mutAllocated",
+	"parseDiagnostics",
+	"pointer-cast-from-extern",
+	"pointer-cast-to-extern",
+	"pointer-to-field",
+	"pointer-to-local",
+	"reference-equal",
+	"reference-kind",
+	"set-subscript",
+	"static-symbols",
+	"suffix-special",
+	"to-mut-pointer",
+	"unsafe-bit-shift-left",
+	"unsafe-bit-shift-right",
 
 	// from perf
-	"buildToLowProgram\0",
-	"gccCreateProgram\0",
-	"generateBytecode\0",
-	"instantiateFun\0",
-	"instantiateSpec\0",
-	"instantiateStruct\0",
-	"invokeCCompiler\0",
-	"onFileChanged\0",
-	"storageFileInfo\0",
+	"buildToLowProgram",
+	"gccCreateProgram",
+	"generateBytecode",
+	"instantiateFun",
+	"instantiateSpec",
+	"instantiateStruct",
+	"invokeCCompiler",
+	"onFileChanged",
+	"storageFileInfo",
 
 	// from names in compiled code
-	"__builtin_popcountl\0",
+	"__builtin_popcountl",
 
 	// from compile
-	"vc140.pdb\0",
+	"vc140.pdb",
 
 	// from LSP
-	"contentChanges\0",
-	"definitionProvider\0",
-	"diagnosticsOnlyForUris\0",
-	"hoverProvider\0",
-	"initializationOptions\0",
-	"referencesProvider\0",
-	"renameProvider\0",
-	"semanticTokensProvider\0",
-	"textDocument\0",
-	"textDocumentSync\0",
-	"tokenModifiers\0",
-	"unloadedUris\0",
+	"contentChanges",
+	"definitionProvider",
+	"diagnosticsOnlyForUris",
+	"hoverProvider",
+	"initializationOptions",
+	"referencesProvider",
+	"renameProvider",
+	"semanticTokensProvider",
+	"textDocument",
+	"textDocumentSync",
+	"tokenModifiers",
+	"unloadedUris",
 ];
