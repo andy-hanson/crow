@@ -52,6 +52,7 @@ import model.ast :
 	SeqAst,
 	SpecDeclAst,
 	SpecSigAst,
+	SpecUseAst,
 	StructAliasAst,
 	StructBodyAst,
 	StructDeclAst,
@@ -324,10 +325,17 @@ Json jsonOfModifierAst(ref Alloc alloc, in Ctx ctx, in ModifierAst a) =>
 		(in ModifierAst.Extern x) =>
 			jsonObject(alloc, [
 				kindField!"extern",
-				field!"loeft"(jsonOfTypeAst(alloc, ctx, *x.left)),
+				field!"left"(jsonOfNameAndRange(alloc, ctx, x.name)),
 				field!"extern-pos"(x.externPos)]),
-		(in TypeAst x) =>
-			jsonOfTypeAst(alloc, ctx, x));
+		(in SpecUseAst x) =>
+			jsonOfSpecUseAst(alloc, ctx, x));
+
+Json jsonOfSpecUseAst(ref Alloc alloc, in Ctx ctx, in SpecUseAst a) =>
+	jsonObject(alloc, [
+		kindField!"spec",
+		optionalField!("type-arg", TypeAst*)(a.typeArg, (in TypeAst* x) =>
+			jsonOfTypeAst(alloc, ctx, *x)),
+		field!"name"(jsonOfNameAndRange(alloc, ctx, a.name))]);
 
 Json jsonOfTypeAst(ref Alloc alloc, in Ctx ctx, in TypeAst a) =>
 	a.matchIn!Json(

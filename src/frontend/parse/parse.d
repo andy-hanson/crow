@@ -17,7 +17,8 @@ import frontend.parse.lexer :
 	TokenAndData;
 import frontend.parse.parseExpr : parseFunExprBody;
 import frontend.parse.parseImport : parseImportsOrExports;
-import frontend.parse.parseType : parseParams, parseType, parseTypeArgForVarDecl, tryParseTypeArgForEnumOrFlags;
+import frontend.parse.parseType :
+	parseParams, parseSpecUse, parseType, parseTypeArgForVarDecl, tryParseTypeArgForEnumOrFlags;
 import frontend.parse.parseUtil :
 	addDiagExpected,
 	NewlineOrDedent,
@@ -213,13 +214,8 @@ ModifierAst parseModifier(ref Lexer lexer) {
 			Symbol name = takeName(lexer);
 			assert(name == symbol!"new");
 			return ModifierAst(ModifierAst.Keyword(start, newVisibility(visibility)));
-		} else {
-			TypeAst type = parseType(lexer);
-			Pos externPos = curPos(lexer);
-			return tryTakeToken(lexer, Token.extern_)
-				? ModifierAst(ModifierAst.Extern(allocate(lexer.alloc, type), externPos))
-				: ModifierAst(type);
-		}
+		} else
+			return parseSpecUse(lexer);
 	}
 }
 

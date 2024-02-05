@@ -10,7 +10,7 @@ import frontend.ide.ideUtil :
 	eachTypeComponent,
 	eachDescendentExprExcluding,
 	eachDescendentExprIncluding,
-	eachTypeArg,
+	eachTypeArgForSpecUse,
 	ReferenceCb;
 import frontend.ide.position : ExprContainer, Position, PositionKind;
 import model.ast :
@@ -28,6 +28,7 @@ import model.ast :
 	ParamsAst,
 	paramsArray,
 	RecordFieldAst,
+	SpecUseAst,
 	StructBodyAst,
 	StructDeclAst,
 	TypeAst,
@@ -324,8 +325,8 @@ void eachTypeInFun(in FunDecl a, in TypeCb cb) {
 }
 
 void eachTypeInSpec(in SpecDecl a, in TypeCb cb) {
-	eachSpecParent(a, (SpecInst* parent, in TypeAst ast) {
-		Opt!bool x = eachTypeArg!bool(parent.typeArgs, ast, (in Type argType, in TypeAst argAst) {
+	eachSpecParent(a, (SpecInst* parent, in SpecUseAst ast) {
+		Opt!bool x = eachTypeArgForSpecUse!bool(parent.typeArgs, ast, (in Type argType, in TypeAst argAst) {
 			cb(argType, argAst);
 			return none!bool;
 		});
@@ -577,7 +578,7 @@ bool isRecordFieldFunction(in FunBody a) =>
 
 void referencesForSpecDecl(in AllSymbols allSymbols, in Program program, in SpecDecl* a, in ReferenceCb refCb) {
 	eachModuleThatMayReference(program, a.visibility, moduleOf(program, a.moduleUri), (in Module module_) {
-		scope void delegate(SpecInst*, in TypeAst) @safe @nogc pure nothrow cb = (spec, ast) {
+		scope void delegate(SpecInst*, in SpecUseAst) @safe @nogc pure nothrow cb = (spec, ast) {
 			if (spec.decl == a)
 				refCb(UriAndRange(module_.uri, ast.range(allSymbols)));
 		};

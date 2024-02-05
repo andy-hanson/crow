@@ -2,7 +2,7 @@ module frontend.ide.ideUtil;
 
 @safe @nogc pure nothrow:
 
-import model.ast : DestructureAst, ModifierAst, NameAndRange, ParamsAst, TypeAst;
+import model.ast : DestructureAst, ModifierAst, NameAndRange, ParamsAst, SpecUseAst, TypeAst;
 import model.model :
 	AssertOrForbidExpr,
 	BogusExpr,
@@ -40,25 +40,28 @@ import model.model :
 	Type,
 	TypedExpr,
 	TypeParamIndex;
-import util.col.array : arrayOfSingle, count, first, firstZip, only, only2;
+import util.col.array : arrayOfSingle, count, first, firstZip, isEmpty, only, only2;
 import util.opt : force, has, none, Opt, optOr;
 import util.sourceRange : UriAndRange;
+import util.util : ptrTrustMe;
 
 alias ReferenceCb = void delegate(in UriAndRange) @safe @nogc pure nothrow;
 
-void eachSpecParent(in SpecDecl a, in void delegate(SpecInst*, in TypeAst) @safe @nogc pure nothrow cb) {
-	Opt!bool res = eachSpec!bool(a.parents, a.ast.modifiers, (SpecInst* x, in TypeAst ast) {
+private alias SpecCb = void delegate(SpecInst*, in SpecUseAst) @safe @nogc pure nothrow;
+
+void eachSpecParent(in SpecDecl a, in SpecCb cb) {
+	Opt!bool res = eachSpec!bool(a.parents, a.ast.modifiers, (SpecInst* x, in SpecUseAst ast) {
 		cb(x, ast);
 		return none!bool;
 	});
 	assert(!has(res));
 }
 
-void eachFunSpec(in FunDecl a, in void delegate(SpecInst*, in TypeAst) @safe @nogc pure nothrow cb) {
+void eachFunSpec(in FunDecl a, in SpecCb cb) {
 	if (a.source.isA!(FunDeclSource.Ast)) {
 		Opt!bool res = eachSpec!bool(
 			a.specs, a.source.as!(FunDeclSource.Ast).ast.modifiers,
-			(SpecInst* x, in TypeAst y) {
+			(SpecInst* x, in SpecUseAst y) {
 				cb(x, y);
 				return none!bool;
 			});
@@ -67,18 +70,18 @@ void eachFunSpec(in FunDecl a, in void delegate(SpecInst*, in TypeAst) @safe @no
 }
 
 bool specsMatch(in SpecInst*[] specs, in ModifierAst[] modifiers) =>
-	specs.length == count!ModifierAst(modifiers, (in ModifierAst x) => x.isA!TypeAst);
+	specs.length == count!ModifierAst(modifiers, (in ModifierAst x) => x.isA!SpecUseAst);
 
 private Opt!Out eachSpec(Out)(
 	in SpecInst*[] specs,
 	in ModifierAst[] modifiers,
-	in Opt!Out delegate(SpecInst*, in TypeAst) @safe @nogc pure nothrow cb,
+	in Opt!Out delegate(SpecInst*, in SpecUseAst) @safe @nogc pure nothrow cb,
 ) {
 	if (specsMatch(specs, modifiers)) {
 		size_t specI = 0;
 		foreach (ref ModifierAst mod; modifiers) {
-			if (mod.isA!TypeAst) {
-				Opt!Out res = cb(specs[specI], mod.as!TypeAst);
+			if (mod.isA!SpecUseAst) {
+				Opt!Out res = cb(specs[specI], mod.as!SpecUseAst);
 				if (has(res))
 					return res;
 				specI++;
@@ -100,15 +103,17 @@ Opt!T eachTypeComponent(T)(in Type type, in TypeAst ast, in TypeCb!T cb) =>
 		(in StructInst x) =>
 			eachTypeArg!T(x.typeArgs, ast, cb));
 
-Opt!T eachTypeArg(T)(in Type[] typeArgs, in TypeAst ast, in TypeCb!T cb) {
-	Opt!T zipIt(in TypeAst[] typeArgAsts) =>
-		firstZip!(T, Type, TypeAst)(typeArgs, typeArgAsts, (Type x, TypeAst y) => cb(x, y));
-	Opt!T zipSuffix(in TypeAst* typeArgAst) =>
-		zipIt(typeArgs.length == 1
-			? arrayOfSingle(typeArgAst)
-			: typeArgAst.as!(TypeAst.Tuple).members);
+Opt!T eachTypeArgForSpecUse(T)(in Type[] typeArgs, in SpecUseAst ast, in TypeCb!T cb) {
+	if (has(ast.typeArg))
+		return zipEachTypeArgMayUnpackTuple!T(typeArgs, *force(ast.typeArg), cb);
+	else {
+		assert(isEmpty(typeArgs));
+		return none!T;
+	}
+}
 
-	return ast.match!(Opt!T)(
+private Opt!T eachTypeArg(T)(in Type[] typeArgs, in TypeAst ast, in TypeCb!T cb) =>
+	ast.match!(Opt!T)(
 		(TypeAst.Bogus) =>
 			none!T,
 		(ref TypeAst.Fun x) {
@@ -118,18 +123,26 @@ Opt!T eachTypeArg(T)(in Type[] typeArgs, in TypeAst ast, in TypeCb!T cb) {
 				() => eachFunTypeParameter!T(returnAndParam[1], x.params, cb));
 		},
 		(ref TypeAst.Map x) =>
-			zipIt(x.kv),
+			zipEachTypeArg!T(typeArgs, x.kv, cb),
 		(NameAndRange _) =>
 			// For a type alias, 'typeArgs' may be non-empty as it comes from the alias' target type.
 			// But ignore them in any case.
 			none!T,
 		(ref TypeAst.SuffixName x) =>
-			zipSuffix(&x.left),
+			zipEachTypeArgMayUnpackTuple!T(typeArgs, x.left, cb),
 		(TypeAst.SuffixSpecial x) =>
-			zipSuffix(x.left),
+			zipEachTypeArgMayUnpackTuple!T(typeArgs, *x.left, cb),
 		(TypeAst.Tuple x) =>
-			zipIt(x.members));
-}
+			zipEachTypeArg!T(typeArgs, x.members, cb));
+
+private Opt!T zipEachTypeArgMayUnpackTuple(T)(in Type[] typeArgs, in TypeAst typeArgAst, in TypeCb!T cb) =>
+	zipEachTypeArg!T(
+		typeArgs,
+		typeArgs.length == 1 ? arrayOfSingle(ptrTrustMe(typeArgAst)) : typeArgAst.as!(TypeAst.Tuple).members,
+		cb);
+
+private Opt!T zipEachTypeArg(T)(in Type[] typeArgs, in TypeAst[] typeArgAsts, in TypeCb!T cb) =>
+	firstZip!(T, Type, TypeAst)(typeArgs, typeArgAsts, (Type x, TypeAst y) => cb(x, y));
 
 private Opt!T eachFunTypeParameter(T)(in Type paramsType, in ParamsAst paramsAst, in TypeCb!T cb) =>
 	paramsAst.matchIn!(Opt!T)(

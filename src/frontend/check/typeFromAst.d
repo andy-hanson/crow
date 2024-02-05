@@ -12,7 +12,8 @@ import frontend.check.instantiate :
 	MayDelayStructInsts,
 	noDelayStructInsts;
 import frontend.check.maps : SpecsMap, StructsAndAliasesMap;
-import model.ast : DestructureAst, NameAndRange, ParamsAst, symbolForTypeAstMap, symbolForTypeAstSuffix, TypeAst;
+import model.ast :
+	DestructureAst, NameAndRange, ParamsAst, SpecUseAst, symbolForTypeAstMap, symbolForTypeAstSuffix, TypeAst;
 import model.diag : Diag, TypeContainer, TypeWithContainer;
 import model.model :
 	asTuple,
@@ -218,18 +219,19 @@ Opt!(SpecInst*) specFromAst(
 	in StructsAndAliasesMap structsAndAliasesMap,
 	in SpecsMap specsMap,
 	in TypeParams typeParamsScope,
-	in Opt!(TypeAst*) suffixLeft,
-	NameAndRange specName,
+	in SpecUseAst ast,
 	MayDelaySpecInsts delaySpecInsts,
 ) {
-	Opt!(SpecDecl*) opSpec = tryFindSpec(ctx, specName, specsMap);
+	Opt!(SpecDecl*) opSpec = tryFindSpec(ctx, ast.name, specsMap);
 	if (has(opSpec)) {
 		SpecDecl* spec = force(opSpec);
-		Opt!Type typeArg = optTypeFromOptAst(
-			ctx, commonTypes, suffixLeft, structsAndAliasesMap, typeParamsScope, noDelayStructInsts);
+		Opt!Type typeArg = has(ast.typeArg)
+			? some(typeFromAst(
+				ctx, commonTypes, *force(ast.typeArg), structsAndAliasesMap, typeParamsScope, noDelayStructInsts))
+			: none!Type;
 		Opt!TypeArgs typeArgs = getTypeArgsIfNumberMatches(
 			ctx, commonTypes,
-			specName.range(ctx.allSymbols), spec.name, spec.typeParams.length, &typeArg);
+			ast.name.range(ctx.allSymbols), spec.name, spec.typeParams.length, &typeArg);
 		return has(typeArgs)
 			? some(instantiateSpec(ctx.instantiateCtx, spec, force(typeArgs), delaySpecInsts))
 			: none!(SpecInst*);

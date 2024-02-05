@@ -26,7 +26,7 @@ import frontend.parse.parseUtil :
 	tryTakeNameAndRange,
 	tryTakeOperator,
 	tryTakeToken;
-import model.ast : DestructureAst, NameAndRange, ParamsAst, TypeAst;
+import model.ast : DestructureAst, ModifierAst, NameAndRange, ParamsAst, SpecUseAst, TypeAst;
 import model.model : FunKind;
 import model.parseDiag : ParseDiag;
 import util.col.array : emptySmallArray, only, SmallArray;
@@ -75,6 +75,14 @@ private void parseTypesWithCommasThenClosingParen(ref Lexer lexer, scope ref Bui
 
 TypeAst parseType(ref Lexer lexer) =>
 	parseTypeSuffixes(lexer, parseTypeBeforeSuffixes(lexer, ParenthesesNecessary.unnecessary));
+
+ModifierAst parseSpecUse(ref Lexer lexer) {
+	TypeAst left = parseTypeBeforeSuffixes(lexer, ParenthesesNecessary.unnecessary);
+	Pos externPos = curPos(lexer);
+	return left.isA!NameAndRange && tryTakeToken(lexer, Token.extern_)
+		? ModifierAst(ModifierAst.Extern(left.as!NameAndRange, externPos))
+		: ModifierAst(parseSpecUseSuffixes(lexer, left));
+}
 
 TypeAst parseTypeForTypedExpr(ref Lexer lexer) =>
 	parseTypeSuffixesNonName(lexer, parseTypeBeforeSuffixes(lexer, ParenthesesNecessary.necessary));
@@ -195,40 +203,67 @@ TypeAst parseTupleType(ref Lexer lexer, Pos start, ParenthesesNecessary parens) 
 }
 
 TypeAst parseTypeSuffixes(ref Lexer lexer, TypeAst left) {
-	Opt!TypeAst suffix = parseTypeSuffix(lexer, left);
-	return has(suffix) ? parseTypeSuffixes(lexer, force(suffix)) : left;
-}
-
-TypeAst parseTypeSuffixesNonName(ref Lexer lexer, TypeAst left) {
-	Opt!TypeAst suffix = parseTypeSuffixNonName(lexer, left);
-	return has(suffix) ? parseTypeSuffixesNonName(lexer, force(suffix)) : left;
-}
-
-Opt!TypeAst parseTypeSuffix(ref Lexer lexer, TypeAst left) {
-	Opt!TypeAst res = parseTypeSuffixNonName(lexer, left);
-	if (has(res))
-		return res;
+	Opt!TypeAst suffix = parseTypeSuffixNonName(lexer, () => left);
+	if (has(suffix))
+		return parseTypeSuffixes(lexer, force(suffix));
 	else {
 		Opt!NameAndRange name = tryTakeNameAndRange(lexer);
 		return has(name)
-			? some(TypeAst(allocate(lexer.alloc, TypeAst.SuffixName(left, force(name)))))
-			: none!TypeAst;
+			? parseTypeSuffixes(lexer, TypeAst(allocate(lexer.alloc, TypeAst.SuffixName(left, force(name)))))
+			: left;
 	}
 }
 
-Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, TypeAst left) {
+SpecUseAst parseSpecUseSuffixes(ref Lexer lexer, TypeAst left) {
+	Opt!TypeAst suffix = parseTypeSuffixNonName(lexer, () => left);
+	if (has(suffix))
+		return parseSpecUseSuffixes(lexer, force(suffix));
+	else {
+		Opt!NameAndRange name = tryTakeNameAndRange(lexer);
+		if (has(name))
+			return parseSpecUseSuffixesAfterName(lexer, left, force(name));
+		else if (left.isA!NameAndRange)
+			return SpecUseAst(none!(TypeAst*), left.as!NameAndRange);
+		else {
+			addDiagExpected(lexer, ParseDiag.Expected.Kind.name);
+			return SpecUseAst(some(allocate(lexer.alloc, left)), NameAndRange(curPos(lexer), symbol!"bogus"));
+		}
+	}
+}
+
+SpecUseAst parseSpecUseSuffixesAfterName(ref Lexer lexer, TypeAst left, NameAndRange name) {
+	TypeAst nameIsType() =>
+		TypeAst(allocate(lexer.alloc, TypeAst.SuffixName(left, name)));
+
+	Opt!TypeAst suffix = parseTypeSuffixNonName(lexer, () => nameIsType());
+	if (has(suffix))
+		return parseSpecUseSuffixes(lexer, force(suffix));
+	else {
+		Opt!NameAndRange name2 = tryTakeNameAndRange(lexer);
+		return has(name2)
+			? parseSpecUseSuffixesAfterName(lexer, nameIsType(), force(name2))
+			: SpecUseAst(some(allocate(lexer.alloc, left)), name);
+	}
+}
+
+TypeAst parseTypeSuffixesNonName(ref Lexer lexer, TypeAst left) {
+	Opt!TypeAst suffix = parseTypeSuffixNonName(lexer, () => left);
+	return has(suffix) ? parseTypeSuffixesNonName(lexer, force(suffix)) : left;
+}
+
+Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, in TypeAst delegate() @safe @nogc pure nothrow left) {
 	Pos suffixPos = curPos(lexer);
 	Opt!TypeAst suffix(TypeAst.SuffixSpecial.Kind kind) =>
-		some(TypeAst(TypeAst.SuffixSpecial(allocate(lexer.alloc, left), suffixPos, kind)));
+		some(TypeAst(TypeAst.SuffixSpecial(allocate(lexer.alloc, left()), suffixPos, kind)));
 	Opt!TypeAst doubleSuffix(TypeAst.SuffixSpecial.Kind kind1, TypeAst.SuffixSpecial.Kind kind2) =>
 		some(TypeAst(TypeAst.SuffixSpecial(
-			allocate(lexer.alloc, TypeAst(TypeAst.SuffixSpecial(allocate(lexer.alloc, left), suffixPos, kind2))),
+			allocate(lexer.alloc, TypeAst(TypeAst.SuffixSpecial(allocate(lexer.alloc, left()), suffixPos, kind2))),
 			suffixPos + 1,
 			kind1)));
 	Opt!TypeAst mapLike(TypeAst.Map.Kind kind) {
 		TypeAst key = parseType(lexer);
 		takeOrAddDiagExpectedToken(lexer, Token.bracketRight, ParseDiag.Expected.Kind.closingBracket);
-		return some(TypeAst(allocate(lexer.alloc, TypeAst.Map(kind, [key, left]))));
+		return some(TypeAst(allocate(lexer.alloc, TypeAst.Map(kind, [key, left()]))));
 	}
 
 	if (tryTakeToken(lexer, Token.question))
@@ -250,7 +285,7 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, TypeAst left) {
 				? suffix(TypeAst.SuffixSpecial.Kind.mutList)
 				: mapLike(TypeAst.Map.Kind.mut);
 		else if (tryTakeToken(lexer, Token.parenLeft))
-			return some(parseFunType(lexer, left, beforeParen, FunKind.mut));
+			return some(parseFunType(lexer, left(), beforeParen, FunKind.mut));
 		else if (tryTakeOperator(lexer, symbol!"*"))
 			return suffix(TypeAst.SuffixSpecial.Kind.mutPtr);
 		else if (tryTakeOperator(lexer, symbol!"**"))
@@ -262,7 +297,7 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, TypeAst left) {
 	} else if (tryTakeToken(lexer, Token.far)) {
 		BeforeParen beforeParen = beforeParen(lexer);
 		if (tryTakeToken(lexer, Token.parenLeft))
-			return some(parseFunType(lexer, left, beforeParen, FunKind.far));
+			return some(parseFunType(lexer, left(), beforeParen, FunKind.far));
 		else {
 			addDiagExpected(lexer, ParseDiag.Expected.Kind.openParen);
 			return none!TypeAst;
@@ -270,7 +305,7 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, TypeAst left) {
 	} else if (tryTakeToken(lexer, Token.function_)) {
 		BeforeParen beforeParen = beforeParen(lexer);
 		if (tryTakeToken(lexer, Token.parenLeft))
-			return some(parseFunType(lexer, left, beforeParen, FunKind.function_));
+			return some(parseFunType(lexer, left(), beforeParen, FunKind.function_));
 		else {
 			addDiagExpected(lexer, ParseDiag.Expected.Kind.openParen);
 			return none!TypeAst;
@@ -278,11 +313,11 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, TypeAst left) {
 	} else {
 		Opt!BeforeParen afterData = tryTakeNameOpenParen(lexer, symbol!"data");
 		if (has(afterData))
-			return some(parseFunType(lexer, left, force(afterData), FunKind.data));
+			return some(parseFunType(lexer, left(), force(afterData), FunKind.data));
 		else {
 			Opt!BeforeParen afterShared = tryTakeNameOpenParen(lexer, symbol!"shared");
 			if (has(afterShared))
-				return some(parseFunType(lexer, left, force(afterShared), FunKind.shared_));
+				return some(parseFunType(lexer, left(), force(afterShared), FunKind.shared_));
 			else
 				return none!TypeAst;
 		}

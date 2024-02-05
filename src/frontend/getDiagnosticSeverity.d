@@ -141,8 +141,6 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.SpecNoMatch) =>
 			DiagnosticSeverity.checkError,
-		(in Diag.SpecNameMissing) =>
-			DiagnosticSeverity.checkError,
 		(in Diag.SpecRecursion) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.SpecSigCantBeVariadic) =>

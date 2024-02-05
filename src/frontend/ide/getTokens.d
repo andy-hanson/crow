@@ -52,6 +52,7 @@ import model.ast :
 	SeqAst,
 	SpecDeclAst,
 	SpecSigAst,
+	SpecUseAst,
 	StructAliasAst,
 	StructBodyAst,
 	StructDeclAst,
@@ -418,17 +419,12 @@ void addModifierTokens(scope ref Ctx ctx, in ModifierAst[] a) {
 		mod.matchIn!void(
 			(in ModifierAst.Keyword x) {},
 			(in ModifierAst.Extern x) {
-				addTypeTokens(ctx, *x.left);
+				reference(ctx.tokens, TokenType.namespace, x.name.range(ctx.allSymbols));
 			},
-			(in TypeAst x) {
-				if (x.isA!NameAndRange)
-					reference(ctx.tokens, TokenType.interface_, x.range(ctx.allSymbols));
-				else if (x.isA!(TypeAst.SuffixName*)) {
-					TypeAst.SuffixName* n = x.as!(TypeAst.SuffixName*);
-					addTypeTokens(ctx, n.left);
-					reference(ctx.tokens, TokenType.interface_, n.name.range(ctx.allSymbols));
-				}
-				// else parse error, so ignore
+			(in SpecUseAst x) {
+				if (has(x.typeArg))
+					addTypeTokens(ctx, *force(x.typeArg));
+				reference(ctx.tokens, TokenType.interface_, x.name.range(ctx.allSymbols));
 			});
 	}
 }

@@ -947,9 +947,6 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 				writeSpecTrace(writer, ctx, x.outermostTypeContainer, x.trace);
 			}
 		},
-		(in Diag.SpecNameMissing) {
-			writer ~= "Spec name is missing.";
-		},
 		(in Diag.SpecRecursion x) {
 			writer ~= "Spec's parents tree is too deep.";
 			writeNewline(writer, 1);

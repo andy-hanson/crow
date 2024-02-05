@@ -427,7 +427,6 @@ immutable struct Diag {
 		Reason reason;
 		FunDeclAndTypeArgs[] trace;
 	}
-	immutable struct SpecNameMissing {}
 	immutable struct SpecRecursion {
 		SpecDecl*[] trace;
 	}
@@ -588,7 +587,6 @@ immutable struct Diag {
 		PurityWorseThanParent,
 		SpecMatchError,
 		SpecNoMatch,
-		SpecNameMissing,
 		SpecRecursion,
 		SpecSigCantBeVariadic,
 		SpecUseInvalid,

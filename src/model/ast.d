@@ -104,7 +104,7 @@ immutable struct TypeAst {
 		NameAndRange name;
 
 		Range range(in AllSymbols allSymbols) scope =>
-			Range(left.range(allSymbols).start, suffixRange(allSymbols).end);
+			combineRanges(left.range(allSymbols), suffixRange(allSymbols));
 		Range suffixRange(in AllSymbols allSymbols) scope =>
 			name.range(allSymbols);
 	}
@@ -629,17 +629,16 @@ immutable struct ModifierAst {
 	immutable struct Extern {
 		@safe @nogc pure nothrow:
 
-		TypeAst* left;
+		NameAndRange name;
 		Pos externPos;
 
 		Range range(in AllSymbols allSymbols) scope =>
-			Range(left.range(allSymbols).start, suffixRange.end);
+			combineRanges(name.range(allSymbols), suffixRange);
 		Range suffixRange() scope =>
 			rangeOfStartAndLength(externPos, "extern".length);
 	}
 
-	// TypeAst will be interpreted as a spec inst
-	mixin Union!(Keyword, Extern, TypeAst);
+	mixin Union!(Keyword, Extern, SpecUseAst);
 
 	Range range(in AllSymbols allSymbols) scope =>
 		matchIn!Range(
@@ -647,8 +646,19 @@ immutable struct ModifierAst {
 				x.range,
 			(in Extern x) =>
 				x.range(allSymbols),
-			(in TypeAst x) =>
+			(in SpecUseAst x) =>
 				x.range(allSymbols));
+}
+
+immutable struct SpecUseAst {
+	@safe @nogc pure nothrow:
+	Opt!(TypeAst*) typeArg;
+	NameAndRange name;
+
+	Range range(in AllSymbols allSymbols) scope =>
+		has(typeArg)
+			? combineRanges(force(typeArg).range(allSymbols), name.range(allSymbols))
+			: name.range(allSymbols);
 }
 
 enum ModifierKeyword {

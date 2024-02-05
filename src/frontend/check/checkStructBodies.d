@@ -20,6 +20,7 @@ import model.ast :
 	ModifierAst,
 	ModifierKeyword,
 	RecordFieldAst,
+	SpecUseAst,
 	StructBodyAst,
 	StructDeclAst,
 	TypeAst,
@@ -317,14 +318,14 @@ Opt!PurityAndForced purityAndForcedFromModifier(ModifierKeyword a) {
 void checkOnlyStructModifiers(ref CheckCtx ctx, DeclKind declKind, in ModifierAst[] modifiers) {
 	foreach (ref ModifierAst modifier; modifiers)
 		if (!isStructModifier(modifier))
-			addDiag(ctx, modifier.range(ctx.allSymbols), modifier.match!Diag(
-				(ModifierAst.Keyword x) =>
+			addDiag(ctx, modifier.range(ctx.allSymbols), modifier.matchIn!Diag(
+				(in ModifierAst.Keyword x) =>
 					x.kind == ModifierKeyword.byVal
 						? Diag(Diag.ModifierRedundantDueToDeclKind(x.kind, declKind))
 						: Diag(Diag.ModifierInvalid(x.kind, declKind)),
-				(ModifierAst.Extern) =>
+				(in ModifierAst.Extern) =>
 					Diag(Diag.ExternHasUnnecessaryLibraryName()),
-				(TypeAst x) =>
+				(in SpecUseAst _) =>
 					Diag(Diag.SpecUseInvalid(declKind))));
 }
 
@@ -334,7 +335,7 @@ bool isStructModifier(in ModifierAst a) =>
 			x.kind == ModifierKeyword.extern_ || has(purityAndForcedFromModifier(x.kind)),
 		(in ModifierAst.Extern) =>
 			false,
-		(in TypeAst _) =>
+		(in SpecUseAst _) =>
 			false);
 
 StructBody.Enum checkEnum(

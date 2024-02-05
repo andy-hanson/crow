@@ -2,7 +2,7 @@ module frontend.ide.getPosition;
 
 @safe @nogc pure nothrow:
 
-import frontend.ide.ideUtil : eachTypeArg, eachTypeComponent, specsMatch;
+import frontend.ide.ideUtil : eachTypeArgForSpecUse, eachTypeComponent, specsMatch;
 import frontend.ide.position : ExprContainer, LocalContainer, Position, PositionKind, VisibilityContainer;
 import model.ast :
 	CallAst,
@@ -22,6 +22,7 @@ import model.ast :
 	ParamsAst,
 	RecordFieldAst,
 	SpecSigAst,
+	SpecUseAst,
 	StructBodyAst,
 	StructDeclAst,
 	TestAst,
@@ -185,17 +186,18 @@ PositionKind positionInModifier(
 				? PositionKind(PositionKind.ModifierExtern(
 					container.as!(FunDecl*).body_.as!(FunBody.Extern).libraryName))
 				: PositionKind(PositionKind.None()),
-		(in TypeAst x) {
+		(in SpecUseAst x) {
 			if (has(specs) && specsMatch(force(specs), modifiers)) {
 				// Find the corresponding spec
 				size_t specIndex = 0;
 				foreach (ref ModifierAst prevModifier; modifiers[0 .. index])
-					if (prevModifier.isA!TypeAst)
+					if (prevModifier.isA!SpecUseAst)
 						specIndex++;
 
 				SpecInst* spec = force(specs)[specIndex];
 				return optOrDefault!PositionKind(
-					positionInTypeArgs(allSymbols, container, spec.typeArgs, x, pos),
+					eachTypeArgForSpecUse!PositionKind(spec.typeArgs, x, (in Type t, in TypeAst a) =>
+						positionInType(allSymbols, container, t, a, pos)),
 					() => PositionKind(PositionKind.SpecUse(container, force(specs)[specIndex])));
 			} else
 				return PositionKind(PositionKind.None());
@@ -600,16 +602,6 @@ Opt!PositionKind positionInType(in AllSymbols allSymbols, TypeContainer containe
 				positionInType(allSymbols, container, t, a, pos)),
 			() => some(PositionKind(TypeWithContainer(type, container))))
 		: none!PositionKind;
-
-Opt!PositionKind positionInTypeArgs(
-	in AllSymbols allSymbols,
-	TypeContainer container,
-	in Type[] typeArgs,
-	TypeAst ast,
-	Pos pos,
-) =>
-	eachTypeArg!PositionKind(typeArgs, ast, (in Type t, in TypeAst a) =>
-		positionInType(allSymbols, container, t, a, pos));
 
 bool hasPos(in AllSymbols allSymbols, in NameAndRange nr, Pos pos) =>
 	hasPos(nr.range(allSymbols), pos);
