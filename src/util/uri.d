@@ -29,8 +29,9 @@ import util.symbol :
 	symbolOfString,
 	symbolSize,
 	toLowerCase,
+	writeExtension,
 	writeSymbol;
-import util.util : stringOfEnum, todo, typeAs;
+import util.util : todo, typeAs;
 import util.writer : digitChar, makeStringWithWriter, withStackWriter, withStackWriterImpureCString, withWriter, Writer;
 
 T withCStringOfFilePath(T)(in AllUris allUris, FilePath path, in T delegate(in CString) @safe @nogc nothrow cb) =>
@@ -192,8 +193,7 @@ private Path alterExtensionWithHexForPath(ref AllUris allUris, Path a, in ubyte[
 				writer ~= digitChar(x / 16);
 				writer ~= digitChar(x % 16);
 			}
-			writer ~= '.';
-			writer ~= stringOfEnum(newExtension);
+			writeExtension(writer, newExtension);
 		}));
 
 private bool hasExtension(in AllUris allUris, Path a) =>

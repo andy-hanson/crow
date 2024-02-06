@@ -1,3 +1,6 @@
+exit code: 0
+stdout:
 info: Logged once
+stderr:
 warn: Logged twice
 warn: Logged twice

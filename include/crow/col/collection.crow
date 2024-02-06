@@ -1,7 +1,7 @@
 no-std
 import
 	../bool: ==, bool, false, new, not, true
-	../compare: ==, >, compare, comparison, equal, greater, less, min
+	../compare: >, compare, comparison, equal, greater, less, min
 	../fun-util: subscript
 	../misc: break-or-continue, loop-break, loop-continue, new, void
 	../number: ==, <=>, +, -, *, /, nat64
@@ -275,12 +275,15 @@ sequence-compare[col, iter, elem] comparison(
 		if na ?= ai next
 			if nb ?= bi next
 				cmp = na.a <=> nb.a
-				if cmp == equal
+				match cmp
+				as less
+					break less
+				as equal
 					ai := na b
 					bi := nb b
 					continue
-				else
-					break cmp
+				as greater
+					break greater
 			else
 				break greater
 		else

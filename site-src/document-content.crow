@@ -176,9 +176,9 @@ module-content string(a module, all-exports all-exports)
 
 -purity-content string(a purity)
 	match a
-	as data
+	as data_
 		""
-	as shared
+	as shared_
 		" shared" keyword
 	as mut_
 		" mut" keyword

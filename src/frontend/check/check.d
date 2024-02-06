@@ -234,6 +234,10 @@ Opt!BuiltinSpec getBuiltinSpec(ref CheckCtx ctx, in Range range, Symbol name) {
 	switch (name.value) {
 		case symbol!"data".value:
 			return some(BuiltinSpec.data);
+		case symbol!"enum".value:
+			return some(BuiltinSpec.enum_);
+		case symbol!"flags".value:
+			return some(BuiltinSpec.flags);
 		case symbol!"shared".value:
 			return some(BuiltinSpec.shared_);
 		default:
@@ -855,7 +859,8 @@ FunBody.Extern checkExternBody(ref CheckCtx ctx, FunDecl* fun, FunDeclAst* ast) 
 
 	checkNoTypeParams(ctx, fun.typeParams, DeclKind.externFunction);
 	if (!isEmpty(fun.specs)) {
-		Range range = mustFind!ModifierAst(ast.modifiers, (in ModifierAst x) => x.isA!SpecUseAst).range(ctx.allSymbols);
+		Range range =
+			mustFind!ModifierAst(ast.modifiers, (in ModifierAst x) => x.isA!(SpecUseAst*)).range(ctx.allSymbols);
 		addDiag(ctx, range, Diag(Diag.SpecUseInvalid(DeclKind.externFunction)));
 	}
 

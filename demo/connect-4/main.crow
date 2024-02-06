@@ -4,7 +4,7 @@ import
 	crow/version: is-interpreted
 	./board:
 		board, board-cache, can-place, color, empty-board, has-empty, just-won, new, opposite,
-		place, red, set-subscript, show, subscript, to, width
+		place, red, set-subscript, show, subscript, width
 
 main nat^(_ string[]) summon
 	settings <- ask-settings
@@ -15,14 +15,14 @@ main nat^(_ string[]) summon
 
 -ask-settings ai-settings^() summon
 	if trusted is-interpreted
-		warn log "AI may be slow in interpreter, try running with '--jit'"
+		warn log "AI may be slow in interpreter, try running with '--jit' or '--aot'"
 	out print """
 Choose an option:
 
 2: 2-player game
 E: VS Easy CPU
 M: VS Medium CPU
-H: VS Hard CPU (be sure to run with '--jit')
+H: VS Hard CPU (be sure to run with '--jit' or '--aot')
 CPU: CPU vs CPU
 """
 	"Invalid option" read-stdin-until-parse x => x parse-settings
@@ -41,7 +41,7 @@ CPU: CPU vs CPU
 
 -show-winner string(winner color?)
 	if w ?= winner
-		"{w} wins!"
+		"{w show} wins!"
 	else
 		"It's a tie."
 

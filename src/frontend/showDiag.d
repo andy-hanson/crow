@@ -1274,6 +1274,10 @@ string describeTokenForUnexpected(Token token) {
 			return "Unexpected '['.";
 		case Token.bracketRight:
 			return "Unexpected ']'.";
+		case Token.byRef:
+			return "Unexpected keyword 'by-ref'.";
+		case Token.byVal:
+			return "Unexpected keyword 'by-val'.";
 		case Token.colon:
 			return "Unexpected ':'.";
 		case Token.colon2:
@@ -1284,6 +1288,8 @@ string describeTokenForUnexpected(Token token) {
 			return "Unexpected ','.";
 		case Token.continue_:
 			return "Unexpected keyword 'continue'.";
+		case Token.data:
+			return "Unexpected keyword 'data'.";
 		case Token.do_:
 			return "Unexpected keyword 'do'.";
 		case Token.dot:
@@ -1310,6 +1316,8 @@ string describeTokenForUnexpected(Token token) {
 			return "Unexpected keyword 'flags'.";
 		case Token.for_:
 			return "Unexpected keyword 'for'.";
+		case Token.forceShared:
+			return "Unexpected keyword 'force-shared'.";
 		case Token.forbid:
 			return "Unexpected keyword 'forbid'.";
 		case Token.forceCtx:
@@ -1323,7 +1331,7 @@ string describeTokenForUnexpected(Token token) {
 		case Token.import_:
 			return "Unexpected keyword 'import'.";
 		case Token.unexpectedCharacter:
-			// This is UnexpectedCharacter instead
+			// This is ParseDiag.UnexpectedCharacter instead
 			assert(false);
 		case Token.literalFloat:
 		case Token.literalInt:
@@ -1350,6 +1358,8 @@ string describeTokenForUnexpected(Token token) {
 		case Token.operator:
 			// This is UnexpectedOperator instead
 			assert(false);
+		case Token.packed:
+			return "Unexpected keyword 'packed'.";
 		case Token.parenLeft:
 			return "Unexpected '('.";
 		case Token.parenRight:
@@ -1370,6 +1380,8 @@ string describeTokenForUnexpected(Token token) {
 			return "Unexpected reserved keyword.";
 		case Token.semicolon:
 			return "Unexpected ';'.";
+		case Token.shared_:
+			return "Unexpected keyword 'shared'.";
 		case Token.spec:
 			return "Unexpected keyword 'spec'.";
 		case Token.summon:

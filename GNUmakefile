@@ -141,7 +141,7 @@ lint-basic: bin/crow
 	./bin/crow run test/lint-basic.crow
 
 lint-dscanner:
-	dub run dscanner -- --styleCheck src
+	dub run dscanner --quiet -- --styleCheck src
 
 lint-d-imports-exports: bin/crow
 	./bin/crow run test/lint-d-imports-exports.crow

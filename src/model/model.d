@@ -458,7 +458,7 @@ immutable struct SpecDeclBody {
 	SmallArray!SpecDeclSig sigs;
 }
 
-enum BuiltinSpec { data, shared_ }
+enum BuiltinSpec { data, enum_, flags, shared_ }
 
 immutable struct SpecDecl {
 	@safe @nogc pure nothrow:
@@ -535,37 +535,12 @@ private enum EnumFunction_ {
 	union_,
 }
 
-Symbol enumFunctionName(EnumFunction a) {
-	final switch (a) {
-		case EnumFunction.equal:
-			return symbol!"==";
-		case EnumFunction.intersect:
-			return symbol!"&";
-		case EnumFunction.members:
-			return symbol!"members";
-		case EnumFunction.toIntegral:
-			return symbol!"to-integral";
-		case EnumFunction.union_:
-			return symbol!"|";
-	}
-}
-
+// These are just the functions needing an 'all' value, otherwise they are in EnumFunction
 alias FlagsFunction = immutable FlagsFunction_;
 private enum FlagsFunction_ {
 	all,
 	negate,
 	new_,
-}
-
-Symbol flagsFunctionName(FlagsFunction a) {
-	final switch (a) {
-		case FlagsFunction.all:
-			return symbol!"all";
-		case FlagsFunction.negate:
-			return symbol!"~";
-		case FlagsFunction.new_:
-			return symbol!"new";
-	}
 }
 
 enum VarKind { global, threadLocal }

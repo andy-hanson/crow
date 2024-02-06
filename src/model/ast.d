@@ -622,6 +622,13 @@ immutable struct ModifierAst {
 		Pos pos;
 		ModifierKeyword kind;
 
+		static Keyword fromNat48ForTaggedUnion(ulong a) =>
+			Keyword(safeToUint(a >> 8), cast(ModifierKeyword) (a & 0xff));
+		ulong asNat48ForTaggedUnion() {
+			static assert(ModifierKeyword.sizeof == ubyte.sizeof);
+			return pos << 8 | kind;
+		}
+
 		Range range() =>
 			rangeOfStartAndLength(pos, stringOfModifierKeyword(kind).length);
 	}
@@ -638,7 +645,7 @@ immutable struct ModifierAst {
 			rangeOfStartAndLength(externPos, "extern".length);
 	}
 
-	mixin Union!(Keyword, Extern, SpecUseAst);
+	mixin TaggedUnion!(Keyword, Extern*, SpecUseAst*);
 
 	Range range(in AllSymbols allSymbols) scope =>
 		matchIn!Range(
@@ -649,10 +656,11 @@ immutable struct ModifierAst {
 			(in SpecUseAst x) =>
 				x.range(allSymbols));
 }
+static assert(ModifierAst.sizeof == ModifierAst.Keyword.sizeof);
 
 immutable struct SpecUseAst {
 	@safe @nogc pure nothrow:
-	Opt!(TypeAst*) typeArg;
+	Opt!TypeAst typeArg;
 	NameAndRange name;
 
 	Range range(in AllSymbols allSymbols) scope =>
@@ -661,7 +669,7 @@ immutable struct SpecUseAst {
 			: name.range(allSymbols);
 }
 
-enum ModifierKeyword {
+enum ModifierKeyword : ubyte {
 	bare,
 	builtin,
 	byRef,

@@ -126,11 +126,14 @@ enum Token {
 	braceRight, // '}'
 	bracketLeft, // '['
 	bracketRight, // ']'
+	byRef,
+	byVal,
 	colon, // ':'
 	colon2, // '::'
 	colonEqual, // ':='
 	comma, // ','
 	continue_, // 'continue'
+	data, // 'data'
 	do_, // 'do'
 	dot, // '.'. // '..' is Operator.range
 	dot3, // '...'
@@ -144,6 +147,7 @@ enum Token {
 	far, // 'far'
 	flags, // 'flags'
 	for_, // 'for'
+	forceShared, // 'force-shared'
 	forbid, // 'forbid'
 	forceCtx, // 'force-ctx'
 	function_, // 'function'
@@ -170,6 +174,7 @@ enum Token {
 	newlineSameIndent,
 	noStd, // 'no-std'
 	operator, // Any operator; use TokenAndData.asSymbol with this
+	packed, // 'packed'
 	parenLeft, // '('
 	parenRight, // ')'
 	question, // '?'
@@ -180,6 +185,7 @@ enum Token {
 	record, // 'record'
 	reserved, // any reserved word
 	semicolon, // ';'
+	shared_, // 'shared'
 	spec, // 'spec'
 	summon, // 'summon'
 	test, // 'test'
@@ -492,10 +498,16 @@ Token tokenForSymbol(Symbol a) {
 			return Token.break_;
 		case symbol!"builtin".value:
 			return Token.builtin;
+		case symbol!"by-ref".value:
+			return Token.byRef;
+		case symbol!"by-val".value:
+			return Token.byVal;
 		case symbol!"class".value:
 			return Token.reserved;
 		case symbol!"continue".value:
 			return Token.continue_;
+		case symbol!"data".value:
+			return Token.data;
 		case symbol!"do".value:
 			return Token.do_;
 		case symbol!"elif".value:
@@ -514,6 +526,8 @@ Token tokenForSymbol(Symbol a) {
 			return Token.flags;
 		case symbol!"for".value:
 			return Token.for_;
+		case symbol!"force-shared".value:
+			return Token.forceShared;
 		case symbol!"forbid".value:
 			return Token.forbid;
 		case symbol!"force-ctx".value:
@@ -536,8 +550,12 @@ Token tokenForSymbol(Symbol a) {
 			return Token.mut;
 		case symbol!"no-std".value:
 			return Token.noStd;
+		case symbol!"packed".value:
+			return Token.packed;
 		case symbol!"record".value:
 			return Token.record;
+		case symbol!"shared".value:
+			return Token.shared_;
 		case symbol!"spec".value:
 			return Token.spec;
 		case symbol!"summon".value:

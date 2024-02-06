@@ -4,10 +4,9 @@ import
 
 main nat^(_ string[]) summon
 	out print "running with {trusted count-processors} processors"
-	p nat64 range parallel-collection = (1_000_000 .. 1_010_000).parallel
-	primes nat[] <- p filter x => x.is-prime,
+	primes nat[] <- (1_000_000::nat .. 1_010_000).parallel filter x => x.is-prime,
 	out print "primes: {primes.to::json}"
 	()
 
 is-prime bool(a nat)
-	!(2 .. a exists x => a is-multiple-of x)
+	!(2::nat .. a exists x => a is-multiple-of x)

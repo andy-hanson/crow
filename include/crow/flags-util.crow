@@ -10,40 +10,43 @@ import
 	./symbol: symbol, to
 
 ###
-Spec that will be satisfied by generated functions for any `flags` type.
-Functions in this spec will be generated when you declare a `flags` type.
-
-(Declaring a `flags` type also generates other functions that aren't needed here.)
+Spec that is satisfied if 't' is a 'flags' type
 ###
-+flags-like[t] spec
-	new t()
-	all t()
-	flags-members (symbol, t) array()
-	== bool(a t, b t)
-	~ t(a t)
-	& t(a t, b t)
-	| t(a t, b t)
++flags[t] spec builtin
 
-+min-flags-like[t] spec
-	== bool(a t, b t)
-	& t(a t, b t)
+# Value with no flags set.
++new[t] t() builtin, bare, t flags
+# Value with all flags set.
++all[t] t() builtin, bare, t flags
+
++==[t] bool(a t, b t) builtin, bare, t flags
+
+# Negation: Result contains all flags *not* in 'a'
++ ~[t] t(a t) builtin, bare, t flags
+# Union: Result contains all flags in *either* 'a' or 'b'
++ |[t] t(a t, b t) builtin, bare, t flags
+# Intersection: Result contains only flags in *both* 'a' and 'b'
++ &[t] t(a t, b t) builtin, bare, t flags
+
+# Returns every name and value in the enum.
++flags-members[t] (symbol, t) array() builtin, bare, t flags
 
 ###
 True if every flag set in `a` is set in `b`.
 ###
-+is-in[t] bool(a t, b t) t min-flags-like
++is-in[t] bool(a t, b t) bare, t flags
 	a & b == a
 
 # Returns the names of every flag set in `a`.
-+to[t] symbol[](a t) t flags-like
++to[t] symbol[](a t) t flags
 	with out : build
-		for name, value : flags-members
+		for name, value : flags-members@t
 			if value is-in a
 				out ~= name
 
 # Flag names separated by `|`, like `"foo | bar"`.
-+to[t] string(a t) t flags-like
++to[t] string(a t) t flags
 	" | " join for x : a.to::symbol[]; x to
 
-+to[t] json(a t) t flags-like
++to[t] json(a t) t flags
 	a.to::symbol[] to

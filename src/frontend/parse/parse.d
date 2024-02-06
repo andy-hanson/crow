@@ -236,30 +236,24 @@ Opt!ModifierKeyword tryGetModifierKeyword(TokenAndData token) {
 			return some(ModifierKeyword.bare);
 		case Token.builtin:
 			return some(ModifierKeyword.builtin);
+		case Token.byRef:
+			return some(ModifierKeyword.byRef);
+		case Token.byVal:
+			return some(ModifierKeyword.byVal);
+		case Token.data:
+			return some(ModifierKeyword.data);
 		case Token.extern_:
 			return some(ModifierKeyword.extern_);
 		case Token.forceCtx:
 			return some(ModifierKeyword.forceCtx);
+		case Token.forceShared:
+			return some(ModifierKeyword.forceShared);
 		case Token.mut:
 			return some(ModifierKeyword.mut);
-		case Token.name:
-			Symbol name = token.asSymbol;
-			switch (name.value) {
-				case symbol!"by-ref".value:
-					return some(ModifierKeyword.byRef);
-				case symbol!"by-val".value:
-					return some(ModifierKeyword.byVal);
-				case symbol!"data".value:
-					return some(ModifierKeyword.data);
-				case symbol!"force-shared".value:
-					return some(ModifierKeyword.forceShared);
-				case symbol!"packed".value:
-					return some(ModifierKeyword.packed);
-				case symbol!"shared".value:
-					return some(ModifierKeyword.shared_);
-				default:
-					return none!(ModifierKeyword);
-			}
+		case Token.packed:
+			return some(ModifierKeyword.packed);
+		case Token.shared_:
+			return some(ModifierKeyword.shared_);
 		case Token.summon:
 			return some(ModifierKeyword.summon);
 		case Token.trusted:
@@ -270,7 +264,6 @@ Opt!ModifierKeyword tryGetModifierKeyword(TokenAndData token) {
 			return none!(ModifierKeyword);
 	}
 }
-
 
 void parseSpecOrStructOrFunOrTest(
 	ref Lexer lexer,

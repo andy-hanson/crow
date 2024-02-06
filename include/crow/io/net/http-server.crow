@@ -26,8 +26,8 @@ import
 	../../tuple: new
 	../../private/bootstrap: todo
 	./http-types:
-		==, enum-members, GET, headers, http-internal-server-error, http-method, http-request,
-		http-response, new, response-body, status, status-desc
+		GET, headers, http-internal-server-error, http-method, http-request, http-response, new,
+		response-body, status, status-desc
 	./tcp-server: close-client, new, start-tcp-server, stop, tcp-handler
 
 # Reference to a running server.

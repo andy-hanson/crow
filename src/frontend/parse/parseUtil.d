@@ -111,6 +111,28 @@ bool takeOrAddDiagExpectedOperator(ref Lexer lexer, Symbol operator, ParseDiag.E
 	return res;
 }
 
+Opt!NameAndRange tryTakeNameAndRangeAllowNameLikeKeywords(ref Lexer lexer) {
+	Pos start = curPos(lexer);
+	Opt!Symbol res = tryTakeTokenCb!Symbol(lexer, (TokenAndData x) =>
+		x.token == Token.name ? some(x.asSymbol) : tryGetNameLikeKeyword(x.token));
+	return optIf(has(res), () => NameAndRange(start, force(res)));
+}
+
+private Opt!Symbol tryGetNameLikeKeyword(Token a) {
+	switch (a) {
+		case Token.data:
+			return some(symbol!"data");
+		case Token.enum_:
+			return some(symbol!"enum");
+		case Token.flags:
+			return some(symbol!"flags");
+		case Token.shared_:
+			return some(symbol!"shared");
+		default:
+			return none!Symbol;
+	}
+}
+
 Opt!NameAndRange tryTakeNameAndRange(ref Lexer lexer) {
 	Pos start = curPos(lexer);
 	return tryTakeTokenCb!NameAndRange(lexer, (TokenAndData x) =>
@@ -141,9 +163,7 @@ Symbol takeName(ref Lexer lexer) =>
 NameAndRange takeNameOrOperator(ref Lexer lexer) {
 	Pos start = curPos(lexer);
 	Opt!Symbol res = tryTakeTokenCb!Symbol(lexer, (TokenAndData x) =>
-		isSymbolToken(x.token) && x.token != Token.nameOrOperatorColonEquals
-			? some(x.asSymbol)
-			: none!Symbol);
+		tryGetNameOrOperator(x));
 	if (has(res))
 		return NameAndRange(start, force(res));
 	else {
@@ -151,6 +171,16 @@ NameAndRange takeNameOrOperator(ref Lexer lexer) {
 			ParseDiag.Expected(ParseDiag.Expected.Kind.nameOrOperator)));
 		return NameAndRange(start, symbol!"");
 	}
+}
+
+private Opt!Symbol tryGetNameOrOperator(in TokenAndData a) =>
+	isSymbolToken(a.token) && a.token != Token.nameOrOperatorColonEquals
+		? some(a.asSymbol)
+		: tryGetNameLikeKeyword(a.token);
+
+bool peekNameOrOperator(ref Lexer lexer) {
+	Opt!Symbol res = tryGetNameOrOperator(getPeekTokenAndData(lexer));
+	return has(res);
 }
 
 private immutable Token[] endOfLineTokens =

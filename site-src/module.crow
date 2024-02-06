@@ -83,6 +83,6 @@ spec-ref record
 	type-args type-ref[]
 
 purity enum
-	data
-	shared
+	data_
+	shared_
 	mut_

@@ -65,7 +65,7 @@ opposite color(a color)
 	as blue
 		red
 
-to string(a color)
+show string(a color)
 	match a
 	as red
 		"{red foreground}red{reset}"

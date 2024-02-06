@@ -12,9 +12,9 @@ e enum
 f flags
 	x
 
-foo[t] string(a t) t enum-like
+foo[t] string(a t) t enum
 	"enum {a}"
-foo[t] string(a t) t flags-like
+foo[t] string(a t) t flags
 	"flags {a}"
 
 foo[t] spec

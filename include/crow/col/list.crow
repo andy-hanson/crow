@@ -463,7 +463,9 @@ This is O(n).
 	left
 	leaf
 	right
-# TODO: compiler should generate this
+# Avoiding using enum-util to avoid circular imports
+-== bool(a side, b side)
+	a.to::nat32 == b.to
 -<=> comparison(a side, b side) bare
 	a.to::nat32 <=> b.to
 

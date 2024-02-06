@@ -227,7 +227,7 @@ Opt!(SpecInst*) specFromAst(
 		SpecDecl* spec = force(opSpec);
 		Opt!Type typeArg = has(ast.typeArg)
 			? some(typeFromAst(
-				ctx, commonTypes, *force(ast.typeArg), structsAndAliasesMap, typeParamsScope, noDelayStructInsts))
+				ctx, commonTypes, force(ast.typeArg), structsAndAliasesMap, typeParamsScope, noDelayStructInsts))
 			: none!Type;
 		Opt!TypeArgs typeArgs = getTypeArgsIfNumberMatches(
 			ctx, commonTypes,

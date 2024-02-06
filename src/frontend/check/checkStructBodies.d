@@ -55,6 +55,7 @@ import model.model :
 	TypeParamIndex,
 	UnionMember,
 	Visibility;
+import util.cell : Cell, cellGet, cellSet;
 import util.col.array : eachPair, fold, mapPointers, zipPtrFirst;
 import util.conv : safeToUint;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
@@ -205,7 +206,7 @@ LinkageAndPurity getStructModifiers(ref CheckCtx ctx, DeclKind declKind, Modifie
 	Linkage linkage = () {
 		Linkage defaultLinkage = defaultLinkage(declKind);
 		if (has(accum.linkage)) {
-			ModifierAst.Keyword* keyword = force(accum.linkage);
+			ModifierAst.Keyword keyword = force(accum.linkage);
 			assert(keyword.kind == ModifierKeyword.extern_);
 			if (defaultLinkage == Linkage.extern_)
 				addDiag(ctx, keyword.range, Diag(Diag.ModifierRedundantDueToDeclKind(keyword.kind, declKind)));
@@ -216,7 +217,7 @@ LinkageAndPurity getStructModifiers(ref CheckCtx ctx, DeclKind declKind, Modifie
 	PurityAndForced purity = () {
 		Purity defaultPurity = defaultPurity(declKind);
 		if (has(accum.purityAndForced)) {
-			ModifierAst.Keyword* keyword = force(accum.purityAndForced);
+			ModifierAst.Keyword keyword = force(accum.purityAndForced);
 			Opt!PurityAndForced opt = purityAndForcedFromModifier(keyword.kind);
 			PurityAndForced pf = force(opt);
 			if (pf.purity == defaultPurity)
@@ -228,19 +229,20 @@ LinkageAndPurity getStructModifiers(ref CheckCtx ctx, DeclKind declKind, Modifie
 	return LinkageAndPurity(linkage, purity);
 }
 
-struct LinkageAndPurityModifiers {
-	MutOpt!(ModifierAst.Keyword*) linkage;
-	MutOpt!(ModifierAst.Keyword*) purityAndForced;
+immutable struct LinkageAndPurityModifiers {
+	Opt!(ModifierAst.Keyword) linkage;
+	Opt!(ModifierAst.Keyword) purityAndForced;
 }
 LinkageAndPurityModifiers accumulateStructModifiers(ref CheckCtx ctx, ModifierAst[] modifiers) {
-	LinkageAndPurityModifiers cur = LinkageAndPurityModifiers();
+	Cell!(Opt!(ModifierAst.Keyword)) linkage;
+	Cell!(Opt!(ModifierAst.Keyword)) purityAndForced;
 	foreach (ref ModifierAst modifier; modifiers) {
 		if (isStructModifier(modifier)) {
-			ModifierAst.Keyword* kw = &modifier.as!(ModifierAst.Keyword)();
-			accumulateModifier(ctx, kw.kind == ModifierKeyword.extern_ ? cur.linkage : cur.purityAndForced, kw);
+			ModifierAst.Keyword kw = modifier.as!(ModifierAst.Keyword);
+			accumulateModifier(ctx, kw.kind == ModifierKeyword.extern_ ? linkage : purityAndForced, kw);
 		} // else already warned in 'checkOnlyStructModifiers'
 	}
-	return cur;
+	return LinkageAndPurityModifiers(linkage: cellGet(linkage), purityAndForced: cellGet(purityAndForced));
 }
 
 Linkage defaultLinkage(DeclKind a) {
@@ -634,41 +636,43 @@ UnionMember checkUnionMember(
 	return UnionMember(ast, struct_, ast.name, type);
 }
 
-struct RecordModifiers {
-	MutOpt!(ModifierAst.Keyword*) byValOrRef;
-	MutOpt!(ModifierAst.Keyword*) newVisibility;
-	MutOpt!(ModifierAst.Keyword*) packed;
+immutable struct RecordModifiers {
+	Opt!(ModifierAst.Keyword) byValOrRef;
+	Opt!(ModifierAst.Keyword) newVisibility;
+	Opt!(ModifierAst.Keyword) packed;
 }
 
-void accumulateModifier(ref CheckCtx ctx, ref MutOpt!(ModifierAst.Keyword*) old, ModifierAst.Keyword* new_) {
-	if (has(old)) {
-		ModifierKeyword oldKeyword = force(old).kind;
+void accumulateModifier(ref CheckCtx ctx, ref Cell!(Opt!(ModifierAst.Keyword)) old, ModifierAst.Keyword new_) {
+	if (has(cellGet(old))) {
+		ModifierKeyword oldKeyword = force(cellGet(old)).kind;
 		addDiag(ctx, new_.range, new_.kind == oldKeyword
 			? Diag(Diag.ModifierDuplicate(new_.kind))
 			: Diag(Diag.ModifierConflict(oldKeyword, new_.kind)));
 	}
-	old = someMut(new_);
+	cellSet(old, someMut(new_));
 }
 
 RecordModifiers accumulateRecordModifiers(ref CheckCtx ctx, ModifierAst[] modifiers) {
-	RecordModifiers res = RecordModifiers();
+	Cell!(Opt!(ModifierAst.Keyword)) byValOrRef;
+	Cell!(Opt!(ModifierAst.Keyword)) newVisibility;
+	Cell!(Opt!(ModifierAst.Keyword)) packed;
+
 	foreach (ref ModifierAst modifier; modifiers) {
 		Range range() => modifier.range(ctx.allSymbols);
-		modifier.match!void(
-			(ModifierAst.Keyword x) {
-				ModifierAst.Keyword* ptr = &modifier.as!(ModifierAst.Keyword)();
+		modifier.matchIn!void(
+			(in ModifierAst.Keyword x) {
 				switch (x.kind) {
 					case ModifierKeyword.byRef:
 					case ModifierKeyword.byVal:
-						accumulateModifier(ctx, res.byValOrRef, ptr);
+						accumulateModifier(ctx, byValOrRef, x);
 						break;
 					case ModifierKeyword.newInternal:
 					case ModifierKeyword.newPrivate:
 					case ModifierKeyword.newPublic:
-						accumulateModifier(ctx, res.newVisibility, ptr);
+						accumulateModifier(ctx, newVisibility, x);
 						break;
 					case ModifierKeyword.packed:
-						accumulateModifier(ctx, res.packed, ptr);
+						accumulateModifier(ctx, packed, x);
 						break;
 					case ModifierKeyword.data:
 					case ModifierKeyword.extern_:
@@ -683,14 +687,17 @@ RecordModifiers accumulateRecordModifiers(ref CheckCtx ctx, ModifierAst[] modifi
 						break;
 				}
 			},
-			(ModifierAst.Extern) {
+			(in ModifierAst.Extern) {
 				addDiag(ctx, range(), Diag(Diag.ExternHasUnnecessaryLibraryName()));
 			},
-			(TypeAst) {
+			(in SpecUseAst) {
 				addDiag(ctx, range(), Diag(Diag.SpecUseInvalid(DeclKind.record)));
 			});
 	}
-	return res;
+	return RecordModifiers(
+		byValOrRef: cellGet(byValOrRef),
+		newVisibility: cellGet(newVisibility),
+		packed: cellGet(packed));
 }
 
 void checkReferenceLinkageAndPurity(ref CheckCtx ctx, StructDecl* struct_, in Range range, Type referencedType) {

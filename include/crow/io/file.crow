@@ -1,4 +1,3 @@
-no-std
 import
 	system/dirent: closedir, DIR, dirent, d_name, new, opendir, readdir_r
 	system/errno: EEXIST, ENOENT, errno
@@ -7,30 +6,13 @@ import
 	system/sys/types: mode_t
 	system/unistd: getcwd, readlink, rmdir, symlink, unlink
 	system/win32:
-		&, |, ==, cFileName, CreateSymbolicLinkA, DeleteFileA, ERROR_FILE_NOT_FOUND,
+		cFileName, CreateSymbolicLinkA, DeleteFileA, ERROR_FILE_NOT_FOUND,
 		ERROR_NO_MORE_FILES, ERROR_PATH_NOT_FOUND, FILE_ATTRIBUTE_DIRECTORY, FindClose,
 		FindFirstFileA, FindNextFileA, _getcwd, GetFileAttributesA, GetLastError, HANDLE,
 		INVALID_FILE_ATTRIBUTES, INVALID_HANDLE_VALUE, _mkdir, new,
 		SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE, SYMBOLIC_LINK_FLAG_DIRECTORY,
 		WIN32_FIND_DATAA
-	../bits: &, |, <<
-	../bool: ||, bool, false, new, not, to, true
-	../col/array: +, array, begin, begin-pointer, size, slice
-	../col/collection: build, for-loop, subscript, with-block
-	../col/mut-array: cast-immutable, begin-pointer, mut-array, size, uninitialized-mut-array
-	../col/list: ~=, build, iterate, list, new, size, to
-	../col/sort: sort
-	../compare: !=
-	../exception: finally, with-block
-	../flags-util: is-in
-	../fun-util: subscript
-	../misc: new, void
-	../number: ==, <=>, nat8, nat64, to
-	../option: ??, is-empty, new, option
 	../private/bootstrap: todo
-	../pointer: ==, as-const, mut-pointer, null, pointer-cast, size-of
-	../range: ..
-	../string: ==, <=>, as-string, char8, c-string, interpolate, replace-all, string, to, to-bytes
 	../version: is-windows
 	./path: child-path
 	./posix-util: check-errno, check-posix-error, throw-posix-error

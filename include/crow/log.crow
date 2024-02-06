@@ -2,7 +2,7 @@ no-std
 import
 	./exception: finally, with-block
 	./fun-util: subscript
-	./io/print: err, out, print
+	./io/print: err, out, pipe, print
 	./misc: new, void
 	./string: interpolate, string, to
 
@@ -78,7 +78,14 @@ For example, this might write it to the console.
 	void shared(logged logged)
 
 default-log-handler void(a logged) summon
-	(a.level == error ? err : out) print "{a level}: {a message}"
+	pipe pipe = match a level
+	as info
+		out
+	as warn
+		err
+	as error
+		err
+	pipe print "{a level}: {a message}"
 
 # GC doesn't trace thread-locals, but won't outlive a task anyway.
 -cur-log-handler thread-local(log-handler)

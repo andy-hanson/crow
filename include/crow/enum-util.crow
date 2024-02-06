@@ -1,9 +1,9 @@
 no-std
 import
+	./bool: bool
 	./col/array: array, iterate, size
 	./col/collection: for-break, for-loop
 	./col/list: ~=, build, list
-	./compare: equal
 	./json: json, to
 	./misc: loop-break, new
 	./option: ??, option
@@ -11,30 +11,30 @@ import
 	./symbol: ==, symbol, to
 
 ###
-Spec that will be satisfied by generated functions for any `enum` type.
-Functions in this spec will be generated when you declare an `enum`.
-
-(Declaring an `enum` also generates other functions that aren't needed here.)
+Spec that is satisfied if 't' is an 'enum' type
 ###
-+enum-like[e] spec e equal
-	# Returns every name and value in the enum.
-	enum-members (symbol, e) array()
++enum[t] spec builtin
 
-+values[e] e[]() e enum-like
-	for _, value : enum-members
++==[t] bool(a t, b t) builtin, bare, t enum
+
+# Returns every name and value in the enum.
++enum-members[t] (symbol, t) array() builtin, bare, t enum
+
++values[t] t[]() t enum
+	for _, value : enum-members@t
 		value
 
-+to[e] symbol(a e) e enum-like
-	for name, value : enum-members
++to[t] symbol(a t) t enum
+	for name, value : enum-members@t
 		if value == a
 			break name
 	else
 		throw "Invalid enum value"
 
-+to[e] string(a e) e enum-like
++to[t] string(a t) t enum
 	a.to::symbol to
 
-+to[e] json(a e) e enum-like
++to[t] json(a t) t enum
 	a.to::symbol to
 
 ###
@@ -42,18 +42,19 @@ Converts a symbol to the enum value that was declared with that name.
 
 Returns an empty option if `a` is not the name of an enum member.
 ###
-+to[e] e?(a symbol) e enum-like
-	for name, value : enum-members
++to[t] t?(a symbol) t enum
+	for name, value : enum-members@t
 		if name == a
 			break value
 
-+to[e] e(a symbol) e enum-like
++to[t] t(a symbol) t enum
 	a.to ?? throw "unexpected enum member {a}"
 
-+to[e] e?(a string) e enum-like
-	for name, value : enum-members
++to[t] t?(a string) t enum
+	for name, value : enum-members@t
 		if name.to::string == a
 			break value
 
-+to[e] e(a string) e enum-like
-	a.to ?? throw "unexpected enum member {a}"
++to[t] t(a string) t enum
+	opt t? = a to
+	opt ?? throw "unexpected enum member {a}"

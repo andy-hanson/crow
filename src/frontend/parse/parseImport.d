@@ -7,7 +7,7 @@ import frontend.parse.parseType : parseType;
 import frontend.parse.parseUtil :
 	NewlineOrDedent,
 	peekEndOfLine,
-	peekToken,
+	peekNameOrOperator,
 	takeIndentOrFailGeneric,
 	takeName,
 	takeNameAndRange,
@@ -92,7 +92,7 @@ ImportOrExportAst parseSingleModuleImportOnOwnLine(scope ref AllUris allUris, re
 
 ImportOrExportAstKind parseImportOrExportKind(ref Lexer lexer, Pos start) {
 	if (tryTakeToken(lexer, Token.colon)) {
-		return peekToken(lexer, [Token.name, Token.nameOrOperatorEquals, Token.operator])
+		return peekNameOrOperator(lexer)
 			? ImportOrExportAstKind(parseSingleImportNamesOnSingleLine(lexer))
 			: takeIndentOrFailGeneric(
 				lexer,

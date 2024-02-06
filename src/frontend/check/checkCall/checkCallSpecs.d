@@ -30,6 +30,7 @@ import model.model :
 	SpecDecl,
 	SpecDeclSig,
 	SpecInst,
+	StructBody,
 	StructInst,
 	Type,
 	TypeArgs;
@@ -41,13 +42,13 @@ import util.col.mutMaxArr : asTemporaryArray, isFull, mustPop, MutMaxArr, mutMax
 import util.opt : force, has, none, Opt, optIf, optOr, some;
 import util.sourceRange : Range;
 import util.union_ : Union;
-import util.util : enumConvert, ptrTrustMe;
+import util.util : ptrTrustMe;
 
 bool isPurityAlwaysCompatibleConsideringSpecs(in immutable SpecInst*[] funSpecs, Type type, Purity expected) {
 	PurityRange typePurity = purityRange(type);
 	return isPurityAlwaysCompatible(expected, typePurity) ||
 		exists!(SpecInst*)(funSpecs, (in SpecInst* inst) =>
-			specProvidesPurity(inst, type, expected)) ||
+			specProvidesPurity(*inst, type, expected)) ||
 		(type.isA!(StructInst*) &&
 			isPurityCompatible(expected, typePurity.bestCase) &&
 			every!Type(type.as!(StructInst*).typeArgs, (in Type typeArg) =>
@@ -259,20 +260,61 @@ Trace.Result findSpecSigImplementation(Trace)(
 			: specNoMatch(trace, Diag.SpecNoMatch.Reason(Diag.SpecNoMatch.Reason.SpecImplNotFound(sigDecl, sigType))));
 }
 
-bool checkBuiltinSpec(ref CheckSpecsCtx ctx, FunDecl* called, BuiltinSpec kind, Type typeArg) =>
-	isPurityAlwaysCompatibleConsideringSpecs(ctx.funsInScope.outermostFunSpecs, typeArg, purityOfBuiltinSpec(kind));
+bool checkBuiltinSpec(ref CheckSpecsCtx ctx, FunDecl* called, BuiltinSpec kind, Type typeArg) {
+	final switch (kind) {
+		case BuiltinSpec.data:
+			return isPurityAlwaysCompatibleConsideringSpecs(ctx.funsInScope.outermostFunSpecs, typeArg, Purity.data);
+		case BuiltinSpec.enum_:
+			return isEnum(ctx.funsInScope.outermostFunSpecs, typeArg);
+		case BuiltinSpec.flags:
+			return isFlags(ctx.funsInScope.outermostFunSpecs, typeArg);
+		case BuiltinSpec.shared_:
+			return isPurityAlwaysCompatibleConsideringSpecs(ctx.funsInScope.outermostFunSpecs, typeArg, Purity.shared_);
+	}
+}
 
-Purity purityOfBuiltinSpec(BuiltinSpec kind) =>
-	enumConvert!Purity(kind);
+public bool isEnumOrFlags(in SpecInst*[] outermostFunSpecs, in Type x) =>
+	isEnum(outermostFunSpecs, x) || isFlags(outermostFunSpecs, x);
+public bool isEnum(in SpecInst*[] outermostFunSpecs, in Type x) =>
+	(x.isA!(StructInst*) && x.as!(StructInst*).decl.body_.isA!(StructBody.Enum)) ||
+	isBuiltinSpecInScope(outermostFunSpecs, BuiltinSpec.enum_, x);
+public bool isFlags(in SpecInst*[] outermostFunSpecs, in Type x) =>
+	(x.isA!(StructInst*) && x.as!(StructInst*).decl.body_.isA!(StructBody.Flags)) ||
+	isBuiltinSpecInScope(outermostFunSpecs, BuiltinSpec.flags, x);
+
+bool isBuiltinSpecInScope(in SpecInst*[] outermostFunSpecs, in BuiltinSpec kind, in Type type) =>
+	exists(outermostFunSpecs, (in SpecInst* inst) =>
+		someSpecIncludingParents(*inst, (in SpecInst x) =>
+			has(inst.decl.builtin) && force(inst.decl.builtin) == kind && only(inst.typeArgs) == type));
+
+bool someSpecIncludingParents(in SpecInst inst, in bool delegate(in SpecInst) @safe @nogc pure nothrow cb) =>
+	cb(inst) ||
+	exists(inst.parents, (in SpecInst* parent) =>
+		someSpecIncludingParents(*parent, cb));
+
+Opt!Purity purityOfBuiltinSpec(BuiltinSpec kind) {
+	final switch (kind) {
+		case BuiltinSpec.data:
+			return some(Purity.data);
+		case BuiltinSpec.shared_:
+			return some(Purity.shared_);
+		case BuiltinSpec.enum_:
+		case BuiltinSpec.flags:
+			return none!Purity;
+	}
+}
 
 // Whether 'inst' tells us that 'type' has purity at least 'expected'
-bool specProvidesPurity(in SpecInst* inst, in Type type, Purity expected) =>
-	(has(inst.decl.builtin) &&
-		only(inst.typeArgs) == type &&
-		isPurityCompatible(expected, purityOfBuiltinSpec(force(inst.decl.builtin)))
-	) ||
-	exists!(SpecInst*)(inst.parents, (in SpecInst* parent) =>
-		specProvidesPurity(parent, type, expected));
+bool specProvidesPurity(in SpecInst inst, in Type type, Purity expected) =>
+	someSpecIncludingParents(inst, (in SpecInst x) =>
+		has(x.decl.builtin) &&
+		only(x.typeArgs) == type &&
+		builtinSpecProvidesPurity(force(x.decl.builtin), expected));
+
+bool builtinSpecProvidesPurity(BuiltinSpec kind, Purity expected) {
+	Opt!Purity purity = purityOfBuiltinSpec(kind);
+	return has(purity) && isPurityCompatible(expected, force(purity));
+}
 
 Opt!(Trace.NoMatch) checkSpecImpls(Trace)(
 	ref SpecImpls res,

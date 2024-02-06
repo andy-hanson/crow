@@ -423,7 +423,7 @@ void addModifierTokens(scope ref Ctx ctx, in ModifierAst[] a) {
 			},
 			(in SpecUseAst x) {
 				if (has(x.typeArg))
-					addTypeTokens(ctx, *force(x.typeArg));
+					addTypeTokens(ctx, force(x.typeArg));
 				reference(ctx.tokens, TokenType.interface_, x.name.range(ctx.allSymbols));
 			});
 	}

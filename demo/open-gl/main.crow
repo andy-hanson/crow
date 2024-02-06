@@ -13,17 +13,15 @@ import
 		glEnableVertexAttribArray, gl-ext, glGenBuffers, glGetError, glGetUniformLocation,
 		glUniform1i, glUniformMatrix3fv, glUseProgram, glVertexAttribPointer, new
 	OpenGL/headers:
-		==, enum-members, GL_ARRAY_BUFFER, GL_BACK, GL_COLOR_BUFFER_BIT, GL_CULL_FACE, GLenum,
-		GL_FLOAT, GLint, GL_NO_ERROR, GL_STATIC_DRAW, GL_TEXTURE0, GL_TEXTURE_2D, GL_TRIANGLES,
-		GLuint
+		GL_ARRAY_BUFFER, GL_BACK, GL_COLOR_BUFFER_BIT, GL_CULL_FACE, GLenum, GL_FLOAT, GLint,
+		GL_NO_ERROR, GL_STATIC_DRAW, GL_TEXTURE0, GL_TEXTURE_2D, GL_TRIANGLES, GLuint
 	SDL2/SDL:
 		SDL_GetError, SDL_Init, SDL_INIT_VIDEO, SDL_Quit
-	SDL2/SDL_events:
-		==, new, SDL_Event, SDL_PollEvent, SDL_PumpEvents, SDL_Quit, type
+	SDL2/SDL_events: new, SDL_Event, SDL_PollEvent, SDL_PumpEvents, SDL_Quit, type
 	SDL2/SDL_keyboard: SDL_GetKeyboardState
 	SDL2/SDL_scancode: SDL_NUM_SCANCODES, SDL_SCANCODE_RETURN, to
 	SDL2/SDL_video:
-		|, SDL_CreateWindow, SDL_DestroyWindow, SDL_GL_CONTEXT_PROFILE_ES, SDL_GL_CreateContext,
+		SDL_CreateWindow, SDL_DestroyWindow, SDL_GL_CONTEXT_PROFILE_ES, SDL_GL_CreateContext,
 		SDL_GL_DeleteContext, SDL_GL_DOUBLEBUFFER, SDL_GL_CONTEXT_MAJOR_VERSION,
 		SDL_GL_CONTEXT_MINOR_VERSION, SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_LoadLibrary,
 		SDL_GL_SetAttribute, SDL_GL_SwapWindow, SDL_Window, SDL_WINDOW_OPENGL,

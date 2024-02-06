@@ -191,7 +191,7 @@ PositionKind positionInModifier(
 				// Find the corresponding spec
 				size_t specIndex = 0;
 				foreach (ref ModifierAst prevModifier; modifiers[0 .. index])
-					if (prevModifier.isA!SpecUseAst)
+					if (prevModifier.isA!(SpecUseAst*))
 						specIndex++;
 
 				SpecInst* spec = force(specs)[specIndex];

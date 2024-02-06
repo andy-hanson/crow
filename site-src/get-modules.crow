@@ -3,9 +3,9 @@ import
 	crow/parse: ~~, force, parse, spaces
 	crow/version: is-windows
 	./module:
-		alias-decl, builtin-decl, data, enum-decl, exports, extern-decl, flags-decl, fun-decl,
+		alias-decl, builtin-decl, data_, enum-decl, exports, extern-decl, flags-decl, fun-decl,
 		module, module-export, module-export-value, mut_, new, param, purity, spec-decl, spec-ref,
-		type-param, type-ref, record-decl, record-field, shared, spec-sig, union-decl, union-member
+		type-param, type-ref, record-decl, record-field, shared_, spec-sig, union-decl, union-member
 
 get-modules module[]^(paths string[], remove-prefix string) summon
 	result = crow-path spawn-and-wait-result "document" ~ paths
@@ -88,11 +88,11 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 -get-purity purity(a json)
 	p = a["purity"]
 	if p == json-null
-		data
+		data_
 	else
 		s = p.as-string!
 		if s == "shared"
-			shared
+			shared_
 		else
 			s is "mut"
 			mut_

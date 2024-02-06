@@ -7,12 +7,10 @@ import frontend.check.getCommonFuns : makeParam, makeParams, param;
 import frontend.check.instantiate :
 	InstantiateCtx,
 	instantiateStructNeverDelay,
-	makeArrayType,
 	makeConstPointerType,
 	makeMutPointerType,
 	TypeArgsArray,
 	typeArgsArray;
-import frontend.check.typeFromAst : makeTupleType;
 import frontend.check.typeUtil : FunType, getFunType, nonInstantiatedReturnType;
 import model.model :
 	asTuple,
@@ -22,7 +20,6 @@ import model.model :
 	EnumBackingType,
 	EnumFunction,
 	EnumMember,
-	FlagsFunction,
 	FunBody,
 	FunDecl,
 	FunDeclSource,
@@ -58,14 +55,13 @@ private size_t countFunsForStruct(in CommonTypes commonTypes, in StructDecl a) =
 		(in BuiltinType _) =>
 			0,
 		(in StructBody.Enum x) =>
-			// '==', 'to', 'enum-members', and a constructor for each member
-			3 + x.members.length,
+			// 'to' and a constructor for each member
+			1 + x.members.length,
 		(in StructBody.Extern x) =>
 			size_t(has(x.size) ? 1 : 0),
 		(in StructBody.Flags x) =>
-			// '()', 'all', '==', '~', '|', '&', 'to', 'flags-members',
-			// and a constructor for each member
-			8 + x.members.length,
+			// 'to' and a constructor for each member
+			1 + x.members.length,
 		(in StructBody.Record x) {
 			size_t forGetSet = sum!RecordField(x.fields, (in RecordField field) =>
 				1 + has(field.mutability));
@@ -182,13 +178,10 @@ void addFunsForEnum(
 	StructDecl* struct_,
 	ref StructBody.Enum enum_,
 ) {
-	Type enumType = Type(instantiateNonTemplateStructDeclNeverDelay(ctx.instantiateCtx, struct_));
-	Visibility visibility = struct_.visibility;
-	addEnumFlagsCommonFunctions(
-		ctx.alloc, funsBuilder, ctx.instantiateCtx,
-		struct_, enumType, enum_.backingType, commonTypes, symbol!"enum-members");
+	Type type = Type(instantiateNonTemplateStructDeclNeverDelay(ctx.instantiateCtx, struct_));
+	funsBuilder ~= enumToIntegralFunction(ctx.alloc, struct_, enum_.backingType, type, commonTypes);
 	foreach (ref EnumMember member; enum_.members)
-		funsBuilder ~= enumOrFlagsConstructor(ctx.alloc, visibility, enumType, &member);
+		funsBuilder ~= enumOrFlagsConstructor(ctx.alloc, struct_.visibility, type, &member);
 }
 
 void addFunsForFlags(
@@ -199,31 +192,9 @@ void addFunsForFlags(
 	ref StructBody.Flags flags,
 ) {
 	Type type = Type(instantiateNonTemplateStructDeclNeverDelay(ctx.instantiateCtx, struct_));
-	addEnumFlagsCommonFunctions(
-		ctx.alloc, funsBuilder, ctx.instantiateCtx, struct_, type,
-		flags.backingType, commonTypes, symbol!"flags-members");
-	funsBuilder ~= flagsNewFunction(ctx.alloc, struct_, type);
-	funsBuilder ~= flagsAllFunction(ctx.alloc, struct_, type);
-	funsBuilder ~= flagsNegateFunction(ctx.alloc, struct_, type);
-	funsBuilder ~= flagsUnionOrIntersectFunction(ctx.alloc, struct_, type, symbol!"|", EnumFunction.union_);
-	funsBuilder ~= flagsUnionOrIntersectFunction(ctx.alloc, struct_, type, symbol!"&", EnumFunction.intersect);
+	funsBuilder ~= enumToIntegralFunction(ctx.alloc, struct_, flags.backingType, type, commonTypes);
 	foreach (ref EnumMember member; flags.members)
 		funsBuilder ~= enumOrFlagsConstructor(ctx.alloc, struct_.visibility, type, &member);
-}
-
-void addEnumFlagsCommonFunctions(
-	ref Alloc alloc,
-	scope ref ExactSizeArrayBuilder!FunDecl funsBuilder,
-	ref InstantiateCtx ctx,
-	StructDecl* struct_,
-	Type type,
-	EnumBackingType backingType,
-	ref CommonTypes commonTypes,
-	Symbol membersName,
-) {
-	funsBuilder ~= enumEqualFunction(alloc, struct_, type, commonTypes);
-	funsBuilder ~= enumToIntegralFunction(alloc, struct_, backingType, type, commonTypes);
-	funsBuilder ~= enumOrFlagsMembersFunction(ctx, struct_, membersName, type, commonTypes);
 }
 
 FunDecl enumOrFlagsConstructor(ref Alloc alloc, Visibility visibility, Type enumType, EnumMember* member) =>
@@ -235,46 +206,6 @@ FunDecl enumOrFlagsConstructor(ref Alloc alloc, Visibility visibility, Type enum
 		Params([]),
 		FunFlags.generatedBare,
 		FunBody(FunBody.CreateEnum(member)));
-
-FunDecl enumEqualFunction(ref Alloc alloc, StructDecl* struct_, Type enumType, ref CommonTypes commonTypes) =>
-	basicFunDecl(
-		FunDeclSource(struct_),
-		struct_.visibility,
-		symbol!"==",
-		Type(commonTypes.bool_),
-		makeParams(alloc, [param!"a"(enumType), param!"b"(enumType)]),
-		FunFlags.generatedBare.withOkIfUnused(),
-		FunBody(EnumFunction.equal));
-
-FunDecl flagsNewFunction(ref Alloc alloc, StructDecl* struct_, Type enumType) =>
-	basicFunDecl(
-		FunDeclSource(struct_),
-		struct_.visibility,
-		symbol!"new",
-		enumType,
-		Params([]),
-		FunFlags.generatedBare.withOkIfUnused(),
-		FunBody(FlagsFunction.new_));
-
-FunDecl flagsAllFunction(ref Alloc alloc, StructDecl* struct_, Type enumType) =>
-	basicFunDecl(
-		FunDeclSource(struct_),
-		struct_.visibility,
-		symbol!"all",
-		enumType,
-		Params([]),
-		FunFlags.generatedBare.withOkIfUnused(),
-		FunBody(FlagsFunction.all));
-
-FunDecl flagsNegateFunction(ref Alloc alloc, StructDecl* struct_, Type enumType) =>
-	basicFunDecl(
-		FunDeclSource(struct_),
-		struct_.visibility,
-		symbol!"~",
-		enumType,
-		makeParams(alloc, [param!"a"(enumType)]),
-		FunFlags.generatedBare.withOkIfUnused(),
-		FunBody(FlagsFunction.negate));
 
 FunDecl enumToIntegralFunction(
 	ref Alloc alloc,
@@ -291,38 +222,6 @@ FunDecl enumToIntegralFunction(
 		makeParams(alloc, [param!"a"(enumType)]),
 		FunFlags.generatedBare.withOkIfUnused(),
 		FunBody(EnumFunction.toIntegral));
-
-FunDecl enumOrFlagsMembersFunction(
-	ref InstantiateCtx ctx,
-	StructDecl* struct_,
-	Symbol name,
-	Type enumType,
-	ref CommonTypes commonTypes,
-) =>
-	basicFunDecl(
-		FunDeclSource(struct_),
-		struct_.visibility,
-		name,
-		Type(makeArrayType(ctx, commonTypes, makeTupleType(ctx, commonTypes, [Type(commonTypes.symbol), enumType]))),
-		Params([]),
-		FunFlags.generatedBare.withOkIfUnused(),
-		FunBody(EnumFunction.members));
-
-FunDecl flagsUnionOrIntersectFunction(
-	ref Alloc alloc,
-	StructDecl* struct_,
-	Type enumType,
-	Symbol name,
-	EnumFunction fn,
-) =>
-	basicFunDecl(
-		FunDeclSource(struct_),
-		struct_.visibility,
-		name,
-		enumType,
-		makeParams(alloc, [param!"a"(enumType), param!"b"(enumType)]),
-		FunFlags.generatedBare.withOkIfUnused(),
-		FunBody(fn));
 
 void addFunsForRecord(
 	ref CheckCtx ctx,

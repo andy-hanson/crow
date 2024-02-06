@@ -24,7 +24,7 @@ import model.concreteModel :
 	returnType;
 import model.constant : Constant;
 import model.jsonOfConstant : jsonOfConstant;
-import model.model : EnumFunction, enumFunctionName, flagsFunctionName, Local;
+import model.model : EnumFunction, Local;
 import util.alloc.alloc : Alloc;
 import util.json :
 	field, Json, jsonObject, optionalArrayField, optionalField, optionalFlagField, jsonList, jsonString, kindField;
@@ -166,7 +166,7 @@ Json jsonOfConcreteFunBody(ref Alloc alloc, in Ctx ctx, in ConcreteFunBody a) =>
 		(in EnumFunction x) =>
 			jsonObject(alloc, [
 				kindField!"enum-fn",
-				field!"name"(enumFunctionName(x))]),
+				field!"fn"(stringOfEnum(x))]),
 		(in ConcreteFunBody.Extern) =>
 			jsonString!"extern",
 		(in ConcreteExpr x) =>
@@ -175,7 +175,7 @@ Json jsonOfConcreteFunBody(ref Alloc alloc, in Ctx ctx, in ConcreteFunBody a) =>
 			jsonObject(alloc, [
 				kindField!"flags-fn",
 				field!"all-value"(x.allValue),
-				field!"name"(flagsFunctionName(x.fn))]),
+				field!"name"(stringOfEnum(x.fn))]),
 		(in ConcreteFunBody.RecordFieldCall x) =>
 			jsonObject(alloc, [
 				kindField!"field-call",

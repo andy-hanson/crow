@@ -42,10 +42,10 @@
 <section>
 	<h2>Conversion</h2>
 	<p>
-		Enums automatically support conversion to <code class="type">nat32</code>,
-		<code class="type">symbol</code>, or <code class="type">string</code>.
+		An enum can be converted to a <code class="type">symbol</code>, <code class="type">string</code>,
+		or its backing type (usually <code class="type">nat32</code>).
 		<br />
-		You can also convert from a <code class="type">symbol</code> or <code class="type">string</code>,
+		You can also convert back from a <code class="type">symbol</code> or <code class="type">string</code>,
 		which returns an option of the enum.
 	</p>
 
@@ -71,6 +71,10 @@
 		to direction2?(a direction4)
 			a.to::symbol.to
 	</crow-runnable>
+
+	<aside class="small">
+		These conversion functions and more are in {{doc/enum-util}}.
+	</aside>
 </section>
 <section>
 	<h2>Custom integer representation</h2>

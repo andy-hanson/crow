@@ -331,6 +331,7 @@ private bool canUseTaggedPointer(T)() {
 			T.sizeof <= uint.sizeof ||
 			is(T == U*, U) ||
 			__traits(hasMember, T, "fromPointerForTaggedUnion") ||
+			__traits(hasMember, T, "fromNat48ForTaggedUnion") ||
 			__traits(hasMember, T, "fromTagged")) {
 		return true;
 	} else static if (is(T == enum)) {
@@ -351,6 +352,8 @@ private bool canUseTaggedPointer(T)() {
 		return cast(T) (valueWithoutTag >> 3);
 	else static if (__traits(hasMember, T, "fromPointerForTaggedUnion"))
 		return T.fromPointerForTaggedUnion(PtrAndSmallNumber!void.fromTagged(valueWithoutTag).ptr);
+	else static if (__traits(hasMember, T, "fromNat48ForTaggedUnion"))
+		return T.fromNat48ForTaggedUnion((valueWithoutTag) >> 3);
 	else static if (T.sizeof <= uint.sizeof)
 		return T.fromUintForTaggedUnion(cast(uint) (valueWithoutTag >> 3));
 	else
@@ -368,6 +371,8 @@ private bool canUseTaggedPointer(T)() {
 		return (cast(ulong) a) << 3;
 	else static if (__traits(hasMember, T, "asPointerForTaggedUnion"))
 		return (const PtrAndSmallNumber!void(a.asPointerForTaggedUnion, 0)).asTaggable;
+	else static if (__traits(hasMember, T, "asNat48ForTaggedUnion"))
+		return a.asNat48ForTaggedUnion << 3;
 	else static if (T.sizeof <= uint.sizeof)
 		return (cast(ulong) a.asUintForTaggedUnion) << 3;
 	else

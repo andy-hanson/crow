@@ -159,10 +159,13 @@ bool isExpressionStartToken(Token a) {
 		case Token.braceLeft:
 		case Token.braceRight:
 		case Token.bracketRight:
+		case Token.byRef:
+		case Token.byVal:
 		case Token.colon:
 		case Token.colon2:
 		case Token.colonEqual:
 		case Token.comma:
+		case Token.data:
 		case Token.dot:
 		case Token.dot3:
 		case Token.elif:
@@ -175,6 +178,7 @@ bool isExpressionStartToken(Token a) {
 		case Token.far:
 		case Token.flags:
 		case Token.forceCtx:
+		case Token.forceShared:
 		case Token.function_:
 		case Token.global:
 		case Token.import_:
@@ -185,6 +189,7 @@ bool isExpressionStartToken(Token a) {
 		case Token.newlineIndent:
 		case Token.newlineSameIndent:
 		case Token.noStd:
+		case Token.packed:
 		case Token.parenRight:
 		case Token.question:
 		case Token.questionEqual:
@@ -192,6 +197,7 @@ bool isExpressionStartToken(Token a) {
 		case Token.record:
 		case Token.reserved:
 		case Token.semicolon:
+		case Token.shared_:
 		case Token.spec:
 		case Token.summon:
 		case Token.test:

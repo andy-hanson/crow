@@ -9,8 +9,8 @@ import
 	../tuple: new
 	./alloc: gc
 	./bare-map:
-		==, add-gc-roots, bare-map, destroy, find-or-insert-and-inserted, inserted, key, map-pair,
-		must-find, new, remove, slow-is-empty, value
+		add-gc-roots, bare-map, destroy, find-or-insert-and-inserted, key, map-pair, must-find,
+		new, remove, slow-is-empty, value
 	./bare-queue: add-gc-roots, bare-queue, dequeue, destroy, enqueue, is-empty, new
 	./bootstrap: exclusion
 
@@ -84,7 +84,10 @@ queue-is-empty[v] bool(a v exclusion-queue*) bare, unsafe
 
 enqueue[v] void(a v exclusion-queue mut*, key exclusion, value v) bare, unsafe
 	entry, fi = a.by-exclusion find-or-insert-and-inserted key
-	if fi == inserted
+	match fi
+	as found
+		()
+	as inserted
 		a add-to-queue entry
 	entry.value.values enqueue value
 

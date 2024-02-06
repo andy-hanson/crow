@@ -168,9 +168,6 @@ private StructInst* instantiateStructInst(
 StructInst* instantiateStructNeverDelay(ref InstantiateCtx ctx, StructDecl* decl, in Type[] typeArgs) =>
 	instantiateStruct(ctx, decl, small!Type(typeArgs), noDelayStructInsts);
 
-StructInst* makeArrayType(ref InstantiateCtx ctx, ref CommonTypes commonTypes, Type elementType) =>
-	instantiateStructNeverDelay(ctx, commonTypes.array, [elementType]);
-
 StructInst* makeConstPointerType(ref InstantiateCtx ctx, ref CommonTypes commonTypes, Type pointeeType) =>
 	instantiateStructNeverDelay(ctx, commonTypes.ptrConst, [pointeeType]);
 

@@ -10,20 +10,20 @@ import frontend.parse.lexer :
 	getPeekToken,
 	getPeekTokenAndData,
 	Lexer,
-	lookaheadNameOpenParen,
+	lookaheadTokenOpenParen,
 	range,
 	rangeAtChar,
 	rangeForCurToken,
 	skipNewlinesIgnoreIndentation,
 	skipUntilNewlineNoDiag,
 	takeNextToken,
-	Token,
-	TokenAndData;
+	Token;
 import frontend.parse.parseUtil :
 	addDiagExpected,
 	takeNameAndRangeAllowUnderscore,
 	takeOrAddDiagExpectedToken,
 	tryTakeNameAndRange,
+	tryTakeNameAndRangeAllowNameLikeKeywords,
 	tryTakeOperator,
 	tryTakeToken;
 import model.ast : DestructureAst, ModifierAst, NameAndRange, ParamsAst, SpecUseAst, TypeAst;
@@ -34,7 +34,7 @@ import util.col.arrayBuilder : Builder, buildSmallArray;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos;
-import util.symbol : Symbol, symbol;
+import util.symbol : symbol;
 
 Opt!(TypeAst*) tryParseTypeArgForEnumOrFlags(ref Lexer lexer) {
 	if (tryTakeToken(lexer, Token.parenLeft)) {
@@ -80,8 +80,8 @@ ModifierAst parseSpecUse(ref Lexer lexer) {
 	TypeAst left = parseTypeBeforeSuffixes(lexer, ParenthesesNecessary.unnecessary);
 	Pos externPos = curPos(lexer);
 	return left.isA!NameAndRange && tryTakeToken(lexer, Token.extern_)
-		? ModifierAst(ModifierAst.Extern(left.as!NameAndRange, externPos))
-		: ModifierAst(parseSpecUseSuffixes(lexer, left));
+		? ModifierAst(allocate(lexer.alloc, ModifierAst.Extern(left.as!NameAndRange, externPos)))
+		: ModifierAst(allocate(lexer.alloc, parseSpecUseSuffixes(lexer, left)));
 }
 
 TypeAst parseTypeForTypedExpr(ref Lexer lexer) =>
@@ -219,14 +219,14 @@ SpecUseAst parseSpecUseSuffixes(ref Lexer lexer, TypeAst left) {
 	if (has(suffix))
 		return parseSpecUseSuffixes(lexer, force(suffix));
 	else {
-		Opt!NameAndRange name = tryTakeNameAndRange(lexer);
+		Opt!NameAndRange name = tryTakeNameAndRangeAllowNameLikeKeywords(lexer);
 		if (has(name))
 			return parseSpecUseSuffixesAfterName(lexer, left, force(name));
 		else if (left.isA!NameAndRange)
-			return SpecUseAst(none!(TypeAst*), left.as!NameAndRange);
+			return SpecUseAst(none!TypeAst, left.as!NameAndRange);
 		else {
 			addDiagExpected(lexer, ParseDiag.Expected.Kind.name);
-			return SpecUseAst(some(allocate(lexer.alloc, left)), NameAndRange(curPos(lexer), symbol!"bogus"));
+			return SpecUseAst(some(left), NameAndRange(curPos(lexer), symbol!"bogus"));
 		}
 	}
 }
@@ -242,7 +242,7 @@ SpecUseAst parseSpecUseSuffixesAfterName(ref Lexer lexer, TypeAst left, NameAndR
 		Opt!NameAndRange name2 = tryTakeNameAndRange(lexer);
 		return has(name2)
 			? parseSpecUseSuffixesAfterName(lexer, nameIsType(), force(name2))
-			: SpecUseAst(some(allocate(lexer.alloc, left)), name);
+			: SpecUseAst(some(left), name);
 	}
 }
 
@@ -311,11 +311,11 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, in TypeAst delegate() @safe 
 			return none!TypeAst;
 		}
 	} else {
-		Opt!BeforeParen afterData = tryTakeNameOpenParen(lexer, symbol!"data");
+		Opt!BeforeParen afterData = tryTakeTokenOpenParen(lexer, Token.data);
 		if (has(afterData))
 			return some(parseFunType(lexer, left(), force(afterData), FunKind.data));
 		else {
-			Opt!BeforeParen afterShared = tryTakeNameOpenParen(lexer, symbol!"shared");
+			Opt!BeforeParen afterShared = tryTakeTokenOpenParen(lexer, Token.shared_);
 			if (has(afterShared))
 				return some(parseFunType(lexer, left(), force(afterShared), FunKind.shared_));
 			else
@@ -333,13 +333,13 @@ BeforeParen beforeParen(scope ref Lexer lexer) =>
 	BeforeParen(getCurIndent(lexer), curPos(lexer));
 
 // Returns position before '('
-Opt!BeforeParen tryTakeNameOpenParen(scope ref Lexer lexer, Symbol name) {
-	if (lookaheadNameOpenParen(lexer, name)) {
-		TokenAndData x = takeNextToken(lexer);
-		assert(x.token == Token.name && x.asSymbol == name);
+Opt!BeforeParen tryTakeTokenOpenParen(scope ref Lexer lexer, Token token) {
+	if (lookaheadTokenOpenParen(lexer, token)) {
+		bool tookToken = tryTakeToken(lexer, token);
+		assert(tookToken);
 		BeforeParen res = beforeParen(lexer);
-		bool paren = tryTakeToken(lexer, Token.parenLeft);
-		assert(paren);
+		bool tookParen = tryTakeToken(lexer, Token.parenLeft);
+		assert(tookParen);
 		return some(res);
 	} else
 		return none!BeforeParen;

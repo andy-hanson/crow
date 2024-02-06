@@ -17,7 +17,7 @@ import frontend.check.checkCall.candidates :
 	typeContextForCandidate,
 	withCandidates;
 import frontend.check.checkCall.checkCalled : ArgsKind, checkCalled;
-import frontend.check.checkCall.checkCallSpecs : checkCallSpecs;
+import frontend.check.checkCall.checkCallSpecs : checkCallSpecs, isEnum, isFlags;
 import frontend.check.checkExpr : checkExpr, typeFromDestructure;
 import frontend.check.exprCtx : addDiag2, ExprCtx, LocalsInfo, typeFromAst2;
 import frontend.check.inferringType :
@@ -33,6 +33,7 @@ import frontend.check.inferringType :
 	nonInferring,
 	SingleInferringType,
 	tryGetInferred,
+	tryGetNonInferringType,
 	TypeAndContext,
 	TypeContext,
 	withExpectCandidates;
@@ -42,6 +43,7 @@ import frontend.lang : maxTypeParams;
 import model.ast : CallAst, CallNamedAst, ExprAst, LambdaAst, NameAndRange;
 import model.diag : Diag, TypeContainer;
 import model.model :
+	BuiltinSpec,
 	Called,
 	CalledDecl,
 	CalledSpecSig,
@@ -192,7 +194,7 @@ Expr checkCallInner(
 			return none!Expr;
 
 		filterCandidatesButDontRemoveAll(candidates, (ref Candidate x) =>
-			inferCandidateTypeArgsFromSpecs(ctx, x));
+			preCheckCandidateSpecs(ctx, x));
 
 		ParamExpected paramExpected = mutMaxArr!(maxCandidates, TypeAndContext);
 		getParamExpected(ctx.instantiateCtx, paramExpected, candidates, argIdx);
@@ -215,7 +217,7 @@ Expr checkCallInner(
 		return bogus(expected, source);
 
 	filterCandidatesButDontRemoveAll(candidates, (ref Candidate x) =>
-		inferCandidateTypeArgsFromSpecs(ctx, x));
+		preCheckCandidateSpecs(ctx, x));
 
 	if (!has(args) || mutMaxArrSize(candidates) != 1) {
 		if (isEmpty(candidates)) {
@@ -312,7 +314,8 @@ void inferCandidateTypeArgsFromCheckedSpecSig(
 			getCandidateExpectedParameterType(ctx, specCandidate, argIdx));
 }
 
-bool isPartiallyInferred(in MutMaxArr!(maxTypeParams, SingleInferringType) typeArgs) {
+enum TypeArgsInferenceState { none, partial, all }
+TypeArgsInferenceState getInferenceState(in MutMaxArr!(maxTypeParams, SingleInferringType) typeArgs) {
 	bool hasInferred = false;
 	bool hasUninferred = true;
 	foreach (ref const SingleInferringType x; typeArgs) {
@@ -321,7 +324,9 @@ bool isPartiallyInferred(in MutMaxArr!(maxTypeParams, SingleInferringType) typeA
 		else
 			hasUninferred = true;
 	}
-	return hasInferred && hasUninferred;
+	return hasInferred
+		? hasUninferred ? TypeArgsInferenceState.partial : TypeArgsInferenceState.all
+		: TypeArgsInferenceState.none;
 }
 
 enum ContinueOrAbort { continue_, abort }
@@ -357,32 +362,52 @@ ContinueOrAbort inferCandidateTypeArgsFromExplicitlyTypedArgument(
 		return ContinueOrAbort.continue_;
 }
 
-bool inferCandidateTypeArgsFromSpecs(ref ExprCtx ctx, ref Candidate candidate) {
+// This is not the final check, but we do filter out some candidates or infer type arguments early based on specs.
+bool preCheckCandidateSpecs(ref ExprCtx ctx, ref Candidate candidate) {
 	// For performance, don't bother unless we have something to infer from already
-	if (isPartiallyInferred(candidate.typeArgs)) {
-		return candidate.called.match!bool(
-			(ref FunDecl called) =>
-				every!(immutable SpecInst*)(called.specs, (in immutable SpecInst* spec) =>
-					inferCandidateTypeArgsFromSpecInst(ctx, candidate, called, *spec)),
-			(CalledSpecSig _) => true);
-	} else
-		// figure this out at the end
-		return true;
+	TypeArgsInferenceState state = getInferenceState(candidate.typeArgs);
+	return state == TypeArgsInferenceState.none || candidate.called.match!bool(
+		(ref FunDecl called) =>
+			every!(immutable SpecInst*)(called.specs, (in immutable SpecInst* spec) =>
+				preCheckCandidateSpec(ctx, candidate, called, *spec, state)),
+		(CalledSpecSig _) => true);
 }
 
-bool inferCandidateTypeArgsFromSpecInst(
+bool preCheckCandidateSpec(
 	ref ExprCtx ctx,
 	ref Candidate callCandidate,
 	in FunDecl called,
 	in SpecInst spec,
+	TypeArgsInferenceState state,
 ) =>
 	every!(immutable SpecInst*)(spec.parents, (in immutable SpecInst* parent) =>
-		inferCandidateTypeArgsFromSpecInst(ctx, callCandidate, called, *parent)
+		preCheckCandidateSpec(ctx, callCandidate, called, *parent, state)
 	) &&
+	preCheckBuiltinSpec(ctx, callCandidate, called, spec) &&
 	// For a builtin spec, we'll leave it for the end.
-	zipEvery!(SpecDeclSig, ReturnAndParamTypes)(
+	(state != TypeArgsInferenceState.partial || zipEvery!(SpecDeclSig, ReturnAndParamTypes)(
 		spec.decl.sigs, spec.sigTypes, (ref SpecDeclSig sig, ref ReturnAndParamTypes returnAndParamTypes) =>
-			inferCandidateTypeArgsFromSpecSig(ctx, callCandidate, called, sig, returnAndParamTypes));
+			inferCandidateTypeArgsFromSpecSig(ctx, callCandidate, called, sig, returnAndParamTypes)));
+
+bool preCheckBuiltinSpec(ref ExprCtx ctx, ref const Candidate callCandidate, in FunDecl called, in SpecInst spec) {
+	if (has(spec.decl.builtin)) {
+		bool checkTypeIfInferred(in bool delegate(in Type) @safe @nogc pure nothrow cb) {
+			Opt!Type type = tryGetNonInferringType(
+				ctx.instantiateCtx, TypeAndContext(only(spec.typeArgs), typeContextForCandidate(callCandidate)));
+			return !has(type) || cb(force(type));
+		}
+
+		switch (force(spec.decl.builtin)) {
+			case BuiltinSpec.enum_:
+				return checkTypeIfInferred((in Type x) => isEnum(ctx.outermostFunSpecs, x));
+			case BuiltinSpec.flags:
+				return checkTypeIfInferred((in Type x) => isFlags(ctx.outermostFunSpecs, x));
+			default:
+				return true;
+		}
+	} else
+		return true;
+}
 
 bool inferCandidateTypeArgsFromSpecSig(
 	ref ExprCtx ctx,

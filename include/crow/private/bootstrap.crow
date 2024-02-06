@@ -11,32 +11,6 @@ Empty type, for use by functions with nothing in particular to return.
 
 new-void void() builtin, bare
 
-###
-Specifies that a type must be immutable data.
-
-This includes most types in crow that are not `mut`.
-This does not include `future` or `ref`, though these types work with `shared`.
-
-To put it another way, a type works with `data` if it is:
-* A primitive like `nat`, an `enum`, or `flags`.
-* A record with no `mut` fields, whose fields are all `data`.
-* A union whose member types are all `data`.
-* Immutable collections like `x[]`, where the type arguments are all `data`.
-* A constant pointer like `nat*`.
-###
-+data[t] spec builtin
-
-###
-Specifies that a type must be safe to share between tasks that may run in parallel.
-
-Anything that satisfies `data` satisfies `shared`.
-In addition, `future` and `ref` types are shared if their type arguments are.
-(`nat mut[]^` is not shared.)
-
-In the future, parallel-safe collections may be included here.
-###
-+shared[t] spec builtin
-
 region option.crow
 
 ###

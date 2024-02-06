@@ -2,6 +2,7 @@ module frontend.check.getBuiltinFun;
 
 @safe @nogc pure nothrow:
 
+import frontend.check.checkCall.checkCallSpecs : isEnumOrFlags, isFlags;
 import frontend.check.checkCtx : addDiag, CheckCtx;
 import model.constant : constantBool, constantZero;
 import model.diag : Diag;
@@ -14,10 +15,13 @@ import model.model :
 	BuiltinUnaryMath,
 	BuiltinTernary,
 	Destructure,
+	EnumFunction,
+	FlagsFunction,
 	FunBody,
 	FunDecl,
 	nameRange,
 	paramsArray,
+	SpecInst,
 	StructInst,
 	Type,
 	VersionFun;
@@ -30,7 +34,8 @@ FunBody getBuiltinFun(ref CheckCtx ctx, FunDecl* fun) {
 	return inner(
 		ctx, fun.nameRange(ctx.allSymbols).range, fun.name, fun.returnType, params.length,
 		params.length >= 1 ? params[0].type : Type(Type.Bogus()),
-		params.length >= 2 ? params[1].type : Type(Type.Bogus()));
+		params.length >= 2 ? params[1].type : Type(Type.Bogus()),
+		fun.specs);
 }
 
 private:
@@ -43,6 +48,7 @@ FunBody inner(
 	size_t arity,
 	Type p0,
 	Type p1,
+	in SpecInst*[] specs,
 ) {
 	BuiltinUnary failUnary = cast(BuiltinUnary) 0xff;
 	BuiltinBinary failBinary = cast(BuiltinBinary) 0xff;
@@ -112,7 +118,7 @@ FunBody inner(
 					? BuiltinBinary.mulFloat64
 					: failBinary);
 		case symbol!"==".value:
-			return binary(
+			return isEnumOrFlags(specs, p0) ? FunBody(EnumFunction.equal) : binary(
 				p0 != p1 ? failBinary :
 				isNat8(p0) ? BuiltinBinary.eqNat8 :
 				isNat16(p0) ? BuiltinBinary.eqNat16 :
@@ -135,7 +141,7 @@ FunBody inner(
 		case symbol!"??".value:
 			return FunBody(BuiltinFun(BuiltinFun.OptQuestion2()));
 		case symbol!"&".value:
-			return binary(isInt8(rt)
+			return isFlags(specs, rt) ? FunBody(EnumFunction.intersect) : binary(isInt8(rt)
 				? BuiltinBinary.bitwiseAndInt8
 				: isInt16(rt)
 				? BuiltinBinary.bitwiseAndInt16
@@ -153,7 +159,7 @@ FunBody inner(
 				? BuiltinBinary.bitwiseAndNat64
 				: failBinary);
 		case symbol!"~".value:
-			return unary(isNat8(rt)
+			return isFlags(specs, rt) ? FunBody(FlagsFunction.negate) : unary(isNat8(rt)
 				? BuiltinUnary.bitwiseNotNat8
 				: isNat16(rt)
 				? BuiltinUnary.bitwiseNotNat16
@@ -163,7 +169,7 @@ FunBody inner(
 				? BuiltinUnary.bitwiseNotNat64
 				: failUnary);
 		case symbol!"|".value:
-			return binary(isInt8(rt)
+			return isFlags(specs, rt) ? FunBody(EnumFunction.union_) : binary(isInt8(rt)
 				? BuiltinBinary.bitwiseOrInt8
 				: isInt16(rt)
 				? BuiltinBinary.bitwiseOrInt16
@@ -202,6 +208,8 @@ FunBody inner(
 			return unaryMath(BuiltinUnaryMath.acosFloat32, BuiltinUnaryMath.acosFloat64);
 		case symbol!"acosh".value:
 			return unaryMath(BuiltinUnaryMath.acoshFloat32, BuiltinUnaryMath.acoshFloat64);
+		case symbol!"all".value:
+			return isFlags(specs, rt) ? FunBody(FlagsFunction.all) : fail();
 		case symbol!"all-tests".value:
 			return arity == 0 ? FunBody(BuiltinFun(BuiltinFun.AllTests())) : fail();
 		case symbol!"asin".value:
@@ -227,6 +235,9 @@ FunBody inner(
 			return unaryMath(BuiltinUnaryMath.cosFloat32, BuiltinUnaryMath.cosFloat64);
 		case symbol!"cosh".value:
 			return unaryMath(BuiltinUnaryMath.coshFloat32, BuiltinUnaryMath.coshFloat64);
+		case symbol!"enum-members".value:
+		case symbol!"flags-members".value:
+			return FunBody(EnumFunction.members);
 		case symbol!"false".value:
 			return FunBody(BuiltinFun(constantBool(false)));
 		case symbol!"interpreter-backtrace".value:
@@ -248,6 +259,8 @@ FunBody inner(
 		case symbol!"mark-visit".value:
 			// TODO: check signature
 			return FunBody(BuiltinFun(BuiltinFun.MarkVisit()));
+		case symbol!"new".value:
+			return isFlags(specs, rt) ? FunBody(FlagsFunction.new_) : fail();
 		case symbol!"new-void".value:
 			return isVoid(rt)
 				? FunBody(BuiltinFun(constantZero))

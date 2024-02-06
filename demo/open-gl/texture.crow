@@ -3,8 +3,8 @@ import
 		glBindTexture, glDeleteTextures, gl-ext, glGenTextures, glGetError, glTexImage2D,
 		glTexParameteri
 	OpenGL/headers:
-		==, enum-members, GLenum, GL_LINEAR, GL_NO_ERROR, GL_RGBA, GL_TEXTURE_MAG_FILTER,
-		GL_TEXTURE_MIN_FILTER, GL_TEXTURE_2D, GLuint, GL_UNSIGNED_BYTE
+		GLenum, GL_LINEAR, GL_NO_ERROR, GL_RGBA, GL_TEXTURE_MAG_FILTER, GL_TEXTURE_MIN_FILTER,
+		GL_TEXTURE_2D, GLuint, GL_UNSIGNED_BYTE
 	./load-bmp: height, image-data, width, with-bmp
 
 # Remember to call 'free-texture'

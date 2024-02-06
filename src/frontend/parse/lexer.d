@@ -29,7 +29,7 @@ import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
 import util.string : CString, MutCString;
-import util.symbol : AllSymbols, Symbol, symbol;
+import util.symbol : AllSymbols, symbol;
 import util.util : enumConvert;
 
 public import frontend.parse.lexString : QuoteKind, StringPart;
@@ -277,10 +277,8 @@ bool lookaheadNameColon(in Lexer lexer) =>
 bool lookaheadLambda(in Lexer lexer) =>
 	getPeekToken(lexer) == Token.parenLeft && .lookaheadLambdaAfterParenLeft(lexer.ptr);
 
-bool lookaheadNameOpenParen(in Lexer lexer, Symbol name) {
-	TokenAndData td = getPeekTokenAndData(lexer);
-	return td.token == Token.name && td.asSymbol == name && lookaheadOpenParen(lexer.ptr);
-}
+bool lookaheadTokenOpenParen(in Lexer lexer, Token token) =>
+	getPeekToken(lexer) == token && lookaheadOpenParen(lexer.ptr);
 
 // Returns position of 'as'
 Opt!Pos tryTakeNewlineThenAs(ref Lexer lexer) {

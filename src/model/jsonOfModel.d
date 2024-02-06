@@ -17,11 +17,9 @@ import model.model :
 	Destructure,
 	emptyTypeParams,
 	EnumFunction,
-	enumFunctionName,
 	Expr,
 	ExprAndType,
 	FlagsFunction,
-	flagsFunctionName,
 	FunBody,
 	FunDecl,
 	FunFlags,
@@ -276,7 +274,7 @@ Json jsonOfFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 		(in EnumFunction x) =>
 			jsonObject(alloc, [
 				kindField!"enum-fn",
-				field!"name"(enumFunctionName(x))]),
+				field!"fn"(stringOfEnum(x))]),
 		(in FunBody.Extern x) =>
 			jsonObject(alloc, [
 				kindField!"extern",
@@ -290,7 +288,7 @@ Json jsonOfFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 		(in FlagsFunction x) =>
 			jsonObject(alloc, [
 				kindField!"flags-fn",
-				field!"name"(flagsFunctionName(x))]),
+				field!"name"(stringOfEnum(x))]),
 		(in FunBody.RecordFieldCall x) =>
 			jsonObject(alloc, [
 				kindField!"field-call",

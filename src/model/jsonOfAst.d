@@ -333,8 +333,8 @@ Json jsonOfModifierAst(ref Alloc alloc, in Ctx ctx, in ModifierAst a) =>
 Json jsonOfSpecUseAst(ref Alloc alloc, in Ctx ctx, in SpecUseAst a) =>
 	jsonObject(alloc, [
 		kindField!"spec",
-		optionalField!("type-arg", TypeAst*)(a.typeArg, (in TypeAst* x) =>
-			jsonOfTypeAst(alloc, ctx, *x)),
+		optionalField!("type-arg", TypeAst)(a.typeArg, (in TypeAst x) =>
+			jsonOfTypeAst(alloc, ctx, x)),
 		field!"name"(jsonOfNameAndRange(alloc, ctx, a.name))]);
 
 Json jsonOfTypeAst(ref Alloc alloc, in Ctx ctx, in TypeAst a) =>

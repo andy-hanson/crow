@@ -66,16 +66,21 @@ Symbol addExtension(scope ref AllSymbols allSymbols, Symbol a, Extension extensi
 		? a
 		: makeLongSymbol(allSymbols, (scope ref Writer writer) {
 			writeSymbol(writer, allSymbols, a);
-			writer ~= '.';
-			writer ~= stringOfEnum(extension);
+			writeExtension(writer, extension);
 		});
 }
 
 Symbol alterExtension(scope ref AllSymbols allSymbols, Symbol a, Extension newExtension) =>
 	alterExtensionCb(allSymbols, a, (scope ref Writer writer) {
-		writer ~= '.';
-		writer ~= stringOfEnum(newExtension);
+		writeExtension(writer, newExtension);
 	});
+
+void writeExtension(scope ref Writer writer, Extension a) {
+	if (a != Extension.none) {
+		writer ~= '.';
+		writer ~= stringOfEnum(a);
+	}
+}
 
 private Symbol makeSymbol(
 	scope ref AllSymbols allSymbols,
