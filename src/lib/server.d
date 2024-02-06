@@ -549,10 +549,11 @@ ProgramWithMain getProgramForMain(scope ref Perf perf, ref Alloc alloc, ref Serv
 Program getProgramForAll(scope ref Perf perf, ref Alloc alloc, ref Server server) =>
 	getProgram(perf, alloc, server, allKnownGoodCrowUris(alloc, server.storage));
 
-private Opt!Position getPosition(in Server server, in Program program, in TextDocumentPositionParams where) {
+private Opt!Position getPosition(in Server server, ref Program program, in TextDocumentPositionParams where) {
 	Opt!(immutable Module*) module_ = program.allModules[where.textDocument.uri];
 	return has(module_)
-		? some(getPosition(server.allSymbols, server.allUris, force(module_), server.lineAndCharacterGetters[where]))
+		? some(getPosition(
+			server.allSymbols, server.allUris, program, force(module_), server.lineAndCharacterGetters[where]))
 		: none!Position;
 }
 

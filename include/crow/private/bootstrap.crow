@@ -53,7 +53,7 @@ This is like `const-pointer` but supports writing to the contents.
 ###
 +mut-pointer[t] builtin extern, mut
 
-region arr
+region array
 
 ###
 Array of values.

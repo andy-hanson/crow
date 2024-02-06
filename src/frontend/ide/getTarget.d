@@ -82,6 +82,8 @@ Opt!Target targetForPosition(PositionKind pos) =>
 	pos.matchWithPointers!(Opt!Target)(
 		(PositionKind.None) =>
 			none!Target,
+		(PositionKind.EnumOrFlagsMemberPosition x) =>
+			some(Target(x.member)),
 		(PositionKind.Expression x) =>
 			exprTarget(x),
 		(FunDecl* x) =>
@@ -128,6 +130,8 @@ Opt!Target targetForPosition(PositionKind pos) =>
 					some(Target(x.decl))),
 		(PositionKind.TypeParamWithContainer x) =>
 			some(Target(x)),
+		(PositionKind.UnionMemberPosition x) =>
+			some(Target(x.member)),
 		(VarDecl* x) =>
 			some(Target(x)),
 		(PositionKind.VisibilityMark) =>

@@ -10,7 +10,7 @@ import frontend.parse.lexer :
 	getPeekToken,
 	getPeekTokenAndData,
 	Lexer,
-	lookaheadTokenOpenParen,
+	lookaheadOpenParen,
 	range,
 	rangeAtChar,
 	rangeForCurToken,
@@ -32,7 +32,7 @@ import model.parseDiag : ParseDiag;
 import util.col.array : emptySmallArray, only, SmallArray;
 import util.col.arrayBuilder : Builder, buildSmallArray;
 import util.memory : allocate;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, Opt, optIf, optOr, some;
 import util.sourceRange : Pos;
 import util.symbol : symbol;
 
@@ -135,16 +135,11 @@ DestructureAst parseDestructureNoRequireParens(ref Lexer lexer) {
 }
 
 ParamsAst parseParams(ref Lexer lexer) {
-	uint indent = getCurIndent(lexer);
+	uint indentLevel = getCurIndent(lexer);
 	if (!takeOrAddDiagExpectedToken(lexer, Token.parenLeft, ParseDiag.Expected.Kind.openParen)) {
 		skipUntilNewlineNoDiag(lexer);
 		return ParamsAst([]);
-	} else
-		return parseParamsAfterParenLeft(lexer, indent);
-}
-
-private ParamsAst parseParamsAfterParenLeft(ref Lexer lexer, uint indentLevel) {
-	if (tryTakeToken(lexer, Token.parenRight))
+	} else if (tryTakeToken(lexer, Token.parenRight))
 		return ParamsAst(emptySmallArray!DestructureAst);
 	else if (tryTakeToken(lexer, Token.dot3)) {
 		DestructureAst param = parseDestructureRequireParens(lexer);
@@ -266,86 +261,64 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, in TypeAst delegate() @safe 
 		return some(TypeAst(allocate(lexer.alloc, TypeAst.Map(kind, [key, left()]))));
 	}
 
-	if (tryTakeToken(lexer, Token.question))
-		return suffix(TypeAst.SuffixSpecial.Kind.option);
-	else if (tryTakeToken(lexer, Token.bracketLeft))
-		return tryTakeToken(lexer, Token.bracketRight)
-			? suffix(TypeAst.SuffixSpecial.Kind.list)
-			: mapLike(TypeAst.Map.Kind.data);
-	else if (tryTakeOperator(lexer, symbol!"^"))
-		return suffix(TypeAst.SuffixSpecial.Kind.future);
-	else if (tryTakeOperator(lexer, symbol!"*"))
-		return suffix(TypeAst.SuffixSpecial.Kind.ptr);
-	else if (tryTakeOperator(lexer, symbol!"**"))
-		return doubleSuffix(TypeAst.SuffixSpecial.Kind.ptr, TypeAst.SuffixSpecial.Kind.ptr);
-	else if (tryTakeToken(lexer, Token.mut)) {
-		BeforeParen beforeParen = beforeParen(lexer);
-		if (tryTakeToken(lexer, Token.bracketLeft))
+	switch (getPeekToken(lexer)) {
+		case Token.question:
+			takeNextToken(lexer);
+			return suffix(TypeAst.SuffixSpecial.Kind.option);
+		case Token.bracketLeft:
+			takeNextToken(lexer);
 			return tryTakeToken(lexer, Token.bracketRight)
-				? suffix(TypeAst.SuffixSpecial.Kind.mutList)
-				: mapLike(TypeAst.Map.Kind.mut);
-		else if (tryTakeToken(lexer, Token.parenLeft))
-			return some(parseFunType(lexer, left(), beforeParen, FunKind.mut));
-		else if (tryTakeOperator(lexer, symbol!"*"))
-			return suffix(TypeAst.SuffixSpecial.Kind.mutPtr);
-		else if (tryTakeOperator(lexer, symbol!"**"))
-			return doubleSuffix(TypeAst.SuffixSpecial.Kind.mutPtr, TypeAst.SuffixSpecial.Kind.ptr);
-		else {
-			addDiagExpected(lexer, ParseDiag.Expected.Kind.afterMut);
+				? suffix(TypeAst.SuffixSpecial.Kind.list)
+				: mapLike(TypeAst.Map.Kind.data);
+		case Token.operator:
+			return tryTakeOperator(lexer, symbol!"^")
+				? suffix(TypeAst.SuffixSpecial.Kind.future)
+				: tryTakeOperator(lexer, symbol!"*")
+				? suffix(TypeAst.SuffixSpecial.Kind.ptr)
+				: tryTakeOperator(lexer, symbol!"**")
+				? doubleSuffix(TypeAst.SuffixSpecial.Kind.ptr, TypeAst.SuffixSpecial.Kind.ptr)
+				: none!TypeAst;
+		case Token.mut:
+			return optOr!TypeAst(tryParseFunType(lexer, suffixPos, Token.mut, FunKind.mut, left), () {
+				takeNextToken(lexer);
+				if (tryTakeToken(lexer, Token.bracketLeft))
+					return tryTakeToken(lexer, Token.bracketRight)
+						? suffix(TypeAst.SuffixSpecial.Kind.mutList)
+						: mapLike(TypeAst.Map.Kind.mut);
+				else if (tryTakeOperator(lexer, symbol!"*"))
+					return suffix(TypeAst.SuffixSpecial.Kind.mutPtr);
+				else if (tryTakeOperator(lexer, symbol!"**"))
+					return doubleSuffix(TypeAst.SuffixSpecial.Kind.mutPtr, TypeAst.SuffixSpecial.Kind.ptr);
+				else {
+					addDiagExpected(lexer, ParseDiag.Expected.Kind.afterMut);
+					return none!TypeAst;
+				}
+			});
+		case Token.far:
+			return tryParseFunType(lexer, suffixPos, Token.far, FunKind.far, left);
+		case Token.function_:
+			return tryParseFunType(lexer, suffixPos, Token.function_, FunKind.function_, left);
+		case Token.data:
+			return tryParseFunType(lexer, suffixPos, Token.data, FunKind.data, left);
+		case Token.shared_:
+			return tryParseFunType(lexer, suffixPos, Token.shared_, FunKind.shared_, left);
+		default:
 			return none!TypeAst;
-		}
-	} else if (tryTakeToken(lexer, Token.far)) {
-		BeforeParen beforeParen = beforeParen(lexer);
-		if (tryTakeToken(lexer, Token.parenLeft))
-			return some(parseFunType(lexer, left(), beforeParen, FunKind.far));
-		else {
-			addDiagExpected(lexer, ParseDiag.Expected.Kind.openParen);
-			return none!TypeAst;
-		}
-	} else if (tryTakeToken(lexer, Token.function_)) {
-		BeforeParen beforeParen = beforeParen(lexer);
-		if (tryTakeToken(lexer, Token.parenLeft))
-			return some(parseFunType(lexer, left(), beforeParen, FunKind.function_));
-		else {
-			addDiagExpected(lexer, ParseDiag.Expected.Kind.openParen);
-			return none!TypeAst;
-		}
-	} else {
-		Opt!BeforeParen afterData = tryTakeTokenOpenParen(lexer, Token.data);
-		if (has(afterData))
-			return some(parseFunType(lexer, left(), force(afterData), FunKind.data));
-		else {
-			Opt!BeforeParen afterShared = tryTakeTokenOpenParen(lexer, Token.shared_);
-			if (has(afterShared))
-				return some(parseFunType(lexer, left(), force(afterShared), FunKind.shared_));
-			else
-				return none!TypeAst;
-		}
 	}
 }
 
-struct BeforeParen {
-	uint indent;
-	Pos pos;
-}
-
-BeforeParen beforeParen(scope ref Lexer lexer) =>
-	BeforeParen(getCurIndent(lexer), curPos(lexer));
-
-// Returns position before '('
-Opt!BeforeParen tryTakeTokenOpenParen(scope ref Lexer lexer, Token token) {
-	if (lookaheadTokenOpenParen(lexer, token)) {
-		bool tookToken = tryTakeToken(lexer, token);
+Opt!TypeAst tryParseFunType(
+	ref Lexer lexer,
+	Pos keywordPos,
+	Token keyword,
+	FunKind kind,
+	in TypeAst delegate() @safe @nogc pure nothrow returnType,
+) =>
+	optIf(lookaheadOpenParen(lexer), () {
+		bool tookToken = tryTakeToken(lexer, keyword);
 		assert(tookToken);
-		BeforeParen res = beforeParen(lexer);
-		bool tookParen = tryTakeToken(lexer, Token.parenLeft);
-		assert(tookParen);
-		return some(res);
-	} else
-		return none!BeforeParen;
-}
-
-TypeAst parseFunType(ref Lexer lexer, TypeAst returnType, BeforeParen beforeParen, FunKind kind) {
-	ParamsAst params = parseParamsAfterParenLeft(lexer, beforeParen.indent);
-	return TypeAst(allocate(lexer.alloc, TypeAst.Fun(returnType, kind, range(lexer, beforeParen.pos), params)));
-}
+		Pos beforeParams = curPos(lexer);
+		ParamsAst params = parseParams(lexer);
+		return TypeAst(allocate(lexer.alloc,
+			TypeAst.Fun(returnType(), keywordPos, kind, range(lexer, beforeParams), params)));
+	});

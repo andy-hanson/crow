@@ -33,9 +33,9 @@ private:
 void hoverTest(string crowFileName, string outputFileName)(ref Test test) {
 	string content = import("hover/" ~ crowFileName);
 	string expected = import(outputFileName);
-	withHoverTest!crowFileName(test, content, (in ShowModelCtx ctx, Module* module_) @safe {
+	withHoverTest!crowFileName(test, content, (in ShowModelCtx ctx, in Program program, in Module* module_) {
 		string actual = jsonToStringPretty(
-			test.alloc, test.allSymbols, hoverResult(test.alloc, content, ctx, module_));
+			test.alloc, test.allSymbols, hoverResult(test.alloc, content, ctx, program, module_));
 		if (actual != expected) {
 			debugLogWithWriter((scope ref Writer writer) {
 				writer ~= "Test output for ";
@@ -51,13 +51,13 @@ void hoverTest(string crowFileName, string outputFileName)(ref Test test) {
 void withHoverTest(string fileName)(
 	ref Test test,
 	in string content,
-	in void delegate(in ShowModelCtx, Module*) @safe @nogc pure nothrow cb,
+	in void delegate(in ShowModelCtx, in Program, in Module*) @safe @nogc pure nothrow cb,
 ) {
 	withTestServer(test, (ref Alloc alloc, ref Server server) {
 		Uri uri = mustParseUri(server.allUris, "magic:/" ~ fileName);
 		setupTestServer(test, alloc, server, uri, content);
 		Program program = getProgramForAll(test.perf, alloc, server);
-		cb(getShowDiagCtx(server, program), mustGet(program.allModules, uri));
+		cb(getShowDiagCtx(server, program), program, mustGet(program.allModules, uri));
 	});
 }
 
@@ -74,7 +74,7 @@ struct InfoAtPos {
 		hover == b.hover && arraysEqual(definition, b.definition);
 }
 
-Json hoverResult(ref Alloc alloc, in string content, in ShowModelCtx ctx, Module* mainModule) =>
+Json hoverResult(ref Alloc alloc, in string content, in ShowModelCtx ctx, in Program program, in Module* mainModule) =>
 	jsonList(buildArray!Json(alloc, (scope ref Builder!Json res) {
 		// We combine ranges that have the same info.
 		Pos curRangeStart = 0;
@@ -94,7 +94,7 @@ Json hoverResult(ref Alloc alloc, in string content, in ShowModelCtx ctx, Module
 
 		Pos endOfFile = safeToUint(content.length);
 		foreach (Pos pos; 0 .. endOfFile + 1) {
-			Position position = getPosition(ctx.allSymbols, ctx.allUris, mainModule, pos);
+			Position position = getPosition(ctx.allSymbols, ctx.allUris, program, mainModule, pos);
 			Opt!Hover hover = getHover(alloc, ctx, position);
 			InfoAtPos here = InfoAtPos(
 				has(hover) ? force(hover).contents.value : "",

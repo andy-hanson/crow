@@ -42,6 +42,8 @@ import model.model :
 	leastVisibility,
 	Linkage,
 	linkageRange,
+	maxValue,
+	minValue,
 	nameRange,
 	Purity,
 	purityRange,
@@ -354,7 +356,9 @@ StructBody.Enum checkEnum(
 		Diag.DuplicateDeclaration.Kind.enumMember,
 		(Opt!EnumValue lastValue, EnumBackingType enumType) =>
 			has(lastValue)
-				? ValueAndOverflow(EnumValue(force(lastValue).value + 1), force(lastValue) == maxValue(enumType))
+				? ValueAndOverflow(
+					EnumValue(force(lastValue).value + 1),
+					force(lastValue).asUnsigned() == maxValue(enumType))
 				: ValueAndOverflow(EnumValue(0), false));
 	return StructBody.Enum(tm.backingType, tm.members);
 }
@@ -376,7 +380,7 @@ StructBody.Flags checkFlags(
 				? ValueAndOverflow(
 					//TODO: if the last value isn't a power of 2, there should be a diagnostic
 					EnumValue(force(lastValue).value * 2),
-					force(lastValue).value >= maxValue(enumType).value / 2)
+					force(lastValue).value >= maxValue(enumType) / 2)
 				: ValueAndOverflow(EnumValue(1), false));
 	return StructBody.Flags(tm.backingType, tm.members);
 }
@@ -447,42 +451,10 @@ EnumOrFlagsTypeAndMembers checkEnumOrFlagsMembers(
 	return EnumOrFlagsTypeAndMembers(enumType, members);
 }
 
-bool valueOverflows(EnumBackingType type, EnumValue value) {
-	long v = value.value;
-	final switch (type) {
-		case EnumBackingType.int8:
-			return v < byte.min || v > byte.max;
-		case EnumBackingType.int16:
-			return v < short.min || v > short.max;
-		case EnumBackingType.int32:
-			return v < int.min || v > int.max;
-		case EnumBackingType.int64:
-			return false;
-		case EnumBackingType.nat8:
-			return v < 0 || v > ubyte.max;
-		case EnumBackingType.nat16:
-			return v < 0 || v > ushort.max;
-		case EnumBackingType.nat32:
-			return v < 0 || v > uint.max;
-		// For unsigned types, any negative 'value' is actually a wrapped-around large nat.
-		case EnumBackingType.nat64:
-			return false;
-	}
-}
-
-EnumValue maxValue(EnumBackingType type) =>
-	EnumValue(() {
-		final switch (type) {
-			case EnumBackingType.int8: return byte.max;
-			case EnumBackingType.int16: return short.max;
-			case EnumBackingType.int32: return int.max;
-			case EnumBackingType.int64: return long.max;
-			case EnumBackingType.nat8: return ubyte.max;
-			case EnumBackingType.nat16: return ushort.max;
-			case EnumBackingType.nat32: return uint.max;
-			case EnumBackingType.nat64: return ulong.max;
-		}
-	}());
+bool valueOverflows(EnumBackingType type, EnumValue value) =>
+	isSignedEnumBackingType(type)
+		? value.asSigned() < minValue(type) || value.asSigned() > cast(long) maxValue(type)
+		: value.asUnsigned() > maxValue(type);
 
 bool isSignedEnumBackingType(EnumBackingType a) {
 	final switch (a) {

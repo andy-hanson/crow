@@ -83,6 +83,13 @@ Opt!Hover getHover(ref Alloc alloc, in ShowModelCtx ctx, in Position pos) {
 void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 	pos.kind.matchWithPointers!void(
 		(PositionKind.None) {},
+		(PositionKind.EnumOrFlagsMemberPosition x) {
+			writer ~= x.struct_.body_.isA!(StructBody.Enum) ? "Enum " : "Flags ";
+			writer ~= " member ";
+			writeSymbol(writer, ctx.allSymbols, x.struct_.name);
+			writer ~= '.';
+			writeSymbol(writer, ctx.allSymbols, x.member.name);
+		},
 		(PositionKind.Expression x) {
 			getExprHover(writer, ctx, pos.module_.uri, x.container.toTypeContainer, *x.expr);
 		},
@@ -239,6 +246,19 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 		},
 		(PositionKind.TypeParamWithContainer x) {
 			hoverTypeParam(writer, ctx, x.container, x.typeParam);
+		},
+		(PositionKind.UnionMemberPosition x) {
+			writer ~= "Union member ";
+			writeSymbol(writer, ctx.allSymbols, x.struct_.name);
+			writer ~= '.';
+			writeSymbol(writer, ctx.allSymbols, x.member.name);
+			if (x.member.type == Type(ctx.commonTypes.void_))
+				writer ~= " (no associated value)";
+			else {
+				writer ~= " (of type ";
+				writeTypeQuoted(writer, ctx, TypeWithContainer(x.member.type, TypeContainer(x.struct_)));
+				writer ~= ')';
+			}
 		},
 		(VarDecl* x) {
 			writer ~= stringOfVarKindUpperCase(x.kind);

@@ -277,8 +277,8 @@ bool lookaheadNameColon(in Lexer lexer) =>
 bool lookaheadLambda(in Lexer lexer) =>
 	getPeekToken(lexer) == Token.parenLeft && .lookaheadLambdaAfterParenLeft(lexer.ptr);
 
-bool lookaheadTokenOpenParen(in Lexer lexer, Token token) =>
-	getPeekToken(lexer) == token && lookaheadOpenParen(lexer.ptr);
+bool lookaheadOpenParen(in Lexer lexer) =>
+	.lookaheadOpenParen(lexer.ptr);
 
 // Returns position of 'as'
 Opt!Pos tryTakeNewlineThenAs(ref Lexer lexer) {

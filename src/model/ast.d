@@ -15,6 +15,7 @@ import util.string : SmallString;
 import util.symbol : AllSymbols, Symbol, symbol, symbolSize;
 import util.union_ : TaggedUnion, Union;
 import util.uri : AllUris, Path, pathLength, RelPath, relPathLength;
+import util.util : stringOfEnum;
 
 immutable struct NameAndRange {
 	@safe @nogc pure nothrow:
@@ -72,12 +73,15 @@ immutable struct TypeAst {
 		@safe @nogc pure nothrow:
 
 		TypeAst returnType;
+		Pos kindPos;
 		FunKind kind;
 		Range paramsRange;
 		ParamsAst params;
 
 		Range range(in AllSymbols allSymbols) scope =>
 			combineRanges(returnType.range(allSymbols), paramsRange);
+		Range kindRange() scope =>
+			rangeOfStartAndLength(kindPos, stringOfEnum(kind).length);
 	}
 
 	immutable struct Map {

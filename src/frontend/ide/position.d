@@ -99,6 +99,10 @@ immutable struct VisibilityContainer {
 immutable struct PositionKind {
 	immutable struct None {}
 
+	immutable struct EnumOrFlagsMemberPosition {
+		StructDecl* struct_;
+		EnumMember* member;
+	}
 	immutable struct Expression {
 		ExprContainer container;
 		Expr* expr;
@@ -171,12 +175,17 @@ immutable struct PositionKind {
 		TypeParamIndex typeParam;
 		TypeContainer container;
 	}
+	immutable struct UnionMemberPosition {
+		StructDecl* struct_;
+		UnionMember* member;
+	}
 	immutable struct VisibilityMark {
 		VisibilityContainer container;
 	}
 
 	mixin Union!(
 		None,
+		EnumOrFlagsMemberPosition,
 		Expression,
 		FunDecl*,
 		ImportedModule,
@@ -197,6 +206,7 @@ immutable struct PositionKind {
 		Test*,
 		TypeWithContainer,
 		TypeParamWithContainer,
+		UnionMemberPosition,
 		VarDecl*,
 		VisibilityMark);
 }
