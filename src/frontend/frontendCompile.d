@@ -26,7 +26,18 @@ import model.model :
 import util.alloc.alloc :
 	Alloc, AllocAndValue, allocateUninitialized, AllocKind, freeAllocAndValue, MetaAlloc, newAlloc, withAlloc;
 import util.col.arrayBuilder : asTemporaryArray, Builder, smallFinish;
-import util.col.array : contains, emptyMutSmallArray, exists, every, findIndex, map, MutSmallArray, small, SmallArray;
+import util.col.array :
+	concatenateIn,
+	contains,
+	emptyMutSmallArray,
+	exists,
+	every,
+	findIndex,
+	indexOf,
+	map,
+	MutSmallArray,
+	small,
+	SmallArray;
 import util.col.exactSizeArrayBuilder : buildArrayExact, ExactSizeArrayBuilder;
 import util.col.hashTable : getOrAdd, HashTable, mapPreservingKeys, moveToImmutable, mustGet, MutHashTable;
 import util.col.enumMap : EnumMap, enumMapMapValues, makeEnumMap;
@@ -317,10 +328,16 @@ Uri[] fixCircularImportsRecur(ref Frontend a, ref Builder!Uri cycleBuilder, Crow
 		? smallFinish(cycleBuilder)
 		: fixCircularImportsRecur(a, cycleBuilder, next);
 	force(file.resolvedImports)[importIndex] = MostlyResolvedImport(
-		allocate(a.alloc, Diag.ImportFileDiag(Diag.ImportFileDiag.CircularImport(cycle))));
+		allocate(a.alloc, Diag.ImportFileDiag(
+			Diag.ImportFileDiag.CircularImport(small!Uri(rotateToFirst!Uri(a.alloc, cycle, file.uri))))));
 	mutSetMayDelete(next.referencedBy, file);
 	addToWorkableIfSo(a, file);
 	return cycle;
+}
+
+T[] rotateToFirst(T)(ref Alloc alloc, in T[] values, in T firstValue) {
+	Opt!size_t index = indexOf(values, firstValue);
+	return concatenateIn(alloc, values[force(index) .. $], values[0 .. force(index)]);
 }
 
 Module* compileNonBootstrapModule(scope ref Perf perf, ref Alloc alloc, ref Frontend a, CrowFile* file) {
@@ -548,7 +565,6 @@ CommonUris commonUris(ref AllUris allUris, Uri includeDir) {
 		childUri(allUris, col, symbol!"list"),
 		childUri(allUris, includeCrow, symbol!"std"),
 		childUri(allUris, includeCrow, symbol!"string"),
-		childUri(allUris, private_, symbol!"runtime"),
 		childUri(allUris, private_, symbol!"rt-main"),
 	]), (Uri x) => addExtension(allUris, x, Extension.crow));
 }

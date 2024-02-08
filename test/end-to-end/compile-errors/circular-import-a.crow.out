@@ -5,6 +5,6 @@ test/end-to-end/compile-errors/circular-import-a.crow 2:5-2:24 This is part of a
 	test/end-to-end/compile-errors/circular-import-b.crow imports
 	test/end-to-end/compile-errors/circular-import-a.crow
 test/end-to-end/compile-errors/circular-import-b.crow 2:5-2:24 This is part of a circular import:
-	test/end-to-end/compile-errors/circular-import-a.crow imports
 	test/end-to-end/compile-errors/circular-import-b.crow imports
-	test/end-to-end/compile-errors/circular-import-a.crow
+	test/end-to-end/compile-errors/circular-import-a.crow imports
+	test/end-to-end/compile-errors/circular-import-b.crow

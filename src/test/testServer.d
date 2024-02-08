@@ -119,6 +119,6 @@ enum expectedDiags2 = "test:///a.crow 2:5-2:8 This is part of a circular import:
 	test:///b.crow imports
 	test:///a.crow
 test:///b.crow 2:5-2:8 This is part of a circular import:
-	test:///a.crow imports
 	test:///b.crow imports
-	test:///a.crow";
+	test:///a.crow imports
+	test:///b.crow";
