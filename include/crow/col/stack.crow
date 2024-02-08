@@ -106,8 +106,6 @@ iterate-reverse[t] bool(a t stack, f bool mut(elem t))
 		else
 			break false
 
-subregion iterator
-
 ~to-array-reverse[t] t array(a t stack)
 	with out : a.size build
 		broke = a iterate-reverse x =>

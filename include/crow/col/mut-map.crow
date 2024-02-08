@@ -304,8 +304,6 @@ region spec impls (see collection.crow)
 		as many m
 			m iterate f
 
-subregion build
-
 +build[k, v] v mut[k](a build-options, f void mut(out v mut[k])) k key
 	res v mut[k] = a.size-hint mut-map-with-capacity
 	f[res]

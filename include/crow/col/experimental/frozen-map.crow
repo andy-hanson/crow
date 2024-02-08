@@ -161,8 +161,6 @@ region spec impls (see collection.crow)
 +iterate[k, v] bool(a (k, v) frozen-map, f bool mut(key k, value v))
 	a.pairs iterate f
 
-subregion build
-
 +frozen-map-builder[k, v] record mut
 	-inner (k, v) mut-array-builder
 +build[k, v] (k, v) frozen-map(a build-options, f void mut(out (k, v) frozen-map-builder)) k key

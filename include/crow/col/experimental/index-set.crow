@@ -424,8 +424,6 @@ count-greater-or-equal nat64(a index-set, n nat64)
 
 region spec impls (see collection.crow)
 
-subregion iteration
-
 +iterate bool(a index-set, f bool mut(elem nat64))
 	a.root iterate-recur 0, a.capacity, f
 # offset: how much to add to indices in this node
@@ -452,8 +450,6 @@ subregion iteration
 				f[bit-index-offset + bit-index]
 	as empty
 		false
-
-subregion build
 
 +index-set-builder record mut
 	-inner nat64 list-builder

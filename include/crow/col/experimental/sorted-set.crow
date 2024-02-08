@@ -404,8 +404,6 @@ region spec impls (see collection.crow)
 	else
 		a
 
-subregion build
-
 +sorted-set-builder[t] record mut
 	-inner t list-builder
 

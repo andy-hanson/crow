@@ -242,8 +242,6 @@ region spec impls (see collection.crow)
 		else
 			break false
 
-subregion build
-
 +set-builder[t] record mut
 	-inner t frozen-set-builder
 +build[t] t set(a build-options, f void mut(out t set-builder)) t key

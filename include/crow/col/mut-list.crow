@@ -336,8 +336,6 @@ Throws if `index >= a.size`.
 	0::nat64 .. a.size iterate i =>
 		f[a[i]]
 
-subregion iterator
-
 +mut-list-iterator[t] record by-val, mut
 	collection t mut[]
 	next-index nat64
@@ -382,8 +380,6 @@ subregion iterator
 +slice[t] t mut[](a t mut-list-iterator, b t mut-list-iterator)
 	res = a.as-backing-iter slice b.as-backing-iter
 	res.copy, res.size
-
-subregion build
 
 +build[t] t mut[](a build-options, f void mut(out t mut[]))
 	res t mut[] = ()

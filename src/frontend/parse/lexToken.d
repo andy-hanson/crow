@@ -11,7 +11,8 @@ import frontend.parse.lexUtil :
 	tryGetAfterStartsWith,
 	tryTakeChar,
 	tryTakeChars;
-import frontend.parse.lexWhitespace : AddDiag, DocCommentAndIndentDelta, IndentKind, skipBlankLinesAndGetIndentDelta;
+import frontend.parse.lexWhitespace :
+	AddDiag, DocCommentAndIndentDelta, IndentKind, skipBlankLinesAndGetIndentDelta, takeRestOfLine;
 import model.ast : LiteralFloatAst, LiteralIntAst, LiteralNatAst;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.string : CString, MutCString, SmallString, stringOfRange;
@@ -35,6 +36,7 @@ immutable struct TokenAndData {
 		LiteralIntAst literalInt = void; // for Token.literalInt
 		LiteralNatAst literalNat = void; // for Token.literalNat
 		char unexpectedCharacter;
+		string region;
 	}
 
 	public:
@@ -43,7 +45,8 @@ immutable struct TokenAndData {
 			!isNewlineToken(t) &&
 			t != Token.literalFloat &&
 			t != Token.literalInt &&
-			t != Token.literalNat);
+			t != Token.literalNat &&
+			t != Token.region);
 		token = t;
 	}
 	this(Token t, Symbol s) {
@@ -76,6 +79,11 @@ immutable struct TokenAndData {
 		token = t;
 		unexpectedCharacter = c;
 	}
+	this(Token t, string s) {
+		assert(t == Token.region);
+		token = t;
+		region = s;
+	}
 
 	bool isSymbol() scope =>
 		isSymbolToken(token);
@@ -84,7 +92,6 @@ immutable struct TokenAndData {
 		assert(isSymbol);
 		return symbol;
 	}
-	// WARN: The docComment string is temporary.
 	@trusted DocCommentAndExtraDedents asDocComment() {
 		assert(isNewlineToken(token));
 		return docComment;
@@ -104,6 +111,10 @@ immutable struct TokenAndData {
 	char asUnexpectedCharacter() {
 		assert(token == Token.unexpectedCharacter);
 		return unexpectedCharacter;
+	}
+	@trusted string asRegion() {
+		assert(token == Token.region);
+		return region;
 	}
 }
 
@@ -182,6 +193,7 @@ enum Token {
 	quoteDouble3, // '"""'
 	quotedText, // Fake token to be the peek after the '"'
 	record, // 'record'
+	region, // 'region'
 	reserved, // any reserved word
 	semicolon, // ';'
 	shared_, // 'shared'
@@ -349,9 +361,14 @@ TokenAndData lexToken(
 				string nameStr = takeNameRest(ptr, start);
 				Symbol symbol = symbolOfString(allSymbols, nameStr);
 				Token token = tokenForSymbol(symbol);
-				return token == Token.name
-					? nameLikeToken(ptr, allSymbols, symbol, Token.name)
-					: plainToken(token);
+				switch (token) {
+					case Token.name:
+						return nameLikeToken(ptr, allSymbols, symbol, Token.name);
+					case Token.region:
+						return TokenAndData(Token.region, takeRestOfLine(ptr));
+					default:
+						return plainToken(token);
+				}
 			} else if (isDecimalDigit(c)) {
 				ptr = start;
 				return takeNumberAfterSign(ptr, none!Sign);
@@ -548,6 +565,8 @@ Token tokenForSymbol(Symbol a) {
 			return Token.packed;
 		case symbol!"record".value:
 			return Token.record;
+		case symbol!"region".value:
+			return Token.region;
 		case symbol!"shared".value:
 			return Token.shared_;
 		case symbol!"spec".value:

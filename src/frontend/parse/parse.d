@@ -446,6 +446,8 @@ FileAst* parseFileInner(scope ref AllUris allUris, ref Lexer lexer) {
 			} else
 				return takeNewline_topLevel(lexer);
 		}();
+		if (tryTakeToken(lexer, Token.region))
+			continue;
 		if (tryTakeToken(lexer, Token.EOF))
 			break;
 		parseSpecOrStructOrFunOrTest(lexer, specs, structAliases, structs, funs, tests, vars, docComment);

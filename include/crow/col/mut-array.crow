@@ -67,6 +67,10 @@ There is no `move-to` for `mut-array` since there might be slices that still ref
 +pointers[t] t mut* range(a t mut-array) bare, unsafe
 	a.begin-pointer .. a.end-pointer
 
+# Number of elements.
++size[t] nat64(a t mut-array) bare
+	a.inner size
+
 # `true` iff `a.size == 0`.
 +is-empty[t] bool(a t mut-array) bare
 	a.size == 0
@@ -191,15 +195,9 @@ If the element type is different, adjusts the size so that the number of bytes i
 
 region spec impls (see collection.crow)
 
-# Number of elements.
-+size[t] nat64(a t mut-array) bare
-	a.inner size
-
 # Calls 'f' on each element in the mut-array.
 +iterate[t] bool(a t mut-array, f bool mut(elem t))
 	trusted a.temp-as-array iterate f
-
-subregion iterator
 
 +mut-array-iterator[t] record by-val, mut
 	collection t mut-array
@@ -246,8 +244,6 @@ subregion iterator
 	assert begin.collection == end.collection
 	inner-iter = begin.collection.inner begin
 	(inner-iter + begin.next-index slice inner-iter + end.next-index),
-
-subregion builder
 
 +mut-array-builder[t] record mut
 	-inner t array-builder

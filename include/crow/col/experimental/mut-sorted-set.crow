@@ -97,8 +97,6 @@ region spec impls (see collection.crow)
 +iterate[t] bool(a t mut-sorted-set, f bool mut(elem t)) t key
 	a.inner iterate (k, _) => f[k]
 
-subregion build
-
 +build[t] t mut-sorted-set(_ build-options, f void mut(out t mut-sorted-set)) t key
 	res t mut-sorted-set = ()
 	f[res]

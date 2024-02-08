@@ -436,8 +436,6 @@ region spec impls (see collection.crow)
 		false
 	forbid res
 
-subregion build
-
 +tree-set-builder[t] record mut
 	-inner t list-builder
 

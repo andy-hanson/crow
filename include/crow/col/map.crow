@@ -399,8 +399,6 @@ region spec impls (see collection.crow)
 	as leaf-node l
 		l iterate f
 
-subregion build
-
 +map-builder[k, v] record mut
 	-inner (k, v) array-builder
 +build[k, v] v[k](a build-options, f void mut(out (k, v) map-builder)) k key

@@ -12,7 +12,7 @@ import util.util : castNonScope_ref;
 
 // Takes beginning of range; end is the current ptr
 alias AddDiag = void delegate(CString, ParseDiag) @safe @nogc pure nothrow;
-// 'fullStart' includes the '#' (or '###' or 'region'). The full range is from there to the current source pointer.
+// 'fullStart' includes the '#' (or '###'). The full range is from there to the current source pointer.
 private alias CbComment = void delegate(CString fullStart, string content) @safe @nogc pure nothrow;
 
 enum IndentKind {
@@ -124,9 +124,6 @@ DocCommentAndIndentDelta skipBlankLinesAndGetIndentDelta(
 				start = ptr;
 				newIndent = takeIndentAmountAfterNewline(ptr, indentKind, addDiag);
 			},
-			(CString _, string _2) {
-				docComment = "";
-			},
 			(CString _, string dc) {
 				docComment = dc;
 			},
@@ -178,18 +175,18 @@ bool tryTakeLineContinuation(ref MutCString ptr, in CbComment cbComment) {
 bool ignoreCharForTokens(char c) =>
 	isWhitespace(c) || c == '\\' || c == '#' || isNonKeywordPunctuation(c);
 
-@system void skipForTokens(ref MutCString ptr, CString end, in CbComment cbCommentOrRegion) {
+@system void skipForTokens(ref MutCString ptr, CString end, in CbComment cbComment) {
 	while (ptr < end) {
 		CString start = ptr;
 		while (isNonKeywordPunctuation(*ptr) && ptr < end)
 			ptr++;
 		if (ptr < end)
-			skipSpacesAndComments(ptr, cbCommentOrRegion, (CString _, ParseDiag _2) {});
+			skipSpacesAndComments(ptr, cbComment, (CString _, ParseDiag _2) {});
 		if (ptr < end && *ptr == '\\')
 			// Non-comment '\', skip this too
 			ptr++;
 		if (ptr < end)
-			skipBlankLines(ptr, () {}, cbCommentOrRegion, cbCommentOrRegion, (CString _, ParseDiag _2) {});
+			skipBlankLines(ptr, () {}, cbComment, (CString _, ParseDiag _2) {});
 		if (ptr == start)
 			break;
 	}
@@ -214,7 +211,6 @@ bool isNonKeywordPunctuation(char a) {
 void skipBlankLines(
 	ref MutCString ptr,
 	in void delegate() @safe @nogc pure nothrow cbStartOfLoop,
-	in CbComment cbRegion,
 	in CbComment cbComment,
 	in AddDiag addDiag,
 ) {
@@ -226,8 +222,6 @@ void skipBlankLines(
 			cbComment(before, takeRestOfBlockComment(ptr, addDiag));
 		} else if (tryTakeChar(ptr, '#')) {
 			cbComment(before, takeRestOfLine(ptr));
-		} else if (tryTakeChars(ptr, "region ") || tryTakeChars(ptr, "subregion ")) {
-			cbRegion(before, takeRestOfLine(ptr));
 		} else if (!tryTakeLineContinuation(ptr, cbComment))
 			break;
 	}
@@ -283,7 +277,7 @@ string takeRestOfBlockComment(return scope ref MutCString ptr, in AddDiag addDia
 	return stripWhitespace(stringOfRange(begin, end));
 }
 
-string takeRestOfLine(return scope ref MutCString ptr) {
+public string takeRestOfLine(return scope ref MutCString ptr) {
 	CString begin = ptr;
 	skipUntilNewline(ptr);
 	return stringOfRange(begin, ptr);

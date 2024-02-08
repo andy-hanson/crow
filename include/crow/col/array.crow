@@ -92,8 +92,6 @@ Unlike for `update-at`, `index` can be `a.size`, though it still can't be higher
 
 region spec impls (see collection.crow)
 
-subregion iterator
-
 +array-iterator[t] record by-val
 	collection t array
 	next-index nat64

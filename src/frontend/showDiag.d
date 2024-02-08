@@ -1368,6 +1368,8 @@ string describeTokenForUnexpected(Token token) {
 			return "Unexpected string literal.";
 		case Token.record:
 			return "Unexpected keyword 'record'.";
+		case Token.region:
+			return "Unexpected keyword 'region'.";
 		case Token.reserved:
 			return "Unexpected reserved keyword.";
 		case Token.semicolon:
