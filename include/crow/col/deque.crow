@@ -1,15 +1,4 @@
-no-std
 import
-	../bool: &&, ||, ==, bool, not, true
-	../json: to
-	../number: ==, +, nat64
-	../option: force, is-empty, new, option
-	../string: ==, interpolate, join, string, to
-	../test-util: is
-	../tuple: a, b, new
-	./array: +, -, array, begin, end, is-empty, iterate, next, size, slice
-	./collection: .., -, end, for-loop, reverse, subscript
-	./list: ==, ~=, build, list, new, to
 	./stack:
 		~, end, is-empty, iterate, iterate-reverse, new, prev, pop, size, stack,
 		to, to-array-reverse

@@ -1,5 +1,0 @@
-main void()
-	(() => x) foo
-
-foo void(_ string far())
-	()

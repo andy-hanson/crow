@@ -28,7 +28,6 @@ import model.model :
 	ClosureSetExpr,
 	Expr,
 	FunDecl,
-	FunKind,
 	FunPointerExpr,
 	IfExpr,
 	IfOptionExpr,
@@ -398,19 +397,16 @@ void getExprHover(
 		(in LambdaExpr x) {
 			writer ~= () {
 				final switch (x.kind) {
-					case FunKind.data:
-						return "Lambda with 'data' closure and no 'summon'";
-					case FunKind.shared_:
-						return "Lambda with 'shared' closure";
-					case FunKind.mut:
-						return "Lambda with 'mut' closure";
-					case FunKind.far:
-						return "Far lambda";
-					case FunKind.function_:
-						return "Function pointer";
+					case LambdaExpr.Kind.data:
+						return "Lambda with 'data' closure and no 'summon'.";
+					case LambdaExpr.Kind.shared_:
+						return "Lambda with 'shared' closure.";
+					case LambdaExpr.Kind.mut:
+						return "Lambda with 'mut' closure.";
+					case LambdaExpr.Kind.explicitShared:
+						return "Lambda with 'mut' closure, converted to 'shared' by waiting for exclusion.";
 				}
 			}();
-			writer ~= " literal";
 		},
 		(in LetExpr _) {},
 		(in LiteralExpr _) {

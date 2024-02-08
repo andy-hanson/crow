@@ -4,7 +4,7 @@ module frontend.check.checkExpr;
 
 import frontend.check.checkCall.candidates : eachFunInScope, funsInScope;
 import frontend.check.checkCall.checkCall : checkCall, checkCallIdentifier, checkCallNamed, checkCallSpecial;
-import frontend.check.checkCall.checkCallSpecs : isPurityAlwaysCompatibleConsideringSpecs;
+import frontend.check.checkCall.checkCallSpecs : isPurityAlwaysCompatibleConsideringSpecs, isShared;
 import frontend.check.checkCtx : CheckCtx, markUsed;
 import frontend.check.exprCtx :
 	addDiag2,
@@ -25,12 +25,14 @@ import frontend.check.inferringType :
 	Expected,
 	ExpectedLambdaType,
 	findExpectedStructForLiteral,
+	getExpectedForDiag,
 	getExpectedLambda,
 	isPurelyInferring,
 	LoopInfo,
 	Pair,
 	tryGetNonInferringType,
 	tryGetLoop,
+	TypeContext,
 	withCopyWithNewExpectedType,
 	withExpect,
 	withExpectAndInfer,
@@ -39,7 +41,6 @@ import frontend.check.inferringType :
 import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay, noDelayStructInsts;
 import frontend.check.maps : FunsMap, StructsAndAliasesMap;
 import frontend.check.typeFromAst : checkDestructure, makeTupleType, typeFromDestructure;
-import frontend.check.typeUtil : nonInstantiatedReturnType;
 import model.ast :
 	ArrowAccessAst,
 	AssertOrForbidAst,
@@ -74,6 +75,7 @@ import model.ast :
 	ParenthesizedAst,
 	PtrAst,
 	SeqAst,
+	SharedAst,
 	ThenAst,
 	ThrowAst,
 	TrustedAst,
@@ -141,6 +143,7 @@ import model.model :
 	StructInst,
 	Test,
 	ThrowExpr,
+	toLocal,
 	TrustedExpr,
 	toMutability,
 	Type,
@@ -154,6 +157,7 @@ import util.col.array :
 	arrayOfSingle,
 	arraysCorrespond,
 	contains,
+	every,
 	exists,
 	isEmpty,
 	map,
@@ -297,6 +301,8 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expecte
 			checkPointer(ctx, locals, ast, a, expected),
 		(SeqAst* a) =>
 			checkSeq(ctx, locals, ast, a, expected),
+		(SharedAst* a) =>
+			checkShared(ctx, locals, ast, a, expected),
 		(ThenAst* a) =>
 			checkThen(ctx, locals, ast, *a, expected),
 		(ThrowAst* a) =>
@@ -614,32 +620,30 @@ MutOpt!VariableRefAndType getIdentifierFromLambda(
 void checkClosureMutability(
 	ref ExprCtx ctx,
 	ExprAst* source,
-	FunKind funKind,
+	LambdaExpr.Kind lambdaKind,
 	Symbol name,
 	Mutability mutability,
 	Type type,
 ) {
 	Purity expectedPurity = () {
-		final switch (funKind) {
-			case FunKind.data:
+		final switch (lambdaKind) {
+			case LambdaExpr.Kind.data:
 				return Purity.data;
-			case FunKind.shared_:
+			case LambdaExpr.Kind.shared_:
 				return Purity.shared_;
-			case FunKind.mut:
-			case FunKind.far:
+			case LambdaExpr.Kind.mut:
+			case LambdaExpr.Kind.explicitShared:
 				return Purity.mut;
-			case FunKind.function_:
-				assert(false);
 		}
 	}();
 	if (expectedPurity != Purity.mut) {
 		if (mutability != Mutability.immut)
 			addDiag2(ctx, source.range, Diag(
-				Diag.LambdaClosurePurity(funKind, name, Purity.mut, none!TypeWithContainer)));
+				Diag.LambdaClosurePurity(lambdaKind, name, Purity.mut, none!TypeWithContainer)));
 		else if (!isPurityAlwaysCompatibleConsideringSpecs(ctx.outermostFunSpecs, type, expectedPurity))
 			addDiag2(ctx, source.range, Diag(
 				Diag.LambdaClosurePurity(
-					funKind, name,
+					lambdaKind, name,
 					purityRange(type).worstCase,
 					some(typeWithContainer(ctx, type)))));
 	}
@@ -1117,6 +1121,61 @@ Opt!(FunDecl*) funWithName(ref ExprCtx ctx, Range range, Symbol name) {
 	}
 }
 
+Expr checkShared(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, SharedAst* ast, ref Expected expected) {
+	void diag(Diag diag) {
+		addDiag2(ctx, ast.keywordRange(*source), diag);
+	}
+
+	if (!ast.inner.kind.isA!(LambdaAst*)) {
+		diag(Diag(Diag.SharedArgIsNotLambda()));
+		return bogus(expected, source);
+	}
+	LambdaAst* inner = ast.inner.kind.as!(LambdaAst*);
+
+	MutOpt!ExpectedLambdaType opEt = getExpectedLambda(ctx, source, typeFromDestructure(ctx, inner.param), expected);
+	if (!has(opEt))
+		return bogus(expected, source);
+
+	ExpectedLambdaType et = force(opEt);
+	if (et.funType.kind != FunKind.shared_) {
+		diag(Diag(Diag.SharedNotExpected(Diag.SharedNotExpected.Reason.notShared, getExpectedForDiag(ctx, expected))));
+		return bogus(expected, source);
+	}
+
+	if (!isFuture(ctx, et.funType.returnType)) {
+		diag(Diag(Diag.SharedNotExpected(Diag.SharedNotExpected.Reason.notFuture, getExpectedForDiag(ctx, expected))));
+		return bogus(expected, source);
+	}
+
+	LambdaAndReturnType res = checkLambdaInner(
+		ctx, locals, &ast.inner, *inner, expected,
+		some(instantiateStructNeverDelay(
+			ctx.instantiateCtx, ctx.commonTypes.funStructs[FunKind.mut], et.funType.structInst.typeArgs)),
+		et.instantiatedParamType,
+		et.funType.returnType,
+		et.typeContext,
+		et.funType.funStruct,
+		LambdaExpr.Kind.explicitShared);
+
+	if (!isShared(ctx.outermostFunSpecs, et.instantiatedParamType))
+		diag(Diag(Diag.SharedLambdaTypeIsNotShared(
+			Diag.SharedLambdaTypeIsNotShared.Kind.paramType, typeWithContainer(ctx, et.instantiatedParamType))));
+	if (!isShared(ctx.outermostFunSpecs, res.returnType))
+		diag(Diag(Diag.SharedLambdaTypeIsNotShared(
+			Diag.SharedLambdaTypeIsNotShared.Kind.returnType, typeWithContainer(ctx, res.returnType))));
+
+	bool allShared = every!VariableRef(res.expr.kind.as!(LambdaExpr*).closure, (in VariableRef v) {
+		Local* local = toLocal(v);
+		return local.mutability == LocalMutability.immut && isShared(ctx.outermostFunSpecs, local.type);
+	});
+	if (allShared)
+		diag(Diag(Diag.SharedLambdaUnused()));
+	return res.expr;
+}
+
+bool isFuture(in ExprCtx ctx, in Type a) =>
+	a.isA!(StructInst*) && a.as!(StructInst*).decl == ctx.commonTypes.future;
+
 Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref LambdaAst ast, ref Expected expected) {
 	MutOpt!ExpectedLambdaType opEt = getExpectedLambda(ctx, source, typeFromDestructure(ctx, ast.param), expected);
 	if (!has(opEt))
@@ -1128,10 +1187,45 @@ Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref La
 		addDiag2(ctx, source, Diag(Diag.LambdaCantBeFunctionPointer()));
 		return bogus(expected, source);
 	}
+	return checkLambdaInner(
+		ctx, locals, source, ast, expected, none!(StructInst*),
+		et.instantiatedParamType,
+		et.funType.returnType,
+		et.typeContext,
+		et.funType.funStruct,
+		toLambdaKind(et.funType.kind)).expr;
+}
 
-	Destructure param = checkDestructure2(ctx, ast.param, et.instantiatedParamType);
+LambdaExpr.Kind toLambdaKind(FunKind a) {
+	final switch (a) {
+		case FunKind.data:
+			return LambdaExpr.Kind.data;
+		case FunKind.shared_:
+			return LambdaExpr.Kind.shared_;
+		case FunKind.mut:
+			return LambdaExpr.Kind.mut;
+		case FunKind.function_:
+			assert(false);
+	}
+}
 
-	LambdaExpr* lambda = allocate(ctx.alloc, LambdaExpr(kind, param));
+struct LambdaAndReturnType { Expr expr; Type returnType; }
+LambdaAndReturnType checkLambdaInner(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	ExprAst* source,
+	ref LambdaAst ast,
+	ref Expected expected,
+	Opt!(StructInst*) mutTypeForExplicitShared,
+	Type paramType,
+	Type nonInstantiatedReturnType,
+	TypeContext returnTypeContext,
+	StructDecl* funStruct,
+	LambdaExpr.Kind kind,
+) {
+	Destructure param = checkDestructure2(ctx, ast.param, paramType);
+
+	LambdaExpr* lambda = allocate(ctx.alloc, LambdaExpr(kind, param, mutTypeForExplicitShared));
 
 	LambdaInfo lambdaInfo = LambdaInfo(ptrTrustMe(locals), lambda);
 	initializeMutMaxArr(lambdaInfo.closureFields);
@@ -1139,19 +1233,13 @@ Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref La
 	// Checking the body of the lambda may fill in candidate type args
 	// if the expected return type contains candidate's type params
 	LocalsInfo bodyLocals = LocalsInfo(someMut(ptrTrustMe(lambdaInfo)), noneMut!(LocalNode*));
-	Pair!(Expr, Type) bodyAndType = withCopyWithNewExpectedType!Expr(
-		expected,
-		nonInstantiatedReturnType(ctx.instantiateCtx, ctx.commonTypes, et.funType),
-		et.typeContext,
+	Pair!(Expr, Type) bodyAndType = withCopyWithNewExpectedType!Expr(expected,
+		nonInstantiatedReturnType,
+		returnTypeContext,
 		(ref Expected returnTypeInferrer) =>
 			checkExprWithDestructure(ctx, bodyLocals, param, &ast.body_, returnTypeInferrer));
-	Type actualPossiblyFutReturnType = bodyAndType.b;
 
-	Type actualNonFutReturnType = kind == FunKind.far
-		? unwrapFutureType(actualPossiblyFutReturnType, ctx)
-		: actualPossiblyFutReturnType;
-	StructInst* instFunStruct = instantiateStructNeverDelay(
-		ctx.instantiateCtx, et.funType.funStruct, [actualNonFutReturnType, param.type]);
+	StructInst* instFunStruct = instantiateStructNeverDelay(ctx.instantiateCtx, funStruct, [bodyAndType.b, param.type]);
 	lambda.fillLate(
 		body_: bodyAndType.a,
 		closure: small!VariableRef(
@@ -1160,18 +1248,11 @@ Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref La
 				asTemporaryArray(lambdaInfo.closureFields),
 				(ref const ClosureFieldBuilder x) =>
 					x.variableRef)),
-		returnType: actualPossiblyFutReturnType);
+		returnType: bodyAndType.b);
 	//TODO: this check should never fail, so could just set inferred directly with no check
-	return check(ctx, source, expected, Type(instFunStruct), Expr(source, ExprKind(castImmutable(lambda))));
-}
-
-Type unwrapFutureType(Type a, in ExprCtx ctx) {
-	if (a.isA!(Type.Bogus))
-		return Type(Type.Bogus());
-	else {
-		assert(a.as!(StructInst*).decl == ctx.commonTypes.future);
-		return only(a.as!(StructInst*).typeArgs);
-	}
+	return LambdaAndReturnType(
+		check(ctx, source, expected, Type(instFunStruct), Expr(source, ExprKind(castImmutable(lambda)))),
+		bodyAndType.b);
 }
 
 Opt!Type typeFromDestructure(ref ExprCtx ctx, in DestructureAst ast) =>
@@ -1427,6 +1508,8 @@ bool hasBreakOrContinue(in ExprAst a) =>
 			false,
 		(in SeqAst x) =>
 			hasBreakOrContinue(x.then),
+		(in SharedAst x) =>
+			false,
 		// TODO: Maybe this should be allowed some day. Not in primitive loop but in for-break.
 		(in ThenAst x) =>
 			hasBreakOrContinue(x.then),

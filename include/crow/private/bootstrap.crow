@@ -314,17 +314,6 @@ An `act` can have anything in its closure, including mutable data, so it's consi
 ###
 +fun-mut[r, p] builtin mut
 
-###
-This is usually written as `far nat(string)` instead of `(nat, string) fun-far`.
-
-This wraps an `act` combined with the exclusion it came from.
-This is shared since the `act` can't be called directly;
-instead a task is added that will call the `act` when its exclusion is available.
-###
-+fun-far[r, p] record by-val, force-shared
-	exclusion exclusion
-	action r^ mut(param p)
-
 region future
 
 backtrace record by-val

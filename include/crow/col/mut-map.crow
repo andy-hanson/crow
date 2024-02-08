@@ -11,11 +11,13 @@ import
 	../string: ==, interpolate, join, string, to
 	../test-util: is
 	../tuple: ==, new
-	./array: array
-	./collection: fill, find, find-index, for-loop, n-of, map=, set-subscript, subscript
+	./array: array, iterate, size
+	./collection:
+		build-options, fill, find, find-index, for-loop, n-of, map=, set-subscript, size-hint,
+		subscript
 	./map: ~=, build, map
 	./mut-array: ~=, +, begin, build, iterate, mut-array, is-empty, new, next, set-next, size
-	./list: ==, ~=, build, iterate, list, new, size, to
+	./list: ==, ~=, build, iterate, list, new, size
 	./mut-list:
 		~=, +, begin, copy, filter=, is-at-capacity, is-empty, iterate, mut-list, new, next,
 		remove-unordered-at, set-next, size
@@ -40,7 +42,7 @@ New map containing the given pairs.
 Later pairs overwrite earlier pairs with the same key.
 ###
 +new[k, v] v mut[k](...a (k, v) array) k key
-	a.to to
+	a to
 
 ###
 New empty map with space for about `capacity` entries.
@@ -59,11 +61,9 @@ Convert a list of pairs to a map.
 Later pairs overwrite earlier pairs with the same key.
 ###
 +to[k, v] v mut[k](a (k, v)[]) k key
-	res v mut[k] = a.size mut-map-with-capacity
-	for k, v : a
-		res[k] := v
-	res
-
+	for x : a; x
++to[k, v] v mut[k](a (k, v) array) k key
+	for x : a; x
 +to[k, v] v[k](a v mut[k]) k key
 	for x : a; x
 
@@ -76,10 +76,14 @@ Later pairs overwrite earlier pairs with the same key.
 	res (k, v)[] = a to
 	a clear
 	res
-
 +move-to[k, v] v[k](a v mut[k]) k key
 	res v[k] = a to
 	a clear
+	res
++move-to[k, v] v mut[k](a v mut[k]) k key
+	res v mut[k] = a.entries, a.total-size
+	a.entries := ()
+	a.total-size := 0
 	res
 
 # Copy pairs to a new map.
@@ -138,9 +142,6 @@ Sets the key to the given value, so that `a[key]` will return `value`.
 If the key is already in the map, this overwrites the previous value.
 ###
 +set-subscript[k, v] void(a v mut[k], key k, value v) k key
-	_ = a update key, (value,)
-
-+TODOKILLME[k, v] void(a v mut[k], key k, value v) k key
 	_ = a update key, (value,)
 
 # Remove all keys, leaving the map empty.
@@ -302,6 +303,13 @@ region spec impls (see collection.crow)
 			f[x]
 		as many m
 			m iterate f
+
+subregion build
+
++build[k, v] v mut[k](a build-options, f void mut(out v mut[k])) k key
+	res v mut[k] = a.size-hint mut-map-with-capacity
+	f[res]
+	res
 
 region test
 

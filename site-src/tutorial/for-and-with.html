@@ -59,7 +59,7 @@
 			value string
 			times nat
 
-		for-loop void(a repeated, f act void(string))
+		for-loop void(a repeated, f void mut(x string))
 			for _ : 0::nat .. a.times
 				f[a.value]
 	</crow-runnable>
@@ -88,7 +88,7 @@
 
 	<p>
 		This desugars to calling a function
-		<code>for-break nat(xs nat[], f-body act nat break-or-continue(nat), f-else act nat())</code>.
+		<code>for-break nat(xs nat[], f-body nat break-or-continue mut(x nat), f-else nat mut())</code>.
 		<br />
 		The <code class="keyword">break</code> and <code class="continue">continue</code> keywords
 		desugar into constructing <code class="type">break-or-continue</code> values.
@@ -134,7 +134,7 @@
 
 	<p>
 		The above calls a function that works like
-		<code>for-break nat(xs nat[], f-body act nat break-or-continue(nat), f-else act nat())</code>.
+		<code>for-break nat(xs nat[], f-body nat break-or-continue mut(x nat), f-else nat mut())</code>.
 	</p>
 </section>
 <section>
@@ -156,7 +156,7 @@
 		<code class="function">build</code> returns a type called <code class="type">build-options</code>
 		which is used as the argument to <code class="function">with-block</code>.
 		<br />
-		The signature works like <code>with-block string(a build-options, f act void(string-builder))</code>.
+		The signature works like <code>with-block string(a build-options, f void mut(out string-builder))</code>.
 	</p>
 	<crow-runnable>
 		main void()

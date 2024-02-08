@@ -12,7 +12,7 @@ import model.model :
 	EnumBackingType,
 	FunDecl,
 	FunDeclAndTypeArgs,
-	FunKind,
+	LambdaExpr,
 	Local,
 	Module,
 	Purity,
@@ -285,7 +285,7 @@ immutable struct Diag {
 	immutable struct LambdaCantBeFunctionPointer {}
 	immutable struct LambdaCantInferParamType {}
 	immutable struct LambdaClosurePurity {
-		FunKind funKind;
+		LambdaExpr.Kind lambdaKind;
 		Symbol localName;
 		Purity localPurity;
 		// If missing, the error is that the local itself is 'mut'.
@@ -393,6 +393,18 @@ immutable struct Diag {
 		StructDecl* parent;
 		Type child;
 	}
+	immutable struct SharedArgIsNotLambda {}
+	immutable struct SharedLambdaTypeIsNotShared {
+		enum Kind { paramType, returnType }
+		Kind kind;
+		TypeWithContainer actual;
+	}
+	immutable struct SharedLambdaUnused {}
+	immutable struct SharedNotExpected {
+		enum Reason { notShared, notFuture }
+		Reason reason;
+		ExpectedForDiag expected;
+	}
 	// spec did have a match, but there was an error
 	immutable struct SpecMatchError {
 		immutable struct Reason {
@@ -465,7 +477,6 @@ immutable struct Diag {
 	immutable struct TypeShouldUseSyntax {
 		enum Kind {
 			funData,
-			funFar,
 			funMut,
 			funPointer,
 			funShared,
@@ -477,6 +488,8 @@ immutable struct Diag {
 			mutPointer,
 			opt,
 			pointer,
+			sharedList,
+			sharedMap,
 			tuple,
 		}
 		Kind kind;
@@ -585,6 +598,10 @@ immutable struct Diag {
 		PointerMutToConst,
 		PointerUnsupported,
 		PurityWorseThanParent,
+		SharedArgIsNotLambda,
+		SharedLambdaTypeIsNotShared,
+		SharedLambdaUnused,
+		SharedNotExpected,
 		SpecMatchError,
 		SpecNoMatch,
 		SpecRecursion,

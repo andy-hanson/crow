@@ -1,15 +1,12 @@
 info: data
 info: shared
 info: mut
-info: far
 info: ptr
 info: a data
 info: a shared
 info: c mut
-info: d far
 info: e ptr
 info: a data b
 info: c shared d
 info: e mut f
-info: g far h
 info: i ptr j

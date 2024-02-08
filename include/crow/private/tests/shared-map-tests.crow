@@ -1,0 +1,12 @@
+dummy-shared-map-tests nat()
+	0
+
+test
+	res nat shared[nat] = ()
+	<- for x : 0::nat .. 100 parallel
+		res[x] := x * 2
+		()
+	res.move-to::nat[nat] is for x : 0::nat .. 100
+		x, x * 2
+	()
+

@@ -50,6 +50,7 @@ import model.ast :
 	PtrAst,
 	RecordFieldAst,
 	SeqAst,
+	SharedAst,
 	SpecDeclAst,
 	SpecSigAst,
 	SpecUseAst,
@@ -619,6 +620,9 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 		(in SeqAst x) {
 			addExprTokens(ctx, x.first);
 			addExprTokens( ctx, x.then);
+		},
+		(in SharedAst x) {
+			addExprTokens(ctx, x.inner);
 		},
 		(in ThenAst x) {
 			addDestructureTokens(ctx, x.left);

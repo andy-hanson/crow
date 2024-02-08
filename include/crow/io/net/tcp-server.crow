@@ -1,4 +1,3 @@
-no-std
 import
 	system/errno: EAGAIN, errno, EWOULDBLOCK
 	system/fcntl: fcntl, F_GETFL, F_SETFL, O_NONBLOCK
@@ -10,22 +9,11 @@ import
 	system/sys/socket: accept, as-fd, as-socket, listen, shutdown, SHUT_RDWR, sockaddr, SOCKET
 	system/sys/types: socklen_t
 	system/unistd: close, read
-	../../bits: |, bits-intersect
-	../../bool: ||, bool, false, not, true
-	../../col/array: +, array, begin, slice
-	../../col/collection: subscript
-	../../col/mut-array: cast-immutable, begin-pointer, mut-array, size, uninitialized-mut-array
-	../../compare: !=, <
 	../../c-types: c-int, fd-t
-	../../future: future, handle-exceptions, then, new, subscript
-	../../misc: new, void
-	../../number: ==, <=>, int32, nat8, nat16, nat32, to
 	../../private/bootstrap: todo
-	../../pointer: mut-pointer, pointer-cast, size-of
-	../../range: ..
-	../../tuple: new
 	../../version: is-windows
 	../duration: msec
+	../../future: handle-exceptions
 	../posix-util: check-posix-error
 	../print: err, print
 	../time: delay
@@ -33,18 +21,18 @@ import
 
 # Reference to a running server.
 tcp-server record shared
-	stop void far()
+	stop void^ shared()
 
 # Interface that handles TCP requests.
-tcp-handler record shared
-	on-accepted-client void far(socket SOCKET)
+tcp-handler record mut
+	on-accepted-client void mut(socket SOCKET)
 	###
 	Gives the handler a chunk of data.
 	Handler needs to parse to determine when it has all the chunks,
 	then write a response and call 'close-client'.
 	WARN: Due to asynchrony, this may be called on a client that was already closed.
 	###
-	on-received-chunk void far(socket SOCKET, chunk nat8 array)
+	on-received-chunk void mut(socket SOCKET, chunk nat8 array)
 
 ###
 Starts running a TCP server on the given port.
@@ -82,7 +70,7 @@ start-tcp-server tcp-server(port nat16, handler tcp-handler) summon, unsafe
 		done = state tcp-server-loop-linux
 		done handle-exceptions
 
-		stop: () =>
+		stop: shared () =>
 			state.should-stop := true
 			done
 
@@ -133,7 +121,7 @@ close-client void(client SOCKET) summon, unsafe
 -accept-clients void(
 	listen-fd SOCKET,
 	epoll-fd fd-t,
-	on-accepted-client void far(socket SOCKET),
+	on-accepted-client void mut(socket SOCKET),
 ) summon, unsafe
 	clientaddr mut sockaddr_in = ()
 	clientaddr-as-sockaddr sockaddr mut* = (&clientaddr)::sockaddr_in mut* pointer-cast
@@ -149,12 +137,12 @@ close-client void(client SOCKET) summon, unsafe
 		client-event mut epoll_event = EPOLLIN | EPOLLET, client-fd.to
 		err = epoll-fd epoll_ctl EPOLL_CTL_ADD, client-fd, &client-event
 		assert err == 0
-		on-accepted-client[client-fd as-socket] handle-exceptions
+		on-accepted-client[client-fd as-socket]
 		listen-fd accept-clients epoll-fd, on-accepted-client
 
 -handle-client-linux void(
 	fd fd-t,
-	on-received-chunk void far(socket SOCKET, chunk nat8 array),
+	on-received-chunk void mut(socket SOCKET, chunk nat8 array),
 ) summon, unsafe
 	buf nat8 mut-array = 0x1000 uninitialized-mut-array
 	count = fd read buf.begin-pointer, buf.size
@@ -164,7 +152,7 @@ close-client void(client SOCKET) summon, unsafe
 			"read() failed" perror
 	elif count != 0
 		chunk = buf.cast-immutable[0 .. count.to]
-		on-received-chunk[fd.as-socket, chunk] handle-exceptions
+		on-received-chunk[fd.as-socket, chunk]
 		fd handle-client-linux on-received-chunk
 
 -set-non-blocking void(fd fd-t) bare, summon, unsafe

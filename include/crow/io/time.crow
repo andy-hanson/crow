@@ -2,13 +2,15 @@ no-std
 import
 	system/time: time, time_t
 	../compare: max
-	../future: future, subscript, then
+	../fun-util: subscript
+	../future: future, then
 	../misc: break-or-continue, new, shared, void
 	../number: ==, <=>, +, /, nat64, to
 	../pointer: null
 	../future: new
 	../private/future-low-level: forward-to, resolve, unresolved
-	../private/runtime: enqueue-timed-task-no-exclusion, get-global-ctx
+	../private/runtime:
+		enqueue-timed-task-cur-exclusion, enqueue-timed-task-no-exclusion, get-global-ctx
 	../version: is-windows
 	./duration: duration, nsec
 export
@@ -38,13 +40,13 @@ export
 # Call `action` now and on every `interval`.
 +for-break[out] out^(
 	interval interval,
-	f-loop out break-or-continue far(),
+	f-loop out break-or-continue^ mut(),
 ) summon, out shared
 	get-monotime-nsec repeat-interval-recur interval.time.nsec.to, f-loop
 -repeat-interval-recur[out] out^(
 	start-nsec nat64,
 	interval-nsec nat64,
-	action out break-or-continue far(),
+	action out break-or-continue^ mut(),
 ) summon, out shared
 	choice <- action[]
 	match choice
@@ -54,7 +56,7 @@ export
 		next-time = get-monotime-nsec max start-nsec + interval-nsec
 		trusted
 			res out^ = unresolved
-			get-global-ctx enqueue-timed-task-no-exclusion next-time, () =>
+			get-global-ctx enqueue-timed-task-cur-exclusion next-time, () =>
 				res forward-to (next-time repeat-interval-recur interval-nsec, action)
 			res
 

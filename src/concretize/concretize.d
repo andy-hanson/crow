@@ -65,7 +65,6 @@ ConcreteProgram concretizeInner(
 		ptrTrustMe(program.program),
 		castNonScope_ref(fileContentGetters));
 	CommonFuns commonFuns = program.program.commonFuns;
-	lateSet(ctx.curExclusionFun_, getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.curExclusion));
 	lateSet(ctx.char8ArrayAsString_, getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.char8ArrayAsString));
 	lateSet(ctx.newVoidFutureFunction_, getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
 		ctx.program.commonFuns.newVoidFuture.decl,

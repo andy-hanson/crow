@@ -15,7 +15,6 @@ import frontend.parse.lexToken :
 	lookaheadEqualsOrThen,
 	lookaheadLambdaAfterParenLeft,
 	lookaheadNew,
-	lookaheadOpenParen,
 	lookaheadQuestionEquals,
 	plainToken;
 import frontend.parse.lexWhitespace :
@@ -174,6 +173,11 @@ void skipNewlinesIgnoreIndentation(ref Lexer lexer, uint indentLevel) {
 	}
 }
 
+void mustTakeToken(ref Lexer lexer, Token token) {
+	Token actual = takeNextToken(lexer).token;
+	assert(actual == token);
+}
+
 TokenAndData takeNextToken(ref Lexer lexer) {
 	TokenAndData res = cellGet(lexer.nextToken);
 	switch (res.token) {
@@ -278,16 +282,17 @@ bool lookaheadLambda(in Lexer lexer) =>
 	getPeekToken(lexer) == Token.parenLeft && .lookaheadLambdaAfterParenLeft(lexer.ptr);
 
 bool lookaheadOpenParen(in Lexer lexer) =>
-	.lookaheadOpenParen(lexer.ptr);
+	*lexer.ptr == '(';
+
+bool lookaheadOpenBracket(in Lexer lexer) =>
+	*lexer.ptr == '[';
 
 // Returns position of 'as'
 Opt!Pos tryTakeNewlineThenAs(ref Lexer lexer) {
 	if (getPeekToken(lexer) == Token.newlineSameIndent && .lookaheadAs(lexer.ptr)) {
-		TokenAndData a = takeNextToken(lexer);
-		assert(a.token == Token.newlineSameIndent);
+		mustTakeToken(lexer, Token.newlineSameIndent);
 		Pos asPos = curPos(lexer);
-		TokenAndData b = takeNextToken(lexer);
-		assert(b.token == Token.as);
+		mustTakeToken(lexer, Token.as);
 		return some(asPos);
 	} else
 		return none!Pos;
@@ -295,10 +300,8 @@ Opt!Pos tryTakeNewlineThenAs(ref Lexer lexer) {
 
 bool tryTakeNewlineThenElse(ref Lexer lexer) {
 	if (getPeekToken(lexer) == Token.newlineSameIndent && lookaheadElse(lexer.ptr)) {
-		TokenAndData a = takeNextToken(lexer);
-		assert(a.token == Token.newlineSameIndent);
-		TokenAndData b = takeNextToken(lexer);
-		assert(b.token == Token.else_);
+		mustTakeToken(lexer, Token.newlineSameIndent);
+		mustTakeToken(lexer, Token.else_);
 		return true;
 	} else
 		return false;
@@ -308,10 +311,8 @@ Opt!ElifOrElse tryTakeNewlineThenElifOrElse(ref Lexer lexer) {
 	if (getPeekToken(lexer) == Token.newlineSameIndent) {
 		Opt!ElifOrElse res = lookaheadElifOrElse(lexer.ptr);
 		if (has(res)) {
-			TokenAndData a = takeNextToken(lexer);
-			assert(a.token == Token.newlineSameIndent);
-			TokenAndData b = takeNextToken(lexer);
-			assert(b.token == enumConvert!Token(force(res)));
+			mustTakeToken(lexer, Token.newlineSameIndent);
+			mustTakeToken(lexer, enumConvert!Token(force(res)));
 		}
 		return res;
 	} else

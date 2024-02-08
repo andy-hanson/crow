@@ -1,21 +1,4 @@
-no-std
 import
-	../../bool: ==, bool, false, new, not, true
-	../../compare: <=, equal, max
-	../../fun-util: subscript
-	../../hash: hash-mix
-	../../json: json, to
-	../../misc: key, new, to, void
-	../../number: ==, <=>, +, nat64
-	../../option: ==, is-empty, new, option
-	../../string: ==, interpolate, join, string, to
-	../../test-util: is
-	../../tuple: ==, new
-	../collection: build, for-loop, with-block
-	../mut-array: ~=, build, mut-array
-	../list: ==, ~=, build, iterate, list, new, size
-	../mut-set: in, mut-set, new, try-add
-	../sort: sort
 	./frozen-map:
 		frozen-map, in, is-empty, iterate, mut-array-to-frozen-map-promise-no-duplicates, new,
 		size, subscript, to

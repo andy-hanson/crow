@@ -234,8 +234,6 @@ void writeParseDiag(scope ref Writer writer, in ShowCtx ctx, in ParseDiag d) {
 
 string showParseDiagExpected(ParseDiag.Expected.Kind kind) {
 	final switch (kind) {
-		case ParseDiag.Expected.Kind.afterMut:
-			return "After 'mut', expected '[' or '(' or '*'.";
 		case ParseDiag.Expected.Kind.blockCommentEnd:
 			return "Expected '###' (then a newline).";
 		case ParseDiag.Expected.Kind.closeInterpolated:
@@ -707,7 +705,7 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= "Can't access ";
 			writeName(writer, ctx, x.localName);
 			writer ~= " in a ";
-			writeKeyword(writer, ctx, stringOfEnum(x.funKind));
+			writeKeyword(writer, ctx, stringOfEnum(x.lambdaKind));
 			writer ~= " lambda because it is ";
 			if (has(x.type)) {
 				writer ~= "of ";
@@ -907,6 +905,38 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writePurity(writer, ctx, bestCasePurity(x.child));
 			writer ~= '.';
 		},
+		(in Diag.SharedArgIsNotLambda) {
+			writer ~= "Argument to 'shared' must be a lambda expression.";
+		},
+		(in Diag.SharedLambdaTypeIsNotShared x) {
+			writer ~= "'shared' lambda needs a 'shared' ";
+			writer ~= () {
+				final switch (x.kind) {
+					case Diag.SharedLambdaTypeIsNotShared.Kind.paramType:
+						return "parameter";
+					case Diag.SharedLambdaTypeIsNotShared.Kind.returnType:
+						return "return";
+				}
+			}();
+			writer ~= " type, but it is ";
+			writeTypeQuoted(writer, ctx, x.actual);
+			writer ~= '.';
+		},
+		(in Diag.SharedLambdaUnused x) {
+			writer ~= "The lambda does not have anything 'mut' in its closure, so it does not need 'shared'.";
+		},
+		(in Diag.SharedNotExpected x) {
+			writer ~= () {
+				final switch (x.reason) {
+					case Diag.SharedNotExpected.Reason.notShared:
+						return "Expected type is a lambda, but it is not 'shared'.";
+					case Diag.SharedNotExpected.Reason.notFuture:
+						return "In order for 'shared' to work, it needs to return a future.";
+				}
+			}();
+			writer ~= '\n';
+			writeExpected(writer, ctx, x.expected, ExpectedKind.lambda);
+		},
 		(in Diag.SpecMatchError x) {
 			x.reason.matchIn!void(
 				(in Diag.SpecMatchError.Reason.MultipleMatches y) {
@@ -1009,8 +1039,6 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 				final switch (x.kind) {
 					case Diag.TypeShouldUseSyntax.Kind.funData:
 						return "Prefer to write 'r data(x p)' instead of '(r, p) fun-data'.";
-					case Diag.TypeShouldUseSyntax.Kind.funFar:
-						return "Prefer to write 'far r(x p)' instead of '(r, p) fun-far'.";
 					case Diag.TypeShouldUseSyntax.Kind.funMut:
 						return "Prefer to write 'r mut(x p)' instead of '(r, p) fun-mut'.";
 					case Diag.TypeShouldUseSyntax.Kind.funPointer:
@@ -1033,6 +1061,10 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 						return "Prefer to write 't?' instead of 't option'.";
 					case Diag.TypeShouldUseSyntax.Kind.pointer:
 						return "Prefer to write 't*' instead of 't const-pointer'.";
+					case Diag.TypeShouldUseSyntax.Kind.sharedList:
+						return "Prefer to write 't shared[]' instead of 't shared-list'.";
+					case Diag.TypeShouldUseSyntax.Kind.sharedMap:
+						return "Prefer to write 'v shared[k]' instead of '(k, v) shared-map'.";
 					case Diag.TypeShouldUseSyntax.Kind.tuple:
 						return "Prefer to write '(t, u)' instead of '(t, u) tuple2'.";
 				}
@@ -1272,8 +1304,6 @@ string describeTokenForUnexpected(Token token) {
 			return "Unexpected keyword 'extern'.";
 		case Token.EOF:
 			return "Unexpected end of file.";
-		case Token.far:
-			return "Unexpected keyword 'far'.";
 		case Token.flags:
 			return "Unexpected keyword 'flags'.";
 		case Token.for_:

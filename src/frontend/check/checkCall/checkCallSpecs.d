@@ -44,6 +44,9 @@ import util.sourceRange : Range;
 import util.union_ : Union;
 import util.util : ptrTrustMe;
 
+bool isShared(in immutable SpecInst*[] funSpecs, Type type) =>
+	isPurityAlwaysCompatibleConsideringSpecs(funSpecs, type, Purity.shared_);
+
 bool isPurityAlwaysCompatibleConsideringSpecs(in immutable SpecInst*[] funSpecs, Type type, Purity expected) {
 	PurityRange typePurity = purityRange(type);
 	return isPurityAlwaysCompatible(expected, typePurity) ||

@@ -11,6 +11,7 @@ import frontend.parse.lexer :
 	getPeekTokenAndData,
 	Lexer,
 	lookaheadNewVisibility,
+	mustTakeToken,
 	range,
 	takeNextToken,
 	Token,
@@ -308,7 +309,7 @@ void parseSpecOrStructOrFun(
 
 	switch (getPeekToken(lexer)) {
 		case Token.alias_:
-			takeNextToken(lexer);
+			mustTakeToken(lexer, Token.alias_);
 			TypeAst target = takeIndentOrFailGeneric!TypeAst(lexer,
 				() {
 					TypeAst res = parseType(lexer);
@@ -320,36 +321,36 @@ void parseSpecOrStructOrFun(
 				docComment, range(lexer, start), visibility, name, typeParams, keywordPos, target));
 			break;
 		case Token.builtin:
-			takeNextToken(lexer);
+			mustTakeToken(lexer, Token.builtin);
 			addStruct(() => StructBodyAst(StructBodyAst.Builtin()));
 			break;
 		case Token.enum_:
-			takeNextToken(lexer);
+			mustTakeToken(lexer, Token.enum_);
 			Opt!(TypeAst*) typeArg = tryParseTypeArgForEnumOrFlags(lexer);
 			addStruct(() => StructBodyAst(StructBodyAst.Enum(typeArg, parseEnumOrFlagsMembers(lexer))));
 			break;
 		case Token.extern_:
-			takeNextToken(lexer);
+			mustTakeToken(lexer, Token.extern_);
 			StructBodyAst.Extern body_ = parseExternType(lexer);
 			addStruct(() => StructBodyAst(body_));
 			break;
 		case Token.flags:
-			takeNextToken(lexer);
+			mustTakeToken(lexer, Token.flags);
 			Opt!(TypeAst*) typeArg = tryParseTypeArgForEnumOrFlags(lexer);
 			addStruct(() => StructBodyAst(StructBodyAst.Flags(typeArg, parseEnumOrFlagsMembers(lexer))));
 			break;
 		case Token.global:
 			Pos pos = curPos(lexer);
-			takeNextToken(lexer);
+			mustTakeToken(lexer, Token.global);
 			add(lexer.alloc, varDecls, parseVarDecl(
 				lexer, start, docComment, visibility, name, typeParams, pos, VarKind.global));
 			break;
 		case Token.record:
-			takeNextToken(lexer);
+			mustTakeToken(lexer, Token.record);
 			addStruct(() => StructBodyAst(parseRecordBody(lexer)));
 			break;
 		case Token.spec:
-			takeNextToken(lexer);
+			mustTakeToken(lexer, Token.spec);
 			SmallArray!ModifierAst modifiers = parseModifiers(lexer);
 			SmallArray!SpecSigAst sigs = parseIndentedSigs(lexer);
 			add(lexer.alloc, specs, SpecDeclAst(
@@ -357,12 +358,12 @@ void parseSpecOrStructOrFun(
 			break;
 		case Token.thread_local:
 			Pos pos = curPos(lexer);
-			takeNextToken(lexer);
+			mustTakeToken(lexer, Token.thread_local);
 			add(lexer.alloc, varDecls, parseVarDecl(
 				lexer, start, docComment, visibility, name, typeParams, pos, VarKind.threadLocal));
 			break;
 		case Token.union_:
-			takeNextToken(lexer);
+			mustTakeToken(lexer, Token.union_);
 			addStruct(() => StructBodyAst(StructBodyAst.Union(parseUnionMembers(lexer))));
 			break;
 		default:

@@ -3,24 +3,18 @@ main nat^(_ string[])
 	info log r0.data_
 	info log r0.shared_
 	info log r0.mut_
-	x0 <- r0.far_
-	info log x0
 	info log trusted r0.ptr::c-string.to
 
 	r1 = make-r1
 	info log (r1 data_ "a")
 	info log (r1 shared_ "a")
 	info log (r1 mut_ "c")
-	x1 <- r1 far_ "d"
-	info log x1
 	r1 ptr "e"
 
 	r2 = make-r2
 	info log (r2 data_ "a", "b")
 	info log (r2 shared_ "c", "d")
 	info log (r2 mut_ "e", "f")
-	x2 <- r2 far_ "g", "h"
-	info log x2
 	r2 ptr "i", "j"
 
 	()
@@ -29,14 +23,12 @@ r0 record mut
 	data_ string data()
 	shared_ string shared()
 	mut_ string mut()
-	far_ string far()
 	ptr c-string function()
 
 make-r0 r0()
 	data_: () => "data"
 	shared_: () => "shared"
 	mut_: () => "mut"
-	far_: () => "far",
 	ptr: &ptr0
 
 ptr0 c-string()
@@ -46,14 +38,12 @@ r1 record mut
 	data_ string data(x string)
 	shared_ string shared(x string)
 	mut_ string mut(x string)
-	far_ string far(x string)
 	ptr void function(x string)
 
 make-r1 r1()
 	data_: x => "{x} data"
 	shared_: x => "{x} shared"
 	mut_: x => "{x} mut"
-	far_: x => "{x} far",
 	ptr: &ptr1
 
 ptr1 void(x string)
@@ -63,14 +53,12 @@ r2 record mut
 	data_ string data(x string, y string)
 	shared_ string shared(x string, y string)
 	mut_ string mut(x string, y string)
-	far_ string far(x string, y string)
 	ptr void function(x string, y string)
 
 make-r2 r2()
 	data_: (x, y) => "{x} data {y}"
 	shared_: (x, y) => "{x} shared {y}"
 	mut_: (x, y) => "{x} mut {y}"
-	far_: (x, y) => "{x} far {y}",
 	ptr: &ptr2
 
 ptr2 void(x string, y string)

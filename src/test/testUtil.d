@@ -205,6 +205,8 @@ alias testIncludePathsSeq = AliasSeq!(
 	"crow/col/mut-map.crow",
 	"crow/col/mut-set.crow",
 	"crow/col/set.crow",
+	"crow/col/shared-list.crow",
+	"crow/col/shared-map.crow",
 	"crow/col/sort.crow",
 	"crow/col/private/array-low-level.crow",
 	"crow/col/private/build.crow",

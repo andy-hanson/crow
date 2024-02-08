@@ -89,6 +89,7 @@ immutable struct TypeAst {
 		enum Kind {
 			data,
 			mut,
+			shared_,
 		}
 		Kind kind;
 		// They are actually written v[k] at the use, but applied as (k, v)
@@ -122,6 +123,7 @@ immutable struct TypeAst {
 			mutPtr,
 			option,
 			ptr,
+			sharedList,
 		}
 		TypeAst* left;
 		Pos suffixPos;
@@ -176,6 +178,8 @@ private uint suffixLength(TypeAst.SuffixSpecial.Kind a) {
 			return cast(uint) "mut*".length;
 		case TypeAst.SuffixSpecial.Kind.ptr:
 			return cast(uint) "*".length;
+		case TypeAst.SuffixSpecial.Kind.sharedList:
+			return cast(uint) "shared[]".length;
 	}
 }
 
@@ -185,6 +189,8 @@ Symbol symbolForTypeAstMap(TypeAst.Map.Kind a) {
 			return symbol!"map";
 		case TypeAst.Map.Kind.mut:
 			return symbol!"mut-map";
+		case TypeAst.Map.Kind.shared_:
+			return symbol!"shared-map";
 	}
 }
 
@@ -202,6 +208,8 @@ Symbol symbolForTypeAstSuffix(TypeAst.SuffixSpecial.Kind a) {
 			return symbol!"option";
 		case TypeAst.SuffixSpecial.Kind.ptr:
 			return symbol!"const-pointer";
+		case TypeAst.SuffixSpecial.Kind.sharedList:
+			return symbol!"shared-list";
 	}
 }
 
@@ -473,6 +481,16 @@ immutable struct SeqAst {
 	ExprAst then;
 }
 
+immutable struct SharedAst {
+	@safe @nogc pure nothrow:
+	ExprAst inner;
+
+	Range keywordRange(in ExprAst ast) scope {
+		assert(ast.kind.as!(SharedAst*) == &this);
+		return ast.range[0 .. "shared".length];
+	}
+}
+
 immutable struct ThenAst {
 	DestructureAst left;
 	ExprAst futExpr;
@@ -548,6 +566,7 @@ immutable struct ExprAstKind {
 		ParenthesizedAst*,
 		PtrAst*,
 		SeqAst*,
+		SharedAst*,
 		ThenAst*,
 		ThrowAst*,
 		TrustedAst*,

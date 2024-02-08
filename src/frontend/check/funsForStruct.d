@@ -4,6 +4,7 @@ module frontend.check.funsForStruct;
 
 import frontend.check.checkCtx : CheckCtx;
 import frontend.check.getCommonFuns : makeParam, makeParams, param;
+import frontend.check.inferringType : FunType, getFunType;
 import frontend.check.instantiate :
 	InstantiateCtx,
 	instantiateStructNeverDelay,
@@ -11,7 +12,6 @@ import frontend.check.instantiate :
 	makeMutPointerType,
 	TypeArgsArray,
 	typeArgsArray;
-import frontend.check.typeUtil : FunType, getFunType, nonInstantiatedReturnType;
 import model.model :
 	asTuple,
 	BuiltinType,
@@ -354,12 +354,12 @@ void maybeAddFieldCaller(
 	Opt!FunType optFunType = getFunType(commonTypes, field.type);
 	if (has(optFunType)) {
 		FunType funType = force(optFunType);
-		Params params = paramsForFieldCaller(ctx.alloc, commonTypes, recordType, funType.nonInstantiatedParamType);
+		Params params = paramsForFieldCaller(ctx.alloc, commonTypes, recordType, funType.paramType);
 		funsBuilder ~= funDeclWithBody(
 			FunDeclSource(field),
 			field.visibility,
 			field.name,
-			nonInstantiatedReturnType(ctx.instantiateCtx, commonTypes, funType),
+			funType.returnType,
 			params,
 			FunFlags.generated.withOkIfUnused,
 			[],

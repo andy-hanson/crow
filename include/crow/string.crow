@@ -218,7 +218,7 @@ Result is only digits, no punctuation.
 	else
 		(a / base to-base base) ~~ (a % base).digit-to-string
 
-+to string(a string)
++to string(a string) bare
 	a
 
 +to string(a nat8)

@@ -10,7 +10,7 @@ import
 	./parse:
 		/, ~~, bool, exact, float, grammar, lazy, map, quoted-string, separated-by, spaces,
 		with-block
-	./misc: to
+	./misc: key, to
 	./number: ==, float32, float64, int8, int16, int32, int64, nat8, nat16, nat32, nat64, to
 	./option: ??, new, option
 	./result: result
@@ -71,8 +71,8 @@ JSON data.
 	(for x : a; x to) json-list
 +to[t] json(a t mut[]) (json, t) to
 	(for x : a; x to) json-list
-+to[t] json(a t[symbol]) (json, t) to
-	(for k, v : a; k, v.to) json-object
++to[k, v] json(a v[k]) k key, (symbol, k) to, (json, v) to
+	(for k, v : a; k.to, v.to) json-object
 to json(a index-set)
 	(for x : a; x to) json-list
 +to[t] json(a t?) (json, t) to

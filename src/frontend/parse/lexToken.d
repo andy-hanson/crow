@@ -144,7 +144,6 @@ enum Token {
 	extern_, // 'extern'
 	EOF, // end of file
 	export_, // 'export'
-	far, // 'far'
 	flags, // 'flags'
 	for_, // 'for'
 	forceShared, // 'force-shared'
@@ -436,9 +435,6 @@ bool lookaheadLambdaAfterParenLeft(MutCString ptr) {
 	}
 }
 
-bool lookaheadOpenParen(CString ptr) =>
-	*ptr == '(';
-
 private bool startsWithIdentifier(CString ptr, in string expected) {
 	Opt!CString end = tryGetAfterStartsWith(ptr, expected);
 	return has(end) && !isAlphaIdentifierContinue(*force(end));
@@ -520,8 +516,6 @@ Token tokenForSymbol(Symbol a) {
 			return Token.export_;
 		case symbol!"extern".value:
 			return Token.extern_;
-		case symbol!"far".value:
-			return Token.far;
 		case symbol!"flags".value:
 			return Token.flags;
 		case symbol!"for".value:

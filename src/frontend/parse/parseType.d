@@ -10,7 +10,9 @@ import frontend.parse.lexer :
 	getPeekToken,
 	getPeekTokenAndData,
 	Lexer,
+	lookaheadOpenBracket,
 	lookaheadOpenParen,
+	mustTakeToken,
 	range,
 	rangeAtChar,
 	rangeForCurToken,
@@ -174,7 +176,7 @@ TypeAst parseTypeBeforeSuffixes(ref Lexer lexer, ParenthesesNecessary parens) {
 		case Token.name:
 			return TypeAst(NameAndRange(start, takeNextToken(lexer).asSymbol));
 		case Token.parenLeft:
-			takeNextToken(lexer);
+			mustTakeToken(lexer, Token.parenLeft);
 			return parseTupleType(lexer, start, parens);
 		default:
 			addDiagUnexpectedCurToken(lexer, start, getPeekTokenAndData(lexer));
@@ -263,10 +265,10 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, in TypeAst delegate() @safe 
 
 	switch (getPeekToken(lexer)) {
 		case Token.question:
-			takeNextToken(lexer);
+			mustTakeToken(lexer, Token.question);
 			return suffix(TypeAst.SuffixSpecial.Kind.option);
 		case Token.bracketLeft:
-			takeNextToken(lexer);
+			mustTakeToken(lexer, Token.bracketLeft);
 			return tryTakeToken(lexer, Token.bracketRight)
 				? suffix(TypeAst.SuffixSpecial.Kind.list)
 				: mapLike(TypeAst.Map.Kind.data);
@@ -280,28 +282,32 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, in TypeAst delegate() @safe 
 				: none!TypeAst;
 		case Token.mut:
 			return optOr!TypeAst(tryParseFunType(lexer, suffixPos, Token.mut, FunKind.mut, left), () {
-				takeNextToken(lexer);
-				if (tryTakeToken(lexer, Token.bracketLeft))
-					return tryTakeToken(lexer, Token.bracketRight)
+				mustTakeToken(lexer, Token.mut);
+				return tryTakeToken(lexer, Token.bracketLeft)
+					? tryTakeToken(lexer, Token.bracketRight)
 						? suffix(TypeAst.SuffixSpecial.Kind.mutList)
-						: mapLike(TypeAst.Map.Kind.mut);
-				else if (tryTakeOperator(lexer, symbol!"*"))
-					return suffix(TypeAst.SuffixSpecial.Kind.mutPtr);
-				else if (tryTakeOperator(lexer, symbol!"**"))
-					return doubleSuffix(TypeAst.SuffixSpecial.Kind.mutPtr, TypeAst.SuffixSpecial.Kind.ptr);
-				else {
-					addDiagExpected(lexer, ParseDiag.Expected.Kind.afterMut);
-					return none!TypeAst;
-				}
+						: mapLike(TypeAst.Map.Kind.mut)
+					: tryTakeOperator(lexer, symbol!"*")
+					? suffix(TypeAst.SuffixSpecial.Kind.mutPtr)
+					: tryTakeOperator(lexer, symbol!"**")
+					? doubleSuffix(TypeAst.SuffixSpecial.Kind.mutPtr, TypeAst.SuffixSpecial.Kind.ptr)
+					: none!TypeAst;
 			});
-		case Token.far:
-			return tryParseFunType(lexer, suffixPos, Token.far, FunKind.far, left);
 		case Token.function_:
 			return tryParseFunType(lexer, suffixPos, Token.function_, FunKind.function_, left);
 		case Token.data:
 			return tryParseFunType(lexer, suffixPos, Token.data, FunKind.data, left);
 		case Token.shared_:
-			return tryParseFunType(lexer, suffixPos, Token.shared_, FunKind.shared_, left);
+			return optOr!TypeAst(tryParseFunType(lexer, suffixPos, Token.shared_, FunKind.shared_, left), () {
+				if (lookaheadOpenBracket(lexer)) {
+					mustTakeToken(lexer, Token.shared_);
+					mustTakeToken(lexer, Token.bracketLeft);
+					return tryTakeToken(lexer, Token.bracketRight)
+						? suffix(TypeAst.SuffixSpecial.Kind.sharedList)
+						: mapLike(TypeAst.Map.Kind.shared_);
+				} else
+					return none!TypeAst;
+			});
 		default:
 			return none!TypeAst;
 	}

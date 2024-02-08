@@ -1,0 +1,69 @@
+no-std
+import
+	../bool: bool
+	../exception: finally, with-block
+	../fun-util: subscript
+	../misc: key, void
+	../number: nat64
+	../option: option
+	../private/thread-utils: acquire, init, lock, release, uninit
+	../pointer: mut-pointer
+	./array: array
+	./collection: build-options
+	./map: map
+	./mut-map: build, clear, in, is-empty, mut-map, move-to, set-subscript, remove, size, to
+
+###
+Shared equivalent to 'mut-map'.
+
+Iteration is not supported; since operations on this take a lock, they need to be short.
+###
++shared-map[k, v] record force-shared, by-ref
+	-lk mut lock
+	-inner mut v mut[k]
+-lock[k, v] lock mut*(a v shared[k]) bare, unsafe
+	&a.lk
+-with-lock[out, k, v] out(a v shared[k], cb out mut(a v mut[k])) unsafe
+	a.lock acquire
+	with : (() => a.lock release) finally
+		cb[a.inner]
+
++new[k, v] v shared[k](...a (k, v) array) k key
+	a.to new-from-mut-map
+
+-new-from-mut-map[k, v] v shared[k](inner v mut[k]) k key
+	trusted
+		res v shared[k] = uninit, inner
+		res.lock init
+		res
+
++move-to[k, v] v[k](a v shared[k]) k key
+	trusted a with-lock x => x move-to
++move-to[k, v] v shared[k](a v mut[k]) k key
+	a.move-to new-from-mut-map
+
++size[k, v] nat64(a v shared[k]) k key
+	trusted a with-lock x => x size
++is-empty[k, v] bool(a v shared[k]) k key
+	trusted a with-lock x => x is-empty
+
++in[k, v] bool(key k, a v shared[k]) k key
+	trusted a with-lock x => key in x
+
++set-subscript[k, v] void(a v shared[k], key k, value v) k key
+	trusted a with-lock x =>
+		x[key] := value
+
++clear[k, v] void(a v shared[k]) k key
+	trusted a with-lock x => x clear
+
++remove[k, v] v?(a v shared[k], key k) k key
+	trusted a with-lock x => x remove key
+
++~=[k, v] void(a v shared[k], (key k, value v)) k key
+	a[key] := value
+
+region build
+
++build[k, v] v shared[k](a build-options, f void mut(out v mut[k])) k key
+	a build f move-to

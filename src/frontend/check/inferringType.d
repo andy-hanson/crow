@@ -4,12 +4,22 @@ module frontend.check.inferringType;
 
 import frontend.check.exprCtx : addDiag2, ExprCtx, typeWithContainer;
 import frontend.check.instantiate : InstantiateCtx, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray;
-import frontend.check.typeUtil : FunType, getFunType;
 import frontend.showModel : ShowCtx, ShowTypeCtx, ShowOptions, writeTypeUnquoted;
 import frontend.storage : LineAndColumnGetters;
 import model.ast : ExprAst;
 import model.diag : Diag, ExpectedForDiag, TypeContainer, TypeWithContainer;
-import model.model : BogusExpr, CommonTypes, Expr, ExprAndType, ExprKind, LoopExpr, StructInst, Type, TypeParamIndex;
+import model.model :
+	BogusExpr,
+	CommonTypes,
+	Expr,
+	ExprAndType,
+	ExprKind,
+	FunKind,
+	LoopExpr,
+	StructDecl,
+	StructInst,
+	Type,
+	TypeParamIndex;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.array :
 	contains,
@@ -21,10 +31,12 @@ import util.col.array :
 	NoneOneOrMany,
 	noneOneOrMany,
 	only,
+	only2,
 	small,
 	zip,
 	zipEvery;
 import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, asTemporaryArray, finish;
+import util.col.enumMap : enumMapFindKey;
 import util.col.mutMaxArr : asTemporaryArray;
 import util.opt : has, force, MutOpt, none, noneMut, Opt, optOrDefault, some, someInout, someMut;
 import util.symbol : writeSymbol;
@@ -411,7 +423,7 @@ private Opt!Type getExpectedParamTypeFromFunType(
 	ref bool anyDiag,
 ) {
 	Opt!Type optExpectedParamType = tryGetNonInferringType(
-		ctx.instantiateCtx, TypeAndContext(funType.nonInstantiatedParamType, typeContext));
+		ctx.instantiateCtx, TypeAndContext(funType.paramType, typeContext));
 	if (has(optExpectedParamType))
 		return !has(declaredParamType) || force(optExpectedParamType) == force(declaredParamType)
 			? optExpectedParamType
@@ -578,6 +590,32 @@ Opt!Type tryGetNonInferringType(ref InstantiateCtx ctx, const TypeAndContext a) 
 			return some(Type(instantiateStructNeverDelay(ctx, i.decl, asTemporaryArray(newTypeArgs))));
 		});
 
+immutable struct FunType {
+	@safe @nogc pure nothrow:
+
+	FunKind kind;
+	StructInst* structInst;
+
+	StructDecl* funStruct() =>
+		structInst.decl;
+	Type returnType() =>
+		only2(structInst.typeArgs)[0];
+	Type paramType() =>
+		only2(structInst.typeArgs)[1];
+}
+
+Opt!FunType getFunType(in CommonTypes commonTypes, Type a) {
+	if (a.isA!(StructInst*)) {
+		StructInst* structInst = a.as!(StructInst*);
+		Opt!FunKind kind = enumMapFindKey!(FunKind, StructDecl*)(commonTypes.funStructs, (in StructDecl* x) =>
+			x == structInst.decl);
+		return has(kind)
+			? some(FunType(force(kind), structInst))
+			: none!FunType;
+	} else
+		return none!FunType;
+}
+
 private:
 
 // For diagnostics. Applies types that have been inferred, otherwise uses Bogus.
@@ -670,10 +708,8 @@ public void inferTypeArgsFromLambdaParameterType(
 	Type lambdaParameterType,
 ) {
 	Opt!FunType funType = getFunType(commonTypes, a);
-	if (has(funType)) {
-		Type paramType = force(funType).nonInstantiatedParamType;
-		inferTypeArgsFrom(ctx, paramType, aInferringTypeArgs, nonInferring(lambdaParameterType));
-	}
+	if (has(funType))
+		inferTypeArgsFrom(ctx, force(funType).paramType, aInferringTypeArgs, nonInferring(lambdaParameterType));
 }
 
 public void inferTypeArgsFrom(

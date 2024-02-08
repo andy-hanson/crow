@@ -43,7 +43,7 @@ import model.model :
 	TypeParamsAndSig,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.array : arraysCorrespond, copyArray, findIndex, isEmpty, makeArray, map, only, sizeEq, small;
+import util.col.array : arraysCorrespond, copyArray, findIndex, isEmpty, makeArray, map, sizeEq, small;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.enumMap : EnumMap, enumMapMapValues;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
@@ -67,23 +67,23 @@ CommonFunsAndMain getCommonFuns(
 ) {
 	ArrayBuilder!UriAndDiagnostic diagsBuilder;
 
-	Type getType(CommonModule module_, Symbol name) {
-		return getNonTemplateType(alloc, ctx, diagsBuilder, *modules[module_], name);
-	}
-	Type instantiateType(StructDecl* decl, in Type[] typeArgs) {
-		return Type(instantiateStructNeverDelay(ctx, decl, typeArgs));
-	}
+	Type getType(CommonModule module_, Symbol name) =>
+		getNonTemplateType(alloc, ctx, diagsBuilder, *modules[module_], name);
+	Type instantiateType(StructDecl* decl, in Type[] typeArgs) =>
+		Type(instantiateStructNeverDelay(ctx, decl, typeArgs));
 	FunDecl* getFunDeclInner(
-		ref Module module_, Symbol name, TypeParams typeParams, Type returnType, in ParamShort[] params,
-	) {
-		return getFunDecl(alloc, diagsBuilder, module_, name, TypeParamsAndSig(typeParams, returnType, params));
-	}
-	FunInst* getFunInner(ref Module module_, Symbol name, Type returnType, in ParamShort[] params) {
-		return instantiateNonTemplateFun(ctx, getFunDeclInner(module_, name, emptyTypeParams, returnType, params));
-	}
-	FunInst* getFun(CommonModule module_, Symbol name, Type returnType, in ParamShort[] params) {
-		return getFunInner(*modules[module_], name, returnType, params);
-	}
+		ref Module module_,
+		Symbol name,
+		TypeParams typeParams,
+		Type returnType,
+		in ParamShort[] params,
+		uint countSpecs,
+	) =>
+		getFunDecl(alloc, diagsBuilder, module_, name, TypeParamsAndSig(typeParams, returnType, params, countSpecs));
+	FunInst* getFunInner(ref Module module_, Symbol name, Type returnType, in ParamShort[] params) =>
+		instantiateNonTemplateFun(ctx, getFunDeclInner(module_, name, emptyTypeParams, returnType, params, 0));
+	FunInst* getFun(CommonModule module_, Symbol name, Type returnType, in ParamShort[] params) =>
+		getFunInner(*modules[module_], name, returnType, params);
 
 	StructDecl* arrayDecl = getStructDeclOrAddDiag(
 		alloc, diagsBuilder, *modules[CommonModule.bootstrap], symbol!"array", 1);
@@ -106,8 +106,6 @@ CommonFunsAndMain getCommonFuns(
 	FunInst* allocFun = getFun(CommonModule.alloc, symbol!"alloc", nat8MutPointerType, [param!"size-bytes"(nat64Type)]);
 	immutable EnumMap!(FunKind, FunDecl*) lambdaSubscriptFuns = getLambdaSubscriptFuns(
 		alloc, commonTypes, *modules[CommonModule.funUtil], *modules[CommonModule.future]);
-	FunInst* curExclusion =
-		getFun(CommonModule.runtime, symbol!"cur-exclusion", nat64Type, []);
 	Opt!MainFun main = has(mainModule)
 		? some(getMainFun(
 			alloc, ctx, diagsBuilder, *force(mainModule), nat64FutureType, stringListType, voidType))
@@ -118,10 +116,21 @@ CommonFunsAndMain getCommonFuns(
 		Type(commonTypes.bool_),
 		[param!"ctx"(markCtxType), param!"pointer"(nat8ConstPointerType), param!"size-bytes"(nat64Type)]);
 
-	scope ParamShort[] newTFutureParams = [param!"value"(singleTypeParamType)];
-	Type tFuture = instantiateType(commonTypes.future, [singleTypeParamType]);
+	scope ParamShort[] newTFutureParams = [param!"value"(typeParam0)];
+	Type tFuture = instantiateType(commonTypes.future, [typeParam0]);
+
+	Type rFutureSharedOfP = instantiateType(commonTypes.funStructs[FunKind.shared_], [tFuture, typeParam1]);
+	Type rFutureMutOfP = instantiateType(commonTypes.funStructs[FunKind.mut], [tFuture, typeParam1]);
+
+	FunDecl* sharedOfMutLambda = getFunDeclInner(
+		*modules[CommonModule.future],
+		symbol!"shared-of-mut-lambda",
+		twoTypeParams,
+		rFutureSharedOfP,
+		[param!"a"(rFutureMutOfP)],
+		countSpecs: 2);
 	FunDecl* newTFuture = getFunDeclInner(
-		*modules[CommonModule.future], symbol!"new", singleTypeParams, tFuture, newTFutureParams);
+		*modules[CommonModule.future], symbol!"new", singleTypeParams, tFuture, newTFutureParams, countSpecs: 0);
 	FunInst* newNat64Future = instantiateFun1(ctx, newTFuture, nat64Type);
 	FunInst* newVoidFuture = instantiateFun1(ctx, newTFuture, voidType);
 	FunInst* rtMain = getFun(
@@ -146,7 +155,7 @@ CommonFunsAndMain getCommonFuns(
 	return CommonFunsAndMain(
 		CommonFuns(
 			finish(alloc, diagsBuilder),
-			allocFun, lambdaSubscriptFuns, curExclusion, mark,
+			allocFun, lambdaSubscriptFuns, sharedOfMutLambda, mark,
 			newNat64Future, newVoidFuture, rtMain, throwImpl, char8ArrayAsString),
 		main);
 }
@@ -168,10 +177,12 @@ FunInst* instantiateFun1(InstantiateCtx ctx, FunDecl* decl, Type typeArg) {
 	return instantiateFun(ctx, decl, small!Type(typeArgs), emptySpecImpls);
 }
 
-immutable NameAndRange[1] singleTypeParam = [NameAndRange(0, symbol!"t")];
-TypeParams singleTypeParams() => TypeParams(singleTypeParam);
-Type singleTypeParamType() =>
-	Type(TypeParamIndex(0));
+immutable NameAndRange[1] singleTypeParamsArray = [NameAndRange(0, symbol!"t")];
+TypeParams singleTypeParams() => TypeParams(singleTypeParamsArray);
+immutable NameAndRange[2] twoTypeParamsArray = [NameAndRange(0, symbol!"r"), NameAndRange(0, symbol!"p")];
+TypeParams twoTypeParams() => TypeParams(twoTypeParamsArray);
+Type typeParam0() => Type(TypeParamIndex(0));
+Type typeParam1() => Type(TypeParamIndex(1));
 
 immutable(EnumMap!(FunKind, FunDecl*)) getLambdaSubscriptFuns(
 	ref Alloc alloc,
@@ -183,20 +194,9 @@ immutable(EnumMap!(FunKind, FunDecl*)) getLambdaSubscriptFuns(
 	foreach (FunDecl* x; getFuns(funUtil, symbol!"subscript")) {
 		// TODO: check the type more thoroughly
 		FunKind funKind = firstArgFunKind(commonTypes, x);
-		final switch (funKind) {
-			case FunKind.data:
-			case FunKind.shared_:
-			case FunKind.mut:
-			case FunKind.function_:
-				assert(!has(res[funKind]));
-				res[funKind] = someMut(x);
-				break;
-			case FunKind.far:
-				assert(false);
-		}
+		assert(!has(res[funKind]));
+		res[funKind] = someMut(x);
 	}
-	// TODO: check signature
-	res[FunKind.far] = someMut(only(getFuns(future, symbol!"subscript")));
 	return enumMapMapValues!(FunKind, FunDecl*, MutOpt!(FunDecl*))(res, (const MutOpt!(FunDecl*) x) => force(x));
 }
 
@@ -262,7 +262,7 @@ Opt!(StructDecl*) getStructDecl(in Module a, Symbol name) {
 }
 
 bool signatureMatchesTemplate(in FunDecl actual, in TypeParamsAndSig expected) =>
-	isEmpty(actual.specs) &&
+	actual.specs.length == expected.countSpecs &&
 		!actual.params.isA!(Params.Varargs*) &&
 		sizeEq(actual.typeParams, expected.typeParams) &&
 		typesMatch(actual.returnType, actual.typeParams, expected.returnType, expected.typeParams) &&

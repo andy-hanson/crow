@@ -68,7 +68,7 @@
 
 	<p>
 		There's no way to "block" waiting for the value inside a future.
-		(Meaning, there's no conversion from <code class="type">nat^</code> to <code class="type">nat</code>.)
+		(Meaning, there's no conversion function from <code class="type">nat^</code> to <code class="type">nat</code>.)
 		<br />
 		But you can schedule a task to run when the future resolves.
 		That's what <code class="function">then</code> does.
@@ -109,7 +109,7 @@
 	</crow-runnable>
 </section>
 <section>
-	<h2>Task exclusion and "far" lambdas</h2>
+	<h2>Task exclusion</h2>
 
 	<p>The lambda passed to <code class="function">then</code> can have a mutable closure.</p>
 
@@ -135,66 +135,70 @@
 	</aside>
 
 	<p>
-		How is this possible?
-		Ordinarily, a lambda must be <code class="keyword">mut</code>
-		to have a <code class="keyword">mut</code> closure.
-		But then it couldn't be passed to <code class="function">then</code>, which attaches it to the future.
-		A future is a <code class="keyword">shared</code> type and can only reference other
+		This is allowed because <code class="function">then</code> takes a <code class="keyword">mut</code> lambda.
+		But <code class="function">then</code> needs to attach it to the future, which is a
+		<code class="keyword">shared</code> type and can only reference other
 		<code class="keyword">shared</code> values.
 	</p>
 	<p>
-		Instead, <code class="function">then</code> takes a new kind of lambda: <code>out far(param in)</code>.
-		A <code class="keyword">far</code> lambda is a <code class="keyword">shared</code> type that internally
-		wraps a <code class="keyword">mut</code> lambda and an <em>exclusion</em>.
-	</p>
-	<aside class="small">
-		The return type of a <code class="keyword">far</code> lambda is implicitly wrapped in a future.
-		So a <code>nat far(x string)</code> returns a <code>nat^</code>.
-	</aside>
-	<p>
-		An exclusion identifies an isolated space of mutable objects.
-		Only one task with the same exclusion can run at a time.
-		(You could think of it as like a lock or mutex, although it isn't implemented that way.)
+		To make this work, the runtime tags the <code class="keyword">mut</code> lambda with an <em>exclusion</em>.
+		An exclusion is a (non-observable) number that identifies an isolated space of mutable objects.
+		If two tasks have the same exclusion, only one of them can run at a time.
+		You could think of an exclusion as like a lock or mutex, although it isn't implemented that way.
 	</p>
 	<p>
-		The benefit of a <code class="keyword">far</code> lambda
-		is that it is considered <code class="keyword">shared</code>, and yet it can have mutable data in its closure.
+		The exclusion comes from the currently running task. <br />
+		All the tasks created in the above example have the same exclusion,
+		and if they created their own tasks, those would have the same exclusion too.
+		Generally, the same exclusion will propagate unless you explicitly use a function with a name like
+		<code class="function">parallel</code>.
 		<br />
-		Hence the name: <code class="keyword">far</code> lambdas enable isolated mutable exclusions
-		to communicate from afar.
-		<br />
-		You don't directly "call" a far lambda; you issue a request for it to eventually be called,
-		and get a future for the result once it is actually called.
+		That means you don't get parallel execution until you ask for it.
 	</p>
 
+	<h3>Parallel functions take "shared" lambdas</h3>
 	<p>
-		When a <code class="keyword">far</code> lambda is created,
-		it gets the same exclusion as the task that created it.
-		(This still happens even if it doesn't actually close over anything mutable.)
-		<br />
-		So in the example, the three <code class="function">then</code> lambdas
-		have the same exclusion as <code class="function">main</code>.
-		<br />
-		That means we haven't actually introduced any parallelism yet, since all the tasks we've created
-		share an exclusion and can only run one at a time.
-	</p>
-
-	<h3>"Shared" means parallel</h3>
-	<p>
-		Unlike <code class="function">then</code> which takes a <code class="keyword">far</code> lambda,
-		<code>with : parallel</code> takes a <code>t^ shared()</code>,
-		indicating that it expects parallel-safe code.
+		Unlike <code class="function">then</code> which takes a <code class="keyword">mut</code> lambda,
+		<code>with : parallel</code> takes a <code>t^ shared()</code> in order to run it in parallel.
 		<br />
 		(Recall that the body of a <code class="keyword">with</code> is really a lambda.)
 	</p>
 
 	<crow-runnable>
 		main nat^(_ string[])
-			x string mut[] = ()
+			parts string mut[] = ()
 			with : parallel
-				x ~= "hello" # compile error
+				parts ~= "hello" # compile error
 				()
 	</crow-runnable>
+</section>
+<section>
+	<h2>Share any lambda</h2>
+	<p>
+		You can use the <code class="keyword">shared</code> keyword to make any lambda shared,
+		even if it has a <code class="keyword">mut</code> closure.
+	</p>
+	<crow-runnable>
+		main nat^(_ string[])
+			parts string mut[] = ()
+			f void^ shared(x string) = shared x =>
+				parts ~= x
+				()
+			res void^ = for x : ("hello", "world")::string[] parallel
+				f[x]
+			res then () =>
+				info log (", " join parts.to)
+				()
+	</crow-runnable>
+	<p>
+		This works by giving the lambda an exclusion, so it will only run once at a time.
+		<br />
+		That means the above example is not really running in parallel since there is only one call to
+		<code class="function">f</code> at a time.
+		<br />
+		However, they could happen in any order, so, it is possible that it might log "world, hello".
+		(This won't happen in the browser which is single-threaded.)
+	</p>
 </section>
 <section>
 	<h2>Arrow syntax for "then"</h2>
@@ -217,7 +221,7 @@
 		<br />
 		<code>x &lt;- y</code> is like writing <code>y then x =></code>.
 		<br />
-		The previous example could be written like the below:
+		The above example could instead be written like the below:
 	</p>
 	<crow-runnable>
 		main nat^(_ string[])

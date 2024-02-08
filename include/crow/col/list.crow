@@ -8,7 +8,7 @@ import
 	../option: ??, new, option
 	../pointer: const-pointer, mut-pointer
 	../private/exception-low-level: unreachable
-	../private/range-low-level: .., range
+	../private/range-low-level: .., rangeable, iterate, range, size
 	../pointer: size-of
 	../tuple: a, b, new
 	./array:
@@ -173,6 +173,9 @@ This is O(1).
 +to[t] t[](a t?)
 	if x ?= a
 		x,
++to[t] t[](a t range) t rangeable
+	for x : a
+		x
 
 ###
 Convert a list to an array.

@@ -1,17 +1,5 @@
-no-std
 import
-	../../bool: false, true
-	../../col/list: list, new
-	../../col/map: map, new
-	../../json: ==, new, null, json, to
-	../../misc: to, void
-	../../number: float64, nat64
-	../../parse: ==, expected, new, parse, parse-error
-	../../result: ==, error, ok
-	../../string: ==, begin, string
-	../../symbol: ==, <=>, hash-mix, symbol
-	../../test-util: is
-	../../tuple: new
+	../../parse
 
 dummy-json-tests nat64()
 	0
@@ -28,7 +16,7 @@ dummy-json-tests nat64()
 
 test
 	json parse "potato" is ("potato", "potato".begin, "expected 'null'").error
-	null verify "null"
+	null::json verify "null"
 	true verify "true"
 	false verify "false"
 	-3.0::float64 verify "-3"
@@ -39,7 +27,7 @@ test
 	"a\\nb"::string verify "\"a\\\\nb\""
 
 	()::json[] verify "[]"
-	(1::float64.to,) verify "[1]"
+	(1::float64.to,)::json[] verify "[1]"
 	(1::float64.to, true.to)::json[] verify "[1,true]"
 
 	()::json[symbol] verify "\{}"

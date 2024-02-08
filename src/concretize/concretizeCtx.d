@@ -48,7 +48,6 @@ import model.model :
 	FunInst,
 	FunKind,
 	ImportFileType,
-	isArray,
 	isTuple,
 	Local,
 	Module,
@@ -101,20 +100,13 @@ import util.uri : AllUris, Uri;
 import util.util : enumConvert, max, roundUp, typeAs;
 import versionInfo : VersionInfo;
 
-immutable struct TypeArgsScope {
-	@safe @nogc pure nothrow:
-
-	ConcreteType[] typeArgs;
-
-	static TypeArgsScope empty() =>
-		TypeArgsScope([]);
-}
+alias TypeArgsScope = SmallArray!ConcreteType;
 
 private immutable struct ConcreteStructKey {
 	@safe @nogc pure nothrow:
 
 	StructDecl* decl;
-	ConcreteType[] typeArgs;
+	SmallArray!ConcreteType typeArgs;
 
 	bool opEquals(scope ref ConcreteStructKey b) scope =>
 		decl == b.decl && arraysEqual!ConcreteType(typeArgs, b.typeArgs);
@@ -191,7 +183,6 @@ struct ConcretizeCtx {
 	CommonTypes* commonTypesPtr;
 	immutable Program* programPtr;
 	FileContentGetters fileContentGetters; // For 'assert' or 'forbid' messages and file imports
-	Late!(ConcreteFun*) curExclusionFun_;
 	Late!(ConcreteFun*) char8ArrayAsString_;
 	Late!(ConcreteFun*) newVoidFutureFunction_;
 	AllConstantsBuilder allConstants;
@@ -224,8 +215,6 @@ struct ConcretizeCtx {
 		*allUrisPtr;
 	ref CommonTypes commonTypes() return scope const =>
 		*commonTypesPtr;
-	ConcreteFun* curExclusionFun() return scope const =>
-		lateGet(curExclusionFun_);
 	ConcreteFun* char8ArrayAsString() return scope const =>
 		lateGet(char8ArrayAsString_);
 	ConcreteFun* newVoidFutureFunction() return scope const =>
@@ -255,18 +244,18 @@ private ConcreteType bogusType(ref ConcretizeCtx a) =>
 
 ConcreteType boolType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._boolType, () =>
-		getConcreteType_forStructInst(a, a.commonTypes.bool_, TypeArgsScope.empty));
+		getConcreteType_forStructInst(a, a.commonTypes.bool_, emptySmallArray!ConcreteType));
 
 ConcreteType voidType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._voidType, () =>
-		getConcreteType_forStructInst(a, a.commonTypes.void_, TypeArgsScope.empty));
+		getConcreteType_forStructInst(a, a.commonTypes.void_, emptySmallArray!ConcreteType));
 
 ConcreteType stringType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._stringType, () =>
-		getConcreteType_forStructInst(a, a.commonTypes.string_, TypeArgsScope.empty));
+		getConcreteType_forStructInst(a, a.commonTypes.string_, emptySmallArray!ConcreteType));
 
 ConcreteStruct* symbolArrayType(ref ConcretizeCtx a) =>
-	mustBeByVal(getConcreteType_forStructInst(a, a.commonTypes.symbolArray, TypeArgsScope.empty));
+	mustBeByVal(getConcreteType_forStructInst(a, a.commonTypes.symbolArray, emptySmallArray!ConcreteType));
 
 Constant constantCString(ref ConcretizeCtx a, string value) =>
 	getConstantCString(a.alloc, a.allConstants, value);
@@ -321,9 +310,9 @@ private ConcreteType getConcreteType_forStructInst(
 				Purity purity = fold!(Purity, ConcreteType)(
 					i.purityRange.bestCase, typeArgs, (Purity p, in ConcreteType ta) =>
 						worsePurity(p, purity(ta)));
-				ConcreteStruct.SpecialKind specialKind = isArray(ctx.commonTypes, *i)
+				ConcreteStruct.SpecialKind specialKind = i.decl == ctx.commonTypes.array
 					? ConcreteStruct.SpecialKind.array
-					: isTuple(ctx.commonTypes, *i)
+					: isTuple(ctx.commonTypes, i.decl)
 					? ConcreteStruct.SpecialKind.tuple
 					: ConcreteStruct.SpecialKind.none;
 				ConcreteStruct* res = allocate(ctx.alloc, ConcreteStruct(
@@ -347,7 +336,7 @@ ConcreteType getConcreteType(ref ConcretizeCtx ctx, Type t, in TypeArgsScope typ
 		(Type.Bogus) =>
 			bogusType(ctx),
 		(TypeParamIndex x) =>
-			typeArgsScope.typeArgs[x.index],
+			typeArgsScope[x.index],
 		(StructInst* i) =>
 			getConcreteType_forStructInst(ctx, i, typeArgsScope));
 
@@ -491,7 +480,7 @@ ConcreteFun* concreteFunForTest(ref ConcretizeCtx ctx, ref Test test, size_t tes
 }
 
 public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* modelStringList, FunInst* modelMain) {
-	ConcreteType stringListType = getConcreteType_forStructInst(ctx, modelStringList, TypeArgsScope.empty);
+	ConcreteType stringListType = getConcreteType_forStructInst(ctx, modelStringList, emptySmallArray!ConcreteType);
 	ConcreteFun* innerMain = getOrAddNonTemplateConcreteFunAndFillBody(ctx, modelMain);
 	/*
 	This is like:
@@ -499,7 +488,8 @@ public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* mo
 			real-main
 			0,
 	*/
-	ConcreteType nat64Type = getConcreteType_forStructInst(ctx, ctx.commonTypes.integrals.nat64, TypeArgsScope.empty);
+	ConcreteType nat64Type = getConcreteType_forStructInst(
+		ctx, ctx.commonTypes.integrals.nat64, emptySmallArray!ConcreteType);
 	UriAndRange range = modelMain.decl.range;
 	ConcreteExpr callMain = ConcreteExpr(voidType(ctx), range, ConcreteExprKind(ConcreteExprKind.Call(innerMain, [])));
 	ConcreteExpr zero = ConcreteExpr(nat64Type, range, ConcreteExprKind(constantZero));
@@ -511,7 +501,7 @@ public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* mo
 
 	ConcreteFun* res = allocate(ctx.alloc, ConcreteFun(
 		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.WrapMain(range))),
-		getConcreteType(ctx, ctx.program.commonFuns.newNat64Future.returnType, TypeArgsScope.empty),
+		getConcreteType(ctx, ctx.program.commonFuns.newNat64Future.returnType, emptySmallArray!ConcreteType),
 		newArray(ctx.alloc, [
 			ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Generated(symbol!"args")), stringListType),
 		])));
@@ -828,7 +818,7 @@ ConcreteExprKind stringLiteralConcreteExprKind(ref ConcretizeCtx ctx, UriAndRang
 
 ConcreteVar* getVar(ref ConcretizeCtx ctx, VarDecl* decl) =>
 	getOrAdd!(immutable ConcreteVar*, immutable VarDecl*, getVarKey)(ctx.alloc, ctx.concreteVarLookup, decl, () =>
-		allocate(ctx.alloc, ConcreteVar(decl, getConcreteType(ctx, decl.type, TypeArgsScope.empty))));
+		allocate(ctx.alloc, ConcreteVar(decl, getConcreteType(ctx, decl.type, emptySmallArray!ConcreteType))));
 
 ulong getAllValue(ConcreteStructBody.Flags flags) =>
 	fold!(ulong, ulong)(0, flags.values, (ulong a, in ulong b) =>

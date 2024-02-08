@@ -11,6 +11,8 @@ export
 	./col/mut-map
 	./col/mut-set
 	./col/set
+	./col/shared-list
+	./col/shared-map
 	./col/sort
 	./compare
 	./enum-util

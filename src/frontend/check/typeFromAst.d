@@ -263,8 +263,6 @@ Opt!(Diag.TypeShouldUseSyntax.Kind) typeSyntaxKind(Symbol a) {
 	switch (a.value) {
 		case symbol!"fun-data".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.funData);
-		case symbol!"fun-far".value:
-			return some(Diag.TypeShouldUseSyntax.Kind.funFar);
 		case symbol!"fun-mut".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.funMut);
 		case symbol!"fun-pointer".value:
@@ -287,6 +285,10 @@ Opt!(Diag.TypeShouldUseSyntax.Kind) typeSyntaxKind(Symbol a) {
 			return some(Diag.TypeShouldUseSyntax.Kind.mutPointer);
 		case symbol!"option".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.opt);
+		case symbol!"shared-list".value:
+			return some(Diag.TypeShouldUseSyntax.Kind.sharedList);
+		case symbol!"shared-map".value:
+			return some(Diag.TypeShouldUseSyntax.Kind.sharedMap);
 		case symbol!"tuple2".value:
 		case symbol!"tuple3".value:
 		case symbol!"tuple4".value:

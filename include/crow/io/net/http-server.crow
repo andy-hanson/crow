@@ -1,29 +1,8 @@
-no-std
 import
 	system/errno: EAGAIN, errno
 	system/sys/socket: as-fd, SOCKET
 	system/unistd: write
-	../../bool: bool, false
-	../../col/array: +, -, array, begin, begin-pointer, end, is-empty, iterate, size, slice
-	../../col/collection: .., -, contains, end, for-loop, index-of, split, subscript, try-remove-end
-	../../col/list: ~~, ~=, +, -, begin, build, end, is-empty, list, next, size, slice, to
-	../../col/map: in, iterate, size, to
-	../../col/mut-map: mut-map, new, remove, set-subscript, subscript
-	../../col/mut-list: ~=, ~~=, iterate, move-to, mut-list, new, pop-n-from-start, size
-	../../compare: <=, >
-	../../enum-util: to
-	../../exception: to
-	../../future: delay, future, future-catch, future-finally, new, subscript, then, with-block
-	../../hash: hash-mix
-	../../log: error, log, warn
-	../../misc: new, shared, void
-	../../number: ==, <=>, +, nat8, nat16, nat64, to
-	../../option: ??, force, new, option
 	../../parse: nat, parse
-	../../string:
-		==, <=>, as-string, begin, char8, end, hash-mix, interpolate, is-empty, iterate, join, next,
-		prev, slice, string, to-bytes, to
-	../../tuple: new
 	../../private/bootstrap: todo
 	./http-types:
 		GET, headers, http-internal-server-error, http-method, http-request, http-response, new,
@@ -35,7 +14,7 @@ import
 
 # Type of a function that can respond to HTTP requests.
 +http-handler alias
-	http-response far(req http-request)
+	http-response^ shared(req http-request)
 
 +http-server-options record shared
 	port nat16
@@ -46,28 +25,26 @@ import
 ###
 Starts running an HTTP server. Stops it when `cb` returns.
 ###
-+with-block[t] t^(a http-server-options, cb t far(server http-server)) summon, t shared
++with-block[t] t^(a http-server-options, cb t^ mut(server http-server)) summon, t shared
 	client-states http-parse-state mut[SOCKET] = ()
 
 	handler tcp-handler = do
 		on-accepted-client: sock =>
 			client-states[sock] := ()
-			()
 		on-received-chunk: (sock, bytes) =>
-			if state ?= client-states[sock]
-				<- trusted client-states handle-chunk sock, state, bytes, a.handler
-				()
+			opt-state http-parse-state? = client-states[sock]
+			if state ?= opt-state
+				trusted client-states handle-chunk sock, state, bytes, a.handler
 			else
 				warn log "Ignoring unrecognized client"
 				()
-
 	trusted
 		tcp-server = a.port start-tcp-server handler
-		with : tcp-server.stop future-finally
+		with : (() => tcp-server stop) future-finally
 			cb[]
 
 # Returns true when closed client
--handle-chunk void^(
+-handle-chunk void(
 	client-states http-parse-state mut[SOCKET],
 	sock SOCKET,
 	state http-parse-state,
@@ -84,16 +61,17 @@ Starts running an HTTP server. Stops it when `cb` returns.
 	if finished-request
 		request = state finish-request
 		_ = (client-states remove sock)!
-		handler-response <- handler[request] future-catch
-		response = match handler-response
-		as ok o
-			o
-		as error e
-			error log "{e}"
-			http-internal-server-error
-		<- sock write-until-finished response.response-to-array
-		sock close-client
-		()
+		with : fire-and-forget
+			handler-response <- handler[request] future-catch
+			response = match handler-response
+			as ok o
+				o
+			as error e
+				error log "{e}"
+				http-internal-server-error
+			<- sock write-until-finished response.response-to-array
+			sock close-client
+			()
 
 -write-until-finished void^(sock SOCKET, content nat8 array) unsafe
 	unless content is-empty

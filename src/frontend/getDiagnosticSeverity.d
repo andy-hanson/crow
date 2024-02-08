@@ -137,6 +137,14 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.PurityWorseThanParent) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.SharedArgIsNotLambda) =>
+			DiagnosticSeverity.checkError,
+		(in Diag.SharedLambdaTypeIsNotShared) =>
+			DiagnosticSeverity.checkError,
+		(in Diag.SharedLambdaUnused) =>
+			DiagnosticSeverity.unusedCode,
+		(in Diag.SharedNotExpected) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.SpecMatchError) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.SpecNoMatch) =>

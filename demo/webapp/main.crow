@@ -13,8 +13,7 @@ import
 
 main nat^(_ string[]) summon
 	with db : open-real-db
-		handler http-handler = req =>
-			(req handle-request db),
+		handler http-handler = shared req => (req handle-request db),
 		with _ : 8080 http-server handler
 			out print "Serving at http://localhost:8080; press enter to stop"
 			_ <- read-stdin

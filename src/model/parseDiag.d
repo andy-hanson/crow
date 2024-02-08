@@ -17,7 +17,6 @@ immutable struct ParseDiag {
 	@safe @nogc pure nothrow:
 	immutable struct Expected {
 		enum Kind {
-			afterMut,
 			blockCommentEnd,
 			closeInterpolated,
 			closingBracket,
@@ -69,6 +68,7 @@ immutable struct ParseDiag {
 			match,
 			lambda,
 			loop,
+			shared_,
 			throw_,
 			trusted,
 			unless,

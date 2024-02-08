@@ -50,6 +50,8 @@ import
 	../include/crow/private/tests/json-tests: dummy-json-tests
 	../include/crow/private/tests/math-tests: dummy-math-tests
 	../include/crow/private/tests/number-tests: dummy-number-tests
+	../include/crow/private/tests/shared-list-tests: dummy-shared-list-tests
+	../include/crow/private/tests/shared-map-tests: dummy-shared-map-tests
 	../include/crow/private/tests/string-tests: dummy-string-tests
 	../editor/vscode/license.txt as license string
 
@@ -76,6 +78,8 @@ main nat^(_ string[]) summon
 	_ = dummy-math-tests
 	_ = dummy-number-tests
 	_ = dummy-set-tests
+	_ = dummy-shared-list-tests
+	_ = dummy-shared-map-tests
 	_ = dummy-string-tests
 	_ = () :: nat[nat]
 	_ = () :: ((nat, nat) frozen-map)
@@ -109,7 +113,7 @@ main nat^(_ string[]) summon
 	_ = () :: (nat sorted-set)
 	_ = () :: (nat stack)
 	_ = () :: (nat tree-set)
-	_ = (() => read-stdin)::string far()
+	_ = (() => read-stdin)::string^ shared()
 	_ = () :: vec2-32
 	_ = () :: (nat queue)
 	_ = gmt

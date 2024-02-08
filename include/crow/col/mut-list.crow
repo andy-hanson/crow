@@ -97,6 +97,11 @@ Writes to the `mut-list` won't affect the `list`.
 		a.backing := empty-mut-array
 		a.size := 0
 		res
++move-to[t] t mut[](a t mut[])
+	res t mut[] = a.backing, a.mut-list-size
+	a.backing := empty-mut-array
+	a.mut-list-size := 0
+	res
 
 +swap[t] void(a t mut[], b t mut[])
 	a-backing = a backing
@@ -209,7 +214,7 @@ push-capacity-must-be-sufficient[t] void(a t mut[], value t) bare, unsafe
 For performance, hint that the list will eventually reach 'eventual-size'.
 This has no observable effect.
 ###
-+hint-size[t] void(a t mut[], eventual-size nat64)
+hint-size[t] void(a t mut[], eventual-size nat64)
 	a ensure-capacity eventual-size
 
 -ensure-capacity[t] void(a t mut[], min-capacity nat64)

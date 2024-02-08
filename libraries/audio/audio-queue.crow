@@ -9,7 +9,7 @@ audio-queue record by-ref, force-shared
 	# All sounds normalized to `format`
 	-playing entry mut[]
 
--lock lock mut*(a audio-queue) bare, unsafe
+lock lock mut*(a audio-queue) bare, unsafe
 	&a.lk
 
 new audio-queue(format sound-format)

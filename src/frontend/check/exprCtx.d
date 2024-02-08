@@ -9,8 +9,7 @@ import frontend.check.typeFromAst : typeFromAst;
 import frontend.lang : maxClosureFields;
 import model.ast : ExprAst, TypeAst;
 import model.diag : Diag, TypeContainer, TypeWithContainer;
-import model.model :
-	CommonTypes, FunFlags, FunKind, LambdaExpr, Local, Mutability, SpecInst, Type, TypeParams, VariableRef;
+import model.model : CommonTypes, FunFlags, LambdaExpr, Local, Mutability, SpecInst, Type, TypeParams, VariableRef;
 import util.alloc.alloc : Alloc;
 import util.col.mutMaxArr : MutMaxArr;
 import util.opt : has, force, MutOpt, none, Opt, some;
@@ -52,7 +51,7 @@ bool isInLambda(in LocalsInfo a) =>
 	has(a.lambda);
 
 bool isInDataLambda(in LocalsInfo a) =>
-	has(a.lambda) && (force(a.lambda).lambda.kind == FunKind.data || isInDataLambda(*force(a.lambda).outer));
+	has(a.lambda) && (force(a.lambda).lambda.kind == LambdaExpr.Kind.data || isInDataLambda(*force(a.lambda).outer));
 
 struct LocalNode {
 	MutOpt!(LocalNode*) prev;

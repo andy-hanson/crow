@@ -1,12 +1,13 @@
 import
 	crow/c-types: c-int
 	crow/private/alloc: unmanaged-alloc, unmanaged-free
+	crow/private/thread-utils: acquire, release
 	SDL2/SDL: SDL_Init, SDL_INIT_AUDIO, SDL_Quit
 	SDL2/SDL_audio:
 		AUDIO_F32, new, SDL_AudioSpec, SDL_CloseAudioDevice, SDL_OpenAudioDevice,
 		SDL_PauseAudioDevice
 	./audio: audio, new
-	./audio-queue: audio-queue, clear, new, play, play-loop, pull
+	./audio-queue: audio-queue, clear, lock, new, play, play-loop, pull
 	./sound: n-channels, new, sample-rate, sound-format
 
 +start-sdl-audio audio() summon
@@ -17,7 +18,7 @@ import
 		samples nat16 = 4096
 		format sound-format = 2, 48000
 		queue audio-queue = format,
-		write-ctx write-ctx mut* = (queue,) unmanaged-alloc
+		write-ctx mut write-ctx mut* = (queue,) unmanaged-alloc
 
 		sr int32 = format.sample-rate to
 		nc nat8 = format.n-channels to
@@ -33,12 +34,15 @@ import
 		clear: () => queue clear
 		play: x => queue play x
 		play-loop: x => queue play-loop x
-		shut-down: () =>
+		shut-down: shared () =>
+			queue.lock acquire
+			assert write-ctx != null
 			device SDL_CloseAudioDevice
 			SDL_Quit
 			write-ctx unmanaged-free
-			# Make sure GC keeps this alive
-			_ = queue
+			write-ctx := null
+			queue.lock release
+			()
 
 -write-ctx record by-val, mut
 	queue audio-queue

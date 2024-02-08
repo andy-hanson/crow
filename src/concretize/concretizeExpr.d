@@ -13,10 +13,10 @@ import concretize.concretizeCtx :
 	constantCString,
 	constantSymbol,
 	ContainingFunInfo,
-	getOrAddNonTemplateConcreteFunAndFillBody,
 	getConcreteType_fromConcretizeCtx = getConcreteType,
 	getConcreteFunForLambdaAndFillBody,
 	getOrAddConcreteFunAndFillBody,
+	getOrAddNonTemplateConcreteFunAndFillBody,
 	stringLiteralConcreteExpr,
 	stringType,
 	typeArgsScope,
@@ -68,7 +68,6 @@ import model.model :
 	Expr,
 	ExprAndType,
 	FunInst,
-	FunKind,
 	FunPointerExpr,
 	getClosureReferenceKind,
 	IfExpr,
@@ -99,7 +98,19 @@ import model.model :
 	VariableRef,
 	VersionFun;
 import util.alloc.alloc : Alloc;
-import util.col.array : concatenate, isEmpty, map, mapZip, newArray, only, PtrAndSmallNumber, sizeEq, small, SmallArray;
+import util.col.array :
+	concatenate,
+	emptySmallArray,
+	isEmpty,
+	map,
+	mapZip,
+	newArray,
+	only,
+	only2,
+	PtrAndSmallNumber,
+	sizeEq,
+	small,
+	SmallArray;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : getOrAdd;
 import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2MustGet0, stackMap2MustGet1, withStackMap2;
@@ -371,9 +382,6 @@ ConcreteExpr createAllocExpr(ref Alloc alloc, ConcreteExpr inner) {
 		ConcreteExprKind(allocate(alloc, ConcreteExprKind.Alloc(inner))));
 }
 
-ConcreteExpr getCurExclusion(ref ConcretizeExprCtx ctx, ConcreteType type, UriAndRange range) =>
-	ConcreteExpr(type, range, ConcreteExprKind(ConcreteExprKind.Call(ctx.concretizeCtx.curExclusionFun, [])));
-
 ConcreteField[] concretizeClosureFields(ref ConcretizeCtx ctx, VariableRef[] closure, TypeArgsScope typeArgsScope) =>
 	map(ctx.alloc, closure, (ref VariableRef x) {
 		ConcreteType baseType = getConcreteType_fromConcretizeCtx(ctx, x.type, typeArgsScope);
@@ -437,6 +445,38 @@ ConcreteExpr concretizeLambda(
 	in Locals locals,
 	ref LambdaExpr e,
 ) {
+	if (e.kind == LambdaExpr.Kind.explicitShared) {
+		ConcreteType innerType = getConcreteType(ctx, Type(force(e.mutTypeForExplicitShared)));
+		ConcreteExpr inner = concretizeLambdaInner(ctx, innerType, range, locals, e);
+		ConcreteType[2] lambdaTypeArgs = only2(innerType.struct_.source.as!(ConcreteStructSource.Inst).typeArgs);
+		ConcreteFun* sharedOfMutLambda = getOrAddConcreteFunAndFillBody(
+			ctx.concretizeCtx,
+			ConcreteFunKey(
+				ctx.concretizeCtx.program.commonFuns.sharedOfMutLambda,
+				// TODO: NO ALLOC
+				small!ConcreteType(newArray(ctx.alloc, [
+					unwrapFuture(ctx.concretizeCtx, lambdaTypeArgs[0]),
+					lambdaTypeArgs[1]])),
+				emptySmallArray!(immutable ConcreteFun*)));
+		return ConcreteExpr(type, range, ConcreteExprKind(
+			ConcreteExprKind.Call(sharedOfMutLambda, newArray(ctx.alloc, [inner]))));
+	} else
+		return concretizeLambdaInner(ctx, type, range, locals, e);
+}
+
+ConcreteType unwrapFuture(in ConcretizeCtx ctx, ConcreteType a) {
+	ConcreteStructSource.Inst source = a.struct_.source.as!(ConcreteStructSource.Inst);
+	assert(source.inst.decl == ctx.commonTypes.future);
+	return only(source.typeArgs);
+}
+
+ConcreteExpr concretizeLambdaInner(
+	ref ConcretizeExprCtx ctx,
+	ConcreteType type,
+	in UriAndRange range,
+	in Locals locals,
+	ref LambdaExpr e,
+) {
 	// TODO: handle constants in closure
 	// (do *not* include in the closure type, instead remember them for when compiling the lambda fn)
 
@@ -477,25 +517,8 @@ ConcreteExpr concretizeLambda(
 		ctx.containing,
 		e.body_);
 	ConcreteLambdaImpl impl = ConcreteLambdaImpl(closureType, fun);
-	ConcreteExprKind lambda(ConcreteStruct* funStruct) {
-		return ConcreteExprKind(ConcreteExprKind.Lambda(nextLambdaImplId(ctx.concretizeCtx, funStruct, impl), closure));
-	}
-	if (e.kind == FunKind.far) {
-		// For a 'far' function this is the inner 'act' type.
-		ConcreteField[] fields = concreteStruct.body_.as!(ConcreteStructBody.Record).fields;
-		assert(fields.length == 2);
-		ConcreteField exclusionField = fields[0];
-		assert(exclusionField.debugName == symbol!"exclusion");
-		ConcreteField actionField = fields[1];
-		assert(actionField.debugName == symbol!"action");
-		ConcreteType funType = actionField.type;
-		ConcreteExpr exclusion = getCurExclusion(ctx, exclusionField.type, range);
-		return ConcreteExpr(type, range, ConcreteExprKind(
-			ConcreteExprKind.CreateRecord(newArray!ConcreteExpr(ctx.alloc, [
-				exclusion,
-				ConcreteExpr(funType, range, lambda(mustBeByVal(funType)))]))));
-	} else
-		return ConcreteExpr(type, range, lambda(concreteStruct));
+	return ConcreteExpr(type, range, ConcreteExprKind(
+		ConcreteExprKind.Lambda(nextLambdaImplId(ctx.concretizeCtx, concreteStruct, impl), closure)));
 }
 
 size_t nextLambdaImplId(ref ConcretizeCtx ctx, ConcreteStruct* funStruct, ConcreteLambdaImpl impl) =>

@@ -75,6 +75,7 @@ import model.ast :
 	ParenthesizedAst,
 	PtrAst,
 	SeqAst,
+	SharedAst,
 	ThenAst,
 	ThrowAst,
 	TrustedAst,
@@ -175,7 +176,6 @@ bool isExpressionStartToken(Token a) {
 		case Token.export_:
 		case Token.extern_:
 		case Token.EOF:
-		case Token.far:
 		case Token.flags:
 		case Token.forceCtx:
 		case Token.forceShared:
@@ -197,7 +197,6 @@ bool isExpressionStartToken(Token a) {
 		case Token.record:
 		case Token.reserved:
 		case Token.semicolon:
-		case Token.shared_:
 		case Token.spec:
 		case Token.summon:
 		case Token.test:
@@ -225,6 +224,7 @@ bool isExpressionStartToken(Token a) {
 		case Token.parenLeft:
 		case Token.quoteDouble:
 		case Token.quoteDouble3:
+		case Token.shared_:
 		case Token.throw_:
 		case Token.trusted:
 		case Token.underscore:
@@ -565,15 +565,19 @@ ExprAst parseUnless(ref Lexer lexer, Pos start) {
 	return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, UnlessAst(cb.condition, cb.body_))));
 }
 
+ExprAst parseShared(ref Lexer lexer, Pos start, AllowedBlock allowedBlock) =>
+	parsePrefixKeyword(lexer, start, allowedBlock, ParseDiag.NeedsBlockCtx.Kind.shared_, (ExprAst inner) =>
+		ExprAstKind(allocate(lexer.alloc, SharedAst(inner))));
+
 ExprAst parseThrow(ref Lexer lexer, Pos start, AllowedBlock allowedBlock) =>
-	parseThrowOrTrusted(lexer, start, allowedBlock, ParseDiag.NeedsBlockCtx.Kind.throw_, (ExprAst inner) =>
+	parsePrefixKeyword(lexer, start, allowedBlock, ParseDiag.NeedsBlockCtx.Kind.throw_, (ExprAst inner) =>
 		ExprAstKind(allocate(lexer.alloc, ThrowAst(inner))));
 
 ExprAst parseTrusted(ref Lexer lexer, Pos start, AllowedBlock allowedBlock) =>
-	parseThrowOrTrusted(lexer, start, allowedBlock, ParseDiag.NeedsBlockCtx.Kind.trusted, (ExprAst inner) =>
+	parsePrefixKeyword(lexer, start, allowedBlock, ParseDiag.NeedsBlockCtx.Kind.trusted, (ExprAst inner) =>
 		ExprAstKind(allocate(lexer.alloc, TrustedAst(inner))));
 
-ExprAst parseThrowOrTrusted(
+ExprAst parsePrefixKeyword(
 	ref Lexer lexer,
 	Pos start,
 	AllowedBlock allowedBlock,
@@ -821,6 +825,8 @@ ExprAst parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBlock) {
 			return tryParseDotsAndSubscripts(lexer, ExprAst(range(lexer, start), ExprAstKind(token.asLiteralNat())));
 		case Token.loop:
 			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.loop, () => parseLoop(lexer, start));
+		case Token.shared_:
+			return parseShared(lexer, start, allowedBlock);
 		case Token.throw_:
 			return parseThrow(lexer, start, allowedBlock);
 		case Token.trusted:

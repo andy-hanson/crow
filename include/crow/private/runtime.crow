@@ -31,7 +31,6 @@ get-global-ctx global-ctx mut*() unsafe
 # TODO: this should be a global instead
 -global-ctx-var thread-local(global-ctx mut*)
 
-# This fun is required by the compiler.
 cur-exclusion exclusion() unsafe
 	cur-exclusion-var
 
@@ -130,9 +129,20 @@ enqueue-tasks void(a global-ctx mut*, tasks task array) bare, unsafe
 	a.tasks-lock release
 	a.may-be-work-to-do broadcast
 
+enqueue-timed-task-cur-exclusion void(a global-ctx mut*, time timestamp, action void mut()) unsafe
+	a lock-and-enqueue-timed-task time, cur-exclusion, action
+
 enqueue-timed-task-no-exclusion void(a global-ctx mut*, time timestamp, action void mut()) unsafe
+	a lock-and-enqueue-timed-task time, a.new-exclusion, action
+
+-lock-and-enqueue-timed-task void(
+	a global-ctx mut*,
+	time timestamp,
+	exclusion exclusion,
+	action void mut(),
+) unsafe
 	a.tasks-lock acquire
-	a.tasks enqueue-timed-task time, (a.new-exclusion, action)
+	a.tasks enqueue-timed-task time, (exclusion, action)
 	a.tasks-lock release
 	a.may-be-work-to-do broadcast
 

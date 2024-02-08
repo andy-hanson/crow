@@ -174,6 +174,7 @@ immutable struct TypeParamsAndSig {
 	TypeParams typeParams;
 	Type returnType;
 	ParamShort[] params;
+	uint countSpecs;
 }
 immutable struct ParamShort {
 	Symbol name;
@@ -438,13 +439,8 @@ bool isDefinitelyByRef(in StructInst a) {
 		optEqual!ByValOrRef(body_.as!(StructBody.Record).flags.forcedByValOrRef, some(ByValOrRef.byRef));
 }
 
-bool isArray(in CommonTypes commonTypes, in StructInst a) =>
-	a.decl == commonTypes.array;
-
 bool isTuple(in CommonTypes commonTypes, in Type a) =>
-	a.isA!(StructInst*) && isTuple(commonTypes, *a.as!(StructInst*));
-bool isTuple(in CommonTypes commonTypes, in StructInst a) =>
-	isTuple(commonTypes, a.decl);
+	a.isA!(StructInst*) && isTuple(commonTypes, a.as!(StructInst*).decl);
 bool isTuple(in CommonTypes commonTypes, in StructDecl* a) {
 	Opt!(StructDecl*) actual = commonTypes.tuple(a.typeParams.length);
 	return has(actual) && force(actual) == a;
@@ -1296,7 +1292,6 @@ enum FunKind {
 	data,
 	shared_,
 	mut,
-	far,
 	function_,
 }
 
@@ -1304,7 +1299,7 @@ immutable struct CommonFuns {
 	UriAndDiagnostic[] diagnostics;
 	FunInst* alloc;
 	EnumMap!(FunKind, FunDecl*) lambdaSubscript;
-	FunInst* curExclusion;
+	FunDecl* sharedOfMutLambda;
 	FunInst* mark;
 	FunInst* newNat64Future;
 	FunInst* newVoidFuture;
@@ -1723,8 +1718,16 @@ immutable struct IfOptionExpr {
 immutable struct LambdaExpr {
 	@safe @nogc pure nothrow:
 
-	FunKind kind;
+	enum Kind {
+		data,
+		shared_,
+		mut,
+		explicitShared,
+	}
+
+	Kind kind;
 	Destructure param;
+	Opt!(StructInst*) mutTypeForExplicitShared;
 	private Late!Expr lateBody;
 	private Late!(SmallArray!VariableRef) closure_;
 	// For FunKind.far this includes 'future' wrapper

@@ -50,6 +50,7 @@ import model.ast :
 	PtrAst,
 	RecordFieldAst,
 	SeqAst,
+	SharedAst,
 	SpecDeclAst,
 	SpecSigAst,
 	SpecUseAst,
@@ -546,6 +547,10 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 				kindField!"seq",
 				field!"first"(jsonOfExprAst(alloc, ctx, a.first)),
 				field!"then"(jsonOfExprAst(alloc, ctx, a.then))]),
+		(in SharedAst a) =>
+			jsonObject(alloc, [
+				kindField!"shared",
+				field!"inner"(jsonOfExprAst(alloc, ctx, a.inner))]),
 		(in ThenAst x) =>
 			jsonObject(alloc, [
 				kindField!"then",

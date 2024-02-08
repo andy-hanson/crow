@@ -12,7 +12,6 @@ import model.model :
 	EnumValue,
 	FlagsFunction,
 	FunDecl,
-	isArray,
 	isTuple,
 	Local,
 	localIsAllocated,
@@ -109,7 +108,7 @@ immutable struct ConcreteStructSource {
 
 	immutable struct Inst {
 		StructInst* inst;
-		ConcreteType[] typeArgs;
+		SmallArray!ConcreteType typeArgs;
 	}
 
 	immutable struct Lambda {

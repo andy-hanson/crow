@@ -2,9 +2,15 @@ no-std
 import
 	./hash: hasher
 	./misc: void
-	./string: hash-mix, string
+	./number: nat64
+	./string: hash-mix, string, to
 export
 	./private/symbol-low-level: ==, <=>, symbol, to
 
 +hash-mix void(hasher hasher, a symbol)
 	hasher hash-mix a.to::string
+
++to symbol(a symbol) bare
+	a
++to symbol(a nat64)
+	a.to::string.to
