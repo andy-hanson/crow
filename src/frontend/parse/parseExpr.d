@@ -89,7 +89,7 @@ import util.col.array : isEmpty, newArray, only, prepend;
 import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, buildArray, Builder, finish;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some, some;
-import util.sourceRange : Pos, Range;
+import util.sourceRange : Pos, Range, rangeOfStartAndLength;
 import util.symbol : AllSymbols, appendEquals, Symbol, symbol;
 import util.util : max;
 
@@ -441,7 +441,7 @@ ExprAst tryParseDotsAndSubscripts(ref Lexer lexer, ExprAst initial) {
 		NameAndRange name = takeNameAndRange(lexer);
 		return tryParseDotsAndSubscripts(lexer, ExprAst(
 			range(lexer, start),
-			ExprAstKind(ArrowAccessAst(allocate(lexer.alloc, initial), name))));
+			ExprAstKind(ArrowAccessAst(allocate(lexer.alloc, initial), dotPos, name))));
 	} else if (tryTakeToken(lexer, Token.bracketLeft))
 		return parseSubscript(lexer, initial, dotPos);
 	else if (tryTakeToken(lexer, Token.colon2)) {
@@ -562,7 +562,8 @@ ConditionAndBody parseConditionAndBody(ref Lexer lexer) {
 
 ExprAst parseUnless(ref Lexer lexer, Pos start) {
 	ConditionAndBody cb = parseConditionAndBody(lexer);
-	return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, UnlessAst(cb.condition, cb.body_))));
+	ExprAst else_ = ExprAst(rangeOfStartAndLength(start, "unless".length), ExprAstKind(EmptyAst()));
+	return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, UnlessAst(cb.condition, cb.body_, else_))));
 }
 
 ExprAst parseShared(ref Lexer lexer, Pos start, AllowedBlock allowedBlock) =>
@@ -669,20 +670,25 @@ ExprAst parseLambdaWithParenthesizedParameters(ref Lexer lexer, Pos start, Allow
 }
 
 DestructureAst parseParameterForForOrWith(ref Lexer lexer) =>
-	parseForThenOrWithParameter(lexer, Token.colon, ParseDiag.Expected.Kind.colon);
+	parseForThenOrWithParameter(lexer, Token.colon, ParseDiag.Expected.Kind.colon).destructure;
 
-DestructureAst parseForThenOrWithParameter(
+struct DestructureAndEndTokenPos {
+	DestructureAst destructure;
+	Pos endTokenPos;
+}
+DestructureAndEndTokenPos parseForThenOrWithParameter(
 	ref Lexer lexer,
 	Token endToken,
 	ParseDiag.Expected.Kind expectedEndToken,
 ) {
 	Pos pos = curPos(lexer);
 	if (tryTakeToken(lexer, endToken))
-		return DestructureAst(DestructureAst.Void(range(lexer, pos)));
+		return DestructureAndEndTokenPos(DestructureAst(DestructureAst.Void(range(lexer, pos))), pos);
 	else {
 		DestructureAst res = parseDestructureNoRequireParens(lexer);
+		Pos endTokenPos = curPos(lexer);
 		takeOrAddDiagExpectedTokenAndMayContinueOntoNextLine(lexer, endToken, expectedEndToken);
-		return res;
+		return DestructureAndEndTokenPos(res, endTokenPos);
 	}
 }
 
@@ -952,12 +958,12 @@ ExprAst parseEqualsOrThen(ref Lexer lexer, EqualsOrThen kind) {
 			ExprAst then = parseNextLinesOrEmpty(lexer, start);
 			return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, LetAst(left, init, then))));
 		case EqualsOrThen.then:
-			DestructureAst param =
+			DestructureAndEndTokenPos param =
 				parseForThenOrWithParameter(lexer, Token.arrowThen, ParseDiag.Expected.Kind.then);
 			ExprAst future = parseExprNoLet(lexer);
 			ExprAst then = parseNextLinesOrEmpty(lexer, start);
 			return ExprAst(range(lexer, start), ExprAstKind(
-				allocate(lexer.alloc, ThenAst(param, future, then))));
+				allocate(lexer.alloc, ThenAst(param.destructure, param.endTokenPos, future, then))));
 	}
 }
 

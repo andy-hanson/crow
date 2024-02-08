@@ -80,7 +80,7 @@ import util.json :
 	optionalField,
 	kindField;
 import util.opt : force, has, none, Opt, some;
-import util.sourceRange : jsonOfLineAndColumnRange, LineAndColumnGetter;
+import util.sourceRange : jsonOfLineAndColumnRange, LineAndColumnGetter, Range;
 import util.symbol : Symbol, symbol;
 import util.uri : AllUris, stringOfUri;
 import util.util : ptrTrustMe, stringOfEnum;
@@ -107,10 +107,13 @@ Json jsonOfModule(ref Alloc alloc, in AllUris allUris, in LineAndColumnGetter lc
 
 private:
 
+Json jsonOfRange(ref Alloc alloc, in Ctx ctx, in Range range) =>
+	jsonOfLineAndColumnRange(alloc, ctx.lineAndColumnGetter[range]);
+
 Json jsonOfImportOrExport(ref Alloc alloc, in Ctx ctx, in ImportOrExport a) =>
 	jsonObject(alloc, [
 		optionalField!("source", ImportOrExportAst*)(a.source, (in ImportOrExportAst* x) =>
-			jsonOfLineAndColumnRange(alloc, ctx.lineAndColumnGetter[x.pathRange(ctx.allUris)])),
+			jsonOfRange(alloc, ctx, x.pathRange(ctx.allUris))),
 		field!"module"(stringOfUri(alloc, ctx.allUris, a.module_.uri)),
 		field!"import-kind"(jsonOfImportOrExportKind(alloc, a.kind))]);
 

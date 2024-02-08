@@ -214,8 +214,13 @@ Symbol symbolForTypeAstSuffix(TypeAst.SuffixSpecial.Kind a) {
 }
 
 immutable struct ArrowAccessAst {
+	@safe @nogc pure nothrow:
 	ExprAst* left;
+	Pos keywordPos;
 	NameAndRange name;
+
+	Range keywordRange() =>
+		rangeOfStartAndLength(keywordPos, "->".length);
 }
 
 immutable struct AssertOrForbidAst {
@@ -226,9 +231,13 @@ immutable struct AssertOrForbidAst {
 
 // `left := right`
 immutable struct AssignmentAst {
+	@safe @nogc pure nothrow:
 	ExprAst left;
 	Pos assignmentPos;
 	ExprAst right;
+
+	Range keywordRange() =>
+		rangeOfStartAndLength(assignmentPos, ":=".length);
 }
 
 // `left f:= right`
@@ -238,6 +247,9 @@ immutable struct AssignmentCallAst {
 	ExprAst left;
 	NameAndRange funName;
 	ExprAst right;
+
+	Range keywordRange(in AllSymbols allSymbols) =>
+		rangeOfStartAndLength(funName.range(allSymbols).end, ":=".length);
 }
 
 immutable struct BogusAst {}
@@ -278,8 +290,8 @@ immutable struct CallAst {
 
 	NameAndRange funName() scope =>
 		NameAndRange(funNameStart, funNameName);
-	Range nameRange(in AllSymbols allSymbols) scope =>
-		funName.range(allSymbols);
+	Range nameRange(in AllSymbols allSymbols, in ExprAst* ast) scope =>
+		style == Style.comma ? ast.range : funName.range(allSymbols);
 }
 static assert(CallAst.sizeof == ulong.sizeof * 4);
 
@@ -305,10 +317,16 @@ immutable struct DoAst {
 immutable struct EmptyAst {}
 
 immutable struct ForAst {
+	@safe @nogc pure nothrow:
 	DestructureAst param;
 	ExprAst collection;
 	ExprAst body_;
 	ExprAst else_;
+
+	Range keywordRange(in ExprAst* source) {
+		assert(source.kind.as!(ForAst*) == &this);
+		return source.range[0 .. "for".length];
+	}
 }
 
 immutable struct IdentifierAst {
@@ -426,10 +444,20 @@ immutable struct LoopAst {
 }
 
 immutable struct LoopBreakAst {
+	@safe @nogc pure nothrow:
 	ExprAst value;
+
+	Range keywordRange(in ExprAst* source) {
+		assert(source.kind.as!(LoopBreakAst*) == &this);
+		return source.range[0 .. "break".length];
+	}
 }
 
-immutable struct LoopContinueAst {}
+immutable struct LoopContinueAst {
+	@safe @nogc pure nothrow:
+	Range keywordRange(in ExprAst* source) =>
+		source.range[0 .. "continue".length];
+}
 
 immutable struct LoopUntilAst {
 	ExprAst condition;
@@ -492,9 +520,14 @@ immutable struct SharedAst {
 }
 
 immutable struct ThenAst {
+	@safe @nogc pure nothrow:
 	DestructureAst left;
+	Pos keywordPos;
 	ExprAst futExpr;
 	ExprAst then;
+
+	Range keywordRange() scope =>
+		rangeOfStartAndLength(keywordPos, "<-".length);
 }
 
 immutable struct ThrowAst {
@@ -517,8 +550,10 @@ immutable struct TypedAst {
 }
 
 immutable struct UnlessAst {
+	@safe @nogc pure nothrow:
 	ExprAst cond;
 	ExprAst body_;
+	ExprAst emptyElse; // Always EmptyAst
 }
 
 immutable struct WithAst {
@@ -531,7 +566,7 @@ immutable struct WithAst {
 
 	Range keywordRange(ExprAst* ast) scope {
 		assert(ast.kind.as!(WithAst*) == &this);
-		return rangeOfStartAndLength(ast.range.start, "with".length);
+		return ast.range[0 .. "with".length];
 	}
 }
 

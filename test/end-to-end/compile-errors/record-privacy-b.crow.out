@@ -22,7 +22,7 @@ Candidates (with 1 arguments):
 	'new internal-ctor(x nat64)' (from test/end-to-end/compile-errors/record-privacy-a.crow line 10)
 	'new redundant-internal(x nat64)' (from test/end-to-end/compile-errors/record-privacy-a.crow line 13)
 	'new redundant-public(x nat64)' (from test/end-to-end/compile-errors/record-privacy-a.crow line 16)
-test/end-to-end/compile-errors/record-privacy-b.crow 10:21-10:24 There are functions named 'new', but they do not match the expected return type and actual argument types.
+test/end-to-end/compile-errors/record-privacy-b.crow 10:21-10:28 There are functions named 'new', but they do not match the expected return type and actual argument types.
 Expected return type 'private-mut'.
 Actual argument types:  (Other arguments not checked; gave up early.)
 Candidates (with 3 arguments):
@@ -38,8 +38,8 @@ Candidates (with 3 arguments):
 	'new[k, v] k shared[v](...(k, v) array)' (from include/crow/col/shared-map.crow line 31)
 	'new json(...(symbol, json) array)' (from include/crow/json.crow line 35)
 	'new[t0, t1, t2] (t0, t1, t2)(a t0, b t1, c t2)' (from include/crow/private/bootstrap.crow line 233)
-test/end-to-end/compile-errors/record-privacy-b.crow 11:5-11:13 There is no function named 'set-j'.
+test/end-to-end/compile-errors/record-privacy-b.crow 11:9-11:11 There is no function named 'set-j'.
 test/end-to-end/compile-errors/record-privacy-b.crow 12:11-12:12 There is no function named 'j'.
-test/end-to-end/compile-errors/record-privacy-b.crow 13:5-13:13 There is no function named 'set-k'.
-test/end-to-end/compile-errors/record-privacy-b.crow 15:5-15:13 There is no function named 'set-l'.
+test/end-to-end/compile-errors/record-privacy-b.crow 13:9-13:11 There is no function named 'set-k'.
+test/end-to-end/compile-errors/record-privacy-b.crow 15:9-15:11 There is no function named 'set-l'.
 test/end-to-end/compile-errors/record-privacy-b.crow 16:11-16:12 There is no function named 'l'.

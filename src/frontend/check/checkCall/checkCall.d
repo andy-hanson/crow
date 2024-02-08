@@ -80,7 +80,7 @@ Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref Call
 	return checkCallCommon(
 		ctx, locals, source,
 		// Show diags at the function name and not at the whole call ast
-		ast.nameRange(ctx.allSymbols),
+		ast.nameRange(ctx.allSymbols, source),
 		ast.funName.name,
 		has(ast.typeArg) ? some(typeFromAst2(ctx, *force(ast.typeArg))) : none!Type,
 		ast.args,
@@ -125,13 +125,14 @@ Expr checkCallSpecial(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	ExprAst* source,
+	in Range range,
 	Symbol funName,
 	in ExprAst[] args,
 	ref Expected expected,
 ) =>
 	// TODO:NO ALLOC
 	checkCallCommon(
-		ctx, locals, source, source.range, funName, none!Type, newArray(ctx.alloc, args), expected,
+		ctx, locals, source, range, funName, none!Type, newArray(ctx.alloc, args), expected,
 		(in CalledDecl _) => true);
 
 private Expr checkCallCommon(
@@ -163,7 +164,7 @@ private Expr checkCallCommon(
 
 Expr checkCallIdentifier(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Symbol name, ref Expected expected) {
 	checkCallShouldUseSyntax(ctx, source.range, name, 0);
-	return checkCallSpecial(ctx, locals, source, name, [], expected);
+	return checkCallSpecial(ctx, locals, source, source.range, name, [], expected);
 }
 
 private:

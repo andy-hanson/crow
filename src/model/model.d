@@ -1630,7 +1630,6 @@ immutable struct Destructure {
 
 immutable struct Expr {
 	@safe @nogc pure nothrow:
-
 	ExprAst* ast;
 	ExprKind kind;
 

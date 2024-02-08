@@ -492,7 +492,7 @@ Range callNameRange(in AllSymbols allSymbols, in Expr a) {
 		? kind.as!(AssignmentCallAst*).funName.range(allSymbols)
 		: kind.isA!CallAst
 		? kind.as!CallAst.funName.range(allSymbols)
-		: a.ast.range;
+		: a.range;
 }
 
 void eachExprThatMayReference(

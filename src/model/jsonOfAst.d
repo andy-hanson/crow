@@ -573,7 +573,7 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 		(in UnlessAst x) =>
 			jsonObject(alloc, [
 				kindField!"unless",
-				field!"conditoin"(jsonOfExprAst(alloc, ctx, x.cond)),
+				field!"condition"(jsonOfExprAst(alloc, ctx, x.cond)),
 				field!"body"(jsonOfExprAst(alloc, ctx, x.body_))]),
 		(in WithAst x) =>
 			jsonObject(alloc, [

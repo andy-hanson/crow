@@ -248,7 +248,7 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expecte
 		(AssertOrForbidAst* a) =>
 			checkAssertOrForbid(ctx, locals, ast, a, expected),
 		(AssignmentAst* a) =>
-			checkAssignment(ctx, locals, ast, a.left, &a.right, expected),
+			checkAssignment(ctx, locals, ast, a.left, a.keywordRange, &a.right, expected),
 		(AssignmentCallAst* a) =>
 			checkAssignmentCall(ctx, locals, ast, *a, expected),
 		(BogusAst _) =>
@@ -260,7 +260,7 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expecte
 		(DoAst a) =>
 			checkExpr(ctx, locals, a.body_, expected),
 		(EmptyAst a) =>
-			checkEmptyNew(ctx, locals, ast, expected),
+			checkEmptyNew(ctx, locals, ast, ast.range, expected),
 		(ForAst* a) =>
 			checkFor(ctx, locals, ast, *a, expected),
 		(IdentifierAst a) =>
@@ -287,8 +287,8 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expecte
 			checkLoop(ctx, locals, ast, a, expected),
 		(LoopBreakAst* a) =>
 			checkLoopBreak(ctx, locals, ast, a, expected),
-		(LoopContinueAst _) =>
-			checkLoopContinue(ctx, locals,ast, expected),
+		(LoopContinueAst a) =>
+			checkLoopContinue(ctx, locals, ast, a, expected),
 		(LoopUntilAst* a) =>
 			checkLoopUntil(ctx, locals, ast, a, expected),
 		(LoopWhileAst* a) =>
@@ -376,7 +376,7 @@ Expr checkArrowAccess(
 	ExprAst[] derefArgs = arrayOfSingle(ast.left);
 	CallAst callDeref = CallAst(CallAst.style.single, NameAndRange(source.range.start, symbol!"*"), derefArgs);
 	ExprAst deref = ExprAst(Range(source.range.start, ast.name.start), ExprAstKind(callDeref));
-	return checkCallSpecial(ctx, locals, source, ast.name.name, [deref], expected);
+	return checkCallSpecial(ctx, locals, source, ast.keywordRange, ast.name.name, [deref], expected);
 }
 
 Expr checkIf(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, IfAst* ast, ref Expected expected) {
@@ -422,11 +422,13 @@ Expr checkAssignment(
 	ref LocalsInfo locals,
 	ExprAst* source,
 	in ExprAst left,
+	in Range keywordRange,
 	ExprAst* right,
 	ref Expected expected,
 ) {
 	if (left.kind.isA!IdentifierAst)
-		return checkAssignIdentifier(ctx, locals, source, left.kind.as!IdentifierAst.name, right, expected);
+		return checkAssignIdentifier(
+			ctx, locals, source, keywordRange, left.kind.as!IdentifierAst.name, right, expected);
 	else if (left.kind.isA!CallAst) {
 		CallAst leftCall = left.kind.as!CallAst;
 		Opt!Symbol name = () {
@@ -444,7 +446,7 @@ Expr checkAssignment(
 		if (has(name)) {
 			//TODO:PERF use temp alloc
 			ExprAst[] args = append(ctx.alloc, leftCall.args, *right);
-			return checkCallSpecial(ctx, locals, source, force(name), args, expected);
+			return checkCallSpecial(ctx, locals, source, keywordRange, force(name), args, expected);
 		} else {
 			addDiag2(ctx, source, Diag(Diag.AssignmentNotAllowed()));
 			return bogus(expected, source);
@@ -452,7 +454,7 @@ Expr checkAssignment(
 	} else if (left.kind.isA!ArrowAccessAst) {
 		ArrowAccessAst leftArrow = left.kind.as!ArrowAccessAst;
 		return checkCallSpecial(
-			ctx, locals, source,
+			ctx, locals, source, keywordRange,
 			prependSetDeref(ctx.allSymbols, leftArrow.name.name),
 			[*leftArrow.left, *right],
 			expected);
@@ -474,7 +476,7 @@ Expr checkAssignmentCall(
 	ExprAst* call = allocate(ctx.alloc, ExprAst(
 		source.range,
 		ExprAstKind(CallAst(CallAst.style.infix, ast.funName, args))));
-	return checkAssignment(ctx, locals, source, ast.left, call, expected);
+	return checkAssignment(ctx, locals, source, ast.left, ast.keywordRange(ctx.allSymbols), call, expected);
 }
 
 Expr checkUnless(
@@ -486,12 +488,12 @@ Expr checkUnless(
 ) {
 	Expr cond = checkAndExpectBool(ctx, locals, &ast.cond);
 	Expr else_ = checkExpr(ctx, locals, &ast.body_, expected);
-	Expr then = checkEmptyNew(ctx, locals, source, expected);
+	Expr then = checkExpr(ctx, locals, &ast.emptyElse, expected);
 	return Expr(source, ExprKind(allocate(ctx.alloc, IfExpr(cond, then, else_))));
 }
 
-Expr checkEmptyNew(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref Expected expected) =>
-	checkCallSpecial(ctx, locals, source, symbol!"new", [], expected);
+Expr checkEmptyNew(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, in Range range, ref Expected expected) =>
+	checkCallSpecial(ctx, locals, source, range, symbol!"new", [], expected);
 
 Expr checkIfOption(
 	ref ExprCtx ctx,
@@ -681,6 +683,7 @@ Expr checkAssignIdentifier(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	ExprAst* source,
+	in Range keywordRange,
 	in Symbol left,
 	ExprAst* right,
 	ref Expected expected,
@@ -699,7 +702,8 @@ Expr checkAssignIdentifier(
 					source,
 					ExprKind(ClosureSetExpr(x, allocate(ctx.alloc, value))))));
 	} else
-		return checkCallSpecial(ctx, locals, source, prependSet(ctx.allSymbols, left), [*right], expected);
+		return checkCallSpecial(
+			ctx, locals, source, keywordRange, prependSet(ctx.allSymbols, left), [*right], expected);
 }
 
 MutOpt!VariableRefAndType getVariableRefForSet(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Symbol name) {
@@ -1300,7 +1304,8 @@ Expr checkLoopBreak(
 ) {
 	MutOpt!(LoopInfo*) optLoop = tryGetLoop(expected);
 	if (!has(optLoop))
-		return checkCallSpecial(ctx, locals, source, symbol!"loop-break", [ast.value], expected);
+		return checkCallSpecial(
+			ctx, locals, source, ast.keywordRange(source), symbol!"loop-break", [ast.value], expected);
 	else {
 		LoopInfo* loop = force(optLoop);
 		loop.hasBreak = true;
@@ -1311,11 +1316,17 @@ Expr checkLoopBreak(
 	}
 }
 
-Expr checkLoopContinue(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref Expected expected) {
+Expr checkLoopContinue(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	ExprAst* source,
+	in LoopContinueAst ast,
+	ref Expected expected,
+) {
 	MutOpt!(LoopInfo*) optLoop = tryGetLoop(expected);
 	return has(optLoop)
 		? Expr(source, ExprKind(LoopContinueExpr(force(optLoop).loop)))
-		: checkCallSpecial(ctx, locals, source, symbol!"loop-continue", [], expected);
+		: checkCallSpecial(ctx, locals, source, ast.keywordRange(source), symbol!"loop-continue", [], expected);
 }
 
 Expr checkLoopUntil(
@@ -1528,13 +1539,15 @@ Expr checkFor(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref ForAs
 	// TODO: NO ALLOC
 	ExprAst lambdaBody = ExprAst(source.range, ExprAstKind(allocate(ctx.alloc, LambdaAst(ast.param, ast.body_))));
 	Symbol funName = hasBreakOrContinue(ast.body_) ? symbol!"for-break" : symbol!"for-loop";
+	Range keywordRange = ast.keywordRange(source);
 	if (!ast.else_.kind.isA!EmptyAst) {
 		// TODO: NO ALLOC
 		ExprAst lambdaElse_ = ExprAst(ast.else_.range, ExprAstKind(
 			allocate(ctx.alloc, LambdaAst(DestructureAst(DestructureAst.Void(source.range)), ast.else_))));
-		return checkCallSpecial(ctx, locals, source, funName, [ast.collection, lambdaBody, lambdaElse_], expected);
+		return checkCallSpecial(
+			ctx, locals, source, keywordRange, funName, [ast.collection, lambdaBody, lambdaElse_], expected);
 	} else
-		return checkCallSpecial(ctx, locals, source, funName, [ast.collection, lambdaBody], expected);
+		return checkCallSpecial(ctx, locals, source, keywordRange, funName, [ast.collection, lambdaBody], expected);
 }
 
 Expr checkWith(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref WithAst ast, ref Expected expected) {
@@ -1542,13 +1555,14 @@ Expr checkWith(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref With
 		addDiag2(ctx, ast.keywordRange(source), Diag(Diag.WithHasElse()));
 	// TODO: NO ALLOC
 	ExprAst lambda = ExprAst(source.range, ExprAstKind(allocate(ctx.alloc, LambdaAst(ast.param, ast.body_))));
-	return checkCallSpecial(ctx, locals, source, symbol!"with-block", [ast.arg, lambda], expected);
+	return checkCallSpecial(
+		ctx, locals, source, ast.keywordRange(source), symbol!"with-block", [ast.arg, lambda], expected);
 }
 
 Expr checkThen(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref ThenAst ast, ref Expected expected) {
 	// TODO: NO ALLOC
 	ExprAst lambda = ExprAst(source.range, ExprAstKind(allocate(ctx.alloc, LambdaAst(ast.left, ast.then))));
-	return checkCallSpecial(ctx, locals, source, symbol!"then", [ast.futExpr, lambda], expected);
+	return checkCallSpecial(ctx, locals, source, ast.keywordRange, symbol!"then", [ast.futExpr, lambda], expected);
 }
 
 Expr checkTyped(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, TypedAst* ast, ref Expected expected) {
