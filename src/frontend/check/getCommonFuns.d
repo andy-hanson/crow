@@ -164,7 +164,8 @@ CommonFunsAndMain getCommonFuns(
 }
 
 Destructure makeParam(ref Alloc alloc, Symbol name, Type type) =>
-	Destructure(allocate(alloc, Local(LocalSource(LocalSource.Generated()), name, LocalMutability.immut, type)));
+	Destructure(allocate(alloc, Local(
+		LocalSource(allocate(alloc, LocalSource.Generated(name))), LocalMutability.immut, type)));
 
 Params makeParams(ref Alloc alloc, in ParamShort[] params) =>
 	Params(map(alloc, params, (ref ParamShort x) =>
@@ -241,10 +242,10 @@ StructDecl* getStructDeclOrAddDiag(
 			Diag(Diag.CommonTypeMissing(name))));
 		return allocate(alloc, StructDecl(
 			StructDeclSource(allocate(alloc, StructDeclSource.Bogus(
+				name,
 				TypeParams(makeArray!NameAndRange(alloc, nTypeParams, (size_t index) =>
 					NameAndRange(0, symbol!"a")))))),
 			module_.uri,
-			name,
 			Visibility.public_,
 			Linkage.extern_,
 			Purity.data,

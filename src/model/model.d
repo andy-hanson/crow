@@ -158,10 +158,11 @@ immutable struct SpecDeclSig {
 
 	Uri moduleUri;
 	SpecSigAst* ast;
-	Symbol name;
 	Type returnType;
 	SmallArray!Destructure params;
 
+	Symbol name() scope =>
+		ast.name;
 	UriAndRange range() scope =>
 		UriAndRange(moduleUri, ast.range);
 }
@@ -184,6 +185,13 @@ immutable struct RecordOrUnionMemberSource {
 	@safe @nogc pure nothrow:
 	mixin TaggedUnion!(DestructureAst.Single*, RecordOrUnionMemberAst*);
 
+	Symbol name() scope =>
+		matchIn!Symbol(
+			(in DestructureAst.Single x) =>
+				x.name.name,
+			(in RecordOrUnionMemberAst x) =>
+				x.name.name);
+
 	Range range(in AllSymbols allSymbols) scope =>
 		matchIn!Range(
 			(in DestructureAst.Single x) =>
@@ -205,10 +213,11 @@ immutable struct RecordField {
 	RecordOrUnionMemberSource source;
 	StructDecl* containingRecord;
 	Visibility visibility;
-	Symbol name;
 	Opt!Visibility mutability;
 	Type type;
 
+	Symbol name() scope =>
+		source.name;
 	Range range(in AllSymbols allSymbols) scope =>
 		source.range(allSymbols);
 	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
@@ -220,9 +229,10 @@ immutable struct UnionMember {
 
 	RecordOrUnionMemberSource source;
 	StructDecl* containingUnion;
-	Symbol name;
 	Type type; // This will be 'void' if no type is specified
 
+	Symbol name() scope =>
+		source.name;
 	Range range(in AllSymbols allSymbols) scope =>
 		source.range(allSymbols);
 	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
@@ -258,6 +268,11 @@ immutable struct EnumValue {
 immutable struct EnumMemberSource {
 	@safe @nogc pure nothrow:
 	mixin TaggedUnion!(EnumOrFlagsMemberAst*, DestructureAst.Single*);
+
+	Symbol name() scope =>
+		matchIn!Symbol(
+			(in EnumOrFlagsMemberAst x) => x.name,
+			(in DestructureAst.Single x) => x.name.name);
 	Range range(in AllSymbols allSymbols) scope =>
 		matchIn!Range(
 			(in EnumOrFlagsMemberAst x) => x.range,
@@ -273,9 +288,10 @@ immutable struct EnumOrFlagsMember {
 
 	EnumMemberSource source;
 	StructDecl* containingEnum;
-	Symbol name;
 	EnumValue value;
 
+	Symbol name() scope =>
+		source.name;
 	Range range(in AllSymbols allSymbols) scope =>
 		source.range(allSymbols);
 	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
@@ -334,12 +350,13 @@ immutable struct StructAlias {
 	StructAliasAst* ast;
 	Uri moduleUri;
 	Visibility visibility;
-	Symbol name;
 	private Late!(StructInst*) target_;
 
 	SmallString docComment() return scope =>
 		ast.docComment;
 
+	Symbol name() scope =>
+		ast.name.name;
 	TypeParams typeParams() return scope =>
 		emptyTypeParams;
 
@@ -383,7 +400,6 @@ immutable struct StructDecl {
 
 	StructDeclSource source;
 	Uri moduleUri;
-	Symbol name;
 	Visibility visibility;
 	Linkage linkage;
 	// Note: purity on the decl does not take type args into account
@@ -414,6 +430,12 @@ immutable struct StructDecl {
 				x.typeParams,
 			(ref StructDeclSource.Bogus x) =>
 				x.typeParams);
+	Symbol name() scope =>
+		source.matchIn!Symbol(
+			(in StructDeclAst x) =>
+				x.name.name,
+			(in StructDeclSource.Bogus x) =>
+				x.name);
 
 	UriAndRange range() scope =>
 		UriAndRange(moduleUri, source.matchIn!Range(
@@ -435,6 +457,7 @@ immutable struct StructDecl {
 
 immutable struct StructDeclSource {
 	immutable struct Bogus {
+		Symbol name;
 		TypeParams typeParams;
 	}
 	mixin TaggedUnion!(StructDeclAst*, Bogus*);
@@ -491,11 +514,12 @@ immutable struct SpecDecl {
 	Uri moduleUri;
 	SpecDeclAst* ast;
 	Visibility visibility;
-	Symbol name;
 	private Late!SpecDeclBody lateBody;
 
 	SmallString docComment() return scope =>
 		ast.docComment;
+	Symbol name() scope =>
+		ast.name.name;
 	TypeParams typeParams() return scope =>
 		ast.typeParams;
 
@@ -1246,13 +1270,15 @@ immutable struct VarDecl {
 	VarDeclAst* ast;
 	Uri moduleUri;
 	Visibility visibility;
-	Symbol name;
-	VarKind kind;
 	Type type;
 	Opt!Symbol externLibraryName;
 
+	Symbol name() scope =>
+		ast.name.name;
 	TypeParams typeParams() return scope =>
 		emptyTypeParams;
+	VarKind kind() scope =>
+		ast.kind;
 
 	UriAndRange range() scope =>
 		UriAndRange(moduleUri, ast.range);
@@ -1527,17 +1553,23 @@ alias ConfigImportUris = Map!(Symbol, Uri);
 alias ConfigExternUris = Map!(Symbol, Uri);
 
 immutable struct LocalSource {
-	immutable struct Generated {}
-	mixin TaggedUnion!(DestructureAst.Single*, Generated);
+	immutable struct Generated { Symbol name; }
+	mixin TaggedUnion!(DestructureAst.Single*, Generated*);
 }
 
 immutable struct Local {
 	@safe @nogc pure nothrow:
 
 	LocalSource source;
-	Symbol name;
 	LocalMutability mutability;
 	Type type;
+
+	Symbol name() scope =>
+		source.matchIn!Symbol(
+			(in DestructureAst.Single x) =>
+				x.name.name,
+			(in LocalSource.Generated x) =>
+				x.name);
 }
 
 bool localIsAllocated(in Local a) scope {

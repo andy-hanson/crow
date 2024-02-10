@@ -272,7 +272,7 @@ SpecDeclBody checkSpecDeclBody(
 				addDiag(ctx, x.param.range(ctx.allSymbols), Diag(Diag.SpecSigCantBeVariadic()));
 				return arrayOfSingle(&x.param);
 			});
-		return SpecDeclSig(ctx.curUri, x, x.name, rp.returnType, small!Destructure(params));
+		return SpecDeclSig(ctx.curUri, x, rp.returnType, small!Destructure(params));
 	});
 	return SpecDeclBody(builtin, small!(immutable SpecInst*)(modifiers.parents), small!SpecDeclSig(sigs));
 }
@@ -285,7 +285,7 @@ SpecDeclBody checkSpecDeclBody(
 ) =>
 	mapWithResultPointer!(SpecDecl, SpecDeclAst)(ctx.alloc, asts, (SpecDeclAst* ast, SpecDecl* out_) {
 		checkTypeParams(ctx, ast.typeParams);
-		return SpecDecl(ctx.curUri, ast, visibilityFromExplicitTopLevel(ast.visibility), ast.name.name);
+		return SpecDecl(ctx.curUri, ast, visibilityFromExplicitTopLevel(ast.visibility));
 	});
 
 void checkSpecBodies(
@@ -334,7 +334,7 @@ bool recurDetectSpecRecursion(SpecDecl* cur, ref MutMaxArr!(8, immutable SpecDec
 StructAlias[] checkStructAliasesInitial(ref CheckCtx ctx, scope StructAliasAst[] asts) =>
 	mapPointers!(StructAlias, StructAliasAst)(ctx.alloc, asts, (StructAliasAst* ast) {
 		checkNoTypeParams(ctx, ast.typeParams, DeclKind.alias_);
-		return StructAlias(ast, ctx.curUri, visibilityFromExplicitTopLevel(ast.visibility), ast.name.name);
+		return StructAlias(ast, ctx.curUri, visibilityFromExplicitTopLevel(ast.visibility));
 	});
 
 void checkStructAliasTargets(
@@ -385,8 +385,6 @@ VarDecl checkVarDecl(
 		ast,
 		ctx.curUri,
 		visibilityFromExplicitTopLevel(ast.visibility),
-		ast.name.name,
-		ast.kind,
 		typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, ast.type, structsAndAliasesMap),
 		checkVarModifiers(ctx, ast.kind, ast.modifiers));
 }

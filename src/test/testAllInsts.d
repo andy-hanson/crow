@@ -209,9 +209,9 @@ Module makeModule(ref Alloc alloc, Uri uri, in StructDecl[] structs) =>
 StructDecl dummyStruct(ref Alloc alloc, Uri uri, Symbol name, size_t nTypeParams) =>
 	StructDecl(
 		StructDeclSource(allocate(alloc, StructDeclSource.Bogus(
+			name,
 			small!NameAndRange(typeParams[0 .. nTypeParams])))),
 		uri,
-		name,
 		Visibility.public_,
 		Linkage.internal,
 		Purity.data,

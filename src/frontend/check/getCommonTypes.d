@@ -121,7 +121,7 @@ StructDecl* getDecl(ref CommonTypesCtx ctx, Symbol name, size_t nTypeParameters)
 		return force(res);
 	else {
 		addDiagMissing(ctx, name);
-		return bogusStructDecl(ctx.alloc, nTypeParameters);
+		return bogusStructDecl(ctx.alloc, name, nTypeParameters);
 	}
 }
 
@@ -133,7 +133,7 @@ StructInst* nonTemplate(ref CommonTypesCtx ctx, Symbol name) {
 	else {
 		addDiagMissing(ctx, name);
 		return instantiateNonTemplateStructDecl(
-			ctx.instantiateCtx, ctx.delayedStructInsts, bogusStructDecl(ctx.alloc, 0));
+			ctx.instantiateCtx, ctx.delayedStructInsts, bogusStructDecl(ctx.alloc, name, 0));
 	}
 }
 
@@ -188,14 +188,13 @@ StructInst* instantiateNonTemplateStructDecl(
 ) =>
 	instantiateStruct(ctx, structDecl, emptyTypeArgs, someMut(ptrTrustMe(delayedStructInsts)));
 
-StructDecl* bogusStructDecl(ref Alloc alloc, size_t nTypeParameters) {
+StructDecl* bogusStructDecl(ref Alloc alloc, Symbol name, size_t nTypeParameters) {
 	UriAndRange uriAndRange = UriAndRange.empty;
 	TypeParams typeParams = small!NameAndRange(makeArray!NameAndRange(alloc, nTypeParameters, (size_t i) =>
 		NameAndRange(0, symbol!"")));
 	StructDecl* res = allocate(alloc, StructDecl(
-		StructDeclSource(allocate(alloc, StructDeclSource.Bogus(typeParams))),
+		StructDeclSource(allocate(alloc, StructDeclSource.Bogus(name, typeParams))),
 		uriAndRange.uri,
-		symbol!"",
 		Visibility.public_,
 		Linkage.internal,
 		Purity.data,

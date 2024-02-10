@@ -90,7 +90,6 @@ StructDecl[] checkStructsInitial(ref CheckCtx ctx, in StructDeclAst[] asts) =>
 		return StructDecl(
 			StructDeclSource(ast),
 			ctx.curUri,
-			ast.name.name,
 			visibilityFromExplicitTopLevel(ast.visibility),
 			p.linkage,
 			p.purityAndForced.purity,
@@ -460,7 +459,7 @@ SmallArray!EnumOrFlagsMember checkEnumOrFlagsMembers(
 	SmallArray!EnumOrFlagsMember members = has(paramsAst)
 		? enumOrFlagsMembersFromParams(ctx, struct_, force(paramsAst), cbValue)
 		: mapPointers(ctx.alloc, memberAsts, (EnumOrFlagsMemberAst* x) =>
-			EnumOrFlagsMember(EnumMemberSource(x), struct_, x.name, cbValue(x.range, x.value)));
+			EnumOrFlagsMember(EnumMemberSource(x), struct_, cbValue(x.range, x.value)));
 	eachPair!(EnumOrFlagsMember)(members, (in EnumOrFlagsMember a, in EnumOrFlagsMember b) {
 		if (a.name == b.name)
 			addDiag(ctx, b.nameRange(ctx.allSymbols).range, Diag(Diag.DuplicateDeclaration(memberKind, b.name)));
@@ -664,7 +663,7 @@ Opt!EnumOrFlagsMember enumMemberFromParam(ref CheckCtx ctx, StructDecl* enum_, D
 		if (has(single.type))
 			addDiag(ctx, force(single.type).range(ctx.allSymbols), Diag(
 				Diag.UnsupportedSyntax(Diag.UnsupportedSyntax.Reason.enumMemberType)));
-		return some(EnumOrFlagsMember(EnumMemberSource(single), enum_, single.name.name, value));
+		return some(EnumOrFlagsMember(EnumMemberSource(single), enum_, value));
 	} else {
 		addDiag(ctx, ast.range(ctx.allSymbols), Diag(
 			Diag.StructParamsSyntaxError(enum_, Diag.StructParamsSyntaxError.Reason.destructure)));
@@ -721,7 +720,7 @@ RecordField checkRecordField(
 			ctx, visibility, force(ast.mutability).visibility,
 			Diag.VisibilityWarning.Kind(Diag.VisibilityWarning.Kind.FieldMutability(name))))
 		: none!Visibility;
-	return RecordField(ast.source, record, visibility, name, mutability, memberType);
+	return RecordField(ast.source, record, visibility, mutability, memberType);
 }
 
 UnionMember checkUnionMember(
@@ -748,7 +747,7 @@ UnionMember checkUnionMember(
 	if (has(ast.visibility))
 		addDiag(ctx, force(ast.visibility).range, Diag(
 			Diag.UnsupportedSyntax(Diag.UnsupportedSyntax.Reason.unionMemberVisibility)));
-	return UnionMember(ast.source, struct_, ast.name.name, type);
+	return UnionMember(ast.source, struct_, type);
 }
 
 IntegralType checkEnumOrFlagsModifiers(
