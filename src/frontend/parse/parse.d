@@ -18,7 +18,7 @@ import frontend.parse.lexer :
 import frontend.parse.parseExpr : parseFunExprBody;
 import frontend.parse.parseImport : parseImportsOrExports;
 import frontend.parse.parseType :
-	parseModifier, parseParams, parseType, parseTypeArgForVarDecl, tryParseParams, tryTakeVisibility;
+	parseModifiers, parseParams, parseType, parseTypeArgForVarDecl, tryParseParams, tryTakeVisibility;
 import frontend.parse.parseUtil :
 	addDiagExpected,
 	NewlineOrDedent,
@@ -31,8 +31,7 @@ import frontend.parse.parseUtil :
 	takeNewlineOrDedent,
 	takeNewline_topLevel,
 	takeOrAddDiagExpectedToken,
-	tryTakeToken,
-	tryTakeTokenAndMayContinueOntoNextLine;
+	tryTakeToken;
 import model.ast :
 	EnumOrFlagsMemberAst,
 	ExprAst,
@@ -180,16 +179,6 @@ FunDeclAst parseFun(
 	return FunDeclAst(
 		range(lexer, start), docComment, visibility, name, typeParams, returnType, params, modifiers, body_);
 }
-
-SmallArray!ModifierAst parseModifiers(ref Lexer lexer) =>
-	peekEndOfLine(lexer)
-		? emptySmallArray!ModifierAst
-		: buildSmallArray!ModifierAst(lexer.alloc, (scope ref Builder!ModifierAst res) {
-			do {
-				res ~= parseModifier(lexer);
-			} while (tryTakeTokenAndMayContinueOntoNextLine(lexer, Token.comma));
-		});
-
 
 void parseSpecOrStructOrFunOrTest(
 	ref Lexer lexer,

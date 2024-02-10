@@ -24,6 +24,7 @@ import frontend.parse.lexer :
 import frontend.parse.lexToken : TokenAndData;
 import frontend.parse.parseUtil :
 	addDiagExpected,
+	peekEndOfLine,
 	peekToken,
 	takeName,
 	takeNameAndRangeAllowUnderscore,
@@ -32,6 +33,7 @@ import frontend.parse.parseUtil :
 	tryTakeNameAndRangeAllowNameLikeKeywords,
 	tryTakeOperator,
 	tryTakeToken,
+	tryTakeTokenAndMayContinueOntoNextLine,
 	tryTakeTokenCb;
 import model.ast : DestructureAst, ModifierAst, ModifierKeyword, NameAndRange, ParamsAst, SpecUseAst, TypeAst;
 import model.model : FunKind, Visibility;
@@ -84,7 +86,16 @@ private void parseTypesWithCommasThenClosingParen(ref Lexer lexer, scope ref Bui
 TypeAst parseType(ref Lexer lexer) =>
 	parseTypeSuffixes(lexer, parseTypeBeforeSuffixes(lexer, ParenthesesNecessary.unnecessary));
 
-ModifierAst parseModifier(ref Lexer lexer) {
+SmallArray!ModifierAst parseModifiers(ref Lexer lexer) =>
+	peekEndOfLine(lexer)
+		? emptySmallArray!ModifierAst
+		: buildSmallArray!ModifierAst(lexer.alloc, (scope ref Builder!ModifierAst res) {
+			do {
+				res ~= parseModifier(lexer);
+			} while (tryTakeTokenAndMayContinueOntoNextLine(lexer, Token.comma));
+		});
+
+private ModifierAst parseModifier(ref Lexer lexer) {
 	Pos start = curPos(lexer);
 	Opt!ModifierKeyword keyword = tryTakeModifierKeyword(lexer);
 	if (has(keyword))
@@ -281,7 +292,7 @@ SpecUseAst parseSpecUseSuffixes(ref Lexer lexer, TypeAst left) {
 			return SpecUseAst(none!TypeAst, left.as!NameAndRange);
 		else {
 			addDiagExpected(lexer, ParseDiag.Expected.Kind.name);
-			return SpecUseAst(some(left), NameAndRange(curPos(lexer), symbol!"bogus"));
+			return SpecUseAst(some(left), NameAndRange(curPos(lexer), symbol!""));
 		}
 	}
 }
