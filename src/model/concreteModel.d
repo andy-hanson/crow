@@ -7,11 +7,11 @@ import model.model :
 	BuiltinFun,
 	BuiltinType,
 	ClosureReferenceKind,
-	EnumBackingType,
 	EnumFunction,
 	EnumValue,
 	FlagsFunction,
 	FunDecl,
+	IntegralType,
 	isTuple,
 	Local,
 	localIsAllocated,
@@ -26,8 +26,9 @@ import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : none, Opt, some;
 import util.sourceRange : UriAndRange;
 import util.string : CString;
-import util.symbol : Symbol;
+import util.symbol : AllSymbols, Symbol;
 import util.union_ : Union;
+import util.uri : Uri;
 import versionInfo : VersionInfo;
 
 immutable struct EnumValues {
@@ -41,11 +42,11 @@ immutable struct ConcreteStructBody {
 		ConcreteType[] typeArgs;
 	}
 	immutable struct Enum {
-		EnumBackingType backingType;
+		IntegralType storage;
 		EnumValues values;
 	}
 	immutable struct Flags {
-		EnumBackingType backingType;
+		IntegralType storage;
 		ulong[] values;
 	}
 	immutable struct Extern {}
@@ -329,6 +330,28 @@ immutable struct ConcreteFun {
 	void overwriteBody(ConcreteFunBody value) {
 		lateSetOverwrite(lateBody, value);
 	}
+
+	Uri moduleUri() scope =>
+		source.matchIn!Uri(
+			(in ConcreteFunKey x) =>
+				x.decl.moduleUri,
+			(in ConcreteFunSource.Lambda x) =>
+				x.range.uri,
+			(in ConcreteFunSource.Test x) =>
+				x.range.uri,
+			(in ConcreteFunSource.WrapMain x) =>
+				x.range.uri);
+
+	UriAndRange range(in AllSymbols allSymbols) scope =>
+		source.matchIn!UriAndRange(
+			(in ConcreteFunKey x) =>
+				x.decl.range(allSymbols),
+			(in ConcreteFunSource.Lambda x) =>
+				x.range,
+			(in ConcreteFunSource.Test x) =>
+				x.range,
+			(in ConcreteFunSource.WrapMain x) =>
+				x.range);
 }
 
 immutable struct ConcreteFunKey {
@@ -380,17 +403,6 @@ bool isSummon(ref ConcreteFun a) =>
 			assert(false),
 		(in ConcreteFunSource.WrapMain) =>
 			assert(false));
-
-UriAndRange concreteFunRange(in ConcreteFun a) =>
-	a.source.matchIn!UriAndRange(
-		(in ConcreteFunKey x) =>
-			x.decl.range,
-		(in ConcreteFunSource.Lambda x) =>
-			x.range,
-		(in ConcreteFunSource.Test x) =>
-			x.range,
-		(in ConcreteFunSource.WrapMain x) =>
-			x.range);
 
 immutable struct ConcreteExpr {
 	ConcreteType type;

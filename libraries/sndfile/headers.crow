@@ -37,7 +37,7 @@ import
 ) sndfile extern
 +sf_close c-int(SNDFILE SNDFILE mut*) sndfile extern
 
-+SndFileMode enum(c-int) extern
++SndFileMode enum extern, c-int storage
 	SFM_READ = 0x10
 	SFM_WRITE = 0x20
 	SFM_RDWR = 0x30
@@ -53,7 +53,7 @@ import
 +sf_write_float sf_count_t(sndfile SNDFILE mut*, pointer float32*, items sf_count_t) sndfile extern
 
 # WARN: This is not a true flags type; can only be mixed in certain ways
-+SF_FORMAT flags(u-int) extern
++SF_FORMAT flags extern, u-int storage
 	SF_FORMAT_WAV = 0x010000
 	SF_FORMAT_AIFF = 0x020000
 	SF_FORMAT_AU = 0x030000

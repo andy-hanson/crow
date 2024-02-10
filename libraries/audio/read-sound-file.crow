@@ -68,6 +68,4 @@ import
 	a user-data mut* = user-data-pointer pointer-cast
 	a->cur - a->content.begin-pointer
 
--user-data record by-val, mut
-	content nat8 array
-	cur nat8*
+-user-data record(content nat8 array, cur nat8*) by-val, mut

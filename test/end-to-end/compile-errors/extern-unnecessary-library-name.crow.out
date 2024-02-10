@@ -1,5 +1,6 @@
 exit code: 0
 stderr:
-test/end-to-end/compile-errors/extern-unnecessary-library-name.crow 4:9-4:17 'extern' for a type does not need the library name.
-test/end-to-end/compile-errors/extern-unnecessary-library-name.crow 5:10-5:18 'extern' for a type does not need the library name.
-test/end-to-end/compile-errors/extern-unnecessary-library-name.crow 6:9-6:17 'extern' for a type does not need the library name.
+test/end-to-end/compile-errors/extern-unnecessary-library-name.crow 4:9-4:17 'extern' does not take a type argument in this context.
+test/end-to-end/compile-errors/extern-unnecessary-library-name.crow 5:10-5:18 'extern' does not take a type argument in this context.
+test/end-to-end/compile-errors/extern-unnecessary-library-name.crow 6:1-6:17 A union can't be 'extern'.
+test/end-to-end/compile-errors/extern-unnecessary-library-name.crow 6:9-6:17 'extern' does not take a type argument in this context.

@@ -4,12 +4,10 @@ import
 dummy-bare-queue-tests nat()
 	0
 
--queue record
--queue queue()
-	()
+-queue record nominal
 -with-block void(_ queue, cb void mut(queue nat bare-queue mut*)) unsafe
-	storage mut nat bare-queue = ()
-	a nat bare-queue mut* = &storage
+	queue mut nat bare-queue = ()
+	a nat bare-queue mut* = &queue
 	with : (() => a destroy) finally
 		cb[a]
 

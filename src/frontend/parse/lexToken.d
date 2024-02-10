@@ -182,6 +182,7 @@ enum Token {
 	newlineIndent,
 	// end of line followed by another line at the same indent level.
 	newlineSameIndent,
+	nominal, // 'nominal'
 	noStd, // 'no-std'
 	operator, // Any operator; use TokenAndData.asSymbol with this
 	packed, // 'packed'
@@ -198,6 +199,7 @@ enum Token {
 	semicolon, // ';'
 	shared_, // 'shared'
 	spec, // 'spec'
+	storage, // 'storage'
 	summon, // 'summon'
 	test, // 'test'
 	thread_local, // 'thread-local'
@@ -559,6 +561,8 @@ Token tokenForSymbol(Symbol a) {
 			return Token.match;
 		case symbol!"mut".value:
 			return Token.mut;
+		case symbol!"nominal".value:
+			return Token.nominal;
 		case symbol!"no-std".value:
 			return Token.noStd;
 		case symbol!"packed".value:
@@ -571,6 +575,8 @@ Token tokenForSymbol(Symbol a) {
 			return Token.shared_;
 		case symbol!"spec".value:
 			return Token.spec;
+		case symbol!"storage".value:
+			return Token.storage;
 		case symbol!"summon".value:
 			return Token.summon;
 		case symbol!"test".value:

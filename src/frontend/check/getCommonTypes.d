@@ -9,8 +9,8 @@ import model.diag : Diag, Diagnostic;
 import model.model :
 	CommonTypes,
 	emptyTypeArgs,
-	EnumBackingType,
 	FunKind,
+	IntegralType,
 	IntegralTypes,
 	Linkage,
 	Purity,
@@ -60,7 +60,7 @@ CommonTypes* getCommonTypes(
 		cString: instantiate1(ctx, pointerConst, char8),
 		float32: nonTemplate(ctx, symbol!"float32"),
 		float64: nonTemplate(ctx, symbol!"float64"),
-		integrals: IntegralTypes(makeEnumMap!EnumBackingType((EnumBackingType type) =>
+		integrals: IntegralTypes(makeEnumMap!IntegralType((IntegralType type) =>
 			nonTemplate(ctx, symbolOfEnum(type)))),
 		string_: nonTemplate(ctx, symbol!"string"),
 		symbol: symbolType,

@@ -14,9 +14,7 @@ import
 	../../string: interpolate, string, to
 	../random: random
 
-+login-cookie record
-	timestamp unix-time
-	cookie nat64
++login-cookie record(timestamp unix-time, cookie nat64)
 
 +cookie-matches bool(a login-cookie, cookie nat64, expire-seconds nat64) summon
 	now = get-unix-time seconds-since-epoch

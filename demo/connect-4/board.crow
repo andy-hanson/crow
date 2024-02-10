@@ -54,9 +54,7 @@ The result is unique for any value of current-player.
 -board-key nat(a board)
 	a.current-player + a.both-players
 
-color enum
-	red
-	blue
+color enum(red, blue)
 
 opposite color(a color)
 	match a

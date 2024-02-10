@@ -38,9 +38,7 @@ main nat^(_ string[]) summon
 user alias
 	nat
 
-user-info record
-	user user
-	user-name string
+user-info record(user user, user-name string)
 
 to string(a user-info)
 	"user {a user}: {a user-name}"
@@ -48,18 +46,12 @@ to string(a user-info)
 post alias
 	nat
 
-post-info record
-	post post
-	user user
-	user-name string
-	content string
+post-info record(post post, user user, user-name string, content string)
 
 to string(a post-info)
 	"post {a post}: {a user-name} (user {a user}) says: {a content}"
 
-user-cookie record
-	user nat
-	inner login-cookie
+user-cookie record(user nat, inner login-cookie)
 
 user-cookie user-cookie grammar()
 	nat ~~ "|" ~~ login-cookie map (user, cookie) =>
@@ -77,10 +69,7 @@ db record mut
 	-post-user (post, user) lmdb-db
 	-post-content (post, string) lmdb-db
 
-open-db record
-	db-path string
--open-db open-db(db-path string)
-	db-path,
+open-db record(db-path string) nominal
 
 open-real-db open-db()
 	db-path open-db
@@ -158,10 +147,7 @@ register-user register-user-result(db db, user-name string, password string) sum
 			else
 				user-already-exists, transaction-abort
 
-login-error enum
-	empty-name-or-password
-	user-does-not-exist
-	wrong-password
+login-error enum(empty-name-or-password, user-does-not-exist, wrong-password)
 
 login (user-cookie, login-error) result(db db, user-name string, password string) summon
 	if user-name.is-empty || password.is-empty

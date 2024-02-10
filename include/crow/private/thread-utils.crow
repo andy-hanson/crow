@@ -291,11 +291,11 @@ get-and-decrement nat64(t thread-safe-counter mut*) bare, unsafe
 	old
 
 thread-handle record by-val, mut
-	-storage any-mut-pointer
+	-ptr any-mut-pointer
 -as-windows-handle HANDLE(a thread-handle) bare, unsafe
-	a.storage
+	a.ptr
 -as-pthread pthread_t(a thread-handle) bare, unsafe
-	a.storage to
+	a.ptr to
 
 +create-one-thread thread-handle(
 	thread-arg any-mut-pointer,

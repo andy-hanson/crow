@@ -4,9 +4,7 @@ import
 	crow/pointer: const-pointer, mut-pointer
 	crow/private/c-string-util: char8, c-string
 
-+timespec record extern
-	tv_sec long
-	tv_nsec long
++timespec record(tv_sec long, tv_nsec long) extern
 
 +new timespec() bare
 	0, 0

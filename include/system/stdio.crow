@@ -44,7 +44,4 @@ import
 	_Stream FILE mut*,
 ) summon, c extern
 
-+SEEK enum(nat32) extern
-	SEEK_SET
-	SEEK_CUR
-	SEEK_END
++SEEK enum(SEEK_SET, SEEK_CUR, SEEK_END) extern, nat32 storage

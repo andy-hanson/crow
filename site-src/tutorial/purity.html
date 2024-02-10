@@ -45,16 +45,10 @@
 	<crow-runnable>
 		main void()
 			()
-
-		has-data record
-			x string
-
-		has-shared record shared
-			# 'string^' is a string future type, which is 'shared'.
-			x string^
-
-		has-mutable record mut
-			x string-builder
+		has-data record(x string)
+		# 'string^' is a string future type, which is 'shared'.
+		has-shared record(x string^) shared
+		has-mutable record(x string-builder) mut
 	</crow-runnable>
 
 	<aside class="small">

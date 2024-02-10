@@ -5,20 +5,19 @@ module model.model;
 import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
 import model.ast :
 	DestructureAst,
-	EnumMemberAst,
+	EnumOrFlagsMemberAst,
 	ExprAst,
 	FileAst,
 	FunDeclAst,
 	ImportOrExportAst,
 	NameAndRange,
-	RecordFieldAst,
+	RecordOrUnionMemberAst,
 	SpecDeclAst,
 	SpecSigAst,
 	StructAliasAst,
 	StructDeclAst,
 	TestAst,
 	TypedAst,
-	UnionMemberAst,
 	VarDeclAst;
 import model.concreteModel : TypeSize;
 import model.constant : Constant;
@@ -181,47 +180,68 @@ immutable struct ParamShort {
 	Type type;
 }
 
+immutable struct RecordOrUnionMemberSource {
+	@safe @nogc pure nothrow:
+	mixin TaggedUnion!(DestructureAst.Single*, RecordOrUnionMemberAst*);
+
+	Range range(in AllSymbols allSymbols) scope =>
+		matchIn!Range(
+			(in DestructureAst.Single x) =>
+				x.range(allSymbols),
+			(in RecordOrUnionMemberAst x) =>
+				x.range);
+
+	Range nameRange(in AllSymbols allSymbols) scope =>
+		matchIn!Range(
+			(in DestructureAst.Single x) =>
+				x.nameRange(allSymbols),
+			(in RecordOrUnionMemberAst x) =>
+				x.nameRange(allSymbols));
+}
+
 immutable struct RecordField {
 	@safe @nogc pure nothrow:
 
-	RecordFieldAst* ast;
+	RecordOrUnionMemberSource source;
 	StructDecl* containingRecord;
 	Visibility visibility;
 	Symbol name;
 	Opt!Visibility mutability;
 	Type type;
 
-	Range range() scope =>
-		ast.range;
+	Range range(in AllSymbols allSymbols) scope =>
+		source.range(allSymbols);
 	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
-		UriAndRange(containingRecord.moduleUri, ast.nameRange(allSymbols));
+		UriAndRange(containingRecord.moduleUri, source.nameRange(allSymbols));
 }
 
 immutable struct UnionMember {
 	@safe @nogc pure nothrow:
 
-	UnionMemberAst* ast;
+	RecordOrUnionMemberSource source;
 	StructDecl* containingUnion;
 	Symbol name;
-	Type type; // This will be Void if no type is specified
+	Type type; // This will be 'void' if no type is specified
 
-	Range range() scope =>
-		ast.range;
+	Range range(in AllSymbols allSymbols) scope =>
+		source.range(allSymbols);
 	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
-		UriAndRange(containingUnion.moduleUri, ast.nameRange(allSymbols));
+		UriAndRange(containingUnion.moduleUri, source.nameRange(allSymbols));
 }
 
 alias ByValOrRef = immutable ByValOrRef_;
-private enum ByValOrRef_ {
+private enum ByValOrRef_ : ubyte {
 	byVal,
 	byRef,
 }
 
 immutable struct RecordFlags {
 	Visibility newVisibility;
+	bool nominal;
 	bool packed;
 	Opt!ByValOrRef forcedByValOrRef;
 }
+static assert(RecordFlags.sizeof == uint.sizeof);
 
 immutable struct EnumValue {
 	@safe @nogc pure nothrow:
@@ -235,37 +255,49 @@ immutable struct EnumValue {
 		cast(ulong) value;
 }
 
-immutable struct EnumMember {
+immutable struct EnumMemberSource {
+	@safe @nogc pure nothrow:
+	mixin TaggedUnion!(EnumOrFlagsMemberAst*, DestructureAst.Single*);
+	Range range(in AllSymbols allSymbols) scope =>
+		matchIn!Range(
+			(in EnumOrFlagsMemberAst x) => x.range,
+			(in DestructureAst.Single x) => x.range(allSymbols));
+	Range nameRange(in AllSymbols allSymbols) scope =>
+		matchIn!Range(
+			(in EnumOrFlagsMemberAst x) => x.nameRange(allSymbols),
+			(in DestructureAst.Single x) => x.nameRange(allSymbols));
+}
+
+immutable struct EnumOrFlagsMember {
 	@safe @nogc pure nothrow:
 
-	EnumMemberAst* ast;
+	EnumMemberSource source;
 	StructDecl* containingEnum;
 	Symbol name;
 	EnumValue value;
 
-	Range range() scope =>
-		ast.range;
+	Range range(in AllSymbols allSymbols) scope =>
+		source.range(allSymbols);
 	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
-		UriAndRange(containingEnum.moduleUri, ast.nameRange(allSymbols));
+		UriAndRange(containingEnum.moduleUri, source.nameRange(allSymbols));
 }
 
 immutable struct StructBody {
 	immutable struct Bogus {}
 	immutable struct Enum {
-		EnumBackingType backingType;
-		EnumMember[] members;
+		IntegralType storage;
+		SmallArray!EnumOrFlagsMember members;
 	}
 	immutable struct Extern {
 		Opt!TypeSize size;
 	}
 	immutable struct Flags {
-		EnumBackingType backingType;
-		// For Flags, members should be unsigned
-		EnumMember[] members;
+		IntegralType storage;
+		SmallArray!EnumOrFlagsMember members;
 	}
 	immutable struct Record {
 		RecordFlags flags;
-		RecordField[] fields;
+		SmallArray!RecordField fields;
 	}
 	immutable struct Union {
 		UnionMember[] members;
@@ -295,9 +327,6 @@ private enum BuiltinType_ {
 	pointerMut,
 	void_,
 }
-
-UriAndRange nameRange(in AllSymbols allSymbols, in EnumMember a) =>
-	UriAndRange(a.containingEnum.moduleUri, a.ast.nameRange(allSymbols));
 
 immutable struct StructAlias {
 	@safe @nogc pure nothrow:
@@ -562,7 +591,7 @@ string stringOfVarKindLowerCase(VarKind a) {
 immutable struct FunBody {
 	immutable struct Bogus {}
 	immutable struct CreateEnum {
-		EnumMember* member;
+		EnumOrFlagsMember* member;
 	}
 	immutable struct CreateExtern {}
 	immutable struct CreateRecord {}
@@ -883,24 +912,43 @@ immutable struct FunDeclSource {
 		ImportOrExportAst* ast;
 	}
 
-	mixin Union!(Bogus, Ast, EnumMember*, FileImport, RecordField*, StructDecl*, UnionMember*, VarDecl*);
+	mixin Union!(Bogus, Ast, EnumOrFlagsMember*, FileImport, RecordField*, StructDecl*, UnionMember*, VarDecl*);
 
-	UriAndRange range() scope =>
+	Uri moduleUri() scope =>
+		matchIn!Uri(
+			(in FunDeclSource.Bogus x) =>
+				x.uri,
+			(in FunDeclSource.Ast x) =>
+				x.moduleUri,
+			(in EnumOrFlagsMember x) =>
+				x.containingEnum.moduleUri,
+			(in FunDeclSource.FileImport x) =>
+				x.moduleUri,
+			(in RecordField x) =>
+				x.containingRecord.moduleUri,
+			(in StructDecl x) =>
+				x.moduleUri,
+			(in UnionMember x) =>
+				x.containingUnion.moduleUri,
+			(in VarDecl x) =>
+				x.moduleUri);
+
+	UriAndRange range(in AllSymbols allSymbols) scope =>
 		matchIn!UriAndRange(
 			(in FunDeclSource.Bogus x) =>
 				UriAndRange(x.uri, Range.empty),
 			(in FunDeclSource.Ast x) =>
 				UriAndRange(x.moduleUri, x.ast.range),
-			(in EnumMember x) =>
-				UriAndRange(x.containingEnum.moduleUri, x.range),
+			(in EnumOrFlagsMember x) =>
+				UriAndRange(x.containingEnum.moduleUri, x.range(allSymbols)),
 			(in FunDeclSource.FileImport x) =>
 				UriAndRange(x.moduleUri, x.ast.range),
 			(in RecordField x) =>
-				UriAndRange(x.containingRecord.moduleUri, x.range),
+				UriAndRange(x.containingRecord.moduleUri, x.range(allSymbols)),
 			(in StructDecl x) =>
 				x.range,
 			(in UnionMember x) =>
-				UriAndRange(x.containingUnion.moduleUri, x.range),
+				UriAndRange(x.containingUnion.moduleUri, x.range(allSymbols)),
 			(in VarDecl x) =>
 				x.range);
 	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
@@ -909,7 +957,7 @@ immutable struct FunDeclSource {
 				UriAndRange(x.uri, Range.empty),
 			(in FunDeclSource.Ast x) =>
 				UriAndRange(x.moduleUri, x.ast.nameRange(allSymbols)),
-			(in EnumMember x) =>
+			(in EnumOrFlagsMember x) =>
 				x.nameRange(allSymbols),
 			(in FunDeclSource.FileImport x) =>
 				UriAndRange(x.moduleUri, x.ast.range),
@@ -948,7 +996,7 @@ immutable struct FunDecl {
 				x.typeParams,
 			(FunDeclSource.Ast x) =>
 				x.ast.typeParams,
-			(ref EnumMember _) =>
+			(ref EnumOrFlagsMember _) =>
 				emptySmallArray!NameAndRange,
 			(FunDeclSource.FileImport _) =>
 				emptySmallArray!NameAndRange,
@@ -962,10 +1010,10 @@ immutable struct FunDecl {
 				x.typeParams);
 
 	Uri moduleUri() scope =>
-		range.uri;
+		source.moduleUri;
 
-	UriAndRange range() scope =>
-		source.range;
+	UriAndRange range(in AllSymbols allSymbols) scope =>
+		source.range(allSymbols);
 	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
 		source.nameRange(allSymbols);
 
@@ -1344,18 +1392,19 @@ private bool isNonFunctionPointer(in CommonTypes commonTypes, StructDecl* a) =>
 
 immutable struct IntegralTypes {
 	@safe @nogc pure nothrow:
-	EnumMap!(EnumBackingType, StructInst*) byEnumBackingType;
-	StructInst* int8() return scope => byEnumBackingType[EnumBackingType.int8];
-	StructInst* int16() return scope => byEnumBackingType[EnumBackingType.int16];
-	StructInst* int32() return scope => byEnumBackingType[EnumBackingType.int32];
-	StructInst* int64() return scope => byEnumBackingType[EnumBackingType.int64];
-	StructInst* nat8() return scope => byEnumBackingType[EnumBackingType.nat8];
-	StructInst* nat16() return scope => byEnumBackingType[EnumBackingType.nat16];
-	StructInst* nat32() return scope => byEnumBackingType[EnumBackingType.nat32];
-	StructInst* nat64() return scope => byEnumBackingType[EnumBackingType.nat64];
+	private EnumMap!(IntegralType, StructInst*) map;
+	StructInst* opIndex(IntegralType name) return scope => map[name];
+	StructInst* int8() return scope => this[IntegralType.int8];
+	StructInst* int16() return scope => this[IntegralType.int16];
+	StructInst* int32() return scope => this[IntegralType.int32];
+	StructInst* int64() return scope => this[IntegralType.int64];
+	StructInst* nat8() return scope => this[IntegralType.nat8];
+	StructInst* nat16() return scope => this[IntegralType.nat16];
+	StructInst* nat32() return scope => this[IntegralType.nat32];
+	StructInst* nat64() return scope => this[IntegralType.nat64];
 }
 
-alias EnumBackingType = immutable EnumBackingType_;
+alias IntegralType = immutable EnumBackingType_;
 private enum EnumBackingType_ {
 	int8,
 	int16,
@@ -1367,41 +1416,41 @@ private enum EnumBackingType_ {
 	nat64,
 }
 
-long minValue(EnumBackingType type) {
+long minValue(IntegralType type) {
 	final switch (type) {
-		case EnumBackingType.int8:
+		case IntegralType.int8:
 			return byte.min;
-		case EnumBackingType.int16:
+		case IntegralType.int16:
 			return short.min;
-		case EnumBackingType.int32:
+		case IntegralType.int32:
 			return int.min;
-		case EnumBackingType.int64:
+		case IntegralType.int64:
 			return long.min;
-		case EnumBackingType.nat8:
-		case EnumBackingType.nat16:
-		case EnumBackingType.nat32:
-		case EnumBackingType.nat64:
+		case IntegralType.nat8:
+		case IntegralType.nat16:
+		case IntegralType.nat32:
+		case IntegralType.nat64:
 			return 0;
 	}
 }
 
-ulong maxValue(EnumBackingType type) {
+ulong maxValue(IntegralType type) {
 	final switch (type) {
-		case EnumBackingType.int8:
+		case IntegralType.int8:
 			return byte.max;
-		case EnumBackingType.int16:
+		case IntegralType.int16:
 			return short.max;
-		case EnumBackingType.int32:
+		case IntegralType.int32:
 			return int.max;
-		case EnumBackingType.int64:
+		case IntegralType.int64:
 			return long.max;
-		case EnumBackingType.nat8:
+		case IntegralType.nat8:
 			return ubyte.max;
-		case EnumBackingType.nat16:
+		case IntegralType.nat16:
 			return ushort.max;
-		case EnumBackingType.nat32:
+		case IntegralType.nat32:
 			return uint.max;
-		case EnumBackingType.nat64:
+		case IntegralType.nat64:
 			return ulong.max;
 	}
 }
@@ -1804,7 +1853,7 @@ immutable struct MatchEnumExpr {
 	ExprAndType matched;
 	Expr[] cases;
 
-	EnumMember[] enumMembers() =>
+	EnumOrFlagsMember[] enumMembers() =>
 		matched.type.as!(StructInst*).decl.body_.as!(StructBody.Enum).members;
 }
 

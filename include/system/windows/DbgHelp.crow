@@ -7,16 +7,13 @@ import
 	crow/pointer: *, any-const-pointer, any-mut-pointer, const-pointer, mut-pointer, null, size-of
 	system/win32: CONTEXT, DWORD, DWORD64, HANDLE, Rbp, Rip, Rsp, WORD
 
-+ADDRESS_MODE enum(nat32) extern
++ADDRESS_MODE enum extern, nat32 storage
 	AddrMode1616
 	AddrMode1632
 	AddrModeReal
 	AddrModeFlat
 
-+ADDRESS64 record extern
-	Offset DWORD64
-	Segment WORD
-	Mode ADDRESS_MODE
++ADDRESS64 record(Offset DWORD64, Segment WORD, Mode ADDRESS_MODE) extern
 
 +new ADDRESS64() bare
 	0,
@@ -93,7 +90,7 @@ import
 	# TODO: should not need parentheses
 	(size-of@IMAGEHLP_LINE64).to, null, 0, null, 0
 
-+IMAGEHLP_SYMBOL_TYPE_INFO enum(nat32) extern
++IMAGEHLP_SYMBOL_TYPE_INFO enum extern, nat32 storage
 	TI_GET_SYMTAG
 	TI_GET_SYMNAME
 	TI_GET_LENGTH
@@ -165,7 +162,7 @@ import
 
 +SymSetOptions DWORD(SymOptions SymOptions) DbgHelp extern
 
-+SymOptions flags(nat32) extern
++SymOptions flags extern, nat32 storage
 	SYMOPT_CASE_INSENSITIVE = 0x00000001
 	SYMOPT_UNDNAME = 0x00000002
 	SYMOPT_DEFERRED_LOADS = 0x00000004

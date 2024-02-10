@@ -80,9 +80,7 @@ main nat^(_ string[]) summon
 		else
 			http-not-found
 
--url record
-	path string
-	query string
+-url record(path string, query string)
 
 -split-url url(url-string string)
 	if split ?= url-string try-split-once "?"

@@ -4,22 +4,17 @@ import
 dummy-bare-map-tests nat()
 	0
 
--bm record
--bm bm()
-	()
+-bm record nominal
 -with-block void(_ bm, cb void mut(map (nat, value) bare-map mut*)) unsafe
-	storage mut (nat, value) bare-map = 1,
-	a (nat, value) bare-map mut* = &storage
+	map mut (nat, value) bare-map = 1,
+	a (nat, value) bare-map mut* = &map
 	with : (() => a destroy) finally
 		cb[a]
 
 -invalid nat()
 	max-value
 
--value record by-val, mut
-	id mut string
-	moved mut nat
-	destroyed mut bool
+-value record(id mut string, moved mut nat, destroyed mut bool) by-val, mut
 
 -new value() bare
 	"default",

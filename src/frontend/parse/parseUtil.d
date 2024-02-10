@@ -57,7 +57,7 @@ private bool tryTakeTokenIf(ref Lexer lexer, in bool delegate(TokenAndData) @saf
 	return has(res);
 }
 
-private Opt!T tryTakeTokenCb(T)(ref Lexer lexer, in Opt!T delegate(TokenAndData) @safe @nogc pure nothrow cb) {
+Opt!T tryTakeTokenCb(T)(ref Lexer lexer, in Opt!T delegate(TokenAndData) @safe @nogc pure nothrow cb) {
 	TokenAndData peek = getPeekTokenAndData(lexer);
 	Opt!T res = cb(peek);
 	if (has(res))

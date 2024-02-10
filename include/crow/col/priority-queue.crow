@@ -53,10 +53,7 @@ they would join with the `1` on the right to size 4, then with the `2` on the ri
 then with the `4` to size 10, then with the `8` to size 18, leaving only one node.)
 ###
 
--node[k, v] record
-	min (k, v)
-	pairs (k, v) array
-	next (k, v) node?
+-node[k, v] record(min (k, v), pairs (k, v) array, next (k, v) node?)
 
 +new[k, v] (k, v) priority-queue(...a (k, v) array) k priority
 	a.to to
@@ -128,10 +125,7 @@ This is amortized O(log n).
 		else
 			root.pop-from-node,
 
-# TODO: use alias of tuple
--popped[k, v] record
-	value (k, v)
-	rest (k, v) priority-queue
+-popped[k, v] record(value (k, v), rest (k, v) priority-queue)
 
 -pop-from-node[k, v] (k, v) popped(a (k, v) node)
 	# TODO: type annotation should not be necessary
@@ -172,9 +166,7 @@ This is amortized O(log n).
 			# TODO: type annotation should not be necessary
 			((root do-compact n, mid.mid),)::((k, v) node)?,
 
--found-mid[k, v] record
-	mid (k, v) node?
-	n-before-mid nat64
+-found-mid[k, v] record(mid (k, v) node?, n-before-mid nat64)
 
 # Finds the first node with 'pairs' non-empty.
 # Also returns the # of nodes before that
@@ -255,9 +247,7 @@ region spec impls (see collection.crow)
 +iterate[k, v] bool(a (k, v) priority-queue, f bool mut(key k, value v)) k priority
 	a.each-arr walk f
 
--each-part[k, v] record mut
-	min mut (k, v)
-	pairs mut (k, v) array
+-each-part[k, v] record(min mut (k, v), pairs mut (k, v) array) mut
 
 -each-arr[k, v] (k, v) each-part mut-array(a (k, v) priority-queue) k compare
 	res (k, v) each-part mut-array = with out : a.node-count build

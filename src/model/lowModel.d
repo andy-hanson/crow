@@ -5,7 +5,6 @@ module model.lowModel;
 import model.concreteModel :
 	ConcreteField,
 	ConcreteFun,
-	concreteFunRange,
 	ConcreteStruct,
 	ConcreteStructSource,
 	ConcreteVar,
@@ -22,7 +21,7 @@ import util.hash : hash2, HashCode, hashEnum, hashUint;
 import util.opt : has, none, Opt;
 import util.sourceRange : UriAndRange;
 import util.string : CString;
-import util.symbol : Symbol, symbol;
+import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : IndexType, TaggedUnion, Union;
 import util.uri : Uri;
 import versionInfo : VersionInfo;
@@ -326,10 +325,10 @@ Opt!Symbol name(in LowFun a) =>
 		(in ConcreteFun x) => name(x),
 		(in LowFunSource.Generated) => none!Symbol);
 
-UriAndRange lowFunRange(in LowFun a) =>
+UriAndRange lowFunRange(in LowFun a, in AllSymbols allSymbols) =>
 	a.source.matchIn!UriAndRange(
 		(in ConcreteFun x) =>
-			concreteFunRange(x),
+			x.range(allSymbols),
 		(in LowFunSource.Generated) =>
 			UriAndRange.empty);
 

@@ -13,7 +13,7 @@ import model.ast :
 	DestructureAst,
 	DoAst,
 	EmptyAst,
-	EnumMemberAst,
+	EnumOrFlagsMemberAst,
 	ExprAst,
 	ExprAstKind,
 	FieldMutabilityAst,
@@ -48,7 +48,7 @@ import model.ast :
 	ParenthesizedAst,
 	PathOrRelPath,
 	PtrAst,
-	RecordFieldAst,
+	RecordOrUnionMemberAst,
 	SeqAst,
 	SharedAst,
 	SpecDeclAst,
@@ -64,7 +64,6 @@ import model.ast :
 	TrustedAst,
 	TypeAst,
 	TypedAst,
-	UnionMemberAst,
 	UnlessAst,
 	WithAst;
 import model.model : Visibility;
@@ -186,18 +185,18 @@ Json jsonOfEnumOrFlags(
 	ref Alloc alloc,
 	in Ctx ctx,
 	string name,
-	in Opt!(TypeAst*) typeArg,
-	in EnumMemberAst[] members,
+	in Opt!ParamsAst params,
+	in EnumOrFlagsMemberAst[] members,
 ) =>
 	jsonObject(alloc, [
 		kindField(name),
-		optionalField!("backing-type", TypeAst*)(typeArg, (in TypeAst* x) =>
-			jsonOfTypeAst(alloc, ctx, *x)),
-		field!"members"(jsonList!EnumMemberAst(
-			alloc, members, (in EnumMemberAst x) =>
-				jsonOfEnumMember(alloc, ctx, x)))]);
+		optionalField!("params", ParamsAst)(params, (in ParamsAst x) =>
+			jsonOfParamsAst(alloc, ctx, x)),
+		field!"members"(jsonList!EnumOrFlagsMemberAst(
+			alloc, members, (in EnumOrFlagsMemberAst x) =>
+				jsonOfEnumOrFlagsMember(alloc, ctx, x)))]);
 
-Json jsonOfEnumMember(ref Alloc alloc, in Ctx ctx, in EnumMemberAst a) =>
+Json jsonOfEnumOrFlagsMember(ref Alloc alloc, in Ctx ctx, in EnumOrFlagsMemberAst a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		field!"name"(a.name),
@@ -236,47 +235,6 @@ Json jsonOfLiteralIntOrNatKind(ref Alloc alloc, in LiteralIntOrNatKind a) =>
 		(in LiteralNatAst x) =>
 			jsonOfLiteralNatAst(alloc, x));
 
-Json jsonOfRecordAst(ref Alloc alloc, in Ctx ctx, in StructBodyAst.Record a) =>
-	jsonObject(alloc, [
-		kindField!"record",
-		field!"fields"(jsonList!RecordFieldAst(alloc, a.fields, (in RecordFieldAst x) =>
-			jsonOfField(alloc, ctx, x)))]);
-
-Json jsonOfField(ref Alloc alloc, in Ctx ctx, in RecordFieldAst a) =>
-	jsonObject(alloc, [
-		field!"range"(jsonOfRange(alloc, ctx, a.range)),
-		visibilityField(a.visibility_),
-		field!"name"(jsonOfNameAndRange(alloc, ctx, a.name)),
-		optionalField!("mutability", FieldMutabilityAst)(a.mutability, (in FieldMutabilityAst x) =>
-			jsonObject(alloc, [
-				field!"pos"(x.pos),
-				visibilityField(x.visibility_)])),
-		field!"type"(jsonOfTypeAst(alloc, ctx, a.type))]);
-
-Json jsonOfUnion(ref Alloc alloc, in Ctx ctx, in StructBodyAst.Union a) =>
-	jsonObject(alloc, [
-		kindField!"union",
-		field!"members"(jsonList!UnionMemberAst(alloc, a.members, (in UnionMemberAst x) =>
-			jsonObject(alloc, [
-				field!"name"(x.name),
-				optionalField!("type", TypeAst)(x.type, (in TypeAst t) =>
-					jsonOfTypeAst(alloc, ctx, t))])))]);
-
-Json jsonOfStructBodyAst(ref Alloc alloc, in Ctx ctx, in StructBodyAst a) =>
-	a.matchIn!Json(
-		(in StructBodyAst.Builtin) =>
-			jsonString!"builtin" ,
-		(in StructBodyAst.Enum e) =>
-			jsonOfEnumOrFlags(alloc, ctx, "enum", e.typeArg, e.members),
-		(in StructBodyAst.Extern) =>
-			jsonString!"extern",
-		(in StructBodyAst.Flags e) =>
-			jsonOfEnumOrFlags(alloc, ctx, "flags", e.typeArg, e.members),
-		(in StructBodyAst.Record a) =>
-			jsonOfRecordAst(alloc, ctx, a),
-		(in StructBodyAst.Union a) =>
-			jsonOfUnion(alloc, ctx, a));
-
 Json jsonOfStructDeclAst(ref Alloc alloc, in Ctx ctx, in StructDeclAst a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
@@ -285,6 +243,46 @@ Json jsonOfStructDeclAst(ref Alloc alloc, in Ctx ctx, in StructDeclAst a) =>
 		maybeTypeParams(alloc, ctx, a.typeParams),
 		field!"modifiers"(jsonOfModifiers(alloc, ctx, a.modifiers)),
 		field!"body"(jsonOfStructBodyAst(alloc, ctx, a.body_))]);
+
+Json jsonOfStructBodyAst(ref Alloc alloc, in Ctx ctx, in StructBodyAst a) =>
+	a.matchIn!Json(
+		(in StructBodyAst.Builtin) =>
+			jsonString!"builtin" ,
+		(in StructBodyAst.Enum e) =>
+			jsonOfEnumOrFlags(alloc, ctx, "enum", e.params, e.members),
+		(in StructBodyAst.Extern) =>
+			jsonString!"extern",
+		(in StructBodyAst.Flags e) =>
+			jsonOfEnumOrFlags(alloc, ctx, "flags", e.params, e.members),
+		(in StructBodyAst.Record a) =>
+			jsonOfRecordOrUnion(alloc, ctx, "record", a.params, a.fields),
+		(in StructBodyAst.Union a) =>
+			jsonOfRecordOrUnion(alloc, ctx, "union", a.params, a.members));
+
+Json jsonOfRecordOrUnion(
+	ref Alloc alloc,
+	in Ctx ctx,
+	string kind,
+	in Opt!ParamsAst params,
+	in RecordOrUnionMemberAst[] members,
+) =>
+	jsonObject(alloc, [
+		kindField(kind),
+		optionalField!("params", ParamsAst)(params, (in ParamsAst x) => jsonOfParamsAst(alloc, ctx, x)),
+		field!"members"(jsonList!RecordOrUnionMemberAst(alloc, members, (in RecordOrUnionMemberAst x) =>
+			jsonOfRecordOrUnionMember(alloc, ctx, x)))]);
+
+Json jsonOfRecordOrUnionMember(ref Alloc alloc, in Ctx ctx, in RecordOrUnionMemberAst a) =>
+	jsonObject(alloc, [
+		field!"range"(jsonOfRange(alloc, ctx, a.range)),
+		visibilityField(a.visibility_),
+		field!"name"(jsonOfNameAndRange(alloc, ctx, a.name)),
+		optionalField!("mutability", FieldMutabilityAst)(a.mutability, (in FieldMutabilityAst x) =>
+			jsonObject(alloc, [
+				field!"pos"(x.pos),
+				visibilityField(x.visibility_)])),
+		optionalField!("type", TypeAst)(a.type, (in TypeAst x) =>
+			jsonOfTypeAst(alloc, ctx, x))]);
 
 Json.ObjectField maybeTypeParams(ref Alloc alloc, in Ctx ctx, in NameAndRange[] typeParams) =>
 	optionalArrayField!("type-params", NameAndRange)(alloc, typeParams, (in NameAndRange x) =>
@@ -321,13 +319,10 @@ Json jsonOfModifierAst(ref Alloc alloc, in Ctx ctx, in ModifierAst a) =>
 		(in ModifierAst.Keyword x) =>
 			jsonObject(alloc, [
 				kindField!"keyword",
-				field!"pos"(x.pos),
-				field!"kind"(stringOfModifierKeyword(x.kind))]),
-		(in ModifierAst.Extern x) =>
-			jsonObject(alloc, [
-				kindField!"extern",
-				field!"left"(jsonOfNameAndRange(alloc, ctx, x.name)),
-				field!"extern-pos"(x.externPos)]),
+				optionalField!("typeArg", TypeAst)(x.typeArg, (in TypeAst type) =>
+					jsonOfTypeAst(alloc, ctx, type)),
+				field!"keywordPos"(x.keywordPos),
+				field!"keyword"(stringOfModifierKeyword(x.keyword))]),
 		(in SpecUseAst x) =>
 			jsonOfSpecUseAst(alloc, ctx, x));
 

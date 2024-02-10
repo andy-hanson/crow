@@ -211,8 +211,7 @@
 				*x-ptr := 3
 				info log "{foo.x} == {foo-ptr->x} == {*x-ptr}"
 
-		foo record by-val, mut
-			x mut nat
+		foo record(x mut nat) by-val, mut
 	</crow-runnable>
 </section>
 <section>
@@ -337,12 +336,8 @@
 			# Reference type, so its size is the size of a pointer.
 			info log "r2: {size-of@r2}"
 
-		r1 record by-val
-			x nat
-			y nat
-		r2 record by-ref
-			x nat
-			y nat
+		r1 record(x nat, y nat) by-val
+		r2 record(x nat, y nat) by-ref
 	</crow-runnable>
 
 	<p>

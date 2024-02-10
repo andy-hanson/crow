@@ -5,6 +5,7 @@ test/end-to-end/compile-errors/extern-errors.crow 6:5-6:17 Extern type 'r' can't
 test/end-to-end/compile-errors/extern-errors.crow 8:11-8:17 'extern' record 'r2' is implicitly 'by-val'.
 test/end-to-end/compile-errors/extern-errors.crow 11:11-11:17 'extern' record 'r3' is implicitly 'by-val'.
 test/end-to-end/compile-errors/extern-errors.crow 14:1-15:13 A union can't be 'extern'.
+test/end-to-end/compile-errors/extern-errors.crow 15:5-15:6 Extern type 'u' can't reference non-extern type 'string'.
 test/end-to-end/compile-errors/extern-errors.crow 17:10-17:16 Expected 'extern' to be preceded by the library name.
 test/end-to-end/compile-errors/extern-errors.crow 21:1-21:20 'extern' function 'f' can't reference non-extern type 'string'.
 test/end-to-end/compile-errors/extern-errors.crow 23:8-23:16 'extern' function 'f' parameter 'a' can't reference non-extern type 'string'.
@@ -16,5 +17,5 @@ test/end-to-end/compile-errors/extern-errors.crow 42:16-42:23 A global variable 
 test/end-to-end/compile-errors/extern-errors.crow 44:16-44:22 Expected 'extern' to be preceded by the library name.
 test/end-to-end/compile-errors/extern-errors.crow 44:24-44:28 A global variable can't be 'bare'.
 test/end-to-end/compile-errors/extern-errors.crow 44:30-44:39 A global variable can't have specs.
-test/end-to-end/compile-errors/extern-errors.crow 46:22-46:30 A thread-local variable can't be 'extern'.
+test/end-to-end/compile-errors/extern-errors.crow 46:24-46:30 A thread-local variable can't be 'extern'.
 test/end-to-end/compile-errors/extern-errors.crow 46:32-46:41 A thread-local variable can't have specs.

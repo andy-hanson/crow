@@ -20,9 +20,7 @@ import
 +pipe err-t(pipes pipes mut*) summon, c extern
 
 # The headers just use int[2], but this is easier to use from crow
-+pipes record extern, mut
-	write-pipe fd-t
-	read-pipe fd-t
++pipes record(write-pipe fd-t, read-pipe fd-t) extern, mut
 
 +__environ global(c-string*) c extern
 

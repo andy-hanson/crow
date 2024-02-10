@@ -184,7 +184,8 @@ private Common makeProgramCommon(
 	EnumMap!(CommonModule, Module*) commonModules = enumMapMapValues!(CommonModule, Module*, CrowFile*)(
 		a.commonFiles, (const CrowFile* x) => x.mustHaveModule);
 	InstantiateCtx ctx = InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(a.allInsts));
-	CommonFunsAndMain commonFuns = getCommonFuns(a.alloc, ctx, *force(a.commonTypes), commonModules, mainModule);
+	CommonFunsAndMain commonFuns = getCommonFuns(
+		a.alloc, a.allSymbols, ctx, *force(a.commonTypes), commonModules, mainModule);
 	Program program = Program(
 		getAllConfigs(alloc, a),
 		mapPreservingKeys!(immutable Module*, getModuleUri, CrowFile*, Uri, getCrowFileUri)(

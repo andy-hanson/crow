@@ -31,10 +31,7 @@ Unordered means that iteration functions like `each` reach each entry in arbitra
 	-entries mut (k, v) entry mut-array
 	-total-size mut nat64
 
--entry[k, v] union mut
-	none
-	one (k, v)
-	many (k, v) mut[]
+-entry[k, v] union(none, one (k, v), many (k, v) mut[]) mut
 
 ###
 New map containing the given pairs.

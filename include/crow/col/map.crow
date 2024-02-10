@@ -38,9 +38,7 @@ There should be `==`, `<=>`, and `hash-mix` functions defined for the key type `
 		if bv ?= b[k]
 			bv == v
 
--node[k, v] union
-	inner-node (k, v) node array
-	leaf-node (k, v) array
+-node[k, v] union(inner-node (k, v) node array, leaf-node (k, v) array)
 
 -empty-leaf-node[k, v] (k, v) node() bare
 	() leaf-node
@@ -170,9 +168,7 @@ Adds/updates many entries to `a`.
 	for _, v : a
 		v
 
-got-or-added[k, v] union
-	got v
-	added (v[k], v)
+got-or-added[k, v] union(got v, added (v[k], v))
 
 ###
 If `key` is already in `a`, return `already-has-key` with the old value.
@@ -217,10 +213,7 @@ If the key is not in the map, returns an empty option.
 	old-value v?
 	new-value v?
 
--get-or-update-action[v] union
-	no-change
-	remove
-	insert v
+-get-or-update-action[v] union(no-change, remove, insert v)
 
 ###
 `f` takes the old value and returns the new value, or 'none' to choose to preserve the old value.

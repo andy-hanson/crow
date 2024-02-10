@@ -5,7 +5,7 @@ import
 
 +SDL_Init c-int(init-flags SDL_Init_flags) summon, SDL2 extern
 
-+SDL_Init_flags flags(nat32) extern
++SDL_Init_flags flags extern, nat32 storage
 	SDL_INIT_TIMER = 0x00000001
 	SDL_INIT_AUDIO = 0x00000010
 	SDL_INIT_VIDEO = 0x00000020

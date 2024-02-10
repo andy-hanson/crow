@@ -462,10 +462,7 @@ This is O(n).
 	l2 t array-2d-iterator
 	l3 t array-3d-iterator
 
--side enum
-	left
-	leaf
-	right
+-side enum(left, leaf, right)
 # Avoiding using enum-util to avoid circular imports
 -== bool(a side, b side)
 	a.to::nat32 == b.to

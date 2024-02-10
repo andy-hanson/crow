@@ -119,6 +119,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.warning,
 		(in Diag.ModifierRedundantDueToModifier) =>
 			DiagnosticSeverity.warning,
+		(in Diag.ModifierTypeArgInvalid) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.MutFieldNotAllowed) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.NameNotFound) =>
@@ -136,6 +138,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 		(in Diag.PointerUnsupported) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.PurityWorseThanParent) =>
+			DiagnosticSeverity.checkError,
+		(in Diag.RecordFieldNeedsType) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.SharedArgIsNotLambda) =>
 			DiagnosticSeverity.checkError,
@@ -157,6 +161,10 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.StringLiteralInvalid) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.StorageMissingType) =>
+			DiagnosticSeverity.checkError,
+		(in Diag.StructParamsSyntaxError) =>
+			DiagnosticSeverity.parseError,
 		(in Diag.TrustedUnnecessary) =>
 			DiagnosticSeverity.warning,
 		(in Diag.TypeAnnotationUnnecessary) =>
@@ -169,6 +177,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.TypeShouldUseSyntax) =>
 			DiagnosticSeverity.warning,
+		(in Diag.UnsupportedSyntax) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.Unused) =>
 			DiagnosticSeverity.unusedCode,
 		(in Diag.VarargsParamMustBeArray) =>

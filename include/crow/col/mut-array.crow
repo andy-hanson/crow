@@ -200,8 +200,8 @@ region spec impls (see collection.crow)
 	trusted a.temp-as-array iterate f
 
 +mut-array-iterator[t] record by-val, mut
-	collection t mut-array
-	next-index nat64
+	~collection t mut-array
+	~next-index nat64
 
 +begin[t] t mut-array-iterator(a t mut-array) bare
 	a, 0

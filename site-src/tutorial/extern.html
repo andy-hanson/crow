@@ -38,8 +38,7 @@
 			as error e
 				error log "bad regex {source}: {e}"
 
-		regex record by-ref, mut
-			wrapped mut regex_t
+		regex record(wrapped mut regex_t) by-ref, mut
 
 		# Unsafe because the caller must 'free' the regex
 		parse (regex, string) result(source string) unsafe

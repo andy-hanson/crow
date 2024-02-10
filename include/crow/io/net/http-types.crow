@@ -67,6 +67,4 @@ import
 	200, "OK", headers, message.to-bytes
 
 # Method used by an HTTP request.
-+http-method enum
-	GET
-	POST
++http-method enum(GET, POST)

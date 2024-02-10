@@ -337,8 +337,8 @@ Throws if `index >= a.size`.
 		f[a[i]]
 
 +mut-list-iterator[t] record by-val, mut
-	collection t mut[]
-	next-index nat64
+	~collection t mut[]
+	~next-index nat64
 
 +begin[t] t mut-list-iterator(a t mut[]) bare
 	a, 0

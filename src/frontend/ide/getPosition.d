@@ -8,9 +8,8 @@ import model.ast :
 	CallAst,
 	DestructureAst,
 	IdentifierAst,
-	EnumMemberAst,
+	EnumOrFlagsMemberAst,
 	ExprAst,
-	FieldMutabilityAst,
 	FunDeclAst,
 	ModifierAst,
 	IfOptionAst,
@@ -18,17 +17,17 @@ import model.ast :
 	LambdaAst,
 	LetAst,
 	MatchAst,
+	ModifierKeyword,
 	NameAndRange,
 	paramsArray,
 	ParamsAst,
-	RecordFieldAst,
+	RecordOrUnionMemberAst,
 	SpecSigAst,
 	SpecUseAst,
 	StructBodyAst,
 	StructDeclAst,
 	TestAst,
 	TypeAst,
-	UnionMemberAst,
 	VisibilityAndRange;
 import model.diag : TypeContainer, TypeWithContainer;
 import model.model :
@@ -40,8 +39,7 @@ import model.model :
 	ClosureSetExpr,
 	CommonTypes,
 	Destructure,
-	EnumBackingType,
-	EnumMember,
+	EnumOrFlagsMember,
 	Expr,
 	FunBody,
 	FunDecl,
@@ -51,6 +49,7 @@ import model.model :
 	IfOptionExpr,
 	ImportOrExport,
 	ImportOrExportKind,
+	IntegralType,
 	LambdaExpr,
 	LetExpr,
 	LiteralExpr,
@@ -196,19 +195,23 @@ PositionKind positionInModifier(
 	Pos pos,
 ) =>
 	modifier.matchIn!PositionKind(
-		(in ModifierAst.Keyword x) =>
-			PositionKind(PositionKind.Modifier(container, x.kind)),
-		(in ModifierAst.Extern x) =>
-			container.isA!(FunDecl*) && container.as!(FunDecl*).body_.isA!(FunBody.Extern)
-				? PositionKind(PositionKind.ModifierExtern(
-					container.as!(FunDecl*).body_.as!(FunBody.Extern).libraryName))
-				: PositionKind(PositionKind.None()),
+		(in ModifierAst.Keyword x) {
+			switch (x.keyword) {
+				case ModifierKeyword.extern_:
+					return container.isA!(FunDecl*) && container.as!(FunDecl*).body_.isA!(FunBody.Extern)
+						? PositionKind(PositionKind.ModifierExtern(
+							container.as!(FunDecl*).body_.as!(FunBody.Extern).libraryName))
+						: PositionKind(PositionKind.Modifier(container, x.keyword));
+				default:
+					return PositionKind(PositionKind.Modifier(container, x.keyword));
+			}
+		},
 		(in SpecUseAst x) {
 			if (has(specs) && specsMatch(force(specs), modifiers)) {
 				// Find the corresponding spec
 				size_t specIndex = 0;
 				foreach (ref ModifierAst prevModifier; modifiers[0 .. index])
-					if (prevModifier.isA!(SpecUseAst*))
+					if (prevModifier.isA!SpecUseAst)
 						specIndex++;
 
 				SpecInst* spec = force(specs)[specIndex];
@@ -398,86 +401,129 @@ Opt!PositionKind positionInStructBody(
 		(BuiltinType _) =>
 			none!PositionKind,
 		(StructBody.Enum x) =>
-			positionInEnumOrFlags(
-				ctx, decl,
-				x.backingType, x.members,
-				ast.as!(StructBodyAst.Enum).typeArg, ast.as!(StructBodyAst.Enum).members,
+			positionInEnumOrFlagsBody(
+				ctx, decl, x.storage, x.members,
+				ast.as!(StructBodyAst.Enum).params, ast.as!(StructBodyAst.Enum).members,
 				pos),
 		(StructBody.Extern) =>
 			none!PositionKind,
 		(StructBody.Flags x) =>
-			positionInEnumOrFlags(
-				ctx, decl,
-				x.backingType, x.members,
-				ast.as!(StructBodyAst.Flags).typeArg, ast.as!(StructBodyAst.Flags).members,
+			positionInEnumOrFlagsBody(
+				ctx, decl, x.storage, x.members,
+				ast.as!(StructBodyAst.Flags).params, ast.as!(StructBodyAst.Flags).members,
 				pos),
 		(StructBody.Record x) =>
-			firstZipPointerFirst!(PositionKind, RecordField, RecordFieldAst)(
-				x.fields,
+			positionInRecordOrUnionBody!RecordField(
+				ctx, decl, x.fields,
+				ast.as!(StructBodyAst.Record).params,
 				ast.as!(StructBodyAst.Record).fields,
-				(RecordField* field, RecordFieldAst fieldAst) =>
-					positionInRecordField(ctx.allSymbols, decl, field, fieldAst, pos)),
+				pos,
+				cbMemberPosition: (RecordField* field) =>
+					PositionKind(PositionKind.RecordFieldPosition(decl, field)),
+				cbVisibilityContainer: (RecordField* field) =>
+					some(VisibilityContainer(field)),
+				cbMutabilityPosition: (RecordField* field) =>
+					some(PositionKind(PositionKind.RecordFieldMutability(field.mutability)))),
 		(StructBody.Union x) =>
-			firstZipPointerFirst!(PositionKind, UnionMember, UnionMemberAst)(
-				x.members,
+			positionInRecordOrUnionBody!UnionMember(
+				ctx, decl, x.members,
+				ast.as!(StructBodyAst.Union).params,
 				ast.as!(StructBodyAst.Union).members,
-				(UnionMember* member, UnionMemberAst memberAst) =>
-					positionInUnionMember(ctx.allSymbols, decl, member, memberAst, pos)));
+				pos,
+				cbMemberPosition: (UnionMember* member) =>
+					PositionKind(PositionKind.UnionMemberPosition(decl, member)),
+				cbVisibilityContainer: (UnionMember*) =>
+					none!VisibilityContainer,
+				cbMutabilityPosition: (UnionMember*) =>
+					none!PositionKind));
 
-Opt!PositionKind positionInEnumOrFlags(
+Opt!PositionKind positionInRecordOrUnionBody(Member)(
 	in Ctx ctx,
 	StructDecl* decl,
-	EnumBackingType backingType,
-	in EnumMember[] members,
-	in Opt!(TypeAst*) typeArg,
-	in EnumMemberAst[] memberAsts,
-	Pos pos
+	in Member[] members,
+	Opt!ParamsAst paramsAst,
+	SmallArray!RecordOrUnionMemberAst memberAsts,
+	Pos pos,
+	in PositionKind delegate(Member*) @safe @nogc pure nothrow cbMemberPosition,
+	in Opt!VisibilityContainer delegate(Member*) @safe @nogc pure nothrow cbVisibilityContainer,
+	in Opt!PositionKind delegate(Member*) @safe @nogc pure nothrow cbMutabilityPosition,
 ) =>
-	optOr!PositionKind(
-		has(typeArg)
-			? positionInType(
-				ctx.allSymbols, TypeContainer(decl),
-				Type(ctx.commonTypes.integrals.byEnumBackingType[backingType]),
-				*force(typeArg), pos)
-			: none!PositionKind,
-		() => firstZipPointerFirst!(PositionKind, EnumMember, EnumMemberAst)(
-			members, memberAsts, (EnumMember* member, EnumMemberAst memberAst) =>
-				optIf(hasPos(memberAst.nameRange(ctx.allSymbols), pos), () =>
-					PositionKind(PositionKind.EnumOrFlagsMemberPosition(decl, member)))));
+	isEmpty(members)
+		? none!PositionKind
+		: has(paramsAst)
+		? firstZipPointerFirst!(PositionKind, Member, DestructureAst)(
+			members, force(paramsAst).as!(DestructureAst[]), (Member* member, DestructureAst param) =>
+				positionInRecordOrUnionMemberParameter!Member(
+					ctx.allSymbols, decl, member, param.as!(DestructureAst.Single), pos,
+					cbMemberPosition, cbMutabilityPosition))
+		: firstZipPointerFirst!(PositionKind, Member, RecordOrUnionMemberAst)(
+			members, memberAsts, (Member* member, RecordOrUnionMemberAst memberAst) =>
+				positionInRecordOrUnionMember!Member(
+					ctx.allSymbols, decl, member, memberAst, pos,
+					cbMemberPosition, cbVisibilityContainer, cbMutabilityPosition));
 
-Opt!PositionKind positionInRecordField(
+Opt!PositionKind positionInRecordOrUnionMemberParameter(Member)(
 	in AllSymbols allSymbols,
 	StructDecl* decl,
-	RecordField* field,
-	in RecordFieldAst fieldAst,
+	Member* member,
+	in DestructureAst.Single param,
 	Pos pos,
+	in PositionKind delegate(Member*) @safe @nogc pure nothrow cbMemberPosition,
+	in Opt!PositionKind delegate(Member*) @safe @nogc pure nothrow cbMutabilityPosition,
 ) =>
 	optOr!PositionKind(
-		positionInVisibility(VisibilityContainer(field), fieldAst.visibility, pos),
-		() => optIf(hasPos(fieldAst.name.range(allSymbols), pos), () =>
-			PositionKind(PositionKind.RecordFieldPosition(decl, field))),
-		() => has(fieldAst.mutability)
-			? positionInFieldMutability(allSymbols, force(fieldAst.mutability), pos)
-			: none!PositionKind,
-		() => positionInType(allSymbols, TypeContainer(decl), field.type, fieldAst.type, pos));
+		optIf(hasPos(param.name.range(allSymbols), pos), () => cbMemberPosition(member)),
+		() {
+			Opt!Range mutRange = param.mutRange;
+			return has(mutRange) && hasPos(force(mutRange), pos) ? cbMutabilityPosition(member) : none!PositionKind;
+		},
+		() => positionInType(allSymbols, TypeContainer(decl), member.type, *force(param.type), pos));
 
-Opt!PositionKind positionInFieldMutability(in AllSymbols allSymbols, in FieldMutabilityAst ast, Pos pos) =>
-	optIf(hasPos(ast.range, pos), () =>
-		PositionKind(PositionKind.RecordFieldMutability(ast.visibility_)));
-
-Opt!PositionKind positionInUnionMember(
+Opt!PositionKind positionInRecordOrUnionMember(Member)(
 	in AllSymbols allSymbols,
 	StructDecl* decl,
-	UnionMember* member,
-	in UnionMemberAst memberAst,
+	Member* member,
+	in RecordOrUnionMemberAst memberAst,
 	Pos pos,
+	in PositionKind delegate(Member*) @safe @nogc pure nothrow cbMemberPosition,
+	in Opt!VisibilityContainer delegate(Member*) @safe @nogc pure nothrow cbVisibilityContainer,
+	in Opt!PositionKind delegate(Member*) @safe @nogc pure nothrow cbMutabilityPosition,
 ) =>
 	optOr!PositionKind(
-		optIf(hasPos(memberAst.nameRange(allSymbols), pos), () =>
-			PositionKind(PositionKind.UnionMemberPosition(decl, member))),
+		() {
+			Opt!VisibilityContainer container = cbVisibilityContainer(member);
+			return has(container)
+				? positionInVisibility(force(container), memberAst.visibility, pos)
+				: none!PositionKind;
+		}(),
+		() => optIf(hasPos(memberAst.name.range(allSymbols), pos), () => cbMemberPosition(member)),
+		() => has(memberAst.mutability) && hasPos(force(memberAst.mutability).range, pos)
+			? cbMutabilityPosition(member)
+			: none!PositionKind,
 		() => has(memberAst.type)
 			? positionInType(allSymbols, TypeContainer(decl), member.type, force(memberAst.type), pos)
 			: none!PositionKind);
+
+Opt!PositionKind positionInEnumOrFlagsBody(
+	in Ctx ctx,
+	StructDecl* decl,
+	IntegralType storage,
+	in EnumOrFlagsMember[] members,
+	in Opt!ParamsAst paramsAst,
+	in EnumOrFlagsMemberAst[] memberAsts,
+	Pos pos
+) =>
+	isEmpty(members)
+		? none!PositionKind
+		: has(paramsAst)
+		? firstZipPointerFirst!(PositionKind, EnumOrFlagsMember, DestructureAst)(
+			members, force(paramsAst).as!(DestructureAst[]), (EnumOrFlagsMember* member, DestructureAst param) =>
+				optIf(hasPos(param.range(ctx.allSymbols), pos), () =>
+					PositionKind(PositionKind.EnumOrFlagsMemberPosition(decl, member))))
+		: firstZipPointerFirst!(PositionKind, EnumOrFlagsMember, EnumOrFlagsMemberAst)(
+			members, memberAsts, (EnumOrFlagsMember* member, EnumOrFlagsMemberAst memberAst) =>
+				optIf(hasPos(memberAst.nameRange(ctx.allSymbols), pos), () =>
+					PositionKind(PositionKind.EnumOrFlagsMemberPosition(decl, member))));
 
 const struct ExprCtx {
 	@safe @nogc pure nothrow:
@@ -621,9 +667,9 @@ Opt!NameAndRange getCallName(in ExprAst a) {
 Opt!PositionKind positionInMatchEnum(in ExprCtx ctx, Expr* expr, ref MatchEnumExpr a, ref ExprAst ast, Pos pos) =>
 	optOr!PositionKind(
 		positionInMatchCommon(ctx, expr, a.matched.expr, ast, pos),
-		() => firstZipPointerFirst3!(PositionKind, EnumMember, Expr, MatchAst.CaseAst)(
+		() => firstZipPointerFirst3!(PositionKind, EnumOrFlagsMember, Expr, MatchAst.CaseAst)(
 			a.enumMembers, a.cases, ast.kind.as!(MatchAst*).cases,
-			(EnumMember* member, Expr then, MatchAst.CaseAst caseAst) =>
+			(EnumOrFlagsMember* member, Expr then, MatchAst.CaseAst caseAst) =>
 				optOr!PositionKind(
 					optIf(hasPos(caseAst.keywordAndMemberNameRange(ctx.allSymbols), pos), () =>
 						PositionKind(PositionKind.MatchEnumCase(member))),

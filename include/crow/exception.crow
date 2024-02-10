@@ -16,10 +16,8 @@ export
 
 region handling
 
-+finally record mut
-	-cleanup void mut()
-+finally finally(cleanup void mut())
-	cleanup,
++finally record mut, nominal
+	cleanup void mut()
 ###
 Runs `try`, and then runs `cleanup`, even if `try` threw an exception.
 

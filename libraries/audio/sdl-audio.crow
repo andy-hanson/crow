@@ -44,8 +44,7 @@ import
 			queue.lock release
 			()
 
--write-ctx record by-val, mut
-	queue audio-queue
+-write-ctx record(queue audio-queue) by-val, mut
 
 -audio-cb void(userdata any-mut-pointer, stream nat8 mut*, len c-int) bare, unsafe
 	queue = (userdata.pointer-cast::write-ctx mut*)->queue

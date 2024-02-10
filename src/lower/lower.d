@@ -102,10 +102,10 @@ import model.model :
 	BuiltinUnaryMath,
 	ClosureReferenceKind,
 	ConfigExternUris,
-	EnumBackingType,
 	EnumFunction,
 	EnumValue,
 	FlagsFunction,
+	IntegralType,
 	Local,
 	Program,
 	VarKind,
@@ -322,15 +322,15 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in AllSymbols allSymbols, in 
 						return some(LowType(PrimitiveType.void_));
 				}
 			},
-			(in ConcreteStructBody.Enum it) =>
-				some(LowType(typeForEnum(it.backingType))),
+			(in ConcreteStructBody.Enum x) =>
+				some(LowType(typeOfIntegralType(x.storage))),
 			(in ConcreteStructBody.Extern it) {
 				uint i = safeToUint(arrBuilderSize(allExternTypes));
 				add(alloc, allExternTypes, LowExternType(concrete));
 				return some(LowType(LowType.Extern(i)));
 			},
-			(in ConcreteStructBody.Flags it) =>
-				some(LowType(typeForEnum(it.backingType))),
+			(in ConcreteStructBody.Flags x) =>
+				some(LowType(typeOfIntegralType(x.storage))),
 			(in ConcreteStructBody.Record it) {
 				uint i = safeToUint(arrBuilderSize(allRecordSources));
 				add(alloc, allRecordSources, concrete);
@@ -404,7 +404,7 @@ Opt!(LowType[]) tryUnpackTuple(
 		return none!(LowType[]);
 }
 
-PrimitiveType typeForEnum(EnumBackingType a) =>
+PrimitiveType typeOfIntegralType(IntegralType a) =>
 	enumConvert!PrimitiveType(a);
 
 LowUnion getLowUnion(ref Alloc alloc, in ConcreteProgram program, ref GetLowTypeCtx getLowTypeCtx, ConcreteStruct* s) =>

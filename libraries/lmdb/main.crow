@@ -16,11 +16,7 @@ region env
 +lmdb-env record mut
 	-env MDB_env mut*
 
--open-lmdb-env record
-	db-dir string
-	create-if-not-exists bool
-+open-lmdb-env open-lmdb-env(db-dir string, create-if-not-exists bool)
-	db-dir, create-if-not-exists
++open-lmdb-env record(db-dir string, create-if-not-exists bool) nominal
 # Calls `open-env`, then `f`, then `close-env` (in a `finally`).
 +with-block[t] t^(options open-lmdb-env, f t^ mut(env lmdb-env)) summon, t shared
 	trusted
@@ -90,11 +86,7 @@ region db
 +lmdb-db[k, v] record mut
 	-dbi MDB_dbi
 
-+database[k, v] record mut
-	env lmdb-env
-	db-name string
-+database[k, v] (k, v) database(env lmdb-env, db-name string)
-	env, db-name
++database[k, v] record(env lmdb-env, db-name string) mut, nominal
 
 +with-block[t, k, v] t^(
 	a (k, v) database,
@@ -125,38 +117,27 @@ region transaction
 +lmdb-txn record mut
 	-txn MDB_txn mut*
 
-+read-transaction record mut
-	env lmdb-env
++read-transaction record(env lmdb-env) mut, nominal
 ###
 Open a read-only transaction, then call `f`, then commit the transaction.
 
 Aborts the transaction iff `f` throws an exception.
 ###
-+read-transaction read-transaction(env lmdb-env)
-	env,
 +with-block[t] t(a read-transaction, f t mut(txn lmdb-txn)) summon
 	a.env with-transaction MDB_RDONLY, txn =>
 		f[txn], transaction-abort
 
-+write-transaction record mut
-	env lmdb-env
-# Like `write-transaction`, but the transaction can perform writes.
-+write-transaction write-transaction(env lmdb-env)
-	env,
++write-transaction record(env lmdb-env) mut, nominal
+# Like `read-transaction`, but the transaction can perform writes.
 +with-block[t] t(a write-transaction, f t mut(txn lmdb-txn)) summon
 	with txn : a.env abortable-write-transaction
 		f[txn], transaction-commit
 
-+transaction-result enum
-	transaction-abort
-	transaction-commit
++transaction-result enum(transaction-abort, transaction-commit)
 
-+abortable-write-transaction record mut
-	env lmdb-env
-# Like `with-write-transaction`,
++abortable-write-transaction record(env lmdb-env) mut, nominal
+# Like `write-transaction`,
 # but `f` returns a pair of the result and whether to commit the transaction.
-+abortable-write-transaction abortable-write-transaction(env lmdb-env)
-	env,
 +with-block[t] t(a abortable-write-transaction, f (t, transaction-result) mut(txn lmdb-txn)) summon
 	a.env with-transaction (), f
 
@@ -265,11 +246,7 @@ Get the number of entries in `db`.
 
 region iteration
 
-+each[k, v] record mut
-	txn lmdb-txn
-	db (k, v) lmdb-db
-+each[k, v] (k, v) each(txn lmdb-txn, db (k, v) lmdb-db)
-	txn, db
++each[k, v] record(txn lmdb-txn, db (k, v) lmdb-db) mut, nominal
 
 +size[k, v] nat64(a (k, v) each) summon
 	a.txn count a.db

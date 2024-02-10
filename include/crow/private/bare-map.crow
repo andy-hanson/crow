@@ -48,9 +48,7 @@ bare-map[k, v] record by-val, mut
 -entry-right[k, v] (k, v) map-pair mut*(a (k, v) bare-map mut*, hash nat64) bare, unsafe
 	a->begin-right + (hash.hash-right % a->half-capacity)
 
-map-pair[k, v] record by-val, mut
-	key mut k
-	value mut v
+map-pair[k, v] record(key mut k, value mut v) by-val, mut
 
 key[k] spec k data, k equal
 	invalid k()
@@ -108,9 +106,7 @@ find-or-insert[k, v] (k, v) map-pair mut*(
 	res, _ = a find-or-insert-and-inserted key
 	res
 
-found-or-inserted enum
-	found
-	inserted
+found-or-inserted enum(found, inserted)
 find-or-insert-and-inserted[k, v] ((k, v) map-pair mut*, found-or-inserted)(
 	a (k, v) bare-map mut*,
 	key k,

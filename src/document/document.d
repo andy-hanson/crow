@@ -7,7 +7,7 @@ import model.concreteModel : TypeSize;
 import model.model :
 	BuiltinType,
 	Destructure,
-	EnumMember,
+	EnumOrFlagsMember,
 	FunDecl,
 	Module,
 	NameReferents,
@@ -76,7 +76,7 @@ Json documentModule(
 				res ~= documentSpec(alloc, *force(referents.spec));
 			foreach (FunDecl* fun; referents.funs)
 				if (fun.visibility == Visibility.public_ && !fun.isGenerated)
-					res ~= documentFun(alloc, *fun);
+					res ~= documentFun(alloc, allSymbols, *fun);
 		}
 		arrBuilderSort!DocExport(res, (in DocExport x, in DocExport y) =>
 			compareUriAndRange(allUris, x.range, y.range));
@@ -141,8 +141,8 @@ DocExport documentStructDecl(ref Alloc alloc, in StructDecl a) =>
 		(in StructBody.Union x) =>
 			documentUnion(alloc, a, x)));
 
-Json jsonOfEnumMembers(ref Alloc alloc, in EnumMember[] members) =>
-	jsonList!EnumMember(alloc, members, (in EnumMember member) =>
+Json jsonOfEnumMembers(ref Alloc alloc, in EnumOrFlagsMember[] members) =>
+	jsonList!EnumOrFlagsMember(alloc, members, (in EnumOrFlagsMember member) =>
 		jsonString(member.name));
 
 Json documentRecord(ref Alloc alloc, in StructDecl decl, in StructBody.Record a) =>
@@ -150,6 +150,7 @@ Json documentRecord(ref Alloc alloc, in StructDecl decl, in StructBody.Record a)
 		kindField!"record",
 		maybePurity(alloc, decl),
 		optionalFlagField!"has-non-public-fields"(hasNonPublicFields(a)),
+		optionalFlagField!"nominal"(a.flags.nominal),
 		field!"fields"(jsonList(
 			mapOp!(Json, RecordField)(alloc, a.fields, (ref RecordField field) =>
 				documentRecordField(alloc, decl.typeParams, field))))]);
@@ -209,8 +210,8 @@ Json documentSpecDeclSig(ref Alloc alloc, in TypeParams typeParams, in SpecDeclS
 		field!"return-type"(documentTypeRef(alloc, typeParams, a.returnType)),
 		field!"params"(documentParamDestructures(alloc, typeParams, a.params))]);
 
-DocExport documentFun(ref Alloc alloc, in FunDecl a) =>
-	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, jsonObject(alloc, [
+DocExport documentFun(ref Alloc alloc, in AllSymbols allSymbols, in FunDecl a) =>
+	documentExport(alloc, a.range(allSymbols), a.name, a.docComment, a.typeParams, jsonObject(alloc, [
 		kindField!"fun",
 		field!"return-type"(documentTypeRef(alloc, a.typeParams, a.returnType)),
 		documentParams(alloc, a.typeParams, a.params),

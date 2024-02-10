@@ -2,11 +2,7 @@ import
 	crow/c-types: c-int
 	crow/version: is-big-endian
 
-+SDL_Color record extern
-	r nat8
-	g nat8
-	b nat8
-	a nat8
++SDL_Color record(r nat8, g nat8, b nat8, a nat8) extern
 
 +SDL_Palette record extern, mut
 	ncolors c-int
@@ -57,7 +53,7 @@ import
 	format nat32 = (type.to << 24) | (order.to << 20) | (layout.to << 16)
 	(1 << 28) | format | (bits << 8) | bytes
 
-+SDL_PixelType enum(nat32)
++SDL_PixelType enum nat32 storage
 	SDL_PIXELTYPE_UNKNOWN
 	SDL_PIXELTYPE_INDEX1
 	SDL_PIXELTYPE_INDEX4
@@ -71,7 +67,7 @@ import
 	SDL_PIXELTYPE_ARRAYF16
 	SDL_PIXELTYPE_ARRAYF32
 
-+SDL_PackedOrder enum(nat32)
++SDL_PackedOrder enum nat32 storage
 	SDL_PACKEDORDER_NONE
 	SDL_PACKEDORDER_XRGB
 	SDL_PACKEDORDER_RGBX
@@ -82,7 +78,7 @@ import
 	SDL_PACKEDORDER_ABGR
 	SDL_PACKEDORDER_BGRA
 
-+SDL_PackedLayout enum(nat32)
++SDL_PackedLayout enum nat32 storage
 	SDL_PACKEDLAYOUT_NONE
 	SDL_PACKEDLAYOUT_332
 	SDL_PACKEDLAYOUT_4444

@@ -156,9 +156,7 @@ test
 				left := mid + 1
 				continue
 
-unique-comparison enum
-	less
-	greater
+unique-comparison enum(less, greater)
 
 assert-comparison-not-equal unique-comparison(a comparison)
 	match a

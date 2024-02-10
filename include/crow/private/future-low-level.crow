@@ -60,9 +60,7 @@ is-completed[t] bool(a t^)
 	as rejected _
 		hard-unreachable
 
--or-forwarded[t, u] union shared
-	direct t
-	forwarded u^
+-or-forwarded[t, u] union(direct t, forwarded u^) shared
 
 # 'a' should be the result of 'unresolved-will-forward'; have it forward to 'target'
 forward-to[t] void(a t^, target t^) unsafe
@@ -148,10 +146,7 @@ add-task[t] void(a t^, task task) unsafe
 	as tasks-are-ready
 		get-global-ctx enqueue-tasks tasks.move-to
 
--add-tasks-choice[t] union shared
-	added
-	forward t^
-	tasks-are-ready
+-add-tasks-choice[t] union(added, forward t^, tasks-are-ready) shared
 
 # Assuming the future is resolved, get the result.
 get-result[t] (t, exception) result(a t^) bare, unsafe

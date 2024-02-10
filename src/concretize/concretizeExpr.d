@@ -33,7 +33,6 @@ import model.concreteModel :
 	ConcreteField,
 	ConcreteFun,
 	ConcreteFunBody,
-	concreteFunRange,
 	ConcreteLambdaImpl,
 	ConcreteLocal,
 	ConcreteLocalSource,
@@ -131,7 +130,7 @@ ConcreteExpr concretizeFunBody(
 	in Destructure[] params,
 	ref Expr e,
 ) {
-	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe(ctx), concreteFunRange(*cf).uri, containing, cf);
+	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe(ctx), cf.moduleUri, containing, cf);
 	return withStackMap2!(ConcreteExpr, Local*, LocalOrConstant, LoopExpr*, LoopAndType*)((ref Locals locals) {
 		// Ignore closure param, which is never destructured.
 		ConcreteLocal[] paramsToDestructure =

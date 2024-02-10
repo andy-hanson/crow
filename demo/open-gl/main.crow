@@ -134,11 +134,7 @@ main nat^(_ string[]) summon
 	for x : a
 		m * x.pos, m * x.normal, x.color, x.tex-coord
 
--vertex record extern
-	pos vec3-32
-	normal vec3-32
-	color vec3-32
-	tex-coord vec2-32
+-vertex record(pos vec3-32, normal vec3-32, color vec3-32, tex-coord vec2-32) extern
 
 -invert vertex(a vertex)
 	-a.pos, -a.normal, a.color, a.tex-coord

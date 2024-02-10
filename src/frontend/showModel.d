@@ -186,7 +186,7 @@ void writeFunInst(scope ref Writer writer, in ShowTypeCtx ctx, in TypeContainer 
 
 private void writeFunDeclLocation(scope ref Writer writer, in ShowCtx ctx, in FunDecl funDecl) {
 	writer ~= " (from ";
-	writeLineNumber(writer, ctx, toUriAndPos(funDecl.range));
+	writeLineNumber(writer, ctx, toUriAndPos(funDecl.range(ctx.allSymbols)));
 	writer ~= ')';
 }
 

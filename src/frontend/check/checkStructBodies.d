@@ -13,18 +13,22 @@ import frontend.check.instantiate : DelayStructInsts;
 import frontend.check.maps : StructsAndAliasesMap;
 import frontend.check.typeFromAst : checkTypeParams, typeFromAst;
 import model.ast :
-	EnumMemberAst,
+	DestructureAst,
+	EnumOrFlagsMemberAst,
+	FieldMutabilityAst,
 	LiteralIntAst,
+	LiteralIntOrNat,
 	LiteralNatAst,
 	LiteralNatAndRange,
 	ModifierAst,
 	ModifierKeyword,
-	RecordFieldAst,
+	NameAndRange,
+	ParamsAst,
+	RecordOrUnionMemberAst,
 	SpecUseAst,
 	StructBodyAst,
 	StructDeclAst,
 	TypeAst,
-	UnionMemberAst,
 	VisibilityAndRange;
 import model.concreteModel : TypeSize;
 import model.diag : Diag, DeclKind, TypeContainer, TypeWithContainer;
@@ -33,9 +37,10 @@ import model.model :
 	ByValOrRef,
 	CommonTypes,
 	emptyTypeParams,
-	EnumBackingType,
-	EnumMember,
+	EnumOrFlagsMember,
+	EnumMemberSource,
 	EnumValue,
+	IntegralType,
 	IntegralTypes,
 	isLinkagePossiblyCompatible,
 	isPurityPossiblyCompatible,
@@ -48,6 +53,7 @@ import model.model :
 	Purity,
 	purityRange,
 	RecordField,
+	RecordOrUnionMemberSource,
 	RecordFlags,
 	StructBody,
 	StructDecl,
@@ -57,13 +63,25 @@ import model.model :
 	TypeParamIndex,
 	UnionMember,
 	Visibility;
-import util.cell : Cell, cellGet, cellSet;
-import util.col.array : eachPair, fold, mapPointers, zipPtrFirst;
+import util.col.array :
+	eachPair, emptySmallArray, fold, isEmpty, mapOpPointers, mapPointers, small, SmallArray, zipPtrFirst;
 import util.conv : safeToUint;
-import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
+import util.opt : force, has, MutOpt, none, noneMut, Opt, optFromMut, some, someMut;
 import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
 import util.util : enumConvertOrAssert, isMultipleOf, ptrTrustMe;
+
+void modifierTypeArgInvalid(ref CheckCtx ctx, in ModifierAst.Keyword modifier) {
+	if (has(modifier.typeArg)) {
+		addDiag(ctx, modifier.range(ctx.allSymbols), Diag(Diag.ModifierTypeArgInvalid(modifier.keyword)));
+	}
+}
+void modifierTypeArgInvalid(ref CheckCtx ctx, in MutOpt!(ModifierAst.Keyword*)[] modifiers) {
+	foreach (const MutOpt!(ModifierAst.Keyword*) modifier; modifiers)
+		if (has(modifier))
+			modifierTypeArgInvalid(ctx, *force(modifier));
+}
+
 
 StructDecl[] checkStructsInitial(ref CheckCtx ctx, in StructDeclAst[] asts) =>
 	mapPointers!(StructDecl, StructDeclAst)(ctx.alloc, asts, (StructDeclAst* ast) {
@@ -83,34 +101,36 @@ void checkStructBodies(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesMap structsAndAliasesMap,
+	scope ref DelayStructInsts delayStructInsts,
 	ref StructDecl[] structs,
 	in StructDeclAst[] asts,
-	scope ref DelayStructInsts delayStructInsts,
 ) {
 	zipPtrFirst!(StructDecl, StructDeclAst)(structs, asts, (StructDecl* struct_, ref StructDeclAst ast) {
-		struct_.body_ = ast.body_.matchIn!StructBody(
-			(in StructBodyAst.Builtin) {
+		struct_.body_ = ast.body_.match!StructBody(
+			(StructBodyAst.Builtin) {
 				checkOnlyStructModifiers(ctx, DeclKind.builtin, ast.modifiers);
 				return StructBody(getBuiltinType(ctx, struct_));
 			},
-			(in StructBodyAst.Enum x) {
+			(StructBodyAst.Enum x) {
 				checkNoTypeParams(ctx, ast.typeParams, DeclKind.enum_);
-				checkOnlyStructModifiers(ctx, DeclKind.enum_, ast.modifiers);
+				IntegralType storage = checkEnumOrFlagsModifiers(
+					ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, DeclKind.enum_, ast.modifiers);
 				return StructBody(checkEnum(
-					ctx, commonTypes, structsAndAliasesMap, struct_, ast.range, x, delayStructInsts));
+					ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, ast.range, x, storage));
 			},
-			(in StructBodyAst.Extern it) =>
+			(StructBodyAst.Extern it) =>
 				StructBody(checkExtern(ctx, commonTypes, struct_, ast, it)),
-			(in StructBodyAst.Flags x) {
+			(StructBodyAst.Flags x) {
 				checkNoTypeParams(ctx, ast.typeParams, DeclKind.flags);
-				checkOnlyStructModifiers(ctx, DeclKind.flags, ast.modifiers);
+				IntegralType storage = checkEnumOrFlagsModifiers(
+					ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, DeclKind.flags, ast.modifiers);
 				return StructBody(checkFlags(
-					ctx, commonTypes, structsAndAliasesMap, struct_, ast.range, x, delayStructInsts));
+					ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, ast.range, x, storage));
 			},
-			(in StructBodyAst.Record x) =>
+			(StructBodyAst.Record x) =>
 				StructBody(checkRecord(
 					ctx, commonTypes, structsAndAliasesMap, struct_, ast.modifiers, x, delayStructInsts)),
-			(in StructBodyAst.Union x) {
+			(StructBodyAst.Union x) {
 				checkOnlyStructModifiers(ctx, DeclKind.union_, ast.modifiers);
 				return StructBody(checkUnion(ctx, commonTypes, structsAndAliasesMap, struct_, x, delayStructInsts));
 			});
@@ -208,10 +228,11 @@ LinkageAndPurity getStructModifiers(ref CheckCtx ctx, DeclKind declKind, Modifie
 	Linkage linkage = () {
 		Linkage defaultLinkage = defaultLinkage(declKind);
 		if (has(accum.linkage)) {
-			ModifierAst.Keyword keyword = force(accum.linkage);
-			assert(keyword.kind == ModifierKeyword.extern_);
+			ModifierAst.Keyword keyword = *force(accum.linkage);
+			assert(keyword.keyword == ModifierKeyword.extern_);
 			if (defaultLinkage == Linkage.extern_)
-				addDiag(ctx, keyword.range, Diag(Diag.ModifierRedundantDueToDeclKind(keyword.kind, declKind)));
+				addDiag(ctx, keyword.keywordRange, Diag(
+					Diag.ModifierRedundantDueToDeclKind(keyword.keyword, declKind)));
 			return Linkage.extern_;
 		} else
 			return defaultLinkage;
@@ -219,11 +240,12 @@ LinkageAndPurity getStructModifiers(ref CheckCtx ctx, DeclKind declKind, Modifie
 	PurityAndForced purity = () {
 		Purity defaultPurity = defaultPurity(declKind);
 		if (has(accum.purityAndForced)) {
-			ModifierAst.Keyword keyword = force(accum.purityAndForced);
-			Opt!PurityAndForced opt = purityAndForcedFromModifier(keyword.kind);
+			ModifierAst.Keyword keyword = *force(accum.purityAndForced);
+			Opt!PurityAndForced opt = purityAndForcedFromModifier(keyword.keyword);
 			PurityAndForced pf = force(opt);
 			if (pf.purity == defaultPurity)
-				addDiag(ctx, keyword.range, Diag(Diag.ModifierRedundantDueToDeclKind(keyword.kind, declKind)));
+				addDiag(ctx, keyword.keywordRange, Diag(
+					Diag.ModifierRedundantDueToDeclKind(keyword.keyword, declKind)));
 			return pf;
 		} else
 			return PurityAndForced(defaultPurity, false);
@@ -232,19 +254,22 @@ LinkageAndPurity getStructModifiers(ref CheckCtx ctx, DeclKind declKind, Modifie
 }
 
 immutable struct LinkageAndPurityModifiers {
-	Opt!(ModifierAst.Keyword) linkage;
-	Opt!(ModifierAst.Keyword) purityAndForced;
+	Opt!(ModifierAst.Keyword*) linkage;
+	Opt!(ModifierAst.Keyword*) purityAndForced;
 }
 LinkageAndPurityModifiers accumulateStructModifiers(ref CheckCtx ctx, ModifierAst[] modifiers) {
-	Cell!(Opt!(ModifierAst.Keyword)) linkage;
-	Cell!(Opt!(ModifierAst.Keyword)) purityAndForced;
+	MutOpt!(ModifierAst.Keyword*) linkage;
+	MutOpt!(ModifierAst.Keyword*) purityAndForced;
 	foreach (ref ModifierAst modifier; modifiers) {
 		if (isStructModifier(modifier)) {
-			ModifierAst.Keyword kw = modifier.as!(ModifierAst.Keyword);
-			accumulateModifier(ctx, kw.kind == ModifierKeyword.extern_ ? linkage : purityAndForced, kw);
+			ModifierAst.Keyword* kw = &modifier.as!(ModifierAst.Keyword)();
+			accumulateModifier(ctx, kw.keyword == ModifierKeyword.extern_ ? linkage : purityAndForced, kw);
 		} // else already warned in 'checkOnlyStructModifiers'
 	}
-	return LinkageAndPurityModifiers(linkage: cellGet(linkage), purityAndForced: cellGet(purityAndForced));
+	modifierTypeArgInvalid(ctx, [linkage, purityAndForced]);
+	return LinkageAndPurityModifiers(
+		linkage: optFromMut!(ModifierAst.Keyword*)(linkage),
+		purityAndForced: optFromMut!(ModifierAst.Keyword*)(purityAndForced));
 }
 
 Linkage defaultLinkage(DeclKind a) {
@@ -324,11 +349,9 @@ void checkOnlyStructModifiers(ref CheckCtx ctx, DeclKind declKind, in ModifierAs
 		if (!isStructModifier(modifier))
 			addDiag(ctx, modifier.range(ctx.allSymbols), modifier.matchIn!Diag(
 				(in ModifierAst.Keyword x) =>
-					x.kind == ModifierKeyword.byVal
-						? Diag(Diag.ModifierRedundantDueToDeclKind(x.kind, declKind))
-						: Diag(Diag.ModifierInvalid(x.kind, declKind)),
-				(in ModifierAst.Extern) =>
-					Diag(Diag.ExternHasUnnecessaryLibraryName()),
+					x.keyword == ModifierKeyword.byVal
+						? Diag(Diag.ModifierRedundantDueToDeclKind(x.keyword, declKind))
+						: Diag(Diag.ModifierInvalid(x.keyword, declKind)),
 				(in SpecUseAst _) =>
 					Diag(Diag.SpecUseInvalid(declKind))));
 }
@@ -336,9 +359,7 @@ void checkOnlyStructModifiers(ref CheckCtx ctx, DeclKind declKind, in ModifierAs
 bool isStructModifier(in ModifierAst a) =>
 	a.matchIn!bool(
 		(in ModifierAst.Keyword x) =>
-			x.kind == ModifierKeyword.extern_ || has(purityAndForcedFromModifier(x.kind)),
-		(in ModifierAst.Extern) =>
-			false,
+			x.keyword == ModifierKeyword.extern_ || has(purityAndForcedFromModifier(x.keyword)),
 		(in SpecUseAst _) =>
 			false);
 
@@ -346,135 +367,153 @@ StructBody.Enum checkEnum(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesMap structsAndAliasesMap,
+	scope ref DelayStructInsts delayStructInsts,
 	StructDecl* struct_,
 	in Range range,
 	in StructBodyAst.Enum e,
-	scope ref DelayStructInsts delayStructInsts,
-) {
-	EnumOrFlagsTypeAndMembers tm = checkEnumOrFlagsMembers(
-		ctx, commonTypes, structsAndAliasesMap, struct_, range, e.typeArg, e.members, delayStructInsts,
-		Diag.DuplicateDeclaration.Kind.enumMember,
-		(Opt!EnumValue lastValue, EnumBackingType enumType) =>
+	IntegralType storage,
+) =>
+	StructBody.Enum(storage, checkEnumOrFlagsMembers(
+		ctx, commonTypes, structsAndAliasesMap, delayStructInsts,
+		struct_, range, e.params, e.members, Diag.DuplicateDeclaration.Kind.enumMember, storage,
+		(Opt!EnumValue lastValue) =>
 			has(lastValue)
 				? ValueAndOverflow(
 					EnumValue(force(lastValue).value + 1),
-					force(lastValue).asUnsigned() == maxValue(enumType))
-				: ValueAndOverflow(EnumValue(0), false));
-	return StructBody.Enum(tm.backingType, tm.members);
-}
+					force(lastValue).asUnsigned() == maxValue(storage))
+				: ValueAndOverflow(EnumValue(0), false)));
 
 StructBody.Flags checkFlags(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesMap structsAndAliasesMap,
+	scope ref DelayStructInsts delayStructInsts,
 	StructDecl* struct_,
 	in Range range,
 	in StructBodyAst.Flags f,
-	scope ref DelayStructInsts delayStructInsts,
-) {
-	EnumOrFlagsTypeAndMembers tm = checkEnumOrFlagsMembers(
-		ctx, commonTypes, structsAndAliasesMap, struct_, range, f.typeArg, f.members, delayStructInsts,
-		Diag.DuplicateDeclaration.Kind.flagsMember,
-		(Opt!EnumValue lastValue, EnumBackingType enumType) =>
+	IntegralType storage,
+) =>
+	StructBody.Flags(storage, checkEnumOrFlagsMembers(
+		ctx, commonTypes, structsAndAliasesMap, delayStructInsts,
+		struct_, range, f.params, f.members, Diag.DuplicateDeclaration.Kind.flagsMember, storage,
+		(Opt!EnumValue lastValue) =>
 			has(lastValue)
 				? ValueAndOverflow(
 					//TODO: if the last value isn't a power of 2, there should be a diagnostic
 					EnumValue(force(lastValue).value * 2),
-					force(lastValue).value >= maxValue(enumType) / 2)
-				: ValueAndOverflow(EnumValue(1), false));
-	return StructBody.Flags(tm.backingType, tm.members);
-}
-
-immutable struct EnumOrFlagsTypeAndMembers {
-	EnumBackingType backingType;
-	EnumMember[] members;
-}
+					force(lastValue).value >= maxValue(storage) / 2)
+				: ValueAndOverflow(EnumValue(1), false)));
 
 immutable struct ValueAndOverflow {
 	EnumValue value;
 	bool overflow;
 }
 
-EnumOrFlagsTypeAndMembers checkEnumOrFlagsMembers(
+SmallArray!EnumOrFlagsMember checkEnumOrFlagsMembers(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesMap structsAndAliasesMap,
+	scope ref DelayStructInsts delayStructInsts,
 	StructDecl* struct_,
 	in Range range,
-	in Opt!(TypeAst*) typeArg,
-	in EnumMemberAst[] memberAsts,
-	scope ref DelayStructInsts delayStructInsts,
+	in Opt!ParamsAst paramsAst,
+	in EnumOrFlagsMemberAst[] memberAsts,
 	Diag.DuplicateDeclaration.Kind memberKind,
-	in ValueAndOverflow delegate(Opt!EnumValue, EnumBackingType) @safe @nogc pure nothrow cbGetNextValue,
+	IntegralType storage,
+	in ValueAndOverflow delegate(Opt!EnumValue) @safe @nogc pure nothrow cbGetNextValue,
 ) {
-	Type implementationType = has(typeArg)
-		? typeFromAst(
-			ctx, commonTypes, *force(typeArg), structsAndAliasesMap, emptyTypeParams,
-			someMut(ptrTrustMe(delayStructInsts)))
-		: Type(commonTypes.integrals.nat32);
-	EnumBackingType enumType = getEnumTypeFromType(ctx, struct_, range, commonTypes, implementationType);
+	if (has(paramsAst) && !isEmpty(memberAsts)) {
+		addDiag(ctx, struct_.nameRange(ctx.allSymbols).range, Diag(
+			Diag.StructParamsSyntaxError(struct_, Diag.StructParamsSyntaxError.Reason.hasParamsAndFields)));
+		return emptySmallArray!EnumOrFlagsMember;
+	}
 
 	MutOpt!long lastValue = noneMut!long;
 	bool anyOverflow = false;
-	EnumMember[] members = mapPointers(ctx.alloc, memberAsts, (EnumMemberAst* memberAst) {
+
+	scope CbEnumValue cbValue = (Range range, Opt!LiteralIntOrNat literal) {
 		ValueAndOverflow valueAndOverflow = () {
-			if (has(memberAst.value))
-				return isSignedEnumBackingType(enumType)
-					? force(memberAst.value).kind.matchIn!ValueAndOverflow(
+			if (has(literal))
+				return isSignedEnumBackingType(storage)
+					? force(literal).kind.matchIn!ValueAndOverflow(
 						(in LiteralIntAst i) =>
 							ValueAndOverflow(EnumValue(i.value), i.overflow),
 						(in LiteralNatAst n) =>
 							ValueAndOverflow(EnumValue(n.value), n.value > long.max))
-					: force(memberAst.value).kind.matchIn!ValueAndOverflow(
+					: force(literal).kind.matchIn!ValueAndOverflow(
 						(in LiteralIntAst _) =>
 							ValueAndOverflow(EnumValue(0), true),
 						(in LiteralNatAst n) =>
 							ValueAndOverflow(EnumValue(n.value), n.overflow));
 			else
-				return cbGetNextValue(has(lastValue) ? some(EnumValue(force(lastValue))) : none!EnumValue, enumType);
+				return cbGetNextValue(has(lastValue) ? some(EnumValue(force(lastValue))) : none!EnumValue);
 		}();
 		EnumValue value = valueAndOverflow.value;
-		if (valueAndOverflow.overflow || valueOverflows(enumType, value)) {
+		if (valueAndOverflow.overflow || valueOverflows(storage, value)) {
 			anyOverflow = true;
-			addDiag(ctx, memberAst.range, Diag(Diag.EnumMemberOverflows(enumType)));
+			addDiag(ctx, range, Diag(Diag.EnumMemberOverflows(storage)));
 		}
 		lastValue = someMut!long(value.value);
-		return EnumMember(memberAst, struct_, memberAst.name, value);
-	});
+		return value;
+	};
 
-	eachPair!(EnumMember)(members, (in EnumMember a, in EnumMember b) {
+	SmallArray!EnumOrFlagsMember members = has(paramsAst)
+		? enumOrFlagsMembersFromParams(ctx, struct_, force(paramsAst), cbValue)
+		: mapPointers(ctx.alloc, memberAsts, (EnumOrFlagsMemberAst* x) =>
+			EnumOrFlagsMember(EnumMemberSource(x), struct_, x.name, cbValue(x.range, x.value)));
+	eachPair!(EnumOrFlagsMember)(members, (in EnumOrFlagsMember a, in EnumOrFlagsMember b) {
 		if (a.name == b.name)
-			addDiag(ctx, b.range, Diag(Diag.DuplicateDeclaration(memberKind, b.name)));
+			addDiag(ctx, b.nameRange(ctx.allSymbols).range, Diag(Diag.DuplicateDeclaration(memberKind, b.name)));
 		if (a.value == b.value && !anyOverflow)
-			addDiag(ctx, b.range, Diag(Diag.EnumDuplicateValue(isSignedEnumBackingType(enumType), b.value.value)));
+			addDiag(ctx, b.range(ctx.allSymbols), Diag(
+				Diag.EnumDuplicateValue(isSignedEnumBackingType(storage), b.value.value)));
 	});
-	return EnumOrFlagsTypeAndMembers(enumType, members);
+	return members;
 }
 
-bool valueOverflows(EnumBackingType type, EnumValue value) =>
+alias CbEnumValue = EnumValue delegate(Range range, Opt!LiteralIntOrNat) @safe @nogc pure nothrow;
+
+SmallArray!EnumOrFlagsMember enumOrFlagsMembersFromParams(
+	ref CheckCtx ctx,
+	StructDecl* enumOrFlags,
+	in ParamsAst params,
+	in CbEnumValue cbValue,
+) =>
+	params.match!(SmallArray!EnumOrFlagsMember)(
+		(DestructureAst[] destructures) =>
+			small!EnumOrFlagsMember(mapOpPointers!(EnumOrFlagsMember, DestructureAst)(
+				ctx.alloc, destructures, (DestructureAst* x) =>
+					enumMemberFromParam(ctx, enumOrFlags, x, cbValue(x.range(ctx.allSymbols), none!LiteralIntOrNat)))),
+		(ref ParamsAst.Varargs x) {
+			addDiag(ctx, x.param.range(ctx.allSymbols), Diag(
+				Diag.StructParamsSyntaxError(enumOrFlags, Diag.StructParamsSyntaxError.Reason.variadic)));
+			return emptySmallArray!EnumOrFlagsMember;
+		});
+
+bool valueOverflows(IntegralType type, EnumValue value) =>
 	isSignedEnumBackingType(type)
 		? value.asSigned() < minValue(type) || value.asSigned() > cast(long) maxValue(type)
 		: value.asUnsigned() > maxValue(type);
 
-bool isSignedEnumBackingType(EnumBackingType a) {
+bool isSignedEnumBackingType(IntegralType a) {
 	final switch (a) {
-		case EnumBackingType.int8:
-		case EnumBackingType.int16:
-		case EnumBackingType.int32:
-		case EnumBackingType.int64:
+		case IntegralType.int8:
+		case IntegralType.int16:
+		case IntegralType.int32:
+		case IntegralType.int64:
 			return true;
-		case EnumBackingType.nat8:
-		case EnumBackingType.nat16:
-		case EnumBackingType.nat32:
-		case EnumBackingType.nat64:
+		case IntegralType.nat8:
+		case IntegralType.nat16:
+		case IntegralType.nat32:
+		case IntegralType.nat64:
 			return false;
 	}
 }
 
-EnumBackingType defaultEnumBackingType() =>
-	EnumBackingType.nat32;
+IntegralType defaultEnumBackingType() =>
+	IntegralType.nat32;
 
-EnumBackingType getEnumTypeFromType(
+IntegralType getEnumTypeFromType(
 	ref CheckCtx ctx,
 	StructDecl* struct_,
 	in Range range,
@@ -482,7 +521,7 @@ EnumBackingType getEnumTypeFromType(
 	in Type type,
 ) {
 	IntegralTypes integrals = commonTypes.integrals;
-	return type.matchWithPointers!EnumBackingType(
+	return type.matchWithPointers!IntegralType(
 		(Type.Bogus) =>
 			defaultEnumBackingType(),
 		(TypeParamIndex _) =>
@@ -490,21 +529,21 @@ EnumBackingType getEnumTypeFromType(
 			assert(false),
 		(StructInst* x) =>
 			x == integrals.int8
-				? EnumBackingType.int8
+				? IntegralType.int8
 				: x == integrals.int16
-				? EnumBackingType.int16
+				? IntegralType.int16
 				: x == integrals.int32
-				? EnumBackingType.int32
+				? IntegralType.int32
 				: x == integrals.int64
-				? EnumBackingType.int64
+				? IntegralType.int64
 				: x == integrals.nat8
-				? EnumBackingType.nat8
+				? IntegralType.nat8
 				: x == integrals.nat16
-				? EnumBackingType.nat16
+				? IntegralType.nat16
 				: x == integrals.nat32
-				? EnumBackingType.nat32
+				? IntegralType.nat32
 				: x == integrals.nat64
-				? EnumBackingType.nat64
+				? IntegralType.nat64
 				: (() {
 					addDiag(ctx, range, Diag(Diag.EnumBackingTypeInvalid(struct_, Type(x))));
 					return defaultEnumBackingType();
@@ -517,7 +556,7 @@ StructBody.Record checkRecord(
 	ref StructsAndAliasesMap structsAndAliasesMap,
 	StructDecl* struct_,
 	ModifierAst[] modifierAsts,
-	in StructBodyAst.Record r,
+	ref StructBodyAst.Record ast,
 	scope ref DelayStructInsts delayStructInsts,
 ) {
 	RecordModifiers modifiers = accumulateRecordModifiers(ctx, modifierAsts);
@@ -525,43 +564,21 @@ StructBody.Record checkRecord(
 	Opt!ByValOrRef valOrRef = isExtern
 		? some(ByValOrRef.byVal)
 		: has(modifiers.byValOrRef)
-		? some(enumConvertOrAssert!ByValOrRef(force(modifiers.byValOrRef).kind))
+		? some(enumConvertOrAssert!ByValOrRef(force(modifiers.byValOrRef).keyword))
 		: none!ByValOrRef;
 	if (isExtern && has(modifiers.byValOrRef))
-		addDiag(ctx, force(modifiers.byValOrRef).range, Diag(Diag.ExternRecordImplicitlyByVal(struct_)));
-	RecordField[] fields = mapPointers!(RecordField, RecordFieldAst)(ctx.alloc, r.fields, (RecordFieldAst* field) =>
-		checkRecordField(ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, field));
-	eachPair!RecordField(fields, (in RecordField a, in RecordField b) {
-		if (a.name == b.name)
-			addDiag(ctx, b.range, Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.recordField, a.name)));
-	});
-	return StructBody.Record(
-		RecordFlags(recordNewVisibility(ctx, struct_, fields, modifiers), has(modifiers.packed), valOrRef),
-		fields);
-}
+		addDiag(ctx, force(modifiers.byValOrRef).keywordRange, Diag(Diag.ExternRecordImplicitlyByVal(struct_)));
 
-RecordField checkRecordField(
-	ref CheckCtx ctx,
-	ref CommonTypes commonTypes,
-	ref StructsAndAliasesMap structsAndAliasesMap,
-	scope ref DelayStructInsts delayStructInsts,
-	StructDecl* record,
-	RecordFieldAst* ast,
-) {
-	Type fieldType = typeFromAst(
-		ctx, commonTypes, ast.type, structsAndAliasesMap, record.typeParams, someMut(ptrTrustMe(delayStructInsts)));
-	checkReferenceLinkageAndPurity(ctx, record, ast.range, fieldType);
-	if (has(ast.mutability) && record.purity != Purity.mut && !record.purityIsForced)
-		addDiag(ctx, ast.range, Diag(Diag.MutFieldNotAllowed()));
-	Symbol name = ast.name.name;
-	Visibility visibility = visibilityFromDefaultWithDiag(ctx, record.visibility, ast.visibility,
-		Diag.VisibilityWarning.Kind(Diag.VisibilityWarning.Kind.Field(record, name)));
-	Opt!Visibility mutability = has(ast.mutability)
-		? some(visibilityFromDefaultWithDiag(
-			ctx, visibility, force(ast.mutability).visibility,
-			Diag.VisibilityWarning.Kind(Diag.VisibilityWarning.Kind.FieldMutability(name))))
-		: none!Visibility;
-	return RecordField(ast, record, visibility, name, mutability, fieldType);
+	SmallArray!RecordField fields = checkRecordOrUnionMembers!RecordField(
+		ctx, struct_, ast.params, ast.fields, Diag.DuplicateDeclaration.Kind.recordField,
+		(RecordOrUnionMemberAstCommon fieldAst) =>
+			checkRecordField(ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, fieldAst));
+	RecordFlags flags = RecordFlags(
+		newVisibility: recordNewVisibility(ctx, struct_, fields, modifiers),
+		nominal: has(modifiers.nominal),
+		packed: has(modifiers.packed),
+		forcedByValOrRef: valOrRef);
+	return StructBody.Record(flags, fields);
 }
 
 StructBody.Union checkUnion(
@@ -578,13 +595,133 @@ StructBody.Union checkUnion(
 		case Linkage.extern_:
 			addDiagAssertSameUri(ctx, struct_.range, Diag(Diag.ExternUnion()));
 	}
-	UnionMember[] members = mapPointers(ctx.alloc, ast.members, (UnionMemberAst* memberAst) =>
-		checkUnionMember(ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, memberAst));
-	eachPair!UnionMember(members, (in UnionMember a, in UnionMember b) {
+	return StructBody.Union(checkRecordOrUnionMembers!UnionMember(
+		ctx, struct_, ast.params, ast.members, Diag.DuplicateDeclaration.Kind.unionMember,
+		(RecordOrUnionMemberAstCommon memberAst) =>
+			checkUnionMember(ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, memberAst)));
+}
+
+// Shared in common between DestructureAst.Single and RecordOrUnionMemberAst
+struct RecordOrUnionMemberAstCommon {
+	RecordOrUnionMemberSource source;
+	Opt!VisibilityAndRange visibility;
+	NameAndRange name;
+	Opt!FieldMutabilityAst mutability;
+	Opt!TypeAst type;
+}
+
+alias CbCheckMember(Member) = Member delegate(RecordOrUnionMemberAstCommon) @safe @nogc pure nothrow;
+
+SmallArray!Member checkRecordOrUnionMembers(Member)(
+	ref CheckCtx ctx,
+	StructDecl* struct_,
+	Opt!ParamsAst params,
+	SmallArray!RecordOrUnionMemberAst memberAsts,
+	Diag.DuplicateDeclaration.Kind duplicateDeclarationKind,
+	in CbCheckMember!Member cbCheckMember,
+) {
+	if (has(params) && !isEmpty(memberAsts))
+		addDiag(ctx, struct_.nameRange(ctx.allSymbols).range, Diag(
+			Diag.StructParamsSyntaxError(struct_, Diag.StructParamsSyntaxError.Reason.hasParamsAndFields)));
+	SmallArray!Member res = has(params)
+		? recordOrUnionMembersFromParams!Member(ctx, struct_, force(params), cbCheckMember)
+		: small!Member(mapPointers!(Member, RecordOrUnionMemberAst)(
+			ctx.alloc, memberAsts, (RecordOrUnionMemberAst* x) =>
+				cbCheckMember(RecordOrUnionMemberAstCommon(
+					RecordOrUnionMemberSource(x), x.visibility, x.name, x.mutability, x.type))));
+	eachPair!Member(res, (in Member a, in Member b) {
 		if (a.name == b.name)
-			addDiag(ctx, b.range, Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.unionMember, a.name)));
+			addDiag(ctx, b.range(ctx.allSymbols), Diag(Diag.DuplicateDeclaration(duplicateDeclarationKind, a.name)));
 	});
-	return StructBody.Union(members);
+	return res;
+}
+
+SmallArray!Member recordOrUnionMembersFromParams(Member)(
+	ref CheckCtx ctx,
+	StructDecl* struct_,
+	ParamsAst ast,
+	in CbCheckMember!Member cbCheckMember,
+) =>
+	ast.match!(SmallArray!Member)(
+		(DestructureAst[] destructures) =>
+			small!Member(mapOpPointers!(Member, DestructureAst)(
+				ctx.alloc, destructures, (DestructureAst* param) =>
+					recordOrUnionMemberFromParam!Member(ctx, struct_, param, cbCheckMember))),
+		(ref ParamsAst.Varargs x) {
+			addDiag(ctx, x.param.range(ctx.allSymbols), Diag(
+				Diag.StructParamsSyntaxError(struct_, Diag.StructParamsSyntaxError.Reason.variadic)));
+			return emptySmallArray!Member;
+		});
+
+Opt!EnumOrFlagsMember enumMemberFromParam(ref CheckCtx ctx, StructDecl* enum_, DestructureAst* ast, EnumValue value) {
+	if (ast.isA!(DestructureAst.Single)) {
+		DestructureAst.Single* single = &ast.as!(DestructureAst.Single)();
+		if (has(single.mut)) {
+			Opt!Range mutRange = single.mutRange;
+			addDiag(ctx, force(mutRange), Diag(
+				Diag.UnsupportedSyntax(Diag.UnsupportedSyntax.Reason.enumMemberMutability)));
+		}
+		if (has(single.type))
+			addDiag(ctx, force(single.type).range(ctx.allSymbols), Diag(
+				Diag.UnsupportedSyntax(Diag.UnsupportedSyntax.Reason.enumMemberType)));
+		return some(EnumOrFlagsMember(EnumMemberSource(single), enum_, single.name.name, value));
+	} else {
+		addDiag(ctx, ast.range(ctx.allSymbols), Diag(
+			Diag.StructParamsSyntaxError(enum_, Diag.StructParamsSyntaxError.Reason.destructure)));
+		return none!EnumOrFlagsMember;
+	}
+}
+
+Opt!Member recordOrUnionMemberFromParam(Member)(
+	ref CheckCtx ctx,
+	StructDecl* struct_,
+	DestructureAst* ast,
+	in CbCheckMember!Member cbCheckMember,
+) {
+	if (ast.isA!(DestructureAst.Single)) {
+		DestructureAst.Single* single = &ast.as!(DestructureAst.Single)();
+		return some(cbCheckMember(RecordOrUnionMemberAstCommon(
+			RecordOrUnionMemberSource(single),
+			none!VisibilityAndRange,
+			single.name,
+			has(single.mut) ? some(FieldMutabilityAst(force(single.mut), none!Visibility)) : none!FieldMutabilityAst,
+			has(single.type) ? some(*force(single.type)) : none!TypeAst)));
+	} else {
+		addDiag(ctx, ast.range(ctx.allSymbols), Diag(
+			Diag.StructParamsSyntaxError(struct_, Diag.StructParamsSyntaxError.Reason.destructure)));
+		return none!Member;
+	}
+}
+
+RecordField checkRecordField(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	ref StructsAndAliasesMap structsAndAliasesMap,
+	scope ref DelayStructInsts delayStructInsts,
+	StructDecl* record,
+	RecordOrUnionMemberAstCommon ast,
+) {
+	Symbol name = ast.name.name;
+	Type memberType = has(ast.type)
+		? typeFromAst(
+			ctx, commonTypes, force(ast.type), structsAndAliasesMap,
+			record.typeParams, someMut(ptrTrustMe(delayStructInsts)))
+		: () {
+			addDiag(ctx, ast.name.range(ctx.allSymbols), Diag(Diag.RecordFieldNeedsType(name)));
+			return Type(Type.Bogus());
+		}();
+	checkReferenceLinkageAndPurity(ctx, record, ast.source.range(ctx.allSymbols), memberType);
+
+	if (has(ast.mutability) && record.purity != Purity.mut && !record.purityIsForced)
+		addDiag(ctx, force(ast.mutability).range, Diag(Diag.MutFieldNotAllowed()));
+	Visibility visibility = visibilityFromDefaultWithDiag(ctx, record.visibility, ast.visibility,
+		Diag.VisibilityWarning.Kind(Diag.VisibilityWarning.Kind.Field(record, name)));
+	Opt!Visibility mutability = has(ast.mutability)
+		? some(visibilityFromDefaultWithDiag(
+			ctx, visibility, force(ast.mutability).visibility,
+			Diag.VisibilityWarning.Kind(Diag.VisibilityWarning.Kind.FieldMutability(name))))
+		: none!Visibility;
+	return RecordField(ast.source, record, visibility, name, mutability, memberType);
 }
 
 UnionMember checkUnionMember(
@@ -593,83 +730,133 @@ UnionMember checkUnionMember(
 	ref StructsAndAliasesMap structsAndAliasesMap,
 	scope ref DelayStructInsts delayStructInsts,
 	StructDecl* struct_,
-	UnionMemberAst* ast,
+	RecordOrUnionMemberAstCommon ast,
 ) {
-	Type type = !has(ast.type)
-		? Type(commonTypes.void_)
-		: typeFromAst(
+	Type type = has(ast.type)
+		? typeFromAst(
 			ctx,
 			commonTypes,
 			force(ast.type),
 			structsAndAliasesMap,
 			struct_.typeParams,
-			someMut(ptrTrustMe(delayStructInsts)));
-	checkReferencePurity(ctx, struct_, ast.range, type);
-	return UnionMember(ast, struct_, ast.name, type);
+			someMut(ptrTrustMe(delayStructInsts)))
+		: Type(commonTypes.void_);
+	checkReferenceLinkageAndPurity(ctx, struct_, ast.name.range(ctx.allSymbols), type);
+	if (has(ast.mutability))
+		addDiag(ctx, force(ast.mutability).range, Diag(
+			Diag.UnsupportedSyntax(Diag.UnsupportedSyntax.Reason.unionMemberMutability)));
+	if (has(ast.visibility))
+		addDiag(ctx, force(ast.visibility).range, Diag(
+			Diag.UnsupportedSyntax(Diag.UnsupportedSyntax.Reason.unionMemberVisibility)));
+	return UnionMember(ast.source, struct_, ast.name.name, type);
+}
+
+IntegralType checkEnumOrFlagsModifiers(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	ref StructsAndAliasesMap structsAndAliasesMap,
+	scope ref DelayStructInsts delayStructInsts,
+	StructDecl* struct_,
+	DeclKind declKind,
+	ModifierAst[] modifiers,
+) {
+	MutOpt!(ModifierAst.Keyword*) storage;
+	foreach (ref ModifierAst modifier; modifiers) {
+		if (!isStructModifier(modifier)) {
+			if (modifier.isA!(ModifierAst.Keyword)) {
+				ModifierAst.Keyword* x = &modifier.as!(ModifierAst.Keyword)();
+				if (x.keyword == ModifierKeyword.storage) {
+					if (has(storage))
+						addDiag(ctx, x.keywordRange, Diag(Diag.ModifierDuplicate(ModifierKeyword.storage)));
+					else
+						storage = someMut(x);
+				} else
+					addDiag(ctx, x.keywordRange, x.keyword == ModifierKeyword.byVal
+						? Diag(Diag.ModifierRedundantDueToDeclKind(x.keyword, declKind))
+						: Diag(Diag.ModifierInvalid(x.keyword, declKind)));
+			} else
+				addDiag(ctx, modifier.range(ctx.allSymbols), Diag(Diag.SpecUseInvalid(declKind)));
+		}
+	}
+
+	if (has(storage)) {
+		ModifierAst.Keyword* x = force(storage);
+		if (has(x.typeArg)) {
+			Type type = typeFromAst(
+				ctx, commonTypes, force(x.typeArg), structsAndAliasesMap, emptyTypeParams,
+				someMut(ptrTrustMe(delayStructInsts)));
+			return getEnumTypeFromType(ctx, struct_, force(x.typeArg).range(ctx.allSymbols), commonTypes, type);
+		} else {
+			addDiag(ctx, x.keywordRange, Diag(Diag.StorageMissingType()));
+			return IntegralType.nat32;
+		}
+	} else
+		return IntegralType.nat32;
 }
 
 immutable struct RecordModifiers {
-	Opt!(ModifierAst.Keyword) byValOrRef;
-	Opt!(ModifierAst.Keyword) newVisibility;
-	Opt!(ModifierAst.Keyword) packed;
+	Opt!(ModifierAst.Keyword*) byValOrRef;
+	Opt!(ModifierAst.Keyword*) newVisibility;
+	Opt!(ModifierAst.Keyword*) nominal;
+	Opt!(ModifierAst.Keyword*) packed;
 }
 
-void accumulateModifier(ref CheckCtx ctx, ref Cell!(Opt!(ModifierAst.Keyword)) old, ModifierAst.Keyword new_) {
-	if (has(cellGet(old))) {
-		ModifierKeyword oldKeyword = force(cellGet(old)).kind;
-		addDiag(ctx, new_.range, new_.kind == oldKeyword
-			? Diag(Diag.ModifierDuplicate(new_.kind))
-			: Diag(Diag.ModifierConflict(oldKeyword, new_.kind)));
+void accumulateModifier(ref CheckCtx ctx, ref MutOpt!(ModifierAst.Keyword*) old, ModifierAst.Keyword* new_) {
+	if (has(old)) {
+		ModifierKeyword oldKeyword = force(old).keyword;
+		addDiag(ctx, new_.keywordRange, new_.keyword == oldKeyword
+			? Diag(Diag.ModifierDuplicate(new_.keyword))
+			: Diag(Diag.ModifierConflict(oldKeyword, new_.keyword)));
 	}
-	cellSet(old, someMut(new_));
+	old = someMut(new_);
 }
 
 RecordModifiers accumulateRecordModifiers(ref CheckCtx ctx, ModifierAst[] modifiers) {
-	Cell!(Opt!(ModifierAst.Keyword)) byValOrRef;
-	Cell!(Opt!(ModifierAst.Keyword)) newVisibility;
-	Cell!(Opt!(ModifierAst.Keyword)) packed;
+	MutOpt!(ModifierAst.Keyword*) byValOrRef;
+	MutOpt!(ModifierAst.Keyword*) newVisibility;
+	MutOpt!(ModifierAst.Keyword*) nominal;
+	MutOpt!(ModifierAst.Keyword*) packed;
 
 	foreach (ref ModifierAst modifier; modifiers) {
-		Range range() => modifier.range(ctx.allSymbols);
-		modifier.matchIn!void(
-			(in ModifierAst.Keyword x) {
-				switch (x.kind) {
-					case ModifierKeyword.byRef:
-					case ModifierKeyword.byVal:
-						accumulateModifier(ctx, byValOrRef, x);
-						break;
-					case ModifierKeyword.newInternal:
-					case ModifierKeyword.newPrivate:
-					case ModifierKeyword.newPublic:
-						accumulateModifier(ctx, newVisibility, x);
-						break;
-					case ModifierKeyword.packed:
-						accumulateModifier(ctx, packed, x);
-						break;
-					case ModifierKeyword.data:
-					case ModifierKeyword.extern_:
-					case ModifierKeyword.forceShared:
-					case ModifierKeyword.mut:
-					case ModifierKeyword.shared_:
-						// already handled in getStructModifiers
-						assert(isStructModifier(modifier));
-						break;
-					default:
-						addDiag(ctx, range(), Diag(Diag.ModifierInvalid(x.kind, DeclKind.record)));
-						break;
-				}
-			},
-			(in ModifierAst.Extern) {
-				addDiag(ctx, range(), Diag(Diag.ExternHasUnnecessaryLibraryName()));
-			},
-			(in SpecUseAst) {
-				addDiag(ctx, range(), Diag(Diag.SpecUseInvalid(DeclKind.record)));
-			});
+		if (modifier.isA!(ModifierAst.Keyword)) {
+			ModifierAst.Keyword* x = &modifier.as!(ModifierAst.Keyword)();
+			switch (x.keyword) {
+				case ModifierKeyword.byRef:
+				case ModifierKeyword.byVal:
+					accumulateModifier(ctx, byValOrRef, x);
+					break;
+				case ModifierKeyword.newInternal:
+				case ModifierKeyword.newPrivate:
+				case ModifierKeyword.newPublic:
+					accumulateModifier(ctx, newVisibility, x);
+					break;
+				case ModifierKeyword.nominal:
+					accumulateModifier(ctx, nominal, x);
+					break;
+				case ModifierKeyword.packed:
+					accumulateModifier(ctx, packed, x);
+					break;
+				case ModifierKeyword.data:
+				case ModifierKeyword.extern_:
+				case ModifierKeyword.forceShared:
+				case ModifierKeyword.mut:
+				case ModifierKeyword.shared_:
+					// already handled in getStructModifiers
+					assert(isStructModifier(modifier));
+					break;
+				default:
+					addDiag(ctx, x.keywordRange, Diag(Diag.ModifierInvalid(x.keyword, DeclKind.record)));
+					break;
+			}
+		} else
+			addDiag(ctx, modifier.range(ctx.allSymbols), Diag(Diag.SpecUseInvalid(DeclKind.record)));
 	}
+	modifierTypeArgInvalid(ctx, [byValOrRef, newVisibility, nominal, packed]);
 	return RecordModifiers(
-		byValOrRef: cellGet(byValOrRef),
-		newVisibility: cellGet(newVisibility),
-		packed: cellGet(packed));
+		byValOrRef: optFromMut!(ModifierAst.Keyword*)(byValOrRef),
+		newVisibility: optFromMut!(ModifierAst.Keyword*)(newVisibility),
+		nominal: optFromMut!(ModifierAst.Keyword*)(nominal),
+		packed: optFromMut!(ModifierAst.Keyword*)(packed));
 }
 
 void checkReferenceLinkageAndPurity(ref CheckCtx ctx, StructDecl* struct_, in Range range, Type referencedType) {
@@ -695,8 +882,8 @@ Visibility recordNewVisibility(
 			leastVisibility(cur, field.visibility));
 	Opt!VisibilityAndRange explicit = has(modifiers.newVisibility)
 		? some(VisibilityAndRange(
-			visibilityFromNewVisibility(force(modifiers.newVisibility).kind),
-			force(modifiers.newVisibility).pos))
+			visibilityFromNewVisibility(force(modifiers.newVisibility).keyword),
+			force(modifiers.newVisibility).keywordPos))
 		: none!VisibilityAndRange;
 	return visibilityFromDefaultWithDiag(ctx, default_, explicit, Diag.VisibilityWarning.Kind(
 		Diag.VisibilityWarning.Kind.New(record)));

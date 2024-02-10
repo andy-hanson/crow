@@ -90,9 +90,7 @@
 			info log "{a["three"]}"
 			info log b["three"]
 
-		by-name[t] record
-			values t[symbol]
-			default t
+		by-name[t] record(values t[symbol], default t)
 
 		subscript[t] t(a t by-name, name symbol)
 			a.values[name] ?? a.default

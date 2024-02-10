@@ -35,9 +35,7 @@ Coordinate in a grid.
 `x` is the column index. The leftmost column is 0; the rightmost column is `width - 1`.
 `y` is the row index. The top row is 0; the bottom row is `height - 1`.
 ###
-+coord record
-	x nat64
-	y nat64
++coord record(x nat64, y nat64)
 
 # Same as `0, 0`.
 +new coord()
@@ -124,10 +122,7 @@ region spec impls (see collection.crow)
 
 +iterate[t] bool(a t mut-grid, f bool mut(elem t))
 	a.elements iterate f
-+with-coords[t] record mut
-	-inner t mut-grid
-+with-coords[t] t with-coords(a t mut-grid)
-	a,
++with-coords[t] record(inner t mut-grid) mut, nominal
 +size[t] nat64(a t with-coords)
 	a.inner size
 +iterate[t] bool(a t with-coords, f bool mut(xy coord, value t))

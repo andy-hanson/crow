@@ -188,6 +188,7 @@ bool isExpressionStartToken(Token a) {
 		case Token.newlineDedent:
 		case Token.newlineIndent:
 		case Token.newlineSameIndent:
+		case Token.nominal:
 		case Token.noStd:
 		case Token.packed:
 		case Token.parenRight:
@@ -199,6 +200,7 @@ bool isExpressionStartToken(Token a) {
 		case Token.reserved:
 		case Token.semicolon:
 		case Token.spec:
+		case Token.storage:
 		case Token.summon:
 		case Token.test:
 		case Token.thread_local:

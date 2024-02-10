@@ -16,11 +16,7 @@ which is passed in via the crow context. `with-log-handler` can change it.
 +log void(level log-level, message string)
 	get-log-handler[level, message]
 
-+temp-log-handler record shared
-	-handler log-handler
-+temp-log-handler temp-log-handler(handler log-handler)
-	handler,
-
++temp-log-handler record(handler log-handler) shared, nominal
 ###
 Temporarily replaces the log handler.
 
@@ -65,9 +61,7 @@ The default log handler just prints the level at the beginning of each log.
 		"error"
 
 # Represents a single call to `log`.
-+logged record
-	level log-level
-	message string
++logged record(level log-level, message string)
 
 ###
 Function that handles a log message.

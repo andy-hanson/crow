@@ -5,7 +5,7 @@ module frontend.ide.position;
 import model.ast : ModifierKeyword, NameAndRange;
 import model.diag : TypeContainer, TypeWithContainer;
 import model.model :
-	EnumMember,
+	EnumOrFlagsMember,
 	Expr,
 	FunDecl,
 	ImportOrExport,
@@ -101,7 +101,7 @@ immutable struct PositionKind {
 
 	immutable struct EnumOrFlagsMemberPosition {
 		StructDecl* struct_;
-		EnumMember* member;
+		EnumOrFlagsMember* member;
 	}
 	immutable struct Expression {
 		ExprContainer container;
@@ -144,7 +144,7 @@ immutable struct PositionKind {
 		Local* local;
 	}
 	immutable struct MatchEnumCase {
-		EnumMember* member;
+		EnumOrFlagsMember* member;
 	}
 	immutable struct MatchUnionCase {
 		UnionMember* member;

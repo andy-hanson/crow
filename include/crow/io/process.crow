@@ -40,14 +40,9 @@ import
 	./win32-util: show-win32-error
 
 # Represents the output of running a process.
-+process-result record
-	exit process-exit
-	stdout string
-	stderr string
++process-result record(exit process-exit, stdout string, stderr string)
 
-+process-exit union
-	exited int32
-	signaled int32
++process-exit union(exited int32, signaled int32)
 
 +has-error bool(a process-result)
 	!a.stderr.is-empty || match a exit
@@ -232,9 +227,7 @@ The child process shares stdout and stderr with the parent process.
 		unless a.hung-up && b.hung-up
 			stdout-pipe keep-polling stderr-pipe, stdout-builder, stderr-builder
 
--handle-revents-result record
-	had-POLLIN bool
-	hung-up bool
+-handle-revents-result record(had-POLLIN bool, hung-up bool)
 
 -any bool(r handle-revents-result)
 	r.had-POLLIN || r.hung-up

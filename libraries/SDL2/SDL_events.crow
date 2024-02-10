@@ -13,7 +13,7 @@ import
 +new SDL_Event() unsafe
 	SDL_FIRSTEVENT, 0, ()
 
-+SDL_EventType enum(u-int) extern
++SDL_EventType enum extern, u-int storage
 	SDL_FIRSTEVENT = 0
 
 	SDL_Quit = 0x100

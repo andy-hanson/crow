@@ -52,9 +52,7 @@ tutorial-pages path-and-content[]() summon
 	lines tutorial-meta[] grammar = line separated-by "\n\t"
 	(lines parse input)!
 
--tutorial-meta record
-	key symbol
-	title string
+-tutorial-meta record(key symbol, title string)
 
 -path string(tutorial-dir string, a tutorial-meta)
 	"{tutorial-dir}/{a key}.html"
@@ -107,10 +105,7 @@ tutorial-pages path-and-content[]() summon
 	else
 		throw "Unexpected link kind {link.kind}"
 
--link record
-	kind symbol
-	name symbol
-	hash string
+-link record(kind symbol, name symbol, hash string)
 -parse-link link(a string)
 	kind, rest = a try-split-once "/" ??
 		throw """Link "{a}" needs to begin with "doc/" or "tutorial/"."""

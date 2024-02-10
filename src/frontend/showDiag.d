@@ -36,6 +36,7 @@ import model.diag :
 import model.model :
 	arityMatches,
 	bestCasePurity,
+	BuiltinType,
 	CalledDecl,
 	eachDiagnostic,
 	FunDeclAndTypeArgs,
@@ -48,6 +49,8 @@ import model.model :
 	Program,
 	SpecDecl,
 	SpecDeclSig,
+	StructBody,
+	StructDecl,
 	StructInst,
 	Type,
 	TypeParamsAndSig;
@@ -581,9 +584,9 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		},
 		(in Diag.EnumMemberOverflows x) {
 			writer ~= "Enum member is not in the allowed range from ";
-			writer ~= minValue(x.backingType);
+			writer ~= minValue(x.storage);
 			writer ~= " to ";
-			writer ~= maxValue(x.backingType);
+			writer ~= maxValue(x.storage);
 			writer ~= '.';
 		},
 		(in Diag.ExpectedTypeIsNotALambda x) {
@@ -847,6 +850,10 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writeModifier(writer, ctx, x.modifier);
 			writer ~= '.';
 		},
+		(in Diag.ModifierTypeArgInvalid x) {
+			writeModifier(writer, ctx, x.modifier);
+			writer ~= " does not take a type argument in this context.";
+		},
 		(in Diag.MutFieldNotAllowed) {
 			writer ~= "This field is 'mut', so the record must be 'mut'.";
 		},
@@ -904,6 +911,11 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= " has purity ";
 			writePurity(writer, ctx, bestCasePurity(x.child));
 			writer ~= '.';
+		},
+		(in Diag.RecordFieldNeedsType x) {
+			writer ~= "Record field ";
+			writeName(writer, ctx, x.fieldName);
+			writer ~= " needs a type.";
 		},
 		(in Diag.SharedArgIsNotLambda) {
 			writer ~= "Argument to 'shared' must be a lambda expression.";
@@ -1003,6 +1015,25 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 				}
 			}();
 		},
+		(in Diag.StorageMissingType) {
+			writer ~= "'storage' needs a type.";
+		},
+		(in Diag.StructParamsSyntaxError x) {
+			final switch (x.reason) {
+				case Diag.StructParamsSyntaxError.Reason.hasParamsAndFields:
+					writer ~= aOrAnDeclKind(declKindOfStruct(x.struct_));
+					writer ~= " can't have both parameter-style and indented fields.";
+					break;
+				case Diag.StructParamsSyntaxError.Reason.destructure:
+					writer ~= aOrAnMemberKind(memberKindOfStruct(x.struct_));
+					writer ~= " can't use destructuring.";
+					break;
+				case Diag.StructParamsSyntaxError.Reason.variadic:
+					writer ~= aOrAnMemberKind(memberKindOfStruct(x.struct_));
+					writer ~= " can't be variadic.";
+					break;
+			}
+		},
 		(in Diag.TrustedUnnecessary x) {
 			writer ~= () {
 				final switch (x.reason) {
@@ -1067,6 +1098,21 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 						return "Prefer to write 'v shared[k]' instead of '(k, v) shared-map'.";
 					case Diag.TypeShouldUseSyntax.Kind.tuple:
 						return "Prefer to write '(t, u)' instead of '(t, u) tuple2'.";
+				}
+			}();
+		},
+		(in Diag.UnsupportedSyntax x) {
+			writer ~= () {
+				final switch (x.reason) {
+					case Diag.UnsupportedSyntax.Reason.enumMemberMutability:
+						return "An enum member can't be 'mut'.";
+					case Diag.UnsupportedSyntax.Reason.enumMemberType:
+						return "An enum member can't specify a type.";
+					case Diag.UnsupportedSyntax.Reason.unionMemberMutability:
+						return "A union member can't be 'mut'.";
+					case Diag.UnsupportedSyntax.Reason.unionMemberVisibility:
+						return "Can't specify visibility here; " ~
+							"a union member always has the same visibility as the union.";
 				}
 			}();
 		},
@@ -1150,6 +1196,41 @@ void writeModifier(scope ref Writer writer, in ShowDiagCtx ctx, ModifierKeyword 
 	writeName(writer, ctx, stringOfModifierKeyword(kind));
 }
 
+DeclKind declKindOfStruct(StructDecl* a) =>
+	a.body_.matchIn!DeclKind(
+		(in StructBody.Bogus) =>
+			assert(false),
+		(in BuiltinType) =>
+			assert(false),
+		(in StructBody.Enum) =>
+			DeclKind.enum_,
+		(in StructBody.Extern) =>
+			assert(false),
+		(in StructBody.Flags) =>
+			DeclKind.flags,
+		(in StructBody.Record) =>
+			DeclKind.record,
+		(in StructBody.Union) =>
+			DeclKind.union_);
+
+enum MemberKind { enumMember, flagsMember, recordField, unionMember }
+MemberKind memberKindOfStruct(StructDecl* a) =>
+	a.body_.matchIn!MemberKind(
+		(in StructBody.Bogus) =>
+			assert(false),
+		(in BuiltinType) =>
+			assert(false),
+		(in StructBody.Enum) =>
+			MemberKind.enumMember,
+		(in StructBody.Extern) =>
+			assert(false),
+		(in StructBody.Flags) =>
+			MemberKind.flagsMember,
+		(in StructBody.Record) =>
+			MemberKind.recordField,
+		(in StructBody.Union) =>
+			MemberKind.unionMember);
+
 string aOrAnDeclKind(DeclKind a) {
 	final switch (a) {
 		case DeclKind.alias_:
@@ -1178,6 +1259,19 @@ string aOrAnDeclKind(DeclKind a) {
 			return "A thread-local variable";
 		case DeclKind.union_:
 			return "A union type";
+	}
+}
+
+string aOrAnMemberKind(MemberKind a) {
+	final switch (a) {
+		case MemberKind.enumMember:
+			return "An enum member";
+		case MemberKind.flagsMember:
+			return "A flags member";
+		case MemberKind.recordField:
+			return "A record field";
+		case MemberKind.unionMember:
+			return "A union member";
 	}
 }
 
@@ -1345,6 +1439,8 @@ string describeTokenForUnexpected(Token token) {
 		case Token.newlineIndent:
 		case Token.newlineSameIndent:
 			return "Unexpected newline.";
+		case Token.nominal:
+			return "Unexpected keyword 'nominal'.";
 		case Token.noStd:
 			return "Unexpected keyword 'no-std'.";
 		case Token.operator:
@@ -1378,6 +1474,8 @@ string describeTokenForUnexpected(Token token) {
 			return "Unexpected keyword 'shared'.";
 		case Token.spec:
 			return "Unexpected keyword 'spec'.";
+		case Token.storage:
+			return "Unexpected keyword 'storage'.";
 		case Token.summon:
 			return "Unexpected keyword 'summon'.";
 		case Token.test:

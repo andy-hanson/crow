@@ -16,5 +16,5 @@ test/end-to-end/compile-errors/modifier-duplicate-or-redundant.crow 26:16-26:19 
 test/end-to-end/compile-errors/modifier-duplicate-or-redundant.crow 28:19-28:25 Redundant 'shared'.
 test/end-to-end/compile-errors/modifier-duplicate-or-redundant.crow 30:19-30:25 Redundant 'by-ref'.
 test/end-to-end/compile-errors/modifier-duplicate-or-redundant.crow 32:19-32:25 Redundant 'by-val'.
-test/end-to-end/compile-errors/modifier-duplicate-or-redundant.crow 34:25-34:33 Redundant 'extern'.
+test/end-to-end/compile-errors/modifier-duplicate-or-redundant.crow 34:27-34:33 Redundant 'extern'.
 test/end-to-end/compile-errors/modifier-duplicate-or-redundant.crow 36:20-36:27 Redundant 'builtin'.

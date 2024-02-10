@@ -13,7 +13,7 @@ import frontend.check.checkCtx :
 	ImportAndReExportModules,
 	visibilityFromExplicitTopLevel;
 import frontend.check.checkExpr : checkFunctionBody, checkTestBody, TestBody;
-import frontend.check.checkStructBodies : checkStructBodies, checkStructsInitial;
+import frontend.check.checkStructBodies : checkStructBodies, checkStructsInitial, modifierTypeArgInvalid;
 import frontend.check.getBuiltinFun : getBuiltinFun;
 import frontend.check.getCommonTypes : getCommonTypes;
 import frontend.check.maps : funDeclsName, FunsMap, specDeclName, SpecsMap, structOrAliasName, StructsAndAliasesMap;
@@ -119,7 +119,7 @@ import util.col.hashTable :
 import util.col.mutArr : mustPop, mutArrIsEmpty;
 import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, toArray;
 import util.memory : allocate, initMemory;
-import util.opt : force, has, none, Opt, someMut, some;
+import util.opt : force, has, none, Opt, optIf, someMut, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : AllSymbols, Symbol, symbol;
@@ -396,22 +396,21 @@ Opt!Symbol checkVarModifiers(ref CheckCtx ctx, VarKind kind, in ModifierAst[] mo
 	foreach (ref ModifierAst modifier; modifiers)
 		modifier.matchIn!void(
 			(in ModifierAst.Keyword x) {
-				addDiag(ctx, x.range, x.kind == ModifierKeyword.extern_
-					? Diag(Diag.ExternMissingLibraryName())
-					: Diag(Diag.ModifierInvalid(x.kind, declKind(kind))));
-			},
-			(in ModifierAst.Extern x) {
-				if (has(cellGet(externLibraryName)))
-					addDiag(ctx, x.range(ctx.allSymbols), Diag(Diag.ModifierDuplicate(ModifierKeyword.extern_)));
-				final switch (kind) {
-					case VarKind.global:
-						cellSet(externLibraryName, some(x.name.name));
-						break;
-					case VarKind.threadLocal:
-						addDiag(ctx, x.range(ctx.allSymbols), Diag(
-							Diag.ModifierInvalid(ModifierKeyword.extern_, DeclKind.threadLocal)));
-						break;
-				}
+				if (x.keyword == ModifierKeyword.extern_) {
+					Symbol name = getExternLibraryName(ctx, x);
+					if (has(cellGet(externLibraryName)))
+						addDiag(ctx, x.keywordRange, Diag(Diag.ModifierDuplicate(ModifierKeyword.extern_)));
+					final switch (kind) {
+						case VarKind.global:
+							cellSet(externLibraryName, some(name));
+							break;
+						case VarKind.threadLocal:
+							addDiag(ctx, x.keywordRange, Diag(
+								Diag.ModifierInvalid(ModifierKeyword.extern_, DeclKind.threadLocal)));
+							break;
+					}
+				} else
+					addDiag(ctx, x.keywordRange, Diag(Diag.ModifierInvalid(x.keyword, declKind(kind))));
 			},
 			(in SpecUseAst x) {
 				addDiag(ctx, x.range(ctx.allSymbols), Diag(Diag.SpecUseInvalid(declKind(kind))));
@@ -457,21 +456,17 @@ SpecFlagsAndParents checkSpecModifiers(
 	immutable SpecInst*[] parents = mapOp!(immutable SpecInst*, ModifierAst)(ctx.alloc, asts, (ref ModifierAst ast) =>
 		ast.matchIn!(Opt!(SpecInst*))(
 			(in ModifierAst.Keyword x) {
-				switch (x.kind) {
+				switch (x.keyword) {
 					case ModifierKeyword.builtin:
 						if (builtin)
-							addDiag(ctx, x.range, Diag(Diag.ModifierDuplicate(x.kind)));
+							addDiag(ctx, x.keywordRange, Diag(Diag.ModifierDuplicate(x.keyword)));
+						modifierTypeArgInvalid(ctx, x);
 						builtin = true;
 						break;
 					default:
-						addDiag(ctx, x.range, Diag(
-							Diag.ModifierInvalid(x.kind, DeclKind.spec)));
+						addDiag(ctx, x.keywordRange, Diag(Diag.ModifierInvalid(x.keyword, DeclKind.spec)));
 						break;
 				}
-				return none!(SpecInst*);
-			},
-			(in ModifierAst.Extern x) {
-				addDiag(ctx, x.suffixRange, Diag(Diag.ModifierInvalid(ModifierKeyword.extern_, DeclKind.spec)));
 				return none!(SpecInst*);
 			},
 			(in SpecUseAst x) =>
@@ -500,18 +495,20 @@ FunFlagsAndSpecs checkFunModifiers(
 		mapOp!(immutable SpecInst*, ModifierAst)(ctx.alloc, asts, (ref ModifierAst ast) =>
 			ast.matchIn!(Opt!(SpecInst*))(
 				(in ModifierAst.Keyword x) {
-					CollectedFunFlags flag = tryGetFunFlag(x.kind);
-					if (flag == CollectedFunFlags.none)
-						addDiag(ctx, x.range, Diag(Diag.ModifierInvalid(x.kind, DeclKind.function_)));
-					if (allFlags & flag)
-						addDiag(ctx, x.range, Diag(Diag.ModifierDuplicate(x.kind)));
-					allFlags |= flag;
-					return none!(SpecInst*);
-				},
-				(in ModifierAst.Extern x) {
-					if (allFlags & CollectedFunFlags.extern_)
-						addDiag(ctx, x.suffixRange, Diag(Diag.ModifierDuplicate(ModifierKeyword.extern_)));
-					allFlags |= CollectedFunFlags.extern_;
+					if (x.keyword == ModifierKeyword.extern_) {
+						if (allFlags & CollectedFunFlags.extern_)
+							addDiag(ctx, x.keywordRange, Diag(Diag.ModifierDuplicate(ModifierKeyword.extern_)));
+						allFlags |= CollectedFunFlags.extern_;
+						// 'getNameFromExternModifier' checks the typeArg
+					} else {
+						CollectedFunFlags flag = tryGetFunFlag(x.keyword);
+						if (flag == CollectedFunFlags.none)
+							addDiag(ctx, x.keywordRange, Diag(Diag.ModifierInvalid(x.keyword, DeclKind.function_)));
+						if (allFlags & flag)
+							addDiag(ctx, x.keywordRange, Diag(Diag.ModifierDuplicate(x.keyword)));
+						modifierTypeArgInvalid(ctx, x);
+						allFlags |= flag;
+					}
 					return none!(SpecInst*);
 				},
 				(in SpecUseAst x) =>
@@ -525,14 +522,12 @@ FunFlags checkTestModifiers(ref CheckCtx ctx, in TestAst ast) {
 	foreach (ModifierAst modifier; ast.modifiers) {
 		modifier.matchIn!void(
 			(in ModifierAst.Keyword x) {
-				CollectedFunFlags flag = tryGetFunFlag(x.kind);
-				if (isAllowedTestFlag(flag))
+				CollectedFunFlags flag = tryGetFunFlag(x.keyword);
+				if (isAllowedTestFlag(flag)) {
+					modifierTypeArgInvalid(ctx, x);
 					allFlags |= flag;
-				else
-					addDiag(ctx, x.range, Diag(Diag.ModifierInvalid(x.kind, DeclKind.test)));
-			},
-			(in ModifierAst.Extern x) {
-				addDiag(ctx, x.suffixRange, Diag(Diag.ModifierInvalid(ModifierKeyword.extern_, DeclKind.test)));
+				} else
+					addDiag(ctx, x.keywordRange, Diag(Diag.ModifierInvalid(x.keyword, DeclKind.test)));
 			},
 			(in SpecUseAst x) {
 				addDiag(ctx, x.range(ctx.allSymbols), Diag(Diag.SpecUseInvalid(DeclKind.test)));
@@ -564,7 +559,7 @@ enum CollectedFunFlags {
 }
 
 CollectedFunFlags tryGetFunFlag(ModifierKeyword kind) =>
-	optEnumConvert!CollectedFunFlags(kind, CollectedFunFlags.none);
+	optEnumConvert!CollectedFunFlags(kind, () => CollectedFunFlags.none);
 
 FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, CollectedFunFlags flags, bool isTest) {
 	void warnRedundant(ModifierKeyword modifier, ModifierKeyword redundantModifier) {
@@ -778,18 +773,21 @@ Symbol funDeclsBuilderName(in ArrayBuilder!(immutable FunDecl*) a) =>
 Symbol getNameFromExternModifier(ref CheckCtx ctx, in FunDeclAst a) {
 	Opt!Symbol res = first!(Symbol, ModifierAst)(a.modifiers, (ModifierAst modifier) =>
 		modifier.matchIn!(Opt!Symbol)(
-			(in ModifierAst.Keyword x) {
-				if (x.kind == ModifierKeyword.extern_) {
-					addDiag(ctx, x.range, Diag(Diag.ExternMissingLibraryName()));
-					return some(symbol!"bogus");
-				} else
-					return none!Symbol;
-			},
-			(in ModifierAst.Extern x) =>
-				some(x.name.name),
+			(in ModifierAst.Keyword x) =>
+				optIf(x.keyword == ModifierKeyword.extern_, () => getExternLibraryName(ctx, x)),
 			(in SpecUseAst x) =>
 				none!Symbol));
 	return force(res);
+}
+
+Symbol getExternLibraryName(ref CheckCtx ctx, in ModifierAst.Keyword modifier) {
+	assert(modifier.keyword == ModifierKeyword.extern_);
+	if (has(modifier.typeArg) && force(modifier.typeArg).isA!NameAndRange)
+		return force(modifier.typeArg).as!NameAndRange.name;
+	else {
+		addDiag(ctx, modifier.keywordRange, Diag(Diag.ExternMissingLibraryName()));
+		return symbol!"bogus";
+	}
 }
 
 FunBody getFileImportFunctionBody(in ImportOrExportFile a) =>
@@ -859,13 +857,12 @@ FunBody.Extern checkExternBody(ref CheckCtx ctx, FunDecl* fun, FunDeclAst* ast) 
 
 	checkNoTypeParams(ctx, fun.typeParams, DeclKind.externFunction);
 	if (!isEmpty(fun.specs)) {
-		Range range =
-			mustFind!ModifierAst(ast.modifiers, (in ModifierAst x) => x.isA!(SpecUseAst*)).range(ctx.allSymbols);
+		Range range = mustFind!ModifierAst(ast.modifiers, (in ModifierAst x) => x.isA!SpecUseAst).range(ctx.allSymbols);
 		addDiag(ctx, range, Diag(Diag.SpecUseInvalid(DeclKind.externFunction)));
 	}
 
 	if (!isLinkageAlwaysCompatible(funLinkage, linkageRange(fun.returnType)))
-		addDiagAssertSameUri(ctx, fun.range, Diag(
+		addDiagAssertSameUri(ctx, fun.range(ctx.allSymbols), Diag(
 			Diag.LinkageWorseThanContainingFun(fun, fun.returnType, none!(Destructure*))));
 	fun.params.match!void(
 		(Destructure[] params) {
@@ -900,7 +897,7 @@ Module* checkWorkerAfterCommonTypes(
 	ref ImportsAndReExports importsAndReExports,
 	FileAst* ast,
 ) {
-	checkStructBodies(ctx, commonTypes, structsAndAliasesMap, structs, ast.structs, delayStructInsts);
+	checkStructBodies(ctx, commonTypes, structsAndAliasesMap, delayStructInsts, structs, ast.structs);
 
 	while (!mutArrIsEmpty(delayStructInsts))
 		instantiateStructTypes(ctx.instantiateCtx, mustPop(delayStructInsts), someMut(ptrTrustMe(delayStructInsts)));

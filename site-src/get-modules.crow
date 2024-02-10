@@ -81,9 +81,11 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 		x.as-string! to
 
 -to-record-decl record-decl(a json)
-	has-non-public-fields = a["has-non-public-fields"].as-bool-allow-null!
-	a.get-purity, has-non-public-fields, for x : a["fields"].as-list!
+	purity: a get-purity
+	fields: for x : a["fields"].as-list!
 		x to-record-field
+	has-non-public-fields: a["has-non-public-fields"].as-bool-allow-null!
+	nominal_: a["nominal"].as-bool-allow-null!
 
 -get-purity purity(a json)
 	p = a["purity"]

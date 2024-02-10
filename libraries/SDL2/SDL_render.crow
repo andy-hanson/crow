@@ -31,7 +31,7 @@ import
 	dest-rect SDL_Rect*,
 ) summon, SDL2 extern
 
-+SDL_RendererFlags flags(u-int) extern
++SDL_RendererFlags flags extern, u-int storage
 	SDL_RENDERER_SOFTWARE = 1
 	SDL_RENDERER_ACCELERATED = 2
 	SDL_RENDERER_PRESENTVSYNC = 4

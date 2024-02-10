@@ -15,9 +15,7 @@ import
 	../private/bootstrap: todo
 	./win32-util: show-win32-error
 
-+pipe enum
-	out
-	err
++pipe enum(out, err)
 
 # Print to stdout or stderr, including a newline.
 +print void(pipe pipe, message string) summon

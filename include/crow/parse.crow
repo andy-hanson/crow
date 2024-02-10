@@ -61,9 +61,7 @@ If the string has leading or trailing spaces you must use a grammar that include
 +== bool(a parse-error, b parse-error)
 	a.input == b.input && a.iter == b.iter && a.expected == b.expected
 
--inner-parse-result[t] union
-	ok t
-	error inner-parse-error
+-inner-parse-result[t] union(ok t, error inner-parse-error)
 
 -then[out, in] out inner-parse-result(a in inner-parse-result, f out mut(x in))
 	match a
@@ -77,8 +75,7 @@ If the string has leading or trailing spaces you must use a grammar that include
 )
 	a.a, a.b then f
 
--inner-parse-error record
-	expected string
+-inner-parse-error record(expected string)
 
 +to string(a parse-error)
 	# TODO: show where it is
@@ -89,16 +86,13 @@ If the string has leading or trailing spaces you must use a grammar that include
 	"expected {a expected}, got {peek}"
 
 # This is like 'grammar' but produces no result.
-+grammar-skip record mut
-	inner void grammar
++grammar-skip record(inner void grammar) mut
 
 # Grammar matching empty strings
 +new grammar-skip()
 	"" exact
 
--make-grammar record
--make-grammar make-grammar()
-	()
+-make-grammar record nominal
 -with-block[t] t grammar(
 	_ make-grammar,
 	f (string-iterator, t inner-parse-result) mut(iter string-iterator),
@@ -320,9 +314,7 @@ it is a parse error to have a separator not followed by another 'a'.
 			start, () ok
 
 # Use this to allow recursive grammars.
-+lazy record
-+lazy lazy()
-	()
++lazy record nominal
 +with-block[t] t grammar(_ lazy, f t grammar data())
 	with start : make-grammar
 		# TODO: actually be lazy (cache it)

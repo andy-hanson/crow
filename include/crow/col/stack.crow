@@ -18,9 +18,7 @@ Iteration functions move from the bottom to the top.
 +stack[t] record
 	-last-node t node?
 
--node[t] record
-	prev t node?
-	value t
+-node[t] record(prev t node?, value t)
 
 ###
 Stack containing the given elements.
@@ -114,7 +112,7 @@ iterate-reverse[t] bool(a t stack, f bool mut(elem t))
 		forbid broke
 
 +stack-iterator[t] record by-val
-	collection t stack
+	-collection t stack
 	-array-reverse t array-iterator
 
 +begin[t] t stack-iterator(a t stack)

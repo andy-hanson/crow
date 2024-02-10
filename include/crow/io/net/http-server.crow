@@ -16,9 +16,7 @@ import
 +http-handler alias
 	http-response^ shared(req http-request)
 
-+http-server-options record shared
-	port nat16
-	handler http-handler
++http-server-options record(port nat16, handler http-handler) shared
 +http-server http-server-options(port nat16, handler http-handler)
 	port, handler
 

@@ -24,15 +24,16 @@ import model.ast :
 	LambdaAst,
 	LetAst,
 	MatchAst,
+	ModifierAst,
+	ModifierKeyword,
 	NameAndRange,
 	ParamsAst,
 	paramsArray,
-	RecordFieldAst,
+	RecordOrUnionMemberAst,
 	SpecUseAst,
 	StructBodyAst,
 	StructDeclAst,
-	TypeAst,
-	UnionMemberAst;
+	TypeAst;
 import model.model :
 	AssertOrForbidExpr,
 	BogusExpr,
@@ -42,9 +43,10 @@ import model.model :
 	CallExpr,
 	ClosureGetExpr,
 	ClosureSetExpr,
+	CommonTypes,
 	Destructure,
 	eachImportOrReExport,
-	EnumMember,
+	EnumOrFlagsMember,
 	Expr,
 	ExprKind,
 	FunBody,
@@ -56,6 +58,7 @@ import model.model :
 	IfExpr,
 	IfOptionExpr,
 	ImportOrExport,
+	IntegralType,
 	LambdaExpr,
 	LetExpr,
 	LiteralExpr,
@@ -146,7 +149,7 @@ void referencesForTarget(
 	in ReferenceCb cb,
 ) =>
 	a.matchWithPointers!void(
-		(EnumMember* x) {
+		(EnumOrFlagsMember* x) {
 			referencesForEnumMember(program, x, cb);
 		},
 		(FunDecl* x) {
@@ -180,7 +183,7 @@ void referencesForTarget(
 			referencesForStructDecl(allSymbols, program, x, cb);
 		},
 		(PositionKind.TypeParamWithContainer x) {
-			referencesForTypeParam(allSymbols, curUri, x, cb);
+			referencesForTypeParam(allSymbols, *program.commonTypes, curUri, x, cb);
 		},
 		(UnionMember* x) {
 			referencesForUnionMember(program, x, cb);
@@ -274,6 +277,7 @@ void referencesForLoop(Uri curUri, in LoopExpr loop, in ReferenceCb cb) {
 
 void referencesForTypeParam(
 	in AllSymbols allSymbols,
+	ref CommonTypes commonTypes,
 	Uri curUri,
 	in PositionKind.TypeParamWithContainer a,
 	in ReferenceCb refCb,
@@ -290,7 +294,7 @@ void referencesForTypeParam(
 		(in StructAlias x) =>
 			assert(false),
 		(in StructDecl x) =>
-			eachTypeInStruct(x, typeCb),
+			eachTypeInStruct(commonTypes, x, typeCb),
 		(in Test _) =>
 			assert(false),
 		(in VarDecl _) =>
@@ -299,9 +303,9 @@ void referencesForTypeParam(
 
 alias TypeCb = void delegate(in Type, in TypeAst) @safe @nogc pure nothrow;
 
-void eachTypeInModule(in Module a, in TypeCb cb) {
+void eachTypeInModule(ref CommonTypes commonTypes, in Module a, in TypeCb cb) {
 	foreach (ref StructDecl x; a.structs)
-		eachTypeInStruct(x, cb);
+		eachTypeInStruct(commonTypes, x, cb);
 	foreach (ref VarDecl x; a.vars) {
 		// TODO
 	}
@@ -338,40 +342,49 @@ void eachTypeInSpec(in SpecDecl a, in TypeCb cb) {
 	}
 }
 
-void eachTypeInStruct(in StructDecl a, in TypeCb cb) =>
+void eachTypeInStruct(ref CommonTypes commonTypes, in StructDecl a, in TypeCb cb) =>
 	a.source.matchIn!void(
 		(in StructDeclAst x) {
-			eachTypeInStructBody(a.body_, x.body_, cb);
+			eachTypeInStructBody(commonTypes, a.body_, x, x.body_, cb);
 		},
 		(in StructDeclSource.Bogus) {});
-void eachTypeInStructBody(in StructBody body_, in StructBodyAst ast, in TypeCb cb) {
+void eachTypeInStructBody(
+	ref CommonTypes commonTypes,
+	in StructBody body_,
+	in StructDeclAst structAst,
+	in StructBodyAst ast,
+	in TypeCb cb,
+) {
 	body_.matchIn!void(
 		(in StructBody.Bogus) {},
 		(in BuiltinType _) {},
-		(in StructBody.Enum) {
-			// TODO: references for backingType
+		(in StructBody.Enum x) {
+			eachTypeInEnumOrFlags(commonTypes, structAst, x.storage, cb);
 		},
 		(in StructBody.Extern) {},
-		(in StructBody.Flags) {
-			// TODO: references for backingType
+		(in StructBody.Flags x) {
+			eachTypeInEnumOrFlags(commonTypes, structAst, x.storage, cb);
 		},
 		(in StructBody.Record x) {
-			zip!(RecordField, RecordFieldAst)(
-				x.fields,
-				ast.as!(StructBodyAst.Record).fields,
-				(ref RecordField field, ref RecordFieldAst fieldAst) {
-					eachTypeInType(field.type, fieldAst.type, cb);
-				});
+			eachTypeInRecordOrUnion!RecordField(x.fields, ast.as!(StructBodyAst.Record).fields, cb);
 		},
 		(in StructBody.Union x) {
-			zip!(UnionMember, UnionMemberAst)(
-				x.members,
-				ast.as!(StructBodyAst.Union).members,
-				(ref UnionMember member, ref UnionMemberAst memberAst) {
-					if (has(memberAst.type))
-						eachTypeInType(member.type, force(memberAst.type), cb);
-				});
+			eachTypeInRecordOrUnion!UnionMember(x.members, ast.as!(StructBodyAst.Union).members, cb);
 		});
+}
+void eachTypeInEnumOrFlags(ref CommonTypes commonTypes, in StructDeclAst struct_, IntegralType storage, in TypeCb cb) {
+	foreach (ref ModifierAst modifier; struct_.modifiers)
+		if (modifier.isA!(ModifierAst.Keyword)) {
+			ModifierAst.Keyword keyword = modifier.as!(ModifierAst.Keyword);
+			if (keyword.keyword == ModifierKeyword.storage && has(keyword.typeArg))
+				cb(Type(commonTypes.integrals[storage]), force(keyword.typeArg));
+		}
+}
+void eachTypeInRecordOrUnion(Member)(in Member[] members, in RecordOrUnionMemberAst[] asts, in TypeCb cb) {
+	zip!(Member, RecordOrUnionMemberAst)(members, asts, (ref Member member, ref RecordOrUnionMemberAst ast) {
+		if (has(ast.type))
+			eachTypeInType(member.type, force(ast.type), cb);
+	});
 }
 
 void eachTypeInType(in Type a, in TypeAst ast, in TypeCb cb) {
@@ -535,7 +548,7 @@ void referencesForRecordField(in AllSymbols allSymbols, in Program program, in R
 	});
 }
 
-void referencesForEnumMember(in Program program, in EnumMember* x, in ReferenceCb cb) {
+void referencesForEnumMember(in Program program, in EnumOrFlagsMember* x, in ReferenceCb cb) {
 	// TODO: Find the corresponding creation function. Also all references in 'match' expressions.
 }
 
@@ -591,7 +604,7 @@ void referencesForSpecDecl(in AllSymbols allSymbols, in Program program, in Spec
 
 void referencesForStructDecl(in AllSymbols allSymbols, in Program program, in StructDecl* a, in ReferenceCb cb) {
 	eachModuleThatMayReference(program, a.visibility, moduleOf(program, a.moduleUri), (in Module module_) {
-		eachTypeInModule(module_, (in Type t, in TypeAst ast) {
+		eachTypeInModule(*program.commonTypes, module_, (in Type t, in TypeAst ast) {
 			if (t.isA!(StructInst*) && t.as!(StructInst*).decl == a)
 				cb(UriAndRange(module_.uri, ast.range(allSymbols)));
 		});

@@ -6,7 +6,7 @@ import frontend.ide.getTarget : Target, targetForPosition;
 import frontend.ide.ideUtil : ReferenceCb;
 import frontend.ide.position : Position, PositionKind;
 import model.model :
-	EnumMember,
+	EnumOrFlagsMember,
 	FunDecl,
 	LoopExpr,
 	localMustHaveNameRange,
@@ -41,14 +41,14 @@ private:
 // public for 'getReferences' only
 public void definitionForTarget(in AllSymbols allSymbols, Uri curUri, in Target a, in ReferenceCb cb) =>
 	a.matchIn!void(
-		(in EnumMember x) {
+		(in EnumOrFlagsMember x) {
 			cb(x.nameRange(allSymbols));
 		},
 		(in FunDecl x) {
 			cb(x.nameRange(allSymbols));
 		},
 		(in PositionKind.ImportedName x) {
-			definitionForImportedName(x, cb);
+			definitionForImportedName(allSymbols, x, cb);
 		},
 		(in PositionKind.LocalPosition x) {
 			cb(UriAndRange(x.container.moduleUri, localMustHaveNameRange(*x.local, allSymbols)));
@@ -84,7 +84,7 @@ public void definitionForTarget(in AllSymbols allSymbols, Uri curUri, in Target 
 			cb(x.nameRange(allSymbols));
 		});
 
-void definitionForImportedName(in PositionKind.ImportedName a, in ReferenceCb cb) {
+void definitionForImportedName(in AllSymbols allSymbols, in PositionKind.ImportedName a, in ReferenceCb cb) {
 	if (has(a.referents)) {
 		NameReferents nr = *force(a.referents);
 		if (has(nr.structOrAlias))
@@ -92,6 +92,6 @@ void definitionForImportedName(in PositionKind.ImportedName a, in ReferenceCb cb
 		if (has(nr.spec))
 			cb(force(nr.spec).range);
 		foreach (FunDecl* f; nr.funs)
-			cb(f.range);
+			cb(f.range(allSymbols));
 	}
 }

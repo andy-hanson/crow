@@ -4,9 +4,7 @@ import
 		text-not-containing-any, to
 	./module
 
-all-exports record
-	types module-path[symbol]
-	specs module-path[symbol]
+all-exports record(types module-path[symbol], specs module-path[symbol])
 
 all-exports all-exports(modules module[])
 	types module-path mut[symbol] = ()
@@ -28,10 +26,7 @@ all-exports all-exports(modules module[])
 	else
 		map[key] := value
 
--export-kind enum
-	export-type
-	export-spec
-	export-fun
+-export-kind enum(export-type, export-spec, export-fun)
 
 -export-kind export-kind(a module-export-value)
 	match a
@@ -168,7 +163,20 @@ module-content string(a module, all-exports all-exports)
 	as fun-decl f
 		f.return-type return-type-and-params-and-specs f.variadic, f.params, f.specs, ctx
 	as record-decl r
-		"{"record" keyword}{r.purity purity-content}"
+		modifiers string[] = with out : build
+			match r.purity
+			as data_
+				()
+			as shared_
+				out ~= "shared"
+			as mut_
+				out ~= "mut"
+
+			if r.nominal_
+				out ~= "nominal"
+		modifiers-content string = unless modifiers is-empty
+			" {", " join for m : modifiers; m keyword}"
+		"{"record" keyword}{modifiers-content}"
 	as spec-decl s
 		"{(s.is-builtin ? "spec builtin" : "spec") keyword}{s.parents spec-refs-content ctx}"
 	as union-decl u

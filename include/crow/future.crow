@@ -99,10 +99,7 @@ Future resolved to `ok` if `a` succeeds and `err` if `a` fails with an exception
 		res resolve a.get-result
 	res
 
-+future-finally record mut
-	-cleanup void^ mut()
-+future-finally future-finally(cleanup void^ mut())
-	cleanup,
++future-finally record(cleanup void^ mut()) mut, nominal
 +with-block[t] t^(a future-finally, f t^ mut()) t shared
 	fut = f[]
 	res t^ = trusted unresolved
@@ -167,9 +164,7 @@ shared-of-mut-lambda[r, p] r^ shared(param p)(a r^ mut(param p)) r shared, p sha
 				as error e
 					res reject e
 			res
-
--force-lambda-shared[r, p] record force-shared
-	fn r^ mut(param p)
+-force-lambda-shared[r, p] record(fn r^ mut(param p)) force-shared
 
 ###
 If the future resolves successfully, does nothing.
@@ -183,9 +178,7 @@ handle-exceptions[t] void(a t^)
 		as error e
 			get-global-ctx->exception-handler[e]
 
-+fire-and-forget record
-+fire-and-forget fire-and-forget()
-	()
++fire-and-forget record nominal
 +with-block void(_ fire-and-forget, cb void^ mut())
 	cb[] handle-exceptions
 
@@ -194,9 +187,7 @@ handle-exceptions[t] void(a t^)
 +loop-continue[t] t break-or-continue^()
 	loop-continue,
 
-+parallel record
-+parallel parallel()
-	()
++parallel record nominal
 ###
 Run `f` in a task with a new exclusion and return a future for its result.
 
@@ -214,22 +205,19 @@ which allows it to run in parallel.
 			res reject e
 	res
 
-+sequential-collection[col] record
-	-inner col
-+sequential[col] col sequential-collection(a col)
-	a,
++sequential[col] record(collection col) nominal
 
 +for-break[in-col, in-iter, in-elem] void^(
-	a in-col sequential-collection,
+	a in-col sequential,
 	f void break-or-continue^ mut(elem in-elem),
 ) (in-iter, in-col) begin, (in-elem, in-iter) next, in-elem shared
 	_ void? <- a for-break f
 
 +for-break[out, in-col, in-iter, in-elem] out?^(
-	a in-col sequential-collection,
+	a in-col sequential,
 	f out break-or-continue^ mut(elem in-elem),
 ) (in-iter, in-col) begin, (in-elem, in-iter) next, out shared, in-elem shared
-	a.inner.begin for-break-recur f
+	a.collection.begin for-break-recur f
 -for-break-recur[out, in-col, in-iter, in-elem] out?^(
 	iter in-iter,
 	f out break-or-continue^ mut(elem in-elem),
@@ -243,7 +231,7 @@ which allows it to run in parallel.
 			next for-break-recur@(out, in-col, in-iter, in-elem) f
 
 +for-loop[in-col, in-iter, in-elem] void^(
-	a in-col sequential-collection,
+	a in-col sequential,
 	f void^ mut(elem in-elem),
 ) (in-iter, in-col) begin, (in-elem, in-iter) next, in-elem shared
 	for x : a
@@ -251,26 +239,25 @@ which allows it to run in parallel.
 		continue
 
 +for-loop[out-elem, in-col, in-iter, in-elem] out-elem[]^(
-	a in-col sequential-collection,
+	a in-col sequential,
 	f out-elem^ mut(elem in-elem),
 ) (in-iter, in-col) begin, (in-elem, in-iter) next, in-col size, out-elem shared, in-elem shared
 	res out-elem mut[] = ()
-	res hint-size a.inner.size
+	res hint-size a.collection.size
 	<- for x : a
 		y <- f[x]
 		res ~= y
 		()
 	res.move-to,
 
-+parallel-collection[col] record
-	-inner col
++parallel-collection[col] record(collection col)
 +parallel[col] col parallel-collection(a col)
 	a,
 +for-loop[in-col, in-elem] void^(
 	a in-col parallel-collection,
 	f void^ shared(elem in-elem),
 ) (in-col, in-elem) iterate, in-col size, in-elem shared
-	tasks void^[] = for x : a inner
+	tasks void^[] = for x : a collection
 		with : parallel
 			f[x]
 	tasks wait-all
@@ -278,31 +265,25 @@ which allows it to run in parallel.
 	a in-col parallel-collection,
 	f out-elem^ shared(elem in-elem),
 ) out-elem shared, in-elem shared, (in-col, in-elem) iterate, in-col size
-	tasks out-elem^[] = for x : a inner
+	tasks out-elem^[] = for x : a collection
 		with : parallel
 			f[x]
 	tasks wait-all
 
-+sequential-concat[col] record
-	-inner col
-+sequential-concat[col] col sequential-concat(a col)
-	a,
++sequential-concat[col] record(collection col) nominal
 +for-loop[out-elem, in-col, in-iter, in-elem] out-elem[]^(
 	a in-col sequential-concat,
 	f out-elem[]^ mut(elem in-elem),
 ) (in-iter, in-col) begin, (in-elem, in-iter) next, in-col size, out-elem shared, in-elem shared
-	lists out-elem[][] <- a.inner.sequential for-loop f
+	lists out-elem[][] <- a.collection.sequential for-loop f
 	lists.flatten,
 
-+parallel-concat[col] record
-	-inner col
-+parallel-concat[col] col parallel-concat(a col)
-	a,
++parallel-concat[col] record(collection col) nominal
 +for-loop[out-elem, in-col, in-elem] out-elem[]^(
 	a in-col parallel-concat,
 	f out-elem[]^ shared(elem in-elem),
 ) out-elem shared, in-elem shared, (in-col, in-elem) iterate, in-col size
-	lists out-elem[][] <- a.inner.parallel for-loop f
+	lists out-elem[][] <- a.collection.parallel for-loop f
 	lists.flatten,
 
 +filter[out-col, in-col, elem, builder] out-col^(
@@ -310,9 +291,9 @@ which allows it to run in parallel.
 	f bool^ shared(elem elem),
 ) (in-col, elem) iterate, in-col size, (out-col, elem, builder) build, elem shared, out-col shared
 	bools bool[] <- for x : a; f[x]
-	res out-col = with out : a.inner.size build
+	res out-col = with out : a.collection.size build
 		# TODO: 'zip'
-		for i, x : a.inner with-index
+		for i, x : a.collection with-index
 			if bools[i]
 				out ~= x
 	res,

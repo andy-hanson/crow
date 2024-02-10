@@ -15,13 +15,9 @@ import
 +to[k, v] json(a (k, v) compact-map) k key, (json, k) to, (json, v) to
 	a.to-sorted-pairs to
 
--impl[k, v] union
-	overlay (k, v) overlay
-	end-node (k, v) frozen-map
+-impl[k, v] union(overlay (k, v) overlay, end-node (k, v) frozen-map)
 
--overlay[k, v] record by-ref
-	pairs (k, v?) frozen-map
-	prev (k, v) impl
+-overlay[k, v] record(pairs (k, v?) frozen-map, prev (k, v) impl) by-ref
 
 +new[k, v] (k, v) compact-map() k key
 	(), ().end-node

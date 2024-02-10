@@ -45,9 +45,7 @@ CPU: CPU vs CPU
 	else
 		"It's a tie."
 
--ai-settings record
-	ai-depth-red nat?
-	ai-depth-blue nat?
+-ai-settings record(ai-depth-red nat?, ai-depth-blue nat?)
 
 -ai-depth-for-color nat?(color color, ai-settings ai-settings)
 	match color
@@ -100,9 +98,7 @@ CPU: CPU vs CPU
 		elif "a"::char8.to::nat <= n && n < "z"::char8.to
 			(n - "a"::char8.to),
 
--strategy record by-val
-	x nat
-	score int32
+-strategy record(x nat, score int32)
 
 score-cache alias
 	int32 board-cache

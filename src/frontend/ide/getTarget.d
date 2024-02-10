@@ -15,7 +15,7 @@ import model.model :
 	ClosureSetExpr,
 	Destructure,
 	EnumFunction,
-	EnumMember,
+	EnumOrFlagsMember,
 	FlagsFunction,
 	FunBody,
 	FunDecl,
@@ -61,7 +61,7 @@ import util.union_ : Union;
 
 immutable struct Target {
 	mixin Union!(
-		EnumMember*,
+		EnumOrFlagsMember*,
 		FunDecl*,
 		PositionKind.ImportedName,
 		PositionKind.LocalPosition,

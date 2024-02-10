@@ -643,6 +643,8 @@ immutable struct SpecSigAst {
 
 	NameAndRange nameAndRange() scope =>
 		NameAndRange(range.start, name);
+	Range nameRange(in AllSymbols allSymbols) scope =>
+		nameAndRange.range(allSymbols);
 }
 
 immutable struct StructAliasAst {
@@ -677,44 +679,27 @@ immutable struct ModifierAst {
 	immutable struct Keyword {
 		@safe @nogc pure nothrow:
 
-		Pos pos;
-		ModifierKeyword kind;
-
-		static Keyword fromNat48ForTaggedUnion(ulong a) =>
-			Keyword(safeToUint(a >> 8), cast(ModifierKeyword) (a & 0xff));
-		ulong asNat48ForTaggedUnion() {
-			static assert(ModifierKeyword.sizeof == ubyte.sizeof);
-			return pos << 8 | kind;
-		}
-
-		Range range() =>
-			rangeOfStartAndLength(pos, stringOfModifierKeyword(kind).length);
-	}
-
-	immutable struct Extern {
-		@safe @nogc pure nothrow:
-
-		NameAndRange name;
-		Pos externPos;
+		Opt!TypeAst typeArg;
+		Pos keywordPos;
+		ModifierKeyword keyword;
 
 		Range range(in AllSymbols allSymbols) scope =>
-			combineRanges(name.range(allSymbols), suffixRange);
-		Range suffixRange() scope =>
-			rangeOfStartAndLength(externPos, "extern".length);
+			has(typeArg)
+				? combineRanges(force(typeArg).range(allSymbols), keywordRange)
+				: keywordRange;
+		Range keywordRange() scope =>
+			rangeOfStartAndLength(keywordPos, stringOfModifierKeyword(keyword).length);
 	}
 
-	mixin TaggedUnion!(Keyword, Extern*, SpecUseAst*);
+	mixin Union!(Keyword, SpecUseAst);
 
 	Range range(in AllSymbols allSymbols) scope =>
 		matchIn!Range(
 			(in Keyword x) =>
-				x.range,
-			(in Extern x) =>
 				x.range(allSymbols),
 			(in SpecUseAst x) =>
 				x.range(allSymbols));
 }
-static assert(ModifierAst.sizeof == ModifierAst.Keyword.sizeof);
 
 immutable struct SpecUseAst {
 	@safe @nogc pure nothrow:
@@ -742,8 +727,10 @@ enum ModifierKeyword : ubyte {
 	newInternal,
 	newPublic,
 	newPrivate,
+	nominal,
 	packed,
 	shared_,
+	storage,
 	summon,
 	trusted,
 	unsafe,
@@ -761,29 +748,31 @@ immutable struct LiteralIntOrNatKind {
 immutable struct StructBodyAst {
 	immutable struct Builtin {}
 	immutable struct Enum {
-		Opt!(TypeAst*) typeArg;
-		SmallArray!EnumMemberAst members;
+		Opt!ParamsAst params;
+		SmallArray!EnumOrFlagsMemberAst members;
 	}
 	immutable struct Extern {
 		Opt!(LiteralNatAndRange*) size;
 		Opt!(LiteralNatAndRange*) alignment;
 	}
 	immutable struct Flags {
-		Opt!(TypeAst*) typeArg;
-		SmallArray!EnumMemberAst members;
+		Opt!ParamsAst params;
+		SmallArray!EnumOrFlagsMemberAst members;
 	}
 	immutable struct Record {
-		SmallArray!RecordFieldAst fields;
+		Opt!ParamsAst params;
+		SmallArray!RecordOrUnionMemberAst fields;
 	}
 	immutable struct Union {
-		SmallArray!UnionMemberAst members;
+		Opt!ParamsAst params;
+		SmallArray!RecordOrUnionMemberAst members;
 	}
 
 	mixin .Union!(Builtin, Enum, Extern, Flags, Record, Union);
 }
 static assert(StructBodyAst.sizeof <= 24);
 
-immutable struct EnumMemberAst {
+immutable struct EnumOrFlagsMemberAst {
 	@safe @nogc pure nothrow:
 
 	Range range;
@@ -796,33 +785,20 @@ immutable struct EnumMemberAst {
 		nameAndRange.range(allSymbols);
 }
 
-immutable struct RecordFieldAst {
+immutable struct RecordOrUnionMemberAst {
 	@safe @nogc pure nothrow:
 
 	Range range;
 	Opt!Visibility visibility_;
 	NameAndRange name;
 	Opt!FieldMutabilityAst mutability;
-	TypeAst type;
+	Opt!TypeAst type;
 
 	Opt!VisibilityAndRange visibility() scope =>
 		getVisibilityAndRange(range.start, visibility_);
 
 	Range nameRange(in AllSymbols allSymbols) scope =>
 		name.range(allSymbols);
-}
-
-immutable struct UnionMemberAst {
-	@safe @nogc pure nothrow:
-
-	Range range;
-	Symbol name;
-	Opt!TypeAst type;
-
-	NameAndRange nameAndRange() scope =>
-		NameAndRange(range.start, name);
-	Range nameRange(in AllSymbols allSymbols) scope =>
-		nameAndRange.range(allSymbols);
 }
 
 immutable struct StructDeclAst {
@@ -927,10 +903,14 @@ string stringOfModifierKeyword(ModifierKeyword a) {
 			return "-new";
 		case ModifierKeyword.newPublic:
 			return "+new";
+		case ModifierKeyword.nominal:
+			return "nominal";
 		case ModifierKeyword.packed:
 			return "packed";
 		case ModifierKeyword.shared_:
 			return "shared";
+		case ModifierKeyword.storage:
+			return "storage";
 		case ModifierKeyword.summon:
 			return "summon";
 		case ModifierKeyword.trusted:

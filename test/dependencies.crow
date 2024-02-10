@@ -22,9 +22,7 @@ main nat^(_ string[]) summon
 -module-from-path string(a string)
 	((a try-remove-start "src/")! try-remove-end ".d")! replace-all "/", "."
 
--dependency record
-	importer string
-	exporter string
+-dependency record(importer string, exporter string)
 
 -to string(a dependency)
 	"{a.importer.to::json} -> {a.exporter.to::json}"

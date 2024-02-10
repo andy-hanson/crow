@@ -17,9 +17,9 @@ import model.model :
 	BuiltinType,
 	ByValOrRef,
 	CommonTypes,
-	EnumBackingType,
+	IntegralType,
 	EnumFunction,
-	EnumMember,
+	EnumOrFlagsMember,
 	FunBody,
 	FunDecl,
 	FunDeclSource,
@@ -179,8 +179,8 @@ void addFunsForEnum(
 	ref StructBody.Enum enum_,
 ) {
 	Type type = Type(instantiateNonTemplateStructDeclNeverDelay(ctx.instantiateCtx, struct_));
-	funsBuilder ~= enumToIntegralFunction(ctx.alloc, struct_, enum_.backingType, type, commonTypes);
-	foreach (ref EnumMember member; enum_.members)
+	funsBuilder ~= enumToIntegralFunction(ctx.alloc, struct_, enum_.storage, type, commonTypes);
+	foreach (ref EnumOrFlagsMember member; enum_.members)
 		funsBuilder ~= enumOrFlagsConstructor(ctx.alloc, struct_.visibility, type, &member);
 }
 
@@ -192,12 +192,12 @@ void addFunsForFlags(
 	ref StructBody.Flags flags,
 ) {
 	Type type = Type(instantiateNonTemplateStructDeclNeverDelay(ctx.instantiateCtx, struct_));
-	funsBuilder ~= enumToIntegralFunction(ctx.alloc, struct_, flags.backingType, type, commonTypes);
-	foreach (ref EnumMember member; flags.members)
+	funsBuilder ~= enumToIntegralFunction(ctx.alloc, struct_, flags.storage, type, commonTypes);
+	foreach (ref EnumOrFlagsMember member; flags.members)
 		funsBuilder ~= enumOrFlagsConstructor(ctx.alloc, struct_.visibility, type, &member);
 }
 
-FunDecl enumOrFlagsConstructor(ref Alloc alloc, Visibility visibility, Type enumType, EnumMember* member) =>
+FunDecl enumOrFlagsConstructor(ref Alloc alloc, Visibility visibility, Type enumType, EnumOrFlagsMember* member) =>
 	basicFunDecl(
 		FunDeclSource(member),
 		visibility,
@@ -210,7 +210,7 @@ FunDecl enumOrFlagsConstructor(ref Alloc alloc, Visibility visibility, Type enum
 FunDecl enumToIntegralFunction(
 	ref Alloc alloc,
 	StructDecl* struct_,
-	EnumBackingType enumBackingType,
+	IntegralType storageType,
 	Type enumType,
 	ref CommonTypes commonTypes,
 ) =>
@@ -218,7 +218,7 @@ FunDecl enumToIntegralFunction(
 		FunDeclSource(struct_),
 		struct_.visibility,
 		symbol!"to",
-		Type(commonTypes.integrals.byEnumBackingType[enumBackingType]),
+		Type(commonTypes.integrals[storageType]),
 		makeParams(alloc, [param!"a"(enumType)]),
 		FunFlags.generatedBare.withOkIfUnused(),
 		FunBody(EnumFunction.toIntegral));
@@ -256,7 +256,7 @@ void addFunsForRecordConstructor(
 	funsBuilder ~= funDeclWithBody(
 		FunDeclSource(struct_),
 		record.flags.newVisibility,
-		symbol!"new",
+		record.flags.nominal ? struct_.name : symbol!"new",
 		structType,
 		Params(map(ctx.alloc, record.fields, (ref RecordField x) =>
 			makeParam(ctx.alloc, x.name, x.type))),

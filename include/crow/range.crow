@@ -18,7 +18,7 @@ region iteration
 	a.low == a.high
 
 +range-iterator[t] record by-val
-	collection t range
+	-collection t range
 	-next-value t
 +==[t] bool(a t range-iterator, b t range-iterator) bare, t equal
 	assert a.collection == b.collection : "can't compare iterators from different ranges"

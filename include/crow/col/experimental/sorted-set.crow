@@ -38,9 +38,7 @@ Largest node is on the left.
 Nodes are added to the right.
 ###
 
--add-node[t] record
-	values t array
-	left t add-node?
+-add-node[t] record(values t array, left t add-node?)
 
 +new[t] t sorted-set(...a t array) t key
 	a.to to
@@ -218,10 +216,7 @@ Or a combination of the two.
 			new-add = compactor do-compact a.add, old-size, a.remove ~ extra-removal
 			new-add, new-remove
 
--compactor[t] record mut
-	begin t*
-	cur mut t mut*
-	end t mut*
+-compactor[t] record(begin t*, cur mut t mut*, end t mut*) mut
 
 -do-compact[t] t add-node(
 	compactor t compactor,

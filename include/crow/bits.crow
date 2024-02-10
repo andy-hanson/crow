@@ -137,13 +137,10 @@ Same as `1 << bit-index`.
 # Returns the number of 1 bits in `a`.
 +count-ones nat64(a nat64) builtin, bare
 
-one-bits record
-	-inner nat64
-one-bits one-bits(a nat64)
-	a,
+one-bits record(bits nat64) nominal
 # Calls `f` on the index of each `1` bit.
 iterate bool(a one-bits, f bool mut(bit nat64))
-	cur mut = a inner
+	cur mut = a bits
 	offset mut nat64 = 0
 	loop
 		if cur == 0

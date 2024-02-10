@@ -61,9 +61,7 @@ main nat^(_ string[]) summon
 	imports symbol set
 	uses symbol counter
 
--members record
-	public symbol set
-	private symbol set
+-members record(public symbol set, private symbol set)
 
 -get-members-per-path members[string](paths string[]) summon
 	"dub run dscanner --yes -- --ctags {" " join paths}".shell-exec get-members-per-path
@@ -87,9 +85,7 @@ main nat^(_ string[]) summon
 	for k, v : members-by-path
 		k, v.move-to
 
--mut-members record mut
-	public symbol mut-set
-	private symbol mut-set
+-mut-members record(public symbol mut-set, private symbol mut-set) mut
 -new mut-members()
 	(), ()
 -move-to members(a mut-members)

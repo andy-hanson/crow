@@ -46,10 +46,7 @@ is-file bool(path string) summon
 	if kind ?= path get-path-kind
 		kind == file
 
--path-kind enum
-	directory
-	file
-	other
+-path-kind enum(file, directory, other)
 
 # Returns an empty option iff nothing exists at the path.
 -get-path-kind path-kind?(path string) summon
@@ -298,16 +295,10 @@ and skips them if `filter` returns false.
 		f[path]
 
 # POSIX file permissions.
-+file-permissions record
-	user permissions
-	group permissions
-	public permissions
++file-permissions record(user permissions, group permissions, public permissions)
 
 # Permissions for one of user, group, public.
-+permissions record
-	read bool
-	write bool
-	execute bool
++permissions record(read bool, write bool, execute bool)
 
 -to-mode mode_t(a permissions)
 	a.read.to << 2 | a.write.to << 1 | a.execute.to to

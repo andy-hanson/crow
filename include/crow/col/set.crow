@@ -23,9 +23,7 @@ Immutable unsorted set.
 	-add t add-node
 	-remove index-set
 
--add-node[t] record
-	here t frozen-set
-	left t add-node?
+-add-node[t] record(here t frozen-set, left t add-node?)
 
 # Set containing the given elements (with duplicates removed).
 +new[t] t set(...a t array) t key

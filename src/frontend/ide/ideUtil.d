@@ -70,7 +70,7 @@ void eachFunSpec(in FunDecl a, in SpecCb cb) {
 }
 
 bool specsMatch(in SpecInst*[] specs, in ModifierAst[] modifiers) =>
-	specs.length == count!ModifierAst(modifiers, (in ModifierAst x) => x.isA!(SpecUseAst*));
+	specs.length == count!ModifierAst(modifiers, (in ModifierAst x) => x.isA!SpecUseAst);
 
 private Opt!Out eachSpec(Out)(
 	in SpecInst*[] specs,
@@ -80,8 +80,8 @@ private Opt!Out eachSpec(Out)(
 	if (specsMatch(specs, modifiers)) {
 		size_t specI = 0;
 		foreach (ref ModifierAst mod; modifiers) {
-			if (mod.isA!(SpecUseAst*)) {
-				Opt!Out res = cb(specs[specI], *mod.as!(SpecUseAst*));
+			if (mod.isA!SpecUseAst) {
+				Opt!Out res = cb(specs[specI], mod.as!SpecUseAst);
 				if (has(res))
 					return res;
 				specI++;

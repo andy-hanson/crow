@@ -22,9 +22,7 @@ export
 +to[out, in] spec
 	to out(a in)
 
-+break-or-continue[t] union
-	loop-break t
-	loop-continue
++break-or-continue[t] union(loop-break t, loop-continue)
 # Default is to 'continue'
 +new[t] t break-or-continue()
 	continue

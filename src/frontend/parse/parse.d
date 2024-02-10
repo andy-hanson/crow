@@ -10,7 +10,6 @@ import frontend.parse.lexer :
 	getPeekToken,
 	getPeekTokenAndData,
 	Lexer,
-	lookaheadNewVisibility,
 	mustTakeToken,
 	range,
 	takeNextToken,
@@ -19,7 +18,7 @@ import frontend.parse.lexer :
 import frontend.parse.parseExpr : parseFunExprBody;
 import frontend.parse.parseImport : parseImportsOrExports;
 import frontend.parse.parseType :
-	parseParams, parseSpecUse, parseType, parseTypeArgForVarDecl, tryParseTypeArgForEnumOrFlags;
+	parseModifier, parseParams, parseType, parseTypeArgForVarDecl, tryParseParams, tryTakeVisibility;
 import frontend.parse.parseUtil :
 	addDiagExpected,
 	NewlineOrDedent,
@@ -32,17 +31,15 @@ import frontend.parse.parseUtil :
 	takeNewlineOrDedent,
 	takeNewline_topLevel,
 	takeOrAddDiagExpectedToken,
-	tryTakeOperator,
 	tryTakeToken,
 	tryTakeTokenAndMayContinueOntoNextLine;
 import model.ast :
-	EnumMemberAst,
+	EnumOrFlagsMemberAst,
 	ExprAst,
 	FieldMutabilityAst,
 	FileAst,
 	FunDeclAst,
 	ModifierAst,
-	ModifierKeyword,
 	ImportsOrExportsAst,
 	LiteralIntAst,
 	LiteralIntOrNat,
@@ -52,7 +49,7 @@ import model.ast :
 	ModifierAst,
 	NameAndRange,
 	ParamsAst,
-	RecordFieldAst,
+	RecordOrUnionMemberAst,
 	SpecDeclAst,
 	SpecSigAst,
 	StructAliasAst,
@@ -60,7 +57,6 @@ import model.ast :
 	StructDeclAst,
 	TestAst,
 	TypeAst,
-	UnionMemberAst,
 	VarDeclAst;
 import model.model : TypeParams, VarKind, Visibility;
 import model.parseDiag : ParseDiag;
@@ -73,7 +69,7 @@ import util.opt : force, has, none, Opt, optIf, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : Pos, Range;
 import util.string : CString, emptySmallString, SmallString;
-import util.symbol : AllSymbols, Symbol, symbol;
+import util.symbol : AllSymbols, Symbol;
 import util.uri : AllUris;
 import util.util : castNonScope_ref, ptrTrustMe;
 
@@ -122,8 +118,8 @@ SmallArray!SpecSigAst parseIndentedSigs(ref Lexer lexer) =>
 		return SpecSigAst(docComment, range(lexer, start), name.name, returnType, params);
 	});
 
-SmallArray!EnumMemberAst parseEnumOrFlagsMembers(ref Lexer lexer) =>
-	parseIndentedLines!EnumMemberAst(lexer, () {
+SmallArray!EnumOrFlagsMemberAst parseEnumOrFlagsMembers(ref Lexer lexer) =>
+	parseIndentedLines!EnumOrFlagsMemberAst(lexer, () {
 		Pos start = curPos(lexer);
 		Symbol name = takeName(lexer);
 		Opt!LiteralIntOrNat value = () {
@@ -143,18 +139,18 @@ SmallArray!EnumMemberAst parseEnumOrFlagsMembers(ref Lexer lexer) =>
 			} else
 				return none!LiteralIntOrNat;
 		}();
-		return EnumMemberAst(range(lexer, start), name, value);
+		return EnumOrFlagsMemberAst(range(lexer, start), name, value);
 	});
 
-StructBodyAst.Record parseRecordBody(ref Lexer lexer) =>
-	StructBodyAst.Record(parseIndentedLines!RecordFieldAst(lexer, () {
+SmallArray!RecordOrUnionMemberAst parseRecordOrUnionMembers(ref Lexer lexer) =>
+	parseIndentedLines!RecordOrUnionMemberAst(lexer, () {
 		Pos start = curPos(lexer);
 		Opt!Visibility visibility = tryTakeVisibility(lexer);
 		NameAndRange name = takeNameAndRange(lexer);
 		Opt!FieldMutabilityAst mutability = parseFieldMutability(lexer);
-		TypeAst type = parseType(lexer);
-		return RecordFieldAst(range(lexer, start), visibility, name, mutability, type);
-	}));
+		Opt!TypeAst type = peekEndOfLine(lexer) ? none!TypeAst : some(parseType(lexer));
+		return RecordOrUnionMemberAst(range(lexer, start), visibility, name, mutability, type);
+	});
 
 Opt!FieldMutabilityAst parseFieldMutability(ref Lexer lexer) {
 	Pos pos = curPos(lexer);
@@ -168,14 +164,6 @@ Opt!FieldMutabilityAst parseFieldMutability(ref Lexer lexer) {
 		return none!FieldMutabilityAst;
 	}
 }
-
-SmallArray!UnionMemberAst parseUnionMembers(ref Lexer lexer) =>
-	parseIndentedLines!UnionMemberAst(lexer, () {
-		Pos start = curPos(lexer);
-		Symbol name = takeName(lexer);
-		Opt!TypeAst type = peekEndOfLine(lexer) ? none!TypeAst : some(parseType(lexer));
-		return UnionMemberAst(range(lexer, start), name, type);
-	});
 
 FunDeclAst parseFun(
 	ref Lexer lexer,
@@ -202,69 +190,6 @@ SmallArray!ModifierAst parseModifiers(ref Lexer lexer) =>
 			} while (tryTakeTokenAndMayContinueOntoNextLine(lexer, Token.comma));
 		});
 
-ModifierAst parseModifier(ref Lexer lexer) {
-	Pos start = curPos(lexer);
-	Opt!ModifierKeyword keyword = tryGetModifierKeyword(getPeekTokenAndData(lexer));
-	if (has(keyword)) {
-		takeNextToken(lexer);
-		return ModifierAst(ModifierAst.Keyword(start, force(keyword)));
-	} else {
-		if (lookaheadNewVisibility(lexer)) {
-			Opt!Visibility opt = tryTakeVisibility(lexer);
-			Visibility visibility = force(opt);
-			Symbol name = takeName(lexer);
-			assert(name == symbol!"new");
-			return ModifierAst(ModifierAst.Keyword(start, newVisibility(visibility)));
-		} else
-			return parseSpecUse(lexer);
-	}
-}
-
-ModifierKeyword newVisibility(Visibility a) {
-	final switch (a) {
-		case Visibility.private_:
-			return ModifierKeyword.newPrivate;
-		case Visibility.internal:
-			return ModifierKeyword.newInternal;
-		case Visibility.public_:
-			return ModifierKeyword.newPublic;
-	}
-}
-
-Opt!ModifierKeyword tryGetModifierKeyword(TokenAndData token) {
-	switch (token.token) {
-		case Token.bare:
-			return some(ModifierKeyword.bare);
-		case Token.builtin:
-			return some(ModifierKeyword.builtin);
-		case Token.byRef:
-			return some(ModifierKeyword.byRef);
-		case Token.byVal:
-			return some(ModifierKeyword.byVal);
-		case Token.data:
-			return some(ModifierKeyword.data);
-		case Token.extern_:
-			return some(ModifierKeyword.extern_);
-		case Token.forceCtx:
-			return some(ModifierKeyword.forceCtx);
-		case Token.forceShared:
-			return some(ModifierKeyword.forceShared);
-		case Token.mut:
-			return some(ModifierKeyword.mut);
-		case Token.packed:
-			return some(ModifierKeyword.packed);
-		case Token.shared_:
-			return some(ModifierKeyword.shared_);
-		case Token.summon:
-			return some(ModifierKeyword.summon);
-		case Token.trusted:
-			return some(ModifierKeyword.trusted);
-		case Token.unsafe:
-			return some(ModifierKeyword.unsafe);
-		default:
-			return none!(ModifierKeyword);
-	}
-}
 
 void parseSpecOrStructOrFunOrTest(
 	ref Lexer lexer,
@@ -326,8 +251,8 @@ void parseSpecOrStructOrFun(
 			break;
 		case Token.enum_:
 			mustTakeToken(lexer, Token.enum_);
-			Opt!(TypeAst*) typeArg = tryParseTypeArgForEnumOrFlags(lexer);
-			addStruct(() => StructBodyAst(StructBodyAst.Enum(typeArg, parseEnumOrFlagsMembers(lexer))));
+			Opt!ParamsAst params = tryParseParams(lexer);
+			addStruct(() => StructBodyAst(StructBodyAst.Enum(params, parseEnumOrFlagsMembers(lexer))));
 			break;
 		case Token.extern_:
 			mustTakeToken(lexer, Token.extern_);
@@ -336,8 +261,8 @@ void parseSpecOrStructOrFun(
 			break;
 		case Token.flags:
 			mustTakeToken(lexer, Token.flags);
-			Opt!(TypeAst*) typeArg = tryParseTypeArgForEnumOrFlags(lexer);
-			addStruct(() => StructBodyAst(StructBodyAst.Flags(typeArg, parseEnumOrFlagsMembers(lexer))));
+			Opt!ParamsAst params = tryParseParams(lexer);
+			addStruct(() => StructBodyAst(StructBodyAst.Flags(params, parseEnumOrFlagsMembers(lexer))));
 			break;
 		case Token.global:
 			Pos pos = curPos(lexer);
@@ -347,7 +272,8 @@ void parseSpecOrStructOrFun(
 			break;
 		case Token.record:
 			mustTakeToken(lexer, Token.record);
-			addStruct(() => StructBodyAst(parseRecordBody(lexer)));
+			Opt!ParamsAst params = tryParseParams(lexer);
+			addStruct(() => StructBodyAst(StructBodyAst.Record(params, parseRecordOrUnionMembers(lexer))));
 			break;
 		case Token.spec:
 			mustTakeToken(lexer, Token.spec);
@@ -364,7 +290,8 @@ void parseSpecOrStructOrFun(
 			break;
 		case Token.union_:
 			mustTakeToken(lexer, Token.union_);
-			addStruct(() => StructBodyAst(StructBodyAst.Union(parseUnionMembers(lexer))));
+			Opt!ParamsAst params = tryParseParams(lexer);
+			addStruct(() => StructBodyAst(StructBodyAst.Union(params, parseRecordOrUnionMembers(lexer))));
 			break;
 		default:
 			add(lexer.alloc, funs, parseFun(lexer, docComment, visibility, start, name, typeParams));
@@ -407,15 +334,6 @@ VarDeclAst parseVarDecl(
 	SmallArray!ModifierAst modifiers = parseModifiers(lexer);
 	return VarDeclAst(range(lexer, start), docComment, visibility, name, typeParams, kindPos, kind, type, modifiers);
 }
-
-Opt!Visibility tryTakeVisibility(ref Lexer lexer) =>
-	tryTakeOperator(lexer, symbol!"-")
-		? some(Visibility.private_)
-		: tryTakeOperator(lexer, symbol!"+")
-		? some(Visibility.public_)
-		: tryTakeOperator(lexer, symbol!"~")
-		? some(Visibility.internal)
-		: none!Visibility;
 
 FileAst* parseFileInner(scope ref AllUris allUris, ref Lexer lexer) {
 	SmallString moduleDocComment = takeNewline_topLevel(lexer);

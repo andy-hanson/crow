@@ -24,8 +24,8 @@ However, this is more compact than `map` and has faster lookups.
 ###
 +frozen-map[k, v] record by-val
 	# exposed for tests only
-	pairs (k, v) array
-	bucket-starts nat64 array
+	~pairs (k, v) array
+	~bucket-starts nat64 array
 
 +new[k, v] (k, v) frozen-map(...a (k, v) array) k key
 	a.to to

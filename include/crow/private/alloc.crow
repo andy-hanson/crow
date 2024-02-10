@@ -30,9 +30,9 @@ import
 	_ = dest.pointer-cast memset 0, (size wrap-mul size-of@t)
 
 mark-ctx record by-val, mut
-	memory-size-words nat64
-	marks bool mut*
-	memory-start nat64 mut*
+	-memory-size-words nat64
+	-marks bool mut*
+	-memory-start nat64 mut*
 
 -to-word-aligned-range nat64* range(a any-const-pointer, size-bytes nat64) bare, unsafe
 	a.round-down-to-word .. (a + size-bytes).round-up-to-word
@@ -208,7 +208,7 @@ GC info specific to a ctx.
 Currently they all share the common GC and must take a lock every time they allocate.
 ###
 gc-ctx record by-val, mut
-	gc gc mut*
+	-gc gc mut*
 
 +force-needs-gc void(gc gc mut*) unsafe
 	gc->needs-gc := true

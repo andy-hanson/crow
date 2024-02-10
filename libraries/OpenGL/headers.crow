@@ -145,7 +145,7 @@ import
 +GL_TRUE GLint() bare
 	1
 
-+GLenum enum(u-int) extern
++GLenum enum extern, u-int storage
 	GL_NO_ERROR = 0
 	GL_TRIANGLES = 4
 	GL_TRIANGLE_STRIP = 5

@@ -32,10 +32,7 @@ options:
 	--match [STR]: Print tests that have STR in the name.
 """
 
--test-options record
-	print-tests bool
-	overwrite-output bool
-	match-test string
+-test-options record(print-tests bool, overwrite-output bool, match-test string)
 
 -do-test nat^(options test-options) summon
 	crow-dir string = "."
@@ -85,10 +82,7 @@ options:
 	else
 		jit-failures,
 
-run-kind enum
-	interpret
-	jit
-	aot
+run-kind enum(interpret, jit, aot)
 
 -run-single failure[]^(
 	path-to-crow string,

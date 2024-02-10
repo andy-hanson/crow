@@ -65,9 +65,7 @@ main void()
 -to json(a struct_b)
 	("b", a.b.to), ("a", a.a.to)
 
--union_a union
-	sa struct_a
-	sb struct_b
+-union_a union(sa struct_a, sb struct_b)
 -== bool(a union_a, b union_a)
 	match a
 	as sa a_a

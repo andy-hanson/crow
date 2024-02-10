@@ -70,9 +70,7 @@ init-constants void() builtin, bare, summon, unsafe
 -invoke-main nat64^(all-args c-string array, main-pointer main-pointer) force-ctx, unsafe
 	all-args add-first-task main-pointer
 
--thread-args record by-val, mut
-	thread-id nat64
-	gctx global-ctx mut*
+-thread-args record(thread-id nat64, gctx global-ctx mut*) by-val, mut
 
 # TODO: if mut-bag-node is in unmanaged memory, don't need ctx for this
 # We want main-fut to be available immediately, not after having run some user code.

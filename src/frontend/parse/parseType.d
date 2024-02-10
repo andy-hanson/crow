@@ -10,6 +10,7 @@ import frontend.parse.lexer :
 	getPeekToken,
 	getPeekTokenAndData,
 	Lexer,
+	lookaheadNewVisibility,
 	lookaheadOpenBracket,
 	lookaheadOpenParen,
 	mustTakeToken,
@@ -20,32 +21,37 @@ import frontend.parse.lexer :
 	skipUntilNewlineNoDiag,
 	takeNextToken,
 	Token;
+import frontend.parse.lexToken : TokenAndData;
 import frontend.parse.parseUtil :
 	addDiagExpected,
+	peekToken,
+	takeName,
 	takeNameAndRangeAllowUnderscore,
 	takeOrAddDiagExpectedToken,
 	tryTakeNameAndRange,
 	tryTakeNameAndRangeAllowNameLikeKeywords,
 	tryTakeOperator,
-	tryTakeToken;
-import model.ast : DestructureAst, ModifierAst, NameAndRange, ParamsAst, SpecUseAst, TypeAst;
-import model.model : FunKind;
+	tryTakeToken,
+	tryTakeTokenCb;
+import model.ast : DestructureAst, ModifierAst, ModifierKeyword, NameAndRange, ParamsAst, SpecUseAst, TypeAst;
+import model.model : FunKind, Visibility;
 import model.parseDiag : ParseDiag;
 import util.col.array : emptySmallArray, only, SmallArray;
 import util.col.arrayBuilder : Builder, buildSmallArray;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, optOr, some;
 import util.sourceRange : Pos;
-import util.symbol : symbol;
+import util.symbol : Symbol, symbol;
+import util.util : optEnumConvert;
 
-Opt!(TypeAst*) tryParseTypeArgForEnumOrFlags(ref Lexer lexer) {
-	if (tryTakeToken(lexer, Token.parenLeft)) {
-		TypeAst res = parseType(lexer);
-		takeOrAddDiagExpectedToken(lexer, Token.parenRight, ParseDiag.Expected.Kind.closingParen);
-		return some(allocate(lexer.alloc, res));
-	} else
-		return none!(TypeAst*);
-}
+Opt!Visibility tryTakeVisibility(ref Lexer lexer) =>
+	tryTakeOperator(lexer, symbol!"-")
+		? some(Visibility.private_)
+		: tryTakeOperator(lexer, symbol!"+")
+		? some(Visibility.public_)
+		: tryTakeOperator(lexer, symbol!"~")
+		? some(Visibility.internal)
+		: none!Visibility;
 
 TypeAst parseTypeArgForVarDecl(ref Lexer lexer) {
 	if (takeOrAddDiagExpectedToken(lexer, Token.parenLeft, ParseDiag.Expected.Kind.openParen)) {
@@ -78,12 +84,59 @@ private void parseTypesWithCommasThenClosingParen(ref Lexer lexer, scope ref Bui
 TypeAst parseType(ref Lexer lexer) =>
 	parseTypeSuffixes(lexer, parseTypeBeforeSuffixes(lexer, ParenthesesNecessary.unnecessary));
 
-ModifierAst parseSpecUse(ref Lexer lexer) {
-	TypeAst left = parseTypeBeforeSuffixes(lexer, ParenthesesNecessary.unnecessary);
-	Pos externPos = curPos(lexer);
-	return left.isA!NameAndRange && tryTakeToken(lexer, Token.extern_)
-		? ModifierAst(allocate(lexer.alloc, ModifierAst.Extern(left.as!NameAndRange, externPos)))
-		: ModifierAst(allocate(lexer.alloc, parseSpecUseSuffixes(lexer, left)));
+ModifierAst parseModifier(ref Lexer lexer) {
+	Pos start = curPos(lexer);
+	Opt!ModifierKeyword keyword = tryTakeModifierKeyword(lexer);
+	if (has(keyword))
+		return ModifierAst(ModifierAst.Keyword(none!TypeAst, start, force(keyword)));
+	else {
+		TypeAst left = parseTypeBeforeSuffixes(lexer, ParenthesesNecessary.unnecessary);
+		Pos keywordPos = curPos(lexer);
+		Opt!ModifierKeyword keyword2 = tryTakeModifierKeywordNonSpec(lexer);
+		return has(keyword2)
+			? ModifierAst(ModifierAst.Keyword(some(left), keywordPos, force(keyword2)))
+			: ModifierAst(parseSpecUseSuffixes(lexer, left));
+	}
+}
+
+private Opt!ModifierKeyword tryTakeModifierKeyword(ref Lexer lexer) {
+	Opt!ModifierKeyword res = tryTakeTokenCb!ModifierKeyword(lexer, (TokenAndData x) => tryGetModifierKeyword(x.token));
+	if (has(res))
+		return res;
+	else if (lookaheadNewVisibility(lexer)) {
+		Opt!Visibility opt = tryTakeVisibility(lexer);
+		Visibility visibility = force(opt);
+		Symbol name = takeName(lexer);
+		assert(name == symbol!"new");
+		return some(newVisibility(visibility));
+	} else
+		return none!ModifierKeyword;
+}
+
+// Ensures that 't data' or 't shared' parses as a spec and not a modifier
+private Opt!ModifierKeyword tryTakeModifierKeywordNonSpec(ref Lexer lexer) =>
+	getPeekToken(lexer) == Token.shared_ || getPeekToken(lexer) == Token.data
+		? none!ModifierKeyword
+		: tryTakeModifierKeyword(lexer);
+
+private ModifierKeyword newVisibility(Visibility a) {
+	final switch (a) {
+		case Visibility.private_:
+			return ModifierKeyword.newPrivate;
+		case Visibility.internal:
+			return ModifierKeyword.newInternal;
+		case Visibility.public_:
+			return ModifierKeyword.newPublic;
+	}
+}
+
+private Opt!ModifierKeyword tryGetModifierKeyword(Token a) {
+	bool ok = true;
+	ModifierKeyword res = optEnumConvert!(ModifierKeyword, Token)(a, () {
+		ok = false;
+		return ModifierKeyword.bare;
+	});
+	return optIf(ok, () => res);
 }
 
 TypeAst parseTypeForTypedExpr(ref Lexer lexer) =>
@@ -135,6 +188,11 @@ DestructureAst parseDestructureNoRequireParens(ref Lexer lexer) {
 	} else
 		return first;
 }
+
+Opt!ParamsAst tryParseParams(ref Lexer lexer) =>
+	peekToken(lexer, Token.parenLeft)
+		? some(parseParams(lexer))
+		: none!ParamsAst;
 
 ParamsAst parseParams(ref Lexer lexer) {
 	uint indentLevel = getCurIndent(lexer);

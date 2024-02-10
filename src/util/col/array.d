@@ -425,6 +425,24 @@ Out[] mapWithIndex(Out, In)(
 	return res[0 .. a.length];
 }
 
+@trusted Out[] mapOpPointers(Out, In)(
+	ref Alloc alloc,
+	In[] a,
+	in Opt!Out delegate(In*) @safe @nogc pure nothrow cb,
+) {
+	Out[] res = allocateElements!Out(alloc, a.length);
+	size_t outI = 0;
+	foreach (size_t i; 0 .. a.length) {
+		Opt!Out o = cb(&a[i]);
+		if (has(o)) {
+			initMemory(&res[outI], force(o));
+			outI++;
+		}
+	}
+	freeElements(alloc, res[outI .. $]);
+	return res[0 .. outI];
+}
+
 @system Out[] mapWithResultPointer(Out, In)(
 	ref Alloc alloc,
 	scope In[] a,

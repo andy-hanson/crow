@@ -47,9 +47,7 @@ main nat^(_ string[]) summon
 		path.parent-path ensure-directory-recursive
 		path ensure-directory
 
-link record
-	target string
-	link-path string
+link record(target string, link-path string)
 
 -all-to-link link[]^() summon
 	in-src-paths link[] = for x : ("crow.svg", "index.css")::string[]

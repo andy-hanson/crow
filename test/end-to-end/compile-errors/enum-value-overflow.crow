@@ -7,7 +7,7 @@ e enum
 	c = 4294967295
 	d = 4294967296
 
-f flags(int8)
+f flags int8 storage
 	a = -129
 	b = -128
 	c = 127

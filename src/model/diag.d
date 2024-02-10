@@ -9,9 +9,9 @@ import model.model :
 	CalledDecl,
 	Destructure,
 	emptyTypeParams,
-	EnumBackingType,
 	FunDecl,
 	FunDeclAndTypeArgs,
+	IntegralType,
 	LambdaExpr,
 	Local,
 	Module,
@@ -224,7 +224,7 @@ immutable struct Diag {
 		long value;
 	}
 	immutable struct EnumMemberOverflows {
-		EnumBackingType backingType;
+		IntegralType storage;
 	}
 	immutable struct ExpectedTypeIsNotALambda {
 		Opt!TypeWithContainer expectedType;
@@ -361,6 +361,9 @@ immutable struct Diag {
 		ModifierKeyword modifier;
 		DeclKind declKind;
 	}
+	immutable struct ModifierTypeArgInvalid {
+		ModifierKeyword modifier;
+	}
 	immutable struct MutFieldNotAllowed {}
 	immutable struct NameNotFound {
 		enum Kind {
@@ -392,6 +395,18 @@ immutable struct Diag {
 	immutable struct PurityWorseThanParent {
 		StructDecl* parent;
 		Type child;
+	}
+	immutable struct RecordFieldNeedsType {
+		Symbol fieldName;
+	}
+	immutable struct StructParamsSyntaxError {
+		enum Reason {
+			hasParamsAndFields,
+			destructure,
+			variadic,
+		}
+		StructDecl* struct_;
+		Reason reason;
 	}
 	immutable struct SharedArgIsNotLambda {}
 	immutable struct SharedLambdaTypeIsNotShared {
@@ -450,6 +465,7 @@ immutable struct Diag {
 		enum Reason { cStringContainsNul, symbolContainsNul }
 		Reason reason;
 	}
+	immutable struct StorageMissingType {}
 	immutable struct ThreadLocalError {
 		FunDecl* fun;
 		enum Kind { hasParams, hasSpecs, hasTypeParams, mustReturnPtrMut }
@@ -493,6 +509,10 @@ immutable struct Diag {
 			tuple,
 		}
 		Kind kind;
+	}
+	immutable struct UnsupportedSyntax {
+		enum Reason { enumMemberMutability, enumMemberType, unionMemberMutability, unionMemberVisibility }
+		Reason reason;
 	}
 	immutable struct Unused {
 		immutable struct Kind {
@@ -589,6 +609,7 @@ immutable struct Diag {
 		ModifierInvalid,
 		ModifierRedundantDueToDeclKind,
 		ModifierRedundantDueToModifier,
+		ModifierTypeArgInvalid,
 		MutFieldNotAllowed,
 		NameNotFound,
 		NeedsExpectedType,
@@ -598,6 +619,7 @@ immutable struct Diag {
 		PointerMutToConst,
 		PointerUnsupported,
 		PurityWorseThanParent,
+		RecordFieldNeedsType,
 		SharedArgIsNotLambda,
 		SharedLambdaTypeIsNotShared,
 		SharedLambdaUnused,
@@ -608,12 +630,15 @@ immutable struct Diag {
 		SpecSigCantBeVariadic,
 		SpecUseInvalid,
 		StringLiteralInvalid,
+		StorageMissingType,
+		StructParamsSyntaxError,
 		TrustedUnnecessary,
 		TypeAnnotationUnnecessary,
 		TypeConflict,
 		TypeParamCantHaveTypeArgs,
 		TypeParamsUnsupported,
 		TypeShouldUseSyntax,
+		UnsupportedSyntax,
 		Unused,
 		VarargsParamMustBeArray,
 		VisibilityWarning,

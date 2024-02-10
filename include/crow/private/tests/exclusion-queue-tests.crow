@@ -4,12 +4,10 @@ import
 dummy-exclusion-queue-tests nat()
 	0
 
--eq record
--eq eq()
-	()
+-eq record nominal
 -with-block void(_ eq, cb void mut(queue string exclusion-queue mut*)) unsafe
-	storage mut string exclusion-queue = uninit
-	a string exclusion-queue mut* = &storage
+	queue mut string exclusion-queue = uninit
+	a string exclusion-queue mut* = &queue
 	a init
 	with : (() => a destroy) finally
 		cb[a]

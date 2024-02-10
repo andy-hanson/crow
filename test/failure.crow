@@ -1,9 +1,7 @@
 import
 	crow/io/print: err, pipe, print, print-no-newline
 
-failure record
-	path string
-	message string
+failure record(path string, message string)
 
 print-failures nat(failures failure[]) summon
 	for failure : failures

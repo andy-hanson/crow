@@ -101,7 +101,7 @@ import model.model :
 	emptySpecImpls,
 	emptyTypeArgs,
 	emptyTypeParams,
-	EnumMember,
+	EnumOrFlagsMember,
 	Expr,
 	ExprAndType,
 	ExprKind,
@@ -1384,9 +1384,9 @@ Expr checkMatchEnum(
 	ref Expected expected,
 	ref ExprAndType matched,
 	StructDecl* matchedEnum,
-	in EnumMember[] members,
+	in EnumOrFlagsMember[] members,
 ) {
-	if (checkMatchCaseNames!EnumMember(ctx, members, *source, ast)) {
+	if (checkMatchCaseNames!EnumOrFlagsMember(ctx, members, *source, ast)) {
 		Expr[] cases = mapPointers(ctx.alloc, ast.cases, (MatchAst.CaseAst* caseAst) {
 			if (has(caseAst.destructure))
 				addDiag2(ctx, force(caseAst.destructure).range(ctx.allSymbols), Diag(

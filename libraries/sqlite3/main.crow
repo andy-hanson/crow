@@ -7,10 +7,7 @@ import
 +db record force-shared
 	raw sqlite3 mut*
 
-+open-sqlite3 record
-	db-path string
-+open-sqlite3 open-sqlite3(db-path string)
-	db-path,
++open-sqlite3 record(db-path string) nominal
 +with-block[t] t(a open-sqlite3, cb t mut(db db)) summon, t shared
 	trusted
 		db mut sqlite3 mut* = null
@@ -28,17 +25,13 @@ import
 	for _ : db query command
 		()
 
-+db-query record mut
-	db db
-	query string
-+query db-query(db db, query string)
-	db, query
++query record(db db, query string) mut, nominal
 
 # TODO: this is just to get the size hint. Should be named 'size-hint'?
-+size nat64(_ db-query)
++size nat64(_ query)
 	0
 
-+iterate bool(a db-query, f bool mut(row string[symbol])) summon
++iterate bool(a query, f bool mut(row string[symbol])) summon
 	trusted
 		error-message mut c-string = null
 		ctx mut callback-ctx = f,

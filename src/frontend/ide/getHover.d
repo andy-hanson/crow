@@ -178,10 +178,14 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 						return "The 'new' function is private.";
 					case ModifierKeyword.newPublic:
 						return "The 'new' function is public.";
+					case ModifierKeyword.nominal:
+						return "The type's constructor uses the type's name instead of 'new'.";
 					case ModifierKeyword.packed:
 						return "The type will be laid out without gaps for alignment.";
 					case ModifierKeyword.shared_:
 						return "The type is mutable, but in a way that is safe to share between concurrent tasks.";
+					case ModifierKeyword.storage:
+						return "Determines the type of number used to store the enum.";
 					case ModifierKeyword.summon:
 						return "This function can directly access all I/O capacilities.";
 					case ModifierKeyword.trusted:

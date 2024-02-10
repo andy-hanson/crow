@@ -72,7 +72,4 @@ crow run demo/lmdb/main -- get --path foo.db --db-name capitals --key indiana
 	elif a == "stat"
 		stat,
 
--command enum
-	get
-	set
-	stat
+-command enum(get, set, stat)

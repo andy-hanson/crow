@@ -7,7 +7,7 @@ import frontend.storage : LineAndColumnGetters;
 import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeSource, Operation;
 import interpret.runBytecode : operationOpStopInterpretation;
 import interpret.stacks : returnPeek, returnStackSize, Stacks;
-import model.concreteModel : ConcreteFun, concreteFunRange;
+import model.concreteModel : ConcreteFun;
 import model.lowModel : LowFunIndex, LowFunSource, LowProgram;
 import model.showLowModel : writeFunName;
 import util.alloc.alloc : Alloc, withStaticAlloc;
@@ -183,7 +183,7 @@ void writeByteCodeSource(ref Writer writer, in ShowCtx ctx, in LowProgram lowPro
 Opt!Uri getUri(in LowProgram lowProgram, LowFunIndex fun) =>
 	lowProgram.allFuns[fun].source.matchIn!(Opt!Uri)(
 		(in ConcreteFun x) =>
-			some(concreteFunRange(x).uri),
+			some(x.moduleUri),
 		(in LowFunSource.Generated) =>
 			none!Uri);
 

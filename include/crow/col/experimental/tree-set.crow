@@ -30,14 +30,9 @@ Unlike `array`, the values are always in sorted order, and there are never two o
 	-root t node
 	-total-size nat64
 
--node[t] union
-	inner t inner-node
-	leaf t array
+-node[t] union(inner t inner-node, leaf t array)
 
--inner-node[t] record by-ref
-	value t
-	left t node
-	right t node
+-inner-node[t] record(value t, left t node, right t node) by-ref
 
 # Same as `a.size == 0`
 is-empty[t] bool(a t tree-set) t key
@@ -212,9 +207,7 @@ This is O(a.size ln).
 	as leaf l
 		l is-empty
 
--popped[t] record
-	value t
-	rest t node
+-popped[t] record(value t, rest t node)
 
 -pop-right[t] t popped?(a t node)
 	match a
@@ -278,10 +271,7 @@ This is O(a.size ln).
 	# height of this subtree
 	height nat64
 
--add-result[t] union
-	none
-	inserted t node
-	find-scapegoat find-scapegoat
+-add-result[t] union(none, inserted t node, find-scapegoat find-scapegoat)
 
 -add-recur[t] t add-result(a t node, value t, max-height nat64) t key
 	match a

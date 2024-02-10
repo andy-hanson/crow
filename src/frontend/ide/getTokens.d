@@ -19,7 +19,7 @@ import model.ast :
 	DestructureAst,
 	DoAst,
 	EmptyAst,
-	EnumMemberAst,
+	EnumOrFlagsMemberAst,
 	ExprAst,
 	FileAst,
 	ForAst,
@@ -48,7 +48,7 @@ import model.ast :
 	ParamsAst,
 	ParenthesizedAst,
 	PtrAst,
-	RecordFieldAst,
+	RecordOrUnionMemberAst,
 	SeqAst,
 	SharedAst,
 	SpecDeclAst,
@@ -63,7 +63,6 @@ import model.ast :
 	TrustedAst,
 	TypeAst,
 	TypedAst,
-	UnionMemberAst,
 	UnlessAst,
 	VarDeclAst,
 	WithAst;
@@ -84,7 +83,7 @@ import util.sourceRange :
 	rangeOfStartAndLength,
 	Range;
 import util.string : CString, cStringSize;
-import util.symbol : AllSymbols, Symbol, symbol, symbolSize;
+import util.symbol : AllSymbols, symbol;
 import util.uri : AllUris;
 import util.util : min, ptrTrustMe, stringOfEnum;
 
@@ -298,9 +297,6 @@ void stringLiteral(scope ref TokensBuilder a, in Range range) {
 	reference(a, TokenType.string, range);
 }
 
-Range rangeAtName(in AllSymbols allSymbols, Pos start, Symbol name) =>
-	Range(start, start + symbolSize(allSymbols, name));
-
 void addImportTokens(scope ref Ctx ctx, in AllUris allUris, in ImportsOrExportsAst a) {
 	foreach (ref ImportOrExportAst x; a.paths) {
 		reference(ctx.tokens, TokenType.namespace, x.pathRange(allUris));
@@ -322,7 +318,7 @@ void addSpecTokens(scope ref Ctx ctx, in SpecDeclAst a) {
 	addTypeParamsTokens(ctx, a.typeParams);
 	addModifierTokens(ctx, a.modifiers);
 	foreach (ref SpecSigAst sig; a.sigs) {
-		declare(ctx.tokens, TokenType.function_, rangeAtName(ctx.allSymbols, sig.range.start, sig.name));
+		declare(ctx.tokens, TokenType.function_, sig.nameRange(ctx.allSymbols));
 		addSigReturnTypeAndParamsTokens(ctx, sig.returnType, sig.params);
 	}
 }
@@ -390,37 +386,44 @@ void addStructTokens(scope ref Ctx ctx, in StructDeclAst a) {
 			addModifierTokens(ctx, a.modifiers);
 		},
 		(in StructBodyAst.Enum x) {
-			addEnumOrFlagsTokens(ctx, a, x.typeArg, x.members);
+			addEnumOrFlagsTokens(ctx, a, x.params, x.members);
 		},
 		(in StructBodyAst.Extern) {
 			addModifierTokens(ctx, a.modifiers);
 		},
 		(in StructBodyAst.Flags x) {
-			addEnumOrFlagsTokens(ctx, a, x.typeArg, x.members);
+			addEnumOrFlagsTokens(ctx, a, x.params, x.members);
 		},
-		(in StructBodyAst.Record record) {
-			addModifierTokens(ctx, a.modifiers);
-			foreach (ref RecordFieldAst field; record.fields) {
-				declare(ctx.tokens, TokenType.property, field.name.range(ctx.allSymbols));
-				addTypeTokens(ctx, field.type);
-			}
+		(in StructBodyAst.Record x) {
+			addRecordOrUnionTokens(ctx, a, x.params, x.fields);
 		},
-		(in StructBodyAst.Union union_) {
-			addModifierTokens(ctx, a.modifiers);
-			foreach (ref UnionMemberAst member; union_.members) {
-				declare(ctx.tokens, TokenType.enumMember, rangeAtName(ctx.allSymbols, member.range.start, member.name));
-				if (has(member.type))
-					addTypeTokens(ctx, force(member.type));
-			}
+		(in StructBodyAst.Union x) {
+			addRecordOrUnionTokens(ctx, a, x.params, x.members);
 		});
+}
+
+void addRecordOrUnionTokens(
+	scope ref Ctx ctx,
+	in StructDeclAst a,
+	in Opt!ParamsAst params,
+	in RecordOrUnionMemberAst[] members,
+) {
+	if (has(params))
+		addParamsTokens(ctx, force(params));
+	addModifierTokens(ctx, a.modifiers);
+	foreach (ref RecordOrUnionMemberAst x; members) {
+		declare(ctx.tokens, TokenType.property, x.name.range(ctx.allSymbols));
+		if (has(x.type))
+			addTypeTokens(ctx, force(x.type));
+	}
 }
 
 void addModifierTokens(scope ref Ctx ctx, in ModifierAst[] a) {
 	foreach (ref ModifierAst mod; a) {
 		mod.matchIn!void(
-			(in ModifierAst.Keyword x) {},
-			(in ModifierAst.Extern x) {
-				reference(ctx.tokens, TokenType.namespace, x.name.range(ctx.allSymbols));
+			(in ModifierAst.Keyword x) {
+				if (has(x.typeArg))
+					addTypeTokens(ctx, force(x.typeArg));
 			},
 			(in SpecUseAst x) {
 				if (has(x.typeArg))
@@ -433,13 +436,13 @@ void addModifierTokens(scope ref Ctx ctx, in ModifierAst[] a) {
 void addEnumOrFlagsTokens(
 	scope ref Ctx ctx,
 	in StructDeclAst a,
-	in Opt!(TypeAst*) typeArg,
-	in EnumMemberAst[] members,
+	in Opt!ParamsAst params,
+	in EnumOrFlagsMemberAst[] members,
 ) {
-	if (has(typeArg))
-		addTypeTokens(ctx, *force(typeArg));
+	if (has(params))
+		addParamsTokens(ctx, force(params));
 	addModifierTokens(ctx, a.modifiers);
-	foreach (ref EnumMemberAst member; members) {
+	foreach (ref EnumOrFlagsMemberAst member; members) {
 		declare(ctx.tokens, TokenType.enumMember, member.nameRange(ctx.allSymbols));
 		if (has(member.value))
 			numberLiteral(ctx.tokens, force(member.value).range);

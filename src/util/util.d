@@ -94,7 +94,7 @@ Out enumConvertOrAssert(Out, In)(In a) {
 	}
 }
 
-Out optEnumConvert(Out, In)(In a, Out default_) {
+Out optEnumConvert(Out, In)(In a, in Out delegate() @safe @nogc pure nothrow default_) {
 	switch (a) {
 		static foreach (string member; __traits(allMembers, In)) {
 			static if (__traits(hasMember, Out, member)) {
@@ -103,7 +103,7 @@ Out optEnumConvert(Out, In)(In a, Out default_) {
 			}
 		}
 		default:
-			return default_;
+			return default_();
 	}
 }
 

@@ -50,14 +50,12 @@
 	</p>
 	<crow-runnable>
 		main void()
-			("a", 3)::repeated for-loop x =>
+			"a" repeated 3 for-loop x =>
 				info log x
-			for x : ("b", 2)::repeated
+			for x : "b" repeated 2
 				info log x
 
-		repeated record
-			value string
-			times nat
+		repeated record(value string, times nat) nominal
 
 		for-loop void(a repeated, f void mut(x string))
 			for _ : 0::nat .. a.times

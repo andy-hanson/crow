@@ -10,9 +10,7 @@ Range of values. `low` is inclusive and `high` is exclusive.
 
 Usable for any type with a comparison function.
 ###
-+range[t] record by-val
-	low t
-	high t
++range[t] record(low t, high t) by-val
 
 +forward-rangeable[t] spec t compare
 	+ t(a t, distance nat64)

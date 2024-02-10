@@ -93,8 +93,8 @@ Unlike for `update-at`, `index` can be `a.size`, though it still can't be higher
 region spec impls (see collection.crow)
 
 +array-iterator[t] record by-val
-	collection t array
-	next-index nat64
+	~collection t array
+	~next-index nat64
 
 +==[t] bool(a t array-iterator, b t array-iterator) t equal
 	assert a.collection == b.collection : "can't compare iterators from different arrays"

@@ -13,9 +13,7 @@
 			info log "{60.verified-id is-adult}"
 			info log "{no-id is-adult}"
 
-		age union
-			verified-id nat
-			no-id
+		age union(verified-id nat, no-id)
 
 		is-adult bool(a age)
 			match a
@@ -43,7 +41,15 @@
 		Declaring the union generates functions <code>verified-id age(a nat)</code> and <code>no-id age()</code>.
 	</p>
 
-	<h3>Matching on union values</h3>
+	<h3>Long unions</h3>
+	<p>As with records, you can put the members on their own lines instead of in parentheses.</p>
+	<crow-runnable no-run>
+		age union
+			verified-id nat
+			no-id
+	</crow-runnable>
+
+	<h2>Matching on union values</h3>
 	<p>
 		The <code class="keyword">match</code> expression handles each possibility of a union.
 		<br />
@@ -61,6 +67,7 @@
 	</p>
 
 	<aside class="small">
-		<code class="keyword">match</code> is a language primitive and isn't downleveled to a function call.
+		In contrast with record field access, <code class="keyword">match</code> is a
+		primitive operation and not a function call.
 	</aside>
 </section>
