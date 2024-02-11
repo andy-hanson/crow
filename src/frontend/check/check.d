@@ -32,7 +32,6 @@ import frontend.check.typeFromAst :
 import model.ast :
 	DestructureAst,
 	EmptyAst,
-	ExprAst,
 	FileAst,
 	FunDeclAst,
 	ModifierAst,
@@ -701,12 +700,17 @@ void checkFunsWithAsts(
 						addDiag(ctx, diagRange, Diag(Diag.FunMissingBody()));
 						return FunBody(FunBody.Bogus());
 					} else
-						return FunBody(getExprFunctionBody(
+						return FunBody(checkFunctionBody(
 							ctx,
-							commonTypes,
 							structsAndAliasesMap,
+							commonTypes,
 							funsMap,
-							fun,
+							TypeContainer(fun),
+							fun.returnType,
+							fun.typeParams,
+							paramsArray(fun.params),
+							fun.specs,
+							fun.flags,
 							&funAst.body_));
 				case FunFlags.SpecialBody.builtin:
 					if (!funAst.body_.kind.isA!EmptyAst)
@@ -790,27 +794,6 @@ Symbol getExternLibraryName(ref CheckCtx ctx, in ModifierAst.Keyword modifier) {
 
 FunBody getFileImportFunctionBody(in ImportOrExportFile a) =>
 	FunBody(FunBody.FileImport(a.source.kind.as!(ImportOrExportAstKind.File*).type, a.uri));
-
-FunBody.ExpressionBody getExprFunctionBody(
-	ref CheckCtx ctx,
-	in CommonTypes commonTypes,
-	in StructsAndAliasesMap structsAndAliasesMap,
-	in FunsMap funsMap,
-	FunDecl* f,
-	ExprAst* e,
-) =>
-	FunBody.ExpressionBody(checkFunctionBody(
-		ctx,
-		structsAndAliasesMap,
-		commonTypes,
-		funsMap,
-		TypeContainer(f),
-		f.returnType,
-		f.typeParams,
-		paramsArray(f.params),
-		f.specs,
-		f.flags,
-		e));
 
 FunDecl funDeclForFileImportOrExport(
 	ref CheckCtx ctx,

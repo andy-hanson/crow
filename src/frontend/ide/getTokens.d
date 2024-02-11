@@ -57,6 +57,7 @@ import model.ast :
 	StructAliasAst,
 	StructBodyAst,
 	StructDeclAst,
+	TernaryAst,
 	ThenAst,
 	TestAst,
 	ThrowAst,
@@ -626,6 +627,11 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 		},
 		(in SharedAst x) {
 			addExprTokens(ctx, x.inner);
+		},
+		(in TernaryAst x) {
+			addExprTokens(ctx, x.cond);
+			addExprTokens(ctx, x.then);
+			addExprTokens(ctx, x.else_);
 		},
 		(in ThenAst x) {
 			addDestructureTokens(ctx, x.left);

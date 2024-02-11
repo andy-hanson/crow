@@ -161,6 +161,15 @@ immutable struct TypeAst {
 			(in TypeAst.SuffixName x) => x.range(allSymbols),
 			(in TypeAst.SuffixSpecial x) => x.range(allSymbols),
 			(in TypeAst.Tuple x) => x.range);
+	Range nameRangeOrRange(in AllSymbols allSymbols) scope =>
+		matchIn!Range(
+			(in TypeAst.Bogus x) => x.range,
+			(in TypeAst.Fun x) => x.kindRange,
+			(in TypeAst.Map x) => x.range(allSymbols),
+			(in NameAndRange x) => x.range(allSymbols),
+			(in TypeAst.SuffixName x) => x.suffixRange(allSymbols),
+			(in TypeAst.SuffixSpecial x) => x.suffixRange,
+			(in TypeAst.Tuple x) => x.range);
 }
 static assert(TypeAst.sizeof == ulong.sizeof * 3);
 
@@ -224,9 +233,16 @@ immutable struct ArrowAccessAst {
 }
 
 immutable struct AssertOrForbidAst {
+	@safe @nogc pure nothrow:
 	AssertOrForbidKind kind;
 	ExprAst condition;
 	Opt!ExprAst thrown;
+
+	Range keywordRange(in ExprAst* ast) scope {
+		assert(ast.kind.as!(AssertOrForbidAst*) == &this);
+		static assert("assert".length == "forbid".length);
+		return ast.range[0 .. "assert".length];
+	}
 }
 
 // `left := right`
@@ -244,9 +260,13 @@ immutable struct AssignmentAst {
 immutable struct AssignmentCallAst {
 	@safe @nogc pure nothrow:
 
-	ExprAst left;
 	NameAndRange funName;
-	ExprAst right;
+	ExprAst[2] leftAndRight;
+
+	ref ExprAst left() scope return =>
+		leftAndRight[0];
+	ref ExprAst right() scope return =>
+		leftAndRight[1];
 
 	Range keywordRange(in AllSymbols allSymbols) =>
 		rangeOfStartAndLength(funName.range(allSymbols).end, ":=".length);
@@ -319,34 +339,67 @@ immutable struct EmptyAst {}
 immutable struct ForAst {
 	@safe @nogc pure nothrow:
 	DestructureAst param;
+	Pos colonPos;
 	ExprAst collection;
 	ExprAst body_;
-	ExprAst else_;
+	ExprAst else_; // May be EmptyAst
 
-	Range keywordRange(in ExprAst* source) {
+	Range forKeywordRange(in ExprAst source) scope {
 		assert(source.kind.as!(ForAst*) == &this);
 		return source.range[0 .. "for".length];
 	}
+	Range colonRange() scope =>
+		rangeOfStartAndLength(colonPos, ":".length);
 }
 
 immutable struct IdentifierAst {
 	Symbol name;
 }
 
-// This can come from the 'if' keyword or a ternary expression (`cond ? then : else`).
+immutable struct ElifOrElseKeyword {
+	@safe @nogc pure nothrow:
+	enum Kind { elif, else_ }
+	Kind kind;
+	Pos pos;
+
+	static assert("elif".length == "else".length);
+	Range range() scope =>
+		rangeOfStartAndLength(pos, "else".length);
+}
+
 immutable struct IfAst {
+	@safe @nogc pure nothrow:
 	ExprAst cond;
 	ExprAst then;
+	Opt!ElifOrElseKeyword elifOrElseKeyword;
 	// May be EmptyAst
 	ExprAst else_;
+
+	Range ifKeywordRange(in ExprAst* ast) scope {
+		assert(ast.kind.as!(IfAst*) == &this);
+		return ast.range[0 .. "if".length];
+	}
+	bool hasElse() scope =>
+		!else_.kind.isA!EmptyAst;
 }
 
 immutable struct IfOptionAst {
+	@safe @nogc pure nothrow:
 	DestructureAst destructure;
+	Pos questionEqualsPos;
 	ExprAst option;
 	ExprAst then;
 	// May be EmptyAst
 	ExprAst else_;
+
+	Range ifKeywordRange(in ExprAst* ast) {
+		assert(ast.kind.as!(IfOptionAst*) == &this);
+		return ast.range[0 .. "if".length];
+	}
+	Range questionEqualsRange() scope =>
+		rangeOfStartAndLength(questionEqualsPos, "?=".length);
+	bool hasElse() scope =>
+		!else_.kind.isA!EmptyAst;
 }
 
 immutable struct InterpolatedAst {
@@ -354,8 +407,13 @@ immutable struct InterpolatedAst {
 }
 
 immutable struct LambdaAst {
+	@safe @nogc pure nothrow:
 	DestructureAst param;
+	Opt!Pos arrowPos; // None for synthetic LambdaAst, in a 'for' or 'with' or '<-'
 	ExprAst body_;
+
+	Opt!Range arrowRange() scope =>
+		has(arrowPos) ? some(rangeOfStartAndLength(force(arrowPos), "=>".length)) : none!Range;
 }
 
 immutable struct DestructureAst {
@@ -440,14 +498,19 @@ immutable struct LiteralStringAst {
 }
 
 immutable struct LoopAst {
+	@safe @nogc pure nothrow:
 	ExprAst body_;
+	Range keywordRange(in ExprAst* source) scope {
+		assert(source.kind.as!(LoopAst*) == &this);
+		return source.range[0 .. "loop".length];
+	}
 }
 
 immutable struct LoopBreakAst {
 	@safe @nogc pure nothrow:
 	ExprAst value;
 
-	Range keywordRange(in ExprAst* source) {
+	Range keywordRange(in ExprAst* source) scope {
 		assert(source.kind.as!(LoopBreakAst*) == &this);
 		return source.range[0 .. "break".length];
 	}
@@ -460,13 +523,25 @@ immutable struct LoopContinueAst {
 }
 
 immutable struct LoopUntilAst {
+	@safe @nogc pure nothrow:
 	ExprAst condition;
 	ExprAst body_;
+
+	Range keywordRange(in ExprAst* source) scope {
+		assert(source.kind.as!(LoopUntilAst*) == &this);
+		return source.range[0 .. "until".length];
+	}
 }
 
 immutable struct LoopWhileAst {
+	@safe @nogc pure nothrow:
 	ExprAst condition;
 	ExprAst body_;
+
+	Range keywordRange(in ExprAst* source) scope {
+		assert(source.kind.as!(LoopWhileAst*) == &this);
+		return source.range[0 .. "while".length];
+	}
 }
 
 immutable struct MatchAst {
@@ -501,7 +576,13 @@ immutable struct ParenthesizedAst {
 }
 
 immutable struct PtrAst {
+	@safe @nogc pure nothrow:
 	ExprAst inner;
+
+	Range keywordRange(in ExprAst* ast) scope {
+		assert(ast.kind.as!(PtrAst*) == &this);
+		return ast.range[0 .. "&".length];
+	}
 }
 
 immutable struct SeqAst {
@@ -519,6 +600,25 @@ immutable struct SharedAst {
 	}
 }
 
+immutable struct TernaryAst {
+	@safe @nogc pure nothrow:
+	ExprAst cond;
+	Pos questionPos;
+	ExprAst then;
+	Opt!Pos colonPos;
+	// May be EmptyAst
+	ExprAst else_;
+
+	Range questionRange() scope =>
+		rangeOfStartAndLength(questionPos, "?".length);
+	Opt!Range colonRange() scope =>
+		has(colonPos)
+			? some(rangeOfStartAndLength(force(colonPos), ":".length))
+			: none!Range;
+	bool hasElse() scope =>
+		!else_.kind.isA!EmptyAst;
+}
+
 immutable struct ThenAst {
 	@safe @nogc pure nothrow:
 	DestructureAst left;
@@ -531,11 +631,23 @@ immutable struct ThenAst {
 }
 
 immutable struct ThrowAst {
+	@safe @nogc pure nothrow:
 	ExprAst thrown;
+
+	Range keywordRange(in ExprAst* ast) scope {
+		assert(ast.kind.as!(ThrowAst*) == &this);
+		return ast.range[0 .. "throw".length];
+	}
 }
 
 immutable struct TrustedAst {
+	@safe @nogc pure nothrow:
 	ExprAst inner;
+
+	Range keywordRange(in ExprAst* ast) scope {
+		assert(ast.kind.as!(TrustedAst*) == &this);
+		return ast.range[0 .. "trusted".length];
+	}
 }
 
 // expr :: t
@@ -554,20 +666,28 @@ immutable struct UnlessAst {
 	ExprAst cond;
 	ExprAst body_;
 	ExprAst emptyElse; // Always EmptyAst
+
+	Range keywordRange(in ExprAst* ast) {
+		assert(ast.kind.as!(UnlessAst*) == &this);
+		return ast.range[0 .. "unless".length];
+	}
 }
 
 immutable struct WithAst {
 	@safe @nogc pure nothrow:
 
 	DestructureAst param;
+	Pos colonPos;
 	ExprAst arg;
 	ExprAst body_;
-	ExprAst else_;
+	ExprAst else_; // May be EmptyAst (or else a compile error)
 
-	Range keywordRange(ExprAst* ast) scope {
+	Range withKeywordRange(in ExprAst ast) scope {
 		assert(ast.kind.as!(WithAst*) == &this);
 		return ast.range[0 .. "with".length];
 	}
+	Range colonRange() scope =>
+		rangeOfStartAndLength(colonPos, ":".length);
 }
 
 immutable struct ExprAstKind {
@@ -602,6 +722,7 @@ immutable struct ExprAstKind {
 		PtrAst*,
 		SeqAst*,
 		SharedAst*,
+		TernaryAst*,
 		ThenAst*,
 		ThrowAst*,
 		TrustedAst*,

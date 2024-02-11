@@ -13,7 +13,7 @@ import frontend.parse.lexUtil :
 	tryTakeChars;
 import frontend.parse.lexWhitespace :
 	AddDiag, DocCommentAndIndentDelta, IndentKind, skipBlankLinesAndGetIndentDelta, takeRestOfLine;
-import model.ast : LiteralFloatAst, LiteralIntAst, LiteralNatAst;
+import model.ast : ElifOrElseKeyword, LiteralFloatAst, LiteralIntAst, LiteralNatAst;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.string : CString, MutCString, SmallString, stringOfRange;
 import util.symbol : AllSymbols, appendEquals, Symbol, symbol, symbolOfString;
@@ -466,13 +466,12 @@ bool lookaheadNew(CString ptr) =>
 bool lookaheadElse(CString ptr) =>
 	startsWithIdentifier(ptr, "else");
 
-enum ElifOrElse { elif, else_ }
-Opt!ElifOrElse lookaheadElifOrElse(CString ptr) =>
+Opt!(ElifOrElseKeyword.Kind) lookaheadElifOrElse(CString ptr) =>
 	startsWithIdentifier(ptr, "elif")
-		? some(ElifOrElse.elif)
+		? some(ElifOrElseKeyword.Kind.elif)
 		: startsWithIdentifier(ptr, "else")
-		? some(ElifOrElse.else_)
-		: none!ElifOrElse;
+		? some(ElifOrElseKeyword.Kind.else_)
+		: none!(ElifOrElseKeyword.Kind);
 
 private:
 

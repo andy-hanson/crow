@@ -285,7 +285,7 @@ ConcreteFun* getConcreteFunForLambdaAndFillBody(
 			containingConcreteFun, index))),
 		returnType,
 		paramsIncludingClosure));
-	ConcreteFunBodyInputs bodyInputs = ConcreteFunBodyInputs(containing, FunBody(FunBody.ExpressionBody(body_)));
+	ConcreteFunBodyInputs bodyInputs = ConcreteFunBodyInputs(containing, FunBody(body_));
 	mustAdd(ctx.alloc, ctx.concreteFunToBodyInputs, res, bodyInputs);
 	fillInConcreteFunBody(ctx, [modelParam], res);
 	addConcreteFun(ctx, res);
@@ -718,14 +718,14 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 				x.isA!(BuiltinFun.AllTests)
 					? bodyForAllTests(ctx, cf.returnType)
 					: ConcreteFunBody(ConcreteFunBody.Builtin(x, typeArgs(inputs))),
-			(FunBody.CreateEnum x) =>
+			(FunBody.CreateEnumOrFlags x) =>
 				ConcreteFunBody(Constant(Constant.Integral(x.member.value.value))),
 			(FunBody.CreateExtern) =>
 				ConcreteFunBody(constantZero),
 			(FunBody.CreateRecord) =>
 				ConcreteFunBody(ConcreteFunBody.CreateRecord()),
-			(FunBody.CreateUnion it) =>
-				ConcreteFunBody(ConcreteFunBody.CreateUnion(it.memberIndex)),
+			(FunBody.CreateUnion x) =>
+				ConcreteFunBody(ConcreteFunBody.CreateUnion(x.member.memberIndex)),
 			(EnumFunction it) {
 				final switch (it) {
 					case EnumFunction.equal:
@@ -737,10 +737,10 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 						return bodyForEnumOrFlagsMembers(ctx, cf.returnType);
 				}
 			},
+			(Expr x) =>
+				ConcreteFunBody(concretizeFunBody(ctx, inputs.containing, cf, cf.returnType, params, x)),
 			(FunBody.Extern x) =>
 				ConcreteFunBody(ConcreteFunBody.Extern(x.libraryName)),
-			(FunBody.ExpressionBody e) =>
-				ConcreteFunBody(concretizeFunBody(ctx, inputs.containing, cf, cf.returnType, params, e.expr)),
 			(FunBody.FileImport x) =>
 				ConcreteFunBody(concretizeFileImport(ctx, cf, x)),
 			(FlagsFunction it) =>

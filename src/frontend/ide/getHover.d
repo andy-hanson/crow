@@ -2,53 +2,32 @@ module frontend.ide.getHover;
 
 @safe @nogc pure nothrow:
 
-import frontend.ide.position : Position, PositionKind;
+import frontend.ide.position : ExpressionPosition, ExpressionPositionKind, ExprKeyword, ExprRef, Position, PositionKind;
 import frontend.showModel :
 	ShowModelCtx,
 	writeCalled,
 	writeFile,
 	writeFunDecl,
 	writeFunInst,
-	writeLineAndColumnRange,
+	writeLineAndColumn,
 	writeName,
 	writeSpecInst,
 	writeTypeQuoted,
 	writeVisibility;
 import lib.lsp.lspTypes : Hover, MarkupContent, MarkupKind;
-import model.ast : ModifierKeyword;
+import model.ast : ExprAstKind, IfAst, IfOptionAst, ModifierKeyword, TernaryAst;
 import model.diag : TypeContainer, TypeWithContainer;
 import model.model :
-	AssertOrForbidExpr,
-	AssertOrForbidKind,
-	BogusExpr,
 	BuiltinType,
 	CallExpr,
-	ClosureGetExpr,
-	ClosureRef,
-	ClosureSetExpr,
-	Expr,
+	EnumOrFlagsMember,
+	ExprKind,
 	FunDecl,
 	FunPointerExpr,
-	IfExpr,
-	IfOptionExpr,
 	LambdaExpr,
-	LetExpr,
-	LiteralExpr,
-	LiteralStringLikeExpr,
 	Local,
-	LocalGetExpr,
-	LocalSetExpr,
-	LoopBreakExpr,
-	LoopContinueExpr,
-	LoopExpr,
-	LoopUntilExpr,
-	LoopWhileExpr,
-	MatchEnumExpr,
-	MatchUnionExpr,
 	NameReferents,
-	PtrToFieldExpr,
-	PtrToLocalExpr,
-	SeqExpr,
+	RecordField,
 	StructAlias,
 	StructBody,
 	SpecDecl,
@@ -56,17 +35,15 @@ import model.model :
 	StructDecl,
 	StructInst,
 	Test,
-	ThrowExpr,
-	TrustedExpr,
 	Type,
-	TypedExpr,
 	TypeParamIndex,
+	UnionMember,
 	VarDecl;
 import util.alloc.alloc : Alloc;
 import util.col.array : isEmpty;
 import util.opt : force, has, none, Opt, some;
-import util.sourceRange : UriAndRange;
-import util.symbol : symbol, writeSymbol;
+import util.sourceRange : PosKind;
+import util.symbol : writeSymbol;
 import util.uri : Uri;
 import util.writer : makeStringWithWriter, writeNewline, Writer;
 
@@ -82,15 +59,15 @@ Opt!Hover getHover(ref Alloc alloc, in ShowModelCtx ctx, in Position pos) {
 void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 	pos.kind.matchWithPointers!void(
 		(PositionKind.None) {},
-		(PositionKind.EnumOrFlagsMemberPosition x) {
-			writer ~= x.struct_.body_.isA!(StructBody.Enum) ? "Enum " : "Flags ";
+		(EnumOrFlagsMember* x) {
+			writer ~= x.containingEnum.body_.isA!(StructBody.Enum) ? "Enum " : "Flags ";
 			writer ~= " member ";
-			writeSymbol(writer, ctx.allSymbols, x.struct_.name);
+			writeSymbol(writer, ctx.allSymbols, x.containingEnum.name);
 			writer ~= '.';
-			writeSymbol(writer, ctx.allSymbols, x.member.name);
+			writeSymbol(writer, ctx.allSymbols, x.name);
 		},
-		(PositionKind.Expression x) {
-			getExprHover(writer, ctx, pos.module_.uri, x.container.toTypeContainer, *x.expr);
+		(ExpressionPosition x) {
+			getExprHover(writer, ctx, pos.module_.uri, x);
 		},
 		(FunDecl* x) {
 			writeFunDecl(writer, ctx, x);
@@ -134,7 +111,9 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 		},
 		(PositionKind.LocalPosition x) {
 			writer ~= "Local ";
-			localHover(writer, ctx, x.container.toTypeContainer, *x.local);
+			writeName(writer, ctx, x.local.name);
+			writer ~= " of type ";
+			writeTypeQuoted(writer, ctx, TypeWithContainer(x.local.type, x.container.toTypeContainer));
 		},
 		(PositionKind.MatchEnumCase x) {
 			writer ~= "Handler for enum ";
@@ -200,6 +179,15 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 			writeName(writer, ctx, x.libraryName);
 			writer ~= '.';
 		},
+		(RecordField* x) {
+			writer ~= "Record field ";
+			writeSymbol(writer, ctx.allSymbols, x.containingRecord.name);
+			writer ~= '.';
+			writeSymbol(writer, ctx.allSymbols, x.name);
+			writer ~= " (of type ";
+			writeTypeQuoted(writer, ctx, TypeWithContainer(x.type, TypeContainer(x.containingRecord)));
+			writer ~= ')';
+		},
 		(PositionKind.RecordFieldMutability x) {
 			writer ~= "Defines a ";
 			if (has(x.visibility)) {
@@ -207,15 +195,6 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 				writer ~= ' ';
 			}
 			writer ~= "setter.";
-		},
-		(PositionKind.RecordFieldPosition x) {
-			writer ~= "Record field ";
-			writeSymbol(writer, ctx.allSymbols, x.struct_.name);
-			writer ~= '.';
-			writeSymbol(writer, ctx.allSymbols, x.field.name);
-			writer ~= " (of type ";
-			writeTypeQuoted(writer, ctx, TypeWithContainer(x.field.type, TypeContainer(x.struct_)));
-			writer ~= ')';
 		},
 		(SpecDecl* x) {
 			writeSpecDeclHover(writer, ctx, *x);
@@ -250,16 +229,16 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 		(PositionKind.TypeParamWithContainer x) {
 			hoverTypeParam(writer, ctx, x.container, x.typeParam);
 		},
-		(PositionKind.UnionMemberPosition x) {
+		(UnionMember* x) {
 			writer ~= "Union member ";
-			writeSymbol(writer, ctx.allSymbols, x.struct_.name);
+			writeSymbol(writer, ctx.allSymbols, x.containingUnion.name);
 			writer ~= '.';
-			writeSymbol(writer, ctx.allSymbols, x.member.name);
-			if (x.member.type == Type(ctx.commonTypes.void_))
+			writeSymbol(writer, ctx.allSymbols, x.name);
+			if (x.type == Type(ctx.commonTypes.void_))
 				writer ~= " (no associated value)";
 			else {
 				writer ~= " (of type ";
-				writeTypeQuoted(writer, ctx, TypeWithContainer(x.member.type, TypeContainer(x.struct_)));
+				writeTypeQuoted(writer, ctx, TypeWithContainer(x.type, TypeContainer(x.containingUnion)));
 				writer ~= ')';
 			}
 		},
@@ -352,55 +331,57 @@ void hoverTypeParam(
 	writeName(writer, ctx, typeContainer.typeParams[index.index].name);
 }
 
-void getExprHover(
+void getExprKeywordHover(
 	scope ref Writer writer,
 	in ShowModelCtx ctx,
 	in Uri curUri,
 	in TypeContainer typeContainer,
-	in Expr a,
-) =>
-	a.kind.matchIn!void(
-		(in AssertOrForbidExpr x) {
-			writer ~= "Throws if the condition is ";
-			writeName(writer, ctx, () {
-				final switch (x.kind) {
-					case AssertOrForbidKind.assert_:
-						return symbol!"false";
-					case AssertOrForbidKind.forbid:
-						return symbol!"true";
-				}
-			}());
-			writer ~= '.';
-		},
-		(in BogusExpr _) {},
-		(in CallExpr x) {
-			writer ~= "Calls ";
-			writeCalled(writer, ctx, typeContainer, x.called);
-			writer ~= '.';
-		},
-		(in ClosureGetExpr x) {
-			writer ~= "Gets ";
-			closureRefHover(writer, ctx, typeContainer, x.closureRef);
-		},
-		(in ClosureSetExpr x) {
-			writer ~= "Sets ";
-			closureRefHover(writer, ctx, typeContainer, x.closureRef);
-		},
-		(in FunPointerExpr x) {
-			writer ~= "Pointer to function ";
-			writeFunInst(writer, ctx, typeContainer, *x.funInst);
-		},
-		(in IfExpr _) {
-			writer ~= "Returns the first branch if the condition is 'true', " ~
-				"and the second branch if the condition is 'false'.";
-		},
-		(in IfOptionExpr _) {
-			writer ~= "Returns the first branch if the option is non-empty, " ~
-				"and the second branch if it is empty.";
-		},
-		(in LambdaExpr x) {
+	in ExprRef a,
+	ExprKeyword keyword,
+) {
+	ExprKind exprKind() =>
+		a.expr.kind;
+	ExprAstKind astKind() =>
+		a.expr.ast.kind;
+	final switch (keyword) {
+		case ExprKeyword.ampersand:
+			writer ~= "Gets a pointer to an expression. " ~
+				"This does not allocate and so is unsafe. This only works for certain expressions.";
+			break;
+		case ExprKeyword.assert_:
+			writer ~= "Throws if the condition is 'false'.";
+			break;
+		case ExprKeyword.colonColon:
+			writer ~= "Provides an expected type for the expression to its left.";
+			break;
+		case ExprKeyword.elif:
+			writer ~= "If the first condition is false, evaluates another 'if'.";
+			break;
+		case ExprKeyword.else_:
+			writer ~= "If the condition is 'false', the 'else' branch is evaluated.";
+			break;
+		case ExprKeyword.forbid:
+			writer ~= "Throws if the condition is 'true'.";
+			break;
+		case ExprKeyword.if_:
+			if (astKind.isA!(IfOptionAst*)) {
+				writer ~= "If the value is a non-empty option, destructures it and returns the first branch. ";
+				writer ~= astKind.as!(IfOptionAst*).hasElse
+					? " Otherwise, returns the second branch."
+					: " Otherwise, returns '()'.";
+			} else {
+				writer ~= "If the condition is 'true', returns the first branch. ";
+				bool hasElse = astKind.isA!(IfAst*)
+					? astKind.as!(IfAst*).hasElse
+					: astKind.as!(TernaryAst*).hasElse;
+				writer ~= hasElse
+					? " Otherwise, returns the second branch."
+					: " Otherwise, returns '()'.";
+			}
+			break;
+		case ExprKeyword.lambdaArrow:
 			writer ~= () {
-				final switch (x.kind) {
+				final switch (exprKind.as!(LambdaExpr*).kind) {
 					case LambdaExpr.Kind.data:
 						return "Lambda with 'data' closure and no 'summon'.";
 					case LambdaExpr.Kind.shared_:
@@ -411,93 +392,103 @@ void getExprHover(
 						return "Lambda with 'mut' closure, converted to 'shared' by waiting for exclusion.";
 				}
 			}();
+			break;
+		case ExprKeyword.match:
+			writer ~= "Branches with a separate case for each member of the enum or union.";
+			break;
+		case ExprKeyword.throw_:
+			writer ~= "Throws an exception.";
+			break;
+		case ExprKeyword.trusted:
+			writer ~= "Allows 'unsafe' code to be used anywhere.";
+			break;
+		case ExprKeyword.unless:
+			writer ~= "Returns the body if the condition is false. If the condition is true, returns '()'.";
+			break;
+		case ExprKeyword.until:
+			writer ~= "Loop will run as long as the condition is 'false'.";
+			break;
+		case ExprKeyword.while_:
+			writer ~= "Loop will run as long as the condition is 'true'.";
+			break;
+	}
+}
+
+void getExprHover(
+	scope ref Writer writer,
+	in ShowModelCtx ctx,
+	in Uri curUri,
+	in ExpressionPosition a,
+) {
+	TypeContainer typeContainer = a.container.toTypeContainer;
+	a.kind.matchIn!void(
+		(in CallExpr x) {
+			writer ~= "Calls ";
+			writeCalled(writer, ctx, typeContainer, x.called);
+			writer ~= '.';
 		},
-		(in LetExpr _) {},
-		(in LiteralExpr _) {
-			writer ~= "Number literal";
+		(in ExprKeyword x) {
+			getExprKeywordHover(writer, ctx, curUri, typeContainer, a.expr, x);
 		},
-		(in LiteralStringLikeExpr x) {
-			writer ~= "Literal '";
+		(in FunPointerExpr x) {
+			writer ~= "Pointer to function ";
+			writeFunInst(writer, ctx, typeContainer, *x.funInst);
+		},
+		(in ExpressionPositionKind.Literal x) {
+			writer ~= "Literal expression.";
+		},
+		(in ExpressionPositionKind.LocalRef x) {
 			writer ~= () {
 				final switch (x.kind) {
-					case LiteralStringLikeExpr.Kind.cString:
-						return "c-string";
-					case LiteralStringLikeExpr.Kind.string_:
-						return "string";
-					case LiteralStringLikeExpr.Kind.symbol:
-						return "symbol";
+					case ExpressionPositionKind.LocalRef.Kind.get:
+						return "Gets local variable ";
+					case ExpressionPositionKind.LocalRef.Kind.set:
+						return "Sets local variable ";
+					case ExpressionPositionKind.LocalRef.Kind.closureGet:
+						return "Gets local variable ";
+					case ExpressionPositionKind.LocalRef.Kind.closureSet:
+						return "Sets local variable ";
+					case ExpressionPositionKind.LocalRef.Kind.pointer:
+						return "Gets pointer to local variable ";
 				}
 			}();
-			writer ~= "'";
-		},
-		(in LocalGetExpr x) {
-			writer ~= "Gets ";
-			localHover(writer, ctx, typeContainer, *x.local);
-		},
-		(in LocalSetExpr x) {
-			writer ~= "Sets ";
-			localHover(writer, ctx, typeContainer, *x.local);
+			writeName(writer, ctx, x.local.name);
+			writer ~= () {
+				final switch (x.kind) {
+					case ExpressionPositionKind.LocalRef.Kind.get:
+					case ExpressionPositionKind.LocalRef.Kind.set:
+					case ExpressionPositionKind.LocalRef.Kind.pointer:
+						return "";
+					case ExpressionPositionKind.LocalRef.Kind.closureGet:
+					case ExpressionPositionKind.LocalRef.Kind.closureSet:
+						return " (through closure)";
+				}
+			}();
 			writer ~= '.';
 		},
-		(in LoopExpr _) {
-			writer ~= "Loop that terminates at a 'break'";
-		},
-		(in LoopBreakExpr x) {
-			writer ~= "Breaks out of ";
-			writeLoop(writer, ctx, curUri, *x.loop);
-			writer ~= '.';
-		},
-		(in LoopContinueExpr x) {
-			writer ~= "Goes back to top of ";
-			writeLoop(writer, ctx, curUri, *x.loop);
-			writer ~= '.';
-		},
-		(in LoopUntilExpr _) {
-			writer ~= "Loop will run as long as the condition is 'false'.";
-		},
-		(in LoopWhileExpr _) {
-			writer ~= "Loop will run as long as the condition is 'true'.";
-		},
-		(in MatchEnumExpr _) {},
-		(in MatchUnionExpr _) {},
-		(in PtrToFieldExpr x) {
-			writer ~= "Gets pointer to field ";
-			writeName(writer, ctx, x.fieldDecl(ctx.commonTypes).name);
-			writer ~= " of record ";
-			writeName(writer, ctx, x.recordDecl(ctx.commonTypes).name);
-			writer ~= '.';
-		},
-		(in PtrToLocalExpr x) {
-			writer ~= "Pointer to ";
-			localHover(writer, ctx, typeContainer, *x.local);
-		},
-		(in SeqExpr _) {},
-		(in ThrowExpr _) {
-			writer ~= "Throws an exception.";
-		},
-		(in TrustedExpr _) {
-			writer ~= "Allows 'unsafe' code to be used anywhere.";
-		},
-		(in TypedExpr _) {
-			writer ~= "Provides an explicit type for the left hand side of '::'.";
+		(in ExpressionPositionKind.LoopKeyword x) {
+			final switch (x.kind) {
+				case ExpressionPositionKind.LoopKeyword.Kind.break_:
+					writer ~= "Breaks out of ";
+					writeLoop(writer, ctx, curUri, x.loop);
+					writer ~= '.';
+					break;
+				case ExpressionPositionKind.LoopKeyword.Kind.continue_:
+					writer ~= "Goes back to the start of ";
+					writeLoop(writer, ctx, curUri, x.loop);
+					writer ~= '.';
+					break;
+				case ExpressionPositionKind.LoopKeyword.Kind.loop:
+					writer ~= "Loop that terminates at a 'break'.";
+					break;
+			}
 		});
 
-void closureRefHover(scope ref Writer writer, in ShowModelCtx ctx, in TypeContainer typeContainer, in ClosureRef a) {
-	writer ~= "closure variable ";
-	writeName(writer, ctx, a.name);
-	writer ~= "(of type ";
-	writeTypeQuoted(writer, ctx, TypeWithContainer(a.type, typeContainer));
-	writer ~= ')';
+	writer ~= "\nExpression type is: ";
+	writeTypeQuoted(writer, ctx, TypeWithContainer(a.expr.type, typeContainer));
 }
 
-void localHover(scope ref Writer writer, in ShowModelCtx ctx, in TypeContainer typeContainer, in Local a) {
-	writeName(writer, ctx, a.name);
-	writer ~= " (of type ";
-	writeTypeQuoted(writer, ctx, TypeWithContainer(a.type, typeContainer));
-	writer ~= ')';
-}
-
-void writeLoop(scope ref Writer writer, in ShowModelCtx ctx, Uri curUri, in LoopExpr a) {
-	writer ~= "loop at ";
-	writeLineAndColumnRange(writer, ctx.lineAndColumnGetters[UriAndRange(curUri, a.range)].range);
+void writeLoop(scope ref Writer writer, in ShowModelCtx ctx, Uri curUri, in ExprRef a) {
+	writer ~= "the loop at ";
+	writeLineAndColumn(writer, ctx.lineAndColumnGetters[curUri][a.expr.range.start, PosKind.startOfRange]);
 }

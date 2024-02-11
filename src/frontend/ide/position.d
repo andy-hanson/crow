@@ -5,9 +5,11 @@ module frontend.ide.position;
 import model.ast : ModifierKeyword, NameAndRange;
 import model.diag : TypeContainer, TypeWithContainer;
 import model.model :
+	CallExpr,
 	EnumOrFlagsMember,
 	Expr,
 	FunDecl,
+	FunPointerExpr,
 	ImportOrExport,
 	Local,
 	Module,
@@ -19,6 +21,7 @@ import model.model :
 	StructAlias,
 	StructDecl,
 	Test,
+	Type,
 	TypeParamIndex,
 	UnionMember,
 	VarDecl,
@@ -45,10 +48,10 @@ immutable struct ExprContainer {
 			(Test* x) =>
 				LocalContainer(x));
 
-	TypeContainer toTypeContainer() =>
+	TypeContainer toTypeContainer() return scope =>
 		toLocalContainer.toTypeContainer;
 
-	Uri moduleUri() =>
+	Uri moduleUri() scope =>
 		toTypeContainer.moduleUri;
 }
 
@@ -99,14 +102,6 @@ immutable struct VisibilityContainer {
 immutable struct PositionKind {
 	immutable struct None {}
 
-	immutable struct EnumOrFlagsMemberPosition {
-		StructDecl* struct_;
-		EnumOrFlagsMember* member;
-	}
-	immutable struct Expression {
-		ExprContainer container;
-		Expr* expr;
-	}
 	immutable struct ImportedModule {
 		@safe @nogc pure nothrow:
 		ImportOrExport* import_;
@@ -159,10 +154,6 @@ immutable struct PositionKind {
 	immutable struct RecordFieldMutability {
 		Opt!Visibility visibility;
 	}
-	immutable struct RecordFieldPosition {
-		StructDecl* struct_;
-		RecordField* field;
-	}
 	immutable struct SpecSig {
 		SpecDecl* spec;
 		SpecDeclSig* sig;
@@ -175,18 +166,14 @@ immutable struct PositionKind {
 		TypeParamIndex typeParam;
 		TypeContainer container;
 	}
-	immutable struct UnionMemberPosition {
-		StructDecl* struct_;
-		UnionMember* member;
-	}
 	immutable struct VisibilityMark {
 		VisibilityContainer container;
 	}
 
 	mixin Union!(
 		None,
-		EnumOrFlagsMemberPosition,
-		Expression,
+		EnumOrFlagsMember*,
+		ExpressionPosition,
 		FunDecl*,
 		ImportedModule,
 		ImportedName,
@@ -196,8 +183,8 @@ immutable struct PositionKind {
 		MatchUnionCase,
 		Modifier,
 		ModifierExtern,
+		RecordField*,
 		RecordFieldMutability,
-		RecordFieldPosition,
 		SpecDecl*,
 		SpecSig,
 		SpecUse,
@@ -206,7 +193,50 @@ immutable struct PositionKind {
 		Test*,
 		TypeWithContainer,
 		TypeParamWithContainer,
-		UnionMemberPosition,
+		UnionMember*,
 		VarDecl*,
 		VisibilityMark);
+}
+
+immutable struct ExpressionPosition {
+	ExprContainer container;
+	ExprRef expr;
+	ExpressionPositionKind kind;
+}
+
+immutable struct ExprRef {
+	Expr* expr;
+	Type type;
+}
+
+immutable struct ExpressionPositionKind {
+	immutable struct Literal {}
+	immutable struct LocalRef {
+		enum Kind { get, set, closureGet, closureSet, pointer }
+		Kind kind;
+		Local* local;
+	}
+	immutable struct LoopKeyword {
+		enum Kind { loop, break_, continue_ }
+		Kind kind;
+		ExprRef loop;
+	}
+	mixin Union!(CallExpr, ExprKeyword, FunPointerExpr, Literal, LocalRef, LoopKeyword);
+}
+
+enum ExprKeyword {
+	ampersand,
+	assert_,
+	colonColon,
+	elif,
+	else_,
+	forbid,
+	if_,
+	lambdaArrow,
+	match,
+	throw_,
+	trusted,
+	unless,
+	until,
+	while_,
 }

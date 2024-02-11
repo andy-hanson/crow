@@ -5,12 +5,11 @@ module frontend.ide.getDefinition;
 import frontend.ide.getTarget : Target, targetForPosition;
 import frontend.ide.ideUtil : ReferenceCb;
 import frontend.ide.position : Position, PositionKind;
+import model.ast : ExprAst, LoopAst;
 import model.model :
 	EnumOrFlagsMember,
 	FunDecl,
-	LoopExpr,
 	localMustHaveNameRange,
-	loopKeywordRange,
 	Module,
 	nameRange,
 	NameReferents,
@@ -53,8 +52,9 @@ public void definitionForTarget(in AllSymbols allSymbols, Uri curUri, in Target 
 		(in PositionKind.LocalPosition x) {
 			cb(UriAndRange(x.container.moduleUri, localMustHaveNameRange(*x.local, allSymbols)));
 		},
-		(in LoopExpr x) {
-			cb(UriAndRange(curUri, loopKeywordRange(x)));
+		(in Target.Loop x) {
+			ExprAst* ast = x.loop.expr.ast;
+			cb(UriAndRange(curUri, ast.kind.as!(LoopAst*).keywordRange(ast)));
 		},
 		(in Module x) {
 			cb(x.range);

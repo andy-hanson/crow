@@ -242,6 +242,11 @@ Opt!size_t indexOfStartingAt(T)(in T[] xs, in T value, size_t start) {
 	return has(indexFromStart) ? some(force(indexFromStart) + start) : none!size_t;
 }
 
+size_t mustHaveIndexOfPointer(T)(in T[] xs, in T* pointer) {
+	Opt!size_t res = indexOfPointer(xs, pointer);
+	return force(res);
+}
+
 @trusted Opt!size_t indexOfPointer(T)(in T[] xs, in T* pointer) {
 	size_t res = pointer - xs.ptr;
 	return 0 <= res && res < xs.length ? some(res) : none!size_t;

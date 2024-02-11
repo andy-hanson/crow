@@ -76,6 +76,7 @@ import model.ast :
 	PtrAst,
 	SeqAst,
 	SharedAst,
+	TernaryAst,
 	ThenAst,
 	ThrowAst,
 	TrustedAst,
@@ -143,7 +144,6 @@ import model.model :
 	StructInst,
 	Test,
 	ThrowExpr,
-	toLocal,
 	TrustedExpr,
 	toMutability,
 	Type,
@@ -171,7 +171,7 @@ import util.col.mutMaxArr : asTemporaryArray, initializeMutMaxArr, mutMaxArrSize
 import util.conv : safeToUshort;
 import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, someMut, some;
-import util.sourceRange : Range;
+import util.sourceRange : Pos, Range;
 import util.symbol : prependSet, prependSetDeref, Symbol, symbol;
 import util.union_ : Union;
 import util.util : castImmutable, castNonScope_ref, max, ptrTrustMe;
@@ -266,7 +266,7 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expecte
 		(IdentifierAst a) =>
 			checkIdentifier(ctx, locals, ast, a, expected),
 		(IfAst* a) =>
-			checkIf(ctx, locals, ast, a, expected),
+			checkIf(ctx, locals, ast, &a.cond, &a.then, &a.else_, expected),
 		(IfOptionAst* a) =>
 			checkIfOption(ctx, locals, ast, a, expected),
 		(InterpolatedAst a) =>
@@ -303,6 +303,8 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expecte
 			checkSeq(ctx, locals, ast, a, expected),
 		(SharedAst* a) =>
 			checkShared(ctx, locals, ast, a, expected),
+		(TernaryAst* a) =>
+			checkIf(ctx, locals, ast, &a.cond, &a.then, &a.else_, expected),
 		(ThenAst* a) =>
 			checkThen(ctx, locals, ast, *a, expected),
 		(ThrowAst* a) =>
@@ -379,10 +381,18 @@ Expr checkArrowAccess(
 	return checkCallSpecial(ctx, locals, source, ast.keywordRange, ast.name.name, [deref], expected);
 }
 
-Expr checkIf(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, IfAst* ast, ref Expected expected) {
-	Expr cond = checkAndExpectBool(ctx, locals, &ast.cond);
-	Expr then = checkExpr(ctx, locals, &ast.then, expected);
-	Expr else_ = checkExpr(ctx, locals, &ast.else_, expected);
+Expr checkIf(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	ExprAst* source,
+	ExprAst* condAst,
+	ExprAst* thenAst,
+	ExprAst* elseAst,
+	ref Expected expected,
+) {
+	Expr cond = checkAndExpectBool(ctx, locals, condAst);
+	Expr then = checkExpr(ctx, locals, thenAst, expected);
+	Expr else_ = checkExpr(ctx, locals, elseAst, expected);
 	return Expr(source, ExprKind(allocate(ctx.alloc, IfExpr(cond, then, else_))));
 }
 
@@ -471,11 +481,10 @@ Expr checkAssignmentCall(
 	ref AssignmentCallAst ast,
 	ref Expected expected,
 ) {
-	ExprAst[2] args = [ast.left, ast.right];
 	//TODO:NO ALLOC
 	ExprAst* call = allocate(ctx.alloc, ExprAst(
 		source.range,
-		ExprAstKind(CallAst(CallAst.style.infix, ast.funName, args))));
+		ExprAstKind(CallAst(CallAst.style.infix, ast.funName, ast.leftAndRight))));
 	return checkAssignment(ctx, locals, source, ast.left, ast.keywordRange(ctx.allSymbols), call, expected);
 }
 
@@ -696,7 +705,7 @@ Expr checkAssignIdentifier(
 			(Local* local) =>
 				check(ctx, source, expected, voidType(ctx), Expr(
 					source,
-					ExprKind(allocate(ctx.alloc, LocalSetExpr(local, value))))),
+					ExprKind(LocalSetExpr(local, allocate(ctx.alloc, value))))),
 			(ClosureRef x) =>
 				check(ctx, source, expected, voidType(ctx), Expr(
 					source,
@@ -1168,10 +1177,8 @@ Expr checkShared(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Shared
 		diag(Diag(Diag.SharedLambdaTypeIsNotShared(
 			Diag.SharedLambdaTypeIsNotShared.Kind.returnType, typeWithContainer(ctx, res.returnType))));
 
-	bool allShared = every!VariableRef(res.expr.kind.as!(LambdaExpr*).closure, (in VariableRef v) {
-		Local* local = toLocal(v);
-		return local.mutability == LocalMutability.immut && isShared(ctx.outermostFunSpecs, local.type);
-	});
+	bool allShared = every!VariableRef(res.expr.kind.as!(LambdaExpr*).closure, (in VariableRef x) =>
+		x.mutability == LocalMutability.immut && isShared(ctx.outermostFunSpecs, x.type));
 	if (allShared)
 		diag(Diag(Diag.SharedLambdaUnused()));
 	return res.expr;
@@ -1279,9 +1286,7 @@ Expr checkLoop(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, LoopAst*
 	Opt!Type expectedType = tryGetNonInferringType(ctx.instantiateCtx, expected);
 	if (has(expectedType)) {
 		Type type = force(expectedType);
-		LoopExpr* loop = allocate(ctx.alloc, LoopExpr(
-			source.range,
-			Expr(source, ExprKind(BogusExpr()))));
+		LoopExpr* loop = allocate(ctx.alloc, LoopExpr(Expr(source, ExprKind(BogusExpr()))));
 		LoopInfo info = LoopInfo(voidType(ctx), castImmutable(loop), type, false);
 		Expr body_ = withExpectLoop(info, (ref Expected bodyExpected) =>
 			checkExpr(ctx, locals, &ast.body_, castNonScope_ref(bodyExpected)));
@@ -1521,6 +1526,8 @@ bool hasBreakOrContinue(in ExprAst a) =>
 			hasBreakOrContinue(x.then),
 		(in SharedAst x) =>
 			false,
+		(in TernaryAst x) =>
+			hasBreakOrContinue(x.then) || hasBreakOrContinue(x.else_),
 		// TODO: Maybe this should be allowed some day. Not in primitive loop but in for-break.
 		(in ThenAst x) =>
 			hasBreakOrContinue(x.then),
@@ -1537,13 +1544,14 @@ bool hasBreakOrContinue(in ExprAst a) =>
 
 Expr checkFor(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref ForAst ast, ref Expected expected) {
 	// TODO: NO ALLOC
-	ExprAst lambdaBody = ExprAst(source.range, ExprAstKind(allocate(ctx.alloc, LambdaAst(ast.param, ast.body_))));
+	ExprAst lambdaBody = ExprAst(source.range, ExprAstKind(
+		allocate(ctx.alloc, LambdaAst(ast.param, none!Pos, ast.body_))));
 	Symbol funName = hasBreakOrContinue(ast.body_) ? symbol!"for-break" : symbol!"for-loop";
-	Range keywordRange = ast.keywordRange(source);
+	Range keywordRange = ast.forKeywordRange(*source);
 	if (!ast.else_.kind.isA!EmptyAst) {
 		// TODO: NO ALLOC
 		ExprAst lambdaElse_ = ExprAst(ast.else_.range, ExprAstKind(
-			allocate(ctx.alloc, LambdaAst(DestructureAst(DestructureAst.Void(source.range)), ast.else_))));
+			allocate(ctx.alloc, LambdaAst(DestructureAst(DestructureAst.Void(source.range)), none!Pos, ast.else_))));
 		return checkCallSpecial(
 			ctx, locals, source, keywordRange, funName, [ast.collection, lambdaBody, lambdaElse_], expected);
 	} else
@@ -1551,17 +1559,17 @@ Expr checkFor(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref ForAs
 }
 
 Expr checkWith(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref WithAst ast, ref Expected expected) {
+	Range keywordRange = ast.withKeywordRange(*source);
 	if (!ast.else_.kind.isA!(EmptyAst))
-		addDiag2(ctx, ast.keywordRange(source), Diag(Diag.WithHasElse()));
+		addDiag2(ctx, keywordRange, Diag(Diag.WithHasElse()));
 	// TODO: NO ALLOC
-	ExprAst lambda = ExprAst(source.range, ExprAstKind(allocate(ctx.alloc, LambdaAst(ast.param, ast.body_))));
-	return checkCallSpecial(
-		ctx, locals, source, ast.keywordRange(source), symbol!"with-block", [ast.arg, lambda], expected);
+	ExprAst lambda = ExprAst(source.range, ExprAstKind(allocate(ctx.alloc, LambdaAst(ast.param, none!Pos, ast.body_))));
+	return checkCallSpecial(ctx, locals, source, keywordRange, symbol!"with-block", [ast.arg, lambda], expected);
 }
 
 Expr checkThen(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref ThenAst ast, ref Expected expected) {
 	// TODO: NO ALLOC
-	ExprAst lambda = ExprAst(source.range, ExprAstKind(allocate(ctx.alloc, LambdaAst(ast.left, ast.then))));
+	ExprAst lambda = ExprAst(source.range, ExprAstKind(allocate(ctx.alloc, LambdaAst(ast.left, none!Pos, ast.then))));
 	return checkCallSpecial(ctx, locals, source, ast.keywordRange, symbol!"then", [ast.futExpr, lambda], expected);
 }
 
@@ -1572,5 +1580,5 @@ Expr checkTyped(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, TypedAs
 	if (has(inferred) && force(inferred) == type)
 		addDiag2(ctx, source, Diag(Diag.TypeAnnotationUnnecessary(typeWithContainer(ctx, type))));
 	Expr expr = checkAndExpect(ctx, locals, &ast.expr, type);
-	return check(ctx, source, expected, type, Expr(source, ExprKind(allocate(ctx.alloc, TypedExpr(expr, type)))));
+	return check(ctx, source, expected, type, Expr(source, ExprKind(allocate(ctx.alloc, TypedExpr(expr)))));
 }

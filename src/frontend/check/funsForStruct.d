@@ -178,10 +178,10 @@ void addFunsForEnum(
 	StructDecl* struct_,
 	ref StructBody.Enum enum_,
 ) {
-	Type type = Type(instantiateNonTemplateStructDeclNeverDelay(ctx.instantiateCtx, struct_));
-	funsBuilder ~= enumToIntegralFunction(ctx.alloc, struct_, enum_.storage, type, commonTypes);
+	StructInst* inst = instantiateNonTemplateStructDeclNeverDelay(ctx.instantiateCtx, struct_);
+	funsBuilder ~= enumToIntegralFunction(ctx.alloc, struct_, enum_.storage, inst, commonTypes);
 	foreach (ref EnumOrFlagsMember member; enum_.members)
-		funsBuilder ~= enumOrFlagsConstructor(ctx.alloc, struct_.visibility, type, &member);
+		funsBuilder ~= enumOrFlagsConstructor(ctx.alloc, struct_.visibility, inst, &member);
 }
 
 void addFunsForFlags(
@@ -191,27 +191,27 @@ void addFunsForFlags(
 	StructDecl* struct_,
 	ref StructBody.Flags flags,
 ) {
-	Type type = Type(instantiateNonTemplateStructDeclNeverDelay(ctx.instantiateCtx, struct_));
-	funsBuilder ~= enumToIntegralFunction(ctx.alloc, struct_, flags.storage, type, commonTypes);
+	StructInst* inst = instantiateNonTemplateStructDeclNeverDelay(ctx.instantiateCtx, struct_);
+	funsBuilder ~= enumToIntegralFunction(ctx.alloc, struct_, flags.storage, inst, commonTypes);
 	foreach (ref EnumOrFlagsMember member; flags.members)
-		funsBuilder ~= enumOrFlagsConstructor(ctx.alloc, struct_.visibility, type, &member);
+		funsBuilder ~= enumOrFlagsConstructor(ctx.alloc, struct_.visibility, inst, &member);
 }
 
-FunDecl enumOrFlagsConstructor(ref Alloc alloc, Visibility visibility, Type enumType, EnumOrFlagsMember* member) =>
+FunDecl enumOrFlagsConstructor(ref Alloc alloc, Visibility visibility, StructInst* enum_, EnumOrFlagsMember* member) =>
 	basicFunDecl(
 		FunDeclSource(member),
 		visibility,
 		member.name,
-		enumType,
+		Type(enum_),
 		Params([]),
 		FunFlags.generatedBare,
-		FunBody(FunBody.CreateEnum(member)));
+		FunBody(FunBody.CreateEnumOrFlags(member)));
 
 FunDecl enumToIntegralFunction(
 	ref Alloc alloc,
 	StructDecl* struct_,
 	IntegralType storageType,
-	Type enumType,
+	StructInst* inst,
 	ref CommonTypes commonTypes,
 ) =>
 	basicFunDecl(
@@ -219,7 +219,7 @@ FunDecl enumToIntegralFunction(
 		struct_.visibility,
 		symbol!"to",
 		Type(commonTypes.integrals[storageType]),
-		makeParams(alloc, [param!"a"(enumType)]),
+		makeParams(alloc, [param!"a"(Type(inst))]),
 		FunFlags.generatedBare.withOkIfUnused(),
 		FunBody(EnumFunction.toIntegral));
 
@@ -403,7 +403,7 @@ void addFunsForUnion(
 	scope TypeArgsArray typeArgs = typeArgsArray();
 	typeArgsFromParams(typeArgs, struct_.typeParams);
 	Type unionType = Type(instantiateStructNeverDelay(ctx.instantiateCtx, struct_, asTemporaryArray(typeArgs)));
-	foreach (size_t memberIndex, ref UnionMember member; union_.members) {
+	foreach (ref UnionMember member; union_.members) {
 		Params params = isVoid(commonTypes, member.type)
 			? Params([])
 			: makeParams(ctx.alloc, [param!"a"(member.type)]);
@@ -415,7 +415,7 @@ void addFunsForUnion(
 			params,
 			FunFlags.generatedBare,
 			[],
-			FunBody(FunBody.CreateUnion(memberIndex)));
+			FunBody(FunBody.CreateUnion(&member)));
 	}
 }
 

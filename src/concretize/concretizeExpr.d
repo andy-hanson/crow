@@ -68,7 +68,6 @@ import model.model :
 	ExprAndType,
 	FunInst,
 	FunPointerExpr,
-	getClosureReferenceKind,
 	IfExpr,
 	IfOptionExpr,
 	LambdaExpr,
@@ -339,7 +338,7 @@ ConcreteExpr concretizeClosureSet(
 	in Locals locals,
 	in ClosureSetExpr a,
 ) {
-	assert(getClosureReferenceKind(a.closureRef) == ClosureReferenceKind.allocated);
+	assert(a.closureRef.closureReferenceKind == ClosureReferenceKind.allocated);
 	ClosureFieldInfo info = getClosureFieldInfo(ctx, range, a.closureRef);
 	assert(info.referenceKind == ClosureReferenceKind.allocated);
 	ConcreteExpr value = concretizeExpr(ctx, info.type, locals, *a.value);
@@ -357,7 +356,7 @@ ClosureFieldInfo getClosureFieldInfo(ref ConcretizeExprCtx ctx, in UriAndRange r
 	ConcreteLocal* closureParam = &ctx.currentConcreteFun.paramsIncludingClosure[0];
 	ConcreteType closureType = closureParam.type;
 	ConcreteStructBody.Record record = closureType.struct_.body_.as!(ConcreteStructBody.Record);
-	ClosureReferenceKind referenceKind = getClosureReferenceKind(a);
+	ClosureReferenceKind referenceKind = a.closureReferenceKind;
 	ConcreteType fieldType = record.fields[a.index].type;
 	ConcreteType pointeeType = () {
 		final switch (referenceKind) {
@@ -385,7 +384,7 @@ ConcreteField[] concretizeClosureFields(ref ConcretizeCtx ctx, VariableRef[] clo
 	map(ctx.alloc, closure, (ref VariableRef x) {
 		ConcreteType baseType = getConcreteType_fromConcretizeCtx(ctx, x.type, typeArgsScope);
 		ConcreteType type = () {
-			final switch (getClosureReferenceKind(x)) {
+			final switch (x.closureReferenceKind) {
 				case ClosureReferenceKind.direct:
 					return baseType;
 				case ClosureReferenceKind.allocated:
@@ -776,10 +775,10 @@ ConcreteExpr concretizeLocalSet(
 	ConcreteType type,
 	in UriAndRange range,
 	in Locals locals,
-	ref LocalSetExpr a,
+	LocalSetExpr a,
 ) {
 	ConcreteLocal* local = getLocal(locals, a.local).as!(ConcreteLocal*);
-	ConcreteExpr value = concretizeExpr(ctx, local.type, locals, a.value);
+	ConcreteExpr value = concretizeExpr(ctx, local.type, locals, *a.value);
 	return ConcreteExpr(type, range, ConcreteExprKind(
 		allocate(ctx.alloc, ConcreteExprKind.LocalSet(castNonScope(local), value))));
 }
@@ -1007,7 +1006,7 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 		},
 		(LocalGetExpr x) =>
 			concretizeLocalGet(ctx, type, range, locals, x.local),
-		(ref LocalSetExpr x) =>
+		(LocalSetExpr x) =>
 			concretizeLocalSet(ctx, type, range, locals, x),
 		(ref LoopExpr x) =>
 			concretizeLoop(ctx, type, range, locals, x),

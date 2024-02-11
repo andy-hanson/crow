@@ -59,6 +59,7 @@ import model.ast :
 	StructDeclAst,
 	stringOfModifierKeyword,
 	symbolForTypeAstSuffix,
+	TernaryAst,
 	ThenAst,
 	ThrowAst,
 	TrustedAst,
@@ -546,6 +547,14 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 			jsonObject(alloc, [
 				kindField!"shared",
 				field!"inner"(jsonOfExprAst(alloc, ctx, a.inner))]),
+		(in TernaryAst x) =>
+			jsonObject(alloc, [
+				kindField!"ternary",
+				field!"cond"(jsonOfExprAst(alloc, ctx, x.cond)),
+				field!"questionPos"(x.questionPos),
+				field!"then"(jsonOfExprAst(alloc, ctx, x.then)),
+				optionalField!("colon", Pos)(x.colonPos, (in Pos x) => Json(x)),
+				field!"else"(jsonOfExprAst(alloc, ctx, x.else_))]),
 		(in ThenAst x) =>
 			jsonObject(alloc, [
 				kindField!"then",

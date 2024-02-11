@@ -2,70 +2,47 @@ module frontend.ide.getTarget;
 
 @safe @nogc pure nothrow:
 
-import frontend.ide.position : PositionKind;
+import frontend.ide.position : ExpressionPosition, ExpressionPositionKind, ExprKeyword, ExprRef, PositionKind;
 import model.diag : TypeWithContainer;
 import model.model :
-	AssertOrForbidExpr,
-	BogusExpr,
 	BuiltinFun,
 	Called,
 	CalledSpecSig,
 	CallExpr,
-	ClosureGetExpr,
-	ClosureSetExpr,
 	Destructure,
 	EnumFunction,
 	EnumOrFlagsMember,
+	Expr,
 	FlagsFunction,
 	FunBody,
 	FunDecl,
 	FunInst,
 	FunPointerExpr,
-	IfExpr,
-	IfOptionExpr,
-	LambdaExpr,
-	LetExpr,
-	LiteralExpr,
-	LiteralStringLikeExpr,
-	Local,
-	LocalGetExpr,
-	LocalSetExpr,
-	LoopBreakExpr,
-	LoopContinueExpr,
-	LoopExpr,
-	LoopUntilExpr,
-	LoopWhileExpr,
-	MatchEnumExpr,
-	MatchUnionExpr,
 	Module,
-	PtrToFieldExpr,
-	PtrToLocalExpr,
 	RecordField,
-	SeqExpr,
 	StructBody,
 	SpecDecl,
 	StructAlias,
 	StructDecl,
 	StructInst,
 	Test,
-	ThrowExpr,
-	toLocal,
-	TrustedExpr,
-	TypedExpr,
 	TypeParamIndex,
 	UnionMember,
 	VarDecl;
 import util.opt : none, Opt, some;
-import util.json : field;
 import util.union_ : Union;
 
 immutable struct Target {
+	immutable struct Loop {
+		ExprRef loop;
+	}
+
 	mixin Union!(
 		EnumOrFlagsMember*,
 		FunDecl*,
 		PositionKind.ImportedName,
 		PositionKind.LocalPosition,
-		LoopExpr*,
+		Loop,
 		Module*,
 		RecordField*,
 		SpecDecl*,
@@ -82,9 +59,9 @@ Opt!Target targetForPosition(PositionKind pos) =>
 	pos.matchWithPointers!(Opt!Target)(
 		(PositionKind.None) =>
 			none!Target,
-		(PositionKind.EnumOrFlagsMemberPosition x) =>
-			some(Target(x.member)),
-		(PositionKind.Expression x) =>
+		(EnumOrFlagsMember* x) =>
+			some(Target(x)),
+		(ExpressionPosition x) =>
 			exprTarget(x),
 		(FunDecl* x) =>
 			some(Target(x)),
@@ -104,10 +81,10 @@ Opt!Target targetForPosition(PositionKind pos) =>
 			none!Target,
 		(PositionKind.ModifierExtern) =>
 			none!Target,
+		(RecordField* x) =>
+			some(Target(x)),
 		(PositionKind.RecordFieldMutability) =>
 			none!Target,
-		(PositionKind.RecordFieldPosition x) =>
-			some(Target(x.field)),
 		(SpecDecl* x) =>
 			some(Target(x)),
 		(PositionKind.SpecSig x) =>
@@ -130,75 +107,29 @@ Opt!Target targetForPosition(PositionKind pos) =>
 					some(Target(x.decl))),
 		(PositionKind.TypeParamWithContainer x) =>
 			some(Target(x)),
-		(PositionKind.UnionMemberPosition x) =>
-			some(Target(x.member)),
+		(UnionMember* x) =>
+			some(Target(x)),
 		(VarDecl* x) =>
 			some(Target(x)),
 		(PositionKind.VisibilityMark) =>
 			none!Target);
 
-Opt!Target exprTarget(PositionKind.Expression a) {
-	Opt!Target local(Local* x) =>
-		some(Target(PositionKind.LocalPosition(a.container.toLocalContainer, x)));
-	return a.expr.kind.match!(Opt!Target)(
-		(AssertOrForbidExpr _) =>
-			none!Target,
-		(BogusExpr _) =>
-			none!Target,
+private:
+
+Opt!Target exprTarget(ExpressionPosition a) =>
+	a.kind.match!(Opt!Target)(
 		(CallExpr x) =>
 			calledTarget(x.called),
-		(ClosureGetExpr x) =>
-			local(toLocal(x.closureRef)),
-		(ClosureSetExpr x) =>
-			local(toLocal(x.closureRef)),
+		(ExprKeyword x) =>
+			none!Target,
 		(FunPointerExpr x) =>
 			some(Target(x.funInst.decl)),
-		(ref IfExpr _) =>
+		(ExpressionPositionKind.Literal) =>
 			none!Target,
-		(ref IfOptionExpr _) =>
-			none!Target,
-		(ref LambdaExpr _) =>
-			none!Target,
-		(ref LetExpr _) =>
-			none!Target,
-		(ref LiteralExpr _) =>
-			none!Target,
-		(LiteralStringLikeExpr _) =>
-			none!Target,
-		(LocalGetExpr x) =>
-			local(x.local),
-		(ref LocalSetExpr x) =>
-			local(x.local),
-		(ref LoopExpr x) =>
-			some(Target(&x)),
-		(ref LoopBreakExpr x) =>
-			some(Target(x.loop)),
-		(LoopContinueExpr x) =>
-			some(Target(x.loop)),
-		(ref LoopUntilExpr _) =>
-			none!Target,
-		(ref LoopWhileExpr _) =>
-			none!Target,
-		(ref MatchEnumExpr _) =>
-			none!Target,
-		(ref MatchUnionExpr _) =>
-			none!Target,
-		(ref PtrToFieldExpr x) =>
-			// TODO: target the field
-			none!Target,
-		(PtrToLocalExpr x) =>
-			local(x.local),
-		(ref SeqExpr _) =>
-			none!Target,
-		(ref ThrowExpr _) =>
-			none!Target,
-		(ref TrustedExpr _) =>
-			none!Target,
-		(ref TypedExpr _) =>
-			none!Target);
-}
-
-private:
+		(ExpressionPositionKind.LocalRef x) =>
+			some(Target(PositionKind.LocalPosition(a.container.toLocalContainer, x.local))),
+		(ExpressionPositionKind.LoopKeyword x) =>
+			some(Target(Target.Loop(x.loop))));
 
 Opt!Target calledTarget(ref Called a) =>
 	a.match!(Opt!Target)(
@@ -209,7 +140,7 @@ Opt!Target calledTarget(ref Called a) =>
 					Target(decl),
 				(BuiltinFun _) =>
 					Target(decl),
-				(FunBody.CreateEnum x) =>
+				(FunBody.CreateEnumOrFlags x) =>
 					// goto the enum member
 					Target(x.member),
 				(FunBody.CreateExtern) =>
@@ -223,9 +154,9 @@ Opt!Target calledTarget(ref Called a) =>
 				(EnumFunction x) =>
 					// goto the type
 					returnTypeTarget(decl),
-				(FunBody.Extern) =>
+				(Expr _) =>
 					Target(decl),
-				(FunBody.ExpressionBody) =>
+				(FunBody.Extern) =>
 					Target(decl),
 				(FunBody.FileImport) =>
 					// TODO: Target for a file showing all imports

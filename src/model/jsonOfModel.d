@@ -19,6 +19,7 @@ import model.model :
 	EnumFunction,
 	Expr,
 	ExprAndType,
+	ExprKind,
 	FlagsFunction,
 	FunBody,
 	FunDecl,
@@ -265,7 +266,7 @@ Json jsonOfFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 			jsonString!"bogus" ,
 		(in BuiltinFun _) =>
 			jsonString!"builtin" ,
-		(in FunBody.CreateEnum x) =>
+		(in FunBody.CreateEnumOrFlags x) =>
 			jsonObject(alloc, [kindField!"create-enum", field!"member"(x.member.name)]),
 		(in FunBody.CreateExtern) =>
 			jsonString!"new-extern",
@@ -278,12 +279,12 @@ Json jsonOfFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 			jsonObject(alloc, [
 				kindField!"enum-fn",
 				field!"fn"(stringOfEnum(x))]),
+		(in Expr x) =>
+			jsonOfExpr(alloc, ctx, x),
 		(in FunBody.Extern x) =>
 			jsonObject(alloc, [
 				kindField!"extern",
 				field!"library-name"(x.libraryName)]),
-		(in FunBody.ExpressionBody x) =>
-			jsonOfExpr(alloc, ctx, x.expr),
 		(in FunBody.FileImport x) =>
 			jsonObject(alloc, [
 				kindField!"file-import",
@@ -340,7 +341,12 @@ Json jsonOfExprAndType(ref Alloc alloc, in Ctx ctx, in ExprAndType a) =>
 		field!"type"(jsonOfType(alloc, ctx, a.type))]);
 
 Json jsonOfExpr(ref Alloc alloc, in Ctx ctx, in Expr a) =>
-	a.kind.matchIn!Json(
+	jsonObject(alloc, [
+		field!"range"(jsonOfRange(alloc, ctx, a.range)),
+		field!"kind"(jsonOfExprKind(alloc, ctx, a.kind))]);
+
+Json jsonOfExprKind(ref Alloc alloc, in Ctx ctx, in ExprKind a) =>
+	a.matchIn!Json(
 		(in AssertOrForbidExpr x) =>
 			jsonObject(alloc, [
 				kindField(stringOfEnum(x.kind)),
@@ -411,7 +417,7 @@ Json jsonOfExpr(ref Alloc alloc, in Ctx ctx, in Expr a) =>
 			jsonObject(alloc, [
 				kindField!"local-set",
 				field!"name"(x.local.name),
-				field!"value"(jsonOfExpr(alloc, ctx, x.value))]),
+				field!"value"(jsonOfExpr(alloc, ctx, *x.value))]),
 		(in LoopExpr x) =>
 			jsonObject(alloc, [
 				kindField!"loop",

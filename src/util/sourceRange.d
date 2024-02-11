@@ -47,9 +47,6 @@ Comparison compareRange(in Range a, in Range b) =>
 Range combineRanges(in Range a, in Range b) =>
 	Range(a.start, b.end);
 
-bool hasPos(in Range a, Pos p) =>
-	a.start <= p && p < a.end;
-
 Range rangeOfStartAndLength(Pos start, size_t length) =>
 	Range(start, safeToUint(start + length));
 

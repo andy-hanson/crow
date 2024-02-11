@@ -19,6 +19,7 @@ import frontend.parse.lexToken :
 	plainToken;
 import frontend.parse.lexWhitespace :
 	mayContinueOntoNextLine, detectIndentKind, IndentKind, skipSpacesAndComments, skipUntilNewline;
+import model.ast : ElifOrElseKeyword;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
@@ -32,7 +33,7 @@ import util.symbol : AllSymbols, symbol;
 import util.util : enumConvert;
 
 public import frontend.parse.lexString : QuoteKind, StringPart;
-public import frontend.parse.lexToken : ElifOrElse, EqualsOrThen, Token, TokenAndData;
+public import frontend.parse.lexToken : EqualsOrThen, Token, TokenAndData;
 
 struct Lexer {
 	@safe @nogc pure nothrow:
@@ -307,14 +308,16 @@ bool tryTakeNewlineThenElse(ref Lexer lexer) {
 		return false;
 }
 
-Opt!ElifOrElse tryTakeNewlineThenElifOrElse(ref Lexer lexer) {
+Opt!ElifOrElseKeyword tryTakeNewlineThenElifOrElse(ref Lexer lexer) {
 	if (getPeekToken(lexer) == Token.newlineSameIndent) {
-		Opt!ElifOrElse res = lookaheadElifOrElse(lexer.ptr);
-		if (has(res)) {
+		Opt!(ElifOrElseKeyword.Kind) kind = lookaheadElifOrElse(lexer.ptr);
+		if (has(kind)) {
 			mustTakeToken(lexer, Token.newlineSameIndent);
-			mustTakeToken(lexer, enumConvert!Token(force(res)));
-		}
-		return res;
+			Pos pos = curPos(lexer);
+			mustTakeToken(lexer, enumConvert!Token(force(kind)));
+			return some(ElifOrElseKeyword(force(kind), pos));
+		} else
+			return none!ElifOrElseKeyword;
 	} else
-		return none!ElifOrElse;
+		return none!ElifOrElseKeyword;
 }

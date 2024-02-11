@@ -80,7 +80,7 @@ void writeLineAndColumnRange(scope ref Writer writer, in LineAndColumnRange a) {
 	writeLineAndColumn(writer, a.end);
 }
 
-private void writeLineAndColumn(scope ref Writer writer, LineAndColumn lc) {
+void writeLineAndColumn(scope ref Writer writer, LineAndColumn lc) {
 	writer ~= lc.line1Indexed;
 	writer ~= ':';
 	writer ~= lc.column1Indexed;

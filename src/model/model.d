@@ -17,21 +17,29 @@ import model.ast :
 	StructAliasAst,
 	StructDeclAst,
 	TestAst,
-	TypedAst,
 	VarDeclAst;
 import model.concreteModel : TypeSize;
 import model.constant : Constant;
 import model.diag : Diag, Diagnostic, isFatal, UriAndDiagnostic;
 import model.parseDiag : ParseDiagnostic;
 import util.col.array :
-	arrayOfSingle, emptySmallArray, exists, first, isEmpty, only, PtrAndSmallNumber, small, SmallArray;
+	arrayOfSingle,
+	emptySmallArray,
+	exists,
+	first,
+	isEmpty,
+	mustHaveIndexOfPointer,
+	only,
+	PtrAndSmallNumber,
+	small,
+	SmallArray;
 import util.col.hashTable : existsInHashTable, HashTable;
 import util.col.map : Map;
 import util.col.enumMap : EnumMap;
 import util.conv : safeToUint;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : force, has, none, Opt, optEqual, some;
-import util.sourceRange : combineRanges, UriAndRange, Pos, rangeOfStartAndLength, Range;
+import util.sourceRange : combineRanges, UriAndRange, Pos, Range;
 import util.string : emptySmallString, SmallString;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : IndexType, TaggedUnion, Union;
@@ -216,12 +224,14 @@ immutable struct RecordField {
 	Opt!Visibility mutability;
 	Type type;
 
+	Uri moduleUri() scope =>
+		containingRecord.moduleUri;
 	Symbol name() scope =>
 		source.name;
 	Range range(in AllSymbols allSymbols) scope =>
 		source.range(allSymbols);
 	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
-		UriAndRange(containingRecord.moduleUri, source.nameRange(allSymbols));
+		UriAndRange(moduleUri, source.nameRange(allSymbols));
 }
 
 immutable struct UnionMember {
@@ -231,12 +241,18 @@ immutable struct UnionMember {
 	StructDecl* containingUnion;
 	Type type; // This will be 'void' if no type is specified
 
+	size_t memberIndex() =>
+		mustHaveIndexOfPointer(containingUnion.body_.as!(StructBody.Union).members, &this);
+	Uri moduleUri() scope =>
+		containingUnion.moduleUri;
+	Visibility visibility() scope =>
+		containingUnion.visibility;
 	Symbol name() scope =>
 		source.name;
 	Range range(in AllSymbols allSymbols) scope =>
 		source.range(allSymbols);
 	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
-		UriAndRange(containingUnion.moduleUri, source.nameRange(allSymbols));
+		UriAndRange(moduleUri, source.nameRange(allSymbols));
 }
 
 alias ByValOrRef = immutable ByValOrRef_;
@@ -290,12 +306,18 @@ immutable struct EnumOrFlagsMember {
 	StructDecl* containingEnum;
 	EnumValue value;
 
+	size_t memberIndex() =>
+		mustHaveIndexOfPointer(containingEnum.body_.as!(StructBody.Enum).members, &this);
+	Uri moduleUri() scope =>
+		containingEnum.moduleUri;
+	Visibility visibility() scope =>
+		containingEnum.visibility;
 	Symbol name() scope =>
 		source.name;
 	Range range(in AllSymbols allSymbols) scope =>
 		source.range(allSymbols);
 	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
-		UriAndRange(containingEnum.moduleUri, source.nameRange(allSymbols));
+		UriAndRange(moduleUri, source.nameRange(allSymbols));
 }
 
 immutable struct StructBody {
@@ -614,16 +636,13 @@ string stringOfVarKindLowerCase(VarKind a) {
 
 immutable struct FunBody {
 	immutable struct Bogus {}
-	immutable struct CreateEnum {
+	immutable struct CreateEnumOrFlags {
 		EnumOrFlagsMember* member;
 	}
 	immutable struct CreateExtern {}
 	immutable struct CreateRecord {}
 	immutable struct CreateUnion {
-		size_t memberIndex;
-	}
-	immutable struct ExpressionBody {
-		Expr expr;
+		UnionMember* member;
 	}
 	immutable struct Extern {
 		Symbol libraryName;
@@ -651,13 +670,13 @@ immutable struct FunBody {
 	mixin Union!(
 		Bogus,
 		BuiltinFun,
-		CreateEnum,
+		CreateEnumOrFlags,
 		CreateExtern,
 		CreateRecord,
 		CreateUnion,
 		EnumFunction,
+		Expr,
 		Extern,
-		ExpressionBody,
 		FileImport,
 		FlagsFunction,
 		RecordFieldCall,
@@ -667,6 +686,7 @@ immutable struct FunBody {
 		VarGet,
 		VarSet);
 }
+static assert(FunBody.sizeof == ulong.sizeof + Expr.sizeof);
 
 immutable struct BuiltinFun {
 	immutable struct AllTests {}
@@ -945,15 +965,15 @@ immutable struct FunDeclSource {
 			(in FunDeclSource.Ast x) =>
 				x.moduleUri,
 			(in EnumOrFlagsMember x) =>
-				x.containingEnum.moduleUri,
+				x.moduleUri,
 			(in FunDeclSource.FileImport x) =>
 				x.moduleUri,
 			(in RecordField x) =>
-				x.containingRecord.moduleUri,
+				x.moduleUri,
 			(in StructDecl x) =>
 				x.moduleUri,
 			(in UnionMember x) =>
-				x.containingUnion.moduleUri,
+				x.moduleUri,
 			(in VarDecl x) =>
 				x.moduleUri);
 
@@ -964,15 +984,15 @@ immutable struct FunDeclSource {
 			(in FunDeclSource.Ast x) =>
 				UriAndRange(x.moduleUri, x.ast.range),
 			(in EnumOrFlagsMember x) =>
-				UriAndRange(x.containingEnum.moduleUri, x.range(allSymbols)),
+				UriAndRange(x.moduleUri, x.range(allSymbols)),
 			(in FunDeclSource.FileImport x) =>
 				UriAndRange(x.moduleUri, x.ast.range),
 			(in RecordField x) =>
-				UriAndRange(x.containingRecord.moduleUri, x.range(allSymbols)),
+				UriAndRange(x.moduleUri, x.range(allSymbols)),
 			(in StructDecl x) =>
 				x.range,
 			(in UnionMember x) =>
-				UriAndRange(x.containingUnion.moduleUri, x.range(allSymbols)),
+				UriAndRange(x.moduleUri, x.range(allSymbols)),
 			(in VarDecl x) =>
 				x.range);
 	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
@@ -1020,8 +1040,8 @@ immutable struct FunDecl {
 				x.typeParams,
 			(FunDeclSource.Ast x) =>
 				x.ast.typeParams,
-			(ref EnumOrFlagsMember _) =>
-				emptySmallArray!NameAndRange,
+			(ref EnumOrFlagsMember x) =>
+				x.containingEnum.typeParams,
 			(FunDeclSource.FileImport _) =>
 				emptySmallArray!NameAndRange,
 			(ref RecordField x) =>
@@ -1080,6 +1100,15 @@ immutable struct Test {
 
 	UriAndRange range() =>
 		UriAndRange(moduleUri, ast.range);
+	Type returnType(ref CommonTypes commonTypes) scope {
+		final switch (bodyType) {
+			case BodyType.bogus:
+			case BodyType.void_:
+				return Type(commonTypes.void_);
+			case BodyType.voidFuture:
+				return Type(commonTypes.voidFuture);
+		}
+	}
 }
 
 immutable struct FunDeclAndTypeArgs {
@@ -1212,12 +1241,22 @@ immutable struct Called {
 			(CalledSpecSig s) =>
 				s.instantiatedSig.returnType);
 
+	Type[] paramTypes() scope =>
+		match!(Type[])(
+			(ref FunInst x) =>
+				x.paramTypes,
+			(CalledSpecSig s) =>
+				s.instantiatedSig.paramTypes);
+
 	Arity arity() scope =>
 		matchIn!Arity(
 			(in FunInst x) =>
 				x.arity,
 			(in CalledSpecSig x) =>
 				x.arity);
+
+	bool isVariadic() scope =>
+		arity.isA!(Arity.Varargs);
 }
 
 Type paramTypeAt(in Called a, size_t argIndex) scope =>
@@ -1411,6 +1450,11 @@ immutable struct CommonTypes {
 
 	Opt!(StructDecl*) tuple(size_t arity) return scope =>
 		2 <= arity && arity <= 9 ? some(tuples2Through9[arity - 2]) : none!(StructDecl*);
+}
+
+Type arrayElementType(in CommonTypes commonTypes, Type type) {
+	assert(type.as!(StructInst*).decl == commonTypes.array);
+	return only(type.as!(StructInst*).typeArgs);
 }
 
 private bool isNonFunctionPointer(in CommonTypes commonTypes, StructDecl* a) =>
@@ -1624,30 +1668,20 @@ immutable struct ClosureRef {
 	VariableRef variableRef() return scope =>
 		lambda.closure[index];
 
+	Local* local() return scope =>
+		variableRef.local;
+
+	ClosureReferenceKind closureReferenceKind() scope =>
+		variableRef.closureReferenceKind;
+
 	Symbol name() scope =>
-		toLocal(this).name;
+		local.name;
 
 	Type type() return scope =>
-		toLocal(this).type;
+		local.type;
 }
-
-Local* toLocal(return in ClosureRef a) =>
-	toLocal(a.variableRef);
 
 enum ClosureReferenceKind { direct, allocated }
-
-ClosureReferenceKind getClosureReferenceKind(ClosureRef a) =>
-	getClosureReferenceKind(a.variableRef);
-private ClosureReferenceKind getClosureReferenceKind(VariableRef a) {
-	final switch (toLocal(a).mutability) {
-		case LocalMutability.immut:
-			return ClosureReferenceKind.direct;
-		case LocalMutability.mutOnStack:
-			assert(false);
-		case LocalMutability.mutAllocated:
-			return ClosureReferenceKind.allocated;
-	}
-}
 
 immutable struct VariableRef {
 	@safe @nogc pure nothrow:
@@ -1655,17 +1689,27 @@ immutable struct VariableRef {
 	mixin TaggedUnion!(Local*, ClosureRef);
 
 	Symbol name() scope =>
-		toLocal(this).name;
-	Type type() =>
-		toLocal(this).type;
-}
+		local.name;
+	LocalMutability mutability() scope =>
+		local.mutability;
+	Type type() return scope =>
+		local.type;
 
-private Local* toLocal(VariableRef a) =>
-	a.matchWithPointers!(Local*)(
-		(Local* x) =>
-			x,
-		(ClosureRef x) =>
-			toLocal(x.variableRef()));
+	private Local* local() return scope =>
+		matchWithPointers!(Local*)(
+			(Local* x) => x,
+			(ClosureRef x) => x.local);
+	ClosureReferenceKind closureReferenceKind() scope {
+		final switch (local.mutability) {
+			case LocalMutability.immut:
+				return ClosureReferenceKind.direct;
+			case LocalMutability.mutOnStack:
+				assert(false);
+			case LocalMutability.mutAllocated:
+				return ClosureReferenceKind.allocated;
+		}
+	}
+}
 
 immutable struct Destructure {
 	@safe @nogc pure nothrow:
@@ -1733,7 +1777,7 @@ immutable struct ExprKind {
 		LiteralExpr*,
 		LiteralStringLikeExpr,
 		LocalGetExpr,
-		LocalSetExpr*,
+		LocalSetExpr,
 		LoopExpr*,
 		LoopBreakExpr*,
 		LoopContinueExpr,
@@ -1770,18 +1814,27 @@ immutable struct CallExpr {
 }
 
 immutable struct ClosureGetExpr {
+	@safe @nogc pure nothrow:
 	ClosureRef closureRef;
+
+	Local* local() return scope =>
+		closureRef.local;
 }
 
 immutable struct ClosureSetExpr {
+	@safe @nogc pure nothrow:
 	ClosureRef closureRef;
 	Expr* value;
+
+	Local* local() return scope =>
+		closureRef.local;
 }
 
 immutable struct FunPointerExpr {
 	FunInst* funInst;
 }
 
+// Expression for an 'if', 'unless', or ternary expression.
 immutable struct IfExpr {
 	Expr cond;
 	Expr then;
@@ -1849,16 +1902,12 @@ immutable struct LocalGetExpr {
 
 immutable struct LocalSetExpr {
 	Local* local;
-	Expr value;
+	Expr* value;
 }
 
 immutable struct LoopExpr {
-	Range range;
 	Expr body_;
 }
-
-Range loopKeywordRange(in LoopExpr a) =>
-	rangeOfStartAndLength(a.range.start, "loop".length);
 
 immutable struct LoopBreakExpr {
 	LoopExpr* loop;
@@ -1885,6 +1934,11 @@ immutable struct MatchEnumExpr {
 	ExprAndType matched;
 	Expr[] cases;
 
+	StructDecl* enum_() {
+		StructInst* inst = matched.type.as!(StructInst*);
+		assert(isEmpty(inst.typeArgs));
+		return inst.decl;
+	}
 	EnumOrFlagsMember[] enumMembers() =>
 		matched.type.as!(StructInst*).decl.body_.as!(StructBody.Enum).members;
 }
@@ -1900,8 +1954,10 @@ immutable struct MatchUnionExpr {
 	ExprAndType matched;
 	Case[] cases;
 
+	StructInst* union_() =>
+		matched.type.as!(StructInst*);
 	UnionMember[] unionMembers() =>
-		matched.type.as!(StructInst*).decl.body_.as!(StructBody.Union).members;
+		union_.decl.body_.as!(StructBody.Union).members;
 }
 
 immutable struct PtrToFieldExpr {
@@ -1939,15 +1995,7 @@ immutable struct TrustedExpr {
 }
 
 immutable struct TypedExpr {
-	@safe @nogc pure nothrow:
-
 	Expr inner;
-	Type type;
-
-	TypedAst* ast(ref Expr expr) scope {
-		assert(expr.kind.as!(TypedExpr*) == &this);
-		return expr.ast.kind.as!(TypedAst*);
-	}
 }
 
 alias Visibility = immutable Visibility_;

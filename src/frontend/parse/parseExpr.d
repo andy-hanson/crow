@@ -6,7 +6,6 @@ import frontend.parse.lexer :
 	addDiag,
 	addDiagUnexpectedCurToken,
 	curPos,
-	ElifOrElse,
 	EqualsOrThen,
 	getPeekToken,
 	getPeekTokenAndData,
@@ -54,6 +53,7 @@ import model.ast :
 	CallNamedAst,
 	DestructureAst,
 	DoAst,
+	ElifOrElseKeyword,
 	EmptyAst,
 	ExprAst,
 	ExprAstKind,
@@ -76,6 +76,7 @@ import model.ast :
 	PtrAst,
 	SeqAst,
 	SharedAst,
+	TernaryAst,
 	ThenAst,
 	ThrowAst,
 	TrustedAst,
@@ -259,24 +260,27 @@ ExprAst parseNextLinesOrEmpty(ref Lexer lexer, Pos start) =>
 ExprAst emptyAst(ref Lexer lexer) =>
 	ExprAst(rangeAtChar(lexer), ExprAstKind(EmptyAst()));
 
-ExprAst parseCalls(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) =>
-	canParseCommaExpr(argCtx) && tryTakeToken(lexer, Token.comma)
+ExprAst parseCalls(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) {
+	Pos beforeCall = curPos(lexer);
+	return canParseCommaExpr(argCtx) && tryTakeToken(lexer, Token.comma)
 		? parseCallsAfterComma(lexer, start, lhs, argCtx)
 		: canParseTernaryExpr(argCtx) && tryTakeToken(lexer, Token.question)
-		? parseCallsAfterQuestion(lexer, start, lhs, argCtx)
+		? parseCallsAfterQuestion(lexer, start, lhs, beforeCall, argCtx)
 		: parseNamedCalls(lexer, start, lhs, argCtx);
+}
 
-ExprAst parseCallsAfterQuestion(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) {
+ExprAst parseCallsAfterQuestion(ref Lexer lexer, Pos start, ref ExprAst lhs, Pos questionPos, ArgCtx argCtx) {
 	ExprAst then = parseExprAndCalls(lexer, argCtx);
+	Pos colonPos = curPos(lexer);
 	if (tryTakeToken(lexer, Token.colon)) {
 		ExprAst else_ = parseExprAndCalls(lexer, argCtx);
 		return ExprAst(
 				range(lexer, start),
-				ExprAstKind(allocate(lexer.alloc, IfAst(lhs, then, else_))));
+				ExprAstKind(allocate(lexer.alloc, TernaryAst(lhs, questionPos, then, some(colonPos), else_))));
 	} else
 		return ExprAst(
 			range(lexer, start),
-			ExprAstKind(allocate(lexer.alloc, IfAst(lhs, then, emptyAst(lexer)))));
+			ExprAstKind(allocate(lexer.alloc, TernaryAst(lhs, questionPos, then, none!Pos, emptyAst(lexer)))));
 }
 
 bool canParseTernaryExpr(in ArgCtx argCtx) =>
@@ -333,7 +337,7 @@ ExprAst parseNamedCalls(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argC
 				case AssignmentKind.inPlace:
 					return ExprAstKind(CallAst(CallAst.Style.infix, funName, prepend(lexer.alloc, lhs, args)));
 				case AssignmentKind.replace:
-					return ExprAstKind(allocate(lexer.alloc, AssignmentCallAst(lhs, funName, only(args))));
+					return ExprAstKind(allocate(lexer.alloc, AssignmentCallAst(funName, [lhs, only(args)])));
 			}
 		} else
 			return ExprAstKind(CallAst(CallAst.Style.infix, funName, prepend(lexer.alloc, lhs, args), typeArg));
@@ -512,44 +516,48 @@ ExprAst parseIf(ref Lexer lexer, Pos start) =>
 ExprAst parseIfRecur(ref Lexer lexer, Pos start) {
 	if (lookaheadQuestionEquals(lexer)) {
 		DestructureAst lhs = parseDestructureNoRequireParens(lexer);
+		Pos questionEqualPos = curPos(lexer);
 		takeOrAddDiagExpectedToken(lexer, Token.questionEqual, ParseDiag.Expected.Kind.questionEqual);
 		ConditionThenAndElse cte = parseConditionThenAndElse(lexer);
 		ExprAstKind kind = ExprAstKind(allocate(lexer.alloc, IfOptionAst(
 			lhs,
+			questionEqualPos,
 			cte.condition,
 			cte.then,
 			cte.else_)));
 		return ExprAst(range(lexer, start), kind);
 	} else {
 		ConditionThenAndElse cte = parseConditionThenAndElse(lexer);
-		ExprAstKind kind = ExprAstKind(allocate(lexer.alloc, IfAst(cte.condition, cte.then, cte.else_)));
-		return ExprAst(range(lexer, start), kind);
+		return ExprAst(
+			range(lexer, start),
+			ExprAstKind(allocate(lexer.alloc, IfAst(cte.condition, cte.then, cte.elifOrElseKeyword, cte.else_))));
 	}
 }
 
 struct ConditionThenAndElse {
 	ExprAst condition;
 	ExprAst then;
-	ExprAst else_;
+	Opt!ElifOrElseKeyword elifOrElseKeyword;
+	ExprAst else_; // May be EmptyAst
 }
 
 ConditionThenAndElse parseConditionThenAndElse(ref Lexer lexer) {
 	ExprAst condition = parseExprNoBlock(lexer);
 	ExprAst then = parseIndentedStatements(lexer);
 	Pos elifStart = curPos(lexer);
-	Opt!ElifOrElse elifOrElse = tryTakeNewlineThenElifOrElse(lexer);
+	Opt!ElifOrElseKeyword elifOrElse = tryTakeNewlineThenElifOrElse(lexer);
 	ExprAst else_ = () {
 		if (has(elifOrElse)) {
-			final switch (force(elifOrElse)) {
-				case ElifOrElse.elif:
+			final switch (force(elifOrElse).kind) {
+				case ElifOrElseKeyword.Kind.elif:
 					return parseIfRecur(lexer, elifStart);
-				case ElifOrElse.else_:
+				case ElifOrElseKeyword.Kind.else_:
 					return parseIndentedStatements(lexer);
 			}
 		} else
 			return emptyAst(lexer);
 	}();
-	return ConditionThenAndElse(condition, then, else_);
+	return ConditionThenAndElse(condition, then, elifOrElse, else_);
 }
 
 immutable struct ConditionAndBody {
@@ -606,14 +614,14 @@ ExprAst parseAssertOrForbid(ref Lexer lexer, Pos start, AllowedBlock allowedBloc
 ExprAst parseFor(ref Lexer lexer, Pos start, AllowedBlock allowedBlock) =>
 	parseForOrWith(
 		lexer, start, allowedBlock, ParseDiag.NeedsBlockCtx.Kind.for_,
-		(DestructureAst param, ExprAst col, ExprAst body_, ExprAst else_) =>
-			ExprAstKind(allocate(lexer.alloc, ForAst(param, col, body_, else_))));
+		(DestructureAst param, Pos colon, ExprAst col, ExprAst body_, ExprAst else_) =>
+			ExprAstKind(allocate(lexer.alloc, ForAst(param, colon, col, body_, else_))));
 
 ExprAst parseWith(ref Lexer lexer, Pos start, AllowedBlock allowedBlock) =>
 	parseForOrWith(
 		lexer, start, allowedBlock, ParseDiag.NeedsBlockCtx.Kind.with_,
-		(DestructureAst param, ExprAst col, ExprAst body_, ExprAst else_) =>
-			ExprAstKind(allocate(lexer.alloc, WithAst(param, col, body_, else_))));
+		(DestructureAst param, Pos colon, ExprAst col, ExprAst body_, ExprAst else_) =>
+			ExprAstKind(allocate(lexer.alloc, WithAst(param, colon, col, body_, else_))));
 
 ExprAst parseForOrWith(
 	ref Lexer lexer,
@@ -621,15 +629,18 @@ ExprAst parseForOrWith(
 	AllowedBlock allowedBlock,
 	ParseDiag.NeedsBlockCtx.Kind blockKind,
 	in ExprAstKind delegate(
-		DestructureAst, ExprAst rhs, ExprAst body_, ExprAst else_,
+		DestructureAst, Pos colon, ExprAst rhs, ExprAst body_, ExprAst else_,
 	) @safe @nogc pure nothrow cbMakeExprKind,
 ) {
-	DestructureAst param = parseParameterForForOrWith(lexer);
+	DestructureAndEndTokenPos paramAndColon = parseForThenOrWithParameter(
+		lexer, Token.colon, ParseDiag.Expected.Kind.colon);
+	DestructureAst param = paramAndColon.destructure;
+	Pos colon = paramAndColon.endTokenPos;
 	ExprAst rhs = parseExprNoBlock(lexer);
 	bool semi = tryTakeToken(lexer, Token.semicolon);
 	if (semi) {
 		ExprAst body_ = parseExprNoBlock(lexer);
-		return ExprAst(range(lexer, start), cbMakeExprKind(param, rhs, body_, emptyAst(lexer)));
+		return ExprAst(range(lexer, start), cbMakeExprKind(param, colon, rhs, body_, emptyAst(lexer)));
 	} else
 		final switch (allowedBlock) {
 			case AllowedBlock.no:
@@ -638,7 +649,7 @@ ExprAst parseForOrWith(
 				return takeIndentOrFail_Expr(lexer, () {
 					ExprAst body_ = parseStatementsAndDedent(lexer);
 					ExprAst else_ = tryTakeNewlineThenElse(lexer) ? parseIndentedStatements(lexer) : emptyAst(lexer);
-					return ExprAst(range(lexer, start), cbMakeExprKind(param, rhs, body_, else_));
+					return ExprAst(range(lexer, start), cbMakeExprKind(param, colon, rhs, body_, else_));
 				});
 		}
 }
@@ -668,12 +679,10 @@ ExprAst takeIndentOrFail_Expr(ref Lexer lexer, in ExprAst delegate() @safe @nogc
 
 ExprAst parseLambdaWithParenthesizedParameters(ref Lexer lexer, Pos start, AllowedBlock allowedBlock) {
 	DestructureAst parameter = parseDestructureRequireParens(lexer);
+	Pos arrowPos = curPos(lexer);
 	takeOrAddDiagExpectedToken(lexer, Token.arrowLambda, ParseDiag.Expected.Kind.lambdaArrow);
-	return parseLambdaAfterArrow(lexer, start, allowedBlock, parameter);
+	return parseLambdaAfterArrow(lexer, start, allowedBlock, parameter, arrowPos);
 }
-
-DestructureAst parseParameterForForOrWith(ref Lexer lexer) =>
-	parseForThenOrWithParameter(lexer, Token.colon, ParseDiag.Expected.Kind.colon).destructure;
 
 struct DestructureAndEndTokenPos {
 	DestructureAst destructure;
@@ -695,13 +704,28 @@ DestructureAndEndTokenPos parseForThenOrWithParameter(
 	}
 }
 
-ExprAst parseLambdaAfterNameAndArrow(ref Lexer lexer, Pos start, AllowedBlock allowedBlock, Symbol paramName) =>
-	parseLambdaAfterArrow(lexer, start, allowedBlock, DestructureAst(
-		DestructureAst.Single(NameAndRange(start, paramName), none!Pos, none!(TypeAst*))));
+ExprAst parseLambdaAfterNameAndArrow(
+	ref Lexer lexer,
+	Pos start,
+	AllowedBlock allowedBlock,
+	Symbol paramName,
+	Pos arrowPos,
+) =>
+	parseLambdaAfterArrow(
+		lexer, start, allowedBlock,
+		DestructureAst(DestructureAst.Single(NameAndRange(start, paramName), none!Pos, none!(TypeAst*))),
+		arrowPos);
 
-ExprAst parseLambdaAfterArrow(ref Lexer lexer, Pos start, AllowedBlock allowedBlock, DestructureAst parameter) {
+ExprAst parseLambdaAfterArrow(
+	ref Lexer lexer,
+	Pos start,
+	AllowedBlock allowedBlock,
+	DestructureAst parameter,
+	Pos arrowPos,
+) {
 	ExprAst body_ = parseExprInlineOrBlock(lexer, start, allowedBlock, ParseDiag.NeedsBlockCtx.Kind.lambda);
-	return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, LambdaAst(parameter, body_))));
+	return ExprAst(range(lexer, start), ExprAstKind(
+		allocate(lexer.alloc, LambdaAst(parameter, some(arrowPos), body_))));
 }
 
 ExprAst parseExprInlineOrBlock(
@@ -816,8 +840,9 @@ ExprAst parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBlock) {
 			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.match, () => parseMatch(lexer, start));
 		case Token.name:
 			Symbol name = token.asSymbol;
+			Pos arrowPos = curPos(lexer);
 			return tryTakeToken(lexer, Token.arrowLambda)
-				? parseLambdaAfterNameAndArrow(lexer, start, allowedBlock, name)
+				? parseLambdaAfterNameAndArrow(lexer, start, allowedBlock, name, arrowPos)
 				: handleName(lexer, start, NameAndRange(start, name));
 		case Token.operator:
 			Symbol operator = token.asSymbol;
@@ -841,8 +866,9 @@ ExprAst parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBlock) {
 		case Token.trusted:
 			return parseTrusted(lexer, start, allowedBlock);
 		case Token.underscore:
+			Pos arrowPos = curPos(lexer);
 			return tryTakeToken(lexer, Token.arrowLambda)
-				? parseLambdaAfterNameAndArrow(lexer, start, allowedBlock, symbol!"_")
+				? parseLambdaAfterNameAndArrow(lexer, start, allowedBlock, symbol!"_", arrowPos)
 				: badToken(lexer, start, token);
 		case Token.unless:
 			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.unless, () => parseUnless(lexer, start));
