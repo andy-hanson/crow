@@ -25,6 +25,6 @@
 		"vscode-languageclient": "^9.0.1"
 	},
 	"devDependencies": {
-		"vsce": "^2.15.0"
+		"@vscode/vsce": "^2.23.0"
 	}
 }

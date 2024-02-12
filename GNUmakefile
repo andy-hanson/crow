@@ -170,7 +170,7 @@ bin/crow.tar.xz: bin/crow bin/crow.vsix demo/* demo/*/* editor/sublime/* $(ALL_I
 		--file bin/crow.tar.xz crow/bin/crow crow/demo crow/editor crow/include crow/libraries
 
 bin/crow.vsix: editor/vscode/* editor/vscode/node_modules
-	cd editor/vscode && ./node_modules/vsce/vsce package --allow-missing-repository --out ../../bin/crow.vsix
+	cd editor/vscode && ./node_modules/@vscode/vsce/vsce package --allow-missing-repository --out ../../bin/crow.vsix
 
 install-vscode-extension: bin/crow.vsix
 	code --install-extension bin/crow.vsix
