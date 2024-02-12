@@ -40,25 +40,19 @@ import model.model :
 	UnionMember,
 	VarDecl;
 import util.alloc.alloc : Alloc;
-import util.col.array : isEmpty;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has;
 import util.sourceRange : PosKind;
 import util.symbol : writeSymbol;
 import util.uri : Uri;
 import util.writer : makeStringWithWriter, writeNewline, Writer;
 
-Opt!Hover getHover(ref Alloc alloc, in ShowModelCtx ctx, in Position pos) {
-	string content = makeStringWithWriter(alloc, (scope ref Writer writer) {
+Hover getHover(ref Alloc alloc, in ShowModelCtx ctx, in Position pos) =>
+	Hover(MarkupContent(MarkupKind.plaintext, makeStringWithWriter(alloc, (scope ref Writer writer) {
 		getHover(writer, ctx, pos);
-	});
-	return isEmpty(content)
-		? none!Hover
-		: some(Hover(MarkupContent(MarkupKind.plaintext, content)));
-}
+	})));
 
 void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 	pos.kind.matchWithPointers!void(
-		(PositionKind.None) {},
 		(EnumOrFlagsMember* x) {
 			writer ~= x.containingEnum.body_.isA!(StructBody.Enum) ? "Enum " : "Flags ";
 			writer ~= " member ";
@@ -166,7 +160,7 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 					case ModifierKeyword.storage:
 						return "Determines the type of number used to store the enum.";
 					case ModifierKeyword.summon:
-						return "This function can directly access all I/O capacilities.";
+						return "This function can directly access all I/O capabilities.";
 					case ModifierKeyword.trusted:
 						return "This function is not unsafe, but can do unsafe things internally.";
 					case ModifierKeyword.unsafe:

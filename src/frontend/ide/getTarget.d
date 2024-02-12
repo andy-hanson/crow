@@ -57,8 +57,6 @@ immutable struct Target {
 
 Opt!Target targetForPosition(PositionKind pos) =>
 	pos.matchWithPointers!(Opt!Target)(
-		(PositionKind.None) =>
-			none!Target,
 		(EnumOrFlagsMember* x) =>
 			some(Target(x)),
 		(ExpressionPosition x) =>

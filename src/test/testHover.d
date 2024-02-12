@@ -17,7 +17,7 @@ import util.col.arrayBuilder : buildArray, Builder;
 import util.col.hashTable : mustGet;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonList, jsonObject, jsonToStringPretty, optionalArrayField;
-import util.opt : force, has, Opt;
+import util.opt : force, has, Opt, optIf;
 import util.uri : mustParseUri, Uri;
 import util.sourceRange :
 	jsonOfLineAndCharacterRange, jsonOfUriAndLineAndCharacterRange, LineAndCharacterGetter, Pos, Range, UriAndRange;
@@ -94,11 +94,11 @@ Json hoverResult(ref Alloc alloc, in string content, in ShowModelCtx ctx, in Pro
 
 		Pos endOfFile = safeToUint(content.length);
 		foreach (Pos pos; 0 .. endOfFile + 1) {
-			Position position = getPosition(ctx.allSymbols, ctx.allUris, program, mainModule, pos);
-			Opt!Hover hover = getHover(alloc, ctx, position);
+			Opt!Position position = getPosition(ctx.allSymbols, ctx.allUris, program, mainModule, pos);
+			Opt!Hover hover = optIf(has(position), () => getHover(alloc, ctx, force(position)));
 			InfoAtPos here = InfoAtPos(
 				has(hover) ? force(hover).contents.value : "",
-				getDefinitionForPosition(alloc, ctx.allSymbols, position));
+				has(position) ? getDefinitionForPosition(alloc, ctx.allSymbols, force(position)) : []);
 			if (here != curInfo) {
 				endRange(pos);
 				curRangeStart = pos;

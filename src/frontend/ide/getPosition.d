@@ -115,7 +115,7 @@ import model.model :
 	VarDecl;
 import model.model : paramsArray, StructDeclSource;
 import util.col.array :
-	firstPointer, firstWithIndex, firstZip, firstZipPointerFirst, firstZipPointerFirst3, isEmpty, SmallArray;
+	findIndex, firstPointer, firstZip, firstZipPointerFirst, firstZipPointerFirst3, isEmpty, SmallArray;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
 import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, optIf, optOr, optOr, optOrDefault, some;
@@ -125,10 +125,10 @@ import util.union_ : Union;
 import util.uri : AllUris;
 import util.util : enumConvert, ptrTrustMe;
 
-Position getPosition(in AllSymbols allSymbols, in AllUris allUris, ref Program program, Module* module_, Pos pos) {
+Opt!Position getPosition(in AllSymbols allSymbols, in AllUris allUris, ref Program program, Module* module_, Pos pos) {
 	Ctx ctx = Ctx(ptrTrustMe(allSymbols), program.commonTypes);
 	Opt!PositionKind kind = getPositionKind(ctx, allUris, *module_, pos);
-	return Position(module_, has(kind) ? force(kind) : PositionKind(PositionKind.None()));
+	return optIf(has(kind), () => Position(module_, force(kind)));
 }
 
 private:
@@ -210,30 +210,32 @@ Opt!PositionKind positionInModifiers(
 	in Opt!(SmallArray!(immutable SpecInst*)) specs,
 	in ModifierAst[] modifiers,
 	Pos pos,
-) =>
-	firstWithIndex!(PositionKind, ModifierAst)(modifiers, (size_t index, ModifierAst modifier) =>
-		optIf(hasPos(modifier.range(allSymbols), pos), () =>
-			positionInModifier(allSymbols, container, specs, modifiers, index, modifier, pos)));
+) {
+	Opt!size_t index = findIndex!ModifierAst(modifiers, (in ModifierAst modifier) =>
+		hasPos(modifier.range(allSymbols), pos));
+	return has(index)
+		? positionInModifier(allSymbols, container, specs, modifiers, force(index), pos)
+		: none!PositionKind;
+}
 
-PositionKind positionInModifier(
+Opt!PositionKind positionInModifier(
 	in AllSymbols allSymbols,
 	TypeContainer container,
-	Opt!(SmallArray!(immutable SpecInst*)) specs,
+	in Opt!(SmallArray!(immutable SpecInst*)) specs,
 	in ModifierAst[] modifiers,
 	size_t index,
-	in ModifierAst modifier,
 	Pos pos,
 ) =>
-	modifier.matchIn!PositionKind(
+	modifiers[index].matchIn!(Opt!PositionKind)(
 		(in ModifierAst.Keyword x) {
 			switch (x.keyword) {
 				case ModifierKeyword.extern_:
-					return container.isA!(FunDecl*) && container.as!(FunDecl*).body_.isA!(FunBody.Extern)
+					return some(container.isA!(FunDecl*) && container.as!(FunDecl*).body_.isA!(FunBody.Extern)
 						? PositionKind(PositionKind.ModifierExtern(
 							container.as!(FunDecl*).body_.as!(FunBody.Extern).libraryName))
-						: PositionKind(PositionKind.Modifier(container, x.keyword));
+						: PositionKind(PositionKind.Modifier(container, x.keyword)));
 				default:
-					return PositionKind(PositionKind.Modifier(container, x.keyword));
+					return some(PositionKind(PositionKind.Modifier(container, x.keyword)));
 			}
 		},
 		(in SpecUseAst ast) {
@@ -245,12 +247,13 @@ PositionKind positionInModifier(
 						specIndex++;
 
 				SpecInst* spec = force(specs)[specIndex];
-				return optOrDefault!PositionKind(
+				return optOr!PositionKind(
 					findInPackedTypeArgs!PositionKind(spec.typeArgs, ast.typeArg, (in Type t, in TypeAst a) =>
 						positionInType(allSymbols, container, t, a, pos)),
-					() => PositionKind(PositionKind.SpecUse(container, force(specs)[specIndex])));
+					() => optIf(hasPos(ast.nameRange(allSymbols), pos), () =>
+						PositionKind(PositionKind.SpecUse(container, force(specs)[specIndex]))));
 			} else
-				return PositionKind(PositionKind.None());
+				return none!PositionKind;
 		});
 
 Opt!PositionKind positionInDestructure(ref ExprCtx ctx, in Destructure a, in DestructureAst ast, Pos pos) =>
@@ -383,10 +386,11 @@ Opt!PositionKind positionInTypeParams(
 	TypeContainer container,
 	in NameAndRange[] asts,
 	Pos pos,
-) =>
-	firstWithIndex!(PositionKind, NameAndRange)(asts, (size_t index, NameAndRange x) =>
-		optIf(hasPos(x.range(allSymbols), pos), () =>
-			PositionKind(PositionKind.TypeParamWithContainer(TypeParamIndex(safeToUint(index)), container))));
+) {
+	Opt!size_t index = findIndex!NameAndRange(asts, (in NameAndRange x) => hasPos(x.range(allSymbols), pos));
+	return optIf(has(index), () =>
+		PositionKind(PositionKind.TypeParamWithContainer(TypeParamIndex(safeToUint(force(index))), container)));
+}
 
 Opt!PositionKind positionInSpec(in AllSymbols allSymbols, SpecDecl* a, Pos pos) =>
 	optOr!PositionKind(

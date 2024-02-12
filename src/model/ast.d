@@ -830,6 +830,8 @@ immutable struct SpecUseAst {
 		has(typeArg)
 			? combineRanges(force(typeArg).range(allSymbols), name.range(allSymbols))
 			: name.range(allSymbols);
+	Range nameRange(in AllSymbols allSymbols) scope =>
+		name.range(allSymbols);
 }
 
 enum ModifierKeyword : ubyte {

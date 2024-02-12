@@ -101,7 +101,7 @@ import util.col.mutArr : clearAndDoNotFree, MutArr, push;
 import util.exitCode : ExitCode;
 import util.json : field, Json, jsonNull, jsonObject;
 import util.late : Late, lateGet, lateSet, MutLate;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, Opt, optIf, some;
 import util.perf : Perf;
 import util.sourceRange : LineAndColumn, toLineAndCharacter, UriAndRange, UriLineAndColumn;
 import util.string : copyString, CString, cString;
@@ -530,9 +530,7 @@ private Opt!Hover getHoverForProgram(
 	in HoverParams params,
 ) {
 	Opt!Position position = getPosition(server, program, params.params);
-	return has(position)
-		? getHover(alloc, getShowDiagCtx(server, program), force(position))
-		: none!Hover;
+	return optIf(has(position), () => getHover(alloc, getShowDiagCtx(server, program), force(position)));
 }
 
 private Program getProgram(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] roots) =>
@@ -547,8 +545,7 @@ Program getProgramForAll(scope ref Perf perf, ref Alloc alloc, ref Server server
 private Opt!Position getPosition(in Server server, ref Program program, in TextDocumentPositionParams where) {
 	Opt!(immutable Module*) module_ = program.allModules[where.textDocument.uri];
 	return has(module_)
-		? some(getPosition(
-			server.allSymbols, server.allUris, program, force(module_), server.lineAndCharacterGetters[where]))
+		? getPosition(server.allSymbols, server.allUris, program, force(module_), server.lineAndCharacterGetters[where])
 		: none!Position;
 }
 

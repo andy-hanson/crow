@@ -100,8 +100,6 @@ immutable struct VisibilityContainer {
 }
 
 immutable struct PositionKind {
-	immutable struct None {}
-
 	immutable struct ImportedModule {
 		@safe @nogc pure nothrow:
 		ImportOrExport* import_;
@@ -171,7 +169,6 @@ immutable struct PositionKind {
 	}
 
 	mixin Union!(
-		None,
 		EnumOrFlagsMember*,
 		ExpressionPosition,
 		FunDecl*,

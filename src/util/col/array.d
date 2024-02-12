@@ -252,7 +252,7 @@ size_t mustHaveIndexOfPointer(T)(in T[] xs, in T* pointer) {
 	return 0 <= res && res < xs.length ? some(res) : none!size_t;
 }
 
-Opt!Out firstWithIndex(Out, In)(in In[] a, in Opt!Out delegate(size_t, In) @safe @nogc pure nothrow cb) {
+private Opt!Out firstWithIndex(Out, In)(in In[] a, in Opt!Out delegate(size_t, In) @safe @nogc pure nothrow cb) {
 	foreach (size_t index, In x; a) {
 		Opt!Out res = cb(index, x);
 		if (has(res))
