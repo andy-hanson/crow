@@ -32,7 +32,7 @@ immutable struct NameAndRange {
 	Range range(in AllSymbols allSymbols) scope =>
 		rangeOfStartAndLength(start, symbolSize(allSymbols, name));
 }
-static assert(NameAndRange.sizeof == ulong.sizeof * 2);
+static assert(NameAndRange.sizeof == ulong.sizeof);
 
 immutable struct FieldMutabilityAst {
 	@safe @nogc pure nothrow:
@@ -125,7 +125,7 @@ immutable struct TypeAst {
 			ptr,
 			sharedList,
 		}
-		TypeAst* left;
+		TypeAst left;
 		Pos suffixPos;
 		Kind kind;
 
@@ -150,7 +150,7 @@ immutable struct TypeAst {
 		}
 	}
 
-	mixin Union!(Bogus, Fun*, Map*, NameAndRange, SuffixName*, SuffixSpecial, Tuple);
+	mixin Union!(Bogus, Fun*, Map*, NameAndRange, SuffixName*, SuffixSpecial*, Tuple*);
 
 	Range range(in AllSymbols allSymbols) scope =>
 		matchIn!Range(
@@ -171,7 +171,7 @@ immutable struct TypeAst {
 			(in TypeAst.SuffixSpecial x) => x.suffixRange,
 			(in TypeAst.Tuple x) => x.range);
 }
-static assert(TypeAst.sizeof == ulong.sizeof * 3);
+static assert(TypeAst.sizeof == size_t.sizeof + NameAndRange.sizeof);
 
 private uint suffixLength(TypeAst.SuffixSpecial.Kind a) {
 	final switch (a) {
@@ -313,7 +313,6 @@ immutable struct CallAst {
 	Range nameRange(in AllSymbols allSymbols, in ExprAst* ast) scope =>
 		style == Style.comma ? ast.range : funName.range(allSymbols);
 }
-static assert(CallAst.sizeof == ulong.sizeof * 4);
 
 immutable struct CallNamedAst {
 	@safe @nogc pure nothrow:

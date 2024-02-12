@@ -639,7 +639,7 @@ RootLocalAndExpr concretizeWithDestructure(
 				return RootLocalAndExpr(none!(ConcreteLocal*), concretizeBogus(ctx.concretizeCtx, type, range));
 			else {
 				ConcreteLocal* temp = allocate(ctx.alloc, ConcreteLocal(
-					ConcreteLocalSource(ConcreteLocalSource.Generated(symbol!"destructure")),
+					ConcreteLocalSource(ConcreteLocalSource.Generated.destruct),
 					getConcreteType(ctx, destructure.type)));
 				return RootLocalAndExpr(
 					some(temp),

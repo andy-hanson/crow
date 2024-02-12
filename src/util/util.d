@@ -154,7 +154,7 @@ void assertNormalEnum(E)() {
 		static assert(__traits(getMember, E, name) == i);
 }
 
-private enum stripUnderscore(string s) =
+enum stripUnderscore(string s) =
 	s[$ - 1] == '_' ? s[0 .. $ - 1] : s;
 
 private enum cStringOfString(string s) =

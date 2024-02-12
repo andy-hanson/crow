@@ -48,7 +48,7 @@ void inner(ref Test test, scope ref AllSymbols allSymbols) {
 	Symbol shortSymbol = staticSymbol!"a9aa";
 	assert(shortSymbol == staticSymbol!"a9aa");
 
-	Symbol cStyle = staticSymbol!"C_Style";
+	Symbol cStyle = staticSymbol!"C_St";
 	assert(isShortSymbol(cStyle));
 
 	Symbol setA = prependSet(allSymbols, staticSymbol!"a");
@@ -58,20 +58,15 @@ void inner(ref Test test, scope ref AllSymbols allSymbols) {
 	assert(set == staticSymbol!"set-");
 	assert(isShortSymbol(set));
 
-	Symbol setAbcdefgh = prependSet(allSymbols, staticSymbol!"abcdefgh");
-	assert(setAbcdefgh == staticSymbol!"set-abcdefgh");
+	Symbol setAbcdefgh = prependSet(allSymbols, staticSymbol!"ab");
+	assert(setAbcdefgh == staticSymbol!"set-ab");
 	assert(isShortSymbol(setAbcdefgh));
 
-	Symbol setAbcdefghi = prependSet(allSymbols, staticSymbol!"abcdefghi");
-	assert(setAbcdefghi == nonStaticSymbol("set-abcdefghi"));
+	Symbol setAbcdefghi = prependSet(allSymbols, staticSymbol!"abc");
+	assert(setAbcdefghi == nonStaticSymbol("set-abc"));
 	assert(isLongSymbol(setAbcdefghi));
 
-	Symbol mvSize = staticSymbol!"mv_size";
-	assert(isShortSymbol(mvSize));
-	Symbol setMvSize = prependSet(allSymbols, mvSize);
-	assert(setMvSize == staticSymbol!"set-mv_size");
-	assert(isShortSymbol(setMvSize));
-
 	Symbol setN0 = prependSet(allSymbols, staticSymbol!"n0");
+	assert(isLongSymbol(setN0));
 	assert(setN0 == staticSymbol!"set-n0");
 }

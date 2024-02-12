@@ -264,7 +264,7 @@ TypeAst parseTupleType(ref Lexer lexer, Pos start, ParenthesesNecessary parens) 
 				addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.TypeUnnecessaryParens()));
 			return only(args);
 		default:
-			return TypeAst(TypeAst.Tuple(range(lexer, start), args));
+			return TypeAst(allocate(lexer.alloc, TypeAst.Tuple(range(lexer, start), args)));
 	}
 }
 
@@ -320,12 +320,12 @@ TypeAst parseTypeSuffixesNonName(ref Lexer lexer, TypeAst left) {
 Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, in TypeAst delegate() @safe @nogc pure nothrow left) {
 	Pos suffixPos = curPos(lexer);
 	Opt!TypeAst suffix(TypeAst.SuffixSpecial.Kind kind) =>
-		some(TypeAst(TypeAst.SuffixSpecial(allocate(lexer.alloc, left()), suffixPos, kind)));
+		some(TypeAst(allocate(lexer.alloc, TypeAst.SuffixSpecial(left(), suffixPos, kind))));
 	Opt!TypeAst doubleSuffix(TypeAst.SuffixSpecial.Kind kind1, TypeAst.SuffixSpecial.Kind kind2) =>
-		some(TypeAst(TypeAst.SuffixSpecial(
-			allocate(lexer.alloc, TypeAst(TypeAst.SuffixSpecial(allocate(lexer.alloc, left()), suffixPos, kind2))),
+		some(TypeAst(allocate(lexer.alloc, TypeAst.SuffixSpecial(
+			TypeAst(allocate(lexer.alloc, TypeAst.SuffixSpecial(left(), suffixPos, kind2))),
 			suffixPos + 1,
-			kind1)));
+			kind1))));
 	Opt!TypeAst mapLike(TypeAst.Map.Kind kind) {
 		TypeAst key = parseType(lexer);
 		takeOrAddDiagExpectedToken(lexer, Token.bracketRight, ParseDiag.Expected.Kind.closingBracket);

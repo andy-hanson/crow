@@ -148,15 +148,15 @@ private Opt!T findInTypeArgs(T)(in Type[] typeArgs, in TypeAst ast, in TypeCbOpt
 			none!T,
 		(ref TypeAst.SuffixName x) =>
 			zipEachTypeArgMayUnpackTuple!T(typeArgs, x.left, cb),
-		(TypeAst.SuffixSpecial x) =>
-			zipEachTypeArgMayUnpackTuple!T(typeArgs, *x.left, cb),
-		(TypeAst.Tuple x) =>
+		(ref TypeAst.SuffixSpecial x) =>
+			zipEachTypeArgMayUnpackTuple!T(typeArgs, x.left, cb),
+		(ref TypeAst.Tuple x) =>
 			zipEachTypeArg!T(typeArgs, x.members, cb));
 
 private Opt!T zipEachTypeArgMayUnpackTuple(T)(in Type[] typeArgs, in TypeAst typeArgAst, in TypeCbOpt!T cb) =>
 	zipEachTypeArg!T(
 		typeArgs,
-		typeArgs.length == 1 ? arrayOfSingle(ptrTrustMe(typeArgAst)) : typeArgAst.as!(TypeAst.Tuple).members,
+		typeArgs.length == 1 ? arrayOfSingle(ptrTrustMe(typeArgAst)) : typeArgAst.as!(TypeAst.Tuple*).members,
 		cb);
 
 private Opt!T zipEachTypeArg(T)(in Type[] typeArgs, in TypeAst[] typeArgAsts, in TypeCbOpt!T cb) =>

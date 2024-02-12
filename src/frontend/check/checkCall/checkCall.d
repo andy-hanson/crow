@@ -41,7 +41,7 @@ import frontend.check.instantiate : InstantiateCtx;
 import frontend.check.typeFromAst : getNTypeArgsForDiagnostic, unpackTupleIfNeeded;
 import frontend.lang : maxTypeParams;
 import model.ast : CallAst, CallNamedAst, ExprAst, LambdaAst, NameAndRange;
-import model.diag : Diag, TypeContainer;
+import model.diag : Diag;
 import model.model :
 	BuiltinSpec,
 	Called,
@@ -62,21 +62,14 @@ import model.model :
 import util.col.array : arraysCorrespond, every, exists, isEmpty, makeArrayOrFail, newArray, only, zipEvery;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.mutMaxArr : asTemporaryArray, isEmpty, fillMutMaxArr, MutMaxArr, mutMaxArr, mutMaxArrSize, only, size;
-import util.opt : force, has, none, Opt, some, some;
+import util.opt : force, has, none, Opt, optIf, some, some;
 import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMeasure, startMeasure;
 import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
 import util.util : typeAs;
 
 Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref CallAst ast, ref Expected expected) {
-	switch (ast.style) {
-		case CallAst.Style.dot:
-		case CallAst.Style.infix:
-			checkCallShouldUseSyntax(ctx, ast.funName.range(ctx.allSymbols), ast.funNameName, ast.args.length);
-			break;
-		default:
-			break;
-	}
+	checkCallShouldUseSyntax(ctx, ast);
 	return checkCallCommon(
 		ctx, locals, source,
 		// Show diags at the function name and not at the whole call ast
@@ -163,7 +156,7 @@ private Expr checkCallCommon(
 }
 
 Expr checkCallIdentifier(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Symbol name, ref Expected expected) {
-	checkCallShouldUseSyntax(ctx, source.range, name, 0);
+	checkCallIdentifierShouldUseSyntax(ctx, source.range, name);
 	return checkCallSpecial(ctx, locals, source, source.range, name, [], expected);
 }
 
@@ -240,22 +233,33 @@ Expr checkCallInner(
 			ctx, locals, only(candidates), source, diagRange, force(args), expected);
 }
 
-void checkCallShouldUseSyntax(ref ExprCtx ctx, in Range range, Symbol funName, size_t arity) {
-	Opt!(Diag.CallShouldUseSyntax.Kind) kind = shouldUseSyntaxKind(funName, ctx.typeContainer);
-	if (has(kind))
-		addDiag2(ctx, range, Diag(Diag.CallShouldUseSyntax(arity, force(kind))));
+void checkCallIdentifierShouldUseSyntax(ref ExprCtx ctx, Range range, Symbol name) {
+	if (name == symbol!"new")
+		addDiag2(ctx, range, Diag(Diag.CallShouldUseSyntax(0, Diag.CallShouldUseSyntax.Kind.new_)));
 }
 
-Opt!(Diag.CallShouldUseSyntax.Kind) shouldUseSyntaxKind(Symbol calledFunName, in TypeContainer container) {
-	switch (calledFunName.value) {
+void checkCallShouldUseSyntax(ref ExprCtx ctx, in CallAst ast) {
+	switch (ast.style) {
+		case CallAst.Style.dot:
+		case CallAst.Style.infix:
+			Opt!(Diag.CallShouldUseSyntax.Kind) kind = shouldUseSyntaxKind(ast);
+			if (has(kind))
+				addDiag2(ctx, ast.funName.range(ctx.allSymbols), Diag(
+					Diag.CallShouldUseSyntax(ast.args.length, force(kind))));
+			break;
+		default:
+			break;
+	}
+}
+
+Opt!(Diag.CallShouldUseSyntax.Kind) shouldUseSyntaxKind(in CallAst ast) {
+	switch (ast.funName.name.value) {
 		case symbol!"for-break".value:
-			return container.isA!(FunDecl*) && container.as!(FunDecl*).name == symbol!"for-break"
-				? none!(Diag.CallShouldUseSyntax.Kind)
-				: some(Diag.CallShouldUseSyntax.Kind.for_break);
+			return optIf(secondArgIsLambda(ast), () => Diag.CallShouldUseSyntax.Kind.for_break);
 		case symbol!"force".value:
 			return some(Diag.CallShouldUseSyntax.Kind.force);
-		case symbol!"for_loop".value:
-			return some(Diag.CallShouldUseSyntax.Kind.for_loop);
+		case symbol!"for-loop".value:
+			return optIf(secondArgIsLambda(ast), () => Diag.CallShouldUseSyntax.Kind.for_loop);
 		case symbol!"new".value:
 			return some(Diag.CallShouldUseSyntax.Kind.new_);
 		case symbol!"not".value:
@@ -265,11 +269,13 @@ Opt!(Diag.CallShouldUseSyntax.Kind) shouldUseSyntaxKind(Symbol calledFunName, in
 		case symbol!"subscript".value:
 			return some(Diag.CallShouldUseSyntax.Kind.subscript);
 		case symbol!"with-block".value:
-			return some(Diag.CallShouldUseSyntax.Kind.with_block);
+			return optIf(secondArgIsLambda(ast), () => Diag.CallShouldUseSyntax.Kind.with_block);
 		default:
 			return none!(Diag.CallShouldUseSyntax.Kind);
 	}
 }
+bool secondArgIsLambda(in CallAst ast) =>
+	ast.args.length == 2 && ast.args[1].kind.isA!(LambdaAst*);
 
 bool filterCandidateByExplicitTypeArg(ref ExprCtx ctx, scope ref Candidate candidate, Type typeArg) {
 	size_t nTypeParams = mutMaxArrSize(candidate.typeArgs);

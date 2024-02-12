@@ -12,7 +12,7 @@ import util.conv : safeToUint, safeToSizeT;
 import util.hash : HashCode, hashUlong;
 import util.opt : force, has, Opt, optOrDefault, none, some;
 import util.string : copyString, CString, SmallString, smallString, stringsEqual;
-import util.util : assertNormalEnum, castNonScope_ref, optEnumOfString, stringOfEnum;
+import util.util : assertNormalEnum, castNonScope_ref, optEnumOfString, stringOfEnum, stripUnderscore;
 import util.writer : makeStringWithWriter, withStackWriter, withWriter, writeEscapedChar, Writer;
 
 immutable struct Symbol {
@@ -20,9 +20,14 @@ immutable struct Symbol {
 	// This is either:
 	// * A short symbol, tagged with 'shortSymbolTag'
 	// * An index into 'largeStrings'.
-	ulong value; // Public for 'switch'
+	uint value; // Public for 'switch'
 	@disable this();
-	private this(ulong v) { value = v; }
+	private this(uint v) { value = v; }
+
+	uint asUintForTaggedUnion() =>
+		value;
+	static Symbol fromUintForTaggedUnion(uint value) =>
+		Symbol(value);
 
 	HashCode hash() =>
 		hashUlong(value);
@@ -53,7 +58,7 @@ struct AllSymbols {
 private Symbol addLargeString(ref AllSymbols a, immutable string value) {
 	size_t index = mutArrSize(a.largeStringFromIndex);
 	assert(size(a.largeStringToIndex) == index);
-	Symbol res = Symbol(index);
+	Symbol res = Symbol(safeToUint(index));
 	SmallString small = smallString(value);
 	mustAdd(a.alloc, a.largeStringToIndex, small, res);
 	push(a.alloc, a.largeStringFromIndex, small);
@@ -186,7 +191,7 @@ Symbol addPrefixAndExtension(scope ref AllSymbols allSymbols, string prefix, Sym
 
 Symbol symbolOfString(ref AllSymbols allSymbols, in string str) {
 	Opt!Symbol packed = tryPackShortSymbol(str);
-	return has(packed) ? force(packed) : getSymbolFromLongString(allSymbols, str);
+	return optOrDefault!Symbol(packed, () => getSymbolFromLongString(allSymbols, str));
 }
 
 void eachCharInSymbol(in AllSymbols allSymbols, Symbol a, in void delegate(char) @safe @nogc pure nothrow cb) {
@@ -208,7 +213,7 @@ enum symbol(string name) = getSymbol(name);
 private Symbol getSymbol(string name) {
 	foreach (size_t i, string s; specialSymbols)
 		if (stringsEqual(s, name))
-			return Symbol(i);
+			return Symbol(safeToUint(i));
 	Opt!Symbol opt = tryPackShortSymbol(name);
 	return force(opt);
 }
@@ -248,7 +253,7 @@ void writeQuotedSymbol(scope ref Writer writer, in AllSymbols allSymbols, Symbol
 
 Symbol symbolOfEnum(E)(E a) {
 	assertNormalEnum!E();
-	static immutable Symbol[] symbols = [staticMap!(symbol, __traits(allMembers, E))];
+	static immutable Symbol[] symbols = [staticMap!(symbol, staticMap!(stripUnderscore, __traits(allMembers, E)))];
 	return symbols[a];
 }
 
@@ -276,11 +281,11 @@ char toLowerCase(char a) =>
 private:
 
 // Bit to be set when the symbol is short
-ulong shortSymbolTag() =>
-	0x8000000000000000;
+uint shortSymbolTag() =>
+	0x80000000;
 
 size_t shortSymbolMaxChars() =>
-	12;
+	32 / shortSymbolBitsPerCode;
 
 ubyte codeForLetter(char a) {
 	assert('a' <= a && a <= 'z');
@@ -297,7 +302,7 @@ ubyte codeForNextIsDigit() => 30;
 
 ubyte shortSymbolBitsPerCode() => 5;
 
-ulong setPrefix() =>
+uint setPrefix() =>
 	(codeForLetter('s') << (shortSymbolBitsPerCode * 3)) |
 	(codeForLetter('e') << (shortSymbolBitsPerCode * 2)) |
 	(codeForLetter('t') << (shortSymbolBitsPerCode * 1)) |
@@ -345,32 +350,35 @@ void eachShortSymbolCodeReverse(in Symbol a, in void delegate(ubyte code) @safe 
 }
 
 Opt!Symbol tryPackShortSymbol(in string str) {
-	ulong res = 0;
-	size_t len = 0;
+	if (str.length <= shortSymbolMaxChars) {
+		uint res = 0;
+		size_t len = 0;
 
-	void push(ulong value) {
-		res = res << shortSymbolBitsPerCode;
-		res |= value;
-		len++;
-	}
+		void push(ulong value) {
+			res = res << shortSymbolBitsPerCode;
+			res |= value;
+			len++;
+		}
 
-	foreach (char x; str) {
-		if ('a' <= x && x <= 'z')
-			push(codeForLetter(x));
-		else if (x == '-')
-			push(codeForHyphen);
-		else if (x == '_')
-			push(codeForUnderscore);
-		else if ('0' <= x && x <= '9') {
-			push(codeForNextIsDigit);
-			push(x - '0');
-		} else if ('A' <= x && x <= 'Z') {
-			push(codeForNextIsCapitalLetter);
-			push(x - 'A');
-		} else
-			return none!Symbol;
-	}
-	return len > shortSymbolMaxChars ? none!Symbol : some(Symbol(res | shortSymbolTag));
+		foreach (char x; str) {
+			if ('a' <= x && x <= 'z')
+				push(codeForLetter(x));
+			else if (x == '-')
+				push(codeForHyphen);
+			else if (x == '_')
+				push(codeForUnderscore);
+			else if ('0' <= x && x <= '9') {
+				push(codeForNextIsDigit);
+				push(x - '0');
+			} else if ('A' <= x && x <= 'Z') {
+				push(codeForNextIsCapitalLetter);
+				push(x - 'A');
+			} else
+				return none!Symbol;
+		}
+		return len > shortSymbolMaxChars ? none!Symbol : some(Symbol(res | shortSymbolTag));
+	} else
+		return none!Symbol;
 }
 
 void eachCharInShortSymbol(Symbol a, in void delegate(char) @safe @nogc pure nothrow cb) {
@@ -526,4 +534,198 @@ immutable string[] specialSymbols = [
 	"textDocumentSync",
 	"tokenModifiers",
 	"unloadedUris",
+
+	// Below are needed when using 32 bit instead of 64 bit symbols
+	"abstract",
+	"aliases",
+	"alignment",
+	"allInsts",
+	"allSymbols",
+	"allUris",
+	"all-tests",
+	"anonymous",
+	"as-const",
+	"as-string",
+	"atan2f",
+	"atomic-bool",
+	"bootstrap",
+	"builtin",
+	"byAlloc",
+	"byMeasure",
+	"capabilities",
+	"changes",
+	"character",
+	"checkCall",
+	"closure",
+	"closure-ref",
+	"collection",
+	"comment",
+	"concretize",
+	"condition",
+	"constant",
+	"containing",
+	"content",
+	"contents",
+	"continue",
+	"countAllocs",
+	"countBlocks",
+	"count-ones",
+	"default",
+	"definition",
+	"destruct",
+	"destructure",
+	"diagnostics",
+	"enum-members",
+	"exitCode",
+	"exports",
+	"expr-kind",
+	"extern_",
+	"field-index",
+	"file-type",
+	"float32",
+	"float64",
+	"for-break",
+	"force-ctx",
+	"force-shared",
+	"for-loop",
+	"freeBlocks",
+	"frontend",
+	"fun-data",
+	"fun-kind",
+	"fun-name",
+	"fun-pointers",
+	"fun-util",
+	"funInsts",
+	"fun-mut",
+	"fun-pointer",
+	"fun-shared",
+	"function",
+	"fut-expr",
+	"gccCompile",
+	"gccJit",
+	"generated",
+	"import-kind",
+	"imports",
+	"include",
+	"includeDir",
+	"int16",
+	"int32",
+	"int64",
+	"interface",
+	"interpolate",
+	"interpreter",
+	"is-less",
+	"is-wasm",
+	"is-windows",
+	"keyword",
+	"keywordPos",
+	"library-name",
+	"library-names",
+	"longjmp",
+	"loop-break",
+	"lspState",
+	"mallocs",
+	"mark-arr",
+	"mark-ctx",
+	"mark-visit",
+	"matched",
+	"member-index",
+	"member-name",
+	"members",
+	"memmove",
+	"message",
+	"messages",
+	"modifiers",
+	"modules",
+	"mutability",
+	"mut-list",
+	"mut-map",
+	"mut-pointer",
+	"nanosleep",
+	"nat16",
+	"nat32",
+	"nat64",
+	"newName",
+	"newText",
+	"new-void",
+	"n-parents",
+	"nominal",
+	"ok-if-unused",
+	"operation",
+	"overflow",
+	"overhead",
+	"param0",
+	"param1",
+	"param2",
+	"param3",
+	"param4",
+	"param5",
+	"param6",
+	"param7",
+	"param8",
+	"param9",
+	"param-types",
+	"parents",
+	"parseFile",
+	"pointee",
+	"pointer",
+	"pointer-cast",
+	"position",
+	"private",
+	"pthread",
+	"question-pos",
+	"records",
+	"refKeys",
+	"refPairs",
+	"return-type",
+	"rt-main",
+	"severity",
+	"set-deref",
+	"set-n0",
+	"shared-list",
+	"shared-map",
+	"size-bytes",
+	"size-of",
+	"spec-impls",
+	"specInsts",
+	"storage",
+	"structInsts",
+	"structs",
+	"subscript",
+	"suffix-pos",
+	"thread-local",
+	"throw-impl",
+	"tokenTypes",
+	"truncate-to",
+	"trusted",
+	"tuple2",
+	"tuple3",
+	"tuple4",
+	"tuple5",
+	"tuple6",
+	"tuple7",
+	"tuple8",
+	"tuple9",
+	"type-arg",
+	"type-args",
+	"type-index",
+	"type-params",
+	"unknownUris",
+	"unsafe-add",
+	"unsafe-div",
+	"unsafe-mod",
+	"unsafe-mul",
+	"unsafe-sub",
+	"unsafe-to",
+	"updates",
+	"user-main",
+	"re-exports",
+	"static_",
+	"variadic",
+	"var-kind",
+	"visibility",
+	"with-block",
+	"wrap-add",
+	"wrap-mul",
+	"wrap-sub",
 ];

@@ -27,7 +27,7 @@ import util.opt : none, Opt, some;
 import util.sourceRange : UriAndRange;
 import util.string : CString;
 import util.symbol : AllSymbols, Symbol;
-import util.union_ : Union;
+import util.union_ : TaggedUnion, Union;
 import util.uri : Uri;
 import versionInfo : VersionInfo;
 
@@ -219,8 +219,8 @@ immutable struct ConcreteField {
 
 immutable struct ConcreteLocalSource {
 	immutable struct Closure {}
-	immutable struct Generated { Symbol name; }
-	mixin Union!(Local*, Closure, Generated);
+	enum Generated { args, ignore, destruct }
+	mixin TaggedUnion!(Local*, Closure, Generated);
 }
 
 immutable struct ConcreteLocal {

@@ -148,14 +148,14 @@ Type typeFromAst(
 	in TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
 ) =>
-	ast.matchIn!Type(
-		(in TypeAst.Bogus) =>
+	ast.match!Type(
+		(TypeAst.Bogus) =>
 			Type(Type.Bogus()),
-		(in TypeAst.Fun x) =>
+		(ref TypeAst.Fun x) =>
 			typeFromFunAst(ctx, commonTypes, x, structsAndAliasesMap, typeParamsScope, delayStructInsts),
-		(in TypeAst.Map x) =>
+		(ref TypeAst.Map x) =>
 			typeFromMapAst(ctx, commonTypes, x, structsAndAliasesMap, typeParamsScope, delayStructInsts),
-		(in NameAndRange name) {
+		(NameAndRange name) {
 			Opt!TypeParamIndex typeParam = findTypeParam(typeParamsScope, name.name);
 			return has(typeParam)
 				? Type(force(typeParam))
@@ -169,7 +169,7 @@ Type typeFromAst(
 					typeParamsScope,
 					delayStructInsts);
 		},
-		(in TypeAst.SuffixName x) {
+		(ref TypeAst.SuffixName x) {
 			Opt!(Diag.TypeShouldUseSyntax.Kind) optSyntax = typeSyntaxKind(x.name.name);
 			if (has(optSyntax))
 				addDiag(ctx, x.suffixRange(ctx.allSymbols), Diag(Diag.TypeShouldUseSyntax(force(optSyntax))));
@@ -188,17 +188,17 @@ Type typeFromAst(
 					typeParamsScope,
 					delayStructInsts);
 		},
-		(in TypeAst.SuffixSpecial x) =>
+		(ref TypeAst.SuffixSpecial x) =>
 			instStructFromAst(
 				ctx,
 				commonTypes,
 				symbolForTypeAstSuffix(x.kind),
 				x.suffixRange,
-				some(x.left),
+				some(&x.left),
 				structsAndAliasesMap,
 				typeParamsScope,
 				delayStructInsts),
-		(in TypeAst.Tuple x) =>
+		(ref TypeAst.Tuple x) =>
 			typeFromTupleAst(ctx, commonTypes, x.members, structsAndAliasesMap, typeParamsScope, delayStructInsts));
 
 private Opt!Type optTypeFromOptAst(
@@ -338,7 +338,8 @@ private Type typeFromMapAst(
 	in TypeParams typeParamsScope,
 	MayDelayStructInsts delayStructInsts,
 ) {
-	TypeAst typeArg = TypeAst(TypeAst.Tuple(Range.empty, castNonScope_ref(ast.kv)));
+	TypeAst.Tuple tuple = TypeAst.Tuple(Range.empty, castNonScope_ref(ast.kv));
+	TypeAst typeArg = TypeAst(&tuple);
 	return instStructFromAst(
 		ctx,
 		commonTypes,

@@ -67,7 +67,7 @@ void writeFunSig(scope ref Writer writer, in ShowCtx ctx, in LowProgram lowProgr
 							writer ~= "<closure>";
 						},
 						(in ConcreteLocalSource.Generated x) {
-							writeSymbol(writer, ctx.allSymbols, x.name);
+							writer ~= stringOfEnum(x);
 						});
 					writer ~= ' ';
 					writeConcreteType(writer, ctx, param.type);

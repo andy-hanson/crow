@@ -823,7 +823,7 @@ LowLocalSource getLowLocalSource(
 		(ConcreteLocalSource.Closure x) =>
 			LowLocalSource(allocate(alloc, LowLocalSource.Generated(symbol!"closure", getIndex()))),
 		(ConcreteLocalSource.Generated x) =>
-			LowLocalSource(allocate(alloc, LowLocalSource.Generated(x.name, getIndex()))));
+			LowLocalSource(allocate(alloc, LowLocalSource.Generated(symbolOfEnum(x), getIndex()))));
 
 T withLowLocal(T)(
 	ref GetLowExprCtx ctx,

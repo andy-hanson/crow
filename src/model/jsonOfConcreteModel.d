@@ -29,7 +29,7 @@ import util.alloc.alloc : Alloc;
 import util.json :
 	field, Json, jsonObject, optionalArrayField, optionalField, optionalFlagField, jsonList, jsonString, kindField;
 import util.sourceRange : jsonOfLineAndColumnRange;
-import util.symbol : Symbol, symbol;
+import util.symbol : Symbol, symbol, symbolOfEnum;
 import util.util : stringOfEnum;
 
 Json jsonOfConcreteProgram(ref Alloc alloc, in LineAndColumnGetters lcg, in ConcreteProgram a) {
@@ -174,7 +174,7 @@ Json jsonOfConcreteFunBody(ref Alloc alloc, in Ctx ctx, in ConcreteFunBody a) =>
 		(in ConcreteFunBody.FlagsFn x) =>
 			jsonObject(alloc, [
 				kindField!"flags-fn",
-				field!"all-value"(x.allValue),
+				field!"all"(x.allValue),
 				field!"name"(stringOfEnum(x.fn))]),
 		(in ConcreteFunBody.RecordFieldCall x) =>
 			jsonObject(alloc, [
@@ -219,7 +219,7 @@ Symbol name(in ConcreteLocalSource a) =>
 		(in ConcreteLocalSource.Closure) =>
 			symbol!"closure",
 		(in ConcreteLocalSource.Generated x) =>
-			x.name);
+			symbolOfEnum(x));
 
 Json jsonOfConcreteExpr(ref Alloc alloc, in Ctx ctx, in ConcreteExpr a) =>
 	jsonObject(alloc, [

@@ -428,11 +428,11 @@ ConcreteLocal concretizeParamDestructure(ref ConcretizeCtx ctx, ref Destructure 
 	ConcreteLocal(
 		x.matchWithPointers!ConcreteLocalSource(
 			(Destructure.Ignore*) =>
-				ConcreteLocalSource(ConcreteLocalSource.Generated(symbol!"ignore")),
+				ConcreteLocalSource(ConcreteLocalSource.Generated.ignore),
 			(Local* x) =>
 				ConcreteLocalSource(x),
 			(Destructure.Split*) =>
-				ConcreteLocalSource(ConcreteLocalSource.Generated(symbol!"destruct"))),
+				ConcreteLocalSource(ConcreteLocalSource.Generated.destruct)),
 		getConcreteType(ctx, x.type, typeArgsScope));
 
 void addConcreteFun(ref ConcretizeCtx ctx, ConcreteFun* fun) {
@@ -502,7 +502,7 @@ public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* mo
 		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.WrapMain(range))),
 		getConcreteType(ctx, ctx.program.commonFuns.newNat64Future.returnType, emptySmallArray!ConcreteType),
 		newArray(ctx.alloc, [
-			ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Generated(symbol!"args")), stringListType),
+			ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Generated.args), stringListType),
 		])));
 	res.body_ = ConcreteFunBody(body_);
 	addConcreteFun(ctx, res);

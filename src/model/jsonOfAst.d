@@ -148,7 +148,7 @@ Json pathOrRelPathToJson(ref Alloc alloc, in AllUris allUris, in PathOrRelPath a
 			jsonString(stringOfPath(alloc, allUris, global)),
 		(RelPath relPath) =>
 			jsonObject(alloc, [
-				field!"nParents"(relPath.nParents),
+				field!"n-parents"(relPath.nParents),
 				field!"path"(stringOfPath(alloc, allUris, relPath.path))]));
 
 Json jsonOfSpecDeclAst(ref Alloc alloc, in Ctx ctx, in SpecDeclAst a) =>
@@ -320,7 +320,7 @@ Json jsonOfModifierAst(ref Alloc alloc, in Ctx ctx, in ModifierAst a) =>
 		(in ModifierAst.Keyword x) =>
 			jsonObject(alloc, [
 				kindField!"keyword",
-				optionalField!("typeArg", TypeAst)(x.typeArg, (in TypeAst type) =>
+				optionalField!("type-arg", TypeAst)(x.typeArg, (in TypeAst type) =>
 					jsonOfTypeAst(alloc, ctx, type)),
 				field!"keywordPos"(x.keywordPos),
 				field!"keyword"(stringOfModifierKeyword(x.keyword))]),
@@ -361,7 +361,7 @@ Json jsonOfTypeAst(ref Alloc alloc, in Ctx ctx, in TypeAst a) =>
 		(in TypeAst.SuffixSpecial x) =>
 			jsonObject(alloc, [
 				kindField!"suffix-special",
-				field!"left"(jsonOfTypeAst(alloc, ctx, *x.left)),
+				field!"left"(jsonOfTypeAst(alloc, ctx, x.left)),
 				field!"suffix-pos"(x.suffixPos),
 				field!"suffix"(symbolForTypeAstSuffix(x.kind))]),
 		(in TypeAst.Tuple x) =>
@@ -551,7 +551,7 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 			jsonObject(alloc, [
 				kindField!"ternary",
 				field!"cond"(jsonOfExprAst(alloc, ctx, x.cond)),
-				field!"questionPos"(x.questionPos),
+				field!"question-pos"(x.questionPos),
 				field!"then"(jsonOfExprAst(alloc, ctx, x.then)),
 				optionalField!("colon", Pos)(x.colonPos, (in Pos x) => Json(x)),
 				field!"else"(jsonOfExprAst(alloc, ctx, x.else_))]),
