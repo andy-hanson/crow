@@ -9,6 +9,7 @@ import util.opt : force, has, none, Opt, optEqual, some;
 import util.symbol : Extension, Symbol, symbol, symbolOfString;
 import util.uri :
 	AllUris,
+	alterExtension,
 	alterExtensionWithHex,
 	asFilePath,
 	baseName,
@@ -129,6 +130,9 @@ void testFile(ref Test test, scope ref AllUris allUris) {
 
 	FilePath aF00dJson = alterExtensionWithHex(allUris, aTxt, [0xf0, 0x0d], Extension.json);
 	assert(stringOfFilePath(test.alloc, allUris, aF00dJson) == "/foo/a.f00d.json");
+
+	FilePath aF00dCrow = alterExtension(allUris, aF00dJson, Extension.crow);
+	assert(stringOfFilePath(test.alloc, allUris, aF00dCrow) == "/foo/a.f00d.crow");
 }
 
 void verifyFile(

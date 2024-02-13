@@ -9,7 +9,7 @@ MAKEFLAGS = -j4
 # WARN: Does not clean `dyncall` as that takes too long to restore
 # Also does not clean `node_modules` for the VSCode plugin
 clean:
-	rm -rf bin site temp
+	rm -rf bin site
 
 all: clean test lint install-vscode-extension serve
 
@@ -167,7 +167,7 @@ serve: prepare-site
 
 bin/crow.tar.xz: bin/crow bin/crow.vsix demo/* demo/*/* editor/sublime/* $(ALL_INCLUDE) libraries/* libraries/*/*
 	tar --directory .. --create --xz --exclude demo/extern \
-		--file bin/crow.tar.xz crow/bin/crow crow/demo crow/editor crow/include crow/libraries
+		--file bin/crow.tar.xz crow/bin/crow crow/bin/crow.vsix crow/demo crow/editor crow/include crow/libraries
 
 bin/crow.vsix: editor/vscode/* editor/vscode/node_modules
 	cd editor/vscode && ./node_modules/@vscode/vsce/vsce package --allow-missing-repository --out ../../bin/crow.vsix

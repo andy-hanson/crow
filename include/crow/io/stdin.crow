@@ -1,21 +1,11 @@
-no-std
 import
 	system/stdio: stdin
 	system/unistd: read
-	../col/collection: subscript
-	../col/mut-array:
-		+, begin, begin-pointer, cast-immutable, mut-array, size, slice, uninitialized-mut-array
-	../compare: >=
-	../fun-util: subscript
-	../future: future, new, parallel, then, with-block
-	../misc: shared
-	../number: ==, <=>, nat8, nat64, to
-	../option: option
+	system/win32: DWORD, GetLastError, GetStdHandle, ReadConsoleA, STD_INPUT_HANDLE
 	../private/bootstrap: todo
-	../range: ..
-	../string: as-string, string, strip
 	../version: is-windows
 	./print: out, print
+	./win32-util: show-win32-error
 
 ###
 Reads from stdin.
@@ -23,20 +13,24 @@ If that comes from the user typing at the terminal, this will block until they h
 Result will not have leading or trailing whitespace.
 ###
 +read-stdin string^() summon
-	if trusted is-windows
-		throw "TODO: Windows support"
-	else
-		with : parallel
-			trusted
-				buffer nat8 mut-array = 0x2000 uninitialized-mut-array
-				# TODO: use a non-blocking API
+	# TODO: use a non-blocking API
+	with : parallel
+		trusted
+			buffer nat8 mut-array = 0x2000 uninitialized-mut-array
+			bytes-read nat = if is-windows
+				n-read mut DWORD = 0
+				ok = STD_INPUT_HANDLE.GetStdHandle ReadConsoleA \
+					buffer.begin-pointer, buffer.size.to, &n-read, null
+				assert ok : "{GetLastError show-win32-error}"
+				n-read to
+			else
 				bytes-read-or-err = stdin read buffer.begin-pointer, buffer.size
 				assert bytes-read-or-err >= 0
-				bytes-read nat64 = bytes-read-or-err to
-				if bytes-read >= buffer.size
-					todo
-				else
-					buffer[0 .. bytes-read].cast-immutable.as-string.strip,
+				bytes-read-or-err to
+			if bytes-read >= buffer.size
+				todo
+			else
+				buffer[0 .. bytes-read].cast-immutable.as-string.strip,
 
 ###
 Keep reading from stdin until `parse` returns a non-empty option.

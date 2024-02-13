@@ -115,6 +115,14 @@ import
 	STD_OUTPUT_HANDLE = 0xfffffff5
 	STD_ERROR_HANDLE = 0xfffffff4
 
++ReadConsoleA bool(
+	hConsoleInput HANDLE,
+	lpBuffer nat8 mut*,
+	nNumberOfCharsToRead DWORD,
+	lpNumberOfCharsRead DWORD mut*,
+	pInputControl DWORD mut*,
+) kernel32 extern, summon
+
 +WriteFile bool(
 	hFile HANDLE,
 	lpBuffer any-const-pointer,

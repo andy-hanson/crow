@@ -48,6 +48,8 @@
 		Download the above, unzip it, and edit the <code>PATH</code> environment variable
 		to include the <code>crow\bin</code> directory.
 		<br />
+		(You also need to restart affected applications like a terminal or IDE after changing the PATH.)
+		<br />
 		Then:
 	</p>
 
@@ -74,7 +76,7 @@
 	<h2>VSCode</h2>
 
 	<div class="code-block">
-		code --install-extension crow/bin/crow.vsix
+		code --install-extension crow/editor/crow.vsix
 	</div>
 
 	This supports syntax highlighting, diagnostics, go-to-definition, references, and renaming.
@@ -86,14 +88,14 @@
 		<li>
 			Linux:
 			<code>
-				bash -llc 'ln -s `pwd`/crow/editor/sublime/crow.sublime-syntax
+				bash -llc 'ln -s `pwd`/crow/editor/crow.sublime-syntax
 				~/.config/sublime-text/Packages/User/crow.sublime-syntax'
 			</code>
 		</li>
 		<li>
 			Windows:
 			<code>
-				copy %CD%\crow\editor\sublime\crow.sublime-syntax
+				copy %CD%\crow\editor\crow.sublime-syntax
 				"%USERPROFILE%\AppData\Roaming\Sublime Text\Packages\User\crow.sublime-syntax"
 			</code>
 		</li>

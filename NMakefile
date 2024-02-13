@@ -7,7 +7,6 @@ clean:
 	@call <<COMMANDS.bat
 @IF EXIST bin rmdir /s /q bin
 @IF EXIST site rmdir /s /q site
-@IF EXIST temp rmdir /s /q temp
 <<
 
 all: clean test lint install-vscode-extension serve
@@ -151,11 +150,20 @@ serve: prepare-site
 ### publish ###
 
 bin\crow.zip: bin\crow.exe bin\crow.vsix demo\* include\* libraries\*
-	mkdir bin\bin
-	copy bin\crow.exe bin\bin\crow.exe
-	powershell Compress-Archive -DestinationPath bin\crow.zip -Path bin\bin,demo,editor,include,libraries -Force
-	del bin\bin\crow.exe
-	rmdir bin\bin
+	mkdir temp
+	xcopy /i /s /q demo temp\demo
+	:: Remove demos that don't work on Windows
+	del temp\demo\http-request.crow temp\demo\server.crow
+	rmdir /s /q temp\demo\lmdb temp\demo\webapp
+	xcopy /i /s /q libraries temp\libraries
+	rmdir /s /q temp\libraries\lmdb
+	mkdir temp\bin
+	copy bin\crow.exe temp\bin\crow.exe
+	mkdir temp\editor
+	copy editor\crow.sublime-syntax temp\editor\crow.sublime-syntax
+	copy bin\crow.vsix temp\editor\crow.vsix
+	powershell Compress-Archive -DestinationPath bin\crow.zip -Force -Path temp\*,include
+	rmdir /s /q temp
 
 bin\crow.vsix: editor\vscode\* editor\vscode\node_modules
 	cd editor\vscode && node .\node_modules\vsce\vsce package --allow-missing-repository --out ..\..\bin\crow.vsix

@@ -102,7 +102,7 @@ import util.perfReport : perfReport;
 import util.sourceRange : UriLineAndColumn;
 import util.string : CString, mustStripPrefix, MutCString;
 import util.symbol : AllSymbols, Extension, symbol;
-import util.uri : AllUris, childUri, cStringOfUriPreferRelative, FilePath, Uri, parentOrEmpty, toUri;
+import util.uri : AllUris, baseName, childUri, cStringOfUriPreferRelative, FilePath, Uri, parentOrEmpty, toUri;
 import util.util : debugLog;
 import util.writer : debugLogWithWriter, makeStringWithWriter, Writer;
 import versionInfo : getOS, versionInfoForInterpret, versionInfoForJIT;
@@ -114,14 +114,15 @@ import versionInfo : getOS, versionInfoForInterpret, versionInfoForJIT;
 	Server server = Server((size_t sizeWords, size_t _) =>
 		(cast(word*) pureMalloc(sizeWords * word.sizeof))[0 .. sizeWords]);
 	FilePath cwd = getCwd(server.allUris);
-	setIncludeDir(&server, childUri(server.allUris, getCrowDir(server.allUris), symbol!"include"));
+	FilePath thisExecutable = getPathToThisExecutable(server.allUris);
+	setIncludeDir(&server, childUri(server.allUris, getCrowDir(server.allUris, thisExecutable), symbol!"include"));
 	setCwd(server, toUri(server.allUris, cwd));
 	setShowOptions(server, ShowOptions(true));
 	Alloc* alloc = newAlloc(AllocKind.main, server.metaAlloc);
 	Command command = parseCommand(*alloc, server.allUris, cwd, getOS(), cast(CString[]) argv[1 .. argc]);
 	if (!command.options.perf)
 		disablePerf(perf);
-	int res = go(perf, *alloc, server, cwd, command.kind).value;
+	int res = go(perf, *alloc, server, cwd, thisExecutable, command.kind).value;
 	if (isEnabled(perf)) {
 		withTempAllocImpure!void(server.metaAlloc, (ref Alloc alloc) @trusted {
 			Json report = perfReport(alloc, perf, *server.metaAlloc, perfStats(alloc, server));
@@ -154,11 +155,11 @@ version (Windows) {
 	abort();
 }
 
-@trusted ExitCode runLsp(ref Server server) {
+@trusted ExitCode runLsp(ref Server server, FilePath thisExecutable) {
 	withTempAllocImpure!void(server.metaAlloc, (ref Alloc alloc) @trusted {
 		printErrorCb((scope ref Writer writer) {
 			writer ~= "Crow version ";
-			writeVersion(writer, server);
+			writeVersion(writer, server, thisExecutable);
 			writer ~= "\nRunning language server protocol";
 		});
 	});
@@ -307,7 +308,14 @@ void loadSingleFile(scope ref Perf perf, ref Server server, Uri uri) {
 	}
 }
 
-ExitCode go(scope ref Perf perf, ref Alloc alloc, ref Server server, FilePath cwd, in CommandKind command) =>
+ExitCode go(
+	scope ref Perf perf,
+	ref Alloc alloc,
+	ref Server server,
+	FilePath cwd,
+	FilePath thisExecutable,
+	in CommandKind command,
+) =>
 	command.matchImpure!ExitCode(
 		(in CommandKind.Build x) {
 			loadAllFiles(perf, server, [x.mainUri]);
@@ -329,7 +337,7 @@ ExitCode go(scope ref Perf perf, ref Alloc alloc, ref Server server, FilePath cw
 			return x.exitCode;
 		},
 		(in CommandKind.Lsp) =>
-			runLsp(server),
+			runLsp(server, thisExecutable),
 		(in CommandKind.Print x) =>
 			doPrint(perf, alloc, server, x),
 		(in CommandKind.Run x) =>
@@ -342,7 +350,7 @@ ExitCode go(scope ref Perf perf, ref Alloc alloc, ref Server server, FilePath cw
 		},
 		(in CommandKind.Version) =>
 			printCb((scope ref Writer writer) {
-				writeVersion(writer, server);
+				writeVersion(writer, server, thisExecutable);
 			}));
 
 ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, FilePath cwd, in CommandKind.Run run) {
@@ -372,8 +380,11 @@ ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, FilePath c
 			buildAndRun(perf, alloc, server, cwd, run.mainUri, run.programArgs, x));
 }
 
-Uri getCrowDir(ref AllUris allUris) =>
-	parentOrEmpty(allUris, parentOrEmpty(allUris, toUri(allUris, getPathToThisExecutable(allUris))));
+Uri getCrowDir(ref AllUris allUris, FilePath thisExecutable) {
+	Uri res = parentOrEmpty(allUris, parentOrEmpty(allUris, toUri(allUris, thisExecutable)));
+	assert(baseName(allUris, res) == symbol!"crow");
+	return res;
+}
 
 CString[] getAllArgs(ref Alloc alloc, in Server server, in CommandKind.Run run) =>
 	prepend(alloc, cStringOfUriPreferRelative(alloc, server.allUris, server.urisInfo, run.mainUri), run.programArgs);

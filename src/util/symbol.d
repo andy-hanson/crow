@@ -101,14 +101,19 @@ Symbol alterExtensionCb(
 	in void delegate(scope ref Writer writer) @safe @nogc pure nothrow cb,
 ) =>
 	makeSymbol(allSymbols, (scope ref Writer writer) {
-		bool on = true;
+		size_t index = 0;
+		size_t lastDot = size_t.max;
 		eachCharInSymbol(allSymbols, a, (char x) {
-			if (on) {
-				if (x == '.')
-					on = false;
-				else
-					writer ~= x;
-			}
+			if (x == '.')
+				lastDot = index;
+			index++;
+		});
+
+		index = 0;
+		eachCharInSymbol(allSymbols, a, (char x) {
+			if (index < lastDot)
+				writer ~= x;
+			index++;
 		});
 		cb(writer);
 	});
@@ -127,7 +132,6 @@ enum Extension {
 	pdb,
 }
 
-// TODO:PERF This could be cached (with removeExtension)
 Extension getExtension(ref AllSymbols allSymbols, Symbol a) {
 	if (isShortSymbol(a))
 		// Since only a long symbol can have a '.'
