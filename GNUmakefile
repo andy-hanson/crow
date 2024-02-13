@@ -94,7 +94,8 @@ ldc_wasm_flags = -mtriple=wasm32-unknown-unknown-wasm -L-allow-undefined
 ldc_fast_flags_no_tail_call = -O2 -L=--strip-all
 ldc_fast_flags = $(ldc_fast_flags_no_tail_call) --d-version=TailRecursionAvailable
 app_link = -L=-ldyncall_s -L=-ldyncallback_s -L=-ldynload_s -L=-lgccjit -L=-lunwind \
-	-L=-L./dyncall/dyncall -L=-L./dyncall/dyncallback -L=-L./dyncall/dynload
+	-L=-L./dyncall/dyncall -L=-L./dyncall/dyncallback -L=-L./dyncall/dynload \
+	-L=-static-libgcc
 
 bin/d-imports/date.txt:
 	mkdir -p bin/d-imports
@@ -131,8 +132,6 @@ bin/crow.wasm: $(d_dependencies)
 	rm bin/crow-wasm.o
 	mv bin/crow-wasm.wasm bin/crow.wasm
 
-ALL_INCLUDE = include/*/*.crow include/*/*/*.crow include/*/*/*/*.crow
-
 ### lint ###
 
 lint: lint-basic lint-dscanner lint-d-imports-exports bin/dependencies.dot
@@ -165,8 +164,13 @@ serve: prepare-site
 
 ### publish ###
 
-bin/crow.tar.xz: bin/crow bin/crow.vsix demo/* demo/*/* editor/sublime/* $(ALL_INCLUDE) libraries/* libraries/*/*
-	tar --directory .. --create --xz --exclude demo/extern \
+all_demo = demo/* demo/*/*
+all_include = include/*/*.crow include/*/*/*.crow include/*/*/*/*.crow
+all_libraries = libraries/* libraries/*/*
+bin/crow.tar.xz: bin/crow bin/crow.vsix $(all_demo) editor/crow.sublime-syntax $(all_include) $(all_libraries)
+	tar --directory .. --create --xz \
+		--exclude demo/extern --exclude editor/vscode \
+		--transform 'flags=r;s|bin/crow.vsix|editor/crow.vsix|' \
 		--file bin/crow.tar.xz crow/bin/crow crow/bin/crow.vsix crow/demo crow/editor crow/include crow/libraries
 
 bin/crow.vsix: editor/vscode/* editor/vscode/node_modules
