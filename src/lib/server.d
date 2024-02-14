@@ -106,10 +106,9 @@ import util.perf : Perf;
 import util.sourceRange : LineAndColumn, toLineAndCharacter, UriAndRange, UriLineAndColumn;
 import util.string : copyString, CString, cString;
 import util.symbol : AllSymbols;
-import util.uri : AllUris, FilePath, Uri, UrisInfo, writeFilePath;
+import util.uri : AllUris, FilePath, stringOfFilePath, Uri, UrisInfo;
 import util.union_ : Union;
 import util.util : castNonScope, castNonScope_ref, ptrTrustMe;
-import util.writer : Writer;
 import versionInfo : getOS, OS, VersionInfo, versionInfoForBuildToC, versionInfoForInterpret;
 
 ExitCode buildAndInterpret(
@@ -384,30 +383,38 @@ private struct LspState {
 		*stateAllocPtr;
 }
 
-void writeVersion(scope ref Writer writer, in Server server, FilePath thisExecutable) {
-	static immutable string date = import("date.txt")[0 .. "2020-02-02".length];
-	static immutable string commitHash = import("commit-hash.txt")[0 .. 8];
-
-	writer ~= date;
-	writer ~= " (";
-	writer ~= commitHash;
-	writer ~= ")";
+Json version_(ref Alloc alloc, in Server server, FilePath thisExecutable) {
 	version (Debug) {
-		writer ~= ", debug build";
+		bool isDebug = true;
+	} else {
+		bool isDebug = false;
 	}
-	version (assert) {} else {
-		writer ~= ", assertions disabled";
+	version (assert) {
+		bool isAssert = true;
+	} else {
+		bool isAssert = false;
 	}
-	version (TailRecursionAvailable) {} else {
-		writer ~= ", no tail calls";
+	version (TailRecursionAvailable) {
+		bool isTailCalls = true;
+	} else {
+		bool isTailCalls = false;
 	}
-	version (GccJitAvailable) {} else {
-		writer ~= ", does not support '--jit'";
+	version (GccJitAvailable) {
+		bool isJit = true;
+	} else {
+		bool isJit = false;
 	}
-	writer ~= ", built with ";
-	writer ~= dCompilerName;
-	writer ~= "\nPath to crow is: ";
-	writeFilePath(writer, server.allUris, thisExecutable);
+
+	return jsonObject(alloc, [
+		field!"path"(stringOfFilePath(alloc, server.allUris, thisExecutable)),
+		field!"built-on"(import("date.txt")[0 .. "2020-02-02".length]),
+		field!"commit-hash"(import("commit-hash.txt")[0 .. 8]),
+		field!"is-debug-build"(isDebug),
+		field!"has-assertions"(isAssert),
+		field!"interpreter-uses-tail-calls"(isTailCalls),
+		field!"supports-jit"(isJit),
+		field!"d-compiler"(dCompilerName),
+	]);
 }
 
 private string dCompilerName() {

@@ -37,17 +37,6 @@
 		If you need to do a lot of computation, there are options to make that faster at the cost of slower startup.
 	</p>
 
-	<h3>Run with JIT</h4>
-	<p>This feature is only available on Linux. It's completely optional, so just skip this section if not on Linux.</p>
-	<p>
-		Run <code>crow run hello.crow --jit</code> to run using the just-in-time compiler.
-		<br />
-		That will make the program run faster once started, but it will take longer to start.
-		<br />
-		Use this if it's clear that the interpreter's performance isn't good enough.
-		Like interpreting, this option should be used in development to quickly test code changes.
-	</p>
-
 	<h3>Build an executable</h4>
 	<p>
 		Run <code>crow build hello.crow</code> to generate a standalone executable.
@@ -76,10 +65,9 @@
 
 	<h3>Compile errors don't stop the program</h3>
 	<p>
-		<code>crow run hello.crow</code> (even with <code>--jit</code>)
-		will usually try to run code even if there were compile errors.
+		<code>crow run hello.crow</code> will usually try to run code even if there were compile errors.
 		<br />
-		If the compile error is reached, it throws an exception.
+		If a compile error is reached, it throws an exception.
 	</p>
 	<p>
 		Try running the below code (through any method except <code>crow build</code>).

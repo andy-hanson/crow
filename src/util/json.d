@@ -192,23 +192,6 @@ void writeJson(ref Writer writer, in AllSymbols allSymbols, in Json a) =>
 			});
 		});
 
-private:
-
-void writeObjectCompact(K)(
-	ref Writer writer,
-	in AllSymbols allSymbols,
-	in KeyValuePair!(K, Json)[] pairs,
-	in void delegate(in K) @safe @nogc pure nothrow writeKey,
-) {
-	writer ~= '{';
-	writeWithCommasCompact!(KeyValuePair!(K, Json))(writer, pairs, (in KeyValuePair!(K, Json) pair) {
-		writeKey(pair.key);
-		writer ~= ':';
-		writeJson(writer, allSymbols, pair.value);
-	});
-	writer ~= '}';
-}
-
 void writeJsonPretty(ref Writer writer, in AllSymbols allSymbols, in Json a, in uint indent) {
 	if (a.isA!(Json[])) {
 		bool singleLine = every!Json(a.as!(Json[]), (in Json x) => isPrimitive(x));
@@ -234,6 +217,23 @@ void writeJsonPretty(ref Writer writer, in AllSymbols allSymbols, in Json a, in 
 		writer ~= '}';
 	} else
 		writeJson(writer, allSymbols, a);
+}
+
+private:
+
+void writeObjectCompact(K)(
+	ref Writer writer,
+	in AllSymbols allSymbols,
+	in KeyValuePair!(K, Json)[] pairs,
+	in void delegate(in K) @safe @nogc pure nothrow writeKey,
+) {
+	writer ~= '{';
+	writeWithCommasCompact!(KeyValuePair!(K, Json))(writer, pairs, (in KeyValuePair!(K, Json) pair) {
+		writeKey(pair.key);
+		writer ~= ':';
+		writeJson(writer, allSymbols, pair.value);
+	});
+	writer ~= '}';
 }
 
 void writeNewlineAndIndent(ref Writer writer, in uint indent) {

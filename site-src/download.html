@@ -8,18 +8,32 @@
 	</aside>
 
 	<h2>
-		Linux
+		Linux (x64)
 		<a href="./bin/crow.tar.xz">
 			<crow-icon icon="download"></crow-icon> <code>crow.tar.xz</code>
 		</a>
 	</h2>
 
+	<aside>
+		<h4>Linux dependencies</h4>
+		<p>
+			The only required dependency is <code>libunwind</code>.
+			<br />
+			(If you use <code>apt</code>: <code>sudo apt install libunwind-dev</code>.)
+		</p>
+		<p>
+			Optional dependencies to run demos:
+			<br />
+			<code>sudo apt install libsdl2-dev libsndfile1-dev libsodium-dev libsqlite3-dev</code>.
+		</p>
+		<p>
+			<code>-dev</code> dependencies are needed since these are not Crow's own dependencies
+			(except for <code>libunwind</code>), but dependencies of the code that it builds.
+		</p>
+	</aside>
+
 	<p>
-		Crow needs <code>libgccjit</code> version 12+ and <code>libunwind</code>.
-		<br />
-		On Ubuntu based systems: <code>apt install libgccjit-12-dev libunwind-dev</code>
-		<br />
-		Then download the above and run the below in a terminal:
+		Download the above and run the below in a terminal:
 	</p>
 
 	<div class="code-block">
@@ -30,15 +44,9 @@
 		crow run ./crow/demo/hello
 	</div>
 
-	<p>
-		Some demos require additional dependencies.
-		<br />
-		On Ubuntu based systems:
-		<code>apt install libsdl2-dev libsndfile1-dev libsodium-dev libsqlite3-dev</code>
-	</p>
 
 	<h2>
-		Windows
+		Windows (x64)
 		<a href="./bin/crow.zip">
 			<crow-icon icon="download"></crow-icon> <code>crow.zip</code>
 		</a>

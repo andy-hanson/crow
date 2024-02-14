@@ -1,8 +1,6 @@
 # This file is for Linux.
 # WARN: If editing this file, you might need to change NMakefile too.
 
-MAKEFLAGS = -j4
-
 .PHONY: confirm-upload-site debug debug-dmd end-to-end-test end-to-end-test-overwrite serve prepare-site \
 	show-dependencies test unit-test
 
@@ -11,7 +9,7 @@ MAKEFLAGS = -j4
 clean:
 	rm -rf bin site
 
-all: clean test lint install-vscode-extension serve
+all: clean test lint serve
 
 debug: bin/crow-debug
 	gdb ./bin/crow-debug
@@ -30,8 +28,10 @@ crow-unit-tests: crow-unit-tests-interpreter crow-unit-tests-jit crow-unit-tests
 crow-unit-tests-interpreter: bin/crow
 	./bin/crow run test/crow-unit-tests.crow
 crow-unit-tests-jit: bin/crow
-	./bin/crow run test/crow-unit-tests.crow --jit
-	./bin/crow run test/crow-unit-tests.crow --jit --optimize
+ifdef JIT
+		./bin/crow run test/crow-unit-tests.crow --jit
+		./bin/crow run test/crow-unit-tests.crow --jit --optimize
+endif
 crow-unit-tests-aot: bin/crow
 	./bin/crow run test/crow-unit-tests.crow --aot
 	./bin/crow run test/crow-unit-tests.crow --aot --optimize
@@ -85,17 +85,22 @@ all_src_files = src/*.d \
 d_dependencies = $(all_src_files) bin/d-imports/date.txt bin/d-imports/commit-hash.txt dyncall/dyncall/libdyncall_s.a
 
 d_flags_common = -w -betterC -preview=dip1000 -preview=in -J=bin/d-imports -J=src/test -J=include
-dmd_flags_common = $(d_flags_common) -version=GccJitAvailable
+dmd_flags_common = $(d_flags_common)
 dmd_flags_assert = $(dmd_flags_common) -check=on -boundscheck=on
 dmd_flags_debug = -debug -g -version=Debug -version=Test
-ldc_flags_common = $(d_flags_common) --d-version=GccJitAvailable
+ldc_flags_common = $(d_flags_common)
 ldc_flags_assert = $(ldc_flags_common) --enable-asserts=true --boundscheck=on
 ldc_wasm_flags = -mtriple=wasm32-unknown-unknown-wasm -L-allow-undefined
 ldc_fast_flags_no_tail_call = -O2 -L=--strip-all
 ldc_fast_flags = $(ldc_fast_flags_no_tail_call) --d-version=TailRecursionAvailable
-app_link = -L=-ldyncall_s -L=-ldyncallback_s -L=-ldynload_s -L=-lgccjit -L=-lunwind \
+app_link = -L=-ldyncall_s -L=-ldyncallback_s -L=-ldynload_s -L=-lunwind \
 	-L=-L./dyncall/dyncall -L=-L./dyncall/dyncallback -L=-L./dyncall/dynload \
-	-L=-static-libgcc
+
+ifdef JIT
+	dmd_flags_common += -version=GccJitAvailable
+	ldc_flags_common += --d-version=GccJitAvailable
+	app_link += -L=-lgccjit
+endif
 
 bin/d-imports/date.txt:
 	mkdir -p bin/d-imports
@@ -157,7 +162,7 @@ bin/dependencies.dot: bin/crow test/dependencies.crow
 ### site ###
 
 prepare-site: bin/crow bin/crow.wasm bin/crow.tar.xz
-	bin/crow run site-src/site.crow --jit
+	bin/crow run site-src/site.crow --aot
 
 serve: prepare-site
 	bin/crow run site-src/serve.crow

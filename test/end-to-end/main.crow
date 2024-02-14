@@ -8,21 +8,25 @@ import
 	../failure
 
 main nat^(args string[]) summon
-	if values ?= args parse-named-args ("print-tests", "overwrite-output", "match")
-		print-tests-strs = values[0]
-		overwrite-output-strs = values[1]
-		match-test-strs = values[2]
+	if values ?= args parse-named-args ("print-tests", "overwrite-output", "include-jit", "match")
+		print-tests-strs, overwrite-output-strs, include-jit-strs, match-test-strs = \
+			values as-tuple4
 		should-print-tests = !print-tests-strs.is-empty
+		include-jit = !include-jit-strs.is-empty
 		overwrite-output = if strs ?= overwrite-output-strs
 			assert strs is-empty
 			true
 		match-test = if strs ?= match-test-strs
 			assert strs.size == 1
 			strs[0]
-		(should-print-tests, overwrite-output, match-test) do-test
+		(should-print-tests, overwrite-output, include-jit, match-test) do-test
 	else
 		print-help
 		1,
+
+-as-tuple4[t] (t, t, t, t)(a t[])
+	assert a.size == 4
+	a[0], a[1], a[2], a[3]
 
 -print-help void() summon
 	out print """test -- runs tests
@@ -32,7 +36,7 @@ options:
 	--match [STR]: Print tests that have STR in the name.
 """
 
--test-options record(print-tests bool, overwrite-output bool, match-test string)
+-test-options record(print-tests bool, overwrite-output bool, include-jit bool, match-test string)
 
 -do-test nat^(options test-options) summon
 	crow-dir string = "."
@@ -73,7 +77,7 @@ options:
 	if options print-tests
 		out print "crow run {path}"
 	interpret-failures <- path-to-crow run-single path, interpret, overwrite
-	jit-failures <- if interpret-failures.is-empty && !overwrite && !(trusted is-windows)
+	jit-failures <- if options.include-jit && interpret-failures.is-empty && !overwrite
 		path-to-crow run-single path, jit, overwrite
 	else
 		interpret-failures,

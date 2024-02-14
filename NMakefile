@@ -9,7 +9,7 @@ clean:
 @IF EXIST site rmdir /s /q site
 <<
 
-all: clean test lint install-vscode-extension serve
+all: clean test lint serve
 
 ### test ###
 

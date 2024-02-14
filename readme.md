@@ -17,8 +17,9 @@ To work on Crow, you'll need these tools:
 * [`ldc`](https://github.com/ldc-developers/ldc#installation): Used to compile `bin/crow`.
 	- Don't use the Visual D installer as it uses an older compiler.
 	Download the latest [release](https://github.com/ldc-developers/ldc/releases) instead.
+* [`node`](https://nodejs.org/): Used to build the VSCode extension.
 * Also install dependencies listed on the [download](https://crow-lang.org/download.html) page.
-* Optionally, [GraphViz](https://graphviz.org/download/) for viewing dependencies with `make show-dependencies`.
+* On Linux: Optionally, [GraphViz](https://graphviz.org/download/) to support `make show-dependencies`.
 * On Windows, use the "x64 Native Tools Command Prompt for VS 20__" (fill in the year) when running build commands.
 
 Then run:
@@ -26,15 +27,16 @@ Then run:
 ```sh
 git clone https://github.com/andy-hanson/crow.git
 cd crow
-make all
+make test
 ```
 
 This will build `bin/crow` (or `bin\crow.exe` on Windows), test, then serve the website on `localhost`.
 
+You can also speed up builds by passing `-j4` (e.g. `make all -j4`), but it makes the output harder to read.
 
 # Testing
 
-`make test` runs all tests. (Before any PR, you should run `make all` to lint as well.)
+`make test` runs all tests.
 
 There are 2 kinds of tests:
 
@@ -42,6 +44,9 @@ There are 2 kinds of tests:
 * End-to-end tests in the `test` directory. `make end-to-end-test` runs these.
 	- If adding or changing tests, run `make end-to-end-test-overwrite`.
 
+Before any pull request, you should also run `make all`.
+This tests, lints, and starts serving the website.
+Run the demo on the site to manually verify that WASM is still working.
 
 # Debugging
 
@@ -63,24 +68,11 @@ rbreak throw
 run
 ```
 
+# Building with libgccjit
 
-# Testing compiler/interpreter performance
-
-## Linux
-
-```sh
-make bin/crow-fast-debug
-mkdir perf && cd perf
-valgrind --tool=callgrind -v --dump-every-bb=10000000 ../bin/crow-fast-debug run some-program.crow --interpret
-kcachegrind .
-```
-
-## Windows
-
-Haven't tested this yet.
-
+Run `make all JIT=1` to build with libgccjit support. Use `crow run demo/hello.crow --jit` to test it out.
 
 # Publishing
 
-Run `make upload-site` to build and publish. This requires you to have `node` and `aws` installed.
+Run `make upload-site` to build and publish. This requires you to have `aws` installed.
 You need to do this on both Linux and Windows. (Windows updates `crow.zip`, Linux handles everything else.)

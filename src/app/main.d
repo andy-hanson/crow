@@ -83,7 +83,7 @@ import lib.server :
 	setIncludeDir,
 	setShowOptions,
 	showDiagnostics,
-	writeVersion;
+	version_;
 import model.diag : ReadFileDiag;
 import model.model : hasAnyDiagnostics;
 import model.lowModel : ExternLibraries;
@@ -94,7 +94,7 @@ import util.alloc.alloc : Alloc, AllocKind, newAlloc, withTempAllocImpure, word;
 import util.col.array : isEmpty, prepend;
 import util.col.mutQueue : enqueue, isEmpty, mustDequeue, MutQueue;
 import util.exitCode : ExitCode, exitCodeCombine, okAnd;
-import util.json : Json, jsonToString, writeJson;
+import util.json : Json, jsonToString, writeJson, writeJsonPretty;
 import util.jsonParse : mustParseJson, mustParseUint, skipWhitespace;
 import util.opt : force, has, none, MutOpt, Opt, someMut;
 import util.perf : disablePerf, isEnabled, Perf, PerfMeasure, withMeasure, withNullPerf;
@@ -158,8 +158,7 @@ version (Windows) {
 @trusted ExitCode runLsp(ref Server server, FilePath thisExecutable) {
 	withTempAllocImpure!void(server.metaAlloc, (ref Alloc alloc) @trusted {
 		printErrorCb((scope ref Writer writer) {
-			writer ~= "Crow version ";
-			writeVersion(writer, server, thisExecutable);
+			writeJson(writer, server.allSymbols, version_(alloc, server, thisExecutable));
 			writer ~= "\nRunning language server protocol";
 		});
 	});
@@ -350,7 +349,7 @@ ExitCode go(
 		},
 		(in CommandKind.Version) =>
 			printCb((scope ref Writer writer) {
-				writeVersion(writer, server, thisExecutable);
+				writeJsonPretty(writer, server.allSymbols, version_(alloc, server, thisExecutable), 0);
 			}));
 
 ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, FilePath cwd, in CommandKind.Run run) {
@@ -372,7 +371,7 @@ ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, FilePath c
 				CString[] args = getAllArgs(alloc, server, run);
 				return buildAndJit(perf, alloc, server, x.options, run.mainUri, args);
 			} else {
-				printError("'--jit' is not supported on Windows");
+				printError("This build does not support '--jit'");
 				return ExitCode.error;
 			}
 		},

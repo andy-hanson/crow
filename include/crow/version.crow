@@ -15,7 +15,7 @@ no-std
 import
 	./bool: bool
 
-# True if using 'crow run' (instead of 'crow build') without the '--jit' option.
+# True if using 'crow run' without the '--jit' or '--aot' option.
 +is-interpreted bool() builtin, bare, unsafe
 
 # True if using 'crow run my-program --jit'.
