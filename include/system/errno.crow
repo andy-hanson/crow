@@ -4,7 +4,7 @@ import
 	crow/version: is-windows
 	crow/pointer: *, mut-pointer
 
-+errno err-t() bare, unsafe
++errno err-t() bare, summon, unsafe
 	if is-windows
 		*_errno
 	else

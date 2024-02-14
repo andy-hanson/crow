@@ -550,9 +550,10 @@ enum CollectedFunFlags {
 	builtin = 0b10,
 	extern_ = 0b100,
 	forceCtx = 0b1000,
-	summon = 0b10000,
-	trusted = 0b100000,
-	unsafe = 0b1000000,
+	pure_ = 0b10000,
+	summon = 0b100000,
+	trusted = 0b1000000,
+	unsafe = 0b10000000,
 }
 
 CollectedFunFlags tryGetFunFlag(ModifierKeyword kind) =>
@@ -567,6 +568,7 @@ FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, CollectedFunFlags flags
 	bool extern_ = (flags & CollectedFunFlags.extern_) != 0;
 	bool explicitBare = (flags & CollectedFunFlags.bare) != 0;
 	bool forceCtx = (flags & CollectedFunFlags.forceCtx) != 0;
+	bool pure_ = (flags & CollectedFunFlags.pure_) != 0;
 	bool summon = (flags & CollectedFunFlags.summon) != 0;
 	bool trusted = (flags & CollectedFunFlags.trusted) != 0;
 	bool explicitUnsafe = (flags & CollectedFunFlags.unsafe) != 0;
@@ -603,7 +605,16 @@ FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, CollectedFunFlags flags
 		addDiag(ctx, range, Diag(Diag.ModifierConflict(ModifierKeyword.builtin, ModifierKeyword.extern_)));
 	if (explicitUnsafe && trusted)
 		addDiag(ctx, range, Diag(Diag.ModifierConflict(ModifierKeyword.unsafe, ModifierKeyword.trusted)));
-	return FunFlags.regular(bare, summon, safety, specialBody, forceCtx);
+
+	if (pure_ && summon)
+		addDiag(ctx, range, Diag(Diag.ModifierConflict(ModifierKeyword.pure_, ModifierKeyword.summon)));
+	else if (pure_ && !extern_)
+		addDiag(ctx, range, Diag(Diag.ModifierRedundantDueToDeclKind(ModifierKeyword.pure_, DeclKind.function_)));
+	else if (summon && extern_)
+		warnRedundant(ModifierKeyword.extern_, ModifierKeyword.summon);
+
+	bool isSummon = !pure_ && (extern_ || summon);
+	return FunFlags.regular(bare, isSummon, safety, specialBody, forceCtx);
 }
 
 FunsAndMap checkFuns(

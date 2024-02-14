@@ -12,7 +12,7 @@ timestamp alias
 
 ###
 Get the value from a monotonic clock.
-WARN: This should be 'summon', but I didn't mark it that way so 'perf' can use it.
+TODO: This should be 'summon', but I didn't mark it that way so 'perf' can use it.
 ###
 get-monotime-nsec timestamp() bare
 	trusted if is-windows

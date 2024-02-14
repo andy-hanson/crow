@@ -32,7 +32,7 @@ import
 +new stat()
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
--__xstat c-int(ver c-int, path c-string, buf stat mut*) summon, c extern
+-__xstat c-int(ver c-int, path c-string, buf stat mut*) c extern
 +stat c-int(path c-string, buf stat mut*) summon, unsafe
 	0 __xstat path, buf
 
@@ -48,4 +48,4 @@ import
 	# TODO: "octal100000"
 	32768
 
-+mkdir err-t(path c-string, mode mode_t) summon, c extern
++mkdir err-t(path c-string, mode mode_t) c extern

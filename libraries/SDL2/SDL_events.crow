@@ -1,9 +1,9 @@
 import
 	crow/c-types: c-int, u-int
 
-+SDL_PumpEvents void() summon, SDL2 extern
++SDL_PumpEvents void() SDL2 extern
 
-+SDL_PollEvent c-int(event SDL_Event mut*) summon, trusted, SDL2 extern
++SDL_PollEvent c-int(event SDL_Event mut*) trusted, SDL2 extern
 
 +SDL_Event record extern, mut
 	type SDL_EventType

@@ -9,16 +9,21 @@
 		Simply omit the function body.
 	</p>
 	<p>
-		<code class="keyword">extern</code> functions are <code class="keyword">bare</code> and
-		<code class="keyword">unsafe</code> by default.
+		An <code class="keyword">extern</code> function is <code class="keyword">bare</code>,
+		<code class="keyword">summon</code>, and <code class="keyword">unsafe</code> by default.
 		<br />
-		You can mark the function <code class="keyword">trusted</code>
-		if you don't want it to be <code class="keyword">unsafe</code>.
-		That indicates an external function that never does bad things no matter how you call it.
+		Mark it <code class="keyword">pure</code> (negating <code class="keyword">summon</code>)
+		if it doesn't do I/O, access global state, or otherwise violate Crow's purity rules.
+		<br />
+		Mark it <code class="keyword">trusted</code> (negating <code class="keyword">unsafe</code>)
+		if it doesn't do bad things even if called with wrong inputs.
+		(E.g., <code>regfree</code> must remain <code class="keyword">unsafe</code> because it
+		could be used incorrectly by calling it twice.)
 	</p>
-	<aside class="danger small">
-		<code class="keyword">extern</code> functions are <em>not</em> implicitly <code class="keyword">summon</code>,
-		so add that if appropriate.
+	<aside class="danger">
+		<code class="keyword">summon</code> and <code class="keyword">unsafe</code> are the defaults for a reason.
+		<br />
+		Don't change them unless you're sure.
 	</aside>
 
 	<crow-runnable no-run name="regex.crow">
@@ -74,7 +79,7 @@
 
 		regmatch_t extern
 
-		reg_errcode_t enum(c-int) extern
+		reg_errcode_t enum extern, c-int storage
 			REG_ENOSYS = -1
 			REG_NOERROR
 			REG_NOMATCH
@@ -95,9 +100,9 @@
 			regex regex_t mut*,
 			pattern c-string,
 			cflags c-int,
-		) c extern
+		) c extern, pure
 
-		regfree void(preg regex_t mut*) c extern
+		regfree void(preg regex_t mut*) c extern, pure
 
 		regexec reg_errcode_t(
 			preg regex_t*,
@@ -105,14 +110,14 @@
 			nmatch size_t,
 			pmatch regmatch_t mut*,
 			eflags c-int,
-		) c extern
+		) c extern, pure
 
 		regerror size_t(
 			errcode reg_errcode_t,
 			preg regex_t*,
 			errbuff char8 mut*,
 			errbuf_size size_t,
-		) c extern
+		) c extern, pure
 	</crow-runnable>
 
 	<p>

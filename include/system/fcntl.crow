@@ -4,7 +4,7 @@ import
 	crow/number: nat32
 	crow/string: c-string
 
-+fcntl c-int(fd fd-t, cmd c-int, oflags oflag-t) summon, GL extern
++fcntl c-int(fd fd-t, cmd c-int, oflags oflag-t) GL extern
 
 +F_DUPFD c-int() bare
 	0
@@ -17,7 +17,7 @@ import
 +F_SETFL c-int() bare
 	4
 
-+open fd-t(path c-string, oflag oflag-t, permission nat32) summon, GL extern
++open fd-t(path c-string, oflag oflag-t, permission nat32) GL extern
 
 +oflag-t alias
 	c-int

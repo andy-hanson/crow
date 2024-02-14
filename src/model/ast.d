@@ -851,6 +851,7 @@ enum ModifierKeyword : ubyte {
 	newPrivate,
 	nominal,
 	packed,
+	pure_,
 	shared_,
 	storage,
 	summon,
@@ -1029,6 +1030,8 @@ string stringOfModifierKeyword(ModifierKeyword a) {
 			return "nominal";
 		case ModifierKeyword.packed:
 			return "packed";
+		case ModifierKeyword.pure_:
+			return "pure";
 		case ModifierKeyword.shared_:
 			return "shared";
 		case ModifierKeyword.storage:

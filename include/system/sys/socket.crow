@@ -34,22 +34,22 @@ import
 
 +sockaddr extern
 
-+accept err-t(a SOCKET, addr sockaddr mut*, addrlen socklen_t mut*) summon, c extern
++accept err-t(a SOCKET, addr sockaddr mut*, addrlen socklen_t mut*) c extern
 
-+bind err-t(a SOCKET, addr sockaddr mut*, len socklen_t) summon, c extern
++bind err-t(a SOCKET, addr sockaddr mut*, len socklen_t) c extern
 
-+recv ssize_t(a SOCKET, buf any-mut-pointer, n size_t, recv-flags int32) summon, c extern
++recv ssize_t(a SOCKET, buf any-mut-pointer, n size_t, recv-flags int32) c extern
 
-+socket SOCKET(domain c-int, type c-int, protocol c-int) summon, c extern
++socket SOCKET(domain c-int, type c-int, protocol c-int) c extern
 
-+connect int32(a SOCKET, addr sockaddr mut*, len socklen_t) summon, c extern
++connect int32(a SOCKET, addr sockaddr mut*, len socklen_t) c extern
 
-+listen err-t(a SOCKET, n int32) summon, c extern
++listen err-t(a SOCKET, n int32) c extern
 
-+shutdown err-t(a SOCKET, how int32) summon, c extern
++shutdown err-t(a SOCKET, how int32) c extern
 
 # Win32 only; on POSIX just use 'close'
-+closesocket c-int(s SOCKET) summon, c extern
++closesocket c-int(s SOCKET) c extern
 
 +SHUT_RD int32() bare
 	0

@@ -193,6 +193,7 @@ bool isExpressionStartToken(Token a) {
 		case Token.noStd:
 		case Token.packed:
 		case Token.parenRight:
+		case Token.pure_:
 		case Token.question:
 		case Token.questionEqual:
 		case Token.quotedText:

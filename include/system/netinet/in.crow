@@ -26,4 +26,4 @@ import
 +new sockaddr_in() bare
 	0, 0, (0,)
 
-+htons nat16(hostshort nat16) c extern
++htons nat16(hostshort nat16) c extern, pure

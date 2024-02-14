@@ -3,7 +3,7 @@ import
 
 +SDL_Window extern
 
-+SDL_DestroyWindow void(window SDL_Window mut*) summon, SDL2 extern
++SDL_DestroyWindow void(window SDL_Window mut*) SDL2 extern
 
 +SDL_GLContext extern
 
@@ -14,7 +14,7 @@ import
 	w c-int,
 	h c-int,
 	window-flags SDL_WindowFlags,
-) summon, SDL2 extern
+) SDL2 extern
 
 +SDL_WindowFlags flags extern, nat32 storage
 	SDL_WINDOW_FULLSCREEN = 0x00000001
@@ -41,8 +41,8 @@ import
 	SDL_WINDOW_VULKAN = 0x10000000
 	SDL_WINDOW_METAL = 0x20000000
 
-+SDL_GL_CreateContext SDL_GLContext mut*(window SDL_Window mut*) summon, SDL2 extern
-+SDL_GL_DeleteContext void(context SDL_GLContext mut*) summon, SDL2 extern
++SDL_GL_CreateContext SDL_GLContext mut*(window SDL_Window mut*) SDL2 extern
++SDL_GL_DeleteContext void(context SDL_GLContext mut*) SDL2 extern
 
 +SDL_GLattr enum extern, u-int storage
 	SDL_GL_RED_SIZE = 0
@@ -78,13 +78,13 @@ import
 	SDL_GL_CONTEXT_PROFILE_COMPATIBILITY = 2
 	SDL_GL_CONTEXT_PROFILE_ES = 4
 
-+SDL_GL_SetAttribute c-int(attr SDL_GLattr, value c-int) summon, SDL2 extern
++SDL_GL_SetAttribute c-int(attr SDL_GLattr, value c-int) SDL2 extern
 
 +SDL_WINDOWPOS_UNDEFINED c-int()
 	0x1fff0000
 
-+SDL_GL_SwapWindow void(window SDL_Window mut*) summon, SDL2 extern
++SDL_GL_SwapWindow void(window SDL_Window mut*) SDL2 extern
 
-+SDL_GL_LoadLibrary c-int(path c-string) summon, SDL2 extern
++SDL_GL_LoadLibrary c-int(path c-string) SDL2 extern
 
-+SDL_GL_GetProcAddress any-const-pointer(proc c-string) summon, SDL2 extern
++SDL_GL_GetProcAddress any-const-pointer(proc c-string) SDL2 extern

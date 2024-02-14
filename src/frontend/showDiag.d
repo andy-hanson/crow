@@ -1452,6 +1452,8 @@ string describeTokenForUnexpected(Token token) {
 			return "Unexpected '('.";
 		case Token.parenRight:
 			return "Unexpected ')'.";
+		case Token.pure_:
+			return "Unexpected keyword 'pure'.";
 		case Token.question:
 			return "Unexpected '?'.";
 		case Token.questionEqual:

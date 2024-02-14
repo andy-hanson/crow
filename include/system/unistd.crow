@@ -6,18 +6,17 @@ import
 	crow/private/number-low-level: int32, int64, nat32
 	./sys/types: off_t
 
-+getcwd char8 mut*(buf char8 mut*, size size_t) summon, c extern
++getcwd char8 mut*(buf char8 mut*, size size_t) c extern
 
-+readlink ssize_t(path c-string, buf char8 mut*, len size_t) summon, c extern
-+symlink c-int(target c-string, linkpath c-string) summon, c extern
++readlink ssize_t(path c-string, buf char8 mut*, len size_t) c extern
++symlink c-int(target c-string, linkpath c-string) c extern
 
-+close err-t(fd fd-t) summon, c extern
++close err-t(fd fd-t) c extern
 +lseek off_t(f fd-t, offset off_t, whence int32) c extern
-+read ssize_t(fd fd-t, buff any-mut-pointer, n-bytes size_t) summon, c extern
-# TODO: summon
++read ssize_t(fd fd-t, buff any-mut-pointer, n-bytes size_t) c extern
 +write ssize_t(fd fd-t, buf any-const-pointer, n-bytes size_t) c extern
 
-+pipe err-t(pipes pipes mut*) summon, c extern
++pipe err-t(pipes pipes mut*) c extern
 
 # The headers just use int[2], but this is easier to use from crow
 +pipes record(write-pipe fd-t, read-pipe fd-t) extern, mut

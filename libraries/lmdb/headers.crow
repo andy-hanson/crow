@@ -8,16 +8,16 @@ MDB_dbi alias
 
 MDB_val record(mv_size size_t, mv_data any-mut-pointer) extern, mut
 
-mdb_env_create mdb-error(env MDB_env mut* mut*) summon, lmdb extern
+mdb_env_create mdb-error(env MDB_env mut* mut*) lmdb extern
 mdb_env_open mdb-error(
 	env MDB_env mut*,
 	path c-string,
 	flats c-int,
 	mode mode_t,
-) summon, lmdb extern
-mdb_env_close void(env MDB_env mut*) summon, lmdb extern
-mdb_env_set_mapsize mdb-error(env MDB_env mut*, size size_t) summon, lmdb extern
-mdb_env_set_maxdbs mdb-error(env MDB_env mut*, dbs u-int) summon, lmdb extern
+) lmdb extern
+mdb_env_close void(env MDB_env mut*) lmdb extern
+mdb_env_set_mapsize mdb-error(env MDB_env mut*, size size_t) lmdb extern
+mdb_env_set_maxdbs mdb-error(env MDB_env mut*, dbs u-int) lmdb extern
 
 MDB_txn extern
 mdb_txn_begin mdb-error(
@@ -25,30 +25,30 @@ mdb_txn_begin mdb-error(
 	parent MDB_txn mut*,
 	mdb-flags mdb-environment-flags,
 	txn MDB_txn mut* mut*,
-) summon, lmdb extern
-mdb_txn_abort void(txn MDB_txn mut*) summon, lmdb extern
-mdb_txn_commit mdb-error(txn MDB_txn mut*) summon, lmdb extern
+) lmdb extern
+mdb_txn_abort void(txn MDB_txn mut*) lmdb extern
+mdb_txn_commit mdb-error(txn MDB_txn mut*) lmdb extern
 mdb_dbi_open mdb-error(
 	txn MDB_txn mut*,
 	name c-string,
 	mdb-flags mdb-database-flags,
 	dbi MDB_dbi mut*,
-) summon, lmdb extern
-mdb_dbi_close void(env MDB_env mut*, dbi MDB_dbi) summon, lmdb extern
+) lmdb extern
+mdb_dbi_close void(env MDB_env mut*, dbi MDB_dbi) lmdb extern
 
 mdb_get mdb-error(
 	txn MDB_txn mut*,
 	dbi MDB_dbi,
 	key MDB_val*,
 	value MDB_val mut*,
-) summon, lmdb extern
+) lmdb extern
 mdb_put mdb-error(
 	txn MDB_txn mut*,
 	dbi MDB_dbi,
 	key MDB_val*,
 	value MDB_val*,
 	mdb-flags mdb-write-flags,
-) summon, lmdb extern
+) lmdb extern
 
 mdb_stat record extern
 	ms_psize u-int
@@ -59,27 +59,27 @@ mdb_stat record extern
 	ms_entries size_t
 new mdb_stat()
 	0, 0, 0, 0, 0, 0
-mdb_stat mdb-error(txn MDB_txn mut*, dbi MDB_dbi, stat mdb_stat mut*) summon, lmdb extern
+mdb_stat mdb-error(txn MDB_txn mut*, dbi MDB_dbi, stat mdb_stat mut*) lmdb extern
 
 MDB_cursor extern
 mdb_cursor_open mdb-error(
 	txn MDB_txn mut*,
 	dbi MDB_dbi,
 	cursor MDB_cursor mut* mut*,
-) summon, lmdb extern
-mdb_cursor_close void(cursor MDB_cursor mut*) summon, lmdb extern
+) lmdb extern
+mdb_cursor_close void(cursor MDB_cursor mut*) lmdb extern
 mdb_cursor_get mdb-error(
 	cursor MDB_cursor mut*,
 	key MDB_val mut*,
 	value MDB_val mut*,
 	op MDB_cursor_op,
-) summon, lmdb extern
+) lmdb extern
 mdb_cursor_put mdb-error(
 	cursor MDB_cursor mut*,
 	key MDB_val*,
 	value MDB_val*,
 	mdb-flags u-int,
-) summon, lmdb extern
+) lmdb extern
 
 MDB_cursor_op enum extern, c-int storage
 	MDB_FIRST

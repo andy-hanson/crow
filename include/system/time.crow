@@ -13,16 +13,16 @@ import
 
 +nanosleep err-t(requested_time timespec*, remaining timespec mut*) c extern
 
-# TODO:SUMMON
-+clock_gettime err-t(clock-id __clockid_t, timespec timespec mut*) c extern
+# TODO: should not be 'pure'
++clock_gettime err-t(clock-id __clockid_t, timespec timespec mut*) c extern, pure
 
-+gmtime tm mut*(timer time_t*) summon, c extern
++gmtime tm mut*(timer time_t*) c extern
 
-+localtime tm mut*(timer time_t*) summon, c extern
++localtime tm mut*(timer time_t*) c extern
 
-+time time_t(timer time_t mut*) summon, c extern
++time time_t(timer time_t mut*) c extern
 
-+strftime size_t(s char8 mut*, max-size size_t, format c-string, tp tm*) summon, c extern
++strftime size_t(s char8 mut*, max-size size_t, format c-string, tp tm*) c extern
 
 +CLOCK_MONOTONIC __clockid_t() bare
 	1

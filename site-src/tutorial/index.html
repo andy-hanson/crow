@@ -41,9 +41,6 @@
 	<p>
 		Run <code>crow build hello.crow</code> to generate a standalone executable.
 		The executable will be called <code>hello</code>, or <code>hello.exe</code> on Windows.
-		<br />
-		Fully compiled code runs faster than JITted code.
-		<code>crow build hello.crow --optimize</code> is the fastest option.
 	</p>
 	<p>
 		"Standalone" means that it can run on a computer that doesn't have <code>crow</code> installed.
@@ -54,13 +51,26 @@
 	<p>
 		Run <code>crow build hello.crow --out hello.c</code> to "transpile" to a C program.
 		<br />
-		The C code is pretty ugly, but it can be useful if you want to use a C debugger to debug crow code.
+		The C code is pretty ugly, but it can be useful if you want to use a C debugger to debug Crow code.
+		<br />
+		A comment at the top of the file contains the compile command to use on it.
+	</p>
+
+	<h3>Compile and run</h3>
+	<p>
+		<code>crow run hello.crow --aot</code> will compile and run native code.
+		<br />
+		Compared to the interpreter, this takes longer to start but runs faster afterwards.
+		(Even more so with the <code>--optimize</code> flag.)
+		Use this for big jobs.
+		<br />
+		This uses the same compiler as <code>crow build</code>, but it cleans up the executable after running.
 	</p>
 
 	<h3>Just print errors</h3>
 	<p>
 		Run <code>crow check hello.crow</code>
-		to just print compile errors without building or running the code.
+		to just print compile errors (and warnings) without building or running the code.
 	</p>
 
 	<h3>Compile errors don't stop the program</h3>

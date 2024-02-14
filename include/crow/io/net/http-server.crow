@@ -71,7 +71,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 			sock close-client
 			()
 
--write-until-finished void^(sock SOCKET, content nat8 array) unsafe
+-write-until-finished void^(sock SOCKET, content nat8 array) summon, unsafe
 	unless content is-empty
 		wrote = sock.as-fd write content.begin-pointer, content.size
 		unless wrote == content.size.to

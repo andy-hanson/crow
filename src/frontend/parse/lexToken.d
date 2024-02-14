@@ -188,6 +188,7 @@ enum Token {
 	packed, // 'packed'
 	parenLeft, // '('
 	parenRight, // ')'
+	pure_, // 'pure'
 	question, // '?'
 	questionEqual, // '?='
 	quoteDouble, // '"'
@@ -566,6 +567,8 @@ Token tokenForSymbol(Symbol a) {
 			return Token.noStd;
 		case symbol!"packed".value:
 			return Token.packed;
+		case symbol!"pure".value:
+			return Token.pure_;
 		case symbol!"record".value:
 			return Token.record;
 		case symbol!"region".value:

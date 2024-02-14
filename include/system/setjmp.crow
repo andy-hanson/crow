@@ -13,15 +13,17 @@ import
 +jmp_buf alias
 	__jmp_buf_tag mut*
 
+# TODO: should not be 'pure'
 # WARN: Use _setjmp on Windows
-+setjmp int32(env jmp_buf) c extern
++setjmp int32(env jmp_buf) c extern, pure
 
 # WARN: Windows only
-+_setjmp int32(env jmp_buf) kernel32 extern
++_setjmp int32(env jmp_buf) kernel32 extern, pure
 
+# TODO: should not be 'pure'
 ###
 This is used internally by crow for `throw` and should not be used otherwise.
 
 The interpreter uses a fake implementation.
 ###
-+longjmp void(env jmp_buf, val int32) c extern
++longjmp void(env jmp_buf, val int32) c extern, pure

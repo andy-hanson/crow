@@ -155,6 +155,8 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 						return "The type's constructor uses the type's name instead of 'new'.";
 					case ModifierKeyword.packed:
 						return "The type will be laid out without gaps for alignment.";
+					case ModifierKeyword.pure_:
+						return "Marks an 'extern' function as not 'summon', meaning it following Crow's purity rules.";
 					case ModifierKeyword.shared_:
 						return "The type is mutable, but in a way that is safe to share between concurrent tasks.";
 					case ModifierKeyword.storage:

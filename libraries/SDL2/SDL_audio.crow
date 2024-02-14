@@ -27,7 +27,7 @@ import
 +new SDL_AudioSpec() bare, unsafe
 	0, 0, 0, 0, 0, 0, 0, null, null
 
-+SDL_GetAudioDeviceName c-string(index c-int, iscapture c-int) summon, SDL2 extern
++SDL_GetAudioDeviceName c-string(index c-int, iscapture c-int) SDL2 extern
 
 +SDL_OpenAudioDevice SDL_AudioDeviceID(
 	device c-string,
@@ -35,8 +35,8 @@ import
 	desired SDL_AudioSpec*,
 	obtained SDL_AudioSpec mut*,
 	allowed_changes c-int,
-) summon, SDL2 extern
+) SDL2 extern
 
-+SDL_PauseAudioDevice void(dev SDL_AudioDeviceID, pause_on c-int) summon, SDL2 extern
++SDL_PauseAudioDevice void(dev SDL_AudioDeviceID, pause_on c-int) SDL2 extern
 
-+SDL_CloseAudioDevice void(dev SDL_AudioDeviceID) summon, SDL2 extern
++SDL_CloseAudioDevice void(dev SDL_AudioDeviceID) SDL2 extern

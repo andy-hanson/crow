@@ -14,8 +14,8 @@ import
 	write sf_count_t function(ptr nat8*, sf_count_t sf_count_t, user_data any-mut-pointer)
 	tell sf_count_t function(user_data any-mut-pointer)
 
-+sf_error c-int(sndfile SNDFILE mut*) sndfile extern
-+sf_error_number c-string(errnum c-int) sndfile extern
++sf_error c-int(sndfile SNDFILE mut*) sndfile extern, pure
++sf_error_number c-string(errnum c-int) sndfile extern, pure
 
 +SF_INFO record extern
 	frames sf_count_t
@@ -28,14 +28,14 @@ import
 +new SF_INFO() bare
 	0, 0, 0, (), 0, 0
 
-+sf_open SNDFILE mut*(path c-string, mode SndFileMode, sfinfo SF_INFO mut*) summon, sndfile extern
++sf_open SNDFILE mut*(path c-string, mode SndFileMode, sfinfo SF_INFO mut*) sndfile extern
 +sf_open_virtual SNDFILE mut*(
 	sfvirtual SF_VIRTUAL_IO*,
 	mode SndFileMode,
 	sfinfo SF_INFO mut*,
 	user_data any-mut-pointer,
-) sndfile extern
-+sf_close c-int(SNDFILE SNDFILE mut*) sndfile extern
+) sndfile extern, pure
++sf_close c-int(SNDFILE SNDFILE mut*) sndfile extern, pure
 
 +SndFileMode enum extern, c-int storage
 	SFM_READ = 0x10
@@ -49,8 +49,12 @@ import
 	sndfile SNDFILE mut*,
 	pointer float32 mut*,
 	items sf_count_t,
-) sndfile extern
-+sf_write_float sf_count_t(sndfile SNDFILE mut*, pointer float32*, items sf_count_t) sndfile extern
+) sndfile extern, pure
++sf_write_float sf_count_t(
+	sndfile SNDFILE mut*,
+	pointer float32*,
+	items sf_count_t,
+) sndfile extern, pure
 
 # WARN: This is not a true flags type; can only be mixed in certain ways
 +SF_FORMAT flags extern, u-int storage

@@ -152,15 +152,20 @@ import
 	FunctionTableAccessRoutine PFUNCTION_TABLE_ACCESS_ROUTINE64,
 	GetModuleBaseRoutine PGET_MODULE_BASE_ROUTINE64,
 	TranslateAddress PTRANSLATE_ADDRESS_ROUTINE64,
-) DbgHelp extern
+) DbgHelp extern, pure
 
-+SymFunctionTableAccess64 any-const-pointer(hProcess HANDLE, AddrBase DWORD64) DbgHelp extern
++SymFunctionTableAccess64 any-const-pointer(hProcess HANDLE, AddrBase DWORD64) DbgHelp extern, pure
 
 # A process that calls SymInitialize should not call it again unless it calls SymCleanup first
-+SymInitialize bool(hProcess HANDLE, UserSearchPath c-string, fInvadeProcess bool) DbgHelp extern
-+SymCleanup bool(hProcess HANDLE) DbgHelp extern
++SymInitialize bool(
+	hProcess HANDLE,
+	UserSearchPath c-string,
+	fInvadeProcess bool,
+) DbgHelp extern, pure
++SymCleanup bool(hProcess HANDLE) DbgHelp extern, pure
 
-+SymSetOptions DWORD(SymOptions SymOptions) DbgHelp extern
+# TODO: should not be 'pure'
++SymSetOptions DWORD(SymOptions SymOptions) DbgHelp extern, pure
 
 +SymOptions flags extern, nat32 storage
 	SYMOPT_CASE_INSENSITIVE = 0x00000001
@@ -201,11 +206,11 @@ import
 	qwAddr DWORD64,
 	pdwDisplacement DWORD64 mut*,
 	Symbol IMAGEHLP_SYMBOL64 mut*,
-) DbgHelp extern
+) DbgHelp extern, pure
 
 +SymGetLineFromAddr64 bool(
 	hProcess HANDLE,
 	qwAddr DWORD64,
 	pdwDisplacement DWORD mut*,
 	Line64 IMAGEHLP_LINE64 mut*,
-) DbgHelp extern
+) DbgHelp extern, pure

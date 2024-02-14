@@ -8,8 +8,8 @@ sqlite3_open_v2 sqlite3-result(
 	db sqlite3 mut* mut*,
 	open-flags sqlite3-open-flags,
 	zVfs c-string,
-) summon, sqlite3 extern
-sqlite3_close sqlite3-result(db sqlite3 mut*) summon, sqlite3 extern
+) sqlite3 extern
+sqlite3_close sqlite3-result(db sqlite3 mut*) sqlite3 extern
 
 sqlite3_exec sqlite3-result(
 	db sqlite3 mut*,
@@ -17,9 +17,9 @@ sqlite3_exec sqlite3-result(
 	cb c-int function(context any-mut-pointer, argc c-int, argv c-string*, colum_name c-string*),
 	cb-arg any-mut-pointer,
 	err-msg c-string mut*,
-) summon, sqlite3 extern
+) sqlite3 extern
 
-sqlite3_free void(pointer any-mut-pointer) summon, sqlite3 extern
+sqlite3_free void(pointer any-mut-pointer) sqlite3 extern
 
 sqlite3-open-flags flags extern
 	SQLITE_OPEN_READONLY = 1
