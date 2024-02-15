@@ -12,6 +12,7 @@ import model.diag : Diag, TypeContainer, TypeWithContainer;
 import model.model : CommonTypes, FunFlags, LambdaExpr, Local, Mutability, SpecInst, Type, TypeParams, VariableRef;
 import util.alloc.alloc : Alloc;
 import util.col.mutMaxArr : MutMaxArr;
+import util.col.enumMap : EnumMap;
 import util.opt : has, force, MutOpt, none, Opt, some;
 import util.perf : Perf;
 import util.sourceRange : Range, rangeOfStartAndLength;
@@ -24,7 +25,7 @@ struct ClosureFieldBuilder {
 	// but are needed before the lambda has its Late fields filled in
 	immutable Symbol name;
 	immutable Mutability mutability; // same
-	bool[4]* isUsed; // points to isUsed for the outer variable. Null for Param.
+	EnumMap!(LocalAccessKind, bool)* isUsed; // points to isUsed for the outer variable. Null for Param.
 	immutable Type type;
 	immutable VariableRef variableRef;
 
@@ -55,7 +56,7 @@ bool isInDataLambda(in LocalsInfo a) =>
 
 struct LocalNode {
 	MutOpt!(LocalNode*) prev;
-	bool[4] isUsed; // One for each LocalAccessKind
+	EnumMap!(LocalAccessKind, bool) isUsed;
 	immutable Local* local;
 }
 enum LocalAccessKind { getOnStack, getThroughClosure, setOnStack, setThroughClosure }

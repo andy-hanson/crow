@@ -167,6 +167,7 @@ import util.col.array :
 	only,
 	PtrAndSmallNumber,
 	small;
+import util.col.enumMap : EnumMap, makeEnumMap;
 import util.col.mutMaxArr : asTemporaryArray, initializeMutMaxArr, mutMaxArrSize;
 import util.conv : safeToUshort;
 import util.memory : allocate, overwriteMemory;
@@ -552,7 +553,7 @@ struct VariableRefAndType {
 
 	immutable VariableRef variableRef;
 	immutable Mutability mutability;
-	bool[4]* isUsed; // null for Param
+	EnumMap!(LocalAccessKind, bool)* isUsed; // null for Param
 	immutable Type type;
 
 	@trusted void setIsUsed(LocalAccessKind kind) {
@@ -922,7 +923,10 @@ Opt!Expr checkWithLocal(
 		addDiag2(ctx, localMustHaveNameRange(*local, ctx.allSymbols), Diag(
 			Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.paramOrLocal, local.name)));
 
-	LocalNode localNode = LocalNode(locals.locals, [false, false, false, false], local);
+	LocalNode localNode = LocalNode(
+		locals.locals,
+		makeEnumMap!(LocalAccessKind, bool)((LocalAccessKind _) => false),
+		local);
 	LocalsInfo newLocals = LocalsInfo(locals.lambda, someMut(ptrTrustMe(localNode)));
 	Opt!Expr res = cb(newLocals);
 	if (localNode.local.mutability == LocalMutability.mutOnStack &&

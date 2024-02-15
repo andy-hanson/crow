@@ -139,7 +139,7 @@ import util.string : CString;
 import util.symbol : AllSymbols;
 import util.union_ : TaggedUnion;
 import util.uri : AllUris;
-import util.util : castImmutable, castNonScope, castNonScope_ref, cStringOfEnum, debugLog, ptrTrustMe, todo;
+import util.util : castImmutable, castNonScope_ref, cStringOfEnum, debugLog, ptrTrustMe, todo;
 import util.writer : debugLogWithWriter, withWriter, Writer;
 
 @trusted ExitCode jitAndRun(
@@ -496,7 +496,7 @@ GccVars generateGccVars(
 					gcc_jit_lvalue_set_tls_model(res, gcc_jit_tls_model.GCC_JIT_TLS_MODEL_LOCAL_DYNAMIC);
 					break;
 			}
-			return castNonScope(res);
+			return res;
 		});
 
 @trusted gcc_jit_function* toGccFunctionSignature(
@@ -964,8 +964,8 @@ void emitToVoid(ref ExprCtx ctx, ref Locals locals, in LowExpr a) {
 		map!(gcc_jit_lvalue*, UpdateParam)(ctx.alloc, a.updateParams, (ref UpdateParam updateParam) {
 			gcc_jit_lvalue* local =
 				gcc_jit_function_new_local(ctx.curFun, null, getGccType(ctx.types, updateParam.newValue.type), "temp");
-			emitToLValue(ctx, locals, castNonScope(local), updateParam.newValue);
-			return castNonScope(local);
+			emitToLValue(ctx, locals, local, updateParam.newValue);
+			return local;
 		});
 	zip!(gcc_jit_lvalue*, UpdateParam)(
 		updateParamLocals,
