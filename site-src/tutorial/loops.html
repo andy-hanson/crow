@@ -47,9 +47,26 @@
 					x +:= 1
 					continue
 				else
-					break x
+					break square
 			info log "{result}"
 	</crow-runnable>
+
+	<aside>
+		<h4>Crow is expression-based</h4>
+		<p>
+			Hover over <code class="keyword">continue</code> and observe that it has a type;
+			the value of the <code class="keyword">continue</code> is the value of running the loop again.
+			<br />
+			It works more like tail recursion than like a <code class="keyword">goto</code>,
+			and must appear in "tail position".
+			<br />
+			You can't <code class="keyword">continue</code> or <code class="keyword">break</code> just anywhere;
+			they only have meaning as the value of a loop body.
+			<br />
+			The <code class="keyword">else</code> above is required, since without it,
+			<code class="keyword">continue</code> would have an expected type of <code class="keyword">void</code>.
+		</p>
+	</aside>
 
 	<h2>"While" expressions</h2>
 	<p>

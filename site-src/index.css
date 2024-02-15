@@ -3,12 +3,12 @@
 	src: url(/font/Murecho-Regular.woff2);
 }
 @font-face {
-	font-family: alkatra;
-	src: url(/font/Alkatra[wght].ttf);
+	font-family: murecho-bold;
+	src: url(/font/Murecho-ExtraBold.woff2);
 }
 @font-face {
-	font-family: lt-staircase;
-	src: url(/font/lt-staircase.otf);
+	font-family: alkatra;
+	src: url(/font/Alkatra[wght].ttf);
 }
 
 html, body {
@@ -209,7 +209,7 @@ main {
 }
 
 main h1, main h2, main h3 {
-	font-family: lt-staircase;
+	font-family: murecho-bold;
 	width: auto;
 	padding-left: 1em;
 }

@@ -3,7 +3,7 @@
 
 # Crow
 
-This readme describes how to contribute to Crow.
+This readme describes how to build Crow from source.
 
 For information about the language itself, visit the [website](https://crow-lang.org/).
 
