@@ -110,7 +110,7 @@ import util.col.array : allSame, contains, find, fold, isEmpty, mustFind, only, 
 import util.col.arrayBuilder : buildArray, Builder;
 import util.col.hashTable : mustGet;
 import util.col.mutMaxArr : asTemporaryArray, mutMaxArr, MutMaxArr;
-import util.opt : force, has, none, Opt, optDeref, some;
+import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : AllSymbols, prependSet, Symbol;
 import util.uri : AllUris, Uri;
@@ -462,8 +462,11 @@ void eachTypeDirectlyInExpr(ExprRef a, in TypeCb cb) {
 		(in AssertOrForbidExpr _) {},
 		(in BogusExpr _) {},
 		(in CallExpr x) {
-			if (astKind.isA!CallAst)
-				eachPackedTypeArg(x.called.as!(FunInst*).typeArgs, optDeref!TypeAst(astKind.as!CallAst.typeArg), cb);
+			if (astKind.isA!CallAst) {
+				Opt!(TypeAst*) typeArg = astKind.as!CallAst.typeArg;
+				if (has(typeArg))
+					eachPackedTypeArg(x.called.as!(FunInst*).typeArgs, *force(typeArg), cb);
+			}
 		},
 		(in ClosureGetExpr _) {},
 		(in ClosureSetExpr _) {},

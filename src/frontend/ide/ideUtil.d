@@ -45,7 +45,7 @@ import model.model :
 	TypedExpr,
 	TypeParamIndex;
 import util.col.array : arrayOfSingle, count, first, firstPointer, firstZip, firstZipPointerFirst, isEmpty, only, only2;
-import util.opt : force, has, none, Opt, optOr;
+import util.opt : force, has, none, Opt, optOr, some;
 import util.sourceRange : UriAndRange;
 import util.util : ptrTrustMe;
 
@@ -113,6 +113,9 @@ Opt!T eachTypeComponent(T)(in Type type, in TypeAst ast, in TypeCbOpt!T cb) =>
 		(in StructInst x) =>
 			findInTypeArgs!T(x.typeArgs, ast, cb));
 
+void eachPackedTypeArg(in Type[] typeArgs, in TypeAst ast, in TypeCb cb) {
+	eachPackedTypeArg(typeArgs, some(ast), cb);
+}
 void eachPackedTypeArg(in Type[] typeArgs, in Opt!TypeAst ast, in TypeCb cb) {
 	Opt!bool x = findInPackedTypeArgs!bool(typeArgs, ast, (in Type argType, in TypeAst argAst) {
 		cb(argType, argAst);

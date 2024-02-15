@@ -92,9 +92,6 @@ ref inout(T) force(T)(ref inout Option!T a) {
 Opt!T optFromMut(T)(MutOpt!T a) =>
 	has(a) ? some(force(a)) : none!T;
 
-Opt!T optDeref(T)(Opt!(T*) a) =>
-	has(a) ? some(*force(a)) : none!T;
-
 Opt!T optIf(T)(bool b, in T delegate() @safe @nogc pure nothrow cb) =>
 	b ? some(cb()) : none!T;
 

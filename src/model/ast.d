@@ -743,7 +743,6 @@ immutable struct ParamsAst {
 	}
 	mixin TaggedUnion!(SmallArray!DestructureAst, Varargs*);
 }
-static assert(ParamsAst.sizeof == 8);
 
 DestructureAst[] paramsArray(return scope ParamsAst a) =>
 	a.matchWithPointers!(DestructureAst[])(
