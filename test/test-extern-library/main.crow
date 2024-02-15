@@ -27,27 +27,27 @@ main void()
 	info log "done"
 	()
 
--f_void void(f void function()) example extern, trusted
--f_bool bool(a bool, f bool function(x bool)) example extern, trusted
--f_int8 int8(a int8, f int8 function(x int8)) example extern, trusted
--f_int16 int16(a int16, f int16 function(x int16)) example extern, trusted
--f_int32 int32(a int32, f int32 function(x int32)) example extern, trusted
--f_int64 int64(a int64, f int64 function(x int64)) example extern, trusted
--f_nat8 nat8(a nat8, f nat8 function(x nat8)) example extern, trusted
--f_nat16 nat16(a nat16, f nat16 function(x nat16)) example extern, trusted
--f_nat32 nat32(a nat32, f nat32 function(x nat32)) example extern, trusted
--f_nat64 nat64(a nat64, f nat64 function(x nat64)) example extern, trusted
--f_float32 float32(a float32, f float32 function(x float32)) example extern, trusted
--f_float64 float64(a float64, f float64 function(x float64)) example extern, trusted
--f_nat64_ptr nat64*(a nat64*, f nat64* function(x nat64*)) example extern, trusted
+-f_void void(f void function()) example extern, pure, trusted
+-f_bool bool(a bool, f bool function(x bool)) example extern, pure, trusted
+-f_int8 int8(a int8, f int8 function(x int8)) example extern, pure, trusted
+-f_int16 int16(a int16, f int16 function(x int16)) example extern, pure, trusted
+-f_int32 int32(a int32, f int32 function(x int32)) example extern, pure, trusted
+-f_int64 int64(a int64, f int64 function(x int64)) example extern, pure, trusted
+-f_nat8 nat8(a nat8, f nat8 function(x nat8)) example extern, pure, trusted
+-f_nat16 nat16(a nat16, f nat16 function(x nat16)) example extern, pure, trusted
+-f_nat32 nat32(a nat32, f nat32 function(x nat32)) example extern, pure, trusted
+-f_nat64 nat64(a nat64, f nat64 function(x nat64)) example extern, pure, trusted
+-f_float32 float32(a float32, f float32 function(x float32)) example extern, pure, trusted
+-f_float64 float64(a float64, f float64 function(x float64)) example extern, pure, trusted
+-f_nat64_ptr nat64*(a nat64*, f nat64* function(x nat64*)) example extern, pure, trusted
 -f_struct_a struct_a(
 	a struct_a,
 	f struct_a function(x struct_a),
-) example extern, trusted
+) example extern, pure, trusted
 -f_struct_b struct_b(
 	a struct_b,
 	f struct_b function(x struct_b),
-) example extern, trusted
+) example extern, pure, trusted
 
 -struct_a record extern
 	b bool
