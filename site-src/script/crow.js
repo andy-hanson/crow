@@ -1,6 +1,5 @@
 import { assert } from "./util/util.js"
-// @ts-ignore
-import includeAll from "/include-all.json" assert { type: "json" }
+const includeAll = await (await fetch("/include-all.json")).json()
 
 /** @typedef {string} */
 export const Uri = null
