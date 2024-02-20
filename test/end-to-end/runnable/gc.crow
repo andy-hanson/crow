@@ -1,8 +1,6 @@
 import
 	crow/io/print: out, print
-	crow/private/alloc:
-		cur-word, gc-count, gc-stats, get-gc, get-stats, force-needs-gc, set-hard-limit, words-free,
-		words-used
+	crow/private/alloc: gc-stats, get-gc, get-stats, force-needs-gc, set-hard-limit
 
 main nat^(_ string[]) summon
 	trusted
@@ -37,9 +35,4 @@ to string(a r)
 
 to string(a gc-stats)
 	a.to::json to
-
 to json(a gc-stats)
-	("gc-count", a.gc-count.to), \
-		("cur-word", a.cur-word.to),
-		("words-used", a.words-used.to),
-		("words-free", a.words-free.to)

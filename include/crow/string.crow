@@ -1,7 +1,7 @@
 no-std
 import
 	./bool: ||, bool, false, true
-	./compare: <, comparison
+	./compare: <, compare, comparison, equal
 	./col/array: array, as-array, begin, begin-pointer, end, new, next, prev, slice
 	./col/collection:
 		build, build-options, drop-right-while, drop-while, for-loop, split, strip-right, subscript,
@@ -286,9 +286,7 @@ region spec impls (see collection.crow)
 	-inner char8 list-iterator
 
 +== bool(a string-iterator, b string-iterator)
-	a.inner == b.inner
 +<=> comparison(a string-iterator, b string-iterator)
-	a.inner <=> b.inner
 
 +begin string-iterator(a string) bare
 	a.inner.begin,

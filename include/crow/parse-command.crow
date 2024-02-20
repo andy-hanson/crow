@@ -1,22 +1,3 @@
-no-std
-import
-	./bool: &&, bool, false, not, true
-	./col/collection:
-		.., end, for-break, for-loop, index-of, n-of, set-subscript, split, subscript,
-		try-remove-start, with-index
-	./col/list: ==, ~~, +, -, begin, end, iterate, is-empty, list, new, next, size, slice
-	./col/map: ==, ~=, build, iterate, map, new
-	./col/mut-map: iterate, mut-map, new, set-subscript, size
-	./col/mut-list: ~=, +, begin, build, move-to, mut-list, new, next, set-next
-	./json: json, new, to
-	./misc: loop-break, loop-continue, new
-	./number: ==, +
-	./option: ??, new, option
-	./string: ==, begin, end, interpolate, next, slice, string, to
-	./symbol: ==, <=>, hash-mix, symbol, to
-	./test-util: is
-	./tuple: new
-
 ###
 In this syntax:
 * Each name starting with `--` is an argument name, and words after that are its argumets.
@@ -29,11 +10,8 @@ For example, if the command is: `foo bar --a 1 --b 2 3 -- x y z`:
 `after` will be: `"x", "y", "z"`
 ###
 +parsed-command record(nameless string[], named string[][symbol], after string[])
-
 +== bool(a parsed-command, b parsed-command)
-	a.nameless == b.nameless && a.named == b.named && a.after == b.after
 -to json(a parsed-command)
-	("nameless", a.nameless.to), ("named", a.named.to), ("after", a.after.to)
 
 ###
 See comment on `parsed-command` for syntax.

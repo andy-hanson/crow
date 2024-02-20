@@ -19,7 +19,7 @@ Candidates (with 1 arguments):
 	'new[k, v] k shared[v](...(k, v) array)' (from include/crow/col/shared-map.crow line 31)
 	'new[t] t^(value t)' (from include/crow/future.crow line 40)
 	'new[col] col parallel-collection(collection col)' (from include/crow/future.crow line 253)
-	'new json(...(symbol, json) array)' (from include/crow/json.crow line 35)
-	'new[t] t?(a t)' (from include/crow/option.crow line 15)
+	'new json(...(symbol, json) array)' (from include/crow/json.crow line 37)
+	'new[t] t?(a t)' (from include/crow/option.crow line 16)
 Uncaught exception: Reached compile error
 	at main

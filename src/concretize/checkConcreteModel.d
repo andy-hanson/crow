@@ -4,7 +4,16 @@ module concretize.checkConcreteModel;
 
 import frontend.showModel : ShowCtx;
 import model.concreteModel :
-	ConcreteExpr, ConcreteExprKind, ConcreteFun, ConcreteLocal, ConcreteProgram, ConcreteType, isBogus, isVoid;
+	ConcreteExpr,
+	ConcreteExprKind,
+	ConcreteFun,
+	ConcreteLocal,
+	ConcreteProgram,
+	ConcreteStructBody,
+	ConcreteType,
+	isBogus,
+	isVoid,
+	mustBeByVal;
 import model.constant : Constant;
 import model.showLowModel : writeConcreteType;
 import util.alloc.alloc : Alloc;
@@ -22,6 +31,7 @@ void checkConcreteProgram(in ShowCtx printCtx, in ConcreteCommonTypes types, in 
 
 immutable struct ConcreteCommonTypes {
 	ConcreteType bool_;
+	ConcreteType nat64;
 	ConcreteType string_;
 	ConcreteType void_;
 }
@@ -57,7 +67,7 @@ void checkExpr(ref Ctx ctx, in ConcreteType type, in ConcreteExpr expr) {
 			checkExpr(ctx, x.closureRef.type, x.value);
 		},
 		(in Constant) {},
-		(in ConcreteExprKind.CreateArr x) {
+		(in ConcreteExprKind.CreateArray x) {
 			// TODO: validate 'type' is an array type and 'args' are elements
 			foreach (ConcreteExpr arg; x.args)
 				checkExprAnyType(ctx, arg);
@@ -131,6 +141,14 @@ void checkExpr(ref Ctx ctx, in ConcreteType type, in ConcreteExpr expr) {
 		},
 		(in ConcreteExprKind.Throw x) {
 			checkExpr(ctx, ctx.types.string_, x.thrown);
+		},
+		(in ConcreteExprKind.UnionAs x) {
+			checkType(ctx, type, mustBeByVal(x.union_.type).body_.as!(ConcreteStructBody.Union).members[x.memberIndex]);
+			checkExprAnyType(ctx, *x.union_);
+		},
+		(in ConcreteExprKind.UnionKind x) {
+			checkType(ctx, type, ctx.types.nat64);
+			assert(mustBeByVal(x.union_.type).body_.isA!(ConcreteStructBody.Union));
 		});
 }
 

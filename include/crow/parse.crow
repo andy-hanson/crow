@@ -4,7 +4,7 @@ import
 	./col/collection: build, exists, for-break, for-loop, is-at-end, with-block
 	./col/list: ~, ~=, build, iterate, list, new, size
 	./col/set: in, new, set
-	./compare: !=, <=
+	./compare: !=, <=, equal
 	./fun-util: subscript
 	./misc: loop-break, new, void
 	./number: ==, <=>, +, -, *, **, float64, int64, nat8, nat64, to
@@ -59,7 +59,6 @@ If the string has leading or trailing spaces you must use a grammar that include
 	# Description of what was expected.
 	expected string
 +== bool(a parse-error, b parse-error)
-	a.input == b.input && a.iter == b.iter && a.expected == b.expected
 
 -inner-parse-result[t] union(ok t, error inner-parse-error)
 

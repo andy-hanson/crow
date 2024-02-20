@@ -8,8 +8,8 @@ import
 	crow/io/stdin: read-stdin
 	crow/parse: ~~, grammar, nat, parse, separated-by, text-not-containing-any, to
 	./db:
-		add-post, content, cookie-expire-seconds, db, list-posts, list-users, login, open-real-db,
-		post, post-info, register-user, to, user, user-cookie, user-info, user-name, with-block
+		add-post, cookie-expire-seconds, db, list-posts, list-users, login, open-real-db, post-info,
+		register-user, to, user-cookie, user-info, user-name, with-block
 
 main nat^(_ string[]) summon
 	with db : open-real-db
@@ -115,10 +115,4 @@ main nat^(_ string[]) summon
 	identifier ~~ "=" ~~ identifier
 
 -to json(a user-info)
-	("user", a.user.to), ("userName", a.user-name.to)
-
 -to json(a post-info)
-	("post", a.post.to), \
-		("user", a.user.to),
-		("userName", a.user-name.to),
-		("content", a.content.to)

@@ -1,7 +1,8 @@
 no-std
 import
-	./bool: bool, false, new, true
-	./compare: compare, comparison, equal, greater, less
+	./bool: bool, false, true
+	./compare: compare, comparison, equal
+	./misc: ==, <=>
 	./number: nat64, new
 	./private/bootstrap: none, some
 export
@@ -16,22 +17,7 @@ export
 	a some
 
 +==[t] bool(a t?, b t?) bare, t equal
-	if va ?= a
-		if vb ?= b
-			va == vb
-	else
-		b is-empty
-
 +<=>[t] comparison(a t?, b t?) bare, t compare
-	if va ?= a
-		if vb ?= b
-			va <=> vb
-		else
-			greater
-	elif _ ?= b
-		less
-	else
-		equal
 
 # True iff `a` is an empty option.
 +is-empty[t] bool(a t?) bare

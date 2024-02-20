@@ -3,10 +3,10 @@ import
 	../../bits:
 		&, <<, >>, add-bit, iterate, has-bit, count-ones, low-n-bits, one-bits, sub-bit
 	../../bool: &&, bool, false, true
-	../../compare: <, <=, >, >=, min
+	../../compare: <, <=, >, >=, equal, min
 	../../exception: unreachable
 	../../fun-util: subscript
-	../../misc: void
+	../../misc: ==, void
 	../../number: ==, <=>, +, -, *, /, %, max-value, nat64, new
 	../../option: ??, new, option
 	../../pointer: const-pointer
@@ -46,34 +46,10 @@ import
 		res ~:= x
 	res
 
-+== bool(a index-set, b index-set)
-	a.capacity == b.capacity && a.root == b.root
--== bool(a node, b node)
-	match a
-	as inner ia
-		match b
-		as inner ib
-			ia.a == ib.a && ia.b == ib.b && ia.c == ib.c && ia.d == ib.d
-		as leaf _
-			false
-		as empty
-			false
-	as leaf la
-		match b
-		as inner _
-			false
-		as leaf lb
-			la.a == lb.b && la.b == lb.b && la.c == lb.c && la.d == lb.d
-		as empty
-			false
-	as empty
-		match b
-		as inner _
-			false
-		as leaf _
-			false
-		as empty
-			true
++== bool(a index-set, b index-set) bare
+-== bool(a node, b node) bare
+-== bool(a inner-node, b inner-node) bare
+-== bool(a leaf-node, b leaf-node) bare
 
 +is-empty bool(a index-set)
 	a.capacity == 0

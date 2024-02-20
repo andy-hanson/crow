@@ -58,6 +58,16 @@ table > thead {
 	border-bottom: 1px solid gray;
 }
 
+table.auto-funs tr th:nth-child(1) {
+	width: 10%;
+}
+table.auto-funs tr th:nth-child(2) {
+	width: 45%;
+}
+table.auto-funs tr th:nth-child(3) {
+	width: 45%;
+}
+
 table.setters {
 	table-layout: fixed;
 }

@@ -4,6 +4,7 @@ module model.diag;
 
 import model.ast : ModifierKeyword;
 import model.model :
+	AutoFun,
 	BuiltinSpec,
 	Called,
 	CalledDecl,
@@ -108,6 +109,31 @@ immutable struct Diag {
 	@safe @nogc pure nothrow:
 
 	immutable struct AssignmentNotAllowed {}
+
+	immutable struct AutoFunError {
+		immutable struct Bare {}
+		immutable struct SpecFromWrongModule {}
+		immutable struct TypeNotFullyVisible {}
+		immutable struct WrongName {}
+		immutable struct WrongParams {
+			AutoFun.Kind kind;
+		}
+		immutable struct WrongParamType {
+			bool isEnumOrFlags;
+		}
+		immutable struct WrongParamTypeEnumOrFlags {}
+		immutable struct WrongReturnType {
+			AutoFun.Kind kind;
+		}
+		mixin Union!(
+			Bare,
+			SpecFromWrongModule,
+			TypeNotFullyVisible,
+			WrongName,
+			WrongParams,
+			WrongParamType,
+			WrongReturnType);
+	}
 
 	immutable struct BuiltinUnsupported {
 		enum Kind { function_, spec, type }
@@ -244,7 +270,6 @@ immutable struct Diag {
 		enum Reason { builtin, extern_ }
 		Reason reason;
 	}
-	immutable struct FunMissingBody {}
 	immutable struct FunModifierTrustedOnNonExtern {}
 	immutable struct FunPointerExprMustBeName {}
 	immutable struct FunPointerNotSupported {
@@ -466,11 +491,7 @@ immutable struct Diag {
 		Reason reason;
 	}
 	immutable struct StorageMissingType {}
-	immutable struct ThreadLocalError {
-		FunDecl* fun;
-		enum Kind { hasParams, hasSpecs, hasTypeParams, mustReturnPtrMut }
-		Kind kind;
-	}
+	immutable struct TestMissingBody {}
 	immutable struct TrustedUnnecessary {
 		enum Reason {
 			inTrusted,
@@ -554,6 +575,7 @@ immutable struct Diag {
 
 	mixin Union!(
 		AssignmentNotAllowed,
+		AutoFunError,
 		BuiltinUnsupported,
 		CallMultipleMatches,
 		CallNoMatch,
@@ -578,7 +600,6 @@ immutable struct Diag {
 		ExternTypeError,
 		ExternUnion,
 		FunCantHaveBody,
-		FunMissingBody,
 		FunModifierTrustedOnNonExtern,
 		FunPointerExprMustBeName,
 		FunPointerNotSupported,
@@ -632,6 +653,7 @@ immutable struct Diag {
 		StringLiteralInvalid,
 		StorageMissingType,
 		StructParamsSyntaxError,
+		TestMissingBody,
 		TrustedUnnecessary,
 		TypeAnnotationUnnecessary,
 		TypeConflict,

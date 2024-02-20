@@ -9,6 +9,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 	a.matchIn!DiagnosticSeverity(
 		(in Diag.AssignmentNotAllowed) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.AutoFunError) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.BuiltinUnsupported) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.CallMultipleMatches) =>
@@ -56,8 +58,6 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 		(in Diag.ExternUnion) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.FunCantHaveBody) =>
-			DiagnosticSeverity.checkError,
-		(in Diag.FunMissingBody) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.FunModifierTrustedOnNonExtern) =>
 			DiagnosticSeverity.checkError,
@@ -165,6 +165,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.StructParamsSyntaxError) =>
 			DiagnosticSeverity.parseError,
+		(in Diag.TestMissingBody) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.TrustedUnnecessary) =>
 			DiagnosticSeverity.warning,
 		(in Diag.TypeAnnotationUnnecessary) =>

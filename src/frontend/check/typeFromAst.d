@@ -351,7 +351,7 @@ private Type typeFromMapAst(
 		delayStructInsts);
 }
 
-private Opt!(SpecDecl*) tryFindSpec(ref CheckCtx ctx, NameAndRange name, in SpecsMap specsMap) =>
+Opt!(SpecDecl*) tryFindSpec(ref CheckCtx ctx, NameAndRange name, in SpecsMap specsMap) =>
 	tryFindT!(SpecDecl*)(
 		ctx,
 		name.name,

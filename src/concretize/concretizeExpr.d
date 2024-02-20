@@ -21,9 +21,10 @@ import concretize.concretizeCtx :
 	stringType,
 	typeArgsScope,
 	TypeArgsScope,
-	typesToConcreteTypes_fromConcretizeCtx = typesToConcreteTypes,
+	typesToConcreteTypes,
 	voidType;
 import concretize.constantsOrExprs : asConstantsOrExprs, ConstantsOrExprs;
+import concretize.generate : makeLocalGet;
 import model.concreteModel :
 	byRef,
 	byVal,
@@ -101,6 +102,7 @@ import util.col.array :
 	emptySmallArray,
 	isEmpty,
 	map,
+	mapOrNone,
 	mapZip,
 	newArray,
 	only,
@@ -113,7 +115,7 @@ import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : getOrAdd;
 import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2MustGet0, stackMap2MustGet1, withStackMap2;
 import util.memory : allocate, overwriteMemory;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, Opt, optIf, some;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : AllSymbols, symbol, symbolOfString;
 import util.union_ : Union;
@@ -174,7 +176,7 @@ ConcreteExpr concretizeWithParamDestructures(
 	}
 }
 
-struct ConcretizeExprCtx {
+public struct ConcretizeExprCtx {
 	@safe @nogc pure nothrow:
 
 	ConcretizeCtx* concretizeCtxPtr;
@@ -226,9 +228,6 @@ ConcreteType type(in LocalOrConstant a) =>
 ConcreteType getConcreteType(ref ConcretizeExprCtx ctx, Type t) =>
 	getConcreteType_fromConcretizeCtx(ctx.concretizeCtx, t, typeScope(ctx));
 
-SmallArray!ConcreteType typesToConcreteTypes(ref ConcretizeExprCtx ctx, in Type[] typeArgs) =>
-	typesToConcreteTypes_fromConcretizeCtx(ctx.concretizeCtx, typeArgs, typeScope(ctx));
-
 TypeArgsScope typeScope(ref ConcretizeExprCtx ctx) =>
 	typeArgsScope(ctx.containing);
 
@@ -239,9 +238,10 @@ ConcreteExpr concretizeCall(
 	in Locals locals,
 	ref CallExpr e,
 ) {
-	ConcreteFun* concreteCalled = getConcreteFunFromCalled(ctx, e.called);
-	if (isBogus(concreteCalled.returnType))
+	Opt!(ConcreteFun*) optConcreteCalled = getConcreteFunFromCalled(ctx, e.called);
+	if (!has(optConcreteCalled) || isBogus(force(optConcreteCalled).returnType))
 		return concretizeBogus(ctx.concretizeCtx, type, range);
+	ConcreteFun* concreteCalled = force(optConcreteCalled);
 	assert(concreteCalled.returnType == type);
 	bool argsMayBeConstants =
 		isEmpty(e.args) || (!isSummon(*concreteCalled) && purity(concreteCalled.returnType) == Purity.data);
@@ -286,12 +286,14 @@ ConstantsOrExprs asConstantsOrExprsIf(ref Alloc alloc, bool mayBeConstants, Conc
 		? asConstantsOrExprs(alloc, exprs)
 		: ConstantsOrExprs(exprs);
 
-ConcreteFun* getConcreteFunFromCalled(ref ConcretizeExprCtx ctx, ref Called called) =>
-	called.matchWithPointers!(ConcreteFun*)(
+public Opt!(ConcreteFun*) getConcreteFunFromCalled(ref ConcretizeExprCtx ctx, ref Called called) =>
+	called.matchWithPointers!(Opt!(ConcreteFun*))(
+		(Called.Bogus*) =>
+			none!(ConcreteFun*),
 		(FunInst* funInst) =>
 			getConcreteFunFromFunInst(ctx, funInst),
 		(CalledSpecSig specSig) =>
-			getSpecSigImplementation(ctx, specSig));
+			some(getSpecSigImplementation(ctx, specSig)));
 
 ConcreteFun* getSpecSigImplementation(in ConcretizeExprCtx ctx, CalledSpecSig specSig) {
 	size_t index = 0;
@@ -311,12 +313,14 @@ bool searchSpecSigIndexRecur(ref size_t index, in SpecInst* inst, in SpecInst* s
 	return false;
 }
 
-ConcreteFun* getConcreteFunFromFunInst(ref ConcretizeExprCtx ctx, FunInst* funInst) {
-	SmallArray!ConcreteType typeArgs = typesToConcreteTypes(ctx, funInst.typeArgs);
-	SmallArray!(immutable ConcreteFun*) specImpls = small!(immutable ConcreteFun*)(map!(immutable ConcreteFun*, Called)(
+Opt!(ConcreteFun*) getConcreteFunFromFunInst(ref ConcretizeExprCtx ctx, FunInst* funInst) {
+	SmallArray!ConcreteType typeArgs = typesToConcreteTypes(ctx.concretizeCtx, funInst.typeArgs, typeScope(ctx));
+	Opt!(immutable ConcreteFun*[]) specImpls = mapOrNone!(immutable ConcreteFun*, Called)(
 		ctx.alloc, funInst.specImpls, (ref Called x) =>
-			getConcreteFunFromCalled(ctx, x)));
-	return getOrAddConcreteFunAndFillBody(ctx.concretizeCtx, ConcreteFunKey(funInst.decl, typeArgs, specImpls));
+			getConcreteFunFromCalled(ctx, x));
+	return optIf(has(specImpls), () =>
+		getOrAddConcreteFunAndFillBody(ctx.concretizeCtx, ConcreteFunKey(
+			funInst.decl, typeArgs, small!(immutable ConcreteFun*)(force(specImpls)))));
 }
 
 ConcreteExpr concretizeClosureGet(
@@ -646,9 +650,6 @@ RootLocalAndExpr concretizeWithDestructure(
 					concretizeWithDestructureSplit(ctx, type, range, locals, *x, temp, cb));
 			}
 		});
-
-ConcreteExpr makeLocalGet(in UriAndRange range, ConcreteLocal* local) =>
-	ConcreteExpr(local.type, range, ConcreteExprKind(ConcreteExprKind.LocalGet(local)));
 
 ConcreteExpr concretizeWithDestructureSplit(
 	ref ConcretizeExprCtx ctx,
@@ -1056,8 +1057,7 @@ ConstantsOrExprs constantsOrExprsArr(
 				getConstantArray(ctx.alloc, ctx.allConstants, mustBeByVal(arrayType), constants)])),
 		(ConcreteExpr[] exprs) =>
 			ConstantsOrExprs(newArray!ConcreteExpr(ctx.alloc, [
-				ConcreteExpr(arrayType, range, ConcreteExprKind(
-					allocate(ctx.alloc, ConcreteExprKind.CreateArr(exprs))))])));
+				ConcreteExpr(arrayType, range, ConcreteExprKind(ConcreteExprKind.CreateArray(exprs)))])));
 
 Opt!Constant tryEvalConstant(
 	in ConcreteFun fn,

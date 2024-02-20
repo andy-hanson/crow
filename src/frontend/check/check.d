@@ -2,6 +2,7 @@ module frontend.check.check;
 
 @safe @nogc pure nothrow:
 
+import frontend.check.checkFuns : checkFuns, checkReturnTypeAndParams, getExternLibraryName, ReturnTypeAndParams;
 import frontend.check.checkCtx :
 	addDiag,
 	addDiagAssertSameUri,
@@ -12,70 +13,43 @@ import frontend.check.checkCtx :
 	finishDiagnostics,
 	ImportAndReExportModules,
 	visibilityFromExplicitTopLevel;
-import frontend.check.checkExpr : checkFunctionBody, checkTestBody, TestBody;
 import frontend.check.checkStructBodies : checkStructBodies, checkStructsInitial, modifierTypeArgInvalid;
-import frontend.check.getBuiltinFun : getBuiltinFun;
 import frontend.check.getCommonTypes : getCommonTypes;
-import frontend.check.maps : funDeclsName, FunsMap, specDeclName, SpecsMap, structOrAliasName, StructsAndAliasesMap;
-import frontend.check.funsForStruct : addFunsForStruct, addFunsForVar, countFunsForStructs, countFunsForVars;
+import frontend.check.maps :
+	FunsAndMap, FunsMap, ImportOrExportFile, specDeclName, SpecsMap, structOrAliasName, StructsAndAliasesMap;
 import frontend.check.instantiate :
-	DelaySpecInsts,
-	DelayStructInsts,
-	MayDelayStructInsts,
-	InstantiateCtx,
-	instantiateSpecBody,
-	instantiateStructTypes,
-	noDelaySpecInsts,
-	noDelayStructInsts;
-import frontend.check.typeFromAst :
-	checkDestructure, checkTypeParams, specFromAst, typeFromAst, typeFromAstNoTypeParamsNeverDelay;
+	DelaySpecInsts, DelayStructInsts, InstantiateCtx, instantiateSpecBody, instantiateStructTypes, noDelayStructInsts;
+import frontend.check.typeFromAst : checkTypeParams, specFromAst, typeFromAst, typeFromAstNoTypeParamsNeverDelay;
 import model.ast :
-	DestructureAst,
-	EmptyAst,
 	FileAst,
-	FunDeclAst,
 	ModifierAst,
 	ModifierKeyword,
 	ImportOrExportAstKind,
 	ImportsOrExportsAst,
 	ImportOrExportAst,
 	NameAndRange,
-	ParamsAst,
 	SpecDeclAst,
 	SpecSigAst,
 	SpecUseAst,
 	StructAliasAst,
-	TestAst,
-	TypeAst,
 	VarDeclAst;
 import frontend.allInsts : AllInsts;
 import frontend.storage : FileContent;
 import model.diag : DeclKind, Diag, Diagnostic, TypeContainer;
 import model.model :
 	BuiltinSpec,
-	BogusExpr,
 	CommonTypes,
 	Destructure,
 	ExportVisibility,
-	Expr,
-	ExprKind,
-	FunBody,
 	FunDecl,
-	FunDeclSource,
-	FunFlags,
 	importCanSee,
-	ImportFileType,
 	ImportOrExport,
 	ImportOrExportKind,
-	isLinkageAlwaysCompatible,
-	Linkage,
-	linkageRange,
 	Module,
 	nameFromNameReferents,
 	nameRange,
 	NameReferents,
 	Params,
-	paramsArray,
 	SpecDecl,
 	SpecDeclBody,
 	SpecDeclSig,
@@ -84,9 +58,7 @@ import model.model :
 	StructDecl,
 	StructInst,
 	StructOrAlias,
-	Test,
 	Type,
-	TypeParamIndex,
 	TypeParams,
 	VarDecl,
 	VarKind,
@@ -96,7 +68,6 @@ import util.cell : Cell, cellGet, cellSet;
 import util.col.array :
 	arrayOfSingle,
 	concatenate,
-	emptySmallArray,
 	exists,
 	filter,
 	first,
@@ -105,26 +76,23 @@ import util.col.array :
 	mapOp,
 	mapPointers,
 	mapWithResultPointer,
-	mustFind,
 	only,
 	small,
 	SmallArray,
 	zip,
 	zipPointers;
-import util.col.arrayBuilder : add, ArrayBuilder, asTemporaryArray, finish, smallFinish;
-import util.col.exactSizeArrayBuilder : buildArrayExact, ExactSizeArrayBuilder, pushUninitialized;
-import util.col.hashTable :
-	getPointer, HashTable, insertOrUpdate, mapAndMovePreservingKeys, mayAdd, moveToImmutable, MutHashTable;
+import util.col.arrayBuilder : add, ArrayBuilder, smallFinish;
+import util.col.hashTable : getPointer, HashTable, insertOrUpdate, mayAdd, moveToImmutable, MutHashTable;
 import util.col.mutArr : mustPop, mutArrIsEmpty;
 import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, toArray;
-import util.memory : allocate, initMemory;
-import util.opt : force, has, none, Opt, optIf, someMut, some;
+import util.memory : allocate;
+import util.opt : force, has, none, Opt, someMut, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : AllSymbols, Symbol, symbol;
 import util.union_ : TaggedUnion;
 import util.uri : AllUris, Path, RelPath, Uri;
-import util.util : enumConvert, optEnumConvert, ptrTrustMe;
+import util.util : enumConvert, ptrTrustMe;
 
 immutable struct UriAndAst {
 	Uri uri;
@@ -176,58 +144,6 @@ Module* check(
 	).module_;
 
 private:
-
-Params checkParams(
-	ref CheckCtx ctx,
-	ref CommonTypes commonTypes,
-	TypeContainer typeContainer,
-	in ParamsAst ast,
-	in StructsAndAliasesMap structsAndAliasesMap,
-	TypeParams typeParamsScope,
-	MayDelayStructInsts delayStructInsts,
-) =>
-	ast.match!Params(
-		(DestructureAst[] asts) =>
-			Params(map!(Destructure, DestructureAst)(ctx.alloc, asts, (ref DestructureAst ast) =>
-				checkDestructure(
-					ctx, commonTypes, structsAndAliasesMap, typeContainer, typeParamsScope, delayStructInsts,
-					ast, none!Type))),
-		(ref ParamsAst.Varargs varargs) {
-			Destructure param = checkDestructure(
-				ctx, commonTypes, structsAndAliasesMap, typeContainer, typeParamsScope,
-				delayStructInsts, varargs.param, none!Type);
-			Opt!Type elementType = param.type.matchIn!(Opt!Type)(
-				(in Type.Bogus _) =>
-					some(Type(Type.Bogus())),
-				(in TypeParamIndex _) =>
-					none!Type,
-				(in StructInst x) =>
-					x.decl == commonTypes.array
-					? some(only(x.typeArgs))
-					: none!Type);
-			if (!has(elementType))
-				addDiag(ctx, varargs.param.range(ctx.allSymbols), Diag(Diag.VarargsParamMustBeArray()));
-			return Params(allocate(ctx.alloc,
-				Params.Varargs(param, has(elementType) ? force(elementType) : Type(Type.Bogus()))));
-		});
-
-immutable struct ReturnTypeAndParams {
-	Type returnType;
-	Params params;
-}
-ReturnTypeAndParams checkReturnTypeAndParams(
-	ref CheckCtx ctx,
-	ref CommonTypes commonTypes,
-	TypeContainer typeContainer,
-	in TypeAst returnTypeAst,
-	in ParamsAst paramsAst,
-	TypeParams typeParams,
-	in StructsAndAliasesMap structsAndAliasesMap,
-	MayDelayStructInsts delayStructInsts
-) =>
-	ReturnTypeAndParams(
-		typeFromAst(ctx, commonTypes, returnTypeAst, structsAndAliasesMap, typeParams, delayStructInsts),
-		checkParams(ctx, commonTypes, typeContainer, paramsAst, structsAndAliasesMap, typeParams, delayStructInsts));
 
 Opt!BuiltinSpec getBuiltinSpec(ref CheckCtx ctx, in Range range, Symbol name) {
 	switch (name.value) {
@@ -429,12 +345,6 @@ void addToDeclsMap(T, alias getName)(
 		addDiagAssertSameUri(ctx, cbNameRange(added), Diag(Diag.DuplicateDeclaration(kind, getName(added))));
 }
 
-immutable struct FunsAndMap {
-	SmallArray!FunDecl funs;
-	SmallArray!Test tests;
-	FunsMap funsMap;
-}
-
 immutable struct SpecFlagsAndParents {
 	bool isBuiltin;
 	SpecInst*[] parents;
@@ -471,402 +381,6 @@ SpecFlagsAndParents checkSpecModifiers(
 					ctx, commonTypes, structsAndAliasesMap, specsMap, typeParamsScope, x,
 					someMut(ptrTrustMe(delaySpecInsts)))));
 	return SpecFlagsAndParents(builtin, parents);
-}
-
-immutable struct FunFlagsAndSpecs {
-	FunFlags flags;
-	SpecInst*[] specs;
-}
-
-FunFlagsAndSpecs checkFunModifiers(
-	ref CheckCtx ctx,
-	ref CommonTypes commonTypes,
-	in StructsAndAliasesMap structsAndAliasesMap,
-	in SpecsMap specsMap,
-	TypeParams typeParamsScope,
-	in Range range,
-	in ModifierAst[] asts,
-) {
-	CollectedFunFlags allFlags = CollectedFunFlags.none;
-	immutable SpecInst*[] specs =
-		mapOp!(immutable SpecInst*, ModifierAst)(ctx.alloc, asts, (ref ModifierAst ast) =>
-			ast.matchIn!(Opt!(SpecInst*))(
-				(in ModifierAst.Keyword x) {
-					if (x.keyword == ModifierKeyword.extern_) {
-						if (allFlags & CollectedFunFlags.extern_)
-							addDiag(ctx, x.keywordRange, Diag(Diag.ModifierDuplicate(ModifierKeyword.extern_)));
-						allFlags |= CollectedFunFlags.extern_;
-						// 'getNameFromExternModifier' checks the typeArg
-					} else {
-						CollectedFunFlags flag = tryGetFunFlag(x.keyword);
-						if (flag == CollectedFunFlags.none)
-							addDiag(ctx, x.keywordRange, Diag(Diag.ModifierInvalid(x.keyword, DeclKind.function_)));
-						if (allFlags & flag)
-							addDiag(ctx, x.keywordRange, Diag(Diag.ModifierDuplicate(x.keyword)));
-						modifierTypeArgInvalid(ctx, x);
-						allFlags |= flag;
-					}
-					return none!(SpecInst*);
-				},
-				(in SpecUseAst x) =>
-					specFromAst(
-						ctx, commonTypes, structsAndAliasesMap, specsMap, typeParamsScope, x, noDelaySpecInsts)));
-	return FunFlagsAndSpecs(checkFunFlags(ctx, range, allFlags, isTest: false), specs);
-}
-
-FunFlags checkTestModifiers(ref CheckCtx ctx, in TestAst ast) {
-	CollectedFunFlags allFlags = CollectedFunFlags.none;
-	foreach (ModifierAst modifier; ast.modifiers) {
-		modifier.matchIn!void(
-			(in ModifierAst.Keyword x) {
-				CollectedFunFlags flag = tryGetFunFlag(x.keyword);
-				if (isAllowedTestFlag(flag)) {
-					modifierTypeArgInvalid(ctx, x);
-					allFlags |= flag;
-				} else
-					addDiag(ctx, x.keywordRange, Diag(Diag.ModifierInvalid(x.keyword, DeclKind.test)));
-			},
-			(in SpecUseAst x) {
-				addDiag(ctx, x.range(ctx.allSymbols), Diag(Diag.SpecUseInvalid(DeclKind.test)));
-			});
-	}
-	return checkFunFlags(ctx, ast.keywordRange, allFlags, isTest: true);
-}
-
-bool isAllowedTestFlag(CollectedFunFlags flag) {
-	switch (flag) {
-		case CollectedFunFlags.bare:
-		case CollectedFunFlags.summon:
-		case CollectedFunFlags.trusted:
-			return true;
-		default:
-			return false;
-	}
-}
-
-enum CollectedFunFlags {
-	none = 0,
-	bare = 1,
-	builtin = 0b10,
-	extern_ = 0b100,
-	forceCtx = 0b1000,
-	pure_ = 0b10000,
-	summon = 0b100000,
-	trusted = 0b1000000,
-	unsafe = 0b10000000,
-}
-
-CollectedFunFlags tryGetFunFlag(ModifierKeyword kind) =>
-	optEnumConvert!CollectedFunFlags(kind, () => CollectedFunFlags.none);
-
-FunFlags checkFunFlags(ref CheckCtx ctx, in Range range, CollectedFunFlags flags, bool isTest) {
-	void warnRedundant(ModifierKeyword modifier, ModifierKeyword redundantModifier) {
-		addDiag(ctx, range, Diag(Diag.ModifierRedundantDueToModifier(modifier, redundantModifier)));
-	}
-
-	bool builtin = (flags & CollectedFunFlags.builtin) != 0;
-	bool extern_ = (flags & CollectedFunFlags.extern_) != 0;
-	bool explicitBare = (flags & CollectedFunFlags.bare) != 0;
-	bool forceCtx = (flags & CollectedFunFlags.forceCtx) != 0;
-	bool pure_ = (flags & CollectedFunFlags.pure_) != 0;
-	bool summon = (flags & CollectedFunFlags.summon) != 0;
-	bool trusted = (flags & CollectedFunFlags.trusted) != 0;
-	bool explicitUnsafe = (flags & CollectedFunFlags.unsafe) != 0;
-
-	bool implicitUnsafe = extern_;
-	bool unsafe = explicitUnsafe || implicitUnsafe;
-	bool implicitBare = extern_;
-	bool bare = explicitBare || implicitBare;
-
-	ModifierKeyword bodyModifier() =>
-		builtin
-			? ModifierKeyword.builtin
-			: extern_
-			? ModifierKeyword.extern_
-			: assert(false);
-
-	FunFlags.Safety safety = trusted
-		? FunFlags.Safety.trusted
-		: unsafe
-		? FunFlags.Safety.unsafe
-		: FunFlags.Safety.safe;
-	if (implicitBare && explicitBare)
-		warnRedundant(bodyModifier(), ModifierKeyword.bare);
-	if (implicitUnsafe && explicitUnsafe)
-		warnRedundant(bodyModifier(), ModifierKeyword.unsafe);
-	if (trusted && !extern_ && !isTest)
-		addDiag(ctx, range, Diag(Diag.FunModifierTrustedOnNonExtern()));
-	FunFlags.SpecialBody specialBody = builtin
-		? FunFlags.SpecialBody.builtin
-		: extern_
-		? FunFlags.SpecialBody.extern_
-		: FunFlags.SpecialBody.none;
-	if (builtin && extern_)
-		addDiag(ctx, range, Diag(Diag.ModifierConflict(ModifierKeyword.builtin, ModifierKeyword.extern_)));
-	if (explicitUnsafe && trusted)
-		addDiag(ctx, range, Diag(Diag.ModifierConflict(ModifierKeyword.unsafe, ModifierKeyword.trusted)));
-
-	if (pure_ && summon)
-		addDiag(ctx, range, Diag(Diag.ModifierConflict(ModifierKeyword.pure_, ModifierKeyword.summon)));
-	else if (pure_ && !extern_)
-		addDiag(ctx, range, Diag(Diag.ModifierRedundantDueToDeclKind(ModifierKeyword.pure_, DeclKind.function_)));
-	else if (summon && extern_)
-		warnRedundant(ModifierKeyword.extern_, ModifierKeyword.summon);
-
-	bool isSummon = !pure_ && (extern_ || summon);
-	return FunFlags.regular(bare, isSummon, safety, specialBody, forceCtx);
-}
-
-FunsAndMap checkFuns(
-	ref CheckCtx ctx,
-	ref CommonTypes commonTypes,
-	in SpecsMap specsMap,
-	StructDecl[] structs,
-	in StructsAndAliasesMap structsAndAliasesMap,
-	VarDecl[] vars,
-	ImportOrExportFile[] fileImports,
-	ImportOrExportFile[] fileExports,
-	FunDeclAst[] asts,
-	TestAst[] testAsts,
-) {
-	FunDecl[] funs = checkFunsInitial(
-		ctx, commonTypes, specsMap, structs, structsAndAliasesMap, vars, fileImports, fileExports, asts);
-	FunsMap funsMap = buildFunsMap(ctx.alloc, funs);
-	checkFunsWithAsts(ctx,commonTypes, structsAndAliasesMap, funsMap, funs[0 .. asts.length], asts);
-	foreach (size_t i, ref ImportOrExportFile f; fileImports)
-		funs[asts.length + i].body_ = getFileImportFunctionBody(f);
-	foreach (size_t i, ref ImportOrExportFile f; fileExports)
-		funs[asts.length + fileImports.length + i].body_ = getFileImportFunctionBody(f);
-	return FunsAndMap(
-		small!FunDecl(funs), checkTests(ctx, commonTypes, structsAndAliasesMap, funsMap, testAsts), funsMap);
-}
-
-FunDecl[] checkFunsInitial(
-	ref CheckCtx ctx,
-	ref CommonTypes commonTypes,
-	in SpecsMap specsMap,
-	StructDecl[] structs,
-	in StructsAndAliasesMap structsAndAliasesMap,
-	VarDecl[] vars,
-	ImportOrExportFile[] fileImports,
-	ImportOrExportFile[] fileExports,
-	FunDeclAst[] asts,
-) =>
-	buildArrayExact!FunDecl(
-		ctx.alloc,
-		asts.length + fileImports.length + fileExports.length +
-			countFunsForStructs(commonTypes, structs) + countFunsForVars(vars),
-		(scope ref ExactSizeArrayBuilder!FunDecl funsBuilder) @trusted {
-			foreach (ref FunDeclAst funAst; asts) {
-				FunDecl* fun = pushUninitialized(funsBuilder);
-				checkTypeParams(ctx, funAst.typeParams);
-				ReturnTypeAndParams rp = checkReturnTypeAndParams(
-					ctx,
-					commonTypes,
-					TypeContainer(fun),
-					funAst.returnType,
-					funAst.params,
-					funAst.typeParams,
-					structsAndAliasesMap,
-					noDelayStructInsts);
-				FunFlagsAndSpecs flagsAndSpecs = checkFunModifiers(
-					ctx, commonTypes, structsAndAliasesMap, specsMap,
-					funAst.typeParams, funAst.nameRange(ctx.allSymbols), funAst.modifiers);
-				initMemory(fun, FunDecl(
-					FunDeclSource(FunDeclSource.Ast(ctx.curUri, &funAst)),
-					visibilityFromExplicitTopLevel(funAst.visibility),
-					funAst.name.name,
-					rp.returnType,
-					rp.params,
-					flagsAndSpecs.flags,
-					small!(immutable SpecInst*)(flagsAndSpecs.specs)));
-			}
-			foreach (ref ImportOrExportFile f; fileImports)
-				funsBuilder ~= funDeclForFileImportOrExport(
-					ctx, commonTypes, structsAndAliasesMap, f, Visibility.private_);
-			foreach (ref ImportOrExportFile f; fileExports)
-				funsBuilder ~= funDeclForFileImportOrExport(
-					ctx, commonTypes, structsAndAliasesMap, f, Visibility.public_);
-
-			foreach (ref StructDecl struct_; structs)
-				addFunsForStruct(ctx, funsBuilder, commonTypes, &struct_);
-			foreach (ref VarDecl var; vars)
-				addFunsForVar(ctx, funsBuilder, commonTypes, &var);
-		});
-
-void checkFunsWithAsts(
-	ref CheckCtx ctx,
-	ref CommonTypes commonTypes,
-	in StructsAndAliasesMap structsAndAliasesMap,
-	in FunsMap funsMap,
-	FunDecl[] funsWithAsts,
-	FunDeclAst[] asts,
-) {
-	zipPointers!(FunDecl, FunDeclAst)(funsWithAsts, asts, (FunDecl* fun, FunDeclAst* funAst) {
-		Range diagRange = funAst.nameRange(ctx.allSymbols);
-		fun.body_ = () {
-			final switch (fun.flags.specialBody) {
-				case FunFlags.SpecialBody.none:
-					if (funAst.body_.kind.isA!EmptyAst) {
-						addDiag(ctx, diagRange, Diag(Diag.FunMissingBody()));
-						return FunBody(FunBody.Bogus());
-					} else
-						return FunBody(checkFunctionBody(
-							ctx,
-							structsAndAliasesMap,
-							commonTypes,
-							funsMap,
-							TypeContainer(fun),
-							fun.returnType,
-							fun.typeParams,
-							paramsArray(fun.params),
-							fun.specs,
-							fun.flags,
-							&funAst.body_));
-				case FunFlags.SpecialBody.builtin:
-					if (!funAst.body_.kind.isA!EmptyAst)
-						addDiag(ctx, diagRange, Diag(Diag.FunCantHaveBody(Diag.FunCantHaveBody.Reason.builtin)));
-					return getBuiltinFun(ctx, fun);
-				case FunFlags.SpecialBody.extern_:
-					if (!funAst.body_.kind.isA!EmptyAst)
-						addDiag(ctx, diagRange, Diag(Diag.FunCantHaveBody(Diag.FunCantHaveBody.Reason.extern_)));
-					return FunBody(checkExternBody(ctx, fun, funAst));
-				case FunFlags.SpecialBody.generated:
-					assert(false);
-			}
-		}();
-	});
-}
-
-@trusted SmallArray!Test checkTests(
-	ref CheckCtx ctx,
-	ref CommonTypes commonTypes,
-	in StructsAndAliasesMap structsAndAliasesMap,
-	in FunsMap funsMap,
-	TestAst[] testAsts,
-) =>
-	small!Test(mapWithResultPointer!(Test, TestAst)(ctx.alloc, testAsts, (TestAst* ast, Test* out_) {
-		FunFlags flags = checkTestModifiers(ctx, *ast);
-		TestBody body_ = () {
-			if (ast.body_.kind.isA!EmptyAst) {
-				addDiag(ctx, ast.range, Diag(Diag.FunMissingBody()));
-				return TestBody(Expr(&ast.body_, ExprKind(BogusExpr())));
-			} else
-				return checkTestBody(
-					ctx, structsAndAliasesMap, commonTypes, funsMap, TypeContainer(out_), flags, &ast.body_);
-		}();
-		return Test(ast, ctx.curUri, flags, body_.body_, body_.type);
-	}));
-
-FunsMap buildFunsMap(ref Alloc alloc, in immutable FunDecl[] funs) {
-	MutHashTable!(ArrayBuilder!(immutable FunDecl*), Symbol, funDeclsBuilderName) res;
-	foreach (ref FunDecl fun; funs) {
-		insertOrUpdate(
-			alloc,
-			res,
-			fun.name,
-			() {
-				ArrayBuilder!(immutable FunDecl*) builder;
-				add(alloc, builder, &fun);
-				return builder;
-			},
-			(ref ArrayBuilder!(immutable FunDecl*) builder) {
-				add(alloc, builder, &fun);
-				return builder;
-			});
-	}
-	return mapAndMovePreservingKeys!(
-		immutable FunDecl*[], funDeclsName, ArrayBuilder!(immutable FunDecl*), Symbol, funDeclsBuilderName,
-	)(alloc, res, (ref ArrayBuilder!(immutable FunDecl*) x) =>
-		finish(alloc, x));
-}
-Symbol funDeclsBuilderName(in ArrayBuilder!(immutable FunDecl*) a) =>
-	asTemporaryArray(a)[0].name;
-
-Symbol getNameFromExternModifier(ref CheckCtx ctx, in FunDeclAst a) {
-	Opt!Symbol res = first!(Symbol, ModifierAst)(a.modifiers, (ModifierAst modifier) =>
-		modifier.matchIn!(Opt!Symbol)(
-			(in ModifierAst.Keyword x) =>
-				optIf(x.keyword == ModifierKeyword.extern_, () => getExternLibraryName(ctx, x)),
-			(in SpecUseAst x) =>
-				none!Symbol));
-	return force(res);
-}
-
-Symbol getExternLibraryName(ref CheckCtx ctx, in ModifierAst.Keyword modifier) {
-	assert(modifier.keyword == ModifierKeyword.extern_);
-	if (has(modifier.typeArg) && force(modifier.typeArg).isA!NameAndRange)
-		return force(modifier.typeArg).as!NameAndRange.name;
-	else {
-		addDiag(ctx, modifier.keywordRange, Diag(Diag.ExternMissingLibraryName()));
-		return symbol!"bogus";
-	}
-}
-
-FunBody getFileImportFunctionBody(in ImportOrExportFile a) =>
-	FunBody(FunBody.FileImport(a.source.kind.as!(ImportOrExportAstKind.File*).type, a.uri));
-
-FunDecl funDeclForFileImportOrExport(
-	ref CheckCtx ctx,
-	ref CommonTypes commonTypes,
-	in StructsAndAliasesMap structsAndAliasesMap,
-	ref ImportOrExportFile a,
-	Visibility visibility,
-) {
-	ImportOrExportAstKind.File* ast = a.source.kind.as!(ImportOrExportAstKind.File*);
-	return FunDecl(
-		FunDeclSource(FunDeclSource.FileImport(ctx.curUri, a.source)),
-		visibility,
-		ast.name.name,
-		typeForFileImport(ctx, commonTypes, structsAndAliasesMap, a.source.pathRange(ctx.allUris), ast.type),
-		Params([]),
-		FunFlags.generatedBare,
-		emptySmallArray!(immutable SpecInst*));
-}
-
-Type typeForFileImport(
-	ref CheckCtx ctx,
-	ref CommonTypes commonTypes,
-	in StructsAndAliasesMap structsAndAliasesMap,
-	in Range range,
-	ImportFileType type,
-) {
-	final switch (type) {
-		case ImportFileType.nat8Array:
-			TypeAst nat8 = TypeAst(NameAndRange(range.start, symbol!"nat8"));
-			TypeAst.SuffixName suffixName = TypeAst.SuffixName(nat8, NameAndRange(range.start, symbol!"array"));
-			scope TypeAst arrayNat8 = TypeAst(&suffixName);
-			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, arrayNat8, structsAndAliasesMap);
-		case ImportFileType.string:
-			//TODO: this sort of duplicates 'getStrType'
-			TypeAst ast = TypeAst(NameAndRange(range.start, symbol!"string"));
-			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, ast, structsAndAliasesMap);
-	}
-}
-
-FunBody.Extern checkExternBody(ref CheckCtx ctx, FunDecl* fun, FunDeclAst* ast) {
-	Linkage funLinkage = Linkage.extern_;
-
-	checkNoTypeParams(ctx, fun.typeParams, DeclKind.externFunction);
-	if (!isEmpty(fun.specs)) {
-		Range range = mustFind!ModifierAst(ast.modifiers, (in ModifierAst x) => x.isA!SpecUseAst).range(ctx.allSymbols);
-		addDiag(ctx, range, Diag(Diag.SpecUseInvalid(DeclKind.externFunction)));
-	}
-
-	if (!isLinkageAlwaysCompatible(funLinkage, linkageRange(fun.returnType)))
-		addDiagAssertSameUri(ctx, fun.range(ctx.allSymbols), Diag(
-			Diag.LinkageWorseThanContainingFun(fun, fun.returnType, none!(Destructure*))));
-	fun.params.match!void(
-		(Destructure[] params) {
-			foreach (ref Destructure param; params)
-				if (!isLinkageAlwaysCompatible(funLinkage, linkageRange(param.type)))
-					addDiag(ctx, param.range(ctx.allSymbols), Diag(
-						Diag.LinkageWorseThanContainingFun(fun, param.type, some(&param))));
-		},
-		(ref Params.Varargs x) {
-			addDiag(ctx, x.param.range(ctx.allSymbols), Diag(Diag.ExternFunVariadic()));
-		});
-	return FunBody.Extern(getNameFromExternModifier(ctx, *ast));
 }
 
 SpecsMap buildSpecsMap(ref CheckCtx ctx, SpecDecl[] specs) {
@@ -1072,10 +586,6 @@ immutable struct ImportsAndReExports {
 
 	ImportAndReExportModules modules() =>
 		ImportAndReExportModules(moduleImports, moduleReExports);
-}
-immutable struct ImportOrExportFile {
-	ImportOrExportAst* source;
-	Uri uri;
 }
 
 ImportsAndReExports checkImportsAndReExports(

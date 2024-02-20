@@ -28,6 +28,15 @@ so it may consider values equal that may not be equal in the future.
 +compare[t] spec t equal
 	# This should return `equal` iff `==` would return `true`.
 	<=> comparison(a t, b t)
+# Opposite comparison
++ - comparison(a comparison) bare
+	match a
+	as less
+		greater
+	as equal
+		equal
+	as greater
+		less
 
 # True iff `!(a == b)`.
 +!=[t] bool(a t, b t) bare, t equal
@@ -74,12 +83,5 @@ Returns `b` if they are equal.
 # Wraps a value and reverses comparison (so less becomes greater and vice versa)
 +compare-reverse[t] record(inner t) nominal
 +==[t] bool(a t compare-reverse, b t compare-reverse) t equal, bare
-	a.inner == b.inner
 +<=>[t] comparison(a t compare-reverse, b t compare-reverse) t compare, bare
-	match a.inner <=> b.inner
-	as less
-		greater
-	as equal
-		equal
-	as greater
-		less
+	-(a.inner <=> b.inner)

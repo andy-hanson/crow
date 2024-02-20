@@ -415,6 +415,12 @@ void generateExpr(
 		(in LowExprKind.TailRecur it) {
 			generateTailRecur(writer, ctx, source, locals, after, it);
 		},
+		(in LowExprKind.UnionAs x) {
+			generateUnionAs(writer, ctx, source, locals, after, x);
+		},
+		(in LowExprKind.UnionKind x) {
+			generateUnionKind(writer, ctx, source,locals, after, x);
+		},
 		(in LowExprKind.VarGet x) {
 			LowVar var = ctx.program.vars[x.varIndex];
 			writeVarPtr(writer, ctx, source, x.varIndex, var);
@@ -531,6 +537,45 @@ void generateLoopContinue(
 	ExprAfterKind.Loop* loop = after.kind.as!(ExprAfterKind.Loop*);
 	handleAfterReturnData(writer, source, after);
 	writeJump(writer, source, loop.loopTop);
+}
+
+void generateUnionAs(
+	ref ByteCodeWriter writer,
+	ref ExprCtx ctx,
+	ByteCodeSource source,
+	in Locals locals,
+	scope ref ExprAfter after,
+	in LowExprKind.UnionAs a,
+) {
+	StackEntry startStack = getNextStackEntry(writer);
+	generateExprAndContinue(writer, ctx, locals, *a.union_);
+	size_t unionEntries = getNextStackEntry(writer).entry - startStack.entry;
+	assert(unionEntries == nStackEntriesForType(ctx, a.union_.type));
+	// Remove extra space after the member
+	LowType memberType = ctx.program.allUnions[a.union_.type.as!(LowType.Union)].members[a.memberIndex];
+	size_t memberEntries = nStackEntriesForType(ctx, memberType);
+	writeRemove(writer, source, StackEntries(
+		StackEntry(startStack.entry + 1 + memberEntries),
+		unionEntries - 1 - memberEntries));
+	// Remove the kind
+	writeRemove(writer, source, StackEntries(startStack, 1));
+	handleAfter(writer, ctx, source, after);
+}
+
+void generateUnionKind(
+	ref ByteCodeWriter writer,
+	ref ExprCtx ctx,
+	ByteCodeSource source,
+	in Locals locals,
+	scope ref ExprAfter after,
+	in LowExprKind.UnionKind a,
+) {
+	StackEntry startStack = getNextStackEntry(writer);
+	generateExprAndContinue(writer, ctx, locals, *a.union_);
+	size_t unionEntries = getNextStackEntry(writer).entry - startStack.entry;
+	assert(unionEntries == nStackEntriesForType(ctx, a.union_.type));
+	writeRemove(writer, source, StackEntries(StackEntry(startStack.entry + 1), unionEntries - 1));
+	handleAfter(writer, ctx, source, after);
 }
 
 void generateMatchUnion(
@@ -977,15 +1022,15 @@ void generateRecordFieldGet(
 	ref ExprCtx ctx,
 	ByteCodeSource source,
 	in Locals locals,
-	in LowExprKind.RecordFieldGet it,
+	in LowExprKind.RecordFieldGet a,
 ) {
 	StackEntry targetEntry = getNextStackEntry(writer);
-	generateExprAndContinue(writer, ctx, locals, it.target);
+	generateExprAndContinue(writer, ctx, locals, *a.target);
 	StackEntries targetEntries = StackEntries(
 		targetEntry,
 		getNextStackEntry(writer).entry - targetEntry.entry);
-	FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, targetRecordType(it), it.fieldIndex);
-	if (targetIsPointer(it)) {
+	FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, targetRecordType(a), a.fieldIndex);
+	if (targetIsPointer(a)) {
 		if (offsetAndSize.size == 0)
 			writeRemove(writer, source, targetEntries);
 		else
@@ -1013,9 +1058,9 @@ void generateRecordFieldSet(
 ) {
 	StackEntry before = getNextStackEntry(writer);
 	assert(targetIsPointer(a));
-	generateExprAndContinue(writer, ctx, locals, a.target);
+	generateExprAndContinue(writer, ctx, locals, *a.target);
 	StackEntry mid = getNextStackEntry(writer);
-	generateExprAndContinue(writer, ctx, locals, a.value);
+	generateExprAndContinue(writer, ctx, locals, *a.value);
 	FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, targetRecordType(a), a.fieldIndex);
 	assert(mid.entry + divRoundUp(offsetAndSize.size, stackEntrySize) == getNextStackEntry(writer).entry);
 	writeWrite(writer, source, offsetAndSize.offset, offsetAndSize.size);

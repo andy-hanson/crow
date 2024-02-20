@@ -16,9 +16,8 @@ import frontend.check.checkCall.candidates :
 	testCandidateParamType,
 	typeContextForCandidate,
 	withCandidates;
-import frontend.check.checkCall.checkCalled : ArgsKind, checkCalled;
-import frontend.check.checkCall.checkCallSpecs : checkCallSpecs, isEnum, isFlags;
-import frontend.check.checkExpr : checkExpr, typeFromDestructure;
+import frontend.check.checkCall.checkCallSpecs : ArgsKind, checkCalled, checkCallSpecs, isEnum, isFlags;
+import frontend.check.checkExpr : checkCanDoUnsafe, checkExpr, typeFromDestructure;
 import frontend.check.exprCtx : addDiag2, ExprCtx, LocalsInfo, typeFromAst2;
 import frontend.check.inferringType :
 	asInferringTypeArgs,
@@ -457,14 +456,13 @@ Expr checkCallAfterChoosingOverload(
 	Expr[] args,
 	ref Expected expected,
 ) {
-	Opt!Called opCalled = checkCallSpecs(ctx, diagRange, candidate);
-	if (has(opCalled)) {
-		Called called = force(opCalled);
-		checkCalled(ctx, diagRange, called, locals, isEmpty(args) ? ArgsKind.empty : ArgsKind.nonEmpty);
-		Expr calledExpr = Expr(source, ExprKind(CallExpr(called, args)));
-		//TODO: PERF second return type check may be unnecessary
-		// if we already filtered by return type at the beginning
-		return check(ctx, source, expected, called.returnType, calledExpr);
-	} else
-		return bogus(expected, source);
+	Called called = checkCallSpecs(ctx, diagRange, candidate);
+	checkCalled(
+		ctx.checkCtx, diagRange, called, ctx.outermostFunFlags, locals,
+		isEmpty(args) ? ArgsKind.empty : ArgsKind.nonEmpty,
+		() => checkCanDoUnsafe(ctx));
+	Expr calledExpr = Expr(source, ExprKind(CallExpr(called, args)));
+	//TODO: PERF second return type check may be unnecessary
+	// if we already filtered by return type at the beginning
+	return check(ctx, source, expected, called.returnType, calledExpr);
 }

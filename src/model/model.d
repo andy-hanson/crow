@@ -32,7 +32,8 @@ import util.col.array :
 	only,
 	PtrAndSmallNumber,
 	small,
-	SmallArray;
+	SmallArray,
+	sum;
 import util.col.hashTable : existsInHashTable, HashTable;
 import util.col.map : Map;
 import util.col.enumMap : EnumMap;
@@ -150,8 +151,14 @@ Destructure[] assertNonVariadic(Params a) =>
 	a.as!(Destructure[]);
 
 private immutable struct Arity {
+	@safe @nogc pure nothrow:
 	immutable struct Varargs {}
 	mixin TaggedUnion!(immutable uint, Varargs);
+
+	uint countParamDecls() =>
+		matchIn!uint(
+			(in uint x) => x,
+			(in Varargs) => 1);
 }
 
 bool arityMatches(Arity sigArity, size_t nArgs) =>
@@ -181,8 +188,12 @@ UriAndRange nameRange(in AllSymbols allSymbols, in SpecDeclSig a) =>
 immutable struct TypeParamsAndSig {
 	TypeParams typeParams;
 	Type returnType;
-	ParamShort[] params;
+	ParamsShort params;
 	uint countSpecs;
+}
+immutable struct ParamsShort {
+	immutable struct Variadic { ParamShort param; Type elementType; }
+	mixin TaggedUnion!(SmallArray!ParamShort, Variadic*);
 }
 immutable struct ParamShort {
 	Symbol name;
@@ -590,6 +601,8 @@ immutable struct SpecInst {
 	Symbol name() scope =>
 		decl.name;
 }
+private size_t countSigs(in SpecInst a) =>
+	sum(a.parents, (in SpecInst* x) => countSigs(*x)) + a.sigTypes.length;
 
 immutable struct SpecInstBody {
 	SmallArray!(immutable SpecInst*) parents;
@@ -634,6 +647,12 @@ string stringOfVarKindLowerCase(VarKind a) {
 	}
 }
 
+immutable struct AutoFun {
+	enum Kind { compare, equals, toJson }
+	Kind kind;
+	Called[] members; // e.g., '<=>' implementations for each record/union member
+}
+
 immutable struct FunBody {
 	immutable struct Bogus {}
 	immutable struct CreateEnumOrFlags {
@@ -669,6 +688,7 @@ immutable struct FunBody {
 
 	mixin Union!(
 		Bogus,
+		AutoFun,
 		BuiltinFun,
 		CreateEnumOrFlags,
 		CreateExtern,
@@ -1157,9 +1177,10 @@ immutable struct CalledSpecSig {
 
 	private this(PtrAndSmallNumber!SpecInst i) {
 		inner = i;
+		assert(sigIndex < specInst.sigTypes.length);
 	}
 	this(SpecInst* s, ushort i) {
-		inner = PtrAndSmallNumber!SpecInst(s, i);
+		this(PtrAndSmallNumber!SpecInst(s, i));
 	}
 
 	@system ulong asTaggable() =>
@@ -1225,10 +1246,17 @@ size_t nTypeParams(in CalledDecl a) =>
 immutable struct Called {
 	@safe @nogc pure nothrow:
 
-	mixin TaggedUnion!(FunInst*, CalledSpecSig);
+	immutable struct Bogus {
+		CalledDecl decl;
+		Type returnType;
+		Type[] paramTypes;
+	}
+	mixin TaggedUnion!(Bogus*, FunInst*, CalledSpecSig);
 
 	Symbol name() scope =>
 		matchIn!Symbol(
+			(in Bogus x) =>
+				x.decl.name,
 			(in FunInst f) =>
 				f.name,
 			(in CalledSpecSig s) =>
@@ -1236,6 +1264,8 @@ immutable struct Called {
 
 	Type returnType() scope =>
 		match!Type(
+			(ref Bogus x) =>
+				x.returnType,
 			(ref FunInst f) =>
 				f.returnType,
 			(CalledSpecSig s) =>
@@ -1243,6 +1273,8 @@ immutable struct Called {
 
 	Type[] paramTypes() scope =>
 		match!(Type[])(
+			(ref Bogus x) =>
+				x.paramTypes,
 			(ref FunInst x) =>
 				x.paramTypes,
 			(CalledSpecSig s) =>
@@ -1250,6 +1282,8 @@ immutable struct Called {
 
 	Arity arity() scope =>
 		matchIn!Arity(
+			(in Bogus x) =>
+				x.decl.arity,
 			(in FunInst x) =>
 				x.arity,
 			(in CalledSpecSig x) =>
@@ -1261,14 +1295,14 @@ immutable struct Called {
 
 Type paramTypeAt(in Called a, size_t argIndex) scope =>
 	a.matchIn!Type(
-		(in FunInst f) =>
-			f.decl.params.matchIn!Type(
-				(in Destructure[]) =>
-					f.paramTypes[argIndex],
-				(in Params.Varargs) =>
-					only(f.paramTypes)),
-		(in CalledSpecSig s) =>
-			s.paramTypes[argIndex]);
+		(in Called.Bogus x) =>
+			a.isVariadic ? only(x.paramTypes) : x.paramTypes[argIndex],
+		(in FunInst x) =>
+			a.isVariadic ? only(x.paramTypes) : x.paramTypes[argIndex],
+		(in CalledSpecSig x) {
+			assert(!a.isVariadic);
+			return x.paramTypes[argIndex];
+		});
 
 immutable struct StructOrAlias {
 	@safe @nogc pure nothrow:
@@ -1411,14 +1445,18 @@ enum FunKind {
 immutable struct CommonFuns {
 	UriAndDiagnostic[] diagnostics;
 	FunInst* alloc;
+	FunInst* and;
 	EnumMap!(FunKind, FunDecl*) lambdaSubscript;
 	FunDecl* sharedOfMutLambda;
 	FunInst* mark;
+	FunInst* newJsonFromPairs;
 	FunInst* newNat64Future;
 	FunInst* newVoidFuture;
 	FunInst* rtMain;
 	FunInst* throwImpl;
 	FunInst* char8ArrayAsString;
+	FunInst* equalNat64;
+	FunInst* lessNat64;
 }
 
 immutable struct CommonTypes {

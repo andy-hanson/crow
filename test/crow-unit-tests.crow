@@ -54,6 +54,7 @@ import
 	../include/crow/private/tests/shared-map-tests: dummy-shared-map-tests
 	../include/crow/private/tests/string-tests: dummy-string-tests
 	../editor/vscode/license.txt as license string
+	./unit/auto-funs: dummy-auto-funs
 
 main nat^(_ string[]) summon
 	license is "public domain"
@@ -65,6 +66,7 @@ main nat^(_ string[]) summon
 	_ = current-directory
 	_ = () :: (nat deque)
 	_ = dummy-array-tests
+	_ = dummy-auto-funs
 	_ = dummy-bare-map-tests
 	_ = dummy-bare-queue-tests
 	_ = dummy-bits-tests

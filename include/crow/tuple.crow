@@ -1,17 +1,12 @@
 no-std
 import
-	./bool: &&, bool
-	./compare: compare, comparison, equal, greater, less
+	./bool: bool
+	./compare: compare, comparison, equal
 export
 	./private/bootstrap: a, b, c, d, e, f, new, tuple2, tuple3, tuple4, tuple5, tuple6
 
-+==[t, u] bool(a (t, u), b (t, u)) bare, t equal, u equal
-	a.a == b.a && a.b == b.b
-+<=>[t, u] comparison(a (t, u), b (t, u)) bare, t compare, u compare
-	match a.a <=> b.a
-	as less
-		less
-	as equal
-		a.b <=> b.b
-	as greater
-		greater
++==[t0, t1] bool(a (t0, t1), b (t0, t1)) bare, t0 equal, t1 equal
++<=>[t0, t1] comparison(a (t0, t1), b (t0, t1)) bare, t0 compare, t1 compare
+
++==[t0, t1, t2] bool(a (t0, t1, t2), b (t0, t1, t2)) bare, t0 equal, t1 equal, t2 equal
++<=>[t0, t1, t2] comparison(a (t0, t1, t2), b (t0, t1, t2)) bare, t0 compare, t1 compare, t2 compare

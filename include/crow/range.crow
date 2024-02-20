@@ -12,7 +12,6 @@ export
 region iteration
 
 +==[t] bool(a t range, b t range) bare, t equal
-	a.low == b.low && a.high == b.high
 
 +is-empty[t] bool(a t range) bare, t equal
 	a.low == a.high

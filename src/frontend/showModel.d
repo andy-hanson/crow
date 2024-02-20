@@ -20,6 +20,7 @@ import model.model :
 	Local,
 	Params,
 	ParamShort,
+	ParamsShort,
 	Purity,
 	ReturnAndParamTypes,
 	SpecInst,
@@ -88,6 +89,9 @@ void writeLineAndColumn(scope ref Writer writer, LineAndColumn lc) {
 
 void writeCalled(scope ref Writer writer, in ShowTypeCtx ctx, in TypeContainer typeContainer, in Called a) {
 	a.matchIn!void(
+		(in Called.Bogus x) {
+			writer ~= "<<bogus>>";
+		},
 		(in FunInst x) {
 			writeFunInst(writer, ctx, typeContainer, x);
 		},
@@ -254,12 +258,28 @@ void writeSigSimple(
 	writer ~= ' ';
 	writeTypeUnquoted(writer, ctx, TypeWithContainer(sig.returnType, typeContainer));
 	writer ~= '(';
-	writeWithCommas!ParamShort(writer, sig.params, (in ParamShort x) {
-		writeSymbol(writer, ctx.allSymbols, x.name);
-		writer ~= ' ';
-		writeTypeUnquoted(writer, ctx, TypeWithContainer(x.type, typeContainer));
-	});
+	sig.params.matchIn!void(
+		(in ParamShort[] params) {
+			writeWithCommas!ParamShort(writer, params, (in ParamShort x) {
+				writeParamShort(writer, ctx, typeContainer, x);
+			});
+		},
+		(in ParamsShort.Variadic x) {
+			writer ~= "...";
+			writeParamShort(writer, ctx, typeContainer, x.param);
+		});
 	writer ~= ')';
+}
+
+private void writeParamShort(
+	scope ref Writer writer,
+	in ShowTypeCtx ctx,
+	in TypeContainer typeContainer,
+	in ParamShort a,
+) {
+	writeSymbol(writer, ctx.allSymbols, a.name);
+	writer ~= ' ';
+	writeTypeUnquoted(writer, ctx, TypeWithContainer(a.type, typeContainer));
 }
 
 private void writeTypeParams(scope ref Writer writer, in ShowTypeCtx ctx, in TypeParams typeParams) {

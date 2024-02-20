@@ -261,7 +261,7 @@ Json jsonOfConcreteExprKind(ref Alloc alloc, in Ctx ctx, in ConcreteExprKind a) 
 			jsonObject(alloc, [
 				kindField!"constant",
 				field!"value"(jsonOfConstant(alloc, x))]),
-		(in ConcreteExprKind.CreateArr x) =>
+		(in ConcreteExprKind.CreateArray x) =>
 			jsonObject(alloc, [
 				kindField!"create-array",
 				field!"args"(jsonOfConcreteExprs(alloc, ctx, x.args))]),
@@ -354,7 +354,16 @@ Json jsonOfConcreteExprKind(ref Alloc alloc, in Ctx ctx, in ConcreteExprKind a) 
 		(in ConcreteExprKind.Throw x) =>
 			jsonObject(alloc, [
 				kindField!"throw",
-				field!"thrown"(jsonOfConcreteExpr(alloc, ctx, x.thrown))]));
+				field!"thrown"(jsonOfConcreteExpr(alloc, ctx, x.thrown))]),
+		(in ConcreteExprKind.UnionAs x) =>
+			jsonObject(alloc, [
+				kindField!"union-as",
+				field!"union"(jsonOfConcreteExpr(alloc, ctx, *x.union_)),
+				field!"member-index"(x.memberIndex)]),
+		(in ConcreteExprKind.UnionKind x) =>
+			jsonObject(alloc, [
+				kindField!"union-kind",
+				field!"union"(jsonOfConcreteExpr(alloc, ctx, *x.union_))]));
 
 Json jsonOfConcreteClosureRef(ref Alloc alloc, in ConcreteClosureRef a) =>
 	jsonObject(alloc, [field!"field-index"(a.fieldIndex)]);

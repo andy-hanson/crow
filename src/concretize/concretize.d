@@ -12,13 +12,14 @@ import concretize.concretizeCtx :
 	finishConcreteVars,
 	getOrAddConcreteFunAndFillBody,
 	getOrAddNonTemplateConcreteFunAndFillBody,
+	nat64Type,
 	stringType,
 	symbolArrayType,
 	voidType;
 import frontend.showModel : ShowCtx;
 import frontend.storage : FileContentGetters;
 import model.concreteModel :
-	ConcreteCommonFuns, ConcreteFun, ConcreteFunKey, ConcreteLambdaImpl, ConcreteProgram, ConcreteStruct;
+	ConcreteCommonFuns, ConcreteFun, ConcreteFunKey, ConcreteLambdaImpl, ConcreteProgram, ConcreteStruct, ConcreteType;
 import model.model : CommonFuns, MainFun, ProgramWithMain;
 import util.alloc.alloc : Alloc;
 import util.col.array : emptySmallArray, newSmallArray;
@@ -66,11 +67,18 @@ ConcreteProgram concretizeInner(
 		castNonScope_ref(fileContentGetters));
 	CommonFuns commonFuns = program.program.commonFuns;
 	lateSet(ctx.char8ArrayAsString_, getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.char8ArrayAsString));
+	lateSet(ctx.equalNat64Function_, getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.equalNat64));
+	lateSet(ctx.lessNat64Function_, getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.lessNat64));
 	lateSet(ctx.newVoidFutureFunction_, getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
-		ctx.program.commonFuns.newVoidFuture.decl,
+		commonFuns.newVoidFuture.decl,
 		//TODO:avoid alloc
 		newSmallArray(ctx.alloc, [voidType(ctx)]),
 		emptySmallArray!(immutable ConcreteFun*))));
+	lateSet(ctx.andFunction_, getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
+		commonFuns.and.decl,
+		emptySmallArray!ConcreteType,
+		emptySmallArray!(immutable ConcreteFun*))));
+	lateSet(ctx.newJsonFromPairsFunction_, getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.newJsonFromPairs));
 	ConcreteFun* markFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.mark);
 	ConcreteFun* rtMainConcreteFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.rtMain);
 	// We remove items from these maps when we process them.
@@ -102,7 +110,10 @@ ConcreteProgram concretizeInner(
 			rtMainConcreteFun,
 			throwImplFun,
 			userMainConcreteFun));
-	checkConcreteProgram(showCtx, ConcreteCommonTypes(boolType(ctx), stringType(ctx), voidType(ctx)), res);
+	checkConcreteProgram(
+		showCtx,
+		ConcreteCommonTypes(boolType(ctx), nat64Type(ctx), stringType(ctx), voidType(ctx)),
+		res);
 	return res;
 }
 

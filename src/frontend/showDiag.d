@@ -35,6 +35,7 @@ import model.diag :
 	UriAndDiagnostic;
 import model.model :
 	arityMatches,
+	AutoFun,
 	bestCasePurity,
 	BuiltinType,
 	CalledDecl,
@@ -424,6 +425,55 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		(in Diag.AssignmentNotAllowed) {
 			writer ~= "Can't assign to this kind of expression.";
 		},
+		(in Diag.AutoFunError x) {
+			x.matchIn!void(
+				(in Diag.AutoFunError.Bare) {
+					writer ~= "Automatic 'to json' can't be 'bare'.";
+				},
+				(in Diag.AutoFunError.SpecFromWrongModule) {
+					writer ~= "Spec for automatic function comes from unexpected module.";
+				},
+				(in Diag.AutoFunError.TypeNotFullyVisible) {
+					writer ~= "This function can't be automatic because the type is not fully visible in this context.";
+				},
+				(in Diag.AutoFunError.WrongName) {
+					writer ~= "Function needs a body. (An automatic function must be named '==', '<=>', or 'to'.)";
+				},
+				(in Diag.AutoFunError.WrongParams p) {
+					writer ~= () {
+						final switch (p.kind) {
+							case AutoFun.Kind.compare:
+								return "'<=>' must take two parameters of the same type.";
+							case AutoFun.Kind.equals:
+								return "'==' must take two parameters of the same type.";
+							case AutoFun.Kind.toJson:
+								return "'to' must take a single parameter.";
+						}
+					}();
+				},
+				(in Diag.AutoFunError.WrongParamType p) {
+					writer ~= "An automatic function parameter must be a ";
+					writeKeyword(writer, ctx, symbol!"record");
+					writer ~= " or ";
+					writeKeyword(writer, ctx, symbol!"union");
+					writer ~= " type.";
+					if (p.isEnumOrFlags)
+						writer ~= "\nAn 'enum' or 'flags' type doesn't need automatic functions; " ~
+							"it gets these from 'enum-util' or 'flags-util'.";
+				},
+				(in Diag.AutoFunError.WrongReturnType p) {
+					writer ~= () {
+						final switch (p.kind) {
+							case AutoFun.Kind.compare:
+								return "'<=>' must return 'comparison'.";
+							case AutoFun.Kind.equals:
+								return "'==' must return 'bool'.";
+							case AutoFun.Kind.toJson:
+								return "'to' must return 'json'.";
+						}
+					}();
+				});
+		},
 		(in Diag.BuiltinUnsupported x) {
 			writer ~= "Crow does not implement a builtin ";
 			writer ~= stringOfEnum(x.kind);
@@ -630,9 +680,6 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= "A '";
 			writer ~= stringOfEnum(x.reason);
 			writer ~= "' function can't have a body.";
-		},
-		(in Diag.FunMissingBody) {
-			writer ~= "This function needs a body.";
 		},
 		(in Diag.FunModifierTrustedOnNonExtern) {
 			writer ~= "Only 'extern' functions can be 'trusted'; otherwise 'trusted' should be used as an expression.";
@@ -1033,6 +1080,9 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 					writer ~= " can't be variadic.";
 					break;
 			}
+		},
+		(in Diag.TestMissingBody) {
+			writer ~= "This test needs a body.";
 		},
 		(in Diag.TrustedUnnecessary x) {
 			writer ~= () {

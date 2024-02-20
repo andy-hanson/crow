@@ -19,6 +19,8 @@ struct MutMaxArr(size_t maxSize, T) {
 		assert(i < size_);
 		return values[i];
 	}
+	size_t opDollar() const =>
+		size_;
 
 	@trusted int opApply(in int delegate(ref T) @safe @nogc pure nothrow cb) scope {
 		foreach (ref T x; values[0 .. size_]) {

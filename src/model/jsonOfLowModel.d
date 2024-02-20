@@ -219,14 +219,14 @@ Json jsonOfLowExprKind(ref Alloc alloc, in Ctx ctx, in LowExprKind a) =>
 		(in LowExprKind.RecordFieldGet x) =>
 			jsonObject(alloc, [
 				kindField!"get-field",
-				field!"target"(jsonOfLowExpr(alloc, ctx, x.target)),
+				field!"target"(jsonOfLowExpr(alloc, ctx, *x.target)),
 				field!"field-index"(x.fieldIndex)]),
 		(in LowExprKind.RecordFieldSet x) =>
 			jsonObject(alloc, [
 				kindField!"set-field",
-				field!"target"(jsonOfLowExpr(alloc, ctx, x.target)),
+				field!"target"(jsonOfLowExpr(alloc, ctx, *x.target)),
 				field!"field-index"(x.fieldIndex),
-				field!"value"(jsonOfLowExpr(alloc, ctx, x.value))]),
+				field!"value"(jsonOfLowExpr(alloc, ctx, *x.value))]),
 		(in LowExprKind.SizeOf x) =>
 			jsonObject(alloc, [
 				kindField!"size-of",
@@ -283,6 +283,15 @@ Json jsonOfLowExprKind(ref Alloc alloc, in Ctx ctx, in LowExprKind a) =>
 						field!"param"(jsonOfLowLocalSource(alloc, updateParam.param.source)),
 						field!"value"(jsonOfLowExpr(alloc, ctx, updateParam.newValue)),
 					])))]),
+		(in LowExprKind.UnionAs x) =>
+			jsonObject(alloc, [
+				kindField!"union-as",
+				field!"union"(jsonOfLowExpr(alloc, ctx, *x.union_)),
+				field!"member-index"(x.memberIndex)]),
+		(in LowExprKind.UnionKind x) =>
+			jsonObject(alloc, [
+				kindField!"union-kind",
+				field!"union"(jsonOfLowExpr(alloc, ctx, *x.union_))]),
 		(in LowExprKind.VarGet x) =>
 			jsonObject(alloc, [
 				kindField!"var-get",

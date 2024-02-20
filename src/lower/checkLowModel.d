@@ -180,18 +180,18 @@ void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr
 		(in LowExprKind.PtrToLocal it) {
 			checkTypeEqual(ctx.ctx, asGcOrRawPointee(type), it.local.type);
 		},
-		(in LowExprKind.RecordFieldGet it) {
-			LowType.Record recordType = targetRecordType(it);
-			checkLowExpr(ctx, info, it.target.type, it.target);
-			LowType fieldType = ctx.ctx.program.allRecords[recordType].fields[it.fieldIndex].type;
+		(in LowExprKind.RecordFieldGet x) {
+			LowType.Record recordType = targetRecordType(x);
+			checkLowExpr(ctx, info, x.target.type, *x.target);
+			LowType fieldType = ctx.ctx.program.allRecords[recordType].fields[x.fieldIndex].type;
 			checkTypeEqual(ctx.ctx, type, fieldType);
 		},
-		(in LowExprKind.RecordFieldSet it) {
-			LowType.Record recordType = targetRecordType(it);
-			assert(targetIsPointer(it)); // TODO: then this function doesn't need to exist
-			checkLowExpr(ctx, info, it.target.type, it.target);
-			LowType fieldType = ctx.ctx.program.allRecords[recordType].fields[it.fieldIndex].type;
-			checkLowExpr(ctx, info, fieldType, it.value);
+		(in LowExprKind.RecordFieldSet x) {
+			LowType.Record recordType = targetRecordType(x);
+			assert(targetIsPointer(x)); // TODO: then this function doesn't need to exist
+			checkLowExpr(ctx, info, x.target.type, *x.target);
+			LowType fieldType = ctx.ctx.program.allRecords[recordType].fields[x.fieldIndex].type;
+			checkLowExpr(ctx, info, fieldType, *x.value);
 			checkTypeEqual(ctx.ctx, type, voidType);
 		},
 		(in LowExprKind.SizeOf it) {
@@ -233,6 +233,16 @@ void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr
 		(in LowExprKind.TailRecur it) {
 			foreach (ref UpdateParam update; it.updateParams)
 				checkLowExpr(ctx, info, update.param.type, update.newValue);
+		},
+		(in LowExprKind.UnionAs x) {
+			checkTypeEqual(
+				ctx.ctx, type,
+				ctx.ctx.program.allUnions[x.union_.type.as!(LowType.Union)].members[x.memberIndex]);
+			checkLowExpr(ctx, info, x.union_.type, *x.union_);
+		},
+		(in LowExprKind.UnionKind x) {
+			checkTypeEqual(ctx.ctx, type, LowType(PrimitiveType.nat64));
+			checkLowExpr(ctx, info, x.union_.type, *x.union_);
 		},
 		(in LowExprKind.VarGet x) {
 			checkTypeEqual(ctx.ctx, type, ctx.ctx.program.vars[x.varIndex].type);

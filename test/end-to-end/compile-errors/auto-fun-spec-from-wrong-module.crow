@@ -1,0 +1,13 @@
+no-std
+import
+	crow/bool: bool
+	crow/misc: new, void
+
+main void()
+	()
+
+equal[t] spec
+	== bool(a t, b t)
+
+r record
+== bool(a r, b r)

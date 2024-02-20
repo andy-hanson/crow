@@ -2,14 +2,27 @@ module frontend.check.maps;
 
 @safe @nogc pure nothrow:
 
-import model.model : FunDecl, SpecDecl, StructOrAlias;
-import util.col.array : allSame;
+import model.ast : ImportOrExportAst;
+import model.model : FunDecl, SpecDecl, StructOrAlias, Test;
+import util.col.array : allSame, SmallArray;
 import util.col.hashTable : HashTable;
 import util.symbol : Symbol;
+import util.uri : Uri;
 
 alias StructsAndAliasesMap = HashTable!(StructOrAlias, Symbol, structOrAliasName);
 alias SpecsMap = HashTable!(immutable SpecDecl*, Symbol, specDeclName);
 alias FunsMap = HashTable!(immutable FunDecl*[], Symbol, funDeclsName);
+
+immutable struct FunsAndMap {
+	SmallArray!FunDecl funs;
+	SmallArray!Test tests;
+	FunsMap funsMap;
+}
+
+immutable struct ImportOrExportFile {
+	ImportOrExportAst* source;
+	Uri uri;
+}
 
 Symbol structOrAliasName(in StructOrAlias a) =>
 	a.name;

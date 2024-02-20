@@ -53,39 +53,17 @@ main void()
 	b bool
 	n nat64
 -== bool(a struct_a, b struct_a)
-	a.b == b.b && a.n == b.n
 -to json(a struct_a)
-	("b", a.b.to), ("n", a.n.to)
 
 -struct_b record extern
 	b bool
 	a struct_a
 -== bool(a struct_b, b struct_b)
-	a.b == b.b && a.a == b.a
 -to json(a struct_b)
-	("b", a.b.to), ("a", a.a.to)
 
 -union_a union(sa struct_a, sb struct_b)
 -== bool(a union_a, b union_a)
-	match a
-	as sa a_a
-		match b
-		as sa b_a
-			a_a == b_a
-		as sb _
-			false
-	as sb a_b
-		match b
-		as sa _
-			false
-		as sb b_b
-			a_b == b_b
 -to json(a union_a)
-	match a
-	as sa x
-		("sa", x.to),
-	as sb x
-		("sb", x.to),
 
 some-var thread-local(nat)
 

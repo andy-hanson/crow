@@ -6,13 +6,13 @@ import
 	../bool: bool, false, not, to, true
 	../compare: !=, <, <=, >, >=
 	../misc: new
-	../number: +
+	../number: +, -
 	../option: new, option
 	../pointer:
 		==, <=>, +, -, *, any-const-pointer, any-mut-pointer, as-const, const-pointer, mut-pointer,
 		null, pointer-cast, set-deref, size-of, to-const-pointer, to
 	./bootstrap: hard-assert, hard-unreachable, lock, nat64, todo, void
-	./number-low-level: ==, <=>, nat8, unsafe-div, wrap-add, wrap-mul, wrap-sub
+	./number-low-level: ==, <=>, nat8, unsafe-div, wrap-add, wrap-mul
 	./range-low-level: .., high, low, range
 	./thread-utils: acquire, barrier, init, release, wait-barrier, uninit
 
@@ -95,11 +95,8 @@ gc record by-val, mut
 +gc-stats record by-val
 	gc-count nat64
 	cur-word nat64
-	total-words nat64
 	words-used nat64
-
-+words-free nat64(a gc-stats) bare
-	a.total-words wrap-sub a.words-used
+	words-free nat64
 
 # Super unsafe
 # WARN: Unfortunately this doesn't prevent the original allocation in new-gc,
@@ -124,7 +121,8 @@ gc record by-val, mut
 	used-words-remaining = 0 words-used-in-range gc->mark-cur, gc->mark-end
 	total-words = gc->mark-end - gc->mark-begin
 	gc.lk release
-	gc-count, cur-word, total-words, (cur-word wrap-add used-words-remaining)
+	words-used = cur-word wrap-add used-words-remaining
+	gc-count, cur-word, words-used, total-words - words-used
 
 words-used-in-range nat64(acc nat64, cur bool mut*, end bool mut*) bare, unsafe
 	if cur == end

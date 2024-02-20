@@ -105,31 +105,6 @@ register-user-result union
 	bad-user-name string
 	user-already-exists
 == bool(a register-user-result, b register-user-result)
-	match a
-	as register-user-success sa
-		match b
-		as register-user-success sb
-			sa == sb
-		as bad-user-name _
-			false
-		as user-already-exists
-			false
-	as bad-user-name ba
-		match b
-		as register-user-success _
-			false
-		as bad-user-name bb
-			ba == bb
-		as user-already-exists
-			false
-	as user-already-exists
-		match b
-		as register-user-success _
-			false
-		as bad-user-name _
-			false
-		as user-already-exists
-			true
 
 register-user register-user-result(db db, user-name string, password string) summon
 	if user-name.size < 4 || user-name.size > 64

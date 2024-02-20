@@ -433,16 +433,16 @@ immutable struct LowExprKind {
 	}
 
 	immutable struct RecordFieldGet {
-		LowExpr target; // Call 'targetIsPointer' to see if this is x.y or x->y
+		LowExpr* target; // Call 'targetIsPointer' to see if this is x.y or x->y
 		size_t fieldIndex;
 	}
 
 	// No 'RecordFieldPointer', use 'PtrToField'
 
 	immutable struct RecordFieldSet {
-		LowExpr target;
+		LowExpr* target;
 		size_t fieldIndex;
-		LowExpr value;
+		LowExpr* value;
 	}
 
 	immutable struct SizeOf {
@@ -496,6 +496,13 @@ immutable struct LowExprKind {
 		LowVarIndex varIndex;
 		LowExpr* value;
 	}
+	immutable struct UnionAs {
+		LowExpr* union_;
+		uint memberIndex;
+	}
+	immutable struct UnionKind {
+		LowExpr* union_;
+	}
 
 	mixin Union!(
 		Call,
@@ -514,8 +521,8 @@ immutable struct LowExprKind {
 		PtrCast*,
 		PtrToField*,
 		PtrToLocal,
-		RecordFieldGet*,
-		RecordFieldSet*,
+		RecordFieldGet,
+		RecordFieldSet,
 		SizeOf,
 		Constant,
 		SpecialUnary*,
@@ -526,6 +533,8 @@ immutable struct LowExprKind {
 		Switch0ToN*,
 		SwitchWithValues*,
 		TailRecur,
+		UnionAs,
+		UnionKind,
 		VarGet,
 		VarSet);
 }

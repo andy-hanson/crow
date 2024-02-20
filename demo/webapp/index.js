@@ -70,7 +70,7 @@ const loadUsers = async () => {
 	const usersDiv = nonNull(document.getElementById("users"))
 	clear(usersDiv)
 	const {users} = await (await fetch("/users")).json()
-	for (const {user, userName} of users) {
+	for (const {user, "user-name":userName} of users) {
 		const node = document.createElement("div")
 		node.textContent = `${user}: ${userName}`
 		usersDiv.append(node)
@@ -82,7 +82,7 @@ const loadPosts = async () => {
 	const postsDiv = nonNull(document.getElementById("posts"))
 	clear(postsDiv)
 	const {posts} = await (await fetch("/posts")).json()
-	for (const {post, userName, content} of posts) {
+	for (const {post, "user-name":userName, content} of posts) {
 		const node = document.createElement("div")
 		node.textContent = `${post}: ${userName} says: ${content}`
 		postsDiv.append(node)

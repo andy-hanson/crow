@@ -115,7 +115,7 @@ SmallArray!T emptySmallArray(T)() =>
 bool sizeEq(T, U)(in T[] a, in U[] b) =>
 	a.length == b.length;
 
-private bool sizeEq3(T, U, V)(in T[] a, in U[] b, in V[] c) =>
+bool sizeEq3(T, U, V)(in T[] a, in U[] b, in V[] c) =>
 	a.length == b.length && b.length == c.length;
 
 bool isEmpty(T)(in T[] a) =>
@@ -512,7 +512,6 @@ void zipPtrFirst(T, U)(T[] a, scope U[] b, in void delegate(T*, ref U) @safe @no
 		cb(&a[i], b[i]);
 }
 
-
 @trusted Out[] mapZip(Out, In0, In1)(
 	ref Alloc alloc,
 	scope In0[] in0,
@@ -522,6 +521,17 @@ void zipPtrFirst(T, U)(T[] a, scope U[] b, in void delegate(T*, ref U) @safe @no
 	assert(sizeEq(in0, in1));
 	return makeArray(alloc, in0.length, (size_t i) =>
 		cb(in0[i], in1[i]));
+}
+
+@trusted Out[] mapZipWithIndex(Out, In0, In1)(
+	ref Alloc alloc,
+	scope In0[] in0,
+	scope In1[] in1,
+	in Out delegate(size_t, ref In0, ref In1) @safe @nogc pure nothrow cb,
+) {
+	assert(sizeEq(in0, in1));
+	return makeArray(alloc, in0.length, (size_t i) =>
+		cb(i, in0[i], in1[i]));
 }
 
 @trusted Out[] mapZipPtrFirst(Out, In0, In1)(
@@ -565,7 +575,7 @@ T fold(T, U)(T start, in U[] arr, in T delegate(T a, in U b) @safe @nogc pure no
 		? start
 		: fold!(T, U)(cb(start, arr[0]), arr[1 .. $], cb);
 
-N max(N, T)(N start, in T[] a, in N delegate(in T) @safe @nogc pure nothrow cb) =>
+N maxBy(N, T)(N start, in T[] a, in N delegate(in T) @safe @nogc pure nothrow cb) =>
 	fold!(N, T)(start, a, (N curMax, in T x) => .max(curMax, cb(x)));
 
 size_t sum(T)(in T[] a, in size_t delegate(in T) @safe @nogc pure nothrow cb) =>

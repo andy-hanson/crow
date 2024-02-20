@@ -235,13 +235,22 @@ void eachReferenced(in FunInst x, in ReferenceCb cb) {
 
 void eachReferenceInTypeArgs(in TypeArgs typeArgs, in ReferenceCb cb) {
 	foreach (Type x; typeArgs)
-		if (x.isA!(StructInst*))
-			cb(x.as!(StructInst*));
+		eachReferenceInType(x, cb);
+}
+
+void eachReferenceInType(in Type type, in ReferenceCb cb) {
+	if (type.isA!(StructInst*))
+		cb(type.as!(StructInst*));
 }
 
 void eachReferenceInSpecImpls(in SpecImpls specImpls, in ReferenceCb cb) {
 	foreach (Called called; specImpls)
 		called.matchWithPointers!void(
+			(Called.Bogus* x) {
+				eachReferenceInType(x.returnType, cb);
+				foreach (Type t; x.paramTypes)
+					eachReferenceInType(t, cb);
+			},
 			(FunInst* x) {
 				cb(x);
 			},

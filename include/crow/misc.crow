@@ -1,13 +1,18 @@
 no-std
 import
+	./bool: bool, true
 	./private/bootstrap: new-void
-	./compare: compare
+	./compare: compare, comparison, equal
 	./hash: hash-mix
 export
 	./private/bootstrap: void
 
 +new void() bare
 	new-void
++== bool(_ void, _ void) bare
+	true
++<=> comparison(_ void, _ void) bare
+	equal
 
 +new[t] spec
 	new t()

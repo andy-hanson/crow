@@ -5,6 +5,7 @@ module frontend.ide.getTarget;
 import frontend.ide.position : ExpressionPosition, ExpressionPositionKind, ExprKeyword, ExprRef, PositionKind;
 import model.diag : TypeWithContainer;
 import model.model :
+	AutoFun,
 	BuiltinFun,
 	Called,
 	CalledSpecSig,
@@ -131,10 +132,14 @@ Opt!Target exprTarget(ExpressionPosition a) =>
 
 Opt!Target calledTarget(ref Called a) =>
 	a.match!(Opt!Target)(
+		(ref Called.Bogus) =>
+			none!Target,
 		(ref FunInst funInst) {
 			FunDecl* decl = funInst.decl;
-			return some(decl.body_.match!(Target)(
+			return some(decl.body_.match!Target(
 				(FunBody.Bogus) =>
+					Target(decl),
+				(AutoFun _) =>
 					Target(decl),
 				(BuiltinFun _) =>
 					Target(decl),

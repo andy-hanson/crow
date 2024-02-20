@@ -8,19 +8,6 @@ export
 	./private/bootstrap: error, ok, result
 
 +==[t, u] bool(a (t, u) result, b (t, u) result) t equal, u equal
-	match a
-	as ok oa
-		match b
-		as ok ob
-			oa == ob
-		as error _
-			false
-	as error ea
-		match b
-		as ok _
-			false
-		as error eb
-			ea == eb
 
 +then[out, in, err] (out, err) result(a (in, err) result, f (out, err) result mut(x in))
 	match a

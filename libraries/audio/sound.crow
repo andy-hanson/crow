@@ -16,12 +16,10 @@
 	n-channels nat64
 	# `samples` contains `n-channels * sample-rate` samples per second
 	sample-rate nat64
++== bool(a sound-format, b sound-format)
 
 +samples-per-second nat64(a sound-format)
 	a.n-channels * a.sample-rate
-
-+== bool(a sound-format, b sound-format)
-	a.n-channels == b.n-channels && a.sample-rate == b.sample-rate
 
 +to string(a sound-format)
 	"{a n-channels}×{a sample-rate}Hz"

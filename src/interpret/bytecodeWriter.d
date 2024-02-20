@@ -154,11 +154,10 @@ private size_t getStackOffsetTo(in ByteCodeWriter writer, StackEntry stackEntry)
 	return getNextStackEntry(writer).entry - 1 - stackEntry.entry;
 }
 
-private StackOffsetBytes getStackOffsetBytes(in ByteCodeWriter writer, StackEntry stackEntry, size_t offsetBytes) {
+private StackOffsetBytes getStackOffsetBytes(in ByteCodeWriter writer, StackEntry stackEntry, size_t offsetBytes) =>
 	// stack entry offsets use 0 for the last entry,
 	// but byte offsets use 0 for the next entry (thus 1 is the final byte of the last entry)
-	return StackOffsetBytes((getStackOffsetTo(writer, stackEntry) + 1) * 8 - offsetBytes);
-}
+	StackOffsetBytes((getStackOffsetTo(writer, stackEntry) + 1) * 8 - offsetBytes);
 
 void writeDupEntries(scope ref ByteCodeWriter writer, ByteCodeSource source, StackEntries entries) {
 	assert(entries.size != 0);

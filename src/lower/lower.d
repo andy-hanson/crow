@@ -993,8 +993,8 @@ LowExprKind getLowExprKind(
 			getClosureSetExpr(ctx, locals, expr.range, it),
 		(Constant it) =>
 			LowExprKind(it),
-		(ref ConcreteExprKind.CreateArr x) =>
-			getCreateArrExpr(ctx, locals, expr.range, type, expr.type, x),
+		(ConcreteExprKind.CreateArray x) =>
+			getCreateArrayExpr(ctx, locals, expr.range, type, expr.type, x),
 		(ConcreteExprKind.CreateRecord it) =>
 			LowExprKind(LowExprKind.CreateRecord(getArgs(ctx, locals, it.args))),
 		(ref ConcreteExprKind.CreateUnion it) =>
@@ -1039,7 +1039,13 @@ LowExprKind getLowExprKind(
 				getLowExpr(ctx, locals, x.first, ExprPos.nonTail),
 				getLowExpr(ctx, locals, x.then, exprPos)),
 		(ref ConcreteExprKind.Throw it) =>
-			getThrowExpr(ctx, locals, expr.range, type, it));
+			getThrowExpr(ctx, locals, expr.range, type, it),
+		(ConcreteExprKind.UnionAs x) =>
+			LowExprKind(LowExprKind.UnionAs(
+				allocate(ctx.alloc, getLowExpr(ctx, locals, *x.union_, ExprPos.nonTail)), x.memberIndex)),
+		(ConcreteExprKind.UnionKind x) =>
+			LowExprKind(LowExprKind.UnionKind(
+				allocate(ctx.alloc, getLowExpr(ctx, locals, *x.union_, ExprPos.nonTail)))));
 
 LowExpr getAllocateExpr(
 	ref Alloc alloc,
@@ -1215,10 +1221,10 @@ LowExprKind getCallSpecial(
 			getPtrToFieldExpr(ctx, locals, only(a.args), x.fieldIndex),
 		(ConcreteFunBody.RecordFieldSet x) {
 			assert(a.args.length == 2);
-			return LowExprKind(allocate(ctx.alloc, LowExprKind.RecordFieldSet(
-				getLowExpr(ctx, locals, a.args[0], ExprPos.nonTail),
+			return LowExprKind(LowExprKind.RecordFieldSet(
+				allocate(ctx.alloc, getLowExpr(ctx, locals, a.args[0], ExprPos.nonTail)),
 				x.fieldIndex,
-				getLowExpr(ctx, locals, a.args[1], ExprPos.nonTail))));
+				allocate(ctx.alloc, getLowExpr(ctx, locals, a.args[1], ExprPos.nonTail))));
 		},
 		(ConcreteFunBody.VarGet x) =>
 			LowExprKind(LowExprKind.VarGet(mustGet(ctx.varIndices, x.var))),
@@ -1266,9 +1272,9 @@ LowExprKind getRecordFieldCall(
 }
 
 LowExprKind getRecordFieldGet(ref GetLowExprCtx ctx, in Locals locals, ref ConcreteExpr record, size_t fieldIndex) =>
-	LowExprKind(allocate(ctx.alloc, LowExprKind.RecordFieldGet(
-		getLowExpr(ctx, locals, record, ExprPos.nonTail),
-		fieldIndex)));
+	LowExprKind(LowExprKind.RecordFieldGet(
+		allocate(ctx.alloc, getLowExpr(ctx, locals, record, ExprPos.nonTail)),
+		fieldIndex));
 
 LowExprKind genFlagsNegate(ref Alloc alloc, UriAndRange range, ulong allValue, LowExpr a) =>
 	genEnumIntersect(
@@ -1464,13 +1470,13 @@ LowExprKind getCallBuiltinExpr(
 			assert(false));
 }
 
-LowExprKind getCreateArrExpr(
+LowExprKind getCreateArrayExpr(
 	ref GetLowExprCtx ctx,
 	in Locals locals,
 	UriAndRange range,
 	LowType arrType,
 	ConcreteType concreteArrType,
-	in ConcreteExprKind.CreateArr a,
+	in ConcreteExprKind.CreateArray a,
 ) {
 	// (temp = _alloc(ctx, sizeof(foo) * 2),
 	// *(temp + 0) = a,
@@ -1664,10 +1670,10 @@ LowExprKind getClosureSetExpr(
 // NOTE: This does not dereference pointer for mutAllocated, getClosureGetExpr will do that
 LowExpr getClosureField(ref GetLowExprCtx ctx, UriAndRange range, ConcreteClosureRef closureRef) {
 	LowLocal* closureLocal = &ctx.lowParams[0];
-	LowExpr closureGet = genLocalGet(range, closureLocal);
+	LowExpr* closureGet = allocate(ctx.alloc, genLocalGet(range, closureLocal));
 	LowRecord record = ctx.allTypes.allRecords[asPtrGcPointee(closureLocal.type).as!(LowType.Record)];
-	return LowExpr(record.fields[closureRef.fieldIndex].type, range, LowExprKind(allocate(ctx.alloc,
-		LowExprKind.RecordFieldGet(closureGet, closureRef.fieldIndex))));
+	return LowExpr(record.fields[closureRef.fieldIndex].type, range, LowExprKind(
+		LowExprKind.RecordFieldGet(closureGet, closureRef.fieldIndex)));
 }
 
 LowExprKind getPtrToFieldExpr(

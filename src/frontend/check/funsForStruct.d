@@ -259,7 +259,7 @@ void addFunsForRecordConstructor(
 		record.flags.nominal ? struct_.name : symbol!"new",
 		structType,
 		Params(map(ctx.alloc, record.fields, (ref RecordField x) =>
-			makeParam(ctx.alloc, x.name, x.type))),
+			makeParam(ctx.alloc, ParamShort(x.name, x.type)))),
 		byVal ? FunFlags.generatedBare : FunFlags.generated,
 		[],
 		FunBody(FunBody.CreateRecord()));

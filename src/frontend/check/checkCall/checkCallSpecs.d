@@ -3,24 +3,24 @@ module frontend.check.checkCall.checkCallSpecs;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCall.candidates :
-	Candidate, eachCandidate, FunsInScope, funsInScope, testCandidateForSpecSig;
-import frontend.check.exprCtx : addDiag2, ExprCtx;
+	Candidate, candidateBogusCalled, eachCandidate, FunsInScope, funsInScope, testCandidateForSpecSig;
+import frontend.check.checkCtx : addDiag, CheckCtx, markUsed;
+import frontend.check.exprCtx : addDiag2, allowsUnsafe, ExprCtx, isInDataLambda, isInLambda, LocalsInfo;
 import frontend.check.inferringType : SingleInferringType, tryGetInferred, TypeContext;
 import frontend.check.instantiate :
-	InstantiateCtx,
-	instantiateFun,
-	instantiateSpecInst,
-	noDelaySpecInsts,
-	TypeArgsArray,
-	typeArgsArray;
+	InstantiateCtx, instantiateFun, instantiateSpecInst, noDelaySpecInsts, TypeArgsArray, typeArgsArray;
+import frontend.check.maps : FunsMap;
 import frontend.lang : maxSpecDepth, maxSpecImpls;
-import model.diag : Diag;
+import model.diag : Diag, TypeContainer;
 import model.model :
 	BuiltinSpec,
 	Called,
+	CalledDecl,
 	CalledSpecSig,
 	FunDecl,
 	FunDeclAndTypeArgs,
+	FunInst,
+	FunFlags,
 	isPurityAlwaysCompatible,
 	isPurityCompatible,
 	Purity,
@@ -39,10 +39,11 @@ import util.cell : Cell, cellGet, cellSet;
 import util.col.array : every, exists, first, firstZipPointerFirst, only, small;
 import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, finish;
 import util.col.mutMaxArr : asTemporaryArray, isFull, mustPop, MutMaxArr, mutMaxArr, only, toArray;
+import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, optOr, some;
 import util.sourceRange : Range;
 import util.union_ : Union;
-import util.util : ptrTrustMe;
+import util.util : castNonScope_ref, ptrTrustMe;
 
 bool isShared(in immutable SpecInst*[] funSpecs, Type type) =>
 	isPurityAlwaysCompatibleConsideringSpecs(funSpecs, type, Purity.shared_);
@@ -58,26 +59,92 @@ bool isPurityAlwaysCompatibleConsideringSpecs(in immutable SpecInst*[] funSpecs,
 				isPurityAlwaysCompatibleConsideringSpecs(funSpecs, typeArg, expected)));
 }
 
-Opt!Called checkCallSpecs(ref ExprCtx ctx, in Range diagRange, ref const Candidate candidate) {
+Called checkCallSpecs(ref ExprCtx ctx, in Range diagRange, ref const Candidate candidate) {
 	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, funsInScope(ctx));
-	return getCalledFromCandidateAfterTypeChecks(checkSpecsCtx, candidate, DummyTrace()).match!(Opt!Called)(
+	return getCalledFromCandidateAfterTypeChecks!DummyTrace(checkSpecsCtx, candidate, DummyTrace()).match!Called(
 		(Called x) =>
-			checkSpecsCtx.hasErrors ? checkCallSpecsWithRealTrace(ctx, diagRange, candidate) : some(x),
+			checkSpecsCtx.hasErrors ? checkCallSpecsWithRealTrace(ctx, diagRange, candidate) : x,
 		(DummyTrace.NoMatch _) =>
 			checkCallSpecsWithRealTrace(ctx, diagRange, candidate));
 }
 
+Called checkSpecSingleSigIgnoreParents(ref CheckCtx ctx, in FunsMap funsMap, FunDecl* decl, SpecInst* spec) {
+	FunsInScope funsInScope = FunsInScope(decl.specs, funsMap, ctx.importsAndReExports);
+	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, castNonScope_ref(funsInScope));
+	RealTrace trace = RealTrace(&ctx, TypeContainer(decl), decl.nameRange(ctx.allSymbols).range);
+	SpecImpls specImpls = mutMaxArr!(maxSpecImpls, Called);
+	Opt!(Diag.SpecNoMatch) diag = checkSpecImpl!(RealTrace*)(specImpls, checkSpecsCtx, decl, ptrTrustMe(trace), *spec);
+	assert(spec.sigTypes.length == 1);
+	if (has(diag)) {
+		addDiag(ctx, decl.nameRange(ctx.allSymbols).range, Diag(force(diag)));
+		CalledSpecSig sig = CalledSpecSig(spec, 0);
+		return Called(allocate(ctx.alloc, Called.Bogus(CalledDecl(sig), sig.returnType, sig.paramTypes)));
+	} else {
+		Called res = specImpls[$ - 1];
+		LocalsInfo locals;
+		checkCalled(ctx, decl.nameRange(ctx.allSymbols).range, res, decl.flags, locals, ArgsKind.nonEmpty, () =>
+			allowsUnsafe(decl.flags.safety));
+		return res;
+	}
+}
+
+// Additional checks on a call after the overload and spec impls have been chosen.
+void checkCalled(
+	ref CheckCtx ctx,
+	in Range diagRange,
+	in Called called,
+	FunFlags funFlags,
+	in LocalsInfo locals,
+	ArgsKind argsKind,
+	in bool delegate() @safe @nogc pure nothrow canDoUnsafe,
+) {
+	called.match!void(
+		(ref Called.Bogus) {},
+		(ref FunInst x) {
+			markUsed(ctx, x.decl);
+			checkCallFlags(ctx, diagRange, x.decl, funFlags, locals, argsKind, canDoUnsafe);
+			foreach (ref Called impl; x.specImpls)
+				checkCalled(ctx, diagRange, impl, funFlags, locals, argsKind, canDoUnsafe);
+		},
+		// For a spec, we do checks when providing the spec impl
+		(CalledSpecSig _) {});
+}
+
+enum ArgsKind { empty, nonEmpty }
+
 private:
 
-Opt!Called checkCallSpecsWithRealTrace(ref ExprCtx ctx, in Range range, ref const Candidate candidate) {
+void checkCallFlags(
+	ref CheckCtx ctx,
+	in Range diagRange,
+	FunDecl* called,
+	FunFlags caller,
+	in LocalsInfo locals,
+	ArgsKind argsKind,
+	in bool delegate() @safe @nogc pure nothrow canDoUnsafe,
+) {
+	void diag(Diag.CantCall.Reason reason) {
+		addDiag(ctx, diagRange, Diag(Diag.CantCall(reason, called)));
+	}
+	if (!called.flags.bare && caller.bare && !called.flags.forceCtx && !isInLambda(locals))
+		// TODO: need to explain this better in the case where 'bare' is due to the lambda
+		diag(Diag.CantCall.Reason.nonBare);
+	if (called.flags.summon && (!caller.summon || isInDataLambda(locals)))
+		diag(!caller.summon ? Diag.CantCall.Reason.summon : Diag.CantCall.Reason.summonInDataLambda);
+	if (called.flags.safety == FunFlags.Safety.unsafe && !canDoUnsafe())
+		diag(Diag.CantCall.Reason.unsafe);
+	if (called.isVariadic && argsKind == ArgsKind.nonEmpty && caller.bare)
+		diag(Diag.CantCall.Reason.variadicFromBare);
+}
+
+Called checkCallSpecsWithRealTrace(ref ExprCtx ctx, in Range range, ref const Candidate candidate) {
 	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, funsInScope(ctx));
-	RealTrace trace = RealTrace(&ctx, range);
-	return getCalledFromCandidateAfterTypeChecks(checkSpecsCtx, candidate, ptrTrustMe(trace)).match!(Opt!Called)(
-		(Called x) =>
-			checkSpecsCtx.hasErrors ? none!Called : some(x),
+	RealTrace trace = RealTrace(ctx.checkCtxPtr, ctx.typeContainer, range);
+	return getCalledFromCandidateAfterTypeChecks!(RealTrace*)(checkSpecsCtx, candidate, ptrTrustMe(trace)).match!Called(
+		(Called x) => x,
 		(Diag.SpecNoMatch x) {
 			addDiag2(ctx, range, Diag(x));
-			return none!Called;
+			return candidateBogusCalled(ctx.alloc, ctx.instantiateCtx, candidate);
 		});
 }
 
@@ -112,14 +179,16 @@ struct RealTrace {
 
 	alias NoMatch = Diag.SpecNoMatch;
 	alias Result = SpecResult!NoMatch;
-	ExprCtx* ctx;
+	CheckCtx* ctx;
+	TypeContainer typeContainer;
 	Range range;
 	MutMaxArr!(maxSpecDepth, FunDeclAndTypeArgs) trace;
 
 	alias MultipleMatches = ArrayBuilder!Called;
 
-	this(return scope ExprCtx* c, Range r) {
+	this(return scope CheckCtx* c, TypeContainer t, Range r) {
 		ctx = c;
+		typeContainer = t;
 		range = r;
 		trace = mutMaxArr!(maxSpecDepth, FunDeclAndTypeArgs);
 	}
@@ -147,13 +216,13 @@ void specMatchError(ref CheckSpecsCtx ctx, scope DummyTrace, Diag.SpecMatchError
 }
 void specMatchError(ref CheckSpecsCtx ctx, scope RealTrace* a, Diag.SpecMatchError.Reason reason) {
 	ctx.hasErrors = true;
-	addDiag2(*a.ctx, a.range, Diag(Diag.SpecMatchError(a.ctx.typeContainer, reason, toArray(a.ctx.alloc, a.trace))));
+	addDiag(*a.ctx, a.range, Diag(Diag.SpecMatchError(a.typeContainer, reason, toArray(a.ctx.alloc, a.trace))));
 }
 
 DummyTrace.NoMatch specNoMatch(scope DummyTrace, Diag.SpecNoMatch.Reason) =>
 	DummyTrace.NoMatch();
 RealTrace.NoMatch specNoMatch(scope RealTrace* a, Diag.SpecNoMatch.Reason reason) =>
-	Diag.SpecNoMatch(a.ctx.typeContainer, reason, toArray(a.ctx.alloc, a.trace));
+	Diag.SpecNoMatch(a.typeContainer, reason, toArray(a.ctx.alloc, a.trace));
 bool isFull(DummyTrace trace) {
 	assert(trace.depth <= maxSpecDepth);
 	return trace.depth == maxSpecDepth;
@@ -193,7 +262,7 @@ Trace.Result getCalledFromCandidateAfterTypeChecks(Trace)(
 				return Trace.Result(specNoMatch(trace, Diag.SpecNoMatch.Reason(Diag.SpecNoMatch.Reason.TooDeep())));
 			else {
 				SpecImpls specImpls = mutMaxArr!(maxSpecImpls, Called);
-				Opt!(Trace.NoMatch) diag = checkSpecImpls(
+				Opt!(Trace.NoMatch) diag = checkSpecImpls!Trace(
 					specImpls, ctx, f, small!Type(asTemporaryArray(candidateTypeArgs)), trace);
 				return has(diag)
 					? Trace.Result(force(diag))
@@ -329,7 +398,7 @@ Opt!(Trace.NoMatch) checkSpecImpls(Trace)(
 	first!(Trace.NoMatch, immutable SpecInst*)(called.specs, (SpecInst* specInst) =>
 		// specInst was instantiated potentially based on f's params.
 		// Meed to instantiate it again.
-		checkSpecImpl(res, ctx, called, trace, *instantiateSpecInst(
+		checkSpecImpl!Trace(res, ctx, called, trace, *instantiateSpecInst(
 			ctx.instantiateCtx, specInst, calledTypeArgs, noDelaySpecInsts)));
 
 Opt!(Trace.NoMatch) checkSpecImpl(Trace)(
@@ -347,7 +416,8 @@ Opt!(Trace.NoMatch) checkSpecImpl(Trace)(
 				() => specNoMatch(trace, Diag.SpecNoMatch.Reason(
 					Diag.SpecNoMatch.Reason.BuiltinNotSatisfied(force(decl.builtin), only(typeArgs))))),
 			() => first!(Trace.NoMatch, immutable SpecInst*)(
-				specInstInstantiated.parents, (SpecInst* parent) => checkSpecImpl(res, ctx, called, trace, *parent)),
+				specInstInstantiated.parents, (SpecInst* parent) =>
+					checkSpecImpl!Trace(res, ctx, called, trace, *parent)),
 			() => firstZipPointerFirst!(Trace.NoMatch, SpecDeclSig, ReturnAndParamTypes)(
 				decl.sigs, specInstInstantiated.sigTypes,
 				(SpecDeclSig* sigDecl, ReturnAndParamTypes sigType) =>

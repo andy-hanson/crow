@@ -219,7 +219,7 @@ immutable struct ConcreteField {
 
 immutable struct ConcreteLocalSource {
 	immutable struct Closure {}
-	enum Generated { args, ignore, destruct }
+	enum Generated { args, ignore, destruct, member }
 	mixin TaggedUnion!(Local*, Closure, Generated);
 }
 
@@ -450,7 +450,7 @@ immutable struct ConcreteExprKind {
 		// referenceKind is always allocated
 	}
 
-	immutable struct CreateArr {
+	immutable struct CreateArray {
 		ConcreteExpr[] args;
 	}
 
@@ -551,6 +551,17 @@ immutable struct ConcreteExprKind {
 		ConcreteExpr thrown;
 	}
 
+	// Unsafe internal operation for casting a union to a member. Does not check the kind!
+	immutable struct UnionAs {
+		ConcreteExpr* union_;
+		uint memberIndex;
+	}
+
+	// Internal operation for getting the 'kind' of a union. (This is the member index.)
+	immutable struct UnionKind {
+		ConcreteExpr* union_;
+	}
+
 	mixin Union!(
 		Alloc*,
 		Call,
@@ -558,7 +569,7 @@ immutable struct ConcreteExprKind {
 		ClosureGet*,
 		ClosureSet*,
 		Constant,
-		CreateArr*,
+		CreateArray,
 		CreateRecord,
 		CreateUnion*,
 		Drop*,
@@ -576,7 +587,9 @@ immutable struct ConcreteExprKind {
 		PtrToLocal,
 		RecordFieldGet,
 		Seq*,
-		Throw*);
+		Throw*,
+		UnionAs,
+		UnionKind);
 }
 
 immutable struct ConcreteVariableRef {

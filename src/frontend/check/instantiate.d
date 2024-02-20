@@ -174,6 +174,8 @@ StructInst* makeConstPointerType(ref InstantiateCtx ctx, ref CommonTypes commonT
 StructInst* makeMutPointerType(ref InstantiateCtx ctx, ref CommonTypes commonTypes, Type pointeeType) =>
 	instantiateStructNeverDelay(ctx, commonTypes.ptrMut, [pointeeType]);
 
+SpecInst* instantiateSpec(ref InstantiateCtx ctx, SpecDecl* decl, in Type[] typeArgs) =>
+	instantiateSpec(ctx, decl, small!Type(typeArgs), noneMut!(DelaySpecInsts*));
 SpecInst* instantiateSpec(
 	ref InstantiateCtx ctx,
 	SpecDecl* decl,

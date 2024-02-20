@@ -928,14 +928,14 @@ WriteExprResult writeExpr(
 			}),
 		(in LowExprKind.RecordFieldGet it) =>
 			writeRecordFieldGet(writer, indent, ctx, locals, writeKind, type, it),
-		(in LowExprKind.RecordFieldSet it) {
-			WriteExprResult recordValue = writeExprTempOrInline(writer, indent, ctx, locals, it.target);
-			WriteExprResult fieldValue = writeExprTempOrInline(writer, indent, ctx, locals, it.value);
+		(in LowExprKind.RecordFieldSet x) {
+			WriteExprResult recordValue = writeExprTempOrInline(writer, indent, ctx, locals, *x.target);
+			WriteExprResult fieldValue = writeExprTempOrInline(writer, indent, ctx, locals, *x.value);
 			return writeReturnVoid(writer, indent, ctx, writeKind, () {
-				writeTempOrInline(writer, ctx, locals, it.target, recordValue);
-				writeRecordFieldRef(writer, ctx, targetIsPointer(it), targetRecordType(it), it.fieldIndex);
+				writeTempOrInline(writer, ctx, locals, *x.target, recordValue);
+				writeRecordFieldRef(writer, ctx, targetIsPointer(x), targetRecordType(x), x.fieldIndex);
 				writer ~= " = ";
-				writeTempOrInline(writer, ctx, locals, it.value, fieldValue);
+				writeTempOrInline(writer, ctx, locals, *x.value, fieldValue);
 			});
 		},
 		(in LowExprKind.SizeOf x) =>
@@ -977,6 +977,10 @@ WriteExprResult writeExpr(
 			writeTailRecur(writer, indent, ctx, locals, it);
 			return writeExprDone();
 		},
+		(in LowExprKind.UnionAs x) =>
+			writeUnionAs(writer, indent, ctx, locals, writeKind, type, x),
+		(in LowExprKind.UnionKind x) =>
+			writeUnionKind(writer, indent, ctx, locals, writeKind, type, x),
 		(in LowExprKind.VarGet x) =>
 			inlineableSimple(() {
 				writeLowVarMangledName(writer, ctx.mangledNames, x.varIndex, ctx.program.vars[x.varIndex]);
@@ -1507,14 +1511,45 @@ WriteExprResult writeRecordFieldGet(
 	in LowType type,
 	in LowExprKind.RecordFieldGet a,
 ) =>
-	writeInlineableSingleArg(writer, indent, ctx, locals, writeKind, type, a.target, (in WriteExprResult recordValue) {
+	writeInlineableSingleArg(writer, indent, ctx, locals, writeKind, type, *a.target, (in WriteExprResult recordValue) {
 		if (!isEmptyType(ctx, type)) {
-			writeTempOrInline(writer, ctx, locals, a.target, recordValue);
+			writeTempOrInline(writer, ctx, locals, *a.target, recordValue);
 			writeRecordFieldRef(writer, ctx, targetIsPointer(a), targetRecordType(a), a.fieldIndex);
 		}
 	});
 
+WriteExprResult writeUnionAs(
+	scope ref Writer writer,
+	size_t indent,
+	scope ref FunBodyCtx ctx,
+	in Locals locals,
+	in WriteKind writeKind,
+	in LowType type,
+	in LowExprKind.UnionAs a,
+) =>
+	writeInlineableSingleArg(writer, indent, ctx, locals, writeKind, type, *a.union_, (in WriteExprResult unionValue) {
+		if (!isEmptyType(ctx, type)) {
+			writeTempOrInline(writer, ctx, locals, *a.union_, unionValue);
+			writer ~= ".as";
+			writer ~= a.memberIndex;
+		}
+	});
 
+WriteExprResult writeUnionKind(
+	scope ref Writer writer,
+	size_t indent,
+	scope ref FunBodyCtx ctx,
+	in Locals locals,
+	in WriteKind writeKind,
+	in LowType type,
+	in LowExprKind.UnionKind a,
+) =>
+	writeInlineableSingleArg(writer, indent, ctx, locals, writeKind, type, *a.union_, (in WriteExprResult unionValue) {
+		if (!isEmptyType(ctx, type)) {
+			writeTempOrInline(writer, ctx, locals, *a.union_, unionValue);
+			writer ~= ".kind";
+		}
+	});
 
 WriteExprResult writeSpecialUnary(
 	scope ref Writer writer,

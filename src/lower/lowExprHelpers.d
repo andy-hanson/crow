@@ -238,7 +238,7 @@ LowExprKind genPtrCastKind(ref Alloc alloc, LowExpr inner) =>
 	LowExprKind(allocate(alloc, LowExprKind.PtrCast(inner)));
 
 LowExpr genRecordFieldGet(ref Alloc alloc, UriAndRange range, LowExpr target, LowType fieldType, size_t fieldIndex) =>
-	LowExpr(fieldType, range, LowExprKind(allocate(alloc, LowExprKind.RecordFieldGet(target, fieldIndex))));
+	LowExpr(fieldType, range, LowExprKind(LowExprKind.RecordFieldGet(allocate(alloc, target), fieldIndex)));
 
 LowExpr genSeq(ref Alloc alloc, UriAndRange range, LowExpr first, LowExpr then) =>
 	LowExpr(then.type, range, genSeqKind(alloc, first, then));

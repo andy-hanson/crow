@@ -1,0 +1,17 @@
+main void()
+	x r = 1, (), ()
+	info log "{x == x}"
+	()
+
+r record
+	x nat
+	y foo
+	z bar
+== bool(a r, b r) bare
+
+foo record
+== bool(a foo, b foo) unsafe
+
+bar record
+== bool(a bar, b bar) summon
+

@@ -3,8 +3,8 @@ import
 	../bool: &&, ||, bool, false
 	../compare: !=, <, <=, >, compare, comparison, equal
 	../fun-util: subscript
-	../misc: new
-	../number: ==, <=>, +, -, *, nat32, nat64
+	../misc: ==, <=>, new
+	../number: ==, <=>, +, -, *, nat64
 	../option: ??, new, option
 	../pointer: const-pointer, mut-pointer
 	../private/exception-low-level: unreachable
@@ -462,12 +462,9 @@ This is O(n).
 	l2 t array-2d-iterator
 	l3 t array-3d-iterator
 
--side enum(left, leaf, right)
-# Avoiding using enum-util to avoid circular imports
+-side union(left, leaf, right)
 -== bool(a side, b side)
-	a.to::nat32 == b.to
--<=> comparison(a side, b side) bare
-	a.to::nat32 <=> b.to
+-<=> comparison(a side, b side)
 
 +next-index[t] nat64(a t list-iterator) bare
 	match a pos

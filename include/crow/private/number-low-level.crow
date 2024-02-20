@@ -63,7 +63,7 @@ export
 -is-less bool(a nat8, b nat8) builtin, bare
 -is-less bool(a nat16, b nat16) builtin, bare
 -is-less bool(a nat32, b nat32) builtin, bare
--is-less bool(a nat64, b nat64) builtin, bare
+is-less bool(a nat64, b nat64) builtin, bare
 -is-less bool(a int8, b int8) builtin, bare
 -is-less bool(a int16, b int16) builtin, bare
 -is-less bool(a int32, b int32) builtin, bare

@@ -16,6 +16,7 @@ import frontend.check.maps : FunsMap;
 import frontend.lang : maxTypeParams;
 import model.model :
 	arityMatches,
+	Called,
 	CalledDecl,
 	CalledSpecSig,
 	Destructure,
@@ -30,10 +31,10 @@ import model.model :
 	SpecInst,
 	Type;
 import util.alloc.alloc : Alloc;
-import util.col.array : everyWithIndex, map, small;
+import util.col.array : everyWithIndex, map, makeArray, small;
 import util.col.arrayBuilder : buildArray, Builder;
 import util.conv : safeToUshort;
-import util.memory : overwriteMemory;
+import util.memory : allocate, overwriteMemory;
 import util.col.mutMaxArr :
 	asTemporaryArray,
 	copyToFrom,
@@ -45,7 +46,7 @@ import util.col.mutMaxArr :
 	MutMaxArr,
 	mutMaxArr,
 	pushUninitialized;
-import util.opt : force, has, Opt;
+import util.opt : force, has, Opt, optOrDefault;
 import util.symbol : Symbol;
 
 // Max number of candidates with same return type
@@ -201,6 +202,18 @@ bool testCandidateParamType(
 	return has(instantiated)
 		? cast(inout) nonInferring(force(instantiated))
 		: inout TypeAndContext(declType, typeContextForCandidate(candidate));
+}
+
+Called candidateBogusCalled(ref Alloc alloc, ref InstantiateCtx instantiateCtx, ref const Candidate candidate) {
+	Type returnType = getCandidateTypeOrBogus(instantiateCtx, candidate, candidate.called.returnType);
+	Type[] paramTypes = makeArray(alloc, candidate.called.arity.countParamDecls, (size_t i) =>
+		getCandidateTypeOrBogus(instantiateCtx, candidate, paramTypeAt(candidate.called, i)));
+	return Called(allocate(alloc, Called.Bogus(candidate.called, returnType, paramTypes)));
+}
+
+private Type getCandidateTypeOrBogus(ref InstantiateCtx ctx, ref const Candidate candidate, Type declaredType) {
+	Opt!Type res = tryGetNonInferringType(ctx, TypeAndContext(declaredType, typeContextForCandidate(candidate)));
+	return optOrDefault!Type(res, () => Type(Type.Bogus()));
 }
 
 private Type paramTypeAt(ref CalledDecl called, size_t argIndex) =>

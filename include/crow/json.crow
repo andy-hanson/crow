@@ -1,6 +1,7 @@
 no-std
 import
-	./bool: ==, bool, false, new, true
+	./bool: ==, bool, false, true
+	./compare: equal
 	./col/array: array, iterate, size
 	./col/collection: for-loop
 	./col/experimental/index-set: iterate, index-set, size
@@ -10,7 +11,7 @@ import
 	./parse:
 		/, ~~, bool, exact, float, grammar, lazy, map, quoted-string, separated-by, spaces,
 		with-block
-	./misc: key, to
+	./misc: ==, key, to
 	./number: ==, float32, float64, int8, int16, int32, int64, nat8, nat16, nat32, nat64, to
 	./option: ??, new, option
 	./result: result
@@ -28,6 +29,7 @@ JSON data.
 	json-string string
 	json-list json[]
 	json-object json[symbol]
++== bool(a json, b json)
 
 +null json()
 	json-null
@@ -86,26 +88,6 @@ to json(a index-set)
 		("ok", v to),
 	as error e
 		("err", e to),
-
-+== bool(a json, b json)
-	match a
-	as json-null
-		b is-null
-	as json-bool ba
-		if bb ?= b as-bool
-			ba == bb
-	as json-number fa
-		if fb ?= b as-number
-			fa == fb
-	as json-string sa
-		if sb ?= b as-string
-			sa == sb
-	as json-list aa
-		if ab ?= b as-list
-			aa == ab
-	as json-object oa
-		if ob ?= b as-object
-			oa == ob
 
 +is-null bool(a json) bare
 	match a

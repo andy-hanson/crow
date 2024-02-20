@@ -6,6 +6,7 @@ import model.ast : ImportOrExportAst, NameAndRange;
 import model.jsonOfConstant : jsonOfConstant;
 import model.model :
 	AssertOrForbidExpr,
+	AutoFun,
 	BogusExpr,
 	BuiltinFun,
 	BuiltinSpec,
@@ -264,6 +265,8 @@ Json jsonOfFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 	a.matchIn!Json(
 		(in FunBody.Bogus) =>
 			jsonString!"bogus" ,
+		(in AutoFun _) =>
+			jsonString!"auto",
 		(in BuiltinFun _) =>
 			jsonString!"builtin" ,
 		(in FunBody.CreateEnumOrFlags x) =>
@@ -505,6 +508,13 @@ Json jsonOfLocal(ref Alloc alloc, in Ctx ctx, in Local a) =>
 
 Json jsonOfCalled(ref Alloc alloc, in Ctx ctx, in Called a) =>
 	a.matchIn!Json(
+		(in Called.Bogus x) =>
+			jsonObject(alloc, [
+				kindField!"bogus",
+				field!"decl"(x.decl.name),
+				field!"return-type"(jsonOfType(alloc, ctx, x.returnType)),
+				field!"param-types"(jsonList!Type(alloc, x.paramTypes, (in Type x) =>
+					jsonOfType(alloc, ctx, x)))]),
 		(in FunInst x) =>
 			jsonOfFunInst(alloc, ctx, x),
 		(in CalledSpecSig x) =>

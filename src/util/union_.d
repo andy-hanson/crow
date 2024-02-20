@@ -24,7 +24,6 @@ mixin template TaggedUnion(ReprTypes...) {
 	import std.meta : staticMap;
 	import util.col.array : arraysIdentical;
 	import util.union_ :
-		canUseTaggedPointers,
 		getFromValueWithoutTag,
 		getTaggedPointerValue,
 		isEmptyStruct,
@@ -35,8 +34,6 @@ mixin template TaggedUnion(ReprTypes...) {
 		toHandlersImpure,
 		toHandlersWithPointers,
 		toMemberType;
-
-	static assert(canUseTaggedPointers!ReprTypes);
 
 	private alias MemberTypes = staticMap!(toMemberType, ReprTypes);
 
@@ -198,7 +195,6 @@ mixin template Union(ReprTypes...) {
 
 	import std.meta : staticMap;
 	import util.union_ :
-		canUseTaggedPointers,
 		isEmptyStruct,
 		isImmutable,
 		toHandlers,
@@ -210,7 +206,6 @@ mixin template Union(ReprTypes...) {
 	static foreach (T; ReprTypes)
 		static assert(is(T == enum) || isImmutable!T, "Union types must be immutable (otherwise use TaggedUnion)");
 
-	static assert(!canUseTaggedPointers!ReprTypes, "Use TaggedUnion instead");
 	alias MemberTypes = staticMap!(toMemberType, ReprTypes);
 
 	@trusted R matchImpure(R)(scope toHandlersImpure!(R, MemberTypes) handlers) scope immutable {
@@ -315,31 +310,6 @@ bool isImmutable(T)() {
 
 bool isSimple(T)() =>
 	is(T == bool) || is(T == uint) || is(T == ulong) || is(T == long) || is(T == double);
-
-bool canUseTaggedPointers(Types...)() {
-	static if (Types.length > 8)
-		return false;
-	else static if (Types.length == 0)
-		return true;
-	else static if (canUseTaggedPointer!(Types[0]))
-		return canUseTaggedPointers!(Types[1 .. $]);
-	else
-		return false;
-}
-private bool canUseTaggedPointer(T)() {
-	static if (
-			T.sizeof <= uint.sizeof ||
-			is(T == U*, U) ||
-			__traits(hasMember, T, "fromPointerForTaggedUnion") ||
-			__traits(hasMember, T, "fromNat48ForTaggedUnion") ||
-			__traits(hasMember, T, "fromTagged")) {
-		return true;
-	} else static if (is(T == enum)) {
-		assertNormalEnum!T;
-		return true;
-	} else
-		return false;
-}
 
 @system T getFromValueWithoutTag(T)(ulong valueWithoutTag) {
 	static if (isEmptyStruct!T)

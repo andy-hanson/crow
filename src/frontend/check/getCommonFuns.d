@@ -31,6 +31,7 @@ import model.model :
 	NameReferents,
 	Params,
 	ParamShort,
+	ParamsShort,
 	Purity,
 	StructBody,
 	StructInst,
@@ -43,7 +44,7 @@ import model.model :
 	TypeParamsAndSig,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.array : arraysCorrespond, copyArray, findIndex, isEmpty, makeArray, map, sizeEq, small;
+import util.col.array : arraysCorrespond, copyArray, emptySmallArray, findIndex, isEmpty, makeArray, map, sizeEq, small;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.enumMap : EnumMap, enumMapMapValues;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
@@ -82,7 +83,7 @@ CommonFunsAndMain getCommonFuns(
 	) =>
 		getFunDecl(
 			alloc, allSymbols, diagsBuilder, module_, name,
-			TypeParamsAndSig(typeParams, returnType, params, countSpecs));
+			TypeParamsAndSig(typeParams, returnType, ParamsShort(small!ParamShort(params)), countSpecs));
 	FunInst* getFunInner(ref Module module_, Symbol name, Type returnType, in ParamShort[] params) =>
 		instantiateNonTemplateFun(ctx, getFunDeclInner(module_, name, emptyTypeParams, returnType, params, 0));
 	FunInst* getFun(CommonModule module_, Symbol name, Type returnType, in ParamShort[] params) =>
@@ -91,7 +92,10 @@ CommonFunsAndMain getCommonFuns(
 	StructDecl* arrayDecl = getStructDeclOrAddDiag(
 		alloc, diagsBuilder, *modules[CommonModule.bootstrap], symbol!"array", 1);
 	StructDecl* listDecl = getStructDeclOrAddDiag(alloc, diagsBuilder, *modules[CommonModule.list], symbol!"list", 1);
+	StructDecl* tuple2Decl = getStructDeclOrAddDiag(
+		alloc, diagsBuilder, *modules[CommonModule.bootstrap], symbol!"tuple2", 2);
 	Type markCtxType = getType(CommonModule.alloc, symbol!"mark-ctx");
+	Type boolType = Type(commonTypes.bool_);
 	Type int32Type = Type(commonTypes.integrals.int32);
 	Type nat8Type = Type(commonTypes.integrals.nat8);
 	Type nat64Type = Type(commonTypes.integrals.nat64);
@@ -105,8 +109,10 @@ CommonFunsAndMain getCommonFuns(
 	Type cStringType = Type(commonTypes.cString);
 	Type cStringConstPointerType = instantiateType(commonTypes.ptrConst, [cStringType]);
 	Type mainPointerType = instantiateType(commonTypes.funPtrStruct, [nat64FutureType, stringListType]);
+	Type jsonType = getType(CommonModule.json, symbol!"json");
 
 	FunInst* allocFun = getFun(CommonModule.alloc, symbol!"alloc", nat8MutPointerType, [param!"size-bytes"(nat64Type)]);
+	FunInst* and = getFun(CommonModule.boolLowLevel, symbol!"&&", boolType, [param!"a"(boolType), param!"b"(boolType)]);
 	immutable EnumMap!(FunKind, FunDecl*) lambdaSubscriptFuns = getLambdaSubscriptFuns(
 		alloc, commonTypes, *modules[CommonModule.funUtil], *modules[CommonModule.future]);
 	Opt!MainFun main = has(mainModule)
@@ -125,6 +131,9 @@ CommonFunsAndMain getCommonFuns(
 	Type rFutureSharedOfP = instantiateType(commonTypes.funStructs[FunKind.shared_], [tFuture, typeParam1]);
 	Type rFutureMutOfP = instantiateType(commonTypes.funStructs[FunKind.mut], [tFuture, typeParam1]);
 
+	Type symbolJsonTuple = instantiateType(tuple2Decl, [Type(commonTypes.symbol), jsonType]);
+	Type symbolJsonTupleArray = instantiateType(arrayDecl, [symbolJsonTuple]);
+
 	FunDecl* sharedOfMutLambda = getFunDeclInner(
 		*modules[CommonModule.future],
 		symbol!"shared-of-mut-lambda",
@@ -132,6 +141,11 @@ CommonFunsAndMain getCommonFuns(
 		rFutureSharedOfP,
 		[param!"a"(rFutureMutOfP)],
 		countSpecs: 2);
+	ParamsShort.Variadic newJsonPairsParams = ParamsShort.Variadic(
+		param!"pairs"(symbolJsonTupleArray), symbolJsonTuple);
+	FunInst* newJsonFromPairs = instantiateNonTemplateFun(ctx, getFunDecl(
+		alloc, allSymbols, diagsBuilder, *modules[CommonModule.json], symbol!"new",
+		TypeParamsAndSig(emptyTypeParams, jsonType, ParamsShort(&newJsonPairsParams), countSpecs: 0)));
 	FunDecl* newTFuture = getFunDeclInner(
 		*modules[CommonModule.future], symbol!"new", singleTypeParams, tFuture, newTFutureParams, countSpecs: 0);
 	FunInst* newNat64Future = instantiateFun1(ctx, newTFuture, nat64Type);
@@ -155,21 +169,34 @@ CommonFunsAndMain getCommonFuns(
 		symbol!"as-string",
 		stringType,
 		[param!"a"(char8ArrayType)]);
+	FunInst* equalNat64 = getFun(
+		CommonModule.numberLowLevel,
+		symbol!"==",
+		boolType,
+		[param!"a"(nat64Type), param!"b"(nat64Type)]);
+	FunInst* lessNat64 = getFun(
+		CommonModule.numberLowLevel, symbol!"is-less", boolType, [param!"a"(nat64Type), param!"b"(nat64Type)]);
 	return CommonFunsAndMain(
 		CommonFuns(
 			finish(alloc, diagsBuilder),
-			allocFun, lambdaSubscriptFuns, sharedOfMutLambda, mark,
-			newNat64Future, newVoidFuture, rtMain, throwImpl, char8ArrayAsString),
+			allocFun, and, lambdaSubscriptFuns, sharedOfMutLambda, mark,
+			newJsonFromPairs, newNat64Future, newVoidFuture,
+			rtMain, throwImpl, char8ArrayAsString, equalNat64, lessNat64),
 		main);
 }
 
-Destructure makeParam(ref Alloc alloc, Symbol name, Type type) =>
+Destructure makeParam(ref Alloc alloc, ParamShort param) =>
 	Destructure(allocate(alloc, Local(
-		LocalSource(allocate(alloc, LocalSource.Generated(name))), LocalMutability.immut, type)));
+		LocalSource(allocate(alloc, LocalSource.Generated(param.name))), LocalMutability.immut, param.type)));
 
+Params makeParams(ref Alloc alloc, in ParamsShort params) =>
+	params.match!Params(
+		(ParamShort[] x) =>
+			makeParams(alloc, x),
+		(ref ParamsShort.Variadic x) =>
+			Params(allocate(alloc, Params.Varargs(makeParam(alloc, x.param), x.elementType))));
 Params makeParams(ref Alloc alloc, in ParamShort[] params) =>
-	Params(map(alloc, params, (ref ParamShort x) =>
-		makeParam(alloc, x.name, x.type)));
+	Params(map(alloc, params, (ref ParamShort x) => makeParam(alloc, x)));
 
 ParamShort param(string name)(Type type) =>
 	ParamShort(symbol!name, type);
@@ -267,14 +294,19 @@ Opt!(StructDecl*) getStructDecl(in Module a, Symbol name) {
 
 bool signatureMatchesTemplate(in FunDecl actual, in TypeParamsAndSig expected) =>
 	actual.specs.length == expected.countSpecs &&
-		!actual.params.isA!(Params.Varargs*) &&
 		sizeEq(actual.typeParams, expected.typeParams) &&
 		typesMatch(actual.returnType, actual.typeParams, expected.returnType, expected.typeParams) &&
-		arraysCorrespond!(Destructure, ParamShort)(
-			assertNonVariadic(actual.params),
-			expected.params,
-			(ref Destructure x, ref ParamShort y) =>
-				typesMatch(x.type, actual.typeParams, y.type, expected.typeParams));
+		expected.params.matchIn!bool(
+			(in ParamShort[] params) =>
+				!actual.isVariadic && arraysCorrespond!(Destructure, ParamShort)(
+					assertNonVariadic(actual.params),
+					params,
+					(ref Destructure x, ref ParamShort y) =>
+						typesMatch(x.type, actual.typeParams, y.type, expected.typeParams)),
+			(in ParamsShort.Variadic x) =>
+				actual.isVariadic && typesMatch(
+					actual.params.as!(Params.Varargs*).param.type, actual.typeParams,
+					x.param.type, expected.typeParams));
 
 bool typesMatch(in Type a, in TypeParams typeParamsA, in Type b, in TypeParams typeParamsB) =>
 	a == b
@@ -302,10 +334,11 @@ MainFun getMainFun(
 	Type stringListType,
 	Type voidType,
 ) {
-	scope ParamShort[] params = [param!"args"(stringListType)];
+	scope ParamShort[] argsParamsInner = [param!"args"(stringListType)];
+	ParamsShort argsParams = ParamsShort(small!ParamShort(castNonScope_ref(argsParamsInner)));
 	FunDeclAndSigIndex decl = getFunDeclMulti(alloc, allSymbols, diagsBuilder, mainModule, symbol!"main", [
-		TypeParamsAndSig(emptyTypeParams, voidType, []),
-		TypeParamsAndSig(emptyTypeParams, nat64FutureType, castNonScope_ref(params))]);
+		TypeParamsAndSig(emptyTypeParams, voidType, ParamsShort(emptySmallArray!ParamShort), countSpecs: 0),
+		TypeParamsAndSig(emptyTypeParams, nat64FutureType, argsParams, countSpecs: 0)]);
 	FunInst* inst = instantiateNonTemplateFun(ctx, decl.decl);
 	final switch (decl.sigIndex) {
 		case 0:
@@ -357,10 +390,17 @@ FunDeclAndSigIndex getFunDeclMulti(
 				TypeParamsAndSig(
 					TypeParams(copyArray(alloc, sig.typeParams)),
 					sig.returnType,
-					copyArray(alloc, sig.params)))))));
+					copyParams(alloc, sig.params)))))));
 		return FunDeclAndSigIndex(decl, 0);
 	}
 }
+
+ParamsShort copyParams(ref Alloc alloc, in ParamsShort a) =>
+	a.match!ParamsShort(
+		(ParamShort[] x) =>
+			ParamsShort(copyArray(alloc, x)),
+		(ref ParamsShort.Variadic x) =>
+			ParamsShort(allocate(alloc, x)));
 
 immutable(FunDecl*[]) getFuns(ref Module a, Symbol name) {
 	Opt!NameReferents optReferents = a.exports[name];
