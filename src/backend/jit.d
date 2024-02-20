@@ -882,6 +882,10 @@ ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowEx
 			todo!ExprResult("!"),
 		(in LowExprKind.TailRecur it) =>
 			tailRecurToGcc(ctx, locals, emit, it),
+		(in LowExprKind.UnionAs x) =>
+			unionAsToGcc(ctx, locals, emit, x),
+		(in LowExprKind.UnionKind x) =>
+			unionKindToGcc(ctx, locals, emit, x),
 		(in LowExprKind.VarGet x) =>
 			varGetToGcc(ctx, locals, emit, x),
 		(in LowExprKind.VarSet x) =>
@@ -1141,7 +1145,7 @@ ExprResult matchUnionToGcc(
 		"matched");
 	emitToLValue(ctx, locals, matchedLocal, a.matchedValue);
 
-	UnionFields unionFields = ctx.types.unionFields[a.matchedValue.type.as!(LowType.Union)];
+	UnionFields unionFields = getUnionFields(ctx, a.matchedValue.type);
 
 	gcc_jit_rvalue* matchedValueKind = gcc_jit_rvalue_access_field(
 		gcc_jit_lvalue_as_rvalue(matchedLocal),
@@ -1157,18 +1161,10 @@ ExprResult matchUnionToGcc(
 		(ExprEmit caseEmit, size_t caseIndex) {
 			LowExprKind.MatchUnion.Case case_ = a.cases[caseIndex];
 			return has(case_.local)
-				? emitWithLocal(ctx, locals, caseEmit, force(case_.local), case_.then, (ExprEmit valueEmit) {
-					// The value is the nth value in the union..
-					gcc_jit_rvalue* matchedValueInner = gcc_jit_rvalue_access_field(
-						gcc_jit_lvalue_as_rvalue(matchedLocal),
-						null,
-						unionFields.innerField);
-					return emitSimpleNoSideEffects(ctx, valueEmit, gcc_jit_rvalue_access_field(
-						matchedValueInner,
-						null,
-						unionFields.memberFields[caseIndex]));
-				})
-			: toGccExpr(ctx, locals, caseEmit, case_.then);
+				? emitWithLocal(ctx, locals, caseEmit, force(case_.local), case_.then, (ExprEmit valueEmit) =>
+					emitSimpleNoSideEffects(ctx, valueEmit, getUnionAs(
+						gcc_jit_lvalue_as_rvalue(matchedLocal), unionFields, caseIndex)))
+				: toGccExpr(ctx, locals, caseEmit, case_.then);
 		});
 }
 
@@ -1214,12 +1210,44 @@ ExprResult recordFieldGetToGcc(
 	ExprEmit emit,
 	in LowExprKind.RecordFieldGet a,
 ) {
-	gcc_jit_rvalue* target = emitToRValue(ctx, locals, a.target);
+	gcc_jit_rvalue* target = emitToRValue(ctx, locals, *a.target);
 	immutable gcc_jit_field* field = ctx.types.recordFields[targetRecordType(a)][a.fieldIndex];
 	return emitSimpleNoSideEffects(ctx, emit, targetIsPointer(a)
 		? gcc_jit_lvalue_as_rvalue(gcc_jit_rvalue_dereference_field(target, null, field))
 		: gcc_jit_rvalue_access_field(target, null, field));
 }
+
+ref UnionFields getUnionFields(ref ExprCtx ctx, in LowType unionType) =>
+	ctx.types.unionFields[unionType.as!(LowType.Union)];
+
+ExprResult unionKindToGcc(
+	ref ExprCtx ctx,
+	ref Locals locals,
+	ExprEmit emit,
+	in LowExprKind.UnionKind a,
+) =>
+	emitSimpleNoSideEffects(
+		ctx, emit,
+		gcc_jit_rvalue_access_field(
+			emitToRValue(ctx, locals, *a.union_),
+			null,
+			getUnionFields(ctx, a.union_.type).kindField));
+
+gcc_jit_rvalue* getUnionAs(gcc_jit_rvalue* union_, ref UnionFields unionFields, size_t memberIndex) =>
+	gcc_jit_rvalue_access_field(
+		gcc_jit_rvalue_access_field(union_, null, unionFields.innerField),
+		null,
+		unionFields.memberFields[memberIndex]);
+
+ExprResult unionAsToGcc(
+	ref ExprCtx ctx,
+	ref Locals locals,
+	ExprEmit emit,
+	in LowExprKind.UnionAs a,
+) =>
+	emitSimpleNoSideEffects(
+		ctx, emit,
+		getUnionAs(emitToRValue(ctx, locals, *a.union_), getUnionFields(ctx, a.union_.type), a.memberIndex));
 
 ExprResult recordFieldSetToGcc(
 	ref ExprCtx ctx,
@@ -1227,10 +1255,10 @@ ExprResult recordFieldSetToGcc(
 	ExprEmit emit,
 	in LowExprKind.RecordFieldSet a,
 ) {
-	gcc_jit_rvalue* target = emitToRValue(ctx, locals, a.target);
+	gcc_jit_rvalue* target = emitToRValue(ctx, locals, *a.target);
 	immutable gcc_jit_field* field = ctx.types.recordFields[targetRecordType(a)][a.fieldIndex];
 	assert(targetIsPointer(a)); // TODO: make if this is always true, don't have it...
-	gcc_jit_rvalue* value = emitToRValue(ctx, locals, a.value);
+	gcc_jit_rvalue* value = emitToRValue(ctx, locals, *a.value);
 	gcc_jit_block_add_assignment(ctx.curBlock, null, gcc_jit_rvalue_dereference_field(target, null, field), value);
 	return emitVoid(ctx, emit);
 }

@@ -46,7 +46,11 @@ bin/libexample.so: test/test-extern-library/example.c
 	cc test/test-extern-library/example.c -Werror -Wextra -Wall -ansi -pedantic -shared -o bin/libexample.so
 
 end-to-end-test: bin/crow
+ifdef JIT
+	./bin/crow run test/end-to-end/main.crow -- --include-jit
+else
 	./bin/crow run test/end-to-end/main.crow
+endif
 
 end-to-end-test-overwrite: bin/crow
 	./bin/crow run test/end-to-end/main.crow -- --overwrite-output
