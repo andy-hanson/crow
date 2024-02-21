@@ -1,5 +1,4 @@
 #!/usr/bin/env crow
-
 import
 	crow/io/print: out, print
 	crow/parse-command: parse-named-args, single-string-or-throw
@@ -51,17 +50,17 @@ main nat^(args string[]) summon
 -usage string()
 	"""
 Usage:
-crow run demo/lmdb/main -- get --path <file> --db-name <name> --key <key>
-crow run demo/lmdb/main -- set --path <file> --db-name <name> --key <key> --value <value>
-crow run demo/lmdb/main -- stat --path <file> --db-name <name>
+./main.crow get --path <file> --db-name <name> --key <key>
+./main.crow set --path <file> --db-name <name> --key <key> --value <value>
+./main.crow stat --path <file> --db-name <name>
 
 Creates the DB file if it does not yet exist.
 The file contains multiple named sub-dbs.
 Each sub-db is a map from keys to values.
 
 Example:
-crow run demo/lmdb/main -- set --path foo.db --db-name capitals --key indiana --value indianapolis
-crow run demo/lmdb/main -- get --path foo.db --db-name capitals --key indiana
+./main.crow set --path foo.db --db-name capitals --key indiana --value indianapolis
+./main.crow get --path foo.db --db-name capitals --key indiana
 """
 
 -parse-command_name command?(a string)

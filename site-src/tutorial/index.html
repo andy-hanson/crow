@@ -12,14 +12,13 @@
 		<br />
 		The code is editable, so you can test things out there while reading the tutorial.
 		<br />
-		This supports all crow standard library functions, but it can't do I/O except for printing.
-		<br />
-		The browser runner is admittedly slow. It's much faster on the command line.
+		This supports all Crow standard library functions, but it can't do I/O except for printing.
 	</p>
 
 	<h2>Download and run</h3>
 	<p>
 		Code blocks can be downloaded using the <code>⇓</code> button.
+		<br />
 		Alternatively, use the <code>📋</code> button to copy the code and paste it into a file.
 	</p>
 
@@ -27,19 +26,21 @@
 	<p>
 		For the next step, you must <a href='download.html'>download</a> and install crow.
 		<br />
-		Open a terminal and navigate to the directory containing <code>hello.crow</code>.
+		Open a terminal and navigate to <code>crow/demo</code>.
 		<br />
-		Then, run <code>crow run hello.crow</code>. (This can be shortened to <code>crow run hello</code>.)
+		Then, run <code>crow hello.crow</code>.
+		<br />
+		<code>./hello.crow</code> also works (but not on Windows) thanks to the shebang at the top.
 	</p>
 	<p>
 		The interpreter should be your default option for running code in development,
 		since it quickly starts running code.
-		If you need to do a lot of computation, there are options to make that faster at the cost of slower startup.
 	</p>
 
 	<h3>Build an executable</h4>
 	<p>
 		Run <code>crow build hello.crow</code> to generate a standalone executable.
+		<br />
 		The executable will be called <code>hello</code>, or <code>hello.exe</code> on Windows.
 	</p>
 	<p>
@@ -65,6 +66,16 @@
 		Use this for big jobs.
 		<br />
 		This uses the same compiler as <code>crow build</code>, but it cleans up the executable after running.
+	</p>
+
+	<h3>Script arguments</h3>
+	<p>
+		With <code>crow run</code>, arguments are normally for <code>crow</code>, not the script it's running.
+		<br />
+		But after <code>--</code>, arguments are passed to the script.
+		So for an <code>--aot</code> equivalent to <code>./hello.crow args here</code>, run:
+		<br />
+		<code>crow run hello.crow --aot -- args here</code>
 	</p>
 
 	<h3>Just print errors</h3>

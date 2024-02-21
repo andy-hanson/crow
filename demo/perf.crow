@@ -1,3 +1,4 @@
+#!/usr/bin/env crow
 import
 	crow/io/print
 	crow/perf

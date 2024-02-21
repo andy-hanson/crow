@@ -26,7 +26,7 @@ unit-test: bin/crow-debug
 
 crow-unit-tests: crow-unit-tests-interpreter crow-unit-tests-jit crow-unit-tests-aot
 crow-unit-tests-interpreter: bin/crow
-	./bin/crow run test/crow-unit-tests.crow
+	test/crow-unit-tests.crow
 crow-unit-tests-jit: bin/crow
 ifdef JIT
 		./bin/crow run test/crow-unit-tests.crow --jit
@@ -37,7 +37,7 @@ crow-unit-tests-aot: bin/crow
 	./bin/crow run test/crow-unit-tests.crow --aot --optimize
 
 test-extern-library: bin/crow bin/libexample.so
-	./bin/crow run test/test-extern-library/main.crow
+	test/test-extern-library/main.crow
 	# TODO: ./bin/crow run test/test-extern-library/main.crow --jit
 	./bin/crow run test/test-extern-library/main.crow --aot
 
@@ -47,13 +47,13 @@ bin/libexample.so: test/test-extern-library/example.c
 
 end-to-end-test: bin/crow
 ifdef JIT
-	./bin/crow run test/end-to-end/main.crow -- --include-jit
+	test/end-to-end/main.crow --include-jit
 else
-	./bin/crow run test/end-to-end/main.crow
+	test/end-to-end/main.crow
 endif
 
 end-to-end-test-overwrite: bin/crow
-	./bin/crow run test/end-to-end/main.crow -- --overwrite-output
+	test/end-to-end/main.crow --overwrite-output
 
 ### external dependencies ###
 
@@ -146,13 +146,13 @@ bin/crow.wasm: $(d_dependencies)
 lint: lint-basic lint-dscanner lint-d-imports-exports bin/dependencies.dot
 
 lint-basic: bin/crow
-	./bin/crow run test/lint-basic.crow
+	test/lint-basic.crow
 
 lint-dscanner:
 	dub run dscanner --quiet -- --styleCheck src
 
 lint-d-imports-exports: bin/crow
-	./bin/crow run test/lint-d-imports-exports.crow
+	test/lint-d-imports-exports.crow
 
 show-dependencies: bin/dependencies.svg
 	open bin/dependencies.svg
@@ -161,7 +161,7 @@ bin/dependencies.svg: bin/dependencies.dot
 	dot -Tsvg -o bin/dependencies.svg bin/dependencies.dot
 
 bin/dependencies.dot: bin/crow test/dependencies.crow
-	./bin/crow run test/dependencies.crow
+	test/dependencies.crow
 
 ### site ###
 
@@ -169,7 +169,7 @@ prepare-site: bin/crow bin/crow.wasm bin/crow.tar.xz
 	bin/crow run site-src/site.crow --aot
 
 serve: prepare-site
-	bin/crow run site-src/serve.crow
+	site-src/serve.crow
 
 ### publish ###
 

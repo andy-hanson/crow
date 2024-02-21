@@ -1,3 +1,4 @@
+#!/usr/bin/env crow
 import
 	crow/io/print: clear-screen, out, print
 	crow/io/stdin: read-stdin-until-parse
@@ -8,14 +9,14 @@ import
 
 main nat^(_ string[]) summon
 	settings <- ask-settings
+	if settings.has-slow-ai && trusted is-interpreted
+		warn log "AI may be slow in interpreter, try running with '--aot'"
 	empty-board print-board red, ()
 	winner <- empty-board play-recur red, settings
 	out print winner.show-winner
 	0,
 
 -ask-settings ai-settings^() summon
-	if trusted is-interpreted
-		warn log "AI may be slow in interpreter, try running with '--aot'"
 	out print """
 Choose an option:
 
@@ -47,6 +48,12 @@ CPU: CPU vs CPU
 
 -ai-settings record(ai-depth-red nat?, ai-depth-blue nat?)
 
+-has-slow-ai bool(a ai-settings)
+	a.ai-depth-red.is-slow-ai || a.ai-depth-blue.is-slow-ai
+-is-slow-ai bool(a nat?)
+	if x ?= a
+		x > 6
+
 -ai-depth-for-color nat?(color color, ai-settings ai-settings)
 	match color
 	as red
@@ -61,6 +68,7 @@ CPU: CPU vs CPU
 		board human-player-move cur-player
 	new-board = board place x
 	other-player = cur-player opposite
+	clear-screen
 	new-board print-board other-player, (x,)
 	if new-board just-won
 		(cur-player,),
@@ -70,7 +78,6 @@ CPU: CPU vs CPU
 		(),
 
 -print-board void(a board, cur-player color, last-x nat?) summon
-	clear-screen
 	out print (a show cur-player, last-x)
 
 -human-player-move nat^(board board, color color) summon

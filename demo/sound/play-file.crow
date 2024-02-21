@@ -1,3 +1,4 @@
+#!/usr/bin/env crow
 import
 	crow/io/print: out, print
 	crow/io/stdin: read-stdin
@@ -7,7 +8,7 @@ import
 	audio/sound: sample-rate, with-sample-rate
 
 main nat^(args string[]) summon
-	assert args.size == 1 : "Usage: crow run play-file.crow -- [IN]"
+	assert args.size == 1 : "Usage: crow play-file.crow toccata.ogg"
 	audio = start-sdl-audio
 	sound = args[0].read-sound-file with-sample-rate audio.format.sample-rate
 	_ = audio play-loop sound

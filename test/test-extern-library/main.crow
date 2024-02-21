@@ -1,3 +1,4 @@
+#!/usr/bin/env crow
 main void()
 	trusted
 		&my_void_fn f_void

@@ -107,3 +107,6 @@ pure @trusted CString mustStripPrefix(CString a, string prefix) {
 	}
 	return CString(ptr);
 }
+
+bool endsWith(string a, string b) =>
+	a.length >= b.length && a[$ - b.length .. $] == b;
