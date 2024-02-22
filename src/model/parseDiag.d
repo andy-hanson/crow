@@ -80,6 +80,7 @@ immutable struct ParseDiag {
 	}
 	immutable struct TrailingComma {}
 	immutable struct TypeEmptyParens {}
+	immutable struct TypeTrailingMut {}
 	immutable struct TypeUnnecessaryParens {}
 	immutable struct UnexpectedCharacter {
 		char character;
@@ -103,6 +104,7 @@ immutable struct ParseDiag {
 		ReadFileDiag,
 		TrailingComma,
 		TypeEmptyParens,
+		TypeTrailingMut,
 		TypeUnnecessaryParens,
 		UnexpectedCharacter,
 		UnexpectedOperator,

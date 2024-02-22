@@ -218,6 +218,9 @@ void writeParseDiag(scope ref Writer writer, in ShowCtx ctx, in ParseDiag d) {
 		(in ParseDiag.TypeEmptyParens) {
 			writer ~= "'()' is not a type. Did you mean 'void'?";
 		},
+		(in ParseDiag.TypeTrailingMut) {
+			writer ~= "To make something mutable, put 'mut' after its name, not after its type.";
+		},
 		(in ParseDiag.TypeUnnecessaryParens) {
 			writer ~= "Parentheses are unnecessary.";
 		},

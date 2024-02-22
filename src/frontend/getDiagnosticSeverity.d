@@ -218,6 +218,8 @@ DiagnosticSeverity parseDiagSeverity(in ParseDiag a) =>
 			DiagnosticSeverity.warning,
 		(in ParseDiag.TypeEmptyParens) =>
 			DiagnosticSeverity.parseError,
+		(in ParseDiag.TypeTrailingMut) =>
+			DiagnosticSeverity.parseError,
 		(in ParseDiag.TypeUnnecessaryParens) =>
 			DiagnosticSeverity.warning,
 		(in ParseDiag.UnexpectedCharacter) =>

@@ -351,6 +351,7 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, in TypeAst delegate() @safe 
 				: none!TypeAst;
 		case Token.mut:
 			return optOr!TypeAst(tryParseFunType(lexer, suffixPos, Token.mut, FunKind.mut, left), () {
+				Pos mutPos = curPos(lexer);
 				mustTakeToken(lexer, Token.mut);
 				return tryTakeToken(lexer, Token.bracketLeft)
 					? tryTakeToken(lexer, Token.bracketRight)
@@ -360,7 +361,10 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, in TypeAst delegate() @safe 
 					? suffix(TypeAst.SuffixSpecial.Kind.mutPtr)
 					: tryTakeOperator(lexer, symbol!"**")
 					? doubleSuffix(TypeAst.SuffixSpecial.Kind.mutPtr, TypeAst.SuffixSpecial.Kind.ptr)
-					: none!TypeAst;
+					: () {
+						addDiag(lexer, range(lexer, mutPos), ParseDiag(ParseDiag.TypeTrailingMut()));
+						return none!TypeAst;
+					}();
 			});
 		case Token.function_:
 			return tryParseFunType(lexer, suffixPos, Token.function_, FunKind.function_, left);
