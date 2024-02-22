@@ -21,7 +21,7 @@ import util.hash : hash2, HashCode, hashEnum, hashUint;
 import util.opt : has, none, Opt;
 import util.sourceRange : UriAndRange;
 import util.string : CString;
-import util.symbol : AllSymbols, Symbol, symbol;
+import util.symbol : Symbol, symbol;
 import util.union_ : IndexType, TaggedUnion, Union;
 import util.uri : Uri;
 import versionInfo : VersionInfo;
@@ -304,6 +304,7 @@ immutable struct LowFunSource {
 }
 
 immutable struct LowFun {
+	@safe @nogc pure nothrow:
 	@disable this(ref const LowFun);
 
 	LowFunSource source;
@@ -311,6 +312,18 @@ immutable struct LowFun {
 	// Includes closure param
 	LowLocal[] params;
 	LowFunBody body_;
+
+	Opt!Symbol name() scope =>
+		source.matchIn!(Opt!Symbol)(
+			(in ConcreteFun x) => x.name,
+			(in LowFunSource.Generated) => none!Symbol);
+
+	UriAndRange range() scope =>
+		source.matchIn!UriAndRange(
+			(in ConcreteFun x) =>
+				x.range,
+			(in LowFunSource.Generated) =>
+				UriAndRange.empty);
 }
 
 bool isGeneratedMain(in LowFun a) =>
@@ -319,18 +332,6 @@ bool isGeneratedMain(in LowFun a) =>
 			false,
 		(in LowFunSource.Generated x) =>
 			x.name == symbol!"main");
-
-Opt!Symbol name(in LowFun a) =>
-	a.source.matchIn!(Opt!Symbol)(
-		(in ConcreteFun x) => name(x),
-		(in LowFunSource.Generated) => none!Symbol);
-
-UriAndRange lowFunRange(in LowFun a, in AllSymbols allSymbols) =>
-	a.source.matchIn!UriAndRange(
-		(in ConcreteFun x) =>
-			x.range(allSymbols),
-		(in LowFunSource.Generated) =>
-			UriAndRange.empty);
 
 // TODO: use ConcreteExpr*
 private alias LowExprSource = UriAndRange;

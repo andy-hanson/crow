@@ -17,7 +17,7 @@ import util.col.mutMap : getOrAdd, MutMap, size, values, valuesArray;
 import util.memory : initMemory;
 import util.opt : force, has, Opt;
 import util.string : copyToCString, CString;
-import util.symbol : AllSymbols, stringOfSymbol, Symbol;
+import util.symbol : stringOfSymbol, Symbol;
 import util.util : ptrTrustMe;
 
 struct AllConstantsBuilder {
@@ -111,14 +111,9 @@ private Constant constantEmptyArr() {
 	return Constant(Constant.Record(fields));
 }
 
-private Constant getConstantCStringForSymbol(
-	ref Alloc alloc,
-	ref AllConstantsBuilder allConstants,
-	ref const AllSymbols allSymbols,
-	Symbol value,
-) =>
+private Constant getConstantCStringForSymbol(ref Alloc alloc, ref AllConstantsBuilder allConstants, Symbol value) =>
 	// TODO: PERF avoid alloc when the symbol is in allConstants.cStrings
-	getConstantCString(alloc, allConstants, stringOfSymbol(alloc, allSymbols, value));
+	getConstantCString(alloc, allConstants, stringOfSymbol(alloc, value));
 
 Constant getConstantCString(ref Alloc alloc, ref AllConstantsBuilder allConstants, string value) =>
 	Constant(getOrAdd!(immutable string, Constant.CString)(
@@ -132,15 +127,9 @@ Constant getConstantCString(ref Alloc alloc, ref AllConstantsBuilder allConstant
 			return Constant.CString(index);
 		}));
 
-Constant getConstantSymbol(
-	ref Alloc alloc,
-	ref AllConstantsBuilder allConstants,
-	ref const AllSymbols allSymbols,
-	Symbol value,
-) =>
+Constant getConstantSymbol(ref Alloc alloc, ref AllConstantsBuilder allConstants, Symbol value) =>
 	getOrAdd!(Symbol, Constant)(alloc, allConstants.symbols, value, () =>
-		Constant(Constant.Record(newArray!Constant(alloc, [
-			getConstantCStringForSymbol(alloc, allConstants, allSymbols, value)]))));
+		Constant(Constant.Record(newArray!Constant(alloc, [getConstantCStringForSymbol(alloc, allConstants, value)]))));
 
 private:
 

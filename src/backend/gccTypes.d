@@ -65,7 +65,7 @@ import util.col.fullIndexMap :
 import util.conv : safeToInt;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.string : CString;
-import util.symbol : AllSymbols, writeSymbol;
+import util.symbol : cStringOfSymbol;
 import util.util : castImmutable, castNonScope_ref, typeAs;
 import util.writer : withWriter, Writer;
 
@@ -99,13 +99,7 @@ immutable struct UnionFields {
 	gcc_jit_field*[] memberFields;
 }
 
-GccTypes getGccTypes(
-	ref Alloc alloc,
-	ref gcc_jit_context ctx,
-	in AllSymbols allSymbols,
-	in LowProgram program,
-	in MangledNames mangledNames,
-) {
+GccTypes getGccTypes(ref Alloc alloc, ref gcc_jit_context ctx, in LowProgram program, in MangledNames mangledNames) {
 	GccTypesWip typesWip = GccTypesWip(
 		getPrimitiveTypes(ctx),
 		gccExternTypes(alloc, ctx, program, mangledNames),
@@ -146,7 +140,7 @@ GccTypes getGccTypes(
 			writeFunPointerType(alloc, ctx, typesWip, funPtrIndex, funPtr);
 		},
 		(LowType.Record recordIndex, in LowRecord record) {
-			writeRecordType(alloc, ctx, typesWip, allSymbols, recordIndex, record);
+			writeRecordType(alloc, ctx, typesWip, recordIndex, record);
 		},
 		(LowType.Union unionIndex, in LowUnion union_) {
 			writeUnionType(alloc, ctx, mangledNames, typesWip, unionIndex, union_);
@@ -353,16 +347,13 @@ struct GccTypesWip {
 	ref Alloc alloc,
 	ref gcc_jit_context ctx,
 	ref GccTypesWip typesWip,
-	in AllSymbols allSymbols,
 	LowType.Record recordIndex,
 	in LowRecord record,
 ) {
 	gcc_jit_struct* struct_ = typesWip.records[recordIndex];
 	immutable gcc_jit_field*[] fields = map(alloc, record.fields, (ref LowField field) {
 		//TODO:NO ALLOC
-		CString name = withWriter(alloc, (scope ref Writer writer) {
-			writeSymbol(writer, allSymbols, debugName(field));
-		});
+		CString name = cStringOfSymbol(alloc, debugName(field));
 		return gcc_jit_context_new_field(ctx, null, getGccType(typesWip, field.type), name.ptr);
 	});
 	assert(isEmpty(typesWip.recordFields[recordIndex]));

@@ -39,7 +39,6 @@ import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, asTemporary
 import util.col.enumMap : enumMapFindKey;
 import util.col.mutMaxArr : asTemporaryArray;
 import util.opt : has, force, MutOpt, none, noneMut, Opt, optOrDefault, some, someInout, someMut;
-import util.symbol : writeSymbol;
 import util.union_ : TaggedUnion;
 import util.uri : UrisInfo;
 import util.util : castNonScope_ref;
@@ -191,8 +190,6 @@ Expr withExpectLoop(ref LoopInfo info, in Expr delegate(ref Expected) @safe @nog
 void debugLogExpected(scope ref Writer writer, ref ExprCtx ctx, in Expected a) {
 	ShowTypeCtx showCtx = ShowTypeCtx(
 		ShowCtx(
-			ctx.checkCtx.allSymbolsPtr,
-			ctx.checkCtx.allUrisPtr,
 			LineAndColumnGetters(null), // not used
 			UrisInfo(),
 			ShowOptions(color: false)),
@@ -254,7 +251,7 @@ private void debugLogExpectedChoice(
 				});
 				writer ~= ") ";
 			}
-			writeSymbol(writer, showCtx.allSymbols, x.decl.name);
+			writer ~= x.decl.name;
 		});
 }
 

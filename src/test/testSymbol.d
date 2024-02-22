@@ -3,28 +3,10 @@ module test.testSymbol;
 @safe @nogc pure nothrow:
 
 import test.testUtil : Test;
-import util.alloc.alloc : Alloc, withTempAlloc;
 import util.symbol :
-	AllSymbols,
-	isShortSymbol,
-	isLongSymbol,
-	prependSet,
-	stringOfSymbol,
-	Symbol,
-	symbol,
-	symbolOfString,
-	symbolSize;
+	isShortSymbol, isLongSymbol, prependSet, stringOfSymbol, Symbol, symbol, symbolOfString, symbolSize;
 
 void testSymbol(ref Test test) {
-	withTempAlloc!void(test.metaAlloc, (ref Alloc alloc) @safe {
-		scope AllSymbols allSymbols = AllSymbols(&alloc);
-		return inner(test, allSymbols);
-	});
-}
-
-private:
-
-void inner(ref Test test, scope ref AllSymbols allSymbols) {
 	Symbol staticSymbol(string a)() {
 		Symbol res = symbol!a;
 		assert(res == nonStaticSymbol(a));
@@ -32,9 +14,9 @@ void inner(ref Test test, scope ref AllSymbols allSymbols) {
 	}
 
 	Symbol nonStaticSymbol(string a) {
-		Symbol res = symbolOfString(allSymbols, a);
-		assert(stringOfSymbol(test.alloc, allSymbols, res) == a);
-		assert(symbolSize(allSymbols, res) == a.length);
+		Symbol res = symbolOfString(a);
+		assert(stringOfSymbol(test.alloc, res) == a);
+		assert(symbolSize(res) == a.length);
 		return res;
 	}
 
@@ -51,22 +33,22 @@ void inner(ref Test test, scope ref AllSymbols allSymbols) {
 	Symbol cStyle = staticSymbol!"C_St";
 	assert(isShortSymbol(cStyle));
 
-	Symbol setA = prependSet(allSymbols, staticSymbol!"a");
+	Symbol setA = prependSet(staticSymbol!"a");
 	assert(setA == staticSymbol!"set-a");
 	assert(isShortSymbol(setA));
-	Symbol set = prependSet(allSymbols, staticSymbol!"");
+	Symbol set = prependSet(staticSymbol!"");
 	assert(set == staticSymbol!"set-");
 	assert(isShortSymbol(set));
 
-	Symbol setAbcdefgh = prependSet(allSymbols, staticSymbol!"ab");
+	Symbol setAbcdefgh = prependSet(staticSymbol!"ab");
 	assert(setAbcdefgh == staticSymbol!"set-ab");
 	assert(isShortSymbol(setAbcdefgh));
 
-	Symbol setAbcdefghi = prependSet(allSymbols, staticSymbol!"abc");
+	Symbol setAbcdefghi = prependSet(staticSymbol!"abc");
 	assert(setAbcdefghi == nonStaticSymbol("set-abc"));
 	assert(isLongSymbol(setAbcdefghi));
 
-	Symbol setN0 = prependSet(allSymbols, staticSymbol!"n0");
+	Symbol setN0 = prependSet(staticSymbol!"n0");
 	assert(isLongSymbol(setN0));
 	assert(setN0 == staticSymbol!"set-n0");
 }

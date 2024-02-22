@@ -30,24 +30,19 @@ import util.col.mapBuilder : finishMap, mustAddToMap, MapBuilder;
 import util.col.fullIndexMap : FullIndexMap, mapFullIndexMap;
 import util.col.mutMap : getOrAdd, insertOrUpdate, MutMap, setInMap;
 import util.opt : force, has, none, Opt, some;
-import util.symbol : AllSymbols, eachCharInSymbol, Symbol, symbol, writeSymbol;
+import util.symbol : Symbol, symbol;
 import util.union_ : TaggedUnion;
 import util.util : todo;
 import util.writer : Writer;
 
 const struct MangledNames {
-	AllSymbols* allSymbols;
 	FullIndexMap!(LowVarIndex, size_t) varToNameIndex;
 	Map!(ConcreteFun*, size_t) funToNameIndex;
 	//TODO:PERF we could use separate FullIndexMap for record, union, etc.
 	Map!(ConcreteStruct*, size_t) structToNameIndex;
 }
 
-MangledNames buildMangledNames(
-	ref Alloc alloc,
-	return scope const AllSymbols* allSymbols,
-	return scope const LowProgram program,
-) {
+MangledNames buildMangledNames(ref Alloc alloc, return scope const LowProgram program) {
 	// First time we see a fun with a name, we'll store the fun-pointer here in case it's not overloaded.
 	// After that, we'll start putting them in funToNameIndex, and store the next index here.
 	MutMap!(Symbol, PrevOrIndex!ConcreteFun) funNameToIndex;
@@ -91,7 +86,6 @@ MangledNames buildMangledNames(
 		build(x.source);
 
 	return MangledNames(
-		allSymbols,
 		makeVarToNameIndex(alloc, program.vars),
 		finishMap(alloc, funToNameIndex),
 		finishMap(alloc, structToNameIndex));
@@ -170,7 +164,7 @@ private void writeConcreteFunMangledName(
 	source.source.matchIn!void(
 		(in ConcreteFunKey x) {
 			if (source.body_.isA!(ConcreteFunBody.Extern))
-				writeSymbol(writer, *mangledNames.allSymbols, x.decl.name);
+				writer ~= x.decl.name;
 			else {
 				writeMangledName(writer, mangledNames, x.decl.name);
 				maybeWriteIndexSuffix(writer, mangledNames.funToNameIndex[source]);
@@ -281,13 +275,13 @@ public void writeMangledName(ref Writer writer, in MangledNames mangledNames, Sy
 
 	if (conflictsWithCName(a))
 		writer ~= '_';
-	eachCharInSymbol(*mangledNames.allSymbols, a, (char c) {
+	foreach (char c; a) {
 		Opt!string mangled = mangleChar(c);
 		if (has(mangled))
 			writer ~= force(mangled);
 		else
 			writer ~= c;
-	});
+	}
 }
 
 Opt!string mangleChar(char a) {

@@ -26,7 +26,7 @@ void testFakeExtern(ref Test test) {
 private:
 
 @trusted void testMallocAndFree(ref Test test) {
-	withFakeExtern(test.alloc, test.allSymbols, unreachableWriteCb, (scope ref Extern extern_) @trusted {
+	withFakeExtern(test.alloc, unreachableWriteCb, (scope ref Extern extern_) @trusted {
 		Symbol[2] exportNames = [symbol!"free", symbol!"malloc"];
 		ExternLibrary[1] externLibraries = [ExternLibrary(symbol!"c", none!Uri, exportNames)];
 		Opt!ExternPointersForAllLibraries funPtrsOpt =
@@ -78,7 +78,7 @@ void testWrite(ref Test test) {
 		}
 	};
 	ExitCode result =
-		withFakeExtern(test.alloc, test.allSymbols, fakeWrite, (scope ref Extern extern_) @trusted {
+		withFakeExtern(test.alloc, fakeWrite, (scope ref Extern extern_) @trusted {
 			Symbol[1] exportNames = [symbol!"write"];
 			ExternLibrary[1] externLibraries = [ExternLibrary(symbol!"c", none!Uri, exportNames)];
 			Opt!ExternPointersForAllLibraries funPtrsOpt =

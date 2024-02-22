@@ -13,22 +13,14 @@ import util.col.multiMap : makeMultiMap, MultiMapCb;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : UriAndRange;
 import util.string : copyString;
-import util.symbol : AllSymbols;
-import util.uri : AllUris, Uri;
+import util.uri : Uri;
 
-Opt!WorkspaceEdit getRenameForPosition(
-	ref Alloc alloc,
-	scope ref AllSymbols allSymbols,
-	in AllUris allUris,
-	in Program program,
-	in Position pos,
-	in string newName,
-) {
+Opt!WorkspaceEdit getRenameForPosition(ref Alloc alloc, in Program program, in Position pos, in string newName) {
 	Opt!Target target = targetForPosition(pos.kind);
 	return has(target)
 		? some(WorkspaceEdit(makeMultiMap!(Uri, TextEdit)(alloc, (in MultiMapCb!(Uri, TextEdit) cb) {
 			string newNameOut = copyString(alloc, newName);
-			eachRenameLocation(allSymbols, allUris, program, pos.module_.uri, force(target), (in UriAndRange x) {
+			eachRenameLocation(program, pos.module_.uri, force(target), (in UriAndRange x) {
 				cb(x.uri, TextEdit(x.range, newNameOut));
 			});
 		})))
@@ -37,14 +29,7 @@ Opt!WorkspaceEdit getRenameForPosition(
 
 private:
 
-void eachRenameLocation(
-	scope ref AllSymbols allSymbols,
-	in AllUris allUris,
-	in Program program,
-	Uri curUri,
-	in Target target,
-	in ReferenceCb cb,
-) {
+void eachRenameLocation(in Program program, Uri curUri, in Target target, in ReferenceCb cb) {
 	//eachImportLocation(..., cb);
-	eachReferenceForTarget(allSymbols, allUris, program, curUri, target, cb);
+	eachReferenceForTarget(program, curUri, target, cb);
 }

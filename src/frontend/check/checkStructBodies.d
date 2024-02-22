@@ -73,7 +73,7 @@ import util.util : enumConvertOrAssert, isMultipleOf, ptrTrustMe;
 
 void modifierTypeArgInvalid(ref CheckCtx ctx, in ModifierAst.Keyword modifier) {
 	if (has(modifier.typeArg)) {
-		addDiag(ctx, modifier.range(ctx.allSymbols), Diag(Diag.ModifierTypeArgInvalid(modifier.keyword)));
+		addDiag(ctx, modifier.range, Diag(Diag.ModifierTypeArgInvalid(modifier.keyword)));
 	}
 }
 void modifierTypeArgInvalid(ref CheckCtx ctx, in MutOpt!(ModifierAst.Keyword*)[] modifiers) {
@@ -346,7 +346,7 @@ Opt!PurityAndForced purityAndForcedFromModifier(ModifierKeyword a) {
 void checkOnlyStructModifiers(ref CheckCtx ctx, DeclKind declKind, in ModifierAst[] modifiers) {
 	foreach (ref ModifierAst modifier; modifiers)
 		if (!isStructModifier(modifier))
-			addDiag(ctx, modifier.range(ctx.allSymbols), modifier.matchIn!Diag(
+			addDiag(ctx, modifier.range, modifier.matchIn!Diag(
 				(in ModifierAst.Keyword x) =>
 					x.keyword == ModifierKeyword.byVal
 						? Diag(Diag.ModifierRedundantDueToDeclKind(x.keyword, declKind))
@@ -422,7 +422,7 @@ SmallArray!EnumOrFlagsMember checkEnumOrFlagsMembers(
 	in ValueAndOverflow delegate(Opt!EnumValue) @safe @nogc pure nothrow cbGetNextValue,
 ) {
 	if (has(paramsAst) && !isEmpty(memberAsts)) {
-		addDiag(ctx, struct_.nameRange(ctx.allSymbols).range, Diag(
+		addDiag(ctx, struct_.nameRange.range, Diag(
 			Diag.StructParamsSyntaxError(struct_, Diag.StructParamsSyntaxError.Reason.hasParamsAndFields)));
 		return emptySmallArray!EnumOrFlagsMember;
 	}
@@ -462,9 +462,9 @@ SmallArray!EnumOrFlagsMember checkEnumOrFlagsMembers(
 			EnumOrFlagsMember(EnumMemberSource(x), struct_, cbValue(x.range, x.value)));
 	eachPair!(EnumOrFlagsMember)(members, (in EnumOrFlagsMember a, in EnumOrFlagsMember b) {
 		if (a.name == b.name)
-			addDiag(ctx, b.nameRange(ctx.allSymbols).range, Diag(Diag.DuplicateDeclaration(memberKind, b.name)));
+			addDiag(ctx, b.nameRange.range, Diag(Diag.DuplicateDeclaration(memberKind, b.name)));
 		if (a.value == b.value && !anyOverflow)
-			addDiag(ctx, b.range(ctx.allSymbols), Diag(
+			addDiag(ctx, b.range, Diag(
 				Diag.EnumDuplicateValue(isSignedEnumBackingType(storage), b.value.value)));
 	});
 	return members;
@@ -482,9 +482,9 @@ SmallArray!EnumOrFlagsMember enumOrFlagsMembersFromParams(
 		(DestructureAst[] destructures) =>
 			small!EnumOrFlagsMember(mapOpPointers!(EnumOrFlagsMember, DestructureAst)(
 				ctx.alloc, destructures, (DestructureAst* x) =>
-					enumMemberFromParam(ctx, enumOrFlags, x, cbValue(x.range(ctx.allSymbols), none!LiteralIntOrNat)))),
+					enumMemberFromParam(ctx, enumOrFlags, x, cbValue(x.range, none!LiteralIntOrNat)))),
 		(ref ParamsAst.Varargs x) {
-			addDiag(ctx, x.param.range(ctx.allSymbols), Diag(
+			addDiag(ctx, x.param.range, Diag(
 				Diag.StructParamsSyntaxError(enumOrFlags, Diag.StructParamsSyntaxError.Reason.variadic)));
 			return emptySmallArray!EnumOrFlagsMember;
 		});
@@ -620,7 +620,7 @@ SmallArray!Member checkRecordOrUnionMembers(Member)(
 	in CbCheckMember!Member cbCheckMember,
 ) {
 	if (has(params) && !isEmpty(memberAsts))
-		addDiag(ctx, struct_.nameRange(ctx.allSymbols).range, Diag(
+		addDiag(ctx, struct_.nameRange.range, Diag(
 			Diag.StructParamsSyntaxError(struct_, Diag.StructParamsSyntaxError.Reason.hasParamsAndFields)));
 	SmallArray!Member res = has(params)
 		? recordOrUnionMembersFromParams!Member(ctx, struct_, force(params), cbCheckMember)
@@ -630,7 +630,7 @@ SmallArray!Member checkRecordOrUnionMembers(Member)(
 					RecordOrUnionMemberSource(x), x.visibility, x.name, x.mutability, x.type))));
 	eachPair!Member(res, (in Member a, in Member b) {
 		if (a.name == b.name)
-			addDiag(ctx, b.range(ctx.allSymbols), Diag(Diag.DuplicateDeclaration(duplicateDeclarationKind, a.name)));
+			addDiag(ctx, b.range, Diag(Diag.DuplicateDeclaration(duplicateDeclarationKind, a.name)));
 	});
 	return res;
 }
@@ -647,7 +647,7 @@ SmallArray!Member recordOrUnionMembersFromParams(Member)(
 				ctx.alloc, destructures, (DestructureAst* param) =>
 					recordOrUnionMemberFromParam!Member(ctx, struct_, param, cbCheckMember))),
 		(ref ParamsAst.Varargs x) {
-			addDiag(ctx, x.param.range(ctx.allSymbols), Diag(
+			addDiag(ctx, x.param.range, Diag(
 				Diag.StructParamsSyntaxError(struct_, Diag.StructParamsSyntaxError.Reason.variadic)));
 			return emptySmallArray!Member;
 		});
@@ -661,11 +661,11 @@ Opt!EnumOrFlagsMember enumMemberFromParam(ref CheckCtx ctx, StructDecl* enum_, D
 				Diag.UnsupportedSyntax(Diag.UnsupportedSyntax.Reason.enumMemberMutability)));
 		}
 		if (has(single.type))
-			addDiag(ctx, force(single.type).range(ctx.allSymbols), Diag(
+			addDiag(ctx, force(single.type).range, Diag(
 				Diag.UnsupportedSyntax(Diag.UnsupportedSyntax.Reason.enumMemberType)));
 		return some(EnumOrFlagsMember(EnumMemberSource(single), enum_, value));
 	} else {
-		addDiag(ctx, ast.range(ctx.allSymbols), Diag(
+		addDiag(ctx, ast.range, Diag(
 			Diag.StructParamsSyntaxError(enum_, Diag.StructParamsSyntaxError.Reason.destructure)));
 		return none!EnumOrFlagsMember;
 	}
@@ -686,7 +686,7 @@ Opt!Member recordOrUnionMemberFromParam(Member)(
 			has(single.mut) ? some(FieldMutabilityAst(force(single.mut), none!Visibility)) : none!FieldMutabilityAst,
 			has(single.type) ? some(*force(single.type)) : none!TypeAst)));
 	} else {
-		addDiag(ctx, ast.range(ctx.allSymbols), Diag(
+		addDiag(ctx, ast.range, Diag(
 			Diag.StructParamsSyntaxError(struct_, Diag.StructParamsSyntaxError.Reason.destructure)));
 		return none!Member;
 	}
@@ -706,10 +706,10 @@ RecordField checkRecordField(
 			ctx, commonTypes, force(ast.type), structsAndAliasesMap,
 			record.typeParams, someMut(ptrTrustMe(delayStructInsts)))
 		: () {
-			addDiag(ctx, ast.name.range(ctx.allSymbols), Diag(Diag.RecordFieldNeedsType(name)));
+			addDiag(ctx, ast.name.range, Diag(Diag.RecordFieldNeedsType(name)));
 			return Type(Type.Bogus());
 		}();
-	checkReferenceLinkageAndPurity(ctx, record, ast.source.range(ctx.allSymbols), memberType);
+	checkReferenceLinkageAndPurity(ctx, record, ast.source.range, memberType);
 
 	if (has(ast.mutability) && record.purity != Purity.mut && !record.purityIsForced)
 		addDiag(ctx, force(ast.mutability).range, Diag(Diag.MutFieldNotAllowed()));
@@ -740,7 +740,7 @@ UnionMember checkUnionMember(
 			struct_.typeParams,
 			someMut(ptrTrustMe(delayStructInsts)))
 		: Type(commonTypes.void_);
-	checkReferenceLinkageAndPurity(ctx, struct_, ast.name.range(ctx.allSymbols), type);
+	checkReferenceLinkageAndPurity(ctx, struct_, ast.name.range, type);
 	if (has(ast.mutability))
 		addDiag(ctx, force(ast.mutability).range, Diag(
 			Diag.UnsupportedSyntax(Diag.UnsupportedSyntax.Reason.unionMemberMutability)));
@@ -774,7 +774,7 @@ IntegralType checkEnumOrFlagsModifiers(
 						? Diag(Diag.ModifierRedundantDueToDeclKind(x.keyword, declKind))
 						: Diag(Diag.ModifierInvalid(x.keyword, declKind)));
 			} else
-				addDiag(ctx, modifier.range(ctx.allSymbols), Diag(Diag.SpecUseInvalid(declKind)));
+				addDiag(ctx, modifier.range, Diag(Diag.SpecUseInvalid(declKind)));
 		}
 	}
 
@@ -784,7 +784,7 @@ IntegralType checkEnumOrFlagsModifiers(
 			Type type = typeFromAst(
 				ctx, commonTypes, force(x.typeArg), structsAndAliasesMap, emptyTypeParams,
 				someMut(ptrTrustMe(delayStructInsts)));
-			return getEnumTypeFromType(ctx, struct_, force(x.typeArg).range(ctx.allSymbols), commonTypes, type);
+			return getEnumTypeFromType(ctx, struct_, force(x.typeArg).range, commonTypes, type);
 		} else {
 			addDiag(ctx, x.keywordRange, Diag(Diag.StorageMissingType()));
 			return IntegralType.nat32;
@@ -848,7 +848,7 @@ RecordModifiers accumulateRecordModifiers(ref CheckCtx ctx, ModifierAst[] modifi
 					break;
 			}
 		} else
-			addDiag(ctx, modifier.range(ctx.allSymbols), Diag(Diag.SpecUseInvalid(DeclKind.record)));
+			addDiag(ctx, modifier.range, Diag(Diag.SpecUseInvalid(DeclKind.record)));
 	}
 	modifierTypeArgInvalid(ctx, [byValOrRef, newVisibility, nominal, packed]);
 	return RecordModifiers(
@@ -940,7 +940,7 @@ BuiltinType getBuiltinType(scope ref CheckCtx ctx, StructDecl* struct_) {
 		case symbol!"void".value:
 			return BuiltinType.void_;
 		default:
-			addDiagAssertSameUri(ctx, struct_.nameRange(ctx.allSymbols), Diag(
+			addDiagAssertSameUri(ctx, struct_.nameRange, Diag(
 				Diag.BuiltinUnsupported(Diag.BuiltinUnsupported.Kind.type, struct_.name)));
 			return BuiltinType.void_;
 	}

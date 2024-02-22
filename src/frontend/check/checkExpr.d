@@ -445,7 +445,7 @@ Expr checkAssignment(
 		Opt!Symbol name = () {
 			switch (leftCall.style) {
 				case CallAst.Style.dot:
-					return some(prependSet(ctx.allSymbols, leftCall.funNameName));
+					return some(prependSet(leftCall.funNameName));
 				case CallAst.Style.prefixOperator:
 					return leftCall.funNameName == symbol!"*" ? some(symbol!"set-deref") : none!Symbol;
 				case CallAst.Style.subscript:
@@ -466,7 +466,7 @@ Expr checkAssignment(
 		ArrowAccessAst leftArrow = left.kind.as!ArrowAccessAst;
 		return checkCallSpecial(
 			ctx, locals, source, keywordRange,
-			prependSetDeref(ctx.allSymbols, leftArrow.name.name),
+			prependSetDeref(leftArrow.name.name),
 			[*leftArrow.left, *right],
 			expected);
 	} else {
@@ -486,7 +486,7 @@ Expr checkAssignmentCall(
 	ExprAst* call = allocate(ctx.alloc, ExprAst(
 		source.range,
 		ExprAstKind(CallAst(CallAst.style.infix, ast.funName, ast.leftAndRight))));
-	return checkAssignment(ctx, locals, source, ast.left, ast.keywordRange(ctx.allSymbols), call, expected);
+	return checkAssignment(ctx, locals, source, ast.left, ast.keywordRange, call, expected);
 }
 
 Expr checkUnless(
@@ -712,8 +712,7 @@ Expr checkAssignIdentifier(
 					source,
 					ExprKind(ClosureSetExpr(x, allocate(ctx.alloc, value))))));
 	} else
-		return checkCallSpecial(
-			ctx, locals, source, keywordRange, prependSet(ctx.allSymbols, left), [*right], expected);
+		return checkCallSpecial(ctx, locals, source, keywordRange, prependSet(left), [*right], expected);
 }
 
 MutOpt!VariableRefAndType getVariableRefForSet(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, Symbol name) {
@@ -920,7 +919,7 @@ Opt!Expr checkWithLocal(
 	in Opt!Expr delegate(ref LocalsInfo) @safe @nogc pure nothrow cb,
 ) {
 	if (nameIsParameterOrLocalInScope(ctx, locals, local.name))
-		addDiag2(ctx, localMustHaveNameRange(*local, ctx.allSymbols), Diag(
+		addDiag2(ctx, localMustHaveNameRange(*local), Diag(
 			Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.paramOrLocal, local.name)));
 
 	LocalNode localNode = LocalNode(
@@ -943,7 +942,7 @@ void addUnusedLocalDiags(ref ExprCtx ctx, Local* local, scope ref LocalNode node
 	bool isGot = node.isUsed[LocalAccessKind.getOnStack] || node.isUsed[LocalAccessKind.getThroughClosure];
 	bool isSet = node.isUsed[LocalAccessKind.setOnStack] || node.isUsed[LocalAccessKind.setThroughClosure];
 	if (!isGot || (!isSet && local.mutability != LocalMutability.immut))
-		addDiag2(ctx, localMustHaveNameRange(*local, ctx.allSymbols), Diag(
+		addDiag2(ctx, localMustHaveNameRange(*local), Diag(
 			Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.Local(local, isGot, isSet)))));
 }
 
@@ -1398,8 +1397,7 @@ Expr checkMatchEnum(
 	if (checkMatchCaseNames!EnumOrFlagsMember(ctx, members, *source, ast)) {
 		Expr[] cases = mapPointers(ctx.alloc, ast.cases, (MatchAst.CaseAst* caseAst) {
 			if (has(caseAst.destructure))
-				addDiag2(ctx, force(caseAst.destructure).range(ctx.allSymbols), Diag(
-					Diag.MatchCaseNoValueForEnum(matchedEnum)));
+				addDiag2(ctx, force(caseAst.destructure).range, Diag(Diag.MatchCaseNoValueForEnum(matchedEnum)));
 			return checkExpr(ctx, locals, &caseAst.then, expected);
 		});
 		return Expr(
@@ -1454,7 +1452,7 @@ MatchUnionExpr.Case checkMatchUnionCase(
 			destructure, checkExprWithDestructure(ctx, locals, destructure, &caseAst.then, expected));
 	} else {
 		if (memberType != Type(ctx.commonTypes.void_))
-			addDiag2(ctx, caseAst.memberNameRange(ctx.allSymbols), Diag(Diag.MatchCaseShouldUseIgnore(member)));
+			addDiag2(ctx, caseAst.memberNameRange, Diag(Diag.MatchCaseShouldUseIgnore(member)));
 		return MatchUnionExpr.Case(
 			Destructure(allocate(ctx.alloc, Destructure.Ignore(caseAst.memberName.start, memberType))),
 			checkExpr(ctx, locals, &caseAst.then, expected));

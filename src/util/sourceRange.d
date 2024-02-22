@@ -8,7 +8,7 @@ import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonObject;
 import util.string : CString, MutCString;
-import util.uri : AllUris, compareUriAlphabetically, stringOfUri, Uri;
+import util.uri : compareUriAlphabetically, stringOfUri, Uri;
 import util.util : min;
 
 alias Pos = uint;
@@ -76,8 +76,8 @@ immutable struct UriAndRange {
 		UriAndRange(uri, Range.empty);
 }
 
-Comparison compareUriAndRange(in AllUris allUris, UriAndRange a, UriAndRange b) {
-	Comparison cmpUri = compareUriAlphabetically(allUris, a.uri, b.uri);
+Comparison compareUriAndRange(UriAndRange a, UriAndRange b) {
+	Comparison cmpUri = compareUriAlphabetically(a.uri, b.uri);
 	return cmpUri != Comparison.equal ? cmpUri : compareRange(a.range, b.range);
 }
 
@@ -128,9 +128,9 @@ immutable struct UriAndLineAndCharacterRange {
 	LineAndCharacterRange range;
 }
 
-Json jsonOfUriAndLineAndCharacterRange(ref Alloc alloc, in AllUris allUris, in UriAndLineAndCharacterRange a) =>
+Json jsonOfUriAndLineAndCharacterRange(ref Alloc alloc, in UriAndLineAndCharacterRange a) =>
 	jsonObject(alloc, [
-		field!"uri"(stringOfUri(alloc, allUris, a.uri)),
+		field!"uri"(stringOfUri(alloc, a.uri)),
 		field!"range"(jsonOfLineAndCharacterRange(alloc, a.range))]);
 
 Json jsonOfLineAndColumnRange(ref Alloc alloc, in LineAndColumnRange a) =>

@@ -16,7 +16,7 @@ import util.col.enumMap : EnumMap;
 import util.opt : has, force, MutOpt, none, Opt, some;
 import util.perf : Perf;
 import util.sourceRange : Range, rangeOfStartAndLength;
-import util.symbol : AllSymbols, Symbol;
+import util.symbol : Symbol;
 
 struct ClosureFieldBuilder {
 	@safe @nogc pure nothrow:
@@ -90,11 +90,6 @@ struct ExprCtx {
 		checkCtx().alloc();
 	Alloc* allocPtr() =>
 		checkCtx().allocPtr;
-
-	ref const(AllSymbols) allSymbols() return scope const =>
-		checkCtx().allSymbols();
-	ref AllSymbols allSymbols() return scope =>
-		checkCtx().allSymbols();
 
 	ref Perf perf() return scope =>
 		checkCtx().perf();

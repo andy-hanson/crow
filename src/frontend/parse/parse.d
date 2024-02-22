@@ -68,20 +68,13 @@ import util.opt : force, has, none, Opt, optIf, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : Pos, Range;
 import util.string : CString, emptySmallString, SmallString;
-import util.symbol : AllSymbols, Symbol;
-import util.uri : AllUris;
+import util.symbol : Symbol;
 import util.util : castNonScope_ref, ptrTrustMe;
 
-FileAst* parseFile(
-	scope ref Perf perf,
-	ref Alloc alloc,
-	scope ref AllSymbols allSymbols,
-	scope ref AllUris allUris,
-	scope CString source,
-) =>
+FileAst* parseFile(scope ref Perf perf, ref Alloc alloc, scope CString source) =>
 	withMeasure!(FileAst*, () {
-		Lexer lexer = createLexer(ptrTrustMe(alloc), ptrTrustMe(allSymbols), castNonScope_ref(source));
-		return parseFileInner(allUris, lexer);
+		Lexer lexer = createLexer(ptrTrustMe(alloc), castNonScope_ref(source));
+		return parseFileInner(lexer);
 	})(perf, alloc, PerfMeasure.parseFile);
 
 private:
@@ -324,16 +317,16 @@ VarDeclAst parseVarDecl(
 	return VarDeclAst(range(lexer, start), docComment, visibility, name, typeParams, kindPos, kind, type, modifiers);
 }
 
-FileAst* parseFileInner(scope ref AllUris allUris, ref Lexer lexer) {
+FileAst* parseFileInner(ref Lexer lexer) {
 	SmallString moduleDocComment = takeNewline_topLevel(lexer);
 	Cell!(Opt!SmallString) firstDocComment = Cell!(Opt!SmallString)(some(emptySmallString));
 	bool noStd = tryTakeToken(lexer, Token.noStd);
 	if (noStd)
 		cellSet(firstDocComment, some(takeNewline_topLevel(lexer)));
-	Opt!ImportsOrExportsAst imports = parseImportsOrExports(allUris, lexer, Token.import_);
+	Opt!ImportsOrExportsAst imports = parseImportsOrExports(lexer, Token.import_);
 	if (has(imports))
 		cellSet(firstDocComment, some(takeNewline_topLevel(lexer)));
-	Opt!ImportsOrExportsAst exports = parseImportsOrExports(allUris, lexer, Token.export_);
+	Opt!ImportsOrExportsAst exports = parseImportsOrExports(lexer, Token.export_);
 	if (has(exports))
 		cellSet(firstDocComment, some(takeNewline_topLevel(lexer)));
 

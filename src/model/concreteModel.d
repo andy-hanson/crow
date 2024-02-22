@@ -26,7 +26,7 @@ import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : none, Opt, some;
 import util.sourceRange : UriAndRange;
 import util.string : CString;
-import util.symbol : AllSymbols, Symbol;
+import util.symbol : Symbol;
 import util.union_ : TaggedUnion, Union;
 import util.uri : Uri;
 import versionInfo : VersionInfo;
@@ -342,10 +342,10 @@ immutable struct ConcreteFun {
 			(in ConcreteFunSource.WrapMain x) =>
 				x.range.uri);
 
-	UriAndRange range(in AllSymbols allSymbols) scope =>
+	UriAndRange range() scope =>
 		source.matchIn!UriAndRange(
 			(in ConcreteFunKey x) =>
-				x.decl.range(allSymbols),
+				x.decl.range,
 			(in ConcreteFunSource.Lambda x) =>
 				x.range,
 			(in ConcreteFunSource.Test x) =>

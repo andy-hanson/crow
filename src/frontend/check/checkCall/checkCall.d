@@ -72,7 +72,7 @@ Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref Call
 	return checkCallCommon(
 		ctx, locals, source,
 		// Show diags at the function name and not at the whole call ast
-		ast.nameRange(ctx.allSymbols, source),
+		ast.nameRange(source),
 		ast.funName.name,
 		has(ast.typeArg) ? some(typeFromAst2(ctx, *force(ast.typeArg))) : none!Type,
 		ast.args,
@@ -243,8 +243,7 @@ void checkCallShouldUseSyntax(ref ExprCtx ctx, in CallAst ast) {
 		case CallAst.Style.infix:
 			Opt!(Diag.CallShouldUseSyntax.Kind) kind = shouldUseSyntaxKind(ast);
 			if (has(kind))
-				addDiag2(ctx, ast.funName.range(ctx.allSymbols), Diag(
-					Diag.CallShouldUseSyntax(ast.args.length, force(kind))));
+				addDiag2(ctx, ast.funName.range, Diag(Diag.CallShouldUseSyntax(ast.args.length, force(kind))));
 			break;
 		default:
 			break;

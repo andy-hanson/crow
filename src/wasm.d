@@ -10,7 +10,8 @@ import util.jsonParse : mustParseJson;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
 import util.perf : Perf, PerfMeasure, PerfMeasureResult, PerfResult, perfResult, withNullPerf;
 import util.string : CString;
-import util.uri : mustParseUri;
+import util.symbol : initSymbols;
+import util.uri : initUris, mustParseUri;
 import util.util : cStringOfEnum;
 
 extern(C) void _start() {}
@@ -55,11 +56,13 @@ alias FetchMemoryCbImpure = ulong[] delegate(size_t sizeWords, size_t timesCalle
 		return serverBuffer;
 	};
 	server.__ctor(cast(FetchMemoryCb) fetchMemoryCb);
+	initSymbols(server.metaAlloc);
+	initUris(server.metaAlloc);
 	CString paramsStr = CString(paramsCString);
 	withTempAlloc!void(server.metaAlloc, (ref Alloc alloc) {
-		Json params = mustParseJson(alloc, server.allSymbols, paramsStr);
-		setIncludeDir(server, mustParseUri(server.allUris, get!"includeDir"(params).as!string));
-		setCwd(*server, mustParseUri(server.allUris, get!"cwd"(params).as!string));
+		Json params = mustParseJson(alloc, paramsStr);
+		setIncludeDir(server, mustParseUri(get!"includeDir"(params).as!string));
+		setCwd(*server, mustParseUri(get!"cwd"(params).as!string));
 	});
 	return server;
 }
@@ -69,11 +72,11 @@ alias FetchMemoryCbImpure = ulong[] delegate(size_t sizeWords, size_t timesCalle
 	CString inputStr = CString(input);
 	return withWebPerf!(CString, (scope ref Perf perf) =>
 		withTempAllocImpure!CString(server.metaAlloc, (ref Alloc resultAlloc) {
-			Json inputJson = mustParseJson(resultAlloc, server.allSymbols, inputStr);
-			LspInMessage inputMessage = parseLspInMessage(resultAlloc, server.allUris, inputJson);
+			Json inputJson = mustParseJson(resultAlloc, inputStr);
+			LspInMessage inputMessage = parseLspInMessage(resultAlloc, inputJson);
 			LspOutAction output = handleLspMessage(perf, resultAlloc, *server, inputMessage);
-			Json outputJson = jsonOfLspOutAction(resultAlloc, server.allUris, server.lineAndCharacterGetters, output);
-			return jsonToCString(resultAlloc, server.allSymbols, outputJson);
+			Json outputJson = jsonOfLspOutAction(resultAlloc, server.lineAndCharacterGetters, output);
+			return jsonToCString(resultAlloc, outputJson);
 		})).ptr;
 }
 

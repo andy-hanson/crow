@@ -84,24 +84,21 @@ import util.sourceRange :
 	rangeOfStartAndLength,
 	Range;
 import util.string : CString, cStringSize;
-import util.symbol : AllSymbols, symbol;
-import util.uri : AllUris;
-import util.util : min, ptrTrustMe, stringOfEnum;
+import util.symbol : symbol;
+import util.util : min, stringOfEnum;
 
 SemanticTokens tokensOfAst(
 	ref Alloc alloc,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
 	in LineAndCharacterGetter lineAndCharacterGetter,
 	in SourceAndAst sourceAndAst,
 ) {
-	scope Ctx ctx = Ctx(TokensBuilder(sourceAndAst.source, &alloc, lineAndCharacterGetter), ptrTrustMe(allSymbols));
+	scope Ctx ctx = Ctx(TokensBuilder(sourceAndAst.source, &alloc, lineAndCharacterGetter));
 	FileAst* ast = sourceAndAst.ast;
 
 	if (has(ast.imports))
-		addImportTokens(ctx, allUris, force(ast.imports));
+		addImportTokens(ctx, force(ast.imports));
 	if (has(ast.reExports))
-		addImportTokens(ctx, allUris, force(ast.reExports));
+		addImportTokens(ctx, force(ast.reExports));
 
 	eachSorted!(Pos, Ctx)(
 		ctx,
@@ -143,13 +140,7 @@ Json getTokensLegend(ref Alloc alloc) {
 private:
 
 struct Ctx {
-	@safe @nogc pure nothrow:
-
 	TokensBuilder tokens;
-	const AllSymbols* allSymbolsPtr;
-
-	ref const(AllSymbols) allSymbols() return scope =>
-		*allSymbolsPtr;
 }
 
 void decodeTokens(
@@ -298,28 +289,28 @@ void stringLiteral(scope ref TokensBuilder a, in Range range) {
 	reference(a, TokenType.string, range);
 }
 
-void addImportTokens(scope ref Ctx ctx, in AllUris allUris, in ImportsOrExportsAst a) {
+void addImportTokens(scope ref Ctx ctx, in ImportsOrExportsAst a) {
 	foreach (ref ImportOrExportAst x; a.paths) {
-		reference(ctx.tokens, TokenType.namespace, x.pathRange(allUris));
+		reference(ctx.tokens, TokenType.namespace, x.pathRange);
 		x.kind.matchIn!void(
 			(in ImportOrExportAstKind.ModuleWhole) {},
 			(in NameAndRange[] names) {
 				foreach (NameAndRange name; names)
-					reference(ctx.tokens, TokenType.variable, name.range(ctx.allSymbols));
+					reference(ctx.tokens, TokenType.variable, name.range);
 			},
 			(in ImportOrExportAstKind.File x) {
-				declare(ctx.tokens, TokenType.variable, x.name.range(ctx.allSymbols));
+				declare(ctx.tokens, TokenType.variable, x.name.range);
 				addTypeTokens(ctx, x.typeAst);
 			});
 	}
 }
 
 void addSpecTokens(scope ref Ctx ctx, in SpecDeclAst a) {
-	declare(ctx.tokens, TokenType.interface_, a.name.range(ctx.allSymbols));
+	declare(ctx.tokens, TokenType.interface_, a.name.range);
 	addTypeParamsTokens(ctx, a.typeParams);
 	addModifierTokens(ctx, a.modifiers);
 	foreach (ref SpecSigAst sig; a.sigs) {
-		declare(ctx.tokens, TokenType.function_, sig.nameRange(ctx.allSymbols));
+		declare(ctx.tokens, TokenType.function_, sig.nameRange);
 		addSigReturnTypeAndParamsTokens(ctx, sig.returnType, sig.params);
 	}
 }
@@ -352,11 +343,11 @@ void addTypeTokens(scope ref Ctx ctx, in TypeAst a) {
 			addTypeTokens(ctx, x.k);
 		},
 		(in NameAndRange x) {
-			reference(ctx.tokens, TokenType.type, x.range(ctx.allSymbols));
+			reference(ctx.tokens, TokenType.type, x.range);
 		},
 		(in TypeAst.SuffixName x) {
 			addTypeTokens(ctx, x.left);
-			reference(ctx.tokens, TokenType.type, x.name.range(ctx.allSymbols));
+			reference(ctx.tokens, TokenType.type, x.name.range);
 		},
 		(in TypeAst.SuffixSpecial x) {
 			addTypeTokens(ctx, x.left);
@@ -370,17 +361,17 @@ void addTypeTokens(scope ref Ctx ctx, in TypeAst a) {
 
 void addTypeParamsTokens(scope ref Ctx ctx, in NameAndRange[] a) {
 	foreach (NameAndRange typeParam; a)
-		declare(ctx.tokens, TokenType.typeParameter, typeParam.range(ctx.allSymbols));
+		declare(ctx.tokens, TokenType.typeParameter, typeParam.range);
 }
 
 void addStructAliasTokens(scope ref Ctx ctx, in StructAliasAst a) {
-	declare(ctx.tokens, TokenType.type, a.name.range(ctx.allSymbols));
+	declare(ctx.tokens, TokenType.type, a.name.range);
 	addTypeParamsTokens(ctx, a.typeParams);
 	addTypeTokens(ctx, a.target);
 }
 
 void addStructTokens(scope ref Ctx ctx, in StructDeclAst a) {
-	declare(ctx.tokens, TokenType.type, a.name.range(ctx.allSymbols));
+	declare(ctx.tokens, TokenType.type, a.name.range);
 	addTypeParamsTokens(ctx, a.typeParams);
 	a.body_.matchIn!void(
 		(in StructBodyAst.Builtin) {
@@ -413,7 +404,7 @@ void addRecordOrUnionTokens(
 		addParamsTokens(ctx, force(params));
 	addModifierTokens(ctx, a.modifiers);
 	foreach (ref RecordOrUnionMemberAst x; members) {
-		declare(ctx.tokens, TokenType.property, x.name.range(ctx.allSymbols));
+		declare(ctx.tokens, TokenType.property, x.name.range);
 		if (has(x.type))
 			addTypeTokens(ctx, force(x.type));
 	}
@@ -429,7 +420,7 @@ void addModifierTokens(scope ref Ctx ctx, in ModifierAst[] a) {
 			(in SpecUseAst x) {
 				if (has(x.typeArg))
 					addTypeTokens(ctx, force(x.typeArg));
-				reference(ctx.tokens, TokenType.interface_, x.name.range(ctx.allSymbols));
+				reference(ctx.tokens, TokenType.interface_, x.name.range);
 			});
 	}
 }
@@ -444,21 +435,21 @@ void addEnumOrFlagsTokens(
 		addParamsTokens(ctx, force(params));
 	addModifierTokens(ctx, a.modifiers);
 	foreach (ref EnumOrFlagsMemberAst member; members) {
-		declare(ctx.tokens, TokenType.enumMember, member.nameRange(ctx.allSymbols));
+		declare(ctx.tokens, TokenType.enumMember, member.nameRange);
 		if (has(member.value))
 			numberLiteral(ctx.tokens, force(member.value).range);
 	}
 }
 
 void addVarDeclTokens(scope ref Ctx ctx, in VarDeclAst a) {
-	declare(ctx.tokens, TokenType.variable, a.name.range(ctx.allSymbols));
+	declare(ctx.tokens, TokenType.variable, a.name.range);
 	addTypeParamsTokens(ctx, a.typeParams);
 	addTypeTokens(ctx, a.type);
 	addModifierTokens(ctx, a.modifiers);
 }
 
 void addFunTokens(scope ref Ctx ctx, in FunDeclAst a) {
-	declare(ctx.tokens, TokenType.function_, a.name.range(ctx.allSymbols));
+	declare(ctx.tokens, TokenType.function_, a.name.range);
 	addTypeParamsTokens(ctx, a.typeParams);
 	addSigReturnTypeAndParamsTokens(ctx, a.returnType, a.params);
 	addModifierTokens(ctx, a.modifiers);
@@ -473,7 +464,7 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 	a.kind.matchIn!void(
 		(in ArrowAccessAst x) {
 			addExprTokens(ctx, *x.left);
-			reference(ctx.tokens, TokenType.function_, x.name.range(ctx.allSymbols));
+			reference(ctx.tokens, TokenType.function_, x.name.range);
 		},
 		(in AssertOrForbidAst x) {
 			// Only the length matters, and "assert" is same length as "forbid"
@@ -489,13 +480,13 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 		},
 		(in AssignmentCallAst x) {
 			addExprTokens(ctx, x.left);
-			reference(ctx.tokens, TokenType.function_, x.funName.range(ctx.allSymbols));
+			reference(ctx.tokens, TokenType.function_, x.funName.range);
 			addExprTokens(ctx, x.right);
 		},
 		(in BogusAst _) {},
 		(in CallAst x) {
 			void addName() {
-				reference(ctx.tokens, TokenType.function_, x.funName.range(ctx.allSymbols));
+				reference(ctx.tokens, TokenType.function_, x.funName.range);
 				if (has(x.typeArg))
 					addTypeTokens(ctx, *force(x.typeArg));
 			}
@@ -530,7 +521,7 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 		},
 		(in CallNamedAst x) {
 			zip(x.names, x.args, (ref NameAndRange name, ref ExprAst arg) {
-				reference(ctx.tokens, TokenType.parameter, name.range(ctx.allSymbols));
+				reference(ctx.tokens, TokenType.parameter, name.range);
 				addExprTokens(ctx, arg);
 			});
 		},
@@ -609,7 +600,7 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 		(in MatchAst x) {
 			addExprTokens(ctx, x.matched);
 			foreach (ref MatchAst.CaseAst case_; x.cases) {
-				reference(ctx.tokens, TokenType.enumMember, case_.memberNameRange(ctx.allSymbols));
+				reference(ctx.tokens, TokenType.enumMember, case_.memberNameRange);
 				if (has(case_.destructure))
 					addDestructureTokens(ctx, force(case_.destructure));
 				addExprTokens(ctx, case_.then);
@@ -665,13 +656,13 @@ void addDestructureTokens(scope ref Ctx ctx, in DestructureAst a) {
 			declare(
 				ctx.tokens,
 				x.name.name == symbol!"_" ? TokenType.comment : TokenType.parameter,
-				x.name.range(ctx.allSymbols));
+				x.name.range);
 			//TODO: add 'mut' keyword
 			if (has(x.type))
 				addTypeTokens(ctx, *force(x.type));
 		},
 		(in DestructureAst.Void x) {
-			keyword(ctx.tokens, a.range(ctx.allSymbols));
+			keyword(ctx.tokens, a.range);
 		},
 		(in DestructureAst[] xs) {
 			foreach (ref DestructureAst x; xs)

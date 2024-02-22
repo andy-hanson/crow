@@ -47,27 +47,21 @@ import util.json :
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : compareUriAndRange, UriAndRange;
 import util.string : SmallString;
-import util.symbol : AllSymbols, Symbol, symbol;
-import util.uri : AllUris, stringOfUri;
+import util.symbol : Symbol, symbol;
+import util.uri : stringOfUri;
 import util.util : stringOfEnum;
 
-string documentJSON(ref Alloc alloc, in AllSymbols allSymbols, in AllUris allUris, in Program program) =>
-	jsonToString(alloc, allSymbols, documentRootModules(alloc, allSymbols, allUris, program));
+string documentJSON(ref Alloc alloc, in Program program) =>
+	jsonToString(alloc, documentRootModules(alloc, program));
 
 private:
 
-Json documentRootModules(ref Alloc alloc, in AllSymbols allSymbols, in AllUris allUris, in Program program) =>
+Json documentRootModules(ref Alloc alloc, in Program program) =>
 	jsonObject(alloc, [
 		field!"modules"(jsonList!(Module*)(alloc, program.rootModules, (in Module* x) =>
-			documentModule(alloc, allSymbols, allUris, program, *x)))]);
+			documentModule(alloc, program, *x)))]);
 
-Json documentModule(
-	ref Alloc alloc,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
-	in Program program,
-	in Module a,
-) {
+Json documentModule(ref Alloc alloc, in Program program, in Module a) {
 	DocExport[] exports = buildArray!DocExport(alloc, (scope ref Builder!DocExport res) {
 		foreach (NameReferents referents; a.exports) {
 			if (has(referents.structOrAlias) && force(referents.structOrAlias).visibility == Visibility.public_)
@@ -76,13 +70,13 @@ Json documentModule(
 				res ~= documentSpec(alloc, *force(referents.spec));
 			foreach (FunDecl* fun; referents.funs)
 				if (fun.visibility == Visibility.public_ && !fun.isGenerated)
-					res ~= documentFun(alloc, allSymbols, *fun);
+					res ~= documentFun(alloc, *fun);
 		}
 		arrBuilderSort!DocExport(res, (in DocExport x, in DocExport y) =>
-			compareUriAndRange(allUris, x.range, y.range));
+			compareUriAndRange(x.range, y.range));
 	});
 	return jsonObject(alloc, [
-		field!"uri"(stringOfUri(alloc, allUris, a.uri)),
+		field!"uri"(stringOfUri(alloc, a.uri)),
 		optionalStringField!"doc"(alloc, a.ast.docComment),
 		field!"exports"(jsonList!DocExport(alloc, exports, (in DocExport x) => x.json))]);
 }
@@ -210,8 +204,8 @@ Json documentSpecDeclSig(ref Alloc alloc, in TypeParams typeParams, in SpecDeclS
 		field!"return-type"(documentTypeRef(alloc, typeParams, a.returnType)),
 		field!"params"(documentParamDestructures(alloc, typeParams, a.params))]);
 
-DocExport documentFun(ref Alloc alloc, in AllSymbols allSymbols, in FunDecl a) =>
-	documentExport(alloc, a.range(allSymbols), a.name, a.docComment, a.typeParams, jsonObject(alloc, [
+DocExport documentFun(ref Alloc alloc, in FunDecl a) =>
+	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, jsonObject(alloc, [
 		kindField!"fun",
 		field!"return-type"(documentTypeRef(alloc, a.typeParams, a.returnType)),
 		documentParams(alloc, a.typeParams, a.params),

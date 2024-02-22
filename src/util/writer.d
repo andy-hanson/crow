@@ -41,25 +41,30 @@ struct Writer {
 		res = Builder!(immutable char)(allocPtr);
 	}
 
-	void opOpAssign(string op, T)(in T a) scope if (op == "~") {
-		static if (is(T == char))
-			res ~= a;
-		else static if (is(T == string))
-			res ~= a;
-		else static if (is(immutable T == CString))
-			eachChar(a, (char c) {
-				this ~= c;
-			});
-		else static if (is(T == bool))
-			this ~= (a ? "true" : "false");
-		else static if (is(T == int) || is(T == long)) {
-			if (a < 0)
-				this ~= '-';
-			this ~= abs(a);
-		} else static if (is(T == ushort) || is(T == uint) || is(T == ulong))
-			writeNat(this, a);
-		else
-			static assert(false, "not writeable");
+	void opOpAssign(string op : "~")(char a) {
+		res ~= a;
+	}
+	void opOpAssign(string op : "~")(in string a) {
+		res ~= a;
+	}
+	void opOpAssign(string op : "~")(in CString a) {
+		eachChar(a, (char c) {
+			this ~= c;
+		});
+	}
+	void opOpAssign(string op : "~")(long a) {
+		if (a < 0)
+			this ~= '-';
+		this ~= abs(a);
+	}
+	void opOpAssign(string op : "~")(uint a) {
+		writeNat(this, a);
+	}
+	void opOpAssign(string op : "~")(ulong a) {
+		writeNat(this, a);
+	}
+	void opOpAssign(string op : "~", T)(T a) {
+		a.writeTo(this);
 	}
 }
 

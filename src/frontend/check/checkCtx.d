@@ -29,15 +29,13 @@ import util.col.mutSet : mayAddToMutSet, MutSet, mutSetHas;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.sourceRange : Range, UriAndRange;
-import util.symbol : AllSymbols, Symbol;
-import util.uri : AllUris, Uri;
+import util.symbol : Symbol;
+import util.uri : Uri;
 
 struct CheckCtx {
 	@safe @nogc pure nothrow:
 
 	Alloc* allocPtr;
-	AllSymbols* allSymbolsPtr;
-	const AllUris* allUrisPtr;
 	InstantiateCtx instantiateCtx;
 	immutable CommonUris* commonUrisPtr;
 	immutable Uri curUri;
@@ -50,12 +48,6 @@ struct CheckCtx {
 
 	@trusted ref Alloc alloc() return scope =>
 		*allocPtr;
-
-	ref inout(AllSymbols) allSymbols() return scope inout =>
-		*allSymbolsPtr;
-
-	ref const(AllUris) allUris() return scope const =>
-		*allUrisPtr;
 
 	ref CommonUris commonUris() return scope const =>
 		*commonUrisPtr;
@@ -104,7 +96,7 @@ void checkForUnused(ref CheckCtx ctx, StructAlias[] aliases, StructDecl[] struct
 	checkUnusedImports(ctx);
 	void checkUnusedDecl(T)(T* decl) {
 		if (decl.visibility == Visibility.private_ && !isUsed(ctx.used, decl))
-			addDiagAssertSameUri(ctx, decl.nameRange(ctx.allSymbols), Diag(
+			addDiagAssertSameUri(ctx, decl.nameRange, Diag(
 				Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.PrivateDecl(decl.name)))));
 	}
 	foreach (ref StructAlias alias_; aliases)
@@ -126,14 +118,14 @@ private void checkUnusedImports(ref CheckCtx ctx) {
 		import_.kind.match!void(
 			(ImportOrExportKind.ModuleWhole) {
 				if (!isUsedModuleWhole(ctx, import_.module_, import_.importVisibility) && has(import_.source))
-					addDiagUnused(force(import_.source).pathRange(ctx.allUris), none!Symbol);
+					addDiagUnused(force(import_.source).pathRange, none!Symbol);
 			},
 			(Opt!(NameReferents*)[] referents) {
 				foreach (size_t index, Opt!(NameReferents*) x; referents)
 					if (has(x) && !containsUsed(*force(x), import_.importVisibility, ctx.used)) {
 						NameAndRange nr = force(import_.source).kind.as!(NameAndRange[])[index];
 						assert(nr.name == force(x).name);
-						addDiagUnused(nr.range(ctx.allSymbols), some(force(x).name));
+						addDiagUnused(nr.range, some(force(x).name));
 					}
 			});
 	}
@@ -217,5 +209,5 @@ Visibility visibilityFromExplicitTopLevel(Opt!VisibilityAndRange a) =>
 
 void checkNoTypeParams(ref CheckCtx ctx, in TypeParams typeParams, DeclKind declKind) {
 	if (!isEmpty(typeParams))
-		addDiag(ctx, typeParamsRange(ctx.allSymbols, typeParams), Diag(Diag.TypeParamsUnsupported(declKind)));
+		addDiag(ctx, typeParamsRange(typeParams), Diag(Diag.TypeParamsUnsupported(declKind)));
 }

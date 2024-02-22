@@ -140,7 +140,7 @@ import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : UriAndRange;
-import util.symbol : AllSymbols, Symbol, symbol, symbolOfEnum;
+import util.symbol : Symbol, symbol, symbolOfEnum;
 import util.union_ : Union;
 import util.util : castNonScope_ref, enumConvert, ptrTrustMe, typeAs;
 import versionInfo : isVersion;
@@ -148,23 +148,19 @@ import versionInfo : isVersion;
 LowProgram lower(
 	scope ref Perf perf,
 	ref Alloc alloc,
-	in AllSymbols allSymbols,
 	in ConfigExternUris configExtern,
 	ref Program program,
 	ref ConcreteProgram a,
 ) =>
-	withMeasure!(LowProgram, () =>
-		lowerInner(alloc, allSymbols, configExtern, program, a)
-	)(perf, alloc, PerfMeasure.lower);
+	withMeasure!(LowProgram, () => lowerInner(alloc, configExtern, program, a))(perf, alloc, PerfMeasure.lower);
 
 private LowProgram lowerInner(
 	ref Alloc alloc,
-	in AllSymbols allSymbols,
 	in ConfigExternUris configExtern,
 	ref Program program,
 	ref ConcreteProgram a,
 ) {
-	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, allSymbols, a);
+	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, a);
 	immutable FullIndexMap!(LowVarIndex, LowVar) vars = getAllLowVars(alloc, allTypes.getLowTypeCtx, a.allVars);
 	AllLowFuns allFuns = getAllLowFuns(allTypes.allTypes, allTypes.getLowTypeCtx, configExtern, a, vars);
 	AllConstantsLow allConstants = convertAllConstants(allTypes.getLowTypeCtx, a.allConstants);
@@ -177,7 +173,7 @@ private LowProgram lowerInner(
 		allFuns.allLowFuns,
 		allFuns.main,
 		allFuns.allExternLibraries);
-	checkLowProgram(allSymbols, program, res);
+	checkLowProgram(program, res);
 	return res;
 }
 
@@ -255,19 +251,15 @@ struct GetLowTypeCtx {
 	@safe @nogc pure nothrow:
 
 	Alloc* allocPtr;
-	const AllSymbols* allSymbolsPtr;
 	immutable Map!(ConcreteStruct*, LowType) concreteStructToType;
 	MutMap!(ConcreteStruct*, LowType) concreteStructToPtrType;
 	MutMap!(ConcreteStruct*, LowType) concreteStructToPtrPtrType;
 
 	ref Alloc alloc() return scope =>
 		*allocPtr;
-
-	ref const(AllSymbols) allSymbols() return scope const =>
-		*allSymbolsPtr;
 }
 
-AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in AllSymbols allSymbols, in ConcreteProgram program) {
+AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in ConcreteProgram program) {
 	MapBuilder!(ConcreteStruct*, LowType) concreteStructToTypeBuilder;
 	ArrayBuilder!(ConcreteStruct*) allFunPointerSources;
 	ArrayBuilder!LowExternType allExternTypes;
@@ -342,8 +334,7 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in AllSymbols allSymbols, in 
 			mustAddToMap(alloc, concreteStructToTypeBuilder, concrete, force(lowType));
 	}
 
-	GetLowTypeCtx getLowTypeCtx =
-		GetLowTypeCtx(ptrTrustMe(alloc), ptrTrustMe(allSymbols), finishMap(alloc, concreteStructToTypeBuilder));
+	GetLowTypeCtx getLowTypeCtx = GetLowTypeCtx(ptrTrustMe(alloc), finishMap(alloc, concreteStructToTypeBuilder));
 
 	immutable FullIndexMap!(LowType.Record, LowRecord) allRecords =
 		fullIndexMapOfArr!(LowType.Record, LowRecord)(
@@ -928,9 +919,6 @@ struct GetLowExprCtx {
 
 	ref typeCtx() return scope =>
 		*getLowTypeCtxPtr;
-
-	ref const(AllSymbols) allSymbols() return scope =>
-		typeCtx.allSymbols();
 }
 
 alias Locals = immutable StackMap2!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*);

@@ -3,7 +3,7 @@ module util.uri;
 @safe @nogc nothrow: // not pure
 
 import frontend.parse.lexUtil : decodeHexDigit;
-import util.alloc.alloc : Alloc;
+import util.alloc.alloc : Alloc, AllocKind, MetaAlloc, newAlloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.array : fold, indexOf, indexOfStartingAt, isEmpty, sum;
 import util.col.mutArr : MutArr, mutArrSize, push;
@@ -17,9 +17,7 @@ import util.symbol :
 	addExtension,
 	alterExtension,
 	alterExtensionCb,
-	AllSymbols,
 	asLongSymbol,
-	eachCharInSymbol,
 	Extension,
 	getExtension,
 	hasExtension,
@@ -29,48 +27,81 @@ import util.symbol :
 	symbolOfString,
 	symbolSize,
 	toLowerCase,
-	writeExtension,
-	writeSymbol;
+	writeExtension;
 import util.util : todo, typeAs;
 import util.writer : digitChar, makeStringWithWriter, withStackWriter, withStackWriterImpureCString, withWriter, Writer;
 
-T withCStringOfFilePath(T)(in AllUris allUris, FilePath path, in T delegate(in CString) @safe @nogc nothrow cb) =>
+T withCStringOfFilePath(T)(FilePath path, in T delegate(in CString) @safe @nogc nothrow cb) =>
 	withStackWriterImpureCString!T((scope ref Writer writer) {
-		writeFilePath(writer, allUris, path);
+		writer ~= path;
 	}, cb);
 
-pure:
+// Root path at index 0 will have children, but they won't have it as a parent
+private __gshared Alloc* uriAlloc;
+private __gshared MutArr!(Opt!Path) pathToParent;
+private __gshared MutArr!Symbol pathToBaseName;
+private __gshared MutArr!(MutArr!Path) pathToChildren;
+private __gshared MutArr!PathInfo pathToInfo;
 
-struct AllUris {
-	@safe @nogc pure nothrow:
-	private:
-	Alloc* allocPtr;
-	AllSymbols* allSymbolsPtr;
-
-	// Root path at index 0 will have children, but they won't have it as a parent
-	MutArr!(Opt!Path) pathToParent;
-	MutArr!Symbol pathToBaseName;
-	MutArr!(MutArr!Path) pathToChildren;
-	MutArr!PathInfo pathToInfo;
-
-	public this(Alloc* a, AllSymbols* as) {
-		allocPtr = a;
-		allSymbolsPtr = as;
-
-		// 0 must be the empty URI
-		push(alloc, pathToParent, none!Path);
-		push(alloc, pathToBaseName, symbol!"");
-		push(alloc, pathToChildren, MutArr!Path());
-		push(alloc, pathToInfo, PathInfo(false, false));
-	}
-
-	ref inout(Alloc) alloc() return scope inout =>
-		*allocPtr;
-	public ref const(AllSymbols) allSymbols() return scope const =>
-		*allSymbolsPtr;
-	public ref AllSymbols allSymbols() return scope =>
-		*allSymbolsPtr;
+@trusted void initUris(MetaAlloc* metaAlloc) {
+	uriAlloc = newAlloc(AllocKind.uri, metaAlloc);
+	// 0 must be the empty URI
+	push(*uriAlloc, pathToParent, none!Path);
+	push(*uriAlloc, pathToBaseName, symbol!"");
+	push(*uriAlloc, pathToChildren, MutArr!Path());
+	push(*uriAlloc, pathToInfo, PathInfo(false, false));
 }
+
+private @trusted pure Path getOrAddChild(ref MutArr!Path children, Opt!Path parent, Symbol namePre, PathInfo info) =>
+	(cast(Path function(ref MutArr!Path, Opt!Path, Symbol, PathInfo) @safe @nogc pure nothrow) &getOrAddChild_impure)(
+		children, parent, namePre, info);
+private @trusted Path getOrAddChild_impure(ref MutArr!Path children, Opt!Path parent, Symbol namePre, PathInfo info) {
+	Symbol name = info.isWindowsPath ? toLowerCase(namePre) : namePre;
+	foreach (Path child; children)
+		if (baseName(child) == name)
+			return child;
+
+	Path res = Path(safeToUshort(mutArrSize(pathToParent)));
+	push(*uriAlloc, children, res);
+	push(*uriAlloc, pathToParent, parent);
+	push(*uriAlloc, pathToBaseName, name);
+	push(*uriAlloc, pathToChildren, MutArr!Path());
+	push(*uriAlloc, pathToInfo, info);
+	return res;
+}
+
+private @trusted pure Path rootPath(Symbol name, PathInfo info) =>
+	(cast(Path function(Symbol, PathInfo) @safe @nogc pure nothrow) &rootPath_impure)(name, info);
+private @system Path rootPath_impure(Symbol name, PathInfo info) =>
+	getOrAddChild(pathToChildren[Path.empty.index], none!Path, name, info);
+
+private @trusted pure Path childPathWithInfo(Path parent, Symbol name, PathInfo info) =>
+	(cast(Path function(Path, Symbol, PathInfo) @safe @nogc pure nothrow) &childPathWithInfo_impure)(
+		parent, name, info);
+private @system Path childPathWithInfo_impure(Path parent, Symbol name, PathInfo info) =>
+	getOrAddChild(pathToChildren[parent.index], some(parent), name, info);
+
+private @trusted pure PathInfo pathInfo(Path a) =>
+	(cast(PathInfo function(Path) @safe @nogc pure nothrow) &pathInfo_impure)(a);
+private @system PathInfo pathInfo_impure(Path a) =>
+	pathToInfo[a.index];
+
+@trusted pure Opt!Path parent(Path a) =>
+	(cast(Opt!Path function(Path) @safe @nogc pure nothrow) &parent_impure)(a);
+private @system Opt!Path parent_impure(Path a) =>
+	pathToParent[a.index];
+
+@trusted pure bool uriIsFile(Uri a) =>
+	(cast(bool function(Uri) @safe @nogc pure nothrow) &uriIsFile_impure)(a);
+private @system bool uriIsFile_impure(Uri a) =>
+	pathToInfo[a.path.index].isUriFile;
+
+@trusted pure Symbol baseName(Path a) =>
+	(cast(Symbol function(Path) @safe @nogc pure nothrow) &baseName_impure)(a);
+private @system Symbol baseName_impure(Path a) =>
+	pathToBaseName[a.index];
+
+pure:
 
 // This information could be derived from the first two components, but this is easier
 private immutable struct PathInfo {
@@ -101,37 +132,44 @@ immutable struct Uri {
 		path.asUintForTaggedUnion;
 	static Uri fromUintForTaggedUnion(uint a) =>
 		Uri(Path.fromUintForTaggedUnion(a));
+
+	void writeTo(scope ref Writer writer) {
+		writePath(writer, path, uriEncode: true);
+	}
 }
 
-private bool isRootUri(in AllUris allUris, Uri a) =>
-	!has(parent(allUris, a));
+private bool isRootUri(Uri a) =>
+	!has(parent(a));
 
 private Symbol fileScheme() =>
 	symbol!"file://";
 
-bool uriIsFile(in AllUris allUris, Uri a) =>
-	allUris.pathToInfo[a.path.index].isUriFile;
-
-FilePath asFilePath(ref AllUris allUris, Uri a) {
-	assert(uriIsFile(allUris, a));
-	return withComponents(allUris, a.path, (in Symbol[] components) {
+FilePath asFilePath(Uri a) {
+	assert(uriIsFile(a));
+	return withComponents(a.path, (in Symbol[] components) {
 		assert(components[0] == fileScheme);
-		return FilePath(descendentPath(allUris,
-			rootPath(allUris, components[1], PathInfo(isUriFile: true, isWindowsPath(allUris, a))),
+		return FilePath(descendentPath(
+			rootPath(components[1], PathInfo(isUriFile: true, isWindowsPath(a))),
 			components[2 .. $]));
 	});
 }
 
 // Uri that is restricted to be a 'file:'
 immutable struct FilePath {
+	@safe @nogc pure nothrow:
 	// Unlike for a Uri, this doesn't have "file" as the first component
 	Path path;
+
+	void writeTo(scope ref Writer writer) {
+		if (!isWindowsPath(this))
+			writer ~= '/';
+		writePath(writer, path);
+	}
 }
 
-Uri toUri(ref AllUris allUris, FilePath a) =>
+Uri toUri(FilePath a) =>
 	concatUriAndPath(
-		allUris,
-		Uri(rootPath(allUris, fileScheme, PathInfo(isUriFile: true, isWindowsPath: isWindowsPath(allUris, a)))),
+		Uri(rootPath(fileScheme, PathInfo(isUriFile: true, isWindowsPath: isWindowsPath(a)))),
 		a.path);
 
 // Represents the path part of a URI, e.g. 'a/b/c'
@@ -152,149 +190,113 @@ immutable struct Path {
 		Path(safeToUshort(a));
 }
 
-Opt!Uri parent(in AllUris allUris, Uri a) {
-	Opt!Path res = parent(allUris, a.path);
+Opt!Uri parent(Uri a) {
+	Opt!Path res = parent(a.path);
 	return has(res) ? some(Uri(force(res))) : none!Uri;
 }
-Opt!FilePath parent(in AllUris allUris, FilePath a) {
-	Opt!Path res = parent(allUris, a.path);
+Opt!FilePath parent(FilePath a) {
+	Opt!Path res = parent(a.path);
 	return has(res) ? some(FilePath(force(res))) : none!FilePath;
 }
-Opt!Path parent(in AllUris allUris, Path a) =>
-	allUris.pathToParent[a.index];
-
-Uri parentOrEmpty(ref AllUris allUris, Uri a) {
-	Opt!Uri res = parent(allUris, a);
+Uri parentOrEmpty(Uri a) {
+	Opt!Uri res = parent(a);
 	return has(res) ? force(res) : a;
 }
 
 // Removes an existing extension and adds a new one.
-FilePath alterExtension(scope ref AllUris allUris, FilePath a, Extension newExtension) =>
-	FilePath(alterExtension(allUris, a.path, newExtension));
-private Path alterExtension(scope ref AllUris allUris, Path a, Extension newExtension) =>
-	modifyBaseName(allUris, a, (Symbol name) =>
-		.alterExtension(allUris.allSymbols, name, newExtension));
+FilePath alterExtension(FilePath a, Extension newExtension) =>
+	FilePath(alterExtension(a.path, newExtension));
+private Path alterExtension(Path a, Extension newExtension) =>
+	modifyBaseName(a, (Symbol name) =>
+		.alterExtension(name, newExtension));
 
 // Adds an extension after any already existing extension.
-Uri addExtension(scope ref AllUris allUris, Uri a, Extension extension) =>
-	Uri(addExtension(allUris, a.path, extension));
-private Path addExtension(scope ref AllUris allUris, Path a, Extension extension) =>
-	modifyBaseName(allUris, a, (Symbol name) =>
-		.addExtension(allUris.allSymbols, name, extension));
+Uri addExtension(Uri a, Extension extension) =>
+	Uri(addExtension(a.path, extension));
+private Path addExtension(Path a, Extension extension) =>
+	modifyBaseName(a, (Symbol name) =>
+		addExtension(name, extension));
 
 // E.g., changes 'foo.crow' to 'foo.deadbeef.c'
-FilePath alterExtensionWithHex(ref AllUris allUris, FilePath a, in ubyte[] bytes, Extension newExtension) =>
-	FilePath(alterExtensionWithHexForPath(allUris, a.path, bytes, newExtension));
-private Path alterExtensionWithHexForPath(ref AllUris allUris, Path a, in ubyte[] bytes, Extension newExtension) =>
-	modifyBaseName(allUris, a, (Symbol name) =>
-		alterExtensionCb(allUris.allSymbols, name, (scope ref Writer writer) {
+FilePath alterExtensionWithHex(FilePath a, in ubyte[] bytes, Extension newExtension) =>
+	FilePath(modifyBaseName(a.path, (Symbol name) =>
+		alterExtensionCb(name, (scope ref Writer writer) {
 			writer ~= '.';
 			foreach (ubyte x; bytes) {
 				writer ~= digitChar(x / 16);
 				writer ~= digitChar(x % 16);
 			}
 			writeExtension(writer, newExtension);
-		}));
+		})));
 
-private bool hasExtension(in AllUris allUris, Path a) =>
-	hasExtension(allUris.allSymbols, baseName(allUris, a));
+private bool hasExtension(Path a) =>
+	hasExtension(baseName(a));
 
-private Path modifyBaseName(ref AllUris allUris, Path a, in Symbol delegate(Symbol) @safe @nogc pure nothrow cb) {
-	Symbol newBaseName = cb(baseName(allUris, a));
-	Opt!Path parent = parent(allUris, a);
+private Path modifyBaseName(Path a, in Symbol delegate(Symbol) @safe @nogc pure nothrow cb) {
+	Symbol newBaseName = cb(baseName(a));
+	Opt!Path parent = parent(a);
 	return has(parent)
-		? childPath(allUris, force(parent), newBaseName)
-		: rootPath(allUris, newBaseName, pathInfo(allUris, a));
+		? childPath(force(parent), newBaseName)
+		: rootPath(newBaseName, pathInfo(a));
 }
 
 // This will either be "" or start with a "."
-Extension getExtension(scope ref AllUris allUris, Uri a) =>
-	isRootUri(allUris, a)
+Extension getExtension(Uri a) =>
+	isRootUri(a)
 		? Extension.none
-		: getExtension(allUris, a.path);
-Extension getExtension(scope ref AllUris allUris, FilePath a) =>
-	getExtension(allUris, a.path);
-Extension getExtension(scope ref AllUris allUris, Path a) =>
-	getExtension(allUris.allSymbols, baseName(allUris, a));
+		: getExtension(a.path);
+Extension getExtension(FilePath a) =>
+	getExtension(a.path);
+Extension getExtension(Path a) =>
+	getExtension(baseName(a));
 
-Symbol baseName(in AllUris allUris, Uri a) =>
-	isRootUri(allUris, a)
-		? symbol!""
-		: baseName(allUris, a.path);
-Symbol baseName(in AllUris allUris, FilePath a) =>
-	baseName(allUris, a.path);
-Symbol baseName(in AllUris allUris, Path a) =>
-	allUris.pathToBaseName[a.index];
+Symbol baseName(Uri a) =>
+	isRootUri(a) ? symbol!"" : baseName(a.path);
+Symbol baseName(FilePath a) =>
+	baseName(a.path);
 
 immutable struct PathFirstAndRest {
 	Symbol first;
 	Opt!Path rest;
 }
 
-PathFirstAndRest firstAndRest(ref AllUris allUris, Path a) {
-	Opt!Path par = parent(allUris, a);
-	Symbol baseName = baseName(allUris, a);
+PathFirstAndRest firstAndRest(Path a) {
+	Opt!Path par = parent(a);
+	Symbol baseName = baseName(a);
 	if (has(par)) {
-		PathFirstAndRest parentRes = firstAndRest(allUris, force(par));
+		PathFirstAndRest parentRes = firstAndRest(force(par));
 		Path rest = has(parentRes.rest)
-			? childPath(allUris, force(parentRes.rest), baseName)
-			: rootPathPlain(allUris, baseName);
+			? childPath(force(parentRes.rest), baseName)
+			: rootPathPlain(baseName);
 		return PathFirstAndRest(parentRes.first, some(rest));
 	} else
 		return PathFirstAndRest(baseName, none!Path);
 }
 
-private Path getOrAddChild(
-	ref AllUris allUris,
-	ref MutArr!Path children,
-	Opt!Path parent,
-	Symbol namePre,
-	PathInfo info,
-) {
-	Symbol name = info.isWindowsPath ? toLowerCase(allUris.allSymbols, namePre) : namePre;
-	foreach (Path child; children)
-		if (baseName(allUris, child) == name)
-			return child;
+bool isWindowsPath(Uri a) =>
+	isWindowsPath(a.path);
+bool isWindowsPath(FilePath a) =>
+	isWindowsPath(a.path);
+bool isWindowsPath(Path a) =>
+	pathInfo(a).isWindowsPath;
 
-	Path res = Path(safeToUshort(mutArrSize(allUris.pathToParent)));
-	push(allUris.alloc, children, res);
-	push(allUris.alloc, allUris.pathToParent, parent);
-	push(allUris.alloc, allUris.pathToBaseName, name);
-	push(allUris.alloc, allUris.pathToChildren, MutArr!Path());
-	push(allUris.alloc, allUris.pathToInfo, info);
-	return res;
-}
+Path rootPathPlain(Symbol name) =>
+	rootPath(name, PathInfo(isUriFile: false, isWindowsPath: false));
 
-private PathInfo pathInfo(in AllUris allUris, Path a) =>
-	allUris.pathToInfo[a.index];
-bool isWindowsPath(in AllUris allUris, Uri a) =>
-	isWindowsPath(allUris, a.path);
-bool isWindowsPath(in AllUris allUris, FilePath a) =>
-	isWindowsPath(allUris, a.path);
-bool isWindowsPath(in AllUris allUris, Path a) =>
-	pathInfo(allUris, a).isWindowsPath;
+Uri childUri(Uri parent, Symbol name) =>
+	Uri(childPath(parent.path, name));
 
-Path rootPathPlain(ref AllUris allUris, Symbol name) =>
-	rootPath(allUris, name, PathInfo(isUriFile: false, isWindowsPath: false));
-private Path rootPath(ref AllUris allUris, Symbol name, PathInfo info) =>
-	getOrAddChild(allUris, allUris.pathToChildren[Path.empty.index], none!Path, name, info);
+FilePath childFilePath(FilePath parent, Symbol name) =>
+	FilePath(childPath(parent.path, name));
 
-Uri childUri(ref AllUris allUris, Uri parent, Symbol name) =>
-	Uri(childPath(allUris, parent.path, name));
+Uri bogusUri() =>
+	mustParseUri("bogus:bogus");
 
-FilePath childFilePath(ref AllUris allUris, FilePath parent, Symbol name) =>
-	FilePath(childPath(allUris, parent.path, name));
-
-Uri bogusUri(ref AllUris allUris) =>
-	mustParseUri(allUris, "bogus:bogus");
-
-Path childPath(ref AllUris allUris, Path parent, Symbol name) =>
-	childPathWithInfo(allUris, parent, name, pathInfo(allUris, parent));
-private Path childPathWithInfo(ref AllUris allUris, Path parent, Symbol name, PathInfo info) =>
-	getOrAddChild(allUris, allUris.pathToChildren[parent.index], some(parent), name, info);
-private Path descendentPath(ref AllUris allUris, Path parent, in Symbol[] childComponentNames) =>
+Path childPath(Path parent, Symbol name) =>
+	childPathWithInfo(parent, name, pathInfo(parent));
+private Path descendentPath(Path parent, in Symbol[] childComponentNames) =>
 	fold!(Path, Symbol)(parent, childComponentNames, (Path acc, in Symbol component) =>
-		childPath(allUris, acc, component));
+		childPath(acc, component));
 
 immutable struct RelPath {
 	@safe @nogc pure nothrow:
@@ -308,31 +310,36 @@ immutable struct RelPath {
 		ushort[2] xs = ushortsOfUint(a);
 		return RelPath(xs[0], Path(xs[1]));
 	}
+
+	void writeTo(scope ref Writer writer) {
+		foreach (ushort i; 0 .. nParents)
+			writer ~= "../";
+		writePath(writer, path);
+	}
 }
 
-Opt!Uri resolveUri(ref AllUris allUris, Uri base, RelPath relPath) {
+Opt!Uri resolveUri(Uri base, RelPath relPath) {
 	if (relPath.nParents == 0)
-		return some(concatUriAndPath(allUris, base, relPath.path));
+		return some(concatUriAndPath(base, relPath.path));
 	else {
-		Opt!Uri par = parent(allUris, base);
+		Opt!Uri par = parent(base);
 		return has(par)
-			? resolveUri(allUris, force(par), RelPath(cast(ushort) (relPath.nParents - 1), relPath.path))
+			? resolveUri(force(par), RelPath(cast(ushort) (relPath.nParents - 1), relPath.path))
 			: none!Uri;
 	}
 }
 
-Uri concatUriAndPath(ref AllUris allUris, Uri a, Path b) =>
-	withComponents(allUris, b, (in Symbol[] components) =>
-		Uri(descendentPath(allUris, a.path, components)));
+Uri concatUriAndPath(Uri a, Path b) =>
+	withComponents(b, (in Symbol[] components) =>
+		Uri(descendentPath(a.path, components)));
 
-T withComponents(T)(in AllUris allUris, Path a, in T delegate(in Symbol[]) @safe @nogc pure nothrow cb) =>
-	withComponentsPreferRelative!T(allUris, none!Path, a, (bool isRelative, in Symbol[] components) {
+T withComponents(T)(Path a, in T delegate(in Symbol[]) @safe @nogc pure nothrow cb) =>
+	withComponentsPreferRelative!T(none!Path, a, (bool isRelative, in Symbol[] components) {
 		assert(!isRelative);
 		return cb(components);
 	});
 
 private T withComponentsPreferRelative(T)(
-	in AllUris allUris,
 	in Opt!Path cwd,
 	Path a,
 	in T delegate(bool isRelative, in Symbol[]) @safe @nogc pure nothrow cb,
@@ -341,8 +348,8 @@ private T withComponentsPreferRelative(T)(
 	Cell!Path cur = Cell!Path(a);
 	bool isRelative = false;
 	while (true) {
-		stack ~= baseName(allUris, cellGet(cur));
-		Opt!Path par = parent(allUris, cellGet(cur));
+		stack ~= baseName(cellGet(cur));
+		Opt!Path par = parent(cellGet(cur));
 		if (!has(par))
 			break;
 		else if (has(cwd) && force(cwd) == force(par)) {
@@ -357,104 +364,98 @@ private T withComponentsPreferRelative(T)(
 	return cb(isRelative, asTemporaryArray(stack));
 }
 
-size_t pathLength(in AllUris allUris, Path path) =>
-	withComponents(allUris, path, (in Symbol[] components) {
+size_t pathLength(Path path) =>
+	withComponents(path, (in Symbol[] components) {
 		assert(!isEmpty(components));
 		size_t slashes = components.length - 1;
-		return sum!Symbol(components, (in Symbol component) => symbolSize(allUris.allSymbols, component)) + slashes;
+		return sum!Symbol(components, (in Symbol component) => symbolSize(component)) + slashes;
 	});
 
-CString cStringOfUriPreferRelative(ref Alloc alloc, in AllUris allUris, in UrisInfo urisInfo, Uri a) =>
+CString cStringOfUriPreferRelative(ref Alloc alloc, in UrisInfo urisInfo, Uri a) =>
 	withWriter(alloc, (scope ref Writer writer) {
-		writeUriPreferRelative(writer, allUris, urisInfo, a);
+		writeUriPreferRelative(writer, urisInfo, a);
 	});
-string stringOfUri(ref Alloc alloc, in AllUris allUris, Uri a) =>
+string stringOfUri(ref Alloc alloc, Uri a) =>
 	makeStringWithWriter(alloc, (scope ref Writer writer) {
-		writeUri(writer, allUris, a);
+		writer ~= a;
 	});
-string stringOfFilePath(ref Alloc alloc, in AllUris allUris, FilePath a) =>
+string stringOfFilePath(ref Alloc alloc, FilePath a) =>
 	makeStringWithWriter(alloc, (scope ref Writer writer) {
-		writeFilePath(writer, allUris, a);
+		writer ~= a;
 	});
 
-private T withStringOfUri(T)(in AllUris allUris, Uri a, in T delegate(in string) @safe @nogc pure nothrow cb) =>
+private T withStringOfUri(T)(Uri a, in T delegate(in string) @safe @nogc pure nothrow cb) =>
 	withStackWriter!(0x1000, T)((scope ref Alloc _, scope ref Writer writer) {
-		writeUri(writer, allUris, a);
+		writer ~= a;
 	}, cb);
 
-Symbol symbolOfUri(scope ref AllUris allUris, Uri a) =>
-	withStringOfUri(allUris, a, (in string x) => symbolOfString(allUris.allSymbols, x));
+Symbol symbolOfUri(Uri a) =>
+	withStringOfUri(a, (in string x) => symbolOfString(x));
 
-CString cStringOfFilePath(ref Alloc alloc, in AllUris allUris, FilePath a) =>
+CString cStringOfFilePath(ref Alloc alloc, FilePath a) =>
 	withWriter(alloc, (scope ref Writer writer) {
-		writeFilePath(writer, allUris, a);
+		writer ~= a;
 	});
-string stringOfPath(ref Alloc alloc, in AllUris allUris, Path a) =>
+string stringOfPath(ref Alloc alloc, Path a) =>
 	makeStringWithWriter(alloc, (scope ref Writer writer) {
-		writePath(writer, allUris, a);
+		writePath(writer, a);
 	});
 
-public CString cStringOfUriPreferRelative(ref Alloc alloc, in AllUris allUris, ref UrisInfo urisInfo, Uri a) =>
+public CString cStringOfUriPreferRelative(ref Alloc alloc, ref UrisInfo urisInfo, Uri a) =>
 	withWriter(alloc, (scope ref Writer writer) {
-		writeUriPreferRelative(writer, allUris, urisInfo, a);
+		writeUriPreferRelative(writer, urisInfo, a);
 	});
 
-Uri mustParseUri(ref AllUris allUris, in string str) {
-	Opt!Uri res = parseUri(allUris, str);
+Uri mustParseUri(in string str) {
+	Opt!Uri res = parseUri(str);
 	return force(res);
 }
-private Opt!Uri parseUri(ref AllUris allUris, in CString str) =>
-	parseUri(allUris, stringOfCString(str));
-private Opt!Uri parseUri(ref AllUris allUris, in string uri) {
+private Opt!Uri parseUri(in CString str) =>
+	parseUri(stringOfCString(str));
+private Opt!Uri parseUri(in string uri) {
 	Opt!size_t optColon = indexOf(uri, ':');
 	if (has(optColon)) {
 		size_t colon = force(optColon);
 		size_t start = colon < uri.length - 2 && uri[colon + 1] == '/' && uri[colon + 2] == '/' ? colon + 3 : colon + 1;
 		Opt!size_t slash = indexOfStartingAt(uri, '/', start);
 		if (has(slash)) {
-			Uri root = rootUri(allUris, uri[0 .. force(slash)]);
+			Uri root = rootUri(uri[0 .. force(slash)]);
 			return some(Uri(parsePathInner(
-				allUris,
 				uri[force(slash) + 1 .. $],
-				ParsePathOptions(uriDecode: true, isUriFile: uriIsFile(allUris, root)),
+				ParsePathOptions(uriDecode: true, isUriFile: uriIsFile(root)),
 				(Symbol rootSymbol) =>
-					childPathWithInfo(allUris, root.path, rootSymbol, PathInfo(
-						isUriFile: uriIsFile(allUris, root),
-						isWindowsPath: isWindowsPathStart(allUris.allSymbols, rootSymbol))))));
+					childPathWithInfo(root.path, rootSymbol, PathInfo(
+						isUriFile: uriIsFile(root),
+						isWindowsPath: isWindowsPathStart(rootSymbol))))));
 		} else
-			return some(rootUri(allUris, uri));
+			return some(rootUri(uri));
 	} else
 		return none!Uri;
 }
-private Uri rootUri(ref AllUris allUris, in string schemeAndAuthority) {
-	Symbol schemeSymbol = symbolOfString(allUris.allSymbols, schemeAndAuthority);
-	return Uri(rootPath(allUris, schemeSymbol, PathInfo(isUriFile: schemeSymbol == fileScheme, isWindowsPath: false)));
+private Uri rootUri(in string schemeAndAuthority) {
+	Symbol schemeSymbol = symbolOfString(schemeAndAuthority);
+	return Uri(rootPath(schemeSymbol, PathInfo(isUriFile: schemeSymbol == fileScheme, isWindowsPath: false)));
 }
 
-Path parsePath(ref AllUris allUris, in string str) =>
-	parsePathInner(allUris, str, ParsePathOptions(uriDecode: false, isUriFile: false), (Symbol rootSymbol) =>
-		rootPath(allUris, rootSymbol, PathInfo(isUriFile: false, isWindowsPath: false)));
+Path parsePath(in string str) =>
+	parsePathInner(str, ParsePathOptions(uriDecode: false, isUriFile: false), (Symbol rootSymbol) =>
+		rootPath(rootSymbol, PathInfo(isUriFile: false, isWindowsPath: false)));
 private immutable struct ParsePathOptions {
 	bool uriDecode;
 	bool isUriFile;
 }
 private Path parsePathInner(
-	ref AllUris allUris,
 	in string str,
 	in ParsePathOptions options,
 	in Path delegate(Symbol) @safe @nogc pure nothrow cbRoot,
 ) {
 	StringIter iter = StringIter(str);
-	Cell!Path res = Cell!Path(cbRoot(parsePathComponent(allUris.allSymbols, iter, options.uriDecode)));
+	Cell!Path res = Cell!Path(cbRoot(parsePathComponent(iter, options.uriDecode)));
 	while (!done(iter))
-		cellSet(res, childPath(allUris, cellGet(res), parsePathComponent(allUris.allSymbols, iter, options.uriDecode)));
+		cellSet(res, childPath(cellGet(res), parsePathComponent(iter, options.uriDecode)));
 	return cellGet(res);
 }
-private @trusted Symbol parsePathComponent(
-	scope ref AllSymbols allSymbols,
-	scope ref StringIter iter,
-	bool uriDecode,
-) =>
+private @trusted Symbol parsePathComponent(scope ref StringIter iter, bool uriDecode) =>
 	withStackWriter!0x1000((scope ref Alloc _, scope ref Writer writer) {
 		while (!done(iter)) {
 			char x = next(iter);
@@ -474,20 +475,20 @@ private @trusted Symbol parsePathComponent(
 				continue;
 			}
 		}
-	}, (in string x) => symbolOfString(allSymbols, x));
+	}, (in string x) => symbolOfString(x));
 
-private void encodePathComponent(scope ref Writer writer, in AllSymbols allSymbols, Symbol component) {
-	eachCharInSymbol(allSymbols, component, (char x) {
+private void encodePathComponent(scope ref Writer writer, Symbol component) {
+	foreach (char x; component) {
 		if (!isUriSafeChar(x)) {
 			writer ~= '%';
 			writer ~= typeAs!string(encodeAsHex(x));
 		} else
 			writer ~= x;
-	});
+	}
 }
 
-private bool isWindowsPathStart(in AllSymbols allSymbols, Symbol a) =>
-	isLongSymbol(a) && isWindowsPathStart(asLongSymbol(allSymbols, a));
+private bool isWindowsPathStart(Symbol a) =>
+	isLongSymbol(a) && isWindowsPathStart(asLongSymbol(a));
 private bool isWindowsPathStart(in string a) =>
 	a.length == 2 && isLetter(a[0]) && a[1] == ':';
 private bool isLetter(char a) =>
@@ -509,45 +510,42 @@ private char encodeAsHexDigit(ubyte a) {
 	return res;
 }
 
-private @trusted RelPath parseRelPath(ref AllUris allUris, in string a) =>
-	parseRelPathRecur(allUris, 0, a);
-private @system RelPath parseRelPathRecur(ref AllUris allUris, size_t nParents, in string a) =>
+private @trusted RelPath parseRelPath(in string a) =>
+	parseRelPathRecur(0, a);
+private @system RelPath parseRelPathRecur(size_t nParents, in string a) =>
 	a.length >= 2 && a[0] == '.' && isSlash(a[1])
-		? parseRelPathRecur(allUris, nParents, a[2 .. $])
+		? parseRelPathRecur(nParents, a[2 .. $])
 		: a.length >= 3 && a[0] == '.' && a[1] == '.' && isSlash(a[2])
-		? parseRelPathRecur(allUris, nParents + 1, a[3 .. $])
-		: RelPath(safeToUshort(nParents), parsePath(allUris, a));
+		? parseRelPathRecur(nParents + 1, a[3 .. $])
+		: RelPath(safeToUshort(nParents), parsePath(a));
 
-FilePath parseFilePath(ref AllUris allUris, in CString a) =>
-	parseFilePath(allUris, stringOfCString(a));
-FilePath parseFilePath(ref AllUris allUris, in string a) =>
+FilePath parseFilePath(in CString a) =>
+	parseFilePath(stringOfCString(a));
+FilePath parseFilePath(in string a) =>
 	FilePath(parsePathInner(
-		allUris,
 		!isEmpty(a) && a[0] == '/' ? a[1 .. $] : a,
 		ParsePathOptions(uriDecode: false, isUriFile: false),
 		(Symbol firstComponent) =>
-			rootPath(
-				allUris, firstComponent,
-				PathInfo(isUriFile: false, isWindowsPath: isWindowsPathStart(allUris.allSymbols, firstComponent)))));
+			rootPath(firstComponent, PathInfo(isUriFile: false, isWindowsPath: isWindowsPathStart(firstComponent)))));
 
-Opt!FilePath parseFilePathWithCwd(ref AllUris allUris, FilePath cwd, in CString a) {
-	Uri res = parseUriWithCwd(allUris, cwd, stringOfCString(a));
-	return optIf(uriIsFile(allUris, res), () => asFilePath(allUris, res));
+Opt!FilePath parseFilePathWithCwd(FilePath cwd, in CString a) {
+	Uri res = parseUriWithCwd(cwd, stringOfCString(a));
+	return optIf(uriIsFile(res), () => asFilePath(res));
 }
 
-Uri parseUriWithCwd(ref AllUris allUris, FilePath cwd, in string a) =>
-	parseUriWithCwd(allUris, toUri(allUris, cwd), a);
+Uri parseUriWithCwd(FilePath cwd, in string a) =>
+	parseUriWithCwd(toUri(cwd), a);
 
-Uri parseUriWithCwd(ref AllUris allUris, Uri cwd, in string a) {
+Uri parseUriWithCwd(Uri cwd, in string a) {
 	//TODO: handle actual URIs...
 	if (looksLikeAbsolutePath(a))
-		return toUri(allUris, parseFilePath(allUris, a));
+		return toUri(parseFilePath(a));
 	else if (looksLikeUri(a))
-		return mustParseUri(allUris, a);
+		return mustParseUri(a);
 	else {
 		//TODO: handle parse error (return none if so)
-		RelPath rp = parseRelPath(allUris, a);
-		Opt!Uri resolved = resolveUri(allUris, cwd, rp);
+		RelPath rp = parseRelPath(a);
+		Opt!Uri resolved = resolveUri(cwd, rp);
 		return has(resolved)
 			? force(resolved)
 			: todo!Uri("relative path reaches past file system root");
@@ -564,52 +562,21 @@ private bool looksLikeUri(in string a) =>
 private bool containsSubstring(in string a, in string b) =>
 	a.length >= b.length && (a[0 .. b.length] == b || containsSubstring(a[1 .. $], b));
 
-@trusted Comparison compareUriAlphabetically(in AllUris allUris, Uri a, Uri b) =>
-	withStringOfUri(allUris, a, (in string aStr) =>
-		withStringOfUri(allUris, b, (in string bStr) =>
+@trusted Comparison compareUriAlphabetically(Uri a, Uri b) =>
+	withStringOfUri(a, (in string aStr) =>
+		withStringOfUri(b, (in string bStr) =>
 			compareStringsAlphabetically(aStr, bStr)));
 
 immutable struct UrisInfo {
 	Opt!Uri cwd;
 }
 
-bool isAncestor(in AllUris allUris, Uri a, Uri b) {
+bool isAncestor(Uri a, Uri b) {
 	if (a == b)
 		return true;
 	else {
-		Opt!Uri par = parent(allUris, b);
-		return has(par) && isAncestor(allUris, a, force(par));
-	}
-}
-
-Opt!Uri commonAncestor(in AllUris allUris, in Uri[] uris) =>
-	uris.length == 0
-		? none!Uri
-		: commonAncestorRecur(allUris, uris[0], uris[1 .. $]);
-private Opt!Uri commonAncestorRecur(in AllUris allUris, Uri cur, in Uri[] uris) {
-	if (uris.length == 0)
-		return some(cur);
-	else {
-		Opt!Uri x = commonAncestorBinary(allUris, cur, uris[0]);
-		return has(x) ? commonAncestorRecur(allUris, force(x), uris[1 .. $]) : none!Uri;
-	}
-}
-private Opt!Uri commonAncestorBinary(in AllUris allUris, Uri a, Uri b) {
-	size_t aParts = countPathParts(allUris, a.path);
-	size_t bParts = countPathParts(allUris, b.path);
-	return aParts > bParts
-		? commonAncestorRecur(allUris, removeLastNParts(allUris, a, aParts - bParts), b)
-		: commonAncestorRecur(allUris, a, removeLastNParts(allUris, b, bParts - aParts));
-}
-private Opt!Uri commonAncestorRecur(in AllUris allUris, Uri a, Uri b) {
-	if (a == b)
-		return some(a);
-	else {
-		Opt!Uri parA = parent(allUris, a);
-		Opt!Uri parB = parent(allUris, b);
-		return has(parA)
-			? commonAncestorRecur(allUris, force(parA), force(parB))
-			: none!Uri;
+		Opt!Uri par = parent(b);
+		return has(par) && isAncestor(a, force(par));
 	}
 }
 
@@ -618,65 +585,43 @@ private:
 bool isSlash(char a) =>
 	a == '/' || a == '\\';
 
-size_t countPathParts(in AllUris allUris, Path a) =>
-	countPathPartsRecur(1, allUris, a);
-size_t countPathPartsRecur(size_t acc, in AllUris allUris, Path a) {
-	Opt!Path par = parent(allUris, a);
-	return has(par) ? countPathPartsRecur(acc + 1, allUris, force(par)) : acc;
-}
-
-Uri removeLastNParts(in AllUris allUris, Uri a, size_t nToRemove) {
+Uri removeLastNParts(Uri a, size_t nToRemove) {
 	if (nToRemove == 0)
 		return a;
 	else {
-		Opt!Uri par = parent(allUris, a);
-		return removeLastNParts(allUris, force(par), nToRemove - 1);
+		Opt!Uri par = parent(a);
+		return removeLastNParts(force(par), nToRemove - 1);
 	}
 }
 
-public void writeUri(scope ref Writer writer, in AllUris allUris, Uri a) {
-	writePath(writer, allUris, a.path, uriEncode: true);
-}
-
-public void writeFilePath(scope ref Writer writer, in AllUris allUris, FilePath a) {
-	if (!isWindowsPath(allUris, a))
-		writer ~= '/';
-	writePath(writer, allUris, a.path);
-}
-
-void writePath(scope ref Writer writer, in AllUris allUris, Path a, bool uriEncode = false) {
-	withComponents(allUris, a, (in Symbol[] components) {
-		writeComponents(writer, allUris.allSymbols, components, uriEncode);
+void writePath(scope ref Writer writer, Path a, bool uriEncode = false) { // TODO: implement 'writeTo' for 'Path'
+	withComponents(a, (in Symbol[] components) {
+		writeComponents(writer, components, uriEncode);
 	});
 }
 
-void writeComponents(scope ref Writer writer, in AllSymbols allSymbols, in Symbol[] components, bool uriEncode) {
+void writeComponents(scope ref Writer writer, in Symbol[] components, bool uriEncode) {
 	foreach (size_t index, Symbol component; components) {
 		if (uriEncode && index != 0) // First component or a Uri is the scheme, which is not encoded
-			encodePathComponent(writer, allSymbols, component);
+			encodePathComponent(writer, component);
 		else
-			writeSymbol(writer, allSymbols, component);
+			writer ~= component;
 		if (index != components.length - 1)
 			writer ~= '/';
 	}
 }
 
-public void writeUriPreferRelative(ref Writer writer, in AllUris allUris, in UrisInfo urisInfo, Uri a) {
+public void writeUriPreferRelative(ref Writer writer, in UrisInfo urisInfo, Uri a) {
 	withComponentsPreferRelative(
-		allUris, has(urisInfo.cwd) ? some(force(urisInfo.cwd).path) : none!Path, a.path,
+		has(urisInfo.cwd) ? some(force(urisInfo.cwd).path) : none!Path,
+		a.path,
 		(bool isRelative, in Symbol[] components) {
-			writeComponents(writer, allUris.allSymbols, components, uriEncode: !isRelative);
+			writeComponents(writer, components, uriEncode: !isRelative);
 		});
 }
 
-public size_t relPathLength(in AllUris allUris, in RelPath a) =>
-	(a.nParents == 0 ? "./".length : a.nParents * "../".length) + pathLength(allUris, a.path);
-
-public void writeRelPath(ref Writer writer, in AllUris allUris, in RelPath a) {
-	foreach (ushort i; 0 .. a.nParents)
-		writer ~= "../";
-	writePath(writer, allUris, a.path);
-}
+public size_t relPathLength(in RelPath a) =>
+	(a.nParents == 0 ? "./".length : a.nParents * "../".length) + pathLength(a.path);
 
 struct StringIter {
 	@safe @nogc pure nothrow:

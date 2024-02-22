@@ -84,13 +84,13 @@ import util.json :
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : jsonOfLineAndColumnRange, LineAndColumnGetter, Range;
 import util.symbol : Symbol, symbol;
-import util.uri : AllUris, stringOfUri;
+import util.uri : stringOfUri;
 import util.util : ptrTrustMe, stringOfEnum;
 
-Json jsonOfModule(ref Alloc alloc, in AllUris allUris, in LineAndColumnGetter lcg, in Module a) {
-	Ctx ctx = Ctx(ptrTrustMe(a), ptrTrustMe(allUris), lcg);
+Json jsonOfModule(ref Alloc alloc, in LineAndColumnGetter lcg, in Module a) {
+	Ctx ctx = Ctx(ptrTrustMe(a), lcg);
 	return jsonObject(alloc, [
-		field!"uri"(stringOfUri(alloc, allUris, a.uri)),
+		field!"uri"(stringOfUri(alloc, a.uri)),
 		optionalArrayField!("imports", ImportOrExport)(alloc, a.imports, (in ImportOrExport x) =>
 			jsonOfImportOrExport(alloc, ctx, x)),
 		optionalArrayField!("re-exports", ImportOrExport)(alloc, a.reExports, (in ImportOrExport x) =>
@@ -115,8 +115,8 @@ Json jsonOfRange(ref Alloc alloc, in Ctx ctx, in Range range) =>
 Json jsonOfImportOrExport(ref Alloc alloc, in Ctx ctx, in ImportOrExport a) =>
 	jsonObject(alloc, [
 		optionalField!("source", ImportOrExportAst*)(a.source, (in ImportOrExportAst* x) =>
-			jsonOfRange(alloc, ctx, x.pathRange(ctx.allUris))),
-		field!"module"(stringOfUri(alloc, ctx.allUris, a.module_.uri)),
+			jsonOfRange(alloc, ctx, x.pathRange)),
+		field!"module"(stringOfUri(alloc, a.module_.uri)),
 		field!"import-kind"(jsonOfImportOrExportKind(alloc, a.kind))]);
 
 Json jsonOfImportOrExportKind(ref Alloc alloc, in ImportOrExportKind a) =>
@@ -128,14 +128,8 @@ Json jsonOfImportOrExportKind(ref Alloc alloc, in ImportOrExportKind a) =>
 				has(x) ? jsonString(force(x).name) : jsonNull));
 
 const struct Ctx {
-	@safe @nogc pure nothrow:
-
 	Module* curModule;
-	AllUris* allUrisPtr;
 	LineAndColumnGetter lineAndColumnGetter;
-
-	ref const(AllUris) allUris() return scope =>
-		*allUrisPtr;
 }
 
 Json jsonOfStructDecl(ref Alloc alloc, in Ctx ctx, in StructDecl a) =>
@@ -291,7 +285,7 @@ Json jsonOfFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 		(in FunBody.FileImport x) =>
 			jsonObject(alloc, [
 				kindField!"file-import",
-				field!"uri"(stringOfUri(alloc, ctx.allUris, x.uri))]),
+				field!"uri"(stringOfUri(alloc, x.uri))]),
 		(in FlagsFunction x) =>
 			jsonObject(alloc, [
 				kindField!"flags-fn",

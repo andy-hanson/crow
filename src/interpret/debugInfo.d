@@ -16,8 +16,7 @@ import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : LineAndColumn, PosKind, UriAndPos;
 import util.string : CString;
-import util.symbol : AllSymbols;
-import util.uri : AllUris, cStringOfUriPreferRelative, Uri, UrisInfo;
+import util.uri : cStringOfUriPreferRelative, Uri, UrisInfo;
 import util.util : min;
 import util.writer : debugLogWithWriter, withWriter, writeHex, Writer;
 
@@ -29,10 +28,6 @@ struct InterpreterDebugInfo {
 
 	ref inout(ShowCtx) showDiag() return scope inout =>
 		*showDiagPtr;
-	ref const(AllSymbols) allSymbols() const return scope =>
-		showDiag.allSymbols;
-	ref const(AllUris) allUris() const return scope =>
-		showDiag.allUris;
 	ref const(UrisInfo) urisInfo() const return scope =>
 		showDiag.urisInfo;
 	ref LineAndColumnGetters lineAndColumnGetters() return scope =>
@@ -111,7 +106,7 @@ private @trusted BacktraceEntry backtraceEntryFromSource(
 	Opt!Uri opUri = getUri(info.lowProgram, source.fun);
 	if (has(opUri)) {
 		Uri uri = force(opUri);
-		CString fileUri = cStringOfUriPreferRelative(alloc, info.allUris, info.urisInfo, uri);
+		CString fileUri = cStringOfUriPreferRelative(alloc, info.urisInfo, uri);
 		LineAndColumn lc = info.lineAndColumnGetters[UriAndPos(uri, source.pos), PosKind.startOfRange].pos;
 		return BacktraceEntry(funName.ptr, fileUri.ptr, lc.line1Indexed, 0);
 	} else

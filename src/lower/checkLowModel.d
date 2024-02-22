@@ -41,14 +41,13 @@ import util.alloc.alloc : Alloc;
 import util.col.array : sizeEq;
 import util.col.array : zip;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
-import util.json : field, Json, jsonObject, jsonString, kindField, writeJson;
+import util.json : field, Json, jsonObject, jsonString, kindField;
 import util.opt : force, has, none, Opt, some;
-import util.symbol : AllSymbols;
 import util.util : castNonScope, ptrTrustMe, stringOfEnum;
 import util.writer : debugLogWithWriter, Writer;
 
-void checkLowProgram(in AllSymbols allSymbols, in Program program, in LowProgram a) {
-	Ctx ctx = Ctx(ptrTrustMe(allSymbols), ptrTrustMe(program), ptrTrustMe(a));
+void checkLowProgram(in Program program, in LowProgram a) {
+	Ctx ctx = Ctx(ptrTrustMe(program), ptrTrustMe(a));
 	foreach (ref LowFun fun; a.allFuns)
 		checkLowFun(ctx, fun);
 }
@@ -58,12 +57,8 @@ private:
 struct Ctx {
 	@safe @nogc pure nothrow:
 
-	const AllSymbols* allSymbolsPtr;
 	immutable Program* modelProgramPtr;
 	immutable LowProgram* programPtr;
-
-	ref const(AllSymbols) allSymbols() return scope const =>
-		*allSymbolsPtr;
 
 	ref Program modelProgram() return scope const =>
 		*modelProgramPtr;
@@ -545,9 +540,9 @@ void checkTypeEqual(ref Ctx ctx, in LowType expected, in LowType actual) {
 	if (expected != actual)
 		debugLogWithWriter((scope ref Alloc alloc, scope ref Writer writer) {
 			writer ~= "Type is not as expected. Expected:\n";
-			writeJson(writer, ctx.allSymbols, jsonOfLowType2(alloc, ctx.program, expected));
+			writer ~= jsonOfLowType2(alloc, ctx.program, expected);
 			writer ~= "\nActual:\n";
-			writeJson(writer, ctx.allSymbols, jsonOfLowType2(alloc, ctx.program, actual));
+			writer ~= jsonOfLowType2(alloc, ctx.program, actual);
 		});
 	assert(expected == actual);
 }

@@ -40,6 +40,7 @@ import model.model :
 	BuiltinType,
 	CommonTypes,
 	Destructure,
+	emptySpecs,
 	EnumFunction,
 	EnumOrFlagsMember,
 	Expr,
@@ -55,7 +56,7 @@ import model.model :
 	Program,
 	Purity,
 	RecordField,
-	SpecInst,
+	Specs,
 	StructBody,
 	StructDecl,
 	StructInst,
@@ -94,8 +95,8 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOrDefault;
 import util.sourceRange : UriAndRange;
 import util.string : bytesOfString;
-import util.symbol : AllSymbols, Symbol, symbol;
-import util.uri : AllUris, Uri;
+import util.symbol : Symbol, symbol;
+import util.uri : Uri;
 import util.util : enumConvert, max, roundUp, typeAs;
 import versionInfo : VersionInfo;
 
@@ -138,7 +139,7 @@ TypeArgsScope typeArgsScope(ref ConcreteFunKey a) =>
 
 immutable struct ContainingFunInfo {
 	Uri uri;
-	SmallArray!(immutable SpecInst*) specs;
+	Specs specs;
 	SmallArray!ConcreteType typeArgs;
 	SmallArray!(immutable ConcreteFun*) specImpls;
 }
@@ -177,8 +178,6 @@ struct ConcretizeCtx {
 
 	Alloc* allocPtr;
 	immutable VersionInfo versionInfo;
-	AllSymbols* allSymbolsPtr;
-	const AllUris* allUrisPtr;
 	CommonTypes* commonTypesPtr;
 	immutable Program* programPtr;
 	FileContentGetters fileContentGetters; // For 'assert' or 'forbid' messages and file imports
@@ -213,10 +212,6 @@ struct ConcretizeCtx {
 	ref Alloc alloc() return scope =>
 		*allocPtr;
 
-	ref inout(AllSymbols) allSymbols() return scope inout =>
-		*allSymbolsPtr;
-	ref const(AllUris) allUris() return scope const =>
-		*allUrisPtr;
 	ref CommonTypes commonTypes() return scope const =>
 		*commonTypesPtr;
 	ConcreteFun* char8ArrayAsString() return scope const =>
@@ -281,7 +276,7 @@ Constant constantCString(ref ConcretizeCtx a, string value) =>
 	getConstantCString(a.alloc, a.allConstants, value);
 
 Constant constantSymbol(ref ConcretizeCtx a, Symbol value) =>
-	getConstantSymbol(a.alloc, a.allConstants, a.allSymbols, value);
+	getConstantSymbol(a.alloc, a.allConstants, value);
 
 ConcreteFun* getOrAddConcreteFunAndFillBody(ref ConcretizeCtx ctx, ConcreteFunKey key) {
 	ConcreteFun* cf = getOrAddConcreteFunWithoutFillingBody(ctx, key);
@@ -482,10 +477,7 @@ ConcreteFun* concreteFunForTest(ref ConcretizeCtx ctx, ref Test test, size_t tes
 		voidFutureType,
 		[]));
 	ContainingFunInfo containing = ContainingFunInfo(
-		test.moduleUri,
-		emptySmallArray!(immutable SpecInst*),
-		emptySmallArray!ConcreteType,
-		emptySmallArray!(immutable ConcreteFun*));
+		test.moduleUri, emptySpecs, emptySmallArray!ConcreteType, emptySmallArray!(immutable ConcreteFun*));
 	ConcreteType returnType = () {
 		final switch (test.bodyType) {
 			case Test.BodyType.void_:
@@ -523,7 +515,7 @@ public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* mo
 			0,
 	*/
 	ConcreteType nat64 = nat64Type(ctx);
-	UriAndRange range = modelMain.decl.range(ctx.allSymbols);
+	UriAndRange range = modelMain.decl.range;
 	ConcreteExpr callMain = ConcreteExpr(voidType(ctx), range, ConcreteExprKind(ConcreteExprKind.Call(innerMain, [])));
 	ConcreteExpr zero = ConcreteExpr(nat64, range, ConcreteExprKind(constantZero));
 	ConcreteFun* newNat64Future = newNat64FutureFunction(ctx);
@@ -747,7 +739,7 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 		ConcreteFunBodyInputs inputs = mustDelete(ctx.concreteFunToBodyInputs, cf);
 		ConcreteFunBody body_ = inputs.body_.match!ConcreteFunBody(
 			(FunBody.Bogus) =>
-				ConcreteFunBody(concretizeBogus(ctx, cf.returnType, cf.range(ctx.allSymbols))),
+				ConcreteFunBody(concretizeBogus(ctx, cf.returnType, cf.range)),
 			(AutoFun x) =>
 				ConcreteFunBody(concretizeAutoFun(ctx, cf, x)),
 			(BuiltinFun x) =>
@@ -800,21 +792,19 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 }
 
 ConcreteExpr concretizeFileImport(ref ConcretizeCtx ctx, ConcreteFun* cf, in FunBody.FileImport import_) {
-	ConcreteType type = cf.returnType;
-	UriAndRange range = cf.range(ctx.allSymbols);
 	Opt!FileContent optContent = ctx.fileContentGetters[import_.uri];
 	ConcreteExprKind exprKind = () {
 		if (has(optContent)) {
 			final switch (import_.type) {
 				case ImportFileType.nat8Array:
-					return ConcreteExprKind(constantOfBytes(ctx, type, asBytes(force(optContent))));
+					return ConcreteExprKind(constantOfBytes(ctx, cf.returnType, asBytes(force(optContent))));
 				case ImportFileType.string:
-					return stringLiteralConcreteExprKind(ctx, range, asString(force(optContent)));
+					return stringLiteralConcreteExprKind(ctx, cf.range, asString(force(optContent)));
 			}
 		} else
-			return concretizeBogusKind(ctx, range);
+			return concretizeBogusKind(ctx, cf.range);
 	}();
-	return ConcreteExpr(type, range, exprKind);
+	return ConcreteExpr(cf.returnType, cf.range, exprKind);
 }
 
 Constant constantOfBytes(ref ConcretizeCtx ctx, ConcreteType arrayType, in ubyte[] bytes) {

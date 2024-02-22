@@ -42,7 +42,6 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.opt : force, has;
 import util.sourceRange : PosKind;
-import util.symbol : writeSymbol;
 import util.uri : Uri;
 import util.writer : makeStringWithWriter, writeNewline, Writer;
 
@@ -56,9 +55,9 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 		(EnumOrFlagsMember* x) {
 			writer ~= x.containingEnum.body_.isA!(StructBody.Enum) ? "Enum " : "Flags ";
 			writer ~= " member ";
-			writeSymbol(writer, ctx.allSymbols, x.containingEnum.name);
+			writer ~= x.containingEnum.name;
 			writer ~= '.';
-			writeSymbol(writer, ctx.allSymbols, x.name);
+			writer ~= x.name;
 		},
 		(ExpressionPosition x) {
 			getExprHover(writer, ctx, pos.module_.uri, x);
@@ -177,9 +176,9 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 		},
 		(RecordField* x) {
 			writer ~= "Record field ";
-			writeSymbol(writer, ctx.allSymbols, x.containingRecord.name);
+			writer ~= x.containingRecord.name;
 			writer ~= '.';
-			writeSymbol(writer, ctx.allSymbols, x.name);
+			writer ~= x.name;
 			writer ~= " (of type ";
 			writeTypeQuoted(writer, ctx, TypeWithContainer(x.type, TypeContainer(x.containingRecord)));
 			writer ~= ')';
@@ -227,9 +226,9 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 		},
 		(UnionMember* x) {
 			writer ~= "Union member ";
-			writeSymbol(writer, ctx.allSymbols, x.containingUnion.name);
+			writer ~= x.containingUnion.name;
 			writer ~= '.';
-			writeSymbol(writer, ctx.allSymbols, x.name);
+			writer ~= x.name;
 			if (x.type == Type(ctx.commonTypes.void_))
 				writer ~= " (no associated value)";
 			else {

@@ -21,7 +21,6 @@ import util.symbol : Extension, symbol;
 import util.union_ : Union;
 import util.uri :
 	alterExtension,
-	AllUris,
 	asFilePath,
 	childFilePath,
 	FilePath,
@@ -35,19 +34,16 @@ import util.util : castNonScope, enumEach, optEnumOfString, stringOfEnum, typeAs
 import util.writer : makeStringWithWriter, writeNewline, writeQuotedString, Writer;
 import versionInfo : OS;
 
-Command parseCommand(ref Alloc alloc, scope ref AllUris allUris, FilePath cwd, OS os, CString[] args) {
+Command parseCommand(ref Alloc alloc, FilePath cwd, OS os, CString[] args) {
 	string arg0 = stringOfCString(args[0]);
 	if (endsWith(arg0, ".crow"))
 		return Command(
-			CommandKind(CommandKind.Run(
-				parseUriWithCwd(allUris, cwd, arg0),
-				RunOptions(RunOptions.Interpret()),
-				args[1 .. $])),
+			CommandKind(CommandKind.Run(parseUriWithCwd(cwd, arg0), RunOptions(RunOptions.Interpret()), args[1 .. $])),
 			CommandOptions()) ;
 	else {
 		Opt!CommandName optName = isEmpty(args) ? none!CommandName : optEnumOfString!CommandName(arg0);
 		return has(optName)
-			? parseCommandFromName(alloc, allUris, cwd, os, force(optName), args[1 .. $])
+			? parseCommandFromName(alloc, cwd, os, force(optName), args[1 .. $])
 			: Command(
 				CommandKind(CommandKind.Help(
 					helpAllText(alloc),
@@ -58,14 +54,7 @@ Command parseCommand(ref Alloc alloc, scope ref AllUris allUris, FilePath cwd, O
 
 private:
 
-Command parseCommandFromName(
-	ref Alloc alloc,
-	scope ref AllUris allUris,
-	FilePath cwd,
-	OS os,
-	CommandName name,
-	CString[] args,
-) {
+Command parseCommandFromName(ref Alloc alloc, FilePath cwd, OS os, CommandName name, CString[] args) {
 	SplitArgsAndOptions split = splitArgs(alloc, args);
 	if (split.help)
 		return Command(
@@ -73,7 +62,7 @@ Command parseCommandFromName(
 			split.options);
 	else {
 		Diags diagsBuilder = Diags(&alloc);
-		CommandKind res = parseCommandKind(alloc, allUris, cwd, os, name, split.args, diagsBuilder);
+		CommandKind res = parseCommandKind(alloc, cwd, os, name, split.args, diagsBuilder);
 		Diag[] diags = finish(diagsBuilder);
 		if (isEmpty(diags))
 			return Command(res, split.options);
@@ -81,7 +70,7 @@ Command parseCommandFromName(
 			string help = makeStringWithWriter(alloc, (scope ref Writer writer) {
 				writer ~= "Command syntax error: ";
 				foreach (Diag x; diags) {
-					writeDiag(writer, allUris, x);
+					writeDiag(writer, x);
 					writeNewline(writer, 0);
 				}
 				writeNewline(writer, 0);
@@ -141,7 +130,7 @@ immutable struct Diag {
 }
 alias Diags = Builder!Diag;
 
-void writeDiag(scope ref Writer writer, in AllUris allUris, in Diag a) {
+void writeDiag(scope ref Writer writer, in Diag a) {
 	a.matchIn!void(
 		(in Diag.BuildOutDuplicate) {
 			writer ~= "Crow does not support building to multiple files (except to both C and executable).";
@@ -223,7 +212,6 @@ void writeExtension(scope ref Writer writer, Extension a) {
 
 CommandKind parseCommandKind(
 	ref Alloc alloc,
-	scope ref AllUris allUris,
 	FilePath cwd,
 	OS os,
 	CommandName commandName,
@@ -232,24 +220,24 @@ CommandKind parseCommandKind(
 ) {
 	final switch (commandName) {
 		case CommandName.build:
-			return parseBuildCommand(alloc, allUris, cwd, diags, getDefaultExeExtension(os), args);
+			return parseBuildCommand(alloc, cwd, diags, getDefaultExeExtension(os), args);
 		case CommandName.check:
 			expectEmptyParts(diags, args.parts);
 			expectEmptyAfterDashDash(diags, args.afterDashDash);
-			return CommandKind(CommandKind.Check(parseRootUris(alloc, allUris, cwd, diags, args.beforeFirstPart)));
+			return CommandKind(CommandKind.Check(parseRootUris(alloc, cwd, diags, args.beforeFirstPart)));
 		case CommandName.document:
 			expectEmptyParts(diags, args.parts);
 			expectEmptyAfterDashDash(diags, args.afterDashDash);
-			return CommandKind(CommandKind.Document(parseRootUris(alloc, allUris, cwd, diags, args.beforeFirstPart)));
+			return CommandKind(CommandKind.Document(parseRootUris(alloc, cwd, diags, args.beforeFirstPart)));
 		case CommandName.lsp:
 			expectAllEmpty(diags, args);
 			return CommandKind(CommandKind.Lsp());
 		case CommandName.print:
-			return parsePrintCommand(alloc, allUris, cwd, diags, args);
+			return parsePrintCommand(alloc, cwd, diags, args);
 		case CommandName.run:
-			RunOptions options = parseRunOptions(alloc, allUris, getDefaultExeExtension(os), diags, args.parts);
+			RunOptions options = parseRunOptions(alloc, getDefaultExeExtension(os), diags, args.parts);
 			return CommandKind(CommandKind.Run(
-				parseMainUri(alloc, allUris, cwd, diags, args.beforeFirstPart),
+				parseMainUri(alloc, cwd, diags, args.beforeFirstPart),
 				options,
 				optOrDefault!(CString[])(castNonScope(args.afterDashDash), () => typeAs!(CString[])([]))));
 		case CommandName.test:
@@ -292,56 +280,37 @@ Extension getDefaultExeExtension(OS os) {
 	}
 }
 
-Uri parseMainUri(
-	ref Alloc alloc,
-	scope ref AllUris allUris,
-	FilePath cwd,
-	scope ref Diags diags,
-	in CString[] args,
-) {
+Uri parseMainUri(ref Alloc alloc, FilePath cwd, scope ref Diags diags, in CString[] args) {
 	if (args.length != 1) {
 		diags ~= Diag(Diag.NeedsSinglePath(args.length));
-		return toUri(allUris, cwd); // dummy return value
+		return toUri(cwd); // dummy return value
 	} else
-		return parseCrowUri(alloc, allUris, cwd, diags, only(args));
+		return parseCrowUri(alloc, cwd, diags, only(args));
 }
 
-Uri parseCrowUri(ref Alloc alloc, scope ref AllUris allUris, FilePath cwd, scope ref Diags diags, CString arg) {
+Uri parseCrowUri(ref Alloc alloc, FilePath cwd, scope ref Diags diags, CString arg) {
 	string argStr = stringOfCString(arg);
-	Uri uri = parseUriWithCwd(allUris, cwd, argStr);
-	if (getExtension(allUris, uri) != Extension.crow)
+	Uri uri = parseUriWithCwd(cwd, argStr);
+	if (getExtension(uri) != Extension.crow)
 		diags ~= Diag(Diag.ExpectedCrowUri(argStr));
 	return uri;
 }
 
-Uri[] parseRootUris(
-	ref Alloc alloc,
-	scope ref AllUris allUris,
-	FilePath cwd,
-	scope ref Diags diags,
-	in CString[] args,
-) {
+Uri[] parseRootUris(ref Alloc alloc, FilePath cwd, scope ref Diags diags, in CString[] args) {
 	if (isEmpty(args))
 		diags ~= Diag(Diag.ExpectedPaths(none!CString));
 	return map(alloc, args, (ref CString arg) =>
-		parseCrowUri(alloc, allUris, cwd, diags, arg));
+		parseCrowUri(alloc, cwd, diags, arg));
 }
 
-CommandKind parsePrintCommand(
-	ref Alloc alloc,
-	scope ref AllUris allUris,
-	FilePath cwd,
-	scope ref Diags diags,
-	in SplitArgs args,
-) {
+CommandKind parsePrintCommand(ref Alloc alloc, FilePath cwd, scope ref Diags diags, in SplitArgs args) {
 	expectEmptyParts(diags, args.parts);
 	expectEmptyAfterDashDash(diags, args.afterDashDash);
 	Opt!PrintKind kind = args.beforeFirstPart.length >= 2
 		? parsePrintKind(args.beforeFirstPart[0], args.beforeFirstPart[2 .. $])
 		: none!PrintKind;
 	if (has(kind))
-		return CommandKind(CommandKind.Print(
-			force(kind), parseCrowUri(alloc, allUris, cwd, diags, args.beforeFirstPart[1])));
+		return CommandKind(CommandKind.Print(force(kind), parseCrowUri(alloc, cwd, diags, args.beforeFirstPart[1])));
 	else {
 		diags ~= Diag(Diag.PrintKind());
 		return dummyCommand;
@@ -403,22 +372,20 @@ Opt!uint tryTakeNat(ref MutCString ptr) {
 
 CommandKind parseBuildCommand(
 	ref Alloc alloc,
-	scope ref AllUris allUris,
 	FilePath cwd,
 	scope ref Diags diags,
 	Extension defaultExeExtension,
 	in SplitArgs args,
 ) {
 	expectEmptyAfterDashDash(diags, args.afterDashDash);
-	Uri main = parseMainUri(alloc, allUris, cwd, diags, args.beforeFirstPart);
+	Uri main = parseMainUri(alloc, cwd, diags, args.beforeFirstPart);
 	return CommandKind(CommandKind.Build(
 		main,
-		parseBuildOptions(alloc, allUris, cwd, diags, defaultExeExtension, args.parts, main)));
+		parseBuildOptions(alloc, cwd, diags, defaultExeExtension, args.parts, main)));
 }
 
 RunOptions parseRunOptions(
 	ref Alloc alloc,
-	scope ref AllUris allUris,
 	Extension defaultExeExtension,
 	scope ref Diags diags,
 	in ArgsPart[] argParts,
@@ -466,7 +433,6 @@ void expectFlag(scope ref Diags diags, ArgsPart part) {
 
 BuildOptions parseBuildOptions(
 	ref Alloc alloc,
-	scope ref AllUris allUris,
 	FilePath cwd,
 	scope ref Diags diags,
 	Extension defaultExeExtension,
@@ -481,7 +447,7 @@ BuildOptions parseBuildOptions(
 				if (has(cellGet(out_)))
 					diags ~= Diag(Diag.DuplicatePart(part.tag));
 				else
-					cellSet(out_, some(parseBuildOut(alloc, allUris, cwd, defaultExeExtension, diags, part)));
+					cellSet(out_, some(parseBuildOut(alloc, cwd, defaultExeExtension, diags, part)));
 				break;
 			case "--optimize":
 				expectFlag(diags, part);
@@ -501,15 +467,13 @@ BuildOptions parseBuildOptions(
 			outC: none!FilePath,
 			shouldBuildExecutable: true,
 			outExecutable: defaultExePath(
-				allUris,
-				uriIsFile(allUris, mainUri) ? asFilePath(allUris, mainUri) : childFilePath(allUris, cwd, symbol!"main"),
+				uriIsFile(mainUri) ? asFilePath(mainUri) : childFilePath(cwd, symbol!"main"),
 				defaultExeExtension));
 	return BuildOptions(resOut, options);
 }
 
 BuildOut parseBuildOut(
 	ref Alloc alloc,
-	scope ref AllUris allUris,
 	FilePath cwd,
 	Extension defaultExeExtension,
 	scope ref Diags diags,
@@ -518,10 +482,10 @@ BuildOut parseBuildOut(
 	Cell!(Opt!FilePath) outC;
 	Cell!(Opt!FilePath) outExe;
 	foreach (CString arg; part.args) {
-		Opt!FilePath opt = parseFilePathWithCwd(allUris, cwd, arg);
+		Opt!FilePath opt = parseFilePathWithCwd(cwd, arg);
 		if (has(opt)) {
 			FilePath path = force(opt);
-			Extension extension = getExtension(allUris, path);
+			Extension extension = getExtension(path);
 			if (extension == Extension.c) {
 				if (has(cellGet(outC)))
 					diags ~= Diag(Diag.BuildOutDuplicate());
@@ -542,11 +506,11 @@ BuildOut parseBuildOut(
 		outC: cellGet(outC),
 		shouldBuildExecutable: has(cellGet(outExe)),
 		outExecutable: optOrDefault!FilePath(cellGet(outExe), () =>
-			defaultExePath(allUris, force(cellGet(outC)), defaultExeExtension)));
+			defaultExePath(force(cellGet(outC)), defaultExeExtension)));
 }
 
-FilePath defaultExePath(scope ref AllUris allUris, FilePath base, Extension defaultExeExtension) =>
-	alterExtension(allUris, base, defaultExeExtension);
+FilePath defaultExePath(FilePath base, Extension defaultExeExtension) =>
+	alterExtension(base, defaultExeExtension);
 
 immutable struct ArgsPart {
 	CString tag; // includes the "--"

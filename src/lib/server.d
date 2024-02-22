@@ -105,10 +105,9 @@ import util.opt : force, has, none, Opt, optIf, some;
 import util.perf : Perf;
 import util.sourceRange : LineAndColumn, toLineAndCharacter, UriAndRange, UriLineAndColumn;
 import util.string : copyString, CString, cString;
-import util.symbol : AllSymbols;
-import util.uri : AllUris, FilePath, stringOfFilePath, Uri, UrisInfo;
+import util.uri : FilePath, stringOfFilePath, Uri, UrisInfo;
 import util.union_ : Union;
-import util.util : castNonScope, castNonScope_ref, ptrTrustMe;
+import util.util : castNonScope, castNonScope_ref;
 import versionInfo : getOS, OS, VersionInfo, versionInfoForBuildToC, versionInfoForInterpret;
 
 ExitCode buildAndInterpret(
@@ -135,7 +134,7 @@ ExitCode buildAndInterpret(
 			if (has(externPointers))
 				return withTempAllocImpure!ExitCode(server.metaAlloc, AllocKind.interpreter, (ref Alloc bytecodeAlloc) {
 					ByteCode byteCode = generateBytecode(
-						perf, bytecodeAlloc, server.allSymbols, programs.program, lowProgram,
+						perf, bytecodeAlloc, programs.program, lowProgram,
 						force(externPointers), extern_.aggregateCbs, extern_.makeSyntheticFunPointers);
 					ShowCtx printCtx = getShowDiagCtx(server, programs.program);
 					return runBytecode(
@@ -321,7 +320,7 @@ private ExitCode run(
 	// TODO: use an arena so anything allocated during interpretation is cleaned up.
 	// Or just have interpreter free things.
 	CString[1] allArgs = [cString!"/usr/bin/fakeExecutable"];
-	return withFakeExtern(alloc, server.allSymbols, writeCb, (scope ref Extern extern_) =>
+	return withFakeExtern(alloc, writeCb, (scope ref Extern extern_) =>
 		buildAndInterpret(
 			perf, server, extern_,
 			(in string x) { writeCb(Pipe.stderr, x); },
@@ -334,8 +333,6 @@ struct Server {
 	@safe @nogc pure nothrow:
 
 	MetaAlloc metaAlloc_;
-	AllSymbols allSymbols;
-	AllUris allUris;
 	private Late!Uri includeDir_;
 	private Late!UrisInfo urisInfo_;
 	ShowOptions showOptions_ = ShowOptions(false);
@@ -345,9 +342,7 @@ struct Server {
 
 	@trusted this(return scope FetchMemoryCb fetch) {
 		metaAlloc_ = MetaAlloc(fetch);
-		allSymbols = AllSymbols(newAlloc(AllocKind.allSymbols, metaAlloc));
-		allUris = AllUris(newAlloc(AllocKind.allUris, metaAlloc), &allSymbols);
-		storage = Storage(metaAlloc, &allSymbols, &allUris);
+		storage = Storage(metaAlloc);
 		lspState = LspState(newAlloc(AllocKind.lspState, metaAlloc));
 	}
 
@@ -406,7 +401,7 @@ Json version_(ref Alloc alloc, in Server server, FilePath thisExecutable) {
 	}
 
 	return jsonObject(alloc, [
-		field!"path"(stringOfFilePath(alloc, server.allUris, thisExecutable)),
+		field!"path"(stringOfFilePath(alloc, thisExecutable)),
 		field!"built-on"(import("date.txt")[0 .. "2020-02-02".length]),
 		field!"commit-hash"(import("commit-hash.txt")[0 .. 8]),
 		field!"is-debug-build"(isDebug),
@@ -431,9 +426,7 @@ private string dCompilerName() {
 
 void setIncludeDir(Server* server, Uri uri) {
 	lateSet!Uri(server.includeDir_, uri);
-	lateSet!(Frontend*)(
-		server.frontend_,
-		initFrontend(server.metaAlloc, &server.allSymbols, &server.allUris, &server.storage, uri));
+	lateSet!(Frontend*)(server.frontend_, initFrontend(server.metaAlloc, &server.storage, uri));
 }
 
 void setCwd(ref Server server, Uri uri) {
@@ -491,9 +484,7 @@ string check(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] r
 
 DocumentResult getDocumentation(scope ref Perf perf, ref Alloc alloc, ref Server server, in Uri[] uris) {
 	Program program = getProgram(perf, alloc, server, uris);
-	return DocumentResult(
-		documentJSON(alloc, server.allSymbols, server.allUris, program),
-		showDiagnostics(alloc, server, program));
+	return DocumentResult(documentJSON(alloc, program), showDiagnostics(alloc, server, program));
 }
 
 private UriAndRange[] getDefinitionForProgram(
@@ -502,10 +493,8 @@ private UriAndRange[] getDefinitionForProgram(
 	in Program program,
 	in DefinitionParams params,
 ) {
-	Opt!Position position = getPosition(server, program, params.params);
-	return has(position)
-		? getDefinitionForPosition(alloc, server.allSymbols, force(position))
-		: [];
+	Opt!Position position = serverGetPosition(server, program, params.params);
+	return has(position) ? getDefinitionForPosition(alloc, force(position)) : [];
 }
 
 private UriAndRange[] getReferencesForProgram(
@@ -514,10 +503,8 @@ private UriAndRange[] getReferencesForProgram(
 	in Program program,
 	in ReferenceParams params,
 ) {
-	Opt!Position position = getPosition(server, program, params.params);
-	return has(position)
-		? getReferencesForPosition(alloc, server.allSymbols, server.allUris, program, force(position))
-		: [];
+	Opt!Position position = serverGetPosition(server, program, params.params);
+	return has(position) ? getReferencesForPosition(alloc, program, force(position)) : [];
 }
 
 private Opt!WorkspaceEdit getRenameForProgram(
@@ -526,9 +513,9 @@ private Opt!WorkspaceEdit getRenameForProgram(
 	in Program program,
 	in RenameParams params,
 ) {
-	Opt!Position position = getPosition(server, program, params.textDocumentAndPosition);
+	Opt!Position position = serverGetPosition(server, program, params.textDocumentAndPosition);
 	return has(position)
-		? getRenameForPosition(alloc, server.allSymbols, server.allUris, program, force(position), params.newName)
+		? getRenameForPosition(alloc, program, force(position), params.newName)
 		: none!WorkspaceEdit;
 }
 
@@ -538,7 +525,7 @@ private Opt!Hover getHoverForProgram(
 	in Program program,
 	in HoverParams params,
 ) {
-	Opt!Position position = getPosition(server, program, params.params);
+	Opt!Position position = serverGetPosition(server, program, params.params);
 	return optIf(has(position), () => getHover(alloc, getShowDiagCtx(server, program), force(position)));
 }
 
@@ -551,10 +538,10 @@ ProgramWithMain getProgramForMain(scope ref Perf perf, ref Alloc alloc, ref Serv
 Program getProgramForAll(scope ref Perf perf, ref Alloc alloc, ref Server server) =>
 	getProgram(perf, alloc, server, allKnownGoodCrowUris(alloc, server.storage));
 
-private Opt!Position getPosition(in Server server, ref Program program, in TextDocumentPositionParams where) {
+private Opt!Position serverGetPosition(in Server server, ref Program program, in TextDocumentPositionParams where) {
 	Opt!(immutable Module*) module_ = program.allModules[where.textDocument.uri];
 	return has(module_)
-		? getPosition(server.allSymbols, server.allUris, program, force(module_), server.lineAndCharacterGetters[where])
+		? getPosition(program, force(module_), server.lineAndCharacterGetters[where])
 		: none!Position;
 }
 
@@ -586,7 +573,7 @@ DiagsAndResultJson printAst(scope ref Perf perf, ref Alloc alloc, ref Server ser
 	SourceAndAst ast = getSourceAndAst(alloc, server, uri);
 	return printForAst(
 		alloc, server, uri, *ast.ast,
-		jsonOfAst(alloc, server.allUris, server.lineAndColumnGetters[uri], *ast.ast));
+		jsonOfAst(alloc, server.lineAndColumnGetters[uri], *ast.ast));
 }
 
 private SourceAndAst getSourceAndAst(ref Alloc alloc, ref Server server, Uri uri) =>
@@ -598,7 +585,7 @@ private SourceAndAst getSourceAndAst(ref Alloc alloc, ref Server server, Uri uri
 
 DiagsAndResultJson printModel(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri uri) {
 	Program program = getProgram(perf, alloc, server, [uri]);
-	Json json = jsonOfModule(alloc, server.allUris, server.lineAndColumnGetters[uri], *only(program.rootModules));
+	Json json = jsonOfModule(alloc, server.lineAndColumnGetters[uri], *only(program.rootModules));
 	return printForProgram(alloc, server, program, json);
 }
 
@@ -670,8 +657,7 @@ private Json getPrinted(
 	in TextDocumentPositionParams params,
 	PrintKind.Ide.Kind kind,
 ) {
-	Json locations(UriAndRange[] xs) =>
-		jsonOfReferences(alloc, server.allUris, server.lineAndCharacterGetters, xs);
+	Json locations(UriAndRange[] xs) => jsonOfReferences(alloc, server.lineAndCharacterGetters, xs);
 	final switch (kind) {
 		case PrintKind.Ide.Kind.definition:
 			return locations(getDefinitionForProgram(alloc, server, program, DefinitionParams(params)));
@@ -679,7 +665,7 @@ private Json getPrinted(
 			return jsonOfHover(alloc, getHoverForProgram(alloc, server, program, HoverParams(params)));
 		case PrintKind.Ide.Kind.rename:
 			Opt!WorkspaceEdit rename = getRenameForProgram(alloc, server, program, RenameParams(params, "new-name"));
-			return jsonOfRename(alloc, server.allUris, server.lineAndCharacterGetters, rename);
+			return jsonOfRename(alloc, server.lineAndCharacterGetters, rename);
 		case PrintKind.Ide.Kind.references:
 			return locations(getReferencesForProgram(alloc, server, program, ReferenceParams(params)));
 	}
@@ -709,9 +695,8 @@ Programs buildToLowProgram(
 		return Programs(program, none!ConcreteProgram, none!LowProgram);
 	else {
 		ConcreteProgram concreteProgram = concretize(
-			perf, alloc, server.allSymbols, ctx, versionInfo, program, FileContentGetters(&server.storage));
-		LowProgram lowProgram = lower(
-			perf, alloc, server.allSymbols, program.mainConfig.extern_, program.program, concreteProgram);
+			perf, alloc, ctx, versionInfo, program, FileContentGetters(&server.storage));
+		LowProgram lowProgram = lower(perf, alloc, program.mainConfig.extern_, program.program, concreteProgram);
 		return Programs(program, some(concreteProgram), some(lowProgram));
 	}
 }
@@ -734,7 +719,7 @@ BuildToCResult buildToC(
 	ShowCtx ctx = getShowDiagCtx(server, programs.program);
 	return BuildToCResult(
 		has(programs.lowProgram)
-			? writeToC(alloc, server.allSymbols, server.allUris, ctx, force(programs.lowProgram), params)
+			? writeToC(alloc, ctx, force(programs.lowProgram), params)
 			: WriteToCResult(PathAndArgs(params.cCompiler), ""),
 		showDiagnostics(alloc, server, programs.program),
 		hasFatalDiagnostics(programs.programWithMain),
@@ -747,15 +732,10 @@ ShowDiagCtx getShowDiagCtx(return scope ref const Server server, return scope re
 private:
 
 ShowCtx getShowCtx(return scope ref const Server server) =>
-	ShowCtx(
-		ptrTrustMe(server.allSymbols),
-		ptrTrustMe(server.allUris),
-		server.lineAndColumnGetters,
-		server.urisInfo,
-		server.showOptions);
+	ShowCtx(server.lineAndColumnGetters, server.urisInfo, server.showOptions);
 
 SemanticTokens getTokens(ref Alloc alloc, ref Server server, Uri uri, in SourceAndAst ast) =>
-	tokensOfAst(alloc, server.allSymbols, server.allUris, server.lineAndCharacterGetters[uri], ast);
+	tokensOfAst(alloc, server.lineAndCharacterGetters[uri], ast);
 
 LspOutMessage notification(T)(T a) =>
 	LspOutMessage(LspOutNotification(a));
@@ -767,7 +747,7 @@ void notifyDiagnostics(
 	ref Server server,
 	ref Program program,
 ) {
-	UriAndDiagnostics[] diags = sortedDiagnostics(alloc, server.allUris, program);
+	UriAndDiagnostics[] diags = sortedDiagnostics(alloc, program);
 	ref LspState state() => server.lspState;
 	Uri[] newUris = map(state.stateAlloc, diags, (ref UriAndDiagnostics x) => x.uri);
 	UriAndDiagnostics[] all = concatenate(

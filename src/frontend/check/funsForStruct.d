@@ -120,7 +120,7 @@ void addFunsForVar(
 	funsBuilder ~= basicFunDecl(
 		FunDeclSource(var),
 		var.visibility,
-		prependSet(ctx.allSymbols, var.name),
+		prependSet(var.name),
 		Type(commonTypes.void_),
 		makeParams(ctx.alloc, [param!"a"(var.type)]),
 		FunFlags.generatedBareUnsafe,
@@ -312,7 +312,7 @@ void addFunsForRecordField(
 			funsBuilder ~= funDeclWithBody(
 				FunDeclSource(field),
 				setVisibility,
-				prependSetDeref(ctx.allSymbols, field.name),
+				prependSetDeref(field.name),
 				Type(commonTypes.void_),
 				makeParams(ctx.alloc, [
 					param!"a"(recordMutPointer),
@@ -329,7 +329,7 @@ void addFunsForRecordField(
 			funsBuilder ~= funDeclWithBody(
 				FunDeclSource(field),
 				setVisibility,
-				prependSet(ctx.allSymbols, field.name),
+				prependSet(field.name),
 				Type(commonTypes.void_),
 				makeParams(ctx.alloc, [param!"a"(recordType), ParamShort(field.name, field.type)]),
 				FunFlags.generatedBare,

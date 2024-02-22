@@ -85,11 +85,11 @@ import util.json :
 import util.opt : Opt;
 import util.sourceRange : jsonOfLineAndColumn, jsonOfLineAndColumnRange, LineAndColumnGetter, Pos, PosKind, Range;
 import util.union_ : Union;
-import util.uri : AllUris, Path, RelPath, stringOfPath;
-import util.util : ptrTrustMe, stringOfEnum;
+import util.uri : Path, RelPath, stringOfPath;
+import util.util : stringOfEnum;
 
-Json jsonOfAst(ref Alloc alloc, in AllUris allUris, in LineAndColumnGetter lineAndColumnGetter, in FileAst ast) {
-	Ctx ctx = Ctx(ptrTrustMe(allUris), lineAndColumnGetter);
+Json jsonOfAst(ref Alloc alloc, in LineAndColumnGetter lineAndColumnGetter, in FileAst ast) {
+	Ctx ctx = Ctx(lineAndColumnGetter);
 	return jsonObject(alloc, [
 		optionalStringField!"doc"(alloc, ast.docComment),
 		optionalField!("imports", ImportsOrExportsAst)(ast.imports, (in ImportsOrExportsAst x) =>
@@ -109,13 +109,7 @@ Json jsonOfAst(ref Alloc alloc, in AllUris allUris, in LineAndColumnGetter lineA
 private:
 
 const struct Ctx {
-	@safe @nogc pure nothrow:
-
-	const AllUris* allUrisPtr;
 	LineAndColumnGetter lineAndColumnGetter;
-
-	ref const(AllUris) allUris() const return scope =>
-		*allUrisPtr;
 }
 
 Json jsonOfRange(ref Alloc alloc, in Ctx ctx, in Range a) =>
@@ -129,7 +123,7 @@ Json jsonOfImportsOrExports(ref Alloc alloc, in Ctx ctx, in ImportsOrExportsAst 
 
 Json jsonOfImportOrExportAst(ref Alloc alloc, in Ctx ctx, in ImportOrExportAst a) =>
 	jsonObject(alloc, [
-		field!"path"(pathOrRelPathToJson(alloc, ctx.allUris, a.path)),
+		field!"path"(pathOrRelPathToJson(alloc, a.path)),
 		field!"import-kind"(a.kind.matchIn!Json(
 			(in ImportOrExportAstKind.ModuleWhole) =>
 				jsonString!"whole",
@@ -142,14 +136,14 @@ Json jsonOfImportOrExportAst(ref Alloc alloc, in Ctx ctx, in ImportOrExportAst a
 					field!"name"(jsonOfNameAndRange(alloc, ctx, f.name)),
 					field!"file-type"(stringOfEnum(f.type))])))]);
 
-Json pathOrRelPathToJson(ref Alloc alloc, in AllUris allUris, in PathOrRelPath a) =>
+Json pathOrRelPathToJson(ref Alloc alloc, in PathOrRelPath a) =>
 	a.match!Json(
 		(Path global) =>
-			jsonString(stringOfPath(alloc, allUris, global)),
+			jsonString(stringOfPath(alloc, global)),
 		(RelPath relPath) =>
 			jsonObject(alloc, [
 				field!"n-parents"(relPath.nParents),
-				field!"path"(stringOfPath(alloc, allUris, relPath.path))]));
+				field!"path"(stringOfPath(alloc, relPath.path))]));
 
 Json jsonOfSpecDeclAst(ref Alloc alloc, in Ctx ctx, in SpecDeclAst a) =>
 	jsonObject(alloc, [

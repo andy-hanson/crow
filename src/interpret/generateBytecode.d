@@ -47,7 +47,6 @@ import model.lowModel :
 	LowFun,
 	LowFunBody,
 	LowFunExprBody,
-	lowFunRange,
 	LowFunIndex,
 	LowFunPointerType,
 	LowLocal,
@@ -56,7 +55,6 @@ import model.lowModel :
 	LowRecord,
 	LowType,
 	LowUnion,
-	name,
 	PrimitiveType;
 import model.model : Program, VarKind;
 import model.typeLayout : nStackEntriesForType, typeSizeBytes;
@@ -69,13 +67,12 @@ import util.col.mutMap : getOrAddAndDidAdd, MutMap, ValueAndDidAdd;
 import util.memory : allocate;
 import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.symbol : AllSymbols, Symbol, symbol;
+import util.symbol : Symbol, symbol;
 import util.util : castImmutable, castMutable, castNonScope_ref, ptrTrustMe, todo;
 
 ByteCode generateBytecode(
 	scope ref Perf perf,
 	ref Alloc alloc,
-	in AllSymbols allSymbols,
 	in Program modelProgram,
 	in LowProgram program,
 	ExternPointersForAllLibraries externPointers,
@@ -85,14 +82,13 @@ ByteCode generateBytecode(
 	//TODO: use a temp alloc for 2nd arg
 	return withMeasure!(ByteCode, () =>
 		generateBytecodeInner(
-			alloc, alloc, allSymbols, modelProgram, program, externPointers, aggregateCbs, makeSyntheticFunPointers)
+			alloc, alloc, modelProgram, program, externPointers, aggregateCbs, makeSyntheticFunPointers)
 	)(perf, alloc, PerfMeasure.generateBytecode);
 }
 
 private ByteCode generateBytecodeInner(
 	ref Alloc codeAlloc,
 	ref TempAlloc tempAlloc,
-	in AllSymbols allSymbols,
 	in Program modelProgram,
 	in LowProgram program,
 	ExternPointersForAllLibraries externPointers,
@@ -119,26 +115,15 @@ private ByteCode generateBytecodeInner(
 			(LowFunIndex funIndex, in LowFun fun) @safe {
 				ByteCodeIndex funPos = nextByteCodeIndex(writer);
 				generateBytecodeForFun(
-					tempAlloc,
-					writer,
-					allSymbols,
-					funToReferences,
-					text.info,
-					vars,
-					modelProgram,
-					program,
-					externPointers,
-					typeCtx,
-					funIndex,
-					fun);
+					tempAlloc, writer, funToReferences, text.info, vars, modelProgram, program,
+					externPointers, typeCtx, funIndex, fun);
 				return funPos;
 		});
 
 	Operations operations = finishOperations(writer);
 
 	SyntheticFunPointers syntheticFunPointers = makeSyntheticFunPointers(
-		codeAlloc, allSymbols, program,
-		operations.byteCode, funToDefinition, funToReferences, cbMakeSyntheticFunPointers);
+		codeAlloc, program, operations.byteCode, funToDefinition, funToReferences, cbMakeSyntheticFunPointers);
 
 	fullIndexMapEach!(LowFunIndex, ByteCodeIndex)(
 		funToDefinition,
@@ -169,7 +154,6 @@ private:
 
 SyntheticFunPointers makeSyntheticFunPointers(
 	ref Alloc alloc,
-	in AllSymbols allSymbols,
 	in LowProgram program,
 	Operation[] byteCode,
 	in FunToDefinition funToDefinition,
@@ -201,7 +185,6 @@ alias FunToDefinition = immutable FullIndexMap!(LowFunIndex, ByteCodeIndex);
 void generateBytecodeForFun(
 	ref TempAlloc tempAlloc,
 	scope ref ByteCodeWriter writer,
-	in AllSymbols allSymbols,
 	ref FunToReferences funToReferences,
 	in TextInfo textInfo,
 	in VarsInfo varsInfo,
@@ -224,16 +207,16 @@ void generateBytecodeForFun(
 	});
 	setStackEntryAfterParameters(writer, StackEntry(stackEntry));
 	size_t returnEntries = nStackEntriesForType(program, fun.returnType);
-	ByteCodeSource source = ByteCodeSource(funIndex, lowFunRange(fun, allSymbols).range.start);
+	ByteCodeSource source = ByteCodeSource(funIndex, fun.range.range.start);
 
 	fun.body_.matchIn!void(
 		(in LowFunBody.Extern body_) {
-			generateExternCall(writer, allSymbols, program, funIndex, fun, body_, externPointers, typeCtx);
+			generateExternCall(writer, program, funIndex, fun, body_, externPointers, typeCtx);
 			writeReturn(writer, source);
 		},
 		(in LowFunExprBody body_) {
 			generateFunFromExpr(
-				tempAlloc, writer, allSymbols, modelProgram, program, textInfo, varsInfo, externPointers, funIndex,
+				tempAlloc, writer, modelProgram, program, textInfo, varsInfo, externPointers, funIndex,
 				funToReferences, fun.params, parameters, returnEntries, body_);
 		});
 	assert(getNextStackEntry(writer).entry == returnEntries);
@@ -242,7 +225,6 @@ void generateBytecodeForFun(
 
 void generateExternCall(
 	scope ref ByteCodeWriter writer,
-	in AllSymbols allSymbols,
 	in LowProgram program,
 	LowFunIndex funIndex,
 	in LowFun fun,
@@ -250,8 +232,8 @@ void generateExternCall(
 	ExternPointersForAllLibraries externPointers,
 	ref DynCallTypeCtx typeCtx,
 ) {
-	ByteCodeSource source = ByteCodeSource(funIndex, lowFunRange(fun, allSymbols).range.start);
-	Opt!Symbol optName = name(fun);
+	ByteCodeSource source = ByteCodeSource(funIndex, fun.range.range.start);
+	Opt!Symbol optName = fun.name;
 	Symbol name = force(optName);
 	switch (name.value) {
 		case symbol!"longjmp".value:

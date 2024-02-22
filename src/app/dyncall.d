@@ -33,20 +33,15 @@ import util.late : Late, late, lateGet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
 import util.string : CString, cString;
-import util.symbol : addExtension, addPrefixAndExtension, AllSymbols, Extension, Symbol, symbol, writeSymbol;
-import util.uri : AllUris, asFilePath, childUri, Uri, uriIsFile, withCStringOfFilePath;
+import util.symbol : addExtension, addPrefixAndExtension, Extension, Symbol, symbol;
+import util.uri : asFilePath, childUri, Uri, uriIsFile, withCStringOfFilePath;
 import util.writer : withStackWriterCString, withStackWriterImpure, withStackWriterImpureCString, Writer;
 
-@trusted ExitCode withRealExtern(
-	ref Alloc alloc,
-	ref AllSymbols allSymbols,
-	ref AllUris allUris,
-	in ExitCode delegate(in Extern) @safe @nogc nothrow cb,
-) {
+@trusted ExitCode withRealExtern(ref Alloc alloc, in ExitCode delegate(in Extern) @safe @nogc nothrow cb) {
 	Late!DebugNames debugNames = late!DebugNames;
 	scope Extern extern_ = Extern(
 		(in ExternLibraries libraries, scope WriteError writeError) {
-			LoadedLibraries res = loadLibraries(alloc, allSymbols, allUris, libraries, writeError);
+			LoadedLibraries res = loadLibraries(alloc, libraries, writeError);
 			lateSet(debugNames, res.debugNames);
 			return res.funPointers;
 		},
@@ -54,7 +49,7 @@ import util.writer : withStackWriterCString, withStackWriterImpure, withStackWri
 			makeSyntheticFunPointers(alloc, inputs),
 		AggregateCbs(&newAggregate, &aggregateAddField, (DCaggr* x) { dcCloseAggr(x); }),
 		(FunPointer funPointer, in DynCallSig sig) =>
-			dynamicCallFunPointer(funPointer, allSymbols, lateGet(debugNames)[funPointer.asExternPointer], sig));
+			dynamicCallFunPointer(funPointer, lateGet(debugNames)[funPointer.asExternPointer], sig));
 	return cb(extern_);
 }
 
@@ -67,21 +62,15 @@ immutable struct LoadedLibraries {
 	Opt!ExternPointersForAllLibraries funPointers;
 }
 
-LoadedLibraries loadLibraries(
-	ref Alloc alloc,
-	ref AllSymbols allSymbols,
-	ref AllUris allUris,
-	in ExternLibraries libraries,
-	in WriteError writeError,
-) {
+LoadedLibraries loadLibraries(ref Alloc alloc, in ExternLibraries libraries, in WriteError writeError) {
 	bool success = true;
 	immutable DLLib*[] libs = mapImpure!(immutable DLLib*, ExternLibrary)(alloc, libraries, (in ExternLibrary x) {
-		LibraryAndError lib = getLibrary(allSymbols, allUris, x.libraryName, x.configuredDir, writeError);
+		LibraryAndError lib = getLibrary(x.libraryName, x.configuredDir, writeError);
 		if (lib.error) success = false;
 		return lib.library;
 	});
 	return success
-		? loadLibrariesInner(alloc, allSymbols, libraries, libs, writeError)
+		? loadLibrariesInner(alloc, libraries, libs, writeError)
 		: LoadedLibraries(DebugNames(), none!ExternPointersForAllLibraries);
 }
 
@@ -91,16 +80,10 @@ immutable struct LibraryAndError {
 	bool error;
 }
 
-LibraryAndError getLibrary(
-	ref AllSymbols allSymbols,
-	ref AllUris allUris,
-	Symbol libraryName,
-	Opt!Uri configuredDir,
-	in WriteError writeError,
-) {
-	Symbol fileName = dllOrSoName(allSymbols, libraryName);
+LibraryAndError getLibrary(Symbol libraryName, Opt!Uri configuredDir, in WriteError writeError) {
+	Symbol fileName = dllOrSoName(libraryName);
 	Opt!(DLLib*) fromUri = has(configuredDir)
-		? tryLoadLibraryFromUri(allUris, childUri(allUris, force(configuredDir), fileName))
+		? tryLoadLibraryFromUri(childUri(force(configuredDir), fileName))
 		: none!(DLLib*);
 	if (has(fromUri))
 		return LibraryAndError(force(fromUri), false);
@@ -117,38 +100,34 @@ LibraryAndError getLibrary(
 				// TODO: understand why this is different
 				return loadLibraryFromName(cString!"libpthread.so.0", writeError);
 			default:
-				return loadLibraryFromName(allSymbols, fileName, writeError);
+				return loadLibraryFromName(fileName, writeError);
 		}
 	}
 }
 
-Symbol dllOrSoName(scope ref AllSymbols allSymbols, immutable Symbol libraryName) {
+Symbol dllOrSoName(immutable Symbol libraryName) {
 	version (Windows)
-		return addExtension(allSymbols, libraryName, Extension.dll);
+		return addExtension(libraryName, Extension.dll);
 	else
-		return addPrefixAndExtension(allSymbols, "lib", libraryName, ".so");
+		return addPrefixAndExtension("lib", libraryName, ".so");
 }
 
-@trusted Opt!(DLLib*) tryLoadLibraryFromUri(scope ref AllUris allUris, Uri uri) {
-	if (uriIsFile(allUris, uri)) {
-		DLLib* res = withCStringOfFilePath!(DLLib*)(allUris, asFilePath(allUris, uri), (in CString file) =>
+@trusted Opt!(DLLib*) tryLoadLibraryFromUri(Uri uri) {
+	if (uriIsFile(uri)) {
+		DLLib* res = withCStringOfFilePath!(DLLib*)(asFilePath(uri), (in CString file) =>
 			dlLoadLibrary(file.ptr));
 		return res == null ? none!(DLLib*) : some(res);
 	} else
 		return none!(DLLib*);
 }
 
-LibraryAndError loadLibraryFromName(in AllSymbols allSymbols, Symbol name, in WriteError writeError) =>
-	withCStringOfSymbolImpure(allSymbols, name, (in CString nameStr) => loadLibraryFromName(nameStr, writeError));
+LibraryAndError loadLibraryFromName(Symbol name, in WriteError writeError) =>
+	withCStringOfSymbolImpure(name, (in CString nameStr) => loadLibraryFromName(nameStr, writeError));
 
-T withCStringOfSymbol(T)(in AllSymbols allSymbols, Symbol a, in T delegate(in CString) @safe @nogc pure nothrow cb) =>
-	withStackWriterCString((scope ref Writer writer) {
-		writeSymbol(writer, allSymbols, a);
-	}, cb);
-T withCStringOfSymbolImpure(T)(in AllSymbols allSymbols, Symbol a, in T delegate(in CString) @safe @nogc nothrow cb) =>
-	withStackWriterImpureCString((scope ref Writer writer) {
-		writeSymbol(writer, allSymbols, a);
-	}, cb);
+T withCStringOfSymbol(T)(Symbol a, in T delegate(in CString) @safe @nogc pure nothrow cb) =>
+	withStackWriterCString((scope ref Writer writer) { writer ~= a; }, cb);
+T withCStringOfSymbolImpure(T)(Symbol a, in T delegate(in CString) @safe @nogc nothrow cb) =>
+	withStackWriterImpureCString((scope ref Writer writer) { writer ~= a; }, cb);
 
 LibraryAndError loadLibraryFromName(in CString name, in WriteError writeError) {
 	DLLib* res = dlLoadLibrary(name.ptr);
@@ -164,7 +143,6 @@ LibraryAndError loadLibraryFromName(in CString name, in WriteError writeError) {
 
 LoadedLibraries loadLibrariesInner(
 	ref Alloc alloc,
-	in AllSymbols allSymbols,
 	in ExternLibraries libraries,
 	immutable DLLib*[] libs,
 	in WriteError writeError,
@@ -180,7 +158,7 @@ LoadedLibraries loadLibrariesInner(
 				alloc,
 				x.importNames,
 				(Symbol importName) {
-					Opt!ExternPointer p = getExternPointer(allSymbols, lib, importName);
+					Opt!ExternPointer p = getExternPointer(lib, importName);
 					if (has(p)) {
 						// sometimes two names refer to the same function -- just go with the first name
 						tryAddToMap!(ExternPointer, Symbol)(alloc, debugNames, force(p), importName);
@@ -195,27 +173,22 @@ LoadedLibraries loadLibrariesInner(
 	foreach (KeyValuePair!(Symbol, Symbol) x; failures)
 		withStackWriterImpure((scope ref Writer writer) {
 			writer ~= "Could not load extern function ";
-			writeSymbol(writer, allSymbols, x.value);
+			writer ~= x.value;
 			writer ~= " from library ";
-			writeSymbol(writer, allSymbols, x.key);
+			writer ~= x.key;
 		}, writeError);
 	return LoadedLibraries(
 		finishMap(alloc, debugNames),
 		mutArrIsEmpty(failures) ? some(res) : none!ExternPointersForAllLibraries);
 }
 
-pure Opt!ExternPointer getExternPointer(in AllSymbols allSymbols, DLLib* library, Symbol name) =>
-	withCStringOfSymbol!(Opt!ExternPointer)(allSymbols, name, (in CString nameStr) @trusted {
+pure Opt!ExternPointer getExternPointer(DLLib* library, Symbol name) =>
+	withCStringOfSymbol!(Opt!ExternPointer)(name, (in CString nameStr) @trusted {
 		DCpointer ptr = dlFindSymbol(library, nameStr.ptr);
 		return ptr == null ? none!ExternPointer : some(ExternPointer(cast(immutable) ptr));
 	});
 
-@system void dynamicCallFunPointer(
-	FunPointer fun,
-	in AllSymbols allSymbols,
-	Opt!Symbol debugName,
-	in DynCallSig sig,
-) {
+@system void dynamicCallFunPointer(FunPointer fun, Opt!Symbol debugName, in DynCallSig sig) {
 	static DCCallVM* dcVm = null;
 	if (dcVm == null) {
 		// first time an extern function called on this thread

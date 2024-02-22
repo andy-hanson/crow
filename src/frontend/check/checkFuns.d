@@ -37,6 +37,7 @@ import model.model :
 	BogusExpr,
 	CommonTypes,
 	Destructure,
+	emptySpecs,
 	Expr,
 	ExprKind,
 	FunBody,
@@ -66,7 +67,6 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.array :
 	allSame,
-	emptySmallArray,
 	every,
 	first,
 	isEmpty,
@@ -171,7 +171,7 @@ FunDecl[] checkFunsInitial(
 					noDelayStructInsts);
 				FunFlagsAndSpecs flagsAndSpecs = checkFunModifiers(
 					ctx, commonTypes, structsAndAliasesMap, specsMap,
-					funAst.typeParams, funAst.nameRange(ctx.allSymbols), funAst.modifiers);
+					funAst.typeParams, funAst.nameRange, funAst.modifiers);
 				initMemory(fun, FunDecl(
 					FunDeclSource(FunDeclSource.Ast(ctx.curUri, &funAst)),
 					visibilityFromExplicitTopLevel(funAst.visibility),
@@ -223,7 +223,7 @@ Params checkParams(
 					? some(only(x.typeArgs))
 					: none!Type);
 			if (!has(elementType))
-				addDiag(ctx, varargs.param.range(ctx.allSymbols), Diag(Diag.VarargsParamMustBeArray()));
+				addDiag(ctx, varargs.param.range, Diag(Diag.VarargsParamMustBeArray()));
 			return Params(allocate(ctx.alloc,
 				Params.Varargs(param, has(elementType) ? force(elementType) : Type(Type.Bogus()))));
 		});
@@ -253,10 +253,10 @@ FunDecl funDeclForFileImportOrExport(
 		FunDeclSource(FunDeclSource.FileImport(ctx.curUri, a.source)),
 		visibility,
 		ast.name.name,
-		typeForFileImport(ctx, commonTypes, structsAndAliasesMap, a.source.pathRange(ctx.allUris), ast.type),
+		typeForFileImport(ctx, commonTypes, structsAndAliasesMap, a.source.pathRange, ast.type),
 		Params([]),
 		FunFlags.generatedBare,
-		emptySmallArray!(immutable SpecInst*));
+		emptySpecs);
 }
 
 Type typeForFileImport(
@@ -284,22 +284,21 @@ FunBody.Extern checkExternBody(ref CheckCtx ctx, FunDecl* fun, FunDeclAst* ast) 
 
 	checkNoTypeParams(ctx, fun.typeParams, DeclKind.externFunction);
 	if (!isEmpty(fun.specs)) {
-		Range range = mustFind!ModifierAst(ast.modifiers, (in ModifierAst x) => x.isA!SpecUseAst).range(ctx.allSymbols);
+		Range range = mustFind!ModifierAst(ast.modifiers, (in ModifierAst x) => x.isA!SpecUseAst).range;
 		addDiag(ctx, range, Diag(Diag.SpecUseInvalid(DeclKind.externFunction)));
 	}
 
 	if (!isLinkageAlwaysCompatible(funLinkage, linkageRange(fun.returnType)))
-		addDiagAssertSameUri(ctx, fun.range(ctx.allSymbols), Diag(
+		addDiagAssertSameUri(ctx, fun.range, Diag(
 			Diag.LinkageWorseThanContainingFun(fun, fun.returnType, none!(Destructure*))));
 	fun.params.match!void(
 		(Destructure[] params) {
 			foreach (ref Destructure param; params)
 				if (!isLinkageAlwaysCompatible(funLinkage, linkageRange(param.type)))
-					addDiag(ctx, param.range(ctx.allSymbols), Diag(
-						Diag.LinkageWorseThanContainingFun(fun, param.type, some(&param))));
+					addDiag(ctx, param.range, Diag(Diag.LinkageWorseThanContainingFun(fun, param.type, some(&param))));
 		},
 		(ref Params.Varargs x) {
-			addDiag(ctx, x.param.range(ctx.allSymbols), Diag(Diag.ExternFunVariadic()));
+			addDiag(ctx, x.param.range, Diag(Diag.ExternFunVariadic()));
 		});
 	return FunBody.Extern(getNameFromExternModifier(ctx, *ast));
 }
@@ -403,7 +402,7 @@ FunFlags checkTestModifiers(ref CheckCtx ctx, in TestAst ast) {
 					addDiag(ctx, x.keywordRange, Diag(Diag.ModifierInvalid(x.keyword, DeclKind.test)));
 			},
 			(in SpecUseAst x) {
-				addDiag(ctx, x.range(ctx.allSymbols), Diag(Diag.SpecUseInvalid(DeclKind.test)));
+				addDiag(ctx, x.range, Diag(Diag.SpecUseInvalid(DeclKind.test)));
 			});
 	}
 	return checkFunFlags(ctx, ast.keywordRange, allFlags, isTest: true);
@@ -503,7 +502,6 @@ void checkFunsWithAsts(
 	FunDeclAst[] asts,
 ) {
 	zipPointers!(FunDecl, FunDeclAst)(funsWithAsts, asts, (FunDecl* fun, FunDeclAst* funAst) {
-		Range diagRange = funAst.nameRange(ctx.allSymbols);
 		fun.body_ = () {
 			final switch (fun.flags.specialBody) {
 				case FunFlags.SpecialBody.none:
@@ -523,11 +521,11 @@ void checkFunsWithAsts(
 							&funAst.body_));
 				case FunFlags.SpecialBody.builtin:
 					if (!funAst.body_.kind.isA!EmptyAst)
-						addDiag(ctx, diagRange, Diag(Diag.FunCantHaveBody(Diag.FunCantHaveBody.Reason.builtin)));
+						addDiag(ctx, funAst.nameRange, Diag(Diag.FunCantHaveBody(Diag.FunCantHaveBody.Reason.builtin)));
 					return getBuiltinFun(ctx, fun);
 				case FunFlags.SpecialBody.extern_:
 					if (!funAst.body_.kind.isA!EmptyAst)
-						addDiag(ctx, diagRange, Diag(Diag.FunCantHaveBody(Diag.FunCantHaveBody.Reason.extern_)));
+						addDiag(ctx, funAst.nameRange, Diag(Diag.FunCantHaveBody(Diag.FunCantHaveBody.Reason.extern_)));
 					return FunBody(checkExternBody(ctx, fun, funAst));
 				case FunFlags.SpecialBody.generated:
 					assert(false);
@@ -567,7 +565,7 @@ FunBody checkAutoFun(ref CheckCtx ctx, in SpecsMap specsMap, in FunsMap funsMap,
 					extraTypeArg: some(fun.returnType))
 				: FunBody(FunBody.Bogus());
 		default:
-			addDiag(ctx, fun.nameRange(ctx.allSymbols).range, Diag(Diag.AutoFunError(Diag.AutoFunError.WrongName())));
+			addDiag(ctx, fun.nameRange.range, Diag(Diag.AutoFunError(Diag.AutoFunError.WrongName())));
 			return FunBody(FunBody.Bogus());
 	}
 }
@@ -584,7 +582,7 @@ FunBody checkAutoFunWithSpec(
 	Opt!Type extraTypeArg = none!Type,
 ) {
 	FunBody diag(Diag.AutoFunError x) {
-		addDiag(ctx, fun.nameRange(ctx.allSymbols).range, Diag(x));
+		addDiag(ctx, fun.nameRange.range, Diag(x));
 		return FunBody(FunBody.Bogus());
 	}
 	SpecDeclSig* sig = &only(spec.sigs);
@@ -644,11 +642,10 @@ Opt!(SpecDecl*) getSpecForAutoFun(
 	Symbol name,
 	CommonModule expectedModule,
 ) {
-	Opt!(SpecDecl*) spec = tryFindSpec(ctx, NameAndRange(fun.range(ctx.allSymbols).start, name) ,specsMap);
+	Opt!(SpecDecl*) spec = tryFindSpec(ctx, NameAndRange(fun.range.start, name) ,specsMap);
 	if (has(spec)) {
 		if (force(spec).moduleUri != ctx.commonUris[expectedModule]) {
-			addDiag(ctx, fun.nameRange(ctx.allSymbols).range, Diag(
-				Diag.AutoFunError(Diag.AutoFunError.SpecFromWrongModule())));
+			addDiag(ctx, fun.nameRange.range, Diag(Diag.AutoFunError(Diag.AutoFunError.SpecFromWrongModule())));
 			return none!(SpecDecl*);
 		} else
 			return spec;

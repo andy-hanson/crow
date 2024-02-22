@@ -136,22 +136,18 @@ import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : UriAndRange;
 import util.string : CString;
-import util.symbol : AllSymbols;
 import util.union_ : TaggedUnion;
-import util.uri : AllUris;
 import util.util : castImmutable, castNonScope_ref, cStringOfEnum, debugLog, ptrTrustMe, todo;
 import util.writer : debugLogWithWriter, withWriter, Writer;
 
 @trusted ExitCode jitAndRun(
 	scope ref Perf perf,
 	ref Alloc alloc,
-	scope ref AllSymbols allSymbols,
-	scope ref AllUris allUris,
 	in LowProgram program,
 	in JitOptions options,
 	in CString[] allArgs,
 ) {
-	GccProgram gccProgram = getGccProgram(perf, alloc, allSymbols, allUris, program, options);
+	GccProgram gccProgram = getGccProgram(perf, alloc, program, options);
 
 	//TODO: perf measure this?
 	AssertFieldOffsetsType assertFieldOffsets = cast(AssertFieldOffsetsType)
@@ -195,14 +191,7 @@ struct GccProgram {
 	immutable gcc_jit_result* result;
 }
 
-GccProgram getGccProgram(
-	scope ref Perf perf,
-	ref Alloc alloc,
-	scope ref AllSymbols allSymbols,
-	scope ref AllUris allUris,
-	in LowProgram program,
-	in JitOptions options,
-) {
+GccProgram getGccProgram(scope ref Perf perf, ref Alloc alloc, in LowProgram program, in JitOptions options) {
 	gcc_jit_context* ctx = gcc_jit_context_acquire();
 	assert(ctx != null);
 
@@ -217,12 +206,12 @@ GccProgram getGccProgram(
 	//gcc_jit_context_set_bool_option(*ctx, gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, true);
 	//gcc_jit_context_set_bool_option(*ctx, gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE, true);
 
-	getLinkOptions(alloc, allSymbols, allUris, isMSVC: false, program.externLibraries, (CString x) {
+	getLinkOptions(alloc, isMSVC: false, program.externLibraries, (CString x) {
 		gcc_jit_context_add_driver_option(*ctx, x.ptr);
 	});
 
 	withMeasure!(void, () {
-		buildGccProgram(alloc, *ctx, allSymbols, program);
+		buildGccProgram(alloc, *ctx, program);
 	})(perf, alloc, PerfMeasure.gccCreateProgram);
 
 	assert(gcc_jit_context_get_first_error(*ctx) == null);
@@ -242,9 +231,9 @@ extern(C) {
 	alias MainType = immutable int function(int, immutable char**) @nogc nothrow;
 }
 
-void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in AllSymbols allSymbols, in LowProgram program) {
-	scope MangledNames mangledNames = buildMangledNames(alloc, ptrTrustMe(allSymbols), program);
-	GccTypes gccTypes = getGccTypes(alloc, ctx, allSymbols, program, mangledNames);
+void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in LowProgram program) {
+	scope MangledNames mangledNames = buildMangledNames(alloc, program);
+	GccTypes gccTypes = getGccTypes(alloc, ctx, program, mangledNames);
 
 	//TODO:only in debug
 	generateAssertFieldOffsetsFunction(alloc, ctx, program, gccTypes);
@@ -293,7 +282,6 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in AllSymbols all
 				gcc_jit_block* entryBlock = gcc_jit_function_new_block(curFun, "entry");
 				ExprCtx exprCtx = ExprCtx(
 					ptrTrustMe(alloc),
-					ptrTrustMe(allSymbols),
 					ptrTrustMe(program),
 					ptrTrustMe(ctx),
 					ptrTrustMe(mangledNames),
@@ -778,7 +766,6 @@ struct ExprCtx {
 	@safe @nogc pure nothrow:
 
 	Alloc* allocPtr;
-	const AllSymbols* allSymbolsPtr;
 	immutable LowProgram* programPtr;
 	gcc_jit_context* gccPtr;
 	const MangledNames* mangledNamesPtr;

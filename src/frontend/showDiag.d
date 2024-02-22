@@ -64,8 +64,8 @@ import util.col.sortUtil : sorted;
 import util.comparison : Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : compareRange;
-import util.symbol : Symbol, symbol, writeSymbol;
-import util.uri : AllUris, baseName, compareUriAlphabetically, Uri, writeRelPath, writeUri;
+import util.symbol : Symbol, symbol;
+import util.uri : baseName, compareUriAlphabetically, Uri;
 import util.util : stringOfEnum, max;
 import util.writer : makeStringWithWriter, writeNewline, writeWithCommas, writeWithNewlines, writeWithSeparator, Writer;
 
@@ -73,7 +73,7 @@ string stringOfDiagnostics(ref Alloc alloc, in ShowDiagCtx ctx, in Program progr
 	makeStringWithWriter(alloc, (scope ref Writer writer) {
 		DiagnosticSeverity severity = maxDiagnosticSeverity(program);
 		bool first = true;
-		foreach (UriAndDiagnostics x; sortedDiagnostics(alloc, ctx.allUris, program))
+		foreach (UriAndDiagnostics x; sortedDiagnostics(alloc, program))
 			if (!has(onlyForUris) || contains(force(onlyForUris), x.uri))
 				foreach (Diagnostic diagnostic; x.diagnostics) {
 					if (getDiagnosticSeverity(diagnostic.kind) == severity) {
@@ -105,7 +105,7 @@ immutable struct UriAndDiagnostics {
 	Diagnostic[] diagnostics;
 }
 
-UriAndDiagnostics[] sortedDiagnostics(ref Alloc alloc, in AllUris allUris, in Program program) {
+UriAndDiagnostics[] sortedDiagnostics(ref Alloc alloc, in Program program) {
 	MultiMap!(Uri, Diagnostic) map = makeMultiMap!(Uri, Diagnostic)(alloc, (in MultiMapCb!(Uri, Diagnostic) cb) {
 		eachDiagnostic(program, (in UriAndDiagnostic x) {
 			cb(x.uri, x.diagnostic);
@@ -118,7 +118,7 @@ UriAndDiagnostics[] sortedDiagnostics(ref Alloc alloc, in AllUris allUris, in Pr
 			res ~= UriAndDiagnostics(uri, sortedDiags);
 		}
 		arrBuilderSort!UriAndDiagnostics(res, (in UriAndDiagnostics x, in UriAndDiagnostics y) =>
-			compareUriAlphabetically(allUris, x.uri, y.uri));
+			compareUriAlphabetically(x.uri, y.uri));
 	});
 }
 
@@ -143,7 +143,7 @@ void writeUnusedDiag(scope ref Writer writer, in ShowCtx ctx, in Diag.Unused a) 
 				writeName(writer, ctx, force(x.importedName));
 			} else {
 				writer ~= "Imported module ";
-				writeName(writer, ctx, baseName(ctx.allUris, x.importedModule.uri));
+				writeName(writer, ctx, baseName(x.importedModule.uri));
 			}
 			writer ~= " is unused.";
 		},
@@ -228,7 +228,7 @@ void writeParseDiag(scope ref Writer writer, in ShowCtx ctx, in ParseDiag d) {
 		},
 		(in ParseDiag.UnexpectedOperator x) {
 			writer ~= "Unexpected '";
-			writeSymbol(writer, ctx.allSymbols, x.operator);
+			writer ~= x.operator;
 			writer ~= "'.";
 		},
 		(in ParseDiag.UnexpectedToken u) {
@@ -736,7 +736,7 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 				},
 				(in Diag.ImportFileDiag.RelativeImportReachesPastRoot y) {
 					writer ~= "Relative path ";
-					writeRelPath(writer, ctx.allUris, y.imported);
+					writer ~= y.imported;
 					writer ~= " reaches above the root directory.";
 				});
 		},

@@ -62,9 +62,9 @@ import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach, fullIndexMapEachK
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
 import util.opt : force, has, Opt, some;
 import util.string : CString, cString, cStringSize, eachChar;
-import util.symbol : addExtension, AllSymbols, cStringOfSymbol, Extension, Symbol, symbol, writeSymbol;
+import util.symbol : addExtension, cStringOfSymbol, Extension, Symbol, symbol;
 import util.union_ : Union;
-import util.uri : AllUris, asFilePath, childFilePath, cStringOfFilePath, FilePath, uriIsFile, writeFilePath;
+import util.uri : asFilePath, childFilePath, cStringOfFilePath, FilePath, uriIsFile;
 import util.util : abs, castNonScope, castNonScope_ref, ptrTrustMe, stringOfEnum, todo;
 import util.writer :
 	makeStringWithWriter,
@@ -95,19 +95,12 @@ immutable struct WriteToCParams {
 	CCompileOptions compileOptions;
 }
 
-WriteToCResult writeToC(
-	ref Alloc alloc,
-	scope ref AllSymbols allSymbols,
-	scope ref AllUris allUris,
-	in ShowCtx printCtx,
-	in LowProgram program,
-	in WriteToCParams params,
-) {
+WriteToCResult writeToC(ref Alloc alloc, in ShowCtx printCtx, in LowProgram program, in WriteToCParams params) {
 	bool isMSVC = isWindows(program.version_);
-	CString[] args = cCompileArgs(alloc, allSymbols, allUris, program.externLibraries, isMSVC, params);
+	CString[] args = cCompileArgs(alloc, program.externLibraries, isMSVC, params);
 	string content = makeStringWithWriter(alloc, (scope ref Writer writer) {
 		writer ~= "/* ";
-		writeFilePath(writer, allUris, params.cCompiler);
+		writer ~= params.cCompiler;
 		writer ~= ' ';
 		writeWithSpaces!CString(writer, args, (in CString arg) { writer ~= arg; });
 		writer ~= " */\n\n";
@@ -121,11 +114,7 @@ WriteToCResult writeToC(
 			writer ~= "unsigned __int64 __popcnt64(unsigned __int64 value);\n";
 		}
 
-		Ctx ctx = Ctx(
-			ptrTrustMe(printCtx),
-			ptrTrustMe(program),
-			buildMangledNames(alloc, printCtx.allSymbolsPtr, program),
-			isMSVC: isMSVC);
+		Ctx ctx = Ctx(ptrTrustMe(printCtx), ptrTrustMe(program), buildMangledNames(alloc, program), isMSVC: isMSVC);
 
 		writeStructs(alloc, writer, ctx);
 
@@ -147,8 +136,6 @@ WriteToCResult writeToC(
 
 public void getLinkOptions(
 	ref Alloc alloc,
-	scope ref AllSymbols allSymbols,
-	scope ref AllUris allUris,
 	bool isMSVC,
 	in ExternLibraries externLibraries,
 	in void delegate(CString) @safe @nogc pure nothrow cb,
@@ -157,34 +144,33 @@ public void getLinkOptions(
 		cb(cString!"/link");
 	foreach (ExternLibrary x; externLibraries) {
 		if (isMSVC) {
-			Symbol xDotLib = addExtension(allSymbols, x.libraryName, Extension.lib);
+			Symbol xDotLib = addExtension(x.libraryName, Extension.lib);
 			if (has(x.configuredDir)) {
-				if (!uriIsFile(allUris, force(x.configuredDir)))
+				if (!uriIsFile(force(x.configuredDir)))
 					todo!void("diagnostic: can't link to non-file");
-				cb(cStringOfFilePath(
-					alloc, allUris, childFilePath(allUris, asFilePath(allUris, force(x.configuredDir)), xDotLib)));
+				cb(cStringOfFilePath(alloc, childFilePath(asFilePath(force(x.configuredDir)), xDotLib)));
 			} else
 				switch (x.libraryName.value) {
 					case symbol!"c".value:
 					case symbol!"m".value:
 						break;
 					default:
-						cb(cStringOfSymbol(alloc, allSymbols, xDotLib));
+						cb(cStringOfSymbol(alloc, xDotLib));
 						break;
 				}
 		} else {
 			if (has(x.configuredDir)) {
 				cb(withWriter(alloc, (scope ref Writer writer) {
 					writer ~= "-L/";
-					if (!uriIsFile(allUris, force(x.configuredDir)))
+					if (!uriIsFile(force(x.configuredDir)))
 						todo!void("diagnostic: can't link to non-file");
-					writeFilePath(writer, allUris, asFilePath(allUris, force(x.configuredDir)));
+					writer ~= asFilePath(force(x.configuredDir));
 				}));
 			}
 
 			cb(withWriter(alloc, (scope ref Writer writer) {
 				writer ~= "-l";
-				writeSymbol(writer, allSymbols, x.libraryName);
+				writer ~= x.libraryName;
 			}));
 		}
 	}
@@ -194,26 +180,24 @@ private:
 
 CString[] cCompileArgs(
 	ref Alloc alloc,
-	scope ref AllSymbols allSymbols,
-	scope ref AllUris allUris,
 	in ExternLibraries externLibraries,
 	bool isMSVC,
 	in WriteToCParams params,
 ) =>
 	buildArray(alloc, (scope ref Builder!CString args) {
 		args ~= cCompilerArgs(isMSVC, params.compileOptions);
-		args ~= cStringOfFilePath(alloc, allUris, params.cPath);
-		getLinkOptions(alloc, allSymbols, allUris, isMSVC, externLibraries, (CString x) { args ~= x; });
+		args ~= cStringOfFilePath(alloc, params.cPath);
+		getLinkOptions(alloc, isMSVC, externLibraries, (CString x) { args ~= x; });
 		if (isMSVC) {
 			args ~= [
 				cString!"/nologo",
 				withWriter(alloc, (scope ref Writer writer) {
 					writer ~= "/out:";
-					writeFilePath(writer, allUris, params.exePath);
+					writer ~= params.exePath;
 				}),
 			];
 		} else {
-			args ~= [cString!"-o", cStringOfFilePath(alloc, allUris, params.exePath)];
+			args ~= [cString!"-o", cStringOfFilePath(alloc, params.exePath)];
 		}
 	});
 
@@ -394,8 +378,6 @@ const struct Ctx {
 		*showDiagCtxPtr;
 	ref LowProgram program() return scope const =>
 		*programPtr;
-	ref const(AllSymbols) allSymbols() return scope =>
-		*mangledNames.allSymbols;
 }
 
 struct FunBodyCtx {

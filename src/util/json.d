@@ -8,7 +8,7 @@ import util.col.fullIndexMap : FullIndexMap;
 import util.col.map : KeyValuePair;
 import util.opt : force, has, Opt;
 import util.string : copyString, CString, SmallString, stringsEqual, stringOfCString;
-import util.symbol : AllSymbols, Symbol, symbol, writeQuotedSymbol;
+import util.symbol : Symbol, symbol, writeQuotedSymbol;
 import util.union_ : Union;
 import util.writer :
 	makeStringWithWriter,
@@ -53,6 +53,10 @@ immutable struct Json {
 				b.isA!(Json[]) && arraysEqual!Json(x, b.as!(Json[])),
 			(in Json.Object oa) =>
 				b.isA!Object && arraysEqual(oa, b.as!Object));
+
+	void writeTo(scope ref Writer writer) scope {
+		writeJson(writer, this);
+	}
 }
 static assert(Json.sizeof == ulong.sizeof * 2);
 
@@ -147,22 +151,22 @@ Json.ObjectField field(string name)(string value) =>
 Json.ObjectField field(string name)(Symbol value) =>
 	field!name(Json(value));
 
-CString jsonToCString(ref Alloc alloc, in AllSymbols allSymbols, in Json a) =>
+CString jsonToCString(ref Alloc alloc, in Json a) =>
 	withWriter(alloc, (scope ref Writer writer) {
-		writeJson(writer, allSymbols, a);
+		writer ~= a;
 	});
 
-string jsonToString(ref Alloc alloc, in AllSymbols allSymbols, in Json a) =>
+string jsonToString(ref Alloc alloc, in Json a) =>
 	makeStringWithWriter(alloc, (scope ref Writer writer) {
-		writeJson(writer, allSymbols, a);
+		writer ~= a;
 	});
 
-string jsonToStringPretty(ref Alloc alloc, in AllSymbols allSymbols, in Json a) =>
+string jsonToStringPretty(ref Alloc alloc, in Json a) =>
 	makeStringWithWriter(alloc, (scope ref Writer writer) {
-		writeJsonPretty(writer, allSymbols, a, 0);
+		writeJsonPretty(writer, a, 0);
 	});
 
-void writeJson(ref Writer writer, in AllSymbols allSymbols, in Json a) =>
+private void writeJson(ref Writer writer, in Json a) =>
 	a.matchIn!void(
 		(in Json.Null _) {
 			writer ~= "null";
@@ -177,28 +181,28 @@ void writeJson(ref Writer writer, in AllSymbols allSymbols, in Json a) =>
 			writeQuotedString(writer, x);
 		},
 		(in Symbol x) {
-			writeQuotedSymbol(writer, allSymbols, x);
+			writeQuotedSymbol(writer, x);
 		},
 		(in Json[] x) {
 			writer ~= '[';
 			writeWithCommasCompact!Json(writer, x, (in Json y) {
-				writeJson(writer, allSymbols, y);
+				writer ~= y;
 			});
 			writer ~= ']';
 		},
 		(in Json.Object x) {
-			writeObjectCompact!Symbol(writer, allSymbols, x, (in Symbol key) {
-				writeQuotedSymbol(writer, allSymbols, key);
+			writeObjectCompact!Symbol(writer, x, (in Symbol key) {
+				writeQuotedSymbol(writer, key);
 			});
 		});
 
-void writeJsonPretty(ref Writer writer, in AllSymbols allSymbols, in Json a, in uint indent) {
+void writeJsonPretty(ref Writer writer, in Json a, in uint indent) {
 	if (a.isA!(Json[])) {
 		bool singleLine = every!Json(a.as!(Json[]), (in Json x) => isPrimitive(x));
 		writer ~= '[';
 		writeWithSeparator!Json(writer, a.as!(Json[]), singleLine ? ", " : ",", (in Json x) {
 			if (!singleLine) writeNewlineAndIndent(writer, indent + 1);
-			writeJsonPretty(writer, allSymbols, x, indent + 1);
+			writeJsonPretty(writer, x, indent + 1);
 		});
 		if (!singleLine) writeNewlineAndIndent(writer, indent);
 		writer ~= ']';
@@ -209,21 +213,20 @@ void writeJsonPretty(ref Writer writer, in AllSymbols allSymbols, in Json a, in 
 		string comma = singleLine ? ", " : ",";
 		writeWithSeparator!(Json.ObjectField)(writer, a.as!(Json.Object), comma, (in Json.ObjectField pair) {
 			if (!singleLine) writeNewlineAndIndent(writer, indent + 1);
-			writeQuotedSymbol(writer, allSymbols, pair.key);
+			writeQuotedSymbol(writer, pair.key);
 			writer ~= ": ";
-			writeJsonPretty(writer, allSymbols, pair.value, indent + 1);
+			writeJsonPretty(writer, pair.value, indent + 1);
 		});
 		if (!singleLine) writeNewlineAndIndent(writer, indent);
 		writer ~= '}';
 	} else
-		writeJson(writer, allSymbols, a);
+		writer ~= a;
 }
 
 private:
 
 void writeObjectCompact(K)(
 	ref Writer writer,
-	in AllSymbols allSymbols,
 	in KeyValuePair!(K, Json)[] pairs,
 	in void delegate(in K) @safe @nogc pure nothrow writeKey,
 ) {
@@ -231,7 +234,7 @@ void writeObjectCompact(K)(
 	writeWithCommasCompact!(KeyValuePair!(K, Json))(writer, pairs, (in KeyValuePair!(K, Json) pair) {
 		writeKey(pair.key);
 		writer ~= ':';
-		writeJson(writer, allSymbols, pair.value);
+		writer ~= pair.value;
 	});
 	writer ~= '}';
 }

@@ -33,7 +33,7 @@ import util.col.hashTable : ValueAndDidAdd;
 import util.col.mutMultiMap : countKeys, eachValueForKey, MutMultiMap;
 import util.memory : allocate;
 import util.opt : force, Opt;
-import util.symbol : AllSymbols, Symbol, symbol, writeSymbol;
+import util.symbol : Symbol, symbol;
 import util.uri : mustParseUri, Uri;
 import util.util : ptrTrustMe;
 import util.writer : debugLogWithWriter, writeNewline, Writer;
@@ -55,7 +55,7 @@ void testFreeInstantiationsForModule(ref Test test, ref Alloc alloc) {
 		a1[t] record
 		and something using `a0 a1`
 	*/
-	Uri uriA = mustParseUri(test.allUris, "test://a.crow");
+	Uri uriA = mustParseUri("test://a.crow");
 	Module moduleA = makeModule(alloc, uriA, [
 		dummyStruct(test.alloc, uriA, symbol!"a0", 0),
 		dummyStruct(alloc, uriA, symbol!"a1", 1)]);
@@ -82,7 +82,7 @@ void testFreeInstantiationsForModule(ref Test test, ref Alloc alloc) {
 		b1[t] record
 		and something using `b0 b1`
 	*/
-	Uri uriB = mustParseUri(test.allUris, "test://b.crow");
+	Uri uriB = mustParseUri("test://b.crow");
 	Module moduleB = makeModule(alloc, uriB, [
 		dummyStruct(alloc, uriB, symbol!"b0", 0),
 		dummyStruct(alloc, uriB, symbol!"b1", 1)]);
@@ -147,13 +147,13 @@ void assertReferencedBy(in Test test, in AllInsts insts, in ExpectedReferences[]
 				writer ~= "actual values:";
 				eachValueForKey!(AnyDeclOrInst, AnyInst)(actual, expectedRefs.referenced, (in AnyInst x) {
 					writeNewline(writer, 1);
-					writeAnyInst(writer, test.allSymbols, insts, x);
+					writeAnyInst(writer, x);
 				});
 				writeNewline(writer, 0);
 				writer ~= "expected values:";
 				foreach (AnyInst x; expectedRefs.referencers) {
 					writeNewline(writer, 1);
-					writeAnyInst(writer, test.allSymbols, insts, x);
+					writeAnyInst(writer, x);
 				}
 			});
 		}
@@ -167,17 +167,11 @@ void assertReferencedBy(in Test test, in AllInsts insts, in ExpectedReferences[]
 }
 
 
-void writeAnyInst(scope ref Writer writer, in AllSymbols allSymbols, in AllInsts a, in AnyInst inst) {
-	inst.matchIn!void(
-		(in StructInst x) {
-			writeSymbol(writer, allSymbols, x.decl.name);
-		},
-		(in SpecInst x) {
-			writeSymbol(writer, allSymbols, x.decl.name);
-		},
-		(in FunInst x) {
-			writeSymbol(writer, allSymbols, x.decl.name);
-		});
+void writeAnyInst(scope ref Writer writer, in AnyInst inst) {
+	writer ~= inst.matchIn!Symbol(
+		(in StructInst x) => x.decl.name,
+		(in SpecInst x) => x.decl.name,
+		(in FunInst x) => x.decl.name);
 }
 
 struct ExpectedReferences {

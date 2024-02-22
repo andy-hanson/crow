@@ -117,7 +117,7 @@ import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2Mus
 import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, none, Opt, optIf, some;
 import util.sourceRange : Range, UriAndRange;
-import util.symbol : AllSymbols, symbol, symbolOfString;
+import util.symbol : symbol, symbolOfString;
 import util.union_ : Union;
 import util.uri : Uri;
 import util.util : castNonScope, castNonScope_ref, ptrTrustMe, todo;
@@ -171,7 +171,7 @@ ConcreteExpr concretizeWithParamDestructures(
 				rest(addLocal(locals, local, LocalOrConstant(&concreteParams[0]))),
 			(Destructure.Split* x) =>
 				concretizeWithDestructureSplit(
-					ctx, type, toUriAndRange(ctx, params[0].range(ctx.allSymbols)), locals, *x, &concreteParams[0],
+					ctx, type, toUriAndRange(ctx, params[0].range), locals, *x, &concreteParams[0],
 					(in Locals innerLocals) => rest(innerLocals)));
 	}
 }
@@ -193,9 +193,6 @@ public struct ConcretizeExprCtx {
 
 	ref ConcreteFun currentConcreteFun() return scope const =>
 		*currentConcreteFunPointer;
-
-	ref inout(AllSymbols) allSymbols() inout =>
-		concretizeCtx.allSymbols;
 
 	ref inout(AllConstantsBuilder) allConstants() return scope inout =>
 		concretizeCtx.allConstants;
@@ -675,7 +672,7 @@ ConcreteExpr concretizeWithDestructurePartsRecur(
 		return cb(locals);
 	else {
 		Destructure part = parts[partIndex];
-		UriAndRange range = toUriAndRange(ctx, part.range(ctx.allSymbols));
+		UriAndRange range = toUriAndRange(ctx, part.range);
 		ConcreteType valueType = mustBeByVal(getTemp.type).body_.as!(ConcreteStructBody.Record).fields[partIndex].type;
 		ConcreteType expectedType = getConcreteType(ctx, part.type);
 		if (expectedType == valueType) {
@@ -1002,7 +999,7 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 					return stringLiteralConcreteExpr(ctx.concretizeCtx, range, x.value);
 				case LiteralStringLikeExpr.Kind.symbol:
 					return ConcreteExpr(type, range, ConcreteExprKind(
-						constantSymbol(ctx.concretizeCtx, symbolOfString(ctx.allSymbols, x.value))));
+						constantSymbol(ctx.concretizeCtx, symbolOfString(x.value))));
 			}
 		},
 		(LocalGetExpr x) =>

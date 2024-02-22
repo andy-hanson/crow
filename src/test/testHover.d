@@ -34,8 +34,7 @@ void hoverTest(string crowFileName, string outputFileName)(ref Test test) {
 	string content = import("hover/" ~ crowFileName);
 	string expected = import(outputFileName);
 	withHoverTest!crowFileName(test, content, (in ShowModelCtx ctx, in Program program, in Module* module_) {
-		string actual = jsonToStringPretty(
-			test.alloc, test.allSymbols, hoverResult(test.alloc, content, ctx, program, module_));
+		string actual = jsonToStringPretty(test.alloc, hoverResult(test.alloc, content, ctx, program, module_));
 		if (actual != expected) {
 			debugLogWithWriter((scope ref Writer writer) {
 				writer ~= "Test output for ";
@@ -54,7 +53,7 @@ void withHoverTest(string fileName)(
 	in void delegate(in ShowModelCtx, in Program, in Module*) @safe @nogc pure nothrow cb,
 ) {
 	withTestServer(test, (ref Alloc alloc, ref Server server) {
-		Uri uri = mustParseUri(server.allUris, "magic:/" ~ fileName);
+		Uri uri = mustParseUri("magic:/" ~ fileName);
 		setupTestServer(test, alloc, server, uri, content);
 		Program program = getProgramForAll(test.perf, alloc, server);
 		cb(getShowDiagCtx(server, program), program, mustGet(program.allModules, uri));
@@ -88,17 +87,17 @@ Json hoverResult(ref Alloc alloc, in string content, in ShowModelCtx ctx, in Pro
 					field!"range"(jsonOfLineAndCharacterRange(alloc, lcg[Range(curRangeStart, end)])),
 					field!"hover"(curInfo.hover),
 					optionalArrayField!("definition", UriAndRange)(alloc, curInfo.definition, (in UriAndRange x) =>
-						jsonOfUriAndLineAndCharacterRange(alloc, ctx.allUris, ctx.lineAndCharacterGetters[x])),
+						jsonOfUriAndLineAndCharacterRange(alloc, ctx.lineAndCharacterGetters[x])),
 				]);
 		}
 
 		Pos endOfFile = safeToUint(content.length);
 		foreach (Pos pos; 0 .. endOfFile + 1) {
-			Opt!Position position = getPosition(ctx.allSymbols, ctx.allUris, program, mainModule, pos);
+			Opt!Position position = getPosition(program, mainModule, pos);
 			Opt!Hover hover = optIf(has(position), () => getHover(alloc, ctx, force(position)));
 			InfoAtPos here = InfoAtPos(
 				has(hover) ? force(hover).contents.value : "",
-				has(position) ? getDefinitionForPosition(alloc, ctx.allSymbols, force(position)) : []);
+				has(position) ? getDefinitionForPosition(alloc, force(position)) : []);
 			if (here != curInfo) {
 				endRange(pos);
 				curRangeStart = pos;

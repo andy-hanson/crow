@@ -13,22 +13,16 @@ import util.json : Json;
 import util.opt : force, has, none, Opt, some;
 import util.jsonParse : parseJson;
 import util.string : CString;
-import util.symbol : AllSymbols, Symbol, symbol;
-import util.uri : AllUris, bogusUri, parentOrEmpty, parseUriWithCwd, Uri;
+import util.symbol : Symbol, symbol;
+import util.uri : bogusUri, parentOrEmpty, parseUriWithCwd, Uri;
 import util.util : todo;
 
-Config parseConfig(
-	ref Alloc alloc,
-	scope ref AllSymbols allSymbols,
-	scope ref AllUris allUris,
-	Uri configUri,
-	in CString text,
-) {
+Config parseConfig(ref Alloc alloc, Uri configUri, in CString text) {
 	ArrayBuilder!Diagnostic diagsBuilder;
-	Opt!Json json = parseJson(alloc, allSymbols, text); // TODO: this should take diagsBuilder
+	Opt!Json json = parseJson(alloc, text); // TODO: this should take diagsBuilder
 	if (has(json) && force(json).isA!(Json.Object)) {
 		ConfigContent content = parseConfigRecur(
-			alloc, allSymbols, allUris, parentOrEmpty(allUris, configUri), diagsBuilder, force(json).as!(Json.Object));
+			alloc, parentOrEmpty(configUri), diagsBuilder, force(json).as!(Json.Object));
 		return Config(some(configUri), finish(alloc, diagsBuilder), content.include, content.extern_);
 	} else
 		return Config(some(configUri), newArray(alloc, [todo!Diagnostic("diag -- bad JSON")]));
@@ -52,8 +46,6 @@ struct ConfigContent {
 
 ConfigContent parseConfigRecur(
 	ref Alloc alloc,
-	scope ref AllSymbols allSymbols,
-	scope ref AllUris allUris,
 	Uri dirContainingConfig,
 	scope ref ArrayBuilder!Diagnostic diags,
 	in Json.Object fields,
@@ -62,13 +54,9 @@ ConfigContent parseConfigRecur(
 		Json value = field.value;
 		switch (field.key.value) {
 			case symbol!"include".value:
-				return withInclude(
-					cur,
-					parseIncludeOrExtern(alloc, allSymbols, allUris, dirContainingConfig, diags, value));
+				return withInclude(cur, parseIncludeOrExtern(alloc, dirContainingConfig, diags, value));
 			case symbol!"extern".value:
-				return withExtern(
-					cur,
-					parseIncludeOrExtern(alloc, allSymbols, allUris, dirContainingConfig, diags, value));
+				return withExtern(cur, parseIncludeOrExtern(alloc, dirContainingConfig, diags, value));
 			default:
 				todo!void("diag -- bad key");
 				return cur;
@@ -77,25 +65,22 @@ ConfigContent parseConfigRecur(
 
 Map!(Symbol, Uri) parseIncludeOrExtern(
 	ref Alloc alloc,
-	scope ref AllSymbols allSymbols,
-	scope ref AllUris allUris,
 	Uri dirContainingConfig,
 	scope ref ArrayBuilder!Diagnostic diags,
 	in Json json,
 ) =>
-	parseSymbolMap!Uri(alloc, allSymbols, diags, json, (in Json value) {
-		Opt!Uri res = parseUri(allUris, dirContainingConfig, diags, value);
-		return has(res) ? force(res) : bogusUri(allUris);
+	parseSymbolMap!Uri(alloc, diags, json, (in Json value) {
+		Opt!Uri res = parseUri(dirContainingConfig, diags, value);
+		return has(res) ? force(res) : bogusUri();
 	});
 
 Opt!Uri parseUri(
-	scope ref AllUris allUris,
 	Uri dirContainingConfig,
 	scope ref ArrayBuilder!Diagnostic diags,
 	in Json json,
 ) {
 	if (json.isA!string)
-		return some(parseUriWithCwd(allUris, dirContainingConfig, json.as!string));
+		return some(parseUriWithCwd(dirContainingConfig, json.as!string));
 	else {
 		todo!void("diag -- 'include' values should be strings");
 		return none!Uri;
@@ -104,7 +89,6 @@ Opt!Uri parseUri(
 
 Map!(Symbol, T) parseSymbolMap(T)(
 	ref Alloc alloc,
-	ref AllSymbols allSymbols,
 	scope ref ArrayBuilder!Diagnostic diags,
 	in Json json,
 	in T delegate(in Json) @safe @nogc pure nothrow cbValue,

@@ -71,18 +71,18 @@ Called checkCallSpecs(ref ExprCtx ctx, in Range diagRange, ref const Candidate c
 Called checkSpecSingleSigIgnoreParents(ref CheckCtx ctx, in FunsMap funsMap, FunDecl* decl, SpecInst* spec) {
 	FunsInScope funsInScope = FunsInScope(decl.specs, funsMap, ctx.importsAndReExports);
 	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, castNonScope_ref(funsInScope));
-	RealTrace trace = RealTrace(&ctx, TypeContainer(decl), decl.nameRange(ctx.allSymbols).range);
+	RealTrace trace = RealTrace(&ctx, TypeContainer(decl), decl.nameRange.range);
 	SpecImpls specImpls = mutMaxArr!(maxSpecImpls, Called);
 	Opt!(Diag.SpecNoMatch) diag = checkSpecImpl!(RealTrace*)(specImpls, checkSpecsCtx, decl, ptrTrustMe(trace), *spec);
 	assert(spec.sigTypes.length == 1);
 	if (has(diag)) {
-		addDiag(ctx, decl.nameRange(ctx.allSymbols).range, Diag(force(diag)));
+		addDiag(ctx, decl.nameRange.range, Diag(force(diag)));
 		CalledSpecSig sig = CalledSpecSig(spec, 0);
 		return Called(allocate(ctx.alloc, Called.Bogus(CalledDecl(sig), sig.returnType, sig.paramTypes)));
 	} else {
 		Called res = specImpls[$ - 1];
 		LocalsInfo locals;
-		checkCalled(ctx, decl.nameRange(ctx.allSymbols).range, res, decl.flags, locals, ArgsKind.nonEmpty, () =>
+		checkCalled(ctx, decl.nameRange.range, res, decl.flags, locals, ArgsKind.nonEmpty, () =>
 			allowsUnsafe(decl.flags.safety));
 		return res;
 	}

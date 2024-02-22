@@ -16,7 +16,7 @@ import frontend.parse.lexWhitespace :
 import model.ast : ElifOrElseKeyword, LiteralFloatAst, LiteralIntAst, LiteralNatAst;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.string : CString, MutCString, SmallString, stringOfRange;
-import util.symbol : AllSymbols, appendEquals, Symbol, symbol, symbolOfString;
+import util.symbol : appendEquals, Symbol, symbol, symbolOfString;
 
 immutable struct DocCommentAndExtraDedents {
 	SmallString docComment;
@@ -239,13 +239,7 @@ bool isSymbolToken(Token a) {
 	}
 }
 
-TokenAndData lexInitialToken(
-	ref MutCString ptr,
-	ref AllSymbols allSymbols,
-	IndentKind indentKind,
-	ref uint curIndent,
-	in AddDiag addDiag,
-) =>
+TokenAndData lexInitialToken(ref MutCString ptr, IndentKind indentKind, ref uint curIndent, in AddDiag addDiag) =>
 	newlineToken(ptr, Token.newlineSameIndent, indentKind, curIndent, addDiag);
 
 /*
@@ -254,7 +248,6 @@ Possibly writes to 'data' depending on the kind of token returned.
 */
 TokenAndData lexToken(
 	ref MutCString ptr,
-	ref AllSymbols allSymbols,
 	IndentKind indentKind,
 	ref uint curIndent,
 	in AddDiag addDiag,
@@ -274,21 +267,21 @@ TokenAndData lexToken(
 		case '\n':
 			return newlineToken(ptr, Token.newlineSameIndent, indentKind, curIndent, addDiag);
 		case '~':
-			return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '~') ? symbol!"~~" : symbol!"~");
+			return operatorToken(ptr, tryTakeChar(ptr, '~') ? symbol!"~~" : symbol!"~");
 		case '@':
 			return plainToken(Token.at);
 		case '!':
 			return !startsWith(ptr, "==") && tryTakeChar(ptr, '=')
-				? operatorToken(ptr, allSymbols, symbol!"!=")
+				? operatorToken(ptr, symbol!"!=")
 				: plainToken(Token.bang);
 		case '%':
-			return operatorToken(ptr, allSymbols, symbol!"%");
+			return operatorToken(ptr, symbol!"%");
 		case '^':
-			return operatorToken(ptr, allSymbols, symbol!"^");
+			return operatorToken(ptr, symbol!"^");
 		case '&':
-			return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '&') ? symbol!"&&" : symbol!"&");
+			return operatorToken(ptr, tryTakeChar(ptr, '&') ? symbol!"&&" : symbol!"&");
 		case '*':
-			return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '*') ? symbol!"**" : symbol!"*");
+			return operatorToken(ptr, tryTakeChar(ptr, '*') ? symbol!"**" : symbol!"*");
 		case '(':
 			return plainToken(Token.parenLeft);
 		case ')':
@@ -306,19 +299,19 @@ TokenAndData lexToken(
 				? takeNumberAfterSign(ptr, some(Sign.minus))
 				: tryTakeChar(ptr, '>')
 				? plainToken(Token.arrowAccess)
-				: operatorToken(ptr, allSymbols, symbol!"-");
+				: operatorToken(ptr, symbol!"-");
 		case '=':
 			return tryTakeChar(ptr, '>')
 				? plainToken(Token.arrowLambda)
 				: tryTakeChar(ptr, '=')
-				? operatorToken(ptr, allSymbols, symbol!"==")
+				? operatorToken(ptr, symbol!"==")
 				: plainToken(Token.equal);
 		case '+':
 			return isDecimalDigit(*ptr)
 				? takeNumberAfterSign(ptr, some(Sign.plus))
-				: operatorToken(ptr, allSymbols, symbol!"+");
+				: operatorToken(ptr, symbol!"+");
 		case '|':
-			return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '|') ? symbol!"||" : symbol!"|");
+			return operatorToken(ptr, tryTakeChar(ptr, '|') ? symbol!"||" : symbol!"|");
 		case ':':
 			return tryTakeChar(ptr, '=')
 				? plainToken(Token.colonEqual)
@@ -336,37 +329,37 @@ TokenAndData lexToken(
 		case '<':
 			return tryTakeChar(ptr, '-')
 				? plainToken(Token.arrowThen)
-				: operatorToken(ptr, allSymbols, tryTakeChar(ptr, '=')
+				: operatorToken(ptr, tryTakeChar(ptr, '=')
 					? tryTakeChar(ptr, '>') ? symbol!"<=>" : symbol!"<="
 					: tryTakeChar(ptr, '<')
 					? symbol!"<<"
 					: symbol!"<");
 		case '>':
-			return operatorToken(ptr, allSymbols, tryTakeChar(ptr, '=')
+			return operatorToken(ptr, tryTakeChar(ptr, '=')
 				? symbol!">="
 				: tryTakeChar(ptr, '>')
 				? symbol!">>"
 				: symbol!">");
 		case '.':
 			return tryTakeChar(ptr, '.')
-				? tryTakeChar(ptr, '.') ? plainToken(Token.dot3) : operatorToken(ptr, allSymbols, symbol!"..")
+				? tryTakeChar(ptr, '.') ? plainToken(Token.dot3) : operatorToken(ptr, symbol!"..")
 				: plainToken(Token.dot);
 		case '/':
-			return operatorToken(ptr, allSymbols, symbol!"/");
+			return operatorToken(ptr, symbol!"/");
 		case '?':
 			return tryTakeChar(ptr, '=')
 				? plainToken(Token.questionEqual)
 				: tryTakeChar(ptr, '?')
-				? operatorToken(ptr, allSymbols, symbol!"??")
+				? operatorToken(ptr, symbol!"??")
 				: plainToken(Token.question);
 		default:
 			if (isAlphaIdentifierStart(c)) {
 				string nameStr = takeNameRest(ptr, start);
-				Symbol symbol = symbolOfString(allSymbols, nameStr);
+				Symbol symbol = symbolOfString(nameStr);
 				Token token = tokenForSymbol(symbol);
 				switch (token) {
 					case Token.name:
-						return nameLikeToken(ptr, allSymbols, symbol, Token.name);
+						return nameLikeToken(ptr, symbol, Token.name);
 					case Token.region:
 						return TokenAndData(Token.region, takeRestOfLine(ptr));
 					default:
@@ -489,12 +482,12 @@ TokenAndData newlineToken(
 	return TokenAndData(token, DocCommentAndExtraDedents(x.docComment, extraDedents));
 }
 
-TokenAndData operatorToken(scope ref MutCString ptr, ref AllSymbols allSymbols, Symbol a) =>
-	nameLikeToken(ptr, allSymbols, a, Token.operator);
+TokenAndData operatorToken(scope ref MutCString ptr, Symbol a) =>
+	nameLikeToken(ptr, a, Token.operator);
 
-TokenAndData nameLikeToken(scope ref MutCString ptr, ref AllSymbols allSymbols, Symbol a, Token regularToken) =>
+TokenAndData nameLikeToken(scope ref MutCString ptr, Symbol a, Token regularToken) =>
 	!startsWith(ptr, "==") && tryTakeChar(ptr, '=')
-		? TokenAndData(Token.nameOrOperatorEquals, appendEquals(allSymbols, a))
+		? TokenAndData(Token.nameOrOperatorEquals, appendEquals(a))
 		: TokenAndData(tryTakeChars(ptr, ":=") ? Token.nameOrOperatorColonEquals : regularToken, a);
 
 Token tokenForSymbol(Symbol a) {

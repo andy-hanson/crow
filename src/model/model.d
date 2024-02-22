@@ -42,7 +42,7 @@ import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : force, has, none, Opt, optEqual, some;
 import util.sourceRange : combineRanges, UriAndRange, Pos, Range;
 import util.string : emptySmallString, SmallString;
-import util.symbol : AllSymbols, Symbol, symbol;
+import util.symbol : Symbol, symbol;
 import util.union_ : IndexType, TaggedUnion, Union;
 import util.uri : Uri;
 import util.util : enumConvertOrAssert, max, min, stringOfEnum;
@@ -84,6 +84,9 @@ TypeArgs emptyTypeArgs() =>
 alias SpecImpls = SmallArray!Called;
 SpecImpls emptySpecImpls() =>
 	emptySmallArray!Called;
+alias Specs = SmallArray!(immutable SpecInst*);
+Specs emptySpecs() =>
+	emptySmallArray!(immutable SpecInst*);
 
 // Represent type parameter as the index, so we don't generate different types for every `t list`.
 // (These are disambiguated in the type checker using `TypeAndContext`)
@@ -182,8 +185,8 @@ immutable struct SpecDeclSig {
 		UriAndRange(moduleUri, ast.range);
 }
 
-UriAndRange nameRange(in AllSymbols allSymbols, in SpecDeclSig a) =>
-	UriAndRange(a.moduleUri, a.ast.nameAndRange.range(allSymbols));
+UriAndRange nameRange(in SpecDeclSig a) =>
+	UriAndRange(a.moduleUri, a.ast.nameAndRange.range);
 
 immutable struct TypeParamsAndSig {
 	TypeParams typeParams;
@@ -211,19 +214,19 @@ immutable struct RecordOrUnionMemberSource {
 			(in RecordOrUnionMemberAst x) =>
 				x.name.name);
 
-	Range range(in AllSymbols allSymbols) scope =>
+	Range range() scope =>
 		matchIn!Range(
 			(in DestructureAst.Single x) =>
-				x.range(allSymbols),
+				x.range,
 			(in RecordOrUnionMemberAst x) =>
 				x.range);
 
-	Range nameRange(in AllSymbols allSymbols) scope =>
+	Range nameRange() scope =>
 		matchIn!Range(
 			(in DestructureAst.Single x) =>
-				x.nameRange(allSymbols),
+				x.nameRange,
 			(in RecordOrUnionMemberAst x) =>
-				x.nameRange(allSymbols));
+				x.nameRange);
 }
 
 immutable struct RecordField {
@@ -239,10 +242,10 @@ immutable struct RecordField {
 		containingRecord.moduleUri;
 	Symbol name() scope =>
 		source.name;
-	Range range(in AllSymbols allSymbols) scope =>
-		source.range(allSymbols);
-	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
-		UriAndRange(moduleUri, source.nameRange(allSymbols));
+	Range range() scope =>
+		source.range;
+	UriAndRange nameRange() scope =>
+		UriAndRange(moduleUri, source.nameRange);
 }
 
 immutable struct UnionMember {
@@ -260,10 +263,10 @@ immutable struct UnionMember {
 		containingUnion.visibility;
 	Symbol name() scope =>
 		source.name;
-	Range range(in AllSymbols allSymbols) scope =>
-		source.range(allSymbols);
-	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
-		UriAndRange(moduleUri, source.nameRange(allSymbols));
+	Range range() scope =>
+		source.range;
+	UriAndRange nameRange() scope =>
+		UriAndRange(moduleUri, source.nameRange);
 }
 
 alias ByValOrRef = immutable ByValOrRef_;
@@ -300,14 +303,14 @@ immutable struct EnumMemberSource {
 		matchIn!Symbol(
 			(in EnumOrFlagsMemberAst x) => x.name,
 			(in DestructureAst.Single x) => x.name.name);
-	Range range(in AllSymbols allSymbols) scope =>
+	Range range() scope =>
 		matchIn!Range(
 			(in EnumOrFlagsMemberAst x) => x.range,
-			(in DestructureAst.Single x) => x.range(allSymbols));
-	Range nameRange(in AllSymbols allSymbols) scope =>
+			(in DestructureAst.Single x) => x.range);
+	Range nameRange() scope =>
 		matchIn!Range(
-			(in EnumOrFlagsMemberAst x) => x.nameRange(allSymbols),
-			(in DestructureAst.Single x) => x.nameRange(allSymbols));
+			(in EnumOrFlagsMemberAst x) => x.nameRange,
+			(in DestructureAst.Single x) => x.nameRange);
 }
 
 immutable struct EnumOrFlagsMember {
@@ -325,10 +328,10 @@ immutable struct EnumOrFlagsMember {
 		containingEnum.visibility;
 	Symbol name() scope =>
 		source.name;
-	Range range(in AllSymbols allSymbols) scope =>
-		source.range(allSymbols);
-	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
-		UriAndRange(moduleUri, source.nameRange(allSymbols));
+	Range range() scope =>
+		source.range;
+	UriAndRange nameRange() scope =>
+		UriAndRange(moduleUri, source.nameRange);
 }
 
 immutable struct StructBody {
@@ -395,8 +398,8 @@ immutable struct StructAlias {
 
 	UriAndRange range() scope =>
 		UriAndRange(moduleUri, ast.range);
-	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
-		UriAndRange(moduleUri, ast.nameRange(allSymbols));
+	UriAndRange nameRange() scope =>
+		UriAndRange(moduleUri, ast.nameRange);
 
 	StructInst* target() return scope =>
 		lateGet(target_);
@@ -477,10 +480,10 @@ immutable struct StructDecl {
 			(in StructDeclSource.Bogus) =>
 				Range.empty));
 
-	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
+	UriAndRange nameRange() scope =>
 		UriAndRange(moduleUri, source.matchIn!Range(
 			(in StructDeclAst x) =>
-				x.nameRange(allSymbols),
+				x.nameRange,
 			(in StructDeclSource.Bogus) =>
 				Range.empty));
 
@@ -535,7 +538,7 @@ Opt!(Type[]) asTuple(in CommonTypes commonTypes, Type type) =>
 
 immutable struct SpecDeclBody {
 	Opt!BuiltinSpec builtin;
-	SmallArray!(immutable SpecInst*) parents;
+	Specs parents;
 	SmallArray!SpecDeclSig sigs;
 }
 
@@ -567,19 +570,19 @@ immutable struct SpecDecl {
 	ref Opt!BuiltinSpec builtin() return scope =>
 		body_.builtin;
 
-	SmallArray!(immutable SpecInst*) parents() return scope =>
+	Specs parents() return scope =>
 		body_.parents;
 
 	void overwriteParentsToEmpty() scope =>
-		lateSetOverwrite(lateBody, SpecDeclBody(builtin, emptySmallArray!(immutable SpecInst*), sigs));
+		lateSetOverwrite(lateBody, SpecDeclBody(builtin, emptySpecs, sigs));
 
 	SmallArray!SpecDeclSig sigs() return scope =>
 		body_.sigs;
 
 	UriAndRange range() scope =>
 		UriAndRange(moduleUri, ast.range);
-	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
-		UriAndRange(moduleUri, ast.nameRange(allSymbols));
+	UriAndRange nameRange() scope =>
+		UriAndRange(moduleUri, ast.nameRange);
 }
 
 // The SpecInst and contents are allocated using the AllInsts alloc.
@@ -605,7 +608,7 @@ private size_t countSigs(in SpecInst a) =>
 	sum(a.parents, (in SpecInst* x) => countSigs(*x)) + a.sigTypes.length;
 
 immutable struct SpecInstBody {
-	SmallArray!(immutable SpecInst*) parents;
+	Specs parents;
 	// Corresponds to the signatures in decl.body_
 	SmallArray!ReturnAndParamTypes sigTypes;
 }
@@ -997,42 +1000,42 @@ immutable struct FunDeclSource {
 			(in VarDecl x) =>
 				x.moduleUri);
 
-	UriAndRange range(in AllSymbols allSymbols) scope =>
+	UriAndRange range() scope =>
 		matchIn!UriAndRange(
 			(in FunDeclSource.Bogus x) =>
 				UriAndRange(x.uri, Range.empty),
 			(in FunDeclSource.Ast x) =>
 				UriAndRange(x.moduleUri, x.ast.range),
 			(in EnumOrFlagsMember x) =>
-				UriAndRange(x.moduleUri, x.range(allSymbols)),
+				UriAndRange(x.moduleUri, x.range),
 			(in FunDeclSource.FileImport x) =>
 				UriAndRange(x.moduleUri, x.ast.range),
 			(in RecordField x) =>
-				UriAndRange(x.moduleUri, x.range(allSymbols)),
+				UriAndRange(x.moduleUri, x.range),
 			(in StructDecl x) =>
 				x.range,
 			(in UnionMember x) =>
-				UriAndRange(x.moduleUri, x.range(allSymbols)),
+				UriAndRange(x.moduleUri, x.range),
 			(in VarDecl x) =>
 				x.range);
-	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
+	UriAndRange nameRange() scope =>
 		matchIn!UriAndRange(
 			(in FunDeclSource.Bogus x) =>
 				UriAndRange(x.uri, Range.empty),
 			(in FunDeclSource.Ast x) =>
-				UriAndRange(x.moduleUri, x.ast.nameRange(allSymbols)),
+				UriAndRange(x.moduleUri, x.ast.nameRange),
 			(in EnumOrFlagsMember x) =>
-				x.nameRange(allSymbols),
+				x.nameRange,
 			(in FunDeclSource.FileImport x) =>
 				UriAndRange(x.moduleUri, x.ast.range),
 			(in RecordField x) =>
-				x.nameRange(allSymbols),
+				x.nameRange,
 			(in StructDecl x) =>
-				x.nameRange(allSymbols),
+				x.nameRange,
 			(in UnionMember x) =>
-				x.nameRange(allSymbols),
+				x.nameRange,
 			(in VarDecl x) =>
-				x.nameRange(allSymbols));
+				x.nameRange);
 }
 
 immutable struct FunDecl {
@@ -1044,7 +1047,7 @@ immutable struct FunDecl {
 	Type returnType;
 	Params params;
 	FunFlags flags;
-	SmallArray!(immutable SpecInst*) specs;
+	Specs specs;
 	private Late!FunBody lateBody;
 
 	ref FunBody body_() return scope =>
@@ -1076,10 +1079,10 @@ immutable struct FunDecl {
 	Uri moduleUri() scope =>
 		source.moduleUri;
 
-	UriAndRange range(in AllSymbols allSymbols) scope =>
-		source.range(allSymbols);
-	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
-		source.nameRange(allSymbols);
+	UriAndRange range() scope =>
+		source.range;
+	UriAndRange nameRange() scope =>
+		source.nameRange;
 
 	SmallString docComment() scope =>
 		source.as!(FunDeclSource.Ast).ast.docComment;
@@ -1313,12 +1316,12 @@ immutable struct StructOrAlias {
 		matchIn!UriAndRange(
 			(in StructAlias x) => x.range,
 			(in StructDecl x) => x.range);
-	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
+	UriAndRange nameRange() scope =>
 		matchIn!UriAndRange(
 			(in StructAlias x) =>
-				x.nameRange(allSymbols),
+				x.nameRange,
 			(in StructDecl x) =>
-				x.nameRange(allSymbols));
+				x.nameRange);
 
 	Visibility visibility() scope =>
 		matchIn!Visibility(
@@ -1355,8 +1358,8 @@ immutable struct VarDecl {
 
 	UriAndRange range() scope =>
 		UriAndRange(moduleUri, ast.range);
-	UriAndRange nameRange(in AllSymbols allSymbols) scope =>
-		UriAndRange(moduleUri, ast.nameRange(allSymbols));
+	UriAndRange nameRange() scope =>
+		UriAndRange(moduleUri, ast.nameRange);
 }
 
 immutable struct Module {
@@ -1664,11 +1667,11 @@ bool localIsAllocated(in Local a) scope {
 	}
 }
 
-Range localMustHaveNameRange(in Local a, in AllSymbols allSymbols) =>
-	a.source.as!(DestructureAst.Single*).nameRange(allSymbols);
+Range localMustHaveNameRange(in Local a) =>
+	a.source.as!(DestructureAst.Single*).nameRange;
 
-private Range localMustHaveRange(in Local a, in AllSymbols allSymbols) =>
-	a.source.as!(DestructureAst.Single*).range(allSymbols);
+private Range localMustHaveRange(in Local a) =>
+	a.source.as!(DestructureAst.Single*).range;
 
 enum LocalMutability {
 	immut,
@@ -1772,14 +1775,14 @@ immutable struct Destructure {
 			(in Destructure.Split _) =>
 				none!Symbol);
 
-	Range range(in AllSymbols allSymbols) scope =>
+	Range range() scope =>
 		matchIn!Range(
 			(in Ignore x) =>
 				Range(x.pos, x.pos + 1),
 			(in Local x) =>
-				localMustHaveRange(x, allSymbols),
+				localMustHaveRange(x),
 			(in Split x) =>
-				combineRanges(x.parts[0].range(allSymbols), x.parts[$ - 1].range(allSymbols)));
+				combineRanges(x.parts[0].range, x.parts[$ - 1].range));
 
 	Type type() scope =>
 		matchIn!Type(

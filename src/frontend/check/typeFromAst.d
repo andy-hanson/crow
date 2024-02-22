@@ -127,8 +127,7 @@ size_t getNTypeArgsForDiagnostic(in CommonTypes commonTypes, in Opt!Type explici
 void checkTypeParams(ref CheckCtx ctx, in NameAndRange[] asts) {
 	eachPair!NameAndRange(asts, (in NameAndRange x, in NameAndRange y) {
 		if (x.name == y.name)
-			addDiag(ctx, y.range(ctx.allSymbols), Diag(
-				Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.typeParam, y.name)));
+			addDiag(ctx, y.range, Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.typeParam, y.name)));
 	});
 }
 
@@ -163,7 +162,7 @@ Type typeFromAst(
 					ctx,
 					commonTypes,
 					name.name,
-					name.range(ctx.allSymbols),
+					name.range,
 					none!(TypeAst*),
 					structsAndAliasesMap,
 					typeParamsScope,
@@ -172,17 +171,17 @@ Type typeFromAst(
 		(ref TypeAst.SuffixName x) {
 			Opt!(Diag.TypeShouldUseSyntax.Kind) optSyntax = typeSyntaxKind(x.name.name);
 			if (has(optSyntax))
-				addDiag(ctx, x.suffixRange(ctx.allSymbols), Diag(Diag.TypeShouldUseSyntax(force(optSyntax))));
+				addDiag(ctx, x.suffixRange, Diag(Diag.TypeShouldUseSyntax(force(optSyntax))));
 			Opt!TypeParamIndex typeParam = findTypeParam(typeParamsScope, x.name.name);
 			if (has(typeParam)) {
-				addDiag(ctx, x.suffixRange(ctx.allSymbols), Diag(Diag.TypeParamCantHaveTypeArgs()));
+				addDiag(ctx, x.suffixRange, Diag(Diag.TypeParamCantHaveTypeArgs()));
 				return Type(force(typeParam));
 			} else
 				return instStructFromAst(
 					ctx,
 					commonTypes,
 					x.name.name,
-					x.suffixRange(ctx.allSymbols),
+					x.suffixRange,
 					some(&castNonScope_ref(x).left),
 					structsAndAliasesMap,
 					typeParamsScope,
@@ -230,8 +229,7 @@ Opt!(SpecInst*) specFromAst(
 				ctx, commonTypes, force(ast.typeArg), structsAndAliasesMap, typeParamsScope, noDelayStructInsts))
 			: none!Type;
 		Opt!TypeArgs typeArgs = getTypeArgsIfNumberMatches(
-			ctx, commonTypes,
-			ast.name.range(ctx.allSymbols), spec.name, spec.typeParams.length, &typeArg);
+			ctx, commonTypes, ast.name.range, spec.name, spec.typeParams.length, &typeArg);
 		return has(typeArgs)
 			? some(instantiateSpec(ctx.instantiateCtx, spec, force(typeArgs), delaySpecInsts))
 			: none!(SpecInst*);
@@ -322,7 +320,7 @@ private Type typeFromFunAst(
 			return optOrDefault!Type(res, () => Type(Type.Bogus()));
 		},
 		(in ParamsAst.Varargs x) {
-			addDiag(ctx, x.param.range(ctx.allSymbols), Diag(Diag.LambdaTypeVariadic()));
+			addDiag(ctx, x.param.range, Diag(Diag.LambdaTypeVariadic()));
 			return Type(Type.Bogus());
 		});
 	Type[2] typeArgs = [returnType, paramType];
@@ -344,7 +342,7 @@ private Type typeFromMapAst(
 		ctx,
 		commonTypes,
 		symbolForTypeAstMap(ast.kind),
-		ast.range(ctx.allSymbols),
+		ast.range,
 		some(ptrTrustMe(typeArg)),
 		structsAndAliasesMap,
 		typeParamsScope,
@@ -355,7 +353,7 @@ Opt!(SpecDecl*) tryFindSpec(ref CheckCtx ctx, NameAndRange name, in SpecsMap spe
 	tryFindT!(SpecDecl*)(
 		ctx,
 		name.name,
-		name.range(ctx.allSymbols),
+		name.range,
 		specsMap[name.name],
 		Diag.DuplicateImports.Kind.spec,
 		Diag.NameNotFound.Kind.spec,
@@ -411,7 +409,7 @@ Destructure checkDestructure(
 	Type getType(Opt!Type declaredType) {
 		if (has(declaredType)) {
 			if (has(destructuredType) && force(destructuredType) != force(declaredType))
-				addDiag(ctx, ast.range(ctx.allSymbols), Diag(
+				addDiag(ctx, ast.range, Diag(
 					Diag.DestructureTypeMismatch(
 						Diag.DestructureTypeMismatch.Expected(typeWithContainer(force(declaredType))),
 						typeWithContainer(force(destructuredType)))));
@@ -419,7 +417,7 @@ Destructure checkDestructure(
 		} else if (has(destructuredType))
 			return force(destructuredType);
 		else {
-			addDiag(ctx, ast.range(ctx.allSymbols), Diag(Diag.ParamMissingType()));
+			addDiag(ctx, ast.range, Diag(Diag.ParamMissingType()));
 			return Type(Type.Bogus());
 		}
 	}
@@ -432,7 +430,7 @@ Destructure checkDestructure(
 			Type type = getType(declaredType);
 			if (x.name.name == symbol!"_") {
 				if (has(x.mut))
-					addDiag(ctx, ast.range(ctx.allSymbols), Diag(Diag.LocalIgnoredButMutable()));
+					addDiag(ctx, ast.range, Diag(Diag.LocalIgnoredButMutable()));
 				return Destructure(allocate(ctx.alloc, Destructure.Ignore(x.name.start, type)));
 			} else
 				return Destructure(allocate(ctx.alloc, Local(
@@ -458,7 +456,7 @@ Destructure checkDestructure(
 									typeContainer, typeParamsScope, delayStructInsts,
 									part, some(fieldType)))))));
 				else {
-					addDiag(ctx, ast.range(ctx.allSymbols), Diag(
+					addDiag(ctx, ast.range, Diag(
 						Diag.DestructureTypeMismatch(
 							Diag.DestructureTypeMismatch.Expected(
 								Diag.DestructureTypeMismatch.Expected.Tuple(partAsts.length)),

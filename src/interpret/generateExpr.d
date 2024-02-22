@@ -132,14 +132,13 @@ import util.col.mutArr : clearAndFree, MutArr, push;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.opt : force, has, Opt;
-import util.symbol : AllSymbols, Symbol;
+import util.symbol : Symbol;
 import util.union_ : TaggedUnion;
 import util.util : castNonScope, castNonScope_ref, divRoundUp, ptrTrustMe;
 
 void generateFunFromExpr(
 	ref TempAlloc tempAlloc,
 	scope ref ByteCodeWriter writer,
-	in AllSymbols allSymbols,
 	in Program program,
 	in LowProgram lowProgram,
 	in TextInfo textInfo,
@@ -153,7 +152,6 @@ void generateFunFromExpr(
 	in LowFunExprBody body_,
 ) {
 	ExprCtx ctx = ExprCtx(
-		ptrTrustMe(allSymbols),
 		ptrTrustMe(lowProgram),
 		ptrTrustMe(textInfo),
 		ptrTrustMe(varsInfo),
@@ -233,7 +231,6 @@ void handleAfterReturnData(ref ByteCodeWriter writer, ByteCodeSource source, in 
 struct ExprCtx {
 	@safe @nogc pure nothrow:
 
-	const AllSymbols* allSymbolsPtr;
 	immutable LowProgram* programPtr;
 	immutable TextInfo* textInfoPtr;
 	immutable VarsInfo* varsInfoPtr;
@@ -246,8 +243,6 @@ struct ExprCtx {
 	immutable LowLocal[] curFunParams;
 	immutable StackEntries[] parameterEntries;
 
-	ref const(AllSymbols) allSymbols() return scope const =>
-		*allSymbolsPtr;
 	ref LowProgram program() return scope const =>
 		*programPtr;
 	ref TextInfo textInfo() return scope const =>

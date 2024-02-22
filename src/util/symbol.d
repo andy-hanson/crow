@@ -1,18 +1,18 @@
 module util.symbol;
 
-@safe @nogc pure nothrow:
+@safe @nogc nothrow:
 
 import std.meta : staticMap;
 
-import util.alloc.alloc : Alloc;
+import util.alloc.alloc : Alloc, AllocKind, MetaAlloc, newAlloc;
 import util.col.array : lastIndexOf, only, small;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : mustAdd, MutMap, size;
-import util.conv : safeToUint, safeToSizeT;
+import util.conv : safeToUint;
 import util.hash : HashCode, hashUlong;
 import util.opt : force, has, Opt, optOrDefault, none, some;
 import util.string : copyString, CString, SmallString, smallString, stringsEqual;
-import util.util : assertNormalEnum, castNonScope_ref, optEnumOfString, stringOfEnum, stripUnderscore;
+import util.util : assertNormalEnum, optEnumOfString, stringOfEnum, stripUnderscore;
 import util.writer : makeStringWithWriter, withStackWriter, withWriter, writeEscapedChar, Writer;
 
 immutable struct Symbol {
@@ -31,52 +31,75 @@ immutable struct Symbol {
 
 	HashCode hash() =>
 		hashUlong(value);
-}
 
-struct AllSymbols {
-	@safe @nogc pure nothrow:
-
-	@trusted this(return scope Alloc* a) {
-		allocPtr = a;
-		foreach (string str; specialSymbols) {
-			Opt!Symbol packed = tryPackShortSymbol(str);
-			assert(!has(packed));
-			cast(void) addLargeString(this, str);
-		}
+	void writeTo(scope ref Writer writer) {
+		writeSymbolAndGetSize(writer, this);
 	}
 
-	private:
-	Alloc* allocPtr;
-	MutMap!(SmallString, Symbol) largeStringToIndex;
-	MutArr!SmallString largeStringFromIndex;
-
-	ref inout(Alloc) alloc() return scope inout =>
-		*allocPtr;
+	int opApply(in int delegate(char) @safe @nogc pure nothrow cb) {
+		if (isShortSymbol(this))
+			return eachCharInShortSymbol(this, cb);
+		else {
+			foreach (char x; asLongSymbol(this)) {
+				int res = cb(x);
+				if (res != 0) return res;
+			}
+			return 0;
+		}
+	}
 }
 
-// WARN: 'value' must have been allocated by a.alloc
-private Symbol addLargeString(ref AllSymbols a, immutable string value) {
-	size_t index = mutArrSize(a.largeStringFromIndex);
-	assert(size(a.largeStringToIndex) == index);
+@trusted void initSymbols(MetaAlloc* metaAlloc) {
+	symbolAlloc = newAlloc(AllocKind.symbol, metaAlloc);
+	foreach (string str; specialSymbols) {
+		Opt!Symbol packed = tryPackShortSymbol(str);
+		assert(!has(packed));
+		cast(void) addLargeString(str);
+	}
+}
+
+private __gshared Alloc* symbolAlloc;
+private __gshared MutMap!(SmallString, Symbol) largeStringToIndex;
+private __gshared MutArr!SmallString largeStringFromIndex;
+
+private @trusted pure Symbol getSymbolFromLongString(in string value) =>
+	(cast(Symbol function(in string) @safe @nogc pure nothrow) &getSymbolFromLongString_impure)(value);
+private @system Symbol getSymbolFromLongString_impure(in string str) {
+	Opt!Symbol value = largeStringToIndex[smallString(str)];
+	return has(value) ? force(value) : addLargeString(copyString(*symbolAlloc, str));
+}
+
+private @system Symbol addLargeString(string value) {
+	size_t index = mutArrSize(largeStringFromIndex);
+	assert(size(largeStringToIndex) == index);
 	Symbol res = Symbol(safeToUint(index));
 	SmallString small = smallString(value);
-	mustAdd(a.alloc, a.largeStringToIndex, small, res);
-	push(a.alloc, a.largeStringFromIndex, small);
+	mustAdd(*symbolAlloc, largeStringToIndex, small, res);
+	push(*symbolAlloc, largeStringFromIndex, small);
 	return res;
 }
 
-Symbol addExtension(scope ref AllSymbols allSymbols, Symbol a, Extension extension) {
+@trusted pure string asLongSymbol(Symbol a) =>
+	(cast(string function(Symbol) @safe @nogc pure nothrow) &asLongSymbol_impure)(a);
+private @system string asLongSymbol_impure(Symbol a) {
+	assert(isLongSymbol(a));
+	return largeStringFromIndex[a.value];
+}
+
+pure:
+
+Symbol addExtension(Symbol a, Extension extension) {
 	assert(extension != Extension.other);
 	return extension == Extension.none
 		? a
-		: makeLongSymbol(allSymbols, (scope ref Writer writer) {
-			writeSymbol(writer, allSymbols, a);
+		: makeLongSymbol((scope ref Writer writer) {
+			writer ~= a;
 			writeExtension(writer, extension);
 		});
 }
 
-Symbol alterExtension(scope ref AllSymbols allSymbols, Symbol a, Extension newExtension) =>
-	alterExtensionCb(allSymbols, a, (scope ref Writer writer) {
+Symbol alterExtension(Symbol a, Extension newExtension) =>
+	alterExtensionCb(a, (scope ref Writer writer) {
 		writeExtension(writer, newExtension);
 	});
 
@@ -87,34 +110,27 @@ void writeExtension(scope ref Writer writer, Extension a) {
 	}
 }
 
-private Symbol makeSymbol(
-	scope ref AllSymbols allSymbols,
-	in void delegate(scope ref Writer) @safe @nogc pure nothrow cb,
-) =>
+private Symbol makeSymbol(in void delegate(scope ref Writer) @safe @nogc pure nothrow cb) =>
 	withStackWriter!(0x1000, Symbol)((scope ref Alloc _, scope ref Writer writer) {
 		cb(writer);
-	}, (in string s) => symbolOfString(allSymbols, s));
+	}, (in string s) => symbolOfString(s));
 
-Symbol alterExtensionCb(
-	scope ref AllSymbols allSymbols,
-	Symbol a,
-	in void delegate(scope ref Writer writer) @safe @nogc pure nothrow cb,
-) =>
-	makeSymbol(allSymbols, (scope ref Writer writer) {
+Symbol alterExtensionCb(Symbol a, in void delegate(scope ref Writer writer) @safe @nogc pure nothrow cb) =>
+	makeSymbol((scope ref Writer writer) {
 		size_t index = 0;
 		size_t lastDot = size_t.max;
-		eachCharInSymbol(allSymbols, a, (char x) {
+		foreach (char x; a) {
 			if (x == '.')
 				lastDot = index;
 			index++;
-		});
+		}
 
 		index = 0;
-		eachCharInSymbol(allSymbols, a, (char x) {
+		foreach (char x; a) {
 			if (index < lastDot)
 				writer ~= x;
 			index++;
-		});
+		}
 		cb(writer);
 	});
 
@@ -132,12 +148,12 @@ enum Extension {
 	pdb,
 }
 
-Extension getExtension(ref AllSymbols allSymbols, Symbol a) {
+Extension getExtension(Symbol a) {
 	if (isShortSymbol(a))
 		// Since only a long symbol can have a '.'
 		return Extension.none;
 	else {
-		string s = asLongSymbol(allSymbols, a);
+		string s = asLongSymbol(a);
 		Opt!size_t lastDot = lastIndexOf(s, '.');
 		if (has(lastDot)) {
 			Opt!Extension res = optEnumOfString!Extension(s[force(lastDot) + 1 .. $]);
@@ -149,69 +165,56 @@ Extension getExtension(ref AllSymbols allSymbols, Symbol a) {
 	}
 }
 
-bool hasExtension(in AllSymbols allSymbols, Symbol a) {
+bool hasExtension(Symbol a) {
 	bool hasDot = false;
-	eachCharInSymbol(allSymbols, a, (char x) {
+	foreach (char x; a)
 		hasDot = hasDot || x == '.';
-	});
 	return hasDot;
 }
 
-Symbol prependSet(ref AllSymbols allSymbols, Symbol a) =>
+Symbol prependSet(Symbol a) =>
 	optOrDefault!Symbol(tryPrefixShortSymbolWithSet(a), () =>
-		prependToLongString(allSymbols, "set-", a));
+		prependToLongString("set-", a));
 
-Symbol prependSetDeref(ref AllSymbols allSymbols, Symbol a) =>
-	prependToLongString(allSymbols, "set-deref-", a);
+Symbol prependSetDeref(Symbol a) =>
+	prependToLongString("set-deref-", a);
 
-Symbol appendEquals(ref AllSymbols allSymbols, Symbol a) =>
-	appendToLongString(allSymbols, a, "=");
+Symbol appendEquals(Symbol a) =>
+	appendToLongString(a, "=");
 
-private Symbol prependToLongString(ref AllSymbols allSymbols, in string prepend, Symbol a) =>
-	makeLongSymbol(allSymbols, (scope ref Writer writer) {
+private Symbol prependToLongString(in string prepend, Symbol a) =>
+	makeLongSymbol((scope ref Writer writer) {
 		writer ~= prepend;
-		writeSymbol(writer, allSymbols, a);
+		writer ~= a;
 	});
 
-private Symbol appendToLongString(ref AllSymbols allSymbols, Symbol a, in string append) =>
-	makeLongSymbol(allSymbols, (scope ref Writer writer) {
-		writeSymbol(writer, allSymbols, a);
+private Symbol appendToLongString(Symbol a, in string append) =>
+	makeLongSymbol((scope ref Writer writer) {
+		writer ~= a;
 		writer ~= append;
 	});
 
-Symbol concatSymbolsWithDot(ref AllSymbols allSymbols, Symbol a, Symbol b) =>
-	makeLongSymbol(allSymbols, (scope ref Writer writer) {
-		writeSymbol(writer, allSymbols, a);
+Symbol concatSymbolsWithDot(Symbol a, Symbol b) =>
+	makeLongSymbol((scope ref Writer writer) {
+		writer ~= a;
 		writer ~= '.';
-		writeSymbol(writer, allSymbols, b);
+		writer ~= b;
 	});
 
-Symbol addPrefixAndExtension(scope ref AllSymbols allSymbols, string prefix, Symbol b, string extension) =>
-	makeLongSymbol(allSymbols, (scope ref Writer writer) {
+Symbol addPrefixAndExtension(string prefix, Symbol b, string extension) =>
+	makeLongSymbol((scope ref Writer writer) {
 		writer ~= prefix;
-		writeSymbol(writer, allSymbols, b);
+		writer ~= b;
 		writer ~= extension;
 	});
 
-Symbol symbolOfString(ref AllSymbols allSymbols, in string str) {
+Symbol symbolOfString(in string str) {
 	Opt!Symbol packed = tryPackShortSymbol(str);
-	return optOrDefault!Symbol(packed, () => getSymbolFromLongString(allSymbols, str));
+	return optOrDefault!Symbol(packed, () => getSymbolFromLongString(str));
 }
 
-void eachCharInSymbol(in AllSymbols allSymbols, Symbol a, in void delegate(char) @safe @nogc pure nothrow cb) {
-	if (isShortSymbol(a))
-		eachCharInShortSymbol(a, cb);
-	else {
-		assert(isLongSymbol(a));
-		foreach (char x; asLongSymbol(castNonScope_ref(allSymbols), a))
-			cb(x);
-	}
-}
-
-uint symbolSize(in AllSymbols allSymbols, Symbol a) =>
-	isShortSymbol(a)
-		? shortSymbolSize(a)
-		: safeToUint(asLongSymbol(allSymbols, a).length);
+uint symbolSize(Symbol a) =>
+	isShortSymbol(a) ? shortSymbolSize(a) : safeToUint(asLongSymbol(a).length);
 
 enum symbol(string name) = getSymbol(name);
 private Symbol getSymbol(string name) {
@@ -222,36 +225,31 @@ private Symbol getSymbol(string name) {
 	return force(opt);
 }
 
-string stringOfSymbol(ref Alloc alloc, return scope ref const AllSymbols allSymbols, Symbol a) =>
+string stringOfSymbol(ref Alloc alloc, Symbol a) =>
 	isLongSymbol(a)
-		? asLongSymbol(allSymbols, a)
+		? asLongSymbol(a)
 		: makeStringWithWriter(alloc, (scope ref Writer writer) {
-			writeSymbol(writer, allSymbols, a);
+			writer ~= a;
 		});
 
-CString cStringOfSymbol(ref Alloc alloc, return scope ref const AllSymbols allSymbols, Symbol a) =>
+CString cStringOfSymbol(ref Alloc alloc, Symbol a) =>
 	withWriter(alloc, (scope ref Writer writer) {
-		writeSymbol(writer, allSymbols, a);
+		writer ~= a;
 	});
 
-size_t writeSymbolAndGetSize(scope ref Writer writer, in AllSymbols allSymbols, Symbol a) {
+size_t writeSymbolAndGetSize(scope ref Writer writer, Symbol a) {
 	size_t size = 0;
-	eachCharInSymbol(allSymbols, a, (char c) {
+	foreach (char c; a) {
 		writer ~= c;
 		size++;
-	});
+	}
 	return size;
 }
 
-void writeSymbol(scope ref Writer writer, in AllSymbols allSymbols, Symbol a) {
-	writeSymbolAndGetSize(writer, allSymbols, a);
-}
-
-void writeQuotedSymbol(scope ref Writer writer, in AllSymbols allSymbols, Symbol a) {
+void writeQuotedSymbol(scope ref Writer writer, Symbol a) {
 	writer ~= '"';
-	eachCharInSymbol(allSymbols, a, (char x) {
+	foreach (char x; a)
 		writeEscapedChar(writer, x);
-	});
 	writer ~= '"';
 }
 
@@ -261,21 +259,17 @@ Symbol symbolOfEnum(E)(E a) {
 	return symbols[a];
 }
 
-Symbol toLowerCase(ref AllSymbols allSymbols, Symbol a) =>
-	makeSymbol(allSymbols, (scope ref Writer writer) {
-		eachCharInSymbol(allSymbols, a, (char x) {
+Symbol toLowerCase(Symbol a) =>
+	makeSymbol((scope ref Writer writer) {
+		foreach (char x; a)
 			writer ~= toLowerCase(x);
-		});
 	});
 
 // Only use for things that can't possibly be short symbols (for example, if they always have a '.')
-private Symbol makeLongSymbol(
-	scope ref AllSymbols allSymbols,
-	in void delegate(scope ref Writer) @safe @nogc pure nothrow cb,
-) =>
+private Symbol makeLongSymbol(in void delegate(scope ref Writer) @safe @nogc pure nothrow cb) =>
 	withStackWriter!0x1000((scope ref Alloc _, scope ref Writer writer) {
 		cb(writer);
-	}, (in string x) => getSymbolFromLongString(allSymbols, x));
+	}, (in string x) => getSymbolFromLongString(x));
 
 char toLowerCase(char a) =>
 	'A' <= a && a <= 'Z'
@@ -385,7 +379,7 @@ Opt!Symbol tryPackShortSymbol(in string str) {
 		return none!Symbol;
 }
 
-void eachCharInShortSymbol(Symbol a, in void delegate(char) @safe @nogc pure nothrow cb) {
+int eachCharInShortSymbol(Symbol a, in int delegate(char) @safe @nogc pure nothrow cb) {
 	assert(isShortSymbol(a));
 	ulong value = a.value;
 	ulong remaining = shortSymbolMaxChars;
@@ -398,26 +392,26 @@ void eachCharInShortSymbol(Symbol a, in void delegate(char) @safe @nogc pure not
 
 	while (remaining != 0) {
 		ubyte code = take();
-		switch (code) {
-			case 0:
-				break;
-			case codeForHyphen:
-				cb('-');
-				break;
-			case codeForUnderscore:
-				cb('_');
-				break;
-			case codeForNextIsCapitalLetter:
-				cb(cast(char) ('A' + take()));
-				break;
-			case codeForNextIsDigit:
-				cb(cast(char) ('0' + take()));
-				break;
-			default:
-				cb(letterFromCode(code));
-				break;
-		}
+		int res = () {
+			switch (code) {
+				case 0:
+					return 0;
+				case codeForHyphen:
+					return cb('-');
+				case codeForUnderscore:
+					return cb('_');
+				case codeForNextIsCapitalLetter:
+					return cb(cast(char) ('A' + take()));
+				case codeForNextIsDigit:
+					return cb(cast(char) ('0' + take()));
+				default:
+					return cb(letterFromCode(code));
+			}
+		}();
+		if (res != 0)
+			return res;
 	}
+	return 0;
 }
 
 // Public for test only
@@ -427,16 +421,6 @@ public bool isShortSymbol(Symbol a) =>
 // Public for test only
 public bool isLongSymbol(Symbol a) =>
 	!isShortSymbol(a);
-
-public @trusted string asLongSymbol(return scope ref const AllSymbols allSymbols, Symbol a) {
-	assert(isLongSymbol(a));
-	return allSymbols.largeStringFromIndex[safeToSizeT(a.value)];
-}
-
-Symbol getSymbolFromLongString(ref AllSymbols allSymbols, in string str) {
-	Opt!Symbol value = allSymbols.largeStringToIndex[smallString(str)];
-	return optOrDefault!Symbol(value, () => addLargeString(allSymbols, copyString(allSymbols.alloc, str)));
-}
 
 immutable string[] specialSymbols = [
 	// Putting operator symbols in precedence order so `symbolPrecedence` from `parseExpr` can be efficient.
@@ -546,8 +530,6 @@ immutable string[] specialSymbols = [
 	"aliases",
 	"alignment",
 	"allInsts",
-	"allSymbols",
-	"allUris",
 	"all-tests",
 	"anonymous",
 	"as-const",

@@ -6,19 +6,18 @@ import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
 import util.col.array : contains, indexOfMax, max, only;
 import util.col.arrayBuilder : buildArray, Builder;
 import util.comparison : compareSizeT;
-import util.symbol : AllSymbols, Symbol, symbol, symbolSize, writeSymbol, writeSymbolAndGetSize;
+import util.symbol : Symbol, symbol, symbolSize, writeSymbolAndGetSize;
 import util.writer : writeNewline, Writer, writeRed, writeReset, writeSpaces;
 import util.util : max, todo;
 
 void diffSymbols(
 	ref TempAlloc tempAlloc,
 	ref Writer writer,
-	in AllSymbols allSymbols,
 	bool color,
 	in Symbol[] a,
 	in Symbol[] b
 ) {
-	printDiff(writer, allSymbols, color, a, b, longestCommonSubsequence(tempAlloc, a, b));
+	printDiff(writer, color, a, b, longestCommonSubsequence(tempAlloc, a, b));
 }
 
 private:
@@ -129,7 +128,6 @@ void longestCommonSubsequenceRecur(
 
 void printDiff(
 	ref Writer writer,
-	in AllSymbols allSymbols,
 	bool color,
 	in Symbol[] a,
 	in Symbol[] b,
@@ -138,11 +136,11 @@ void printDiff(
 	Symbol expected = symbol!"expected";
 	// + 2 for a margin
 	size_t columnSize = 2 + max(
-		max!(size_t, Symbol)(0, a, (in Symbol s) => symbolSize(allSymbols, s)),
-		symbolSize(allSymbols, expected));
+		max!(size_t, Symbol)(0, a, (in Symbol s) => symbolSize(s)),
+		symbolSize(expected));
 
 	writeNewline(writer, 1);
-	writeSymbolPadded(writer, allSymbols, expected, columnSize);
+	writeSymbolPadded(writer, expected, columnSize);
 	writer ~= "you wrote\n";
 
 	// This gave us the list of symbols that they have in common.
@@ -153,7 +151,7 @@ void printDiff(
 		writeNewline(writer, 1);
 		if (color)
 			writeRed(writer);
-		writeSymbol(writer, allSymbols, a[ai]);
+		writer ~= a[ai];
 		if (color)
 			writeReset(writer);
 		ai++;
@@ -163,7 +161,7 @@ void printDiff(
 		writeSpaces(writer, columnSize);
 		if (color)
 			writeRed(writer);
-		writeSymbol(writer, allSymbols, b[bi]);
+		writer ~= b[bi];
 		if (color)
 			writeReset(writer);
 		bi++;
@@ -172,8 +170,8 @@ void printDiff(
 		writeNewline(writer, 1);
 		if (color)
 			writeRed(writer);
-		writeSymbolPadded(writer, allSymbols, a[ai], columnSize);
-		writeSymbol(writer, allSymbols, b[bi]);
+		writeSymbolPadded(writer, a[ai], columnSize);
+		writer ~= b[bi];
 		if (color)
 			writeReset(writer);
 		ai++;
@@ -182,8 +180,8 @@ void printDiff(
 	void common() {
 		assert(a[ai] == b[bi]);
 		writeNewline(writer, 1);
-		writeSymbolPadded(writer, allSymbols, a[ai], columnSize);
-		writeSymbol(writer, allSymbols, b[bi]);
+		writeSymbolPadded(writer, a[ai], columnSize);
+		writer ~= b[bi];
 		ai++;
 		bi++;
 	}
@@ -205,8 +203,8 @@ void printDiff(
 		extraB();
 }
 
-void writeSymbolPadded(scope ref Writer writer, in AllSymbols allSymbols, Symbol name, size_t size) {
-	size_t symbolSize = writeSymbolAndGetSize(writer, allSymbols, name);
+void writeSymbolPadded(scope ref Writer writer, Symbol name, size_t size) {
+	size_t symbolSize = writeSymbolAndGetSize(writer, name);
 	if (symbolSize >= size) todo!void("??");
 	writeSpaces(writer, size - symbolSize);
 }

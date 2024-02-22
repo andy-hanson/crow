@@ -38,11 +38,11 @@ import util.json : get, hasKey, Json;
 import util.jsonParse : asUint;
 import util.opt : none, some;
 import util.sourceRange : LineAndCharacter, LineAndCharacterRange;
-import util.uri : AllUris, mustParseUri, Uri;
+import util.uri : mustParseUri, Uri;
 import util.util : enumOfString;
 
 // If extending this, remember to modify 'initializeCapabilities'
-LspInMessage parseLspInMessage(ref Alloc alloc, scope ref AllUris allUris, in Json message) {
+LspInMessage parseLspInMessage(ref Alloc alloc, in Json message) {
 	LspInMessage notification(T)(T res) =>
 		LspInMessage(LspInNotification(res));
 	LspInMessage request(T)(T res) =>
@@ -56,14 +56,14 @@ LspInMessage parseLspInMessage(ref Alloc alloc, scope ref AllUris allUris, in Js
 			return notification(SetTraceParams(parseTraceValue(get!"value"(params).as!string)));
 		case "custom/readFileResult":
 			return notification(ReadFileResultParams(
-				parseUriProperty(allUris, params),
+				parseUriProperty(params),
 				enumOfString!ReadFileResultType(get!"type"(params).as!string),
 				hasKey!"content"(params) ? get!"content"(params).as!string : ""));
 		case "custom/run":
 			return request(RunParams(
-				parseUriProperty(allUris, params),
+				parseUriProperty(params),
 				hasKey!"diagnosticsOnlyForUris"(params)
-					? some(parseUriList(alloc, allUris, get!"diagnosticsOnlyForUris"(params)))
+					? some(parseUriList(alloc, get!"diagnosticsOnlyForUris"(params)))
 					: none!(Uri[])));
 		case "custom/unloadedUris":
 			return request(UnloadedUrisParams());
@@ -78,26 +78,26 @@ LspInMessage parseLspInMessage(ref Alloc alloc, scope ref AllUris allUris, in Js
 		case "shutdown":
 			return request(ShutdownParams());
 		case "textDocument/definition":
-			return request(DefinitionParams(parseTextDocumentPositionParams(alloc, allUris, params)));
+			return request(DefinitionParams(parseTextDocumentPositionParams(alloc, params)));
 		case "textDocument/didChange":
-			return notification(parseDidChangeTextDocumentParams(alloc, allUris, params));
+			return notification(parseDidChangeTextDocumentParams(alloc, params));
 		case "textDocument/didClose":
 			return notification(DidCloseTextDocumentParams());
 		case "textDocument/didOpen":
-			return notification(DidOpenTextDocumentParams(parseTextDocumentItem(allUris, get!"textDocument"(params))));
+			return notification(DidOpenTextDocumentParams(parseTextDocumentItem(get!"textDocument"(params))));
 		case "textDocument/didSave":
 			return notification(DidSaveTextDocumentParams(
-				parseTextDocumentIdentifier(allUris, get!"textDocument"(params))));
+				parseTextDocumentIdentifier(get!"textDocument"(params))));
 		case "textDocument/hover":
-			return request(HoverParams(parseTextDocumentPositionParams(alloc, allUris, params)));
+			return request(HoverParams(parseTextDocumentPositionParams(alloc, params)));
 		case "textDocument/references":
-			return request(ReferenceParams(parseTextDocumentPositionParams(alloc, allUris, params)));
+			return request(ReferenceParams(parseTextDocumentPositionParams(alloc, params)));
 		case "textDocument/rename":
 			return request(RenameParams(
-				parseTextDocumentPositionParams(alloc, allUris, params),
+				parseTextDocumentPositionParams(alloc, params),
 				get!"newName"(params).as!string));
 		case "textDocument/semanticTokens/full":
-			return request(SemanticTokensParams(parseTextDocumentIdentifier(allUris, get!"textDocument"(params))));
+			return request(SemanticTokensParams(parseTextDocumentIdentifier(get!"textDocument"(params))));
 		default:
 			assert(false);
 	}
@@ -105,9 +105,9 @@ LspInMessage parseLspInMessage(ref Alloc alloc, scope ref AllUris allUris, in Js
 
 private:
 
-Uri[] parseUriList(ref Alloc alloc, scope ref AllUris allUris, in Json a) =>
+Uri[] parseUriList(ref Alloc alloc, in Json a) =>
 	map(alloc, a.as!(Json[]), (ref Json x) =>
-		mustParseUri(allUris, x.as!string));
+		mustParseUri(x.as!string));
 
 InitializationOptions parseInitializationOptions(in Json a) =>
 	InitializationOptions(hasKey!"unknownUris"(a) ? get!"unknownUris"(a).as!bool : false);
@@ -115,28 +115,28 @@ InitializationOptions parseInitializationOptions(in Json a) =>
 TraceValue parseTraceValue(string a) =>
 	enumOfString!TraceValue(a);
 
-DidChangeTextDocumentParams parseDidChangeTextDocumentParams(ref Alloc alloc, scope ref AllUris allUris, in Json a) =>
+DidChangeTextDocumentParams parseDidChangeTextDocumentParams(ref Alloc alloc, in Json a) =>
 	DidChangeTextDocumentParams(
-		parseTextDocumentIdentifier(allUris, get!"textDocument"(a)),
+		parseTextDocumentIdentifier(get!"textDocument"(a)),
 		parseList!TextDocumentContentChangeEvent(alloc, get!"contentChanges"(a), (in Json x) =>
 			parseTextDocumentContentChangeEvent(alloc, x)));
 
-TextDocumentItem parseTextDocumentItem(scope ref AllUris allUris, in Json a) =>
-	TextDocumentItem(parseUriProperty(allUris, a), parseTextProperty(a));
+TextDocumentItem parseTextDocumentItem(in Json a) =>
+	TextDocumentItem(parseUriProperty(a), parseTextProperty(a));
 
 string parseTextProperty(in Json a) =>
 	get!"text"(a).as!string;
 
-TextDocumentPositionParams parseTextDocumentPositionParams(ref Alloc alloc, scope ref AllUris allUris, in Json a) =>
+TextDocumentPositionParams parseTextDocumentPositionParams(ref Alloc alloc, in Json a) =>
 	TextDocumentPositionParams(
-		parseTextDocumentIdentifier(allUris, get!"textDocument"(a)),
+		parseTextDocumentIdentifier(get!"textDocument"(a)),
 		parsePosition(get!"position"(a)));
 
-TextDocumentIdentifier parseTextDocumentIdentifier(scope ref AllUris allUris, in Json a) =>
-	TextDocumentIdentifier(parseUriProperty(allUris, a));
+TextDocumentIdentifier parseTextDocumentIdentifier(in Json a) =>
+	TextDocumentIdentifier(parseUriProperty(a));
 
-Uri parseUriProperty(scope ref AllUris allUris, in Json a) =>
-	mustParseUri(allUris, get!"uri"(a).as!string);
+Uri parseUriProperty(in Json a) =>
+	mustParseUri(get!"uri"(a).as!string);
 
 T[] parseList(T)(ref Alloc alloc, in Json input, in T delegate(in Json) @safe @nogc pure nothrow cb) =>
 	map!(T, Json)(alloc, input.as!(Json[]), (ref Json x) => cb(x));

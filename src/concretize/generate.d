@@ -152,13 +152,11 @@ ConcreteExpr concretizeCompareRecord(
 	ConcreteFun* fun,
 	in ConcreteField[] fields,
 	in Called[] fieldCompares,
-) {
-	UriAndRange range = fun.range(ctx.allSymbols);
-	return equalOrCompareRecord(
+) =>
+	equalOrCompareRecord(
 		ctx, fun, fields, fieldCompares,
-		() => makeComparisonEqual(fun.returnType, range),
-		(ConcreteExpr x, ConcreteExpr y) => makeCompareOr(ctx.alloc, range, x, y));
-}
+		() => makeComparisonEqual(fun.returnType, fun.range),
+		(ConcreteExpr x, ConcreteExpr y) => makeCompareOr(ctx.alloc, fun.range, x, y));
 
 ConcreteExpr equalOrCompareRecord(
 	ref ConcretizeCtx ctx,
@@ -172,7 +170,7 @@ ConcreteExpr equalOrCompareRecord(
 	if (fields.length == 0)
 		return cbNoFields();
 	else {
-		UriAndRange range = fun.range(ctx.allSymbols);
+		UriAndRange range = fun.range;
 		ConcreteLocal[] params = fun.paramsIncludingClosure;
 		assert(params.length == 2);
 		ConcreteExpr* p0 = allocate(ctx.alloc, makeLocalGet(range, &params[0]));
@@ -205,7 +203,7 @@ ConcreteExpr concretizeCompareUnion(
 	in Called[] memberCompares,
 ) {
 	assert(sizeEq(members, memberCompares));
-	UriAndRange range = fun.range(ctx.allSymbols);
+	UriAndRange range = fun.range;
 	if (members.length == 0)
 		return makeComparisonEqual(fun.returnType, range);
 	else {
@@ -235,13 +233,11 @@ ConcreteExpr concretizeEqualRecord(
 	ConcreteFun* fun,
 	in ConcreteField[] fields,
 	in Called[] fieldEquals,
-) {
-	UriAndRange range = fun.range(ctx.allSymbols);
-	return equalOrCompareRecord(
+) =>
+	equalOrCompareRecord(
 		ctx, fun, fields, fieldEquals,
-		() => ConcreteExpr(fun.returnType, range, ConcreteExprKind(constantBool(true))),
-		(ConcreteExpr x, ConcreteExpr y) => makeAnd(ctx, range, x, y));
-}
+		() => ConcreteExpr(fun.returnType, fun.range, ConcreteExprKind(constantBool(true))),
+		(ConcreteExpr x, ConcreteExpr y) => makeAnd(ctx, fun.range, x, y));
 
 ConcreteExpr concretizeEqualUnion(
 	ref ConcretizeCtx ctx,
@@ -249,7 +245,7 @@ ConcreteExpr concretizeEqualUnion(
 	ConcreteType[] members,
 	in Called[] memberEquals,
 ) {
-	UriAndRange range = fun.range(ctx.allSymbols);
+	UriAndRange range = fun.range;
 	if (members.length == 0)
 		return ConcreteExpr(fun.returnType, range, ConcreteExprKind(constantBool(true)));
 	else {
@@ -292,7 +288,7 @@ ConcreteExpr concretizeRecordToJson(
 	in Called[] fieldToJson,
 ) {
 	assert(sizeEq(fields, fieldToJson));
-	UriAndRange range = fun.range(ctx.allSymbols);
+	UriAndRange range = fun.range;
 	ConcreteExpr* getParam = allocate(ctx.alloc, makeParamGet(ctx.alloc, range, &only(fun.paramsIncludingClosure)));
 	return makeNewJson(ctx, range, mapZipWithIndex!(ConcreteExpr, RecordField, Called)(
 		ctx.alloc, recordFieldsForNames(only(fun.paramsIncludingClosure).type), fieldToJson,
@@ -307,7 +303,7 @@ ConcreteExpr concretizeUnionToJson(
 	in ConcreteType[] memberTypes,
 	in Called[] memberToJson,
 ) {
-	UriAndRange range = fun.range(ctx.allSymbols);
+	UriAndRange range = fun.range;
 	UnionMember[] members = unionMembersForNames(only(fun.paramsIncludingClosure).type);
 	assert(sizeEq3(memberTypes, memberToJson, members));
 	ConcreteExpr getParam = makeParamGet(ctx.alloc, range, &only(fun.paramsIncludingClosure));

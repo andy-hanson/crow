@@ -112,57 +112,37 @@ import util.col.hashTable : mustGet;
 import util.col.mutMaxArr : asTemporaryArray, mutMaxArr, MutMaxArr;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range, UriAndRange;
-import util.symbol : AllSymbols, prependSet, Symbol;
-import util.uri : AllUris, Uri;
+import util.symbol : prependSet, Symbol;
+import util.uri : Uri;
 
-UriAndRange[] getReferencesForPosition(
-	ref Alloc alloc,
-	scope ref AllSymbols allSymbols,
-	in AllUris allUris,
-	in Program program,
-	in Position pos,
-) {
+UriAndRange[] getReferencesForPosition(ref Alloc alloc, in Program program, in Position pos) {
 	Opt!Target target = targetForPosition(pos.kind);
 	return has(target)
 		? buildArray!UriAndRange(alloc, (scope ref Builder!UriAndRange res) {
-			eachReferenceForTarget(allSymbols, allUris, program, pos.module_.uri, force(target), (in UriAndRange x) {
+			eachReferenceForTarget(program, pos.module_.uri, force(target), (in UriAndRange x) {
 				res ~= x;
 			});
 		})
 		: [];
 }
 
-void eachReferenceForTarget(
-	scope ref AllSymbols allSymbols,
-	in AllUris allUris,
-	in Program program,
-	Uri curUri,
-	in Target target,
-	in ReferenceCb cb,
-) {
-	definitionForTarget(allSymbols, curUri, target, cb);
-	referencesForTarget(allSymbols, allUris, program, curUri, target, cb);
+void eachReferenceForTarget(in Program program, Uri curUri, in Target target, in ReferenceCb cb) {
+	definitionForTarget(curUri, target, cb);
+	referencesForTarget(program, curUri, target, cb);
 }
 
 private:
 
-void referencesForTarget(
-	scope ref AllSymbols allSymbols,
-	in AllUris allUris,
-	in Program program,
-	Uri curUri,
-	in Target a,
-	in ReferenceCb cb,
-) =>
+void referencesForTarget(in Program program, Uri curUri, in Target a, in ReferenceCb cb) =>
 	a.matchWithPointers!void(
 		(EnumOrFlagsMember* x) {
-			referencesForEnumOrFlagsMember(allSymbols, program, x, cb);
+			referencesForEnumOrFlagsMember(program, x, cb);
 		},
 		(FunDecl* x) {
-			referencesForFunDecl(allSymbols, program, x, cb);
+			referencesForFunDecl(program, x, cb);
 		},
 		(PositionKind.ImportedName x) {
-			referencesForImportedName(allSymbols, program, x, cb);
+			referencesForImportedName(program, x, cb);
 		},
 		(PositionKind.LocalPosition x) {
 			referencesForLocal(program, curUri, x, cb);
@@ -171,89 +151,72 @@ void referencesForTarget(
 			referencesForLoop(*program.commonTypes, curUri, x, cb);
 		},
 		(Module* x) {
-			referencesForModule(allUris, program, x, cb);
+			referencesForModule(program, x, cb);
 		},
 		(RecordField* x) {
-			referencesForRecordField(allSymbols, program, *x, cb);
+			referencesForRecordField(program, *x, cb);
 		},
 		(SpecDecl* x) {
-			referencesForSpecDecl(allSymbols, program, x, cb);
+			referencesForSpecDecl(program, x, cb);
 		},
 		(PositionKind.SpecSig x) {
-			referencesForSpecSig(allSymbols, program, x, cb);
+			referencesForSpecSig(program, x, cb);
 		},
 		(StructAlias* x) {
-			referencesForStructAlias(allSymbols, program, x, cb);
+			referencesForStructAlias(program, x, cb);
 		},
 		(StructDecl* x) {
-			referencesForStructDecl(allSymbols, program, x, cb);
+			referencesForStructDecl(program, x, cb);
 		},
 		(PositionKind.TypeParamWithContainer x) {
-			referencesForTypeParam(allSymbols, *program.commonTypes, curUri, x, cb);
+			referencesForTypeParam(*program.commonTypes, curUri, x, cb);
 		},
 		(UnionMember* x) {
-			referencesForUnionMember(allSymbols, program, x, cb);
+			referencesForUnionMember(program, x, cb);
 		},
 		(VarDecl* x) {
-			referencesForVarDecl(allSymbols, program, x, cb);
+			referencesForVarDecl(program, x, cb);
 		});
 
-void referencesForStructAlias(in AllSymbols allSymbols, in Program program, in StructAlias* a, in ReferenceCb cb) {
+void referencesForStructAlias(in Program program, in StructAlias* a, in ReferenceCb cb) {
 	eachTypeInProgram(program, a.visibility, a.moduleUri, (in Module module_, in Type t, in TypeAst ast) {
 		if (t.isA!(StructInst*) &&
 			t.as!(StructInst*) == a.target &&
 			ast.isA!NameAndRange && ast.as!NameAndRange.name == a.name)
-			cb(UriAndRange(module_.uri, ast.range(allSymbols)));
+			cb(UriAndRange(module_.uri, ast.range));
 	});
 }
 
-void referencesForImportedName(
-	in AllSymbols allSymbols,
-	in Program program,
-	in PositionKind.ImportedName a,
-	in ReferenceCb cb,
-) {
-	eachImportForName(allSymbols, program, a.exportingModule, a.name, cb);
+void referencesForImportedName(in Program program, in PositionKind.ImportedName a, in ReferenceCb cb) {
+	eachImportForName(program, a.exportingModule, a.name, cb);
 	if (has(a.referents)) {
 		NameReferents nr = *force(a.referents);
 		if (has(nr.structOrAlias))
 			force(nr.structOrAlias).matchWithPointers!void(
 				(StructAlias* x) {
-					referencesForStructAlias(allSymbols, program, x, cb);
+					referencesForStructAlias(program, x, cb);
 				},
 				(StructDecl* x) {
-					referencesForStructDecl(allSymbols, program, x, cb);
+					referencesForStructDecl(program, x, cb);
 				});
 		if (has(nr.spec))
-			referencesForSpecDecl(allSymbols, program, force(nr.spec), cb);
-		referencesForFunDecls(allSymbols, program, nr.funs, cb);
+			referencesForSpecDecl(program, force(nr.spec), cb);
+		referencesForFunDecls(program, nr.funs, cb);
 	}
 }
 
-void eachImportForName(
-	in AllSymbols allSymbols,
-	in Program program,
-	in Module* exportingModule,
-	Symbol name,
-	in ReferenceCb cb,
-) {
+void eachImportForName(in Program program, in Module* exportingModule, Symbol name, in ReferenceCb cb) {
 	eachModuleReferencing(program, exportingModule, (in Module importingModule, in ImportOrExport x) {
-		eachImportForName(allSymbols, importingModule, x, name, cb);
+		eachImportForName(importingModule, x, name, cb);
 	});
 }
-void eachImportForName(
-	in AllSymbols allSymbols,
-	in Module importingModule,
-	in ImportOrExport a,
-	Symbol name,
-	in ReferenceCb cb,
-) {
+void eachImportForName(in Module importingModule, in ImportOrExport a, Symbol name, in ReferenceCb cb) {
 	if (has(a.source)) {
 		ImportOrExportAst* source = force(a.source);
 		if (source.kind.isA!(NameAndRange[]))
 			foreach (NameAndRange x; source.kind.as!(NameAndRange[]))
 				if (x.name == name)
-					cb(UriAndRange(importingModule.uri, x.range(allSymbols)));
+					cb(UriAndRange(importingModule.uri, x.range));
 	}
 }
 
@@ -298,7 +261,6 @@ void referencesForLoop(ref CommonTypes commonTypes, Uri curUri, in Target.Loop a
 }
 
 void referencesForTypeParam(
-	in AllSymbols allSymbols,
 	ref CommonTypes commonTypes,
 	Uri curUri,
 	in PositionKind.TypeParamWithContainer a,
@@ -306,7 +268,7 @@ void referencesForTypeParam(
 ) {
 	scope TypeCb typeCb = (in Type type, in TypeAst ast) {
 		if (type == Type(a.typeParam))
-			refCb(UriAndRange(curUri, ast.range(allSymbols)));
+			refCb(UriAndRange(curUri, ast.range));
 	};
 	a.container.match!void(
 		(ref FunDecl x) =>
@@ -508,47 +470,41 @@ void eachTypeDirectlyInExpr(ExprRef a, in TypeCb cb) {
 			cb(a.type, astKind.as!(TypedAst*).type));
 }
 
-void referencesForFunDecl(in AllSymbols allSymbols, in Program program, FunDecl* decl, in ReferenceCb cb) {
-	referencesForFunDecls(allSymbols, program, [decl], cb);
+void referencesForFunDecl(in Program program, FunDecl* decl, in ReferenceCb cb) {
+	referencesForFunDecls(program, [decl], cb);
 }
 
-void referencesForFunDecls(in AllSymbols allSymbols, in Program program, in FunDecl*[] decls, in ReferenceCb cb) {
+void referencesForFunDecls(in Program program, in FunDecl*[] decls, in ReferenceCb cb) {
 	if (!isEmpty(decls)) {
 		Visibility maxVisibility = fold(Visibility.private_, decls, (Visibility a, in FunDecl* b) =>
 			greatestVisibility(a, b.visibility));
 		assert(allSame!(Uri, FunDecl*)(decls, (in FunDecl* x) => x.moduleUri));
 		Module* itsModule = moduleOf(program, decls[0].moduleUri);
 		eachExprThatMayReference(program, maxVisibility, itsModule, (in Module module_, ExprRef x) {
-			eachFunReferenceAtExpr(allSymbols, module_, x, decls, cb);
+			eachFunReferenceAtExpr(module_, x, decls, cb);
 		});
 	}
 }
 
-void eachFunReferenceAtExpr(
-	in AllSymbols allSymbols,
-	in Module module_,
-	in ExprRef x,
-	in FunDecl*[] decls,
-	in ReferenceCb cb,
-) {
+void eachFunReferenceAtExpr(in Module module_, in ExprRef x, in FunDecl*[] decls, in ReferenceCb cb) {
 	if (x.expr.kind.isA!CallExpr) {
 		Called called = x.expr.kind.as!CallExpr.called;
 		if (called.isA!(FunInst*) && contains(decls, called.as!(FunInst*).decl))
-			cb(UriAndRange(module_.uri, callNameRange(allSymbols, *x.expr.ast)));
+			cb(UriAndRange(module_.uri, callNameRange(*x.expr.ast)));
 	} else if (x.expr.kind.isA!FunPointerExpr) {
 		if (contains(decls, x.expr.kind.as!FunPointerExpr.funInst.decl))
-			cb(UriAndRange(module_.uri, callNameRange(allSymbols, *x.expr.ast)));
+			cb(UriAndRange(module_.uri, callNameRange(*x.expr.ast)));
 	}
 }
 
-Range callNameRange(in AllSymbols allSymbols, in ExprAst a) {
+Range callNameRange(in ExprAst a) {
 	ExprAstKind kind = a.kind;
 	return kind.isA!(AssignmentAst*)
 		? kind.as!(AssignmentAst*).left.range
 		: kind.isA!(AssignmentCallAst*)
-		? kind.as!(AssignmentCallAst*).funName.range(allSymbols)
+		? kind.as!(AssignmentCallAst*).funName.range
 		: kind.isA!CallAst
-		? kind.as!CallAst.funName.range(allSymbols)
+		? kind.as!CallAst.funName.range
 		: kind.isA!(ForAst*)
 		? kind.as!(ForAst*).forKeywordRange(a)
 		: kind.isA!(WithAst*)
@@ -576,13 +532,13 @@ void eachExprThatMayReference(
 	});
 }
 
-void referencesForSpecSig(in AllSymbols allSymbols, in Program program, in PositionKind.SpecSig a, in ReferenceCb cb) {
+void referencesForSpecSig(in Program program, in PositionKind.SpecSig a, in ReferenceCb cb) {
 	Module* itsModule = moduleOf(program, a.spec.moduleUri);
 	eachExprThatMayReference(program, a.spec.visibility, itsModule, (in Module module_, ExprRef x) {
 		if (x.expr.kind.isA!CallExpr) {
 			Called called = x.expr.kind.as!CallExpr.called;
 			if (called.isA!(CalledSpecSig) && called.as!(CalledSpecSig).nonInstantiatedSig == a.sig)
-				cb(UriAndRange(module_.uri, callNameRange(allSymbols, *x.expr.ast)));
+				cb(UriAndRange(module_.uri, callNameRange(*x.expr.ast)));
 		} else if (x.expr.kind.isA!FunPointerExpr) {
 			// Currently doesn't support specs
 			assert(x.expr.kind.as!FunPointerExpr.funInst != null);
@@ -590,18 +546,13 @@ void referencesForSpecSig(in AllSymbols allSymbols, in Program program, in Posit
 	});
 }
 
-void referencesForRecordField(in AllSymbols allSymbols, in Program program, in RecordField field, in ReferenceCb cb) {
+void referencesForRecordField(in Program program, in RecordField field, in ReferenceCb cb) {
 	withRecordFieldFunctions(program, field, (in FunDecl*[] funs) {
-		referencesForFunDecls(allSymbols, program, funs, cb);
+		referencesForFunDecls(program, funs, cb);
 	});
 }
 
-void referencesForEnumOrFlagsMember(
-	in AllSymbols allSymbols,
-	in Program program,
-	in EnumOrFlagsMember* member,
-	in ReferenceCb cb,
-) {
+void referencesForEnumOrFlagsMember(in Program program, in EnumOrFlagsMember* member, in ReferenceCb cb) {
 	StructDecl* enum_ = member.containingEnum;
 	Module* declaringModule = moduleOf(program, enum_.moduleUri);
 	FunDecl* ctor = mustFind(declaringModule.funsNamed(member.name), (in FunDecl* fun) =>
@@ -611,13 +562,13 @@ void referencesForEnumOrFlagsMember(
 			if (x.expr.kind.as!(MatchEnumExpr*).enum_ == enum_)
 				cb(UriAndRange(
 					m.uri,
-					x.expr.ast.kind.as!(MatchAst*).cases[member.memberIndex].memberNameRange(allSymbols)));
+					x.expr.ast.kind.as!(MatchAst*).cases[member.memberIndex].memberNameRange));
 		} else
-			eachFunReferenceAtExpr(allSymbols, m, x, [ctor], cb);
+			eachFunReferenceAtExpr(m, x, [ctor], cb);
 	});
 }
 
-void referencesForUnionMember(in AllSymbols allSymbols, in Program program, in UnionMember* member, in ReferenceCb cb) {
+void referencesForUnionMember(in Program program, in UnionMember* member, in ReferenceCb cb) {
 	StructDecl* union_ = member.containingUnion;
 	Module* declaringModule = moduleOf(program, union_.moduleUri);
 	FunDecl* ctor = mustFind(declaringModule.funsNamed(member.name), (in FunDecl* fun) =>
@@ -627,20 +578,20 @@ void referencesForUnionMember(in AllSymbols allSymbols, in Program program, in U
 			if (x.expr.kind.as!(MatchUnionExpr*).union_.decl == union_)
 				cb(UriAndRange(
 					m.uri,
-					x.expr.ast.kind.as!(MatchAst*).cases[member.memberIndex].memberNameRange(allSymbols)));
+					x.expr.ast.kind.as!(MatchAst*).cases[member.memberIndex].memberNameRange));
 		} else
-			eachFunReferenceAtExpr(allSymbols, m, x, [ctor], cb);
+			eachFunReferenceAtExpr(m, x, [ctor], cb);
 	});
 }
 
-void referencesForVarDecl(scope ref AllSymbols allSymbols, in Program program, in VarDecl* a, in ReferenceCb cb) {
+void referencesForVarDecl(in Program program, in VarDecl* a, in ReferenceCb cb) {
 	// Find references to get/set
 	Module* module_ = moduleOf(program, a.moduleUri);
 	Opt!(FunDecl*) getter = find(funsNamed(module_, a.name), (in FunDecl* x) =>
 		x.body_.isA!(FunBody.VarGet) && x.body_.as!(FunBody.VarGet).var == a);
-	Opt!(FunDecl*) setter = find(funsNamed(module_, prependSet(allSymbols, a.name)), (in FunDecl* x) =>
+	Opt!(FunDecl*) setter = find(funsNamed(module_, prependSet(a.name)), (in FunDecl* x) =>
 		x.body_.isA!(FunBody.VarSet) && x.body_.as!(FunBody.VarSet).var == a);
-	referencesForFunDecls(allSymbols, program, [force(getter), force(setter)], cb);
+	referencesForFunDecls(program, [force(getter), force(setter)], cb);
 }
 
 void withRecordFieldFunctions(
@@ -666,11 +617,11 @@ immutable(FunDecl*)[] funsNamed(in Module* module_, Symbol name) =>
 bool isRecordFieldFunction(in FunBody a) =>
 	a.isA!(FunBody.RecordFieldGet) || a.isA!(FunBody.RecordFieldPointer) || a.isA!(FunBody.RecordFieldSet);
 
-void referencesForSpecDecl(in AllSymbols allSymbols, in Program program, in SpecDecl* a, in ReferenceCb refCb) {
+void referencesForSpecDecl(in Program program, in SpecDecl* a, in ReferenceCb refCb) {
 	eachModuleThatMayReference(program, a.visibility, moduleOf(program, a.moduleUri), (in Module module_) {
 		scope void delegate(SpecInst*, in SpecUseAst) @safe @nogc pure nothrow cb = (spec, ast) {
 			if (spec.decl == a)
-				refCb(UriAndRange(module_.uri, ast.range(allSymbols)));
+				refCb(UriAndRange(module_.uri, ast.range));
 		};
 		foreach (ref SpecDecl spec; module_.specs)
 			eachSpecParent(spec, cb);
@@ -679,10 +630,10 @@ void referencesForSpecDecl(in AllSymbols allSymbols, in Program program, in Spec
 	});
 }
 
-void referencesForStructDecl(in AllSymbols allSymbols, in Program program, in StructDecl* a, in ReferenceCb cb) {
+void referencesForStructDecl(in Program program, in StructDecl* a, in ReferenceCb cb) {
 	eachTypeInProgram(program, a.visibility, a.moduleUri, (in Module module_, in Type type, in TypeAst ast) {
 		if (type.isA!(StructInst*) && type.as!(StructInst*).decl == a)
-			cb(UriAndRange(module_.uri, ast.nameRangeOrRange(allSymbols)));
+			cb(UriAndRange(module_.uri, ast.nameRangeOrRange));
 	});
 }
 
@@ -712,10 +663,10 @@ void eachTypeInType(in Type a, in TypeAst ast, in TypeCb cb) {
 Module* moduleOf(in Program program, Uri uri) =>
 	mustGet(program.allModules, uri);
 
-void referencesForModule(in AllUris allUris, in Program program, in Module* target, in ReferenceCb cb) {
+void referencesForModule(in Program program, in Module* target, in ReferenceCb cb) {
 	eachModuleReferencing(program, target, (in Module importer, in ImportOrExport ie) {
 		if (has(ie.source))
-			cb(UriAndRange(importer.uri, force(ie.source).pathRange(allUris)));
+			cb(UriAndRange(importer.uri, force(ie.source).pathRange));
 	});
 }
 

@@ -175,8 +175,6 @@ struct MetaAlloc {
 // This is not unique; e.g. there is a 'storage' alloc for each file
 enum AllocKind {
 	allInsts,
-	allSymbols,
-	allUris,
 	buildToLowProgram,
 	extern_,
 	frontend,
@@ -187,8 +185,10 @@ enum AllocKind {
 	static_,
 	storage,
 	storageFileInfo,
+	symbol,
 	temp,
 	test,
+	uri,
 }
 
 struct Alloc {

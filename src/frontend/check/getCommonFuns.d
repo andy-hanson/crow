@@ -51,7 +51,7 @@ import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, none, MutOpt, Opt, some, someMut;
 import util.sourceRange : Range, UriAndRange;
-import util.symbol : AllSymbols, Symbol, symbol;
+import util.symbol : Symbol, symbol;
 import util.util : castNonScope_ref;
 
 struct CommonFunsAndMain {
@@ -61,7 +61,6 @@ struct CommonFunsAndMain {
 
 CommonFunsAndMain getCommonFuns(
 	ref Alloc alloc,
-	in AllSymbols allSymbols,
 	InstantiateCtx ctx,
 	ref CommonTypes commonTypes,
 	in EnumMap!(CommonModule, Module*) modules,
@@ -82,7 +81,7 @@ CommonFunsAndMain getCommonFuns(
 		uint countSpecs,
 	) =>
 		getFunDecl(
-			alloc, allSymbols, diagsBuilder, module_, name,
+			alloc, diagsBuilder, module_, name,
 			TypeParamsAndSig(typeParams, returnType, ParamsShort(small!ParamShort(params)), countSpecs));
 	FunInst* getFunInner(ref Module module_, Symbol name, Type returnType, in ParamShort[] params) =>
 		instantiateNonTemplateFun(ctx, getFunDeclInner(module_, name, emptyTypeParams, returnType, params, 0));
@@ -116,8 +115,7 @@ CommonFunsAndMain getCommonFuns(
 	immutable EnumMap!(FunKind, FunDecl*) lambdaSubscriptFuns = getLambdaSubscriptFuns(
 		alloc, commonTypes, *modules[CommonModule.funUtil], *modules[CommonModule.future]);
 	Opt!MainFun main = has(mainModule)
-		? some(getMainFun(
-			alloc, allSymbols, ctx, diagsBuilder, *force(mainModule), nat64FutureType, stringListType, voidType))
+		? some(getMainFun(alloc, ctx, diagsBuilder, *force(mainModule), nat64FutureType, stringListType, voidType))
 		: none!MainFun;
 	FunInst* mark = getFun(
 		CommonModule.alloc,
@@ -144,7 +142,7 @@ CommonFunsAndMain getCommonFuns(
 	ParamsShort.Variadic newJsonPairsParams = ParamsShort.Variadic(
 		param!"pairs"(symbolJsonTupleArray), symbolJsonTuple);
 	FunInst* newJsonFromPairs = instantiateNonTemplateFun(ctx, getFunDecl(
-		alloc, allSymbols, diagsBuilder, *modules[CommonModule.json], symbol!"new",
+		alloc, diagsBuilder, *modules[CommonModule.json], symbol!"new",
 		TypeParamsAndSig(emptyTypeParams, jsonType, ParamsShort(&newJsonPairsParams), countSpecs: 0)));
 	FunDecl* newTFuture = getFunDeclInner(
 		*modules[CommonModule.future], symbol!"new", singleTypeParams, tFuture, newTFutureParams, countSpecs: 0);
@@ -316,17 +314,15 @@ bool typesMatch(in Type a, in TypeParams typeParamsA, in Type b, in TypeParams t
 
 FunDecl* getFunDecl(
 	ref Alloc alloc,
-	in AllSymbols allSymbols,
 	scope ref ArrayBuilder!UriAndDiagnostic diagsBuilder,
 	ref Module module_,
 	Symbol name,
 	in TypeParamsAndSig expectedSig,
 ) =>
-	getFunDeclMulti(alloc, allSymbols, diagsBuilder, module_, name, [castNonScope_ref(expectedSig)]).decl;
+	getFunDeclMulti(alloc, diagsBuilder, module_, name, [castNonScope_ref(expectedSig)]).decl;
 
 MainFun getMainFun(
 	ref Alloc alloc,
-	in AllSymbols allSymbols,
 	ref InstantiateCtx ctx,
 	scope ref ArrayBuilder!UriAndDiagnostic diagsBuilder,
 	ref Module mainModule,
@@ -336,7 +332,7 @@ MainFun getMainFun(
 ) {
 	scope ParamShort[] argsParamsInner = [param!"args"(stringListType)];
 	ParamsShort argsParams = ParamsShort(small!ParamShort(castNonScope_ref(argsParamsInner)));
-	FunDeclAndSigIndex decl = getFunDeclMulti(alloc, allSymbols, diagsBuilder, mainModule, symbol!"main", [
+	FunDeclAndSigIndex decl = getFunDeclMulti(alloc, diagsBuilder, mainModule, symbol!"main", [
 		TypeParamsAndSig(emptyTypeParams, voidType, ParamsShort(emptySmallArray!ParamShort), countSpecs: 0),
 		TypeParamsAndSig(emptyTypeParams, nat64FutureType, argsParams, countSpecs: 0)]);
 	FunInst* inst = instantiateNonTemplateFun(ctx, decl.decl);
@@ -355,7 +351,6 @@ immutable struct FunDeclAndSigIndex {
 
 FunDeclAndSigIndex getFunDeclMulti(
 	ref Alloc alloc,
-	in AllSymbols allSymbols,
 	scope ref ArrayBuilder!UriAndDiagnostic diagsBuilder,
 	ref Module module_,
 	Symbol name,
@@ -367,7 +362,7 @@ FunDeclAndSigIndex getFunDeclMulti(
 			signatureMatchesTemplate(*x, sig));
 		if (has(index)) {
 			if (lateIsSet(res))
-				add(alloc, diagsBuilder, UriAndDiagnostic(x.range(allSymbols), Diag(Diag.CommonFunDuplicate(name))));
+				add(alloc, diagsBuilder, UriAndDiagnostic(x.range, Diag(Diag.CommonFunDuplicate(name))));
 			else
 				lateSet(res, FunDeclAndSigIndex(x, force(index)));
 		}

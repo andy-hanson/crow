@@ -26,14 +26,14 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
 import util.symbol : concatSymbolsWithDot, Symbol, symbol;
-import util.uri : AllUris, childPath, Path, RelPath, rootPathPlain;
+import util.uri : childPath, Path, RelPath, rootPathPlain;
 
-Opt!ImportsOrExportsAst parseImportsOrExports(scope ref AllUris allUris, ref Lexer lexer, Token keyword) {
+Opt!ImportsOrExportsAst parseImportsOrExports(ref Lexer lexer, Token keyword) {
 	Pos start = curPos(lexer);
 	if (tryTakeToken(lexer, keyword)) {
 		SmallArray!ImportOrExportAst imports = takeIndentOrFailGeneric!(SmallArray!ImportOrExportAst)(
 			lexer,
-			() => parseImportLines(allUris, lexer),
+			() => parseImportLines(lexer),
 			(in Range _) => emptySmallArray!ImportOrExportAst);
 		return some(ImportsOrExportsAst(range(lexer, start), imports));
 	} else
@@ -42,10 +42,10 @@ Opt!ImportsOrExportsAst parseImportsOrExports(scope ref AllUris allUris, ref Lex
 
 private:
 
-SmallArray!ImportOrExportAst parseImportLines(scope ref AllUris allUris, ref Lexer lexer) {
+SmallArray!ImportOrExportAst parseImportLines(ref Lexer lexer) {
 	ArrayBuilder!ImportOrExportAst res;
 	while (true) {
-		add(lexer.alloc, res, parseSingleModuleImportOnOwnLine(allUris, lexer));
+		add(lexer.alloc, res, parseSingleModuleImportOnOwnLine(lexer));
 		final switch (takeNewlineOrDedent(lexer)) {
 			case NewlineOrDedent.newline:
 				continue;
@@ -55,7 +55,7 @@ SmallArray!ImportOrExportAst parseImportLines(scope ref AllUris allUris, ref Lex
 	}
 }
 
-PathOrRelPath parseImportPath(scope ref AllUris allUris, ref Lexer lexer) {
+PathOrRelPath parseImportPath(ref Lexer lexer) {
 	Opt!ushort nParents = () {
 		if (tryTakeToken(lexer, Token.dot)) {
 			takeOrAddDiagExpectedOperator(lexer, symbol!"/", ParseDiag.Expected.Kind.slash);
@@ -66,7 +66,7 @@ PathOrRelPath parseImportPath(scope ref AllUris allUris, ref Lexer lexer) {
 		} else
 			return none!ushort;
 	}();
-	Path path = addPathComponents(allUris, lexer, rootPathPlain(allUris, takePathComponent(lexer)));
+	Path path = addPathComponents(lexer, rootPathPlain(takePathComponent(lexer)));
 	return has(nParents) ? PathOrRelPath(RelPath(force(nParents), path)) : PathOrRelPath(path);
 }
 
@@ -78,14 +78,14 @@ size_t takeDotDotSlashes(ref Lexer lexer, size_t acc) {
 		return acc;
 }
 
-Path addPathComponents(scope ref AllUris allUris, ref Lexer lexer, Path acc) =>
+Path addPathComponents(ref Lexer lexer, Path acc) =>
 	tryTakeOperator(lexer, symbol!"/")
-		? addPathComponents(allUris, lexer, childPath(allUris, acc, takePathComponent(lexer)))
+		? addPathComponents(lexer, childPath(acc, takePathComponent(lexer)))
 		: acc;
 
-ImportOrExportAst parseSingleModuleImportOnOwnLine(scope ref AllUris allUris, ref Lexer lexer) {
+ImportOrExportAst parseSingleModuleImportOnOwnLine(ref Lexer lexer) {
 	Pos start = curPos(lexer);
-	PathOrRelPath path = parseImportPath(allUris, lexer);
+	PathOrRelPath path = parseImportPath(lexer);
 	ImportOrExportAstKind kind = parseImportOrExportKind(lexer, start);
 	return ImportOrExportAst(range(lexer, start), path, kind);
 }
@@ -112,7 +112,7 @@ ImportFileType toImportFileTypeOrDiag(ref Lexer lexer, in TypeAst type) {
 	if (has(fileType))
 		return force(fileType);
 	else {
-		addDiag(lexer, type.range(lexer.allSymbols), ParseDiag(ParseDiag.ImportFileTypeNotSupported()));
+		addDiag(lexer, type.range, ParseDiag(ParseDiag.ImportFileTypeNotSupported()));
 		return ImportFileType.string;
 	}
 }
@@ -179,7 +179,7 @@ Symbol takePathComponent(ref Lexer lexer) =>
 Symbol takePathComponentRest(ref Lexer lexer, Symbol cur) {
 	if (tryTakeToken(lexer, Token.dot)) {
 		Symbol extension = takeName(lexer);
-		return takePathComponentRest(lexer, concatSymbolsWithDot(lexer.allSymbols, cur, extension));
+		return takePathComponentRest(lexer, concatSymbolsWithDot(cur, extension));
 	} else
 		return cur;
 }

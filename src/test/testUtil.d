@@ -16,27 +16,25 @@ import util.col.array : arraysEqual, arraysCorrespond, indexOf, isEmpty, makeArr
 import util.opt : force, has, none, Opt;
 import util.perf : Perf;
 import util.string : CString, stringOfCString;
-import util.symbol : AllSymbols, Extension, Symbol, writeSymbol;
-import util.uri : AllUris, concatUriAndPath, getExtension, isAncestor, mustParseUri, parsePath, Uri, UrisInfo, writeUri;
+import util.symbol : Extension, Symbol;
+import util.uri : concatUriAndPath, getExtension, isAncestor, mustParseUri, parsePath, Uri, UrisInfo;
 import util.util : ptrTrustMe;
 import util.writer : debugLogWithWriter, Writer;
 
 struct Test {
-	@safe @nogc pure nothrow:
+	@safe @nogc nothrow:
 
 	MetaAlloc* metaAlloc;
 	Perf* perfPtr;
 	Alloc* allocPtr;
-	AllSymbols allSymbols;
-	AllUris allUris;
 
 	@trusted this(MetaAlloc* m, return scope Perf* p) {
 		metaAlloc = m;
 		perfPtr = p;
 		allocPtr = newAlloc(AllocKind.test, m);
-		allSymbols = AllSymbols(allocPtr);
-		allUris = AllUris(allocPtr, &allSymbols);
 	}
+
+	pure:
 
 	ref Perf perf() return scope =>
 		*perfPtr;
@@ -53,12 +51,7 @@ void withShowDiagCtxForTestImpure(
 }
 
 private void withShowDiagCtxForTestImpl(alias cb)(scope ref Test test, in Storage storage) =>
-	cb(ShowCtx(
-		ptrTrustMe(test.allSymbols),
-		ptrTrustMe(test.allUris),
-		LineAndColumnGetters(ptrTrustMe(storage)),
-		UrisInfo(none!Uri),
-		ShowOptions(false)));
+	cb(ShowCtx(LineAndColumnGetters(ptrTrustMe(storage)), UrisInfo(none!Uri), ShowOptions(false)));
 
 @trusted void expectDataStack(ref Test test, in Stacks stacks, in immutable ulong[] expected) {
 	scope immutable ulong[] stack = dataTempAsArr(stacks);
@@ -126,9 +119,9 @@ void assertEqual(scope ref Test test, Symbol a, Symbol b) {
 	if (a != b) {
 		debugLogWithWriter((scope ref Writer writer) {
 			writer ~= "Actual: ";
-			writeSymbol(writer, test.allSymbols, a);
+			writer ~= a;
 			writer ~= "\nExpected: ";
-			writeSymbol(writer, test.allSymbols, b);
+			writer ~= b;
 		});
 		assert(false);
 	}
@@ -141,17 +134,17 @@ void withTestServer(
 	withTempAlloc!void(test.metaAlloc, (ref Alloc alloc) @trusted {
 		scope Server server = Server((size_t sizeWords, size_t _) =>
 			allocateElements!word(alloc, sizeWords));
-		setIncludeDir(&server, mustParseUri(server.allUris, "test:///include"));
-		setCwd(server, mustParseUri(server.allUris, "test:///"));
+		setIncludeDir(&server, mustParseUri("test:///include"));
+		setCwd(server, mustParseUri("test:///"));
 		return cb(alloc, server);
 	});
 }
 
 void setupTestServer(ref Test test, ref Alloc alloc, ref Server server, Uri mainUri, in string mainContent) {
-	assert(getExtension(server.allUris, mainUri) == Extension.crow);
+	assert(getExtension(mainUri) == Extension.crow);
 	setFile(test.perf, server, mainUri, mainContent);
 	Uri[] testUris = map(alloc, testIncludePaths, (ref immutable string path) =>
-		concatUriAndPath(server.allUris, server.includeDir, parsePath(server.allUris, path)));
+		concatUriAndPath(server.includeDir, parsePath(path)));
 	while (true) {
 		Uri[] unknowns = allUnknownUris(alloc, server);
 		if (isEmpty(unknowns))
@@ -170,15 +163,15 @@ string defaultIncludeResult(string path) {
 private:
 
 ReadFileResult defaultFileResult(ref Alloc alloc, scope ref Server server, in Uri[] testUris, Uri uri) {
-	final switch (fileType(server.allUris, uri)) {
+	final switch (fileType(uri)) {
 		case FileType.crow:
 			Opt!size_t index = indexOf(testUris, uri);
 			if (has(index))
 				return ReadFileResult(FileContent(testIncludeContents[force(index)]));
-			else if (isAncestor(server.allUris, server.includeDir, uri)) {
+			else if (isAncestor(server.includeDir, uri)) {
 				debugLogWithWriter((scope ref Writer writer) {
 					writer ~= "Missing URI: ";
-					writeUri(writer, server.allUris, uri);
+					writer ~= uri;
 				});
 				assert(false);
 			} else

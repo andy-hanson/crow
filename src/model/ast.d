@@ -12,9 +12,9 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
 import util.sourceRange : combineRanges, Pos, Range, rangeOfStartAndLength;
 import util.string : SmallString;
-import util.symbol : AllSymbols, Symbol, symbol, symbolSize;
+import util.symbol : Symbol, symbol, symbolSize;
 import util.union_ : TaggedUnion, Union;
-import util.uri : AllUris, Path, pathLength, RelPath, relPathLength;
+import util.uri : Path, pathLength, RelPath, relPathLength;
 import util.util : stringOfEnum;
 
 immutable struct NameAndRange {
@@ -29,8 +29,8 @@ immutable struct NameAndRange {
 		start = s;
 	}
 
-	Range range(in AllSymbols allSymbols) scope =>
-		rangeOfStartAndLength(start, symbolSize(allSymbols, name));
+	Range range() scope =>
+		rangeOfStartAndLength(start, symbolSize(name));
 }
 static assert(NameAndRange.sizeof == ulong.sizeof);
 
@@ -78,8 +78,8 @@ immutable struct TypeAst {
 		Range paramsRange;
 		ParamsAst params;
 
-		Range range(in AllSymbols allSymbols) scope =>
-			combineRanges(returnType.range(allSymbols), paramsRange);
+		Range range() scope =>
+			combineRanges(returnType.range, paramsRange);
 		Range kindRange() scope =>
 			rangeOfStartAndLength(kindPos, stringOfEnum(kind).length);
 	}
@@ -99,8 +99,8 @@ immutable struct TypeAst {
 		TypeAst v() return scope =>
 			kv[1];
 
-		Range range(in AllSymbols allSymbols) scope =>
-			Range(v.range(allSymbols).start, safeToUint(k.range(allSymbols).end + "]".length));
+		Range range() scope =>
+			Range(v.range.start, safeToUint(k.range.end + "]".length));
 	}
 
 	immutable struct SuffixName {
@@ -108,10 +108,10 @@ immutable struct TypeAst {
 		TypeAst left;
 		NameAndRange name;
 
-		Range range(in AllSymbols allSymbols) scope =>
-			combineRanges(left.range(allSymbols), suffixRange(allSymbols));
-		Range suffixRange(in AllSymbols allSymbols) scope =>
-			name.range(allSymbols);
+		Range range() scope =>
+			combineRanges(left.range, suffixRange);
+		Range suffixRange() scope =>
+			name.range;
 	}
 
 	immutable struct SuffixSpecial {
@@ -129,8 +129,8 @@ immutable struct TypeAst {
 		Pos suffixPos;
 		Kind kind;
 
-		Range range(in AllSymbols allSymbols) scope =>
-			Range(left.range(allSymbols).start, suffixEnd);
+		Range range() scope =>
+			Range(left.range.start, suffixEnd);
 		Range suffixRange() scope =>
 			Range(suffixPos, suffixEnd);
 		private Pos suffixEnd() scope =>
@@ -152,22 +152,22 @@ immutable struct TypeAst {
 
 	mixin Union!(Bogus, Fun*, Map*, NameAndRange, SuffixName*, SuffixSpecial*, Tuple*);
 
-	Range range(in AllSymbols allSymbols) scope =>
+	Range range() scope =>
 		matchIn!Range(
 			(in TypeAst.Bogus x) => x.range,
-			(in TypeAst.Fun x) => x.range(allSymbols),
-			(in TypeAst.Map x) => x.range(allSymbols),
-			(in NameAndRange x) => x.range(allSymbols),
-			(in TypeAst.SuffixName x) => x.range(allSymbols),
-			(in TypeAst.SuffixSpecial x) => x.range(allSymbols),
+			(in TypeAst.Fun x) => x.range,
+			(in TypeAst.Map x) => x.range,
+			(in NameAndRange x) => x.range,
+			(in TypeAst.SuffixName x) => x.range,
+			(in TypeAst.SuffixSpecial x) => x.range,
 			(in TypeAst.Tuple x) => x.range);
-	Range nameRangeOrRange(in AllSymbols allSymbols) scope =>
+	Range nameRangeOrRange() scope =>
 		matchIn!Range(
 			(in TypeAst.Bogus x) => x.range,
 			(in TypeAst.Fun x) => x.kindRange,
-			(in TypeAst.Map x) => x.range(allSymbols),
-			(in NameAndRange x) => x.range(allSymbols),
-			(in TypeAst.SuffixName x) => x.suffixRange(allSymbols),
+			(in TypeAst.Map x) => x.range,
+			(in NameAndRange x) => x.range,
+			(in TypeAst.SuffixName x) => x.suffixRange,
 			(in TypeAst.SuffixSpecial x) => x.suffixRange,
 			(in TypeAst.Tuple x) => x.range);
 }
@@ -268,8 +268,8 @@ immutable struct AssignmentCallAst {
 	ref ExprAst right() scope return =>
 		leftAndRight[1];
 
-	Range keywordRange(in AllSymbols allSymbols) =>
-		rangeOfStartAndLength(funName.range(allSymbols).end, ":=".length);
+	Range keywordRange() =>
+		rangeOfStartAndLength(funName.range.end, ":=".length);
 }
 
 immutable struct BogusAst {}
@@ -310,8 +310,8 @@ immutable struct CallAst {
 
 	NameAndRange funName() scope =>
 		NameAndRange(funNameStart, funNameName);
-	Range nameRange(in AllSymbols allSymbols, in ExprAst* ast) scope =>
-		style == Style.comma ? ast.range : funName.range(allSymbols);
+	Range nameRange(in ExprAst* ast) scope =>
+		style == Style.comma ? ast.range : funName.range;
 }
 
 immutable struct CallNamedAst {
@@ -424,14 +424,14 @@ immutable struct DestructureAst {
 		Opt!Pos mut; // position of 'mut' keyword if it exists
 		Opt!(TypeAst*) type;
 
-		Range range(in AllSymbols allSymbols) scope =>
+		Range range() scope =>
 			Range(name.start, (
 				has(type)
-				? force(type).range(allSymbols)
-				: optOrDefault!Range(mutRange, () => name.range(allSymbols))
+				? force(type).range
+				: optOrDefault!Range(mutRange, () => name.range)
 			).end);
-		Range nameRange(in AllSymbols allSymbols) scope =>
-			name.range(allSymbols);
+		Range nameRange() scope =>
+			name.range;
 		Opt!Range mutRange() scope =>
 			has(mut)
 				? some(Range(force(mut), force(mut) + safeToUint("mut".length)))
@@ -452,18 +452,18 @@ immutable struct DestructureAst {
 			(in DestructureAst[] parts) =>
 				parts[0].pos);
 
-	Range range(in AllSymbols allSymbols) scope =>
+	Range range() scope =>
 		matchIn!Range(
 			(in DestructureAst.Single x) {
-				Range name = x.name.range(allSymbols);
+				Range name = x.name.range;
 				return has(x.type)
-					? Range(name.start, force(x.type).range(allSymbols).end)
+					? Range(name.start, force(x.type).range.end)
 					: name;
 			},
 			(in DestructureAst.Void x) =>
 				x.range,
 			(in DestructureAst[] parts) =>
-				Range(parts[0].range(allSymbols).start, parts[$ - 1].range(allSymbols).end));
+				Range(parts[0].range.start, parts[$ - 1].range.end));
 }
 
 immutable struct LetAst {
@@ -554,11 +554,11 @@ immutable struct MatchAst {
 		Opt!DestructureAst destructure;
 		ExprAst then;
 
-		Range memberNameRange(in AllSymbols allSymbols) scope =>
-			memberName.range(allSymbols);
+		Range memberNameRange() scope =>
+			memberName.range;
 
-		Range keywordAndMemberNameRange(in AllSymbols allSymbols) scope =>
-			Range(keywordPos, memberNameRange(allSymbols).end);
+		Range keywordAndMemberNameRange() scope =>
+			Range(keywordPos, memberNameRange.end);
 	}
 
 	ExprAst matched;
@@ -762,8 +762,8 @@ immutable struct SpecSigAst {
 
 	NameAndRange nameAndRange() scope =>
 		NameAndRange(range.start, name);
-	Range nameRange(in AllSymbols allSymbols) scope =>
-		nameAndRange.range(allSymbols);
+	Range nameRange() scope =>
+		nameAndRange.range;
 }
 
 immutable struct StructAliasAst {
@@ -777,19 +777,19 @@ immutable struct StructAliasAst {
 	Pos keywordPos;
 	TypeAst target;
 
-	Range nameRange(in AllSymbols allSymbols) scope =>
-		name.range(allSymbols);
+	Range nameRange() scope =>
+		name.range;
 	Range keywordRange() scope =>
 		rangeOfStartAndLength(keywordPos, "alias".length);
 	Opt!VisibilityAndRange visibility() scope =>
 		getVisibilityAndRange(range.start, visibility_);
 }
 
-Range typeParamsRange(in AllSymbols allSymbols, in SmallArray!NameAndRange typeParams) {
+Range typeParamsRange(in SmallArray!NameAndRange typeParams) {
 	assert(!isEmpty(typeParams));
 	return combineRanges(
-		typeParams[0].range(allSymbols),
-		typeParams[$ - 1].range(allSymbols));
+		typeParams[0].range,
+		typeParams[$ - 1].range);
 }
 
 immutable struct ModifierAst {
@@ -802,9 +802,9 @@ immutable struct ModifierAst {
 		Pos keywordPos;
 		ModifierKeyword keyword;
 
-		Range range(in AllSymbols allSymbols) scope =>
+		Range range() scope =>
 			has(typeArg)
-				? combineRanges(force(typeArg).range(allSymbols), keywordRange)
+				? combineRanges(force(typeArg).range, keywordRange)
 				: keywordRange;
 		Range keywordRange() scope =>
 			rangeOfStartAndLength(keywordPos, stringOfModifierKeyword(keyword).length);
@@ -812,12 +812,12 @@ immutable struct ModifierAst {
 
 	mixin Union!(Keyword, SpecUseAst);
 
-	Range range(in AllSymbols allSymbols) scope =>
+	Range range() scope =>
 		matchIn!Range(
 			(in Keyword x) =>
-				x.range(allSymbols),
+				x.range,
 			(in SpecUseAst x) =>
-				x.range(allSymbols));
+				x.range);
 }
 
 immutable struct SpecUseAst {
@@ -825,12 +825,12 @@ immutable struct SpecUseAst {
 	Opt!TypeAst typeArg;
 	NameAndRange name;
 
-	Range range(in AllSymbols allSymbols) scope =>
+	Range range() scope =>
 		has(typeArg)
-			? combineRanges(force(typeArg).range(allSymbols), name.range(allSymbols))
-			: name.range(allSymbols);
-	Range nameRange(in AllSymbols allSymbols) scope =>
-		name.range(allSymbols);
+			? combineRanges(force(typeArg).range, name.range)
+			: name.range;
+	Range nameRange() scope =>
+		name.range;
 }
 
 enum ModifierKeyword : ubyte {
@@ -903,8 +903,8 @@ immutable struct EnumOrFlagsMemberAst {
 
 	NameAndRange nameAndRange() scope =>
 		NameAndRange(range.start, name);
-	Range nameRange(in AllSymbols allSymbols) scope =>
-		nameAndRange.range(allSymbols);
+	Range nameRange() scope =>
+		nameAndRange.range;
 }
 
 immutable struct RecordOrUnionMemberAst {
@@ -919,8 +919,8 @@ immutable struct RecordOrUnionMemberAst {
 	Opt!VisibilityAndRange visibility() scope =>
 		getVisibilityAndRange(range.start, visibility_);
 
-	Range nameRange(in AllSymbols allSymbols) scope =>
-		name.range(allSymbols);
+	Range nameRange() scope =>
+		name.range;
 }
 
 immutable struct StructDeclAst {
@@ -936,8 +936,8 @@ immutable struct StructDeclAst {
 	SmallArray!ModifierAst modifiers;
 	StructBodyAst body_;
 
-	Range nameRange(in AllSymbols allSymbols) scope =>
-		name.range(allSymbols);
+	Range nameRange() scope =>
+		name.range;
 	Range keywordRange() scope =>
 		rangeOfStartAndLength(keywordPos, keywordForStructBody(body_).length);
 	Opt!VisibilityAndRange visibility() scope =>
@@ -971,8 +971,8 @@ immutable struct SpecDeclAst {
 	SmallArray!ModifierAst modifiers;
 	SmallArray!SpecSigAst sigs;
 
-	Range nameRange(in AllSymbols allSymbols) scope =>
-		name.range(allSymbols);
+	Range nameRange() scope =>
+		name.range;
 	Range keywordRange() scope =>
 		rangeOfStartAndLength(specKeywordPos, "spec".length);
 	Opt!VisibilityAndRange visibility() scope =>
@@ -995,8 +995,8 @@ immutable struct FunDeclAst {
 	Opt!VisibilityAndRange visibility() scope =>
 		getVisibilityAndRange(range.start, visibility_);
 
-	Range nameRange(in AllSymbols allSymbols) scope =>
-		name.range(allSymbols);
+	Range nameRange() scope =>
+		name.range;
 }
 
 string stringOfModifierKeyword(ModifierKeyword a) {
@@ -1069,8 +1069,8 @@ immutable struct VarDeclAst {
 	TypeAst type;
 	SmallArray!ModifierAst modifiers; // Any but 'extern' will be a compile error
 
-	Range nameRange(in AllSymbols allSymbols) scope =>
-		name.range(allSymbols);
+	Range nameRange() scope =>
+		name.range;
 	Range keywordRange() scope =>
 		rangeOfStartAndLength(keywordPos, stringOfVarKindLowerCase(kind).length);
 	Opt!VisibilityAndRange visibility() scope =>
@@ -1084,19 +1084,19 @@ immutable struct ImportOrExportAst {
 	PathOrRelPath path;
 	ImportOrExportAstKind kind;
 
-	Range pathRange(in AllUris allUris) scope =>
-		rangeOfStartAndLength(range.start, pathOrRelPathLength(allUris, path));
+	Range pathRange() scope =>
+		rangeOfStartAndLength(range.start, pathOrRelPathLength(path));
 }
 
 immutable struct PathOrRelPath {
 	mixin TaggedUnion!(Path, RelPath);
 }
-private size_t pathOrRelPathLength(in AllUris allUris, in PathOrRelPath a) =>
+private size_t pathOrRelPathLength(in PathOrRelPath a) =>
 	a.matchIn!size_t(
 		(in Path x) =>
-			pathLength(allUris, x),
+			pathLength(x),
 		(in RelPath x) =>
-			relPathLength(allUris, x));
+			relPathLength(x));
 
 immutable struct ImportOrExportAstKind {
 	immutable struct ModuleWhole {}

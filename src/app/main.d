@@ -94,15 +94,15 @@ import util.alloc.alloc : Alloc, AllocKind, newAlloc, withTempAllocImpure, word;
 import util.col.array : isEmpty, prepend;
 import util.col.mutQueue : enqueue, isEmpty, mustDequeue, MutQueue;
 import util.exitCode : ExitCode, exitCodeCombine, okAnd;
-import util.json : Json, jsonToString, writeJson, writeJsonPretty;
+import util.json : Json, jsonToString, writeJsonPretty;
 import util.jsonParse : mustParseJson, mustParseUint, skipWhitespace;
 import util.opt : force, has, none, MutOpt, Opt, someMut;
 import util.perf : disablePerf, isEnabled, Perf, PerfMeasure, withMeasure, withNullPerf;
 import util.perfReport : perfReport;
 import util.sourceRange : UriLineAndColumn;
 import util.string : CString, mustStripPrefix, MutCString;
-import util.symbol : AllSymbols, Extension, symbol;
-import util.uri : AllUris, baseName, childUri, cStringOfUriPreferRelative, FilePath, Uri, parentOrEmpty, toUri;
+import util.symbol : Extension, initSymbols, symbol;
+import util.uri : baseName, childUri, cStringOfUriPreferRelative, FilePath, initUris, Uri, parentOrEmpty, toUri;
 import util.util : debugLog;
 import util.writer : debugLogWithWriter, makeStringWithWriter, Writer;
 import versionInfo : getOS, versionInfoForInterpret, versionInfoForJIT;
@@ -113,20 +113,22 @@ import versionInfo : getOS, versionInfoForInterpret, versionInfoForJIT;
 	scope Perf perf = Perf(() => getTimeNanosPure());
 	Server server = Server((size_t sizeWords, size_t _) =>
 		(cast(word*) pureMalloc(sizeWords * word.sizeof))[0 .. sizeWords]);
-	FilePath cwd = getCwd(server.allUris);
-	FilePath thisExecutable = getPathToThisExecutable(server.allUris);
-	setIncludeDir(&server, childUri(server.allUris, getCrowDir(server.allUris, thisExecutable), symbol!"include"));
-	setCwd(server, toUri(server.allUris, cwd));
+	initSymbols(server.metaAlloc);
+	initUris(server.metaAlloc);
+	FilePath cwd = getCwd();
+	FilePath thisExecutable = getPathToThisExecutable();
+	setIncludeDir(&server, childUri(getCrowDir(thisExecutable), symbol!"include"));
+	setCwd(server, toUri(cwd));
 	setShowOptions(server, ShowOptions(true));
 	Alloc* alloc = newAlloc(AllocKind.main, server.metaAlloc);
-	Command command = parseCommand(*alloc, server.allUris, cwd, getOS(), cast(CString[]) argv[1 .. argc]);
+	Command command = parseCommand(*alloc, cwd, getOS(), cast(CString[]) argv[1 .. argc]);
 	if (!command.options.perf)
 		disablePerf(perf);
 	int res = go(perf, *alloc, server, cwd, thisExecutable, command.kind).value;
 	if (isEnabled(perf)) {
 		withTempAllocImpure!void(server.metaAlloc, (ref Alloc alloc) @trusted {
 			Json report = perfReport(alloc, perf, *server.metaAlloc, perfStats(alloc, server));
-			print(jsonToString(alloc, server.allSymbols, report));
+			print(jsonToString(alloc, report));
 		});
 	}
 	return res;
@@ -158,7 +160,7 @@ version (Windows) {
 @trusted ExitCode runLsp(ref Server server, FilePath thisExecutable) {
 	withTempAllocImpure!void(server.metaAlloc, (ref Alloc alloc) @trusted {
 		printErrorCb((scope ref Writer writer) {
-			writeJson(writer, server.allSymbols, version_(alloc, server, thisExecutable));
+			writer ~= version_(alloc, server, thisExecutable);
 			writer ~= "\nRunning language server protocol";
 		});
 	});
@@ -181,7 +183,7 @@ version (Windows) {
 
 Opt!ExitCode handleOneMessageIn(scope ref Perf perf, ref Alloc alloc, ref Server server, bool logLsp) {
 	MutQueue!LspInMessage bufferedMessages;
-	enqueue(alloc, bufferedMessages, lspRead(alloc, server.allSymbols, server.allUris, logLsp));
+	enqueue(alloc, bufferedMessages, lspRead(alloc, logLsp));
 	do {
 		LspInMessage message = mustDequeue(bufferedMessages);
 		LspOutAction action = handleLspMessage(perf, alloc, server, message);
@@ -189,13 +191,9 @@ Opt!ExitCode handleOneMessageIn(scope ref Perf perf, ref Alloc alloc, ref Server
 			if (!server.lspState.supportsUnknownUris && isUnknownUris(outMessage)) {
 				debugLog("Server will load unknown URIs itself (since client does not support them)");
 				foreach (Uri uri; outMessage.as!LspOutNotification.as!UnknownUris.unknownUris)
-					enqueue(alloc, bufferedMessages, LspInMessage(
-						LspInNotification(readFileLocally(alloc, server.allUris, uri))));
+					enqueue(alloc, bufferedMessages, LspInMessage(LspInNotification(readFileLocally(alloc, uri))));
 			} else {
-				lspWrite(
-					alloc, server.allSymbols,
-					jsonOfLspOutMessage(alloc, server.allUris, server.lineAndCharacterGetters, outMessage),
-					logLsp);
+				lspWrite(alloc, jsonOfLspOutMessage(alloc, server.lineAndCharacterGetters, outMessage), logLsp);
 			}
 		}
 		if (has(action.exitCode))
@@ -207,12 +205,7 @@ Opt!ExitCode handleOneMessageIn(scope ref Perf perf, ref Alloc alloc, ref Server
 bool isUnknownUris(in LspOutMessage a) =>
 	a.isA!LspOutNotification && a.as!LspOutNotification.isA!UnknownUris;
 
-@trusted LspInMessage lspRead(
-	ref Alloc alloc,
-	scope ref AllSymbols allSymbols,
-	scope ref AllUris allUris,
-	bool logLsp,
-) {
+@trusted LspInMessage lspRead(ref Alloc alloc, bool logLsp) {
 	char[0x10000] buffer = void;
 	CString line0 = readLineFromStdin(buffer);
 	if (logLsp)
@@ -237,16 +230,16 @@ bool isUnknownUris(in LspOutMessage a) =>
 			writer ~= CString(cast(immutable) buffer.ptr);
 		});
 
-	return parseLspInMessage(alloc, allUris, mustParseJson(alloc, allSymbols, CString(cast(immutable) buffer.ptr)));
+	return parseLspInMessage(alloc, mustParseJson(alloc, CString(cast(immutable) buffer.ptr)));
 }
 
-@trusted void lspWrite(ref Alloc alloc, in AllSymbols allSymbols, in Json contentJson, bool logLsp) {
-	string jsonString = jsonToString(alloc, allSymbols, contentJson);
+@trusted void lspWrite(ref Alloc alloc, in Json contentJson, bool logLsp) {
+	string jsonString = jsonToString(alloc, contentJson);
 	string message = makeStringWithWriter(alloc, (scope ref Writer writer) {
 		writer ~= "Content-Length: ";
 		writer ~= jsonString.length;
 		writer ~= "\r\n\r\n";
-		writeJson(writer, allSymbols, contentJson);
+		writer ~= contentJson;
 	});
 	writeToStdoutAndFlush(message);
 	if (logLsp) {
@@ -263,8 +256,8 @@ void loadAllFiles(scope ref Perf perf, ref Server server, in Uri[] rootUris) {
 	loadUntilNoUnknownUris(perf, server);
 }
 
-ReadFileResultParams readFileLocally(ref Alloc alloc, scope ref AllUris allUris, Uri uri) =>
-	tryReadFile(alloc, allUris, uri).match!ReadFileResultParams(
+ReadFileResultParams readFileLocally(ref Alloc alloc, Uri uri) =>
+	tryReadFile(alloc, uri).match!ReadFileResultParams(
 		(FileContent x) =>
 			ReadFileResultParams(uri, ReadFileResultType.ok, asString(x)),
 		(ReadFileDiag x) {
@@ -293,7 +286,7 @@ void loadUntilNoUnknownUris(scope ref Perf perf, ref Server server) {
 
 void loadSingleFile(scope ref Perf perf, ref Server server, Uri uri) {
 	withTempAllocImpure(server.metaAlloc, (ref Alloc alloc) {
-		setFile(perf, server, uri, tryReadFile(alloc, server.allUris, uri));
+		setFile(perf, server, uri, tryReadFile(alloc, uri));
 	});
 }
 
@@ -349,23 +342,19 @@ ExitCode go(
 		},
 		(in CommandKind.Version) =>
 			printCb((scope ref Writer writer) {
-				writeJsonPretty(writer, server.allSymbols, version_(alloc, server, thisExecutable), 0);
+				writeJsonPretty(writer, version_(alloc, server, thisExecutable), 0);
 			}));
 
 ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, FilePath cwd, in CommandKind.Run run) {
 	loadAllFiles(perf, server, [run.mainUri]);
 	return run.options.matchImpure!ExitCode(
 		(in RunOptions.Interpret) =>
-			withRealExtern(
-				*newAlloc(AllocKind.extern_, server.metaAlloc),
-				server.allSymbols,
-				server.allUris,
-				(in Extern extern_) =>
-					buildAndInterpret(
-						perf, server, extern_,
-						(in string x) { printError(x); },
-						run.mainUri, none!(Uri[]),
-						getAllArgs(alloc, server, run))),
+			withRealExtern(*newAlloc(AllocKind.extern_, server.metaAlloc), (in Extern extern_) =>
+				buildAndInterpret(
+					perf, server, extern_,
+					(in string x) { printError(x); },
+					run.mainUri, none!(Uri[]),
+					getAllArgs(alloc, server, run))),
 		(in RunOptions.Jit x) {
 			version (GccJitAvailable) {
 				CString[] args = getAllArgs(alloc, server, run);
@@ -379,14 +368,14 @@ ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, FilePath c
 			buildAndRun(perf, alloc, server, cwd, run.mainUri, run.programArgs, x));
 }
 
-Uri getCrowDir(ref AllUris allUris, FilePath thisExecutable) {
-	Uri res = parentOrEmpty(allUris, parentOrEmpty(allUris, toUri(allUris, thisExecutable)));
-	assert(baseName(allUris, res) == symbol!"crow");
+Uri getCrowDir(FilePath thisExecutable) {
+	Uri res = parentOrEmpty(parentOrEmpty(toUri(thisExecutable)));
+	assert(baseName(res) == symbol!"crow");
 	return res;
 }
 
 CString[] getAllArgs(ref Alloc alloc, in Server server, in CommandKind.Run run) =>
-	prepend(alloc, cStringOfUriPreferRelative(alloc, server.allUris, server.urisInfo, run.mainUri), run.programArgs);
+	prepend(alloc, cStringOfUriPreferRelative(alloc, server.urisInfo, run.mainUri), run.programArgs);
 
 ExitCode doPrint(scope ref Perf perf, ref Alloc alloc, ref Server server, in CommandKind.Print command) {
 	Uri mainUri = command.mainUri;
@@ -419,7 +408,7 @@ ExitCode doPrint(scope ref Perf perf, ref Alloc alloc, ref Server server, in Com
 		});
 	if (!isEmpty(printed.diagnostics))
 		printError(printed.diagnostics);
-	print(jsonToString(alloc, server.allSymbols, printed.result));
+	print(jsonToString(alloc, printed.result));
 	return isEmpty(printed.diagnostics) ? ExitCode.ok : ExitCode.error;
 }
 
@@ -433,14 +422,14 @@ ExitCode buildAndRun(
 	in RunOptions.Aot options,
 ) {
 	MutOpt!int signal;
-	ExitCode exitCode = withTempPath(server.allUris, main, options.defaultExeExtension, (FilePath exePath) {
+	ExitCode exitCode = withTempPath(main, options.defaultExeExtension, (FilePath exePath) {
 		BuildOptions buildOptions = BuildOptions(
 			BuildOut(outC: none!FilePath, shouldBuildExecutable: true, outExecutable: exePath),
 			options.compileOptions);
 		return withBuild(perf, alloc, server, cwd, main, buildOptions, (FilePath cPath, in ExternLibraries libs) {
-			ExitCodeOrSignal res = runProgram(alloc, server.allUris, libs, PathAndArgs(exePath, programArgs));
+			ExitCodeOrSignal res = runProgram(alloc, libs, PathAndArgs(exePath, programArgs));
 			// Doing this after 'runProgram' since that may use the '.pdb' file
-			ExitCode cleanup = cleanupCompile(server.allUris, cwd, cPath, exePath);
+			ExitCode cleanup = cleanupCompile(cwd, cPath, exePath);
 			// Delay aborting with the signal so we can clean up temp files
 			return res.match!ExitCode(
 				(ExitCode x) =>
@@ -468,13 +457,13 @@ ExitCode withBuild(
 	// WARN: the C file will be deleted by the time this is called
 	in ExitCode delegate(FilePath cPath, in ExternLibraries) @safe @nogc nothrow cb,
 ) =>
-	withPathOrTemp(server.allUris, options.out_.outC, main, Extension.c, (FilePath cPath) =>
+	withPathOrTemp(options.out_.outC, main, Extension.c, (FilePath cPath) =>
 		withBuildToC(perf, alloc, server, main, options, cPath, (in BuildToCResult result) =>
-			okAnd(writeFile(server.allUris, cPath, result.writeToCResult.cSource), () =>
+			okAnd(writeFile(cPath, result.writeToCResult.cSource), () =>
 				okAnd(
 					options.out_.shouldBuildExecutable
 						? withMeasure!(ExitCode, () =>
-							runCompiler(alloc, server.allUris, result.writeToCResult.compileCommand)
+							runCompiler(alloc, result.writeToCResult.compileCommand)
 						)(perf, alloc, PerfMeasure.invokeCCompiler)
 						: ExitCode.ok,
 					() => cb(cPath, result.externLibraries)))));
@@ -488,7 +477,7 @@ ExitCode withBuildToC(
 	FilePath cPath,
 	in ExitCode delegate(in BuildToCResult) @safe @nogc nothrow cb,
 ) {
-	Opt!FilePath cCompiler = findPathToCCompiler(server.allUris);
+	Opt!FilePath cCompiler = findPathToCCompiler();
 	if (has(cCompiler)) {
 		WriteToCParams params = WriteToCParams(
 			force(cCompiler), cPath, options.out_.outExecutable, options.cCompileOptions);
@@ -512,7 +501,6 @@ version (GccJitAvailable) ExitCode buildAndJit(
 	if (hasAnyDiagnostics(programs.program))
 		printError(showDiagnostics(alloc, server, programs.program));
 	return has(programs.lowProgram)
-		? jitAndRun(
-			perf, alloc, server.allSymbols, server.allUris, force(programs.lowProgram), jitOptions, programArgs)
+		? jitAndRun(perf, alloc, force(programs.lowProgram), jitOptions, programArgs)
 		: ExitCode.error;
 }

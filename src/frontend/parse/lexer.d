@@ -29,7 +29,7 @@ import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
 import util.string : CString, MutCString;
-import util.symbol : AllSymbols, symbol;
+import util.symbol : symbol;
 import util.util : enumConvert;
 
 public import frontend.parse.lexString : QuoteKind, StringPart;
@@ -39,7 +39,6 @@ struct Lexer {
 	@safe @nogc pure nothrow:
 	private:
 	Alloc* allocPtr;
-	AllSymbols* allSymbolsPtr;
 	immutable CString sourceBegin;
 	immutable IndentKind indentKind;
 
@@ -57,18 +56,12 @@ struct Lexer {
 	public:
 	ref Alloc alloc() return scope =>
 		*allocPtr;
-	ref AllSymbols allSymbols() return scope =>
-		*allSymbolsPtr;
 }
 
-@trusted Lexer createLexer(
-	Alloc* alloc,
-	AllSymbols* allSymbols,
-	CString source,
-) {
-	Lexer lexer = Lexer(alloc, allSymbols, source, detectIndentKind(source), 0, source, source);
+@trusted Lexer createLexer(Alloc* alloc, CString source) {
+	Lexer lexer = Lexer(alloc, source, detectIndentKind(source), 0, source, source);
 	cellSet(lexer.nextToken,
-		lexInitialToken(lexer.ptr, lexer.allSymbols, lexer.indentKind, lexer.curIndent, (CString start, ParseDiag x) =>
+		lexInitialToken(lexer.ptr, lexer.indentKind, lexer.curIndent, (CString start, ParseDiag x) =>
 			addDiagFromPointer(lexer, start, x)));
 	return lexer;
 }
@@ -210,7 +203,7 @@ private void readNextToken(ref Lexer lexer) {
 		addDiagFromPointer(lexer, start, x));
 	lexer.nextTokenPos = posOf(lexer, lexer.ptr);
 	cellSet(lexer.nextToken, lexToken(
-		lexer.ptr, lexer.allSymbols, lexer.indentKind, lexer.curIndent, (CString start, ParseDiag x) =>
+		lexer.ptr, lexer.indentKind, lexer.curIndent, (CString start, ParseDiag x) =>
 			addDiagFromPointer(lexer, start, x)));
 }
 

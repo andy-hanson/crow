@@ -89,9 +89,9 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, someMut, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : Range, UriAndRange;
-import util.symbol : AllSymbols, Symbol, symbol;
+import util.symbol : Symbol, symbol;
 import util.union_ : TaggedUnion;
-import util.uri : AllUris, Path, RelPath, Uri;
+import util.uri : Path, RelPath, Uri;
 import util.util : enumConvert, ptrTrustMe;
 
 immutable struct UriAndAst {
@@ -112,14 +112,12 @@ immutable struct BootstrapCheck {
 BootstrapCheck checkBootstrap(
 	scope ref Perf perf,
 	ref Alloc alloc,
-	scope ref AllSymbols allSymbols,
-	in AllUris allUris,
 	ref AllInsts allInsts,
 	in CommonUris commonUris,
 	ref UriAndAst uriAndAst,
 ) =>
 	checkWorker(
-		alloc, perf, allSymbols, allUris, allInsts, commonUris, [], uriAndAst,
+		alloc, perf, allInsts, commonUris, [], uriAndAst,
 		(ref CheckCtx ctx,
 		in StructsAndAliasesMap structsAndAliasesMap,
 		scope ref DelayStructInsts delayedStructInsts) =>
@@ -130,8 +128,6 @@ BootstrapCheck checkBootstrap(
 Module* check(
 	scope ref Perf perf,
 	ref Alloc alloc,
-	scope ref AllSymbols allSymbols,
-	in AllUris allUris,
 	ref AllInsts allInsts,
 	in CommonUris commonUris,
 	ref UriAndAst uriAndAst,
@@ -139,7 +135,7 @@ Module* check(
 	CommonTypes* commonTypes,
 ) =>
 	checkWorker(
-		alloc, perf, allSymbols, allUris, allInsts, commonUris, imports, uriAndAst,
+		alloc, perf, allInsts, commonUris, imports, uriAndAst,
 		(ref CheckCtx _, in StructsAndAliasesMap _2, scope ref DelayStructInsts _3) => commonTypes,
 	).module_;
 
@@ -174,7 +170,7 @@ SpecDeclBody checkSpecDeclBody(
 	SpecFlagsAndParents modifiers = checkSpecModifiers(
 		ctx, commonTypes, structsAndAliasesMap, specsMap, delaySpecInsts, ast.typeParams, ast.modifiers);
 	Opt!BuiltinSpec builtin = modifiers.isBuiltin
-		? getBuiltinSpec(ctx, ast.nameRange(ctx.allSymbols), ast.name.name)
+		? getBuiltinSpec(ctx, ast.nameRange, ast.name.name)
 		: none!BuiltinSpec;
 	SpecDeclSig[] sigs = mapPointers(ctx.alloc, ast.sigs, (SpecSigAst* x) {
 		ReturnTypeAndParams rp = checkReturnTypeAndParams(
@@ -184,7 +180,7 @@ SpecDeclBody checkSpecDeclBody(
 			(Destructure[] x) =>
 				x,
 			(Params.Varargs* x) {
-				addDiag(ctx, x.param.range(ctx.allSymbols), Diag(Diag.SpecSigCantBeVariadic()));
+				addDiag(ctx, x.param.range, Diag(Diag.SpecSigCantBeVariadic()));
 				return arrayOfSingle(&x.param);
 			});
 		return SpecDeclSig(ctx.curUri, x, rp.returnType, small!Destructure(params));
@@ -280,7 +276,7 @@ StructsAndAliasesMap buildStructsAndAliasesMap(ref CheckCtx ctx, StructDecl[] st
 	void add(StructOrAlias sa) {
 		addToDeclsMap!StructOrAlias(
 			ctx, builder, sa, Diag.DuplicateDeclaration.Kind.structOrAlias, (in StructOrAlias x) =>
-				x.nameRange(ctx.allSymbols));
+				x.nameRange);
 	}
 	foreach (ref StructDecl decl; structs)
 		add(StructOrAlias(&decl));
@@ -326,7 +322,7 @@ Opt!Symbol checkVarModifiers(ref CheckCtx ctx, VarKind kind, in ModifierAst[] mo
 					addDiag(ctx, x.keywordRange, Diag(Diag.ModifierInvalid(x.keyword, declKind(kind))));
 			},
 			(in SpecUseAst x) {
-				addDiag(ctx, x.range(ctx.allSymbols), Diag(Diag.SpecUseInvalid(declKind(kind))));
+				addDiag(ctx, x.range, Diag(Diag.SpecUseInvalid(declKind(kind))));
 			});
 	return cellGet(externLibraryName);
 }
@@ -388,7 +384,7 @@ SpecsMap buildSpecsMap(ref CheckCtx ctx, SpecDecl[] specs) {
 	foreach (ref SpecDecl spec; specs)
 		addToDeclsMap!(immutable SpecDecl*)(
 			ctx, builder, &spec, Diag.DuplicateDeclaration.Kind.spec, (in SpecDecl* x) =>
-				x.nameRange(ctx.allSymbols));
+				x.nameRange);
 	return moveToImmutable(builder);
 }
 
@@ -476,12 +472,12 @@ HashTable!(NameReferents, Symbol, nameFromNameReferents) getAllExports(
 			(in ImportOrExportKind.ModuleWhole m) {
 				// TODO: if this is a re-export of another library, only re-export the public members
 				foreach (NameReferents referents; e.module_.exports)
-					addExport(referents, () => force(e.source).pathRange(ctx.allUris));
+					addExport(referents, () => force(e.source).pathRange);
 			},
 			(in Opt!(NameReferents*)[] referents) {
 				foreach (Opt!(NameReferents*) x; referents)
 					if (has(x))
-						addExport(*force(x), () => force(e.source).pathRange(ctx.allUris));
+						addExport(*force(x), () => force(e.source).pathRange);
 			});
 	foreach (StructOrAlias x; structsAndAliasesMap)
 		final switch (x.visibility) {
@@ -515,8 +511,6 @@ HashTable!(NameReferents, Symbol, nameFromNameReferents) getAllExports(
 BootstrapCheck checkWorker(
 	ref Alloc alloc,
 	scope ref Perf perf,
-	scope ref AllSymbols allSymbols,
-	in AllUris allUris,
 	ref AllInsts allInsts,
 	in CommonUris commonUris,
 	in ResolvedImport[] resolvedImports,
@@ -530,12 +524,10 @@ BootstrapCheck checkWorker(
 	withMeasure!(BootstrapCheck, () {
 		ArrayBuilder!Diagnostic diagsBuilder;
 		ImportsAndReExports importsAndReExports = checkImportsAndReExports(
-			alloc, allSymbols, allUris, diagsBuilder, uriAndAst.ast, resolvedImports);
+			alloc, diagsBuilder, uriAndAst.ast, resolvedImports);
 		FileAst* ast = uriAndAst.ast;
 		CheckCtx ctx = CheckCtx(
 			ptrTrustMe(alloc),
-			ptrTrustMe(allSymbols),
-			ptrTrustMe(allUris),
 			InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(allInsts)),
 			ptrTrustMe(commonUris),
 			uriAndAst.uri,
@@ -590,17 +582,15 @@ immutable struct ImportsAndReExports {
 
 ImportsAndReExports checkImportsAndReExports(
 	ref Alloc alloc,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
 	scope ref ArrayBuilder!Diagnostic diagsBuilder,
 	FileAst* ast,
 	in ResolvedImport[] resolvedImports,
 ) {
 	scope ResolvedImport[] resolvedImportsLeft = resolvedImports;
 	ImportsOrReExports imports = checkImportsOrReExports(
-		alloc, allSymbols, allUris, diagsBuilder, ast.imports, resolvedImportsLeft, !ast.noStd);
+		alloc, diagsBuilder, ast.imports, resolvedImportsLeft, !ast.noStd);
 	ImportsOrReExports reExports = checkImportsOrReExports(
-		alloc, allSymbols, allUris, diagsBuilder, ast.reExports, resolvedImportsLeft, false);
+		alloc, diagsBuilder, ast.reExports, resolvedImportsLeft, false);
 	assert(isEmpty(resolvedImportsLeft));
 	return ImportsAndReExports(imports.modules, reExports.modules, imports.files, reExports.files);
 }
@@ -611,8 +601,6 @@ struct ImportsOrReExports {
 }
 ImportsOrReExports checkImportsOrReExports(
 	ref Alloc alloc,
-	in AllSymbols allSymbols,
-	in AllUris allUris,
 	scope ref ArrayBuilder!Diagnostic diagsBuilder,
 	in Opt!ImportsOrExportsAst ast,
 	scope ref ResolvedImport[] resolvedImports,
@@ -640,9 +628,7 @@ ImportsOrReExports checkImportsOrReExports(
 				assert(false);
 			},
 			(Diag.ImportFileDiag* x) {
-				add(alloc, diagsBuilder, Diagnostic(
-					has(source) ? force(source).pathRange(allUris) : Range.empty,
-					Diag(x)));
+				add(alloc, diagsBuilder, Diagnostic(has(source) ? force(source).pathRange : Range.empty, Diag(x)));
 			});
 	}
 
@@ -661,7 +647,7 @@ ImportsOrReExports checkImportsOrReExports(
 				(NameAndRange[] names) {
 					handleModuleImport(some(&importAst), importVisibility, (Module* module_) =>
 						ImportOrExportKind(
-							checkNamedImports(alloc, allSymbols, diagsBuilder, importVisibility, module_, names)));
+							checkNamedImports(alloc, diagsBuilder, importVisibility, module_, names)));
 				},
 				(ref ImportOrExportAstKind.File x) {
 					nextResolvedImport().matchWithPointers!void(
@@ -672,7 +658,7 @@ ImportsOrReExports checkImportsOrReExports(
 							add(alloc, fileImports, ImportOrExportFile(&importAst, x));
 						},
 						(Diag.ImportFileDiag* x) {
-							add(alloc, diagsBuilder, Diagnostic(importAst.pathRange(allUris), Diag(x)));
+							add(alloc, diagsBuilder, Diagnostic(importAst.pathRange, Diag(x)));
 						});
 				});
 		}
@@ -686,7 +672,6 @@ ExportVisibility importMinVisibility(in ImportOrExportAst a) =>
 
 Opt!(NameReferents*)[] checkNamedImports(
 	ref Alloc alloc,
-	in AllSymbols allSymbols,
 	scope ref ArrayBuilder!Diagnostic diagsBuilder,
 	ExportVisibility importVisibility,
 	Module* module_,
@@ -696,7 +681,7 @@ Opt!(NameReferents*)[] checkNamedImports(
 		Opt!(NameReferents*) referents = getPointer!(NameReferents, Symbol, nameFromNameReferents)(
 			module_.exports, name.name);
 		if (!has(referents) || !hasVisibility(*force(referents), importVisibility))
-			add(alloc, diagsBuilder, Diagnostic(name.range(allSymbols), Diag(Diag.ImportRefersToNothing(name.name))));
+			add(alloc, diagsBuilder, Diagnostic(name.range, Diag(Diag.ImportRefersToNothing(name.name))));
 		return referents;
 	});
 

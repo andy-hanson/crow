@@ -91,7 +91,7 @@ import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, buildArray,
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some, some;
 import util.sourceRange : Pos, Range, rangeOfStartAndLength;
-import util.symbol : AllSymbols, appendEquals, Symbol, symbol;
+import util.symbol : Symbol, symbol;
 import util.util : max;
 
 ExprAst parseFunExprBody(ref Lexer lexer) =>
@@ -380,9 +380,6 @@ enum AssignmentKind {
 	inPlace, // foo=
 	replace, // foo:=
 }
-
-NameAndRange appendEquals(NameAndRange a, ref AllSymbols allSymbols) =>
-	NameAndRange(a.start, .appendEquals(allSymbols, a.name));
 
 // This is for the , in `1, 2`, not the comma between args
 int commaPrecedence() =>

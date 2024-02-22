@@ -3,7 +3,7 @@ module test.testJson;
 @safe @nogc pure nothrow:
 
 import test.testUtil : Test;
-import util.json : Json, writeJson;
+import util.json : Json;
 import util.jsonParse : parseJson;
 import util.opt : force, has, Opt;
 import util.string : CString, cString;
@@ -63,19 +63,19 @@ void testString(ref Test test) {
 }
 
 void verifyParseError(ref Test test, in CString source) {
-	Opt!Json actual = parseJson(test.alloc, test.allSymbols, source);
+	Opt!Json actual = parseJson(test.alloc, source);
 	assert(!has(actual));
 }
 
 void verifyParseJson(ref Test test, in CString source, in Json expected) {
-	Opt!Json actual = parseJson(test.alloc, test.allSymbols, source);
+	Opt!Json actual = parseJson(test.alloc, source);
 	assert(has(actual));
 	if (force(actual) != expected) {
 		debugLogWithWriter((ref Writer writer) {
 			writer ~= "actual: ";
-			writeJson(writer, test.allSymbols, force(actual));
+			writer ~= force(actual);
 			writer ~= "\nexpected: ";
-			writeJson(writer, test.allSymbols, expected);
+			writer ~= expected;
 		});
 		assert(false);
 	}

@@ -21,8 +21,8 @@ private:
 
 void testCircularImportFixed(ref Test test) {
 	withTestServer(test, (ref Alloc alloc, ref Server server) {
-		Uri uriA = mustParseUri(server.allUris, "test:///a.crow");
-		Uri uriB = mustParseUri(server.allUris, "test:///b.crow");
+		Uri uriA = mustParseUri("test:///a.crow");
+		Uri uriB = mustParseUri("test:///b.crow");
 		setupTestServer(test, alloc, server, uriA, "");
 
 		string showDiags() =>
@@ -46,8 +46,8 @@ void testCircularImportFixed(ref Test test) {
 
 void testFileNotFoundThenAdded(ref Test test) {
 	withTestServer(test, (ref Alloc alloc, ref Server server) {
-		Uri uriA = mustParseUri(server.allUris, "test:///a.crow");
-		Uri uriB = mustParseUri(server.allUris, "test:///b.crow");
+		Uri uriA = mustParseUri("test:///a.crow");
+		Uri uriB = mustParseUri("test:///b.crow");
 		setupTestServer(test, alloc, server, uriA, "import\n\t./b\n\nmain void()\n\tinfo log hello");
 		string showDiags() =>
 			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA).program);
@@ -66,9 +66,9 @@ void testFileNotFoundThenAdded(ref Test test) {
 
 void testFileImportNotFound(ref Test test) {
 	withTestServer(test, (ref Alloc alloc, ref Server server) {
-		Uri uriA = mustParseUri(server.allUris, "test:///a.crow");
-		Uri uriB = mustParseUri(server.allUris, "test:///b.txt");
-		Uri uriB2 = mustParseUri(server.allUris, "test:///b2.txt");
+		Uri uriA = mustParseUri("test:///a.crow");
+		Uri uriB = mustParseUri("test:///b.txt");
+		Uri uriB2 = mustParseUri("test:///b2.txt");
 		setFile(test.perf, server, uriB, "hello");
 
 		string showDiags() =>
@@ -89,7 +89,7 @@ void testFileImportNotFound(ref Test test) {
 
 void testChangeBootstrap(ref Test test) {
 	withTestServer(test, (ref Alloc alloc, ref Server server) {
-		Uri uriA = mustParseUri(server.allUris, "test:///a.crow");
+		Uri uriA = mustParseUri("test:///a.crow");
 		setupTestServer(test, alloc, server, uriA, "main void()\n\t()");
 		string showDiags() =>
 			showDiagnostics(alloc, server, getProgramForMain(test.perf, alloc, server, uriA).program);
@@ -97,7 +97,7 @@ void testChangeBootstrap(ref Test test) {
 		assertEqual(showDiags(), "");
 
 		string bootstrapPath = "crow/private/bootstrap.crow";
-		Uri bootstrap = concatUriAndPath(server.allUris, server.includeDir, parsePath(server.allUris, bootstrapPath));
+		Uri bootstrap = concatUriAndPath(server.includeDir, parsePath(bootstrapPath));
 		string defaultBootstrap = defaultIncludeResult(bootstrapPath);
 		setFile(test.perf, server, bootstrap, concatenate(alloc, defaultBootstrap, "junk"));
 		assertEqual(showDiags(),

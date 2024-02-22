@@ -28,28 +28,25 @@ import util.col.mutArr : moveToArray, MutArr;
 import util.col.mutMap : isEmpty, mapToMap;
 import util.late : lateSet;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.symbol : AllSymbols;
-import util.util : castNonScope, castNonScope_ref, ptrTrustMe;
+import util.util : castNonScope_ref, ptrTrustMe;
 import versionInfo : VersionInfo;
 
 ConcreteProgram concretize(
 	scope ref Perf perf,
 	ref Alloc alloc,
-	scope ref AllSymbols allSymbols,
 	in ShowCtx showCtx,
 	in VersionInfo versionInfo,
 	ref ProgramWithMain program,
 	in FileContentGetters fileContentGetters,
 ) =>
 	withMeasure!(ConcreteProgram, () =>
-		concretizeInner(&alloc, allSymbols, showCtx, versionInfo, program, fileContentGetters)
+		concretizeInner(&alloc, showCtx, versionInfo, program, fileContentGetters)
 	)(perf, alloc, PerfMeasure.concretize);
 
 private:
 
 ConcreteProgram concretizeInner(
 	Alloc* allocPtr,
-	scope ref AllSymbols allSymbols,
 	in ShowCtx showCtx,
 	in VersionInfo versionInfo,
 	ref ProgramWithMain program,
@@ -60,8 +57,6 @@ ConcreteProgram concretizeInner(
 	ConcretizeCtx ctx = ConcretizeCtx(
 		allocPtr,
 		versionInfo,
-		ptrTrustMe(allSymbols),
-		castNonScope(showCtx.allUrisPtr),
 		program.program.commonTypes,
 		ptrTrustMe(program.program),
 		castNonScope_ref(fileContentGetters));

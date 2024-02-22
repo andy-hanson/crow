@@ -26,7 +26,7 @@ import util.col.map : KeyValuePair, makeMap;
 import util.col.mutArr : MutArr, mutArrIsEmpty, push;
 import util.memory : memmove, memset;
 import util.opt : has, none, Opt, optOrDefault, some;
-import util.symbol : AllSymbols, Symbol, symbol, writeSymbol;
+import util.symbol : Symbol, symbol;
 import util.util : debugLog, todo;
 import util.writer : withStackWriterImpure, Writer;
 
@@ -35,15 +35,10 @@ alias WriteCb = void delegate(Pipe, in string);
 WriteCb unreachableWriteCb() =>
 	(Pipe _, in string _1) => assert(false);
 
-T withFakeExtern(T)(
-	ref Alloc alloc,
-	ref const AllSymbols allSymbols,
-	in WriteCb write,
-	in T delegate(scope ref Extern) @safe @nogc nothrow cb,
-) {
+T withFakeExtern(T)(ref Alloc alloc, in WriteCb write, in T delegate(scope ref Extern) @safe @nogc nothrow cb) {
 	scope Extern extern_ = Extern(
 		(in ExternLibraries libraries, scope WriteError writeError) =>
-			getAllFakeExternFuns(alloc, allSymbols, libraries, writeError),
+			getAllFakeExternFuns(alloc, libraries, writeError),
 		(in FunPointerInputs[] inputs) =>
 			fakeSyntheticFunPointers(alloc, inputs),
 		AggregateCbs(
@@ -68,7 +63,6 @@ private:
 
 Opt!ExternPointersForAllLibraries getAllFakeExternFuns(
 	ref Alloc alloc,
-	in AllSymbols allSymbols,
 	in ExternLibraries libraries,
 	scope WriteError writeError,
 ) {
@@ -77,13 +71,13 @@ Opt!ExternPointersForAllLibraries getAllFakeExternFuns(
 		alloc, libraries, (in ExternLibrary x) =>
 			immutable KeyValuePair!(Symbol, ExternPointersForLibrary)(
 				x.libraryName,
-				fakeExternFunsForLibrary(alloc, failures, allSymbols, x)));
+				fakeExternFunsForLibrary(alloc, failures, x)));
 	foreach (immutable KeyValuePair!(Symbol, Symbol) x; failures)
 		withStackWriterImpure((scope ref Writer writer) {
 			writer ~= "Could not load extern function ";
-			writeSymbol(writer, allSymbols, x.value);
+			writer ~= x.value;
 			writer ~= " from library ";
-			writeSymbol(writer, allSymbols, x.key);
+			writer ~= x.key;
 		}, writeError);
 	return mutArrIsEmpty(failures) ? some(res) : none!ExternPointersForAllLibraries;
 }
@@ -129,7 +123,6 @@ pure:
 ExternPointersForLibrary fakeExternFunsForLibrary(
 	ref Alloc alloc,
 	ref MutArr!(immutable KeyValuePair!(Symbol, Symbol)) failures,
-	in AllSymbols allSymbols,
 	in ExternLibrary lib,
 ) =>
 	makeMap!(Symbol, ExternPointer, Symbol)(alloc, lib.importNames, (in Symbol importName) {

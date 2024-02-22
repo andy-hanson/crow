@@ -37,34 +37,26 @@ import util.sourceRange :
 	UriLineAndColumn,
 	UriLineAndColumnRange;
 import util.string : bytesOfString, CString, cStringSize;
-import util.symbol : AllSymbols, Extension;
+import util.symbol : Extension;
 import util.union_ : TaggedUnion, Union;
-import util.uri : AllUris, baseName, getExtension, Uri;
+import util.uri : baseName, getExtension, Uri;
 import util.writer : makeStringWithWriter, Writer;
 
 struct Storage {
 	@safe @nogc pure nothrow:
 
-	this(MetaAlloc* a, AllSymbols* as, AllUris* au) {
+	this(MetaAlloc* a) {
 		metaAlloc = a;
-		allSymbolsPtr = as;
-		allUrisPtr = au;
 		mapAlloc_ = newAlloc(AllocKind.storage, metaAlloc);
 	}
 
 	private:
 	MetaAlloc* metaAlloc;
-	AllSymbols* allSymbolsPtr;
-	AllUris* allUrisPtr;
 	Alloc* mapAlloc_;
 	// Store in separate maps depending on success / diag
 	MutMap!(Uri, AllocAndValue!FileInfo) successes;
 	MutMap!(Uri, ReadFileDiag) diags;
 
-	ref inout(AllSymbols) allSymbols() return scope inout =>
-		*allSymbolsPtr;
-	ref inout(AllUris) allUris() return scope inout =>
-		*allUrisPtr;
 	ref inout(Alloc) mapAlloc() return scope inout =>
 		*mapAlloc_;
 }
@@ -134,22 +126,15 @@ private AllocAndValue!FileInfo getFileInfo(scope ref Perf perf, ref Storage stor
 			content,
 			// TODO: only needed for CrowFile or CrowConfig
 			lineAndColumnGetterForText(alloc, asCString(content)),
-			parseContent(perf, alloc, storage.allSymbols, storage.allUris, uri, asCString(content)));
+			parseContent(perf, alloc, uri, asCString(content)));
 	});
 
-private ParseResult parseContent(
-	scope ref Perf perf,
-	ref Alloc alloc,
-	scope ref AllSymbols allSymbols,
-	scope ref AllUris allUris,
-	Uri uri,
-	in CString content,
-) {
-	final switch (fileType(allUris, uri)) {
+private ParseResult parseContent(scope ref Perf perf, ref Alloc alloc, Uri uri, in CString content) {
+	final switch (fileType(uri)) {
 		case FileType.crow:
-			return ParseResult(parseFile(perf, alloc, allSymbols, allUris, content));
+			return ParseResult(parseFile(perf, alloc, content));
 		case FileType.crowConfig:
-			return ParseResult(allocate(alloc, parseConfig(alloc, allSymbols, allUris, uri, content)));
+			return ParseResult(allocate(alloc, parseConfig(alloc, uri, content)));
 		case FileType.other:
 			return ParseResult(ParseResult.None());
 	}
@@ -161,12 +146,12 @@ enum FileType {
 	other,
 }
 
-FileType fileType(scope ref AllUris allUris, Uri uri) {
-	switch (getExtension(allUris, uri)) {
+FileType fileType(Uri uri) {
+	switch (getExtension(uri)) {
 		case Extension.crow:
 			return FileType.crow;
 		case Extension.json:
-			return baseName(allUris, uri) == crowConfigBaseName ? FileType.crowConfig : FileType.other;
+			return baseName(uri) == crowConfigBaseName ? FileType.crowConfig : FileType.other;
 		default:
 			return FileType.other;
 	}
@@ -206,7 +191,7 @@ Uri[] allStorageUris(ref Alloc alloc, in Storage a) =>
 Uri[] allKnownGoodCrowUris(ref Alloc alloc, scope ref Storage a) =>
 	buildArray!Uri(alloc, (scope ref Builder!Uri res) {
 		foreach (Uri uri; keys(a.successes))
-			if (fileType(a.allUris, uri) == FileType.crow)
+			if (fileType(uri) == FileType.crow)
 				res ~= uri;
 	});
 
@@ -251,7 +236,7 @@ private immutable struct SourceAndAstOrDiag {
 }
 
 SourceAndAstOrDiag getSourceAndAstOrDiag(ref Storage a, Uri uri) {
-	assert(fileType(a.allUris, uri) == FileType.crow);
+	assert(fileType(uri) == FileType.crow);
 	return fileOrDiag(a, uri).match!SourceAndAstOrDiag(
 		(FileInfo x) =>
 			SourceAndAstOrDiag(SourceAndAst(asCString(x.content), x.parsed.as!(FileAst*))),

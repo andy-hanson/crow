@@ -8,17 +8,17 @@ import util.col.arrayBuilder : Builder, finish;
 import util.json : Json;
 import util.opt : force, has, none, Opt, some;
 import util.string : CString, cStringIsEmpty, MutCString;
-import util.symbol : AllSymbols, symbolOfString;
+import util.symbol : symbolOfString;
 import util.writer : makeStringWithWriter, Writer;
 
-Json mustParseJson(ref Alloc alloc, scope ref AllSymbols allSymbols, in CString source) {
-	Opt!Json res = parseJson(alloc, allSymbols, source);
+Json mustParseJson(ref Alloc alloc, in CString source) {
+	Opt!Json res = parseJson(alloc, source);
 	return force(res);
 }
 
-Opt!Json parseJson(ref Alloc alloc, scope ref AllSymbols allSymbols, in CString source) {
+Opt!Json parseJson(ref Alloc alloc, in CString source) {
 	MutCString ptr = source;
-	Opt!Json res = parseValue(alloc, allSymbols, ptr);
+	Opt!Json res = parseValue(alloc, ptr);
 	skipWhitespace(ptr);
 	return cStringIsEmpty(ptr) ? res : none!Json;
 }
@@ -48,7 +48,7 @@ void skipWhitespace(scope ref MutCString ptr) {
 
 private:
 
-Opt!Json parseValue(ref Alloc alloc, scope ref AllSymbols allSymbols, scope ref MutCString ptr) {
+Opt!Json parseValue(ref Alloc alloc, scope ref MutCString ptr) {
 	skipWhitespace(ptr);
 	char x = takeChar(ptr);
 	switch (x) {
@@ -64,9 +64,9 @@ Opt!Json parseValue(ref Alloc alloc, scope ref AllSymbols allSymbols, scope ref 
 			Opt!string string = parseString(alloc, ptr);
 			return has(string) ? some(Json(force(string))) : none!Json;
 		case '[':
-			return parseArray(alloc, allSymbols, ptr);
+			return parseArray(alloc, ptr);
 		case '{':
-			return parseObject(alloc, allSymbols, ptr);
+			return parseObject(alloc, ptr);
 		case '0': .. case '9':
 			return some(parseNumber(x - '0', ptr));
 		default:
@@ -128,13 +128,13 @@ Opt!char escapedChar(char escape) {
 }
 
 
-Opt!Json parseArray(ref Alloc alloc, scope ref AllSymbols allSymbols, scope ref MutCString ptr) {
+Opt!Json parseArray(ref Alloc alloc, scope ref MutCString ptr) {
 	Builder!Json res = Builder!Json(&alloc);
 	while (true) {
 		if (tryTakePunctuation(ptr, ']'))
 			return some(Json(finish(res)));
 		else {
-			Opt!Json value = parseValue(alloc, allSymbols, ptr);
+			Opt!Json value = parseValue(alloc, ptr);
 			if (has(value)) {
 				res ~= force(value);
 				if (tryTakePunctuation(ptr, ','))
@@ -149,15 +149,15 @@ Opt!Json parseArray(ref Alloc alloc, scope ref AllSymbols allSymbols, scope ref 
 	}
 }
 
-Opt!Json parseObject(ref Alloc alloc, scope ref AllSymbols allSymbols, scope ref MutCString ptr) {
+Opt!Json parseObject(ref Alloc alloc, scope ref MutCString ptr) {
 	Builder!(Json.ObjectField) res = Builder!(Json.ObjectField)(&alloc);
 	while (true) {
 		if (tryTakePunctuation(ptr, '"')) {
 			Opt!string keyString = parseString(alloc, ptr);
 			if (has(keyString) && tryTakePunctuation(ptr, ':')) {
-				Opt!Json value = parseValue(alloc, allSymbols, ptr);
+				Opt!Json value = parseValue(alloc, ptr);
 				if (has(value)) {
-					res ~= Json.ObjectField(symbolOfString(allSymbols, force(keyString)), force(value));
+					res ~= Json.ObjectField(symbolOfString(force(keyString)), force(value));
 					if (tryTakePunctuation(ptr, ','))
 						continue;
 					else if (tryTakePunctuation(ptr, '}'))
