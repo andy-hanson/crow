@@ -6,9 +6,10 @@ import frontend.config : parseConfig;
 import frontend.lang : crowConfigBaseName;
 import frontend.parse.parse : parseFile;
 import lib.lsp.lspTypes : TextDocumentContentChangeEvent, TextDocumentPositionParams;
-import model.ast : FileAst;
-import model.diag : ReadFileDiag;
-import model.model : Config;
+import model.ast : FileAst, fileAstForDiag;
+import model.diag : Diag, ReadFileDiag;
+import model.model : Config, configForDiag;
+import model.parseDiag : ParseDiag;
 import util.alloc.alloc :
 	Alloc,
 	AllocAndValue,
@@ -22,7 +23,7 @@ import util.col.array : append, contains, isEmpty;
 import util.col.arrayBuilder : buildArray, Builder;
 import util.col.mutMap : getOrAdd, keys, mayDelete, mustAdd, MutMap, values;
 import util.memory : allocate;
-import util.opt : ConstOpt, force, has, MutOpt, none, Opt, some;
+import util.opt : ConstOpt, force, has, MutOpt, none, Opt, optIf, some;
 import util.perf : Perf;
 import util.sourceRange :
 	LineAndCharacterGetter,
@@ -36,8 +37,9 @@ import util.sourceRange :
 	UriAndLineAndCharacterRange,
 	UriLineAndColumn,
 	UriLineAndColumnRange;
-import util.string : bytesOfString, CString, cStringSize;
+import util.string : bytesOfString, CString, cString, cStringSize, stringOfRange;
 import util.symbol : Extension;
+import util.unicode : FileContent, unicodeValidate;
 import util.union_ : TaggedUnion, Union;
 import util.uri : baseName, getExtension, Uri;
 import util.writer : makeStringWithWriter, Writer;
@@ -61,15 +63,62 @@ struct Storage {
 		*mapAlloc_;
 }
 
-private immutable struct FileInfo {
+immutable struct FileInfo {
+	@safe @nogc pure nothrow:
+	mixin Union!(CrowFileInfo*, CrowConfigFileInfo*, OtherFileInfo*);
+
+	FileContent content() =>
+		match!FileContent(
+			(ref CrowFileInfo x) =>
+				x.content.asFileContent,
+			(ref CrowConfigFileInfo x) =>
+				x.content.asFileContent,
+			(ref OtherFileInfo x) =>
+				x.content);
+	TextFileContent asTextFile() =>
+		match!TextFileContent(
+			(ref CrowFileInfo x) =>
+				x.content,
+			(ref CrowConfigFileInfo x) =>
+				x.content,
+			(ref OtherFileInfo _) =>
+				assert(false));
+}
+
+immutable struct TextFileContent {
 	@safe @nogc pure nothrow:
 
-	FileContent content;
+	CString content;
 	LineAndColumnGetter lineAndColumnGetter;
-	ParseResult parsed;
 
-	LineAndCharacterGetter lineAndCharacterGetter() =>
+	FileContent asFileContent() =>
+		FileContent(content); // TODO: this will get the cStringEnd again .----------------------------------------------------
+
+	static TextFileContent empty() =>
+		TextFileContent(cString!"", LineAndColumnGetter.empty);
+
+	LineAndCharacterGetter lineAndCharacterGetter() return scope =>
 		lineAndColumnGetter.lineAndCharacterGetter;
+
+	@trusted string asString() =>
+		stringOfRange(content, content.jumpTo(length));
+
+	uint length() scope =>
+		lineAndCharacterGetter.maxPos;
+}
+
+immutable struct CrowFileInfo {
+	TextFileContent content;
+	FileAst* ast; // TODO: STORE BY VALUE -------------------------------------------------------------------------------
+}
+
+immutable struct CrowConfigFileInfo {
+	TextFileContent content;
+	Config* config; // TODO: STORE BY VALUE -------------------------------------------------------------------------------
+}
+
+immutable struct OtherFileInfo {
+	FileContent content;
 }
 
 immutable struct ParseResult {
@@ -77,25 +126,33 @@ immutable struct ParseResult {
 	mixin TaggedUnion!(FileAst*, Config*, None);
 }
 
-void setFile(scope ref Perf perf, ref Storage a, Uri uri, in ReadFileResult result) {
-	result.matchIn!void(
-		(in FileContent x) {
-			setFile(perf, a, uri, asString(x));
-		},
+immutable struct FileInfoOrDiag {
+	mixin Union!(FileInfo, ReadFileDiag);
+}
+
+FileInfoOrDiag setFile(scope ref Perf perf, ref Storage a, Uri uri, in ReadFileResult result) =>
+	result.matchIn!FileInfoOrDiag(
+		(in FileContent x) =>
+			FileInfoOrDiag(setFile(perf, a, uri, x.asBytes)),
 		(in ReadFileDiag x) {
-			setFile(perf, a, uri, x);
+			setFileDiag(perf, a, uri, x);
+			return FileInfoOrDiag(x);
 		});
-}
-void setFile(scope ref Perf perf, ref Storage a, Uri uri, in string content) {
-	setFile(perf, a, uri, bytesOfString(content));
-}
-void setFile(scope ref Perf perf, ref Storage a, Uri uri, in ubyte[] content) {
+FileInfo setFile(scope ref Perf perf, ref Storage a, Uri uri, in ubyte[] content) {
 	prepareSetFile(a, uri);
-	mustAdd(a.mapAlloc, a.successes, uri, getFileInfo(perf, a, uri, content));
+	AllocAndValue!FileInfo info = initFileInfo(perf, a, uri, content, assumeUtf8: false);
+	mustAdd(a.mapAlloc, a.successes, uri, info);
+	return info.value;
 }
-void setFile(scope ref Perf perf, ref Storage a, Uri uri, ReadFileDiag diag) {
+FileInfo setFileAssumeUtf8(scope ref Perf perf, ref Storage a, Uri uri, in string content) {
 	prepareSetFile(a, uri);
-	mustAdd(a.mapAlloc, a.diags, uri, diag);
+	AllocAndValue!FileInfo info = initFileInfo(perf, a, uri, cast(const ubyte[]) content, assumeUtf8: true);
+	mustAdd(a.mapAlloc, a.successes, uri, info);
+	return info.value;
+}
+void setFileDiag(scope ref Perf perf, ref Storage a, Uri uri, ReadFileDiag diag) {
+	prepareSetFile(a, uri);
+	return mustAdd(a.mapAlloc, a.diags, uri, diag);
 }
 private @trusted void prepareSetFile(ref Storage a, Uri uri) {
 	mayDelete(a.diags, uri);
@@ -104,41 +161,53 @@ private @trusted void prepareSetFile(ref Storage a, Uri uri) {
 		freeAlloc(force(oldContent).alloc);
 }
 
-void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentContentChangeEvent[] changes) {
-	foreach (TextDocumentContentChangeEvent change; changes)
+FileInfo changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentContentChangeEvent[] changes) {
+	foreach (TextDocumentContentChangeEvent change; changes[0 .. $ - 1])
 		changeFile(perf, a, uri, change);
+	return changeFile(perf, a, uri, changes[$ - 1]);
 }
 
-void changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentContentChangeEvent change) {
+FileInfo changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentContentChangeEvent change) {
 	FileInfo info = fileOrDiag(a, uri).as!FileInfo;
-	withTempAlloc(a.metaAlloc, (ref Alloc alloc) {
-		string newContent = applyChange(alloc, asString(info.content), info.lineAndCharacterGetter, change);
-		// TODO:PERF This means an unnecessary copy in 'setFile'.
+	return withTempAlloc(a.metaAlloc, (ref Alloc tempAlloc) {
+		string newContent = applyChange(tempAlloc, info.asTextFile.asString, info.asTextFile.lineAndCharacterGetter, change);
+		// TODO:PERF This means an unnecessary copy in 'setFile'. ---------------------------------------------------------------------------------
 		// Would be better to modify the array in place and force re-parse.
-		setFile(perf, a, uri, newContent);
+		return setFileAssumeUtf8(perf, a, uri, newContent);
 	});
 }
 
-private AllocAndValue!FileInfo getFileInfo(scope ref Perf perf, ref Storage storage, Uri uri, in ubyte[] input) =>
+private AllocAndValue!FileInfo initFileInfo(
+	scope ref Perf perf,
+	ref Storage storage,
+	Uri uri,
+	in ubyte[] input,
+	bool assumeUtf8
+) =>
 	withAlloc!FileInfo(AllocKind.storageFileInfo, storage.metaAlloc, (ref Alloc alloc) @trusted {
 		FileContent content = FileContent(cast(immutable) append(alloc, input, cast(ubyte) '\0'));
-		return FileInfo(
-			content,
-			// TODO: only needed for CrowFile or CrowConfig
-			lineAndColumnGetterForText(alloc, asCString(content)),
-			parseContent(perf, alloc, uri, asCString(content)));
+		Opt!CString cString = assumeUtf8 ? some(content.assumeUtf8) : unicodeValidate(content);
+		TextFileContent textFileContent() =>
+			has(cString)
+				? TextFileContent(force(cString), lineAndColumnGetterForText(alloc, force(cString)))
+				: TextFileContent(.cString!"", LineAndColumnGetter.empty);
+		final switch (fileType(uri)) {
+			case FileType.crow:
+				return FileInfo(allocate(alloc, CrowFileInfo(
+					textFileContent(),
+					has(cString)
+						? parseFile(perf, alloc, force(cString))
+						: fileAstForDiag(alloc, ParseDiag(ParseDiag.FileNotUtf8())))));
+			case FileType.crowConfig:
+				return FileInfo(allocate(alloc, CrowConfigFileInfo(
+					textFileContent(),
+					has(cString)
+						? parseConfig(alloc, uri, force(cString))
+						: configForDiag(alloc, uri, Diag(ParseDiag(ParseDiag.FileNotUtf8()))))));
+			case FileType.other:
+				return FileInfo(allocate(alloc, OtherFileInfo(content)));
+		}
 	});
-
-private ParseResult parseContent(scope ref Perf perf, ref Alloc alloc, Uri uri, in CString content) {
-	final switch (fileType(uri)) {
-		case FileType.crow:
-			return ParseResult(parseFile(perf, alloc, content));
-		case FileType.crowConfig:
-			return ParseResult(allocate(alloc, parseConfig(alloc, uri, content)));
-		case FileType.other:
-			return ParseResult(ParseResult.None());
-	}
-}
 
 enum FileType {
 	crow,
@@ -202,11 +271,7 @@ Uri[] allUrisWithFileDiag(ref Alloc alloc, in Storage a, in ReadFileDiag[] searc
 				res ~= uri;
 	});
 
-private immutable struct FileInfoOrDiag {
-	mixin Union!(FileInfo, ReadFileDiag);
-}
-
-private FileInfoOrDiag fileOrDiag(ref Storage a, Uri uri) {
+FileInfoOrDiag fileOrDiag(ref Storage a, Uri uri) {
 	ConstOpt!(AllocAndValue!FileInfo) res = a.successes[uri];
 	return has(res)
 		? FileInfoOrDiag(force(res).value)
@@ -217,83 +282,23 @@ void markUnknownIfNotExist(scope ref Storage a, Uri uri) {
 	cast(void) fileOrDiag(a, uri);
 }
 
-private immutable struct ParsedOrDiag {
-	mixin Union!(ParseResult, ReadFileDiag);
-}
-
-ParsedOrDiag getParsedOrDiag(ref Storage a, Uri uri) =>
-	fileOrDiag(a, uri).match!ParsedOrDiag(
-		(FileInfo x) => ParsedOrDiag(x.parsed),
-		(ReadFileDiag x) => ParsedOrDiag(x));
-
-immutable struct SourceAndAst {
-	CString source;
-	FileAst* ast;
-}
-
-private immutable struct SourceAndAstOrDiag {
-	mixin Union!(SourceAndAst, ReadFileDiag);
-}
-
-SourceAndAstOrDiag getSourceAndAstOrDiag(ref Storage a, Uri uri) {
-	assert(fileType(uri) == FileType.crow);
-	return fileOrDiag(a, uri).match!SourceAndAstOrDiag(
-		(FileInfo x) =>
-			SourceAndAstOrDiag(SourceAndAst(asCString(x.content), x.parsed.as!(FileAst*))),
-		(ReadFileDiag x) =>
-			SourceAndAstOrDiag(x));
-}
-
-// Storage is mutable, so file content can only be given out temporarily.
-ReadFileResult getFileContentOrDiag(ref Storage a, Uri uri) =>
-	fileOrDiag(a, uri).match!ReadFileResult(
-		(FileInfo x) => ReadFileResult(x.content),
-		(ReadFileDiag x) => ReadFileResult(x));
-
 immutable struct ReadFileResult {
 	mixin Union!(FileContent, ReadFileDiag);
 }
-
-// File content that could be a string or binary.
-// It always has a '\0' at the end just in case it's used as a string.
-immutable struct FileContent {
-	@safe @nogc pure nothrow:
-
-	this(immutable ubyte[] a) {
-		bytes = a;
-		assert(!isEmpty(bytes) && bytes[$ - 1] == '\0');
-	}
-	@trusted this(CString a) {
-		static assert(char.sizeof == ubyte.sizeof);
-		this((cast(immutable ubyte*) a.ptr)[0 .. cStringSize(a) + 1]);
-	}
-
-	// This ends with '\0'
-	private ubyte[] bytes;
-}
-
-immutable(ubyte[]) asBytes(return scope FileContent a) =>
-	a.bytes[0 .. $ - 1];
-
-private @trusted CString asCString(return scope FileContent a) =>
-	CString(cast(immutable char*) a.bytes.ptr);
-
-string asString(return scope FileContent a) =>
-	cast(string) asBytes(a);
 
 const struct FileContentGetters {
 	@safe @nogc pure nothrow:
 
 	private const Storage* storage;
 
-	Opt!FileContent opIndex(Uri uri) scope {
+	private Opt!FileInfo getFileInfo(Uri uri) scope {
 		ConstOpt!(AllocAndValue!FileInfo) res = storage.successes[uri];
-		return has(res) ? some(force(res).value.content) : none!FileContent;
+		return has(res) ? some(force(res).value) : none!FileInfo;
 	}
 
 	string getSourceText(Uri uri, Range range) scope {
-		Opt!FileContent res = this[uri];
-		return asString(force(res))[range.start .. range.end];
+		Opt!FileInfo res = getFileInfo(uri);
+		return force(res).as!(CrowFileInfo*).content.asString[range.start .. range.end];
 	}
 }
 
@@ -304,7 +309,7 @@ const struct LineAndCharacterGetters {
 
 	LineAndCharacterGetter opIndex(Uri uri) scope {
 		ConstOpt!(AllocAndValue!FileInfo) res = storage.successes[uri];
-		return has(res) ? force(res).value.lineAndCharacterGetter : LineAndCharacterGetter.empty;
+		return has(res) ? force(res).value.asTextFile.lineAndCharacterGetter : LineAndCharacterGetter.empty;
 	}
 
 	Pos opIndex(in TextDocumentPositionParams x) scope =>
@@ -321,7 +326,7 @@ const struct LineAndColumnGetters {
 
 	LineAndColumnGetter opIndex(Uri uri) scope {
 		ConstOpt!(AllocAndValue!FileInfo) res = storage.successes[uri];
-		return has(res) ? force(res).value.lineAndColumnGetter : LineAndColumnGetter.empty;
+		return has(res) ? force(res).value.asTextFile.lineAndColumnGetter : LineAndColumnGetter.empty;
 	}
 
 	UriLineAndColumn opIndex(in UriAndPos pos, PosKind kind) scope =>

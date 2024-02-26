@@ -124,6 +124,7 @@ pure size_t sizeWords(in DynCallType a) =>
 			final switch (x) {
 				case PrimitiveType.bool_:
 				case PrimitiveType.char8:
+				case PrimitiveType.char32:
 				case PrimitiveType.float32:
 				case PrimitiveType.float64:
 				case PrimitiveType.int8:

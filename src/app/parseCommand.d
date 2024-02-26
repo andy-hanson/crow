@@ -5,7 +5,6 @@ module app.parseCommand;
 import app.command : BuildOptions, BuildOut, Command, CommandKind, CommandOptions, RunOptions;
 import frontend.lang : CCompileOptions, JitOptions, OptimizationLevel;
 import frontend.parse.lexToken : takeNat;
-import frontend.parse.lexUtil : isDecimalDigit, startsWith, tryTakeChar;
 import lib.server : PrintKind;
 import model.ast : LiteralNatAst;
 import util.alloc.alloc : Alloc;
@@ -16,7 +15,7 @@ import util.conv : isUint, safeToUint;
 import util.exitCode : ExitCode;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, some, someMut;
 import util.sourceRange : LineAndColumn;
-import util.string : CString, cString, endsWith, MutCString, stringOfCString;
+import util.string : CString, cString, endsWith, isDecimalDigit, MutCString, startsWith, stringOfCString, tryTakeChar;
 import util.symbol : Extension, symbol;
 import util.union_ : Union;
 import util.uri :

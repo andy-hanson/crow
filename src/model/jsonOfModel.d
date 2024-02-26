@@ -283,9 +283,7 @@ Json jsonOfFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 				kindField!"extern",
 				field!"library-name"(x.libraryName)]),
 		(in FunBody.FileImport x) =>
-			jsonObject(alloc, [
-				kindField!"file-import",
-				field!"uri"(stringOfUri(alloc, x.uri))]),
+			jsonObject(alloc, [kindField!"file-import"]),
 		(in FlagsFunction x) =>
 			jsonObject(alloc, [
 				kindField!"flags-fn",

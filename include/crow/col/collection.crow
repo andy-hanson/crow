@@ -142,8 +142,6 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, bare
 +slice-right[col, iter] col(a iter) (col, iter) collection, (iter, col) end, (col, iter) slice
 	a slice a.collection.end
 
-
-
 +set-reverse[col, iter, elem] void(
 	a col,
 ) (iter, col) begin-end, (elem, iter) prev-next, iter subtract-to-nat, (iter, elem) set-prev-next
@@ -613,14 +611,18 @@ If `f` always returns true, this returns an empty collection.
 	for _ nat64 : 0 .. n
 		value
 
-+reverse[col] record
-	-inner col
-+reverse[col] col reverse(a col)
-	a,
-+size[col] nat64(a col reverse) col size
++reverse[col, iter, elem, builder] col(
+	a col,
+) col size, (col, elem, builder) build, (iter, col) end, (elem, iter) prev
+	with out : a.size build
+		for x : a reversed
+			out ~= x
+
++reversed[col] record(inner col) nominal
++size[col] nat64(a col reversed) col size
 	a.inner size
 +for-loop[col, iter, elem] void(
-	a col reverse,
+	a col reversed,
 	f void mut(elem elem),
 ) (iter, col) end, (elem, iter) prev
 	# TODO: define 'iterate' instead
@@ -633,7 +635,7 @@ If `f` always returns true, this returns an empty collection.
 		else
 			break
 +for-loop[out-col, out-elem, out-builder, in-col, in-iter, in-elem] out-col(
-	a in-col reverse,
+	a in-col reversed,
 	f out-elem mut(elem in-elem),
 ) (out-col, out-elem, out-builder) build,
 		(in-iter, in-col) end,

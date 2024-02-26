@@ -1,36 +1,46 @@
 no-std
 import
+	./bits: &, |, <<, >>, has-all-bits
 	./bool: ||, bool, false, true
 	./compare: <, compare, comparison, equal
-	./col/array: array, as-array, begin, begin-pointer, end, new, next, prev, slice
+	./col/array: ~=, array, as-array, begin, begin-pointer, build, end, new, next, prev, slice
 	./col/collection:
-		build, build-options, drop-right-while, drop-while, for-loop, split, strip-right, subscript,
-		try-remove-end, try-split-once, with-block
+		build, build-options, drop-right-while, drop-while, for-break, for-loop, split, strip-right,
+		subscript, try-remove-end, try-split-once, with-block
 	./col/list:
-		==, <=>, ~=, ~, ~~, ~~=, +, -, begin, build, collection, end, is-empty, iterate,
-		list, list-builder, list-cast, list-iterator, new, next, next-index, prev, size, slice, to
+		==, <=>, ~=, ~, ~~, ~~=, +, begin, build, collection, end, is-empty, iterate,
+		list, list-builder, list-cast, list-iterator, new, next, prev, size, slice, to
 	./col/mut-list: copy, move-to, mut-list, to
 	./fun-util: subscript
 	./hash: hasher, hash-mix
-	./misc: void
+	./misc: loop-break, loop-continue, new, void
 	./number:
 		==, <=>, +, -, *, /, %, abs, float64, float32, int8, int16, int32, int64, is-nan, min-value,
 		nat8, nat16, nat32, nat64, to, truncate-to
-	./option: ??, new, option
+	./option: ??, force, new, option
 	./pointer: ==, <=>, const-pointer
 	./private/bootstrap: inner
 	./private/number-low-level: wrap-sub
-	./range: .., range
-	./tuple: new
+	./range: .., in, iterate
+	./tuple: b, new
 export
-	./private/bootstrap: string
+	./private/bootstrap: char32, string
 	# TODO: don't export find-c-string-end
-	./private/c-string-util: char8, c-string, find-c-string-end, to
+	./private/c-string-util: ==, char8, c-string, find-c-string-end, to
 
 +to char8 array(a string)
 	a.inner to
-+to char8[](a string) bare
++to char8[](a string)
 	a inner
+
+-unsafe-to char32(a char8) builtin, bare
++to char32(a char8) bare
+	assert a is-valid-single-byte-character
+	a.unsafe-to
++to char32 array(a string)
+	for x : a; x
++to char32[](a string)
+	for x : a; x
 
 ###
 Concatenate two strings.
@@ -55,44 +65,67 @@ If you need to concatenate many strings, consider using the `crow/writer` module
 	a.inner is-empty
 
 # Size in `char8`s
-+size nat64(a string) bare
++size-char8s nat64(a string) bare
 	a.inner size
++size nat64(a string)
+	res mut nat64 = 0
+	for _ : a
+		res +:= 1
+	res
 
 +== bool(a string, b string)
 	a.inner == b.inner
-+== bool(a char8, b char8) bare
-	a.to::nat8 == b.to
++== bool(a char32, b char32) bare, builtin
++to nat32(a char32) bare, builtin
+# This is unsafe because a 'char32' should be a valid unicode character.
++unsafe-to char32(a nat32) bare, builtin, unsafe
++to char32(a nat32) bare
+	assert a is-valid-unicode-character
+	trusted a unsafe-to
 
 +<=> comparison(a string, b string)
 	a.inner <=> b.inner
 +<=> comparison(a char8, b char8) bare
 	a.to::nat8 <=> b.to
++<=> comparison(a char32, b char32) bare
+	a.to::nat32 <=> b.to
 
 +hash-mix void(hasher hasher, a string)
 	for c : a inner
 		hasher hash-mix c
 +hash-mix void(hasher hasher, a char8)
 	hasher hash-mix a.to::nat8.to::nat64
++hash-mix void(hasher hasher, a char32)
+	hasher hash-mix a.to::nat32.to::nat64
 
 region conversion
 
-###
-Treat a list of UTF-8 character codes as a string.
-This is O(1).
-###
-+as-string string(a char8[]) bare
++to string(a char32 array)
+	a.to::char32[].to
++to string(a char32[])
+	with out : build
+		for x : a
+			out ~= x
+
+# Assumes its input is valid UTF-8 without validating.
++trust-as-string string(a char8 array) bare, unsafe
+	a.to,
++trust-as-string string(a char8[]) bare, unsafe
 	a,
-+as-string string(a char8 array) bare
-	a.to::char8[] as-string
-as-string string(a char8* range) bare, unsafe
-	a.as-array as-string
 
 ###
-Treats UTF-8 bytes as a string.
-This is O(1).
+Treat a list of UTF-8 character codes as a string.
+This is O(N) since it has to validate.
 ###
++as-string string(a char8[])
+	res string = a,
+	# Validate decoding
+	for _ : res; ()
+	res
++as-string string(a char8 array)
+	a.to as-string
 +as-string string(bytes nat8[])
-	trusted bytes.list-cast::char8[] as-string
+	(trusted bytes.list-cast::char8[]) as-string
 +as-string string(bytes nat8 array)
 	bytes.to::nat8[] as-string
 
@@ -128,8 +161,8 @@ Treats a c-string as a string by walking to the end.
 
 Unsafe because this does not copy the memory, and because `a` must end in a `"\0"` character.
 ###
-+as-string string(a c-string) bare, unsafe
-	(a .. a.find-c-string-end).as-string
++as-string string(a c-string) unsafe
+	(a .. a.find-c-string-end).as-array as-string
 
 ###
 Unlike 'as-string' this copies the 'c-string'.
@@ -149,7 +182,10 @@ This is still unsafe because 'a' must end in a `"\0"` character.
 
 # String containing a single character.
 +to string(a char8)
-	(a,)::char8[] as-string
+	a.to::char32 to
++to string(a char32)
+	with out : build
+		out ~= a
 
 ###
 Converts a nat64 to a string.
@@ -274,13 +310,24 @@ Result is only digits, no punctuation.
 	else
 		"{whole-part}.{d0}{d1}{d2}" strip-right "0"
 
-+move-to string(a char8 mut[])
+# TODO: what is this for? ---------------------------------------------------------------------------------------------------------
++move-to string(a char8 mut[]) unsafe
 	a.move-to::(char8 array) as-string
 
 region spec impls (see collection.crow)
 
-+iterate bool(a string, f bool mut(x char8))
-	a.inner iterate f
++iterate bool(a string, f bool mut(x char32))
+	iter mut = a begin
+	loop
+		if x, next ?= iter next
+			if f[x]
+				break true
+			else
+				iter := next
+				continue
+		else
+			break false
+	#a.inner iterate f
 
 +string-iterator record by-val
 	-inner char8 list-iterator
@@ -297,33 +344,26 @@ region spec impls (see collection.crow)
 +collection string(a string-iterator) bare
 	a.inner.collection,
 
-+next-index nat64(a string-iterator) bare
-	a.inner next-index
-
 +slice string(a string-iterator, b string-iterator)
 	(a.inner slice b.inner),
 
-+next (char8, string-iterator)?(a string-iterator) bare
++next (char32, string-iterator)?(a string-iterator)
 	if x, next ?= a.inner next
-		(x, (next,)),
+		char, next2 = x unicode-decode next
+		(char, (next2,)),
 
-+prev (string-iterator, char8)?(a string-iterator) bare
++prev (string-iterator, char32)?(a string-iterator)
 	if prev, x ?= a.inner prev
-		((prev,), x),
-
-+ + string-iterator(a string-iterator, n nat64) bare
-	a.inner + n,
-+- string-iterator(a string-iterator, n nat64) bare
-	a.inner - n,
-+- nat64(a string-iterator, b string-iterator) bare
-	a.inner - b.inner
+		prev2, char = prev unicode-decode-prev x
+		((prev2,), char),
 
 +string-builder record mut
 	-inner char8 list-builder
 +build string(a build-options, f void mut(out string-builder))
-	(a build out => f[out,])::char8[] as-string
-+~= void(a string-builder, c char8)
-	a.inner ~= c
+	chars char8[] = a build out => f[out,]
+	trusted chars trust-as-string
++~= void(a string-builder, value char32)
+	a unicode-encode value.to
 +~~= void(a string-builder, s string)
 	a.inner ~~= s.inner
 
@@ -331,29 +371,31 @@ region utilities
 
 +lines string[](a string)
 	# TODO:PERF should be better (or at least just as good) with just `a split "\n"`
-	arr char8 array = a to
+	arr char32 array = a to
 	for x : arr split ("\n",)
-		((x try-remove-end "\r".to) ?? x) as-string
+		rme char32 array? = x try-remove-end "\r"
+		rmex char32 array = rme ?? x
+		rmex.to
 
 # Lower cases every character in `a`.
 +lower-case string(a string)
-	for x : a inner; x lower-case-char
+	for x : a; x lower-case-char
 
--lower-case-char char8(a char8) bare
-	diff = a.to::nat8 wrap-sub "A"::char8.to
+-lower-case-char char32(a char32) bare
+	diff = a.to::nat32 wrap-sub "A"::char32.to
 	if diff < 26
-		"a"::char8.to + diff to
+		trusted "a"::char32.to + diff unsafe-to
 	else
 		a
 
 # Capitalizes every character in `a`.
 +upper-case string(a string)
-	for x : a inner; x upper-case-char
+	for x : a; x upper-case-char
 
--upper-case-char char8(a char8) bare
-	diff = a.to::nat8 wrap-sub "a"::char8.to
+-upper-case-char char32(a char32) bare
+	diff = a.to::nat32 wrap-sub "a"::char32.to
 	if diff < 26
-		"A"::char8.to + diff to
+		trusted "A"::char32.to + diff unsafe-to
 	else
 		a
 
@@ -377,7 +419,7 @@ region utilities
 +strip-right string(a string)
 	a drop-right-while x => x is-whitespace
 
-+is-whitespace bool(a char8)
++is-whitespace bool(a char32)
 	a == " " || a == "\r" || a == "\n" || a == "\t"
 
 +normalize-newlines string(a string)
@@ -413,9 +455,9 @@ Equivalent to `parts[0] ~~ joiner ~~ parts[1] ~~ joiner ~~ ... ~~ parts[n]`.
 	elif parts.size == 1
 		parts[0]
 	else
-		res-size mut = joiner.size * (parts.size - 1)
+		res-size mut = joiner.size-char8s * (parts.size - 1)
 		for part : parts
-			res-size +:= part.size
+			res-size +:= part.size-char8s
 		# NOTE: parts can only be a list because otherwise
 		# `" " join for x : xs; "{x}"` is ambiguous (the 'for' could return any collection)
 		first mut = true
@@ -426,3 +468,77 @@ Equivalent to `parts[0] ~~ joiner ~~ parts[1] ~~ joiner ~~ ... ~~ parts[n]`.
 				else
 					out ~~= joiner
 				out ~~= x
+
+-unicode-encode void(out string-builder, a nat32) # TODO: NEATER ---------------------------------------------------
+	if a < 0x80
+		out push-byte a
+	elif a < 0x800
+		out push-byte (a >> 6) | 0xc0
+		out push-byte (a & 0x3f) | 0x80
+	elif a < 0x10000
+		forbid a in 0xd800 .. 0xe000
+		out push-byte (a >> 12) | 0xe0
+		out push-byte ((a >> 6) & 0x3f) | 0x80
+		out push-byte (a & 0x3f) | 0x80
+	else
+		assert a < 0x110000
+		out push-byte (a >> 18) | 0xf0
+		out push-byte ((a >> 12) & 0x3f) | 0x80
+		out push-byte ((a >> 6) & 0x3f) | 0x80
+		out push-byte (a & 0x3f) | 0x80
+-push-byte void(out string-builder, a nat32)
+	out.inner ~= a.to to
+
+-unicode-decode (char32, char8 list-iterator)(first-char char8, original-iter char8 list-iterator) # TODO: NEATER ---------
+	if first-char is-valid-single-byte-character
+		first-char.to, original-iter
+	else
+		assert first-char is-first-byte : "Unicode decode error"
+		fst mut nat8 = first-char to
+		iter mut = original-iter
+		d mut nat32 = fst to
+		fst <<:= 1
+		for i : 1::nat64 .. 4
+			next-char, next-iter = iter.next ?? throw "Unicode decode error"
+			tmp nat8 = next-char to
+			iter := next-iter
+			assert (tmp & 0xc0) == 0x80 : "Unicode decode error"
+			d := (d << 6) | (tmp & 0x3f).to
+			fst <<:= 1
+			if (fst & 0x80) == 0
+				break (d & bit-mask[i]).to, iter
+			else
+				continue
+		else
+			throw "Unicode decode error"
+
+-unicode-decode-prev (char8 list-iterator, char32)(original-iter char8 list-iterator, first-char char8)
+	if first-char is-valid-single-byte-character
+		original-iter, first-char.to
+	else
+		iter mut = original-iter
+		for _ : 1::nat64 .. 4
+			prev-iter, prev-char = iter.prev ?? throw "Unicode decode error"
+			if prev-char is-first-byte
+				res, end-iter = prev-char unicode-decode iter
+				assert end-iter == original-iter.next!.b
+				break prev-iter, res
+			else
+				iter := prev-iter
+				continue
+		else
+			throw "Unicode decode error"
+
+-first-byte-flags nat8()
+	0b1100_0000
+-is-first-byte bool(a char8)
+	a.to::nat8 has-all-bits first-byte-flags
+
+-is-valid-single-byte-character bool(a char8) bare
+	a.to::nat8 < 0x80
+
+-is-valid-unicode-character bool(a nat32) bare
+	a < 0xd800 || a in 0xe000 .. 0x110000
+
+-bit-mask nat32[]()
+	(1 << 7) - 1, (1 << 11) - 1, (1 << 16) - 1, (1 << 21) - 1

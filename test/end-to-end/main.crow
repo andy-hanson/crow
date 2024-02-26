@@ -148,9 +148,9 @@ run-kind enum(interpret, jit, aot)
 			for new-line : cb[line]
 				out ~= new-line
 
--is-letter bool(a char8)
+-is-letter bool(a char32)
 	# TODO: support other alphabets
-	"a"::char8.to::nat8 <= a.to && a.to::nat8 <= "z"::char8.to
+	a.to::nat32 in "a"::char32.to .. "z".to
 
 -handle-output failure[](
 	original-path string,

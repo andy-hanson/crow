@@ -9,20 +9,24 @@ import frontend.check.instantiate : InstantiateCtx;
 import frontend.lang : crowConfigBaseName;
 import frontend.allInsts : AllInsts, freeInstantiationsForModule, perfStats;
 import frontend.storage :
-	FileContent,
+	CrowConfigFileInfo,
+	CrowFileInfo,
+	FileInfo,
+	FileInfoOrDiag,
+	fileOrDiag,
 	FilesState,
 	filesState,
 	FileType,
 	fileType,
-	getFileContentOrDiag,
-	getParsedOrDiag,
 	markUnknownIfNotExist,
+	OtherFileInfo,
 	ParseResult,
 	Storage;
-import model.ast : FileAst, fileAstForReadFileDiag, ImportOrExportAst, ImportOrExportAstKind, NameAndRange;
+import model.ast : FileAst, fileAstForDiag, ImportOrExportAst, ImportOrExportAstKind, NameAndRange;
 import model.diag : Diag, ReadFileDiag, ReadFileDiag_;
 import model.model :
 	CommonTypes, Config, emptyConfig, getConfigUri, getModuleUri, MainFun, Module, Program, ProgramWithMain;
+import model.parseDiag : ParseDiag;
 import util.alloc.alloc :
 	Alloc, AllocAndValue, allocateUninitialized, AllocKind, freeAllocAndValue, MetaAlloc, newAlloc, withAlloc;
 import util.col.arrayBuilder : asTemporaryArray, Builder, smallFinish;
@@ -48,6 +52,7 @@ import util.memory : allocate, initMemory;
 import util.opt : ConstOpt, force, has, MutOpt, Opt, none, noneMut, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.symbol : Extension, Symbol, symbol;
+import util.unicode : FileContent;
 import util.union_ : TaggedUnion;
 import util.uri :
 	addExtension,
@@ -141,7 +146,7 @@ private struct AstOrDiag {
 
 private struct OtherFile {
 	immutable Uri uri;
-	bool loaded;
+	MutOpt!(FileContent*) content; // Same reference as in OtherFileInfo
 	MutSet!(CrowFile*) referencedBy;
 }
 private Uri getOtherFileUri(in OtherFile* a) =>
@@ -182,20 +187,19 @@ private Common makeProgramCommon(
 	return Common(program, commonFuns.mainFun);
 }
 
-void onFileChanged(scope ref Perf perf, ref Frontend a, Uri uri) {
+void onFileChanged(scope ref Perf perf, ref Frontend a, Uri uri, FileInfoOrDiag info) {
 	withMeasure!(void, () {
 		final switch (fileType(uri)) {
 			case FileType.crow:
-				AstOrDiag ast = getParsedOrDiag(a.storage, uri).match!AstOrDiag(
-					(ParseResult x) =>
-						AstOrDiag(x.as!(FileAst*)),
+				CrowFile* file = ensureCrowFile(a, uri);
+				file.astOrDiag = info.match!AstOrDiag(
+					(FileInfo x) =>
+						AstOrDiag(x.as!(CrowFileInfo*).ast),
 					(ReadFileDiag x) {
 						// Files don't change *to* unknown, only change out of that state
 						assert(x != ReadFileDiag.unknown);
 						return AstOrDiag(x);
 					});
-				CrowFile* file = ensureCrowFile(a, uri);
-				file.astOrDiag = ast;
 				updatedAstOrConfig(a, file);
 				break;
 			case FileType.crowConfig:
@@ -203,15 +207,19 @@ void onFileChanged(scope ref Perf perf, ref Frontend a, Uri uri) {
 					updateFileOnConfigChange(a, file);
 				break;
 			case FileType.other:
-				bool isLoading = getFileContentOrDiag(a.storage, uri).matchIn!bool(
-					(in FileContent _) => false,
+				bool isLoading = info.matchIn!bool(
+					(in FileInfo _) => false,
 					(in ReadFileDiag x) {
 						assert(x != ReadFileDiag.unknown);
 						return x == ReadFileDiag.loading;
 					});
 				OtherFile* file = ensureOtherFile(a, uri);
-				if (!isLoading && !file.loaded) {
-					file.loaded = true;
+				if (!isLoading) {
+					file.content = someMut(info.match!(FileContent*)(
+						(FileInfo x) =>
+							&x.as!(OtherFileInfo*).content,
+						(ReadFileDiag x) =>
+							&FileContent.empty));
 					foreach (CrowFile* x; file.referencedBy)
 						addToWorkableIfSo(a, x);
 				}
@@ -258,7 +266,7 @@ FileAst* toAst(ref Alloc alloc, AstOrDiag x) =>
 		(const FileAst* x) => x,
 		(const ReadFileDiag_ x) {
 			assert(!isUnknownOrLoading(x));
-			return fileAstForReadFileDiag(alloc, x);
+			return fileAstForDiag(alloc, ParseDiag(x));
 		});
 
 void doDirtyWork(scope ref Perf perf, ref Frontend a) {
@@ -426,7 +434,7 @@ bool isImportWorkable(in MostlyResolvedImport a) =>
 		(const CrowFile* x) =>
 			x.hasModule,
 		(const OtherFile* x) =>
-			x.loaded,
+			has(x.content),
 		(Diag.ImportFileDiag* x) {
 			if (x.isA!(Diag.ImportFileDiag.ReadError)) {
 				Diag.ImportFileDiag.ReadError read = x.as!(Diag.ImportFileDiag.ReadError);
@@ -506,20 +514,20 @@ ResolvedImport[] fullyResolveImports(ref Frontend a, in MostlyResolvedImport[] i
 						Diag.ImportFileDiag.ReadError(x.uri, x.astOrDiag.asConst!ReadFileDiag_))))
 					: ResolvedImport(x.mustHaveModule),
 			(const OtherFile* file) =>
-				getFileContentOrDiag(a.storage, file.uri).match!ResolvedImport(
-					(FileContent content) =>
-						ResolvedImport(file.uri),
-					(ReadFileDiag x) =>
+				fileOrDiag(a.storage, file.uri).match!ResolvedImport(
+					(FileInfo _) =>
+						ResolvedImport(force(file.content)),
+					(ReadFileDiag diag) =>
 						ResolvedImport(allocate(a.alloc, Diag.ImportFileDiag(
-							Diag.ImportFileDiag.ReadError(file.uri, x))))),
+							Diag.ImportFileDiag.ReadError(file.uri, diag))))),
 			(Diag.ImportFileDiag* x) =>
 				ResolvedImport(x)));
 
 MutOpt!(Config*) tryFindConfig(ref Storage storage, Uri configDir) {
 	Uri configUri = childUri(configDir, crowConfigBaseName);
-	return getParsedOrDiag(storage, configUri).match!(MutOpt!(Config*))(
-		(ParseResult x) =>
-			someMut(x.as!(Config*)),
+	return fileOrDiag(storage, configUri).match!(MutOpt!(Config*))(
+		(FileInfo x) =>
+			someMut(x.as!(CrowConfigFileInfo*).config),
 		(ReadFileDiag x) {
 			final switch (x) {
 				case ReadFileDiag.notFound:

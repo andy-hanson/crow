@@ -7,9 +7,10 @@ no-std
 import
 	../col/collection: last-iter-of, slice-left, slice-right
 	../json: to
-	../option: ==, new, option
-	../string: ==, +, begin, collection, end, interpolate, new, prev, slice, string, to
+	../option: ==, force, new, option
+	../string: ==, begin, collection, end, interpolate, new, next, prev, slice, string, to
 	../test-util: is
+	../tuple: b
 
 ###
 Parent of a path. This means removing the last path component.
@@ -30,7 +31,7 @@ Returns an empty option if there is no extension.
 ###
 +get-extension string?(name string)
 	if x ?= name last-iter-of "."
-		(x + 1).slice-right,
+		x.next!.b.slice-right,
 test
 	"birds/crow.txt".get-extension is ("txt",)
 
@@ -66,7 +67,7 @@ test
 # Gets just the file name without any directory names in from of it.
 +base-name string(path string)
 	if x ?= path last-iter-of "/"
-		(x + 1) slice-right
+		x.next!.b slice-right
 	else
 		path
 test

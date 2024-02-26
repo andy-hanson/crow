@@ -2,20 +2,23 @@ module frontend.parse.lexToken;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.lexUtil :
-	decodeHexDigit,
-	isDecimalDigit,
-	startsWith,
-	startsWithThenWhitespace,
-	takeChar,
-	tryGetAfterStartsWith,
-	tryTakeChar,
-	tryTakeChars;
 import frontend.parse.lexWhitespace :
 	AddDiag, DocCommentAndIndentDelta, IndentKind, skipBlankLinesAndGetIndentDelta, takeRestOfLine;
 import model.ast : ElifOrElseKeyword, LiteralFloatAst, LiteralIntAst, LiteralNatAst;
 import util.opt : force, has, none, Opt, optOrDefault, some;
-import util.string : CString, MutCString, SmallString, stringOfRange;
+import util.string :
+	CString,
+	decodeHexDigit,
+	isDecimalDigit,
+	MutCString,
+	SmallString,
+	startsWith,
+	startsWithThenWhitespace,
+	stringOfRange,
+	takeChar,
+	tryGetAfterStartsWith,
+	tryTakeChar,
+	tryTakeChars;
 import util.symbol : appendEquals, Symbol, symbol, symbolOfString;
 
 immutable struct DocCommentAndExtraDedents {

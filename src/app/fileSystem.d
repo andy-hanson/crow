@@ -53,7 +53,7 @@ version (Windows) {
 }
 
 import backend.writeToC : PathAndArgs;
-import frontend.storage : FileContent, ReadFileResult;
+import frontend.storage : ReadFileResult;
 import model.diag : ReadFileDiag;
 import model.lowModel : ExternLibrary, ExternLibraries;
 import util.alloc.alloc : Alloc, allocateElements, TempAlloc;
@@ -65,6 +65,7 @@ import util.memory : memset;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.string : CString, cString;
 import util.symbol : alterExtension, Extension, Symbol;
+import util.unicode : FileContent;
 import util.union_ : TaggedUnion;
 import util.uri :
 	alterExtension,

@@ -280,6 +280,8 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in ConcreteProgram program) {
 						return some(LowType(PrimitiveType.bool_));
 					case BuiltinType.char8:
 						return some(LowType(PrimitiveType.char8));
+					case BuiltinType.char32:
+						return some(LowType(PrimitiveType.char32));
 					case BuiltinType.float32:
 						return some(LowType(PrimitiveType.float32));
 					case BuiltinType.float64:

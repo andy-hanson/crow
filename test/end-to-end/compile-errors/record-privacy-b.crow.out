@@ -5,7 +5,7 @@ Expected return type 'private-ctor'.
 Actual argument types:  (Other arguments not checked; gave up early.)
 Candidates (with 1 arguments):
 	'new[t] t array(...t array)' (from include/crow/col/array.crow line 18)
-	'new build-options(size-hint nat64)' (from include/crow/col/private/build.crow line 9)
+	'new build-options(size-hint nat64)' (from include/crow/col/private/build.crow line 10)
 	'new index-relative-to-end(subtract nat64)' (from include/crow/col/collection.crow line 58)
 	'new[t] t[](...t array)' (from include/crow/col/list.crow line 155)
 	'new[k, v] k[v](...(k, v) array)' (from include/crow/col/map.crow line 63)
@@ -38,7 +38,7 @@ Candidates (with 3 arguments):
 	'new[t] t[](...t array)' (from include/crow/col/shared-list.crow line 32)
 	'new[k, v] k shared[v](...(k, v) array)' (from include/crow/col/shared-map.crow line 31)
 	'new json(...(symbol, json) array)' (from include/crow/json.crow line 37)
-	'new[t0, t1, t2] (t0, t1, t2)(a t0, b t1, c t2)' (from include/crow/private/bootstrap.crow line 225)
+	'new[t0, t1, t2] (t0, t1, t2)(a t0, b t1, c t2)' (from include/crow/private/bootstrap.crow line 227)
 test/end-to-end/compile-errors/record-privacy-b.crow 11:9-11:11 There is no function named 'set-j'.
 test/end-to-end/compile-errors/record-privacy-b.crow 12:11-12:12 There is no function named 'j'.
 test/end-to-end/compile-errors/record-privacy-b.crow 13:9-13:11 There is no function named 'set-k'.

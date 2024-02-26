@@ -1,5 +1,6 @@
 no-std
 import
+	../bool: bool
 	../number: ==, +, nat8, nat64
 	../option: new, option
 	../pointer: +, -, *, as-const, as-mut, mut-pointer
@@ -8,6 +9,7 @@ export
 
 +to char8(a nat8) builtin, bare
 +to nat8(a char8) builtin, bare
++== bool(a char8, b char8) bare, builtin
 
 ###
 Walk a c-string and return a pointer to the first occurrence of `c`.
@@ -16,7 +18,7 @@ If that is not found, return an empty option.
 find-char-in-c-string c-string?(a c-string, c char8) bare, unsafe
 	cur mut = a
 	loop
-		if cur->to == c.to
+		if *cur == c
 			break cur,
 		elif cur->to == 0
 			break

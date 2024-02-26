@@ -6,7 +6,7 @@ Expected return type 'void'.
 Actual argument types:  (Other arguments not checked; gave up early.)
 Candidates (with 1 arguments):
 	'new[t] t array(...t array)' (from include/crow/col/array.crow line 18)
-	'new build-options(size-hint nat64)' (from include/crow/col/private/build.crow line 9)
+	'new build-options(size-hint nat64)' (from include/crow/col/private/build.crow line 10)
 	'new index-relative-to-end(subtract nat64)' (from include/crow/col/collection.crow line 58)
 	'new[t] t[](...t array)' (from include/crow/col/list.crow line 155)
 	'new[k, v] k[v](...(k, v) array)' (from include/crow/col/map.crow line 63)

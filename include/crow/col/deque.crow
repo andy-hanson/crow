@@ -86,7 +86,7 @@ region spec impls (see collection.crow)
 region test
 
 -dbg string(a nat64 deque)
-	left = "" join for x : a.left reverse; "{x} "
+	left = "" join for x : a.left reversed; "{x} "
 	mid = " " join for x : a mid; "{x}"
 	right = "" join for x : a right; " {x}"
 	"{left}[{mid}]{right}"

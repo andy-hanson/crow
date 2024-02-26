@@ -7,6 +7,7 @@ import util.col.arrayBuilder : Builder, finish;
 import util.col.array : zip;
 import util.conv : bitsOfFloat64;
 import util.string : eachChar, CString, stringOfCString;
+import util.unicode : mustUnicodeEncode;
 import util.util : abs, debugLog;
 
 T withStackWriterImpure(T)(
@@ -44,6 +45,9 @@ struct Writer {
 	void opOpAssign(string op : "~")(char a) {
 		res ~= a;
 	}
+	void opOpAssign(string op : "~")(dchar a) {
+		mustUnicodeEncode(res, a);
+	}
 	void opOpAssign(string op : "~")(in string a) {
 		res ~= a;
 	}
@@ -51,6 +55,9 @@ struct Writer {
 		eachChar(a, (char c) {
 			this ~= c;
 		});
+	}
+	void opOpAssign(string op : "~")(int a) {
+		this ~= long(a);
 	}
 	void opOpAssign(string op : "~")(long a) {
 		if (a < 0)
@@ -254,14 +261,14 @@ void writeQuotedString(scope ref Writer writer, in CString s) {
 	writeQuotedString(writer, stringOfCString(s));
 }
 
-void writeEscapedChar(scope ref Writer writer, char c) {
+void writeEscapedChar(scope ref Writer writer, dchar c) {
 	if (c == '\'')
 		writer ~= "\\\'";
 	else
 		writeEscapedChar_inner(writer, c);
 }
 
-void writeEscapedChar_inner(scope ref Writer writer, char c) {
+void writeEscapedChar_inner(scope ref Writer writer, dchar c) {
 	switch (c) {
 		case '\n':
 			writer ~= "\\n";

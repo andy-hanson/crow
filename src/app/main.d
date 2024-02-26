@@ -41,7 +41,7 @@ version (GccJitAvailable) {
 import backend.writeToC : PathAndArgs, WriteToCParams;
 import frontend.lang : JitOptions;
 import frontend.showModel : ShowOptions;
-import frontend.storage : asString, FileContent, FilesState;
+import frontend.storage : FilesState;
 import interpret.extern_ : Extern;
 import lib.lsp.lspParse : parseLspInMessage;
 import lib.lsp.lspToJson : jsonOfLspOutMessage;
@@ -102,6 +102,7 @@ import util.perfReport : perfReport;
 import util.sourceRange : UriLineAndColumn;
 import util.string : CString, mustStripPrefix, MutCString;
 import util.symbol : Extension, initSymbols, symbol;
+import util.unicode : FileContent;
 import util.uri : baseName, childUri, cStringOfUriPreferRelative, FilePath, initUris, Uri, parentOrEmpty, toUri;
 import util.util : debugLog;
 import util.writer : debugLogWithWriter, makeStringWithWriter, Writer;
@@ -259,7 +260,7 @@ void loadAllFiles(scope ref Perf perf, ref Server server, in Uri[] rootUris) {
 ReadFileResultParams readFileLocally(ref Alloc alloc, Uri uri) =>
 	tryReadFile(alloc, uri).match!ReadFileResultParams(
 		(FileContent x) =>
-			ReadFileResultParams(uri, ReadFileResultType.ok, asString(x)),
+			ReadFileResultParams(uri, ReadFileResultType.ok, x.asBytes),
 		(ReadFileDiag x) {
 			ReadFileResultType type = () {
 				final switch (x) {
@@ -272,7 +273,7 @@ ReadFileResultParams readFileLocally(ref Alloc alloc, Uri uri) =>
 						return ReadFileResultType.error;
 				}
 			}();
-			return ReadFileResultParams(uri, type, "");
+			return ReadFileResultParams(uri, type, []);
 		});
 
 void loadUntilNoUnknownUris(scope ref Perf perf, ref Server server) {

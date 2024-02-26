@@ -46,6 +46,7 @@ immutable struct ParseDiag {
 		}
 		Kind kind;
 	}
+	immutable struct FileNotUtf8 {}
 	immutable struct ImportFileTypeNotSupported {}
 	immutable struct IndentNotDivisible {
 		uint nSpaces;
@@ -94,6 +95,7 @@ immutable struct ParseDiag {
 
 	mixin Union!(
 		Expected,
+		FileNotUtf8,
 		ImportFileTypeNotSupported,
 		IndentNotDivisible,
 		IndentTooMuch,

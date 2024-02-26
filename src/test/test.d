@@ -18,6 +18,7 @@ import test.testSortUtil : testSortUtil;
 import test.testSourceRange : testSourceRange;
 import test.testStack : testStack;
 import test.testSymbol : testSymbol;
+import test.testUnicode : testUnicode;
 import test.testUri : testUri;
 import test.testUtil : Test;
 import test.testWriter : testWriter;
@@ -68,6 +69,7 @@ immutable NameAndTest[] allTests = [
 	NameAndTest("source-range", &testSourceRange),
 	NameAndTest("stack", &testStack),
 	NameAndTest("symbol", &testSymbol),
+	NameAndTest("unicode", &testUnicode),
 	NameAndTest("uri", &testUri),
 	NameAndTest("writer", &testWriter),
 ];

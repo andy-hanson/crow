@@ -32,9 +32,8 @@ main nat^(_ string[]) summon
 	"bmp", "dll", "err", "exe", "ilk", "lib", "mdb", "obj", "ogg", "otf", "pdb", "png", "svg",
 		"ttf", "vsix", "wasm", "wav", "woff2"
 -exclude-names string set()
-	# TODO: gl.crow needs a multi-line call syntax
-	"bin", "COPYING.txt", "crow.sublime-syntax", "dyncall", "gl.crow", "node_modules",
-		"package-lock.json", "site", "trailing-indent.crow"
+	"bin", "COPYING.txt", "crow.sublime-syntax", "dyncall", "invalid-utf8.crow", "node_modules",
+		"not-utf8.txt", "package-lock.json", "site", "trailing-indent.crow"
 
 -lint-file failure[](path string) summon
 	text string = path read-file

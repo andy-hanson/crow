@@ -491,6 +491,7 @@ immutable string[] specialSymbols = [
 	"static-symbols",
 	"suffix-special",
 	"to-mut-pointer",
+	"trust-as-string",
 	"unsafe-bit-shift-left",
 	"unsafe-bit-shift-right",
 
@@ -533,7 +534,6 @@ immutable string[] specialSymbols = [
 	"all-tests",
 	"anonymous",
 	"as-const",
-	"as-string",
 	"atan2f",
 	"atomic-bool",
 	"bootstrap",
@@ -543,6 +543,7 @@ immutable string[] specialSymbols = [
 	"byMeasure",
 	"capabilities",
 	"changes",
+	"char32",
 	"character",
 	"checkCall",
 	"closure",

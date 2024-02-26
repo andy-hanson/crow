@@ -23,6 +23,7 @@ import util.symbol : Symbol, symbol;
 
 LowType boolType = LowType(PrimitiveType.bool_);
 LowType char8Type = LowType(PrimitiveType.char8);
+LowType char32Type = LowType(PrimitiveType.char32);
 LowType char8PtrConstType() => LowType(LowType.PtrRawConst(&char8Type));
 LowType float32Type() => LowType(PrimitiveType.float32);
 LowType float64Type() => LowType(PrimitiveType.float64);
@@ -128,6 +129,7 @@ private BuiltinUnary bitwiseNegateForType(PrimitiveType a) {
 	final switch (a) {
 		case PrimitiveType.bool_:
 		case PrimitiveType.char8:
+		case PrimitiveType.char32:
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:
@@ -151,6 +153,7 @@ private BuiltinBinary eqForType(PrimitiveType a) {
 	final switch (a) {
 		case PrimitiveType.bool_:
 		case PrimitiveType.char8:
+		case PrimitiveType.char32:
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:
@@ -178,6 +181,7 @@ private BuiltinBinary intersectForType(PrimitiveType a) {
 	final switch (a) {
 		case PrimitiveType.bool_:
 		case PrimitiveType.char8:
+		case PrimitiveType.char32:
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:
@@ -205,6 +209,7 @@ private BuiltinBinary unionForType(PrimitiveType a) {
 	final switch (a) {
 		case PrimitiveType.bool_:
 		case PrimitiveType.char8:
+		case PrimitiveType.char32:
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:

@@ -44,6 +44,7 @@ import model.model :
 	FunDecl,
 	FunDeclSource,
 	FunFlags,
+	ImportFileContent,
 	ImportFileType,
 	isLinkageAlwaysCompatible,
 	Linkage,
@@ -64,6 +65,7 @@ import model.model :
 	TypeParams,
 	VarDecl,
 	Visibility;
+import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.col.array :
 	allSame,
@@ -84,7 +86,9 @@ import util.col.hashTable : insertOrUpdate, mapAndMovePreservingKeys, MutHashTab
 import util.memory : allocate, initMemory;
 import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
 import util.sourceRange : Range;
+import util.string : CString, stringOfCString;
 import util.symbol : Symbol, symbol;
+import util.unicode : unicodeValidate;
 import util.util : optEnumConvert;
 
 FunsAndMap checkFuns(
@@ -104,9 +108,9 @@ FunsAndMap checkFuns(
 	FunsMap funsMap = buildFunsMap(ctx.alloc, funs);
 	checkFunsWithAsts(ctx, commonTypes, structsAndAliasesMap, specsMap, funsMap, funs[0 .. asts.length], asts);
 	foreach (size_t i, ref ImportOrExportFile f; fileImports)
-		funs[asts.length + i].body_ = getFileImportFunctionBody(f);
+		setFileImportFunctionBody(ctx, &funs[asts.length + i], f);
 	foreach (size_t i, ref ImportOrExportFile f; fileExports)
-		funs[asts.length + fileImports.length + i].body_ = getFileImportFunctionBody(f);
+		setFileImportFunctionBody(ctx, &funs[asts.length + fileImports.length + i], f);
 	return FunsAndMap(
 		small!FunDecl(funs), checkTests(ctx, commonTypes, structsAndAliasesMap, funsMap, testAsts), funsMap);
 }
@@ -238,8 +242,27 @@ Symbol getNameFromExternModifier(ref CheckCtx ctx, in FunDeclAst a) {
 	return force(res);
 }
 
-FunBody getFileImportFunctionBody(in ImportOrExportFile a) =>
-	FunBody(FunBody.FileImport(a.source.kind.as!(ImportOrExportAstKind.File*).type, a.uri));
+void setFileImportFunctionBody(ref CheckCtx ctx, FunDecl* fun, in ImportOrExportFile a) {
+	fun.body_ = getFileImportFunctionBody(ctx, fun.range.range, a);
+}
+
+FunBody getFileImportFunctionBody(ref CheckCtx ctx, Range range, in ImportOrExportFile a) {
+	ImportFileContent content = () {
+		final switch (a.source.kind.as!(ImportOrExportAstKind.File*).type) {
+			case ImportFileType.nat8Array:
+				return ImportFileContent(a.content.asBytes);
+			case ImportFileType.string:
+				Opt!CString x = unicodeValidate(*a.content);
+				if (has(x))
+					return ImportFileContent(stringOfCString(force(x)));
+				else {
+					addDiag(ctx, range, Diag(ParseDiag(ParseDiag.FileNotUtf8())));
+					return ImportFileContent("");
+				}
+		}
+	}();
+	return FunBody(FunBody.FileImport(content));
+}
 
 FunDecl funDeclForFileImportOrExport(
 	ref CheckCtx ctx,

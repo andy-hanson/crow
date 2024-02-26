@@ -2,12 +2,12 @@ module util.jsonParse;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.lexUtil : isDecimalDigit, isWhitespace, takeChar, tryTakeChar, tryTakeChars;
 import util.alloc.alloc : Alloc;
 import util.col.arrayBuilder : Builder, finish;
 import util.json : Json;
 import util.opt : force, has, none, Opt, some;
-import util.string : CString, cStringIsEmpty, MutCString;
+import util.string :
+	CString, cStringIsEmpty, isDecimalDigit, isWhitespace, MutCString, takeChar, tryTakeChar, tryTakeChars;
 import util.symbol : symbolOfString;
 import util.writer : makeStringWithWriter, Writer;
 

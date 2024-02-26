@@ -1,6 +1,7 @@
 no-std
 import
 	system/unistd: __environ
+	../col/array: as-array
 	../col/collection: build, with-block
 	../col/map: ~=, build, map
 	../private/bootstrap: todo
@@ -28,10 +29,10 @@ get-environ-raw c-string*() summon, unsafe
 
 -parse-environ-entry (string, string)(entry c-string) unsafe
 	if key-end ?= entry find-char-in-c-string "="
-		key = entry .. key-end as-string
+		key = (entry .. key-end).as-array as-string
 		value-begin = key-end + 1
 		value-end = value-begin find-c-string-end
-		value = value-begin .. value-end as-string
+		value = (value-begin .. value-end).as-array as-string
 		key, value
 	else
 		todo

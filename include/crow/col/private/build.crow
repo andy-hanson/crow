@@ -3,8 +3,9 @@ import
 	../../misc: void
 	../../number: nat64
 
-+build[col, elem, builder] spec
++builder[col, builder] spec
 	build col(options build-options, f void mut(out builder))
++build[col, elem, builder] spec (col, builder) builder
 	~= void(a builder, value elem)
 +build-options record
 	size-hint nat64
@@ -12,8 +13,8 @@ import
 	0,
 +build build-options(size-hint nat64)
 	size-hint,
-+with-block[col, elem, builder] col(
++with-block[col, builder] col(
 	a build-options,
 	f void mut(out builder),
-) (col, elem, builder) build
+) (col, builder) builder
 	a build f

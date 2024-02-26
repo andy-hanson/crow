@@ -1,23 +1,4 @@
-no-std
 import
-	../../bool: &&, bool, new, not, true
-	../../compare: !=, <, >, <=
-	../../fun-util: subscript
-	../../hash: hash-mix
-	../../json: to
-	../../misc: key, new, to, void
-	../../number: ==, <=>, +, -, *, nat64
-	../../option: ==, force, is-empty, new, option, size
-	../../string: ==, +, begin, interpolate, join, next, string, to
-	../../test-util: is
-	../../tuple: a, b, new
-	../array: array
-	../collection: -, build-options, end, for-loop, map=, set-subscript, subscript
-	../mut-list:
-		~=, +, -, begin, clear, end, filter=, is-empty, iterate, mut-list, mut-list-iterator,
-		new, next, next-index, prev, remove-at, set-next, set-prev, size
-	../list: ~=, build, iterate, list, list-builder, new, to
-	../sort: sort=
 	../private/sort-utils:
 		binary-search-exact, binary-search-insert, assert-comparison-not-equal, merge-no-duplicates
 
@@ -248,9 +229,8 @@ region mutating iteration
 test
 	a (nat64, string) mut-sorted-map = (3, "30"), (6, "60")
 	a verify "[3 -> 30, 6 -> 60]"
-	a map= (k, v) =>
-		10 - k, "{v[0]}"
-	a verify "[4 -> 6, 7 -> 3]"
+	a map= (k, v) => 10 - k, "{v reverse}"
+	a verify "[4 -> 06, 7 -> 03]"
 
 +map-values=[k, v] void(a (k, v) mut-sorted-map, f v mut(key k, value v)) k key
 	a map= (k, v) => k, f[k, v]

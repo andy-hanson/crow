@@ -5,6 +5,7 @@ module lower.checkLowModel;
 import lower.lowExprHelpers :
 	boolType,
 	char8Type,
+	char32Type,
 	float32Type,
 	float64Type,
 	int8Type,
@@ -297,6 +298,8 @@ ExpectUnary unaryExpected(
 			return expect(int64Type, int32Type);
 		case BuiltinUnary.toNat8FromChar8:
 			return expect(nat8Type, char8Type);
+		case BuiltinUnary.toNat32FromChar32:
+			return expect(nat32Type, char32Type);
 		case BuiltinUnary.toNat64FromNat8:
 			return expect(nat64Type, nat8Type);
 		case BuiltinUnary.toNat64FromNat16:
@@ -311,6 +314,10 @@ ExpectUnary unaryExpected(
 			return ExpectUnary(none!LowType, some(nat64Type));
 		case BuiltinUnary.truncateToInt64FromFloat64:
 			return expect(int64Type, float64Type);
+		case BuiltinUnary.unsafeToChar32FromChar8:
+			return expect(char32Type, char8Type);
+		case BuiltinUnary.unsafeToChar32FromNat32:
+			return expect(char32Type, nat32Type);
 		case BuiltinUnary.unsafeToInt8FromInt64:
 			return expect(int8Type, int64Type);
 		case BuiltinUnary.unsafeToInt16FromInt64:
@@ -476,6 +483,10 @@ ExpectBinary binaryExpected(
 		case BuiltinBinary.wrapMulNat64:
 		case BuiltinBinary.wrapSubNat64:
 			return expect(nat64Type, nat64Type, nat64Type);
+		case BuiltinBinary.eqChar8:
+			return expect(boolType, char8Type, char8Type);
+		case BuiltinBinary.eqChar32:
+			return expect(boolType, char32Type, char32Type);
 		case BuiltinBinary.eqFloat32:
 		case BuiltinBinary.lessFloat32:
 			return expect(boolType, float32Type, float32Type);

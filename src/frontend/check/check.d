@@ -34,7 +34,6 @@ import model.ast :
 	StructAliasAst,
 	VarDeclAst;
 import frontend.allInsts : AllInsts;
-import frontend.storage : FileContent;
 import model.diag : DeclKind, Diag, Diagnostic, TypeContainer;
 import model.model :
 	BuiltinSpec,
@@ -90,6 +89,7 @@ import util.opt : force, has, none, Opt, someMut, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : Range, UriAndRange;
 import util.symbol : Symbol, symbol;
+import util.unicode : FileContent;
 import util.union_ : TaggedUnion;
 import util.uri : Path, RelPath, Uri;
 import util.util : enumConvert, ptrTrustMe;
@@ -100,8 +100,8 @@ immutable struct UriAndAst {
 }
 
 immutable struct ResolvedImport {
-	// Uri is for a file import
-	mixin TaggedUnion!(Module*, Uri, Diag.ImportFileDiag*);
+	// FileContent is for a file import
+	mixin TaggedUnion!(Module*, FileContent*, Diag.ImportFileDiag*);
 }
 
 immutable struct BootstrapCheck {
@@ -654,7 +654,7 @@ ImportsOrReExports checkImportsOrReExports(
 						(Module*) {
 							assert(false);
 						},
-						(Uri x) {
+						(FileContent* x) {
 							add(alloc, fileImports, ImportOrExportFile(&importAst, x));
 						},
 						(Diag.ImportFileDiag* x) {

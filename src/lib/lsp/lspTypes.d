@@ -108,7 +108,7 @@ enum TraceValue { off, messages, verbose }
 immutable struct ReadFileResultParams {
 	Uri uri;
 	ReadFileResultType type;
-	string content;
+	ubyte[] content;
 }
 enum ReadFileResultType { ok, notFound, error }
 // Parameter to "custom/run"

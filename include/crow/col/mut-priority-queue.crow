@@ -12,7 +12,7 @@ import
 	../tuple: ==, new
 	./array: +, array, begin, iterate, next, size
 	./collection:
-		build-options, for-loop, is-at-end, reverse, set-reverse, subscript, with-index
+		build-options, for-loop, is-at-end, reversed, set-reverse, subscript, with-index
 	./list: ==, ~=, build, list, list-builder, new, to
 	./mut-list:
 		~=, ~~=, +, -, begin, clear, copy, end, is-empty, iterate, move-to, mut-list, new, next,
@@ -118,7 +118,7 @@ This is O(n).
 
 +to[k, v] (k, v)[](a (k, v) mut-priority-queue) k priority
 	a spread-all-buckets
-	for x : a.mins reverse; x
+	for x : a.mins reversed; x
 
 -spread-all-buckets[k, v] void(a (k, v) mut-priority-queue) k priority
 	old-mins (k, v) array = a.mins move-to
@@ -126,7 +126,7 @@ This is O(n).
 		if index < a.buckets.size
 			bucket = a.buckets[index]
 			bucket sort= (k, _) => k
-			for x : bucket reverse
+			for x : bucket reversed
 				a.mins ~= x
 		a.mins ~= old-min
 	a.buckets clear

@@ -187,7 +187,9 @@ Otherwise, this will be the path where `crow` is installed.
 
 # Reads the full contents of the file.
 +read-file string(path string) summon
-	path.read-file::nat8[] as-string
+	content = path.read-file::nat8[]
+	with : "Reading file {path}" augment-exceptions
+		content as-string
 
 # Reads the full contents of the file as bytes.
 +read-file nat8[](path string) summon

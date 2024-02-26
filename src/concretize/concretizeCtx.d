@@ -5,7 +5,7 @@ module concretize.concretizeCtx;
 import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantArray, getConstantCString, getConstantSymbol;
 import concretize.concretizeExpr : concretizeBogus, concretizeBogusKind, concretizeFunBody;
 import concretize.generate : bodyForEnumOrFlagsMembers, concretizeAutoFun, getRecordFieldCall;
-import frontend.storage : asBytes, asString, FileContent, FileContentGetters;
+import frontend.storage : FileContentGetters;
 import model.concreteModel :
 	byVal,
 	ConcreteExpr,
@@ -47,6 +47,7 @@ import model.model :
 	FlagsFunction,
 	FunBody,
 	FunInst,
+	ImportFileContent,
 	ImportFileType,
 	IntegralType,
 	isTuple,
@@ -96,6 +97,7 @@ import util.opt : force, has, none, Opt, optOrDefault;
 import util.sourceRange : UriAndRange;
 import util.string : bytesOfString;
 import util.symbol : Symbol, symbol;
+import util.unicode : FileContent, unicodeDecodeAssertNoError;
 import util.uri : Uri;
 import util.util : enumConvert, max, roundUp, typeAs;
 import versionInfo : VersionInfo;
@@ -181,7 +183,7 @@ struct ConcretizeCtx {
 	CommonTypes* commonTypesPtr;
 	immutable Program* programPtr;
 	FileContentGetters fileContentGetters; // For 'assert' or 'forbid' messages and file imports
-	Late!(ConcreteFun*) char8ArrayAsString_;
+	Late!(ConcreteFun*) char8ArrayTrustAsString_;
 	Late!(ConcreteFun*) equalNat64Function_;
 	Late!(ConcreteFun*) lessNat64Function_;
 	Late!(ConcreteFun*) newJsonFromPairsFunction_;
@@ -214,8 +216,8 @@ struct ConcretizeCtx {
 
 	ref CommonTypes commonTypes() return scope const =>
 		*commonTypesPtr;
-	ConcreteFun* char8ArrayAsString() return scope const =>
-		lateGet(char8ArrayAsString_);
+	ConcreteFun* char8ArrayTrustAsString() return scope const =>
+		lateGet(char8ArrayTrustAsString_);
 	ConcreteFun* equalNat64Function() return scope const =>
 		lateGet(equalNat64Function_);
 	ConcreteFun* lessNat64Function() return scope const =>
@@ -791,19 +793,14 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 	}
 }
 
-ConcreteExpr concretizeFileImport(ref ConcretizeCtx ctx, ConcreteFun* cf, in FunBody.FileImport import_) {
-	Opt!FileContent optContent = ctx.fileContentGetters[import_.uri];
-	ConcreteExprKind exprKind = () {
-		if (has(optContent)) {
-			final switch (import_.type) {
-				case ImportFileType.nat8Array:
-					return ConcreteExprKind(constantOfBytes(ctx, cf.returnType, asBytes(force(optContent))));
-				case ImportFileType.string:
-					return stringLiteralConcreteExprKind(ctx, cf.range, asString(force(optContent)));
-			}
-		} else
-			return concretizeBogusKind(ctx, cf.range);
-	}();
+ConcreteExpr concretizeFileImport(ref ConcretizeCtx ctx, ConcreteFun* cf, ref FunBody.FileImport import_) {
+	ConcreteExprKind exprKind = import_.content.match!ConcreteExprKind(
+		(immutable ubyte[] x) =>
+			ConcreteExprKind(constantOfBytes(ctx, cf.returnType, x)),
+		(string x) =>
+			stringLiteralConcreteExprKind(ctx, cf.range, x),
+		(ImportFileContent.Bogus) =>
+			concretizeBogusKind(ctx, cf.range));
 	return ConcreteExpr(cf.returnType, cf.range, exprKind);
 }
 
@@ -817,12 +814,23 @@ Constant constantOfBytes(ref ConcretizeCtx ctx, ConcreteType arrayType, in ubyte
 public ConcreteExpr stringLiteralConcreteExpr(ref ConcretizeCtx ctx, UriAndRange range, in string value) =>
 	ConcreteExpr(stringType(ctx), range, stringLiteralConcreteExprKind(ctx, range, value));
 
-ConcreteExprKind stringLiteralConcreteExprKind(ref ConcretizeCtx ctx, UriAndRange range, in string value) {
-	ConcreteType char8ArrayType = only(ctx.char8ArrayAsString.paramsIncludingClosure).type;
-	return ConcreteExprKind(ConcreteExprKind.Call(ctx.char8ArrayAsString, newArray(ctx.alloc, [
-		ConcreteExpr(char8ArrayType, range, ConcreteExprKind(
-			constantOfBytes(ctx, char8ArrayType, bytesOfString(value))))])));
-}
+ConcreteExprKind stringLiteralConcreteExprKind(ref ConcretizeCtx ctx, UriAndRange range, in string value) =>
+	ConcreteExprKind(ConcreteExprKind.Call(ctx.char8ArrayTrustAsString, newArray(ctx.alloc, [
+		char8ArrayExpr(ctx, only(ctx.char8ArrayTrustAsString.paramsIncludingClosure).type, range, value)])));
+
+ConcreteExpr char8ArrayExpr(ref ConcretizeCtx ctx, ConcreteType type, in UriAndRange range, in string value) =>
+	ConcreteExpr(type, range, ConcreteExprKind(constantOfBytes(ctx, type, bytesOfString(value))));
+
+ConcreteExpr char32ArrayExpr(ref ConcretizeCtx ctx, ConcreteType type, in UriAndRange range, in string value) =>
+	ConcreteExpr(type, range, ConcreteExprKind(char32ArrayConstant(ctx, type, value)));
+private Constant char32ArrayConstant(ref ConcretizeCtx ctx, ConcreteType type, in string value) =>
+	getConstantArray(
+		ctx.alloc, ctx.allConstants, mustBeByVal(type),
+		buildArray!Constant(ctx.alloc, (scope ref Builder!Constant out_) {
+			unicodeDecodeAssertNoError(value, (dchar x) {
+				out_ ~= Constant(Constant.Integral(x));
+			});
+		}));
 
 ConcreteVar* getVar(ref ConcretizeCtx ctx, VarDecl* decl) =>
 	getOrAdd!(immutable ConcreteVar*, immutable VarDecl*, getVarKey)(ctx.alloc, ctx.concreteVarLookup, decl, () =>
@@ -847,6 +855,7 @@ TypeSize getBuiltinStructSize(BuiltinType kind) {
 		case BuiltinType.int16:
 		case BuiltinType.nat16:
 			return TypeSize(2, 2);
+		case BuiltinType.char32:
 		case BuiltinType.float32:
 		case BuiltinType.int32:
 		case BuiltinType.nat32:

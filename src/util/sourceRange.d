@@ -7,10 +7,12 @@ import util.comparison : compareOr, compareUint, Comparison;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.conv : safeToUint;
 import util.json : field, Json, jsonObject;
-import util.string : CString, MutCString;
+import util.string : CString, MutCString, stringOfRange;
+import util.unicode : byteIndexOfCharacterIndex, characterIndexOfByteIndex;
 import util.uri : compareUriAlphabetically, stringOfUri, Uri;
 import util.util : min;
 
+// This is a byte offset into a file. (It should generally point to the *start* of a UTF8 character.)
 alias Pos = uint;
 
 immutable struct Range {
@@ -152,21 +154,20 @@ private Json jsonOfLineAndCharacter(ref Alloc alloc, in LineAndCharacter a) =>
 immutable struct LineAndCharacterGetter {
 	@safe @nogc pure nothrow:
 
+	string sourceText;
 	uint[] lineToPos;
 	uint maxPos;
 	bool usesCRLF;
 
 	static LineAndCharacterGetter empty() {
 		static immutable Pos[] emptyLineToPos = [0];
-		return LineAndCharacterGetter(emptyLineToPos, 0, false);
+		return LineAndCharacterGetter("", emptyLineToPos, 0, false);
 	}
 
 	Pos opIndex(in LineAndCharacter lc) scope =>
 		lc.line >= lineToPos.length
 			? maxPos
-			: min(
-				lineToPos[lc.line] + lc.character,
-				lc.line >= lineToPos.length - 1 ? maxPos : lineToPos[lc.line + 1] - 1);
+			: lineToPos[lc.line] + byteIndexOfCharacterIndex(getLineText(lc.line), lc.character);
 
 	Range opIndex(in LineAndCharacterRange lc) scope =>
 		Range(this[lc.start], this[lc.end]);
@@ -180,11 +181,17 @@ immutable struct LineAndCharacterGetter {
 		}
 		Pos lineStart = lineToPos[line];
 		assert((pos >= lineStart && line == lineToPos.length - 1) || pos <= lineToPos[line + 1]);
-		uint character = pos - lineStart;
+		uint character = characterIndexOfByteIndex(getLineText(line), pos - lineStart);
 		// Don't include a column for the '\r' in '\r\n'
 		if (usesCRLF && line + 1 < lineToPos.length && pos + 1 == lineToPos[line + 1])
 			character--;
 		return LineAndCharacter(line, character);
+	}
+
+	private string getLineText(uint line) return scope {
+		Pos pos = lineToPos[line];
+		Pos nextLinePos = line == lineToPos.length - 1 ? maxPos : lineToPos[line + 1] - 1;
+		return sourceText[pos .. nextLinePos];
 	}
 
 	LineAndCharacterRange opIndex(in Range range) scope =>
@@ -224,7 +231,7 @@ LineAndCharacter toLineAndCharacter(in LineAndColumnGetter a, in LineAndColumn l
 			lc.column0Indexed,
 			lc.line0Indexed < a.lineToNTabs.length ? a.lineToNTabs[lc.line0Indexed] : 0));
 
-LineAndColumnGetter lineAndColumnGetterForText(ref Alloc alloc, scope CString text) {
+LineAndColumnGetter lineAndColumnGetterForText(ref Alloc alloc, return scope CString text) {
 	ArrayBuilder!Pos lineToPos;
 	ArrayBuilder!ubyte lineToNTabs;
 
@@ -245,7 +252,7 @@ LineAndColumnGetter lineAndColumnGetterForText(ref Alloc alloc, scope CString te
 	}
 
 	return LineAndColumnGetter(
-		LineAndCharacterGetter(finish(alloc, lineToPos), safeToUint(ptr - text), usesCRLF),
+		LineAndCharacterGetter(stringOfRange(text, ptr), finish(alloc, lineToPos), safeToUint(ptr - text), usesCRLF),
 		finish(alloc, lineToNTabs));
 }
 

@@ -2,12 +2,20 @@ module frontend.parse.lexWhitespace;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.lexUtil : isWhitespace, tryTakeChar, tryTakeChars;
 import model.parseDiag : ParseDiag;
 import util.col.array : isEmpty;
 import util.conv : safeIntFromUint, safeToUint;
 import util.sourceRange : Range;
-import util.string : CString, cStringIsEmpty, MutCString, SmallString, smallString, stringOfRange;
+import util.string :
+	CString,
+	cStringIsEmpty,
+	isWhitespace,
+	MutCString,
+	SmallString,
+	smallString,
+	stringOfRange,
+	tryTakeChar,
+	tryTakeChars;
 import util.util : castNonScope_ref;
 
 // Takes beginning of range; end is the current ptr

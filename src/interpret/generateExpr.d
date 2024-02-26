@@ -899,8 +899,11 @@ void generateSpecialUnary(
 		case BuiltinUnary.enumToIntegral:
 		case BuiltinUnary.toChar8FromNat8:
 		case BuiltinUnary.toNat8FromChar8:
+		case BuiltinUnary.toNat32FromChar32:
 		case BuiltinUnary.toNat64FromPtr:
 		case BuiltinUnary.toPtrFromNat64:
+		case BuiltinUnary.unsafeToChar32FromChar8:
+		case BuiltinUnary.unsafeToChar32FromNat32:
 		case BuiltinUnary.unsafeToInt8FromInt64:
 		case BuiltinUnary.unsafeToInt16FromInt64:
 		case BuiltinUnary.unsafeToInt32FromInt64:
@@ -1172,6 +1175,7 @@ void generateSpecialBinary(
 		case BuiltinBinary.eqFloat64:
 			fn(&fnEqFloat64);
 			break;
+		case BuiltinBinary.eqChar8:
 		case BuiltinBinary.eqInt8:
 		case BuiltinBinary.eqNat8:
 			fn(&fnEq8Bit);
@@ -1180,6 +1184,7 @@ void generateSpecialBinary(
 		case BuiltinBinary.eqNat16:
 			fn(&fnEq16Bit);
 			break;
+		case BuiltinBinary.eqChar32:
 		case BuiltinBinary.eqInt32:
 		case BuiltinBinary.eqNat32:
 			fn(&fnEq32Bit);

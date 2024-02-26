@@ -336,9 +336,7 @@ Throws if `index >= a.size`.
 	0::nat64 .. a.size iterate i =>
 		f[a[i]]
 
-+mut-list-iterator[t] record by-val, mut
-	~collection t mut[]
-	~next-index nat64
++mut-list-iterator[t] record(collection t mut[], next-index nat64) by-val, mut
 
 +begin[t] t mut-list-iterator(a t mut[]) bare
 	a, 0

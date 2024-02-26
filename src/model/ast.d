@@ -1131,5 +1131,5 @@ private FileAst* fileAstForDiags(ref Alloc alloc, SmallArray!ParseDiagnostic dia
 	// Make sure the dummy AST doesn't have implicit imports
 	allocate(alloc, FileAst(diags, noStd: true));
 
-FileAst* fileAstForReadFileDiag(ref Alloc alloc, ReadFileDiag a) =>
-	fileAstForDiags(alloc, newSmallArray(alloc, [ParseDiagnostic(Range.empty, ParseDiag(a))]));
+FileAst* fileAstForDiag(ref Alloc alloc, ParseDiag diag) =>
+	fileAstForDiags(alloc, newSmallArray(alloc, [ParseDiagnostic(Range.empty, diag)]));

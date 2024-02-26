@@ -82,6 +82,7 @@ alias PrimitiveType = immutable PrimitiveType_;
 private enum PrimitiveType_ : ubyte {
 	bool_,
 	char8,
+	char32,
 	float32,
 	float64,
 	int8,
@@ -219,6 +220,8 @@ bool lowTypeEqualCombinePtr(LowType a, LowType b) =>
 
 bool isChar8(LowType a) =>
 	a.isA!PrimitiveType && a.as!PrimitiveType == PrimitiveType.char8;
+bool isChar32(LowType a) =>
+	a.isA!PrimitiveType && a.as!PrimitiveType == PrimitiveType.char32;
 
 bool isVoid(LowType a) =>
 	a.isA!PrimitiveType && a.as!PrimitiveType == PrimitiveType.void_;

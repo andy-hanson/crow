@@ -6,7 +6,7 @@ import std.range : iota;
 import std.traits : EnumMembers;
 
 import frontend.parse.lexWhitespace : lexTokensBetweenAsts;
-import frontend.storage : SourceAndAst;
+import frontend.storage : CrowFileInfo;
 import lib.lsp.lspTypes : SemanticTokens;
 import model.ast :
 	ArrowAccessAst,
@@ -87,13 +87,9 @@ import util.string : CString, cStringSize;
 import util.symbol : symbol;
 import util.util : min, stringOfEnum;
 
-SemanticTokens tokensOfAst(
-	ref Alloc alloc,
-	in LineAndCharacterGetter lineAndCharacterGetter,
-	in SourceAndAst sourceAndAst,
-) {
-	scope Ctx ctx = Ctx(TokensBuilder(sourceAndAst.source, &alloc, lineAndCharacterGetter));
-	FileAst* ast = sourceAndAst.ast;
+SemanticTokens tokensOfAst(ref Alloc alloc, in CrowFileInfo file) {
+	scope Ctx ctx = Ctx(TokensBuilder(file.content.content, &alloc, file.content.lineAndCharacterGetter));
+	FileAst* ast = file.ast;
 
 	if (has(ast.imports))
 		addImportTokens(ctx, force(ast.imports));
@@ -228,7 +224,7 @@ void addInner(scope ref TokensBuilder a, Range range, TokenType type, TokenModif
 	LineAndCharacter start = lcRange.start;
 	LineAndCharacter end = lcRange.end;
 	if (start.line == end.line)
-		addSingleLineToken(a, start, range.length, type, modifiers);
+		addSingleLineToken(a, start, end.character - start.character, type, modifiers);
 	else {
 		uint firstLength = lineLengthInCharacters(a.lineAndCharacterGetter, start.line) - start.character;
 		addSingleLineToken(a, start, firstLength, type, modifiers);

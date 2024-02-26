@@ -12,7 +12,7 @@ import
 	../../test-util: is
 	../../tuple: a, b
 	../array: +, -, array, begin, end, is-empty, iterate, size, slice
-	../collection: .., end, for-loop, groups-of, reverse, subscript, try-split-once
+	../collection: .., end, for-loop, groups-of, reversed, subscript, try-split-once
 	../list:
 		==, ~=, ~, ~~, +, -, begin, build, end, iterate, list, new, next, next-index, prev, size,
 		slice, to
@@ -42,7 +42,7 @@ dummy-list-tests nat64()
 	assert iter.next is-empty
 
 	iter := a end
-	for index : 0::nat64 .. a.size reverse
+	for index : 0::nat64 .. a.size reversed
 		prev-pair = iter.prev!
 		iter := prev-pair a
 		prev-pair.b is a[index]

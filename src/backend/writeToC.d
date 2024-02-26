@@ -28,6 +28,7 @@ import model.lowModel :
 	ExternLibraries,
 	ExternLibrary,
 	isChar8,
+	isChar32,
 	isGeneratedMain,
 	isVoid,
 	LowExpr,
@@ -61,14 +62,16 @@ import util.col.map : mustGet;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach, fullIndexMapEachKey;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
 import util.opt : force, has, Opt, some;
-import util.string : CString, cString, cStringSize, eachChar;
+import util.string : CString, cString, cStringSize, stringOfCString;
 import util.symbol : addExtension, cStringOfSymbol, Extension, Symbol, symbol;
+import util.unicode : isValidUnicodeCharacter, unicodeDecodeAssertNoError;
 import util.union_ : Union;
 import util.uri : asFilePath, childFilePath, cStringOfFilePath, FilePath, uriIsFile;
-import util.util : abs, castNonScope, castNonScope_ref, ptrTrustMe, stringOfEnum, todo;
+import util.util : abs, castImmutable, castNonScope, castNonScope_ref, ptrTrustMe, stringOfEnum, todo;
 import util.writer :
 	makeStringWithWriter,
 	withWriter,
+	writeEscapedChar,
 	writeEscapedChar_inner,
 	writeFloatLiteral,
 	writeNewline,
@@ -108,6 +111,7 @@ WriteToCResult writeToC(ref Alloc alloc, in ShowCtx printCtx, in LowProgram prog
 		writer ~= "#include <math.h>\n"; // for e.g. 'sin'
 		writer ~= "#include <stddef.h>\n"; // for NULL
 		writer ~= "#include <stdint.h>\n";
+		writer ~= "typedef uint32_t char32_t;\n";
 		if (isMSVC) {
 			writer ~= "unsigned short __popcnt16(unsigned short value);\n";
 			writer ~= "unsigned int __popcnt(unsigned int value);\n";
@@ -264,7 +268,7 @@ void writeConstants(scope ref Writer writer, scope ref Ctx ctx, in AllConstantsL
 		writer ~= "[";
 		writer ~= cStringSize(x) + 1;
 		writer ~= "] = ";
-		writeStringLiteralWithNul(writer, ctx.isMSVC, x);
+		writeStringLiteralWithNul(writer, ctx.isMSVC, stringOfCString(x));
 		writer ~= ";\n";
 	}
 	writer ~= '\n';
@@ -287,24 +291,7 @@ void writeConstants(scope ref Writer writer, scope ref Ctx ctx, in AllConstantsL
 		foreach (size_t i, Constant[] elements; a.constants) {
 			declareConstantArrStorage(writer, ctx, a.arrType, a.elementType, i, elements.length);
 			writer ~= " = ";
-			if (isChar8(a.elementType)) {
-				writer ~= '"';
-				foreach (Constant element; elements) {
-					char x = cast(char) element.as!(Constant.Integral).value;
-					if (x == '?')
-						// avoid trigraphs
-						writer ~= "\\?";
-					else
-						writeEscapedChar_inner(writer, x);
-				}
-				writer ~= '"';
-			} else {
-				writer ~= '{';
-				writeWithCommas!Constant(writer, elements, (in Constant element) {
-					writeConstantRef(writer, ctx, ConstantRefPos.inner, a.elementType, element);
-				});
-				writer ~= '}';
-			}
+			writeArrayConstant(writer, ctx, a.elementType, elements);
 			writer ~= ";\n";
 		}
 	}
@@ -317,6 +304,34 @@ void writeConstants(scope ref Writer writer, scope ref Ctx ctx, in AllConstantsL
 			writer ~= ";\n";
 		}
 	}
+}
+
+void writeArrayConstant(scope ref Writer writer, scope ref Ctx ctx, in LowType elementType, in Constant[] elements) {
+	if (isChar8(elementType)) {
+		char[0x10000] buf;
+		foreach (size_t i, Constant x; elements)
+			buf[i] = cast(char) x.as!(Constant.Integral).value;
+		writeStringLiteralWithoutNul(writer, ctx.isMSVC, castImmutable(buf[0 .. elements.length]));
+	} else if (isChar32(elementType)) {
+		writer ~= "U\"";
+		foreach (Constant element; elements)
+			writeEscapedCharForC(writer, cast(dchar) element.as!(Constant.Integral).value);
+		writer ~= '"';
+	} else {
+		writer ~= '{';
+		writeWithCommas!Constant(writer, elements, (in Constant element) {
+			writeConstantRef(writer, ctx, ConstantRefPos.inner, elementType, element);
+		});
+		writer ~= '}';
+	}
+}
+
+void writeEscapedCharForC(scope ref Writer writer, dchar a) {
+	if (a == '?')
+		// avoid trigraphs
+		writer ~= "\\?";
+	else
+		writeEscapedChar_inner(writer, a);
 }
 
 void writeVars(scope ref Writer writer, scope ref Ctx ctx, in immutable FullIndexMap!(LowVarIndex, LowVar) vars) {
@@ -1304,6 +1319,8 @@ WriteExprResult writeSwitch(
 
 bool isSignedIntegral(PrimitiveType a) {
 	final switch (a) {
+		case PrimitiveType.char8:
+		case PrimitiveType.char32:
 		case PrimitiveType.float32:
 		case PrimitiveType.float64:
 		case PrimitiveType.void_:
@@ -1314,7 +1331,6 @@ bool isSignedIntegral(PrimitiveType a) {
 		case PrimitiveType.int64:
 			return true;
 		case PrimitiveType.bool_:
-		case PrimitiveType.char8:
 		case PrimitiveType.nat8:
 		case PrimitiveType.nat16:
 		case PrimitiveType.nat32:
@@ -1396,22 +1412,29 @@ void writeConstantRef(
 			if (isRawPtr)
 				writer ~= ')';
 		},
-		(in Constant.Integral it) {
+		(in Constant.Integral x) {
 			PrimitiveType primitive = type.as!PrimitiveType;
-			if (isSignedIntegral(primitive)) {
-				if (it.value == int.min)
+			if (primitive == PrimitiveType.char8 || primitive == PrimitiveType.char32) {
+				if (isValidUnicodeCharacter(cast(dchar) x.value)) {
+					writer ~= "'";
+					writeEscapedCharForC(writer, cast(dchar) x.value);
+					writer ~= "'";
+				} else
+					writer ~= cast(dchar) x.value;
+			} else if (isSignedIntegral(primitive)) {
+				if (x.value == int.min)
 					writer ~= "INT32_MIN";
-				else if (it.value == long.min)
+				else if (x.value == long.min)
 					// Can't write this as a literal since the '-' and rest are parsed separately,
 					// and the abs of the minimum integer is out of range.
 					writer ~= "INT64_MIN";
 				else {
-					writer ~= it.value;
+					writer ~= x.value;
 					if (primitive == PrimitiveType.int64)
 						writer ~= 'l';
 				}
 			} else {
-				writer ~= cast(ulong) it.value;
+				writer ~= cast(ulong) x.value;
 				writer ~= 'u';
 				if (primitive == PrimitiveType.nat64)
 					writer ~= "ll";
@@ -1449,11 +1472,23 @@ void writeConstantRef(
 		});
 }
 
-void writeStringLiteralWithNul(scope ref Writer writer, bool isMSVC, in CString a) {
+void writeStringLiteralWithoutNul(scope ref Writer writer, bool isMSVC, in string a) {
 	writer ~= '"';
+	writeStringLiteralInner(writer, isMSVC, a);
+	writer ~= '"';
+}
+
+void writeStringLiteralWithNul(scope ref Writer writer, bool isMSVC, in string a) {
+	writer ~= '"';
+	writeStringLiteralInner(writer, isMSVC, a);
+	writer ~= "\\0";
+	writer ~= '"';
+}
+
+void writeStringLiteralInner(scope ref Writer writer, bool isMSVC, in string a) {
 	size_t chunk = 0;
-	eachChar(a, (char c) {
-		writeEscapedChar_inner(writer, c);
+	unicodeDecodeAssertNoError(a, (dchar x) {
+		writeEscapedCharForC(writer, x);
 		if (isMSVC) {
 			// Avoid error with MSVC: "error C2026: string too big, trailing characters truncated"
 			chunk++;
@@ -1464,8 +1499,6 @@ void writeStringLiteralWithNul(scope ref Writer writer, bool isMSVC, in CString 
 			}
 		}
 	});
-	writer ~= "\\0";
-	writer ~= '"';
 }
 
 WriteExprResult writePtrToField(
@@ -1583,12 +1616,15 @@ WriteExprResult writeSpecialUnary(
 		case BuiltinUnary.toInt64FromInt16:
 		case BuiltinUnary.toInt64FromInt32:
 		case BuiltinUnary.toNat8FromChar8:
+		case BuiltinUnary.toNat32FromChar32:
 		case BuiltinUnary.toNat64FromNat8:
 		case BuiltinUnary.toNat64FromNat16:
 		case BuiltinUnary.toNat64FromNat32:
 		case BuiltinUnary.toNat64FromPtr:
 		case BuiltinUnary.toPtrFromNat64:
 		case BuiltinUnary.truncateToInt64FromFloat64:
+		case BuiltinUnary.unsafeToChar32FromChar8:
+		case BuiltinUnary.unsafeToChar32FromNat32:
 		case BuiltinUnary.unsafeToInt8FromInt64:
 		case BuiltinUnary.unsafeToInt16FromInt64:
 		case BuiltinUnary.unsafeToInt32FromInt64:
@@ -1771,6 +1807,8 @@ WriteExprResult writeSpecialBinary(
 		case BuiltinBinary.bitwiseXorNat32:
 		case BuiltinBinary.bitwiseXorNat64:
 			return operator("^");
+		case BuiltinBinary.eqChar8:
+		case BuiltinBinary.eqChar32:
 		case BuiltinBinary.eqFloat32:
 		case BuiltinBinary.eqFloat64:
 		case BuiltinBinary.eqInt8:
@@ -2083,6 +2121,8 @@ void writePrimitiveType(scope ref Writer writer, PrimitiveType a) {
 				return "uint8_t";
 			case PrimitiveType.char8:
 				return "char";
+			case PrimitiveType.char32:
+				return "char32_t";
 			case PrimitiveType.float32:
 				return "float";
 			case PrimitiveType.float64:

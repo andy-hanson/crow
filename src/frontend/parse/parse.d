@@ -37,6 +37,7 @@ import model.ast :
 	ExprAst,
 	FieldMutabilityAst,
 	FileAst,
+	fileAstForDiag,
 	FunDeclAst,
 	ModifierAst,
 	ImportsOrExportsAst,
@@ -69,9 +70,10 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : Pos, Range;
 import util.string : CString, emptySmallString, SmallString;
 import util.symbol : Symbol;
+import util.unicode : unicodeValidate;
 import util.util : castNonScope_ref, ptrTrustMe;
 
-FileAst* parseFile(scope ref Perf perf, ref Alloc alloc, scope CString source) =>
+FileAst* parseFile(scope ref Perf perf, ref Alloc alloc, in CString source) =>
 	withMeasure!(FileAst*, () {
 		Lexer lexer = createLexer(ptrTrustMe(alloc), castNonScope_ref(source));
 		return parseFileInner(lexer);

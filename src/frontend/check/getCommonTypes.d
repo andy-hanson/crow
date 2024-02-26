@@ -49,6 +49,7 @@ CommonTypes* getCommonTypes(
 		ptrTrustMe(structsAndAliasesMap),
 		ptrTrustMe(delayedStructInsts));
 	StructInst* char8 = nonTemplate(ctx, symbol!"char8");
+	StructInst* char32 = nonTemplate(ctx, symbol!"char32");
 	StructInst* symbolType = nonTemplate(ctx, symbol!"symbol");
 	StructInst* void_ = nonTemplate(ctx, symbol!"void");
 	StructDecl* array = getDecl(ctx, symbol!"array", 1);
@@ -57,6 +58,9 @@ CommonTypes* getCommonTypes(
 	return allocate(alloc, CommonTypes(
 		bool_: nonTemplate(ctx, symbol!"bool"),
 		char8: char8,
+		char8Array: instantiate1(ctx, array, char8),
+		char32: char32,
+		char32Array: instantiate1(ctx, array, char32),
 		cString: instantiate1(ctx, pointerConst, char8),
 		float32: nonTemplate(ctx, symbol!"float32"),
 		float64: nonTemplate(ctx, symbol!"float64"),

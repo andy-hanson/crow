@@ -120,6 +120,8 @@ FunBody inner(
 		case symbol!"==".value:
 			return isEnumOrFlags(specs, p0) ? FunBody(EnumFunction.equal) : binary(
 				p0 != p1 ? failBinary :
+				isChar8(p0) ? BuiltinBinary.eqChar8 :
+				isChar32(p0) ? BuiltinBinary.eqChar32 :
 				isNat8(p0) ? BuiltinBinary.eqNat8 :
 				isNat16(p0) ? BuiltinBinary.eqNat16 :
 				isNat32(p0) ? BuiltinBinary.eqNat32 :
@@ -321,6 +323,10 @@ FunBody inner(
 				? isChar8(p0)
 					? BuiltinUnary.toNat8FromChar8
 					: failUnary
+			: isNat32(rt)
+				? isChar32(p0)
+					? BuiltinUnary.toNat32FromChar32
+					: failUnary
 			: isNat64(rt)
 				? isNat8(p0)
 					? BuiltinUnary.toNat64FromNat8
@@ -444,10 +450,17 @@ FunBody inner(
 				? binary(BuiltinBinary.unsafeBitShiftRightNat64)
 				: fail();
 		case symbol!"unsafe-to".value:
-			return unary(isInt8(rt)
-				? isInt64(p0)
-					? BuiltinUnary.unsafeToInt8FromInt64
-					: failUnary
+			return unary(
+				isChar32(rt)
+					? isNat32(p0)
+						? BuiltinUnary.unsafeToChar32FromNat32
+						: isChar8(p0)
+						? BuiltinUnary.unsafeToChar32FromChar8
+						: failUnary
+				: isInt8(rt)
+					? isInt64(p0)
+						? BuiltinUnary.unsafeToInt8FromInt64
+						: failUnary
 				: isInt16(rt)
 					? isInt64(p0)
 						? BuiltinUnary.unsafeToInt16FromInt64
@@ -495,6 +508,9 @@ bool isBool(in Type a) =>
 
 bool isChar8(in Type a) =>
 	isBuiltin(a, BuiltinType.char8);
+
+bool isChar32(in Type a) =>
+	isBuiltin(a, BuiltinType.char32);
 
 bool isInt8(in Type a) =>
 	isBuiltin(a, BuiltinType.int8);

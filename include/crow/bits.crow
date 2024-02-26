@@ -18,6 +18,9 @@ import
 Negates every bit.
 0 bits become 1 bits and vice versa.
 ###
++~ nat8(a nat8) builtin, bare
++~ nat16(a nat16) builtin, bare
++~ nat32(a nat32) builtin, bare
 +~ nat64(a nat64) builtin, bare
 
 ###
@@ -108,6 +111,12 @@ Does not rotate.
 	a & b != 0
 
 # True iff for every 1 bit in `b`, the corresponding bit in `a` is also a 1.
++has-all-bits bool(a nat8, b nat8) bare
+	a & b == b
++has-all-bits bool(a nat16, b nat16) bare
+	a & b == b
++has-all-bits bool(a nat32, b nat32) bare
+	a & b == b
 +has-all-bits bool(a nat64, b nat64) bare
 	a & b == b
 

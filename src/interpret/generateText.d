@@ -340,6 +340,7 @@ void writeConstant(ref Alloc alloc, ref TempAlloc tempAlloc, ref Ctx ctx, in Low
 				case PrimitiveType.nat16:
 					add16(ctx.text, cast(ushort) x.value);
 					break;
+				case PrimitiveType.char32:
 				case PrimitiveType.int32:
 				case PrimitiveType.nat32:
 					add32(ctx.text, cast(uint) x.value);

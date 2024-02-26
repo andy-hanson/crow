@@ -198,6 +198,8 @@ DiagnosticSeverity parseDiagSeverity(in ParseDiag a) =>
 	a.matchIn!DiagnosticSeverity(
 		(in ParseDiag.Expected) =>
 			DiagnosticSeverity.parseError,
+		(in ParseDiag.FileNotUtf8) =>
+			DiagnosticSeverity.importError,
 		(in ParseDiag.ImportFileTypeNotSupported) =>
 			DiagnosticSeverity.parseError,
 		(in ParseDiag.IndentNotDivisible) =>

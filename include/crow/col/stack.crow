@@ -8,7 +8,7 @@ import
 	../test-util: is
 	../tuple: a, b, new
 	./array: ~=, array, array-iterator, begin, build, end, next, prev
-	./collection: build, for-loop, reverse, with-block
+	./collection: build, for-loop, reversed, with-block
 	./list: ==, ~=, build, iterate, list, new, to
 
 ###
@@ -153,6 +153,6 @@ test
 
 	(for x : d; x)::nat64[] is (1, 2, 3)
 
-	(for x : d reverse; x)::nat64[] is (3, 2, 1)
+	(for x : d reversed; x)::nat64[] is (3, 2, 1)
 
 	(for x : d; x + 10)::nat64[] is (11, 12, 13)

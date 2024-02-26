@@ -2,13 +2,13 @@ module frontend.parse.lexString;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.lexUtil : decodeHexDigit, takeChar, tryTakeChars;
 import frontend.parse.lexWhitespace : AddDiag;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.col.arrayBuilder : Builder, finish;
 import util.opt : force, has, none, Opt, optIf;
-import util.string : CString, MutCString, stringOfRange;
+import util.string : CString, decodeHexDigit, MutCString, stringOfRange, takeChar, tryTakeChars;
+import util.unicode : safeToChar, tryUnicodeEncode;
 import util.util : enumConvert;
 
 immutable struct StringPart {
@@ -142,7 +142,7 @@ void takeUnicodeEscape(
 		}
 	}
 
-	if (!encodeUTF8(res, fullChar))
+	if (!tryUnicodeEncode(res, fullChar))
 		stringEscapeError(res, start, ptr, addDiag);
 }
 
@@ -168,39 +168,4 @@ Opt!ubyte tryTakeHexDigit(ref MutCString ptr) {
 	if (has(res))
 		ptr++;
 	return res;
-}
-
-bool encodeUTF8(scope ref Builder!(immutable char) res, dchar a) {
-	if (a < 0x80) {
-		res ~= safeToChar(a);
-		return true;
-	} else if (a < 0x800) {
-		res ~= [safeToChar(0xc0 | (a >> 6)), safeToChar(0x80 | (a & 0x3f))];
-		return true;
-	} else if (a < 0x10000) {
-		if (0xD800 <= a && a < 0xe000)
-			return false;
-		else {
-			res ~= [
-				safeToChar(0xe0 | (a >> 12)),
-				safeToChar(0x80 | ((a >> 6) & 0x3f)),
-				safeToChar(0x80 | (a & 0x3f)),
-			];
-			return true;
-		}
-	} else if (a < 0x110000) {
-		res ~= [
-			safeToChar(0xf0 | (a >> 18)),
-			safeToChar(0x80 | ((a >> 12) & 0x3f)),
-			safeToChar(0x80 | ((a >> 6) & 0x3f)),
-			safeToChar(0x80 | (a & 0x3f))
-		];
-		return true;
-	} else
-		return false;
-}
-
-char safeToChar(dchar a) {
-	assert(a <= char.max);
-	return cast(char) a;
 }

@@ -2,7 +2,6 @@ module util.uri;
 
 @safe @nogc nothrow: // not pure
 
-import frontend.parse.lexUtil : decodeHexDigit;
 import util.alloc.alloc : Alloc, AllocKind, MetaAlloc, newAlloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.array : fold, indexOf, indexOfStartingAt, isEmpty, sum;
@@ -12,7 +11,8 @@ import util.comparison : Comparison;
 import util.conv : uintOfUshorts, ushortsOfUint, safeToUshort;
 import util.hash : HashCode;
 import util.opt : has, force, none, Opt, optIf, some;
-import util.string : compareStringsAlphabetically, CString, stringOfCString;
+import util.string :
+	compareStringsAlphabetically, decodeHexDigit, done, CString, next, nextOrDefault, StringIter, stringOfCString;
 import util.symbol :
 	addExtension,
 	alterExtension,
@@ -622,27 +622,3 @@ public void writeUriPreferRelative(ref Writer writer, in UrisInfo urisInfo, Uri 
 
 public size_t relPathLength(in RelPath a) =>
 	(a.nParents == 0 ? "./".length : a.nParents * "../".length) + pathLength(a.path);
-
-struct StringIter {
-	@safe @nogc pure nothrow:
-
-	immutable(char)* cur;
-	immutable(char)* end;
-
-	@trusted this(return scope string a) {
-		cur = a.ptr;
-		end = a.ptr + a.length;
-	}
-}
-bool done(in StringIter a) {
-	assert(a.cur <= a.end);
-	return a.cur == a.end;
-}
-@trusted char next(scope ref StringIter a) {
-	assert(!done(a));
-	char res = *a.cur;
-	a.cur++;
-	return res;
-}
-char nextOrDefault(scope ref StringIter a, char default_) =>
-	done(a) ? default_ : next(a);

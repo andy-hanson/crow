@@ -5,11 +5,11 @@ module test.testUtil;
 import std.meta : AliasSeq, staticMap;
 
 import frontend.showModel : ShowCtx, ShowOptions;
-import frontend.storage : FileContent, FileType, fileType, LineAndColumnGetters, ReadFileResult, Storage;
+import frontend.storage : FileType, fileType, LineAndColumnGetters, ReadFileResult, Storage;
 import interpret.bytecode : ByteCode, ByteCodeIndex, Operation;
 import interpret.debugInfo : showDataArr;
 import interpret.stacks : dataTempAsArr, returnTempAsArrReverse, Stacks;
-import lib.server : allUnknownUris, Server, setCwd, setFile, setIncludeDir;
+import lib.server : allUnknownUris, Server, setCwd, setFile, setFileAssumeUtf8, setIncludeDir;
 import model.diag : ReadFileDiag;
 import util.alloc.alloc : Alloc, allocateElements, AllocKind, MetaAlloc, newAlloc, withTempAlloc, word;
 import util.col.array : arraysEqual, arraysCorrespond, indexOf, isEmpty, makeArray, map;
@@ -17,6 +17,7 @@ import util.opt : force, has, none, Opt;
 import util.perf : Perf;
 import util.string : CString, stringOfCString;
 import util.symbol : Extension, Symbol;
+import util.unicode : FileContent;
 import util.uri : concatUriAndPath, getExtension, isAncestor, mustParseUri, parsePath, Uri, UrisInfo;
 import util.util : ptrTrustMe;
 import util.writer : debugLogWithWriter, Writer;
@@ -142,7 +143,7 @@ void withTestServer(
 
 void setupTestServer(ref Test test, ref Alloc alloc, ref Server server, Uri mainUri, in string mainContent) {
 	assert(getExtension(mainUri) == Extension.crow);
-	setFile(test.perf, server, mainUri, mainContent);
+	setFileAssumeUtf8(test.perf, server, mainUri, mainContent);
 	Uri[] testUris = map(alloc, testIncludePaths, (ref immutable string path) =>
 		concatUriAndPath(server.includeDir, parsePath(path)));
 	while (true) {

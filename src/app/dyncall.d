@@ -235,6 +235,7 @@ pure Opt!ExternPointer getExternPointer(DLLib* library, Symbol name) =>
 				case PrimitiveType.nat16:
 					dcArgShort(dcVm, cast(short) value);
 					break;
+				case PrimitiveType.char32:
 				case PrimitiveType.int32:
 				case PrimitiveType.nat32:
 					dcArgInt(dcVm, cast(int) value);
@@ -289,6 +290,7 @@ pure Opt!ExternPointer getExternPointer(DLLib* library, Symbol name) =>
 		case PrimitiveType.int16:
 		case PrimitiveType.nat16:
 			return dataPush(stacks, dcCallShort(dcVm, ptr));
+		case PrimitiveType.char32:
 		case PrimitiveType.int32:
 		case PrimitiveType.nat32:
 			return dataPush(stacks, bitsOfInt(dcCallInt(dcVm, ptr)));
@@ -363,6 +365,7 @@ pure char dynCallSigChar(in DynCallType a) =>
 					return 'c';
 				case PrimitiveType.int16:
 					return 's';
+				case PrimitiveType.char32:
 				case PrimitiveType.int32:
 					return 'i';
 				case PrimitiveType.int64:
@@ -400,6 +403,7 @@ pure char dynCallSigChar(in DynCallType a) =>
 					return dataPush(stacks, dcbArgChar(args));
 				case PrimitiveType.int16:
 					return dataPush(stacks, dcbArgShort(args));
+				case PrimitiveType.char32:
 				case PrimitiveType.int32:
 					return dataPush(stacks, dcbArgInt(args));
 				case PrimitiveType.int64:
@@ -443,6 +447,7 @@ pure char dynCallSigChar(in DynCallType a) =>
 				case PrimitiveType.int16:
 					result.s = cast(short) dataPop(stacks);
 					break;
+				case PrimitiveType.char32:
 				case PrimitiveType.int32:
 					result.i = cast(int) dataPop(stacks);
 					break;

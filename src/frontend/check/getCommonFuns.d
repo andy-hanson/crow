@@ -162,9 +162,9 @@ CommonFunsAndMain getCommonFuns(
 		symbol!"throw-impl",
 		voidType,
 		[param!"message"(stringType)]);
-	FunInst* char8ArrayAsString = getFun(
+	FunInst* char8ArrayTrustAsString = getFun(
 		CommonModule.string_,
-		symbol!"as-string",
+		symbol!"trust-as-string",
 		stringType,
 		[param!"a"(char8ArrayType)]);
 	FunInst* equalNat64 = getFun(
@@ -179,7 +179,7 @@ CommonFunsAndMain getCommonFuns(
 			finish(alloc, diagsBuilder),
 			allocFun, and, lambdaSubscriptFuns, sharedOfMutLambda, mark,
 			newJsonFromPairs, newNat64Future, newVoidFuture,
-			rtMain, throwImpl, char8ArrayAsString, equalNat64, lessNat64),
+			rtMain, throwImpl, char8ArrayTrustAsString, equalNat64, lessNat64),
 		main);
 }
 

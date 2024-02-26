@@ -8,6 +8,7 @@ import
 	./fun-util: subscript
 	./misc: new, void
 	./number: ==, <=>, -
+	./private/bootstrap: new
 	./range: ..
 	./string: ==, begin, interpolate, is-empty, join, next, string, to
 export
@@ -42,6 +43,15 @@ This is like `finally`, but does not run in the successful case.
 # Outputs the exception's message and backtrace to a string.
 +to string(a exception) unsafe
 	"{a.message}{a.backtrace}"
+
+###
+Prepends 'description' to any thrown exception messages.
+(Does not change the stack trace.)
+###
++augment-exceptions record(description string) nominal
++with-block[t] t(a augment-exceptions, f t mut())
+	f catch err =>
+		("{a.description}: {err.message}", err.backtrace) rethrow
 
 -to string(a backtrace)
 	# Don't include entries from runtime, only at start of function

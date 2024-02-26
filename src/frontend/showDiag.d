@@ -169,6 +169,9 @@ void writeParseDiag(scope ref Writer writer, in ShowCtx ctx, in ParseDiag d) {
 		(in ParseDiag.Expected x) {
 			writer ~= showParseDiagExpected(x.kind);
 		},
+		(in ParseDiag.FileNotUtf8) {
+			writer ~= "File is not encoded as UTF-8 or has encoding errors.";
+		},
 		(in ParseDiag.ImportFileTypeNotSupported) {
 			writer ~= "Import file type not allowed; the only supported types are 'nat8 array' and 'string'.";
 		},

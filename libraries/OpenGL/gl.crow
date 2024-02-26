@@ -8,8 +8,10 @@ import
 	glAttachShader void function(program GLuint, shader GLuint)
 	glBindBuffer void function(target GLenum, buffer GLuint)
 	glBindTexture void function(target GLenum, texture GLuint)
-	glBufferData void function(target GLenum, size GLsizeiptr, data_ any-const-pointer, usage GLenum)
-	glBufferSubData void function(target GLenum, offset GLintptr, size GLsizeiptr, data_ any-const-pointer)
+	glBufferData void function(
+		target GLenum, size GLsizeiptr, data_ any-const-pointer, usage GLenum)
+	glBufferSubData void function(
+		target GLenum, offset GLintptr, size GLsizeiptr, data_ any-const-pointer)
 	glClear void function(mask GLbitfield)
 	glClearColor void function(red GLfloat, green GLfloat, blue GLfloat, alpha GLfloat)
 	glCompileShader void function(shader GLuint)
@@ -26,19 +28,37 @@ import
 	glGenBuffers void function(n GLsizei, buffers GLuint mut*)
 	glGenTextures void function(n GLsizei, textures GLuint mut*)
 	glGetError GLenum function()
-	glGetProgramInfoLog void function(program GLuint, bufSize GLsizei, length GLsizei mut*, infoLog GLchar mut*)
+	glGetProgramInfoLog void function(
+		program GLuint, bufSize GLsizei, length GLsizei mut*, infoLog GLchar mut*)
 	glGetProgramiv void function(program GLuint, pname GLenum, params GLint mut*)
-	glGetShaderInfoLog void function(shader GLuint, bufSize GLsizei, length GLsizei mut*, infoLog GLchar mut*)
+	glGetShaderInfoLog void function(
+		shader GLuint, bufSize GLsizei, length GLsizei mut*, infoLog GLchar mut*)
 	glGetShaderiv void function(shader GLuint, pname GLenum, params GLint mut*)
 	glGetUniformLocation GLint function(program GLuint, name GLchar*)
 	glLinkProgram void function(program GLuint)
 	glShaderSource void function(shader GLuint, count GLsizei, string GLchar**, length GLint*)
-	glTexImage2D void function(target GLenum, level GLint, internalformat GLenum, width GLsizei, height GLsizei, border GLint, format GLenum, type GLenum, pixels any-const-pointer)
+	glTexImage2D void function(
+		target GLenum,
+		level GLint,
+		internalformat GLenum,
+		width GLsizei,
+		height GLsizei,
+		border GLint,
+		format GLenum,
+		type GLenum,
+		pixels any-const-pointer)
 	glTexParameteri void function(target GLenum, pname GLenum, param GLenum)
 	glUniform1i void function(location GLint, v0 GLint)
-	glUniformMatrix3fv void function(location GLint, count GLsizei, transpose GLboolean, value GLfloat*)
+	glUniformMatrix3fv void function(
+	location GLint, count GLsizei, transpose GLboolean, value GLfloat*)
 	glUseProgram void function(program GLuint)
-	glVertexAttribPointer void function(index GLuint, size GLint, type GLenum, normalized GLboolean, stride GLsizei, pointer any-const-pointer)
+	glVertexAttribPointer void function(
+		index GLuint,
+		size GLint,
+		type GLenum,
+		normalized GLboolean,
+		stride GLsizei,
+		pointer any-const-pointer)
 
 +new gl-ext() summon, unsafe
 	glActiveTexture: "glActiveTexture".load as-fun-pointer

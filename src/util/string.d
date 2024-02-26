@@ -4,9 +4,11 @@ module util.string;
 
 import util.alloc.alloc : Alloc;
 import util.comparison : compareArrays, compareChar, Comparison;
-import util.col.array : append, arrayOfRange, arraysEqual, copyArray, emptySmallArray, isEmpty, small, SmallArray;
+import util.col.array : append, arrayOfRange, arraysEqual, copyArray, emptySmallArray, endPtr, isEmpty, small, SmallArray;
 import util.conv : safeToUint;
 import util.hash : HashCode, hashString;
+import util.opt : none, Opt, some;
+import util.util : castNonScope_ref;
 
 alias SmallString = SmallArray!(immutable char);
 alias smallString = small!(immutable char);
@@ -59,7 +61,7 @@ alias CString = immutable MutCString;
 	return cast(ubyte[]) a;
 }
 
-private @trusted immutable(char*) cstringEnd(immutable(char)* ptr) {
+private @trusted immutable(char*) cStringEnd(immutable(char)* ptr) {
 	while (*ptr != '\0')
 		ptr++;
 	return ptr;
@@ -77,16 +79,16 @@ bool stringsEqual(in string a, in string b) =>
 	CString(content);
 
 @trusted size_t cStringSize(in CString a) =>
-	cstringEnd(a.ptr) - a.ptr;
+	cStringEnd(a.ptr) - a.ptr;
 
 bool cStringIsEmpty(CString a) =>
 	*a.ptr == '\0';
 
-@trusted string stringOfRange(CString begin, CString end) =>
+@trusted string stringOfRange(return scope CString begin, return scope CString end) =>
 	arrayOfRange(begin.ptr, end.ptr);
 
 @trusted string stringOfCString(return scope CString a) =>
-	a.ptr[0 .. (cstringEnd(a.ptr) - a.ptr)];
+	stringOfRange(a, CString(cStringEnd(a.ptr)));
 
 string copyString(ref Alloc alloc, in string a) =>
 	copyArray(alloc, a);
@@ -99,7 +101,22 @@ string copyString(ref Alloc alloc, in string a) =>
 @trusted Comparison compareStringsAlphabetically(in string a, in string b) =>
 	compareArrays!char(a, b, (in char x, in char y) => compareChar(x, y));
 
-pure @trusted CString mustStripPrefix(CString a, string prefix) {
+char takeChar(scope ref MutCString ptr) {
+	char res = *ptr;
+	ptr++;
+	return res;
+}
+
+bool tryTakeChar(scope ref MutCString ptr, char expected) {
+	if (*ptr == expected) {
+		ptr++;
+		return true;
+	} else
+		return false;
+}
+
+pure @trusted CString mustStripPrefix(CString a, string prefix) { // TODO: this is just tryGetAfterStartsWith? ---------------------------
+	assert(startsWith(a, prefix));
 	immutable(char)* ptr = a.ptr;
 	foreach (char c; prefix) {
 		assert(*ptr == c);
@@ -108,5 +125,82 @@ pure @trusted CString mustStripPrefix(CString a, string prefix) {
 	return CString(ptr);
 }
 
+bool startsWith(in CString a, in string chars) {
+	MutCString ptr = a;
+	return tryTakeChars(ptr, chars);
+}
+
+bool startsWithThenWhitespace(in CString a, in string chars) {
+	MutCString ptr = a;
+	return tryTakeChars(ptr, chars) && isWhitespace(*ptr);
+}
+
+Opt!CString tryGetAfterStartsWith(MutCString ptr, in string chars) =>
+	tryTakeChars(ptr, chars) ? some!CString(ptr) : none!CString;
+
 bool endsWith(string a, string b) =>
 	a.length >= b.length && a[$ - b.length .. $] == b;
+
+bool tryTakeChars(scope ref MutCString a, in string chars) {
+	MutCString ptr = a;
+	foreach (immutable char expected; chars) {
+		if (*ptr != expected)
+			return false;
+		ptr++;
+	}
+	a = castNonScope_ref(ptr);
+	return true;
+}
+
+bool isWhitespace(char a) {
+	switch (a) {
+		case ' ':
+		case '\t':
+		case '\r':
+		case '\n':
+			return true;
+		default:
+			return false;
+	}
+}
+
+bool isDecimalDigit(char c) =>
+	'0' <= c && c <= '9';
+
+Opt!ubyte decodeHexDigit(char a) =>
+	isDecimalDigit(a)
+		? some!ubyte(cast(ubyte) (a - '0'))
+		: 'a' <= a && a <= 'f'
+		? some!ubyte(cast(ubyte) (10 + (a - 'a')))
+		: 'A' <= a && a <= 'F'
+		? some!ubyte(cast(ubyte) (10 + (a - 'A')))
+		: none!ubyte;
+
+struct StringIter {
+	@safe @nogc pure nothrow:
+
+	immutable(char)* cur;
+	immutable(char)* end;
+
+	@trusted this(return scope string a) {
+		cur = a.ptr;
+		end = endPtr(a);
+	}
+
+	@trusted size_t byteIndex(string original) scope const {
+		assert(original.ptr <= cur && endPtr(original) == end);
+		return cur - original.ptr;
+	}
+}
+bool done(in StringIter a) {
+	assert(a.cur <= a.end);
+	return a.cur == a.end;
+}
+@trusted char next(scope ref StringIter a) {
+	assert(!done(a));
+	char res = *a.cur;
+	a.cur++;
+	return res;
+}
+char nextOrDefault(scope ref StringIter a, char default_) =>
+	done(a) ? default_ : next(a);

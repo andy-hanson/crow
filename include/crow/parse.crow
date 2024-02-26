@@ -7,12 +7,12 @@ import
 	./compare: !=, <=, equal
 	./fun-util: subscript
 	./misc: loop-break, new, void
-	./number: ==, <=>, +, -, *, **, float64, int64, nat8, nat64, to
+	./number: ==, <=>, +, -, *, **, float64, int64, nat32, nat64, to
 	./option: is-empty, new, option
 	./result: error, ok, result
 	./string:
-		==, <=>, ~=, as-string, begin, build, char8, hash-mix, interpolate, is-empty, iterate, join,
-		next, string, string-iterator, to
+		==, <=>, ~=, begin, build, char32, hash-mix, interpolate, is-empty, iterate, join, next,
+		string, string-iterator, to
 	./tuple: a, b, new
 
 ###
@@ -133,7 +133,7 @@ region basic building blocks
 			iter, res.ok
 
 # Grammar for a single character matching the predicate.
--char-matching-predicate char8 grammar(description string, predicate bool data(x char8))
+-char-matching-predicate char32 grammar(description string, predicate bool data(x char32))
 	with start : make-grammar
 		if x, rest ?= start next
 			if predicate[x]
@@ -339,9 +339,9 @@ region basic elements
 +spaces grammar-skip()
 	("" char-matching-predicate (x => x.is-space)).many skip
 
--is-space bool(a char8)
+-is-space bool(a char32)
 	a in space-chars
--space-chars char8 set()
+-space-chars char32 set()
 	" ", "\r", "\n", "\t"
 
 # A double-quoted string as in JSON, including escape sequences.
@@ -381,7 +381,7 @@ region basic elements
 		("quoted string",) error
 	else
 		res ok
--escape char8?(a char8)
+-escape char32?(a char32)
 	if a == "n"
 		"\n",
 	elif a == "r"
@@ -398,14 +398,14 @@ region basic elements
 # TODO: support letters from more languages
 # Matches and returns a sequence of letters.
 +word string grammar()
-	letter.one-or-more map x => x as-string
+	letter.one-or-more map x => x to
 
--letter char8 grammar()
+-letter char32 grammar()
 	"letter" char-matching-predicate x => x is-letter
 
--is-letter bool(a char8)
+-is-letter bool(a char32)
 	# TODO: support other alphabets
-	"a"::char8.to::nat8 <= a.to && a.to::nat8 <= "z"::char8.to
+	"a"::char32.to::nat32 <= a.to && a.to::nat32 <= "z"::char32.to
 
 # Parse a boolean as 'true' or 'false'
 +bool bool grammar()
@@ -453,9 +453,9 @@ This allows e.g. "1", "+23", "-45".
 		if digit ?= x char-to-nat64
 			(digit, rest),
 
--char-to-nat64 nat64?(c char8)
-	if "0"::char8.to::nat8 <= c.to && c.to::nat8 <= "9"::char8.to
-		(c.to - "0"::char8.to).to,
+-char-to-nat64 nat64?(c char32)
+	if "0"::char32.to::nat32 <= c.to && c.to::nat32 <= "9"::char32.to
+		(c.to - "0"::char32.to).to,
 
 ###
 Parse a decimal number.
@@ -485,7 +485,7 @@ This allows e.g. "+1.23".
 		else
 			start, ("float",) error
 
--try-take string-iterator?(a string-iterator, c char8)
+-try-take string-iterator?(a string-iterator, c char32)
 	if x, rest ?= a next
 		if x == c
 			rest,

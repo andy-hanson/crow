@@ -6,6 +6,8 @@ import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantArray, g
 import concretize.concretizeCtx :
 	arrayElementType,
 	boolType,
+	char8ArrayExpr,
+	char32ArrayExpr,
 	ConcretizeCtx,
 	ConcreteFunKey,
 	concreteTypeFromClosure,
@@ -725,6 +727,27 @@ ConcreteExpr concretizeIfOption(
 	}
 }
 
+ConcreteExpr concretizeLiteralStringLike(
+	ref ConcretizeExprCtx ctx,
+	ConcreteType type,
+	in UriAndRange range,
+	ref LiteralStringLikeExpr a,
+) {
+	final switch (a.kind) {
+		case LiteralStringLikeExpr.Kind.char8Array:
+			return char8ArrayExpr(ctx.concretizeCtx, type, range, a.value);
+		case LiteralStringLikeExpr.Kind.char32Array:
+			return char32ArrayExpr(ctx.concretizeCtx, type, range, a.value);
+		case LiteralStringLikeExpr.Kind.cString:
+			return ConcreteExpr(type, range, ConcreteExprKind(constantCString(ctx.concretizeCtx, a.value)));
+		case LiteralStringLikeExpr.Kind.string_:
+			return stringLiteralConcreteExpr(ctx.concretizeCtx, range, a.value);
+		case LiteralStringLikeExpr.Kind.symbol:
+			return ConcreteExpr(type, range, ConcreteExprKind(
+				constantSymbol(ctx.concretizeCtx, symbolOfString(a.value))));
+	}
+}
+
 ConcreteExpr concretizeLocalGet(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
@@ -916,9 +939,6 @@ ConcreteVariableRef concretizeVariableRefForClosure(
 		(ClosureRef x) =>
 			ConcreteVariableRef(getClosureFieldInfo(ctx, range, x).closureRef));
 
-ConcreteExpr cStringConcreteExpr(ref ConcretizeCtx ctx, ConcreteType type, in UriAndRange range, string value) =>
-	ConcreteExpr(type, range, ConcreteExprKind(constantCString(ctx, value)));
-
 ConcreteExpr concretizeAssertOrForbid(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
@@ -991,17 +1011,8 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 			concretizeLet(ctx, type, range, locals, x),
 		(ref LiteralExpr x) =>
 			ConcreteExpr(type, range, ConcreteExprKind(x.value)),
-		(LiteralStringLikeExpr x) {
-			final switch (x.kind) {
-				case LiteralStringLikeExpr.Kind.cString:
-					return cStringConcreteExpr(ctx.concretizeCtx, type, range, x.value);
-				case LiteralStringLikeExpr.Kind.string_:
-					return stringLiteralConcreteExpr(ctx.concretizeCtx, range, x.value);
-				case LiteralStringLikeExpr.Kind.symbol:
-					return ConcreteExpr(type, range, ConcreteExprKind(
-						constantSymbol(ctx.concretizeCtx, symbolOfString(x.value))));
-			}
-		},
+		(LiteralStringLikeExpr x) =>
+			concretizeLiteralStringLike(ctx, type, range, x),
 		(LocalGetExpr x) =>
 			concretizeLocalGet(ctx, type, range, locals, x.local),
 		(LocalSetExpr x) =>

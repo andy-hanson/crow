@@ -22,6 +22,7 @@ import model.concreteModel : TypeSize;
 import model.constant : Constant;
 import model.diag : Diag, Diagnostic, isFatal, UriAndDiagnostic;
 import model.parseDiag : ParseDiagnostic;
+import util.alloc.alloc : Alloc;
 import util.col.array :
 	arrayOfSingle,
 	emptySmallArray,
@@ -29,6 +30,7 @@ import util.col.array :
 	first,
 	isEmpty,
 	mustHaveIndexOfPointer,
+	newArray,
 	only,
 	PtrAndSmallNumber,
 	small,
@@ -39,6 +41,7 @@ import util.col.map : Map;
 import util.col.enumMap : EnumMap;
 import util.conv : safeToUint;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
+import util.memory : allocate;
 import util.opt : force, has, none, Opt, optEqual, some;
 import util.sourceRange : combineRanges, UriAndRange, Pos, Range;
 import util.string : emptySmallString, SmallString;
@@ -363,6 +366,7 @@ alias BuiltinType = immutable BuiltinType_;
 private enum BuiltinType_ {
 	bool_,
 	char8,
+	char32,
 	float32,
 	float64,
 	funPointer,
@@ -670,8 +674,7 @@ immutable struct FunBody {
 		Symbol libraryName;
 	}
 	immutable struct FileImport {
-		ImportFileType type;
-		Uri uri;
+		ImportFileContent content;
 	}
 	immutable struct RecordFieldCall {
 		size_t fieldIndex;
@@ -773,12 +776,15 @@ private enum BuiltinUnary_ {
 	toInt64FromInt16,
 	toInt64FromInt32,
 	toNat8FromChar8,
+	toNat32FromChar32,
 	toNat64FromNat8,
 	toNat64FromNat16,
 	toNat64FromNat32,
 	toNat64FromPtr,
 	toPtrFromNat64,
 	truncateToInt64FromFloat64,
+	unsafeToChar32FromChar8,
+	unsafeToChar32FromNat32,
 	unsafeToNat32FromInt32,
 	unsafeToInt8FromInt64,
 	unsafeToInt16FromInt64,
@@ -852,6 +858,8 @@ private enum BuiltinBinary_ {
 	bitwiseXorNat16,
 	bitwiseXorNat32,
 	bitwiseXorNat64,
+	eqChar8,
+	eqChar32,
 	eqFloat32,
 	eqFloat64,
 	eqInt8,
@@ -1412,7 +1420,12 @@ immutable struct ImportOrExportKind {
 	mixin TaggedUnion!(ModuleWhole, SmallArray!(Opt!(NameReferents*)));
 }
 
-enum ImportFileType { nat8Array, string }
+enum ImportFileType { nat8Array, string } // TODO: NOW AST ONLY? -------------------------------------------------------------------------
+
+immutable struct ImportFileContent {
+	immutable struct Bogus {}
+	mixin Union!(immutable ubyte[], string, Bogus);
+}
 
 immutable struct NameReferents {
 	@safe @nogc pure nothrow:
@@ -1457,7 +1470,7 @@ immutable struct CommonFuns {
 	FunInst* newVoidFuture;
 	FunInst* rtMain;
 	FunInst* throwImpl;
-	FunInst* char8ArrayAsString;
+	FunInst* char8ArrayTrustAsString;
 	FunInst* equalNat64;
 	FunInst* lessNat64;
 }
@@ -1467,6 +1480,9 @@ immutable struct CommonTypes {
 
 	StructInst* bool_;
 	StructInst* char8;
+	StructInst* char8Array;
+	StructInst* char32;
+	StructInst* char32Array;
 	StructInst* cString;
 	StructInst* float32;
 	StructInst* float64;
@@ -1625,7 +1641,7 @@ private bool existsDiagnostic(in Program a, in bool delegate(in UriAndDiagnostic
 			cb(UriAndDiagnostic(module_.uri, x))));
 
 immutable struct Config {
-	Opt!Uri configUri; // none for default config
+	Opt!Uri configUri; // none for default config TODO: USED? -00000000000000000000000000000000000000000000000000000000000000000000000000
 	Diagnostic[] diagnostics;
 	ConfigImportUris include;
 	ConfigExternUris extern_;
@@ -1633,6 +1649,8 @@ immutable struct Config {
 Uri getConfigUri(in Config* a) =>
 	force(a.configUri);
 Config emptyConfig = Config(none!Uri, [], ConfigImportUris(), ConfigExternUris());
+Config* configForDiag(ref Alloc alloc, Uri uri, Diag diag) =>
+	allocate(alloc, Config(some(uri), newArray(alloc, [Diagnostic(Range.empty, diag)])));
 
 alias ConfigImportUris = Map!(Symbol, Uri);
 alias ConfigExternUris = Map!(Symbol, Uri);
@@ -1932,9 +1950,9 @@ immutable struct LiteralExpr {
 }
 
 immutable struct LiteralStringLikeExpr {
-	enum Kind { cString, string_, symbol }
+	enum Kind { char8Array, char32Array, cString, string_, symbol }
 	Kind kind;
-	string value;
+	string value; // For char32Array, this will be decoded in concretize.
 }
 
 immutable struct LocalGetExpr {

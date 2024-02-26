@@ -3,12 +3,13 @@ import
 	../bool: bool
 	../col/array: array, iterate, size
 	../col/collection: for-loop
+	../col/list: iterate, list
 	../col/map: ~=, build, get-or-add
 	../compare: comparison
 	../misc: void
 	../number: +
 	../pointer: ==, +, *, as-const, mut-pointer, set-deref
-	../string: ==, <=>, as-string, char8, c-string, hash-mix, iterate, size, string
+	../string: ==, <=>, as-string, char8, c-string, hash-mix, size-char8s, string, to
 	../tuple: new
 	./alloc: unmanaged-alloc-elements
 	./bootstrap: symbol-to-c-string
@@ -25,7 +26,7 @@ export
 +<=> comparison(a symbol, b symbol)
 	a.to::string <=> b.to
 
-+to string(a symbol) bare
++to string(a symbol)
 	trusted a.symbol-to-c-string as-string
 
 init-symbol-table void(a global-ctx mut*) unsafe
@@ -50,11 +51,11 @@ This is O(log n), where 'n' is the number of unique symbols that exist.
 			symbol
 
 -to-malloced-c-string c-string(a string) unsafe
-	res char8 mut* = a.size + 1 unmanaged-alloc-elements
+	res char8 mut* = a.size-char8s + 1 unmanaged-alloc-elements
 	cur mut = res
-	for x : a
+	for x : a.to::char8[]
 		*cur := x
 		cur +:= 1
-	assert cur == res + a.size
+	assert cur == res + a.size-char8s
 	*cur := "\0"
 	res as-const

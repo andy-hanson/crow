@@ -58,7 +58,7 @@ LspInMessage parseLspInMessage(ref Alloc alloc, in Json message) {
 			return notification(ReadFileResultParams(
 				parseUriProperty(params),
 				enumOfString!ReadFileResultType(get!"type"(params).as!string),
-				hasKey!"content"(params) ? get!"content"(params).as!string : ""));
+				cast(immutable ubyte[]) (hasKey!"content"(params) ? get!"content"(params).as!string : ""))); // TODO: we already validated utf8 when parsing json, this makes us do it again
 		case "custom/run":
 			return request(RunParams(
 				parseUriProperty(params),

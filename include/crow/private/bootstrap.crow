@@ -100,9 +100,11 @@ but appending (or removing) from the beginning is always O(N).
 
 region string
 
-# Single character in a string.
 # This could be any byte in a UTF-8 string.
 +char8 builtin extern
+# 32-bit Unicode character.
++char32 builtin extern
+
 ###
 C-style string. Always const.
 This should be a valid pointer whose content ends in a "\0", though this is not enforced.

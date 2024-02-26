@@ -351,11 +351,15 @@ Conversions involving floats (in either direction) are approximate and never thr
 	trusted a unsafe-to
 +to nat64(a int32) bare
 	a.to::int64 to
++to nat8(a nat32) bare
+	a.to::nat64 to
 +to nat8(a nat64) bare
 	assert a <= max-value::nat8.to : "integer overflow"
 	trusted a unsafe-to
 +to nat8(a float64) bare
 	a.to clamp-to
++to nat32(a nat8) bare
+	trusted a.to::nat64 unsafe-to
 +to nat32(a nat16) bare
 	trusted a.to::nat64 unsafe-to
 +to nat32(a nat64) bare

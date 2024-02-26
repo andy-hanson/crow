@@ -8,12 +8,12 @@ import
 	../number: ==, <=>, +, -, /, nat64
 	../option: ==, new, option
 	../range: ..
-	../string: ==, <=>, +, -, begin, end, next, string
+	../string: ==, <=>, char32
 	../test-util: is
 	../tuple: a, b, new
-	./array: ==, array, new
+	./array: ==, +, begin, array, new, next
 	./collection:
-		.., -, begin, build, end, for-break, for-loop, iterate, prev, prev-next, set-next, size,
+		.., begin, build, end, for-break, for-loop, iterate, prev, prev-next, set-next, size,
 		subscript, swap-at
 	./mut-array:
 		~=, +, -, begin, build, cast-immutable, end, iterate, mut-array, new, next, prev, set-next,
@@ -73,11 +73,11 @@ test
 	(3, 1, 2)::nat64[].sort is (1, 2, 3)
 
 	# Test that it's a stable sort
-	arr string mut-array = "2a", "2b", "1a", "1b"
+	arr char32 array mut-array = "2a", "2b", "1a", "1b"
 	arr sort= x => x[0]
-	arr.to::(string array) is ("1a", "1b", "2a", "2b")
-	arr sort= x => x[end - 1]
-	arr.to::(string array) is ("1a", "2a", "1b", "2b")
+	arr.to::(char32 array array) is ("1a", "1b", "2a", "2b")
+	arr sort= x => x[1]
+	arr.to::(char32 array array) is ("1a", "2a", "1b", "2b")
 
 # Sort the elements of `a` from least to greatest.
 +set-sort[col, iter, elem] void(

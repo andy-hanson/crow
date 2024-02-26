@@ -88,6 +88,7 @@ TypeSize primitiveSize(PrimitiveType a) {
 		case PrimitiveType.int16:
 		case PrimitiveType.nat16:
 			return TypeSize(2, 2);
+		case PrimitiveType.char32:
 		case PrimitiveType.float32:
 		case PrimitiveType.int32:
 		case PrimitiveType.nat32:

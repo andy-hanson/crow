@@ -173,7 +173,9 @@ import util.conv : safeToUshort;
 import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, optOrDefault, someMut, some;
 import util.sourceRange : Pos, Range;
+import util.string : StringIter;
 import util.symbol : prependSet, prependSetDeref, Symbol, symbol;
+import util.unicode : decodeAsSingleUnicodeChar;
 import util.union_ : Union;
 import util.util : castImmutable, castNonScope_ref, max, ptrTrustMe;
 
@@ -829,15 +831,21 @@ Expr checkLiteralNat(ref ExprCtx ctx, ExprAst* source, in LiteralNatAst ast, ref
 }
 
 Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, string value, ref Expected expected) {
-	immutable StructInst*[4] allowedTypes = [
+	immutable StructInst*[7] allowedTypes = [
 		ctx.commonTypes.char8,
+		ctx.commonTypes.char32,
+		ctx.commonTypes.char8Array,
+		ctx.commonTypes.char32Array,
 		ctx.commonTypes.cString,
 		ctx.commonTypes.string_,
 		ctx.commonTypes.symbol,
 	];
 	Opt!size_t opTypeIndex = findExpectedStructForLiteral(ctx, source, expected, allowedTypes);
-	static immutable LiteralStringLikeExpr.Kind[4] kinds = [
+	static immutable LiteralStringLikeExpr.Kind[7] kinds = [
 		LiteralStringLikeExpr.Kind.cString, // won't be used
+		LiteralStringLikeExpr.Kind.cString, // won't be used
+		LiteralStringLikeExpr.Kind.char8Array,
+		LiteralStringLikeExpr.Kind.char32Array,
 		LiteralStringLikeExpr.Kind.cString,
 		LiteralStringLikeExpr.Kind.string_,
 		LiteralStringLikeExpr.Kind.symbol,
@@ -855,12 +863,30 @@ Expr checkLiteralString(ref ExprCtx ctx, ExprAst* source, string value, ref Expe
 						return only(value);
 				}();
 				return Expr(source, ExprKind(allocate(ctx.alloc, LiteralExpr(Constant(Constant.Integral(char_))))));
+			} else if (typeIndex == 1) {
+				Opt!dchar opt = decodeAsSingleUnicodeChar(value);
+				dchar char_ = optOrDefault!dchar(opt, () {
+					addDiag2(ctx, source, Diag(Diag.CharLiteralMustBeOneChar()));
+					return 'a';
+				});
+				return Expr(source, ExprKind(allocate(ctx.alloc, LiteralExpr(Constant(Constant.Integral(char_))))));
 			} else {
+				void checkNoNul(Diag.StringLiteralInvalid.Reason reason) {
+					if (contains(value, '\0'))
+						addDiag2(ctx, source.range, Diag(Diag.StringLiteralInvalid(reason)));
+				}
 				LiteralStringLikeExpr.Kind kind = kinds[typeIndex];
-				if (kind != LiteralStringLikeExpr.Kind.string_ && contains(value, '\0')) {
-					addDiag2(ctx, source.range, Diag(Diag.StringLiteralInvalid(kind == LiteralStringLikeExpr.Kind.symbol
-						? Diag.StringLiteralInvalid.Reason.symbolContainsNul
-						: Diag.StringLiteralInvalid.Reason.cStringContainsNul)));
+				final switch (kind) {
+					case LiteralStringLikeExpr.Kind.char8Array:
+					case LiteralStringLikeExpr.Kind.char32Array:
+					case LiteralStringLikeExpr.Kind.string_:
+						break;
+					case LiteralStringLikeExpr.Kind.cString:
+						checkNoNul(Diag.StringLiteralInvalid.Reason.cStringContainsNul);
+						break;
+					case LiteralStringLikeExpr.Kind.symbol:
+						checkNoNul(Diag.StringLiteralInvalid.Reason.symbolContainsNul);
+						break;
 				}
 				return Expr(source, ExprKind(LiteralStringLikeExpr(kind, value)));
 			}

@@ -23,16 +23,20 @@ import frontend.storage :
 	allStorageUris,
 	allUrisWithFileDiag,
 	changeFile,
+	CrowFileInfo,
 	FileContentGetters,
+	FileInfo,
+	FileInfoOrDiag,
+	fileOrDiag,
 	FilesState,
 	filesState,
-	getSourceAndAstOrDiag,
 	LineAndCharacterGetters,
 	LineAndColumnGetters,
 	ReadFileResult,
 	setFile,
-	SourceAndAst,
-	Storage;
+	setFileAssumeUtf8,
+	Storage,
+	TextFileContent;
 import interpret.bytecode : ByteCode;
 import interpret.extern_ : Extern, ExternPointersForAllLibraries, WriteError;
 import interpret.fakeExtern : withFakeExtern, WriteCb;
@@ -85,7 +89,7 @@ import lib.lsp.lspTypes :
 	WorkspaceEdit,
 	Write;
 import lower.lower : lower;
-import model.ast : fileAstForReadFileDiag, FileAst;
+import model.ast : fileAstForDiag, FileAst;
 import model.concreteModel : ConcreteProgram;
 import model.diag : Diagnostic, DiagnosticSeverity, ReadFileDiag;
 import model.jsonOfAst : jsonOfAst;
@@ -94,6 +98,7 @@ import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
 import model.lowModel : ExternLibraries, LowProgram;
 import model.model : hasFatalDiagnostics, Module, Program, ProgramWithMain;
+import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc, AllocKind, FetchMemoryCb, freeElements, MetaAlloc, newAlloc, withTempAllocImpure;
 import util.col.array : concatenate, contains, isEmpty, map, mapOp, newArray, only;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
@@ -101,6 +106,7 @@ import util.col.mutArr : clearAndDoNotFree, MutArr, push;
 import util.exitCode : ExitCode;
 import util.json : field, Json, jsonNull, jsonObject;
 import util.late : Late, lateGet, lateSet, MutLate;
+import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, some;
 import util.perf : Perf;
 import util.sourceRange : LineAndColumn, toLineAndCharacter, UriAndRange, UriLineAndColumn;
@@ -181,7 +187,7 @@ private LspOutAction handleLspNotification(
 		(in DidCloseTextDocumentParams x) =>
 			LspOutAction([]),
 		(in DidOpenTextDocumentParams x) {
-			setFile(perf, server, x.textDocument.uri, x.textDocument.text);
+			setFileAssumeUtf8(perf, server, x.textDocument.uri, x.textDocument.text);
 			return handleFileChanged(perf, alloc, server, x.textDocument.uri);
 		},
 		(in DidSaveTextDocumentParams x) =>
@@ -254,7 +260,7 @@ private Opt!LspOutResult handleLspRequest(
 			respondWithProgram(perf, alloc, server, a),
 		(in SemanticTokensParams x) {
 			Uri uri = x.textDocument.uri;
-			return some(LspOutResult(getTokens(alloc, server, uri, getSourceAndAst(alloc, server, uri))));
+			return some(LspOutResult(tokensOfAst(alloc, *getCrowFileForTokens(alloc, server, uri))));
 		},
 		(in ShutdownParams _) =>
 			some(LspOutResult(LspOutResult.Null())),
@@ -438,20 +444,20 @@ void setShowOptions(ref Server server, in ShowOptions options) {
 }
 
 void setFile(scope ref Perf perf, ref Server server, Uri uri, in ReadFileResult result) {
-	setFile(perf, server.storage, uri, result);
-	onFileChanged(perf, server.frontend, uri);
+	onFileChanged(perf, server.frontend, uri, setFile(perf, server.storage, uri, result));
 }
-void setFile(scope ref Perf perf, ref Server server, Uri uri, in string result) {
-	setFile(perf, server.storage, uri, result);
-	onFileChanged(perf, server.frontend, uri);
+void setFileAssumeUtf8(scope ref Perf perf, ref Server server, Uri uri, in string result) {
+	onFileChanged(perf, server.frontend, uri, FileInfoOrDiag(setFileAssumeUtf8(perf, server.storage, uri, result)));
+}
+void setFile(scope ref Perf perf, ref Server server, Uri uri, in ubyte[] result) {
+	onFileChanged(perf, server.frontend, uri, FileInfoOrDiag(setFile(perf, server.storage, uri, result)));
 }
 void setFile(scope ref Perf perf, ref Server server, Uri uri, ReadFileDiag diag) {
 	setFile(perf, server, uri, ReadFileResult(diag));
 }
 
 void changeFile(scope ref Perf perf, ref Server server, Uri uri, in TextDocumentContentChangeEvent[] changes) {
-	changeFile(perf, server.storage, uri, changes);
-	onFileChanged(perf, server.frontend, uri);
+	onFileChanged(perf, server.frontend, uri, FileInfoOrDiag(changeFile(perf, server.storage, uri, changes)));
 }
 
 FilesState filesState(in Server server) =>
@@ -565,23 +571,25 @@ private DiagsAndResultJson printForAst(ref Alloc alloc, ref Server server, Uri u
 
 DiagsAndResultJson printTokens(ref Alloc alloc, ref Server server, in SemanticTokensParams params) {
 	Uri uri = params.textDocument.uri;
-	SourceAndAst ast = getSourceAndAst(alloc, server, uri);
-	return printForAst(alloc, server, uri, *ast.ast, jsonOfDecodedTokens(alloc, getTokens(alloc, server, uri, ast)));
+	CrowFileInfo* file = getCrowFileForTokens(alloc, server, uri);
+	return printForAst(alloc, server, uri, *file.ast, jsonOfDecodedTokens(alloc, tokensOfAst(alloc, *file)));
 }
 
 DiagsAndResultJson printAst(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri uri) {
-	SourceAndAst ast = getSourceAndAst(alloc, server, uri);
+	CrowFileInfo* file = getCrowFileForTokens(alloc, server, uri);
 	return printForAst(
-		alloc, server, uri, *ast.ast,
-		jsonOfAst(alloc, server.lineAndColumnGetters[uri], *ast.ast));
+		alloc, server, uri, *file.ast,
+		jsonOfAst(alloc, server.lineAndColumnGetters[uri], *file.ast));
 }
 
-private SourceAndAst getSourceAndAst(ref Alloc alloc, ref Server server, Uri uri) =>
-	getSourceAndAstOrDiag(server.storage, uri).match!SourceAndAst(
-		(SourceAndAst x) =>
-			x,
+private CrowFileInfo* getCrowFileForTokens(ref Alloc alloc, ref Server server, Uri uri) =>
+	fileOrDiag(server.storage, uri).match!(CrowFileInfo*)(
+		(FileInfo x) =>
+			x.as!(CrowFileInfo*),
 		(ReadFileDiag x) =>
-			SourceAndAst(cString!"", fileAstForReadFileDiag(alloc, x)));
+			allocate(alloc, CrowFileInfo(
+				TextFileContent.empty,
+				fileAstForDiag(alloc, ParseDiag(x)))));
 
 DiagsAndResultJson printModel(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri uri) {
 	Program program = getProgram(perf, alloc, server, [uri]);
@@ -733,9 +741,6 @@ private:
 
 ShowCtx getShowCtx(return scope ref const Server server) =>
 	ShowCtx(server.lineAndColumnGetters, server.urisInfo, server.showOptions);
-
-SemanticTokens getTokens(ref Alloc alloc, ref Server server, Uri uri, in SourceAndAst ast) =>
-	tokensOfAst(alloc, server.lineAndCharacterGetters[uri], ast);
 
 LspOutMessage notification(T)(T a) =>
 	LspOutMessage(LspOutNotification(a));

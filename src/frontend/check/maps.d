@@ -7,6 +7,7 @@ import model.model : FunDecl, SpecDecl, StructOrAlias, Test;
 import util.col.array : allSame, SmallArray;
 import util.col.hashTable : HashTable;
 import util.symbol : Symbol;
+import util.unicode : FileContent;
 import util.uri : Uri;
 
 alias StructsAndAliasesMap = HashTable!(StructOrAlias, Symbol, structOrAliasName);
@@ -21,7 +22,7 @@ immutable struct FunsAndMap {
 
 immutable struct ImportOrExportFile {
 	ImportOrExportAst* source;
-	Uri uri;
+	FileContent* content;
 }
 
 Symbol structOrAliasName(in StructOrAlias a) =>
