@@ -19,11 +19,11 @@ import util.alloc.alloc :
 	newAlloc,
 	withAlloc,
 	withTempAlloc;
-import util.col.array : append, contains, isEmpty;
+import util.col.array : append, contains;
 import util.col.arrayBuilder : buildArray, Builder;
 import util.col.mutMap : getOrAdd, keys, mayDelete, mustAdd, MutMap, values;
 import util.memory : allocate;
-import util.opt : ConstOpt, force, has, MutOpt, none, Opt, optIf, some;
+import util.opt : ConstOpt, force, has, MutOpt, none, Opt, some;
 import util.perf : Perf;
 import util.sourceRange :
 	LineAndCharacterGetter,
@@ -37,10 +37,10 @@ import util.sourceRange :
 	UriAndLineAndCharacterRange,
 	UriLineAndColumn,
 	UriLineAndColumnRange;
-import util.string : bytesOfString, CString, cString, cStringSize, stringOfRange;
+import util.string : CString, cString, CStringAndLength, stringOfRange;
 import util.symbol : Extension;
 import util.unicode : FileContent, unicodeValidate;
-import util.union_ : TaggedUnion, Union;
+import util.union_ : Union;
 import util.uri : baseName, getExtension, Uri;
 import util.writer : makeStringWithWriter, Writer;
 
@@ -91,8 +91,11 @@ immutable struct TextFileContent {
 	CString content;
 	LineAndColumnGetter lineAndColumnGetter;
 
-	FileContent asFileContent() =>
-		FileContent(content); // TODO: this will get the cStringEnd again .----------------------------------------------------
+	@trusted FileContent asFileContent() =>
+		FileContent(cStringAndLength);
+
+	@trusted CStringAndLength cStringAndLength() =>
+		CStringAndLength(content, length);
 
 	static TextFileContent empty() =>
 		TextFileContent(cString!"", LineAndColumnGetter.empty);
@@ -109,21 +112,16 @@ immutable struct TextFileContent {
 
 immutable struct CrowFileInfo {
 	TextFileContent content;
-	FileAst* ast; // TODO: STORE BY VALUE -------------------------------------------------------------------------------
+	FileAst ast;
 }
 
 immutable struct CrowConfigFileInfo {
 	TextFileContent content;
-	Config* config; // TODO: STORE BY VALUE -------------------------------------------------------------------------------
+	Config config;
 }
 
 immutable struct OtherFileInfo {
 	FileContent content;
-}
-
-immutable struct ParseResult {
-	immutable struct None {}
-	mixin TaggedUnion!(FileAst*, Config*, None);
 }
 
 immutable struct FileInfoOrDiag {
@@ -133,12 +131,12 @@ immutable struct FileInfoOrDiag {
 FileInfoOrDiag setFile(scope ref Perf perf, ref Storage a, Uri uri, in ReadFileResult result) =>
 	result.matchIn!FileInfoOrDiag(
 		(in FileContent x) =>
-			FileInfoOrDiag(setFile(perf, a, uri, x.asBytes)),
+			FileInfoOrDiag(setFileBytes(perf, a, uri, x.asBytes)),
 		(in ReadFileDiag x) {
 			setFileDiag(perf, a, uri, x);
 			return FileInfoOrDiag(x);
 		});
-FileInfo setFile(scope ref Perf perf, ref Storage a, Uri uri, in ubyte[] content) {
+FileInfo setFileBytes(scope ref Perf perf, ref Storage a, Uri uri, in ubyte[] content) {
 	prepareSetFile(a, uri);
 	AllocAndValue!FileInfo info = initFileInfo(perf, a, uri, content, assumeUtf8: false);
 	mustAdd(a.mapAlloc, a.successes, uri, info);
@@ -150,7 +148,7 @@ FileInfo setFileAssumeUtf8(scope ref Perf perf, ref Storage a, Uri uri, in strin
 	mustAdd(a.mapAlloc, a.successes, uri, info);
 	return info.value;
 }
-void setFileDiag(scope ref Perf perf, ref Storage a, Uri uri, ReadFileDiag diag) {
+private void setFileDiag(scope ref Perf perf, ref Storage a, Uri uri, ReadFileDiag diag) {
 	prepareSetFile(a, uri);
 	return mustAdd(a.mapAlloc, a.diags, uri, diag);
 }
@@ -163,15 +161,16 @@ private @trusted void prepareSetFile(ref Storage a, Uri uri) {
 
 FileInfo changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentContentChangeEvent[] changes) {
 	foreach (TextDocumentContentChangeEvent change; changes[0 .. $ - 1])
-		changeFile(perf, a, uri, change);
+		cast(void) changeFile(perf, a, uri, change);
 	return changeFile(perf, a, uri, changes[$ - 1]);
 }
 
 FileInfo changeFile(scope ref Perf perf, ref Storage a, Uri uri, in TextDocumentContentChangeEvent change) {
 	FileInfo info = fileOrDiag(a, uri).as!FileInfo;
 	return withTempAlloc(a.metaAlloc, (ref Alloc tempAlloc) {
-		string newContent = applyChange(tempAlloc, info.asTextFile.asString, info.asTextFile.lineAndCharacterGetter, change);
-		// TODO:PERF This means an unnecessary copy in 'setFile'. ---------------------------------------------------------------------------------
+		string newContent = applyChange(
+			tempAlloc, info.asTextFile.asString, info.asTextFile.lineAndCharacterGetter, change);
+		// TODO:PERF This means an unnecessary copy in 'setFile'.
 		// Would be better to modify the array in place and force re-parse.
 		return setFileAssumeUtf8(perf, a, uri, newContent);
 	});
@@ -186,7 +185,7 @@ private AllocAndValue!FileInfo initFileInfo(
 ) =>
 	withAlloc!FileInfo(AllocKind.storageFileInfo, storage.metaAlloc, (ref Alloc alloc) @trusted {
 		FileContent content = FileContent(cast(immutable) append(alloc, input, cast(ubyte) '\0'));
-		Opt!CString cString = assumeUtf8 ? some(content.assumeUtf8) : unicodeValidate(content);
+		Opt!CString cString = assumeUtf8 ? some(content.assumeUtf8) : unicodeValidateAsCString(content);
 		TextFileContent textFileContent() =>
 			has(cString)
 				? TextFileContent(force(cString), lineAndColumnGetterForText(alloc, force(cString)))
@@ -208,6 +207,11 @@ private AllocAndValue!FileInfo initFileInfo(
 				return FileInfo(allocate(alloc, OtherFileInfo(content)));
 		}
 	});
+
+private Opt!CString unicodeValidateAsCString(FileContent a) {
+	Opt!CStringAndLength res = unicodeValidate(a);
+	return has(res) ? some(force(res).asCString) : none!CString;
+}
 
 enum FileType {
 	crow,

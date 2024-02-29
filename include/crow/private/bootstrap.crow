@@ -365,8 +365,10 @@ It does not support efficient access by an index, so iterators should be used in
 ~array3d[t] record(total-size nat64, arrays t array2d array) by-val
 
 ###
-Strings are optimized for fast concatenation and splitting.
-They don't support efficient access by index, so use iterators instead.
+A sequence of `char32`s.
+
+(It's stored as a `char8[]` and is decoded as it's iterated.)
+It can be efficiently concatenated or split, but doesn't support indexed access.
 ###
 +string record by-val
 	~inner char8[]

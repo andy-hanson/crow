@@ -4,7 +4,8 @@ module test.testSourceRange;
 
 import test.testUtil : Test;
 import util.conv : safeToUint;
-import util.sourceRange : LineAndCharacter, LineAndColumn, LineAndColumnGetter, lineAndColumnGetterForText, Pos, PosKind;
+import util.sourceRange :
+	LineAndCharacter, LineAndColumn, LineAndColumnGetter, lineAndColumnGetterForText, Pos, PosKind;
 import util.string : CString, cString, MutCString, startsWith;
 
 void testSourceRange(ref Test test) {
@@ -28,7 +29,7 @@ void testCR(ref Test test) {
 
 void testLFOrCR(in LineAndColumnGetter lcg) {
 	verifyConvert(lcg, 0, line: 0, character: 0); // a
-	verifyConvert(lcg, 0, line: 0, character: 0); // 
+	verifyConvert(lcg, 0, line: 0, character: 0); //
 	verifyConvert(lcg, 1, line: 0, character: 1); // \n or \r
 	verifyConvert(lcg, 2, line: 1, character: 0); // \t
 	verifyConvert(lcg, 2, PosKind.endOfRange, line: 0, character: 1, column: 1, convertBackPos: 1);
@@ -83,7 +84,6 @@ void testUnicode(ref Test test) {
 
 Pos assertIndexOf(in CString a, in string substring, Pos expected) {
 	MutCString cur = a;
-	size_t i = 0;
 	while (true) {
 		assert(*cur != '\0');
 		if (startsWith(cur, substring)) {

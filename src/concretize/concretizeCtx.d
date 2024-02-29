@@ -48,7 +48,6 @@ import model.model :
 	FunBody,
 	FunInst,
 	ImportFileContent,
-	ImportFileType,
 	IntegralType,
 	isTuple,
 	Local,
@@ -81,7 +80,6 @@ import util.col.array :
 	mapZip,
 	maxBy,
 	newArray,
-	newSmallArray,
 	only,
 	small,
 	SmallArray;
@@ -93,11 +91,11 @@ import util.col.mutMap : getOrAdd, getOrAddAndDidAdd, mustAdd, mustDelete, MutMa
 import util.hash : HashCode, Hasher;
 import util.late : Late, lateGet, lazilySet;
 import util.memory : allocate;
-import util.opt : force, has, none, Opt, optOrDefault;
+import util.opt : force, has, none, optOrDefault;
 import util.sourceRange : UriAndRange;
 import util.string : bytesOfString;
 import util.symbol : Symbol, symbol;
-import util.unicode : FileContent, unicodeDecodeAssertNoError;
+import util.unicode : unicodeDecodeAssertNoError;
 import util.uri : Uri;
 import util.util : enumConvert, max, roundUp, typeAs;
 import versionInfo : VersionInfo;
@@ -186,7 +184,10 @@ struct ConcretizeCtx {
 	Late!(ConcreteFun*) char8ArrayTrustAsString_;
 	Late!(ConcreteFun*) equalNat64Function_;
 	Late!(ConcreteFun*) lessNat64Function_;
+	Late!(ConcreteFun*) newChar8ListFunction_;
+	Late!(ConcreteFun*) newChar32ListFunction_;
 	Late!(ConcreteFun*) newJsonFromPairsFunction_;
+	Late!(ConcreteFun*) newNat64FutureFunction_;
 	Late!(ConcreteFun*) newVoidFutureFunction_;
 	Late!(ConcreteFun*) andFunction_;
 	AllConstantsBuilder allConstants;
@@ -202,9 +203,12 @@ struct ConcretizeCtx {
 	MutMap!(ConcreteFun*, ConcreteFunBodyInputs) concreteFunToBodyInputs;
 	// Index in the MutArr!ConcreteLambdaImpl is the fun ID
 	MutMap!(ConcreteStruct*, MutArr!ConcreteLambdaImpl) funStructToImpls;
-	// TODO: do these eagerly
 	Late!ConcreteType _bogusType;
 	Late!ConcreteType _boolType;
+	Late!ConcreteType _char8Type;
+	Late!ConcreteType _char8ArrayType;
+	Late!ConcreteType _char32Type;
+	Late!ConcreteType _char32ArrayType;
 	Late!ConcreteType _voidType;
 	Late!ConcreteType _nat64Type;
 	Late!ConcreteType _ctxType;
@@ -222,8 +226,14 @@ struct ConcretizeCtx {
 		lateGet(equalNat64Function_);
 	ConcreteFun* lessNat64Function() return scope const =>
 		lateGet(lessNat64Function_);
+	ConcreteFun* newChar8ListFunction() return scope const =>
+		lateGet(newChar8ListFunction_);
+	ConcreteFun* newChar32ListFunction() return scope const =>
+		lateGet(newChar32ListFunction_);
 	ConcreteFun* newJsonFromPairsFunction() return scope const =>
 		lateGet(newJsonFromPairsFunction_);
+	ConcreteFun* newNat64FutureFunction() return scope const =>
+		lateGet(newNat64FutureFunction_);
 	ConcreteFun* newVoidFutureFunction() return scope const =>
 		lateGet(newVoidFutureFunction_);
 	ConcreteFun* andFunction() return scope const =>
@@ -258,6 +268,22 @@ ConcreteType boolType(ref ConcretizeCtx a) =>
 ConcreteType voidType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._voidType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.void_, emptySmallArray!ConcreteType));
+
+ConcreteType char8Type(ref ConcretizeCtx a) =>
+	lazilySet!ConcreteType(a._char8Type, () =>
+		getConcreteType_forStructInst(a, a.commonTypes.char8, emptySmallArray!ConcreteType));
+
+private ConcreteType char8ArrayType(ref ConcretizeCtx a) =>
+	lazilySet!ConcreteType(a._char8ArrayType, () =>
+		getConcreteType_forStructInst(a, a.commonTypes.char8Array, emptySmallArray!ConcreteType));
+
+ConcreteType char32Type(ref ConcretizeCtx a) =>
+	lazilySet!ConcreteType(a._char32Type, () =>
+		getConcreteType_forStructInst(a, a.commonTypes.char32, emptySmallArray!ConcreteType));
+
+private ConcreteType char32ArrayType(ref ConcretizeCtx a) =>
+	lazilySet!ConcreteType(a._char32ArrayType, () =>
+		getConcreteType_forStructInst(a, a.commonTypes.char32Array, emptySmallArray!ConcreteType));
 
 ConcreteType nat64Type(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._nat64Type, () =>
@@ -520,15 +546,15 @@ public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* mo
 	UriAndRange range = modelMain.decl.range;
 	ConcreteExpr callMain = ConcreteExpr(voidType(ctx), range, ConcreteExprKind(ConcreteExprKind.Call(innerMain, [])));
 	ConcreteExpr zero = ConcreteExpr(nat64, range, ConcreteExprKind(constantZero));
-	ConcreteFun* newNat64Future = newNat64FutureFunction(ctx);
-	ConcreteExpr callNewNatFuture = ConcreteExpr(newNat64Future.returnType, range, ConcreteExprKind(
-		ConcreteExprKind.Call(newNat64Future, newArray(ctx.alloc, [zero]))));
-	ConcreteExpr body_ = ConcreteExpr(newNat64Future.returnType, range, ConcreteExprKind(
+	ConcreteType nat64Future = ctx.newNat64FutureFunction.returnType;
+	ConcreteExpr callNewNatFuture = ConcreteExpr(nat64Future, range, ConcreteExprKind(
+		ConcreteExprKind.Call(ctx.newNat64FutureFunction, newArray(ctx.alloc, [zero]))));
+	ConcreteExpr body_ = ConcreteExpr(nat64Future, range, ConcreteExprKind(
 		allocate(ctx.alloc, ConcreteExprKind.Seq(callMain, callNewNatFuture))));
 
 	ConcreteFun* res = allocate(ctx.alloc, ConcreteFun(
 		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.WrapMain(range))),
-		getConcreteType(ctx, ctx.program.commonFuns.newNat64Future.returnType, emptySmallArray!ConcreteType),
+		nat64Future,
 		newArray(ctx.alloc, [
 			ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Generated.args), stringListType),
 		])));
@@ -536,13 +562,6 @@ public ConcreteFun* concreteFunForWrapMain(ref ConcretizeCtx ctx, StructInst* mo
 	addConcreteFun(ctx, res);
 	return res;
 }
-
-ConcreteFun* newNat64FutureFunction(ref ConcretizeCtx ctx) =>
-	getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
-		ctx.program.commonFuns.newNat64Future.decl,
-		//TODO:avoid alloc
-		newSmallArray(ctx.alloc, [nat64Type(ctx)]),
-		emptySmallArray!(immutable ConcreteFun*)));
 
 bool canGetUnionSize(in ConcreteType[] members) =>
 	every!(ConcreteType)(members, (in ConcreteType type) =>
@@ -816,14 +835,18 @@ public ConcreteExpr stringLiteralConcreteExpr(ref ConcretizeCtx ctx, UriAndRange
 
 ConcreteExprKind stringLiteralConcreteExprKind(ref ConcretizeCtx ctx, UriAndRange range, in string value) =>
 	ConcreteExprKind(ConcreteExprKind.Call(ctx.char8ArrayTrustAsString, newArray(ctx.alloc, [
-		char8ArrayExpr(ctx, only(ctx.char8ArrayTrustAsString.paramsIncludingClosure).type, range, value)])));
+		char8ArrayExpr(ctx, range, value)])));
 
-ConcreteExpr char8ArrayExpr(ref ConcretizeCtx ctx, ConcreteType type, in UriAndRange range, in string value) =>
-	ConcreteExpr(type, range, ConcreteExprKind(constantOfBytes(ctx, type, bytesOfString(value))));
+public ConcreteExpr char8ArrayExpr(ref ConcretizeCtx ctx, in UriAndRange range, in string value) {
+	ConcreteType type = char8ArrayType(ctx);
+	return ConcreteExpr(type, range, ConcreteExprKind(constantOfBytes(ctx, type, bytesOfString(value))));
+}
 
-ConcreteExpr char32ArrayExpr(ref ConcretizeCtx ctx, ConcreteType type, in UriAndRange range, in string value) =>
-	ConcreteExpr(type, range, ConcreteExprKind(char32ArrayConstant(ctx, type, value)));
-private Constant char32ArrayConstant(ref ConcretizeCtx ctx, ConcreteType type, in string value) =>
+public ConcreteExpr char32ArrayExpr(ref ConcretizeCtx ctx, in UriAndRange range, in string value) {
+	ConcreteType type = char32ArrayType(ctx);
+	return ConcreteExpr(type, range, ConcreteExprKind(char32ArrayConstant(ctx, type, value)));
+}
+Constant char32ArrayConstant(ref ConcretizeCtx ctx, ConcreteType type, in string value) =>
 	getConstantArray(
 		ctx.alloc, ctx.allConstants, mustBeByVal(type),
 		buildArray!Constant(ctx.alloc, (scope ref Builder!Constant out_) {
@@ -831,6 +854,13 @@ private Constant char32ArrayConstant(ref ConcretizeCtx ctx, ConcreteType type, i
 				out_ ~= Constant(Constant.Integral(x));
 			});
 		}));
+
+public ConcreteExpr char8ListExpr(ref ConcretizeCtx ctx, ConcreteType type, in UriAndRange range, in string value) =>
+	ConcreteExpr(type, range, ConcreteExprKind(ConcreteExprKind.Call(ctx.newChar8ListFunction, newArray(ctx.alloc, [
+		char8ArrayExpr(ctx, range, value)]))));
+public ConcreteExpr char32ListExpr(ref ConcretizeCtx ctx, ConcreteType type, in UriAndRange range, in string value) =>
+	ConcreteExpr(type, range, ConcreteExprKind(ConcreteExprKind.Call(ctx.newChar32ListFunction, newArray(ctx.alloc, [
+		char32ArrayExpr(ctx, range, value)]))));
 
 ConcreteVar* getVar(ref ConcretizeCtx ctx, VarDecl* decl) =>
 	getOrAdd!(immutable ConcreteVar*, immutable VarDecl*, getVarKey)(ctx.alloc, ctx.concreteVarLookup, decl, () =>

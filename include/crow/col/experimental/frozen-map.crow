@@ -36,7 +36,7 @@ However, this is more compact than `map` and has faster lookups.
 # This is O(1).
 +to[k, v] (k, v) array(a (k, v) frozen-map) bare
 	a pairs
-+to[k, v] (k, v)[](a (k, v) frozen-map) bare
++to[k, v] (k, v)[](a (k, v) frozen-map)
 	a.to::((k, v) array) to
 
 +is-empty[k, v] bool(a (k, v) frozen-map)

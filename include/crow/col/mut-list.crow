@@ -87,7 +87,7 @@ Writes to the `mut-list` won't affect the `list`.
 ###
 'move-to' is like 'to' but sets the input to empty.
 ###
-+move-to[t] t[](a t mut[]) bare
++move-to[t] t[](a t mut[])
 	a.move-to::(t array) to
 +move-to[t] t array(a t mut[]) bare
 	trusted a.move-to cast-immutable

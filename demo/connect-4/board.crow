@@ -121,7 +121,7 @@ show string(a board, cur-player color, last-column nat?)
 			"{bold}{text}{reset}"
 		else
 			text
-	rows = "\n" join for y : 0::nat .. height reverse
+	rows = "\n" join for y : 0::nat .. height reversed
 		parts = "│" join for x : 0::nat .. width
 			a[x, y, cur-player] to-short-string
 		"│{parts}│"

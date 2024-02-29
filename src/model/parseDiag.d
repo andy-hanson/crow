@@ -84,7 +84,7 @@ immutable struct ParseDiag {
 	immutable struct TypeTrailingMut {}
 	immutable struct TypeUnnecessaryParens {}
 	immutable struct UnexpectedCharacter {
-		char character;
+		dchar character;
 	}
 	immutable struct UnexpectedOperator {
 		Symbol operator;

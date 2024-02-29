@@ -161,7 +161,7 @@ Use `paths-in-dir` if you want full paths.
 		size = path.to readlink buff.begin-pointer, buff.size
 		if size == -1
 			check-errno
-		buff.cast-immutable[0 .. size.to] as-string
+		buff.cast-immutable[0 .. size.to] to
 
 # Create a symbolic link at `link` with the target `target`.
 +make-symlink-to void(link string, target string) summon
@@ -187,7 +187,7 @@ Otherwise, this will be the path where `crow` is installed.
 
 # Reads the full contents of the file.
 +read-file string(path string) summon
-	content = path.read-file::nat8[]
+	content nat8[] = path read-file
 	with : "Reading file {path}" augment-exceptions
 		content as-string
 

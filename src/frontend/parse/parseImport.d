@@ -16,8 +16,8 @@ import frontend.parse.parseUtil :
 	takeOrAddDiagExpectedOperator,
 	tryTakeOperator,
 	tryTakeToken;
-import model.ast : ImportOrExportAst, ImportOrExportAstKind, ImportsOrExportsAst, NameAndRange, PathOrRelPath, TypeAst;
-import model.model : ImportFileType;
+import model.ast :
+	ImportFileType, ImportOrExportAst, ImportOrExportAstKind, ImportsOrExportsAst, NameAndRange, PathOrRelPath, TypeAst;
 import model.parseDiag : ParseDiag;
 import util.col.array : emptySmallArray, small, SmallArray;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;

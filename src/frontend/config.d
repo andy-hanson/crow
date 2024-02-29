@@ -6,11 +6,10 @@ import model.diag : Diag, Diagnostic;
 import model.model : Config, ConfigExternUris, configForDiag, ConfigImportUris;
 import util.alloc.alloc : Alloc;
 import util.col.arrayBuilder : ArrayBuilder, finish;
-import util.col.array : fold, newArray;
+import util.col.array : fold;
 import util.col.map : Map;
 import util.col.mapBuilder : finishMap, MapBuilder, tryAddToMap;
 import util.json : Json;
-import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.jsonParse : parseJson;
 import util.string : CString;
@@ -18,13 +17,13 @@ import util.symbol : Symbol, symbol;
 import util.uri : bogusUri, parentOrEmpty, parseUriWithCwd, Uri;
 import util.util : todo;
 
-Config* parseConfig(ref Alloc alloc, Uri configUri, in CString text) {
+Config parseConfig(ref Alloc alloc, Uri configUri, in CString text) {
 	ArrayBuilder!Diagnostic diagsBuilder;
 	Opt!Json json = parseJson(alloc, text); // TODO: this should take diagsBuilder
 	if (has(json) && force(json).isA!(Json.Object)) {
 		ConfigContent content = parseConfigRecur(
 			alloc, parentOrEmpty(configUri), diagsBuilder, force(json).as!(Json.Object));
-		return allocate(alloc, Config(some(configUri), finish(alloc, diagsBuilder), content.include, content.extern_));
+		return Config(some(configUri), finish(alloc, diagsBuilder), content.include, content.extern_);
 	} else
 		return configForDiag(alloc, configUri, todo!Diag("diag -- bad JSON"));
 }

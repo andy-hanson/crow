@@ -23,6 +23,7 @@ import model.ast :
 	DestructureAst,
 	EmptyAst,
 	FunDeclAst,
+	ImportFileType,
 	ModifierAst,
 	ModifierKeyword,
 	ImportOrExportAstKind,
@@ -45,7 +46,6 @@ import model.model :
 	FunDeclSource,
 	FunFlags,
 	ImportFileContent,
-	ImportFileType,
 	isLinkageAlwaysCompatible,
 	Linkage,
 	linkageRange,
@@ -86,7 +86,7 @@ import util.col.hashTable : insertOrUpdate, mapAndMovePreservingKeys, MutHashTab
 import util.memory : allocate, initMemory;
 import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
 import util.sourceRange : Range;
-import util.string : CString, stringOfCString;
+import util.string : CStringAndLength;
 import util.symbol : Symbol, symbol;
 import util.unicode : unicodeValidate;
 import util.util : optEnumConvert;
@@ -252,9 +252,9 @@ FunBody getFileImportFunctionBody(ref CheckCtx ctx, Range range, in ImportOrExpo
 			case ImportFileType.nat8Array:
 				return ImportFileContent(a.content.asBytes);
 			case ImportFileType.string:
-				Opt!CString x = unicodeValidate(*a.content);
+				Opt!CStringAndLength x = unicodeValidate(*a.content);
 				if (has(x))
-					return ImportFileContent(stringOfCString(force(x)));
+					return ImportFileContent(force(x).asString);
 				else {
 					addDiag(ctx, range, Diag(ParseDiag(ParseDiag.FileNotUtf8())));
 					return ImportFileContent("");

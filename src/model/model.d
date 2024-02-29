@@ -41,7 +41,6 @@ import util.col.map : Map;
 import util.col.enumMap : EnumMap;
 import util.conv : safeToUint;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
-import util.memory : allocate;
 import util.opt : force, has, none, Opt, optEqual, some;
 import util.sourceRange : combineRanges, UriAndRange, Pos, Range;
 import util.string : emptySmallString, SmallString;
@@ -1420,8 +1419,6 @@ immutable struct ImportOrExportKind {
 	mixin TaggedUnion!(ModuleWhole, SmallArray!(Opt!(NameReferents*)));
 }
 
-enum ImportFileType { nat8Array, string } // TODO: NOW AST ONLY? -------------------------------------------------------------------------
-
 immutable struct ImportFileContent {
 	immutable struct Bogus {}
 	mixin Union!(immutable ubyte[], string, Bogus);
@@ -1459,15 +1456,14 @@ enum FunKind {
 }
 
 immutable struct CommonFuns {
-	UriAndDiagnostic[] diagnostics;
 	FunInst* alloc;
 	FunInst* and;
 	EnumMap!(FunKind, FunDecl*) lambdaSubscript;
 	FunDecl* sharedOfMutLambda;
 	FunInst* mark;
 	FunInst* newJsonFromPairs;
-	FunInst* newNat64Future;
-	FunInst* newVoidFuture;
+	FunDecl* newTFuture;
+	FunDecl* newTList;
 	FunInst* rtMain;
 	FunInst* throwImpl;
 	FunInst* char8ArrayTrustAsString;
@@ -1480,9 +1476,7 @@ immutable struct CommonTypes {
 
 	StructInst* bool_;
 	StructInst* char8;
-	StructInst* char8Array;
 	StructInst* char32;
-	StructInst* char32Array;
 	StructInst* cString;
 	StructInst* float32;
 	StructInst* float64;
@@ -1491,9 +1485,15 @@ immutable struct CommonTypes {
 	StructInst* symbol;
 	StructInst* symbolArray;
 	StructInst* void_;
+
 	StructDecl* array;
+	StructInst* char8Array;
+	StructInst* char32Array;
 	StructDecl* future;
 	StructInst* voidFuture;
+	StructDecl* list;
+	StructInst* char8List;
+	StructInst* char32List;
 	StructDecl* opt;
 	StructDecl* ptrConst;
 	StructDecl* ptrMut;
@@ -1613,6 +1613,7 @@ immutable struct Program {
 	HashTable!(immutable Config*, Uri, getConfigUri) allConfigs;
 	HashTable!(immutable Module*, Uri, getModuleUri) allModules;
 	Module*[] rootModules;
+	SmallArray!UriAndDiagnostic commonFunsDiagnostics;
 	CommonFuns commonFuns;
 	CommonTypes* commonTypes;
 }
@@ -1630,7 +1631,7 @@ void eachDiagnostic(in Program a, in void delegate(in UriAndDiagnostic) @safe @n
 }
 
 private bool existsDiagnostic(in Program a, in bool delegate(in UriAndDiagnostic) @safe @nogc pure nothrow cb) =>
-	exists!UriAndDiagnostic(a.commonFuns.diagnostics, cb) ||
+	exists!UriAndDiagnostic(a.commonFunsDiagnostics, cb) ||
 	existsInHashTable!(immutable Config*, Uri, getConfigUri)(a.allConfigs, (in Config* config) =>
 		exists!Diagnostic(config.diagnostics, (in Diagnostic x) =>
 			cb(UriAndDiagnostic(force(config.configUri), x)))) ||
@@ -1641,7 +1642,7 @@ private bool existsDiagnostic(in Program a, in bool delegate(in UriAndDiagnostic
 			cb(UriAndDiagnostic(module_.uri, x))));
 
 immutable struct Config {
-	Opt!Uri configUri; // none for default config TODO: USED? -00000000000000000000000000000000000000000000000000000000000000000000000000
+	Opt!Uri configUri; // none for default config
 	Diagnostic[] diagnostics;
 	ConfigImportUris include;
 	ConfigExternUris extern_;
@@ -1649,8 +1650,8 @@ immutable struct Config {
 Uri getConfigUri(in Config* a) =>
 	force(a.configUri);
 Config emptyConfig = Config(none!Uri, [], ConfigImportUris(), ConfigExternUris());
-Config* configForDiag(ref Alloc alloc, Uri uri, Diag diag) =>
-	allocate(alloc, Config(some(uri), newArray(alloc, [Diagnostic(Range.empty, diag)])));
+Config configForDiag(ref Alloc alloc, Uri uri, Diag diag) =>
+	Config(some(uri), newArray(alloc, [Diagnostic(Range.empty, diag)]));
 
 alias ConfigImportUris = Map!(Symbol, Uri);
 alias ConfigExternUris = Map!(Symbol, Uri);
@@ -1950,7 +1951,7 @@ immutable struct LiteralExpr {
 }
 
 immutable struct LiteralStringLikeExpr {
-	enum Kind { char8Array, char32Array, cString, string_, symbol }
+	enum Kind { char8Array, char8List, char32Array, char32List, cString, string_, symbol }
 	Kind kind;
 	string value; // For char32Array, this will be decoded in concretize.
 }

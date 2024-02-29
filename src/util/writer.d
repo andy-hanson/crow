@@ -8,7 +8,7 @@ import util.col.array : zip;
 import util.conv : bitsOfFloat64;
 import util.string : eachChar, CString, stringOfCString;
 import util.unicode : mustUnicodeEncode;
-import util.util : abs, debugLog;
+import util.util : abs, debugLog, max;
 
 T withStackWriterImpure(T)(
 	in void delegate(scope ref Writer) @safe @nogc nothrow cb,
@@ -42,6 +42,9 @@ struct Writer {
 		res = Builder!(immutable char)(allocPtr);
 	}
 
+	void opOpAssign(string op : "~")(bool a) {
+		res ~= (a ? "true" : "false");
+	}
 	void opOpAssign(string op : "~")(char a) {
 		res ~= a;
 	}
@@ -122,8 +125,8 @@ string makeStringWithWriter(ref Alloc alloc, in void delegate(scope ref Writer w
 	return finish(writer.res);
 }
 
-void writeHex(scope ref Writer writer, ulong a) {
-	writeNat(writer, a, 16);
+void writeHex(scope ref Writer writer, ulong a, uint minDigits = 1) {
+	writeNat(writer, a, 16, minDigits);
 }
 
 void writeHex(scope ref Writer writer, long a) {
@@ -160,9 +163,10 @@ void writeFloatLiteral(scope ref Writer writer, double a) {
 	}
 }
 
-private void writeNat(scope ref Writer writer, ulong n, ulong base = 10) {
-	if (n >= base)
-		writeNat(writer, n / base, base);
+private void writeNat(scope ref Writer writer, ulong n, ulong base = 10, uint minDigits = 1) {
+	assert(minDigits != 0);
+	if (n >= base || minDigits > 1)
+		writeNat(writer, n / base, base, max(minDigits - 1, 1));
 	writer ~= digitChar(n % base);
 }
 

@@ -152,19 +152,19 @@ export
 	a.get-l2-branch down
 
 # List containing the given elements.
-+new[t] t[](...a t array) bare
++new[t] t[](...a t array)
 	a to
 
-+as-list[t] t[](a t* range) bare, unsafe
++as-list[t] t[](a t* range) unsafe
 	a.as-array to
-+as-list[t] t[](a t mut* range) bare, unsafe
++as-list[t] t[](a t mut* range) unsafe
 	a.as-array to
 
 ###
 Convert an array to a list.
 This is O(1).
 ###
-+to[t] t[](a t array) bare
++to[t] t[](a t array)
 	l t l1 = a.leaf,
 	l,
 +to[t] t[](a t mut-array)

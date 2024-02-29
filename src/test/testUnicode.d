@@ -5,12 +5,13 @@ module test.testUnicode;
 import test.testUtil : Test;
 import util.col.arrayBuilder : buildArray, Builder;
 import util.opt : force, Opt;
-import util.string : CString, cString, stringOfCString;
+import util.string : CString, cString, CStringAndLength, stringOfCString;
 import util.unicode : FileContent, unicodeDecodeAssertNoError, mustUnicodeEncode, unicodeValidate;
 
 void testUnicode(ref Test test) {
 	assertUnicode(test, cString!"$¥₿𝄮", 10, "$¥₿𝄮", 4);
 	assertUnicode(test, cString!"𝄮₿¥$", 10, "𝄮₿¥$", 4);
+	assertUnicode(test, cString!"\ue000", 3, "\ue000", 1);
 }
 
 private:
@@ -20,8 +21,8 @@ void assertUnicode(ref Test test, in CString cString, size_t expectedChar8s, in 
 	assert(utf8.length == expectedChar8s);
 	assert(utf32.length == expectedChar32s);
 
-	Opt!CString uni = unicodeValidate(FileContent(cString));
-	assert(force(uni) == cString);
+	Opt!CStringAndLength uni = unicodeValidate(FileContent(CStringAndLength(cString)));
+	assert(force(uni).cString == cString && force(uni).length == utf8.length);
 
 	size_t i = 0;
 	unicodeDecodeAssertNoError(utf8, (dchar x) {

@@ -44,8 +44,9 @@ import model.model :
 	TypeParamsAndSig,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.array : arraysCorrespond, copyArray, emptySmallArray, findIndex, isEmpty, makeArray, map, sizeEq, small;
-import util.col.arrayBuilder : add, ArrayBuilder, finish;
+import util.col.array :
+	arraysCorrespond, copyArray, emptySmallArray, findIndex, isEmpty, makeArray, map, sizeEq, small, SmallArray;
+import util.col.arrayBuilder : add, ArrayBuilder, smallFinish;
 import util.col.enumMap : EnumMap, enumMapMapValues;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
@@ -55,6 +56,7 @@ import util.symbol : Symbol, symbol;
 import util.util : castNonScope_ref;
 
 struct CommonFunsAndMain {
+	SmallArray!UriAndDiagnostic diagnostics;
 	CommonFuns commonFuns;
 	Opt!MainFun mainFun;
 }
@@ -110,77 +112,75 @@ CommonFunsAndMain getCommonFuns(
 	Type mainPointerType = instantiateType(commonTypes.funPtrStruct, [nat64FutureType, stringListType]);
 	Type jsonType = getType(CommonModule.json, symbol!"json");
 
-	FunInst* allocFun = getFun(CommonModule.alloc, symbol!"alloc", nat8MutPointerType, [param!"size-bytes"(nat64Type)]);
-	FunInst* and = getFun(CommonModule.boolLowLevel, symbol!"&&", boolType, [param!"a"(boolType), param!"b"(boolType)]);
-	immutable EnumMap!(FunKind, FunDecl*) lambdaSubscriptFuns = getLambdaSubscriptFuns(
-		alloc, commonTypes, *modules[CommonModule.funUtil], *modules[CommonModule.future]);
-	Opt!MainFun main = has(mainModule)
-		? some(getMainFun(alloc, ctx, diagsBuilder, *force(mainModule), nat64FutureType, stringListType, voidType))
-		: none!MainFun;
-	FunInst* mark = getFun(
-		CommonModule.alloc,
-		symbol!"mark",
-		Type(commonTypes.bool_),
-		[param!"ctx"(markCtxType), param!"pointer"(nat8ConstPointerType), param!"size-bytes"(nat64Type)]);
-
 	scope ParamShort[] newTFutureParams = [param!"value"(typeParam0)];
 	Type tFuture = instantiateType(commonTypes.future, [typeParam0]);
+	Type tList = instantiateType(commonTypes.list, [typeParam0]);
+	Type tArray = instantiateType(commonTypes.array, [typeParam0]);
 
 	Type rFutureSharedOfP = instantiateType(commonTypes.funStructs[FunKind.shared_], [tFuture, typeParam1]);
 	Type rFutureMutOfP = instantiateType(commonTypes.funStructs[FunKind.mut], [tFuture, typeParam1]);
-
 	Type symbolJsonTuple = instantiateType(tuple2Decl, [Type(commonTypes.symbol), jsonType]);
 	Type symbolJsonTupleArray = instantiateType(arrayDecl, [symbolJsonTuple]);
-
-	FunDecl* sharedOfMutLambda = getFunDeclInner(
-		*modules[CommonModule.future],
-		symbol!"shared-of-mut-lambda",
-		twoTypeParams,
-		rFutureSharedOfP,
-		[param!"a"(rFutureMutOfP)],
-		countSpecs: 2);
 	ParamsShort.Variadic newJsonPairsParams = ParamsShort.Variadic(
 		param!"pairs"(symbolJsonTupleArray), symbolJsonTuple);
-	FunInst* newJsonFromPairs = instantiateNonTemplateFun(ctx, getFunDecl(
-		alloc, diagsBuilder, *modules[CommonModule.json], symbol!"new",
-		TypeParamsAndSig(emptyTypeParams, jsonType, ParamsShort(&newJsonPairsParams), countSpecs: 0)));
-	FunDecl* newTFuture = getFunDeclInner(
-		*modules[CommonModule.future], symbol!"new", singleTypeParams, tFuture, newTFutureParams, countSpecs: 0);
-	FunInst* newNat64Future = instantiateFun1(ctx, newTFuture, nat64Type);
-	FunInst* newVoidFuture = instantiateFun1(ctx, newTFuture, voidType);
-	FunInst* rtMain = getFun(
-		CommonModule.runtimeMain,
-		symbol!"rt-main",
-		int32Type,
-		[
-			param!"argc"(int32Type),
-			param!"argv"(cStringConstPointerType),
-			param!"main"(mainPointerType),
-		]);
-	FunInst* throwImpl = getFun(
-		CommonModule.exceptionLowLevel,
-		symbol!"throw-impl",
-		voidType,
-		[param!"message"(stringType)]);
-	FunInst* char8ArrayTrustAsString = getFun(
-		CommonModule.string_,
-		symbol!"trust-as-string",
-		stringType,
-		[param!"a"(char8ArrayType)]);
-	FunInst* equalNat64 = getFun(
-		CommonModule.numberLowLevel,
-		symbol!"==",
-		boolType,
-		[param!"a"(nat64Type), param!"b"(nat64Type)]);
-	FunInst* lessNat64 = getFun(
-		CommonModule.numberLowLevel, symbol!"is-less", boolType, [param!"a"(nat64Type), param!"b"(nat64Type)]);
-	return CommonFunsAndMain(
-		CommonFuns(
-			finish(alloc, diagsBuilder),
-			allocFun, and, lambdaSubscriptFuns, sharedOfMutLambda, mark,
-			newJsonFromPairs, newNat64Future, newVoidFuture,
-			rtMain, throwImpl, char8ArrayTrustAsString, equalNat64, lessNat64),
-		main);
+	ParamsShort.Variadic newTListParams = ParamsShort.Variadic(
+		param!"value"(tArray), typeParam0);
+	CommonFuns commonFuns = CommonFuns(
+		alloc: getFun(CommonModule.alloc, symbol!"alloc", nat8MutPointerType, [param!"size-bytes"(nat64Type)]),
+		and: getFun(CommonModule.boolLowLevel, symbol!"&&", boolType, [param!"a"(boolType), param!"b"(boolType)]),
+		lambdaSubscript: getLambdaSubscriptFuns(
+			alloc, commonTypes, *modules[CommonModule.funUtil], *modules[CommonModule.future]),
+		sharedOfMutLambda: getFunDeclInner(
+			*modules[CommonModule.future],
+			symbol!"shared-of-mut-lambda",
+			twoTypeParams,
+			rFutureSharedOfP,
+			[param!"a"(rFutureMutOfP)],
+			countSpecs: 2),
+		mark: getFun(
+			CommonModule.alloc,
+			symbol!"mark",
+			Type(commonTypes.bool_),
+			[param!"ctx"(markCtxType), param!"pointer"(nat8ConstPointerType), param!"size-bytes"(nat64Type)]),
+		newJsonFromPairs: instantiateNonTemplateFun(ctx, getFunDecl(
+			alloc, diagsBuilder, *modules[CommonModule.json], symbol!"new",
+			TypeParamsAndSig(emptyTypeParams, jsonType, ParamsShort(&newJsonPairsParams), countSpecs: 0))),
+		newTFuture: getFunDeclInner(
+			*modules[CommonModule.future],
+			symbol!"new", singleTypeParams, tFuture, newTFutureParams, countSpecs: 0),
+		newTList: getFunDecl(
+			alloc, diagsBuilder, *modules[CommonModule.list], symbol!"new",
+			TypeParamsAndSig(singleTypeParams, tList, ParamsShort(&newTListParams), countSpecs: 0)),
+		rtMain: getFun(
+			CommonModule.runtimeMain,
+			symbol!"rt-main",
+			int32Type,
+			[
+				param!"argc"(int32Type),
+				param!"argv"(cStringConstPointerType),
+				param!"main"(mainPointerType),
+			]),
+		throwImpl: getFun(
+			CommonModule.exceptionLowLevel,
+			symbol!"throw-impl",
+			voidType,
+			[param!"message"(stringType)]),
+		char8ArrayTrustAsString: getFun(
+			CommonModule.string_,
+			symbol!"trust-as-string",
+			stringType,
+			[param!"a"(char8ArrayType)]),
+		equalNat64: getFun(
+			CommonModule.numberLowLevel,
+			symbol!"==",
+			boolType,
+			[param!"a"(nat64Type), param!"b"(nat64Type)]),
+		lessNat64: getFun(
+			CommonModule.numberLowLevel, symbol!"is-less", boolType, [param!"a"(nat64Type), param!"b"(nat64Type)]));
+	Opt!MainFun main = has(mainModule)
+		? some(getMainFun(alloc, ctx, diagsBuilder, *force(mainModule), nat64FutureType, stringListType, voidType))
+		: none!MainFun;
+	return CommonFunsAndMain(smallFinish(alloc, diagsBuilder), commonFuns, main);
 }
 
 Destructure makeParam(ref Alloc alloc, ParamShort param) =>
@@ -200,11 +200,6 @@ ParamShort param(string name)(Type type) =>
 	ParamShort(symbol!name, type);
 
 private:
-
-FunInst* instantiateFun1(InstantiateCtx ctx, FunDecl* decl, Type typeArg) {
-	Type[1] typeArgs = [typeArg];
-	return instantiateFun(ctx, decl, small!Type(typeArgs), emptySpecImpls);
-}
 
 immutable NameAndRange[1] singleTypeParamsArray = [NameAndRange(0, symbol!"t")];
 TypeParams singleTypeParams() => TypeParams(singleTypeParamsArray);

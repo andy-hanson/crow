@@ -4,10 +4,11 @@ module util.string;
 
 import util.alloc.alloc : Alloc;
 import util.comparison : compareArrays, compareChar, Comparison;
-import util.col.array : append, arrayOfRange, arraysEqual, copyArray, emptySmallArray, endPtr, isEmpty, small, SmallArray;
+import util.col.array :
+	append, arrayOfRange, arraysEqual, copyArray, emptySmallArray, endPtr, isEmpty, small, SmallArray;
 import util.conv : safeToUint;
 import util.hash : HashCode, hashString;
-import util.opt : none, Opt, some;
+import util.opt : force, none, Opt, some;
 import util.util : castNonScope_ref;
 
 alias SmallString = SmallArray!(immutable char);
@@ -55,6 +56,28 @@ struct MutCString {
 }
 
 alias CString = immutable MutCString;
+
+immutable struct CStringAndLength {
+	@safe @nogc pure nothrow:
+
+	CString cString;
+	size_t length;
+	this(CString c) {
+		cString = c;
+		length = cStringSize(c);
+	}
+	@system this(CString c, size_t l) {
+		cString = c;
+		length = l;
+	}
+
+	CString asCString() =>
+		cString;
+	@trusted string asString() =>
+		cString.ptr[0 .. length];
+	@trusted string asStringIncludingNul() =>
+		cString.ptr[0 .. length + 1];
+}
 
 @trusted immutable(ubyte[]) bytesOfString(return scope string a) {
 	static assert(char.sizeof == ubyte.sizeof);
@@ -115,14 +138,9 @@ bool tryTakeChar(scope ref MutCString ptr, char expected) {
 		return false;
 }
 
-pure @trusted CString mustStripPrefix(CString a, string prefix) { // TODO: this is just tryGetAfterStartsWith? ---------------------------
-	assert(startsWith(a, prefix));
-	immutable(char)* ptr = a.ptr;
-	foreach (char c; prefix) {
-		assert(*ptr == c);
-		ptr++;
-	}
-	return CString(ptr);
+pure @trusted CString mustStripPrefix(CString a, string prefix) {
+	Opt!CString res = tryGetAfterStartsWith(a, prefix);
+	return force(res);
 }
 
 bool startsWith(in CString a, in string chars) {

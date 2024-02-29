@@ -8,7 +8,7 @@ import
 	../private/c-string-util: find-char-in-c-string, find-c-string-end
 	../pointer: ==, <=>, +, *, const-pointer, null
 	../range: ..
-	../string: ==, <=>, as-string, c-string, hash-mix, string
+	../string: ==, <=>, c-string, hash-mix, string, to
 	../tuple: new
 	../version: is-windows
 
@@ -29,10 +29,10 @@ get-environ-raw c-string*() summon, unsafe
 
 -parse-environ-entry (string, string)(entry c-string) unsafe
 	if key-end ?= entry find-char-in-c-string "="
-		key = (entry .. key-end).as-array as-string
+		key string = (entry .. key-end).as-array to
 		value-begin = key-end + 1
 		value-end = value-begin find-c-string-end
-		value = (value-begin .. value-end).as-array as-string
+		value string = (value-begin .. value-end).as-array to
 		key, value
 	else
 		todo

@@ -7,7 +7,9 @@ import concretize.concretizeCtx :
 	arrayElementType,
 	boolType,
 	char8ArrayExpr,
+	char8ListExpr,
 	char32ArrayExpr,
+	char32ListExpr,
 	ConcretizeCtx,
 	ConcreteFunKey,
 	concreteTypeFromClosure,
@@ -735,9 +737,13 @@ ConcreteExpr concretizeLiteralStringLike(
 ) {
 	final switch (a.kind) {
 		case LiteralStringLikeExpr.Kind.char8Array:
-			return char8ArrayExpr(ctx.concretizeCtx, type, range, a.value);
+			return char8ArrayExpr(ctx.concretizeCtx, range, a.value);
+		case LiteralStringLikeExpr.Kind.char8List:
+			return char8ListExpr(ctx.concretizeCtx, type, range, a.value);
 		case LiteralStringLikeExpr.Kind.char32Array:
-			return char32ArrayExpr(ctx.concretizeCtx, type, range, a.value);
+			return char32ArrayExpr(ctx.concretizeCtx, range, a.value);
+		case LiteralStringLikeExpr.Kind.char32List:
+			return char32ListExpr(ctx.concretizeCtx, type, range, a.value);
 		case LiteralStringLikeExpr.Kind.cString:
 			return ConcreteExpr(type, range, ConcreteExprKind(constantCString(ctx.concretizeCtx, a.value)));
 		case LiteralStringLikeExpr.Kind.string_:

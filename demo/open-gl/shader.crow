@@ -31,7 +31,7 @@ shader-prog-load GLuint(
 		err-log GLchar mut-array = log-length.to uninitialized-mut-array
 		gl glGetProgramInfoLog shader-prog, log-length, &log-length, err-log.begin-pointer
 		gl glDeleteProgram shader-prog
-		throw "Error loading shaders: {err-log.to::(char8 array) as-string}"
+		throw "Error loading shaders: {err-log.to::(char8 array)}"
 
 shader-prog-destroy void(gl gl-ext, shader-prog GLuint) summon, unsafe
 	gl glDeleteProgram shader-prog
@@ -49,7 +49,7 @@ shader-prog-destroy void(gl gl-ext, shader-prog GLuint) summon, unsafe
 		err-log GLchar mut-array = log-length.to uninitialized-mut-array
 		gl glGetShaderInfoLog shader, log-length, &log-length, err-log.begin-pointer
 		gl glDeleteShader shader
-		throw "error compiling GLSL {name}: {err-log.to::(char8 array) as-string}"
+		throw "error compiling GLSL {name}: {err-log.to::(char8 array)}"
 
 -create-shader-from-source GLuint(gl gl-ext, source string, shader-type GLenum) summon, unsafe
 	shader = gl glCreateShader shader-type

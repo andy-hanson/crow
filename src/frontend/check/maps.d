@@ -8,7 +8,6 @@ import util.col.array : allSame, SmallArray;
 import util.col.hashTable : HashTable;
 import util.symbol : Symbol;
 import util.unicode : FileContent;
-import util.uri : Uri;
 
 alias StructsAndAliasesMap = HashTable!(StructOrAlias, Symbol, structOrAliasName);
 alias SpecsMap = HashTable!(immutable SpecDecl*, Symbol, specDeclName);

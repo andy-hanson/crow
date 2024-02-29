@@ -1,12 +1,15 @@
 <section>
 	<h2>Identifiers</h2>
 	<p>
-		An identifier (name of function, variable, type, or any other thing) must start with a letter
-		(A through Z, lower or upper case), followed by letters, numbers, <code>_</code> and <code>-</code>.
+		An identifier (name of function, variable, type, or any other thing) can contain letters, numbers,
+		<code>_</code> and <code>-</code>.
 		<br />
-		The rules are the same for functions, variables, types, etc.
+		It can't begin with a number, or begin or end with <code>-</code>.
 		<br />
-		Examples: <code>a</code>, <code>is-empty</code>, <code>float32</code>, <code>BIG_WORDS</code>.
+		Many character sets are supported; file an issue if yours isn't.
+		<br />
+		Examples: <code>a</code>, <code>is-empty</code>, <code>float32</code>, <code>BIG_WORDS</code>,
+		<code>עורב</code>, <code>까마귀</code>.
 	</p>
 	<p>
 		The standard library uses <code>kebab-case</code>, which means lower-case words separated by hyphens.

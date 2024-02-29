@@ -65,9 +65,11 @@ import util.comparison : Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : compareRange;
 import util.symbol : Symbol, symbol;
+import util.unicode : isValidUnicodeCharacter;
 import util.uri : baseName, compareUriAlphabetically, Uri;
 import util.util : stringOfEnum, max;
-import util.writer : makeStringWithWriter, writeNewline, writeWithCommas, writeWithNewlines, writeWithSeparator, Writer;
+import util.writer :
+	makeStringWithWriter, writeHex, writeNewline, writeWithCommas, writeWithNewlines, writeWithSeparator, Writer;
 
 string stringOfDiagnostics(ref Alloc alloc, in ShowDiagCtx ctx, in Program program, in Opt!(Uri[]) onlyForUris) =>
 	makeStringWithWriter(alloc, (scope ref Writer writer) {
@@ -230,7 +232,9 @@ void writeParseDiag(scope ref Writer writer, in ShowCtx ctx, in ParseDiag d) {
 		(in ParseDiag.UnexpectedCharacter x) {
 			writer ~= "Unexpected character '";
 			showChar(writer, x.character);
-			writer ~= "'.";
+			writer ~= "' (U+";
+			writeHex(writer, x.character, minDigits: 4);
+			writer ~= ").";
 		},
 		(in ParseDiag.UnexpectedOperator x) {
 			writer ~= "Unexpected '";
@@ -330,7 +334,7 @@ void showReadFileDiag(scope ref Writer writer, in ShowCtx ctx, ReadFileDiag a, O
 	}
 }
 
-void showChar(scope ref Writer writer, char c) {
+void showChar(scope ref Writer writer, dchar c) {
 	switch (c) {
 		case '\0':
 			writer ~= "\\0";
@@ -342,7 +346,7 @@ void showChar(scope ref Writer writer, char c) {
 			writer ~= "\\t";
 			break;
 		default:
-			writer ~= c;
+			writer ~= isValidUnicodeCharacter(c) ? c : '�';
 			break;
 	}
 }
@@ -1059,14 +1063,17 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= " can't have specs.";
 		},
 		(in Diag.StringLiteralInvalid x) {
-			writer ~= () {
+			writeName(writer, ctx, () {
 				final switch (x.reason) {
 					case Diag.StringLiteralInvalid.Reason.cStringContainsNul:
-						return "'c-string' literal can't contain '\\0'";
+						return "c-string";
+					case Diag.StringLiteralInvalid.Reason.stringContainsNul:
+						return "string";
 					case Diag.StringLiteralInvalid.Reason.symbolContainsNul:
-						return "'symbol' literal can't contain '\\0'";
+						return "symbol";
 				}
-			}();
+			}());
+			writer ~= " literal can't contain '\\0'";
 		},
 		(in Diag.StorageMissingType) {
 			writer ~= "'storage' needs a type.";

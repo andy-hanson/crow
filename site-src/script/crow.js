@@ -118,27 +118,19 @@ const toMsec = nsec =>
 
 /** @type {function(number): string} */
 const readCString = begin => {
-	let res = ""
-	let ptr = begin
-	while (true) {
-		const code = view.getUint8(ptr)
-		if (code === 0)
-			break
-		else {
-			res += String.fromCharCode(code)
-			ptr++
-			continue
-		}
-	}
-	return res
+	let end = begin
+	while (end < view.byteLength && view.getUint8(end) != 0)
+		end++
+	return new TextDecoder().decode(new Uint8Array(view.buffer, begin, end - begin))
 }
 
 /** @type {function({begin:CStr, length:number}, string): CStr} */
 const writeCString = ({begin, length}, content) => {
-	assert(content.length < length)
-	for (let i = 0; i < content.length; i++)
-		view.setUint8(begin + i, content.charCodeAt(i))
-	view.setUint8(begin + content.length, 0)
+	const {read, written} = new TextEncoder().encodeInto(content, new Uint8Array(view.buffer, begin, length))
+	assert(read == content.length)
+	assert(written < length)
+	view.setUint8(begin + written, 0)
+	assert(readCString(begin) == content)
 	return begin
 }
 

@@ -10,7 +10,6 @@ import util.json : field, Json, jsonObject;
 import util.string : CString, MutCString, stringOfRange;
 import util.unicode : byteIndexOfCharacterIndex, characterIndexOfByteIndex;
 import util.uri : compareUriAlphabetically, stringOfUri, Uri;
-import util.util : min;
 
 // This is a byte offset into a file. (It should generally point to the *start* of a UTF8 character.)
 alias Pos = uint;

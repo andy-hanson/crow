@@ -35,6 +35,7 @@ import frontend.storage :
 	ReadFileResult,
 	setFile,
 	setFileAssumeUtf8,
+	setFileBytes,
 	Storage,
 	TextFileContent;
 import interpret.bytecode : ByteCode;
@@ -76,7 +77,6 @@ import lib.lsp.lspTypes :
 	RenameParams,
 	RunParams,
 	RunResult,
-	SemanticTokens,
 	SemanticTokensParams,
 	SetTraceParams,
 	ShutdownParams,
@@ -450,7 +450,7 @@ void setFileAssumeUtf8(scope ref Perf perf, ref Server server, Uri uri, in strin
 	onFileChanged(perf, server.frontend, uri, FileInfoOrDiag(setFileAssumeUtf8(perf, server.storage, uri, result)));
 }
 void setFile(scope ref Perf perf, ref Server server, Uri uri, in ubyte[] result) {
-	onFileChanged(perf, server.frontend, uri, FileInfoOrDiag(setFile(perf, server.storage, uri, result)));
+	onFileChanged(perf, server.frontend, uri, FileInfoOrDiag(setFileBytes(perf, server.storage, uri, result)));
 }
 void setFile(scope ref Perf perf, ref Server server, Uri uri, ReadFileDiag diag) {
 	setFile(perf, server, uri, ReadFileResult(diag));
@@ -572,14 +572,12 @@ private DiagsAndResultJson printForAst(ref Alloc alloc, ref Server server, Uri u
 DiagsAndResultJson printTokens(ref Alloc alloc, ref Server server, in SemanticTokensParams params) {
 	Uri uri = params.textDocument.uri;
 	CrowFileInfo* file = getCrowFileForTokens(alloc, server, uri);
-	return printForAst(alloc, server, uri, *file.ast, jsonOfDecodedTokens(alloc, tokensOfAst(alloc, *file)));
+	return printForAst(alloc, server, uri, file.ast, jsonOfDecodedTokens(alloc, tokensOfAst(alloc, *file)));
 }
 
 DiagsAndResultJson printAst(scope ref Perf perf, ref Alloc alloc, ref Server server, Uri uri) {
 	CrowFileInfo* file = getCrowFileForTokens(alloc, server, uri);
-	return printForAst(
-		alloc, server, uri, *file.ast,
-		jsonOfAst(alloc, server.lineAndColumnGetters[uri], *file.ast));
+	return printForAst(alloc, server, uri, file.ast, jsonOfAst(alloc, server.lineAndColumnGetters[uri], file.ast));
 }
 
 private CrowFileInfo* getCrowFileForTokens(ref Alloc alloc, ref Server server, Uri uri) =>

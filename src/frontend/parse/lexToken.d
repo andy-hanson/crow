@@ -20,6 +20,7 @@ import util.string :
 	tryTakeChar,
 	tryTakeChars;
 import util.symbol : appendEquals, Symbol, symbol, symbolOfString;
+import util.unicode : isUtf8InitialOrContinueCode, mustTakeOneUnicodeChar;
 
 immutable struct DocCommentAndExtraDedents {
 	SmallString docComment;
@@ -38,7 +39,7 @@ immutable struct TokenAndData {
 		LiteralFloatAst literalFloat = void; // for Token.literalFloat
 		LiteralIntAst literalInt = void; // for Token.literalInt
 		LiteralNatAst literalNat = void; // for Token.literalNat
-		char unexpectedCharacter;
+		dchar unexpectedCharacter;
 		string region;
 	}
 
@@ -77,7 +78,7 @@ immutable struct TokenAndData {
 		token = t;
 		literalNat = l;
 	}
-	this(Token t, char c) {
+	this(Token t, dchar c) {
 		assert(t == Token.unexpectedCharacter);
 		token = t;
 		unexpectedCharacter = c;
@@ -111,7 +112,7 @@ immutable struct TokenAndData {
 		assert(token == Token.literalNat);
 		return literalNat;
 	}
-	char asUnexpectedCharacter() {
+	dchar asUnexpectedCharacter() {
 		assert(token == Token.unexpectedCharacter);
 		return unexpectedCharacter;
 	}
@@ -249,12 +250,7 @@ TokenAndData lexInitialToken(ref MutCString ptr, IndentKind indentKind, ref uint
 Advances 'ptr' to lex a single token.
 Possibly writes to 'data' depending on the kind of token returned.
 */
-TokenAndData lexToken(
-	ref MutCString ptr,
-	IndentKind indentKind,
-	ref uint curIndent,
-	in AddDiag addDiag,
-) {
+TokenAndData lexToken(ref MutCString ptr, IndentKind indentKind, ref uint curIndent, in AddDiag addDiag) {
 	if (*ptr == '\0')
 		return newlineToken(ptr, Token.EOF, indentKind, curIndent, addDiag);
 
@@ -355,25 +351,31 @@ TokenAndData lexToken(
 				: tryTakeChar(ptr, '?')
 				? operatorToken(ptr, symbol!"??")
 				: plainToken(Token.question);
+		case '0': case '1': case '2': case '3': case '4':
+		case '5': case '6': case '7': case '8': case '9':
+			ptr = start;
+			return takeNumberAfterSign(ptr, none!Sign);
 		default:
-			if (isAlphaIdentifierStart(c)) {
-				string nameStr = takeNameRest(ptr, start);
-				Symbol symbol = symbolOfString(nameStr);
-				Token token = tokenForSymbol(symbol);
-				switch (token) {
-					case Token.name:
-						return nameLikeToken(ptr, symbol, Token.name);
-					case Token.region:
-						return TokenAndData(Token.region, takeRestOfLine(ptr));
-					default:
-						return plainToken(token);
-				}
-			} else if (isDecimalDigit(c)) {
-				ptr = start;
-				return takeNumberAfterSign(ptr, none!Sign);
-			} else
-				return TokenAndData(Token.unexpectedCharacter, c);
+			ptr = start;
+			return lexIdentifierLike(ptr);
 	}
+}
+
+private TokenAndData lexIdentifierLike(ref MutCString ptr) {
+	CString start = ptr;
+	if (tryTakeIdentifier(ptr)) {
+		Symbol symbol = symbolOfString(stringOfRange(start, ptr));
+		Token token = tokenForSymbol(symbol);
+		switch (token) {
+			case Token.name:
+				return nameLikeToken(ptr, symbol, Token.name);
+			case Token.region:
+				return TokenAndData(Token.region, takeRestOfLine(ptr));
+			default:
+				return plainToken(token);
+		}
+	} else
+		return TokenAndData(Token.unexpectedCharacter, mustTakeOneUnicodeChar(ptr));
 }
 
 enum EqualsOrThen { equals, then }
@@ -453,7 +455,7 @@ bool lookaheadLambdaAfterParenLeft(MutCString ptr) {
 
 private bool startsWithIdentifier(CString ptr, in string expected) {
 	Opt!CString end = tryGetAfterStartsWith(ptr, expected);
-	return has(end) && !isAlphaIdentifierContinue(*force(end));
+	return has(end) && !isProbablyIdentifierCharForLookahead(*force(end));
 }
 
 bool lookaheadAs(CString ptr) =>
@@ -686,22 +688,81 @@ public LiteralNatAst takeNat(ref MutCString ptr, ulong base) {
 	return LiteralNatAst(value, overflow);
 }
 
-string takeNameRest(ref MutCString ptr, CString begin) {
-	MutCString lastNonHyphen = begin;
-	while (isAlphaIdentifierContinue(*ptr)) {
-		if (*ptr != '-') lastNonHyphen = ptr;
-		ptr++;
-	}
-	ptr = lastNonHyphen;
-	ptr++;
-	return stringOfRange(begin, ptr);
+bool tryTakeIdentifier(ref MutCString ptr) {
+	if (isDecimalDigit(*ptr) || *ptr == '-')
+		return false;
+	if (tryTakeOneIdentifierChar(ptr)) {
+		while (true) {
+			CString beforeHyphen = ptr;
+			while (*ptr == '-') ptr++;
+			if (!tryTakeOneIdentifierChar(ptr)) {
+				ptr = beforeHyphen;
+				break;
+			}
+		}
+		return true;
+	} else
+		return false;
 }
 
-bool isAlphaIdentifierStart(char c) =>
-	('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
+bool tryTakeOneIdentifierChar(ref MutCString ptr) {
+	if (isSingleByteIdentifierChar(*ptr)) {
+		ptr++;
+		return true;
+	} else if (isUtf8InitialOrContinueCode(*ptr)) {
+		MutCString before = ptr;
+		dchar x = mustTakeOneUnicodeChar(ptr);
+		if (isAllowedUnicodeIdentifierChar(x))
+			return true;
+		else {
+			ptr = before;
+			return false;
+		}
+	} else
+		return false;
+}
 
-bool isAlphaIdentifierContinue(char c) =>
-	isAlphaIdentifierStart(c) || c == '-' || isDecimalDigit(c);
+bool isSingleByteIdentifierChar(char a) =>
+	('a' <= a && a <= 'z') || ('A' <= a && a <= 'Z') || a == '-' || a == '_' || isDecimalDigit(a);
+
+bool isProbablyIdentifierCharForLookahead(char a) =>
+	isSingleByteIdentifierChar(a) || isUtf8InitialOrContinueCode(a);
+
+bool isAllowedUnicodeIdentifierChar(dchar a) =>
+	// Latin extended
+	(0xc0 <= a && a <= 0xff && a != '×' && a != '÷') ||
+	// Greek and Coptic
+	(0x370 <= a && a <= 0x3ff) ||
+	// Cyrillic
+	(0x400 <= a && a <= 0x4ff) ||
+	// Hebrew
+	(0x591 <= a && a <= 0x5f4) ||
+	// Arabic
+	(0x600 <= a && a <= 0x6ff) ||
+	// Devanagari
+	(0x904 <= a && a <= 0x97f && !(0x964 <= a && a <= 0x971)) ||
+	// Bengali
+	(0x985 <= a && a <= 0x9e3) ||
+	// Gurmukhi
+	(0xa01 <= a && a <= 0xa5e) ||
+	// Gujarati
+	(0xa81 <= a && a <= 0xaff) ||
+	// Tamil
+	(0xb82 <= a && a <= 0xbfa) ||
+	// Telugu
+	(0xc00 <= a && a <= 0xc7f) ||
+	// Tibetan
+	(0xf00 <= a && a <= 0xfda) ||
+	// Latin extended additional
+	(0x1e00 <= a && a <= 0x1eff) ||
+	// Hiragana
+	(0x3041 <= a && a <= 0x309f) ||
+	// Katakana
+	(0x30a0 <= a && a <= 0x30ff) ||
+	// CJK Unified Ideographs
+	(0x4e00 <= a && a <= 0x9fff) ||
+	// Hangul
+	(0xac00 <= a && a <= 0xd7a3);
 
 bool isTypeChar(char c) {
 	switch (c) {
@@ -716,6 +777,6 @@ bool isTypeChar(char c) {
 		case ')':
 			return true;
 		default:
-			return isAlphaIdentifierContinue(c);
+			return isProbablyIdentifierCharForLookahead(c);
 	}
 }

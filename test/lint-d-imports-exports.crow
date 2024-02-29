@@ -4,9 +4,11 @@ import
 	crow/io/file: read-file
 	crow/io/print: err, print
 	crow/io/process: shell-exec
+	crow/test-util/test-runner: run-all-tests
 	../site-src/search-dir-recursive: search-dir-recursive
 
 main nat^(_ string[]) summon
+	<- run-all-tests
 	files <- all-files
 	failures = files lint-files
 	for x : failures
@@ -124,20 +126,31 @@ main nat^(_ string[]) summon
 
 -words symbol[](a string)
 	with out : build
-		word char8 mut[] = ()
-		for x : a
-			if x is-identifier-char
-				word ~= x
+		iter mut = a begin
+		word-start mut string-iterator? = ()
+		loop
+			if x, i ?= iter next
+				if x is-identifier-char
+					if word-start is-empty
+						word-start := iter,
+				else
+					if start ?= word-start
+						out ~= start slice iter to
+						word-start := ()
+				iter := i
+				continue
 			else
-				unless word is-empty
-					out ~= word.move-to::string to
-		unless word is-empty
-			out ~= word.move-to::string to
+				if start ?= word-start
+					out ~= start slice iter to
+				break
 
--is-identifier-char bool(a char8)
-	"a"::char8 <= a && a <= "z" ||
-		"A"::char8 <= a && a <= "Z" ||
-		"0"::char8 <= a && a <= "9" ||
+test
+	"a(b)c".words is ("a", "b", "c")
+
+-is-identifier-char bool(a char32)
+	"a"::char32 <= a && a <= "z" ||
+		"A"::char32 <= a && a <= "Z" ||
+		"0"::char32 <= a && a <= "9" ||
 		a == "_"
 
 -lint-imports-in-file void(failures string mut[], a file)

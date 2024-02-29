@@ -1,6 +1,6 @@
 no-std
 import
-	./bits: &, |, <<, >>, has-all-bits
+	./bits: ~, &, |, <<, >>, bits-intersect, has-all-bits
 	./bool: ||, bool, false, true
 	./compare: <, compare, comparison, equal
 	./col/array: ~=, array, as-array, begin, begin-pointer, build, end, new, next, prev, slice
@@ -9,7 +9,7 @@ import
 		subscript, try-remove-end, try-split-once, with-block
 	./col/list:
 		==, <=>, ~=, ~, ~~, ~~=, +, begin, build, collection, end, is-empty, iterate,
-		list, list-builder, list-cast, list-iterator, new, next, prev, size, slice, to
+		list, list-builder, list-cast, list-iterator, next, prev, size, slice, to
 	./col/mut-list: copy, move-to, mut-list, to
 	./fun-util: subscript
 	./hash: hasher, hash-mix
@@ -107,25 +107,23 @@ region conversion
 		for x : a
 			out ~= x
 
-# Assumes its input is valid UTF-8 without validating.
-+trust-as-string string(a char8 array) bare, unsafe
+# Assumes its input is valid UTF-8 without validation.
++trust-as-string string(a char8 array) unsafe
 	a.to,
 +trust-as-string string(a char8[]) bare, unsafe
 	a,
 
-###
-Treat a list of UTF-8 character codes as a string.
-This is O(N) since it has to validate.
-###
-+as-string string(a char8[])
+# Treats UTF-8 character codes as a string. O(n) due to validation.
++to string(a char8[])
 	res string = a,
 	# Validate decoding
 	for _ : res; ()
 	res
-+as-string string(a char8 array)
-	a.to as-string
++to string(a char8 array)
+	a.to::char8[] to
+# Validates that bytes are UTF-8 character codes, and returns them as a string.
 +as-string string(bytes nat8[])
-	(trusted bytes.list-cast::char8[]) as-string
+	(trusted bytes.list-cast::char8[]) to
 +as-string string(bytes nat8 array)
 	bytes.to::nat8[] as-string
 
@@ -162,7 +160,7 @@ Treats a c-string as a string by walking to the end.
 Unsafe because this does not copy the memory, and because `a` must end in a `"\0"` character.
 ###
 +as-string string(a c-string) unsafe
-	(a .. a.find-c-string-end).as-array as-string
+	(a .. a.find-c-string-end).as-array to
 
 ###
 Unlike 'as-string' this copies the 'c-string'.
@@ -310,9 +308,8 @@ Result is only digits, no punctuation.
 	else
 		"{whole-part}.{d0}{d1}{d2}" strip-right "0"
 
-# TODO: what is this for? ---------------------------------------------------------------------------------------------------------
 +move-to string(a char8 mut[]) unsafe
-	a.move-to::(char8 array) as-string
+	a.move-to::(char8 array) to
 
 region spec impls (see collection.crow)
 
@@ -427,21 +424,22 @@ region utilities
 
 # Enclose a string in quotes and escape special characters.
 +quote string(a string)
-	inner string[] = for x : a inner
-		if x == "\""
-			"\\\""
-		elif x == "\n"
-			"\\n"
-		elif x == "\r"
-			"\\r"
-		elif x == "\t"
-			"\\t"
-		elif x == "\\"
-			"\\\\"
-		else
-			"{x}"
-	# TODO: "\"{inner}\""
-	"\"" ~~ ("" join inner) ~~ "\""
+	with out : build
+		out ~= "\""
+		for x : a
+			if x == "\""
+				out ~~= "\\\""
+			elif x == "\n"
+				out ~~= "\\n"
+			elif x == "\r"
+				out ~~= "\\r"
+			elif x == "\t"
+				out ~~= "\\t"
+			elif x == "\\"
+				out ~~= "\\\\"
+			else
+				out ~= x
+		out ~= "\""
 
 +unindent string(a string)
 	a replace-all "\t", ""
@@ -469,50 +467,66 @@ Equivalent to `parts[0] ~~ joiner ~~ parts[1] ~~ joiner ~~ ... ~~ parts[n]`.
 					out ~~= joiner
 				out ~~= x
 
--unicode-encode void(out string-builder, a nat32) # TODO: NEATER ---------------------------------------------------
-	if a < 0x80
-		out push-byte a
-	elif a < 0x800
-		out push-byte (a >> 6) | 0xc0
-		out push-byte (a & 0x3f) | 0x80
-	elif a < 0x10000
-		forbid a in 0xd800 .. 0xe000
-		out push-byte (a >> 12) | 0xe0
-		out push-byte ((a >> 6) & 0x3f) | 0x80
-		out push-byte (a & 0x3f) | 0x80
+-unicode-encode void(out string-builder, a nat32)
+	if a < (1 << 7)
+		out push-byte a.to
+	elif a < (1 << 11)
+		out push-byte (a >> 6).to | first-byte-flags
+		out push-byte a.last-6-bits | byte-top-bit
+	elif a < (1 << 16)
+		forbid a in 0xd800 .. 0xe000 : "Invalid Unicode character"
+		out push-byte (a >> 12).to | 0b1110_0000
+		out push-byte (a >> 6).last-6-bits | byte-top-bit
+		out push-byte a.last-6-bits | byte-top-bit
 	else
-		assert a < 0x110000
-		out push-byte (a >> 18) | 0xf0
-		out push-byte ((a >> 12) & 0x3f) | 0x80
-		out push-byte ((a >> 6) & 0x3f) | 0x80
-		out push-byte (a & 0x3f) | 0x80
--push-byte void(out string-builder, a nat32)
-	out.inner ~= a.to to
+		assert a < 0x110000 : "Invalid Unicode character"
+		out push-byte (a >> 18).to | 0b1111_0000
+		out push-byte (a >> 12).last-6-bits | byte-top-bit
+		out push-byte (a >> 6).last-6-bits | byte-top-bit
+		out push-byte a.last-6-bits | byte-top-bit
+-push-byte void(out string-builder, a nat8)
+	out.inner ~= a to
 
--unicode-decode (char32, char8 list-iterator)(first-char char8, original-iter char8 list-iterator) # TODO: NEATER ---------
+-unicode-decode (char32, char8 list-iterator)(first-char char8, original-iter char8 list-iterator)
 	if first-char is-valid-single-byte-character
 		first-char.to, original-iter
 	else
 		assert first-char is-first-byte : "Unicode decode error"
-		fst mut nat8 = first-char to
 		iter mut = original-iter
-		d mut nat32 = fst to
-		fst <<:= 1
+		res mut nat32 = first-char.to::nat8 to
+		flag mut nat8 = first-char.to << 1
 		for i : 1::nat64 .. 4
 			next-char, next-iter = iter.next ?? throw "Unicode decode error"
-			tmp nat8 = next-char to
+			code nat8 = next-char to
+			assert (code & first-byte-flags) == byte-top-bit : "Unicode decode error"
 			iter := next-iter
-			assert (tmp & 0xc0) == 0x80 : "Unicode decode error"
-			d := (d << 6) | (tmp & 0x3f).to
-			fst <<:= 1
-			if (fst & 0x80) == 0
-				break (d & bit-mask[i]).to, iter
+			res := (res << 6) | code.to.last-6-bits
+			flag <<:= 1
+			if (flag & 0x80) == 0
+				assert res bits-intersect ~(i - 1).mask : "Unicode decode error"
+				res &:= i.mask
+				assert res is-valid-unicode-character : "Unicode decode error"
+				break res.to, iter
 			else
 				continue
 		else
 			throw "Unicode decode error"
 
--unicode-decode-prev (char8 list-iterator, char32)(original-iter char8 list-iterator, first-char char8)
+-mask nat32(i nat64)
+	if i == 0
+		(1 << 7) - 1
+	elif i == 1
+		(1 << 11) - 1
+	elif i == 2
+		(1 << 16) - 1
+	else
+		assert i == 3
+		(1 << 21) - 1
+
+-unicode-decode-prev (char8 list-iterator, char32)(
+	original-iter char8 list-iterator,
+	first-char char8,
+)
 	if first-char is-valid-single-byte-character
 		original-iter, first-char.to
 	else
@@ -529,16 +543,21 @@ Equivalent to `parts[0] ~~ joiner ~~ parts[1] ~~ joiner ~~ ... ~~ parts[n]`.
 		else
 			throw "Unicode decode error"
 
+-last-6-bits nat32(a nat32)
+	a & 0b111111
+-last-6-bits nat8(a nat32)
+	a.last-6-bits.to
+
 -first-byte-flags nat8()
 	0b1100_0000
 -is-first-byte bool(a char8)
 	a.to::nat8 has-all-bits first-byte-flags
 
 -is-valid-single-byte-character bool(a char8) bare
-	a.to::nat8 < 0x80
+	a.to::nat8 < 0b1000_0000
+
+-byte-top-bit nat8() bare
+	0x80
 
 -is-valid-unicode-character bool(a nat32) bare
 	a < 0xd800 || a in 0xe000 .. 0x110000
-
--bit-mask nat32[]()
-	(1 << 7) - 1, (1 << 11) - 1, (1 << 16) - 1, (1 << 21) - 1

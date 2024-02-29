@@ -37,7 +37,6 @@ import model.ast :
 	ExprAst,
 	FieldMutabilityAst,
 	FileAst,
-	fileAstForDiag,
 	FunDeclAst,
 	ModifierAst,
 	ImportsOrExportsAst,
@@ -70,11 +69,10 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : Pos, Range;
 import util.string : CString, emptySmallString, SmallString;
 import util.symbol : Symbol;
-import util.unicode : unicodeValidate;
 import util.util : castNonScope_ref, ptrTrustMe;
 
-FileAst* parseFile(scope ref Perf perf, ref Alloc alloc, in CString source) =>
-	withMeasure!(FileAst*, () {
+FileAst parseFile(scope ref Perf perf, ref Alloc alloc, in CString source) =>
+	withMeasure!(FileAst, () {
 		Lexer lexer = createLexer(ptrTrustMe(alloc), castNonScope_ref(source));
 		return parseFileInner(lexer);
 	})(perf, alloc, PerfMeasure.parseFile);
@@ -319,7 +317,7 @@ VarDeclAst parseVarDecl(
 	return VarDeclAst(range(lexer, start), docComment, visibility, name, typeParams, kindPos, kind, type, modifiers);
 }
 
-FileAst* parseFileInner(ref Lexer lexer) {
+FileAst parseFileInner(ref Lexer lexer) {
 	SmallString moduleDocComment = takeNewline_topLevel(lexer);
 	Cell!(Opt!SmallString) firstDocComment = Cell!(Opt!SmallString)(some(emptySmallString));
 	bool noStd = tryTakeToken(lexer, Token.noStd);
@@ -355,7 +353,7 @@ FileAst* parseFileInner(ref Lexer lexer) {
 		parseSpecOrStructOrFunOrTest(lexer, specs, structAliases, structs, funs, tests, vars, docComment);
 	}
 
-	return allocate(lexer.alloc, FileAst(
+	return FileAst(
 		finishDiagnostics(lexer),
 		moduleDocComment,
 		noStd,
@@ -366,5 +364,5 @@ FileAst* parseFileInner(ref Lexer lexer) {
 		smallFinish(lexer.alloc, structs),
 		smallFinish(lexer.alloc, funs),
 		smallFinish(lexer.alloc, tests),
-		smallFinish(lexer.alloc, vars)));
+		smallFinish(lexer.alloc, vars));
 }

@@ -89,7 +89,7 @@ import util.util : min, stringOfEnum;
 
 SemanticTokens tokensOfAst(ref Alloc alloc, in CrowFileInfo file) {
 	scope Ctx ctx = Ctx(TokensBuilder(file.content.content, &alloc, file.content.lineAndCharacterGetter));
-	FileAst* ast = file.ast;
+	ref FileAst ast() => file.ast;
 
 	if (has(ast.imports))
 		addImportTokens(ctx, force(ast.imports));

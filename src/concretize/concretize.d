@@ -6,6 +6,8 @@ import concretize.allConstantsBuilder : finishAllConstants;
 import concretize.checkConcreteModel : checkConcreteProgram, ConcreteCommonTypes;
 import concretize.concretizeCtx :
 	boolType,
+	char8Type,
+	char32Type,
 	concreteFunForWrapMain,
 	ConcretizeCtx,
 	deferredFillRecordAndUnionBodies,
@@ -61,17 +63,31 @@ ConcreteProgram concretizeInner(
 		ptrTrustMe(program.program),
 		castNonScope_ref(fileContentGetters));
 	CommonFuns commonFuns = program.program.commonFuns;
-	lateSet(ctx.char8ArrayTrustAsString_, getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.char8ArrayTrustAsString));
+	lateSet(ctx.char8ArrayTrustAsString_, getOrAddNonTemplateConcreteFunAndFillBody(
+		ctx, commonFuns.char8ArrayTrustAsString));
 	lateSet(ctx.equalNat64Function_, getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.equalNat64));
 	lateSet(ctx.lessNat64Function_, getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.lessNat64));
+	lateSet(ctx.newNat64FutureFunction_, getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
+		ctx.program.commonFuns.newTFuture,
+		//TODO:avoid alloc
+		newSmallArray(ctx.alloc, [nat64Type(ctx)]),
+		emptySmallArray!(immutable ConcreteFun*))));
 	lateSet(ctx.newVoidFutureFunction_, getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
-		commonFuns.newVoidFuture.decl,
+		commonFuns.newTFuture,
 		//TODO:avoid alloc
 		newSmallArray(ctx.alloc, [voidType(ctx)]),
 		emptySmallArray!(immutable ConcreteFun*))));
 	lateSet(ctx.andFunction_, getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
 		commonFuns.and.decl,
 		emptySmallArray!ConcreteType,
+		emptySmallArray!(immutable ConcreteFun*))));
+	lateSet(ctx.newChar8ListFunction_, getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
+		ctx.program.commonFuns.newTList,
+		newSmallArray(ctx.alloc, [char8Type(ctx)]),
+		emptySmallArray!(immutable ConcreteFun*))));
+	lateSet(ctx.newChar32ListFunction_, getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(
+		ctx.program.commonFuns.newTList,
+		newSmallArray(ctx.alloc, [char32Type(ctx)]),
 		emptySmallArray!(immutable ConcreteFun*))));
 	lateSet(ctx.newJsonFromPairsFunction_, getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.newJsonFromPairs));
 	ConcreteFun* markFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.mark);

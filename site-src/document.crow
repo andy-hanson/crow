@@ -35,9 +35,9 @@ documentation path-and-content[]^() summon
 -to-lower-case string(a string)
 	for x : a; x.to-lower-case
 
--to-lower-case char8(a char8)
-	if "A"::char8 <= a && a <= "Z"
-		diff = a.to::nat8 - "A"::char8.to
+-to-lower-case char32(a char32)
+	if a in "A" .. "Z"
+		diff = a.to::nat32 - "A"::char32.to
 		"a".to + diff to
 	else
 		a

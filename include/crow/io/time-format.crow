@@ -14,7 +14,7 @@ import
 	../number: ==, <=>, +, nat64
 	../pointer: as-const
 	../range: ..
-	../string: as-string, char8, string, to
+	../string: char8, string, to
 	../version: is-windows
 	./time: seconds-since-epoch, unix-time
 
@@ -133,4 +133,4 @@ Second from 00 to 60 inclusive.
 				&seconds gmtime
 			res char8 mut-array = max-size + 1 uninitialized-mut-array
 			len = res.begin-pointer strftime res.size, format.to, tm.as-const
-			res.cast-immutable[0 .. len] as-string
+			res.cast-immutable[0 .. len] to

@@ -54,25 +54,30 @@ CommonTypes* getCommonTypes(
 	StructInst* void_ = nonTemplate(ctx, symbol!"void");
 	StructDecl* array = getDecl(ctx, symbol!"array", 1);
 	StructDecl* future = getDecl(ctx, symbol!"future", 1);
+	StructDecl* list = getDecl(ctx, symbol!"list", 1);
 	StructDecl* pointerConst = getDecl(ctx, symbol!"const-pointer", 1);
+	IntegralTypes integrals = IntegralTypes(makeEnumMap!IntegralType((IntegralType type) =>
+		nonTemplate(ctx, symbolOfEnum(type))));
 	return allocate(alloc, CommonTypes(
 		bool_: nonTemplate(ctx, symbol!"bool"),
 		char8: char8,
-		char8Array: instantiate1(ctx, array, char8),
 		char32: char32,
-		char32Array: instantiate1(ctx, array, char32),
 		cString: instantiate1(ctx, pointerConst, char8),
 		float32: nonTemplate(ctx, symbol!"float32"),
 		float64: nonTemplate(ctx, symbol!"float64"),
-		integrals: IntegralTypes(makeEnumMap!IntegralType((IntegralType type) =>
-			nonTemplate(ctx, symbolOfEnum(type)))),
+		integrals: integrals,
 		string_: nonTemplate(ctx, symbol!"string"),
 		symbol: symbolType,
 		symbolArray: instantiate1(ctx, array, symbolType),
 		void_: void_,
 		array: array,
+		char8Array: instantiate1(ctx, array, char8),
+		char32Array: instantiate1(ctx, array, char32),
 		future: future,
 		voidFuture: instantiate1(ctx, future, void_),
+		list: list,
+		char8List: instantiate1(ctx, list, char8),
+		char32List: instantiate1(ctx, list, char32),
 		opt: getDecl(ctx, symbol!"option", 1),
 		ptrConst: pointerConst,
 		ptrMut: getDecl(ctx, symbol!"mut-pointer", 1),

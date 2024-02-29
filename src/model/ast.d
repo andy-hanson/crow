@@ -2,13 +2,11 @@ module model.ast;
 
 @safe @nogc pure nothrow:
 
-import model.diag : ReadFileDiag;
-import model.model : AssertOrForbidKind, FunKind, ImportFileType, stringOfVarKindLowerCase, VarKind, Visibility;
+import model.model : AssertOrForbidKind, FunKind, stringOfVarKindLowerCase, VarKind, Visibility;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.col.array : arrayOfSingle, exists, isEmpty, newSmallArray, sizeEq, SmallArray;
 import util.conv : safeToUint;
-import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
 import util.sourceRange : combineRanges, Pos, Range, rangeOfStartAndLength;
 import util.string : SmallString;
@@ -1108,6 +1106,8 @@ immutable struct ImportOrExportAstKind {
 	mixin TaggedUnion!(ModuleWhole, SmallArray!NameAndRange, File*);
 }
 
+enum ImportFileType { nat8Array, string }
+
 immutable struct ImportsOrExportsAst {
 	Range range;
 	SmallArray!ImportOrExportAst paths;
@@ -1127,9 +1127,9 @@ immutable struct FileAst {
 	SmallArray!VarDeclAst vars;
 }
 
-private FileAst* fileAstForDiags(ref Alloc alloc, SmallArray!ParseDiagnostic diags) =>
+private FileAst fileAstForDiags(SmallArray!ParseDiagnostic diags) =>
 	// Make sure the dummy AST doesn't have implicit imports
-	allocate(alloc, FileAst(diags, noStd: true));
+	FileAst(diags, noStd: true);
 
-FileAst* fileAstForDiag(ref Alloc alloc, ParseDiag diag) =>
-	fileAstForDiags(alloc, newSmallArray(alloc, [ParseDiagnostic(Range.empty, diag)]));
+FileAst fileAstForDiag(ref Alloc alloc, ParseDiag diag) =>
+	fileAstForDiags(newSmallArray(alloc, [ParseDiagnostic(Range.empty, diag)]));

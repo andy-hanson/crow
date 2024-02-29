@@ -3,8 +3,8 @@ stdout:
 info: ["a"]
 stderr:
 test/end-to-end/compile-errors/spec-multiple-impls.crow 9:31-9:45 Multiple implementations found for spec signature 'to':
-	'to json(a string)' (from include/crow/json.crow line 66)
+	'to json(a string)' (from include/crow/json.crow line 68)
 	'to json(a string)' (from test/end-to-end/compile-errors/spec-multiple-impls.crow line 2)
 	Calling:
 	to-json-string@(json, string[]) (from test/end-to-end/compile-errors/spec-multiple-impls.crow line 5)
-	to@(json, string) (from include/crow/json.crow line 72)
+	to@(json, string) (from include/crow/json.crow line 74)

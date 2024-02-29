@@ -15,7 +15,7 @@ import util.alloc.alloc : Alloc, allocateElements, AllocKind, MetaAlloc, newAllo
 import util.col.array : arraysEqual, arraysCorrespond, indexOf, isEmpty, makeArray, map;
 import util.opt : force, has, none, Opt;
 import util.perf : Perf;
-import util.string : CString, stringOfCString;
+import util.string : CString, CStringAndLength, stringOfCString;
 import util.symbol : Extension, Symbol;
 import util.unicode : FileContent;
 import util.uri : concatUriAndPath, getExtension, isAncestor, mustParseUri, parsePath, Uri, UrisInfo;
@@ -100,10 +100,6 @@ private void withShowDiagCtxForTestImpl(alias cb)(scope ref Test test, in Storag
 
 pure:
 
-void assertEqual(in CString actual, in string expected) {
-	assertEqual(stringOfCString(actual), expected);
-}
-
 void assertEqual(in string actual, in string expected) {
 	if (actual != expected) {
 		debugLogWithWriter((scope ref Writer writer) {
@@ -168,7 +164,7 @@ ReadFileResult defaultFileResult(ref Alloc alloc, scope ref Server server, in Ur
 		case FileType.crow:
 			Opt!size_t index = indexOf(testUris, uri);
 			if (has(index))
-				return ReadFileResult(FileContent(testIncludeContents[force(index)]));
+				return ReadFileResult(FileContent(CStringAndLength(testIncludeContents[force(index)])));
 			else if (isAncestor(server.includeDir, uri)) {
 				debugLogWithWriter((scope ref Writer writer) {
 					writer ~= "Missing URI: ";

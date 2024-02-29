@@ -71,7 +71,6 @@ import util.util : abs, castImmutable, castNonScope, castNonScope_ref, ptrTrustM
 import util.writer :
 	makeStringWithWriter,
 	withWriter,
-	writeEscapedChar,
 	writeEscapedChar_inner,
 	writeFloatLiteral,
 	writeNewline,

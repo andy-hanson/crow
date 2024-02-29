@@ -20,7 +20,6 @@ import frontend.storage :
 	fileType,
 	markUnknownIfNotExist,
 	OtherFileInfo,
-	ParseResult,
 	Storage;
 import model.ast : FileAst, fileAstForDiag, ImportOrExportAst, ImportOrExportAstKind, NameAndRange;
 import model.diag : Diag, ReadFileDiag, ReadFileDiag_;
@@ -178,12 +177,14 @@ private Common makeProgramCommon(
 	InstantiateCtx ctx = InstantiateCtx(ptrTrustMe(perf), ptrTrustMe(a.allInsts));
 	CommonFunsAndMain commonFuns = getCommonFuns(a.alloc, ctx, *force(a.commonTypes), commonModules, mainModule);
 	Program program = Program(
-		getAllConfigs(alloc, a),
-		mapPreservingKeys!(immutable Module*, getModuleUri, CrowFile*, Uri, getCrowFileUri)(
+		allConfigs: getAllConfigs(alloc, a),
+		allModules: mapPreservingKeys!(immutable Module*, getModuleUri, CrowFile*, Uri, getCrowFileUri)(
 			alloc, a.crowFiles, (ref const CrowFile* file) => file.mustHaveModule),
-		map!(immutable Module*, Uri)(alloc, roots, (ref Uri uri) => mustGet(a.crowFiles, uri).mustHaveModule),
-		commonFuns.commonFuns,
-		force(a.commonTypes));
+		rootModules: map!(immutable Module*, Uri)(alloc, roots, (ref Uri uri) =>
+			mustGet(a.crowFiles, uri).mustHaveModule),
+		commonFunsDiagnostics: commonFuns.diagnostics,
+		commonFuns: commonFuns.commonFuns,
+		commonTypes: force(a.commonTypes));
 	return Common(program, commonFuns.mainFun);
 }
 
@@ -194,7 +195,7 @@ void onFileChanged(scope ref Perf perf, ref Frontend a, Uri uri, FileInfoOrDiag 
 				CrowFile* file = ensureCrowFile(a, uri);
 				file.astOrDiag = info.match!AstOrDiag(
 					(FileInfo x) =>
-						AstOrDiag(x.as!(CrowFileInfo*).ast),
+						AstOrDiag(&x.as!(CrowFileInfo*).ast),
 					(ReadFileDiag x) {
 						// Files don't change *to* unknown, only change out of that state
 						assert(x != ReadFileDiag.unknown);
@@ -266,7 +267,7 @@ FileAst* toAst(ref Alloc alloc, AstOrDiag x) =>
 		(const FileAst* x) => x,
 		(const ReadFileDiag_ x) {
 			assert(!isUnknownOrLoading(x));
-			return fileAstForDiag(alloc, ParseDiag(x));
+			return allocate(alloc, fileAstForDiag(alloc, ParseDiag(x)));
 		});
 
 void doDirtyWork(scope ref Perf perf, ref Frontend a) {
@@ -527,7 +528,7 @@ MutOpt!(Config*) tryFindConfig(ref Storage storage, Uri configDir) {
 	Uri configUri = childUri(configDir, crowConfigBaseName);
 	return fileOrDiag(storage, configUri).match!(MutOpt!(Config*))(
 		(FileInfo x) =>
-			someMut(x.as!(CrowConfigFileInfo*).config),
+			someMut(&x.as!(CrowConfigFileInfo*).config),
 		(ReadFileDiag x) {
 			final switch (x) {
 				case ReadFileDiag.notFound:
