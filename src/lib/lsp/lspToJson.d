@@ -18,6 +18,7 @@ import lib.lsp.lspTypes :
 	RegisterCapability,
 	RunResult,
 	SemanticTokens,
+	SyntaxTranslateResult,
 	TextEdit,
 	UnknownUris,
 	UnloadedUris,
@@ -30,7 +31,7 @@ import util.exitCode : ExitCode;
 import util.json : field, Json, jsonBool, jsonList, jsonNull, jsonObject, jsonString, optionalField;
 import util.opt : force, has, Opt;
 import util.sourceRange :
-	jsonOfLineAndCharacterRange, jsonOfUriAndLineAndCharacterRange, LineAndCharacterGetter, UriAndRange;
+	jsonOfLineAndCharacterRange, jsonOfUriAndLineAndCharacterRange, LineAndCharacterGetter, Pos, UriAndRange;
 import util.uri : stringOfUri, symbolOfUri, Uri;
 import util.util : stringOfEnum;
 
@@ -78,6 +79,10 @@ Json jsonOfLspOutResult(ref Alloc alloc, in LineAndCharacterGetters lcg, ref Lsp
 			jsonOfRunResult(alloc, x),
 		(SemanticTokens x) =>
 			jsonObject(alloc, [field!"data"(jsonList(alloc, x.data, (in uint i) => Json(i)))]),
+		(SyntaxTranslateResult x) =>
+			jsonObject(alloc, [
+				field!"output"(x.output),
+				field!"diagnostics"(jsonList(alloc, x.diagnostics, (in Pos x) => Json(x)))]),
 		(UnloadedUris x) =>
 			jsonObject(alloc, [field!"unloadedUris"(jsonList!Uri(alloc, x.unloadedUris, (in Uri x) =>
 				Json(stringOfUri(alloc, x))))]),

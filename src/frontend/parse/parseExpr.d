@@ -943,7 +943,7 @@ ExprAst parseExprAndCalls(ref Lexer lexer, ArgCtx argCtx) {
 ExprAst parseExprNoLet(ref Lexer lexer) =>
 	parseExprAndAllCalls(lexer, AllowedBlock.yes);
 
-ExprAst parseSingleStatementLine(ref Lexer lexer) {
+public ExprAst parseSingleStatementLine(ref Lexer lexer) {
 	Pos start = curPos(lexer);
 	Opt!EqualsOrThen et = lookaheadEqualsOrThen(lexer);
 	if (has(et))

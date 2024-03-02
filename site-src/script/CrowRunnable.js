@@ -3,7 +3,9 @@ import { copyIcon, downloadIcon, playIcon, upIcon } from "./CrowIcon.js"
 import { CrowText, Token, TokensAndDiagnostics } from "./CrowText.js"
 import { LoadingIcon } from "./LoadingIcon.js"
 import { MutableObservable } from "./util/MutableObservable.js"
-import { assert, createButton, createDiv, createSpan, nonNull, removeAllChildren, setStyleSheet } from "./util/util.js"
+import {
+	assert, createButton, createDiv, createSpan, getChildText, nonNull, removeAllChildren, setStyleSheet
+} from "./util/util.js"
 
 const css = `
 .outer-container {
@@ -80,24 +82,6 @@ const getDefaultName = () => {
 	const res = `demo${nextNameIndex}.crow`
 	nextNameIndex++
 	return res
-}
-
-/** @type {function(NodeListOf<ChildNode>): string} */
-const getChildText = childNodes => {
-	assert(childNodes.length === 1)
-	const child = childNodes[0]
-	assert(child instanceof Text)
-	return reduceIndent(child.data)
-}
-
-/**
-@type {function(string): string}
-Counts indentation for the first line, and reduces indentation of all lines so that the first will be at 0.
-*/
-const reduceIndent = a => {
-	// Count indent for the first line
-	assert(a.startsWith("\n"))
-	return a.replaceAll(a.slice(0, a.search(/\S/)), "\n").trim()
 }
 
 /** @type {function(ShadowRoot, string, boolean, CrowServer, string): void} */

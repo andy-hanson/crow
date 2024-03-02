@@ -8,6 +8,7 @@ import document.document : documentJSON;
 import frontend.frontendCompile :
 	Frontend, initFrontend, makeProgramForRoots, makeProgramForMain, onFileChanged, perfStats;
 import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
+import frontend.ide.syntaxTranslate : syntaxTranslate;
 import frontend.ide.getDefinition : getDefinitionForPosition;
 import frontend.ide.getHover : getHover;
 import frontend.ide.getPosition : getPosition;
@@ -80,6 +81,7 @@ import lib.lsp.lspTypes :
 	SemanticTokensParams,
 	SetTraceParams,
 	ShutdownParams,
+	SyntaxTranslateParams,
 	TextDocumentContentChangeEvent,
 	TextDocumentIdentifier,
 	TextDocumentPositionParams,
@@ -264,6 +266,8 @@ private Opt!LspOutResult handleLspRequest(
 		},
 		(in ShutdownParams _) =>
 			some(LspOutResult(LspOutResult.Null())),
+		(in SyntaxTranslateParams x) =>
+			some(LspOutResult(syntaxTranslate(alloc, x))),
 		(in UnloadedUrisParams) =>
 			some(LspOutResult(UnloadedUris(allUnloadedUris(alloc, server)))));
 
@@ -311,6 +315,8 @@ private LspOutResult handleLspRequestWithProgram(
 		(in SemanticTokensParams _) =>
 			assert(false),
 		(in ShutdownParams _) =>
+			assert(false),
+		(in SyntaxTranslateParams x) =>
 			assert(false),
 		(in UnloadedUrisParams _) =>
 			assert(false));

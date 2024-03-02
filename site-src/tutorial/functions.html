@@ -23,52 +23,48 @@
 <section>
 	<h2>Function call syntax</h2>
 	<p>
-		In crow, a function name always comes after its first argument (if any).
-		To call a function <code class="function">f</code>:
-		<ul class="bullets">
-			<li>
-				With 0 arguments: <code>f</code>.
-				Just writing the function name calls it.
-			</li>
-			<li>
-				With 1 argument: <code>x f</code>.
-				You can also write <code>x.f</code> which binds tightly, meaning it is like <code>(x f)</code>.
-			</li>
-			<li>
-				With 2 arguments: <code>x f y</code>.
-			</li>
-			<li>
-				With 3 arguments: <code>x f y, z</code>.
-			</li>
-			<li>
-				With 4 or more arguments: Just add a comma before each additional argument.
-			</li>
-		</ul>
+		In Crow, a function name always comes after its first argument (if any).
+		<br />
+		The first column below shows how to call a function <code class="function">f</code> in Crow.
+		<br />
+		The other columns show an equivalent in other languages.
 	</p>
 
-	<h3>Chaining function calls</h3>
+	<syntax-translate>
+		<syntax-translate-row>f()</syntax-translate-row>
+		<syntax-translate-row>f(a)</syntax-translate-row>
+		<syntax-translate-row>f(a, b)</syntax-translate-row>
+		<syntax-translate-row>f(a, b, c)</syntax-translate-row>
+	</syntax-translate>
+
 	<p>
-		So what does <code>a b c d e</code> mean?
-		<br />
-		A function name comes after its first argument. So the first function name is <code class="function">b</code>.
-		<br />
-		Then <code>c</code> provides the second argument to that function.
-		There is no comma after <code>c</code>, so <code>d</code> is another function name
-		and <code>a b c</code> is its first argument.
-		Then <code>e</code> is the second argument to <code>d</code>.
-		<br />
-		So this is equivalent to <code>(a <span class="function">b</span> c) <span class="function">d</span> e</code>.
+		You can edit any cell above to experiment.
+		This does not use a full parser; it only supports identifiers and calls.
 	</p>
 	<p>
-		If you instead wrote <code>a <span class="function">b</span> c, d <span class="function">e</span></code>,
-		then the call to <code class="function">b</code> gets <code>d</code> as a third argument.
-		<br />
-		Then the whole expression is passed into <code class="function">e</code>,
-		making this equivalent to <code>(a b c, d) e</code>.
+		<code>f</code> in Crow could be either <code>f</code> or <code>f()</code> in C.
+		It accesses a variable if one is in scope; otherwise, it is a function call.
 	</p>
+
 	<p>
-		The call syntax may be unintuitive at first, but it handles most cases without needing parentheses.
+		You can write <code>a.f</code> to avoid needing to parenthesize <code>(a f)</code>.
+		This only works for a function with one argument.
 	</p>
+	<syntax-translate>
+		<syntax-translate-row>abs(sin(a))</syntax-translate-row>
+		<syntax-translate-row>in(id(a), allowed(b))</syntax-translate-row>
+	</syntax-translate>
+
+	<p>
+		Without a <code>.</code>, function names bind loosely.
+		When you see a function name, everything to the left of it is the first argument.
+	</p>
+
+	<syntax-translate>
+		<syntax-translate-row>then(then(a, b), c)</syntax-translate-row>
+		<syntax-translate-row>in(a, allowed(b, purpose))</syntax-translate-row>
+		<syntax-translate-row>draw(triangle(a, b, c))</syntax-translate-row>
+	</syntax-translate>
 </section>
 
 <section>
@@ -92,10 +88,6 @@
 		It takes no arguments and returns a <code>string</code>.
 		The function <em>body</em> always goes beneath the signature and indented.
 	</p>
-	<aside class="small">
-		The <code>()</code> is special syntax for a call to <code>new</code>.
-		This will be explained in {{tutorial/special-call-syntax}}.
-	</aside>
 
 	<h3>Parameters</h3>
 
@@ -108,33 +100,16 @@
 			"Hello, world! " repeat times
 	</crow-runnable>
 
+	<aside class="small">
+		We wrote <code>3.hello-world</code> to avoid needing to parenthesize <code>(3 hello-world).</code>
+	</aside>
+
 	<p>
 		This defines a function <code>hello-world</code> that takes a <code>nat</code> (natural number)
 		and returns a <code>string</code>.
 		<br />
 		The argument <code>3</code> becomes the value of the parameter
 		<code>times</code>, causing the string to repeat 3 times.
-	</p>
-	<aside class="small">
-		We wrote <code>3.hello-world</code> to avoid needing to parenthesize <code>(3 hello-world).</code>
-	</aside>
-
-	<p>
-		Additional parameters should each be preceded by a comma.
-		The below takes 2 parameters <code>name</code> and <code>times</code>
-		and passes arguments <code>"crow"</code> and <code>3</code>, respectively.
-	</p>
-	<crow-runnable>
-		main void()
-			info log ("crow" hello 3)
-
-		hello string(name string, times nat)
-			"hello, {name}! " repeat times
-	</crow-runnable>
-
-	<p>
-		<code>"hello, {name}! "</code> is string interpolation.
-		This will be explained in {{tutorial/types}}.
 	</p>
 
 	<aside>
@@ -150,4 +125,21 @@
 			</li>
 		</ul>
 	</aside>
+
+	<p>
+		The below takes 2 parameters <code>name</code> and <code>times</code>
+		and passes arguments <code>"crow"</code> and <code>3</code>, respectively.
+	</p>
+	<crow-runnable>
+		main void()
+			info log ("crow" hello 3)
+
+		hello string(name string, times nat)
+			"Hello, {name}! " repeat times
+	</crow-runnable>
+
+	<p>
+		<code>"Hello, {name}! "</code> is string interpolation.
+		This will be explained in {{tutorial/types}}.
+	</p>
 </section>

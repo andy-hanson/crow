@@ -111,7 +111,7 @@ main nat^(_ string[]) summon
 -query (string, string)[] grammar()
 	query-part separated-by "&"
 -query-part (string, string) grammar()
-	identifier = ("=", "&").text-not-containing-any
+	identifier = ("=", "&") text-not-containing-any
 	identifier ~~ "=" ~~ identifier
 
 -to json(a user-info)

@@ -15,7 +15,7 @@ import frontend.parse.lexer :
 	takeNextToken,
 	Token,
 	TokenAndData;
-import frontend.parse.parseExpr : parseFunExprBody;
+import frontend.parse.parseExpr : parseFunExprBody, parseSingleStatementLine;
 import frontend.parse.parseImport : parseImportsOrExports;
 import frontend.parse.parseType :
 	parseModifiers, parseParams, parseType, parseTypeArgForVarDecl, tryParseParams, tryTakeVisibility;
@@ -58,16 +58,16 @@ import model.ast :
 	TypeAst,
 	VarDeclAst;
 import model.model : TypeParams, VarKind, Visibility;
-import model.parseDiag : ParseDiag;
+import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.array : emptySmallArray, SmallArray;
+import util.col.array : contains, emptySmallArray, SmallArray;
 import util.col.arrayBuilder : add, ArrayBuilder, buildSmallArray, Builder, smallFinish;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : Pos, Range;
-import util.string : CString, emptySmallString, SmallString;
+import util.string : CString, emptySmallString, SmallString, stringOfCString;
 import util.symbol : Symbol;
 import util.util : castNonScope_ref, ptrTrustMe;
 
@@ -76,6 +76,19 @@ FileAst parseFile(scope ref Perf perf, ref Alloc alloc, in CString source) =>
 		Lexer lexer = createLexer(ptrTrustMe(alloc), castNonScope_ref(source));
 		return parseFileInner(lexer);
 	})(perf, alloc, PerfMeasure.parseFile);
+
+immutable struct ExprAndDiags {
+	ExprAst expr;
+	ParseDiagnostic[] diags;
+}
+ExprAndDiags parseSingleLineExpression(ref Alloc alloc, in CString source) {
+	assert(!contains(stringOfCString(source), '\n'));
+	Lexer lexer = createLexer(ptrTrustMe(alloc), castNonScope_ref(source));
+	mustTakeToken(lexer, Token.newlineSameIndent);
+	ExprAst expr = parseSingleStatementLine(lexer);
+	takeOrAddDiagExpectedToken(lexer, Token.EOF, ParseDiag.Expected.Kind.endOfLine);
+	return ExprAndDiags(expr, finishDiagnostics(lexer));
+}
 
 private:
 

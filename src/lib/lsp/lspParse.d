@@ -4,6 +4,7 @@ module lib.lsp.lspParse;
 
 import lib.lsp.lspTypes :
 	CancelRequestParams,
+	SyntaxTranslateParams,
 	DefinitionParams,
 	DidChangeTextDocumentParams,
 	DidCloseTextDocumentParams,
@@ -14,6 +15,7 @@ import lib.lsp.lspTypes :
 	InitializationOptions,
 	InitializeParams,
 	InitializedParams,
+	Language,
 	LspInMessage,
 	LspInNotification,
 	LspInRequest,
@@ -59,6 +61,11 @@ LspInMessage parseLspInMessage(ref Alloc alloc, in Json message) {
 				parseUriProperty(params),
 				enumOfString!ReadFileResultType(get!"type"(params).as!string),
 				cast(immutable ubyte[]) (hasKey!"content"(params) ? get!"content"(params).as!string : "")));
+		case "custom/syntaxTranslate":
+			return request(SyntaxTranslateParams(
+				get!"source"(params).as!string,
+				enumOfString!Language(get!"from"(params).as!string),
+				enumOfString!Language(get!"to"(params).as!string)));
 		case "custom/run":
 			return request(RunParams(
 				parseUriProperty(params),

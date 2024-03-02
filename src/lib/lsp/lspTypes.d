@@ -8,7 +8,7 @@ module lib.lsp.lspTypes;
 import util.exitCode : ExitCode;
 import util.col.multiMap : MultiMap;
 import util.opt : Opt;
-import util.sourceRange : LineAndCharacter, LineAndCharacterRange, Range, UriAndRange;
+import util.sourceRange : LineAndCharacter, LineAndCharacterRange, Pos, Range, UriAndRange;
 import util.union_ : Union;
 import util.uri : Uri;
 
@@ -49,6 +49,7 @@ immutable struct LspInRequestParams {
 		RunParams,
 		SemanticTokensParams,
 		ShutdownParams,
+		SyntaxTranslateParams,
 		UnloadedUrisParams);
 }
 
@@ -77,6 +78,7 @@ immutable struct LspOutResult {
 		Opt!Hover,
 		RunResult,
 		SemanticTokens,
+		SyntaxTranslateResult,
 		UnloadedUris,
 		UriAndRange[], // for definition or references
 		Opt!WorkspaceEdit, // for rename
@@ -103,6 +105,17 @@ immutable struct SetTraceParams {
 	TraceValue value;
 }
 enum TraceValue { off, messages, verbose }
+
+enum Language { c, crow, java }
+immutable struct SyntaxTranslateParams {
+	string source;
+	Language from;
+	Language to;
+}
+immutable struct SyntaxTranslateResult {
+	string output;
+	Pos[] diagnostics;
+}
 
 // Parameter to "custom/readFileResult"
 immutable struct ReadFileResultParams {

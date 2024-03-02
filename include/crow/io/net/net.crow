@@ -82,8 +82,7 @@ bind-to-port SOCKET(port nat16) summon, unsafe
 	if res ?= op-sock
 		res
 	else
-		err print "Failed to bind to port {port}"
-		todo
+		throw "Failed to bind to port {port}"
 
 close-socket void(sock SOCKET) summon, unsafe
 	if is-windows

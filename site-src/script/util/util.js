@@ -3,7 +3,7 @@
  * @param {() => string} msg?
  * @return {asserts b}
 */
-export function assert(b, msg = () => "Assertion failed") {
+export const assert = (b, msg = () => "Assertion failed") => {
 	if (!b)
 		throw new Error(msg())
 }
@@ -48,6 +48,13 @@ export const createNode = (tagName, options = {}) => {
 export const createButton = options =>
 	createNode("button", options)
 
+/** @type {function({oninput:(event: Event) => void, value:string}): HTMLInputElement} */
+export const createInputText = ({oninput, value}) => {
+	const res = createNode("input", {attr:{type:"text", value:value}})
+	res.addEventListener('input', oninput)
+	return res
+}
+
 /**
  * @param {CreateNodeOptions=} options
  * @return {HTMLDivElement}
@@ -90,3 +97,25 @@ export const makeDebouncer = msec => {
 		cur = setTimeout(action, msec)
 	}
 }
+
+/** @type {function(NodeListOf<ChildNode>): string} */
+export const getChildText = childNodes => {
+	assert(childNodes.length === 1)
+	return getTextFromNode(childNodes[0])
+}
+
+/** @type {function(Node): string} */
+const getTextFromNode = node => {
+	assert(node instanceof Text)
+	return reduceIndent(node.data)
+}
+
+/**
+@type {function(string): string}
+Counts indentation for the first line, and reduces indentation of all lines so that the first will be at 0.
+*/
+const reduceIndent = a =>
+	a.startsWith("\n")
+		// Count indent for the first line
+		? a.replaceAll(a.slice(0, a.search(/\S/)), "\n").trim()
+		: a

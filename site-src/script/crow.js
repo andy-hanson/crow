@@ -185,7 +185,7 @@ const crowServer = (async () => {
 
 	/** @type {CrowServer["changeFile"]} */
 	const changeFile = (uri, text) =>
-		getDiagnostics(uri ,lsp.handleMessage({
+		getDiagnostics(uri, lsp.handleMessage({
 			method: "textDocument/didChange",
 			params: {textDocument:{uri}, contentChanges:[{text}]},
 		}))

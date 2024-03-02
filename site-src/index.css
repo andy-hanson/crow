@@ -68,6 +68,10 @@ table.auto-funs tr th:nth-child(3) {
 	width: 45%;
 }
 
+table.syntax-translate {
+	width: 100%;
+}
+
 table.setters {
 	table-layout: fixed;
 }

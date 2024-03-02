@@ -688,7 +688,7 @@ public LiteralNatAst takeNat(ref MutCString ptr, ulong base) {
 	return LiteralNatAst(value, overflow);
 }
 
-bool tryTakeIdentifier(ref MutCString ptr) {
+public bool tryTakeIdentifier(ref MutCString ptr) {
 	if (isDecimalDigit(*ptr) || *ptr == '-')
 		return false;
 	if (tryTakeOneIdentifierChar(ptr)) {
