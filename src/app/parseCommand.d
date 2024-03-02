@@ -21,7 +21,6 @@ import util.union_ : Union;
 import util.uri :
 	alterExtension,
 	asFilePath,
-	childFilePath,
 	FilePath,
 	getExtension,
 	parseFilePathWithCwd,
@@ -34,13 +33,13 @@ import util.writer : makeStringWithWriter, writeNewline, writeQuotedString, Writ
 import versionInfo : OS;
 
 Command parseCommand(ref Alloc alloc, FilePath cwd, OS os, CString[] args) {
-	string arg0 = stringOfCString(args[0]);
+	string arg0 = isEmpty(args) ? "" : stringOfCString(args[0]);
 	if (endsWith(arg0, ".crow"))
 		return Command(
 			CommandKind(CommandKind.Run(parseUriWithCwd(cwd, arg0), RunOptions(RunOptions.Interpret()), args[1 .. $])),
 			CommandOptions()) ;
 	else {
-		Opt!CommandName optName = isEmpty(args) ? none!CommandName : optEnumOfString!CommandName(arg0);
+		Opt!CommandName optName = optEnumOfString!CommandName(arg0);
 		return has(optName)
 			? parseCommandFromName(alloc, cwd, os, force(optName), args[1 .. $])
 			: Command(
@@ -466,7 +465,7 @@ BuildOptions parseBuildOptions(
 			outC: none!FilePath,
 			shouldBuildExecutable: true,
 			outExecutable: defaultExePath(
-				uriIsFile(mainUri) ? asFilePath(mainUri) : childFilePath(cwd, symbol!"main"),
+				uriIsFile(mainUri) ? asFilePath(mainUri) : cwd / symbol!"main",
 				defaultExeExtension));
 	return BuildOptions(resOut, options);
 }

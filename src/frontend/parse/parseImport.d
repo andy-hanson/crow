@@ -26,7 +26,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
 import util.symbol : concatSymbolsWithDot, Symbol, symbol;
-import util.uri : childPath, Path, RelPath, rootPathPlain;
+import util.uri : Path, RelPath, rootPathPlain;
 
 Opt!ImportsOrExportsAst parseImportsOrExports(ref Lexer lexer, Token keyword) {
 	Pos start = curPos(lexer);
@@ -80,7 +80,7 @@ size_t takeDotDotSlashes(ref Lexer lexer, size_t acc) {
 
 Path addPathComponents(ref Lexer lexer, Path acc) =>
 	tryTakeOperator(lexer, symbol!"/")
-		? addPathComponents(lexer, childPath(acc, takePathComponent(lexer)))
+		? addPathComponents(lexer, acc / takePathComponent(lexer))
 		: acc;
 
 ImportOrExportAst parseSingleModuleImportOnOwnLine(ref Lexer lexer) {

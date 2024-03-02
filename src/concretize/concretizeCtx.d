@@ -95,7 +95,7 @@ import util.opt : force, has, none, optOrDefault;
 import util.sourceRange : UriAndRange;
 import util.string : bytesOfString;
 import util.symbol : Symbol, symbol;
-import util.unicode : unicodeDecodeAssertNoError;
+import util.unicode : mustUnicodeDecode;
 import util.uri : Uri;
 import util.util : enumConvert, max, roundUp, typeAs;
 import versionInfo : VersionInfo;
@@ -850,7 +850,7 @@ Constant char32ArrayConstant(ref ConcretizeCtx ctx, ConcreteType type, in string
 	getConstantArray(
 		ctx.alloc, ctx.allConstants, mustBeByVal(type),
 		buildArray!Constant(ctx.alloc, (scope ref Builder!Constant out_) {
-			unicodeDecodeAssertNoError(value, (dchar x) {
+			mustUnicodeDecode(value, (dchar x) {
 				out_ ~= Constant(Constant.Integral(x));
 			});
 		}));

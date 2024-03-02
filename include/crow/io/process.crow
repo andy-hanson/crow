@@ -1,4 +1,3 @@
-no-std
 import
 	system/poll:
 		fd, has-POLLIN, has-POLLERR, has-POLLHUP, has-POLLNVAL, has-POLLOUT, has-POLLPRI, new,
@@ -15,23 +14,12 @@ import
 	system/win32:
 		CloseHandle, CreatePipe, CreateProcessA, DWORD, ERROR_BROKEN_PIPE, GetExitCodeProcess,
 		GetLastError, HANDLE, HANDLE_FLAG_INHERIT, hProcess, hThread, INFINITE, new, _pclose,
-		_popen, PROCESS_INFORMATION, ReadFile, SECURITY_ATTRIBUTES, SetHandleInformation,
-		STARTF_USESTDHANDLES, STARTUPINFOA, WaitForSingleObject
-	../bool: &&, ||, bool, not, to, true
-	../col/array: array, begin-pointer
-	../col/collection: for-loop, subscript
-	../col/mut-array: +, begin, begin-pointer, mut-array, new, next, size
-	../col/list: ~, ~=, build, iterate, list, size, to
-	../col/mut-list: begin-pointer, end-pointer, move-to, mut-list, new, size, unsafe-set-size
-	../compare: !=, <=
+		PeekNamedPipe, _popen, PROCESS_INFORMATION, ReadFile, SECURITY_ATTRIBUTES,
+		SetHandleInformation, Sleep, STARTF_USESTDHANDLES, STARTUPINFOA, WaitForSingleObject
+	../col/mut-list: unsafe-set-size
 	../c-types: fd-t
-	../misc: new, void
-	../number: ==, <=>, +, int32, int64, nat8, nat32, nat64, to
 	../private/bootstrap: todo
 	../private/c-string-util: find-c-string-end
-	../private/number-low-level: wrap-to
-	../pointer: ==, +, -, mut-pointer, new, null, pointer-cast
-	../string: as-string, char8, c-string, interpolate, is-empty, join, move-to, string, to
 	../version: is-windows
 	./environ: get-environ-raw
 	./file: is-file
@@ -134,11 +122,10 @@ The child process shares stdout and stderr with the parent process.
 	unless stdout-write.CloseHandle && stderr-write.CloseHandle
 		todo
 
-	stdout = stdout-read.read-from-pipe-windows
-	unless stdout-read.CloseHandle
+	stdout, stderr = stdout-read read-from-pipes-windows stderr-read
+	unless stdout-read CloseHandle
 		todo
-	stderr = stderr-read.read-from-pipe-windows
-	unless stderr-read.CloseHandle
+	unless stderr-read CloseHandle
 		todo
 
 	_ = process-info.hProcess WaitForSingleObject INFINITE
@@ -153,24 +140,62 @@ The child process shares stdout and stderr with the parent process.
 
 	exit-code.wrap-to.exited, stdout, stderr
 
--read-from-pipe-windows string(pipe HANDLE) summon, unsafe
-	res nat8 mut[] = ()
+# We need to read from stdout and stderr together,
+# or else the process may block when writing too much to stderr while this is waiting on stdout
+-read-from-pipes-windows (string, string)(stdout HANDLE, stderr HANDLE) summon, unsafe
+	res-out nat8 mut[] = ()
+	res-err nat8 mut[] = ()
+	sleep mut nat32 = 1
 	loop
-		read-at-a-time nat64 = 0x1000
-		old-size = res size
-		res unsafe-set-size old-size + read-at-a-time
-		old-end = res.end-pointer - read-at-a-time
-		n-read mut nat32 = 0
-		ok = pipe ReadFile old-end, read-at-a-time.to, &n-read, null
-		if ok
-			assert n-read.to::nat64 <= read-at-a-time
-			res unsafe-set-size old-size + n-read.to
-			continue
+		stdout-state = res-out read-some-if-available stdout, "stdout"
+		stderr-state = res-err read-some-if-available stderr, "stderr"
+		if stdout-state == closed && stderr-state == closed
+			break
 		else
-			res unsafe-set-size old-size
-			err = GetLastError
-			assert err == ERROR_BROKEN_PIPE : "Error reading from pipe: {err show-win32-error}"
-			break res.move-to::nat8[] as-string
+			unless stdout-state == available || stderr-state == available
+				sleep Sleep
+				sleep := (sleep + 1) min 100
+			continue
+
+	res-out.move-to::nat8[].as-string, res-err.move-to::nat8[].as-string
+
+-pipe-state enum(available, awaiting, closed)
+-read-some-if-available pipe-state(res nat8 mut[], pipe HANDLE, pipe-desc string) summon, unsafe
+	if x ?= pipe peek-available pipe-desc
+		x == 0 ? awaiting : res read-some pipe, x
+	else
+		closed
+
+-peek-available nat64?(pipe HANDLE, desc string) summon, unsafe
+	buf nat8 mut[] = ()
+	buf-size nat64 = 8
+	buf unsafe-set-size buf-size
+	n-read mut nat32 = 0
+	total-available mut nat32 = 0
+	bytes-left mut nat32 = 0
+	ok = pipe PeekNamedPipe null, 0, &n-read, &total-available, &bytes-left
+	if ok
+		total-available.to,
+	elif GetLastError == ERROR_BROKEN_PIPE
+		()
+	else
+		throw "Error peeking {desc}: {GetLastError show-win32-error}"
+
+-read-some pipe-state(res nat8 mut[], pipe HANDLE, n-to-read nat64) summon, unsafe
+	old-size = res size
+	res unsafe-set-size old-size + n-to-read
+	old-end = res.end-pointer - n-to-read
+	n-read mut nat32 = 0
+	ok = pipe ReadFile old-end, n-to-read.to, &n-read, null
+	if ok
+		assert n-read.to::nat64 == n-to-read
+		res unsafe-set-size old-size + n-read.to
+		available
+	else
+		res unsafe-set-size old-size
+		err = GetLastError
+		assert err == ERROR_BROKEN_PIPE : "Error reading from pipe: {err show-win32-error}"
+		closed
 
 -spawn-and-wait-result-posix process-result(exe c-string, args c-string[]) summon, unsafe
 	stdout-pipes = make-pipes

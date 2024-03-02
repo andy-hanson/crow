@@ -9,7 +9,7 @@ import util.opt : force, has, none, Opt, some;
 import util.string :
 	CString, cStringIsEmpty, isDecimalDigit, isWhitespace, MutCString, takeChar, tryTakeChar, tryTakeChars;
 import util.symbol : symbolOfString;
-import util.writer : makeStringWithWriter, Writer;
+import util.writer : debugLogWithWriter, makeStringWithWriter, Writer;
 
 Json mustParseJson(ref Alloc alloc, in CString source) {
 	Opt!Json res = parseJson(alloc, source);
@@ -91,6 +91,9 @@ Opt!string parseString(ref Alloc alloc, scope ref MutCString ptr) {
 				case '\0':
 				case '\r':
 				case '\n':
+					debugLogWithWriter((scope ref Writer writer) {
+
+					});
 					return;
 				case '"':
 					ok = true;
@@ -116,6 +119,8 @@ Opt!char escapedChar(char escape) {
 	switch (escape) {
 		case '"':
 			return some('"');
+		case 'r':
+			return some('\r');
 		case 'n':
 			return some('\n');
 		case 't':

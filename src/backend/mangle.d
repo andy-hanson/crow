@@ -29,7 +29,7 @@ import util.col.map : Map;
 import util.col.mapBuilder : finishMap, mustAddToMap, MapBuilder;
 import util.col.fullIndexMap : FullIndexMap, mapFullIndexMap;
 import util.col.mutMap : getOrAdd, insertOrUpdate, MutMap, setInMap;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, Opt;
 import util.symbol : Symbol, symbol;
 import util.union_ : TaggedUnion;
 import util.util : todo;
@@ -275,51 +275,20 @@ public void writeMangledName(ref Writer writer, in MangledNames mangledNames, Sy
 
 	if (conflictsWithCName(a))
 		writer ~= '_';
-	foreach (char c; a) {
-		Opt!string mangled = mangleChar(c);
-		if (has(mangled))
-			writer ~= force(mangled);
-		else
-			writer ~= c;
+	foreach (dchar x; a) {
+		if (!isAsciiIdentifierChar(x)) {
+			writer ~= "__";
+			writer ~= uint(x);
+		} else
+			writer ~= x;
 	}
 }
 
-Opt!string mangleChar(char a) {
-	switch (a) {
-		case '~':
-			return some!string("__t");
-		case '!':
-			return some!string("__b");
-		case '%':
-			return some!string("__u");
-		case '^':
-			return some!string("__x");
-		case '&':
-			return some!string("__a");
-		case '*':
-			return some!string("__m");
-		case '-':
-			return some!string("__s");
-		case '+':
-			return some!string("__p");
-		case '=':
-			return some!string("__e");
-		case '|':
-			return some!string("__o");
-		case '<':
-			return some!string("__l");
-		case '.':
-			return some!string("__r");
-		case '>':
-			return some!string("__g");
-		case '/':
-			return some!string("__d");
-		case '?':
-			return some!string("__q");
-		default:
-			return none!string;
-	}
-}
+bool isAsciiIdentifierChar(dchar a) =>
+	('a' <= a && a <= 'z') ||
+	('A' <= a && a <= 'Z') ||
+	('0' <= a && a <= '9') ||
+	a == '_';
 
 bool conflictsWithCName(Symbol a) {
 	switch (a.value) {

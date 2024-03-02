@@ -26,20 +26,20 @@ unit-test: bin/crow-debug
 
 crow-unit-tests: crow-unit-tests-interpreter crow-unit-tests-jit crow-unit-tests-aot
 crow-unit-tests-interpreter: bin/crow
-	test/crow-unit-tests.crow
+	bin/crow test/crow-unit-tests.crow
 crow-unit-tests-jit: bin/crow
 ifdef JIT
-		./bin/crow run test/crow-unit-tests.crow --jit
-		./bin/crow run test/crow-unit-tests.crow --jit --optimize
+	bin/crow run test/crow-unit-tests.crow --jit
+	bin/crow run test/crow-unit-tests.crow --jit --optimize
 endif
 crow-unit-tests-aot: bin/crow
-	./bin/crow run test/crow-unit-tests.crow --aot
-	./bin/crow run test/crow-unit-tests.crow --aot --optimize
+	bin/crow run test/crow-unit-tests.crow --aot
+	bin/crow run test/crow-unit-tests.crow --aot --optimize
 
 test-extern-library: bin/crow bin/libexample.so
 	test/test-extern-library/main.crow
-	# TODO: ./bin/crow run test/test-extern-library/main.crow --jit
-	./bin/crow run test/test-extern-library/main.crow --aot
+	# TODO: bin/crow run test/test-extern-library/main.crow --jit
+	bin/crow run test/test-extern-library/main.crow --aot
 
 bin/libexample.so: test/test-extern-library/example.c
 	mkdir -p bin
@@ -47,13 +47,13 @@ bin/libexample.so: test/test-extern-library/example.c
 
 end-to-end-test: bin/crow
 ifdef JIT
-	test/end-to-end/main.crow --include-jit
+	bin/crow test/end-to-end/main.crow --include-jit
 else
-	test/end-to-end/main.crow
+	bin/crow test/end-to-end/main.crow
 endif
 
 end-to-end-test-overwrite: bin/crow
-	test/end-to-end/main.crow --overwrite-output
+	bin/crow test/end-to-end/main.crow --overwrite-output
 
 ### external dependencies ###
 
@@ -90,9 +90,15 @@ d_dependencies = $(all_src_files) bin/d-imports/date.txt bin/d-imports/commit-ha
 
 d_flags_common = -w -betterC -preview=dip1000 -preview=in -J=bin/d-imports -J=src/test -J=include
 dmd_flags_common = $(d_flags_common)
+ldc_flags_common = $(d_flags_common)
+ifdef JIT
+	dmd_flags_common += -version=GccJitAvailable
+	ldc_flags_common += --d-version=GccJitAvailable
+	app_link += -L=-lgccjit
+endif
+
 dmd_flags_assert = $(dmd_flags_common) -check=on -boundscheck=on
 dmd_flags_debug = -debug -g -version=Debug -version=Test
-ldc_flags_common = $(d_flags_common)
 ldc_flags_assert = $(ldc_flags_common) --enable-asserts=true --boundscheck=on
 ldc_wasm_flags = -mtriple=wasm32-unknown-unknown-wasm -L-allow-undefined
 ldc_fast_flags_no_tail_call = -O2 -L=--strip-all
@@ -100,15 +106,11 @@ ldc_fast_flags = $(ldc_fast_flags_no_tail_call) --d-version=TailRecursionAvailab
 app_link = -L=-ldyncall_s -L=-ldyncallback_s -L=-ldynload_s -L=-lunwind \
 	-L=-L./dyncall/dyncall -L=-L./dyncall/dyncallback -L=-L./dyncall/dynload \
 
-ifdef JIT
-	dmd_flags_common += -version=GccJitAvailable
-	ldc_flags_common += --d-version=GccJitAvailable
-	app_link += -L=-lgccjit
-endif
+today = $(shell date --iso-8601 --utc)
 
 bin/d-imports/date.txt:
 	mkdir -p bin/d-imports
-	date --iso-8601 --utc > bin/d-imports/date.txt
+	echo $(today) > bin/d-imports/date.txt
 
 bin/d-imports/commit-hash.txt:
 	mkdir -p bin/d-imports
@@ -146,13 +148,13 @@ bin/crow.wasm: $(d_dependencies)
 lint: lint-basic lint-dscanner lint-d-imports-exports bin/dependencies.dot
 
 lint-basic: bin/crow
-	test/lint-basic.crow
+	bin/crow test/lint-basic.crow
 
 lint-dscanner:
 	dub run dscanner --quiet -- --styleCheck src
 
 lint-d-imports-exports: bin/crow
-	test/lint-d-imports-exports.crow
+	bin/crow test/lint-d-imports-exports.crow
 
 show-dependencies: bin/dependencies.svg
 	open bin/dependencies.svg
@@ -161,26 +163,54 @@ bin/dependencies.svg: bin/dependencies.dot
 	dot -Tsvg -o bin/dependencies.svg bin/dependencies.dot
 
 bin/dependencies.dot: bin/crow test/dependencies.crow
-	test/dependencies.crow
+	bin/crow test/dependencies.crow
 
 ### site ###
 
-prepare-site: bin/crow bin/crow.wasm bin/crow.tar.xz
+prepare-site: bin/crow bin/crow.wasm bin/crow-x64.deb bin/crow-linux-x64.tar.xz bin/crow-demo.tar.xz bin/crow.vsix
 	bin/crow run site-src/site.crow --aot
 
 serve: prepare-site
-	site-src/serve.crow
+	bin/crow site-src/serve.crow
 
 ### publish ###
 
-all_demo = demo/* demo/*/*
 all_include = include/*/*.crow include/*/*/*.crow include/*/*/*/*.crow
-all_libraries = libraries/* libraries/*/*
-bin/crow.tar.xz: bin/crow bin/crow.vsix $(all_demo) editor/crow.sublime-syntax $(all_include) $(all_libraries)
-	tar --directory .. --create --xz \
-		--exclude demo/extern --exclude editor/vscode \
-		--transform 'flags=r;s|bin/crow.vsix|editor/crow.vsix|' \
-		--file bin/crow.tar.xz crow/bin/crow crow/bin/crow.vsix crow/demo crow/editor crow/include crow/libraries
+bin/crow-linux-x64.tar.xz: bin/crow $(all_include)
+	tar --create --xz --file bin/crow-linux-x64.tar.xz bin/crow include
+
+bin/crow-demo.tar.xz: demo/* demo/*/* demo/*/*/*
+	tar --create --xz --file bin/crow-demo.tar.xz \
+		--transform 'flags=r;s|demo|crow-demo|' --exclude crow-demo/extern demo
+
+define newline
+
+
+endef
+
+define crow_deb_control =
+Package: crow
+Version: 0.0-$(today)
+Section: base
+Priority: optional
+Architecture: amd64
+Depends: libunwind-dev
+Maintainer: Andy Hanson <andy-hanson@protonmail.com>
+Description: Crow programming language
+
+endef
+
+bin/crow-x64.deb: bin/crow $(all_include)
+	mkdir bin/deb
+	mkdir bin/deb/usr
+	mkdir bin/deb/usr/bin
+	cp bin/crow bin/deb/usr/bin/crow
+	mkdir bin/deb/usr/include
+	cp -r include bin/deb/usr/include/crow
+	mkdir bin/deb/DEBIAN
+	@printf '$(subst $(newline),\n,${crow_deb_control})' > bin/deb/DEBIAN/control
+	dpkg-deb --build bin/deb bin/crow-x64.deb
+	rm -r bin/deb
 
 bin/crow.vsix: editor/vscode/* editor/vscode/node_modules
 	cd editor/vscode && ./node_modules/@vscode/vsce/vsce package --allow-missing-repository --out ../../bin/crow.vsix
@@ -191,8 +221,9 @@ install-vscode-extension: bin/crow.vsix
 editor/vscode/node_modules:
 	cd editor/vscode && npm install
 
-# `crow.zip` is uploaded by NMakefile
-aws_upload_command = aws s3 sync site s3://crow-lang.org --delete --exclude "crow.zip"
+# `bin\crow-windows-x64.tar.xz` is uploaded by NMakefile
+aws_upload_command = aws s3 sync site s3://crow-lang.org --delete \
+	--exclude "bin\crow-windows-x64.tar.xz" --exclude "bin\crow-demo-windows.tar.xz"
 
 confirm-upload-site: prepare-site
 	$(aws_upload_command) --dryrun

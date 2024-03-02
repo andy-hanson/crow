@@ -213,6 +213,13 @@ ref const(T) mustFind(T)(return in T[] a, in bool delegate(in T) @safe @nogc pur
 	assert(false);
 }
 
+T* mustFindPointer(T)(T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
+	foreach (ref T x; a)
+		if (cb(x))
+			return &x;
+	assert(false);
+}
+
 Opt!T find(T)(in T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
 	foreach (ref const T x; a)
 		if (cb(x))

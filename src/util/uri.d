@@ -10,7 +10,7 @@ import util.col.mutMaxArr : asTemporaryArray, isEmpty, MutMaxArr, mutMaxArr, rev
 import util.comparison : Comparison;
 import util.conv : uintOfUshorts, ushortsOfUint, safeToUshort;
 import util.hash : HashCode;
-import util.opt : has, force, none, Opt, optIf, some;
+import util.opt : has, force, none, Opt, optIf, optOrDefault, some;
 import util.string :
 	compareStringsAlphabetically, decodeHexDigit, done, CString, next, nextOrDefault, StringIter, stringOfCString;
 import util.symbol :
@@ -136,6 +136,9 @@ immutable struct Uri {
 	void writeTo(scope ref Writer writer) {
 		writePath(writer, path, uriEncode: true);
 	}
+
+	Uri opBinary(string op : "/")(Symbol name) =>
+		Uri(path / name);
 }
 
 private bool isRootUri(Uri a) =>
@@ -165,7 +168,12 @@ immutable struct FilePath {
 			writer ~= '/';
 		writePath(writer, path);
 	}
+
+	FilePath opBinary(string op : "/")(Symbol name) =>
+		FilePath(path / name);
 }
+FilePath rootFilePath(Symbol firstComponent) =>
+	FilePath(rootPath(firstComponent, PathInfo(isUriFile: false, isWindowsPath: isWindowsPathStart(firstComponent))));
 
 Uri toUri(FilePath a) =>
 	concatUriAndPath(
@@ -188,6 +196,9 @@ immutable struct Path {
 		index;
 	static Path fromUintForTaggedUnion(uint a) =>
 		Path(safeToUshort(a));
+
+	Path opBinary(string op : "/")(Symbol name) =>
+		childPathWithInfo(this, name, pathInfo(this));
 }
 
 Opt!Uri parent(Uri a) {
@@ -200,7 +211,11 @@ Opt!FilePath parent(FilePath a) {
 }
 Uri parentOrEmpty(Uri a) {
 	Opt!Uri res = parent(a);
-	return has(res) ? force(res) : a;
+	return optOrDefault!Uri(res, () => a);
+}
+FilePath parentOrEmpty(FilePath a) {
+	Opt!FilePath res = parent(a);
+	return optOrDefault!FilePath(res, () => a);
 }
 
 // Removes an existing extension and adds a new one.
@@ -236,7 +251,7 @@ private Path modifyBaseName(Path a, in Symbol delegate(Symbol) @safe @nogc pure 
 	Symbol newBaseName = cb(baseName(a));
 	Opt!Path parent = parent(a);
 	return has(parent)
-		? childPath(force(parent), newBaseName)
+		? force(parent) / newBaseName
 		: rootPath(newBaseName, pathInfo(a));
 }
 
@@ -266,7 +281,7 @@ PathFirstAndRest firstAndRest(Path a) {
 	if (has(par)) {
 		PathFirstAndRest parentRes = firstAndRest(force(par));
 		Path rest = has(parentRes.rest)
-			? childPath(force(parentRes.rest), baseName)
+			? force(parentRes.rest) / baseName
 			: rootPathPlain(baseName);
 		return PathFirstAndRest(parentRes.first, some(rest));
 	} else
@@ -283,20 +298,11 @@ bool isWindowsPath(Path a) =>
 Path rootPathPlain(Symbol name) =>
 	rootPath(name, PathInfo(isUriFile: false, isWindowsPath: false));
 
-Uri childUri(Uri parent, Symbol name) =>
-	Uri(childPath(parent.path, name));
-
-FilePath childFilePath(FilePath parent, Symbol name) =>
-	FilePath(childPath(parent.path, name));
-
 Uri bogusUri() =>
 	mustParseUri("bogus:bogus");
 
-Path childPath(Path parent, Symbol name) =>
-	childPathWithInfo(parent, name, pathInfo(parent));
 private Path descendentPath(Path parent, in Symbol[] childComponentNames) =>
-	fold!(Path, Symbol)(parent, childComponentNames, (Path acc, in Symbol component) =>
-		childPath(acc, component));
+	fold!(Path, Symbol)(parent, childComponentNames, (Path acc, in Symbol component) => acc / component);
 
 immutable struct RelPath {
 	@safe @nogc pure nothrow:
@@ -452,7 +458,7 @@ private Path parsePathInner(
 	StringIter iter = StringIter(str);
 	Cell!Path res = Cell!Path(cbRoot(parsePathComponent(iter, options.uriDecode)));
 	while (!done(iter))
-		cellSet(res, childPath(cellGet(res), parsePathComponent(iter, options.uriDecode)));
+		cellSet(res, cellGet(res) / parsePathComponent(iter, options.uriDecode));
 	return cellGet(res);
 }
 private @trusted Symbol parsePathComponent(scope ref StringIter iter, bool uriDecode) =>
@@ -525,8 +531,7 @@ FilePath parseFilePath(in string a) =>
 	FilePath(parsePathInner(
 		!isEmpty(a) && a[0] == '/' ? a[1 .. $] : a,
 		ParsePathOptions(uriDecode: false, isUriFile: false),
-		(Symbol firstComponent) =>
-			rootPath(firstComponent, PathInfo(isUriFile: false, isWindowsPath: isWindowsPathStart(firstComponent)))));
+		(Symbol firstComponent) => rootFilePath(firstComponent).path));
 
 Opt!FilePath parseFilePathWithCwd(FilePath cwd, in CString a) {
 	Uri res = parseUriWithCwd(cwd, stringOfCString(a));

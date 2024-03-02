@@ -106,7 +106,7 @@ import model.model :
 	VarDecl,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.array : allSame, contains, find, fold, isEmpty, mustFind, only, zip;
+import util.col.array : allSame, contains, fold, isEmpty, mustFindPointer, only, zip;
 import util.col.arrayBuilder : buildArray, Builder;
 import util.col.hashTable : mustGet;
 import util.col.mutMaxArr : asTemporaryArray, mutMaxArr, MutMaxArr;
@@ -555,7 +555,7 @@ void referencesForRecordField(in Program program, in RecordField field, in Refer
 void referencesForEnumOrFlagsMember(in Program program, in EnumOrFlagsMember* member, in ReferenceCb cb) {
 	StructDecl* enum_ = member.containingEnum;
 	Module* declaringModule = moduleOf(program, enum_.moduleUri);
-	FunDecl* ctor = mustFind(declaringModule.funsNamed(member.name), (in FunDecl* fun) =>
+	FunDecl* ctor = mustFindFunNamed(declaringModule, member.name, (in FunDecl fun) =>
 		fun.body_.isA!(FunBody.CreateEnumOrFlags) && fun.body_.as!(FunBody.CreateEnumOrFlags).member == member);
 	eachExprThatMayReference(program, member.visibility, declaringModule, (in Module m, ExprRef x) {
 		if (x.expr.kind.isA!(MatchEnumExpr*)) {
@@ -571,7 +571,7 @@ void referencesForEnumOrFlagsMember(in Program program, in EnumOrFlagsMember* me
 void referencesForUnionMember(in Program program, in UnionMember* member, in ReferenceCb cb) {
 	StructDecl* union_ = member.containingUnion;
 	Module* declaringModule = moduleOf(program, union_.moduleUri);
-	FunDecl* ctor = mustFind(declaringModule.funsNamed(member.name), (in FunDecl* fun) =>
+	FunDecl* ctor = mustFindFunNamed(declaringModule, member.name, (in FunDecl fun) =>
 		fun.body_.isA!(FunBody.CreateUnion) && fun.body_.as!(FunBody.CreateUnion).member == member);
 	eachExprThatMayReference(program, member.visibility, declaringModule, (in Module m, ExprRef x) {
 		if (x.expr.kind.isA!(MatchUnionExpr*)) {
@@ -587,11 +587,11 @@ void referencesForUnionMember(in Program program, in UnionMember* member, in Ref
 void referencesForVarDecl(in Program program, in VarDecl* a, in ReferenceCb cb) {
 	// Find references to get/set
 	Module* module_ = moduleOf(program, a.moduleUri);
-	Opt!(FunDecl*) getter = find(funsNamed(module_, a.name), (in FunDecl* x) =>
+	FunDecl* getter = mustFindFunNamed(module_, a.name, (in FunDecl x) =>
 		x.body_.isA!(FunBody.VarGet) && x.body_.as!(FunBody.VarGet).var == a);
-	Opt!(FunDecl*) setter = find(funsNamed(module_, prependSet(a.name)), (in FunDecl* x) =>
+	FunDecl* setter = mustFindFunNamed(module_, prependSet(a.name), (in FunDecl x) =>
 		x.body_.isA!(FunBody.VarSet) && x.body_.as!(FunBody.VarSet).var == a);
-	referencesForFunDecls(program, [force(getter), force(setter)], cb);
+	referencesForFunDecls(program, [getter, setter], cb);
 }
 
 void withRecordFieldFunctions(
@@ -600,19 +600,24 @@ void withRecordFieldFunctions(
 	in void delegate(in FunDecl*[]) @safe @nogc pure nothrow cb,
 ) {
 	MutMaxArr!(3, FunDecl*) res = mutMaxArr!(3, FunDecl*);
-	foreach (FunDecl* fun; funsNamed(moduleOf(program, field.containingRecord.moduleUri), field.name)) {
+	eachFunNamed(moduleOf(program, field.containingRecord.moduleUri), field.name, (FunDecl* fun) {
 		if (isRecordFieldFunction(fun.body_)) {
 			Type paramType = only(fun.params.as!(Destructure[])).type;
 			// TODO: for RecordFieldPointer we need to look for pointer to the struct
 			if (paramType.isA!(StructInst*) && paramType.as!(StructInst*).decl == field.containingRecord)
 				res ~= fun;
 		}
-	}
+	});
 	cb(asTemporaryArray(res));
 }
 
-immutable(FunDecl*)[] funsNamed(in Module* module_, Symbol name) =>
-	mustGet(module_.exports, name).funs;
+FunDecl* mustFindFunNamed(in Module* module_, Symbol name, in bool delegate(in FunDecl) @safe @nogc pure nothrow cb) =>
+	mustFindPointer!FunDecl(module_.funs, (in FunDecl fun) => fun.name == name && cb(fun));
+void eachFunNamed(in Module* module_, Symbol name, in void delegate(FunDecl*) @safe @nogc pure nothrow cb) {
+	foreach (ref FunDecl fun; module_.funs)
+		if (fun.name == name)
+			cb(&fun);
+}
 
 bool isRecordFieldFunction(in FunBody a) =>
 	a.isA!(FunBody.RecordFieldGet) || a.isA!(FunBody.RecordFieldPointer) || a.isA!(FunBody.RecordFieldSet);

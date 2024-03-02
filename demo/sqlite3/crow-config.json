@@ -1,6 +1,6 @@
 {
 	"include": {
-		"sqlite3": "../../libraries/sqlite3",
+		"sqlite3": "../libraries/sqlite3",
 	},
 	"extern": {
 		"sqlite3": "../extern/sqlite3",

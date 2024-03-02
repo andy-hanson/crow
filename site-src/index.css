@@ -18,6 +18,17 @@ html, body {
 	margin: 0;
 }
 
+#download details {
+	margin-top: 1em;
+	margin-bottom: 1em;
+}
+
+#download details > summary {
+	font-family: murecho-bold;
+	font-size: 125%;
+	cursor: pointer;
+}
+
 body {
 	--white: #fffff8;
 	--black: #2c294d;

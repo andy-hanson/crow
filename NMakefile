@@ -76,9 +76,10 @@ all_src_files = src\*.d \
 	src\util\col\*.d
 d_dependencies = $(all_src_files) bin\d-imports\date.txt bin\d-imports\commit-hash.txt dyncall
 
-ldc_flags_common = -w -betterC -preview=dip1000 -preview=in -J=bin\d-imports -J=src\test -J=include
+d_flags_common = -w -betterC -preview=dip1000 -preview=in -J=bin\d-imports -J=src\test -J=include
+dmd_flags_assert = $(d_flags_common) -check=on -boundscheck=on
 ldc_flags_debug = --d-debug -g --d-version=Debug --d-version=Test
-ldc_flags_assert = $(ldc_flags_common) --enable-asserts=true --boundscheck=on
+ldc_flags_assert = $(d_flags_common) --enable-asserts=true --boundscheck=on
 ldc_wasm_flags = -mtriple=wasm32-unknown-unknown-wasm -L-allow-undefined
 ldc_fast_flags = -O2 --d-version=TailRecursionAvailable
 ldc_fast_flags_no_tail_call = -O2
@@ -99,6 +100,10 @@ bin\d-imports\date.txt: bin\d-imports
 
 bin\d-imports\commit-hash.txt: bin\d-imports
 	git rev-parse --short HEAD > bin\d-imports\commit-hash.txt
+
+bin\crow-dmd.exe: $(d_dependencies)
+	dmd -ofbin\crow-dmd.exe -m64 $(dmd_flags_assert) -debug -g -version=Debug -version=Test \
+		src\app\main.d -I=src -i $(app_link)
 
 bin\crow-debug.exe: $(d_dependencies)
 	ldc2 -ofbin\crow-debug.exe $(ldc_flags_assert) --m64 $(ldc_flags_debug) src\app\main.d -I=src -i $(app_link)
@@ -139,7 +144,7 @@ bin\dependencies.dot: bin\crow.exe test\dependencies.crow
 
 ### site ###
 
-prepare-site: bin\crow.exe bin\crow.wasm bin\crow.zip
+prepare-site: bin\crow.exe bin\crow.wasm bin\crow-windows-x64.tar.xz bin\crow-demo-windows.tar.xz
 	bin\crow run site-src\site.crow
 
 # TODO: This should be `bin\crow run site-src\serve.crow`,
@@ -149,21 +154,17 @@ serve: prepare-site
 
 ### publish ###
 
-bin\crow.zip: bin\crow.exe bin\crow.vsix demo\* include\* libraries\*
-	mkdir temp
-	xcopy /i /s /q demo temp\demo
+bin\crow-windows-x64.tar.xz: bin\crow.exe include\*
+	tar --create --xz --file bin\crow-windows-x64.tar.xz bin\crow.exe include
+
+bin\crow-demo-windows.tar.xz: demo\*
+	xcopy /i /s /q demo crow-demo
 	:: Remove demos that don't work on Windows
-	del temp\demo\http-request.crow temp\demo\server.crow
-	rmdir /s /q temp\demo\lmdb temp\demo\webapp
-	xcopy /i /s /q libraries temp\libraries
-	rmdir /s /q temp\libraries\lmdb
-	mkdir temp\bin
-	copy bin\crow.exe temp\bin\crow.exe
-	mkdir temp\editor
-	copy editor\crow.sublime-syntax temp\editor\crow.sublime-syntax
-	copy bin\crow.vsix temp\editor\crow.vsix
-	powershell Compress-Archive -DestinationPath bin\crow.zip -Force -Path temp\*,include
-	rmdir /s /q temp
+	del crow-demo\http-request.crow crow-demo\server.crow
+	rmdir /s /q crow-demo\lmdb crow-demo\webapp
+	rmdir /s /q crow-demo\libraries\lmdb
+	tar --create --xz --file bin\crow-demo-windows.tar.xz crow-demo
+	rmdir /s /q crow-demo
 
 bin\crow.vsix: editor\vscode\* editor\vscode\node_modules
 	cd editor\vscode && node .\node_modules\vsce\vsce package --allow-missing-repository --out ..\..\bin\crow.vsix
@@ -175,8 +176,9 @@ editor\vscode\node_modules:
 	cd editor/vscode
 	npm install
 
-# Only upload `crow.zip`. Everything else uploaded by 'GNUmakefile'.
-aws_upload_command = aws s3 sync site s3://crow-lang.org --exclude "*" --include "bin/crow.zip"
+# Only upload Windows-specific files. Everything else is uploaded by 'GNUmakefile'.
+aws_upload_command = aws s3 sync site s3://crow-lang.org --exclude "*" \
+	--include "bin\crow-windows-x64.tar.xz" --include "bin\crow-demo-windows.tar.xz"
 
 confirm-upload-site:
 	$(aws_upload_command) --dryrun

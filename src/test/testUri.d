@@ -12,8 +12,6 @@ import util.uri :
 	alterExtensionWithHex,
 	asFilePath,
 	baseName,
-	childFilePath,
-	childUri,
 	compareUriAlphabetically,
 	FilePath,
 	getExtension,
@@ -48,10 +46,10 @@ void testBasic(ref Test test) {
 
 	assertEqual(stringOfUri(test.alloc, a), "file:///a");
 
-	Uri aX = childUri(a, symbol!"x");
+	Uri aX = a / symbol!"x";
 	verifyUri(test, aX, ["file://", "a", "x"]);
-	assert(childUri(a, symbol!"x") == aX);
-	Uri aY = childUri(a, symbol!"y");
+	assert(a / symbol!"x" == aX);
+	Uri aY = a / symbol!"y";
 	verifyUri(test, aY, ["file://", "a", "y"]);
 	assert(aX != aY);
 	assertEqual(stringOfUri(test.alloc, aX), "file:///a/x");
@@ -108,14 +106,14 @@ void testFile(ref Test test) {
 
 	Uri aUri = mustParseUri("file:///C%3A/Users/User/a");
 	assert(isWindowsPath(aUri));
-	Uri booUri = childUri(aUri, symbol!"BOO");
+	Uri booUri = aUri / symbol!"BOO";
 	assert(stringOfUri(test.alloc, booUri) == "file:///c%3a/users/user/a/boo");
 	assert(isWindowsPath(booUri));
 
 	FilePath a = parseFilePath("C:\\Users\\User\\a");
 	assert(a == parseFilePath("c:/users/user/a"));
 	assert(isWindowsPath(a));
-	FilePath boo = childFilePath(a, symbol!"BOO");
+	FilePath boo = a / symbol!"BOO";
 	assert(stringOfFilePath(test.alloc, boo) == "c:/users/user/a/boo");
 	assert(isWindowsPath(boo));
 

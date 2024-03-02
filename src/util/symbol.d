@@ -12,6 +12,7 @@ import util.conv : safeToUint;
 import util.hash : HashCode, hashUlong;
 import util.opt : force, has, Opt, optOrDefault, none, some;
 import util.string : copyString, CString, SmallString, smallString, stringsEqual;
+import util.unicode : mustUnicodeDecode;
 import util.util : assertNormalEnum, optEnumOfString, stringOfEnum, stripUnderscore;
 import util.writer : makeStringWithWriter, withStackWriter, withWriter, writeEscapedChar, Writer;
 
@@ -34,6 +35,18 @@ immutable struct Symbol {
 
 	void writeTo(scope ref Writer writer) {
 		writeSymbolAndGetSize(writer, this);
+	}
+
+	int opApply(in int delegate(dchar) @safe @nogc pure nothrow cb) {
+		if (isShortSymbol(this))
+			return eachCharInShortSymbol(this, (char x) => cb(x));
+		else {
+			mustUnicodeDecode(asLongSymbol(this), (dchar x) {
+				int res = cb(x);
+				assert(res == 0);
+			});
+			return 0;
+		}
 	}
 
 	int opApply(in int delegate(char) @safe @nogc pure nothrow cb) {

@@ -48,6 +48,8 @@ main nat^(_ string[]) summon
 		path ensure-directory
 
 link record(target string, link-path string)
+same link(a string)
+	a, a
 
 -all-to-link link[]^() summon
 	in-src-paths link[] = for x : ("crow.svg", "index.css")::string[]
@@ -58,13 +60,20 @@ link record(target string, link-path string)
 
 	font-paths <- "site-src/font" search-dir-recursive
 	font = font-paths to-links "site-src/"
-	bundle string = if trusted is-windows
-		"bin/crow.zip"
-	else
-		"bin/crow.tar.xz"
-	other link[] = for x : ("bin/crow.wasm", bundle)::string[]
-		x, x
-	in-src-paths ~~ script ~~ font ~~ other,
+	in-src-paths ~~ script ~~ font ~~ other-links,
+
+other-links link[]()
+	with out : build
+		if trusted is-windows
+			out ~= "bin/crow-windows-x64.tar.xz" same
+			out ~= "bin/crow-demo-windows.tar.xz" same
+		else
+			out ~= "bin/crow-linux-x64.tar.xz" same
+			out ~= "bin/crow-demo.tar.xz" same
+			out ~= "bin/crow-x64.deb" same
+		out ~= "bin/crow.wasm" same
+		out ~= ("editor/crow.sublime-syntax", "bin/crow.sublime-syntax")
+		out ~= "bin/crow.vsix" same
 
 -include-all path-and-content[]^() summon
 	include <- "include" search-all-with-content ""

@@ -84,7 +84,7 @@ Prepends 'description' to any thrown exception messages.
 		true
 	elif a == "invoke-action" || a == "invoke__saction"
 		true
-	elif a == "add-first-task.lambda0" || a == "add__sfirst__stask__lambda0"
+	elif a == "add-first-task.lambda0" || a == "add__45first__45task__lambda0"
 		true
 
 -to string(a backtrace-entry)
