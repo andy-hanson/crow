@@ -1,0 +1,7 @@
+main void()
+	info log "hello".f
+
+f string(
+	a string
+)
+	a

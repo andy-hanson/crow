@@ -221,13 +221,13 @@ ParamsAst parseParams(ref Lexer lexer) {
 			while (true) {
 				skipNewlinesIgnoreIndentation(lexer, indentLevel);
 				res ~= parseDestructureRequireParens(lexer);
+				skipNewlinesIgnoreIndentation(lexer, indentLevel);
 				if (tryTakeToken(lexer, Token.parenRight))
 					break;
 				if (!takeOrAddDiagExpectedToken(lexer, Token.comma, ParseDiag.Expected.Kind.comma)) {
 					skipUntilNewlineNoDiag(lexer);
 					break;
 				}
-				// allow trailing comma
 				skipNewlinesIgnoreIndentation(lexer, indentLevel);
 				if (tryTakeToken(lexer, Token.parenRight))
 					break;
