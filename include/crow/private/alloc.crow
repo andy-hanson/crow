@@ -183,7 +183,7 @@ gc-complete void(gc gc mut*) bare, unsafe
 	gc->data-cur := gc->data-begin
 	if false
 		# Expensive safety check
-		gc->mark-begin clear-free-mem prev-mark-cur, gc->data-begin
+		gc->mark-begin clear-free-mem prev-mark-cur, gc->data-begin, gc->data-end
 	gc.as-const validate-gc
 	gc->needs-gc := false
 
@@ -192,14 +192,20 @@ gc-end void(gc gc mut*) bare, unsafe
 	_ = gc.barrier wait-barrier
 
 -clear-free-mem void(
-	mark-pointer mut bool mut*,
+	mark-begin bool mut*,
 	mark-end bool mut*,
-	data-pointer nat64 mut*,
+	data-begin nat64 mut*,
+	data-end nat64 mut*,
 ) bare, unsafe
-	until mark-pointer == mark-end
-		unless *mark-pointer
-			*data-pointer := 0xfadefadefadefade
-		mark-pointer := mark-pointer + 1
+	assert mark-end - mark-begin == data-end - data-begin
+	mark mut = mark-begin
+	word mut = data-begin
+	until mark == mark-end
+		unless *mark
+			*word := 0xfadefadefadefade
+		mark +:= 1
+		word +:= 1
+	assert word == data-end
 
 ###
 GC info specific to a ctx.

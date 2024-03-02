@@ -18,7 +18,13 @@ import frontend.check.maps :
 import frontend.check.funsForStruct : addFunsForStruct, addFunsForVar, countFunsForStructs, countFunsForVars;
 import frontend.check.instantiate : MayDelayStructInsts, instantiateSpec, noDelaySpecInsts, noDelayStructInsts;
 import frontend.check.typeFromAst :
-	checkDestructure, checkTypeParams, specFromAst, tryFindSpec, typeFromAst, typeFromAstNoTypeParamsNeverDelay;
+	checkDestructure,
+	checkTypeParams,
+	DestructureKind,
+	specFromAst,
+	tryFindSpec,
+	typeFromAst,
+	typeFromAstNoTypeParamsNeverDelay;
 import model.ast :
 	DestructureAst,
 	EmptyAst,
@@ -212,11 +218,11 @@ Params checkParams(
 			Params(map!(Destructure, DestructureAst)(ctx.alloc, asts, (ref DestructureAst ast) =>
 				checkDestructure(
 					ctx, commonTypes, structsAndAliasesMap, typeContainer, typeParamsScope, delayStructInsts,
-					ast, none!Type))),
+					ast, none!Type, DestructureKind.param))),
 		(ref ParamsAst.Varargs varargs) {
 			Destructure param = checkDestructure(
 				ctx, commonTypes, structsAndAliasesMap, typeContainer, typeParamsScope,
-				delayStructInsts, varargs.param, none!Type);
+				delayStructInsts, varargs.param, none!Type, DestructureKind.param);
 			Opt!Type elementType = param.type.matchIn!(Opt!Type)(
 				(in Type.Bogus _) =>
 					some(Type(Type.Bogus())),

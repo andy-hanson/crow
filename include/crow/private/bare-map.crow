@@ -37,11 +37,11 @@ bare-map[k, v] record by-val, mut
 
 -hash-left nat64(a nat64) bare
 	a
--hash-right nat64(a mut nat64) bare
+-hash-right nat64(a nat64) bare
 	# https://xorshift.di.unimi.it/splitmix64.c
-	a := (a ^ (a >> 30)) wrap-mul 0xbf58476d1ce4e5b9
-	a := (a ^ (a >> 27)) wrap-mul 0x94d049bb133111eb
-	a ^ (a >> 31)
+	b = (a ^ (a >> 30)) wrap-mul 0xbf58476d1ce4e5b9
+	c = (b ^ (b >> 27)) wrap-mul 0x94d049bb133111eb
+	c ^ (c >> 31)
 
 -entry-left[k, v] (k, v) map-pair mut*(a (k, v) bare-map mut*, hash nat64) bare, unsafe
 	a->begin-left + (hash.hash-left % a->half-capacity)

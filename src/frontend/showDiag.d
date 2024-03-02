@@ -929,6 +929,9 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		(in Diag.ParamMissingType) {
 			writer ~= "This parameter needs a type.";
 		},
+		(in Diag.ParamMutable) {
+			writer ~= "A parameter can't be mutable.";
+		},
 		(in ParseDiag x) {
 			writeParseDiag(writer, ctx, x);
 		},

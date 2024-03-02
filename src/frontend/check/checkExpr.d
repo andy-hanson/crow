@@ -40,7 +40,7 @@ import frontend.check.inferringType :
 	withInfer;
 import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay, noDelayStructInsts;
 import frontend.check.maps : FunsMap, StructsAndAliasesMap;
-import frontend.check.typeFromAst : checkDestructure, makeTupleType, typeFromDestructure;
+import frontend.check.typeFromAst : checkDestructure, DestructureKind, makeTupleType, typeFromDestructure;
 import model.ast :
 	ArrowAccessAst,
 	AssertOrForbidAst,
@@ -525,7 +525,7 @@ Expr checkIfOption(
 		return bogus(expected, source);
 	} else {
 		Type nonOptionalType = only(inst.typeArgs);
-		Destructure destructure = checkDestructure2(ctx, ast.destructure, nonOptionalType);
+		Destructure destructure = checkDestructure2(ctx, ast.destructure, nonOptionalType, DestructureKind.local);
 		Expr then = checkExprWithDestructure(ctx, locals, destructure, &ast.then, expected);
 		Expr else_ = checkExpr(ctx, locals, &ast.else_, expected);
 		return Expr(source, ExprKind(allocate(ctx.alloc, IfOptionExpr(destructure, option, then, else_))));
@@ -1274,7 +1274,7 @@ LambdaAndReturnType checkLambdaInner(
 	StructDecl* funStruct,
 	LambdaExpr.Kind kind,
 ) {
-	Destructure param = checkDestructure2(ctx, ast.param, paramType);
+	Destructure param = checkDestructure2(ctx, ast.param, paramType, DestructureKind.param);
 
 	LambdaExpr* lambda = allocate(ctx.alloc, LambdaExpr(kind, param, mutTypeForExplicitShared));
 
@@ -1310,14 +1310,14 @@ Opt!Type typeFromDestructure(ref ExprCtx ctx, in DestructureAst ast) =>
 	.typeFromDestructure(
 		ctx.checkCtx, ctx.commonTypes, ast, ctx.structsAndAliasesMap, ctx.outermostFunTypeParams, noDelayStructInsts);
 
-Destructure checkDestructure2(ref ExprCtx ctx, ref DestructureAst ast, Type type) =>
+Destructure checkDestructure2(ref ExprCtx ctx, ref DestructureAst ast, Type type, DestructureKind kind) =>
 	.checkDestructure(
 		ctx.checkCtx, ctx.commonTypes, ctx.structsAndAliasesMap, ctx.typeContainer, ctx.outermostFunTypeParams,
-		noDelayStructInsts, ast, some(type));
+		noDelayStructInsts, ast, some(type), kind);
 
 Expr checkLet(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, LetAst* ast, ref Expected expected) {
 	ExprAndType value = checkAndExpectOrInfer(ctx, locals, &ast.value, typeFromDestructure(ctx, ast.destructure));
-	Destructure destructure = checkDestructure2(ctx, ast.destructure, value.type);
+	Destructure destructure = checkDestructure2(ctx, ast.destructure, value.type, DestructureKind.local);
 	Expr then = checkExprWithDestructure(ctx, locals, destructure, &ast.then, expected);
 	return Expr(source, ExprKind(allocate(ctx.alloc, LetExpr(destructure, value.expr, then))));
 }
@@ -1484,7 +1484,7 @@ MatchUnionExpr.Case checkMatchUnionCase(
 	ref Expected expected,
 ) {
 	if (has(caseAst.destructure)) {
-		Destructure destructure = checkDestructure2(ctx, force(caseAst.destructure), memberType);
+		Destructure destructure = checkDestructure2(ctx, force(caseAst.destructure), memberType, DestructureKind.local);
 		return MatchUnionExpr.Case(
 			destructure, checkExprWithDestructure(ctx, locals, destructure, &caseAst.then, expected));
 	} else {

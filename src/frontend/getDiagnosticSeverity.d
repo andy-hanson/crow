@@ -129,6 +129,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ParamMissingType) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.ParamMutable) =>
+			DiagnosticSeverity.checkError,
 		(in ParseDiag x) =>
 			parseDiagSeverity(x),
 		(in Diag.PointerIsUnsafe) =>

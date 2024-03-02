@@ -392,6 +392,7 @@ private Opt!Type typeFromDestructures(
 	return has(types) ? some(makeTupleType(ctx.instantiateCtx, commonTypes, force(types))) : none!Type;
 }
 
+enum DestructureKind { local, param }
 Destructure checkDestructure(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
@@ -403,6 +404,7 @@ Destructure checkDestructure(
 	ref DestructureAst ast,
 	// This is for the type coming from the RHS of a 'let', or the expected type of a lambda
 	Opt!Type destructuredType,
+	DestructureKind kind,
 ) {
 	TypeWithContainer typeWithContainer(Type x) =>
 		TypeWithContainer(x, typeContainer);
@@ -432,11 +434,18 @@ Destructure checkDestructure(
 				if (has(x.mut))
 					addDiag(ctx, ast.range, Diag(Diag.LocalIgnoredButMutable()));
 				return Destructure(allocate(ctx.alloc, Destructure.Ignore(x.name.start, type)));
-			} else
+			} else {
+				LocalMutability mutability = () {
+					if (has(x.mut) && kind == DestructureKind.param) {
+						Opt!Range mutRange = x.mutRange;
+						addDiag(ctx, force(mutRange), Diag(Diag.ParamMutable()));
+						return LocalMutability.immut;
+					} else
+						return has(x.mut) ? LocalMutability.mutOnStack : LocalMutability.immut;
+				}();
 				return Destructure(allocate(ctx.alloc, Local(
-					LocalSource(&ast.as!(DestructureAst.Single)()),
-					has(x.mut) ? LocalMutability.mutOnStack : LocalMutability.immut,
-					type)));
+					LocalSource(&ast.as!(DestructureAst.Single)()), mutability, type)));
+			}
 		},
 		(DestructureAst.Void x) {
 			Type type = getType(some(Type(commonTypes.void_)));
@@ -454,7 +463,7 @@ Destructure checkDestructure(
 								checkDestructure(
 									ctx, commonTypes, structsAndAliasesMap,
 									typeContainer, typeParamsScope, delayStructInsts,
-									part, some(fieldType)))))));
+									part, some(fieldType), kind))))));
 				else {
 					addDiag(ctx, ast.range, Diag(
 						Diag.DestructureTypeMismatch(
@@ -468,13 +477,13 @@ Destructure checkDestructure(
 								checkDestructure(
 									ctx, commonTypes, structsAndAliasesMap,
 									typeContainer, typeParamsScope, delayStructInsts,
-									part, some(Type(Type.Bogus()))))))));
+									part, some(Type(Type.Bogus())), kind))))));
 				}
 			} else {
 				Destructure[] parts = map(ctx. alloc, partAsts, (ref DestructureAst part) =>
 					checkDestructure(
 						ctx, commonTypes, structsAndAliasesMap, typeContainer, typeParamsScope, delayStructInsts,
-						part, none!Type));
+						part, none!Type, kind));
 				Type type = makeTupleType(
 					ctx.instantiateCtx, commonTypes,
 					//TODO:PERF Use temp alloc
