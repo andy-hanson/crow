@@ -1,49 +1,35 @@
 <main>
 	<h1>Download</h1>
 
-	<aside>
-		<p>
-			To build from source, see <a href="https://github.com/andy-hanson/crow#setup">here</a>.
-		</p>
-	</aside>
-
 	<h2>
 		Linux (x64)
+	</h2>
+
+	<h3>
+		Debian-derived
+		<a href="./bin/crow.deb"><crow-icon icon="download"></crow-icon> <code>crow.deb</code></a>
+	</h3>
+
+	<div class="code-block">sudo dpkg --install crow.deb</div>
+	<p>To uninstall: <code>sudo dpkg --remove crow</code></p>
+
+	<h3>
+		Other Linux
 		<a href="./bin/crow.tar.xz">
 			<crow-icon icon="download"></crow-icon> <code>crow.tar.xz</code>
 		</a>
-	</h2>
-
-	<aside>
-		<h4>Linux dependencies</h4>
-		<p>
-			The only required dependency is <code>libunwind</code>.
-			<br />
-			(If you use <code>apt</code>: <code>sudo apt install libunwind-dev</code>.)
-		</p>
-		<p>
-			Optional dependencies to run demos:
-			<br />
-			<code>sudo apt install libsdl2-dev libsndfile1-dev libsodium-dev libsqlite3-dev</code>.
-		</p>
-		<p>
-			<code>-dev</code> dependencies are needed since these are not Crow's own dependencies
-			(except for <code>libunwind</code>), but dependencies of the code that it builds.
-		</p>
-	</aside>
-
+	</h3>
 	<p>
-		Download the above and run the below in a terminal:
+		First ensure <code>libunwind-dev</code> is installed. Then:
 	</p>
-
 	<div class="code-block">
 		tar --extract --xz --file crow.tar.xz
 		<br />
-		sudo ln --force --symbolic ~/Downloads/crow/bin/crow /usr/local/bin/crow
+		sudo cp crow/bin/crow /usr/local/bin/crow
 		<br />
-		crow run ./crow/demo/hello
+		sudo cp -r crow/include /usr/local/include/crow
 	</div>
-
+	<p>To uninstall: <code>sudo rm -r /usr/local/bin/crow /usr/local/include/crow</code></p>
 
 	<h2>
 		Windows (x64)
@@ -53,45 +39,54 @@
 	</h2>
 
 	<p>
-		Download the above, unzip it, and edit the <code>PATH</code> environment variable
+		Unzip <code>crow.zip</code>, then edit the <code>PATH</code> environment variable
 		to include the <code>crow\bin</code> directory.
 		<br />
-		(You also need to restart affected applications like a terminal or IDE after changing the PATH.)
-		<br />
-		Then:
+		After changing the <code>PATH</code> you must restart any affected applications like a terminal or IDE.
 	</p>
-
-	<div class="code-block">
-		crow run crow\demo\hello
-	</div>
-
-	<aside class="danger">
-		<p>
-			To use <code>crow build</code>, you need to run it in the
-			"x64 Native Tools Command Prompt for VS 20__" (fill in the year).
-			<br />
-			Other commands like <code>crow run</code> should work in any terminal.
-		</p>
-	</aside>
 
 	<h2>Other systems</h2>
 	<p>
 		If you want it ported to a different system, just <a href="https://github.com/andy-hanson/crow/issues">ask</a>.
 	</p>
 
+	<h2 id="demo">
+		Demos
+		<a href="./bin/crow-demo.tar.xz"><crow-icon icon="download"></crow-icon>crow-demo.tar.xz</a>
+		<a href="./bin/crow-demo.zip"><crow-icon icon="download"></crow-icon>crow-demo.zip</a>
+	</h2>
+
+	<p>
+		To run sample Crow programs, download one of the above and run <code>crow crow-demo/hello.crow</code> .
+	</p>
+
+	<aside class="small">
+		To be able to run all demos, install:
+		<br />
+		<code>sudo apt install libsdl2-dev libsndfile1-dev libsodium-dev libsqlite3-dev</code>.
+		<br />
+		On Windows, these are included in <code>crow-demo\extern</code>.
+	</aside>
+
 	<h1>Editor support</h1>
 
-	<h2>VSCode</h2>
+	<h2>
+		VSCode
+		<a href="./bin/crow.vsix"><crow-icon icon="download"></crow-icon>crow.vsix</a>
+	</h2>
 
 	<div class="code-block">
-		code --install-extension crow/editor/crow.vsix
+		code --install-extension crow.vsix
 	</div>
 
 	This supports syntax highlighting, diagnostics, go-to-definition, references, and renaming.
 
 	<h2>Sublime Text</h2>
 
-	<h3>Syntax definition</h3>
+	<h3>
+		Syntax definition
+		<a href="./bin/crow.sublime-syntax" download><crow-icon icon="download"></crow-icon>crow.sublime-syntax</a>
+	</h3>
 	<ul class="bullets">
 		<li>
 			Linux:
@@ -116,6 +111,8 @@
 	<h3>LSP support</h3>
 
 	<p>
+		There is no download for this. It uses the <code>crow</code> you already installed.
+		<br />
 		Install package control, then install the <code>LSP</code> plugin.
 		<br />
 		In the top menu, open Preferences → Package settings → LSP → Settings.

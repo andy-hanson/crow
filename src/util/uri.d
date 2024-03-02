@@ -10,7 +10,7 @@ import util.col.mutMaxArr : asTemporaryArray, isEmpty, MutMaxArr, mutMaxArr, rev
 import util.comparison : Comparison;
 import util.conv : uintOfUshorts, ushortsOfUint, safeToUshort;
 import util.hash : HashCode;
-import util.opt : has, force, none, Opt, optIf, some;
+import util.opt : has, force, none, Opt, optIf, optOrDefault, some;
 import util.string :
 	compareStringsAlphabetically, decodeHexDigit, done, CString, next, nextOrDefault, StringIter, stringOfCString;
 import util.symbol :
@@ -136,6 +136,9 @@ immutable struct Uri {
 	void writeTo(scope ref Writer writer) {
 		writePath(writer, path, uriEncode: true);
 	}
+
+	Uri opBinary(string op : "/")(Symbol name) => // TODO: USE ONLY THIS, HIDE CHILDURI -----------------------------------
+		childUri(this, name);
 }
 
 private bool isRootUri(Uri a) =>
@@ -165,7 +168,12 @@ immutable struct FilePath {
 			writer ~= '/';
 		writePath(writer, path);
 	}
+
+	FilePath opBinary(string op : "/")(Symbol name) => // TODO: USE ONLY THIS, HIDE CHILDURI -----------------------------------
+		childFilePath(this, name);
 }
+FilePath rootFilePath(Symbol firstComponent) =>
+	FilePath(rootPath(firstComponent, PathInfo(isUriFile: false, isWindowsPath: isWindowsPathStart(firstComponent))));
 
 Uri toUri(FilePath a) =>
 	concatUriAndPath(
@@ -200,7 +208,11 @@ Opt!FilePath parent(FilePath a) {
 }
 Uri parentOrEmpty(Uri a) {
 	Opt!Uri res = parent(a);
-	return has(res) ? force(res) : a;
+	return optOrDefault!Uri(res, () => a);
+}
+FilePath parentOrEmpty(FilePath a) {
+	Opt!FilePath res = parent(a);
+	return optOrDefault!FilePath(res, () => a);
 }
 
 // Removes an existing extension and adds a new one.
@@ -525,8 +537,7 @@ FilePath parseFilePath(in string a) =>
 	FilePath(parsePathInner(
 		!isEmpty(a) && a[0] == '/' ? a[1 .. $] : a,
 		ParsePathOptions(uriDecode: false, isUriFile: false),
-		(Symbol firstComponent) =>
-			rootPath(firstComponent, PathInfo(isUriFile: false, isWindowsPath: isWindowsPathStart(firstComponent)))));
+		(Symbol firstComponent) => rootFilePath(firstComponent).path));
 
 Opt!FilePath parseFilePathWithCwd(FilePath cwd, in CString a) {
 	Uri res = parseUriWithCwd(cwd, stringOfCString(a));

@@ -103,7 +103,7 @@ import util.sourceRange : UriLineAndColumn;
 import util.string : CString, mustStripPrefix, MutCString;
 import util.symbol : Extension, initSymbols, symbol;
 import util.unicode : FileContent;
-import util.uri : baseName, childUri, cStringOfUriPreferRelative, FilePath, initUris, Uri, parentOrEmpty, toUri;
+import util.uri : baseName, childUri, cStringOfUriPreferRelative, FilePath, initUris, Uri, parentOrEmpty, rootFilePath, toUri;
 import util.util : debugLog;
 import util.writer : debugLogWithWriter, makeStringWithWriter, Writer;
 import versionInfo : getOS, versionInfoForInterpret, versionInfoForJIT;
@@ -118,7 +118,7 @@ import versionInfo : getOS, versionInfoForInterpret, versionInfoForJIT;
 	initUris(server.metaAlloc);
 	FilePath cwd = getCwd();
 	FilePath thisExecutable = getPathToThisExecutable();
-	setIncludeDir(&server, childUri(getCrowDir(thisExecutable), symbol!"include"));
+	setIncludeDir(&server, toUri(getCrowIncludeDir(thisExecutable)));
 	setCwd(server, toUri(cwd));
 	setShowOptions(server, ShowOptions(true));
 	Alloc* alloc = newAlloc(AllocKind.main, server.metaAlloc);
@@ -369,10 +369,23 @@ ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, FilePath c
 			buildAndRun(perf, alloc, server, cwd, run.mainUri, run.programArgs, x));
 }
 
-Uri getCrowDir(FilePath thisExecutable) {
-	Uri res = parentOrEmpty(parentOrEmpty(toUri(thisExecutable)));
-	assert(baseName(res) == symbol!"crow");
-	return res;
+FilePath getCrowIncludeDir(FilePath thisExecutable) {
+	FilePath thisDir = parentOrEmpty(thisExecutable);
+	FilePath thisDirDir = parentOrEmpty(thisDir);
+	version (Windows) {
+		assert(baseName(thisDirDir) == symbol!"crow");
+		return thisDirDir / symbol!"include";
+	} else {
+		FilePath usr = rootFilePath(symbol!"usr");
+		return thisDir == usr / symbol!"bin"
+			? usr / symbol!"include" / symbol!"crow"
+			: thisDir == usr / symbol!"local" / symbol!"bin"
+			? usr / symbol!"local" / symbol!"include" / symbol!"crow"
+			: () {
+				assert(baseName(thisDirDir) == symbol!"crow");
+				return thisDirDir / symbol!"include";
+			}();
+	}
 }
 
 CString[] getAllArgs(ref Alloc alloc, in Server server, in CommandKind.Run run) =>

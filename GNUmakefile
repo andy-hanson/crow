@@ -26,20 +26,20 @@ unit-test: bin/crow-debug
 
 crow-unit-tests: crow-unit-tests-interpreter crow-unit-tests-jit crow-unit-tests-aot
 crow-unit-tests-interpreter: bin/crow
-	test/crow-unit-tests.crow
+	bin/crow test/crow-unit-tests.crow
 crow-unit-tests-jit: bin/crow
 ifdef JIT
-		./bin/crow run test/crow-unit-tests.crow --jit
-		./bin/crow run test/crow-unit-tests.crow --jit --optimize
+	bin/crow run test/crow-unit-tests.crow --jit
+	bin/crow run test/crow-unit-tests.crow --jit --optimize
 endif
 crow-unit-tests-aot: bin/crow
-	./bin/crow run test/crow-unit-tests.crow --aot
-	./bin/crow run test/crow-unit-tests.crow --aot --optimize
+	bin/crow run test/crow-unit-tests.crow --aot
+	bin/crow run test/crow-unit-tests.crow --aot --optimize
 
 test-extern-library: bin/crow bin/libexample.so
 	test/test-extern-library/main.crow
-	# TODO: ./bin/crow run test/test-extern-library/main.crow --jit
-	./bin/crow run test/test-extern-library/main.crow --aot
+	# TODO: bin/crow run test/test-extern-library/main.crow --jit
+	bin/crow run test/test-extern-library/main.crow --aot
 
 bin/libexample.so: test/test-extern-library/example.c
 	mkdir -p bin
@@ -47,13 +47,13 @@ bin/libexample.so: test/test-extern-library/example.c
 
 end-to-end-test: bin/crow
 ifdef JIT
-	test/end-to-end/main.crow --include-jit
+	bin/crow test/end-to-end/main.crow --include-jit
 else
-	test/end-to-end/main.crow
+	bin/crow test/end-to-end/main.crow
 endif
 
 end-to-end-test-overwrite: bin/crow
-	test/end-to-end/main.crow --overwrite-output
+	bin/crow test/end-to-end/main.crow --overwrite-output
 
 ### external dependencies ###
 
@@ -106,9 +106,11 @@ ifdef JIT
 	app_link += -L=-lgccjit
 endif
 
+today = $(shell date --iso-8601 --utc)
+
 bin/d-imports/date.txt:
 	mkdir -p bin/d-imports
-	date --iso-8601 --utc > bin/d-imports/date.txt
+	echo $(today) > bin/d-imports/date.txt
 
 bin/d-imports/commit-hash.txt:
 	mkdir -p bin/d-imports
@@ -146,13 +148,13 @@ bin/crow.wasm: $(d_dependencies)
 lint: lint-basic lint-dscanner lint-d-imports-exports bin/dependencies.dot
 
 lint-basic: bin/crow
-	test/lint-basic.crow
+	bin/crow test/lint-basic.crow
 
 lint-dscanner:
 	dub run dscanner --quiet -- --styleCheck src
 
 lint-d-imports-exports: bin/crow
-	test/lint-d-imports-exports.crow
+	bin/crow test/lint-d-imports-exports.crow
 
 show-dependencies: bin/dependencies.svg
 	open bin/dependencies.svg
@@ -161,26 +163,53 @@ bin/dependencies.svg: bin/dependencies.dot
 	dot -Tsvg -o bin/dependencies.svg bin/dependencies.dot
 
 bin/dependencies.dot: bin/crow test/dependencies.crow
-	test/dependencies.crow
+	bin/crow test/dependencies.crow
 
 ### site ###
 
-prepare-site: bin/crow bin/crow.wasm bin/crow.tar.xz
+prepare-site: bin/crow bin/crow.wasm bin/crow.deb bin/crow.tar.xz bin/crow-demo.tar.xz editor/crow.sublime-syntax bin/crow.vsix
 	bin/crow run site-src/site.crow --aot
 
 serve: prepare-site
-	site-src/serve.crow
+	bin/crow site-src/serve.crow
 
 ### publish ###
 
-all_demo = demo/* demo/*/*
 all_include = include/*/*.crow include/*/*/*.crow include/*/*/*/*.crow
-all_libraries = libraries/* libraries/*/*
-bin/crow.tar.xz: bin/crow bin/crow.vsix $(all_demo) editor/crow.sublime-syntax $(all_include) $(all_libraries)
-	tar --directory .. --create --xz \
-		--exclude demo/extern --exclude editor/vscode \
-		--transform 'flags=r;s|bin/crow.vsix|editor/crow.vsix|' \
-		--file bin/crow.tar.xz crow/bin/crow crow/bin/crow.vsix crow/demo crow/editor crow/include crow/libraries
+bin/crow.tar.xz: bin/crow $(all_include)
+	tar --directory .. --create --xz --file bin/crow.tar.xz crow/bin/crow crow/include
+
+bin/crow-demo.tar.xz: demo/* demo/*/* demo/*/*/*
+	tar --create --xz --file bin/crow-demo.tar.xz --transform 'flags=r;s|demo|crow-demo|' --exclude crow-demo/extern demo
+
+define newline
+
+
+endef
+
+define crow_deb_control =
+Package: crow
+Version: 0.0-$(today)
+Section: base
+Priority: optional
+Architecture: amd64
+Depends: libunwind-dev
+Maintainer: Andy Hanson <andy-hanson@protonmail.com>
+Description: Crow programming language
+
+endef
+
+bin/crow.deb: bin/crow $(all_include)
+	mkdir bin/deb
+	mkdir bin/deb/usr
+	mkdir bin/deb/usr/bin
+	cp bin/crow bin/deb/usr/bin/crow
+	mkdir bin/deb/usr/include
+	cp -r include bin/deb/usr/include/crow
+	mkdir bin/deb/DEBIAN
+	@printf '$(subst $(newline),\n,${crow_deb_control})' > bin/deb/DEBIAN/control
+	dpkg-deb --build bin/deb bin/crow.deb
+	rm -r bin/deb
 
 bin/crow.vsix: editor/vscode/* editor/vscode/node_modules
 	cd editor/vscode && ./node_modules/@vscode/vsce/vsce package --allow-missing-repository --out ../../bin/crow.vsix
