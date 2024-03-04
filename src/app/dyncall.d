@@ -34,7 +34,7 @@ import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
 import util.string : CString, cString;
 import util.symbol : addExtension, addPrefixAndExtension, Extension, Symbol, symbol;
-import util.uri : asFilePath, childUri, Uri, uriIsFile, withCStringOfFilePath;
+import util.uri : asFilePath, Uri, uriIsFile, withCStringOfFilePath;
 import util.writer : withStackWriterCString, withStackWriterImpure, withStackWriterImpureCString, Writer;
 
 @trusted ExitCode withRealExtern(ref Alloc alloc, in ExitCode delegate(in Extern) @safe @nogc nothrow cb) {
@@ -83,7 +83,7 @@ immutable struct LibraryAndError {
 LibraryAndError getLibrary(Symbol libraryName, Opt!Uri configuredDir, in WriteError writeError) {
 	Symbol fileName = dllOrSoName(libraryName);
 	Opt!(DLLib*) fromUri = has(configuredDir)
-		? tryLoadLibraryFromUri(childUri(force(configuredDir), fileName))
+		? tryLoadLibraryFromUri(force(configuredDir) / fileName)
 		: none!(DLLib*);
 	if (has(fromUri))
 		return LibraryAndError(force(fromUri), false);

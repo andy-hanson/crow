@@ -56,7 +56,7 @@ import model.model : BuiltinBinary, BuiltinType, BuiltinUnary, EnumValue;
 import model.showLowModel : writeFunName, writeFunSig;
 import model.typeLayout : sizeOfType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.col.array : every, exists, isEmpty, map, only, sizeEq, zip;
+import util.col.array : contains, every, exists, isEmpty, map, only, sizeEq, zip;
 import util.col.arrayBuilder : buildArray, Builder;
 import util.col.map : mustGet;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach, fullIndexMapEachKey;
@@ -64,9 +64,9 @@ import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
 import util.opt : force, has, Opt, some;
 import util.string : CString, cString, cStringSize, stringOfCString;
 import util.symbol : addExtension, cStringOfSymbol, Extension, Symbol, symbol;
-import util.unicode : isValidUnicodeCharacter, unicodeDecodeAssertNoError;
+import util.unicode : isValidUnicodeCharacter, mustUnicodeDecode;
 import util.union_ : Union;
-import util.uri : asFilePath, childFilePath, cStringOfFilePath, FilePath, uriIsFile;
+import util.uri : asFilePath, cStringOfFilePath, FilePath, uriIsFile;
 import util.util : abs, castImmutable, castNonScope, castNonScope_ref, ptrTrustMe, stringOfEnum, todo;
 import util.writer :
 	makeStringWithWriter,
@@ -74,6 +74,7 @@ import util.writer :
 	writeEscapedChar_inner,
 	writeFloatLiteral,
 	writeNewline,
+	writeQuotedString,
 	Writer,
 	writeWithCommas,
 	writeWithCommasZip,
@@ -101,12 +102,7 @@ WriteToCResult writeToC(ref Alloc alloc, in ShowCtx printCtx, in LowProgram prog
 	bool isMSVC = isWindows(program.version_);
 	CString[] args = cCompileArgs(alloc, program.externLibraries, isMSVC, params);
 	string content = makeStringWithWriter(alloc, (scope ref Writer writer) {
-		writer ~= "/* ";
-		writer ~= params.cCompiler;
-		writer ~= ' ';
-		writeWithSpaces!CString(writer, args, (in CString arg) { writer ~= arg; });
-		writer ~= " */\n\n";
-
+		writeCommandComment(writer, params.cCompiler, args);
 		writer ~= "#include <math.h>\n"; // for e.g. 'sin'
 		writer ~= "#include <stddef.h>\n"; // for NULL
 		writer ~= "#include <stdint.h>\n";
@@ -117,7 +113,8 @@ WriteToCResult writeToC(ref Alloc alloc, in ShowCtx printCtx, in LowProgram prog
 			writer ~= "unsigned __int64 __popcnt64(unsigned __int64 value);\n";
 		}
 
-		Ctx ctx = Ctx(ptrTrustMe(printCtx), ptrTrustMe(program), buildMangledNames(alloc, program), isMSVC: isMSVC);
+		Ctx ctx = Ctx(
+			ptrTrustMe(printCtx), ptrTrustMe(program), buildMangledNames(alloc, program, isMSVC), isMSVC: isMSVC);
 
 		writeStructs(alloc, writer, ctx);
 
@@ -137,6 +134,21 @@ WriteToCResult writeToC(ref Alloc alloc, in ShowCtx printCtx, in LowProgram prog
 	return WriteToCResult(PathAndArgs(params.cCompiler, args), content);
 }
 
+private void writeCommandComment(scope ref Writer writer, FilePath cCompiler, in CString[] args) {
+	writer ~= "/* \"";
+	writer ~= cCompiler;
+	writer ~= "\" ";
+	writeWithSpaces!CString(writer, args, (in CString arg) { writeAndQuoteIfNecessary(writer, stringOfCString(arg)); });
+	writer ~= " */\n\n";
+}
+
+private void writeAndQuoteIfNecessary(scope ref Writer writer, in string a) {
+	if (contains(a, ' '))
+		writeQuotedString(writer, a);
+	else
+		writer ~= a;
+}
+
 public void getLinkOptions(
 	ref Alloc alloc,
 	bool isMSVC,
@@ -151,7 +163,7 @@ public void getLinkOptions(
 			if (has(x.configuredDir)) {
 				if (!uriIsFile(force(x.configuredDir)))
 					todo!void("diagnostic: can't link to non-file");
-				cb(cStringOfFilePath(alloc, childFilePath(asFilePath(force(x.configuredDir)), xDotLib)));
+				cb(cStringOfFilePath(alloc, asFilePath(force(x.configuredDir)) / xDotLib));
 			} else
 				switch (x.libraryName.value) {
 					case symbol!"c".value:
@@ -311,7 +323,7 @@ void writeArrayConstant(scope ref Writer writer, scope ref Ctx ctx, in LowType e
 		foreach (size_t i, Constant x; elements)
 			buf[i] = cast(char) x.as!(Constant.Integral).value;
 		writeStringLiteralWithoutNul(writer, ctx.isMSVC, castImmutable(buf[0 .. elements.length]));
-	} else if (isChar32(elementType)) {
+	} else if (isChar32(elementType) && !ctx.isMSVC) {
 		writer ~= "U\"";
 		foreach (Constant element; elements)
 			writeEscapedCharForC(writer, cast(dchar) element.as!(Constant.Integral).value);
@@ -1414,12 +1426,12 @@ void writeConstantRef(
 		(in Constant.Integral x) {
 			PrimitiveType primitive = type.as!PrimitiveType;
 			if (primitive == PrimitiveType.char8 || primitive == PrimitiveType.char32) {
-				if (isValidUnicodeCharacter(cast(dchar) x.value)) {
+				if (!ctx.isMSVC && isValidUnicodeCharacter(cast(dchar) x.value)) {
 					writer ~= "'";
 					writeEscapedCharForC(writer, cast(dchar) x.value);
 					writer ~= "'";
 				} else
-					writer ~= cast(dchar) x.value;
+					writer ~= cast(uint) x.value;
 			} else if (isSignedIntegral(primitive)) {
 				if (x.value == int.min)
 					writer ~= "INT32_MIN";
@@ -1486,7 +1498,7 @@ void writeStringLiteralWithNul(scope ref Writer writer, bool isMSVC, in string a
 
 void writeStringLiteralInner(scope ref Writer writer, bool isMSVC, in string a) {
 	size_t chunk = 0;
-	unicodeDecodeAssertNoError(a, (dchar x) {
+	mustUnicodeDecode(a, (dchar x) {
 		writeEscapedCharForC(writer, x);
 		if (isMSVC) {
 			// Avoid error with MSVC: "error C2026: string too big, trailing characters truncated"

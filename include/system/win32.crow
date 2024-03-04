@@ -342,6 +342,15 @@ import
 	lpOverlapped any-mut-pointer,
 ) kernel32 extern
 
++PeekNamedPipe bool(
+	hNamedPipe HANDLE,
+	lpBuffer void mut*,
+	nBufferSize DWORD,
+	lpBytesRead DWORD mut*,
+	lpTotalBytesAvail DWORD mut*,
+	lpBytesLeftThisMessage DWORD mut*,
+) kernel32 extern
+
 +MAKEWORD WORD(a nat8, b nat8)
 	(a.to | (b.to << 8))
 

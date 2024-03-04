@@ -13,6 +13,7 @@ import std.conv : octal;
 version (Windows) {
 	import core.sys.windows.core :
 		CloseHandle,
+		CP_UTF8,
 		CreatePipe,
 		CreateProcessA,
 		DeleteFileA,
@@ -37,6 +38,7 @@ version (Windows) {
 		ReadFile,
 		SearchPathA,
 		SECURITY_ATTRIBUTES,
+		SetConsoleOutputCP,
 		SetHandleInformation,
 		Sleep,
 		STARTF_USESTDHANDLES,
@@ -72,7 +74,6 @@ import util.uri :
 	alterExtensionWithHex,
 	asFilePath,
 	baseName,
-	childFilePath,
 	cStringOfFilePath,
 	FilePath,
 	parent,
@@ -145,6 +146,7 @@ private FILE* fileForPipe(OutPipe pipe) {
 
 private @system void writeString(OutPipe pipe, in string a) {
 	version (Windows) {
+		SetConsoleOutputCP(CP_UTF8);
 		HANDLE console = GetStdHandle(() {
 			final switch (pipe) {
 				case OutPipe.stdout:
@@ -422,7 +424,7 @@ ExitCode cleanupCompile(FilePath cwd, FilePath cPath, FilePath exePath) {
 		removeFileIfExists(alterExtension(exePath, Extension.ilk));
 		removeFileIfExists(alterExtension(exePath, Extension.pdb));
 		Symbol objBaseName = alterExtension(baseName(cPath), Extension.obj);
-		return removeFileIfExists(childFilePath(cwd, objBaseName));
+		return removeFileIfExists(cwd / objBaseName);
 	} else
 		return ExitCode.ok;
 }

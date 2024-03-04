@@ -55,7 +55,6 @@ import util.unicode : FileContent;
 import util.union_ : TaggedUnion;
 import util.uri :
 	addExtension,
-	childUri,
 	concatUriAndPath,
 	firstAndRest,
 	parent,
@@ -524,9 +523,8 @@ ResolvedImport[] fullyResolveImports(ref Frontend a, in MostlyResolvedImport[] i
 			(Diag.ImportFileDiag* x) =>
 				ResolvedImport(x)));
 
-MutOpt!(Config*) tryFindConfig(ref Storage storage, Uri configDir) {
-	Uri configUri = childUri(configDir, crowConfigBaseName);
-	return fileOrDiag(storage, configUri).match!(MutOpt!(Config*))(
+MutOpt!(Config*) tryFindConfig(ref Storage storage, Uri configDir) =>
+	fileOrDiag(storage, configDir / crowConfigBaseName).match!(MutOpt!(Config*))(
 		(FileInfo x) =>
 			someMut(&x.as!(CrowConfigFileInfo*).config),
 		(ReadFileDiag x) {
@@ -546,27 +544,26 @@ MutOpt!(Config*) tryFindConfig(ref Storage storage, Uri configDir) {
 					return noneMut!(Config*);
 			}
 		});
-}
 
 CommonUris commonUris(Uri includeDir) {
-	Uri includeCrow = childUri(includeDir, symbol!"crow");
-	Uri private_ = childUri(includeCrow, symbol!"private");
-	Uri col = childUri(includeCrow, symbol!"col");
+	Uri includeCrow = includeDir / symbol!"crow";
+	Uri private_ = includeCrow / symbol!"private";
+	Uri col = includeCrow / symbol!"col";
 	return enumMapMapValues!(CommonModule, Uri, Uri)(CommonUris([
-		childUri(private_, symbol!"bootstrap"),
-		childUri(private_, symbol!"alloc"),
-		childUri(private_, symbol!"bool-low-level"),
-		childUri(includeCrow, symbol!"compare"),
-		childUri(private_, symbol!"exception-low-level"),
-		childUri(includeCrow, symbol!"fun-util"),
-		childUri(includeCrow, symbol!"future"),
-		childUri(includeCrow, symbol!"json"),
-		childUri(col, symbol!"list"),
-		childUri(includeCrow, symbol!"misc"),
-		childUri(private_, symbol!"number-low-level"),
-		childUri(includeCrow, symbol!"std"),
-		childUri(includeCrow, symbol!"string"),
-		childUri(private_, symbol!"rt-main"),
+		private_ / symbol!"bootstrap",
+		private_ / symbol!"alloc",
+		private_ / symbol!"bool-low-level",
+		includeCrow / symbol!"compare",
+		private_ / symbol!"exception-low-level",
+		includeCrow / symbol!"fun-util",
+		includeCrow / symbol!"future",
+		includeCrow / symbol!"json",
+		col / symbol!"list",
+		includeCrow / symbol!"misc",
+		private_ / symbol!"number-low-level",
+		includeCrow / symbol!"std",
+		includeCrow / symbol!"string",
+		private_ / symbol!"rt-main",
 	]), (Uri x) => addExtension(x, Extension.crow));
 }
 

@@ -4,14 +4,19 @@ module test.testUnicode;
 
 import test.testUtil : Test;
 import util.col.arrayBuilder : buildArray, Builder;
-import util.opt : force, Opt;
+import util.opt : force, has, Opt;
 import util.string : CString, cString, CStringAndLength, stringOfCString;
-import util.unicode : FileContent, unicodeDecodeAssertNoError, mustUnicodeEncode, unicodeValidate;
+import util.unicode : FileContent, mustUnicodeDecode, mustUnicodeEncode, unicodeValidate;
 
 void testUnicode(ref Test test) {
 	assertUnicode(test, cString!"$¥₿𝄮", 10, "$¥₿𝄮", 4);
 	assertUnicode(test, cString!"𝄮₿¥$", 10, "𝄮₿¥$", 4);
 	assertUnicode(test, cString!"\ue000", 3, "\ue000", 1);
+
+	(() @trusted {
+		Opt!CStringAndLength valid = unicodeValidate(FileContent(CStringAndLength(cString!"a\0b", 3)));
+		assert(!has(valid));
+	})();
 }
 
 private:
@@ -25,7 +30,7 @@ void assertUnicode(ref Test test, in CString cString, size_t expectedChar8s, in 
 	assert(force(uni).cString == cString && force(uni).length == utf8.length);
 
 	size_t i = 0;
-	unicodeDecodeAssertNoError(utf8, (dchar x) {
+	mustUnicodeDecode(utf8, (dchar x) {
 		assert(x == utf32[i]);
 		i++;
 	});

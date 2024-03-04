@@ -43,7 +43,6 @@ Opt!CStringAndLength unicodeValidate(in FileContent utf8) {
 		else if (next == error)
 			return none!CStringAndLength;
 	}
-	// TODO: UNIT TEST: Fails for early '\0' ------------------------------------------------------
 	return optIf(iter.byteIndex(str) == str.length, () @trusted =>
 		CStringAndLength(utf8.assumeUtf8, str.length));
 }
@@ -60,7 +59,7 @@ void mustUnicodeEncode(ref Builder!(immutable char) builder, in dchar a) {
 bool tryUnicodeEncode(scope ref Builder!(immutable char) res, in dchar[] a) =>
 	every(a, (in dchar x) => tryUnicodeEncode(res, x));
 
-void unicodeDecodeAssertNoError(in string utf8, in void delegate(dchar) @safe @nogc pure nothrow cb) {
+void mustUnicodeDecode(in string utf8, in void delegate(dchar) @safe @nogc pure nothrow cb) {
 	StringIter iter = StringIter(utf8);
 	while (true) {
 		dchar next = tryDecodeOneUnicodeChar(iter);

@@ -63,8 +63,8 @@ same link(a string)
 	in-src-paths ~~ script ~~ font ~~ other-links,
 
 other-links link[]()
-	((trusted is-windows) ? "bin/crow.zip" : "bin/crow.tar.xz").same, \
-	((trusted is-windows) ? "bin/crow-demo.zip" : "bin/crow-demo.tar.xz").same,
+	((trusted is-windows) ? "bin/crow-windows-x64.tar.xz" : "bin/crow-linux-x64.tar.xz").same, \
+	((trusted is-windows) ? "bin/crow-demo-windows.tar.xz" : "bin/crow-demo.tar.xz").same,
 	"bin/crow.wasm".same,
 	("editor/crow.sublime-syntax", "bin/crow.sublime-syntax"),
 	"bin/crow.vsix".same

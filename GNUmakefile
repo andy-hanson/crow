@@ -90,21 +90,21 @@ d_dependencies = $(all_src_files) bin/d-imports/date.txt bin/d-imports/commit-ha
 
 d_flags_common = -w -betterC -preview=dip1000 -preview=in -J=bin/d-imports -J=src/test -J=include
 dmd_flags_common = $(d_flags_common)
+ldc_flags_common = $(d_flags_common)
+ifdef JIT
+	dmd_flags_common += -version=GccJitAvailable
+	ldc_flags_common += --d-version=GccJitAvailable
+	app_link += -L=-lgccjit
+endif
+
 dmd_flags_assert = $(dmd_flags_common) -check=on -boundscheck=on
 dmd_flags_debug = -debug -g -version=Debug -version=Test
-ldc_flags_common = $(d_flags_common)
 ldc_flags_assert = $(ldc_flags_common) --enable-asserts=true --boundscheck=on
 ldc_wasm_flags = -mtriple=wasm32-unknown-unknown-wasm -L-allow-undefined
 ldc_fast_flags_no_tail_call = -O2 -L=--strip-all
 ldc_fast_flags = $(ldc_fast_flags_no_tail_call) --d-version=TailRecursionAvailable
 app_link = -L=-ldyncall_s -L=-ldyncallback_s -L=-ldynload_s -L=-lunwind \
 	-L=-L./dyncall/dyncall -L=-L./dyncall/dyncallback -L=-L./dyncall/dynload \
-
-ifdef JIT
-	dmd_flags_common += -version=GccJitAvailable
-	ldc_flags_common += --d-version=GccJitAvailable
-	app_link += -L=-lgccjit
-endif
 
 today = $(shell date --iso-8601 --utc)
 
@@ -167,7 +167,7 @@ bin/dependencies.dot: bin/crow test/dependencies.crow
 
 ### site ###
 
-prepare-site: bin/crow bin/crow.wasm bin/crow.deb bin/crow.tar.xz bin/crow-demo.tar.xz editor/crow.sublime-syntax bin/crow.vsix
+prepare-site: bin/crow bin/crow.wasm bin/crow.deb bin/crow-linux-x64.tar.xz bin/crow-demo.tar.xz bin/crow.vsix
 	bin/crow run site-src/site.crow --aot
 
 serve: prepare-site
@@ -176,11 +176,12 @@ serve: prepare-site
 ### publish ###
 
 all_include = include/*/*.crow include/*/*/*.crow include/*/*/*/*.crow
-bin/crow.tar.xz: bin/crow $(all_include)
-	tar --directory .. --create --xz --file bin/crow.tar.xz crow/bin/crow crow/include
+bin/crow-linux-x64.tar.xz: bin/crow $(all_include)
+	tar --directory .. --create --xz --file bin/crow-linux-x64.tar.xz crow/bin/crow crow/include
 
 bin/crow-demo.tar.xz: demo/* demo/*/* demo/*/*/*
-	tar --create --xz --file bin/crow-demo.tar.xz --transform 'flags=r;s|demo|crow-demo|' --exclude crow-demo/extern demo
+	tar --create --xz --file bin/crow-demo.tar.xz \
+		--transform 'flags=r;s|demo|crow-demo|' --exclude crow-demo/extern demo
 
 define newline
 
@@ -220,8 +221,9 @@ install-vscode-extension: bin/crow.vsix
 editor/vscode/node_modules:
 	cd editor/vscode && npm install
 
-# `crow.zip` is uploaded by NMakefile
-aws_upload_command = aws s3 sync site s3://crow-lang.org --delete --exclude "crow.zip"
+# `bin\crow-windows-x64.tar.xz` is uploaded by NMakefile
+aws_upload_command = aws s3 sync site s3://crow-lang.org --delete \
+	--exclude "bin\crow-windows-x64.tar.xz" --exclude "bin\crow-demo-windows.tar.xz"
 
 confirm-upload-site: prepare-site
 	$(aws_upload_command) --dryrun

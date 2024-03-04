@@ -103,7 +103,7 @@ import util.sourceRange : UriLineAndColumn;
 import util.string : CString, mustStripPrefix, MutCString;
 import util.symbol : Extension, initSymbols, symbol;
 import util.unicode : FileContent;
-import util.uri : baseName, childUri, cStringOfUriPreferRelative, FilePath, initUris, Uri, parentOrEmpty, rootFilePath, toUri;
+import util.uri : baseName, cStringOfUriPreferRelative, FilePath, initUris, Uri, parentOrEmpty, rootFilePath, toUri;
 import util.util : debugLog;
 import util.writer : debugLogWithWriter, makeStringWithWriter, Writer;
 import versionInfo : getOS, versionInfoForInterpret, versionInfoForJIT;

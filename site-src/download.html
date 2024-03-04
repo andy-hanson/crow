@@ -14,36 +14,51 @@
 	<p>To uninstall: <code>sudo dpkg --remove crow</code></p>
 
 	<h3>
-		Other Linux
-		<a href="./bin/crow.tar.xz">
+		Any Linux
+		<a href="./bin/crow-linux-x64.tar.xz">
 			<crow-icon icon="download"></crow-icon> <code>crow.tar.xz</code>
 		</a>
 	</h3>
 	<p>
 		First ensure <code>libunwind-dev</code> is installed. Then:
 	</p>
+
+	<h4>Global install (recommended)</h4>
 	<div class="code-block">
-		tar --extract --xz --file crow.tar.xz
+		sudo tar -xJf crow-linux-x64.tar.xz bin --strip-components 1 -C /usr/local/bin
 		<br />
-		sudo cp crow/bin/crow /usr/local/bin/crow
+		sudo mkdir /usr/local/include/crow
 		<br />
-		sudo cp -r crow/include /usr/local/include/crow
+		sudo tar -xJf crow-linux-x64.tar.xz include --strip-components 1 -C /usr/local/include/crow
 	</div>
 	<p>To uninstall: <code>sudo rm -r /usr/local/bin/crow /usr/local/include/crow</code></p>
 
+	<h4>Local install</h4>
+	<div class="code-block">
+		tar --extract --xz --file crow-linux-64.tar.xz
+		export PATH="$PATH:~/Downloads/crow"
+	</div>
+	<p>To uninstall: <code>rm -r ~/Downloads/crow</code></p>
+
 	<h2>
 		Windows (x64)
-		<a href="./bin/crow.zip">
-			<crow-icon icon="download"></crow-icon> <code>crow.zip</code>
+		<a href="./bin/crow-windows-x64.tar.xz">
+			<crow-icon icon="download"></crow-icon> <code>crow-windows-x64.tar.xz</code>
 		</a>
 	</h2>
 
-	<p>
-		Unzip <code>crow.zip</code>, then edit the <code>PATH</code> environment variable
-		to include the <code>crow\bin</code> directory.
+	<div class="code-block">
+		mkdir C:\crow
 		<br />
-		After changing the <code>PATH</code> you must restart any affected applications like a terminal or IDE.
+		tar --extract -xJf crow-windows-x64.tar.xz -C C:\crow
+	</div>
+	<p>
+		(<code>C:\crow</code> is a suggestion; you can install it anywhere.)
+		<br />
+		Then add <code>C:\crow\bin</code> to your <code>PATH</code>.
+		(<a href="https://www.java.com/en/download/help/path.html">How to do that</a>)
 	</p>
+	<p>To uninstall: <code>rmdir /s /q C:\crow</code></p>
 
 	<h2>Other systems</h2>
 	<p>
@@ -53,19 +68,27 @@
 	<h2 id="demo">
 		Demos
 		<a href="./bin/crow-demo.tar.xz"><crow-icon icon="download"></crow-icon>crow-demo.tar.xz</a>
-		<a href="./bin/crow-demo.zip"><crow-icon icon="download"></crow-icon>crow-demo.zip</a>
+		<a href="./bin/crow-demo-windows.tar.xz" download="crow-demo.tar.xz">
+			<crow-icon icon="download"></crow-icon>crow-demo-windows.tar.xz
+		</a>
 	</h2>
 
-	<p>
-		To run sample Crow programs, download one of the above and run <code>crow crow-demo/hello.crow</code> .
-	</p>
+	<div class="code-block">
+		tar -xJf crow-demo.tar.xz
+		<br />
+		crow crow-demo\hello.crow
+		<br />
+		# Try out the other demos
+		<br />
+		dir crow-demo
+	</div>
 
 	<aside class="small">
 		To be able to run all demos, install:
 		<br />
 		<code>sudo apt install libsdl2-dev libsndfile1-dev libsodium-dev libsqlite3-dev</code>.
 		<br />
-		On Windows, these are included in <code>crow-demo\extern</code>.
+		For Windows, these are included in <code>crow-demo\extern</code> and will be picked up automatically.
 	</aside>
 
 	<h1>Editor support</h1>

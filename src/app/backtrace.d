@@ -36,59 +36,63 @@ import util.writer : Writer;
 
 @system void writeBacktrace(scope ref Writer writer) {
 	version (Windows) {
-		DbgHelp dbgHelp = getDbgHelp();
+		version (DigitalMars) {
+			writer ~= "Backtrace not supported with DMD";
+		} else {
+			DbgHelp dbgHelp = getDbgHelp();
 
-		HANDLE process = GetCurrentProcess();
-		HANDLE thread = GetCurrentThread();
-		int ok = dbgHelp.SymInitialize(process, null, true);
-		assert(ok);
-		CONTEXT context = CONTEXT(CONTEXT_FULL);
-		RtlCaptureContext(&context);
-		STACKFRAME64 frame = STACKFRAME64(
-			AddrPC: toAddr(context.Rip),
-			AddrReturn: ADDRESS64(),
-			AddrFrame: toAddr(context.Rbp),
-			AddrStack: toAddr(context.Rsp),
-			AddrBStore: ADDRESS64(),
-			FuncTableEntry: null,
-			Params: [0, 0, 0, 0],
-			Far: false,
-			Virtual: false,
-			Reserved: [0, 0, 0],
-			KdHelp: KDHELP64());
-		dbgHelp.SymSetOptions(SYMOPT_LOAD_LINES);
+			HANDLE process = GetCurrentProcess();
+			HANDLE thread = GetCurrentThread();
+			int ok = dbgHelp.SymInitialize(process, null, true);
+			assert(ok);
+			CONTEXT context = CONTEXT(CONTEXT_FULL);
+			RtlCaptureContext(&context);
+			STACKFRAME64 frame = STACKFRAME64(
+				AddrPC: toAddr(context.Rip),
+				AddrReturn: ADDRESS64(),
+				AddrFrame: toAddr(context.Rbp),
+				AddrStack: toAddr(context.Rsp),
+				AddrBStore: ADDRESS64(),
+				FuncTableEntry: null,
+				Params: [0, 0, 0, 0],
+				Far: false,
+				Virtual: false,
+				Reserved: [0, 0, 0],
+				KdHelp: KDHELP64());
+			dbgHelp.SymSetOptions(SYMOPT_LOAD_LINES);
 
-		writer ~= "\nBacktrace:";
+			writer ~= "\nBacktrace:";
 
-		DWORD step() =>
-			dbgHelp.StackWalk64(
-				IMAGE_FILE_MACHINE_AMD64, process, thread,
-				&frame, &context, null, dbgHelp.SymFunctionTableAccess64, null, null);
+			DWORD step() =>
+				dbgHelp.StackWalk64(
+					IMAGE_FILE_MACHINE_AMD64, process, thread,
+					&frame, &context, null, dbgHelp.SymFunctionTableAccess64, null, null);
 
-		foreach (size_t i; 0 .. 6)
-			step();
+			foreach (size_t i; 0 .. 6)
+				step();
 
-		while (step()) {
-			size_t offset;
-			IMAGEHLP_SYMBOLA64 symbol;
-			writer ~= "\n\tat ";
-			if (dbgHelp.SymGetSymFromAddr64(process, frame.AddrPC.Offset, &offset, &symbol)) {
-				writer ~= CString(cast(immutable) &symbol.Name[0]);
-				DWORD displacement;
-				IMAGEHLP_LINEA64 line;
-				if (dbgHelp.SymGetLineFromAddr64(process, frame.AddrPC.Offset, &displacement, &line)) {
-					writer ~= '(';
-					writer ~= CString(cast(immutable) line.FileName);
-					writer ~= " line ";
-					writer ~= line.LineNumber;
-					writer ~= ')';
-				}
-			} else
-				writer ~= "<<unknown>>";
+			while (step()) {
+				size_t offset;
+				IMAGEHLP_SYMBOLA64 symbol;
+				writer ~= "\n\tat ";
+				if (dbgHelp.SymGetSymFromAddr64(process, frame.AddrPC.Offset, &offset, &symbol)) {
+					writer ~= CString(cast(immutable) &symbol.Name[0]);
+					DWORD displacement;
+					IMAGEHLP_LINEA64 line;
+					if (dbgHelp.SymGetLineFromAddr64(process, frame.AddrPC.Offset, &displacement, &line)) {
+						writer ~= '(';
+						writer ~= CString(cast(immutable) line.FileName);
+						writer ~= " line ";
+						writer ~= line.LineNumber;
+						writer ~= ')';
+					}
+				} else
+					writer ~= "<<unknown>>";
+			}
+
+			int ok1 = dbgHelp.SymCleanup(process);
+			assert(ok1);
 		}
-
-		int ok1 = dbgHelp.SymCleanup(process);
-		assert(ok1);
 	} else {
 		unw_cursor_t cursor;
 		unw_context_t context;

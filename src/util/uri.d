@@ -137,8 +137,8 @@ immutable struct Uri {
 		writePath(writer, path, uriEncode: true);
 	}
 
-	Uri opBinary(string op : "/")(Symbol name) => // TODO: USE ONLY THIS, HIDE CHILDURI -----------------------------------
-		childUri(this, name);
+	Uri opBinary(string op : "/")(Symbol name) =>
+		Uri(path / name);
 }
 
 private bool isRootUri(Uri a) =>
@@ -169,8 +169,8 @@ immutable struct FilePath {
 		writePath(writer, path);
 	}
 
-	FilePath opBinary(string op : "/")(Symbol name) => // TODO: USE ONLY THIS, HIDE CHILDURI -----------------------------------
-		childFilePath(this, name);
+	FilePath opBinary(string op : "/")(Symbol name) =>
+		FilePath(path / name);
 }
 FilePath rootFilePath(Symbol firstComponent) =>
 	FilePath(rootPath(firstComponent, PathInfo(isUriFile: false, isWindowsPath: isWindowsPathStart(firstComponent))));
@@ -196,6 +196,9 @@ immutable struct Path {
 		index;
 	static Path fromUintForTaggedUnion(uint a) =>
 		Path(safeToUshort(a));
+
+	Path opBinary(string op : "/")(Symbol name) =>
+		childPathWithInfo(this, name, pathInfo(this));
 }
 
 Opt!Uri parent(Uri a) {
@@ -248,7 +251,7 @@ private Path modifyBaseName(Path a, in Symbol delegate(Symbol) @safe @nogc pure 
 	Symbol newBaseName = cb(baseName(a));
 	Opt!Path parent = parent(a);
 	return has(parent)
-		? childPath(force(parent), newBaseName)
+		? force(parent) / newBaseName
 		: rootPath(newBaseName, pathInfo(a));
 }
 
@@ -278,7 +281,7 @@ PathFirstAndRest firstAndRest(Path a) {
 	if (has(par)) {
 		PathFirstAndRest parentRes = firstAndRest(force(par));
 		Path rest = has(parentRes.rest)
-			? childPath(force(parentRes.rest), baseName)
+			? force(parentRes.rest) / baseName
 			: rootPathPlain(baseName);
 		return PathFirstAndRest(parentRes.first, some(rest));
 	} else
@@ -295,20 +298,11 @@ bool isWindowsPath(Path a) =>
 Path rootPathPlain(Symbol name) =>
 	rootPath(name, PathInfo(isUriFile: false, isWindowsPath: false));
 
-Uri childUri(Uri parent, Symbol name) =>
-	Uri(childPath(parent.path, name));
-
-FilePath childFilePath(FilePath parent, Symbol name) =>
-	FilePath(childPath(parent.path, name));
-
 Uri bogusUri() =>
 	mustParseUri("bogus:bogus");
 
-Path childPath(Path parent, Symbol name) =>
-	childPathWithInfo(parent, name, pathInfo(parent));
 private Path descendentPath(Path parent, in Symbol[] childComponentNames) =>
-	fold!(Path, Symbol)(parent, childComponentNames, (Path acc, in Symbol component) =>
-		childPath(acc, component));
+	fold!(Path, Symbol)(parent, childComponentNames, (Path acc, in Symbol component) => acc / component);
 
 immutable struct RelPath {
 	@safe @nogc pure nothrow:
@@ -464,7 +458,7 @@ private Path parsePathInner(
 	StringIter iter = StringIter(str);
 	Cell!Path res = Cell!Path(cbRoot(parsePathComponent(iter, options.uriDecode)));
 	while (!done(iter))
-		cellSet(res, childPath(cellGet(res), parsePathComponent(iter, options.uriDecode)));
+		cellSet(res, cellGet(res) / parsePathComponent(iter, options.uriDecode));
 	return cellGet(res);
 }
 private @trusted Symbol parsePathComponent(scope ref StringIter iter, bool uriDecode) =>

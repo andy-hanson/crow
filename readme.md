@@ -75,4 +75,5 @@ Run `make all JIT=1` to build with libgccjit support. Use `crow run demo/hello.c
 # Publishing
 
 Run `make upload-site` to build and publish. This requires you to have `aws` installed.
-You need to do this on both Linux and Windows. (Windows updates `crow.zip`, Linux handles everything else.)
+You need to do this on both Linux and Windows.
+(Windows uploads `crow-windows-x64.tar.xz` and `crow-demo-windows.tar.xz`, Linux handles everything else.)

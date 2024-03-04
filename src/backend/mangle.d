@@ -29,20 +29,21 @@ import util.col.map : Map;
 import util.col.mapBuilder : finishMap, mustAddToMap, MapBuilder;
 import util.col.fullIndexMap : FullIndexMap, mapFullIndexMap;
 import util.col.mutMap : getOrAdd, insertOrUpdate, MutMap, setInMap;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, Opt;
 import util.symbol : Symbol, symbol;
 import util.union_ : TaggedUnion;
 import util.util : todo;
 import util.writer : Writer;
 
 const struct MangledNames {
+	bool isMSVC;
 	FullIndexMap!(LowVarIndex, size_t) varToNameIndex;
 	Map!(ConcreteFun*, size_t) funToNameIndex;
 	//TODO:PERF we could use separate FullIndexMap for record, union, etc.
 	Map!(ConcreteStruct*, size_t) structToNameIndex;
 }
 
-MangledNames buildMangledNames(ref Alloc alloc, return scope const LowProgram program) {
+MangledNames buildMangledNames(ref Alloc alloc, return scope const LowProgram program, bool isMSVC) {
 	// First time we see a fun with a name, we'll store the fun-pointer here in case it's not overloaded.
 	// After that, we'll start putting them in funToNameIndex, and store the next index here.
 	MutMap!(Symbol, PrevOrIndex!ConcreteFun) funNameToIndex;
@@ -86,6 +87,7 @@ MangledNames buildMangledNames(ref Alloc alloc, return scope const LowProgram pr
 		build(x.source);
 
 	return MangledNames(
+		isMSVC,
 		makeVarToNameIndex(alloc, program.vars),
 		finishMap(alloc, funToNameIndex),
 		finishMap(alloc, structToNameIndex));
@@ -275,51 +277,43 @@ public void writeMangledName(ref Writer writer, in MangledNames mangledNames, Sy
 
 	if (conflictsWithCName(a))
 		writer ~= '_';
-	foreach (char c; a) {
-		Opt!string mangled = mangleChar(c);
-		if (has(mangled))
-			writer ~= force(mangled);
-		else
-			writer ~= c;
+	foreach (dchar x; a) {
+		if (needsMangle(x, mangledNames.isMSVC)) {
+			writer ~= "__";
+			writer ~= uint(x);
+		} else
+			writer ~= x;
 	}
 }
 
-Opt!string mangleChar(char a) {
+bool needsMangle(dchar a, bool isMSVC) {
 	switch (a) {
 		case '~':
-			return some!string("__t");
 		case '!':
-			return some!string("__b");
 		case '%':
-			return some!string("__u");
 		case '^':
-			return some!string("__x");
 		case '&':
-			return some!string("__a");
 		case '*':
-			return some!string("__m");
 		case '-':
-			return some!string("__s");
 		case '+':
-			return some!string("__p");
 		case '=':
-			return some!string("__e");
 		case '|':
-			return some!string("__o");
 		case '<':
-			return some!string("__l");
 		case '.':
-			return some!string("__r");
 		case '>':
-			return some!string("__g");
 		case '/':
-			return some!string("__d");
 		case '?':
-			return some!string("__q");
+			return true;
 		default:
-			return none!string;
+			return isMSVC && !isAsciiIdentifierChar(a);
 	}
 }
+
+bool isAsciiIdentifierChar(dchar a) =>
+	('a' <= a && a <= 'z') ||
+	('A' <= a && a <= 'Z') ||
+	('0' <= a && a <= '9') ||
+	a == '_';
 
 bool conflictsWithCName(Symbol a) {
 	switch (a.value) {
