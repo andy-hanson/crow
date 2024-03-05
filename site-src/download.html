@@ -1,149 +1,163 @@
-<main>
+<main id="download">
 	<h1>Download</h1>
 
-	<h2>
-		Linux (x64)
-	</h2>
+	<details>
+		<summary>
+			Debian-derived (Ubuntu, etc.)
+			<a href="./bin/crow-x64.deb"><crow-icon icon="download"></crow-icon> <code>crow-x64.deb</code></a>
+		</summary>
+		<div class="code-block">
+			cd ~/Downloads
+			<br />
+			sudo dpkg --install crow-x64.deb
+		</div>
+		<p>To uninstall: <code>sudo dpkg --remove crow</code></p>
+	</details>
+	<details>
+		<summary>
+			Any Linux
+			<a href="./bin/crow-linux-x64.tar.xz">
+				<crow-icon icon="download"></crow-icon> <code>crow-linux-x64.tar.xz</code>
+			</a>
+		</summary>
+		<p>First ensure <code>libunwind-dev</code> is installed. Then:</p>
 
-	<h3>
-		Debian-derived
-		<a href="./bin/crow.deb"><crow-icon icon="download"></crow-icon> <code>crow.deb</code></a>
-	</h3>
+		<h4>Global install (recommended)</h4>
+		<div class="code-block">
+			cd ~/Downloads
+			<br />
+			sudo tar -xJf crow-linux-x64.tar.xz -C /usr/local/bin bin --strip-components 1
+			<br />
+			sudo mkdir /usr/local/include/crow
+			<br />
+			sudo tar -xJf crow-linux-x64.tar.xz -C /usr/local/include/crow include --strip-components 1
+		</div>
+		<p>To uninstall: <code>sudo rm -r /usr/local/bin/crow /usr/local/include/crow</code></p>
 
-	<div class="code-block">sudo dpkg --install crow.deb</div>
-	<p>To uninstall: <code>sudo dpkg --remove crow</code></p>
+		<h4>Local install</h4>
+		<div class="code-block">
+			tar --extract --xz --file crow-linux-64.tar.xz
+			export PATH="$PATH:~/Downloads/crow"
+		</div>
+		<p>To uninstall: <code>rm -r ~/Downloads/crow</code></p>
+	</details>
+	<details>
+		<summary>
+			Windows (x64)
+			<a href="./bin/crow-windows-x64.tar.xz">
+				<crow-icon icon="download"></crow-icon> <code>crow-windows-x64.tar.xz</code>
+			</a>
+		</summary>
+		<div class="code-block">
+			mkdir C:\crow
+			<br />
+			tar --extract -xJf crow-windows-x64.tar.xz -C C:\crow
+		</div>
+		<p>
+			(<code>C:\crow</code> is a suggestion; you can install it anywhere.)
+			<br />
+			Then add <code>C:\crow\bin</code> to your <code>PATH</code>.
+			(<a href="https://www.java.com/en/download/help/path.html">How to do that</a>)
+		</p>
+		<p>To uninstall: <code>rmdir /s /q C:\crow</code></p>
+	</details>
+	<details>
+		<summary>Other</summary>
+		<p>
+			If you'd like to see a new system supported,
+			create an <a href="https://github.com/andy-hanson/crow/issues">issue</a>.
+		</p>
+	</details>
 
-	<h3>
-		Any Linux
-		<a href="./bin/crow-linux-x64.tar.xz">
-			<crow-icon icon="download"></crow-icon> <code>crow.tar.xz</code>
-		</a>
-	</h3>
+	<hr />
 	<p>
-		First ensure <code>libunwind-dev</code> is installed. Then:
+		Once it's installed, test it out on some demos:
 	</p>
 
-	<h4>Global install (recommended)</h4>
-	<div class="code-block">
-		sudo tar -xJf crow-linux-x64.tar.xz bin --strip-components 1 -C /usr/local/bin
-		<br />
-		sudo mkdir /usr/local/include/crow
-		<br />
-		sudo tar -xJf crow-linux-x64.tar.xz include --strip-components 1 -C /usr/local/include/crow
-	</div>
-	<p>To uninstall: <code>sudo rm -r /usr/local/bin/crow /usr/local/include/crow</code></p>
+	<details>
+		<summary>
+			Demos (optional)
+			<a href="./bin/crow-demo.tar.xz"><crow-icon icon="download"></crow-icon>crow-demo.tar.xz</a>
+			<a href="./bin/crow-demo-windows.tar.xz" download="crow-demo.tar.xz">
+				<crow-icon icon="download"></crow-icon>crow-demo-windows.tar.xz
+			</a>
+		</summary>
+		<div class="code-block">
+			cd ~/Downloads
+			<br />
+			tar -xJf crow-demo.tar.xz
+			<br />
+			crow crow-demo/hello.crow
+			<br />
+			# To see other demos
+			<br />
+			dir crow-demo
+		</div>
 
-	<h4>Local install</h4>
-	<div class="code-block">
-		tar --extract --xz --file crow-linux-64.tar.xz
-		export PATH="$PATH:~/Downloads/crow"
-	</div>
-	<p>To uninstall: <code>rm -r ~/Downloads/crow</code></p>
+		<aside class="small">
+			To be able to run all demos, install:
+			<br />
+			<code>sudo apt install libsdl2-dev libsndfile1-dev libsodium-dev libsqlite3-dev</code>.
+			<br />
+			For Windows, these are included in <code>crow-demo\extern</code> and will be picked up automatically.
+		</aside>
+	</details>
 
-	<h2>
-		Windows (x64)
-		<a href="./bin/crow-windows-x64.tar.xz">
-			<crow-icon icon="download"></crow-icon> <code>crow-windows-x64.tar.xz</code>
-		</a>
-	</h2>
-
-	<div class="code-block">
-		mkdir C:\crow
-		<br />
-		tar --extract -xJf crow-windows-x64.tar.xz -C C:\crow
-	</div>
+	<hr />
 	<p>
-		(<code>C:\crow</code> is a suggestion; you can install it anywhere.)
-		<br />
-		Then add <code>C:\crow\bin</code> to your <code>PATH</code>.
-		(<a href="https://www.java.com/en/download/help/path.html">How to do that</a>)
-	</p>
-	<p>To uninstall: <code>rmdir /s /q C:\crow</code></p>
-
-	<h2>Other systems</h2>
-	<p>
-		If you want it ported to a different system, just <a href="https://github.com/andy-hanson/crow/issues">ask</a>.
+		Crow supports IDE features: syntax highlighting, diagnostics, go-to-definition, references, and renaming.
 	</p>
 
-	<h2 id="demo">
-		Demos
-		<a href="./bin/crow-demo.tar.xz"><crow-icon icon="download"></crow-icon>crow-demo.tar.xz</a>
-		<a href="./bin/crow-demo-windows.tar.xz" download="crow-demo.tar.xz">
-			<crow-icon icon="download"></crow-icon>crow-demo-windows.tar.xz
-		</a>
-	</h2>
+	<details>
+		<summary>
+			VSCode
+			<a href="./bin/crow.vsix"><crow-icon icon="download"></crow-icon>crow.vsix</a>
+		</summary>
 
-	<div class="code-block">
-		tar -xJf crow-demo.tar.xz
-		<br />
-		crow crow-demo\hello.crow
-		<br />
-		# Try out the other demos
-		<br />
-		dir crow-demo
-	</div>
+		<div class="code-block">
+			code --install-extension crow.vsix
+		</div>
+	</details>
 
-	<aside class="small">
-		To be able to run all demos, install:
-		<br />
-		<code>sudo apt install libsdl2-dev libsndfile1-dev libsodium-dev libsqlite3-dev</code>.
-		<br />
-		For Windows, these are included in <code>crow-demo\extern</code> and will be picked up automatically.
-	</aside>
+	<details>
+		<summary>
+			Sublime text
+			<a href="./bin/crow.sublime-syntax" download><crow-icon icon="download"></crow-icon>crow.sublime-syntax</a>
+		</summary>
 
-	<h1>Editor support</h1>
+		<ul class="bullets">
+			<li>
+				Linux:
+				<code>
+					bash -llc 'ln -s `pwd`/crow/editor/crow.sublime-syntax
+					~/.config/sublime-text/Packages/User/crow.sublime-syntax'
+				</code>
+			</li>
+			<li>
+				Windows:
+				<code>
+					copy %CD%\crow\editor\crow.sublime-syntax
+					"%USERPROFILE%\AppData\Roaming\Sublime Text\Packages\User\crow.sublime-syntax"
+				</code>
+			</li>
+		</ul>
+		<p>
+			Then restart Sublime Text and open a Crow file.
+			In the lower-right corner, click "Plain text" and change it to "Crow".
+		</p>
 
-	<h2>
-		VSCode
-		<a href="./bin/crow.vsix"><crow-icon icon="download"></crow-icon>crow.vsix</a>
-	</h2>
+		<h4>LSP support</h4>
+		<p>
+			There is no download for this. It uses the <code>crow</code> you already installed.
+			<br />
+			Install package control, then install the <code>LSP</code> plugin.
+			<br />
+			In the top menu, open Preferences → Package settings → LSP → Settings.
+			<br />
+			In the "clients" section, paste:
+		</p>
 
-	<div class="code-block">
-		code --install-extension crow.vsix
-	</div>
-
-	This supports syntax highlighting, diagnostics, go-to-definition, references, and renaming.
-
-	<h2>Sublime Text</h2>
-
-	<h3>
-		Syntax definition
-		<a href="./bin/crow.sublime-syntax" download><crow-icon icon="download"></crow-icon>crow.sublime-syntax</a>
-	</h3>
-	<ul class="bullets">
-		<li>
-			Linux:
-			<code>
-				bash -llc 'ln -s `pwd`/crow/editor/crow.sublime-syntax
-				~/.config/sublime-text/Packages/User/crow.sublime-syntax'
-			</code>
-		</li>
-		<li>
-			Windows:
-			<code>
-				copy %CD%\crow\editor\crow.sublime-syntax
-				"%USERPROFILE%\AppData\Roaming\Sublime Text\Packages\User\crow.sublime-syntax"
-			</code>
-		</li>
-	</ul>
-	<p>
-		Then restart Sublime Text and open a Crow file.
-		In the lower-right corner, click "Plain text" and change it to "Crow".
-	</p>
-
-	<h3>LSP support</h3>
-
-	<p>
-		There is no download for this. It uses the <code>crow</code> you already installed.
-		<br />
-		Install package control, then install the <code>LSP</code> plugin.
-		<br />
-		In the top menu, open Preferences → Package settings → LSP → Settings.
-		<br />
-		In the "clients" section, paste:
-	</p>
-
-	<div class="code-block">
+		<div class="code-block">
 <pre>"crow": {
 	"command": ["/usr/local/bin/crow", "lsp"],
 	"enabled": true,
@@ -151,11 +165,12 @@
 	"scopes": ["source.crow"],
 	"syntaxes": "Packages/crow/crow.sublime-syntax"
 }</pre>
-	</div>
+		</div>
 
-	<p>
-		You should now be able to see diagnostics (try calling a nonexistent function).
-		For other actions, right click and use the "LSP" menu.
-		If there seems to be an issue, debug with the "LSP: Toggle Log Panel" command.
-	</p>
+		<p>
+			You should now be able to see diagnostics (try calling a nonexistent function).
+			For other actions, right click and use the "LSP" menu.
+			If there seems to be an issue, debug with the "LSP: Toggle Log Panel" command.
+		</p>
+	</details>
 </main>

@@ -167,7 +167,7 @@ bin/dependencies.dot: bin/crow test/dependencies.crow
 
 ### site ###
 
-prepare-site: bin/crow bin/crow.wasm bin/crow.deb bin/crow-linux-x64.tar.xz bin/crow-demo.tar.xz bin/crow.vsix
+prepare-site: bin/crow bin/crow.wasm bin/crow-x64.deb bin/crow-linux-x64.tar.xz bin/crow-demo.tar.xz bin/crow.vsix
 	bin/crow run site-src/site.crow --aot
 
 serve: prepare-site
@@ -177,7 +177,7 @@ serve: prepare-site
 
 all_include = include/*/*.crow include/*/*/*.crow include/*/*/*/*.crow
 bin/crow-linux-x64.tar.xz: bin/crow $(all_include)
-	tar --directory .. --create --xz --file bin/crow-linux-x64.tar.xz crow/bin/crow crow/include
+	tar --create --xz --file bin/crow-linux-x64.tar.xz bin/crow include
 
 bin/crow-demo.tar.xz: demo/* demo/*/* demo/*/*/*
 	tar --create --xz --file bin/crow-demo.tar.xz \
@@ -200,7 +200,7 @@ Description: Crow programming language
 
 endef
 
-bin/crow.deb: bin/crow $(all_include)
+bin/crow-x64.deb: bin/crow $(all_include)
 	mkdir bin/deb
 	mkdir bin/deb/usr
 	mkdir bin/deb/usr/bin
@@ -209,7 +209,7 @@ bin/crow.deb: bin/crow $(all_include)
 	cp -r include bin/deb/usr/include/crow
 	mkdir bin/deb/DEBIAN
 	@printf '$(subst $(newline),\n,${crow_deb_control})' > bin/deb/DEBIAN/control
-	dpkg-deb --build bin/deb bin/crow.deb
+	dpkg-deb --build bin/deb bin/crow-x64.deb
 	rm -r bin/deb
 
 bin/crow.vsix: editor/vscode/* editor/vscode/node_modules
