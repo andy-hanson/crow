@@ -36,14 +36,13 @@ import util.util : todo;
 import util.writer : Writer;
 
 const struct MangledNames {
-	bool isMSVC;
 	FullIndexMap!(LowVarIndex, size_t) varToNameIndex;
 	Map!(ConcreteFun*, size_t) funToNameIndex;
 	//TODO:PERF we could use separate FullIndexMap for record, union, etc.
 	Map!(ConcreteStruct*, size_t) structToNameIndex;
 }
 
-MangledNames buildMangledNames(ref Alloc alloc, return scope const LowProgram program, bool isMSVC) {
+MangledNames buildMangledNames(ref Alloc alloc, return scope const LowProgram program) {
 	// First time we see a fun with a name, we'll store the fun-pointer here in case it's not overloaded.
 	// After that, we'll start putting them in funToNameIndex, and store the next index here.
 	MutMap!(Symbol, PrevOrIndex!ConcreteFun) funNameToIndex;
@@ -87,7 +86,6 @@ MangledNames buildMangledNames(ref Alloc alloc, return scope const LowProgram pr
 		build(x.source);
 
 	return MangledNames(
-		isMSVC,
 		makeVarToNameIndex(alloc, program.vars),
 		finishMap(alloc, funToNameIndex),
 		finishMap(alloc, structToNameIndex));
@@ -278,34 +276,11 @@ public void writeMangledName(ref Writer writer, in MangledNames mangledNames, Sy
 	if (conflictsWithCName(a))
 		writer ~= '_';
 	foreach (dchar x; a) {
-		if (needsMangle(x, mangledNames.isMSVC)) {
+		if (!isAsciiIdentifierChar(x)) {
 			writer ~= "__";
 			writer ~= uint(x);
 		} else
 			writer ~= x;
-	}
-}
-
-bool needsMangle(dchar a, bool isMSVC) {
-	switch (a) {
-		case '~':
-		case '!':
-		case '%':
-		case '^':
-		case '&':
-		case '*':
-		case '-':
-		case '+':
-		case '=':
-		case '|':
-		case '<':
-		case '.':
-		case '>':
-		case '/':
-		case '?':
-			return true;
-		default:
-			return isMSVC && !isAsciiIdentifierChar(a);
 	}
 }
 

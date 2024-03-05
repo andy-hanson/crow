@@ -114,7 +114,7 @@ WriteToCResult writeToC(ref Alloc alloc, in ShowCtx printCtx, in LowProgram prog
 		}
 
 		Ctx ctx = Ctx(
-			ptrTrustMe(printCtx), ptrTrustMe(program), buildMangledNames(alloc, program, isMSVC), isMSVC: isMSVC);
+			ptrTrustMe(printCtx), ptrTrustMe(program), buildMangledNames(alloc, program), isMSVC: isMSVC);
 
 		writeStructs(alloc, writer, ctx);
 
