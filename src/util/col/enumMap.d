@@ -19,10 +19,11 @@ struct EnumMap(E, V) {
 	}
 
 	pure:
+	V[size] values;
 
 	enum size = EnumMembers!E.length;
 	static foreach (size_t i; 0 .. size)
-		static assert(Members[i] == i);
+		static assert(EnumMembers!E[i] == i);
 
 	ref inout(V) opIndex(E key) inout {
 		assertNormalEnum!E;
@@ -43,10 +44,6 @@ struct EnumMap(E, V) {
 		}
 		return 0;
 	}
-
-	private:
-	alias Members = EnumMembers!E;
-	V[size] values;
 }
 
 EnumMap!(E, V) makeEnumMap(E, V)(in V delegate(E) @safe @nogc pure nothrow cb) {

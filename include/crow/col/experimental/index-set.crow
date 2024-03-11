@@ -243,13 +243,14 @@ import
 	a.a, a.b, a.c, new-d
 
 -update-leaf leaf-node(a leaf-node, word-index nat64, new-word nat64)
-	if word-index == 0
+	match word-index
+	as 0
 		new-word, a.b, a.c, a.d
-	elif word-index == 1
+	as 1
 		a.a, new-word, a.c, a.d
-	elif word-index == 2
+	as 2
 		a.a, a.b, new-word, a.d
-	elif word-index == 3
+	as 3
 		a.a, a.b, a.c, new-word
 	else
 		unreachable

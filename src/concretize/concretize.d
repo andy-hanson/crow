@@ -16,6 +16,7 @@ import concretize.concretizeCtx :
 	getOrAddNonTemplateConcreteFunAndFillBody,
 	nat64Type,
 	stringType,
+	symbolType,
 	symbolArrayType,
 	voidType;
 import frontend.showModel : ShowCtx;
@@ -123,7 +124,7 @@ ConcreteProgram concretizeInner(
 			userMainConcreteFun));
 	checkConcreteProgram(
 		showCtx,
-		ConcreteCommonTypes(boolType(ctx), nat64Type(ctx), stringType(ctx), voidType(ctx)),
+		ConcreteCommonTypes(boolType(ctx), nat64Type(ctx), stringType(ctx), symbolType(ctx), voidType(ctx)),
 		res);
 	return res;
 }

@@ -4,12 +4,13 @@ module frontend.check.exprCtx;
 
 import frontend.check.checkCtx : addDiag, CheckCtx;
 import frontend.check.instantiate : InstantiateCtx, noDelayStructInsts;
-import frontend.check.maps : FunsMap, StructsAndAliasesMap;
+import frontend.check.maps : FunsMap, SpecsMap, StructsAndAliasesMap;
 import frontend.check.typeFromAst : typeFromAst;
 import frontend.lang : maxClosureFields;
 import model.ast : ExprAst, TypeAst;
 import model.diag : Diag, TypeContainer, TypeWithContainer;
-import model.model : CommonTypes, FunFlags, LambdaExpr, Local, Mutability, SpecInst, Type, TypeParams, VariableRef;
+import model.model :
+	CommonTypes, FunFlags, LambdaExpr, Local, Mutability, Specs, Type, TypeParams, VariableRef;
 import util.alloc.alloc : Alloc;
 import util.col.mutMaxArr : MutMaxArr;
 import util.col.enumMap : EnumMap;
@@ -77,10 +78,11 @@ struct ExprCtx {
 
 	CheckCtx* checkCtxPtr;
 	immutable StructsAndAliasesMap structsAndAliasesMap;
+	immutable SpecsMap specsMap;
 	immutable FunsMap funsMap;
 	immutable CommonTypes* commonTypesPtr;
 	immutable TypeContainer typeContainer; // for diags. This will be a FunDecl* or Test*.
-	immutable SpecInst*[] outermostFunSpecs;
+	immutable Specs outermostFunSpecs;
 	immutable TypeParams outermostFunTypeParams;
 	immutable FunFlags outermostFunFlags;
 	private bool isInTrusted;

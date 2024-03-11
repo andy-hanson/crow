@@ -85,7 +85,7 @@ void addFunsForStruct(
 	struct_.body_.match!void(
 		(StructBody.Bogus) {},
 		(BuiltinType _) {},
-		(StructBody.Enum x) {
+		(ref StructBody.Enum x) {
 			addFunsForEnum(ctx, funsBuilder, commonTypes, struct_, x);
 		},
 		(StructBody.Extern x) {
@@ -98,7 +98,7 @@ void addFunsForStruct(
 		(StructBody.Record x) {
 			addFunsForRecord(ctx, funsBuilder, commonTypes, struct_, x);
 		},
-		(StructBody.Union x) {
+		(ref StructBody.Union x) {
 			addFunsForUnion(ctx, funsBuilder, commonTypes, struct_, x);
 		});
 }

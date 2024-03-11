@@ -13,20 +13,28 @@ import frontend.showModel :
 	writeName,
 	writeSpecInst,
 	writeTypeQuoted,
+	writeTypeUnquoted,
 	writeVisibility;
 import lib.lsp.lspTypes : Hover, MarkupContent, MarkupKind;
-import model.ast : ExprAstKind, IfAst, IfOptionAst, ModifierKeyword, TernaryAst;
+import model.ast : ExprAstKind, IfAst, IfOptionAst, MatchAst, ModifierKeyword, TernaryAst;
 import model.diag : TypeContainer, TypeWithContainer;
 import model.model :
 	BuiltinType,
 	CallExpr,
+	CharType,
 	EnumOrFlagsMember,
 	ExprKind,
 	FunDecl,
 	FunPointerExpr,
+	IntegralType,
+	isSigned,
 	LambdaExpr,
 	Local,
 	NameReferents,
+	MatchEnumExpr,
+	MatchIntegralExpr,
+	MatchStringLikeExpr,
+	MatchUnionExpr,
 	RecordField,
 	StructAlias,
 	StructBody,
@@ -40,10 +48,12 @@ import model.model :
 	UnionMember,
 	VarDecl;
 import util.alloc.alloc : Alloc;
+import util.conv : safeToUint;
 import util.opt : force, has;
 import util.sourceRange : PosKind;
 import util.uri : Uri;
-import util.writer : makeStringWithWriter, writeNewline, Writer;
+import util.util : stringOfEnum;
+import util.writer : makeStringWithWriter, writeNewline, writeQuotedChar, writeQuotedString, Writer;
 
 Hover getHover(ref Alloc alloc, in ShowModelCtx ctx, in Position pos) =>
 	Hover(MarkupContent(MarkupKind.plaintext, makeStringWithWriter(alloc, (scope ref Writer writer) {
@@ -53,7 +63,7 @@ Hover getHover(ref Alloc alloc, in ShowModelCtx ctx, in Position pos) =>
 void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 	pos.kind.matchWithPointers!void(
 		(EnumOrFlagsMember* x) {
-			writer ~= x.containingEnum.body_.isA!(StructBody.Enum) ? "Enum " : "Flags ";
+			writer ~= x.containingEnum.body_.isA!(StructBody.Enum*) ? "Enum " : "Flags ";
 			writer ~= " member ";
 			writer ~= x.containingEnum.name;
 			writer ~= '.';
@@ -113,6 +123,29 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 			writeName(writer, ctx, x.member.containingEnum.name);
 			writer ~= " member ";
 			writeName(writer, ctx, x.member.name);
+		},
+		(PositionKind.MatchIntegralCase x) {
+			writer ~= "Handler for value ";
+			x.kind.matchIn!void(
+				(in CharType t) {
+					writeQuotedChar(writer, dchar(safeToUint(x.value.asUnsigned())));
+					writer ~= " :: ";
+					writeName(writer, ctx, stringOfEnum(t));
+				},
+				(in IntegralType t) {
+					if (isSigned(t))
+						writer ~= x.value.asSigned();
+					else
+						writer ~= x.value.asUnsigned();
+					writer ~= " :: ";
+					writeName(writer, ctx, stringOfEnum(t));
+				});
+		},
+		(PositionKind.MatchStringLikeCase x) {
+			writer ~= "Handler for value ";
+			writeQuotedString(writer, x.value);
+			writer ~= " :: ";
+			writeTypeUnquoted(writer, ctx, x.type);
 		},
 		(PositionKind.MatchUnionCase x) {
 			writer ~= "Handler for union ";
@@ -179,9 +212,8 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 			writer ~= x.containingRecord.name;
 			writer ~= '.';
 			writer ~= x.name;
-			writer ~= " (of type ";
-			writeTypeQuoted(writer, ctx, TypeWithContainer(x.type, TypeContainer(x.containingRecord)));
-			writer ~= ')';
+			writer ~= " :: ";
+			writeTypeUnquoted(writer, ctx, TypeWithContainer(x.type, TypeContainer(x.containingRecord)));
 		},
 		(PositionKind.RecordFieldMutability x) {
 			writer ~= "Defines a ";
@@ -232,18 +264,16 @@ void getHover(scope ref Writer writer, in ShowModelCtx ctx, in Position pos) =>
 			if (x.type == Type(ctx.commonTypes.void_))
 				writer ~= " (no associated value)";
 			else {
-				writer ~= " (of type ";
-				writeTypeQuoted(writer, ctx, TypeWithContainer(x.type, TypeContainer(x.containingUnion)));
-				writer ~= ')';
+				writer ~= " :: ";
+				writeTypeUnquoted(writer, ctx, TypeWithContainer(x.type, TypeContainer(x.containingUnion)));
 			}
 		},
 		(VarDecl* x) {
 			writer ~= stringOfVarKindUpperCase(x.kind);
 			writer ~= " variable ";
 			writeName(writer, ctx, x.name);
-			writer ~= " (of type ";
-			writeTypeQuoted(writer, ctx, TypeWithContainer(x.type, TypeContainer(x)));
-			writer ~= ')';
+			writer ~= " :: ";
+			writeTypeUnquoted(writer, ctx, TypeWithContainer(x.type, TypeContainer(x)));
 		},
 		(PositionKind.VisibilityMark x) {
 			writer ~= "Marks ";
@@ -353,7 +383,10 @@ void getExprKeywordHover(
 			writer ~= "If the first condition is false, evaluates another 'if'.";
 			break;
 		case ExprKeyword.else_:
-			writer ~= "If the condition is 'false', the 'else' branch is evaluated.";
+			if (astKind.isA!MatchAst)
+				writer ~= "If no branch was satisfied, the 'match' evaluates to the 'else' branch.";
+			else
+				writer ~= "If the condition is 'false', the 'else' branch is evaluated.";
 			break;
 		case ExprKeyword.forbid:
 			writer ~= "Throws if the condition is 'true'.";
@@ -389,7 +422,7 @@ void getExprKeywordHover(
 			}();
 			break;
 		case ExprKeyword.match:
-			writer ~= "Branches with a separate case for each member of the enum or union.";
+			getMatchHover(writer, ctx, typeContainer, a);
 			break;
 		case ExprKeyword.throw_:
 			writer ~= "Throws an exception.";
@@ -408,6 +441,48 @@ void getExprKeywordHover(
 			break;
 	}
 }
+
+void getMatchHover(
+	scope ref Writer writer,
+	in ShowModelCtx ctx,
+	in TypeContainer typeContainer,
+	in ExprRef a,
+) {
+	MatchInfo info = getMatchInfo(a.expr.kind);
+	writer ~= "Match on ";
+	writeTypeQuoted(writer, ctx, TypeWithContainer(info.matchedType, typeContainer));
+	writer ~= "\n";
+	writer ~= () {
+		final switch (info.kind) {
+			case MatchInfo.Kind.enum_:
+				return "Evaluates the branch with the selected member of the enum";
+			case MatchInfo.Kind.union_:
+				return "Evaluates the branch with the selected member of the union";
+			case MatchInfo.Kind.other:
+				return "Evaluates the branch with a matching value";
+		}
+	}();
+	writer ~= has(a.expr.ast.kind.as!MatchAst.else_)
+		? ", or the 'else' branch if none matched."
+		: info.kind == MatchInfo.Kind.other
+		? ", or '()' if none matched."
+		: ".";
+}
+immutable struct MatchInfo {
+	enum Kind { enum_, union_, other }
+	Kind kind;
+	Type matchedType;
+}
+MatchInfo getMatchInfo(ExprKind a) =>
+	a.isA!(MatchEnumExpr*)
+		? MatchInfo(MatchInfo.Kind.enum_, a.as!(MatchEnumExpr*).matched.type)
+		: a.isA!(MatchIntegralExpr*)
+		? MatchInfo(MatchInfo.Kind.other, a.as!(MatchIntegralExpr*).matched.type)
+		: a.isA!(MatchStringLikeExpr*)
+		? MatchInfo(MatchInfo.Kind.other, a.as!(MatchStringLikeExpr*).matched.type)
+		: a.isA!(MatchUnionExpr*)
+		? MatchInfo(MatchInfo.Kind.union_, a.as!(MatchUnionExpr*).matched.type)
+		: assert(false);
 
 void getExprHover(
 	scope ref Writer writer,

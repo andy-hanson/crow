@@ -14,10 +14,12 @@ import model.concreteModel :
 	TypeSize;
 import model.constant : Constant;
 import model.model :
-	BuiltinUnary, BuiltinUnaryMath, BuiltinBinary, BuiltinBinaryMath, BuiltinTernary, EnumValue, Local, StructBody;
+	BuiltinUnary, BuiltinUnaryMath, BuiltinBinary, BuiltinBinaryMath, BuiltinTernary, Local, StructBody;
+import util.col.array : SmallArray;
 import util.col.map : Map;
 import util.col.fullIndexMap : FullIndexMap;
 import util.hash : hash2, HashCode, hashEnum, hashUint;
+import util.integralValues : IntegralValues;
 import util.opt : has, none, Opt;
 import util.sourceRange : UriAndRange;
 import util.string : CString;
@@ -357,14 +359,14 @@ immutable struct LowFunIndex {
 immutable struct LowExprKind {
 	immutable struct Call {
 		LowFunIndex called;
-		LowExpr[] args; // Includes implicit ctx arg if needed
+		SmallArray!LowExpr args; // Includes implicit ctx arg if needed
 	}
 
 	immutable struct CallFunPointer {
 		@safe @nogc pure nothrow:
 
-		LowExpr funPtr;
-		LowExpr[] args;
+		LowExpr* funPtr;
+		SmallArray!LowExpr args;
 	}
 
 	immutable struct CreateRecord {
@@ -413,16 +415,6 @@ immutable struct LowExprKind {
 		LowExprKind.Loop* loop;
 	}
 
-	immutable struct MatchUnion {
-		immutable struct Case {
-			Opt!(LowLocal*) local;
-			LowExpr then;
-		}
-
-		LowExpr matchedValue;
-		Case[] cases;
-	}
-
 	immutable struct PtrCast {
 		LowExpr target;
 	}
@@ -444,9 +436,9 @@ immutable struct LowExprKind {
 	// No 'RecordFieldPointer', use 'PtrToField'
 
 	immutable struct RecordFieldSet {
-		LowExpr* target;
+		LowExpr target;
 		size_t fieldIndex;
-		LowExpr* value;
+		LowExpr value;
 	}
 
 	immutable struct SizeOf {
@@ -478,15 +470,17 @@ immutable struct LowExprKind {
 		LowExpr[3] args;
 	}
 
-	immutable struct Switch0ToN {
+	immutable struct Switch {
+		@safe @nogc pure nothrow:
 		LowExpr value;
-		LowExpr[] cases;
-	}
+		IntegralValues caseValues;
+		LowExpr[] caseExprs;
+		Opt!(LowExpr*) default_; // If missing, abort
 
-	immutable struct SwitchWithValues {
-		LowExpr value;
-		EnumValue[] values;
-		LowExpr[] cases;
+		this(LowExpr v, IntegralValues cv, LowExpr[] ce, Opt!(LowExpr*) d = none!(LowExpr*)) {
+			value = v; caseValues = cv; caseExprs = ce; default_ = d;
+			assert(caseValues.length == caseExprs.length);
+		}
 	}
 
 	immutable struct TailRecur {
@@ -510,7 +504,7 @@ immutable struct LowExprKind {
 
 	mixin Union!(
 		Call,
-		CallFunPointer*,
+		CallFunPointer,
 		CreateRecord,
 		CreateUnion*,
 		If*,
@@ -521,12 +515,11 @@ immutable struct LowExprKind {
 		Loop*,
 		LoopBreak*,
 		LoopContinue,
-		MatchUnion*,
 		PtrCast*,
 		PtrToField*,
 		PtrToLocal,
 		RecordFieldGet,
-		RecordFieldSet,
+		RecordFieldSet*,
 		SizeOf,
 		Constant,
 		SpecialUnary*,
@@ -534,15 +527,18 @@ immutable struct LowExprKind {
 		SpecialBinary*,
 		SpecialBinaryMath*,
 		SpecialTernary*,
-		Switch0ToN*,
-		SwitchWithValues*,
+		Switch*,
 		TailRecur,
 		UnionAs,
 		UnionKind,
 		VarGet,
 		VarSet);
 }
-static assert(LowExprKind.sizeof <= 32);
+version (WebAssembly) {
+	static assert(LowExprKind.sizeof == Constant.sizeof + ulong.sizeof);
+} else {
+	static assert(LowExprKind.sizeof == LowExprKind.Call.sizeof + ulong.sizeof);
+}
 
 LowType.FunPointer funPtrType(in LowExprKind.CallFunPointer a) =>
 	a.funPtr.type.as!(LowType.FunPointer);

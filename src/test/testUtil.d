@@ -9,7 +9,7 @@ import frontend.storage : FileType, fileType, LineAndColumnGetters, ReadFileResu
 import interpret.bytecode : ByteCode, ByteCodeIndex, Operation;
 import interpret.debugInfo : showDataArr;
 import interpret.stacks : dataTempAsArr, returnTempAsArrReverse, Stacks;
-import lib.server : allUnknownUris, Server, setCwd, setFile, setFileAssumeUtf8, setIncludeDir;
+import lib.server : allUnknownUris, Server, ServerSettings, setServerSettings, setFile, setFileAssumeUtf8;
 import model.diag : ReadFileDiag;
 import util.alloc.alloc : Alloc, allocateElements, AllocKind, MetaAlloc, newAlloc, withTempAlloc, word;
 import util.col.array : arraysEqual, arraysCorrespond, indexOf, isEmpty, makeArray, map;
@@ -131,8 +131,10 @@ void withTestServer(
 	withTempAlloc!void(test.metaAlloc, (ref Alloc alloc) @trusted {
 		scope Server server = Server((size_t sizeWords, size_t _) =>
 			allocateElements!word(alloc, sizeWords));
-		setIncludeDir(&server, mustParseUri("test:///include"));
-		setCwd(server, mustParseUri("test:///"));
+		setServerSettings(&server, ServerSettings(
+			includeDir: mustParseUri("test:///include"),
+			cwd: mustParseUri("test:///"),
+			showOptions: ShowOptions(color: false)));
 		return cb(alloc, server);
 	});
 }

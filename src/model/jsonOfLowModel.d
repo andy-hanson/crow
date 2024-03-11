@@ -26,10 +26,10 @@ import model.lowModel :
 	LowUnion,
 	PrimitiveType,
 	UpdateParam;
-import model.model : EnumValue, Local;
-import model.jsonOfConcreteModel : jsonOfConcreteFunRef, jsonOfConcreteStructRef;
+import model.model : Local;
+import model.jsonOfConcreteModel : jsonOfConcreteFunRef, jsonOfConcreteStructRef, jsonOfIntegralValues;
 import util.alloc.alloc : Alloc;
-import util.json : field, jsonObject, optionalField, Json, jsonInt, jsonList, jsonString, kindField;
+import util.json : field, jsonObject, Json, jsonList, jsonString, kindField;
 import util.sourceRange : jsonOfLineAndColumnRange;
 import util.util : castNonScope, stringOfEnum;
 
@@ -157,7 +157,7 @@ Json jsonOfLowExprKind(ref Alloc alloc, in Ctx ctx, in LowExprKind a) =>
 		(in LowExprKind.CallFunPointer x) =>
 			jsonObject(alloc, [
 				kindField!"call-fun-pointer",
-				field!"fun-pointer"(jsonOfLowExpr(alloc, ctx, x.funPtr)),
+				field!"fun-pointer"(jsonOfLowExpr(alloc, ctx, *x.funPtr)),
 				field!"args"(jsonOfLowExprs(alloc, ctx, x.args))]),
 		(in LowExprKind.CreateRecord x) =>
 			jsonObject(alloc, [
@@ -201,8 +201,6 @@ Json jsonOfLowExprKind(ref Alloc alloc, in Ctx ctx, in LowExprKind a) =>
 				field!"value"(jsonOfLowExpr(alloc, ctx, x.value))]),
 		(in LowExprKind.LoopContinue) =>
 			jsonObject(alloc, [kindField!"continue"]),
-		(in LowExprKind.MatchUnion x) =>
-			jsonOfMatchUnion(alloc, ctx, x),
 		(in LowExprKind.PtrCast x) =>
 			jsonObject(alloc, [
 				kindField!"pointer-cast",
@@ -224,9 +222,9 @@ Json jsonOfLowExprKind(ref Alloc alloc, in Ctx ctx, in LowExprKind a) =>
 		(in LowExprKind.RecordFieldSet x) =>
 			jsonObject(alloc, [
 				kindField!"set-field",
-				field!"target"(jsonOfLowExpr(alloc, ctx, *x.target)),
+				field!"target"(jsonOfLowExpr(alloc, ctx, x.target)),
 				field!"field-index"(x.fieldIndex),
-				field!"value"(jsonOfLowExpr(alloc, ctx, *x.value))]),
+				field!"value"(jsonOfLowExpr(alloc, ctx, x.value))]),
 		(in LowExprKind.SizeOf x) =>
 			jsonObject(alloc, [
 				kindField!"size-of",
@@ -263,18 +261,12 @@ Json jsonOfLowExprKind(ref Alloc alloc, in Ctx ctx, in LowExprKind a) =>
 				field!"operation"(stringOfEnum(x.kind)),
 				field!"args"(jsonList!LowExpr(alloc, castNonScope(x.args), (in LowExpr e) =>
 					jsonOfLowExpr(alloc, ctx, e)))]),
-		(in LowExprKind.Switch0ToN x) =>
+		(in LowExprKind.Switch x) =>
 			jsonObject(alloc, [
 				kindField!"switch",
 				field!"value"(jsonOfLowExpr(alloc, ctx, x.value)),
-				field!"cases"(jsonOfLowExprs(alloc, ctx, x.cases))]),
-		(in LowExprKind.SwitchWithValues x) =>
-			jsonObject(alloc, [
-				kindField!"switch",
-				field!"value"(jsonOfLowExpr(alloc, ctx, x.value)),
-				field!"values"(jsonList!EnumValue(alloc, x.values, (in EnumValue value) =>
-					jsonInt(value.value))),
-				field!"cases"(jsonOfLowExprs(alloc, ctx, x.cases))]),
+				field!"case-values"(jsonOfIntegralValues(alloc, x.caseValues)),
+				field!"case-exprs"(jsonOfLowExprs(alloc, ctx, x.caseExprs))]),
 		(in LowExprKind.TailRecur x) =>
 			jsonObject(alloc, [
 				kindField!"tail-recur",
@@ -301,13 +293,3 @@ Json jsonOfLowExprKind(ref Alloc alloc, in Ctx ctx, in LowExprKind a) =>
 				kindField!"var-set",
 				field!"var"(x.varIndex.index),
 				field!"value"(jsonOfLowExpr(alloc, ctx, *x.value))]));
-
-Json jsonOfMatchUnion(ref Alloc alloc, in Ctx ctx, in LowExprKind.MatchUnion a) =>
-	jsonObject(alloc, [
-		kindField!"match-union",
-		field!"value"(jsonOfLowExpr(alloc, ctx, a.matchedValue)),
-		field!"cases"(jsonList!(LowExprKind.MatchUnion.Case)(alloc, a.cases, (in LowExprKind.MatchUnion.Case case_) =>
-			jsonObject(alloc, [
-				optionalField!("local", LowLocal*)(case_.local, (in LowLocal* x) =>
-					jsonOfLowLocalSource(alloc, x.source)),
-				field!"then"(jsonOfLowExpr(alloc, ctx, case_.then))])))]);

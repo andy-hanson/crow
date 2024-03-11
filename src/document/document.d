@@ -31,7 +31,7 @@ import model.model :
 	Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.array : exists, indexOf, isEmpty, map, mapOp;
-import util.col.arrayBuilder : arrBuilderSort, buildArray, Builder;
+import util.col.arrayBuilder : arrayBuilderSort, buildArray, Builder;
 import util.json :
 	field,
 	Json,
@@ -72,7 +72,7 @@ Json documentModule(ref Alloc alloc, in Program program, in Module a) {
 				if (fun.visibility == Visibility.public_ && !fun.isGenerated)
 					res ~= documentFun(alloc, *fun);
 		}
-		arrBuilderSort!DocExport(res, (in DocExport x, in DocExport y) =>
+		arrayBuilderSort!DocExport(res, (in DocExport x, in DocExport y) =>
 			compareUriAndRange(x.range, y.range));
 	});
 	return jsonObject(alloc, [

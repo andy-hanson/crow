@@ -24,25 +24,27 @@ main nat^(_ string[]) summon
 	query = su query
 	match req method
 	as GET
-		if path == "/"
+		match path
+		as "/"
 			"demo/webapp/index.html".read-file http-ok
-		elif path == "/index.js"
+		as "/index.js"
 			"demo/webapp/index.js".read-file http-ok
-		elif path == "/posts"
+		as "/posts"
 			(("posts", db.list-posts.to),)::json.to http-ok
-		elif path == "/user-name"
+		as "/user-name"
 			user = query.parse-query["user"] ?? ""
 			match nat parse user
 			as ok user-id
 				db user-name user-id http-ok
 			as error e
 				"{e}" http-bad-query
-		elif path == "/users"
+		as "/users"
 			(("users", db.list-users.to),)::json.to http-ok
 		else
 			http-not-found
 	as POST
-		if path == "/register"
+		match path
+		as "/register"
 			args = req.request-body-string parse-query
 			match db register-user (args["user-name"] ?? ""), (args["password"] ?? "")
 			as register-user-success user-id
@@ -52,7 +54,7 @@ main nat^(_ string[]) summon
 				"Bad user name: {message}" http-bad-query
 			as user-already-exists
 				"User already exists" http-bad-query
-		elif path == "/login"
+		as "/login"
 			args = req.request-body-string parse-query
 			user-name = args["user-name"] ?? ""
 			match db login user-name, (args["password"] ?? "")
@@ -67,7 +69,7 @@ main nat^(_ string[]) summon
 					"User does not exist" http-not-found
 				as wrong-password
 					"Wrong password" http-forbidden
-		elif path == "/post"
+		as "/post"
 			if cookie ?= (req.headers["Cookie"] ?? "") parse-cookie "login"
 				match user-cookie parse cookie
 				as ok user-cookie

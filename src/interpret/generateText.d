@@ -33,10 +33,11 @@ import util.col.exactSizeArrayBuilder :
 	ExactSizeArrayBuilder,
 	exactSizeArrBuilderCurSize,
 	finish,
-	newExactSizeArrBuilder,
+	newExactSizeArrayBuilder,
 	padTo;
 import util.col.fullIndexMap : FullIndexMap, mapFullIndexMap;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
+import util.integralValues : IntegralValue;
 import util.string : CString, cStringSize;
 import util.util : castImmutable, castNonScope, ptrTrustMe, todo;
 
@@ -113,7 +114,7 @@ TextAndInfo generateText(
 	Ctx ctx = Ctx(
 		ptrTrustMe(program),
 		// '1 +' because we add a dummy byte at 0
-		newExactSizeArrBuilder!ubyte(alloc, 1 + getAllConstantsSize(program)),
+		newExactSizeArrayBuilder!ubyte(alloc, 1 + getAllConstantsSize(program)),
 		ptrTrustMe(funToReferences),
 		[], // cStringIndexToTextIndex will be overwritten just below this
 		map!(size_t[], ArrTypeAndConstantsLow)(
@@ -209,7 +210,7 @@ void ensureConstant(ref Alloc alloc, ref TempAlloc tempAlloc, ref Ctx ctx, in Lo
 		},
 		(in Constant.Float) {},
 		(in Constant.FunPointer) {},
-		(in Constant.Integral) {},
+		(in IntegralValue _) {},
 		(in Constant.Pointer it) {
 			PointerTypeAndConstantsLow* ptrs = &ctx.program.allConstants.pointers[it.typeIndex];
 			assert(ptrs.pointeeType == asPtrGcPointee(t));
@@ -324,7 +325,7 @@ void writeConstant(ref Alloc alloc, ref TempAlloc tempAlloc, ref Ctx ctx, in Low
 				TextIndex(exactSizeArrBuilderCurSize(ctx.text)));
 			add64(ctx.text, 0);
 		},
-		(in Constant.Integral x) {
+		(in IntegralValue x) {
 			final switch (type.as!PrimitiveType) {
 				case PrimitiveType.float32:
 				case PrimitiveType.float64:

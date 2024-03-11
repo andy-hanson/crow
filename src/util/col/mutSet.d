@@ -3,7 +3,7 @@ module util.col.mutSet;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.hashTable : hasKey, mayAdd, mayDelete, MutHashTable;
+import util.col.hashTable : getOrAddAndDidAdd, hasKey, mayAdd, mayDelete, MutHashTable, ValueAndDidAdd;
 import util.opt : has, MutOpt;
 
 struct MutSet(T) {
@@ -23,6 +23,9 @@ bool mutSetHas(T)(in MutSet!T a, in T value) =>
 void mayAddToMutSet(T)(ref Alloc alloc, scope ref MutSet!T a, T value) {
 	mayAdd(alloc, a.inner, value);
 }
+
+ValueAndDidAdd!T getOrAddToMutSet(T)(ref Alloc alloc, ref MutSet!T a, T value) =>
+	getOrAddAndDidAdd!(T, T, getKey)(alloc, a.inner, value, () => value);
 
 bool mutSetMayDelete(T)(scope ref MutSet!T a, T value) {
 	MutOpt!T deleted = mayDelete(a.inner, value);

@@ -41,6 +41,8 @@ import frontend.parse.parseUtil :
 	takeOrAddDiagExpectedToken,
 	takeOrAddDiagExpectedTokenAndMayContinueOntoNextLine,
 	takeOrAddDiagExpectedTokenAndSkipRestOfLine,
+	tryTakeLiteralIntegral,
+	tryTakeNameAndRange,
 	tryTakeToken,
 	tryTakeTokenAndMayContinueOntoNextLine;
 import model.ast :
@@ -51,6 +53,8 @@ import model.ast :
 	BogusAst,
 	CallAst,
 	CallNamedAst,
+	CaseAst,
+	CaseMemberAst,
 	DestructureAst,
 	DoAst,
 	ElifOrElseKeyword,
@@ -64,6 +68,7 @@ import model.ast :
 	InterpolatedAst,
 	LambdaAst,
 	LetAst,
+	LiteralIntegralAndRange,
 	LiteralStringAst,
 	LoopAst,
 	LoopBreakAst,
@@ -71,6 +76,7 @@ import model.ast :
 	LoopUntilAst,
 	LoopWhileAst,
 	MatchAst,
+	MatchElseAst,
 	NameAndRange,
 	ParenthesizedAst,
 	PtrAst,
@@ -86,10 +92,10 @@ import model.ast :
 	WithAst;
 import model.model : AssertOrForbidKind;
 import model.parseDiag : ParseDiag;
-import util.col.array : isEmpty, newArray, only, prepend;
-import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, buildArray, Builder, finish;
+import util.col.array : emptySmallArray, isEmpty, newSmallArray, only2, SmallArray;
+import util.col.arrayBuilder : add, ArrayBuilder, arrayBuilderIsEmpty, buildArray, buildSmallArray, Builder, finish;
 import util.memory : allocate;
-import util.opt : force, has, none, Opt, some, some;
+import util.opt : force, has, none, Opt, optIf, some, some;
 import util.sourceRange : Pos, Range, rangeOfStartAndLength;
 import util.symbol : Symbol, symbol;
 import util.util : max;
@@ -127,23 +133,16 @@ ArgCtx requirePrecedenceGt(ArgCtx a, int precedence) =>
 ArgCtx requirePrecedenceGtComma(ArgCtx a) =>
 	requirePrecedenceGt(a, commaPrecedence);
 
-ExprAst[] parseArgsForOperator(ref Lexer lexer, ArgCtx ctx) =>
-	newArray!ExprAst(lexer.alloc, [parseExprAndCalls(lexer, ctx)]);
-
-ExprAst[] parseArgs(ref Lexer lexer, ArgCtx ctx) {
-	ArrayBuilder!ExprAst res;
-	parseArgsWithBuilder(lexer, ctx, res);
-	return finish(lexer.alloc, res);
-}
-
-void parseArgsWithBuilder(ref Lexer lexer, ArgCtx ctx, scope ref ArrayBuilder!ExprAst res) {
-	assert(ctx.allowedCalls.minPrecedenceExclusive >= commaPrecedence);
-	if (peekTokenExpression(lexer)) {
-		do {
-			add(lexer.alloc, res, parseExprAndCalls(lexer, ctx));
-		} while (tryTakeTokenAndMayContinueOntoNextLine(lexer, Token.comma));
-	}
-}
+SmallArray!ExprAst parseArgs(ref Lexer lexer, ArgCtx ctx, ExprAst first) =>
+	buildSmallArray!ExprAst(lexer.alloc, (scope ref Builder!ExprAst out_) {
+		out_ ~= first;
+		assert(ctx.allowedCalls.minPrecedenceExclusive >= commaPrecedence);
+		if (peekTokenExpression(lexer)) {
+			do {
+				out_ ~= parseExprAndCalls(lexer, ctx);
+			} while (tryTakeTokenAndMayContinueOntoNextLine(lexer, Token.comma));
+		}
+	});
 
 bool peekTokenExpression(ref Lexer lexer) =>
 	isExpressionStartToken(getPeekToken(lexer));
@@ -220,8 +219,7 @@ bool isExpressionStartToken(Token a) {
 		case Token.if_:
 		case Token.for_:
 		case Token.literalFloat:
-		case Token.literalInt:
-		case Token.literalNat:
+		case Token.literalIntegral:
 		case Token.loop:
 		case Token.match:
 		case Token.name:
@@ -291,13 +289,11 @@ bool canParseCommaExpr(in ArgCtx argCtx) =>
 	commaPrecedence > argCtx.allowedCalls.minPrecedenceExclusive;
 
 ExprAst parseCallsAfterComma(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) {
-	ArrayBuilder!ExprAst builder;
-	add(lexer.alloc, builder, lhs);
-	parseArgsWithBuilder(lexer, requirePrecedenceGtComma(argCtx), builder);
+	SmallArray!ExprAst args = parseArgs(lexer, requirePrecedenceGtComma(argCtx), lhs);
 	Range range = range(lexer, start);
 	return ExprAst(range, ExprAstKind(
 		//TODO: range is wrong..
-		CallAst(CallAst.Style.comma, NameAndRange(range.start, symbol!"new"), finish(lexer.alloc, builder))));
+		CallAst(CallAst.Style.comma, NameAndRange(range.start, symbol!"new"), args)));
 }
 
 struct NameAndPrecedence {
@@ -329,19 +325,19 @@ ExprAst parseNamedCalls(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argC
 	//TODO: don't do this for operators
 	Opt!(TypeAst*) typeArg = tryParseTypeArgForExpr(lexer);
 	ArgCtx innerCtx = requirePrecedenceGt(argCtx, precedence);
-	ExprAst[] args = isOperator
-		? parseArgsForOperator(lexer, innerCtx)
-		: parseArgs(lexer, innerCtx);
+	SmallArray!ExprAst args = isOperator
+		? newSmallArray!ExprAst(lexer.alloc, [lhs, parseExprAndCalls(lexer, innerCtx)])
+		: parseArgs(lexer, innerCtx, lhs);
 	ExprAstKind exprKind = () {
 		if (has(assignment)) {
 			final switch (force(assignment)) {
 				case AssignmentKind.inPlace:
-					return ExprAstKind(CallAst(CallAst.Style.infix, funName, prepend(lexer.alloc, lhs, args)));
+					return ExprAstKind(CallAst(CallAst.Style.infix, funName, args));
 				case AssignmentKind.replace:
-					return ExprAstKind(allocate(lexer.alloc, AssignmentCallAst(funName, [lhs, only(args)])));
+					return ExprAstKind(AssignmentCallAst(funName, allocate!(ExprAst[2])(lexer.alloc, only2(args))));
 			}
 		} else
-			return ExprAstKind(CallAst(CallAst.Style.infix, funName, prepend(lexer.alloc, lhs, args), typeArg));
+			return ExprAstKind(CallAst(CallAst.Style.infix, funName, args, typeArg));
 	}();
 	ExprAst expr = ExprAst(range(lexer, start), exprKind);
 	return parseCalls(lexer, start, expr, argCtx);
@@ -440,7 +436,7 @@ ExprAst tryParseDotsAndSubscripts(ref Lexer lexer, ExprAst initial) {
 	if (tryTakeToken(lexer, Token.dot)) {
 		NameAndRange name = takeNameAndRange(lexer);
 		Opt!(TypeAst*) typeArg = tryParseTypeArgForExpr(lexer);
-		CallAst call = CallAst(CallAst.Style.dot, name, newArray!ExprAst(lexer.alloc, [initial]), typeArg);
+		CallAst call = CallAst(CallAst.Style.dot, name, newSmallArray(lexer.alloc, [initial]), typeArg);
 		return tryParseDotsAndSubscripts(lexer, ExprAst(range(lexer, start), ExprAstKind(call)));
 	} else if (tryTakeToken(lexer, Token.arrowAccess)) {
 		NameAndRange name = takeNameAndRange(lexer);
@@ -458,7 +454,9 @@ ExprAst tryParseDotsAndSubscripts(ref Lexer lexer, ExprAst initial) {
 		return tryParseDotsAndSubscripts(lexer, ExprAst(
 			range(lexer, start),
 			ExprAstKind(CallAst(
-				CallAst.Style.suffixBang, NameAndRange(dotPos, symbol!"force"), newArray(lexer.alloc, [initial])))));
+				CallAst.Style.suffixBang,
+				NameAndRange(dotPos, symbol!"force"),
+				newSmallArray(lexer.alloc, [initial])))));
 	} else
 		return initial;
 }
@@ -468,7 +466,10 @@ ExprAst parseSubscript(ref Lexer lexer, ExprAst initial, Pos subscriptPos) {
 		if (tryTakeToken(lexer, Token.bracketRight))
 			return ExprAst(
 				range(lexer, subscriptPos),
-				ExprAstKind(CallAst(CallAst.Style.emptyParens, NameAndRange(subscriptPos, symbol!"new"), [])));
+				ExprAstKind(CallAst(
+					CallAst.Style.emptyParens,
+					NameAndRange(subscriptPos, symbol!"new"),
+					emptySmallArray!ExprAst)));
 		else {
 			ExprAst res = parseExprNoBlock(lexer);
 			takeOrAddDiagExpectedToken(lexer, Token.bracketRight, ParseDiag.Expected.Kind.closingBracket);
@@ -480,27 +481,55 @@ ExprAst parseSubscript(ref Lexer lexer, ExprAst initial, Pos subscriptPos) {
 		ExprAstKind(CallAst(
 			CallAst.Style.subscript,
 			NameAndRange(subscriptPos, symbol!"subscript"),
-			newArray!ExprAst(lexer.alloc, [initial, arg])))));
+			newSmallArray(lexer.alloc, [initial, arg])))));
 }
 
 ExprAst parseMatch(ref Lexer lexer, Pos start) {
 	ExprAst matched = parseExprNoBlock(lexer);
-	ArrayBuilder!(MatchAst.CaseAst) cases;
-	while (true) {
-		Opt!Pos asPos = tryTakeNewlineThenAs(lexer);
-		if (has(asPos)) {
-			NameAndRange memberName = takeNameAndRange(lexer);
-			Opt!DestructureAst destructure = peekEndOfLine(lexer)
-				? none!DestructureAst
-				: some(parseDestructureNoRequireParens(lexer));
-			ExprAst then = parseIndentedStatements(lexer);
-			add(lexer.alloc, cases, MatchAst.CaseAst(force(asPos), memberName, destructure, then));
-		} else
-			break;
+	SmallArray!CaseAst cases = buildSmallArray(lexer.alloc, (scope ref Builder!CaseAst out_) {
+		while (true) {
+			Opt!Pos asPos = tryTakeNewlineThenAs(lexer);
+			if (has(asPos)) {
+				CaseMemberAst member = parseCaseMember(lexer);
+				ExprAst then = parseIndentedStatements(lexer);
+				out_ ~= CaseAst(force(asPos), member, then);
+			} else
+				break;
+		}
+	});
+	Opt!(MatchElseAst*) else_ = tryParseElse(lexer);
+	return ExprAst(range(lexer, start), ExprAstKind(MatchAst(allocate(lexer.alloc, matched), cases, else_)));
+}
+
+CaseMemberAst parseCaseMember(ref Lexer lexer) {
+	Opt!NameAndRange name = tryTakeNameAndRange(lexer);
+	if (has(name)) {
+		Opt!DestructureAst destructure = peekEndOfLine(lexer)
+			? none!DestructureAst
+			: some(parseDestructureNoRequireParens(lexer));
+		return CaseMemberAst(CaseMemberAst.Name(force(name), destructure));
+	} else {
+		Opt!LiteralIntegralAndRange number = tryTakeLiteralIntegral(lexer);
+		return has(number) ? CaseMemberAst(force(number)) : parseStringLiteralForMatchCase(lexer);
 	}
-	return ExprAst(
-		range(lexer, start),
-		ExprAstKind(allocate(lexer.alloc, MatchAst(matched, finish(lexer.alloc, cases)))));
+}
+
+CaseMemberAst parseStringLiteralForMatchCase(ref Lexer lexer) {
+	Pos start = curPos(lexer);
+	if (takeOrAddDiagExpectedToken(lexer, Token.quoteDouble, ParseDiag.Expected.Kind.matchCase)) {
+		StringPart part = takeInitialStringPart(lexer, QuoteKind.quoteDouble);
+		final switch (part.after) {
+			case StringPart.After.quote:
+				break;
+			case StringPart.After.lbrace:
+				addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.MatchCaseInterpolated()));
+				break;
+		}
+		return CaseMemberAst(CaseMemberAst.String(range(lexer, start), part.text));
+	} else {
+		skipUntilNewlineNoDiag(lexer);
+		return CaseMemberAst(CaseMemberAst.Bogus());
+	}
 }
 
 ExprAst parseDo(ref Lexer lexer, Pos start) {
@@ -646,11 +675,19 @@ ExprAst parseForOrWith(
 			case AllowedBlock.yes:
 				return takeIndentOrFail_Expr(lexer, () {
 					ExprAst body_ = parseStatementsAndDedent(lexer);
-					ExprAst else_ = tryTakeNewlineThenElse(lexer) ? parseIndentedStatements(lexer) : emptyAst(lexer);
+					ExprAst else_ = parseElseOrEmpty(lexer);
 					return ExprAst(range(lexer, start), cbMakeExprKind(param, colon, rhs, body_, else_));
 				});
 		}
 }
+
+Opt!(MatchElseAst*) tryParseElse(ref Lexer lexer) {
+	Opt!Pos pos = tryTakeNewlineThenElse(lexer);
+	return optIf(has(pos), () => allocate(lexer.alloc, MatchElseAst(force(pos), parseIndentedStatements(lexer))));
+}
+
+ExprAst parseElseOrEmpty(ref Lexer lexer) =>
+	has(tryTakeNewlineThenElse(lexer)) ? parseIndentedStatements(lexer) : emptyAst(lexer);
 
 ExprAst parseLoop(ref Lexer lexer, Pos start) {
 	ExprAst body_ = parseIndentedStatements(lexer);
@@ -786,10 +823,9 @@ ExprAst parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBlock) {
 	switch (token.token) {
 		case Token.parenLeft:
 			if (tryTakeToken(lexer, Token.parenRight)) {
-				ExprAst expr = ExprAst(
-					range(lexer, start),
-					//TODO: range is wrong..
-					ExprAstKind(CallAst(CallAst.Style.emptyParens, NameAndRange(start, symbol!"new"), [])));
+				//TODO: range is wrong..
+				ExprAst expr = ExprAst(range(lexer, start), ExprAstKind(
+					CallAst(CallAst.Style.emptyParens, NameAndRange(start, symbol!"new"), emptySmallArray!ExprAst)));
 				return tryParseDotsAndSubscripts(lexer, expr);
 			} else {
 				ExprAst inner = parseExprNoBlock(lexer);
@@ -821,7 +857,7 @@ ExprAst parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBlock) {
 				ExprAstKind(CallAst(
 					CallAst.Style.prefixBang,
 					NameAndRange(start, symbol!"not"),
-					newArray(lexer.alloc, [inner]))));
+					newSmallArray(lexer.alloc, [inner]))));
 		case Token.break_:
 			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.break_, () => parseLoopBreak(lexer, start));
 		case Token.continue_:
@@ -850,11 +886,9 @@ ExprAst parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBlock) {
 			} else
 				return handlePrefixOperator(lexer, allowedBlock, start, operator);
 		case Token.literalFloat:
-			return tryParseDotsAndSubscripts(lexer, ExprAst(range(lexer, start), ExprAstKind(token.asLiteralFloat())));
-		case Token.literalInt:
-			return tryParseDotsAndSubscripts(lexer, ExprAst(range(lexer, start), ExprAstKind(token.asLiteralInt())));
-		case Token.literalNat:
-			return tryParseDotsAndSubscripts(lexer, ExprAst(range(lexer, start), ExprAstKind(token.asLiteralNat())));
+			return tryParseDotsAndSubscripts(lexer, ExprAst(range(lexer, start), ExprAstKind(token.asLiteralFloat)));
+		case Token.literalIntegral:
+			return tryParseDotsAndSubscripts(lexer, ExprAst(range(lexer, start), ExprAstKind(token.asLiteralIntegral)));
 		case Token.loop:
 			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.loop, () => parseLoop(lexer, start));
 		case Token.shared_:
@@ -889,13 +923,14 @@ ExprAst badToken(ref Lexer lexer, Pos start, TokenAndData token) {
 ExprAst handlePrefixOperator(ref Lexer lexer, AllowedBlock allowedBlock, Pos start, Symbol operator) {
 	ExprAst arg = parseExprBeforeCall(lexer, allowedBlock);
 	return ExprAst(range(lexer, start), ExprAstKind(
-		CallAst(CallAst.Style.prefixOperator, NameAndRange(start, operator), newArray(lexer.alloc, [arg]))));
+		CallAst(CallAst.Style.prefixOperator, NameAndRange(start, operator), newSmallArray(lexer.alloc, [arg]))));
 }
 
 ExprAst handleName(ref Lexer lexer, Pos start, NameAndRange name) {
 	Opt!(TypeAst*) typeArg = tryParseTypeArgForExpr(lexer);
 	return has(typeArg)
-		? ExprAst(range(lexer, start), ExprAstKind(CallAst(CallAst.Style.single, name, [], typeArg)))
+		? ExprAst(range(lexer, start), ExprAstKind(
+			CallAst(CallAst.Style.single, name, emptySmallArray!ExprAst, typeArg)))
 		: tryParseDotsAndSubscripts(lexer, ExprAst(range(lexer, start), ExprAstKind(IdentifierAst(name.name))));
 }
 
@@ -969,7 +1004,7 @@ ExprAst parseNamedCall(ref Lexer lexer, Pos start) {
 			add(lexer.alloc, values, parseExprNoLet(lexer));
 		}
 	} while (tryTakeToken(lexer, Token.newlineSameIndent));
-	return arrBuilderIsEmpty(names)
+	return arrayBuilderIsEmpty(names)
 		? ExprAst(range(lexer, start), ExprAstKind(BogusAst()))
 		: ExprAst(range(lexer, start), ExprAstKind(
 			CallNamedAst(finish(lexer.alloc, names), finish(lexer.alloc, values))));

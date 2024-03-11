@@ -41,8 +41,6 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.EnumDuplicateValue) =>
 			DiagnosticSeverity.checkError,
-		(in Diag.EnumMemberOverflows) =>
-			DiagnosticSeverity.checkError,
 		(in Diag.ExpectedTypeIsNotALambda) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ExternFunVariadic) =>
@@ -89,6 +87,8 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.LinkageWorseThanContainingType) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.LiteralFloatAccuracy) =>
+			DiagnosticSeverity.checkError,
 		(in Diag.LiteralMultipleMatch) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.LiteralNotExpected) =>
@@ -101,14 +101,22 @@ DiagnosticSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.LoopWithoutBreak) =>
 			DiagnosticSeverity.warning,
-		(in Diag.MatchCaseNamesDoNotMatch) =>
+		(in Diag.MatchCaseDuplicate) =>
 			DiagnosticSeverity.checkError,
-		(in Diag.MatchCaseNoValueForEnum) =>
+		(in Diag.MatchCaseForType) =>
+			DiagnosticSeverity.checkError,
+		(in Diag.MatchCaseNameDoesNotMatch) =>
+			DiagnosticSeverity.checkError,
+		(in Diag.MatchCaseNoValueForEnumOrSymbol) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.MatchCaseShouldUseIgnore) =>
 			DiagnosticSeverity.warning,
 		(in Diag.MatchOnNonEnumOrUnion) =>
 			DiagnosticSeverity.checkError,
+		(in Diag.MatchUnhandledCases) =>
+			DiagnosticSeverity.checkError,
+		(in Diag.MatchUnnecessaryElse) =>
+			DiagnosticSeverity.unusedCode,
 		(in Diag.ModifierConflict) =>
 			DiagnosticSeverity.checkError,
 		(in Diag.ModifierDuplicate) =>
@@ -212,6 +220,8 @@ DiagnosticSeverity parseDiagSeverity(in ParseDiag a) =>
 			DiagnosticSeverity.parseError,
 		(in ParseDiag.InvalidStringEscape) =>
 			DiagnosticSeverity.warning,
+		(in ParseDiag.MatchCaseInterpolated) =>
+			DiagnosticSeverity.parseError,
 		(in ParseDiag.MissingExpression) =>
 			DiagnosticSeverity.parseError,
 		(in ParseDiag.NeedsBlockCtx) =>

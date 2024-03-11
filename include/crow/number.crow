@@ -366,4 +366,4 @@ Conversions involving floats (in either direction) are approximate and never thr
 	assert a < max-value::nat32.to : "integer overflow"
 	trusted a unsafe-to
 
-truncate-to int64(a float64) builtin, bare
++truncate-to int64(a float64) builtin, bare

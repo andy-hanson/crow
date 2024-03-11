@@ -10,39 +10,38 @@ import
 main nat^(args string[]) summon
 	command-name = !args.is-empty ? args[0]
 	rest-args = !args.is-empty ? args[1 .. end]
-	if command ?= command-name parse-command_name
-		match command
-		as get
-			named-args = (rest-args parse-named-args ("path", "db-name", "key"))!
-			path = named-args[0] single-string-or-throw "path"
-			db-name = named-args[1] single-string-or-throw "db-name"
-			key = named-args[2] single-string-or-throw "key"
-			with env : path open-lmdb-env true
-				with db : env database@(string, string) db-name
-					value = with txn : env read-transaction
-						txn get db, key ?? "none"
-					out print value
-					()
-		as set
-			named-args = (rest-args parse-named-args ("path", "db-name", "key", "value"))!
-			path = named-args[0] single-string-or-throw "path"
-			db-name = named-args[1] single-string-or-throw "db-name"
-			key = named-args[2] single-string-or-throw "key"
-			value = named-args[3] single-string-or-throw "value"
-			with env : path open-lmdb-env true
-				with db : env database@(string, string) db-name
-					with txn : env write-transaction
-						txn set db, key, value
-					()
-		as stat
-			named-args = (rest-args parse-named-args ("path", "db-name"))!
-			path = named-args[0] single-string-or-throw "path"
-			db-name = named-args[1] single-string-or-throw "db-name"
-			with env : path open-lmdb-env true
-				with db : env database@(string, string) db-name
-					out print with txn : env read-transaction
-						txn stat db to
-					()
+	match command-name
+	as get
+		named-args = (rest-args parse-named-args ("path", "db-name", "key"))!
+		path = named-args[0] single-string-or-throw "path"
+		db-name = named-args[1] single-string-or-throw "db-name"
+		key = named-args[2] single-string-or-throw "key"
+		with env : path open-lmdb-env true
+			with db : env database@(string, string) db-name
+				value = with txn : env read-transaction
+					txn get db, key ?? "none"
+				out print value
+				()
+	as set
+		named-args = (rest-args parse-named-args ("path", "db-name", "key", "value"))!
+		path = named-args[0] single-string-or-throw "path"
+		db-name = named-args[1] single-string-or-throw "db-name"
+		key = named-args[2] single-string-or-throw "key"
+		value = named-args[3] single-string-or-throw "value"
+		with env : path open-lmdb-env true
+			with db : env database@(string, string) db-name
+				with txn : env write-transaction
+					txn set db, key, value
+				()
+	as stat
+		named-args = (rest-args parse-named-args ("path", "db-name"))!
+		path = named-args[0] single-string-or-throw "path"
+		db-name = named-args[1] single-string-or-throw "db-name"
+		with env : path open-lmdb-env true
+			with db : env database@(string, string) db-name
+				out print with txn : env read-transaction
+					txn stat db to
+				()
 	else
 		out print usage
 		1,
@@ -62,13 +61,3 @@ Example:
 ./main.crow set --path foo.db --db-name capitals --key indiana --value indianapolis
 ./main.crow get --path foo.db --db-name capitals --key indiana
 """
-
--parse-command_name command?(a string)
-	if a == "get"
-		get,
-	elif a == "set"
-		set,
-	elif a == "stat"
-		stat,
-
--command enum(get, set, stat)

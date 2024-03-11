@@ -45,23 +45,24 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 
 -to-export-value module-export-value(a json)
 	kind = a["kind"].as-symbol!
-	if kind == "alias"
+	match kind
+	as "alias"
 		a.to-alias-decl alias-decl
-	elif kind == "builtin"
+	as "builtin"
 		builtin-decl
-	elif kind == "enum"
+	as "enum"
 		a.to-enum-decl enum-decl
-	elif kind == "extern"
+	as "extern"
 		extern-decl
-	elif kind == "flags"
+	as "flags"
 		a.to-flags-decl flags-decl
-	elif kind == "fun"
+	as "fun"
 		a.to-fun-decl fun-decl
-	elif kind == "spec"
+	as "spec"
 		a.to-spec-decl spec-decl
-	elif kind == "record"
+	as "record"
 		a.to-record-decl record-decl
-	elif kind == "union"
+	as "union"
 		a.to-union-decl union-decl
 	else
 		throw "unexpected export kind {kind}"
@@ -88,16 +89,19 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 	nominal_: a["nominal"].as-bool-allow-null!
 
 -get-purity purity(a json)
-	p = a["purity"]
-	if p == json-null
+	match a["purity"]
+	as json-null
 		data_
-	else
-		s = p.as-string!
-		if s == "shared"
+	as json-string s
+		match s
+		as "shared"
 			shared_
-		else
-			s is "mut"
+		as "mut"
 			mut_
+		else
+			throw "bad purity for {a}"
+	else
+		throw "bad purity for {a}"
 
 -to-record-field record-field(a json)
 	a.get-name, a.get-type, a["mut"].as-bool-allow-null!
@@ -152,19 +156,21 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 	a.get-name, a.get-type
 
 -to-type-ref type-ref(a json)
-	kind = a["kind"].as-symbol!
 	name symbol = a["name"].as-symbol!
-	if kind == "type-param"
+	match a["kind"].as-symbol!
+	as type-param
 		name, ()
-	else
-		kind is "struct"
+	as struct
 		name, a.get-type-args
+	else
+		throw "bad type-ref {a}"
 
 -to-spec-ref spec-ref(a json)
-	kind = a["kind"].as-symbol!
 	name symbol = a["name"].as-symbol!
-	if kind == "special"
+	match a["kind"].as-symbol!
+	as "special"
 		name, ()
-	else
-		kind is "spec"
+	as "spec"
 		name, a.get-type-args
+	else
+		throw "bad spec-ref {a}"

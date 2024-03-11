@@ -74,6 +74,10 @@ Opt!Target targetForPosition(PositionKind pos) =>
 			some(Target(x)),
 		(PositionKind.MatchEnumCase x) =>
 			some(Target(x.member)),
+		(PositionKind.MatchIntegralCase x) =>
+			none!Target,
+		(PositionKind.MatchStringLikeCase x) =>
+			none!Target,
 		(PositionKind.MatchUnionCase x) =>
 			some(Target(x.member)),
 		(PositionKind.Modifier) =>

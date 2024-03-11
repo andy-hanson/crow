@@ -212,9 +212,10 @@ Returns an empty option if the key was not in the map.
 					m[index] := key, value
 				else
 					_ = m remove-unordered-at index
-					if m is-empty
+					match m size
+					as 0
 						a.entries[entry-index] := none
-					elif m.size == 1
+					as 1
 						a.entries[entry-index] := m[0] one
 					a.total-size -:= 1
 				old-value,

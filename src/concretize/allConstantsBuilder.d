@@ -11,9 +11,11 @@ import model.concreteModel :
 	PointerTypeAndConstantsConcrete;
 import model.constant : Constant, constantZero;
 import util.alloc.alloc : Alloc;
-import util.col.array : arraysEqual, fillArray, findIndex, isEmpty, newArray, only;
+import util.col.array : arraysEqual, fillArray, findIndex, isEmpty, newSmallArray, only, small;
 import util.col.mutArr : asTemporaryArray, moveToArray, MutArr, mutArrSize, push;
 import util.col.mutMap : getOrAdd, MutMap, size, values, valuesArray;
+import util.conv : safeToUint;
+import util.integralValues : IntegralValue;
 import util.memory : initMemory;
 import util.opt : force, has, Opt;
 import util.string : copyToCString, CString;
@@ -33,12 +35,12 @@ struct AllConstantsBuilder {
 private struct ArrTypeAndConstants {
 	immutable ConcreteStruct* arrType;
 	immutable ConcreteType elementType;
-	immutable size_t typeIndex; // order this was inserted into 'arrs'
+	immutable uint typeIndex; // order this was inserted into 'arrs'
 	MutArr!(immutable Constant[]) constants;
 }
 
 private struct PointerTypeAndConstants {
-	immutable size_t typeIndex;
+	immutable uint typeIndex;
 	MutArr!Constant constants;
 }
 
@@ -75,7 +77,7 @@ Constant getConstantPointer(
 	Constant value,
 ) {
 	PointerTypeAndConstants* d = ptrTrustMe(getOrAdd(alloc, constants.pointers, pointee, () =>
-		PointerTypeAndConstants(size(constants.pointers), MutArr!(immutable Constant)())));
+		PointerTypeAndConstants(safeToUint(size(constants.pointers)), MutArr!(immutable Constant)())));
 	return Constant(Constant.Pointer(
 		d.typeIndex,
 		findOrPush!Constant(alloc, d.constants, (in Constant a) => a == value, () => value)));
@@ -96,19 +98,20 @@ Constant getConstantArray(
 			ArrTypeAndConstants(
 				arrStruct,
 				elementType,
-				size(allConstants.arrs), MutArr!(immutable Constant[])())));
-		size_t index = findOrPush!(immutable Constant[])(
+				safeToUint(size(allConstants.arrs)),
+				MutArr!(immutable Constant[])())));
+		uint index = findOrPush!(immutable Constant[])(
 			alloc,
 			d.constants,
-			(in Constant[] it) => arraysEqual!Constant(it, elements),
+			(in Constant[] x) => arraysEqual!Constant(x, elements),
 			() => elements);
 		return Constant(Constant.ArrConstant(d.typeIndex, index));
 	}
 }
 
 private Constant constantEmptyArr() {
-	static Constant[2] fields = [Constant(Constant.Integral(0)), constantZero];
-	return Constant(Constant.Record(fields));
+	static Constant[2] fields = [Constant(IntegralValue(0)), constantZero];
+	return Constant(Constant.Record(small!Constant(fields)));
 }
 
 private Constant getConstantCStringForSymbol(ref Alloc alloc, ref AllConstantsBuilder allConstants, Symbol value) =>
@@ -121,7 +124,7 @@ Constant getConstantCString(ref Alloc alloc, ref AllConstantsBuilder allConstant
 		allConstants.cStrings,
 		value,
 		() {
-			size_t index = mutArrSize(allConstants.cStringValues);
+			uint index = safeToUint(mutArrSize(allConstants.cStringValues));
 			assert(size(allConstants.cStrings) == index);
 			push(alloc, allConstants.cStringValues, copyToCString(alloc, value));
 			return Constant.CString(index);
@@ -129,11 +132,12 @@ Constant getConstantCString(ref Alloc alloc, ref AllConstantsBuilder allConstant
 
 Constant getConstantSymbol(ref Alloc alloc, ref AllConstantsBuilder allConstants, Symbol value) =>
 	getOrAdd!(Symbol, Constant)(alloc, allConstants.symbols, value, () =>
-		Constant(Constant.Record(newArray!Constant(alloc, [getConstantCStringForSymbol(alloc, allConstants, value)]))));
+		Constant(Constant.Record(newSmallArray!Constant(alloc, [
+			getConstantCStringForSymbol(alloc, allConstants, value)]))));
 
 private:
 
-size_t findOrPush(T)(
+uint findOrPush(T)(
 	ref Alloc alloc,
 	ref MutArr!T a,
 	in bool delegate(in T) @safe @nogc pure nothrow cbFind,
@@ -141,9 +145,9 @@ size_t findOrPush(T)(
 ) {
 	Opt!size_t res = findIndex!T(asTemporaryArray(a), cbFind);
 	if (has(res))
-		return force(res);
+		return safeToUint(force(res));
 	else {
 		push(alloc, a, cbPush());
-		return mutArrSize(a) - 1;
+		return safeToUint(mutArrSize(a)) - 1;
 	}
 }

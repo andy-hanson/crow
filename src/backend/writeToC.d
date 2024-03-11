@@ -52,7 +52,7 @@ import model.lowModel :
 	targetIsPointer,
 	targetRecordType,
 	UpdateParam;
-import model.model : BuiltinBinary, BuiltinType, BuiltinUnary, EnumValue;
+import model.model : BuiltinBinary, BuiltinType, BuiltinUnary;
 import model.showLowModel : writeFunName, writeFunSig;
 import model.typeLayout : sizeOfType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
@@ -61,7 +61,9 @@ import util.col.arrayBuilder : buildArray, Builder;
 import util.col.map : mustGet;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach, fullIndexMapEachKey;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
-import util.opt : force, has, Opt, some;
+import util.conv : safeToUint;
+import util.integralValues : IntegralValue;
+import util.opt : force, has, none, Opt, some;
 import util.string : CString, cString, cStringSize, stringOfCString;
 import util.symbol : addExtension, cStringOfSymbol, Extension, Symbol, symbol;
 import util.unicode : isValidUnicodeCharacter, mustUnicodeDecode;
@@ -321,12 +323,12 @@ void writeArrayConstant(scope ref Writer writer, scope ref Ctx ctx, in LowType e
 	if (isChar8(elementType)) {
 		char[0x10000] buf;
 		foreach (size_t i, Constant x; elements)
-			buf[i] = cast(char) x.as!(Constant.Integral).value;
+			buf[i] = cast(char) x.as!IntegralValue.value;
 		writeStringLiteralWithoutNul(writer, ctx.isMSVC, castImmutable(buf[0 .. elements.length]));
 	} else if (isChar32(elementType) && !ctx.isMSVC) {
 		writer ~= "U\"";
 		foreach (Constant element; elements)
-			writeEscapedCharForC(writer, cast(dchar) element.as!(Constant.Integral).value);
+			writeEscapedCharForC(writer, cast(dchar) element.as!IntegralValue.value);
 		writer ~= '"';
 	} else {
 		writer ~= '{';
@@ -521,8 +523,8 @@ void writeRecord(scope ref Writer writer, scope ref Ctx ctx, in LowRecord a) {
 void writeUnion(scope ref Writer writer, scope ref Ctx ctx, in LowUnion a) {
 	writeStructHead(writer, ctx, a.source);
 	writer ~= "\n\tuint64_t kind;";
-	bool isBuiltin = a.source.body_.isA!(ConcreteStructBody.Builtin);
-	if (isBuiltin) assert(a.source.body_.as!(ConcreteStructBody.Builtin).kind == BuiltinType.lambda);
+	bool isBuiltin = a.source.body_.isA!(ConcreteStructBody.Builtin*);
+	if (isBuiltin) assert(a.source.body_.as!(ConcreteStructBody.Builtin*).kind == BuiltinType.lambda);
 	if (isBuiltin || exists!LowType(a.members, (in LowType member) => !isEmptyType(ctx, member))) {
 		writer ~= "\n\tunion {";
 		foreach (size_t memberIndex, LowType member; a.members) {
@@ -918,8 +920,6 @@ WriteExprResult writeExpr(
 		(in LowExprKind.LoopContinue it) =>
 			// Do nothing, continuing the loop is implicit in C
 			writeVoid(writeKind),
-		(in LowExprKind.MatchUnion it) =>
-			writeMatchUnion(writer, indent, ctx, locals, writeKind, type, it),
 		(in LowExprKind.PtrCast it) =>
 			inlineableSingleArg(it.target, (in WriteExprResult arg) {
 				writer ~= '(';
@@ -937,13 +937,13 @@ WriteExprResult writeExpr(
 		(in LowExprKind.RecordFieldGet it) =>
 			writeRecordFieldGet(writer, indent, ctx, locals, writeKind, type, it),
 		(in LowExprKind.RecordFieldSet x) {
-			WriteExprResult recordValue = writeExprTempOrInline(writer, indent, ctx, locals, *x.target);
-			WriteExprResult fieldValue = writeExprTempOrInline(writer, indent, ctx, locals, *x.value);
+			WriteExprResult recordValue = writeExprTempOrInline(writer, indent, ctx, locals, x.target);
+			WriteExprResult fieldValue = writeExprTempOrInline(writer, indent, ctx, locals, x.value);
 			return writeReturnVoid(writer, indent, ctx, writeKind, () {
-				writeTempOrInline(writer, ctx, locals, *x.target, recordValue);
+				writeTempOrInline(writer, ctx, locals, x.target, recordValue);
 				writeRecordFieldRef(writer, ctx, targetIsPointer(x), targetRecordType(x), x.fieldIndex);
 				writer ~= " = ";
-				writeTempOrInline(writer, ctx, locals, *x.value, fieldValue);
+				writeTempOrInline(writer, ctx, locals, x.value, fieldValue);
 			});
 		},
 		(in LowExprKind.SizeOf x) =>
@@ -972,14 +972,8 @@ WriteExprResult writeExpr(
 				writer, indent, ctx, locals, writeKind, type, x.args, stringOfEnum(builtinForBinaryMath(x.kind))),
 		(in LowExprKind.SpecialTernary) =>
 			assert(false),
-		(in LowExprKind.Switch0ToN it) =>
-			writeSwitch(
-				writer, indent, ctx, locals, writeKind, type, it.value, it.cases,
-				(size_t i) => EnumValue(i)),
-		(in LowExprKind.SwitchWithValues it) =>
-			writeSwitch(
-				writer, indent, ctx, locals, writeKind, type, it.value, it.cases,
-				(size_t i) => it.values[i]),
+		(in LowExprKind.Switch x) =>
+			writeSwitch(writer, indent, ctx, locals, writeKind, type, x),
 		(in LowExprKind.TailRecur it) {
 			assert(writeKind.isA!(WriteKind.Return));
 			writeTailRecur(writer, indent, ctx, locals, it);
@@ -1226,70 +1220,6 @@ void writeFunPointer(scope ref Writer writer, scope ref Ctx ctx, LowFunIndex a) 
 	writeLowFunMangledName(writer, ctx.mangledNames, a, ctx.program.allFuns[a]);
 }
 
-WriteExprResult writeMatchUnion(
-	scope ref Writer writer,
-	size_t indent,
-	scope ref FunBodyCtx ctx,
-	in Locals locals,
-	in WriteKind writeKind,
-	in LowType type,
-	in LowExprKind.MatchUnion a,
-) {
-	Temp matchedValue = writeExprTemp(writer, indent, ctx, locals, a.matchedValue);
-	WriteExprResultAndNested nested = getNestedWriteKind(writer, indent, ctx, type, castNonScope_ref(writeKind));
-	writeNewline(writer, indent);
-	writer ~= "switch (";
-	writeTempRef(writer, matchedValue);
-	writer ~= ".kind) {";
-	foreach (size_t caseIndex, ref LowExprKind.MatchUnion.Case case_; a.cases) {
-		writeNewline(writer, indent + 1);
-		writer ~= "case ";
-		writer ~= caseIndex;
-		writer ~= ": {";
-		if (has(case_.local) && !isEmptyType(ctx, force(case_.local).type)) {
-			writeDeclareLocal(writer, indent + 2, ctx, *force(case_.local));
-			writer ~= " = ";
-			writeTempRef(writer, matchedValue);
-			writer ~= ".as";
-			writer ~= caseIndex;
-			writer ~= ';';
-			writeNewline(writer, indent + 2);
-		}
-		cast(void) writeExpr(writer, indent + 2, ctx, locals, nested.writeKind, case_.then);
-		if (!nested.writeKind.isA!(WriteKind.Return)) {
-			writeNewline(writer, indent + 2);
-			writer ~= "break;";
-		}
-		writeNewline(writer, indent + 1);
-		writer ~= '}';
-	}
-	writeDefaultAbort(writer, indent, ctx, locals, nested.writeKind, type);
-	writeNewline(writer, indent);
-	writer ~= '}';
-	return nested.result;
-}
-
-void writeDefaultAbort(
-	scope ref Writer writer,
-	size_t indent,
-	scope ref FunBodyCtx ctx,
-	in Locals locals,
-	in WriteKind writeKind,
-	in LowType type,
-) {
-	writeNewline(writer, indent + 1);
-	writer ~= "default:";
-	writeNewline(writer, indent + 2);
-	writer ~= "abort();";
-	if (ctx.ctx.isMSVC && !isEmptyType(ctx, type)) {
-		cast(void) writeInlineableSimple(writer, indent, ctx, locals, writeKind, type, () {
-			writeZeroedValue(writer, ctx.ctx, type);
-		});
-		writer ~= ';';
-	}
-}
-
-//TODO: share code with writeMatchUnion
 WriteExprResult writeSwitch(
 	scope ref Writer writer,
 	size_t indent,
@@ -1297,24 +1227,16 @@ WriteExprResult writeSwitch(
 	in Locals locals,
 	in WriteKind writeKind,
 	in LowType type, // type returned by the switch
-	in LowExpr value,
-	in LowExpr[] cases,
-	in EnumValue delegate(size_t) @safe @nogc pure nothrow getValue,
+	in LowExprKind.Switch a,
 ) {
-	WriteExprResult valueResult = writeExprTempOrInline(writer, indent, ctx, locals, value);
+	WriteExprResult valueResult = writeExprTempOrInline(writer, indent, ctx, locals, a.value);
 	WriteExprResultAndNested nested = getNestedWriteKind(writer, indent, ctx, type, castNonScope_ref(writeKind));
 	writer ~= "switch (";
-	writeTempOrInline(writer, ctx, locals, value, valueResult);
+	writeTempOrInline(writer, ctx, locals, a.value, valueResult);
 	writer ~= ") {";
-	foreach (size_t caseIndex, ref LowExpr case_; cases) {
-		writeNewline(writer, indent + 1);
-		writer ~= "case ";
-		if (isSignedIntegral(value.type.as!PrimitiveType))
-			writer ~= getValue(caseIndex).asSigned();
-		else
-			writer ~= getValue(caseIndex).asUnsigned();
-		writer ~= ": {";
-		cast(void) writeExpr(writer, indent + 2, ctx, locals, nested.writeKind, case_);
+
+	void writeCaseOrDefault(in LowExpr expr) {
+		cast(void) writeExpr(writer, indent + 2, ctx, locals, nested.writeKind, expr);
 		if (!nested.writeKind.isA!(WriteKind.Return)) {
 			writeNewline(writer, indent + 2);
 			writer ~= "break;";
@@ -1322,7 +1244,32 @@ WriteExprResult writeSwitch(
 		writeNewline(writer, indent + 1);
 		writer ~= '}';
 	}
-	writeDefaultAbort(writer, indent, ctx, locals, writeKind, type);
+
+	foreach (size_t caseIndex, LowExpr caseExpr; a.caseExprs) {
+		writeNewline(writer, indent + 1);
+		writer ~= "case ";
+		writeConstantIntegral(writer, a.value.type, a.caseValues[caseIndex], ctx.ctx.isMSVC);
+		writer ~= ": {";
+		writeCaseOrDefault(caseExpr);
+	}
+
+	writeNewline(writer, indent + 1);
+	writer ~= "default: {";
+	if (has(a.default_))
+		writeCaseOrDefault(*force(a.default_));
+	else {
+		writeNewline(writer, indent + 2);
+		writer ~= "abort();";
+		if (ctx.ctx.isMSVC && !isEmptyType(ctx, type)) {
+			cast(void) writeInlineableSimple(writer, indent, ctx, locals, writeKind, type, () {
+				writeZeroedValue(writer, ctx.ctx, type);
+			});
+			writer ~= ';';
+		}
+		writeNewline(writer, indent + 1);
+		writer ~= '}';
+	}
+
 	writeNewline(writer, indent);
 	writer ~= '}';
 	return nested.result;
@@ -1423,33 +1370,8 @@ void writeConstantRef(
 			if (isRawPtr)
 				writer ~= ')';
 		},
-		(in Constant.Integral x) {
-			PrimitiveType primitive = type.as!PrimitiveType;
-			if (primitive == PrimitiveType.char8 || primitive == PrimitiveType.char32) {
-				if (!ctx.isMSVC && isValidUnicodeCharacter(cast(dchar) x.value)) {
-					writer ~= "'";
-					writeEscapedCharForC(writer, cast(dchar) x.value);
-					writer ~= "'";
-				} else
-					writer ~= cast(uint) x.value;
-			} else if (isSignedIntegral(primitive)) {
-				if (x.value == int.min)
-					writer ~= "INT32_MIN";
-				else if (x.value == long.min)
-					// Can't write this as a literal since the '-' and rest are parsed separately,
-					// and the abs of the minimum integer is out of range.
-					writer ~= "INT64_MIN";
-				else {
-					writer ~= x.value;
-					if (primitive == PrimitiveType.int64)
-						writer ~= 'l';
-				}
-			} else {
-				writer ~= cast(ulong) x.value;
-				writer ~= 'u';
-				if (primitive == PrimitiveType.nat64)
-					writer ~= "ll";
-			}
+		(in IntegralValue x) {
+			writeConstantIntegral(writer, type, x, ctx.isMSVC);
 		},
 		(in Constant.Pointer it) {
 			writer ~= '&';
@@ -1481,6 +1403,35 @@ void writeConstantRef(
 		(in Constant.Zero) {
 			writeZeroedValue(writer, ctx, type);
 		});
+}
+
+void writeConstantIntegral(scope ref Writer writer, in LowType type, IntegralValue a, bool isMSVC) {
+	PrimitiveType primitive = type.as!PrimitiveType;
+	if (primitive == PrimitiveType.char8 || primitive == PrimitiveType.char32) {
+		if (!isMSVC && isValidUnicodeCharacter(safeToUint(a.asUnsigned))) {
+			writer ~= "'";
+			writeEscapedCharForC(writer, safeToUint(a.asUnsigned));
+			writer ~= "'";
+		} else
+			writer ~= a.asUnsigned;
+	} else if (isSignedIntegral(primitive)) {
+		if (a.value == int.min)
+			writer ~= "INT32_MIN";
+		else if (a.value == long.min)
+			// Can't write this as a literal since the '-' and rest are parsed separately,
+			// and the abs of the minimum integer is out of range.
+			writer ~= "INT64_MIN";
+		else {
+			writer ~= a.asSigned;
+			if (primitive == PrimitiveType.int64)
+				writer ~= 'l';
+		}
+	} else {
+		writer ~= a.asUnsigned;
+		writer ~= 'u';
+		if (primitive == PrimitiveType.nat64)
+			writer ~= "ll";
+	}
 }
 
 void writeStringLiteralWithoutNul(scope ref Writer writer, bool isMSVC, in string a) {
@@ -2022,10 +1973,10 @@ WriteExprResult writeCallFunPointer(
 	in LowType type,
 	in LowExprKind.CallFunPointer a,
 ) {
-	WriteExprResult fn = writeExprTempOrInline(writer, indent, ctx, locals, a.funPtr);
+	WriteExprResult fn = writeExprTempOrInline(writer, indent, ctx, locals, *a.funPtr);
 	WriteExprResult[] args = writeExprsTempOrInline(writer, indent, ctx, locals, a.args);
 	return writeNonInlineable(writer, indent, ctx, writeKind, type, () {
-		writeTempOrInline(writer, ctx, locals, a.funPtr, fn);
+		writeTempOrInline(writer, ctx, locals, *a.funPtr, fn);
 		writer ~= '(';
 		writeTempOrInlines(writer, ctx, locals, a.args, args);
 		writer ~= ')';

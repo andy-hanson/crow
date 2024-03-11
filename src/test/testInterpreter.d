@@ -32,7 +32,6 @@ import interpret.bytecodeWriter :
 	writeCallFunPointer,
 	writeDup,
 	writeDupEntries,
-	writeDupEntry,
 	writeFnBinary,
 	writePack,
 	writePushConstant,
@@ -43,7 +42,7 @@ import interpret.bytecodeWriter :
 	writeRemove,
 	writeReturn,
 	writeStackRef,
-	writeSwitch0ToNDelay,
+	writeSwitchDelay,
 	writeWrite;
 import interpret.extern_ : DynCallType, DynCallSig, Extern, FunPointer, FunPointerInputs;
 import interpret.fakeExtern : fakeSyntheticFunPointers, unreachableWriteCb, withFakeExtern;
@@ -76,6 +75,7 @@ import util.alloc.alloc : Alloc;
 import util.col.array : small;
 import util.col.enumMap : EnumMap;
 import util.col.fullIndexMap : emptyFullIndexMap, fullIndexMapOfArr;
+import util.integralValues : integralValuesRange;
 import util.memory : allocate;
 import util.sourceRange : Pos;
 import util.symbol : symbol;
@@ -290,7 +290,7 @@ void testSwitchAndJump(ref Test test) {
 	StackEntry startStack = getNextStackEntry(writer);
 	writePushConstant(writer, source, 0);
 	writeBreak(writer, source);
-	SwitchDelayed delayed = writeSwitch0ToNDelay(writer, source, 2);
+	SwitchDelayed delayed = writeSwitchDelay(writer, source, integralValuesRange(2), hasElse: false);
 	fillDelayedSwitchEntry(writer, delayed, 0);
 	writeBreak(writer, source);
 	ByteCodeIndex firstCase = nextByteCodeIndex(writer);
@@ -339,7 +339,7 @@ void testDup(ref Test test) {
 			writePushConstants(writer, source, [55, 65, 75]);
 			writeBreak(writer, source);
 			verifyStackEntry(writer, 3);
-			writeDupEntry(writer, source, StackEntry(0));
+			writeDupEntries(writer, source, StackEntries(StackEntry(0), 1));
 			writeBreak(writer, source);
 			verifyStackEntry(writer, 4);
 			writeDupEntries(writer, source, StackEntries(StackEntry(2), 2));

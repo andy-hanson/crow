@@ -1,0 +1,4 @@
+exit code: 0
+stderr:
+test/end-to-end/compile-errors/match-warnings.crow 10:5-10:9 'match' handles every case, so the 'else' is unused.
+test/end-to-end/compile-errors/match-warnings.crow 21:5-21:9 'match' handles every case, so the 'else' is unused.

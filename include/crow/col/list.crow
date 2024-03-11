@@ -850,9 +850,8 @@ This is O(n).
 	as branch b
 		bl t array2d = b left
 		popped = bl[0]
-		rest t l2 = if b.left.arrays.size == 0
-			unreachable
-		elif b.left.arrays.size == 1
+		forbid b.left.arrays is-empty
+		rest t l2 = if b.left.arrays.size == 1
 			if b.down is-empty
 				b.right.leaf,
 			else
@@ -868,9 +867,8 @@ This is O(n).
 		(xs[0 .. end - 1].leaf,), xs[end - 1]
 	as branch b
 		popped t array = b.right[end - 1]
-		rest t l2 = if b.right.arrays.size == 0
-			unreachable
-		elif b.right.arrays.size == 1
+		forbid b.right.arrays is-empty
+		rest t l2 = if b.right.arrays.size == 1
 			if b.down is-empty
 				b.left.leaf,
 			else

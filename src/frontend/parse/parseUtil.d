@@ -17,7 +17,7 @@ import frontend.parse.lexer :
 	Token,
 	TokenAndData;
 import frontend.parse.lexToken : isSymbolToken;
-import model.ast : NameAndRange;
+import model.ast : LiteralIntegral, LiteralIntegralAndRange, NameAndRange;
 import model.parseDiag : ParseDiag;
 import util.col.array : contains;
 import util.opt : force, has, none, Opt, optIf, some;
@@ -265,4 +265,11 @@ T takeIndentOrFailGeneric(T)(
 			ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
 		return cbFail(range);
 	}
+}
+
+Opt!LiteralIntegralAndRange tryTakeLiteralIntegral(ref Lexer lexer) {
+	Pos start = curPos(lexer);
+	Opt!LiteralIntegral res = tryTakeTokenCb!LiteralIntegral(lexer, (TokenAndData x) =>
+		optIf(x.token == Token.literalIntegral, () => x.asLiteralIntegral));
+	return optIf(has(res), () => LiteralIntegralAndRange(range(lexer, start), force(res)));
 }

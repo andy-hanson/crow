@@ -5,6 +5,7 @@ module model.jsonOfConstant;
 import model.concreteModel : name;
 import model.constant : Constant;
 import util.alloc.alloc : Alloc;
+import util.integralValues : IntegralValue;
 import util.json : field, jsonObject, optionalField, Json, jsonList, jsonString, kindField;
 import util.symbol : Symbol;
 
@@ -27,7 +28,7 @@ Json jsonOfConstant(ref Alloc alloc, in Constant a) =>
 			jsonObject(alloc, [
 				kindField!"fun-pointer",
 				optionalField!("fun-name", Symbol)(name(*x.fun), (in Symbol name) => jsonString(name))]),
-		(in Constant.Integral x) =>
+		(in IntegralValue x) =>
 			jsonObject(alloc, [
 				kindField!"integral",
 				field!"value"(x.value)]),

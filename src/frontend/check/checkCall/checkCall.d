@@ -58,7 +58,8 @@ import model.model :
 	SpecDeclSig,
 	SpecInst,
 	Type;
-import util.col.array : arraysCorrespond, every, exists, isEmpty, makeArrayOrFail, newArray, only, zipEvery;
+import util.col.array :
+	arraysCorrespond, every, exists, isEmpty, makeArrayOrFail, newArray, only, small, SmallArray, zipEvery;
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.mutMaxArr : asTemporaryArray, isEmpty, fillMutMaxArr, MutMaxArr, mutMaxArr, mutMaxArrSize, only, size;
 import util.opt : force, has, none, Opt, optIf, some, some;
@@ -229,7 +230,7 @@ Expr checkCallInner(
 		return bogus(expected, source);
 	} else
 		return checkCallAfterChoosingOverload(
-			ctx, locals, only(candidates), source, diagRange, force(args), expected);
+			ctx, locals, only(candidates), source, diagRange, small!Expr(force(args)), expected);
 }
 
 void checkCallIdentifierShouldUseSyntax(ref ExprCtx ctx, Range range, Symbol name) {
@@ -452,7 +453,7 @@ Expr checkCallAfterChoosingOverload(
 	ref const Candidate candidate,
 	ExprAst* source,
 	in Range diagRange,
-	Expr[] args,
+	SmallArray!Expr args,
 	ref Expected expected,
 ) {
 	Called called = checkCallSpecs(ctx, diagRange, candidate);

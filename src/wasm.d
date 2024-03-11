@@ -3,15 +3,14 @@
 import lib.lsp.lspParse : parseLspInMessage;
 import lib.lsp.lspToJson : jsonOfLspOutAction;
 import lib.lsp.lspTypes : LspInMessage, LspOutAction;
-import lib.server : handleLspMessage, Server, setCwd, setIncludeDir;
+import lib.server : handleLspMessage, Server, ServerSettings, setServerSettings, setupServer;
 import util.alloc.alloc : Alloc, FetchMemoryCb, withTempAlloc, withTempAllocImpure;
 import util.json : get, Json, jsonToCString;
 import util.jsonParse : mustParseJson;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
 import util.perf : Perf, PerfMeasure, PerfMeasureResult, PerfResult, perfResult, withNullPerf;
 import util.string : CString;
-import util.symbol : initSymbols;
-import util.uri : initUris, mustParseUri;
+import util.uri : mustParseUri;
 import util.util : cStringOfEnum;
 
 extern(C) void _start() {}
@@ -38,8 +37,6 @@ extern(C) @system pure void* memmove(return scope ubyte* dest, scope const ubyte
 	utilMemmove(dest, src, n);
 
 private ulong[1024 * 1024 * 1024 / ulong.sizeof] serverBuffer = void;
-// Currently only supports one server
-private Server serverStorage = void;
 
 // This just needs to be as big as the largest request sent to handleLspMessage.
 private ubyte[1024 * 1024] parameterBuffer = void;
@@ -50,20 +47,18 @@ extern(C) size_t getParameterBufferLength() => parameterBuffer.length;
 alias FetchMemoryCbImpure = ulong[] delegate(size_t sizeWords, size_t timesCalled) @system @nogc nothrow;
 
 @system extern(C) Server* newServer(scope immutable char* paramsCString) {
-	Server* server = &serverStorage;
 	FetchMemoryCbImpure fetchMemoryCb = (size_t sizeWords, size_t timesCalled) {
 		assert(timesCalled == 0);
 		return serverBuffer;
 	};
-	server.__ctor(cast(FetchMemoryCb) fetchMemoryCb);
-	initSymbols(server.metaAlloc);
-	initUris(server.metaAlloc);
 	CString paramsStr = CString(paramsCString);
-	withTempAlloc!void(server.metaAlloc, (ref Alloc alloc) {
+	Server* server = setupServer(cast(FetchMemoryCb) fetchMemoryCb);
+	setServerSettings(server, withTempAlloc!ServerSettings(server.metaAlloc, (ref Alloc alloc) {
 		Json params = mustParseJson(alloc, paramsStr);
-		setIncludeDir(server, mustParseUri(get!"includeDir"(params).as!string));
-		setCwd(*server, mustParseUri(get!"cwd"(params).as!string));
-	});
+		return ServerSettings(
+			includeDir: mustParseUri(get!"includeDir"(params).as!string),
+			cwd: mustParseUri(get!"cwd"(params).as!string));
+	}));
 	return server;
 }
 

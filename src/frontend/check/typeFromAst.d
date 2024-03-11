@@ -2,7 +2,7 @@ module frontend.check.typeFromAst;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCtx : addDiag, CheckCtx, eachImportAndReExport, markUsed;
+import frontend.check.checkCtx : addDiag, CheckCtx, CommonModule, eachImportAndReExport, markUsed;
 import frontend.check.instantiate :
 	InstantiateCtx,
 	instantiateSpec,
@@ -349,7 +349,25 @@ private Type typeFromMapAst(
 		delayStructInsts);
 }
 
-Opt!(SpecDecl*) tryFindSpec(ref CheckCtx ctx, NameAndRange name, in SpecsMap specsMap) =>
+Opt!(SpecDecl*) getSpecFromCommonModule(
+	ref CheckCtx ctx,
+	in SpecsMap specsMap,
+	Range diagRange,
+	Symbol name,
+	CommonModule expectedModule,
+) {
+	Opt!(SpecDecl*) spec = tryFindSpec(ctx, NameAndRange(diagRange.start, name), specsMap);
+	if (has(spec)) {
+		if (force(spec).moduleUri != ctx.commonUris[expectedModule]) {
+			addDiag(ctx, diagRange, Diag(Diag.AutoFunError(Diag.AutoFunError.SpecFromWrongModule())));
+			return none!(SpecDecl*);
+		} else
+			return spec;
+	} else
+		return none!(SpecDecl*);
+}
+
+private Opt!(SpecDecl*) tryFindSpec(ref CheckCtx ctx, NameAndRange name, in SpecsMap specsMap) =>
 	tryFindT!(SpecDecl*)(
 		ctx,
 		name.name,

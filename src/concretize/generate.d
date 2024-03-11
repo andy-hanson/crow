@@ -38,16 +38,17 @@ import util.col.array :
 	mapWithIndex,
 	mapZipWithIndex,
 	newArray,
+	newSmallArray,
 	only,
 	only2,
 	sizeEq,
 	sizeEq3,
 	small,
 	SmallArray;
-import util.col.map : values;
 import util.conv : safeToUint;
+import util.integralValues : IntegralValue, integralValuesRange;
 import util.memory : allocate;
-import util.opt : force, has, Opt, some;
+import util.opt : force, has, none, Opt, some;
 import util.sourceRange : UriAndRange;
 import util.symbol : Symbol, symbol;
 import util.util : ptrTrustMe;
@@ -77,9 +78,9 @@ ConcreteFunBody bodyForEnumOrFlagsMembers(ref ConcretizeCtx ctx, ConcreteType re
 	ConcreteType enumOrFlagsType =
 		only2(mustBeByVal(arrayElementType(returnType)).source.as!(ConcreteStructSource.Inst).typeArgs)[1];
 	Constant[] elements = map(ctx.alloc, enumOrFlagsMembers(enumOrFlagsType), (ref EnumOrFlagsMember member) =>
-		Constant(Constant.Record(newArray!Constant(ctx.alloc, [
+		Constant(Constant.Record(newSmallArray!Constant(ctx.alloc, [
 			constantSymbol(ctx, member.name),
-			Constant(Constant.Integral(member.value.value))]))));
+			Constant(IntegralValue(member.value.value))]))));
 	Constant arr = getConstantArray(ctx.alloc, ctx.allConstants, mustBeByVal(returnType), elements);
 	return ConcreteFunBody(ConcreteExpr(returnType, UriAndRange.empty, ConcreteExprKind(arr)));
 }
@@ -90,7 +91,7 @@ private SmallArray!EnumOrFlagsMember enumOrFlagsMembers(ConcreteType type) =>
 			assert(false),
 		(BuiltinType _) =>
 			assert(false),
-		(StructBody.Enum x) =>
+		(ref StructBody.Enum x) =>
 			x.members,
 		(StructBody.Extern) =>
 			assert(false),
@@ -98,7 +99,7 @@ private SmallArray!EnumOrFlagsMember enumOrFlagsMembers(ConcreteType type) =>
 			x.members,
 		(StructBody.Record) =>
 			assert(false),
-		(StructBody.Union) =>
+		(ref StructBody.Union) =>
 			assert(false));
 
 ConcreteExpr concretizeAutoFun(ref ConcretizeCtx ctx, ConcreteFun* fun, ref AutoFun a) {
@@ -199,7 +200,7 @@ T foldRange(T)(
 ConcreteExpr concretizeCompareUnion(
 	ref ConcretizeCtx ctx,
 	ConcreteFun* fun,
-	ConcreteType[] members,
+	SmallArray!ConcreteType members,
 	in Called[] memberCompares,
 ) {
 	assert(sizeEq(members, memberCompares));
@@ -242,7 +243,7 @@ ConcreteExpr concretizeEqualRecord(
 ConcreteExpr concretizeEqualUnion(
 	ref ConcretizeCtx ctx,
 	ConcreteFun* fun,
-	ConcreteType[] members,
+	SmallArray!ConcreteType members,
 	in Called[] memberEquals,
 ) {
 	UriAndRange range = fun.range;
@@ -268,7 +269,7 @@ ConcreteExpr matchUnionsSameKind(
 	UriAndRange range,
 	ConcreteExpr* p0,
 	ConcreteExpr* p1,
-	in ConcreteType[] members,
+	in SmallArray!ConcreteType members,
 	in Called[] calleds,
 ) {
 	assert(sizeEq(members, calleds));
@@ -300,7 +301,7 @@ ConcreteExpr concretizeRecordToJson(
 ConcreteExpr concretizeUnionToJson(
 	ref ConcretizeCtx ctx,
 	ConcreteFun* fun,
-	in ConcreteType[] memberTypes,
+	in SmallArray!ConcreteType memberTypes,
 	in Called[] memberToJson,
 ) {
 	UriAndRange range = fun.range;
@@ -322,7 +323,7 @@ ref StructBody body_(ConcreteType a) =>
 RecordField[] recordFieldsForNames(ConcreteType a) =>
 	body_(a).as!(StructBody.Record).fields;
 UnionMember[] unionMembersForNames(ConcreteType a) =>
-	body_(a).as!(StructBody.Union).members;
+	body_(a).as!(StructBody.Union*).members;
 
 ConcreteExpr concretizeAndCall(
 	ref ConcretizeCtx ctx,
@@ -346,19 +347,21 @@ ConcreteExpr makeMatchUnion(
 	ref ConcretizeCtx ctx,
 	ConcreteType returnType,
 	UriAndRange range,
-	in ConcreteType[] memberTypes,
+	in SmallArray!ConcreteType memberTypes,
 	ConcreteExpr union_,
 	in ConcreteExpr delegate(size_t, ConcreteExpr) @safe @nogc pure nothrow cb,
 ) =>
 	ConcreteExpr(returnType, range, ConcreteExprKind(allocate(ctx.alloc, ConcreteExprKind.MatchUnion(
 		union_,
+		integralValuesRange(memberTypes.length),
 		mapWithIndex!(ConcreteExprKind.MatchUnion.Case, ConcreteType)(
-			ctx.alloc, memberTypes, (size_t index, ref ConcreteType memberType) {
+			ctx.alloc, memberTypes, (size_t memberIndex, ref ConcreteType memberType) {
 				ConcreteLocal* local = allocate(ctx.alloc, ConcreteLocal(
 					ConcreteLocalSource(ConcreteLocalSource.Generated(ConcreteLocalSource.Generated.member)),
 					memberType));
-				return ConcreteExprKind.MatchUnion.Case(some(local), cb(index, makeLocalGet(range, local)));
-			})))));
+				return ConcreteExprKind.MatchUnion.Case(some(local), cb(memberIndex, makeLocalGet(range, local)));
+			}),
+		none!(ConcreteExpr*)))));
 
 ConcreteExpr makeNewJson(ref ConcretizeCtx ctx, UriAndRange range, in ConcreteExpr[] elements) =>
 	makeCallVariadic(ctx.alloc, ctx.newJsonFromPairsFunction, range, newArray(ctx.alloc, elements));
@@ -373,20 +376,22 @@ ConcreteExpr makeIf(ref Alloc alloc, UriAndRange range, ConcreteExpr cond, Concr
 	ConcreteExpr(then.type, range, ConcreteExprKind(allocate(alloc, ConcreteExprKind.If(cond, then, else_))));
 
 ConcreteExpr makeComparisonLess(ConcreteType comparisonType, UriAndRange range) =>
-	ConcreteExpr(comparisonType, range, ConcreteExprKind(Constant(Constant.Integral(0))));
+	ConcreteExpr(comparisonType, range, ConcreteExprKind(Constant(IntegralValue(0))));
 ConcreteExpr makeComparisonEqual(ConcreteType comparisonType, UriAndRange range) =>
-	ConcreteExpr(comparisonType, range, ConcreteExprKind(Constant(Constant.Integral(1))));
+	ConcreteExpr(comparisonType, range, ConcreteExprKind(Constant(IntegralValue(1))));
 ConcreteExpr makeComparisonGreater(ConcreteType comparisonType, UriAndRange range) =>
-	ConcreteExpr(comparisonType, range, ConcreteExprKind(Constant(Constant.Integral(2))));
+	ConcreteExpr(comparisonType, range, ConcreteExprKind(Constant(IntegralValue(2))));
 
 ConcreteExpr makeCompareOr(ref Alloc alloc, UriAndRange range, ConcreteExpr a, ConcreteExpr b) {
 	ConcreteType comparison = a.type;
-	assert(mustBeByVal(comparison).body_.as!(ConcreteStructBody.Enum).values.as!size_t == 3);
-	return ConcreteExpr(comparison, range, ConcreteExprKind(allocate(alloc,
-		ConcreteExprKind.MatchEnum(a, newArray(alloc, [
-			ConcreteExpr(comparison, range, ConcreteExprKind(Constant(Constant.Integral(0)))),
+	return ConcreteExpr(comparison, range, ConcreteExprKind(allocate(alloc, ConcreteExprKind.MatchEnumOrIntegral(
+		a,
+		integralValuesRange(3),
+		newArray(alloc, [
+			ConcreteExpr(comparison, range, ConcreteExprKind(Constant(IntegralValue(0)))),
 			b,
-			ConcreteExpr(comparison, range, ConcreteExprKind(Constant(Constant.Integral(2))))])))));
+			ConcreteExpr(comparison, range, ConcreteExprKind(Constant(IntegralValue(2))))]),
+		none!(ConcreteExpr*)))));
 }
 
 ConcreteExpr makeCallVariadic(ref Alloc alloc, ConcreteFun* called, UriAndRange range, ConcreteExpr[] args) =>
@@ -414,7 +419,7 @@ ConcreteExpr makeUnionAs(ConcreteType type, UriAndRange range, ConcreteExpr* arg
 	ConcreteExpr(type, range, ConcreteExprKind(ConcreteExprKind.UnionAs(arg, safeToUint(memberIndex))));
 
 ConcreteExpr makeCall(ref Alloc alloc, ConcreteFun* fun, UriAndRange range, in ConcreteExpr[] args) =>
-	ConcreteExpr(fun.returnType, range, ConcreteExprKind(ConcreteExprKind.Call(fun, newArray(alloc, args))));
+	ConcreteExpr(fun.returnType, range, ConcreteExprKind(ConcreteExprKind.Call(fun, newSmallArray(alloc, args))));
 
 ConcreteExpr makeAnd(ref ConcretizeCtx ctx, UriAndRange range, ConcreteExpr a, ConcreteExpr b) =>
 	makeCall(ctx.alloc, ctx.andFunction, range, [a, b]);

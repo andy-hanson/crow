@@ -3,7 +3,6 @@ module test.testSourceRange;
 @safe @nogc pure nothrow:
 
 import test.testUtil : Test;
-import util.conv : safeToUint;
 import util.sourceRange :
 	LineAndCharacter, LineAndColumn, LineAndColumnGetter, lineAndColumnGetterForText, Pos, PosKind;
 import util.string : CString, cString, MutCString, startsWith;
@@ -87,7 +86,7 @@ Pos assertIndexOf(in CString a, in string substring, Pos expected) {
 	while (true) {
 		assert(*cur != '\0');
 		if (startsWith(cur, substring)) {
-			assert(safeToUint(cur - a) == expected);
+			assert(cur - a == expected);
 			return expected;
 		}
 		cur++;

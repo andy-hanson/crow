@@ -29,8 +29,9 @@ immutable struct ParseDiag {
 			indent,
 			lambdaArrow,
 			less,
-			literalIntOrNat,
+			literalIntegral,
 			literalNat,
+			matchCase,
 			name,
 			namedArgument,
 			nameOrOperator,
@@ -59,6 +60,7 @@ immutable struct ParseDiag {
 	immutable struct InvalidStringEscape {
 		string actual;
 	}
+	immutable struct MatchCaseInterpolated {}
 	immutable struct MissingExpression {}
 	immutable struct NeedsBlockCtx {
 		enum Kind {
@@ -101,6 +103,7 @@ immutable struct ParseDiag {
 		IndentTooMuch,
 		IndentWrongCharacter,
 		InvalidStringEscape,
+		MatchCaseInterpolated,
 		MissingExpression,
 		NeedsBlockCtx,
 		ReadFileDiag,

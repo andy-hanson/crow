@@ -7,13 +7,14 @@ import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.col.array : arrayOfSingle, exists, isEmpty, newSmallArray, sizeEq, SmallArray;
 import util.conv : safeToUint;
+import util.integralValues : IntegralValue;
 import util.opt : force, has, none, Opt, optIf, optOrDefault, some;
 import util.sourceRange : combineRanges, Pos, Range, rangeOfStartAndLength;
 import util.string : SmallString;
 import util.symbol : Symbol, symbol, symbolSize;
 import util.union_ : TaggedUnion, Union;
 import util.uri : Path, pathLength, RelPath, relPathLength;
-import util.util : stringOfEnum;
+import util.util : roundUp, stringOfEnum;
 
 immutable struct NameAndRange {
 	@safe @nogc pure nothrow:
@@ -259,12 +260,12 @@ immutable struct AssignmentCallAst {
 	@safe @nogc pure nothrow:
 
 	NameAndRange funName;
-	ExprAst[2] leftAndRight;
+	ExprAst[2]* leftAndRight;
 
-	ref ExprAst left() scope return =>
-		leftAndRight[0];
-	ref ExprAst right() scope return =>
-		leftAndRight[1];
+	ref ExprAst left() return scope =>
+		(*leftAndRight)[0];
+	ref ExprAst right() return scope =>
+		(*leftAndRight)[1];
 
 	Range keywordRange() =>
 		rangeOfStartAndLength(funName.range.end, ":=".length);
@@ -287,27 +288,11 @@ immutable struct CallAst {
 		subscript, // a[b]
 		suffixBang, // 'x!'
 	}
-	// For some reason we have to break this up to get the struct size lower
-	//immutable NameAndRange funName;
-	Symbol funNameName;
-	Pos funNameStart;
 	Style style;
+	NameAndRange funName;
+	SmallArray!ExprAst args;
 	Opt!(TypeAst*) typeArg;
-	SmallArray!ExprAst args_;
 
-	ExprAst[] args() return scope =>
-		args_;
-
-	this(Style s, NameAndRange f, ExprAst[] a, Opt!(TypeAst*) t = none!(TypeAst*)) {
-		funNameName = f.name;
-		funNameStart = f.start;
-		style = s;
-		typeArg = t;
-		args_ = a;
-	}
-
-	NameAndRange funName() scope =>
-		NameAndRange(funNameStart, funNameName);
 	Range nameRange(in ExprAst* ast) scope =>
 		style == Style.comma ? ast.range : funName.range;
 }
@@ -475,19 +460,15 @@ immutable struct LiteralFloatAst {
 	bool overflow;
 }
 
-immutable struct LiteralIntAst {
-	long value;
+immutable struct LiteralIntegral {
+	bool isSigned;
 	bool overflow;
+	IntegralValue value;
 }
 
-immutable struct LiteralNatAst {
-	ulong value;
-	bool overflow;
-}
-
-immutable struct LiteralNatAndRange {
+immutable struct LiteralIntegralAndRange {
 	Range range;
-	LiteralNatAst nat;
+	LiteralIntegral literal;
 }
 
 immutable struct LiteralStringAst {
@@ -544,28 +525,56 @@ immutable struct LoopWhileAst {
 immutable struct MatchAst {
 	@safe @nogc pure nothrow:
 
-	immutable struct CaseAst {
-		@safe @nogc pure nothrow:
+	ExprAst* matched;
+	SmallArray!CaseAst cases;
+	Opt!(MatchElseAst*) else_;
+}
 
-		Pos keywordPos;
-		NameAndRange memberName;
+Range keywordRange(in MatchAst ast, in ExprAst source) =>
+	rangeOfStartAndLength(source.range.start, "match".length);
+
+immutable struct CaseAst {
+	@safe @nogc pure nothrow:
+
+	Pos keywordPos;
+	CaseMemberAst member;
+	ExprAst then;
+
+	Range keywordAndMemberNameRange() scope =>
+		Range(keywordPos, member.nameRange.end);
+}
+
+immutable struct CaseMemberAst {
+	@safe @nogc pure nothrow:
+	immutable struct Bogus {
+		Range range;
+	}
+	immutable struct Name {
+		NameAndRange name;
 		Opt!DestructureAst destructure;
-		ExprAst then;
-
-		Range memberNameRange() scope =>
-			memberName.range;
-
-		Range keywordAndMemberNameRange() scope =>
-			Range(keywordPos, memberNameRange.end);
+	}
+	immutable struct String {
+		Range range;
+		string value;
 	}
 
-	ExprAst matched;
-	CaseAst[] cases;
+	mixin Union!(Name, LiteralIntegralAndRange, String, Bogus);
+	Range nameRange() scope =>
+		matchIn!Range(
+			(in Name x) => x.name.range,
+			(in LiteralIntegralAndRange x) => x.range,
+			(in String x) => x.range,
+			(in CaseMemberAst.Bogus x) => x.range);
+}
+static assert(CaseMemberAst.sizeof == roundUp(CaseMemberAst.Name.sizeof, 8) + ulong.sizeof);
 
-	Range keywordRange(in ExprAst source) scope {
-		assert(source.kind.as!(MatchAst*) == &this);
-		return rangeOfStartAndLength(source.range.start, "match".length);
-	}
+immutable struct MatchElseAst {
+	@safe @nogc pure nothrow:
+	Pos keywordPos;
+	ExprAst expr;
+
+	Range keywordRange() =>
+		rangeOfStartAndLength(keywordPos, "else".length);
 }
 
 immutable struct ParenthesizedAst {
@@ -692,7 +701,7 @@ immutable struct ExprAstKind {
 		ArrowAccessAst,
 		AssertOrForbidAst*,
 		AssignmentAst*,
-		AssignmentCallAst*,
+		AssignmentCallAst,
 		BogusAst,
 		CallAst,
 		CallNamedAst,
@@ -706,15 +715,14 @@ immutable struct ExprAstKind {
 		LambdaAst*,
 		LetAst*,
 		LiteralFloatAst,
-		LiteralIntAst,
-		LiteralNatAst,
+		LiteralIntegral,
 		LiteralStringAst,
 		LoopAst*,
 		LoopBreakAst*,
 		LoopContinueAst,
 		LoopUntilAst*,
 		LoopWhileAst*,
-		MatchAst*,
+		MatchAst,
 		ParenthesizedAst*,
 		PtrAst*,
 		SeqAst*,
@@ -727,7 +735,7 @@ immutable struct ExprAstKind {
 		UnlessAst*,
 		WithAst*);
 }
-static assert(ExprAstKind.sizeof <= 5 * ulong.sizeof);
+static assert(ExprAstKind.sizeof == CallAst.sizeof + ulong.sizeof);
 
 immutable struct ExprAst {
 	Range range;
@@ -856,15 +864,6 @@ enum ModifierKeyword : ubyte {
 	unsafe,
 }
 
-immutable struct LiteralIntOrNat {
-	Range range;
-	LiteralIntOrNatKind kind;
-}
-
-immutable struct LiteralIntOrNatKind {
-	mixin Union!(LiteralIntAst, LiteralNatAst);
-}
-
 immutable struct StructBodyAst {
 	immutable struct Builtin {}
 	immutable struct Enum {
@@ -872,8 +871,8 @@ immutable struct StructBodyAst {
 		SmallArray!EnumOrFlagsMemberAst members;
 	}
 	immutable struct Extern {
-		Opt!(LiteralNatAndRange*) size;
-		Opt!(LiteralNatAndRange*) alignment;
+		Opt!(LiteralIntegralAndRange*) size;
+		Opt!(LiteralIntegralAndRange*) alignment;
 	}
 	immutable struct Flags {
 		Opt!ParamsAst params;
@@ -897,7 +896,7 @@ immutable struct EnumOrFlagsMemberAst {
 
 	Range range;
 	Symbol name;
-	Opt!LiteralIntOrNat value;
+	Opt!LiteralIntegralAndRange value;
 
 	NameAndRange nameAndRange() scope =>
 		NameAndRange(range.start, name);

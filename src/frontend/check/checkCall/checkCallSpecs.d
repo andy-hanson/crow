@@ -30,6 +30,7 @@ import model.model :
 	SpecDecl,
 	SpecDeclSig,
 	SpecInst,
+	Specs,
 	StructBody,
 	StructInst,
 	Type,
@@ -37,7 +38,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.array : every, exists, first, firstZipPointerFirst, only, small;
-import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, finish;
+import util.col.arrayBuilder : add, ArrayBuilder, arrayBuilderIsEmpty, finish;
 import util.col.mutMaxArr : asTemporaryArray, isFull, mustPop, MutMaxArr, mutMaxArr, only, toArray;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optIf, optOr, some;
@@ -68,22 +69,33 @@ Called checkCallSpecs(ref ExprCtx ctx, in Range diagRange, ref const Candidate c
 			checkCallSpecsWithRealTrace(ctx, diagRange, candidate));
 }
 
-Called checkSpecSingleSigIgnoreParents(ref CheckCtx ctx, in FunsMap funsMap, FunDecl* decl, SpecInst* spec) {
-	FunsInScope funsInScope = FunsInScope(decl.specs, funsMap, ctx.importsAndReExports);
+Called checkSpecSingleSigIgnoreParents(ref CheckCtx ctx, in FunsMap funsMap, FunDecl* decl, SpecInst* spec) =>
+	checkSpecSingleSigIgnoreParents2(
+		ctx, funsMap, decl.nameRange.range, TypeContainer(decl), decl.specs, decl.flags, spec);
+Called checkSpecSingleSigIgnoreParents2(
+	ref CheckCtx ctx,
+	in FunsMap funsMap,
+	Range diagRange,
+	TypeContainer caller,
+	Specs callerSpecs,
+	FunFlags callerFlags,
+	SpecInst* spec,
+) {
+	FunsInScope funsInScope = FunsInScope(callerSpecs, funsMap, ctx.importsAndReExports);
 	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.instantiateCtx, castNonScope_ref(funsInScope));
-	RealTrace trace = RealTrace(&ctx, TypeContainer(decl), decl.nameRange.range);
+	RealTrace trace = RealTrace(&ctx, caller, diagRange);
 	SpecImpls specImpls = mutMaxArr!(maxSpecImpls, Called);
-	Opt!(Diag.SpecNoMatch) diag = checkSpecImpl!(RealTrace*)(specImpls, checkSpecsCtx, decl, ptrTrustMe(trace), *spec);
+	Opt!(Diag.SpecNoMatch) diag = checkSpecImplInner!(RealTrace*)(specImpls, checkSpecsCtx, ptrTrustMe(trace), *spec);
 	assert(spec.sigTypes.length == 1);
 	if (has(diag)) {
-		addDiag(ctx, decl.nameRange.range, Diag(force(diag)));
+		addDiag(ctx, diagRange, Diag(force(diag)));
 		CalledSpecSig sig = CalledSpecSig(spec, 0);
 		return Called(allocate(ctx.alloc, Called.Bogus(CalledDecl(sig), sig.returnType, sig.paramTypes)));
 	} else {
 		Called res = specImpls[$ - 1];
 		LocalsInfo locals;
-		checkCalled(ctx, decl.nameRange.range, res, decl.flags, locals, ArgsKind.nonEmpty, () =>
-			allowsUnsafe(decl.flags.safety));
+		checkCalled(ctx, diagRange, res, callerFlags, locals, ArgsKind.nonEmpty, () =>
+			allowsUnsafe(callerFlags.safety));
 		return res;
 	}
 }
@@ -293,7 +305,7 @@ void addMultipleMatch(ref CheckSpecsCtx ctx, scope RealTrace* trace, ref ArrayBu
 	add(ctx.alloc, builder, match);
 }
 bool hasMultipleMatches(scope RealTrace*, in ArrayBuilder!Called builder) =>
-	!arrBuilderIsEmpty(builder);
+	!arrayBuilderIsEmpty(builder);
 Called[] finishMultipleMatches(ref CheckSpecsCtx ctx, scope RealTrace*, ref ArrayBuilder!Called builder) =>
 	finish(ctx.alloc, builder);
 
@@ -332,7 +344,7 @@ Trace.Result findSpecSigImplementation(Trace)(
 			: specNoMatch(trace, Diag.SpecNoMatch.Reason(Diag.SpecNoMatch.Reason.SpecImplNotFound(sigDecl, sigType))));
 }
 
-bool checkBuiltinSpec(ref CheckSpecsCtx ctx, FunDecl* called, BuiltinSpec kind, Type typeArg) {
+bool checkBuiltinSpec(ref CheckSpecsCtx ctx, BuiltinSpec kind, Type typeArg) {
 	final switch (kind) {
 		case BuiltinSpec.data:
 			return isPurityAlwaysCompatibleConsideringSpecs(ctx.funsInScope.outermostFunSpecs, typeArg, Purity.data);
@@ -348,7 +360,7 @@ bool checkBuiltinSpec(ref CheckSpecsCtx ctx, FunDecl* called, BuiltinSpec kind, 
 public bool isEnumOrFlags(in SpecInst*[] outermostFunSpecs, in Type x) =>
 	isEnum(outermostFunSpecs, x) || isFlags(outermostFunSpecs, x);
 public bool isEnum(in SpecInst*[] outermostFunSpecs, in Type x) =>
-	(x.isA!(StructInst*) && x.as!(StructInst*).decl.body_.isA!(StructBody.Enum)) ||
+	(x.isA!(StructInst*) && x.as!(StructInst*).decl.body_.isA!(StructBody.Enum*)) ||
 	isBuiltinSpecInScope(outermostFunSpecs, BuiltinSpec.enum_, x);
 public bool isFlags(in SpecInst*[] outermostFunSpecs, in Type x) =>
 	(x.isA!(StructInst*) && x.as!(StructInst*).decl.body_.isA!(StructBody.Flags)) ||
@@ -407,25 +419,34 @@ Opt!(Trace.NoMatch) checkSpecImpl(Trace)(
 	FunDecl* called,
 	scope Trace outerTrace,
 	in SpecInst specInstInstantiated,
+) =>
+	withTrace!(Opt!(Trace.NoMatch))(
+		outerTrace, FunDeclAndTypeArgs(called, specInstInstantiated.typeArgs), (scope Trace trace) =>
+			checkSpecImplInner(res, ctx, trace, specInstInstantiated));
+
+Opt!(Trace.NoMatch) checkSpecImplInner(Trace)(
+	ref SpecImpls res,
+	ref CheckSpecsCtx ctx,
+	scope Trace trace,
+	in SpecInst specInstInstantiated,
 ) {
 	SpecDecl* decl = specInstInstantiated.decl;
 	TypeArgs typeArgs = specInstInstantiated.typeArgs;
-	return withTrace!(Opt!(Trace.NoMatch))(outerTrace, FunDeclAndTypeArgs(called, typeArgs), (scope Trace trace) =>
-		optOr!(Trace.NoMatch)(
-			optIf(has(decl.builtin) && !checkBuiltinSpec(ctx, called, force(decl.builtin), only(typeArgs)),
-				() => specNoMatch(trace, Diag.SpecNoMatch.Reason(
-					Diag.SpecNoMatch.Reason.BuiltinNotSatisfied(force(decl.builtin), only(typeArgs))))),
-			() => first!(Trace.NoMatch, immutable SpecInst*)(
-				specInstInstantiated.parents, (SpecInst* parent) =>
-					checkSpecImpl!Trace(res, ctx, called, trace, *parent)),
-			() => firstZipPointerFirst!(Trace.NoMatch, SpecDeclSig, ReturnAndParamTypes)(
-				decl.sigs, specInstInstantiated.sigTypes,
-				(SpecDeclSig* sigDecl, ReturnAndParamTypes sigType) =>
-					findSpecSigImplementation(ctx, sigDecl, sigType, trace).match!(Opt!(Trace.NoMatch))(
-						(Called x) {
-							res ~= x;
-							return none!(Trace.NoMatch);
-						},
-						(Trace.NoMatch x) =>
-							some(x)))));
+	return optOr!(Trace.NoMatch)(
+		optIf(has(decl.builtin) && !checkBuiltinSpec(ctx, force(decl.builtin), only(typeArgs)),
+			() => specNoMatch(trace, Diag.SpecNoMatch.Reason(
+				Diag.SpecNoMatch.Reason.BuiltinNotSatisfied(force(decl.builtin), only(typeArgs))))),
+		() => first!(Trace.NoMatch, immutable SpecInst*)(
+			specInstInstantiated.parents, (SpecInst* parent) =>
+				checkSpecImplInner!Trace(res, ctx, trace, *parent)),
+		() => firstZipPointerFirst!(Trace.NoMatch, SpecDeclSig, ReturnAndParamTypes)(
+			decl.sigs, specInstInstantiated.sigTypes,
+			(SpecDeclSig* sigDecl, ReturnAndParamTypes sigType) =>
+				findSpecSigImplementation(ctx, sigDecl, sigType, trace).match!(Opt!(Trace.NoMatch))(
+					(Called x) {
+						res ~= x;
+						return none!(Trace.NoMatch);
+					},
+					(Trace.NoMatch x) =>
+						some(x))));
 }

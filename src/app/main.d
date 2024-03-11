@@ -78,10 +78,11 @@ import lib.server :
 	printTokens,
 	Programs,
 	Server,
-	setCwd,
+	ServerSettings,
 	setFile,
-	setIncludeDir,
+	setServerSettings,
 	setShowOptions,
+	setupServer,
 	showDiagnostics,
 	version_;
 import model.diag : ReadFileDiag;
@@ -101,9 +102,9 @@ import util.perf : disablePerf, isEnabled, Perf, PerfMeasure, withMeasure, withN
 import util.perfReport : perfReport;
 import util.sourceRange : UriLineAndColumn;
 import util.string : CString, mustStripPrefix, MutCString;
-import util.symbol : Extension, initSymbols, symbol;
+import util.symbol : Extension, symbol;
 import util.unicode : FileContent;
-import util.uri : baseName, cStringOfUriPreferRelative, FilePath, initUris, Uri, parentOrEmpty, rootFilePath, toUri;
+import util.uri : baseName, cStringOfUriPreferRelative, FilePath, Uri, parentOrEmpty, rootFilePath, toUri;
 import util.util : debugLog;
 import util.writer : debugLogWithWriter, makeStringWithWriter, Writer;
 import versionInfo : getOS, versionInfoForInterpret, versionInfoForJIT;
@@ -112,23 +113,22 @@ import versionInfo : getOS, versionInfoForInterpret, versionInfoForJIT;
 	ulong function() @safe @nogc pure nothrow getTimeNanosPure =
 		cast(ulong function() @safe @nogc pure nothrow) &getTimeNanos;
 	scope Perf perf = Perf(() => getTimeNanosPure());
-	Server server = Server((size_t sizeWords, size_t _) =>
+	Server* server = setupServer((size_t sizeWords, size_t _) =>
 		(cast(word*) pureMalloc(sizeWords * word.sizeof))[0 .. sizeWords]);
-	initSymbols(server.metaAlloc);
-	initUris(server.metaAlloc);
 	FilePath cwd = getCwd();
 	FilePath thisExecutable = getPathToThisExecutable();
-	setIncludeDir(&server, toUri(getCrowIncludeDir(thisExecutable)));
-	setCwd(server, toUri(cwd));
-	setShowOptions(server, ShowOptions(true));
+	setServerSettings(server, ServerSettings(
+		includeDir: toUri(getCrowIncludeDir(thisExecutable)),
+		cwd: toUri(cwd),
+		showOptions: ShowOptions(color: true)));
 	Alloc* alloc = newAlloc(AllocKind.main, server.metaAlloc);
 	Command command = parseCommand(*alloc, cwd, getOS(), cast(CString[]) argv[1 .. argc]);
 	if (!command.options.perf)
 		disablePerf(perf);
-	int res = go(perf, *alloc, server, cwd, thisExecutable, command.kind).value;
+	int res = go(perf, *alloc, *server, cwd, thisExecutable, command.kind).value;
 	if (isEnabled(perf)) {
 		withTempAllocImpure!void(server.metaAlloc, (ref Alloc alloc) @trusted {
-			Json report = perfReport(alloc, perf, *server.metaAlloc, perfStats(alloc, server));
+			Json report = perfReport(alloc, perf, *server.metaAlloc, perfStats(alloc, *server));
 			print(jsonToString(alloc, report));
 		});
 	}
@@ -389,7 +389,7 @@ FilePath getCrowIncludeDir(FilePath thisExecutable) {
 }
 
 CString[] getAllArgs(ref Alloc alloc, in Server server, in CommandKind.Run run) =>
-	prepend(alloc, cStringOfUriPreferRelative(alloc, server.urisInfo, run.mainUri), run.programArgs);
+	prepend!CString(alloc, cStringOfUriPreferRelative(alloc, server.urisInfo, run.mainUri), run.programArgs);
 
 ExitCode doPrint(scope ref Perf perf, ref Alloc alloc, ref Server server, in CommandKind.Print command) {
 	Uri mainUri = command.mainUri;

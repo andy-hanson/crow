@@ -4,9 +4,8 @@ module app.parseCommand;
 
 import app.command : BuildOptions, BuildOut, Command, CommandKind, CommandOptions, RunOptions;
 import frontend.lang : CCompileOptions, JitOptions, OptimizationLevel;
-import frontend.parse.lexToken : takeNat;
+import frontend.parse.lexToken : NatAndOverflow, takeNat;
 import lib.server : PrintKind;
-import model.ast : LiteralNatAst;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.array : copyArray, findIndex, isEmpty, map, only;
@@ -360,7 +359,7 @@ Opt!uint convertFrom1Indexed(in Opt!uint a) =>
 
 Opt!uint tryTakeNat(ref MutCString ptr) {
 	if (isDecimalDigit(*ptr)) {
-		LiteralNatAst res = takeNat(ptr, 10);
+		NatAndOverflow res = takeNat(ptr, 10);
 		return !res.overflow && isUint(res.value)
 			? some(safeToUint(res.value))
 			: none!uint;

@@ -96,14 +96,11 @@ close-client void(client SOCKET) summon, unsafe
 		event mut epoll_event = ()
 		timeout c-int = 0
 		num-events = state.epoll-fd epoll_wait &event, 1, timeout
-		if num-events < 0
-			err print "error in epoll_wait"
-			todo
-		elif num-events == 0
+		match num-events
+		as 0
 			<- 100.msec delay
 			state tcp-server-loop-linux
-		else
-			assert num-events == 1
+		as 1
 			event-flags = event events
 			fd int32 = event.event_data to
 			if event-flags bits-intersect (EPOLLERR | EPOLLHUP) ||
@@ -117,6 +114,10 @@ close-client void(client SOCKET) summon, unsafe
 			else
 				fd handle-client-linux state.handler.on-received-chunk
 			state tcp-server-loop-linux
+		else
+			assert num-events < 0
+			err print "error in epoll_wait"
+			todo
 
 -accept-clients void(
 	listen-fd SOCKET,

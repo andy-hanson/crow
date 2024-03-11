@@ -4,7 +4,7 @@ module frontend.parse.lexWhitespace;
 
 import model.parseDiag : ParseDiag;
 import util.col.array : isEmpty;
-import util.conv : safeIntFromUint, safeToUint;
+import util.conv : safeIntFromUint;
 import util.sourceRange : Range;
 import util.string :
 	CString,
@@ -256,7 +256,7 @@ uint takeIndentAmountAfterNewline(ref MutCString ptr, IndentKind indentKind, in 
 				while (*ptr == ' ') ptr++;
 				addDiag(startSpaces, ParseDiag(ParseDiag.IndentWrongCharacter(true)));
 			}
-			return safeToUint(ptr - begin);
+			return ptr - begin;
 		case IndentKind.spaces2:
 			return takeIndentAmountAfterNewlineSpaces(ptr, 2, addDiag);
 		case IndentKind.spaces4:
@@ -272,7 +272,7 @@ uint takeIndentAmountAfterNewlineSpaces(ref MutCString ptr, uint nSpacesPerInden
 		while (*ptr == '\t') ptr++;
 		addDiag(startTabs, ParseDiag(ParseDiag.IndentWrongCharacter(false)));
 	}
-	uint nSpaces = safeToUint(ptr - begin);
+	uint nSpaces = ptr - begin;
 	uint res = nSpaces / nSpacesPerIndent;
 	if (res * nSpacesPerIndent != nSpaces)
 		addDiag(begin, ParseDiag(ParseDiag.IndentNotDivisible(nSpaces, nSpacesPerIndent)));

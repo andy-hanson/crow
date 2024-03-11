@@ -286,6 +286,8 @@ immutable(gcc_jit_type*) getOnePrimitiveType(ref gcc_jit_context ctx, PrimitiveT
 			return gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_BOOL);
 		case PrimitiveType.char8:
 			return gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_CHAR);
+		case PrimitiveType.char32:
+			return gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_UNSIGNED_INT);
 		case PrimitiveType.float32:
 			return gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_FLOAT);
 		case PrimitiveType.float64:

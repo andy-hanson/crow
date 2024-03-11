@@ -63,6 +63,18 @@ struct MutHashTable(T, K, alias getKey) {
 	}
 }
 
+@trusted HashTable!(T*, K, getKey) makeHashTable(T, K, alias getKey)(
+	ref Alloc alloc,
+	T[] values,
+	in void delegate(T*) @safe @nogc pure nothrow cbDuplicate,
+) {
+	MutHashTable!(T*, K, getKey) res;
+	foreach (ref T x; values)
+		if (!mayAdd(alloc, res, &x))
+			cbDuplicate(&x);
+	return cast(immutable) res;
+}
+
 Opt!(T*) getPointer(T, K, alias getKey)(ref HashTable!(T, K, getKey) a, in K key) {
 	Opt!size_t i = getIndex(a, key);
 	return has(i) ? some(&force(a.values[force(i)])) : none!(T*);
@@ -85,7 +97,7 @@ struct ValueAndDidAdd(T) {
 	bool didAdd;
 }
 
-ValueAndDidAdd!(T) getOrAddAndDidAdd(T, K, alias getKey)(
+ValueAndDidAdd!T getOrAddAndDidAdd(T, K, alias getKey)(
 	ref Alloc alloc,
 	ref MutHashTable!(T, K, getKey) a,
 	in K key,

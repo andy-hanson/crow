@@ -95,46 +95,22 @@ to json(a index-set)
 	match a
 	as json-null
 		true
-	as json-bool _
-		false
-	as json-number _
-		false
-	as json-string _
-		false
-	as json-list _
-		false
-	as json-object _
+	else
 		false
 
 # If `a` is a boolean, returns that, else returns an empty option.
 +as-bool bool?(a json) bare
 	match a
-	as json-null
-		()
 	as json-bool b
 		b,
-	as json-number _
-		()
-	as json-string _
-		()
-	as json-list _
-		()
-	as json-object _
+	else
 		()
 # If `a` is a number, returns that, else returns an empty option.
 +as-number float64?(a json) bare
 	match a
-	as json-null
-		()
-	as json-bool _
-		()
 	as json-number n
 		n,
-	as json-string _
-		()
-	as json-list _
-		()
-	as json-object _
+	else
 		()
 ###
 If `a` is a string, returns that, else returns an empty option.
@@ -143,17 +119,9 @@ This does not render as JSON; `to::string` does that.
 ###
 +as-string string?(a json) bare
 	match a
-	as json-null
-		()
-	as json-bool _
-		()
-	as json-number _
-		()
 	as json-string s
 		s,
-	as json-list _
-		()
-	as json-object _
+	else
 		()
 +as-symbol symbol?(a json)
 	if x ?= a.as-string
@@ -161,33 +129,17 @@ This does not render as JSON; `to::string` does that.
 # If `a` is a list, returns that, else returns an empty option.
 +as-list json[]?(a json) bare
 	match a
-	as json-null
-		()
-	as json-bool _
-		()
-	as json-number _
-		()
-	as json-string _
-		()
 	as json-list x
 		x,
-	as json-object _
+	else
 		()
 # If `a` is an object, returns that, else returns an empty option.
 +as-object json[symbol]?(a json) bare
 	match a
-	as json-null
-		()
-	as json-bool _
-		()
-	as json-number _
-		()
-	as json-string _
-		()
-	as json-list _
-		()
 	as json-object o
 		o,
+	else
+		()
 
 +as-bool-allow-null bool?(a json)
 	if a is-null

@@ -25,7 +25,6 @@ import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.array : SmallArray;
 import util.col.arrayBuilder : add, ArrayBuilder, smallFinish;
-import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, Range;
 import util.string : CString, MutCString;
@@ -77,7 +76,7 @@ Pos curPos(in Lexer lexer) =>
 	lexer.nextTokenPos;
 
 private Pos posOf(in Lexer lexer, in CString ptr) =>
-	safeToUint(ptr - lexer.sourceBegin);
+	ptr - lexer.sourceBegin;
 
 void addDiag(ref Lexer lexer, in Range range, ParseDiag diag) {
 	add(lexer.alloc, lexer.diagnosticsBuilder, ParseDiagnostic(range, diag));
@@ -283,7 +282,7 @@ bool lookaheadOpenBracket(in Lexer lexer) =>
 
 // Returns position of 'as'
 Opt!Pos tryTakeNewlineThenAs(ref Lexer lexer) {
-	if (getPeekToken(lexer) == Token.newlineSameIndent && .lookaheadAs(lexer.ptr)) {
+	if (getPeekToken(lexer) == Token.newlineSameIndent && lookaheadAs(lexer.ptr)) {
 		mustTakeToken(lexer, Token.newlineSameIndent);
 		Pos asPos = curPos(lexer);
 		mustTakeToken(lexer, Token.as);
@@ -292,13 +291,15 @@ Opt!Pos tryTakeNewlineThenAs(ref Lexer lexer) {
 		return none!Pos;
 }
 
-bool tryTakeNewlineThenElse(ref Lexer lexer) {
+// Returns position of 'else'
+Opt!Pos tryTakeNewlineThenElse(ref Lexer lexer) {
 	if (getPeekToken(lexer) == Token.newlineSameIndent && lookaheadElse(lexer.ptr)) {
 		mustTakeToken(lexer, Token.newlineSameIndent);
+		Pos elsePos = curPos(lexer);
 		mustTakeToken(lexer, Token.else_);
-		return true;
+		return some(elsePos);
 	} else
-		return false;
+		return none!Pos;
 }
 
 Opt!ElifOrElseKeyword tryTakeNewlineThenElifOrElse(ref Lexer lexer) {

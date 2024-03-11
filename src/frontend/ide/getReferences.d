@@ -20,6 +20,8 @@ import model.ast :
 	AssignmentAst,
 	AssignmentCallAst,
 	CallAst,
+	CaseAst,
+	CaseMemberAst,
 	DestructureAst,
 	ExprAst,
 	ExprAstKind,
@@ -28,6 +30,7 @@ import model.ast :
 	ImportOrExportAst,
 	LambdaAst,
 	LetAst,
+	LiteralIntegralAndRange,
 	MatchAst,
 	ModifierAst,
 	ModifierKeyword,
@@ -79,6 +82,8 @@ import model.model :
 	LoopUntilExpr,
 	LoopWhileExpr,
 	MatchEnumExpr,
+	MatchIntegralExpr,
+	MatchStringLikeExpr,
 	MatchUnionExpr,
 	Module,
 	NameReferents,
@@ -451,15 +456,20 @@ void eachTypeDirectlyInExpr(ExprRef a, in TypeCb cb) {
 		(in LoopUntilExpr _) {},
 		(in LoopWhileExpr _) {},
 		(in MatchEnumExpr _) {},
+		(in MatchIntegralExpr _) {},
+		(in MatchStringLikeExpr _) {},
 		(in MatchUnionExpr x) {
-			zip(
-				x.cases,
-				astKind.as!(MatchAst*).cases,
-				(ref MatchUnionExpr.Case case_, ref MatchAst.CaseAst caseAst) {
-					if (has(caseAst.destructure)) {
-						eachTypeInDestructure(case_.destructure, force(caseAst.destructure), cb);
-					}
-				});
+			zip(x.cases, astKind.as!MatchAst.cases, (ref MatchUnionExpr.Case case_, ref CaseAst caseAst) {
+				caseAst.member.matchIn!void(
+					(in CaseMemberAst.Name x) {
+						if (has(x.destructure)) {
+							eachTypeInDestructure(case_.destructure, force(x.destructure), cb);
+						}
+					},
+					(in LiteralIntegralAndRange _) {},
+					(in CaseMemberAst.String _) {},
+					(in CaseMemberAst.Bogus) {});
+			});
 		},
 		(in PtrToFieldExpr _) {},
 		(in PtrToLocalExpr _) {},
@@ -501,8 +511,8 @@ Range callNameRange(in ExprAst a) {
 	ExprAstKind kind = a.kind;
 	return kind.isA!(AssignmentAst*)
 		? kind.as!(AssignmentAst*).left.range
-		: kind.isA!(AssignmentCallAst*)
-		? kind.as!(AssignmentCallAst*).funName.range
+		: kind.isA!AssignmentCallAst
+		? kind.as!AssignmentCallAst.funName.range
 		: kind.isA!CallAst
 		? kind.as!CallAst.funName.range
 		: kind.isA!(ForAst*)
@@ -560,9 +570,9 @@ void referencesForEnumOrFlagsMember(in Program program, in EnumOrFlagsMember* me
 	eachExprThatMayReference(program, member.visibility, declaringModule, (in Module m, ExprRef x) {
 		if (x.expr.kind.isA!(MatchEnumExpr*)) {
 			if (x.expr.kind.as!(MatchEnumExpr*).enum_ == enum_)
-				cb(UriAndRange(
-					m.uri,
-					x.expr.ast.kind.as!(MatchAst*).cases[member.memberIndex].memberNameRange));
+				foreach (size_t caseIndex, MatchEnumExpr.Case case_; x.expr.kind.as!(MatchEnumExpr*).cases)
+					if (case_.member == member)
+						cb(UriAndRange(m.uri, x.expr.ast.kind.as!MatchAst.cases[caseIndex].member.nameRange));
 		} else
 			eachFunReferenceAtExpr(m, x, [ctor], cb);
 	});
@@ -575,10 +585,12 @@ void referencesForUnionMember(in Program program, in UnionMember* member, in Ref
 		fun.body_.isA!(FunBody.CreateUnion) && fun.body_.as!(FunBody.CreateUnion).member == member);
 	eachExprThatMayReference(program, member.visibility, declaringModule, (in Module m, ExprRef x) {
 		if (x.expr.kind.isA!(MatchUnionExpr*)) {
-			if (x.expr.kind.as!(MatchUnionExpr*).union_.decl == union_)
-				cb(UriAndRange(
-					m.uri,
-					x.expr.ast.kind.as!(MatchAst*).cases[member.memberIndex].memberNameRange));
+			if (x.expr.kind.as!(MatchUnionExpr*).union_.decl == union_) {
+				foreach (size_t caseIndex, ref MatchUnionExpr.Case case_; x.expr.kind.as!(MatchUnionExpr*).cases) {
+					if (case_.member == member)
+						cb(UriAndRange(m.uri, x.expr.ast.kind.as!MatchAst.cases[caseIndex].member.nameRange));
+				}
+			}
 		} else
 			eachFunReferenceAtExpr(m, x, [ctor], cb);
 	});

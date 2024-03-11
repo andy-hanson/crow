@@ -96,15 +96,16 @@ tutorial-pages path-and-content[]() summon
 
 -convert-link string(tutorial-title-lookup string[symbol], str string)
 	link = str parse-link
-	if link.kind == "doc"
+	match link kind
+	as "doc"
 		# TODO: validate the name
-		"<a href=\"/doc/crow/{link.name}.html\">{link.name}</a>"
-	elif link.kind == "tutorial"
-		title = tutorial-title-lookup[link.name] ??
-			throw "Linked to '{link.name}' but no tutorial page has that name."
-		"<a href=\"/tutorial/{link.name}.html{link.hash}\">{title}</a>"
+		"<a href=\"/doc/crow/{link name}.html\">{link name}</a>"
+	as "tutorial"
+		title = tutorial-title-lookup[link name] ??
+			throw "Linked to '{link name}' but no tutorial page has that name."
+		"<a href=\"/tutorial/{link name}.html{link hash}\">{title}</a>"
 	else
-		throw "Unexpected link kind {link.kind}"
+		throw "Unexpected link kind {link kind}"
 
 -link record(kind symbol, name symbol, hash string)
 -parse-link link(a string)

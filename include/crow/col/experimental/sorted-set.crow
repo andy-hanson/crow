@@ -1,7 +1,7 @@
 no-std
 import
 	../../bool: &&, ==, bool, false, new, not, true
-	../../compare: <, <=, >, >=
+	../../compare: <, <=, >, >=, equal
 	../../exception: unreachable
 	../../fun-util: subscript
 	../../json: to
@@ -456,11 +456,12 @@ test
 	# TODO: test filter
 
 	dm string sorted-set = for x : d
-		if x == "c"
+		match x
+		as "c"
 			"sea"
-		elif x == "r"
+		as "r"
 			"arr"
-		elif x == "o"
+		as "o"
 			"oh"
 		else
 			"x"

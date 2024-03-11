@@ -52,7 +52,7 @@
 			"start": {"line": 3, "character": 1},
 			"end": {"line": 3, "character": 5}
 		},
-		"hover": "Record field r.fld (of type 'nat')",
+		"hover": "Record field r.fld :: nat",
 		"definition": [
 			{
 				"uri": "magic:/basic.crow",

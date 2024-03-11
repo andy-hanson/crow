@@ -16,6 +16,8 @@ import model.ast :
 	BogusAst,
 	CallAst,
 	CallNamedAst,
+	CaseAst,
+	CaseMemberAst,
 	DestructureAst,
 	DoAst,
 	EmptyAst,
@@ -35,8 +37,8 @@ import model.ast :
 	LambdaAst,
 	LetAst,
 	LiteralFloatAst,
-	LiteralIntAst,
-	LiteralNatAst,
+	LiteralIntegral,
+	LiteralIntegralAndRange,
 	LiteralStringAst,
 	LoopAst,
 	LoopBreakAst,
@@ -569,10 +571,7 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 		(in LiteralFloatAst _) {
 			numberLiteral(ctx.tokens, a.range);
 		},
-		(in LiteralIntAst _) {
-			numberLiteral(ctx.tokens, a.range);
-		},
-		(in LiteralNatAst _) {
+		(in LiteralIntegral _) {
 			numberLiteral(ctx.tokens, a.range);
 		},
 		(in LiteralStringAst _) {
@@ -594,13 +593,25 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 			addExprTokens(ctx, x.body_);
 		},
 		(in MatchAst x) {
-			addExprTokens(ctx, x.matched);
-			foreach (ref MatchAst.CaseAst case_; x.cases) {
-				reference(ctx.tokens, TokenType.enumMember, case_.memberNameRange);
-				if (has(case_.destructure))
-					addDestructureTokens(ctx, force(case_.destructure));
+			addExprTokens(ctx, *x.matched);
+			foreach (ref CaseAst case_; x.cases) {
+				case_.member.matchIn!void(
+					(in CaseMemberAst.Name x) {
+						reference(ctx.tokens, TokenType.enumMember, x.name.range);
+						if (has(x.destructure))
+							addDestructureTokens(ctx, force(x.destructure));
+					},
+					(in LiteralIntegralAndRange x) {
+						numberLiteral(ctx.tokens, x.range);
+					},
+					(in CaseMemberAst.String x) {
+						stringLiteral(ctx.tokens, x.range);
+					},
+					(in CaseMemberAst.Bogus) {});
 				addExprTokens(ctx, case_.then);
 			}
+			if (has(x.else_))
+				addExprTokens(ctx, force(x.else_).expr);
 		},
 		(in ParenthesizedAst x) {
 			addExprTokens(ctx, x.inner);

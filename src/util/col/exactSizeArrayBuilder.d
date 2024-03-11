@@ -3,7 +3,7 @@ module util.col.exactSizeArrayBuilder;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateElements;
-import util.col.array : endPtr;
+import util.col.array : endPtr, small, SmallArray;
 import util.string : eachChar, CString, cStringSize;
 import util.memory : initMemory, memset;
 
@@ -22,7 +22,7 @@ T[] buildArrayExact(T)(
 	size_t size,
 	in void delegate(scope ref ExactSizeArrayBuilder!T) @safe @nogc pure nothrow cb,
 ) {
-	ExactSizeArrayBuilder!T builder = newExactSizeArrBuilder!T(alloc, size);
+	ExactSizeArrayBuilder!T builder = newExactSizeArrayBuilder!T(alloc, size);
 	cb(builder);
 	return finish(builder);
 }
@@ -42,10 +42,13 @@ T* pushUninitialized(T)(ref ExactSizeArrayBuilder!T a) @trusted {
 	return res;
 }
 
+SmallArray!T smallFinish(T)(ref ExactSizeArrayBuilder!T a) =>
+	small!T(finish(a));
+
 @trusted size_t exactSizeArrBuilderCurSize(T)(ref const ExactSizeArrayBuilder!T a) =>
 	a.cur - a.inner.ptr;
 
-@trusted ExactSizeArrayBuilder!T newExactSizeArrBuilder(T)(ref Alloc alloc, size_t size) {
+@trusted ExactSizeArrayBuilder!T newExactSizeArrayBuilder(T)(ref Alloc alloc, size_t size) {
 	T[] inner = allocateElements!T(alloc, size);
 	return ExactSizeArrayBuilder!T(inner, inner.ptr);
 }

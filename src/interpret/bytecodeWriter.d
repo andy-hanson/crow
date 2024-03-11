@@ -44,15 +44,16 @@ import interpret.runBytecode :
 	opSetjmp,
 	opStackRef,
 	opSwitch0ToN,
+	opSwitchWithValues,
 	opThreadLocalPtr,
 	opWrite;
-import model.model : EnumValue;
 import model.typeLayout : Pack;
 import util.alloc.alloc : Alloc;
-import util.col.array : isEmpty;
+import util.col.array : endPtr;
 import util.col.arrayBuilder : add, ArrayBuilder, backUp, finish;
 import util.col.fullIndexMap : fullIndexMapOfArr;
 import util.col.mutArr : moveToArr_mut, mustPop, MutArr, mutArrEnd, mutArrSize, push;
+import util.integralValues : IntegralValues;
 import util.memory : initMemory, overwriteMemory;
 import util.util : divRoundUp, isMultipleOf, todo;
 
@@ -162,11 +163,7 @@ private StackOffsetBytes getStackOffsetBytes(in ByteCodeWriter writer, StackEntr
 void writeDupEntries(scope ref ByteCodeWriter writer, ByteCodeSource source, StackEntries entries) {
 	assert(entries.size != 0);
 	assert(entries.start.entry + entries.size <= getNextStackEntry(writer).entry);
-	writeDup(writer, source, entries.start, 0, entries.size * 8);
-}
-
-void writeDupEntry(scope ref ByteCodeWriter writer, ByteCodeSource source, StackEntry entry) {
-	writeDup(writer, source, entry, 0, 8);
+	writeDup(writer, source, start: entries.start, offsetBytes: 0, sizeBytes: entries.size * 8);
 }
 
 void writeDup(
@@ -514,39 +511,29 @@ immutable struct SwitchDelayed {
 	ByteCodeIndex afterCases;
 }
 
-SwitchDelayed writeSwitch0ToNDelay(scope ref ByteCodeWriter writer, ByteCodeSource source, size_t nCases) {
-	pushOperationFn(writer, source, &opSwitch0ToN);
+SwitchDelayed writeSwitchDelay(
+	scope ref ByteCodeWriter writer,
+	ByteCodeSource source,
+	in IntegralValues values,
+	bool hasElse,
+) {
+	if (values.isRange0ToN)
+		pushOperationFn(writer, source, hasElse ? &opSwitch0ToN!true : &opSwitch0ToN!false);
+	else {
+		pushOperationFn(writer, source, &opSwitchWithValues);
+		writeArray(writer, source, values);
+	}
 	// + 1 because the array size takes up one entry
 	ByteCodeIndex addresses = addByteCodeIndex(nextByteCodeIndex(writer), 1);
-	assert(nCases < emptyCases.length);
-	writeArray!ByteCodeOffsetUnsigned(writer, source, emptyCases[0 .. nCases]);
+	writeArrayUninitialized!ByteCodeOffsetUnsigned(writer, source, values.length + hasElse);
 	writer.nextStackEntry -= 1;
 	return SwitchDelayed(addresses, nextByteCodeIndex(writer));
 }
-
-private immutable ByteCodeOffsetUnsigned[256] emptyCases;
 
 @trusted void fillDelayedSwitchEntry(scope ref ByteCodeWriter writer, SwitchDelayed delayed, size_t switchEntry) {
 	ByteCodeOffsetUnsigned* start = cast(ByteCodeOffsetUnsigned*) &writer.operations[delayed.firstCase.index];
 	ByteCodeOffsetUnsigned diff = subtractByteCodeIndex(nextByteCodeIndex(writer), delayed.afterCases).unsigned();
 	overwriteMemory(start + switchEntry, diff);
-}
-
-SwitchDelayed writeSwitchWithValuesDelay(scope ref ByteCodeWriter writer, ByteCodeSource, in EnumValue[]) {
-	/*
-	pushOperation(writer, source, &opSwitchWithValues);
-	pushNat64(writer, source, sizeNat(values));
-	foreach (EnumValue value; values)
-		pushNat64(writer, source, value.asUnsigned());
-	writer.nextStackEntry -= 1;
-	ByteCodeIndex addresses = nextByteCodeIndex(writer);
-	foreach (size_t; 0 .. size(values)) {
-		static assert(ByteCodeOffset.sizeof == Nat64.sizeof);
-		pushNat64(writer, source, 0);
-	}
-	return addresses;
-	*/
-	return todo!SwitchDelayed("!");
 }
 
 void writeSetjmp(scope ref ByteCodeWriter writer, ByteCodeSource source) {
@@ -559,16 +546,19 @@ void writeLongjmp(scope ref ByteCodeWriter writer, ByteCodeSource source) {
 }
 
 private @trusted void writeArray(T)(scope ref ByteCodeWriter writer, ByteCodeSource source, in T[] values) {
-	pushSizeT(writer, source, values.length);
-	if (!isEmpty(values)) {
-		size_t nOperations = divRoundUp(values.length * T.sizeof, Operation.sizeof);
-		foreach (size_t i; 0 .. nOperations)
-			pushOperation(writer, source, Operation(ulong(0)));
-		T* outBegin = cast(T*) &writer.operations[mutArrSize(writer.operations) - nOperations];
-		foreach (size_t i, T value; values)
-			initMemory(outBegin + i, value);
-		assert(outBegin + values.length <= cast(T*) mutArrEnd(writer.operations));
-	}
+	T[] res = writeArrayUninitialized!T(writer, source, values.length);
+	foreach (size_t i, T value; values)
+		initMemory(&res[i], value);
+}
+
+private @trusted T[] writeArrayUninitialized(T)(scope ref ByteCodeWriter writer, ByteCodeSource source, size_t size) {
+	pushSizeT(writer, source, size);
+	size_t nOperations = divRoundUp(size * T.sizeof, Operation.sizeof);
+	foreach (size_t i; 0 .. nOperations)
+		pushOperation(writer, source, Operation(ulong(0)));
+	T[] res = (cast(T*) &writer.operations[mutArrSize(writer.operations) - nOperations])[0 .. size];
+	assert(endPtr(res) <= cast(T*) mutArrEnd(writer.operations));
+	return res;
 }
 
 void writeInterpreterBacktrace(scope ref ByteCodeWriter writer, ByteCodeSource source) {

@@ -11,7 +11,7 @@ import util.alloc.alloc :
 	MetaMemorySummary,
 	summarizeMemory,
 	totalBytes;
-import util.col.arrayBuilder : buildArray, Builder, arrBuilderSort;
+import util.col.arrayBuilder : buildArray, Builder, arrayBuilderSort;
 import util.col.array : map;
 import util.col.enumMap : EnumMap;
 import util.col.exactSizeArrayBuilder : buildArrayExact, ExactSizeArrayBuilder;
@@ -68,7 +68,7 @@ Json jsonOfEnumMap(E, V)(
 		foreach (E key, ref immutable V value; a)
 			if (getQuantity(value) != 0)
 				res ~= Pair(key, value);
-		arrBuilderSort!(Pair)(res, (in Pair x, in Pair y) =>
+		arrayBuilderSort!(Pair)(res, (in Pair x, in Pair y) =>
 			oppositeComparison(compareUlong(getQuantity(x.value), getQuantity(y.value))));
 	});
 	return Json(map(alloc, pairs, (ref Pair pair) =>

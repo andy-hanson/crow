@@ -62,11 +62,11 @@ const(T[]) asTemporaryArray(T)(ref const ArrayBuilder!T a) =>
 const(T[]) asTemporaryArray(T)(ref const Builder!T a) =>
 	.asTemporaryArray(a.inner);
 
-void arrBuilderSort(T)(scope ref ArrayBuilder!T a, in Comparer!T compare) {
+void arrayBuilderSort(T)(scope ref ArrayBuilder!T a, in Comparer!T compare) {
 	sortInPlace!(immutable T)(asTemporaryArray(a), compare);
 }
-void arrBuilderSort(T)(scope ref Builder!T a, in Comparer!T compare) {
-	arrBuilderSort!T(a.inner, compare);
+void arrayBuilderSort(T)(scope ref Builder!T a, in Comparer!T compare) {
+	arrayBuilderSort!T(a.inner, compare);
 }
 
 immutable(SmallArray!T) smallFinish(T)(ref Alloc alloc, scope ref ArrayBuilder!T a) =>
@@ -78,5 +78,5 @@ immutable(T[]) finish(T)(ref Alloc alloc, scope ref ArrayBuilder!T a) =>
 size_t arrBuilderSize(T)(in ArrayBuilder!T a) =>
 	mutArrSize(a.data);
 
-bool arrBuilderIsEmpty(T)(in ArrayBuilder!T a) =>
+bool arrayBuilderIsEmpty(T)(in ArrayBuilder!T a) =>
 	mutArrIsEmpty(a.data);

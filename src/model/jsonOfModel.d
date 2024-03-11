@@ -44,6 +44,8 @@ import model.model :
 	LoopUntilExpr,
 	LoopWhileExpr,
 	MatchEnumExpr,
+	MatchIntegralExpr,
+	MatchStringLikeExpr,
 	MatchUnionExpr,
 	Module,
 	NameReferents,
@@ -69,7 +71,7 @@ import model.model :
 	VariableRef,
 	Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.array : mapOp;
+import util.col.array : map, mapOp;
 import util.json :
 	field,
 	Json,
@@ -345,7 +347,7 @@ Json jsonOfExprKind(ref Alloc alloc, in Ctx ctx, in ExprKind a) =>
 		(in AssertOrForbidExpr x) =>
 			jsonObject(alloc, [
 				kindField(stringOfEnum(x.kind)),
-				field!"condition"(jsonOfExpr(alloc, ctx, *x.condition)),
+				field!"condition"(jsonOfExpr(alloc, ctx, x.condition)),
 				optionalField!("thrown", Expr*)(x.thrown, (in Expr* thrown) =>
 					jsonOfExpr(alloc, ctx, *thrown))]),
 		(in BogusExpr _) =>
@@ -433,17 +435,42 @@ Json jsonOfExprKind(ref Alloc alloc, in Ctx ctx, in ExprKind a) =>
 				kindField!"while",
 				field!"condition"(jsonOfExpr(alloc, ctx, x.condition)),
 				field!"body"(jsonOfExpr(alloc, ctx, x.body_))]),
-		(in MatchEnumExpr a) =>
+		(in MatchEnumExpr x) =>
 			jsonObject(alloc, [
 				kindField!"match-enum",
-				field!"matched"(jsonOfExprAndType(alloc, ctx, a.matched)),
-				field!"cases"(jsonOfExprs(alloc, ctx, a.cases))]),
-		(in MatchUnionExpr a) =>
+				field!"matched"(jsonOfExprAndType(alloc, ctx, x.matched)),
+				field!"cases"(jsonList!(MatchEnumExpr.Case)(alloc, x.cases, (in MatchEnumExpr.Case case_) =>
+					jsonObject(alloc, [
+						field!"member"(case_.member.name),
+						field!"then"(jsonOfExpr(alloc, ctx, case_.then))]))),
+				optionalField!("else", Expr)(x.else_, (in Expr else_) => jsonOfExpr(alloc, ctx, else_))]),
+		(in MatchIntegralExpr x) =>
+			jsonObject(alloc, [
+				kindField!"match-integral",
+				field!"matched"(jsonOfExprAndType(alloc, ctx, x.matched)),
+				field!"cases"(jsonList!(MatchIntegralExpr.Case)(alloc, x.cases, (in MatchIntegralExpr.Case case_) =>
+					jsonObject(alloc, [
+						field!"value"(case_.value.value),
+						field!"then"(jsonOfExpr(alloc, ctx, case_.then))]))),
+				field!"else"(jsonOfExpr(alloc, ctx, x.else_))]),
+		(in MatchStringLikeExpr x) =>
+			jsonObject(alloc, [
+				kindField!"match-string-like",
+				field!"type"(stringOfEnum(x.kind)),
+				field!"matched"(jsonOfExprAndType(alloc, ctx, x.matched)),
+				field!"equals"(jsonOfCalled(alloc, ctx, x.equals)),
+				field!"cases"(jsonList(map(alloc, x.cases, (ref MatchStringLikeExpr.Case case_) =>
+					jsonObject(alloc, [
+						field!"value"(case_.value),
+						field!"then"(jsonOfExpr(alloc, ctx, case_.then))])))),
+				field!"else"(jsonOfExpr(alloc, ctx, x.else_))]),
+		(in MatchUnionExpr x) =>
 			jsonObject(alloc, [
 				kindField!"match-union",
-				field!"matched"(jsonOfExprAndType(alloc, ctx, a.matched)),
-				field!"cases"(jsonList!(MatchUnionExpr.Case)(alloc, a.cases, (in MatchUnionExpr.Case case_) =>
-					jsonOfMatchUnionCase(alloc, ctx, case_)))]),
+				field!"matched"(jsonOfExprAndType(alloc, ctx, x.matched)),
+				field!"cases"(jsonList!(MatchUnionExpr.Case)(alloc, x.cases, (in MatchUnionExpr.Case case_) =>
+					jsonOfMatchUnionCase(alloc, ctx, case_))),
+				optionalField!("else", Expr*)(x.else_, (in Expr* y) => jsonOfExpr(alloc, ctx, *y))]),
 		(in PtrToFieldExpr x) =>
 			jsonObject(alloc, [
 				kindField!"pointer-to-field",

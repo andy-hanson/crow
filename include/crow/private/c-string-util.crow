@@ -1,7 +1,7 @@
 no-std
 import
 	../bool: bool
-	../number: ==, +, nat8, nat64
+	../number: +, nat8, nat64
 	../option: new, option
 	../pointer: +, -, *, as-const, as-mut, mut-pointer
 export
@@ -20,7 +20,7 @@ find-char-in-c-string c-string?(a c-string, c char8) bare, unsafe
 	loop
 		if *cur == c
 			break cur,
-		elif cur->to == 0
+		elif *cur == "\0"
 			break
 		else
 			cur +:= 1
@@ -30,7 +30,7 @@ find-char-in-c-string c-string?(a c-string, c char8) bare, unsafe
 find-c-string-end c-string(a c-string) bare, unsafe
 	cur mut = a
 	loop
-		if cur->to::nat8 == 0
+		if *cur == "\0"
 			break cur
 		else
 			cur +:= 1

@@ -16,10 +16,7 @@ import model.ast :
 	DestructureAst,
 	EnumOrFlagsMemberAst,
 	FieldMutabilityAst,
-	LiteralIntAst,
-	LiteralIntOrNat,
-	LiteralNatAst,
-	LiteralNatAndRange,
+	LiteralIntegralAndRange,
 	ModifierAst,
 	ModifierKeyword,
 	NameAndRange,
@@ -31,7 +28,7 @@ import model.ast :
 	TypeAst,
 	VisibilityAndRange;
 import model.concreteModel : TypeSize;
-import model.diag : Diag, DeclKind, TypeContainer, TypeWithContainer;
+import model.diag : Diag, DeclKind;
 import model.model :
 	BuiltinType,
 	ByValOrRef,
@@ -39,16 +36,18 @@ import model.model :
 	emptyTypeParams,
 	EnumOrFlagsMember,
 	EnumMemberSource,
-	EnumValue,
 	IntegralType,
 	IntegralTypes,
 	isLinkagePossiblyCompatible,
 	isPurityPossiblyCompatible,
+	isSigned,
 	leastVisibility,
 	Linkage,
 	linkageRange,
 	maxValue,
 	minValue,
+	nameOfEnumOrFlagsMember,
+	nameOfUnionMember,
 	nameRange,
 	Purity,
 	purityRange,
@@ -65,8 +64,10 @@ import model.model :
 	Visibility;
 import util.col.array :
 	eachPair, emptySmallArray, fold, isEmpty, mapOpPointers, mapPointers, small, SmallArray, zipPtrFirst;
-import util.conv : safeToUint;
-import util.opt : force, has, MutOpt, none, noneMut, Opt, optFromMut, some, someMut;
+import util.col.hashTable : HashTable, makeHashTable;
+import util.integralValues : IntegralValue;
+import util.memory : allocate;
+import util.opt : force, has, MutOpt, none, noneMut, Opt, optFromMut, optIf, some, someMut;
 import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
 import util.util : enumConvertOrAssert, isMultipleOf, ptrTrustMe;
@@ -114,11 +115,11 @@ void checkStructBodies(
 				checkNoTypeParams(ctx, ast.typeParams, DeclKind.enum_);
 				IntegralType storage = checkEnumOrFlagsModifiers(
 					ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, DeclKind.enum_, ast.modifiers);
-				return StructBody(checkEnum(
-					ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, ast.range, x, storage));
+				return StructBody(allocate(ctx.alloc, checkEnum(
+					ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, ast.range, x, storage)));
 			},
-			(StructBodyAst.Extern it) =>
-				StructBody(checkExtern(ctx, commonTypes, struct_, ast, it)),
+			(StructBodyAst.Extern x) =>
+				StructBody(checkExtern(ctx, ast, x)),
 			(StructBodyAst.Flags x) {
 				checkNoTypeParams(ctx, ast.typeParams, DeclKind.flags);
 				IntegralType storage = checkEnumOrFlagsModifiers(
@@ -131,38 +132,27 @@ void checkStructBodies(
 					ctx, commonTypes, structsAndAliasesMap, struct_, ast.modifiers, x, delayStructInsts)),
 			(StructBodyAst.Union x) {
 				checkOnlyStructModifiers(ctx, DeclKind.union_, ast.modifiers);
-				return StructBody(checkUnion(ctx, commonTypes, structsAndAliasesMap, struct_, x, delayStructInsts));
+				return StructBody(allocate(ctx.alloc,
+					checkUnion(ctx, commonTypes, structsAndAliasesMap, struct_, x, delayStructInsts)));
 			});
 	});
 }
 
 private:
 
-StructBody.Extern checkExtern(
-	ref CheckCtx ctx,
-	ref CommonTypes commonTypes,
-	StructDecl* struct_,
-	in StructDeclAst declAst,
-	in StructBodyAst.Extern bodyAst,
-) {
+StructBody.Extern checkExtern(ref CheckCtx ctx, in StructDeclAst declAst, in StructBodyAst.Extern bodyAst) {
 	checkNoTypeParams(ctx, declAst.typeParams, DeclKind.extern_);
 	checkOnlyStructModifiers(ctx, DeclKind.extern_, declAst.modifiers);
-	return StructBody.Extern(getExternTypeSize(ctx, commonTypes, TypeContainer(struct_), declAst, bodyAst));
+	return StructBody.Extern(getExternTypeSize(ctx, declAst, bodyAst));
 }
 
-Opt!TypeSize getExternTypeSize(
-	ref CheckCtx ctx,
-	ref CommonTypes commonTypes,
-	TypeContainer container,
-	in StructDeclAst declAst,
-	in StructBodyAst.Extern bodyAst,
-) {
+Opt!TypeSize getExternTypeSize(ref CheckCtx ctx, in StructDeclAst declAst, in StructBodyAst.Extern bodyAst) {
 	if (has(bodyAst.size)) {
-		uint size = getSizeValue(ctx, commonTypes, container, *force(bodyAst.size));
+		uint size = getSizeValue(ctx, *force(bodyAst.size));
 		uint default_ = defaultAlignment(size);
 		uint alignment = () {
 			if (has(bodyAst.alignment)) {
-				uint alignment = getSizeValue(ctx, commonTypes, container, *force(bodyAst.alignment));
+				uint alignment = getSizeValue(ctx, *force(bodyAst.alignment));
 				if (isValidAlignment(alignment)) {
 					if (alignment == default_)
 						addDiag(ctx, force(bodyAst.alignment).range, Diag(
@@ -183,14 +173,8 @@ Opt!TypeSize getExternTypeSize(
 	}
 }
 
-uint getSizeValue(ref CheckCtx ctx, ref CommonTypes commonTypes, TypeContainer container, in LiteralNatAndRange ast) {
-	if (ast.nat.overflow || ast.nat.value > uint.max) {
-		addDiag(ctx, ast.range, Diag(
-			Diag.LiteralOverflow(TypeWithContainer(Type(commonTypes.integrals.nat32), container))));
-		return 0;
-	} else
-		return safeToUint(ast.nat.value);
-}
+uint getSizeValue(ref CheckCtx ctx, in LiteralIntegralAndRange ast) =>
+	cast(uint) checkLiteralIntegral(ctx, IntegralType.nat32, ast).asUnsigned;
 
 bool isValidAlignment(uint alignment) {
 	switch (alignment) {
@@ -371,16 +355,18 @@ StructBody.Enum checkEnum(
 	in Range range,
 	in StructBodyAst.Enum e,
 	IntegralType storage,
-) =>
-	StructBody.Enum(storage, checkEnumOrFlagsMembers(
+) {
+	EnumOrFlagsMembers members = checkEnumOrFlagsMembers(
 		ctx, commonTypes, structsAndAliasesMap, delayStructInsts,
 		struct_, range, e.params, e.members, Diag.DuplicateDeclaration.Kind.enumMember, storage,
-		(Opt!EnumValue lastValue) =>
+		(Opt!IntegralValue lastValue) =>
 			has(lastValue)
 				? ValueAndOverflow(
-					EnumValue(force(lastValue).value + 1),
+					IntegralValue(force(lastValue).value + 1),
 					force(lastValue).asUnsigned() == maxValue(storage))
-				: ValueAndOverflow(EnumValue(0), false)));
+				: ValueAndOverflow(IntegralValue(0), false));
+	return StructBody.Enum(storage, members.members, members.membersByName);
+}
 
 StructBody.Flags checkFlags(
 	ref CheckCtx ctx,
@@ -395,20 +381,25 @@ StructBody.Flags checkFlags(
 	StructBody.Flags(storage, checkEnumOrFlagsMembers(
 		ctx, commonTypes, structsAndAliasesMap, delayStructInsts,
 		struct_, range, f.params, f.members, Diag.DuplicateDeclaration.Kind.flagsMember, storage,
-		(Opt!EnumValue lastValue) =>
+		(Opt!IntegralValue lastValue) =>
 			has(lastValue)
 				? ValueAndOverflow(
 					//TODO: if the last value isn't a power of 2, there should be a diagnostic
-					EnumValue(force(lastValue).value * 2),
+					IntegralValue(force(lastValue).value * 2),
 					force(lastValue).value >= maxValue(storage) / 2)
-				: ValueAndOverflow(EnumValue(1), false)));
+				: ValueAndOverflow(IntegralValue(1), false)
+	).members);
 
 immutable struct ValueAndOverflow {
-	EnumValue value;
+	IntegralValue value;
 	bool overflow;
 }
 
-SmallArray!EnumOrFlagsMember checkEnumOrFlagsMembers(
+immutable struct EnumOrFlagsMembers {
+	SmallArray!EnumOrFlagsMember members;
+	HashTable!(EnumOrFlagsMember*, Symbol, nameOfEnumOrFlagsMember) membersByName; // TODO: SmallHashTable
+}
+EnumOrFlagsMembers checkEnumOrFlagsMembers(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesMap structsAndAliasesMap,
@@ -419,39 +410,30 @@ SmallArray!EnumOrFlagsMember checkEnumOrFlagsMembers(
 	in EnumOrFlagsMemberAst[] memberAsts,
 	Diag.DuplicateDeclaration.Kind memberKind,
 	IntegralType storage,
-	in ValueAndOverflow delegate(Opt!EnumValue) @safe @nogc pure nothrow cbGetNextValue,
+	in ValueAndOverflow delegate(Opt!IntegralValue) @safe @nogc pure nothrow cbGetNextValue,
 ) {
 	if (has(paramsAst) && !isEmpty(memberAsts)) {
 		addDiag(ctx, struct_.nameRange.range, Diag(
 			Diag.StructParamsSyntaxError(struct_, Diag.StructParamsSyntaxError.Reason.hasParamsAndFields)));
-		return emptySmallArray!EnumOrFlagsMember;
+		return EnumOrFlagsMembers(
+			emptySmallArray!EnumOrFlagsMember,
+			HashTable!(EnumOrFlagsMember*, Symbol, nameOfEnumOrFlagsMember)());
 	}
 
 	MutOpt!long lastValue = noneMut!long;
-	bool anyOverflow = false;
 
-	scope CbEnumValue cbValue = (Range range, Opt!LiteralIntOrNat literal) {
-		ValueAndOverflow valueAndOverflow = () {
+	scope CbEnumValue cbValue = (Range range, Opt!LiteralIntegralAndRange literal) {
+		IntegralValue value = () {
 			if (has(literal))
-				return isSignedEnumBackingType(storage)
-					? force(literal).kind.matchIn!ValueAndOverflow(
-						(in LiteralIntAst i) =>
-							ValueAndOverflow(EnumValue(i.value), i.overflow),
-						(in LiteralNatAst n) =>
-							ValueAndOverflow(EnumValue(n.value), n.value > long.max))
-					: force(literal).kind.matchIn!ValueAndOverflow(
-						(in LiteralIntAst _) =>
-							ValueAndOverflow(EnumValue(0), true),
-						(in LiteralNatAst n) =>
-							ValueAndOverflow(EnumValue(n.value), n.overflow));
-			else
-				return cbGetNextValue(has(lastValue) ? some(EnumValue(force(lastValue))) : none!EnumValue);
+				return checkLiteralIntegral(ctx, storage, force(literal));
+			else {
+				ValueAndOverflow valueAndOverflow = cbGetNextValue(optIf!IntegralValue(has(lastValue), () =>
+					IntegralValue(force(lastValue))));
+				if (valueAndOverflow.overflow)
+					addDiag(ctx, range, Diag(Diag.LiteralOverflow(storage)));
+				return valueAndOverflow.value;
+			}
 		}();
-		EnumValue value = valueAndOverflow.value;
-		if (valueAndOverflow.overflow || valueOverflows(storage, value)) {
-			anyOverflow = true;
-			addDiag(ctx, range, Diag(Diag.EnumMemberOverflows(storage)));
-		}
 		lastValue = someMut!long(value.value);
 		return value;
 	};
@@ -460,17 +442,32 @@ SmallArray!EnumOrFlagsMember checkEnumOrFlagsMembers(
 		? enumOrFlagsMembersFromParams(ctx, struct_, force(paramsAst), cbValue)
 		: mapPointers(ctx.alloc, memberAsts, (EnumOrFlagsMemberAst* x) =>
 			EnumOrFlagsMember(EnumMemberSource(x), struct_, cbValue(x.range, x.value)));
+
+	HashTable!(EnumOrFlagsMember*, Symbol, nameOfEnumOrFlagsMember) membersByName =
+		makeHashTable!(EnumOrFlagsMember, Symbol, nameOfEnumOrFlagsMember)(
+			ctx.alloc, members, (EnumOrFlagsMember* duplicate) {
+				addDiag(ctx, duplicate.nameRange.range, Diag(Diag.DuplicateDeclaration(memberKind, duplicate.name)));
+			});
 	eachPair!(EnumOrFlagsMember)(members, (in EnumOrFlagsMember a, in EnumOrFlagsMember b) {
-		if (a.name == b.name)
-			addDiag(ctx, b.nameRange.range, Diag(Diag.DuplicateDeclaration(memberKind, b.name)));
-		if (a.value == b.value && !anyOverflow)
+		if (a.value == b.value)
 			addDiag(ctx, b.range, Diag(
-				Diag.EnumDuplicateValue(isSignedEnumBackingType(storage), b.value.value)));
+				Diag.EnumDuplicateValue(isSigned(storage), b.value.value)));
 	});
-	return members;
+	return EnumOrFlagsMembers(members, membersByName);
 }
 
-alias CbEnumValue = EnumValue delegate(Range range, Opt!LiteralIntOrNat) @safe @nogc pure nothrow;
+public IntegralValue checkLiteralIntegral(ref CheckCtx ctx, IntegralType type, LiteralIntegralAndRange ast) {
+	if (ast.literal.overflow || literalNatOrIntOverflows(type, ast.literal.isSigned, ast.literal.value))
+		addDiag(ctx, ast.range, Diag(Diag.LiteralOverflow(type)));
+	return ast.literal.value;
+}
+
+bool literalNatOrIntOverflows(IntegralType type, bool isSigned, IntegralValue value) =>
+	isSigned
+		? (value.asSigned < minValue(type) || (value.asSigned > 0 && value.asSigned > maxValue(type)))
+		: value.asUnsigned > maxValue(type);
+
+alias CbEnumValue = IntegralValue delegate(Range range, Opt!LiteralIntegralAndRange) @safe @nogc pure nothrow;
 
 SmallArray!EnumOrFlagsMember enumOrFlagsMembersFromParams(
 	ref CheckCtx ctx,
@@ -480,34 +477,14 @@ SmallArray!EnumOrFlagsMember enumOrFlagsMembersFromParams(
 ) =>
 	params.match!(SmallArray!EnumOrFlagsMember)(
 		(DestructureAst[] destructures) =>
-			small!EnumOrFlagsMember(mapOpPointers!(EnumOrFlagsMember, DestructureAst)(
-				ctx.alloc, destructures, (DestructureAst* x) =>
-					enumMemberFromParam(ctx, enumOrFlags, x, cbValue(x.range, none!LiteralIntOrNat)))),
+			mapOpPointers!(EnumOrFlagsMember, DestructureAst)(
+				ctx.alloc, small!DestructureAst(destructures), (DestructureAst* x) =>
+					enumMemberFromParam(ctx, enumOrFlags, x, cbValue(x.range, none!LiteralIntegralAndRange))),
 		(ref ParamsAst.Varargs x) {
 			addDiag(ctx, x.param.range, Diag(
 				Diag.StructParamsSyntaxError(enumOrFlags, Diag.StructParamsSyntaxError.Reason.variadic)));
 			return emptySmallArray!EnumOrFlagsMember;
 		});
-
-bool valueOverflows(IntegralType type, EnumValue value) =>
-	isSignedEnumBackingType(type)
-		? value.asSigned() < minValue(type) || value.asSigned() > cast(long) maxValue(type)
-		: value.asUnsigned() > maxValue(type);
-
-bool isSignedEnumBackingType(IntegralType a) {
-	final switch (a) {
-		case IntegralType.int8:
-		case IntegralType.int16:
-		case IntegralType.int32:
-		case IntegralType.int64:
-			return true;
-		case IntegralType.nat8:
-		case IntegralType.nat16:
-		case IntegralType.nat32:
-		case IntegralType.nat64:
-			return false;
-	}
-}
 
 IntegralType defaultEnumBackingType() =>
 	IntegralType.nat32;
@@ -585,7 +562,7 @@ StructBody.Union checkUnion(
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesMap structsAndAliasesMap,
 	StructDecl* struct_,
-	in StructBodyAst.Union ast,
+	ref StructBodyAst.Union ast,
 	scope ref DelayStructInsts delayStructInsts,
 ) {
 	final switch (struct_.linkage) {
@@ -594,10 +571,15 @@ StructBody.Union checkUnion(
 		case Linkage.extern_:
 			addDiagAssertSameUri(ctx, struct_.range, Diag(Diag.ExternUnion()));
 	}
-	return StructBody.Union(checkRecordOrUnionMembers!UnionMember(
+	SmallArray!UnionMember members = checkRecordOrUnionMembers!UnionMember(
 		ctx, struct_, ast.params, ast.members, Diag.DuplicateDeclaration.Kind.unionMember,
 		(RecordOrUnionMemberAstCommon memberAst) =>
-			checkUnionMember(ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, memberAst)));
+			checkUnionMember(ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, memberAst));
+	HashTable!(UnionMember*, Symbol, nameOfUnionMember) membersByName =
+		makeHashTable!(UnionMember, Symbol, nameOfUnionMember)(ctx.alloc, members, (UnionMember* duplicateMember) {
+			// Diag already added in checkRecordOrUnionMembers
+		});
+	return StructBody.Union(members, membersByName);
 }
 
 // Shared in common between DestructureAst.Single and RecordOrUnionMemberAst
@@ -624,10 +606,10 @@ SmallArray!Member checkRecordOrUnionMembers(Member)(
 			Diag.StructParamsSyntaxError(struct_, Diag.StructParamsSyntaxError.Reason.hasParamsAndFields)));
 	SmallArray!Member res = has(params)
 		? recordOrUnionMembersFromParams!Member(ctx, struct_, force(params), cbCheckMember)
-		: small!Member(mapPointers!(Member, RecordOrUnionMemberAst)(
+		: mapPointers!(Member, RecordOrUnionMemberAst)(
 			ctx.alloc, memberAsts, (RecordOrUnionMemberAst* x) =>
 				cbCheckMember(RecordOrUnionMemberAstCommon(
-					RecordOrUnionMemberSource(x), x.visibility, x.name, x.mutability, x.type))));
+					RecordOrUnionMemberSource(x), x.visibility, x.name, x.mutability, x.type)));
 	eachPair!Member(res, (in Member a, in Member b) {
 		if (a.name == b.name)
 			addDiag(ctx, b.range, Diag(Diag.DuplicateDeclaration(duplicateDeclarationKind, a.name)));
@@ -643,16 +625,21 @@ SmallArray!Member recordOrUnionMembersFromParams(Member)(
 ) =>
 	ast.match!(SmallArray!Member)(
 		(DestructureAst[] destructures) =>
-			small!Member(mapOpPointers!(Member, DestructureAst)(
-				ctx.alloc, destructures, (DestructureAst* param) =>
-					recordOrUnionMemberFromParam!Member(ctx, struct_, param, cbCheckMember))),
+			mapOpPointers!(Member, DestructureAst)(
+				ctx.alloc, small!DestructureAst(destructures), (DestructureAst* param) =>
+					recordOrUnionMemberFromParam!Member(ctx, struct_, param, cbCheckMember)),
 		(ref ParamsAst.Varargs x) {
 			addDiag(ctx, x.param.range, Diag(
 				Diag.StructParamsSyntaxError(struct_, Diag.StructParamsSyntaxError.Reason.variadic)));
 			return emptySmallArray!Member;
 		});
 
-Opt!EnumOrFlagsMember enumMemberFromParam(ref CheckCtx ctx, StructDecl* enum_, DestructureAst* ast, EnumValue value) {
+Opt!EnumOrFlagsMember enumMemberFromParam(
+	ref CheckCtx ctx,
+	StructDecl* enum_,
+	DestructureAst* ast,
+	IntegralValue value,
+) {
 	if (ast.isA!(DestructureAst.Single)) {
 		DestructureAst.Single* single = &ast.as!(DestructureAst.Single)();
 		if (has(single.mut)) {

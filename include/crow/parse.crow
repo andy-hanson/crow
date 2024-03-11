@@ -358,9 +358,10 @@ region basic elements
 		loop
 			if x, rest ?= iter next
 				iter := rest
-				if x == "\""
+				match x
+				as "\""
 					break
-				elif x == "\\"
+				as "\\"
 					if x2, rest2 ?= iter next
 						iter := rest2
 						if esc ?= x2 escape
@@ -382,17 +383,18 @@ region basic elements
 	else
 		res ok
 -escape char32?(a char32)
-	if a == "n"
+	match a
+	as "n"
 		"\n",
-	elif a == "r"
+	as "r"
 		"\r",
-	elif a == "t"
+	as "t"
 		"\t",
-	elif a == "\""
+	as "\""
 		"\"",
-	elif a == "\\"
+	as "\\"
 		"\\",
-	elif a == "0"
+	as "0"
 		"\0",
 
 # TODO: support letters from more languages

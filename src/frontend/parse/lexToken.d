@@ -4,7 +4,8 @@ module frontend.parse.lexToken;
 
 import frontend.parse.lexWhitespace :
 	AddDiag, DocCommentAndIndentDelta, IndentKind, skipBlankLinesAndGetIndentDelta, takeRestOfLine;
-import model.ast : ElifOrElseKeyword, LiteralFloatAst, LiteralIntAst, LiteralNatAst;
+import model.ast : ElifOrElseKeyword, LiteralFloatAst, LiteralIntegral;
+import util.integralValues : IntegralValue;
 import util.opt : force, has, none, Opt, optOrDefault, some;
 import util.string :
 	CString,
@@ -37,8 +38,7 @@ immutable struct TokenAndData {
 		// For Token.newline or Token.EOF. WARN: The string is temporary.
 		DocCommentAndExtraDedents docComment = void;
 		LiteralFloatAst literalFloat = void; // for Token.literalFloat
-		LiteralIntAst literalInt = void; // for Token.literalInt
-		LiteralNatAst literalNat = void; // for Token.literalNat
+		LiteralIntegral literalIntegral = void; // for Token.literalIntegral
 		dchar unexpectedCharacter;
 		string region;
 	}
@@ -48,8 +48,7 @@ immutable struct TokenAndData {
 		assert(!isSymbolToken(t) &&
 			!isNewlineToken(t) &&
 			t != Token.literalFloat &&
-			t != Token.literalInt &&
-			t != Token.literalNat &&
+			t != Token.literalIntegral &&
 			t != Token.region);
 		token = t;
 	}
@@ -68,15 +67,10 @@ immutable struct TokenAndData {
 		token = t;
 		literalFloat = l;
 	}
-	this(Token t, LiteralIntAst l) {
-		assert(t == Token.literalInt);
+	this(Token t, LiteralIntegral l) {
+		assert(t == Token.literalIntegral);
 		token = t;
-		literalInt = l;
-	}
-	this(Token t, LiteralNatAst l) {
-		assert(t == Token.literalNat);
-		token = t;
-		literalNat = l;
+		literalIntegral = l;
 	}
 	this(Token t, dchar c) {
 		assert(t == Token.unexpectedCharacter);
@@ -104,13 +98,9 @@ immutable struct TokenAndData {
 		assert(token == Token.literalFloat);
 		return literalFloat;
 	}
-	LiteralIntAst asLiteralInt() {
-		assert(token == Token.literalInt);
-		return literalInt;
-	}
-	LiteralNatAst asLiteralNat() {
-		assert(token == Token.literalNat);
-		return literalNat;
+	LiteralIntegral asLiteralIntegral() {
+		assert(token == Token.literalIntegral);
+		return literalIntegral;
 	}
 	dchar asUnexpectedCharacter() {
 		assert(token == Token.unexpectedCharacter);
@@ -168,9 +158,8 @@ enum Token {
 	global, // 'global'
 	if_, // 'if'
 	import_, // 'import'
-	literalFloat, // Use getCurLiteralFloat
-	literalInt, // Use getCurLiteralInt
-	literalNat, // Use getCurLiteralNat
+	literalFloat, // Use asLiteralFloat
+	literalIntegral, // Use asLiteralIntegral
 	loop, // 'loop'
 	match, // 'match'
 	mut, // 'mut'
@@ -619,21 +608,23 @@ TokenAndData takeNumberAfterSign(ref MutCString ptr, Opt!Sign sign) {
 		: tryTakeChars(ptr, "0b")
 		? 2
 		: 10;
-	LiteralNatAst n = takeNat(ptr, base);
+	NatAndOverflow n = takeNat(ptr, base);
 	if (peekDecimalPoint(ptr)) {
 		ptr++;
 		return takeFloat(ptr, optOrDefault!Sign(sign, () => Sign.plus), n, base);
 	} else if (has(sign))
-		return TokenAndData(Token.literalInt, () {
+		return TokenAndData(Token.literalIntegral, () {
 			final switch (force(sign)) {
 				case Sign.plus:
-					return LiteralIntAst(n.value, n.value > long.max);
+					return LiteralIntegral(
+						isSigned: true, overflow: n.value > long.max, value: IntegralValue(n.value));
 				case Sign.minus:
-					return LiteralIntAst(-n.value, n.value > (cast(ulong) long.max) + 1);
+					return LiteralIntegral(
+						isSigned: true, overflow: n.value > (cast(ulong) long.max) + 1, value: IntegralValue(-n.value));
 			}
 		}());
 	else
-		return TokenAndData(Token.literalNat, n);
+		return TokenAndData(Token.literalIntegral, toLiteralIntegral(n));
 }
 
 bool peekDecimalPoint(MutCString ptr) {
@@ -645,10 +636,10 @@ bool peekDecimalPoint(MutCString ptr) {
 }
 
 
-TokenAndData takeFloat(ref MutCString ptr, Sign sign, LiteralNatAst natPart, ulong base) {
+TokenAndData takeFloat(ref MutCString ptr, Sign sign, NatAndOverflow natPart, ulong base) {
 	// TODO: improve accuracy
 	MutCString afterDecimalPoint = ptr;
-	LiteralNatAst rest = takeNat(ptr, base);
+	NatAndOverflow rest = takeNat(ptr, base);
 	bool overflow = natPart.overflow || rest.overflow;
 	ulong power = ptr - afterDecimalPoint;
 	double multiplier = pow(1.0, 1.0 / base, power);
@@ -671,7 +662,11 @@ double pow(double acc, double base, ulong power) =>
 ulong getDivisor(ulong acc, ulong a, ulong base) =>
 	acc < a ? getDivisor(acc * base, a, base) : acc;
 
-public LiteralNatAst takeNat(ref MutCString ptr, ulong base) {
+public immutable struct NatAndOverflow { ulong value; bool overflow; }
+LiteralIntegral toLiteralIntegral(NatAndOverflow a) =>
+	LiteralIntegral(isSigned: false, overflow: a.overflow, value: IntegralValue(a.value));
+
+public NatAndOverflow takeNat(ref MutCString ptr, ulong base) {
 	ulong value = 0;
 	bool overflow = false;
 	while (true) {
@@ -685,7 +680,7 @@ public LiteralNatAst takeNat(ref MutCString ptr, ulong base) {
 		} else
 			break;
 	}
-	return LiteralNatAst(value, overflow);
+	return NatAndOverflow(value, overflow);
 }
 
 public bool tryTakeIdentifier(ref MutCString ptr) {

@@ -34,13 +34,12 @@ import model.model :
 	TypeParamIndex,
 	UnionMember;
 import util.alloc.alloc : Alloc;
-import util.col.array : fold, map, mapWithFirst, small;
+import util.col.array : emptySmallArray, fold, map, mapWithFirst, small, SmallArray;
 import util.col.hashTable : ValueAndDidAdd;
 import util.col.mutArr : MutArrWithAlloc, push;
 import util.col.mutMaxArr : asTemporaryArray, mapTo, MutMaxArr, mutMaxArr;
 import util.opt : force, MutOpt, noneMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.util : typeAs;
 
 // This is a copyable type
 struct InstantiateCtx {
@@ -95,23 +94,23 @@ FunInst* instantiateFun(ref InstantiateCtx ctx, FunDecl* decl, in TypeArgs typeA
 
 void instantiateStructTypes(ref InstantiateCtx ctx, StructInst* inst, scope MayDelayStructInsts delayStructInsts) {
 	TypeArgs typeArgs = inst.typeArgs;
-	inst.instantiatedTypes = inst.decl.body_.match!(Type[])(
+	inst.instantiatedTypes = inst.decl.body_.match!(SmallArray!Type)(
 		(StructBody.Bogus) =>
-			typeAs!(Type[])([]),
+			emptySmallArray!Type,
 		(BuiltinType _) =>
-			typeAs!(Type[])([]),
-		(StructBody.Enum e) =>
-			typeAs!(Type[])([]),
+			emptySmallArray!Type,
+		(ref StructBody.Enum e) =>
+			emptySmallArray!Type,
 		(StructBody.Extern e) =>
-			typeAs!(Type[])([]),
+			emptySmallArray!Type,
 		(StructBody.Flags f) =>
-			typeAs!(Type[])([]),
+			emptySmallArray!Type,
 		(StructBody.Record r) =>
-			map(ctx.alloc, r.fields, (ref RecordField f) =>
-				instantiateType(ctx, f.type, typeArgs, delayStructInsts)),
-		(StructBody.Union u) =>
-			map(ctx.alloc, u.members, (ref UnionMember x) =>
-				instantiateType(ctx, x.type, typeArgs, delayStructInsts)));
+			map!(Type, RecordField)(ctx.alloc, r.fields, (ref RecordField field) =>
+				instantiateType(ctx, field.type, typeArgs, delayStructInsts)),
+		(ref StructBody.Union u) =>
+			map!(Type, UnionMember)(ctx.alloc, u.members, (ref UnionMember member) =>
+				instantiateType(ctx, member.type, typeArgs, delayStructInsts)));
 }
 
 StructInst* instantiateStruct(

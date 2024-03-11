@@ -259,25 +259,26 @@ module-content string(a module, all-exports all-exports)
 	"""{var}<code class="parameter">{a name}</code> {type}"""
 
 -type-ref-content string(a type-ref, ctx ctx)
-	name = a name
-	if name == "option"
+	match a name
+	as "option"
 		a type-ref-suffix "?", ctx
-	elif name == "list"
+	as "list"
 		a type-ref-suffix "[]", ctx
-	elif name == "mut-list"
+	as "mut-list"
 		a type-ref-suffix " mut[]", ctx
-	elif name == "map"
+	as "map"
 		a type-ref-map "[", ctx
-	elif name == "mut-map"
+	as "mut-map"
 		a type-ref-map " mut[", ctx
-	elif name == "const-pointer"
+	as "const-pointer"
 		a type-ref-suffix "*", ctx
-	elif name == "mut-pointer"
+	as "mut-pointer"
 		a type-ref-suffix " mut*", ctx
-	elif type ?= fun-internal-name-to-keyword[name]
-		a type-ref-fun type, ctx
 	else
-		"{a.type-args type-args-content ctx}{name type-name-reference ctx}"
+		if type ?= fun-internal-name-to-keyword[a name]
+			a type-ref-fun type, ctx
+		else
+			"{a.type-args type-args-content ctx}{a.name type-name-reference ctx}"
 
 -type-ref-suffix string(a type-ref, suffix string, ctx ctx)
 	"{a.type-args.only type-ref-content ctx}{suffix keyword}"
@@ -310,9 +311,10 @@ special-specs symbol set()
 	"bare", "summon", "unsafe"
 
 -type-args-content string(a type-ref[], ctx ctx)
-	if a.size == 0
+	match a size
+	as 0
 		""
-	elif a.size == 1
+	as 1
 		"{a.only type-ref-content ctx} "
 	else
 		"({", " join for x : a; x type-ref-content ctx}) "

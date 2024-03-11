@@ -88,6 +88,8 @@ import model.model :
 	LoopUntilExpr,
 	LoopWhileExpr,
 	MatchEnumExpr,
+	MatchIntegralExpr,
+	MatchStringLikeExpr,
 	MatchUnionExpr,
 	Purity,
 	PtrToFieldExpr,
@@ -108,7 +110,9 @@ import util.col.array :
 	map,
 	mapOrNone,
 	mapZip,
+	mustFind,
 	newArray,
+	newSmallArray,
 	only,
 	only2,
 	PtrAndSmallNumber,
@@ -118,6 +122,7 @@ import util.col.array :
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : getOrAdd;
 import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2MustGet0, stackMap2MustGet1, withStackMap2;
+import util.integralValues : IntegralValue, IntegralValues, integralValuesRange, mapToIntegralValues;
 import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, none, Opt, optIf, some;
 import util.sourceRange : Range, UriAndRange;
@@ -270,15 +275,15 @@ ConcreteExpr concretizeCall(
 				? ConcreteExprKind(force(constant))
 				: ConcreteExprKind(ConcreteExprKind.Call(
 					concreteCalled,
-					mapZip(
+					small!ConcreteExpr(mapZip(
 						ctx.alloc,
 						concreteCalled.paramsIncludingClosure,
 						constants,
 						(ref ConcreteLocal p, ref Constant x) =>
-							ConcreteExpr(p.type, UriAndRange.empty, ConcreteExprKind(x)))));
+							ConcreteExpr(p.type, UriAndRange.empty, ConcreteExprKind(x))))));
 		},
 		(ConcreteExpr[] exprs) =>
-			ConcreteExprKind(ConcreteExprKind.Call(concreteCalled, exprs)));
+			ConcreteExprKind(ConcreteExprKind.Call(concreteCalled, small!ConcreteExpr(exprs))));
 	return ConcreteExpr(type, range, kind);
 }
 
@@ -385,8 +390,12 @@ ConcreteExpr createAllocExpr(ref Alloc alloc, ConcreteExpr inner) {
 		ConcreteExprKind(allocate(alloc, ConcreteExprKind.Alloc(inner))));
 }
 
-ConcreteField[] concretizeClosureFields(ref ConcretizeCtx ctx, VariableRef[] closure, TypeArgsScope typeArgsScope) =>
-	map(ctx.alloc, closure, (ref VariableRef x) {
+SmallArray!ConcreteField concretizeClosureFields(
+	ref ConcretizeCtx ctx,
+	SmallArray!VariableRef closure,
+	TypeArgsScope typeArgsScope,
+) =>
+	map!(ConcreteField, VariableRef)(ctx.alloc, closure, (ref VariableRef x) {
 		ConcreteType baseType = getConcreteType_fromConcretizeCtx(ctx, x.type, typeArgsScope);
 		ConcreteType type = () {
 			final switch (x.closureReferenceKind) {
@@ -462,7 +471,7 @@ ConcreteExpr concretizeLambda(
 					lambdaTypeArgs[1]])),
 				emptySmallArray!(immutable ConcreteFun*)));
 		return ConcreteExpr(type, range, ConcreteExprKind(
-			ConcreteExprKind.Call(sharedOfMutLambda, newArray(ctx.alloc, [inner]))));
+			ConcreteExprKind.Call(sharedOfMutLambda, newSmallArray(ctx.alloc, [inner]))));
 	} else
 		return concretizeLambdaInner(ctx, type, range, locals, e);
 }
@@ -488,7 +497,7 @@ ConcreteExpr concretizeLambdaInner(
 	ctx.nextLambdaIndex++;
 
 	TypeArgsScope tScope = typeScope(ctx);
-	ConcreteField[] closureFields = concretizeClosureFields(ctx.concretizeCtx, e.closure, tScope);
+	SmallArray!ConcreteField closureFields = concretizeClosureFields(ctx.concretizeCtx, e.closure, tScope);
 	ConcreteType closureType = concreteTypeFromClosure(
 		ctx.concretizeCtx,
 		closureFields,
@@ -566,18 +575,6 @@ ConcreteExpr concretizeLet(
 			concretizeExpr(ctx, localType, locals, e.value),
 			(in Locals innerLocals) =>
 				concretizeExpr(ctx, type, innerLocals, e.then));
-}
-
-ConcreteExprKind.MatchUnion.Case concretizeMatchCaseWithDestructure(
-	ref ConcretizeExprCtx ctx,
-	ConcreteType type,
-	in UriAndRange range,
-	in Locals locals,
-	ref Destructure destructure,
-	ref Expr expr,
-) {
-	RootLocalAndExpr res = concretizeExprWithDestructure(ctx, type, range, locals, destructure, expr);
-	return ConcreteExprKind.MatchUnion.Case(res.rootLocal, res.expr);
 }
 
 RootLocalAndExpr concretizeExprWithDestructure(
@@ -725,7 +722,9 @@ ConcreteExpr concretizeIfOption(
 		return ConcreteExpr(type, range, ConcreteExprKind(
 			allocate(ctx.alloc, ConcreteExprKind.MatchUnion(
 				option,
-				newArray!(ConcreteExprKind.MatchUnion.Case)(ctx.alloc, [noneCase, someCase])))));
+				integralValuesRange(2),
+				newSmallArray!(ConcreteExprKind.MatchUnion.Case)(ctx.alloc, [noneCase, someCase]),
+				none!(ConcreteExpr*)))));
 	}
 }
 
@@ -733,24 +732,25 @@ ConcreteExpr concretizeLiteralStringLike(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
 	in UriAndRange range,
-	ref LiteralStringLikeExpr a,
+	LiteralStringLikeExpr.Kind kind,
+	string value,
 ) {
-	final switch (a.kind) {
+	final switch (kind) {
 		case LiteralStringLikeExpr.Kind.char8Array:
-			return char8ArrayExpr(ctx.concretizeCtx, range, a.value);
+			return char8ArrayExpr(ctx.concretizeCtx, range, value);
 		case LiteralStringLikeExpr.Kind.char8List:
-			return char8ListExpr(ctx.concretizeCtx, type, range, a.value);
+			return char8ListExpr(ctx.concretizeCtx, type, range, value);
 		case LiteralStringLikeExpr.Kind.char32Array:
-			return char32ArrayExpr(ctx.concretizeCtx, range, a.value);
+			return char32ArrayExpr(ctx.concretizeCtx, range, value);
 		case LiteralStringLikeExpr.Kind.char32List:
-			return char32ListExpr(ctx.concretizeCtx, type, range, a.value);
+			return char32ListExpr(ctx.concretizeCtx, type, range, value);
 		case LiteralStringLikeExpr.Kind.cString:
-			return ConcreteExpr(type, range, ConcreteExprKind(constantCString(ctx.concretizeCtx, a.value)));
+			return ConcreteExpr(type, range, ConcreteExprKind(constantCString(ctx.concretizeCtx, value)));
 		case LiteralStringLikeExpr.Kind.string_:
-			return stringLiteralConcreteExpr(ctx.concretizeCtx, range, a.value);
+			return stringLiteralConcreteExpr(ctx.concretizeCtx, range, value);
 		case LiteralStringLikeExpr.Kind.symbol:
 			return ConcreteExpr(type, range, ConcreteExprKind(
-				constantSymbol(ctx.concretizeCtx, symbolOfString(a.value))));
+				constantSymbol(ctx.concretizeCtx, symbolOfString(value))));
 	}
 }
 
@@ -905,14 +905,59 @@ ConcreteExpr concretizeMatchEnum(
 	ConcreteType type,
 	in UriAndRange range,
 	in Locals locals,
-	ref MatchEnumExpr e,
+	ref MatchEnumExpr a,
 ) {
-	ConcreteExpr matched = concretizeExpr(ctx, locals, e.matched);
-	//TODO: If matched is a constant, just compile the relevant case
-	ConcreteExpr[] cases = map(ctx.alloc, e.cases, (ref Expr case_) =>
-		concretizeExpr(ctx, type, locals, case_));
-	return ConcreteExpr(type, range, ConcreteExprKind(
-		allocate(ctx.alloc, ConcreteExprKind.MatchEnum(matched, cases))));
+	ConcreteExpr matched = concretizeExpr(ctx, locals, a.matched);
+	IntegralValues values = mapToIntegralValues!(MatchEnumExpr.Case)(a.cases, (in MatchEnumExpr.Case x) =>
+		x.member.value);
+	// TODO: If matched is a constant, just compile the relevant case
+	ConcreteExpr[] cases = map(ctx.alloc, values, (ref IntegralValue value) =>
+		concretizeExpr(
+			ctx, type, locals,
+			mustFind!(MatchEnumExpr.Case)(a.cases, (in MatchEnumExpr.Case x) => x.member.value == value).then));
+	Opt!(ConcreteExpr*) else_ = optIf(has(a.else_), () =>
+		allocate(ctx.alloc, concretizeExpr(ctx, type, locals, force(a.else_))));
+	return ConcreteExpr(type, range, ConcreteExprKind(allocate(ctx.alloc,
+		ConcreteExprKind.MatchEnumOrIntegral(matched, values, cases, else_))));
+}
+
+ConcreteExpr concretizeMatchIntegral(
+	ref ConcretizeExprCtx ctx,
+	ConcreteType type,
+	in UriAndRange range,
+	in Locals locals,
+	ref MatchIntegralExpr a,
+) {
+	ConcreteExpr matched = concretizeExpr(ctx, locals, a.matched);
+	IntegralValues values = mapToIntegralValues!(MatchIntegralExpr.Case)(a.cases, (in MatchIntegralExpr.Case x) =>
+		x.value);
+	// TODO: If matched is a constant, just compile the relevant case
+	ConcreteExpr[] cases = map(ctx.alloc, values, (ref IntegralValue value) =>
+		concretizeExpr(ctx, type, locals, mustFind!(MatchIntegralExpr.Case)(a.cases, (in MatchIntegralExpr.Case x) =>
+			x.value == value).then));
+	Opt!(ConcreteExpr*) else_ = some(allocate(ctx.alloc, concretizeExpr(ctx, type, locals, a.else_)));
+	return ConcreteExpr(type, range, ConcreteExprKind(allocate(ctx.alloc,
+		ConcreteExprKind.MatchEnumOrIntegral(matched, values, cases, else_))));
+}
+
+ConcreteExpr concretizeMatchStringLike(
+	ref ConcretizeExprCtx ctx,
+	ConcreteType type,
+	in UriAndRange range,
+	in Locals locals,
+	ref MatchStringLikeExpr a,
+) {
+	Opt!(ConcreteFun*) equals = getConcreteFunFromCalled(ctx, a.equals);
+	if (!has(equals)) return concretizeBogus(ctx.concretizeCtx, type, range);
+
+	ConcreteExpr matched = concretizeExpr(ctx, locals, a.matched);
+	SmallArray!(ConcreteExprKind.MatchStringLike.Case) cases = map(
+		ctx.alloc, a.cases, (ref MatchStringLikeExpr.Case case_) =>
+			ConcreteExprKind.MatchStringLike.Case(
+				concretizeLiteralStringLike(ctx, matched.type, range, a.kind, case_.value),
+				concretizeExpr(ctx, type, locals, case_.then)));
+	return ConcreteExpr(type, range, ConcreteExprKind(allocate(ctx.alloc,
+		ConcreteExprKind.MatchStringLike(matched, force(equals), cases, concretizeExpr(ctx, type, locals, a.else_)))));
 }
 
 ConcreteExpr concretizeMatchUnion(
@@ -920,13 +965,21 @@ ConcreteExpr concretizeMatchUnion(
 	ConcreteType type,
 	in UriAndRange range,
 	in Locals locals,
-	ref MatchUnionExpr e,
+	ref MatchUnionExpr a,
 ) {
-	ConcreteExpr matched = concretizeExpr(ctx, locals, e.matched);
-	ConcreteExprKind.MatchUnion.Case[] cases = map(ctx.alloc, e.cases, (ref MatchUnionExpr.Case case_) =>
-		concretizeMatchCaseWithDestructure(ctx, type, range, locals, case_.destructure, case_.then));
+	ConcreteExpr matched = concretizeExpr(ctx, locals, a.matched);
+	IntegralValues values = mapToIntegralValues!(MatchUnionExpr.Case)(a.cases, (in MatchUnionExpr.Case x) =>
+		IntegralValue(x.member.memberIndex));
+	SmallArray!(ConcreteExprKind.MatchUnion.Case) cases = map(ctx.alloc, values, (ref IntegralValue value) {
+		MatchUnionExpr.Case case_ = mustFind!(MatchUnionExpr.Case)(a.cases, (in MatchUnionExpr.Case x) =>
+			IntegralValue(x.member.memberIndex) == value);
+		RootLocalAndExpr res = concretizeExprWithDestructure(ctx, type, range, locals, case_.destructure, case_.then);
+		return ConcreteExprKind.MatchUnion.Case(res.rootLocal, res.expr);
+	});
+	Opt!(ConcreteExpr*) else_ = optIf(has(a.else_), () =>
+		allocate(ctx.alloc, concretizeExpr(ctx, type, locals, *force(a.else_))));
 	return ConcreteExpr(type, range, ConcreteExprKind(
-		allocate(ctx.alloc, ConcreteExprKind.MatchUnion(matched, cases))));
+		allocate(ctx.alloc, ConcreteExprKind.MatchUnion(matched, values, cases, else_))));
 }
 
 ConcreteVariableRef concretizeVariableRefForClosure(
@@ -950,10 +1003,10 @@ ConcreteExpr concretizeAssertOrForbid(
 	ConcreteType type,
 	in UriAndRange range,
 	in Locals locals,
-	in AssertOrForbidExpr a,
+	ref AssertOrForbidExpr a,
 ) {
 	assert(isVoid(type));
-	ConcreteExpr condition = concretizeExpr(ctx, boolType(ctx), locals, *a.condition);
+	ConcreteExpr condition = concretizeExpr(ctx, boolType(ctx), locals, a.condition);
 	ConcreteExpr thrown = has(a.thrown)
 		? concretizeExpr(ctx, stringType(ctx.concretizeCtx), locals, *force(a.thrown))
 		: stringLiteralConcreteExpr(ctx.concretizeCtx, range, defaultAssertOrForbidMessage(ctx, a));
@@ -995,7 +1048,7 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 	if (isBogus(type))
 		return concretizeBogus(ctx.concretizeCtx, type, range);
 	return a.kind.match!ConcreteExpr(
-		(AssertOrForbidExpr x) =>
+		(ref AssertOrForbidExpr x) =>
 			concretizeAssertOrForbid(ctx, type, range, locals, x),
 		(BogusExpr) =>
 			concretizeBogus(ctx.concretizeCtx, type, range),
@@ -1015,10 +1068,10 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 			concretizeLambda(ctx, type, range, locals, x),
 		(ref LetExpr x) =>
 			concretizeLet(ctx, type, range, locals, x),
-		(ref LiteralExpr x) =>
+		(LiteralExpr x) =>
 			ConcreteExpr(type, range, ConcreteExprKind(x.value)),
 		(LiteralStringLikeExpr x) =>
-			concretizeLiteralStringLike(ctx, type, range, x),
+			concretizeLiteralStringLike(ctx, type, range, x.kind, x.value),
 		(LocalGetExpr x) =>
 			concretizeLocalGet(ctx, type, range, locals, x.local),
 		(LocalSetExpr x) =>
@@ -1035,6 +1088,10 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 			concretizeLoopWhile(ctx, type, range, locals, x),
 		(ref MatchEnumExpr x) =>
 			concretizeMatchEnum(ctx, type, range, locals, x),
+		(ref MatchIntegralExpr x) =>
+			concretizeMatchIntegral(ctx, type, range, locals, x),
+		(ref MatchStringLikeExpr x) =>
+			concretizeMatchStringLike(ctx, type, range, locals, x),
 		(ref MatchUnionExpr x) =>
 			concretizeMatchUnion(ctx, type, range, locals, x),
 		(ref PtrToFieldExpr x) =>

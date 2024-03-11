@@ -119,7 +119,8 @@ CommonFunsAndMain getCommonFuns(
 
 	Type rFutureSharedOfP = instantiateType(commonTypes.funStructs[FunKind.shared_], [tFuture, typeParam1]);
 	Type rFutureMutOfP = instantiateType(commonTypes.funStructs[FunKind.mut], [tFuture, typeParam1]);
-	Type symbolJsonTuple = instantiateType(tuple2Decl, [Type(commonTypes.symbol), jsonType]);
+	Type symbolType = Type(commonTypes.symbol);
+	Type symbolJsonTuple = instantiateType(tuple2Decl, [symbolType, jsonType]);
 	Type symbolJsonTupleArray = instantiateType(arrayDecl, [symbolJsonTuple]);
 	ParamsShort.Variadic newJsonPairsParams = ParamsShort.Variadic(
 		param!"pairs"(symbolJsonTupleArray), symbolJsonTuple);

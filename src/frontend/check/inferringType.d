@@ -35,7 +35,7 @@ import util.col.array :
 	small,
 	zip,
 	zipEvery;
-import util.col.arrayBuilder : add, ArrayBuilder, arrBuilderIsEmpty, asTemporaryArray, finish;
+import util.col.arrayBuilder : add, ArrayBuilder, arrayBuilderIsEmpty, asTemporaryArray, finish;
 import util.col.enumMap : enumMapFindKey;
 import util.col.mutMaxArr : asTemporaryArray;
 import util.opt : has, force, MutOpt, none, noneMut, Opt, optOrDefault, some, someInout, someMut;
@@ -281,7 +281,7 @@ Opt!size_t findExpectedStructForLiteral(
 			if (has(cellGet(rslt))) {
 				StructInst* rsltStruct = choices[force(cellGet(rslt))];
 				if (struct_ != rsltStruct) {
-					if (arrBuilderIsEmpty(multiple))
+					if (arrayBuilderIsEmpty(multiple))
 						add(ctx.alloc, multiple, rsltStruct);
 					if (!contains(asTemporaryArray(multiple), struct_))
 						add(ctx.alloc, multiple, struct_);
@@ -314,7 +314,7 @@ Opt!size_t findExpectedStructForLiteral(
 	if (ambiguous || !has(cellGet(rslt))) {
 		addDiag2(ctx, source, Diag(Diag.LiteralNotExpected(getExpectedForDiag(ctx, expected))));
 		return none!size_t;
-	} else if (!arrBuilderIsEmpty(multiple)) {
+	} else if (!arrayBuilderIsEmpty(multiple)) {
 		addDiag2(ctx, source, Diag(Diag.LiteralMultipleMatch(ctx.typeContainer, finish(ctx.alloc, multiple))));
 		return none!size_t;
 	} else
@@ -374,7 +374,7 @@ MutOpt!ExpectedLambdaType getExpectedLambda(
 				ctx, source, choice.context, declaredParamType, funType, anyDiag);
 			if (has(actualParamType)) {
 				if (has(cellGet(res))) {
-					if (arrBuilderIsEmpty(multiple)) {
+					if (arrayBuilderIsEmpty(multiple)) {
 						ExpectedLambdaType prev = force(cellGet(res));
 						add(ctx.alloc, multiple, applyInferred(
 							ctx.instantiateCtx, TypeAndContext(Type(prev.funType.structInst), prev.typeContext)));
@@ -388,7 +388,7 @@ MutOpt!ExpectedLambdaType getExpectedLambda(
 	});
 
 	if (anyDiag) {
-		if (!arrBuilderIsEmpty(multiple))
+		if (!arrayBuilderIsEmpty(multiple))
 			addDiag2(ctx, source, Diag(
 				Diag.LambdaMultipleMatch(ExpectedForDiag.Choices(finish(ctx.alloc, multiple), ctx.typeContainer))));
 		return noneMut!ExpectedLambdaType;

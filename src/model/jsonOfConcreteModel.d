@@ -26,6 +26,7 @@ import model.constant : Constant;
 import model.jsonOfConstant : jsonOfConstant;
 import model.model : EnumFunction, Local;
 import util.alloc.alloc : Alloc;
+import util.integralValues : IntegralValue, IntegralValues;
 import util.json :
 	field, Json, jsonObject, optionalArrayField, optionalField, optionalFlagField, jsonList, jsonString, kindField;
 import util.sourceRange : jsonOfLineAndColumnRange;
@@ -315,15 +316,30 @@ Json jsonOfConcreteExprKind(ref Alloc alloc, in Ctx ctx, in ConcreteExprKind a) 
 				field!"value"(jsonOfConcreteExpr(alloc, ctx, x.value))]),
 		(in ConcreteExprKind.LoopContinue x) =>
 			jsonObject(alloc, [kindField!"continue"]),
-		(in ConcreteExprKind.MatchEnum x) =>
+		(in ConcreteExprKind.MatchEnumOrIntegral x) =>
 			jsonObject(alloc, [
-				kindField!"match-enum",
-				field!"value"(jsonOfConcreteExpr(alloc, ctx, x.matchedValue)),
-				field!"cases"(jsonOfConcreteExprs(alloc, ctx, x.cases))]),
+				kindField!"match-integral",
+				field!"value"(jsonOfConcreteExpr(alloc, ctx, x.matched)),
+				field!"case-values"(jsonOfIntegralValues(alloc, x.caseValues)),
+				field!"case-exprs"(jsonOfConcreteExprs(alloc, ctx, x.caseExprs)),
+				optionalField!("else", immutable ConcreteExpr*)(x.else_, (in immutable ConcreteExpr* else_) =>
+					jsonOfConcreteExpr(alloc, ctx, *else_))]),
+		(in ConcreteExprKind.MatchStringLike x) =>
+			jsonObject(alloc, [
+				kindField!"match-string-like",
+				field!"value"(jsonOfConcreteExpr(alloc, ctx, x.matched)),
+				field!"cases"(jsonList!(ConcreteExprKind.MatchStringLike.Case)(
+					alloc,
+					x.cases,
+					(in ConcreteExprKind.MatchStringLike.Case case_) =>
+						jsonObject(alloc, [
+							field!"value"(jsonOfConcreteExpr(alloc, ctx, case_.value)),
+							field!"then"(jsonOfConcreteExpr(alloc, ctx, case_.then))]))),
+				field!"else"(jsonOfConcreteExpr(alloc, ctx, x.else_))]),
 		(in ConcreteExprKind.MatchUnion x) =>
 			jsonObject(alloc, [
 				kindField!"match-union",
-				field!"value"(jsonOfConcreteExpr(alloc, ctx, x.matchedValue)),
+				field!"value"(jsonOfConcreteExpr(alloc, ctx, x.matched)),
 				field!"cases"(jsonList!(ConcreteExprKind.MatchUnion.Case)(
 					alloc,
 					x.cases,
@@ -376,3 +392,9 @@ Json jsonOfConcreteVariableRef(ref Alloc alloc, in ConcreteVariableRef a) =>
 			jsonOfConcreteLocalRef(x),
 		(in ConcreteClosureRef x) =>
 			jsonOfConcreteClosureRef(alloc, x));
+
+public Json jsonOfIntegralValues(ref Alloc alloc, in IntegralValues a) =>
+	a.isRange0ToN
+		? Json(a.length)
+		: jsonList!IntegralValue(alloc, a, (in IntegralValue x) =>
+			Json(x.value));

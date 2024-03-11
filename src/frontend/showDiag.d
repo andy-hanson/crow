@@ -19,6 +19,7 @@ import frontend.showModel :
 	writeSigSimple,
 	writeStructInst,
 	writeTypeQuoted,
+	writeTypeUnquoted,
 	writeUri,
 	writeUriAndRange,
 	writeVisibility;
@@ -40,6 +41,7 @@ import model.model :
 	BuiltinType,
 	CalledDecl,
 	eachDiagnostic,
+	EnumOrFlagsMember,
 	FunDeclAndTypeArgs,
 	Local,
 	LocalMutability,
@@ -54,22 +56,31 @@ import model.model :
 	StructDecl,
 	StructInst,
 	Type,
-	TypeParamsAndSig;
+	TypeParamsAndSig,
+	UnionMember;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.col.array : contains, exists, isEmpty, only;
-import util.col.arrayBuilder : arrBuilderSort, buildArray, Builder;
+import util.col.arrayBuilder : arrayBuilderSort, buildArray, Builder;
 import util.col.multiMap : makeMultiMap, MultiMap, MultiMapCb;
 import util.col.sortUtil : sorted;
 import util.comparison : Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : compareRange;
 import util.symbol : Symbol, symbol;
-import util.unicode : isValidUnicodeCharacter;
 import util.uri : baseName, compareUriAlphabetically, Uri;
 import util.util : stringOfEnum, max;
 import util.writer :
-	makeStringWithWriter, writeHex, writeNewline, writeWithCommas, writeWithNewlines, writeWithSeparator, Writer;
+	makeStringWithWriter,
+	writeFloatLiteral,
+	writeHex,
+	writeNewline,
+	writeQuotedChar,
+	writeQuotedString,
+	writeWithCommas,
+	writeWithNewlines,
+	writeWithSeparator,
+	Writer;
 
 string stringOfDiagnostics(ref Alloc alloc, in ShowDiagCtx ctx, in Program program, in Opt!(Uri[]) onlyForUris) =>
 	makeStringWithWriter(alloc, (scope ref Writer writer) {
@@ -119,7 +130,7 @@ UriAndDiagnostics[] sortedDiagnostics(ref Alloc alloc, in Program program) {
 				compareDiagnostic(x, y));
 			res ~= UriAndDiagnostics(uri, sortedDiags);
 		}
-		arrBuilderSort!UriAndDiagnostics(res, (in UriAndDiagnostics x, in UriAndDiagnostics y) =>
+		arrayBuilderSort!UriAndDiagnostics(res, (in UriAndDiagnostics x, in UriAndDiagnostics y) =>
 			compareUriAlphabetically(x.uri, y.uri));
 	});
 }
@@ -198,6 +209,9 @@ void writeParseDiag(scope ref Writer writer, in ShowCtx ctx, in ParseDiag d) {
 			writer ~= x.actual;
 			writer ~= "'.";
 		},
+		(in ParseDiag.MatchCaseInterpolated) {
+			writer ~= "'match' only works with literal strings, not interpolated strings.";
+		},
 		(in ParseDiag.MissingExpression x) {
 			writer ~= "Expected an expression here.";
 		},
@@ -230,9 +244,9 @@ void writeParseDiag(scope ref Writer writer, in ShowCtx ctx, in ParseDiag d) {
 			writer ~= "Parentheses are unnecessary.";
 		},
 		(in ParseDiag.UnexpectedCharacter x) {
-			writer ~= "Unexpected character '";
-			showChar(writer, x.character);
-			writer ~= "' (U+";
+			writer ~= "Unexpected character ";
+			writeQuotedChar(writer, x.character);
+			writer ~= " (U+";
 			writeHex(writer, x.character, minDigits: 4);
 			writer ~= ").";
 		},
@@ -272,10 +286,12 @@ string showParseDiagExpected(ParseDiag.Expected.Kind kind) {
 			return "Expected ' =>' after lambda parameters.";
 		case ParseDiag.Expected.Kind.less:
 			return "Expected '<'.";
-		case ParseDiag.Expected.Kind.literalIntOrNat:
+		case ParseDiag.Expected.Kind.literalIntegral:
 			return "Expected an integer.";
 		case ParseDiag.Expected.Kind.literalNat:
 			return "Expected a natural number.";
+		case ParseDiag.Expected.Kind.matchCase:
+			return "A branch of a 'match' must be an identifier, number literal, or string literal.";
 		case ParseDiag.Expected.Kind.name:
 			return "Expected a name (non-operator).";
 		case ParseDiag.Expected.Kind.namedArgument:
@@ -331,23 +347,6 @@ void showReadFileDiag(scope ref Writer writer, in ShowCtx ctx, ReadFileDiag a, O
 			break;
 		case ReadFileDiag.unknown:
 			assert(false);
-	}
-}
-
-void showChar(scope ref Writer writer, dchar c) {
-	switch (c) {
-		case '\0':
-			writer ~= "\\0";
-			break;
-		case '\n':
-			writer ~= "\\n";
-			break;
-		case '\t':
-			writer ~= "\\t";
-			break;
-		default:
-			writer ~= isValidUnicodeCharacter(c) ? c : '�';
-			break;
 	}
 }
 
@@ -642,13 +641,6 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 				writer ~= cast(ulong) x.value;
 			writer ~= '.';
 		},
-		(in Diag.EnumMemberOverflows x) {
-			writer ~= "Enum member is not in the allowed range from ";
-			writer ~= minValue(x.storage);
-			writer ~= " to ";
-			writer ~= maxValue(x.storage);
-			writer ~= '.';
-		},
 		(in Diag.ExpectedTypeIsNotALambda x) {
 			if (has(x.expectedType)) {
 				writer ~= "The expected type at the lambda is ";
@@ -822,6 +814,12 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writeTypeQuoted(writer, ctx, TypeWithContainer(x.referencedType, TypeContainer(x.containingType)));
 			writer ~= '.';
 		},
+		(in Diag.LiteralFloatAccuracy x) {
+			writer ~= "Literal of type '";
+			writeName(writer, ctx, stringOfEnum(x.type));
+			writer ~= "' will be rounded to ";
+			writeFloatLiteral(writer, x.actual);
+		},
 		(in Diag.LiteralMultipleMatch x) {
 			writer ~= "Multiple possible types for literal expression: ";
 			writeWithCommas!(StructInst*)(writer, x.types, (in StructInst* type) {
@@ -838,8 +836,12 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			}
 		},
 		(in Diag.LiteralOverflow x) {
-			writer ~= "Literal exceeds the range of a ";
-			writeTypeQuoted(writer, ctx, x.type);
+			writer ~= "A value of type ";
+			writeName(writer, ctx, stringOfEnum(x.type));
+			writer ~= " must be from ";
+			writer ~= minValue(x.type);
+			writer ~= " to ";
+			writer ~= maxValue(x.type);
 			writer ~= '.';
 		},
 		(in Diag.LocalIgnoredButMutable) {
@@ -853,15 +855,62 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 		(in Diag.LoopWithoutBreak) {
 			writer ~= "'loop' has no 'break'.";
 		},
-		(in Diag.MatchCaseNamesDoNotMatch x) {
-			writer ~= "Expected the case names to be: ";
-			writeWithCommas!Symbol(writer, x.expectedNames, (in Symbol name) {
-				writeName(writer, ctx, name);
-			});
+		(in Diag.MatchCaseDuplicate x) {
+			writer ~= "Duplicate branch ";
+			x.kind.matchIn!void(
+				(in Symbol x) {
+					writeName(writer, ctx, x);
+				},
+				(in string x) {
+					writeQuotedString(writer, x);
+				},
+				(in ulong x) {
+					writer ~= x;
+				},
+				(in long x) {
+					writer ~= x;
+				});
 		},
-		(in Diag.MatchCaseNoValueForEnum x) {
-			writer ~= "Matching on enum ";
-			writeName(writer, ctx, x.enum_.name);
+		(in Diag.MatchCaseForType x) {
+			writer ~= () {
+				final switch (x.kind) {
+					case Diag.MatchCaseForType.Kind.enumOrUnion:
+						return "To match an enum or union, branches must use identifiers.";
+					case Diag.MatchCaseForType.Kind.numeric:
+						return "To match a number, branches must use number literals.";
+					case Diag.MatchCaseForType.Kind.stringLike:
+						return "To match a string-like type, branches must use identifiers or string literals.";
+				}
+			}();
+		},
+		(in Diag.MatchCaseNameDoesNotMatch x) {
+			if (has(x.actual)) {
+				bool isEnum = x.enumOrUnion.body_.isA!(StructBody.Enum*);
+				writer ~= (isEnum ? "Enum " : "Union ");
+				writeName(writer, ctx, x.enumOrUnion.name);
+				writer ~= " has no member ";
+				writer ~= force(x.actual);
+				writer ~= ".\nThis should be one of: ";
+				if (isEnum) {
+					writeWithCommas!EnumOrFlagsMember(
+						writer, x.enumOrUnion.body_.as!(StructBody.Enum*).members, (in EnumOrFlagsMember member) {
+							writeName(writer, ctx, member.name);
+						});
+				} else
+					writeWithCommas!UnionMember(
+						writer, x.enumOrUnion.body_.as!(StructBody.Union*).members, (in UnionMember member) {
+							writeName(writer, ctx, member.name);
+						});
+			} else
+				writer ~= "Can't use string literal when matching an enum or union.";
+		},
+		(in Diag.MatchCaseNoValueForEnumOrSymbol x) {
+			writer ~= "Matching on ";
+			if (has(x.enum_)) {
+				writer ~= "enum ";
+				writeName(writer, ctx, force(x.enum_).name);
+			} else
+				writeName(writer, ctx, symbol!"symbol");
 			writer ~= ", so case should not expect a value.";
 		},
 		(in Diag.MatchCaseShouldUseIgnore x) {
@@ -872,9 +921,37 @@ void writeDiag(scope ref Writer writer, in ShowDiagCtx ctx, in Diag diag) {
 			writer ~= '.';
 		},
 		(in Diag.MatchOnNonEnumOrUnion x) {
-			writer ~= "Can't match on non-'enum', non-'union' type ";
+			writer ~= "Can only match on enum, union, integral, symbol, string, or character type, not ";
 			writeTypeQuoted(writer, ctx, x.type);
 			writer ~= '.';
+		},
+		(in Diag.MatchUnhandledCases x) {
+			writer ~= "'match' is missing ";
+			size_t length = x.matchIn!size_t(
+				(in EnumOrFlagsMember*[] xs) => xs.length,
+				(in UnionMember*[] xs) => xs.length);
+			writer ~= (length == 1 ? "case" : "cases");
+			writer ~= ": ";
+			x.matchIn!void(
+				(in EnumOrFlagsMember*[] members) {
+					writeWithCommas!(EnumOrFlagsMember*)(writer, members, (in EnumOrFlagsMember* member) {
+						writeName(writer, ctx, member.name);
+					});
+				},
+				(in UnionMember*[] members) {
+					writeWithCommas!(UnionMember*)(writer, members, (in UnionMember* member) {
+						writeName(writer, ctx, member.name);
+						if (member.type != Type(ctx.commonTypes.void_)) {
+							writer ~= ' ';
+							writeTypeUnquoted(writer, ctx, TypeWithContainer(
+								member.type,
+								TypeContainer(member.containingUnion)));
+						}
+					});
+				});
+		},
+		(in Diag.MatchUnnecessaryElse x) {
+			writer ~= "'match' handles every case, so the 'else' is unused.";
 		},
 		(in Diag.ModifierConflict x) {
 			writeModifier(writer, ctx, x.curModifier);
@@ -1486,8 +1563,7 @@ string describeTokenForUnexpected(Token token) {
 			// This is ParseDiag.UnexpectedCharacter instead
 			assert(false);
 		case Token.literalFloat:
-		case Token.literalInt:
-		case Token.literalNat:
+		case Token.literalIntegral:
 			return "Unexpected number literal expression.";
 		case Token.loop:
 			return "Unexpected keyword 'loop'.";

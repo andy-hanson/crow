@@ -10,6 +10,8 @@ import model.model :
 	CalledDecl,
 	Destructure,
 	emptyTypeParams,
+	EnumOrFlagsMember,
+	FloatType,
 	FunDecl,
 	FunDeclAndTypeArgs,
 	IntegralType,
@@ -249,9 +251,6 @@ immutable struct Diag {
 		bool signed;
 		long value;
 	}
-	immutable struct EnumMemberOverflows {
-		IntegralType storage;
-	}
 	immutable struct ExpectedTypeIsNotALambda {
 		Opt!TypeWithContainer expectedType;
 	}
@@ -336,6 +335,10 @@ immutable struct Diag {
 		StructDecl* containingType;
 		Type referencedType;
 	}
+	immutable struct LiteralFloatAccuracy {
+		FloatType type;
+		double actual;
+	}
 	immutable struct LiteralMultipleMatch {
 		TypeContainer typeContainer;
 		StructInst*[] types;
@@ -344,18 +347,29 @@ immutable struct Diag {
 		ExpectedForDiag expected;
 	}
 	immutable struct LiteralOverflow {
-		TypeWithContainer type;
+		IntegralType type;
 	}
 	immutable struct LocalIgnoredButMutable {}
 	immutable struct LocalNotMutable {
 		VariableRef local;
 	}
 	immutable struct LoopWithoutBreak {}
-	immutable struct MatchCaseNamesDoNotMatch {
-		Symbol[] expectedNames;
+	immutable struct MatchCaseDuplicate {
+		immutable struct Kind {
+			mixin Union!(Symbol, string, ulong, long);
+		}
+		Kind kind;
 	}
-	immutable struct MatchCaseNoValueForEnum {
-		StructDecl* enum_;
+	immutable struct MatchCaseForType {
+		enum Kind { enumOrUnion, numeric, stringLike }
+		Kind kind;
+	}
+	immutable struct MatchCaseNameDoesNotMatch {
+		Opt!Symbol actual; // None for non-name case
+		StructDecl* enumOrUnion;
+	}
+	immutable struct MatchCaseNoValueForEnumOrSymbol {
+		Opt!(StructDecl*) enum_;
 	}
 	immutable struct MatchCaseShouldUseIgnore {
 		UnionMember* member;
@@ -363,6 +377,10 @@ immutable struct Diag {
 	immutable struct MatchOnNonEnumOrUnion {
 		TypeWithContainer type;
 	}
+	immutable struct MatchUnhandledCases {
+		mixin Union!(immutable EnumOrFlagsMember*[], immutable UnionMember*[]);
+	}
+	immutable struct MatchUnnecessaryElse {}
 
 	immutable struct ModifierConflict {
 		ModifierKeyword prevModifier;
@@ -592,7 +610,6 @@ immutable struct Diag {
 		DuplicateImports,
 		EnumBackingTypeInvalid,
 		EnumDuplicateValue,
-		EnumMemberOverflows,
 		ExpectedTypeIsNotALambda,
 		ExternFunVariadic,
 		ExternHasUnnecessaryLibraryName,
@@ -616,16 +633,21 @@ immutable struct Diag {
 		LambdaTypeVariadic,
 		LinkageWorseThanContainingFun,
 		LinkageWorseThanContainingType,
+		LiteralFloatAccuracy,
 		LiteralMultipleMatch,
 		LiteralNotExpected,
 		LiteralOverflow,
 		LocalIgnoredButMutable,
 		LocalNotMutable,
 		LoopWithoutBreak,
-		MatchCaseNamesDoNotMatch,
-		MatchCaseNoValueForEnum,
+		MatchCaseDuplicate,
+		MatchCaseForType,
+		MatchCaseNameDoesNotMatch,
+		MatchCaseNoValueForEnumOrSymbol,
 		MatchCaseShouldUseIgnore,
 		MatchOnNonEnumOrUnion,
+		MatchUnhandledCases,
+		MatchUnnecessaryElse,
 		ModifierConflict,
 		ModifierDuplicate,
 		ModifierInvalid,

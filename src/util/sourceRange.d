@@ -245,13 +245,13 @@ LineAndColumnGetter lineAndColumnGetterForText(ref Alloc alloc, return scope CSt
 		ptr++;
 		if (x == '\r' && *ptr == '\n') usesCRLF = true;
 		if (x == '\n' || (x == '\r' && *ptr != '\n')) {
-			add(alloc, lineToPos, safeToUint(ptr - text));
+			add(alloc, lineToPos, ptr - text);
 			add(alloc, lineToNTabs, advanceAndGetNTabs(ptr));
 		}
 	}
 
 	return LineAndColumnGetter(
-		LineAndCharacterGetter(stringOfRange(text, ptr), finish(alloc, lineToPos), safeToUint(ptr - text), usesCRLF),
+		LineAndCharacterGetter(stringOfRange(text, ptr), finish(alloc, lineToPos), ptr - text, usesCRLF),
 		finish(alloc, lineToNTabs));
 }
 

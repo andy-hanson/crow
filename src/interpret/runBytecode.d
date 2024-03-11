@@ -32,8 +32,10 @@ import interpret.stacks :
 import model.lowModel : LowProgram;
 import model.typeLayout : PackField;
 import util.alloc.alloc : Alloc;
+import util.col.array : indexOf;
 import util.conv : safeToSizeT;
 import util.exitCode : ExitCode;
+import util.integralValues : IntegralValue;
 import util.memory : memcpy, memmove, overwriteMemory;
 import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasureNoAlloc;
@@ -238,11 +240,28 @@ private void opJumpIfFalseInner(ref Stacks stacks, ref Operation* cur) {
 		cur += offset.offset;
 }
 
-alias opSwitch0ToN = operation!opSwitch0ToNInner;
-private void opSwitch0ToNInner(ref Stacks stacks, ref Operation* cur) {
+alias opSwitch0ToN(bool hasElse) = operation!(opSwitch0ToNInner!hasElse);
+private void opSwitch0ToNInner(bool hasElse)(ref Stacks stacks, ref Operation* cur) {
 	ByteCodeOffsetUnsigned[] offsets = readArray!ByteCodeOffsetUnsigned(cur);
 	ulong value = dataPop(stacks);
-	ByteCodeOffsetUnsigned offset = offsets[safeToSizeT(value)];
+	ByteCodeOffsetUnsigned offset = !hasElse || value < offsets.length ? offsets[safeToSizeT(value)] : offsets[$ - 1];
+	cur += offset.offset;
+}
+
+alias opSwitchWithValues = operation!opSwitchWithValuesInner;
+private void opSwitchWithValuesInner(ref Stacks stacks, ref Operation* cur) {
+	IntegralValue[] values = readArray!IntegralValue(cur);
+	ByteCodeOffsetUnsigned[] offsets = readArray!ByteCodeOffsetUnsigned(cur);
+	IntegralValue value = IntegralValue(dataPop(stacks));
+	Opt!size_t index = indexOf!IntegralValue(values, value);
+	ByteCodeOffsetUnsigned offset = () {
+		if (has(index))
+			return offsets[force(index)];
+		else {
+			assert(offsets.length == values.length + 1);
+			return offsets[$ - 1];
+		}
+	}();
 	cur += offset.offset;
 }
 

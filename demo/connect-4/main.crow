@@ -29,15 +29,16 @@ CPU: CPU vs CPU
 	"Invalid option" read-stdin-until-parse x => x parse-settings
 
 -parse-settings ai-settings?(a string)
-	if a == "2"
+	match a
+	as "2"
 		((), ()),
-	elif a == "E"
+	as E
 		((), (6,)),
-	elif a == "M"
+	as M
 		((), (8,)),
-	elif a == "H"
+	as H
 		((), (9,)),
-	elif a == "CPU"
+	as CPU
 		((9,), (9,)),
 
 -show-winner string(winner color?)

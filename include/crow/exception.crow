@@ -82,7 +82,7 @@ Prepends 'description' to any thrown exception messages.
 		true
 	elif a == "wrap-main"
 		true
-	elif a == "invoke-action" || a == "invoke__saction"
+	elif a == "invoke-action" || a == "invoke__45action"
 		true
 	elif a == "add-first-task.lambda0" || a == "add__45first__45task__lambda0"
 		true

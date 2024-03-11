@@ -153,17 +153,6 @@ void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr
 		(in LowExprKind.LoopContinue x) {
 			cast(void) getLoop(info, x.loop);
 		},
-		(in LowExprKind.MatchUnion it) {
-			checkLowExpr(ctx, info, it.matchedValue.type, it.matchedValue);
-			zip!(LowType, LowExprKind.MatchUnion.Case)(
-				ctx.ctx.program.allUnions[it.matchedValue.type.as!(LowType.Union)].members,
-				it.cases,
-				(ref LowType memberType, ref LowExprKind.MatchUnion.Case case_) {
-					if (has(case_.local))
-						checkTypeEqual(ctx.ctx, memberType, force(case_.local).type);
-					checkLowExpr(ctx, info, type, case_.then);
-				});
-		},
 		(in LowExprKind.PtrCast it) {
 			// TODO: there are some limitations on target...
 			checkLowExpr(ctx, info, it.target.type, it.target);
@@ -185,9 +174,9 @@ void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr
 		(in LowExprKind.RecordFieldSet x) {
 			LowType.Record recordType = targetRecordType(x);
 			assert(targetIsPointer(x)); // TODO: then this function doesn't need to exist
-			checkLowExpr(ctx, info, x.target.type, *x.target);
+			checkLowExpr(ctx, info, x.target.type, x.target);
 			LowType fieldType = ctx.ctx.program.allRecords[recordType].fields[x.fieldIndex].type;
-			checkLowExpr(ctx, info, fieldType, *x.value);
+			checkLowExpr(ctx, info, fieldType, x.value);
 			checkTypeEqual(ctx.ctx, type, voidType);
 		},
 		(in LowExprKind.SizeOf it) {
@@ -216,14 +205,9 @@ void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr
 		(in LowExprKind.SpecialTernary) {
 			// TODO
 		},
-		(in LowExprKind.Switch0ToN it) {
-			checkLowExpr(ctx, info, it.value.type, it.value);
-			foreach (ref LowExpr case_; it.cases)
-				checkLowExpr(ctx, info, type, case_);
-		},
-		(in LowExprKind.SwitchWithValues it) {
-			checkLowExpr(ctx, info, it.value.type, it.value);
-			foreach (ref LowExpr case_; it.cases)
+		(in LowExprKind.Switch x) {
+			checkLowExpr(ctx, info, x.value.type, x.value);
+			foreach (ref LowExpr case_; x.caseExprs)
 				checkLowExpr(ctx, info, type, case_);
 		},
 		(in LowExprKind.TailRecur it) {

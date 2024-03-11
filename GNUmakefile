@@ -94,7 +94,6 @@ ldc_flags_common = $(d_flags_common)
 ifdef JIT
 	dmd_flags_common += -version=GccJitAvailable
 	ldc_flags_common += --d-version=GccJitAvailable
-	app_link += -L=-lgccjit
 endif
 
 dmd_flags_assert = $(dmd_flags_common) -check=on -boundscheck=on
@@ -104,7 +103,10 @@ ldc_wasm_flags = -mtriple=wasm32-unknown-unknown-wasm -L-allow-undefined
 ldc_fast_flags_no_tail_call = -O2 -L=--strip-all
 ldc_fast_flags = $(ldc_fast_flags_no_tail_call) --d-version=TailRecursionAvailable
 app_link = -L=-ldyncall_s -L=-ldyncallback_s -L=-ldynload_s -L=-lunwind \
-	-L=-L./dyncall/dyncall -L=-L./dyncall/dyncallback -L=-L./dyncall/dynload \
+	-L=-L./dyncall/dyncall -L=-L./dyncall/dyncallback -L=-L./dyncall/dynload
+ifdef JIT
+	app_link += -L=-lgccjit
+endif
 
 today = $(shell date --iso-8601 --utc)
 

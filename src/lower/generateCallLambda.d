@@ -3,23 +3,12 @@ module lower.generateCallLambda;
 @safe @nogc pure nothrow:
 
 import lower.lower : ConcreteFunToLowFunIndex, LowFunCause;
-import lower.lowExprHelpers : genLocal, genLocalByValue, genLocalGet;
-import model.concreteModel : ConcreteLambdaImpl;
-import model.lowModel :
-	AllLowTypes,
-	LowExpr,
-	LowExprKind,
-	LowFun,
-	LowFunBody,
-	LowFunExprBody,
-	LowFunSource,
-	LowLocal,
-	LowType;
+import lower.lowExprHelpers : genCall, genLocalByValue, genLocalGet, genUnionMatch;
+import model.lowModel : AllLowTypes, LowExpr, LowFun, LowFunBody, LowFunExprBody, LowFunSource, LowLocal, LowType;
 import util.alloc.alloc : Alloc;
-import util.col.array : mapZip, newArray;
+import util.col.array : newArray;
 import util.col.map : mustGet;
 import util.memory : allocate;
-import util.opt : some;
 import util.sourceRange : UriAndRange;
 import util.symbol : symbol;
 
@@ -36,24 +25,15 @@ LowFun generateCallLambda(
 	]);
 	LowExpr funParamGet = genLocalGet(range, &params[0]);
 	LowExpr argParamGet = genLocalGet(range, &params[1]);
-	size_t localIndex = params.length;
-
-	LowExprKind.MatchUnion.Case[] cases = mapZip(
-		alloc,
-		a.impls,
-		allTypes.allUnions[a.funType.as!(LowType.Union)].members,
-		(ref ConcreteLambdaImpl impl, ref LowType closureType) {
-			LowLocal* closureLocal = genLocal(alloc, symbol!"closure", localIndex, closureType);
-			localIndex = localIndex + 1;
-			LowExpr then = LowExpr(a.returnType, range, LowExprKind(
-				LowExprKind.Call(
-					mustGet(concreteFunToLowFunIndex, impl.impl),
-					newArray(alloc, [genLocalGet(range, closureLocal), argParamGet]))));
-			return LowExprKind.MatchUnion.Case(some(closureLocal), then);
-		});
-
-	LowExpr expr = LowExpr(a.returnType, range, LowExprKind(
-		allocate(alloc, LowExprKind.MatchUnion(funParamGet, cases))));
+	LowExpr expr = genUnionMatch(
+		alloc, a.returnType, range, funParamGet, allTypes.allUnions[a.funType.as!(LowType.Union)].members,
+		(size_t memberIndex, LowExpr asClosure) =>
+			genCall(
+				alloc,
+				range,
+				mustGet(concreteFunToLowFunIndex, a.impls[memberIndex].impl),
+				a.returnType,
+				[asClosure, argParamGet]));
 	return LowFun(
 		LowFunSource(
 			allocate(alloc, LowFunSource.Generated(symbol!"call", newArray(alloc, [a.returnType, a.funParamType])))),

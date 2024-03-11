@@ -12,7 +12,6 @@ import frontend.parse.lexer :
 	Lexer,
 	mustTakeToken,
 	range,
-	takeNextToken,
 	Token,
 	TokenAndData;
 import frontend.parse.parseExpr : parseFunExprBody, parseSingleStatementLine;
@@ -31,6 +30,7 @@ import frontend.parse.parseUtil :
 	takeNewlineOrDedent,
 	takeNewline_topLevel,
 	takeOrAddDiagExpectedToken,
+	tryTakeLiteralIntegral,
 	tryTakeToken;
 import model.ast :
 	EnumOrFlagsMemberAst,
@@ -40,11 +40,8 @@ import model.ast :
 	FunDeclAst,
 	ModifierAst,
 	ImportsOrExportsAst,
-	LiteralIntAst,
-	LiteralIntOrNat,
-	LiteralIntOrNatKind,
-	LiteralNatAst,
-	LiteralNatAndRange,
+	LiteralIntegral,
+	LiteralIntegralAndRange,
 	ModifierAst,
 	NameAndRange,
 	ParamsAst,
@@ -127,22 +124,14 @@ SmallArray!EnumOrFlagsMemberAst parseEnumOrFlagsMembers(ref Lexer lexer) =>
 	parseIndentedLines!EnumOrFlagsMemberAst(lexer, () {
 		Pos start = curPos(lexer);
 		Symbol name = takeName(lexer);
-		Opt!LiteralIntOrNat value = () {
+		Opt!LiteralIntegralAndRange value = () {
 			if (tryTakeToken(lexer, Token.equal)) {
-				Pos start = curPos(lexer);
-				switch (getPeekToken(lexer)) {
-					case Token.literalInt:
-						LiteralIntAst literal = takeNextToken(lexer).asLiteralInt;
-						return some(LiteralIntOrNat(range(lexer, start), LiteralIntOrNatKind(literal)));
-					case Token.literalNat:
-						LiteralNatAst literal = takeNextToken(lexer).asLiteralNat;
-						return some(LiteralIntOrNat(range(lexer, start), LiteralIntOrNatKind(literal)));
-					default:
-						addDiagExpected(lexer, ParseDiag.Expected.Kind.literalIntOrNat);
-						return none!LiteralIntOrNat;
-				}
+				Opt!LiteralIntegralAndRange res = tryTakeLiteralIntegral(lexer);
+				if (!has(res))
+					addDiagExpected(lexer, ParseDiag.Expected.Kind.literalIntegral);
+				return res;
 			} else
-				return none!LiteralIntOrNat;
+				return none!LiteralIntegralAndRange;
 		}();
 		return EnumOrFlagsMemberAst(range(lexer, start), name, value);
 	});
@@ -296,23 +285,23 @@ void parseSpecOrStructOrFun(
 
 StructBodyAst.Extern parseExternType(ref Lexer lexer) {
 	if (tryTakeToken(lexer, Token.parenLeft)) {
-		Opt!(LiteralNatAndRange*) size = parseNat(lexer);
-		Opt!(LiteralNatAndRange*) alignment = has(size) && tryTakeToken(lexer, Token.comma)
-			? parseNat(lexer)
-			: none!(LiteralNatAndRange*);
+		Opt!(LiteralIntegralAndRange*) size = parseIntegral(lexer);
+		Opt!(LiteralIntegralAndRange*) alignment = has(size) && tryTakeToken(lexer, Token.comma)
+			? parseIntegral(lexer)
+			: none!(LiteralIntegralAndRange*);
 		takeOrAddDiagExpectedToken(lexer, Token.parenRight, ParseDiag.Expected.Kind.closingParen);
 		return StructBodyAst.Extern(size, alignment);
 	} else
-		return StructBodyAst.Extern(none!(LiteralNatAndRange*), none!(LiteralNatAndRange*));
+		return StructBodyAst.Extern(none!(LiteralIntegralAndRange*), none!(LiteralIntegralAndRange*));
 }
-Opt!(LiteralNatAndRange*) parseNat(ref Lexer lexer) {
+Opt!(LiteralIntegralAndRange*) parseIntegral(ref Lexer lexer) {
 	Pos start = curPos(lexer);
-	Opt!LiteralNatAst res = takeOrAddDiagExpectedToken!LiteralNatAst(
-		lexer, ParseDiag.Expected.Kind.literalNat, (TokenAndData x) =>
-			optIf(x.token == Token.literalNat, () => x.asLiteralNat()));
+	Opt!LiteralIntegral res = takeOrAddDiagExpectedToken!LiteralIntegral(
+		lexer, ParseDiag.Expected.Kind.literalIntegral, (TokenAndData x) =>
+			optIf(x.token == Token.literalIntegral, () => x.asLiteralIntegral));
 	return has(res)
-		? some(allocate(lexer.alloc, LiteralNatAndRange(range(lexer, start), force(res))))
-		: none!(LiteralNatAndRange*);
+		? some(allocate(lexer.alloc, LiteralIntegralAndRange(range(lexer, start), force(res))))
+		: none!(LiteralIntegralAndRange*);
 }
 
 VarDeclAst parseVarDecl(

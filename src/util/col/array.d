@@ -6,7 +6,7 @@ import util.conv : safeToUshort;
 import util.memory : copyToFrom, initMemory, overwriteMemory;
 import util.opt : force, has, none, MutOpt, Opt, some, someMut;
 import util.union_ : TaggedUnion, Union;
-import util.util : max, typeAs;
+import util.util : castImmutable, max, typeAs;
 
 @safe @nogc nothrow:
 
@@ -84,6 +84,8 @@ struct MutSmallArray(T) {
 		assert(length < 0xffff); // sanity check
 		return sizeAndBegin.ptr[0 .. length];
 	}
+
+	@disable bool opEquals(in MutSmallArray!T rhs) scope const;
 
 	private:
 	PtrAndSmallNumber!T sizeAndBegin;
@@ -183,6 +185,8 @@ bool exists(T)(in T[] arr, in bool delegate(in T) @safe @nogc pure nothrow cb) =
 
 bool every(T)(in T[] arr, in bool delegate(in T) @safe @nogc pure nothrow cb) =>
 	everyWithIndex!T(arr, (size_t _, ref const T x) => cb(x));
+bool every(in bool[] a) =>
+	every(a, (in bool x) => x);
 
 bool everyWithIndex(T)(in T[] arr, in bool delegate(size_t, ref const T) @safe @nogc pure nothrow cb) {
 	foreach (size_t i, ref const T x; arr)
@@ -280,6 +284,13 @@ Opt!Out firstPointer(Out, In)(In[] a, in Opt!Out delegate(In*) @safe @nogc pure 
 	return none!Out;
 }
 
+Opt!Out firstZipIfSizeEq(Out, In0, In1)(
+	in In0[] a,
+	in In1[] b,
+	in Opt!Out delegate(In0, In1) @safe @nogc pure nothrow cb,
+) =>
+	sizeEq(a, b) ? firstZip!(Out, In0, In1)(a, b, cb) : none!Out;
+
 Opt!Out firstZip(Out, In0, In1)(in In0[] a, in In1[] b, in Opt!Out delegate(In0, In1) @safe @nogc pure nothrow cb) {
 	assert(sizeEq(a, b));
 	return firstWithIndex!(Out, In0)(a, (size_t i, In0 x) => cb(x, b[i]));
@@ -294,21 +305,13 @@ Opt!Out firstZipPointerFirst(Out, In0, In1)(
 	return firstWithIndex!(Out, In1)(b, (size_t i, In1 x) => cb(&a[i], x));
 }
 
-Opt!Out firstZipPointerFirst3(Out, In0, In1, In2)(
-	In0[] a,
-	in In1[] b,
-	in In2[] c,
-	in Opt!Out delegate(In0*, In1, In2) @safe @nogc pure nothrow cb,
-) {
-	assert(sizeEq3(a, b, c));
-	return firstWithIndex!(Out, In1)(b, (size_t i, In1 x) => cb(&a[i], x, c[i]));
-}
-
 SmallArray!T copyArray(T)(ref Alloc alloc, scope SmallArray!T a) =>
 	small!T(copyArray(alloc, a.toArray));
 T[] copyArray(T)(ref Alloc alloc, scope T[] a) =>
 	map!(T, T)(alloc, a, (ref T x) => x);
 
+SmallArray!Out map(Out, In)(ref Alloc alloc, in SmallArray!In a, in Out delegate(ref In) @safe @nogc pure nothrow cb) =>
+	small!Out(map!(Out, In)(alloc, a.toArray, cb));
 @trusted Out[] map(Out, In)(
 	ref Alloc alloc,
 	scope In[] a,
@@ -332,7 +335,6 @@ T[] copyArray(T)(ref Alloc alloc, scope T[] a) =>
 		initMemory!Out(&res[1 + i], cb(i, x));
 	return res;
 }
-
 size_t count(T)(in T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) {
 	size_t res = 0;
 	foreach (ref const T x; a)
@@ -405,19 +407,25 @@ NoneOneOrMany noneOneOrMany(T)(in T[] a, in bool delegate(in T) @safe @nogc pure
 	return some(res);
 }
 
-@trusted Out[] mapWithIndexAndConcatOne(Out, In)(
+@trusted Out[] mapWithIndexAndAppend(Out, In)(
 	ref Alloc alloc,
 	In[] a,
 	in Out delegate(size_t, ref In) @safe @nogc pure nothrow cb,
-	Out concatOne,
+	Out appended,
 ) {
 	Out[] res = allocateElements!Out(alloc, a.length + 1);
 	foreach (size_t i, ref In x; a)
 		initMemory!Out(&res[i], cb(i, x));
-	initMemory!Out(&res[a.length], concatOne);
+	initMemory!Out(&res[a.length], appended);
 	return res;
 }
 
+SmallArray!Out mapWithIndex(Out, In)(
+	ref Alloc alloc,
+	in SmallArray!In a,
+	in Out delegate(size_t, ref In) @safe @nogc pure nothrow cb,
+) =>
+	small!Out(mapWithIndex!(Out, In)(alloc, a.toArray, cb));
 Out[] mapWithIndex(Out, In)(
 	ref Alloc alloc,
 	in In[] a,
@@ -426,6 +434,12 @@ Out[] mapWithIndex(Out, In)(
 	mapPointers!(Out, In)(alloc, a, (In* x) @trusted =>
 		cb(x - a.ptr, *x));
 
+SmallArray!Out mapPointers(Out, In)(
+	ref Alloc alloc,
+	SmallArray!In a,
+	in Out delegate(In*) @safe @nogc pure nothrow cb,
+) =>
+	small!Out(mapPointers!(Out, In)(alloc, a.toArray, cb));
 @trusted Out[] mapPointers(Out, In)(
 	ref Alloc alloc,
 	In[] a,
@@ -437,9 +451,9 @@ Out[] mapWithIndex(Out, In)(
 	return res[0 .. a.length];
 }
 
-@trusted Out[] mapOpPointers(Out, In)(
+@trusted SmallArray!Out mapOpPointers(Out, In)(
 	ref Alloc alloc,
-	In[] a,
+	SmallArray!In a,
 	in Opt!Out delegate(In*) @safe @nogc pure nothrow cb,
 ) {
 	Out[] res = allocateElements!Out(alloc, a.length);
@@ -452,7 +466,7 @@ Out[] mapWithIndex(Out, In)(
 		}
 	}
 	freeElements(alloc, res[outI .. $]);
-	return res[0 .. outI];
+	return small!Out(res[0 .. outI]);
 }
 
 @system Out[] mapWithResultPointer(Out, In)(
@@ -480,17 +494,17 @@ T[] concatenate(T)(ref Alloc alloc, T[] a, T[] b) =>
 		? a
 		: concatenateIn!T(alloc, a, b);
 
-@trusted T[] concatenateIn(T)(ref Alloc alloc, scope T[] a, scope T[] b) {
+@trusted SmallArray!T concatenateIn(T)(ref Alloc alloc, in T[] a, in T[] b) {
 	T[] res = allocateElements!T(alloc, a.length + b.length);
 	copyToFrom!T(res[0 .. a.length], a);
 	copyToFrom!T(res[a.length .. $], b);
-	return res;
+	return small!T(castImmutable(res));
 }
 
-T[] append(T)(scope ref Alloc alloc, scope T[] a, T b) =>
+SmallArray!T append(T)(scope ref Alloc alloc, in T[] a, T b) =>
 	concatenateIn!T(alloc, a, [b]);
 
-T[] prepend(T)(scope ref Alloc alloc, T a, scope T[] b) =>
+SmallArray!T prepend(T)(scope ref Alloc alloc, T a, in T[] b) =>
 	concatenateIn!T(alloc, [a], b);
 
 bool zipEvery(T, U)(in T[] a, in U[] b, in bool delegate(ref const T, ref const U) @safe @nogc pure nothrow cb) {
@@ -519,6 +533,13 @@ void zipPtrFirst(T, U)(T[] a, scope U[] b, in void delegate(T*, ref U) @safe @no
 		cb(&a[i], b[i]);
 }
 
+SmallArray!Out mapZip(Out, In0, In1)(
+	ref Alloc alloc,
+	in SmallArray!In0 in0,
+	in SmallArray!In1 in1,
+	in Out delegate(ref In0, ref In1) @safe @nogc pure nothrow cb,
+) =>
+	small!Out(mapZip!(Out, In0, In1)(alloc, in0.toArray, in1.toArray, cb));
 @trusted Out[] mapZip(Out, In0, In1)(
 	ref Alloc alloc,
 	scope In0[] in0,
@@ -552,18 +573,6 @@ void zipPtrFirst(T, U)(T[] a, scope U[] b, in void delegate(T*, ref U) @safe @no
 		cb(&in0[i], in1[i]));
 }
 
-@trusted Out[] mapZipPointers3(Out, In0, In1, In2)(
-	ref Alloc alloc,
-	In0[] in0,
-	In1[] in1,
-	In2[] in2,
-	in Out delegate(In0*, In1*, In2*) @safe @nogc pure nothrow cb,
-) {
-	assert(sizeEq(in0, in1) && sizeEq(in1, in2));
-	return makeArray(alloc, in0.length, (size_t i) =>
-		cb(&in0[i], &in1[i], &in2[i]));
-}
-
 bool arraysCorrespond(T, U)(
 	in T[] a,
 	in U[] b,
@@ -581,6 +590,11 @@ T fold(T, U)(T start, in U[] arr, in T delegate(T a, in U b) @safe @nogc pure no
 	isEmpty(arr)
 		? start
 		: fold!(T, U)(cb(start, arr[0]), arr[1 .. $], cb);
+
+T foldReverse(T, U)(T start, in U[] arr, in T delegate(T a, ref U b) @safe @nogc pure nothrow cb) =>
+	isEmpty(arr)
+		? start
+		: foldReverse!(T, U)(cb(start, arr[$ - 1]), arr[0 .. $ - 1], cb);
 
 N maxBy(N, T)(N start, in T[] a, in N delegate(in T) @safe @nogc pure nothrow cb) =>
 	fold!(N, T)(start, a, (N curMax, in T x) => .max(curMax, cb(x)));

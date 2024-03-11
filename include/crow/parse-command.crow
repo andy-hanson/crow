@@ -71,10 +71,11 @@ Useful for arguments that should have a single string as their value.
 ###
 +single-string-or-throw string(a string[]?, option-name string)
 	if strs ?= a
-		if strs.size == 1
-			strs[0]
-		elif strs.size == 0
+		match strs size
+		as 0
 			throw "{option-name} needs a value"
+		as 1
+			strs[0]
 		else
 			throw "{option-name} got too many values"
 	else

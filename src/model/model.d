@@ -26,6 +26,7 @@ import util.alloc.alloc : Alloc;
 import util.col.array :
 	arrayOfSingle,
 	emptySmallArray,
+	every,
 	exists,
 	first,
 	isEmpty,
@@ -33,13 +34,13 @@ import util.col.array :
 	newArray,
 	only,
 	PtrAndSmallNumber,
-	small,
 	SmallArray,
 	sum;
 import util.col.hashTable : existsInHashTable, HashTable;
 import util.col.map : Map;
 import util.col.enumMap : EnumMap;
 import util.conv : safeToUint;
+import util.integralValues : IntegralValue;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : force, has, none, Opt, optEqual, some;
 import util.sourceRange : combineRanges, UriAndRange, Pos, Range;
@@ -258,7 +259,7 @@ immutable struct UnionMember {
 	Type type; // This will be 'void' if no type is specified
 
 	size_t memberIndex() =>
-		mustHaveIndexOfPointer(containingUnion.body_.as!(StructBody.Union).members, &this);
+		mustHaveIndexOfPointer(containingUnion.body_.as!(StructBody.Union*).members, &this);
 	Uri moduleUri() scope =>
 		containingUnion.moduleUri;
 	Visibility visibility() scope =>
@@ -285,18 +286,6 @@ immutable struct RecordFlags {
 }
 static assert(RecordFlags.sizeof == uint.sizeof);
 
-immutable struct EnumValue {
-	@safe @nogc pure nothrow:
-
-	// Large nat64 are represented as wrapped to negative values.
-	long value;
-
-	long asSigned() =>
-		value;
-	ulong asUnsigned() =>
-		cast(ulong) value;
-}
-
 immutable struct EnumMemberSource {
 	@safe @nogc pure nothrow:
 	mixin TaggedUnion!(EnumOrFlagsMemberAst*, DestructureAst.Single*);
@@ -320,10 +309,10 @@ immutable struct EnumOrFlagsMember {
 
 	EnumMemberSource source;
 	StructDecl* containingEnum;
-	EnumValue value;
+	IntegralValue value;
 
 	size_t memberIndex() =>
-		mustHaveIndexOfPointer(containingEnum.body_.as!(StructBody.Enum).members, &this);
+		mustHaveIndexOfPointer(containingEnum.body_.as!(StructBody.Enum*).members, &this);
 	Uri moduleUri() scope =>
 		containingEnum.moduleUri;
 	Visibility visibility() scope =>
@@ -341,6 +330,7 @@ immutable struct StructBody {
 	immutable struct Enum {
 		IntegralType storage;
 		SmallArray!EnumOrFlagsMember members;
+		HashTable!(EnumOrFlagsMember*, Symbol, nameOfEnumOrFlagsMember) membersByName;
 	}
 	immutable struct Extern {
 		Opt!TypeSize size;
@@ -354,15 +344,20 @@ immutable struct StructBody {
 		SmallArray!RecordField fields;
 	}
 	immutable struct Union {
-		UnionMember[] members;
+		SmallArray!UnionMember members;
+		HashTable!(UnionMember*, Symbol, nameOfUnionMember) membersByName;
 	}
 
-	mixin .Union!(Bogus, BuiltinType, Enum, Extern, Flags, Record, Union);
+	mixin .Union!(Bogus, BuiltinType, Enum*, Extern, Flags, Record, Union*);
 }
-static assert(StructBody.sizeof == size_t.sizeof + StructBody.Record.sizeof);
+static assert(StructBody.sizeof == StructBody.Record.sizeof + size_t.sizeof);
 
-alias BuiltinType = immutable BuiltinType_;
-private enum BuiltinType_ {
+Symbol nameOfEnumOrFlagsMember(in EnumOrFlagsMember* a) =>
+	a.name;
+Symbol nameOfUnionMember(in UnionMember* a) =>
+	a.name;
+
+enum BuiltinType {
 	bool_,
 	char8,
 	char32,
@@ -373,7 +368,7 @@ private enum BuiltinType_ {
 	int16,
 	int32,
 	int64,
-	lambda, // 'data', 'shared', or 'mut' lambda type. Not 'function' or 'far'.
+	lambda, // 'data', 'shared', or 'mut' lambda type. Not 'function'.
 	nat8,
 	nat16,
 	nat32,
@@ -382,6 +377,31 @@ private enum BuiltinType_ {
 	pointerMut,
 	void_,
 }
+bool isCharOrIntegral(BuiltinType a) {
+	final switch (a) {
+		case BuiltinType.char8:
+		case BuiltinType.char32:
+		case BuiltinType.int8:
+		case BuiltinType.int16:
+		case BuiltinType.int32:
+		case BuiltinType.int64:
+		case BuiltinType.nat8:
+		case BuiltinType.nat16:
+		case BuiltinType.nat32:
+		case BuiltinType.nat64:
+			return true;
+		case BuiltinType.bool_:
+		case BuiltinType.float32:
+		case BuiltinType.float64:
+		case BuiltinType.funPointer:
+		case BuiltinType.lambda:
+		case BuiltinType.pointerConst:
+		case BuiltinType.pointerMut:
+		case BuiltinType.void_:
+			return false;
+	}
+}
+
 
 immutable struct StructAlias {
 	@safe @nogc pure nothrow:
@@ -516,11 +536,11 @@ immutable struct StructInst {
 	// Otherwise this is empty.
 	private Late!(SmallArray!Type) lateInstantiatedTypes;
 
-	Type[] instantiatedTypes() return scope =>
+	SmallArray!Type instantiatedTypes() return scope =>
 		lateGet(lateInstantiatedTypes);
 
-	void instantiatedTypes(Type[] value) {
-		lateSet(lateInstantiatedTypes, small!Type(value));
+	void instantiatedTypes(SmallArray!Type value) {
+		lateSet(lateInstantiatedTypes, value);
 	}
 }
 
@@ -1519,7 +1539,7 @@ private bool isNonFunctionPointer(in CommonTypes commonTypes, StructDecl* a) =>
 
 immutable struct IntegralTypes {
 	@safe @nogc pure nothrow:
-	private EnumMap!(IntegralType, StructInst*) map;
+	EnumMap!(IntegralType, StructInst*) map;
 	StructInst* opIndex(IntegralType name) return scope => map[name];
 	StructInst* int8() return scope => this[IntegralType.int8];
 	StructInst* int16() return scope => this[IntegralType.int16];
@@ -1531,8 +1551,9 @@ immutable struct IntegralTypes {
 	StructInst* nat64() return scope => this[IntegralType.nat64];
 }
 
-alias IntegralType = immutable EnumBackingType_;
-private enum EnumBackingType_ {
+enum CharType { char8, char32 }
+enum FloatType { float32, float64 }
+enum IntegralType {
 	int8,
 	int16,
 	int32,
@@ -1541,6 +1562,20 @@ private enum EnumBackingType_ {
 	nat16,
 	nat32,
 	nat64,
+}
+bool isSigned(IntegralType a) {
+	final switch (a) {
+		case IntegralType.int8:
+		case IntegralType.int16:
+		case IntegralType.int32:
+		case IntegralType.int64:
+			return true;
+		case IntegralType.nat8:
+		case IntegralType.nat16:
+		case IntegralType.nat32:
+		case IntegralType.nat64:
+			return false;
+	}
 }
 
 long minValue(IntegralType type) {
@@ -1824,7 +1859,7 @@ immutable struct Expr {
 
 immutable struct ExprKind {
 	mixin Union!(
-		AssertOrForbidExpr,
+		AssertOrForbidExpr*,
 		BogusExpr,
 		CallExpr,
 		ClosureGetExpr,
@@ -1834,7 +1869,7 @@ immutable struct ExprKind {
 		IfOptionExpr*,
 		LambdaExpr*,
 		LetExpr*,
-		LiteralExpr*,
+		LiteralExpr,
 		LiteralStringLikeExpr,
 		LocalGetExpr,
 		LocalSetExpr,
@@ -1844,6 +1879,8 @@ immutable struct ExprKind {
 		LoopUntilExpr*,
 		LoopWhileExpr*,
 		MatchEnumExpr*,
+		MatchIntegralExpr*,
+		MatchStringLikeExpr*,
 		MatchUnionExpr*,
 		PtrToFieldExpr*,
 		PtrToLocalExpr,
@@ -1852,6 +1889,7 @@ immutable struct ExprKind {
 		TrustedExpr*,
 		TypedExpr*);
 }
+static assert(ExprKind.sizeof == CallExpr.sizeof + ulong.sizeof);
 
 immutable struct ExprAndType {
 	Expr expr;
@@ -1860,7 +1898,7 @@ immutable struct ExprAndType {
 
 immutable struct AssertOrForbidExpr {
 	AssertOrForbidKind kind;
-	Expr* condition;
+	Expr condition;
 	Opt!(Expr*) thrown;
 }
 
@@ -1870,7 +1908,7 @@ immutable struct BogusExpr {}
 
 immutable struct CallExpr {
 	Called called;
-	Expr[] args;
+	SmallArray!Expr args;
 }
 
 immutable struct ClosureGetExpr {
@@ -1953,7 +1991,7 @@ immutable struct LiteralExpr {
 immutable struct LiteralStringLikeExpr {
 	enum Kind { char8Array, char8List, char32Array, char32List, cString, string_, symbol }
 	Kind kind;
-	string value; // For char32Array, this will be decoded in concretize.
+	SmallString value; // For char32Array, this will be decoded in concretize.
 }
 
 immutable struct LocalGetExpr {
@@ -1992,32 +2030,76 @@ immutable struct MatchEnumExpr {
 	@safe @nogc pure nothrow:
 
 	ExprAndType matched;
-	Expr[] cases;
+	immutable struct Case {
+		immutable EnumOrFlagsMember* member;
+		Expr then;
+	}
+	SmallArray!Case cases;
+	Opt!Expr else_;
 
 	StructDecl* enum_() {
 		StructInst* inst = matched.type.as!(StructInst*);
 		assert(isEmpty(inst.typeArgs));
-		return inst.decl;
+		StructDecl* res = inst.decl;
+		assert(every!Case(cases, (in Case x) => x.member.containingEnum == res));
+		return res;
 	}
-	EnumOrFlagsMember[] enumMembers() =>
-		matched.type.as!(StructInst*).decl.body_.as!(StructBody.Enum).members;
+
+	StructBody.Enum* enumBody() =>
+		enum_.body_.as!(StructBody.Enum*);
+}
+
+// Match on charX, intX, natX type
+immutable struct MatchIntegralExpr {
+	immutable struct Kind {
+		@safe @nogc pure nothrow:
+		mixin TaggedUnion!(CharType, IntegralType);
+		bool isSigned() =>
+			match!bool(
+				(CharType _) => false,
+				(IntegralType x) => .isSigned(x));
+	}
+	immutable struct Case {
+		IntegralValue value;
+		Expr then;
+	}
+	Kind kind;
+	ExprAndType matched;
+	SmallArray!Case cases;
+	Expr else_;
+}
+
+// Match on symbol, string, char8 array, char8[], char32 array, char32[]
+immutable struct MatchStringLikeExpr {
+	immutable struct Case {
+		string value;
+		Expr then;
+	}
+
+	LiteralStringLikeExpr.Kind kind;
+	ExprAndType matched;
+	Called equals; // == function for the type
+	SmallArray!Case cases;
+	Expr else_;
 }
 
 immutable struct MatchUnionExpr {
 	@safe @nogc pure nothrow:
 
 	immutable struct Case {
+		UnionMember* member;
 		Destructure destructure;
 		Expr then;
 	}
 
 	ExprAndType matched;
-	Case[] cases;
+	SmallArray!Case cases;
+	Opt!(Expr*) else_;
 
 	StructInst* union_() =>
 		matched.type.as!(StructInst*);
 	UnionMember[] unionMembers() =>
-		union_.decl.body_.as!(StructBody.Union).members;
+		union_.decl.body_.as!(StructBody.Union*).members;
 }
 
 immutable struct PtrToFieldExpr {

@@ -12,6 +12,7 @@ import model.model :
 	FunPointerExpr,
 	ImportOrExport,
 	Local,
+	MatchIntegralExpr,
 	Module,
 	NameReferents,
 	RecordField,
@@ -26,6 +27,7 @@ import model.model :
 	UnionMember,
 	VarDecl,
 	Visibility;
+import util.integralValues : IntegralValue;
 import util.opt : Opt;
 import util.symbol : Symbol;
 import util.union_ : TaggedUnion, Union;
@@ -139,6 +141,14 @@ immutable struct PositionKind {
 	immutable struct MatchEnumCase {
 		EnumOrFlagsMember* member;
 	}
+	immutable struct MatchIntegralCase {
+		MatchIntegralExpr.Kind kind;
+		IntegralValue value;
+	}
+	immutable struct MatchStringLikeCase {
+		TypeWithContainer type;
+		string value;
+	}
 	immutable struct MatchUnionCase {
 		UnionMember* member;
 	}
@@ -177,6 +187,8 @@ immutable struct PositionKind {
 		Keyword,
 		LocalPosition,
 		MatchEnumCase,
+		MatchIntegralCase,
+		MatchStringLikeCase,
 		MatchUnionCase,
 		Modifier,
 		ModifierExtern,

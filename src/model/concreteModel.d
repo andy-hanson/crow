@@ -8,7 +8,6 @@ import model.model :
 	BuiltinType,
 	ClosureReferenceKind,
 	EnumFunction,
-	EnumValue,
 	FlagsFunction,
 	FunDecl,
 	IntegralType,
@@ -19,9 +18,11 @@ import model.model :
 	Purity,
 	StructInst,
 	VarDecl;
+import util.alloc.alloc : Alloc;
 import util.col.array : arraysEqual, only, PtrAndSmallNumber, SmallArray;
 import util.col.map : Map;
 import util.hash : HashCode, Hasher, hashPtr;
+import util.integralValues : IntegralValues;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.opt : none, Opt, some;
 import util.sourceRange : UriAndRange;
@@ -31,36 +32,30 @@ import util.union_ : TaggedUnion, Union;
 import util.uri : Uri;
 import versionInfo : VersionInfo;
 
-immutable struct EnumValues {
-	// size_t for 0 to N
-	mixin Union!(size_t, EnumValue[]);
-}
-
 immutable struct ConcreteStructBody {
 	immutable struct Builtin {
 		BuiltinType kind;
-		ConcreteType[] typeArgs;
+		SmallArray!ConcreteType typeArgs;
 	}
 	immutable struct Enum {
 		IntegralType storage;
-		EnumValues values;
 	}
 	immutable struct Flags {
 		IntegralType storage;
-		ulong[] values;
 	}
 	immutable struct Extern {}
 	immutable struct Record {
-		ConcreteField[] fields;
+		SmallArray!ConcreteField fields;
 	}
 	immutable struct Union {
 		// In the concrete model we identify members by index, so don't care about their names.
 		// This may be empty for a lambda type with no implementations.
-		ConcreteType[] members;
+		SmallArray!ConcreteType members;
 	}
 
-	mixin .Union!(Builtin, Enum, Extern, Flags, Record, Union);
+	mixin .Union!(Builtin*, Enum, Extern, Flags, Record, Union);
 }
+static assert(ConcreteStructBody.sizeof == ConcreteStructBody.Record.sizeof + size_t.sizeof);
 
 immutable struct ConcreteType {
 	@safe @nogc pure nothrow:
@@ -80,8 +75,8 @@ bool isBogus(in ConcreteType a) =>
 	isBogus(*a.struct_);
 bool isVoid(in ConcreteType a) =>
 	a.reference == ReferenceKind.byVal &&
-	a.struct_.body_.isA!(ConcreteStructBody.Builtin) &&
-	a.struct_.body_.as!(ConcreteStructBody.Builtin).kind == BuiltinType.void_;
+	a.struct_.body_.isA!(ConcreteStructBody.Builtin*) &&
+	a.struct_.body_.as!(ConcreteStructBody.Builtin*).kind == BuiltinType.void_;
 
 alias ReferenceKind = immutable ReferenceKind_;
 private enum ReferenceKind_ { byVal, byRef, byRefRef }
@@ -432,7 +427,7 @@ immutable struct ConcreteExprKind {
 
 	immutable struct Call {
 		ConcreteFun* called;
-		ConcreteExpr[] args;
+		SmallArray!ConcreteExpr args;
 	}
 
 	immutable struct ClosureCreate {
@@ -510,19 +505,47 @@ immutable struct ConcreteExprKind {
 		ConcreteExprKind.Loop* loop;
 	}
 
-	immutable struct MatchEnum {
-		ConcreteExpr matchedValue;
-		ConcreteExpr[] cases;
+	immutable struct MatchEnumOrIntegral {
+		@safe @nogc pure nothrow:
+		ConcreteExpr matched;
+		IntegralValues caseValues;
+		SmallArray!ConcreteExpr caseExprs;
+		Opt!(ConcreteExpr*) else_;
+
+		this(ConcreteExpr m, IntegralValues cv, ConcreteExpr[] ce, Opt!(ConcreteExpr*) e) {
+			matched = m; caseValues = cv; caseExprs = ce; else_ = e;
+			assert(caseExprs.length == caseValues.length);
+		}
+	}
+
+	immutable struct MatchStringLike {
+		immutable struct Case {
+			ConcreteExpr value;
+			ConcreteExpr then;
+		}
+
+		ConcreteExpr matched;
+		ConcreteFun* equals;
+		SmallArray!Case cases;
+		ConcreteExpr else_;
 	}
 
 	immutable struct MatchUnion {
+		@safe @nogc pure nothrow:
 		immutable struct Case {
 			Opt!(ConcreteLocal*) local;
 			ConcreteExpr then;
 		}
 
-		ConcreteExpr matchedValue;
-		Case[] cases;
+		ConcreteExpr matched;
+		IntegralValues memberIndices;
+		SmallArray!Case cases;
+		Opt!(ConcreteExpr*) else_;
+
+		this(ConcreteExpr m, IntegralValues mi, SmallArray!Case c, Opt!(ConcreteExpr*) e) {
+			matched = m; memberIndices = mi; cases = c; else_ = e;
+			assert(cases.length == memberIndices.length);
+		}
 	}
 
 	immutable struct PtrToField {
@@ -581,7 +604,8 @@ immutable struct ConcreteExprKind {
 		Loop*,
 		LoopBreak*,
 		LoopContinue,
-		MatchEnum*,
+		MatchEnumOrIntegral*,
+		MatchStringLike*,
 		MatchUnion*,
 		PtrToField*,
 		PtrToLocal,
@@ -590,6 +614,9 @@ immutable struct ConcreteExprKind {
 		Throw*,
 		UnionAs,
 		UnionKind);
+}
+version (WebAssembly) {} else {
+	static assert(ConcreteExprKind.sizeof == ConcreteExprKind.Call.sizeof + ulong.sizeof);
 }
 
 immutable struct ConcreteVariableRef {
@@ -635,7 +662,6 @@ immutable struct ConcreteProgram {
 	Map!(ConcreteStruct*, ConcreteLambdaImpl[]) funStructToImpls;
 	ConcreteCommonFuns commonFuns;
 
-	//TODO:NOT INSTANCE
 	ConcreteFun* markFun() return scope =>
 		commonFuns.markFun;
 	ConcreteFun* rtMain() return scope =>

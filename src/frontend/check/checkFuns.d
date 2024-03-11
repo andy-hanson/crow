@@ -21,8 +21,8 @@ import frontend.check.typeFromAst :
 	checkDestructure,
 	checkTypeParams,
 	DestructureKind,
+	getSpecFromCommonModule,
 	specFromAst,
-	tryFindSpec,
 	typeFromAst,
 	typeFromAstNoTypeParamsNeverDelay;
 import model.ast :
@@ -118,7 +118,7 @@ FunsAndMap checkFuns(
 	foreach (size_t i, ref ImportOrExportFile f; fileExports)
 		setFileImportFunctionBody(ctx, &funs[asts.length + fileImports.length + i], f);
 	return FunsAndMap(
-		small!FunDecl(funs), checkTests(ctx, commonTypes, structsAndAliasesMap, funsMap, testAsts), funsMap);
+		small!FunDecl(funs), checkTests(ctx, commonTypes, structsAndAliasesMap, specsMap, funsMap, testAsts), funsMap);
 }
 
 immutable struct ReturnTypeAndParams {
@@ -402,6 +402,7 @@ FunFlagsAndSpecs checkFunModifiers(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	in StructsAndAliasesMap structsAndAliasesMap,
+	in SpecsMap specsMap,
 	in FunsMap funsMap,
 	TestAst[] testAsts,
 ) =>
@@ -413,7 +414,7 @@ FunFlagsAndSpecs checkFunModifiers(
 				return TestBody(Expr(&ast.body_, ExprKind(BogusExpr())));
 			} else
 				return checkTestBody(
-					ctx, structsAndAliasesMap, commonTypes, funsMap, TypeContainer(out_), flags, &ast.body_);
+					ctx, structsAndAliasesMap, commonTypes, specsMap, funsMap, TypeContainer(out_), flags, &ast.body_);
 		}();
 		return Test(ast, ctx.curUri, flags, body_.body_, body_.type);
 	}));
@@ -540,6 +541,7 @@ void checkFunsWithAsts(
 							ctx,
 							structsAndAliasesMap,
 							commonTypes,
+							specsMap,
 							funsMap,
 							TypeContainer(fun),
 							fun.returnType,
@@ -566,7 +568,8 @@ void checkFunsWithAsts(
 FunBody checkAutoFun(ref CheckCtx ctx, in SpecsMap specsMap, in FunsMap funsMap, FunDecl* fun) {
 	switch (fun.name.value) {
 		case symbol!"==".value:
-			Opt!(SpecDecl*) spec = getSpecForAutoFun(ctx, specsMap, fun, symbol!"equal", CommonModule.compare);
+			Opt!(SpecDecl*) spec = getSpecFromCommonModule(
+				ctx, specsMap, fun.nameRange.range, symbol!"equal", CommonModule.compare);
 			return has(spec)
 				? checkAutoFunWithSpec(
 					ctx, funsMap, fun, AutoFun.Kind.equals, force(spec),
@@ -575,7 +578,8 @@ FunBody checkAutoFun(ref CheckCtx ctx, in SpecsMap specsMap, in FunsMap funsMap,
 					allowBare: true)
 				: FunBody(FunBody.Bogus());
 		case symbol!"<=>".value:
-			Opt!(SpecDecl*) spec = getSpecForAutoFun(ctx, specsMap, fun, symbol!"compare", CommonModule.compare);
+			Opt!(SpecDecl*) spec = getSpecFromCommonModule(
+				ctx, specsMap, fun.nameRange.range, symbol!"compare", CommonModule.compare);
 			return has(spec)
 				? checkAutoFunWithSpec(
 					ctx, funsMap, fun, AutoFun.Kind.compare, force(spec),
@@ -584,7 +588,8 @@ FunBody checkAutoFun(ref CheckCtx ctx, in SpecsMap specsMap, in FunsMap funsMap,
 					allowBare: true)
 				: FunBody(FunBody.Bogus());
 		case symbol!"to".value:
-			Opt!(SpecDecl*) spec = getSpecForAutoFun(ctx, specsMap, fun, symbol!"to", CommonModule.misc);
+			Opt!(SpecDecl*) spec = getSpecFromCommonModule(
+				ctx, specsMap, fun.nameRange.range, symbol!"to", CommonModule.misc);
 			return has(spec)
 				? checkAutoFunWithSpec(
 					ctx, funsMap, fun, AutoFun.Kind.toJson, force(spec),
@@ -627,10 +632,10 @@ FunBody checkAutoFunWithSpec(
 		: !allowBare && fun.flags.bare
 		? diag(Diag.AutoFunError(Diag.AutoFunError.Bare()))
 		: FunBody(AutoFun(funKind, map(ctx.alloc, force(paramType).as!(StructInst*).instantiatedTypes, (ref Type type) {
-			SpecInst* spec = has(extraTypeArg)
+			SpecInst* inst = has(extraTypeArg)
 				? instantiateSpec(ctx.instantiateCtx, spec, [force(extraTypeArg), type])
 				: instantiateSpec(ctx.instantiateCtx, spec, [type]);
-			return checkSpecSingleSigIgnoreParents(ctx, funsMap, fun, spec);
+			return checkSpecSingleSigIgnoreParents(ctx, funsMap, fun, inst);
 		})));
 }
 
@@ -645,39 +650,21 @@ Opt!Type getAutoFunParamType(FunDecl* fun, size_t countParams) =>
 
 bool isRecordOrUnion(in Type a) =>
 	a.isA!(StructInst*) && (
-		a.as!(StructInst*).decl.body_.isA!(StructBody.Record) || a.as!(StructInst*).decl.body_.isA!(StructBody.Union));
+		a.as!(StructInst*).decl.body_.isA!(StructBody.Record) || a.as!(StructInst*).decl.body_.isA!(StructBody.Union*));
 
 bool isFullyVisible(in CheckCtx ctx, in Type a) {
 	StructDecl* decl = a.as!(StructInst*).decl;
 	return decl.moduleUri == ctx.curUri ||
-		decl.body_.isA!(StructBody.Union) ||
+		decl.body_.isA!(StructBody.Union*) ||
 		every!RecordField(decl.body_.as!(StructBody.Record).fields, (in RecordField x) =>
 			x.visibility == decl.visibility);
 }
 
 bool isEnumOrFlags(in Type a) =>
 	a.isA!(StructInst*) && (
-		a.as!(StructInst*).decl.body_.isA!(StructBody.Enum) || a.as!(StructInst*).decl.body_.isA!(StructBody.Flags));
+		a.as!(StructInst*).decl.body_.isA!(StructBody.Enum*) || a.as!(StructInst*).decl.body_.isA!(StructBody.Flags));
 
 bool isJson(in CheckCtx ctx, in Type a) =>
 	a.isA!(StructInst*) &&
 	a.as!(StructInst*).decl.moduleUri == ctx.commonUris[CommonModule.json] &&
 	a.as!(StructInst*).decl.name == symbol!"json";
-
-Opt!(SpecDecl*) getSpecForAutoFun(
-	ref CheckCtx ctx,
-	in SpecsMap specsMap,
-	FunDecl* fun,
-	Symbol name,
-	CommonModule expectedModule,
-) {
-	Opt!(SpecDecl*) spec = tryFindSpec(ctx, NameAndRange(fun.range.start, name) ,specsMap);
-	if (has(spec)) {
-		if (force(spec).moduleUri != ctx.commonUris[expectedModule]) {
-			addDiag(ctx, fun.nameRange.range, Diag(Diag.AutoFunError(Diag.AutoFunError.SpecFromWrongModule())));
-			return none!(SpecDecl*);
-		} else
-			return spec;
-	} else
-		return none!(SpecDecl*);
-}

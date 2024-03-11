@@ -106,6 +106,7 @@ import util.col.array : concatenate, contains, isEmpty, map, mapOp, newArray, on
 import util.col.arrayBuilder : add, ArrayBuilder, finish;
 import util.col.mutArr : clearAndDoNotFree, MutArr, push;
 import util.exitCode : ExitCode;
+import util.integralValues : initIntegralValues;
 import util.json : field, Json, jsonNull, jsonObject;
 import util.late : Late, lateGet, lateSet, MutLate;
 import util.memory : allocate;
@@ -113,7 +114,8 @@ import util.opt : force, has, none, Opt, optIf, some;
 import util.perf : Perf;
 import util.sourceRange : LineAndColumn, toLineAndCharacter, UriAndRange, UriLineAndColumn;
 import util.string : copyString, CString, cString;
-import util.uri : FilePath, stringOfFilePath, Uri, UrisInfo;
+import util.symbol : initSymbols;
+import util.uri : FilePath, initUris, stringOfFilePath, Uri, UrisInfo;
 import util.union_ : Union;
 import util.util : castNonScope, castNonScope_ref;
 import versionInfo : getOS, OS, VersionInfo, versionInfoForBuildToC, versionInfoForInterpret;
@@ -339,6 +341,17 @@ private ExitCode run(
 			main, diagnosticsOnlyForUris, allArgs));
 }
 
+private __gshared Server serverStorage = void;
+
+@system Server* setupServer(FetchMemoryCb fetch) {
+	Server* server = &serverStorage;
+	server.__ctor(fetch);
+	initIntegralValues(server.metaAlloc);
+	initSymbols(server.metaAlloc);
+	initUris(server.metaAlloc);
+	return server;
+}
+
 pure:
 
 struct Server {
@@ -352,6 +365,7 @@ struct Server {
 	LspState lspState;
 	MutLate!(Frontend*) frontend_;
 
+	@disable this(ref const Server);
 	@trusted this(return scope FetchMemoryCb fetch) {
 		metaAlloc_ = MetaAlloc(fetch);
 		storage = Storage(metaAlloc);
@@ -372,6 +386,24 @@ struct Server {
 		LineAndCharacterGetters(&castNonScope_ref(storage));
 	LineAndColumnGetters lineAndColumnGetters() return scope const =>
 		LineAndColumnGetters(&castNonScope_ref(storage));
+}
+
+immutable struct ServerSettings {
+	Uri includeDir;
+	Uri cwd;
+	ShowOptions showOptions;
+}
+
+void setServerSettings(Server* server, ServerSettings settings) {
+	lateSet!Uri(server.includeDir_, settings.includeDir);
+	lateSet!UrisInfo(server.urisInfo_, UrisInfo(cwd: some(settings.cwd)));
+	setShowOptions(*server, settings.showOptions);
+
+	lateSet!(Frontend*)(server.frontend_, initFrontend(server.metaAlloc, &server.storage, server.includeDir));
+}
+
+void setShowOptions(ref Server server, in ShowOptions options) {
+	server.showOptions_ = options;
 }
 
 Json perfStats(ref Alloc alloc, in Server a) =>
@@ -434,19 +466,6 @@ private string dCompilerName() {
 	} else {
 		static assert(false);
 	}
-}
-
-void setIncludeDir(Server* server, Uri uri) {
-	lateSet!Uri(server.includeDir_, uri);
-	lateSet!(Frontend*)(server.frontend_, initFrontend(server.metaAlloc, &server.storage, uri));
-}
-
-void setCwd(ref Server server, Uri uri) {
-	lateSet!UrisInfo(server.urisInfo_, UrisInfo(some(uri)));
-}
-
-void setShowOptions(ref Server server, in ShowOptions options) {
-	server.showOptions_ = options;
 }
 
 void setFile(scope ref Perf perf, ref Server server, Uri uri, in ReadFileResult result) {

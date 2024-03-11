@@ -20,6 +20,8 @@ int safeToInt(size_t a) {
 bool isUint(ulong a) =>
 	a <= uint.max;
 
+static if (!is(uint == size_t))
+	uint safeToUint()(uint a) { static assert(false); }
 uint safeToUint(ulong a) {
 	assert(isUint(a));
 	return cast(uint) a;

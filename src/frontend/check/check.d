@@ -172,7 +172,7 @@ SpecDeclBody checkSpecDeclBody(
 	Opt!BuiltinSpec builtin = modifiers.isBuiltin
 		? getBuiltinSpec(ctx, ast.nameRange, ast.name.name)
 		: none!BuiltinSpec;
-	SpecDeclSig[] sigs = mapPointers(ctx.alloc, ast.sigs, (SpecSigAst* x) {
+	SmallArray!SpecDeclSig sigs = mapPointers(ctx.alloc, ast.sigs, (SpecSigAst* x) {
 		ReturnTypeAndParams rp = checkReturnTypeAndParams(
 			ctx, commonTypes, typeContainer, x.returnType, x.params,
 			typeParams, structsAndAliasesMap, noDelayStructInsts);
@@ -185,7 +185,7 @@ SpecDeclBody checkSpecDeclBody(
 			});
 		return SpecDeclSig(ctx.curUri, x, rp.returnType, small!Destructure(params));
 	});
-	return SpecDeclBody(builtin, small!(immutable SpecInst*)(modifiers.parents), small!SpecDeclSig(sigs));
+	return SpecDeclBody(builtin, small!(immutable SpecInst*)(modifiers.parents), sigs);
 }
 
 @trusted SpecDecl[] checkSpecDeclsInitial(

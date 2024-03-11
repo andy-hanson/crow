@@ -47,9 +47,7 @@ so it may consider values equal that may not be equal in the future.
 	match a <=> b
 	as less
 		true
-	as equal
-		false
-	as greater
+	else
 		false
 
 # True iff `(a <=> b) != greater`.

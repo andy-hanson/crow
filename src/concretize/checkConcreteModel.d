@@ -15,9 +15,11 @@ import model.concreteModel :
 	isVoid,
 	mustBeByVal;
 import model.constant : Constant;
+import model.model : isCharOrIntegral;
 import model.showLowModel : writeConcreteType;
 import util.alloc.alloc : Alloc;
-import util.col.array : zip;
+import util.col.array : every, zip;
+import util.conv : safeToSizeT;
 import util.opt : force, has;
 import util.util : ptrTrustMe;
 import util.writer : debugLogWithWriter, Writer;
@@ -33,6 +35,7 @@ immutable struct ConcreteCommonTypes {
 	ConcreteType bool_;
 	ConcreteType nat64;
 	ConcreteType string_;
+	ConcreteType symbol;
 	ConcreteType void_;
 }
 
@@ -116,15 +119,44 @@ void checkExpr(ref Ctx ctx, in ConcreteType type, in ConcreteExpr expr) {
 		(in ConcreteExprKind.LoopContinue) {
 			assert(isVoid(type));
 		},
-		(in ConcreteExprKind.MatchEnum x) {
-			checkExprAnyType(ctx, x.matchedValue);
-			foreach (ConcreteExpr case_; x.cases)
+		(in ConcreteExprKind.MatchEnumOrIntegral x) {
+			ConcreteStructBody body_ = mustBeByVal(x.matched.type).body_;
+			assert(
+				body_.isA!(ConcreteStructBody.Enum) ||
+				isCharOrIntegral(body_.as!(ConcreteStructBody.Builtin*).kind));
+			checkExprAnyType(ctx, x.matched);
+			foreach (ConcreteExpr case_; x.caseExprs)
 				checkExpr(ctx, type, case_);
+			if (has(x.else_))
+				checkExpr(ctx, type, *force(x.else_));
+		},
+		(in ConcreteExprKind.MatchStringLike x) {
+			checkExprAnyType(ctx, x.matched);
+			assert(x.equals.returnType == ctx.types.bool_);
+			assert(x.equals.paramsIncludingClosure.length == 2);
+			assert(every!ConcreteLocal(x.equals.paramsIncludingClosure, (in ConcreteLocal param) =>
+				param.type == x.matched.type));
+			foreach (ConcreteExprKind.MatchStringLike.Case case_; x.cases)
+				checkExpr(ctx, type, case_.then);
+			checkExpr(ctx, type, x.else_);
 		},
 		(in ConcreteExprKind.MatchUnion x) {
-			checkExprAnyType(ctx, x.matchedValue);
-			foreach (ConcreteExprKind.MatchUnion.Case case_; x.cases)
+			ConcreteType[] members = mustBeByVal(x.matched.type).body_.as!(ConcreteStructBody.Union).members;
+			if (members.length == x.memberIndices.length)
+				assert(!has(x.else_));
+			else {
+				assert(x.memberIndices.length < members.length);
+				assert(has(x.else_));
+			}
+			checkExprAnyType(ctx, x.matched);
+			foreach (size_t caseIndex, ConcreteExprKind.MatchUnion.Case case_; x.cases) {
+				assert(
+					!has(case_.local) ||
+					force(case_.local).type == members[safeToSizeT(x.memberIndices[caseIndex].value)]);
 				checkExpr(ctx, type, case_.then);
+			}
+			if (has(x.else_))
+				checkExpr(ctx, type, *force(x.else_));
 		},
 		(in ConcreteExprKind.PtrToField x) {
 			checkExprAnyType(ctx, x.target);

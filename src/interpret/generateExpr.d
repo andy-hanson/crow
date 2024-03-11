@@ -75,7 +75,6 @@ import interpret.bytecodeWriter :
 	writeCallFunPointer,
 	writeDup,
 	writeDupEntries,
-	writeDupEntry,
 	writeFnBinary,
 	writeFnUnary,
 	writeInterpreterBacktrace,
@@ -94,8 +93,7 @@ import interpret.bytecodeWriter :
 	writeReturn,
 	writeReturnData,
 	writeSet,
-	writeSwitch0ToNDelay,
-	writeSwitchWithValuesDelay,
+	writeSwitchDelay,
 	writeThreadLocalPtr,
 	writeWrite;
 import interpret.extern_ : ExternPointersForAllLibraries, FunPointer;
@@ -131,6 +129,7 @@ import util.col.map : mustGet;
 import util.col.mutArr : clearAndFree, MutArr, push;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
+import util.integralValues : IntegralValue;
 import util.opt : force, has, Opt;
 import util.symbol : Symbol;
 import util.union_ : TaggedUnion;
@@ -304,7 +303,7 @@ void generateExpr(
 		},
 		(in LowExprKind.CallFunPointer x) {
 			StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
-			generateExprAndContinue(writer, ctx, locals, x.funPtr);
+			generateExprAndContinue(writer, ctx, locals, *x.funPtr);
 			generateArgsAndContinue(writer, ctx, locals, x.args);
 			writeCallFunPointer(writer, source, stackEntryBeforeArgs, ctx.funPtrTypeToDynCallSig[funPtrType(x)]);
 			handleAfter(writer, ctx, source, after);
@@ -355,9 +354,6 @@ void generateExpr(
 		(in LowExprKind.LoopContinue it) {
 			generateLoopContinue(writer, ctx, source, locals, after, it);
 		},
-		(in LowExprKind.MatchUnion x) {
-			generateMatchUnion(writer, ctx, source, locals, after, expr.type, x);
-		},
 		(in LowExprKind.PtrCast it) {
 			generateExpr(writer, ctx, locals, after, it.target);
 		},
@@ -401,11 +397,8 @@ void generateExpr(
 		(in LowExprKind.SpecialTernary it) {
 			generateSpecialTernary(writer, ctx, source, locals, after, it);
 		},
-		(in LowExprKind.Switch0ToN it) {
-			generateSwitch0ToN(writer, ctx, source, locals, after, it);
-		},
-		(in LowExprKind.SwitchWithValues it) {
-			generateSwitchWithValues(writer, ctx, source, locals, after, it);
+		(in LowExprKind.Switch x) {
+			generateSwitch(writer, ctx, source, locals, after, x);
 		},
 		(in LowExprKind.TailRecur it) {
 			generateTailRecur(writer, ctx, source, locals, after, it);
@@ -573,110 +566,28 @@ void generateUnionKind(
 	handleAfter(writer, ctx, source, after);
 }
 
-void generateMatchUnion(
+void generateSwitch(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	ByteCodeSource source,
 	in Locals locals,
 	scope ref ExprAfter after,
-	in LowType type,
-	in LowExprKind.MatchUnion a,
-) {
-	StackEntry startStack = getNextStackEntry(writer);
-	generateExprAndContinue(writer, ctx, locals, a.matchedValue);
-	// Move the union kind to top of stack
-	// TODO:PERF 'writeSwitch0ToN' should take the offset of the value to switch on
-	writeDupEntry(writer, source, startStack);
-	writeRemove(writer, source, StackEntries(startStack, 1));
-
-	// Get the kind (always the first entry)
-	SwitchDelayed switchDelayed = writeSwitch0ToNDelay(writer, source, a.cases.length);
-	// Start of the union values is where the kind used to be.
-	StackEntry stackAfterMatched = getNextStackEntry(writer);
-	StackEntries matchedEntriesWithoutKind = StackEntries(startStack, (stackAfterMatched.entry - startStack.entry));
-
-	// TODO: this should throw on invalid union value.
-	if (isEmpty(a.cases)) {
-		writeZeroed(writer, source, typeSizeBytes(ctx, type));
-		handleAfter(writer, ctx, source, after);
-	} else
-		withBranching(writer, ctx, after, (ref ExprAfter afterBranch, ref ExprAfter afterLastBranch) {
-			foreach (size_t caseIndex, ref LowExprKind.MatchUnion.Case case_; a.cases) {
-				bool isLast = caseIndex == a.cases.length - 1;
-				fillDelayedSwitchEntry(writer, switchDelayed, caseIndex);
-				if (has(case_.local)) {
-					size_t nEntries = nStackEntriesForType(ctx, force(case_.local).type);
-					assert(nEntries <= matchedEntriesWithoutKind.size);
-					generateExpr(
-						writer, ctx,
-						addLocal(locals, force(case_.local), StackEntries(matchedEntriesWithoutKind.start, nEntries)),
-						isLast ? afterLastBranch : afterBranch, case_.then);
-				} else
-					generateExpr(writer, ctx, locals, isLast ? afterLastBranch : afterBranch, case_.then);
-				// For the last one, don't reset the stack as by the end one of the cases will have run.
-				if (!isLast)
-					setNextStackEntry(writer, stackAfterMatched);
-			}
-		});
-}
-
-void generateSwitch0ToN(
-	ref ByteCodeWriter writer,
-	ref ExprCtx ctx,
-	ByteCodeSource source,
-	in Locals locals,
-	scope ref ExprAfter after,
-	in LowExprKind.Switch0ToN it,
+	in LowExprKind.Switch a,
  ) {
 	StackEntry stackBefore = getNextStackEntry(writer);
-	generateExprAndContinue(writer, ctx, locals, it.value);
-	writeSwitchCases(
-		writer,
-		ctx,
-		locals,
-		after,
-		stackBefore,
-		writeSwitch0ToNDelay(writer, source, it.cases.length),
-		it.cases);
-}
-
-void generateSwitchWithValues(
-	ref ByteCodeWriter writer,
-	ref ExprCtx ctx,
-	ByteCodeSource source,
-	in Locals locals,
-	scope ref ExprAfter after,
-	in LowExprKind.SwitchWithValues it,
-) {
-	StackEntry stackBefore = getNextStackEntry(writer);
-	generateExprAndContinue(writer, ctx, locals, it.value);
-	writeSwitchCases(
-		writer,
-		ctx,
-		locals,
-		after,
-		stackBefore,
-		writeSwitchWithValuesDelay(writer, source, it.values),
-		it.cases);
-}
-
-void writeSwitchCases(
-	ref ByteCodeWriter writer,
-	ref ExprCtx ctx,
-	in Locals locals,
-	scope ref ExprAfter after,
-	StackEntry stackBefore,
-	in SwitchDelayed switchDelayed,
-	in LowExpr[] cases,
- ) {
+	generateExprAndContinue(writer, ctx, locals, a.value);
+	SwitchDelayed delayed = writeSwitchDelay(writer, source, a.caseValues, has(a.default_));
 	withBranching(writer, ctx, after, (ref ExprAfter afterBranch, ref ExprAfter afterLastBranch) {
-		foreach (size_t caseIndex, ref LowExpr case_; cases) {
-			bool isLast = caseIndex == cases.length - 1;
-			fillDelayedSwitchEntry(writer, switchDelayed, caseIndex);
-			generateExpr(writer, ctx, locals, isLast ? afterLastBranch : afterBranch, case_);
+		void writeCaseOrDefault(size_t index, ref LowExpr expr, bool isLast) {
+			fillDelayedSwitchEntry(writer, delayed, index);
+			generateExpr(writer, ctx, locals, isLast ? afterLastBranch : afterBranch, expr);
 			if (!isLast)
 				setNextStackEntry(writer, stackBefore);
 		}
+		foreach (size_t caseIndex, ref LowExpr case_; a.caseExprs)
+			writeCaseOrDefault(caseIndex, case_, !has(a.default_) && caseIndex == a.caseExprs.length - 1);
+		if (has(a.default_))
+			writeCaseOrDefault(a.caseExprs.length, *force(a.default_), true);
 	});
 }
 
@@ -837,7 +748,7 @@ void generateConstant(
 			ByteCodeIndex where = writePushFunPointerDelayed(writer, source);
 			registerFunPointerReference(ctx.tempAlloc, ctx.funToReferences, type.as!(LowType.FunPointer), fun, where);
 		},
-		(in Constant.Integral it) {
+		(in IntegralValue it) {
 			writePushConstant(writer, source, it.value);
 		},
 		(in Constant.Pointer it) {
@@ -1056,9 +967,9 @@ void generateRecordFieldSet(
 ) {
 	StackEntry before = getNextStackEntry(writer);
 	assert(targetIsPointer(a));
-	generateExprAndContinue(writer, ctx, locals, *a.target);
+	generateExprAndContinue(writer, ctx, locals, a.target);
 	StackEntry mid = getNextStackEntry(writer);
-	generateExprAndContinue(writer, ctx, locals, *a.value);
+	generateExprAndContinue(writer, ctx, locals, a.value);
 	FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, targetRecordType(a), a.fieldIndex);
 	assert(mid.entry + divRoundUp(offsetAndSize.size, stackEntrySize) == getNextStackEntry(writer).entry);
 	writeWrite(writer, source, offsetAndSize.offset, offsetAndSize.size);

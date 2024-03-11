@@ -10,6 +10,8 @@ import model.ast :
 	BogusAst,
 	CallAst,
 	CallNamedAst,
+	CaseAst,
+	CaseMemberAst,
 	DestructureAst,
 	DoAst,
 	EmptyAst,
@@ -31,10 +33,8 @@ import model.ast :
 	LambdaAst,
 	LetAst,
 	LiteralFloatAst,
-	LiteralIntAst,
-	LiteralIntOrNat,
-	LiteralIntOrNatKind,
-	LiteralNatAst,
+	LiteralIntegral,
+	LiteralIntegralAndRange,
 	LiteralStringAst,
 	LoopAst,
 	LoopBreakAst,
@@ -42,6 +42,7 @@ import model.ast :
 	LoopUntilAst,
 	LoopWhileAst,
 	MatchAst,
+	MatchElseAst,
 	ModifierAst,
 	NameAndRange,
 	ParamsAst,
@@ -195,17 +196,11 @@ Json jsonOfEnumOrFlagsMember(ref Alloc alloc, in Ctx ctx, in EnumOrFlagsMemberAs
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
 		field!"name"(a.name),
-		optionalField!("value", LiteralIntOrNat)(a.value, (in LiteralIntOrNat x) =>
-			jsonOfLiteralIntOrNat(alloc, ctx, x))]);
+		optionalField!("value", LiteralIntegralAndRange)(a.value, (in LiteralIntegralAndRange x) =>
+			jsonOfLiteralIntegralAndRange(alloc, ctx, x))]);
 
 Json jsonOfLiteralFloatAst(ref Alloc alloc, in LiteralFloatAst a) =>
 	jsonOfLiteral!"float"(alloc, a.value, a.overflow);
-
-Json jsonOfLiteralIntAst(ref Alloc alloc, in LiteralIntAst a) =>
-	jsonOfLiteral!"int"(alloc, a.value, a.overflow);
-
-Json jsonOfLiteralNatAst(ref Alloc alloc, in LiteralNatAst a) =>
-	jsonOfLiteral!"nat"(alloc, a.value, a.overflow);
 
 Json jsonOfLiteralStringAst(ref Alloc alloc, in LiteralStringAst a) =>
 	jsonObject(alloc, [
@@ -218,17 +213,16 @@ Json jsonOfLiteral(string typeName, T)(ref Alloc alloc, T value, bool overflow) 
 		field!"value"(value),
 		optionalFlagField!"overflow"(overflow)]);
 
-Json jsonOfLiteralIntOrNat(ref Alloc alloc, in Ctx ctx, in LiteralIntOrNat a) =>
+Json jsonOfLiteralIntegralAndRange(ref Alloc alloc, in Ctx ctx, in LiteralIntegralAndRange a) =>
 	jsonObject(alloc, [
 		field!"range"(jsonOfRange(alloc, ctx, a.range)),
-		field!"kind"(jsonOfLiteralIntOrNatKind(alloc, a.kind))]);
+		field!"literal"(jsonOfLiteralIntegral(alloc, a.literal))]);
 
-Json jsonOfLiteralIntOrNatKind(ref Alloc alloc, in LiteralIntOrNatKind a) =>
-	a.matchIn!Json(
-		(in LiteralIntAst x) =>
-			jsonOfLiteralIntAst(alloc, x),
-		(in LiteralNatAst x) =>
-			jsonOfLiteralNatAst(alloc, x));
+Json jsonOfLiteralIntegral(ref Alloc alloc, in LiteralIntegral a) =>
+	jsonObject(alloc, [
+		field!"is-signed"(a.isSigned),
+		field!"overflow"(a.overflow),
+		field!"value"(a.value.value)]);
 
 Json jsonOfStructDeclAst(ref Alloc alloc, in Ctx ctx, in StructDeclAst a) =>
 	jsonObject(alloc, [
@@ -316,7 +310,7 @@ Json jsonOfModifierAst(ref Alloc alloc, in Ctx ctx, in ModifierAst a) =>
 				kindField!"keyword",
 				optionalField!("type-arg", TypeAst)(x.typeArg, (in TypeAst type) =>
 					jsonOfTypeAst(alloc, ctx, type)),
-				field!"keywordPos"(x.keywordPos),
+				field!"keyword-pos"(x.keywordPos),
 				field!"keyword"(stringOfModifierKeyword(x.keyword))]),
 		(in SpecUseAst x) =>
 			jsonOfSpecUseAst(alloc, ctx, x));
@@ -490,10 +484,8 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 				field!"then"(jsonOfExprAst(alloc, ctx, a.then))]),
 		(in LiteralFloatAst a) =>
 			jsonOfLiteralFloatAst(alloc, a),
-		(in LiteralIntAst a) =>
-			jsonOfLiteralIntAst(alloc, a),
-		(in LiteralNatAst a) =>
-			jsonOfLiteralNatAst(alloc, a),
+		(in LiteralIntegral a) =>
+			jsonOfLiteralIntegral(alloc, a),
 		(in LiteralStringAst a) =>
 			jsonOfLiteralStringAst(alloc, a),
 		(in LoopAst a) =>
@@ -519,13 +511,13 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 		(in MatchAst x) =>
 			jsonObject(alloc, [
 				kindField!"match",
-				field!"matched"(jsonOfExprAst(alloc, ctx, x.matched)),
-				field!"cases"(jsonList!(MatchAst.CaseAst)(alloc, x.cases, (in MatchAst.CaseAst case_) =>
+				field!"matched"(jsonOfExprAst(alloc, ctx, *x.matched)),
+				field!"cases"(jsonList!CaseAst(alloc, x.cases, (in CaseAst case_) =>
+					jsonOfCaseAst(alloc, ctx, case_))),
+				optionalField!("else", MatchElseAst*)(x.else_, (in MatchElseAst* y) =>
 					jsonObject(alloc, [
-						field!"member-name"(jsonOfNameAndRange(alloc, ctx, case_.memberName)),
-						optionalField!("destructure", DestructureAst)(case_.destructure, (in DestructureAst x) =>
-							jsonOfDestructureAst(alloc, ctx, x)),
-						field!"then"(jsonOfExprAst(alloc, ctx, case_.then))])))]),
+						field!"keyword-pos"(y.keywordPos),
+						field!"expr"(jsonOfExprAst(alloc, ctx, y.expr))]))]),
 		(in ParenthesizedAst x) =>
 			jsonObject(alloc, [kindField!"paren", field!"inner"(jsonOfExprAst(alloc, ctx, x.inner))]),
 		(in PtrAst a) =>
@@ -579,3 +571,30 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 				field!"param"(jsonOfDestructureAst(alloc, ctx, x.param)),
 				field!"arg"(jsonOfExprAst(alloc, ctx, x.arg)),
 				field!"body"(jsonOfExprAst(alloc, ctx, x.body_))]));
+
+Json jsonOfCaseAst(ref Alloc alloc, in Ctx ctx, in CaseAst a) =>
+	jsonObject(alloc, [
+		field!"keyword-pos"(a.keywordPos),
+		field!"member"(jsonOfCaseMemberAst(alloc, ctx, a.member)),
+		field!"then"(jsonOfExprAst(alloc, ctx, a.then))]);
+
+Json jsonOfCaseMemberAst(ref Alloc alloc, in Ctx ctx, in CaseMemberAst a) =>
+	a.matchIn!Json(
+		(in CaseMemberAst.Name x) =>
+			jsonObject(alloc, [
+				field!"name"(jsonOfNameAndRange(alloc, ctx, x.name)),
+				optionalField!("destructure", DestructureAst)(x.destructure, (in DestructureAst y) =>
+					jsonOfDestructureAst(alloc, ctx, y))]),
+		(in LiteralIntegralAndRange x) =>
+			jsonObject(alloc, [
+				kindField!"integral",
+				field!"value"(jsonOfLiteralIntegralAndRange(alloc, ctx, x))]),
+		(in CaseMemberAst.String x) =>
+			jsonObject(alloc, [
+				kindField!"string",
+				field!"range"(jsonOfRange(alloc, ctx, x.range)),
+				field!"value"(jsonString(alloc, x.value))]),
+		(in CaseMemberAst.Bogus x) =>
+			jsonObject(alloc, [
+				kindField!"bogus",
+				field!"range"(jsonOfRange(alloc, ctx, x.range))]));

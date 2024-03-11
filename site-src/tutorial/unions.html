@@ -49,7 +49,7 @@
 			no-id
 	</crow-runnable>
 
-	<h2>Matching on union values</h3>
+	<h2>Matching on union values</h2>
 	<p>
 		The <code class="keyword">match</code> expression handles each possibility of a union.
 		<br />
@@ -57,17 +57,80 @@
 		with the same type as the whole <code class="keyword">match</code>.
 	</p>
 	<p>
-		The branches need to come in the same order as the union members.
+		If a member has a value, it must be declared after the name,
+		like <code>x</code> in <code>as verified-id x</code>.
 		<br />
-		It's a compile error to be missing branches (no implicit <code>()</code>).
-		<br />
-		If a member has a value, it must be declared after the name.
 		This uses the same destructuring syntax as for locals.
 		(So to ignore a value, use <code>_</code>.)
+	</p>
+	<p>
+		An <code>else</code> branch is required when matching on a union unless all cases are handled.
+		<br />
+		(This is explicit to avoid accidentally forgetting a case.)
 	</p>
 
 	<aside class="small">
 		In contrast with record field access, <code class="keyword">match</code> is a
 		primitive operation and not a function call.
+	</aside>
+
+	<h2>Matching on other values</h2>
+	<p>
+		You can also match on other types:
+	</p>
+	<ul class="bullets">
+		<li>
+			String-like types:
+			<code class="type">symbol</code>, <code class="type">string</code>,
+			<code class="type">char8 array</code>, <code class="type">char8[]</code>
+			<code class="type">char32 array</code>, <code class="type">char32[]</code>.
+		</li>
+		<li>
+			Integral types:
+			<code class="type">nat8</code>, <code class="type">nat16</code>,
+			<code class="type">nat32</code>, <code class="type">nat64</code>,
+			<code class="type">int8</code>, <code class="type">int16</code>,
+			<code class="type">int32</code>, <code class="type">int64</code>.
+		</li>
+	</ul>
+
+	<p>
+		A <code class="keyword">match</code> on these types has an implicit
+		<code class="keyword">else</code> just like for an <code class="keyword">if</code>.
+	</p>
+
+	<crow-runnable>
+		main void()
+			info log ("chocolate" order 1)
+			info log ("pizza" order 2)
+
+		order string(a string, count nat)
+			plural = a plural count
+			if c ?= a condiment
+				"{plural} with {c}"
+			else
+				plural
+
+		condiment string?(a string)
+			match a
+			as chocolate
+				"peanut butter",
+			as "french fries"
+				"ketchup",
+
+		plural string(a string, count nat)
+			match count
+			as 0
+				"no {a}s"
+			as 1
+				"one {a}"
+			else
+				"{count} {a}s"
+	</crow-runnable>
+
+	<aside class="small">
+		<code>as chocolate</code> is the same as <code>as "chocolate"</code>.
+		<br />
+		Quotes are not required if it is a valid identifier.
 	</aside>
 </section>

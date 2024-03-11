@@ -115,7 +115,6 @@ import model.lowModel :
 	LowVarIndex,
 	LowType,
 	lowTypeEqualCombinePtr,
-	name,
 	PointerTypeAndConstantsLow,
 	PrimitiveType,
 	targetIsPointer,
@@ -125,13 +124,14 @@ import model.model : BuiltinBinary, BuiltinUnary;
 import model.showLowModel : writeFunName, writeFunSig;
 import model.typeLayout : typeSizeBytes;
 import util.alloc.alloc : Alloc;
-import util.col.array : fillArray, indexOfPointer, isEmpty, makeArray, map, mapWithIndex, zip;
+import util.col.array : fillArray, indexOfPointer, isEmpty, map, mapWithIndex, zip;
 import util.col.enumMap : EnumMap, makeEnumMap;
 import util.col.map : mustGet;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapZip, mapFullIndexMap_mut;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
 import util.conv : safeToInt;
 import util.exitCode : ExitCode;
+import util.integralValues : IntegralValue;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.sourceRange : UriAndRange;
@@ -692,67 +692,6 @@ ExprResult emitWithBranching(
 		return expectedResult;
 }
 
-ExprResult emitSwitch(
-	ref ExprCtx ctx,
-	ExprEmit emit,
-	in LowType type,
-	gcc_jit_rvalue* switchedValue,
-	size_t nCases,
-	in ExprResult delegate(ExprEmit, size_t) @safe @nogc pure nothrow cbCase,
-) =>
-	emitWithBranching(
-		ctx, emit, type, "switchEnd",
-		(
-			gcc_jit_block* originalBlock,
-			MutOpt!(gcc_jit_block*) endBlock,
-			MutOpt!(gcc_jit_lvalue*) local,
-			ExprResult expectedResult,
-		) {
-			gcc_jit_block* defaultBlock = gcc_jit_function_new_block(ctx.curFun, "switchDefault");
-			gcc_jit_block_add_eval(
-				defaultBlock,
-				null,
-				castImmutable(gcc_jit_context_new_call(ctx.gcc, null, ctx.abortFunction, 0, null)));
-			// Gcc requires that every block have an end.
-			if (has(endBlock) && !expectedResult.isA!(ExprResult.BreakContinueOrReturn))
-				gcc_jit_block_end_with_jump(defaultBlock, null, force(endBlock));
-			else
-				gcc_jit_block_end_with_return(defaultBlock, null, arbitraryValue(ctx, ctx.curFunReturnType));
-
-			immutable gcc_jit_case*[] cases = makeArray!(immutable gcc_jit_case*)(
-				ctx.alloc,
-				nCases,
-				(size_t i) {
-					gcc_jit_block* caseBlock = gcc_jit_function_new_block(ctx.curFun, "switchCase");
-					ctx.curBlock = caseBlock;
-					ExprResult result = () {
-						if (has(local)) {
-							emitToLValueCb(force(local), (ExprEmit emitLocal) =>
-								cbCase(emitLocal, i));
-							return ExprResult(ExprResult.Void());
-						} else
-							return cbCase(emit, i);
-					}();
-					assert(result == expectedResult);
-					if (has(endBlock) && !result.isA!(ExprResult.BreakContinueOrReturn)) {
-						// A nested branch may have changed to a new block, so use that instead of 'caseBlock'
-						gcc_jit_block_end_with_jump(ctx.curBlock, null, force(endBlock));
-					}
-					gcc_jit_rvalue* caseValue =
-						//TODO:PERF cache these?
-						gcc_jit_context_new_rvalue_from_long(ctx.gcc, ctx.nat64Type, i);
-					return gcc_jit_context_new_case(ctx.gcc, caseValue, caseValue, caseBlock);
-				});
-			gcc_jit_block_end_with_switch(
-				originalBlock,
-				null,
-				// TODO: use cases of appropriate type?
-				gcc_jit_context_new_cast(ctx.gcc, null, switchedValue, ctx.nat64Type),
-				defaultBlock,
-				cast(int) cases.length,
-				&cases[0]);
-		});
-
 alias Locals = StackMap!(LowLocal*, gcc_jit_lvalue*);
 alias addLocal = stackMapAdd!(LowLocal*, gcc_jit_lvalue*);
 gcc_jit_lvalue* getLocal(ref ExprCtx ctx, ref Locals locals, in LowLocal* local) {
@@ -837,8 +776,6 @@ ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowEx
 			loopBreakToGcc(ctx, locals, emit, it),
 		(in LowExprKind.LoopContinue) =>
 			loopContinueToGcc(ctx, locals, emit),
-		(in LowExprKind.MatchUnion it) =>
-			matchUnionToGcc(ctx, locals, emit, a, it),
 		(in LowExprKind.PtrCast it) =>
 			ptrCastToGcc(ctx, locals, emit, a, it),
 		(in LowExprKind.PtrToField it) =>
@@ -863,10 +800,8 @@ ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowEx
 			callBuiltinBinary(ctx, locals, emit, x.args, builtinForBinaryMath(x.kind)),
 		(in LowExprKind.SpecialTernary) =>
 			assert(false),
-		(in LowExprKind.Switch0ToN it) =>
-			switch0ToNToGcc(ctx, locals, emit, a.type, it),
-		(in LowExprKind.SwitchWithValues) =>
-			todo!ExprResult("!"),
+		(in LowExprKind.Switch x) =>
+			switchToGcc(ctx, locals, emit, a.type, x),
 		(in LowExprKind.TailRecur it) =>
 			tailRecurToGcc(ctx, locals, emit, it),
 		(in LowExprKind.UnionAs x) =>
@@ -930,7 +865,7 @@ void emitToVoid(ref ExprCtx ctx, ref Locals locals, in LowExpr a) {
 	in LowExpr expr,
 	in LowExprKind.CallFunPointer a,
 ) {
-	gcc_jit_rvalue* funPtrGcc = emitToRValue(ctx, locals, a.funPtr);
+	gcc_jit_rvalue* funPtrGcc = emitToRValue(ctx, locals, *a.funPtr);
 	//TODO:NO ALLOC
 	immutable gcc_jit_rvalue*[] argsGcc =
 		map(ctx.alloc, a.args, (ref LowExpr arg) => emitToRValue(ctx, locals, arg));
@@ -1117,44 +1052,6 @@ ExprResult loopContinueToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit) 
 	return ExprResult(ExprResult.BreakContinueOrReturn());
 }
 
-ExprResult matchUnionToGcc(
-	ref ExprCtx ctx,
-	ref Locals locals,
-	ExprEmit emit,
-	in LowExpr expr,
-	in LowExprKind.MatchUnion a,
-) {
-	// We need to create a local for the matchedValue.
-	gcc_jit_lvalue* matchedLocal = gcc_jit_function_new_local(
-		ctx.curFun,
-		null,
-		getGccType(ctx.types, a.matchedValue.type),
-		"matched");
-	emitToLValue(ctx, locals, matchedLocal, a.matchedValue);
-
-	UnionFields unionFields = getUnionFields(ctx, a.matchedValue.type);
-
-	gcc_jit_rvalue* matchedValueKind = gcc_jit_rvalue_access_field(
-		gcc_jit_lvalue_as_rvalue(matchedLocal),
-		null,
-		unionFields.kindField);
-
-	return emitSwitch(
-		ctx,
-		emit,
-		expr.type,
-		matchedValueKind,
-		a.cases.length,
-		(ExprEmit caseEmit, size_t caseIndex) {
-			LowExprKind.MatchUnion.Case case_ = a.cases[caseIndex];
-			return has(case_.local)
-				? emitWithLocal(ctx, locals, caseEmit, force(case_.local), case_.then, (ExprEmit valueEmit) =>
-					emitSimpleNoSideEffects(ctx, valueEmit, getUnionAs(
-						gcc_jit_lvalue_as_rvalue(matchedLocal), unionFields, caseIndex)))
-				: toGccExpr(ctx, locals, caseEmit, case_.then);
-		});
-}
-
 ExprResult ptrCastToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
@@ -1242,10 +1139,10 @@ ExprResult recordFieldSetToGcc(
 	ExprEmit emit,
 	in LowExprKind.RecordFieldSet a,
 ) {
-	gcc_jit_rvalue* target = emitToRValue(ctx, locals, *a.target);
+	gcc_jit_rvalue* target = emitToRValue(ctx, locals, a.target);
 	immutable gcc_jit_field* field = ctx.types.recordFields[targetRecordType(a)][a.fieldIndex];
 	assert(targetIsPointer(a)); // TODO: make if this is always true, don't have it...
-	gcc_jit_rvalue* value = emitToRValue(ctx, locals, *a.value);
+	gcc_jit_rvalue* value = emitToRValue(ctx, locals, a.value);
 	gcc_jit_block_add_assignment(ctx.curBlock, null, gcc_jit_rvalue_dereference_field(target, null, field), value);
 	return emitVoid(ctx, emit);
 }
@@ -1305,7 +1202,7 @@ ExprResult constantToGcc(ref ExprCtx ctx, ExprEmit emit, in LowType type, in Con
 			}();
 			return emitSimpleNoSideEffects(ctx, emit, castValue);
 		},
-		(in Constant.Integral it) =>
+		(in IntegralValue it) =>
 			emitSimpleNoSideEffects(
 				ctx,
 				emit,
@@ -1371,10 +1268,13 @@ ExprResult constantToGcc(ref ExprCtx ctx, ExprEmit emit, in LowType type, in Con
 		case BuiltinUnary.toInt64FromInt16:
 		case BuiltinUnary.toInt64FromInt32:
 		case BuiltinUnary.toNat8FromChar8:
+		case BuiltinUnary.toNat32FromChar32:
 		case BuiltinUnary.toNat64FromNat8:
 		case BuiltinUnary.toNat64FromNat16:
 		case BuiltinUnary.toNat64FromNat32:
 		case BuiltinUnary.truncateToInt64FromFloat64:
+		case BuiltinUnary.unsafeToChar32FromChar8:
+		case BuiltinUnary.unsafeToChar32FromNat32:
 		case BuiltinUnary.unsafeToInt8FromInt64:
 		case BuiltinUnary.unsafeToInt16FromInt64:
 		case BuiltinUnary.unsafeToInt32FromInt64:
@@ -1504,6 +1404,8 @@ ExprResult binaryToGcc(
 		case BuiltinBinary.bitwiseXorNat32:
 		case BuiltinBinary.bitwiseXorNat64:
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_BITWISE_XOR);
+		case BuiltinBinary.eqChar8:
+		case BuiltinBinary.eqChar32:
 		case BuiltinBinary.eqFloat32:
 		case BuiltinBinary.eqFloat64:
 		case BuiltinBinary.eqInt8:
@@ -1734,17 +1636,84 @@ ExprResult ifToGcc(
 		});
 }
 
-ExprResult switch0ToNToGcc(
+void emitSwitchCaseOrDefault(
+	ref ExprCtx ctx,
+	ref Locals locals,
+	ExprEmit emit,
+	MutOpt!(gcc_jit_block*) endBlock,
+	MutOpt!(gcc_jit_lvalue*) local,
+	ExprResult expectedResult,
+	LowExpr case_,
+) {
+	ExprResult result = () {
+		if (has(local)) {
+			emitToLValueCb(force(local), (ExprEmit emitLocal) =>
+				toGccExpr(ctx, locals, emitLocal, case_));
+			return ExprResult(ExprResult.Void());
+		} else
+			return toGccExpr(ctx, locals, emit, case_);
+	}();
+	assert(result == expectedResult);
+	if (has(endBlock) && !result.isA!(ExprResult.BreakContinueOrReturn)) {
+		// A nested branch may have changed to a new block, so use that instead of 'caseBlock'
+		gcc_jit_block_end_with_jump(ctx.curBlock, null, force(endBlock));
+	}
+}
+
+ExprResult switchToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ExprEmit emit,
 	in LowType type,
-	in LowExprKind.Switch0ToN a,
-) =>
-	emitSwitch(
-		ctx, emit, type, emitToRValue(ctx, locals, a.value), a.cases.length,
-		(ExprEmit caseEmit, size_t caseIndex) =>
-			toGccExpr(ctx, locals, caseEmit, a.cases[caseIndex]));
+	in LowExprKind.Switch a,
+) {
+	gcc_jit_rvalue* switchedValue = emitToRValue(ctx, locals, a.value);
+	return emitWithBranching(
+		ctx, emit, type, "switchEnd",
+		(
+			gcc_jit_block* originalBlock,
+			MutOpt!(gcc_jit_block*) endBlock,
+			MutOpt!(gcc_jit_lvalue*) local,
+			ExprResult expectedResult,
+		) {
+			immutable gcc_jit_case*[] cases = mapWithIndex!(immutable gcc_jit_case*, LowExpr)(
+				ctx.alloc, a.caseExprs,
+				(size_t caseIndex, ref LowExpr case_) {
+					gcc_jit_block* caseBlock = gcc_jit_function_new_block(ctx.curFun, "switchCase");
+					ctx.curBlock = caseBlock;
+					emitSwitchCaseOrDefault(ctx, locals, emit, endBlock, local, expectedResult, case_);
+					gcc_jit_rvalue* caseValue =
+						//TODO:PERF cache these?
+						gcc_jit_context_new_rvalue_from_long(ctx.gcc, ctx.nat64Type, a.caseValues[caseIndex].value);
+					return gcc_jit_context_new_case(ctx.gcc, caseValue, caseValue, caseBlock);
+				});
+
+			gcc_jit_block* defaultBlock = gcc_jit_function_new_block(ctx.curFun, "switchDefault");
+			ctx.curBlock = defaultBlock;
+			if (has(a.default_)) {
+				emitSwitchCaseOrDefault(ctx, locals, emit, endBlock, local, expectedResult, *force(a.default_));
+			} else {
+				gcc_jit_block_add_eval(
+					defaultBlock,
+					null,
+					castImmutable(gcc_jit_context_new_call(ctx.gcc, null, ctx.abortFunction, 0, null)));
+				// Gcc requires that every block have an end.
+				if (has(endBlock) && !expectedResult.isA!(ExprResult.BreakContinueOrReturn))
+					gcc_jit_block_end_with_jump(defaultBlock, null, force(endBlock));
+				else
+					gcc_jit_block_end_with_return(defaultBlock, null, arbitraryValue(ctx, ctx.curFunReturnType));
+			}
+
+			gcc_jit_block_end_with_switch(
+				originalBlock,
+				null,
+				// TODO: use cases of appropriate type?
+				gcc_jit_context_new_cast(ctx.gcc, null, switchedValue, ctx.nat64Type),
+				defaultBlock,
+				cast(int) cases.length,
+				&cases[0]);
+		});
+}
 
 ExprResult zeroedToGcc(ref ExprCtx ctx, ExprEmit emit, in LowType type) {
 	immutable gcc_jit_type* gccType = getGccType(ctx.types, type);
@@ -1802,6 +1771,7 @@ gcc_jit_rvalue* zeroForPrimitiveType(ref ExprCtx ctx, PrimitiveType a) {
 	final switch (a) {
 		case PrimitiveType.bool_:
 		case PrimitiveType.char8:
+		case PrimitiveType.char32:
 		case PrimitiveType.int8:
 		case PrimitiveType.int16:
 		case PrimitiveType.int32:

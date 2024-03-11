@@ -1,0 +1,22 @@
+main void()
+	()
+
+f nat(a nat?)
+	match a
+	as none
+		1
+	as some x
+		x
+	else
+		3
+
+f nat(a comparison)
+	match a
+	as less
+		1
+	as equal
+		2
+	as greater
+		3
+	else
+		4

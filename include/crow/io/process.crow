@@ -275,10 +275,11 @@ The child process shares stdout and stderr with the parent process.
 		buffer unsafe-set-size old-size + read-max
 		add-data-to = buffer.begin-pointer + old-size
 		n-bytes-read = fd read add-data-to.pointer-cast, read-max
-		if n-bytes-read == -1
+		match n-bytes-read
+		as -1
 			# Error
 			todo
-		elif n-bytes-read == 0
+		as 0
 			# EOF, done
 			buffer unsafe-set-size old-size
 		else

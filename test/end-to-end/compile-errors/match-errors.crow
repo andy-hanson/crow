@@ -20,30 +20,93 @@ e enum
 	m
 	n
 
-foo nat(a u)
+invalid-variable nat(a u)
 	match a
 	as m x
 		x
 	as n
 		2
 
-foo nat(a e)
+invalid-variable nat(a e)
 	match a
 	as m x
 		1
 	as n
 		2
 
-g nat(a u)
+invalid-variable nat(a symbol)
 	match a
-	as n
+	as m x
 		1
-	as m
+	else
 		2
 
-g nat(a e)
+missing-case nat(a u)
 	match a
 	as n
 		1
+
+missing-case nat(a e)
+	match a
+	as n
+		1
+
+invalid-symbol nat(a symbol)
+	match a
+	as 42
+		1
+
+invalid-char nat(a char32)
+	match a
+	as "foo"
+		1
+
+invalid-number nat(a nat)
+	match a
+	as "42"
+		1
+
+duplicate-branch nat(a u)
+	match a
 	as m
+		1
+	as n _
 		2
+	as m
+		3
+
+duplicate-branch nat(a e)
+	match a
+	as m
+		1
+	as n
+		2
+	as m
+		3
+
+duplicate-branch nat(a symbol)
+	match a
+	as "foo"
+		1
+	as "fo\x6f"
+		2
+	else
+		3
+
+duplicate-branch nat(a char32)
+	match a
+	as "o"
+		1
+	as "\x6f"
+		2
+	else
+		3
+
+duplicate-branch nat(a nat)
+	match a
+	as 16
+		1
+	as 0x10
+		2
+	else
+		3

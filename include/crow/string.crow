@@ -193,37 +193,38 @@ Result is only digits, no punctuation.
 	a to-base 10
 
 -digit-to-string string(a nat64)
-	if a == 0
+	match a
+	as 0
 		"0"
-	elif a == 1
+	as 1
 		"1"
-	elif a == 2
+	as 2
 		"2"
-	elif a == 3
+	as 3
 		"3"
-	elif a == 4
+	as 4
 		"4"
-	elif a == 5
+	as 5
 		"5"
-	elif a == 6
+	as 6
 		"6"
-	elif a == 7
+	as 7
 		"7"
-	elif a == 8
+	as 8
 		"8"
-	elif a == 9
+	as 9
 		"9"
-	elif a == 10
+	as 10
 		"a"
-	elif a == 11
+	as 11
 		"b"
-	elif a == 12
+	as 12
 		"c"
-	elif a == 13
+	as 13
 		"d"
-	elif a == 14
+	as 14
 		"e"
-	elif a == 15
+	as 15
 		"f"
 	else
 		"?"
@@ -417,7 +418,17 @@ region utilities
 	a drop-right-while x => x is-whitespace
 
 +is-whitespace bool(a char32)
-	a == " " || a == "\r" || a == "\n" || a == "\t"
+	match a
+	as " "
+		true
+	as "\r"
+		true
+	as "\n"
+		true
+	as "\t"
+		true
+	else
+		false
 
 +normalize-newlines string(a string)
 	a replace-all "\r\n", "\n" replace-all "\r", "\n"
@@ -427,15 +438,16 @@ region utilities
 	with out : build
 		out ~= "\""
 		for x : a
-			if x == "\""
+			match x
+			as "\""
 				out ~~= "\\\""
-			elif x == "\n"
+			as "\n"
 				out ~~= "\\n"
-			elif x == "\r"
+			as "\r"
 				out ~~= "\\r"
-			elif x == "\t"
+			as "\t"
 				out ~~= "\\t"
-			elif x == "\\"
+			as "\\"
 				out ~~= "\\\\"
 			else
 				out ~= x
@@ -448,9 +460,10 @@ region utilities
 Equivalent to `parts[0] ~~ joiner ~~ parts[1] ~~ joiner ~~ ... ~~ parts[n]`.
 ###
 +join string(joiner string, parts string[])
-	if parts is-empty
+	match parts size
+	as 0
 		""
-	elif parts.size == 1
+	as 1
 		parts[0]
 	else
 		res-size mut = joiner.size-char8s * (parts.size - 1)
@@ -513,15 +526,17 @@ Equivalent to `parts[0] ~~ joiner ~~ parts[1] ~~ joiner ~~ ... ~~ parts[n]`.
 			throw "Unicode decode error"
 
 -mask nat32(i nat64)
-	if i == 0
+	match i
+	as 0
 		(1 << 7) - 1
-	elif i == 1
+	as 1
 		(1 << 11) - 1
-	elif i == 2
+	as 2
 		(1 << 16) - 1
-	else
-		assert i == 3
+	as 3
 		(1 << 21) - 1
+	else
+		throw "unreachable"
 
 -unicode-decode-prev (char8 list-iterator, char32)(
 	original-iter char8 list-iterator,

@@ -7,7 +7,7 @@ import util.col.arrayBuilder : Builder, finish;
 import util.col.array : zip;
 import util.conv : bitsOfFloat64;
 import util.string : eachChar, CString, stringOfCString;
-import util.unicode : mustUnicodeEncode;
+import util.unicode : isValidUnicodeCharacter, mustUnicodeEncode;
 import util.util : abs, debugLog, max;
 
 T withStackWriterImpure(T)(
@@ -265,6 +265,12 @@ void writeQuotedString(scope ref Writer writer, in CString s) {
 	writeQuotedString(writer, stringOfCString(s));
 }
 
+void writeQuotedChar(scope ref Writer writer, dchar c) {
+	writer ~= '"';
+	writeEscapedChar_inner(writer, c);
+	writer ~= '"';
+}
+
 void writeEscapedChar(scope ref Writer writer, dchar c) {
 	if (c == '\'')
 		writer ~= "\\\'";
@@ -299,7 +305,7 @@ void writeEscapedChar_inner(scope ref Writer writer, dchar c) {
 			writer ~= "\\x1b\"\"";
 			break;
 		default:
-			writer ~= c;
+			writer ~= isValidUnicodeCharacter(c) ? c : '�';
 			break;
 	}
 }

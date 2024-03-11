@@ -31,6 +31,8 @@ import model.model :
 	LoopUntilExpr,
 	LoopWhileExpr,
 	MatchEnumExpr,
+	MatchIntegralExpr,
+	MatchStringLikeExpr,
 	MatchUnionExpr,
 	PtrToFieldExpr,
 	PtrToLocalExpr,
@@ -231,9 +233,9 @@ Opt!T findDirectChildExpr(T)(
 	ExprRef toRef(ref ExprAndType x) =>
 		ExprRef(&x.expr, x.type);
 	return a.expr.kind.matchWithPointers!(Opt!T)(
-		(AssertOrForbidExpr x) {
+		(AssertOrForbidExpr* x) {
 			assert(a.type == voidType);
-			return optOr!T(cb(ExprRef(x.condition, boolType)), () =>
+			return optOr!T(cb(ExprRef(&x.condition, boolType)), () =>
 				has(x.thrown) ? cb(ExprRef(force(x.thrown), stringType)) : none!T);
 		},
 		(BogusExpr _) =>
@@ -265,7 +267,7 @@ Opt!T findDirectChildExpr(T)(
 			cb(ExprRef(&x.body_(), x.returnType)),
 		(LetExpr* x) =>
 			optOr!T(cb(ExprRef(&x.value, x.destructure.type)), () => cb(sameType(x.then))),
-		(LiteralExpr* _) =>
+		(LiteralExpr _) =>
 			none!T,
 		(LiteralStringLikeExpr _) =>
 			none!T,
@@ -290,12 +292,26 @@ Opt!T findDirectChildExpr(T)(
 		(MatchEnumExpr* x) =>
 			optOr!T(
 				cb(toRef(x.matched)),
-				() => firstPointer!(T, Expr)(x.cases, (Expr* y) => cb(sameType(*y)))),
+				() => firstPointer!(T, MatchEnumExpr.Case)(x.cases, (MatchEnumExpr.Case* y) => cb(sameType(y.then))),
+				() => has(x.else_) ? cb(sameType(force(x.else_))) : none!T),
+		(MatchIntegralExpr* x) =>
+			optOr!T(
+				cb(toRef(x.matched)),
+				() => firstPointer!(T, MatchIntegralExpr.Case)(x.cases, (MatchIntegralExpr.Case* y) =>
+					cb(sameType(y.then))),
+				() => cb(sameType(x.else_))),
+		(MatchStringLikeExpr* x) =>
+			optOr!T(
+				cb(toRef(x.matched)),
+				() => firstPointer!(T, MatchStringLikeExpr.Case)(x.cases, (MatchStringLikeExpr.Case* y) =>
+					cb(sameType(y.then))),
+				() => cb(sameType(x.else_))),
 		(MatchUnionExpr* x) =>
 			optOr!T(
 				cb(toRef(x.matched)),
 				() => firstPointer!(T, MatchUnionExpr.Case)(x.cases, (MatchUnionExpr.Case* case_) =>
-					cb(sameType(case_.then)))),
+					cb(sameType(case_.then))),
+				() => has(x.else_) ? cb(sameType(*force(x.else_))) : none!T),
 		(PtrToFieldExpr* x) =>
 			cb(toRef(x.target)),
 		(PtrToLocalExpr _) =>

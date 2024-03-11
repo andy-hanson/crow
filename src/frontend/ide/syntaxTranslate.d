@@ -10,7 +10,6 @@ import model.parseDiag : ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.col.array : contains, emptySmallArray, isEmpty, map, newArray, prepend, small, SmallArray;
 import util.col.arrayBuilder : add, ArrayBuilder, Builder, buildArray, buildSmallArray, finish;
-import util.conv : safeToUint;
 import util.memory : allocate;
 import util.opt : force, has, Opt, optIf;
 import util.union_ : Union;
@@ -72,7 +71,7 @@ void translateCrowToCOrJava(
 			} else
 				return call.args;
 		}();
-		writer ~= call.funNameName;
+		writer ~= call.funName.name;
 		writeParenthesized!ExprAst(writer, remainingArgs, (in ExprAst x) {
 			translateCrowToCOrJava(writer, diagnostics, x, isJava);
 		});
@@ -128,7 +127,7 @@ JavaExpr translateBetweenCOrJava(ref Alloc alloc, JavaExpr a, bool outputJava) {
 					? a
 					: JavaExpr(JavaExpr.Call(
 						allocate(alloc, JavaExpr(IdentifierAst(x.name))),
-						small!JavaExpr(prepend!JavaExpr(alloc, recur(*x.left), recurArgs(call.args))))));
+						prepend!JavaExpr(alloc, recur(*x.left), recurArgs(call.args)))));
 	} else
 		return a;
 }
@@ -241,7 +240,7 @@ struct ParseCtx {
 }
 
 void addDiag(ref ParseCtx ctx, in CString ptr) {
-	add(ctx.alloc, ctx.diags, safeToUint(ptr - ctx.start));
+	add(ctx.alloc, ctx.diags, ptr - ctx.start);
 }
 
 immutable struct JavaExprAndDiags {
