@@ -10,6 +10,7 @@ import util.symbol : Extension;
 import util.exitCode : ExitCode;
 import util.union_ : Union;
 import util.uri : FilePath, Uri;
+import versionInfo : VersionOptions;
 
 immutable struct Command {
 	CommandKind kind;
@@ -57,11 +58,15 @@ immutable struct CommandKind {
 }
 
 immutable struct RunOptions {
-	immutable struct Interpret {}
+	immutable struct Interpret {
+		VersionOptions version_;
+	}
 	immutable struct Jit {
+		VersionOptions version_;
 		JitOptions options;
 	}
 	immutable struct Aot {
+		VersionOptions version_;
 		CCompileOptions compileOptions;
 		Extension defaultExeExtension;
 	}
@@ -69,6 +74,7 @@ immutable struct RunOptions {
 }
 
 immutable struct BuildOptions {
+	VersionOptions version_;
 	BuildOut out_;
 	CCompileOptions cCompileOptions;
 }

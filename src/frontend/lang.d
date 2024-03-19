@@ -10,8 +10,11 @@ immutable struct JitOptions {
 	OptimizationLevel optimization;
 }
 
+enum CVersion { c99, c11 }
+
 immutable struct CCompileOptions {
 	OptimizationLevel optimizationLevel;
+	CVersion cVersion;
 }
 
 enum OptimizationLevel {

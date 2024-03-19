@@ -3,7 +3,7 @@ module app.parseCommand;
 @safe @nogc pure nothrow:
 
 import app.command : BuildOptions, BuildOut, Command, CommandKind, CommandOptions, RunOptions;
-import frontend.lang : CCompileOptions, JitOptions, OptimizationLevel;
+import frontend.lang : CCompileOptions, CVersion, JitOptions, OptimizationLevel;
 import frontend.parse.lexToken : NatAndOverflow, takeNat;
 import lib.server : PrintKind;
 import util.alloc.alloc : Alloc;
@@ -29,7 +29,7 @@ import util.uri :
 	uriIsFile;
 import util.util : castNonScope, enumEach, optEnumOfString, stringOfEnum, typeAs;
 import util.writer : makeStringWithWriter, writeNewline, writeQuotedString, Writer;
-import versionInfo : OS;
+import versionInfo : OS, VersionOptions;
 
 Command parseCommand(ref Alloc alloc, FilePath cwd, OS os, CString[] args) {
 	string arg0 = isEmpty(args) ? "" : stringOfCString(args[0]);
@@ -387,12 +387,23 @@ RunOptions parseRunOptions(
 	scope ref Diags diags,
 	in ArgsPart[] argParts,
 ) {
+	bool abortOnThrow = false;
+	bool noStackTrace = false;
 	bool aot = false;
 	bool jit = false;
 	bool optimize = false;
+	bool singleThreaded = false;
 	foreach (ArgsPart part; argParts) {
 		expectFlag(diags, part);
 		switch (stringOfCString(part.tag)) {
+			case "--abort-on-throw":
+				if (abortOnThrow) diags ~= Diag(Diag.DuplicatePart(part.tag));
+				abortOnThrow = true;
+				break;
+			case "--no-stack-trace":
+				if (noStackTrace) diags ~= Diag(Diag.DuplicatePart(part.tag));
+				noStackTrace = true;
+				break;
 			case "--aot":
 				if (aot) diags ~= Diag(Diag.DuplicatePart(part.tag));
 				aot = true;
@@ -405,6 +416,10 @@ RunOptions parseRunOptions(
 				if (optimize) diags ~= Diag(Diag.DuplicatePart(part.tag));
 				optimize = true;
 				break;
+			case "--single-threaded":
+				if (singleThreaded) diags ~= Diag(Diag.DuplicatePart(part.tag));
+				singleThreaded = true;
+				break;
 			default:
 				diags ~= Diag(Diag.UnexpectedPart(part.tag));
 		}
@@ -414,13 +429,19 @@ RunOptions parseRunOptions(
 		diags ~= Diag(Diag.RunAotAndJit());
 	if (!aot && !jit && optimize)
 		diags ~= Diag(Diag.RunOptimizeNeedsAotOrJit());
+
+	VersionOptions version_ = VersionOptions(
+		isSingleThreaded: singleThreaded,
+		abortOnThrow: abortOnThrow,
+		stackTraceEnabled: !noStackTrace);
 	return aot
 		? RunOptions(RunOptions.Aot(
-			optimize ? CCompileOptions(OptimizationLevel.o2) : CCompileOptions(),
+			version_,
+			CCompileOptions(optimize ? OptimizationLevel.o2 : OptimizationLevel.none, CVersion.c11),
 			defaultExeExtension))
 		: jit
-		? RunOptions(RunOptions.Jit(optimize ? JitOptions(OptimizationLevel.o2) : JitOptions()))
-		: RunOptions(RunOptions.Interpret());
+		? RunOptions(RunOptions.Jit(version_, optimize ? JitOptions(OptimizationLevel.o2) : JitOptions()))
+		: RunOptions(RunOptions.Interpret(version_));
 }
 
 void expectFlag(scope ref Diags diags, ArgsPart part) {
@@ -438,8 +459,25 @@ BuildOptions parseBuildOptions(
 ) {
 	Cell!(Opt!BuildOut) out_;
 	bool optimize = false;
+	bool c99 = false;
+	bool abortOnThrow = false;
+	bool noStackTrace = false;
+	bool singleThreaded = false;
 	foreach (ArgsPart part; argParts) {
 		switch (stringOfCString(part.tag)) {
+			case "--c99":
+				if (c99)
+					diags ~= Diag(Diag.DuplicatePart(part.tag));
+				c99 = true;
+				break;
+			case "--abort-on-throw":
+				if (abortOnThrow) diags ~= Diag(Diag.DuplicatePart(part.tag));
+				abortOnThrow = true;
+				break;
+			case "--no-stack-trace":
+				if (noStackTrace) diags ~= Diag(Diag.DuplicatePart(part.tag));
+				noStackTrace = true;
+				break;
 			case "--out":
 				if (has(cellGet(out_)))
 					diags ~= Diag(Diag.DuplicatePart(part.tag));
@@ -452,12 +490,17 @@ BuildOptions parseBuildOptions(
 					diags ~= Diag(Diag.DuplicatePart(part.tag));
 				optimize = true;
 				break;
+			case "--single-threaded":
+				expectFlag(diags, part);
+				if (singleThreaded)
+					diags ~= Diag(Diag.DuplicatePart(part.tag));
+				singleThreaded = true;
+				break;
 			default:
 				diags ~= Diag(Diag.UnexpectedPart(part.tag));
 		}
 	}
 
-	CCompileOptions options = CCompileOptions(optimize ? OptimizationLevel.o2 : OptimizationLevel.none);
 	BuildOut resOut = has(cellGet(out_))
 		? force(cellGet(out_))
 		: BuildOut(
@@ -466,7 +509,12 @@ BuildOptions parseBuildOptions(
 			outExecutable: defaultExePath(
 				uriIsFile(mainUri) ? asFilePath(mainUri) : cwd / symbol!"main",
 				defaultExeExtension));
-	return BuildOptions(resOut, options);
+	return BuildOptions(
+		VersionOptions(isSingleThreaded: singleThreaded, abortOnThrow: abortOnThrow, stackTraceEnabled: !noStackTrace),
+		resOut,
+		CCompileOptions(
+			optimize ? OptimizationLevel.o2 : OptimizationLevel.none,
+			c99 ? CVersion.c99 : CVersion.c11));
 }
 
 BuildOut parseBuildOut(
@@ -663,9 +711,11 @@ string commandDescription(CommandName name) {
 		case CommandName.build:
 			return "Compiles the program at PATH." ~
 				"\nOptions are:" ~
-				"\n--out : Output path. Defaults to the input path with the extension changed." ~
-				"\n\tIf this has a '.c' extension, it will output C source code instead." ~
-				"\n--optimize : Enables optimizations.";
+				"\n\t--out : Output path. Defaults to the input path with the extension changed." ~
+				"\n\t\tIf this has a '.c' extension, it will output C source code instead." ~
+				"\n\t--optimize : Enables optimizations." ~
+				"\n\t--c99 : Compile to C99. (Default is C11 which is less verbose.)" ~
+				buildRunCommonOptions;
 		case CommandName.check:
 			return "Prints any diagnostics for the module(s) at PATH(s) or their imports.\nNo options.";
 		case CommandName.document:
@@ -689,6 +739,7 @@ string commandDescription(CommandName name) {
 				"\nOptions are:\n" ~
 				"\n\t--aot : Instead of interpreting the program, builds an executable, runs it, then deletes it." ~
 				"\n\t--optimize : Use with '--aot'. Enables optimizations." ~
+				buildRunCommonOptions ~
 				"\nWith no options, 'crow run foo.crow' is equivalent to 'crow foo.crow'.";
 		case CommandName.test:
 			return "Internal command to run unit tests." ~
@@ -697,3 +748,8 @@ string commandDescription(CommandName name) {
 			return "Prints information about the version of 'crow'.\nNo options.";
 	}
 }
+
+enum buildRunCommonOptions =
+	"\n\t--single-threaded : See documentation for 'is-single-threaded' in 'crow/version'." ~
+	"\n\t--abort-on-throw : See documentation for 'is-abort-on-throw' in 'crow/version'." ~
+	"\n\t--no-stack-trace : See documentation for 'is-stack-trace-enabled' in 'crow/version'.";

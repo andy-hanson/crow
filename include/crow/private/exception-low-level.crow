@@ -5,7 +5,7 @@ import
 	../misc: new, void
 	../number: ==, int32, nat64
 	../pointer: ==, null, zeroed
-	../version: is-interpreted, is-windows
+	../version: is-abort-on-throw, is-interpreted, is-windows
 	./alloc: try-get-cur-gc-ctx
 	./backtrace: get-backtrace
 	./bootstrap: abort, array, error, hard-assert, new, ok, result, string
@@ -22,15 +22,14 @@ This function is used to mark part of an `if` or `match` that should not be poss
 +unreachable[t] t() bare
 	throw "should be unreachable"
 
-# WARN: Need to set to null at end of catch
-#set-exception-ctx void(a exception-ctx?)
-
 ###
 Run `try` and return what it returns, or return the result of `catcher` if `try` threw an exception.
 (An exception thrown by `catcher` will not be caught.)
 ###
 +catch[t] t(try t mut(), catcher t mut(x exception))
-	trusted
+	trusted if is-abort-on-throw
+		try[]
+	else
 		old-jmp-buf = cur-jmp-buf
 		store mut __jmp_buf_tag = ()
 		setjmp-result = if is-interpreted
@@ -66,11 +65,14 @@ throw-impl void(message string) bare
 	message throw-with-skip 2
 
 throw-with-skip void(message string, skip nat64) bare
-	backtrace = trusted if ctx ?= try-get-cur-gc-ctx
-		ctx get-backtrace skip
+	trusted if is-abort-on-throw
+		abort
 	else
-		(),
-	(message, backtrace) rethrow
+		backtrace = if ctx ?= try-get-cur-gc-ctx
+			ctx get-backtrace skip
+		else
+			(),
+		(message, backtrace) rethrow
 
 -new[t] t array(...a t array) bare
 	a

@@ -122,7 +122,6 @@ import model.lowModel :
 	UpdateParam;
 import model.model : BuiltinBinary, BuiltinUnary;
 import model.showLowModel : writeFunName, writeFunSig;
-import model.typeLayout : typeSizeBytes;
 import util.alloc.alloc : Alloc;
 import util.col.array : fillArray, indexOfPointer, isEmpty, map, mapWithIndex, zip;
 import util.col.enumMap : EnumMap, makeEnumMap;
@@ -500,8 +499,7 @@ GccVars generateGccVars(
 		(in LowFunBody.Extern x) =>
 			gcc_jit_function_kind.GCC_JIT_FUNCTION_IMPORTED,
 		(in LowFunExprBody _) =>
-			// TODO: A GCC bug breaks functions that return more than 16 bytes.
-			funIndex == program.main || typeSizeBytes(program, fun.returnType) > 16
+			funIndex == program.main
 				? gcc_jit_function_kind.GCC_JIT_FUNCTION_EXPORTED
 				: gcc_jit_function_kind.GCC_JIT_FUNCTION_INTERNAL);
 
@@ -752,6 +750,8 @@ struct ExprCtx {
 
 ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowExpr a) =>
 	a.kind.matchIn!ExprResult(
+		(in LowExprKind.Abort x) =>
+			abortToGcc(ctx, locals, emit, a.type),
 		(in LowExprKind.Call it) =>
 			callToGcc(ctx, locals, emit, a.type, it),
 		(in LowExprKind.CallFunPointer it) =>
@@ -786,8 +786,6 @@ ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowEx
 			recordFieldGetToGcc(ctx, locals, emit, it),
 		(in LowExprKind.RecordFieldSet it) =>
 			recordFieldSetToGcc(ctx, locals, emit, it),
-		(in LowExprKind.SizeOf it) =>
-			sizeOfToGcc(ctx, emit, it),
 		(in Constant it) =>
 			constantToGcc(ctx, emit, a.type, it),
 		(in LowExprKind.SpecialUnary it) =>
@@ -841,6 +839,14 @@ void emitToVoid(ref ExprCtx ctx, ref Locals locals, in LowExpr a) {
 	ExprEmit emitVoid = ExprEmit(ExprEmit.Void());
 	ExprResult result = toGccExpr(ctx, locals, emitVoid, a);
 	assert(result.isA!(ExprResult.Void));
+}
+
+ExprResult abortToGcc(ref ExprCtx ctx, ref Locals locals, ExprEmit emit, in LowType type) {
+	gcc_jit_block_add_eval(ctx.curBlock, null, gcc_jit_context_new_call(ctx.gcc, null, ctx.abortFunction, 0, null));
+	// Do something arbitrary to satisfy GCC that the block is ended.
+	return emit.isA!(ExprEmit.Loop*)
+		? loopContinueToGcc(ctx, locals, emit)
+		: zeroedToGcc(ctx, emit, type);
 }
 
 @trusted ExprResult callToGcc(
@@ -1146,12 +1152,6 @@ ExprResult recordFieldSetToGcc(
 	gcc_jit_block_add_assignment(ctx.curBlock, null, gcc_jit_rvalue_dereference_field(target, null, field), value);
 	return emitVoid(ctx, emit);
 }
-
-ExprResult sizeOfToGcc(ref ExprCtx ctx, ExprEmit emit, in LowExprKind.SizeOf a) =>
-	emitSimpleNoSideEffects(
-		ctx,
-		emit,
-		gcc_jit_context_new_rvalue_from_long(ctx.gcc, ctx.nat64Type, typeSizeBytes(ctx.program, a.type)));
 
 ExprResult constantToGcc(ref ExprCtx ctx, ExprEmit emit, in LowType type, in Constant a) =>
 	a.matchIn!ExprResult(
@@ -1643,7 +1643,7 @@ void emitSwitchCaseOrDefault(
 	MutOpt!(gcc_jit_block*) endBlock,
 	MutOpt!(gcc_jit_lvalue*) local,
 	ExprResult expectedResult,
-	LowExpr case_,
+	in LowExpr case_,
 ) {
 	ExprResult result = () {
 		if (has(local)) {
@@ -1690,19 +1690,7 @@ ExprResult switchToGcc(
 
 			gcc_jit_block* defaultBlock = gcc_jit_function_new_block(ctx.curFun, "switchDefault");
 			ctx.curBlock = defaultBlock;
-			if (has(a.default_)) {
-				emitSwitchCaseOrDefault(ctx, locals, emit, endBlock, local, expectedResult, *force(a.default_));
-			} else {
-				gcc_jit_block_add_eval(
-					defaultBlock,
-					null,
-					castImmutable(gcc_jit_context_new_call(ctx.gcc, null, ctx.abortFunction, 0, null)));
-				// Gcc requires that every block have an end.
-				if (has(endBlock) && !expectedResult.isA!(ExprResult.BreakContinueOrReturn))
-					gcc_jit_block_end_with_jump(defaultBlock, null, force(endBlock));
-				else
-					gcc_jit_block_end_with_return(defaultBlock, null, arbitraryValue(ctx, ctx.curFunReturnType));
-			}
+			emitSwitchCaseOrDefault(ctx, locals, emit, endBlock, local, expectedResult, a.default_);
 
 			gcc_jit_block_end_with_switch(
 				originalBlock,

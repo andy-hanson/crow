@@ -118,7 +118,7 @@ import util.symbol : initSymbols;
 import util.uri : FilePath, initUris, stringOfFilePath, Uri, UrisInfo;
 import util.union_ : Union;
 import util.util : castNonScope, castNonScope_ref;
-import versionInfo : getOS, OS, VersionInfo, versionInfoForBuildToC, versionInfoForInterpret;
+import versionInfo : getOS, OS, VersionInfo, versionInfoForBuildToC, versionInfoForInterpret, VersionOptions;
 
 ExitCode buildAndInterpret(
 	scope ref Perf perf,
@@ -126,12 +126,14 @@ ExitCode buildAndInterpret(
 	in Extern extern_,
 	in WriteError writeError,
 	Uri main,
+	VersionOptions version_,
 	in Opt!(Uri[]) diagnosticsOnlyForUris,
 	in CString[] allArgs,
 ) {
 	assert(filesState(server) == FilesState.allLoaded);
 	return withTempAllocImpure!ExitCode(server.metaAlloc, AllocKind.buildToLowProgram, (ref Alloc buildAlloc) {
-		Programs programs = buildToLowProgram(perf, buildAlloc, server, versionInfoForInterpret(getOS()), main);
+		Programs programs = buildToLowProgram(
+			perf, buildAlloc, server, versionInfoForInterpret(getOS(), version_), main);
 		string diags = showDiagnostics(buildAlloc, server, programs.program, diagnosticsOnlyForUris);
 		if (!isEmpty(diags))
 			writeError(diags);
@@ -309,9 +311,11 @@ private LspOutResult handleLspRequestWithProgram(
 		(in RunParams x) {
 			ArrayBuilder!Write writes;
 			// TODO: this redundantly builds a program...
-			ExitCode exitCode = run(perf, alloc, server, x.uri, x.diagnosticsOnlyForUris, (Pipe pipe, in string x) {
-				add(alloc, writes, Write(pipe, copyString(alloc, x)));
-			});
+			ExitCode exitCode = runFromLsp(
+				perf, alloc, server, x.uri, x.diagnosticsOnlyForUris,
+				(Pipe pipe, in string x) {
+					add(alloc, writes, Write(pipe, copyString(alloc, x)));
+				});
 			return LspOutResult(RunResult(exitCode, finish(alloc, writes)));
 		},
 		(in SemanticTokensParams _) =>
@@ -323,7 +327,7 @@ private LspOutResult handleLspRequestWithProgram(
 		(in UnloadedUrisParams _) =>
 			assert(false));
 
-private ExitCode run(
+private ExitCode runFromLsp(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
@@ -338,7 +342,7 @@ private ExitCode run(
 		buildAndInterpret(
 			perf, server, extern_,
 			(in string x) { writeCb(Pipe.stderr, x); },
-			main, diagnosticsOnlyForUris, allArgs));
+			main, VersionOptions(), diagnosticsOnlyForUris, allArgs));
 }
 
 private __gshared Server serverStorage = void;
@@ -744,9 +748,10 @@ BuildToCResult buildToC(
 	ref Server server,
 	OS os,
 	Uri main,
+	VersionOptions version_,
 	in WriteToCParams params,
 ) {
-	Programs programs = buildToLowProgram(perf, alloc, server, versionInfoForBuildToC(os), main);
+	Programs programs = buildToLowProgram(perf, alloc, server, versionInfoForBuildToC(os, version_,), main);
 	ShowCtx ctx = getShowDiagCtx(server, programs.program);
 	return BuildToCResult(
 		has(programs.lowProgram)

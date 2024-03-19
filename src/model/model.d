@@ -49,6 +49,7 @@ import util.symbol : Symbol, symbol;
 import util.union_ : IndexType, TaggedUnion, Union;
 import util.uri : Uri;
 import util.util : enumConvertOrAssert, max, min, stringOfEnum;
+import versionInfo : VersionFun;
 
 alias Purity = immutable Purity_;
 private enum Purity_ : ubyte {
@@ -763,16 +764,6 @@ immutable struct BuiltinFun {
 		SizeOf,
 		StaticSymbols,
 		VersionFun);
-}
-
-alias VersionFun = immutable VersionFun_;
-private enum VersionFun_ {
-	isBigEndian,
-	isInterpreted,
-	isJit,
-	isSingleThreaded,
-	isWasm,
-	isWindows,
 }
 
 alias BuiltinUnary = immutable BuiltinUnary_;

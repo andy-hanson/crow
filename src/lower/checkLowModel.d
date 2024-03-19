@@ -99,6 +99,7 @@ alias getLoop = stackMapMustGet!(LowExprKind.Loop*, LowType);
 void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr expr) {
 	checkTypeEqual(ctx.ctx, type, expr.type);
 	expr.kind.matchIn!void(
+		(in LowExprKind.Abort) {},
 		(in LowExprKind.Call it) {
 			LowFun* fun = &ctx.ctx.program.allFuns[it.called];
 			checkTypeEqual(ctx.ctx, type, fun.returnType);
@@ -178,9 +179,6 @@ void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr
 			LowType fieldType = ctx.ctx.program.allRecords[recordType].fields[x.fieldIndex].type;
 			checkLowExpr(ctx, info, fieldType, x.value);
 			checkTypeEqual(ctx.ctx, type, voidType);
-		},
-		(in LowExprKind.SizeOf it) {
-			checkTypeEqual(ctx.ctx, type, nat64Type);
 		},
 		(in Constant it) {
 			// Constants are untyped, so can't check more

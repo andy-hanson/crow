@@ -30,9 +30,10 @@ import util.col.arrayBuilder : finish;
 import util.col.mutArr : moveToArray, MutArr;
 import util.col.mutMap : isEmpty, mapToMap;
 import util.late : lateSet;
+import util.opt : Opt, optIf;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.util : castNonScope_ref, ptrTrustMe;
-import versionInfo : VersionInfo;
+import versionInfo : isVersion, VersionFun, VersionInfo;
 
 ConcreteProgram concretize(
 	scope ref Perf perf,
@@ -97,7 +98,8 @@ ConcreteProgram concretizeInner(
 	assert(isEmpty(ctx.concreteFunToBodyInputs));
 	ConcreteFun* userMainConcreteFun = concretizeMainFun(ctx, program.mainFun);
 	ConcreteFun* allocFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.alloc);
-	ConcreteFun* throwImplFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.throwImpl);
+	Opt!(ConcreteFun*) throwImplFun = optIf(!isVersion(versionInfo, VersionFun.isAbortOnThrow), () =>
+		getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.throwImpl));
 	// We remove items from these maps when we process them.
 	assert(isEmpty(ctx.concreteFunToBodyInputs));
 

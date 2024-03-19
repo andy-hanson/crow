@@ -14,7 +14,7 @@ import
 	../option: new, option
 	../private/number-low-level: ==, <=>, nat8, nat32, nat64, unsafe-to, wrap-add, wrap-sub
 	../pointer: ==, <=>, +, *, as-const, mut-pointer, null, pointer-cast, set-deref, size-of
-	../version: is-interpreted, is-windows
+	../version: is-interpreted, is-stack-trace-enabled, is-windows
 	./alloc: gc-ctx, mem-copy, try-alloc-uninitialized
 	./bootstrap: hard-assert
 	./c-string-util: char8, c-string, c-string-size-incl-nul
@@ -32,17 +32,18 @@ export
 
 # Taking 'gc' explicitly to avoid accidental uses
 get-backtrace backtrace(gc gc-ctx, skip nat64) bare, unsafe
-	max-entries nat64 = 16
-	opt-entries backtrace-entry mut*? = gc try-alloc-uninitialized max-entries
-	if entries ?= opt-entries
-		if is-interpreted
-			end = entries interpreter-backtrace max-entries, skip
-			gc copy-strings entries, end
-			(entries .. end).as-array,
-		elif is-windows
-			gc get-native-backtrace-windows entries, max-entries, (skip wrap-add 2)
-		else
-			gc get-native-backtrace-libunwind entries, max-entries, (skip wrap-add 1)
+	if is-stack-trace-enabled
+		max-entries nat64 = 16
+		opt-entries backtrace-entry mut*? = gc try-alloc-uninitialized max-entries
+		if entries ?= opt-entries
+			if is-interpreted
+				end = entries interpreter-backtrace max-entries, skip
+				gc copy-strings entries, end
+				(entries .. end).as-array,
+			elif is-windows
+				gc get-native-backtrace-windows entries, max-entries, (skip wrap-add 2)
+			else
+				gc get-native-backtrace-libunwind entries, max-entries, (skip wrap-add 1)
 
 ###
 Implemented by interpreter only.

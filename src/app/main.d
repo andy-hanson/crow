@@ -39,7 +39,6 @@ version (GccJitAvailable) {
 	import backend.jit : jitAndRun;
 }
 import backend.writeToC : PathAndArgs, WriteToCParams;
-import frontend.lang : JitOptions;
 import frontend.showModel : ShowOptions;
 import frontend.storage : FilesState;
 import interpret.extern_ : Extern;
@@ -107,7 +106,7 @@ import util.unicode : FileContent;
 import util.uri : baseName, cStringOfUriPreferRelative, FilePath, Uri, parentOrEmpty, rootFilePath, toUri;
 import util.util : debugLog;
 import util.writer : debugLogWithWriter, makeStringWithWriter, Writer;
-import versionInfo : getOS, versionInfoForInterpret, versionInfoForJIT;
+import versionInfo : getOS, versionInfoForInterpret, versionInfoForJIT, VersionOptions;
 
 @system extern(C) int main(int argc, immutable char** argv) {
 	ulong function() @safe @nogc pure nothrow getTimeNanosPure =
@@ -349,17 +348,17 @@ ExitCode go(
 ExitCode run(scope ref Perf perf, ref Alloc alloc, ref Server server, FilePath cwd, in CommandKind.Run run) {
 	loadAllFiles(perf, server, [run.mainUri]);
 	return run.options.matchImpure!ExitCode(
-		(in RunOptions.Interpret) =>
+		(in RunOptions.Interpret x) =>
 			withRealExtern(*newAlloc(AllocKind.extern_, server.metaAlloc), (in Extern extern_) =>
 				buildAndInterpret(
 					perf, server, extern_,
 					(in string x) { printError(x); },
-					run.mainUri, none!(Uri[]),
+					run.mainUri, x.version_, none!(Uri[]),
 					getAllArgs(alloc, server, run))),
 		(in RunOptions.Jit x) {
 			version (GccJitAvailable) {
 				CString[] args = getAllArgs(alloc, server, run);
-				return buildAndJit(perf, alloc, server, x.options, run.mainUri, args);
+				return buildAndJit(perf, alloc, server, x, run.mainUri, args);
 			} else {
 				printError("This build does not support '--jit'");
 				return ExitCode.error;
@@ -409,12 +408,16 @@ ExitCode doPrint(scope ref Perf perf, ref Alloc alloc, ref Server server, in Com
 		(in PrintKind.ConcreteModel) {
 			loadAllFiles(perf, server, [mainUri]);
 			return printConcreteModel(
-				perf, alloc, server, server.lineAndColumnGetters, versionInfoForInterpret(getOS()), mainUri);
+				perf, alloc, server, server.lineAndColumnGetters,
+				versionInfoForInterpret(getOS(), VersionOptions()),
+				mainUri);
 		},
 		(in PrintKind.LowModel) {
 			loadAllFiles(perf, server, [mainUri]);
 			return printLowModel(
-				perf, alloc, server, server.lineAndColumnGetters, versionInfoForInterpret(getOS()), mainUri);
+				perf, alloc, server, server.lineAndColumnGetters,
+				versionInfoForInterpret(getOS(), VersionOptions()),
+				mainUri);
 		},
 		(in PrintKind.Ide x) {
 			loadAllFiles(perf, server, [mainUri]);
@@ -438,6 +441,7 @@ ExitCode buildAndRun(
 	MutOpt!int signal;
 	ExitCode exitCode = withTempPath(main, options.defaultExeExtension, (FilePath exePath) {
 		BuildOptions buildOptions = BuildOptions(
+			options.version_,
 			BuildOut(outC: none!FilePath, shouldBuildExecutable: true, outExecutable: exePath),
 			options.compileOptions);
 		return withBuild(perf, alloc, server, cwd, main, buildOptions, (FilePath cPath, in ExternLibraries libs) {
@@ -495,7 +499,7 @@ ExitCode withBuildToC(
 	if (has(cCompiler)) {
 		WriteToCParams params = WriteToCParams(
 			force(cCompiler), cPath, options.out_.outExecutable, options.cCompileOptions);
-		BuildToCResult result = buildToC(perf, alloc, server, getOS(), main, params);
+		BuildToCResult result = buildToC(perf, alloc, server, getOS(), main, options.version_, params);
 		if (!isEmpty(result.diagnostics))
 			printError(result.diagnostics);
 		return result.hasFatalDiagnostics ? ExitCode.error : cb(result);
@@ -507,14 +511,14 @@ version (GccJitAvailable) ExitCode buildAndJit(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
-	in JitOptions jitOptions,
+	in RunOptions.Jit options,
 	Uri main,
 	in CString[] programArgs,
 ) {
-	Programs programs = buildToLowProgram(perf, alloc, server, versionInfoForJIT(getOS()), main);
+	Programs programs = buildToLowProgram(perf, alloc, server, versionInfoForJIT(getOS(), options.version_), main);
 	if (hasAnyDiagnostics(programs.program))
 		printError(showDiagnostics(alloc, server, programs.program));
 	return has(programs.lowProgram)
-		? jitAndRun(perf, alloc, force(programs.lowProgram), jitOptions, programArgs)
+		? jitAndRun(perf, alloc, force(programs.lowProgram), options.options, programArgs)
 		: ExitCode.error;
 }

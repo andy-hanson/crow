@@ -52,6 +52,7 @@ import util.symbol : symbol;
 
 LowFun generateMarkVisitGcPtr(
 	ref Alloc alloc,
+	in AllLowTypes allTypes,
 	LowType markCtxType,
 	LowFunIndex markFun,
 	LowType.PtrGc pointerTypePtrGc,
@@ -65,7 +66,7 @@ LowFun generateMarkVisitGcPtr(
 		genLocalByValue(alloc, symbol!"value", 1, pointerType)]);
 	LowExpr markCtx = genLocalGet(range, &params[0]);
 	LowExpr value = genLocalGet(range, &params[1]);
-	LowExpr sizeExpr = genSizeOf(range, pointeeType);
+	LowExpr sizeExpr = genSizeOf(allTypes, range, pointeeType);
 	LowExpr valueAsAnyPtrConst = genAsAnyPtrConst(alloc, range, value);
 	LowExpr mark = genCall(alloc, range, markFun, boolType, [markCtx, valueAsAnyPtrConst, sizeExpr]);
 	LowExpr expr = () {
@@ -130,6 +131,7 @@ mark-visit void(mark-ctx mark-ctx, a element[])
 */
 LowFun generateMarkVisitArr(
 	ref Alloc alloc,
+	in AllLowTypes allTypes,
 	LowType markCtxType,
 	LowFunIndex markFun,
 	LowType.Record arrType,
@@ -149,7 +151,7 @@ LowFun generateMarkVisitArr(
 	LowExpr callMark = genCall(alloc, range, markFun, boolType, [
 		getMarkCtx,
 		genAsAnyPtrConst(alloc, range, getData),
-		genWrapMulNat64(alloc, range, getSize, genSizeOf(range, elementType))]);
+		genWrapMulNat64(alloc, range, getSize, genSizeOf(allTypes, range, elementType))]);
 	LowExpr expr = () {
 		if (has(markVisitElementFun)) {
 			LowExpr voidValue = genVoid(range);

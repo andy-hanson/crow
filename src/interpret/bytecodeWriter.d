@@ -17,6 +17,7 @@ import interpret.bytecode :
 	subtractByteCodeIndex;
 import interpret.extern_ : countParameterEntries, DynCallSig, FunPointer, sizeWords;
 import interpret.runBytecode :
+	opAbort,
 	opBreak,
 	opCall,
 	opCallFunPointer,
@@ -100,6 +101,10 @@ void setStackEntryAfterParameters(scope ref ByteCodeWriter writer, StackEntry en
 
 ByteCodeIndex nextByteCodeIndex(in ByteCodeWriter writer) =>
 	ByteCodeIndex(mutArrSize(writer.operations));
+
+void writeAbort(scope ref ByteCodeWriter writer, ByteCodeSource source) {
+	pushOperationFn(writer, source, &opAbort);
+}
 
 // This special instruction returns instead of proceeding to the next operation.
 // (Though in non-tail-recursive builds, all operations return.)

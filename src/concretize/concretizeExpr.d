@@ -100,8 +100,7 @@ import model.model :
 	TrustedExpr,
 	Type,
 	TypedExpr,
-	VariableRef,
-	VersionFun;
+	VariableRef;
 import util.alloc.alloc : Alloc;
 import util.col.array :
 	concatenate,
@@ -130,7 +129,7 @@ import util.symbol : symbol, symbolOfString;
 import util.union_ : Union;
 import util.uri : Uri;
 import util.util : castNonScope, castNonScope_ref, ptrTrustMe, todo;
-import versionInfo : isVersion, VersionInfo;
+import versionInfo : isVersion, VersionFun, VersionInfo;
 
 ConcreteExpr concretizeFunBody(
 	ref ConcretizeCtx ctx,

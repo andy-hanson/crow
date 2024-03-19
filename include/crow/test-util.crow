@@ -6,11 +6,13 @@ no-std
 import
 	./compare: equal
 	./json: json, to
+	./log: warn, log
 	./misc: to, void
 	./number: ==, nat64
 	./private/exception-low-level: catch, message
 	./string: ==, interpolate, string
 	./tuple: ==, new
+	./version: is-abort-on-throw
 
 ###
 Asserts the the values are equal.
@@ -22,11 +24,14 @@ Asserts the the values are equal.
 Calls `f` and asserts that it throws an exception with the specified `message`.
 ###
 +throws[t] void(f t mut(), message string)
-	match f catch
-	as ok _
-		throw "Expected to throw an exception"
-	as error e
-		e.message is message
+	if trusted is-abort-on-throw
+		warn log "Skipping 'throws' test due to '--abort-on-throw'"
+	else
+		match f catch
+		as ok _
+			throw "Expected to throw an exception"
+		as error e
+			e.message is message
 
 test
 	x (nat64, string) = 1, "foo"

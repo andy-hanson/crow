@@ -15,18 +15,35 @@ no-std
 import
 	./bool: bool
 
+###
+True if the program was run with '--abort-on-throw'.
+
+If this is true, exceptions can't be caught and always instantly abort the program.
+###
++is-abort-on-throw bool() builtin, bare, unsafe
+
+###
+This will be true unless the program was run with '--no-stack-trace'.
+
+When this is true, Crow will collect a stack trace when an exception is thrown.
+###
++is-stack-trace-enabled bool() builtin, bare, unsafe
+
+###
+This will be true if `is-wasm` or if the program was run with '--single-threaded'.
+
+If this is true, there will only be one Crow thread.
+This simplifies the runtime by letting it skip locks.
+
+External libraries can still launch their own threads.
+###
++is-single-threaded bool() builtin, bare, unsafe
+
 # True if using 'crow run' without the '--jit' or '--aot' option.
 +is-interpreted bool() builtin, bare, unsafe
 
 # True if using 'crow run my-program --jit'.
 +is-jit bool() builtin, bare, unsafe
-
-###
-True if there will only be one crow thread.
-This allows skipping locks.
-Currently equivalent to 'is-wasm'.
-###
-is-single-threaded bool() builtin, bare, unsafe
 
 # True if the code is run in the WASM interpreter.
 +is-wasm bool() builtin, bare, unsafe

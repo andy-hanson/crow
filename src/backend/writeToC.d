@@ -15,7 +15,7 @@ import backend.mangle :
 	writeStructMangledName;
 import backend.builtinMath : builtinForBinaryMath, builtinForUnaryMath;
 import backend.writeTypes : ElementAndCount, TypeWriters, writeTypes;
-import frontend.lang : CCompileOptions, OptimizationLevel;
+import frontend.lang : CCompileOptions, CVersion, OptimizationLevel;
 import frontend.showModel : ShowCtx;
 import lower.lowExprHelpers : boolType;
 import model.concreteModel : ConcreteStruct, ConcreteStructBody, TypeSize;
@@ -114,9 +114,23 @@ WriteToCResult writeToC(ref Alloc alloc, in ShowCtx printCtx, in LowProgram prog
 			writer ~= "unsigned int __popcnt(unsigned int value);\n";
 			writer ~= "unsigned __int64 __popcnt64(unsigned __int64 value);\n";
 		}
+		CVersion cVersion = params.compileOptions.cVersion;
+		if (cVersion == CVersion.c99) {
+			// Based on https://github.com/BartMassey/popcount/blob/master/popcount.c
+			writer ~=
+				"static uint32_t popcount32(uint32_t a) {\n" ~
+				"\tuint32_t y = (a >> 1) & 033333333333;\n" ~
+				"\ty = a - y - ((y >>1) & 033333333333);\n" ~
+				"\treturn ((y + (y >> 3)) & 030707070707) % 63;\n" ~
+				"}\n" ~
+				"uint64_t __builtin_popcountl(uint64_t x) {\n" ~
+				"\treturn popcount32(x & 0xffffffff) + popcount32(x >> 32);\n" ~
+				"}\n";
+		}
 
 		Ctx ctx = Ctx(
-			ptrTrustMe(printCtx), ptrTrustMe(program), buildMangledNames(alloc, program), isMSVC: isMSVC);
+			ptrTrustMe(printCtx), ptrTrustMe(program), buildMangledNames(alloc, program),
+			isMSVC: isMSVC, cVersion: cVersion);
 
 		writeStructs(alloc, writer, ctx);
 
@@ -226,7 +240,6 @@ CString[] cCompilerArgs(bool isMSVC, in CCompileOptions options) {
 			cString!"/std:c17",
 			cString!"/W3",
 			cString!"/wd4028",
-			cString!"/wd4098",
 			cString!"/wd4723",
 			cString!"/WX",
 			cString!"/O2",
@@ -247,7 +260,6 @@ CString[] cCompilerArgs(bool isMSVC, in CCompileOptions options) {
 			cString!"-std=c17",
 			cString!"-Wno-address-of-packed-member",
 			cString!"-Wno-builtin-declaration-mismatch",
-			cString!"-Wno-div-by-zero",
 			cString!"-Wno-maybe-uninitialized",
 			cString!"-Wno-missing-field-initializers",
 			cString!"-Wno-unused-but-set-parameter",
@@ -325,7 +337,7 @@ void writeArrayConstant(scope ref Writer writer, scope ref Ctx ctx, in LowType e
 		foreach (size_t i, Constant x; elements)
 			buf[i] = cast(char) x.as!IntegralValue.value;
 		writeStringLiteralWithoutNul(writer, ctx.isMSVC, castImmutable(buf[0 .. elements.length]));
-	} else if (isChar32(elementType) && !ctx.isMSVC) {
+	} else if (isChar32(elementType) && ctx.cVersion >= CVersion.c11 && !ctx.isMSVC) {
 		writer ~= "U\"";
 		foreach (Constant element; elements)
 			writeEscapedCharForC(writer, cast(dchar) element.as!IntegralValue.value);
@@ -401,6 +413,7 @@ const struct Ctx {
 	LowProgram* programPtr;
 	MangledNames mangledNames;
 	bool isMSVC;
+	CVersion cVersion;
 
 	ref ShowCtx printCtx() return scope =>
 		*showDiagCtxPtr;
@@ -520,13 +533,23 @@ void writeRecord(scope ref Writer writer, scope ref Ctx ctx, in LowRecord a) {
 	writer ~= ";\n";
 }
 
+bool canUseAnonymousUnions(in Ctx ctx) =>
+	ctx.cVersion < CVersion.c11;
+
 void writeUnion(scope ref Writer writer, scope ref Ctx ctx, in LowUnion a) {
-	writeStructHead(writer, ctx, a.source);
-	writer ~= "\n\tuint64_t kind;";
 	bool isBuiltin = a.source.body_.isA!(ConcreteStructBody.Builtin*);
 	if (isBuiltin) assert(a.source.body_.as!(ConcreteStructBody.Builtin*).kind == BuiltinType.lambda);
+
 	if (isBuiltin || exists!LowType(a.members, (in LowType member) => !isEmptyType(ctx, member))) {
-		writer ~= "\n\tunion {";
+		if (canUseAnonymousUnions(ctx)) {
+			writeStructHead(writer, ctx, a.source);
+			writer ~= "\n\tuint64_t kind;\n\tunion {";
+		} else {
+			writer ~= "union ";
+			writeStructMangledName(writer, ctx.mangledNames, a.source);
+			writer ~= "_union {";
+		}
+
 		foreach (size_t memberIndex, LowType member; a.members) {
 			if (!isEmptyType(ctx, member)) {
 				writer ~= "\n\t\t";
@@ -540,9 +563,23 @@ void writeUnion(scope ref Writer writer, scope ref Ctx ctx, in LowUnion a) {
 		if (isBuiltin &&
 			every!LowType(a.members, (in LowType member) => typeSizeBytes(ctx.program, member) < 8))
 			writer ~= "\n\t\tuint64_t __ensureSizeIs16;";
-		writer ~= "\n\t};";
+
+		if (canUseAnonymousUnions(ctx))
+			writer ~= "\n\t};";
+		else {
+			writeStructEnd(writer);
+			writeStructHead(writer, ctx, a.source);
+			writer ~= "\n\tuint64_t kind;";
+			writer ~= "\n\tunion ";
+			writeStructMangledName(writer, ctx.mangledNames, a.source);
+			writer ~= "_union ";
+			writer ~= "u;";
+		}
+		writeStructEnd(writer);
+	} else {
+		writeStructHead(writer, ctx, a.source);
+		writer ~= " uint64_t kind; };\n";
 	}
-	writeStructEnd(writer);
 }
 
 void declareStruct(scope ref Writer writer, scope ref Ctx ctx, in ConcreteStruct* source) {
@@ -698,7 +735,7 @@ void writeFunDefinition(
 	if (body_.hasTailRecur)
 		writer ~= "\n\ttop:;"; // Need ';' so it labels a statement
 	FunBodyCtx bodyCtx = FunBodyCtx(ptrTrustMe(tempAlloc), ptrTrustMe(ctx), body_.hasTailRecur, funIndex, 0);
-	WriteKind writeKind = WriteKind(WriteKind.Return());
+	WriteKind writeKind = isVoid(fun.returnType) ? WriteKind(WriteKind.Void()) : WriteKind(WriteKind.Return());
 	Locals locals;
 	cast(void) writeExpr(writer, 1, bodyCtx, locals, writeKind, body_.expr);
 	writer ~= "\n}\n";
@@ -883,6 +920,8 @@ WriteExprResult writeExpr(
 	}
 
 	return expr.kind.matchIn!WriteExprResult(
+		(in LowExprKind.Abort) =>
+			writeAbort(writer, indent, ctx, locals, writeKind, type),
 		(in LowExprKind.Call it) =>
 			writeCallExpr(writer, indent, ctx, locals, writeKind, type, it),
 		(in LowExprKind.CallFunPointer it) =>
@@ -946,16 +985,6 @@ WriteExprResult writeExpr(
 				writeTempOrInline(writer, ctx, locals, x.value, fieldValue);
 			});
 		},
-		(in LowExprKind.SizeOf x) =>
-			inlineableSimple(() {
-				if (isVoid(x.type))
-					writer ~= '0';
-				else {
-					writer ~= "sizeof(";
-					writeType(writer, ctx.ctx, x.type);
-					writer ~= ')';
-				}
-			}),
 		(in Constant it) =>
 			inlineableSimple(() {
 				writeConstantRef(writer, ctx.ctx, ConstantRefPos.outer, type, it);
@@ -974,9 +1003,9 @@ WriteExprResult writeExpr(
 			assert(false),
 		(in LowExprKind.Switch x) =>
 			writeSwitch(writer, indent, ctx, locals, writeKind, type, x),
-		(in LowExprKind.TailRecur it) {
-			assert(writeKind.isA!(WriteKind.Return));
-			writeTailRecur(writer, indent, ctx, locals, it);
+		(in LowExprKind.TailRecur x) {
+			assert(writeKind.isA!(WriteKind.Void) || writeKind.isA!(WriteKind.Return));
+			writeTailRecur(writer, indent, ctx, locals, x);
 			return writeExprDone();
 		},
 		(in LowExprKind.UnionAs x) =>
@@ -1151,6 +1180,26 @@ WriteExprResult writeReturnVoid(
 			return writeExprDone();
 		});
 
+WriteExprResult writeAbort(
+	scope ref Writer writer,
+	size_t indent,
+	scope ref FunBodyCtx ctx,
+	in Locals locals,
+	in WriteKind writeKind,
+	in LowType type,
+) =>
+	writeInlineableSimple(writer, indent, ctx, locals, writeKind, type, () {
+		bool needValue = !isEmptyType(ctx, type);
+		if (needValue)
+			writer ~= '(';
+		writer ~= "abort()";
+		if (needValue) {
+			writer ~= ", ";
+			writeZeroedValue(writer, ctx.ctx, type);
+			writer ~= ')';
+		}
+	});
+
 WriteExprResult writeCallExpr(
 	scope ref Writer writer,
 	size_t indent,
@@ -1208,10 +1257,13 @@ void writeCreateUnion(
 	writer ~= memberIndex;
 	LowType memberType = ctx.program.allUnions[type.as!(LowType.Union)].members[memberIndex];
 	if (!isEmptyType(ctx, memberType)) {
-		writer ~= ", .as";
+		writer ~= canUseAnonymousUnions(ctx) ? ", " : ", .u = { ";
+		writer ~= ".as";
 		writer ~= memberIndex;
 		writer ~= " = ";
 		cbWriteMember();
+		if (!canUseAnonymousUnions(ctx))
+			writer ~= " }";
 	}
 	writer ~= '}';
 }
@@ -1248,28 +1300,14 @@ WriteExprResult writeSwitch(
 	foreach (size_t caseIndex, LowExpr caseExpr; a.caseExprs) {
 		writeNewline(writer, indent + 1);
 		writer ~= "case ";
-		writeConstantIntegral(writer, a.value.type, a.caseValues[caseIndex], ctx.ctx.isMSVC);
+		writeConstantIntegral(writer, ctx.ctx, a.value.type, a.caseValues[caseIndex]);
 		writer ~= ": {";
 		writeCaseOrDefault(caseExpr);
 	}
 
 	writeNewline(writer, indent + 1);
 	writer ~= "default: {";
-	if (has(a.default_))
-		writeCaseOrDefault(*force(a.default_));
-	else {
-		writeNewline(writer, indent + 2);
-		writer ~= "abort();";
-		if (ctx.ctx.isMSVC && !isEmptyType(ctx, type)) {
-			cast(void) writeInlineableSimple(writer, indent, ctx, locals, writeKind, type, () {
-				writeZeroedValue(writer, ctx.ctx, type);
-			});
-			writer ~= ';';
-		}
-		writeNewline(writer, indent + 1);
-		writer ~= '}';
-	}
-
+	writeCaseOrDefault(a.default_);
 	writeNewline(writer, indent);
 	writer ~= '}';
 	return nested.result;
@@ -1371,7 +1409,7 @@ void writeConstantRef(
 				writer ~= ')';
 		},
 		(in IntegralValue x) {
-			writeConstantIntegral(writer, type, x, ctx.isMSVC);
+			writeConstantIntegral(writer, ctx, type, x);
 		},
 		(in Constant.Pointer it) {
 			writer ~= '&';
@@ -1405,10 +1443,10 @@ void writeConstantRef(
 		});
 }
 
-void writeConstantIntegral(scope ref Writer writer, in LowType type, IntegralValue a, bool isMSVC) {
+void writeConstantIntegral(scope ref Writer writer, in Ctx ctx, in LowType type, IntegralValue a) {
 	PrimitiveType primitive = type.as!PrimitiveType;
 	if (primitive == PrimitiveType.char8 || primitive == PrimitiveType.char32) {
-		if (!isMSVC && isValidUnicodeCharacter(safeToUint(a.asUnsigned))) {
+		if (!ctx.isMSVC && ctx.cVersion >= CVersion.c11 && isValidUnicodeCharacter(safeToUint(a.asUnsigned))) {
 			writer ~= "'";
 			writeEscapedCharForC(writer, safeToUint(a.asUnsigned));
 			writer ~= "'";
@@ -1507,6 +1545,8 @@ WriteExprResult writeUnionAs(
 	writeInlineableSingleArg(writer, indent, ctx, locals, writeKind, type, *a.union_, (in WriteExprResult unionValue) {
 		if (!isEmptyType(ctx, type)) {
 			writeTempOrInline(writer, ctx, locals, *a.union_, unionValue);
+			if (!canUseAnonymousUnions(ctx.ctx))
+				writer ~= ".u";
 			writer ~= ".as";
 			writer ~= a.memberIndex;
 		}

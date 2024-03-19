@@ -190,6 +190,11 @@ private void operation(alias cb)(
 	}
 }
 
+alias opAbort = operationWithoutNext!opAbortInner;
+private void opAbortInner(Stacks stacks, Operation* cur) {
+	assert(false, "Reached 'abort' instruction");
+}
+
 alias opBreak = operationWithoutNext!opBreakInner;
 private void opBreakInner(Stacks stacks, Operation* cur) {
 	setNext(stacks, cur);

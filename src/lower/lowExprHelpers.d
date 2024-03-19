@@ -16,6 +16,7 @@ import model.lowModel :
 	LowRecord,
 	LowType,
 	PrimitiveType;
+import model.typeLayout : typeSizeBytes;
 import util.alloc.alloc : Alloc;
 import util.col.array : mapWithIndex, newArray, newSmallArray;
 import util.conv : safeToUint;
@@ -43,6 +44,9 @@ private LowType anyPtrConstType() =>
 LowType anyPtrMutType() => LowType(LowType.PtrRawMut(&nat8Type));
 LowType voidType() => LowType(PrimitiveType.void_);
 
+LowExpr genAbort(LowType type, UriAndRange range) =>
+	LowExpr(type, range, LowExprKind(LowExprKind.Abort()));
+
 LowExpr genUnionAs(LowType asType, UriAndRange range, LowExpr* union_, uint memberIndex) =>
 	LowExpr(asType, range, LowExprKind(LowExprKind.UnionAs(union_, memberIndex)));
 
@@ -59,11 +63,14 @@ LowExpr genUnionMatch(
 ) {
 	assert(getUnion.kind.isA!(LowExprKind.LocalGet));
 	LowExpr* getUnionPtr = allocate(alloc, getUnion);
-	LowExpr[] cases = mapWithIndex!(LowExpr, LowType)(
-		alloc, unionMembers, (size_t memberIndex, ref LowType memberType) =>
-			cbCase(memberIndex, genUnionAs(memberType, range, getUnionPtr, safeToUint(memberIndex))));
 	return LowExpr(type, range, LowExprKind(allocate(alloc,
-		LowExprKind.Switch(genUnionKind(range, getUnionPtr), integralValuesRange(unionMembers.length), cases))));
+		LowExprKind.Switch(
+			genUnionKind(range, getUnionPtr),
+			integralValuesRange(unionMembers.length),
+			mapWithIndex!(LowExpr, LowType)(
+				alloc, unionMembers, (size_t memberIndex, ref LowType memberType) =>
+					cbCase(memberIndex, genUnionAs(memberType, range, getUnionPtr, safeToUint(memberIndex)))),
+			genAbort(type, range)))));
 }
 
 LowExpr genAddPtr(ref Alloc alloc, LowType.PtrRawConst ptrType, UriAndRange range, LowExpr ptr, LowExpr added) =>
@@ -111,7 +118,10 @@ LowExpr genIncrPointer(ref Alloc alloc, UriAndRange range, LowType.PtrRawConst p
 	genAddPtr(alloc, ptrType, range, ptr, genConstantNat64(range, 1));
 
 LowExpr genConstantNat64(UriAndRange range, ulong value) =>
-	LowExpr(nat64Type, range, LowExprKind(Constant(IntegralValue(value))));
+	LowExpr(nat64Type, range, genConstantNat64Kind(value));
+
+private LowExprKind genConstantNat64Kind(ulong value) =>
+	LowExprKind(Constant(IntegralValue(value)));
 
 LowExpr genCall(ref Alloc alloc, UriAndRange range, LowFunIndex called, LowType returnType, in LowExpr[] args) =>
 	LowExpr(returnType, range, genCallKind(alloc, called, args));
@@ -119,8 +129,11 @@ LowExpr genCall(ref Alloc alloc, UriAndRange range, LowFunIndex called, LowType 
 LowExprKind genCallKind(ref Alloc alloc, LowFunIndex called, in LowExpr[] args) =>
 	LowExprKind(LowExprKind.Call(called, newSmallArray(alloc, args)));
 
-LowExpr genSizeOf(UriAndRange range, LowType t) =>
-	LowExpr(nat64Type, range, LowExprKind(LowExprKind.SizeOf(t)));
+LowExpr genSizeOf(in AllLowTypes allTypes, UriAndRange range, LowType t) =>
+	genConstantNat64(range, typeSizeBytes(allTypes, t));
+
+LowExprKind genSizeOfKind(in AllLowTypes allTypes, LowType t) =>
+	genConstantNat64Kind(typeSizeBytes(allTypes, t));
 
 LowExpr genLocalGet(UriAndRange range, LowLocal* local) =>
 	LowExpr(local.type, range, LowExprKind(LowExprKind.LocalGet(local)));

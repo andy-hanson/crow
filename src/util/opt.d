@@ -84,6 +84,10 @@ MutOpt!T someMut(T)(T value) =>
 bool has(T)(in Option!T a) =>
 	a.has_;
 
+inout(T) forceNonRef(T)(inout Option!T a) {
+	assert(has(a));
+	return a.value_;
+}
 ref inout(T) force(T)(ref inout Option!T a) {
 	assert(has(a));
 	return a.value_;

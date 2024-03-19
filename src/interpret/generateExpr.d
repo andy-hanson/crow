@@ -70,6 +70,7 @@ import interpret.bytecodeWriter :
 	stackEntriesEnd,
 	StackEntry,
 	SwitchDelayed,
+	writeAbort,
 	writeAddConstantNat64,
 	writeCallDelayed,
 	writeCallFunPointer,
@@ -291,6 +292,10 @@ void generateExpr(
 	assert(after.returnValueStackEntries.size == nStackEntriesForType(ctx, expr.type));
 	ByteCodeSource source = ByteCodeSource(ctx.curFunIndex, expr.source.range.start);
 	expr.kind.matchIn!void(
+		(in LowExprKind.Abort x) {
+			writeAbort(writer, source);
+			setNextStackEntry(writer, stackEntriesEnd(after.returnValueStackEntries));
+		},
 		(in LowExprKind.Call it) {
 			StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
 			size_t expectedStackEffect = after.returnValueStackEntries.size;
@@ -367,10 +372,6 @@ void generateExpr(
 		},
 		(in LowExprKind.RecordFieldSet x) {
 			generateRecordFieldSet(writer, ctx, source, locals, x);
-			handleAfter(writer, ctx, source, after);
-		},
-		(in LowExprKind.SizeOf it) {
-			writePushConstant(writer, source, typeSizeBytes(ctx, it.type));
 			handleAfter(writer, ctx, source, after);
 		},
 		(in Constant it) {
@@ -576,7 +577,8 @@ void generateSwitch(
  ) {
 	StackEntry stackBefore = getNextStackEntry(writer);
 	generateExprAndContinue(writer, ctx, locals, a.value);
-	SwitchDelayed delayed = writeSwitchDelay(writer, source, a.caseValues, has(a.default_));
+	bool defaultAbort = a.default_.kind.isA!(LowExprKind.Abort);
+	SwitchDelayed delayed = writeSwitchDelay(writer, source, a.caseValues, !defaultAbort);
 	withBranching(writer, ctx, after, (ref ExprAfter afterBranch, ref ExprAfter afterLastBranch) {
 		void writeCaseOrDefault(size_t index, ref LowExpr expr, bool isLast) {
 			fillDelayedSwitchEntry(writer, delayed, index);
@@ -585,9 +587,9 @@ void generateSwitch(
 				setNextStackEntry(writer, stackBefore);
 		}
 		foreach (size_t caseIndex, ref LowExpr case_; a.caseExprs)
-			writeCaseOrDefault(caseIndex, case_, !has(a.default_) && caseIndex == a.caseExprs.length - 1);
-		if (has(a.default_))
-			writeCaseOrDefault(a.caseExprs.length, *force(a.default_), true);
+			writeCaseOrDefault(caseIndex, case_, defaultAbort && caseIndex == a.caseExprs.length - 1);
+		if (!defaultAbort)
+			writeCaseOrDefault(a.caseExprs.length, a.default_, true);
 	});
 }
 

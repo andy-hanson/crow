@@ -357,6 +357,8 @@ immutable struct LowFunIndex {
 }
 
 immutable struct LowExprKind {
+	immutable struct Abort {}
+
 	immutable struct Call {
 		LowFunIndex called;
 		SmallArray!LowExpr args; // Includes implicit ctx arg if needed
@@ -441,10 +443,6 @@ immutable struct LowExprKind {
 		LowExpr value;
 	}
 
-	immutable struct SizeOf {
-		LowType type;
-	}
-
 	immutable struct SpecialUnary {
 		BuiltinUnary kind;
 		LowExpr arg;
@@ -475,10 +473,10 @@ immutable struct LowExprKind {
 		LowExpr value;
 		IntegralValues caseValues;
 		LowExpr[] caseExprs;
-		Opt!(LowExpr*) default_; // If missing, abort
+		LowExpr default_; // This is often Abort
 
-		this(LowExpr v, IntegralValues cv, LowExpr[] ce, Opt!(LowExpr*) d = none!(LowExpr*)) {
-			value = v; caseValues = cv; caseExprs = ce; default_ = d;
+		this(LowExpr value, IntegralValues caseValues, LowExpr[] caseExprs, LowExpr default_) {
+			this.value = value; this.caseValues = caseValues; this.caseExprs = caseExprs; this.default_ = default_;
 			assert(caseValues.length == caseExprs.length);
 		}
 	}
@@ -503,6 +501,7 @@ immutable struct LowExprKind {
 	}
 
 	mixin Union!(
+		Abort,
 		Call,
 		CallFunPointer,
 		CreateRecord,
@@ -520,7 +519,6 @@ immutable struct LowExprKind {
 		PtrToLocal,
 		RecordFieldGet,
 		RecordFieldSet*,
-		SizeOf,
 		Constant,
 		SpecialUnary*,
 		SpecialUnaryMath*,

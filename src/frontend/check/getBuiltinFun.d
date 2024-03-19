@@ -23,11 +23,11 @@ import model.model :
 	paramsArray,
 	SpecInst,
 	StructInst,
-	Type,
-	VersionFun;
+	Type;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Range;
 import util.symbol : Symbol, symbol;
+import versionInfo : VersionFun;
 
 FunBody getBuiltinFun(ref CheckCtx ctx, FunDecl* fun) {
 	Destructure[] params = paramsArray(fun.params);
@@ -550,6 +550,8 @@ bool isVoid(in Type a) =>
 
 Opt!VersionFun versionFunFromSymbol(Symbol name) {
 	switch (name.value) {
+		case symbol!"is-abort-on-throw".value:
+			return some(VersionFun.isAbortOnThrow);
 		case symbol!"is-big-endian".value:
 			return some(VersionFun.isBigEndian);
 		case symbol!"is-interpreted".value:
@@ -558,6 +560,8 @@ Opt!VersionFun versionFunFromSymbol(Symbol name) {
 			return some(VersionFun.isJit);
 		case symbol!"is-single-threaded".value:
 			return some(VersionFun.isSingleThreaded);
+		case symbol!"is-stack-trace-enabled".value:
+			return some(VersionFun.isStackTraceEnabled);
 		case symbol!"is-wasm".value:
 			return some(VersionFun.isWasm);
 		case symbol!"is-windows".value:

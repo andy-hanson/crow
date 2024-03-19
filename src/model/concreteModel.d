@@ -670,7 +670,7 @@ immutable struct ConcreteProgram {
 		commonFuns.userMain;
 	ConcreteFun* allocFun() return scope =>
 		commonFuns.allocFun;
-	ConcreteFun* throwImplFun() return scope =>
+	Opt!(ConcreteFun*) throwImplFun() return scope =>
 		commonFuns.throwImpl;
 }
 
@@ -678,7 +678,7 @@ immutable struct ConcreteCommonFuns {
 	ConcreteFun* allocFun;
 	ConcreteFun* markFun;
 	ConcreteFun* rtMain;
-	ConcreteFun* throwImpl;
+	Opt!(ConcreteFun*) throwImpl; // None if '--abort-on-throw'
 	ConcreteFun* userMain;
 }
 

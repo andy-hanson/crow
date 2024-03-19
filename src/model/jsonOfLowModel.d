@@ -149,6 +149,8 @@ Json jsonOfLowExprs(ref Alloc alloc, in Ctx ctx, in LowExpr[] a) =>
 
 Json jsonOfLowExprKind(ref Alloc alloc, in Ctx ctx, in LowExprKind a) =>
 	a.matchIn!Json(
+		(in LowExprKind.Abort x) =>
+			jsonObject(alloc, [kindField!"abort"]),
 		(in LowExprKind.Call x) =>
 			jsonObject(alloc, [
 				kindField!"call",
@@ -225,10 +227,6 @@ Json jsonOfLowExprKind(ref Alloc alloc, in Ctx ctx, in LowExprKind a) =>
 				field!"target"(jsonOfLowExpr(alloc, ctx, x.target)),
 				field!"field-index"(x.fieldIndex),
 				field!"value"(jsonOfLowExpr(alloc, ctx, x.value))]),
-		(in LowExprKind.SizeOf x) =>
-			jsonObject(alloc, [
-				kindField!"size-of",
-				field!"type"(jsonOfLowType(alloc, x.type))]),
 		(in Constant x) =>
 			jsonObject(alloc, [
 				kindField!"constant",

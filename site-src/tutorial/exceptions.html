@@ -84,6 +84,20 @@
 			throw "not today"
 	</crow-runnable>
 
+	<p>
+		You should usually not have to catch exceptions.
+		An exception indicates a bug, so you should fix the bug instead of catching it.
+		<br />
+		For example, if indexing into a list <code>xs[i]</code> caused an exception,
+		fix the code to test <code>i</code> first.
+	</p>
+	<p>
+		If running or building with the <code>--abort-on-throw</code> option, exceptions will be uncatchable.
+		<br />
+		That's why it's <code class="keyword">unsafe</code> to <code class="function">catch</code>;
+		the behavior of safe code shouldn't depend on compile options.
+	</p>
+
 	<aside>
 		<h4>Exceptions in crow</h4>
 		<p>
@@ -97,13 +111,6 @@
 			In other words, <code class="keyword">match</code> instead of <code class="keyword">catch</code>.
 			<br />
 			For example, <code>map[key]</code> just returns an option that is empty if the key is not fund.
-		</p>
-		<p>
-			You should usually not have to catch exceptions.
-			An exception indicates a bug, so you should fix the bug instead of catching it.
-			<br />
-			For example, if indexing into a list <code>xs[i]</code> caused an exception,
-			fix the code to test <code>i</code> first.
 		</p>
 	</aside>
 

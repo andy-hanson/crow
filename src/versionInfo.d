@@ -2,8 +2,6 @@ module versionInfo;
 
 @safe @nogc nothrow: // not pure
 
-import model.model : VersionFun;
-
 enum OS {
 	linux,
 	web,
@@ -23,24 +21,44 @@ OS getOS() {
 
 pure:
 
+immutable struct VersionOptions {
+	bool isSingleThreaded;
+	bool abortOnThrow;
+	bool stackTraceEnabled;
+}
+
 immutable struct VersionInfo {
 	private:
 	public OS os;
+	VersionOptions options;
 	bool isInterpreted;
 	bool isJit;
 }
 
-VersionInfo versionInfoForInterpret(OS os) =>
-	VersionInfo(os: os, isInterpreted: true, isJit: false);
+VersionInfo versionInfoForInterpret(OS os, VersionOptions options) =>
+	VersionInfo(os: os, isInterpreted: true, isJit: false, options: options);
 
-VersionInfo versionInfoForJIT(OS os) =>
-	VersionInfo(os: os, isInterpreted: false, isJit: true);
+VersionInfo versionInfoForJIT(OS os, VersionOptions options) =>
+	VersionInfo(os: os, isInterpreted: false, isJit: true, options: options);
 
-VersionInfo versionInfoForBuildToC(OS os) =>
-	VersionInfo(os: os, isInterpreted: false, isJit: false);
+VersionInfo versionInfoForBuildToC(OS os, VersionOptions options) =>
+	VersionInfo(os: os, isInterpreted: false, isJit: false, options: options);
+
+enum VersionFun {
+	isAbortOnThrow,
+	isBigEndian,
+	isInterpreted,
+	isJit,
+	isSingleThreaded,
+	isStackTraceEnabled,
+	isWasm,
+	isWindows,
+}
 
 bool isVersion(in VersionInfo a, VersionFun fun) {
 	final switch (fun) {
+		case VersionFun.isAbortOnThrow:
+			return a.options.abortOnThrow;
 		case VersionFun.isBigEndian:
 			version (BigEndian) {
 				return true;
@@ -52,11 +70,13 @@ bool isVersion(in VersionInfo a, VersionFun fun) {
 		case VersionFun.isJit:
 			return a.isJit;
 		case VersionFun.isSingleThreaded:
-			return isWasm;
+			return isWasm || a.options.isSingleThreaded;
 		case VersionFun.isWasm:
 			return isWasm;
 		case VersionFun.isWindows:
 			return isWindows(a);
+		case VersionFun.isStackTraceEnabled:
+			return a.options.stackTraceEnabled;
 	}
 }
 
