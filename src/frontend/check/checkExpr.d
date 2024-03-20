@@ -62,7 +62,7 @@ import model.ast :
 	ForAst,
 	IdentifierAst,
 	IfAst,
-	IfOptionAst,
+	IfConditionAst,
 	InterpolatedAst,
 	keywordRange,
 	LambdaAst,
@@ -74,20 +74,17 @@ import model.ast :
 	LoopAst,
 	LoopBreakAst,
 	LoopContinueAst,
-	LoopUntilAst,
-	LoopWhileAst,
+	LoopWhileOrUntilAst,
 	MatchAst,
 	NameAndRange,
 	ParenthesizedAst,
 	PtrAst,
 	SeqAst,
 	SharedAst,
-	TernaryAst,
 	ThenAst,
 	ThrowAst,
 	TrustedAst,
 	TypedAst,
-	UnlessAst,
 	WithAst;
 import model.constant : Constant;
 import model.diag : Diag, TypeContainer, TypeWithContainer;
@@ -139,8 +136,7 @@ import model.model :
 	LoopBreakExpr,
 	LoopContinueExpr,
 	LoopExpr,
-	LoopUntilExpr,
-	LoopWhileExpr,
+	LoopWhileOrUntilExpr,
 	MatchEnumExpr,
 	MatchIntegralExpr,
 	MatchStringLikeExpr,
@@ -292,10 +288,8 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expecte
 			checkFor(ctx, locals, ast, *a, expected),
 		(IdentifierAst a) =>
 			checkIdentifier(ctx, locals, ast, a, expected),
-		(IfAst* a) =>
-			checkIf(ctx, locals, ast, &a.cond, &a.then, &a.else_, expected),
-		(IfOptionAst* a) =>
-			checkIfOption(ctx, locals, ast, a, expected),
+		(IfAst a) =>
+			checkIf(ctx, locals, ast, a, expected),
 		(InterpolatedAst a) =>
 			checkInterpolated(ctx, locals, ast, a, expected),
 		(LambdaAst* a) =>
@@ -314,10 +308,8 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expecte
 			checkLoopBreak(ctx, locals, ast, a, expected),
 		(LoopContinueAst a) =>
 			checkLoopContinue(ctx, locals, ast, a, expected),
-		(LoopUntilAst* a) =>
-			checkLoopUntil(ctx, locals, ast, a, expected),
-		(LoopWhileAst* a) =>
-			checkLoopWhile(ctx, locals, ast, a, expected),
+		(LoopWhileOrUntilAst* a) =>
+			checkLoopWhileOrUntil(ctx, locals, ast, a, expected),
 		(MatchAst a) =>
 			checkMatch(ctx, locals, ast, a, expected),
 		(ParenthesizedAst* a) =>
@@ -328,8 +320,6 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expecte
 			checkSeq(ctx, locals, ast, a, expected),
 		(SharedAst* a) =>
 			checkShared(ctx, locals, ast, a, expected),
-		(TernaryAst* a) =>
-			checkIf(ctx, locals, ast, &a.cond, &a.then, &a.else_, expected),
 		(ThenAst* a) =>
 			checkThen(ctx, locals, ast, *a, expected),
 		(ThrowAst* a) =>
@@ -338,8 +328,6 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* ast, ref Expecte
 			checkTrusted(ctx, locals, ast, a, expected),
 		(TypedAst* a) =>
 			checkTyped(ctx, locals, ast, a, expected),
-		(UnlessAst* a) =>
-			checkUnless(ctx, locals, ast, a, expected),
 		(WithAst* a) =>
 			checkWith(ctx, locals, ast, *a, expected));
 
@@ -410,16 +398,43 @@ Expr checkIf(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	ExprAst* source,
-	ExprAst* condAst,
-	ExprAst* thenAst,
-	ExprAst* elseAst,
+	IfAst ast,
 	ref Expected expected,
-) {
-	Expr cond = checkAndExpectBool(ctx, locals, condAst);
-	Expr then = checkExpr(ctx, locals, thenAst, expected);
-	Expr else_ = checkExpr(ctx, locals, elseAst, expected);
-	return Expr(source, ExprKind(allocate(ctx.alloc, IfExpr(cond, then, else_))));
-}
+) =>
+	ast.condition.matchWithPointers!Expr(
+		(IfConditionAst.UnpackOption* condAst) {
+			ExprAndType option = checkAndInfer(ctx, locals, condAst.option);
+			StructInst* inst = option.type.isA!(StructInst*)
+				? option.type.as!(StructInst*)
+				// Arbitrary type that's not 'option'
+				: ctx.commonTypes.void_;
+			if (inst.decl != ctx.commonTypes.option) {
+				addDiag2(ctx, source, Diag(Diag.IfNeedsOpt(typeWithContainer(ctx, option.type))));
+				return bogus(expected, source);
+			} else {
+				Type nonOptionalType = only(inst.typeArgs);
+				Destructure destructure = checkDestructure2(
+					ctx, condAst.destructure, nonOptionalType, DestructureKind.local);
+				Expr then = checkExprWithDestructure(ctx, locals, destructure, &ast.then(), expected);
+				Expr else_ = checkExpr(ctx, locals, &ast.else_(), expected);
+				return Expr(source, ExprKind(allocate(ctx.alloc, IfOptionExpr(destructure, option, then, else_))));
+			}
+		},
+		(ExprAst* condAst) {
+			Expr cond = checkAndExpectBool(ctx, locals, condAst);
+			Expr then = checkExpr(ctx, locals, &ast.then(), expected);
+			Expr else_ = checkExpr(ctx, locals, &ast.else_(), expected);
+			final switch (ast.kind) {
+				case IfAst.Kind.ifWithoutElse:
+				case IfAst.Kind.ifElif:
+				case IfAst.Kind.ifElse:
+				case IfAst.Kind.ternaryWithElse:
+				case IfAst.Kind.ternaryWithoutElse:
+					return Expr(source, ExprKind(allocate(ctx.alloc, IfExpr(cond, then, else_))));
+				case IfAst.Kind.unless:
+					return Expr(source, ExprKind(allocate(ctx.alloc, IfExpr(cond, else_, then))));
+			}
+		});
 
 Expr checkThrow(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ThrowAst* ast, ref Expected expected) {
 	if (isPurelyInferring(expected)) {
@@ -513,46 +528,8 @@ Expr checkAssignmentCall(
 	return checkAssignment(ctx, locals, source, ast.left, ast.keywordRange, call, expected);
 }
 
-Expr checkUnless(
-	ref ExprCtx ctx,
-	ref LocalsInfo locals,
-	ExprAst* source,
-	UnlessAst* ast,
-	ref Expected expected,
-) {
-	Expr cond = checkAndExpectBool(ctx, locals, &ast.cond);
-	Expr else_ = checkExpr(ctx, locals, &ast.body_, expected);
-	Expr then = checkExpr(ctx, locals, &ast.emptyElse, expected);
-	return Expr(source, ExprKind(allocate(ctx.alloc, IfExpr(cond, then, else_))));
-}
-
 Expr checkEmptyNew(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, in Range range, ref Expected expected) =>
 	checkCallSpecial(ctx, locals, source, range, symbol!"new", [], expected);
-
-Expr checkIfOption(
-	ref ExprCtx ctx,
-	ref LocalsInfo locals,
-	ExprAst* source,
-	IfOptionAst* ast,
-	ref Expected expected,
-) {
-	// We don't know the cond type, except that it's an option
-	ExprAndType option = checkAndInfer(ctx, locals, &ast.option);
-	StructInst* inst = option.type.isA!(StructInst*)
-		? option.type.as!(StructInst*)
-		// Arbitrary type that's not opt
-		: ctx.commonTypes.void_;
-	if (inst.decl != ctx.commonTypes.opt) {
-		addDiag2(ctx, source, Diag(Diag.IfNeedsOpt(typeWithContainer(ctx, option.type))));
-		return bogus(expected, source);
-	} else {
-		Type nonOptionalType = only(inst.typeArgs);
-		Destructure destructure = checkDestructure2(ctx, ast.destructure, nonOptionalType, DestructureKind.local);
-		Expr then = checkExprWithDestructure(ctx, locals, destructure, &ast.then, expected);
-		Expr else_ = checkExpr(ctx, locals, &ast.else_, expected);
-		return Expr(source, ExprKind(allocate(ctx.alloc, IfOptionExpr(destructure, option, then, else_))));
-	}
-}
 
 Expr checkInterpolated(
 	ref ExprCtx ctx,
@@ -1367,31 +1344,19 @@ Expr checkLoopContinue(
 		: checkCallSpecial(ctx, locals, source, ast.keywordRange(source), symbol!"loop-continue", [], expected);
 }
 
-Expr checkLoopUntil(
+Expr checkLoopWhileOrUntil(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	ExprAst* source,
-	LoopUntilAst* ast,
+	LoopWhileOrUntilAst* ast,
 	ref Expected expected,
 ) =>
 	check(ctx, source, expected, voidType(ctx), Expr(
 		source,
-		ExprKind(allocate(ctx.alloc, LoopUntilExpr(
-			checkAndExpectBool(ctx, locals, &ast.condition),
-			checkAndExpectVoid(ctx, locals, &ast.body_))))));
-
-Expr checkLoopWhile(
-	ref ExprCtx ctx,
-	ref LocalsInfo locals,
-	ExprAst* source,
-	LoopWhileAst* ast,
-	ref Expected expected,
-) =>
-	check(ctx, source, expected, voidType(ctx), Expr(
-		source,
-		ExprKind(allocate(ctx.alloc, LoopWhileExpr(
-			checkAndExpectBool(ctx, locals, &ast.condition),
-			checkAndExpectVoid(ctx, locals, &ast.body_))))));
+		ExprKind(allocate(ctx.alloc, LoopWhileOrUntilExpr(
+			isUntil: ast.isUntil,
+			condition: checkAndExpectBool(ctx, locals, &ast.condition),
+			body_: checkAndExpectVoid(ctx, locals, &ast.body_))))));
 
 Expr checkMatch(ref ExprCtx ctx, ref LocalsInfo locals, ExprAst* source, ref MatchAst ast, ref Expected expected) {
 	ExprAndType matched = checkAndInfer(ctx, locals, ast.matched);
@@ -1752,8 +1717,6 @@ bool hasBreakOrContinue(in ExprAst a) =>
 			false,
 		(in IfAst x) =>
 			hasBreakOrContinue(x.then) || hasBreakOrContinue(x.else_),
-		(in IfOptionAst x) =>
-			hasBreakOrContinue(x.then) || hasBreakOrContinue(x.else_),
 		(in InterpolatedAst _) =>
 			false,
 		(in LambdaAst _) =>
@@ -1772,9 +1735,7 @@ bool hasBreakOrContinue(in ExprAst a) =>
 			true,
 		(in LoopContinueAst _) =>
 			true,
-		(in LoopUntilAst _) =>
-			false,
-		(in LoopWhileAst _) =>
+		(in LoopWhileOrUntilAst _) =>
 			false,
 		(in MatchAst x) =>
 			exists!(CaseAst)(x.cases, (in CaseAst case_) =>
@@ -1787,8 +1748,6 @@ bool hasBreakOrContinue(in ExprAst a) =>
 			hasBreakOrContinue(x.then),
 		(in SharedAst x) =>
 			false,
-		(in TernaryAst x) =>
-			hasBreakOrContinue(x.then) || hasBreakOrContinue(x.else_),
 		// TODO: Maybe this should be allowed some day. Not in primitive loop but in for-break.
 		(in ThenAst x) =>
 			hasBreakOrContinue(x.then),
@@ -1798,8 +1757,6 @@ bool hasBreakOrContinue(in ExprAst a) =>
 			false,
 		(in TypedAst _) =>
 			false,
-		(in UnlessAst x) =>
-			hasBreakOrContinue(x.body_),
 		(in WithAst _) =>
 			false);
 

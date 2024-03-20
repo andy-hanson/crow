@@ -6,6 +6,7 @@ import frontend.parse.lexer :
 	addDiag,
 	addDiagUnexpectedCurToken,
 	curPos,
+	ElifOrElseKeyword,
 	EqualsOrThen,
 	getPeekToken,
 	getPeekTokenAndData,
@@ -57,14 +58,13 @@ import model.ast :
 	CaseMemberAst,
 	DestructureAst,
 	DoAst,
-	ElifOrElseKeyword,
 	EmptyAst,
 	ExprAst,
 	ExprAstKind,
 	ForAst,
 	IdentifierAst,
 	IfAst,
-	IfOptionAst,
+	IfConditionAst,
 	InterpolatedAst,
 	LambdaAst,
 	LetAst,
@@ -73,8 +73,7 @@ import model.ast :
 	LoopAst,
 	LoopBreakAst,
 	LoopContinueAst,
-	LoopUntilAst,
-	LoopWhileAst,
+	LoopWhileOrUntilAst,
 	MatchAst,
 	MatchElseAst,
 	NameAndRange,
@@ -82,13 +81,11 @@ import model.ast :
 	PtrAst,
 	SeqAst,
 	SharedAst,
-	TernaryAst,
 	ThenAst,
 	ThrowAst,
 	TrustedAst,
 	TypeAst,
 	TypedAst,
-	UnlessAst,
 	WithAst;
 import model.model : AssertOrForbidKind;
 import model.parseDiag : ParseDiag;
@@ -271,15 +268,18 @@ ExprAst parseCalls(ref Lexer lexer, Pos start, ref ExprAst lhs, ArgCtx argCtx) {
 ExprAst parseCallsAfterQuestion(ref Lexer lexer, Pos start, ref ExprAst lhs, Pos questionPos, ArgCtx argCtx) {
 	ExprAst then = parseExprAndCalls(lexer, argCtx);
 	Pos colonPos = curPos(lexer);
-	if (tryTakeToken(lexer, Token.colon)) {
-		ExprAst else_ = parseExprAndCalls(lexer, argCtx);
-		return ExprAst(
-				range(lexer, start),
-				ExprAstKind(allocate(lexer.alloc, TernaryAst(lhs, questionPos, then, some(colonPos), else_))));
-	} else
-		return ExprAst(
-			range(lexer, start),
-			ExprAstKind(allocate(lexer.alloc, TernaryAst(lhs, questionPos, then, none!Pos, emptyAst(lexer)))));
+	bool hasColon = tryTakeToken(lexer, Token.colon);
+	ExprAst else_ = hasColon
+		? parseExprAndCalls(lexer, argCtx)
+		: emptyAst(lexer);
+	return ExprAst(
+		range(lexer, start),
+		ExprAstKind(IfAst(
+			kind: hasColon ? IfAst.Kind.ternaryWithElse : IfAst.Kind.ternaryWithoutElse,
+			firstKeywordPos: questionPos,
+			secondKeywordPos: colonPos,
+			condition: IfConditionAst(allocate(lexer.alloc, lhs)),
+			thenElse: allocate!(ExprAst[2])(lexer.alloc, [then, else_]))));
 }
 
 bool canParseTernaryExpr(in ArgCtx argCtx) =>
@@ -541,51 +541,54 @@ ExprAst parseIf(ref Lexer lexer, Pos start) =>
 	parseIfRecur(lexer, start);
 
 ExprAst parseIfRecur(ref Lexer lexer, Pos start) {
-	if (lookaheadQuestionEquals(lexer)) {
-		DestructureAst lhs = parseDestructureNoRequireParens(lexer);
-		Pos questionEqualPos = curPos(lexer);
-		takeOrAddDiagExpectedToken(lexer, Token.questionEqual, ParseDiag.Expected.Kind.questionEqual);
-		ConditionThenAndElse cte = parseConditionThenAndElse(lexer);
-		ExprAstKind kind = ExprAstKind(allocate(lexer.alloc, IfOptionAst(
-			lhs,
-			questionEqualPos,
-			cte.condition,
-			cte.then,
-			cte.else_)));
-		return ExprAst(range(lexer, start), kind);
-	} else {
-		ConditionThenAndElse cte = parseConditionThenAndElse(lexer);
-		return ExprAst(
-			range(lexer, start),
-			ExprAstKind(allocate(lexer.alloc, IfAst(cte.condition, cte.then, cte.elifOrElseKeyword, cte.else_))));
-	}
-}
+	IfConditionAst condition = () {
+		if (lookaheadQuestionEquals(lexer)) {
+			DestructureAst lhs = parseDestructureNoRequireParens(lexer);
+			Pos questionEqualPos = curPos(lexer);
+			takeOrAddDiagExpectedToken(lexer, Token.questionEqual, ParseDiag.Expected.Kind.questionEqual);
+			ExprAst option = parseExprNoBlock(lexer);
+			return IfConditionAst(allocate(lexer.alloc,
+				IfConditionAst.UnpackOption(lhs, questionEqualPos, allocate(lexer.alloc, option))));
+		} else
+			return IfConditionAst(allocate(lexer.alloc, parseExprNoBlock(lexer)));
+	}();
 
-struct ConditionThenAndElse {
-	ExprAst condition;
-	ExprAst then;
-	Opt!ElifOrElseKeyword elifOrElseKeyword;
-	ExprAst else_; // May be EmptyAst
-}
-
-ConditionThenAndElse parseConditionThenAndElse(ref Lexer lexer) {
-	ExprAst condition = parseExprNoBlock(lexer);
 	ExprAst then = parseIndentedStatements(lexer);
-	Pos elifStart = curPos(lexer);
 	Opt!ElifOrElseKeyword elifOrElse = tryTakeNewlineThenElifOrElse(lexer);
+
 	ExprAst else_ = () {
 		if (has(elifOrElse)) {
 			final switch (force(elifOrElse).kind) {
 				case ElifOrElseKeyword.Kind.elif:
-					return parseIfRecur(lexer, elifStart);
+					return parseIfRecur(lexer, force(elifOrElse).pos);
 				case ElifOrElseKeyword.Kind.else_:
 					return parseIndentedStatements(lexer);
 			}
 		} else
 			return emptyAst(lexer);
 	}();
-	return ConditionThenAndElse(condition, then, elifOrElse, else_);
+
+	IfAst.Kind kind = () {
+		if (has(elifOrElse)) {
+			final switch (force(elifOrElse).kind) {
+				case ElifOrElseKeyword.Kind.elif:
+					return IfAst.Kind.ifElif;
+				case ElifOrElseKeyword.Kind.else_:
+					return IfAst.Kind.ifElse;
+			}
+		} else
+			return IfAst.Kind.ifWithoutElse;
+	}();
+
+	ExprAstKind exprKind = ExprAstKind(IfAst(
+		kind: kind,
+		firstKeywordPos: start,
+		secondKeywordPos: has(elifOrElse) ? force(elifOrElse).pos : 0,
+		condition,
+		allocate!(ExprAst[2])(lexer.alloc, [then, else_])));
+	return ExprAst(range(lexer, start), exprKind);
 }
+
 
 immutable struct ConditionAndBody {
 	ExprAst condition;
@@ -601,7 +604,12 @@ ConditionAndBody parseConditionAndBody(ref Lexer lexer) {
 ExprAst parseUnless(ref Lexer lexer, Pos start) {
 	ConditionAndBody cb = parseConditionAndBody(lexer);
 	ExprAst else_ = ExprAst(rangeOfStartAndLength(start, "unless".length), ExprAstKind(EmptyAst()));
-	return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, UnlessAst(cb.condition, cb.body_, else_))));
+	return ExprAst(range(lexer, start), ExprAstKind(IfAst(
+		kind: IfAst.Kind.unless,
+		firstKeywordPos: start,
+		secondKeywordPos: 0,
+		condition: IfConditionAst(allocate(lexer.alloc, cb.condition)),
+		thenElse: allocate!(ExprAst[2])(lexer.alloc, [cb.body_, else_]))));
 }
 
 ExprAst parseShared(ref Lexer lexer, Pos start, AllowedBlock allowedBlock) =>
@@ -699,14 +707,11 @@ ExprAst parseLoopBreak(ref Lexer lexer, Pos start) {
 	return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, LoopBreakAst(value))));
 }
 
-ExprAst parseLoopUntil(ref Lexer lexer, Pos start) {
+ExprAst parseLoopWhileOrUntil(ref Lexer lexer, Pos start, bool isUntil) {
 	ConditionAndBody cb = parseConditionAndBody(lexer);
-	return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, LoopUntilAst(cb.condition, cb.body_))));
-}
-
-ExprAst parseLoopWhile(ref Lexer lexer, Pos start) {
-	ConditionAndBody cb = parseConditionAndBody(lexer);
-	return ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, LoopWhileAst(cb.condition, cb.body_))));
+	return ExprAst(
+		range(lexer, start),
+		ExprAstKind(allocate(lexer.alloc, LoopWhileOrUntilAst(isUntil, cb.condition, cb.body_))));
 }
 
 ExprAst takeIndentOrFail_Expr(ref Lexer lexer, in ExprAst delegate() @safe @nogc pure nothrow cbIndent) =>
@@ -905,9 +910,11 @@ ExprAst parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBlock) {
 		case Token.unless:
 			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.unless, () => parseUnless(lexer, start));
 		case Token.until:
-			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.until, () => parseLoopUntil(lexer, start));
+			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.until, () =>
+				parseLoopWhileOrUntil(lexer, start, isUntil: true));
 		case Token.while_:
-			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.while_, () => parseLoopWhile(lexer, start));
+			return ifAllowBlock(ParseDiag.NeedsBlockCtx.Kind.while_, () =>
+				parseLoopWhileOrUntil(lexer, start, isUntil: false));
 		case Token.with_:
 			return parseWith(lexer, start, allowedBlock);
 		default:

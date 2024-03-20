@@ -338,50 +338,88 @@ immutable struct IdentifierAst {
 	Symbol name;
 }
 
-immutable struct ElifOrElseKeyword {
-	@safe @nogc pure nothrow:
-	enum Kind { elif, else_ }
-	Kind kind;
-	Pos pos;
+immutable struct IfConditionAst {
+	immutable struct UnpackOption {
+		@safe @nogc pure nothrow:
+		DestructureAst destructure;
+		Pos questionEqualsPos;
+		ExprAst* option;
 
-	static assert("elif".length == "else".length);
-	Range range() scope =>
-		rangeOfStartAndLength(pos, "else".length);
+		Range questionEqualsRange() scope =>
+			rangeOfStartAndLength(questionEqualsPos, "?=".length);
+	}
+	mixin TaggedUnion!(UnpackOption*, ExprAst*);
 }
 
 immutable struct IfAst {
 	@safe @nogc pure nothrow:
-	ExprAst cond;
-	ExprAst then;
-	Opt!ElifOrElseKeyword elifOrElseKeyword;
-	// May be EmptyAst
-	ExprAst else_;
-
-	Range ifKeywordRange(in ExprAst* ast) scope {
-		assert(ast.kind.as!(IfAst*) == &this);
-		return ast.range[0 .. "if".length];
+	enum Kind {
+		ifWithoutElse, // 'if' with no 'else'
+		ifElif, // In this case, the 'else' expression will be another IfAst
+		ifElse, // Has 'if' and 'else' keywords
+		ternaryWithElse, // 'cond ? then : else'
+		ternaryWithoutElse, // 'cond ? then'
+		unless,
 	}
-	bool hasElse() scope =>
-		!else_.kind.isA!EmptyAst;
-}
 
-immutable struct IfOptionAst {
-	@safe @nogc pure nothrow:
-	DestructureAst destructure;
-	Pos questionEqualsPos;
-	ExprAst option;
-	ExprAst then;
-	// May be EmptyAst
-	ExprAst else_;
+	Kind kind;
+	Pos firstKeywordPos; // Position of 'if' or '?' or 'unless'
+	Pos secondKeywordPos; // Position of 'elif' or 'else' or ':' keyword
+	IfConditionAst condition;
+	// For an 'unless', the 'then' is still the first branch syntactically.
+	// 'else' is often an EmptyAst.
+	private ExprAst[2]* thenElse;
 
-	Range ifKeywordRange(in ExprAst* ast) {
-		assert(ast.kind.as!(IfOptionAst*) == &this);
-		return ast.range[0 .. "if".length];
+	ref ExprAst then() return scope =>
+		(*thenElse)[0];
+	ref ExprAst else_() return scope =>
+		(*thenElse)[1];
+
+	Range firstKeywordRange() scope {
+		size_t length = () {
+			final switch (kind) {
+				case Kind.ifWithoutElse:
+				case Kind.ifElif:
+				case Kind.ifElse:
+					return "if".length;
+				case Kind.ternaryWithElse:
+				case Kind.ternaryWithoutElse:
+					return "?".length;
+				case Kind.unless:
+					return "unless".length;
+			}
+		}();
+		return rangeOfStartAndLength(firstKeywordPos, length);
 	}
-	Range questionEqualsRange() scope =>
-		rangeOfStartAndLength(questionEqualsPos, "?=".length);
-	bool hasElse() scope =>
-		!else_.kind.isA!EmptyAst;
+	Range secondKeywordRange() {
+		size_t length = () {
+			final switch (kind) {
+				case Kind.ifWithoutElse:
+				case Kind.ternaryWithoutElse:
+				case Kind.unless:
+					return 0;
+				case Kind.ifElif:
+				case Kind.ifElse:
+					return "else".length;
+				case Kind.ternaryWithElse:
+					return ":".length;
+			}
+		}();
+		return rangeOfStartAndLength(secondKeywordPos, length);
+	}
+
+	bool hasElse() scope {
+		final switch (kind) {
+			case Kind.ifWithoutElse:
+			case Kind.ternaryWithoutElse:
+			case Kind.unless:
+				return false;
+			case Kind.ifElif:
+			case Kind.ifElse:
+			case Kind.ternaryWithElse:
+				return true;
+		}
+	}
 }
 
 immutable struct InterpolatedAst {
@@ -500,24 +538,15 @@ immutable struct LoopContinueAst {
 		source.range[0 .. "continue".length];
 }
 
-immutable struct LoopUntilAst {
+immutable struct LoopWhileOrUntilAst {
 	@safe @nogc pure nothrow:
+	bool isUntil;
 	ExprAst condition;
 	ExprAst body_;
 
 	Range keywordRange(in ExprAst* source) scope {
-		assert(source.kind.as!(LoopUntilAst*) == &this);
-		return source.range[0 .. "until".length];
-	}
-}
-
-immutable struct LoopWhileAst {
-	@safe @nogc pure nothrow:
-	ExprAst condition;
-	ExprAst body_;
-
-	Range keywordRange(in ExprAst* source) scope {
-		assert(source.kind.as!(LoopWhileAst*) == &this);
+		assert(source.kind.as!(LoopWhileOrUntilAst*) == &this);
+		static assert("while".length == "until".length);
 		return source.range[0 .. "while".length];
 	}
 }
@@ -606,25 +635,6 @@ immutable struct SharedAst {
 	}
 }
 
-immutable struct TernaryAst {
-	@safe @nogc pure nothrow:
-	ExprAst cond;
-	Pos questionPos;
-	ExprAst then;
-	Opt!Pos colonPos;
-	// May be EmptyAst
-	ExprAst else_;
-
-	Range questionRange() scope =>
-		rangeOfStartAndLength(questionPos, "?".length);
-	Opt!Range colonRange() scope =>
-		has(colonPos)
-			? some(rangeOfStartAndLength(force(colonPos), ":".length))
-			: none!Range;
-	bool hasElse() scope =>
-		!else_.kind.isA!EmptyAst;
-}
-
 immutable struct ThenAst {
 	@safe @nogc pure nothrow:
 	DestructureAst left;
@@ -667,18 +677,6 @@ immutable struct TypedAst {
 		rangeOfStartAndLength(colonPos, "::".length);
 }
 
-immutable struct UnlessAst {
-	@safe @nogc pure nothrow:
-	ExprAst cond;
-	ExprAst body_;
-	ExprAst emptyElse; // Always EmptyAst
-
-	Range keywordRange(in ExprAst* ast) {
-		assert(ast.kind.as!(UnlessAst*) == &this);
-		return ast.range[0 .. "unless".length];
-	}
-}
-
 immutable struct WithAst {
 	@safe @nogc pure nothrow:
 
@@ -709,8 +707,7 @@ immutable struct ExprAstKind {
 		EmptyAst,
 		ForAst*,
 		IdentifierAst,
-		IfAst*,
-		IfOptionAst*,
+		IfAst,
 		InterpolatedAst,
 		LambdaAst*,
 		LetAst*,
@@ -720,22 +717,21 @@ immutable struct ExprAstKind {
 		LoopAst*,
 		LoopBreakAst*,
 		LoopContinueAst,
-		LoopUntilAst*,
-		LoopWhileAst*,
+		LoopWhileOrUntilAst*,
 		MatchAst,
 		ParenthesizedAst*,
 		PtrAst*,
 		SeqAst*,
 		SharedAst*,
-		TernaryAst*,
 		ThenAst*,
 		ThrowAst*,
 		TrustedAst*,
 		TypedAst*,
-		UnlessAst*,
 		WithAst*);
 }
-static assert(ExprAstKind.sizeof == CallAst.sizeof + ulong.sizeof);
+version (WebAssembly) {} else {
+	static assert(ExprAstKind.sizeof == CallAst.sizeof + ulong.sizeof);
+}
 
 immutable struct ExprAst {
 	Range range;

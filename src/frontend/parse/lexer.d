@@ -19,7 +19,6 @@ import frontend.parse.lexToken :
 	plainToken;
 import frontend.parse.lexWhitespace :
 	mayContinueOntoNextLine, detectIndentKind, IndentKind, skipSpacesAndComments, skipUntilNewline;
-import model.ast : ElifOrElseKeyword;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
@@ -32,7 +31,7 @@ import util.symbol : symbol;
 import util.util : enumConvert;
 
 public import frontend.parse.lexString : QuoteKind, StringPart;
-public import frontend.parse.lexToken : EqualsOrThen, Token, TokenAndData;
+public import frontend.parse.lexToken : ElifOrElseKeyword, EqualsOrThen, Token, TokenAndData;
 
 struct Lexer {
 	@safe @nogc pure nothrow:

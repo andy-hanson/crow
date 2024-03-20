@@ -28,8 +28,7 @@ import model.model :
 	LoopBreakExpr,
 	LoopContinueExpr,
 	LoopExpr,
-	LoopUntilExpr,
-	LoopWhileExpr,
+	LoopWhileOrUntilExpr,
 	MatchEnumExpr,
 	MatchIntegralExpr,
 	MatchStringLikeExpr,
@@ -285,9 +284,7 @@ Opt!T findDirectChildExpr(T)(
 			cb(sameType(x.value)),
 		(LoopContinueExpr _) =>
 			none!T,
-		(LoopUntilExpr* x) =>
-			optOr!T(cb(ExprRef(&x.condition, boolType)), () => cb(ExprRef(&x.body_, voidType))),
-		(LoopWhileExpr* x) =>
+		(LoopWhileOrUntilExpr* x) =>
 			optOr!T(cb(ExprRef(&x.condition, boolType)), () => cb(ExprRef(&x.body_, voidType))),
 		(MatchEnumExpr* x) =>
 			optOr!T(

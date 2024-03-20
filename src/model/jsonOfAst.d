@@ -25,7 +25,7 @@ import model.ast :
 	ModifierAst,
 	IdentifierAst,
 	IfAst,
-	IfOptionAst,
+	IfConditionAst,
 	ImportOrExportAst,
 	ImportOrExportAstKind,
 	ImportsOrExportsAst,
@@ -39,8 +39,7 @@ import model.ast :
 	LoopAst,
 	LoopBreakAst,
 	LoopContinueAst,
-	LoopUntilAst,
-	LoopWhileAst,
+	LoopWhileOrUntilAst,
 	MatchAst,
 	MatchElseAst,
 	ModifierAst,
@@ -60,13 +59,11 @@ import model.ast :
 	StructDeclAst,
 	stringOfModifierKeyword,
 	symbolForTypeAstSuffix,
-	TernaryAst,
 	ThenAst,
 	ThrowAst,
 	TrustedAst,
 	TypeAst,
 	TypedAst,
-	UnlessAst,
 	WithAst;
 import model.model : Visibility;
 import util.alloc.alloc : Alloc;
@@ -457,16 +454,18 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 		(in IfAst e) =>
 			jsonObject(alloc, [
 				kindField!"if",
-				field!"condition"(jsonOfExprAst(alloc, ctx, e.cond)),
+				field!"if-kind"(stringOfEnum(e.kind)),
+				field!"condition"(e.condition.matchIn!Json(
+					(in IfConditionAst.UnpackOption x) =>
+						jsonObject(alloc, [
+							field!"destructure"(jsonOfDestructureAst(alloc, ctx, x.destructure)),
+							field!"option"(jsonOfExprAst(alloc, ctx, *x.option))]),
+					(in ExprAst x) =>
+						jsonOfExprAst(alloc, ctx, x))),
+				field!"first-keyword"(e.firstKeywordPos),
 				field!"then"(jsonOfExprAst(alloc, ctx, e.then)),
+				field!"second-keyword"(e.secondKeywordPos),
 				field!"else"(jsonOfExprAst(alloc, ctx, e.else_))]),
-		(in IfOptionAst x) =>
-			jsonObject(alloc, [
-				kindField!"if-option",
-				field!"destructure"(jsonOfDestructureAst(alloc, ctx, x.destructure)),
-				field!"option"(jsonOfExprAst(alloc, ctx, x.option)),
-				field!"then"(jsonOfExprAst(alloc, ctx, x.then)),
-				field!"else"(jsonOfExprAst(alloc, ctx, x.else_))]),
 		(in InterpolatedAst x) =>
 			jsonObject(alloc, [
 				kindField!"interpolated",
@@ -498,14 +497,9 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 				field!"value"(jsonOfExprAst(alloc, ctx, e.value))]),
 		(in LoopContinueAst _) =>
 			jsonObject(alloc, [kindField!"continue"]),
-		(in LoopUntilAst e) =>
+		(in LoopWhileOrUntilAst e) =>
 			jsonObject(alloc, [
-				kindField!"until",
-				field!"condition"(jsonOfExprAst(alloc, ctx, e.condition)),
-				field!"body"(jsonOfExprAst(alloc, ctx, e.body_))]),
-		(in LoopWhileAst e) =>
-			jsonObject(alloc, [
-				kindField!"while",
+				kindField(e.isUntil ? "until" : "while"),
 				field!"condition"(jsonOfExprAst(alloc, ctx, e.condition)),
 				field!"body"(jsonOfExprAst(alloc, ctx, e.body_))]),
 		(in MatchAst x) =>
@@ -533,14 +527,6 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 			jsonObject(alloc, [
 				kindField!"shared",
 				field!"inner"(jsonOfExprAst(alloc, ctx, a.inner))]),
-		(in TernaryAst x) =>
-			jsonObject(alloc, [
-				kindField!"ternary",
-				field!"cond"(jsonOfExprAst(alloc, ctx, x.cond)),
-				field!"question-pos"(x.questionPos),
-				field!"then"(jsonOfExprAst(alloc, ctx, x.then)),
-				optionalField!("colon", Pos)(x.colonPos, (in Pos x) => Json(x)),
-				field!"else"(jsonOfExprAst(alloc, ctx, x.else_))]),
 		(in ThenAst x) =>
 			jsonObject(alloc, [
 				kindField!"then",
@@ -560,11 +546,6 @@ Json jsonOfExprAstKind(ref Alloc alloc, in Ctx ctx, in ExprAstKind ast) =>
 				kindField!"typed",
 				field!"expr"(jsonOfExprAst(alloc, ctx, x.expr)),
 				field!"type"(jsonOfTypeAst(alloc, ctx, x.type))]),
-		(in UnlessAst x) =>
-			jsonObject(alloc, [
-				kindField!"unless",
-				field!"condition"(jsonOfExprAst(alloc, ctx, x.cond)),
-				field!"body"(jsonOfExprAst(alloc, ctx, x.body_))]),
 		(in WithAst x) =>
 			jsonObject(alloc, [
 				kindField!"with",

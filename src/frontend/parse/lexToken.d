@@ -4,9 +4,10 @@ module frontend.parse.lexToken;
 
 import frontend.parse.lexWhitespace :
 	AddDiag, DocCommentAndIndentDelta, IndentKind, skipBlankLinesAndGetIndentDelta, takeRestOfLine;
-import model.ast : ElifOrElseKeyword, LiteralFloatAst, LiteralIntegral;
+import model.ast : LiteralFloatAst, LiteralIntegral;
 import util.integralValues : IntegralValue;
 import util.opt : force, has, none, Opt, optOrDefault, some;
+import util.sourceRange : Pos;
 import util.string :
 	CString,
 	decodeHexDigit,
@@ -454,6 +455,11 @@ bool lookaheadNew(CString ptr) =>
 bool lookaheadElse(CString ptr) =>
 	startsWithIdentifier(ptr, "else");
 
+immutable struct ElifOrElseKeyword {
+	enum Kind { elif, else_ }
+	Kind kind;
+	Pos pos;
+}
 Opt!(ElifOrElseKeyword.Kind) lookaheadElifOrElse(CString ptr) =>
 	startsWithIdentifier(ptr, "elif")
 		? some(ElifOrElseKeyword.Kind.elif)

@@ -240,12 +240,11 @@ enum ExprKeyword {
 	elif,
 	else_,
 	forbid,
-	if_,
+	ifOrUnless,
 	lambdaArrow,
 	match,
 	throw_,
 	trusted,
-	unless,
 	until,
 	while_,
 }

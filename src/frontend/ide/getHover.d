@@ -16,7 +16,7 @@ import frontend.showModel :
 	writeTypeUnquoted,
 	writeVisibility;
 import lib.lsp.lspTypes : Hover, MarkupContent, MarkupKind;
-import model.ast : ExprAstKind, IfAst, IfOptionAst, MatchAst, ModifierKeyword, TernaryAst;
+import model.ast : ExprAst, ExprAstKind, IfAst, IfConditionAst, MatchAst, ModifierKeyword;
 import model.diag : TypeContainer, TypeWithContainer;
 import model.model :
 	BuiltinType,
@@ -391,20 +391,30 @@ void getExprKeywordHover(
 		case ExprKeyword.forbid:
 			writer ~= "Throws if the condition is 'true'.";
 			break;
-		case ExprKeyword.if_:
-			if (astKind.isA!(IfOptionAst*)) {
-				writer ~= "If the value is a non-empty option, destructures it and returns the first branch. ";
-				writer ~= astKind.as!(IfOptionAst*).hasElse
-					? " Otherwise, returns the second branch."
-					: " Otherwise, returns '()'.";
-			} else {
-				writer ~= "If the condition is 'true', returns the first branch. ";
-				bool hasElse = astKind.isA!(IfAst*)
-					? astKind.as!(IfAst*).hasElse
-					: astKind.as!(TernaryAst*).hasElse;
-				writer ~= hasElse
-					? " Otherwise, returns the second branch."
-					: " Otherwise, returns '()'.";
+		case ExprKeyword.ifOrUnless:
+			IfAst ifAst = astKind.as!IfAst;
+			final switch (ifAst.kind) {
+				case IfAst.Kind.ifWithoutElse:
+				case IfAst.Kind.ifElif:
+				case IfAst.Kind.ifElse:
+				case IfAst.Kind.ternaryWithElse:
+				case IfAst.Kind.ternaryWithoutElse:
+					ifAst.condition.matchIn!void(
+						(in IfConditionAst.UnpackOption) {
+							writer ~=
+								"If the value is a non-empty option, destructures it and returns the first branch.";
+						},
+						(in ExprAst _) {
+							writer ~= "If the condition is 'true', returns the first branch.";
+						});
+					writer ~= '\n';
+					writer ~= ifAst.hasElse
+						? "Otherwise, returns the second branch."
+						: "Otherwise, returns '()'.";
+					break;
+				case IfAst.Kind.unless:
+					writer ~= "Returns the body if the condition is false. If the condition is true, returns '()'.";
+					break;
 			}
 			break;
 		case ExprKeyword.lambdaArrow:
@@ -429,9 +439,6 @@ void getExprKeywordHover(
 			break;
 		case ExprKeyword.trusted:
 			writer ~= "Allows 'unsafe' code to be used anywhere.";
-			break;
-		case ExprKeyword.unless:
-			writer ~= "Returns the body if the condition is false. If the condition is true, returns '()'.";
 			break;
 		case ExprKeyword.until:
 			writer ~= "Loop will run as long as the condition is 'false'.";

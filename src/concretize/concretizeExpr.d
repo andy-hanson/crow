@@ -85,8 +85,7 @@ import model.model :
 	LoopBreakExpr,
 	LoopContinueExpr,
 	LoopExpr,
-	LoopUntilExpr,
-	LoopWhileExpr,
+	LoopWhileOrUntilExpr,
 	MatchEnumExpr,
 	MatchIntegralExpr,
 	MatchStringLikeExpr,
@@ -849,32 +848,12 @@ ConcreteExpr concretizeLoopContinue(
 	return ConcreteExpr(type, range, ConcreteExprKind(ConcreteExprKind.LoopContinue(loop)));
 }
 
-ConcreteExpr concretizeLoopUntil(
+ConcreteExpr concretizeLoopWhileOrUntil(
 	ref ConcretizeExprCtx ctx,
 	ConcreteType type,
 	in UriAndRange range,
 	in Locals locals,
-	ref LoopUntilExpr a,
-) =>
-	concretizeLoopUntilOrWhile(ctx, type, range, locals, a.condition, a.body_, true);
-
-ConcreteExpr concretizeLoopWhile(
-	ref ConcretizeExprCtx ctx,
-	ConcreteType type,
-	in UriAndRange range,
-	in Locals locals,
-	ref LoopWhileExpr a,
-) =>
-	concretizeLoopUntilOrWhile(ctx, type, range, locals, a.condition, a.body_, false);
-
-ConcreteExpr concretizeLoopUntilOrWhile(
-	ref ConcretizeExprCtx ctx,
-	ConcreteType type,
-	in UriAndRange range,
-	in Locals locals,
-	ref Expr conditionExpr,
-	ref Expr bodyExpr,
-	bool isUntil,
+	ref LoopWhileOrUntilExpr expr,
 ) {
 	assert(isVoid(type));
 	ConcreteExprKind.Loop* res = allocate(ctx.alloc, ConcreteExprKind.Loop());
@@ -886,13 +865,13 @@ ConcreteExpr concretizeLoopUntilOrWhile(
 		voidType(ctx),
 		range,
 		ConcreteExprKind(allocate(ctx.alloc, ConcreteExprKind.Seq(
-			concretizeExpr(ctx, voidType(ctx), locals, bodyExpr),
+			concretizeExpr(ctx, voidType(ctx), locals, expr.body_),
 			ConcreteExpr(
 				voidType(ctx),
 				range,
 				ConcreteExprKind(ConcreteExprKind.LoopContinue(res)))))));
-	ConcreteExpr condition = concretizeExpr(ctx, boolType(ctx), locals, conditionExpr);
-	ConcreteExprKind.If if_ = isUntil
+	ConcreteExpr condition = concretizeExpr(ctx, boolType(ctx), locals, expr.condition);
+	ConcreteExprKind.If if_ = expr.isUntil
 		? ConcreteExprKind.If(condition, breakVoid, doAndContinue)
 		: ConcreteExprKind.If(condition, doAndContinue, breakVoid);
 	overwriteMemory(&res.body_, ConcreteExpr(voidType(ctx), range, ConcreteExprKind(allocate(ctx.alloc, if_))));
@@ -1081,10 +1060,8 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Loc
 			concretizeLoopBreak(ctx, type, range, locals, x),
 		(LoopContinueExpr x) =>
 			concretizeLoopContinue(ctx, type, range, locals, x),
-		(ref LoopUntilExpr x) =>
-			concretizeLoopUntil(ctx, type, range, locals, x),
-		(ref LoopWhileExpr x) =>
-			concretizeLoopWhile(ctx, type, range, locals, x),
+		(ref LoopWhileOrUntilExpr x) =>
+			concretizeLoopWhileOrUntil(ctx, type, range, locals, x),
 		(ref MatchEnumExpr x) =>
 			concretizeMatchEnum(ctx, type, range, locals, x),
 		(ref MatchIntegralExpr x) =>

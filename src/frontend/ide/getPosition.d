@@ -29,7 +29,7 @@ import model.ast :
 	FunDeclAst,
 	ModifierAst,
 	IfAst,
-	IfOptionAst,
+	IfConditionAst,
 	ImportOrExportAst,
 	keywordRange,
 	LambdaAst,
@@ -37,8 +37,7 @@ import model.ast :
 	LiteralIntegralAndRange,
 	LoopAst,
 	LoopBreakAst,
-	LoopUntilAst,
-	LoopWhileAst,
+	LoopWhileOrUntilAst,
 	MatchAst,
 	ModifierKeyword,
 	NameAndRange,
@@ -50,13 +49,11 @@ import model.ast :
 	SpecUseAst,
 	StructBodyAst,
 	StructDeclAst,
-	TernaryAst,
 	TestAst,
 	ThrowAst,
 	TrustedAst,
 	TypeAst,
 	TypedAst,
-	UnlessAst,
 	VisibilityAndRange,
 	WithAst;
 import model.diag : TypeContainer, TypeWithContainer;
@@ -90,8 +87,7 @@ import model.model :
 	LoopBreakExpr,
 	LoopContinueExpr,
 	LoopExpr,
-	LoopUntilExpr,
-	LoopWhileExpr,
+	LoopWhileOrUntilExpr,
 	MatchEnumExpr,
 	MatchIntegralExpr,
 	MatchStringLikeExpr,
@@ -594,11 +590,12 @@ Opt!PositionKind positionAtExpr(ref ExprCtx ctx, in Loops loops, ExprRef a, Pos 
 			return optIf(has(k), () => keyword(force(k)));
 		},
 		(ref IfOptionExpr x) {
-			IfOptionAst* if_ = ast.kind.as!(IfOptionAst*);
+			IfAst if_ = ast.kind.as!IfAst;
+			IfConditionAst.UnpackOption* cond = if_.condition.as!(IfConditionAst.UnpackOption*);
 			return optOr!PositionKind(
-				keywordAt(if_.ifKeywordRange(ast), ExprKeyword.if_),
-				() => inDestructure(x.destructure, if_.destructure),
-				() => keywordAt(if_.questionEqualsRange, ExprKeyword.if_));
+				keywordAt(if_.firstKeywordRange, ExprKeyword.ifOrUnless),
+				() => inDestructure(x.destructure, cond.destructure),
+				() => keywordAt(cond.questionEqualsRange, ExprKeyword.ifOrUnless));
 		},
 		(ref LambdaExpr x) {
 			Opt!Range arrowRange = ast.kind.as!(LambdaAst*).arrowRange;
@@ -627,10 +624,10 @@ Opt!PositionKind positionAtExpr(ref ExprCtx ctx, in Loops loops, ExprRef a, Pos 
 				loopKeyword(ExpressionPositionKind.LoopKeyword.Kind.break_, x.loop)),
 		(LoopContinueExpr x) =>
 			some(loopKeyword(ExpressionPositionKind.LoopKeyword.Kind.continue_, x.loop)),
-		(ref LoopUntilExpr x) =>
-			keywordAt(ast.kind.as!(LoopUntilAst*).keywordRange(ast), ExprKeyword.until),
-		(ref LoopWhileExpr x) =>
-			keywordAt(ast.kind.as!(LoopWhileAst*).keywordRange(ast), ExprKeyword.while_),
+		(ref LoopWhileOrUntilExpr x) =>
+			keywordAt(
+				ast.kind.as!(LoopWhileOrUntilAst*).keywordRange(ast),
+				x.isUntil ? ExprKeyword.until : ExprKeyword.while_),
 		(ref MatchEnumExpr x) =>
 			positionAtMatchEnum(ctx, a, x, *ast, pos),
 		(ref MatchIntegralExpr x) =>
@@ -671,26 +668,23 @@ bool isAtAssignment(in ExprAst* ast, Pos pos) {
 }
 
 Opt!ExprKeyword keywordAtIf(in ExprAst* ast, Pos pos) {
-	if (ast.kind.isA!(IfAst*)) {
-		IfAst* if_ = ast.kind.as!(IfAst*);
-		return hasPos(if_.ifKeywordRange(ast), pos)
-			? some(ExprKeyword.if_)
-			: has(if_.elifOrElseKeyword) && hasPos(force(if_.elifOrElseKeyword).range, pos)
-			? some(enumConvert!ExprKeyword(force(if_.elifOrElseKeyword).kind))
-			: none!ExprKeyword;
-	} else if (ast.kind.isA!(TernaryAst*)) {
-		TernaryAst* ternary = ast.kind.as!(TernaryAst*);
-		Opt!Range colonRange = ternary.colonRange;
-		return hasPos(ternary.questionRange, pos)
-			? some(ExprKeyword.if_)
-			: has(colonRange) && hasPos(force(colonRange), pos)
-			? some(ExprKeyword.else_)
-			: none!ExprKeyword;
-	} else if (ast.kind.isA!(UnlessAst*)) {
-		UnlessAst* unless = ast.kind.as!(UnlessAst*);
-		return optIf(hasPos(unless.keywordRange(ast), pos), () => ExprKeyword.unless);
-	} else
-		assert(false);
+	IfAst if_ = ast.kind.as!IfAst;
+	if (hasPos(if_.firstKeywordRange, pos))
+		return some(ExprKeyword.ifOrUnless);
+	else if (hasPos(if_.secondKeywordRange, pos))
+		final switch (if_.kind) {
+			case IfAst.Kind.ifElif:
+				return some(ExprKeyword.elif);
+			case IfAst.Kind.ifElse:
+			case IfAst.Kind.ternaryWithElse:
+				return some(ExprKeyword.else_);
+			case IfAst.Kind.ifWithoutElse:
+			case IfAst.Kind.ternaryWithoutElse:
+			case IfAst.Kind.unless:
+				assert(0);
+		}
+	else
+		return none!ExprKeyword;
 }
 
 bool posIsAtCall(in ExprAst a, Pos pos) {

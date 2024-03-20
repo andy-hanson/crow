@@ -41,8 +41,7 @@ import model.model :
 	LoopBreakExpr,
 	LoopContinueExpr,
 	LoopExpr,
-	LoopUntilExpr,
-	LoopWhileExpr,
+	LoopWhileOrUntilExpr,
 	MatchEnumExpr,
 	MatchIntegralExpr,
 	MatchStringLikeExpr,
@@ -425,14 +424,9 @@ Json jsonOfExprKind(ref Alloc alloc, in Ctx ctx, in ExprKind a) =>
 				field!"value"(jsonOfExpr(alloc, ctx, x.value))]),
 		(in LoopContinueExpr x) =>
 			jsonObject(alloc, [kindField!"continue"]),
-		(in LoopUntilExpr x) =>
+		(in LoopWhileOrUntilExpr x) =>
 			jsonObject(alloc, [
-				kindField!"until",
-				field!"condition"(jsonOfExpr(alloc, ctx, x.condition)),
-				field!"body"(jsonOfExpr(alloc, ctx, x.body_))]),
-		(in LoopWhileExpr x) =>
-			jsonObject(alloc, [
-				kindField!"while",
+				kindField(x.isUntil ? "until" : "while"),
 				field!"condition"(jsonOfExpr(alloc, ctx, x.condition)),
 				field!"body"(jsonOfExpr(alloc, ctx, x.body_))]),
 		(in MatchEnumExpr x) =>

@@ -1505,7 +1505,7 @@ immutable struct CommonTypes {
 	StructDecl* list;
 	StructInst* char8List;
 	StructInst* char32List;
-	StructDecl* opt;
+	StructDecl* option;
 	StructDecl* ptrConst;
 	StructDecl* ptrMut;
 	// No tuple0 and tuple1, so this is 2-9 inclusive
@@ -1867,8 +1867,7 @@ immutable struct ExprKind {
 		LoopExpr*,
 		LoopBreakExpr*,
 		LoopContinueExpr,
-		LoopUntilExpr*,
-		LoopWhileExpr*,
+		LoopWhileOrUntilExpr*,
 		MatchEnumExpr*,
 		MatchIntegralExpr*,
 		MatchStringLikeExpr*,
@@ -2007,12 +2006,8 @@ immutable struct LoopContinueExpr {
 	LoopExpr* loop;
 }
 
-immutable struct LoopUntilExpr {
-	Expr condition;
-	Expr body_;
-}
-
-immutable struct LoopWhileExpr {
+immutable struct LoopWhileOrUntilExpr {
+	bool isUntil;
 	Expr condition;
 	Expr body_;
 }

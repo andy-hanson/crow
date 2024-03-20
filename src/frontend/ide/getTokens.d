@@ -29,7 +29,7 @@ import model.ast :
 	ModifierAst,
 	IdentifierAst,
 	IfAst,
-	IfOptionAst,
+	IfConditionAst,
 	ImportOrExportAst,
 	ImportOrExportAstKind,
 	ImportsOrExportsAst,
@@ -43,8 +43,7 @@ import model.ast :
 	LoopAst,
 	LoopBreakAst,
 	LoopContinueAst,
-	LoopUntilAst,
-	LoopWhileAst,
+	LoopWhileOrUntilAst,
 	MatchAst,
 	NameAndRange,
 	ParamsAst,
@@ -59,14 +58,12 @@ import model.ast :
 	StructAliasAst,
 	StructBodyAst,
 	StructDeclAst,
-	TernaryAst,
 	ThenAst,
 	TestAst,
 	ThrowAst,
 	TrustedAst,
 	TypeAst,
 	TypedAst,
-	UnlessAst,
 	VarDeclAst,
 	WithAst;
 import util.alloc.alloc : Alloc;
@@ -537,13 +534,14 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 			reference(ctx.tokens, TokenType.variable, a.range);
 		},
 		(in IfAst x) {
-			addExprTokens(ctx, x.cond);
-			addExprTokens(ctx, x.then);
-			addExprTokens(ctx, x.else_);
-		},
-		(in IfOptionAst x) {
-			addDestructureTokens(ctx, x.destructure);
-			addExprTokens(ctx, x.option);
+			x.condition.matchIn!void(
+				(in IfConditionAst.UnpackOption cond) {
+					addDestructureTokens(ctx, cond.destructure);
+					addExprTokens(ctx, *cond.option);
+				},
+				(in ExprAst cond) {
+					addExprTokens(ctx, cond);
+				});
 			addExprTokens(ctx, x.then);
 			addExprTokens(ctx, x.else_);
 		},
@@ -584,11 +582,7 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 			addExprTokens(ctx, x.value);
 		},
 		(in LoopContinueAst _) {},
-		(in LoopUntilAst x) {
-			addExprTokens(ctx, x.condition);
-			addExprTokens(ctx, x.body_);
-		},
-		(in LoopWhileAst x) {
+		(in LoopWhileOrUntilAst x) {
 			addExprTokens(ctx, x.condition);
 			addExprTokens(ctx, x.body_);
 		},
@@ -626,11 +620,6 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 		(in SharedAst x) {
 			addExprTokens(ctx, x.inner);
 		},
-		(in TernaryAst x) {
-			addExprTokens(ctx, x.cond);
-			addExprTokens(ctx, x.then);
-			addExprTokens(ctx, x.else_);
-		},
 		(in ThenAst x) {
 			addDestructureTokens(ctx, x.left);
 			addExprTokens(ctx, x.futExpr);
@@ -645,10 +634,6 @@ void addExprTokens(scope ref Ctx ctx, in ExprAst a) {
 		(in TypedAst x) {
 			addExprTokens(ctx, x.expr);
 			addTypeTokens(ctx, x.type);
-		},
-		(in UnlessAst x) {
-			addExprTokens(ctx, x.cond);
-			addExprTokens(ctx, x.body_);
 		},
 		(in WithAst x) {
 			addDestructureTokens(ctx, x.param);
